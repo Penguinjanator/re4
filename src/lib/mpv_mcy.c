@@ -506,25 +506,32 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 	case 2:
 	case 6: {
 		Sint32 stride = mc->stride;
-		Uint32 pitch;
 		Sint32 i;
 		Uint32 *d = mc->dst;
 		Uint8 *p = s;
-		Uint32 w0, w1, w2, h0, h1;
+		Uint32 h0, w0, w1, w2, h1;
 
-		pitch = (Uint32)stride & ~1;
-
+		/* Unaligned rows (2/6, 1/5, 3/7) are a sliding window shifted in place: the words are
+		 * loaded in address order, the source pointer is stepped BEFORE the packs (so the first
+		 * word's single-use load cannot be substituted into its use and stays a variable), and
+		 * each word is redefined with its packed value (so the pack webs cannot be sunk into the
+		 * stores: they are frontend temporaries numbered in load order, coloured r0/r3/r4 before
+		 * the loop's own locals). The pitch is the frontend-hoisted invariant, not a local. */
 		for (i = 0; i < 16; i++) {
+			h0 = *(Uint16 *)p;
 			w0 = *(Uint32 *)(p + 2);
 			w1 = *(Uint32 *)(p + 6);
 			w2 = *(Uint32 *)(p + 10);
-			h0 = *(Uint16 *)p;
 			h1 = *(Uint16 *)(p + 14);
-			d[0] = (h0 << 16) | (w0 >> 16);
-			d[1] = (w0 << 16) | (w1 >> 16);
-			d[16] = (w1 << 16) | (w2 >> 16);
-			d[17] = (w2 << 16) | h1;
-			p += pitch;
+			p += (Uint32)stride & ~1;
+			h0 = (h0 << 16) | (w0 >> 16);
+			w0 = (w0 << 16) | (w1 >> 16);
+			w1 = (w1 << 16) | (w2 >> 16);
+			w2 = (w2 << 16) | h1;
+			d[0] = h0;
+			d[1] = w0;
+			d[16] = w1;
+			d[17] = w2;
 			d += 2;
 			if (i == 7) {
 				d += 16;
@@ -545,16 +552,20 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 		stride = mc->stride;
 		for (i = 0; i < 16; i++) {
 			__dcbt(p, stride);
+			w0 = *(Uint32 *)(p - 1);
 			w1 = *(Uint32 *)(p + 3);
 			w2 = *(Uint32 *)(p + 7);
-			w0 = *(Uint32 *)(p - 1);
 			w3 = *(Uint32 *)(p + 11);
 			b = p[15];
-			d[0] = (w0 << 8) | (w1 >> 24);
-			d[1] = (w1 << 8) | (w2 >> 24);
-			d[16] = (w2 << 8) | (w3 >> 24);
-			d[17] = (w3 << 8) | b;
 			p += stride;
+			w0 = (w0 << 8) | (w1 >> 24);
+			w1 = (w1 << 8) | (w2 >> 24);
+			w2 = (w2 << 8) | (w3 >> 24);
+			w3 = (w3 << 8) | b;
+			d[0] = w0;
+			d[1] = w1;
+			d[16] = w2;
+			d[17] = w3;
 			d += 2;
 			if (i == 7) {
 				d += 16;
@@ -574,16 +585,20 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 		stride = mc->stride;
 		for (i = 0; i < 16; i++) {
 			__dcbt(p, stride);
+			w0 = *(Uint32 *)(p - 3);
 			w1 = *(Uint32 *)(p + 1);
 			w2 = *(Uint32 *)(p + 5);
-			w0 = *(Uint32 *)(p - 3);
 			w3 = *(Uint32 *)(p + 9);
 			w4 = *(Uint32 *)(p + 13);
-			d[0] = (w0 << 24) | (w1 >> 8);
-			d[1] = (w1 << 24) | (w2 >> 8);
-			d[16] = (w2 << 24) | (w3 >> 8);
-			d[17] = (w3 << 24) | (w4 >> 8);
 			p += stride;
+			w0 = (w0 << 24) | (w1 >> 8);
+			w1 = (w1 << 24) | (w2 >> 8);
+			w2 = (w2 << 24) | (w3 >> 8);
+			w3 = (w3 << 24) | (w4 >> 8);
+			d[0] = w0;
+			d[1] = w1;
+			d[16] = w2;
+			d[17] = w3;
 			d += 2;
 			if (i == 7) {
 				d += 16;

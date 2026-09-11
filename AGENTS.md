@@ -23890,3 +23890,88 @@ MOVED in ours, target has it in the OUTER preheader), then 0.0001/0.04/0.92/0.00
   through the j7 pin (unchanged: its rank needs the same missing insns).
 - Flags: nothing flipped (both False); the p-at-top / pv / FGet forms are zero-code, the loop A tag was retargeted,
   the two j7 pins stay. Objects rebuilt through the locked ninja; 111 not re-checked (nothing flipped).
+
+### Tool RELs, dbg_tool.h Update layout (one header edit: `cDbgToolMain<T>::Update()` arms in source order 0,1,2,6,3,7,4,5,8; t_event SubToolMessMove 274 -> 106, Tools/t_esp_area ToolEspArea 399 -> 287, Tools/t_lightarea ToolLightAreaMain 462 -> 121; db_toolbase IDENTICAL, 111 OK; nothing flipped; 2026-09-11)
+
+Harness /tmp/dbgv (deleted): a copy of include/dbg_tool.h plus each includer's .cpp with `#include "dbg_tool.h"` rewritten to the
+absolute path of the copy, judged with `~/.cache/kit/variant.sh <unit> /tmp/dbgv/<file>.cpp [FUNC] --no-diff` (t_event.cpp,
+t_esp_area.cpp, t_lightarea.cpp and db_toolbase.cpp all include dbg_tool.h directly, so the absolute-path include is enough; no
+build/ objects touched until the final apply). `reorder.py` cut the top-level `case N:` blocks of the `switch (mode)` and re-emitted
+them in a given order.
+
+- **Applied (zero code): the `case` labels of `switch (mode)` in `cDbgToolMain<T>::Update()` now stand in source order
+  0, 1, 2, 6, 3, 7, 4, 5, 8** (case 6 LoadData right after case 2, case 7 SaveData right after case 3; bodies unchanged). GCC 2.95
+  lays the arms out in source order, so this is exactly the t_event closer's "header copy reordered" form. Per includer:
+  t_event/t_event SubToolMessMove 274 -> 106 words (unit 336 -> 168, 59/69), Tools/t_esp_area ToolEspArea 399 -> 287 (unit 431 ->
+  319, 32/38), Tools/t_lightarea ToolLightAreaMain 462 -> 121 (37/38), Tools/db_toolbase stays IDENTICAL, t_id/t_id (does not include
+  dbg_tool.h) unchanged at 574 words 58/69. Objects: `/bin/rm build/G4BE08/src/Tools/*.o build/G4BE08/src/t_*/*.o` then the
+  flock'd `ninja -k 0`; `dtk shasum -c` 111 OK.
+- **Rejected: source order 0,1,2,6,3,7,4,8,5 (case 5 `ret = 0` last in the source): SubToolMessMove 175 words** (worse than 106) and
+  the register allocation shifts from the prologue on. Keep 5 before 8.
+- **The t_event closer's finding (2) ("case 4's pad test reads offset 0 of a symbol, not `Joy[0].on`") is a misreading of the dtk
+  listing:** the target is `lis r9, Joy+0x10@ha; lwz r0, Joy+0x10@l(r9); andi. r9,r0,0x200` (dtk shows the reloc'd `lwz` as
+  `lwz r0, 0x0(r9)`), i.e. plain `Joy[0].on & 0x200` with the address folded into the lo_sum; ours already emits the identical
+  three instructions at SubToolMessMove+0x818. The t_lightarea target spells the same test `lis Joy@ha; addi Joy@l; lwz 0x10`
+  (its Joy address is shared with the neighbouring trg tests). No header change for (2).
+- **Finding (3) remains a residue, not chased:** the target's case-5 `li r20,0` sits at the very end of the switch region
+  (SubToolMessMove+0x8c0, after case 8's `stw r30,0x1c(r31); b end`, falling through into `cmpwi r20,0`), ours emits
+  `li r20,0; b end` in source position after case 4 (+0x830, the 2-word insert). Putting case 5 last in the source does not give
+  that shape (see the rejected order); the remaining 106 words of SubToolMessMove are that insert plus register/issue-order
+  differences in the inlined WinUpdate/copy-loop regions (+0x698..0x7d0, +0xd50..0xec8).
+
+### CRI SWAR kernels pass 5: mpv_mcy 16x16 1p 57 -> 0w (pure C, the in-place sliding window); the frontend's substitution and web rules read off the dumps; nothing flipped (mpv_mcy 3/5 functions identical; 2026-09-11)
+Harness /home/adityas/.cache/cri_swar5/ (deleted): `try.py lib/unit file.c [Func..] [--sbs Func] [--all]` (unit flags compile of a scratch
+copy under src/lib, strip_unused, bytecmp with OBJ=, side-by-side `dtk elf disasm`), ~/.cache/mwccdbg `ra.py`/`rasum.py` (dumps of ~15
+probe TUs: base, v3a/v3b, e2, f1, k1, r1, r2, y1, z1, mcv2a). Units: lib/mpv_mcy (1p 57 -> 0, 4p 136, H2 225, V2 225 untouched),
+lib/mpv_mc (4p 72, V2 73, H2 436 untouched; 1p asm untouched). 111 OK before and after; objects.py untouched (mpv_mcy not identical).
+
+**Applied (pure C, zero code): `MPVMC16_OneRef1p_TuneC` cases 1/5, 3/7, 2/6 rewritten as the in-place sliding window**: the words
+are loaded in ADDRESS order (`w0 = *(Uint32 *)(p - 1); w1 = ..(p + 3); w2; w3; b = p[15];`), the source pointer is stepped BEFORE the
+packs (`p += stride;` — 2/6: `p += (Uint32)stride & ~1;` with no `pitch` local), each word is redefined with its packed value
+(`w0 = (w0 << 8) | (w1 >> 24); w1 = (w1 << 8) | (w2 >> 24); w2 = (w2 << 8) | (w3 >> 24); w3 = (w3 << 8) | b;`), then the four stores
+`d[0] = w0; d[1] = w1; d[16] = w2; d[17] = w3;`. Function byte-identical (schedule, registers, the `mr r0, r12` copy of `b`).
+
+**Why it works (each fact read off a frontend/backend dump, single-variable probes):**
+- **The frontend's single-use substitution has a fourth blocker: a statement between the def and the use that REDEFINES a variable
+  the RHS reads — including the pointer of a load.** `w0 = *(Uint32 *)(p - 1); ...; p += stride; ...; d[0] = f(w0)` keeps `w0` a
+  variable (AST y1; the code is unchanged because an own local coloured after the base's four backend temps also takes r3), while
+  without the step it is substituted regardless of `register`, `const`, `(Uint32)*(volatile Sint32 *)`, block-scope declaration,
+  `*(Uint32 *)&p[-1]`, a union view, a second pointer variable, an empty `asm { }`, or `#pragma opt_common_subs / opt_dead_assignments
+  / opt_dead_code / opt_loop_invariants / opt_strength_reduction / opt_propagation off`. Pass 4's list (store, if, dcbt) + this.
+- **A range-split web is sunk into its single use only if none of its RHS operands is redefined before the use.** In-place packs
+  `w0 = (w0 << 8) | (w1 >> 24); w1 = (w1 << 8) | (w2 >> 24); ...`: w0's pack web reads w1, which is redefined next, so it survives
+  as an @temp coalesced with its `srwi` (no `mr`: copies from a backend temp into an @temp coalesce; into an OWN local they never do —
+  v3a `srwi r0; mr r12, r0`, r1 x2/x3); w3's pack (`(w3 << 8) | b`, nothing redefined before `d[17] = w3`) is sunk = the backend temp
+  behind the target's `lbz r12; mr r0, r12` (b is an own local kept by the three stores). Without redefinition, a reused variable's
+  LAST TWO webs are sunk and the earlier ones survive (g2/v3a/f1/k1: 3/4/5/6 defs), the first web being the own local.
+- **@N numbering = the order of the variables' FIRST definition in the function; within one variable the later web gets the LOWER
+  @N.** z1 (loads w1, w2, w0, w3): @367 = w1's pack, @368 = w2's, @369 = w0's, @370 = w3's -> coloured T1 r0, T2 r3, T0 r4, w0 r3;
+  loads in address order (z2): T0, T1, T2 = r0, r3, r4 and the own locals stride r5, i r6, d r7, p r8, w0 r4 (lowest free: T2 is
+  not a neighbour), w1 r9, w2 r10, w3 r11, b r12 = the target. f1 (one `t` reused): web 2 @368, web 3 @367 (backwards) — so a
+  single reused temporary colours in reverse statement order, four distinct words colour in load order.
+- **A frontend-hoisted invariant is an @temp numbered with the early hoists (@27x, next to the dcbt's stride copies), i.e. coloured
+  right after the backend temps and before the pack webs**: 2/6's `p += (Uint32)stride & ~1;` gives `clrrwi r3` (target); a `pitch`
+  own local is coloured after the pack webs (r5). Replaces pass 3's "late backend temp" reading; the 2/6 colouring is then T3 (mr,
+  backend) r0, T0 web r0, pitch r3, T1 r4, T2 r5, own locals i r6 .. h1 r12, h0 r4.
+- **The or->rlwimi merge (peephole-forward) fuses the `rlwinm` operand DEFINED EARLIER in the raw order and keeps the later one as
+  the base** (base: `rlwinm r151 (slwi); rlwinm r152 (srwi); or r153, r151, r152` -> `mr r153, r152; rlwimi r153, w0`; v3b: `t = w1 >>
+  24` defined first -> t fused, slwi base). Operands are evaluated LEFT to right (pass 1's "A | B evaluates B first" is wrong). So a
+  variable holding the srwi (`x = lo >> 24; x = (hi << 8) | x` / `x |= hi << 8`, own local or helper local) is always fused: the
+  two-def helper forms (pass 4 N5, s3 here) are dead ends — N5's dead `rlwinm x, hi` is removed after RA but its output dependence
+  moves the second `rlwimi` before the first. `__rlwinm(lo, 8, 24, 31)` as x's def is fused too (s1); `__rlwinm(w0, 8, 0, 23) | (w1
+  >> 24)` keeps the intrinsic as base (t6) — intrinsic operands schedule differently (loads pulled up), unusable here.
+- **Helper locals are @N-numbered in reverse declaration order per inlining (r2: `x3, x2, x1, x0` -> @277, @276, @275), CSE temps
+  after them in first-occurrence order (@293-@295) and created as NESTED assignments at the first occurrence** — which anchors the
+  enclosing def (r2's `x1 = ((@295 = LD) << 8) | ..` survived with one store between; r1: an own-local x1 with the same anchor
+  survived too — its `mr` vanished only by register luck). CSE'd loads colour before the function's own locals (w1 r8 .. above
+  p/d/i/stride r9-r12), so the words of these kernels are own locals of the function, never helper locals or CSE temps.
+- Single-def helper locals (`Uint32 x = P; *d = x;`, `ret` locals, macro block locals) and every codeless second use tried
+  (`x = x`, `(void)x`, `if (x != x)`, `x++` dead, unused return value, volatile store, `do {} while (0)`, block, `x = *d`, `hi = x`,
+  `y = x`, `x = 0`, pre-loop `w0 = 0`) are removed before the propagation decision: webs need LIVE defs.
+
+**Residues (exact class):** mpv_mcy 4p 136w / H2 225w / V2 225w — the averaged kernels keep every word live for the AVG, so the
+in-place form does not transfer (V2 case 1 with address-order loads + `s0/s1 += stride` before the packs: 249w); mpv_mc 4p 72w / H2
+436w untouched; mpv_mc V2 73w: the target's `lbz r31 (a2); mr r28, r31; rlwimi r28, r30` with `w2` in place — `s1 += stride` between
+a2's load and its use keeps a2 a variable in the AST (mcv2a) but the backend coalesces the dying own local into the pack (`lbz r29;
+rlwimi r29`, 80w): a copy FROM an own local coalesces, so the target's copy needs a2 live past the `or` or a pack destination that is
+an own local (first web of a variable used only in cases 1-3) — not resolved.

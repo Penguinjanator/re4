@@ -1127,6 +1127,8 @@ public:
         int ret = 1;
         int r;
 
+        // arm order 0,1,2,6,3,7,4,5,8 = the target's layout (case 6 right after 2, 7 after 3):
+        // t_event SubToolMessMove 274 -> 106, t_lightarea ToolLightAreaMain 462 -> 121 words.
         switch (mode) {
         case 0:
             if (WinUpdate(pMenu) == 0) {
@@ -1179,6 +1181,14 @@ public:
                 }
             }
             break;
+        case 6:
+            if (WinUpdate(pLoadOk) == 0) {
+                if (pLoadOk->GetCx() == 0) {
+                    LoadData(pLoad->fileName, pEdit->pWork, pEdit->numWork);
+                }
+                mode = 0;
+            }
+            break;
         case 3:
             if (pSaveFunc) {
                 if (pSaveFunc(saveArg) == 0) {
@@ -1197,6 +1207,14 @@ public:
                 }
             }
             break;
+        case 7:
+            if (WinUpdate(pSaveOk) == 0) {
+                if (pSaveOk->GetCx() == 0) {
+                    SaveData(pSave->fileName, pEdit->pWork, pEdit->numWork);
+                }
+                mode = 0;
+            }
+            break;
         case 4:
             if (pOptionFunc) {
                 if (pOptionFunc(optionArg) == 0) {
@@ -1208,22 +1226,6 @@ public:
             break;
         case 5:
             ret = 0;
-            break;
-        case 6:
-            if (WinUpdate(pLoadOk) == 0) {
-                if (pLoadOk->GetCx() == 0) {
-                    LoadData(pLoad->fileName, pEdit->pWork, pEdit->numWork);
-                }
-                mode = 0;
-            }
-            break;
-        case 7:
-            if (WinUpdate(pSaveOk) == 0) {
-                if (pSaveOk->GetCx() == 0) {
-                    SaveData(pSave->fileName, pEdit->pWork, pEdit->numWork);
-                }
-                mode = 0;
-            }
             break;
         case 8:
             r = WinUpdate(pExitOk);
