@@ -177,9 +177,9 @@ void Esp18_Trans(cEsp18* esp)
     } else {
         if (ESP18_FLIP_T(esp)) {
             s0 = zero;
-            t0 = s0 + z;
+            s1 = s0 + z;
             t1 = s0;
-            s1 = t0;
+            t0 = s1;
         } else {
             s0 = zero;
             s1 = s0 + z;
@@ -187,19 +187,26 @@ void Esp18_Trans(cEsp18* esp)
             t1 = s1;
         }
     }
+    // `ang = 0.0f` sits above the esp18_div guard test (its pool load is in the block before it).
+    // In the loop, texGens/stages are counters: `= 0` at the body top (the fog zero canonicalises
+    // to texGens' register), `++` per texgen/tev stage set up; the `= 2` value comes from gcse's
+    // constant propagation, so its later uses stay `mr r3,r25` / `addi r25,r25,1`, and the
+    // stack `1` of GXInitTexObjCI is not cse'd to `stages` (stages is `stages++`, unknown).
     static u32 esp18_lp = 8;
+    ang = 0.0f;
     static f32 esp18_div = 1.0f / (f32) esp18_lp;
     static f32 prm2 = 5.0f;
     static f32 prm3 = 5.0f;
     static f32 esp18_mul_rate = 0.1f;
     static f32 e18mx = 1.0f;
     static f32 e18my = 1.0f;
-    ang = 0.0f;
     for (i = 0; i < esp18_lp; i++) {
         GXTexObj tex;
         GXTlutObj tlut;
 
         copyOk = 1;
+        texGens = 0;
+        stages = 0;
         fog.r = fog.g = fog.b = fog.a = 0;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
         if (esp->flags & 0x1000) {
@@ -230,59 +237,59 @@ void Esp18_Trans(cEsp18* esp)
         g_Get_tex_obj = tex;
         Mtx tm;
         Mtx pm;
-        rx = sinf(ang) * prm2 * esp->colA * 0.01f;
-        ry = cosf(ang) * prm3 * esp->colA * 0.01f;
+        rx = prm2 * sinf(ang) * esp->colA * 0.01f;
+        ry = prm3 * cosf(ang) * esp->colA * 0.01f;
         mul = esp18_mul_rate * 0.5f * esp18_div * (f32) i * w->depth * esp->colA * (1.0f / 255.0f) + 1.0f;
-        {
-            Mtx m1 = {
-                {1.0f, 0.0f, -0.5f, 0.0f},
-                {0.0f, 1.0f, -0.5f, 0.0f},
-                {0.0f, 0.0f, 1.0f, 0.0f},
-            };
-            Mtx m2 = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
-            Mtx m3 = {
-                {1.0f, 0.0f, 0.5f, 0.0f},
-                {0.0f, 1.0f, 0.5f, 0.0f},
+        Mtx m1 = {
+            {1.0f, 0.0f, -0.5f, 0.0f},
+            {0.0f, 1.0f, -0.5f, 0.0f},
+            {0.0f, 0.0f, 1.0f, 0.0f},
+        };
+        Mtx m2 = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
+        m2[0][0] = mul;
+        m2[1][1] = mul;
+        m2[2][2] = 1.0f;
+        Mtx m3 = {
+            {1.0f, 0.0f, 0.5f, 0.0f},
+            {0.0f, 1.0f, 0.5f, 0.0f},
+            {0.0f, 0.0f, 1.0f, 0.0f},
+        };
+
+        if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
+            Mtx m4 = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
+            m4[0][0] = 1.0f / 512.0f;
+            m4[1][1] = 1.0f / 448.0f;
+            m4[2][2] = 1.0f;
+            Mtx m5 = {
+                {0.001953125f, 0.0f, 0.0f, 0.0f},
+                {0.0f, 0.0029762f, -0.167f, 0.0f},
                 {0.0f, 0.0f, 1.0f, 0.0f},
             };
 
-            m2[0][0] = mul;
-            m2[1][1] = mul;
-            m2[2][2] = 1.0f;
-            if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
-                Mtx m4 = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
-                Mtx m5 = {
-                    {0.001953125f, 0.0f, 0.0f, 0.0f},
-                    {0.0f, 0.0029762f, -0.167f, 0.0f},
-                    {0.0f, 0.0f, 1.0f, 0.0f},
-                };
-
-                m4[0][0] = 1.0f / 512.0f;
-                m4[1][1] = 1.0f / 448.0f;
-                m4[2][2] = 1.0f;
-                if (pG->flags_5010 & 0x08000000) {
-                    PSMTXConcat(m4, esp->mat, tm);
-                } else {
-                    PSMTXConcat(m5, esp->mat, tm);
-                }
-                if (w->depth != 0.0f) {
-                    PSMTXConcat(m1, tm, tm);
-                    PSMTXConcat(m2, tm, tm);
-                    PSMTXConcat(m3, tm, tm);
-                }
-                GXLoadTexMtxImm(tm, 0x1E, 1);
-                GXSetTexCoordGen(0, 1, 0, 0x1E);
+            if (pG->flags_5010 & 0x08000000) {
+                PSMTXConcat(m4, esp->mat, tm);
             } else {
-                C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, rx * (1.0f / 512.0f) * e18mx + 0.5f,
-                                      ry / 392.0f * e18my + 0.5f);
-                PSMTXConcat(pm, esp->mat, tm);
-                GXLoadTexMtxImm(tm, 0x1E, 0);
-                GXSetTexCoordGen(0, 0, 0, 0x1E);
+                PSMTXConcat(m5, esp->mat, tm);
             }
+            if (w->depth != 0.0f) {
+                PSMTXConcat(m1, tm, tm);
+                PSMTXConcat(m2, tm, tm);
+                PSMTXConcat(m3, tm, tm);
+            }
+            GXLoadTexMtxImm(tm, 0x1E, 1);
+            GXSetTexCoordGen(texGens, 1, 0, 0x1E);
+            texGens++;
+        } else {
+            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, rx * (1.0f / 512.0f) * e18mx + 0.5f,
+                                  ry / 392.0f * e18my + 0.5f);
+            PSMTXConcat(pm, esp->mat, tm);
+            GXLoadTexMtxImm(tm, 0x1E, 0);
+            GXSetTexCoordGen(texGens, 0, 0, 0x1E);
+            texGens++;
         }
         GXSetNumIndStages(1);
-        texGens = 2;
-        GXSetTexCoordGen(1, 1, 4, 0x3C);
+        GXSetTexCoordGen(texGens, 1, 4, 0x3C);
+        texGens++;
         GXSetIndTexOrder(0, 1, 0);
         GXSetIndTexCoordScale(0, 0, 0);
         a = esp->colA;
@@ -296,34 +303,38 @@ void Esp18_Trans(cEsp18* esp)
                 a *= 21.25f;
             }
         }
+        f32 inv = 1.0f / (f32) (i + 2);
         col.r = (u8) esp->colR;
         col.g = (u8) esp->colG;
         col.b = (u8) esp->colB;
-        col.a = (u8) (a * (1.0f / (f32) (i + 2)));
+        col.a = (u8) (a * inv);
         GXSetChanMatColor(4, col);
         GXSetTevOrder(0, 0, 1, 4);
         GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
         GXSetTevColorOp(0, 0, 0, 0, 1, 0);
         GXSetTevAlphaIn(0, 7, 7, 7, 5);
         GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-        stages = 1;
+        stages++;
         {
-            EspTexWk* tw = EspGetTexWk(esp->anmNo, 1);
+            int no = esp->anmNo;
+            EspTexWk* tw = EspGetTexWk(no, 1);
             if (tw->owner == 0xD2) {
-                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+                pLog->err(0, 0, "ESP : TexId[%x] no data", no);
             } else {
                 GXTexObj tex2;
+                GXTexObj* pTex = &tex2;
+                GXTlutObj* pTlut = &tlut;
                 TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn);
                 TEXHeader* th = td->textureHeader;
 
                 if (th->format == 8 || th->format == 9) {
-                    GXInitTexObjCI(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                    GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                    GXLoadTlut(&tlut, 1);
+                    GXInitTexObjCI(pTex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                    GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                    GXLoadTlut(pTlut, 1);
                 } else {
-                    GXInitTexObj(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0);
+                    GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
                 }
-                GXLoadTexObj(&tex2, 2);
+                GXLoadTexObj(pTex, 2);
                 GXLoadTexMtxImm(tw->mtx, 0x21, 1);
                 GXSetTexCoordGen(texGens, 1, 4, 0x21);
                 GXSetTevOrder(1, texGens, 2, 4);

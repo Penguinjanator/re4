@@ -83,6 +83,13 @@ extern f32 ZFAR;
 // The sprite is covered with rateX x rateY copies of the texture, scrolled by (ofsX, ofsY):
 // the tile that wraps in both directions first, then the wrapping column, the wrapping row and
 // the full grid, each tile a separate quad (the last column/row is cut at the sprite edge).
+// In the mask (ind) arms du/dv are assigned BEFORE u0/v0: where du is the plain reciprocal
+// `1.0f / w->rateX`, the original's u0 multiply reuses du's register (`fmadds f20,f0,f30,f13`),
+// i.e. the reciprocal was computed for du first and cse folded u0's copy of it into du.
+// First tile: the original's non-mask quad stores the copies (x, y, ss1, st1) and the mask quad
+// the originals (x0, y0, s1, t1) -- neither cse2's canonicalisation of x0 -> x nor gcse's copy
+// propagation x -> x0 fired there; the codeless asm on `x` reproduces that for x (the
+// mechanism is open, see "DOL esp08/esp18 closer" in AGENTS.md).
 #define ESP08_TILES()                                                                             \
     ds = s1 - s0;                                                                                 \
     dt = t1 - t0;                                                                                 \
@@ -103,13 +110,14 @@ extern f32 ZFAR;
     if (w->ofsX != 0.0f) {                                                                        \
         if (w->ofsY != 0.0f) {                                                                    \
             x = x0;                                                                               \
+            asm("" : "+f"(x)); /* COMPILER-DIFF: candidate (first-tile copy canon, see esp08 notes) */ \
             y = y0;                                                                               \
-            x1 = x + tileW * w->ofsX;                                                             \
             y1 = y + tileH * w->ofsY;                                                             \
-            ss0 = s0 + ds * (1.0f - w->ofsX);                                                     \
+            x1 = x + tileW * w->ofsX;                                                             \
             st0 = t0 + dt * (1.0f - w->ofsY);                                                     \
-            ss1 = s1;                                                                             \
+            ss0 = s0 + ds * (1.0f - w->ofsX);                                                     \
             st1 = t1;                                                                             \
+            ss1 = s1;                                                                             \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, ss0, st0, ss1, st1)                                      \
             } else {                                                                              \
@@ -133,15 +141,15 @@ extern f32 ZFAR;
             ss0 = s0 + ds * (1.0f - w->ofsX);                                                     \
             if (ind) {                                                                            \
                 if (i == numY - 1) {                                                              \
-                    u0 = 0.0f;                                                                    \
-                    v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                        \
                     du = w->ofsX / w->rateX;                                                      \
                     dv = (1.0f - w->ofsY) / w->rateY;                                             \
-                } else {                                                                          \
                     u0 = 0.0f;                                                                    \
                     v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                        \
+                } else {                                                                          \
                     du = w->ofsX / w->rateX;                                                      \
                     dv = 1.0f / w->rateY;                                                         \
+                    u0 = 0.0f;                                                                    \
+                    v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                        \
                 }                                                                                 \
             }                                                                                     \
             if (!ind) {                                                                           \
@@ -166,15 +174,15 @@ extern f32 ZFAR;
             }                                                                                     \
             if (ind) {                                                                            \
                 if (j == numX - 1) {                                                              \
-                    u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                        \
-                    v0 = 0.0f;                                                                    \
                     du = (1.0f - w->ofsX) / w->rateX;                                             \
                     dv = w->ofsY / w->rateY;                                                      \
-                } else {                                                                          \
                     u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                        \
                     v0 = 0.0f;                                                                    \
+                } else {                                                                          \
                     du = 1.0f / w->rateX;                                                         \
                     dv = w->ofsY / w->rateY;                                                      \
+                    u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                        \
+                    v0 = 0.0f;                                                                    \
                 }                                                                                 \
             }                                                                                     \
             if (!ind) {                                                                           \
@@ -206,27 +214,27 @@ extern f32 ZFAR;
             if (ind) {                                                                            \
                 if (i == numY - 1) {                                                              \
                     if (j == numX - 1) {                                                          \
-                        u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
-                        v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
                         du = (1.0f - w->ofsX) / w->rateX;                                         \
                         dv = (1.0f - w->ofsY) / w->rateY;                                         \
-                    } else {                                                                      \
                         u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
                         v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
+                    } else {                                                                      \
                         du = 1.0f / w->rateX;                                                     \
                         dv = (1.0f - w->ofsY) / w->rateY;                                         \
+                        u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
+                        v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
                     }                                                                             \
                 } else {                                                                          \
                     if (j == numX - 1) {                                                          \
-                        u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
-                        v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
                         du = (1.0f - w->ofsX) / w->rateX;                                         \
                         dv = 1.0f / w->rateY;                                                     \
-                    } else {                                                                      \
                         u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
                         v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
+                    } else {                                                                      \
                         du = 1.0f / w->rateX;                                                     \
                         dv = 1.0f / w->rateY;                                                     \
+                        u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
+                        v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
                     }                                                                             \
                 }                                                                                 \
             }                                                                                     \

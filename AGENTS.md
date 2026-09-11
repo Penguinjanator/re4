@@ -20746,7 +20746,9 @@ another agent during the pass (mtime < 20 min, 14/16 and 17/20 when last checked
   0;` are separate compares in the tree because their first insns are sets, not jumps (`group_case_nodes` merges adjacent cases whose
   labels' first real insn is the same simplejump -- `break; break;` folds to a range). Left (71): those two `return 0`s become a second
   `li r3,0; blr` block (`li; (return)` cannot cross-jump with the fall-through `li; (use r3); (return)` -- the USE is emitted by
-  expand_value_return for hard-reg returns; how the target shares one block is open), the `flags & 2` half's two leaves (C/D) keep
+  expand_value_return for hard-reg returns; `case 9: break; case 0xA: goto ng;` with `ng:` on the trailing `return 0` keeps the two
+  compares (different first insns, same block) and removes the second block, but then case 7's leaf sits right before the block and
+  jump1 hoists it into `li r3,1; ...; beqlr` -- the target had insns between case 7 and the final block; open), the `flags & 2` half's two leaves (C/D) keep
   separate `key` tests in the target where ours cross-jumps them, the DImode pairs (target key r9:r10 / mask result r11:r12, ours
   r11:r12 / r9:r10 = allocation order of two locals), and case 3/4's dead `andis.` scratch r0/r9.
 - **em_sub EmCatchMotionMove (8, read again):** `f64 rate = rate_` (a widened copy) gives the target's rate f29 / rate2 f30 assignment
@@ -20830,3 +20832,66 @@ another agent during the pass (mtime < 20 min, 14/16 and 17/20 when last checked
   (giv init 0x6a) plus `(i/2)*0x14` in a second statement. Those forms reproduce the visible insns but leave 103 (frame
   address `mr r15,r22` giv copies for `col[]`/`c[]` = the #3 family, `lis pG@ha` kept inside the i loop, cursorCol
   address register). edit_reverb_param 200 not started this pass.
+
+### DOL esp08/esp18 closer, closest-first (esp18 Esp18_Trans 322 -> 85 zero code; esp08 Esp08_Trans 305 -> 143, Esp08_TransShimmer 440 -> 143 with one tagged launder; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_esp (dol26a copies + `try.sh UNIT` = flock'd ninja + bytecmp, `insn.py DUMP N..` = print RTL insns by
+uid, `alloc.py LREG GREG` = global-alloc order with the priority formula), deleted. Both units stay 4/5 and 4/6; build 111 OK.
+
+- **esp18 Esp18_Trans 322 -> 85, all zero code.** The target's shape, in the order it was found:
+  - `texGens`/`stages` are COUNTERS, not constants: `texGens = 0; stages = 0;` at the loop-body top (before the fog
+    stores: the fog zero canonicalises to texGens' register -> `li r25,0; stb r25,..`), `GXSetTexCoordGen(texGens, ..);
+    texGens++` in both partsNo arms and after GXSetNumIndStages, `stages++` where the tev stage 0 is set up, `stages = 2;
+    texGens++` in the mask block. The `li r25,2` is gcse's CONST-PROP of `texGens = 1` (identical constant sets in both
+    arms share one set-table entry, so the join's `texGens + 1` folds) -- and because that fold happens inside the single
+    cprop pass, the folded `= 2` is not in the table: the later `GXSetTexCoordGen(texGens..)`, `GXSetTevOrder(1, texGens..)`
+    and `texGens++` stay `mr r3,r25 / mr r4,r25 / addi r25,r25,1; clrlwi r3,r25,24` (ours had `li 2 / li 3`). With
+    `stages++` instead of `stages = 1`, stages is unknown on cse's path and the GXInitTexObjCI stack `1` keeps its own
+    pseudo instead of being canon_reg'd to `stages` (canon picks `qty_first_reg`; a later pseudo becomes canonical only if
+    it lives beyond the ebb AND dies after the first one, cse.c make_regs_eqv).
+  - The five `lis 0x4330` inside the loop are NOT a hoisting difference: loop.c combines the five magic movables in both
+    compilers (savings 5, life 15, moved), then global.c spills the hoisted pseudo and reload rematerialises it at each use
+    (r0/r11). What differs is the tie with the hoisted `1` (stack arg + 4 normals, also 11 weighted refs): both have
+    priority int(3*11/len*10000) = 211 at len 1558..1562, and `allocno_compare` breaks the tie by allocno number (the
+    magic is older) -> ours gives r14 to the magic and rematerialises `li r0,1`; the target gives r14 to the `1`. REG_LIVE_LENGTH
+    is recomputed by haifa after sched1, so the 2-insn difference is the preheader's scheduled order, not the loop.c order.
+    OPEN: a form that makes the `1` strictly higher (one more preheader insn between the two defs -- 1.0 hoisted in loop
+    pass 1 instead of pass 2 would do it and would also fix f17/f18 below).
+  - `int no = esp->anmNo; tw = EspGetTexWk(no, 1); .. err(.., no)` (anmNo kept in r30 across the call) and `GXTexObj*
+    pTex = &tex2; GXTlutObj* pTlut = &tlut;` at the mask block top (the esp_sub idiom): `addi r29,r1,0x1b8; addi r28,r1,0xa0`
+    before TEXGet, no loop.c hoist of `&tlut` (322 -> 266 with the counters, 292 -> 266 here).
+  - `rx = prm2 * sinf(ang) * ..` / `ry = prm3 * cosf(ang) * ..` (the product's dest is tied to the FIRST operand: `fmuls
+    f0,f0,f1` with f0 = prm2); `f32 inv = 1.0f / (f32)(i + 2);` as a statement BEFORE the colR/colG/colB psq_st conversions
+    (all conversions share the 0x240 stack temp, so their order is the source order); `m2[0][0]/[1][1]/[2][2]` stores
+    between the m2 and m3 declarations, `m4[..]` stores between m4 and m5 (the memset/template copies are blocks);
+    m1..m3 declared at loop-body scope, m4/m5 in the partsNo arm: `tex2` then reuses m4's slot 0x1b8 (temp-slot
+    combining of the freed inner scope only), ours had it at m1's 0x128.
+  - The `!flip-s, flip-t` corner leaf adds into `s1` (`s0 = zero; s1 = s0 + z; t1 = s0; t0 = s1;`, esp_sub form); the
+    old `t0 = s0 + z; s1 = t0` gave t0/s1 the wrong ref counts (f27/f22/f23 vs f26/f25/f22).
+  - `ang = 0.0f` between `static u32 esp18_lp` and the guarded `static f32 esp18_div` (already in the notes).
+  - Left (85): the `1`/magic tie above (r14, `li r0,1` x1, `lis r0,0x4330` x5), 1.0 vs 0.5 hoisted-constant order
+    (target f17 = 1.0, f18 = 0.5: 0.5 has the higher priority there, ours 172 vs 171 the other way because 1.0 is hoisted
+    in loop pass 2 = last in the preheader = shortest range), the spill slots of `i`/`fp+0xc0` (0x234/0x238 swapped: in the
+    target `i`'s slot is allocated first), one `fmr f13/f1` temp in the (b) conversion. All allocation; no structural
+    diff remains (sbs identical modulo register names).
+- **esp08 Esp08_Trans 305 -> 143, Esp08_TransShimmer 440 -> 143 (shared ESP08_TILES macro).**
+  - Zero code: in every mask arm assign `du; dv;` BEFORE `u0; v0;`. Where du is the plain reciprocal `1.0f / w->rateX`,
+    the target's u0 multiply uses du's register (`fdivs f30,f24,f11; .. fmadds f20,f0,f30,f13`): the reciprocal is
+    computed for du first and cse folds u0's `(1.0f / w->rateX)` into it; ours computed it for u0 and copied (`fmr f30,f11`).
+    Trans 305 -> 216 alone; Shimmer 440 -> 1105 alone because the ref shift flips x0 (refs 20, len 1498 -> 534) against
+    tileW (12/656 -> 548) for the last callee-saved FPR: the target keeps x0 in f14 and spills tileW.
+  - First tile statement order `x = x0; y = y0; y1 = ..; x1 = ..; st0 = ..; ss0 = ..; st1 = t1; ss1 = s1;` (the target
+    issues y1's fmadds before x1's and st0 before ss0; equal priority -> LUID order).
+  - Tagged (`COMPILER-DIFF: candidate (first-tile copy canon)`): `asm("" : "+f"(x))` right after `x = x0` in the first
+    tile. In the target the non-mask quad stores the copies x/y/ss1/st1 and the mask quad the originals x0/y0/s1/t1
+    (`stfs f14`, `lfs f0,0xc4(r1); stfs f0`, `stfs f16`, `stfs f15`), i.e. neither gcse's copy propagation (x -> x0 in
+    the QUAD stores; it fires in ours, `COPY-PROP: Replacing reg 103 in insn 1513 with reg 96`) nor cse2's canonicalisation
+    (x0 -> x in QUAD2, undoing it) happened there. cse1 leaves both as written in ours too (checked in the .cse dump); the
+    difference is in gcse/cse2. The launder blocks both for x; it adds 2 refs to x, so laundering y/ss1/st1 as well makes
+    the FPR order worse (4 launders 166, x+y 207, x only 143, x0 instead of x 153). Mechanism OPEN: `oprs_available_p`
+    would refuse the copy if x or x0 were set later in the block, `make_regs_eqv` keeps x0 canonical only if x0's last
+    reference is not before x's -- neither holds for the source as written. Left (143 each): FPR permutation among
+    x/ss1/x1/ss0/y/st1/y1 (f21..f28) and the f7/f8/f9 temps of the remX/remY conversions, from the ref counts above; the
+    .text is 2 insns short per function = the two `lfs f0,0xc4` reloads of y0 in the mask quad.
+- Forms tried and rejected (do not retry): esp18 `f32 one = 1.0f` variable for the 1.0 uses (380: a per-iteration `lfs`,
+  the REG_EQUAL-less copy is not a movable); the single 4-operand asm launder in esp08 (246; it serialises the fmadds).
