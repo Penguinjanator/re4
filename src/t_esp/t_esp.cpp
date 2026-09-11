@@ -1431,18 +1431,9 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ModelClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 40.0f);
-            pa->CreateString(win, " Type :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(ModelNameUpdateCallback);
@@ -1610,10 +1601,10 @@ static void LoadEmNameUpdateCallback(DB_PRIMITIVE* p)
 }
 
 // the model type skips to the next name group (PL/EM/WEP/ET/OBM) with X/Y held
-static inline void ModelTypeStep(DB_KEYBORD* k, int step)
+static inline void ModelTypeStep(int step)
 {
-    if (k->rep[KEY_LEFT]) g_modelType -= step;
-    if (k->rep[KEY_RIGHT]) g_modelType += step;
+    if (g_pKey->rep[KEY_LEFT]) g_modelType -= step;
+    if (g_pKey->rep[KEY_RIGHT]) g_modelType += step;
     if (g_modelType & 0x8000) g_modelType += MODEL_NAME_NUM;
     if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
 }
@@ -1625,31 +1616,44 @@ static inline void ModelTypeWrap(int dir)
     if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
 }
 
-static inline void ModelTypeGroupSkip(DB_KEYBORD* k)
+static inline void ModelTypeGroupSkip()
 {
     int dir = 0;
-    if (k->rep[KEY_L]) dir = -1;
-    if (k->rep[KEY_R]) dir = 1;
+    if (g_pKey->trg[KEY_R]) dir = -1;
+    if (g_pKey->trg[KEY_Z]) dir = 1;
     if (dir != 0) {
+        // the loops keep the last u16 read of g_modelType in `t` (the wrap adds `dir` to it, the second loop's first
+        // step and the final `+ 1` reuse it) and compare the name bytes through `a0`/`a1`; the `dir == -1` half sits
+        // inside the first loop's exit (its compare is loop-invariant and hoisted into cr7)
         const char* name = g_modelNameTbl[(s16) g_modelType];
-        char c1 = name[1];
+        const char* n;
         char c0 = name[0];
+        char c1 = name[1];
+        char a0, a1;
+        u16 t;
         for (;;) {
-            const char* n = g_modelNameTbl[(s16) g_modelType];
-            if (c0 != n[0] || c1 != n[1]) break;
-            ModelTypeWrap(dir);
+            t = g_modelType;
+            n = g_modelNameTbl[(s16) t];
+            a0 = n[0];
+            if (c0 != a0) break;
+            a1 = n[1];
+            if (c1 != a1) break;
+            g_modelType = t + dir;
+            if (g_modelType & 0x8000) g_modelType += MODEL_NAME_NUM;
+            if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
         }
         if (dir == -1) {
-            const char* n = g_modelNameTbl[(s16) g_modelType];
-            char d0 = n[0];
             c1 = n[1];
-            for (;;) {
-                ModelTypeWrap(dir);
-                n = g_modelNameTbl[(s16) g_modelType];
-                if (d0 != n[0] || c1 != n[1]) break;
-            }
-            g_modelType++;
-            if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM - 1;
+            do {
+                g_modelType = t + dir;
+                if (g_modelType & 0x8000) g_modelType += MODEL_NAME_NUM;
+                if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
+                t = g_modelType;
+                n = g_modelNameTbl[(s16) t];
+                if (a0 != n[0]) break;
+            } while (c1 == n[1]);
+            g_modelType = t + 1;
+            if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
         }
     }
 }
@@ -1660,8 +1664,8 @@ static void LoadEmTypeUpdateCallback(DB_PRIMITIVE* p)
         DB_KEYBORD* k = g_pKey;
         int step = 1;
         if (k->on[KEY_A]) step = 0x10;
-        ModelTypeStep(k, step);
-        ModelTypeGroupSkip(k);
+        ModelTypeStep(step);
+        ModelTypeGroupSkip();
         if (g_pKey->on[KEY_X] && g_pKey->on[KEY_A]) g_modelType = 0;
     }
     ((DB_STRING*) p)->SetString(g_modelNameTbl[(s16) g_modelType]);
@@ -1681,18 +1685,9 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 40.0f);
-            pa->CreateString(win, " Type :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEmNameUpdateCallback);
@@ -1745,14 +1740,8 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadRoomNameUpdateCallback);
@@ -1800,14 +1789,8 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadSstNameUpdateCallback);
@@ -1855,18 +1838,9 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 40.0f);
-            pa->CreateString(win, "  Evt :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  Evt :", &DB_POINT(8.0f, 40.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEventNameUpdateCallback);
@@ -2070,25 +2044,30 @@ static void SaveEmTypeUpdateCallback(DB_PRIMITIVE* p)
         DB_KEYBORD* k = g_pKey;
         int step = 1;
         if (k->on[KEY_A]) step = 0x10;
-        ModelTypeStep(k, step);
-        ModelTypeGroupSkip(k);
+        ModelTypeStep(step);
+        ModelTypeGroupSkip();
         if (g_pKey->on[KEY_X] && g_pKey->on[KEY_A]) g_modelType = 0;
     }
     ((DB_STRING*) p)->SetString(g_modelNameTbl[(s16) g_modelType]);
 }
 
-// the file number buttons of the save windows: +-1 / +-16 with X held
+// the file number buttons of the save windows: +-1 / +-16 with X held. The tail is the dead model-type wrap the
+// original left behind: `step` is reused for the s16 type (its r11), the wrapped copy `type` is written back through a
+// third test -- that test keeps the two dead arms alive at flow1, flow2's cleanup then drops its own jump, and the two
+// `cmpwi` survive with their branches deleted as jumps-to-next in jump2
 #define SAVE_FILE_NO_STEP(no)                        \
     if (p->select && g_pKey->on[KEY_X]) {            \
         DB_KEYBORD* k = g_pKey;                      \
         int step = 1;                                \
-        s16 type;                                    \
+        int type;                                    \
         if (k->on[KEY_A]) step = 0x10;               \
         if (k->rep[KEY_LEFT]) (no) -= step;          \
         if (k->rep[KEY_RIGHT]) (no) += step;         \
-        type = g_modelType;                          \
-        if (type < 0) type = 0xFF;                   \
-        else if (type > 0xFF) type = 0;              \
+        step = (s16) g_modelType;                    \
+        type = step;                                 \
+        if (step < 0) type = 0xFF;                   \
+        if (step > 0xFF) type = 0;                   \
+        if (type != step) step = type;               \
     }
 
 static void SaveEmFileNoUpdateCallback(DB_PRIMITIVE* p)
@@ -2113,18 +2092,9 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 40.0f);
-            pa->CreateString(win, " Type :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEmNameUpdateCallback);
@@ -2184,14 +2154,8 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveRoomNameUpdateCallback);
@@ -2246,14 +2210,8 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveSstNameUpdateCallback);
@@ -2316,18 +2274,9 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
-        {
-            DB_POINT pos(8.0f, 8.0f);
-            pa->CreateString(win, " Name :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 40.0f);
-            pa->CreateString(win, "  Evt :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
+        pa->CreateString(win, "  Evt :", &DB_POINT(8.0f, 40.0f));
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEventNameUpdateCallback);
@@ -2530,62 +2479,20 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(OptionClose_callback);
-        {
-            DB_POINT pos(16.0f, 8.0f);
-            pa->CreateString(win, "Grid  :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 24.0f);
-            pa->CreateString(win, "Work  :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 40.0f);
-            pa->CreateString(win, "Em    :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 56.0f);
-            pa->CreateString(win, "FOG   :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 72.0f);
-            pa->CreateString(win, "FILTER:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 88.0f);
-            pa->CreateString(win, "BG_R  :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 104.0f);
-            pa->CreateString(win, "BG_G  :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 120.0f);
-            pa->CreateString(win, "BG_B  :", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 136.0f);
-            pa->CreateString(win, "EV_CAM:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 152.0f);
-            pa->CreateString(win, "RM_CAM:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 168.0f);
-            pa->CreateString(win, "MOD_SK:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 184.0f);
-            pa->CreateString(win, "RENDER:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 200.0f);
-            pa->CreateString(win, "CINESCO:", &pos);
-        }
-        {
-            DB_POINT pos(16.0f, 216.0f);
-            pa->CreateString(win, "MT_CAM:", &pos);
-        }
+        pa->CreateString(win, "Grid  :", &DB_POINT(16.0f, 8.0f));
+        pa->CreateString(win, "Work  :", &DB_POINT(16.0f, 24.0f));
+        pa->CreateString(win, "Em    :", &DB_POINT(16.0f, 40.0f));
+        pa->CreateString(win, "FOG   :", &DB_POINT(16.0f, 56.0f));
+        pa->CreateString(win, "FILTER:", &DB_POINT(16.0f, 72.0f));
+        pa->CreateString(win, "BG_R  :", &DB_POINT(16.0f, 88.0f));
+        pa->CreateString(win, "BG_G  :", &DB_POINT(16.0f, 104.0f));
+        pa->CreateString(win, "BG_B  :", &DB_POINT(16.0f, 120.0f));
+        pa->CreateString(win, "EV_CAM:", &DB_POINT(16.0f, 136.0f));
+        pa->CreateString(win, "RM_CAM:", &DB_POINT(16.0f, 152.0f));
+        pa->CreateString(win, "MOD_SK:", &DB_POINT(16.0f, 168.0f));
+        pa->CreateString(win, "RENDER:", &DB_POINT(16.0f, 184.0f));
+        pa->CreateString(win, "CINESCO:", &DB_POINT(16.0f, 200.0f));
+        pa->CreateString(win, "MT_CAM:", &DB_POINT(16.0f, 216.0f));
         {
             DB_POINT pos(88.0f, 8.0f);
             int sx = 0;
@@ -2698,10 +2605,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(DataSetClose_callback);
-        {
-            DB_POINT pos(8.0f, 56.0f);
-            pa->CreateString(win, "  No  :", &pos);
-        }
+        pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
@@ -2737,10 +2641,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "Time:", &pos);
-        }
+        pa->CreateString(win, "Time:", &DB_POINT(5.0f, 8.0f));
         {
             DB_POINT pos(48.0f, 8.0f);
             int sx = 0;
@@ -2833,6 +2734,7 @@ static void IdPathSetCallback(DB_PRIMITIVE*)
 class ID_WINDOW : public TOOL_WINDOW {
 public:
     ID_WINDOW(DB_PRIM_ARRAY* p) {
+        DB_NUMERIC2* n;
         pa = p;
         win = NULL;
         {
@@ -2844,63 +2746,24 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 0.0f);
-            pa->CreateString(win, " KIND :", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 16.0f);
-            pa->CreateString(win, "ESP_ID:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 32.0f);
-            pa->CreateString(win, "CTR_ID:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 48.0f);
-            pa->CreateString(win, "TEX_ID:", &pos);
-        }
-        {
-            DB_POINT pos(96.0f, 0.0f);
-            pa->CreateString(win, " Life  :", &pos);
-        }
-        {
-            DB_POINT pos(96.0f, 16.0f);
-            pa->CreateString(win, "inter  :", &pos);
-        }
-        {
-            DB_POINT pos(96.0f, 32.0f);
-            pa->CreateString(win, "R_inter:", &pos);
-        }
-        {
-            DB_POINT pos(96.0f, 48.0f);
-            pa->CreateString(win, "  Num  :", &pos);
-        }
-        {
-            DB_POINT pos(96.0f, 64.0f);
-            pa->CreateString(win, "  Flg  :     Rp:", &pos);
-        }
-        {
-            DB_POINT pos(204.0f, 0.0f);
-            pa->CreateString(win, "D_size :", &pos);
-        }
-        {
-            DB_POINT pos(204.0f, 16.0f);
-            pa->CreateString(win, "D_speed:", &pos);
-        }
-        {
-            DB_POINT pos(204.0f, 32.0f);
-            pa->CreateString(win, "D_alpha:", &pos);
-        }
-        {
-            DB_POINT pos(204.0f, 48.0f);
-            pa->CreateString(win, "D_inter:", &pos);
-        }
+        pa->CreateString(win, " KIND :", &DB_POINT(5.0f, 0.0f));
+        pa->CreateString(win, "ESP_ID:", &DB_POINT(5.0f, 16.0f));
+        pa->CreateString(win, "CTR_ID:", &DB_POINT(5.0f, 32.0f));
+        pa->CreateString(win, "TEX_ID:", &DB_POINT(5.0f, 48.0f));
+        pa->CreateString(win, " Life  :", &DB_POINT(96.0f, 0.0f));
+        pa->CreateString(win, "inter  :", &DB_POINT(96.0f, 16.0f));
+        pa->CreateString(win, "R_inter:", &DB_POINT(96.0f, 32.0f));
+        pa->CreateString(win, "  Num  :", &DB_POINT(96.0f, 48.0f));
+        pa->CreateString(win, "  Flg  :     Rp:", &DB_POINT(96.0f, 64.0f));
+        pa->CreateString(win, "D_size :", &DB_POINT(204.0f, 0.0f));
+        pa->CreateString(win, "D_speed:", &DB_POINT(204.0f, 16.0f));
+        pa->CreateString(win, "D_alpha:", &DB_POINT(204.0f, 32.0f));
+        pa->CreateString(win, "D_inter:", &DB_POINT(204.0f, 48.0f));
         {
             static const char* kindName[] = { "Esp ", "Ctrl" };
             DB_POINT pos(64.0f, 0.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->type, &g_pEditSeq2->type, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa->CreateNumeric2(win, &g_pEditSeq->type, &g_pEditSeq2->type, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->nameNum = 2;
             n->nameTbl = kindName;
@@ -2913,7 +2776,7 @@ public:
         {
             DB_POINT pos(64.0f, 32.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->genId, &g_pEditSeq2->genId, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa->CreateNumeric2(win, &g_pEditSeq->genId, &g_pEditSeq2->genId, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->SetUpdateCallback(IdEspgenIdCallback);
         }
@@ -2925,7 +2788,7 @@ public:
         {
             DB_POINT pos(160.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->x110[0], &g_pEditSeq2->x110[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            n = pa->CreateNumeric2(win, &g_pEditSeq->x110[0], &g_pEditSeq2->x110[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->SetKeta(4);
             n->SetUpdateCallback(IdEspgenLifeCallback);
         }
@@ -2972,7 +2835,7 @@ public:
         {
             DB_POINT pos(228.0f, 64.0f);
             int sx = 2;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->x10E, &g_pEditSeq2->x10E, &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa->CreateNumeric2(win, &g_pEditSeq->x10E, &g_pEditSeq2->x10E, &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetUpdateCallback(IdEspgenFlgCallback);
             n->SetKeta(2);
         }
@@ -3006,46 +2869,16 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(PathClose_callback);
-        {
-            DB_POINT pos(8.0f, 0.0f);
-            pa->CreateString(win, "PathOwn:", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 16.0f);
-            pa->CreateString(win, "PathNo :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 32.0f);
-            pa->CreateString(win, "PathSt :", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 48.0f);
-            pa->CreateString(win, "PathRnd:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 0.0f);
-            pa->CreateString(win, "Scale X:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 16.0f);
-            pa->CreateString(win, "Scale Y:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 32.0f);
-            pa->CreateString(win, "Scale Z:", &pos);
-        }
-        {
-            DB_POINT pos(232.0f, 0.0f);
-            pa->CreateString(win, "Rot X:", &pos);
-        }
-        {
-            DB_POINT pos(232.0f, 16.0f);
-            pa->CreateString(win, "Rot Y:", &pos);
-        }
-        {
-            DB_POINT pos(232.0f, 32.0f);
-            pa->CreateString(win, "Flg  :", &pos);
-        }
+        pa->CreateString(win, "PathOwn:", &DB_POINT(8.0f, 0.0f));
+        pa->CreateString(win, "PathNo :", &DB_POINT(8.0f, 16.0f));
+        pa->CreateString(win, "PathSt :", &DB_POINT(8.0f, 32.0f));
+        pa->CreateString(win, "PathRnd:", &DB_POINT(8.0f, 48.0f));
+        pa->CreateString(win, "Scale X:", &DB_POINT(108.0f, 0.0f));
+        pa->CreateString(win, "Scale Y:", &DB_POINT(108.0f, 16.0f));
+        pa->CreateString(win, "Scale Z:", &DB_POINT(108.0f, 32.0f));
+        pa->CreateString(win, "Rot X:", &DB_POINT(232.0f, 0.0f));
+        pa->CreateString(win, "Rot Y:", &DB_POINT(232.0f, 16.0f));
+        pa->CreateString(win, "Flg  :", &DB_POINT(232.0f, 32.0f));
         {
             DB_POINT pos(72.0f, 0.0f);
             int sx = 0;
@@ -3116,14 +2949,8 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "Parent:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 24.0f);
-            pa->CreateString(win, "Parts :", &pos);
-        }
+        pa->CreateString(win, "Parent:", &DB_POINT(5.0f, 8.0f));
+        pa->CreateString(win, "Parts :", &DB_POINT(5.0f, 24.0f));
         {
             DB_POINT pos(64.0f, 8.0f);
             int sx = 0;
@@ -3291,30 +3118,12 @@ public:
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) PosActiveChange_callback);
-        {
-            DB_POINT pos(5.0f, 16.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 32.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 48.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(112.0f, 16.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(112.0f, 32.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(112.0f, 48.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
+        pa->CreateString(win, "X:", &DB_POINT(5.0f, 16.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(5.0f, 32.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(5.0f, 48.0f));
+        pa->CreateString(win, "X:", &DB_POINT(112.0f, 16.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(112.0f, 32.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(112.0f, 48.0f));
         {
             DB_POINT pos(21.0f, 0.0f);
             int sx = 0;
@@ -3435,30 +3244,12 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 16.0f);
-            pa->CreateString(win, "WIDTH :", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 32.0f);
-            pa->CreateString(win, "HEIGHT:", &pos);
-        }
-        {
-            DB_POINT pos(140.0f, 0.0f);
-            pa->CreateString(win, "Plus   :", &pos);
-        }
-        {
-            DB_POINT pos(140.0f, 16.0f);
-            pa->CreateString(win, "D_Plus :", &pos);
-        }
-        {
-            DB_POINT pos(140.0f, 32.0f);
-            pa->CreateString(win, "Str_Frm:", &pos);
-        }
-        {
-            DB_POINT pos(140.0f, 48.0f);
-            pa->CreateString(win, "R_Size :", &pos);
-        }
+        pa->CreateString(win, "WIDTH :", &DB_POINT(5.0f, 16.0f));
+        pa->CreateString(win, "HEIGHT:", &DB_POINT(5.0f, 32.0f));
+        pa->CreateString(win, "Plus   :", &DB_POINT(140.0f, 0.0f));
+        pa->CreateString(win, "D_Plus :", &DB_POINT(140.0f, 16.0f));
+        pa->CreateString(win, "Str_Frm:", &DB_POINT(140.0f, 32.0f));
+        pa->CreateString(win, "R_Size :", &DB_POINT(140.0f, 48.0f));
         {
             DB_POINT pos(64.0f, 0.0f);
             int sx = 0;
@@ -3532,58 +3323,19 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 48.0f);
-            pa->CreateString(win, "D:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
+        pa->CreateString(win, "X:", &DB_POINT(5.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(5.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(5.0f, 32.0f));
+        pa->CreateString(win, "D:", &DB_POINT(5.0f, 48.0f));
+        pa->CreateString(win, "X:", &DB_POINT(95.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(95.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(95.0f, 32.0f));
+        pa->CreateString(win, "X:", &DB_POINT(175.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(175.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(175.0f, 32.0f));
+        pa->CreateString(win, "X:", &DB_POINT(255.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(255.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(255.0f, 32.0f));
         {
             DB_POINT pos(24.0f, 0.0f);
             int sx = 0;
@@ -3739,74 +3491,23 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(53.0f, 0.0f);
-            pa->CreateString(win, "R:", &pos);
-        }
-        {
-            DB_POINT pos(53.0f, 16.0f);
-            pa->CreateString(win, "G:", &pos);
-        }
-        {
-            DB_POINT pos(53.0f, 32.0f);
-            pa->CreateString(win, "B:", &pos);
-        }
-        {
-            DB_POINT pos(53.0f, 48.0f);
-            pa->CreateString(win, "A:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 0.0f);
-            pa->CreateString(win, "R:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 16.0f);
-            pa->CreateString(win, "G:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 32.0f);
-            pa->CreateString(win, "B:", &pos);
-        }
-        {
-            DB_POINT pos(108.0f, 48.0f);
-            pa->CreateString(win, "A:", &pos);
-        }
-        {
-            DB_POINT pos(176.0f, 0.0f);
-            pa->CreateString(win, "Str_Frm:", &pos);
-        }
-        {
-            DB_POINT pos(176.0f, 16.0f);
-            pa->CreateString(win, "Max_Frm:", &pos);
-        }
-        {
-            DB_POINT pos(176.0f, 32.0f);
-            pa->CreateString(win, "MaskUse:", &pos);
-        }
-        {
-            DB_POINT pos(176.0f, 48.0f);
-            pa->CreateString(win, "MaskTex:", &pos);
-        }
-        {
-            DB_POINT pos(288.0f, 0.0f);
-            pa->CreateString(win, "Sim_Type:", &pos);
-        }
-        {
-            DB_POINT pos(288.0f, 16.0f);
-            pa->CreateString(win, "Sim_Pow :", &pos);
-        }
-        {
-            DB_POINT pos(288.0f, 32.0f);
-            pa->CreateString(win, "Sim_Lit :", &pos);
-        }
-        {
-            DB_POINT pos(288.0f, 48.0f);
-            pa->CreateString(win, "in :", &pos);
-        }
-        {
-            DB_POINT pos(352.0f, 48.0f);
-            pa->CreateString(win, "out:", &pos);
-        }
+        pa->CreateString(win, "R:", &DB_POINT(53.0f, 0.0f));
+        pa->CreateString(win, "G:", &DB_POINT(53.0f, 16.0f));
+        pa->CreateString(win, "B:", &DB_POINT(53.0f, 32.0f));
+        pa->CreateString(win, "A:", &DB_POINT(53.0f, 48.0f));
+        pa->CreateString(win, "R:", &DB_POINT(108.0f, 0.0f));
+        pa->CreateString(win, "G:", &DB_POINT(108.0f, 16.0f));
+        pa->CreateString(win, "B:", &DB_POINT(108.0f, 32.0f));
+        pa->CreateString(win, "A:", &DB_POINT(108.0f, 48.0f));
+        pa->CreateString(win, "Str_Frm:", &DB_POINT(176.0f, 0.0f));
+        pa->CreateString(win, "Max_Frm:", &DB_POINT(176.0f, 16.0f));
+        pa->CreateString(win, "MaskUse:", &DB_POINT(176.0f, 32.0f));
+        pa->CreateString(win, "MaskTex:", &DB_POINT(176.0f, 48.0f));
+        pa->CreateString(win, "Sim_Type:", &DB_POINT(288.0f, 0.0f));
+        pa->CreateString(win, "Sim_Pow :", &DB_POINT(288.0f, 16.0f));
+        pa->CreateString(win, "Sim_Lit :", &DB_POINT(288.0f, 32.0f));
+        pa->CreateString(win, "in :", &DB_POINT(288.0f, 48.0f));
+        pa->CreateString(win, "out:", &DB_POINT(352.0f, 48.0f));
         {
             DB_POINT pos(68.0f, 0.0f);
             int sx = 0;
@@ -3937,10 +3638,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "Blend :", &pos);
-        }
+        pa->CreateString(win, "Blend :", &DB_POINT(5.0f, 8.0f));
         {
             DB_POINT pos(64.0f, 8.0f);
             int sx = 0;
@@ -4078,10 +3776,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "Life:", &pos);
-        }
+        pa->CreateString(win, "Life:", &DB_POINT(5.0f, 8.0f));
         {
             DB_POINT pos(48.0f, 8.0f);
             int sx = 0;
@@ -4105,10 +3800,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "Release:", &pos);
-        }
+        pa->CreateString(win, "Release:", &DB_POINT(5.0f, 8.0f));
         {
             DB_POINT pos(72.0f, 8.0f);
             int sx = 0;
@@ -4132,10 +3824,7 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 8.0f);
-            pa->CreateString(win, "AnmRate :", &pos);
-        }
+        pa->CreateString(win, "AnmRate :", &DB_POINT(5.0f, 8.0f));
         {
             DB_POINT pos(80.0f, 8.0f);
             int sx = 0;
@@ -4165,54 +3854,18 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(5.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(5.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(175.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 0.0f);
-            pa->CreateString(win, "X:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 16.0f);
-            pa->CreateString(win, "Y:", &pos);
-        }
-        {
-            DB_POINT pos(255.0f, 32.0f);
-            pa->CreateString(win, "Z:", &pos);
-        }
+        pa->CreateString(win, "X:", &DB_POINT(5.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(5.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(5.0f, 32.0f));
+        pa->CreateString(win, "X:", &DB_POINT(95.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(95.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(95.0f, 32.0f));
+        pa->CreateString(win, "X:", &DB_POINT(175.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(175.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(175.0f, 32.0f));
+        pa->CreateString(win, "X:", &DB_POINT(255.0f, 0.0f));
+        pa->CreateString(win, "Y:", &DB_POINT(255.0f, 16.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(255.0f, 32.0f));
         {
             DB_POINT pos(24.0f, 0.0f);
             int sx = 0;
@@ -4591,38 +4244,14 @@ public:
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
-        {
-            DB_POINT pos(8.0f, 0.0f);
-            pa->CreateString(win, "TBL No:", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 16.0f);
-            pa->CreateString(win, "NULLPt:", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 32.0f);
-            pa->CreateString(win, "NULLFg:", &pos);
-        }
-        {
-            DB_POINT pos(8.0f, 48.0f);
-            pa->CreateString(win, "WorKNo:", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 0.0f);
-            pa->CreateString(win, " X :", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 16.0f);
-            pa->CreateString(win, " Y :", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 32.0f);
-            pa->CreateString(win, " Z :", &pos);
-        }
-        {
-            DB_POINT pos(95.0f, 48.0f);
-            pa->CreateString(win, "ANG:", &pos);
-        }
+        pa->CreateString(win, "TBL No:", &DB_POINT(8.0f, 0.0f));
+        pa->CreateString(win, "NULLPt:", &DB_POINT(8.0f, 16.0f));
+        pa->CreateString(win, "NULLFg:", &DB_POINT(8.0f, 32.0f));
+        pa->CreateString(win, "WorKNo:", &DB_POINT(8.0f, 48.0f));
+        pa->CreateString(win, " X :", &DB_POINT(95.0f, 0.0f));
+        pa->CreateString(win, " Y :", &DB_POINT(95.0f, 16.0f));
+        pa->CreateString(win, " Z :", &DB_POINT(95.0f, 32.0f));
+        pa->CreateString(win, "ANG:", &DB_POINT(95.0f, 48.0f));
         {
             DB_POINT pos(68.0f, 0.0f);
             int sx = 0;
@@ -5626,10 +5255,12 @@ void ToolEspMain()
         {
             DB_ACTIVE_SELECT* sel;
             if (g_pEditSeq->id == 0xE || g_pEditSeq->id == 0x4A || g_pEditSeq->id == 0x45) {
-                if (g_pEditActive == g_pEditWin3 && WIN_SEL(g_pEditActive).selX == 0) sp_sphere(g_pSeqHead, g_pEditSeq);
+                sel = &WIN_SEL(g_pEditActive);
+                if (g_pEditActive == g_pEditWin3 && sel->selX == 0) sp_sphere(g_pSeqHead, g_pEditSeq);
             }
             if (g_pEditSeq->genId == 1 || g_pEditSeq->id == 0xE) {
-                if (g_pEditActive == g_pEditWin3 && WIN_SEL(g_pEditActive).selX == 2) sp_ctrl01_trans();
+                sel = &WIN_SEL(g_pEditActive);
+                if (g_pEditActive == g_pEditWin3 && sel->selX == 2) sp_ctrl01_trans();
             }
             if (g_pEditSeq->flags & 1) sp_3dgrid_trans(g_pSeqHead, g_pEditSeq);
             if (g_pEditSeq->id == 6) sp_path_trans(g_pSeqHead, g_pEditSeq);
