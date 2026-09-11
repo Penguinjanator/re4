@@ -51,6 +51,8 @@ void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d)
 static inline void PSet(cSat*& d, cSat* v) { d = v; }
 // Reference read of pG: an unflagged MEM that stays below the preceding `w->hit[i] = 0` store.
 static inline GlobalWork* GRef(GlobalWork*& g) { return g; }
+// Reference read of a .sdata float: an unflagged MEM that stays below the preceding `w->fallX` store.
+static inline f32 FRef(f32& v) { return v; }
 
 // Event flag words at pG->flags_174 (the sce_sys accessor): recomputed at every use, so the base
 // is reloaded after the hit counter store.
@@ -367,6 +369,8 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
     Vec v;
     cObj* smd;
     int i;
+    u32 f;
+    int* hp;
 
     switch (w->step) {
     case 0:
@@ -409,17 +413,23 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
             MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x63), 0, 0xA, 1, 0);
             EstSet((int) robo, -1, 0, 0, 1, 0x20, 1, 0, 0, 0);
             w->fallX = robo->pos.x;
-            w->fallSpdY = RoboFallSpdY;
+            w->fallSpdY = FRef(RoboFallSpdY);
         }
         if (w->cnt == 90) {
             SndCall(6, 9, &robo->pos, 0, 0, 0);
         }
-        for (i = 0; i < 6; i++) {
+        // `hp` is a plain pointer (`*hp` aliases the scalar pG, so the second flag test reloads it)
+        // incremented before `i` (its `addi` leads the latch); the first flag test reads the word into
+        // the user variable `f`, so cse1 cannot thread its taken branch past the second test and the
+        // 0x80000000 constants stay per block (a threaded label would make them single-use movables
+        // that loop.c combines and hoists).
+        for (i = 0, hp = w->hitCnt; i < 6; hp++, i++) {
             smd = SmdGetObjPtr(smdNo[i]);
             if (smd) {
                 w->fallX += RoboFallSpdX;
                 if (w->fallX < smd->pos.x) {
-                    if (!(eventFlags()[flagNo[i] >> 5] & (0x80000000 >> (flagNo[i] & 31)))) {
+                    f = eventFlags()[flagNo[i] >> 5];
+                    if (!(f & (0x80000000 >> (flagNo[i] & 31)))) {
                         eventFlags()[flagNo[i] >> 5] |= 0x80000000 >> (flagNo[i] & 31);
                         EffectEspDelete(0x2001, (u8) estNo[i], 0, 0);
                         EffectEspgenDelete(0x2001, (u8) estNo[i], 0);
@@ -429,8 +439,8 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
                 }
             }
             if (eventFlags()[flagNo[i] >> 5] & (0x80000000 >> (flagNo[i] & 31))) {
-                w->hitCnt[i]++;
-                if (w->hitCnt[i] > 14) {
+                (*hp)++;
+                if (*hp > 14) {
                     eventFlags()[flagNo2[i] >> 5] |= 0x80000000 >> (flagNo2[i] & 31);
                 }
             }
@@ -521,16 +531,21 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
 }
 
 // Scenario task: the front arm swings down (or back up) over 15 frames.
+// Loop shapes (both tasks): the down arm sets `range = to` in the for-init (a preheader copy, LUID
+// between `j = 0` and gcse's `&robo->pMotion` insertion: `fmr` before `lfd`/`addi`), the up arm
+// computes `range2 = from - to` inside the loop (a loop.c movable after the insertion); no `base`
+// copy (the offsets are `from`/`to` directly), so max (2 sets, x4 length) outranks the two ranges.
 void cObjRobo::TaskSwitchFront(cObjRobo* robo)
 {
     cModel* parts;
     int i;
     int j;
-    f32 to = -1.483529806137085f;
+    register f32 to asm("fr28");  // COMPILER-DIFF: #17 (FPR value pin): a hard-register `to` keeps the for-init copy `range = to` out of gcse's copy propagation
+    to = -1.483529806137085f;
     f32 from = 0.0f;
     f32 max;
     f32 range;
-    f32 base;
+    f32 range2;
 
     i = 15;
     parts = robo->getPartsPtr(0x16);
@@ -544,22 +559,19 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     }
     if (!(pG->flags_174 & 0x8000)) {
         BitOn(pG->flags_174, 0x8000);
-        base = from;
-        for (j = 0; j < i; j++) {
+        for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
-            range = to;
-            parts->rot.y = range * (f32) j / max + base;
+            parts->rot.y = range * (f32) j / max + from;
             SceSleep(1);
         }
         FSet(parts->rot.y, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x61), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x66), 0xF0, 4, 0);
     } else {
         BitOff(pG->flags_174, 0x8000);
-        base = to;
         for (j = 0; j < i; j++) {
             max = (f32) i;
-            range = from - to;
-            parts->rot.y = range * (f32) j / max + base;
+            range2 = from - to;
+            parts->rot.y = range2 * (f32) j / max + to;
             SceSleep(1);
         }
         FSet(parts->rot.y, from);
@@ -578,11 +590,12 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
     cModel* parts;
     int i;
     int j;
-    f32 to = -1.483529806137085f;
+    register f32 to asm("fr28");  // COMPILER-DIFF: #17 (FPR value pin): a hard-register `to` keeps the for-init copy `range = to` out of gcse's copy propagation
+    to = -1.483529806137085f;
     f32 from = 0.0f;
     f32 max;
     f32 range;
-    f32 base;
+    f32 range2;
 
     i = 15;
     parts = robo->getPartsPtr(0x15);
@@ -596,22 +609,19 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
     }
     if (!(pG->flags_174 & 0x4000)) {
         BitOn(pG->flags_174, 0x4000);
-        base = from;
-        for (j = 0; j < i; j++) {
+        for (j = 0, range = to; j < i; j++) {
             max = (f32) i;
-            range = to;
-            parts->rot.x = range * (f32) j / max + base;
+            parts->rot.x = range * (f32) j / max + from;
             SceSleep(1);
         }
         FSet(parts->rot.x, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x22), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x45), 0xF0, 4, 0);
     } else {
         BitOff(pG->flags_174, 0x4000);
-        base = to;
         for (j = 0; j < i; j++) {
             max = (f32) i;
-            range = from - to;
-            parts->rot.x = range * (f32) j / max + base;
+            range2 = from - to;
+            parts->rot.x = range2 * (f32) j / max + to;
             SceSleep(1);
         }
         FSet(parts->rot.x, from);

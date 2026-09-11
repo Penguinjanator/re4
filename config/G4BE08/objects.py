@@ -1721,3 +1721,10 @@ MATCHING.update({
 MATCHING.update({
     "game/mercenaries.cpp": True,  # GetSaveWork: `u32* tbl = SysRef(pSys)->x10; w = tbl[i]` -- the pointer local carries REG_POINTER, so regclass makes it the base of the `tbl[i]` address and i*4 the GENERAL index (r0, dying at the load); the rank-pointer giv init then issues second in sched2 (anti-dependence on the `clrlwi r0`) and takes r12; zero code
 })
+
+# DOL sweep 19a (2026-09-11)
+MATCHING.update({
+    "game/id_sys.cpp": True,  # set: the twelve `ofs -> pointer` diamonds store in BOTH arms (`if (a) u->x = (T)(a + data); else u->x = 0;`): jump2 cross-jumps the stores so the join block starts at `lwz pG` and the `c = 0` li (prio 2) ranks below it; zero code
+    "game/roomdata.cpp": True,  # init: the total loop counts with `stage` (its `stage + 1` gets the lower gcse expression index, so the PRE'd increment is inserted before the hoisted `(u8) stage` and ofs/nx take r27/r26); linkRelData: `rel_no` read directly in the compare and the store (HImode load + one shared `clrlwi` for the compare and the DvdRead argument); zero code
+    "game/objRobo.cpp": True,  # R0WalkBridge (zero code): the first flag test reads the word into a user variable (no cse jump threading past the second test, so the 0x80000000 `lis` stay per block and are not combined/hoisted), `hp` plain pointer for hitCnt (pG reloaded), `hp++, i++`, FRef(RoboFallSpdY); TaskSwitchFront/Back: `range = to` in the for-init, `range2 = from - to` in the up loop, no `base` copy, plus one tagged fr28 pin on `to` (#17) that keeps the for-init copy out of gcse cprop
+})

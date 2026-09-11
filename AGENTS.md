@@ -3466,6 +3466,18 @@ every fix was predicted from one dump before the build.
   (b5 last = a two-use variable, b7 second = a variable between b4 and ofs; `ofs + 1` fresh in r0); ours
   has b7 as the temporary @128 coloured first (r5) and ofs first among the variables (r4, in-place
   `addi`). 8 declaration orders / Sint32-Uint32 b7 / picrate_code types: 15-24w.
+- sfd_tst `SFTST_Calc` 83w: the target's abs diamond is the if/else ARM shape (`subfic r22; subfze r23,
+  r23` in place, else `mr r22, r25`: adiff.hi coalesced with diff.hi) placed BEFORE the inlined
+  sftst_Conv; the if/else, `?:` and an inlined `sftst_Abs(v)` helper (return/variable/if-else/ternary
+  bodies) all give that arm shape but the frontend sinks the whole diamond below the Conv division call
+  into its single use (100w); `adiff = diff; if (diff < 0) adiff = -diff;` (kept, 83w) stays above the
+  call but copies both words before the compare; `adiff`-based tests, a `d = (Sint32)diff` before/after:
+  83-367w. Same sink class as the mpv_hdec bitpos.
+- adx_baif `AIFF_GetInfo` 129w (-8 bytes): the target's header FORM word is a VARIABLE web (3 bytes in
+  r30, `mr r27, r30`, byte 3 merged into the copy — the multi-def `ckid` pattern our cksz already shows)
+  while ours propagates the single-use header `ckid` into the compare (one r10 temp), and the target's
+  swapped size is a temp (`rlwinm r12..` feeding `end`) where ours keeps it in the variable (r27);
+  `end = p + (SWAP32(cksz) - 4)` forms, end-first, a dead second use: 137-138w.
 - objects.py / AGENTS.md were modified by other agents every few minutes this pass; edits were surgical
   single-anchor inserts.
 
@@ -17547,3 +17559,71 @@ then `ninja -f private.ninja -k 0`) builds and links everything from the shared 
     orders of the five table statements and 42 positions of the x3C/x40/x4C constants: 9-14.
   - dvd DiscChange (7): unchanged (sweep 13 mechanism; the `game[]` template's word-4 load must sit after the word-0 store).
 - Not iterated: em_set, shadow, at_mod, sce_at, cam_extra, Espgen43 SetSandWork (44), em_cloth Em18ClothSet (47).
+
+### DOL sweep 19a, closest-first (id_sys, roomdata, objRobo Matching; sce_sys ScenarioRoomInit 5 and t_bugcheck 2/14/18 unchanged; 2026-09-11)
+
+Flipped: id_sys (36/36), roomdata (18/18), objRobo (19/19); build 111 OK after each. Harness ~/.cache/dol19a (dol18a copies with
+the paths rewritten; `tryv.py` accepts a third tuple element `True` = replace every occurrence, for the two identical TaskSwitch
+bodies), deleted at the end. HAZARD seen all pass: with several agents running `ninja`, every build.ninja regeneration rewrites
+objdiff.json and the concurrent readers die with `JSONDecodeError` (`Expecting value: line 1 column 1` = a truncated file) --
+retry in a loop until the target object is newer than its source (`[ x.o -nt x.cpp ]`), never trust "no work to do".
+
+- **A store in both arms of the `ofs ? ofs + base : 0` diamond moves the join label past the store (id_sys set 4 -> 0, zero code).**
+  The target's `lwz r9,pG; li r11,0 (c = 0); lwz r0,96(r9)` needs the join block to START at the pG load: with `if (a) u->x =
+  (T)(a + (u32) data); else u->x = 0;` each arm stores (jump2 cross-jumps the identical `stw r0,308(r31)` into one before the
+  label, same bytes as the single-store form), so `c = 0` (prio 2) ranks below `lwz pG` (prio 6) in the block instead of
+  filling the free iu slot next to the stw. All twelve diamonds written that way stay identical (the first eleven never
+  differed). Also: the split object's `.sdata` is 8-aligned (`asm(".section .sdata; .balign 8")` at the end of the file;
+  without it every `pG@sda21` displacement in the DOL shifts by 4 -- the section sizes and bytes compare equal, only the link
+  shows it).
+- **gcse expression index = first occurrence: reuse the SAME counter in an earlier loop to make `stage + 1` older than `(u8)
+  stage` (roomdata init 7 -> 0, zero code).** Two PRE insertions at one block end come out in expression-index order; the
+  target has `addi nx,stage,1` (the latch increment PRE'd into the inner-loop preheader) before the hoisted `clrlwi (u8)
+  stage`, ours the reverse because `(u8) stage` first occurs in loop 1's inner body and `stage + 1` only in loop 1's latch.
+  Counting the FIRST loop (`total += Room_data_tbl[i].num`) with `stage` instead of `i` puts a `stage + 1` in that loop's
+  latch (before any `(u8) stage`), and the allocation follows (ofs r27, nx r26). The bct shape of the first loop is unchanged.
+- **The u16 member read directly in a HImode compare and then copied (roomdata linkRelData 6 -> 0, zero code).** `if (tbl[no]
+  .rel_no == 0) return; x1C = tbl[no].rel_no;` -> shorten_compare makes the test a HImode compare, so the load is a `(reg:HI)`
+  (`lhz r0`), the compare zero-extends it once (`clrlwi r3,r0,16; cmpwi r3,0`), the store after the branch stores the HI
+  register (`sth r0`) and `DvdRead(x1C, ..)` reuses the extension in r3 (cse: x1C's contents = the HI reg). A `u16 rel` local
+  is a promoted SImode load (`lhz` straight into the compare, `mr r3,r0` for the argument): the `#2 family` reading of sweep 17
+  was wrong here, it was the local.
+- **objRobo R0WalkBridge 21 -> 0 (zero code, three levers).** (1) The two `eventFlags()[no >> 5] & (0x80000000 >> (no & 31))`
+  tests of one flag (the inner `if (!set) { set; ... }` and the following `if (set) hitCnt++`) were cse1-threaded in ours: cse
+  follows the inner `bne` (flag set) into the join test, knows the `and.` result, folds the second jump and redirects the
+  first to the hitCnt block, whose new label splits the ebb -> three single-use `lis 0x8000` pseudos -> all movable ->
+  `combine_movables` merges them into one hoisted `lis r24`. The target keeps two `lis` inside the loop (one per test, the
+  join one shared with the nested `|=`). Reading the first test's word into a user variable (`f = eventFlags()[..]; if (!(f &
+  mask))`, the #12 (d) thread_jumps form) stops the folding; the join `lis` is then used in two blocks (`! reg_in_basic_block_p
+  && maybe_never` -> not movable) and the inner one alone is worth 71 < insn_count. (2) The hit counter through a plain
+  pointer incremented in the for header BEFORE i (`for (i = 0, hp = w->hitCnt; i < 6; hp++, i++) .. (*hp)++`): `(mem (reg hp))`
+  is not in-struct, so cse reloads pG for the nested `|=` like the target, and `hp++` first gives its `addi r29` the first
+  latch slot. (3) `w->fallSpdY = FRef(RoboFallSpdY)` (reference read of the .sdata float) keeps its `lfs` below the preceding
+  `w->fallX` store; `FSet(w->fallX, ..)` instead re-bases the store on `robo+936` (cse's find_best_addr) -- read side, not
+  store side, when the base register must stay `w`.
+- **objRobo TaskSwitchFront/Back 9 -> 0 (one tagged item each, `#17 (FPR value pin)`).** The target's preheader order `li j,0;
+  lfd 2^52; fmr range,to; lfd max-magic; addi &pMotion` = the copy sits in the preheader with a LUID between `j = 0` and
+  gcse's end-of-block insertion: `for (j = 0, range = to; j < i; j++)` (a movable in the body lands AFTER the insertion:
+  loop.c emits before LOOP_BEG, gcse after the block's last insn `j = 0`). gcse's copy propagation then folds the copy into
+  `to` (the loop body is not a cse ebb of the preheader, but `range = to` is available at the body entry); every C form of
+  the copy folds (`to * 1.0f`, `to + from`, const locals, block scoping), so `to` is a pinned `register f32 to asm("fr28")`
+  (its target register): a hard-register source is not recorded for cprop. The up arm's `range2 = from - to` stays inside the
+  loop (the movable follows the insertion, like the target's `fsubs` after `lfd`), and the `base` copies are gone (`+ from` /
+  `+ to` directly: with the pin `base = to` would be an unfoldable 4-ref pseudo outranking max). Allocation: max (2 sets with
+  REG_EQUAL 15.0, length x4) 12/136 > range (1 set) and range2 -> f30/f29 as the target; `to` before `from` in the
+  declarations for the pool order.
+- Read, not closed:
+  - sce_sys ScenarioRoomInit (5, tagged already): the target issues `li r10,-1; li r11,1; li r9,0(QI)` -- after reload the
+    `li r11,1` is anti-dependent on `addi r31,r11` so sched2 puts it after `li r10,-1` whatever sched1 did; the residue is
+    sched1 ranking the QI zero's `li` LAST although it has six dependents (ours first). Swapping sndFlag/cancelFlagNo,
+    dropping either keep-alive, an asm-emitted QI zero with a memory input, six literal byte stores, `eventCancel` last: 8-23.
+  - t_bugcheck menuPosMove (2): `addi r4,r30,160; mr r3,r30` -- a `"r"(pl)` keep-alive after setAng stops regmove's
+    substitution (the `mr` no longer reads pl's death) but the addi then has weight +1 like the mr and loses the LUID tie;
+    inline wrapper, `(u32) pl + 160`, block-scoped `rot`, a keep-alive after setPos: 2-22.
+  - pl_wep PlSetLockPitch (11): the do-while body's first insn after the loop note is issued first (barrier); ours is the
+    `lis m3r` of `m3r[2] = 0.0f` (dest address expanded first), the target's is the 0.0 pool `lis`. A `f32 z = 0.0f` first
+    statement puts the constant first but breaks the store order (`fmadds` before `stfs m3r[1]`, 8/0 swapped); `p *= k` inside
+    the do-while, a plain block, `m3r[1] = p * k`, FSet, statement swaps: 11-13. The r9/r11 of `lwz pWep` / the 2/pi high are a
+    local-alloc tie behind that.
+- Not iterated: pl_wep searchLockEm/PlWepAutoTrack/PlWepLockCtrl/PlWepHitCheck2 (+ .rodata 0x350 vs 0x290), espgen45,
+  Espgen42, em_sub, debug, act_btn, t_bugcheck menu/menuLife.

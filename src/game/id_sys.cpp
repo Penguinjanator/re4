@@ -266,34 +266,40 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->transSub = p1->transSub;
                     a = p1->ofs[0];
                     if (a) {
-                        a += (u32) data;
+                        u->path0 = (void*) (a + (u32) data);
+                    } else {
+                        u->path0 = 0;
                     }
-                    u->path0 = (void*) a;
                     a = p1->ofs[1];
                     if (a) {
-                        a += (u32) data;
+                        u->path1 = (void*) (a + (u32) data);
+                    } else {
+                        u->path1 = 0;
                     }
-                    u->path1 = (void*) a;
                     a = p1->ofs[2];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[0] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[0] = 0;
                     }
-                    u->curve[0] = (Hermite1*) a;
                     a = p1->ofs[3];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[1] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[1] = 0;
                     }
-                    u->curve[1] = (Hermite1*) a;
                     a = p1->ofs[4];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[2] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[2] = 0;
                     }
-                    u->curve[2] = (Hermite1*) a;
                     a = p1->ofs[5];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[3] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[3] = 0;
                     }
-                    u->curve[3] = (Hermite1*) a;
                     c = 0;
                     if ((s32) pG->flags_60 >= 0) {
                         u->flags |= 0xD;
@@ -368,34 +374,40 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->transSub = p2->transSub;
                     a = p2->ofs[0];
                     if (a) {
-                        a += (u32) data;
+                        u->path0 = (void*) (a + (u32) data);
+                    } else {
+                        u->path0 = 0;
                     }
-                    u->path0 = (void*) a;
                     a = p2->ofs[1];
                     if (a) {
-                        a += (u32) data;
+                        u->path1 = (void*) (a + (u32) data);
+                    } else {
+                        u->path1 = 0;
                     }
-                    u->path1 = (void*) a;
                     a = p2->ofs[2];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[0] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[0] = 0;
                     }
-                    u->curve[0] = (Hermite1*) a;
                     a = p2->ofs[3];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[1] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[1] = 0;
                     }
-                    u->curve[1] = (Hermite1*) a;
                     a = p2->ofs[4];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[2] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[2] = 0;
                     }
-                    u->curve[2] = (Hermite1*) a;
                     a = p2->ofs[5];
                     if (a) {
-                        a += (u32) data;
+                        u->curve[3] = (Hermite1*) (a + (u32) data);
+                    } else {
+                        u->curve[3] = 0;
                     }
-                    u->curve[3] = (Hermite1*) a;
                     c = 0;
                     if ((s32) pG->flags_60 >= 0) {
                         u->flags |= 0xD;
@@ -1454,3 +1466,6 @@ static inline const char* IdDebugName()
 IDSystem IdSys;
 void* g_pIdBuff = 0;
 int IdBuffType;
+
+// The split object's .sdata is 8-aligned (the linker pads 0x80314BB4 -> 0x80314BB8 before it).
+asm(".section .sdata; .balign 8");
