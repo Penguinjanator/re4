@@ -5344,6 +5344,14 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Never run `git stash`, `git checkout -- <file>`, `git reset` or anything else that rewrites the shared
   working tree: other agents are editing it at the same time.
 
+- Never run `ninja` unlocked while other agents work in the tree: concurrent ninja processes clobber
+  `.ninja_deps`/`.ninja_log` ("premature end of file; recovering"), which makes `dtk split` re-run,
+  rewrites config.json and re-triggers the manifest — the 2026-09-11 livelock ("manifest still dirty
+  after 100 tries"). Always: `flock /home/adityas/Projects/re4/build/.ninja.lock ninja <targets>`
+  (same for `ninja -k 0`). Do not run `python3 configure.py` by hand before ninja: ninja runs it when a
+  config file changed, and configure now rewrites build.ninja/objdiff.json only when their content
+  changed (restat rule), so redundant runs no longer dirty the manifest.
+
 - Never conclude "compiler-side difference". Every such verdict in this project has been overturned
   (#1, #3, #5, #6, #7, #8, #9, #13, M1, M5, M6, the ss_term eof order, the view initPerspective PRE
   pattern "proven impossible" in pass 3 and reproduced in pure C++ in pass 5). When an RTL-level proof says

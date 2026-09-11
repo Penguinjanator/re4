@@ -542,6 +542,20 @@ def generate_build(config: ProjectConfig) -> None:
     generate_compile_commands(config, objects, build_config)
 
 
+def replace_if_changed(path: str, content: str) -> None:
+    """Write `content` to `path` atomically, and only if it differs from the current file."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            if f.read() == content:
+                return
+    except FileNotFoundError:
+        pass
+    tmp = f"{path}.{os.getpid()}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(content)
+    os.replace(tmp, path)
+
+
 # Generate build.ninja
 def generate_build_ninja(
     config: ProjectConfig,
@@ -1898,6 +1912,9 @@ def generate_build_ninja(
         name="configure",
         command=f"$python {configure_script} $configure_args",
         generator=True,
+        # configure only rewrites the manifests when their content changed (replace_if_changed);
+        # restat lets ninja treat an untouched output as up to date instead of looping.
+        restat=True,
         description=f"RUN {configure_script}",
     )
     n.build(
@@ -1929,10 +1946,9 @@ def generate_build_ninja(
 
     # Write build.ninja atomically: concurrent configure runs (many agents editing objects.py) must
     # never expose a truncated manifest to a running ninja.
-    tmp = f"build.ninja.{os.getpid()}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(out.getvalue())
-    os.replace(tmp, "build.ninja")
+    # Only touch build.ninja when its content changed: a rewrite with identical content still bumps the
+    # mtime, and every running ninja then re-regenerates the manifest (livelock under concurrent agents).
+    replace_if_changed("build.ninja", out.getvalue())
     out.close()
 
 
@@ -2161,14 +2177,12 @@ def generate_objdiff_config(
 
     # Write objdiff.json atomically (see generate_build_ninja): a concurrent configure's json.load of
     # a half-written file was the "FAILED: build.ninja objdiff.json" race.
-    tmp = f"objdiff.json.{os.getpid()}.tmp"
-    with open(tmp, "w", encoding="utf-8") as w:
+    def unix_path(input: Any) -> str:
+        return str(input).replace(os.sep, "/") if input else ""
 
-        def unix_path(input: Any) -> str:
-            return str(input).replace(os.sep, "/") if input else ""
-
-        json.dump(cleandict(objdiff_config), w, indent=2, default=unix_path)
-    os.replace(tmp, "objdiff.json")
+    replace_if_changed(
+        "objdiff.json", json.dumps(cleandict(objdiff_config), indent=2, default=unix_path)
+    )
 
 
 def generate_compile_commands(

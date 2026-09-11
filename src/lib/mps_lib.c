@@ -196,12 +196,22 @@ void MPS_Finish(void)
 	MPSGET_Finish();
 }
 
+/* the handle clear loop as an inlined helper: its counter is a temporary that shares the zero
+ * register of the three libwork clears (a caller-level `i` keeps its own `li`), and the handle
+ * argument expression ranks above the unroller's temporaries (`addi r4, r3, 0x10`) */
+static void mpslib_ClrHn(MPS hn, Sint32 num)
+{
+	Sint32 i;
+
+	for (i = 0; i < num; i++) {
+		hn[i].used = MPS_HN_FREE;
+	}
+}
+
 Sint32 MPS_Init(Sint32 num_hn, void *work)
 {
 	static const Uint32 test_wrok = 0x01020304;
 	MPSLIB_WORK *lw;
-	MPS hn;
-	Sint32 i;
 
 	cri_verstr_ptr = MPSLIB_version_str;
 	if (*(const Uint8 *)&test_wrok != 1) {
@@ -216,12 +226,9 @@ Sint32 MPS_Init(Sint32 num_hn, void *work)
 	lw->errobj = NULL;
 	lw->errcode = 0;
 	MPSLIB_libwork->num_hn = num_hn;
-	hn = MPSLIB_libwork->hn;
-	/* OPEN: the target shares one zero register between the three NULL stores and i, and keeps
-	 * an unreachable `b` pair after the remainder loop */
-	for (i = 0; i < num_hn; i++) {
-		hn[i].used = MPS_HN_FREE;
-	}
+	mpslib_ClrHn(MPSLIB_libwork->hn, num_hn);
+	/* OPEN (12w): the target keeps an unreachable `b .Lcalls; b .Lreturn` pair between the remainder
+	 * loop and the two Init calls, and its `li r3, 0` starts the return block (a jump target) */
 	MPSDEC_Init();
 	MPSGET_Init();
 	return 0;

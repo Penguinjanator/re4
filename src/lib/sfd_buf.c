@@ -246,6 +246,10 @@ void SFBUF_RingGetDlm(SFD sfd, Sint32 n, Uint8 **pos, Sint32 *len)
 	SFLIB_UnlockCs(&cs);
 }
 
+/* AddRead/AddWrite: the target's `nbyte == 0` exit is `bne body; b end` = an if/else chain whose first
+ * arm generates no code (ours keeps its `li ret, 0`, +1 word), and it keeps `ring` as its own node
+ * (`addi r28, hn, 0x1318`, hn dying in r3 before the calls) where the backend's add-propagation folds
+ * ours into hn; OPEN (16w/22w) */
 Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -260,38 +264,33 @@ Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 	Uint8 *pos;
 
 	sj = hn->w.u.ring.sup.sj;
-	do {
-		if (nbyte == 0) {
-			break;
-		}
-		if (hn->w.used == 0 || sj == NULL) {
-			ret = 0;
-			break;
-		}
-		{
-			SJ_GetChunk(sj, 1, nbyte, &ck);
-			SJ_PutChunk(sj, 0, &ck);
-			if (ck.len < nbyte) {
-				rest = nbyte - ck.len;
-				SJ_GetChunk(sj, 1, rest, &ck2);
-				SJ_PutChunk(sj, 0, &ck2);
-				if (ck2.len < rest) {
-					ret = SFLIB_SetErr(sfd, 0xFF00040B);
-				}
+	if (nbyte == 0) {
+		ret = 0;
+	} else if (hn->w.used == 0 || sj == NULL) {
+		ret = 0;
+	} else {
+		SJ_GetChunk(sj, 1, nbyte, &ck);
+		SJ_PutChunk(sj, 0, &ck);
+		if (ck.len < nbyte) {
+			rest = nbyte - ck.len;
+			SJ_GetChunk(sj, 1, rest, &ck2);
+			SJ_PutChunk(sj, 0, &ck2);
+			if (ck2.len < rest) {
+				ret = SFLIB_SetErr(sfd, 0xFF00040B);
 			}
-			if (n == 1) {
-				sj = ring->sup.sj;
-				sfbuf_RingGetCk(sj, 1, &ck1, &ckw);
-				pos = ring->dlm_pos;
-				if ((pos < ck1.data || pos >= ck1.data + ck1.len) && (pos < ckw.data || pos >= ckw.data + ckw.len)) {
-					ring->dlm_pos = NULL;
-					ring->dlm_len = 0;
-				}
-			}
-			sfbuf_AddTot(&ring->rtot, nbyte);
-			sfd->chg_flg = 1;
 		}
-	} while (0);
+		if (n == 1) {
+			sj = ring->sup.sj;
+			sfbuf_RingGetCk(sj, 1, &ck1, &ckw);
+			pos = ring->dlm_pos;
+			if ((pos < ck1.data || pos >= ck1.data + ck1.len) && (pos < ckw.data || pos >= ckw.data + ckw.len)) {
+				ring->dlm_pos = NULL;
+				ring->dlm_len = 0;
+			}
+		}
+		sfbuf_AddTot(&ring->rtot, nbyte);
+		sfd->chg_flg = 1;
+	}
 	return ret;
 }
 
@@ -306,29 +305,24 @@ Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
 	Sint32 ret = 0;
 
 	sj = hn->w.u.ring.sup.sj;
-	do {
-		if (nbyte == 0) {
-			break;
-		}
-		if (hn->w.used == 0 || sj == NULL) {
-			ret = 0;
-			break;
-		}
-		{
-			SJ_GetChunk(sj, 0, nbyte, &ck);
-			SJ_PutChunk(sj, 1, &ck);
-			if (ck.len < nbyte) {
-				rest = nbyte - ck.len;
-				SJ_GetChunk(sj, 0, rest, &ck2);
-				SJ_PutChunk(sj, 1, &ck2);
-				if (ck2.len < rest) {
-					ret = SFLIB_SetErr(sfd, 0xFF00040B);
-				}
+	if (nbyte == 0) {
+		ret = 0;
+	} else if (hn->w.used == 0 || sj == NULL) {
+		ret = 0;
+	} else {
+		SJ_GetChunk(sj, 0, nbyte, &ck);
+		SJ_PutChunk(sj, 1, &ck);
+		if (ck.len < nbyte) {
+			rest = nbyte - ck.len;
+			SJ_GetChunk(sj, 0, rest, &ck2);
+			SJ_PutChunk(sj, 1, &ck2);
+			if (ck2.len < rest) {
+				ret = SFLIB_SetErr(sfd, 0xFF00040B);
 			}
-			sfbuf_AddTot(&ring->wtot, nbyte);
-			sfd->chg_flg = 1;
 		}
-	} while (0);
+		sfbuf_AddTot(&ring->wtot, nbyte);
+		sfd->chg_flg = 1;
+	}
 	return ret;
 }
 
