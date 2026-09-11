@@ -112,7 +112,9 @@ static const Char8 *sfhlib_version_dummy;
  * where our 2.4.7's peephole folds any byte-swap store (C or inline-asm spelled) into `stwbrx`: the swap
  * is written as an asm-defined register local and the six sfh_GetHdrU32 callers are compiled under
  * `#pragma peephole off` (1 word left each: the loaded word takes the dying base register r5, the
- * original a fresh r6; a `mr r6` pin is dropped by the compiler). SFH_AnlyElemSmpHz keeps the C form:
+ * original a fresh r6 -- the original's peephole merged the rlwinm/or chain after register allocation,
+ * so one partial-result temporary was still live and coloured next to the word; same root as M4, see
+ * AGENTS.md "CRI pass 11"). SFH_AnlyElemSmpHz keeps the C form:
  * its inlined element search needs the peephole's displacement folding. */
 #define SFH_SWAP32_STORE(val, w, s)                                                            \
 	asm { rlwinm s, w, 8, 8, 15; rlwimi s, w, 24, 0, 7; rlwimi s, w, 24, 16, 23; rlwimi s, w, 8, 24, 31 } /* COMPILER-DIFF: M4 */\
