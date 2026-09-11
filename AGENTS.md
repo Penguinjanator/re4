@@ -15418,3 +15418,87 @@ Build 111 OK after every flip (sscrn, esp0a, mes, lib/crt0, lib/crtbegin).
   real insn for global-alloc live lengths; `expand_expr`'s VAR_DECL case legitimises a non-small-data object's address into a
   `lo_sum` pseudo before the member displacement is added (plain `Obj.member` = `addi rP,sym@l` + `ofs(rP)`), while an
   address that reaches `memory_address` as a CONST (inline `&` parameter, `*(u8*)((u8*)&Obj + N)`) folds into `sym+N@l(rH)`.
+
+### Tool RELs, bytes-first pass 13 (db_sctrl Matching in t_id + t_event: sctrlMenu 32 -> 0; t_camera tcCameraCopyPoint 13 -> 0 (53/57); t_rck 29 -> 32/33; t_se_at 12 -> 14/20: seAtInit 21 -> 0, AreaMove 22 -> 0; t_vib tvibFrameLineDraw 85 -> 67; 2026-09-11)
+
+- Harness ~/.cache/tools_p13 (deleted at the end; scripts were dol15 copies plus module-aware `mtryv.py MOD/UNIT SYM V.py
+  [--apply NAME]` (source, cflags and post-build read from build.ninja -- join the `$\n` continuations before matching
+  `prodg_cc\s+(\S+)`), `msbs.sh MOD/UNIT SYM [ABS_OBJ]` (LEFT = target), `mdump.sh MOD/UNIT -dX` (`SRC_OVERRIDE` absolute),
+  `mlens.py` (word count + the `-dl` refs/length line of every loop-carried giv), `layout.py DUMP FUNC` (compact label/jump
+  layout of a -dR/-dJ dump for xjump work); `mcmp.py`/`order.py` take `MOD/UNIT` (split object under `build/G4BE08/<mod>/obj/`).
+- **sctrlMenu (db_sctrl, 32 -> 0, tagged `#13 (free sched slot filler)`; unit flipped in t_id AND t_event, 111 OK).** The
+  case-4 blink block's target order `lbz; addi r3; li r5; extsb; li r6; add; addi r7` is the 2-issue schedule with the t2
+  second slot taken by a free insn that left no bytes (the Sscrn free-slot rule). Ours: t1 lbz+addi r3, t2 li r5+li r6, t3
+  extsb+addi r7. A codeless NON-volatile asm `asm("" : "=m"(w->blink));` right before the `">"` eprintf is that insn in
+  both passes: weight 0 (no register set), prio 3 (every insn of a block feeds the block's call: `sched_analyze` makes a
+  CALL_INSN depend on all prior sets/uses of every register incl. pseudos), ready at t1, LUID before the arg moves -> it
+  takes t1's iu slot, addi r3 slips to t2 with li r5, li r6 to t3 with extsb. Facts: an asm with NO outputs is implicitly
+  volatile (stmt.c `if (noutputs == 0) vol = 1`) and a volatile asm is a full barrier in sched (`reg_pending_sets_all`)
+  AND a gcse kill (the `i+1` PRE was re-inserted after it: +1 addi) -- always give a slot filler a `"=m"` output on a field
+  the block re-reads later anyway (`w->blink`). The `#13` single-use-constant filler of the Sscrn pass does NOT work inside
+  a loop: `recompute_reg_usage` weights REG_N_REFS by loop depth (set at depth 2 + use at depth 1 = 3 != 2), so
+  update_equiv_regs neither substitutes nor moves it and the `li` stays (36-49 words). ASM insns cost 1 and consume an
+  issue slot (`insn_cost`: INSN_CODE < 0 -> 1).
+- **tcCameraCopyPoint (t_camera, 13 -> 0, zero code): the jump2-entry layout the target needs is a shared `p->x627++` behind
+  `goto skip` with the `v.x >= 0.0f` arm FIRST in BOTH arms and a shared `TcWork* p` set in each test block** (`if (v.x >=
+  0.0f) { p = PTC; if (p->x629 != 0) goto skip; } else { p = PTC; if (p->x629 == 0) goto skip; } p->x627++;` for the i-1
+  arm, the x629 tests inverted for the i+1 arm, `skip:` before the shift loop). Why: at jump2 entry each arm then reads
+  `bcc L1; T2: t; beq END; b Linc; L1: T1: t; bne END; Linc: inc` with Linc an OLD label, so (round 1) A1's inc merges into
+  arm B's inc (`b Linc`), A2 merges wholesale into B1, and B2's `b Linc` finds A1's identical tail through Linc's jump_chain
+  (redirect_jump prepends the redirected jump to the new label's chain) -> `bso A1`, B1 falls into inc: the target. The
+  per-arm `p = PTC` load is what keeps the inc block's `lbz/addi/stb 0x627(r11)` on the tests' r11 (a plain `PTC->x627++`
+  in the shared block reloads pTc into r9: 32 words); with the goto form in ONE arm only the other arm's copies still win
+  (13-17); `if (!(v.x >= 0))` polarity in the goto form 17. Read with tools/xjump.py: its `bc` handling over-merges call
+  tails (it turned a threaded `bge` into a 13-insn cross-jump the real jump2 never did) -- use the -dJ dump as the arbiter.
+- **t_rck (29 -> 32/33, all zero code):** rckMakeSaveData 75 -> 0: (1) a running offset `u32 o = sizeof(RckHeader); hdr.hdrSize
+  = o; o += nPoint*16; hdr.ofsLine = o; o += nLine*4; hdr.ofsNext = o;` -- one multi-set pseudo gives the target's r7 for
+  the 24, the ofsLine and the ofsNext value (`addi r7,r9,24` is NOT tied to the dying `slwi r9` because the pseudo already
+  has a quantity; a fresh `ofsLine` local is tied: `addi r9,r9,24`); (2) `p = (u8*) buf` assigned AFTER `memclr_asm(buf,
+  size)` so the header copy stores through buf/p's own register and `p += 24` is `addi r31,r31,24` after them (the
+  initialiser form let cse canonicalise the stores to buf and `addi r31,r28,24` ran early); (3) `RckLine* l = &RCK->line[i][j]`
+  inside the j body for `l->to` and `*(u32*) l` (one giv, `lhax/lwzx r11,r10`; the plain 2-D index made two); (4) the total
+  reuses `o` (`o = nPoint*16 + 24; o += nLine*4; o += nSq; total = o + 0x20; return total - (o & 0x1F);` -- fold turns
+  `o + 0x20 - (o & 0x1F)` into `o - ((o & 31) - 32)`, the separate `total` statement keeps `addi r0,r7,32; subf`).
+  rckPointDelete 121 -> 0: FUNCTION-scope `RckLine* l; RckPoint* pt;` reused by every loop (a multi-block pseudo is
+  global-allocated and takes r11 after the local RCK load got r9; block-local pointers are local qtys ranked by refs/len and
+  take r9), `l = &RCK->line[i][RCK->cur]` block BEFORE the `[cur][i]` block (the target's order), `int del; ... del = 0;`
+  after the early `return` (the initialiser put `li r6,0` in block 0). rckSetNextPoint 184 -> 0: `best = start` BEFORE the k
+  loop (the target never resets it per iteration -- a decomp error), pointer forms `RckNode* n`, `nb = &node[best]`,
+  `RckLine* l`, the done test as `(n->done & 1) == 0` (`!(n->done & 1)` folds to `xori r0,r0,1; andi.; beq`), and in the
+  relax loop `n = &node[i]` computed INSIDE the `if (l->to != -1)` block: computed at the body top, cse's find_best_addr
+  rewrote `(mem n)` to `(mem (plus fp8 i8))` (ADDRESS_COST 0 everywhere, the tie-break takes the HIGHER rtx cost), gcse PRE'd
+  `(plus fp 8)` (#3) into R with `r221 = R` copies, and cprop pass 2 propagated R only into the NEXT block's done load (no
+  local cprop in 2.95.3) -> n's giv kept add_val r221, the done address got R, `combine_givs_p` refused (different add_val
+  regs) -> a second index giv `lbzx r0,r6,r5`. In one block both stay r221 and combine into the stepping pointer.
+  rckDrawPointLine 231 left (member-wise Vec copies via `lfs/stfs`, `w = RCK` after the `i == j` test, `w + (i*16 + 724)`
+  hoisted offsets: 192 with the pointer forms; not finished).
+- **seAtInit (t_se_at, 21 -> 0, tagged `#13 (memory anchor)` x3): one codeless `asm("" : "=m"(seAtWk.p) : "m"(loc))`
+  right AFTER EACH store the `lwz pW` must wait for** (`seAtSaveHead = head; asm(.."m"(seAtSaveHead)); seAtSaveList = list;
+  asm(.."m"(seAtSaveList)); asm(.. : "m"(Snd.se_at), "m"(Snd.se_at_list));`). The "m" input is a true dependence on that
+  store, the "=m"(seAtWk.p) output an output dependence chain into every later pW load. ONE asm with all four "m" operands
+  after the stores also orders the load (4 words) but extends the two save highs' lifetimes unequally (Head born t1, List t2,
+  both dying at the asm -> List's qty ranks first and takes r10); per-store asms extend each high by one insn and the
+  four qtys tie at refs/len = 1.0 -> pseudo-number order = the target's r0/r11/r10/r8. The pass-11 verdict "not source
+  fixable" stands for zero-code forms; this is the r224 anchor idiom.
+- **seAtAreaEdit_AreaMove (t_se_at, 22 -> 0, zero code): `Vec* rp = &right; rp->x = ..; rp->y = ..; rp->z = ..;`** for the
+  one Vec the target stores through `addi r9,r1,8` (y/z via `4(r9)`/`8(r9)`, x frame-direct): cse's find_best_addr folds
+  `(mem P)` to the frame address but leaves `(mem (plus P 4))` (the `(plus (plus fp 8) 4)` candidate is not a valid
+  address); `up`/`dir` stay member stores. An inline `Vec*` setter gives 7 (integrate's parameter copy differs).
+- **tvibFrameLineDraw (t_vib, 85 -> 67): the target's duplicated body head at the loop bottom (`i++; cmpw i,n; bge; fmr;
+  cmpwi i,0; fadds; blt; lha frame_w; addi -1; cmpw; blt BODY`) is stmt.c expand_end_loop's exit-test rotation** (it moves
+  the loop head up to the LAST conditional jump to `end_label` within 30 insns -- only a `break` jumps there, a `return`
+  does not) followed by jump1's duplicate_loop_exit_test: source `for (i = start - scroll; i < n; i++) { cur = lv; lv +=
+  step; if (i >= 0) { if (i >= frame_w - 1) break; ..} }` with `frame_w` re-read (the bottom copy reloads it) and `n = end -
+  scroll` a local. Left 67: `c = col` must be the block's second insn (target `stw r4,24(r1)` before the V load; a
+  `volatile u32 c` changes nothing, a `"=m"(c)` asm gives 58 with other shifts) and the x/x+cell_w u16 arithmetic.
+- **Read, not closed:** tcSetBesideOffset (t_camera_data, 27): the two loop-1 givs' REG_LIVE_LENGTH 84/82 is haifa's
+  post-sched recount (`find_pre_sched_live` + `find_post_sched_live` both add, so every insn counts twice); n*12 is
+  born one insn before n*4 in the preheader and both live to the loop end, so the 2-insn gap is structural -- with
+  identical RTL the original could not have had n*12 first (27/84 < 27/82); its REG_N_REFS must have differed (both 9 =
+  init 1 + preheader copy 2 + increment 6). Pointer/`k4`/`k12`/post-increment forms give identical RTL (27); `"=m"`
+  anchors on `c->at[n]` in the outer body break the giv combination (69-70). toolIdEditDisp (t_id, 4): `li r24,12` must
+  issue at t3 with `cmpwi` after `lbz dispTop` -- a ready prio-1 insn cannot be held back two cycles by fillers (two
+  slots per cycle), so the original's `row = 0xC` set was not ready before t3; unknown. tcDrawRail (t_camera, 39): the
+  target has a dead `mr r3,r28` (&v) before each `bl tcGetFloor` and allocates `&v` before the pos giv -- an expansion
+  difference (block-move argument setup?), not iterated. tvibModeFrameDisp/tvibListVibDraw/tvibEditFrameDisp,
+  seAtAreaEdit_EditMenu (two zero pseudos r7/r8 swapped), tcToolCameraMove, tcEdit_select not iterated.

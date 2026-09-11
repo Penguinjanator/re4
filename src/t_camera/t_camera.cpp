@@ -2538,32 +2538,42 @@ void tcCameraCopyPoint(TcCdat* c)
     Vec v;
     int i;
     int j;
+    TcWork* p;
 
     if (c->num <= 25) {
         i = PTC->x627;
+        // both arms: `v.x >= 0` test first, a shared `p` and one `x627++` behind `goto skip` -- the
+        // layout jump2 needs to cross-jump A2 into B1 and B2 into A1 (four per-arm copies leave 13 words)
         if (i - 1 >= 0) {
             PSMTXMultVec(pG->Cam.viewMat, &c->at[i - 1], &v);
-            if (!(v.x >= 0.0f)) {
-                if (PTC->x629 != 0) {
-                    PTC->x627++;
+            if (v.x >= 0.0f) {
+                p = PTC;
+                if (p->x629 != 0) {
+                    goto skip;
                 }
             } else {
-                if (PTC->x629 == 0) {
-                    PTC->x627++;
+                p = PTC;
+                if (p->x629 == 0) {
+                    goto skip;
                 }
             }
+            p->x627++;
         } else {
             PSMTXMultVec(pG->Cam.viewMat, &c->at[i + 1], &v);
-            if (!(v.x >= 0.0f)) {
-                if (PTC->x629 == 0) {
-                    PTC->x627++;
+            if (v.x >= 0.0f) {
+                p = PTC;
+                if (p->x629 == 0) {
+                    goto skip;
                 }
             } else {
-                if (PTC->x629 != 0) {
-                    PTC->x627++;
+                p = PTC;
+                if (p->x629 != 0) {
+                    goto skip;
                 }
             }
+            p->x627++;
         }
+    skip:
         for (j = c->num; j > i; j--) {
             c->pos[j] = c->pos[j - 1];
             c->at[j] = c->at[j - 1];

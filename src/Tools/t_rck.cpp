@@ -465,27 +465,34 @@ void rckPointAdd()
 
 void rckPointDelete()
 {
-    int del = 0;
+    int del;
     int i;
     int j;
+    RckLine* l;
+    RckPoint* pt;
 
     if (RCK->cur == -1) {
         return;
     }
+    del = 0;
     RCK->hdr.nPoint--;
     RCK->hdr.nSq = RCK->hdr.nPoint * RCK->hdr.nPoint;
     for (i = 0; i < RCK_POINT_MAX; i++) {
-        if (RCK->line[RCK->cur][i].to != -1) {
-            RCK->line[RCK->cur][i].len = 0;
+        l = &RCK->line[i][RCK->cur];
+        if (l->to != -1) {
+            l->len = 0;
             del++;
-            RCK->line[RCK->cur][i].to = -1;
-            RCK->pt[i].nLine--;
+            l->to = -1;
+            pt = &RCK->pt[i];
+            pt->nLine--;
         }
-        if (RCK->line[i][RCK->cur].to != -1) {
-            RCK->line[i][RCK->cur].len = 0;
+        l = &RCK->line[RCK->cur][i];
+        if (l->to != -1) {
+            l->len = 0;
             del++;
-            RCK->line[i][RCK->cur].to = -1;
-            RCK->pt[RCK->cur].nLine--;
+            l->to = -1;
+            pt = &RCK->pt[RCK->cur];
+            pt->nLine--;
         }
     }
     RCK->hdr.nLine -= del;
@@ -493,8 +500,9 @@ void rckPointDelete()
         for (j = RCK->cur; j < RCK_POINT_MAX - 1; j++) {
             RCK->line[i][j] = RCK->line[i][j + 1];
         }
-        RCK->line[i][RCK_POINT_MAX - 1].len = 0;
-        RCK->line[i][RCK_POINT_MAX - 1].to = -1;
+        l = &RCK->line[i][RCK_POINT_MAX - 1];
+        l->len = 0;
+        l->to = -1;
     }
     for (i = RCK->cur + 1; i < RCK_POINT_MAX; i++) {
         for (j = 0; j < RCK_POINT_MAX; j++) {
@@ -502,8 +510,9 @@ void rckPointDelete()
         }
     }
     for (j = 0; j < RCK_POINT_MAX; j++) {
-        RCK->line[RCK_POINT_MAX - 1][j].len = 0;
-        RCK->line[RCK_POINT_MAX - 1][j].to = -1;
+        l = &RCK->line[RCK_POINT_MAX - 1][j];
+        l->len = 0;
+        l->to = -1;
     }
     for (i = RCK->cur + 1; i < RCK_POINT_MAX; i++) {
         RCK->pt[i - 1] = RCK->pt[i];
@@ -997,6 +1006,7 @@ void rckSetNextPoint(int start)
     RckNode node[RCK_POINT_MAX];
     int i;
     int k;
+    int best;
 
     memclr_asm(node, sizeof(node));
     for (i = 0; i < RCK->hdr.nPoint; i++) {
@@ -1004,24 +1014,34 @@ void rckSetNextPoint(int start)
         node[i].prev = -1;
     }
     node[start].dist = 0;
+    best = start;
     for (k = 0; k < RCK->hdr.nPoint; k++) {
-        int best = start;
         u32 min = 0xFFFFFFFF;
+        RckNode* nb;
 
         for (i = 0; i < RCK->hdr.nPoint; i++) {
-            if (!(node[i].done & 1) && min > node[i].dist) {
-                min = node[i].dist;
+            RckNode* n = &node[i];
+
+            if ((n->done & 1) == 0 && min > n->dist) {
+                min = n->dist;
                 best = i;
             }
         }
-        node[best].done |= 1;
+        nb = &node[best];
+        nb->done |= 1;
         for (i = 0; i < RCK->hdr.nPoint; i++) {
-            if (RCK->line[best][i].to != -1 && !(node[i].done & 1)) {
-                u32 d = node[best].dist + RCK->line[best][i].len;
+            RckLine* l = &RCK->line[best][i];
 
-                if (node[i].dist > d) {
-                    node[i].dist = d;
-                    node[i].prev = best;
+            if (l->to != -1) {
+                RckNode* n = &node[i];
+
+                if ((n->done & 1) == 0) {
+                    u32 d = nb->dist + l->len;
+
+                    if (n->dist > d) {
+                        n->dist = d;
+                        n->prev = best;
+                    }
                 }
             }
         }
@@ -1054,29 +1074,36 @@ int rckFileSave(int no)
 
 int rckMakeSaveData(void* buf, u32 size)
 {
-    u8* p = (u8*) buf;
+    u8* p;
     s16 ofs = 0;
     int i;
     int j;
     u32 total;
+    u32 o;
 
     RCK->hdr.magic = 0x32525450;
-    RCK->hdr.hdrSize = sizeof(RckHeader);
-    RCK->hdr.ofsLine = RCK->hdr.nPoint * sizeof(RckPoint) + sizeof(RckHeader);
-    RCK->hdr.ofsNext = RCK->hdr.ofsLine + RCK->hdr.nLine * 4;
+    o = sizeof(RckHeader);
+    RCK->hdr.hdrSize = o;
+    o += RCK->hdr.nPoint * sizeof(RckPoint);
+    RCK->hdr.ofsLine = o;
+    o += RCK->hdr.nLine * 4;
+    RCK->hdr.ofsNext = o;
     for (i = 0; i < RCK->hdr.nPoint; i++) {
         RCK->pt[i].lineOfs = ofs;
         ofs += RCK->pt[i].nLine;
     }
     memclr_asm(buf, size);
+    p = (u8*) buf;
     *(RckHeader*) p = RCK->hdr;
     p += sizeof(RckHeader);
     memcpy(p, RCK->pt, RCK->hdr.nPoint * sizeof(RckPoint));
     p += RCK->hdr.nPoint * sizeof(RckPoint);
     for (i = 0; i < RCK->hdr.nPoint; i++) {
         for (j = 0; j < RCK->hdr.nPoint; j++) {
-            if (RCK->line[i][j].to != -1) {
-                *(u32*) p = *(u32*) &RCK->line[i][j];
+            RckLine* l = &RCK->line[i][j];
+
+            if (l->to != -1) {
+                *(u32*) p = *(u32*) l;
                 p += 4;
             }
         }
@@ -1085,8 +1112,11 @@ int rckMakeSaveData(void* buf, u32 size)
         memcpy(p, RCK->next[i], RCK->hdr.nPoint);
         p += RCK->hdr.nPoint;
     }
-    total = RCK->hdr.nPoint * sizeof(RckPoint) + sizeof(RckHeader) + RCK->hdr.nLine * 4 + RCK->hdr.nSq;
-    return total + 0x20 - (total & 0x1F);
+    o = RCK->hdr.nPoint * sizeof(RckPoint) + sizeof(RckHeader);
+    o += RCK->hdr.nLine * 4;
+    o += RCK->hdr.nSq;
+    total = o + 0x20;
+    return total - (o & 0x1F);
 }
 
 int rckFileLoad(int no)

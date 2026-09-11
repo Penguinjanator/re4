@@ -174,8 +174,14 @@ void seAtInit()
         SeAt* list = Snd.se_at_list;
         Snd.se_at_list = NULL;
         Snd.se_at = NULL;
+        // the original's `lwz pW` waits for the four stores (ours floats it to the block top:
+        // alias.c separates the symbol bases); codeless memory-input anchors give the load that
+        // dependence, one per store so the two save highs keep equal live lengths (r10/r8)
         seAtSaveHead = head;
+        asm("" : "=m"(seAtWk.p) : "m"(seAtSaveHead)); // COMPILER-DIFF: #13 (memory anchor)
         seAtSaveList = list;
+        asm("" : "=m"(seAtWk.p) : "m"(seAtSaveList)); // COMPILER-DIFF: #13 (memory anchor)
+        asm("" : "=m"(seAtWk.p) : "m"(Snd.se_at), "m"(Snd.se_at_list)); // COMPILER-DIFF: #13 (memory anchor)
     }
     pW->camPos = g->Cam.param.pos;
     pW->camAt = g->Cam.param.at;
@@ -347,9 +353,14 @@ static void seAtAreaEdit_AreaMove()
     Vec d = {0.0f, 0.0f, 0.0f};
     Camera* cam = &g->Cam;
 
-    right.x = g->Cam.mat[0][0];
-    right.y = g->Cam.mat[1][0];
-    right.z = g->Cam.mat[2][0];
+    {
+        // written through a pointer: the original stores right.y/.z via `addi r9,r1,8` (cse keeps
+        // `(mem (plus P 4))`, only the offset-0 store folds to the frame address)
+        Vec* rp = &right;
+        rp->x = g->Cam.mat[0][0];
+        rp->y = g->Cam.mat[1][0];
+        rp->z = g->Cam.mat[2][0];
+    }
     up.x = g->Cam.mat[0][1];
     up.y = g->Cam.mat[1][1];
     up.z = g->Cam.mat[2][1];

@@ -500,6 +500,10 @@ static int sctrlMenu(DbSctrlWork* w)
                     }
                 }
                 if (w->blink & 0x18) {
+                    // the original issued only `li r5` in this block's second cycle: a free
+                    // weight-0 insn took the other slot (lbz, addi r3 | li r5, X | extsb, li r6 |
+                    // add, addi r7); the codeless non-volatile asm is that insn in both passes
+                    asm("" : "=m"(w->blink)); // COMPILER-DIFF: #13 (free sched slot filler)
                     eprintf(x + 0x40, y + (i + w->sub) * 14, 0, 0, ">");
                 }
                 break;

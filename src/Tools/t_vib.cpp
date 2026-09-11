@@ -1181,44 +1181,41 @@ void tvibFrameLineDraw(VibDataEntry* e, u32 col)
 {
     S16Vec v[2];
     u32 c;
-    int frameW = frame_w;
-    int scroll = V->scroll;
-    int start = e->wait;
-    int end = start + e->time;
+    int scroll;
+    int start;
+    int end;
+    int n;
     int i;
     f32 step;
     f32 lv;
     f32 cur;
 
     c = col;
-    if (start < scroll + frameW - 1 && end > scroll) {
+    scroll = V->scroll;
+    start = e->wait;
+    end = start + e->time;
+    if (start < scroll + frame_w - 1 && end > scroll) {
         step = ((f32) e->lvl1 - (f32) e->lvl0) / (f32) e->time;
         lv = (f32) e->lvl0;
-        i = start - scroll;
-        if (i >= end - scroll) {
-            return;
-        }
-    LOOP:
-        cur = lv;
-        lv += step;
-        if (i >= 0) {
-            u16 x;
+        n = end - scroll;
+        for (i = start - scroll; i < n; i++) {
+            cur = lv;
+            lv += step;
+            if (i >= 0) {
+                u16 x;
 
-            if (i >= frameW - 1) {
-                return;
+                if (i >= frame_w - 1) {
+                    break;
+                }
+                x = menu_x + cell_w * i;
+                v[0].x = x;
+                v[0].y = (u16) menu_y + (u16) (s16) ((8.0f - cur) * (f32) cell_h);
+                v[0].z = 0;
+                v[1].x = x + cell_w;
+                v[1].y = (u16) menu_y + (u16) (s16) ((8.0f - lv) * (f32) cell_h);
+                v[1].z = 0;
+                TprimDrawFrameFn_s16(v, (GXColor*) &c, 2);
             }
-            x = menu_x + cell_w * i;
-            v[0].x = x;
-            v[0].y = (u16) menu_y + (u16) (s16) ((8.0f - cur) * (f32) cell_h);
-            v[0].z = 0;
-            v[1].x = x + cell_w;
-            v[1].y = (u16) menu_y + (u16) (s16) ((8.0f - lv) * (f32) cell_h);
-            v[1].z = 0;
-            TprimDrawFrameFn_s16(v, (GXColor*) &c, 2);
-        }
-        i++;
-        if (i < end - scroll) {
-            goto LOOP;
         }
     }
 }

@@ -756,6 +756,8 @@ MATCHING = {
     "t_event/db_filelist.cpp": True,
     "t_sce/db_filelist.cpp": True,
     "t_id/db_path.cpp": True,
+    "t_id/db_sctrl.cpp": True,
+    "t_event/db_sctrl.cpp": True,
     "Sscrn/ss_cap.cpp": True,
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
