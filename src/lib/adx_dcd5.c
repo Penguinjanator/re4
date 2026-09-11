@@ -181,20 +181,24 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	return nfrm;
 }
 
-/* COMPILER-DIFF: M1 - as ADX_DecodeSte4AsSte (the original keeps smul in r0 and i in r10, ours
- * smul in place and i callee-saved; the pass-8 "M5" here was only this ranking) */
+/* The scale is a Sint16 local: its definition is the `extsh` itself (the frontend's hoisted
+ * `(long)sc` in the inner-loop preheader becomes a copy of it), so the scale keeps its own-local
+ * register rank; the `key = ..; *scl = key;` redefinition between the scale and the loop keeps the
+ * frontend from substituting the scale into the hoist. The table value is the local `q` (declared
+ * last) defined before the store, so it takes the dying nibble's register. */
 Sint32 ADX_DecodeMono4(Sint8 *src, Sint32 nfrm, Sint16 *out, Sint16 *hist, Sint16 c1, Sint16 c2, Sint16 *scl,
                        Sint16 smul, Sint16 sadd)
 {
-	Sint32 l1;
-	Sint32 l2;
 	Sint32 i;
+	Sint32 l2;
+	Sint32 l1;
 	Sint32 j;
 	Sint32 s;
 	Sint32 key;
-	Sint32 sc;
+	Sint16 sc;
 	Sint32 d;
 	Sint32 t;
+	Sint32 q;
 
 	l1 = hist[0];
 	l2 = hist[1];
@@ -204,8 +208,9 @@ Sint32 ADX_DecodeMono4(Sint8 *src, Sint32 nfrm, Sint16 *out, Sint16 *hist, Sint1
 			return i;
 		}
 		key = *scl;
-		*scl = sadd + key * smul;
-		sc = (Sint16)(((s ^ key) & 0x1FFF) + 1);
+		sc = ((s ^ key) & 0x1FFF) + 1;
+		key = sadd + key * smul;
+		*scl = key;
 		*scl = *scl & 0x7FFF;
 		src += 2;
 		for (j = 0; j < 16; j++) {
@@ -213,8 +218,9 @@ Sint32 ADX_DecodeMono4(Sint8 *src, Sint32 nfrm, Sint16 *out, Sint16 *hist, Sint1
 			src++;
 			t = (d >> 4) * sc + ((c1 * l1 + c2 * l2) >> 12);
 			ADX_CLAMP(t);
+			q = AdxQtbl[d & 0xF];
 			out[0] = t;
-			l1 = sc * AdxQtbl[d & 0xF] + ((c1 * t + c2 * l1) >> 12);
+			l1 = q * sc + ((c1 * t + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
 			out[1] = l1;
 			l2 = t;

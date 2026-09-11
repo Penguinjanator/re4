@@ -24708,19 +24708,6 @@ life 12, both pri 1666), 35 min of header variants judged on all four includers 
   operand and no register input that re-ranks anything. No such C/asm form found; the caller side (t_esp_area.cpp) cannot help
   (pins are impossible through the inlined actual; an anchor after the ctor makes the address a global allocno, 226 words).
   Flip order unchanged: t_esp_area needs IDENTICAL first, t_lightarea's 4 words are its vtable relocs into t_esp_area's copies.
-- **option controller_menu 82 -> 0 (game/option Matching 20/20, 111 OK): three zero-code items + one tag.** (1) the two `for`
-  loops shared `int i` (one pseudo, 34 refs/398, set 4 times -> r30 for both loops); the target has loop-1 `i` in r30 and loop-2
-  in r25: own `int j` for loop 2 (82 -> 56, the brightness_menu rule again). (2) `pSys->flags |= 0x08000000; VibSet(vib_time,
-  vib_level, 0, 4)`: the target loads the two statics AFTER the `stw` (a true dependence); a `pSys->flags` store is
-  MEM_IN_STRUCT_P and alias-disjoint from the fixed scalars, so ours hoisted the loads: `BitOn(pSys->flags, 0x08000000)`
-  (reference view, catalogue row 4). (3) loop 2 compares `cmpw j, o->sub` = `if (j == o->sub)` (loop 1 is `o->sub == i`).
-  (4) residue 49w = one global.c swap: sel (29 refs/338 = 3431) must be allocated before o (42/600 = 3500) to take the virgin
-  r31 (then o r29, base r28, old r30 pass 0, uns r27, 0xFF r26, off r26, j r25 all follow from used-so-far/pass 1); all 42 o
-  refs are visible in the final code (30 depth-0 + 5 loop refs x2 + set) and sel's init must stay in the block before
-  `if (old != o->sub)` (moving it after: sel 316 wins but old takes r31, 26w), so the missing sel ref is not found: tagged
-  `asm("" : : "r"(sel))` after loop 2 (`COMPILER-DIFF: candidate (global.c allocno order)`), 30/340 = 3529 > 3500. A hard pin
-  `register IdUnit* sel asm("r31")` is 351w (the hard reg wrecks sched1 in loop 2).
-
 ### DOL Espgen43 closer 4 (AddSandPower 3 -> 0: asm-emitted `stfs` with a hard-register anti-dependence; game/Espgen43 Matching 11/11, `ninja -k 0` clean, dtk shasum 111 OK; 2026-09-12)
 
 - **Applied:** in `AddSandPower`, `Add_power = power;` is now `register u32 anti asm("r11"); asm("stfs %1,%0" : "=m"(Add_power) :
@@ -24983,3 +24970,74 @@ src/lib/mpv_umc.c `mpvumc_OneReadMb` body + comment only.
   first def as `asm { rlwinm yhx, vx, 0, 31, 31 }` with `register` yhx/vx (identical object: asm instructions are scheduled like C ones
   pre-RA too). Pass-27's "vid-order permutations cannot reach the colours" stands; the lever has to give `rlwinm yhx` a higher pre-RA
   priority than the load (an in-block consumer) or delay the load's readiness -- none found in C.
+
+### CRI mwsfdcre pass 5, continued (the "Applied / negative / residue" part re-appended after the 01:07 tree reset; the source edits were re-applied from the record and rebuilt: CreateSfd 126w, CalcWorkSfd 4w, 8/10, not flipped; 2026-09-12)
+- **Applied after the pool fix (each step verified with variant.sh, then the locked ninja; all pure C, no pins):**
+  * own locals declared `mode, adxibuf_p, adxwk_p, nfrm, width, height` (colours mode r21 > adxibuf_p r20 > adxwk_p r19 > nfrm
+    r18 > height r17, width still the pass-1 spill) — 247 -> 240w;
+  * the frame-table block as `static Sint32 mwsfcre_MallocFrmTbl(mwply, cprm, frmtbl)` returning `ret`: the helper's `ret` is the
+    temp numbered between the cwk2 and picusr_p Malloc results -> frmret r26;
+  * picusr_p/fname_p through `static void *mwsfcre_MallocX(mwply, size) { return MWSFD_Malloc(mwply, size); }` (folds the constant
+    like the direct call, but makes the result a TWO-level temp like the MallocWk ones): inlined helpers are cloned breadth-first, so
+    a level-2 result is numbered after every level-1 result; with two direct calls and two wrappers the order was picusr, fname,
+    hnwork, buf700 — all four through wrappers gives the target's call order picusr r25 > hnwork r24 > buf700 r23 > fname r22 (182w);
+  * `Sint32 mode = cprm->mode;` at the declaration (the macro no longer assigns it): the target loads mode BEFORE nfrm/width/height;
+  * MWSFCRE_CALC_BUFSIZ arms with the computed sizes (`sjb = ..; vib = ..;`) FIRST and the constant stores after: the backend-merged
+    `li 0` then has a higher temp id than the bps chain and is coloured first (`li r3, 0`, chain r4/r5..) — 178 -> 146w;
+  * mpvpara block: `Sint32 h; Sint32 w;` (h declared first -> h r0, w r3) and `cwidth`/`cheight` stored before `width`/`height`
+    (the `&mwsfd_mpvpara` address temp then colours r6 after adxtpara r4 and the zero r5) — 146 -> 126w.
+- **Negative results (do not retry):** a top-level `Sint32 hnwksiz = 0x4000;` local, a reused multi-def `size = 0x4000;`, and
+  `crepara.hnwksiz = 0x4000; MWSFD_Malloc(mwply, crepara.hnwksiz)` (the struct-member form keeps `li r3, 0x4000; cmpwi` but adds a
+  real `stw` to the frame); MallocWk made extern (numbering unchanged: FIFO cloning does not depend on linkage); IsUseAdxt spellings
+  for the target's second dead `b` (`case 4:` first/last, `mode = 4;` body, `goto ok`, `return TRUE` per case, a `Bool ret` local
+  — the frontend forwards `case 4` to the default label, or emits a second `li r0, 1`); declaration order / parameter form of the
+  helper's `nfrm` (block-2 colours follow the PCode first-appearance order of the temps, not the declaration order: `nfrm =` after
+  the width/height loads gives nfrm r19 / height r20 but moves the `lwz nfrm` below the buffmt-error block, 177w).
+- **Residue 126w (13 lines):** (1) block 2 of the inlined MallocFrmTbl: target nfrm r19 / height r20 / frmtbl ptr r20, ours r20 /
+  r19 / r19 — the target's nfrm load is the first instruction of the block yet coloured before height (a temp with a higher id whose
+  load the scheduler still hoists over the width/height loads: not a helper local, not a parameter; open); (2) the target's second
+  `b end` in both inlined IsUseAdxt switches (`b end; b end; li r0,0`): the frontend forwards an empty `case 4:` to the DEFAULT label
+  (AST `CASE 0x4: L@773 = DEFAULT`), so a separately laid-out `b` block needs a case body the frontend keeps and the backend deletes
+  — not found (pass 16a's `ret = FALSE` dead-store shape gives a different tree here). No tag applied: 2 words of dead code shift
+  every later branch offset, so this is the only blocker left besides (1).
+- mwPlyCalcWorkSfd 4w unchanged: `total = sibsiz + size; return total;`, a `SumWk(size, sib)` helper with a `ret` local, `size2 =`
+  all re-rank the CWS_BUFSIZ zero temps (13w) or bounce through `mr`. Flags: `lib/mwsfdcre.c` stays False (8/10); objects.py
+  untouched; the tree object was rebuilt through the locked ninja after every applied step (bytecmp 8/10, 126w + 4w).
+
+### DOL option/card closer 2, final (game/option Matching 20/20: retry_load_menu 2 -> 0 zero code, controller_menu 82 -> 0 three zero-code items + one tag; card saveMain 74 / errorDisp 99 read, not closed; 111 OK; 2026-09-12)
+
+Continues "### DOL option/card closer 2" above (the retry_load_menu mechanics live there).
+- **option controller_menu 82 -> 0 (flipped, 111 OK): three zero-code items + one tag.** (1) the two `for` loops shared `int i`
+  (one pseudo, 34 refs/398, set 4 times -> r30 for both loops); the target has loop-1 `i` in r30 and loop-2 in r25: own
+  `int j` for loop 2 (82 -> 56, the brightness_menu rule again). (2) `pSys->flags |= 0x08000000; VibSet(vib_time, vib_level,
+  0, 4)`: the target loads the two statics AFTER the `stw` (a true dependence); a `pSys->flags` store is MEM_IN_STRUCT_P and
+  alias-disjoint from the fixed scalars, so ours hoisted the loads: `BitOn(pSys->flags, 0x08000000)` (reference view,
+  catalogue row 4). (3) loop 2 compares `cmpw j, o->sub` = `if (j == o->sub)` (loop 1 is `o->sub == i`). (4) residue 49w =
+  one global.c swap: sel (29 refs/338 = 3431) must be allocated before o (42/600 = 3500) to take the virgin r31 (then o r29,
+  base r28, old r30 by pass 0, uns r27, 0xFF r26, off r26, j r25 all follow from used-so-far/pass 1); all 42 o refs are
+  visible in the final code (30 depth-0 + 5 loop refs x2 + the set) and sel's init must stay in the block before
+  `if (old != o->sub)` (after it: sel 316 wins but old takes r31 and the `li` inits move block, 26w), so the missing sel
+  ref is not found: tagged codeless `asm("" : : "r"(sel))` after loop 2 (`COMPILER-DIFF: candidate (global.c allocno
+  order)`), 30/340 = 3529 > 3500. A hard pin `register IdUnit* sel asm("r31")` is 351w (the hard reg wrecks sched1 in loop 2).
+- **card saveMain 74 (size 0x734/0x740, ours -12 bytes), read, not closed.** All 74 words are ONE jump2 cross-jump difference:
+  the target shares case 1's (`case -1: step++; if (slot == 2) step = 5;`) `stb r0,5(r31)` (L49C = 0x1d14) with case 2's
+  `step = 4`, case 6's `step = 0` and `step = 0xA` arms (`li r0,K; b L49C`), and L49C falls into `b L81C` (0x2094 = case 2's
+  join copy of `sub = 0; sub2 = 0`, physically after case 2's `step++` at 0x2088 which sits AFTER case 6's `step = 0xB` arm at
+  0x2074 -- i.e. the if/else arm blocks of cases 2 and 6 are laid out at the function end in both builds). Ours keeps a
+  `stb rK,5(r31); b L81C` per arm (the `step = 0` arm even uses r10: its 0 pseudo is sched1-hoisted above `extsb r0`, in the
+  target `li r0,0` is issued two insns before the tail). Per tools/xjump.py's rules a 1-insn `stb` match needs a CODE_LABEL
+  right before the scanned tail or a jump-around condjump as the mismatch insn; at jump2 entry (greg dump) every arm is
+  `bc Lelse; li r0,K; stb r0,5(r31); b J` with the `li` between, so neither applies -- the target's arms must have reached
+  jump2 with the `li` outside the arm or with a label before the `stb` (a join of two `step` values before one store, but
+  case 2's `step++` stores separately). Next: get the target-side shape from a `switch`/`goto` spelling of cases 2/6 that
+  puts `li r0,K` before the branch; the previous section's "arms still carried their own `sub = 0; sub2 = 0`" theory is
+  consistent (case 1's copy merged into J after L49C was created).
+- **card errorDisp 99 (size 0x854/0x83c, ours +24 bytes), read, not closed.** GDBG: six inlined-helper locals (regs 215/249/
+  265/269/319/338, 9 refs/14-16 insns, BASE_REGS, `= 0` set inside the inlined setMsgWindow-like body) take r31 first
+  (pri 16875-19285), `this` (82, 85/532) r30, then mesNo (84, 37 refs/408, set 25 times) gets r31 by pass 0 because it does
+  NOT conflict with them (`conf 010`: mesNo dies before each helper and is re-set after it), and the `step` zero_extend
+  temp (296, 6/28) r29 by pass 1. Target: mesNo r29, step r31 -> in the original mesNo is live across those helper locals
+  (conflicts with r31). Swapping every `setMsgWindow(0, 1); mesNo = K;` to `mesNo = K; setMsgWindow(0, 1);` (7 arms) is
+  187w/size 0x800 (too much cross-jumping: the arms' tails then all end in the inlined body), so the liveness must come
+  from elsewhere (mesNo read after the helper, or the helper taking mesNo). The `mode = 0` tail question from the previous
+  section (r31 shared by mesNo and the `andi.` temp) is the same allocation: fix the mesNo/step swap first.
