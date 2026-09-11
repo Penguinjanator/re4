@@ -303,21 +303,22 @@ int MemReplaceHeap(int from, int to)
 {
     u32 start;
     u32 end;
+    OSHeapDescriptor* hd;  // function scope: a global pseudo, allocated after the blocks' local qtys (lis/cell r9)
 
     if (CurrentHeap == 0) {
-        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        hd = HeapHead + Heap[CurrentHeap].handle;
         cell_main = hd->allocated;
     }
     if (CurrentHeap == 1) {
-        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        hd = HeapHead + Heap[CurrentHeap].handle;
         cell_game = hd->allocated;
     }
     if (CurrentHeap == 2) {
-        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        hd = HeapHead + Heap[CurrentHeap].handle;
         cell_stage = hd->allocated;
     }
     if (CurrentHeap == 3) {
-        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        hd = HeapHead + Heap[CurrentHeap].handle;
         cell_dll = hd->allocated;
     }
     if (!memCheckHeapActive(from)) {

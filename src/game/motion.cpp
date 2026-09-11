@@ -1092,23 +1092,27 @@ u16 MotionSequenceCtrl(MotionWork* w)
         if (w->seq == 0) {
             w->key0.frame = (u16) (w->seqFrame * 64.0f);
         } else {
-            u16 fi = (u16) w->seqFrame;
+            // One `sf` variable carries seqFrame, the fraction (`sf -= (f32)(int)fi`) and the
+            // else-arm product (`sf *=`): 9 refs rank it above mf and the 0x43300000 double.
+            f32 sf = w->seqFrame;
+            u16 fi = (u16) sf;
 
             w->key0 = w->seq[fi];
-            if ((f32) fi != w->seqFrame) {
-                u16 nx = (u16) (w->seqFrame + 1.0f);
-                f32 frac = w->seqFrame - (f32) (int) fi;
+            if ((f32) fi != sf) {
+                u16 nx = (u16) (sf + 1.0f);
 
+                sf -= (f32) (int) fi;
                 if (nx >= w->seqMax) {
                     f32 mf = w->maxFrame * 64.0f;
 
                     if (mf == (f32) (int) w->seq[fi].frame) {
-                        w->key0.frame = (u16) (frac * 64.0f);
+                        w->key0.frame = (u16) (sf * 64.0f);
                     } else if (w->seq[0].frame == 0) {
-                        w->key0.frame = w->seq[fi].frame + (u16) (frac * (mf - (f32) (int) w->seq[fi].frame));
+                        w->key0.frame = w->seq[fi].frame + (u16) (sf * (mf - (f32) (int) w->seq[fi].frame));
                     }
                 } else {
-                    w->key0.frame = w->seq[fi].frame + (u16) (frac * (f32) (w->seq[nx].frame - w->seq[fi].frame));
+                    sf *= (f32) (w->seq[nx].frame - w->seq[fi].frame);
+                    w->key0.frame = w->seq[fi].frame + (u16) sf;
                 }
             }
             if ((f32) (int) w->key0.frame > w->maxFrame * 64.0f) {

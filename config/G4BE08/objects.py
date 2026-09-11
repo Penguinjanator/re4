@@ -1772,3 +1772,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_cmc.c": True,  # CRI pass 17b: the block tables addressed through an MPVCMC_OUTBLK struct pointer (`oi = ob->rt`: an addi off another addi is not folded by add-propagation), `work` local declared first
 })
+
+# DOL closer (2026-09-11)
+MATCHING.update({
+    "game/route_ck.cpp": True,  # Draw_rtp: the link loop's test refreshes a `GlobalWork* g` local, `i < ((RtpData*)(g = pG)->pRoomRtp)->nPoint` -- the pG value is ONE pseudo (g is referenced outside the copied exit test, so duplicate_loop_exit_test keeps it) whose PRE'd copies survive as `mr r11,r5` at the entry and the latch, and the body's `rtpData()` reload stays; zero code
+})

@@ -1895,9 +1895,8 @@ int cCard::fileCreate(u8* sub, int blocks, CardSlot* s)
     return ret;
 }
 
-// OPEN (register allocation only, 13 words): the original gives the 0x40/0 constants r11/r0 and the
-// loop temps fmt2/spd2 r8/r9 (ours r0/r11, r9/r11); declaration/statement orders, u16/int types, a
-// stat pointer and mask locals all tried.
+// commentAddr stored before iconAddr (the zero's qty is born first and takes r0); the tail mask
+// through a two-use temp (see below).
 void cCard::makeCardStatus(CardSlot* s)
 {
     u32 fmt;
@@ -1907,8 +1906,8 @@ void cCard::makeCardStatus(CardSlot* s)
     int i;
 
     s->stat.bannerFormat = (u8) ((s->stat.bannerFormat & ~3) | 2);
-    s->stat.iconAddr = 0x40;
     s->stat.commentAddr = 0;
+    s->stat.iconAddr = 0x40;
     fmt = s->stat.iconFormat;
     spd = s->stat.iconSpeed;
     for (i = 0; i < ICON_NUM; i++) {
@@ -1917,9 +1916,14 @@ void cCard::makeCardStatus(CardSlot* s)
         fmt = fmt2;
         spd = spd2;
     }
-    spd2 &= ~(3 << (2 * ICON_NUM));
     s->stat.iconFormat = fmt2;
-    s->stat.iconSpeed = spd2;
+    {
+        // The mask must stay a 32-bit `rlwinm` (a two-use temp keeps combine from folding it into
+        // the u16 store as `andi. 0xfff3`); spd2 keeps 5 refs so spd (r11) is coloured before it.
+        u32 t = spd2 & ~(3 << (2 * ICON_NUM));
+        s->stat.iconSpeed = t;
+        spd2 = t;  // COMPILER-DIFF: dead statement (second use of t)
+    }
     s->stat.bannerFormat |= 4;
     DCFlushRange(&s->stat, sizeof(CardStat));
 }

@@ -619,6 +619,7 @@ void Draw_rtp()
     int j;
     u32 k;
     int back;
+    GlobalWork* g;
 
     rtp = rtpData();
     if (rtp == NULL) {
@@ -653,7 +654,9 @@ void Draw_rtp()
         }
         pt++;
     }
-    for (i = 0; i < rtpData()->nPoint; i++) {
+    // The loop test refreshes a GlobalWork* local: the pG value is one pseudo through the
+    // entry copy and the latch (`mr r11,r5` twice), and the body's pRoomRtp load stays.
+    for (i = 0; i < ((RtpData*)(g = pG)->pRoomRtp)->nPoint; i++) {
         pt = &rtpPoint(rtpData())[i];
         for (j = 0; j < pt->nLink; j++) {
             Vec d;

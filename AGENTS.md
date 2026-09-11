@@ -20895,3 +20895,66 @@ uid, `alloc.py LREG GREG` = global-alloc order with the priority formula), delet
     .text is 2 insns short per function = the two `lfs f0,0xc4` reloads of y0 in the mask quad.
 - Forms tried and rejected (do not retry): esp18 `f32 one = 1.0f` variable for the 1.0 uses (380: a per-iteration `lfs`,
   the REG_EQUAL-less copy is not a movable); the single 4-operand asm launder in esp08 (246; it serialises the fmadds).
+
+### DOL closer: route_ck/main_mem/motion/option/card/sce_com (route_ck Matching 16/16: Draw_rtp 8 -> 0; main_mem 31 -> 32/33: MemReplaceHeap 18 -> 0; motion 25 -> 26/31: MotionSequenceCtrl 12 -> 0; card 64 -> 65/67: makeCardStatus 13 -> 0; all zero asm, one tagged dead statement; 2026-09-11)
+
+Harness ~/.cache/dol_rk (dol26a copies with paths rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh`, `dump.sh UNIT -dX`, `mcmp.py`, plus
+`gprio.py LREG GREG FUNC` = global-alloc order rows (rank, pseudo, hard reg, refs, live length, sets, `floor(log2 refs)*refs/len`)
+parsed from the `-dl`/`-dg` dumps of one function; the `;; N preferences: R` lines of the greg dump are the hard-reg preferences);
+deleted at the end. 111 OK before and after.
+
+- **A `GlobalWork* g` refreshed INSIDE the loop test, `for (i = 0; i < ((RtpData*)(g = pG)->pRoomRtp)->nPoint; i++)`, with the
+  body still reading `rtpData()` (route_ck Draw_rtp 8 -> 0, zero code; unit Matching).** Why the shape: the loop test's `[pG]` load
+  is PRE-deleted into a copy from gcse's reaching reg (`mr r11,r5`); `duplicate_loop_exit_test` keeps the SAME pseudo for the entry
+  copy because `g` is referenced outside the copied region (a temp whose FIRST_UID is the set and whose LAST_UID is inside the test
+  gets a fresh reg), so entry and latch both write `g`; the second cprop cannot forward `g = R` into the test's `[g+20268]` (the set
+  is in the same block -- 2.95 has no local cprop) and cse2's make_regs_eqv keeps `g` canonical (REGNO_LAST_UID(g) beyond the
+  block and > R's, whose last reference is the latch copy). The body's `rtpData()` is a separate `[pG]` occurrence, deleted into
+  `B = R` and cprop'd to `lwz r9,20268(r5)`. `g = pG` before the loop / at the body end / in the increment, or `g->pRoomRtp` in the
+  body: 23 words (the body load gets PRE'd against the test block, whose `[g+..]` is antloc+transp when `g` is not set there).
+- **`OSHeapDescriptor* hd` declared at FUNCTION scope and assigned in all four `if (CurrentHeap == n)` blocks (main_mem
+  MemReplaceHeap 18 -> 0, zero code; `hd = HeapHead + Heap[CurrentHeap].handle` or the two-statement form both work).** A
+  block-local `hd` makes HeapHead+hd one local qty born 2nd (life 8, 10000) that outranks the `lis` (life 4, 5000) and takes r9; a
+  function-scope `hd` is REG_BLOCK_GLOBAL (referenced in four blocks), so block_alloc skips it: the block's local qtys become
+  handle+mulli 20000 -> r0, lis 5000 and cell 10000 -> both r9 (disjoint lives), and global.c then gives hd/HeapHead r11 in every
+  block. sched1 never issues `lwz HeapHead` before the `lis` (priority 7 vs 12: both feed the add, the lis chain has the lwz and
+  the mulli) -- the notes' "sched1 must reorder" reading was wrong, the fix is the allocator class, not the order. MemCheckUsedHeap
+  (143) read, not closed: (1) the y1 conversion result Y and T = cell+size swap r8/r10 because T prefers r10 (`subi r10,r8,-28` =
+  the eprintf `tag+4` argument gives T a hard_reg_preference) and Y, allocated first (10 refs/len 6 = 5.0 vs T 1.3), skips r10 in
+  find_reg's pass 0 (`regs_someone_prefers`) and takes r8; the target has Y r10 / T r8, i.e. T allocated first or Y's r8 blocked;
+  (2) the tile blocks' `li r0,4; stw code` adjacency: in the target the 498 constant reuses r0 (`li r0,0x1f2` after `stw r0,4(r31)`),
+  so at local-alloc time the code store was issued right after its `li` -- ours issues the five `li`/`addi` first (prio 3 vs the
+  store's 2, two issue slots per cycle) and the 498 takes r10. Statement order of the six stores is already the target's.
+- **One `f32 sf` carrying seqFrame, the fraction and the else-arm product (motion MotionSequenceCtrl 12 -> 0, zero code):** `sf =
+  w->seqFrame; fi = (u16) sf; ... if ((f32) fi != sf) { nx = (u16)(sf + 1.0f); sf -= (f32)(int) fi; if (nx >= seqMax) {mf ...
+  (u16)(sf * 64.0f) ... sf * (mf - ..)} else { sf *= (f32)(seq[nx].frame - seq[fi].frame); key0.frame = seq[fi].frame + (u16) sf; }
+  }`. Pri: frac alone is 4 refs/35 = 0.229 < mf 3/11 = 0.273 < the 0x43300000 double 2*4*2/68 = 0.235... (ours mf f13, dbl f12,
+  frac f11); the merged `sf` has 9 refs and is coloured first (f13, `fsubs f13,f13,f0` in place), mf f12, dbl f11. The `*=` in the
+  else arm is what puts the product in f13 (`fmuls f13,f13,f0; psq_st f13`): a plain `(u16)(sf * ..)` temp takes f0 (2 words).
+  `frac -= ..` alone, `sf` only for the fraction, `mf` outside the if, frac after the nx test, FP pins (`asm("fr13")`): 12-72.
+- **card makeCardStatus 13 -> 0: `commentAddr = 0` stated BEFORE `iconAddr = 0x40`, and the tail written `iconFormat = fmt2; { u32
+  t = spd2 & ~(3 << (2*ICON_NUM)); iconSpeed = t; spd2 = t; }`** (the `spd2 = t` is a dead statement, tagged `// COMPILER-DIFF`;
+  the target may have had another second use). Three mechanisms: (1) the two constants are equal-priority local qtys; the one born
+  first (statement order) takes r0. (2) `spd2 &= mask; iconSpeed = spd2` keeps a 32-bit `rlwinm r9,r9,0,30,27` but gives spd2 7
+  refs (2*7/10 = 1.4 > spd 5/10 = 1.0), so spd2 is coloured first and takes its own preference r11 (set_preference gives the ior's
+  dest the hard reg of its FIRST operand, the local `spd & mask` temp in r11; prune_preferences does not exclude a reg the allocno
+  itself prefers); the target colours spd first (r11, same preference), then spd2 r9, fmt2 r8. `iconSpeed = spd2 & mask` directly
+  drops spd2 to 5 refs (tie with spd -> allocno order, spd first) but combine folds the and into the u16 store as `andi. 0xfff3`
+  (1 word); the two-use temp keeps the SImode and. (3) the local `spd & mask` in r11 is the same in both.
+- Read, not closed (mechanisms for the next pass): motion HermiteInterpolation 26 = three independent items: (a) `mr r28,r29`
+  (cnt = n) before `li r21,0` (found = 0) at the axis-loop head -- equal priority/weight, luid tie-break, but stating `cnt = n`
+  first swaps n/cnt's registers (35); (b) `subi r0,r29,1; mr r30,r0; cmpw r31,r0`: the target keeps `n-1` in a local r0 and copies
+  it to `last` BEFORE the `idx > n-1` compare (ours coalesces them: `last = n - 1` after the if is cse'd to `last = R` via the
+  followed `ble` and the copy is renamed away) -- `last = n-1` before the if, `if (idx > last)`, an `int m` all give the coalesced
+  form; (c) `lis Fcc_get_data_tbl@ha` issued before `add r0,r31,r31` (idx*2 of the fp init) in the do-while preheader: equal
+  priority, so the hoisted lis has the lower luid in the target (the fp init would have to sit after the movables). sce_com
+  SceSetItemEvent 23: j is 17 refs/len 22 = 3.09 (loop-depth weighted) against e+6 3*8/5 = 4.8 and j*2 4.0; the target colours j
+  first (r9) then e+6 (r11) then j*2 (r10) -- `int j`, `j >= 8`, `(u32) j > 7`, a separate `k` for the init loop, declaration
+  orders, `s16* it` for the exit store, the `while` form: 23-38, none moves j above 4.8. card saveMain 74: the shared `stb
+  r0,5(r31); b L81C` tail (L49C) is case 0's `step = 5` store that case 2's `step = 4`, case 6's `step = 0`/`0xA` reach by
+  cross-jump; L81C (`sub = 0; sub2 = 0`) is case 9's else copy (jump_chain is LIFO, the LAST copy survives). find_cross_jump between
+  two jumps to L81C needs 2 matching insns (`stb` + the differing `li`) or a CODE_LABEL right before the matched insn, so the
+  merge must have happened while the arms still carried their own `sub = 0; sub2 = 0` -- duplicating them inside case 2 / case 6's
+  arms gives 76-80 (worse); the exact statement placement is open. option retry_load_menu 45 = one swap: `o` (29 refs/len 364 =
+  0.319) must outrank `old = o->sub` (13/108 = 0.361) to take r31; brightness_menu 69, controller_menu 82, errorDisp 99 (-24
+  bytes), OpenBoxMain 182, SceElevator 232, MotionGetPosition/SetCore/Move/Hokan not iterated.
