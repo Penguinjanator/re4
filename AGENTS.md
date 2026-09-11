@@ -4538,8 +4538,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
-- ss_term (src/Sscrn/ss_term.cpp, the codec call screen; 29/29 named functions byte-identical,
-  .data identical, NOT Matching: see the eof item below). Includes in .rodata order: light.h,
+- ss_term (src/Sscrn/ss_term.cpp, the codec call screen; Matching since the fourteenth pass, see
+  the eof item and the fourteenth-pass item below). Includes in .rodata order: light.h,
   event.h, map_obj.h, widget.h, then `dbg_button.h` — which is now the REAL header (cDbgButtonBase
   / cDbgWindowBase / cDbgButton with their inline virtuals; the 12 menu strings keep their parse
   order, and event.cpp / sscrn.cpp / ss_main stay byte-identical because nothing there constructs
@@ -4572,7 +4572,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   cFileList has an empty ctor and dtor (the empty static init pair and `global constructors
   keyed to MakeCol`), and the file-scope instance is the unreferenced 0x18 of .bss after
   term_read_req.
-- OPEN (ss_term eof, keeps the unit off MATCHING): the original writes the vtables of cDbgButton
+- CLOSED in the fourteenth pass (next item; was OPEN, ss_term eof): the original writes the vtables of cDbgButton
   and cDbgButtonBase (interface-unknown classes: only inline virtuals) and outputs `~cDbgButton`
   first among the eof functions, `~cDbgButtonBase` after `~Widget`; ours writes neither vtable
   (nothing references them: `AddButton` is never emitted) — .rodata is 0x30 short and the two
@@ -4606,6 +4606,60 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   terminalCameraInit (compiler-build difference candidate #10; not applied since the unit cannot
   flip anyway). (c) partnerType's table had 12 leading zeros; the original has 14 (`{0 x14, 1 x5,
   2 x4, 3}`, .rodata 0x2a8..0x308) — fixed.
+- Sscrn fourteenth pass (2026-09-11, ss_term flipped: `"Sscrn/ss_term.cpp": True` + STRIP_UNUSED in modules.py,
+  `Sscrn.rel: OK` with all 11 units compiled, main.dol and 106 files OK -- the 5 wep00/wep34-37 RELs were another
+  agent's transient wep_mod.h `PSet` redefinition. Harness ~/.cache/ssterm (deleted): the ssw14 scripts, `eof.py FILE.s`
+  (definition order of a cc1plus .s with LO/VT tags), and an instrumented copy of tools/sn-gcc under the harness whose
+  cc1plus prints with `FF_DUMP=1` every finish_file round: each saved_inlines decl with TREE_USED / DECL_EXTERNAL /
+  DECL_NOT_REALLY_EXTERN / DECL_COMDAT / TREE_SYMBOL_REFERENCED, each vtable walk decision and each "stop lying" un-lie;
+  the tree rebuilds byte-identical to the installed cc1plus in ~1 min, `make cc1plus` after a decl2.c edit in seconds):
+  - **finish_file model, measured on ss_term.** A deferred inline (every in-class/template body: finish_function sets
+    DECL_EXTERNAL=1 + NOT_REALLY_EXTERN and queues it) is output in round N only when that round's stop-lying loop
+    finds its assembler name TREE_SYMBOL_REFERENCED -- set solely by varasm `assemble_name`, i.e. by asm text already
+    written that mentions the name (a `bl`, a vtable word, a definition) -- or the decl is !COMDAT (interface-known
+    class virtuals); wrapup_global_declarations then outputs in saved_inlines order (a do-while, so a decl referenced
+    by output of the same wrapup follows in the next iteration). Vtables are written in the walk (reverse declaration
+    order) when interface-known or referenced; mark_vtable_entries marks the entries used (template members are
+    instantiated there). Our positions before the change: cDbgButtonBase members 508-523, cDbgWindowBase 524-530,
+    cDbgButton 531-534 (dbg_button.h), cDbgWindow 824-832, `_._t6Widget1Z10SUB_SCREEN` 846 (instantiated by ss_main.h's
+    ssWidgetDelete), ~SsTermInit 922, ~SsTermMain 938, cFileList 954-955, quit 957 / init 958 / transit 959
+    (SsTermInit::move's inlined transit), move only in round 2. Read the order off the dump, not off theories: the
+    second pass's "the original outputs every used comdat" is falsified here -- ~cDbgButtonBase is TREE_USED at parse
+    (~cDbgButton's body) and still comes out in round 2 in the target.
+  - **The three target differences and their source forms.** (1) `_vt.10cDbgButton` in round 1 and ~cDbgButton as the
+    first eof function = a parse-time-emitted function that inlines cDbgButton's implicit constructor:
+    `cDbgWindow::AddButton` written OUT OF LINE (db_toolbase.cpp style) between DbgDrawBoxFill and FindButton, so its
+    "AddButton(): new failed." keeps its place after MakeCol's pool; never called, the original REL link dead-stripped
+    the body (modules.py STRIP_UNUSED for the unit -- the REL link strips unreferenced globals too). The implicit ctor
+    stores only the derived vptr, so `_vt.14cDbgButtonBase` / ~cDbgButtonBase stay in round 2, and the .rodata vtable
+    order becomes round 1 [SsTermMain, SsTermInit, cDbgWindow, cDbgButton] + round 2 [cDbgWindowBase, cDbgButtonBase,
+    Widget] = the target's. (2) ~Widget right after quit in round 1 needs BOTH a saved_inlines position after quit
+    (so NOT instantiated by ss_main.h's ssWidgetDelete) AND `_._t6Widget1Z10SUB_SCREEN` referenced before round 1's
+    stop-lying loop while `_vt.t6Widget` stays unreferenced until ~SsTermInit's round-1 output. No natural construct
+    gives a non-inlined dtor call once the template has saved insns (mark_used instantiates an inline member at once
+    inside a function; `delete`/`p->~T()` through a pointer dispatch virtually). Device, tagged `COMPILER-DIFF:
+    candidate #8` (end-of-file order family): `template <> Widget<SUB_SCREEN>::~Widget();` declared before
+    dbg_button.h (mark_used -> instantiate_decl returns the specialization, nothing is instantiated; the declaration
+    also completes the class, replacing the old ssTermWidgetNum), a dead `static void ssTermWidgetKill(Widget<SUB_SCREEN>*
+    w) { w->Widget<SUB_SCREEN>::~Widget(); }` compiled while the specialization has no body (no DECL_SAVED_INSNS ->
+    real `bl _._t6Widget1Z10SUB_SCREEN`, assemble_name sets TREE_SYMBOL_REFERENCED; body dead-stripped), and the body
+    `template <> inline Widget<SUB_SCREEN>::~Widget() { Mem_free(link); }` after SsTermInit::move (queued after quit;
+    comdat like the instantiation, identical bytes, inlined into the synthesized ~SsTermInit/~SsTermMain in round 1).
+    (3) The four dead floats are the pool of a dead-stripped function right after terminalCameraInit: `static void
+    screenPos2terminalPos(Vec*, Vec*)` with ss_pzzl's screenPos2puzzlePos body (0.5, pi, 180, 240 in RTL order; a pool
+    is output before its function, so it follows terminalCameraInit's 1.3333334). Candidate #10's asm was not needed.
+  - **.bss order with a constructed file-scope object** (invisible to bcmp -- NOBITS -- but not to `make_rel --verify`):
+    the target's `term_read_req` is the unit's first .bss word (ADDR16 fields 0x508), the cFileList instance follows.
+    A constructed object's `.lcomm` is emitted while the static-init function is generated, a plain file-scope static
+    only at the end of the file, so the read request is a function-local `static int` of SsTermInit::move (same code).
+  - Pipeline facts: configure.py runs strip_unused BEFORE fold_linkonce for a module unit (verified identical REL in
+    that order); when testing a pipeline by hand the object must be named `<unit>.o` -- ngccc.py derives the unit from
+    the output stem and silently skips place_linkonce_module otherwise (63 linkonce sections left, wrong layout).
+  - Flip bookkeeping: sync_rel_symbols renamed `cDbgButton_dt_cDbgButton` -> `_._10cDbgButton` and
+    `cDbgButtonBase_dt_cDbgButtonBase` -> `_._14cDbgButtonBase` in the module symbols.txt / sym_map.tsv; scopes.py
+    clean (term_ope_tbl global, the four Vec statics and the .bss local; the vtable WEAK lines are the known false
+    positives); bcmp's 28-byte .text DIFF is the nameless cManager<cLight> block's linker-resolved `bl`s, as in every
+    Sscrn unit.
 - ss_model (src/Sscrn/ss_model.cpp, the character and weapon model builders; 40/47 byte-identical,
   .rodata and .data identical, .text +12): include order map_obj.h, light.h, widget.h, atari.h;
   `PL_ARC(n)` = `PL_ARC_PTR(pG->pPlArc, n)` re-read per call (pG reloaded); the model archive at

@@ -2850,7 +2850,7 @@ address	size	section	unit	scope	name	demangled
 0x800BB614	0x10	.text	lib/adx_crs.c	global	ADXCRS_Init	ADXCRS_Init
 0x800BB624	0x9C	.text	lib/adx_dcd.c	global	ADX_CalcHdrInfoLen	ADX_CalcHdrInfoLen
 0x800BB6C0	0x38	.text	lib/adx_dcd.c	global	ADX_DecodeFooter	ADX_DecodeFooter
-0x800BB6F8	0x180	.text	lib/adx_dcd.c	local	ADX_DecodeInfoAinf	ADX_DecodeInfoAinf
+0x800BB6F8	0x180	.text	lib/adx_dcd.c	global	ADX_DecodeInfoAinf	ADX_DecodeInfoAinf
 0x800BB878	0x11C	.text	lib/adx_dcd.c	global	ADX_DecodeInfoExLoop	ADX_DecodeInfoExLoop
 0x800BB994	0xD0	.text	lib/adx_dcd.c	global	ADX_DecodeInfoExIdly	ADX_DecodeInfoExIdly
 0x800BBA64	0x50	.text	lib/adx_dcd.c	global	ADX_DecodeInfoExVer	ADX_DecodeInfoExVer
@@ -8582,7 +8582,7 @@ address	size	section	unit	scope	name	demangled
 0x80248500	0xC0	.rodata	game/esp03.cpp	local	lbl_80248500	.
 0x802485C0	0x30	.rodata	game/esp03.cpp	local	cEsp03_virtual_table	cEsp03 virtual table
 0x802485F0	0x188	.rodata	game/esp04.cpp	local	lbl_802485F0	.
-0x80248778	0x30	.rodata	game/esp04.cpp	local	cEsp04_virtual_table	cEsp04 virtual table
+0x80248778	0x30	.rodata	game/esp04.cpp	local	_vt.6cEsp04	cEsp04 virtual table
 0x802487A8	0x140	.rodata	game/esp05.cpp	local	lbl_802487A8	.
 0x802488E8	0x30	.rodata	game/esp05.cpp	local	cEsp05_virtual_table	cEsp05 virtual table
 0x80248918	0x160	.rodata	game/esp06.cpp	global	lbl_80248918	.
@@ -8592,9 +8592,9 @@ address	size	section	unit	scope	name	demangled
 0x80248BB0	0x258	.rodata	game/esp08.cpp	global	lbl_80248BB0	.
 0x80248E08	0x30	.rodata	game/esp08.cpp	global	_vt.6cEsp08	cEsp08 virtual table
 0x80248E38	0x200	.rodata	game/esp09.cpp	global	lbl_80248E38	.
-0x80249038	0x30	.rodata	game/esp09.cpp	global	cEsp09_virtual_table	cEsp09 virtual table
+0x80249038	0x30	.rodata	game/esp09.cpp	global	_vt.6cEsp09	cEsp09 virtual table
 0x80249068	0x98	.rodata	game/esp0a.cpp	global	lbl_80249068	.
-0x80249100	0x30	.rodata	game/esp0a.cpp	global	cEsp0a_virtual_table	cEsp0a virtual table
+0x80249100	0x30	.rodata	game/esp0a.cpp	global	_vt.6cEsp0a	cEsp0a virtual table
 0x80249130	0xC8	.rodata	game/esp0b.cpp	global	lbl_80249130	.
 0x802491F8	0x30	.rodata	game/esp0b.cpp	global	cEsp0b_virtual_table	cEsp0b virtual table
 0x80249228	0x168	.rodata	game/esp0c.cpp	global	lbl_80249228	.
@@ -8605,7 +8605,7 @@ address	size	section	unit	scope	name	demangled
 0x80249548	0x30	.rodata	game/esp0e.cpp	global	hide_x_tbl.816	hide_x_tbl.816
 0x80249578	0x30	.rodata	game/esp0e.cpp	global	hide_y_tbl.817	hide_y_tbl.817
 0x802495A8	0x50	.rodata	game/esp0e.cpp	global	lbl_802495A8	.
-0x802495F8	0x30	.rodata	game/esp0e.cpp	global	cEsp0e_virtual_table	cEsp0e virtual table
+0x802495F8	0x30	.rodata	game/esp0e.cpp	global	_vt.6cEsp0e	cEsp0e virtual table
 0x80249628	0x1A0	.rodata	game/esp0f.cpp	global	lbl_80249628	.
 0x802497C8	0x30	.rodata	game/esp0f.cpp	global	cEsp0f_virtual_table	cEsp0f virtual table
 0x802497F8	0x158	.rodata	game/esp10.cpp	global	lbl_802497F8	.
@@ -8613,7 +8613,7 @@ address	size	section	unit	scope	name	demangled
 0x80249980	0x268	.rodata	game/esp11.cpp	global	lbl_80249980	.
 0x80249BE8	0x30	.rodata	game/esp11.cpp	global	cEsp11_virtual_table	cEsp11 virtual table
 0x80249C18	0x1D0	.rodata	game/esp12.cpp	local	lbl_80249C18	.
-0x80249DE8	0x30	.rodata	game/esp12.cpp	global	cEsp12_virtual_table	cEsp12 virtual table
+0x80249DE8	0x30	.rodata	game/esp12.cpp	global	_vt.6cEsp12	cEsp12 virtual table
 0x80249E18	0x58	.rodata	game/esp13.cpp	global	lbl_80249E18	.
 0x80249E70	0x30	.rodata	game/esp13.cpp	local	_vt.6cEsp13	cEsp13 virtual table
 0x80249EA0	0x80	.rodata	game/esp14.cpp	local	lbl_80249EA0	.
@@ -8621,7 +8621,7 @@ address	size	section	unit	scope	name	demangled
 0x80249F50	0x90	.rodata	game/esp15.cpp	local	lbl_80249F50	.
 0x80249FE0	0x30	.rodata	game/esp15.cpp	local	cEsp15_virtual_table	cEsp15 virtual table
 0x8024A010	0x1F8	.rodata	game/esp16.cpp	local	lbl_8024A010	.
-0x8024A208	0x30	.rodata	game/esp16.cpp	local	cEsp16_virtual_table	cEsp16 virtual table
+0x8024A208	0x30	.rodata	game/esp16.cpp	local	_vt.6cEsp16	cEsp16 virtual table
 0x8024A238	0x30	.rodata	game/esp17.cpp	local	cEsp17_virtual_table	cEsp17 virtual table
 0x8024A268	0x250	.rodata	game/esp18.cpp	local	lbl_8024A268	.
 0x8024A4B8	0x30	.rodata	game/esp18.cpp	global	_vt.6cEsp18	cEsp18 virtual table

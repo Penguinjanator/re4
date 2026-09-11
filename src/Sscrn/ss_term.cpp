@@ -9,11 +9,27 @@
 #include "widget.h"
 #include "sscrn.h"
 
-// Widget<SUB_SCREEN> is completed here, before dbg_button.h: its vtable is the last one of the
-// unit (vtables come out in reverse declaration order), after the cDbg* ones.
-static inline int ssTermWidgetNum(Widget<SUB_SCREEN>* w)
+// Widget<SUB_SCREEN> is completed here (by the specialization declaration), before dbg_button.h:
+// its vtable is the last one of the unit (vtables come out in reverse declaration order), after the
+// cDbg* ones.
+//
+// COMPILER-DIFF: candidate #8 (end-of-file order: the round of Widget<SUB_SCREEN>::~Widget). The
+// original outputs ~Widget in finish_file round 1, right after Widget::quit and before
+// ~cDbgButtonBase / the cDbgWindowBase inlines, while its vtable is only written in round 2
+// (nothing here constructs a widget). Our cc1plus outputs a comdat inline only once its assembler
+// name has been referenced (decl2.c finish_file "stop lying"): ~Widget is inlined everywhere, so
+// ours would wait for the round-2 vtable. This explicit specialization makes ss_main.h's
+// ssWidgetDelete leave the destructor uninstantiated (saved_inlines position after quit) and lets
+// the never-called ssTermWidgetKill below, compiled before the definition, emit a real
+// `bl _._t6Widget...` that references the name; the body is defined inline after SsTermInit::move
+// (same code as the template, inlined into the synthesized ~SsTermInit/~SsTermMain like the
+// instantiation). The original REL link dead-stripped ssTermWidgetKill's body (modules.py
+// STRIP_UNUSED).
+template <> Widget<SUB_SCREEN>::~Widget();
+
+static void ssTermWidgetKill(Widget<SUB_SCREEN>* w)
 {
-    return w->num;
+    w->Widget<SUB_SCREEN>::~Widget();  // COMPILER-DIFF: candidate #8
 }
 
 #include "dbg_button.h"
@@ -127,18 +143,29 @@ public:
             }
         }
     }
-    int AddButton(cDbgButton* b) {
-        if (b == 0) {
-            pLog->err(0, 0, "AddButton(): new failed.");
-            return 0;
-        }
-        btn[num++] = b;
-        return 1;
-    }
+    int AddButton(int bx, int by, const char* name, int bcx, int bcy);
     int FindButton(int cx, int cy, cDbgButton** out);
     virtual int LocalUpdate();
     virtual void LocalDisp();
 };
+
+// Never called: the original REL link dead-stripped the body (modules.py STRIP_UNUSED) and kept
+// its string after MakeCol's pool. Compiled at parse time it inlines cDbgButton's implicit
+// constructor, which references `_vt.10cDbgButton`: the vtable is then written in finish_file
+// round 1 (fourth of the unit's vtables) and ~cDbgButton is the first end-of-file function, while
+// `_vt.14cDbgButtonBase` / ~cDbgButtonBase wait for round 2 (the base vptr store is elided).
+int cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy)
+{
+    cDbgButton* b;
+
+    btn[num] = b = new cDbgButton;
+    if (b == 0) {
+        pLog->err(0, 0, "AddButton(): new failed.");
+        return 0;
+    }
+    num++;
+    return 1;
+}
 
 int cDbgWindow::FindButton(int cx, int cy, cDbgButton** out)
 {
@@ -647,7 +674,6 @@ void termMotionCancel(void* data, int no)
     MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(d, 4), 0, (u8) no, 0x8004, 0);
 }
 
-static int term_read_req;
 static cFileList term_file_list;
 
 void SsTermInit::init(SUB_SCREEN* wk)
@@ -657,6 +683,10 @@ void SsTermInit::init(SUB_SCREEN* wk)
 
 void SsTermInit::move(SUB_SCREEN* wk)
 {
+    // .bss order: the read request is the unit's first .bss word, before the file-scope
+    // term_file_list (a constructed object is emitted with the static-init function, a plain
+    // file-scope static only at the end): a function-local static is emitted at its function.
+    static int term_read_req;
     void* term;
     void* op;
     void* partner;
@@ -708,6 +738,14 @@ void SsTermInit::move(SUB_SCREEN* wk)
     }
 }
 
+// The Widget<SUB_SCREEN> destructor body (see the specialization declaration at the top): defined
+// after SsTermInit::move, whose inlined transit instantiates Widget::quit, so the deferred
+// destructor follows quit at the end of the file.
+template <> inline Widget<SUB_SCREEN>::~Widget()  // COMPILER-DIFF: candidate #8
+{
+    Mem_free(link);
+}
+
 void termModelAlloc(SUB_SCREEN* wk)
 {
     int i;
@@ -744,6 +782,21 @@ void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
     C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
     C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+}
+
+extern "C" f64 tan(f64 x);
+
+// Never called (the ss_pzzl screenPos2puzzlePos formula): the original REL link dead-stripped the
+// body (modules.py STRIP_UNUSED) and kept its pool, the four floats 0.5 / pi / 180 / 240 that
+// follow terminalCameraInit's 1.3333334 in .rodata.
+static void screenPos2terminalPos(Vec* pos, Vec* out)
+{
+    Camera* cam = &pG->Cam;
+    f32 pz = cam->param.pos.z;
+    f32 h = fabsf((f32) (pz * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
+
+    out->x = pos->x * h / 240.0f;
+    out->y = pos->y * h / 240.0f;
 }
 
 static Vec term_cam_pos = {435.0f, -1580.0f, 850.0f};

@@ -481,7 +481,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002EA44	0x74	Sscrn/ss_term.cpp	global	quit__10SsTermMainP10SUB_SCREEN	SsTermMain::quit
 .text	0x0002EAB8	0x930	Sscrn/ss_term.cpp	global	fn_Sscrn_2EAB8	.
 .text	0x0002F3E8	0x4	Sscrn/ss_term.cpp	global	__static_initialization_and_destruction_0_2F3E8	__static_initialization_and_destruction_0
-.text	0x0002F3EC	0x50	Sscrn/ss_term.cpp	global	cDbgButton_dt_cDbgButton	cDbgButton::~cDbgButton
+.text	0x0002F3EC	0x50	Sscrn/ss_term.cpp	global	_._10cDbgButton	cDbgButton::~cDbgButton
 .text	0x0002F43C	0xA4	Sscrn/ss_term.cpp	global	_._10cDbgWindow	cDbgWindow::~cDbgWindow
 .text	0x0002F4E0	0x18	Sscrn/ss_term.cpp	global	GetCx__10cDbgWindow	cDbgWindow::GetCx
 .text	0x0002F4F8	0x18	Sscrn/ss_term.cpp	global	GetCy__10cDbgWindow	cDbgWindow::GetCy
@@ -491,7 +491,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002F598	0x50	Sscrn/ss_term.cpp	global	_._10SsTermInit	SsTermInit::~SsTermInit
 .text	0x0002F5E8	0x50	Sscrn/ss_term.cpp	global	_._10SsTermMain	SsTermMain::~SsTermMain
 .text	0x0002F638	0x54	Sscrn/ss_term.cpp	local	fn_Sscrn_2F638	.
-.text	0x0002F68C	0x50	Sscrn/ss_term.cpp	global	cDbgButtonBase_dt_cDbgButtonBase	cDbgButtonBase::~cDbgButtonBase
+.text	0x0002F68C	0x50	Sscrn/ss_term.cpp	global	_._14cDbgButtonBase	cDbgButtonBase::~cDbgButtonBase
 .text	0x0002F6DC	0x34	Sscrn/ss_term.cpp	global	_._14cDbgWindowBase	cDbgWindowBase::~cDbgWindowBase
 .text	0x0002F710	0x8	Sscrn/ss_term.cpp	global	GetCx__14cDbgWindowBase	cDbgWindowBase::GetCx
 .text	0x0002F718	0x8	Sscrn/ss_term.cpp	global	GetCy__14cDbgWindowBase	cDbgWindowBase::GetCy

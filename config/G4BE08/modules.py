@@ -574,6 +574,11 @@ STRIP_UNUSED = {
     "t_esp/db_port.cpp",
     # db_window.cpp: the dead helper that carries the DB_NUMERIC range table
     "t_esp/db_window.cpp",
+    # ss_term.cpp: the never-called cDbgWindow::AddButton (its string stays after MakeCol's pool; it
+    # references _vt.10cDbgButton so the vtable and ~cDbgButton come out in finish_file round 1), the
+    # dead screenPos2terminalPos whose pool (0.5, pi, 180, 240) follows terminalCameraInit's, and the
+    # dead ssTermWidgetKill that names Widget<SUB_SCREEN>::~Widget (see the source)
+    "Sscrn/ss_term.cpp",
     # db_mod.cpp: one object (src/tools/db_mod.cpp) in both modules; Tools lost the t_esp loader entry
     # points / DB_MODEL_FILES::append / dbModMotionSet, t_esp the view-flag getters / dbModMotionSetSeq /
     # dbModGetMotFilename (strings and pools of both stay, .rodata/.data are identical)
@@ -757,6 +762,7 @@ MATCHING = {
     "Sscrn/ss_model.cpp": True,
     "Sscrn/ss_pzzl.cpp": True,
     "Sscrn/ss_shop.cpp": True,
+    "Sscrn/ss_term.cpp": True,
     "Tools/t_prim.cpp": True,
     "Tools/t_mes.cpp": True,
     "Tools/t_cons.cpp": True,
