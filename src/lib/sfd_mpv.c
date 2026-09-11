@@ -431,11 +431,12 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 	MPV hn;
 	SFTIM tim = SFD_TIM(sfd);
 	Sint32 ret;
-	Sint32 done;
+	/* address-taken scalars: frame slots top-down in declaration order (used 0x28 .. sj 0xc) */
+	Sint32 used;
 	Sint32 flag;
 	Sint32 code;
+	Sint32 done;
 	Sint32 size;
-	Sint32 used;
 	Sint32 rcnt;
 	Sint32 wcnt;
 	SJ sj;
@@ -859,21 +860,22 @@ static inline Bool sfmpv_IsTerm(SFD sfd, Sint32 size, Sint32 code)
 }
 
 /* a sequence end code inside a concatenated file: the next file continues the time line */
+/* The arithmetic block is DoReformTc's (in-place `op=` chain, `f %= rnd`); the time tests are
+ * separate `if`s reached through labels: the cond-6 paths jump straight to `t > 0` and only the
+ * sample-count path tests `t < 0` (two `cmpwi r4, 0` in the target, one CSE'd compare otherwise). */
 Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	SFTIM tim = SFD_TIM(sfd);
 	Sint32 t;
-	Sint32 type;
 	Sint32 rnd;
 	Sint32 field;
-	Sint32 fld;
 	Sint32 f;
-	Sint32 sec_tot;
-	Sint32 frm;
 	Sint32 sec;
 	Sint32 min;
 	Sint32 hour;
+	Sint32 type;
+	Sint32 fld;
 	SFTIM_TC tc;
 	Sint32 tscale;
 	Sint32 ncount;
@@ -894,22 +896,24 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 			f = ttu1->tc.frm + ttu1->tc.frm2 + 1;
 			f += fld / 2;
 			field = fld % 2;
-			sec_tot = f / rnd;
-			frm = f % rnd;
-			sec = ttu1->tc.sec + sec_tot;
-			min = ttu1->tc.min + sec / 60;
-			sec = sec % 60;
-			hour = ttu1->tc.hour + min / 60;
-			min = min % 60;
-			if (ttu1->tc.drop != 0 && sec == 0 && min % 10 != 0 && (frm == 0 || frm == 1)) {
-				frm = 2;
+			hour = ttu1->tc.hour;
+			min = ttu1->tc.min;
+			sec = ttu1->tc.sec;
+			sec += f / rnd;
+			f %= rnd;
+			min += sec / 60;
+			sec %= 60;
+			hour += min / 60;
+			min %= 60;
+			if (ttu1->tc.drop != 0 && sec == 0 && min % 10 != 0 && (f == 0 || f == 1)) {
+				f = 2;
 			}
 			tc.type = type;
 			tc.drop = ttu1->tc.drop;
 			tc.hour = hour;
 			tc.min = min;
 			tc.sec = sec;
-			tc.frm = frm;
+			tc.frm = f;
 			tc.field = (Sint16)field;
 			tc.frm2 = 0;
 			SFTIM_Tc2Time(&tc, &ncount, &tscale);
@@ -921,7 +925,7 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 			unit = 44100;
 		} else if (SFCON_ReadTotSmplQue(sfd, &smpl, &unit) == 0) {
 			t = -1;
-			goto chk;
+			goto neg;
 		}
 		tunit = tim->ttu0.unit;
 		tim->x1f0 += smpl;
@@ -929,20 +933,21 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 		if (t < 0) {
 			t = 0;
 		}
-	}
-chk:
-	if (t < 0) {
-		ret = -1;
-	} else {
-		if (t > 0) {
-			SFCON_UpdateConcatTime(sfd, t);
-			mpv->nconcat++;
+neg:
+		if (t < 0) {
+			ret = -1;
+			goto chk;
 		}
-		SFTIM_InitTtu(&tim->ttu0, 0x7FFFFFFF);
-		SFTIM_InitTtu(&tim->ttu1, -1);
-		mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
-		ret = 0;
 	}
+	if (t > 0) {
+		SFCON_UpdateConcatTime(sfd, t);
+		mpv->nconcat++;
+	}
+	SFTIM_InitTtu(&tim->ttu0, 0x7FFFFFFF);
+	SFTIM_InitTtu(&tim->ttu1, -1);
+	mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
+	ret = 0;
+chk:
 	if (ret == -1) {
 		return -1;
 	}
@@ -1282,23 +1287,26 @@ static void sfmpv_CalcRepeatField(SFD sfd, MPV_PICATR *atr, Sint32 newgop)
 	}
 }
 
-/* time code of the picture: from its PTS, or the previous picture's advanced by one frame */
+/* time code of the picture: from its PTS, or the previous picture's advanced by one frame.
+ * The running values are loaded into their own variables and advanced with compound assignments
+ * (`sec += ..; sec %= 60`): a plain `sec = sec % 60` after a use is range-split by the frontend into
+ * a temporary that costs a fourth callee-saved register, while `x op= e` keeps one node whose range
+ * starts at the load (>= 29 neighbours -> coloured before the temporaries). The frame count is the
+ * reduced `f` itself (`f %= rnd`), the empty-else `return` gives the second `b end`. */
 void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 {
 	Sint32 prate = atr->frame_rate;
 	Sint32 drop = atr->tc_drop;
-	Sint32 tmpref = atr->temp_ref;
-	SFTIM tim = SFD_TIM(sfd);
-	Sint32 type;
 	Sint32 rnd;
+	Sint32 field;
 	Sint32 f;
-	Sint32 fld;
-	Sint32 hour;
 	Sint32 sec;
 	Sint32 min;
-	Sint32 sec_tot;
-	Sint32 frm;
-	Sint32 field;
+	Sint32 hour;
+	Sint32 type;
+	SFTIM tim = SFD_TIM(sfd);
+	Sint32 tmpref = atr->temp_ref;
+	Sint32 fld;
 
 	if (newgop != 0 && pts >= 0) {
 		sfmpv_Pts2Tc(pts, prate, drop, tmpref, &tim->tc);
@@ -1310,6 +1318,8 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 			tim->tc.min = 0;
 			tim->tc.sec = 0;
 			tim->tc.frm = 0;
+		} else {
+			return;
 		}
 	} else if (newgop != 0) {
 		type = tim->ttu1.tc.type;
@@ -1318,22 +1328,24 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 		f = tim->ttu1.tc.frm + tim->ttu1.tc.frm2 + 1;
 		f += fld / 2;
 		field = fld % 2;
-		sec_tot = f / rnd;
-		frm = f % rnd;
-		sec = tim->ttu1.tc.sec + sec_tot;
-		min = tim->ttu1.tc.min + sec / 60;
-		sec = sec % 60;
-		hour = tim->ttu1.tc.hour + min / 60;
-		min = min % 60;
-		if (tim->ttu1.tc.drop != 0 && sec == 0 && min % 10 != 0 && (frm == 0 || frm == 1)) {
-			frm = 2;
+		hour = tim->ttu1.tc.hour;
+		min = tim->ttu1.tc.min;
+		sec = tim->ttu1.tc.sec;
+		sec += f / rnd;
+		f %= rnd;
+		min += sec / 60;
+		sec %= 60;
+		hour += min / 60;
+		min %= 60;
+		if (tim->ttu1.tc.drop != 0 && sec == 0 && min % 10 != 0 && (f == 0 || f == 1)) {
+			f = 2;
 		}
 		tim->tc.type = type;
 		tim->tc.drop = tim->ttu1.tc.drop;
 		tim->tc.hour = hour;
 		tim->tc.min = min;
 		tim->tc.sec = sec;
-		tim->tc.frm = frm;
+		tim->tc.frm = f;
 		tim->tc.field = (Sint16)field;
 		tim->rfld[0].acc = tim->tc.field;
 		tim->rfld[tmpref].acc = tim->tc.field;
@@ -1347,36 +1359,39 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 	}
 }
 
-/* time code of a picture from its PTS (90 kHz) */
+/* time code of a picture from its PTS (90 kHz).
+ * COMPILER-DIFF: M2 - the original addresses the three .rodata tables with separate lis/addi pairs;
+ * deferred codegen pools them through a `...rodata.0` base (the tables were not yet defined, or the
+ * function was compiled non-deferred, when CRI built it). `pool_data off` around the function
+ * reproduces the target byte for byte; `hour` declared last (level 2 -> r0), `tbl` a ternary (no
+ * ECOND copies), `rnd` before `rate`, `fno` before the field store. */
+#pragma pool_data off // COMPILER-DIFF: M2
 void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC *tc)
 {
-	Sint32 rate = SFTIM_prate[prate];
 	Sint32 rnd = sfmpv_fps_round[prate];
+	Sint32 rate = SFTIM_prate[prate];
 	Sint32 m;
 	Sint64 n;
+	const Sint32 *tbl;
+	Sint32 rem;
 	Sint32 fno;
-	Sint32 hour;
 	Sint32 min;
+	Sint32 ten;
 	Sint32 sec;
 	Sint32 frm;
-	Sint32 rem;
-	Sint32 ten;
 	Sint32 sec_tot;
 	Sint32 min_tot;
-	const Sint32 *tbl;
+	Sint32 hour;
 
 	n = UTY_MulDivRound64(pts, (Sint64)(rate * 2), 90000000);
 	m = (Sint32)n;
-	tc->field = (Sint16)(m & 1);
 	fno = (m >> 1) - tmpref;
+	tc->field = (Sint16)(m & 1);
 	fno = (fno > 0) ? fno : 0;
 	tc->type = prate;
 	tc->drop = drop;
 	if (drop != 0 && (rate == 29970 || rate == 59940)) {
-		tbl = sfmpv_conv_59_94;
-		if (rate == 29970) {
-			tbl = sfmpv_conv_29_97;
-		}
+		tbl = (rate == 29970) ? sfmpv_conv_29_97 : sfmpv_conv_59_94;
 		hour = fno / tbl[0];
 		rem = fno % tbl[0];
 		ten = rem / tbl[1];
@@ -1412,6 +1427,7 @@ void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC
 	tc->sec = sec;
 	tc->frm = frm;
 }
+#pragma pool_data on
 
 /* the decoded frame buffers must hold the pictures the stream announces; when the buffers were
  * given as one block, split it into as many frames as fit */
@@ -1721,9 +1737,11 @@ static inline void sfmpv_SetVofst(SFD sfd)
 	Sint32 ncount;
 	Sint32 tscale;
 	Sint32 flag;
+	/* function-scope pointer = the struct-copy source kept in a register (`addi r4, sfd, 0xde8`);
+	 * declared after flag so it is coloured first (ttu3 r4, flag r5) */
+	SFTIM_TTU *ttu3 = &tim->ttu3;
 
 	if (vofst->valid == 0) {
-		SFTIM_TTU *ttu3 = &tim->ttu3;
 		tc = ttu3->tc;
 		flag = 0;
 		switch (SFMPV_WK(sfd)->picstat) {
@@ -1836,8 +1854,9 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 			}
 			MPV_GetDctCnt(hn, &sfd->plyinf.raw[2], &sfd->plyinf.raw[3]);
 			mpv->nskip = 0;
-			SFPLY_AddDecPic(sfd, 1, atr->pic_type);
 		}
+		/* outside the pendfrm test: the target's `bne` lands on the `lwz r5, pic_type` */
+		SFPLY_AddDecPic(sfd, 1, atr->pic_type);
 	} else {
 		if (mpv->pendfrm == NULL) {
 			SFMPVF_FreeFrm(frm);
@@ -1850,12 +1869,14 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 Sint32 sfmpv_SetFrmPara(SFD sfd, MPV_PICATR *atr, SFMPV_MPVFRM *mfrm, SFMPV_FRM **pfrm)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
+	/* colouring order = declaration order: ywidth (in place r4), cwidth r5, h16 r6, ysize (in place
+	 * r6), csize r7 */
 	Sint32 w;
 	Sint32 h;
 	Sint32 w16;
-	Sint32 h16;
 	Sint32 ywidth;
 	Sint32 cwidth;
+	Sint32 h16;
 	Sint32 ysize;
 	Sint32 csize;
 	SFMPV_PLANE *rfbuf;
@@ -1877,19 +1898,20 @@ Sint32 sfmpv_SetFrmPara(SFD sfd, MPV_PICATR *atr, SFMPV_MPVFRM *mfrm, SFMPV_FRM 
 			mpv->ref[0] = mpv->ref[1];
 			mpv->ref[1] = *pfrm;
 		}
-		h = atr->height;
+		/* the volatile read keeps `h` a variable (loaded into r4 next to the propagated `w` r3, the
+		 * `h + 15` after the w16 chain); the nested ysize/csize assignments anchor the products in
+		 * the ref[0] block */
+		h = *(volatile Sint32 *)&atr->height;
 		w = atr->width;
 		w16 = (w + 15) / 16 * 16;
 		ywidth = (w16 + 31) / 32 * 32;
 		cwidth = (w16 / 2 + 31) / 32 * 32;
 		h16 = (h + 15) / 16 * 16;
-		ysize = h16 * ywidth;
-		csize = (h16 / 2) * cwidth;
 		mfrm->ref[0].ywidth = (Sint16)ywidth;
 		mfrm->ref[0].cwidth = (Sint16)cwidth;
 		mfrm->ref[0].y = mpv->ref[0]->buf;
-		mfrm->ref[0].cb = (Uint8 *)mfrm->ref[0].y + ysize;
-		mfrm->ref[0].cr = (Uint8 *)mfrm->ref[0].cb + csize;
+		mfrm->ref[0].cb = (Uint8 *)mfrm->ref[0].y + (ysize = h16 * ywidth);
+		mfrm->ref[0].cr = (Uint8 *)mfrm->ref[0].cb + (csize = (h16 / 2) * cwidth);
 		mfrm->ref[1].ywidth = (Sint16)ywidth;
 		mfrm->ref[1].cwidth = (Sint16)cwidth;
 		mfrm->ref[1].y = mpv->ref[1]->buf;
@@ -1970,16 +1992,18 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 	return n;
 }
 
-static Sint32 SFMPV_Create(SFD sfd)
+static Sint32 SFMPV_Create(register SFD sfd)
 {
-	SFMPV_WORK *mpv;
+	register SFMPV_WORK *mpv; // COMPILER-DIFF: pin
 	MPV hn;
 	Sint32 ret;
 
 	if (SFSET_GetCond(sfd, 5) == 0) {
 		return 0;
 	}
-	mpv = &sfd->mpv;
+	/* the original colours `mpv` (r30) before the .bss pool base (r29); as an own local it ranks
+	 * below the backend's pool temporary (mpv r29 / pool r30), 8 more forms did not move it */
+	asm { addi r30, sfd, 0x23a0; mr mpv, r30 } // COMPILER-DIFF: pin
 	sfd->tr[SFMPV_TR].hn = mpv;
 	ret = sfmpv_InitInf(sfd, mpv);
 	if (ret != 0) {
@@ -2110,11 +2134,19 @@ void sfmpv_ErrFn(void *obj, Sint32 code)
 }
 
 /* the buffers survive in the file statics for the next creation */
-Sint32 SFMPV_Destroy(SFD obj)
+Sint32 SFMPV_Destroy(register SFD obj)
 {
-	SFD sfd = (SFD)(SFD_OBJ *)obj;
-	SFMPV_WORK *mpv = SFMPV_WK(sfd);
-	MPV hn = mpv->mpv;
+	register SFD sfd; // COMPILER-DIFF: pin
+	SFMPV_WORK *mpv;
+	MPV hn;
+
+	/* the original ranks the handle above the .bss pool base (sfd r31, pool r30): a level-2 node
+	 * (>= 29 neighbours) where ours has 28 as a kept `(SFD)(SFD_OBJ *)obj` copy or as the plain
+	 * parameter; the pin gives the registers, the pool `lis` hoisted above the copy and the first
+	 * load through the parameter register (obj propagated into it) remain, 6 words */
+	asm { mr r31, obj; mr sfd, r31 } // COMPILER-DIFF: pin
+	mpv = SFMPV_WK(sfd);
+	hn = mpv->mpv;
 
 	if (hn == NULL) {
 		return 0;
@@ -2282,13 +2314,19 @@ Sint32 SFMPV_Seek(SFD sfd)
 		return ret;
 	}
 	mpv->picstat = 2;
-	if (flg && SFSET_GetCond(sfd, 0x30) != 0) {
-		mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP;
-	} else {
+	if (flg == 0 || SFSET_GetCond(sfd, 0x30) == 0) {
 		mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
+	} else {
+		mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP;
 	}
 	return 0;
 }
+
+/* the cached header bytes and their length (SFSEE_VHDR raw/rawlen) as one object */
+typedef struct {
+	Uint8 dat[0x200];          /* 0x000 */
+	Sint32 len;                /* 0x200 */
+} SFSEE_VRAW;
 
 /* restart from the cached sequence header after a seek */
 static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
@@ -2296,6 +2334,7 @@ static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	SFSEE_WORK *wk = sfd->see.wk;
 	SFSEE_VHDR *vhdr;
+	SFSEE_VRAW *raw;
 	MPV hn;
 	SJCK ck;
 	Sint32 used;
@@ -2315,8 +2354,11 @@ static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
 	}
 	hn = mpv->mpv;
 	SFD_TIM(sfd)->ttu0 = vhdr->ttu;
-	ck.data = vhdr->raw;
-	ck.len = vhdr->rawlen;
+	/* `raw` is a node (its store use is not foldable) ranked below the ttu copy's temporaries
+	 * (addi r7 hoisted above the copy; the len load folds to 0x238(vhdr)) */
+	raw = (SFSEE_VRAW *)vhdr->raw;
+	ck.data = raw->dat;
+	ck.len = raw->len;
 	if (MPV_DecodePicAtr(hn, &ck, &used) != 0) {
 		return SFLIB_SetErr(sfd, 0xFF000F1B);
 	}
@@ -2360,8 +2402,8 @@ static inline Sint32 sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 s
 	SFMPV_PICUSRWK *pu = (SFMPV_PICUSRWK *)&SFMPV_WK(sfd)->picusr_buf;
 	int i;
 	Sint32 n;
-	Uint8 *p;
 	Sint32 j;
+	Uint8 *p; /* declared after j: coloured first (r4), j r5, n r6 */
 
 	if (buf == NULL || num == 0 || siz == 0) {
 		pu->buf = NULL;

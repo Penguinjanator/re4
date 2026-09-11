@@ -20071,3 +20071,95 @@ every variant, and `sngcc/` = the LADBG cc1plus (fprintf in local-alloc.c block_
   here; why 267 passes it (already_moved / forces are not printed) was not resolved; `i < 1`, x in the loop, a second counter,
   do-while, `(x - 1) << 3`, `8 * (x - 1)`, statement order, `f32 sc` local, `switch (i)`, a label pointer: 2-57, none 0.
 - Not iterated: IKreport 10 (pass 7), dbmodGetFilenames 17 (pass 2 permutation), dbmodDispModelName 100, dbmod_locate 103.
+
+### CRI sfd_mpv small functions (sfd_mpv 21 -> 32/38 with the 16a agent; 9 of the 11 small functions closed; 2026-09-11)
+Harness /home/adityas/.cache/cri_mpv_small/ (deleted): `bld.sh [SRC]` (exact ninja command + bytecmp with `OBJ=`), `fd.py SYM
+[--obj OBJ]` (objdiff side-by-side without ninja, through a one-unit objdiff.json in a scratch dir so the shared object is
+never touched), `tryvar.py variants.py [FUNC..] [--keep L]` (text-replacement variants compiled into scratch objects, ~0.3 s
+each). ~/.cache/mwccdbg reused (`ra.py`/`rasum.py`); every fix below was predicted from one dump or the pass-11..15 model and
+confirmed in 1-4 builds. Concurrent hazard: an edit of mine was overwritten by the other agent's stale buffer within seconds
+(re-read + re-apply; the word count right after applying is the check). The orchestrator committed the tree mid-pass.
+
+**Zero-code (pure C) closes:**
+- `SFD_CalcYccPlane` 5w -> 0 (inlined `sfmpv_CalcYccPlane`): helper locals are coloured LAST-DECLARED FIRST (lowest @N = highest
+  vid); the target colours ywidth (in place r5), cwidth (r7), h16 (r8), so the declaration order is `w16, h16, cwidth, ywidth`
+  with the assignments kept in evaluation order (`ywidth = ..; cwidth = ..;` as statements: initialiser order = evaluation
+  order, which changed the schedule when the declarations were reordered with their initialisers, 20w).
+- `sfmpv_InitInf` 5w -> 0: (a) `sfmpv_ChkPara` returns -1 for `nfrm <= 0` too (`if (nfrm <= 0 || nfrm > 16)`; read off `ble` to
+  the `li -1`); (b) the two reference-buffer tests are a counted loop `for (i = 0; i < 2; i++) if (tbl[i] == NULL) return -1;`
+  — fully unrolled by the frontend, its induction pointer is materialised in its own block before the first load (target
+  `addi r3, pool, 0x50; lwz r0, 0(r3); .. lwz r0, 4(r3)`; a `void **rfb = tbl` local folds the first load); (c) `para` as the
+  helper's PARAMETER (`sfmpv_ChkPara(&sfmpv_para)`): a helper parameter node ranks below the frontend temporaries (para r4,
+  the IV r3), while a `SFMPV_PARA *para = &sfmpv_para` local is propagated into a CSE address temp created BEFORE the IV
+  (para r3, IV r4); (d) the `sfmpv_InitFrmTbl` loop steps `frm` in the `for` increment (`i++, frm++`; `sfmpv_InitFrm(frm,
+  &mpv->ta_adr[i])`): a source pointer IV puts its `addi 0xe0` before the counter compare in the latch and the strength-
+  reduced `ta_adr` pointer's `addi 4` after it (`&frm[i]` gives two SR temporaries updated in the other order; both pointers
+  as source IVs, `pbuf` as the source IV, locals in the body, `&mpv->frm[i]`: 16-17w). GC/2.6 (the debugger) emits the two
+  addis in OUR order for both forms — this latch tie is a GC/2.7 difference, do not trust the dump for it.
+- `SFD_SetPicUsrBuf` 6w -> 0 and `SFMPV_Create` 22 -> 17: `sfmpv_SetPicUsrBuf`'s locals `i, n, p, j` -> `i, n, j, p` with `p`
+  declared AFTER `j` (p coloured first: r4, j r5 as the copy of the zero, n r6).
+- `sfmpv_IsSkip` 7w -> 0: `sfmpv_IsGopSkip`'s switch operand as a variable read through `*(volatile Sint32 *)&mpv->picstat`
+  declared before `ret` (ret `li r0, 0`, stat `lwz r3`); a plain `switch (mpv->picstat)` (or a `Sint32/Uint32/(Sint32)(Uint32)`
+  local, propagated) makes the load a backend temporary coloured before the helper local `ret`. The volatile re-read idiom
+  (sfd_tim pass 10b/14b) is the one C spelling that keeps a single-use load in a named variable.
+- `sfmpv_DecodeOneUnit` 9w -> 0 in three steps: (a) `sfmpv_SkipPic`'s `MPV hn` declared AFTER `ttu3`/`vstart` (its two lower-
+  vid removable neighbours): hn had 29 neighbours (12 physical + wk/sj/sfd/done/ttu3/vstart + the 11 `*vstart = *ttu3` copy
+  temporaries + flow) = level 2 = r30 in ours; scanned after ttu3/vstart it has 27 left, level 1, and takes the freed r25
+  (target). (b) own locals `ret` and `tot` (the END arm's `SFTIM_TTU *tot`, hoisted to function scope, assigned in the arm)
+  declared BEFORE `mpv`: level-2 colouring order ret r30, tot r31, mpv r29 (declared first, mpv took r30/r31 first). (c) `Sint32
+  n = SFMPV_BUFIN(sfd);` as the first statement of the END arm, used in `SFBUF_GetRTot(sfd, n)` inside the `if`: the frontend
+  does NOT forward-substitute a single-use load across a conditional (it does across calls), so the `lwz` stays above the
+  `bge` like the target's.
+- `sfmpv_SetFrmPara` 27w -> 0: declaration order `w, h, w16, ywidth, cwidth, h16, ysize, csize` (own locals: first declared =
+  coloured first; ywidth in place r4, cwidth r5, h16 r6, ysize in place r6, csize r7), the products as nested assignments in
+  the ref[0] stores `.cb = y + (ysize = h16 * ywidth); .cr = cb + (csize = (h16 / 2) * cwidth);` (anchors them in that block,
+  pass 14), and `h = *(volatile Sint32 *)&atr->height;` — as a variable `h` is coloured after the propagated `w` temporary (w r3,
+  h r4, the `h + 15` after the w16 chain); plain/`(Sint32)`/two-def/`h = 0`-after forms are all propagated (10w). `h16` computed
+  before ywidth/cwidth: 33w.
+- `SFMPV_Seek` 28w -> 0: (a) `if (flg == 0 || SFSET_GetCond(sfd, 0x30) == 0) { END|SEQ } else { END|SEQ|GOP }` (the
+  `flg && cond` spelling lays the arms out the other way: 4w); (b) in `sfmpv_SeekVhdr` the cached header bytes + length are one
+  object: `typedef struct { Uint8 dat[0x200]; Sint32 len; } SFSEE_VRAW; raw = (SFSEE_VRAW *)vhdr->raw; ck.data = raw->dat;
+  ck.len = raw->len;` — `raw` is a node (its `stw` source use cannot be folded, the `len` load folds to `0x238(vhdr)` by add-
+  propagation) ranked below the `ttu0 = vhdr->ttu` copy's backend temporaries: `addi r7` hoisted above the copy, copy pairs
+  r6/r0 (with `ck.data = vhdr->raw` the addi is a later backend temporary coloured first: r0, copy r7/r6, 24w). The shared
+  `SFSEE_VHDR` typedef is used by the 16a agent's `sfmpv_DecodePicAtr` and was left alone.
+- `sfmpv_ExecServerSub` 22w -> 17 (open): address-taken scalars in frame order `used, flag, code, done, size, rcnt, wcnt, sj, ck`
+  (slots top-down in declaration order, target used 0x28 .. sj 0xc).
+
+**Pins (tagged `// COMPILER-DIFF: pin`):**
+- `sfmpv_GoDdelim` 20w -> 0: `register Sint32 n, t; t = (rest > 0) ? rest : 0; asm { mr n, t }` — the target computes the
+  branchless max into a temporary (`and r0; mr r31, r0`) and DlmOfst's result directly into `n`; ours renames the ECOND temporary
+  into n (28 C spellings: `n = ECOND(rest)`, `rest = ECOND; n = rest`, typed copies, if/else, `Max0` helpers with 1-2 returns,
+  `n` as the only variable, `n = 0` before). With the asm copy in arm 1, the inlined `sfmpv_DlmOfst`'s 3-return `@ret` copy
+  into n is no longer coalesced (`mr r31, r0` at the join, 4w) — so `sfmpv_DlmOfst` is written out in GoDdelim (`else if`
+  chain assigning `n` directly; the helper stays for GetActiveSize/NeedSafeDlmRefresh). Mechanism: two copies into the
+  multi-def `n` reach RA and only one coalesces; in the target the max copy is the one that survives.
+- `SFMPV_Destroy` 21w -> 6: `asm { mr r31, obj; mr sfd, r31 }` (`register` obj/sfd). The target's handle is a level-2 node
+  (sfd r31 above the .bss pool r30, mpv r29, hn r28); as the kept `(SFD)(SFD_OBJ *)obj` copy, as `void *obj` + `SFD sfd = obj`,
+  or as the plain parameter it has 28 neighbours (hn/mpv removed before its scan: 26 left) and colours after the pool (r30 /
+  r28). Residue 6w: the target's first use goes through the copy (`mr r31, r3; lis r3, pool; lwz r29, 0x1fb8(r31)` — obj dies
+  at the copy so the pool `lis` reuses r3) while our backend propagates `obj` into the first load and hoists the `lis r4` above
+  the copy; an asm `lwz mpv, 0x1fb8(r31)` is rewritten to `(r3)` too (the inline assembler is not opaque, pass 3). The plain-
+  parameter form has the target's SHAPE (`mr r28, r3; lis r3; lwz r30, 0x1fb8(r28); addi r31, r3`) with the parameter at the
+  bottom (r28) — the target = plain parameter ranked at the top, i.e. one more neighbour (29) that is not in our graph.
+- `SFMPV_Create` 17w -> 8: `asm { addi r30, sfd, 0x23a0; mr mpv, r30 }` (mpv above the pool base r29; `mpv` as own local /
+  written-out `&sfd->mpv` / typed `void *` copy / hn-first / ret-first orders: 17-41w). Residue 8w in the inlined
+  `sfmpv_SetPicUsrBuf`: the target computes `p = buf + siz` AFTER `pu->dat = buf` so p reuses buf's r4 (`add r4, r4, r7`); our
+  pre-RA scheduler hoists the add above the dat store (p r4 / buf r9). At the SFD_SetPicUsrBuf site the target hoists the add
+  the same way as ours (buf is a callee-saved parameter copy there), so no helper-level statement order fits both (`p` after
+  `n`, `buf` stepped as the parameter: 19/68w).
+
+**Open (exact class):**
+- `sfmpv_ExecServerSub` 17w: target mpv r31 (the `stat == 2` block's `SFMPV_WK(sfd)`), hn r29, bufout r28, bufin r29, the inlined
+  IsEnoughData's mpv/hn/n r27/r29/r27; ours mpv r28, bufout r27, bufin r28, r29/r28/r28. `ret` is r31 in both (`mr. r31, r3`, not
+  interfering with mpv). mpv (18 neighbours) must be coloured before the level-1 temporaries = level 2 (>= 29) or a temporary
+  with a lower @N than the helpers'; written-out `SFMPV_WK(sfd)`/`SFMPV_BUFOUT(sfd)` uses are reloaded after calls (67-80w,
+  the frontend CSEs a load into an existing variable but never across calls into a temp), all 720 declaration orders of
+  `mpv, hn, tim, ret, bufout, bufin` give 17-18w. An r31 pin of mpv would poison ret's r31 — not applied.
+- `SFMPV_Destroy` 6w / `SFMPV_Create` 8w: above.
+- Model notes confirmed this pass: (1) helper locals colour last-declared first, own locals first-declared first, and a
+  helper PARAMETER ranks below the frontend temporaries; (2) the level-1/level-2 split can be moved by declaration order alone
+  when a node sits at exactly 29: moving it after its removable lower-vid neighbours drops it into level 1 (SkipPic `hn`);
+  (3) `*(volatile T *)&x` is the general "keep this single-use load in a named variable" lever (IsGopSkip, SetFrmPara `h`);
+  (4) a single-use def is not substituted across an `if` (DecodeOneUnit `n`), only across calls; (5) a source pointer IV in the
+  `for` increment vs `&arr[i]` decides the latch order of two IV updates (GC/2.7 only).
