@@ -24461,7 +24461,7 @@ include/dbg_tool.h now carries the "esp_area/lightarea closer 2" verified change
 - Pre-checked with variant.sh against the CURRENT t_event source (the t_event agent had moved on since closer 2: 163 in-tree,
   141 under the header) before the tree edit; the tree build reproduced every variant number.
 
-### CRI mwsfdcre pass 5 (CreateSfd 297 -> 247w in the tree with a zero-code lever: the pool-base order is a TU-wide rule; IN PROGRESS 2026-09-12)
+### CRI mwsfdcre pass 5 (CreateSfd 297 -> 126w, pure C, no pins: the pool-base order is a TU-wide rule, frmret/picusr..fname via inlined helpers, own-local order, CALC_BUFSIZ arm order, mpvpara block; CalcWorkSfd 4w unchanged; 8/10, not flipped; 2026-09-12)
 Harness /home/adityas/.cache/cri_mws5/ (deleted at the end): `pools.sh SRC [FUNC..]` (unit flags, no strip, per-function pool
 `lis/addi` prologue), `gen.py PERM..` (one probe function per PERM, `b`/`r`/`d` = 6 refs of .bss/.rodata-strings/.data in that body
 order; runs ra.py and prints the creation order from backend-00), ra.py/chaitin.py dumps under `ra_*`.
@@ -24822,3 +24822,164 @@ variant before the tree edit; the tree object rebuilt under the lock; modules.py
   falling into the caller's `cmpwi r20,0`; jump optimisation moves the one-insn arm. Needs a header experiment (`default:` arm, or the
   arm ending differently); it costs SubToolMessMove 2 words + ~8 branch-target words. The inlined WinUpdate/copy-loop region
   (+0x654..0x7d0: `li rX,0` / `mr r28,r23` order, r25-r29 permutation) is header-owned too.
+- **Applied after the pool fix (each step verified with variant.sh, then the locked ninja; all pure C):**
+  * own locals declared `mode, adxibuf_p, adxwk_p, nfrm, width, height` (colours mode r21 > adxibuf_p r20 > adxwk_p r19 > nfrm
+    r18 > height r17, width still the pass-1 spill) — 247 -> 240w;
+  * the frame-table block as `static Sint32 mwsfcre_MallocFrmTbl(mwply, cprm, frmtbl)` returning `ret`: the helper's `ret` is the
+    temp numbered between the cwk2 and picusr_p Malloc results -> frmret r26;
+  * picusr_p/fname_p through `static void *mwsfcre_MallocX(mwply, size) { return MWSFD_Malloc(mwply, size); }` (folds the constant
+    like the direct call, but makes the result a TWO-level temp like the MallocWk ones): inlined helpers are cloned breadth-first, so
+    a level-2 result is numbered after every level-1 result; with two direct calls and two wrappers the order was picusr, fname,
+    hnwork, buf700 — all four through wrappers gives the target's call order picusr r25 > hnwork r24 > buf700 r23 > fname r22 (182w);
+  * `Sint32 mode = cprm->mode;` at the declaration (the macro no longer assigns it): the target loads mode BEFORE nfrm/width/height;
+  * MWSFCRE_CALC_BUFSIZ arms with the computed sizes (`sjb = ..; vib = ..;`) FIRST and the constant stores after: the backend-merged
+    `li 0` then has a higher temp id than the bps chain and is coloured first (`li r3, 0`, chain r4/r5..) — 178 -> 146w;
+  * mpvpara block: `Sint32 h; Sint32 w;` (h declared first -> h r0, w r3) and `cwidth`/`cheight` stored before `width`/`height`
+    (the `&mwsfd_mpvpara` address temp then colours r6 after adxtpara r4 and the zero r5) — 146 -> 126w.
+- **Negative results (do not retry):** a top-level `Sint32 hnwksiz = 0x4000;` local, a reused multi-def `size = 0x4000;`, and
+  `crepara.hnwksiz = 0x4000; MWSFD_Malloc(mwply, crepara.hnwksiz)` (the struct-member form keeps `li r3, 0x4000; cmpwi` but adds a
+  real `stw` to the frame); MallocWk made extern (numbering unchanged: FIFO cloning does not depend on linkage); IsUseAdxt spellings
+  for the target's second dead `b` (`case 4:` first/last, `mode = 4;` body, `goto ok`, `return TRUE` per case, a `Bool ret` local
+  — the frontend forwards `case 4` to the default label, or emits a second `li r0, 1`); declaration order / parameter form of the
+  helper's `nfrm` (block-2 colours follow the PCode first-appearance order of the temps, not the declaration order: `nfrm =` after
+  the width/height loads gives nfrm r19 / height r20 but moves the `lwz nfrm` below the buffmt-error block, 177w).
+- **Residue 126w (13 lines):** (1) block 2 of the inlined MallocFrmTbl: target nfrm r19 / height r20 / frmtbl ptr r20, ours r20 /
+  r19 / r19 — the target's nfrm load is the first instruction of the block yet coloured before height (a temp with a higher id whose
+  load the scheduler still hoists over the width/height loads: not a helper local, not a parameter; open); (2) the target's second
+  `b end` in both inlined IsUseAdxt switches (`b end; b end; li r0,0`): the frontend forwards an empty `case 4:` to the DEFAULT label
+  (AST `CASE 0x4: L@773 = DEFAULT`), so a separately laid-out `b` block needs a case body the frontend keeps and the backend deletes
+  — not found (pass 16a's `ret = FALSE` dead-store shape gives a different tree here). No tag applied: 2 words of dead code shift
+  every later branch offset, so this is the only blocker left besides (1).
+- mwPlyCalcWorkSfd 4w unchanged: `total = sibsiz + size; return total;`, a `SumWk(size, sib)` helper with a `ret` local, `size2 =`
+  all re-rank the CWS_BUFSIZ zero temps (13w) or bounce through `mr`. Flags: `lib/mwsfdcre.c` stays False (8/10); objects.py
+  untouched; the tree object was rebuilt through the locked ninja after every applied step (bytecmp 8/10, 126w + 4w).
+
+### CRI pass 29 (sfd_mps 22/26: DecodeOneUnit 144 -> 13w with one M1 pin, ExecServerSub 59 -> 16w with one M3 pragma; cftfx 3/6, adx_sje 14/17 in progress; 2026-09-11/12)
+Harness /home/adityas/.cache/cri29/ (mk.py unique-substring variant generator + run.sh over ~/.cache/kit/variant.sh, ra dumps, deg.py /
+ghost2.py = chaitin.py as a library with injected ghost nodes). The 01:07 tree reset wiped the first application; re-applied from the record.
+- **The residue of both sfd_mps functions is the same graph fact, validated with chaitin.py as a library: the target has 2-3 more
+  "ghost" nodes (coalesced copies that stay in every neighbour list) than ours.** DecodeOneUnit: on the pure-C graph (cnt/ok own
+  locals, IsZero `Sint8 *p; *p++`), injecting THREE ghosts adjacent to the whole-function nodes (any mix of positions, at most two of
+  them while `mps` is still alive) reproduces the target's 14 colours exactly (ret r31, wk r30, nskip r29, nbyte r28, len r27, data r26,
+  sfd r25, delim/p r24, mps r23, total r22, bufin/dst/cnt r21); two are not enough (ret stays 28 = L2). ExecServerSub: TWO ghosts
+  adjacent to everything give sfd r31 / skiptot r30 / total r29 / tot r28 / data r27 / ret r26 / len r25. A ghost = a copy chain from
+  a call result (`mr rT,r3; mr var,rT` -> rT coalesced into r3, `mr rT,r3; cmpi rT` is propagated instead and leaves nothing; a
+  vreg->vreg coalesced copy such as an inlined helper's `ret = @local` also counts, r47->r43 in ExecServerSub). Not found: which
+  three copies the original had in DecodeOneUnit (13 spellings of `obj`, `flg`, helper wrappers around the late SFCON/GetTermFlg tests
+  all propagate away or add a visible `mr`).
+- DecodeOneUnit facts (pure C, applied): the scan counter is an own local `cnt` distinct from the syshd `n`, the hn-block Bool a
+  separate `ok`, both declared AFTER `psize` and BEFORE `hn`/`go` (cnt's round-1 degree is exactly 30: `ok` and `hn` must be removed
+  before its turn, so they need lower vids = later declaration; with ret pinned to r31 cnt gains r31 and stays L2 -> r23 instead of
+  r21, the 5 remaining scan words). IsZero as `static Bool sfmps_IsZero(Sint8 *p, Sint32 n)` with `*p++ != 0` and `sfd->prm.unit`
+  written inline three times (`lbz; addi p,1; extsb.` = target); the target colours psize r3 / pointer r4 = the psize node outranks the
+  inlined param copy — ours has the CSE temp @666 below the inline copy @646 (13 spellings incl. GetUnit helper, Uint32 view, `(Sint8 *)
+  data`, swapped params: all 13w). The 120 declaration-order permutations of p/delim/ret/wk/mps do not move a word; `register` does
+  nothing. Applied lever: `err = sfmps_CopyPketData(..); asm { mr r31, err; mr ret, r31 }` (M1) — pinning through `ret = 0` is
+  constant-propagated away (`li r31,0` deleted, r31 merely blocked), pinning the SetErr def gives 124w, the CopyPketData def 13w.
+- ExecServerSub facts: `li ret,0; mr skiptot,ret; mr tot,ret` = the pass-14b entry-zero CSE, which only rewrites @temps: the loop
+  body + flow-count block live in an inlined `static Sint32 sfmps_ExecServerLoop(SFD sfd)` whose locals are declared
+  `nskip,nbyte / rcnt,wcnt / r / limit / len / ret / data / tot / total / skiptot` (helper locals: first declared = lowest vid; frame
+  wcnt 8 / rcnt 0xc needs `rcnt, wcnt`), with three separate `= 0` statements (a chain assignment is constant-propagated into three
+  `li`). +1 ghost each from `ret = sfmps_Decode(..)` (a one-line wrapper around DecodeOneUnit) and `ret = sfmps_AddRead(sfd, nbyte)`
+  (the RingAddRead + `ret = 0; if (r) ret = r` block as a helper; its `ret` local coalesces into the caller's ret) -> sfd L3 r31. The
+  remaining 16w = ret r25 / len r26 swapped: the AddRead helper's local is the coalescing LEADER (lower vid than len); without it ret
+  outranks len but sfd is one neighbour short. Side effect: the small ExecServerSub is inlined into SFMPS_ExecServer (0x1dc vs
+  0x20) -> `#pragma dont_inline on/off` around SFMPS_ExecServer only (M3; `on` before ExecServerSub would also stop its own inlines).
+- Wrappers that do NOT create a ghost (result propagated): GetCond, GetMps, GetTermFlg, RingGetRead, IsAllOutTerm, UpdateCnt, a
+  `ret = Loop(); return ret;` caller copy, `(skip = SFCON_..()) != 0`.
+
+### CRI SWAR kernels pass 7 (continued): 16x16 V2 residue = case-0/1 colours only; 8x8 4p target colours read; nothing applied, nothing flipped (2026-09-12)
+- **mpv_mcy `MPVMC16_OneRefV2_TuneC` 225w = 78 differing lines, ALL in the prologue (`stmw r17` vs `r18`, frame 0x50/0x40), case 0
+  (45: pure register renames of the same instruction stream, `i` r10 vs r9, w0/a0 r17/r18 vs r25/r28, ...) and case 1 (28: renames plus
+  the `and r19, x0, m1` slot and `srwi` one instruction apart); cases 2 and 3 are byte-identical. `chaitin.py --check` is IDENTICAL on
+  our dump, so this is a vid-order question of case 0's own-local webs (case 0 = the first webs = declaration order; cases 1-3 = @temps
+  numbered by first definition) — a chaitin.py replay over the 15 own locals' orders is the next step, not permutation builds.
+- **mpv_mc `MPVMC08_OneRef4p_TuneC` 72w:** target colours ctr-temp r0 / b0 r0 (shared: the `li r0,8` does not interfere with a body
+  value), d r3, stride r4, s0 r5, s1 r6, i.e. exactly ONE pixel node is coloured before the four loop pointers (a pass-2 survivor with a
+  vid above them) and the pointers are declared `d, stride, s0, s1`; ours colours stride r0, d r3, s0 r4, s1 r5 with seven pixel own
+  locals (a2..a7, b5, total degrees 30-50) surviving pass 1. Declaring the pixels before the pointers (e1-e4) moves them to r0,r3..r7
+  and the pointers to r8-r11 (72w); `cnt` counter forms (`for (cnt = 8; cnt > 0; cnt--)`, `while (cnt--)`, `do..while (--cnt)`) leave
+  the `li` a backend temp coloured after the pointers (74-75w); pointer order alone (d1-d4) 71-74w. The target's load order (a0, b0,
+  dcbt, a1, b1, .., a6, b6, **a8, a7**, b7, b8) and the 16x16's (b1, a2, b0, a1, b2, a3, **b5**, b3, a6, ..) hoist the inner-sum
+  operands of a LATER word/pair above address order where ours keeps address order: a scheduler-window difference on the same raw order,
+  unexplained (rule of thumb from pass 6 stands: the raw order is the lever, but the window is wider in the original build).
+- Not started this pass: mpv_mcy H2 225w, mpv_mc V2 73w, mpv_mc H2 436w. objects.py untouched; no unit flipped; 111 not re-run (no tree
+  source edit). Harness ~/.cache/cri_swar7 deleted.
+
+### CRI pass 30 (adx_dcd5 ADX_DecodeMono4 39 -> 0w, pure C: the scale as a `Sint16` own local + a redefinition blocker + the table value as an own local; Ste4AsSte 118w / Ste4AsMono 180w read in the model, unchanged; adx_baif AIFF_GetInfo 170w read, unchanged; 2026-09-11)
+Harness /home/adityas/.cache/cri30/ (deleted): `mk.py`/`try.sh` = variant.sh wrappers, `ste.py "decl order" --sc16 --q --blk 'R:a=>b'` = Ste4AsSte
+variant generator, `model.py`/`model2.py` = chaitin.py replays with permuted own-local vids. Dumps of ~12 probes (ra.py). Unit flags untouched
+(adx_dcd5 2/4 functions identical, not flipped). The tree was reset by a history rewrite at 01:07; the Mono4 edit was re-applied from the record.
+
+**Mono4 fixed (three facts, each read off a dump, each necessary; `variant.sh` 39 -> 24 -> 0):**
+- **A conversion is emitted INTO the destination variable only when it is the root of the RHS and its operand is not itself a conversion.**
+  `sc = (Sint16)(X)` is `ETYPCON long(ETYPCON short(EADD))`: the inner conversion makes a temp (`extsh r64, r63`), the outer one is a
+  no-op, the assignment is `mr sc, r64` and backend copy propagation deletes the own local (pass 26's finding). `Sint16 x; x = X;` is
+  `extsh x, r63` (into the variable), `Sint32 y = x16;` is `extsh y, x16` (into y), `d = src[0]` is `lbz d; extsb d, d`. A two-def own local
+  (`sc = X; sc = (Sint16)sc;`) keeps the `mr` (never coalesced, f3 probe), and the frontend folds it back anyway unless blocked.
+- **The peephole-forward pass (backend-01) turns `extsh rD, rS` into `mr rD, rS` when rS was defined by an `extsh` in the same block**, and
+  copy propagation then substitutes rS. So `Sint16 sc; sc = ((s ^ key) & 0x1FFF) + 1;` (def `extsh sc, r66` into the own local) followed by
+  the frontend's hoisted `@N = (long)sc` in the inner-loop preheader (same block B5) gives `mr @N, sc` -> the loop uses `sc` itself: the scale
+  is an own-local node with ONE extsh. Precondition: the frontend must not substitute sc's def into the hoist (`Sint16 sc` alone = 39w
+  again, the hoist becomes `(long)(int)(short)X` = the backend temp; pass 26's 61w was the cast kept on the RHS). Blocker used: a
+  REDEFINITION of an RHS operand between the def and the hoist — `key = *scl; sc = ((s ^ key) & 0x1FFF) + 1; key = sadd + key * smul;
+  *scl = key; *scl = *scl & 0x7FFF;` (a store between does not block: the RHS has no load; `*scl &= 0x7FFF` is equivalent). Same bytes for the
+  scramble update (`add; sth` — the extsh before a `sth` is dropped by copy propagation).
+- **The table value `AdxQtbl[d & 0xF]` is an own local `q` declared LAST, defined before the `out[0] = t` store** (the store blocks the
+  substitution because the RHS has a load; defined after the store it is substituted, 30w). As the lowest own-local vid it is coloured last and
+  takes the dying nibble's register (`lwzx r26, r28, r11` with d = r26) — as a backend temp it is coloured third in L1 and takes r29. The
+  multiply is `q * sc` (`mullw r12, r26, r31`: table first).
+- Declaration order `i, l2, l1, j, s, key, sc, d, t, q` (L2 order i r10 > l2 r11 > l1 r12 > sc r31 > sadd r30 as pass 26 predicted; with
+  `l1, l2, i` first l1/l2 swap, 24w).
+
+**Ste4AsSte 118w / Ste4AsMono 180w (not changed; the same three lessons give 113-115w, the model says the graph structure differs):**
+- Target colouring read off the bytes: sadd r0, smul r11, scl r12 (L3), c2-ext r10 / c1-ext r9 IN PLACE (the param registers, before the
+  stmw), then new callee-saved in the order l2 r31, r2 r30, r1 r29, l1 r28, i r27, d r26, dr r25, sc_l r24, sc_r r23, AdxQtbl r22, s r21, t r20,
+  nblk r19; the table values `lwzx r26 (d's reg) / lwzx r25 (dr's, in place)`, the second s in r23, second key r25, `mullw r26, r26, r24` =
+  `q_l * sc_l`. Ours: AdxQtbl (backend temp r107, L2, coloured first) takes r9 and the two `d >> 4` / `dr >> 4` temps (exactly 29 neighbours
+  each -> L2) take r10 before the c-ext @temps, which then go to r28/r29 (`extsh r28, r9`), and every own local shifts (14 callee-saved,
+  stmw r18). chaitin.py `--check` IDENTICAL on ours; permuting the own-local vids in the model (model.py, 400 random orders; model2.py grid over
+  nblk/AdxQtbl vid positions) never gets below 12/15 wrong -> the target's graph has different LEVELS, not a different order: (a) AdxQtbl must be
+  L1 (degree < 29 at its scan) yet be coloured before s/t/nblk, (b) t (39 neighbours here) and nblk (76) must be coloured after AdxQtbl,
+  (c) the `d >> 4` temps must be < 29. `nblk = nfrm / 2` as an own local is L2 or L3 depending on its declaration position (declared late =
+  stuck in iteration 2 -> L3 -> r0); `i < nfrm / 2` in the condition becomes a frontend @temp (@65, L2, r29); `return i * 2` at the end
+  (semantically wrong, probe only) drops 4 bytes and 37 words = the nfrm ghost (r33) matters. Not found: which node the target lacks. Open.
+- Ste4AsMono: same class, not dumped.
+
+**adx_baif AIFF_GetInfo 170w (unchanged):** the target keeps the header ckid/cksz as variables (`mr r27, r30; rlwimi r27, r31, 24, 0, 7`:
+the LE32's last OR written into the own local through the or->rlwimi peephole; a copy from a backend temp into an own local is never
+coalesced) and swaps the size into a TEMP before the FORM/AIFF checks (`rlwinm r12, r28, ..` x4 then `subi r10, r12, 4; add r10, r8, r10`
+after the checks), i.e. `cksz` is not reassigned; the loop's cksz likewise (`rlwinm r29, r27` = one CSE'd SWAP32 used by the `< 0x12` test
+and the default step). Probes: SWAP32 at the uses in header+loop 170 -> 154w but +12 bytes (the loop's swap is emitted twice: once in COMM
+at `cmpwi 0x12`, once in default — the frontend did NOT CSE the two macro uses across the switch, unlike pass 13's macro CSE), header ckid
+still substituted into its compare (`||`-joined checks 156w, `p`-relative loads with `p += 12`, `buf += 8`: no change). Open: what keeps the
+header ckid a variable (its only use is the FORM compare two statements later) and the 8-byte size gap (the two extra `clrlslwi 16,8` 16-bit
+reads at COMM: ours `rlwimi 8,16,23`).
+
+### CRI pass 31 (mpv_umc OneReadMb 56 -> 48w APPLIED (pure C: `yhx = vx & 1` / `chx = cvx & 1` before the fn table loads); mps_lib 2w / adx_tsvr 2w / sfh_main 6w unchanged; nothing flipped; 2026-09-12)
+
+Harness /home/adityas/.cache/cri31/ (deleted at the end): try.sh (variant.sh + md5 of the object + side-by-side lines), sweep.py (constrained
+statement-order sweeps of the OneReadMb vector block, 70 + 168 orders), ra.py dumps of v2 (ra_v2) and MPS_Create (ra_mps). Tree edits:
+src/lib/mpv_umc.c `mpvumc_OneReadMb` body + comment only.
+- **mpv_umc `mpvumc_OneReadMb` 56 -> 48w applied**: `ypos; yhx = (Uint32)vx & 1; fn_y = tbl_y[vy & 1][vx & 1]; cvx; cvy; cpos; chx =
+  (Uint32)cvx & 1; fn_c = tbl_c[cvy & 1][cvx & 1]; chx &= mcflag; yhx &= mcflag;` (locked ninja + bytecmp 15/16, 48w; .bss order OK).
+  **New frontend rule (read off five single-variable probes, objects compared by md5): a range-split web whose single use is the variable's
+  own second definition (`yhx = vx & 1; .. yhx &= mcflag`) is KEPT (emitted at its statement, `rlwinm yhx, vx` + `and yhx, yhx, mcflag`)
+  when a LOAD statement (`fn_y = tbl_y[..][..]`) sits between the two definitions; a store (`mc->stride = cpitch`) between them does NOT
+  keep it (chx with cpos + store between: still sunk, `rlwinm t; and chx, t, mcflag`).** So the target's `clrlwi r24, vx, 31 .. and r24,
+  r24, r8` / `clrlwi r23, cvx, 31 .. and r23, r23, r8` pairs mean the vendor wrote each `& 1` before its table load. `fn_y = tbl_y[vy &
+  1][yhx]` compiles to the SAME object as `[vx & 1]` (the peephole folds `slwi yhx, 2` of `clrlwi vx` into `clrlslwi r12, vx, 31, 2`),
+  so the target does not distinguish the two spellings. .bss order of mpvumc_oneref_y / mpvumc_oneref = the order of the fn_y / fn_c
+  statements (tbl_y/tbl_c are single-use and substituted), so fn_y must be referenced first.
+- **OPEN 48w = the pre-RA scheduler, not the RA.** The debugger's pass list for this function is backend-00 initial .. 06 peephole-forward,
+  **07 after-scheduling (PRE-RA)**, 08 peephole-forward, 09 before-regalloc, 10 regalloc, 12 peephole, 13 after-scheduling (post-RA).
+  In backend-06 `rlwinm r46 = vx & 1` (stmt 747) precedes `lwzx r47 = fn_y` (748); backend-07 issues them `lwzx r47; rlwinm r46` (one
+  cycle, the load first), so vx (r40) interferes with fn_y and keeps its 33 neighbours (level 2, r6); in the target `clrlwi yhx` is
+  above the load and vx dies into fn_y's r25 (chaitin.py --check IDENTICAL on ours). The pre-RA scheduler is a top-down list scheduler
+  with a cycle model (fillers: `mr r33, r4` / `mr r3, mc` / the row-base `addi`s pulled into the lha/mullw stall slots at the block top;
+  loads are issued before the first store; zero-successor instructions -- `add ypos`, dead `rlwinm`s, `and yhx` -- go last in statement
+  order). Not moved by: 70 orders with ypos/cvx/cvy first, 168 orders with `yhx;fn_y` and `chx;fn_c` adjacent and the masks last (best 48w
+  x6: ypos first, then yhx/fn_y, cvx, cvy, cpos, chx/fn_c), an empty `asm { }` between yhx and fn_y (removed, identical object), the
+  first def as `asm { rlwinm yhx, vx, 0, 31, 31 }` with `register` yhx/vx (identical object: asm instructions are scheduled like C ones
+  pre-RA too). Pass-27's "vid-order permutations cannot reach the colours" stands; the lever has to give `rlwinm yhx` a higher pre-RA
+  priority than the load (an in-block consumer) or delay the load's readiness -- none found in C.
