@@ -863,13 +863,15 @@ public:
     }
 };
 
-// the four pages of the sequence table: the widgets are created by these helpers on the constructed window
-static inline void CreateEditWindow1(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
+// the four pages of the sequence table: the widgets are created by these helpers on the constructed window.
+// g_pPrimArray is read inside (after the `new`, like the other windows' inlined ctors): passing it as an argument
+// loads it before the `new` and makes it a call-crossing callee-saved value (target: `lwz r27,g_pPrimArray` after the `bl`).
+static inline void CreateEditWindow1(TOOL_WINDOW*& slot)
 {
-    EDIT_WINDOW* e = new EDIT_WINDOW(p);
+    EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
     u32 i;
     {
-        DB_PRIM_ARRAY* pa_ = p;
+        DB_PRIM_ARRAY* pa_ = e->pa;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
@@ -1134,12 +1136,12 @@ static void OnWorkSp3_Callback(DB_PRIMITIVE*)
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp3Win);
 }
 
-static inline void CreateEditWindow2(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow2(TOOL_WINDOW*& slot)
 {
-    EDIT_WINDOW* e = new EDIT_WINDOW(p);
+    EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
     u32 i;
     {
-        DB_PRIM_ARRAY* pa_ = p;
+        DB_PRIM_ARRAY* pa_ = e->pa;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
@@ -1262,12 +1264,12 @@ static inline void CreateEditWindow2(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
     slot = e;
 }
 
-static inline void CreateEditWindow3(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow3(TOOL_WINDOW*& slot)
 {
-    EDIT_WINDOW* e = new EDIT_WINDOW(p);
+    EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
     u32 i;
     {
-        DB_PRIM_ARRAY* pa_ = p;
+        DB_PRIM_ARRAY* pa_ = e->pa;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
@@ -1398,12 +1400,12 @@ static inline void CreateEditWindow3(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
     slot = e;
 }
 
-static inline void CreateEditWindow4(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow4(TOOL_WINDOW*& slot)
 {
-    EDIT_WINDOW* e = new EDIT_WINDOW(p);
+    EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray);
     u32 i;
     {
-        DB_PRIM_ARRAY* pa_ = p;
+        DB_PRIM_ARRAY* pa_ = e->pa;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
@@ -4920,10 +4922,10 @@ void InitTool()
     pa = g_pPrimArray;
     g_pMenuWin = new MENU_WINDOW(g_pPrimArray);
     g_pExitWin = new EXIT_WINDOW(g_pPrimArray);
-    CreateEditWindow1(g_pEditWin1, g_pPrimArray);
-    CreateEditWindow2(g_pEditWin2, g_pPrimArray);
-    CreateEditWindow3(g_pEditWin3, g_pPrimArray);
-    CreateEditWindow4(g_pEditWin4, g_pPrimArray);
+    CreateEditWindow1(g_pEditWin1);
+    CreateEditWindow2(g_pEditWin2);
+    CreateEditWindow3(g_pEditWin3);
+    CreateEditWindow4(g_pEditWin4);
     g_pEditActive = g_pEditWin1;
     g_pModelWin = new MODEL_WINDOW(g_pPrimArray);
     g_pLoadWin = new LOAD_WINDOW(g_pPrimArray);

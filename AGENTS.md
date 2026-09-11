@@ -22740,3 +22740,78 @@ sngcc/ = a private copy of tools/sn-gcc with `fprintf`s in global.c set_preferen
 - **shape 2 unchanged.** `s8 b = rot[1][0]; asm("" : "+r"(b));` / `int b` + `(s8) b` do put px first in the `mullw` but the
   extraction of the laundered byte becomes `rlwinm 24; extsb` (SImode sign_extract) instead of `extsh; srawi 8` (the HImode
   path is taken only when the byte feeds the QImode multiply directly): 5-6 words. The join `ble` and the operand order stay.
+
+### Tool RELs, t_esp pass 12 (t_esp 208/212: InitTool 11530 -> 11057 words with the EDIT windows' `g_pPrimArray` load now after the `new` (zero code); the remaining residue = the window objects' alias status: the target compiles as if the `new` results carried no REG_NOALIAS -- diagnosed with a hooked cc1plus (8389 words, the entry's 10 callee-saved `&pos` and the 0x2930 frame exact), not a compiler difference (whole tree: 11 matched functions need it); Load/SaveEmType 2/2 untouched; db_widget DB_STRING ctor 7 unchanged, its flow.c/haifa mechanics pinned down; nothing flipped; 111 OK; 2026-09-11)
+
+- Harness ~/.cache/tesp12 (deleted): `mk.sh UNIT SRC OUTDIR [-dX..]` (module cflags; `NATIVE_DIR=` picks another cc1plus dir; with dump
+  flags it runs cpp + cc1plus by hand into OUTDIR), `tryv.py UNIT BASE V.py` / `tryt.py BASE V.py` (exact-substring variants; tryt prints
+  InitTool words, frame, the entry block's callee-saved `addi rN,r1,C` set and the low-slot count), `lst.py target|OBJ [FUNC]` (plain
+  listing, decimal offsets hexed), `ins.py DUMP FUNC`, `pseudo.py DUMP REG..` (set/use insns of a pseudo with its stream index), `occ.py
+  OUTDIR LO HI` (callee-saved occupants of InitTool over a stream range, from -dl/-dg), `regstat.py OUTDIR` (global-alloc order and
+  priorities of the `&fp+C` reaching regs; the -dg dump's order is the `;; N regs to allocate:` line and the hard regs are the
+  `Register dispositions:` block), `sngcc/` (copy of tools/sn-gcc with an env-guarded `LADBG` fprintf after local-alloc's allocation
+  loop and an env-guarded `NOMALLOC` in calls.c's special_function_p), `tree.py build LABEL [ENV=..] | cmp A B` (every prodg_cc unit of
+  build.ninja with sngcc's cc1plus, bytecmp per unit, 18 s with 12 workers; 29 units whose build line wraps before `prodg_cc` are
+  skipped in both labels).
+- **InitTool: the EDIT windows read `g_pPrimArray` inside the helper (11530 -> 11057, zero code).** `CreateEditWindowN(TOOL_WINDOW*&
+  slot, DB_PRIM_ARRAY* p)` evaluated the argument before the inlined body, so the `lwz g_pPrimArray` preceded `bl __builtin_new`,
+  crossed the call and took a callee-saved register (`lwz r28,0(r27)` before the new, `mr r3,r28`); the target loads it after the
+  `bl` like every other window's inlined ctor (`lwz r27,g_pPrimArray@l(r27)`, the dying high's register). Form: `CreateEditWindowN
+  (TOOL_WINDOW*& slot) { EDIT_WINDOW* e = new EDIT_WINDOW(g_pPrimArray); ... DB_PRIM_ARRAY* pa_ = e->pa; ...}`.
+- **InitTool: the spill SET / callee-saved `&pos` set is decided by whether the window object pointers are alias-exempt, and the
+  target's are NOT.** Facts (o_t0 = the pass-11 source): global.c allocates the `&fp+C` reaching regs in priority order `&8 (r31),
+  &20, &30, &40, &50, &60, &70, ..., &110, ...` (pri = floor(log2 refs)*refs/len ~ 26-28, ties by regno) but `find_reg` gives a
+  register only if none of the already-placed allocnos overlaps: `&60` [61,1180] overlaps the second window's hoisted `T = R`
+  copies (`reg/v 832.. = 12152..`, the loop-invariant `&pos` addresses of CreateEditWindow1's `for (i < 5)` body, hoisted by loop.c to
+  the preheader and spread by sched1 as fillers through the MENU/EXIT/EDIT1 block; refs 5, len ~600, pri ~165 -> placed first in
+  r14-r19/r31) which are born at #1115-#1205, so `&60`/`&70`/`&80` get nothing while `&110`-`&150` (dying at #1059-#1089, before those
+  births) get r18-r14. In the target `&60` is r17, `&110` r28, `&150` spilled, and the MENU window's `p = g_pPrimArray` is r28
+  (callee-saved although it crosses no call) with the ctor's `pa = p; win = NULL` stores issued FIRST after the `new`; ours had p in
+  r0 and those stores last. Mechanism: `__builtin_new` is `is_malloc` in calls.c (name check), the result copy gets a REG_NOALIAS note,
+  alias.c gives the pseudo a unique base, so the inlined ctor's `mem(e)` stores have no output dependence on the later fp-relative
+  `pos.x/pos.y` (MEM_IN_STRUCT_P, so not exempt as fixed scalars) stores: sched1 priority 108 (call + 1) for `e->pa = p`, 110 for the
+  p load (below the pool `lfs` at 111/112 whose `high` dies -> weight 0), p issued 5th after the call and after `e = r3`, life
+  [88,116] -> r0 free -> r0; with the base unknown the stores chain into the pos stores (prio 111/112), p's load becomes prio 113
+  = first after the call, born before `e = r3` (r3 busy), dying at `mr r3,p` after all of r4-r11/r0 are taken by the CNW arguments
+  and pool highs -> local-alloc's first free is r28 (r31 never, r30 = e, r29 = const 0); the const 1 then takes r26, const 4 r25,
+  high(pMenuWin) r24, const -1 r23, high(pExitWin) r22 (ours: 28/26/25/24/23 = one register higher each), and global.c then finds r21-r17
+  free for `&20`-`&60`, r28 for `&110` (p-MENU's r28 is dead by then), r16-r14 for `&120`-`&140`, nothing for `&150`. Proof by the
+  hooked compiler (`NOMALLOC=1`, is_malloc forced 0 for `__builtin_new`/`__builtin_vec_new`): InitTool 11057 -> 8389 words, frame
+  0x2930 exact, the entry's callee-saved set `r31=&8 r21=&20 r20=&30 r19=&40 r18=&50 r17=&60 r28=&110 r16=&120 r15=&130 r14=&140`
+  exact, the MENU window segment exact, the 882 `&pos` slot pairs the same C set (357 slots still +-4: one low copy fewer), the
+  `Load/SaveEmType` first diff unchanged. BUT the whole tree with NOMALLOC=1 loses 11 identical functions (Sscrn ss_cap init,
+  ss_file, ss_item, ss_main, ss_map, ss_pzzl, ss_shop, game/player, t_event, t_esp/db_widget AddPrimitive x2) and gains none: the
+  original compiler DOES emit REG_NOALIAS for `new`, so t_esp's ORIGINAL SOURCE constructs its 40 windows in a way whose object
+  pointer has no known base. Not found: (a) `void* operator new(unsigned)` declared inside `namespace t_esp_namespace` (DECL_CONTEXT
+  != NULL would kill is_malloc) ICEs (378); declared globally it changes nothing; (b) a shared `TOOL_WINDOW* w` reassigned per
+  window with `InitX(w, p)` helpers (multi-set pseudo -> base 0) makes `w` a whole-function global allocno and reshuffles everything
+  (11201); (c) an asm launder of `this` in the ctors (`asm("" : "=r"(t) : "0"(this))`) gives the early stores but leaves `mr r9,r30`
+  and `lwz r3,0(r30)` reloads (10674). Candidates left: the object pointer passing through a non-inlined boundary or a memory
+  round trip whose load cse does not fold (a call between the store and the reload), a derived-to-base conversion with a non-zero
+  offset (a second base class or a vptr class would change the layout -- the objects are 8/12 bytes, so no), or the `new` expression
+  written so that the ctor runs on a copy (`TOOL_WINDOW* w = new TOOL_WINDOW; *w = TOOL_WINDOW(p)`-like temporaries). Whatever it
+  is, it must (1) leave `bl __builtin_new; mr r30,r3` and the inlined ctor bodies as they are, (2) make every `mem(e)` store depend on
+  the following fp-relative struct stores, (3) not add insns. Test recipe: compare the entry's callee-saved set printed by tryt.py
+  against the target line above; NOMALLOC=1 with sngcc is the oracle for what the rest of the function looks like once the alias
+  status is right (8389 words left there: spill offsets +-4 and the per-segment residues).
+- **DB_STRING ctor (db_widget, 7 with the r0 pin, not closed; the two remaining mechanisms are exact):** (1) the pinned `li r0,0`
+  is boosted to max priority in sched1 (birthing_insn_p: a SET of a call-used hard reg with REG_N_SETS == 1 -- flow counts hard-reg
+  sets too), which puts `lis LC; lfs` adjacent and gives the four constants the target's names; (2) the same pin makes every later
+  CALL_INSN add an anti link from `reg_last_uses[r0]` (sched_analyze's call loop adds the links but never clears reg_last_uses; only a
+  SET of r0 does), and LOG_LINKS survive into sched2, so `stw r0,str/len` have 5 dependents (129, strlen, strcpy, `mr r0,r3`, new)
+  where the target has 3 and are sorted (equal priority 12, class 3, then depend count, then LUID) before the colour/type stores
+  (5) and the vptr store (4) instead of last. Every way to clear the list needs a second r0 SET before strcpy in sched1, which
+  costs the boost (REG_N_SETS 2) and the names: `asm("" : "=r"(zero))` + a non-volatile use (`asm("" : "=m"(max) : "r"(zero))`)
+  14-15, the `new[]` result pinned to r0 (cse forwards r3, the `mr r0,r3` vanishes: 6 words, size -4), `asm("" : "=r"(p) : "0"(q))`
+  keeps the `mr r0,r3` but loses the boost (11), a clobber does not clear uses (14-16). Anchors are out: an asm with `"=m"(str),
+  "=m"(len)` outputs is deleted by flow (its outputs are in `mem_set_list` because the identical zero stores follow), a `"=m"(max)`
+  output survives but raises the vptr store's priority through the true dependence (12-15), and an asm without outputs is
+  volatile (`asm_operands/v`, a full barrier: 18). Unpinned, local-alloc's qty order (LADBG) is vt-hi+lo (tied on the elf_low
+  insn, 8 refs / life 12 = 6666) before LC (2/4 = 5000) and type (2/4) before zero (3/24 = 1250) -> vt r9, LC r11, type r0, zero
+  r11; every statement order (10 more tried, including the DB_PRIMITIVE-ctor style `int iz = 0` local, `len = 0; str = 0;` and a
+  two-set `char* p = 0; ...; p = new char[max]`) leaves that arithmetic (11). The sched1 stream order that the target's sched2 needs
+  is ca, type, cr, cg, cb, [vptr], str, len among the stores, i.e. colours before type in the source and `len = 0; str = 0;` (str
+  the dying store) -- with the pin the r0 stores go first anyway (4 sched1 dependents vs 2). A fourth zero ref through a codeless
+  asm does not change the qty order either. Left as the pin (7).
+- Not iterated: Load/SaveEmTypeUpdateCallback 2/2 (pass-10 mechanism stands: which of loop-2 TOP / the last `lhz t` block cse1
+  reaches with the outer high), fn_t_esp_3DE4C 24 (another owner).
