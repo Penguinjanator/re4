@@ -32,28 +32,35 @@ Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint
 	return ADX_DecodeSte4AsMono(src, nfrm, outl, histl, outr, histr, c1, c2, scl, smul, sadd);
 }
 
-/* COMPILER-DIFF: M1 - register ranking of the 4-bit decode loop: the original keeps c1/c2 extended
- * in place (r9/r10) and one fewer callee-saved register; ours copies them (pass 9: the history
- * locals declared first put the AdxQtbl address directly into its register, as the original). */
+/* COMPILER-DIFF: M1 - register ranking of the 4-bit decode loop (115 words): the original keeps
+ * c1/c2 extended in place (r9/r10), the table pointer in r22 below sc_l/sc_r, one callee-saved
+ * register less (r19..r31) and hands r21 out before t (r20) and nblk (r19). The scales are Sint16
+ * locals (the extsh is their definition, as in ADX_DecodeMono4), the table values are the last-
+ * declared locals defined before the stores, the declaration order is the original's colouring
+ * order (pass 34: chaitin.py reproduces the target up to the r21 node once the nfrm ghost is gone). */
 Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                            Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
-	Sint32 l1;
 	Sint32 l2;
-	Sint32 r1;
 	Sint32 r2;
-	Sint32 nblk;
+	Sint32 r1;
+	Sint32 l1;
 	Sint32 i;
-	Sint32 j;
-	Sint32 s;
-	Sint32 key;
-	Sint32 sc_l;
-	Sint32 sc_r;
 	Sint32 d;
 	Sint32 dr;
+	Sint16 sc_l;
+	Sint16 sc_r;
+	const Sint32 *qtbl;
+	Sint32 s;
 	Sint32 t;
+	Sint32 nblk;
+	Sint32 key;
+	Sint32 j;
+	Sint32 q_l;
+	Sint32 q_r;
 
 	nblk = nfrm / 2;
+	qtbl = AdxQtbl;
 	l1 = histl[0];
 	l2 = histl[1];
 	r1 = histr[0];
@@ -64,16 +71,18 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			return i * 2;
 		}
 		key = *scl;
-		*scl = sadd + key * smul;
-		sc_l = (Sint16)(((s ^ key) & 0x1FFF) + 1);
+		sc_l = ((s ^ key) & 0x1FFF) + 1;
+		key = sadd + key * smul;
+		*scl = key;
 		*scl = *scl & 0x7FFF;
 		s = *(Sint16 *)(src + 0x12);
 		if (s & 0x8000) {
 			return i * 2;
 		}
 		key = *scl;
-		*scl = sadd + key * smul;
-		sc_r = (Sint16)(((s ^ key) & 0x1FFF) + 1);
+		sc_r = ((s ^ key) & 0x1FFF) + 1;
+		key = sadd + key * smul;
+		*scl = key;
 		*scl = *scl & 0x7FFF;
 		src += 2;
 		for (j = 0; j < 16; j++) {
@@ -84,11 +93,13 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			ADX_CLAMP(l2);
 			t = (dr >> 4) * sc_r + ((c1 * r1 + c2 * r2) >> 12);
 			ADX_CLAMP(t);
+			q_l = qtbl[d & 0xF];
 			outl[0] = l2;
+			q_r = qtbl[dr & 0xF];
 			outr[0] = t;
-			l1 = sc_l * AdxQtbl[d & 0xF] + ((c1 * l2 + c2 * l1) >> 12);
+			l1 = q_l * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			r1 = sc_r * AdxQtbl[dr & 0xF] + ((c1 * t + c2 * r1) >> 12);
+			r1 = q_r * sc_r + ((c1 * t + c2 * r1) >> 12);
 			ADX_CLAMP(r1);
 			outl[1] = l1;
 			r2 = t;
