@@ -18512,3 +18512,62 @@ the end (recreate from this description when a local-alloc name question comes u
   on `out` or one fewer on `target`), RouteCkEscEm 18 / ToPos 36 / Draw_rtp 15 not iterated.
 - Not iterated: option, card, puzzle (its .rodata 0x280 vs 0x260 makes appendExtraPiece/removeExtraPiece "2/4 words" -- reloc
   offsets only), motion, db_cam, pendulum, esp08, esp18, cam_ctrl, sce_com OpenBoxMain 182 / SceElevator 232.
+
+### Tool RELs, bytes-first pass 17a (t_movie/t_se_at seAtAreaEdit_DataInput 58 -> 17, one tagged item; t_esp_area/t_lightarea CreateEditWindow mechanism read to the LCM equations; snd_test pooled address forms tried; 2026-09-11)
+
+- Harness ~/.cache/tools_p17a (deleted at the end): dol23a copies + `mtryv.py MOD/UNIT FUNC V.py [--apply N] [--src ABS] [--all]`
+  (cflags/post_build parsed from build.ninja after joining `$\n`, judged with `OBJ=... bytecmp.py --residue`; env `INC=dir`
+  prepends an include dir for header-copy experiments), `mdump.sh MOD/UNIT -dX` (module defines, `-G0`, `-fno-implement-inlines`
+  for Tools), `msbs.sh`, `prio.py` on fsec-cut `<pre>_lreg/_greg.txt`. 111 OK before and after; nothing flipped.
+- **seAtAreaEdit_DataInput (t_se_at, 58 -> 17, 19/20 functions, .text size equal):**
+  (1) zero code: the two name loops are `eprintf(pW->x, pW->y + j * 16, ...)` / `eprintf(0x38, 0xF0 + j * 16, ...)` -- the `oy`
+  variable was wrong: the target's `li r31,0` / `li r31,240` are loop.c giv inits, issued LAST in the preheader (they are created
+  after gcse's `lis` insertions, so their LUIDs are the highest), and with two per-loop giv pseudos the first-half register
+  clique allocates oy r31 / loop ptr r30 / col r29 / "%s" high r28 / end ptr r27 like the target (one function-scope `oy` was
+  14 refs / 70 insns = priority 0.6, above y (0.508), so it took r29 by pass-0 reuse and y the fresh r31).
+  (2) zero code: `int col` with `(u8) col` at every eprintf -- the tail's `clrlwi r5,r29,24; mr r29,r5` is the `(u8)` extension
+  computed once at the join and PRE-copied for the eight later uses (a promoted `u8 col` passes `mr r5,col`, no mask; `int col`
+  without the casts has no mask at all). The extension pseudo takes col's r29 because col dies at the mask.
+  (3) TAGGED `asm("" : "+r"(col)); // COMPILER-DIFF: 3` right before the first name loop: our gcse PREs the loop body's
+  `(zero_extend (subreg:QI col))` into the preheader (`clrlwi r28,r30,24` hoisted, 145 words), the target keeps `clrlwi
+  r5,r29,24` in the body. Read off lcm.c (block-based): the body occurrence stays iff the preheader is NOT transparent (col set
+  there: then earlyout[pre] = 1, delayin/latein[body] = 1, isoout[body] = isoin[body] & isoin[after] = 1 -> optimal[body] = 0 and
+  redundant[body] = 0) or the body is not antloc (col set in the body before the extension). Tried and rejected as zero-code
+  killers: `col = col` (jump1 deletes the noop before gcse), `col = (u8) col` (computes the extension into col: the body's copy
+  becomes fully redundant), `col &= 0xFF` / `|= 0` / `*= 1` / `+= num - 6` (folded), a `u8 c = col` in the body (E into c, hoisted),
+  `register int col asm("r29")` (138-142), `s8`/`u8` col with a `u8`-parameter eprintf redeclaration (80-186). The asm costs a
+  sched1 issue slot in the preheader (`lis r28 "%s"` / `addi r30` order, 4 of the 17 words).
+  Left 17: the then-arm `li r29,0` is issued BEFORE `lis r9,seAtWk@ha` in the target = haifa's birthing boost (adjust_priority:
+  dest set ONCE in the function and live at block end -> priority = max, tie with the `lis` by LUID) -- so the target's
+  first-half zero is a single-set pseudo although the else arm's `li r29,7` is a low-priority insn of the same r29 (two
+  pseudos in one register with no copy, or a set flow did not count: not understood; `int col = 0` at the top, `col = 0` before
+  the clamp, `{ int z = 0; col = z; }`, a clamp rewritten through an `n` local all 17-155); case 0's `v` r11 vs r9 (global pass 0
+  skips r9 for a reason not visible in the dumps -- the second `and.` result is a reload SCRATCH, so not the cause; per-arm
+  `int v, n` in case 0 changes nothing); case 5's `mr r29,r27` one slot later.
+- **ToolEspArea / ToolLightAreaMain CreateEditWindow (read to the equations, not closed).** The target's `cmpwi r31,0` before the
+  inlined ctor's AddButton loop with `mfcr r29` / `mtcrf 128,r29` is gcse PRE of `(compare edit 0)` from the post-loop block into
+  the END of the last pre-loop block, and the CC pseudo living across the loop's calls is allocated to a callee-saved GPR (rs6000
+  HARD_REGNO_MODE_OK is 1 for any mode in an INT reg; reload then does the CR0 output reload `mfcr` after the compare and the
+  input reload `mtcrf` before the `bne`). With lcm.c's block formulation this insertion happens iff there is a basic-block
+  boundary anywhere between the `mr r31,r3` (the set of `edit`) and the loop head: then earlyout[the block with the set] = 1,
+  earlyin/earlyout of the transparent pre-loop block = 1/0, earlyin[body] = 0, delayin[body] = 0 (the back-edge predecessor
+  keeps the intersection at 0), latein[after] = 0, isoin[body] = 0 -> optimal[pre-loop] = 1, redundant[after] = 1. With the set
+  and the stores in ONE block (ours) earlyin[body] = 1 -> latein[body] = 1 -> isoout[pre] = 1 -> optimal[pre] = 0 and the
+  compare stays after the loop (its own optimal point). What creates that boundary with no bytes was not found: `-fcheck-new`'s
+  `p != 0 ? (ctor, p) : p` leaves its `beq` (thread_jumps would only redirect it, the target has no branch there); a jump cse1
+  folds (constant `num`/`rows` entry tests, `if (name)`) is gone before gcse (the second jump pass deletes the unused label); a
+  CALL ends a block only inside an EH region or with nonlocal labels; loop notes and inline boundaries do not split blocks. A
+  jump whose condition only cse2 can fold (a constant propagated by gcse's cprop from another block) would leave the boundary
+  at gcse time and no code -- no natural CreateEditWindow statement of that kind was found. The .rodata "vtable slot" rows of
+  both units (`_._t14cDbgEditWindow..., 0` vs `0xc`) are the 12-byte .text size shift of this one function (cmpwi/mfcr/mtcrf),
+  not a vtable order difference; the `fn_Tools_2683C/2F2D8` 24-word rows are the nameless linkonce block pairing.
+- **snd_test disp_sequencer `.4byte Snd_voice_work` (read, not closed):** the target reads the array base as `lis; addi; lwz
+  r9,0(r11)` in the 64-voice loop preheader (a full address then a zero-offset load = `(mem (reg))`, not a pool `lwz @l`).
+  A function-local `static SND_VOICE_WORK* const p = Snd_voice_work`, `static ... const tbl[1] = {..}; tbl[0]`, a `static const
+  struct {..} tbl; tbl.p`, `static const u32 addr = (u32) Snd_voice_work` and a `static ... const& p` all fold (expand_expr's
+  readonly ARRAY_REF/COMPONENT_REF constructor lookup and decl_constant_value; the reference costs 42 words). The same
+  preheader also shows `li r9,84; addi r27,r9,84` for the `0x54 + 0x54` y (the first 0x54 in a register = a REG_EQUIV constant
+  variable, #13 family) and `addi r10,r30,1; mr r26,r10` for `ch + 1` computed early: disp_sequencer has more than the pool
+  word; not iterated further.
+- t_camera_data tcSetBesideOffset (27) / tcDataExport (142), t_lightarea fn_Tools_30410 (59) and the 23 other snd_test functions
+  were not iterated this pass.

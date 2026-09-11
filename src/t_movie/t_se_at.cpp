@@ -436,7 +436,7 @@ static const char* seAtFlagName[16] = {"NO SET POS", "", "", "", "", "", "", "",
 
 static void seAtAreaEdit_DataInput()
 {
-    u8 col;
+    int col;
     u32 i;
     int j;
     s16 x;
@@ -444,7 +444,6 @@ static void seAtAreaEdit_DataInput()
     int v;
     int n;
     int num;
-    int oy;
 
     if (pW->input == 0) {
         if (Joy[0].trg & JOY_DOWN) {
@@ -467,11 +466,14 @@ static void seAtAreaEdit_DataInput()
         col = 7;
         eprintf(pW->x - 8, pW->y + pW->inputCursor * 16, 7, 0, ">");
     }
+    // int col + (u8) casts: the original masks the colour at every eprintf (`clrlwi r5,col,24`; the tail's
+    // first mask is PRE-shared as `mr col,r5`), a promoted u8 would pass unmasked. The name loops use the
+    // `j * 16` giv (init `li 0` issued last in the preheader, after gcse's inserts).
+    // COMPILER-DIFF: 3 (gcse PRE hoists the (u8) col extension out of the name loop; the target keeps it in the body)
+    asm("" : "+r"(col));
     num = 6;
-    oy = 0;
     for (j = 0; j < num; j++) {
-        eprintf(pW->x, pW->y + oy, col, 0, "%s", seAtInputName[j]);
-        oy += 16;
+        eprintf(pW->x, pW->y + j * 16, (u8) col, 0, "%s", seAtInputName[j]);
     }
     switch (pW->inputCursor) {
     case 0:
@@ -527,10 +529,8 @@ static void seAtAreaEdit_DataInput()
         }
         case 1:
             num = 2;
-            oy = 0xF0;
             for (j = 0; j < num; j++) {
-                eprintf(0x38, oy, 0, 0, "%s", seAtRndName[j]);
-                oy += 16;
+                eprintf(0x38, 0xF0 + j * 16, 0, 0, "%s", seAtRndName[j]);
             }
             if (Joy[0].trg & JOY_DOWN) pW->rndCursor++;
             else if (Joy[0].trg & JOY_UP) pW->rndCursor--;
@@ -637,27 +637,27 @@ static void seAtAreaEdit_DataInput()
     } else {
         col = 7;
     }
-    eprintf(x, y, col, 0, "%s", (u32) pCur->blk <= 6 ? seAtBlockName[pCur->blk] : "...no string");
+    eprintf(x, y, (u8) col, 0, "%s", (u32) pCur->blk <= 6 ? seAtBlockName[pCur->blk] : "...no string");
     y += 16;
-    eprintf(x, y, col, 0, "%d", pCur->se_no);
+    eprintf(x, y, (u8) col, 0, "%d", pCur->se_no);
     y += 16;
     if (pCur->interval == 0) {
-        eprintf(x, y, col, 0, "RANDOM  >>");
+        eprintf(x, y, (u8) col, 0, "RANDOM  >>");
     } else {
-        eprintf(x, y, col, 0, "%d", pCur->interval);
+        eprintf(x, y, (u8) col, 0, "%d", pCur->interval);
     }
     y += 16;
-    eprintf(x, y, col, 0, "%d", pCur->wait);
+    eprintf(x, y, (u8) col, 0, "%d", pCur->wait);
     y += 16;
     switch (pCur->repeat) {
     case -1:
-        eprintf(x, y, col, 0, "NO CALL");
+        eprintf(x, y, (u8) col, 0, "NO CALL");
         break;
     case 0:
-        eprintf(x, y, col, 0, "INFINITY");
+        eprintf(x, y, (u8) col, 0, "INFINITY");
         break;
     default:
-        eprintf(x, y, col, 0, "%d", pCur->repeat);
+        eprintf(x, y, (u8) col, 0, "%d", pCur->repeat);
         break;
     }
     if (pW->inputCursor != 5) {
