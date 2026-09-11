@@ -1,8 +1,8 @@
 // game/emrock.cpp: rolling rock enemy (cEmRock): boulders that hang on a parent, fall, get
 // thrown, roll after the player (with the escape event) or drop on him.
 //
-// Not yet byte-identical (see AGENTS.md OPEN items): emRockDropCamMove (the three up/fovy pool
-// highs' local-alloc names). .rodata and .data match.
+// Byte-identical (DOL sweep 23b). emRockDropCamMove sets `up` before `len` (sched1's 32-entry
+// pending-memory flush otherwise lands on the up.x store).
 //
 // Camera tails: `Camera* cam = &emRockCam;` is declared BEFORE the `cp`/`ca` pointers. cse rewrites
 // `&emRockCam` from the OLDEST related constant (`emRockCam+K`) whose class still holds a register
@@ -2043,10 +2043,13 @@ void emRockDropCamMove(cEmRock* em)
     p1.z = -15051.18f;
     cam->param.pos = p0;
     cam->param.at = p1;
-    len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
+    // `up` is set BEFORE `len`: with the up stores after the six len loads, the up.x store is the
+    // 34th memory insn of the block and sched1 flushes its pending lists there (haifa's 32-entry
+    // limit), which pins the 1.0/0.0 stores behind it and swaps the three pool highs (r27..r29).
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
+    len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
     cam->dist = SQRTF(len);
     CameraSetOrientationUp(cam);
     CamCtrl.x250 = (s32) cam;

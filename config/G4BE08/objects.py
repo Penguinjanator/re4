@@ -1755,3 +1755,8 @@ MATCHING.update({
 MATCHING.update({
     "game/title.cpp": True,  # titleSub: every fade through FadeSetW (the colour pair is the inline's own BLKmode local at 32/36; in the `flags_54 & 0x40000000` arm cse rewrites the start address to the frame pseudo, `mr r4,r29` PRE'd, while `&col.end` stays a hard-reg-dest `addi r5,r1,36`); titleDebugMenu: one `int no` for case 3's checkRoomNo result and case 5's room (crosses the getPointNum calls -> r31 for both, the dbgPoint temp r30), the s8-parameter calls through int-view aliases (#4)
 })
+
+# DOL sweep 23b (2026-09-11)
+MATCHING.update({
+    "game/emrock.cpp": True,  # emRockDropCamMove: the `up` stores written BEFORE `len` -- after the six len loads the up.x store is the 34th memory insn of the block and sched1's 32-entry pending-list flush lands on it (every later memory insn anti-depends on it, the three pool highs swap r27..r29); zero code
+})

@@ -176,8 +176,12 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     ang = GetXZAngle(&em->pos, &from->pos);
     best = 0.0f;
     for (i = 0; i < pt->nLink; i++) {
-        rtp = rtpData();
-        np = &rtpPoint(rtp)[rtpLink(rtp)[pt->linkOfs + i].point];
+        // Block-local rtp copy (a second `rtp =` would make the entry block's rtp a global
+        // pseudo) and the link entry through a pointer local (a deref'd `tbl[n]` puts the
+        // index first in the lhax address; `&tbl[n]` keeps the table first).
+        RtpData* r = rtpData();
+        RtpLink* lk = &rtpLink(r)[pt->linkOfs + i];
+        np = &rtpPoint(r)[lk->point];
         m = fabsf(Muku(&em->pos, &np->pos, ang, PI));
         if (m < best) {
             continue;
@@ -655,11 +659,15 @@ void Draw_rtp()
             Mtx m;
             Vec e;
             Vec f;
-            rtp = rtpData();
-            np = &rtpPoint(rtp)[rtpLink(rtp)[pt->linkOfs + j].point];
+            {
+                RtpData* r = rtpData();
+                RtpLink* lk = &rtpLink(r)[pt->linkOfs + j];
+                np = &rtpPoint(r)[lk->point];
+            }
             back = 0;
             for (k = 0; k < np->nLink; k++) {
-                if (rtpLink(rtpData())[np->linkOfs + k].point == i) {
+                RtpLink* lk = &rtpLink(rtpData())[np->linkOfs + k];
+                if (lk->point == i) {
                     back = 1;
                     break;
                 }

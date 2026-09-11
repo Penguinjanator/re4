@@ -1480,12 +1480,15 @@ int Fcc_next_axis_addr(int type, int n)
 // keeps the split label as its name (and the section forced) so strip_unused leaves it in place.
 static Vec lbl_80314C44 __attribute__((section(".sdata"))) = { 0.0f, 0.0f, 0.0f };
 
-void MotionSpeedDispHeader(int x, int y, f64 v)
+// The two label pointers at .rodata+0x218 (relocated words) are a function-local static table
+// declared AFTER the first eprintf: its strings and the table are assembled when the declaration
+// is reached, i.e. after "MOTION SPEED ---" and before the "%s" of the following call.
+void MotionSpeedDispHeader(int x, int y, int who)
 {
     eprintf(x, y, 0, 0, "MOTION SPEED ---");
-    eprintf(x, y + 10, 0, 0, "GLOBAL: ");
-    if (v != 0.0) {
-        eprintf(x, y + 20, 0, 0, "PLAYER: ");
+    {
+        static const char* const who_str[2] = { "GLOBAL: ", "PLAYER: " };
+        eprintf(x, y + 10, 0, 0, "%s", who_str[who]);
     }
 }
 

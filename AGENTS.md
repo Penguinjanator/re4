@@ -18772,3 +18772,86 @@ masks string bytes -- only `tools/bytecmp.py` (or `OBJ=... bytecmp.py`) judges s
   propagation at all 87 / 5 (the five t_esp Save*FileNoUpdateCallback become identical -- their 5 words are cprop's
   alter_jumps folding of a constant into a conditional jump, a lead for that family); no cprop at all 1617.
   `-fno-cse-follow-jumps` reproduces InfoDisp's eleven givs but not its x and regresses 8 functions of this unit.
+
+### DOL sweep 23b, closest-first (emrock Matching 58/58; route_ck 12 -> 13/16: RouteCkEscEm 18 -> 0, Draw_rtp 15 -> 8; motion .rodata relocs closed (pointer table), main_mem MemCheckHeapEnd 12 -> 6; 2026-09-11)
+
+Flipped: emrock (58/58, sections equal, order OK; 111 OK). Harness ~/.cache/dol23b (dol24a copies with the paths rewritten:
+`tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `order.py`, `prio.py`, plus `regstat.py UNIT
+FUNC v.py` = the `-dl` "Register N used R times across L insns" lines of every variant (global-alloc priority = floor(log2 R)*R/L),
+and `sngcc/` = the LADBG cc1plus rebuilt from this description: an env-guarded fprintf in local-alloc.c block_alloc's allocation
+loop printing `LADBG <function> head<uid> b<bb> q<n> reg<r> refs birth death pri size cls sugg phys` (needs `extern char
+*current_function_name;`; `make ./cc1plus` in the copy, ~1 s; run `LADBG=1 sngcc/cc1plus -O2 -mfast-cast -quiet X.i -o /dev/null
+2>&1 | grep LADBG`); deleted at the end.
+
+- **haifa's 32-entry pending-memory flush is a source-order lever (emrock emRockDropCamMove 36 -> 0, zero code): write the `up`
+  stores BEFORE the `len` expression.** sched_analyze keeps `pending_lists_length` = every MEM read AND write of the block so far
+  and, at the first STORE seen while the count is > 32, `flush_pending_lists` gives that store a REG_DEP_ANTI on every pending
+  memory insn and every later memory insn a dependence on it (reads never flush, they only add to the count). With `up` after the
+  six len loads the up.x store was the 34th memory insn: it had to issue after all loads, the 1.0 lfs / up.y / up.z after it, and
+  the three pool highs got their lives (hence r27..r29) in the wrong order. With `up` before `len` the block has 31 memory insns
+  before its last store and no flush: the three constant stores are plain weight -1 leaves issued by LUID (fovy, up.y, up.z, then
+  the non-dying up.x last) and the 0.0 lfs (two dependents) issues first. Rule: a block with ~33+ loads/stores (Vec template
+  inits + block copies + a distance expression is enough) whose late stores are all issued last and whose constants' registers
+  are permuted is the flush; count the MEMs in the sched1 dump (`;; dep` column of the 34th memory insn = ~34) and move the store
+  group so the 33rd memory insn is a LOAD.
+- **A variable assigned a second time in a later block turns its first block's qty into a global pseudo (route_ck RouteCkEscEm 18 ->
+  0 with the link pointer, zero code).** `rtp = rtpData()` in the loop body made the entry block's `rtp` GLOBAL; the original's
+  entry-block rtp is a LOCAL qty (3 refs in 3 consecutive insns = 7500) allocated before the 2-ref pG load (5000), so rtp takes
+  r11, pG r10, the i*16 shift r8 (all three BASE regs of the alloc order 9/11/10/8 taken in turn) and global-alloc's extsb pseudo
+  follows the shift's r8 by copy preference. Read the LADBG list: a pseudo missing from a block's qty list although it is only
+  used there is set again elsewhere. Write the loop body's re-read as a block-local `RtpData* r = rtpData();`.
+- **A deref'd pointer subscript puts the index FIRST in the indexed address; `&tbl[n]` into a pointer local keeps the table first
+  (route_ck RouteCkEscEm `lhax r0,r9,r8`, Draw_rtp x2, zero code).** expand_expr's PLUS_EXPR under EXPAND_SUM (an address
+  context) ends with "put a constant term last and a multiplication first": the `(mult n 4)` of `tbl[n]` is swapped ahead of
+  the pointer, force_operand then yields `(plus idx tbl)` = `lhax rD,rIdx,rTbl`. `RtpLink* lk = &tbl[n]; lk->point` is an
+  ADDR_EXPR (a value, expand_binop, no swap) and combine folds `lk` into the load as `(plus tbl idx)`. `&pts[i]`-style
+  pointer locals in this unit already had the table first for that reason. Apply per site where the target's `lhax/lwzx`
+  lists the table register first.
+- **Two pointers to strings in `.rodata` (motion 0x218/0x21c, relocs the split object has and ours lacked) = a function-local
+  `static const char* const who_str[2] = { "GLOBAL: ", "PLAYER: " };` declared in a block AFTER the first eprintf (zero code, the
+  function is dead-stripped).** C++ assembles a local static at its declaration (`output_addressed_constants` outputs the
+  initializer strings first, then the table, 8-aligned), so the string order "MOTION SPEED ---", "GLOBAL: ", "PLAYER: ",
+  table, "%s" pins the declaration between the first and second eprintf. The old stand-in (a 0.0 double for the 8 zero bytes)
+  matched the bytes but not the relocations; bytecmp's `relocs: 2/0 entries` line is the signal.
+- **main_mem MemCheckHeapEnd 12 -> 6 (pure C): `end = (u32) d->allocated; if (end == 0) end = (u32) d->free; else end = 0;`**
+  (the 21b form) reproduces the target's `li r3,0` between compare and branch and the `lwz r9,8(r11)` reload of `allocated`
+  for the loop. The 6 left are the three local qtys of that block: target order [loaded r0, mulli r9, HeapHead(+d) r11], ours
+  [HeapHead r9 / mulli r0 ...]. Brute-forcing block_alloc's 3-qty partial sort (it compares qty NUMBERS 0/1/2 while exchanging
+  positions) over all births/priorities: the target order needs the loaded value born FIRST (impossible, it depends on the
+  add) or births [HeapHead, mulli, loaded] with priorities loaded >= 13333 (4+ weighted refs in <= 3 insns), mulli 10000
+  (adjacent to its add), HeapHead 5000; a 2-ref loaded value (target: `lwz r0; cmpwi r0`) cannot reach 13333, and with a 4th qty
+  the qsort tie (loaded 10000 = HeapHead 10000, by qty number) also puts HeapHead first. So the original's block had a DIFFERENT
+  pseudo structure there (the loaded value or `d` with more refs, or the `h*12` folded into an addressing form); the
+  `mulli/lwz HeapHead/add/lwz/cmpwi/li/bne` bytes alone do not determine it. Do not retry the 21b list; the next lever is a 4th
+  local qty that is NOT one of these three (e.g. a block-local temp used twice).
+- **route_ck RouteCkToPos (36, read): the dist block's `rtpData()` is a fresh `lwz pG; lwz pRoomRtp` in the target = a read the
+  `*out` block-copy stores KILL, i.e. the struct view `(RtpData*) pGS->pRoomRtp` (a `/s` MEM is not exempted by
+  fixed_scalar_and_varying_struct_p; the plain `pG` read is merged with the final copy's).** With the struct view ours gets the
+  reload but `r->nPoint` written once (a variable) makes jump.c share the loop-end `n = tbl[..]` with the pre-loop one (`b L`
+  into a common `lbzx; extsb; cmpwi; beq`), while the target keeps two copies (`bne LOOP` at the end) AND one hoisted nPoint
+  (`mullw r0,r8,r30` in both). Neither `rtpNext(tbl, ..)` (reloads nPoint in the loop: may_trap in the maybe_never region) nor a
+  `w = r->nPoint` variable gives both; not closed, nothing applied.
+- **route_ck RouteCkToEm (21, read): `target` r29 / `out` r31 is global-alloc order -- target 16 refs/131 insns (0.488) vs out
+  25/210 (0.476); `out` must win.** Levers measured with regstat.py: a `do {} while (0)` around the first tail gives out 28 refs
+  (loop.c hoists the tail's loads, the stores stay at depth 2) and the right registers but a `li r3,1` moved by the LOOP_BEG
+  barrier (3 words); `Vec* tp = &target->pos`, pointer/variable forms of the final copy (out life 206-210) and the 6-word
+  common-region estimate (both lives grow, the ratio moves the wrong way: f(k) = 100/(210-k) - 64/(131-k) decreases) do not
+  cross. Needed: out >= 26 weighted refs or life <= 204, or target life >= 135 (a use of `target` after the (flag & 1) tails).
+- **route_ck Draw_rtp (8 left): loop 2's pG value is read through a copy pseudo `mr r11,r5` at the preheader AND the latch, and
+  the body-top `lwz r9,20268(r11)` uses the same copy, while ours reads the gcse pseudo r5 directly.** Ours has the copies too
+  after gcse (`r342 = r349`, `r215 = r349`: pre_delete's replacements) and cse2 canonicalises them away because r349's last
+  reference (the latch reload) is later than the copy pseudos' (`make_regs_eqv`: the new reg heads the qty only when it outlives
+  the ebb AND its REGNO_LAST_UID is beyond the first reg's). For the target's shape the copy pseudo must be referenced later than
+  r349 = a user variable read in the latch test after the reload; `g = pG` before the loop and at the body end (g_var_body) makes
+  gcse PRE `g->pRoomRtp` between test and body instead (30 words); comma-assignment in the test, `rtp` in the test, `while`
+  forms: 8-23. Not closed.
+- Facts read: haifa `sched_analyze_2` adds every MEM read to `pending_read_insns` unconditionally (no length check) and
+  `sched_analyze_1` flushes on a STORE when `pending_lists_length > 32`; the flush also sets `last_pending_memory_flush` so every
+  later memory insn of the block depends on the flushing store. global.c find_reg pass 0 only considers registers already in
+  `regs_used_so_far` minus `regs_someone_prefers`, so a global pseudo's register is decided by the local qtys' choices plus
+  REG_ALLOC_ORDER 0, 9, 11, 10, 8, 7, 6, 5, 4, 3, 31..12. expand_expr PLUS_EXPR (both_summands) swaps a MULT operand first only in
+  EXPAND_SUM contexts. loop.c removed a `last = T` copy whose T is `n - 1` (HermiteInterpolation, motion) -- which pass inside
+  loop_optimize does it was not located; the target keeps `addi r0; mr r30,r0; cmpw r31,r0`.
+- Not iterated: option, card, sce_com, db_cam, puzzle, pendulum, esp08/esp18 (the .rodata "vtable slot" rows of esp08/esp18 are
+  bytecmp's (name, offset) mapping of a reloc across the .text size difference of Esp08_Trans/Esp18_Trans, not a vtable issue),
+  cam_ctrl; motion's six register/size residues (MotionSequenceCtrl f11/f12/f13 rotation, HermiteInterpolation `last` copy).

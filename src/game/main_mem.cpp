@@ -243,7 +243,11 @@ u32 MemCheckHeapEnd(int no)
         return 0;
     }
     d = &HeapHead[h];
-    if (d->allocated == NULL) {
+    // Tested through `end` (not `d->allocated == NULL`): the target keeps the else-arm `li r3,0`
+    // between the compare and the branch and reloads `d->allocated` for the loop init, i.e. jump1's
+    // `x = b; if (c) x = a` hoist did not fire and the join stayed off cse's AROUND path.
+    end = (u32) d->allocated;
+    if (end == 0) {
         end = (u32) d->free;
     } else {
         end = 0;
