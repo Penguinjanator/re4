@@ -972,25 +972,25 @@ void tBlockArea_disp()
     u32 col;
 
     for (i = 0; i < BLOCK_NUM; i++) {
-        cBlockUnit* u = Block.getUnitPtr((u8) i);
         BlockLink* l = &pW->link[i];
+        cBlockUnit* u = Block.getUnitPtr((u8) i);
 
         if ((l->flags & 1) && u->state == BLOCK_CREATE && pW->mode == 1) {
             if (pW->blockNo == i) {
                 col = 0x00FF8080;
             } else {
-                j = 0;
-            again:
-                col = 0x00808080;
-                if (l->link[j] == pW->blockNo) goto hit;
-                if (pW->link[pW->blockNo].link[j] == i) goto hit;
-                j++;
-                if (j <= 7) goto again;
-                goto disp;
-            hit:
-                col = 0x0080FF80;
+                for (int j = 0; j < 8; j++) {
+                    col = 0x00808080;
+                    if (l->link[j] == pW->blockNo) {
+                        col = 0x0080FF80;
+                        break;
+                    }
+                    if (pW->link[pW->blockNo].link[j] == i) {
+                        col = 0x0080FF80;
+                        break;
+                    }
+                }
             }
-        disp:
             tBlockArea_dispBlockBox((u8) i, col);
         }
     }
@@ -998,11 +998,9 @@ void tBlockArea_disp()
         BlockLink* l = &pW->link[i];
 
         for (j = 0; j < 8; j++) {
-            s8 n = l->link[j];
-
-            if (n == -1) continue;
-            if ((pW->link[n].flags & 1) == 0) continue;
-            if (i == pW->blockNo || n == pW->blockNo) {
+            if (l->link[j] == -1) continue;
+            if ((pW->link[l->link[j]].flags & 1) == 0) continue;
+            if (i == pW->blockNo || l->link[j] == pW->blockNo) {
                 col = 0x00FF8080;
             } else {
                 col = 0x00808080;
@@ -1021,9 +1019,6 @@ void tBlockArea_disp()
             }
             BIT_ON(pW->areaBits, a->areaNo);
             switch (pW->mode) {
-            case 1:
-                col = 0x00808080;
-                break;
             case 2:
                 col = 0x00808080;
                 if (pW->areaNo == i) col = 0x00FF8080;
@@ -1033,6 +1028,9 @@ void tBlockArea_disp()
                 if (pW->connectNo == a->areaNo) {
                     tBlockArea_dispBlockArea((u8) i, 0x00FF8080);
                 }
+                break;
+            case 1:
+                col = 0x00808080;
                 break;
             }
         }

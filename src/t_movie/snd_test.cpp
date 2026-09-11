@@ -436,7 +436,12 @@ void test_tbl_now_check(SndTestWork* w, int dir, int max)
         if (test_get_tpara_adrs(w)->kind != 4) {
             break;
         }
-        w->cur += dir;  // target: add r0,dir,cur (operand order not reproducible, see report)
+        {
+            // the byte in an int local (zero-extended read): a direct `w->cur += dir` is a paradoxical
+            // SUBREG of the QI load, which cse's fold_rtx always puts first (`add cur,dir`)
+            int c = (u8) w->cur;
+            w->cur = dir + c;
+        }
     }
 }
 
@@ -650,7 +655,11 @@ int test_req_no_select(SndTestWork* w, s16 max)
             w->reqCur -= step;
         }
         if (w->rep & 0x20000) {
-            w->reqCur += step;  // target: add r0,step,cur
+            {
+                // same as test_tbl_now_check: the halfword in an int local, promoted variable first
+                int c = (u16) w->reqCur;
+                w->reqCur = step + c;
+            }
         }
     }
     if (w->reqCur < 0) {

@@ -241,12 +241,15 @@ static void (*seAtEditRoutine[4])() = {seAtAreaEdit_EditMenu, seAtAreaEdit_AreaM
 
 static void seAtAreaEdit()
 {
-    Vec a;
-    Vec b;
-    Camera* cam;
+    // one array, not `Vec a, b`: two aggregate locals are 8-aligned slots (8 and 24), the target's
+    // pair sits at 8 and 20 (one 24-byte object); `cam` is a per-arm local so it is a block-local qty
+    // that local-alloc gives r30 (a function-scope `cam` set in both arms is global and takes r31)
+    Vec v[2];
+
+    u8 no = pW->areaNo;  // read at the top, used by the first arm only (the target's `lbz` above the `sub` test)
 
     if (pW->sub == 0) {
-        if (Joy[0].rep2 & JOY_R) pW->areaNo++;
+        if (Joy[0].rep2 & JOY_R) pW->areaNo = no + 1;
         if (Joy[0].rep2 & JOY_L) pW->areaNo--;
         pW->areaNo = pW->areaNo < 0 ? 63 : (pW->areaNo > 63 ? 0 : pW->areaNo);
     }
@@ -254,29 +257,29 @@ static void seAtAreaEdit()
     eprintf(pW->x, pW->y, 4, 0, "AREA[ %d ]", pW->areaNo);
     if (pCur->flags & 1) {
         f32 dist;
-        cam = &pG->Cam;
+        Camera* cam = &pG->Cam;
         dist = cam->dist;
         cam->param.at = pCur->pos;
         CameraSetOrientationRoll(cam);
         CameraCamposDistance(cam, dist);
         eprintf(pW->x + 0x58, pW->y, 0, 0, "POS( %f, %f, %f )", pCur->pos.x, pCur->pos.y, pCur->pos.z);
-        a = pCur->pos;
-        b = pCur->pos;
-        a.x += 200.0f;
-        b.x -= 200.0f;
-        Draw_line3d(&a, &b, 0xFFFFFF00, 0);
-        a = pCur->pos;
-        b = pCur->pos;
-        a.y += 200.0f;
-        b.y -= 200.0f;
-        Draw_line3d(&a, &b, 0xFFFF00FF, 0);
-        a = pCur->pos;
-        b = pCur->pos;
-        a.z += 200.0f;
-        b.z -= 200.0f;
-        Draw_line3d(&a, &b, 0xFF00FFFF, 0);
+        v[0] = pCur->pos;
+        v[1] = pCur->pos;
+        v[0].x += 200.0f;
+        v[1].x -= 200.0f;
+        Draw_line3d(&v[0], &v[1], 0xFFFFFF00, 0);
+        v[0] = pCur->pos;
+        v[1] = pCur->pos;
+        v[0].y += 200.0f;
+        v[1].y -= 200.0f;
+        Draw_line3d(&v[0], &v[1], 0xFFFF00FF, 0);
+        v[0] = pCur->pos;
+        v[1] = pCur->pos;
+        v[0].z += 200.0f;
+        v[1].z -= 200.0f;
+        Draw_line3d(&v[0], &v[1], 0xFF00FFFF, 0);
     } else {
-        cam = &pG->Cam;
+        Camera* cam = &pG->Cam;
         cam->param.pos = pW->camPos;
         cam->param.at = pW->camAt;
         CameraSetOrientationRoll(cam);
@@ -307,11 +310,15 @@ static void seAtAreaEdit_EditMenu()
 {
     s8 sel;
     u8 valid = pW->copyValid;
+    // pointer locals, the create menu declared first: the address pseudo created first takes r8, and
+    // the four stores then come out last-statement-first (c[1], e[4], e[3], c[2]) like the target
+    TOOL_MENU* c = seAtCreateMenu;
+    TOOL_MENU* e = seAtEditMenu;
 
-    seAtEditMenu[4].enable = valid;
-    seAtEditMenu[3].enable = valid;
-    seAtCreateMenu[2].enable = valid;
-    seAtCreateMenu[1].enable = valid;
+    e[4].enable = valid;
+    e[3].enable = valid;
+    c[2].enable = valid;
+    c[1].enable = valid;
     if (pCur->flags & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, seAtEditMenu, sizeof(seAtEditMenu), &Joy[0]);
         switch (sel) {
@@ -701,7 +708,12 @@ static void seAtDataLoad()
         pW->server = 1;
     case 1:
         if (Joy[0].rep2 & REP_UP) {
+            // case 0 toggles the server like the DOWN switch: the target's `ble` from this tree lands in
+            // the DOWN tree's `cmpwi 0; beq` (jump2 cross-jumped the identical case-0 paths)
             switch (pW->loadCursor) {
+            case 0:
+                pW->server ^= 1;
+                break;
             case 1:
                 pW->stage++;
                 break;
@@ -754,13 +766,17 @@ static void seAtDataLoad()
             pW->step = 0;
             pW->step2 = 0;
         } else if (Joy[0].trg & JOY_A) {
+            // the step stores repeated in both arms: separate `stb` arms (no jump.c else-set hoist),
+            // their tails cross-jumped with the JOY_B arm's
             if (pW->yesNo == 0) {
                 pW->sub = 3;
+                pW->step = 0;
+                pW->step2 = 0;
             } else {
                 pW->sub = 1;
+                pW->step = 0;
+                pW->step2 = 0;
             }
-            pW->step = 0;
-            pW->step2 = 0;
         } else if (Joy[0].trg & (REP_LEFT | REP_RIGHT)) {
             pW->yesNo ^= 1;
         }
@@ -808,8 +824,13 @@ static void seAtDataLoad()
         pW->timer--;
         break;
     }
-    eprintf(pW->x, pW->y + 0x20, (u8) (pW->sub == 1 ? (pW->loadCursor == 0 ? 6 : 0) : 0), 0, "%s",
-            pW->server == 0 ? "LOCAL" : "SERVER");
+    {
+        register int col5 asm("r5");  // COMPILER-DIFF: 2 (the original masks the u8 colour at the join; the draw_light_graph form)
+        int x = pW->x;
+        int y = pW->y + 0x20;
+        col5 = pW->sub == 1 ? (pW->loadCursor == 0 ? 6 : 0) : 0;
+        eprintf(x, y, (u8) col5, 0, "%s", pW->server == 0 ? "LOCAL" : "SERVER");
+    }
     eprintf(pW->x + 0x40, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 1 ? 6 : 0) : 0, 0, "STAGE %2d", pW->stage);
     eprintf(pW->x + 0x90, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 2 ? 6 : 0) : 0, 0, "ROOM %02x", pW->room);
     eprintf(pW->x, pW->y + 0x40, 0, 0, "%s", pW->path);
@@ -840,7 +861,9 @@ static void seAtDataSave()
             if (pW->area[i].flags & 1) {
                 pW->area[i].no = i;
                 pW->file[seAtSaveNum] = pW->area[i];
-                seAtSaveNum++;
+                // reference view: the counter's load stays below the block copy's stores (a MEM with
+                // neither the struct nor the scalar flag); an inline helper form differs by 2 words
+                { int& n = seAtSaveNum; n++; }
             }
         }
         pW->fileHead.magic[0] = 'E';
@@ -848,7 +871,7 @@ static void seAtDataSave()
         pW->fileHead.magic[2] = 'E';
         pW->fileHead.magic[3] = 0;
         pW->fileHead.version = 0x100;
-        pW->fileHead.num = seAtSaveNum;
+        { int& n = seAtSaveNum; pW->fileHead.num = n; }  // same: the `lhz` stays below the version store
         pW->sub = 1;
         pW->step = 0;
         pW->step2 = 0;

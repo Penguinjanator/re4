@@ -969,7 +969,7 @@ void tvibEditFrameDisp()
     }
     y = menu_y;
     for (i = 0; i < frame_w; i++) {
-        if ((V->scroll + i) % 10 == 0) {
+        if ((i + V->scroll) % 10 == 0) {
             col = 0x808080FF;
         } else {
             col = 0x404040FF;
@@ -986,7 +986,7 @@ void tvibEditFrameDisp()
     eprintf2(8, 14, menu_x, menu_y - 20, 0, 0, "[ Lv=%d, Frame=%04d/%04d ],  Edit_no[ %02d /%02d ]", V->level,
              V->frame, 2000, V->editNo, d->num);
     for (i = 0; i < 9; i++) {
-        eprintf2(8, 14, menu_x - 16, menu_y + (i * 16 - 8), 0, 0, "%1d", 8 - i);
+        eprintf2(8, 14, menu_x - 16, menu_y - 8 + i * 16, 0, 0, "%1d", 8 - i);
     }
     if (V->dispFlag & 1) {
         col = 0xFF000080;
@@ -1001,7 +1001,7 @@ void tvibEditFrameDisp()
         v[0].y = y - 8;
         v[0].z = 0;
         v[1].x = x;
-        v[1].y = y + (cell_h * 8 + 8);
+        v[1].y = y + 8 + cell_h * 8;
         v[1].z = 0;
         TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
         if ((V->dispFlag & 8) && V->scroll <= V->loopFrame && V->scroll + 30 > V->loopFrame) {
@@ -1012,13 +1012,12 @@ void tvibEditFrameDisp()
             v[0].y = y - 8;
             v[0].z = 0;
             v[1].x = x;
-            v[1].y = y + (cell_h * 8 + 8);
+            v[1].y = y + 8 + cell_h * 8;
             v[1].z = 0;
             TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
         }
     }
     tvibFrameVibDraw(d);
-    col = 0x0000FFFF;
     x = menu_x;
     y = menu_y + cell_h * 9;
     v[0].x = x;
@@ -1027,9 +1026,9 @@ void tvibEditFrameDisp()
     v[1].x = x + cell_w * 29;
     v[1].y = y;
     v[1].z = 0;
+    col = 0x0000FFFF;
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
-    col = 0xFFFF00FF;
-    x = menu_x + cell_w * (V->frame * 29) / 2000;
+    x = menu_x + cell_w * 29 * V->frame / 2000;
     y = menu_y + cell_h * 9;
     v[0].x = x;
     v[0].y = y - 5;
@@ -1037,6 +1036,7 @@ void tvibEditFrameDisp()
     v[1].x = x;
     v[1].y = y + 5;
     v[1].z = 0;
+    col = 0xFFFF00FF;
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
 }
 
@@ -1323,10 +1323,10 @@ void tvibListVibDraw()
         }
         if (i + top == V->listNo) {
             xl = LIST_X(i) + 49;
-            if (V->frame > 177) {
-                xl += 178;
-            } else {
+            if (V->frame <= 177) {
                 xl += V->frame;
+            } else {
+                xl += 178;
             }
             y = LIST_Y(i);
             col = 0xFFFF00FF;

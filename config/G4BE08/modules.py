@@ -796,6 +796,7 @@ MATCHING = {
     "Tools/t_atari.cpp": True,
     "Tools/t_rck.cpp": True,
     "Tools/db_light.cpp": True,
+    "Tools/t_vib.cpp": True,
     "t_sce/t_sce_at.cpp": True,
     "t_sce/t_sce_item.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
