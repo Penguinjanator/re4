@@ -692,8 +692,6 @@ int test_blk_enable_ck(SndTestWork* w, int dir)
     s16 no = w->blkNo[w->tbl];
 
     for (i = 0; i < max; i++) {
-        u32 num;
-
         no += dir;
         if (no < 0) {
             no = max - 1;
@@ -701,16 +699,20 @@ int test_blk_enable_ck(SndTestWork* w, int dir)
         if (no >= max) {
             no = 0;
         }
+        // one test per table arm (jump2 cross-jumps the identical cmpwi/beq tails: the two
+        // block-local num qtys take r9 next to the r0 index temp instead of one global r0)
         if (w->tbl == 0) {
-            num = Snd_iss_blk[no].num;
+            if (Snd_iss_blk[no].num == 0) {
+                continue;
+            }
         } else {
-            num = Snd_str_blk[no].num;
+            if (Snd_str_blk[no].num == 0) {
+                continue;
+            }
         }
-        if (num != 0) {
-            w->blkNo[w->tbl] = no;
-            w->reqNo[w->tbl] = 0;
-            return 0;
-        }
+        w->blkNo[w->tbl] = no;
+        w->reqNo[w->tbl] = 0;
+        return 0;
     }
     return 1;
 }
@@ -1108,14 +1110,19 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
 {
     u8* wt = blk->dls;
     SND_WT_HDR* hdr = (SND_WT_HDR*) wt;
-    WTINST* inst = (WTINST*) (wt + hdr->inst_ofs + (sit->prog >> 8) * sizeof(WTINST));
-    WTREGION* rgn = (WTREGION*) (wt + hdr->rgn_ofs + inst->keyRegion[sit->prog & 0xFF] * sizeof(WTREGION));
-    WTART* art = (WTART*) (wt + hdr->art_ofs + rgn->articulationIndex * sizeof(WTART));
+    WTINST* inst = (WTINST*) (wt + hdr->inst_ofs);
+    WTREGION* rgn = (WTREGION*) (wt + hdr->rgn_ofs);
+    WTART* art = (WTART*) (wt + hdr->art_ofs);
     s32 attn;
     s32 dlsVol;
     s32 synVol;
     s32 axVol;
 
+    // the three table pointers are advanced in place (the base pseudo is the final pointer:
+    // `add r26,r26,r0`), like rit in snd_test_disp_rit
+    inst += sit->prog >> 8;
+    rgn += inst->keyRegion[sit->prog & 0xFF];
+    art += rgn->articulationIndex;
     eprintf(x, y, 0, 1, "PATCH     : %5d", sit->prog >> 8);
     eprintf(x, y + 0xE, 0, 1, "NOTE      : %5d", sit->prog & 0xFF);
     eprintf(x, y + 0x1C, 0, 1, "VTBL_NO   : %5d", sit->curve_no);
@@ -1218,9 +1225,14 @@ static void snd_test_disp_rit()
 {
     SndTestWork* w = &Snd_test_work;
     SND_STR_BLK* blk = &Snd_str_blk[w->blkNo[w->tbl]];
-    SND_RIT* rit = &blk->rit[w->reqCur];
-    SND_SHD* shd = (SND_SHD*) (blk->shd + ((u32*) blk->shd)[rit->shd_no]);
+    SND_RIT* rit = blk->rit;
+    SND_SHD* shd;
     SND_STR_WORK* str;
+
+    // rit is advanced in place: cse cannot rewrite the first rit-> load's address as
+    // base+offset (the base register was overwritten), so combine forms the lhzux update load
+    rit += w->reqCur;
+    shd = (SND_SHD*) (blk->shd + ((u32*) blk->shd)[rit->shd_no]);
 
     disp_cursor(w, 0x18, 0x54);
     str = Snd_search_str_work_snd_id(w->sndId);
@@ -1541,18 +1553,20 @@ void Snd_test_disp_voice(SndTestWork* w)
 
     eprintf(0x1C0, 0x134, 0, 1, sound_mode_name[Snd_ctrl_work.sound_mode]);
     for (i = 0; i < 8; i++) {
-        SND_VOICE_WORK* vw = &Snd_voice_work[i * 8];
+        // x is a per-row statement; n and y are inner-body expressions (y a reduced giv, n
+        // computed in the loop header) and the voice is indexed by n: the address giv's
+        // increment lands right after the load (auto_inc_opt) and its init is emitted by
+        // loop.c after gcse's insertions, so i dies there and not at the PRE'd i+1
         int x = 0x138 + i * 0x18;
-        int y = 0x142;
 
         for (j = 0; j < 8; j++) {
-            if (vw->status != 0) {
-                eprintf(x, y, 4, 1, "%02d", i * 8 + j);
+            int n = i * 8 + j;
+            int y = 0x142 + j * 0xE;
+            if (Snd_voice_work[n].status != 0) {
+                eprintf(x, y, 4, 1, "%02d", n);
             } else {
-                eprintf(x, y, 7, 1, "%02d", i * 8 + j);
+                eprintf(x, y, 7, 1, "%02d", n);
             }
-            vw++;
-            y += 0xE;
         }
     }
 }
@@ -1837,7 +1851,15 @@ void dir_entry_read(SndTestWork* w, int dirs)
     if (DVDOpenDir(w->path[w->loadTbl], &w->dir) == 0) {
         return;
     }
-    while (w->dirNum <= 0x7F && DVDReadDir(&w->dir, &w->ent) != 0) {
+    for (;;) {
+        // the original returns WITHOUT DVDCloseDir when the list is full (the dirNum test
+        // jumps to the epilogue); the loop is rotated around the DVDReadDir break
+        if (w->dirNum > 0x7F) {
+            return;
+        }
+        if (DVDReadDir(&w->dir, &w->ent) == 0) {
+            break;
+        }
         if (dirs) {
             if (w->ent.isDir == 0) {
                 continue;

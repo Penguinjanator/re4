@@ -20468,3 +20468,71 @@ move / IdScopeZoomDisp / CameraBinocular are theirs); only CameraAttachedToMotio
   CreateEditWindow helpers, the frame) is done.
 - Not iterated: db_widget DB_STRING ctor 11 (pass 8's local-alloc arithmetic stands: LC/vt and zero/type qty order), db_mod
   (owned by the db_mod pass).
+
+### Tool RELs, bytes-first pass 19a (t_movie/snd_test 70 -> 73/77, 322 -> 206 words: Snd_test_disp_voice 28 -> 0, test_blk_enable_ck 31 -> 0, dir_entry_read 37 -> 0 zero code; snd_test_disp_rit 37 -> 28, disp_sit_normal 123 -> 112 structural; t_esp_area/t_lightarea/t_camera_data not moved; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tools_p19a (deleted at the end): dol26a scripts + `mtryv.py MOD/UNIT FUNC V.py [--apply N] [--src ABS] [--all]`
+  (build.ninja edge parsed after joining `$\n`, judged with `OBJ=... bytecmp.py MOD/UNIT FUNC`; env `XFLAGS=` prepends cflags such as
+  `-fno-sched-interblock` for diagnosis, `INC=`), `mdump.sh MOD/UNIT -dX` (module defines/-G0 read from build.ninja, `SRC_OVERRIDE=`),
+  `msbs.sh`, `prio_all.py` (prio.py for every hard reg). 111 OK before and after every edit.
+- **Snd_test_disp_voice (28 -> 0, zero code): four facts about a `for (i) for (j) { if (...) eprintf(a) else eprintf(b) }` grid.**
+  (1) Ours had interblock scheduling (arm 1's arg moves hoisted above the `beq`, `/b3` in the -dS ready list) because the inner
+  loop formed a 4-block region; in the target the region did not form. The region disappeared by itself once the loop body had
+  the target's RTL (below) -- do not chase find_rgns: `is_cfg_nonregular` (REG_LABEL notes = jump tables / `&&label`), the
+  leaf rule (a block whose only successor is EXIT, incl. a lone trailing CODE_LABEL) and `too_large` (10 blocks / 100 LUIDs,
+  LUIDs count NOTEs inside blocks) are the only killers, and none of them was the cause here.
+  (2) `int n = i * 8 + j;` BEFORE the if (the target's `add r8,r27,r28` in the loop header; an expression in both arms stays in
+  the arms because `j` is set in the latch, so the block-based PRE has no back-edge availability for it), (3) `int y = 0x142 +
+  j * 0xE;` INSIDE the inner body (ONE occurrence -> loop.c reduces it: init `li r29,322` emitted by strength_reduce AFTER
+  gcse's preheader insertions and the latch step `addi r29,14`; a `y` variable set before the loop has the wrong LUID and
+  loses the r28/r29 allocation order to `j`; two occurrences (per arm) give two givs), (4) `Snd_voice_work[n].status` instead
+  of a `vw++` pointer: the address is a DEST_ADDR giv whose increment loop.c places right AFTER the load (`auto_inc_opt`,
+  rs6000 has HAVE_PRE_INCREMENT: `lhz r0,0(r31); addi r31,r31,32` in the header, not at the latch) and whose init
+  (`slwi r0,r11,8; add r31,r0,r24`, combine merges `i<<3` PRE'd reg with the giv's `<<5`) is emitted by loop.c after the gcse
+  insertions -- so `i` dies THERE and the PRE'd `addi r26,r11,1` keeps INSN_REG_WEIGHT +1 (rank_for_schedule prefers weight 0
+  = an insn where an operand dies) and issues by LUID after `li j,0` and `slwi i8`. Rule: when the target's preheader issues a
+  gcse-PRE'd insn late although it is independent, an operand of that insn dies LATER in the target's block -- look for a
+  loop.c-emitted reader (giv init, hoisted invariant), which always follows the gcse insertions in RTL order.
+- **test_blk_enable_ck (31 -> 0, zero code): `if (tbl == 0) { if (A[no].num == 0) continue; } else { if (B[no].num == 0)
+  continue; } store; return 0;`** instead of `num = A/B; if (num)`. jump2 cross-jumps the identical `cmpwi r9,0; beq` tails
+  (`lwzx r9; b L; ...; lwzx r9; L: cmpwi`), and each `num` is a BLOCK-LOCAL qty that local-alloc puts in r9 next to the dying
+  r0 index temp (birth-2/death+1 fake lifetime); the one shared `num` was a global allocno that took r0 (global.c processes
+  REG_DEAD before mark_reg_store, so the dying r0 temp does not conflict), which shifted tbl/w/max/i/max-1/iss by one register
+  each. Rule: a shared compare on a value loaded in two arms where the target's registers look "shifted by one" = the compare
+  was written per arm.
+- **dir_entry_read (37 -> 0, zero code): `for (;;) { if (w->dirNum > 0x7F) return; if (DVDReadDir(..) == 0) break; ... }
+  DVDCloseDir(..);`** -- the original returns WITHOUT closing when the list is full (`bgt` to the epilogue). Read off the
+  loop dump: with `while (A && B())` our gcse PRE'd `&w->dir` (used by OpenDir, ReadDir and CloseDir) into the LOOP_BEG block
+  (before the entry jump: `insert_insn_end_bb` puts it before a block-ending jump), and loop.c then reports "Loop ... is phony"
+  (scan_loop: the first non-note after LOOP_BEG must be the entry JUMP or a label) and hoists NOTHING -- the target's
+  `cmpwi cr4,r30,0` (the invariant `dirs` compare kept in a callee-saved CR field with `mfcr/mtcrf`), `lis/addi blk_ext_name`,
+  `addi r29,r31,668`, `addi r30,r31,1180` are loop.c move_movables hoists, not PRE. With the return the exit edge kills
+  anticipatability at LOOP_BEG and the post-loop `&w->dir` is PRE'd into the CALL block instead (`addi r0,r31,120` after
+  `bl DVDReadDir`, `mr r3,r0`). Rule: a loop whose invariants the target hoists but ours recomputes in the body, with a
+  gcse-inserted insn sitting between LOOP_BEG and the entry jump in the -dL dump ("phony") = an expression PRE'd along the
+  loop's exit path that the original did not have on that path (different exit destination / return).
+- **Loop-invariant compares hoisted with `mfcr rN` / `mtcrf 128,rN` around a loop are loop.c movables when the compare is inside
+  the loop** (dir_entry_read `cmpwi cr4,r30,0`). The t_esp_area/t_lightarea `cmpwi r31,0` is after the AddButton loop, so that
+  one is still the PRE placement question of passes 16-18a; not moved this pass.
+- **Pointer advanced in place vs computed: `rit = blk->rit; rit += w->reqCur;` (snd_test_disp_rit 37 -> 28) and `rgn = (WTREGION*)
+  (wt + hdr->rgn_ofs); rgn += inst->keyRegion[..]; art += rgn->articulationIndex;` (disp_sit_normal 123 -> 112).** When the
+  final pointer is the SAME variable as its base, cse's find_best_addr cannot rewrite the first `rit->` load's address into
+  `(plus base off)` (the base register was overwritten, exp_equiv_p fails), the load keeps `mem(rit)`, and combine forms the
+  update load `lhzux r0,r30,r11` (movhi_update, "0" constraint = same reg) leaving the sign extension as a separate `extsh`
+  (no lhaux pattern); with `rit = &blk->rit[cur]` cse prefers the more complex equal-cost address (`(p->cost+1)>>1 >
+  best_rtx_cost` picks the PLUS over the REG) and combine gives `lhax`. For the three wavetable pointers the in-place form is
+  also what puts the bases (`add r26,r10,r6`, `add r24,r10,r9`) before the index adds and keeps the base register for the
+  result (`add r26,r26,r0`).
+- **Read, not closed (snd_test):** disp_sit_normal 112: the target keeps the gcse PRE copies `mr r21,r29` / `mr r22,r30` of the
+  FREE4/FREE5 row y (`y+0x46`, `y+0x54`, shared with the VOL(DLS)/VOL(SYN) rows) and reuses r29/r30 for dlsVol/synVol; ours
+  merges the two occurrences in cse1 (the .cse dump has one `(plus y 70)` for columns 2+3) so no copy exists -- the target's
+  cse path from the LINK join did not reach the third column (PATHLENGTH 10 / skip_blocks through the six on_off_name
+  ternaries and the two `< 0` diamonds is exactly at the limit in ours); the block that lengthens the original's path was not
+  found (a `t = y; if (t != y)` dead test changed nothing). snd_test_disp_rit 28 / disp_sequencer 64: the `0x54 + 0x54` y is
+  `li rX,84; addi rY,rX,84` in the target (a REG_EQUIV constant pseudo re-materialised right before the add, #13 family; in
+  disp_rit it sits after the STR_TYPE diamond so cse1 could not fold it, in disp_sequencer it is loop.c-hoisted into the
+  preheader) -- no C form gives an unfoldable, unallocated 84; plus block-0 local ties (r10/r8/r11/r9). test_play_or_stop 2:
+  the target re-reads `w->reqCur` (`lhz r4`) after the nested `Snd_test_get_str_name(blk)` call and has a DEAD `lhz r4` before
+  it; `precompute_register_parameters` converts the u16 MEM into a pseudo before the nested call in ours (`lhz r30; mr r4,r30`);
+  RTX_UNCHANGING_P is only set for TREE_STATIC readonly objects (expr.c), so a `const` view is not the lever.
+- Tools/t_esp_area, Tools/t_lightarea, t_camera/t_camera_data: unchanged (438/393+59, 27+142).
