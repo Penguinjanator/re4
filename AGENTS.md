@@ -18571,3 +18571,78 @@ the end (recreate from this description when a local-alloc name question comes u
   word; not iterated further.
 - t_camera_data tcSetBesideOffset (27) / tcDataExport (142), t_lightarea fn_Tools_30410 (59) and the 23 other snd_test functions
   were not iterated this pass.
+
+### DOL sweep 23a, closest-first (t_bugcheck menu 14 -> 0, 4 -> 5/7; em_sub EmYarareDisp 1 -> 0, 41 -> 42/51; pl_wep .rodata 0x290 -> 0x350 = target size; debug .bss order fixed; espgen45 order fixed via STRIP_UNUSED; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol23a (dol22a copies with the paths rewritten, plus `lc.sh SRC` = the `.LC` numbering of a t_bugcheck source
+variant), deleted at the end. Build 111 OK before and after. HAZARD seen: a wibo `NgcAs.exe` hung for 33 min at 0% CPU inside a
+shared `ninja -k 0` (trans.s), blocking every queued `flock` -- `ps -eo pid,etimes,pcpu,args | awk '$2>1000 && /wibo/'` and
+kill the wibo pid; the -k 0 build continues and the object is rebuilt on the next run. Also: `mcmp.py`'s `.rodata` verdict
+masks string bytes -- only `tools/bytecmp.py` (or `OBJ=... bytecmp.py`) judges string ORDER in .rodata.
+
+- **t_bugcheck menu 14 -> 0 (zero code): the case-1 clamp `i = i < 0 ? 4 : (i > 4 ? 0 : i); if (i == 0) .. else PlKaiou = i - 1`
+  and the tail's `n` are ONE `int i`; the tail tests `i >= 0 && i <= 2 ? wep_mugen_str[i] : "...no string"` (fold gives the
+  target's `cmplwi`).** With a separate `u32 n`, gcse's cprop propagates the clamp copy `i = temp` into the else block's `i - 1`
+  (the copy is a REG-REG set available at the block start), cse2 then rewrites the compare to the temp and the copy dies
+  (`cmpwi r11,0; addi r11,r11,-1`); with `i` re-set in the tail the copy stays and combine gives the target's `mr. r10,r0` +
+  `addi r11,r10,-1`, and the tail's `n` values take r10 by themselves. Read: the case-0 clamp keeps its copy in both because its
+  `switch (i)` compares sit in the SAME block as the copy (cprop only uses sets available at a block START; cse1 makes the
+  longer-lived `i` the class head, so in-block uses stay on `i`).
+- **em_sub EmYarareDisp 1 -> 0 (zero code): no `fl`/`flags` locals -- every test reads `p->flags` again (`if (!(p->flags & 1))
+  continue; ... if (!(p->flags & 1)) color = 0; if (p->flags & 8)`).** The plain `mr r11,r0` after the first `lhz` is gcse PRE's
+  reaching-register copy: the later `& 1` / `& 8` loads are fully redundant (only register sets and inlined loads between, no
+  store), so `pre_delete` replaces them with the reaching pseudo and `pre_insert_copies` puts `(set reach load)` right after
+  the first load. The else arm's `p->flags & 6` stays a real `lhz` because the `bottom = top = p->ofs` frame stores kill every
+  MEM expression in gcse (`mem_set_in_block`: any store in the block, no alias check). A `u16 fl = flags` copy can never
+  reproduce this: cse1's `make_regs_eqv` heads the class with the longer-lived local and rewrites the first test to it.
+- **pl_wep .rodata 0x290 -> 0x350 (target size; only PlWepLockCtrl's 17-word pool ORDER left at 0x108): a dead
+  `static void wepLightReleaseAll() { LightMgr.destroyAll(); }` at the end of the file (STRIP_UNUSED).** The target's last 0xC0
+  bytes are the five `%s::destroy()` / `%s::deleteList()` log strings of an inlined `cManager<T>::destroy` (cLight: its
+  `log`/`create` instantiations already exist in the unit; `EmMgr.destroy` is an override and emits nothing), AFTER the
+  `create()` strings. The position decides the form: a direct `LightMgr.destroy(l)` in a dead static emits the strings at the
+  function's own place (before the create strings, 115 words wrong); `destroyAll()` is an out-of-class template member
+  instantiated at the end of the TU with the other pending templates, and its inlined destroy puts them last. Rule for
+  "ours is SHORT of .rodata by unreferenced strings": find the header inline/template whose log strings they are, then a dead
+  caller placed so the instantiation order matches (in-class inline = at the call site, out-of-class template = end of TU).
+- **debug .bss order (proc_tick before proc_name) = FIRST-DECLARATION order, and an `extern` in a header counts.** Deferred
+  file-scope variables (uninitialised globals and statics) are written at the end of the TU by `wrapup_globals_for_namespace`
+  walking the global namespace's `names` list earliest-first, i.e. in the order the identifiers were first pushed -- so
+  `extern const char* proc_name[32];` in debug.h (included before the definitions) put proc_name ahead of the static
+  `proc_tick` whatever the .cpp declaration order or scope (swapping the two definitions, making both global, or moving the
+  static below its users all left the order). proc_name is used by debug.cpp only; the extern was removed from debug.h
+  (no other unit names it, so no object changes). Read the target's .bss order as the order of first declaration in the
+  ORIGINAL TU including its headers, not as the definition order.
+- **espgen45 `.text` order: the dead `SetWater` needed `game/espgen45.cpp` in STRIP_UNUSED** (its comment said so; the entry
+  was missing). Order OK now; .text 0x3720/0x37d8 left = Move00 +0x28 and TransSub +0x90 (structural, not iterated).
+- **t_bugcheck menuLife (18) / menuPosMove (2), the label + insn-count puzzle, model rebuilt from the dumps (no lever applied):**
+  hoisted string highs get their PSEUDO numbers in `pre_delete`'s hash-bucket walk (bucket = (119 + 6 + (61 << 7) + h("*.LCn"))
+  mod table, h = h*129 + c, chain order = insertion) and their INSERTION order (hence live length: L0 - 2k for the k-th
+  first-occurrence string) in `pre_insert`'s expression-index walk = first occurrence order; global-alloc priority is
+  int(30000/len) with ties by pseudo number. menuLife (ours labels 29-37, table 181, L0 = 652): S7/S8 have prio 47 (len 638/636)
+  and the rest 46 in bucket order S1..S8,S0. The target's registers (r24..r16 = ">", ASHLEY, LIFE MAX, STICK-R, STICK-L, R-TRIG,
+  L-TRIG, LIFE, PLAYER) need ">" ALONE at prio 47 (L0 = 653/654: +1/+2 real insns inside the loop at sched1 time that
+  vanish later, e.g. coalesced pseudo copies) AND bucket order S2..S7 < S0 < S1 (labels 38-46: bucket(S1 = "*.LC39") >= T - 120,
+  true for T in {177, 179, 183, 185}, not 181 -> the pre-gcse insn count must move by -8/-4/+4/+8). Header label counts measured
+  (`.LC` numbers consumed by `#include "X.h"` alone): player.h 6, pl_wep.h 5, wep_mod.h 8, db_widget.h 7, dbg_tool.h 12, xml.h 24,
+  light/widget/map_obj/em/obj/esp/est/sce_sys/em_sub 1 each (most of the +1s overlap); t_bugcheck's own includes give 8, the
+  target needs 17-18 before menuPosMove. Dummy `static inline` string functions shift the labels (pad9: "X:%.0f" = .LC26, LIFE =
+  .LC38) but menuLife stays 24 words because the table size does not move with them -- the two constraints must be met
+  together. menuPosMove 2: `P = pl+160; r3 = pl; r4 = P` is expand order (rs6000 has no PUSH_ARGS_REVERSED: `this` first), combine
+  merges P into the r4 move at ITS position and regmove substitutes r3; `cModel& p = *pPL`, a `cUnit*` view, `rot->x = rot->x`
+  second use, `Vec* rot = pos + 1`, `floor = pl->rot.y` after the call: 2-18. Not closed.
+- **em_sub EmCatchMotionMove (8, read): the target's `lfs f13,164(r30); fmr f31,f13` (ry) and `fmuls f13,f0,f29` (step in a
+  caller-saved temp, rate f29 untied) both mean `ry` and `rate` were NOT local-alloc candidates** (`reg_qty == -1`: not
+  `REG_BASIC_BLOCK >= 0 && REG_N_DEATHS == 1`), while in our single-block function every pseudo is local and `combine_regs` ties
+  the load to ry and step to the dying rate. The original function had a second basic block (or a second death) that leaves no
+  code -- an `if` whose arms jump2 merged completely, or a construct with a label; `if (ret) ret = 1`, `do {} while (0)`, a
+  `f32* py` view, no-`step` forms, `ry` at the top: 8-51. Not closed.
+- **Espgen42 GetWaterHeightSub (7, read): w/p register swap = global-alloc priority 2*5/77 (w) vs 1*3/22 (p) in ours; the target
+  allocates w first, so its w had >= 6 refs or its p a live length >= 24** (p declared at the top costs 14, after the Vec copy or
+  as `w->work` casts 7). Not closed.
+- Not iterated: em_sub GetDropBullet (492, 0xb7c/0xb24: the target does NOT cross-jump the `Rnd() % 10 > 4 -> n = 3` tail of
+  case 0 / default while it does cross-jump the `% 10 > 7` tails -- one more distinct tail in the original), EmYarareContactCk,
+  RandomItemCk, EmRackCk, GetWepTargetList*, emLineCapsuleCrossCk; pl_wep PlSetLockPitch 11 (`m3rObj.r[k]` struct view, a
+  `f32 (&m)[3]` reference, a `cMot3Rate*` pointer, the pl_knife blend formula `m3r[1]*m3r[2] + m3r[1]*(1.0f - m3r[2])`: all
+  11), searchLockEm, PlWepAutoTrack, PlWepLockCtrl (its pool order at .rodata 0x108: target 0.8, 12deg, 1.0, 0.0629, 1.5, 1.2,
+  0.1047, 0.0524, 0.9, 1.04, 0.00655, 1.15, 7.0 = the original statement order), PlWepHitCheck2; act_btn; debug's five functions;
+  Espgen42 Move00/SetWaterWork/AddWaterPower*; espgen45 TransSub/Move00/SetWaterWork45.

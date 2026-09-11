@@ -1871,18 +1871,14 @@ void EmYarareDisp(cEm* em)
     EmHitInfo* p;
     cModel* parts;
     u32 color;
-    u16 fl;
-    int flags;
 
     if (!(pG->flags_60 & 0x1000)) {
         return;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
-        // The u16 copy of the int load: a direct u16 load would be the test operand. OPEN: the copy
-        // comes out as `clrlwi 16` where the original has a plain `mr`.
-        flags = p->flags;
-        fl = flags;
-        if (!(flags & 1)) {
+        // Every `p->flags` read is spelled out: the later `& 1` / `& 8` reads are fully redundant, so
+        // gcse PRE deletes them and inserts the reaching-register copy (`mr r11,r0`) after the first load.
+        if (!(p->flags & 1)) {
             continue;
         }
         color = 0x60606060;
@@ -1892,10 +1888,10 @@ void EmYarareDisp(cEm* em)
         if (em->hp <= 0) {
             color = 0;
         }
-        if (!(fl & 1)) {
+        if (!(p->flags & 1)) {
             color = 0;
         }
-        if (fl & 8) {
+        if (p->flags & 8) {
             parts = HitParts(em, p);
             AtCubeDisp(parts->mat, p->width, p->height, p->depth, &p->ofs, color);
         } else {

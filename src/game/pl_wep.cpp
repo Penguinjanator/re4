@@ -1169,3 +1169,12 @@ int GetWepSizeGroup(int no)
         return 3;
     }
 }
+
+// Dead-stripped by the original linker (STRIP_UNUSED): it instantiates cManager<cLight>::destroyAll, whose
+// end-of-unit copy inlines destroy() and leaves the five `%s::destroy()` / `%s::deleteList()` log strings
+// after the create() ones at the end of .rodata (0x290..0x350). A direct `LightMgr.destroy(l)` would emit
+// them at the function's own position (before the create strings).
+static void wepLightReleaseAll()
+{
+    LightMgr.destroyAll();
+}

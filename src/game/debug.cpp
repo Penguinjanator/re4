@@ -51,7 +51,7 @@ struct DbgTile {
 };
 
 static u32 proc_tick[32];
-const char* proc_name[32];
+const char* proc_name[32];   // not declared in debug.h: .bss order proc_tick, proc_name
 u32 zero_tick;
 int proc_tick_idx;
 int proc_tick_idx_bak;

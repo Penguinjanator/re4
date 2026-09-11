@@ -289,7 +289,6 @@ void cToolBugcheck::menu()
     static const char* pl_speed_str[5] = {"OFF", "x2", "x3", "x4", "x5"};
     s16 px = mx;
     s16 py = my;
-    u32 n;
     int i;
 
     ToolMenuDisp_cur(px, py, 0, &cursor, menu, sizeof(menu), Joy);
@@ -436,20 +435,20 @@ void cToolBugcheck::menu()
 
     px += 128;
     if (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x400000) {
-        n = 1;
+        i = 1;
     } else if (TOOL_FLAG(OFS_DEBUG_FLG + 12) & 0x80000000) {
-        n = 2;
+        i = 2;
     } else {
-        n = 0;
+        i = 0;
     }
-    eprintf(px, py, 0, 0, "%s", n <= 2 ? wep_mugen_str[n] : "...no string");
+    eprintf(px, py, 0, 0, "%s", i >= 0 && i <= 2 ? wep_mugen_str[i] : "...no string");
     py += 16;
     if (!(TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x10000)) {
-        n = 0;
+        i = 0;
     } else {
-        n = PlKaiou + 1;
+        i = PlKaiou + 1;
     }
-    eprintf(px, py, 0, 0, "%s", n <= 4 ? pl_speed_str[n] : "...no string");
+    eprintf(px, py, 0, 0, "%s", i >= 0 && i <= 4 ? pl_speed_str[i] : "...no string");
     py += 16;
     eprintf(px, py, 0, 0, "%s", (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 0x800000) ? "ON" : "OFF");
     py += 16;

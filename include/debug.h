@@ -19,7 +19,8 @@ int comment_check(char** p);
 int num_get(char** p);
 }
 
-extern const char* proc_name[32];
+// proc_name is defined in debug.cpp only: an extern here would push its decl before proc_tick's and
+// swap the two arrays in .bss (deferred file-scope variables are emitted in first-declaration order).
 extern u32 zero_tick;
 extern int proc_tick_idx;
 extern int proc_tick_idx_bak;
