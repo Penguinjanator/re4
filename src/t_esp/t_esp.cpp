@@ -4701,14 +4701,17 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
             }
         } else {
             if (g_pEditTbl[no].type == 0) {
+                // copies from g in the order r, a, b: the pool load lands in g's register (f30) and b is the copy
                 g = 1.0f;
+                r = g;
                 a = g;
+                b = g;
             } else {
                 g = 0.7f;
                 a = 1.0f;
+                r = g;
+                b = a;
             }
-            r = g;
-            b = a;
         }
     } else {
         g = 0.4f;
@@ -5137,6 +5140,9 @@ int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     return size;
 }
 
+// the per-group record counts as an array member: an ARRAY_REF keeps the base first in the address (`lhzx r9,head,i2`);
+// pointer arithmetic (`((u16*) head)[i]`) is expanded with EXPAND_SUM, which puts the index product first
+struct SeqCountView { u16 n[1]; };
 void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i, j;
@@ -5145,7 +5151,7 @@ void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     rec = (TOOL_SEQ*) head->rec; // after the call: rec lives in a caller-saved register
     for (i = 0; i < nGroup; i++) {
         TOOL_SEQ* t = &tbl[nSeq * i]; // nSeq first: `mullw r0, nSeq, i`
-        for (j = 0; j < ((u16*) head)[i]; j++) {
+        for (j = 0; j < ((SeqCountView*) head)->n[i]; j++) {
             *t++ = *rec++;
         }
     }

@@ -14729,3 +14729,77 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
   - Not iterated: emmine (setBomb 4, R1_Fall 8, R1_Shot 40, R1_ShotArrow 140), db_menu move 27, cam_extra, esp04/12/18/02/08,
     dvd, shadow, em_set, sce_at, cam_ctrl, Espgen43, at_mod, em_cloth, emwep, emrock, puzzle, motion, card, cam_qfps, main_mem,
     title, sce_com, db_cam, route_ck, pendulum, option.
+
+### Tool RELs, t_esp pass 3 (db_port Matching 68/68 + `t_esp/db_port.cpp` flipped; db_widget 109 -> 110/113: DB_PRIMITIVE ctor 50 -> 0; t_esp 193 -> 194/212: SetEditTblColor 2 -> 0, MakeLoadSeqData 11 -> 9; db_mod/db_light untouched; 2026-09-11)
+
+- Harness ~/.cache/tesp3 (tesp2 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC v.py`, `vsbs.sh MOD/UNIT FUNC
+  CUR|VARIANT [ctx]`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`, `-dS/-dR -fsched-verbose-6` for the sched1/sched2
+  ready lists and the per-insn `prio` / dependents table). The compiler source is `tools/sn-gcc/src/gcc/` (the private
+  copies under ~/.cache/em2b39_p8 are gone). Build 111 OK before and after every change.
+- **EspToolInit (db_port, 160 -> 0; the unit is Matching). Six independent mechanisms:**
+  - (a) Init store block, source order `fcvData, emArray, fog, cinesco, workPushed` (the `lis` order is statement order:
+    fcv, emArray, fog, cinesco) with `asm("" : "=m"(*(u16*) &db_fcvData));` after the three stores (tagged `#13`): the
+    input-less asm with a different-mode view of the fcv store is an output dependence that gives that store +1 priority,
+    so it stays first although `one` dies at the fog store (weight -1 would lead in ours); fog then precedes emArray by
+    weight and cinesco by LUID; the workPushed store is last in sched2 by dependents (2 vs 14). Rules read on the way:
+    `INSN_REG_WEIGHT` is +1 per SET/CLOBBER (MEM dests included) and -1 per REG_DEAD/REG_UNUSED; every store gets an ANTI
+    link to the next call (`flush_pending_lists`), so scalar-global stores tie on priority and only weight/dependents/LUID
+    order them; the five stores wait for the last `pG` flag store because BitOn/BitOff MEMs carry no struct flag (13
+    output/anti links each). An anchor on any store other than the first-issued one reorders the block (the anchored store
+    gets the +1); an anchor with a `"r"(one)` input must be placed after the last `one` store (the death moves to the asm).
+  - (b) The parent arm: `prod = i * sizeof(EvtDebugModel); asm("" : "=r"(rr), "=m"(buf3[2]) : "0"(prod));` at the body
+    top (tagged `candidate #12 (AROUND form)`), the flags test reads `*(u32*) (prod + (u32) EvtDebug.pModel + 0x63C)`, and
+    every other model field goes through `rr`: field reads `(*(EvtDebugModel*) (rr + (u32) EvtDebug.pModel)).f` (sum
+    `add rX,r26,rP`), addresses passed to strcpy `((EvtDebugModel*) ((u32) EvtDebug.pModel + rr))->name` (`add r4,r4,r26`:
+    the natural EXPAND_SUM order of `&pModel[i].name`; a MULT operand is moved first by expand, a REG operand keeps its
+    place). The target's both arms recompute `pModel + i*0x644` from gcse's reaching-reg copy of the product although the
+    arms are on cse's AROUND path (pModel itself IS folded: `r4` reused) -- with the flags test on the path, cse1 AND cse2
+    fold the sum (cse2 canonicalises the reaching reg back through the copy), so no zero-code form exists: forced labels
+    (`&&L`, static label tables) invalidate the enclosing loop in loop.c, a dead `do {} while (0)` ends only cse1's ebb, an
+    `asm("" : "+r"(i))` in the skipped block kills the mult's availability for gcse (264). regmove splits the tied asm
+    into `rr = prod` + the asm; the `"=m"(buf3[2])` output makes the flags load a dependent (asm prio 5, copy 6 > add 5),
+    so sched1 issues the copy before the add and `prod` dies at the add, tied into the sum's r9 like the target (a tied
+    asm alone: copy after the add, prod r0, 51 words; an asm `mr` is a cost-1 consumer issued a cycle too early: 16).
+  - (c) `&EvtDebug` of the pScr test and of the j loop (#13, both tagged): the pScr block's is an asm-lis/addi pair
+    (`ed0`; `lis r9; addi r9,r9; lwz 0xe0(r9)`: the target's lo_sum pseudo had two uses -- the j loop's cse copy, which
+    reload re-materialised as `lis r9; addi r28,r9` -- so its offset is not folded into the load), the j loop's is a
+    DISTINCT SYMBOL_REF `extern EventDebug EvtDebug_j asm("EvtDebug")` (the "*EvtDebug" string differs by strcmp, so
+    cse/gcse/alias treat it as another object; an asm pointer has no alias base and its loads then wait for the buf3 frame
+    stores). `nBin` is read through the pScr block's view (cse folds it to that block's sum, the target's `lwz 0x630(r9)`).
+  - (d) `*pStage = (hi << 4) + c % 10` with a `u8 hi` set in BOTH blocks: a single-set quotient has nonzero_bits <= 0x1F and
+    combine drops the target's `clrlslwi 24,4` mask. `l->be_flag &= 2` (sic, `rlwinm 0,30,30`), `s = M0->pScr` local.
+  - (e) `la = (u32) EspEvModList; if (slot <= 0x7F) *(cModel**) (la + ((u32) slot << 2)) = p;` -- with a `cModel** list`
+    the REGNO_POINTER_FLAG makes it the base and the index takes r0 (regclass `record_address_regs`: both operands
+    unflagged -> both BASE_REGS -> index r9, the sum global r11 like the target); the shift keeps `la` first in the PLUS.
+  - (f) The two "x:/soft/room/" template copies inside the j loop store word 1 LAST: read the following room id through
+    the struct view (`G_ROOM_ID_S` = `*(u16*) &pGS->stage_no`): the pG load then depends on the copy's stores and the
+    `stw r9,4(r30)` sits right before `lwz r9,pG`; with the fixed-scalar `pG` read the word-1 store's anti-dependence on
+    the load ranks it first.
+  - Read on the way: `base_alias_check` returns 0 for a stack ADDRESS (Pmode) base -- but after the prologue's `stwu`
+    resets r1, `find_base_value` of a hard reg returns the REG itself, so frame stores DO conflict with argument-based
+    (`this`) stores in sched2 (VOIDmode ADDRESS vs REG -> 1); and a hard register set more than once in the function has
+    no base at all (the DB_PRIMITIVE temp pointer r7 vs the target's once-set r5).
+- **DB_PRIMITIVE ctor (db_widget, 50 -> 0):** (1) block 1: `asm("" : "=m"(*(u32*) &pos.x) : "f"(fz), "r"(iz));` after
+  `id = iz` (#13, anchored on the block's first store) keeps base.x/id last. (2) block 2 written `type; c += 0x10; id = c;
+  parent..next = 0; id = c; rect = DB_RECT(..); flag = 0;` with `int& c = primIdCounter;` -- the reference MEMs carry
+  neither flag, so the member stores order the counter load/store (the zero stores lead the block, the pool loads follow)
+  and the SECOND `id = c` survives cse as the target's `lwz counter; stw id` re-read (a plain global read is forwarded
+  from the store). The statement order matters: the re-read BEFORE the rect temp (JR: 2 words); PJRF/PRJF orders 34-42.
+  (3) the last click loop: `int j0 = 0, j1 = 1, j2 = 2;` before the loop, `int z = j0 * 4; click[j0] = z; click[j1] = z;
+  click[j2] = z;` inside -- the body is a fresh cse ebb, the `j*4` products survive to loop.c (hoisted), cse2 folds them
+  to `li r10,4; li r11,8`, and the stored zero IS the index-0 product (one register, `stwx r0,r9,r0`). `p[j]` with `p`
+  outside the loop puts the mult first in the PLUS and drops the `mr r9,r29`; a byte-offset form `(u8*) p + o1` hoists the
+  address sum and folds it into a displacement.
+- **Left in db_widget (mechanisms):** DB_WINDOW ctor (14): the DB_COLOR temp copy's loads are frame-relative in the target
+  because its cse did not canonicalise the copy's base pseudo into the inline ctor's `this` (both `fp+8`; in DB_PRIMITIVE
+  the target DID -- there the address is gcse's reaching reg r5 for both) -- `find_best_addr` prefers the higher-rtx-cost
+  equivalent `(plus this 4)` over `(plus fp 12)`; named temps, do-while, memcpy, an r31-clobber asm (`mr r9,r11`, 33) do
+  not stop it (cse2 redoes it). DB_STRING ctor (11) and DB_NUMERIC ctor (2) untouched.
+- **t_esp:** SetEditTblColor `g = 1.0f; r = g; a = g; b = g;` (the copies' order decides which register takes the pool
+  load: b must be the LAST copy). MakeLoadSeqData: `struct SeqCountView { u16 n[1]; }` and `((SeqCountView*) head)->n[i]`
+  -- an ARRAY_REF keeps the base first (`lhzx r9,head,i2`), every pointer-arithmetic spelling is expanded with EXPAND_SUM
+  (mult first); left (9): rec/t' allocation r5/r6 (pseudo 88 `head+0x30` 7 refs/28 vs the `t+1` giv 6/23) and the
+  prologue copy order that follows from it. Save*FileNo x5 unchanged: the target keeps both `cmpwi` with the branches
+  deleted by jump2 as jumps-to-following, which needs the dead arms non-empty at flow2 yet gone at jump2 -- nothing in the
+  passes between (reload, reload_cse, sched2) deletes a register set; compiler-side as concluded in pass 5.
+- Not iterated: db_mod (position_usage 34, IKreport 10), db_light (17/22/120/183), t_esp's larger residues.

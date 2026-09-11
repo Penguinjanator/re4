@@ -45,6 +45,9 @@ DB_PRIMITIVE::DB_PRIMITIVE()
     prev = 0;
     next = 0;
     id = iz;
+    // COMPILER-DIFF: #13 -- the target issues base.x/id last (source order) although fz/iz die there; the keep-alive is
+    // anchored on a different-mode view of the block's first store (an output dependence, no barrier)
+    asm("" : "=m"(*(u32*) &pos.x) : "f"(fz), "r"(iz));
     for (i = 0; i < 3; i++) {
         click[i] = 0;
     }
@@ -55,14 +58,23 @@ DB_PRIMITIVE::DB_PRIMITIVE()
     updateCb = 0;
     drawCb = 0;
 
-    type = DB_PRIM_BASE;
-    id = (primIdCounter += 0x10);
-    parent = 0;
-    child = 0;
-    prev = 0;
-    next = 0;
-    rect = DB_RECT(0.0f, 0.0f, 10.0f, 10.0f);
-    flag = 0;
+    {
+        // the id counter through a reference: its MEMs carry neither struct nor scalar flag, so the member stores
+        // order the counter load/store (the target's zero stores lead the block and the pool loads follow them),
+        // and the second `id = c` after the parent..next zeros survives cse as the target's `lwz counter; stw id`
+        // re-read (a plain global read is forwarded from the store)
+        int& c = primIdCounter;
+        type = DB_PRIM_BASE;
+        c += 0x10;
+        id = c;
+        parent = 0;
+        child = 0;
+        prev = 0;
+        next = 0;
+        id = c;
+        rect = DB_RECT(0.0f, 0.0f, 10.0f, 10.0f);
+        flag = 0;
+    }
     SetSize(16.0f, 16.0f);
     SetBase(0.0f, 0.0f);
     active = 1;
@@ -70,12 +82,20 @@ DB_PRIMITIVE::DB_PRIMITIVE()
     select = 0;
     SetOnHitCallback(0);
     SetUpdateCallback(0);
-    for (i = 0; i < 3; i++) {
-        // a pointer to click: its `&click` is PRE'd into the first block (`addi r29,r31,0x4c`) and copied here
-        int* p = click;
-        p[0] = 0;
-        p[1] = 0;
-        p[2] = 0;
+    {
+        // the target's loop stores through register offsets (`stwx r0,r9,{r0,r10,r11}` with `li r0,0; li r10,4;
+        // li r11,8` hoisted): the indices are variables set before the loop (the body is a fresh cse ebb, so the
+        // `j*4` products survive to loop.c, which hoists them; cse2 folds the hoisted products to constants), and
+        // the stored zero is the index-0 product itself (one register for the value and the first offset)
+        int j0 = 0;
+        int j1 = 1;
+        int j2 = 2;
+        for (i = 0; i < 3; i++) {
+            int z = j0 * 4;
+            click[j0] = z;
+            click[j1] = z;
+            click[j2] = z;
+        }
     }
 }
 

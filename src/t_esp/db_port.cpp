@@ -196,6 +196,15 @@ static inline int flagOn(u32 f, u32 bit)
 }
 
 // the event's cut number as written in the debug data (two ascii digits) through the caller's buffer
+// the room id read through the struct view of pG (global.h pGS) right after the "x:/soft/room/" template copy: the
+// pG load then depends on the copy's stores and the target's store order (word 1 last, `stw r9,4(r30)` right before
+// `lwz r9,pG`) follows; the plain G_ROOM_ID read is a fixed scalar the stores do not order
+#define G_ROOM_ID_S (*(u16*) &pGS->stage_no)
+// COMPILER-DIFF: #13 -- the j loop's `&EvtDebug` is a fresh `lis/addi` in the target (a REG_EQUIV lo_sum pseudo that the
+// original never allocated, re-materialised at its copy); a distinct SYMBOL_REF ("*EvtDebug" string, so cse/gcse do not
+// merge it with the pScr block's lo_sum) gives that with a symbol-based alias base for the loop's loads
+extern EventDebug EvtDebug_j asm("EvtDebug");
+#define EVT_CUT_NO_J(buf) ((buf)[0] = EvtDebug_j.pad_0[0x49], (buf)[1] = EvtDebug_j.pad_0[0x4A], (buf)[2] = 0, atoi(buf))
 #define EVT_CUT_NO(buf) ((buf)[0] = EvtDebug.pad_0[0x49], (buf)[1] = EvtDebug.pad_0[0x4A], (buf)[2] = 0, atoi(buf))
 
 // the event's cut number as written in the debug data (two ascii digits)
@@ -695,7 +704,14 @@ static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
 static inline void StrCpy(char* d, const char* s) { strcpy(d, s); }
 #define NAME_SET(src_) { char* src = (src_); StrCpy(name, src); }
 // every model field is re-read as EvtDebug.pModel[i].field (no `m` pointer: the target reloads pModel per use)
-#define M EvtDebug.pModel[i]
+// every model field is read as pModel + rr (the target reloads pModel per use and keeps only the product copy `rr`):
+// field reads sum `rr + pModel` (`add rX,r26,rP`), the name/bin/tpl addresses `pModel + rr` (`add r4,r4,r26`, the natural
+// EXPAND_SUM order of `&pModel[i].name`); M0 is the pScr block's view through its own `lis/addi` (#13, see ed0), MJ the
+// j loop's (EvtDebug_j)
+#define M (*(EvtDebugModel*) (rr + (u32) EvtDebug.pModel))
+#define MA ((EvtDebugModel*) ((u32) EvtDebug.pModel + rr))
+#define M0 ((EvtDebugModel*) (rr + (u32) ed0->pModel))
+#define MJ ((EvtDebugModel*) ((u32) EvtDebug_j.pModel + rr))
 
 extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
 {
@@ -728,8 +744,13 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     BitOff(pG->flags_58, 0x1000000);
     BitOff(pG->flags_170, 0x40000);
     db_fcvData = 0;
-    db_fog = one;
     db_emArray = one;
+    db_fog = one;
+    // COMPILER-DIFF: #13 -- the target issues the five stores fcv, fog, emArray, cinesco, workPushed although `one`'s
+    // dying store (the second `one` store, weight -1) would lead in ours; the asm's output dependence on a different-
+    // mode view of the fcvData store gives that store the priority to stay first (no barrier, no code). The lis order
+    // (fcv, emArray, fog, cinesco = the target's) is the statement order; the store order follows from the death.
+    asm("" : "=m"(*(u16*) &db_fcvData));
     db_cinesco = 0;
     db_workPushed = 0;
     DB_WorkPush(1, 1);
@@ -749,6 +770,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     if (flagOn(EvtDebug.flags, 0x80000000)) {
         int n;
         u8 c;
+        u8 hi;
         u32 nLit;
         int k;
         cModel** list;
@@ -763,9 +785,12 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         }
         n = EVT_CUT_NO(buf3);
         c = n;
-        *pStage = ((c / 10) << 4) + c % 10;
+        // `hi` is set twice: a single-set quotient has nonzero_bits <= 0x1F and combine drops the target's `clrlslwi` mask
+        hi = c / 10;
+        *pStage = (hi << 4) + c % 10;
         c = EvtDebug.pad_0[0xDB];
-        *pCut = ((c / 10) << 4) + c % 10;
+        hi = c / 10;
+        *pCut = (hi << 4) + c % 10;
         db_cutNo = *pCut;
         sprintf(path, "x:/soft/room/esp/r%03xs%02x.eff", G_ROOM_ID, *pStage);
         if (HDReadDebugAlloc(path, &buf, 1)) {
@@ -794,7 +819,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         for (k = 0; k < nLit; k++) {
             cLight* l = LightMgr.getWorkPtr(k);
             if ((l->be_flag & 3) == 3 && l->parentType == 1) {
-                l->be_flag &= ~2;
+                l->be_flag &= 2; // sic: the original masks with 2, not ~2 (`rlwinm 0,30,30`)
             }
         }
         nModel = EvtDebug.nModel;
@@ -809,11 +834,23 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             int j;
             int nBin;
             TexRenderMng* t;
+            cModel* s;
+            u32 prod;
+            u32 rr;
+            EventDebug* ed0;
+            u32 hi0;
 
             bin.init();
             tpl.init();
             xtra.init();
-            if (flagOn(M.flags, 0x20000000)) {
+            // COMPILER-DIFF: candidate #12 (AROUND form) -- the target's parent/else arms recompute `pModel + i*0x644` from
+            // gcse's reaching-reg copy of the product (`mr r26,r9`) although the flags test is on cse's AROUND path (ours
+            // folds the sum into the test's pseudo). The tied codeless asm is that copy (regmove splits it into `rr = prod`
+            // + the asm); its `"=m"(buf3[2])` output makes the flags load a dependent, so sched1 issues the copy before
+            // the add (priority 6 > 5) and `prod` dies at the add (tied into the sum's r9 like the target).
+            prod = i * sizeof(EvtDebugModel);
+            asm("" : "=r"(rr), "=m"(buf3[2]) : "0"(prod));
+            if (flagOn(*(u32*) (prod + (u32) EvtDebug.pModel + 0x63C), 0x20000000)) {
                 int idx;
                 int parentModel;
 
@@ -824,31 +861,37 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 parentModel = (int) EvtDebug.pModel[idx].pModel;
                 dbModelParentChild((s8) i, (s8) parentModel, ((s8*) pParent)[3], &ofs, &ofs);
             } else {
-                NAME_SET(M.name);
+                NAME_SET(MA->name);
                 strcpy(path, "x:/soft/room/");
                 strcat(path, name);
                 xtra.append(path);
             }
-            if (M.pScr) {
-                bin.append(M.pScr->pInfo->pData);
-                tpl.append(M.pScr->pInfo->pTpl);
+            // COMPILER-DIFF: #13 -- the pScr block's `&EvtDebug` is a REG_EQUIV lo_sum pseudo the original never allocated:
+            // it is re-materialised here (`lis r9; addi r9,r9; lwz 0xe0(r9)`, the offset not folded because the pseudo had a
+            // second use, the j loop's copy) and again in the j loop (EvtDebug_j)
+            asm("lis %0,EvtDebug@ha" : "=b"(hi0));
+            asm("addi %0,%1,EvtDebug@l" : "=r"(ed0) : "b"(hi0));
+            s = M0->pScr;
+            if (s) {
+                bin.append(s->pInfo->pData);
+                tpl.append(s->pInfo->pTpl);
             } else {
-                nBin = M.nBin;
+                nBin = M0->nBin;
                 for (j = 0; j < nBin; j++) {
-                    NAME_SET(M.bin[j]);
+                    NAME_SET(MJ->bin[j]);
                     strcpy(path, "x:/soft/room/");
-                    if (G_ROOM_ID == 0x332 && EVT_CUT_NO(buf3) == 0 && db_cutNo == 0x19 &&
+                    if (G_ROOM_ID_S == 0x332 && EVT_CUT_NO_J(buf3) == 0 && db_cutNo == 0x19 &&
                         strcmp(name, "event/model/ev3000/ev3001.bin") == 0) {
                         strcat(path, "event/model/ev3000/ev3001a.bin");
                     } else {
                         strcat(path, name);
                     }
                     bin.append(path);
-                    NAME_SET(M.tpl[j]);
+                    NAME_SET(MJ->tpl[j]);
                     strcpy(path, "x:/soft/room/");
-                    if (G_ROOM_ID == 0x317 && strcmp(name, "event/model/ev0000/ev0001.tpl") == 0) {
+                    if (G_ROOM_ID_S == 0x317 && strcmp(name, "event/model/ev0000/ev0001.tpl") == 0) {
                         strcat(path, "event/model/ev0000/ev0001_kizu.tpl ");
-                    } else if (G_ROOM_ID == 0x332 && EVT_CUT_NO(buf3) == 0 && db_cutNo == 0x19 &&
+                    } else if (G_ROOM_ID == 0x332 && EVT_CUT_NO_J(buf3) == 0 && db_cutNo == 0x19 &&
                                strcmp(name, "event/model/ev3000/ev3001.tpl") == 0) {
                         strcat(path, "event/model/ev3000/ev3001a.tpl");
                     } else {
@@ -857,7 +900,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     tpl.append(path);
                 }
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (G_ROOM_ID == 0x11B && nameIs4(name, 'p', 'l', '0', '0')) {
                 strcpy(path, "x:/soft/room/event/model/ev0000/ev0001a.bin");
                 bin.append(path);
@@ -872,7 +915,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 strcpy(path, "x:/soft/room/event/model/ev0000/ev000b.tpl");
                 tpl.append(path);
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (G_ROOM_ID == 0x11C) {
                 if (nameIs4(name, 'p', 'l', '0', '0')) {
                     strcpy(path, "x:/soft/room/event/model/ev0000/ev000c.bin");
@@ -887,7 +930,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     tpl.append(path);
                 }
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (G_ROOM_ID == 0x325) {
                 if (db_cutNo == 4 && nameIs4(name, 'p', 'l', '0', '0')) {
                     strcpy(path, "x:/soft/room/event/model/ev0000/ev000f.bin");
@@ -910,15 +953,19 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 Vec size;
                 Vec center;
                 cModel* p;
+                u32 la;
                 cModelInfo* info;
                 ModelBound* b;
                 u8 lit;
 
                 em->setNoSuspend(1);
                 p = dbModGetEmPtr(slot);
-                list = EspEvModList;
+                // an integer address variable: with `cModel** list` the REGNO_POINTER_FLAG makes `list` the base and
+                // the index takes r0 (target: both unflagged -> the index is BASE_REGS r9, the sum global r11); the shift
+                // keeps `la` first in the PLUS (EXPAND_SUM moves a MULT operand first)
+                la = (u32) EspEvModList;
                 if ((u32) slot <= 0x7F) {
-                    list[slot] = p;
+                    *(cModel**) (la + ((u32) slot << 2)) = p;
                 }
                 em->x12F = M.x638;
                 if (flagOn(M.flags, 0x80000000)) {
@@ -936,7 +983,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 PSVECSubtract(&b->center, &em->pParts->pos, &center);
                 em->lightInfo.init2(2, 1, &center, &size, lit);
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (nameIs4(name, 'o', 'b', 'm', '1') && name[0x13] == 'a') {
                 DbModCarSet(em);
             }
@@ -944,7 +991,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 cModel* p = em->getPartsPtr(3);
                 p->scale.z = p->scale.y = p->scale.x = 0.0f;
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (G_ROOM_ID == 0x11B && nameIs4(name, 'p', 'l', '0', '0')) {
                 static u8 tbl0[0x20];
                 static u8 tbl1[0x20];
@@ -989,7 +1036,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     db_nearClip = 1;
                 }
             }
-            NAME_SET(M.name);
+            NAME_SET(MA->name);
             if (G_ROOM_ID == 0x11C) {
                 static u8 tbl2[0x20];
                 static u8 tbl3[0x20];
