@@ -250,49 +250,58 @@ static Bool gcci_IsBusy(GCCI tbl)
 	return 0;
 }
 
-/* finish the reads of the table that completed. Indexed form: gcCiReqRd's inlined copy then matches
- * except the original's table-pointer init hoisted above the IsBusy loop (1w); gcCiExecServer wants
- * the pointer ranked above i (a pointer local declared last gives that copy but not ReqRd's; CRI pass 12) */
-static inline void gcci_ExecServer(GCCI tbl)
+/* finish one handle's read when it completed. Per-handle helper (over declared first): its locals are
+ * created at inlining, so they rank above the later range-split copy of `over` (the CANCELED
+ * redefinition takes over's register r27/r23 in both callers); the table loop is written twice
+ * (gcci_ExecServer for gcCiReqRd, gcCiExecServer's own loop) because the counter must rank above the
+ * induction pointer in ReqRd (inlined local) and below it in gcCiExecServer (own local); CRI pass 13 */
+static inline void gcci_ExecOne(GCCI ci)
 {
-	Sint32 i;
 	Sint32 over;
 	Sint32 nbyte;
 	Uint8 *p;
 
-	for (i = 0; i < GCCI_MAX_OBJ; i++) {
-		if (tbl[i].used == 1 && tbl[i].stat == GCCI_STAT_READING) {
-			tbl[i].cbstat = DVDGetCommandBlockStatus(&tbl[i].fi.cb);
-			gcg_ci_debug.cbstat = tbl[i].cbstat;
-			switch (tbl[i].cbstat) {
-			case DVD_STATE_FATAL_ERROR:
-				tbl[i].stat = GCCI_STAT_ERROR;
-				gcg_ci_debug.stat = GCCI_STAT_ERROR;
-				break;
-			case DVD_STATE_END:
-				nbyte = tbl[i].rqsct * tbl[i].sctlen;
-				DCInvalidateRange(tbl[i].buf, nbyte);
-				tbl[i].numtr = nbyte;
-				tbl[i].pos_sct += tbl[i].rqsct;
-				if (tbl[i].pos_sct * tbl[i].sctlen > tbl[i].fsize_byte) {
-					over = tbl[i].pos_sct * tbl[i].sctlen - tbl[i].fsize_byte;
-					p = tbl[i].buf + tbl[i].numtr - over;
-					memset(p, 0, over);
-					DCStoreRange(p, over);
-				}
-				tbl[i].stat = GCCI_STAT_COMPLETE;
-				gcg_ci_debug.stat = GCCI_STAT_COMPLETE;
-				break;
-			case DVD_STATE_CANCELED:
-				over = DVDGetTransferredSize(&tbl[i].fi);
-				DCInvalidateRange(tbl[i].buf, over);
-				tbl[i].numtr = (over / tbl[i].sctlen) * tbl[i].sctlen;
-				tbl[i].pos_sct += over / tbl[i].sctlen;
-				tbl[i].stat = GCCI_STAT_STOP;
-				gcg_ci_debug.stat = GCCI_STAT_STOP;
-				break;
+	if (ci->used == 1 && ci->stat == GCCI_STAT_READING) {
+		ci->cbstat = DVDGetCommandBlockStatus(&ci->fi.cb);
+		gcg_ci_debug.cbstat = ci->cbstat;
+		switch (ci->cbstat) {
+		case DVD_STATE_FATAL_ERROR:
+			ci->stat = GCCI_STAT_ERROR;
+			gcg_ci_debug.stat = GCCI_STAT_ERROR;
+			break;
+		case DVD_STATE_END:
+			nbyte = ci->rqsct * ci->sctlen;
+			DCInvalidateRange(ci->buf, nbyte);
+			ci->numtr = nbyte;
+			ci->pos_sct += ci->rqsct;
+			if (ci->pos_sct * ci->sctlen > ci->fsize_byte) {
+				over = ci->pos_sct * ci->sctlen - ci->fsize_byte;
+				p = ci->buf + ci->numtr - over;
+				memset(p, 0, over);
+				DCStoreRange(p, over);
 			}
+			ci->stat = GCCI_STAT_COMPLETE;
+			gcg_ci_debug.stat = GCCI_STAT_COMPLETE;
+			break;
+		case DVD_STATE_CANCELED:
+			over = DVDGetTransferredSize(&ci->fi);
+			DCInvalidateRange(ci->buf, over);
+			ci->numtr = ci->sctlen * (over / ci->sctlen);
+			ci->pos_sct += over / ci->sctlen;
+			ci->stat = GCCI_STAT_STOP;
+			gcg_ci_debug.stat = GCCI_STAT_STOP;
+			break;
 		}
+	}
+}
+
+/* finish the reads of the table that completed */
+static inline void gcci_ExecServer(GCCI tbl)
+{
+	Sint32 i;
+
+	for (i = 0; i < GCCI_MAX_OBJ; i++) {
+		gcci_ExecOne(&tbl[i]);
 	}
 }
 
@@ -519,7 +528,11 @@ void gcCiEntryErrFunc(CVFS_ERRFUNC func, void *obj)
 
 void gcCiExecServer(void)
 {
-	gcci_ExecServer(gcg_ci_obj);
+	Sint32 i;
+
+	for (i = 0; i < GCCI_MAX_OBJ; i++) {
+		gcci_ExecOne(&gcg_ci_obj[i]);
+	}
 }
 
 CVFS_IF *gcCiGetInterface(void)

@@ -1622,11 +1622,11 @@ MATCHING.update({
     "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks: the six blocks cleared by six calls of a static inline helper storing 32 doubles through a `Float64 **cur` cursor (the second clear base `addi r8, mpv, 0x720` follows; CRI pass 9, shape from mk-deception)
     "lib/sfx_cnv.c": False,  # CRI pass 8 (pure-C revert): SFX_MakeTable 113w (M1: zero re-materialised after the unroller guard, fp-conversion slot/FPR order) + .rodata order (the conversion constant after the E201311 string; M2)
     "lib/sfd_cre.c": False,  # CRI pass 8 (pure-C revert): sfcre_AnalyMpv 18w / AnalyAudio 43w / AnalyMps 28w (M1: inlined-helper temporaries and callee-saved permutations)
-    "lib/cri_cvfs.c": False,  # CRI pass 8 (pure-C revert): cvFsGetFileSize 45w / cvFsOpen 106w (-4 bytes) / cvFsAddDev 14w (M1: inlined device-search values, pool base vs loop index, two-definition `mr r0` bounce)
+    "lib/cri_cvfs.c": False,  # CRI pass 13: 11/13, cvFsGetFileSize 63w / cvFsOpen 240w (-4 bytes) (the inlined cvfs_ResolveDev: pdev above tbl, tbl materialised after strlen); cvFsAddDev fixed by kept devname/getif copies + the inlined cvfs_AddDevTbl helper
     "lib/mpv_cmc.c": False,  # CRI pass 8 (pure-C revert): MPVCMC_InitMcOiRt 8w / InitObj 17w (M1: separate member-array base `addi r5, r3, 0x124/0x158` folded into the offsets)
     "lib/adx_baif.c": False,  # CRI pass 10: 5/6, AIFF_GetInfo 91w (M1: FORM/size words share the loop registers); ExecOneAiff16 fixed by the `Uint16` swap temporary
     "lib/adx_dcd5.c": False,  # CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
-    "lib/sfd_hds.c": False,  # CRI pass 8 (pure-C revert): sfhds_DoProcessHdr 111w / SFHDS_SetHdr 11w (M1: parameters ranked above locals in the target)
+    "lib/sfd_hds.c": False,  # CRI pass 13: 10/11, SFHDS_SetHdr 11w (result r30 > len r29 > p r28 = the inlined SetHdrPkt's parameter copies kept as nodes in the target); sfhds_DoProcessHdr fixed by per-site if/else locals for the vid ternaries
     "lib/mwsfdsvr.c": True,  # CRI pass 12: `void *obj` handlers with a kept MWPLY copy, function-scope sfd, the sleep loop as an inlined helper
     "lib/sfd_tst.c": False,  # CRI pass 8 (pure-C revert): SFTST_Calc 83w (M1: 64-bit abs diamond sunk to the compare) / SFTST_Create 4w (`lwz sftst_debout_buf` scheduling); .rodata order kept by the named strings
     "lib/sfx_zmv.c": False,  # CRI pass 8 (pure-C revert): sfxzmv_MakeCnvZTbl 94w (M1: inlined helper src/dst r3/r4) / MakeOrgZ32TblByCCIR 77w (M1: unrolled 1.164f loop slot order)
@@ -1727,4 +1727,9 @@ MATCHING.update({
     "game/id_sys.cpp": True,  # set: the twelve `ofs -> pointer` diamonds store in BOTH arms (`if (a) u->x = (T)(a + data); else u->x = 0;`): jump2 cross-jumps the stores so the join block starts at `lwz pG` and the `c = 0` li (prio 2) ranks below it; zero code
     "game/roomdata.cpp": True,  # init: the total loop counts with `stage` (its `stage + 1` gets the lower gcse expression index, so the PRE'd increment is inserted before the hoisted `(u8) stage` and ofs/nx take r27/r26); linkRelData: `rel_no` read directly in the compare and the store (HImode load + one shared `clrlwi` for the compare and the DvdRead argument); zero code
     "game/objRobo.cpp": True,  # R0WalkBridge (zero code): the first flag test reads the word into a user variable (no cse jump threading past the second test, so the 0x80000000 `lis` stay per block and are not combined/hoisted), `hp` plain pointer for hitCnt (pG reloaded), `hp++, i++`, FRef(RoboFallSpdY); TaskSwitchFront/Back: `range = to` in the for-init, `range2 = from - to` in the up loop, no `base` copy, plus one tagged fr28 pin on `to` (#17) that keeps the for-init copy out of gcse cprop
+})
+
+# CRI pass 13 (2026-09-11)
+MATCHING.update({
+    "lib/gcci.c": True,  # per-handle `static inline gcci_ExecOne(GCCI ci)` (over, nbyte, p) + the table loop written twice (gcci_ExecServer(tbl) for gcCiReqRd, gcCiExecServer's own loop): the counter ranks above the induction pointer as an inlined local and below it as an own local, the CANCELED `over` redefinition takes over's register; `sctlen * (over / sctlen)`; pure C, no pins
 })

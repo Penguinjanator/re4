@@ -947,41 +947,56 @@ void cvFsDelDev(const Char8 *devname)
 	}
 }
 
-/* COMPILER-DIFF: M1 - devname r29 / vtbl r28 with the two-definition `mr r0, r3` bounce and the
- * `beq add; b check` search exit. Pure C by project decision (CRI pass 8). */
+/* register the device in the table unless its name is already there; NULL when the table is full.
+ * The `return vtbl` on the found path is the target's `beq add; b check` exit, the `void *` interface
+ * pointer converted to the typed table entry is the kept copy that takes getif's result directly
+ * (`mr r28, r3`; a fresh `vtbl = getif()` in the caller bounces through r0); CRI pass 13 */
+static CVFS_DEVIF *cvfs_AddDevTbl(Char8 *devname, void *vt)
+{
+	CVFS_DEV *dev;
+	Sint32 i;
+	CVFS_DEVIF *vtbl = vt;
+
+	if (cvfs_SearchDev(cvfs_tbl, devname) != NULL) {
+		return vtbl;
+	}
+	dev = cvfs_tbl;
+	for (i = 0; i < CVFS_MAX_DEV; i++) {
+		if (dev->name[0] == '\0') {
+			break;
+		}
+		dev++;
+	}
+	if (i == CVFS_MAX_DEV) {
+		return NULL;
+	}
+	dev = &cvfs_tbl[i];
+	dev->vtbl = vtbl;
+	memcpy(dev->name, devname, strlen(devname) + 1);
+	return vtbl;
+}
+
 void cvFsAddDev(Char8 *devname, CVFS_GETIFFN getif)
 {
-	Sint32 i;
-	CVFS_DEV *dev;
+	Char8 *name;
 	CVFS_DEVIF *vtbl;
+	CVFS_GETIFFN fn;
 
 	cvfs_build;
-	if (devname == NULL) {
+	/* kept copies (explicit casts, CRI pass 12 rule): devname r29 above the table entry r28, and the
+	 * getif copy orders the two pool `lis` (rodata, then bss after `addi r30`) */
+	name = (Char8 *)(void *)devname;
+	fn = (CVFS_GETIFFN)(void *)getif;
+	if (name == NULL) {
 		cvfs_Error("cvFsAddDev #1:illegal device name");
 		return;
 	}
-	if (getif == NULL) {
+	if (fn == NULL) {
 		cvfs_Error("cvFsAddDev #2:illegal I/F func name");
 		return;
 	}
-	cvfs_StrUpr(devname);
-	vtbl = (CVFS_DEVIF *)getif();
-	if (cvfs_SearchDev(cvfs_tbl, devname) == NULL) {
-		dev = cvfs_tbl;
-		for (i = 0; i < CVFS_MAX_DEV; i++) {
-			if (dev->name[0] == '\0') {
-				break;
-			}
-			dev++;
-		}
-		if (i == CVFS_MAX_DEV) {
-			vtbl = NULL;
-		} else {
-			dev = &cvfs_tbl[i];
-			dev->vtbl = vtbl;
-			memcpy(dev->name, devname, strlen(devname) + 1);
-		}
-	}
+	cvfs_StrUpr(name);
+	vtbl = cvfs_AddDevTbl(name, fn());
 	if (vtbl == NULL) {
 		cvfs_Error("cvFsAddDev #3:failed added a device");
 		return;

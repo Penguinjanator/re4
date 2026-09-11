@@ -64,7 +64,10 @@ static Sint32 sfhds_SearchStmId(SFH sfh, Sint32 first, Sint32 last, Sint32 *exis
 	return 0;
 }
 
-/* COMPILER-DIFF: M1 - the original allocates callee-saved registers as parameters (reverse order, r31 down) then locals (fhd r31, sfh r30, ver r29); ours locals first (OPEN since the first CRI pass). Pure C by project decision (CRI pass 8). */
+/* The vid-section results go through their own locals (v_*) instead of `?:`: the range-split copy of `id`
+ * used there has 30 neighbours when the nine `?:` join values are frontend temporaries (created after
+ * it, so scanned after it), which keeps it in the colouring level of fhd/sfh (r31); as own locals they
+ * are removed first and `id` drops to the level of ver (r29), fhd r31 / sfh r30 as the target (CRI pass 13). */
 void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 {
 	Sint32 ver;
@@ -103,6 +106,16 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	Sint32 gopn;
 	Sint32 gopm;
 	Sint32 id;
+	Sint32 v_vcodec;
+	Sint32 v_bitrate;
+	Sint32 v_picrate;
+	Sint32 v_coltype;
+	Sint32 v_pictype;
+	Sint32 v_fixflg;
+	Sint32 v_shcfixflg;
+	Sint32 v_expand;
+	Sint32 v_gopn;
+	Sint32 v_gopm;
 
 	if (SFH_IsSfdHeader(sfh, &is_sfd) == 0) {
 		is_sfd = 0;
@@ -166,25 +179,75 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	}
 
 	id = fhd->stmid_vid;
-	fhd->vid.codec = (SFH_AnlyElemCodecVid(sfh, id, &vcodec) == 0) ? -1 : vcodec;
-	fhd->vid.bitrate = (SFH_AnlyElemBitRate(sfh, id, &bitrate) == 0) ? -1 : bitrate;
+	if (SFH_AnlyElemCodecVid(sfh, id, &vcodec) == 0) {
+		v_vcodec = -1;
+	} else {
+		v_vcodec = vcodec;
+	}
+	fhd->vid.codec = v_vcodec;
+	if (SFH_AnlyElemBitRate(sfh, id, &bitrate) == 0) {
+		v_bitrate = -1;
+	} else {
+		v_bitrate = bitrate;
+	}
+	fhd->vid.bitrate = v_bitrate;
 	if (SFH_AnlyElemPicSz(sfh, id, &fhd->vid.picw, &fhd->vid.pich) == 0) {
 		fhd->vid.picw = -1;
 		fhd->vid.pich = -1;
 	}
-	fhd->vid.picrate = (SFH_AnlyElemPicRate(sfh, id, &picrate) == 0) ? -1 : picrate;
+	if (SFH_AnlyElemPicRate(sfh, id, &picrate) == 0) {
+		v_picrate = -1;
+	} else {
+		v_picrate = picrate;
+	}
+	fhd->vid.picrate = v_picrate;
 	if (SFH_IsEffFtrInf(sfh, id, &eff) == 0) {
 		eff = 0;
 	}
 	fhd->vid.ftr_eff = (eff != 0);
 	if (eff != 0) {
-		fhd->vid.ftr_coltype = (SFH_AnlyFtrColType(sfh, id, &coltype) == 0) ? -1 : coltype;
-		fhd->vid.ftr_pictype = (SFH_AnlyFtrPicType(sfh, id, &pictype) == 0) ? -1 : pictype;
-		fhd->vid.ftr_fixflg = (SFH_AnlyFtrFixFlg(sfh, id, &fixflg) == 0) ? -1 : fixflg;
-		fhd->vid.ftr_shcfixflg = (SFH_AnlyFtrShcFixFlg(sfh, id, &shcfixflg) == 0) ? -1 : shcfixflg;
-		fhd->vid.ftr_expand = (SFH_AnlyFtrExpand(sfh, id, &expand) == 0) ? -1 : expand;
-		fhd->vid.ftr_gopn = (SFH_AnlyFtrGopN(sfh, id, &gopn) == 0) ? -1 : gopn;
-		fhd->vid.ftr_gopm = (SFH_AnlyFtrGopM(sfh, id, &gopm) == 0) ? -1 : gopm;
+		if (SFH_AnlyFtrColType(sfh, id, &coltype) == 0) {
+			v_coltype = -1;
+		} else {
+			v_coltype = coltype;
+		}
+		fhd->vid.ftr_coltype = v_coltype;
+		if (SFH_AnlyFtrPicType(sfh, id, &pictype) == 0) {
+			v_pictype = -1;
+		} else {
+			v_pictype = pictype;
+		}
+		fhd->vid.ftr_pictype = v_pictype;
+		if (SFH_AnlyFtrFixFlg(sfh, id, &fixflg) == 0) {
+			v_fixflg = -1;
+		} else {
+			v_fixflg = fixflg;
+		}
+		fhd->vid.ftr_fixflg = v_fixflg;
+		if (SFH_AnlyFtrShcFixFlg(sfh, id, &shcfixflg) == 0) {
+			v_shcfixflg = -1;
+		} else {
+			v_shcfixflg = shcfixflg;
+		}
+		fhd->vid.ftr_shcfixflg = v_shcfixflg;
+		if (SFH_AnlyFtrExpand(sfh, id, &expand) == 0) {
+			v_expand = -1;
+		} else {
+			v_expand = expand;
+		}
+		fhd->vid.ftr_expand = v_expand;
+		if (SFH_AnlyFtrGopN(sfh, id, &gopn) == 0) {
+			v_gopn = -1;
+		} else {
+			v_gopn = gopn;
+		}
+		fhd->vid.ftr_gopn = v_gopn;
+		if (SFH_AnlyFtrGopM(sfh, id, &gopm) == 0) {
+			v_gopm = -1;
+		} else {
+			v_gopm = gopm;
+		}
+		fhd->vid.ftr_gopm = v_gopm;
 	}
 	fhd->valid = 1;
 }

@@ -90,33 +90,6 @@ void MPVHDEC_SetMcFunc(Sint32 dc11, Sint32 type, MPV_MCFUNC bi, MPV_MCFUNC bw, M
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}
 
-/* consume the 4 start-code bytes of the chunk (extension / user data headers are not parsed) */
-#define MPVHDEC_SKIP_START_CODE(mpv, sj)                                                       \
-	{                                                                                      \
-		Uint32 *ptr;                                                                   \
-		Sint32 bitpos;                                                                 \
-		Uint8 *q;                                                                      \
-		SJCK rest;                                                                     \
-		MPVBIT_SETPOS((mpv)->ck.data);                                                 \
-		q = (Uint8 *)ptr + ((bitpos + 7) >> 3) + 4;                                    \
-		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
-		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
-		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
-	}
-
-#define MPVHDEC_SKIP_START_CODE_UD(mpv, sj)                                                    \
-	{                                                                                      \
-		Uint32 *ptr;                                                                   \
-		Sint32 bitpos;                                                                 \
-		Uint8 *q;                                                                      \
-		SJCK rest;                                                                     \
-		MPVBIT_SETPOS((mpv)->ck.data);                                                 \
-		mpvhdec_AnalyUd(mpv, (mpv)->ck.data, (mpv)->ck.len);                           \
-		q = (Uint8 *)ptr + ((bitpos + 7) >> 3) + 4;                                    \
-		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
-		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
-		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
-	}
 
 static void mpvhdec_DecSlice(register MPV mpv, SJ sj)
 {
@@ -442,16 +415,14 @@ Sint32 mpvhdec_DecPscSj(register MPV mpv, SJ sj)
 	if (type == 2 || type == 3) {
 		MPVBIT_GET1(mpv->fwd.full_pel);
 		MPVBIT_GET(r_size, 3);
-		r_size--;
-		mpv->fwd.r_size = r_size;
+		mpv->fwd.r_size = --r_size; /* the decrement inside the store: a statement `r_size--` is forward-substituted into the three uses (CRI pass 13) */
 		mpv->fwd.shift = 27 - r_size;
 		mpv->fwd.f = 1 << r_size;
 	}
 	if (type == 3) {
 		MPVBIT_GET1(mpv->bwd.full_pel);
 		MPVBIT_GET(r_size, 3);
-		r_size--;
-		mpv->bwd.r_size = r_size;
+		mpv->bwd.r_size = --r_size; /* the decrement inside the store: a statement `r_size--` is forward-substituted into the three uses (CRI pass 13) */
 		mpv->bwd.shift = 27 - r_size;
 		mpv->bwd.f = 1 << r_size;
 	}
@@ -606,7 +577,48 @@ static Sint32 mpvhdec_GetM2vMode(MPV mpv, Sint8 *data, Sint32 len)
 	return mpv->m2v_mode;
 }
 
-Sint32 MPV_DecodePicAtrSj(MPV mpv, SJ sj)
+/* skip an extension / user data header: consume its 4 start-code bytes and go to the next delimiter.
+ * Inline helpers (not macros) so that their `rest` chunks are first-round inlined aggregates and the
+ * GoNextDelim copies they call are second-round ones, laid out below the loop-top NextDelim's (frame
+ * order own ck/ck2, the two rests, NextDelim's nested chunks, then these; CRI pass 13). The byte
+ * pointer through MPVBIT_BYTEPTR + 12 (its -8 plus the 4 start-code bytes) keeps the target's
+ * `(ptr + n) + 4` association; `+ ((bitpos + 7) >> 3) + 4` is reassociated to `ptr + (n + 4)`. */
+static inline void mpvhdec_SkipExt(MPV mpv, SJ sj)
+{
+	Sint32 bitpos;
+	Uint32 *ptr;
+	Uint8 *q;
+	SJCK rest;
+
+	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
+	MPVBIT_SETPOS(mpv->ck.data);
+	MPVBIT_BYTEPTR(q);
+	q += 12;
+	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
+	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
+	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
+	MPV_GoNextDelimSj(sj);
+}
+
+static inline void mpvhdec_SkipUd(MPV mpv, SJ sj)
+{
+	Sint32 bitpos;
+	Uint32 *ptr;
+	Uint8 *q;
+	SJCK rest;
+
+	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
+	MPVBIT_SETPOS(mpv->ck.data);
+	mpvhdec_AnalyUd(mpv, mpv->ck.data, mpv->ck.len);
+	MPVBIT_BYTEPTR(q);
+	q += 12;
+	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
+	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
+	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
+	MPV_GoNextDelimSj(sj);
+}
+
+Sint32 MPV_DecodePicAtrSj(MPV hn, SJ sj)
 {
 	SJCK ck;
 	SJCK ck2;
@@ -614,7 +626,9 @@ Sint32 MPV_DecodePicAtrSj(MPV mpv, SJ sj)
 	Sint32 len;
 	Sint32 delim;
 	Sint32 ret;
+	MPV mpv;
 
+	mpv = (MPV)(MPV_OBJ *)hn; /* kept copy (explicit cast): mpv r28 above sj r27, CRI pass 12 rule */
 	if (MPVLIB_CheckHn(mpv) != 0) {
 		return MPVERR_SetCode(NULL, 0xFF03020C);
 	}
@@ -652,14 +666,10 @@ Sint32 MPV_DecodePicAtrSj(MPV mpv, SJ sj)
 			mpvhdec_DecPscSj(mpv, sj);
 			break;
 		case MPV_DLM_EXT:
-			SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
-			MPVHDEC_SKIP_START_CODE(mpv, sj);
-			MPV_GoNextDelimSj(sj);
+			mpvhdec_SkipExt(mpv, sj);
 			break;
 		case MPV_DLM_UD:
-			SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
-			MPVHDEC_SKIP_START_CODE_UD(mpv, sj);
-			MPV_GoNextDelimSj(sj);
+			mpvhdec_SkipUd(mpv, sj);
 			break;
 		default:
 			break;
