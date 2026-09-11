@@ -442,7 +442,13 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 void Espgen42_Move00(EspgenWork* w)
 {
     static f32 wt_pow = 10.0f;
-    Espgen42Work* p;
+    // p at the declaration (w's only use): combine folds the parameter copy into `p = (plus r3 20)` AFTER the
+    // function-begin note, so alias.c's base for p is the hard reg r3, which the later `li r3,0`s reset to 0
+    // (unknown). With an unknown base every p-based load conflicts with the frame stores of `v` and the stores
+    // through hA/hB/next: loop B's `lhz nx` for v.z issues after `stfs v.x/v.y` and `lwz pos` after the hB
+    // stores, as in the target. `p = w->work` after the tex call keeps w's pseudo (live across the call), p's
+    // base is then the argument ADDRESS and the loads float above the frame stores (-44 words).
+    Espgen42Work* p = (Espgen42Work*) w->work;
     Vec d0;
     Vec d1;
     Vec v;
@@ -475,9 +481,6 @@ void Espgen42_Move00(EspgenWork* w)
     PPCMtmmcr1(0x78000000);
     PPCMtmmcr0(0x42);
     tex = EspGetTexObj(0xFE, frame);
-    // p is read after the call: a pseudo copied from the incoming r3 before the first call gets alias base r3, which
-    // the later `li r3,0` (return value) turns into base 0, and a base-0 pointer's loads wait for the `stb tmp`.
-    p = (Espgen42Work*) w->work;
     if (tex == NULL) {
         return;
     }
@@ -513,10 +516,13 @@ void Espgen42_Move00(EspgenWork* w)
             k++;
             for (j = 1; j < (int) nx; j++) {
                 int i3 = (i & 3) << 3;   // set before the dead test below, so loop.c still hoists it (maybe_never)
-                // COMPILER-DIFF: candidate (loop.c pass-1 insn_count): dead test, +5 real insns at loop time (gone by
-                // jump2). With 130 (not 125) insns the 0.25 pool pair is "not desirable" in the inner loop (threshold
-                // 71 - 3*13 moves = 32, 32*2*2 = 128 < 130) and the OUTER scan hoists it into its preheader (f17).
-                if (p->mode == 2) c = NULL;
+                // COMPILER-DIFF: candidate (loop.c insn_count): dead test, +3 real insns at loop time (cmpwi/bne/li;
+                // gone by jump2). With 129 (not 126) insns the 0.25 pool pair is "not desirable" in the inner loop
+                // (threshold 71 - 3*13 moves = 32, 32*2*2 = 128 < 129) and the OUTER scan hoists it into its
+                // preheader (f17); window 129..152. The compare reads the k*12 giv (not p->mode): one more use (+3
+                // depth-weighted refs) of loop A's k*12 ranks it above loop B's k*4 in global alloc, so k*4 opens r31
+                // first (target k*4 r31, k*12 r27; with the p->mode compare ours had k r31, k*4 r30).
+                if (k * 12 == 3) c = NULL;
                 // Before the (volatile) psq_l: `lwz pos; add c; add pos+k12` issue before the noise lbzx (target order).
                 Vec* pv = &p->pos[k];   // a pointer variable: `add pos,k12` (operand order); `p->pos[k].y = ..` gives `add k12,pos`
                 // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
@@ -561,6 +567,9 @@ void Espgen42_Move00(EspgenWork* w)
             for (j = 1; j < p->nx; j++) {
                 nz = NOISE_INDEX(j, i);
                 nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
+                // As in loop A: the pos address before the hB/hA stores (p has an unknown alias base, so a `lwz pos`
+                // placed after them would wait for them; the target issues it before the first `stfsx hB[k]`).
+                Vec* pv = &p->pos[k];
                 f32* hA = p->hA;
                 f32* hB = p->hB;
                 c = hA;
@@ -572,7 +581,7 @@ void Espgen42_Move00(EspgenWork* w)
                 hB[k] += sum - hA[k] * 4.0f;
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
                 hB[k] *= 0.92f;
-                p->pos[k].y = n * 0.0018f + hA[k];
+                pv->y = n * 0.0018f + hA[k];
                 Vec* nrm = p->nrm;
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;

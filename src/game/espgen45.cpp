@@ -249,7 +249,11 @@ void Espgen45_Move00(EspgenWork* w)
                 f32 n = PSQ_L_U8(&tmp) - 80.0f;
                 f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 next[k] = damp * sum + cdamp * cur[k] - next[k];
-                pv->y = next[k] = (n * g45_wave_mul + next[k]) * spread;   // the pos address is computed before the store (target `lwz pos` early)
+                // FGet: a reference read is a MEM with neither the struct nor the scalar flag, so it depends on the
+                // `stfsx next[k]` store (next's alias base is 0) and issues right after it like the target's
+                // `lfs g45_wave_mul`; the plain static read is a fixed scalar that never aliases the in-struct store
+                // and floated 6 insns up. The pos address is computed before the store (target `lwz pos` early).
+                pv->y = next[k] = (n * FGet(g45_wave_mul) + next[k]) * spread;
                 Vec* nrm = p->nrm;   // before the v.x/v.z reads: kept across the call (`lfsx nrm[k].x`, `4(nrm+k*12)`)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
@@ -275,6 +279,9 @@ void Espgen45_Move00(EspgenWork* w)
             for (j = 1; j < p->nx; j++) {
                 nz = NOISE_INDEX(j, i);
                 nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
+                // As in loop A: the pos address before the hB/hA stores (p has an unknown alias base, so a `lwz pos`
+                // placed after them would wait for them; the target issues it before the first `stfsx hB[k]`).
+                Vec* pv = &p->pos[k];
                 f32* hA = p->hA;
                 f32* hB = p->hB;
                 c = hA;
@@ -286,7 +293,7 @@ void Espgen45_Move00(EspgenWork* w)
                 hB[k] += sum - hA[k] * 4.0f;
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
                 hB[k] *= 0.92f;
-                p->pos[k].y = n * 0.0018f + hA[k];
+                pv->y = n * 0.0018f + hA[k];
                 Vec* nrm = p->nrm;
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
