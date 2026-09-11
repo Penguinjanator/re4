@@ -1733,3 +1733,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/gcci.c": True,  # per-handle `static inline gcci_ExecOne(GCCI ci)` (over, nbyte, p) + the table loop written twice (gcci_ExecServer(tbl) for gcCiReqRd, gcCiExecServer's own loop): the counter ranks above the induction pointer as an inlined local and below it as an own local, the CANCELED `over` redefinition takes over's register; `sctlen * (over / sctlen)`; pure C, no pins
 })
+
+# DOL sweep 21a (2026-09-11)
+MATCHING.update({
+    "game/sce_sys.cpp": True,  # ScenarioRoomInit: store order only -- the six byte zeros first (cse makes their QImode pseudo before any SImode zero exists; a later word zero's low part would replace it), eventCancel last of the six and pause last of the words (sched1 issues each group's dying store first), the byte group's `li`/stores ranked last by sched2's anti-dependence on the pG load's r9; zero code, the #13 asms removed
+})

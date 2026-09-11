@@ -65,34 +65,29 @@ void ScenarioInit()
 
 void ScenarioRoomInit()
 {
-    cSceSys* s = &SceSys;
-    int zero;
-    // COMPILER-DIFF: #13 (dying-store shape): the word zero is opaque to cse so the six byte zeros below
-    // keep their own QImode pseudo, and the keep-alive after the last store stops sched1 from hoisting
-    // the two dying zero stores (x76, x70) above the others. Left: the target issues `li -1; li 1;
-    // li 0(QI)` where ours ranks the QI zero's li first (6 dependents).
-    asm("li %0,0" : "=r"(zero));
-
-    s->sndFlag = 1;
-    s->cancelFlagNo = -1;
-    s->pause = zero;
-    s->x8 = zero;
-    s->xC = zero;
-    s->x10 = zero;
-    s->x14 = zero;
-    s->cancelFunc = (TaskFunc) zero;
-    s->cancelArg = zero;
-    s->x134 = (ScePrim*) zero;
-    s->x75 = zero;
-    s->x76 = zero;
-    u8 zq = 0;
-    s->eventCancel = zq;
-    s->x6D = zq;
-    s->x6C = zq;
-    s->x6E = zq;
-    s->x6F = zq;
-    s->x70 = zq;
-    asm volatile("" : : "r"(zero), "r"(zq));  // COMPILER-DIFF: #13 (keep-alive)
+    // Store order decides the zero registers and the schedule: the six byte zeros come first, so cse
+    // makes their QImode pseudo before any SImode zero exists (a later word zero's low part would
+    // otherwise replace it), eventCancel is the last use of that pseudo and pause the last use of
+    // the word zero (sched1 issues the dying store of each group first), and the sched2 anti-
+    // dependence of the byte stores on the pG load's r9 ranks their group and its `li` last.
+    SceSys.x6D = 0;
+    SceSys.x6C = 0;
+    SceSys.x6E = 0;
+    SceSys.x6F = 0;
+    SceSys.x70 = 0;
+    SceSys.eventCancel = 0;
+    SceSys.sndFlag = 1;
+    SceSys.cancelFlagNo = -1;
+    SceSys.x8 = 0;
+    SceSys.xC = 0;
+    SceSys.x10 = 0;
+    SceSys.x14 = 0;
+    SceSys.cancelFunc = 0;
+    SceSys.cancelArg = 0;
+    SceSys.x134 = 0;
+    SceSys.x75 = 0;
+    SceSys.x76 = 0;
+    SceSys.pause = 0;
     pGS->flags_51BC &= ~0x80;
     ScenarioTaskAllOff();
     SceInitItemEvent();
@@ -100,7 +95,7 @@ void ScenarioRoomInit()
     if (!(pG->flags_68 & 0x4000000)) {
         SceExecInitCondition();
         RoomData.execInitFunc(pG->room_id);
-        s->scheduler();
+        SceSys.scheduler();
     }
     if (pG->flags_5018 & 0x4000000) {
         SubCharInit(1, &pG->sub_pos, pG->sub_angle);

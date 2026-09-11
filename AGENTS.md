@@ -17996,3 +17996,136 @@ retry in a loop until the target object is newer than its source (`[ x.o -nt x.c
   a store from a call-crossing one gets the TRUE memory dependence (prio 13) and is issued first; ANTI/OUTPUT cost is 1
   on rs6000 (`rs6000_adjust_cost` returns 0, `insn_cost` clamps to 1); `insert_insn_end_bb` puts gcse's recomputation
   before the block-ending jump, after the compare.
+
+### DOL sweep 21a, closest-first (sce_sys Matching 30/30: ScenarioRoomInit 5 -> 0 zero code, the three #13 asms removed; t_bugcheck 2/14/18 and pl_wep PlSetLockPitch 11 mechanisms read, unchanged; 2026-09-11)
+
+Flipped: sce_sys (30/30, sections equal, order OK; 111 OK). Harness ~/.cache/dol21a (dol22a copies with the paths rewritten;
+`tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py`, `order.py`, `pninja.sh`, plus
+`lchash.py` = gcse `(high (symbol_ref "*.LCn"))` bucket model), deleted at the end. The shared `ninja` never settled this pass
+("manifest 'build.ninja' still dirty after 100 tries"); `pninja.sh` built and linked everything.
+
+- **Two zero registers from statement order alone (sce_sys ScenarioRoomInit 5 -> 0, zero code): write the six byte zeros
+  FIRST, the byte whose store must come first among them LAST (eventCancel), then `sndFlag = 1; cancelFlagNo = -1;`, then the
+  word zeros with the word whose store comes first among them LAST (`pause`), x75/x76 anywhere in the word group.** Every
+  literal `= 0` store expands to its own pseudo (`(set (reg:QI) (const_int 0))` for a u8 member, SImode for a word; a `u8` LOCAL
+  is promoted and behaves like an int), and cse merges them by the ORDER in which the constant classes are populated: when a
+  QI zero's set is processed while an SI register already holds 0, `(subreg:QI zsi)` is inserted into the QI const-0 class
+  BEFORE the QI pseudo itself (the `src_related` wider-mode lookup), the store's own src is pruned as "already in the class"
+  (cse.c 7061-7101) and the class walk picks the subreg -> every byte store becomes `stb r0`. With the first QI zero set
+  processed before any SI zero exists, the QI pseudo heads its class; later literal QI zeros join its qty (`insert_regs` ->
+  `make_regs_eqv`) and canonicalise to it, later SI zeros join the SI qty. Then sched1 issues each group's DYING store first
+  (weight -1: a store is not a `register_operand` SET, so stores weigh 0/-1) -- so the store the target issues first in each
+  group (pause = `stw r0,4`, eventCancel = `stb r9,113`) must be the LAST use of its zero in source order, the rest follow in
+  source order. sched2 then ranks the byte group after the word group without any source help: local-alloc gives the pG pointer
+  the byte zero's r9 (dead by then; the old keep-alive asm had kept it live, hence r11), and a store that READS r9 gets only an
+  ANTI link (cost 1) to the `lwz r9,pG` that overwrites it while the r0 stores get the TRUE memory link (cost 2) -- so the six
+  `stb r9` have prio 16 vs 17, and `li r9,0` (17) ranks below `li r10,-1`/`li r11,1` (18) whatever sched1 did. Facts read:
+  `add_dependence` upgrades an existing ANTI link to TRUE (`dep_type < REG_NOTE_KIND`), yet the store reading the register the
+  load overwrites keeps the ANTI kind in the sched2 dump (pl `stb r9,114` -> `lwz r9,pG`: prio 16, all r0 stores 17); a
+  `do {} while (0)` LOOP_BEG note inside a block makes the next insn a full barrier (haifa `loop_notes`: anti links from every
+  earlier insn, `reg_pending_sets_all` for every later one), which is what the pl_wep do-while does; `true_dependence` returns
+  1 for any QImode store (`mem_mode == QImode` aliases everything); in sched1 two different SYMBOL_REF bases never alias
+  (`base_alias_check` "differing symbols"), so `lwz pG` floats above the SceSys stores unless something pins it; after reload
+  the hard-register bases are unknown and the same load depends on every store.
+- **t_bugcheck (2/14/18 unchanged, mechanisms read).** menuPosMove 2: `pl->setAng(&pl->rot)` expands `P = pl + 160; r3 = pl;
+  r4 = P` (last arg first), combine merges the single-use P into the r4 move (at the r4 move's position, after `r3 = pl`),
+  and regmove's `optimize_reg_copy_1` on `r3 = pl` finds pl's REG_DEAD in the addi and substitutes r3. The target has `addi
+  r4,r30,160` BEFORE `mr r3,r30` = P not combined (a second use of P, or `r4 = P` before `r3 = pl`) and tied to r4 by
+  local-alloc; `Vec* pr = &pl->rot`, `&pl->pos + 1`, `(Vec*) &pl->rot.x`: 2 each, block-scoped pp/pr 18, `&pPL->rot` 27.
+  menuLife 18 = the nine hoisted string highs are gcse PRE pseudos numbered in expr-hash BUCKET order (hash of the label
+  NAME "*.LCn" incl. the `*`: h = h*129 + c, plus HIGH(119) + SImode(6) + (SYMBOL_REF(61) << 7), mod `(n_insns/2)|1`), allocated
+  by `int(30000/REG_LIVE_LENGTH)` then allocno number; ours (labels .LC29-37, table 181) reproduces exactly (`lchash.py`
+  calibrated). The target's order [ASHLEY, LIFE MAX, STICK-R, STICK-L, R-TRIG, L-TRIG, LIFE, PLAYER] needs labels 28-36 (one
+  label fewer before menuLife) with table 175/177/179/181/187, or 38-46 with 177/179/183/185; menuPosMove's matched order
+  (strings .LC17-25 after the dead `lc0` label, table 147) is only reproduced jointly with menuLife at strings 26-34 / table
+  151 and menuLife 38-46 / table != 181 -- i.e. the original TU had ~18 header-inline labels before menuPosMove (ours 8:
+  .LC0-1 atari.h cFlag strings + 6 unemitted) AND a larger pre-gcse insn count in both functions. Not applied. menu 14: the
+  clamp `i = i < 0 ? 4 : (i > 4 ? 0 : i)` result is a separate temp (r0) copied into i with `mr. r10,r0`, and case 0's `n`
+  takes r10 (ours r11) -- allocation order, not read further.
+- **pl_wep PlSetLockPitch (11, mechanism read).** The `do { } while (0)` LOOP_BEG makes the body's first insn the sched1
+  barrier: ours `lis m3r` (dest address of `m3r[2] = 0.0f`), the target's the 0.0 pool `lis`. `f32 z = 0.0f` first gives the
+  barrier and, with `m3r[1] = p; m3r[0] = p * z + p; m3r[2] = z;`, the target's store order except that `lfs z` (prio 5 = 2 +
+  fmadds 3) is issued before `lis m3r` (prio 4) where the target issues `lis m3r` first, and `stfs m3r[1]` lands last (p dies
+  at the fmadds, so the store weighs 0 against the -1 of the z/result stores). The target's `lis m3r` needs prio >= 5 = a
+  dependence chain through the m3r stores: output dependences between `(mem (plus lm N))` and `(mem (lo_sum hm m3r))` exist
+  only when `lm` has no `REG_EQUAL (symbol m3r)` (canon_rtx then cannot resolve it and `memrefs_conflict_p` returns 1) -- the
+  original's m3r base pointer was not the elf_low of the array (a pointer variable set more than once, or a parameter).
+  All six `z`/statement permutations: 11-13.
+- **em_sub EmYarareDisp (1, read).** The plain `mr r11,r0` of the flags copy is `u16 flags = p->flags; u16 fl = flags;` (same
+  type -> a plain SET, no `(zero_extend (subreg:HI))`; combine does not drop the extension of an int copy although the load's
+  nonzero bits are 0xFFFF), but with both u16 cse's `make_regs_eqv` makes the longer-lived `fl` the qty head and rewrites the
+  first test to it (8 words); the target tests the load register first and `fl` only after the EmIsDead labels. Left at 1.
+- Not iterated: pl_wep searchLockEm/PlWepAutoTrack/PlWepLockCtrl/PlWepHitCheck2 (+ .rodata 0x350 vs 0x290), espgen45 (order:
+  ours emits an extra `SetWater__FP3VecT0fUlUlf`), Espgen42, em_sub (the other 9), debug, act_btn (8/10 now).
+
+### Tool RELs, bytes-first pass 16 (t_sce/t_block Matching 31/31 -> flipped, t_sce.rel byte-identical; t_movie/t_se_at seAtAreaEdit_DataInput 170 -> 58; t_esp_area/t_lightarea/t_camera_data/snd_test read; 2026-09-11)
+
+- Harness ~/.cache/tools_p16 (deleted at the end): tesp6's module-aware scripts with the paths rewritten (`mtryv.py MOD/UNIT SYM
+  V.py [--apply N] [--src ABS]`, `mdump.py MOD/UNIT -dX [--src ABS]` -- give `--src` an ABSOLUTE path, `msbs.sh`, `mcmp.py`,
+  `order.py`, `prio.py`), `lcount.sh` (loop.c insn counts of every mtryv variant), `mkrel.py MOD [split.o=ours.o] --verify`
+  (relinks the module with one object substituted into ~/.cache/tools_p16/rel/ and runs make_rel.py --verify against the
+  original REL -- the flip check without touching build/), and rtl2.py fixed to list `insn/i` (inlined) insns. While other
+  agents run `ninja`, build single objects with `cp build.ninja /tmp/x.ninja && ninja -f /tmp/x.ninja <obj>` (the pass-15 recipe).
+- **tBlockSaveDataCreate (t_block, 38 -> 0, zero code): `u32 linkSize = nBlock * sizeof(BlockLink);` declared and computed AFTER
+  the area loop (with the header writes), not before the memcpy.** Both pass-15 residues fall out of it: (1) the tail's
+  `nBlock * 12` is fully redundant with the memcpy-size pseudo, so gcse deletes it and re-inserts `R = nBlock*12` at the END of
+  the pre-loop block; cse2 turns that into the copy `mr r26,r30` (both live: the pLink advance still reads r30) and sched1
+  issues the copy right after `bl memcpy` (its LUID precedes loop.c's later preheader inits, equal priority); (2) `linkSize + 24`
+  now has its operand SET in the tail block, so it is not locally anticipatable and the block-based LCM cannot insert it into
+  the loop. Read the block-based PRE (lcm.c pre_lcm) before guessing: `latein[bb] = delayin[bb]` for every block but the last
+  (the `& ~delayin(succ)` term is applied to the last block only), `delayin` is an intersection over predecessors that starts
+  at 0, so a block with a back-edge predecessor (an INNER loop header, t_block's 24-byte copy loop bb 8) never becomes
+  delayed and breaks the delay chain: everything upstream on the chain is "latest" and `optimal = latein & ~isoout` then
+  selects the blocks whose successors lost isolatedness -- that is how a single post-loop occurrence gets recomputed at the
+  end of two loop blocks (t_block bb 6/7). Conversely a post-loop expression whose operand is set in the block right before a
+  single-block loop stays put (t_esp_area, below).
+- **tBlockArea_disp (t_block, 2 -> 0, 3 tagged dead sets): the area loop needs EXACTLY 5 more real insns at loop.c time** (pass
+  1: 72 vs 67, so `71 * savings * lifetime >= insn_count` fails and BIT_ON's `lis 0x80000000` stays in the loop; pass 2: 71,
+  moved, hence AFTER the pass-1 giv init `li r30,1504` in LUID). E must be 5: pass 1 needs >= 72 and pass 2 (65 + E + 1) <= 71.
+  The same "+5" appears in both t_id loops of pass 12 -- a common construct, still unidentified. Written as case 3 in the
+  case-2 style (`col = 0x00808080; if (..) { col = 0x00FF8080; disp(i, col); }` = 2 dead sets after cse folds the argument)
+  plus three dead `col = 7/6/7;` after the switch, tagged `COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)`. Facts:
+  cse1 DELETES a set of a register to the value it already holds on the path (`col = K` at the body top then `col = K` in a
+  case arm: the arm's set vanishes and the code changes), so dead-set fillers must differ from the reaching value; a
+  `default:` arm with N sets costs N + 1 insns (its own jump to the end); a repeated `if (c)` test on the same operands is
+  folded by cse1's `qty_comparison_code` (only +2 from its sets); a `for (;;)`-style nested repeat test is not a lever. A
+  signed `n / 32` in bitOn (int parameter) gives exactly +5 and the target's preheader but leaves a `mr` + 4-bit rlwinm from
+  the incomplete `(n + (n >> 31 >>> 27))` folding (24 words): the division sequence is the right SIZE, not the right code.
+- **seAtAreaEdit_DataInput (t_se_at, 170 -> 58, zero code): (1) per-arm `int v, n;` in cases 1, 2a, 2b, 3, 4 (block-local
+  qtys: local-alloc ties n to the dying v -> `cmpw r11,r0; li r11,0; ori r11,r11,0x8000` without the `mr`, the pass-15
+  seAtAreaEdit lesson), while case 0 keeps the FUNCTION-scope pair (its `mr r0,r11` copy is a global pseudo); (2) ONE `u8 col`
+  for both halves (the pass-15 `int col2` was wrong: the tail's colour is in the same callee-saved r29 as the first half's
+  because the pseudo crosses the name loop's calls, and its zero feeds the three `stb r29` SUB_RESET stores); (3) a separate
+  `u32 k` counter for the trailing flags loop (i shared by the case-5 loop and the tail put i above y in global-alloc
+  priority: with two counters y takes r31 and i r28 like the target). Left 58: col r28/oy r29 vs the target's r29/r31 (col
+  must be allocated before oy: equal `floor(log2 refs) * refs / len` -> allocno order 83 < 90; ours has col len 76 vs oy 68),
+  the #2 masks `clrlwi r5,r29,24` in the name loop and the PRE-shared `clrlwi r5,r29,24; mr r29,r5` extension in the tail
+  (`int c = col; asm("" : "+r"(c)); (u8) c` keeps the loop mask, `asm("" : "+r"(col))` on the u8 itself does not, neither
+  fixes the allocation order), and the `lis seAtWk` / `li col,0` LUID swap at 0x9c.
+- **ToolEspArea / ToolLightAreaMain (442 / 395, read; `CreateEditWindow` rewritten with a `cDbgEditWindow<T>* edit` local like
+  the other Create* helpers -- same bytes).** The target's `cmpwi r31,0` (edit == 0) sits among the inlined ctor's last zero
+  stores BEFORE the AddButton loop with the CR kept in `mfcr r29`/`mtcrf 128,r29` across it. By pre_lcm this needs the block
+  ending at the loop head to be TRANSPARENT for the compare, i.e. a basic-block boundary between `mr r31,r3` (the `new`
+  result) and the ctor stores; ours has `new`, `mr`, strlen, the stores and the loop entry test in ONE block (bb 13) so the
+  compare stays in the tail (T is its own optimal point). `-fcheck-new` gives the boundary but two compares and a `beq`;
+  `-fexceptions` (SN's cc1plus defaults flag_exceptions to 0 in cp/lex.c lang_init_options -- the pass-2 "-fno-exceptions
+  changes nothing" probe proved nothing) gives exactly the `mfcr` shape because calls inside an EH region end blocks, but also
+  `__get_eh_context` and `__builtin_delete` landing pads the target does not have. The construct that leaves a used label or
+  jump between the `new` and the ctor body with no bytes was not found. The `_._`/AddButton 2-word diffs of both units are
+  `_vt.` reloc naming only.
+- **tcSetBesideOffset (t_camera_data, 27, read):** pointer locals for `&c->roll[n]`/`&c->fovy[n]` re-base the n*4 giv on
+  812 (55), `f32 r/f` value temps 42, `int k = n * 12` byte offsets 27 (identical RTL). The n*12 giv (regno 207) must beat the
+  n*4 giv (209) in global-alloc priority; equal REG_LIVE_LENGTH would do it (allocno order), but the preheader `li 396` /
+  `li 0` order is fixed by the giv reduction order AND by sched1's LUID tie, so n*12 is always born one insn earlier (84 vs
+  82). Not closed.
+- **snd_test disp_sequencer (64, read): the 4-byte `.rodata` word `.4byte Snd_voice_work` between "%3d" and "- WTREGION - "
+  is the unit's .rodata size difference (0x1004/0x1000) and shifts every later string (the 2-3 word "diffs" of cursor_disp,
+  load_select, Snd_test_disp_aux, ...).** It is loaded as `lis; addi; lwz r9,0(r11)` in the seq_note_count loop preheader
+  (a hoisted invariant load, not a `lwz @l`). `static T* const p = Snd_voice_work` (local or file scope), a 1-element const
+  pointer array and a const struct are all folded away or (volatile) put in .data by our compiler; reload's
+  `reg_equiv_memory_loc = force_const_mem` path applies only to non-LEGITIMATE constants (CONST_DOUBLE), not symbols. Source
+  of the pooled address not found. test_play_or_stop (2): the target re-reads `w->reqCur` (`lhz r4,32(r31)`) after the inner
+  `Snd_test_get_str_name` call instead of keeping it in r30 (a REG_EQUIV mem re-read across a call, or a MEM argument left
+  unpromoted until load_register_parameters); not iterated.
+- t_movie/t_snd_vol (21/27): the six residues are 104-812 words with .text size differences up to 0x5d0 (edit_reverb_param,
+  file_save, combine_tbl_edit) -- structural rewrites, not tie-breaks; not started this pass.
