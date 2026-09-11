@@ -1787,3 +1787,8 @@ MATCHING.update({
 MATCHING.update({
     "game/shadow.cpp": True,  # make_comn_fit/parallel_light: `register u32 k asm("r11")` defined by a codeless asm fed by the 1.0 pool value and killed by a `"=m"(pos.x)` asm -- r11 is live between the 1.0 `lfs` and the conversion's `lfd`, so the fpmem loadaddr qty (ranked above the 1.0 high in local-alloc) cannot take r11 and the 1.0 high does (COMPILER-DIFF: 13)
 })
+
+# pendulum closer (2026-09-11)
+MATCHING.update({
+    "game/pendulum.cpp": True,  # PenClothMove/Move2/Move3: the final-loop AtCk diamond needs the jump2 cross-jump the other way round (AtCk tails merged, Border tails kept) -- codeless `asm("" : "+r"(hit))` anchors after each penClothAtCk call and after the if-arm's join, one macro line so rtx_renumbered_equal_p matches them; Move loop 2: `asm("" : "+f"(ang))` launder after `ang = 1.0f` keeps the `+ 1.0f` pool loads (loop.c combines the two into the preheader's fresh-high `lis r9; lfs f30`), and r5/r3/r4 argument pins + `asm("mr")` copy into `register Vec* pv asm("r28")` for the `addi r5,r1,0x38; mr r28,r5` PSVECSubtract shape (#3 frame-address PRE); tagged COMPILER-DIFF
+})

@@ -50,6 +50,35 @@ static inline void penWindScale(Vec* wind, f32 rate)
 #define PEN_AT_CK(c, p0, p1, at) \
     (((c)->flags & 0x80) ? penClothAtCkBorder(p0, p1, at) : penClothAtCk(p0, p1, at))
 
+// COMPILER-DIFF: codeless anchors (see AGENTS.md "DOL pendulum closer pass 2"). The final loop's
+// `if (uw) hit = PEN_AT_CK(..&uw->pos..); else hit = PEN_AT_CK(..&parts->worldPos..);` diamond is
+// cross-jumped by the original the other way round from ours: the two penClothAtCk tails are merged
+// (`b` into the else arm's `mr r5; bl penClothAtCk`) and both penClothAtCkBorder tails are kept. jump2
+// only produces that when (1) a real insn follows the if arm's inner join so its Border jump is not
+// tensioned to the outer join before the AtCk jump has been cross-jumped, and (2) a real insn follows
+// each penClothAtCk call so find_basic_blocks does not put its `(use 0)` nop between the call and the
+// label. Empty `asm("" : "+r"(hit))` statements are such insns and emit nothing; they must all come
+// from one source line because find_cross_jump compares the asms' line numbers, hence the macro.
+#define PEN_ANCHOR(v) asm("" : "+r"(v))
+#define PEN_AT_CK_DIAMOND(c, w, uw, parts, at, hit)                                       \
+    if (uw) {                                                                             \
+        if ((c)->flags & 0x80) {                                                          \
+            hit = penClothAtCkBorder(&(w)->pos, &(uw)->pos, at);                          \
+        } else {                                                                          \
+            hit = penClothAtCk(&(w)->pos, &(uw)->pos, at);                                \
+            PEN_ANCHOR(hit);                                                              \
+        }                                                                                 \
+        PEN_ANCHOR(hit);                                                                  \
+    } else {                                                                              \
+        if ((c)->flags & 0x80) {                                                          \
+            hit = penClothAtCkBorder(&(w)->pos, &(parts)->worldPos, at);                  \
+        } else {                                                                          \
+            hit = penClothAtCk(&(w)->pos, &(parts)->worldPos, at);                        \
+            PEN_ANCHOR(hit);                                                              \
+            PEN_ANCHOR(hit);                                                              \
+        }                                                                                 \
+    }
+
 // Keep the link end above the floor; a link that landed exactly under its upper neighbour is
 // jittered so the constraint solver gets a direction. A do-while body: its loop notes put the
 // `w` references inside at loop depth + 1, which is what ranks `w` (r31) above the PRE'd &v
@@ -282,21 +311,38 @@ void PenClothMove(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((c->flags & 0x200) && c->x30) {
-                PSVECSubtract(&w->pos, &mpos, &v);
+                // COMPILER-DIFF: register pins + address-copy asm (see AGENTS.md "DOL pendulum closer
+                // pass 2"). The original computes this call's `&v` straight into r5 and copies it to the
+                // callee-saved `&v` pseudo before the call (`addi r5,r1,0x38; mr r3; mr r4; mr r28,r5`):
+                // the #3 frame-address PRE family. Ours keeps a pseudo for the argument (`addi r30; mr
+                // r5,r30`) and copies after the call. The three argument pins fix the argument moves, the
+                // asm copies r5 into pv (pinned to the pseudo's r28); its r3/r4 inputs put it after the
+                // last argument move in sched2, and the pin order (r5, r3, r4) is the target's issue order.
+                register Vec* pa asm("r5") = &v;
+                register Vec* pw asm("r3") = &w->pos;
+                register Vec* pm asm("r4") = &mpos;
+                register Vec* pv asm("r28");
+                asm("mr %0,%1" : "=r"(pv) : "r"(pa), "r"(pm), "r"(pw));
+                PSVECSubtract(pw, pm, pa);
                 v.y = 0.0f;
                 if (v.x != 0.0f && v.z != 0.0f) {
-                    PSVECNormalize(&v, &v);
-                    PSVECScale(&v, &v, spdLen);
+                    PSVECNormalize(pv, pv);
+                    PSVECScale(pv, pv, spdLen);
                     ang = 1.0f;
+                    // COMPILER-DIFF: launder (see AGENTS.md "DOL pendulum closer pass 2"). Hides ang == 1.0
+                    // from cse1 so the `+ 1.0f` below stays a pool load: with the wind block's `+ 1.0f` it
+                    // is then loop.c's combined (savings 2) constant movable, re-emitted in the preheader
+                    // through emit_move_insn with a fresh high (`lis r9; lfs f30`), which is the original.
+                    asm("" : "+f"(ang));
                     if (c->x2C) {
                         ang = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
-                        PSVECScale(&v, &v, ang);
+                        PSVECScale(pv, pv, ang);
                     }
                     if (c->x30) {
-                        PSVECScale(&v, &v, ang);
-                        PSVECScale(&v, &v, c->x30[i]);
+                        PSVECScale(pv, pv, ang);
+                        PSVECScale(pv, pv, c->x30[i]);
                     }
-                    PSVECAdd(&w->pos, &v, &w->pos);
+                    PSVECAdd(&w->pos, pv, &w->pos);
                 }
             }
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
@@ -436,11 +482,7 @@ void PenClothMove(cModel* m, PenCloth* c)
             PSVECScale(&v, &v, w->len);
             PSVECAdd(&parts->worldPos, &v, &w->pos);
         }
-        if (uw) {
-            hit = PEN_AT_CK(c, &w->pos, &uw->pos, at);
-        } else {
-            hit = PEN_AT_CK(c, &w->pos, &parts->worldPos, at);
-        }
+        PEN_AT_CK_DIAMOND(c, w, uw, parts, at, hit);
         if (hit) {
             w->hit |= 1;
         }
@@ -703,11 +745,7 @@ void PenClothMove2(cModel* m, PenCloth* c)
             PSVECScale(&v, &v, w->len);
             PSVECAdd(&parts->worldPos, &v, &w->pos);
         }
-        if (uw) {
-            hit = PEN_AT_CK(c, &w->pos, &uw->pos, at);
-        } else {
-            hit = PEN_AT_CK(c, &w->pos, &parts->worldPos, at);
-        }
+        PEN_AT_CK_DIAMOND(c, w, uw, parts, at, hit);
         if (hit) {
             w->hit |= 1;
         }
@@ -1013,11 +1051,7 @@ void PenClothMove3(cModel* m, PenCloth* c)
             PSVECScale(&v, &v, w->len);
             PSVECAdd(&parts->worldPos, &v, &w->pos);
         }
-        if (uw) {
-            hit = PEN_AT_CK(c, &w->pos, &uw->pos, at);
-        } else {
-            hit = PEN_AT_CK(c, &w->pos, &parts->worldPos, at);
-        }
+        PEN_AT_CK_DIAMOND(c, w, uw, parts, at, hit);
         if (hit) {
             w->hit |= 1;
         }

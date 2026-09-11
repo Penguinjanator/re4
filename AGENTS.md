@@ -21570,3 +21570,125 @@ the tags can be hunted later.
   order)`: all four constants now in the target's registers; the str/len zero stores are still issued third/sixth where the target has
   them last after the vptr store -- the zero's stores follow its `li` by haifa's last-scheduled-insn class rule; a live-out zero
   (asm keep-alive after the `new`) gives 14). fn_t_esp_3DE4C 24 (the shared cDbgToolMain ctor, another owner).
+
+### DOL pendulum closer pass 2 (game/pendulum 9 -> 12/12 IDENTICAL, flipped: PenClothMove2 7 -> 0, PenClothMove3 7 -> 0 (codeless anchors), PenClothMove 137 -> 0 (anchors + one launder + register pins with an address-copy asm); 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_pend2 (dol27a copies: `tryv.py game/pendulum FUNC v/X.py`, `dump.sh game/pendulum -dJ -dS -dL -dG ...`,
+`fdis.py OBJ SYM LO HI` (function-relative offsets), `fn.sh`; deleted at the end). All three items below are tagged
+`// COMPILER-DIFF:` in src/game/pendulum.cpp; the mechanisms were read off the RTL dumps and each form was predicted
+before it was built.
+
+- **The final-loop `if (uw) hit = PEN_AT_CK(..&uw->pos..) else hit = PEN_AT_CK(..&parts->worldPos..)` diamond (Move2/Move3
+  7 -> 0, Move 137 -> 130): `PEN_AT_CK_DIAMOND` macro with four codeless `asm("" : "+r"(hit))` anchors.** Read off jump2
+  (`-dJ`, sched2 `-dS`): four simplejumps/tails to the outer join END: J1 = if-arm Border `b`, J2 = if-arm AtCk `b` (after
+  the inner join), J3 = else-arm Border `b`, F = else-arm AtCk fall-through. Ours: jump_chain[END] = J3 -> J2 -> J1, J1 is
+  processed first (insn order), `find_cross_jump (J1, END, 1)` fails because find_basic_blocks put a `(use (const_int 0))` nop
+  after F's call (a call directly followed by a label gets the nop; CALL_INSN vs INSN -> break), then J1 matches J3 in the
+  chain with minimum 2 (`mr r5,r18; bl Border`) -> the Border tails merge; J2's fall-through match fails on the same nop.
+  The target keeps both Border calls and merges J2 into F (`b` to F's `mr r5,r18; bl penClothAtCk`). The only sequence of
+  jump2 events that gives that: (1) a real emit-nothing insn Y' directly after the if-arm's AtCk call (no label follows the
+  call, so no nop) and a real insn X' after the if-arm's inner join (J1 keeps jumping to the inner label: follow_jumps stops
+  at a non-USE insn, so J1 is NOT tensioned to END in round 1 and never sees J3 in a chain); (2) the else-arm's AtCk arm
+  ends with two real emit-nothing insns Y, X (again no nop after the call; its inner join label merges with END so J3 ->
+  END). Round 1: J2 vs END matches X' == X, stops at the inner label (`--minimum`), cross-jumps J2 to a NEW label before X.
+  Round 2: J1 is tensioned through J2 to that label (chain there = J1, J2 only: no Border partner), J2 vs the new label now
+  matches Y' == Y, `bl AtCk` == `bl AtCk`, `mr r5,r18` and cross-jumps into F's tail; J3 -> END has no partner (END's
+  predecessor is X). find_cross_jump compares ASM_OPERANDS with rtx_renumbered_equal_p, whose generic loop compares the
+  asm's SOURCE LINE ('i' field): all four anchors must come from ONE source line, hence one macro (continuation lines
+  preprocess to one line). `asm("" : "=m"(hit))` (the earlier idea) forces hit into memory (126); a single asm after either
+  or both arms' ternary (55, all three shapes) reproduces the jump2 theory exactly: nothing is cross-jumped.
+- **Move loop 2's `sinf(..) + 1.0f` constant (130 -> 175 words but the shape right; the 45 are the size shift of the item
+  below): `asm("" : "+f"(ang))` right after `ang = 1.0f`.** The target's preheader `lis r9,0x8c@ha; lfs f30,0x8c@l(r9)`
+  used by both `+ 1.0f` sites is loop.c: scan_loop takes a movable's `REG_EQUAL (const_double)` as its source with
+  `move_insn = 1`, and move_movables then re-EMITS the constant through emit_move_insn in the preheader (movsf ->
+  force_const_mem -> a fresh `(high .LC)` pseudo, single use -> `lis r9` by the equiv-move / local-alloc), never the gcse
+  REACH high (r17, which is left with the loop's `ang = 1.0f` as its only use: that is the r17/r22 swap). One such load is
+  "savings 1 not desirable" (threshold * savings * lifetime = 62 < 245 insns, `-dL`); the two sites are rtx_equal_p
+  const_doubles, combine_movables adds their savings/lifetimes (2 * 2 * 62 >= 245) and one f30 comes out. Ours had only
+  site 2 because cse1 folded site 1's pool load into `ang` (fold_rtx reads the pool through LO_SUM: ang == 1.0 in the
+  extended block); the launder hides that, costs no code, and both loads survive to loop.c. `asm("" : "=m"(v.y) :
+  "f"(ang))` does not (130): the equivalence must be broken on ang itself. SN's rs6000.c `easy_fp_constant` returns 0 for
+  every SF/DF constant ("SN-Phil"), so no `(set K (const_double))` ever exists here; the REG_EQUAL route is the one.
+- **`PSVECSubtract(&w->pos, &mpos, &v)`: `addi r5,r1,0x38; mr r3,r25; mr r4,r22; mr r28,r5; bl` (175 -> 0).** Ours:
+  `addi r30,r1,0x38; mr r3; mr r4; mr r5,r30; bl; mr r28,r30`. In ours the argument pseudo (236 = fp+56, made by
+  precompute_register_parameters: PLUS costs 4 > 2) is cse1's `&v` for the whole loop-2 EBB (Normalize/Scale/Add use it
+  too), gcse inserts REACH `1331 = fp+56` at the END of the block (before the `beq`, i.e. after the call), cse2 makes it
+  `1331 = 236`, sched1 hoists that copy above the call but 236 is still live across the call, so it cannot take r5. The
+  target's `mr r28,r5` before the call with the argument computed into r5 is what reload_cse_regs makes of a `1331 = fp+56`
+  that sched1 hoisted next to an `r5 = fp+56` (fp+56 already in r5 -> register copy); i.e. the original's argument had no
+  surviving pseudo -- the #3 frame-address PRE family ("no `addi rX,r1,N; mr rY,rX` anywhere in the original"), still not
+  reproduced from plain C. Tagged form: `register Vec* pa asm("r5") = &v; register Vec* pw asm("r3") = &w->pos; register
+  Vec* pm asm("r4") = &mpos; register Vec* pv asm("r28"); asm("mr %0,%1" : "=r"(pv) : "r"(pa), "r"(pm), "r"(pw));
+  PSVECSubtract(pw, pm, pa);` and pv for the later `&v` uses of the block. Facts: with pv unpinned 212 (r28 goes
+  elsewhere); pinned, the asm with only the r5 input is issued before `mr r4` (2 words) -- the arg moves feed the call, the
+  asm feeds nothing, so its earlier LUID wins the tie; the r3/r4 inputs make the moves its predecessors and put it last
+  (2 words with r4 before r3: the pins' declaration order is the arg moves' LUID order; declare r5, r3, r4).
+- Left/not attempted: nothing in the unit. Rule of thumb from this pass: when jump2 cross-jumps the wrong pair of a
+  4-tail diamond, list the jumps in insn order with their labels and the `(use 0)` nops after label-followed calls, and
+  walk find_cross_jump/follow_jumps round by round -- the required insn placement falls out, and codeless asms on one
+  source line are legal "real insns" for it.
+
+### Tool RELs closer: snd_test/t_camera_data/t_esp_area/t_lightarea (t_movie/snd_test 73 -> 75/77, 206 -> 140 words: test_play_or_stop 2 -> 0, snd_test_disp_rit 28 -> 0, disp_sequencer 64 -> 28; t_camera_data / t_esp_area / t_lightarea unchanged, dbg_tool.h untouched; nothing flipped; 111 OK; 2026-09-11)
+
+- Harness ~/.cache/tools_fin (deleted): `mtry.py MOD/UNIT [FUNC] [--src ABS] [--dump '-dX'] ` (build.ninja edge parsed after joining `$\n`,
+  judged with `OBJ=... bytecmp.py`; `INC=dir` prepends an include dir for header-copy experiments; `--dump` runs ngccc.py through a wrapper
+  that keeps the temp dir, so the RTL dumps land in `dump/`), `fd.sh MOD/UNIT SYM` (side-by-side objdump of the split object vs the harness
+  object; fdiff.py ignores `OBJ=`), `hvar.py NAME OLD NEW` (dbg_tool.h variants for `INC=`).
+- **test_play_or_stop 2 -> 0 (tagged `COMPILER-DIFF: asm-emitted dead load`).** `asm volatile("lhz 4,%0" : : "m"(w->reqCur) : "r4");`
+  before the inner call written into a local (`char* name = Snd_test_get_str_name(blk); Snd_str_prepare(blk, w->reqCur, name, -1)`). The
+  local alone is 21 words (the arg moves after the call are fine, the dead `lhz r4` before it is what the 2 words were); no C form gives a
+  load into a hard register that a call then kills -- `precompute_register_parameters` converts a promoted MEM arg into a pseudo before
+  the nested call, and a `(mem:HI)` arg would only stay a MEM for a HImode (struct-typed) parameter, which gives ONE load after the call.
+- **snd_test_disp_rit 28 -> 0: the `li r4,84; addi r4,r4,84` MONOPOLY y (tagged `#13 (rematerialised REG_EQUIV constant)`) + a
+  block-0 tie fixed by ONE `blk->shd` load.** (1) `int half = 42; int k = half + half;` at the function top and
+  `asm("addi %0,%0,84" : "=r"(y) : "0"(k))` at the row. Mechanism (local-alloc.c update_equiv_regs): cse folds `half + half` and leaves a
+  REG_EQUAL 84 note (a literal `k = 84` has NONE, so it never becomes REG_EQUIV); the note becomes REG_EQUIV, REG_N_REFS == 2 and
+  REG_BASIC_BLOCK < 0 set `reg_equiv_replace`; at the use `validate_replace_rtx (k -> 84)` FAILS only for an asm whose constraint rejects a
+  constant (a plain `(plus k 84)` is folded to 168 by plus_constant), so the init is MOVED in front of the use (`depth == 0` branch) and
+  local-alloc ties the "0"-constrained input to the output: `li r4,84; addi r4,r4,84`. gcse's cprop does not fold it for the same
+  constraint reason. (2) The 15 remaining block-0 words (Snd_str_blk high r8/r10, &blkNo r9/r8, reqCur r10/r11, blk r11/r9 rotated)
+  came from `blk->shd + ((u32*) blk->shd)[..]`: two loads of the same field that cse merges but whose qty birth differs; `u8* base =
+  blk->shd; shd = base + ((u32*) base)[rit->shd_no]` gives the target's ties (0 words). Rule: a whole block of caller-saved temporaries
+  "rotated by one" with identical code = one field read twice in the source where the original read it once.
+- **disp_sequencer 64 -> 28 (one structural item + tagged `#13 (asm-emitted constant + keep-alive)`).** (1) STRUCTURAL: the channel label
+  is `eprintf2(6, 13, x, 0x54, 0, 1, "%03d", ch + 1)` -- the target passes r10 = `addi r10,r30,1` and keeps it as the loop's next ch
+  (`mr r26,r10` .. `mr r30,r26`); with `ch` the increment is a plain `addi r27,r30,1`. (2) The PAN y `li r9,84; addi r27,r9,84` sits at
+  the TOP of the join block after the `D` diamond (a loop-body computation, not hoisted): `asm("li %0,84" : "=r"(k) : "r"(ch)); y = k +
+  0x54; asm("" : : "r"(y));` right after the `if`. The "r"(ch) input keeps loop.c from hoisting the asm (an input-free asm is invariant
+  and lands in the outer preheader as `li r9,84` after the header eprintfs; a "m" input pins it behind the previous call so it lands at
+  its use); the keep-alive gives `addi y` an in-block dependent, otherwise sched1 issues `li k` after the voices `lwz` and k/voices
+  cannot share r9 (28 -> 39). Rejected: k set in both arms of the diamond (a global r6, the arms' `li`s are not cross-jumped because
+  sched1 hoists the free `li` above the call), the REG_EQUIV moved-init recipe (the use is hoisted into block 0 by loop.c -> same block
+  as the set, no move), "=m" keep-alives (48-120). Left (28): the two spilled row pointers (`addi r9,r28,0x31aa; stw r9,8(r1)` and
+  0x31ba) are issued one header eprintf too early in ours (sched1 slot choice among 14 free `addi`s), and `addi r27,r9,84` is one slot
+  early (the keep-alive is a barrier: target `li r9; lis r11; li r0,64; addi r27`).
+- **tcSetBesideOffset 27 (t_camera_data) read, not closed: it is NOT "the n*12 giv first" but "157 (loop 2's i+1) must take r31".**
+  Ours: 209 (n*4 giv) 9 refs/82 insns beats 207 (n*12+0x18c giv) 9/84 (same refs, 207's init is emitted first -- the outer-loop
+  re-reduction of the inner loop's preheader givs is in list order, last-discovered first), 209 takes r3 in find_reg pass 1 (pass 0
+  excludes r3 because c (84) has a copy preference for it from `mr r28,r3`, and r31 is never in regs_used_so_far), 207 takes r31. The
+  target's whole permutation (loop 1 r3/r31 swapped, loop 2 shifted by one) follows from ONE fact: 157 = `i+1` of loop 2 (allocated
+  before 209/207) got r31, which puts r31 into regs_used_so_far so 209 takes it in pass 0 and 207 gets r3 in pass 1. 157 takes r31 only
+  if r3 is unavailable to it in pass 1 = a hard-reg conflict. Tried: `asm("" : : : "r31")` in block 0 (no effect: flow never marks the
+  frame-pointer regno ever-live before reload, so r31 cannot enter regs_used_so_far), swapping the pos/at and roll/fovy statements
+  (right allocation, wrong `li` order and body order: the init order and the schedule order move together), `register QfpsOfs* rr
+  asm("r3") = ready[i]` (r3 conflicts everywhere in loop 2: 32), `asm("" : : : "r3")` at the loop-2 body bottom (157 -> r31 and the
+  ready row -> r3 as the target, but the clobber also kills c's r3 copy preference, so loop 1's j*44 giv takes r3 in pass 0: 27).
+  Open: a codeless r3 conflict for 157 that leaves c's preference intact (r3 live where c is not: c is live everywhere in loop 2).
+- **ToolEspArea / ToolLightAreaMain CreateEditWindow boundary (438/393, not applied).** The `cmpwi r31,0` placement is lcm.c's
+  block-based PRE: `earlyout[S] = ~transp[S] | (earlyin - antin)` makes the compare earliest at the exit of the block that sets
+  `edit`; with the loop header as S's direct successor `delayin[header]` is 1 (antin & earlyin) and the delay runs to the exit block
+  (no insertion, ours); ANY block boundary between the `mr r31,r3` and the loop header gives `latein` at that block (its successor,
+  the loop header, has `delayin` 0 through the zero-initialised back edge) -> insertion at its end = the target. The dead test `if
+  (pTop) i = 0;` in place of the `do {} while (0)` reproduces the structure (t_esp_area 438 -> 427, size 0x1c4c vs 0x1c50 still one
+  word short; t_lightarea 393 -> 488 words but .text size EXACT, so its six small-function "diffs" (cutBuffer, LocalUpdate,
+  execCopyWindow, fn_2F2D8, fn_30410 24/59) are address artefacts of ToolLightAreaMain's size and vanish; t_event SubToolMessInit 145
+  -> 157). Remaining in the ctor: (a) `rows`(5)/`n`(32): the target hoists `li r29,5` above strlen and keeps `li r11,32` after, ours
+  the reverse -- the two `li`s are CreateEditWindow's inlined PARAMETER setup (cse folds the ctor's copies into them), sched1 issues the
+  lower LUID (n, the 5th parameter) into the free slot before the call; swapping the ctor's parameter order changes nothing, swapping
+  CreateEditWindow's (`u32 nRows, u32 n`, call sites `(.., 5, ESP_AREA_MAX)`) fixes it (424) but needs t_event's call site too (not
+  ours). (b) The zero: target `li r0,0` once after strlen for BOTH halves (so the zero pseudo does span the boundary and is a global
+  allocno that got r0), `one` r9, `n` r11; ours zero r8 because local-alloc gives `one` r0 first. `register u32 z asm("r0")` in the
+  ctor is IGNORED (the RTL shows a pseudo: the asm register name of a local is dropped when the TEMPLATE member is instantiated), an
+  asm-emitted zero (`asm("li %0,0" : "=r"(z) : "m"(x))`) is the same global pseudo (r8). Do not retry: dead tests `i = rows/n/wx/7/1`
+  (identical to `i = 0`), `x = 0`/`num = 1` (468), `if (pTop == (T*) nRows)` (427).
+- Not iterated: disp_sit_normal 112, tcDataExport 142, fn_t_camera_1B8C4 24, fn_Tools_30410 59.
