@@ -21128,3 +21128,78 @@ sfd_mpv; one hard-register pin in mwsfdcre (MallocCompoWork) and Pts2Tc's `pool_
   the function start in a fixed order (data, rodata, bss in ours: `lis r120/r122/r124` in the initial code) that an
   early rodata reference does not change; the extra `b` of the inlined IsUseAdxt (`case 4: break; default: break;`
   gives one; `return TRUE` per case, a `ret` local, `ret = TRUE` init: 2 more words or worse); the rest is colouring.
+
+### Compiler research: inlined-MEM RTX_UNCHANGING_P (2026-09-11; nothing installed)
+
+Question: which rule does the shipped SN build use for `RTX_UNCHANGING_P` on MEMs copied into an inlined body, such that
+the em_set "#13 pool-high" cases come out right AND the constant-store ctor cases keep their RAW dependence. Harness
+~/.cache/ccunch (deleted at the end): `sngcc/` = copy of tools/sn-gcc with `getenv`-switched hooks (`HK_INTU=n` in
+integrate.c `copy_rtx_and_substitute`'s MEM case, `HK_TD=n` in alias.c `true_dependence`), `h.py build LABEL [VAR=VAL..]`
+= every prodg_cc unit of build.ninja compiled with the private cc1plus/cc1 (16 threads, ~12 s) into tree/LABEL/ with the
+real cflags/post_build, then a per-function masked compare (mcmp) against the DOL/REL split objects -> tree/LABEL.json;
+`h.py cmp A B` = regressions / newly identical / changed objects. 684 units with split objects, 17029 of 17686 functions
+identical with the installed compiler. Harness pitfall: mangled constructor names start with `__`, so metadata keys in
+the per-unit dict must not use that prefix (my first runs silently skipped every ctor/dtor -- the numbers below are
+from the fixed harness, all variants rebuilt back-to-back with the reference to exclude concurrent source edits).
+Plain em_set = the tagged `EM_SET_WORK_K` call sites replaced by the `EmSetWork` inline (SRC override, not committed).
+
+- **The target's behaviour is asymmetric per SITE, not per direction.** Read off the target bytes with the 2-cycle
+  store->load latency of rs6000.md (a load issued the cycle after a store cannot be RAW-dependent on it) and the
+  `li 0,0; lis; stw` issue order (a store with no dependents is never issued before ready `lis` of higher priority):
+  - inlined pool loads that behave as UNCHANGING (no WAR on the body's later stores, no RAW on the caller's earlier
+    stores): EmSetWork's `f32 kx/kr/kp = const` loads (body top, user variables), EmSetDist's `em->x374 = 1e16f` load
+    (store source; the caller's `stb d->flags = 7` (QI, through the arg `d`) one cycle before it, then the `lwz pPL`
+    that IS dependent on that stb two cycles later);
+  - inlined pool loads that behave as CHANGING (RAW dependence on preceding stores): setAbility's `pitch *
+    0.017453292f` (member inline; RAW on the caller's `stw bow.allow` -- reproduced to 0 words by adding the RAW deps
+    back, see `HK_TD=3`), SubEyeDir::mix's `1.0f - z` (RAW on the caller's `stfs parts->x`), the cSceObj/cCoord ctor
+    constants (RAW on the caller's `stw obj->be_flag` / `stw pParent`), and model.cpp's FREE `LightAreaInit(&litArea)`
+    0.0 (RAW on its own body's third `stw la->lightNo`: target `stw;stw;stw;li;addi;li;lfs`, ours with /u `lis;stw;lfs`).
+  So the shipped build does not have one `/u` flag state for "inlined pool MEMs"; and it is not a `true_dependence`
+  change either: removing the `RTX_UNCHANGING_P (x) && !RTX_UNCHANGING_P (mem)` early-out (globally `HK_TD=1`, or
+  only for the scheduler `HK_TD=2`) regresses **2787-2795** matched functions -- native pool loads float above stores
+  everywhere in the target. `HK_TD=3` (keep /u on inlined pool MEMs, mark them RTX_INTEGRATED_P, and let the
+  scheduler's true_dependence ignore /u for those) gives 0 regressions on the tree and fixes setAbility/r220/moveFace,
+  but breaks plain em_set (EmSetEvent 1 -> 24, EmSetFromList2 3 -> 16: the 1e16 load must NOT depend on the QI stb).
+- **Whole-tree table** (regressions / newly identical vs the installed compiler; plain em_set EmSetEvent, EmSetFromList2
+  words in brackets, 74/73 with the installed compiler):
+    HK_INTU=1  keep /u on every copied MEM                                  29 / 0   [1, 3]
+    HK_INTU=2  keep /u only on MEMs whose address pseudo is set from a       23 / 0   [1, 3]  (the 23: cModel/cParts
+               constant-pool ADDRESS (`hk_scan_pool_regs`)                                 ctors, 15 weapon `init`
+                                                                                          (setAbility), r21d/r220/r221/
+                                                                                          r225 (cSceObj ctor), pl_npc
+                                                                                          moveFace (SubEyeDir::mix))
+    HK_INTU=7  =2 but only member-function inlinees                          23 / 0   [74, 73] (exactly the 23 above)
+    HK_INTU=6  =2 but only non-member inlinees                                1 / 0   [1, 3]   (model __6cModel via
+                                                                                          LightAreaInit)
+    HK_INTU=11 =2 but only MEMs copied before the body's first store         17 / 0   [1, 3]   (setAbility x15,
+                                                                                          moveFace; the ctors are
+                                                                                          covered by their vptr store)
+    HK_INTU=4  =2 but only loads into a REG_USERVAR_P pseudo                  0 / 0   [12, 3]  (misses EmSetDist's
+                                                                                          store-source 1e16)
+    HK_INTU=10 =2 but only non-member inlinees AND before the body's first    0 / 0   [1, 3]
+               store
+    HK_INTU=2 + HK_TD=3 (see above)                                            0 / 0   [24, 16]
+  Remaining plain em_set words under 10: EmSetEvent `li r28,0xff` vs ours `li -1` (the `u8 no` parameter; `const u8`
+  does not change it), EmSetFromList2 the 1e16 load/`fmuls` order + f10/f12 in the EmSetDist block. Both harness-only
+  (em_set is committed in its tagged form; with HK_INTU=10 the tagged form goes 18 -> 65, i.e. the tag would have to
+  be removed together with the compiler change).
+- **Decision: nothing installed.** No variant reaches 0 regressions AND ≥ 1 newly identical function with today's
+  sources (every affected site already carries a workaround), and the 0-regression rule (10) is a two-condition
+  empirical partition ("inlinee is not a class member" AND "no store of the body copied before the MEM") with no
+  mechanism in the 2.95.3 source behind either condition: `this` is TREE_READONLY like every unmodified parameter
+  (`initialize_for_inline` sets TREE_READONLY on all unassigned parms, so "readonly formal" does not separate members),
+  member inlines are saved with the same `save_for_inline_nocopy`/DECL_DEFER_OUTPUT path, and `cse_not_expected` is
+  per-function. If a plain-source site is found where 10 (or 4) makes a function identical, the edit is: in
+  integrate.c `expand_inline_function`, before the copy loop, scan the inline body's insns for single sets of a pseudo
+  whose SET_SRC or REG_EQUAL note contains an `(address ...)` (the saved pool reference), and in
+  `copy_rtx_and_substitute`'s MEM case copy `RTX_UNCHANGING_P` when `XEXP (orig, 0)` is such a pseudo and the extra
+  condition holds; install only with the whole-tree proof (tools/sn-gcc/patches, build.sh, atomic mv, 111 OK).
+- Side facts for the #13 pool family: the caller-emitted parameter-constant loads of an inline call
+  (`setAbility(5.73f, ..)`: expand_inline_function's parameter setup emits `(set (reg/v) (mem/u LC))` for a CONST_DOUBLE
+  actual through `emit_move_insn` -> movsf -> `force_const_mem`, in the caller, not through copy_rtx_and_substitute)
+  are `/u` in both compilers and never the cause of a diff; a
+  dependence table with insn-level deps is `-dS -fsched-verbose-5` (`;; --- Region Dependences ---`, the `dep` column =
+  number of predecessors, the list = forward dependents); the sched dumps' order is what the target follows for the
+  in-block diffs of this family (INTU=2 + TD=3 reproduces cObjBow::init to the byte although only the LC17 load
+  gained the RAW dependence -- the parameter-constant loads were waiting on the lsu anyway).
