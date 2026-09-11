@@ -291,6 +291,7 @@ static int g_copyNum;
 static u8 g_seqFlgWk[256];
 static u8* g_pSeqFlg;
 struct SeqFlgPtr { u8* p; }; // struct view of g_pSeqFlg (a load that stays below preceding stores)
+struct PageView { int v; };  // struct view of g_page (an in-struct load conflicts with the loop's stores through `rec`/`head`: not hoisted)
 static int g_seqFlgNum[4];
 static int g_page;
 static int g_editTop;
@@ -5112,9 +5113,12 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     for (i = 0; i < nGroup; i++) num[i] = 0;
     rec = (TOOL_SEQ*) head->rec; // after the clearing loop: `addi rec,head,48` sits in the second loop's preheader
     for (j = 0; j < nSeq; j++, tbl++) {
-        // the flag table pointer through the struct view is reloaded per iteration (the target's `lwz` in the
-        // body); `(x & 1) == 0` keeps the plain `andi.; beq` (`!(x & 1)` folds to `xori; bne`)
-        if (g_seqFlgNum[g_page] != 0 && (((SeqFlgPtr*) &g_pSeqFlg)->p[j] & 1) == 0) continue;
+        // g_page and the flag table pointer are read through struct views: both loads stay in the loop body (the
+        // target reloads them per iteration; a fixed-scalar `g_page` read is hoisted with `&g_seqFlgNum[g_page]`
+        // and takes the callee-saved register the target gives to high(g_page)); `(x & 1) == 0` keeps the plain
+        // `andi.; beq` (`!(x & 1)` folds to `xori; bne`). Left (2 words): the clearing loop's HImode zero is r0
+        // in ours and r10 (rec's later register) in the target.
+        if (g_seqFlgNum[((PageView*) &g_page)->v] != 0 && (((SeqFlgPtr*) &g_pSeqFlg)->p[j] & 1) == 0) continue;
         if (tbl->stat & 1) {
             *rec++ = *tbl;
             head->num++;

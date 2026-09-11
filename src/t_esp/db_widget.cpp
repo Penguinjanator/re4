@@ -616,7 +616,20 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveDefault()
     return active;
 }
 
-DB_WINDOW::DB_WINDOW()
+// The colour temp is built inside an inline taking the destination by pointer: the block copy's
+// loads then stay frame-relative (`lwz 8..20(r1)`) while the ctor stores go through the temp's
+// `this` (`addi r9,r1,8`); written as a member assignment cse rewrites the copy's `fp+12` into
+// `this+4`. Left: the temp's a/b/g store order (ours g, a, b: the 0.1 pseudo and the temp's `this`
+// die at the g store, the target issues a, b, g as if neither died).
+static inline void DB_ColorSet(DB_COLOR* c, f32 r, f32 g, f32 b, f32 a)
+{
+    *c = DB_COLOR(r, g, b, a);
+}
+
+// `color(1.0f)`: the 1.0 is expanded in this function (an unchanging pool MEM) so its `lfs` is
+// free to issue before the vptr store; the inlined default ctor's own constant load is not
+// RTX_UNCHANGING_P after integrate and waits for the store.
+DB_WINDOW::DB_WINDOW() : color(1.0f)
 {
     keyFlag = 0;
     bring = 0;
@@ -625,7 +638,7 @@ DB_WINDOW::DB_WINDOW()
     type = DB_PRIM_WINDOW;
     SetSize(140.0f, 100.0f);
     SetBase(0.0f, -16.0f);
-    color = DB_COLOR(0.1f, 0.1f, 0.1f, 0.3f);
+    DB_ColorSet(&color, 0.1f, 0.1f, 0.1f, 0.3f);
     keyFlag = 0;
     bring = 0;
     SetCloseCallback(0);
@@ -914,7 +927,10 @@ DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
         // is issued in pure source order (no death at the last zero / 1.0 store) and reload puts 1.0
         // in the spill register f13 (255.0 gets f0). The non-volatile asm with a memory output keeps
         // our zero/1.0 pseudos live past the block without a scheduling barrier and is not deleted
-        // by flow (a store), `fr13` pins the 1.0. 7 -> 2 words (`fmr f1,f31` one slot later).
+        // by flow (a store), `fr13` pins the 1.0. It must sit AFTER the SetDefault call: inside the
+        // block it is a free-unit insn ready at the same cycle as `fmr f1,f31` and, ranking above the
+        // fmr by LUID, it takes the block's second issue slot (issue rate 2), which pushes the fmr one
+        // store later; `step = one; unit = one;` is the order that survives the asm's move.
         int zero = 0;
         register f32 one asm("fr13");
         minus = zero;
@@ -925,10 +941,10 @@ DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
         max = 255.0f;
         keta = 3;
         one = 1.0f;
-        unit = one;
         step = one;
-        asm("" : "=m"(def) : "r"(zero), "f"(one));
+        unit = one;
         SetDefault(0.0f);
+        asm("" : "=m"(def) : "r"(zero), "f"(one));
     }
 }
 

@@ -17177,3 +17177,80 @@ objdiff.json" seen all morning is other agents' configure.py runs racing on objd
   biv's final value after the loop only when the biv is eliminated; `preserve_subexpressions_p` returns 1 under
   -fexpensive-optimizations so expand_call always copies a non-REG argument value costlier than 2 into a pseudo (the
   hard-register argument chains of the target come from integrate.c's force_operand, not from expand_call).
+
+### Tool RELs, t_esp pass 6 (db_widget 110 -> 111/113: DB_NUMERIC ctor 2 -> 0, DB_WINDOW ctor 14 -> 3; t_esp 195/212: MakeExecSeqData 27 -> 2; db_mod untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp6 (tools_p15 copies with the paths rewritten; `mtryv.py MOD/UNIT FUNC v.py [--src PATH]`, `msbs.sh`
+  (accepts a relative object path now), `mdump.sh MOD/UNIT -dX` with an absolute `SRC_OVERRIDE`, `fsec.py`, `mcmp.py`,
+  `order.py`, plus `mkobj.py MOD/UNIT` = compile the unit's ninja object in place with the build's cflags AND post_build
+  (strip_unused + fold_linkonce) and `mkrel.py MOD` = relink `<mod>.elf`/`.rel` from build.ninja's rules and check its
+  sha1 -- both without ninja). Two harness bugs fixed on the way: (1) tools_p15's `mtryv.py` chained the post_build with
+  `&&` behind a `grep -v warning` that exits 1 when the compiler prints nothing, so strip_unused/fold_linkonce NEVER ran
+  for variant objects (the "93/113" baselines of the earlier t_esp passes were unstripped objects; the counts were only
+  comparable relative to each other); (2) variant names differing only by case (`MCTz`/`MCTZ`) compile to ONE object
+  through wibo's case-insensitive path mapping. Build: `ninja` re-runs `dtk split` + configure.py on every invocation
+  today (a concurrent ninja rewrites `.ninja_deps`), and configure.py's `json.load(objdiff.json)` races with the other
+  agents' configure runs (the file is truncated while being rewritten) -- every ninja run of this pass died there with
+  `JSONDecodeError`, the shasum check stayed 111 OK; judge with mkobj/mkrel + `dtk shasum -c` when that happens.
+- **DB_NUMERIC ctor (2 -> 0, the #13 keep-alive asm MOVED behind the call): the block's second issue slot.** sched2 issue
+  rate is 2; the `fmr f1,f31` argument copy (prio 4: TRUE dep on the SetDefault call, cost 1) ties with the codeless
+  `asm("" : "=m"(def) : "r"(zero), "f"(one))` (prio 4: anti to the call) and loses the LUID tie-break, so at the cycle of
+  the first store the asm takes the free slot and the fmr slips one store later. Any input that makes the asm ready
+  later either raises a store's priority (`"m"(max)`: the store becomes the asm's dependent, 10) or changes sched1's
+  dying-store order (`"f"(k255)` with a two-use 255.0: `stw r0,168`/`stfs f0,160` swap). Placing the asm AFTER
+  `SetDefault(0.0f)` keeps zero/one alive past the block without an insn in it; `step = one; unit = one;` is the order
+  that survives the move (unit/step swapped otherwise). sched2 facts read on the way: `sched_analyze` handles a
+  CALL_INSN's call-used-register uses (ANTI) BEFORE `sched_analyze_insn`, and the MEM pass skips pending stores that
+  already have a link ("If a dependency already exists"), so a store from a call-used register is ANTI-only (prio +1)
+  while a store from a callee-saved register gets the TRUE dependence (prio +2) -- the "5 : 4 split" of pass 5 is by
+  source REGISTER CLASS, not by RTL position. A hard-register SET clears `reg_last_uses`; a call does not, so uses of a
+  call-used register keep collecting ANTI links from every later call until the register is set again (that is why a
+  `stfs f0` store has 5 dependents and a `stw r11` store 4 in DB_STRING: sched2's depend_count tie-break = how many
+  later calls/sets touch the stored register).
+- **DB_STRING ctor (11, mechanism exact, not closed): the whole diff is local-alloc's naming of the four constant
+  pseudos.** Target zero r0 (`str = len = 0`), type r9 (`li r9,4`), `_vt` lo_sum r11 (`lis r11; addi r11`), pool high
+  r9; ours type r0, zero r11, vt r9, LC r11. With the target's names sched2's depend counts give the target's store
+  order by themselves: colours/type 5 dependents (three calls + the later `lfs f0`/`lis r9`), vptr 4 (r11 never set
+  again), str/len 3 (`mr r0,r3` right after `new[]` clears r0's uses) -> ca, type, cr, cg, cb, vptr, str, len; ours with
+  vt=r9 (5, via the later `lis r9`) and type=r0 (3) puts the vptr store first and type last. Local-alloc order (qty pri =
+  log2(refs)*refs/life): vt (4 refs / 6 insns = 1.33) before LC (2/2 = 1.0) -> r9/r11; type (2/4) before zero (3/11) ->
+  r0/r11. The target needs LC allocated before vt (LC r9, vt r11) and zero before type (r0, then r9): a longer vt life
+  (the vptr store 8+ insns after its `lis`) or an adjacent `lis LC; lfs`, and a zero qty ranked above the type qty --
+  no statement order (all 48 permutations of max/colours/type/zeros: 11 or 9), `int zero`, `asm("li")`, extra zero
+  uses, or `register .. asm("r0"/"r9")` pins (the pinned stores collect extra ANTI links from the later calls and move
+  to the block top: 9-12) gives it; `len = 0; str = 0;` is the right source order (str must be the dying zero store,
+  LUID str < len). The same three constants in reload's spill order r0/r9/r11 is the #13 shape again.
+- **DB_WINDOW ctor (14 -> 3, zero code + one header ctor).** (1) The colour temp copy's `lwz 8..20(r1)` are frame-relative
+  because the temp is built inside an inline taking the destination by pointer (`static inline DB_ColorSet(DB_COLOR* c,
+  r, g, b, a) { *c = DB_COLOR(r, g, b, a); }`, `DB_ColorSet(&color, ..)`): written as a member assignment cse rewrites
+  the copy's `(plus fp 12)` into the inlined ctor's `(plus this 4)`. (2) `DB_WINDOW() : color(1.0f)` with a new
+  one-argument `DB_COLOR(f32 v) { a = b = g = r = v; }` (db_widget.h, unused elsewhere: emits nothing): the 1.0f
+  expanded in the caller is an unchanging pool MEM whose `lfs` issues before the vptr store; the inlined default ctor's
+  own 1.0f is copied by integrate.c WITHOUT RTX_UNCHANGING_P ("this MEM might not be const in the function it is being
+  inlined into"), true_dependence then makes the pool load wait for the `this`-based vptr store (base ADDRESS(r3) vs
+  SYMBOL -> may alias). Rule: a pool constant inside an inlined body is a normal memory read after inlining; when the
+  target loads it above a preceding store, the constant was an argument of the inline. Left (3 words): the temp's
+  a/b/g store order -- ours g, a, b because the 0.1 pseudo and the temp's `this` die at the g store (weight -1); the
+  target's a, b, g is the RTL order as if neither died (the #13 family: the temp's `this` = `(plus fp 8)` REG_EQUIV
+  pseudo unallocated and rebuilt by reload's address reload `addi r9,r1,8` with inheritance across the three stores
+  reproduces exactly `stfs 8(r1)` + `k(r9)` stores + `k(r1)` loads; named temps, keep-alive asms on `&t`/the constants:
+  5-14).
+- **MakeExecSeqData (t_esp, 27 -> 2, zero code): `g_seqFlgNum[((PageView*) &g_page)->v]` -- g_page read through a struct
+  view.** As a fixed scalar the `g_page` load (and `&g_seqFlgNum[g_page]`, `slwi`) is loop-invariant and hoisted above
+  the loop, and high(g_page) then lives in a callee-saved register; the target reloads g_page and re-indexes per
+  iteration: an in-struct load conflicts with the loop's block-copy/`head->num++` stores (ADDRESS-based `rec`/`head`
+  vs SYMBOL -> may alias), so loop.c leaves it in the body. That alone puts the hoisted `lis`/`addi` into the target's
+  r9/r31/r12/r5 (r12 = the last call-used register in REG_ALLOC_ORDER, taken in global.c's pass 0 before any
+  callee-saved one; r31 = pass 1) and j/rec into r11/r10 (`u32 j` separate or shared `i`: same). Left (2): the clearing
+  loop's HImode zero is r0 in ours and r10 (rec's later register) in the target -- global.c gives it r0 unless r0
+  conflicts/is preferred; a `TOOL_SEQ* rec = 0` dead initializer (cse lowpart reuse) does not merge them (4).
+- **IKreport (db_mod, 10, read): the target's `mr r11,r0` after `clrlwi r0,r0,24` is a gcse reaching-register copy for
+  the THIRD test (`andi. r0,r11,128` in the join block after the `& 0x20` diamond) while tests 1/2 use r0.** The
+  expression must be recomputed in the join: `(partsInfo[i] & 0xFF)` written per test folds to `& 0x30/0x20/0x80` at
+  tree level (12, no clrlwi), `u8 info` narrows the load to `lbz 1(r9)` (8), the current `int info = .. & 0xFF` local has
+  no copy (10). Not closed.
+- **Save*FileNoUpdateCallback x5 (5 each) and position_usage (10): unchanged**; the assignment's no-op-move idea fails as
+  pass 5 said (reload_cse deletes `(set r r)` before flow2; an asm with tied in/out registers survives to final and keeps
+  the `ble`). position_usage: the target's `li r30,43` sits INSIDE the join block after `mulli r4,r31,14` (not a
+  cross-jumped tail), and its first `y++` is issued above the first tail eprintf while ours stays behind the call
+  (the later `y++`s hoist in both).
