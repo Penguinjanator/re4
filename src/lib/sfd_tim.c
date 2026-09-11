@@ -78,6 +78,14 @@ Bool SFTIM_IsVideoTerm(SFD sfd)
 }
 
 /* the frame with time ftime/tunit is due against the current clock */
+/* dead (stripped by the linker); its int -> float conversion creates the unit's 0x43300000_80000000
+ * conversion constant before the 10000.0f literal of the helper below, which is the original .rodata
+ * order [double][10000.0f][-1.0f] (a literal is placed by creation order, not by first use) */
+static Float32 sftim_Sint32ToFloat32(Sint32 v)
+{
+	return (Float32)v;
+}
+
 static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 {
 	SFTIM tim;
@@ -234,14 +242,15 @@ void SFTIM_Pause(SFD sfd, Sint32 sw)
 	}
 }
 
-/* timecode -> time; drop frame: two frames dropped every minute except every tenth */
+/* timecode -> time; drop frame: two frames dropped every minute except every tenth. The frame sum
+ * is the right operand of the product chain: the backend creates the operands of `+` right first, so
+ * the frm/frm2 loads get the lowest temporary ids (coloured last: r12/r11) while the frontend still
+ * adds the hour term last. */
 void sftim_Tc2Time59D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 f;
 
-	f = tc->hour * 215892 + tc->min * 3598 + (tc->min / 10) * 2 + tc->sec * 60;
-	f += tc->frm2;
-	f = tc->frm + f;
+	f = tc->hour * 215892 + tc->min * 3598 + (tc->min / 10) * 2 + tc->sec * 60 + (tc->frm + tc->frm2);
 	*ncount = f * 1000 + tc->field * 500;
 	*tscale = prate;
 }
@@ -250,9 +259,7 @@ void sftim_Tc2Time29D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 {
 	Sint32 f;
 
-	f = tc->hour * 107892 + tc->min * 1798 + (tc->min / 10) * 2 + tc->sec * 30;
-	f += tc->frm2;
-	f = tc->frm + f;
+	f = tc->hour * 107892 + tc->min * 1798 + (tc->min / 10) * 2 + tc->sec * 30 + (tc->frm + tc->frm2);
 	*ncount = f * 1000 + tc->field * 500;
 	*tscale = prate;
 }
@@ -261,9 +268,7 @@ void sftim_Tc2Time23D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 {
 	Sint32 f;
 
-	f = tc->hour * 86292 + tc->min * 1438 + (tc->min / 10) * 2 + tc->sec * 24;
-	f += tc->frm2;
-	f = tc->frm + f;
+	f = tc->hour * 86292 + tc->min * 1438 + (tc->min / 10) * 2 + tc->sec * 24 + (tc->frm + tc->frm2);
 	*ncount = f * 1000 + tc->field * 500;
 	*tscale = prate;
 }

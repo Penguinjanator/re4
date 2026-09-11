@@ -36,8 +36,24 @@ const Char8 *MPS_GetVerStr(void)
 	return MPSLIB_version_str;
 }
 
-/* OPEN: inlined with mps == NULL the target loads MPSLIB_libwork as `lis/lwz r5, sym@l(r4)`; ours
- * materialises the address (`lis/addi/lwz 0`) as the standalone MPS_SetErrFn does in both. */
+/* Library-level error (no handle): the callback gets the code as its second argument here (the
+ * target materialises the code straight into r4 and keeps it live into the bctrl, which is what puts
+ * the libwork pointer in r5 and lets the peephole fold `lwz r5, MPSLIB_libwork@l(r4)`); the public
+ * MPSLIB_SetErr below passes the object only. */
+typedef void (*MPSLIB_ERRFN2)(void *obj, Sint32 code);
+
+static Sint32 mpslib_SetLibErr(Sint32 code)
+{
+	MPSLIB_WORK *lw;
+
+	lw = MPSLIB_libwork;
+	lw->errcode = code;
+	if (code != 0 && lw->errfn != NULL) {
+		((MPSLIB_ERRFN2)lw->errfn)(lw->errobj, code);
+	}
+	return code;
+}
+
 static Sint32 mpslib_SetErr(MPS mps, Sint32 code)
 {
 	MPSLIB_WORK *lw;
@@ -60,7 +76,7 @@ static Sint32 mpslib_SetErr(MPS mps, Sint32 code)
 Sint32 MPS_Destroy(MPS mps)
 {
 	if (mpslib_CheckHn(mps) != 0) {
-		return mpslib_SetErr(NULL, 0xFF020103);
+		return mpslib_SetLibErr(0xFF020103);
 	}
 	mps->used = MPS_HN_FREE;
 	return 0;
@@ -147,7 +163,7 @@ Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
 		lw->errobj = obj;
 	} else {
 		if (mpslib_CheckHn(mps) != 0) {
-			return mpslib_SetErr(NULL, 0xFF020101);
+			return mpslib_SetLibErr(0xFF020101);
 		}
 		mps->errfn = fn;
 		mps->errobj = obj;

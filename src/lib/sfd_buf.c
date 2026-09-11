@@ -104,15 +104,19 @@ static void sfbuf_RingGetCk(SJ sj, Sint32 id, SJCK *ck1, SJCK *ck2)
 	SJ_UngetChunk(sj, id, ck1);
 }
 
-Sint32 SFBUF_RingGetDataSiz(SFD sfd, Sint32 n)
+/* the body is a static helper: its len1/len2 are inlined-helper temporaries, so the backend CSE turns
+ * len2's `li 0` into the target's `mr r5, r4` copy of len1 (it never rewrites a named variable's
+ * `li`); len1 is assigned first (copy direction) and declared last (register r4) */
+static Sint32 sfbuf_RingGetDataSizHn(SFBUF_HN *hn)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
 	SJ sj;
-	SJCK ck2;
 	SJCK ck1;
-	Sint32 len1 = 0;
-	Sint32 len2 = 0;
+	SJCK ck2;
+	Sint32 len2;
+	Sint32 len1;
 
+	len1 = 0;
+	len2 = 0;
 	sj = hn->w.u.ring.sup.sj;
 	if (hn->w.used != 0 && sj != NULL) {
 		sfbuf_RingGetCk(sj, 1, &ck1, &ck2);
@@ -120,6 +124,11 @@ Sint32 SFBUF_RingGetDataSiz(SFD sfd, Sint32 n)
 		len2 = ck2.len;
 	}
 	return len1 + len2;
+}
+
+Sint32 SFBUF_RingGetDataSiz(SFD sfd, Sint32 n)
+{
+	return sfbuf_RingGetDataSizHn(SFBUF_GET_HN(sfd, n));
 }
 
 Sint32 SFBUF_GetTermFlg(SFD sfd, Sint32 n)
@@ -323,9 +332,12 @@ Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
 	return ret;
 }
 
+/* the handle address is computed AFTER the inf clear (in both Get functions): the n*0x74 product is
+ * then the younger temporary and takes r0 while the zero takes the dying r5, and inf lives in r31
+ * from the top */
 Sint32 SFBUF_RingGetRead(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
+	SFBUF_HN *hn;
 	SJ sj;
 	SJCK ck2;
 	SJCK ck1;
@@ -337,6 +349,7 @@ Sint32 SFBUF_RingGetRead(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 	inf->rsv[0] = 0;
 	inf->rsv[1] = 0;
 	inf->rsv[2] = 0;
+	hn = SFBUF_GET_HN(sfd, n);
 	sj = hn->w.u.ring.sup.sj;
 	if (hn->w.used == 0 || sj == NULL) {
 		return 0;
@@ -351,7 +364,7 @@ Sint32 SFBUF_RingGetRead(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 
 Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
+	SFBUF_HN *hn;
 	SJ sj;
 	SJCK ck2;
 	SJCK ck1;
@@ -363,6 +376,7 @@ Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 	inf->rsv[0] = 0;
 	inf->rsv[1] = 0;
 	inf->rsv[2] = 0;
+	hn = SFBUF_GET_HN(sfd, n);
 	sj = hn->w.u.ring.sup.sj;
 	if (hn->w.used == 0 || sj == NULL) {
 		return 0;

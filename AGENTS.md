@@ -3273,6 +3273,90 @@ removed-degree/total [neighbours]` + the coalesced ghosts). Pass harness /home/a
 - mpv_hdec `MPV_DecodePicAtrSj`: mpv/sj swap is the kept-copy class (mpv passed to the inlined helpers'
   real calls after calls) but the frame-layout residue (0x20 shift, pass 7) stays; not touched.
 
+### CRI pass 12b: reading the ids off the dumps (mps_lib 2 -> 5/7, sfd_tim 34 -> 37/39 + .rodata, sfd_buf 18 -> 21/26; pure C; 2026-09-11)
+Harness /home/adityas/.cache/cri12b/ (deleted; cri12's bytecmp/tryvar + `cc.sh lib/unit` = the unit's exact
+ninja command (compile + strip_unused) run directly, because `ninja <obj>` regenerates build.ninja and races
+with other agents' configure runs — a truncated objdiff.json fails configure mid-read). ~/.cache/mwccdbg
+reused. Every fix below was predicted from the pass-11 model plus one dump, then confirmed in 1-3 builds.
+
+**Model additions (read off the dumps, verified):**
+- The physical `r0` in a node's neighbour list is the rA/base constraint (`addi`, load/store bases), not an
+  interference: `stw` sources, `cmpi` operands, `mr`/`mtctr` sources may take r0. So a value that ends in
+  r4 where ours has r0 either is an addressing base, an argument (precoloured), or has an r0-coloured
+  neighbour — check which before looking for a ranking cause.
+- **Backend temporaries are created right operand first**: for `a + b` / `a - b` / `*p = *q` the right
+  operand's temps get the LOWER ids (coloured later, higher registers). A load placed as the right operand
+  of the top-level `+` is created before every product temp of the left operand (`f = chain + (tc->frm +
+  tc->frm2)`), while the frontend's reassociation still adds the left chain's first term last.
+- **The backend CSE turns a later `li rX, K` into `mr rX, rFirst` only when rX is a temporary**: a named
+  variable's `li` is never rewritten (MPS_Init `Sint32 i` keeps `li r7, 0` next to the stores' `li r0, 0`;
+  the same loop in an inlined `static` helper, whose locals are @temps, shares r5). Inlined-helper locals
+  are @temps numbered in DECLARATION order downward (first declared = highest @N = lowest id), and their
+  initialisers are emitted in statement order, so the copy DIRECTION follows the assignment order and the
+  REGISTER the reverse declaration order (sfd_buf `len1 = 0; len2 = 0;` with `len2` declared before `len1`
+  = target `li r4, 0` (len1) / `mr r5, r4` (len2)).
+- **A backend constant materialised into an argument register is `addi rArg, rHi, lo` with the `lis` in a
+  different register**: mps_lib's `lis r3, 0xff02; addi r4, r3, 0x103` was the code passed as the
+  callback's SECOND argument (`errfn(errobj, code)`), live into the `bctrl`; that argument node takes r4
+  and pushes the libwork pointer to r5, which is what lets the post-RA peephole fold `addi r4, r4, @l; lwz
+  r5, 0(r4)` into `lwz r5, MPSLIB_libwork@l(r4)` (it folds only when the load's destination differs from
+  the base — the standalone `MPS_SetErrFn`/`MPSLIB_SetErr` bodies pass one argument and keep
+  `addi/lwz r3, 0(r3)` in both builds). Pass 9's lesson again: read the callee's real arity off the
+  argument registers that are live into the call.
+- **Literal .rodata order is @N creation order, not first-use order**, and an int -> float conversion's
+  0x43300000_80000000 constant is created when the function that contains it is lowered (after its parse),
+  while a float literal is created at parse. A dead `static Float32 f(Sint32 v) { return (Float32)v; }`
+  placed BEFORE the first function with a float literal creates the double first (sfd_tim: [pad][double]
+  [10000.0f][-1.0f], .rodata 0x80 identical; strip_unused removes the function). The target's @N counter
+  runs 3-5x ahead of ours in sfd_tim (@474/@518/@1142 vs @93/@95/@548): the original TU parsed a lot more
+  frontend material (header inlines), which is where such early constants come from.
+- A parameter used before AND after a call is split into the parameter register for the early uses plus a
+  `mr r31, rParam` copy later (ours) unless a value computed from the OTHER parameters is younger than the
+  early uses: sfd_buf `hn = SFBUF_GET_HN(sfd, n)` assigned AFTER the seven `inf->` clears gives the
+  target's `mr r31, r5; li r5, 0; mulli r0; add r3, r3, r0` (product r0 = younger than the zero, inf in
+  r31 from the top; the declaration position of `hn` is irrelevant).
+- Post-RA scheduling ties (MPS_Create `li r4, -1` / `addi r0, r3, @l`, mpv_umc `MPVUMC_BiDirect` `addi r4`
+  / `mr r3, r29` argument hoists, adx_sje `adxsje_output_header` `li r5, 1`): the pre-RA order is the
+  target's in ours and the post-RA list scheduler swaps the pair; the same scheduler on the same DAG
+  cannot differ, so the target's DAG has an edge ours lacks — 20 statement/local/loop forms did not
+  create it. Treat 1-2w "one slot earlier" residues as this class and stop early.
+
+**Fixed:** mps_lib `MPS_Destroy`/`MPS_SetErrFn`/`MPS_Finish` (the 2-argument `mpslib_SetLibErr(code)`
+helper through a local `MPSLIB_ERRFN2` pointer type; the mps.h field stays 1-argument for the public
+bodies), sfd_tim `sftim_Tc2Time59D/29D/23D` (`f = chain + (tc->frm + tc->frm2)`), sfd_tim .rodata (dead
+`sftim_Sint32ToFloat32`), sfd_buf `SFBUF_RingGetDataSiz` (`static sfbuf_RingGetDataSizHn(hn)` body helper,
+`len2`/`len1` declared in that order and assigned `len1 = 0; len2 = 0;`), `SFBUF_RingGetRead/Write`
+(`hn` computed after the `inf` clear).
+
+**Residues (exact class):**
+- mps_lib `MPS_Init` 48w: target `li r5, 0` shared by the three libwork clears AND the loop counter with
+  the guard folded to `cmpwi r31, 0` (the frontend saw `i = 0` as a variable, the backend saw a temporary
+  — a later web of a range-split variable: `i = *(Uint8 *)&test_wrok` first gives both but colours that
+  first web r8 where the target's byte compare is an r0 temporary with `cmplwi`), plus an unreachable
+  `b .L638; b .L644` pair after the remainder loop (a `return` with r3 untouched laid out between the
+  loop and the calls; `for(;;)`/`while(1)` + `return` are deleted by the frontend, `if (x) return;` after
+  the loop keeps the compare; 25 forms). `MPS_Create` 2w: the post-RA swap above.
+- sfd_tim `SFTIM_IsGetFrmTime` 6w: the target's `tunit` node has an id BETWEEN the inlined helper's
+  `vrate` (@116) and `tscale` (@118), i.e. it is a helper-level value declared where `adj` is, not the
+  call-site argument temporary (@107, ours) nor an own local (r12: coloured after tscale/ncount); `unit =
+  tunit` copies in the helper are propagated, `direct inner call`/`ret` forms lose the Tunit shape.
+  `SFTIM_IsStagnant` 2w: else arm `lwz ext_cnt` first AND in r0 = the left operand created first yet
+  coloured before `chg_base` (so `chg_base` must be r0-blocked or carry an r0 neighbour there); two-def
+  `d = ext_cnt; d -= chg_base` gives the order with d in r3 (14 forms).
+- sfd_buf `SFBUF_RingAddWrite/AddRead`: target keeps `ring = &hn->w.u.ring` (`addi r28, r3, 0x1318`) as a
+  callee-saved node with `hn` dying in r3 before the calls, `nbyte` copied with `mr. r31, r5` (highest id
+  = a temporary, not the parameter) and `bne body; b end` for the `nbyte == 0` exit; `sj = ring->sup.sj`
+  (two uses) is still folded through `hn`. `SetSupplySj`/`DestroySj`/`InitHn` (union alias) untouched.
+- adx_sje `adxsje_write_end_code` 1w: the inlined put16 site 1 has `lwz ck.data` before `lha v` while the
+  pre-RA IR (ours) has the value load first in both sites; site 2's `lha` is forwarded to `extsh r0, r31`
+  by the post-RA peephole (its `sth r31` survives the call) and then scheduled after the address load —
+  so the target's site 1 behaves like a non-load: 6 spellings of the store keep `lha` first.
+- mpv_umc `MPVUMC_BiDirect` 2w: post-RA tie (above); `Forward/Backward/Intra/OneReadMb` untouched.
+- Build hazard this pass: with several agents running `configure.py`, `ninja <target>` fails on a
+  half-written objdiff.json and `main.dol: FAILED` appeared from another agent's DOL flip (game/
+  cam_qfps.cpp) while all three units here are still `False`; use the unit's exact compile command
+  (`ninja -t commands <obj>`) when the manifest regeneration is racing.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
