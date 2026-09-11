@@ -19757,3 +19757,154 @@ the word count is noise), `v/*.py` variant files); deleted at the end. Build 111
   saves r16..r31 with frame 88 = no locals; ours r17..r31 + an 8-byte spill slot), idEditColor 0x1C, toolIdInit 0xC.
 - t_event/t_event not started: its .text gap (0x7320/0x72f0) is SubToolMessInit's shared `cDbgToolMain<T>` ctor loops (pass 18a)
   plus CallbackLoad 0xC.
+
+### DOL sweep 26a, closest-first (cam_extra 32 -> 37/43: `.rodata` equal (0x310), FocusAnimation::init 8 -> 0, FocusAnimation::move 97 -> 0, CameraLookDownEm ctor 4 -> 0, both dtors 1 -> 0 zero code, CameraBinocular ctor 31 -> 17, CameraPushObject::move 131 -> 106; shadow, dvd, Espgen43 mechanisms sharpened, unchanged; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol26a (dol25b copies with the paths rewritten; `tryv.py UNIT SYM v/x.py` with `STRIP=1` for STRIP_UNUSED units,
+`sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`), deleted at the end. 111 OK before and after.
+
+- **A pool CONTENT diff is read per word against the target's reloc users (`rg 'lbl+0xNN@'` on the split asm), not per
+  function name.** cam_extra's "-8 vtable shift" was three things: (a) 0.5f/100000.0f after IdScope::move's 0.0f that NO insn
+  loads = a dead pool = a never-called `static int IdScopeZoomDisp(f32* zoom) { return (int) ((*zoom + 0.5f) * 100000.0f); }`
+  right after IdScope::move + `game/cam_extra.cpp` in STRIP_UNUSED (the view pass-5 form; operand order 0.5 then 100000 =
+  `(x + 0.5f) * k`); (b) CameraBinocular::move's second stick axis is `* 0.05f * DEG` (+0.05, pool 0x12C), the first `-0.05f`
+  -- ours had -0.05 twice; (c) CameraPushObject::move's `axis` is a `Vec axis = {0.0f, 1.0f, 0.0f};` declared INSIDE `if (em)`
+  (template copy `lwz/stw x3` from the {0,1,0} template CameraBinocular::move already emitted at 0x104 -- templates are shared by
+  `output_constant_def`'s hash, scalar `= 1.0f` stores add a per-function 1.0). A lone 0.0 word before an 8-aligned magic double
+  (0x16C) is the DF alignment pad, not a constant: it appears by itself once the words before it are right. Fixing (a)+(b)+(c)
+  closed the LookDownEm ctor and the two dtors (pool-offset relocs only).
+- **FocusAnimation::init 8 -> 0 (zero code): `if (id < 0) { filter0a_mask_flag = use_filter0a = 0; } else { filter0a_mask_id
+  = id; filter0a_mask_flag = use_filter0a = 1; }`.** The target's `li r0,0; blt L; li r0,1; stb r4,mask_id; L: stb r0,flag; stb
+  r0,use` is jump2's cross-jump of the two arms' identical `stb r0; stb r0` tails followed by the "x = b; if (...) x = a" hoist
+  of the else arm's single `li r0,0` (jump.c 479); `u8 f = 0; if (..) { f = 1; ..} flag = f; use = f;` (a real variable) puts
+  the `li` first in block 0 (sched1 hoists it above the alpha store, so f and the alpha temp overlap -> r9 + frame 32) and
+  orders the then-block `stb r4; li` (prio 2 > 1 with no dependent in the block). Store order in the shared tail = the chain
+  order (`flag = use = v` stores flag first; two statements store use first). K2/L4 forms in ~/.cache/dol26a/v/cx4,cx5.
+- **FocusAnimation::move 97 -> 0 (zero code): each arm is `int cnt; if ((f32) count > frame) cnt = (int) frame; else cnt =
+  count; ... / frame` (member reads, no `fr`/`cnt` function-scope locals) and the then arm stores `filter0a_mask_alpha`
+  directly.** Read off the target: `fmr f11,f12` after `lfs f12,frame` = gcse PRE of the three `frame` reads in blocks A
+  (compare), B (`(int) frame`) and D (`/ frame`) -- the inserted `R = (mem frame)` at A's end becomes a copy in cse2; `mr
+  r10,r8` on the fall-through = the else arm `cnt = count` with `count`'s load (r8) a different pseudo (cnt is set in both
+  arms); `lis r8,0x4330; lis r9,magic; lfd f13` re-materialised after the cnt join = the join label has TWO uses (if/else
+  arms), so cse cannot skip into it (a single-arm `if` lets `-fcse-skip-blocks` carry the constants through); `mr r9,r11`
+  before the `fctiwz` = reload_cse's copy of the classic fix_trunc's fpmem loadaddr (`unspec 11`) from the still-live loadaddr
+  of the preceding `(f32) count` conversion (both classic, same unspec; local-alloc gave them r11/r9 because r11 stays live to
+  the third conversion) -- it is NOT dead code and appears by itself with the right structure. Block-local `cnt` (declared in
+  each arm) keeps `this` in r3: a function-scope `cnt` is one global pseudo that takes r3 and pushes `this` to r8. With this
+  structure the else arm's `filter0a_mask_alpha = 0` is a fresh `li r0,0` (cse no longer reaches the else arm with `flag ==
+  0`), so no `u8 a` out-variable is needed (an out-variable adds `clrlwi r0,r0,24`: the fast-cast `unsigned_fix:QI` result
+  is QImode and PROMOTE_MODE zero-extends it into any SImode variable; only a direct QI store avoids it).
+- CameraPushObject::move: `look` in the non-0x41 arm is `em->mat[i][2]` (offsets 0x14/0x24/0x34), not column 1. Left (106):
+  the target writes `inv`'s translation column to a separate 12-byte slot at 0xE8 (right after `plmat` 0xB8..0xE7) with
+  `plmat[*][3]` untouched -- a `Vec plpos` declared after `plmat` puts the stores right but costs a 16-byte frame slot
+  (0x1D0 vs 0x1E0), so the target's Vec is one of the existing locals (reverted); the `em_pos.z >= 0 && Mag <= 4000` tests are
+  `blt; cror so,eq,gt; bso` in the target vs `cror; bns` in ours (compare spelling), and the local slot order differs.
+- CameraBinocular ctor (17): the else arm's PRE copies of `&param.pos`/`&param.at` (`addi r30,r31,164; addi r29,r31,176; mr
+  r26,r30; mr r25,r29`) are inserted at the end of the else arm's FIRST block (before the first getPartsPtr call's parameter
+  loads) in the target and after the second call in ours; else-arm statement order/`p[2]` array not yet varied.
+- **shadow make_comn_fit/parallel_light (2+2, unchanged; the qty numbers).** Block 19 sched1 (0-based slots after the call):
+  LC23 high 0, loadaddr 1, lfs LC23 2, 0x4330 3, magic high 4, 1.0 high 5, lfd magic 6, fmuls 7, stfs fov 8, lfs 1.0 9, lbz
+  10, xor 11, stw 12, stw 13, lfd 14. QTY_CMP_PRI (`floor_log2(refs)*refs*size/(death-birth)`, births/deaths at 2*insn):
+  1.0 high 2 refs len 8 -> 1.0; loadaddr 4 refs len 26 -> 1.23 -> loadaddr first -> r11, 1.0 -> r10 (target r11). Needs the
+  1.0 high's life <= 3 slots (born after slot 6's `lfd magic` is NOT allowed: it must overlap the magic high in r9, else it
+  gets r9) or the loadaddr's >= 17. With ISSUE_RATE 2 and the given priorities (li 8, stfs 7, lis 5, addi 4) every extra
+  insn that could delay the 1.0 `lis` also delays the `lfd magic`; no clamp/statement/FSet/FRef/local spelling changes
+  it (18 forms in v/shadow1,2.py: all 2). Not a haifa or cse effect; a structural difference in what precedes the 1.0 test.
+- **dvd DiscChange (7, unchanged; the sched2 arithmetic).** Final target: L8 c7, L12 c8, S0 c9, L4 c10, S8 c11, S12 c12, S4
+  c13, lwz pSys c14 (one lsu per cycle, anti/output deps cost 1, store->load true dep cost 2). With the registers identical
+  to ours, L4 (`lwz r9,4(r10)`) is ready from c7 (its last anti-dep is `mr r5,r9` at c6) and prio(L4) = 2 + prio(S4) >= 1 +
+  prio(S4) >= prio(S0) whenever S0 precedes S4 in the RTL, so S0 can never beat L4 at c9; a true dep on S0 would put L4 at
+  c11. The target's L4 therefore waited on something at c8/c9 that is not in our dependence graph -- an insn we do not
+  see or a different sched1 output order for the r11 stores (S8, S12 before S0 flips the output-dep direction). Region tests
+  through `SysRegionIs(1)`, a `u8 r` local, a `for(;;)`/`do{}while(0)` wrapper (46/25) and the `g = game[region]` local: 7.
+- **Espgen43 AddSandPower (5, unchanged; the pass difference located).** In sched1 the Chk_pos high is born at slot 3 (`li`
+  8 and `stfs` 7 take t1, `stw` 8 beats `lis` 5 at t2) and dies at S0 (slot 10): 3 refs/len 14 -> 0.857 vs W8 (2 refs, born
+  slot 6, dies slot 11) 0.8 -> high first (r11). The target needs the high born at slot <= 2 with `stw` still before the loads,
+  i.e. in sched1 `li r0,0` or `stw Height_find` must rank BELOW `lis` (not gating the loads) while in sched2 both rank above
+  it. alias.c cannot do that: the fixed-scalar exemption is pass-invariant for symbol stores, `base_alias_check` returns 1 for
+  symbol vs argument base in both passes, and only frame-pointer addresses flip fixed->varying after reload. The one sched2-only
+  priority source is the hard-register anti-dependence chain `li r0 -> stw r0 -> lwz r0,0(r7)` (W0's destination is r0), which
+  gives a plain `Height_find = 0` prio 8/7 in sched2 with prio 3/2 in sched1 -- but then the loads (prio 5) beat the plain
+  `stw` in sched1 and the zero's life spans the loads (11 words, v/eg43a.py E2). E1..E9 (plain/ISet/FSet in every order and the
+  copy first/middle): 3-24.
+
+### DOL sweep 25b, closest-first (route_ck 13 -> 15/16: RouteCkToPos 36 -> 0, RouteCkToEm 21 -> 0; main_mem 30 -> 31/33: MemCheckHeapEnd 6 -> 0; all zero code; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol25b (dol25a copies with the paths rewritten: `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`
+with `SRC_OVERRIDE`, `order.py`, `prio.py`, plus `ins.py DUMP FUNC [re]` = one compact line per insn INCLUDING the `insn/i` inlined
+ones that rtl.py skips, `regstat.py UNIT FUNC v.py [PSEUDOS]` = the global-alloc order rows (refs/len/sets/priority/hard reg) of
+every variant, and `sngcc/` = the LADBG cc1plus (fprintf in local-alloc.c block_alloc's allocation loop, `make ./cc1plus`; run
+`LADBG=1 sngcc/cc1plus -O2 -mfast-cast -quiet X.i -o /dev/null 2>&1 | grep LADBG`; the function name printed is the demangled
+`current_function_name`, grep for it); deleted at the end. 111 OK before and after.
+
+- **stmt.c's loop rotation takes the LAST jump to the loop end within the first 30 expand-time insns (route_ck RouteCkToPos
+  36 -> 0, zero code).** `expand_end_loop` scans from `start_label`; every conditional/unconditional jump to `end_label` found before
+  `num_insns > 30` (counted after the FIRST hit) becomes `last_test_insn`, and everything from the label up to it is moved to the loop
+  bottom. So `while (n != -1) { d = ..; if (d > dmax) dmax = d; if (n == t) break; n = ..; }` rotates the plain way (test at the
+  bottom, `beq END` entry copy, `bne TOP` latch) only when the `break` sits more than ~30 raw insns after the top test: with the loop
+  body's `rtpPoint(rtpData())` and `rtpNext()` inlines (each `insn/i ... jump/i; barrier; label` costs 4) it does, with a plain
+  `RtpData* r` variable (22 insns) the WHOLE body up to the `break` is moved and the latch's `n = tbl[..]` lands in front of the test
+  label, where jump2 cross-jumps it into the pre-loop copy (the 23b "shared `lbzx; extsb; cmpwi`" shape). Count the INSN/JUMP_INSN
+  between `start_label` and the break in the `-dr` dump before changing a loop body's inlines.
+- **The target's dist loop is `while ((next = tbl[np * next + em->rckNext]) != -1)` on the SAME `next` variable (RouteCkToPos).**
+  Read off the registers: `extsb r30,r0` for `em->rckPoint` and `extsb r30,r9` for the loop value are one global pseudo (a
+  block-local `p` would be a local qty in r0/r9), and `next` is r30 because it lives across the calls earlier in the function; the
+  test-with-assignment puts the `tbl[..]` computation in the exit-test block, which `duplicate_loop_exit_test` copies to the entry
+  (the target's pre-loop `mullw; add; lbzx; extsb; cmpwi; beq`). Companions, all zero code: `r = (RtpData*) pGS->pRoomRtp; np =
+  r->nPoint;` before the loop (the struct view gives the fresh `lwz pG`, the hoisted `lhz r8,6(r10)` is the `np` variable),
+  `rtpPoint(r)[next]` in the body (`lwz r0,12(r10); add r10,r0,r10` hoisted off the same r10), the first `next = tbl[rtpData()->nPoint
+  * p + t]` written out instead of the `s8 rtpNext()` inline (an s8-returning inline leaves a `(set (subreg:QI T) ..); (set next
+  (sign_extend T))` pair whose T gcse's cprop then propagates into the loop's uses of the multi-set `next`: `mr r10,r30` + a split
+  variable), `dmax = a.y - b.y; dmax = fabsf(dmax);` (the author's own two-step idiom from the `*dist` arms: `fsubs f13; fabs f13,f13`
+  in place), and the mask block reading `em->rckPoint` twice instead of a `p` local (p's 6 refs/2 sets outranked `np` and took r8).
+- **A 15-vs-16-ref cliff decides `target`/`out` (route_ck RouteCkToEm 21 -> 0, zero code): write the `(flag & 1)` tail as
+  `if (pG->pRoomRtp == NULL || rckLineHitCheck(..) == 0)` like RouteCkToPos.** Global-alloc priority is `floor(log2 refs) * refs /
+  len`; `target` had 16 refs (7 `*out = target->pos` copies x (address plus + first-word load) minus one cse-shared plus, + entry,
+  `mr r3`, `stb`) = 4*16/131 = 0.489 over `out`'s 4*25/210 = 0.476. The `||` form drops one copy: target 14 refs -> floor(log2 14) =
+  3 -> 0.326, out 22/202 = 0.436, so `out` is allocated first (r31) and `target` second (r29) as in the target; jump2 had merged the
+  two copies anyway, so the bytes are otherwise identical. Rule: when two long-lived pseudos swap and one has exactly 16 (or 8, 32)
+  weighted refs, look for a source form with one fewer occurrence, not for a life-length lever.
+- **`d = HeapHead; d += h;` (two statements) and a two-insn then-arm (main_mem MemCheckHeapEnd 6 -> 0, zero code).** (1) The
+  3-qty partial sort of block_alloc (`case 3` compares qty NUMBERS 0/1/2 while exchanging positions) with births [h*12, HeapHead,
+  loaded] can never allocate the loaded value first; `d = HeapHead + h` always loads HeapHead into a fresh temp (expand_expr of a
+  VAR_DECL returns its MEM, `expand_binop` force_regs it). Assigning `d = HeapHead` first puts the load straight into `d` (a
+  global pseudo: used in later blocks) and `d += h` adds `(plus d mul)`, so the block has TWO local qtys (h*12 5000, loaded 10000)
+  -> loaded r0, mulli r9 (its extended lifetime touches the load's), and global.c gives `d` r11 with `add r11,r11,r9`. (2) The
+  target's `cmpwi r0,0; li r3,0; bne; lwz r3,4(r11); JOIN: lwz r9,8(r11)` is the UN-hoisted `if (d->allocated == NULL) {..} else end
+  = 0;` at cse1 time (jump1's `x = b; if (c) x = a` needs the then-arm to be ONE insn: `(temp = prev_active_insn (x=a insn)) is the
+  condjump`) hoisted by jump2 after reload (which emits `li r3,0` right after the compare insn, `p = PREV_INSN (condjump)`). With
+  the arm `cell = d->free; end = (u32) cell;` (two insns, combine merges them later) jump1 skips the hoist, cse1's path from the
+  block takes `bne ELSE` (TAKEN: the then-arm ends in `b JOIN` + barrier) into the else arm and stops at the JOIN label, so the
+  loop init `cell = d->allocated` is NOT forwarded (a single-insn arm is hoisted at jump1 and the AROUND path forwards the load:
+  `mr r9,r0`, no `cmpwi r9,0`). The 21b `end = (u32) d->allocated; if (end == 0) ..` form got the reload only because `li r3,0`
+  clobbered the loaded value's register (the compare reference does NOT block the hoist: `reg_referenced_between_p` starts after
+  the compare) and it tied the loaded value to `end`.
+- **route_ck Draw_rtp (8, read further, not closed): the target's loop-2 `mr r11,r5` copies are the gcse-deleted `pG` occurrences
+  of the duplicated entry test AND the latch test through ONE pseudo, with the body top reading `pRoomRtp` from that pseudo without
+  its load being PRE'd.** Ours has the same gcse output (`T1 = r350` entry, `B = r350` body, `L = r350` latch, three pseudos) and
+  cse2 canonicalises all three to the reaching reg (r5): `make_regs_eqv` keeps the copy dest only when its last position is beyond
+  the reaching reg's, and the reaching reg's last reference is the latch copy itself. For the target's shape the entry copy's dest
+  must be used at the body top and the latch (one pseudo P: `duplicate_loop_exit_test` remaps a test pseudo only when its FIRST_UID is
+  the set and its LAST_UID is inside the exit block, so P must be referenced outside the test -- a user variable), yet the body's
+  `(mem (plus P 20268))` is not deleted although the test block computes the same expression. `g = pG` variable forms (before the loop
+  + in the increment / at the body end / at the body top; body via `g->pRoomRtp` or `rtpData()`): 8-177 words -- either the body load
+  is PRE'd (23) or combine folds the copies (8). An asm in the loop test (no duplication) merges the whole rtp (28). The form that
+  gives "same P, body load kept" was not found; the alias-set route is closed (SN's toplev has no `flag_strict_aliasing = 1` at -O2,
+  `get_alias_set` returns 0, gcse's `expr_equiv_p` and cse's `exp_equiv_p` then compare equal).
+- **main_mem MemReplaceHeap (18, read to the arithmetic): the CurrentHeap == 1/2/3 blocks need sched1 to issue `lwz HeapHead` BEFORE
+  `lis Heap+16@ha`.** LADBG: ours births lis 2 / HH 4 / handle 6 / cell 12 -> pri lis 5000 (life 4), HH+hd 10000, handle+mulli
+  20000, cell 10000 -> [mulli r0, HH r9, cell r11, lis r11]; the target's [handle r0, lis r9, cell r9, HH r11] needs HH born at 2
+  (life 10 -> 8000) and lis adjacent to its `lwz` (life 2 -> 10000, tie with cell by qty number). Both are ready at t=1 with two
+  issue slots and lis's path (1+2+4+1+2+1) outranks the load's (2+1+2+1), so a plain `HeapHead + Heap[CurrentHeap].handle` (or
+  `hd = HeapHead; hd += ..`, `&HeapHead[..]`, an `OSHeapCell* c` local) cannot reorder them; direct `HeapHead[idx].allocated` puts the
+  mult first in the add (34). What delays the lis (a dependence) or boosts the load (a single-set pseudo live at the block end gets
+  haifa's max priority) in the original's block was not found.
+- Read, not iterated: sce_com SceEventStart/SceEventEnd "2/3 words" are bytecmp's (name, offset) reloc mapping across SceElevator's
+  8-byte size difference (the `bl beginEvent__t8cManager..` targets), not code; SceSetItemEvent 23 = j/j*2/e+6 are all GLOBAL
+  pseudos (j*2 and e+6 span the `bge` into the `sthx` block) allocated in priority order j > e+6 > j*2 in the target and e+6 > j*2 > j
+  in ours (j 6 refs over the item[0] special case); db_cam adjust_qFPS `li r24,14 .. add r29,r24,r20` is a loop.c-hoisted `(set r 14)`
+  that cse2 cannot fold in the inner preheader (a new ebb after the outer loop label) -- the row constant 14 was in a REG at loop
+  time (the dbmod `var * c` family, here `var * 14` with the variable equal to 1, or a `+ line` variable); motion MotionSequenceCtrl 12
+  = frac (4 refs/35 insns, 0.229) must outrank mf (3/11, 0.273): frac needs a 5th ref or a life <= 29, or mf a longer life -- the
+  target's `fsubs f13,f13,f0` ties frac into the dying seqFrame because mf is allocated after it; sce_com SceElevator/OpenBoxMain,
+  card, option, puzzle, pendulum, esp08/esp18, cam_ctrl not iterated.

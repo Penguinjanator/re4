@@ -127,22 +127,17 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
     }
     if ((flag & 1) && next == t) {
         if (fabsf(a.y - b.y) < 2000.0f) {
-            if (pG->pRoomRtp == NULL) {
-                *out = target->pos;
-                return 1;
-            }
-            if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
+            if (pG->pRoomRtp == NULL || rckLineHitCheck(&a, &b, mask, flag) == 0) {
                 *out = target->pos;
                 return 1;
             }
         }
     }
     mask |= 0x80;
-    p = em->rckPoint;
     pts = rtpPoint(rtpData());
-    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
+    pt = (RtpPoint*)(em->rckPoint * sizeof(RtpPoint) + (u32)pts);
     d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
-    if (d2 < 62500.0f || (next != p && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
+    if (d2 < 62500.0f || (next != em->rckPoint && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
         em->rckPoint = next;
     }
     *out = rtpPoint(rtpData())[em->rckPoint].pos;
@@ -262,7 +257,7 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         RtpData* r = (RtpData*) Global.pRoomRtp;
         tbl = (s8*) (r->nextOfs + (u32) r);
     }
-    next = rtpNext(tbl, p, t);
+    next = tbl[rtpData()->nPoint * p + t];
     if (next == -1) {
         *out = *target;
         if (dist != NULL) {
@@ -284,27 +279,33 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         }
     }
     mask |= 0x80;
-    p = em->rckPoint;
     pts = rtpPoint(rtpData());
-    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
+    pt = (RtpPoint*)(em->rckPoint * sizeof(RtpPoint) + (u32)pts);
     d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
-    if (d2 < 62500.0f || (next != p && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
+    if (d2 < 62500.0f || (next != em->rckPoint && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
         em->rckPoint = next;
     }
     *out = rtpPoint(rtpData())[em->rckPoint].pos;
     if (dist != NULL) {
-        int n;
-        dmax = fabsf(a.y - b.y);
-        n = rtpNext(tbl, em->rckPoint, em->rckNext);
-        while (n != -1) {
-            f32 d = fabsf(a.y - rtpPoint(rtpData())[n].pos.y);
+        RtpData* r;
+        int np;
+        // The hop loop reuses `next` (one global pseudo, r30) and keeps the table read in the loop
+        // test, so the exit test copied to the entry is the pre-loop `tbl[..]`; the struct-view rtp
+        // and `np` are the fresh `pG` load and the hoisted nPoint. A `while` whose body is under
+        // 30 raw insns would have the whole body up to the `break` rotated instead.
+        dmax = a.y - b.y;
+        dmax = fabsf(dmax);
+        r = (RtpData*) pGS->pRoomRtp;
+        np = r->nPoint;
+        next = em->rckPoint;
+        while ((next = tbl[np * next + em->rckNext]) != -1) {
+            f32 d = fabsf(a.y - rtpPoint(r)[next].pos.y);
             if (d > dmax) {
                 dmax = d;
             }
-            if (n == em->rckNext) {
+            if (next == em->rckNext) {
                 break;
             }
-            n = rtpNext(tbl, n, em->rckNext);
         }
         *dist = dmax;
     }

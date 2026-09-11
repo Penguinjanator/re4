@@ -242,13 +242,16 @@ u32 MemCheckHeapEnd(int no)
     if (!memCheckHeapActive(no) || h < 0) {
         return 0;
     }
-    d = &HeapHead[h];
-    // Tested through `end` (not `d->allocated == NULL`): the target keeps the else-arm `li r3,0`
-    // between the compare and the branch and reloads `d->allocated` for the loop init, i.e. jump1's
-    // `x = b; if (c) x = a` hoist did not fire and the join stayed off cse's AROUND path.
-    end = (u32) d->allocated;
-    if (end == 0) {
-        end = (u32) d->free;
+    d = HeapHead;
+    d += h;
+    // `d = HeapHead; d += h;` loads HeapHead straight into d (a global pseudo), so the block's
+    // local qtys are only h*12 and the loaded `allocated` (the 3-qty partial sort would put h*12
+    // first). The two-statement then-arm keeps jump1 from hoisting `end = 0` above the branch, so
+    // cse1's path ends at the else arm and the loop init reloads `d->allocated`; jump2 hoists the
+    // `li r3,0` between the compare and the branch afterwards.
+    if (d->allocated == NULL) {
+        cell = d->free;
+        end = (u32) cell;
     } else {
         end = 0;
     }
