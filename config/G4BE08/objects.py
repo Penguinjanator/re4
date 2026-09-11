@@ -1822,3 +1822,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/sfd_tim.c": True,  # CRI pass 21: SFTIM_IsGetFrmTime 6 -> 0: a frame-taking copy of the inlined body (sftim_IsGetFrmTimeFrm) with `tunit` declared between `tscale` and `vrate` and read before `ftime` -- only a local of the same inlined body ranks between the body's locals (r10 between r9/r11); a wrapper local or the Tunit call's argument temporary ranks above them all
 })
+
+# cam_ctrl closer (2026-09-11)
+MATCHING.update({
+    "game/cam_ctrl.cpp": True,  # 84/84: HermiteExport 142 -> 0 zero code (`((u8*) &tmp)[n]` byte copies on one function-scope `n`, case 2/3 loads v,v0,v1, `cut->num - 1 == k`, pad loop on `j` with an in-place `rem`); cameraHitCheck 125 -> 0 (`do { } while (0)` LOOP_END anchor breaks cse1's ebb at the hit join, `register cAtariInfo* at asm("r29")` + launder so the copy loop runs on the ctor's `this` temp and `at` is not cprop'd, `hit = 0` after the p copy; COMPILER-DIFF); r0_RailBehind 3 -> 0 (asm `la` for the three VecLinearCombination pointer args, COMPILER-DIFF: #3)
+})

@@ -50,13 +50,13 @@ extern CameraBSpline CamBSpline;
 // internal linkage: the table is deferred behind the cManager template strings in .rodata
 static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
 
-// Byte-wise copy of the float `tmp` into the (unaligned) motion buffer.
+// Byte-wise copy of the float `tmp` into the (unaligned) motion buffer. `&tmp` indexed directly
+// (a pointer local is copy-propagated into loops 2/3), `n` is the function-scope counter shared
+// by the three copies (one allocno -> r11 in all three, the `&tmp` copies fall to r12/r9/r9).
 #define EXPORT_TMP(p)                             \
     {                                             \
-        u8* s_ = (u8*) &tmp;                      \
-        int n_;                                   \
-        for (n_ = 0; n_ < 4; n_++) {              \
-            *(p)++ = s_[n_];                      \
+        for (n = 0; n < 4; n++) {                 \
+            *(p)++ = ((u8*) &tmp)[n];             \
         }                                         \
     }
 
@@ -79,6 +79,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
     f32 v1;
     f32 dt0;
     f32 dt1;
+    int n;
 
     *(u16*) p = (cut->num - 1) * 30;
     p += 2;
@@ -145,14 +146,14 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
                     v1 = (&cut->at[k1].x)[j];
                     break;
                 case 2:
-                    v1 = cut->roll[k1];
                     v = cut->roll[k];
                     v0 = cut->roll[k0];
+                    v1 = cut->roll[k1];
                     break;
                 case 3:
-                    v1 = cut->fovy[k1];
                     v = cut->fovy[k];
                     v0 = cut->fovy[k0];
+                    v1 = cut->fovy[k1];
                     v1 *= DEG;
                     v *= DEG;
                     v0 *= DEG;
@@ -164,7 +165,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
                 dt1 = (f32) (frames[k1] - frames[k]);
                 if (k == 0) {
                     tan = (v1 - v) / dt1;
-                } else if (k == cut->num - 1) {
+                } else if (cut->num - 1 == k) {
                     tan = (v - v0) / dt0;
                 } else {
                     tan = (dt1 * ((v - v0) / dt0) + dt0 * ((v1 - v) / dt1)) / (dt0 + dt1);
@@ -176,11 +177,13 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
             }
         }
         {
-            int rem = (p - buf) % 4;
+            // `rem` is one multi-set variable (in place in the `p - buf` register) and the pad loop
+            // counts on `j` (a GPR elsewhere, so the reversed count stays `addic./bne`, no ctr).
+            int rem = p - buf;
+            rem %= 4;
             if (rem) {
-                int pad = 4 - rem;
-                int n;
-                for (n = 0; n < pad; n++) {
+                rem = 4 - rem;
+                for (j = 0; j < rem; j++) {
                     *p++ = 0;
                 }
             }
@@ -365,6 +368,11 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
     hitB = ObjHitCheck(&posB, &nrmB, from, to, 1);
     hitC = SatMgr.hitCheck(from, to, &posC, &nrmC, 0x8000, 0x1C2810);
     if (hitA | hitB | hitC) {
+        // COMPILER-DIFF: codeless anchor. The empty loop leaves NOTE_INSN_LOOP_BEG/END here, which ends
+        // the first cse pass's extended basic block at this point (cse1 stops at LOOP_END). Without it
+        // cse1 folds the `&posB`/`&nrmB` recomputations into the earlier `&posA` pseudos and the target's
+        // `mr r18,r28` (gcse PRE copy) and fresh `addi r6/r7` argument forms are not produced.
+        do { } while (0);
         dist = 0.0f;
         first = 1;
         if (hitA) {
@@ -393,31 +401,43 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
     }
     if (pSubEm && pSubEm->id == 3) {
         cAtariInfo atBuf;
-        cAtariInfo& at = atBuf;  // the target reads/writes `at` through a pointer register (lha 0x18(r29), stfs 0x4(r29))
+        // The target reads/writes the info through a pointer register (lha 0x18(r29), stfs 0x4(r29)) that is
+        // a copy of the constructor's `this` register (`mr r29,r30`), and the 76-byte copy below increments
+        // that `this` register in place. A plain `cAtariInfo& at = atBuf;` cannot produce this: cse makes the
+        // longer-lived reference the canonical register (the copy loop then runs on a copy of it), and gcse
+        // copy propagation replaces the reference by the `this` temporary everywhere else.
+        // COMPILER-DIFF: register pin (r29) plus launder. The pin keeps `at` out of cse's canonical class
+        // (hard regs go last), so the copy loop's address is the `this` temporary; the launder gives `at` a
+        // second set so the `at = this` copy is not propagated into the later field accesses.
+        register cAtariInfo* at asm("r29") = &atBuf;
+        asm("" : "+r"(at));
         cModel* parts;
         Vec w;
 
-        at = pSubEm->atari;
-        if (at.partsNo != 0) {
-            parts = pSubEm->getPartsPtr(at.partsNo - 1);
+        atBuf = pSubEm->atari;
+        if (at->partsNo != 0) {
+            parts = pSubEm->getPartsPtr(at->partsNo - 1);
         } else {
             parts = pSubEm;
         }
         if (parts) {
             f32 r;
-            int hit = 0;
+            int hit;
 
-            at.pos.y -= 1000.0f;
-            at.h += 1000.0f;
-            PSMTXMultVec(parts->mat, &at.pos, &w);
-            r = at.rectX * R_GAIN;
+            at->pos.y -= 1000.0f;
+            at->h += 1000.0f;
+            PSMTXMultVec(parts->mat, &at->pos, &w);
+            r = at->rectX * R_GAIN;
             if (ret) {
                 p = *pos;
             } else {
                 p = *to;
             }
+            // `hit = 0` after the `p` copy: the `li` sits in the join block and the w.y/p.y compare
+            // registers come out as f12/f13 (declaring it initialised moves both).
+            hit = 0;
             if (w.y <= p.y) {
-                if (p.y <= w.y + at.h) {
+                if (p.y <= w.y + at->h) {
                     Vec a;
                     Vec b;
 
@@ -431,8 +451,8 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
                 }
             }
             if (hit == 1) {
-                at.rectX *= GAIN;
-                if (ObaLineHitChk(pSubEm, &at, from, &p, &hp, &hn)) {
+                at->rectX *= GAIN;
+                if (ObaLineHitChk(pSubEm, at, from, &p, &hp, &hn)) {
                     ret = 1;
                     *pos = hp;
                 }
@@ -1709,7 +1729,20 @@ void CameraControl::r0_RailBehind()
         n = (f32) nI;
         mm = (f32) mI;
         k = 1.0f / (mm + n);
-        VecLinearCombination(&cam.param.at, &cam.param.pos, mm * k, n * k, &floor);
+        {
+            // COMPILER-DIFF: #3 fresh-addi arguments. The target recomputes the three pointer arguments of
+            // this one call (`addi r3,r1,0xb8; addi r4,r1,0xac; addi r5,r1,0x220`) while every surrounding
+            // call copies them from the live address registers (`mr r3,r28` ...). gcse PRE turns the
+            // `&x` recomputations of this block into copies of the reaching registers; `la` through asm
+            // is not a PRE expression, and the dying temporaries are retargeted to r3/r4/r5 by regmove.
+            Vec* atp;
+            Vec* posp;
+            Vec* floorp;
+            asm("la %0,%1" : "=r"(atp) : "m"(cam.param.at.x));
+            asm("la %0,%1" : "=r"(posp) : "m"(cam.param.pos.x));
+            asm("la %0,%1" : "=r"(floorp) : "m"(floor.x));
+            VecLinearCombination(atp, posp, mm * k, n * k, floorp);
+        }
         PSVECSubtract(&cam.param.at, &cam.param.pos, &dir);
         dir.y = 0.0f;
         PSVECCrossProduct(&yaxis, &dir, &xaxis);
