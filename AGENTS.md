@@ -16999,3 +16999,181 @@ objdiff.json" seen all morning is other agents' configure.py runs racing on objd
   for the CFA, `call (void)debug_tree(*(int*)CFA)`, `watch *(unsigned char*)(rtx+3)` for MEM flag bits) locates the
   expander of a puzzling RTL shape in minutes; the flags byte of an rtx is at offset 3 (code:16, mode:8, then
   jump/call/unchanging/volatil/in_struct/used/integrated/frame_related from bit 0).
+
+### Tool RELs, bytes-first pass 15 (Tools/t_vib Matching 29/29 -> flipped; t_movie/t_se_at 14 -> 18/20; t_movie/snd_test 51 -> 53/77; t_sce/t_block tBlockArea_disp 105 -> 2; t_camera_data / t_esp_area / t_lightarea read; 2026-09-11)
+
+- Harness ~/.cache/tools_p15 (deleted at the end): dol18a copies with the paths rewritten plus `mtryv.py MOD/UNIT SYM V.py
+  [--apply NAME] [--src ABS]` (source, cflags and post_build parsed from build.ninja after joining the `$\n` continuations),
+  `mdump.py MOD/UNIT -dX...` (runs CPP.exe + cc1plus itself with ngccc.py's define lists, dumps land in `dump/<stem>.i.<pass>`
+  -- ngccc.py writes the `.i` into a temp dir, so `-d` flags through ngccc give nothing), `msbs.sh`, `mcmp.py`/`order.py`
+  resolving `MOD/UNIT` to `build/G4BE08/<mod>/obj/`. NB while several agents run `ninja` at once, the `build build.ninja
+  objdiff.json: configure` regeneration reads a half-written objdiff.json ("Expecting ',' delimiter: line 4045") on almost
+  every attempt; `cp build.ninja /tmp/x.ninja && ninja -f /tmp/x.ninja <targets>` builds the requested objects without the
+  regeneration (the copy's regen rule outputs `build.ninja`, not the loaded manifest).
+- **tvibListVibDraw (24 -> 0, zero code): the marker `if (V->frame > 177) xl += 178; else xl += V->frame;` written with the
+  ARMS SWAPPED, `if (V->frame <= 177) xl += V->frame; else xl += 178;`.** jump.c has two hoists: form 1 (`if (c) x = a; else
+  x = b;` -> `x = b; if (c) x = a`) requires B's registers unmodified between the hoist point and `x = b`, which `x = a` breaks
+  when a also sets x; form 2 (`if (c) { x = a; goto l; } x = b;` -> `x = a; if (c) goto l; x = b;`, jump.c ~l.650) requires only
+  that B (the FALL-THROUGH arm, `x + 178` cse-folded to `L + 227`) does not reference x -- A may. So the hoisted `add r31,r31,r9`
+  before the `ble` is the THEN arm of a `<=` test, not the else arm of a `>` test; cse then follows the `ble` and LIST_Y(i) reuses
+  the `(i+7)>>3` quotient as the pass-14 note predicted.
+- **tvibEditFrameDisp (92 -> 0, zero code, four facts):**
+  (1) `(i + V->scroll) % 10` -- source operand order IS kept for an int + int-member add (`add r11,r30,r11`); the pass-14
+  "memory operand always first" is the narrow-store family below, not a general rule (probe: `s->scroll + i` / `i + s->scroll`
+  give `add r0,r0,r4` / `add r4,r4,r0`).
+  (2) fold's association moves a constant OUT of the left group and INTO the right one: `menu_y + (i * 16 - 8)` becomes
+  `(menu_y - 8) + i*16` (split_tree on arg1), while `menu_y - 8 + i * 16` becomes `menu_y + (i*16 + -8)` (split_tree on arg0:
+  `VAR +- (ARG1 +- CON)`). The target's `slwi; addi -8; add menu_y,t` = the constant written next to the FIRST operand. Same for
+  `y + 8 + cell_h * 8` (target `slwi; addi 8; add y,t`) and for MULT: `cell_w * 29 * V->frame / 2000` gives `mulli frame,29;
+  mullw cell_w,t` where `cell_w * (V->frame * 29)` is re-associated to `(cell_w*29) * frame`. Rule: when the target keeps
+  `t = b OP K` as a unit and adds/multiplies it into `a`, write `a OP K OP b` (K attached to a), never `a OP (b OP K)`.
+  (3) The `col = 0x0000FFFF` / `col = 0xFFFF00FF` constants whose `stw col,48(r1)` the target issues AFTER the `sth` block and
+  `mr r4,r24` (ours first): the assignment is written AFTER the six vertex stores (`v[..] = ..; col = K; TprimDrawFrameFn(..)`),
+  which also puts `li r5,2` first (ours last); earlier positions give 108-109 words.
+  (4) The loop-hoisted highs then named themselves (r18 menu_y / r20 cell_h had been swapped by the association above).
+- **Narrow `+` operand order (snd_test test_tbl_now_check 1 -> 0, test_req_no_select 1 -> 0, zero code): `int c = (u8) w->cur;
+  w->cur = dir + c;` (`int c = (u16) w->reqCur; w->reqCur = step + c;`).** Mechanism, exact: convert_to_integer shortens EVERY
+  narrow-store `+`/`-`/bit-op to the narrow mode on PPC (`TRULY_NOOP_TRUNCATION`, convert.c l.311), so `w->cur += dir` is a
+  QImode add; expand_binop widens it with `widen_operand (.., no_extend=1)` = paradoxical `(subreg:SI (reg:QI load))` operands
+  (force_reg of the MEM, force_reg of `(subreg:QI dir)`); cse then folds the dir side back to `(reg dir)` and its commutative
+  canonicalisation (cse.c ~l.4700: swap when op0 is class 'o' and op1 is not, or op0 is a SUBREG of an 'o' and op1 is not) puts
+  the SUBREG-of-load FIRST whatever the source order -- `cur + dir`, `dir + cur`, `(u8)`, `(s8)` casts all give `add cur,dir`.
+  An `int` local holding the byte is a REG ('o'): both operands are objects, no swap, source order kept; the `(u8)` cast makes
+  the load a plain `lbz` (`int c = w->cur` keeps an `extsb`; a `u8 c` local is a promoted SUBREG and swaps again). tvibFrameLineDraw's
+  MEM + MEM `v[0].x + cell_w` matched for the same reason (two SUBREGs, no swap).
+- **t_se_at seAtAreaEdit_EditMenu (38 -> 0, zero code):** `TOOL_MENU* c = seAtCreateMenu; TOOL_MENU* e = seAtEditMenu;` pointer
+  locals declared in that order (c first): the address pseudo created first takes r8, the four `enable` stores come out
+  last-statement-first (`c[1], e[4], e[3], c[2]` from the source order e4, e3, c2, c1) and the then-arm call finds its menu
+  already in r7.
+- **seAtDataSave (41 -> 0, zero code): `{ int& n = seAtSaveNum; n++; }` after the work copy and `{ int& n = seAtSaveNum;
+  pW->fileHead.num = n; }`** -- reference views of the static counter: the increment's `lwz` stays below the block copy's
+  stores and the `lhz seAtSaveNum+2` below the `sth version` store (a MEM with neither the struct nor the scalar flag; the
+  plain static is a fixed scalar that sched1 hoists above in-struct stores). An inline `IInc(int&)` helper differs by 2 words
+  (integrate's copy); a reference for the index read too (`pW->file[n]`) costs 44.
+- **seAtAreaEdit (63 -> 0, zero code, three pieces):** `Vec v[2]` instead of `Vec a, b` (two aggregate locals are 8-aligned
+  slots at 8 and 24; the target's pair at 8 and 20 is ONE 24-byte object -- read the frame: 12-byte spacing = array/struct,
+  16-byte = separate Vecs); `u8 no = pW->areaNo;` read at the function top and used by the FIRST arm only (`pW->areaNo = no +
+  1`, the other arms re-read the member: the target's `lbz r10,35(r11)` above the `sub == 0` test is an unconditional read,
+  the tvib_R0_VibLoopSet rule); `Camera* cam = &pG->Cam;` declared INSIDE each arm -- a per-arm cam is a block-local qty that
+  local-alloc gives r30 (callee-saved, crosses calls), which makes r30 used-so-far, so `&v[1]`/`&v[0]` take r29/r28 and the
+  PRE'd `high(seAtWk)` is the only pass-1 allocno and gets r31; the function-scope `cam` set in both arms is a global pseudo
+  (priority 0.5) that took r31 first and pushed the high to r28.
+- **seAtDataLoad (87 -> 0, one tagged item): (1) the REP_UP switch has `case 0: pW->server ^= 1; break;` like the DOWN one** --
+  the target's `ble` from the UP tree lands INSIDE the DOWN tree at its `cmpwi 0; beq server^=1` (jump2 cross-jumped the two
+  identical case-0 paths); a `case 0: break;` alone gives the tree but a `ble` to the chain end (1 word). Rule: a compare-tree
+  branch into the middle of ANOTHER switch's tree = identical case bodies in both switches. (2) `if (yesNo == 0) { sub = 3;
+  step = 0; step2 = 0; } else { sub = 1; step = 0; step2 = 0; }` (the zero stores repeated in both arms: separate `stb` arms
+  instead of jump.c's else-set hoist, tails cross-jumped with the JOY_B arm's). (3) `register int col5 asm("r5")` for the
+  `(u8) (sub == 1 ? (loadCursor == 0 ? 6 : 0) : 0)` eprintf colour with `int x = pW->x; int y = pW->y + 0x20;` read before it
+  (tagged `COMPILER-DIFF: 2`, the draw_light_graph form): the `(u8)` cast of a constant ternary is folded by nonzero_bits, the
+  `asm("" : "+r")` launder keeps the mask but costs the issue slot (3 words), the pin masks in place. Left: seAtAreaEdit_DataInput
+  (170; a `clrlwi r5,r29,24` #2 mask, `lis .rodata` highs hoisted differently, register names).
+- **t_block tBlockArea_disp (105 -> 2, zero code):** (1) `BlockLink* l = &pW->link[i];` BEFORE `cBlockUnit* u = Block.getUnitPtr(..)`
+  (pW loaded before the call, `l` from the kept register); (2) the goto search loop is `for (int j = 0; j < 8; j++) { col =
+  0x00808080; if (l->link[j] == pW->blockNo) { col = 0x0080FF80; break; } if (pW->link[pW->blockNo].link[j] == i) { col =
+  0x0080FF80; break; } }` -- two separate break arms (cross-jumped into one hit block), a block-local `j` (a function-scope j shared
+  with loop 2 is one global pseudo in r31; the target's loop-1 j is r8), the `col` re-set at the body top; (3) loop 2 reads
+  `l->link[j]` DIRECTLY at every use (`if (l->link[j] == -1) continue; if ((pW->link[l->link[j]].flags & 1) == 0) continue; ...`):
+  the byte stays one QI pseudo with `extsb r0,r8` at each int use and a re-read `lbzx r4` for the Draw_line3d argument after the
+  join; the `s8 n = l->link[j]` local is promoted and extended once; (4) `case 1: col = 0x00808080; break;` written LAST in the
+  mode switch (after case 3): case 2 and case 3 then both end in `bl dispBlockArea; b end` and jump2 merges the calls (with case 1
+  first, case 3's call ends the switch and flow's `(use (const_int 0))` after it blocks the merge: 16 words). Left (2): the area
+  loop's preheader `li r30,1504` (giv init) before `lis r29,-32768` (BIT_ON's mask, loop.c move_movables) -- ours emits the
+  movable first (pass 1: movables, then strength_reduce's inits); the target's order needs the constant hoisted in loop pass 2
+  (68 insns in pass 1 vs the `71 * savings * lifetime` limit: the original's loop had >= 72 insns at pass 1), not found.
+- **Read, not closed:**
+  - t_camera_data tcSetBesideOffset (27): the two loop-1 givs (207 = n*12+396, 209 = n*4; 9 refs / 84 vs 82) are BOTH pass-1
+    allocations (REG_ALLOC_ORDER runs 0, 9, 11, 10, 8, 7, 6, 5, 4, 3 BEFORE 31..13: the first allocated gets r3, the second r31),
+    so the target simply allocated n*12 first. Recording order in the outer loop's pass 2 (givs 450 n*4, 457 n*12, 459 n*12+396;
+    reduction = reverse = 459, 457, 450) fixes the init LUIDs (n*12 first). Statement orders (`roll[n]` first flips the registers
+    but also the body schedule: 47), `for (j..; j++, n++)`, `u32 n`, pointer/reference forms of `o`, `f32* roll` locals: 27-78.
+    Loop 2's register cascade (`ready+i*132` r3 vs r12, `i+1` r31 vs r3, pos ptr r6/r7) follows from `regs_someone_prefers`
+    (c = `mr r28,r3` prefers r3, so r3 is skipped in pass 0 by everything that conflicts with c).
+  - t_block tBlockSaveDataCreate (38): gcse PREs the tail's `linkSize + 24` (expression 55) into the END of the area loop's test
+    block and then-arm (`PRE/HOIST: end of bb 6/7`), the target computes it in the tail; and the target's `mr r26,r30` copy of the
+    memcpy-size pseudo (both live: the pLink advance reads r30 after it) is undone in ours by gcse's COPY-PROP ("Replacing reg 86 in
+    insn 462 with reg 119") -- `linkSize = size` with `size` used later, `size = 0` after the advance, `linkSize + 24 + n*56`,
+    advance-before-assignment: 38-44 words each. The copy survives only when the copy's src or dest is set again in the same
+    block (hash_scan_set's `oprs_available_p`) or 119 is mentioned later than 86 (cse's make_regs_eqv canonical rule) -- no
+    natural spelling found.
+  - t_camera_data tcDataExport (142), t_esp_area ToolEspArea (442), t_lightarea ToolLightAreaMain (395): the edit-window
+    constructor block's `cmpwi r31,0` (the `new` result) is computed BEFORE the AddButton loop and kept in `mfcr r29` across it
+    in the target, i.e. gcse PRE'd the `if (pEdit == 0)` compare across the loop; ours never does (block LCM's `delayin` leaves a
+    single occurrence after a loop at its original block -- the same LCM that DOES insert `linkSize + 24` into t_block's loop:
+    both directions exist, the difference between the two functions is not understood). `li r29,5`/`li r11,32` (the rows/num
+    constants: r29 callee-saved in the target) untouched.
+
+### Stage rooms, st1_3/st2_0 pass 10 (r202 Matching 33/33 -> `st2_0/r202.cpp` flipped: initCatapult 67 -> 0; r10f Matching 15/15 -> `st1_3/r10f.cpp` flipped: GondolaGetOff 26 -> 0, GondolaGetOn 126 -> 0; 2026-09-11)
+
+- Harness ~/.cache/rooms_b10 (rooms_a10 copies with the paths rewritten: `mcmp.py MOD/UNIT [SYM]` with `OBJ=`, `tryv.py
+  MOD/UNIT SYM v/x.py`, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`, `sbs.sh MOD/UNIT SYM [ABSOLUTE OBJ]`,
+  `tailcmp.py`, `flipchk.sh MOD UNIT`, `order.py MOD/UNIT [OBJ]` fixed for module split objects; deleted at the end). Both
+  flips verified with `make_rel.py --verify` (st2_0.rel / st1_3.rel OK) before the modules.py flag; 111 OK after each.
+  Build hazard this pass: six agents' `ninja` runs re-generate build.ninja concurrently and `configure.py` reads
+  objdiff.json / build/G4BE08/config.json while another instance writes them (`JSONDecodeError`, `premature end of file`) --
+  retry `python3 configure.py && ninja ...` in a loop (29 tries once); compile the unit with `tools/ngccc.py` +
+  `strip_unused.py --gcc --module` + `fold_linkonce.py --module` into the harness meanwhile and compare that object.
+- **r202 initCatapult 67 -> 0, two pieces.** (1) Zero code: `int zero;` declared before the tbl loop, `zero = 0;` INSIDE the
+  body right before `cat[i].state = zero` (state/timer/thrown/nArea = zero, the two ScePrim* stores stay literal 0) and
+  `cat[2].timer = zero` after the loop: loop.c hoists the single-set user variable like the literal and the after-block
+  stores the same pseudo (`stw r28,180`). (2) TAGGED `#3` (dead test as a gcse block boundary), the after-loop `lwz
+  r3,work@l(r27)` x9 = gcse's reaching reg R used directly:
+  ```
+  R202Work** wp = &r202_work.p;
+  if (i <= 3) { *wp = 0; }
+  r202_work.p->cat[1].setNewArea(6, 7); ...
+  ```
+  Mechanism, all read off -dG/-dt: the after-loop block A now ends at the `if`; cse1's AROUND path (forward `bgt` over a
+  label-free block, `LABEL_NUSES == 1`) rewrites the join block J's `high(r202_work)` uses to A's pseudo P (`make_regs_eqv`:
+  a later pseudo leads only if it outlives the ebb); PRE turns A's `P = high` into `P = R`; cprop pass 2 propagates R into
+  J's `(lo_sum P sym)` uses because the copy is AVIN at J (the in-block uses of pass 8/9 were never propagated: `cprop_insn`
+  skips a reg already set in its block and `find_avail_set` is block-entry availability); the copy is dead and `wp`'s
+  `(lo_sum P sym)` has only the dead store's use; cse2 folds `i <= 3` from the loop exit's `ble` (record_jump_equiv on the
+  fall-through: `GTU i 3`, `comparison_dominates_p`; cse1 could not: its ebb stops at NOTE_INSN_LOOP_END and J's ebb starts
+  after it), the dead block and the jump go, flow deletes the store's address chain and the re-materialised `lis P`. The
+  test must be on a value cse1 does NOT know and cse2 DOES: the loop counter after the loop is the natural one (a `k = 0`
+  set before the loop is unknown to both; cprop cannot fold PPC compares). Without the pointer (`if (i <= 3) r202_work.p =
+  0;`) the high sits in the skipped block: 18 words; the zero piece alone 93 (the store's `li` is a `stw` slot).
+  Rule (the #3 "target uses R directly" family: r10c r27, r120 r31, R213Init): the copy `P = R` has to land in a block
+  that ENDS before every use of P and has no live use of P itself; a dead conditional right after the block's first high
+  occurrence, on the exited loop's counter, is a zero-cost boundary that vanishes at cse2.
+- **r10f GondolaGetOff 26 -> 0 and GondolaGetOn 126 -> 0, zero code: the setPos address through two inlines.**
+  ```
+  struct R10fGondolaTbl { void* mot[2][3]; Vec posA[2]; Vec posB[2]; };
+  static inline void r10f_setPos(cModel* m, Vec* p) { m->setPos(p); }
+  static inline void r10f_setPosA(cModel* m, R10fGondolaTbl* t, int side) { r10f_setPos(m, &t->posA[side]); }
+  r10f_setPosA(pl, (R10fGondolaTbl*) mot, side);   // and r10f_setPosB(s, .., side) for posB
+  ```
+  Facts: the C++ FE rewrites `&x[y]` to `x + y` and `&s->f` to `s + off` (cp/typeck.c build_component_addr), and fold's
+  split_tree associates `(t + 24) + side*12` into `t + (side*12 + 24)`, so a plain argument expands (EXPAND_NORMAL, binop)
+  to `M = side*12; T = M + 24; A = t + T` = our old `addi r4,r23,24; add r4,r31,r4` and cse1 shares M across the sites.
+  integrate.c expands an inline's argument with EXPAND_SUM (`both_summands`: MULT first, constant outermost ->
+  `(plus (plus (mult side 12) t) 24)`) and, the formal not being `const`, `copy_to_mode_reg` -> `force_operand` computes
+  the sum into the parameter copy pseudo as a CHAIN of sets of one pseudo: `mulli T; add T,T,t; addi T,T,24; mr r4,T`
+  (local-alloc ties T to r4). A multi-set pseudo drops out of the mult's cse class, so `side*12` is recomputed per site
+  (GetOff: three `mulli`, target) and is a gcse occurrence per site: in GetOn the posA site is in the block after the
+  `sub` test, the posB and `mot[side][2]` sites are redundant -> `R = side*12` inserted (`mulli r26`), the copies' uses
+  read R through cse2's canon_reg (`add r4,r26,r23`, `lwzx r4,r9,r26`) except the hard-reg chain (`mr r4,r26; add
+  r4,r4,r23`: canon_reg never replaces a hard reg) -- exactly the target's asymmetric shapes. The table pointer argument
+  `(R10fGondolaTbl*) mot` is `fp+8` copied into a fresh pseudo per site: cse1 merges it with the mot copy's destination
+  in GetOff (bb 0 ebb), gcse PREs the two GetOn sites into a copy of it (`mr r23,r8`: the reaching reg of `(plus fp 8)`,
+  cse2 `R = D`; a reference/pointer variable set once is cprop'd away, pass 9's `t` reference). `Vec* const p` gives the
+  same code here.
+- **r10f GondolaGetOn, the RsfCheck part (114 -> 0), zero code, four pieces:** (1) `int f` + `(u16) f` at the two
+  setMoveMotion calls and `(u16) (i * 0x1C2)` in the else loop: the target masks (`clrlwi r5`) at each USE; a `u16 f`
+  local is PROMOTE_MODE'd to SI and masks once at the assignment (hoisted above the `i == 0` test). (2) `p.x = 0.0f;
+  p.y = +-K; p.z = 0.0f;` written in BOTH idx arms (x, y, z order): the 0.0 and K pool loads stay in the arms (`lis LC0`
+  issued at t1 before `lis LCK` by LUID), jump2 cross-jumps the four stores into the join; the other five orders 23-33.
+  (3) A for-scope counter per loop (`for (u32 i = 0; ..)` x3): one shared `i` aggregates the three loops' references
+  (floor_log2(refs) * refs / live length) and outranks each loop's givs in global-alloc (i r29, givs r28); per-loop
+  counters tie the giv on refs and lose on live length (`li i,0` issued first in the preheader) -> giv r29, i r28, loop
+  2's own counter r29 like the target. (4) unchanged from pass 9: the struct-view forms above.
+- Facts read this pass: gcse `cprop_insn` ignores uses of regs numbered >= max_gcse_regno (the reaching regs themselves
+  are never propagated), skips a reg set earlier in its block (`oprs_not_set_p`), uses only sets in `cprop_avin` of the
+  use's block, and `try_replace_reg` is a bare `validate_replace_src` (no REG_EQUAL fallback); pre_delete adds no note --
+  the `REG_EQUAL (high sym)` on the copy is cse1's; cse1 (`cse_end_of_basic_block`, `!after_loop`) ends every ebb at
+  NOTE_INSN_LOOP_END and a TAKEN path needs a BARRIER before the label (a loop's end label never qualifies), cse2 ignores
+  the note; `record_jump_equiv (insn, 0)` runs on every fall-through of a conditional jump in the ebb; loop.c emits a
+  biv's final value after the loop only when the biv is eliminated; `preserve_subexpressions_p` returns 1 under
+  -fexpensive-optimizations so expand_call always copies a non-REG argument value costlier than 2 into a pseudo (the
+  hard-register argument chains of the target come from integrate.c's force_operand, not from expand_call).

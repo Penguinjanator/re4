@@ -151,15 +151,24 @@ void R10fMain()
 }
 
 // View of the three tables of GondolaGetOn/GetOff as one object: the target forms `&posA[side]` as
-// `mulli; add r4,r4,&mot; addi r4,r4,24` (`&posB[side]`: `addi 48`), i.e. get_inner_reference's
-// "base + variable offset, then the constant field offset" shape (the Vec alignment (4) fails the
-// bitpos-folding test that folds `mot[side][2]` into `addi r9,r1,16; lwzx`), with `&mot` (fp+8) the
-// base pseudo in a callee-saved register. Plain `&posA[side]` puts `fp+32` into its own pseudo instead.
+// `mulli r4,side,12; add r4,r4,&mot; addi r4,r4,24` (`&posB[side]`: `addi 48`) straight into the
+// argument register, recomputed at every site (GetOff) or from one PRE'd `side*12` (GetOn).
 struct R10fGondolaTbl {
     void* mot[2][3];
     Vec posA[2];
     Vec posB[2];
 };
+
+// The setPos argument goes through two inlines: integrate.c expands an inline's argument with
+// EXPAND_SUM (`(plus (plus (mult side 12) t) 24)`, MULT first) and force_operand's it into the
+// parameter copy as a chain of sets of ONE pseudo (`mulli T; add T,T,t; addi T,T,24`) -- a
+// multi-set pseudo cse1 cannot share across the sites, so `side*12` is recomputed (GetOff) or PRE'd
+// (GetOn: the posA site is in the block after the `sub` test). The table pointer argument
+// `(R10fGondolaTbl*) mot` is `fp+8` copied into a fresh pseudo per site: in GetOff cse1 merges
+// them with the mot copy's destination, in GetOn gcse PREs them into a copy of it (`mr r23,r8`).
+static inline void r10f_setPos(cModel* m, Vec* p) { m->setPos(p); }
+static inline void r10f_setPosA(cModel* m, R10fGondolaTbl* t, int side) { r10f_setPos(m, &t->posA[side]); }
+static inline void r10f_setPosB(cModel* m, R10fGondolaTbl* t, int side) { r10f_setPos(m, &t->posB[side]); }
 
 // Get on the cable car at `side` (0: the village side, 1: the far side): Leon and Ashley step
 // on, the gondolas move to their positions and the ride starts.
@@ -174,9 +183,7 @@ static void r10f_GondolaGetOn(int side)
     Vec zero;
     Vec p;
     cObj* obj;
-    u32 i;
     cSubChar* sub = pSUB;
-    R10fGondolaTbl& t = *(R10fGondolaTbl*) mot;
 
     if (sub != 0 && RouteCkPosToPosDis(&pPL->pos, &sub->pos) > 10000.0f) {
         cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
@@ -193,7 +200,7 @@ static void r10f_GondolaGetOn(int side)
         {
             cPlayer* pl = pPL;
 
-            pl->setPos(&t.posA[side]);
+            r10f_setPosA(pl, (R10fGondolaTbl*) mot, side);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -206,7 +213,7 @@ static void r10f_GondolaGetOn(int side)
             {
                 cSubChar* s = pSUB;
 
-                s->setPos(&t.posB[side]);
+                r10f_setPosB(s, (R10fGondolaTbl*) mot, side);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;
@@ -230,9 +237,12 @@ static void r10f_GondolaGetOn(int side)
     if (RsfCheck(G_ROOM_ID, 0)) {
         int cut;
 
-        for (i = 0; i < 10; i++) {
+        // A for-scope counter per loop: one shared `i` aggregates the three loops' references and
+        // outranks the loops' givs in global-alloc (r29 instead of r28). `int f` + `(u16) f` at the
+        // calls: the mask (`clrlwi r5`) sits at each use, a promoted u16 local masks once at the store.
+        for (u32 i = 0; i < 10; i++) {
             if (r10f_work.p->gondola[i] != 0) {
-                u16 f;
+                int f;
 
                 if (side == 0) {
                     f = (150 + i * 450) % 4500;
@@ -240,24 +250,28 @@ static void r10f_GondolaGetOn(int side)
                     f = (400 + i * 450) % 4500;
                 }
                 if (i == 0) {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), f);
+                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), (u16) f);
                 } else {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), f);
+                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) f);
                 }
                 r10f_work.p->gondola[i]->setNoSuspend(1);
             }
         }
+        // p is written in full in both arms (jump2 cross-jumps the four stores into the join; the 0.0
+        // and angle pool loads stay in the arms).
         if (side == 0) {
             r10f_work.p->idx = 1;
+            p.x = 0.0f;
             p.y = 1.5707964f;
+            p.z = 0.0f;
             cut = 6;
         } else {
             r10f_work.p->idx = 4;
+            p.x = 0.0f;
             p.y = -1.5707964f;
+            p.z = 0.0f;
             cut = 5;
         }
-        p.z = 0.0f;
-        p.x = 0.0f;
         r10f_work.p->gondola[r10f_work.p->idx]->setRidePL();
         pPL->setAng(&p);
         if (pSUB != 0) {
@@ -271,18 +285,16 @@ static void r10f_GondolaGetOn(int side)
         while (Fade[0].flags & 1) {
             SceSleep(1);
         }
-        for (i = 0; i < 10; i++) {
+        for (u32 i = 0; i < 10; i++) {
             if (r10f_work.p->gondola[i] != 0) {
                 r10f_work.p->gondola[i]->setNoSuspend(0);
             }
         }
         CamCtrl.Comeback(0);
     } else {
-        for (i = 0; i < 10; i++) {
-            u16 f = i * 0x1C2;
-
+        for (u32 i = 0; i < 10; i++) {
             if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), f);
+                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) (i * 0x1C2));
             }
         }
         r10f_work.p->idx = 0;
@@ -310,7 +322,6 @@ static void r10f_GondolaGetOff(int side)
     Vec zero;
     Vec p;
     cObj* obj;
-    R10fGondolaTbl& t = *(R10fGondolaTbl*) mot;
 
     SceAtSetEnable(9, 0);
     SceEventStart(0);
@@ -324,7 +335,7 @@ static void r10f_GondolaGetOff(int side)
         {
             cPlayer* pl = pPL;
 
-            pl->setPos(&t.posA[side]);
+            r10f_setPosA(pl, (R10fGondolaTbl*) mot, side);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -337,7 +348,7 @@ static void r10f_GondolaGetOff(int side)
             {
                 cSubChar* s = pSUB;
 
-                s->setPos(&t.posB[side]);
+                r10f_setPosB(s, (R10fGondolaTbl*) mot, side);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;

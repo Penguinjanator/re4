@@ -775,6 +775,9 @@ void r202_initCatapult()
         {0x43, 3.3759902f, 0x21},
     };
     u32 i;
+    // The loop's zero is one pseudo (set inside the body, hoisted by loop.c) that the after-loop
+    // `cat[2].timer = zero` store reuses (`stw r28,180`).
+    int zero;
 
     for (i = 0; i < 4; i++) {
         r202_work.p->cat[i].enable = 1;
@@ -782,14 +785,25 @@ void r202_initCatapult()
         r202_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objNo);
         r202_work.p->cat[i].obj->be_flag |= 0x20;
         r202_work.p->cat[i].obj->rot.y = LIMIT_ANGLE(tbl[i].ang);
-        r202_work.p->cat[i].state = 0;
-        r202_work.p->cat[i].timer = 0;
-        r202_work.p->cat[i].thrown = 0;
-        r202_work.p->cat[i].nArea = 0;
+        zero = 0;
+        r202_work.p->cat[i].state = zero;
+        r202_work.p->cat[i].timer = zero;
+        r202_work.p->cat[i].thrown = zero;
+        r202_work.p->cat[i].nArea = zero;
         r202_work.p->cat[i].speed = 3500.0f;
         r202_work.p->cat[i].emNo = tbl[i].emNo;
         r202_work.p->cat[i].setRockTask = 0;
         r202_work.p->cat[i].throwRockTask = 0;
+    }
+    // COMPILER-DIFF: #3 (dead test as a gcse block boundary). The after-loop `lwz work` x9 read the PRE
+    // reaching register (`lis r27` in bb 0) directly in the original; ours re-materialises the copy (cse2,
+    // `high` cost 0). With `&r202_work.p` computed here and the dead `if` ending the block, cse1 rewrites
+    // the following highs to this block's pseudo, PRE turns it into `P = R`, cprop pass 2 propagates R into
+    // the later block, and cse2 folds `i <= 3` from the loop exit's `ble` (the block, the pointer and the
+    // rematerialised `lis` all die before scheduling).
+    R202Work** wp = &r202_work.p;
+    if (i <= 3) {
+        *wp = 0;
     }
     r202_work.p->cat[1].setNewArea(6, 7);
     r202_work.p->cat[2].setNewArea(6, 0xE);
@@ -799,7 +813,7 @@ void r202_initCatapult()
     r202_work.p->cat[0].setNewArea(0xA, 0x12);
     r202_work.p->cat[0].setNewArea(0xC, -1);
     r202_work.p->cat[0].speed = 7000.0f;
-    r202_work.p->cat[2].timer = 0;
+    r202_work.p->cat[2].timer = zero;
     r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, 2, 0);
 }
 
