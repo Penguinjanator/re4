@@ -697,11 +697,15 @@ L_80206C54:
  * loads, so ypos is written before `cvx = vx / 2` (with `lwz ofs[1]` before `lwz ofs[0]`); the sums
  * are `ofs + (v >> 1) + mul` (target `add r29, cvx>>1, mul`); the luma `src2` is `ypitch + yhx + src`
  * (the add chain rule `a + b + c` -> `t = b + c; r = a + t` puts ypitch first: target `add r0, yhx,
- * src; add r0, ypitch, r0`). CRI pass 23/27: 68 -> 56w. OPEN 56w: vx r6 / vy r23 / cvx r25 / cvy r24
- * vs the target's r25 / r11 / r28 / r7 -- vx has 33 neighbours in ours (level 2, coloured before
- * the temporaries) and < 29 in the target, and vx does not interfere with fn_y there (`clrlwi
- * yhx` issued before the `lwzx fn_y`); no vid-order permutation of the four reaches the target's
- * colours in chaitin.py (the graph itself differs). `mby8`/`mby16` as own locals give the target's
+ * src; add r0, ypitch, r0`). CRI pass 23/27/31: 68 -> 56 -> 48w. The first definitions `yhx = vx & 1`
+ * / `chx = cvx & 1` are written BEFORE the fn_y / fn_c table loads: a range-split web is kept (not
+ * sunk into `&= mcflag`) only when a load statement sits between its two definitions, which gives
+ * the target's `clrlwi r24, vx; .. and r24, r24, mcflag` / `clrlwi r23; and r23, r23` own-register
+ * pairs (chx r23 = target). OPEN 48w: vx r6 / vy r23 / cvx r25 / cvy r24 vs the target's r25 / r11 /
+ * r28 / r7 -- the pre-RA scheduler (backend-07) issues `rlwinm yhx` one slot below `lwzx fn_y`
+ * (both are low-priority sinkers in the same cycle), so vx interferes with fn_y (33 neighbours,
+ * level 2); in the target `clrlwi yhx` precedes the load and vx dies into fn_y's r25. No statement
+ * order (2 sweeps, 210 orders), `asm { }` or asm-emitted rlwinm changes the pick. `mby8`/`mby16` as own locals give the target's
  * `mullw r0, mby8, cpitch` operand order (CRI pass 18b); hard pins of vx r25 / vy r11 poison the
  * temporaries the target reuses those registers for (74w). */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
@@ -742,15 +746,15 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	vx = mv->vec[0];
 	vy = mv->vec[1];
 	ypos = ofs[1] + (vx >> 1) + (vy >> 1) * ypitch;
+	yhx = (Uint32)vx & 1;
+	fn_y = tbl_y[vy & 1][vx & 1];
 	cvx = vx / 2;
 	cvy = vy / 2;
-	fn_y = tbl_y[vy & 1][vx & 1];
-	yhx = (Uint32)vx & 1;
-	fn_c = tbl_c[cvy & 1][cvx & 1];
+	cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch;
 	chx = (Uint32)cvx & 1;
+	fn_c = tbl_c[cvy & 1][cvx & 1];
 	chx &= mcflag;
 	yhx &= mcflag;
-	cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch;
 	mc->stride = cpitch;
 	mc->dst = (Uint32 *)dst;
 	src = rfb->pln[0] + cpos;

@@ -24970,6 +24970,32 @@ src/lib/mpv_umc.c `mpvumc_OneReadMb` body + comment only.
   first def as `asm { rlwinm yhx, vx, 0, 31, 31 }` with `register` yhx/vx (identical object: asm instructions are scheduled like C ones
   pre-RA too). Pass-27's "vid-order permutations cannot reach the colours" stands; the lever has to give `rlwinm yhx` a higher pre-RA
   priority than the load (an in-block consumer) or delay the load's readiness -- none found in C.
+- **Pre-RA scheduler facts measured on OneReadMb B1 (backend-06 -> 07, all with ra.py dumps, objects by md5):**
+  (a) every load is ordered before every LATER store and after every EARLIER store (a `fn_y` load written after `mc->stride = ..`
+  never crosses it, r1/r2 probes; `static` on the table changes nothing; no type-based disambiguation). (b) A load's issue slot is set
+  by the stores that follow it: with the four `mc->` stores present the `lwzx fn_y` is pulled to slot 50 of 72 (before `rlwinm yhx`);
+  with no store in the block it sinks to 56/68, with any ONE of the four kept it sits right before that store, and with the stores in
+  the source order src2, src, dst, stride it sits at 60 -- in all of those `rlwinm yhx` (slot 40) precedes it. So the pick is a
+  property of the store list after the load, not of the yhx statement. (c) Height is NOT the whole priority: after `lwz vx/vy` the
+  first pick is `srawi vx>>1` (a two-add sinker chain), the `lis` table bases go to the block top, `mr r3, mc` fills a mullw stall.
+  (d) No register-pressure back-off: 1-4 extra values live across the block (g1-g4) leave the B1 order unchanged.
+  (e) 168 statement orders (chk.py: pre-RA slot of `rlwinm yhx` vs `lwzx fn_y` + words): 42 orders have the rlwinm first, all of
+  them 57w+ (ypos or cpos written after the table loads, so `vx >> 1` / the ofs reloads move and vx still interferes with fn_y's
+  neighbours); the 48w orders all have the load first. (f) `#pragma scheduling off` (both schedulers off, 87w) gives vx degree 24 =
+  the target's, fn_y r25, cvy r7, yhx r24, chx r23, cpos r29, ypos r28 (7/10 target colours) but vx r8 / vy r7 / cvx r8; no order of
+  the 168 reaches more than 7/10, so the target's graph is a SCHEDULED one, not statement order. (g) Reusing `vx` as the fn_y
+  variable (`vx = (Sint32)tbl_y[..][..]`, call through a cast) is 83w -- not the vendor's shape. Lever left: something that gives
+  `vx & 1` a successor the scheduler ranks above the four-store chain without emitting an instruction; none found in C.
+- **mps_lib `MPS_Create` 2w** (`li r4, -1` / `addi r0, r3, mps_obj@l` swap at the tail of the last block): identical through backend-07
+  (pre-RA), the swap appears only in backend-13 (post-RA). Post-RA `addi r0, r3, ..` must follow `mr r3, r31` (r3 is the return
+  value being written -- anti-dependence on r3), so its slot is fixed one behind the `mr`; the target has the `li r4` in that slot.
+  12 variants (pointer-stepping stores, the `-1` in a local, the fn-pointer stores moved, return shapes `return mps` / `return
+  (MPS)&mps_obj[i]`, `#pragma scheduling off` = 72w) all keep the swap or explode; left 2w.
+- **adx_tsvr `adxt_nlp_trap_entry` 2w** is a colour residue (`lha r4` vs `lha r0` in the join block after ScanInfoCode): the target has
+  r0 and r3 both blocked there, ours only r3 (= n2); nothing else lives in r0 across that block in any spelling tried; left 2w.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w** = the M4 class (target `rlwinm/rlwimi x3/stw` swap-store, ours `stwbrx`; sizes 348/332); the file
+  header and CRI pass 27 already record every spelling, `#pragma peephole off` (10w, loses the inlined search's displacement fold)
+  and the asm chain; nothing new tried this pass.
 
 ### CRI mwsfdcre pass 5, continued (the "Applied / negative / residue" part re-appended after the 01:07 tree reset; the source edits were re-applied from the record and rebuilt: CreateSfd 126w, CalcWorkSfd 4w, 8/10, not flipped; 2026-09-12)
 - **Applied after the pool fix (each step verified with variant.sh, then the locked ninja; all pure C, no pins):**
@@ -25251,3 +25277,101 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   SFMPS_ExecServer); cftfx StaticV 60 -> 36w; adx_sje output_header 2 -> 0w, encode_data 68 -> 67w. Flags unchanged (nothing
   IDENTICAL); objects.py untouched; every applied step rebuilt through the locked ninja and judged with bytecmp
   (sfd_mps 22/26, cftfx 3/6, adx_sje 15/17). Scratch harness /home/adityas/.cache/cri29 removed at the end of the pass.
+
+### Tool RELs, t_esp pass 16
+
+- InitTool 2880 -> 2861w (diffsegs 485 -> 482, total_d 4109 -> 4103), all three steps plain C statement order, no insn-count
+  change (segment sizes identical, so the 116 dead sets / N 5235 stand). Segments 0..122 are now exact; 123 is the dtk label
+  artefact. Flag stays False (208/212). Working tree was reset by a history rewrite at 01:07 (nothing of this pass was in
+  the tree yet; `/tmp/t16/base.cpp` = pre-reset source); edits re-applied and re-verified through the locked ninja.
+- seg 25 (window-1 row 0, reload rr r6/r8/r10 vs r9/r10/r11): the pass-15 note that the RLDDBG hook misses the `(high sym)`
+  operand reloads was wrong for the current source (all three print: insn 1349 -> r6 rr1/8, 1374 -> r8, 1354 -> r10); the
+  reload order follows the sched1 stream order, and at cycle 2 the second issue slot is a priority-156 tie between `li r26,0`
+  (`int sx = 0`) and `r565 = lo_sum(high g_editRowNo)` (`&g_editRowNo[i]`), both weight +1 (the PRE'd `high g_editRowNo`
+  pseudo has 3 uses and never dies), decided by LUID. Fix: `u8* no = &g_editRowNo[i];` declared before `int sx = 0;` and
+  passed to CreateNumeric. Windows 2/3 were already exact because their `sx = -1` is a shared callee-saved constant (no `li`).
+- seg 0 (`lis r20,g_cinesco` before `lis r9,g_evCam`): sched1 tie of the two `high` insns, LUID -> source order `g_cinesco = 0;`
+  before `g_evCam = 1;` (the stores themselves keep their order).
+- seg 3 (`stw r26,g_dirLocal` before `stw r11,4(g_dir)`): sched1 tie at priority 128 between the strcpy's second word store
+  (weight -1, the loaded word dies) and the g_dirLocal store (weight -1, its `high` pseudo dies; the constant 1 in r26 is shared
+  with seg 18 and does not die), LUID -> `g_dirLocal = 1;` before `strcpy(g_dir, "X:/Soft/");`. In sched2 the frame spill
+  stores (no MEM flags, base r1) and the `mem/s` strcpy stores through r7 (unknown base) form an output-dep chain in RTL order,
+  so the sched1 order decides the whole 6-store tail.
+- segs 162-163 (MODEL window, 6 callee-saved `lis` before `bl __builtin_new`, `lwz g_pEditWin1` late): NOT a callee-saved
+  register/lifetime question. In sched2 a `lis rN` of a callee-saved reg has no dependence on a call either way, and the six
+  `lis` (g_pPrimArray, 4 CreateString labels, g_pModelWin) have low priority; in ours every issue slot before the call is taken
+  by the `lwz e->win / stw active / stw *slot / lwz g_pEditWin1 / stw g_pEditActive / li r3,8` chain. In the target the
+  `lwz r0,g_pEditWin1` is TRUE-dependent on `stw r29,0(r6)` (`*slot = e`): it issues two cycles after that store, the call
+  slips 3 cycles, and the six `lis` fill the 6 free slots (target order c1 lwz e->win+lis r6, c2 addi r6+lis r11, c3 stw
+  active+lis r10, c4 stw slot+li r3, c5 lis r25+lis r19, c6 lwz+lis r21, c7 lis r16+lis r28, c8 stw+lis r27, c9 bl). Ours has
+  no such dependence: `slot` (reg/v, `TOOL_WINDOW*&` parameter) is set once to `lo_sum(high g_pEditWin4)`, so alias.c gives
+  the store base = symbol g_pEditWin4 and base_alias_check says "differing symbols never alias" (also via canon_rtx of the
+  REG_EQUIV). The target's slot pointer therefore has NO known base and no REG_EQUIV/REG_EQUAL known value (multi-set pseudo,
+  or set once from an opaque source), yet is materialised as `lis r6; addi r6,r6,@l` right before the store. Confirmed by
+  laundering the address: `asm("lis %0,%2@ha" : "=r"(hi) : "r"(e), "i"(&slot)); asm("addi %0,%1,%2@l" : "=r"(ps) :
+  "r"(hi), "i"(&slot)); *ps = e;` reproduces the target's 19-insn pre-call shape exactly (segment 162 19/19) but with
+  local-alloc names (r9 for the address, r11 for e->win vs target r6/r9) and it shifts N (seg 0 d12) and window-4's
+  allocation (segs 123-128) because `e` gains a use; total_d 4159 > 4103, so NOT applied. `asm("":"+r"(ps))` on `&slot`
+  puts the address in the constant pool (the in/out asm operand reload forces the symbol to memory) - do not use that form.
+  Tried and rejected natural forms: `TOOL_WINDOW** slot` + `&g_pEditWinN` (identical RTL to the reference), one InitTool-scope
+  `TOOL_WINDOW** pp` assigned before each call (pp lives across the windows -> callee-saved, 8071w). Not viable in theory:
+  `&g_pEditWin1 + 3` / array forms (base equal but memrefs_conflict_p separates the offsets), `*pp++` (PLUS on dest keeps the
+  base), volatile (both MEMs must be volatile). Open: find the source form whose slot pointer is a block-local non-REG_EQUIV
+  pseudo (base 0) that local-alloc puts in r6 with e->win in r9, or a REG_EQUIV pseudo whose REG_EQUIV value has no base
+  (a MEM equiv would be rematerialised as a load, so no). The three `fmr f19/f20/f21` pool constants and segs 129/132/135
+  FPR names (f16/f18/f17 vs f18/f21/f19) were not reached; they still look downstream of the MODEL window's FP constants.
+- Kit note: `~/.cache/tesp15/` (seg.py, cmpv.sh, T.s) kept; `/tmp/t16/sbs.py T.s O_init.s a [b] [ctx]` prints segments side
+  by side with real symbol names (dtk labels on the target side): `python3 /tmp/t16/sbs.py ~/.cache/tesp15/T.s
+  ~/.cache/tesp15/o_<V>/O_init.s 162 162 30`.
+
+### DOL card closer 3 (card saveMain 74 -> 0 zero code; errorDisp 99 in progress; 2026-09-12)
+
+Continues "### DOL option/card closer 2, final". Scratch /home/adityas/.cache/dol_card3/ (rtlflat.py + simp.py turn a
+`-dg`/`-ds` dump into one line per insn; toitems.py feeds that listing to tools/xjump.py).
+- **saveMain 74 -> 0, pure C.** The previous section's "1-insn stb match cannot be accepted" was right about the RTL, wrong
+  about the cause: tools/xjump.py on our greg listing reproduces our output exactly, and the SAME listing with case 6's
+  `step = 0` zero in r0 instead of r10 reproduces the target (fall-through candidate, minimum 1: the mode==3 arm's
+  `stb r0,5(r31); b J6` matches the `step = 0xA` arm's `li r0,0xa; stb r0,5(r31)` that falls into J6, creating the label
+  before that stb; J6's `sub = 0; sub2 = 0` copy then merges into case 9's, the labelled stb merges into case 1's copy with
+  the label rule, and case 2's `step = 4` arm follows). Our zero was a fresh QI pseudo: sched1 (2 units, li prio 3) issues it
+  at t=2, above `extsb r0`, so it overlaps the sign-extended fileNo and local-alloc gives it r10. The target issues `li r0,0`
+  right after `and r11` = an anti-dependence on `rotlw r9,r9,r0`: the zero SHARES the pseudo of the shift count
+  `(int) fileNo`. Form: `int no = fileNo; isDbgInfoCached &= ~(1 << no); mode = nextMode; no = 0; step = no;` (0 words).
+  Rule: a `li rK,0; stb` that must cross-jump into a tail whose other copies keep their own li needs the li scheduled
+  late enough to take the dying temp's register; a variable reused for two values gives sched1 the anti-dependence.
+
+### Tool RELs, t_camera_data closer 2 (tcDataExport 193 / tcSetBesideOffset 27 / DB_STRING ctor 7 unchanged; mechanisms pinned down, no source change adopted; 2026-09-12)
+- **tcDataExport buf/pTc-high order (item a) is NOT reachable through buf's refs.** Weighted refs of buf (reg 82) at lreg
+  time are exactly the 25 in the final code (`python3 ~/.cache/tcam2/refs.py <lreg-dump> 82`: 9 at depth 1 incl. the
+  memclr arg copy, loop-2 4x`- buf` at depth 2, loop-5 `d-buf` 2 and `cc-buf` 3, three hoisted giv inits at depth 1).
+  pTc-high (reg 360) is the gcse-PRE pseudo of `(high pTc)`: cse2 gives its copy insn a REG_EQUAL `(high pTc)` note, so
+  local-alloc's update_equiv_regs doubles its REG_LIVE_LENGTH (27 -> 54, pri 1481) - the target has the same doubling.
+  buf would need <= 15 weighted refs; no source shape gives that. The swap must come from another allocno taking r30 in
+  pass 1 before buf: loop-4 `d+1` (reg 356, pri 4000, allocated before buf) does exactly that in the target (target
+  loop 4 has all of r0,r3-r12 busy so it falls to pass 1 -> r30); in ours it finds r7 free.
+- **Every `X+1` copy in this function is gcse-PRE (lcm.c block LCM), not loop.c.** `compute_latein` sets
+  `latein = delayin` for every non-last block, so an expression anticipatable at a loop header is inserted at the end of
+  EVERY block where it can be delayed and that reaches the deleted occurrence. Loop-4 `i = i + 1` at the latch (BB 29)
+  gets `352 = i + 1` inserted in BB 24 (body top), 25, 26 (uids 1193/1196/1202); cse2 deletes 25/26 as redundant, so
+  the final code has one `addi rA, rI, 1` at the body top and `mr rI, rA` at the latch. The target's in-place
+  `addi r6, r6, 1` right after the `mulli` is the SAME insertion with `352` allocated to i's register (i dead there):
+  i must sit in a register that is free across BBs 25-28. Ours: i (reg 96, shared with loops 1-5, refs 18 len 170) ->
+  r5; 352 -> r6 (first free in REG_ALLOC_ORDER). Do not try `i++` in the body (V1: i becomes a biv, givs reduced,
+  `subi/addi` pair, size +8). The d+1 copies (loop 2 uid 1190 -> reg 361, loop 4 uids 1199/1205 -> reg 356, loop 5)
+  are PRE too and identical in the target (r30 there because of the pass-1 fall-through above).
+- **j vs loop-2 giv base is a priority knife edge.** j (reg 97, shared, refs 50 len 242 pri 10330) is allocated at
+  order 118 -> r4; the loop-2 giv base `cd+0x32c` (reg 395, refs 38 len 184 pri 10326) at 119 -> r3. Target has giv
+  base r4, j r12 (r3 excluded by regs_someone_prefers: buf's r3 param preference), cd r3, i.e. giv base BEFORE j. Any
+  shape that lowers j's pri below 10326 or raises the base's above 10330 flips it. Tried: loop-1 counter split off
+  (`k`): j becomes 37/160 = 11562, worse (V6, 193 unchanged). Per-loop counters for loops 4/5 only (V4) -> 177 words,
+  size exact, giv base r4 but j4/j5 land in r11/r7 (target r12 everywhere = one shared j); all-loops-separate (V5) ->
+  333 words size +0x18. Not adopted: no evidence for the V4 shape.
+- **`mr r6, r5` (pp = pos, item b)** survives cse only if pp is the cse class head at the copy: cse.c make_regs_eqv makes
+  NEW canonical iff `REGNO_LAST_UID(new) > REGNO_LAST_UID(old)` (and new lives past the ebb). pos is mentioned after
+  loop 2 (`fp = pos`), pp only inside loop 2 -> pos is the head in ours and the copy dies. The target's minus uses pp, so
+  in the target pp's last uid is later than pos's (pp mentioned again later in the function, or pos's last mention is
+  inside loop 2). Not resolved.
+- **Pins fail here**: `register int j asm("r12")` -> 217 words size +0x14 (frame changes); plus `register u8* buf
+  asm("r29")` copy of the parameter -> 223 words size -0x18. Do not use pins in tcDataExport.
+- Tools: `~/.cache/tcam2/refs.py <dump> <regno>` = weighted REG_N_REFS per insn from an lreg dump (joins multi-line
+  insns, tracks LOOP_BEG/END depth, ignores notes). `~/.cache/tcam2/rtl_base/` has all dumps of the current source.
