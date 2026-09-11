@@ -33,7 +33,7 @@ Sint32 mwg_vcnt = 0;
 MWPLY mwsfd_hn_last = NULL;
 static Sint32 mwsfd_svr_bdr_cnt = 0;
 
-Sint32 mwSfdExecDecSvrHndl(MWPLY mwply);
+Sint32 mwSfdExecDecSvrHndl(void *obj);
 
 /* dead-stripped; its string heads the unit's literal pool */
 
@@ -65,25 +65,32 @@ static void mwsfd_ClrSleepBdr(MWPLY mwply)
 	lw->svr_bdr = 0;
 }
 
-/* COMPILER-DIFF: M1 - two zero copies `mr r30, r28; mr r31, r28` for the inlined ClrSleepBdr's stores (every C form gives one `li`). Pure C by project decision (CRI pass 8). */
-void mwlSfdSleepDecSvr(MWPLY mwply)
+/* the wait loop is its own (inlined) helper: its `i = 0` then shares the block with the hoisted
+ * loop constants, so the two zero stores become copies of i's zero (`mr r30, r28; mr r31, r28`)
+ * instead of one `li` (CRI pass 12) */
+static void mwsfd_SleepLoop(MWPLY mwply)
 {
 	Sint32 i;
 
+	for (i = 0; i < 10; i++) {
+		mwsfd_SetSleepBdr(mwply, 1);
+		ADXM_WaitVsync();
+		mwsfd_ClrSleepBdr(mwply);
+		if (mwply->mwply_svr_flg == 0) {
+			break;
+		}
+	}
+}
+
+void mwlSfdSleepDecSvr(MWPLY mwply)
+{
 	mwPlySaveRsc();
 	mwsfd_SetSleepBdr(mwply, 1);
 	MWSFSVM_GotoIdleBorder();
 	mwsfd_ClrSleepBdr(mwply);
 	mwPlyRestoreRsc();
 	if (mwply->mwply_svr_flg == 1) {
-		for (i = 0; i < 10; i++) {
-			mwsfd_SetSleepBdr(mwply, 1);
-			ADXM_WaitVsync();
-			mwsfd_ClrSleepBdr(mwply);
-			if (mwply->mwply_svr_flg == 0) {
-				break;
-			}
-		}
+		mwsfd_SleepLoop(mwply);
 	}
 }
 
@@ -108,10 +115,14 @@ void MWSFSVR_SetMwsfdSvrFlg(Sint32 flg)
 /* OPEN: our 2.4.7 auto-inlines this 0xB8-byte helper and MWSFSVR_DecodeServer, the original did not */
 #pragma dont_inline on
 /* COMPILER-DIFF: M3 - the original did not inline this helper while inlining smaller ones (auto-inlining decision). Pure C by project decision (CRI pass 8). */
-static Sint32 mwsfd_ExecSvrHndl(MWPLY mwply)
+static Sint32 mwsfd_ExecSvrHndl(void *obj)
 {
+	/* the handle arrives as a server object: the `void *` -> MWPLY conversion keeps the copy as its
+	 * own node (a plain `p = mwply` is propagated away), which ranks mwply above sfd (CRI pass 12) */
+	MWPLY mwply;
 	void *sfd;
 
+	mwply = obj;
 	sfd = mwply->sfd;
 	mwply->mwply_svr_flg = 1;
 	if (mwply->used != 1) {
@@ -304,13 +315,19 @@ static void mwsfd_StartPlay(MWPLY mwply)
 }
 
 /* COMPILER-DIFF: M1 - the pool base `lis r4` above the prologue stores. Pure C by project decision (CRI pass 8). */
-Sint32 mwSfdExecDecSvrHndl(MWPLY mwply)
+Sint32 mwSfdExecDecSvrHndl(void *obj)
 {
+	/* one function-scope `sfd` (its PLAYING redefinition is a range-split frontend copy ranked above
+	 * the backend temporaries -> r28) and the handle converted from the `void *` server object (the
+	 * kept copy schedules the pool `lis` above the parameter move; CRI pass 12) */
+	void *sfd;
+	MWPLY mwply;
+
+	mwply = obj;
 	switch (mwply->stat) {
 	case MWSFD_STAT_STOP:
 		break;
 	case MWSFD_STAT_PREP: {
-		void *sfd;
 		Sint32 sfdstat;
 		Sint32 sststat;
 		MWSST sst;
@@ -344,8 +361,6 @@ Sint32 mwSfdExecDecSvrHndl(MWPLY mwply)
 		break;
 	}
 	case MWSFD_STAT_PLAYING: {
-		void *sfd;
-
 		sfd = mwply->sfd;
 		if (mwply->linkstm_req == 1) {
 			if (LSC_GetNumStm(mwply->lsc) == 0) {

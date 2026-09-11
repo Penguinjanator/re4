@@ -57,11 +57,11 @@ void gcCiExecServer(void);
 void gcCiEntryErrFunc(CVFS_ERRFUNC func, void *obj);
 Sint32 gcCiGetFileSize(const Char8 *fname);
 GCCI gcCiOpen(const Char8 *fname, void *dir, Sint32 rw);
-void gcCiClose(GCCI gcci);
+void gcCiClose(void *hn);
 Sint32 gcCiSeek(GCCI gcci, Sint32 pos, Sint32 type);
 Sint32 gcCiTell(GCCI gcci);
-Sint32 gcCiReqRd(GCCI gcci, Sint32 nsct, Uint8 *buf);
-void gcCiStopTr(GCCI gcci);
+Sint32 gcCiReqRd(void *hn, Sint32 nsct, Uint8 *buf);
+void gcCiStopTr(void *hn);
 static Sint32 gcCiGetStat(GCCI gcci);
 Sint32 gcCiGetSctLen(GCCI gcci);
 void gcCiSetSctLen(GCCI gcci, Sint32 sctlen);
@@ -73,12 +73,12 @@ CVFS_IF gcg_ci_vtbl = {
 	gcCiGetFileSize,
 	NULL,
 	(void *(*)(const Char8 *, void *, Sint32))gcCiOpen,
-	(void (*)(void *))gcCiClose,
+	gcCiClose,
 	(Sint32 (*)(void *, Sint32, Sint32))gcCiSeek,
 	(Sint32 (*)(void *))gcCiTell,
 	(Sint32 (*)(void *, Sint32, void *))gcCiReqRd,
 	NULL,
-	(void (*)(void *))gcCiStopTr,
+	gcCiStopTr,
 	(Sint32 (*)(void *))gcCiGetStat,
 	(Sint32 (*)(void *))gcCiGetSctLen,
 	(void (*)(void *, Sint32))gcCiSetSctLen,
@@ -181,13 +181,15 @@ static Sint32 gcCiGetStat(GCCI gcci)
 	return gcci->stat;
 }
 
-void gcCiStopTr(GCCI gcci)
+void gcCiStopTr(void *hn)
 {
+	GCCI gcci;
 	Sint32 ret;
 	Uint32 t0;
 	Uint32 t;
 	Uint32 dt;
 
+	gcci = hn;
 	if (gcci == NULL) {
 		gcci_CallErr("E0092912:handl is null.", NULL);
 		return;
@@ -248,45 +250,45 @@ static Bool gcci_IsBusy(GCCI tbl)
 	return 0;
 }
 
-/* finish the reads of the table that completed. M1-like: the original steps the caller's table
- * pointer itself (no `mr` copy of the inlined parameter) and numbers i/gcci r29/r30 the other way
- * round in gcCiExecServer; instruction stream identical. */
-static inline void gcci_ExecServer(GCCI gcci)
+/* finish the reads of the table that completed. Indexed form: gcCiReqRd's inlined copy then matches
+ * except the original's table-pointer init hoisted above the IsBusy loop (1w); gcCiExecServer wants
+ * the pointer ranked above i (a pointer local declared last gives that copy but not ReqRd's; CRI pass 12) */
+static inline void gcci_ExecServer(GCCI tbl)
 {
 	Sint32 i;
 	Sint32 over;
 	Sint32 nbyte;
 	Uint8 *p;
 
-	for (i = 0; i < GCCI_MAX_OBJ; i++, gcci++) {
-		if (gcci->used == 1 && gcci->stat == GCCI_STAT_READING) {
-			gcci->cbstat = DVDGetCommandBlockStatus(&gcci->fi.cb);
-			gcg_ci_debug.cbstat = gcci->cbstat;
-			switch (gcci->cbstat) {
+	for (i = 0; i < GCCI_MAX_OBJ; i++) {
+		if (tbl[i].used == 1 && tbl[i].stat == GCCI_STAT_READING) {
+			tbl[i].cbstat = DVDGetCommandBlockStatus(&tbl[i].fi.cb);
+			gcg_ci_debug.cbstat = tbl[i].cbstat;
+			switch (tbl[i].cbstat) {
 			case DVD_STATE_FATAL_ERROR:
-				gcci->stat = GCCI_STAT_ERROR;
+				tbl[i].stat = GCCI_STAT_ERROR;
 				gcg_ci_debug.stat = GCCI_STAT_ERROR;
 				break;
 			case DVD_STATE_END:
-				nbyte = gcci->rqsct * gcci->sctlen;
-				DCInvalidateRange(gcci->buf, nbyte);
-				gcci->numtr = nbyte;
-				gcci->pos_sct += gcci->rqsct;
-				if (gcci->pos_sct * gcci->sctlen > gcci->fsize_byte) {
-					over = gcci->pos_sct * gcci->sctlen - gcci->fsize_byte;
-					p = gcci->buf + gcci->numtr - over;
+				nbyte = tbl[i].rqsct * tbl[i].sctlen;
+				DCInvalidateRange(tbl[i].buf, nbyte);
+				tbl[i].numtr = nbyte;
+				tbl[i].pos_sct += tbl[i].rqsct;
+				if (tbl[i].pos_sct * tbl[i].sctlen > tbl[i].fsize_byte) {
+					over = tbl[i].pos_sct * tbl[i].sctlen - tbl[i].fsize_byte;
+					p = tbl[i].buf + tbl[i].numtr - over;
 					memset(p, 0, over);
 					DCStoreRange(p, over);
 				}
-				gcci->stat = GCCI_STAT_COMPLETE;
+				tbl[i].stat = GCCI_STAT_COMPLETE;
 				gcg_ci_debug.stat = GCCI_STAT_COMPLETE;
 				break;
 			case DVD_STATE_CANCELED:
-				over = DVDGetTransferredSize(&gcci->fi);
-				DCInvalidateRange(gcci->buf, over);
-				gcci->numtr = (over / gcci->sctlen) * gcci->sctlen;
-				gcci->pos_sct += over / gcci->sctlen;
-				gcci->stat = GCCI_STAT_STOP;
+				over = DVDGetTransferredSize(&tbl[i].fi);
+				DCInvalidateRange(tbl[i].buf, over);
+				tbl[i].numtr = (over / tbl[i].sctlen) * tbl[i].sctlen;
+				tbl[i].pos_sct += over / tbl[i].sctlen;
+				tbl[i].stat = GCCI_STAT_STOP;
 				gcg_ci_debug.stat = GCCI_STAT_STOP;
 				break;
 			}
@@ -294,13 +296,14 @@ static inline void gcci_ExecServer(GCCI gcci)
 	}
 }
 
-Sint32 gcCiReqRd(GCCI gcci, Sint32 nsct, Uint8 *buf)
+Sint32 gcCiReqRd(void *hn, Sint32 nsct, Uint8 *buf)
 {
+	GCCI gcci;
 	Sint32 ofst;
 	Sint32 nbyte;
 	Sint32 ret;
-	GCCI tbl;
 
+	gcci = hn;
 	if (gcci == NULL) {
 		gcci_CallErr("E0092912:handl is null.", NULL);
 		return 0;
@@ -319,8 +322,7 @@ Sint32 gcCiReqRd(GCCI gcci, Sint32 nsct, Uint8 *buf)
 	if (!gcci_IsCmdDone(gcci)) {
 		return 0;
 	}
-	tbl = gcg_ci_obj;
-	if (gcci_IsBusy(tbl)) {
+	if (gcci_IsBusy(gcg_ci_obj)) {
 		return 0;
 	}
 	if (nsct == 0) {
@@ -331,7 +333,7 @@ Sint32 gcCiReqRd(GCCI gcci, Sint32 nsct, Uint8 *buf)
 	gcci->numtr = 0;
 	gcci->buf = buf;
 	gcci->rqsct = nsct;
-	gcci_ExecServer(tbl);
+	gcci_ExecServer(gcg_ci_obj);
 	ofst = gcci->pos_sct * gcci->sctlen;
 	nbyte = gcci->rqsct * gcci->sctlen;
 	if (ofst + nbyte > gcci->fsize_byte) {
@@ -397,15 +399,18 @@ Sint32 gcCiSeek(GCCI gcci, Sint32 pos, Sint32 type)
 	return gcci->pos_sct;
 }
 
-/* M1-like (OPEN): the original copies the handle into a second callee-saved register for the inlined
- * gcCiStopTr (`mr r29, r3` after the NULL test, stmw r24) and addresses the .bss pool through the
- * gcg_ci_debug symbol; ours coalesces the copy. void*-parameter / local-copy / nested-if forms tried. */
-void gcCiClose(GCCI gcci)
+/* The CVFS interface hands the handle over as `void *`: the `void *` -> GCCI conversion keeps the copy
+ * as its own node (CRI pass 12), and StopTr called with `hn` makes its inlined copy a second copy of r3
+ * (`mr. r28, r3; mr r29, r3`) instead of a copy of gcci. */
+void gcCiClose(void *hn)
 {
+	GCCI gcci;
+
+	gcci = hn;
 	if (gcci == NULL) {
 		return;
 	}
-	gcCiStopTr(gcci);
+	gcCiStopTr(hn);
 	DVDClose(&gcci->fi);
 	gcci->used = 0;
 	memset(gcci, 0, sizeof(GCCI_OBJ));

@@ -3,9 +3,9 @@
  * linked files). 5/6 functions byte-identical; adxt_nlp_trap_entry differs in one word (the
  * `lha ofst` temporary takes r0, the original r4: an r0-coloured neighbour in the original's
  * interference graph that ours does not have, see AGENTS.md "CRI pass 11").
- * COMPILER-DIFF: M1 -- adxt_trap_entry_lps / adxt_nlp_trap_entry / adxt_stat_decinfo take the
- * asm-defined `register` copy of the adxt parameter (`asm { mr p, adxt }`, coalesced into the
- * prologue mr) so the parameter ranks above the locals (r30/r31) like the original. */
+ * The decoder trap callbacks are `void (*)(void *obj)` handlers: the `void *` -> ADXT conversion
+ * keeps the handle copy as its own node, ranked above the locals (r31) like the original (CRI pass
+ * 12; replaces the pass-5 `asm { mr p, adxt }` pins). */
 #include <string.h>
 #include "cri_xpt.h"
 #include "sj.h"
@@ -28,7 +28,7 @@ extern Sint32 ADXSJD_GetLpStartOfst(void *sjd);
 extern void ADXSJD_SetTrapNumSmpl(void *sjd, Sint32 nsmpl);
 extern void ADXSJD_SetTrapDtLen(void *sjd, Sint32 len);
 extern void ADXSJD_SetTrapCnt(void *sjd, Sint32 cnt);
-extern void ADXSJD_EntryTrapFunc(void *sjd, void (*fn)(ADXT adxt), void *obj);
+extern void ADXSJD_EntryTrapFunc(void *sjd, void (*fn)(void *obj), void *obj);
 extern Sint32 ADXSJD_GetTotalNumSmpl(void *sjd);
 extern Sint32 ADXSJD_GetOutBps(void *sjd);
 extern Sint16 ADXSJD_GetDefOutVol(void *sjd);
@@ -72,10 +72,10 @@ Sint32 adxt_dbg_ndt = 0;
 Sint32 adxt_dbg_nch = 0;
 
 static void adxt_stat_decinfo(ADXT adxt);
-void adxt_nlp_trap_entry(ADXT adxt);
+void adxt_nlp_trap_entry(void *obj);
 void adxt_eos_entry(ADXT adxt);
-void adxt_trap_entry(ADXT adxt);
-void adxt_trap_entry_lps(ADXT adxt);
+void adxt_trap_entry(void *obj);
+void adxt_trap_entry_lps(void *obj);
 
 void ADXT_ExecHndl(ADXT adxt)
 {
@@ -294,9 +294,9 @@ static void adxt_stat_decinfo(ADXT adxt)
 
 /* non-loop end trap: with the link switch on, look for a following ADX file behind the footer
  * (its info code) and restart the decoder on it */
-void adxt_nlp_trap_entry(register ADXT adxt)
+void adxt_nlp_trap_entry(void *obj)
 {
-	register ADXT p;
+	ADXT p;
 	void *sjd;
 	SJ sji;
 	SJCK ck;
@@ -310,7 +310,7 @@ void adxt_nlp_trap_entry(register ADXT adxt)
 	Sint32 n2;
 	Sint32 ofst2v;
 
-	asm { mr p, adxt } // COMPILER-DIFF: M1
+	p = obj;
 	sjd = p->sjd;
 	sji = p->sji;
 	if (p->lnksw == 0) {
@@ -387,8 +387,9 @@ void adxt_eos_entry(ADXT adxt)
 }
 
 /* decoder trap at the loop end: rewind the decoder to the loop start */
-void adxt_trap_entry(ADXT adxt)
+void adxt_trap_entry(void *obj)
 {
+	ADXT adxt;
 	void *sjd;
 	SJ sji;
 	Sint32 lpstart;
@@ -396,6 +397,7 @@ void adxt_trap_entry(ADXT adxt)
 	Sint32 lpend;
 	SJCK ck;
 
+	adxt = obj;
 	sjd = adxt->sjd;
 	sji = adxt->sji;
 	lpstart = ADXSJD_GetLpStartPos(sjd);
@@ -424,15 +426,15 @@ void adxt_trap_entry(ADXT adxt)
 }
 
 /* first trap at the loop start: remember the decoder state and arm the loop end trap */
-void adxt_trap_entry_lps(register ADXT adxt)
+void adxt_trap_entry_lps(void *obj)
 {
-	register ADXT p;
+	ADXT p;
 	void *sjd;
 	Sint32 lpstart;
 	Sint32 lpstartofst;
 	Sint32 lpend;
 
-	asm { mr p, adxt } // COMPILER-DIFF: M1
+	p = obj;
 	sjd = p->sjd;
 	lpstart = ADXSJD_GetLpStartPos(sjd);
 	lpstartofst = ADXSJD_GetLpStartOfst(sjd);
