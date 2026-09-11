@@ -112,8 +112,8 @@ static inline s16 tickX(u32 tick, f32 total)
 // Reference read of pSys: the load stays below the preceding tile stores.
 static inline SystemWork* SysRef(SystemWork*& p) { return p; }
 // Ticks -> 1/100 frame units (bus clock / 4 = tick rate, 60 frames per second)
-#define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f)
-#define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f)
+#define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 100.0f)
+#define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (clk->busClock >> 2) * 1000.0f)
 
 void processBarDisp()
 {
@@ -123,6 +123,7 @@ void processBarDisp()
     int vcnt = GetSystemVcnt();
     u32 frameTick = OS_BUS_CLOCK / 240 * vcnt;
     f32 total;
+    OSClock* clk = (OSClock*) 0x80000000;
     DbgTile* t = tile;
     s16 x0;
     s16 x1;
@@ -291,12 +292,13 @@ void PrimitiveBuffDisp()
     static DbgTile tile[6];
     DbgTile* t;
     int max = pG->prim_max;
-    PrimBuffView* pb = (PrimBuffView*) &pG->gxStage;
+    PrimBuffView* pb;
     f32 rate;
 
     if (max == 0) {
         return;
     }
+    pb = (PrimBuffView*) &pG->gxStage;
     rate = 1.0f - (f32) (int) (pG->prim_cnt + max * (pG->vtx_buf_no + 1) - pb->base) / (f32) max;
     t = tile;
     if (pb->rate < rate) {
@@ -346,14 +348,14 @@ void PrimitiveBuffDisp()
 
         t->y0 = 24;
         t->z0 = z;
-        t->w = width;
-        t->h = 4;
-        t->c0.b = 0x14;
-        t->c0.cd = 0xFF;
         t->code = 4;
         t->x0 = width;
         t->c0.r = 0x14;
         t->c0.g = 0x14;
+        t->w = width;
+        t->h = 4;
+        t->c0.b = 0x14;
+        t->c0.cd = 0xFF;
         if (SysRef(pSys)->flags & 0x40000000) {
             t->y0 = 74;
             t->h = 3;
@@ -362,6 +364,7 @@ void PrimitiveBuffDisp()
     }
 }
 
+static inline void KeyTypeSet(int v) { CamDbg.key_type = v; }   // the SCR store: its `li 1` precedes the CamDbg address (life 3), so loop.c hoists the shared 1 (see AGENTS "DOL debug/db_cam closer")
 #define CFG_ON(p) (strncmp(p, "ON", 2) == 0)
 #define CFG_OFF3(p) (strncmp(p, "OFF", 3) == 0)
 
@@ -373,7 +376,7 @@ void ConfigSet()
     char* end;
     char* p;
     int req;
-    int ret;
+    int ret;   // unused: the original's tests are plain `if (symbol_check(..))`; the line keeps __LINE__
 
     BitOn(pG->flags_68, 0x40000000);
     BitOn(pG->flags_68, 0x8000);
@@ -394,65 +397,65 @@ void ConfigSet()
         if (*p++ != '[') {
             continue;
         }
-        ret = symbol_check(&p, "USER");
-        if (ret) {
+        if (symbol_check(&p, "USER")) {
+
             int i = 0;
             while (*p != '\r') {
                 pUser_name[i++] = *p;
                 p++;
             }
-        } else if ((ret = symbol_check(&p, "BRIGHTNESS")) != 0) {
+        } else if (symbol_check(&p, "BRIGHTNESS")) {
             if (pRK->brightness == 0) {
                 pRK->brightness = num_get(&p);
             }
-        } else if ((ret = symbol_check(&p, "STAGE")) != 0) {
+        } else if (symbol_check(&p, "STAGE")) {
             pG->stage_no = num_get(&p);
-        } else if ((ret = symbol_check(&p, "ROOM")) != 0) {
+        } else if (symbol_check(&p, "ROOM")) {
             pG->room_no = num_get(&p);
-        } else if ((ret = symbol_check(&p, "JUMP_POINT")) != 0) {
+        } else if (symbol_check(&p, "JUMP_POINT")) {
             pG->x4F9F = num_get(&p);
-        } else if ((ret = symbol_check(&p, "PRINT_PAGE")) != 0) {
+        } else if (symbol_check(&p, "PRINT_PAGE")) {
             pG->debug_mode = num_get(&p);
             pG->debug_disp = -1;
-        } else if ((ret = symbol_check(&p, "PLAYER")) != 0) {
+        } else if (symbol_check(&p, "PLAYER")) {
             pG->x4FB8 = num_get(&p);
-        } else if ((ret = symbol_check(&p, "BGM")) != 0) {
+        } else if (symbol_check(&p, "BGM")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_68, 0x00100000);
             } else {
                 BitOff(pG->flags_68, 0x00100000);
             }
-        } else if ((ret = symbol_check(&p, "SE")) != 0) {
+        } else if (symbol_check(&p, "SE")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_68, 0x00080000);
             } else {
                 BitOff(pG->flags_68, 0x00080000);
             }
-        } else if ((ret = symbol_check(&p, "SCENARIO")) != 0) {
+        } else if (symbol_check(&p, "SCENARIO")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_68, 0x04000000);
             } else {
                 BitOff(pG->flags_68, 0x04000000);
             }
-        } else if ((ret = symbol_check(&p, "NO_ENEMY")) != 0) {
+        } else if (symbol_check(&p, "NO_ENEMY")) {
             if (CFG_OFF3(p)) {
                 BitOff(pG->flags_68, 0x00200000);
             } else {
                 BitOn(pG->flags_68, 0x00200000);
             }
-        } else if ((ret = symbol_check(&p, "ENEMY_SET")) != 0) {
+        } else if (symbol_check(&p, "ENEMY_SET")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_68, 0x00200000);
             } else {
                 BitOff(pG->flags_68, 0x00200000);
             }
-        } else if ((ret = symbol_check(&p, "ETC_SET")) != 0) {
+        } else if (symbol_check(&p, "ETC_SET")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_6C, 0x800);
             } else {
                 BitOff(pG->flags_6C, 0x800);
             }
-        } else if ((ret = symbol_check(&p, "PROCESS_BAR")) != 0) {
+        } else if (symbol_check(&p, "PROCESS_BAR")) {
             if (CFG_OFF3(p)) {
                 BitOff(pG->flags_68, 0x40000000);
                 BitOff(pG->flags_68, 0x8000);
@@ -460,29 +463,29 @@ void ConfigSet()
                 BitOn(pG->flags_68, 0x40000000);
                 BitOn(pG->flags_68, 0x8000);
             }
-        } else if ((ret = symbol_check(&p, "VIBRATION")) != 0) {
+        } else if (symbol_check(&p, "VIBRATION")) {
             if (symbol_check(&p, "OFF")) {
                 BitOff(pSys->flags, 0x08000000);
             } else {
                 BitOn(pSys->flags, 0x08000000);
             }
-        } else if ((ret = symbol_check(&p, "BG_BLACK")) != 0) {
+        } else if (symbol_check(&p, "BG_BLACK")) {
             if (symbol_check(&p, "ON")) {
                 GXColor c;
                 c.r = c.g = c.b = c.a = 0;
                 bio4_GXSetCopyClear(c, 0xFFFFFF);
             }
-        } else if ((ret = symbol_check(&p, "DBG_CAM_KEY")) != 0) {
+        } else if (symbol_check(&p, "DBG_CAM_KEY")) {
             if (symbol_check(&p, "DFLT")) {
                 CamDbg.key_type = 0;
-            } else if ((ret = symbol_check(&p, "SCR")) != 0) {
-                CamDbg.key_type = 1;
+            } else if (symbol_check(&p, "SCR")) {
+                KeyTypeSet(1);
             }
-        } else if ((ret = symbol_check(&p, "DBG_ESP_DISP")) != 0) {
+        } else if (symbol_check(&p, "DBG_ESP_DISP")) {
             if (symbol_check(&p, "ON")) {
                 BitOn(pG->flags_6C, 0x8000);
             }
-        } else if ((ret = symbol_check(&p, "GAME_MODE")) != 0) {
+        } else if (symbol_check(&p, "GAME_MODE")) {
             if ((u32) ((u8) *p - '0') <= 9) {
                 pG->x8354 = num_get(&p);
                 if (pG->x8354 > 6) {
@@ -502,15 +505,12 @@ void ConfigSet()
                     pG->x8354 = 6;
                 }
             }
-        } else if ((ret = symbol_check(&p, "SOUND_MODE")) != 0) {
+        } else if (symbol_check(&p, "SOUND_MODE")) {
             int mode = 1;
             if ((u32) ((u8) *p - '0') <= 9) {
                 mode = num_get(&p);
-                if (mode < 0) {
-                    mode = 0;
-                } else if (mode > 2) {
-                    mode = 2;
-                }
+                mode = mode < 0 ? 0 : (mode > 2 ? 2 : mode);
+
             }
             if (symbol_check(&p, "MONO")) {
                 mode = 0;
@@ -524,39 +524,39 @@ void ConfigSet()
             if (mode != pSys->sound_mode) {
                 SndSetOutputMode(mode, 0);
             }
-        } else if ((ret = symbol_check(&p, "WARNING_LOG")) != 0) {
+        } else if (symbol_check(&p, "WARNING_LOG")) {
             if (CFG_ON(p)) {
                 BitOff(pG->flags_6C, 0x04000000);
             } else {
                 BitOn(pG->flags_6C, 0x04000000);
             }
-        } else if ((ret = symbol_check(&p, "PLAYER_MODE")) != 0) {
+        } else if (symbol_check(&p, "PLAYER_MODE")) {
             PlMode = num_get(&p);
-        } else if ((ret = symbol_check(&p, "SN_PC_READ")) != 0) {
+        } else if (symbol_check(&p, "SN_PC_READ")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_54, 0x00020000);
             } else {
                 BitOff(pG->flags_54, 0x00020000);
             }
-        } else if ((ret = symbol_check(&p, "SN_PC_READ_TOOL")) != 0) {
+        } else if (symbol_check(&p, "SN_PC_READ_TOOL")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_54, 0x00010000);
             } else {
                 BitOff(pG->flags_54, 0x00010000);
             }
-        } else if ((ret = symbol_check(&p, "NO_DEATH")) != 0) {
+        } else if (symbol_check(&p, "NO_DEATH")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_68, 0x00800000);
             } else {
                 BitOff(pG->flags_68, 0x00800000);
             }
-        } else if ((ret = symbol_check(&p, "OBJ_SERVER")) != 0) {
+        } else if (symbol_check(&p, "OBJ_SERVER")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_6C, 0x01000000);
             } else {
                 BitOff(pG->flags_6C, 0x01000000);
             }
-        } else if ((ret = symbol_check(&p, "LANGUAGE")) != 0) {
+        } else if (symbol_check(&p, "LANGUAGE")) {
             if (symbol_check(&p, "JPN")) {
                 pSys->language = 0;
             }
@@ -581,49 +581,49 @@ void ConfigSet()
             if (symbol_check(&p, "KOR")) {
                 pSys->language = 7;
             }
-        } else if ((ret = symbol_check(&p, "PUBLICITY_VER")) != 0) {
+        } else if (symbol_check(&p, "PUBLICITY_VER")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_54, 8);
             } else {
                 BitOff(pG->flags_54, 8);
             }
-        } else if ((ret = symbol_check(&p, "AIM_REVERSE")) != 0) {
+        } else if (symbol_check(&p, "AIM_REVERSE")) {
             if (CFG_ON(p)) {
                 BitOn(pSys->flags, 0x80000000);
             } else {
                 BitOff(pSys->flags, 0x80000000);
             }
-        } else if ((ret = symbol_check(&p, "WIDE_MODE")) != 0) {
+        } else if (symbol_check(&p, "WIDE_MODE")) {
             if (CFG_ON(p)) {
                 BitOn(pSys->flags, 0x40000000);
             } else {
                 BitOff(pSys->flags, 0x40000000);
             }
-        } else if ((ret = symbol_check(&p, "AUTO_LOCK_ON")) != 0) {
+        } else if (symbol_check(&p, "AUTO_LOCK_ON")) {
             if (CFG_ON(p)) {
                 BitOn(pSys->flags, 0x20000000);
             } else {
                 BitOff(pSys->flags, 0x20000000);
             }
-        } else if ((ret = symbol_check(&p, "SINGLE_DISK")) != 0) {
+        } else if (symbol_check(&p, "SINGLE_DISK")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_68, 0x02000000);
             } else {
                 BitOff(pG->flags_68, 0x02000000);
             }
-        } else if ((ret = symbol_check(&p, "BUGCHECK_MODE")) != 0) {
+        } else if (symbol_check(&p, "BUGCHECK_MODE")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_68, 0x01000000);
             } else {
                 BitOff(pG->flags_68, 0x01000000);
             }
-        } else if ((ret = symbol_check(&p, "LIGHT_CHECK")) != 0) {
+        } else if (symbol_check(&p, "LIGHT_CHECK")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_68, 0x100);
             } else {
                 BitOff(pG->flags_68, 0x100);
             }
-        } else if ((ret = symbol_check(&p, "TITLE_CHECK")) != 0) {
+        } else if (symbol_check(&p, "TITLE_CHECK")) {
             if (CFG_ON(p)) {
                 BitOn(pG->flags_64, 0x00080000);
             } else {

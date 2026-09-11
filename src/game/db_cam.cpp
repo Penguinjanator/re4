@@ -1486,12 +1486,15 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         eprintf(x + 232, y + 28, 5, 0, "NEAR");
         eprintf(x + 232, y + 70, 5, 0, "FAR");
         for (i = 0; i < 2; i++) {
+            // `line` lives in the outer body: the inner loop's giv init stays `line * 14 + y`
+            // (mulli hoisted, folded to `li 14` in the outer preheader), not `addi y, 14`.
+            int line = cy + 1;
             for (j = 0; j < 6; j++) {
                 int col = 0;
                 if (i == site_col) {
                     col = (j == site_row) ? 4 : 0;
                 }
-                eprintf(x + (21 + i * 4) * 8, y + (cy + j + 1) * 14, col, 0, "%s", umd_str[j % 3]);
+                eprintf(x + (21 + i * 4) * 8, line * 14 + y + j * 14, col, 0, "%s", umd_str[j % 3]);
             }
         }
     }

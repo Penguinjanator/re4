@@ -21352,3 +21352,81 @@ ninja run -- tools/fdiff.py runs ninja UNLOCKED, do not use it while other agent
 M1), sfh_main 35/36 (hdr r5 pins), sfd_adxt 26/28 (SetSpeed pragma M2 + local, Create/ExcludeHdr pins M1, AdjustSync
 C), dct_ac 2/3 with AcInit 7w and .rodata OK (helper + pool_data off + asm pool addresses M2), mpv_umc 15/16 68w. Not
 reached: sfx_zmv, sfd_tst, adx_baif, cri_cvfs, adx_dcd5, cftfx, cftyp422_ppc Init/Y84C44.
+
+### DOL debug/db_cam closer (debug 8 -> 10/11: PrimitiveBuffDisp 31 -> 0, ConfigSet 165 -> 0, processBarDisp 159 unchanged with the first bus-clock read split off; db_cam 9 -> 10/13: adjust_qFPS 11 -> 0; all zero code; menu 72, move 141, menuFlag 144 read, not closed; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_dbg (dol26a copies with the paths rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`,
+`dump.sh UNIT -dX` with `SRC_OVERRIDE`, `rtl.py DUMP FUNC`, `prio.py`, plus `t/cc.sh FILE.cpp` = CPP.exe + cc1plus on a
+scratch file for shape tests; deleted at the end). 111 OK before and after. debug.cpp is also edited by another agent
+(debugPadInfoDisp / ProcessTickGet closed by them this morning); re-read before every edit.
+
+- **adjust_qFPS 11 -> 0 (zero code): the site loop's row is `line * 14 + y + j * 14` with `int line = cy + 1;` declared in
+  the OUTER loop body.** Mechanism (25b's `li r24,14` read completed): loop.c's giv analysis looks THROUGH movables of the
+  loop being reduced (`simplify_giv_expr` REG case: `for (m = the_movables; ..) if (rtx_equal_p (x, m->set_dest))` follows
+  the movable's SET_SRC, PLUS/MULT/ASHIFT/CONST_INT/SYMBOL_REF only), so any constant term that is set INSIDE the inner loop
+  (`(cy + 1) * 14` after gcse cprop: `(set L 1)`, `(set T (mult L 14))`) is folded into the giv's add_val (`(plus y 14)` ->
+  `addi r29,r20,14`). A term set OUTSIDE the inner loop stays a REG in the add_val: `line` (set in the outer body) gives
+  add_val `(plus (mult line 14) y)`, `emit_iv_add_mult` expands `mulli tmp,line,14; add r29,tmp,y` in the inner preheader,
+  loop pass 2 (rerun-loop-opt, outer loop) moves `(set line 1)` and the `mulli` to the outer preheader and cse2 folds them
+  to `li r24,14` there, while the `add r29,r24,r20` sits after the outer loop label (new ebb, unfoldable). cprop cannot
+  fold `line` into the mult: validate_replace_rtx swaps a constant to operand 1 and recog rejects `(mult 14 1)`, but a
+  `(plus line j)` use IS folded (`plus_constant`), so `(line + j) * 14` (11 words) and every fold-reassociated spelling
+  (`(cy + 1 + j) * 14` -> `cy + (j + 1)`, `y + (cy + 1) * 14 + j * 14` -> factoring `(A*C)+(B*C)` is only applied when BOTH
+  operands are MULT_EXPR, so this one keeps the terms but the movables get looked through) give the folded `addi`. Operand
+  order: `y + line * 14 + j * 14` = 1 word (`add r29,r20,r24`), `line * 14 + y + j * 14` = 0.
+- **PrimitiveBuffDisp 31 -> 0 (zero code):** (1) `PrimBuffView* pb` assigned AFTER the `max == 0` return (the declaration
+  initialiser hoists `addi r30,r9,0x184` above the compare and shifts the whole head allocation: max r3/r4, the 0x4330
+  high, the tile high). (2) The third tile's store order is decided by sched1's REG_WEIGHT tie-break (before reload,
+  `rank_for_schedule` prefers insns with more dying registers, then LUID): in the third (last) tile every constant's LAST
+  store dies, so the source order must put the non-dying stores of each shared constant (code/x0/r/g = the first use of
+  4/200/0x14) BEFORE their dying partners (w/h/b/cd): `y0, z0, code, x0, c0.r, c0.g, w, h, c0.b, c0.cd` gives the target's
+  `y0 z0 w h b cd code x0 r g` (dying first in LUID order, then the rest). Read the death of each constant off the target
+  order before permuting: the first six stores are the dying ones.
+- **ConfigSet 165 -> 0 (zero code, three pieces).** (1) The hoisted `li r23,1` (callee-saved, three `stb` users: key_type
+  = 1, x8354 = 1, language = 1) is loop.c: the three `(set r 1)` movables are combined (`combine_movables`, same
+  constant, `savings += / lifetime +=`) and moved only when `threshold(=1+n_non_fixed_regs=72 here, loop has calls) *
+  savings * lifetime >= insn_count` (989 real insns): 3 * 3 * 72 = 648 fails, so one of the three needs a lifetime >= 3 --
+  `static inline void KeyTypeSet(int v) { CamDbg.key_type = v; }` for the SCR arm: integrate's `copy_to_mode_reg` of the
+  constant actual puts `(set rV 1)` BEFORE the body's `lis/addi CamDbg` (life 3, sum 5, 1080 >= 989). The `6` group
+  (x8354 = 6 x2, language = 6) stays per-use `li r0,6` in both (life 1 each). Plain stores, an `s8&` setter (address
+  computed as the first argument), `int one` locals do not give it. (2) The three `mr. r31,r3` (VIBRATION / BG_BLACK /
+  DBG_ESP_DISP tests) need the tests WITHOUT the `ret` variable: `else if (symbol_check(&p, "X"))` everywhere
+  (`int ret;` kept as a dead declaration so the `DvdReadN(.., __LINE__)` constants do not move). With `(ret = f()) != 0`
+  the RTL is `(set ret r3); (set T ret); (compare ..)`: the else-if chain is one cse path (each `beq NEXT` is TAKEN because
+  the arm ends in `b END; barrier`, PATHLENGTH 9 branches), `record_jump_equiv` makes T/ret == 0 on it, the BG_BLACK arm's
+  `c.r = c.g = c.b = c.a = 0` stores pick the copy T (`make_regs_eqv` head), T lives across the inner call and combine
+  cannot fuse `(set ret r3)` with the compare (ret is used by the copy in between): `mr r31,r3; cmpwi r31,0`. Without
+  `ret` the call value's own pseudo is the compared reg AND the zero register: `mr. r31,r3`. (3) The SOUND_MODE clamp is
+  the ternary `mode = mode < 0 ? 0 : (mode > 2 ? 2 : mode);` (value through a temp: `mr r3,r31; cmpwi r3,2; ..; li r3,0;
+  mr r31,r3`), not if/else-if stores.
+- **processBarDisp 159 (read, not closed):** applied `OSClock* clk = (OSClock*) 0x80000000;` declared AFTER `frameTick`
+  with the TICK macros reading `clk->busClock`: the target's first `OS_BUS_CLOCK / 240 * vcnt` read has its own
+  block-local `lis r9,0x8000` while the if/else arms and the loop share a callee-saved high (r14) -- a struct-constant
+  temp and a pointer VARIABLE set after it are not merged by cse (`make_regs_eqv` keeps the user variable; the same
+  constant as a second temp is canonicalised to the first, t4 in the scratch tests); `*(u32*)0x800000F8` gives `lis; ori`.
+  The join block after the if/else re-materialises every constant in both (a fresh cse ebb: the `b JOIN` is not followed
+  because JOIN is also the else arm's fall-through). Left (159 words, size 0x8ec vs 0x8f8; 0x8f0 before the clk change): the target does NOT allocate
+  the shared `12` (x0 of tiles 3 and 6; REG_EQUIV constant re-materialised as `li r0,12` per use) because its callee-saved
+  registers are all taken: x0/x1/x2/y0 hold four registers (r28/r27/r29/r31) where ours shares y0's r29 with x2 (y0 dies
+  at tile 3's `sth`, x2 is born after it in the post-sched1 order); the target's global-alloc order is y0 > x2 > x0 > x1
+  (ours x0 = x1 > y0 > x2 from `floor(log2 refs)*refs/len`: x0 9 refs/133, y0 4/62, x2 3/32), so x0's life or refs
+  differ in the original (a 4th x-pseudo or y0 living into the tile-3 diamond). Every tile's store order then follows
+  the dying-first rule above. Not attempted: the `mulhwu 0x88888889` first read is `OS_BUS_CLOCK / 240 * vcnt` in both.
+- **db_cam menu 72 (read, not closed):** the target masks `cam_mode` once (`lbz r0,0x18(r31); lwz r9,old; clrlwi r11,r0,24`)
+  and uses r11 for the `!=` compare and the switch tree. Established: (a) the mask is `(zero_extend (subreg:QI X))` of an
+  SI value X that combine could not fold: `nonzero_bits (X)` is unknown only when X is set MORE THAN ONCE
+  (`reg_nonzero_bits` is all-ones for multi-set pseudos) and set in another `label_tick` region, or when a store sits
+  between the load and the mask in RTL order (`use_crosses_set_p`: any MEM store between i2 and i3 blocks the
+  substitution; scratch t2: `int cm = s->cam_mode; if (r) {stores} ; (u8) cm` gives `lbz 11; ..; rlwinm 9,11,0,0xff`);
+  (b) the load is in the join block after the `ret == -1` arm (the arm uses r0/r9, so the byte is not live across it) and
+  no store lies between it and the mask there; (c) r0 != r11 means no local-alloc tie: `combine_regs` needs `reg_qty[ureg]
+  >= 0`, so the raw byte is either a global pseudo or dies more than once. A `u8` local / `u8` inline parameter / `(u8)`
+  casts / `u8 c8 = int` all fold the mask (single-set, same block). Not found: the source shape that keeps the byte
+  multi-set or store-separated at that point. The tail (cameraBak copy pointer r8/r5, campos.x r30/r3, target/up highs)
+  is allocation order following the head; `memcpy` direct / struct assignment / `Vec*` cursor forms: 76-84 words.
+- **db_cam move 141 (read, not closed): the `while (--i)` search loop is rotated at a different exit.** Target: `b TEST;
+  INC: numEm++; wrap; TEST: lwz numEm; bdz EXIT; e = EmMgrWork(numEm); if (!(flag & 1)) goto INC; if (id > 0x3f) goto INC;
+  EXIT:` = stmt.c's rotation with the MATCH test as `last_test_insn` (the last jump to the loop end within the first ~30
+  expand-time insns, 25b rule), ours rotates at the `--i` test (`bdnz` at the bottom, `li r6,0` zero register) because the
+  EmMgrWork inline + the two tests exceed the 30-insn window. Shorten the body's RTL (count INSN/JUMP_INSN between the loop
+  label and the second `break` in `-dr`) or move the `numEm++` block before the tests in source. menuFlag 144 not read.
