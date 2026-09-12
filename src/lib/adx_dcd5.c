@@ -147,11 +147,13 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
  * (q_l r20, the mix r21). Pass 80: the l1 statement's shift is an own local `sh` read once more in a
  * dead conditional inside the l1 clamp (see the M1 comment there): its `addi` marks `sh` no-r0 = one
  * never-removed neighbour, so the shift is coloured before the `d * sc_l` product (5 -> 2 words).
- * Residue 2 words: the `nfrm / 2` add temporary takes r0 instead of r12 - the original's add temp
- * had an rA-position use (r0 excluded) with scl's load before the add; a dead conditional in the
- * entry block cannot carry it (its `li`/`cmpi` are not deleted in the entry block, pass 80). */
+ * Pass 81: the `nfrm / 2` add temporary is r12 in the original = the entry block issued the scl,
+ * smul and sadd loads before the `srawi` and the hist loads after it, with the two pool `lis`
+ * before the sadd load (they keep the argument-base pair as neighbours and stay spill picks:
+ * magic r20, table r21). Reproduced with the dead consumers below (see the M1 comment there;
+ * 2 -> 0 words, 4/4). */
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
-                            register Sint16 c1, register Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
+                            register Sint16 c1, register Sint16 c2, register Sint16 *scl, register Sint16 smul, Sint16 sadd)
 {
 	Sint32 l2;
 	Sint32 rr2;
@@ -164,7 +166,9 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	Sint16 sc_r;
 	Sint32 s;
 	Sint32 t;
-	Sint32 nblk;
+	register Sint32 nblk;
+	register Sint32 x;
+	register Sint32 y;
 	Sint32 key;
 	Sint32 j;
 	Sint16 *ps;
@@ -174,12 +178,22 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	Sint32 z;
 
 	nblk = nfrm / 2;
-	/* COMPILER-DIFF: M1 (kept parameter copies) - as in ADX_DecodeSte4AsSte (pass 73: 26 -> 22 words). */
-	asm { mr r6, c1 } asm { mr r6, c2 }
 	/* CRI pass 70: the scramble addend is read through its address, so its loop value is the
 	 * hoisted load (a backend temporary above the c1/c2 widenings in the Chaitin scan) instead
 	 * of the entry load of the stack parameter (62 -> 28 words). */
 	ps = &sadd;
+	/* COMPILER-DIFF: M1 (dead consumers, entry-block order) - `x`, `y` and the five r6 writes are
+	 * dead and deleted by the allocator (no code, r6 is the pinned register). Pass 81: `x = c2 + *ps`
+	 * reads the addend once in this block, so the loop's hoisted load is CSE'd into this backend
+	 * temporary (the sadd node keeps its level, r0) and the load is scheduled here: it waits for
+	 * c2's widening (its other operand), so it is issued after the two pool `lis` (they keep the
+	 * argument-base pair as neighbours -> spill picks -> magic r20, table r21) and before the
+	 * `srawi` (the add temporary is adjacent to sadd -> r12), the hist loads follow. `y` gives the
+	 * scl/smul loads a consumer (issued first, in parameter order); the `nblk` write lifts the
+	 * `srawi` above the hist loads; the c1/c2 writes are pass 73's kept parameter copies. */
+	x = c2 + *ps;
+	y = (Sint32)scl + smul;
+	asm { mr r6, y } asm { mr r6, nblk } asm { mr r6, x } asm { mr r6, c1 } asm { mr r6, c2 }
 	l1 = histl[0];
 	l2 = histl[1];
 	rr1 = histr[0];

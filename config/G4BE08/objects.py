@@ -1994,3 +1994,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/adx_tsvr.c": True,  # 6/6: adxt_nlp_trap_entry 2 -> 0 (`lha r4` vs `r0`). Tagged M1 (rA use of the lha temp kept to the RA by a dead conditional): `register Sint32 t = ofst; z = 0; if (z != 0) { ofst1 = t + 4; } ofst1 += t;` — the frontend keeps the own-local constant out of the relational compare, so at RA time the arm's `addi ofst1,t,4` marks t's web no-r0 (physical r0 in its neighbour list -> r4 = the target's colour, z takes r0); the post-RA peephole folds `li; cmpi; bt` into the fall-through and deletes the arm, the join block (`cmpwi n1; lha ofst2v; add`) is scheduled as the target's; size exact
 })
+
+# CRI pass 81 (2026-09-12)
+MATCHING.update({
+    "lib/adx_dcd5.c": True,  # 4/4: ADX_DecodeSte4AsMono 2 -> 0 (`nfrm / 2` add temp r0 vs r12 + the two pool `lis`). Tags: M1 (neighbour pin `asm { mr r6, l1 }` in both Ste/Mono), M1 (kept parameter copies `mr r6, c1/c2`), M1 (neighbour copy `asm { mr x, t }`, Ste), M1 (dead conditional in the l1 clamp, Mono), M1 (dead consumers, entry-block order, Mono: `register x = c2 + *ps; y = (Sint32)scl + smul;` + `asm { mr r6, y } asm { mr r6, nblk } asm { mr r6, x }` — the B1 slot read of the address-taken addend is the CSE target of the loop's hoisted load (a backend temp, level r0) and is scheduled after the pool `lis` (base pair -> spill picks, magic r20 / table r21) and before the `srawi` (add temp adjacent to sadd -> r12); all dead defs deleted by the RA, size exact)
+})
