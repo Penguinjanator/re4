@@ -1053,7 +1053,10 @@ static inline void CreateEditWindow1(TOOL_WINDOW*& slot)
             pa_->CreateButton(win_, "                 ", &pos, OnSpeed_Callback, &sx, i);
         }
     }
-    e->win->active = 0;
+    // DEACTIVATE = a store through an `int&` (no MEM_IN_STRUCT_P): the `lwz g_pEditWin1` of the following
+    // `g_pEditActive = g_pEditWin1` stays true-dependent on it, which delays the MODEL window's `new` by 3 cycles
+    // and lets the six callee-saved `lis` and the three `fmr` copies fill the slots (target seg 162/163)
+    DEACTIVATE(e);
     slot = e;
 }
 
@@ -1294,7 +1297,10 @@ static inline void CreateEditWindow2(TOOL_WINDOW*& slot)
             pa_->CreateButton(win_, "                 ", &pos, OnAng_Callback, &sx, i);
         }
     }
-    e->win->active = 0;
+    // DEACTIVATE = a store through an `int&` (no MEM_IN_STRUCT_P): the `lwz g_pEditWin1` of the following
+    // `g_pEditActive = g_pEditWin1` stays true-dependent on it, which delays the MODEL window's `new` by 3 cycles
+    // and lets the six callee-saved `lis` and the three `fmr` copies fill the slots (target seg 162/163)
+    DEACTIVATE(e);
     slot = e;
 }
 
@@ -1436,7 +1442,10 @@ static inline void CreateEditWindow3(TOOL_WINDOW*& slot)
             pa_->CreateButton(win_, "                 ", &pos, OnVec2_Callback, &sx, i);
         }
     }
-    e->win->active = 0;
+    // DEACTIVATE = a store through an `int&` (no MEM_IN_STRUCT_P): the `lwz g_pEditWin1` of the following
+    // `g_pEditActive = g_pEditWin1` stays true-dependent on it, which delays the MODEL window's `new` by 3 cycles
+    // and lets the six callee-saved `lis` and the three `fmr` copies fill the slots (target seg 162/163)
+    DEACTIVATE(e);
     slot = e;
 }
 
@@ -1576,7 +1585,10 @@ static inline void CreateEditWindow4(TOOL_WINDOW*& slot)
             num[10]->SetOnHitCallback(OnWorkSp3_Callback);
         }
     }
-    e->win->active = 0;
+    // DEACTIVATE = a store through an `int&` (no MEM_IN_STRUCT_P): the `lwz g_pEditWin1` of the following
+    // `g_pEditActive = g_pEditWin1` stays true-dependent on it, which delays the MODEL window's `new` by 3 cycles
+    // and lets the six callee-saved `lis` and the three `fmr` copies fill the slots (target seg 162/163)
+    DEACTIVATE(e);
     slot = e;
 }
 

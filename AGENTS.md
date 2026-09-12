@@ -26715,3 +26715,53 @@ was never sunk = its counter's virtual number equalled a store data register num
 webs before the counter (extra loop counters, a pointer form of another loop) until the pass-17 `addi rX,rX,K` register hits one of the
 block's `stfd`/`stw`/`stb` data numbers after the addi's slot.**
 - sfd_cre `sfcre_AnalyMpv` 15w not touched (time). Flags: `lib/sfx_zmv.c` True (CRI pass 41 block in objects.py), 111 OK.
+
+### Tool RELs, t_esp pass 17 (t_esp 208/212: InitTool segs 162-163 SHAPE exact with a pure-C form (`DEACTIVATE(e)`, the `int&` store), words 2061 -> 2182 because the callee-saved names downstream of the MODEL window permute; the cse1 flush grid read with a new `CSEDBG=1` hook: the target's 2nd flush sits 4-6 cse1-insns later than ours (between SAVE_EVENT's `w` and `h` loads), a uniform -5 shift fixes seg 271 but not the later regions; `flg = 4` tail sharing is register pressure, not a spelling; nothing flipped; 2026-09-12)
+
+- **Segs 162-163 (MODEL window `new`, `lwz g_pEditWin1` late, six callee-saved `lis` + three `fmr` before the call): pure C,
+  applied.** Pass 16 attributed the target's `lwz g_pEditWin1` delay to a true dependence on `stw *slot` and looked for a slot
+  pointer without base/REG_EQUIV. That was the wrong store: the dependence is on the PRECEDING store `e->win->active = 0`
+  (`stw r31,0x58(r9)`). Written as `DEACTIVATE(e)` (= `ISet((e)->win->active, 0)`, the file's own macro; `ISet(int& d, int v)`
+  stores through a reference, so the MEM has no MEM_IN_STRUCT_P) the store may alias the fixed scalar `g_pEditWin1`
+  (alias.c: only struct/scalar-flagged MEMs are disjoint from fixed scalars; the base of `e->win` is a MEM load = 0), sched1 keeps
+  the load below it, the `bl __builtin_new` slips 3 cycles and the six `lis` + `fmr f21,f25; fmr f20,f22; fmr f19,f24; li r29,0`
+  fill the slots exactly (seg 162 19/19, seg 163 34/34 with only callee-saved names differing). Applied to all four
+  `CreateEditWindowN` tails (windows 1-3 unchanged, segs 0-161 still exact). The slot-pointer question is CLOSED: the store
+  `*slot = e` keeps its base (integrate.c `process_reg_param` copies a constant argument into a `reg/v` temp via `high`+`lo_sum`;
+  record_set keeps the base for `lo_sum` with dest as operand; `update_equiv_regs` gives REG_EQUIV to any multi-set pseudo whose
+  sets all carry the same invariant REG_EQUAL, so even a 2-set pointer to the same symbol stays known). Also read: a plain local
+  `TOOL_WINDOW** pp = &g_pEditWin4; *pp = e` set in the same block is folded by combine into `stw @l(rhi)` (LOG_LINKS are
+  per-block, which is why the entry-set reference temp is NOT folded and reload rematerialises it as `lis r6; addi r6`).
+  Words 2061 -> 2182: the six `lis` pseudos now live across the call as in the target, and global.c hands the CreateString
+  label highs different callee-saved names (ours r18/r23/r19 vs target r19/r21/r16) — the target has ~3 more callee-saved
+  highs in this region (e.g. `high g_pPrimArray` kept in r18 across SAVE..SAVE_EVENT, segs 230/271/284; ours `lis r6` fresh) and
+  those extra live values come from the flush grid below, so the name permutation is downstream, not a reason to revert.
+- **Kit: `CSEDBG=1` hook in ~/.cache/sngdbg (cse.c, patch + README updated).** Prints every 1001-insn hash flush of cse1/cse2
+  with the insn UID (`CSEDBG <fn> flush at insn U (block from F)`; the flush precedes U). `~/.cache/tesp15/flushmap.py
+  <dump.jump> <tail-start-uid> <uids,...>` names the window (k-th `__builtin_new` after the tail label) and the offset in
+  non-note insns. Ours (tree source, tail block from 4539): LOAD_EVENT+4, SAVE_EVENT+21, OPTION+534, PATH+535, SIZE+180,
+  SPEED+686, COLOR+861, LIFE+2, ROTATE+665, WORK0+12, WORK6+8, BASEPOS+117 (cse1); cse2 has its own 8-flush grid from 21668.
+  Also in ~/.cache/tesp15: `genK.py OUT NAME=K..` (per-ctor pad override), `refit.py IN OUT +D` (InitTool dead-set block),
+  `getN.sh V.cpp` (gcse N from `-dG`, `;; Function InitTool` header), `runv.sh V.cpp` (words/diffsegs/region totals in one line).
+- **Where the target's flushes are, method: a constant loaded FRESH although an equal constant was loaded a few insns earlier
+  marks a flush between the two loads.** Seg 271 (SAVE_EVENT CreateNormalWindow): target pos.x f21 / pos.y f20 / w f25 all
+  SHARED with LOAD_EVENT, h = fresh `lfs f21` -> the target's flush 2 is between SAVE_EVENT's `w = 192.0f` load and its `h =
+  128.0f` load. Ours flushes at UID 7400 = between the pos stores and the `w` load (w and h both fresh), i.e. 4-6 cse1-insns
+  EARLIER. A -5 shift (K=3 instead of 4 in the MODEL/LOAD/LOAD_EM/LOAD_ROOM/LOAD_SST pads, `genK.py`) makes seg 271 21/21
+  (FP names only) and region 162-340 373 -> 325, but seg 0 breaks (d80: the LOAD_EVENT/SAVE `&pos` spill slots 0x66c/0x6b0/
+  0x6bc/0x6c0/0x6d0/0x6d8 reorder although N stays 5235 after `refit.py +5` — the fresh/shared change alters which `high LC`
+  expressions sit in the PRE table around those slots, so the slot order is not a pure-N fit any more) and regions 341+ get
+  worse (all later flushes move -5 too; the target's later flushes are not uniformly shifted). 2316w, NOT applied. Next: fit
+  each flush separately with the fresh-constant method (flush k's interval from the first window after it whose constants are
+  fresh vs shared), then set the per-ctor pads to hit the 12 intervals; the CSEDBG line gives ours instantly.
+- **Tail windows 698-761 `flg = 4` (`li r10,4` per window in the target, `stw r31` from one `li r31,4` at seg 217 in ours): not
+  a spelling.** The target has a fresh scratch `li rN,4` in EVERY CreateNormalWindow segment (64 sites), ours in all but the ten
+  VEC0..WORK6 windows, which share one pseudo that global.c put in r31 (its `li` is sched1-hoisted to seg 217: the tail is one
+  basic block). cse shares equal constants within a window in both compilers, so the target's per-window `li` are reload
+  rematerialisations of spilled REG_EQUIV pseudos (or single-use pseudos): the difference is that r31 is FREE in ours over
+  698-761 and taken in the target = the same missing callee-saved values as above (more highs/FP constants live across the
+  tail). A per-window literal or block-local `flg` cannot change this (the constant is CSE'd either way); do not spend on it.
+- Not touched: Load/SaveEmType 2/2, fn_t_esp_3DE4C 24, dbg_tool.h/db_widget, the `k8/k6` asm, the CSE pads (76 dead sets, N 5235).
+  Tree edit: the four `DEACTIVATE(e)` tails in src/t_esp/t_esp.cpp only. Verified: locked ninja of t_esp.o, bytecmp 208/212,
+  InitTool 2182 words. Not run: `ninja -k 0`, make_rel --verify, shasum (nothing flipped). Scratch /tmp/t17 (mk.py variant
+  generator, v*.py, scanD.sh) is disposable; the kept harness is ~/.cache/tesp15 + the kit.
