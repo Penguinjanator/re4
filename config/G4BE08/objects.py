@@ -1953,3 +1953,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/sfd_tst.c": True,  # 11/11, pure C: SFTST_Calc 79 -> 0. `tol = mt->unit * tst->tolerance.cnt / tst->tolerance.unit` written out (a local assigned a plain copy of an inlined helper's result is replaced by the helper's return @temp, ranked above every own local; as an own local below `ave`, ave.hi is removed in the same Chaitin scan right after tol instead of one scan later, and MulDiv/diff/adiff/the sprintf group all shift to the target's registers); the `hist[i] -= step` loop as `static sftst_SubHist` (its `i` is a helper web coloured after the step temps: r6, not r3); sftst_SumHist declares `i` before `sum` (helper-local ids ascend in declaration order, the second inline's sum is coloured first: r4/r5)
 })
+
+# CRI SWAR pass 18 (2026-09-12)
+MATCHING.update({
+    "lib/mpv_mc.c": True,  # 5/5 (OneRef1p keeps its asm body: lfdux/lwzux update forms are never emitted from C by this compiler). H2 34 -> 0: masks `Uint32 m2; Uint32 m1;` assigned m1 then m2 (web vids by declaration, lis temps by statement order), cases 2/3 inserts as asm-emitted `rlwimi` on `register` helper locals (COMPILER-DIFF: the target's order is the pre-RA schedule of a DAG with no leftover pcode; the or-pack's fused shift is a dead def until the RA and the intrinsic's K6 copy a node, and the scheduler model shows every extra node moving the order). V2 73 -> 0 pure C: `Uint32 x0 = 0, x1 = 0;` dead initialisers (range-split webs are numbered by each variable's FIRST definition and coloured in that order), the third load of each row kept as a variable by the pointer step right after it, the second pack written into it (`w2 = (w1 << 8) | w2` = the target's kept `mr r28, r31` in case 1 and in-place `srwi r28, r28, 8` in case 3)
+})

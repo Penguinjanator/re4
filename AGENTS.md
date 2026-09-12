@@ -108,6 +108,8 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | .text function order, .rodata string order, .bss size | emission = definition order; strings by @N id; `.bss` pads | definition order, `static` table placement, struct padding | — | "CRI pass 5", "CRI pass 16b", "CRI pass 21" |
 | the loop's pointers/counters (`stride`, `s0`, `d`, `i`) take r8-r12 in ours and r0/r3-r6 in the target, with block temporaries taking r0/r3-r7 first; `li rN,count` for the ctr in r0 (ours) vs r7 (target) | the last simplification scan removes in vid order, so every surviving temp with a higher vid than the loop variables pops (is coloured) before them; the loop variables pop first only when they form a level of their own (degree >= 29 at the previous scan) | declare the block's value locals (pixels/words/sums) BEFORE the loop variables (their higher vids are visited after the loop variables and keep their degree up); loop variables declared without initialisers, assigned in the target's load order; casts that keep the values own locals (a mask AT the load makes the local a copy of the load temp) | neighbour pin on the 1-2 short loop variables (row below) | "CRI SWAR kernels pass 10" |
 | one value X is coloured one Chaitin level too LOW (falls below 29 one scan too early, lands in r0/r3..r12 or a lower callee-saved than the target; a target node "must be level 2" / "needs more neighbours") | the priority list is built by degree-<29 removal scans; a pinned value is coalesced with the asm's copies, which stay as ghosts aliased to the physical register = never-removed neighbours of THAT value only (total degree of everything else unchanged) | a same-body value that overlaps X (a later use of X, a kept copy), a longer web | **codeless neighbour pin `asm { mr rV, x; mr x, rV }` with rV a VOLATILE register the function never uses (r11, r8, ...)**: +k never-removed neighbours on `x` only, X held one scan longer -> coloured earlier; reserves nothing, both `mr`s deleted (size unchanged); place it AFTER any propagated copy of `x`; `x` must be `register`. A callee-saved rV also RESERVES the register (row 10); on a parameter or a call-defined value the `mr` is emitted (a real copy). Tag M1 (neighbour pin) | "CRI pass 40" (cvFsGetFileSize 14 -> 0, the dump reading), "CRI pass 44" |
+| range-split webs (`@N`, lifetimes on) of a switch's cases coloured in the wrong order: a value takes the wrong callee-saved / volatile register although the graph is one level | the frontend numbers the `@N` webs by the FIRST DEFINITION of each variable in the function (all of a variable's webs consecutive; within a variable the later definition and the later case get the LOWER @), and the RA colours them in ascending @ before the own locals; a load and the pack that replaces it in the same variable are therefore always pack-then-load | dead initialisers in the declaration (`Uint32 x0 = 0, x1 = 0;`: deleted, no code) move a variable's group first; write a pack INTO another variable (`w2 = (w1 << 8) | w2`) when its load must be coloured before it; keep a single-use load as a variable with the pointer step right after it (`w2 = s0[8]; s0 += stride;`) | — | "CRI SWAR kernels pass 18" |
+| a block's target order is reproduced ONLY by the leftover-free DAG (dagx.py: the or-pack's dead fused shift, the intrinsic's K6 copy and an own-local copy each move it) | every C pack spelling of this compiler leaves one pcode until the RA (dead rlwinm / `mr`), and the RA's deletion dirties the block into a post-RA reschedule from the wrong input order | — | `V = base_shift; asm { rlwimi V, src, sh, mb, me }` on `register` locals: an ordinary RLWIMI pcode to the scheduler, tag COMPILER-DIFF (the vendor's TuneC had inline asm there) | "CRI SWAR kernels pass 18" |
 
 ## Tooling kit
 
@@ -29742,7 +29744,7 @@ Words: 27 -> 22 (loop-5 `i++` in the for header) -> 12 (raw-word `r->area` store
   of a multi-set counter is `li` -> doubled; move the increment into the for header to shorten a counter"), row 4 (alias: `*(u32*) &s->f = v`
   raw-word store as the dependence lever), row 6 (sched1: birthing insns jump to max_priority; a store->load true dependence costs 2).
 
-### CRI SWAR kernels pass 18 (mpv_mc 8x8 H2 34 -> 0w APPLIED: mask `lis` order = statement order of the initialisers, cases 2/3 inserts as asm-emitted `rlwimi` (no C spelling gives a leftover-free DAG, and the scheduler model shows every leftover node moving the order); V2 8x8 73w and mpv_mcy 16x16 in progress; 2026-09-12)
+### CRI SWAR kernels pass 18 (mpv_mc Matching 3 -> 5/5 FLIPPED, 111 OK: 8x8 H2 34 -> 0w (mask `lis` order = initialiser statement order; cases 2/3 inserts as asm-emitted `rlwimi`, tagged: no C spelling gives a leftover-free DAG and the scheduler model shows every leftover node moving the order), 8x8 V2 73 -> 0w pure C (range-split webs are numbered by each variable's FIRST definition = dead initialisers order the colouring; the third load kept by the pointer step after it and the second pack written INTO it); mpv_mcy 16x16 H2 197w / V2 225w read only; 2026-09-12)
 Harness /home/adityas/.cache/cri_swar18/ (cri_swar17's scripts + `mk.py NAME [H2|FUNC] [UNIT]` = splice bodies/NAME.c over the whole H2 pragma region or one
 function, `mkc.py NAME CASE [BASE] < row` = one case's loop body replaced, `c2.sh NAME [CASE] [BASE] < row` = words + pass 03/04 counts + rows.py order diff,
 `dagx.py OUTDIR BLOCK ROLES [k6=D:R|k6x=D:R|del=I|coal=I|ren=A:B ..] --both --rowlen=N --mr` = pre-RA schedule of a block after DAG transforms (K6 copy
@@ -29762,6 +29764,59 @@ inserted / dead def deleted / copy coalesced) diffed role-blind against `troles.
   qualifier did not change the helper locals' colours). Case 2: 35 -> 31 pcodes (still unrolled), case 3: 28 -> 26. Case 0/1 untouched (identical
   already through the post-RA reschedule). The vendor's "TuneC" evidently had these inserts as inline asm. Tree: src/lib/mpv_mc.c H2 helper +
   comment; locked ninja + bytecmp: H2 0w, mpv_mc 4/5 identical (V2 73w).
+- **8x8 V2 73 -> 56w APPLIED (`Uint32 x0 = 0, x1 = 0;`): the frontend's range-split webs (`@N`, lifetimes on) are NUMBERED BY THE FIRST DEFINITION
+  OF EACH VARIABLE in the function (all of a variable's webs consecutive, cases in reverse AST order: case 3 lowest @), not by declaration order
+  (three declaration permutations: same numbering), and the RA colours them in ascending @.** The tree's order was w0, a0, w1, a1, x0, x1 (case 0's
+  statement order); v2perm.py (chaitin.py with the six variable groups permuted, 6! x 16 pack/load flips) finds cases 1 and 2 fully right (20/20
+  webs) only with x0 and x1 FIRST: x0 takes r8 before the a0 load, so x1 finds every volatile register blocked and takes r31 (the function's first
+  callee-saved hand-out), a0' r9 / a0 r8 follow. A dead `x0 = 0; x1 = 0;` before the switch or the initialised declaration moves the first
+  definitions (deleted, no code; size unchanged): case 2 identical, case 1 = the kept `mr r28, r31` (a2) + the s0/s1 add positions, case 3 colours.
+- **Case 1's a2 (not closed):** a2 is kept as a web by `a0 = W(s1, 0); a2 = s1[8]; s1 += stride;` (q6/q10: `lbz a2; mr @a1', a2; rlwimi`), but the RA
+  gives a2 the pack web's colour r28 (a2 is NOT adjacent to the copy's destination, and r28 is the lowest free handed-out callee-saved) and
+  deletes the copy; movevid.py (a2 at every vid slot of q6's graph) never yields r31 (r28/r30/r11/r8/r3). The target's a2 (r31) therefore either
+  interferes with a1' (a2 live past the copy) or is coloured after w1'(r29)/a1(r30) and before a1'(r28) — i.e. its web sits INSIDE the a1 group's
+  vid range, which no first-def order of a separate variable gives. Negatives: `Uint8 b0, b1` (substituted like Uint32), `(a2 | a2)` (folded).
+  Case 3's target reads as w2 (r11) and a2 (r28) coloured AFTER the w0/a0 webs (webs, not temps) with w1 the first callee-saved (r31).
+- **8x8 V2 56 -> 24 -> 11w APPLIED (size exact now).** (a) The third load of each row (`w2 = s0[8]` / `a2 = s1[8]`, the half in case 2, the
+  word in case 3) is KEPT as a variable in the target (case 1 `lbz r31; mr r28, r31; rlwimi r28, r30`; case 3 `lwz r28; srwi r28, r28, 8` in
+  place and `lwz r11 (w2); srwi r29, r11, 8`: loads coloured AFTER the w0/a0 webs = webs, not backend temps). Pure C: the pointer step right
+  after the last load through it (`w0 = W(s0, 0); w2 = s0[8]; s0 += stride; a0 = W(s1, 0); a2 = s1[8]; s1 += stride;`) blocks the frontend's
+  single-use substitution (the load cannot move past the pointer update); the `add r5/r6` land where the scheduler puts them (late, as in the
+  target). With x0/x1 dead-initialised: 24w, the `mr r28, r31` appears, size 0x330 exact. (b) The first-def order `x0, x1, w0, a0, w2, a2, w1,
+  a1` (dead initialisers `Uint32 x0 = 0, x1 = 0, w0 = 0, a0 = 0, w2 = 0, a2 = 0;`) -> 11w: cases 0/1/2 identical; case 3 = the callee-saved
+  rotation w1/a1/w1'/a2 (target r31/r30/r29/r28, ours r29/r28/r30/r31). Range-split detail: with a variable kept in cases 1-3, ONE case's web
+  stays the own-local node (case 1 here, lowest vids) and the others are `@N` webs (case 3 lowest @). exh6.py (720 first-def orders of the six
+  row variables after x0, x1, 1 s each) running for the case-3 rotation at the time of writing (result below).
+- **16x16 H2 197w / V2 225w (read, nothing applied):** the dead-init lever gives at most 197 -> 194 (climb16.py over the 13 variables); the
+  case-0 byte (`lbz r20`) is a3's own-local web (`a3 = s[16]; a3 = (w3 << 8) | a3`), coloured last, and takes r20 in the target because every
+  volatile register is blocked at that point: the target's level-2 own locals (volatile r9-r12) are i, w1, a1, w2 where ours are i, w2, w3, a2,
+  x2, x3 (+x3 r28) — a live-range (degree >= 29) difference of the case-0 body, not a vid order. `w4 = s[16]` / a separate `b` (219w, size -8:
+  substituted, the pack copies coalesce), x's interleaved with the packs 196w, per-pair statement blocks 231w, reversed pack order 299w.
+  Needs its own pass: role-map the four cases' webs against the target and search the case-0 statement order in chaitin.py.
+- **8x8 V2 11 -> 0w, mpv_mc IDENTICAL and FLIPPED (objects.py `# CRI SWAR pass 18` block, locked `ninja -k 0`, `dtk shasum -c` = 111 OK).** The
+  case-3 rotation (and the 720-order exhaustive search: best 11w with `w0, a0, w2, a2, w1, a1`) was the wrong lever: the target's loads of
+  w1/a1 are coloured BEFORE the packs that replace them (w1 r31, a1 r30, then w1' r29, a1' r28), and within one variable's group the later
+  definition always gets the LOWER @ (reverse AST order: pack before load, case 3 before case 1), so the second pack cannot be the same
+  variable as its load. **Form: the second pack is written INTO the third variable: `w2 = (w1 << 8) | w2; a2 = (a1 << 8) | a2; x1 = w2 ^ a2;
+  d[1] = AVG2(w2, a2, x1)`** (case 2 `<< 16`, case 3 `w2 = (w1 << 24) | (w2 >> 8)`), w1/a1 hold the loads only. With the pointer steps after
+  the third loads and `Uint32 x0 = 0, x1 = 0;` (both still required: 31w without the dead initialisers) = 0w, size 0x330. The or with the
+  destination operand a plain LOAD (`w2 = (w1 << 8) | w2`) gives `rlwimi w2', w1` on the load's web with the copy coalesced (case 2: `lhz r28;
+  rlwimi r28`), on a kept own-local (case 1's a2, the lowest vids) the copy stays (`lbz r31; mr r28, r31`) because the own local is coloured
+  last and r31 is its only free callee-saved (r28 a1', r29 w2', r30 a1 blocked), and in case 3 the `(w2 >> 8)` base is `srwi w2', w2` /
+  `srwi a2', a2, 8` written on the same register when the load web is coloured after the pack web with r28 the lowest free. Separate pack
+  variables p0/q0/p1/q1 (q17/q18: 93/64w, packs coloured last = callee-saved) and the first pack into w1 are wrong.
+- **Catalogue rows (MWCC table) from this pass:** (1) "range-split webs (`@N`, lifetimes on) coloured in a wrong order / a variable's web takes
+  the wrong callee-saved" -> the webs are numbered by the FIRST DEFINITION of each variable in the function (all of a variable's webs
+  consecutive; within a variable later definitions and later cases get the lower @) and coloured in ascending @ before the own locals ->
+  dead initialisers in the declaration (`Uint32 x0 = 0, x1 = 0;`, deleted, no code) put a variable's group first; a load and the pack that
+  replaces it cannot be reordered within a variable (write the pack into another variable). (2) "a pre-RA order that only the leftover-free
+  DAG reproduces (dagx.py: every or-pack dead def / K6 copy / own-local copy moves it)" -> `asm { rlwimi V, src, sh, mb, me }` on `register`
+  locals, tagged (the asm pcode is an ordinary RLWIMI to the scheduler; the vendor's TuneC had inline asm there). (3) "a single-use load
+  substituted in ours, kept as a variable in the target (`lbz r31; mr r28, r31`, or a load coloured after the webs it feeds)" -> place the
+  pointer step (`s += stride`) right after the load; the scheduler still sinks the `add` to the target's position.
+- Harness: /home/adityas/.cache/cri_swar17 DELETED; /home/adityas/.cache/cri_swar18 kept small (scripts: mk.py/p.sh/mkc.py/c2.sh/dagx.py/cmp.py/
+  v2perm.py/movevid.py/climb16.py/climbv2.py/exh6.py/v2.sh/h16.sh, bodies/, NOTES.md; dumps deleted). Tree: src/lib/mpv_mc.c (H2 helper +
+  V2), config/G4BE08/objects.py. mpv_mcy untouched (197w/225w).
 
 ### Tool RELs, t_esp pass 27, part 2 (continuation of "t_esp pass 27" above — another agent's t_camera section landed between; InitTool 1397 -> 465w IN THE TREE (C2 applied: the F6/F9 refit, 18 pointers-first `n =` rows, one ctor-scope `n` per window), size 0xa20c/0xa1f8, 208/212, seg 0 exact, surv none visible; cse2 F7' re-read to <= SUB+37 (probe D11: ROTATE 276 -> 185, lc 623 and seg 758 fixed, but the W heads' r16/r14 swap costs +120w in 461-751 -> 476w, not applied); nothing flipped; 2026-09-12)
 - **Tree:** src/t_esp/t_esp.cpp = pass 26 + (a) SPEED `f32 c16 = 16.0f;` after "Y:"(5,16), used by the 95/175/255 "Y:" strings (-6 cse1);
@@ -29838,19 +29893,6 @@ tea_*.log = LADBG/SCHDBG dumps of ToolEspArea). No tree file edited unless a lin
   BOTH loads alike (their earlier fixed-scalar neighbour `stw r0,ProjType` already gates y through the r0 anti at t=8, and every later
   store is already a dependent of both), so it cannot add a y-only dependent; a y-only dependent must be a `4(r9)` reference after the
   loads, which is closer 7's "fourth use of the lo_sum base -> y-first sched1 -> z takes r0". Not re-probed.
-- **8x8 V2 73 -> 56w APPLIED (`Uint32 x0 = 0, x1 = 0;`): the frontend's range-split webs (`@N`, lifetimes on) are NUMBERED BY THE FIRST DEFINITION
-  OF EACH VARIABLE in the function (all of a variable's webs consecutive, cases in reverse AST order: case 3 lowest @), not by declaration order
-  (three declaration permutations: same numbering), and the RA colours them in ascending @.** The tree's order was w0, a0, w1, a1, x0, x1 (case 0's
-  statement order); v2perm.py (chaitin.py with the six variable groups permuted, 6! x 16 pack/load flips) finds cases 1 and 2 fully right (20/20
-  webs) only with x0 and x1 FIRST: x0 takes r8 before the a0 load, so x1 finds every volatile register blocked and takes r31 (the function's first
-  callee-saved hand-out), a0' r9 / a0 r8 follow. A dead `x0 = 0; x1 = 0;` before the switch or the initialised declaration moves the first
-  definitions (deleted, no code; size unchanged): case 2 identical, case 1 = the kept `mr r28, r31` (a2) + the s0/s1 add positions, case 3 colours.
-- **Case 1's a2 (not closed):** a2 is kept as a web by `a0 = W(s1, 0); a2 = s1[8]; s1 += stride;` (q6/q10: `lbz a2; mr @a1', a2; rlwimi`), but the RA
-  gives a2 the pack web's colour r28 (a2 is NOT adjacent to the copy's destination, and r28 is the lowest free handed-out callee-saved) and
-  deletes the copy; movevid.py (a2 at every vid slot of q6's graph) never yields r31 (r28/r30/r11/r8/r3). The target's a2 (r31) therefore either
-  interferes with a1' (a2 live past the copy) or is coloured after w1'(r29)/a1(r30) and before a1'(r28) — i.e. its web sits INSIDE the a1 group's
-  vid range, which no first-def order of a separate variable gives. Negatives: `Uint8 b0, b1` (substituted like Uint32), `(a2 | a2)` (folded).
-  Case 3's target reads as w2 (r11) and a2 (r28) coloured AFTER the w0/a0 webs (webs, not temps) with w1 the first callee-saved (r31).
 - **game/Espgen42 / espgen45 (9w / 42w unchanged; the xoris slot is not a pass-6 question, but the loop-B `nk` r30 PIN is a
   `floor(log2 refs)` step that the doubling fact points at):** the Z-block residue (pass 13: two codeless >= 80 insns at t7/t8) is a
   sched1 DAG question; none of the pass-6 facts adds sched1 insns (the raw-word store kind only changes alias classes of existing
@@ -29909,22 +29951,6 @@ Harness ~/.cache/cri65 (wi.py = chaitin what-if: `mv=VID:AFTER`, `edge=A:B` (B m
   the whole function (65w). So in this compiler the fold fires on any contiguous `rlwinm; rlwimi x3; stw` whose chain reads one register, and the six helper
   readers' `#pragma peephole off` remains the only blocker. The target's r6 = the same "one more blocked register" as the helpers' (there hdr r5, the dying
   base; here r4 = id, NOT the dying base r3 which `li r3,1` reuses), i.e. a node live across the swap block that the final code does not show. Left 6w.
-- **8x8 V2 56 -> 24 -> 11w APPLIED (size exact now).** (a) The third load of each row (`w2 = s0[8]` / `a2 = s1[8]`, the half in case 2, the
-  word in case 3) is KEPT as a variable in the target (case 1 `lbz r31; mr r28, r31; rlwimi r28, r30`; case 3 `lwz r28; srwi r28, r28, 8` in
-  place and `lwz r11 (w2); srwi r29, r11, 8`: loads coloured AFTER the w0/a0 webs = webs, not backend temps). Pure C: the pointer step right
-  after the last load through it (`w0 = W(s0, 0); w2 = s0[8]; s0 += stride; a0 = W(s1, 0); a2 = s1[8]; s1 += stride;`) blocks the frontend's
-  single-use substitution (the load cannot move past the pointer update); the `add r5/r6` land where the scheduler puts them (late, as in the
-  target). With x0/x1 dead-initialised: 24w, the `mr r28, r31` appears, size 0x330 exact. (b) The first-def order `x0, x1, w0, a0, w2, a2, w1,
-  a1` (dead initialisers `Uint32 x0 = 0, x1 = 0, w0 = 0, a0 = 0, w2 = 0, a2 = 0;`) -> 11w: cases 0/1/2 identical; case 3 = the callee-saved
-  rotation w1/a1/w1'/a2 (target r31/r30/r29/r28, ours r29/r28/r30/r31). Range-split detail: with a variable kept in cases 1-3, ONE case's web
-  stays the own-local node (case 1 here, lowest vids) and the others are `@N` webs (case 3 lowest @). exh6.py (720 first-def orders of the six
-  row variables after x0, x1, 1 s each) running for the case-3 rotation at the time of writing (result below).
-- **16x16 H2 197w / V2 225w (read, nothing applied):** the dead-init lever gives at most 197 -> 194 (climb16.py over the 13 variables); the
-  case-0 byte (`lbz r20`) is a3's own-local web (`a3 = s[16]; a3 = (w3 << 8) | a3`), coloured last, and takes r20 in the target because every
-  volatile register is blocked at that point: the target's level-2 own locals (volatile r9-r12) are i, w1, a1, w2 where ours are i, w2, w3, a2,
-  x2, x3 (+x3 r28) — a live-range (degree >= 29) difference of the case-0 body, not a vid order. `w4 = s[16]` / a separate `b` (219w, size -8:
-  substituted, the pack copies coalesce), x's interleaved with the packs 196w, per-pair statement blocks 231w, reversed pack order 299w.
-  Needs its own pass: role-map the four cases' webs against the target and search the case-0 statement order in chaitin.py.
 - **mwsfdcre `mwPlyCalcWorkSfd` 4 -> 0w APPLIED (tagged, not flipped: CreateSfd 115w).** Form: `register Sint32 size` declared ABOVE rfbsiz/tabsiz, the chain
   unchanged, then `size += MWSFD_FNAME_SIZE; asm { mr size, size } return sibsiz + size;`. Reading: (1) the identity asm copy IS a second rvalue read for
   the frontend's pull count, so the last `size` web stays a variable and `return sibsiz + size` is computed straight into r3 (`addi r3,r3,0x4800; add r3, r29,
@@ -30010,3 +30036,23 @@ Harness ~/.cache/cri65 (wi.py = chaitin what-if: `mv=VID:AFTER`, `edge=A:B` (B m
 - Tree at the end of the pass: src/lib/sfd_mps.c (helper + `?:` n + pin removed), src/lib/mwsfdcre.c (mwPlyCalcWorkSfd), config/G4BE08/objects.py
   (`# CRI pass 65`: `lib/sfd_mps.c` True); locked `ninja -k 0` clean, `dtk shasum -c` 111 OK. Harness ~/.cache/cri65 deleted. Note: every locked ninja run this
   pass printed `ninja: warning: premature end of file; recovering` and re-ran the split (another process wrote .ninja_log/.ninja_deps concurrently).
+
+### Espgen pass 14 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in words; the loop-B `nk` r30 PIN REMOVED in both units in pure C: the normal pointer `&nrm[k]` is ONE function-level `Vec* nk` set in both loops (36 refs / 168 insns = 1.07 > k*12_A 1.02 > k*4_B 1.05 > k 0.74), the pass-8 rule again; the loop-A dead test now compares `p->mode`; Z-block xoris slot re-read below; IN PROGRESS 2026-09-12)
+Scratch /tmp/esp14/ (`mk.py OUT BASE 'OLD=>NEW'..`, `t.sh 42|45 SRC [pseudo,..]` = variant.sh word line + GORDER rows, `DIFF=N` side-by-side; `refs.py DUMP FUNC REG`
+= every insn of FUNC mentioning (reg REG) with the running loop depth; `stream.py DUMP FUNC REG [only]` = the insn stream with loop notes/labels/jumps; rtl_nopin/ = the
+full `-dj -ds -dS -dl -dL -df -dc -dN -dR -dg` dumps of the unpinned tree; nopin.cpp/nopin45.cpp = the tree minus the pin; v1-v4.cpp, w1-w2.cpp variants + logs).
+- **(A) closed, pure C.** Sweep 2's reading ("one weighted k-ref fewer") was the wrong side of the comparison: k's 32 weighted refs and 217 len are exactly the
+  target's visible RTL (poke `lwz r28`+`slwi` 2, loop-A `mullw`/`addi`/three giv inits 2+4+6, loop-B `mullw`/two inits/`k±nx`/`k++` 2+4+6+6; `refs.py` on the .flow
+  and .sched dumps, and `recompute_reg_usage` (toplev.c 4419, flow.c 4960) RECOUNTS REG_N_REFS from the post-sched1 RTL right before regclass/local-alloc, so
+  regmove/combine miscounts never reach global.c), and the target's k4_B/k12_A/pointer registers in BOTH units need the loop-B pointer allocated BEFORE k4_B
+  (espgen45: k4_B 35/169 = 1.04 -> r30 in ours, r29 in the target: r30 must already be held by a conflicting allocno = the loop-B pointer), i.e. a pointer priority
+  >= 1.04, unreachable for a block-local pointer (18 refs / 110 len = 0.65; len <= 69 or 30 refs would be needed). The vendor's pointer is a FUNCTION-LEVEL variable
+  used in loop A too (like `n`, `nz`, `c` of passes 8/9): loop A's `PSVECNormalize(&v, &nrm[k])` argument pseudo (18 / 58) and loop B's pointer (18 / 110) become one
+  allocno 36 / 168 = 1.07 -> allocated before k12_A (26/102 = 1.02), k4_B (35/167 = 1.05) and k (0.74) -> r30 in pass 0 (r30 = regs_used_so_far from the
+  DCStoreRange block's local qty); k12_A and k4_B then conflict with r30 and open r31 (42) / take r29 (45: r31 virgin, r30 conflicting, r29 used), k -> r28 (42) /
+  r31 (45). Form: `Vec* nk;` next to `f32 n;`, `nk = &nrm[k]; PSVECNormalize(&v, nk);` in loop A (the `nrm[k].y/.z` reads fold onto nk in cse as before),
+  `nk = &nrm[k];` in loop B, pin deleted. 42 only: the loop-A dead test must not read the k*12 giv (`if (k * 12 == 3)` gave k12_A +3 refs = 29/102 = 1.14 > nk and
+  it took r30: v1 39w); `if (p->mode == 3) c = NULL;` (+4 loop.c insns, 130 in the 129..152 window) keeps it at 1.02: v3 9w = the tree's residue. Judged: 42 9w
+  (same 9 Z-block words), 45 42w (same words), both without the r30 pin. Tree edited: src/game/Espgen42.cpp, src/game/espgen45.cpp (Move00 only).
+- Catalogue row 7 addendum (global.c): before hunting a ref, check which OTHER allocno must precede the pinned one in BOTH units of a family; a pointer/temporary
+  that exists in two loops of the same function may be one vendor variable (refs add, len adds, log2 step): `GDBG` rows of the two block-local pseudos summed.
