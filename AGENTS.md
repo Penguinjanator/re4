@@ -27571,3 +27571,38 @@ Tree untouched (`src/game/db_cam.cpp` menu as closer 6 left it); `MATCHING["game
   With alias, hard-register and LUID levers all excluded above, the remaining candidates are compiler-side (a different
   `rank_for_schedule` tie chain or `INSN_LUID` assignment in the original build, cf. "Known compiler-build differences") — not a
   source spelling. Do not spend another pass on menu from the source side.
+- **Corrections and completion (same day, after tracing the compiler's own picks with `schedtrace.sh`, breakpoint 0x507e9b):**
+  * WAR/WAW edges of GPR/FPR/CR operands have latency 0, not lat(src): 0x508390 sets kind = 0 when model word +4 != 0 (gekko
+    = 1); only SPR (class 0) WAR/WAW edges keep kind 1. So a chain `mr r168,r167; rlwimi r168,..` (the rlwimi's r168 is a
+    read+write operand = write only) is 0 cycles in the DAG, and a store's WAR to the `addi` of its base costs nothing.
+    The first model (lat on WAR) made mpv_mcy B4 height 14 instead of the compiler's 10.
+  * The scheduler entry calls 0x511f20 BEFORE scheduling any block: pre-RA it runs a per-block pointer-class flow over the
+    GPRs (0x5121e0 refines/assigns the alias record of every load/store, calls with none get 0x5ea580); post-RA it only gives
+    every load/store without a record the default pointer record 0x5ea95c (t2, bits = the "unknown pointer" class) and calls
+    0x5ea580. Dump the records after that call (scheddump.sh does: breakpoint 0x507d31), not at the pass breakpoint.
+  * `flags & 0x20000000` = record form (`add.`, `andi.`, `extsb.`, `addic.`): latency +2 (3 for the CR result). `addic.`/`dcbt`
+    carry 0x100 = barrier. `lmw` carries 0x80 (the ordered chain). Block flag 1 = entry block, 2 = exit block: pre-RA skips
+    them, post-RA schedules them (prologue/epilogue included).
+  * -proc tables: gekko and 750 -> 0x5d5b50 (width 2); generic/603 -> 0x5d3970 (2); 603e -> 0x5d4498; 604 -> 0x5d5028
+    (width 4); 7400 -> 0x5d2c70; 7450 -> 0x5d1c48 (width 6, +4 cycles into a branch); 601 -> 0x5d6678 (word +4 = 0: WAR/WAW
+    carry latency). `#pragma scheduling 603` = the generic table, which is why pass 38 saw 178w from it.
+- **Validation (sched.py, IDENTICAL order = same pcode sequence per block):** 28 CRI functions, 497/497 pre-RA blocks and
+  172/172 post-RA blocks: mpv_mcy/mpv_mc MPVMC16_OneRef4p_TuneC (the 79-instruction block of SWAR pass 10 included, 3/3 +
+  4/4), sfd_cre AnalyMpv 8/8 + 6/6, mpv_umc OneReadMb 3/3 + 2/2, MakeOrgZ32TblByCCIR 30/30 + 10/10, SFTST_Calc 77/77 +
+  37/37, mwsfcre_CreateSfd 116/116 + 17/17, MPVDEC_DecPpicMb 59/59 + 14/14, DCT_FsriTransCore (paired singles, dcbz) 12/12 +
+  7/7, CFT_Ycc420plnToY84C44 (asm pins) 10/10 + 8/8, ADX_DecodeMono4, MPS_Create, AIFF_GetInfo, sfmps_ExecServerSub,
+  adxsje_encode_data, ADXB_ExecOneAdx, SFX_MakeTblZ32, SFXA_Create, sfadxt_AdjustSync, ... (`schedcheck.sh` lines).
+- **Answers to the open questions of passes 10/27/31/37/38:** (1) the pre-RA order of the 4p kernel's `lbz` pairs is the
+  urgent/frees/height/opcode-class order over a DAG whose loads depend on the LATER stores that may alias (lat 2), so a
+  load's height is 2 + the height of the first aliasing store after it — that is why "the load's slot is set by the stores
+  after it" and why a zero-successor load still outranks an int op once it becomes urgent; (2) "height is not the whole
+  priority": urgency (deadline = maxheight - height <= cycle) comes first, then the number of successors the pick frees,
+  then height, then (pre-RA) the opcode class byte (mr/branch 0 < store/cmp 1 < int 2 < load 3 < li/lis 4), then input
+  order; (3) `lwzx fn_y` before `rlwinm yhx` in OneReadMb: both urgent in that cycle, both free 1, the load's height is
+  higher through the `mc->` store chain; (4) MPS_Create's `addi` before `li` post-RA: equal urgency, the addi frees its
+  WAR successor (`mr r3,r31` has npreds 1), the li frees none; (5) the post-RA scheduler is the same routine with the
+  `flags & 8` gate, no block-flag-3 gate and no opcode-class tie-break; (6) asm pcodes are ordinary pcodes to it.
+- Kit: `~/.cache/mwccdbg/sched.py` (model, docstring = the algorithm), `scheddump.sh`/`scheddump_gdb.py` (raw dumps),
+  `schedtrace.sh`/`schedtrace_gdb.py` (the compiler's picks), `schedcheck.sh` (dump + check per function), `dis26.sh`
+  (objdump one GC/2.6 routine); README entry. Scratch ~/.cache/mwsched (probe.sh = which model table a -proc selects,
+  dbg.py = per-node DAG print + candidate trace, out_* dumps) kept small, mw26.dis deleted. No src/ or config/ edit.
