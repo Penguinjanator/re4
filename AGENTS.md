@@ -86,6 +86,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | `addi` folded into every load/store in the target, kept as `mr`/`addi` in ours (or the reverse); `addi rD,rA,0` turned into `mr` | backend add-propagation folds `addi base,hn,K` into later loads/stores of the SAME block unless a non-foldable use (mr / compare / call argument) survives; a literal `addi rD,rA,0` is constant-propagated to a copy | nested-assignment anchors, word-pointer step `(Uint8 *)(ptr + 1) + n`, argument expressions vs variables, a `mr` base defined by a kept copy, a relocation form for the `addi ..,0` | — | "CRI pass 14", "CRI pass 14b", "CRI pass 15", "CRI pass 17b", "CRI pass 19b" |
 | pool base `lis;addi` + `lwz off(base)` vs direct `lis/addi` per table; FPR literal / `frsp` order | `-O4,p` pools per function; a table in a file without deferred data does not pool; `#pragma pool_data off/on` is per function | `extern` declaration first + definition after the function, `static const` layout, the pool base as an OWN local declared first (row 8) | `#pragma pool_data off` .. `on` around ONE function (M2) | "CRI pass 16a", "CRI pass 18b", "CRI pass 19b", "MWCC compiler-build differences" |
 | `lfd` folded onto its `lis`, `stwbrx` chain merged/unmerged, post-RA pair folds | peephole pass after RA; a redefinition changes the preheader schedule that the peephole sees | `pcm = sje->pcm[ch]` re-derived before the second loop (a coalesced range-split copy) | `#pragma peephole off` (M4) | "CRI pass 21", "CRI pass 7", "CRI pass 14" |
+| a loop body whose target order = ours' PRE-RA schedule (pass 17) but ours is rescheduled post-RA (stw hi/lo pairs, fctiwz chain hoisted) | peephole-forward after the pre-RA schedule sinks every `addi rX,rX,K` to its next reference / the block end (dirties the block -> post-RA reschedule) unless a later STORE's data register NUMBER == X — compared without the register class, so `stfd f43` stops the sink of `addi r43,r43,8` | change the counter's virtual number (own locals in reverse declaration order, then range-split webs): one counter per loop, a pointer form of another loop, until the pass-17 `addi rX,rX,K` register equals a later `stfd`/`stw`/`stb` data number | — (numbering is C) | "CRI pass 41" |
 | instruction order within a block (two independent loads/stores swapped) | the scheduler: `#pragma scheduling off/603/604/750/7400/7450` never flips a tie; asm statements are scheduled but a C statement never moves across them; ties follow statement order and @temp creation | statement order, splitting a statement (creates an @temp), IV-temp creation order | `#pragma scheduling off` | "CRI pass 16b", "CRI paired-single kernels pass 2", "CRI pass 19b" |
 | induction pointers coloured before a `register`/pool base; loop temporaries in ascending vs descending statement order | frontend range-split IV @temps have ids above every own local, created in statement order; index-form loops put the IV copies in the preheader | write the pointers as OWN locals declared below the base (`p = ip; q = fp; *p = v; p++;`), index form `a[i]` vs `*p++` | `asm { addi ip, bss, 0 }` (becomes `mr`) — use a relocation form | "CRI pass 19b", "CRI pass 20", "CRI SWAR kernels pass 3" |
 | an expression computed once (@temp) in the target and twice in ours, or the reverse | the frontend CSEs identical expressions (also across macro uses) into one @temp; casts/`void *` views break the CSE; CSE temps rank below inline temps | write it twice vs cache in a local, `(Uint32)` vs pointer views, `(Uint8*)(p +- k) + n` | — | "CRI pass 13", "CRI pass 20", "CRI pass 14" |
@@ -26642,3 +26643,75 @@ what-if driver) and the cri33 tools, both deleted at the end. Kit only. 111 OK a
   they do not block IDENTICAL (verdict is .text-only). Do not add a static for them.
 - Flags: `lib/cftyp422_ppc.c` stays False (7/8, 29w). Tree = src/lib/cftyp422_ppc.c (Init pure C; Y84C44 asm dcbz/dcbt/stfdu with
   the `ofs` register operand, commented at the function).
+
+### CRI pass 41 (sfx_zmv Matching 8/8: MakeOrgZ32TblByCCIR 74 -> 0w, pure C; the post-schedule addi sink compares store data-register NUMBERS without the register class; sfd_cre AnalyMpv 15w not touched; 2026-09-12)
+Harness /home/adityas/.cache/cri41/ (deleted; 15 min to rebuild): `flags.py DUMPDIR` = per block the `:{xxxx}` flag word at passes 17/18/19/22/23 +
+the slots of every `addi rX,rX,K`; `try.sh NAME` = ra.py dump of `NAME.c` into out_NAME + flags + `variant.sh --no-diff`; `gen.py NAME` = base.c with the
+CCIR definition replaced by bodies/NAME.txt; `opc.py [mnemonic..]` = PCode opcode indices read off the GC/2.6 mwcceppc.exe opcode table (VA 0x5C0FA8,
+471 x 0x12, first dword = mnemonic string; B 0, BDNZ 0xb, ADDI 0x3f, RLWINM 0x67, MR 0x8b).
+
+**Applied (pure C, zero code, tag M1 removed): one counter per loop (`Sint32 i, j, k, l; Uint32 *d;` — j loop 1, i the 1.164 loop, k loop 3,
+`d = tbl; *d++ = ztbl[ytbl[l]]` loop 4).** Same bytes everywhere; the only thing that changed is the VIRTUAL register number of the 1.164 loop's
+counter: it is now the own local `i` = r43 (nine own locals p/i(macro)/ztbl/ytbl/d/l/k/j/i, reverse declaration order, i declared first = highest), and
+the sink stops at `stfd f43`.
+
+**The sink, read off the binary (GC/2.6 mwcceppc.exe, peephole-forward per block = 0x501930, called from 0x500e80 for every block with >= 2 pcodes;
+the `addi` case at 0x5025e0).** For a pcode P = `addi rX,rX,imm` (dst == src, arg2 immediate) it walks the following pcodes S of the block:
+- `(S.flags & 4) && S.arg0.reg == X` -> **stop, P is left where it is** (flags 4 = store: arg0 is the DATA register). The compare is on the 16-bit
+  register NUMBER at pcode+0x28 only, no kind check: a `stfd fN` with N == X stops the sink exactly like a `stw rX`. That is the vendor's B8: its
+  counter had the number of one of the eight `stfd` data FPRs (37 + 6k: f37 f43 f49 f55 f61 f67 f73 f79), ours was r44 (base: 5 locals + 4 webs
+  of the macro's `i` before the loop-2 web @352).
+- `(S.flags & 6)` load/store with base `S.arg1 == X` and an immediate offset that still fits 16 bits after `+ imm` -> fold the imm into the offset
+  and move P after S (delete P when S is a load INTO X: `addi X,X,K; lwz X,d(X)` -> `lwz X,d+K(X)`); another `addi rY,X,imm2` -> fold and move after.
+- `(S.flags & 9)` (branch-class pcode, e.g. `bdnz`): if a non-addi pcode has been passed and P is not already adjacent -> move P to just before S.
+- otherwise scan S's operands: a GPR operand `== X` with the read/write bits -> move P to just before S (the B52 case: `addi r46,8` lands before
+  the next `add r48,r38,r46`); if S is the block's last pcode -> append P at the end.
+So the sink's target is "just before the next reference, else the block end", the move dirties the block (0x8 cleared -> post-RA reschedule),
+and the one no-move exit is the store-data-number match. Every "later read of i" hypothesis of pass 38 was a red herring: nothing reads i.
+
+**Numbering facts used (the register of `addi rX,rX,8` in the pass-17 dump is the quick readout):** own locals r35.. in reverse declaration
+order after the parameters (unused `sfxz` gets none); a variable's FIRST loop runs on the variable itself, later loops get range-split webs
+numbered after all own locals (base: macro-`i` webs @353-@356 = r40-r43, then function-`i` loop-2/3/4 webs @352/@351/@350 = r44/r45/r46). Counted
+probes (all 74w, code unchanged): loop 3 or loop 4 on `j` -> r45; loop 1 on `j` (loop 2 becomes i's first loop -> own local) -> r40; loops 1+3
+on j,k -> r41; 1+3+4 on j,k,l -> r42; + `Uint32 *d` pointer form of loop 4 -> r43 IDENTICAL (x2, applied); alternatively the macro inlined with
+its loops on two counters m/n -> r43 IDENTICAL (x1). Locals the frontend propagates away get NO number (`Uint8 white = 0xFF`, `Uint8 *y0 = ytbl`);
+`lim = 0xEB` as the bound survives but makes the trip count variable (110w). A fully unrolled loop's counter still gets a number.
+Negative (all keep the sink, most identical 74w): `j = i` in the body / after the loop, loop 3 continuing on i (98w), inner-block `k = i`,
+`i = j` step (no unroll, 145w), `j = ++i` / `i++, j = i` for-increments (dead j), do-while with `j = i` after `i++` (191w), hand-written 8-step
+main loop with `p = ytbl + i` (B7 = the same 91-instruction block, still sunk; the hand remainder is unrolled again, 179w), pointer IVs (131/198w),
+declaration order of ytbl/ztbl/i (74/184w), removing the `ztbl` local (r43, sink stopped, 266w elsewhere).
+**Lever (MWCC table row to add): a loop body whose final order equals ours' pre-RA schedule but not ours' post-RA one = the vendor's IV update
+was never sunk = its counter's virtual number equalled a store data register number later in the block; change the count of own locals /
+webs before the counter (extra loop counters, a pointer form of another loop) until the pass-17 `addi rX,rX,K` register hits one of the
+block's `stfd`/`stw`/`stb` data numbers after the addi's slot.**
+- sfd_cre `sfcre_AnalyMpv` 15w not touched (time). Flags: `lib/sfx_zmv.c` True (CRI pass 41 block in objects.py), 111 OK.
+- **Loop-B nx8 placement (42 9w / 45 the same + downstream tail), read but not closed.** Target join block Z: `lhz r11,nx; extlwi r10,t_i;
+  addi r9,r11,1; srawi r9; mullw r9,r10,r9; slwi r0,jx,5; ... add r9,r9,r0`. Register facts (GDBGV, see below): in ours t_j -> r0
+  (pri 45000), t_i -> r11 (33750; r0 excluded only by an allocno conflict with t_j, i.e. sched1 issued `mr t_i` before `srawi jx`
+  in the 7-insn Y1 block; r9 by the local `lhz/addi` qty in Y1), nx8 -> r10 (global, set in Y1 used in Z), jx -> r0 (9230). In every
+  form that moves the `lhz/addi/srawi` into Z (`int ix = i / 4;` + `nx8 * (ix << 5)`, `int ix32 = ..` + either operand order, a
+  function-level `ix32`/`nxv` made global by an `asm volatile("" : "=r"(ix32), "=r"(nxv))` dead set after the inner loop) Y1 shrinks
+  to `srawi jx; mr t_i; cmpwi; bge` in LUID order, t_i no longer overlaps t_j, takes r0, and jx falls to r6 (53-77w, +4 bytes).
+  The target needs r0 blocked for t_i AND for ix32/nx while t_j does not overlap t_i (target Y1 `srawi; mr; cmpwi; bge`): the only
+  candidate is a LOCAL r0 qty in Z covering `extlwi`, i.e. `slwi jx32` issued at the top of Z by sched1 (ours: 6th, after the
+  mullw; with `lhz -> addi -> srawi -> mullw` in Z the mullw is late and the slwi could move up — not verified). With r0 blocked:
+  t_i r9 (global, before the locals? no: the local nx1/nx8/prod chain takes r9 first, t_i dies at extlwi = no conflict), nx must be
+  NON-LOCAL and allocated after t_i (r0 jx32, r9 t_i -> r11) and ix32 non-local too (r0, r9 chain, r11 nx -> r10) — both untied
+  operands of the mullw (`mullw r9,r10,r9` = prod tied to nx8 = `(mult nx8 ix32)` with ix32 not tie-able, or `(mult ix32 nx8)`
+  with ix32 non-local). `nx` not tied to `nx + 1` although it dies there is the strongest signal: a global pseudo (set in another
+  block) or a class mismatch (`reg_meets_class_p`: nx BASE_REGS from the addi operand vs nx1 GENERAL) — ours ties them, so the
+  original's `p->nx` read had another set/use or another class. Not found: which function-level variable holds `p->nx` in loop B
+  (loop A's `nx` is r21 and would keep r21). Pins `register int ix32 asm("r10")` (73w) and `+ register u32 nxv asm("r11")` (71w:
+  the pinned nxv becomes the chain, `addi r11,r11,1`) do not help; not applied.
+- **42 preheader `mr r31,r10 | slwi r27,r28,2` (2w) and 45 `mulli r10/r8` names + `mr r29 | slwi r31` (5w): giv-init order.** The
+  two insns are loop.c giv inits (k*4 giv 1655, k*12 copy 1663 in the flow dump), emitted in `bl->giv` list order = reverse
+  discovery order, tie in sched1 by LUID. Swapping `c = cur; c += k;` above `Vec* pv = &p->pos[k]` (vS), `c = cur + k` (52w), or a
+  `f32* nk4 = &next[k]` pointer before pv (vS3) leave the order unchanged (the k4 giv is the `k << 2` feeding `c += k`, not a
+  memory giv). No source handle found for a giv init's LUID; not applied.
+- Kit extension: `GDBGV=1` (with `GDBG=1`) prefixes every `used/conf/smpref/pref/cpref` bit string of the GORDER line with r0..r12
+  and a ':' (the volatile GPRs were invisible before). `~/.cache/sngdbg/src/gcc/global.c gdbg_regs`, rebuilt with `make all`;
+  production identity unaffected (env-gated print only). The patch file was not regenerated.
+- Remaining: 42 (11w) = preheader tie 2w + loop-B nx8 9w; 45 (47w) = preheader 5w + nx8 + the loop-B tail `mr r7/r10/r6/r11/r5,r8`
+  copy order / `xoris r4; lfd f12` slot (sched2, downstream of nx8: the five dead hA copies take the registers the nx8 shape
+  frees). Flags untouched (no IDENTICAL). Tree edits this pass: `src/game/Espgen42.cpp`, `src/game/espgen45.cpp` (the `n`
+  change only; both units compile, sizes equal).

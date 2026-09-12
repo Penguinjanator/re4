@@ -1909,3 +1909,8 @@ MATCHING.update({
 MATCHING.update({
     "game/debug.cpp": True,  # 11/11: processBarDisp 25 -> 0. C: the bar width `s16 w;` declared above tile 1 and assigned there (the shared `5`'s pseudo precedes the `4`'s on the global-alloc tie -> r20/r19); the fourth bar's base is x0 reused as the max (if/else spelling, r28 in pass 0 after x2). Tagged stand-in: a dead `if (proc_tick_idx == 0) x0 = 0;` at the loop body top (+4 real insns at loop pass 1 so the "%5.0f %s" high misses the 47 threshold and is hoisted in pass 2, after the giv inits)
 })
+
+# CRI pass 41 (2026-09-12)
+MATCHING.update({
+    "lib/sfx_zmv.c": True,  # 8/8, pure C: sfxzmv_MakeOrgZ32TblByCCIR 74 -> 0. One counter per loop + `d = tbl; *d++` in the last loop = nine own locals, so the 1.164 loop's counter is virtual r43: the post-schedule `addi rX,rX,K` sink (peephole-forward 0x5025e0) compares store data-register NUMBERS without the register class and stops at `stfd f43`, the block keeps its scheduled bit and is not rescheduled post-RA
+})

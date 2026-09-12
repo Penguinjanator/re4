@@ -299,29 +299,31 @@ void SFXZ_MakeCnvZTbl(SFXZ_OBJ *sfxz, void *src, void *tbl)
 	}
 
 /* the 32-bit Z of each 8-bit Z sample: the CCIR601 luma range (16..235) is stretched to 0..255
- * first, then the index maps to the original range. (OPEN: the 8x unrolled 1.164 loop is scheduled
- * differently, the original computes the eight `i - 16` values up front; same instructions) */
-/* COMPILER-DIFF: M1 - the unrolled luma-table conversion loop's slot/register order (see sfx_cnv). Pure C by project decision (CRI pass 8). */
+ * first, then the index maps to the original range. One counter per loop: the 1.164 loop's counter
+ * must be the ninth local (virtual r43) so that the post-schedule addi sink stops at `stfd f43`
+ * and the 8x unrolled body keeps its pre-RA schedule (CRI pass 41). */
 void sfxzmv_MakeOrgZ32TblByCCIR(SFXZ_OBJ *sfxz, Uint32 zmf_dat, Uint32 zmf_siz, Uint32 *tbl)
 {
-	Sint32 i;
+	Sint32 i, j, k, l;
+	Uint32 *d;
 	Uint8 *ytbl;
 	Uint32 *ztbl;
 
 	ztbl = tbl + 0x100;
 	ytbl = (Uint8 *)(ztbl + 0x100);
-	for (i = 0; i <= 0x0F; i++) {
-		ytbl[i] = 0;
+	for (j = 0; j <= 0x0F; j++) {
+		ytbl[j] = 0;
 	}
 	for (i = 0x10; i <= 0xEB; i++) {
 		ytbl[i] = 1.164f * (Float32)(i - 16);
 	}
-	for (i = 0xEC; i <= 0xFF; i++) {
-		ytbl[i] = 0xFF;
+	for (k = 0xEC; k <= 0xFF; k++) {
+		ytbl[k] = 0xFF;
 	}
 	SFXZ_MAKE_ORG_Z32_TBL(zmf_dat, zmf_siz, ztbl);
-	for (i = 0; i <= 0xFF; i++) {
-		tbl[i] = ztbl[ytbl[i]];
+	d = tbl;
+	for (l = 0; l <= 0xFF; l++) {
+		*d++ = ztbl[ytbl[l]];
 	}
 }
 
