@@ -465,7 +465,8 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     };
     static int old_cam_mode = 0;
     static CameraParam cameraBak;
-    static Vec campos = {0.0f, 10000.0f, 0.0f};
+    // Word view of campos: the copy below names its y word (see the anchors there).
+    static union { Vec v; u32 w[3]; } campos = {{0.0f, 10000.0f, 0.0f}};
     static Vec target = {0.0f, 0.0f, 0.0f};
     static Vec up = {0.0f, 0.0f, -1.0f};
     int ret;
@@ -523,12 +524,32 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         } else {
             cameraBak = pG->Cam.param;
             ProjType = 2;
+            u32 t;
             // One destination pointer per copy: the three `addi rD,pG,off` bases are distinct
             // pseudos (r10/r9/r11), so global alloc does not have to give one long-lived `d`
             // the same register three times.
             {
+                // The campos copy as three named words: `campos.w[k]` loads are `mem/s` and the
+                // `*(u32*)((u32)d0 + k)` stores are flagless MEMs, the same RTL as memcpy's
+                // move_by_pieces (a `*(u32*)(d0 + k)` store would be `mem/s`, `((u32*)d0)[k]` too).
                 u8* d0 = (u8*) &pG->Cam.param.pos;
-                memcpy(d0, &campos, sizeof(Vec));
+                u32 wx = campos.w[0];
+                u32 wy = campos.w[1];
+                u32 wz = campos.w[2];
+                *(u32*) d0 = wx;
+                *(u32*) ((u32) d0 + 4) = wy;
+                *(u32*) ((u32) d0 + 8) = wz;
+                // COMPILER-DIFF: candidate (sched2 tie: the target issues `lwz r0,4(r9)` before
+                // `lwz r8,8(r9)`; both loads have priority 29 and 13 dependents at sched2 and the
+                // LUID tie goes to z, which sched1 issues first because it kills the campos base).
+                // A codeless reader of the y word gives y a 14th sched2 dependent. The `"f"(0.0f)`
+                // input (the roll constant's pool load, issued at t13 after the copy stores) makes
+                // the anchor ready at t14 so it lands behind the `lfs` at sched1 (any earlier slot
+                // lengthens the LC50 high's life and swaps r10/r11); `=&r` keeps local-alloc from
+                // tying t to wy; the second anchor after FSet keeps t (and so this insn) alive to
+                // sched2 without touching the up copy's pG reload (a slot between the up stores and
+                // that reload breaks the fake-death overlap that gives its `addi` r11).
+                asm("" : "=&r"(t) : "r"(wy), "f"(0.0f));
             }
             {
                 u8* d1 = (u8*) &pG->Cam.param.at;
@@ -539,6 +560,8 @@ void debugCamera::menu(Camera* cam, JOY* joy)
                 memcpy(d2, &up, sizeof(Vec));
             }
             FSet(pG->Cam.param.roll, 0.0f);
+            // COMPILER-DIFF: candidate (sched2 tie, second half; see the campos copy above).
+            asm("" : "=m"(ProjType) : "r"(t));
             CameraSetOrientationUp(&pG->Cam);
             pG->flags_60 |= 0x10000000;
         }

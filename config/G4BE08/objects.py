@@ -1979,3 +1979,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_mcy.c": True,  # 5/5, pure C: MPVMC16_OneRef4p_TuneC 26 -> 0. The pixel-9 pair is loaded BEFORE the d[0]/d[1] stores: a `Uint8 *` local's load written after a store shares the store's alias class (pass 58) and the scheduler cannot lift it above the store, while the target issues both pixel-9 loads before the stores; with the loads first the block-1 schedule, the levels and every colour follow (the >100 block split after `b2 = s1[11]` is the target's, not "after the 9th sum"). 1p/H2/V2 as in SWAR passes 5/20/22
 })
+
+# 2-word ties pass 3 (2026-09-12)
+MATCHING.update({
+    "game/db_cam.cpp": True,  # 13/13: debugCamera::menu 2 -> 0. The campos copy as three named words (union word view, `*(u32*)((u32)d0 + k)` stores = memcpy's flagless MEMs) plus two tagged codeless anchors: `asm("" : "=&r"(t) : "r"(wy), "f"(0.0f))` after the copy gives the y load its 14th sched2 dependent (the sched2 y/z tie is priority 29/29, LUID z-first from the reg-weight sched1 order; dependents break it before LUID), the `"f"` input makes it ready at t14 behind the roll constant's `lfs` so no local-alloc life moves, `=&r` stops the wy/t tie; `asm("" : "=m"(ProjType) : "r"(t))` after FSet keeps it alive to sched2 (placed there: a slot between the up stores and the FSet pG reload breaks the fake-death overlap that gives the up `addi` r11)
+})
