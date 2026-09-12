@@ -26042,3 +26042,29 @@ Harness ~/.cache/dol_debug3 (tryv.py over variant.sh, GDBG/rtl dumps; deleted at
   pack from its ~26th — the same scheduler-pick residue as the 8x8 (target favours loads / the pack-base sum p1 or p9 chain over the other
   sums; ours issues ready ALU ops in raw order). Nothing applied to the tree in this pass; the harness stays until the boundary mechanism
   (>= 28 vanishing initial instructions in the first half, or a construct that makes the check see another block) is found.
+
+### CRI pass 38 (sfd_cre AnalyMpv 15w / sfx_zmv MakeOrgZ32TblByCCIR 74w: the post-RA reschedule is gated by a per-block "scheduled" bit that the IV-increment sink of the post-schedule peephole clears; IN PROGRESS 2026-09-12)
+Harness /home/adityas/.cache/cri38/ (gen.py/genz.py variant generators, cmpblk.py block-vs-target aligner, flags.py block-flag summary).
+- **MWCC block flag 0x8 = "scheduled".** In the ra.py dumps the `:{xxxx}` word before each block carries it: the pre-RA scheduler
+  (backend-17 in CCIR, -11 in AnalyMpv) sets 0x8 on every block; every later pass that rewrites a block CLEARS it (backend-18
+  peephole-forward on the loop blocks, backend-22 peephole on B7/B11); **the post-RA scheduler (backend-23) reschedules ONLY blocks
+  whose 0x8 is clear** (CCIR: B3/B15/B23/B43/B47 keep 0x8 through pass 22 and are untouched by pass 23; every 0x...4 block is re-run).
+- **backend-18 (peephole-forward after the pre-RA schedule) sinks the loop COUNTER increment (`addi i,i,K`, the IV of the loop's exit
+  test) to the block end, in every loop block** (CCIR B8/B12/B29/B37/B40/B52, MakeCnvZTbl B13/B25/B32/B43). That clears 0x8, so
+  every loop body is rescheduled post-RA. In every block but CCIR B8 the post-RA re-run reproduces the pre-RA order (17 == 23 by
+  opcode), so the target cannot show whether it happened there. In B8 it does not: post-RA the eight `stw r0, hi(r1)` 0x4330 stores
+  are free of the `stw lo` of the same 8-byte temp (distinct offsets), pre-RA the same-object accesses are ordered, so the post-RA
+  run hoists them (and the lfd/fctiwz chain) — the 74 words.
+- **CCIR B8 in the target = ours' backend-17 order exactly (91 instructions, opcode-for-opcode, the `addi r3,r3,8` at slot 27 where
+  the scheduler put it) = never sunk, never rescheduled.** So the vendor's B8 was not dirtied after the pre-RA schedule: the sink
+  did not fire on it. Not the reason: block size (a 92-instruction B8 is still sunk), `volatile` store (same object), `#pragma
+  scheduling off/603/750`, `peephole off` (118w), every `opt_*` pragma (see z2.py), `i += 1` / `i = i + 1` / do-while spellings
+  (identical object), an inlined `sfxzmv_inc(i)` increment or a `?:` increment (kills the 8x unroll, 145-147w).
+- sfd_cre `sfcre_AnalyMpv` 15w: the pre-RA scheduler is a 2-wide top-down list scheduler, one load per cycle; heights lbz 2 /
+  int 1 / cmpi 2 (through the bt); an int op with an in-block successor (`addi ofs+1` -> `subf size`) always beats a zero-successor
+  load, whatever the raw order (30 more raw orders / spellings of `size -= ofs + 1`, `data++`, `ofs++`, `size = size - 1 - ofs`,
+  `(Uint32)ofs + 1`, byte loads interleaved with the size statement: all keep `rlwinm; addi; cmpi`). The target has `rlwinm; cmpi;
+  lbz b6; addi` i.e. its addi lost cycle 2 to a load: its `ofs + 1` had no in-block successor or was not ready at cycle 2 — the
+  `subf size` was not a DAG successor of it there. `x++`/`x--` statements are deferred by the frontend to the block end (line of the
+  following `if`), so `data++` is a sinker after `size -=` in ours (target: `addi data` at slot 9, `subf size` at 11 = the reverse).
+  `register` locals for asm operands (`asm { addi t, ofs, 1 }`, 12w) and `#pragma scheduling off` (41w) do not close it. Not closed.
