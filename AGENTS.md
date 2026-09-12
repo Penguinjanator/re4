@@ -26446,3 +26446,153 @@ edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug cl
   Both are "a local declared at the top and assigned in tile 1 / a body statement of >= 1 insn deleted after loop1"; the `w`
   finding suggests the original set several tile parameters through locals (`w = 5`, a zero), so a `z = 0` local read by the
   eprintf2 third argument is the first thing to try when hunting the `zz` tag.
+
+### DOL db_cam closer 6 (game/db_cam 11/13 -> 12/13: debugCamera::menuFlag 45 -> 0 zero-code; menu 2 in progress; 2026-09-12)
+
+- **menuFlag 45 -> 0 (tree): the j-loop colour ternary as a statement** — `int cj = (j == key_type) ? col : 7;` before the
+  `eprintf(.., (y + i) * 14, cj, ..)` in both j-loops. Mechanism (read off ~/.cache/sngdbg/src/gcc/gcse.c, lcm.c, loop.c, not guessed):
+  1. This compiler's PRE is `lcm.c pre_lcm` (Knoop-Rüthing-Steffen at block granularity, uses only antloc/transp; `comp` is not
+     an input). `optimal = latein & ~isoout`, `redundant = antloc & ~(latein | isoout)`, so `optimal & redundant` is EMPTY and
+     `pre_insert_copies` can never fire: the "copy after an available head occurrence" shape does not exist in this compiler.
+     Every PRE'd expression is inserted fresh at the end of the optimal block (`PRE/HOIST: end of bb 59`), and cse2 then turns
+     the fresh `r350 = i + 21` into a copy `r350 = r229` of the head's temp — in ours AND in the target. (Also: `compute_latein`
+     applies the `~∩succ delayin` term only to the LAST block; every other block has `latein = delayin`.)
+  2. Why the copy stays at the END of bb 59 in ours (so A = r229 lives across the head call, gets r30, and the copy dies into the
+     same register): haifa `sched_analyze_1` adds `REG_DEP_ANTI` from every set of a pseudo with `REG_N_CALLS_CROSSED == 0` to the
+     last call ("don't let it cross a call after scheduling if it doesn't already cross one"). P = r350 crosses no call in ours
+     because the j-loops' `P * 14` is hoisted to the preheaders. In the target P is live inside the j-loops (across their calls),
+     so the copy is free to move and sched1 puts it right after the `addi` -> A dies at its own `mulli`, single-use r230 is combined
+     into the argument set (`mulli r4,r4,14`), A gets r4 from local-alloc.
+  3. Why the j-loop mult is NOT hoisted in the target: loop.c scan_loop's "potential lossage" rule — in a loop with calls, an
+     invariant set whose register has a single use is SUBSTITUTED into that use and deleted (never becomes a movable) iff
+     `no_labels_between_p (set, use)` and `validate_replace_rtx` succeeds. With the ternary inside the argument list the mult
+     `r272 = P * 14` is emitted before the ternary's branch/join label (argument order 0,1,2) and its use `r4 = r272` after it:
+     a label in between -> movable -> hoisted (`LOOPDBG insn 805 reg 272 [thr 71 sav 1 life 14 ic 27] -> move`). With the colour
+     in a statement before the call the mult follows the join, is substituted into `(set r4 (mult P 14))` — a hard-reg dest is
+     `may_not_optimize` — and stays in the loop: `mulli r4,r25,0xe` per iteration. Everything else (r25 callee-saved, `mr r25,r4`,
+     `mulli r4,r4,14`, size 0x534, r29/r30 names) follows from 2.
+  Lever-catalogue row for this: "invariant mult/add of a call argument hoisted to the preheader in ours, in the body in the target"
+  -> loop.c single-use substitution needs no label between the set and the argument move: compute conditional arguments (ternaries)
+  in a statement before the call (or the reverse to force the hoist).
+
+### DOL espgen42/45 pass 8 (Espgen42_Move00 34 -> 11w, Espgen45_Move00 77 -> 47w; one structural find: the noise value `n` is a function-level variable; in progress; 2026-09-12)
+
+Harness ~/.cache/dol_espg8 (deleted at the end): `v.sh 42|45 <src> [--diff]` = variant.sh + word count, `mk.py 42|45 <out> <old> <new>..`
+ = exact-string variant of the tree source.
+- **`n` (the noise value) is function-level, like `nz` and `c`, and the psq_l writes it directly** (`f32 n;` at the top, loop A
+  `PSQ_L_U8_TO(n, &tmp); n -= 80.0f;`, loop B `n = (f32) nz - 80.0f;`; the statement-expression macro `PSQ_L_U8` with its own
+  `f_` is gone in both units). Read off the target: loop A `psq_l f10; fsubs f10,f10` and loop B `fsubs f10,f0,f24` are the SAME
+  register in both loops and the loop-B fsubs is NOT tied to its dying operand (the frsp result f0) — a local pseudo would have
+  been tied by local-alloc (`combine_regs` on the dying first operand), so n is a global-alloc pseudo (set in two blocks). Effect:
+  the whole loop-B sum-chain residue (f12/f13/f0 names, `lfs f10,4(r9)` slot, `stw r22 | addi r3` order) and 45's loop-A FPR names
+  fell at once: 42 34 -> 11, 45 77 -> 47. Rule of thumb for these units: every scalar temporary the original reused across the
+  two loops is ONE function-level variable (nz, c, n so far); when a target register is untied where local-alloc would tie, look
+  for a second block that sets the same variable.
+
+### Tool RELs, t_id pass 6 (toolIdInit 12 -> 0 pure C, toolIdEditDisp 4 -> 0 two tagged asm forms; 61 -> 63/69; IN PROGRESS 2026-09-12)
+Harness /home/adityas/.cache/tid6/ (deleted at the end): try.py NAME FUNC 'old=>new'.. (variant.sh wrapper on a copy of the tree file),
+model.py (the sched1/local-alloc/sched2 store-order model below, brute-forced over the merges of the target's two store groups).
+
+- **toolIdInit 12 -> 0, pure C: the eleven-store block after `w->lang2 = w->lang` is now `type, x17B, pause, cnt, menuX, menuY,
+  level = x24 = 0, drawSafe, parentNo`.** Three mechanisms, all read off the dumps (`rtl.sh` + `LADBG=1`):
+  1. sched1 ranks the stores (all prio 29, all ready at t=4 after `lbz` + five `li` fill t=1..3 at issue rate 2) by INSN_REG_WEIGHT:
+     every SET is +1, each REG_DEAD -1, so a store whose source pseudo dies there (weight 0) goes before the others (+1), ties by
+     LUID = source order. The QI zero (4 stores), the 100 (2) and the SI zero (2) die at their LAST store in source order.
+  2. sched2 then re-sorts the same-priority stores by "more dependents first": a store whose source HARD register is rewritten
+     later in the block (here r0/r9/r11 by the post-call code: `lwz r9/r11`, `li r0`) has one extra anti-dependence (10 vs 9
+     dependents), so the r0/r9/r11 stores come first, each group keeping its sched1 order. The r0/r9/r11 set = the values
+     local-alloc puts there = lang, the QI zero, the `1`, decided by local-alloc's qty priority `refs/(death-birth)` on the sched1
+     positions (`li 1` at position 5 dying at the third store ties lang's 2/12 -> lang q0 first -> r9, then the `1` -> r11: the
+     register swap of pass 5 was only the store order).
+  3. cse: a QI `= 0` store AFTER the chained `w->level = w->x24 = 0` takes the SI zero's subreg (r7), not the QI zero (r0); the four
+     QI zero stores must precede the chain (`e4` variant: `stw r0,0x24 / stb r11,0x17b`).
+  model.py enumerates the 462 merges of the target's two sched2 groups, keeps those that are "dying first, then LUID" for some
+  source order and whose local-alloc replay gives the target's registers: 420 source orders, all with type/x17B first, cnt the last
+  QI zero, menuX before menuY, drawSafe and parentNo last; the first one tried compiled to 0 words. Negative: `level = 0` as a
+  separate statement or through an `int z` (16/13 words: the SI zero's death moves).
+- **toolIdEditDisp 4 -> 0, two tagged asm forms** (both `// COMPILER-DIFF: candidate`):
+  1. `li r24,0xc` between `cmpwi r0,0` and `bne`: the target's li was not ready before t=3 in BOTH schedulers (block = lbz, cmp, li,
+     bne; the li is independent, so any C form is hoisted to t=1 next to the lbz). `if (top == 0) row = 0x13; else row = 0xC;` gives
+     the target's LUID order (jump.c "if (..) x = a; else x = b -> x = b; if (..) x = a" emits `x = b` right before the condjump, after
+     the compare; in THIS toplev jump2 runs AFTER sched2, so a jump2-time transform would leave the li there, but the transform
+     fires in jump1 for every spelling tried: if/else, ?:, switch, chained if, dead statements in the arms). Applied: `int top =
+     w->dispTop; int t2; asm("" : "=r"(t2) : "r"(top)); if (top == 0) row = 0x13; else asm("li %0,12" : "=r"(row) : "r"(t2));` —
+     an asm consumer always costs 1 (LINK_COST_FREE for unrecognizable insns), so the codeless asm sits at t=2 and the li at t=3
+     after the cmp (LUID: the else arm is moved behind the compare). One asm with `"r"(top)` is at t=2 = before the cmp (d4).
+  2. `li r3,0x128` before `addi r7,fmt@l` (t=2 slot 2 of sched2): a sched1 tie — the addi (its high dies: weight 0) beats the
+     constant arg set (+1) at t=3, so the addi has the lower sched2 LUID. Fix = give the li weight 0: `int yy = (ternary) * 0xE;
+     register int x128 asm("r3"); asm("li %0,0x128" : "=r"(x128) : "r"(i)); eprintf(x128, yy, ..)` — `i` (the loop counter, dead
+     since the loop) dies at the asm. The yy statement is needed so the asm lands in the call's block, after the ternary's blocks
+     (without it the li goes to the arm's first block); `y`/`row`/`n1`/`n2`/`cx` as the dying input each perturb global's order
+     (5-17 words), `i` is free. A shared `int sx = 0x128` for both eprintfs is folded by gcse cprop (same code as the constant);
+     hard-register anti inputs (`r7`, `r8`, `r9`) all raise the asm to prio 5 -> t=1 (the asm's LUID is before the argument
+     insns, so a hard arg register gives an anti-dependence, never the true dependence wanted).
+
+### CRI pass 44 (neighbour-pin lever applied: adx_dcd5 Ste4AsSte 115 -> 41w APPLIED; Ste4AsMono 180w unchanged; sfd_mps / adx_sje / cftfx / sfd_tst below; 2026-09-12)
+Harness /home/adityas/.cache/cri44/ (mk.py literal `OLD=>NEW` edits, v.sh = mk + variant.sh one-liner, ra_* dumps; deleted at the end). Lever row added to the MWCC table of the Lever catalogue (the last row).
+- **What the pin register does (measured on Ste4AsSte, one `asm { mr rV, s }` after the first scale read):** the pin register is RESERVED for the whole function
+  (r11: smul r11 -> r0, sadd -> r20; r23: sc_r r23 -> r22; r18/r14: `stmw r18/r14`), the pinned value never takes it (pass 40's tbl/r27), and its ghosts also raise the
+  degrees of other nodes (q6b dump vs base: qtbl 76 -> 80, i 73 -> 75, sc_l 65 -> 66, d 38 -> 39), so the levels of OTHER nodes move too. Every volatile register of
+  Ste4AsSte is used in the target (sadd r0, smul r11, scl r12, c-ext r9/r10, params r3-r8), so the only free pin registers are the PARAMETER registers: r3/r4/r5/r7
+  (src/nfrm/outl/outr, coalesced ghosts `r32->r3` ..) cost nothing but behave differently from r6/r8 (histl/histr: copy-propagated, no ghost; the register is live only at
+  the entry loads and the exit stores). Numbers, s pinned: r3/r4/r5/r7 70w, r6/r8 57w (both positions, both webs = one node), r23 76w, r21 75w, r0/r12 112w, r2/r13 176w
+  (+4 bytes: r2/r13 are not allocatable, the mr stays). A single `mr rV, x` (no copy back) is enough and gives fewer ghosts than the pair (qtbl: 41w vs 46w; two
+  registers `mr r6, x; mr r8, x` 81w = too many).
+- **Ste4AsSte 115 -> 41w APPLIED: `register const Sint32 *qtbl; qtbl = AdxQtbl; asm { mr r6, qtbl }` (tag M1 neighbour pin).** Colours now: c2e r10, c1e r9, l2 r31, r2 r30,
+  r1 r29, l1 r28, i r27, d r26, dr r25, sc_l r24, sc_r r23, s r21 (in place), nblk r19 = the target; frame/stmw r19 equal, the `mr` deleted. Residue 41w = the L3 set:
+  ours smul r0 / scl r11 / qtbl r12 with sadd L2 -> r22 and t r21; target sadd r0 / smul r11 / scl r12, qtbl L2 at the own-local vid (r50, between sc_r and s -> r22),
+  t r20. qtbl is still the backend temp r76 (the asm read does not stop the frontend substitution; 80 total = L3). Adding an s pin on top (r6 56w, r8 81w), a t pin
+  (41w, no change), sadd pin (58w): no. Next: a spelling that keeps `qtbl` an own-local web (multi-def or asm-defined `lis/addi` with the hi part in its own local) so the
+  address node sits at vid r50 with < 29 neighbours at its iteration-2 turn, and sadd back in L3.
+- **Ste4AsMono 180w unchanged.** Pins of the four >29 backend temps are impossible (no names); pins on the named whole-loop values: sc_l/sc_r inner-body 158/153w at
+  the target size 0x2f0, r2 (inner body, r6/r8) 117w, t (before the inner loop, r6/r8) 116w, m 135w, l1/l2/r1/i/nblk/d/dr 206w (r6 variants) - but every 116/117w
+  variant has `stwu -0x50; stmw r17` (one more callee-saved register + 0x10 frame): the ghosts raise the pressure at the spill picks instead of fixing the nblk/smul
+  pick order. `register` alone on r2/t/m: 180w (no effect). Not applied.
+
+### CRI SWAR kernels pass 9: the 16x16 4p block split IS reachable from C (masked byte loads + `(Uint32)` operand casts = 32 deleted initial instructions, B3 = 105 split exactly after `d[1]`, pre-schedule DAG clean); the first block's schedule is still 29-39/67 positions (pre-RA load order 14-16/20); the target's block 1 WAS post-RA rescheduled (the matching 1p kernel's loop blocks are); nothing applied, nothing flipped (mpv_mcy 4p 136w, H2/V2 225w, mpv_mc 4p 72w / V2 73w / H2 436w unchanged; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar9/ (KEPT for the next 4p pass; delete after): `gen9.py NAME pix=.. sum=.. pack=.. order=raw|a1
+lorder=.. sorder=.. inter=1 ba=1` (4p body generator over base_mcy.c: every spelling below is an option), `run.sh NAME opts` (gen9 + ra.py
+dump `ra_NAME` + `bs.py` backend-00 block sizes + words), `runb.sh` (run.sh + `blk.py` block-1 positional compare against tgt16.lst: 67
+instructions from `dcbt` to `add r31` = the target's block 1), `pre.py DIR` (block sizes + dead defs in the dump right before the first
+scheduling pass), `dumplst.py DIR [B] [pass]` (a dump block as a dtk-style listing), `loads.py LST..` (the 20-load order of block 1
+vs the target), `search.py N seed fixed-opts` (random raw-order variants, 0.5 s each, no ra.py), `sched.py` (list-scheduler model:
+does NOT reproduce ours, do not trust). The pass-8 harness was deleted. ra.py runs must stay sequential.
+- **Initial-instruction costs, measured on backend-00 (B3 = the body block up to the split; base 111 with 87 before `d[16]`):**
+  `a0 = s0[0] & 0xFF;` on a `Uint8` load = +1 `rlwinm 0,24,31` per load (c6: 18 in the first half), deleted by two EXTRA backend passes
+  the mask brings into the pipeline ("constant-propagation" turns it into `mr`, "load-deletion"/copy-propagation remove it) — all before
+  the first scheduling pass, DAG clean; `(Uint32)a1` on a `Uint32`/`int` pixel variable used in TWO sums = a frontend CSE @temp =
+  1 `mr` per such variable (s3/c2/c4: 14 in the first half), deleted at backend-02 copy-propagation; the nested `@t = (Uint32)a1`
+  assignment ANCHORS the sum statement (the adds are emitted at `p0 = ..`, not inside the pack statement) and a pixel whose only uses
+  are the cast (a6/a7 in z1) gets its load forwarded into the first sum — raw order changes with it; `Uint8` pixel locals = +1 `rlwinm`
+  (zero-extension at the use, CSE'd) per two-use pixel (c5: +14, final 135w); pack `(((p>>2)&0xFF)<<24)` (m8) = +3 per pack and
+  `((p&0x3FC)<<22)` (mk) = +4 per pack, BUT their extra rlwinm survive as DEAD nodes into the scheduler (pre.py: 12-14 dead vs 6) — not
+  clean; `(Uint16)`/`Uint8`-typed sums or averaged temporaries keep real masks (196-222w); `(a0+a1)+(b0+b1)+2` changes the association
+  (134w); `x + 0`, `(Uint32)` on single-use operands, nest/cast on `Uint32` pixels used once: nothing.
+- **The split:** `pix=s32m sum=cast order=a1` (z1: masked loads, casts on every sum operand, pixel 9 + `p8` before `d[0]` as in pass 8's
+  a1 body) gives B3 = 105 with the boundary exactly after `d[1]` (count after `d[0]` = 97 <= 100 < 105), B4 = 81, and the block before
+  scheduling is 79 = the target's 67 + 6 pack `mr` + 6 fused-operand dead `rlwinm`   (identical to what the target's build had). x9
+  (z1 plus `pack=m8`) also splits there (111) but with 6 extra dead rlwinm; x8 (z1 plus `pack=mk`) splits after `d[0]`
+  (101: one instruction too many). So the target's `> 100` in block 1 is one of these spellings (or an equivalent 28-34 deleted
+  instructions); the vendor most likely wrote the byte loads with `& 0xFF` and/or the averages with explicit `(Uint32)` casts.
+- **Schedule (open):** with the split right, ours matches the target's block 1 for the first 9-10 instructions and diverges at 10
+  (target `lbz b5`; ours `lbz a4`/`add`), best 39/67 positions over 150 random raw orders (s2_131: `lorder=0,1,4,2,3,5,6,7,8`); the
+  PRE-RA schedule (dumplst.py + loads.py) has the target's load order at 14/20 (z1) and 16/20 (r1, loads interleaved with the sums:
+  `b1 a2 b0 a1 b2 a3 b5 [a6 b3] a4 b4 a5 b6 [a7 a0] b7 a8 b8 a9 b9`, target `b5 b3 a6 .. a0 a7`), the POST-RA reschedule then puts
+  our loads back into address order (`b3 a4 b4 a5 b5 a6`) and moves `add(a1+b0)` before `lbz a3` (target too). **The target's block
+  1 was post-RA rescheduled**: RA clears the block's "scheduled" flag 0x8 when it coalesces the pack `mr`s (z1: B3/B4 `200c -> 2004`
+  at after-regalloc, B2 without copies keeps `000c`), and the byte-identical `MPVMC16_OneRef1p_TuneC` has its six loop blocks (4 `mr`
+  each) cleared and REORDERED by backend-14 — so the vendor's pipeline did the same and the final order is pre-RA schedule -> colours
+  -> post-RA schedule (register-dependent: the target's block 1 lives in r7-r12 + r21-r31, `stmw r21`; ours r0,r3-r7,r22-r29).
+  The pre-RA scheduler is priority-driven (loads deferred behind taller ALU chains: `a0` at 28-37 in both; `rlwinm p1` at 22 in ours
+  vs 38 in the target = ours ranks the pack base by the `mr`-lengthened chain), ties by raw order (load/sum statement order moves the
+  picks: r4/r5 sum orders diverge at 3, `lorder=5,6,..` puts `lbz b5` at 10). sched.py (height/latency list model) does not
+  reproduce even ours — read the algorithm before more permutations.
+- **Peephole fusion rule corrected (pass 5 said "earlier-defined operand"):** `or d, a, b` fuses ONLY the FIRST operand `a` when it is
+  an rlwinm (`mr d, b; rlwimi d, a_src`); a non-rlwinm first operand leaves the `or` even when `b` is an rlwinm (`w |= P2'` stays `or`,
+  acc0/inpl2), and `x = P0' | x` forms are forwarded into one tree anyway (inpl5-7: base p0 chain, 138-151w). The `mr` per fused `or`
+  is inherent (dest != b), the 1p kernel has them too; no in-place chain exists.
+- **Transfer:** mpv_mc `MPVMC08_OneRef4p_TuneC` with masked loads / casts / `Uint8` pixels stays 72w but the object CHANGES (128-148
+  listing lines: the deleted instructions shift the virtual ids -> colours -> post-RA order; 10-14/76 masked lines vs 13 base) — a
+  colour-order lever for the 8x8 kernels, not explored; mpv_mcy V2 with `(Uint32)` casts on the word operands (x0 = .. or the AVG2V
+  arguments): 225w unchanged. H2 (mpv_mcy/mpv_mc) not touched.
+- Flags unchanged; objects.py untouched; no tree source edited; 111 not re-run (no build).
