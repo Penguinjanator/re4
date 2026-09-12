@@ -374,6 +374,12 @@ public:
         x = wx;
         y = wy;
         w = strlen(name);
+        // One codeless RA-time insn between `stw x` and `stw pWork` (sched1 issues it at c11 beside
+        // `stw w`; every earlier slot goes to a higher-priority insn): local-alloc then sees `pWork`
+        // stored two suids later, so `work`'s qty (2 refs / 50) ranks below the `4` constant (2/48)
+        // and takes r28 while `li 4` / `li 5` share r29 (ToolEspArea's e08-e98). Reading `name`
+        // adds no ref to the ranked qtys; `"=m"(x)` is one true dependence and no store.
+        asm("" : "=m"(x) : "r"(name)); // COMPILER-DIFF: candidate (local-alloc qty order)
         h = 1;
         cxMax = 1;
         cyMax = 1;

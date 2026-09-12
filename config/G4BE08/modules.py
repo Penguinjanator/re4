@@ -963,3 +963,12 @@ MATCHING.update({
 MATCHING.update({
     "t_esp/db_widget.cpp": True,
 })
+
+# Tools/t_esp_area pass 3 (2026-09-12): the cDbgEditWindow ctor's r28/r29 tie closed by one codeless
+# RA-time anchor after strlen (dbg_tool.h); the &path1/&path2 PRE pair re-tied by a fourth codeless
+# ref in ToolEspArea; t_event's SubToolMessInit keeps its PRE numbering through a dead-test table-size
+# lever. t_esp_area 38/38, t_lightarea 38/38 (its 4 words were the linkonce vtable relocs).
+MATCHING.update({
+    "Tools/t_esp_area.cpp": True,
+    "Tools/t_lightarea.cpp": True,
+})

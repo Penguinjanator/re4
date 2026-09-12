@@ -1183,6 +1183,19 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 35 dead pseudos before the inlined
         // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
         int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12, dead13, dead14, dead15, dead16, dead17, dead18, dead19, dead20, dead21, dead22, dead23, dead24, dead25, dead26, dead27, dead28, dead29, dead30, dead31, dead32, dead33, dead34;
+        // COMPILER-DIFF: candidate (gcse table size): the edit-window ctor anchor (dbg_tool.h) is one
+        // more insn at gcse entry (1219 -> 1220), which turns the expression hash table from 609 to
+        // 611 buckets and wraps `t->room`/`t->no` (raw hashes 17713/17729 -> buckets 605/10) and the
+        // clear loop's `i - 1`/`p + 0xb0` (13400/13574) into the wrong PRE numbering = the wrong
+        // allocno order on their priority ties. 17 insns nobody ever executes (set, cmpwi, branch,
+        // 7 x mulli+addi) move it to 619 buckets, where both pairs are in the original order. cse1
+        // cannot see `z` past the LOOP_END note, cse2 folds the test, the arm is unreachable and the
+        // set dead before sched1: no code, no live-length change.
+        {
+            int z = 0;
+            do { } while (0);
+            if (z > 128) { z = z * 77 + 1; z = z * 78 + 2; z = z * 79 + 3; z = z * 80 + 4; z = z * 81 + 5; z = z * 82 + 6; z = z * 83 + 7; }
+        }
         EvtMessRead(m, path);
         MessTool.p = new cDbgToolMain<EventMessageData::MessElem>;
         MessCreateMenuWindow(MessTool.p);

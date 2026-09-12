@@ -242,6 +242,12 @@ void ToolEspArea()
     tool.SetGetWorkNoFunc(GetWorkNo);
     tool.SetSetWorkNoFunc(SetWorkNo);
     tool.SetInitWorkFunc(InitWork);
+    // The gcse PRE copies of &path1 / &path2 (refs 3 each, live from the sprintfs to the default-file
+    // sprintf below) tie at global priority 29 only when the tool loop's blocks hold exactly the
+    // original insn count; the ctor anchor in dbg_tool.h adds one, so a fourth (codeless) ref on
+    // &path1 ranks it at 77 instead and it keeps r18 (&path2 stays 29 -> r17). This slot before the
+    // InitAllWork loop has a free issue cycle at sched2; elsewhere the asm displaces an insn.
+    asm("" : "=m"(buf[0]) : "r"(path1)); // COMPILER-DIFF: #17 (global.c refs, the r18/r17 pair)
     tool.InitAllWork();
 
     // the room's default file
