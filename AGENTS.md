@@ -28620,3 +28620,89 @@ deleted at the end). Tree edits: src/lib/cftfx.c `CFT_Argb420ToArgb8` only; obje
   at >= 29 with Uint8 pairs and the right cut (the target's a8 has 2 neighbours more than ours at its visit, or p5..p7 are not removed
   before it). Harness kept: `ev.sh NAME` prints words, block sizes, block-1 colour score and the L2 set (needs ~/.cache/cri_swar11/colmap.py
   + t_4p16.txt, rebuilt there after the pass-11 harness was deleted; the pass-11 order-scoring tools whatif/post/cmp/sym are gone).
+
+### CRI SWAR kernels pass 13 (in progress; 16x16 4p cut probes negative with Uint32 pairs; 8x8 H2 target = TWO ROWS per iteration (ctr 4) + in-place averaging; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar13/ (`gen.py NAME key=val` writes bodies/NAME.c of the 16x16 4p three-pair form: `ptype=Uint8[,U8,U32 per pair]
+sum='(Uint32){a} + ..' pack=or|intr|raw store= dcbt= head= order=pix|loop`; `p.sh NAME [FUNC] [UNIT]` = variant words + ra.py dump + `cnt.py`
+(B3 initial count at every statement end, marks d0/d1/s9/cut by statement text) [+ `SC=1` scheddump + block-1 colour score]; `sum.sh NAME` one
+line; `h8gen.py` = 8x8 H2 two-row loop from the tree's case bodies; deleted at the end).
+- **16x16 4p cut, Uint32 pairs (tree 30w, d[0] 75 / d[1] 83 / 9th sum 91 / cut 101 after `b2 = s1[11]`): every probe leaves the count unchanged:**
+  identity ops on the operands (`+ 0`, `| 0`, `* 1`, `& 0xFFFFFFFF`, `<< 0`, `>> 0`, `^ 0`, `- 0`: all folded by the frontend), `(unsigned int)`/
+  `(int)`/`(Uint32)(unsigned int)` casts (the frontend keeps ETYPCON nodes but a same-size single-use conversion emits nothing; only a CSE'd
+  @temp cast is a `mr`), `unsigned int` pixel or sum locals, the dcbt argument spelled `(int)stride`/`(Sint32)stride` (the `@12 = (int)stride`
+  copy is HOISTED to the preheader by the frontend: it never counts in the body), intrinsic packs (`__rlwimi` chain = rlwinm + 3 x (mr + rlwimi)
+  = 8, the same 8 as the macro's 4 rlwinm + 3 or + stw; 117w), inlined helpers `sum4(a,b,c,d)` / `plus2(x)` / `pack4(p0..p3)` / a dcbt wrapper
+  (every parameter is substituted by the frontend: zero copies, pass 12's "4 argument copies" does not reproduce; 136w for the sum helpers
+  because the cast @temps change). 
+- **Uint8 pairs:** all four `(Uint32)` casts (x3) = +2 only (the single-use pixel-0 zero-extensions), 106w, L2 = {a6 a7 a8 a2 p2 p3 p4} (target set,
+  no p8), block-1 volatile 28/30, and NO backend CSE pass in the pipeline; ANY non-CSE'd second cast of a pixel (`(Uint32)a` vs implicit int, or vs
+  `(unsigned int)`/`(Sint32)`/`(int)`, on a or on b pixels: x0/y1-y5/w4) = d[1] 92 / 9th sum 101 = the exact cut, but the pipeline gains the
+  `common-subexpression-elimination` pass (duplicate `rlwinm 0,24,31` of one load) and a8/p8 drop to L1 -> 136w in every spelling; `(Uint16)b`
+  as the second cast = 2 rlwinm (uchar->ushort->int) + the CSE pass, d[1] 100, cut after `a0 = s0[9]` (one statement short), 116w with the target
+  L2; `(Sint16)` casts = extsh kept (147-190w); `Sint32` sums 136w. Pipeline fact: the backend runs `constant-propagation` + `load-deletion` only
+  when the codegen emitted zero-extension masks, and `common-subexpression-elimination` only when it emitted duplicate expressions.
+- **8x8 4p is byte-identical with `Uint8` pairs + all casts as well as with `Uint32` pairs (m8u8/m8u32)** — it does not discriminate the
+  vendor's pixel type. The 8x8 H2 target (mpv_mc, 436w, ours 200 bytes smaller): `li r0,4; mtctr` — **two rows per iteration** (d[0..3],
+  `addi d,16`), no frame, no callee-saved (row temps r0,r4,r5,r8,r9,r10; s r7, d r6, stride r3, masks r11/r12 hoisted `lis/subi`,`lis/addi`), per
+  row: dcbt, lwz w0, lwz w1, lbz w2, `slwi a0 = w0<<8; rlwimi a0, w1, 8,24,31`, `rlwimi w2, w1, 8,0,23` (a1 fused INTO the lbz register), xor x0,
+  `add s,s,stride` (mid-row), `and w0,w0,a0` (in place), xor x1, and a0 = x0&m1, `and x0,x0,m2`, `and w1,w1,a1`, and a1 = x1&m1, `and x1,x1,m2`,
+  srwi a0, add w0 += x0, srwi a1, add w0 += a0, add w1 += x1, stw d[0], add w1 += a1, stw d[1] = the AVG2 written IN PLACE (`w0 &= a0; a0 = x0 &
+  m1; x0 &= m2; a0 >>= 1; w0 += x0; w0 += a0; d[0] = w0;`). Case 1: lhz + `rlwimi w0,w1,0,0,15; rotlwi w0,16`; case 3: `lwbrx` + rlwimi (the
+  tree's `__lwbrx` intrinsic form). Probe h8c (case 0 only, two rows, in place, tree's a0/a1 or-forms): the row is the target's 26 opcodes; ours
+  hoists `and (x0 & m1)` above `xor x1`/`and w0,a0` (peak 12 live -> m2 in r31 + frame) where the target issues `and w0,a0; xor x1; and (x0&m1)`.
+  **The 16x16 H2 target's `srwi r7,w1,24; mr r22,r7; rlwimi r22,w0,8,0,23` is the in-place spelling `a0 = w0 << 8; a0 |= w1 >> 24;` (h8b
+  reproduces `srwi; mr; rlwimi ..8,0,23` exactly); `a1 |= w1 << 8` gives `slwi; or` (no fusion) — the 8x8 target's `rlwimi w2,w1,8,0,23` needs
+  the or-expression `a1 = (w1 << 8) | a1`.**
+
+### CRI pass 57 (cftfx UserTable 135 -> 109w pure C APPLIED (5/6, not flipped): the `add X, Y, X` operand order, the target's level-2 colouring, the in-loop second `subi` and the `subf temp; addi y` tail all found; the block-split rule (> 100 pcodes) read; left: row-1 `mr r25` copies, the split point, the level-1 cascade; 2026-09-12)
+Harness /home/adityas/.cache/cri57/ (deleted): `gen.py`/`mk.sh`/`mk2.sh` body generators on top of the t2 form, `dis.sh NAME` = variant.sh words + a
+cleaned dtk listing `ours_NAME.s`, `v.sh NAME --ra` = ra.py dump, `pc.py RADIR` = the loop body's PCode with `vreg=colour` annotations (the
+reading tool of this pass), scheddump/sched.py `--block N --verbose` for the heights. Tree edit: src/lib/cftfx.c `CFT_A256_ROW` + the function
+only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
+- **(A) solved: `X += (Uint32)(Y + 4) - 4` is the one-web spelling of the target's `addi Y,Y,4; add X, Y, X`.** Probes (t2 body): `X = e + X`
+  (a1: `(Uint8 *)((Uint32)y + (Uint32)p2)`) -> `add X', e, X` and `X = X + e` (a3) -> `add X', X, e`: the codegen keeps AST order but BOTH are
+  full assignments = a new web X', the first web (subi + the two copies) is single-def -> copies propagated, subi hoisted (176w). `X = X + e`
+  WITHOUT a cast round trip (i9 `p2 = p2 + (Uint32)y - 0`) is turned into EADDASS by the frontend (same as `+=`: `add X, X, e`, one web).
+  `+=` with `e * 1`, `0 + e`, `e >> 0`, `e ^ 0`, `(Sint32)e`, `-= -e`, `(y - 0)`, `e + 0 * ywidth` (i1-i8): all folded, `add X, X, e`. The
+  codegen of EADDASS(X, EADD(Y, K)) is `add X, Y, X; addi X, X, K` (pass 56 (a), the AST keeps `p2 += (Uint32)(y + 4)` unreassociated, j3's
+  frontend-01) — so `p2 += (Uint32)(y + 4) - 4` (c1; also `(y - 4) + 4`, `&y[4] - 4`) gives `add X, Y, X` with the +-4 cancelled by the backend
+  and the row's own real `addi Y,Y,4` before it, one web, subi and copies kept (`add r31, r12, r31` = the target's `add r31, r6, r31`).
+  The frontend does NOT fold `(Uint32)(y + 4) - 4` (the +4 is inside the pointer cast); it folds every integer-level +-0.
+- **The second `subi` (row 4's fresh `ywidth - 4`) stays in the loop as `p5 = (Uint8 *)(ywidth - 4)` (e1)** — identical to p2's def and NOT
+  CSE'd with it here (pass 56 u1/u4 said "one hoisted @temp": that was a different body); `(Uint8 *)((Uint32)ywidth - 4)`, `(Uint8 *)ywidth
+  - 4`, `(Uint8 *)0 + (ywidth - 4)`, `(Uint8 *)(ywidth + 4) - 8` are all frontend-hoisted @temps (`@156`, an extra r0 that shifts every
+  level-2 colour by one: d -> r31). Rule: EADD(var, const) directly under the pointer cast is not hoisted; any cast/expression inside the
+  EADD is. e1 alone: 178 -> 113w.
+- **(C) solved by declaration order alone; chaitin.py `--check` IDENTICAL on every dump.** The target's level 2 (12 nodes, one level, vid
+  order) is yw4 r0, dskip r3 (the two hoisted @temps), then p4 r4, y r6, p3 r7, i r8, wblk r9, hblk r10, ywidth r11, d r12, p2 r31, yskip r30:
+  own locals in reverse declaration order -> declare `Uint8 *p4; Uint8 *y = src->y; Uint8 *p3; Sint32 i, j, wblk, hblk, ywidth; Uint32 *d;
+  Uint8 *p2; Sint32 yskip, dskip; Uint8 *p5; Uint32 v0, v1;` (d1/e1). j (ctr) and dskip (single-def, substituted into `d += dskip`) are not
+  nodes. p5, v0, v1 are level 1 (coloured after the temps: p5 r26 = the target with the m1 rows below).
+- **`y = p5 - ywidth * 4 + 4` = the target's `subf r4, r0, r26; addi r6, r4, 4`** (f1, 111w): the subtraction is an expression temp (r4) and
+  `y` starts at the addi; `y = p5 - ywidth * 4; y += 4;` puts the subf into y's own web (`subf y; addi y, y, 4`).
+- **Row spelling: `tbl[((y) += 4)[-1]]` for the last byte (m1, 109w)** = one real `addi y,y,4` after the loads (1 pcode) with indexed loads
+  (`y[k]`: lbz, lbzx, shift = 3 pcodes per byte, no `clrlwi`); `*(y)++` x4 = 5 pcodes per byte (lbz, addi, clrlwi, lbzx, shift; 32 per row,
+  f1 111w); a statement `y += 4` anywhere in the row (before or after the stores, `(y += 4)` inside the add, `y = (Uint8 *)((Uint32)y + 4)`
+  round trips; h1/h2/j1-j4/k2-k4) is forwarded into the next add and its +4 sunk to before the NEXT row's add (`add p2, y, p2` early, loads at
+  +4..+7, `addi p2,p2,4` right before `add p3, p2, p3`) — a store between the def and the use does NOT block this forwarding (pass 5's blocker
+  list is for single-use substitution). Integer step variables (n1) are substituted and hoisted (`add r6, r0, r6`).
+- **Block split rule (read off g1/f1/m1): the backend starts a new block after the first STATEMENT that brings the block's initial-code
+  pcode count above 100** (B4 = 101/103/104 pcodes; macro statements on one source line split between them; the frontend hoisting/forwarding
+  runs before). The inner body is therefore two blocks (B4 rows 1-3(+), B5 the rest with LOOPWEIGHT=8 vs 64) and the scheduler cannot move
+  across the split. The TARGET's split is right after `p4 += ...` (its `add r4, r7, r4` is scheduled inside row 3's packs, its `subi r26`
+  at the top of row 4 and `add r26, r4, r26` before row 4's last store): with S setup pcodes (subi + copies), R per row, A per add:
+  S + 3R + 2A <= 100 < S + 3R + 3A. Ours: f1 (S3, R32, A2 = the c1 add is `add` + a self-`mr`) = 103 -> split before `p4 +=`; m1 (S3, R25,
+  A2) = 82 -> split after row 4's first store. Candidates for the original: (R31, A2, S3), (R30, A3, S3), (R32, A1, S2), (R30, A2, S5) —
+  a row spelling with 30-31 pcodes or a 1-pcode `add X, Y, X` (the EASS `X = Y + X` is 1 pcode but splits the web) was not found.
+- **(B) read, not solved:** in the target both row-1 packs go `slwi B; mr r25, B; rlwimi r25, A` with v0/v1 = r25 (a NEW callee-saved: the
+  own locals are coloured last and every one of r26-r31 is a coloured neighbour); in ours v0 lands on B0's colour (the user copy is never
+  coalesced, the `mr` is only deleted when the colours coincide, pass 56 (1)) and v1 keeps its `mr`. The level-1 colours diverge from the
+  first row-1 temps: tbl[y0] r28 (target r29), B0 r27 (r28), y3 r29 (r27). Cause found with sched.py: y[2] and y[3] loads tie at h=54 (both
+  packs' chains are equalised by the alias chain through the stores) and the earlier input order wins -> ours loads y2 first, the target y3
+  first (`lbz r27, 3(r6); ...; lbz r26, 2(r6)`), which puts y3 in r27 below the oris/and temps; writing the second pack with the byte-3
+  operand first (o1/o2) fuses the other operand (`rlwimi ..., 8, 16, 23`, pass 5's earlier-defined rule) — the target's y3-first order is a
+  HEIGHT difference in its DAG (a different split point or row spelling changes the chain lengths), not the source order. So (B) and the
+  level-1 cascade are downstream of the split point / row spelling above; fix that first, then re-read with pc.py.
+- Setup residue (post-split): `subf r7, r10, r11` (ywidth - width) is scheduled before `lwz r12, 0(r4)` (d) and `slwi r0, r11, 2` (yw4)
+  before `add r30` (yskip) in the target, after them in ours — the statement order of the setup (yskip's expression before d's load?) once
+  the body matches.

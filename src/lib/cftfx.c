@@ -219,39 +219,59 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 }
 
 /* one row of a 4x4 RGBA8 tile's AR half: the alpha bytes replaced (masked) by the table values of
- * the four luma samples; the pointer moves on by the four samples */
+ * the four luma samples, packed in two own locals; the pointer moves on by the four samples with
+ * ONE increment placed inside the last index expression (a statement-level `y += 4` is forwarded
+ * into the next row pointer's add and the +4 sunk; post-increments on every byte give the same
+ * real `addi` but 4 pcodes more per row, see AGENTS.md "CRI pass 57") */
 #define CFT_A256_ROW(dst, y, tbl)                                                              \
-	(dst)[0] &= (((Uint32)(tbl)[(y)[0]] << 24) | ((Uint32)(tbl)[(y)[1]] << 8)) | 0x00FF00FF;  \
-	(dst)[1] &= (((Uint32)(tbl)[(y)[2]] << 24) | ((Uint32)(tbl)[(y)[3]] << 8)) | 0x00FF00FF;  \
-	(y) += 4
+	v0 = ((Uint32)(tbl)[(y)[0]] << 24) | ((Uint32)(tbl)[(y)[1]] << 8);                     \
+	v1 = ((Uint32)(tbl)[(y)[2]] << 24) | ((Uint32)(tbl)[((y) += 4)[-1]] << 8);             \
+	(dst)[0] &= v0 | 0x00FF00FF;                                                           \
+	(dst)[1] &= v1 | 0x00FF00FF
 
-/* OPEN: the original keeps `ywidth - 4` as a value (computed per block, copied into three
- * registers) and steps each row pointer into a fresh register; ours folds the -4 into the load
- * offsets of the next row (`lbz -4(rY)`) and reuses the pointer register. */
+/* CRI pass 57 (109w, was 135w): the original computes `ywidth - 4` per block into a row-step
+ * variable (in-loop `subi`), copies it into two more (`mr`), and moves each row pointer INTO the
+ * step register with the pointer as the FIRST add operand (`add p, y, p`): `p += (Uint32)(y + 4)
+ * - 4` is the only spelling that keeps one web (a full assignment `p = y + p` starts a new web
+ * and hoists the subi) and puts the added value first (the codegen reassociates `X + (Y + K)` into
+ * `add X, Y, X; addi K`, the +-4 cancel).  Declaration order = the target's colouring order
+ * (p4 r4, y r6, p3 r7 above i; d r12, p2 r31, yskip r30).  The fourth step is a fresh
+ * `ywidth - 4` (not CSE'd, not hoisted) and `y = p5 - ywidth * 4 + 4` = subf temp + addi.
+ * Left (see AGENTS.md): row 1's two packs go through `mr r25` copies in the target (v0/v1 get a
+ * new callee-saved), the target's block split falls right after `p4 += ...`, and the level-1
+ * temp colours cascade from there. */
 void cnvDynamicYcc420plnToA256UserTable(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
 {
+	Uint8 *p4;
+	Uint8 *y = src->y;
+	Uint8 *p3;
 	Sint32 i;
 	Sint32 j;
 	Sint32 wblk = dst->width / 4;
 	Sint32 hblk = dst->height / 4;
 	Sint32 ywidth = src->ywidth;
+	Uint32 *d = dst->buf;
+	Uint8 *p2;
 	Sint32 yskip = ywidth * 3 + (ywidth - dst->width);
 	Sint32 dskip = (dst->pitch - dst->width) / 4 * 16;
-	Uint32 *d = dst->buf;
-	Uint8 *y = src->y;
+	Uint8 *p5;
+	Uint32 v0, v1;
 
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
+			p2 = (Uint8 *)(ywidth - 4);
+			p3 = p2;
+			p4 = p2;
 			CFT_A256_ROW(d, y, tbl);
-			y += ywidth - 4;
-			CFT_A256_ROW(d + 2, y, tbl);
-			y += ywidth - 4;
-			CFT_A256_ROW(d + 4, y, tbl);
-			y += ywidth - 4;
-			CFT_A256_ROW(d + 6, y, tbl);
-			y += ywidth - 4;
-			y -= ywidth * 4;
-			y += 4;
+			p2 += (Uint32)(y + 4) - 4;
+			CFT_A256_ROW(d + 2, p2, tbl);
+			p3 += (Uint32)(p2 + 4) - 4;
+			CFT_A256_ROW(d + 4, p3, tbl);
+			p4 += (Uint32)(p3 + 4) - 4;
+			CFT_A256_ROW(d + 6, p4, tbl);
+			p5 = (Uint8 *)(ywidth - 4);
+			p5 += (Uint32)(p4 + 4) - 4;
+			y = p5 - ywidth * 4 + 4;
 			d += 16;
 		}
 		y += yskip;
