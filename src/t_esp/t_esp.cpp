@@ -1859,37 +1859,34 @@ static inline void ModelTypeGroupSkip()
     if (g_pKey->trg[KEY_R]) dir = -1;
     if (g_pKey->trg[KEY_Z]) dir = 1;
     if (dir != 0) {
-        // the loops keep the last u16 read of g_modelType in `t` (the wrap adds `dir` to it, the second loop's first
-        // step and the final `+ 1` reuse it) and compare the name bytes through `a0`/`a1`; the `dir == -1` half sits
-        // inside the first loop's exit (its compare is loop-invariant and hoisted into cr7)
+        // both loops step the global itself; each test reads it into a block-local u16 used only for the table
+        // index (lhz + extsh), and the name bytes are compared through `a0`/`a1`. The `dir == -1` back-skip is a
+        // rotated `while` whose duplicated entry test cse2 folds away entirely (the copy's test-local pseudos are
+        // fresh, so the first loop's index/name classes are hit: the entry falls straight into the step, and the
+        // hoisted `lis` lands on the test's load, not the step's store). The `dir == -1` compare is
+        // loop-invariant and hoisted into cr7.
         const char* name = g_modelNameTbl[(s16) g_modelType];
         const char* n;
         char c0 = name[0];
         char c1 = name[1];
         char a0, a1;
-        u16 t;
         for (;;) {
-            t = g_modelType;
+            u16 t = g_modelType;
             n = g_modelNameTbl[(s16) t];
             a0 = n[0];
             if (c0 != a0) break;
             a1 = n[1];
             if (c1 != a1) break;
-            g_modelType = t + dir;
-            if (g_modelType & 0x8000) g_modelType += MODEL_NAME_NUM;
-            if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
+            ModelTypeWrap(dir);
         }
         if (dir == -1) {
+            const char* n2;
+            u16 t2;
             c1 = n[1];
-            do {
-                g_modelType = t + dir;
-                if (g_modelType & 0x8000) g_modelType += MODEL_NAME_NUM;
-                if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
-                t = g_modelType;
-                n = g_modelNameTbl[(s16) t];
-                if (a0 != n[0]) break;
-            } while (c1 == n[1]);
-            g_modelType = t + 1;
+            while (a0 == (n2 = g_modelNameTbl[(s16) (t2 = g_modelType)])[0] && c1 == n2[1]) {
+                ModelTypeWrap(dir);
+            }
+            g_modelType += 1;
             if ((s16) g_modelType > MODEL_NAME_NUM - 1) g_modelType -= MODEL_NAME_NUM;
         }
     }

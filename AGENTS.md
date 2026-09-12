@@ -30729,3 +30729,74 @@ Harness ~/.cache/cri71/ (`wi.py RA_DIR [--k N] [--ste] [--all] [--trace VIDS --n
 - Tree unchanged (adx_dcd5 2/4, Ste 25w + Mono 26w, pins as found); objects.py untouched; nothing built under the lock. Harness ~/.cache/cri71 deleted at the end of the pass. Next: a C shape whose backend copies into the widening @temps / the qtbl own local survive (destination multi-def without code), or a shape that emits the `lis/addi` pairs before the nblk chain in B1's input (a table/magic use in a statement before `nblk = nfrm / 2` that the frontend keeps).
 - **Late probes (all negative):** Mono with `qtbl = AdxQtbl` as a statement (own local, any declaration/statement position: m9/m10/m11) 95w — the folded copy leaves the addi temp r75 live across B1 (issued c6), it survives scan 13 and pops first in the own-local level (r12, cascade); Ste `qtbl = AdxQtbl` moved before `nblk = nfrm / 2` (s8) or after the hist loads (s9) 26w (+1); Ste `qtbl = AdxQtbl + 1; qtbl--;` (s7) 162w +4 (the `addi -4` stays: lwzx has no offset to fold into). **Mono (b) read off the temp numbering:** in ours the kept magic pair is `addi r108` (the division root's constant temp, allocated BEFORE the mix's child temps r109-r111) + `lis r112` (materialised after the children), the kept table pair `lis r116 / addi r117` (consecutive); backend-14 CSE keeps the FIRST occurrence of each pair in B51 (mix1, table1). The target's colours need vid(magic addi) < vid(qtbl addi) AND vid(magic lis) > vid(qtbl lis), i.e. the table address temps allocated between the mix root's constant temp and its materialisation — the lookup would have to be a child of the mix expression, which the XER-fixed statement order excludes; no pair-order or CSE-choice (mix2's pair kept: addi r137 > r117) satisfies both. Unexplained; 4 words.
 - Final state: nothing applied (adx_dcd5 2/4, Ste 25w + Mono 26w as found); ~/.cache/cri71 deleted.
+
+### Tool RELs, t_esp pass 31 (t_esp 210 -> 212/212, MATCHING, t_esp.rel verify OK + cmp-equal, 111 OK: Load/SaveEmTypeUpdateCallback 2/2 -> 0/0 pure C, no pins, no dead statements; 2026-09-12)
+- Result: `ModelTypeGroupSkip` (the inline both callbacks close with) rewritten; `t_esp/t_esp.cpp` flipped in config/G4BE08/modules.py
+  (`# t_esp pass 31` block); `make_rel.py --verify orig/G4BE08/files/Rel/t_esp.rel` OK (441468 bytes, cmp-equal), `flock ninja -k 0`,
+  `dtk shasum -c` 111 OK, `git diff config/G4BE08/symbols.txt` empty. Tree edits: src/t_esp/t_esp.cpp (ModelTypeGroupSkip only),
+  config/G4BE08/modules.py, this section. Scratch /tmp/t31 (mk.py/try.sh/cs.sh = variant + CSEDBG=2 harness, fA..fH variants, dumps).
+- **The form (variant G/H):** no loop-carried `t` at all. Both loops step the GLOBAL (`ModelTypeWrap(dir)` = `g_modelType += dir` + the two
+  wraps, already in the file), each loop's test reads it into a BLOCK-LOCAL `u16` used only for the table index (`u16 t = g_modelType;
+  n = g_modelNameTbl[(s16) t];` in loop 1's body; `while (a0 == (n2 = g_modelNameTbl[(s16) (t2 = g_modelType)])[0] && c1 == n2[1])` with
+  `u16 t2` declared inside the `dir == -1` block), tail `g_modelType += 1; if ((s16) g_modelType > 242) g_modelType -= 243;`. No `tbl`
+  pointer (adding pass 30's `tbl = g_modelNameTbl` to this form REGRESSES: a `lhz r0` reload appears in TOP2, variant F).
+- **Mechanism, read off the `.cse2` dump + CSEDBG=2 (variant G):** every `g_modelType` read is two insns, `(set h (mem:HI))` +
+  `(set t (zero_extend h))`. With the global-step spelling, cse1's back-edge follow makes TOP2's `+= dir` a use of the HI pseudo `h262`
+  (`(plus (subreg:SI h262) dir)`), the tail likewise (`(plus (subreg:SI h262) 1)` / `-242`), so `h262` is the loop-carried value and the
+  `u16 t2` (`r265`) is set in TEST2 and used ONLY there (its single use is the index `(sign_extend (subreg:HI r265))`; combine later merges
+  the two into `extsh r0,r7` on the `lhz r7` of `h262` — exactly T's `lhz r7; extsh r0,r7`). `duplicate_loop_exit_test` (jump pass right
+  before cse2) gives a fresh pseudo to every reg whose FIRST and LAST uid lie inside the exit code (jump.c: `REGNO_FIRST_UID (regno) ==
+  INSN_UID (insn)`), so in the copy `t2` -> `r338`, the index/n/a temps likewise, while `h262` (mentioned in TOP2) keeps its number.
+  cse2, in loop-1 TEST's ebb (AROUND over the `beq TOP1` block, through `c1 = n[1]`): `(set h262 (mem:HI))` -> `(set h262 h204)` (h204 =
+  TEST1's HI pseudo; h262 becomes the class head — lives beyond, later LAST_UID — which is HARMLESS here); `(set r338 (zero_extend h262))`:
+  canon_hash hashes a bare REG by its QTY (`hash += REG << 7 + REG_QTY`), so `(zero_extend h262)` finds TEST1's `(zero_extend h204)` class
+  -> `(set r338 r205)` (r205 = loop 1's u16 temp), r338 is block-local so r205 STAYS head; the index `(sign_extend (subreg:HI r338))` is
+  canon_reg'd to `(subreg:HI r205)` — a SUBREG hashes by REGNO (cse.c 7791 comment), which is why pass 30's `t2 = t` (t2 head) never hit —
+  and finds insn 206 -> `r339 = r209`; then the shift, `(mem (plus idx P))` (bare regs, qty hash: loop 2's hoisted lo_sum `r259 = r208`
+  is found although r259 is head — pass 30's "(c)" was the same SUBREG symptom, not a separate blocker), `(mem n)`, `(mem (plus n 1))`
+  all hit -> `(compare a0 a0)`, `(compare c1 c1)` -> both jumps deleted (NOTE_INSN_DELETED 476/480), `jump END` unreachable -> the entry
+  falls into TOP2 = T's `bne cr7; lbz; lis r12; extsb r10; TOP:`. The only real copy left, `mr h262,h204`, is two global pseudos with
+  abutting lives -> global gives both r7 -> `mr r7,r7` deleted by jump2 noop_moves. The fresh-pseudo copies die at flow.
+- **Why the pass-30 forms failed, now exact:** (a) same `t`: the copy's `(set t (zero_extend h'))` folds to the self-set `(set t t)`
+  (t IS the class head so the cse.c 7289 "replace SET_SRC with the head" rule does not fire), `invalidate (t)` + `remove_invalid_refs`
+  delete the index entry; (b) own loop-carried `t2`: `(set t2 t1)` with `uid_cuid[REGNO_LAST_UID (t2)] > ..(t1)` makes t2 head
+  (make_regs_eqv 984), and the SUBREG index then hashes under t2's regno. Confirmed by the head rule's converse: variant D/E = pass-30's
+  D + a dead `t = 0;` AFTER loop 2 (LAST_UID(t1) later than every t2 mention, flow deletes it) -> IDENTICAL too, `mr t2,t1` coalesced.
+  So the catalogue-grade fact: **a cse2 fold across a `(subreg:HI reg)` (any `(s16)`/`(u8)` view of a promoted local) needs the reg to be
+  the class HEAD; a bare reg in any other expression hashes by qty and folds whatever the head is.** Levers: a block-local temp for the
+  narrow view (fresh pseudo in the duplicated test), or make the older variable live longer (`REGNO_LAST_UID` = last PATTERN mention;
+  REG_NOTES only set REGNO_LAST_NOTE_UID); a tagged dead set after the loop is the fallback.
+- Hypothesis verdicts: H2 (`tbl[(s16) g_modelType]` index) is dead as written (`lha`; the `lhz+extsh` needs a u16 pseudo) but its core
+  — loop 2 with no loop-carried variable — is the answer once the u16 is a test-local index temp; H1's head question is real (D/E) but
+  needs the dead set; H3 (function-level `tbl`) regresses (F); H4 not needed (no copy survives). Both callbacks closed by the one inline.
+
+### CRI SWAR kernels pass 21 (mpv_mcy 16x16 V2 173 -> 139w APPLIED: same-variable form in ALL three cases + the fifth pair packed in place in case 3; the hand-out rule re-read: "lowest free handed-out" = the MOST RECENT hand-out; IN PROGRESS 2026-09-12)
+Harness ~/.cache/cri_swar21/ (swar20's scripts with paths fixed + `mkcase.py NAME BASE CASE loads=.. packs=.. steps=mid|end avg=..` = rewrite one case's loop
+body, `gsearch2.py RA SBS RANGES --webs` = hill-climb over the vid order of ALL own locals + `@N` webs scored over the four cases, `feas.py` = per-node
+necessary conditions of the target colouring under the pop rule, `why.py RA SOLUTION nodes..` = replay a gsearch2 solution and print each node's used /
+handed sets and which neighbour covers which callee-saved register; bodies/, NOTES.md; deleted at the end).
+- **Rule correction (matters for every later-case reading):** chaitin.py's colouring takes the lowest-numbered free register among r0,r3-r12 AND the
+  handed-out callee-saved set — and since hand-outs go r31 DOWNWARD, "lowest handed" = the most RECENTLY handed-out register. A node of a later case
+  that pops with all volatiles covered therefore takes the register of the function's LATEST hand-out (not r31), unless its coloured neighbours cover
+  it. Pass 20's "one new register per pop" for cases 1/2 was wrong: cases 1/2 make NO hand-outs at all; case 3 hands out r31..r21 in its L2 pop order
+  (p1, A1, q1, W2, p2, A2, q2, p3, q3, W3, A3 = the same-variable numbering: pack then load per variable, groups in case-0 definition order w1,a1,w2,a2,
+  w3,a3 then p4,q4), and the case-2/1 webs of the same variables pop right after their case-3 counterparts within each group and take the latest
+  hand-out: W1c2 r12, p1c2 r31 (handed set {31}), A1c2 r29 ({31,30,29}: r29 latest), q1c2 r30 (r29 covered by A1c2), W2c2 r27, p2c2 r28, A2c2 r25,
+  q2c2 r26, p3c2 r24, q3c2 r23, p4'c2 r22, q4'c2 r21 — exactly the target's case 1/2 registers, with no numbering trick.
+- **APPLIED (src/lib/mpv_mcy.c V2, harness U3 = U2 with unused locals dropped, 139w, cases 13/39/30/58 lines):** cases 1-3 load offsets 4/8/12 into
+  w1,a1,w2,a2,w3,a3 and pack into the SAME variables (`w1 = (w1 << 24) | (w2 >> 8)`; the frontend numbers pack @N, load @N+1 per case: pack pops first);
+  the fifth pair is packed in place on the fifth loads in ALL cases (case 3 `p4 = (w3 << 24) | (p4 >> 8)` — w3/a3's loads p3/q3 must pop before W3/A3
+  = r24/r23 before r22/r21; with `w3 = (w3 << 24) | (p4 >> 8)` they were L3 (their w3/a3 packs are removed after them in scan 2: 1-2 neighbours
+  short)); case 1 loads `q4 = s1[16]` before `p4 = s0[16]` (group q4 < p4). Steps: S1 case 3 only 172w, S3 + case 2 161w, S4 + case 1 159w, U1
+  fifth-pair in place 167w (+4 bytes), U2 + q4-before-p4 139w. Case 3's structural colours are all right now except p0/q0 (below); valid.py 0 conflicts
+  everywhere; gsearch2 reaches 180/182 (= all, the two coalesced fifth-pair `mr`s of case 2 are unscored) on U2's graph, so the graph admits the target.
+- **sigmatch's case-3 role map swaps p/q for the second half (p3/q3, W2/A2, W3/A3, p4/q4): symmetric roles, scores unaffected; the true target case 3 is
+  p3 r24, q3 r23, W2 r28, A2 r26, W3 r22, A3 r21, p4 r18, q4 r19, q0 r17, p0 r8.** Load STATEMENT order in a case changes nothing (T2/T3 = S4); p0/q0
+  substituted (steps at the end) 209w.
+- **Left (139w), all read in the model:** (a) case 1's p1/q1/p2 webs (target r8/r30/r28, L2) fall to L1 (r17/r18/r19): scan 1 removes case 1's own
+  locals q0/p4/q4 (degree < 29, lower vids) before them and takes them from 31 to 26-28 — case 2's identical webs stay at 31 (no own locals there);
+  the target's case-1 fifth loads are the same node as their in-place pack (`lbz r22; rlwimi r22`) = webs, not own locals; (b) p0's case-2/3 webs
+  are L3 and now pop before the pointers (p0 r0, stride r3, masks r7/r8; the pointers fell from spill picks to L3 on this graph) — the target has the
+  masks r3/r7 coloured before p0 (r8) and i (r9); (c) q0's case-3 web is L2 (pop 61, the fresh r20) while the target's q0 (r17) is the last hand-out
+  after the case-3 temps hand out r20/r19 and the x's r18/r17 — in the model the tail works when q0c3 pops in L1 before p4c3/q4c3 (they interfere
+  with it: r17 covered -> r18, r19). Case 0 lost 8 lines (13) only through a3 (r20 for r24: the r20 hand-out).

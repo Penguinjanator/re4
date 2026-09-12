@@ -972,3 +972,11 @@ MATCHING.update({
     "Tools/t_esp_area.cpp": True,
     "Tools/t_lightarea.cpp": True,
 })
+
+# t_esp pass 31 (2026-09-12): Load/SaveEmTypeUpdateCallback 2 -> 0 pure C. ModelTypeGroupSkip's loops step
+# the global (`ModelTypeWrap(dir)`) and read it into a block-local u16 used only for the table index; the
+# back-skip is a rotated `while` whose duplicated entry test cse2 folds completely (the copy's test-local
+# pseudos are fresh, so loop 1's index/name classes are hit). 212/212.
+MATCHING.update({
+    "t_esp/t_esp.cpp": True,
+})
