@@ -28299,7 +28299,7 @@ k4 reproduced first: 42 45w size +4, 45 49w size -4 (pass 11's numbers).
   xoris slot (e17) and the bump/FP allocation (e19) are each reproduced by anchor forms but not together; the target has ONE arrangement that
   gives both, most likely a single real insn in the psq_st's t7/t8 window rather than two anchors. All forms above the tree (9w/42w); nothing applied.
 
-### CRI SWAR kernels pass 12 (mpv_mcy 16x16 4p 119w: the block-1 colouring read as a vid-class question; IN PROGRESS; 2026-09-12)
+### CRI SWAR kernels pass 12 (mpv_mc 8x8 4p 72 -> 0w APPLIED, mpv_mcy 16x16 4p 119 -> 30w APPLIED: three rotating pixel pairs + the sums reused by the copy-pasted second half = the original's register classes; residue = the first block's cut (needs 10-17 more later-deleted initial instructions before the 9th sum); H2/V2 untouched; nothing flipped; 2026-09-12)
 Harness /home/adityas/.cache/cri_swar12/ (`mk.py NAME` splices bodies/NAME.c over the 4p function, `t.sh NAME` = variant words + ra.py dump `ra_NAME` +
 scheddump `out_NAME` + sched.py check + block sizes, `sc.sh NAME` = pass-11 first-half order score, `s2.sh NAME` = block-2 order score
 (`lvmap.py` derives the a9/b9/p8 vregs), `view.py RA OUT TGT LO HI` = every node with label/colour/target/level/degree/class,
@@ -28447,3 +28447,99 @@ target colours, base v7 = tree minus the M1 pin + `?:` n, chaitin IDENTICAL; del
   impossible:** `asm { mr r11, ret; mr ret, r11 }` after `ret = 0` is constant-folded to `li r11,0` (129w), after the SetErr join backend-02 CSE deletes
   the back copy and the lone `mr r11,ret` adds no node (129w, model 5/14); `asm { mr r11, err; mr ret, r11 }` would emit both `mr` (call-defined err).
 - Tree: sfd_mps 25/26 (5w, M1 pin kept); objects.py not touched by this pass, no flip, no `ninja -k 0`. Harness deleted.
+
+### Tool RELs, t_esp pass 22 (t_esp 208/212: InitTool 1811 -> 1788w in the tree: cse2 F6' fitted (LIFE 37-set pad + ROTATE's shared `sx2`, lc segs 5 -> 3 = 221 623 782); the F9/F10 edges read exactly off the RTL (F10 = WORK0+14 is pinned to ONE insn, the "F7' >= 49/51" edge of pass 21 was the F10 pin + allocation, not cse2); nothing flipped; 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = pass 21 + LIFE pad `1:2:3:5..37:4` (37 sets), ROTATE_WINDOW `int sx2;` at ctor scope with the
+  RND_ROT rows 1/2 written `sx2 = 2; int sx = sx2;` / `int sx = sx2;` (row 3 keeps `int sx = 2`), dead-set block 32 -> 28 (N 5235).
+  Locked ninja + bytecmp: InitTool 1788w (size 0xa20c/0xa0fc), 208/212, .rodata/.data/.bss OK. Grids: cse1 LOAD_EVENT+4 SAVE_EVENT+27
+  OPTION+540 PATH+541 SIZE+174 SPEED+684 COLOR+863 LIFE+8 ROTATE+647 WORK0+14 WORK6+14 BASEPOS+123 (base coordinates: the LIFE +1 and
+  the ROTATE -1 cancel), cse2 LOAD_EVENT+53 OPTION+71 PATH+349 SPEED+110 COLOR+555 ANMRATE+46 SUB+50 WORKSP1+81. lc [0 0 1 0 0 0 0 0 0 0
+  1 0 0 1] segs 221 623 782 (pass 21: 5), mset [2 9 4 3 5 8 5 9 17 3 38 0 18 7] (pass 21: [.. 5 40 ..]). Flags untouched, no make_rel.
+- **The pass-21 "F7' edge" does not exist.** 681/698/699 are not cse2 evidence: 698's pos.x (344.0f, .LC1613) is shared with VEC2's 681
+  load by CSE1 (both inside the F9..F10 window; a cse2 rescue is impossible, F7' lies in SUB between them), and 681/699's `fmr` is the
+  344.0 pseudo living r28 (GPR, `-mfast-cast`) when its range spans 681..698 -- allocation, gone whenever 698 stops sharing. Read off
+  the WORK0 `.jump` stream (offsets from WORK0's `__builtin_new`, pad-0 coordinates = the tree): 10 `(set this (addressof pos))`, 11-13
+  the 344.0 high/lo_sum/load, 14-16 the 280.0 high/lo_sum/load, 17 store x, 18 store y. Target 698 = x via the pointer (`stfs f24,0(r8)`)
+  + `addi r5,r1,0x1630` for the argument + 344.0 SHARED + 280.0 FRESH (`lfs f26,51C0` although f30 holds it since 663: no cse2 rescue
+  across F7'). So F10 > 10 (x store via pointer needs the flush between the this-addressof and the x store), F10 >= 14 (344.0 load
+  before the flush), F10 <= 14 (280.0 load after the flush): **F10 = WORK0+14 exactly** (pass 19's "(WORK0+14, WORK0+33]" and pass
+  20's "(+9, +33]" are wrong; the tree already had +14/+18-pad-4). l37 (F10 +13) split the 344.0 load -> 698 fresh; b1 (+19) shared 280.0
+  -> 698/706 differ. Consequence: every cse1 change between F8 and F10 must net to ZERO insns.
+- **F9's position decides ROTATE's cse2 count by one insn (the `DB_POINT pos` addressof pair, block 11 = `pos(274, 16)`):** `.jump`
+  ROTATE 640 `(set r8893 (addressof pos))` [the `&pos` argument; the ctor's `this` r8873 holds the same addressof from the pos ctor],
+  641 `(set r8894 (addressof sx))`, 646 `(set r7 r8893)`, 647 `(set r8 r8894)`. cse1 rewrites 640 to `(set r8893 r8873)` and 646 to
+  `(set r7 r8873)`, so r8893 dies and cse1 deletes it -- unless the flush falls in [641, 646] (before the r7 set): then the copy
+  survives to cse2 (+1 .loop insn in ROTATE, no final-code change: cse2 canonicalises it). F9 = 647 (tree) or 648..654: base count;
+  641..646: +1; 655..660 would leave block 11's 360.0f/-360.0f high/lo_sum/load cse1-fresh (+6); <= 640 puts the argument in the
+  `addi rX,r1,pos` form (final code). The sx addressof (SI) never makes a copy pair (its store goes direct to the frame). With F10
+  pinned, F9 = 647 is pinned too, so the LIFE knob's +1 cse1 insn had to be paid back by exactly -1 cse1-only insn between F8 and F9.
+- **cse1-only levers found (0 cse2, same post-cse1 RTL):** (a) a duplicate FP literal within one cse1 window is 3 cse1-only insns
+  (high, lo_sum, load; cse1 folds the address and shares the loaded pseudo): `f32 rmax, rmin;` at ctor scope, `rmax = 360.0f; n->max
+  = rmax;` in row 1 and `n->max = rmax;` in a later row = -3 per constant per row (/tmp/t22/b1.cpp: ROT_MINMAX of row 2 = -6 cse1,
+  F9 647 -> 652 in base coordinates, F10 -> +19 = the 698/706 symptom above); (b) a duplicate int literal `int sx = 2` is 1 cse1-only
+  insn (`(set r 2)` deleted at cse1's end): `int sx2; ... sx2 = 2; int sx = sx2; ... int sx = sx2;` = -1 (applied: c1). `int sx = 1`
+  rows (c2, the head is keyMode's pseudo) give the same -1/1788w; the `sx = 3` rows (c3) are +1 in .loop (block 11's set is the head
+  of const 3 for block 12 after F9) -- keep the shared variable in rows BEFORE F9 whose constant has an earlier head.
+- **Scan results (/tmp/t22, `ct.sh NAME [noN]` = autoN + per-window .jump/.loop deltas vs base + both grids + fl/lc, `scan.sh L:PADS|L:-`
+  parallel, `pad.py OUT BASE WIN=a:b:5-37:4` pads on the tree form, `setn.py FILE N` dead-set count):** l37 (LIFE 37 alone) 1870w F6' 46
+  F7' 48 F10 13 [lc 221 623 681 698 782]; a2..a5 (l37 + RELEASE `1:2`..`1:2:3:5:6`) 1838-1874w F9 644..641 (all +1 copy) F10 11..8;
+  b1/b2/b8 1892/1927/1977w; c1/c2 1788w; c3 1788w with F7' 49. The dead-set count (24/32/36) does not change the .loop tail streams
+  (only N), so the "autoN shifts F7' by +-1" of pass 21 was the LIFE pad's own +1 through the F9 copy, not the refit.
+- **Remaining lc: 221** (LOAD_EVENT `" Name :"` high in callee-saved r18 vs the target's fresh `lis r8`; allocation, unchanged since
+  pass 21), **623** (ROTATE CreateString: target `fmr` copy = weak), **782** (BASEPOS: target loads a constant fresh that ours shares =
+  F12 (BASEPOS+123) or F8' (WORKSP1+81) reading, not started). mset regions [2 9 4 3 5 8 5 9 17 3 38 0 18 7]: the allocation items
+  (`lis g_pEditSeq/g_pEditSeq2` remat in the target vs r18/r15 in ours at every CreateNumeric2 of ROTATE/VEC (segs 635-679: T 18 vs O
+  17 per block), 380/391 `lis g_pPrimArray`, the `li 1` keyMode pattern, seg 0 d136) are item 2/3, not touched: with the grid at 3 lc
+  segments they are next.
+- Not run: make_rel --verify, ninja -k 0, shasum (nothing flipped; flags untouched). Kept: /tmp/t22 (base.cpp = pass-21 tree, c1.cpp =
+  the applied variant, ct.sh/scan.sh/pad.py/setn.py, rtl_base/rtlG_base dumps), /tmp/t18..t21, ~/.cache/tesp15, the kit.
+- **THE SHAPE (applied to both units): the pixel words are THREE rotating pairs, `Uint32 a0, b0, a1, b1, a2, b2` with pixel k in pair
+  k % 3, each pair loaded right before the sum that needs it (`a1 = s0[1]; b1 = s1[1]; p0 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 +
+  (Uint32)b1 + 2; a2 = s0[2]; b2 = s1[2]; p1 = (Uint32)a1 + (Uint32)a2 + ...; a0 = s0[3]; ...`), the sums `p0..p7` reused for the second
+  half (the 9th sum is `p0 = ...` again, computed AFTER `d[1]` like a copy-pasted second half; `d[16] = AVG4(p0, p1, p2, p3)`), the
+  `(Uint32)` casts kept, no masks.** Why it is the vendor's: (1) the first webs of the three pairs (pixels 0, 1, 2) are own locals and every
+  later web (pixels 3..16) a range-split frontend temporary, the sums' first webs own locals and their second webs @temps -- with the
+  pixels declared before the sums the scan-1 survivors are exactly the target's L2 {a6, a7, a2, a8, p2, p3, p4} (+ p8 = p0's second web),
+  the block-1 volatile colours are 29/30 and 45/49 in all (w3i probe: 30w); (2) the second half's sums stay variables except p6' (q/p in
+  one register for p9, p10, p11, p12, p13, p15 and a separate temp for p14 = exactly the target's block-2 web structure, which no other
+  naming gave); (3) mpv_mc 8x8 4p (no second half) is BYTE-IDENTICAL with the same three pairs, the prefetch after the first pair
+  (`a0 = s0[0]; b0 = s1[0]; __dcbt(s1, stride);` -- the 8x8 target has two lbz before the dcbt, the 16x16 target none) and the loop
+  variables declared BEFORE the pixel words and the sums (declared after them: 52w with d/stride/s0/s1 in r9/r6/r7/r8; the 16x16 form
+  does not care: 30w either way). The pass-11 question "why `add (a1+b0)` before `lbz a2`" was the raw order of the loads (pair k+1
+  right before p_k) plus the dcbt position; the pass-10 rule "pixels before the loop variables" holds only for the 16x16 kernel.
+  Negative (16x16, all worse than 30w): 2 or 4 rotating pairs (119/114), the 9th sum before `d[0]` (`p8`, 77w) or between the stores
+  (73w), `Uint8`/`Uint16` pairs (106/136w), the sums declared before the pairs (77w), masks at the loads (136w: the webs become the load
+  temps again), the sliding window with forward copies `a0 = a1; b0 = b1;` (122w: the frontend folds the copies), no casts (115w),
+  `Uint16` sums (178w: the truncations stay), the pack macro with `>> 2 & 0xFF << n` / `& 0x3FC << n` / mask variables (136w: the
+  chain's rlwinm base changes), `(Uint16)`/`& 0xFF`/`(Uint32)(Uint8)` at every use (113w: the extra deleted instructions land before
+  `d[0]`).
+- **The 30-word residue = the first block's cut.** The codegen starts a new block at the first statement end where the block's INITIAL
+  instruction count exceeds 100 (tree/m1: d[1] ends at 105 after d[0]'s 97 -> cut after d[1]; d1 probe: cut at 101 = d[1]'s stw; w3i: cut
+  at 101 after `b2 = s1[11]`, the boundary at 100 (`a2 = s0[11]`) not taken). The target's block 1 ends after the 9th sum (its 67 final
+  instructions = dcbt + 20 lbz + 36 add/addi + 8 rlwinm/rlwimi + 2 stw), so the vendor's count was <= 100 at d[1]'s end and >= 101 at
+  the 9th sum's end; ours is 83 and 91 (dcbt 1 + 18 lbz + 16 cast copies `mr @t, a` of the two-use pixels + 8 x 4 adds + 2 x 8 pack, then
+  2 lbz + 2 mr + 4 adds): the original had 10..17 more later-deleted initial instructions by the 9th sum with at most 17 by d[1] -- e.g. 2
+  per sum (16/18), or 5..8 per store, or 1 per sum + 1..4 per store; NOT 1 per load (18/20: the cut then falls after d[1], as it does for
+  masks / `(Uint8)` at the load / per-use narrowing casts, all +18..+26). Every construct tried either adds nothing (the frontend folds
+  copies, `p += 2`, `2 + ...`, casts on the store arguments, mask variables, `*(s0 + k)`, `(Uint32)s0[k]`, integer-cast pointers) or too
+  much before d[0]. Candidates not yet tried: a helper/macro that yields exactly one folded instruction per sum (an inlined `avg4()`
+  with 4 parameters gives 4 argument copies = too many), a `Uint8` view of the sums inside the pack that the peephole folds, an
+  `addi`-generating address form for the stores only. When found, check the second half too: its cut (block 2 = 69 final instructions)
+  follows from the same count.
+- **Tree state:** src/lib/mpv_mc.c `MPVMC08_OneRef4p_TuneC` = the three-pair form, byte-identical (mpv_mc 3/5: 4p, 1p asm + one; V2 73w,
+  H2 436w untouched); src/lib/mpv_mcy.c `MPVMC16_OneRef4p_TuneC` = the three-pair form with the reused sums, 30w (mpv_mcy 2/5; H2/V2
+  225w untouched -- the average kernels have no pixel sums, the transfer is the loop-variable/word-class reading, not tried this pass).
+  Nothing flipped, objects.py untouched by this pass, no `ninja -k 0` needed. Pass-11 harness deleted; the pass-12 harness
+  /home/adityas/.cache/cri_swar12/ is KEPT for the next pass (bodies/w3i.c = the applied 16x16 form, bodies/e3o6.c = the 8x8 form,
+  `ev.sh NAME` = words + block sizes + block-1 colour score + L2 set + order scores in one line, `gen3.py NAME npairs= pix= cast=
+  pdecl= sums=reuse|p8|mid avg= mask=`); delete it when the cut is found.
+- **Item 2 (callee-saved/spill rotation), read only, 20-minute box:** callee-saved reloads `lwz r14-r17,slot(r1)` exist only in seg 0
+  (16 in both); in the tail r14-r18 are REMAT homes handed out by reload's spill-register rotation. First-window picks (seg 163/164 =
+  LOAD's SetCloseCallback/CreateString): target `lis r14 LoadNowClose_callback`, `lis r18 g_pPrimArray`, `lis r17 g_pEditSeq`, `lis r15
+  g_pEditSeq2`, the keyMode `1` remat in a volatile register (every later `stw` of 1 is a fresh `li`); ours `lis r15 LoadNowClose`, `lis
+  r17`, `lis r16`, **`li r14,1`** (reload_cse then serves 10 later stores of 1 from r14: `li 1` T 9/13 vs O 4/8 in regions 381-416/416-495),
+  then 218 `lis r15 g_pEditSeq2` (target: r14, re-used at 218 = the r14 that 461-651 inherits; `hl.py` timeline T 350 r15 / 378 r22 / 461 r14
+  / 656-688 fresh r11,r9 / 702-751 r14 / 757+ r9 vs O 350 r16 / 378 r22 / 461-775 r15). The tail sequences are the same list of picks
+  shifted by ONE rotation step (ours one ahead at seg 163), so the shift is made before the tail: seg 0's reload count / spill set (d136
+  there) -- item 3, not a tail source lever. The seg 380/391 `lis g_pPrimArray` remats and seg 221's r18 high are the same shift.

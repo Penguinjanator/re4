@@ -4277,10 +4277,12 @@ class LIFE_WINDOW : public TOOL_WINDOW {
 public:
     LIFE_WINDOW(DB_PRIM_ARRAY* p) {
         // pass 21: LIFE straddles cse1 flush F8 (LIFE+8), so this `d_ = 4` heads the constant-4 class after it and the pad
-        // survives to cse2: 36 sets move cse2's F6' 32 insns earlier (ROTATE+9 -> ANMRATE+47, one short of seg 619's
-        // load at +46) and F7' to SUB+51 (>= +49: segs 681/698 share); the 32 cse1-time insns are paid back by the
-        // RELEASE/ANMRATE/ROTATE/VEC0/VEC1/VEC2/SUB/WORK0 pads removed below (F10 stays at WORK0+18 in pad-4 terms)
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 4; }
+        // survives to cse2 (n sets = n cse1-time, n-1 cse2-time insns); the 32 cse1-time insns are paid back by the
+        // RELEASE/ANMRATE/ROTATE/VEC0/VEC1/VEC2/SUB/WORK0 pads removed below. pass 22: 37 sets put cse2's F6' at
+        // ANMRATE+46 (seg 619's 80.0f load fresh, as in the target); the 37th cse1-time insn is paid back by ROTATE's
+        // shared `sx2` (below) so that cse1's F9 stays at ROTATE+647 and F10 at WORK0+14, which is pinned: F10 must
+        // fall between WORK0's pos.x load and its pos.y load (x shared with VEC2, y fresh, both stores via the pointer).
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 37; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -4395,6 +4397,10 @@ public:
         pa->CreateString(win, "X:", &DB_POINT(255.0f, 0.0f));
         pa->CreateString(win, "Y:", &DB_POINT(255.0f, 16.0f));
         pa->CreateString(win, "Z:", &DB_POINT(255.0f, 32.0f));
+        // pass 22: the RND_ROT column's `sx = 2` is shared through this variable by its first two rows: the second
+        // row's `int sx = 2` costs one cse1-time insn (`(set r 2)`, deleted at cse1's end) that `int sx = sx2` does not,
+        // with the same post-cse1 RTL; it pays back the LIFE pad's 37th set (see LIFE_WINDOW).
+        int sx2;
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -4453,7 +4459,8 @@ public:
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 0.0f);
-            int sx = 2;
+            sx2 = 2;
+            int sx = sx2;
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrot.x, &g_pEditSeq2->rrot.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
@@ -4462,7 +4469,7 @@ public:
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 16.0f);
-            int sx = 2;
+            int sx = sx2;
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrot.y, &g_pEditSeq2->rrot.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
@@ -5021,11 +5028,12 @@ void InitTool()
     // (pass 14: 118 sets give 5233 buckets = the target order and offsets with the `pa` form of the EDIT windows;
     // the count is (real insns at gcse) / 2 | 1, so every change to InitTool's insn count re-fits it.
     // pass 15: 116 sets = 5235 with the `tbl` locals of the EDIT row loops; pass 16: 76 sets = 5235 with the
-    // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors; pass 21: 32 sets = 5235 with the PARENT 16-set / LIFE 36-set pads, eight tail pads removed, FSTORE_AT POS_MINMAX.)
+    // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors; pass 21: 32 sets = 5235 with the PARENT 16-set / LIFE 36-set pads, eight tail pads removed, FSTORE_AT POS_MINMAX;
+    // pass 22: 28 sets = 5235 with the LIFE 37-set pad and ROTATE's shared `sx2`.)
     i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
     i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
     i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
-    i = 25; i = 26; i = 27; i = 28; i = 29; i = 30; i = 31; i = 32;
+    i = 25; i = 26; i = 27; i = 28;
     for (i = 0; i < 5; i++) {
         g_pEditRow[i] = &g_editRowWk[i];
         g_editRowNo[i] = i;
