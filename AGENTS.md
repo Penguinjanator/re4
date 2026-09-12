@@ -30800,3 +30800,32 @@ handed sets and which neighbour covers which callee-saved register; bodies/, NOT
   masks r3/r7 coloured before p0 (r8) and i (r9); (c) q0's case-3 web is L2 (pop 61, the fresh r20) while the target's q0 (r17) is the last hand-out
   after the case-3 temps hand out r20/r19 and the x's r18/r17 — in the model the tail works when q0c3 pops in L1 before p4c3/q4c3 (they interfere
   with it: r17 covered -> r18, r19). Case 0 lost 8 lines (13) only through a3 (r20 for r24: the r20 hand-out).
+- **db_cam, the sched2 dependence sets read off the LOG_LINKS (why no store can break the tie):** every store of the block is REG_DEP_ANTI on EVERY
+  earlier load (`stw r30,0x118(r7)` 470 on 433/437/450/462/465/468; the target-copy stores 499-501 on 433..497) and REG_DEP_OUTPUT on every earlier
+  store: the memcpy stores are `mem/f` (MEM_SCALAR_P) through a different hard register than the `mem/s` loads, so `memrefs_conflict_p` says 1 for
+  every pair and the struct/scalar exclusion of `anti_dependence` needs the WRITE to be the non-struct varying one — it never fires here. The y/z
+  dependents therefore differ only in the register edges (y: 471 T, 497 OUTPUT r0; z: 472 T, 491 OUTPUT r8), and the priorities are both
+  27 (own store) + 2 (lwz latency). Anti edges cost 0, output edges >= 1, so the stores' 27 comes from the output chain x-store -> target stores.
+  The y-first-sched1 alternative is self-contradictory: y r0 needs y's store >= 2 insns BEFORE z's store in the sched1 stream (pri 2/len, tie
+  -> lower qty = y), but sched2's store tie (27/27, 18/18 dependents) is LUID = the sched1 order, and the target stores z before y. So the
+  target's stream is ours (z-first sched1) with a sched2 difference that leaves no byte and no C-visible RTL difference — the vendor's copy
+  had a different RTL form for the same bytes (a different destination-pointer form is the only free parameter: `(plus r10 4)` stores).
+- **lib/adx_tsvr `adxt_nlp_trap_entry` 2w (unchanged; the ties-1 "excluded from r0" reading CONFIRMED as the mechanism, the C shape not found;
+  /tmp/ties2/tsvr, run.sh + ra.py dumps):** in the RA graph the r0 exclusion is a physical-r0 neighbour edge: it is present on every web that is
+  live across a call (r37-r39, r36 ofst1, r33 ofst2v, r53 n1) and on every web used in an rA position (`addi r5,r44,-1`: r44; the `lwz r12,rX,0x18`
+  bases r45/r47/r49), absent on `add`/`subf` operands (r51 `add r3,r51,r36`) and on the lha temp r56 (neighbours r1 r3 r33 r36 r37 r38 r39 r53 r54,
+  lowest free r0). Probe b3 `register Sint32 t = ofst; asm { addi t, t, 4 } ofst1 += t - 4;` gives the temp `r0` in its neighbour list and
+  `lha r4,0xa(r1)` = the target's colour with nothing else moving (12w only from the surviving addi/subi). So the vendor's temp web carried an
+  rA-position use that left no instruction. Every codeless spelling of such a use dies BEFORE the graph: a dead asm `addi t2,t,4` / `lwz t2,0(t)`
+  (b1/b2) is deleted at backend pass 04 (add-propagation's dead-code sweep); `asm { addi t,t,0 }` (a1) is constant-propagated to `mr t,t` at an
+  asm-triggered `constant-propagation` pass (the asm/register form runs 4 extra backend passes: constant-propagation, load-deletion, copy-prop,
+  add-prop; the plain C pipeline has 13) and the self-copy is deleted at the RA without the edge; `asm { mr t, t }` (a2) 2w; pointer forms put
+  the temp in rB, not rA: `((Sint16*)((Uint8*)&ofst2 + t))[0]` (f3) = `lhax r26,r4,r0` with `addi r4,r1,8` as the base (13w); `(Sint8*)ofst1 + ofst`
+  (a3), `(ofst + 4) - 4` (e1), `t2 = ofst + 4; ofst1 = ofst1 + t2 - 4` (e2: frontend reassociates to `add r27,r0,r27` — the temp in rA of `add`
+  has NO r0 edge, so `add`'s rA is not a base position), `t2 - t2` (f1), `Sint16 *po = &ofst; ofst1 += po[0]` (f2: add-propagation folds the
+  addi into the lha, the edge lands on po's web, not the temp's): all 2w. The post-RA peephole of this function only merges `mr r28,r3; cmpi` ->
+  `mr.` and re-bases three loads on r3; the RA deletes three coalesced `mr`s. Left 2w; the C construct that gives a load temp an rA use deleted
+  at/after the RA graph (a coalesced copy or a post-RA fold whose rA is the temp) was not found. Catalogue note (MWCC row 1/"swapped registers"):
+  "lowest free of r0,r3..r12" excludes r0 for a web with an rA-position use (addi/load/store base) or live across a call — read the neighbour
+  list for a physical r0 before modelling a colour.
+- Flags: none changed (game/db_cam 12/13, lib/adx_tsvr 5/6). No tree file edited except this section. Nothing built under the lock.
