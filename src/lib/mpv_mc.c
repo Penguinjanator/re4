@@ -75,156 +75,165 @@ void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
 	}
 }
 
-#pragma opt_propagation off
-void MPVMC08_OneRefH2_TuneC(MPVMC *mc)
+/* H2: one row per iteration, unrolled x2 by the backend (a counted-loop body of <= 35 pcodes after the copy/add
+ * propagation passes). The row variables are the locals of an inlined helper so that the pack copies coalesce into
+ * them (helper locals are `@N` webs, own locals are not), the whole helper is one web per variable across the four
+ * cases (`opt_lifetimes off` on the CALLER), and the packs are written so that the or->rlwimi peephole inserts into
+ * the variable's own register: `V = base_shift; V = (fused_shift) | (V & complement_mask)` (a rotate-0 mask that is
+ * the complement of the insert range is replaced by its source, `mr V, V` disappears) or `V = __rlwimi(V, ..)` on a
+ * value whose web is not redefined while the K6 temp lives. Masks: function-level webs, materialised once (the
+ * target's `lis r5, 0xfeff; lis r4, 0x101` at the top). AGENTS.md "CRI SWAR kernels pass 14-17". */
+#pragma opt_propagation off /* COMPILER-DIFF: the masks would be propagated into every case (lis/addi per case, bodies > 35 pcodes, no unroll) */
+#pragma inline_max_size(100000) /* COMPILER-DIFF: the ~120-statement helper is not inlined under -inline auto */
+#pragma inline_max_total_size(100000)
+static inline void mpvmc08_OneRefH2Body(MPVMC *mc)
 {
-	Sint32 i;
+	Uint32 m2 = 0x01010101;
+	Uint32 m1 = 0xFEFEFEFE;
+	Uint32 x0, a1, w1;
 	Uint8 *s = mc->src;
 	Uint32 *d = mc->dst;
+	Uint32 a0, w0;
 	Sint32 stride = mc->stride;
-	Uint32 w0, w1, a0, a1, x0, x1;
-	Uint32 m1 = 0xFEFEFEFE;
-	Uint32 m2 = 0x01010101;
-
-/* one row of case 0: the average is accumulated in place (w &= a; a = x & m1; x &= m2; a >>= 1; w += x; w += a) */
-#define MPVMC08_H2ROW0(o0, o1) \
-	__dcbt(s, stride); \
-	w0 = MPVMC08_W(s, 0); \
-	w1 = MPVMC08_W(s, 4); \
-	a1 = s[8]; \
-	a0 = (w1 >> 24) | (w0 << 8); \
-	a1 = (w1 << 8) | a1; \
-	x0 = w0 ^ a0; \
-	s += stride; \
-	w0 &= a0; \
-	x1 = w1 ^ a1; \
-	a0 = x0 & m1; \
-	x0 &= m2; \
-	w1 &= a1; \
-	a1 = x1 & m1; \
-	x1 &= m2; \
-	a0 >>= 1; \
-	w0 += x0; \
-	a1 >>= 1; \
-	w0 += a0; \
-	w1 += x1; \
-	d[o0] = w0; \
-	w1 += a1; \
-	d[o1] = w1;
-
-#define MPVMC08_H2ROW1(o0, o1) \
-	__dcbt(s, stride); \
-	w1 = MPVMC08_W(s, 4); \
-	w0 = MPVMC08_W(s, 0); \
-	a1 = MPVMC08_H(s, 8); \
-	a0 = (w0 << 8) | (w1 >> 24); \
-	w0 = __rlwinm(__rlwimi(w0, w1, 0, 0, 15), 16, 0, 31); \
-	a1 = (w1 << 16) | a1; \
-	x0 = a0 ^ w0; \
-	w1 = __rlwimi(w1 << 8, a1, 24, 24, 31); \
-	a0 &= w0; \
-	w0 = x0 & m1; \
-	x0 &= m2; \
-	x1 = w1 ^ a1; \
-	w1 &= a1; \
-	a1 = x1 & m1; \
-	w0 >>= 1; \
-	a0 += x0; \
-	x1 &= m2; \
-	a0 += w0; \
-	a1 >>= 1; \
-	w1 += x1; \
-	d[o0] = a0; \
-	w1 += a1; \
-	s += stride; \
-	d[o1] = w1;
-
-#define MPVMC08_H2ROW2(o0, o1) \
-	__dcbt(s, stride); \
-	w0 = MPVMC08_W(s, 0); \
-	w1 = MPVMC08_W(s, 4); \
-	x1 = MPVMC08_W(s, 8); \
-	a0 = (w1 >> 8) | (w0 << 24); \
-	w0 = (w1 >> 16) | (w0 << 16); \
-	x0 = w0 ^ a0; \
-	w0 &= a0; \
-	a1 = (x1 >> 8) | (w1 << 24); \
-	a0 = x0 & m1; \
-	w1 = (x1 >> 16) | (w1 << 16); \
-	x0 &= m2; \
-	s += stride; \
-	x1 = w1 ^ a1; \
-	w1 &= a1; \
-	a1 = x1 & m1; \
-	a0 >>= 1; \
-	w0 += x0; \
-	x1 &= m2; \
-	w0 += a0; \
-	a1 >>= 1; \
-	w1 += x1; \
-	d[o0] = w0; \
-	w1 += a1; \
-	d[o1] = w1;
-
-#define MPVMC08_H2ROW3(o0, o1) \
-	__dcbt(s, stride); \
-	a0 = MPVMC08_W(s, 4); \
-	w0 = __rlwimi(__lwbrx(s, 0), a0, 24, 8, 31); \
-	a1 = MPVMC08_W(s, 8); \
-	x0 = w0 ^ a0; \
-	w1 = (a1 >> 8) | (a0 << 24); \
-	w0 &= a0; \
-	a0 = x0 & m1; \
-	x0 &= m2; \
-	x1 = w1 ^ a1; \
-	w1 &= a1; \
-	a1 = x1 & m1; \
-	a0 >>= 1; \
-	w0 += x0; \
-	x1 &= m2; \
-	w0 += a0; \
-	a1 >>= 1; \
-	w1 += x1; \
-	d[o0] = w0; \
-	w1 += a1; \
-	s += stride; \
-	d[o1] = w1;
+	Uint32 x1;
+	Sint32 i;
 
 	switch ((Uint32)s & 3) {
 	case 0:
-		for (i = 0; i < 4; i++) {
-			MPVMC08_H2ROW0(0, 1)
-			MPVMC08_H2ROW0(2, 3)
-			d += 4;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w0 = MPVMC08_W(s, 0);
+			w1 = MPVMC08_W(s, 4);
+			a1 = s[8];
+			a0 = (w1 >> 24) | (w0 << 8);
+			a1 = __rlwimi(a1, w1, 8, 0, 23);
+			x0 = w0 ^ a0;
+			s += stride;
+			w0 &= a0;
+			x1 = w1 ^ a1;
+			a0 = x0 & m1;
+			x0 &= m2;
+			w1 &= a1;
+			a1 = x1 & m1;
+			x1 &= m2;
+			a0 >>= 1;
+			w0 += x0;
+			a1 >>= 1;
+			w0 += a0;
+			w1 += x1;
+			d[0] = w0;
+			w1 += a1;
+			d[1] = w1;
+			d += 2;
 		}
 		break;
 	case 1:
 		s -= 1;
-		for (i = 0; i < 4; i++) {
-			MPVMC08_H2ROW1(0, 1)
-			MPVMC08_H2ROW1(2, 3)
-			d += 4;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w1 = MPVMC08_W(s, 4);
+			a0 = MPVMC08_W(s, 0);
+			a1 = MPVMC08_H(s, 8);
+			w0 = w1 >> 24;
+			w0 = __rlwimi(w0, a0, 8, 0, 23);
+			a0 = (w1 & 0xFFFF0000) | (a0 & 0xFFFF);
+			a0 = __rlwinm(a0, 16, 0, 31);
+			a1 = __rlwimi(a1, w1, 16, 0, 15);
+			x0 = w0 ^ a0;
+			w1 <<= 8;
+			w1 = __rlwimi(w1, a1, 24, 24, 31);
+			w0 &= a0;
+			a0 = x0 & m1;
+			x0 &= m2;
+			x1 = w1 ^ a1;
+			w1 &= a1;
+			a1 = x1 & m1;
+			a0 >>= 1;
+			w0 += x0;
+			x1 &= m2;
+			w0 += a0;
+			a1 >>= 1;
+			w1 += x1;
+			d[0] = w0;
+			w1 += a1;
+			s += stride;
+			d[1] = w1;
+			d += 2;
 		}
 		break;
 	case 2:
 		s -= 2;
-		for (i = 0; i < 4; i++) {
-			MPVMC08_H2ROW2(0, 1)
-			MPVMC08_H2ROW2(2, 3)
-			d += 4;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w0 = MPVMC08_W(s, 0);
+			w1 = MPVMC08_W(s, 4);
+			x1 = MPVMC08_W(s, 8);
+			a0 = w0 << 24;
+			a0 = (w1 >> 8) | (a0 & 0xFF000000);
+			w0 <<= 16;
+			w0 = (w1 >> 16) | (w0 & 0xFFFF0000);
+			x0 = w0 ^ a0;
+			w0 &= a0;
+			a1 = w1 << 24;
+			a1 = (x1 >> 8) | (a1 & 0xFF000000);
+			a0 = x0 & m1;
+			w1 <<= 16;
+			w1 = (x1 >> 16) | (w1 & 0xFFFF0000);
+			x0 &= m2;
+			s += stride;
+			x1 = w1 ^ a1;
+			w1 &= a1;
+			a1 = x1 & m1;
+			a0 >>= 1;
+			w0 += x0;
+			x1 &= m2;
+			w0 += a0;
+			a1 >>= 1;
+			w1 += x1;
+			d[0] = w0;
+			w1 += a1;
+			d[1] = w1;
+			d += 2;
 		}
 		break;
 	case 3:
 		s -= 3;
-		for (i = 0; i < 4; i++) {
-			MPVMC08_H2ROW3(0, 1)
-			MPVMC08_H2ROW3(2, 3)
-			d += 4;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			a0 = MPVMC08_W(s, 4);
+			w0 = __lwbrx(s, 0);
+			w0 = (a0 >> 8) | (w0 & 0xFF000000);
+			a1 = MPVMC08_W(s, 8);
+			x0 = w0 ^ a0;
+			w1 = (a1 >> 8) | (a0 << 24);
+			w0 &= a0;
+			a0 = x0 & m1;
+			x0 &= m2;
+			x1 = w1 ^ a1;
+			w1 &= a1;
+			a1 = x1 & m1;
+			a0 >>= 1;
+			w0 += x0;
+			x1 &= m2;
+			w0 += a0;
+			a1 >>= 1;
+			w1 += x1;
+			d[0] = w0;
+			w1 += a1;
+			s += stride;
+			d[1] = w1;
+			d += 2;
 		}
 		break;
 	}
 }
 
+#pragma opt_lifetimes off /* COMPILER-DIFF: one web per row variable across the four cases (the range-split webs push the trio to level 2) */
+void MPVMC08_OneRefH2_TuneC(MPVMC *mc)
+{
+	mpvmc08_OneRefH2Body(mc);
+}
+#pragma opt_lifetimes reset
 #pragma opt_propagation reset
 void MPVMC08_OneRefV2_TuneC(MPVMC *mc)
 {
