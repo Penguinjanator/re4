@@ -27687,3 +27687,60 @@ Harness ~/.cache/dol_espg10 (deleted): `t.sh 42|45 SRC` (variant.sh word count, 
   scl r11 / smul r19 spill / nblk r18 spill / l2 r12).
 - Tree unchanged (adx_dcd5 2/4, 25w + 143w); a7 is NOT applied (114w: the correct level structure with the wrong intra-level order is worse in words than the
   pin form). Kit: `chaitin.py --k N` (kept). Harness ~/.cache/cri47 deleted at the end of the pass.
+
+### Tool RELs, t_event closer 6 (t_event/t_event 17 -> 0 words, IDENTICAL and FLIPPED: SubToolMessMove's mesCnt block read to the expand/cse/combine mechanism, no header change; make_rel --verify OK after `MessTool` made non-static; 111 OK; 2026-09-12)
+Scratch ~/.cache/tev6/ (hv.sh = event.h variant on game/event + t_event through variant.sh with the absolute-include swap, blk.py = the
+mesCnt block of every RTL dump; deleted at the end with ~/.cache/tev5/). Tree: src/t_event/t_event.cpp (the block and `MessTool`),
+config/G4BE08/modules.py (`"t_event/t_event.cpp": True`). include/event.h UNTOUCHED (the header hypothesis is not needed, see below).
+- **The 17 words were three address forms, all decided before RA.** Target: `addi rB,rD,0xc4`; `lwz 4(rB)` [2]; `lwz 0(rB)` [1];
+  `lwzu r8,0xc0(rD)` [0] (rD becomes rA = &mesCnt[0], used by the loop's `stwx no,rA,no`); loop `stwx messNo,rP,no` / `stw i,4(rP)` with
+  rP = `mr r26,r28` (a loop-hoisted `(plus D 0xc4)` that cse2 rewrote to a copy of rB); then `lwz r0,0x10(e)` BEFORE the three stores.
+  (a) `0(rB)` is NOT rewritten by cse when the address is `(plus rB idx)` with idx a REGISTER holding 0: find_best_addr only improves a
+  bare REG or `(plus REG CONST_INT)` (its fold branch needs a HIGHER rtx cost, so `(plus rB 0)`->rB is rejected), canon_reg keeps the
+  index reg, combine later folds the index's `(set idx 0)` (same block, LOG_LINK) into `(mem rB)`, and rB's set cannot merge (used in
+  between). The index register must be set in the SAME basic block before the reads: `i = 0;` before the eprintfs (the for's own `i = 0`
+  is then a deleted no-op; `li r31,0` appears once). A block-top `no` reused by the loop fails (multi-set, no hoist: 12w).
+  (b) The address stays inside the MEM only for an ARRAY_REF whose base is the POINTER VARIABLE: `p->v[i]` with `struct MesCntView { s32
+  v[3]; }* p` (COMPONENT_REF base, cp build_array_ref). `s32* mc; mc[i]` computes `(set T (plus (ashift i 2) rB))` + `(mem T)` -> cse
+  folds T to rB and rewrites `0xc4(D)` (17w, ours). A pointer/reference to array is pointer arithmetic (`TREE_CODE (array) ==
+  INDIRECT_REF` -> `*(a + i)`; closer 5). A struct member array off `d` (`d->mesCnt[i+1]`) gets a FRESH single-use base that combine
+  merges into `0xc4(D)`. Array bound matters: with `v[2]` the frontend computes the address into a pseudo again (`(set T (plus rB
+  ashift))` + `(mem T)`, 36w); `v[3]` keeps it in the MEM.
+  (c) `lwzu` = combine's `*movsi_update1` (i2 `(set A (plus D 0xc0))` + i3 `(mem A)`, A live into the loop -> PARALLEL, reload ties
+  A to D). Combine never crosses a CALL with a non-constant source (can_combine_p `last_call_cuid`), so A's set must sit AFTER the fourth
+  eprintf: `x = (MesCntView*) &d->mesCnt[0];` between eprintf 0x140 and 0x190, and the loop's `x->v[no] = no` must use the SAME pointer
+  (a fresh loop base would be a `mr` copy: cse2 rewrites it to A, local-alloc cannot tie a global pseudo).
+  (d) The loop's [1]/[2] stores through a loop-fresh `MesCntView* y = (MesCntView*) &d->mesCnt[1]` (`y->v[no]`, `y->v[1]`): hoisted,
+  cse2 turns `(plus D 0xc4)` into `(set P rB)` = `mr r26,r28` (P global, rB dead -> no tie).
+  (e) Store order: `lwz r0,0x10(e)` ahead of `stwx no`: the messNo re-load conflicts with the `x->v[no]` store (e's base is unknown --
+  loaded, multi-set; -fstrict-aliasing is OFF in this SN build: toplev.c `flag_strict_aliasing = 0`, so the s32/int alias sets do not
+  separate them), so in the target's RTL the load PRECEDED store a: `mes = e->messNo;` after the MesSet call, then `x->v[no] = no;
+  y->v[no] = mes; y->v[1] = i;` (LUID order). The six statement orders without the local: 4/4/2/2/3/3 words.
+- **Header variants (judged first, none needed).** `s32 mesCnt; s32 mesNo[2]` is ruled out by game/event MesClear (`lwzx r11,r9,r0` with
+  r0 = no: an ARRAY at 0xc0); `s32 mesCnt[1]; s32 mesNo[2]` or a nested struct changes nothing for t_event: the shape needs pointer
+  variables to structs with a leading array (b) whatever the member split, and constant-index member accesses off `d` fold to `K(D)`.
+  event.h stays; game/event stays IDENTICAL by construction (no includer rebuilt).
+- **REL flip detail:** with the unit linked, `make_rel --verify` had 20 bytes `ours c4 orig 00` = every `MessTool@l` field: the field holds
+  S+A for a LOCAL symbol and A only for a global (make_rel header rule; module symbols.txt has `lbl_t_event_bss_C4 ... scope:global`), so
+  `static struct { ... } MessTool` -> `struct MessToolWork { ... } MessTool` (non-static). Then OK (208220 bytes). sync_rel_symbols: 0
+  changes, DOL symbols.txt unchanged. Full `ninja -k 0`, 111 OK. t_event is now 7/7 units Matching (t_esp_area/t_lightarea words are the
+  Tools REL's, unchanged: 7/4).
+- Mechanism rows for the catalogue: "cse rewrites `0(rB)` to `K(D)`" -> keep a zero-valued REGISTER index inside the MEM via a struct-pointer
+  ARRAY_REF (`p->v[i]`, bound >= 3), index set in the same block; "`lwzu`/update form missing" -> the base's set after the last call before
+  the read and the same pointer used later; "load after the first store, target before" -> cache the value in a local after the call.
+
+### CRI SWAR kernels pass 11: sched.py as the oracle for the 16x16 4p block 1 (IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar11/ (`gen.py NAME lpos=top|pair|pair2 lord=ab|ba p8=pre|mid cast=1|0 pix=.. mask=0|1 decl=..` whole-function
+generator for the 4p body, `try.sh unit NAME FUNC` = variant.sh + scheddump + sched.py + dtk listing, `score.sh NAME` = the first-half block isolated
+(`whatif.py DUMP BLOCK --keep a-b`: sched.py on an edited block) then `post.py TARGET_LST FROM TO ORDER --valid`: builds the TARGET's post-RA DAG
+from its asm (physical registers, same alias record everywhere) and schedules it with the model using OUR pre-RA output as the input order;
+`--ties` lists the input-order ties that decided the target's own schedule; `sym.py`/`tsym.py`/`cmp.py` = symbolic listings (a_k = s0[k], b_k = s1[k])).
+- **Method result: the target's final block-1 order is reproduced (67/67, dataflow-valid) by the post-RA model from OUR pre-RA output when the
+  pixel pair k+1 is loaded right before the sum p_k (`a1 = s0[1]; b1 = s1[1]; p0 = ..; a2 = ..; b2 = ..; p1 = ..`; gen `lpos=pair`, also `pair2`,
+  `lord=ba`).** With the tree's all-loads-first form the model diverges at position 42 (`lbz a8` before `lbz b7`: a8/b8 sit at the top of the
+  raw order, an input-order tie) and the target's colours are dataflow-invalid for 2 instructions there (so the vendor's pre-RA order differs
+  around p6/p7). Fresh `a9/b9` names (65/67), `cast=0` (32/67), `s0/s1 += stride` before the sums (25/67) are worse.
+- The post-RA model with the target's own order as input is a fixed point (67/67); its input-order ties: `b1 < a2 < b0 < a1` (loads), `b5 <
+  a6 < a4`, `b4 < a5 < b6`, `add p3 < add p0`, `rlwinm p5 < add (a8+b7)+b8`, `add p7 < stw d[0]`.
+- `lpos=pair` + masked loads (`s0[k] & 0xFF`, pass 9's E) splits the body exactly after `d[1]` (B3 = 79 pcodes, B4 = 69), prologue identical,
+  119w; the residue of block 1 is now the colours only (same operation multiset in the same pre-RA order).

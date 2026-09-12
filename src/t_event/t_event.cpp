@@ -234,7 +234,8 @@ static inline void EvtMessRead(EventMessageData* m, const char* path)
 
 // One-member struct: the tool pointer is a struct member (not a fixed scalar), so it is re-read after
 // every store made through it (SubToolMessInit's Set*Func / callback stores reload it each time).
-static struct {
+// Not static: the REL's `MessTool@l` fields hold 0 (a global's A only), a local's would hold S+A.
+struct MessToolWork {
     cDbgToolMain<EventMessageData::MessElem>* p;
 } MessTool;
 
@@ -1285,31 +1286,42 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
     }
     {
         EventMessageData::MessElem* e;
-        // `&EvtDebug.mesCnt[1]` is a pointer formed from the struct address (`addi rB,rD,0xc4`) at
-        // the block top: mesCnt[2]/[1] are read through it and the loop stores `mc[no]`/`mc[1]`.
-        // A struct pointer keeps `&EvtDebug` the cse class head (a bare `&EvtDebug.mesCnt[1]` makes
-        // the `EvtDebug+0xc4` constant the head and derives `&EvtDebug` from it with a `subi`).
+        // The mesCnt block of the original: a pointer to the struct address (`addi rB,rD,0xc4`) for
+        // mesCnt[2]/[1] (`4(rB)`, `0(rB)`) and a second one formed after the fourth eprintf for
+        // mesCnt[0] (`lwzu`, the same register carries it into the loop's `stwx no,rA,no`); the
+        // loop's mesCnt[1]/[2] stores go through a third, loop-fresh pointer (hoisted, `mr r26,r28`).
+        // Only a struct pointer with a leading array reproduces this: `p->v[k]` is an ARRAY_REF
+        // whose address stays inside the MEM (`(plus rB idx)`: cse leaves it, combine folds the
+        // zero index), a plain `s32*` computes the address as a value that cse rewrites to
+        // `0xc4(rD)`, and a reference/pointer to array is pointer arithmetic in this frontend.
+        // A struct pointer also keeps `&EvtDebug` the cse class head (a bare `&EvtDebug.mesCnt[1]`
+        // makes the `EvtDebug+0xc4` constant the head and derives `&EvtDebug` from it with a `subi`).
+        struct MesCntView { s32 v[3]; };
         EventDebug* d = &EvtDebug;
-        s32* mc = &d->mesCnt[1];
+        MesCntView* m = (MesCntView*) &d->mesCnt[1];
+        MesCntView* x;
 
-        eprintf(0x50, 0x90, 0, 0, "%3d", mc[1]);
+        i = 0;
+        eprintf(0x50, 0x90, 0, 0, "%3d", m->v[1]);
         eprintf(0xA0, 0x90, 0, 0, "%3d", ev->cut);
         eprintf(0xF0, 0x90, 0, 0, "%3d", ev->frame);
-        eprintf(0x140, 0x90, 0, 0, "%3d", mc[0]);
-        eprintf(0x190, 0x90, 0, 0, "%3d", EvtDebug.mesCnt[0]);
+        eprintf(0x140, 0x90, 0, 0, "%3d", m->v[i]);
+        x = (MesCntView*) &d->mesCnt[0];
+        eprintf(0x190, 0x90, 0, 0, "%3d", x->v[i]);
         e = t->pMess->elem;
         for (i = 0; i < XML_NODE_MAX; i++, e++) {
             if (IsWorkAlive(e) && ev->cut == e->cutNo && ev->frame == e->frame) {
-                // COMPILER-DIFF: candidate (cse1 in-ebb canon): the original stores the record with
-                // ONE zero register as both index and value (`stwx rN,rBase,rN`); `no` declared here
-                // (same ebb as the stores) and stored as the value gets that. Open: the target keeps
-                // `mc[no]` as `stwx` (no not folded) and forms `&mesCnt[0]` at the [0] read (`lwzu`).
                 int no = 0;
+                int mes;
+                MesCntView* y = (MesCntView*) &d->mesCnt[1];
 
                 ev->MesSet(e->messNo, e->timer, 100, EVT_MES_Y);
-                EvtDebug.mesCnt[no] = no;
-                mc[no] = e->messNo;
-                mc[1] = i;
+                // the record's message number is re-read into a local before the three stores
+                // (sched1: the load ahead of `stwx no`, then the stores in statement order)
+                mes = e->messNo;
+                x->v[no] = no;
+                y->v[no] = mes;
+                y->v[1] = i;
             }
         }
     }

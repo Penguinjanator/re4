@@ -799,6 +799,7 @@ MATCHING = {
     "Tools/db_toolbase.cpp": True,
     "t_event/db_toolbase.cpp": True,
     "t_event/db_light.cpp": True,
+    "t_event/t_event.cpp": True,
     "Tools/t_dr.cpp": True,
     "Tools/t_sce_at.cpp": True,
     "Tools/t_atari.cpp": True,
