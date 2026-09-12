@@ -2015,7 +2015,11 @@ static void LoadSstNameUpdateCallback(DB_PRIMITIVE* p)
 class LOAD_SST_WINDOW : public TOOL_WINDOW {
 public:
     LOAD_SST_WINDOW(DB_PRIM_ARRAY* p) {
-        { int d_; d_ = 1; d_ = 2; }
+        // pass 23: pad removed (-2 cse1) so that cse1's F1 moves from LOAD_EVENT+4 to +6, i.e. AFTER the LOAD_EVENT ctor
+        // argument's `lo_sum g_pPrimArray`: the F1..F2 window's g_pPrimArray high is then SAVE's (cse2 merges
+        // LOAD_CHECK/SAVE_CHECK/OPTION's into it, 9 refs, allocated r18 and inherited by reload through PATH as in the
+        // target). Paid back by SAVE_ROOM's 6-set pad (F2 exact).
+        { }
         pa = p;
         win = NULL;
         {
@@ -2408,7 +2412,7 @@ static void SaveRoomFileNoUpdateCallback(DB_PRIMITIVE* p)
 class SAVE_ROOM_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_ROOM_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; d_ = 5; d_ = 6; } // pass 23: 4 -> 6 sets, pays back LOAD_SST's pad (cse1-only)
         pa = p;
         win = NULL;
         {
@@ -2542,6 +2546,12 @@ public:
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 192.0f;
             f32 h = 128.0f;
+            // pass 23: cse1 flush F2 falls between `w` and `h` above, so this `d_ = 4` heads the constant-4 class after
+            // it and the pad survives to cse2 (2 cse1-time, 1 cse2-time insn): it moves cse2's F2' from OPTION+71 to
+            // OPTION+70, out of the FOG CreateString's `this` copy -> pos.y store interval (a surviving `this` copy
+            // makes that `&pos` pseudo GENERAL-class at its entry spill and the target's seg 0 shows it BASE-class).
+            // The 2 cse1-time insns are paid back by SAVE_CHECK's pad (4 -> 2 sets).
+            { int d_; d_ = 1; d_ = 4; }
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
             win = pa_->CreateNormalWindow("     Save EVENT", &pos, &w, &h, &flg);
         }
@@ -2608,7 +2618,7 @@ static void SaveCheckClose_callback(DB_WINDOW*)
 class SAVE_CHECK_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_CHECK_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; } // pass 23: 4 -> 2 sets, pays back SAVE_EVENT's in-block pad (cse1-only)
         pa = p;
         win = NULL;
         {
@@ -4282,7 +4292,11 @@ public:
         // ANMRATE+46 (seg 619's 80.0f load fresh, as in the target); the 37th cse1-time insn is paid back by ROTATE's
         // shared `sx2` (below) so that cse1's F9 stays at ROTATE+647 and F10 at WORK0+14, which is pinned: F10 must
         // fall between WORK0's pos.x load and its pos.y load (x shared with VEC2, y fresh, both stores via the pointer).
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 37; d_ = 4; }
+        // pass 23: 39 sets put F6' at ANMRATE+44 = at the ANMRATE CreateNumeric2's `(set this &pos)` copy, no longer
+        // between it and the pos.y store (a surviving copy there made the `&pos` pseudo GENERAL-class at its entry spill;
+        // the target's seg 0 reload rotation shows it BASE-class); the 2 cse1-time insns are paid back by ROTATE's shared
+        // `sx1` (below).
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 37; d_ = 38; d_ = 39; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -4400,7 +4414,10 @@ public:
         // pass 22: the RND_ROT column's `sx = 2` is shared through this variable by its first two rows: the second
         // row's `int sx = 2` costs one cse1-time insn (`(set r 2)`, deleted at cse1's end) that `int sx = sx2` does not,
         // with the same post-cse1 RTL; it pays back the LIFE pad's 37th set (see LIFE_WINDOW).
+        // pass 23: the same for the ACCELE column's `sx = 1` (rows 4-6, `sx1`): -2 cse1-time insns for the LIFE pad's
+        // sets 38/39.
         int sx2;
+        int sx1;
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -4432,7 +4449,8 @@ public:
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 0.0f);
-            int sx = 1;
+            sx1 = 1;
+            int sx = sx1;
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.x, &g_pEditSeq2->rotSpd.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
@@ -4441,7 +4459,7 @@ public:
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 16.0f);
-            int sx = 1;
+            int sx = sx1;
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.y, &g_pEditSeq2->rotSpd.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
@@ -4450,7 +4468,7 @@ public:
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 32.0f);
-            int sx = 1;
+            int sx = sx1;
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.z, &g_pEditSeq2->rotSpd.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
@@ -4999,12 +5017,8 @@ void InitTool()
 {
     u32 i;
     DB_PRIM_ARRAY* pa;
-    // COMPILER-DIFF: candidate (reload spill set): the target's reload registers are {r0,r6,r8,r9,r10,r11}, ours
-    // {r0,r9,r10,r11}; the two REG_EQUIV constants below are rematerialised at the asms with r8 and r6 as the
-    // only free spill candidates (r0,r7,r9,r10,r11 clobbered), which puts r8/r6 into spill_regs for the whole
-    // function (reload1.c finish_spills) and gives the entry block its r8/r10/r0 spill-pair cycle.
-    u32 k8 = 0x1234;
-    u32 k6 = 0x5678;
+    // pass 23: the pass-14 `k8`/`k6` spill-set asm is gone; with the cse1/cse2 flush grids fitted the natural form
+    // gives reload the target's spill set {r0,r6,r8,r9,r10,r11,f0,LR} by itself (RLDDBG: 284 r6 / 533 r8 picks).
 
     g_filter = 0;
     g_render = 0;
@@ -5029,7 +5043,8 @@ void InitTool()
     // the count is (real insns at gcse) / 2 | 1, so every change to InitTool's insn count re-fits it.
     // pass 15: 116 sets = 5235 with the `tbl` locals of the EDIT row loops; pass 16: 76 sets = 5235 with the
     // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors; pass 21: 32 sets = 5235 with the PARENT 16-set / LIFE 36-set pads, eight tail pads removed, FSTORE_AT POS_MINMAX;
-    // pass 22: 28 sets = 5235 with the LIFE 37-set pad and ROTATE's shared `sx2`.)
+    // pass 22: 28 sets = 5235 with the LIFE 37-set pad and ROTATE's shared `sx2`;
+    // pass 23: 28 sets = 5233 with the LIFE 39-set pad, `sx1`, the SAVE_EVENT in-block pad and the k8/k6 asm removed.)
     i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
     i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
     i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
@@ -5110,8 +5125,6 @@ void InitTool()
     g_page = 0;
     g_editTop = 0;
     g_editCursor = 0;
-    asm("" : : "r"(k8), "r"(k6) : "r0", "r7", "r9", "r10", "r11");
-    asm("" : : "r"(k8), "r"(k6) : "r0", "r7", "r9", "r10", "r11");
 }
 
 /* ------------------------------------------------------------------------- sequence table edits */

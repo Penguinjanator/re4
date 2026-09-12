@@ -28707,7 +28707,7 @@ only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
   before `add r30` (yskip) in the target, after them in ours — the statement order of the setup (yskip's expression before d's load?) once
   the body matches.
 
-### Tool RELs, t_esp pass 23 (t_esp 208/212: InitTool 1788 -> 1771w in the tree, seg 0 EXACT (d136 -> 0) and the pass-14 `k8/k6` spill-set asm REMOVED: the seg-0 "rotation phase" was two DB_POINT `this` copies surviving cse2 (cse2 flushes F2'/F6' inside a copy -> pos.y-store interval), read off RLDDBG + the entry addi classes; the tail's r14-r18 "remat homes" are global.c allocations, not reload; nothing flipped; 2026-09-12)
+### Tool RELs, t_esp pass 23 (t_esp 208/212: InitTool 1788 -> 1771 -> 1570w in the tree, seg 0 EXACT (d136 -> 0) and the pass-14 `k8/k6` spill-set asm REMOVED: the seg-0 "rotation phase" was two DB_POINT `this` copies surviving cse2 (cse2 flushes F2'/F6' inside a copy -> pos.y-store interval), read off RLDDBG + the entry addi classes; cse1 F1 moved LOAD_EVENT+4 -> +6 (the g_pPrimArray high of SAVE..PARENT = one r18 pseudo + reload inheritance); the tail's r14-r18 "remat homes" are local-alloc block-13 picks, not reload; nothing flipped; 2026-09-12)
 
 - **Tree:** src/t_esp/t_esp.cpp = pass 22 + (a) SAVE_EVENT in-block pad `{ int d_; d_ = 1; d_ = 4; }` after `f32 h` (after
   cse1 F2 = SAVE_EVENT+27, so `d_ = 4` heads const 4 and the pad is (2 cse1, 1 cse2)), (b) SAVE_CHECK pad 4 -> 2 sets (-2 cse1),
@@ -28750,12 +28750,12 @@ only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
   alignment across the 4-insn size change (seg metric 2527 -> 2487), applied.
 - **Item 3 (slot permutation) needs nothing:** the C -> S slot map was already identical in both (only the registers of 33
   addis differed); N 5233 after the removal, dead-set block unchanged.
-- **The tail's `lis r14 LoadNowClose` / `li r14,1` / `lis r14 g_pEditSeq2` names are global.c allocations, not reload picks:**
-  RLDDBG shows no r14-r18 reload in InitTool, `.greg` "Register dispositions" lists 5407 (keyMode `1`) in r14, 4920/4924/9697/
-  9701/12041/12045/12112.. in r15-r18 (32 tail pseudos in r14-r18). Pass 20/22's "spill-register rotation / remat home"
-  reading of them is withdrawn; the next item is global.c order/conflicts (GDBG) for those pseudos: the target leaves the
-  keyMode `1` pseudo UNALLOCATED (fresh `li` per store) and gives r14 to `LoadNowClose_callback`'s high.
-- Harness /tmp/t23 (kept): base.cpp (pass-22 tree), D1.cpp (= the tree), ct.sh/scan.sh (t22's + surv.py + runv), pad.py (also
+- **The tail's `lis r14 LoadNowClose` / `li r14,1` / `lis r14 g_pEditSeq2` names are LOCAL-ALLOC picks (block 13, the whole
+  tail is one basic block), not reload picks and not global.c:** RLDDBG shows no r14-r18 reload in InitTool, GDBG has no GORDER
+  line for them, LADBG `b13` lists them (`q144 reg5406 refs 14 ... -> 14`); `.greg` "Register dispositions" lists 32 tail pseudos
+  in r14-r18. Pass 20/22's "spill-register rotation / remat home" reading of them is withdrawn; the target leaves the keyMode `1`
+  pseudo UNALLOCATED (fresh `li` per store) and gives r14 to `LoadNowClose_callback`'s high (order below).
+- Harness /tmp/t23 (kept): base.cpp (pass-22 tree), D1.cpp (first step), E1.cpp (= the tree), ct.sh/scan.sh (t22's + surv.py + runv), pad.py (also
   rewrites `TOOL_WINDOW_CSE_PAD();` pads), mkrot.py (ROTATE sx sharing), rldmap.py, surv.py, rld_base.log, greg/lreg/cse/cse2
   extracts. /tmp/t18..t22, ~/.cache/tesp15, the kit untouched.
 - **APPLIED, mpv_mcy `MPVMC16_OneRefH2_TuneC` 225 -> 197w, .text size now exact (0x470; the unit's `.text` no longer "sizes differ"):** (1) case 0:
@@ -28788,3 +28788,28 @@ only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
   of both objects OK; objects.py untouched, nothing flipped, no `ninja -k 0`. Pass-12 harness /home/adityas/.cache/cri_swar12 DELETED; the
   pass-13 harness /home/adityas/.cache/cri_swar13 (gen.py/p.sh/cnt.py/sum.sh/h8gen.py, bodies/, ra_*/out_* dumps) is kept for the next pass —
   delete it when the 4p cut and the H2 frames are closed.
+- **Second tree step (same pass): InitTool 1771 -> 1570w = cse1 F1 moved LOAD_EVENT+4 -> +6** (LOAD_SST pad `1:2` -> `{ }`
+  = -2 cse1 before F1, paid back by SAVE_ROOM `1..6` (+2 cse1-only) so F2 = SAVE_EVENT+27 and every later flush stay; N 5233,
+  28 sets; locked ninja + bytecmp 1570w size 0xa20c/0xa0d4, 208/212; lc segs 623 782; mset [2 8 0 0 0 0 0 7 15 3 38 0 18 5]
+  (LOAD_EVENT/SAVE_EVENT/OPTION/PATH/SIZE regions now 0); seg summary 264 / total_d 2124; seg 0 still exact). Why: the pass-18
+  F1 = +4 sat between the LOAD_EVENT ctor argument's `(set H (high g_pPrimArray))` (+3) and its `lo_sum` (+4), making that H the
+  F1..F2 cse1 head with its set BEFORE cse2's F1' (LOAD_EVENT+53); cse2 then could not merge LOAD_CHECK/SAVE_CHECK/OPTION's highs
+  (their sets are after F1') into it, so ours had four g_pPrimArray highs for segs 230-446 (refs 6/4/5/5, local-alloc pri 53/30/
+  27/17, none allocated -> `lis r6` remat per `new`). With F1 after the lo_sum the F1..F2 head is SAVE's high (set at seg 230,
+  inside cse2's F1'..F2' window), cse2 folds LOAD_CHECK/SAVE_CHECK/OPTION's into it (9 refs -> the first block-13 local-alloc
+  pick -> r18, its `lis` sched1-hoisted to seg 163 exactly like the target's `lis r18`), and the DATASET..PARENT highs (segs
+  340-446, unallocated) are served by **reload's find_equiv_reg inheritance** (`lwz r0,@l(r18)` with no `lis`: r18 still holds the
+  value, dead pseudo or not, until r18 is overwritten). The same inheritance explains lc 221: the LOAD_EVENT `" Name :"` high
+  (post-F1 head, unallocated) inherited r18 from the pre-F1 `" Name :"` high in ours, while the target's r16 (its `" Name :"`)
+  had been reused at seg 210 by a single-use g_pEditSeq high -> fresh `lis r8`. Rule for the tail: **an unallocated REG_EQUIV
+  high/constant is `lis`-free wherever the hard register of an EARLIER pseudo with the same value has not been overwritten;
+  read the callee-saved names as local-alloc's block-13 pick ORDER (LADBG `b13 ... -> rN`, free regs handed out r18, r17, r16,
+  r15, r14 in priority order), not as reload picks.**
+- **Block-13 local-alloc order (LADBG on the tree before the F1 step; the remaining LOAD-region item):** ours 2555 `" Name :"`
+  high (refs 5 len 1186 pri 84) r18, 4919 g_pEditSeq (11/4204, 78) r17, 4923 g_pEditSeq2 (11/4200, 78) r16, 2807 LoadNowClose
+  (5/1312, 76) r15, 5406 keyMode `1` (14/5658, 74) r14. Target (read off the listing): r18 SAVE's g_pPrimArray high, r17
+  g_pEditSeq, r16 `" Name :"`, r15 g_pEditSeq2, r14 LoadNowClose, keyMode `1` UNALLOCATED (fresh `li` per store = the `li 1`
+  pattern of passes 20/22), i.e. the order PA > g_pEditSeq > `" Name :"` > g_pEditSeq2 > LoadNowClose > `1`: `" Name :"` must
+  rank between the two g_pEditSeq highs (ours ties them at 78), e.g. a ~50-insn longer `" Name :"` life or one more insn between
+  the g_pEditSeq2 high's sched1 slot and its death. Re-read LADBG after the F1 step before touching it. lc 623 (ROTATE `fmr`) is
+  this allocation class too; 782 (BASEPOS) not started.
