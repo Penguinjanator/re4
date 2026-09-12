@@ -26930,6 +26930,44 @@ variants, rtl_base/ rtl_v4a/ rtl_v6a/ dumps; delete at the end of the family). O
   operand first 143w, `Sint16 sc_l/sc_r` own locals 143w, `m = l1 + r1; m = m * 7 / 10` 143w.
 - Tree: src/lib/adx_dcd5.c Ste4AsSte (split + pin, comment updated) and Ste4AsMono (split). adx_dcd5 2/4, 25w + 143w, .text size equal. Nothing flipped.
 
+### CRI pass 46 (mps_lib Matching 6 -> 7/7: MPS_Create 2 -> 0w pure C, the RA's dead-def deletion clears the scheduled bit; adx_tsvr nlp_trap_entry 2w: a physical-register pin RESERVES the register function-wide, r0 included; sfd_cre AnalyMpv 15w: the target's block IS post-RA rescheduled (record-form merge dirties it); sfd_tst SFTST_Calc 79w: MulDiv-as-own-local negative, model says +9; 2026-09-12)
+Harness /home/adityas/.cache/cri46/ (deleted). Kit extended, not copied: **`~/.cache/mwccdbg/blkflags.py DUMPDIR`** = the per-block `:{xxxx}` flag word after every
+backend pass >= 11 (the pass-38/41 flags.py, now persistent; README updated). Read it FIRST for any "instruction order within a block" residue.
+- **mps_lib `MPS_Create` 2 -> 0 (pure C, flipped, 111 OK): a third clearer of the scheduled bit = the register allocator deleting a dead def.** blkflags: the
+  store block B10 is `400c` through backend-13 and `4004` after backend-14 (regalloc). The nested `for (i < 3) for (j < 8) syshd[i].raw[j] = -1` is unrolled
+  in two stages: the frontend unrolls the inner loop, the backend's loop transform unrolls the outer one and leaves its init `li r32,0` (`i`, r32 = the first
+  own-local id) as a dead def in B10; the RA deletes it (B10 before/after: only that `li` gone), the block is dirty, the post-RA scheduler re-runs it and
+  orders the cycle-3 filler pair `addi r0,r3,@l` before `li r4,-1` (pass 37's WAR-edge priority). The target = the PRE-RA order (`li r4,-1; addi r0`), i.e.
+  the vendor's block was never dirtied: three separate `for (i = 0; i < 8; i++) mps->syshd[K].raw[i] = -1;` loops (each fully unrolled by the frontend, no
+  counter survives) give it, IDENTICAL. Negative: one flat 24-iteration loop (not unrolled, 108w), a post-loop use of `i` (64w). Rule: a fully frontend-
+  unrolled loop leaves no counter; a backend-unrolled loop leaves the counter's dead `li 0` for the RA to delete = a dirty block.
+- **adx_tsvr `adxt_nlp_trap_entry` 2w, the pass-37 "r0-coloured neighbour" angle closed negative: a pin to ANY physical register reserves it for the whole
+  function, r0 included.** `register Sint32 o = ofst; asm { mr r0, o; mr o, r0 }; ofst1 += o` moves the `lha` to r4 as wanted but every other r0 temporary of the
+  function (`lbz r0,0x98`, `li r0,0`, `lwz r0,0x28`, the decsmpl `add r0`) moves to r3/r4 (11w); the same with r4 shifts the argument temps (8w); r11/r8 pins leave
+  the 2w (their ghosts are r11/r8-coloured, they block nothing the lha wants). So the codeless neighbour pin only works with a register NOBODY in the function
+  takes, and the r0 neighbour of the target's join block has no C source here (pass 37's reading stands). Own-local `o` without a pin, `ofst2v` first, `o` used
+  twice in the condition: 2w/2w/13w. Left 2w.
+- **sfd_cre `sfcre_AnalyMpv` 15w: the question "did the vendor's block skip the post-RA reschedule" is answered NO.** blkflags on ours: B6 (the byte-load block)
+  `200c` after the pre-RA schedule (11), `2004` after peephole-forward (12: the `addi data,data,1` sink to the block end, pass 41's rule; no store in the block can
+  stop it), rescheduled at 17. But the block ALSO contains the `rlwinm r50; cmpi r50,0` -> `rlwinm. r0` record-form merge, and that merge (backend-16 peephole)
+  clears 0x8 by itself (B9 `000c` -> `0004` at 16 with nothing else in it). The vendor's B6 had the same merge (target `extrwi. r0,r5,4,24`), so the target IS a
+  post-RA schedule, whatever the sink did. The target's colours then read the vendor's PRE-RA order: `ofs+1` r0 and the rlwinm temp r0 = no interference = the
+  addi was not issued between `rlwinm` and `cmpi`; b5 r6 = ofs's register = `lbz b5` issued after the addi; b8 r8 (ours r4 = ofs+1's) = `lbz b8` issued before
+  `subf size`. Ours pre-RA: `lbz7|subf; add|lbz4; rlwinm|addi; cmpi|lbz5; lbz6|subf; lbz8|addi data; lbz9 ..` (the addi takes cycle 3, pass 38's rule), so the
+  vendor's `addi ofs+1` was not ready or not preferred at cycle 3 — still the open question; c1 (b6 statement before b5) swaps the two loads in the output =
+  raw order decides equal-height load ties, so the target's `lbz 6; .. lbz 5` may also be a source order. Probes: b6/b5 swapped 15w, `q = ofs + data; data = q + 1`
+  (dst != src, no sink) 16w, `size -=` before the data update 14w, `data = p; data++` 24w (-4 bytes). Left 15w.
+- **sfd_tst `SFTST_Calc` 79w: "raise MulDiv" is not reachable, measured and modelled.** (a) `(msec = UTY_MulDiv(..))` inside the argument list with a plain
+  local is propagated away (79w, same object). (b) `msec = UTY_MulDiv(..);` as a statement moves the @171-@174 loads below the call (85w; the target loads them
+  first = the call is an argument, pass 40). (c) `register msec` + neighbour pin: after the sprintf (msec then lives across the call, coloured first of the group,
+  NEW r30, 107w, +4 bytes), before the sprintf on the not-yet-defined msec (a separate dead web: msec gets a NEW r20, `stmw r20`, 122w), pinned to r3 (383w),
+  r12 statement form (106w). (d) chaitin.py on the dump: MulDiv (r403, 20/38) needs **+9** never-removed neighbours to be coloured before ave.lo (then r24 as the
+  target), and even then the sprintf group stays out.hi r21 / out.lo r22 / mt.lo r23 (target r22/r23/r25): the target's group was coloured BEFORE tol.lo (@123)
+  took r21 and MulDiv sits INSIDE the group between out.lo and mt.lo — a frontend temp with an id between @171 and @172 (pass 35's conclusion), which the
+  right-to-left second-sighting CSE numbering (@171 out.cnt, @172 mt.cnt, @173 mt_max, @174 hlp.cnt, read off frontend-01) cannot produce for an arg-3 call.
+  Not closed; no pin applies (pass 44's finding holds).
+- Flags: `lib/mps_lib.c` True (CRI pass 46 block in objects.py), 111 OK. sfd_cre 5/6, sfd_tst 10/11, adx_tsvr 5/6 unchanged, no tree edits there.
+
 ### Tool RELs, t_camera_data closer 4 (DB_STRING ctor 2 / tcSetBesideOffset 27 / tcDataExport 62 unchanged; the sched1-only mechanisms found are the store->call dependence kind, INSN_REG_WEIGHT and flow2's dead-anchor deletion; no source change adopted; 2026-09-12)
 Scratch /home/adityas/.cache/tcam4/ (deleted): `prio.sh <variant.cpp>` = rtl.sh + bytecmp + the sched1/sched2 dependence tables,
 `sched.py <dumpdir>` = the ctor's sched1/sched2 issue order with labels `name[uid]prio/dependents`, `ins.py DUMP FUNC [re]` = one line per insn.
