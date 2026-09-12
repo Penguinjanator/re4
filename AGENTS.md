@@ -29219,3 +29219,54 @@ Harness /home/adityas/.cache/cri61/ (cri59's scripts + `b2.sh NAME` = variant wo
   @temp | — | "CRI pass 61".
 - Flip: objects.py `# CRI pass 61` block (`"lib/cftfx.c": True`), locked `ninja -k 0`, `dtk shasum -c config/G4BE08/build.sha1` 111 OK. Harnesses
   /home/adityas/.cache/cri59 and /home/adityas/.cache/cri61 deleted; the kit untouched.
+
+### CRI SWAR kernels pass 15 (mpv_mc 8x8 H2: the x2-unroll threshold is <= 35 pcodes and all four one-row cases reach it under `#pragma opt_lifetimes off` (case 2 with `__rlwimi(w << k, v, ..)` temp packs); the target's colours are reproduced by the allocator model ONLY with no pack-temp node in any loop + `x1` coloured first, and every C pack spelling under the pragma leaves a temp node — nothing applied, nothing flipped (H2 494w, V2 73w, mpv_mcy H2 197w / V2 225w unchanged); 2026-09-12)
+Harness /home/adityas/.cache/cri_swar15/ (KEPT without dumps: `h2gen.py SPEC` = bodies/NAME.c from a spec with `@pre/@decl/@rowK/@loopK/@post`
+sections (one-row `for (i < 8)` loop per case by default), `t.sh SPEC` = variant words + ra.py dump + `cnt.sh` (pcodes per loop block after
+pass 03 / 04: doubled = unrolled), `rows.py OURS.s TARGET.s [CASE]` = register-blind per-case loop opcode diff, `wi.py RADIR [--drop-loop-temps]
+[--order n1,n2,..]` = chaitin.py what-if (delete every backend temp that lives only in loop blocks / permute the own locals' vids), `pc.py`,
+`mkv.py`/`p.sh`/`dis.sh` from pass 14 with the path changed; specs base/c2a/D1-4/E1-2/P1-3/Q1-2/d4-d10 and the target listings t_*.s).
+Pass-14 harness /home/adityas/.cache/cri_swar14 DELETED.
+- **Unroll threshold corrected: a counted-loop body of <= 35 PCodes after backend pass 03 (the `LOOPWEIGHT` line not counted) is
+  unrolled x2 by pass 04; 36 is not** (d4-d10 = case 0's 29 + k `__dcbt`s: 33/34/35 -> 56/66/68 (doubled), 36..39 -> 35..38). Pass 14's
+  "<= 34 / 36" counted the LOOPWEIGHT line. Consequences: the tree's case-1 row as a ONE-row loop is 35 and unrolls as it stands (B14 35 ->
+  68); case 2 is 39 (four or-packs = 4 pcodes each: rlwinm, rlwinm, `mr own, base`, rlwimi) and needs <= 12 pack pcodes for its 8 final
+  pack instructions: the four intrinsic temp forms `a0 = __rlwimi(w0 << 24, w1, 24, 8, 31); w0 = __rlwimi(w0 << 16, w1, 16, 16, 31); a1 =
+  __rlwimi(w1 << 24, x1, 24, 8, 31); w1 = __rlwimi(w1 << 16, x1, 16, 16, 31)` (3 pcodes each: rlwinm, K6 `mr`, rlwimi; no fused rlwinm) give
+  35 -> 68 with the target's 29-opcode multiset (order residue: the second `slwi 16` + the xor/and group, c2a). Case 3 = 29. So `c2a` = all
+  four cases one-row x2-unrolled under the pragma (505w, size 0x43c vs target 0x3ec: every pack `mr` kept + a 2-register frame) — the
+  count budget per row is final instructions + `addi d` + `addi i` (the ctr counter's increment IS a body pcode until pass 04) <= 35.
+- **The physical-register edges read (base/c2a `-all.txt`):** a node gets an `r0` neighbour iff it is used as the rA/base of a D-form
+  load/store/`dcbt`/`addi` (s, d, both `lis` temps: `addi m, lis, K`; stride (only an rB), the switch temp and every loop value have none);
+  an `r3` neighbour iff live while `mc` is (s, stride, lis temps, switch temp; d's load kills mc). So the target's `lis r4 (0x101), lis r5
+  (0xfeff)` = the two lis temps coloured after the switch temp (r0) with r0/r3 blocked, m2's lis (created later = higher vid) first.
+- **What the target's colours require, by chaitin.py what-if (wi.py on c2a, model IDENTICAL to the compiler on every dump):** deleting
+  every backend temp node that lives only in the loop blocks (= "every pack `mr` coalesced") makes the whole graph ONE level (s/d/stride/m1/m2
+  fall from degree 33-37 to < 29) and the own locals colour in declaration order: switch r0, lis r4/r5, then `x1` FIRST (r0), stride r3
+  (must be loaded LAST: its load kills mc), w0 r4, a0 r5, d r6, s r7, w1 r8, a1 r9, x0 r10, m1 r11, m2 r12 = the target exactly
+  (`--order x1,stride,d,s,w0,a0,w1,a1,x0,m1,m2`; with x1 declared last it takes r12 and w0 slides to r0). The ctr `li 4` temps stay
+  (r0, adjacent to s/d/stride/m1/m2 only). Any pack temp left as a node is coloured BEFORE the own locals (higher vid) and takes r4-r10, and
+  pushes s/d/stride/m1/m2 to level 2 (r0, r3, r4, r5, r6 first) — base 479w, c2a 505w, D1-D4 (four declaration orders incl. x1 first) 506w.
+- **No C pack spelling under `opt_lifetimes off` is node-free (probes P1-P3, Q1-Q2, all read at pass 03):** `a0 = w1 >> 24; a0 |= w0 << 8`
+  -> `rlwinm a0 (dead); rlwinm t; mr a0, t; rlwimi a0, w1, 8, 24, 31` (the case-0 shape, t a node); `register Uint32 a0` identical
+  (register locals only get the LOWEST vid = coloured last); `a1 = (w1 << 8) | a1` / `a1 |= w1 << 8` with a1 = the lbz stay `slwi; or`
+  in the FINAL code (no rlwimi: the base may not be the destination); `__rlwimi(a1, ..)` = `mr t, a1; rlwimi t` (t the node); a union
+  bitfield insert goes through the stack (stw/stb/lwz). Copies into or from an own local never coalesce; only backend->backend (K6) and
+  backend->@temp do. With `opt_lifetimes on` (E1/E2, one-row loops): ~43 @temps, s/d/stride/m1/m2 degree 62-66 -> level 2 -> r0/r3/r4/r5/r6
+  (498w). Hence the target's graph = one web per row variable ACROSS the four cases (only the pragma does that) AND a pack whose base
+  copy is coalesced (only an @temp destination does that) — a combination no spelling produced. Remaining mechanism for H2: how the vendor's
+  packs put `slwi/srwi` into the variable's own register without a copy node (a frontend that keeps one web AND treats the variable as a
+  coalescable @temp — e.g. an unrecognised pragma/keyword, or a codegen path emitting RLWIMI onto the variable directly).
+- **8x8 V2 (73w, cases 1-3 colours/order):** the target's case-1 `lbz r31, 8(s1); mr r28, r31; .. rlwimi r28, r30, 8, 0, 23` is a KEPT copy
+  from an own local a2 (the s1 byte) while the s0 byte is substituted (`lbz r29; rlwimi r29`): in the tree both bytes are single-use and
+  substituted (coalesced, no `mr`). `s1 += stride` between `a2 = s1[8]` and its use keeps a2 an own local (V3: `lbz r33[a2]`, `mr @191, a2`),
+  but a2 is coloured r28 = @191's colour and the `mr` vanishes (73w unchanged); the target's a2 = r31 needs r28/r29/r30 blocked = a2 adjacent
+  to a1' and the w2 pack in the pre-RA order (a later second use of a2, or a2 loaded after them). Load statement order (V1/V2) changes
+  nothing (loads issue by height). Not closed.
+- **The one-row/x2 reading does not apply elsewhere:** the 8x8 V2 target is ctr 4 only in case 0 (32 pcodes, unrolled, identical) and ctr 8
+  in cases 1-3 (48/48/50 pcodes); mpv_mcy 16x16 H2 and V2 are ctr 16 with bodies of 73-90 / 62-96 pcodes (one row per iteration, never
+  unrolled), so their residues (197w / 225w) are colours/order only.
+- Tree untouched (src/lib/mpv_mc.c H2 two-row 494w/0x40c, V2 73w; src/lib/mpv_mcy.c H2 197w, V2 225w, 4p 30w); objects.py untouched; no
+  ninja, no 111. Next for H2: find what makes a pack's base copy coalesce into a one-web variable (test `#pragma opt_lifetimes off` on the
+  4p Matching function to see whether the vendor could have had it file-wide; probe the `-O4,p` vs `-O4` and `opt_common_subs` pragmas'
+  effect on the `mr own, t` copies with wi.py as the judge before touching the rows).
