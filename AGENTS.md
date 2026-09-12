@@ -30499,3 +30499,37 @@ block under DAG edits diffed against the target through the sigmatch role map, p
   `lbz r22; rlwimi r22,r24` IS that form). sigmatch.py now names the two load bases s0/s1 by first use, but the V2 role map still leaves
   ~99 values unmatched (the sums' operand order through two bases) — repair it first next pass, then run valid.py per case as for H2.
 - Harness: ~/.cache/cri_swar18 DELETED; ~/.cache/cri_swar19 kept small (scripts, bodies/, NOTES.md; dumps and objects deleted).
+
+### Tools/t_esp_area pass 2 (the remaining constraints read and measured: pre-strlen issue-slot budget, the live-out priority boost, the moved-init LUID; nothing applied, nothing flipped; 2026-09-12)
+Scratch /tmp/tea/ kept (e1/f1/f2 header variants, vwy*.cpp = caller with `int wyv = 0x19`, vp1-3 = caller anchors before the first sprintf).
+- **The ctor block has a fixed sched1 slot budget before strlen.** c1-c8 = 15 issue slots (2 per cycle, one beside `bl __builtin_new`) for
+  exactly 15 insns (12 IU: lis/lis/addi/addi, `li r3`, li4, li25, lis/addi vt, `mr r31,r3`, `mr r3,name`, li5; 3 LSU: x, vt, y). Every
+  scheduled insn consumes a slot (haifa 7064, USE/CLOBBER included), so ANY extra pre-strlen insn - launder-copies (`asm("" : "=r"(a) :
+  "0"(b))`, e1/f1/f2), copies, anchors with a pre-strlen store as output - evicts the lowest-priority one, `li 5` (pri 5), to the
+  strlen cycle: it then no longer crosses the call (`li r11,5`, or `li r27,5` when it lands before the call), and `li 32` moves up.
+  Post-strlen slots are free (LSU-bound), which is why the d1 anchor is invisible there.
+- **`adjust_priority` (haifa 4346): a ready insn setting a single-set pseudo that is LIVE AT THE BLOCK END is raised to
+  max_priority - sched1 only (reload_completed skips it).** That is why the gcse PRE copies `mr r18,r28`/`mr r17,r29` (2268/2272) issue
+  right after their `addi` in block 3 (p 30/25 in SCHDBG vs prio 2 in the region table) and why `mr r31,r3` prints p 10 at sched1 and
+  8 at sched2. Block-local pseudos (li4, work, li5) are never boosted. Not usable here: the boosted insn must be live-out (a global
+  allocno).
+- **`update_equiv_regs`' moved init (the only RA-time insn haifa does not count) verified on `wy`:** caller `int wyv = 0x19;` + 
+  `CreateEditWindow(4, wyv, ..)` (vwy.cpp) makes wy a 2-ref multi-block pseudo; its `li 25` leaves block 13's sched1 stream (the
+  r17/r18 pair stays 29/29) and is re-inserted before `stw y` at RA. Two failures, both as predicted: (a) the freed c4 slot goes to
+  `li 5` -> crosses `new` -> `li r27,5` (+`li r28,0x20`); (b) at sched2 the moved `li r0,25` has the LUID of `stw y` (c8) and loses the
+  c6 tie (pri 8 = 8, dependents 4 = 4) to `addi r9,r9,vt@l`: `addi r9; li r0,0x19` instead of the target's `li r0; addi r9`. A c4
+  filler must be a non-MEM codeless insn (MEM insns after the call carry the flush anti, cost 1) ready at c4 with pri >= 5 and
+  weight <= 0, AND lose its sched2 slot to `li 5`; every launder-copy fails one side: name-launder before `pName` (pri 5) wins c8 at
+  sched2 by LUID and evicts `li 5`; name-launder before strlen (pri 8) takes c3 at sched2 and puts `li r29,4` after `bl`; wx-launder
+  (f1) ties into li4's qty (refs 2+2 -> 6666 > name's 2380 -> li4 takes r30); wy-launder in the ctor puts the moved init before `stw x`
+  (li4 life 14 -> 1428 < work); in the caller (LUID < li4's, li4 to c4: life 8 -> 2500 > name).
+- **Block-3 anchors to re-time the pair's births (vp1-3: `asm("" : "=m"(pG->room_id) : "r"(path2))` before the first sprintf, so
+  `addi r29,r1,0x98` gets pri >= 30) reorder sched2 visibly (36-210 words).** The pair needs 2268 len -4 or 2272 len +9 or 7-18 extra
+  sched1 insns in blocks 3-27; none of the refs levers exists (Init#1 uses the block-local `&path1` r28, the later two sites the PRE copy).
+- Conclusion of the two passes: the target's ctor block is reproduced exactly by one codeless post-strlen anchor (d1), and the vendor's
+  build must have had either the same extra insn plus different global lengths, or an RA-time-only insn between `stw x` and `stw pWork`
+  that we cannot construct without moving `li 25` (sched2 LUID) or `li 5` (call crossing). Flags unchanged: Tools/t_esp_area 7w (+4
+  reloc), Tools/t_lightarea 4w, t_event/t_event IDENTICAL, db_toolbase IDENTICAL; include/dbg_tool.h, src/Tools/t_esp_area.cpp untouched.
+- Next: (1) find a natural source of one FEWER sched1 insn in ToolEspArea's blocks 3-27 (or 7 more) that is byte-neutral - then d1
+  closes t_esp_area (t_event's SubToolMessInit needs the same accounting for its two pairs); (2) alternatively a sched2-only dependent
+  for a moved `li r0,25` (a fifth dependent of r0 in the region, or one fewer for `addi r9`).
