@@ -30343,3 +30343,20 @@ Scratch /tmp/ties/ (dbw/run.sh = variant + SCHDBG/LADBG summary, dbw/anch.sh = w
   neighbours: the target's structure needed sadd/smul ABOVE the loop values by +3/+2 and everything else by exactly +1 (the r6 pin), and any
   other distribution (+2 all, +2 on the prologue values, +1 on sadd) lands 5-12/22.
 - Harness ~/.cache/cri67 and /tmp/cri67f deleted. Tree: src/lib/adx_dcd5.c ADX_DecodeSte4AsMono only. adx_dcd5 2/4 (25w + 62w), not flipped.
+- **game/db_cam `debugCamera::menu` 2w (unchanged, the four enumerated shapes tested once each on the campos copy, /tmp/ties/dbc):** raw-word
+  copies `*(u32*)&d0[k] = ((u32*)&campos)[k]` (d1: 60w, the copy leaves move_by_pieces), a one-member struct view `VecSlot* d0; d0->v = campos`
+  (d2: 46w, size -4), a `"=m"(*(u32*)&campos.y)` anchor after the copies = the "fourth 4(r9) use" (d3: 31w, a store to the static flushes the
+  block), a `"=m"(pos.y)` anchor (d4: 10w). Reading refined with the db_widget arithmetic: closer 7's "y-first sched1 world is unallocatable" holds
+  only for a 2-ref y — with y issued first AND the target's store order (z's store before y's) y is [30,42) 2 refs = 1666 < z 3333, but at 4 refs
+  (floor_log2 2) it is 6666 and takes r0 first; so the target's sched1 order can be y-first if y has two extra sched1-only reads. Such reads must
+  name the y WORD of the memcpy expansion, which C cannot (any word-copy spelling replaces the expansion). Not closed; nothing applied.
+- **lib/adx_tsvr `adxt_nlp_trap_entry` 2w (unchanged; the mandated MWCC shapes tested once each, /tmp/ties/tsvr):** helper whose LOCAL is the
+  B16 value — `ofst1 = adxt_nlp_add(ofst1, ofst)` with `return a + b` (t1), with a local `v = b` (t2), with `Sint16 *pb; v = *pb` (t3), with an
+  extra parameter copy `m = n1` and `+ (m & 0)` (t4), a `void` helper writing `*pa += v` (t5): all 2w — the helper local is coalesced into the
+  lha temp and still colours r0 (lowest free; nothing live in B16 is r0). Dead initialisers `ofst1 = 0` / `n2 = 0` / all four (u1-u3): 2w (no
+  range-split web of these variables reaches B16 with a new number); reversed declaration order (u4): 8w (ofst1 r26 / ofst2v r27); a second
+  `ofst1 = ofst1` def (u5): 2w. Left 2w. Next (not this pass): MWCC excludes r0 from a web that is ALSO used where r0 is illegal (an `addi`/
+  load base); the target's r4 could be a web of `ofst` shared with such a use that the final code folded — check frontend-01 for a second read.
+- Flags: `t_esp/db_widget.cpp` True (the `# 2-word ties pass 1` block in config/G4BE08/modules.py), game/db_cam and lib/adx_tsvr unchanged.
+  Built under the lock: build/G4BE08/src/t_esp/db_widget.o, t_esp.rel, then `ninja -k 0`; `dtk shasum -c` = 111 OK; symbols.txt unchanged.
+  Tree edits: src/t_esp/db_widget.cpp (DB_STRING ctor + `primIdCounter` linkage), config/G4BE08/modules.py, this section. Kit untouched.

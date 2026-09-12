@@ -955,3 +955,11 @@ MATCHING.update({
 MATCHING.update({
     "t_camera/t_camera_data.cpp": True,
 })
+
+# 2-word ties pass 1 (2026-09-12): db_widget DB_STRING ctor 2 -> 0 with four sched1-only `"=m"` anchors
+# (flow1 keeps them, sched1 hoists the pool `lfs` above them, flow2 deletes them: vt qty life 12 -> 16,
+# zero 5 refs > type) in place of the pass-12 launder whose `"m"(ca)` read raised the ca store in sched2.
+# 113/113.
+MATCHING.update({
+    "t_esp/db_widget.cpp": True,
+})

@@ -3,7 +3,7 @@
 
 // t_esp REL: the window-system primitives of the effect tool (file name unknown, "db_widget.cpp").
 
-static int primIdCounter = 0;
+int primIdCounter = 0;  // global in the original (.data+0x780 reloc fields are 0 in the REL; a static keeps the offset)
 static char hexDigit[] = "0123456789ABCDEF";
 static const f32 dbNumRange[7][2] = DB_NUM_RANGE_INIT;
 
@@ -816,20 +816,22 @@ void DB_BUTTON_CLOSE::OnClick(DB_POINT* p, int btn)
 
 DB_STRING::DB_STRING(u32 max_, const char* s)
 {
+    u32 zero = 0;
     max = max_;
-    type = DB_PRIM_STRING;
+    // COMPILER-DIFF: candidate (local-alloc qty order): four sched1-only anchors. Each is a
+    // `"=m"` store the colour chain below overwrites; written above the chain, flow1 keeps them
+    // (the pool `lfs` sits between anchor and store), sched1 hoists the `lfs` above them, and
+    // flow2 deletes them, so sched2 never sees them. At sched1 each is a prio-13 insn issued
+    // before the prio-12 vptr store (vt qty life 12 -> 16 = LC's 5000, LC r9 / vt r11) and the
+    // two `zero` reads make it a 5-ref qty above the type constant (zero r0, type r9).
+    asm("" : "=m"(cr) : "r"(zero));
+    asm("" : "=m"(cg) : "r"(zero));
+    asm("" : "=m"(cb));
+    asm("" : "=m"(ca));
     ca = cb = cg = cr = 0.0f;
-    {
-        // COMPILER-DIFF: candidate (local-alloc qty order / sched1 tie): a pseudo zero whose
-        // launder reads `ca` is held in sched1 until after the ca store, so it sits before the
-        // vptr store (vt qty length 16 = LC's 5000 tie, LC r9 / vt r11) and the 5-ref zero
-        // outranks the type constant (zero r0, type r9); the stores go last as in the target.
-        // 7 -> 2 words: in sched2 the same read raises the ca store to prio 14 over `stw max`.
-        u32 zero = 0;
-        asm("" : "+r"(zero) : "m"(ca));
-        len = zero;
-        str = (char*) zero;
-    }
+    type = DB_PRIM_STRING;
+    len = zero;
+    str = (char*) zero;
     str = new char[max_];
     strcpy(str, s);
     len = strlen(s);
