@@ -91,6 +91,8 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | a block's pre-RA schedule needs one more node / a different DAG with the final code unchanged (an `addi`/temp issued one cycle too early, a compare chain) | peephole-forward folds mask-then-shift `(x & M) >> k` into one `rlwinm` (record form when compared with 0) and leaves the dead mask def in the block until the RA deletes it: a scheduler node with no consumer; shift-then-mask `(x >> k) & M` is one `rlwinm` + `cmpi` with no leftover; the `& 0xFF` index/value masks of pass 58 are deleted BEFORE scheduling (block-split count only) | spell the test mask-then-shift (sfd_cre AnalyMpv 15 -> 0w) | — | "CRI pass 60", "CRI pass 58" |
 | a setup value the target computes BEFORE a pre-loop statement, while ours computes it from a hoisted loop invariant (`slwi` of a stride used only in the loop body) | frontend hoisting appends the loop's invariant @temps after the for-init in creation order; a pre-RA tie between two independent IU ops is input order; `ptr += step` with a single-def `step = E * 16` on a `Uint32 *` is folded into a new hoisted `E << 6` @temp | make the invariant an own-local statement placed before the statement it must precede; declare it (and every other former @temp of the same level, e.g. a byte-scaled `dskip`) FIRST so its colour stays the @temp's (r0: highest vid of the level); keep the pointer step in bytes (cftfx UserTable 2 -> 0w) | — | "CRI pass 61" |
 | a pack/expression written straight into a VARIABLE's register in the target while ours keeps `mr own, t` (a temp node that shifts the whole colouring) | the RA coalesces a copy only into a backend temp or an `@N` web (range-split web, CSE temp, INLINED HELPER LOCAL); a copy into an own local never coalesces; a copy FROM an `@N` web into a backend temp (the K6 `mr t, w0` of `__rlwimi(w0, ..)`) does not either; helper-local vids ascend in declaration order (reverse of own locals) | put the body in a `static inline` helper (its locals are `@N` webs) with `#pragma opt_lifetimes off` around the CALLER (around the helper definition it does nothing); `#pragma inline_max_size` if the helper is large | `#pragma opt_lifetimes off` | "CRI SWAR kernels pass 16" |
+| a single-use local substituted into its use in ours, kept as a variable in the target (`cmpwi` on a loaded value the target keeps in its own register) | MWCC types `long != int-constant` by retyping the `long` read to `EINDIRECT int`; the frontend's single-use substitution needs the read type to equal the object type | declare the local `Sint32` and compare it with a plain `int` literal (`Uint32`/`int` locals or a `(Sint32)` constant are substituted); also `p + cksz - 4` = `subi; add` vs `p + (cksz - 4)` = `add; addi`; both OR operands masked keeps the rotate-and-mask as the rlwimi base | — | "CRI pass 62" |
+| a frontend-CSE'd @temp coloured last (low vid) in ours while the target colours the value with its statement's temps (callee-saved handed out in ascending order) | a cast on a macro argument that the macro duplicates (`SWAP16((Uint16)x)`) stops the frontend CSE: the value becomes a backend temp | cast the macro argument | — | "CRI pass 62" |
 | induction pointers coloured before a `register`/pool base; loop temporaries in ascending vs descending statement order | frontend range-split IV @temps have ids above every own local, created in statement order; index-form loops put the IV copies in the preheader | write the pointers as OWN locals declared below the base (`p = ip; q = fp; *p = v; p++;`), index form `a[i]` vs `*p++` | `asm { addi ip, bss, 0 }` (becomes `mr`) — use a relocation form | "CRI pass 19b", "CRI pass 20", "CRI SWAR kernels pass 3" |
 | an expression computed once (@temp) in the target and twice in ours, or the reverse | the frontend CSEs identical expressions (also across macro uses) into one @temp; casts/`void *` views break the CSE; CSE temps rank below inline temps | write it twice vs cache in a local, `(Uint32)` vs pointer views, `(Uint8*)(p +- k) + n` | — | "CRI pass 13", "CRI pass 20", "CRI pass 14" |
 | a hard pin fixes one register and shifts unrelated ones | a hard pin adds a physical neighbour to EVERY node -> colouring levels shift; pins are exclusive with each other | prefer the plain copy (row 2) or one pin of the highest-ranked value; a parameter above the locals = pin at the top | `asm { mr r29, data }` (level-shifter) | "CRI pass 18b", "CRI pass 7", "CRI pass 10" |
@@ -29405,3 +29407,78 @@ backend-10; specs h1a/h1b/h1c/h4a-c/h5/h6a-b/h7 + bodies/tree.c; DELETE it at th
   (h5) both masks stay webs (29/30). The tree's `#pragma opt_propagation off` was there for this; whether the vendor's order or a pragma kept
   the masks is open — read m1/m2's AST in the next pass before fixing the order. Harness kept small (`ra_h5`, `ra_h4c`, specs, listings);
   /home/adityas/.cache/cri_swar15 deleted.
+
+### CRI pass 62, part 2 (continuation of "CRI pass 62" above — another agent's SWAR pass 16 section landed between; adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w read in the model, three requirements named, none spelled in C; nothing applied, nothing flipped; 2026-09-12)
+- **adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w (read only, nothing applied, tree unchanged incl. the Ste pin):** the target is reproduced by the
+  model (chaitin.py + graph edits, IDENTICAL/exact on both dumps) from THREE independent facts, none of which has a pure-C spelling yet:
+  1. **Two more never-removed nodes adjacent to every loop value** (pass 47/52's "(#r6 + #r8 == 2)"): coalesced parameter copies of histl/histr
+     (or c1/c2). Mechanism re-read on the dumps: a parameter copy `mr rV, rP` (B1) survives backend-05 copy propagation only when rV is
+     multi-def (src/outl/outr: their `addi` steps) or is the source of a copy the propagation cannot fold (nfrm: the return `mr r3, r33`; the
+     `?:` two-def web of pass 52); a surviving copy is coalesced at the RA = the ghost. Negatives this pass (a7 base, 115w, ghost list
+     unchanged `r3 r4 r5 r7 r1`): `histl = histr;` before the right-channel stores (later web = compiler copy, folded to r8), `histl = histl;`,
+     `c1 = c2;` dead at the end, `c1 = (Sint16)c1` / `(Sint32)c1` at the top (new @temp `extsh r22,r9`, 75-106w), `c1 += 0`, `const`/`register`
+     parameters, `#pragma opt_propagation/opt_lifetimes/opt_common_subs/opt_dead_assignments/opt_loop_invariants/opt_strength_reduction off`
+     around the function (accepted without warning, no effect at -O4,p). "c1/c2 live in physical r9/r10 across the loop" (phys adjacency copied
+     from @64/@63) is NOT the target (11/16, smul spills to r21): the target's `extsh r9,r9` at the top is the @temp coloured onto the freed
+     parameter register, as in the matching Mono4 (`extsh r7,r7`).
+  2. **sadd in the final scan, coloured before smul (r0/r11/r12):** sadd (r42, deg 76) lacks exactly the two never-removed neighbours smul (78)
+     and scl (80) have: phys r1 and the argument-base ghost r72 (`lwz r72,r1,0` -> `lha r42,r72,0(sadd)` is its LAST use in ours' pre-RA
+     schedule, so r72 dies at sadd's load). Adding sadd-r72 (or sadd-r1) alone in the model gives sadd r0, smul r11, scl r12 (the vids r42 > r41 >
+     r40 then order the final scan); adding r0 as well flips sadd/smul. So in the target's pre-RA schedule the sadd load is not the last
+     argument-base use: the three stack-argument loads are emitted in B1 in declaration order and the pre-RA scheduler orders them by height
+     (scl > smul > sadd here); a shape that gives sadd's load a longer dependent chain, or another argument-base use after it, is the lever
+     (not found; the ABI offsets 0x48/0x4e/0x52 fix the declaration order). A ghost on r9 or r10 (`+ghost:9:phys=9`) does the same thing.
+  3. **qtbl as the own local r50 (coloured after sc_r -> r22):** `qtbl = AdxQtbl` is `lis r75; addi r76; mr r50,r76` and backend-02 copy propagation
+     folds the single-def `mr` (the loads use r76, which is coloured FIRST in its level -> r31 once 1./2. hold, the last 11 words of the model).
+     Own-local `mr` copies survive only when the destination is multi-def (adx_baif's `mr r43,r65; rlwimi r43` chains; Ste's `mr r58,r48` rr2 = t).
+     Negatives (115w): `qtbl = AdxQtbl` repeated at the end of the frame loop (128w, +8), `(const Sint32 *)(Uint32)AdxQtbl`, `const *const` initialiser,
+     `&AdxQtbl[nblk & 0]`.
+  With 1.+2. on the tree's pinned graph (`+ghost:9`) or 1.(ghosts 6,8)+2. on a7, chaitin scores 5/16 with every miss explained by r76's rank
+  (3.); with the pin alone 13/16. Mono (143w): ours L4 = sadd r0, smul r11, scl r12; the target has scl r11, smul r19 (coloured after nblk r18)
+  and l2 in r12 — smul must lose most of its 92 neighbours before nblk/t are removed, i.e. a different web structure (not read further).
+- Harness deleted; /tmp/kit.* outputs of this pass removed. Tree: src/lib/adx_baif.c + objects.py only. adx_dcd5 2/4 unchanged.
+
+### t_camera_data pass 5 (tcSetBesideOffset 27 -> 0w pure C: one `QfpsOfs* o` for both loops; tcDataExport 62 -> 27w size exact: shared `CameraCut* dc` (loops 2/4) + `CameraAreaInfo* da` (loops 1/5), `r, da, size` statement order, asm-emitted tcCdat base in loop 4; kit gained GFORCE/GFORCEFN/NOEQV oracles; not flipped; IN PROGRESS 2026-09-12)
+Scratch /tmp/tcam/ (`ins.py DUMP FUNC [re]` one line per insn; v*.cpp variants; rtl_*/ dumps). Tree edits: src/t_camera/t_camera_data.cpp only
+(tcSetBesideOffset, tcDataExport). Nothing built under the lock except the unit itself.
+- **New kit oracles (`~/.cache/sngdbg`, env-gated, CHANGE CODEGEN, never on by default):** `GFORCE="<pseudo>:<hardreg>[,..]"` hands the
+  listed pseudo the listed hard register in find_reg (after the scan and the preference override; conflicts are NOT checked, so a forced
+  register already taken by an earlier-allocated conflicting allocno garbles the code — force both allocnos, or read GORDER first);
+  `GFORCEFN=<substring of current_function_name>` scopes it (pseudo numbers repeat per function). `NOEQV="<pseudo>[,..]"` makes
+  update_equiv_regs ignore that pseudo's REG_EQUAL note (no REG_EQUIV, no live-length doubling). Together they answer "what if allocno X
+  had taken rN" in one 0.7 s variant.sh run: `GFORCEFN=tcDataExport GFORCE=354:30,359:30 GDBG=1 CC1DIR=~/.cache/sngdbg variant.sh ...`.
+- **tcSetBesideOffset 27 -> 0 (pure C, applied).** GFORCE showed the whole residue is ONE allocno: `o` of loop 2 (reg 131, refs 12 len 5,
+  pri 72000, allocno 0) takes r11 in ours (conf r1,r9 only: `lwz r11,0xc(rO)` is born as `o` dies) and r8 in the target; everything else
+  (162 r8->r7, 199 r7->r6, 161/160 r6/r5->r5/r4, 138 r4->r12, 134 r12->r3 in pass 1, `i+1` 157 r3->r31, then the loop-1 givs 209 r31 /
+  207 r3) cascades from it, and the loop-2 body's `addi` order follows from the r11 anti-dependence. The target's `o` was live across
+  r9/r10/r11 temporaries: **the vendor declared ONE `QfpsOfs* o` at function scope and assigned it in both loops** (loop 1's `o` is live
+  across its r9/r10/r11 loads -> conf r0,r1,r9,r10,r11 -> r8). Form: `QfpsOfs* o;` with `n, i, j`, `o = ..` in both bodies. 0 words.
+- **tcDataExport 62 -> 27 (size 0x538 exact).** Three facts, each read with GFORCE before the source form was found:
+  (1) buf r29 / block-0 pTc-high r30 / both `d+1` copies r30 / cd r3: the loop-2 `d+1` (reg 359, R4 L43 -> pass-1 r3) and the loop-4 `d+1`
+  (reg 354, R4 L20 -> pass-0 r7) are ONE gcse-PRE pseudo when loops 2 and 4 share one `CameraCut* d`: merged R8 L63 pri 3809, conflicts
+  = union (every volatile reg + r31 through fovy) -> pass 1 r30 BEFORE buf (3105) -> buf r29, then block-0 pTc-high r30, cd r3 (r3 free
+  in loop 2 now). Likewise one `CameraAreaInfo*` for loops 1/5 merges their `d+1` (R8 L80, 3000 -> r4 = the target's `addi r4,r7,0x30`).
+  Loops 0-3 identical after this (62 -> 48).
+  (2) loop-5 preheader `mr r10,r25; mr r7,r28; subf r26,r29,r3`: LUID order = statement order `r = rec; da = area; size = fp - buf;`
+  (ours had `size` before the block). 48 -> 45 with the two above; the loop-4 word below made it size +4 until (3).
+  (3) loop 4 `addi r6,r6,1` in place vs ours `addi r7,r6,1 .. mr r6,r7`: the PRE'd `i+1` (reg 348, R4 L28, pri 2857) and the hoisted
+  `tcCdat` lo_sum base (reg 267, R5, haifa segments 35) are a 2857/2857 TIE broken by allocno number (267 wins -> r7, 262 pTc-high -> r5,
+  348 -> r6 = i's register) **only if 267's live length is not doubled**: local-alloc update_equiv_regs doubles REG_LIVE_LENGTH of a
+  once-set pseudo carrying a function-invariant REG_EQUAL (`;; LL` segs 35 -> GORDER len 70, pri 1428). cse1 puts REG_EQUAL(sym) on
+  every `lo_sum(high sym, sym)` in the same ebb, loop.c re-emits the movable via emit_move_insn(sym) with the note, so every C spelling
+  (`&tcCdat[i]`, `tcCdat + i`, `(u8*)tcCdat + i*sizeof`, `if (tcCdat[i].enable)` first, `while` form) doubles it. `NOEQV=267` = 27 words
+  size exact = the proof. No C form found that gives the base no REG_EQUAL (a `+r` launder in the body is hoisted too but its lo_sum set is
+  processed first and still doubled; a 2-set base with equal values keeps the equivalence; a base variable before the `for` lands before
+  the entry test). Applied tagged: `asm("lis %0,tcCdat@ha" : "=b"(hi)); asm("addi %0,%1,tcCdat@l" : "=r"(cb) : "b"(hi)); c = (TcCdat*)
+  (i * sizeof(TcCdat) + (u32) cb);` inside the body (both asms are invariant and hoisted; `"=b"` keeps the high off r0; the plus must be
+  written mult-first or the `lbzx/add` operands swap). What the vendor wrote there is open.
+- **tcDataExport remaining 27 words = loop 5, three items, read not closed:** (a) `r` (reg 85, R19 L62 12258) r10 and `cc` (294, R16 L25
+  25600) r8 in the target, ours the reverse: at cc's turn r10/r11 must be excluded (r11 is `no`'s preference through its `lbz` temp,
+  r10 is `r`; both are lower-priority allocnos), i.e. the target allocated `no` and `r` before `cc` or cc's len was >= 53. (b) `r+1`
+  (349, R4 L37 2162) r30 / loop-5 pTc-high (333, R8 L112 2142) r31 in the target, ours r31/r30: 333 must precede 349 (349 len >= 38 or
+  333 len <= 110). GFORCE 349:30,333:31 (+348:6) = 24 words. (c) the `found` pin (`register int found asm("r5")`) is wrong in kind: the
+  target's `cmpw r5,r0` for the inner loop's entry test is cse substituting `found` (the OLDER zero) for `j`, which cse never does for a
+  hard register (make_regs_eqv prefers pseudos as the canonical member) -> the vendor's `found` was a pseudo that landed in r5; unpinned,
+  ours cascades from j (R50 L242 10330) beating the loop-2 giv base (10326 -> j r4, everything after shifts): 4 priority points. The
+  pin adds 2 refs / 12 len to j (52/254 = 10236). Statement order inside the loop-5 body (no/r->area/found/i++/cc permutations) changes
+  nothing with the pin and nothing unpinned.

@@ -1939,3 +1939,7 @@ MATCHING.update({
 MATCHING.update({
     "lib/cftfx.c": True,  # 6/6, pure C: cnvDynamicYcc420plnToA256UserTable 2 -> 0. The two strides are own locals declared first (`Sint32 w4; Sint32 dskip;` = the level's two highest vids, r0/r3 before p4) with `w4 = ywidth * 4` a statement before yskip's (the setup slwi/add pre-RA tie is input order; a hoisted @temp is appended after the for-init); dskip in bytes (`/ 4 * 64`, byte-pointer add) so `d += dskip` is not folded into a hoisted `<< 6` @temp
 })
+# CRI pass 62 (2026-09-12)
+MATCHING.update({
+    "lib/adx_baif.c": True,  # 6/6, pure C: AIFF_GetInfo 170 -> 0. `Sint32 ckid/type` compared with int constants are read as int-typed indirections of long objects, which the frontend never propagates into (the kept header ckid = `mr r27,r30`); `end = p + cksz - 4`; the *nch/*bps reads spelled `(p[0] & 0xFF) | ((p[1] & 0xFFFF) << 8)` (clrlslwi 16,8 base + rlwimi 0,24,31); exp/mant `Uint16` own locals with `SWAP16((Uint16)(lo | hi << 8))` (the cast breaks the frontend CSE, the 16-bit value is a backend temp coloured before the byte temps)
+})

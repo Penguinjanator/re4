@@ -181,30 +181,32 @@ Sint32 ADXB_CheckAiff(Uint8 *buf)
 	return 0;
 }
 
-/* COMPILER-DIFF: M1 - the FORM/size words share the loop's ckid/cksz registers and the size is swapped before the FORM/AIFF checks (OPEN since pass 1). Pure C by project decision (CRI pass 8). */
+/* CRI pass 62: the header ckid/type are Sint32 locals compared with int constants: MWCC reads a
+ * `long` compared with an `int` as an int-typed indirection, which the frontend does not propagate
+ * into (the kept variable = the target's `mr r27,r30` before the last rlwimi); `end = p + cksz - 4`
+ * gives the target's `subi; add`; the two 16-bit reads stored to *nch/*bps carry explicit
+ * `& 0xFF` / `& 0xFFFF` masks (the `clrlslwi 16,8` + `rlwimi 0,24,31` shape), the exp/mant reads
+ * do not; exp/mant are Uint16 own locals (kept: the `clrlwi r27/r28` write the variables) and
+ * the `(Uint16)` cast on SWAP16's argument breaks the frontend CSE, so the 16-bit value is a
+ * backend temp (coloured before the block's byte temps: r29/r30 handed out in the COMM block). */
 Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 *nsmpl)
 {
 	Uint8 *p;
 	Uint8 *end;
 	Uint8 *data;
-	Uint32 ckid;
-	Uint32 cksz;
-	Uint32 type;
+	Sint32 ckid;
+	Sint32 cksz;
+	Sint32 type;
 	Sint32 comm_flg;
 	Sint32 ssnd_flg;
-	Uint32 exp;
-	Uint32 mant;
+	Uint16 exp;
+	Uint16 mant;
 	Uint32 ofst;
 
 	p = buf + 12;
 	comm_flg = 0;
 	ssnd_flg = 0;
 	data = NULL;
-	/* OPEN: the original copies the FORM word and the size word into the callee-saved registers the
-	 * loop's cksz/ckid use (`mr r27,r30` / `mr r28,r12` before their last rlwimi) and swaps the size
-	 * before the FORM/AIFF checks; reusing the loop variables for the header (below) removes the
-	 * loop's `mr` copy but not the header ones; the 16-bit reads mask p[1] to 16 bits (`clrlslwi
-	 * 16,8`) in the original. */
 	ckid = LE32(buf);
 	cksz = LE32(buf + 4);
 	cksz = SWAP32(cksz);
@@ -215,7 +217,7 @@ Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 
 	if (type != AIFF_AIFF) {
 		return NULL;
 	}
-	end = p + (cksz - 4);
+	end = p + cksz - 4;
 	while (p < end) {
 		ckid = LE32(p);
 		cksz = LE32(p + 4);
@@ -226,18 +228,18 @@ Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 
 			if (comm_flg != 0) {
 				break;
 			}
-			if ((Sint32)cksz < 0x12) {
+			if (cksz < 0x12) {
 				return NULL;
 			}
 			comm_flg = 1;
-			*nch = LE16(p);
+			*nch = (p[0] & 0xFF) | ((p[1] & 0xFFFF) << 8);
 			*nch = SWAP16(*nch);
 			*nsmpl = LE32(p + 2);
 			*nsmpl = SWAP32(*nsmpl);
-			*bps = LE16(p + 6);
+			*bps = (p[6] & 0xFF) | ((p[7] & 0xFFFF) << 8);
 			*bps = SWAP16(*bps);
-			exp = (Uint16)SWAP16(LE16(p + 8));
-			mant = (Uint16)SWAP16(LE16(p + 10));
+			exp = SWAP16((Uint16)(p[8] | (p[9] << 8)));
+			mant = SWAP16((Uint16)(p[10] | (p[11] << 8)));
 			p += 0x12;
 			*sfreq = (Sint32)mant >> (0x400E - exp);
 			if (ssnd_flg != 0) {
