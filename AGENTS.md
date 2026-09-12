@@ -27369,3 +27369,71 @@ h*.h header variants, v*.cpp t_event variants; delete at the end of the family).
   for `mesNo[no]` and `4(base)` for `mesNo[1]`; check game/event.cpp's other mesCnt uses before changing include/event.h), and (3) leaves
   e/cMes as r29/r28 (the downstream pair follows once rB dies at the [0] read).
 - Flip order unchanged: t_esp_area needs IDENTICAL first (its 7 words), then t_lightarea's 4 vtable-reloc words, then the Tools REL.
+
+### CRI pass 48 (sfd_mps DecodeOneUnit 13w: the unpinned target = ret/data/wk need +3/+1/+1 never-removed neighbours, a `?:` assigned to an argument local is a codeless ghost pair (+1 found, +2 open); adx_sje write_end_code 2w: 2.7 reschedules site 1 where 2.6 does not, LSU-first cycle-0 tie; nothing applied, nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri48/ (`try.sh NAME` = variant.sh + ra.py + ghosts + chaitin --check; `model.py DUMP [+a:b|-a:b|+ghost:a,b,..]` = chaitin replay
+with edited edges and the round-2 start degrees).
+- **DecodeOneUnit, the unpinned requirement made exact (n1 = tree minus the M1 pin, `ret = CopyPketData(..)`, 142w, chaitin IDENTICAL):** round-2 start
+  degrees sfd 29, data 28, len 29, nbyte 30, nskip 29, wk 30, ret 28; total (22) and mps (27) are removed in round 2 BEFORE wk/ret's turn, so at
+  their turns data 28, wk 28, ret 26. The target (ret r31 = L3 with the six) needs data +1, wk +1, ret +3 NEVER-REMOVED neighbours (ghosts or
+  physical), none adjacent to cnt (30 total, removed at 28 after ok/hn), at most one adjacent to mps (27 -> 28). Model: three ghosts adjacent to
+  {sfd,data,len,nbyte,nskip,wk,ret,delim} reproduce the whole target colouring incl. cnt r21 (bufin/dst r21 handed out first).
+- **A coalesced-copy ghost from pure C: `n = (len < 0xB0) ? len : 0xB0;` (n2).** The frontend makes the `?:` a backend temp copied into a frontend
+  @temp (`mr @700, r96`), the stores read r96 and the MEM_Copy argument move reads @700, both coalesce into r5 = TWO r5 ghosts where the if-form had
+  one (`n` itself), bytes identical, +1 on every node live in the syshd block after GetLastSysHd (data 29, wk 31, ret 29 at round-2 start -> wk L3
+  r31, 132w all ARG_MISMATCH). Two more ghosts on ret (cnt-dead region) close it per the model. Negative (no ghost, bytes equal): `(err = IsEndcodeSkip
+  (sfd)) != 0` (single-use def propagated), `ok = IsZero(..)`, `delim = (len >= 4) ? CheckDelim(data) : 0` (same as if/else), `go = helper(sfd, delim)`
+  (inlined @ret propagated), `shdr = NULL` predef, TermIfInTerm `t = (..) ? (TermOut(sfd), 1) : 0`. Bytes change: go chain as `?:` (v3/v19/v20,
+  +-4 bytes, but v3 shows a vreg-coalesced class ghost `r57->r56`). Clone parameter copies and constant/load arguments never make ghosts (propagated /
+  materialised directly into the argument register); a call result makes an r3 ghost only when assigned to a variable (`mr @t, r3; mr var, @t`).
+  Tree unchanged so far (M1 pin, 13w; pin + `?:` n = 13w).
+
+### CRI pass 47 (adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w: the pin's K rule makes chaitin.py exact on pinned graphs (`--k`); the Ste residue is ONE neighbour on sadd; Mono needs the level structure, not more pressure everywhere; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri47/ (`mk.py OUT [--base=B] 'OLD=>NEW'..` literal edits, `try.sh NAME [FUNC]`, `ra.sh NAME [FUNC]` = ra.py dump into ra_NAME + words,
+`wste.py`/`wste2.py`/`wmono.py` = chaitin what-ifs (fake never-removed neighbours, ghost on a physical register, vid moves), `pincheck.py`/`ordcmp.py` = model vs compiler
+removal order; deleted at the end).
+- **Kit extended: `chaitin.py --k N`.** A pinned graph diverged from the model (pass 44) only because every physical register named in an `asm { mr rN, x }` leaves the
+  colour set: the removal threshold is K = 29 - (#pinned registers). `--k 28` reproduces the tree's Ste4AsSte dump (order/colours IDENTICAL, cost lines aside),
+  `--k 27` a two-pin Mono probe; the ghost lists and totals were never the problem (totals match the compiler in every dump). README updated.
+- **Ste4AsSte 25w, read with the exact model (K = 28, the r35->r6 ghost):** the target's colouring is reproduced by exactly two graph changes: (1) the AdxQtbl address node
+  sits at the own-local vid r50 (between sc_r r51 and s r49) and does NOT interfere with r0/r1/r72 (r72 = the `lwz r72,0(r1)` back-chain base of the stack-parameter
+  loads, coalesced into r1: a node interferes with it only when it is defined before the last stack-parameter load); (2) sadd has ONE more never-removed neighbour
+  (physical or ghost). With (1) alone sadd is removed at 27 in the l2..sc_r scan (one below K) and takes r22; with (1)+(2) all 18 named nodes match (sadd r0, smul r11,
+  scl r12, c-ext r10/r9, l2 r31 .. sc_r r23, qtbl r22, s r21, t r20, nblk r19). smul/scl have exactly the r1+r72 pair that sadd lacks (sadd is the LAST stack load).
+  Not found in C: (1) the frontend emits `qtbl = AdxQtbl` as `lis @a; addi @b,@a; mr qtbl,@b` and backend copy propagation removes the own local (initialiser,
+  `&AdxQtbl[0]`, `(Uint32)` casts, `Sint32 *` type, `+ i`/`+ z` with a known-zero variable (frontend-folded even across statements and stores), all the same;
+  `AdxQtbl + 1` gives `addi qtbl,@b,4` with the local as destination but costs the index -1 (60w); a second def at the loop tail is +8 bytes); the two-register asm form
+  `asm { lis qhi }` `asm { addi qtbl, qhi }` is 17w like pass 44's (asm instructions ARE moved by the pre-RA scheduler: the lis lands above the stack loads, so qtbl
+  keeps the r72/r1 edges and stays L3). (2) sadd's extra neighbour cannot be r0 (its own colour), r9/r10 are already edges (ours loads the params before the c-ext
+  extsh; the target's final order has the extsh first, but that is post-RA), a histr ghost adds +1 to every loop node (r8 pins: 80w, the model agrees), one more L2
+  node adjacent to sadd is impossible (sadd is adjacent to every L2+ node) and keeping an L1 temp alive (+k) triggers a second spill pick instead. Open: the pre-RA
+  position of the sadd load (a consumer of sadd inside the prologue block would hoist it above the smul/scl loads and give it the r72/r1 pair; the frontend's `extsh`
+  of sadd is deleted at backend-07 constant propagation before scheduling).
+- **Ste4AsMono 143w:** the biased-colouring fact first: `r2 = t` leaves its `mr` only when t and r2 get DIFFERENT colours (the RA drops a copy whose ends coalesce
+  even when t is used after the copy); the unsplit `r1 = sc_r*q + ((c1*r2 + c2*r1) >> 12)` forms (target semantics: `mullw r20,r9,r31` = c1*r2) are 0x2ec = one
+  instruction short (t/r2 share a register); the split form's +4 bytes is that `mr`, so the split is a colouring device, not the vendor's shape. Model findings on the
+  unpinned dump (chaitin IDENTICAL): two ghosts on r6/r8 with K = 29 give the target's LEVEL structure (sadd r0 / scl r11 top, smul then nblk spill picks, l2 r12 because
+  r12 is free when smul is a pick) but the first two body temps (c1*l1, d>>4: 31/32 total) then survive L1 and take r12/r31, and the hoisted AdxQtbl/0x66666667 temps
+  (initial-code vids r116/r105, coloured first in their level) take r9/r10 where the target has c1e/c2e; the target colours qtbl r23 and the magic r22 AFTER sc_l r25 /
+  sc_r r24, i.e. below the scale nodes in vid or level. Bytes: r6/r8 pins on nblk/l1/l2/r1 (single or paired) 142w; a Ste-shaped Mono (declaration order l2 r2 r1 l1 i d
+  dr, `Sint16 sc_l/sc_r`, own-local `qtbl`, Ste's scale block) 178w, + `asm { mr r6, qtbl } asm { mr r8, qtbl }` 139w with nblk r18, smul r19, l1 r29, l2 r12, c1/c2 r9/r10
+  right but scl/i as the spill picks (K = 27 is too much pressure: the model shows scl picked after nblk/smul/sadd/i are gone). `c1 * r2`, `r2 = t` before m,
+  two-def t/l1, table operand first: 143w or 180w (unsplit), none changes the level structure.
+- **DecodeOneUnit, where the two missing ghosts can and cannot sit (from the n1/n2 graphs):** ret is live everywhere (108 = every node), so the +2
+  must be NEW never-removed nodes (coalesced copies) or physical pins, in a region where cnt is dead (anything outside the scan loop / hn block /
+  `*nskip = cnt`) and at most one where mps is live (prologue up to GetLastSysHd). Ghost sources seen in this function: (1) a `?:` result assigned
+  to a local (`@temp` + backend temp, both coalesce when the local dies at an argument move), (2) a call result assigned to a variable whose def has
+  >= 2 uses (`mr @t, r3; mr var, @t` -> the @t is an r3 ghost; a def with one use is propagated, `cmpi r3` directly), (3) an own local dying at an
+  argument move without a call in its range (`n` -> r5). The two `mr r31, r3` (SetErr, CopyPketData) are ret's defs: their r3 ghosts are NOT adjacent
+  to ret (old value dead at the def). The IsZero `unit` r3 / `p` r4 order is a separate L1 vid-order residue (CSE temp @701 below the clone param
+  @681); unchanged by every probe.
+- **adx_sje write_end_code 2w, read with the 2.6 dump + blkflags (passes 06-13 here: 06 pre-RA schedule, 09 regalloc, 10 CSE = the sth->lha
+  forwarding, 13 post-RA schedule):** site 2's store block B17 is dirtied at 10 (`lha r0,v` -> `extsh r0,r31`, n survives the call in r31) and
+  rescheduled at 13 to `lwz r6; extsh; mr r3; addi; sth; li` = the 2.7 production bytes of BOTH ours and the target (so 2.7's post-RA scheduler ==
+  2.6's on a dirty block). Site 1's block B12 is never dirtied in 2.6 (000c through 13, final = pre-RA `lha; mr r3; lwz r6`), but the 2.7 production
+  gives `mr; lwz; lha` (ours) / `lwz; mr; lha` (target): 2.7 either reschedules B12 or its pre-RA order differs — the same cycle assignment in both
+  ([mr|lwz], [lha, addi], [li, sth]), only the cycle-0 LSU/ALU order differs; the target's LSU-first matches B17's `lwz; extsh; mr` pattern. Spellings
+  that leave 2w: an inlined store helper with (value, dst) or (dst, value) parameter order (initial code still `lha; lwz; sth`, B12 flags unchanged),
+  a 2-byte struct copy `*(S16 *)ck.data = *(S16 *)src` (same bytes, lha kept). `#pragma scheduling off` on the function 57w. No 2.7 dump exists
+  (mwcc_debugger has GC/1.1 and GC/2.6 offsets only); the open question is what 2.7 does to B12 that 2.6 does not.
+- Tree untouched (sfd_mps 25/26 with the M1 pin, adx_sje 16/17); objects.py untouched; no flip, no `ninja -k 0` needed. Harness deleted.
