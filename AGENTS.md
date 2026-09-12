@@ -27922,3 +27922,24 @@ Harness /home/adityas/.cache/cri50/ (v.py/ut.py/mac.py literal-edit variant driv
 - Tools kept in the harness (delete with it): `try.sh`, `score.sh`/`score8.sh`, `gen.py`/`gen8.py`, `batch.sh`/`batch8.sh`, `whatif.py`
   (sched.py on an edited block: `--keep`, `--order`, `--noalias`, `--stnoalias`, `--nomem`), `post.py` (target post-RA DAG + model + `--ties`,
   `--valid`), `sym.py`/`tsym.py`/`cmp.py`/`colmap.py`/`annot.py`/`csearch.py`/`csp.py`. Kit untouched. objects.py untouched by this pass.
+
+### CRI pass 51, part 2 (sfd_tst SFTST_Calc 79w: the pre-RA order is not the cause; adx_baif AIFF_GetInfo 170w: five more 16-bit-hi spellings never emit the `clrlslwi`; mwsfdcre CreateSfd 115w: four more helper bodies negative; nothing else applied; 2026-09-12)
+(Continuation of "CRI pass 51" above; another agent's pass 52 section landed between. Tree state at the end: adx_sje 17/17 FLIPPED (objects.py `# CRI pass 51` block, 111 OK); sfd_tst 10/11, sfd_mps 25/26 (M1 pin kept), adx_baif 5/6, mwsfdcre 8/10 unchanged; no other file touched. Harness /home/adityas/.cache/cri51 deleted.)
+- **sfd_tst `SFTST_Calc` 79w, scheduler view:** the 79 words are ALL ARG_MISMATCH (no insert/delete); scheddump + sched.py on ours: 77/77 pre-RA and 37/37
+  post-RA blocks identical to the model. The MulDiv/sprintf blocks (B84, B90-B92 of the 2.6 dump) have their scheduled bit cleared at regalloc (coalesced
+  copies deleted) and are rescheduled post-RA; the target's final order in that region equals ours instruction for instruction, so there is no evidence
+  of a different pre-RA input order (a different input would have to survive the post-RA reschedule unchanged in every tie). The residue stays a pure
+  colouring question (pass 46's +9 on MulDiv / the frontend temp between @171 and @172). No source change.
+- **adx_baif `AIFF_GetInfo` 170w, the `clrlslwi r12,r12,16,8` (size +8):** the target builds `*nch`/`*bps` as `(hi & 0xFFFF) << 8` with lo INSERTED
+  (`rlwimi ..,0,24,31`), i.e. hi has 16-bit range knowledge and lo 8-bit, while exp/mant use lo as the base and insert hi (`rlwimi ..,8,16,23` = both
+  8-bit). Negatives (size unchanged, mask never emitted): `((Uint16)p[1] & 0xFFFF) << 8 | p[0]`, `(Uint16)p[1] * 0x100`, an inlined `aiff_mk16(Uint16 hi,
+  Uint8 lo)` / `(Uint16 hi, Uint16 lo)` / `aiff_le16(Uint8 *p)` with `Uint16 hi = p[1]; Uint8 lo = p[0];` (the clone locals are propagated and the lbz
+  range wins). The 16-bit hi must come from something the frontend cannot see through (a real 16-bit load, a `char`-typed byte with the extsb folded, or
+  a two-use Uint16 local); untested: `Sint8 *`/`char *` views of the byte with `-char signed`.
+- **mwsfdcre `mwsfcre_CreateSfd` 115w, the dead `b`:** target tree at both sites = `cmpwi m,4; beq T; bge T; cmpwi m,2; bge F; b T; b T; F: li 0; b E;
+  T: li 1` — the surviving `b T` is a block whose only content was removed after layout with the `beq` already threaded to T. New negatives (whole-unit
+  words): `case 4: return TRUE; default: return TRUE;` 120w (+8), the `?:` chain 143w, `Bool ret = TRUE` + `case 4: ret = TRUE` + `default: ret = TRUE`
+  124w, `case 4: return (Bool)(mode == 4)` 133w. Pass 7's constraint stands (case-4's def redundant with a dominating def that costs nothing at both
+  sites; not a post-RA physical-r0 CSE either: neither site has r0 == 1 dominating the tree).
+- **mwsfdcre `mwPlyCalcWorkSfd` 4w, more negatives:** a forward `goto total; total:` label, `do { size += 0; } while (0);`, `asm { mr size, size }` on a
+  `register size` (13w, the substitution still happens), `asm { mr r0, size }` 91w, a duplicated return under `if (mwsfdcre_bufnum == 0)` 20w / as `?:` 17w.

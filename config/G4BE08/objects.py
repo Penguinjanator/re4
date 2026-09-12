@@ -1919,3 +1919,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mps_lib.c": True,  # 7/7, pure C: MPS_Create 2 -> 0. The syshd clear is three 8-iteration loops, not a nested i/j loop: the frontend unrolls the inner loop but leaves the outer counter to the backend, whose unroll keeps a dead `li i,0` in the store block; the RA deletes it, which clears the block's scheduled bit and lets the post-RA scheduler order `addi r0,..@l` before `li r4,-1` (the target = the pre-RA order)
 })
+
+# CRI pass 51 (2026-09-12)
+MATCHING.update({
+    "lib/adx_sje.c": True,  # 17/17, pure C: adxsje_write_end_code 2 -> 0. adxsje_put16 stores through a write cursor `Sint16 *dp = ck.data; *dp++ = *src;`: a two-use pointer is kept by the frontend, so the ck.data load precedes the value lha in the pre-RA schedule input (a substituted single-use pointer evaluates the RHS first) and wins the equal-priority cycle-0 tie
+})

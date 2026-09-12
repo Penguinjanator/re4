@@ -491,7 +491,10 @@ static void adxsje_put16(SJ sj, void *src)
 	if (ck.len < 2) {
 		SJ_UngetChunk(sj, SJ_CK_FREE, &ck);
 	} else {
-		*(Sint16 *)ck.data = *(Sint16 *)src;
+		/* write cursor: `dp` kept as a variable puts the ck.data load before the value load in
+		 * the pre-RA schedule input (a substituted single-use pointer evaluates the value first) */
+		Sint16 *dp = (Sint16 *)ck.data;
+		*dp++ = *(Sint16 *)src;
 		SJ_PutChunk(sj, SJ_CK_DATA, &ck);
 	}
 }
