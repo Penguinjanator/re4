@@ -5,7 +5,9 @@
  * version keep-alive from Init). */
 #include "cri_xpt.h"
 
-const Char8 *volatile CFT_version = "\nCRI CFT/GC Ver.1.57 Build:Sep 22 2004 10:34:37\n";
+/* the version string is the first .rodata object; named so cnvStatic's asm can address the pool */
+static const Char8 cft_version_str[] = "\nCRI CFT/GC Ver.1.57 Build:Sep 22 2004 10:34:37\n";
+const Char8 *volatile CFT_version = cft_version_str;
 
 /* table entry: A, R, G, B contribution of one component value (four Float32) */
 
@@ -36,7 +38,7 @@ void CFT_MakeArgb8888Alp3211Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 	Float32 v;
 	Sint32 i;
 
-	CFT_MAKE_CHROMA_TBL(tbl);
+	CFT_MAKE_CHROMA_TBL(y);
 	for (i = 0; i < 48; i++) {
 		y[i * 4 + 3] = -16.0f * (255.0f / 219.0f) + 0.5f;
 		y[i * 4 + 2] = -16.0f * (255.0f / 219.0f) + 0.5f;
@@ -65,7 +67,7 @@ void CFT_MakeArgb8888Alp3110Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 	Float32 v;
 	Sint32 i;
 
-	CFT_MAKE_CHROMA_TBL(tbl);
+	CFT_MAKE_CHROMA_TBL(y);
 	for (i = 0; i < 9; i++) {
 		y[i * 4 + 3] = 0.0f;
 		y[i * 4 + 2] = 0.0f;
@@ -91,8 +93,8 @@ void CFT_MakeArgb8888Alp3110Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 void CFT_MakeArgb8888AlpLumiTbl(Sint32 mode, Sint32 lo, Sint32 hi, void *tbl)
 {
 	Float32 *y = (Float32 *)tbl;
-	Float32 *cb = (Float32 *)((Uint8 *)tbl + 0x1000);
-	Float32 *cr = (Float32 *)((Uint8 *)tbl + 0x2000);
+	Float32 *cb = (Float32 *)((Uint8 *)y + 0x1000);
+	Float32 *cr = (Float32 *)((Uint8 *)y + 0x2000);
 	Float32 f;
 	Float32 v;
 	Float32 scale;
@@ -168,42 +170,51 @@ typedef struct {
 /* Y plane as 8x4 I8 tiles (four 8-byte rows per tile), CbCr as 4x4 IA8 tiles */
 void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height)
 {
-	Sint32 ywidth = src->ywidth;
-	Sint32 yw2 = ywidth * 2;
-	register Float64 *y0 = (Float64 *)src->y;
-	register Float64 *d = (Float64 *)ybuf - 1;
-	Float64 *y1;
-	Sint32 hblk = height / 4;
-	Float64 *y2;
-	Sint32 dskip = (width - ywidth) / 8 * 4;
-	Sint32 yskip = ywidth * 3 / 8;
-	Float64 *y3;
-	Sint32 cnt = ywidth / 8;
-	Sint32 yw3 = ywidth * 3;
-	Sint32 i;
+	Sint32 ywidth;
+	Sint32 yw3;
 	Sint32 n;
+	Float64 *y3;
+	Sint32 yskip;
+	Sint32 dskip;
+	Float64 *y2;
+	Float64 *y1;
+	register Float64 *d;
+	register Float64 *y0;
+	Sint32 yw2;
+	Sint32 hblk;
+	Sint32 cnt;
+	Sint32 i;
 	register Float64 w0;
 	register Float64 w1;
 	register Float64 w2;
 	register Float64 w3;
-	Uint32 *cbp1;
-	Uint32 *cbp2;
 	Uint32 *cbp3;
-	Sint32 o1;
-	Sint32 o2;
+	Uint32 *cbp2;
+	Uint32 *cbp1;
+	Uint32 *crp3;
+	Uint32 *crp2;
+	Uint32 *crp1;
 	Sint32 o3;
+	Sint32 o2;
+	Sint32 o1;
 	Sint32 cw3;
 	Sint32 cskip;
-	Sint32 ccnt;
-	register Uint32 *c;
-	Uint32 *crp0;
 	Uint32 *cbp0;
-	Uint32 *crp1;
-	Uint32 *crp2;
-	Uint32 *crp3;
-	Uint32 cbv;
+	Uint32 *crp0;
 	Uint32 crv;
+	Uint32 cbv;
+	register Uint32 *c;
 	Sint32 cw;
+
+	ywidth = src->ywidth;
+	yw2 = ywidth * 2;
+	y0 = (Float64 *)src->y;
+	d = (Float64 *)ybuf - 1;
+	hblk = height / 4;
+	dskip = (width - ywidth) / 8 * 32;
+	yw3 = ywidth * 3;
+	yskip = yw3 / 8 * 8;
+	cnt = ywidth / 8;
 
 	asm { li r0, 8 }
 	for (i = 0; i < hblk; i++) {
@@ -227,11 +238,11 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 			y2++;
 			y3++;
 		}
-		d += dskip;
-		y0 += yskip;
+		d = (Float64 *)((Uint8 *)d + dskip);
+		y0 = (Float64 *)((Uint8 *)y0 + yskip);
 	}
 
-	ccnt = src->ywidth / 2 / 4;
+	cnt = src->ywidth / 2 / 4;
 	hblk = height / 2 / 4;
 	cskip = (src->cbwidth - src->ywidth / 2) / 4;
 	cw = src->cbwidth / 4;
@@ -250,14 +261,14 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 		cbp1 = (Uint32 *)(o1 + (Uint32)cbp0);
 		cbp2 = (Uint32 *)(o2 + (Uint32)cbp0);
 		cbp3 = (Uint32 *)(o3 + (Uint32)cbp0);
-		for (n = 0; n < ccnt; n++) {
+		for (n = 0; n < cnt; n++) {
 			asm { dcbz c, r0 }
 			CFTYP_C44_ROW(c, cbp0, crp0);
 			CFTYP_C44_ROW(c, cbp1, crp1);
 			CFTYP_C44_ROW(c, cbp2, crp2);
 			CFTYP_C44_ROW(c, cbp3, crp3);
 		}
-		c += cskip;
+		c += cskip * 8;
 		cbp0 += cw3 + cskip;
 		crp0 += cw3 + cskip;
 	}
@@ -601,8 +612,24 @@ L_801FC090:
 	}
 }
 
-/* (the original loads the pooled 255.0f literal: `lis r5, @494@ha; lfs f21, @494@l(r5)`) */
-static const Float32 cft_alp_full = 255.0f;
+/* COMPILER-DIFF: .bss first-reference order. The original's cnvStatic is C and addresses the five
+ * tables through its gqr_save-based .bss pool (immediates, no relocations), which puts them in .bss
+ * before Init's CFT_dummy; our asm transcription carries the immediates, so this never-called
+ * function (dropped by strip_unused.py) supplies the references in the target's order. */
+void cftyp_bss_order(Float32 *p)
+{
+	cr_r[0] = p[0];
+	cr_g[0] = p[1];
+	cb_b[0] = p[2];
+	cb_g[0] = p[3];
+	y[0] = p[4];
+}
+
+/* COMPILER-DIFF: the original (compiler-generated paired-single C) loads the unit's pooled 255.0f
+ * literal, `lis r5, @494@ha; lfs f21, @494@l(r5)` = .rodata+0x50 (the table makers' clip constant).
+ * Inline asm cannot name a compiler literal, so the asm addresses it relative to the version string,
+ * the named object at .rodata+0 (`cft_version_str + 0x50`); the relocation resolves to the same
+ * address and no extra .rodata object is emitted. */
 
 void cnvStaticYcc420plnToArgb8888(CFT_YCC420PLN *src, CFT_ARGBDST *dst)
 {
@@ -610,9 +637,9 @@ void cnvStaticYcc420plnToArgb8888(CFT_YCC420PLN *src, CFT_ARGBDST *dst)
 
 	asm {
 		lis r6, gqr_save@ha
-		lis r5, cft_alp_full@ha
+		lis r5, cft_version_str + 0x50@ha
 		addi r0, r6, gqr_save@l
-		lfs f21, cft_alp_full@l(r5)
+		lfs f21, cft_version_str + 0x50@l(r5)
 		stw r0, slot[2]
 		mfspr r0, GQR4
 		li r6, 0x4
@@ -904,14 +931,19 @@ void CFT_Ycc420plnToArgb8888(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Float32 *tbl)
 void CFT_Ycc420plnToArgb8888Init(void)
 {
 	Sint32 i;
+	Float32 *py = y;
+	Float32 *pcb_g = cb_g;
+	Float32 *pcb_b = cb_b;
+	Float32 *pcr_r = cr_r;
+	Float32 *pcr_g = cr_g;
 
 	CFT_dummy = CFT_version;
 	for (i = 0; i != 256; i++) {
-		y[i] = 1.164f * (Float32)(i - 16);
-		cb_g[i] = -0.392f * (Float32)(i - 128);
-		cb_b[i] = 2.017f * (Float32)(i - 128);
-		cr_r[i] = 1.596f * (Float32)(i - 128);
-		cr_g[i] = -0.813f * (Float32)(i - 128);
+		*py++ = 1.164f * (Float32)(i - 16);
+		*pcb_g++ = -0.392f * (Float32)(i - 128);
+		*pcb_b++ = 2.017f * (Float32)(i - 128);
+		*pcr_r++ = 1.596f * (Float32)(i - 128);
+		*pcr_g++ = -0.813f * (Float32)(i - 128);
 	}
 }
 

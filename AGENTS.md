@@ -25120,11 +25120,6 @@ Harness /home/adityas/.cache/cri33/ (regmap.py = per-role register map from `var
   declaration order, `register`, statement order or cbwidth/o-expression spelling moves it — all 120 permutations of the
   five loop-2 top declarations tried), and ywidth r9 / n r11 vs ours r11 / r9 (ywidth as a CSE'd `src->ywidth` breaks the
   in-loop y1 offset: the stores alias). chaitin.py does not replay this function (65 divergences), so no model help.
-- Tree now carries the `do { } while (0);` (menu 30 -> 2, size exact). The 2-word campos residue was confirmed as the register-weight
-  tie: `asm("" : "=m"(ProjType) : "r"(&campos))` after the first memcpy moves the base's REG_DEAD past the loads and the target's
-  y-then-z order appears, but the asm insn takes an issue slot and swaps r0/r8 and two iu2 insns (9 words) -> not applied. A pure-C
-  way to keep `&campos`'s pseudo alive past the z load without a new insn was not found (struct assignment `pos = campos` and a direct
-  `memcpy(&pG->Cam.param.pos, ..)` change the dest pointer shape: 46 words). OPEN.
 - **Y84C44 114 -> 96w (tree): cr rows first, o1..o3 locals, yw3 local, cbp0 declared first.** Corrections to the bullet
   above (my regmap labels had cb/cr swapped): the target keeps the *cr* row pointers in volatiles (crp1 r9, crp2 r11,
   crp3 r12) and the cb ones in r31..r29, so the rows are assigned cr-first and declared `cbp3, cbp2, cbp1, crp3, crp2,
@@ -25687,6 +25682,11 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   Both point at the same thing: in the original the `(y + i) * 14` of the sub-rows is not the head's expression at loop.c time (a
   copy/temp structure different from writing `(y + i) * 14` in every row). `c` reused as the OFF colour (`c = 7 / c = col`) = 117
   words, wrong direction. The `x + 19` second use and the r16..r31 save (one more callee-saved value, `x` in r16) remain OPEN.
+- Tree now carries the `do { } while (0);` (menu 30 -> 2, size exact). The 2-word campos residue was confirmed as the register-weight
+  tie: `asm("" : "=m"(ProjType) : "r"(&campos))` after the first memcpy moves the base's REG_DEAD past the loads and the target's
+  y-then-z order appears, but the asm insn takes an issue slot and swaps r0/r8 and two iu2 insns (9 words) -> not applied. A pure-C
+  way to keep `&campos`'s pseudo alive past the z load without a new insn was not found (struct assignment `pos = campos` and a direct
+  `memcpy(&pG->Cam.param.pos, ..)` change the dest pointer shape: 46 words). OPEN.
 ### Tool RELs, t_id pass 5 (continued: idEditColor, toolIdOption, idEditUnit, toolIdInit, toolIdEditDisp)
 
 - idEditColor 132 -> 0, pure C. Mechanisms: (a) `const char** tbl3 = onOffName3` as a VARIABLE base for the inner
