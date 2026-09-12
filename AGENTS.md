@@ -25278,7 +25278,7 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   IDENTICAL); objects.py untouched; every applied step rebuilt through the locked ninja and judged with bytecmp
   (sfd_mps 22/26, cftfx 3/6, adx_sje 15/17). Scratch harness /home/adityas/.cache/cri29 removed at the end of the pass.
 
-### Tool RELs, t_esp pass 16
+### Tool RELs, t_esp pass 16 (t_esp 208/212: InitTool 2880 -> 2851 words: segs 25/0/3 statement order, 12 CreateButton ids (real value bugs, 0 -> 1/2, segs 174..345); the LOAD_EVENT/SAVE FP-constant `fmr` copies and the segs 129/132/135 FPR names are cse1's 1001-insn hash flush landing 13+ insns earlier in the target; not closed, nothing flipped; 2026-09-12)
 
 - InitTool 2880 -> 2861w (diffsegs 485 -> 482, total_d 4109 -> 4103), all three steps plain C statement order, no insn-count
   change (segment sizes identical, so the 116 dead sets / N 5235 stand). Segments 0..122 are now exact; 123 is the dtk label
@@ -25323,6 +25323,30 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
 - Kit note: `~/.cache/tesp15/` (seg.py, cmpv.sh, T.s) kept; `/tmp/t16/sbs.py T.s O_init.s a [b] [ctx]` prints segments side
   by side with real symbol names (dtk labels on the target side): `python3 /tmp/t16/sbs.py ~/.cache/tesp15/T.s
   ~/.cache/tesp15/o_<V>/O_init.s 162 162 30`.
+- **12 CreateButton ids were wrong in the source (2861 -> 2851w, +1 insn, N still 5235).** A scan of every segment's `li`
+  immediates (`li r9,N` = the 7th CreateButton argument) showed the target passing sequential widget ids where ours passed 0:
+  MODEL `[LOAD]` 2, LOAD_EM `[LOAD]` 2, LOAD_ROOM/LOAD_SST `[Load]` 1, LOAD_EVENT `[Load]` 2, SAVE_EM `"  "` 1 + `[SAVE]` 2,
+  SAVE_ROOM/SAVE_SST `[SAVE]` 1, SAVE_EVENT `"  "` 1 + `[SAVE]` 2, DATASET `[Load]` 1 (rule: ids count the window's
+  selectable widgets in creation order). Segs 215/247 exact, 218 7/7. Check the `li` multiset per segment before chasing
+  scheduling: the remaining whole-function difference is `li 1` 143 vs 127 (the target rematerialises 1 where ours shares r26)
+  and one `li 2`/`li 3` pair (segs 378/549, constant sharing across a flush, see below).
+- **LOAD_EVENT..SAVE FP constants, segs 129/132/135 FPR names, seg 163's `fmr f21,f25; fmr f20,f22; fmr f19,f24` = cse1's
+  hash flush position, MECHANISM FOUND, natural form not found.** cse.c cse_basic_block flushes the table every 1001 non-NOTE
+  insns (`num_insns++ > 1000`, count reset); the path after the window-4 row loop is one block (`;; Processing block from 4610
+  to 0, 13528 sets.`, no label after 4609 in InitTool). Ours: LOAD_EVENT's 164.0f load is insn 989 of that path, the flush
+  hits at 1002, 12 insns later, so LOAD_EVENT's pos/h fold into MODEL's f24/f22/f23 and SAVE_* reload from the pool. Target:
+  the flush precedes LOAD_EVENT's loads, they become fresh pseudos (f21/f20/f19), SAVE_* fold into THOSE, cse2 turns the three
+  loads into copies of MODEL's regs and sched1 hoists the `fmr` up to seg 163; 192.0f then takes the dead f25. Verified with a
+  scratch `int d; d = 1; .. d = D;` block (deleted at cse1's end, so it counts for the flush but not for gcse's N) placed after
+  `g_pEditActive = g_pEditWin1;` plus 4 fewer `i = k` dead sets (the three unfolded loads + 1 are real insns at gcse): D >= 13
+  gives seg 163 the `fmr` copies, seg 217 `lfs 192.0` into f25, segs 129/132/135 exact, segs 220/238 same size, region
+  162-340 total_d 637 -> 526..475; but every later flush shifts by the same D, region 341-660 goes 2245 -> 2360..2390 and
+  661+ 1186 -> 1330 (words 2851 -> 3150 at D 13-16; D >= 18 loses one entry-block `&pos` slot (seg 0 d52), D >= 30 breaks N).
+  Using the loop variable `i` for the block-local sets instead changes window-4's allocation (seg 138) - use a fresh local.
+  So the target has 13..183 more cse1-time insns between label 4609 and LOAD_EVENT's `lfs 164.0` than we do, gone by the
+  final code, and probably a different insn profile after it (the later regions want a different shift). Candidates not yet
+  tested: per-window insns cse1 itself deletes (folded loads/copies: 5 windows x 3), the target's seg 162 `lwz g_pEditWin1`
+  form. Nothing applied; `/tmp/t16/gen2.py D 112 OUT` regenerates the probe from the tree source.
 
 ### DOL card closer 3 (game/card Matching 67/67: saveMain 74 -> 0, errorDisp 99 -> 0, both pure C; 111 OK; 2026-09-12)
 

@@ -820,36 +820,18 @@ static void sfadxt_WriteTotSmpl(SFD sfd)
 	}
 }
 
-/* M1: callee-saved register permutation only. CRI pass 32: the tail helper and the hoisted adxt reload
- * give the target size; `void *obj` + kept copy puts sfd above len; the declaration order
- * err, len, bufout, bufin, tst, stat, adxterr, adxt, wk colours the middle block like the target
- * (bufout r28, bufin r27, tst r27, stat r28, adxterr r26, adxt r25, wk r24). Left: sfd r31 / err r30
- * (sfd needs one more level-2 neighbour: 28 at removal) and the ahdr/svrfreq/tail blocks (target
- * ahdr r25, adxt r24, wk r25: r28..r26 blocked there, ours takes the lowest free r28/r29). */
-static Sint32 sfadxt_ExecServerSub(void *obj)
+/* CRI pass 35: the server body is five depth-1 helpers called in order (Transfer, PrepOut, CheckStat,
+ * AnalyAhdr, UpdateSvrFreq, WriteTotSmpl). Helpers are cloned breadth-first, so each block's locals rank
+ * below the previous block's (colour = reverse declaration order inside a block) and ABOVE the depth-2
+ * sfadxt_UpdateFlowCnt locals (its `wk` is coloured last of all -> r24, the lowest free): target stat r28,
+ * tst r27, adxterr r26, adxt r25, wk r24; AnalyAhdr adxt r24 / ahdr r25; UpdateSvrFreq adxt r24 / wk r25.
+ * As own locals of ExecServerSub (pass 32) the ahdr/svrfreq/UpdateFlowCnt values took the lowest free
+ * r28/r29. Left (59w, size equal): sfd r30 / err r31 - the target colours sfd first (sfd L3, or the
+ * caller's `err` kept as the lowest member of the @ret chain; see AGENTS.md "CRI pass 35"). */
+static void sfadxt_PrepOut(SFD sfd)
 {
-	SFD sfd;
-	Sint32 err;
-	Sint32 len;
-	Sint32 bufout;
 	Sint32 bufin;
-	void *tst;
-	Sint32 stat;
-	Sint32 adxterr;
-	ADXT adxt;
-	SFADXT_WORK *wk;
-	Sint32 freq;
-	SFSEE_AHDR *ahdr;
-
-	sfd = obj;
-	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
-		return 0;
-	}
-	if (SFBUF_GetTermFlg(sfd, sfd->tr[SFADXT_TR].bufout) == 1) {
-		return 0;
-	}
-	len = 0;
-	err = sfadxt_Transfer(sfd, &len);
+	Sint32 bufout;
 
 	bufout = sfd->tr[SFADXT_TR].bufout;
 	bufin = sfd->tr[SFADXT_TR].bufin;
@@ -860,6 +842,15 @@ static Sint32 sfadxt_ExecServerSub(void *obj)
 			}
 		}
 	}
+}
+
+static void sfadxt_CheckStat(SFD sfd, Sint32 len)
+{
+	SFADXT_WORK *wk;
+	ADXT adxt;
+	Sint32 adxterr;
+	Sint32 stat;
+	void *tst;
 
 	wk = SFADXT_WK(sfd);
 	tst = SFADXT_TST(sfd);
@@ -897,6 +888,13 @@ static Sint32 sfadxt_ExecServerSub(void *obj)
 			SFBUF_SetTermFlg(sfd, sfd->tr[SFADXT_TR].bufout, 1);
 		}
 	}
+}
+
+/* the audio header analysis once the decoder has data */
+static void sfadxt_AnalyAhdr(SFD sfd)
+{
+	SFSEE_AHDR *ahdr;
+	ADXT adxt;
 
 	ahdr = sfadxt_GetAhdr(sfd);
 	if (ahdr != NULL && ahdr->analyzed == 0) {
@@ -910,6 +908,14 @@ static Sint32 sfadxt_ExecServerSub(void *obj)
 			ahdr->analyzed = 1;
 		}
 	}
+}
+
+/* the server frequency follows the condition */
+static void sfadxt_UpdateSvrFreq(SFD sfd)
+{
+	SFADXT_WORK *wk;
+	ADXT adxt;
+	Sint32 freq;
 
 	wk = SFADXT_WK(sfd);
 	adxt = wk->adxt;
@@ -918,7 +924,27 @@ static Sint32 sfadxt_ExecServerSub(void *obj)
 		wk->svrfreq = freq;
 		ADXT_SetSvrFreq(adxt, freq);
 	}
+}
 
+static Sint32 sfadxt_ExecServerSub(void *obj)
+{
+	SFD sfd;
+	Sint32 err;
+	Sint32 len;
+
+	sfd = obj;
+	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
+		return 0;
+	}
+	if (SFBUF_GetTermFlg(sfd, sfd->tr[SFADXT_TR].bufout) == 1) {
+		return 0;
+	}
+	len = 0;
+	err = sfadxt_Transfer(sfd, &len);
+	sfadxt_PrepOut(sfd);
+	sfadxt_CheckStat(sfd, len);
+	sfadxt_AnalyAhdr(sfd);
+	sfadxt_UpdateSvrFreq(sfd);
 	sfadxt_WriteTotSmpl(sfd);
 	return err;
 }

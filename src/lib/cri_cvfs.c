@@ -141,19 +141,21 @@ static CVFS_DEVIF *cvFsGetDevIf(CVFS_DEV *tbl, const Char8 *name)
 	return NULL;
 }
 
+/* the second and third searches of cvfs_ResolveDev are INDEX loops (CRI pass 35): the stepping
+ * pointer is then the frontend's strength-reduced IV temporary, copied from `tbl` in the loop
+ * preheader (after the strlen) with a late id between the first and second strlen @ret copies
+ * (target dev2 r20 below len1, above len2); the third copy coalesces with the dying `tbl`. A
+ * pointer local `dev = tbl` is an early clone local (above the strlen copies: dev2 r22). */
 static CVFS_DEVIF *cvfs_SearchDev(CVFS_DEV *tbl, const Char8 *name)
 {
-	CVFS_DEV *dev;
 	Uint32 i;
 	Sint32 len;
 
 	len = strlen(name);
-	dev = tbl;
 	for (i = 0; i < CVFS_MAX_DEV; i++) {
-		if (strncmp(name, dev->name, len) == 0) {
+		if (strncmp(name, tbl[i].name, len) == 0) {
 			return cvfs_tbl[i].vtbl;
 		}
-		dev++;
 	}
 	return NULL;
 }
@@ -245,10 +247,8 @@ static CVFS_DEVIF *cvfs_FindDev(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
 }
 
 /* the device of a split name: the name's device, else the default device (the path is then the
- * whole name); a device asking for it gets the "DEV:path" form. (OPEN: M1 register ranking: the
- * target colours vtbl chain / i3 r26 before the first search's i/dev/len r25/r24/r23, and the
- * second copy's `dev` r23 / `len` r24 AFTER the first search's len - its `dev = tbl` copy ranks
- * below a late strlen @ret copy, which no clone-local form of ours does) */
+ * whole name); a device asking for it gets the "DEV:path" form. (Register ranking closed in CRI
+ * pass 35: the second/third searches are index loops, see cvfs_SearchDev.) */
 /* the first search one inlining level deeper than the two SearchDev copies (CRI pass 32): cloned
  * after them, its i/dev get the lowest ids and the second copy's `i` takes r26 like the target */
 static Sint32 cvfs_WantsDevForm(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
@@ -887,8 +887,7 @@ static CVFS_OBJ *cvfs_AllocObj(void)
 	return obj;
 }
 
-/* COMPILER-DIFF: M1 - the inlined device search's vtbl chain / dev / len registers (same class as
- * cvFsGetFileSize). Pure C by project decision (CRI pass 8). */
+/* byte-identical since CRI pass 35 (the index-loop cvfs_SearchDev); pure C */
 CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 {
 	Char8 dev[CVFS_NAME_LEN];
