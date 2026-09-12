@@ -29723,3 +29723,69 @@ Words: 27 -> 22 (loop-5 `i++` in the for header) -> 12 (raw-word `r->area` store
   `flock .. ninja -k 0` clean, `dtk shasum -c` 111 OK, symbols.txt unchanged. Catalogue rows touched: GCC row 7 (global.c: add "the first set
   of a multi-set counter is `li` -> doubled; move the increment into the for header to shorten a counter"), row 4 (alias: `*(u32*) &s->f = v`
   raw-word store as the dependence lever), row 6 (sched1: birthing insns jump to max_priority; a store->load true dependence costs 2).
+
+### CRI SWAR kernels pass 18 (mpv_mc 8x8 H2 34 -> 0w APPLIED: mask `lis` order = statement order of the initialisers, cases 2/3 inserts as asm-emitted `rlwimi` (no C spelling gives a leftover-free DAG, and the scheduler model shows every leftover node moving the order); V2 8x8 73w and mpv_mcy 16x16 in progress; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar18/ (cri_swar17's scripts + `mk.py NAME [H2|FUNC] [UNIT]` = splice bodies/NAME.c over the whole H2 pragma region or one
+function, `mkc.py NAME CASE [BASE] < row` = one case's loop body replaced, `c2.sh NAME [CASE] [BASE] < row` = words + pass 03/04 counts + rows.py order diff,
+`dagx.py OUTDIR BLOCK ROLES [k6=D:R|k6x=D:R|del=I|coal=I|ren=A:B ..] --both --rowlen=N --mr` = pre-RA schedule of a block after DAG transforms (K6 copy
+inserted / dead def deleted / copy coalesced) diffed role-blind against `troles.py` output, `cmp.py` = cmp2.sh with dead-def lines dropped; NOTES.md).
+- **H2 8x8 34 -> 30w: the two mask `lis` temps.** Target `lis r5, 0xfeff (m1); lis r4, 0x101 (m2); subi r11 (m1); addi r12 (m2)`: the lis temps are
+  backend temps coloured in creation order = the INITIALISER STATEMENT order (later-created = higher vid = coloured first = r4), while the mask webs'
+  colours (m2 r12, m1 r11) follow the helper-local DECLARATION order (first declared = lowest vid = coloured last). The tree had `Uint32 m2 = ..; Uint32
+  m1 = ..;` (both orders tied to the declaration); `Uint32 m2; Uint32 m1;` + `m1 = 0xFEFEFEFE; m2 = 0x01010101;` after the locals gives both.
+- **H2 8x8 30 -> 0w: cases 2 and 3 need a DAG with NO leftover pcode.** dagx.py over all 4^4 combinations of {or-pack (dead fused shift), `V =
+  __rlwimi(V, ..)` (K6 `mr t, V` node), `V = __rlwimi(V << k, ..)` (K6 `mr t, t1`), clean} per pack: ONLY the fully clean DAG reproduces the target's
+  case-2 order (0 lines; the best mixed form is 12), and case 3 likewise (0 lines only with both packs clean; `w1 = (a1 >> 8) | (a0 << 24)` = dead
+  srwi + coalesced `mr` = 20/24 lines). The target's case-2 order is stable under the post-RA scheduler (post-RA model on the target order = the target
+  order), so a dirtied block in the vendor's build gives the same bytes. Every C spelling of this compiler leaves a pcode: the or->rlwimi peephole
+  keeps the fused rlwinm as a dead def (deleted at RA only), the intrinsic always emits the K6 copy (also on an rvalue first argument), a user copy
+  into a helper local is an `mr` node until the RA. **Lever (tagged COMPILER-DIFF): `V = base_shift; asm { rlwimi V, src, sh, mb, me }` on `register`
+  helper locals** (`asm` operands must be `register`; the asm pcode is an ordinary RLWIMI flags 0x88000000 to the scheduler; the `register`
+  qualifier did not change the helper locals' colours). Case 2: 35 -> 31 pcodes (still unrolled), case 3: 28 -> 26. Case 0/1 untouched (identical
+  already through the post-RA reschedule). The vendor's "TuneC" evidently had these inserts as inline asm. Tree: src/lib/mpv_mc.c H2 helper +
+  comment; locked ninja + bytecmp: H2 0w, mpv_mc 4/5 identical (V2 73w).
+
+### Tool RELs, t_esp pass 27, part 2 (continuation of "t_esp pass 27" above — another agent's t_camera section landed between; InitTool 1397 -> 465w IN THE TREE (C2 applied: the F6/F9 refit, 18 pointers-first `n =` rows, one ctor-scope `n` per window), size 0xa20c/0xa1f8, 208/212, seg 0 exact, surv none visible; cse2 F7' re-read to <= SUB+37 (probe D11: ROTATE 276 -> 185, lc 623 and seg 758 fixed, but the W heads' r16/r14 swap costs +120w in 461-751 -> 476w, not applied); nothing flipped; 2026-09-12)
+- **Tree:** src/t_esp/t_esp.cpp = pass 26 + (a) SPEED `f32 c16 = 16.0f;` after "Y:"(5,16), used by the 95/175/255 "Y:" strings (-6 cse1);
+  (b) COLOR pad `1:2:3:5:6:7` (+6); (c) ROTATE `f32 c16` (95/175/255 "Y:" + rot.y/rotSpd.y/rrot.y) + `f32 c32` (95/175/255 "Z:" + rot.z) =
+  -24; (d) SUB pad `1:2:3:5..25` (+24); (e) all 18 `DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->F, &g_pEditSeq2->F, ..)` rows of
+  SPEED/ROTATE written pointers-first (`f32* n1 = &..; f32* n2 = &..; DB_POINT pos; int sx; n = pa_->CreateNumeric2(win_, n1, n2, ..)`);
+  (f) one `DB_NUMERIC2* n;` (BASEPOS: `DB_NUMERIC* n;`) declared after the ctor-top pad of SIZE/SPEED/COLOR/ROTATE/BASEPOS, `n = ..` per
+  row. Locked ninja + bytecmp: 1397 -> 465w (fdiff 80 `*` lines), size 0xa20c/0xa1f8 (5 insns short: 467/692 +1, 623 -1 (the 0.0 `fmr`),
+  757/758 -2 each, 802 -1 = T's epilogue `li r3,1`), 208/212. Grids: cse1 LOAD_EVENT+6 SAVE_EVENT+27 OPTION+540 PATH+541 SIZE+174 SPEED+684
+  COLOR+869 LIFE+8 ROTATE+644 WORK0+14 WORK6+14 BASEPOS+107 (offsets; F6/F9 are +6/+24 code insns later than pass 26 = T's pins), cse2
+  LOAD_EVENT+53 OPTION+70 PATH+348 SPEED+108 COLOR+552 ANMRATE+40 SUB+47 WORKSP1+78; mset [2 0 0 0 0 0 0 0 0 0 2 0 4 1]; regions
+  [2 0 0 6 40 8 48 114 70 4 276 0 32 27]; seg 0 exact (d2 = seg 123 as before); PA r18 / reg9001 r19 / 9682 r16 / 9686 r14 = T.
+- **cse2 F7' is mis-fitted by >= 10 (read off the 0.0 copy):** cse2 rewrites the F9-row's post-flush 0.0 load into `(set C0 H0)` [REG_EQUAL
+  0.0] (H0 = ROTATE's "X:" head, uid 15963; likewise C16/C32 for rrotSpd.y/z) and canon_reg moves every later 0.0 use back to H0 — C0
+  survives only for a use AFTER the next cse2 flush. T's 692 (SUB row 1, pos.y 0.0) stores f22 = C0 and 623 has `fmr f22,f28`; ours (cse2
+  dump) has C0's SUB use (uid 17921 = SUB+41 in the .loop stream) canon'd to H0 and F7' at SUB+47, while C16's SUB use (17956 = SUB+58) is
+  after F7' and survives (`fmr f22,f28` at 624 = C16, T's f21). So T's F7' <= SUB+37 (17911 = SUB row 1's `this` copy; (37,41] is the
+  copy's forbidden interval), >= SUB+12 (17877's LC1523 head must stay rescued). Knob: VEC0 is first-after-F9 -> its pad `1:2:3:5..N:4` =
+  (N, N-1); D11 = tree + VEC0 11 sets + SUB pad 24 -> 13: F7' SUB+37, lc 0 (623 `fmr f22,f28` for 0.0, 624/625 f21/f23 = T), ROTATE
+  region 276 -> 185, seg 758 d16 -> 0 (T's 757-775 poison = a cse2-fresh head after F8'), but F8' WORKSP1+78 -> +68 drops one WORKSP1 pointer
+  use from the W heads 9633/9637 (refs 21 -> 20, deaths 13056 -> 13026) and with births 1424/1444 the priorities are 68 vs 69 -> g_pEditSeq2
+  takes r16 (T: g_pEditSeq r16) -> 461-751 +4 each = 476w. D12/D13 (F7' +36/+35) identical. In the pass-26 tree the two `lis` fillers were
+  born 1418/1420 (one cycle, tie -> qty order -> T's r16/r14); the refit's filler set (fresh post-flush highs, shared 360s) moved them to
+  1424/1444 (a sparse filler stretch), so the tie now depends on the lengths. T has refs 20/20 too (its 757 is poisoned = F8' before that
+  row), so T's `lis` pair sits in one cycle: the next lever is the filler count above them (one more/less dep-free `lis`/`lfs` head with a
+  consumer before WORK0), not F8'.
+- **Negative this pass:** WORK1 pad `1:2:3:5..14:4` has NO cse2 weight (WORK0's `flg = 4` is after F10 = WORK0+14, so WORK1 is not the
+  const-4 head); an in-block pad after `f32 h` in the WORK macro (`cls##_CSE_PAD2()`, WORK0 11 sets ending in 4) IS (11,10) but moves F8'
+  the wrong way (earlier); `DB_POINT pos; pos.x = ..; pos.y = ..;` in a WORK row is (0, +1) — not a negative cse2 knob (485w). No negative
+  cse2-only knob exists in (F7', F8'] yet.
+- **Residue at 465w (regions):** SPEED 114 / COLOR 70 / SIZE 48: spill-register rotation phase (r9/r10/r11 in `li`/`mr` picks, e.g. 448
+  `lwz r6,slot` late + `mr r8,r6` in T vs `mr r9,r6` early) and the sched2 order of the ROTATE rows 637-659 (T issues `lis r6 g_pEditSeq;
+  lwz r5` after the ROT_MINMAX stores, ours first); OPTION 40 (segs 323/332/335, pre-existing); WORK6 32 (757/758: T `stw r31` const-0 vs
+  ours r25 + the W11 poison, fixed by D11's F8'); BASEPOS 27 (791 d22, 802 `li r3,1`); FP names f26/f28 for 0.0/16.0 heads (D11 fixes).
+- Harness /tmp/t27 (kept): tree.cpp (= the tree), mkB.py/mkC.py (the applied edits from base.cpp), mkD.py (VEC0/SUB/WORKn pad variants),
+  mkE.py (WORK PAD2 hook), wdiff.py, D11-13/E1-3/F0 variants + logs, la_C2/la_D11.log, rtl_tree (-dl -dg -dt), rtl_tree2 (-dc -dN -df).
+  Nothing flipped: no make_rel/`ninja -k 0`/shasum. ~/.cache/tesp15, the kit, /tmp/t23-t26 untouched.
+- Next: (1) D11 + bring the 9633/9637 `lis` pair back into one sched1 cycle (SCHDBG=1 on C2 vs D11: their issue cycles and the fillers
+  between; a filler-count change above them), then re-read F8' (T's 757 says F8' < the 757 row's high); (2) the spill rotation in SIZE/SPEED/
+  COLOR (RLDDBG: the first differing pick per window); (3) the ROTATE row order 637-659 (SCHDBG s2 priorities of `lis r6`/`lwz r7`).
+- **Addendum (the W-head `lis` pair in D11, .lreg = sched1 order):** 9634's `lis` (uid 18202) is issued in the free slot right after a
+  LOAD_EVENT-region `SetCloseCallback` call (5852), 9638's (18206) only after the following CreateString row (5853-5879: no free slot inside
+  it) — 20 insns later; in the pass-26 tree both sat in one cycle (births 1418/1420). One filler more or less above them (a dep-free
+  `lis`/`lfs` head whose consumer precedes WORK0) shifts 9634 into the pre-call slot (18195's) and 9638 into the post-call one (2 apart,
+  g_pEditSeq shorter by 2 -> r16). Candidates: the F7'/F8' positions decide which SUB/WORKSP1 highs are fresh heads (= fillers).
