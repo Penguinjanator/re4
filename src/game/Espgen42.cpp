@@ -525,6 +525,10 @@ void Espgen42_Move00(EspgenWork* w)
             k++;
             for (j = 1; j < (int) nx; j++) {
                 int i3 = (i & 3) << 3;   // set before the dead test below, so loop.c still hoists it (maybe_never)
+                // The k*4 giv is discovered BEFORE the k*12 giv (this statement precedes the dead test's `k * 12`): loop.c
+                // emits the giv inits in bl->giv order = reverse discovery, so the preheader is `mr r31,k12 | slwi r27,k,2`
+                // (k4 init last). With `c += k` as the first k*4 use (after the test) the two inits were swapped.
+                u32 k4 = k * 4;
                 // COMPILER-DIFF: candidate (loop.c insn_count): dead test, +3 real insns at loop time (cmpwi/bne/li;
                 // gone by jump2). With 129 (not 126) insns the 0.25 pool pair is "not desirable" in the inner loop
                 // (threshold 71 - 3*13 moves = 32, 32*2*2 = 128 < 129) and the OUTER scan hoists it into its
@@ -538,7 +542,7 @@ void Espgen42_Move00(EspgenWork* w)
                 // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
                 // and `*(c - nx - 1)` becomes `subf` + `lfs -4` off the hoisted `nx*4`.
                 c = cur;
-                c += k;
+                c = (f32*) ((u8*) c + k4);
                 // The index in the function-level `nz` (set in both loops = global pseudo, allocated after local-alloc): the
                 // byte pseudo then finds r0 free in local-alloc (its fake-lifetime pass would refuse the register of a
                 // block-local index dying at the lbzx), and global alloc gives nz r0 too: `lbzx r0,noise,r0; stb r0`.

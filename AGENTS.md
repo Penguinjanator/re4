@@ -27097,7 +27097,7 @@ Harness /home/adityas/.cache/cri45/ (`v.py NAME 'OLD=>NEW'..` literal edits of t
 - **Residue (2), the model (chaitin.py on the cw-before-cw3 dump):** with `Sint32 cw;` declared before `cw3` (cw vid r44 > cw3 r43) plus ONE extra edge from cw to any node coloured r6 (r151 = the hoisted `cw3 + cskip` add, r89 `height + sign`, r91 its `srawi 3`, r93 = cw's own `srawi 2` operand) the prediction is cw r9, cw3 r10, o1/o2/o3/steps unchanged = the target; the declaration move alone = 29w (cw still takes r6 in place). Pre-RA (backend-11) and post-RA (backend-17) orders of the setup block are identical in ours: `addze cw; mulli cw3; rlwinm o1; rlwinm o2; add r151; rlwinm o3; rlwinm r152` (o1/o2 fill the mulli latency, the add waits for cw3, so cw dies before the add). No source form added the edge: cw3/o1/o2/o3 in all 12 orders (29w), `cstep = cw3 + cskip` as an own local at 3 declaration positions with `cbp0 += cstep` (29w: statement 256 is still scheduled after 257/258), o1/o2/o3 hoisted from body pointer arithmetic `crp1 = crp0 + cw; crp2 = crp0 + cw * 2; crp3 = crp0 + cw3` (35w: same colours, the body adds flip to `add r9, r3, r28` = the original wrote `offset + pointer` as ours does), `cw` statement before `hblk` (31w, with the declaration move 34w: the hs chain interleaves, cw r12). What the target must have had: a use of cw (or a compiler copy coalesced into it) that is live past the add or past hblk's `srawi` in the PRE-RA order and gone after RA, or a post-RA reschedule of that block (no `mr` in ours = the block keeps its schedule).
 - Flags: `lib/cftyp422_ppc.c` stays False (7/8, 29w). Tree unchanged from pass 42.
 
-### Tool RELs, t_id pass 7 (the 2/2/2/4-word rows are a bytecmp artefact — REL bytes identical; `common_t_id` + `ScreenReSize` alias fixed so the module links; IN PROGRESS; 2026-09-12)
+### Tool RELs, t_id pass 7 (idEditUnit 9 -> 0 pure C + pin removed (`grpSw = 0`), toolIdOption 12 -> 8 (`s8 lang2`, alias name); the 2/2/2/4-word rows are a bytecmp artefact — REL bytes identical; `common_t_id` + `ScreenReSize` alias fixed so the module links; 63 -> 64/69, 31 -> 18 words (8 real); not flipped; 2026-09-12)
 Harness /home/adityas/.cache/tid7/ (deleted at the end): try.py NAME FUNC 'old=>new'.. (variant.sh on a copy of the tree file), relcheck.sh <t_id.o>
 (links the module with our object into the scratch dir with tools/link_rel.py and runs make_rel --verify; the tree's t_id.elf still holds the split object).
 - **Reloc-row verdict: `_._6cCoord`/`_._7ID_DATA`/`_._5cUnit` 2w and `__static_initialization_and_destruction_0` 4w are bytecmp
@@ -27121,6 +27121,35 @@ Harness /home/adityas/.cache/tid7/ (deleted at the end): try.py NAME FUNC 'old=>
   was multi-use or the sext was combined 2-way. Spellings that do not change it: `(u8) w->lang` (shorten_compare then loads both bytes
   first, the merged zext still lands after), `!(==)`, `x17D |= 2` first, `u8 l2 = w->lang2` local, `w->x17D = w->x17D | 2`; `s8 l = w->lang`
   local: +4 bytes (extsb); `(u8) w->lang != w->lang2`: 11w. A launder/anchor asm on `int l2` gives the order but shifts `w` to r30 (92w).
+- **idEditUnit 9 -> 0, pure C, the r11 pin REMOVED: the case-2 arm is `w->grpSw = 0`, not `= 2`.** The target's `stb r10,0x5d` stores the
+  `trg & 0x100` pseudo (`andi. r10,r0,0x100; beq else`), which cse knows to be ZERO on the followed `beq` (cse_basic_block calls
+  `record_jump_equiv (insn, 1)` only for TAKEN path entries — a one-use label preceded by a barrier; AROUND entries, the skip-blocks
+  jump over `stb r25`, record nothing), and the QI constant store takes the newest known-zero SI register (`insert` puts a new
+  equal-cost element BEFORE the older ones -> `trg & 0x100`, not `trg & 0x200`). Our `= 2` matched only because the editStep value
+  happened to be 2 there; with `= 0` the sign-extended index dies at the case tree, the QI load takes r10, joy's high r9/r11 unpinned.
+  The pass-6 codeless 4th-qty asm after `toolIdDataInit(d)` is still needed (6w without it). Lesson: a `stb rX` of a "constant"
+  from a register that a preceding `beq` proved zero is a `= 0` store — check the semantics before hunting register order.
+- **toolIdOption `lbz lang2`/`lbz lang` 2w -> 0: `lang2` is `s8` (include/t_id.h had `u8`).** With equal signedness shorten_compare
+  emits `load lang2; load lang; sext; sext; cmp`, combine folds both extensions into `cmpw (subreg lang2) (subreg lang)` 3-way WITHOUT
+  a split (same-kind extensions compare in the narrow mode; LOAD_EXTEND_OP makes the paradoxical subregs valid), so both loads stay in
+  expansion order. Verified as a header change (only toolIdOption moves, 64/69, 18w). toolIdOption 8w left = the optMenuName preheader.
+- **toolIdOption 8w left = the first loop's preheader order (`lis optMenuName` at t5 next to the pool `lis`, target at t7 next to
+  `lis Screen`, its `addi r26` giv init unchanged).** Read off the dumps (rtl.sh -dG -dL, sched verbose): sched1 block 56 ranks the
+  hoisted highs prio 2 (pool `lis` 3), ties by LUID, and `high(optMenuName)` has the LOWEST LUID of the highs because it is hoisted by
+  **gcse PRE** (expression 81, `PRE/HOIST: end of bb 56 .. reg 398`: the menu-name load is on every path of the body, langName2/Screen
+  are case arms and stay loop.c movables) — loop.c then re-emits it as movable `405 = high` right after `high optCur`, before the sx/r1/r2
+  constants and the langName2/Screen/pool pairs; the giv init `mr` merges with the lo_sum (`addi r26`) at the preheader end. The target's
+  final order (pool-high, langName2-high | lfs, langName2-low | Screen-high, optMenu-high | Screen-low, optMenu-low | li, li) is what sched2
+  gives a sched1 stream whose high/low pairs are ADJACENT with the highs alternating r9/r11 (Screen-high waits for lfs's r9, optMenu-high
+  for addi r17's r11): its `lis optMenuName` had a LUID after Screen's pair, i.e. it was not PRE'd into bb 56 ahead of loop.c's movables.
+  Spellings that do not change it (all 8-10w): `*(optMenuName + i)`, `&optMenuName[i]`, a `const char** pn` local (before the loop, in the
+  body, or `pn++` pointer biv: 120w), `(u8)`/`(int)` views. Not tried: a body shape where the menu-name load is not on every path at
+  gcse time (so PRE leaves it to loop.c), and an explicit `#pragma`-free `-fno-gcse` check of the LUID hypothesis with `~/.cache/kit/rtl.sh`.
+  Tagged lever not applied (an asm-emitted `lis/addi` pair before the loop lands at t5 as well; the giv init `mr` cannot merge into an asm).
+- Not flipped: toolIdOption 8w. Tree edits this pass: src/t_id/t_id.cpp (`common_t_id` .comm, `ScreenReSize` alias name, idEditUnit
+  `grpSw = 0` + pin removed), include/t_id.h (`s8 lang2`), tools/bytecmp.py docstring. Verified: locked ninja of t_id.o, bytecmp 64/69
+  18w (8 real), module linked with our object -> make_rel --verify = 18 differing REL bytes, all toolIdOption+0x354.. and its 3 reloc
+  entries. Not run: `ninja -k 0` (nothing flipped). Harness /home/adityas/.cache/tid7 deleted.
 
 ### CRI SWAR kernels pass 10 (mpv_mcy 16x16 4p 136 -> 122w APPLIED: the five loop variables take the target's r0/r3/r4/r5/r6 when the pixel words are OWN locals declared before them; the masked-load split and the own-local pixels exclude each other; H2/V2 225w and mpv_mc 72/73/436w unchanged; nothing flipped; 2026-09-12)
 Harness /home/adityas/.cache/cri_swar10/ (`gen10.py NAME decl=px,ps,lv lvorder=.. init=.. pix=u32|u8|u16|s32m mask=none|self|use|use8|ldm sum=cast|cur
@@ -27203,18 +27232,6 @@ ladbg.txt), `rtl1.py FILE A B` (one line per insn of a dump line range).
 - **cse2 flush 1 fitted:** MODEL pad `1:2:3:5:6:7:8:9:10:11:12:4` + LOAD/LOAD_EM/LOAD_ROOM/LOAD_SST `1:2` (cse1 grid unchanged,
   cse2 grid -8: LOAD_EVENT+53), N refit 76 -> 68 sets: 2182 -> 2137w, mset regions [2 8 4 9 4 ..] vs base [2 11 5 10 4 ..],
   segs 209/210/217/219/220 mset-exact. Variant /tmp/t18/x8.cpp (not in the tree yet).
-- **idEditUnit 9 -> 0, pure C, the r11 pin REMOVED: the case-2 arm is `w->grpSw = 0`, not `= 2`.** The target's `stb r10,0x5d` stores the
-  `trg & 0x100` pseudo (`andi. r10,r0,0x100; beq else`), which cse knows to be ZERO on the followed `beq` (cse_basic_block calls
-  `record_jump_equiv (insn, 1)` only for TAKEN path entries — a one-use label preceded by a barrier; AROUND entries, the skip-blocks
-  jump over `stb r25`, record nothing), and the QI constant store takes the newest known-zero SI register (`insert` puts a new
-  equal-cost element BEFORE the older ones -> `trg & 0x100`, not `trg & 0x200`). Our `= 2` matched only because the editStep value
-  happened to be 2 there; with `= 0` the sign-extended index dies at the case tree, the QI load takes r10, joy's high r9/r11 unpinned.
-  The pass-6 codeless 4th-qty asm after `toolIdDataInit(d)` is still needed (6w without it). Lesson: a `stb rX` of a "constant"
-  from a register that a preceding `beq` proved zero is a `= 0` store — check the semantics before hunting register order.
-- **toolIdOption `lbz lang2`/`lbz lang` 2w -> 0: `lang2` is `s8` (include/t_id.h had `u8`).** With equal signedness shorten_compare
-  emits `load lang2; load lang; sext; sext; cmp`, combine folds both extensions into `cmpw (subreg lang2) (subreg lang)` 3-way WITHOUT
-  a split (same-kind extensions compare in the narrow mode; LOAD_EXTEND_OP makes the paradoxical subregs valid), so both loads stay in
-  expansion order. Verified as a header change (only toolIdOption moves, 64/69, 18w). toolIdOption 8w left = the optMenuName preheader.
 - **APPLIED (src/lib/mpv_mcy.c `MPVMC16_OneRef4p_TuneC`, 136 -> 122w, size equal):** pixel/sum locals declared before `i/stride/s0/s1/d`
   (loop variables declared without initialisers, assigned `stride, s0, s1, d` in that order so the `d` load stays last and takes r3),
   `(Uint32)` casts on the sum operands, pass 8's a1 body (pixel 9 + `p8` before `d[0]`, second half `p1..p7` with `p8` as the d[16]
@@ -27299,20 +27316,3 @@ ladbg.txt), `rtl1.py FILE A B` (one line per insn of a dump line range).
   cse2's flushes 2-8 the same way (their knob is the ending-in-4 pad of the first-after-cse1-flush window: SAVE_EVENT,
   DATASET, PARENT, SPEED?, COLOR?, BLEND, RELEASE, VEC0, WORK1, WORKSP0, and a not-ending-in-4 pad in the windows after it to
   hold cse1), (3) only then the callee-saved names and seg 0.
-- **toolIdOption 8w left = the first loop's preheader order (`lis optMenuName` at t5 next to the pool `lis`, target at t7 next to
-  `lis Screen`, its `addi r26` giv init unchanged).** Read off the dumps (rtl.sh -dG -dL, sched verbose): sched1 block 56 ranks the
-  hoisted highs prio 2 (pool `lis` 3), ties by LUID, and `high(optMenuName)` has the LOWEST LUID of the highs because it is hoisted by
-  **gcse PRE** (expression 81, `PRE/HOIST: end of bb 56 .. reg 398`: the menu-name load is on every path of the body, langName2/Screen
-  are case arms and stay loop.c movables) — loop.c then re-emits it as movable `405 = high` right after `high optCur`, before the sx/r1/r2
-  constants and the langName2/Screen/pool pairs; the giv init `mr` merges with the lo_sum (`addi r26`) at the preheader end. The target's
-  final order (pool-high, langName2-high | lfs, langName2-low | Screen-high, optMenu-high | Screen-low, optMenu-low | li, li) is what sched2
-  gives a sched1 stream whose high/low pairs are ADJACENT with the highs alternating r9/r11 (Screen-high waits for lfs's r9, optMenu-high
-  for addi r17's r11): its `lis optMenuName` had a LUID after Screen's pair, i.e. it was not PRE'd into bb 56 ahead of loop.c's movables.
-  Spellings that do not change it (all 8-10w): `*(optMenuName + i)`, `&optMenuName[i]`, a `const char** pn` local (before the loop, in the
-  body, or `pn++` pointer biv: 120w), `(u8)`/`(int)` views. Not tried: a body shape where the menu-name load is not on every path at
-  gcse time (so PRE leaves it to loop.c), and an explicit `#pragma`-free `-fno-gcse` check of the LUID hypothesis with `~/.cache/kit/rtl.sh`.
-  Tagged lever not applied (an asm-emitted `lis/addi` pair before the loop lands at t5 as well; the giv init `mr` cannot merge into an asm).
-- Not flipped: toolIdOption 8w. Tree edits this pass: src/t_id/t_id.cpp (`common_t_id` .comm, `ScreenReSize` alias name, idEditUnit
-  `grpSw = 0` + pin removed), include/t_id.h (`s8 lang2`), tools/bytecmp.py docstring. Verified: locked ninja of t_id.o, bytecmp 64/69
-  18w (8 real), module linked with our object -> make_rel --verify = 18 differing REL bytes, all toolIdOption+0x354.. and its 3 reloc
-  entries. Not run: `ninja -k 0` (nothing flipped). Harness /home/adityas/.cache/tid7 deleted.

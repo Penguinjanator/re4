@@ -243,13 +243,17 @@ void Espgen45_Move00(EspgenWork* w)
             k++;
             for (j = 1; j < (int) nx; j++) {
                 int i3 = (i & 3) << 3;
+                // The k*4 giv is discovered BEFORE the k*12 giv (`&p->pos[k]` below): loop.c emits the giv inits in bl->giv
+                // order = reverse discovery, so the preheader is `mr r29,k12 | slwi r31,k,2` (k4 init last) and the two
+                // `mulli` take r8/r10 as the target. With `c += k` as the first k*4 use the two inits were swapped.
+                u32 k4 = k * 4;
                 // Before the (volatile) psq_l: `lwz pos; add c; add pos+k12` issue before the noise lbzx (target order).
                 Vec* pv = &p->pos[k];   // a pointer variable: `add pos,k12` (operand order); `p->pos[k].y = ..` gives `add k12,pos`
                 // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
                 // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
                 // and `*(c - nx - 1)` becomes `subf` + `lfs -4` off the hoisted `nx*4`.
                 c = cur;
-                c += k;
+                c = (f32*) ((u8*) c + k4);
                 // The index in the function-level `nz` (set in both loops = global pseudo, allocated after local-alloc): the
                 // byte pseudo then finds r0 free in local-alloc (its fake-lifetime pass would refuse the register of a
                 // block-local index dying at the lbzx), and global alloc gives nz r0 too: `lbzx r0,noise,r0; stb r0`.
