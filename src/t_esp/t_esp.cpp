@@ -393,8 +393,14 @@ static TOOL_WINDOW* g_pWorkSp2Win;
 static TOOL_WINDOW* g_pWorkSp3Win;
 static TOOL_WINDOW* g_pBasePosWin;
 DB_BUTTON* g_pMenuExitButton;
-static DB_STRING* g_pLoadDirButton;
-static DB_BUTTON* g_pSaveDirButton;
+// pass 25: the two directory buttons are one-member structs stored through a pointer (`slot->p = CreateButton(..)`):
+// the store is then MEM_IN_STRUCT_P (the ctor's `win->active = 0` load waits for it, segs 183/237 exact) and the slot
+// address is computed before the call (the high crosses the call -> sched1 filler -> the target's callee-saved r24 /
+// reload's r6/r8 at 237). A plain `g_x = f()` pins the high after the call; a plain struct member legitimises the
+// address only at the store (also after the call).
+struct DirButtonSlot { DB_BUTTON* p; };
+static DirButtonSlot g_pLoadDirButton;
+static DirButtonSlot g_pSaveDirButton;
 DB_NUMERIC2* g_pPosNumX;
 DB_NUMERIC2* g_pPosNumY;
 DB_NUMERIC2* g_pPosNumZ;
@@ -1729,14 +1735,14 @@ static void SetDirCallback(DB_PRIMITIVE*)
         name = "[SerVer]";
         strcpy(g_dir, "X:/Soft/");
     }
-    g_pLoadDirButton->SetString(name);
-    g_pSaveDirButton->SetString(name);
+    g_pLoadDirButton.p->SetString(name);
+    g_pSaveDirButton.p->SetString(name);
     if (g_dirLocal == 1) {
-        g_pLoadDirButton->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
-        g_pSaveDirButton->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+        g_pSaveDirButton.p->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
     } else {
-        g_pLoadDirButton->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
-        g_pSaveDirButton->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
+        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
+        g_pSaveDirButton.p->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
     }
 }
 
@@ -1794,7 +1800,8 @@ public:
             DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 76.0f);
             int sx = 0;
-            g_pLoadDirButton = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
+            DirButtonSlot* slot = &g_pLoadDirButton;
+            slot->p = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
         }
         win->active = 0;
     }
@@ -2268,7 +2275,8 @@ public:
             DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 76.0f);
             int sx = 0;
-            g_pSaveDirButton = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
+            DirButtonSlot* slot = &g_pSaveDirButton;
+            slot->p = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
         }
         win->active = 0;
     }

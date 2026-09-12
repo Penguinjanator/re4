@@ -29167,7 +29167,7 @@ variants; dbw_*.cpp db_widget variants; rtl0/ dbw0/ = rtl.sh dumps). No tree fil
 - Flags unchanged: Tools/t_esp_area, Tools/t_lightarea, t_esp/db_widget, game/db_cam, game/Espgen42, game/espgen45, t_camera/t_camera_data
   all stay False; no tree file edited; nothing built under the lock (kit only). Flip order for the Tools REL unchanged.
 
-### Tool RELs, t_esp pass 25 (t_esp 208/212: InitTool 1409 -> 1397w in the tree, pure C: the two dir buttons are one-member structs stored through a pointer (`DirButtonSlot* slot = &g_pX; slot->p = CreateButton(..)`) = hoisted high + MEM_IN_STRUCT_P store -> segs 183/237 EXACT, the block-13 A/Name tie flipped to the target's (A r17, Name r16, 9682 r16), seg 210/221 exact; IN PROGRESS 2026-09-12)
+### Tool RELs, t_esp pass 25 (t_esp 208/212: InitTool 1409 -> 1397w in the tree, pure C: the two dir buttons are one-member structs stored through a pointer (`DirButtonSlot* slot = &g_pX; slot->p = CreateButton(..)`) = hoisted high + MEM_IN_STRUCT_P store -> segs 183/237 EXACT, the block-13 A/Name tie flipped to the target's (A r17, Name r16, 9682 r16), seg 210/221 exact; new residue PA/reg9001 96/96 tie (one insn), B/B2 read to "B's sched1 issue ~170 insns later in T"; nothing flipped; 2026-09-12)
 
 - **Item 1 (segs 183/237 + A/Name): the vendor's dir-button stores were struct-member stores through a pointer.** Read: (a) T's
   seg 237 `lis r6 ..DirButton; lis r8 g_pSaveWin` = two hoisted highs (pass 24's N6 `DB_STRING*` reproduces the registers) and
@@ -29187,6 +29187,42 @@ variants; dbw_*.cpp db_widget variants; rtl0/ dbw0/ = rtl.sh dumps). No tree fil
   and loses on qty number -> PA r19, reg9001 r18 (T: PA r18, reg9001 r19); one insn later (birth >= 1294) restores 97.** Shows as
   d2 in 163/164/165/186/199/209/230/238/251/261/284/291/298/340/347/352/354/380/391 and +2 in 662-698 (`stw r19,0x58(r9)` = win->active).
   B/B2 unchanged (B2 121 r23, const0 115 r22, B 114 r21; T B r23, B2 r22, const0 r21).
+- **Sched1 facts read this pass (`/tmp/t25/vis.py SCHED FUNCLINE 13 [lo hi]` = the `-fsched-verbose-9` block-13 issue table as one line
+  per cycle; the rtl.sh dumps have no priority table).** Issue rate 2; block 13's chain (the call sequence + its argument/store insns)
+  fills most slots and the dep-free fillers (`lis` highs, `li`, `lfs` highs) go into the free slots in priority order = by their FIRST
+  consumer's call position (ties: dependents count, then LUID). Free slots are dense inside each window ctor's `new` + CreateNormalWindow
+  stretch (one per cycle) and sparse (one per ~5 cycles) inside the CreateString/CreateNumeric chains, so a filler's local-alloc birth
+  moves by 1 insn per extra higher-priority filler in a dense stretch and by ~10 in a sparse one (pass 24's N6 numbers). The top fillers of
+  block 13: r2469/r2467/r2477 highs (c1-c3), LC713 " Name :" q4 (c4), LC715 q6 (c5), LC717 "  No  :" = Name q7 (c6, insn 11), LC719 q8,
+  LC722 q10; A (uid 9228) at c151 (S4; base c159), A2 next, B2 (10068) c164, B (10244) c168, reg7595 const0 c269, reg9001 const0 c323,
+  9682/9686 c355 (both slots). Name's last use (`%5=r2555+low(LC717)`, seg 210) at c302-304; LOAD_EVENT's LC717 is a fresh 2-ref pseudo
+  r3256 whose reload inherits Name's r16/r17 at seg 221 iff 9682's set comes AFTER that use in sched1 order (N6's lc 221; S4 keeps 9682
+  before it). reg9001's first consumer is `[r9000+0x58]=r9001` (ROTATE's `win->active = 0`, c3183) and r8413's (the next filler, issued
+  one slot after it) is `[r8413+low(g_pRotateWin)]=this` at c3184: equal priority, reg9001 first on dependents (25 vs 1); swapping them
+  is the +1 insn reg9001 needs, i.e. T's ROTATE tail (seg 662: T stores unit/max/min = source order 4613, ours min/unit/max) is the place
+  to look, together with the ROTATE `fmr` (lc 623).
+- **B vs B2 (still open; the read):** T's r23 = B (`lis r23` at 184 = sched2's WAR hoist, uses 384-443), r22 = B2 (378-443), r21 = label
+  then const0 (`li r21,0` at 187). B2 cannot be denied r23 by g_pLoadWin's high (it dies at the `g_pLoadWin = new` store, c150, before
+  any PATH/PARENT filler can issue: A's consumer at 350 outranks B2's at 378), and `lis r23 B` hoisted to 184 means B is ONE pseudo
+  spanning 384-443 (a separate 384-388 pseudo in r23 would put the `lis` after 388). So local-alloc allocated B before B2: pri(B) >=
+  122 = 640000/len -> B's set >= insn 512 (c~256, ~90 cycles after ours at c168), i.e. in T B's first consumer is far later than seg 384
+  or B has 18+ refs (4*18*10000/5598 = 128; ours 16 = 15 uses + set, T shows 15 uses). Not found; the PARENT row 388 is the in-call
+  `n = CreateNumeric2(win_, &g_pEditSeq->parts, ..)` form (pass 24 kept the chained/`n =` rows in-call).
+- Negative/neutral this pass: N6 alone on the pass-24 tree 1412w (210 d3, 221 d10, 237 d6 — as pass 24); S1/S2/S3 (plain struct member,
+  DB_BUTTON/DB_STRING typing) 1412w; S5 (Save slot only) 1410w, S6 (Load slot only) 1399w; the 16 `slot` placements 1397w each; the
+  ROTATE last row's `unit/max/min` statement order (all 5 other permutations, R1-R5) 1397w each with seg 662 unchanged — the three
+  `stfs` are ordered by sched2 (register deaths), not by LUID, so seg 662 / reg9001's slot need another lever.
+- Tree: src/t_esp/t_esp.cpp = pass 24 + `struct DirButtonSlot { DB_BUTTON* p; }` for both dir buttons, `.p->` in SetDirCallback,
+  `DirButtonSlot* slot = &g_pX; slot->p = pa_->CreateButton(..)` in the LOAD/SAVE ctors (g_pLoadDirButton's pass-24 `DB_STRING*` typing
+  superseded). Locked ninja + bytecmp: InitTool 1397w (fdiff 80 `*` lines), size 0xa20c/0xa0e0, 208/212, sections identical. Nothing
+  flipped: no make_rel/`ninja -k 0`/shasum. Harness /tmp/t25 (kept): base.cpp (pass-24 tree), tree1.cpp (= the tree), N6/S1-S6/T_*
+  variants, la_*.log (LADBG), rtl_base/rtl_S1/rtl_tree1 (-dS -dl -dj), vis.py, dsum.py (per-segment d deltas between two tesp15 o_*
+  dirs), regmap.py (callee-saved register definitions per segment), ct.sh/scan.sh/pad.py/unn.py (t24's on /tmp/t25 paths).
+  ~/.cache/tesp15, the kit, /tmp/t24 untouched.
+- Next: (1) reg9001 +1 insn: read the ROTATE tail (seg 662 store order, lc 623) — a chain change there swaps the reg9001/r8413 filler
+  order or shifts the slot; check with LADBG that A stays >= 84 (birth <= 5 insns earlier than 604 breaks it) and Name <= 83 (death >=
+  1213); (2) B/B2 as above (find what delays B's sched1 issue by ~170 insns: its first consumer, or a dependence); (3) segs 461-484 (d4)
+  and 668-698 (the 9682/9686 rows: `lis r6` fresh per row in T = mechanism 2), (4) the 38-bucket.
 
 ### CRI pass 61 (cftfx 5 -> 6/6 FLIPPED, 111 OK: cnvDynamicYcc420plnToA256UserTable 2 -> 0w pure C — the setup `slwi r0` (ywidth*4) / `add r30` (yskip) tie is input order, so the two strides became OWN locals declared first; no invisible pcodes needed; 2026-09-12)
 Harness /home/adityas/.cache/cri61/ (cri59's scripts + `b2.sh NAME` = variant words + the pre-RA INPUT and scheduled order of B2 in one line each; deleted at the end with /home/adityas/.cache/cri59).
