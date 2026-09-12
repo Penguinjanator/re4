@@ -144,9 +144,12 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
  * the c1/c2 parameter copies are kept as in the stereo decoder (the two `lis` pairs then colour like
  * the original's), and the table value is written back into the nibble (`d = AdxQtbl[d & 0xF]`): a
  * range-split web of a variable first defined before `t`, so it is coloured before the first mix
- * (q_l r20, the mix r21). Residue 5 words: the `nfrm / 2` add temporary takes r0 instead of r12
- * (sadd's load must precede the `srawi` in the pre-RA order) and the `(c1*l2 + c2*l1) >> 12` shift
- * temporary is coloured after the `d * sc_l` product (the original has one more neighbour on it). */
+ * (q_l r20, the mix r21). Pass 80: the l1 statement's shift is an own local `sh` read once more in a
+ * dead conditional inside the l1 clamp (see the M1 comment there): its `addi` marks `sh` no-r0 = one
+ * never-removed neighbour, so the shift is coloured before the `d * sc_l` product (5 -> 2 words).
+ * Residue 2 words: the `nfrm / 2` add temporary takes r0 instead of r12 - the original's add temp
+ * had an rA-position use (r0 excluded) with scl's load before the add; a dead conditional in the
+ * entry block cannot carry it (its `li`/`cmpi` are not deleted in the entry block, pass 80). */
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                             register Sint16 c1, register Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
@@ -165,6 +168,10 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	Sint32 key;
 	Sint32 j;
 	Sint16 *ps;
+	Sint32 sh;
+	Sint32 sum;
+	Sint32 pq;
+	Sint32 z;
 
 	nblk = nfrm / 2;
 	/* COMPILER-DIFF: M1 (kept parameter copies) - as in ADX_DecodeSte4AsSte (pass 73: 26 -> 22 words). */
@@ -212,8 +219,30 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 			outr[0] = t;
 			dr = AdxQtbl[dr & 0xF];
 			outl[0] = t;
-			l1 = d * sc_l + ((c1 * l2 + c2 * l1) >> 12);
-			ADX_CLAMP(l1);
+			/* COMPILER-DIFF: M1 (dead conditional) - the original colours the `>> 12` shift of this
+			 * statement before the `d * sc_l` product (one more never-removed neighbour on the shift
+			 * only, pass 80). The shift and the sum are own locals read once more in the dead arm
+			 * below (`z = 0; if (z != 0)` reaches the allocator and is folded by the post-RA peephole,
+			 * the arm's `addi rr2, sh, 1` marks `sh` no-r0 = the neighbour; `l2 = sum` keeps the sum
+			 * live into the arm so it is coloured before the product as well). The arm sits inside the
+			 * clamp's outer test so its block boundary splits none of the loop's blocks, and `pq`
+			 * keeps the add's operand order (product, shift). */
+			pq = d * sc_l;
+			sum = c1 * l2 + c2 * l1;
+			sh = sum >> 12;
+			l1 = pq + sh;
+			if (l1 > 0x7FFF || l1 < -0x8000) {
+				z = 0;
+				if (z != 0) {
+					rr2 = sh + 1;
+					l2 = sum;
+				}
+				if (l1 < -0x8000) {
+					l1 = -0x8000;
+				} else if (l1 > 0x7FFF) {
+					l1 = 0x7FFF;
+				}
+			}
 			rr1 = dr * sc_r + ((c1 * rr2 + c2 * rr1) >> 12);
 			ADX_CLAMP(rr1);
 			t = (l1 + rr1) * 7 / 10;
