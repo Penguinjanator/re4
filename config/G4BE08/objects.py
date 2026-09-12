@@ -1989,3 +1989,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/sfh_main.c": True,  # 36/36: SFH_AnlyElemSmpHz 6 -> 0 (M4 stwbrx closed). The post-RA peephole's stwbrx rule follows a PER-BLOCK def table, so a block boundary between the swap chain and its `stw` keeps the vendor's `rlwinm/rlwimi x3/stw`: `w = SWAP32(..); ret = TRUE; z = 0; if (z != 0) ret = id; *val = w; return ret;` (tagged dead conditional: the frontend keeps own-local constants out of relational compares, pass 15 folds `li; cmpi; bt` into the fall-through and deletes the unreachable arm; `ret = TRUE` before the compare = `li r3,1` next to the load; the arm's `id` read keeps r4 live so the word takes r6). The six sfh_GetHdr* readers keep their pass-18b asm/peephole-off/pin form
 })
+
+# CRI pass 79 (2026-09-12)
+MATCHING.update({
+    "lib/adx_tsvr.c": True,  # 6/6: adxt_nlp_trap_entry 2 -> 0 (`lha r4` vs `r0`). Tagged M1 (rA use of the lha temp kept to the RA by a dead conditional): `register Sint32 t = ofst; z = 0; if (z != 0) { ofst1 = t + 4; } ofst1 += t;` — the frontend keeps the own-local constant out of the relational compare, so at RA time the arm's `addi ofst1,t,4` marks t's web no-r0 (physical r0 in its neighbour list -> r4 = the target's colour, z takes r0); the post-RA peephole folds `li; cmpi; bt` into the fall-through and deletes the arm, the join block (`cmpwi n1; lha ofst2v; add`) is scheduled as the target's; size exact
+})

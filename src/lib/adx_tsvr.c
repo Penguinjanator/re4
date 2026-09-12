@@ -1,8 +1,8 @@
 /* CRI ADXT server (adx_tsvr.c): the per-handle state machine run from ADXT_ExecServer, the
  * decoder-information stage and the decoder trap / stream end-of-sector callbacks (looping and
- * linked files). 5/6 functions byte-identical; adxt_nlp_trap_entry differs in one word (the
- * `lha ofst` temporary takes r0, the original r4: an r0-coloured neighbour in the original's
- * interference graph that ours does not have, see AGENTS.md "CRI pass 11").
+ * linked files). 6/6 functions byte-identical; adxt_nlp_trap_entry carries one tagged form (the
+ * `lha ofst` temporary takes r4 in the original = a no-r0 web: a dead conditional keeps an addi
+ * use of it to the register allocator, see AGENTS.md "CRI pass 79").
  * The decoder trap callbacks are `void (*)(void *obj)` handlers: the `void *` -> ADXT conversion
  * keeps the handle copy as its own node, ranked above the locals (r31) like the original (CRI pass
  * 12; replaces the pass-5 `asm { mr p, adxt }` pins). */
@@ -309,6 +309,8 @@ void adxt_nlp_trap_entry(void *obj)
 	Sint32 n1;
 	Sint32 n2;
 	Sint32 ofst2v;
+	register Sint32 t;
+	Sint32 z;
 
 	p = obj;
 	sjd = p->sjd;
@@ -332,7 +334,18 @@ void adxt_nlp_trap_entry(void *obj)
 	} else {
 		n2 = ADX_ScanInfoCode(ck2.data, ck2.len, &ofst2);
 	}
-	ofst1 += ofst;
+	/* COMPILER-DIFF: M1 (rA use of the lha temp kept to the RA by a dead conditional): the
+	 * original colours the `lha ofst` temporary r4, i.e. its web had a physical-r0 neighbour (an
+	 * addi/base use) that left no instruction. `z = 0; if (z != 0)` is kept by the frontend (own-
+	 * local constants are not propagated into relational compares) and folded away only by the
+	 * post-RA peephole (`li; cmpi; bt` -> nothing, the arm deleted), so the arm's `addi ofst1,t,4`
+	 * exists at RA time (t no-r0 -> r4) and leaves no code. */
+	t = ofst;
+	z = 0;
+	if (z != 0) {
+		ofst1 = t + 4;
+	}
+	ofst1 += t;
 	ofst2v = ofst2;
 	if (n1 != 0 && n2 != 0) {
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
