@@ -30605,3 +30605,56 @@ coal=KEEP:GONE edge=A:B` = chaitin what-if with vid moves and copy coalescing; b
 - **(H1/H2 negatives, unpinned Mono, 164w = base unless noted):** `key = key * smul + sadd`, `nblk = nfrm / 2` after the hist loads, `const` stack parameters, `while` frame loop; `sadd = (Sint32)sadd` at the loop end (148w, +8 bytes) / loop top (179w) / before the loop (134w, an `extsh` stays); K&R definition; `asm { mr sa, sadd }` into a `register Sint32 sa` (the asm copy is folded by backend copy propagation like a C copy: only a copy INTO a physical register survives); hard pin `asm { mr r0, sadd }` after the loop 35w / in B1 37w (r0 leaves the colour set: `srwi r11` + a third spill pick, frame +0x10). Widening copies `mr r67,r42`/`mr r68,r41` inserted in the schedwhatif model do NOT reproduce the target's B1 either (srawi c8) — the target's B1 is config (i), reached now.
 - **Residue 26w (Mono), read:** (a) `add r12,r0,r4` = the `nfrm/2` add temp r75 coloured r0 in ours: the hoisted sadd load sits LAST in B1's input order (preheader temps after the hist loads), so sadd is not live at the srawi; the target needs sadd's load before the srawi (the stack-parameter position) while keeping the high vid — a frontend-hoisted load would do it, not found; (b) the two `lis` pairs swapped (magic r20/r21): the AdxQtbl address temp is created before the 0x6666 magic in the target's IR order (table lookups placed before the first mix in the source: c1-c4 probes 47-229w, none keeps the body); (c) the q_l/q_r tail (mix temp @147 coloured before q_l; `q_r` declared first, inlined lookups d1-d4 26-36w: unchanged or worse).
 - Tree: src/lib/adx_dcd5.c ADX_DecodeSte4AsMono (body + comments). adx_dcd5 2/4 (25w + 26w), not flipped, no `ninja -k 0`. Harness ~/.cache/cri70 deleted.
+
+### Tool RELs, t_esp pass 30 (t_esp 210/212 unchanged: Load/SaveEmTypeUpdateCallback 2/2 — the loop-2 `lis r12` mechanism READ EXACTLY and reproduced up to a 9-word entry residue (pass-9's rotated while, variant C) / a 1-word `mr` (variant I); nothing in the tree, nothing flipped; new `CSEDBG=2` hook; 2026-09-12)
+- Scope: the last 2 words of each callback = the do-loop of `ModelTypeGroupSkip` (loop 2, the `dir == -1` back-skip). T: TOP's
+  `sth r9,@l(r4)` through the ENTRY high R (r4), the body's last ref `lhz r7,@l(r12)` through a fresh high hoisted into the
+  preheader (`lbz r0,1(r8); lis r12; extsb r10,r0; TOP:`); ours the reverse. Harness /tmp/t30 (ins.py = one line per insn of a
+  dump, mk.py/try.sh = loop-2 body variants through ~/.cache/kit/variant.sh, rtl_base/rC/rD/rE/rF = rtl.sh dumps incl. `-dt` cse2).
+- **Mechanism (gcse + cprop, read off the dumps):** every `g_modelType` ref expands to its own `(set H (high)); (mem (lo_sum H sym))`;
+  cse1 merges them per ebb; gcse PRE turns each in-loop `(set H (high))` occurrence into `H = R` (R = the bb-0 insertion, `lis r4`)
+  and gcse's cprop pass 2 then replaces H by R in every block where that copy is AVAILABLE AT BLOCK ENTRY (`find_avail_set` is
+  avin-based) — never in the copy's own block. loop.c hoists the surviving `H = R` (REG_EQUAL high -> move-insn `lis`). So the block
+  that keeps the fresh `lis` is the block holding the PRE copy, and TOP can use R only if its store's high pseudo was set in a block
+  whose copy reaches TOP's entry. In a fall-through-entered `do {} while` that is impossible (cse_end_of_basic_block stops at TOP's
+  label; a `do {} while (0)` split, variant B, changes nothing: the wrap's join label is merged after the inner LOOP_END and the AROUND
+  path jumps over the note). T's distribution = a ROTATED WHILE at cse1: `jump TEST; TOP: step; wrap; TEST: t = load; n = tbl[t];
+  tests; beq TOP` — cse1 follows the back edge into TOP (barrier-preceded, 1 use) with TEST's high H_t, PRE puts the copy in TEST,
+  cprop gives TOP (whose only predecessor is TEST) R, loop.c hoists H_t -> `lis r12`. Pass 9's form.
+- **The entry `b TEST` is removed by `duplicate_loop_exit_test` in the jump pass BEFORE cse2** (toplev: `jump_optimize (.., JUMP_AFTER_REGSCAN)`
+  right before cse2; jump.c 2577): it copies the exit code (TEST .. LOOP_END; refused if > 20 insns, or a CODE_LABEL/CALL/LOOP_CONT
+  inside) before LOOP_BEG with `beq TOP` intact + `jump END; barrier`, and deletes `jump TEST`. At jump1 the exit code is > 20 insns
+  (fresh high/lo_sum pairs), after cse1/gcse/loop it is <= 20 -> duplicated pre-cse2 (variant C: `.loop` dump still has `jump 272`,
+  `.sched` has NOTE_INSN_LOOP_VTOP). cse2 then folds the copy in the ebb that reaches from loop-1's TEST via the AROUND path (`bne 222`
+  skips the label-free `beq TOP1` block) and knows t, n, a0, c1; a folded `beq TOP` becomes `jump TOP` + barrier, the post-cse2 jump
+  pass deletes the unreachable `jump END` and the jump-to-next -> fall-through into TOP, exactly T's `bne cr7; lbz; lis r12; extsb; TOP:`.
+  Variant C (`while (a0 == (n = tbl[(s16)(t = g_modelType)])[0] && c1 == n[1]) { step; wrap }`): body EXACT, entry residue = the
+  UNFOLDED part of the copy (`extsh; slwi; lwzx; lbz; extsb; cmpw r6; b` = 9w; jump2 cross-jumps its tail into the loop's test).
+- **Why the copy does not fold (cse.c, read with the new hook):** `exp_equiv_p` validates the regs of the LOOKED-UP expression
+  (`REG_IN_TABLE (r) == REG_TICK (r)`), and `reg_in_table` is set only by `mention_regs` = when an expression containing r is
+  INSERTED; a `(set r ..)` dest is left at -1 (cse.c 7809). `canon_reg` rewrites regs to their class head, and `make_regs_eqv`
+  (cse.c 984) makes the NEW reg the head when it lives beyond the block and its `REGNO_LAST_UID` cuid is later than the head's.
+  So `X2 = X1` (loop-2 pseudo := loop-1 pseudo) with X2 living longer makes X2 the head, and the next lookup of an expression
+  containing X2 fails although the same expression with X1 is in the table. In the copy: (a) same `t` (C): `t = load` folds to the
+  self-set `(set t t)` (kept: "it is good to have SET_SRC == SET_DEST") -> `invalidate (t)` -> reg_tick bump -> loop-1's index entry
+  `(sign_extend (subreg:HI t))` is stale -> `n = tbl[..]` recomputed, then `n` self-set -> `(mem n) == a0` lost; (b) own `t2` (D/E):
+  `t2 = t`, t2 head (used in loop 2 + tail; a tail `t = t2` does not help: gcse cprop rewrites the tail's t to t2 first, F likewise for
+  a `t = t2` inside the test) -> the index lookup fails with `[r226 qty 344 first 226 tick 1 intable -1]`; (c) loop-2's table lo_sum
+  pseudo P2, hoisted by loop.c and rewritten by cse2 to `P2 = P1` (P1 = loop-1 TEST's lo_sum), becomes head over P1 -> `(mem (plus P2
+  idx))` never hits loop-1's `(mem (plus P1 idx)) == n`. Fix for (c): a user pointer assigned in loop-1's test and indexed in loop-2's
+  (`tbl = g_modelNameTbl; n = tbl[(s16) t]` / `n2 = tbl[..]`): same code (`lis r11; addi r11` stay inside TEST1), no P2. Fix for
+  (a)/(b) found only with a copy: `u16 tmp; while ((n2 = tbl[(s16)(tmp = g_modelType)], t = tmp, a0 == n2[0]) && c1 == n2[1]) { tmp = 0;
+  step; wrap } tmp = 0; tail(t)` (variant I: the dead `tmp = 0` kills stop gcse cprop from propagating tmp into t's uses, so tmp is
+  the loop-test-local pseudo and t stays head) -> the copy folds COMPLETELY (entry exact), but the `t = tmp` copy is not coalesced
+  (`mr r7,r0` in TEST2, +1 word) and the hoisted high lands in r8 (17w); G/H (`(s16) g_modelType` index, `(u16)` conversion copy) give
+  `lha`/`clrlwi`. The index must be `(s16) t` from the SI variable (T: `lhz r7; extsh r0,r7`) and `t` must be the load's own dest.
+- Facts for the next pass: (1) jump2's cross_jump cannot merge a peeled step into TOP (labels in the first sequence stop
+  `find_cross_jump`; two jumps to different labels are unequal), so pass 9's "peel + cross-jump" idea is dead; (2) the tail can be
+  spelled `g_modelType += 1; if ((s16) g_modelType > 242) g_modelType -= 243;` — the tail is in TEST2's cse1 ebb (AROUND from the a0
+  exit over LOOP_END) so `(mem g_modelType)` folds to t and the code is identical, removing every post-loop reference to t; (3) what
+  is still needed is a spelling where loop-2's load goes straight into a variable that canonicalises, in the pre-cse2 copy, to a reg
+  already mentioned in cse2's table (loop-1's `t`) without a self-set: candidates = make loop-1's `t` referenced later in the stream
+  than loop-2's (REGNO_LAST_UID rule) in a way gcse cprop cannot rewrite, or record loop-1's index under a reg that is not re-set
+  (a second same-value variable in TEST1 that outlives t); (4) SaveEmTypeUpdateCallback is the same inline, so one fix closes both.
+- Kit: `~/.cache/sngdbg` gained the `CSEDBG=2` hook (cse_insn per-SET trace: found/not found + qty/head/tick/intable of the regs; README
+  section, patches/dbg-hooks.patch refreshed; binary still cmp-equal to the tree object with no env var). /tmp/t30 is scratch.
