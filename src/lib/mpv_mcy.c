@@ -29,7 +29,11 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 	 * `stmw` after the two `li`s) as in the original; declared first they share a level with eight
 	 * sum temporaries that take r0/r3-r7 (CRI SWAR kernels pass 10). The `(Uint32)` casts are the
 	 * frontend's CSE temporaries for the two-use pixels (pass 9); pixel 9 and its sum p8 are computed
-	 * before the first store (pass 8: the original's first block ends after d[1] with p8 inside). */
+	 * before the first store (pass 8: the original's first block ends after d[1] with p8 inside).
+	 * Pixel pair k+1 is loaded right before the sum p_k: that raw order gives the original's pre-RA
+	 * schedule of the first block (the list-scheduler model reproduces its final order from ours with
+	 * the original's registers, pass 11); the `& 0xFF` at each byte load is one later-deleted initial
+	 * instruction per load, which puts the >100 block split exactly after `d[1]` (pass 9). */
 	Uint32 a0, b0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8;
 	Uint32 p0, p1, p2, p3, p4, p5, p6, p7, p8;
 	Sint32 i;
@@ -44,24 +48,24 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 	d = mc->dst;
 	for (i = 0; i < 16; i++) {
 		__dcbt(s1, stride);
-		a0 = s0[0]; b0 = s1[0];
-		a1 = s0[1]; b1 = s1[1];
-		a2 = s0[2]; b2 = s1[2];
-		a3 = s0[3]; b3 = s1[3];
-		a4 = s0[4]; b4 = s1[4];
-		a5 = s0[5]; b5 = s1[5];
-		a6 = s0[6]; b6 = s1[6];
-		a7 = s0[7]; b7 = s1[7];
-		a8 = s0[8]; b8 = s1[8];
+		a0 = s0[0] & 0xFF; b0 = s1[0] & 0xFF;
+		a1 = s0[1] & 0xFF; b1 = s1[1] & 0xFF;
 		p0 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 + (Uint32)b1 + 2;
+		a2 = s0[2] & 0xFF; b2 = s1[2] & 0xFF;
 		p1 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
+		a3 = s0[3] & 0xFF; b3 = s1[3] & 0xFF;
 		p2 = (Uint32)a2 + (Uint32)a3 + (Uint32)b2 + (Uint32)b3 + 2;
+		a4 = s0[4] & 0xFF; b4 = s1[4] & 0xFF;
 		p3 = (Uint32)a3 + (Uint32)a4 + (Uint32)b3 + (Uint32)b4 + 2;
+		a5 = s0[5] & 0xFF; b5 = s1[5] & 0xFF;
 		p4 = (Uint32)a4 + (Uint32)a5 + (Uint32)b4 + (Uint32)b5 + 2;
+		a6 = s0[6] & 0xFF; b6 = s1[6] & 0xFF;
 		p5 = (Uint32)a5 + (Uint32)a6 + (Uint32)b5 + (Uint32)b6 + 2;
+		a7 = s0[7] & 0xFF; b7 = s1[7] & 0xFF;
 		p6 = (Uint32)a6 + (Uint32)a7 + (Uint32)b6 + (Uint32)b7 + 2;
+		a8 = s0[8] & 0xFF; b8 = s1[8] & 0xFF;
 		p7 = (Uint32)a7 + (Uint32)a8 + (Uint32)b7 + (Uint32)b8 + 2;
-		a0 = s0[9]; b0 = s1[9];
+		a0 = s0[9] & 0xFF; b0 = s1[9] & 0xFF;
 		p8 = (Uint32)a8 + (Uint32)a0 + (Uint32)b8 + (Uint32)b0 + 2;
 		d[0] = MPVMC16_AVG4(p0, p1, p2, p3);
 		d[1] = MPVMC16_AVG4(p4, p5, p6, p7);
