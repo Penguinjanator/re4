@@ -43,9 +43,9 @@ Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint
  * parameter copies (two coalesced ghosts dying at the widening `extsh`, one more neighbour on the
  * entry-block values sadd/smul/scl/nblk/l1/l2/rr1/rr2), which is what puts sadd/smul in the top level
  * (r0/r11) with all three stack loads before the `add`; the table value is written back into the
- * nibble (`d = AdxQtbl[d & 0xF]`, a range-split web) as in the mono decoder. Residue 3 words: the
- * `c1 * t` / `c2 * rr1` product temporaries of the right channel's second sample (the original pops
- * `c1 * t` first). */
+ * nibble (`d = AdxQtbl[d & 0xF]`, a range-split web) as in the mono decoder. Pass 78: the original
+ * pops the `c1 * t` product of the right channel's second sample before `c2 * rr1` (one more
+ * neighbour on it), reproduced by the `x` copy of `t` below (3 -> 0 words). */
 Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                            register Sint16 c1, register Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
@@ -59,10 +59,11 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	Sint16 sc_l;
 	Sint16 sc_r;
 	Sint32 s;
-	Sint32 t;
+	register Sint32 t;
 	Sint32 nblk;
 	Sint32 key;
 	Sint32 j;
+	register Sint32 x;
 
 	nblk = nfrm / 2;
 	/* COMPILER-DIFF: M1 (kept parameter copies) - dead writes into the already pinned r6: the copies
@@ -111,10 +112,16 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			outr[0] = t;
 			l1 = d * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			rr1 = dr * sc_r + ((c1 * t + c2 * rr1) >> 12);
+			/* COMPILER-DIFF: M1 (neighbour copy) - the second sample's `c1 * t` product must be
+			 * coloured before `c2 * rr1` (one more neighbour, pass 78). `t` has three reaching
+			 * definitions (the clamp), so the backend keeps this copy; `x` takes the dying `t`'s
+			 * register and the `mr r20,r20` is deleted after allocation: `x` is a real node live
+			 * across both products, `rr2 = x` is the original's `mr r30,r20`. */
+			asm { mr x, t }
+			rr1 = dr * sc_r + ((c1 * x + c2 * rr1) >> 12);
 			ADX_CLAMP(rr1);
 			outl[1] = l1;
-			rr2 = t;
+			rr2 = x;
 			outl += 2;
 			outr[1] = rr1;
 			outr += 2;
