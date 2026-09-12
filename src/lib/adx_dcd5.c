@@ -128,9 +128,9 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
  * mix in t's register, so t is redefined between the copy and `c1 * rr2`), the same declaration
  * order as the stereo decoder, and the right channel's second sample predicted from the OLD rr1
  * (`c2 * rr1` = `mullw r26,r10,r30` in the original; the pass-44 split read the new one). Residue
- * 62 words = sadd/smul one Chaitin level too low (the original picks smul and nblk as spill
- * candidates and colours sadd r0 with scl r11; the model needs +3/+2 never-removed neighbours on
- * the two stack parameters). */
+ * 26 words (pass 70): the `nfrm / 2` add temporary takes r0 instead of r12 (sadd's load must
+ * precede the `srawi` in the pre-RA order) and the first mix temporary is coloured before q_l
+ * (the original colours q_l r20, the mix r21). */
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                             Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
@@ -150,13 +150,17 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	Sint32 j;
 	Sint32 q_l;
 	Sint32 q_r;
+	Sint16 *ps;
 
 	nblk = nfrm / 2;
+	/* CRI pass 70: the scramble addend is read through its address, so its loop value is the
+	 * hoisted load (a backend temporary above the c1/c2 widenings in the Chaitin scan) instead
+	 * of the entry load of the stack parameter (62 -> 28 words). */
+	ps = &sadd;
 	l1 = histl[0];
 	l2 = histl[1];
 	rr1 = histr[0];
 	rr2 = histr[1];
-	asm { mr r6, l1 }
 	for (i = 0; i < nblk; i++) {
 		s = *(Sint16 *)src;
 		if (s & 0x8000) {
@@ -164,7 +168,7 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 		}
 		key = *scl;
 		sc_l = ((s ^ key) & 0x1FFF) + 1;
-		key = sadd + key * smul;
+		key = *ps + key * smul;
 		*scl = key;
 		*scl = *scl & 0x7FFF;
 		s = *(Sint16 *)(src + 0x12);
@@ -173,7 +177,7 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 		}
 		key = *scl;
 		sc_r = ((s ^ key) & 0x1FFF) + 1;
-		key = sadd + key * smul;
+		key = *ps + key * smul;
 		*scl = key;
 		*scl = *scl & 0x7FFF;
 		src += 2;
@@ -205,6 +209,9 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 		}
 		src += 0x12;
 	}
+	/* The pin sits after the loop: in the entry block its copy took the issue slot that the
+	 * original gives the nblk `srawi` (pass 70: 28 -> 26 words). */
+	asm { mr r6, l1 }
 	histl[0] = l1;
 	histl[1] = l2;
 	histr[0] = rr1;
