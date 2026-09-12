@@ -820,12 +820,15 @@ DB_STRING::DB_STRING(u32 max_, const char* s)
     type = DB_PRIM_STRING;
     ca = cb = cg = cr = 0.0f;
     {
-        // COMPILER-DIFF: candidate (local-alloc qty order): the zero pinned to r0 gives the target's
-        // registers (LC r9, vt r11, zero r0, type r9); 11 -> 7 words, the str/len stores are still
-        // issued early (the target has them last, after the vptr store).
-        register u32 zero asm("r0") = 0;
-        str = (char*) zero;
+        // COMPILER-DIFF: candidate (local-alloc qty order / sched1 tie): a pseudo zero whose
+        // launder reads `ca` is held in sched1 until after the ca store, so it sits before the
+        // vptr store (vt qty length 16 = LC's 5000 tie, LC r9 / vt r11) and the 5-ref zero
+        // outranks the type constant (zero r0, type r9); the stores go last as in the target.
+        // 7 -> 2 words: in sched2 the same read raises the ca store to prio 14 over `stw max`.
+        u32 zero = 0;
+        asm("" : "+r"(zero) : "m"(ca));
         len = zero;
+        str = (char*) zero;
     }
     str = new char[max_];
     strcpy(str, s);

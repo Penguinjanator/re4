@@ -176,7 +176,10 @@ int tcDataExport(u8* buf)
         CameraAreaInfo* d = area;
         r = rec;
         for (i = 0; i < pTc->adatNum;) {
-            int found = 0;
+            // COMPILER-DIFF: candidate (global.c allocation order): the target allocates loop-5 `d`
+            // (r7) before `found` (r5); ours gives found r7 first and d r6, which pushes i off r6 and
+            // cascades through loops 1-5 (j r4 vs the loop-2 giv base, `mr r6,r5`). 193 -> 62 words.
+            register int found asm("r5") = 0;
             s8 no = d->area_no;
             CameraCut* cc = cut;
             r->area = (CameraAreaInfo*) ((u8*) d - buf);

@@ -26206,3 +26206,26 @@ Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replac
   a pin of the top node (fname r29) puts the colour count at 28 and cascades the rodata base to a spill removal (r27). Pinning to a VOLATILE register nobody in the function uses (r11, r8 both give 0w)
   adds the neighbour and reserves nothing the function wanted: the two `mr`s are deleted (size equal), pdev keeps the direct `0x134(r1)` loads because the pin is AFTER the propagated copy. Same effect
   from inside ResolveDev with r11, but the caller-side form leaves cvFsOpen's inlined copy untouched. 111 OK, flipped.
+- **tcDataExport 193 -> 62 words (applied, size exact): `register int found asm("r5") = 0;` in loop 5** (tag in the source). One pin
+  settles the cascade closer 2 predicted: found no longer takes r7 first, loop-5 d -> r7, i -> r6 (`mr r6,r5` back), j (reg 97, now
+  refs 52 len 254 pri 10236) falls below the loop-2 giv base (10326) -> giv base r4, j r12 everywhere, loops 1/3 identical. Pins that
+  made it worse on top of it (do not retry): loop-5 `d` -> r7 (180w, size -4), `cd` -> r3 in loop 2 (192w, size +0x20), a `register
+  u8* buf asm("r29")` copy of the parameter (105w, size -0x2c), j -> r12 (closer 2).
+- **The 62 words left are one allocation fact: buf r29 / pTc-high r30 (ours the reverse) and the `d+1` PRE copies of loops 2 and 4
+  in r30.** GORDER (V1): buf 167 pri 3105 pass1 -> r30 (first virgin callee-saved), pTc-high 179 (reg 358, REG_EQUIV-doubled len 54,
+  calls 1) pass1 -> r29; loop-2 d+1 (reg 355, 2105) `[scan pass1 r3]` (r3 was in regs_someone_prefers, virgin in pass 1 -> taken
+  BEFORE r31/r30), then cd (reg 397, refs 9 len 186, 1451) -> r29; loop-4 d+1 (reg 354, 4000) pass0 -> r7, tcCdat base (reg 268,
+  1428) -> r5, pTc-high (reg 263, 416) -> r4. In the target both d+1 copies are r30 and buf r29, so at loop-4 d+1's turn (before buf)
+  r0,r3-r12 AND r31 were all in used1 (hard_reg_conflicts, not smpref: find_reg pass 1 walks reg_alloc_order r0,r9,r11,r10,r8,r7,r6,
+  r5,r4,r3,r31,r30 and takes the first non-conflicting one) - the target's loop 4 has r4 free in the final code, so the r4/r5/r7 holders
+  that conflicted with d+1 are pseudos allocated BEFORE it whose registers were later reused; ours allocates the loop-4 tcCdat base and
+  pTc-high after it (pri 1428/416 < 4000). Not found: what gave those two (or a third value) pri > 4000 in the target - a shorter
+  live length (a body that reloads `pTc`/`tcCdat` per iteration?) or more refs. The downstream words (loop-5 pTc-high r31 vs r4,
+  tcTypeTbl r3 vs r29, `mr r10,r25`/`mr r7,r28` order) follow from buf/pTc-high. Suids/insn numbers: `~/.cache/kit/rtl.sh` `.lreg`
+  of the tree source, loop 4 preheader insns 1239-1251 (regs 364 high, 263 pTc-high, 268 tcCdat, 366 = fp-buf).
+- **tcSetBesideOffset 27 unchanged.** The giv pair n*12 (reg 207, refs 9 len 84) / n*4 (reg 209, refs 9 len 82) needs one more weighted
+  ref on 207 (floor_log2 stays 3: 3*10/84 > 3*9/82); a codeless `asm("" : "=m"(c->pos[n]))` / `"=m"(c->at[n])` anchor in the body
+  (before/after the stores or before `n++`) does NOT add a ref to the reduced giv: it becomes its own address giv and moves c/o to
+  r28/r29 (38-74 words). No pin possible (loop.c pseudos). Left as is.
+- Flags: t_camera/t_camera_data and t_esp/db_widget stay False in config/G4BE08/modules.py; `ninja -k 0` + `dtk shasum -c` 111 OK after
+  the two edits. Scratch ~/.cache/tcam2 and ~/.cache/tcam3 deleted; the kit untouched.
