@@ -28871,3 +28871,116 @@ pre-RA PCode with `vreg=colour`, `chk.sh [schedwhatif edits]` = the target's B5 
   4 of 8 packs wrong, 77w; judge shapes with `shape.sh NAME` = register-blind mnemonic+immediate multiset, the plain opcode multiset misses it).
   So "y3's chain first in input order" is impossible with the correct fusion unless both bytes are loaded before either shift; byte-value locals
   `b0/b1` reused per row (r1) do that but lose the row-1 own-local copies (frame 0x20, 101w).
+
+### CRI pass 60 (sfd_cre Matching 5 -> 6/6 FLIPPED, 111 OK: sfcre_AnalyMpv 15 -> 0w pure C — a mask-then-shift test `((b7 & 0xF0) >> 4) == 0` leaves a scheduler-visible dead def; adx_tsvr 2w / sfh_main 6w / sfd_mps 5w read, not addressed by the pass-58 levers; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri60/ (`mk.py SRC OUT [MARK=func] 'OLD=>NEW'..`, `t.sh UNIT FUNC VARIANT.c` = one word line via variant.sh, `sd_cre/` scheddump, `ra_t`/`ra_d` ra.py dumps; deleted at the end).
+- **sfcre_AnalyMpv 15 -> 0w (APPLIED, FLIPPED):** pass 49's requirement ("the DAG must change: `addi ofs+1` after the `cmpi`, `lbz b5` after the addi") is met by
+  spelling the picture-rate test as `((b7 & 0xF0) >> 4) == 0` instead of `((b7 >> 4) & 0xF) == 0`. Read off the dumps (ra_d): the codegen emits `rlwinm r50 =
+  b7 & 0xF0; srawi. r51 = r50 >> 4` (a signed shift of a masked int is RECORD-FORM at codegen: the `== 0` compare is folded into it, no `cmpi` pcode), backend-01
+  peephole-forward folds the mask into the shift (`rlwinm. r51, b7, 28,28,31`) and leaves the dead `rlwinm r50` in the block through scheduling (backend-11 still
+  has it; the RA deletes it). Pre-RA DAG: the branch now hangs off the `rlwinm.` directly (no cmpi chain), the dead def is a leaf with a kind-0 edge to the
+  terminator, and the schedule becomes the target's exactly (variant d: every diff row an ARG_MISMATCH, no INSERT/DELETE). The tree's `(b7 >> 4) & 0xF` compiles to
+  one `rlwinm` + `cmpi` (the record form is merged only post-RA) with no leftover. Then the colours (pass 49's RA side): b7 declared between b4 and ofs and kept an own
+  local by a second def (`b7 &= 0xF; if (b7 < 1 || b7 > 8) ..; sfcre_mpv_picrate[b7]`, no `picrate_code`) -> 0w (variant g); with the tree's declaration order
+  (h) 21w, the test spelling alone (d) 23w = the target's order with every byte register shifted by one (@164 takes r4). `(((b7 & 0xFF) >> 4) & 0xF)` gives the same
+  23w as d. Catalogue row (MWCC, "instruction order within a block"): **a mask-then-shift `(x & M) >> k` on a byte (compared with 0) is one scheduler node more than
+  shift-then-mask: peephole-forward folds the pair into one `rlwinm` (record form if compared) but the dead mask def stays in the block until the RA. Unlike the
+  pass-58 `& 0xFF` index/value masks (deleted by load-deletion / folded before scheduling), this leftover changes the pre-RA schedule.** Flip: objects.py `# CRI
+  pass 60` block, locked `ninja -k 0`, `dtk shasum -c` 111 OK.
+- **adx_tsvr `adxt_nlp_trap_entry` 2w (`lha r4` vs `r0`): neither lever applies.** B16 (`lha ofst; cmpi n1; lha ofst2v; add`) has no store, no byte index and no
+  parameter load; the r0 node the target needs (pass 37/46/49b) must be a level-1 node with a higher vid than the lha temp and live in B16 — only a backend temp
+  created later in B16 could be, and B16 has none. Left 2w.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w (M4 stwbrx fold): not addressed.** `*(volatile Sint32 *)val = SWAP32(..)` still folds to `stwbrx` (6w, same size), `const
+  SFH_ELEM *elem` (a local: t2 class) 6w. The post-RA peephole (backend-18) runs after the RA's dead-def deletion and prologue-epilogue (17); nothing a C
+  statement leaves between the last `rlwimi` and the `stw` survives to it. Left 6w.
+- **sfd_mps `sfmps_DecodeOneUnit` 5w (cnt r21/r23, +2 ghosts on ret): not addressed.** `const Uint8 *data` is rejected by the CRI prototypes (MPS_CheckDelim /
+  MPS_DecHd / sfmps_CopyPketData take `Uint8 *`: four implicit-conversion errors), so the vendor's parameter was not const; the loads of the scan loop go through
+  the local `p` (t2 in any case). Left 5w, M1 pin kept.
+
+### Tool RELs, t_esp pass 24 (t_esp 208/212: InitTool 1570 -> 1415w in the tree, two structural finds read off the target, both pure C: (1) the CreateNumeric2 rows compute their two edit pointers BEFORE the `DB_POINT pos` (54 rows, ID_WINDOW excepted), (2) `g_pLoadDirButton`/`g_pSaveDirButton` are `DB_STRING*` (the store's high crosses the CreateButton call); LOAD..PATH regions mset 0, seg 0 exact; IN PROGRESS 2026-09-12)
+
+- **Tree (interim):** src/t_esp/t_esp.cpp = pass 23 + (a) every plain-window `pa_->CreateNumeric2(win_, &A, &B, &pos, &sx, ..)` row
+  written `T* n1 = &A; T* n2 = &B; DB_POINT pos(..); int sx = ..; pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, ..);` (54 rows,
+  the macro classes included; the 10 ID_WINDOW rows keep the in-call form: its ctor is out of line and its standalone copy has the
+  target's [pos stores][g_pEditSeq load] LUID order), (b) `static DB_STRING* g_pLoadDirButton; static DB_STRING* g_pSaveDirButton;`
+  (was DB_BUTTON*), (c) PATH pad `1..8` -> `1:2:3:4` and POS `{ }` -> `1:2:3:5` (F4 moves 4 cse1 insns later, after the row-378
+  n1 computation; every other flush unchanged). Locked ninja + bytecmp: 1415w, size 0xa20c/0xa0d4, 208/212, N 5233 (28 sets, no
+  refit), grids cse1 LOAD_EVENT+6 SAVE_EVENT+27 OPTION+540 PATH+541(=545 base coords) SIZE+174 SPEED+684 COLOR+863 LIFE+8
+  ROTATE+644 WORK0+14 WORK6+14 BASEPOS+123, cse2 unchanged; mset [2 0 0 0 0 0 0 7 15 3 38 0 18 5] (pass 23: [2 8 ..]); lc 623 782.
+
+### CRI SWAR kernels pass 14 (mpv_mc 8x8 H2 494w unchanged in the tree; the target's two rows are the BACKEND'S x2 UNROLL of a one-row loop (body <= 34 pcodes), the `and w0,a0` / `x0 & m1` order is a same-vreg WAR edge (a0 one web, `#pragma opt_lifetimes off` reproduces the target's 26-opcode row order exactly), and the target's colours are ONE level in declaration order with no temp node in the loop; nothing applied, nothing flipped; V2/16x16 items not started; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar14/ (KEPT, dumps deleted: `mkv.py NAME [--base BODY] [--pre TEXT] 'OLD=>NEW'..` = bodies/NAME.c from the tree's
+H2 function with exact-string edits (`\n`/`\t`/`\\` escapes), `p.sh NAME [FUNC] [UNIT]` = variant words (+`RA=1` ra.py dump ra_NAME, `SC=1` scheddump
+out_NAME, `NOPRAGMA=1` drops the opt_propagation pragmas), `dis.sh NAME` = clean dtk listing ours_NAME.s (diff against t_h2_8.s / t_v2_8.s / t_h2_16.s =
+the target listings), `pc.py RA BLOCK [N]` = the block's before-regalloc pcodes with `vreg=colour[name]` + the block's colouring order, `live.py OUT BLOCK`
+= live-count profile of a scheduled block (peak), `case0.py RA` = chaitin.py on the graph with every node of the other cases deleted (a tight-other-cases
+what-if), `ast1.py FILE [FROM TO]` = one-line AST statements, `blk.py`). Pass-13 harness deleted.
+- **The two-row structure is the compiler's.** `for (i = 0; i < 8; i++) { ROW }` with the tree's case-0 row is unrolled x2 by backend pass 04
+  (loop-transforms: ctr 4, both copies with the SAME vregs) and gives the tree's exact 494w/0x40c; the V2 8x8 target (case 0 identical from an
+  8-iteration one-row loop) has the same ctr-4/two-store shape, so the vendor's H2 was one row per iteration too. **Threshold (bisected with k extra
+  `__dcbt` pcodes on case 0): a loop body of <= 34 pcodes after pass 03 (initial code + peephole-forward + copy/add propagation) is unrolled, 36 is not**
+  (case 0 = 30, case 3 = 29 unroll; the tree's case 1 = 36 and case 2 = 39 do not: `u_all` 436w = the pass-2 size). So the vendor's per-case rows had
+  <= 34 pcodes INCLUDING the fused-away `rlwinm`s and the peephole `mr`s: case 1's 28 final instructions leave room for <= 6 such pcodes (the tree's
+  `__rlwinm(__rlwimi(w0, w1, 0,0,15), 16,0,31)` costs MR+RLWIMI+RLWINM, `__rlwimi(w1 << 8, a1, ..)` RLWINM+MR+RLWIMI).
+- **The order residue read with sched.py (out_tree B10, IDENTICAL model):** c7 = `xor x0` + `rlwimi a1'` (the a1 pack beats `and w0,a0` on frees 1/0
+  at equal height 19); c8 = `and @120 = x0 & m1` FIRST (frees 2: its srwi + the WAR to `x0 &= m2`) then `and w0,a0` -> a0 and @120 overlap -> 12 live
+  -> r31 + frame. `and w0,a0` can never be xor's c7 partner: as a second pick it reads a0 = the GPR written by `rlwimi a0` in the previous cycle (the
+  IU forwarding rule blocks it); and at c8 any fresh-vreg `x0 & m1` (expression temp, `t0` local, with `y0 = x0 & m2` separate: frees 1) still outranks
+  it (frees > 0 = 0, equal heights: the a0' chain and the w0 chain both reach `stw d[0]`). **schedwhatif `reg=` retargeting `x0 & m1` to a0's OWN
+  vreg gives the target's row order at once** (c8 = xor x1, and w0,a0; c9 = and a0', and x0&=m2): the WAR edge `and w0,a0 -> and a0` holds a0' back
+  and the target's `and r5,r10,r11` IS a0's register r5 because it is a0's node. The frontend range-splits `a0 = x0 & m1` into @120 (EASS = new web;
+  only compound assignments continue a web, and no `a0 OP= e` yields `x0 & m1`: `a0 ^= w0` needs the unmodified w0 that `w0 &= a0` destroyed, the
+  identities `a0 += (x0 & m1) - a0` / `a0 = a0 ^ a0 ^ (x0&m1)` are kept as code or folded back to the split). **`#pragma opt_lifetimes off` IS the
+  frontend range splitting** (frontend-01 keeps every variable one web; l1) and with it the single-row case 0 (`a0 = (w1 >> 24) | (w0 << 8)`, `a1 =
+  __rlwimi(a1, w1, 8, 0, 23)`, in-place average) is the target's 26 opcodes IN THE TARGET'S ORDER (l2, both rows), residue = colours only.
+- **Peephole or->rlwimi rules completed (pk_* probes, lifetimes off/on):** the fused operand is the earlier-defined rlwinm EXCEPT when one operand is
+  the destination variable: then the destination operand is fused and the other is the base (`a0 = w0 << 8; a0 |= w1 >> 24` / `a0 = (w1 >> 24) | a0`
+  / `b0 = w1 >> 24; a0 = w0 << 8; a0 |= b0` all give `mr a0, srwi/b0; rlwimi a0, w0, 8, 0, 23`), and the base is never the destination (`a1 = (w1 << 8)
+  | a1` with a1 = the lbz and lifetimes off stays `slwi; or`). So an `rlwimi` INTO a variable's own register with the other operand fused
+  (`slwi r5,r4,8; rlwimi r5,r8,8,24,31`) always comes from `mr a0, slwi_t` whose temp got a0's colour; `__rlwimi(a0, ..)` makes `MR t, a0; RLWIMI t`
+  and forward-propagates `a0 = t` into the uses (t is the node, a0's web restarts at its next def -> no WAR); `__rlwimi(w0 << 8, ..)` = one backend node
+  (the K6 `mr` coalesces backend->backend), no dead rlwinm (lwz w1 then frees 1 -> w0 is loaded first).
+- **Coalescing rule (tree -all.txt flags):** backend temp -> @temp coalesces (r131->@119), backend -> backend coalesces (the intrinsic K6 copies), a
+  copy INTO or FROM an own local never does (`mr a0, slwi_t` r128 stays a node; `mr @107, a1` r74 stays a node): equal colours by lowest-free are what
+  delete those `mr`s.
+- **What the target's colours say (read with case0.py on l2 = tight other cases: switch temp r0, lis r4/r5, stride r6, d r3, s r7, w0 r4, a0 r5, w1
+  r8, a1 r9, x0 r10, x1 r11, m1 r12, m2 r31 vs target switch r0, lis r4 (0x101)/r5 (0xfeff), stride r3, d r6, s r7, w0 r4, a0 r5, w1 r8, a1 r9, x0
+  r10, x1 r0, m1 r11, m2 r12, a0' r5, a1' r9, all four cases alike):** ONE level, colouring = backend temps (switch temp created last -> r0; lis
+  temps adjacent to mc's physical r3 -> r4, r5) then own locals in declaration order `d, s, stride, w0, a0, w1, a1, x0, x1, m1, m2` (the loads still
+  come out s, d, stride: s's compare chain is the critical path, d/stride tie in input order), stride r3 = loaded LAST (kills mc; r0 blocked by the
+  switch temp), d/s adjacent to the lis temps (r4/r5 skipped) and to physical r0 (s, d and the lis temps carry a physical-r0 edge in every dump: the
+  entry point). Requirements this imposes: (a) NO @temp and NO backend-temp node in any loop (a temp coloured before the own locals takes r0/r3 and
+  x1 = r0 / stride = r3 forbid it; the only loop temps the target allows are the `li 4` ctr temps, r0 each) -> every row value is an own local of one
+  node per variable and the pack `mr`s must vanish by equal colours; (b) the loop variables' degree at their scan visit < 29 (level 1) -> the four cases
+  add few nodes: the row variables are ONE node each across the four cases (lifetimes off, or webs connected across the switch) — with lifetimes on the
+  cases 1-3 webs are @temps (@65..@127 in u0, coloured before the own locals: r0, r3, r4..) which the target's per-case identical colours exclude; (c) l6
+  (lifetimes off, four single-row cases, tree op forms) has m1/m2 at 30/29 = level 2 (r0/r3) and 21 leftover backend temps from cases 1-3 coloured
+  r4-r6 before the own locals; with the rows tightened both drop out. (d) the one contradiction left: under (a) the a0 pack temp `slwi_t -> mr a0`
+  must be coloured AFTER the own locals (a lower level, i.e. own locals >= 29 = lifetimes off cross-case nodes) and must find r0 BLOCKED during
+  [slwi, mr] to land on a0's r5 — case 2's target does exactly that (the third word `lwz r0` = x1's first web is live through all four pack slwi's,
+  the temps take r5/r4/r9/r8 = the in-place registers), but in case 0/1 nothing coloured r0 is live during the a0 pack (the lbz/lhz is r9 = the a1 pack's
+  base, coloured with a1's node: under lifetimes off a1 = {lbz, x1 & m1} is one node adjacent to x1 (r0) -> r9, and `c1 = (w1 << 8) | a1` gets r9 the
+  same way = `lbz r9; rlwimi r9`), so the vendor's case-0 a0 pack either had `xor x1` scheduled before the pack `mr` (the lbz loaded before w0: needs its
+  chain height >= lwz w0's, not found) or another r0 value live there. Open.
+- **Negative this pass (all 494-506w unless noted):** `register a0, a1`; `opt_lifetimes off` on the two-row tree form (500w, 0x424: every hand-copied
+  row value is one node -> w0 r31); `x0 &= m2` as `y0 = x0 & m2` (r2: fixes the a0 side of the order by the IU rule — `and a0'` reads x0 written in the
+  previous cycle and cannot be the second pick behind `xor x1` — but the a1 side still peaks at 12: `and a1'` is not blocked at c10; 490w/0x3fc);
+  `w0 += x0 & m2` expressions (496w); mask variables without the pragma as statements / `register` (506w: propagated to constants, `lis/subi` per case);
+  the intrinsic a1 pack `a1 = __rlwimi(a1, w1, 8, 0, 23)` alone (s2, 496w: lwz w0 first, RLWIMI a0 at c5, `and w0,a0` still blocked at c6 by the IU
+  rule); `a0 = __rlwimi(w0 << 8, ..); a1 = __rlwimi(s[8], ..)` under lifetimes off (l5: no WAR -> `and a0'` first again).
+- Not run: ninja, 111. Tree untouched (src/lib/mpv_mc.c H2 two-row 494w/0x40c, V2 73w; src/lib/mpv_mcy.c H2 197w, V2 225w, 4p 30w); objects.py not
+  touched by this pass (another agent's edit is in the working tree). 8x8 V2 (73w), 16x16 H2/V2/4p not started this pass. Next for H2 8x8: write all
+  four cases as one-row loops of <= 34 pcodes in the target's op forms under `#pragma opt_lifetimes off` (case 2 first: its `x1 = W(s, 8)` third word is
+  the r0 blocker the model needs), read the real RA list with pc.py/case0.py, then hunt the pure-C equivalent of the un-split webs (the pragma is a
+  tagged lever) — the 4p 8x8 (Matching) uses range-split pairs, so the pragma would be per function.
+- **Level what-ifs on l6's graph (chaitin API, uncoloured never-removed dummies on the own locals to push them to >= 29 at scan 1):** own locals in
+  level 2 colour in vid order s r4, d r5, stride r0, w0 r3, a0 r6, w1 r7, a1 r8, x0 r9, x1 r10, m1 r11, m2 r12 (the temps then r3/r6..) — the target's
+  x1 r0 / stride r3 / w0 r4 / a0 r5 / d r6 / s r7 / w1 r8 / a1 r9 / x0 r10 would need the declaration order `x1, stride, w0, a0, d, s, w1, a1, x0, m1,
+  m2` in that world, and still leaves case 0's pack temp without an r0 blocker; the single-level reading (own locals `d, s, stride, w0, a0, w1, a1, x0,
+  x1, m1, m2`, temps first) needs no such order but forbids every loop temp node. Neither is reached by a spelling found this pass; the decisive probe
+  for the next pass is case 2 alone (its r0 blocker exists): one-row loop, lifetimes off, `x1 = W(s, 8)` third word, pack forms of <= 34 pcodes, read
+  with pc.py whether the four pack temps take r5/r4/r9/r8.
+- Unroll fact for the catalogue (MWCC row "bl vs inlined body / block splitting" neighbour): **backend pass 04 unrolls a counted loop x2 when its body
+  has <= 34 pcodes after pass 03 (36 does not); the copies share every vreg, so a variable's webs of the two copies are ONE node and the second copy's
+  loads wait on the first copy's stores/dcbt barrier only** — a hand-unrolled two-row body (fresh @temps per row) gives the same words here but not the
+  same graph. Case-0 rows of 30 and case-3 rows of 29 pcodes unroll; the tree's case 1 (36) and case 2 (39) rows do not (u_all: 436w = the pass-2 size).
