@@ -19,6 +19,10 @@
 /* the same through mask VARIABLES (propagated to the same constants): the frontend then keeps the
  * target's association `(w & a) + (sh + (x & m2))`; with literal masks it rebuilds `sh + ((w & a) + (x & m2))` */
 #define MPVMC16_AVG2V(w, a, x, m1, m2) (((w) & (a)) + (((x) & (m1)) >> 1) + ((x) & (m2)))
+/* the same with the xor computed inside the macro: the frontend CSEs the two `(w) ^ (a)` into ONE @temp per pair,
+ * numbered after every range-split web of the function (CRI SWAR kernels pass 19: the original's x0..x3 are such
+ * temps, not variables -- the case-0 packs of the 16x16 H2 then take the original's registers) */
+#define MPVMC16_AVG2X(w, a, m1, m2) (((w) & (a)) + ((((w) ^ (a)) & (m1)) >> 1) + (((w) ^ (a)) & (m2)))
 
 void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 {
@@ -111,11 +115,20 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 
 void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 {
+	/* The original's register classes (CRI SWAR kernels pass 19): the xor of every AVG is a frontend CSE
+	 * temporary (xor-inside macro, no x variables); case 0 loads into w0..w3 and packs into a0..a3 with the
+	 * byte `a3` declared first (its own-local web is coloured after w0/a0's = r20); cases 1/2 load the five
+	 * words into their OWN locals v0..v4 (first defined here: coloured last, like the original's r22/r23
+	 * words) and write the pixel word of pair k into w[(k+2)&3] and its neighbour into a[(k+2)&3]: range-
+	 * split webs of case-0 variables (the base shifts coalesce into them, no `mr`) whose numbering pops
+	 * pairs 2, 3, 1 in that order, as the original's r8/r9/r10 and r11/r12/r31 do; case 3 loads the aligned
+	 * neighbours into a0..a3 and packs into w0..w3. Cases 0 and 3 are byte-identical; cases 1/2 keep the
+	 * v2/v3 loads and pair 1's neighbour rotated in r29-r31. */
 	Sint32 i;
 	Uint8 *s = mc->src;
 	Sint32 stride = mc->stride;
 	Uint32 *d = mc->dst;
-	Uint32 w0, w1, w2, w3, w4, a0, a1, a2, a3, x0, x1, x2, x3;
+	Uint32 a3, w0, a0, w1, a1, w2, a2, w3, v0, v1, v2, v3, v4;
 	Uint32 m1 = 0xFEFEFEFE;
 	Uint32 m2 = 0x01010101;
 
@@ -127,19 +140,15 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 			w1 = ((Uint32 *)s)[1];
 			w2 = ((Uint32 *)s)[2];
 			w3 = ((Uint32 *)s)[3];
-						a0 = (w0 << 8) | (w1 >> 24);
+			a0 = (w0 << 8) | (w1 >> 24);
 			a1 = (w1 << 8) | (w2 >> 24);
 			a2 = (w2 << 8) | (w3 >> 24);
 			a3 = s[16];
 			a3 = (w3 << 8) | a3;
-			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
+			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
+			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
+			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
+			d[17] = MPVMC16_AVG2X(w3, a3, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {
@@ -151,27 +160,23 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 		s -= 1;
 		for (i = 0; i < 16; i++) {
 			__dcbt(s, stride);
-			w0 = ((Uint32 *)s)[0];
-			w1 = ((Uint32 *)s)[1];
-			w2 = ((Uint32 *)s)[2];
-			w3 = ((Uint32 *)s)[3];
-			w4 = ((Uint32 *)s)[4];
-			a0 = (w0 << 8) | (w1 >> 24);
-			w0 = (w0 << 16) | (w1 >> 16);
-			a1 = (w1 << 8) | (w2 >> 24);
-			w1 = (w1 << 16) | (w2 >> 16);
-			a2 = (w2 << 8) | (w3 >> 24);
-			w2 = (w2 << 16) | (w3 >> 16);
-			a3 = (w3 << 8) | (w4 >> 24);
-			w3 = (w3 << 16) | (w4 >> 16);
-			x0 = a0 ^ w0;
-			x1 = a1 ^ w1;
-			x2 = a2 ^ w2;
-			x3 = a3 ^ w3;
-			d[0] = MPVMC16_AVG2V(a0, w0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(a1, w1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(a2, w2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(a3, w3, x3, m1, m2);
+			v0 = ((Uint32 *)s)[0];
+			v1 = ((Uint32 *)s)[1];
+			v2 = ((Uint32 *)s)[2];
+			v3 = ((Uint32 *)s)[3];
+			v4 = ((Uint32 *)s)[4];
+			w2 = (v0 << 8) | (v1 >> 24);
+			a2 = (v0 << 16) | (v1 >> 16);
+			d[0] = MPVMC16_AVG2X(w2, a2, m1, m2);
+			w3 = (v1 << 8) | (v2 >> 24);
+			a3 = (v1 << 16) | (v2 >> 16);
+			d[1] = MPVMC16_AVG2X(w3, a3, m1, m2);
+			w0 = (v2 << 8) | (v3 >> 24);
+			a0 = (v2 << 16) | (v3 >> 16);
+			d[16] = MPVMC16_AVG2X(w0, a0, m1, m2);
+			w1 = (v3 << 8) | (v4 >> 24);
+			a1 = (v3 << 16) | (v4 >> 16);
+			d[17] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {
@@ -183,27 +188,23 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 		s -= 2;
 		for (i = 0; i < 16; i++) {
 			__dcbt(s, stride);
-			w0 = ((Uint32 *)s)[0];
-			w1 = ((Uint32 *)s)[1];
-			w2 = ((Uint32 *)s)[2];
-			w3 = ((Uint32 *)s)[3];
-			w4 = ((Uint32 *)s)[4];
-			a0 = (w0 << 24) | (w1 >> 8);
-			w0 = (w0 << 16) | (w1 >> 16);
-			a1 = (w1 << 24) | (w2 >> 8);
-			w1 = (w1 << 16) | (w2 >> 16);
-			a2 = (w2 << 24) | (w3 >> 8);
-			w2 = (w2 << 16) | (w3 >> 16);
-			a3 = (w3 << 24) | (w4 >> 8);
-			w3 = (w3 << 16) | (w4 >> 16);
-			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			v0 = ((Uint32 *)s)[0];
+			v1 = ((Uint32 *)s)[1];
+			v2 = ((Uint32 *)s)[2];
+			v3 = ((Uint32 *)s)[3];
+			v4 = ((Uint32 *)s)[4];
+			w2 = (v0 << 16) | (v1 >> 16);
+			a2 = (v0 << 24) | (v1 >> 8);
+			d[0] = MPVMC16_AVG2X(w2, a2, m1, m2);
+			w3 = (v1 << 16) | (v2 >> 16);
+			a3 = (v1 << 24) | (v2 >> 8);
+			d[1] = MPVMC16_AVG2X(w3, a3, m1, m2);
+			w0 = (v2 << 16) | (v3 >> 16);
+			a0 = (v2 << 24) | (v3 >> 8);
+			d[16] = MPVMC16_AVG2X(w0, a0, m1, m2);
+			w1 = (v3 << 16) | (v4 >> 16);
+			a1 = (v3 << 24) | (v4 >> 8);
+			d[17] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {
@@ -224,14 +225,10 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 			w1 = (a0 << 24) | (a1 >> 8);
 			w2 = (a1 << 24) | (a2 >> 8);
 			w3 = (a2 << 24) | (a3 >> 8);
-			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
+			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
+			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
+			d[17] = MPVMC16_AVG2X(w3, a3, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {
@@ -244,13 +241,18 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 
 void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 {
+	/* Case 0: xor-inside macro (frontend CSE temporaries; the original's colours except w0/a0 r28/r30 for
+	 * r17/r18, which the original's case-1 loads at offset 0 hand out first, and the level of w2..a3);
+	 * cases 1-3: one xor variable `x0` redefined per pair (the original keeps each pair's values after
+	 * the previous pair's uses); `a3` declared before w2 (numbering). Cases 1-3 open: the original loads
+	 * the words into own locals of the case (r17/r18 at offset 0, r8 at offset 4) and packs the fifth
+	 * load in place (`lbz r22; rlwimi r22`) -- CRI SWAR kernels pass 19. */
 	Uint32 *d;
 	Uint8 *s0;
 	Uint8 *s1;
 	Sint32 stride;
-	Uint32 x2, x0, x3;
 	Sint32 i;
-	Uint32 w1, a1, w0, a0, w2, a2, w3, a3, x1, w4, a4;
+	Uint32 w0, a0, w1, a1, a3, w2, a2, w3, w4, a4, x0;
 	Uint32 m1 = 0xFEFEFEFE;
 	Uint32 m2 = 0x01010101;
 
@@ -271,14 +273,10 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			a2 = ((Uint32 *)s1)[2];
 			w3 = ((Uint32 *)s0)[3];
 			a3 = ((Uint32 *)s1)[3];
-			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
+			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
+			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
+			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
+			d[17] = MPVMC16_AVG2X(w3, a3, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -311,13 +309,13 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			w3 = (w3 << 8) | w4;
 			a3 = (a3 << 8) | a4;
 			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
 			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
+			x0 = w1 ^ a1;
+			d[1] = MPVMC16_AVG2V(w1, a1, x0, m1, m2);
+			x0 = w2 ^ a2;
+			d[16] = MPVMC16_AVG2V(w2, a2, x0, m1, m2);
+			x0 = w3 ^ a3;
+			d[17] = MPVMC16_AVG2V(w3, a3, x0, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -350,13 +348,13 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			w3 = (w3 << 16) | w4;
 			a3 = (a3 << 16) | a4;
 			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
 			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
+			x0 = w1 ^ a1;
+			d[1] = MPVMC16_AVG2V(w1, a1, x0, m1, m2);
+			x0 = w2 ^ a2;
+			d[16] = MPVMC16_AVG2V(w2, a2, x0, m1, m2);
+			x0 = w3 ^ a3;
+			d[17] = MPVMC16_AVG2V(w3, a3, x0, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -389,13 +387,13 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			w3 = (w3 << 24) | (w4 >> 8);
 			a3 = (a3 << 24) | (a4 >> 8);
 			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
 			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
-			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
-			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
-			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
+			x0 = w1 ^ a1;
+			d[1] = MPVMC16_AVG2V(w1, a1, x0, m1, m2);
+			x0 = w2 ^ a2;
+			d[16] = MPVMC16_AVG2V(w2, a2, x0, m1, m2);
+			x0 = w3 ^ a3;
+			d[17] = MPVMC16_AVG2V(w3, a3, x0, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
