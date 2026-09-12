@@ -1914,3 +1914,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/sfx_zmv.c": True,  # 8/8, pure C: sfxzmv_MakeOrgZ32TblByCCIR 74 -> 0. One counter per loop + `d = tbl; *d++` in the last loop = nine own locals, so the 1.164 loop's counter is virtual r43: the post-schedule `addi rX,rX,K` sink (peephole-forward 0x5025e0) compares store data-register NUMBERS without the register class and stops at `stfd f43`, the block keeps its scheduled bit and is not rescheduled post-RA
 })
+
+# CRI pass 46 (2026-09-12)
+MATCHING.update({
+    "lib/mps_lib.c": True,  # 7/7, pure C: MPS_Create 2 -> 0. The syshd clear is three 8-iteration loops, not a nested i/j loop: the frontend unrolls the inner loop but leaves the outer counter to the backend, whose unroll keeps a dead `li i,0` in the store block; the RA deletes it, which clears the block's scheduled bit and lets the post-RA scheduler order `addi r0,..@l` before `li r4,-1` (the target = the pre-RA order)
+})

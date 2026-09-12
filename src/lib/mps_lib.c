@@ -122,11 +122,17 @@ MPS MPS_Create(void)
 	for (i = 0; i < 8; i++) {
 		mps->last_syshd.raw[i] = -1;
 	}
-	for (i = 0; i < 3; i++) {
-		Sint32 j;
-		for (j = 0; j < 8; j++) {
-			mps->syshd[i].raw[j] = -1;
-		}
+	/* three separate loops: a nested i/j form leaves the outer counter's dead `li i,0` in the
+	 * block for the register allocator to delete, which dirties the block and lets the post-RA
+	 * scheduler swap `li r4,-1` / `addi r0,..@l` */
+	for (i = 0; i < 8; i++) {
+		mps->syshd[0].raw[i] = -1;
+	}
+	for (i = 0; i < 8; i++) {
+		mps->syshd[1].raw[i] = -1;
+	}
+	for (i = 0; i < 8; i++) {
+		mps->syshd[2].raw[i] = -1;
 	}
 	mps->pkethd.pts = -1;
 	mps->pkethd.dts = -1;
