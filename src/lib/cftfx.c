@@ -53,8 +53,8 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 /* one tile row pair of the ARGB 4:2:0 conversion (four pixels): AR half from the alpha plane word
  * and the Cb pair, GB half from the luma word and the Cr pair */
 #define CFT_ARGB420_ROW(ar, gb, ap, yp, cbp, crp)                                              \
-	av = *(ap);                                                                            \
-	yv = *(yp);                                                                            \
+	av = *(Uint32 *)(ap);                                                                  \
+	yv = *(Uint32 *)(yp);                                                                  \
 	cbv = *(cbp);                                                                          \
 	crv = *(crp);                                                                          \
 	(ar)[1] = ((((av) << 16) & 0xFF000000) | (((av) & 0xFF) << 8)) | (((cbv) << 16) & 0x00FF0000) | \
@@ -66,10 +66,16 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 	(gb)[0] = (((yv) & 0xFF000000) | (((yv) >> 8) & 0xFF00)) | (((crv) << 8) & 0x00FF0000) |    \
 		  ((crv) >> 8)
 
-/* (M1: the original copies the loaded pln.y/pln.cb into the y/cb pointers with two `mr` and uses
- * the loaded registers for the half-plane offset; the chroma increments sit between the row steps
- * and the `y++`/`a++`: the post-schedule addi sink moves them to the block end in statement order
- * and the post-RA scheduler uses them as the `subf` latency fillers in that order) */
+/* (Byte pointers and byte steps. The setup's registers are all vid order (CRI pass 56): the three
+ * `pln.y`/`pln.cb` reads are frontend-CSE'd into two load temps, so `y = ..`/`cb = ..` are user
+ * copies (`mr r6,r5`/`mr r9,r4`, never coalesced) and `a` is computed from the y temp; the
+ * two-def `cstep`/`ystep` make the width loads OWN locals (cstep declared first = coloured first
+ * = r7, ystep r10) below every backend temp, so the hblk `srawi` (a backend temp, coloured before
+ * the loads) takes r0 and the y temp r5; wblk/hblk are computed after ar/gb so their temps do not
+ * overlap the step values, and ystep in bytes is a statement (before cstep's mask) rather than a
+ * hoisted `ystep << 2`. The chroma increments sit between the row steps and the `y += 4`/`a += 4`:
+ * the post-schedule addi sink moves them to the block end in statement order and the post-RA
+ * scheduler uses them as the `subf` latency fillers in that order.) */
 void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 {
 	CFT_YCC420PLN pln;
@@ -77,16 +83,16 @@ void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 	Sint32 j;
 	Sint32 wblk;
 	Sint32 hblk;
-	Uint32 *y;
-	Uint32 *a;
+	Uint8 *y;
+	Uint8 *a;
 	Uint16 *cb;
 	Uint16 *cr;
 	Uint16 *cb2;
 	Uint16 *cr2;
 	Uint32 *ar;
 	Uint32 *gb;
-	Sint32 ystep;
 	Sint32 cstep;
+	Sint32 ystep;
 	Sint32 yback;
 	Uint32 half;
 	Uint32 av;
@@ -95,17 +101,19 @@ void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 	Uint32 crv;
 
 	mwPlyCalcYccPlane(src, width, height, &pln);
-	wblk = width / 4;
-	hblk = height / 4;
-	y = (Uint32 *)pln.y;
+	y = pln.y;
 	cb = (Uint16 *)pln.cb;
-	half = (((Uint32)cb - (Uint32)y) >> 1) & ~3;
-	a = (Uint32 *)((Uint8 *)y + half);
+	half = (((Uint32)pln.cb - (Uint32)pln.y) >> 1) & ~3;
+	a = pln.y + half;
 	cr = (Uint16 *)pln.cr;
 	ar = (Uint32 *)dst;
 	gb = (Uint32 *)((Uint8 *)dst + 0x20);
-	ystep = pln.ywidth / sizeof(Uint32);
-	cstep = pln.cbwidth / sizeof(Uint16) * sizeof(Uint16);
+	wblk = width / 4;
+	hblk = height / 4;
+	cstep = pln.cbwidth;
+	ystep = pln.ywidth;
+	ystep = ystep / sizeof(Uint32) * sizeof(Uint32);
+	cstep = cstep / sizeof(Uint16) * sizeof(Uint16);
 	yback = ystep * 2;
 	for (i = 0; i < hblk; i++) {
 		cr2 = (Uint16 *)(cstep + (Uint32)cr);
@@ -133,8 +141,8 @@ void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 			cb2++;
 			cr++;
 			cr2++;
-			y++;
-			a++;
+			y += 4;
+			a += 4;
 			y -= yback;
 			a -= yback;
 			j++;

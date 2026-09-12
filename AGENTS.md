@@ -28543,3 +28543,65 @@ target colours, base v7 = tree minus the M1 pin + `?:` n, chaitin IDENTICAL; del
   / 656-688 fresh r11,r9 / 702-751 r14 / 757+ r9 vs O 350 r16 / 378 r22 / 461-775 r15). The tail sequences are the same list of picks
   shifted by ONE rotation step (ours one ahead at seg 163), so the shift is made before the tail: seg 0's reload count / spill set (d136
   there) -- item 3, not a tail source lever. The seg 380/391 `lis g_pPrimArray` remats and seg 221's r18 high are the same shift.
+
+### CRI pass 56 (cftfx Argb420 24 -> 0w pure C APPLIED (5/6, not flipped: UserTable 135w); the frontend's forwarding / web / operand-order rules read off ~60 probes; UserTable's in-loop `subi` + copies + increments reproduced structurally (t2 form, 175w, not applied); 2026-09-12)
+Harness /home/adityas/.cache/cri56/ (`v.sh NAME [FUNC] [--ra|--diff]` = variant.sh words + ra.py dump into ra_NAME; the probe TUs put a
+straight-line snippet into `CFT_Ycc420plnToA256V`'s body — a symbol strip_unused keeps — and read it with `variant.sh ... --all --dtk`;
+deleted at the end). Tree edits: src/lib/cftfx.c `CFT_Argb420ToArgb8` only; objects.py untouched by this pass (cftfx 5/6, no flip, no `ninja -k 0`).
+- **Argb420 24 -> 0w (APPLIED): the whole residue was vid order in the setup, four facts.** (1) The target's `lwz r5 (pln.y); lwz r4 (pln.cb);
+  mr r9,r4; mr r6,r5; add r5,r5,r3` = the three reads of `pln.y`/`pln.cb` frontend-CSE'd into two load temps (`@211/@212`, nested-assignment
+  CSE) and `y = ..`/`cb = ..` as user copies of them: write `half = (((Uint32)pln.cb - (Uint32)pln.y) >> 1) & ~3; a = pln.y + half;` (fields, not
+  the y/cb locals). The RA never coalesces these user copies (no edge, no coalescing: both nodes stay, `mr r6,r6` is only deleted when the
+  colours coincide — a1 had the y temp at r6 because r5 was taken by the hblk `srawi`). (2) The y temp must get r5 = the hblk `srawi` temp must
+  get r0 = it must be coloured BEFORE the `pln.cbwidth` load: that load was a frontend-hoisted invariant `@208` (created at the preheader = the
+  highest setup vid; the frontend substitutes a single-def `cstep = pln.cbwidth / 2 * 2` into its four loop uses and hoists the expression) —
+  a two-def `cstep = pln.cbwidth; cstep = cstep / 2 * 2;` makes the LOAD the own local `cstep` (first web = the variable's own vid, the mask
+  = `@213`) below every backend temp. Same for `ystep = pln.ywidth; ystep = ystep / 4 * 4` (in bytes, `Uint8 *y/a`, `y += 4` instead of `y++`).
+  (3) The two loads are own locals -> coloured by DECLARATION order: `cstep` declared before `ystep` gives cbwidth r7 (first, lowest free) and
+  ywidth r10 (`Sint32 cstep; Sint32 ystep;`). (4) The `srawi` temps of wblk/hblk are backend temps coloured by creation order among the setup
+  temps: `wblk = width / 4; hblk = height / 4;` placed AFTER `ar`/`gb` and BEFORE the cstep/ystep statements puts hblk's temp above the half chain
+  (r0 free at its turn) and keeps it off the step values; and ystep-in-bytes as a STATEMENT (not the hoisted `ystep << 2` @temp) puts its
+  `clrrwi r0` before cstep's `clrrwi r30` in the pre-RA input order (class-2 tie -> original order). Steps: a1 24w -> b1 10w (wblk/hblk after the
+  steps) -> c1 5w (two-def cstep) -> e1 2w (cstep declared first) -> f5 0w (byte steps, statement order). Negatives: a2/a3 (`half` from the
+  fields with `a` from `y`) 25w; c2 `cstep &= ~1` 10w, c3 `cstep -= cstep & 1` 18w; f1/f3 (wblk/hblk after the step statements) 16w; f4 (wblk/hblk
+  right after the call) 5w.
+- **Frontend rules read off the probes (UserTable; `q*/r*/s*` = straight-line snippets, `t*/u*` = loop forms):**
+  (a) **`y = y + K` is FORWARDED into every later use of y in the block whatever the use count** (q5: two uses, both rewritten), and the codegen
+  reassociates `p + (y + K)` into `add p, y, p; addi p, p, K` — the y-FIRST operand order comes only from this reassociation (q1/q2/q6/q17/q27-q32:
+  `(Uint32)(y + 4)`, `(Sint32)`, integer y, `(y += 4)` inside, `&y[4]`, `(Uint32 *)y + 1` inside a cast — all reassociate). Forwarding is blocked
+  by post-increments (`*y++` x4 are merged into ONE `addi y,y,4` that stays a real def, q11-q13/t2) and by a pointer-cast round trip as a full
+  assignment `y = (Uint8 *)((Uint32 *)y + 1)` (q24, but that is a new web/temp, t7).
+  (b) **Codegen operand order = AST order:** `p += e` (EADDASS) -> `add p, p, e` (q3/q10/q12/r2-r13: no cast, difference or extra use flips
+  it); `p = a + b` (EASS) -> `add p, a, b` (q4/q13/q19/r13). **A full assignment EASS starts a NEW web even when its RHS reads the variable**
+  (`p2 = y + (Uint32)p2` -> `@160`, frontend-01); EADDASS/EPOSTINC continue the web. So "in-place add into the accumulating vreg with the added
+  value FIRST" (`add r31,r6,r31`) is not writable as `+=` and a full assignment splits the web.
+  (c) **Backend loop-code-motion (pass 04) hoists a single-def invariant vreg; a two-def vreg stays.** `p2 = (Uint8 *)(ywidth - 4); .. p2 +=
+  (Uint32)y` keeps `subi` in the loop and its user copies `p3 = p2; p4 = p2` survive (the source is redefined before their uses: `mr r8,r7; mr
+  r9,r7` = the target's `mr r7,r31; mr r4,r31`); with a web split (b) the first web is single-def -> backend copy propagation removes the copies
+  -> the `subi` is hoisted (t10/t12/t13/t19/t22/t23/t25, all "collapsed"). The frontend does not hoist a variable's own invariant def (`p2 =
+  (Uint8 *)(ywidth - 4)` stays; only expression @temps are hoisted), and it does not CSE `ywidth - 4` with `(Uint32)ywidth - 4` (u2: the typed
+  copy of the tail's second `subi` stays separate; with identical types both become one hoisted @temp, u1/u4).
+  (d) **A 4-iteration constant `for` loop is fully unrolled by `-O4` into the same object as the hand-unrolled rows** (k1/k2: UserTable
+  byte-identical to the tree's 135w) — but its presence changed the OTHER functions of the TU (.text 0xb6c -> 0xd78: CFT_MakeArgb8888ColAdjTbl /
+  MakeYcc422 grew, i.e. the unroller's budget is TU-wide state); `k += 2` (k3) is not unrolled.
+  (e) The or->rlwimi peephole's `mr v, B` into an OWN local `v` DOES coalesce when no edge exists (t2/m1-m5/n3/n6/n7: `slwi` straight into v's
+  register) — pass 5's "never" needs the edge (v live at B's def, or B live after the copy). Byte locals `b0..b3` (m3) add a `clrlslwi` fuse.
+- **UserTable 135w, the target's shape now readable (per inner iteration):** `subi w4 = ywidth-4` + `mr w4b,w4; mr w4c,w4` at the top; row 1 on
+  `y` with `addi y,y,4` then `add w4 = y + w4` (dest = second operand, in place); row 2 on w4, `addi w4,4`, `add w4b = w4 + w4b`; row 3 on w4b,
+  `addi`, `add w4c = w4b + w4c`; row 4 on w4c, a SECOND `subi t2 = ywidth-4`, `addi w4c,4`, `add t2 = w4c + t2`, `subf y' = t2 - yw4`, `addi y = y'+4`;
+  row 1's two packs go through `mr r25,rX` copies (an own local), rows 2-4 pack in place (@webs/sunk). **Best structural form t2 (175w, not
+  applied — the tree's 135w is closer by count):** `Uint8 *p2,*p3,*p4,*p5; Uint32 v0,v1;` macro `v0 = ((Uint32)tbl[*(y)++] << 24) | ((Uint32)tbl[*(y)++]
+  << 8); v1 = ..; (dst)[0] &= v0 | K; (dst)[1] &= v1 | K` and body `p2 = (Uint8 *)(ywidth - 4); p3 = p2; p4 = p2; ROW(d, y); p2 += (Uint32)y; ROW(d+2,
+  p2); p3 += (Uint32)p2; ROW(d+4, p3); p4 += (Uint32)p3; ROW(d+6, p4); p5 = (Uint8 *)((Uint32)ywidth - 4); p5 += (Uint32)p4; y = p5 - ywidth * 4; y +=
+  4;` = in-loop `subi` + both `mr` copies + all four `addi p,p,4` as real defs before their adds + the second `subi` + `stmw r25`/frame 0x30.
+  Left in t2: (A) the four adds read `add X, X, e` (ours) vs `add X, e, X` (target) — per (b) the target's AST had the added value first AND one
+  web: not reachable with `+=`, and `p2 = y + (Uint32)p2` splits (t19), `p2 = (Uint8 *)((Uint32)y + (Uint32)p2)` splits (t12), integer p2 forms
+  are forward-substituted into `y + @hoisted` (t13/t17/t23), a helper parameter is propagated (t25); (B) row 1's `slwi B; mr v,B; rlwimi v` copies
+  (needs the edge of (e): not from v0/v1 own locals, one `v`, `v = v1` chaining, live-out v, `|=` forms, `t`/`a0` operand locals — m1-m5, n3, n6,
+  n7); (C) colours: y/d are level 1 in ours (r29/r30, after the pack temps) and volatile r6/r12 in the target, w4 r7 vs r31, yskip r31 vs r30,
+  i/wblk/hblk/ywidth shifted by one. Next: (A) first — find the AST that yields EADD(e, X) assigned to X's own web (maybe the vendor's X is a
+  parameter of a NON-inlined helper? no: one function in the target), then read (C) with chaitin.py on that form; (B) after.
+- Negatives with the tree's macro (all >= 135w unless noted): u1 (pointer copies, identical `ywidth - 4` twice) 160w, u2/u5/u6/u8 (typed tail
+  subi as p2/p3/new p5) 184w, u7 163w, u9/u10 (v0/v1 + increment before the stores: no blocker — a store blocks only defs that LOAD) 185w, t5
+  `register y` 185w, t6 integer y 185w, t7 cast-round-trip increments 173w, t8 `y + 2 + 2` / t9 `y += 0` 185w, t20/t21 `(y += 4)` inside the add
+  189/184w, t14/t15 188-190w.
