@@ -35,8 +35,9 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 	 * sums stay variables (q/p in one register) except p6' (CRI SWAR kernels pass 12). The pixel
 	 * words are declared BEFORE the sums and the loop variables (pass 10: the five loop variables
 	 * must be the only nodes of the top level). Residue: the original's first block ends after the
-	 * 9th sum (its initial-code count crosses 100 there; ours crosses it two statements later). */
-	Uint32 a0, b0, a1, b1, a2, b2;
+	 * 9th sum (its initial-code count crosses 100 there; ours crosses it two statements later). The dead
+	 * pixel initialisers move the pairs' range-split web groups first (CRI SWAR kernels pass 22: 30 -> 26w). */
+	Uint32 a0 = 0, b0 = 0, a1 = 0, b1 = 0, a2 = 0, b2 = 0;
 	Uint32 p0, p1, p2, p3, p4, p5, p6, p7;
 	Sint32 i;
 	Sint32 stride;
@@ -244,26 +245,26 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 
 void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 {
-	/* Case 0: xor-inside macro (frontend CSE temporaries). Cases 1-3 (CRI SWAR kernels pass 20/21): the
-	 * words at offsets 4/8/12 are loaded INTO the case-0 variables w1..a3 and the packs written into the SAME
-	 * variables (`w1 = (w1 << 24) | (w2 >> 8)`): the frontend numbers a variable's webs pack-then-load per
-	 * case (later definition = lower @), so each pack pops right before the load it inserts -- the original's
-	 * hand-out order p1 r31, A1 r30, q1 r29, W2 r28, ... in case 3, and the lowest-free picks q1 r30 / A1 r29,
-	 * p2 r28 / W2 r27, ... in cases 1/2. The fifth pair is packed in place on the fifth loads in every case
-	 * (`p4 = (w3 << 24) | (p4 >> 8)`: p3/q3 then pop before W3/A3 = r24/r23 before r22/r21); case 1 loads q4
-	 * before p4 so that case 3's q4 web pops before p4's. p0/q0 are own locals of case 1 kept as variables by
-	 * the pointer step right after their load (a single-use load is substituted into its pack otherwise);
-	 * in case 3 only q0 is kept (`s1 += stride` right after it, `s0 += stride` at the end): the original's p0
-	 * there is a substituted single-use load (volatile r8), its q0 the last hand-out (r17).
-	 * Residue (131w): the pointers/masks change level (stride r3, masks r7/r8) because q0's case-3 web and
-	 * p0's case-2 web are L3, and case 1's p1/q1/p2 webs drop to L1 because the case-1 own locals q0/p4/q4
-	 * are removed before them in scan 1 -- the original's case-1 fifth loads are webs (see AGENTS.md). */
+	/* Byte-identical (CRI SWAR kernels pass 22). Case 0: xor-inside macro (frontend CSE temporaries). Cases
+	 * 1-3: every word is loaded INTO the case-0 variable of its pair and the pack is written into the SAME
+	 * variable (`w1 = (w1 << 24) | (w2 >> 8)`), the offset-0 pair included (`w0 = ((Uint32 *)s0)[0]; s0 +=
+	 * stride;` -- the pointer step right after the load keeps it a variable, a single-use load is substituted
+	 * into its pack otherwise); the fifth pair is packed in place on its own loads (`p4 = (w3 << 24) | (p4 >>
+	 * 8)`), p4 loaded before q4. Why this colours: the frontend numbers a variable's range-split webs by the
+	 * variable's FIRST definition (case 0's load order w0,a0,w1,..,a3, then p4,q4) and pack-then-load per case,
+	 * so the pops run W0 r10, p0 r8, A0 r11, W1 r12, p1 r31 (first hand-out), A1 r30, q1 r29, ... in case 3
+	 * and the later cases take the latest hand-outs; the offset-0 loads of cases 1-3 are webs with the HIGHEST
+	 * web ids (w0/a0 are defined first), so they are visited last in the simplification scan, removed in
+	 * scan 1 (r17/r18 = the last hand-outs, after the xor temporaries), and case 1 has no own local besides
+	 * p4/q4 -- with own locals p0/q0 in case 1 they were removed before p1/q1/p2 and pulled those into the
+	 * volatile level, and case 3's q0 web (lowest web id) was visited first and stayed a spill-level node
+	 * that pushed stride/masks off r0/r3/r7. */
 	Uint32 *d;
 	Uint8 *s0;
 	Uint8 *s1;
 	Sint32 stride;
 	Sint32 i;
-	Uint32 w0, a0, w1, a1, a3, w2, a2, w3, p4, q4, p0, q0;
+	Uint32 w0, a0, w1, a1, w2, a2, w3, a3, p4, q4;
 	Uint32 m1 = 0xFEFEFEFE;
 	Uint32 m2 = 0x01010101;
 
@@ -307,14 +308,14 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			a2 = ((Uint32 *)s1)[2];
 			w3 = ((Uint32 *)s0)[3];
 			a3 = ((Uint32 *)s1)[3];
-			q4 = s1[16];
 			p4 = s0[16];
-			p0 = ((Uint32 *)s0)[0];
+			q4 = s1[16];
+			w0 = ((Uint32 *)s0)[0];
 			s0 += stride;
-			q0 = ((Uint32 *)s1)[0];
+			a0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 8) | (w1 >> 24);
-			a0 = (q0 << 8) | (a1 >> 24);
+			w0 = (w0 << 8) | (w1 >> 24);
+			a0 = (a0 << 8) | (a1 >> 24);
 			w1 = (w1 << 8) | (w2 >> 24);
 			a1 = (a1 << 8) | (a2 >> 24);
 			w2 = (w2 << 8) | (w3 >> 24);
@@ -344,12 +345,12 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			p4 = *(Uint16 *)(s0 + 16);
 			a3 = ((Uint32 *)s1)[3];
 			q4 = *(Uint16 *)(s1 + 16);
-			p0 = ((Uint32 *)s0)[0];
+			w0 = ((Uint32 *)s0)[0];
 			s0 += stride;
-			q0 = ((Uint32 *)s1)[0];
+			a0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 16) | (w1 >> 16);
-			a0 = (q0 << 16) | (a1 >> 16);
+			w0 = (w0 << 16) | (w1 >> 16);
+			a0 = (a0 << 16) | (a1 >> 16);
 			w1 = (w1 << 16) | (w2 >> 16);
 			a1 = (a1 << 16) | (a2 >> 16);
 			w2 = (w2 << 16) | (w3 >> 16);
@@ -379,11 +380,12 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			p4 = ((Uint32 *)s0)[4];
 			a3 = ((Uint32 *)s1)[3];
 			q4 = ((Uint32 *)s1)[4];
-			p0 = ((Uint32 *)s0)[0];
-			q0 = ((Uint32 *)s1)[0];
+			w0 = ((Uint32 *)s0)[0];
+			s0 += stride;
+			a0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 24) | (w1 >> 8);
-			a0 = (q0 << 24) | (a1 >> 8);
+			w0 = (w0 << 24) | (w1 >> 8);
+			a0 = (a0 << 24) | (a1 >> 8);
 			w1 = (w1 << 24) | (w2 >> 8);
 			a1 = (a1 << 24) | (a2 >> 8);
 			w2 = (w2 << 24) | (w3 >> 8);
@@ -394,7 +396,6 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
 			d[17] = MPVMC16_AVG2X(p4, q4, m1, m2);
-			s0 += stride;
 			d += 2;
 			if (i == 7) {
 				d += 16;

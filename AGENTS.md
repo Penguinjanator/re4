@@ -30899,3 +30899,48 @@ k4p = k4 + jq pin, n1/b1/b2/c1-c3/d42/d45/g42/g45 = the variants below with .la.
   xoris after add1 but u8ld's life shrinks to 18 (born at the barrier + 2) and the byte/u8ld/xoris tie at 15000 goes by qty number (byte r0). Not the shape.
 - Catalogue row 6 addendum: when a block's target allocation needs a codeless pseudo (a loadaddr) born LATER than sched1 puts it, look for fillers ABOVE its
   priority that delay a LOAD it does not depend on: `asm("" : "=m"(frame) : "r"(x))` with x produced at t1 is ready at t2 with the load's priority + 1.
+
+### CRI SWAR kernels pass 22 (mpv_mcy 16x16 V2 131 -> 52 -> 22 -> 0w IDENTICAL pure C APPLIED: the offset-0 pair in the same-variable form in every case, no p0/q0 at all; 4p 30 -> 26w APPLIED (dead pixel initialisers); mpv_mcy 4/5, not flipped; 2026-09-12)
+Harness ~/.cache/cri_swar22/ (swar21's scripts with paths fixed + `weblist.py RA_DIR` = one line per frontend-02 statement with the assigned
+object (`@N` or the variable) and a load/pack signature = the web numbering per case read in seconds; `whyb.py RA SBS RANGES NODES [edits]` =
+why.py on the BASE graph (no gsearch solution needed): pop index, level, used/handed sets, which neighbour covers which callee-saved register;
+`score.py` gained `coal=KEEP:GONE`, `unedge=A:B`, `show=NODES`; `mkbatch1.py`, `run4p.sh`; bodies/, NOTES.md; ~/.cache/cri_swar21 DELETED).
+- **V2 IDENTICAL (X3, tree): cases 1-3 load the offset-0 words INTO w0/a0 with the pointer step right after (`w0 = ((Uint32 *)s0)[0]; s0 +=
+  stride; a0 = ((Uint32 *)s1)[0]; s1 += stride;`) and pack in place (`w0 = (w0 << 8) | (w1 >> 24)`), exactly like the other pairs; the fifth
+  pair in place on its own loads with p4 loaded BEFORE q4; case-0 declaration order the natural `w0, a0, w1, a1, w2, a2, w3, a3, p4, q4`.**
+  Steps: V03 = `q0 = 0, p0 = 0` dead initialisers + case 3 both p0/q0 kept by mid steps 131 -> 52w (8/29/6/9); W02 = + natural declaration
+  order + p4 before q4 52 -> 22w (cases 0/2/3 identical); X3 = + no p0/q0 (w0/a0 same-variable form in all three cases) 0w. X1 (the w0/a0 form in
+  case 1 only) 21w: case 2 breaks (its p0/q0 webs lose their group).
+- **Mechanisms, read in the model (score.py/whyb.py on the tree's graph) and confirmed by the builds:**
+  (1) `q0`'s case-3 web was the spill-level (L3) node that pushed stride/masks off r0/r3/r7: as the LAST-defined variable its group had the
+  highest @ = the LOWEST web vid, so it was visited first in every simplification scan while its 32 neighbours (all 8 loads, all 8 pack webs and
+  their srwi ghosts, the pointers, i, the masks) were still alive; the target's q0c3 (r17) and p0c3 (r8) are removed in scan 1, which needs the
+  node visited AFTER p4c3/q4c3 (removed there) — i.e. the offset-0 variables must be the FIRST-defined ones (groups w0/a0 = the highest web vids).
+  (2) Case 1's p1/q1/p2 webs (target r8/r30/r28) fell to L1 because case 1's OWN LOCALS q0/p4/q4 (deg 28/26/27) have lower vids and are removed
+  before them in scan 1 (31 -> 28). With the offset-0 loads as webs of w0/a0, case 1's only own locals are p4/q4 (2 removals: 31 -> 29 = L2), and
+  p0c1/q0c1 (vids above every other web) are removed in scan 1 (30-2 = 28, 28) and pop in L1 after the x temporaries handed out r17/r18: p0c1
+  r17, q0c1 r18 = the target's "last two hand-outs" — they are webs, not own locals (`move=q0:98.5 move=p0:98.6` predicted 43/47 before the build).
+  (3) The fifth pair: p4's group before q4's (`p4 = s0[16]; q4 = s1[16]` in case 1) gives P4pack r22 / Q4pack r21 in cases 1-3 AND p4c3 r18 / q4c3
+  r19 (L1 pops in group order); pass 21's q4-before-p4 swap had compensated the L3 damage and is wrong once (1) is fixed. Same for the case-0
+  `a3` declaration trick: with r20 no longer handed out early, the natural order gives w2 r21, a2 r22, w3 r23, a3 r24.
+  (4) **Dead declaration initialisers (`Uint32 q0 = 0, p0 = 0;`) move a variable's web GROUP to the front of the @ numbering (the group order
+  follows the first definition INCLUDING deleted dead initialisers) but do NOT change which definition carries the variable's own-local node
+  (case 1's load stayed `p0`, not `@N`, in T1/T2: the own-local node is the first SURVIVING definition).** A live prologue definition without
+  code does not exist: `p0 = (Uint32)s0 & 3; __dcbt(s1, 0); switch (p0)` is substituted into the switch (arithmetic is substituted across a
+  dcbt; only LOADS are blocked by store/if/dcbt/redefinition), `q0 = 0; __dcbt(s1, q0)` and `q0 = p0` are propagated (W03-W07 = base). The
+  offset-0 loads have to be webs of a variable whose own-local node is case 0's load: w0/a0.
+  (5) Case-3 statement order of the loads (q0 first, p0 first, both kept, steps mid/end: V05-V12) changes nothing or +11w — the pre-RA order is
+  DAG/priority driven; only the numbering and the own-local set matter.
+- **4p 30 -> 26w APPLIED (P2): `Uint32 a0 = 0, b0 = 0, a1 = 0, b1 = 0, a2 = 0, b2 = 0;`** (the pixel pairs' groups first). Census: a0/b0 only or
+  a0..b1 30w, a1/b1 only 84w, a2/b2 only 90w, all six in reverse declaration order 95w, the sums initialised 104w, `Uint8` pairs 106w (= pass
+  13), `Uint8` + initialisers 106w. The block-1 cut (target block 1 ends after the 9th sum, ours two statements later) is unchanged — the 26w are
+  the cut's schedule plus its register consequences; the Uint8-pair re-model was not done (no 4p role map in sigmatch; 30-minute box spent on
+  the initialiser census).
+- Catalogue-grade facts for the MWCC table (row "range-split webs of a switch's cases coloured in the wrong order" / row "lowest handed"):
+  a variable first defined LAST has the lowest web vids = visited FIRST in every scan = the spill-level candidate of the function; make the
+  short-lived per-case loads webs of the FIRST-defined variables (the same-variable form for every pair, case 0's load order = the group order);
+  dead declaration initialisers reorder groups without code; an own local of a later case removed in scan 1 takes one off every web live with
+  it — count the case's own locals against the webs' 29-threshold before anything else.
+- Tree: src/lib/mpv_mcy.c V2 (X3 form + comment), 4p (P2 initialisers + comment); mpv_mcy 4/5 (4p 26w), not flipped, objects.py untouched, only
+  mpv_mcy.o built under the lock. ~/.cache/cri_swar21 deleted; ~/.cache/cri_swar22 kept small (scripts, bodies/, NOTES.md; dumps/objects
+  deleted) for the 4p pass — delete it there. Kit untouched.
