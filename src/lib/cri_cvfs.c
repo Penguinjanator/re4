@@ -708,13 +708,16 @@ void cvFsEntryErrFunc(CVFS_USRERRFN func, void *obj)
 	}
 }
 
-/* COMPILER-DIFF: M1 - callee-saved permutation of the inlined device-search values. Pure C by
- * project decision (CRI pass 8). */
+/* CRI pass 40: the target colours fname r29 > pdev r28 > tbl r27; ours removed pdev (28 neighbours) with
+ * tbl in the same Chaitin iteration and coloured it after tbl. The pin to r11 - a register no value of this
+ * function ever takes - is a codeless level-shifter: the physical neighbour holds pdev in the graph one
+ * iteration longer, so it is coloured before tbl, and nothing else moves (a callee-saved pin reserves the
+ * register and shifts the ResolveDev locals down one, pass 35's 20w). */
 Sint32 cvFsGetFileSize(const Char8 *fname)
 {
 	Char8 dev[CVFS_NAME_LEN];
 	Char8 path[CVFS_NAME_LEN];
-	Char8 *pdev;
+	register Char8 *pdev;
 	CVFS_DEVIF *vtbl;
 
 	if (fname == NULL) {
@@ -727,6 +730,7 @@ Sint32 cvFsGetFileSize(const Char8 *fname)
 		return 0;
 	}
 	pdev = dev;
+	asm { mr r11, pdev; mr pdev, r11 } // COMPILER-DIFF: M1 (level-shifter, no code)
 	vtbl = cvfs_ResolveDev(fname, pdev, path);
 	if (dev == NULL) {
 		cvfs_Error("cvFsGetFileSize #2:illegal device name");

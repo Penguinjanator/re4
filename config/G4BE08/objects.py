@@ -1893,3 +1893,9 @@ MATCHING.update({
 MATCHING.update({
     "game/card.cpp": True,  # 67/67, pure C: saveMain (case 6 `step = 0` zero shares the `(int) fileNo` shift-count local, so its li trails the rotlw, takes r0 and the stb cross-jumps into case 1's copy); errorDisp (`mesNo = K; cardcheck = 0;` in -0x204/-0x206 so cardcheck's zero is the switch index's, which then outranks mesNo for r31; `attr = 0` inside both -0x203 arms so jump1 cannot hoist `mesNo = 1`)
 })
+
+# CRI pass 40 (2026-09-12)
+MATCHING.update({
+    "lib/sfd_adxt.c": True,  # 28/28: sfadxt_ExecServerSub 59 -> 0 with one M1 hard pin of the handle (`asm { mr r31, obj; mr sfd, r31 }`): the target colours sfd r31 above err (Transfer's coalesced @ret chain) r30 / len r29; the pass-35 helper split gave every other register
+    "lib/cri_cvfs.c": True,  # 13/13: cvFsGetFileSize 14 -> 0 with a codeless M1 level-shifter pin of pdev to r11 (a register no value of the function takes): the extra physical neighbour keeps pdev in the Chaitin graph one iteration longer than tbl -> fname r29 > pdev r28 > tbl r27; a callee-saved pin reserves the register and shifts the ResolveDev locals (pass 35's 20w)
+})

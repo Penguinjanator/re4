@@ -926,13 +926,15 @@ static void sfadxt_UpdateSvrFreq(SFD sfd)
 	}
 }
 
-static Sint32 sfadxt_ExecServerSub(void *obj)
+static Sint32 sfadxt_ExecServerSub(register void *obj)
 {
-	SFD sfd;
+	register SFD sfd;
 	Sint32 err;
 	Sint32 len;
 
-	sfd = obj;
+	/* CRI pass 40: the target colours sfd r31 / err r30 / len r29; ours ranked err (Transfer's @ret chain)
+	 * above sfd. The hard pin of the handle takes r31 out of every other node's range, so err falls to r30. */
+	asm { mr r31, obj; mr sfd, r31 } // COMPILER-DIFF: M1
 	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
 		return 0;
 	}

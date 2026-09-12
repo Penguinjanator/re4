@@ -26266,7 +26266,7 @@ Scratch /home/adityas/.cache/tcam3/ (variants `dbw_<X>.cpp`, `rtl_<X>/` dumps, L
   (`stw 0xc4(rB)`, folded), `s32* mc = &EvtDebug.mesCnt[1]` at the block top = 51-52w (mc becomes the class head:
   `addi mc, hi, EvtDebug+0xc4@l; subi r30, mc, 0xc4`), `u32`/`s32`/`unsigned long no` = 40w. Open.
 
-### CRI pass 40 (sfd_adxt Matching 27 -> 28/28, cri_cvfs Matching 12 -> 13/13, both with one M1 hard pin; sfd_tst SFTST_Calc 79w IN PROGRESS; 2026-09-12)
+### CRI pass 40 (sfd_adxt Matching 27 -> 28/28, cri_cvfs Matching 12 -> 13/13, both with one M1 hard pin; sfd_tst SFTST_Calc 79w read again, unchanged; 2026-09-12)
 Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replace-list patch of the tree source through variant.sh; deleted at the end).
 - **sfadxt_ExecServerSub 59 -> 0: `asm { mr r31, obj; mr sfd, r31 }` (register obj/sfd).** The pass-35 helper split had every register but sfd r30 / err r31 (target sfd r31, err r30, len r29). The hard pin
   takes r31 out of every other node's range, so err (Transfer's coalesced @ret chain, coloured before sfd by id) falls to the NEW r30 and len to r29; no other register moves, size 0x428 kept. 111 OK, flipped.
@@ -26300,6 +26300,24 @@ Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replac
   r28/r29 (38-74 words). No pin possible (loop.c pseudos). Left as is.
 - Flags: t_camera/t_camera_data and t_esp/db_widget stay False in config/G4BE08/modules.py; `ninja -k 0` + `dtk shasum -c` 111 OK after
   the two edits. Scratch ~/.cache/tcam2 and ~/.cache/tcam3 deleted; the kit untouched.
+- **The pin as a NEIGHBOUR lever (the dump of the cvfs variant):** the pinned value is coalesced with the asm's copies, which stay as ghosts aliased to the
+  physical register (`r34..r39 -> r12 = @1420..@1425` in the GC/2.6 dump), i.e. never-removed neighbours of THAT value only (pdev 28 -> stays >= 29 through
+  iteration 2; total degree unchanged). So `asm { mr rV, x; mr x, rV }` with rV a volatile register the function never uses = "+k never-removed neighbours on x,
+  nothing else" (holds x one Chaitin iteration longer = coloured earlier); with a callee-saved rV it also reserves the register; on a parameter or a value defined
+  by a call it becomes a real copy (SFTST_Calc `asm { mr r12, tol@hiword; .. }`: `mr r21, r12` emitted, 108w; the parameter pins lose the hoisted .bss base, 139w).
+  `x@hiword` is accepted for a `register Sint64`. chaitin.py reads the pinned dump with 6 divergences (it does not model the alias ghosts); the numbers above are
+  the compiler's.
+- **SFTST_Calc 79w, the target's colouring order read off the registers (LEFT = target):** sprintf block: out.hi r22 > out.lo r23 > [MulDiv r24] > mt.lo r25 >
+  mt_max.hi r27 > mt_max.lo r28 > hlp.hi r29 > hlp.lo r30, mt.hi r21 LAST (L1, 27/27 in ours too: it takes the lowest free, r21 in the target because r22..r30 are
+  all held by the group, r30 in ours because the group started at r21). Ours: the same L2 group in the same id order (@171 out r60/61, @172 mt r58/59, @173, @174;
+  hi = the higher id) but started at r21 and with MulDiv (backend `mr r403, r3`, 20/38) coloured at index 9 in L3 -> r23. One story covers all three regions:
+  in the target MulDiv is coloured with r24 the lowest free handed-out register, i.e. BEFORE `ave` (own local r44/r45, 28/51 + 28/50, index 6/8 in ours, r23/r25)
+  hands out r23; ave then lands r22 (hi) / r25 (lo) = the target's region 2, and tol (@123) r23/r21 after it. So `ave` must drop one level: it is removed in ours
+  only after the est spill picks (r185 est.lo 35/136, r184 est.hi 32/139; trace: r185, r107, r184, r35, r34, r33, r32), so one of its L3 neighbours is missing in
+  the target's graph (or MulDiv has one more). Not found: `Sint32 ave` (119w, size -0x30: 32-bit arithmetic), `Sint32 ave32` copy (79w, propagated), `aave` folded
+  into the condition, `movave_2nd = movave_1st = ave`, ave declared first / last (all 79w: the rank is a level, not an id), `msec = UTY_MulDiv(..)` as a statement
+  (85w: the CSE loads move below the call - the target evaluates the call inside the argument list), `sec`/`msec` statements (85w). Region 1 (diff lo/hi r25/r23 vs
+  r23/r25, pass 14) unchanged. No codeless pin exists: every pinnable own local here is 64-bit or defined by a call. Not closed.
 
 ### DOL db_cam closer 5 (game/db_cam 11/13: debugCamera::menuFlag 69 -> 45 with two block-scoped locals; menu 2 unchanged; 2026-09-12)
 
