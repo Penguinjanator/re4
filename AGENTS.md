@@ -28292,3 +28292,9 @@ k4 reproduced first: 42 45w size +4, 45 49w size -4 (pass 11's numbers).
   the frame for a slot the target writes in Z: none in the final code, so the insn was deleted later — a dead store, a REG_EQUIV'd set); (2) with
   e17's slot, the byte-before-loadaddr local order (a longer j-loadaddr life: born at t6 = the `lwz bump` NOT at t6 — e.g. bump loaded before the
   call as `u8* bump` at the block top (pass 11: 45w, neutral) so t6's second slot is free for the loadaddr); (3) then the f0/f13 pair follows.
+- **Late probes (42, k4 + jq pin + `u8* bump` + two fb anchors = e17):** an added early `k` anchor between the bump load and `fb` (e19) = 24w,
+  size exact: bump r6 and the whole downstream FP (f0/f13) right, but the FP chain's +1 shift gives t7's second slot back to the xoris (r7, before
+  the add) and a Z local takes r10 during jx's life, so the global `jx` moves r10 -> r8 in BOTH loops (`srawi r8` in loop A). The same anchor
+  before the bump load (e20) 44w. On 45: e19 49w, e17 49w, e10 66w (45's Z has the `lis/lfs` pool pair in the slot picture, pass 11). Sum: the
+  xoris slot (e17) and the bump/FP allocation (e19) are each reproduced by anchor forms but not together; the target has ONE arrangement that
+  gives both, most likely a single real insn in the psq_st's t7/t8 window rather than two anchors. All forms above the tree (9w/42w); nothing applied.
