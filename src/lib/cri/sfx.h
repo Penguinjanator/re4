@@ -140,6 +140,6 @@ typedef struct {
 Sint32 sfxcnv_IsCnvUpHalf(SFX_OBJ *sfx);
 void SFXLIB_Error(SFX_OBJ *sfx, SFX_FRM *frm, const Char8 *msg);
 Sint32 SFXINF_GetStmInf(SFX_FRM *frm, const Char8 *tag);
-void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height);
+void CFT_Ycc420plnToY84C44(const CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height);
 
 #endif

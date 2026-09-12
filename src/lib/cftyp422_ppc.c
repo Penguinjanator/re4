@@ -171,12 +171,16 @@ typedef struct {
  * index is a register variable (ofs = 8 / 4) named as the asm operand: a hard r0 in the asm would
  * keep r0 reserved over the whole function (the original has r0 free between the two loops and the
  * index coloured r0 as a plain high-degree node); the __dcbz intrinsic hoists its literal only one
- * loop level. */
-void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height)
+ * loop level. `const src`: the parameter loads get their own alias class and are scheduled above
+ * the frame stores. The four signed divisions of the setup are chained through the carry bit
+ * (srawi writes CA, addze reads it: a latency edge in statement order), so their statement order
+ * yskip, cnt, hblk, dskip IS the schedule; with hblk not ready at cycle 0 the `li ofs, 8` issues
+ * first and ofs (r0) is live across the setup temps. ywidth/yw3 are reused for the chroma loop
+ * (cbwidth / 4 and its triple) and declared LAST: one node each, live across both loops, degree
+ * >= 29 at the first removal scan, coloured r9/r10 before the unroll remainder copy (r11). */
+void CFT_Ycc420plnToY84C44(const CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height)
 {
 	register Sint32 ofs;
-	Sint32 ywidth;
-	Sint32 yw3;
 	Sint32 n;
 	Float64 *y3;
 	Sint32 yskip;
@@ -202,25 +206,24 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 	Sint32 o3;
 	Sint32 o2;
 	Sint32 o1;
-	Sint32 cw3;
 	Sint32 cskip;
 	Uint32 *cbp0;
 	Uint32 *crp0;
 	Uint32 crv;
 	Uint32 cbv;
 	register Uint32 *c;
-	Sint32 cw;
+	Sint32 ywidth;
+	Sint32 yw3;
 
 	ywidth = src->ywidth;
 	yw2 = ywidth * 2;
 	y0 = (Float64 *)src->y;
 	d = (Float64 *)ybuf - 1;
-	hblk = height / 4;
-	dskip = (width - ywidth) / 8 * 32;
 	yw3 = ywidth * 3;
 	yskip = yw3 / 8 * 8;
 	cnt = ywidth / 8;
-
+	hblk = height / 4;
+	dskip = (width - ywidth) / 8 * 32;
 	ofs = 8;
 	for (i = 0; i < hblk; i++) {
 		y1 = (Float64 *)(ywidth + (Uint32)y0);
@@ -250,11 +253,11 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 	cnt = src->ywidth / 2 / 4;
 	cskip = (src->cbwidth - src->ywidth / 2) / 4;
 	hblk = height / 2 / 4;
-	cw = src->cbwidth / 4;
-	cw3 = cw * 3;
-	o1 = cw * 4;
-	o2 = cw * 8;
-	o3 = cw3 * 4;
+	ywidth = src->cbwidth / 4;
+	yw3 = ywidth * 3;
+	o1 = ywidth * 4;
+	o2 = ywidth * 8;
+	o3 = yw3 * 4;
 	c = (Uint32 *)cbuf - 1;
 	cbp0 = (Uint32 *)src->cb;
 	crp0 = (Uint32 *)src->cr;
@@ -274,8 +277,8 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 			CFTYP_C44_ROW(c, cbp3, crp3);
 		}
 		c += cskip * 8;
-		cbp0 += cw3 + cskip;
-		crp0 += cw3 + cskip;
+		cbp0 += yw3 + cskip;
+		crp0 += yw3 + cskip;
 	}
 }
 

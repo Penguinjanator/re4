@@ -28298,3 +28298,79 @@ k4 reproduced first: 42 45w size +4, 45 49w size -4 (pass 11's numbers).
   before the bump load (e20) 44w. On 45: e19 49w, e17 49w, e10 66w (45's Z has the `lis/lfs` pool pair in the slot picture, pass 11). Sum: the
   xoris slot (e17) and the bump/FP allocation (e19) are each reproduced by anchor forms but not together; the target has ONE arrangement that
   gives both, most likely a single real insn in the psq_st's t7/t8 window rather than two anchors. All forms above the tree (9w/42w); nothing applied.
+
+### CRI SWAR kernels pass 12 (mpv_mcy 16x16 4p 119w: the block-1 colouring read as a vid-class question; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar12/ (`mk.py NAME` splices bodies/NAME.c over the 4p function, `t.sh NAME` = variant words + ra.py dump `ra_NAME` +
+scheddump `out_NAME` + sched.py check + block sizes, `sc.sh NAME` = pass-11 first-half order score, `s2.sh NAME` = block-2 order score
+(`lvmap.py` derives the a9/b9/p8 vregs), `view.py RA OUT TGT LO HI` = every node with label/colour/target/level/degree/class,
+`prec.py` = per node the target registers below its colour and which neighbours hold them, `rcsp.py` = randomised CSP over colouring
+orders (position statistics + forced before-pairs; `merge=q9:p9,..` unifies webs), `wo.py`/`w.sh` = chaitin what-if on the vid ORDER
+by class (`own=` declaration order, `at=` creation order, `be=`, `top=`), `co.py` = greedy colouring with EXPLICIT levels (`l2=`),
+`scan1.py` = scan-1 degrees per node under a vid hypothesis, `osearch.py`/`csrch.py` = searches over declaration orders / pixel-pair
+classes with the real model, `cls.sh NAME` = class (own/@/be) of every block value. Pass-11 harness deleted at the end.)
+- **Forced colouring order of block 1 (rcsp.py, 400 random CSP solutions on the tree's graph, callee-saved handed r21-r31 first):** a6 (r7)
+  precedes almost every block-1 node (s2, s3, t1, t2, b3, a0, p0, p1, p2, p5, t0, t3, b4, b5, a4, a5, b6, b7, s4..t6, rot1); a7 (r8) precedes
+  a8 < a9, p3 < p4..p8/p0/b7/b8/b9/rot5, rot1, rot5, t0, a0; a2 (r9) precedes a1, b1, s0, t0, b2, b3, t2, a4, b4, t3, a5, b5, s4, t4, b6, s5,
+  t5; a3 (r21) precedes p0, p1, p5, t0, b2, a4, b4, t3, a5, b5, b6; p2 precedes a4, b4, t3, a5, b5, s4, t4, b6, s5, t5; the callee-saved chain
+  a3 r21 -> {b2, b4, t3, p0, rot5} r22 -> {rot1, p1} r23 -> t0 r24 -> b6 r25 -> a4 r26 -> a5 r27 -> b5 r28 is a strict colouring order (each
+  needs the previous one's register taken). The b pixels are all coloured after the temps that consume them (b3 after s2/t2, b4 after s4,
+  b1 after s0/t1) = low vids (own locals / @temps); a6, a7 are coloured first of all.
+- **Level reading:** with explicit levels (co.py) L2 = {a6 r7, a7 r8, a2 r9, a8 r9, p2 r10, p3 r11, p4 r12} + L1 in descending vid with the
+  pixels as own locals declared a0,b0,a1,..,a8,b8 (a6/b6/a7/b7/a9/b9 as @temps above them, b1 as an @temp) reproduces ALL block-1
+  volatile colours (33/49; the 16 misses are the callee-saved names, which depend on block 2's handing order p8 r31, p9 r30, p10 r29,
+  p13 r28, b14 r27, b13 r26, a16 r25, b16 r24, b12 r23, b11 r22, a13 r21, and p8). The tree's masked form colours 6/49 (all pixels are
+  backend temps: reverse creation order). The real model (wo.py, degree scans) gives L2 = {a6, a7, a3, a4, b5, p2, p3, p4} for own-local
+  pixels: a3 (38 total, 32-36 at its visit) and a4 (34) always survive scan 1 and a2 (34 total, 28 at visit) / a8 (30, 26) never do, in all
+  20160 declaration orders x a/b groupings (osearch.py), with or without the sums declared first; a class search over pixel pairs
+  (own / @ / backend, csrch.py, 19683 assignments x 4 @-orders) tops at 26/30 volatile colours. So the target's graph is NOT ours with
+  another vid order: a3/a4 must be visited later (backend temps: masked or substituted) while a2/a8 keep >= 29 (own locals/@temps
+  with no removed neighbour), or the target's webs differ (a shorter a3 web, extra ghosts on a2/a8).
+- **Frontend facts read off the probes (ra.py dumps, cls.sh):** (1) memory operands in the sums (`p0 = s0[0] + s0[1] + s1[0] + s1[1] + 2`,
+  probe f1) make the two-use loads CSE @temps numbered a2,b2,..,a8,b8 then a1,b1 LAST (lowest @N = highest vid first: a2), the single-use
+  loads backend temps, and p0 is forward-substituted into the d[0] store (p1..p8 are not: their RHS holds the nested CSE load defs) -- the
+  raw order then differs (a0/b0 loaded in the store statement) and the block does not split (N1 = 71 initial instructions before d[0]'s
+  stw counted from the function start; the split after d[1] needs N1 in [99, 106]: tree 103, q1 103, d1 99 (p8 substituted, 75/73), g1 85,
+  h2/k5 (`(Uint8)` at load / `(Uint32)(Uint8)a` at use) 109-111 = split before d[1]). (2) `Uint8` own-local pixels with `(Uint32)` casts
+  or without casts (implicit promotion is CSE'd the same way) keep a0..a5, a8, b0..b5, b8 as OWN locals but sink a6, b6, a7, b7 (and the
+  pixel-9 web a9/b9) into their CSE temps as @temps (`lbz @t` directly) -- independent of second-half reuse (g1/g6/g7/k1); with no
+  reuse at all (fresh names a9..a16, g5) every two-use pixel is sunk (@temps a2..b8, a1/b1 last) and a0/b0/p0/p8 are substituted
+  (backend). (3) `(a & 0xFF)` or `(Uint16)a` at every USE on Uint8 own locals (k3/k7, pair form) gives the target's split 79/69 AND the
+  target's pre-RA block-1 order (post-RA model 67/67) with own-local pixels (a6/b6/a7/b7/b9 backend) -- 124w; its L2 is {a3, a4, b5, p2,
+  p3, p4} (a3 r7, a4 r8, b5 r9). (4) the block-2 sums: in every spelling the second-half p1..p6 are forward-substituted into the d[16]/
+  d[17] stores (backend temps, separate q/p nodes, and the d[16] pack then takes rot(p8) as its rlwinm BASE where the target has
+  rot(p9) = the `<<14` term like block 1), p7 stays a range-split @temp; the target's block 2 has q_k/p_k in ONE register for k = 9, 10,
+  11, 12, 13, 15 (variables) and separate for p14 (r8 = a14's, a temp), so the vendor's second half keeps its sums as variables except
+  p14. Pair-form second half (q1) = 119w, block-2 post-RA model 7/56 (10 dataflow-invalid) because of the substituted sums.
+
+### CRI pass 53, part 2 (cftfx StaticV 16 -> 0w pure C APPLIED (4/6, not flipped: Argb420 24w, UserTable 135w); the frontend's web numbering and "last two defs sunk" rules made usable; 2026-09-12)
+(Continuation of "CRI pass 53" above; another agent's section landed between. Harness /home/adityas/.cache/cri53 deleted at the end.)
+- **StaticV 16 -> 0w (APPLIED, pure C, src/lib/cftfx.c):** three frontend rules read off `frontend-02-ast-final-code.txt` of 12 variants:
+  (a) a reused single-use variable is split into webs `@N`, numbered PER VARIABLE in order of the variable's FIRST DEF in the function, and within
+  a variable in REVERSE statement order (w: rows 4,3,2 = @176,@177,@178; t: rows 4,3,2 = @179..@181) — declaration order does NOT change it (s11);
+  (b) the LAST TWO non-constant defs of such a variable are substituted into their uses (the pass-50 "sunk" rows: their values become backend
+  temps coloured before the row's d-load); constant defs (`t = 1; y += t`) are folded before the web pass and do not count;
+  (c) the level-1 colouring order is descending vid, so of two webs the higher-numbered one is coloured first. Target rows: w r30, hi r11, lo r31,
+  d-load r12 in ALL four rows = w's web above t's web in every row, and t's webs never sunk. Form: the low word FIRST into `t` and the high word
+  as an expression (`t = lo; d[0] &= hi | K; d[1] &= t | K`: t's own-local/web vid is below the row's backend temps, so hi r11, d-load r12,
+  then t r31 — pass 50's "row-4 lo must be a low-vid node"); `Uint32 t = 0;` at the declaration (a dead def deleted later, but it is t's first
+  def, so t's webs are numbered before w's -> w's web outranks t's in rows 2-4; row 1 is `w` r35 vs `t` r34 own locals, w declared first);
+  and the two pointer round trips `t = (Uint32)y + 4; y = (Uint32 *)t; t = (Uint32)d + 64; d = (Uint32 *)t;` in the inner-loop tail as the two
+  defs that get sunk (they fold back to the `addi`s). Negative: no `t` at all (s1, 40w: every row a backend-temp row = ours' old row 4);
+  `t = ystep * 4; y -= t` as a sunk def (s4/s16: the substituted `ystep * 4` is CSE'd into a different @temp -> setup colours move, 27-104w);
+  defs in the outer-loop tail (s5, 74w, size +4); four distinct t0..t3 (s3, 40w: single-def single-use locals are substituted like sunk webs).
+  Catalogue row (MWCC, "two values with swapped registers"): **web rank = first-def order of the variables, then reverse statement order; give a
+  reused temporary an early dead first def to rank its webs below another variable's, and two harmless trailing defs to keep the real ones.**
+- **Argb420 24w: the two prologue copies are NOT coalescable-but-kept `mr`s of a `?:` — they are real un-coalesced copies with the temps still
+  live (`mr r6,r5; add r5,r5,r3` uses the y temp after the copy; the cb temp r4 dies at `mr r9,r4` yet is not coalesced either).** Our RA
+  coalesces both (no interference edge at a `mr`, biased colouring), so at RA time the vendor's defs of y/cb were not `mr` pcodes from the load
+  temps (or were user copies of a multi-def variable, pass 12's rule). Tried (all 24-25w, size +4 for the a-forms): `half`/`a` from `pln.cb`/
+  `pln.y` fields directly (a1/a2/a5), `register` y/cb (a4). Not tried: a `Uint8 *py` that is multi-def (a live second def), an `addi rD,rA,0`
+  spelling that survives to the RA. Box over.
+- **UserTable 135w, one probe (u1, 137w):** `w1 = ywidth - 4; w2 = w1; w3 = w1; ROW(y); w1 += (Uint32)y; ROW_I(w1); w2 += w1; ROW_I(w2); w3 += w2;
+  ROW_I(w3); y = (Uint8 *)(w3 + (ywidth - 4)); y -= ywidth * 4; y += 4;` — the frontend CSEs BOTH `ywidth - 4` into one hoisted @154 and rewrites
+  `w2 = w1` / `w3 = w1` to `w2 = @154` / `w3 = @154` (copy propagation of `w1 = @154`), so the `subi` leaves the loop and the copies coalesce.
+  The target evaluates `ywidth - 4` TWICE inside the loop (`subi r31,r11,4` at the block top, `subi r26,r11,4` in the fourth step) and keeps
+  `mr r7,r31; mr r4,r31`: the vendor's two `ywidth - 4` were not CSE'd by the frontend, i.e. not identical expressions to it (different types /
+  casts / a `Uint8 *` pointer difference?), and the copies are of a multi-def variable. Open.
+- Tree: src/lib/cftfx.c (StaticV macro + `t = 0` + tail; comments), locked `ninja build/G4BE08/src/lib/cftfx.o`, bytecmp 4/6 (Argb420 24w,
+  UserTable 135w); cftfx stays False. cftyp422_ppc flipped in part 1 (111 OK re-checked at the end of the pass).

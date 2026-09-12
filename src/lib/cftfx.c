@@ -157,19 +157,21 @@ void CFT_Ycc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
 	}
 }
 
-/* the same with the luma itself as alpha (four samples read as one word) */
+/* the same with the luma itself as alpha (four samples read as one word): the low word goes
+ * through `t` first (an own-local web, below the row's backend temps in vid order: coloured after
+ * the high word r11 and the destination load r12 -> r31), the high word is an expression */
 #define CFT_A256_ROW_STATIC(dst, w, t)                                                         \
-	(t) = ((w) & 0xFF000000) | (((w) >> 8) & 0x0000FF00);                                  \
-	(dst)[0] &= (t) | 0x00FF00FF;                                                          \
 	(t) = (((w) << 16) & 0xFF000000) | (((w) & 0xFF) << 8);                                \
+	(dst)[0] &= (((w) & 0xFF000000) | (((w) >> 8) & 0x0000FF00)) | 0x00FF00FF;             \
 	(dst)[1] &= (t) | 0x00FF00FF
 
 /* (the `const` parameters are the original's: loads through a pointer-to-const get an alias class
  * disjoint from the stores, so the post-RA scheduler hoists the parameter loads above the
- * prologue's `stwu`/`stw` as the target does; M1: the row words go through one reused temporary
- * `t`; its last two webs (the fourth row) are sunk into their uses and colour r31/r11/r12 instead
- * of the original's r12/r11/r31, and the first row's `w` takes r31 instead of r30; identical
- * instruction stream) */
+ * prologue's `stwu`/`stw` as the target does. The frontend splits a reused variable into webs
+ * numbered per variable in order of FIRST DEF, each variable's webs in reverse statement order,
+ * and sinks the LAST TWO defs into their uses: `t = 0` at the declaration puts t's webs before
+ * w's (w's web of each row then outranks t's: w r30, t r31), and the two pointer round trips of
+ * the loop tail are the sunk defs, so all four rows keep their `t` web.) */
 void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 {
 	Sint32 i;
@@ -181,7 +183,7 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 	Uint32 *d = dst->buf;
 	Uint32 *y = (Uint32 *)src->y;
 	Uint32 w;
-	Uint32 t;
+	Uint32 t = 0;
 
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
@@ -198,8 +200,10 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 			y += ystep;
 			CFT_A256_ROW_STATIC(d + 6, w, t);
 			y -= ystep * 4;
-			y++;
-			d += 16;
+			t = (Uint32)y + 4;
+			y = (Uint32 *)t;
+			t = (Uint32)d + 64;
+			d = (Uint32 *)t;
 		}
 		y += ystep * 3;
 		d += dskip;

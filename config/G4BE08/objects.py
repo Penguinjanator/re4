@@ -1924,3 +1924,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/adx_sje.c": True,  # 17/17, pure C: adxsje_write_end_code 2 -> 0. adxsje_put16 stores through a write cursor `Sint16 *dp = ck.data; *dp++ = *src;`: a two-use pointer is kept by the frontend, so the ck.data load precedes the value lha in the pre-RA schedule input (a substituted single-use pointer evaluates the RHS first) and wins the equal-priority cycle-0 tie
 })
+
+# CRI pass 53 (2026-09-12)
+MATCHING.update({
+    "lib/cftyp422_ppc.c": True,  # 8/8, pure C: CFT_Ycc420plnToY84C44 29 -> 0. `const CFT_YCC420PLN *src` (parameter loads above the frame stores); the setup's four signed divisions are chained through CA (srawi writes, addze reads: latency edges in statement order), so their statement order yskip, cnt, hblk, dskip is the schedule and `li ofs,8` issues first with r0 live across the temps; ywidth/yw3 reused for the chroma loop (cbwidth/4 and *3) and declared last = one node each, degree >= 29 at scan 1, coloured r9/r10 before the unroll-remainder copy (r11)
+})
