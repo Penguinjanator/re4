@@ -78,16 +78,29 @@ static Sint64 sftst_Conv(SFTST_TIME *t, Sint64 unit)
 	return unit * t->cnt / t->unit;
 }
 
+/* `i` declared before `sum`: an inlined helper's locals get ascending virtual ids in declaration order, and the
+ * second inline's sum/i (both level 1) are coloured by id: sum first -> r4, i -> r5. CRI pass 64. */
 static Sint32 sftst_SumHist(SFTST tst)
 {
-	Sint32 sum;
 	Sint32 i;
+	Sint32 sum;
 
 	sum = 0;
 	for (i = 0; i < tst->movave_range; i++) {
 		sum += tst->hist[i];
 	}
 	return sum;
+}
+
+/* hist[] -= step as a helper: its `i` is an inlined-helper web (id above the own locals, level 1), coloured
+ * after the step-computation temporaries (r6) instead of before them as Calc's own local (r3). CRI pass 64. */
+static void sftst_SubHist(SFTST tst, Sint32 sub)
+{
+	Sint32 i;
+
+	for (i = 0; i < tst->movave_range; i++) {
+		tst->hist[i] -= sub;
+	}
 }
 
 /* .rodata order: the original emitted SFTST_Create's header string before SFTST_Calc's format (its
@@ -102,9 +115,9 @@ static const Char8 sftst_msg_fmt[] = "%p, %ld, %ld, %08lX%08lX, %ld, %ld, %ld, %
  * ECONDASS that the frontend forward-substitutes into `excess < adiff` BELOW the sftst_Conv call; the
  * nested `diff = ..` assignment inside the condition is a side effect that anchors it above the call with
  * the target's arm shape (`beq; subfic; subfze` in place; else `mr` of the low word, adiff.hi coalesced
- * with the dying diff.hi). Residue (79w): the backend propagates `mr diff, sub` so diff's pair are backend
- * temporaries ranked above adiff.hi (lo r23 / hi r25; target lo r25 / hi r23 = diff kept as a variable
- * below the ECONDASS temporary). CRI pass 14. */
+ * with the dying diff.hi). CRI pass 14. The register residue that followed (diff lo/hi, ave/tol, the sprintf
+ * group) was one colouring fact: `tol` had become the inlined Conv's return temporary; see the notes at
+ * `tol = ..`, sftst_SubHist and sftst_SumHist. CRI pass 64. */
 void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 {
 	Sint64 est;
@@ -117,7 +130,6 @@ void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 	Sint64 tol;
 	Sint64 step;
 	Sint32 idx;
-	Sint32 i;
 	Sint32 d;
 	Sint64 t;
 	Sint64 excess;
@@ -178,7 +190,10 @@ void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 			ave = sftst_SumHist(tst) / tst->movave_range;
 			tst->movave_1st = (Sint32)ave;
 			tst->movave_2nd = (Sint32)ave;
-			tol = sftst_Conv(&tst->tolerance, mt->unit);
+			/* written out, not sftst_Conv(): a local assigned a plain copy of an inlined helper's result is
+			 * replaced by the helper's return temporary (id above every own local); `tol` must stay an own
+			 * local below `ave` so ave.hi is removed after tol in the same Chaitin scan. CRI pass 64. */
+			tol = mt->unit * tst->tolerance.cnt / tst->tolerance.unit;
 			aave = (ave < 0) ? -ave : ave;
 			if (tol < aave) {
 				if (tol < ave) {
@@ -192,9 +207,7 @@ void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 				step = adj * tol / 2;
 				tst->base_hlp = hlp->cnt;
 				tst->base_out = est + step;
-				for (i = 0; i < tst->movave_range; i++) {
-					tst->hist[i] -= (Sint32)step;
-				}
+				sftst_SubHist(tst, (Sint32)step);
 				tst->movave_2nd = sftst_SumHist(tst) / tst->movave_range;
 			}
 		}
