@@ -26520,7 +26520,7 @@ Harness ~/.cache/dol_espg8 (deleted): `v.sh 42|45 <src> [--diff]` = variant.sh +
   frees). Flags untouched (no IDENTICAL). Tree edits this pass: `src/game/Espgen42.cpp`, `src/game/espgen45.cpp` (the `n`
   change only; both units compile, sizes equal).
 
-### Tool RELs, t_id pass 6 (toolIdInit 12 -> 0 pure C, toolIdEditDisp 4 -> 0 two tagged asm forms; 61 -> 63/69; IN PROGRESS 2026-09-12)
+### Tool RELs, t_id pass 6 (toolIdInit 12 -> 0 pure C, toolIdEditDisp 4 -> 0 two tagged asm forms, idEditUnit 15 -> 9 one tagged codeless qty; 61 -> 63/69, 53 -> 31 words; not flipped; 2026-09-12)
 Harness /home/adityas/.cache/tid6/ (deleted at the end): try.py NAME FUNC 'old=>new'.. (variant.sh wrapper on a copy of the tree file),
 model.py (the sched1/local-alloc/sched2 store-order model below, brute-forced over the merges of the target's two store groups).
 
@@ -26765,3 +26765,61 @@ block's `stfd`/`stw`/`stb` data numbers after the addi's slot.**
   Tree edit: the four `DEACTIVATE(e)` tails in src/t_esp/t_esp.cpp only. Verified: locked ninja of t_esp.o, bytecmp 208/212,
   InitTool 2182 words. Not run: `ninja -k 0`, make_rel --verify, shasum (nothing flipped). Scratch /tmp/t17 (mk.py variant
   generator, v*.py, scanD.sh) is disposable; the kept harness is ~/.cache/tesp15 + the kit.
+
+### CRI pass 43 (sfd_mps ExecServerSub 16 -> 0 and adx_sje encode_data 39 -> 0 in pure C: sfd_mps 25/26, adx_sje 16/17; DecodeOneUnit 13w, write_end_code 2w, cftfx 3/6 unchanged; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri43/ (`try.sh <unit> <variant.c> [FUNC]` over ~/.cache/kit/variant.sh, ra.py dumps ra_*; deleted at the end).
+- **sfmps_ExecServerSub 16 -> 0 (pure C): `len` is an OWN local of ExecServerSub passed as `Sint32 *len` into the inlined
+  sfmps_ExecServerLoop (which passes it on to GetRead and reads `*len` for Decode).** The dump had ret's class = {@774 ret r47,
+  AddRead's `ret` @796 r43 (leader)} coloured after len @775 r46. Own locals of the real function sit at r33-r37, BELOW every clone
+  local (@N ascending = vid descending: @770 -> r51 .. @807 -> r37), so `len` as an own local ranks below the class leader and ret
+  takes r26, len r25 = the target. Inlining AddRead's body into the loop with the (already declared, unused) `r` local: 54w (sfd
+  drops a level). The M3 `#pragma dont_inline` on SFMPS_ExecServer is still needed (without it ExecServerSub is inlined, 116w).
+- **adxsje_encode_data 39 -> 0 (pure C, three edits):** (1) the parameter is `ADXSJE sje` (no `void *obj` + kept copy): the
+  pre-RA scheduler put the hoisted `lis` magic into cycle 0 next to the param copy `mr r32,r3` and BEFORE the user copy `mr sje,
+  obj`, so obj (r3) was live across the lis (-> r4) and the post-RA peephole then forwarded `mr r29,r3; lwz r30,0xc(r29)` to
+  `lwz 0xc(r3)`; with the direct parameter the lis follows `mr r29,r3`, takes r3 and blocks the forwarding = the target. (2)
+  read_pcm declares `SJ *sji = sje->sji` BEFORE `cnt` (helper locals: first declared = higher @N = lower vid = coloured later ->
+  sji r24 below cnt r25). (3) the memset loop and loop D are two static helpers (`adxsje_pad_pcm(sje, bufs, n)`, `adxsje_encode_
+  blocks(sje)`): their `ch` locals are clone locals, coloured before the loops' IV @temps (memset trio ch r19 > bufs-ptr r21 >
+  n*2 r22; loop-D ch r25 coloured before sji/the read_pcm IVs were handed out). pass 36's "memset loop as a helper 64w" was
+  measured on the old prologue form.
+- adxsje_write_end_code 2w unchanged. The 2.7 backend forwards the `sth v` store into the load at site 2 (`extsh r0, r31`: r31 =
+  n survives the call) but not at site 1 (r0 clobbered by the call -> `lha`); the GC/2.6 debugger keeps `lha` at both sites. Site
+  1's pre-RA order is `lha; mr r3; lwz ck.data` in ours (initial code lha, lwz, sth: RHS value before LHS address) and the target
+  has lwz first. Spellings that do not change it: `((Sint16 *)ck.data)[0]`, `((Sint16 *)src)[0]`, both indexed, `*(volatile Sint16
+  *)ck.data` (LHS), `Sint16 s = *src; *d = s`, `+ 0`, `(Uint8 *)ck.data + 0`, `(Sint16)*(Uint16 *)src` (3w), a `Sint16 *d = ck.data`
+  before the if (26w), `*(volatile Sint16 *)src` (7w).
+- sfmps_DecodeOneUnit 13w unchanged (M1 pin kept). Read off the dump: cnt (r41, 19/31) is level 2 and coloured before bufin
+  (r44, 26/26) and dst (r43, 24/24) which are level 1 -> cnt takes mps's dead r23, bufin/dst new r21; the target's cnt r21 =
+  coloured AFTER the r21 holders, i.e. cnt in level 1 (needs 3 fewer neighbours: r0,r3-r12, r31+ghost ret, sfd, len, nbyte,
+  nskip, wk, p, ok, hn and the 10 hn-block temps) or bufin/dst in level 2. `unit` r3 / IsZero's `p` param r4 (ours the reverse):
+  unit is a CSE @temp (lowest ids), the clone param the highest id of level 1. Tried: `unit` own local (substituted, 13w),
+  IsZero(data, unit) (13w), the skip arm as a helper (not inlined, strip_unused fails), the scan loop as a helper (58w, param
+  copies), `if (total < 0)` after the loop (159w), pins unit r3 / cnt r21 / both (157/133/88w, level shifts).
+- **idEditUnit 15 -> 9 (case-2 arm's three `lbz/stb` copies r9/r0/r9 as the target).** local-alloc.c block_alloc's `case 3` sort
+  compares QTY NUMBERS 0/1 and 1/2, not `qty_order[]` entries, so with exactly three block-local qtys q0 is allocated first whatever
+  the priorities (q0 < q1: two exchanges cancel; q0 >= q1: none) -> the `no` temp (pri 5000: `mr r3,r30` sits inside its pair) gets
+  r0 in ours. The target's level r0 / no,parentNo r9 is the qsort order (level 10000 first, then no conflicts with it): any 4th local
+  qty gives it. Applied `{ int t; asm("" : "=r"(t)); asm volatile("" : : "r"(t)); }` after `toolIdDataInit(d)` (LADBG confirms; a dead
+  `asm("" : "=r"(dead) : "r"(d))` is deleted by flow, a reused `int a` for no/parentNo has 2 deaths -> not local (REG_N_DEATHS == 1
+  rule at local-alloc.c:406) and global gives it r0). The natural 4th qty is not found.
+- idEditUnit head (9w left: `lis r9/lbz r10/addi r11` + `extsb r0` + `andi. r10`): with the `register JOY* joy asm("r11")` pin the
+  Joy high inherits r11 through local-alloc's dying-operand suggestion (S q0 in block 0); unpinned it is r9 by itself (class
+  BASE_REGS excludes r0) and global's order is extsb value (pri 4000) r11, joy (2181) r10, load (1666) r8 (GDBGV=1 masks: r0 is
+  taken by pseudo 159 = `joy->trg` in case 0's `zero_extract` compares, r9 by the high). **The target's `stb r10,0x5d` (case 2,
+  `grpSw = 2`) stores the QI LOAD pseudo, not the extsb subreg:** `w->grpSw = w->editStep;` in that arm makes the head IDENTICAL
+  unpinned (the load gets 4 refs -> r10, extsb r0, joy r11) but reloads editStep (`lbz r0,0x3`, 27w) because the join label
+  `.L+2bc` (after `stb r25,0x5d`) ends cse's ebb; the target's compiler knew load == 2 there (record_jump_cond only records the QI
+  equivalence for a PARADOXICAL subreg compare, so its switch operand reached cse as `(subreg:SI (reg:QI load))`, not our
+  `(sign_extend)` pseudo). `u8 step = w->editStep; switch ((s8) step)` adds a clrlwi (55w). Open: the spelling that makes the
+  switch index a paradoxical subreg of the byte load while keeping the `extsb`.
+- Not touched this pass: toolIdOption 12w (pass-5 residue: `lbz lang2`/`lbz lang` order and the `optMenuName` giv-init `lis`),
+  the 2/2/2/4-word rows of `_._6cCoord/_._7ID_DATA/_._5cUnit/__static_initialization_and_destruction_0` (bytecmp still counts them
+  after the toolIdInit fix, so they are not .text-shift artefacts: `lis r9,lbl_t_id_bss_14DAC4@ha / addi` vs ours `idClip+0x2fa00`
+  — same final address 0x14DAC4 = idClip + 0x2fa00 (idClip = 0x11E0C4), so it is the reloc SYMBOL/addend split that bytecmp scores;
+  look at how bytecmp resolves a symbol+addend against an anonymous bss label before spending time on the source).
+- Note for the catalogue row "same block, two independent insns in the other order": sched2 re-sorts equal-priority stores by
+  dependents count, and a store's source HARD register rewritten later in the block adds one (anti) dependent — the sched1 order
+  is only kept within each group. For a `li` argument that must precede an `addi fmt@l` (sched1 tie decided by INSN_REG_WEIGHT: the
+  lo_sum's dying high gives it weight 0), an asm-emitted li with a DYING pseudo input (`"r"(i)`, a dead loop counter) is the lever;
+  the input must be a value whose extension does not change global's order.

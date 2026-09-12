@@ -135,16 +135,18 @@ static void toolIdInit(IdTool* w)
         break;
     }
     w->lang2 = w->lang;
-    w->cnt = 0;
-    w->drawSafe = 1;
+    // Store order = sched1 "dying source first" (INSN_REG_WEIGHT) then sched2 "more dependents first"
+    // (r0/r9/r11 are rewritten after the calls); the QI zeros must all precede the SI chain, whose
+    // subreg the later QI zero stores would otherwise take (see AGENTS.md "t_id pass 6").
     w->type = 0;
     w->x17B = 0;
     w->pause = 0;
-    w->menuY = 100;
-    // level's zero is the SImode one (stb from the x24 word register): a chained assignment
-    w->level = w->x24 = 0;
-    w->parentNo = 0xFF;
+    w->cnt = 0;
     w->menuX = 100;
+    w->menuY = 100;
+    w->level = w->x24 = 0;
+    w->drawSafe = 1;
+    w->parentNo = 0xFF;
     toolIdClipboardClear();
     w->useCnt = toolIdClipboardCount(0xFF, 1);
     w->empCnt = toolIdClipboardCount(0xFF, 2);
@@ -677,6 +679,14 @@ int idEditUnit(IdTool* w, int x, int y)
                 toolIdSpace(w->parentNo, w->no, 1);
                 d = toolIdPull();
                 toolIdDataInit(d);
+                {
+                    // COMPILER-DIFF: candidate (local-alloc qty order: with exactly 3 block-local
+                    // qtys the `case 3` partial sort always allocates q0 (the `no` temp) first -> r0;
+                    // a 4th codeless qty makes it a qsort by priority: level r0, no/parentNo r9)
+                    int t;
+                    asm("" : "=r"(t));
+                    asm volatile("" : : "r"(t));
+                }
                 d->no = w->no;
                 d->level = w->level;
                 d->parentNo = w->parentNo;
@@ -2344,9 +2354,19 @@ void toolIdEditDisp(IdTool* w)
         }
         cx += wdt + 1;
     }
-    row = 0xC;
-    if (w->dispTop == 0) {
-        row = 0x13;
+    {
+        // COMPILER-DIFF: candidate (sched tie: the target's `li r24,0xc` sits between cmpwi and bne,
+        // i.e. it was not ready before t=3 in either scheduler; a codeless asm at t=2 feeding the
+        // asm-emitted li reproduces that. The if/else form (jump.c "x = b; if (c) x = a") gives
+        // the same LUID order but both schedulers hoist the li to t=1.)
+        int top = w->dispTop;
+        int t2;
+        asm("" : "=r"(t2) : "r"(top));
+        if (top == 0) {
+            row = 0x13;
+        } else {
+            asm("li %0,12" : "=r"(row) : "r"(t2));
+        }
     }
     y = row * 0xE;
     d = toolIdGetPtrU(w->parentNo);
@@ -2359,7 +2379,12 @@ void toolIdEditDisp(IdTool* w)
     n2 = toolIdCount(0xFF, 2);
     eprintf(0x128, y, 0, 0, "Num of ID USE:%3d EMP:%3d", n1, n2);
     if (w->useCnt != 0) {
-        eprintf(0x128, ((w->dispTop != 0) ? row + 1 : row - 1) * 0xE, 0, 0, "CLIPBOARD USE:%3d EMP:%3d", w->useCnt, w->empCnt);
+        int yy = ((w->dispTop != 0) ? row + 1 : row - 1) * 0xE;
+        // COMPILER-DIFF: candidate (sched1 tie `li r3,0x128` vs `addi r7,fmt@l`: the target's li has
+        // INSN_REG_WEIGHT 0 (a dying source); the dead `i` input gives the asm-emitted li that weight)
+        register int x128 asm("r3");
+        asm("li %0,0x128" : "=r"(x128) : "r"(i));
+        eprintf(x128, yy, 0, 0, "CLIPBOARD USE:%3d EMP:%3d", w->useCnt, w->empCnt);
     }
 }
 
