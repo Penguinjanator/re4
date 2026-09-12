@@ -26475,6 +26475,20 @@ edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug cl
   Lever-catalogue row for this: "invariant mult/add of a call argument hoisted to the preheader in ours, in the body in the target"
   -> loop.c single-use substitution needs no label between the set and the argument move: compute conditional arguments (ternaries)
   in a statement before the call (or the reverse to force the hoist).
+- **menu 2 words (campos y/z load order), model tightened, not closed (03:00).** Read off the dumps and the compiler source:
+  sched1 (`.sched`): both loads prio 29, z-load weight 0 (REG_DEAD of the lo_sum base) vs y-load 1 -> z first at t=8; the
+  ready list is ascending, the LAST element issues; `rank_for_schedule` ties end in `LUID(y) - LUID(x)`, i.e. the lower LUID
+  issues first. sched2 (`.sched2`): the y-load (`lwz r0`) is not ready at t=7 because of its anti-dependence on `stw r0,ProjType`
+  (444, r0 read); at t=8 both are ready, prio 29/29, both class 3 vs the last scheduled `addi r10,r7,0x118`, 13 dependents each
+  (y: output dep to `lwz r0,8(r5)`, z: to `lwz r8,target@l`), so the sched1 LUID order decides -> z first. local-alloc (LADBG):
+  y = reg214 [34,42) pri 2500 -> r0, z = reg215 [30,40) pri 2000 -> r8 (alloc order r0, r9, r11, r10, r8: r9/r11/r10 are the
+  base, the LC50 high and d0). Consequence: with the target's stores (x, z, y = dest base dying at the z-store) a y-first sched1
+  order makes y strictly longer than z, z is allocated first and takes r0 (closer 5's m4 anchor measured exactly that), so the
+  target's `y r0 / z r8` needs the z-first sched1 order AND a sched2 swap, and sched2's inputs are the same hard-register stream as
+  ours. The source shape therefore changes the pseudo structure (refs / lifetimes / a suggestion), not just the order. Variants
+  measured this pass (words): plain `pG->Cam.param.pos = campos` 46, `*(Vec*) d0 = campos` 46, `Vec* pd` 46, `Vec tmp` 62,
+  split memcpy 8+4 55, `"r"(ps)` anchor 9, `"m"(campos.x)` 36, `"m"(campos.y)` 9, dest-read anchor 32, `"r"(d0)` anchor 32,
+  `ProjType = 2` after the copies 60 / after campos 50 / before cameraBak 43.
 
 ### DOL espgen42/45 pass 8 (Espgen42_Move00 34 -> 11w, Espgen45_Move00 77 -> 47w; one structural find: the noise value `n` is a function-level variable; no flip; 2026-09-12)
 
@@ -26823,3 +26837,77 @@ Harness /home/adityas/.cache/cri43/ (`try.sh <unit> <variant.c> [FUNC]` over ~/.
   is only kept within each group. For a `li` argument that must precede an `addi fmt@l` (sched1 tie decided by INSN_REG_WEIGHT: the
   lo_sum's dying high gives it weight 0), an asm-emitted li with a DYING pseudo input (`"r"(i)`, a dead loop counter) is the lever;
   the input must be a value whose extension does not change global's order.
+
+### CRI pass 44, continued (the lever's real mechanism; sfd_mps DecodeOneUnit 13w / cftfx / sfd_tst SFTST_Calc: no pin applies; Ste4AsSte model reading; 2026-09-12)
+- **CORRECTION to the lever row above ("reserves nothing"): the pin register is taken out of the colour set for the WHOLE function whether or not the target uses it.**
+  sfmps_DecodeOneUnit (target never uses r9-r12): every single-`mr` pin - on `unit` (a new own local for `sfd->prm.unit`), `p`, `cnt` (before/after the scan loop), `len`
+  (entry), `delim`, `wk` - to r9/r10/r11/r12 or r6/r7/r8 gives the SAME 124w (mps r23 -> r29, every level shifts), r5 132w, r4 148w, r3 157w, r0 225w: the effect
+  is the removed colour (K 29 -> 28), not the pinned value's ghosts. Replacing the pass-29 hard pin `asm { mr r31, err; mr ret, r31 }` by `ret = CopyPketData(..);
+  asm { mr rV, ret }` (rV = r9..r12, at the def, at `return ret`, or at the entry `ret = 0`) = 134w (no pin 142w): the hard pin works here because `err` is
+  call-defined, so `mr r31, r3` is a REAL copy and `ret` coalesces into the physical r31 (a pinned value takes the pin register only through a kept copy). The 13w
+  residue (cnt r23 vs r21 = one neighbour too many; IsZero psize/p r3/r4 order) needs FEWER neighbours: no pin form. Unchanged (the pass-43 agent's ExecServerSub is
+  IDENTICAL now, 25/26).
+- **Where a pin IS free: a register that is live for the whole function anyway.** Ste4AsSte: r3/r4/r5/r7 (stepped/returned parameters = coalesced ghosts) and r6/r8
+  (histl/histr: propagated parameters, live to the exit stores). Pinning to r6 makes histl a coalesced web (`r35->r6` appears in the ghost list) = +1 neighbour on
+  every node live in the loop; chaitin.py then diverges (64) from the compiler's dump, so pinned graphs must be judged by bytes. cftfx StaticV/UserTable/Argb420 and
+  SFTST_Calc use every volatile register in the target and their parameters die early: every pin there costs a callee-saved register (StaticV: `stwu -0x20`, r29 saved,
+  +8 bytes, 98-110w vs 36w; UserTable r3/r4/r8 +8 bytes 191-193w; the `tbl` register r5, live throughout, is free but changes nothing, 135w). SFTST_Calc (r12 unused
+  in the target): `asm { mr r12, ave@hiword }` / `@loword` after `ave = SumHist / range` is deleted (size equal) but 101w (79w before): `ave` must LOSE a level (pass 40),
+  pins on `diff@hiword` 101w, `diff@loword` 139w (-4 bytes: a copy emitted), `adiff@hiword` 101w, `excess@hiword` 105w. Nothing applied in sfd_mps / cftfx / sfd_tst.
+- **adx_sje encode_data is IDENTICAL in the tree (pass-43 agent; 16/17, write_end_code 2w left = the post-RA dual-issue tie of pass 36).** Not touched.
+- **Ste4AsSte, the target's level structure derived from the model (asm-defined `qtbl` dump = own-local vid r50, chaitin.py IDENTICAL):** the L2-sweep degrees at the
+  node's turn are scl 35, smul 34, sadd 32, q_r 25, q_l 25, nblk 30, t 25, qtbl 32; the two `>>4` temps r93/r99 are exactly 29 in L1. N(nblk) is a subset of N(sadd)
+  (sadd has one L1 temp more), N(qtbl) = N(sadd) + {r0, r1, the `r72` ghost, one L1 temp}. The target's colouring (sadd/smul/scl L3; l2..sc_r, qtbl, s, t, nblk L2 in
+  that order; `>>4` temps L1 in place) follows from ONE fact: the `>>4` temps must be L1 (28, not 29). Then nblk/sadd/qtbl each lose 2 in L1 -> sadd 30 (stays L3),
+  nblk 28 at its turn (L2, removed after q_r/q_l -> coloured last = new r19), qtbl 33 - q_r - q_l - t - nblk - s(if L2) = 28 (L2, r22 after sc_r); plus s L2 (+5,
+  a pin) for the r21 slot. `d >> 4` loses `dr` when `dr = src[0x12]` is read AFTER l2's clamp (dump ra_drlate: r95 -> L1, 28) - the post-RA scheduler hoists the
+  `lbz dr` back to the target's position, so pass 39's "pre-RA order verified" was the SCHEDULED order; the graph is built on statement order. `dr >> 4` (r101) keeps
+  29: its neighbours include `d` (live to idx_l) and `dr` itself (live to idx_r) and the three right-prediction temps c1*r1, c2*r2, add (the shift is evaluated
+  before the prediction). Spellings measured on the 41w tree: dr late 120w, src++ late 63w, q_l before t 51w, prediction through `t` (`t = (c1*l1 + c2*l2) >> 12;
+  l2 = (d >> 4) * sc_l + t;`) 114w / both channels 97w / with dr late 119w, `key` as the prediction temp 97w, `r2 = t` moved before the L1/R1 lines 58w, a dead
+  `asm { mr r8, t }` at the outer/inner loop top 66-114w. Asm-defined `qtbl` (`asm { lis qtbl, AdxQtbl@ha; addi qtbl, qtbl, AdxQtbl@l }`, the own-local vid) alone
+  115w, + `asm { mr r6, qtbl }` 33w (L3 = smul r0 / qtbl r11 / scl r12, sadd r22, t r21; the `lis`/`addi` sit at the asm's position, not the target's 0x7c/0x90) -
+  not adopted over the 41w pure-C + one deleted `mr` form. Open: a statement shape in which `dr >> 4` has 28 neighbours (one of d, dr, the prediction temps not
+  live across it) with the target's scheduled order; then `s` needs the +5 (a pin to r3/r4/r5/r7).
+- Tree: src/lib/adx_dcd5.c Ste4AsSte only (the `register const Sint32 *qtbl` + `asm { mr r6, qtbl }` tagged M1 neighbour pin; locals r1/r2 renamed rr1/rr2 to silence
+  the "ambiguous use of local variable(r2) and assembler register" warning the asm triggers; bytes unchanged). adx_dcd5 2/4, 41w + 180w. objects.py untouched, nothing
+  flipped, no `ninja -k 0` needed. Harness ~/.cache/cri44 deleted; the kit untouched.
+
+### Tool RELs, t_event closer 4 (t_event/t_event 42 -> 17 words, 67 -> 68/69: SubToolMessInit IDENTICAL (tagged anchor), SubToolMessMove 40 -> 17 (hand-peeled back-search + asm `mr` + r11/r30 pins, `EventDebug* d` base for mesCnt); dbg_tool.h untouched, includers unchanged, 111 OK; not flipped; 2026-09-12)
+Scratch /home/adityas/.cache/tev4/ (`mk.py OUT [--base=B] OLD NEW..` exact-substring variants, `try.sh NAME [FUNC]` = variant.sh word lines; v*.cpp
+variants, rtl_base/ rtl_v4a/ rtl_v6a/ dumps; delete at the end of the family). Only src/t_event/t_event.cpp edited; objects.py/modules.py untouched.
+- **SubToolMessInit 2 -> 0 (tag #5, sched1 tie).** The inlined MessSetLoadFunc stores 1618 `[P+0x44]=F` (F = CallbackLoad address) and
+  1619 `[P+0x24]=t` tie in sched1 exactly: prio 13/13, INSN_REG_WEIGHT -1/-1 (F dies at 1618, P = the MessTool.p load dies at 1619),
+  class 3/3, dependents 3/3 (`1707 1642 1628`) -> LUID -> 1618 first (ours). The Save pair (1603/1604) has the same tie and the target
+  keeps LUID order there, so the target's Load pair had a weight difference: F not dying at its store. `asm("" : "=m"(path[0]) :
+  "r"(CallbackLoad));` right after the MessSetLoadFunc call (cse1 folds the fresh lo_sum into F, path is dead) gives 1618 weight 0 ->
+  1619 first -> reload puts `lwz t` before both stores, sched2 issues `stw 0x44` while `stw 0x24` waits = target, no code. Zero-code
+  forms not found: `(void*) t`, `this`, store order are all weight-neutral (a REG_USERVAR actual is never copied by integrate).
+- **SubToolMessMove 2a (back-search, 40 -> 23 with 2b's share): read fully, closed with an asm `mr` + two pins.** Target preheader
+  `mr r9,e; subi r9,r9,8` (giv1 = elem[no-1].messNo), `subi r3,e,0x18` (p giv), loop `subi p,p,0x18 | addi cnt | subic. k,k,1; blt |
+  lwzu v,-0x18(g1) | mr p,pg | cmpwi v,-1; beq top`. The `mr` is reload_cse's rewrite of `add T,m,A` (A = no*24, callee-saved r27 because
+  it is used again after IsWorkAlive) = `emit_iv_add_mult(initial_value = REG no, 24, (plus m -8))`, i.e. loop.c saw biv init `no`
+  (`valid_initial_value_p`: REG/CONST only; the backward scan stops at the first CODE_LABEL, `record_initial` takes the last set) and a
+  giv `k - 1` reduced to the counter (its init `(plus no -1)` cse'd with the peeled `subic. r11,r31,1`). fold-const associate rule
+  (`fold(X + (VAR + CON))` -> `(X + CON) + VAR`, split_tree) puts loop.c's constant INSIDE: every loop.c spelling gives `(A - 8) + m`
+  (`subi; add`), never the target's `(A + m) - 8`; and cse2 merges `(plus A m)` with e (exp_equiv_p checks both orders) unless e's class
+  is gone. Spellings measured (words for the function): `j = no; j - 1 >= 0 && elem[j-1]; j--` (for/while) 59: cse rewrites the
+  step `j = j - 1` into `j = t` (t = the compare temp, same ebb) -> no biv, no strength reduction; `no` as the biv 61; hand-peeled
+  `k = no; do { k--; cnt++; } while (k - 1 >= 0 && elem[k-1])` 63/60 (biv init REG no, inits `(A-24)+m`/`(A-8)+m`, the `k-1` giv
+  "not worth while 0 vs 11": mult-1/const-add givs get `benefit -= add_cost*biv_count` = 0, so the biv is never eliminated and the
+  counter stays `mr k,no; subi k,k,1; subic. r0,k,1`). Hand-written induction variables reproduce the loop bytes exactly:
+  `q = e - 1; ofs = no*24; asm("mr %0,%1" : "=r"(base) : "r"(e), "r"(ofs)); mp = (s32*)(base - 8); do { q--; cnt++; if (--k < 0)
+  break; mp -= 6; p = q; } while (*mp == -1);` (38w, size exact; the `"r"(ofs)` input keeps A live across the call -> r27; `no*24 +
+  (u32) m - 8` as C is cse'd to `subi r9,e,8`, 54w). Remaining permutation: k took a virgin callee-saved r30 in global.c pass 1 (GDBG
+  prints no GORDER lines for SubToolMessInit/SubToolMessMove - hook gap, not investigated) -> `register int k asm("r11")` 38 -> 30;
+  m/e order (target m r30 before e r29: with the asm, e has 5 refs vs m 3; the target's `add T,m,A` gave m 4 / e 4) -> `register
+  EventMessageData* m asm("r30")` 30 -> 23. Back-search block now byte-identical.
+- **SubToolMessMove 2b (`&mesCnt[1]` base, 23 -> 17):** the target's `addi r28,r30,0xc4` is `(plus D 0xc4)` with D = the `&EvtDebug`
+  pseudo already in cse's table: `EventDebug* d = &EvtDebug; s32* mc = &d->mesCnt[1];` at the block top, reads `mc[1]`/`mc[0]`, loop
+  stores `mc[no] = e->messNo; mc[1] = i;` (`EvtDebug.mesCnt[no] = no` and the [0] read unchanged). A bare `s32* mc = &EvtDebug.mesCnt[1]`
+  makes the `EvtDebug+0xc4` constant the class head and derives `&EvtDebug` from it (`subi r29,mc,0xc4`, 30w). Left 17w: `lwz 0(rB)`
+  for mc[0] (ours folds to `0xc4(rD)`), the loop's `lwzu` A formation at the [0] read + `mr r26,rB` copy (ours hoists `addi A,D,0xc0`
+  before the eprintfs), `mc[no]` as `stwx` (the target's `no` is NOT a known constant in the loop ebb: `int no = 0` before the loop
+  gives `stwx` but three zero registers, 27w - `no` gets local-alloc's REG_EQUIV and is rematerialised; the original's `no` must be
+  multi-set or otherwise not REG_EQUIV'd), and the downstream e/cMes r29<->r30 pair of the last loop.
+- Not started: Tools/t_esp_area's 7-word ctor tie (header change) - no time left in the box; flip order unchanged (t_esp_area first).

@@ -1188,6 +1188,10 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         MessTool.p->CreateFileWindows(0x16, 0xA, "X:\\Soft\\Room\\event\\", "test", ".txt");
         MessSetSaveFunc(MessTool.p, CallbackSave, t);
         MessSetLoadFunc(MessTool.p, CallbackLoad, t);
+        // COMPILER-DIFF: candidate #5 (sched1 tie): the original issues `loadArg = t` before `pLoadFunc =
+        // CallbackLoad` (both prio 13, LUID order ours); a codeless anchor keeps the CallbackLoad address
+        // alive past its store so the store no longer kills a register (INSN_REG_WEIGHT 0 vs -1).
+        asm("" : "=m"(path[0]) : "r"(CallbackLoad));
         MessTool.p->CreateEditWindow(0xA, 4, m->elem, "No  ==CutNo== ==Frame== ==MessNo= ==Timer==", 5, XML_NODE_MAX);
         MessTool.p->AddEditColumn(4, "         ", 1, CallbackCutNoExec, CallbackCutNoUpdate);
         MessTool.p->AddEditColumn(0xE, "         ", 2, CallbackFrameExec, CallbackFrameUpdate);
@@ -1227,22 +1231,46 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         int no = MessTool.p->pEdit->GetCurrentNo();
 
         if (cx == 3) {
-            EventMessageData* m = t->pMess;
-            EventMessageData::MessElem* e = &m->elem[no];
+            // COMPILER-DIFF: candidate #17 (global.c order): m before e in the target (m r30, e r29);
+            // ours ranks e first (5 refs vs 3) once the giv-init `add` below is spelled as an asm.
+            register EventMessageData* m asm("r30");
+            EventMessageData::MessElem* e;
+
+            m = t->pMess;
+            e = &m->elem[no];
 
             if (IsWorkAlive(e)) {
                 if (e->messNo == -1) {
                     EventMessageData::MessElem* p = 0;
                     int cnt = 1;
                     int j;
+                    // COMPILER-DIFF: candidate #17 (global.c pass 1): the back-search counter is a
+                    // scratch r11 in the target; ours gets a virgin callee-saved register.
+                    register int k asm("r11");
 
-                    for (j = no - 1; j >= 0 && (p = &m->elem[j])->messNo == -1; j--) {
-                        cnt++;
+                    // Back-search over the preceding -1 records, hand-peeled: the target's loop is
+                    // loop.c-shaped (`subi p; addi cnt; subic. k; blt; lwzu messNo; mr p; cmpwi; beq`)
+                    // with giv inits `(m + no*24) - 8` (reload_cse'd to `mr rT,e; subi rT,rT,8`) and
+                    // `e - 24`; no loop.c spelling found gives biv init `no` with a reduced `k - 1`
+                    // giv, so the induction variables are written out and the `mr` is asm-emitted.
+                    // COMPILER-DIFF: asm-emitted `mr` (the target's reload_cse copy of `m + no*24`).
+                    k = no - 1;
+                    if (k >= 0 && (p = &m->elem[k])->messNo == -1) {
+                        EventMessageData::MessElem* q = e - 1;
+                        u32 ofs = no * sizeof(EventMessageData::MessElem);
+                        u8* base;
+                        asm("mr %0,%1" : "=r"(base) : "r"(e), "r"(ofs));
+                        s32* mp = (s32*) (base - 8);
+                        do {
+                            q--;
+                            cnt++;
+                            if (--k < 0) {
+                                break;
+                            }
+                            mp -= 6;
+                            p = q;
+                        } while (*mp == -1);
                     }
-                    // COMPILER-DIFF: candidate (loop.c biv elimination): the original keeps j as the
-                    // counter (`subic. rJ,rJ,1; blt`) where ours eliminated it into a pointer compare;
-                    // a post-loop use keeps the biv. Its giv inits (`e - 24`, `e - 8`) are still open.
-                    asm("" : : "r"(j));
                     ev->MesSet(p->messNo, 0, 100, EVT_MES_Y);
                     for (j = 0; j < cnt; j++) {
                         cMes.Move();
@@ -1257,25 +1285,31 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
     }
     {
         EventMessageData::MessElem* e;
+        // `&EvtDebug.mesCnt[1]` is a pointer formed from the struct address (`addi rB,rD,0xc4`) at
+        // the block top: mesCnt[2]/[1] are read through it and the loop stores `mc[no]`/`mc[1]`.
+        // A struct pointer keeps `&EvtDebug` the cse class head (a bare `&EvtDebug.mesCnt[1]` makes
+        // the `EvtDebug+0xc4` constant the head and derives `&EvtDebug` from it with a `subi`).
+        EventDebug* d = &EvtDebug;
+        s32* mc = &d->mesCnt[1];
 
-        eprintf(0x50, 0x90, 0, 0, "%3d", EvtDebug.mesCnt[2]);
+        eprintf(0x50, 0x90, 0, 0, "%3d", mc[1]);
         eprintf(0xA0, 0x90, 0, 0, "%3d", ev->cut);
         eprintf(0xF0, 0x90, 0, 0, "%3d", ev->frame);
-        eprintf(0x140, 0x90, 0, 0, "%3d", EvtDebug.mesCnt[1]);
+        eprintf(0x140, 0x90, 0, 0, "%3d", mc[0]);
         eprintf(0x190, 0x90, 0, 0, "%3d", EvtDebug.mesCnt[0]);
         e = t->pMess->elem;
         for (i = 0; i < XML_NODE_MAX; i++, e++) {
             if (IsWorkAlive(e) && ev->cut == e->cutNo && ev->frame == e->frame) {
                 // COMPILER-DIFF: candidate (cse1 in-ebb canon): the original stores the record with
-                // ONE zero register as both index and value (`stwx rN,rBase,rN`) and folds the third
-                // index; `no` declared here (same ebb as the stores) and stored as the value gets that.
-                // Its `mesCnt[no + 1]` base (`&mesCnt[1]` PRE'd at the block top) is still open.
+                // ONE zero register as both index and value (`stwx rN,rBase,rN`); `no` declared here
+                // (same ebb as the stores) and stored as the value gets that. Open: the target keeps
+                // `mc[no]` as `stwx` (no not folded) and forms `&mesCnt[0]` at the [0] read (`lwzu`).
                 int no = 0;
 
                 ev->MesSet(e->messNo, e->timer, 100, EVT_MES_Y);
                 EvtDebug.mesCnt[no] = no;
-                EvtDebug.mesCnt[no + 1] = e->messNo;
-                EvtDebug.mesCnt[2] = i;
+                mc[no] = e->messNo;
+                mc[1] = i;
             }
         }
     }
