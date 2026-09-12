@@ -227,11 +227,17 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * the value masks fold into the `rlwinm 24,0,7` that the or->rlwimi peephole replaces) but they
  * count in the block-splitting pass: 31 initial pcodes per row put the split of the inner body
  * exactly after the third row-pointer add, as in the original (AGENTS.md "CRI pass 58").  A mask
- * on the `<< 8` operand would fuse into `clrlslwi` -- only the `<< 24` values may carry one. */
+ * on the `<< 8` operand would fuse into `clrlslwi` -- only the `<< 24` values may carry one.
+ * Each pack is TWO statements (`v = A << 24; v |= B << 8;`, AGENTS.md "CRI pass 59"): the
+ * or->rlwimi peephole gives the same `slwi B; mr v, B; rlwimi v, a, 24, 0, 7`, but the `<< 24`
+ * rlwinm now writes v itself and stays a dead def until the RA, i.e. a WAW predecessor of the
+ * `mr` at scheduling time: the pack chain starts one cycle later and the destination load and
+ * the byte-3 table load take the LSU ahead of it (the original's rows 3-4 registers). */
 #define CFT_A256_ROW(dst, y, tbl)                                                              \
-	v0 = (((Uint32)(tbl)[(y)[0] & 0xFF] & 0xFF) << 24) | ((Uint32)(tbl)[(y)[1] & 0xFF] << 8); \
-	v1 = (((Uint32)(tbl)[(y)[2] & 0xFF] & 0xFF) << 24) |                                   \
-	     ((Uint32)(tbl)[((y) += 4)[-1] & 0xFF] << 8);                                      \
+	v0 = (((Uint32)(tbl)[(y)[0] & 0xFF] & 0xFF) << 24);                                    \
+	v0 |= (Uint32)(tbl)[(y)[1] & 0xFF] << 8;                                               \
+	v1 = (((Uint32)(tbl)[(y)[2] & 0xFF] & 0xFF) << 24);                                    \
+	v1 |= (Uint32)(tbl)[((y) += 4)[-1] & 0xFF] << 8;                                       \
 	(dst)[0] &= v0 | 0x00FF00FF;                                                           \
 	(dst)[1] &= v1 | 0x00FF00FF
 
@@ -248,10 +254,11 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * orders the two packs' loads by chain length (byte 3 before byte 2), the tail add/subf fall
  * after the last store, and the block split above lands after `p4 += ...` -- the original's
  * two blocks (77/28 instructions), frame (`stmw r25`, the row-1 packs' `mr r25` copies) and
- * size.  The fourth step reuses p3 (its second web is numbered above v0/v1's row webs, so it
- * is coloured first in the last block and takes r26 = the original's `subi r26`); p3/p4 are
- * copied after row 1 so that p3's first def follows v0/v1's.  Left (see AGENTS.md): the
- * level-1 temp colours (the original loads d[k] before the pack's rlwimi in rows 3-4). */
+ * size.  The fourth step reuses p3: its second web competes with the row-4 packs for r26 (the
+ * original's `subi r26`, packs r27), and range-split webs are numbered per variable in first-def
+ * order with the vids descending along them, so p3/p4 are copied BEFORE row 1 (p3's webs above
+ * v0/v1's = coloured first; CRI pass 59).  Left (see AGENTS.md): the setup's `slwi r0` / `add
+ * r30` order (a pre-RA tie between the hoisted `ywidth * 4` and yskip's add). */
 void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst, const Uint8 *tbl)
 {
 	const Uint8 *p4;
@@ -271,9 +278,9 @@ void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGB
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
 			p2 = (Uint8 *)(ywidth - 4);
-			CFT_A256_ROW(d, y, tbl);
 			p3 = p2;
 			p4 = p2;
+			CFT_A256_ROW(d, y, tbl);
 			p2 += (Uint32)(y + 4) - 4;
 			CFT_A256_ROW(d + 2, p2, tbl);
 			p3 += (Uint32)(p2 + 4) - 4;

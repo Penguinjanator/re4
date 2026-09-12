@@ -29100,3 +29100,20 @@ B5 with invisible pcodes (coalesced copies / dead defs) inserted at every chain 
 - Left (2w): setup `slwi r0,r11,2` (@155 hoisted `ywidth*4`) before `add r30` (yskip) in the target, after it in ours: a pre-RA c9 tie (both h1,
   urgent, frees 0) resolved by input order — the hoisted @temps are appended after the for-init `li i,0`, yskip's add precedes it; the post-RA
   run of B0 keeps the order (c11 tie, input order again).
+- **APPLIED to src/lib/cftfx.c (73 -> 2w, 5/6, size 0x22c exact, not flipped):** `CFT_A256_ROW` packs as `v = A << 24; v |= B << 8;`
+  and `p3 = p2; p4 = p2;` before row 1. Unit built with the locked ninja, bytecmp 2 words (0x48/0x4c = the setup swap), objects.py untouched.
+- **The last 2 words, read with the post-RA replay (`b0post.py`/`b0lib.py`/`b0pairs.py` in the harness = pre-RA B2 under schedwhatif edits ->
+  physical registers with the tree's colours -> post-RA schedule of the merged entry block -> diff against the target's setup):** ours'
+  pre-RA output with ONLY `rlwinm @155` moved before `add yskip` reproduces the target's entry block exactly, so the target's pre-RA B2 had the
+  slwi before the add. Statement permutations of the setup (6 groups, all valid orders) never do it (the c9 tie is by input order and the
+  hoisted @temps always follow the for-init); deletions (the dead `<<4` of dskip, the `li i`, the y/d loads) never do it; a single invisible
+  pcode never gives the target's whole entry block (it shifts the completion queue and moves the mulli/loads); exactly these PAIRS of
+  invisible pcodes give 0 differing slots: a coalesced copy after the `mulli ywidth*3` + any early IU filler (a dead read of width / the
+  wblk-hblk srawi-addze / height / ywidth, or a copy after the dskip `srawi`/`addze`), or a copy after `subf ywidth-width` + a dead read of
+  the mulli, or a copy/dead read of @155 itself + a dead read of the subf. Spellings tried and negative (all still 2w or worse): yskip
+  expression in the loop (134w), yskip assigned after `i = 0` with `for (;;)`, two-def own-local `yw4` (folded back into the hoisted @temp,
+  both `yw4 = yw4 * 4` and `*=`), `yskip = ywidth * 3; yskip = yskip + ..` (in-place add, 3w), dskip as `/4` + `* 16` at the use or `/4*4*4`,
+  a `width` local, `v0 = 0, v1 = 0` initialisers (deleted by the frontend, and they renumber the webs: 11w). Next: find the setup value
+  whose def is a range-split/argument-style COMPILER copy of `ywidth * 3` (or of `ywidth - width`) plus one more dead setup def; the model
+  answers in 0.1 s per candidate (`python3 b0lib.py` API: `evaluate([edits]) -> (slwi_first, post_RA_diff)`).
+- Harness /home/adityas/.cache/cri59/ kept SMALL (scripts, base.c/tree.c, the b2 dumps; obj_*/ra_* deleted); /home/adityas/.cache/cri58 deleted.
