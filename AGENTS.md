@@ -97,6 +97,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | loop invariant recomputed per store in the target | `#pragma opt_loop_invariants off` | store through a `static` | the pragma (tagged) | "CRI pass 9" |
 | whole function is `psq_*`/`ps_*`/`mtspr`/`lfdux` | MWCC 2.4.7 has no paired-single intrinsics: vendor inline asm | keep the asm body for THAT function and say so | — | START HERE, "CRI paired-single kernels pass 2" |
 | .text function order, .rodata string order, .bss size | emission = definition order; strings by @N id; `.bss` pads | definition order, `static` table placement, struct padding | — | "CRI pass 5", "CRI pass 16b", "CRI pass 21" |
+| the loop's pointers/counters (`stride`, `s0`, `d`, `i`) take r8-r12 in ours and r0/r3-r6 in the target, with block temporaries taking r0/r3-r7 first; `li rN,count` for the ctr in r0 (ours) vs r7 (target) | the last simplification scan removes in vid order, so every surviving temp with a higher vid than the loop variables pops (is coloured) before them; the loop variables pop first only when they form a level of their own (degree >= 29 at the previous scan) | declare the block's value locals (pixels/words/sums) BEFORE the loop variables (their higher vids are visited after the loop variables and keep their degree up); loop variables declared without initialisers, assigned in the target's load order; casts that keep the values own locals (a mask AT the load makes the local a copy of the load temp) | neighbour pin on the 1-2 short loop variables (row below) | "CRI SWAR kernels pass 10" |
 | one value X is coloured one Chaitin level too LOW (falls below 29 one scan too early, lands in r0/r3..r12 or a lower callee-saved than the target; a target node "must be level 2" / "needs more neighbours") | the priority list is built by degree-<29 removal scans; a pinned value is coalesced with the asm's copies, which stay as ghosts aliased to the physical register = never-removed neighbours of THAT value only (total degree of everything else unchanged) | a same-body value that overlaps X (a later use of X, a kept copy), a longer web | **codeless neighbour pin `asm { mr rV, x; mr x, rV }` with rV a VOLATILE register the function never uses (r11, r8, ...)**: +k never-removed neighbours on `x` only, X held one scan longer -> coloured earlier; reserves nothing, both `mr`s deleted (size unchanged); place it AFTER any propagated copy of `x`; `x` must be `register`. A callee-saved rV also RESERVES the register (row 10); on a parameter or a call-defined value the `mr` is emitted (a real copy). Tag M1 (neighbour pin) | "CRI pass 40" (cvFsGetFileSize 14 -> 0, the dump reading), "CRI pass 44" |
 
 ## Tooling kit
@@ -27121,7 +27122,7 @@ Harness /home/adityas/.cache/tid7/ (deleted at the end): try.py NAME FUNC 'old=>
   first, the merged zext still lands after), `!(==)`, `x17D |= 2` first, `u8 l2 = w->lang2` local, `w->x17D = w->x17D | 2`; `s8 l = w->lang`
   local: +4 bytes (extsb); `(u8) w->lang != w->lang2`: 11w. A launder/anchor asm on `int l2` gives the order but shifts `w` to r30 (92w).
 
-### CRI SWAR kernels pass 10 (mpv_mcy 16x16 4p block-1 colours: the five loop variables take the target's r0/r3/r4/r5/r6 when the pixel words are OWN locals declared before them; the masked-load split and the own-local pixels exclude each other; in progress, 2026-09-12)
+### CRI SWAR kernels pass 10 (mpv_mcy 16x16 4p 136 -> 122w APPLIED: the five loop variables take the target's r0/r3/r4/r5/r6 when the pixel words are OWN locals declared before them; the masked-load split and the own-local pixels exclude each other; H2/V2 225w and mpv_mc 72/73/436w unchanged; nothing flipped; 2026-09-12)
 Harness /home/adityas/.cache/cri_swar10/ (`gen10.py NAME decl=px,ps,lv lvorder=.. init=.. pix=u32|u8|u16|s32m mask=none|self|use|use8|ldm sum=cast|cur
 lorder/sorder/inter/ba p8=pre|mid|mid2|post reg=.. split=..` whole-function generator; `rr.sh NAME opts` = gen + ra.py dump + `cnt.py` (initial counts
 up to d[0]/d[1] and the split verdict) + words + `blk.py` block-1 compare + `sum.py` (chaitin levels, loop-var colours, scan-1 survivors) +
@@ -27214,3 +27215,104 @@ ladbg.txt), `rtl1.py FILE A B` (one line per insn of a dump line range).
   emits `load lang2; load lang; sext; sext; cmp`, combine folds both extensions into `cmpw (subreg lang2) (subreg lang)` 3-way WITHOUT
   a split (same-kind extensions compare in the narrow mode; LOAD_EXTEND_OP makes the paradoxical subregs valid), so both loads stay in
   expansion order. Verified as a header change (only toolIdOption moves, 64/69, 18w). toolIdOption 8w left = the optMenuName preheader.
+- **APPLIED (src/lib/mpv_mcy.c `MPVMC16_OneRef4p_TuneC`, 136 -> 122w, size equal):** pixel/sum locals declared before `i/stride/s0/s1/d`
+  (loop variables declared without initialisers, assigned `stride, s0, s1, d` in that order so the `d` load stays last and takes r3),
+  `(Uint32)` casts on the sum operands, pass 8's a1 body (pixel 9 + `p8` before `d[0]`, second half `p1..p7` with `p8` as the d[16]
+  pack base). Prologue now identical but `stmw r21/-0x40` (ours r23/-0x30); block 1 lives in r7-r12 + r25-r28 (target + r21-r24, r31);
+  first block-1 divergence at instruction 11 (target `addi`, ours `add`), load order 18/20. Not flipped (H2/V2 225w); objects.py untouched.
+- **Residue, exact class:** the target's block-1 interference graph is NOT ours: with the loop variables fixed, the 8 pixel/sum orders x
+  8 declaration-group orders never exceed 24/54 target colours in the offline model, and the pre-RA schedule is identical across all
+  the spellings tried (masked/unmasked pixels, casts, `inter=1`, `ba=1`, 8 load/sum orders, p8 placement) — so the vendor's pre-RA
+  schedule differs, i.e. their raw order or DAG differs in a way not yet found (the list-scheduler model in `lsched.py`, height
+  priority + raw-order ties, 1-4 wide, 288 latency combinations, reproduces at most 16/79 of OUR pre-RA order: the compiler picks
+  `lbz b0, a1` (p0's first-add operands, height 13) over `lbz b2` (p1's, height 14) at position 3 — the pre-RA scheduler is not a
+  plain height list scheduler; it walks the sums' first-add operand pairs p1, p0, p2, p5, p3, p4, p6, p7, p8 — read the algorithm
+  before more permutations). Own-local pixels (needed for the colours) and the masked-load split (needed for the block boundary)
+  exclude each other in every spelling tried (E in [28,35] needs one deleted instruction per LOAD that does not turn the local into
+  the load temp's copy); the vendor may have had a different per-load spelling or a different first-half statement set.
+- **Transfer:** mpv_mcy H2 225 -> 222w with `Uint32 w0..x3` declared before `i/s/stride/d` (fixes `li r7,0x10` but moves `i` to r30, the
+  size gap 0x470/0x468 = the case-0 `mr` copies stays), V2 225 -> 224w: not applied (no read mechanism, 1-3 words). mpv_mc 8x8 4p
+  (72w) read with chaitin: ours L2 = loop vars + own-local pixels a2..a7/b5 (unmasked pixels ARE own locals there), loop vars pop
+  first (stride r0, s0 r4, s1 r5, d r3); the target has `li r0,8` + d r3, stride r4, s0 r5, s1 r6 and `lbz r0 (b0)` / `add r0 (a1+b0)`
+  in the body, so ONE body node popped before its loop variables and took r0 (a same-level node with a higher vid: a pixel declared
+  before the loop variables or a sum temp at level 2) and `d` popped before `stride` (d declared before stride) — the 8x8 needs
+  exactly one level-2 body node above the loop variables, ours has seven pixels; not closed. `MPVMC08_OneRef1p_TuneC` stays asm.
+- Harnesses ~/.cache/cri_swar9 and ~/.cache/cri_swar10 deleted at the end of this pass (15 min to rebuild from this text: gen10.py's
+  option list above, rr.sh = ra.py + cnt.py + blk.py + sum.py + osearch.py). Kit untouched.
+- **Loop-B nx8 placement (42: all 9w; 45: the same + the downstream tail = 42w), read further, NOT closed; no pin/anchor lever
+  reproduces it (none applied).** New facts (rs6000 `REG_ALLOC_ORDER` for the GPRs is r0, r9, r11, r10, r8, r7, r6, r5, r4, r3, r31..:
+  earlier notes assumed r0, r11, r10, r9):
+  1. The target Z block needs exactly two local-alloc ties to FAIL that ours make: `nx -> nx+1` (`lhz r11; addi r9,r11,1`) and
+     `ix32 -> prod` (`mullw r9,r10,r9` = `(mult ix32 nx8)`, prod tied to the SECOND operand: block_alloc tries operand 1 first and
+     stops at the first win, so ix32 was not tie-able). `combine_regs` refuses only for: `reg_qty[ureg] < 0` (ureg not block-local
+     or `REG_N_DEATHS != 1`), `reg_qty[sreg] == -1`, a hard register, class disjointness (never for two GPR classes:
+     `reg_meets_class_p` is contains-or-contained), or call-crossing mismatch. So both `p->nx` and `(t_i>>2)<<5` were not
+     local-alloc candidates in the original, and both are computed and used inside Z. Mechanism not identified.
+  2. With the ties broken, the rest of the target's registers follow from the order r0, r9, r11, r10 and local-alloc's +-1 fake
+     overlap (a value dying at insn N conflicts with one born at N unless tied): chain {nx1, nx8, prod, sums} is BASE class
+     (stbx index, r0 excluded) -> r9; jx32 -> r0 (jx and t_j then prefer r0 through set_preference/expand_preferences: `pref`
+     comes from the LOCAL register of the consumer `slwi jx32`; ours e1 gives jx32 r6 and so t_j/jx r6); nx (BASE, overlaps the
+     chain at the addi) -> r11; ix32 -> r10 needs r0 taken by jx32 (slwi before mullw in the sched1 order) and r9/r11 by the chain/nx;
+     t_i (global, pri 33750) -> r0 excluded by `smpref` (jx prefers r0), r9 free (chain born after t_i's death) -> r9.
+  3. The `mr r10/r7/r11/r6(/r5),r8` copies at the body end are the `-mfast-cast` `floatsidf2_loadaddr` pseudos of the three
+     float conversions (reload turns the unspec into a copy of r8 = hA); sched1 hoists them to the top of Z as soon as the integer
+     chain stalls (in e1 they take r8/r10/r7 and push jx32 to r6). In the target they do not overlap ix32 (r10), so its sched1
+     order had them after the mullw.
+  Tried and failed (42 words in brackets, tree = 9): `((i / 4) << 5) * ((p->nx + 1) >> 3)` operand swap [49: lhz in Z, t_i r0, jx
+  r6, ix32 tied]; function-level `nxb`/`nx1` with a second set in loop A or the loop-B outer head [47-71]; pins `nxb r11` [58],
+  `+ ti r9` [45], `+ ix32 r10` [44: the pinned ix32 gives prod the r10 suggestion], each with an `asm("" : "=m"(tmp) : "r"(x))`
+  life-extender [38-61]; codeless anchors with 2-4 inputs after the mullw to move the deaths [46-180: the anchor store shifts
+  the global order]. The only lever that changes the tie pattern to the target's (`mullw r9,r11,r9`) is the 4-input anchor and it
+  costs 170 words elsewhere. Next: the two non-candidates must come from the ORIGINAL's expression shape (a second death or a
+  second block for both `p->nx` and `(i/4)<<5`); read `REG_N_DEATHS`/`REG_BASIC_BLOCK` of 528/527 in a `-dl` dump of any form
+  that reproduces it, do not permute pins further.
+- Flags untouched (no IDENTICAL). Tree edits: `src/game/Espgen42.cpp`, `src/game/espgen45.cpp` (the `k4` statement + two-set `c`,
+  comments). 111 not re-run (no flag change, both objects compile). Harness ~/.cache/dol_espg9 deleted.
+- **cse1 flush 2 fitted (on top of the cse2-flush-1 fit): SAVE `{ }` (K=0) + SAVE_EM `1:2`** = 6 cse1 insns fewer between F1 and
+  F2, F2 SAVE_EVENT+21 -> +27 = precedes `h = 128.0f`'s `high` (cse1 stream: 23-25 `w` high/lo_sum/mem, 26 `stfs w`, 27-29 `h`),
+  so `w` is shared with LOAD_EVENT and `h` fresh as in the target's seg 271. Variant /tmp/t18/y6.cpp: grids cse1 LOAD_EVENT+4
+  SAVE_EVENT+27 OPTION+540 PATH+541 SIZE+186 SPEED+692 COLOR+867 LIFE+8 ROTATE+671 WORK0+18 WORK6+14 BASEPOS+123, cse2
+  LOAD_EVENT+53 OPTION+71 PATH+349 SPEED+129 COLOR+571 ROTATE+22 SUB+96 WORKSP2+12; N 5235 (76 sets); 2119w, diffsegs 360,
+  mset regions [2 8 5 3 5 19 6 9 18 5 56 6 28 9] (base [2 11 5 10 4 14 6 9 19 5 56 15 46 11]). SAVE K=0 alone (F2 +25 = before
+  `w`'s load) is 2111w but region 3 mset 6: fewer words is not the better grid, judge by the fresh/shared reading.
+- **cse1 flush 3 (OPTION+540) scan -4..+12 on top of y6 (`/tmp/t18/z*.cpp`): region 4 (297-352) mset is 5 at every shift** —
+  OPTION's 40 segments have no constant whose fresh/shared state changes in that range, so F3's interval cannot be read from
+  OPTION; it must be read from the first constants of DATASET/TIME/ID (segs 339-352 are exact already) — i.e. F3 is
+  unconstrained within +-12 and F4 (PATH+541) is the next one to read: PATH region mset 19 (segs 354 378 380 381 391 392 402).
+  Later regions move with every shift (+1 later: region 11 mset 6 -> 0, region 12 28 -> 21; -4: 15/46), so the tail flushes
+  F9..F12 want ~+1..+2 relative to y6 and F5..F8 something else: fit them in order with the (n,0) pads of the windows between.
+- **Seg 0's `&pos` slot offsets are NOT a PRE-order/N question once N is 5233/5235: reload numbers the spill slots sequentially
+  over the spilled pseudos in regno order, so one more or one fewer spilled pseudo anywhere shifts every later `&pos` offset by
+  4 (the "permutation" of pass 17 = a different SPILL SET = global pressure).** Every grid variant here shows it (y6 seg 0
+  d58: 0x9a0 -> 0x9a8, 0x1a9c -> 0x282c...). It is a whole-function allocation consequence and can only be judged when the
+  grids and the live callee-saved set match; it is not a reason to reject a grid fit, but it blocks applying one to the tree
+  under the "seg 0 exact" rule, so NOTHING WAS APPLIED (tree src/t_esp/t_esp.cpp unchanged, base 2182w).
+- **Remat vs fresh ambiguity in the mset metric.** Segs 230/238/271 in y6: ours `lis r,g_pPrimArray@ha; lwz` where the target
+  has `lwz r0,@l(r18)`: the high IS shared at cse1 in both (SAVE's high is the head after F1), ours is a spilled REG_EQUIV
+  pseudo rematerialised by reload, the target's got r18. That is allocation (more live callee-saved values in ours over
+  SAVE..SAVE_EVENT), not the grid; the CreateString-label highs (`r17` of seg 219, cse2) are the grid signal. Read `lis` of
+  fixed globals as remat candidates, `lis` of `.LC` labels as fresh/shared evidence.
+- Kept: /tmp/t18 (mk.py per-window pads incl. `NAME=a:b:c` literal pads and the macro classes, scan.py, fl.sh, shape.py,
+  flushes.sh, wincount.py, autoN.py, y.sh; base.cpp = tree source). ~/.cache/tesp15 untouched. Not run: ninja, make_rel,
+  shasum (nothing flipped). Next: (1) fit F4..F12 (cse1) one by one on top of y6 with the pads of the windows between, reading
+  each interval from the first `.LC` constant of the windows after it (fresh `lis`+`lfs` vs a callee-saved reuse), (2) fit
+  cse2's flushes 2-8 the same way (their knob is the ending-in-4 pad of the first-after-cse1-flush window: SAVE_EVENT,
+  DATASET, PARENT, SPEED?, COLOR?, BLEND, RELEASE, VEC0, WORK1, WORKSP0, and a not-ending-in-4 pad in the windows after it to
+  hold cse1), (3) only then the callee-saved names and seg 0.
+- **toolIdOption 8w left = the first loop's preheader order (`lis optMenuName` at t5 next to the pool `lis`, target at t7 next to
+  `lis Screen`, its `addi r26` giv init unchanged).** Read off the dumps (rtl.sh -dG -dL, sched verbose): sched1 block 56 ranks the
+  hoisted highs prio 2 (pool `lis` 3), ties by LUID, and `high(optMenuName)` has the LOWEST LUID of the highs because it is hoisted by
+  **gcse PRE** (expression 81, `PRE/HOIST: end of bb 56 .. reg 398`: the menu-name load is on every path of the body, langName2/Screen
+  are case arms and stay loop.c movables) — loop.c then re-emits it as movable `405 = high` right after `high optCur`, before the sx/r1/r2
+  constants and the langName2/Screen/pool pairs; the giv init `mr` merges with the lo_sum (`addi r26`) at the preheader end. The target's
+  final order (pool-high, langName2-high | lfs, langName2-low | Screen-high, optMenu-high | Screen-low, optMenu-low | li, li) is what sched2
+  gives a sched1 stream whose high/low pairs are ADJACENT with the highs alternating r9/r11 (Screen-high waits for lfs's r9, optMenu-high
+  for addi r17's r11): its `lis optMenuName` had a LUID after Screen's pair, i.e. it was not PRE'd into bb 56 ahead of loop.c's movables.
+  Spellings that do not change it (all 8-10w): `*(optMenuName + i)`, `&optMenuName[i]`, a `const char** pn` local (before the loop, in the
+  body, or `pn++` pointer biv: 120w), `(u8)`/`(int)` views. Not tried: a body shape where the menu-name load is not on every path at
+  gcse time (so PRE leaves it to loop.c), and an explicit `#pragma`-free `-fno-gcse` check of the LUID hypothesis with `~/.cache/kit/rtl.sh`.
+  Tagged lever not applied (an asm-emitted `lis/addi` pair before the loop lands at t5 as well; the giv init `mr` cannot merge into an asm).
+- Not flipped: toolIdOption 8w. Tree edits this pass: src/t_id/t_id.cpp (`common_t_id` .comm, `ScreenReSize` alias name, idEditUnit
+  `grpSw = 0` + pin removed), include/t_id.h (`s8 lang2`), tools/bytecmp.py docstring. Verified: locked ninja of t_id.o, bytecmp 64/69
+  18w (8 real), module linked with our object -> make_rel --verify = 18 differing REL bytes, all toolIdOption+0x354.. and its 3 reloc
+  entries. Not run: `ninja -k 0` (nothing flipped). Harness /home/adityas/.cache/tid7 deleted.

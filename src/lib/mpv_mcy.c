@@ -22,14 +22,26 @@
 
 void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 {
-	Sint32 i;
-	Sint32 stride = mc->stride;
-	Uint8 *s0 = mc->src;
-	Uint8 *s1 = mc->src2;
-	Uint32 *d = mc->dst;
+	/* The pixel bytes and the sums are declared BEFORE the loop variables: MWCC numbers own locals in
+	 * reverse declaration order, and the Chaitin allocator's last simplification scan removes nodes in
+	 * that order, so with the pixels/sums above them the five loop variables are the only nodes of the
+	 * top level and are coloured first (stride r0, d r3, i r4, s0 r5, s1 r6, `li r7` for the ctr count,
+	 * `stmw` after the two `li`s) as in the original; declared first they share a level with eight
+	 * sum temporaries that take r0/r3-r7 (CRI SWAR kernels pass 10). The `(Uint32)` casts are the
+	 * frontend's CSE temporaries for the two-use pixels (pass 9); pixel 9 and its sum p8 are computed
+	 * before the first store (pass 8: the original's first block ends after d[1] with p8 inside). */
 	Uint32 a0, b0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8;
-	Uint32 p0, p1, p2, p3, p4, p5, p6, p7;
+	Uint32 p0, p1, p2, p3, p4, p5, p6, p7, p8;
+	Sint32 i;
+	Sint32 stride;
+	Uint8 *s0;
+	Uint8 *s1;
+	Uint32 *d;
 
+	stride = mc->stride;
+	s0 = mc->src;
+	s1 = mc->src2;
+	d = mc->dst;
 	for (i = 0; i < 16; i++) {
 		__dcbt(s1, stride);
 		a0 = s0[0]; b0 = s1[0];
@@ -41,33 +53,33 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 		a6 = s0[6]; b6 = s1[6];
 		a7 = s0[7]; b7 = s1[7];
 		a8 = s0[8]; b8 = s1[8];
-		p0 = a0 + a1 + b0 + b1 + 2;
-		p1 = a1 + a2 + b1 + b2 + 2;
-		p2 = a2 + a3 + b2 + b3 + 2;
-		p3 = a3 + a4 + b3 + b4 + 2;
-		p4 = a4 + a5 + b4 + b5 + 2;
-		p5 = a5 + a6 + b5 + b6 + 2;
-		p6 = a6 + a7 + b6 + b7 + 2;
-		p7 = a7 + a8 + b7 + b8 + 2;
+		p0 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 + (Uint32)b1 + 2;
+		p1 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
+		p2 = (Uint32)a2 + (Uint32)a3 + (Uint32)b2 + (Uint32)b3 + 2;
+		p3 = (Uint32)a3 + (Uint32)a4 + (Uint32)b3 + (Uint32)b4 + 2;
+		p4 = (Uint32)a4 + (Uint32)a5 + (Uint32)b4 + (Uint32)b5 + 2;
+		p5 = (Uint32)a5 + (Uint32)a6 + (Uint32)b5 + (Uint32)b6 + 2;
+		p6 = (Uint32)a6 + (Uint32)a7 + (Uint32)b6 + (Uint32)b7 + 2;
+		p7 = (Uint32)a7 + (Uint32)a8 + (Uint32)b7 + (Uint32)b8 + 2;
+		a0 = s0[9]; b0 = s1[9];
+		p8 = (Uint32)a8 + (Uint32)a0 + (Uint32)b8 + (Uint32)b0 + 2;
 		d[0] = MPVMC16_AVG4(p0, p1, p2, p3);
 		d[1] = MPVMC16_AVG4(p4, p5, p6, p7);
-		a0 = s0[9]; b0 = s1[9];
-		a1 = s0[10]; b1 = s1[10];
-		a2 = s0[11]; b2 = s1[11];
-		a3 = s0[12]; b3 = s1[12];
-		a4 = s0[13]; b4 = s1[13];
-		a5 = s0[14]; b5 = s1[14];
-		a6 = s0[15]; b6 = s1[15];
-		a7 = s0[16]; b7 = s1[16];
-		p0 = a8 + a0 + b8 + b0 + 2;
-		p1 = a0 + a1 + b0 + b1 + 2;
-		p2 = a1 + a2 + b1 + b2 + 2;
-		p3 = a2 + a3 + b2 + b3 + 2;
-		p4 = a3 + a4 + b3 + b4 + 2;
-		p5 = a4 + a5 + b4 + b5 + 2;
-		p6 = a5 + a6 + b5 + b6 + 2;
-		p7 = a6 + a7 + b6 + b7 + 2;
-		d[16] = MPVMC16_AVG4(p0, p1, p2, p3);
+		a8 = s0[10]; b8 = s1[10];
+		a1 = s0[11]; b1 = s1[11];
+		a2 = s0[12]; b2 = s1[12];
+		a3 = s0[13]; b3 = s1[13];
+		a4 = s0[14]; b4 = s1[14];
+		a5 = s0[15]; b5 = s1[15];
+		a6 = s0[16]; b6 = s1[16];
+		p1 = (Uint32)a0 + (Uint32)a8 + (Uint32)b0 + (Uint32)b8 + 2;
+		p2 = (Uint32)a8 + (Uint32)a1 + (Uint32)b8 + (Uint32)b1 + 2;
+		p3 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
+		p4 = (Uint32)a2 + (Uint32)a3 + (Uint32)b2 + (Uint32)b3 + 2;
+		p5 = (Uint32)a3 + (Uint32)a4 + (Uint32)b3 + (Uint32)b4 + 2;
+		p6 = (Uint32)a4 + (Uint32)a5 + (Uint32)b4 + (Uint32)b5 + 2;
+		p7 = (Uint32)a5 + (Uint32)a6 + (Uint32)b5 + (Uint32)b6 + 2;
+		d[16] = MPVMC16_AVG4(p8, p1, p2, p3);
 		d[17] = MPVMC16_AVG4(p4, p5, p6, p7);
 		s0 += stride;
 		s1 += stride;
