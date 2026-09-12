@@ -767,9 +767,14 @@ int debugCamera::menuFlag(JOY* joy)
     // and loop.c keeps a 1-insn-lifetime constant in the arm (thr 71 * life 1 < ic 194, then
     // combine folds it into `li r3,392`); a local assigned before the `if (on)` lives long enough
     // to be hoisted (`li r20,49; slwi r3,r20,3`) and takes the extra callee-saved slot (r16..r31).
-    // Remaining (45 words): the head's `y + i` temp and its PRE copy stay separate in the
-    // original (`addi r4; mr r25,r4; mulli r4,r4,14`) and the key/target j-loops recompute
-    // `mulli r4,r25,14` per iteration where ours hoists it and copies `mr r4,r25`.
+    // The key/target j-loops compute their colour in a statement (`cj`) before the call: with the
+    // ternary inside the argument list the `(y + i) * 14` mult sits before the ternary's join label,
+    // so loop.c cannot substitute it into its single use (`no_labels_between_p`) and hoists it
+    // instead; as a statement the mult follows the join, is folded into `r4 = P * 14` (a hard-reg
+    // dest, never movable) and stays in the loop (`mulli r4,r25,14`). That keeps the shared `y + i`
+    // (r25) live across the loop calls, which lets sched1 move the PRE copy `mr r25,r4` up to the
+    // head's `addi` (REG_N_CALLS_CROSSED != 0 -> no anti-dependence on the head call), so the head's
+    // own `y + i` dies at its mult and gets r4 (`mulli r4,r4,14`).
     for (i = 0; i < 7; i++) {
         int col = (i == cursor) ? 4 : 0;
         u8 c = col;
@@ -812,12 +817,14 @@ int debugCamera::menuFlag(JOY* joy)
         }
         case 1:
             for (j = 0; j < 2; j++) {
-                eprintf((x + 15 + j * 5) * 8, (y + i) * 14, (j == key_type) ? col : 7, 0, "%s", key_str[j]);
+                int cj = (j == key_type) ? col : 7;
+                eprintf((x + 15 + j * 5) * 8, (y + i) * 14, cj, 0, "%s", key_str[j]);
             }
             break;
         case 2:
             for (j = 0; j < 5; j++) {
-                eprintf((x + 15 + j * 4) * 8, (y + i) * 14, (j == target_type) ? col : 7, 0, "%s", target_str[j]);
+                int cj = (j == target_type) ? col : 7;
+                eprintf((x + 15 + j * 4) * 8, (y + i) * 14, cj, 0, "%s", target_str[j]);
             }
             break;
         case 6:

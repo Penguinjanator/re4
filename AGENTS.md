@@ -26448,7 +26448,7 @@ edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug cl
   finding suggests the original set several tile parameters through locals (`w = 5`, a zero), so a `z = 0` local read by the
   eprintf2 third argument is the first thing to try when hunting the `zz` tag.
 
-### DOL db_cam closer 6 (game/db_cam 11/13 -> 12/13: debugCamera::menuFlag 45 -> 0 zero-code; menu 2 in progress; 2026-09-12)
+### DOL db_cam closer 6 (game/db_cam 11/13 -> 12/13: debugCamera::menuFlag 45 -> 0 zero-code; menu 2 unchanged, mechanism read to the local-alloc contradiction; 2026-09-12)
 
 - **menuFlag 45 -> 0 (tree): the j-loop colour ternary as a statement** — `int cj = (j == key_type) ? col : 7;` before the
   `eprintf(.., (y + i) * 14, cj, ..)` in both j-loops. Mechanism (read off ~/.cache/sngdbg/src/gcc/gcse.c, lcm.c, loop.c, not guessed):
@@ -26489,6 +26489,38 @@ edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug cl
   measured this pass (words): plain `pG->Cam.param.pos = campos` 46, `*(Vec*) d0 = campos` 46, `Vec* pd` 46, `Vec tmp` 62,
   split memcpy 8+4 55, `"r"(ps)` anchor 9, `"m"(campos.x)` 36, `"m"(campos.y)` 9, dest-read anchor 32, `"r"(d0)` anchor 32,
   `ProjType = 2` after the copies 60 / after campos 50 / before cameraBak 43.
+- **menu 2 words, DOL-wide read (03:30).** Every 12-byte copy in the DOL asm was classified (`lwz 4(rB)` / `lwz 8(rB)` pairs
+  followed by both stores): 452 y-then-z, 809 z-then-y. Among the campos-SHAPED ones (static source read as `lwz x,sym@l(rH); addi
+  rB,rH,sym@l; lwz y,4(rB); lwz z,8(rB)`, 31 sites, 30 of them in Matching units) EVERY other site stores y before z; campos is the
+  only one with loads y,z and stores x,z,y. The Matching y,z sites are the "base does not die" case: objWep `EspDrawLaserLine(lpos,
+  lcross, w)` twice = the lo_sum base is reused later, both loads have weight 1, the LUID order y,z survives, and the dest base lives
+  on too (stores y,z); local-alloc then sees equal lengths and gives y the lower qty number (y r10, z r8 there). The z-then-y sites
+  (ours' target/up copies included) are the dying-base case. So the target's campos copy is the "source base alive, dest base dying"
+  combination — and with that combination y is born first and dies last, z is allocated first and takes r0 (measured: LADBG of the
+  `"m"(campos.y)` anchor variant: y reg214 [30,42) pri 1666 -> r8, z reg215 [34,40) pri 3333 -> r0). The target's `y r0 / z r8`
+  therefore needs y's qty to outrank z's: equal `qty_n_refs` (2) cannot do it (`QTY_CMP_PRI = floor_log2(refs)*refs*size/len`), so
+  the original had a y pseudo with more references (a tied copy: combine_regs adds the refs of tied pseudos) or a z pseudo that was
+  not local-alloc'd (global gives r8 as the first `regs_used_so_far` register free over z). Neither has a C spelling in the block-move
+  form (the word temporaries cannot be named); u32-view copies with named words are 32+ words because their scalar loads pass the
+  cameraBak struct stores (`anti_dependence`'s in-struct/scalar rule). Also read: `lcm.c compute_latein` applies the `~∩succ delayin`
+  term only to the LAST block; the SN alias.c `find_base_value` returns 0 for a value loaded from memory (pG), so every pG-based
+  store may alias every symbol-based load. Variants this pass beyond closer 5: `Vec tmp` 62, `Camera* c` 2 (no change), `f32*` dest
+  2 (no change), `(u8*)&campos` 2, `void*` dest = a real memcpy call (48), do{}while(0) around the copy 61, u32 loads-first 32
+  (launders on b/c/a 32/43/47), cameraBak after / between the copies 81/75, three separate pointers declared first 71.
+- Tree: menuFlag edit only (`src/game/db_cam.cpp`, comment rewritten). `MATCHING["game/db_cam.cpp"]` stays False (12/13, menu 2w).
+  Object rebuilt under the lock; no `ninja -k 0` (flag unchanged). Harness ~/.cache/dol_dbcam6 (tv.py driver, rtl_base/rtl_anchy/
+  rtl_cc dumps) deleted at the end of the pass.
+- **menu, last measured family (03:40): named word temporaries with the block move's MEM flags.** `struct W3 { u32 a, b, c; }`
+  view of `campos` (in-struct loads, like `expand_block_move`'s `/s` loads) stored through `u32* d0` (scalar `/f` stores, like the
+  `u8*` memcpy): loads x,y,z + stores x,y,z = 32w, loads x,z,y = 23w, stores x,z,y = 23w, both = 33w; with `asm("" : "+r"(b))`
+  on the y word (the refs-4 idea) 32/23/46/43. A `const W3*` view is worse still: the loads become `/u` and float above every store.
+  In all of them the `addi target@l` and the cameraBak dest pointer re-allocate (r5/r6 instead of r8/r5), i.e. naming the words
+  changes the pseudo numbering of the whole block before it changes the y/z pair. The rs6000 `expand_block_move` (SN version, read):
+  <32 bytes = one fresh SImode pseudo per word, loads emitted first, stores collected and emitted after (`MAX_MOVE_REG`), >=32 bytes =
+  the SN inline loop (`rs6000_inline_copy` = 24-byte body, one shared tmp pseudo, leftover copied with the same tmp) — that is the
+  cameraBak `li r0,0x18; subic.` loop. Next step for whoever continues: a form whose y word has a third reference or whose z word is
+  not local-alloc'd while the block move's flags/pseudo numbering stay; or read what else than `find_free_reg`'s
+  `regs_live_at[birth..death)` could exclude r0 for z but not for y (z's interval lies inside y's, so no hard-reg clobber can).
 
 ### DOL espgen42/45 pass 8 (Espgen42_Move00 34 -> 11w, Espgen45_Move00 77 -> 47w; one structural find: the noise value `n` is a function-level variable; no flip; 2026-09-12)
 
@@ -27088,3 +27120,97 @@ Harness /home/adityas/.cache/tid7/ (deleted at the end): try.py NAME FUNC 'old=>
   was multi-use or the sext was combined 2-way. Spellings that do not change it: `(u8) w->lang` (shorten_compare then loads both bytes
   first, the merged zext still lands after), `!(==)`, `x17D |= 2` first, `u8 l2 = w->lang2` local, `w->x17D = w->x17D | 2`; `s8 l = w->lang`
   local: +4 bytes (extsb); `(u8) w->lang != w->lang2`: 11w. A launder/anchor asm on `int l2` gives the order but shifts `w` to r30 (92w).
+
+### CRI SWAR kernels pass 10 (mpv_mcy 16x16 4p block-1 colours: the five loop variables take the target's r0/r3/r4/r5/r6 when the pixel words are OWN locals declared before them; the masked-load split and the own-local pixels exclude each other; in progress, 2026-09-12)
+Harness /home/adityas/.cache/cri_swar10/ (`gen10.py NAME decl=px,ps,lv lvorder=.. init=.. pix=u32|u8|u16|s32m mask=none|self|use|use8|ldm sum=cast|cur
+lorder/sorder/inter/ba p8=pre|mid|mid2|post reg=.. split=..` whole-function generator; `rr.sh NAME opts` = gen + ra.py dump + `cnt.py` (initial counts
+up to d[0]/d[1] and the split verdict) + words + `blk.py` block-1 compare + `sum.py` (chaitin levels, loop-var colours, scan-1 survivors) +
+`osearch.py` (offline chaitin search over own-local scan orders against the target's colours mapped by symbolic value, `colmap.py --show`);
+`symb.py LST` symbolic trace of a listing). The pass-9 harness is deleted at the end of this pass. Loops in zsh: `./rr.sh ${=a}`.
+- **Why the target's stride/d/i/s0/s1 are r0/r3/r4/r5/r6 (ours r9/r12/r8/r10/r11):** chaitin.py (IDENTICAL on z1) puts them at level 2 with 8
+  backend temps + p2/p3/p4 (d removed at degree 25 = 4 loop vars + 12 pack ghosts + r0 + 8 L2 temps); the last scan removes in vid order, so
+  every higher-vid L2 temp pops first and takes r0,r3..r7. The target's five pop FIRST = they alone form level 3: at scan 2 their degree
+  must stay >= 29, i.e. >= 4 more scan-1 survivors visited after them. `decl=px,ps,lv` (pixels and sums declared BEFORE the loop
+  variables, so the p's have higher vids) lifts i/s0/s1 (d3, 130w; d 28 and stride 27 are 1-2 short); unmasked `Uint32` pixel own locals
+  declared first (d5: `pix=u32 sum=cast`) lift all five to L3 -> stride r0, d r3, i r4, s0 r5, s1 r6, `li r7,0x10` ctr temp, identical
+  prologue, 122w — but without the masks the block does not split (B3 = 123, the check fires before d[17]).
+- **Split arithmetic (cnt.py):** with pixel-9 loads + p8 in block 1 the count before the `d[1]` statement is 65 + E (+8 for d[1]) and the
+  boundary lands after d[1] iff E in [28, 35], E = the later-deleted initial instructions of the first half: z1 masks-at-load (20, one per
+  lbz) + CSE'd `(Uint32)` casts (12) = 32 OK; own-local pixels + casts (`Uint8`/`Uint16`/`Uint32`, e1/g1/d5) = 14-20 (only the two-use
+  pixels' CSE'd extension survives as an `mr @t, a`; copy-prop keeps the OWN local because the copy's source is the local); per-USE
+  `(Uint32)(Uint8)a` (k4/k5) = 38 (3 over: the split falls before d[1]); `a &= 0xFF` after the load is folded by the frontend (f3: E 20);
+  `(a & 0xFF)` at use on `Uint8` (g4) = 34 but breaks one pack fusion (78/79 pre-schedule, 141 lines). The mask AT the load (`s[k] &
+  0xFF`, any pixel type) always turns the pixel into the load's backend temp (`rlwinm a,t` -> `mr a,t` -> a replaced by t, across
+  blocks), so masked pixels are visited after the loop variables in every scan and cannot lift them. p8's position (before d[0] / between
+  the stores) does not change E.
+- **Pre-RA schedule vs post-RA:** z1 (masked, split) and d5 (own-local pixels, unsplit) have IDENTICAL pre-RA schedules for the whole first
+  half (symbolic compare of backend-12/08 B3); their final block-1 orders differ (29/67 vs 27/67, load order 10/20 vs 18/20) only through
+  the post-RA reschedule under different colours (e.g. target `add a1+b0` at 7 before `lbz a3`: the WAR on r8 from `add r8,r7,r22` at 9
+  raises its priority). So the residue is colours -> post-RA order; the pre-RA order is the same in every spelling tried.
+- **Offline colour search (osearch.py):** with z1's/o1's interference graph no own-local scan order (loop vars x p order x 8 pixel orders x 8
+  group orders) reproduces the target's block-1 colours (best 24/54 nodes, o1 `inter=1` + `ps,px,lv` bbaa); the target's long-lived pixels
+  (a3 r21, b2/b4 r22, a4 r26, a5 r27, b5 r28, b6 r25, b8 r24, b7 r21) are callee-saved while its short sums recycle r7/r8, i.e. the target's
+  pixels popped LAST (own locals at level 1) after the sums took the volatile registers — consistent with own-local pixels, not with the
+  masked backend temps. `register` on locals changes nothing; `psrev` (p8 declared first) moves the block-1 final order (37/67, n4).
+
+### DOL espgen42/45 pass 9 (Espgen42_Move00 11 -> 9w, Espgen45_Move00 47 -> 42w; the preheader giv-init order closed in pure C; loop-B nx8 placement read further, not closed; no flip; 2026-09-12)
+Harness ~/.cache/dol_espg9 (deleted): `t.sh 42|45 NAME 'OLD=>NEW'..` (mk.py exact-string edit of the tree copy + variant.sh word count,
+`DIFF=1` for the side-by-side), `dump.sh 42|45 NAME` (rtl.sh + GDBG/GDBGV/LADBG into rNAME/, Move00 parts as rNAME/m.<pass>, gorder.txt,
+ladbg.txt), `rtl1.py FILE A B` (one line per insn of a dump line range).
+- **Preheader `mr r31,r10 | slwi r27,r28,2` (42, 2w) and `mulli r10/r8` names + `mr r29 | slwi r31` (45, 5w): CLOSED, pure C.** The two
+  insns are the loop-A giv inits (k*12 copy, k*4 shift), emitted in `bl->giv` list order = REVERSE discovery order, and sched1/sched2
+  keep that LUID order (both are leaves, equal priority, no dependents). Discovery = the insn order of the FIRST use of each induction
+  expression in the body: in ours the dead test `if (k * 12 == 3)` (42) / `Vec* pv = &p->pos[k]` (45) was the first, `c += k` (k*4)
+  came later, so k4's init was emitted first (`slwi` before `mr`); the target has `mr` first = k*4 discovered first. Form (both units,
+  identical): `u32 k4 = k * 4;` right after `int i3 = ..` (before the dead test / before `pv`), and `c = cur; c = (f32*) ((u8*) c + k4);`
+  instead of `c += k` (the two-set `c` must stay: the single-set `c = (f32*)((u8*)cur + k4)` is 9w in 42 but 230w in 45 - c becomes a
+  giv there). Proof of the mechanism: `if (k * 4 == 3)` as the dead test also swaps the inits (67w elsewhere). Negative: moving the dead
+  test after `c += k` (the `c = NULL` is then live: `cmpwi;bne;li` survive), a dead test on `pv`/`tmp`/`nz` after `c += k` (30-38w: the
+  `add c` moves into the block before the test and the noise-block locals r8/r9/r11 permute), an `asm("" : "=m"(tmp) : "r"(k4))` use (74w).
+  Lever-catalogue addition (GCC row "loop counter kept / giv `li rY,C` position"): **two giv inits in the other order = swap the order of
+  the first uses of the two induction expressions in the body (a `k4 = k * 4` statement, an address expression); the init list is the
+  reverse of discovery and nothing later reorders two leaf inits.**
+
+### Tool RELs, t_esp pass 18 (t_esp 208/212: InitTool flush-grid fit — the grid is TWO grids (cse1 12 flushes + cse2 8 flushes on the same tail block), the pads move them at different rates, pass 17's direction was inverted (a pad set REMOVED before a flush moves that flush LATER in the code); pad-type table (cse1, cse2) insns measured; cse2's first flush fitted (2182 -> 2137w, /tmp/t18/x8.cpp); nothing flipped; 2026-09-12)
+
+- **Direction.** cse_basic_block flushes before the 1002nd non-note insn of the block; removing K pad insns before flush k lands
+  flush k (and every later one) K insns LATER in the code, adding moves them earlier. CSEDBG proof: MODEL pad K=3 -> cse1
+  flushes at LOAD_EVENT+5 / SAVE_EVENT+22 / OPTION+535 (base +4/+21/+534); pass 17's "K=3 in 5 windows = -5 shift" moved
+  ours +5 later (SAVE_EVENT+26, between `w` and `h` as the target wants), which is why it fixed seg 271.
+- **Two grids.** cse2 runs on the same block with its own 1001 counter over the post-gcse stream (base: LOAD_EVENT+61,
+  OPTION+77, PATH+354, SPEED+133, COLOR+575, ROTATE+26, SUB+98, WORKSP2+13 in the `.loop`-dump insn numbering) and shares
+  `high`/constants the same way. Seg 219 (LOAD_EVENT `" Name :"`: target fresh `lis r8`, ours `addi r5,r17` shared) is a cse2
+  share: the `high .LC713` is cse2-insn +55 of LOAD_EVENT, our cse2 flush at +61 folds it into MODEL's, the target's cse2 flush
+  precedes it. `/tmp/t18/flushes.sh V.cpp` prints both grids (CSEDBG + flushmap on `.jump` for cse1, on `.loop` for cse2);
+  `/tmp/t18/wincount.py DUMP [DUMP2]` = per-window insn counts of any dump (the cse1 stream is `.jump`, the cse2 stream `.loop`).
+- **Why the K=4 pads survive to gcse/cse2 (and the pad-type table).** `d_ = 4` is the class head of const 4 when the window is
+  the FIRST after a cse1 flush (table empty), so the ctor's `flg = 4` store is rewritten to `stw d_`; `d_` is then referenced and
+  delete_dead_from_cse keeps all its sets until flow1 (the flg `li` is deleted instead). In every other window the head is the
+  earlier window's `d_`/flg pseudo and the pad is deleted at cse1's end. Measured on MODEL (first window; relative to no pad):
+  `1..4` = (4 cse1, 3 cse2); `1..5` = (5, 0); `1:2:3:5:4` = (5, 4); `1:2` = (2, 0); `2:4` = (2, 1); K=0/1 = (0, 0) (a single
+  set is deleted by jump1). Rule: n sets ending in 4 = (n, n-1) in a first-after-flush window, n sets otherwise = (n, 0).
+  Hence: cse1-only shift = a not-ending-in-4 pad anywhere; cse2-only shift = lengthen the first-after-flush window's
+  ending-in-4 pad by x and shorten x cse1 insns in the following windows (`/tmp/t18/mk.py OUT NAME=1:2:3:5:...:4 NAME2=2 ..`,
+  per-instance pads for the macro classes via `cls##_CSE_PAD()`).
+- **N.** gcse's bucket count moves with the grid (a shared `high` deletes its `lo_sum`/copy: MODEL K=3 alone = -2 buckets), so
+  every grid change is followed by `/tmp/t18/autoN.py V.cpp` (in-place refit of the `i = k` block to N 5233/5235, ~2 sets per
+  bucket). Seg 0's `&pos` slot order still permutes at N 5233/5235 when the grid is wrong (the PRE'd `high LC` set changes); it
+  is a whole-grid consequence, judge it last.
+- **Metric.** `/tmp/t18/fl.sh V.cpp`: words, raw regions, `shape` (registers + spill slots normalised), `mset` (spill/reload
+  insns dropped, per-segment instruction multiset) — mset isolates fresh-vs-shared from allocation noise; regions are bounded at
+  the 12 cse1 flush windows (0-161 | 162-215 | 216 | 270 | 297 | 353 | 416 | 445 | 495 | 605 | 620 | 697 | 739 | 776+).
+- **cse2 flush 1 fitted:** MODEL pad `1:2:3:5:6:7:8:9:10:11:12:4` + LOAD/LOAD_EM/LOAD_ROOM/LOAD_SST `1:2` (cse1 grid unchanged,
+  cse2 grid -8: LOAD_EVENT+53), N refit 76 -> 68 sets: 2182 -> 2137w, mset regions [2 8 4 9 4 ..] vs base [2 11 5 10 4 ..],
+  segs 209/210/217/219/220 mset-exact. Variant /tmp/t18/x8.cpp (not in the tree yet).
+- **idEditUnit 9 -> 0, pure C, the r11 pin REMOVED: the case-2 arm is `w->grpSw = 0`, not `= 2`.** The target's `stb r10,0x5d` stores the
+  `trg & 0x100` pseudo (`andi. r10,r0,0x100; beq else`), which cse knows to be ZERO on the followed `beq` (cse_basic_block calls
+  `record_jump_equiv (insn, 1)` only for TAKEN path entries — a one-use label preceded by a barrier; AROUND entries, the skip-blocks
+  jump over `stb r25`, record nothing), and the QI constant store takes the newest known-zero SI register (`insert` puts a new
+  equal-cost element BEFORE the older ones -> `trg & 0x100`, not `trg & 0x200`). Our `= 2` matched only because the editStep value
+  happened to be 2 there; with `= 0` the sign-extended index dies at the case tree, the QI load takes r10, joy's high r9/r11 unpinned.
+  The pass-6 codeless 4th-qty asm after `toolIdDataInit(d)` is still needed (6w without it). Lesson: a `stb rX` of a "constant"
+  from a register that a preceding `beq` proved zero is a `= 0` store — check the semantics before hunting register order.
+- **toolIdOption `lbz lang2`/`lbz lang` 2w -> 0: `lang2` is `s8` (include/t_id.h had `u8`).** With equal signedness shorten_compare
+  emits `load lang2; load lang; sext; sext; cmp`, combine folds both extensions into `cmpw (subreg lang2) (subreg lang)` 3-way WITHOUT
+  a split (same-kind extensions compare in the narrow mode; LOAD_EXTEND_OP makes the paradoxical subregs valid), so both loads stay in
+  expansion order. Verified as a header change (only toolIdOption moves, 64/69, 18w). toolIdOption 8w left = the optMenuName preheader.
