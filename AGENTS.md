@@ -96,6 +96,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | loop invariant recomputed per store in the target | `#pragma opt_loop_invariants off` | store through a `static` | the pragma (tagged) | "CRI pass 9" |
 | whole function is `psq_*`/`ps_*`/`mtspr`/`lfdux` | MWCC 2.4.7 has no paired-single intrinsics: vendor inline asm | keep the asm body for THAT function and say so | — | START HERE, "CRI paired-single kernels pass 2" |
 | .text function order, .rodata string order, .bss size | emission = definition order; strings by @N id; `.bss` pads | definition order, `static` table placement, struct padding | — | "CRI pass 5", "CRI pass 16b", "CRI pass 21" |
+| one value X is coloured one Chaitin level too LOW (falls below 29 one scan too early, lands in r0/r3..r12 or a lower callee-saved than the target; a target node "must be level 2" / "needs more neighbours") | the priority list is built by degree-<29 removal scans; a pinned value is coalesced with the asm's copies, which stay as ghosts aliased to the physical register = never-removed neighbours of THAT value only (total degree of everything else unchanged) | a same-body value that overlaps X (a later use of X, a kept copy), a longer web | **codeless neighbour pin `asm { mr rV, x; mr x, rV }` with rV a VOLATILE register the function never uses (r11, r8, ...)**: +k never-removed neighbours on `x` only, X held one scan longer -> coloured earlier; reserves nothing, both `mr`s deleted (size unchanged); place it AFTER any propagated copy of `x`; `x` must be `register`. A callee-saved rV also RESERVES the register (row 10); on a parameter or a call-defined value the `mr` is emitted (a real copy). Tag M1 (neighbour pin) | "CRI pass 40" (cvFsGetFileSize 14 -> 0, the dump reading), "CRI pass 44" |
 
 ## Tooling kit
 
@@ -26361,3 +26362,47 @@ Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replac
 - Tree: only the menuFlag edit above (`src/game/db_cam.cpp`, comment updated). `MATCHING["game/db_cam.cpp"]` stays False (11/13,
   menu 2 + menuFlag 45, size 0x53c vs 0x534). Object rebuilt under the lock; no `ninja -k 0` needed (flag unchanged). Harness
   ~/.cache/dol_dbcam5 (tv.py spec-driven variant.sh driver, rtl_base/rtl_m4 dumps, LADBG/GDBG logs) deleted at the end of the pass.
+
+### DOL em_sub closer 3 (em_sub 49/51 -> 51/51 Matching, both zero code: EmCatchMotionMove 8 -> 0, RandomItemCk 53 -> 0; 111 OK; 2026-09-12)
+
+- **EmCatchMotionMove 8 -> 0: one temporary for two values.** The function is a single basic block, so every value is
+  local-alloc (no GORDER line). Target: `lfs f13,rot.y; fmr f31,f13; fadds f0,f31,f0` and `fmuls f13,f0,f29` (step in a
+  scratch, rate f29, rate2 f30); ours loaded rot.y straight into ry and tied step into rate's qty (`fmuls f30,f0,f30`), so
+  rate ranked above rate2 (5 refs vs 2) and took f30. The original reuses ONE temp: `tmp = em->rot.y; ry = tmp; ...;
+  tmp = em->catchTurn * rate; ry += tmp; em->catchTurn -= tmp;`. A pseudo with two deaths is not a local-alloc candidate
+  (`REG_N_DEATHS != 1` -> reg_qty -1), so (a) `combine_regs` refuses to tie ry into it at the copy (the `fmr` survives,
+  ry stays its own qty, f31), (b) refuses to tie it into rate at the multiply (rate drops to 2 refs, below rate2: f29/f30
+  as the target), and (c) global.c gives it the first virgin scratch in reg_alloc_order after f0 (held by catchTurn) =
+  f13 at both lives. Not the same: `f32 y = rot.y; ry = y;` (cse canonicalises ry -> y in the first add, ry's first life
+  is dead, the load goes into ry; 10w), a `register f32 y asm("fr13")` hard pin (reproduces the load/copy, 6w, but step
+  still ties into rate); a pinned tmp for both (2w: the hard-reg copy gets folded). Reading `LADBG=1`: ours q3 = rate+step
+  refs 5 pri 1190 vs q1 = rate2 refs 2 pri 588 was the whole f29/f30 swap.
+- **RandomItemCk 53 -> 0: the inline writes the caller's variable through a reference.** Two mechanisms, one cause. (1)
+  local-alloc qty order in the four-dice block: Q0 = first-dice chain {Rnd copy, subf, clrlwi, the three adds, the *5
+  temp} 14 refs / span 72 = 5833 vs Q1 = second dice {copy, subf, clrlwi, addi base} 9 refs / 54 = 5000, so Q0 took r30
+  and Q1 r29; the target is the reverse. (2) every `num` value (the three inline sites AND the other cases' `num = 1`,
+  `num = 0`, `(u8)(Rnd()%3)*10+20`) is r29 in the target, r30 in ours: in ours each inlined copy has its own `num`
+  pseudo (147/197/405, `GDBG` shows them as separate allocnos, pass-0 first free = r30) and the caller's `num` (91) is a
+  fourth one. The target shape: `static inline void RandomHandgunAmmo(u32& num, int base, int big)` with `num = a8 +
+  (b8 + base) + c8 + d8; num *= 5; num = num / 10 * 10; ...` -- the inline sets the CALLER's `num` (one pseudo, set in
+  ~8 blocks, refs highest -> the first allocno), and global.c `set_preference` reads `(set num (plus A_chain B_chain))`:
+  for a non-copy source it takes XEXP(src, 0) = the first-dice chain pseudo, local-alloc'd -> `hard_reg_preferences`
+  for that hard reg, and find_reg's "preferred register of the same class" override moves num from the first-free r30
+  to the chain's register. With the sum no longer feeding a local `*5` temp, Q0 shrinks to {copy, subf, clrlwi, adds}
+  11 refs / span 68 = 4852 < Q1's 5000 (LADBG on the final source), so Q1 -> r30 first and Q0 -> r29 = num, the third dice r28. `*= 5` must be its own statement: inside
+  the sum `(set num (plus (ashift x 2) x))` prefers the `slwi` scratch r0 (pruned, call-crossing) and num falls back to
+  r30 (53w again). Wrong turns worth not repeating: a plain `u32 t = b8; asm("" : "+r"(t))` launder in the second chain
+  does flip Q0/Q1 (+2 refs) but moves the `addi base` one slot and leaves num on r30 (83w); a `register u32 b asm("r30")`
+  pin of the second dice reshuffles the prologue (84w); a macro with the literal base folds `a8 + (b8 + 20)` into
+  `(a8 + 20) + b8` (the `+ base` must stay a non-constant inline parameter); accumulating `num = a8 + (b8+base); num +=
+  c8; num += d8` shrinks Q0 to 7 refs below the third dice's qty (r28/r29 swap, 49w) -- the c8 add must be in the first
+  statement (or all four: `num = a8 + (b8 + base) + c8 + d8` also matches). Hoisting the four `Rnd()` into locals
+  `a,b,c,d` before the expression is neutral (preexpand_calls already orders them first).
+- Lever catalogue additions (GCC rows): "a copy `fmr/mr` kept into a scratch and a value untied from a dying operand" ->
+  a temporary reused for two values (two deaths => global.c, never tied by local-alloc); "a multi-block variable takes a
+  chain's callee-saved register instead of the first free one" -> the variable is set directly by the chain's last add
+  (`set_preference` XEXP(src,0) of a non-copy source), so write the sum into the variable and keep `*k` separate; an
+  inline that returns into the caller's variable splits it into per-copy pseudos -- pass it by reference to keep one.
+- Flags: `MATCHING["game/em_sub.cpp"] = True` (51/51, no tags added), `ninja -k 0` + dtk shasum 111 OK. Harnesses
+  ~/.cache/dol_emsub2 (previous agent) and ~/.cache/dol_emsub3 (this pass: tv.py, sf.py compact RTL insn filter, variants
+  c1-c5 / z1-z15) deleted.

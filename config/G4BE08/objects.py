@@ -1899,3 +1899,8 @@ MATCHING.update({
     "lib/sfd_adxt.c": True,  # 28/28: sfadxt_ExecServerSub 59 -> 0 with one M1 hard pin of the handle (`asm { mr r31, obj; mr sfd, r31 }`): the target colours sfd r31 above err (Transfer's coalesced @ret chain) r30 / len r29; the pass-35 helper split gave every other register
     "lib/cri_cvfs.c": True,  # 13/13: cvFsGetFileSize 14 -> 0 with a codeless M1 level-shifter pin of pdev to r11 (a register no value of the function takes): the extra physical neighbour keeps pdev in the Chaitin graph one iteration longer than tbl -> fname r29 > pdev r28 > tbl r27; a callee-saved pin reserves the register and shifts the ResolveDev locals (pass 35's 20w)
 })
+
+# em_sub closer 3 (2026-09-12)
+MATCHING.update({
+    "game/em_sub.cpp": True,  # 51/51, pure C: EmCatchMotionMove (one `tmp` for the rot.y load and the turn step: two deaths -> global.c f13, no local-alloc ties into ry / rate); RandomItemCk (RandomHandgunAmmo writes the caller's num through a `u32&` -> one global pseudo whose preference is the first-dice chain's r29; `*= 5` as a separate statement)
+})

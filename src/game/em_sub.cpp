@@ -2535,12 +2535,15 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
 
 // Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by
 // `rate2`, turn by `rate` of the remaining angle.
+// One `tmp` for both the rot.y load and the turn step: a pseudo with two deaths is not a local-alloc
+// candidate, so it goes to global.c (f13) and neither the `ry = tmp` copy nor the `tmp * rate` product
+// is tied into ry / rate by local-alloc; rate then ranks below rate2 (f29 / f30).
 int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
 {
     cEm* target = (cEm*) em->dmgType;
     Vec d;
     f32 ry;
-    f32 step;
+    f32 tmp;
     int ret;
 
     PSVECSubtract(&target->pos, &target->x3A8, &d);
@@ -2550,13 +2553,14 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
     PSVECSubtract(&em->catchOfs, &d, &em->catchOfs);
-    ry = em->rot.y;
+    tmp = em->rot.y;
+    ry = tmp;
     em->rot.y = ry + em->catchTurn;
     em->rot.y = LIMIT_ANGLE(em->rot.y);
     ret = MotionMove(em, 0);
-    step = em->catchTurn * rate;
-    ry += step;
-    em->catchTurn -= step;
+    tmp = em->catchTurn * rate;
+    ry += tmp;
+    em->catchTurn -= tmp;
     em->rot.y = ry;
     em->rot.y = LIMIT_ANGLE(em->rot.y);
     RotMatrix(em->mat, &em->rot);
@@ -3177,11 +3181,15 @@ void RandomItemSet(cEm* em)
 // chance of `big` (or 330). Inline with the offsets as parameters: the `+ base` reaches RTL as a
 // separate add (fold would otherwise fold the literal into the sum) and the four Rnd() calls of one
 // expression are pre-expanded before any of the `% 6`.
-static inline u32 RandomHandgunAmmo(int base, int big)
+// The result goes through a reference to the caller's `num`: every site (and the other cases) then
+// sets ONE global pseudo, whose global.c preference comes from the sum insn's first operand (the
+// first-dice chain, local-alloc r29), so num shares r29; with an own local per inline copy each num
+// took the first free register (r30). The `* 5` is a separate statement: inside the sum the
+// preference would come from the `slwi` scratch (r0) instead.
+static inline void RandomHandgunAmmo(u32& num, int base, int big)
 {
-    u32 num;
-
-    num = ((u8) (Rnd() % 6) + ((u8) (Rnd() % 6) + base) + (u8) (Rnd() % 6) + (u8) (Rnd() % 6)) * 5;
+    num = (u8) (Rnd() % 6) + ((u8) (Rnd() % 6) + base) + (u8) (Rnd() % 6) + (u8) (Rnd() % 6);
+    num *= 5;
     num = num / 10 * 10;
     if ((Rnd() & 0x3F) == 0x1E) {
         num = big;
@@ -3189,7 +3197,6 @@ static inline u32 RandomHandgunAmmo(int base, int big)
             num = 330;
         }
     }
-    return num;
 }
 
 int RandomItemCk(int id, int* outId, int* outNum, int flag)
@@ -3225,13 +3232,13 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             case 0x22:
             case 0x36:
                 itemId = 0x78;
-                num = RandomHandgunAmmo(20, 1980);
+                RandomHandgunAmmo(num, 20, 1980);
                 *outId = itemId;
                 *outNum = num;
                 return 1;
             default:
                 itemId = 0x78;
-                num = RandomHandgunAmmo(10, 990);
+                RandomHandgunAmmo(num, 10, 990);
                 *outId = itemId;
                 *outNum = num;
                 return 1;
@@ -3347,7 +3354,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     }
     if (flag & 1) {
         itemId = 0x78;
-        num = RandomHandgunAmmo(20, 990);
+        RandomHandgunAmmo(num, 20, 990);
         *outId = itemId;
         *outNum = num;
         return 1;
