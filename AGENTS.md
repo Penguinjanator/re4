@@ -25901,3 +25901,144 @@ the other way round for SFTST_Calc: the target colours mt.hi FIRST, ours LAST).
   mt.hi above out.hi (not the hi half of the mt pair). Also: ave/tol region target tol.hi r23 > ave.hi r22 > tol.lo r21 (ours ave.hi
   L3 r23, tol.hi r22, tol.lo r21 -> tol.hi needs +4 to reach L3 above ave.hi); abs region target adiff.hi (@119) r23 before
   diff.lo (backend r226) r25. The debug block as a static helper changes nothing (79w). No pin exists for @temps; not closed.
+
+### CRI SWAR kernels pass 8: the 16x16 4p body cannot be ONE block from C (initial count >= 110 for its 122 final instructions); the target is two blocks split after `d[1]`/pixel 9 — the first block needs > 100 initial instructions there; nothing applied, nothing flipped (mpv_mcy 4p 136w, H2/V2 225w, mpv_mc 4p 72w / V2 73w / H2 436w unchanged; 2026-09-12)
+Harness /home/adityas/.cache/cri_swar8/ (kept until the next 4p pass; delete after): `try.sh <abs variant.c> [FUNC] [unit]` (ra.py dump into
+`ra_<name>` + `bs.py` block sizes + variant.sh words; `LINES=1` adds the per-source-line instruction census of the biggest block),
+`bs.py DIR [--lines]`, `ast.py DIR` (one line per frontend-01 statement: line, kind, AST size, assigned var), `gen2.py NAME order=..
+rot=.. pack=.. sum=..` (event-ordered 4p bodies: L<k> loads, P<k> sums, S<w> stores, DC, ST, IF; `unit=mc` for the 8x8), `mk.py NAME
+BODYFILE`, `dis.sh <abs variant.c> FUNC [unit]` (dtk mnemonic listing of the variant), `mcmp.py A.lst B.lst [N] [-v]` (register-masked
+schedule compare), `tgt16.lst`/`tgt8.lst` (target listings). ra.py runs must be SEQUENTIAL (parallel mwcc-debugger runs corrupt each
+other's dumps: fixed gdb port) and the out dir removed first (try.sh does).
+
+**Count arithmetic (settles pass 7's open question):** backend-00 of ours is 148 instructions, peephole-forward (backend-01) RAISES it to
+160 (`or` -> `mr` + `rlwimi`: +3 per pack), RA coalesces the `mr`s (158 -> 134), the loop transform adds 2, prologue 5; nothing else is
+created. So every final instruction of the body except the 12 pack `or`s is 1:1 with an initial PCode: dcbt 1 + 34 lbz + 64 add/addi + 16
+pack (28 initial as `rlwinm/or`, 27 per store statement as `__rlwimi` intrinsics = g2, worse) + 4 stw + 3 steps = 122 final, >= 110 initial
+even with a perfect 4-instruction pack. The check (`pcodeCount > 100` before every ST_EXPRESSION/IF/GOTO/RETURN/SWITCH) therefore fires
+before the `if (i == 7)` in every one-block C form. Probed and rejected as check-evaders (probe TU = 49-51 x `x = x*3+1` + the construct +
+two stores, all SPLIT): inline `asm { add .. }` instructions COUNT (pa1: 98 + 10 asm = B2 108 | 3), `__rlwimi`/`__dcbt`/`(Uint8)` casts count,
+`d[1] = (d[0] = X, Y);` and `(void)(d[0] = X, d[1] = Y);` ARE one statement (pa5/pa6: 3 instructions, no check between the stores) but
+the following statement is checked as usual, statements inside `switch` case bodies / `if` arms / `do {} while (0)` are checked (pc1-pc6;
+the switch's dispatch blocks are created BEFORE the body block yet pclastblock is still the body). The frontend unrolls small constant-trip
+inner loops (u4: `for (k = 0; k < 4; k++)` with a 6-instruction body -> 4 copies as ordinary statements in the outer body, each checked);
+bodies of ~42 instructions (u3, one word per iteration) and ~60 (u1/u2, one half-row) are NOT unrolled -> a real inner loop remains. An
+`if (i == 7) d += 16;` is an ECONDASS ST_EXPRESSION in the AST (checked like any statement); `d += (i == 7) ? 18 : 2` is 181w (join copy).
+Unreferenced labels, `goto L; L:`, `if (i == i) goto L;`, `switch (0) { case 0: break; }` are all folded by the frontend (no block boundary).
+
+**The target's body is TWO blocks, split after `stw d[1]` (or after the pixel-10 loads), not one:** the constraints "a load never passes a
+store within a block" + "blocks never merge" give: pixel-9 loads (`lbz 9(r5)/9(r6)`) and all four adds of p8 (`addi r31,r7,2` between the
+two stw, `add r31,r9,r31` right after `stw 4(r3)`) are in the block of `stw d[0]/d[1]`; pixel 10..16 loads, p10..p15 (their last adds sit
+after `rlwinm r26,r30` = the d[16] pack start), d[16], d[17], the steps and the `cmpwi/bne` are in one block. A boundary between P9 and L11
+is excluded (`lbz 0xb(r5)` precedes p9's second add). With the boundary after `d[1]` both blocks fit the rule: block 1 = DC + 20 lbz + 9 sums
++ 2 packs + 2 stw, block 2 = 14 lbz + 7 sums + 2 packs + 2 stw + 3 steps (67 + ...) <= 100 before the `if`. Evidence from the schedule: a
+variant with the target's raw order (pixel 9 loaded and `p8 = a8 + a0 + b8 + b0 + 2` KEPT before `d[0]` — kept because `a8` is redefined
+by the pixel-10 load before its use, pass 5's redefinition blocker — a1.body) and a forced boundary after `d[1]` (`if (stride < 0) return;`,
+a2) starts the body exactly like the target (`lbz b1, a2, b0, a1; add a2+b1; lbz b2; add a1+b0; lbz a3` — ours unsplit is address order
+`b0, a1, b1, a2`), diverging at the 9th instruction (target hoists `lbz b5`); the isolated block is what changes the scheduler's picks.
+Consequence: pass 6/7's "one block of 124" reading was the pass-7 inference from the d[16]/d[17] interleave only; the first-half/second-half
+interleave never existed.
+
+**What the split needs and what is still open:** the check fires before the first second-half statement only if block 1 holds > 100
+INITIAL instructions there, i.e. the vendor's first half emitted >= 30 instructions more than ours (ours: 1 + 20 + 36 + 28 + 2 = 87 with
+7-instruction packs incl. p8; the split must fall exactly after `d[1]` or after the pixel-10 loads, so 77 <= count(after d[0]) <= 100 <
+count(after d[1]) with S1 = 24, or the same with L10 = 2 last). No natural C spelling found that emits >= 30 later-deleted instructions
+in that half: inlined static helpers for the sums/packs are substituted by the frontend (f1-f4: zero copies, identical object), `Uint8`
+pixel locals add no conversions (g4, 135w), chained shifts `((p << 11) << 11)` are constant-folded (g1), `(p >> 2) << 24` packs emit
+srwi+slwi that the peephole merges only partly (d1: 208w, +0x30), identity `__rlwinm(x,0,0,31)` pairs merge to one survivor (pb1), `x + 0`
+/ `x | 0` / `x * 1` / block-scoped copies emit nothing (pb3-pb5). Candidate mechanisms not yet probed: a copy-emitting form (the frontend's
+`@N = (int)stride` copy for the dcbt is the only `mr` in ours), the vendor's second half written as ONE statement (a comma/nested-assignment
+store pair: pa5 shows it is not split), an `asm` statement holding the second half (ST_ASM is never checked and its instructions are scheduled
+with the block; excluded by the no-asm-body rule unless it is a single instruction).
+
+**Other facts read this pass:** (1) the frontend re-associates the pack `A | B | C | D` into `D | (C | (A | B))` (AST of line 52), so the
+codegen emits p3, p2, p0, p1 and the or->rlwimi merge (earlier operand fused, later = base) gives the target chain `rlwinm p1; rlwimi p0,
+p2, p3`; any other operand order changes the chain (O0132: 22,30,6; O3210: base 6) — the pack macro order is ours. (2) The sums
+`a0 + a1 + b0 + b1 + 2` become `a0 + (((a1 + b0) + b1) + 2)` (target association) in every spelling tried. (3) Forwarding: with separate
+variables (g9: a0..a16, p0..p15) every sum is forwarded into its store except p15, whose RHS took the single-use pixel-16 loads and is then
+blocked by the d[16] store; with the reused a0..a8/p0..p7 set the first web of the reused `p7` is kept (base) — a reused variable's first
+web survives when a store lies between its def and use, a single-def variable's does not. (4) The 8x8 4p target's schedule is NOT the
+sliding raw order: forms with the stores right after their 4 sums (m1-m4, 78-91w) put `stw d[0]` before the pixel-5 loads; the target has
+all 18 loads before `stw d[0]`. The 8x8 flat form (ours, 72w) is the raw order; its residue is the same scheduler-pick question as the
+16x16 first block (target issues p1's chain before p0's: `add a2+b1` first; ours `add a1+b0`).
+
+### CRI mwsfdcre pass 7 (no source edits; CreateSfd 115w + CalcWorkSfd 4w unchanged; 8/10, not flipped; both mechanisms narrowed, neither closed; 2026-09-12)
+Harness /home/adityas/.cache/cri_mws7 (deleted): `try.sh NAME 'helper text' [callargs]` (whole-unit variant with the IsUseAdxt body and its two
+call sites replaced), `pr.sh NAME 'case-4 body' [decls] [params] [args]` + `show.sh` (25-line TU through ra.py: frontend-01 statements + final
+PCode blocks; env RET/FALSE/DFLT rewrite the return/FALSE arm/default arm), `cw.sh NAME 'tail'` (CalcWorkSfd's last two statements replaced).
+- **Dead `b` (CreateSfd 115w), new negatives, all 115w:** unreachable statements are deleted by the frontend before layout, whatever they are —
+  `case 4: break; break;`, `break; return TRUE;`, `break; return FALSE;`, `break; mode = 0; break;`, a bare `;`, an empty `{ }`, `{ break; }`,
+  a user label `lbl: break;`, `goto end; break;` with `end:` before `return TRUE` (the case label is forwarded to the goto's target), a def whose
+  only use is unreachable (`x = mode + 1; break; return x;` / `mode = x;` / `x = x + 1`, `if (0) return x` after the switch) — frontend-01 deletes
+  the unreachable use first and then the def. A nested `switch (mode) { case 4: break; default: break; }` is deleted whole; `switch (mode) { case 4:
+  return 1; default: break; }` keeps its tree, the backend CSE deletes the inner `cmpi` but keeps the `bt` (`bt cr0,2,X; b T` + `X: li 1; b`).
+  `return TRUE; break;` = 124w (`li; b` kept). The struct-parameter forms: `IsUseAdxt(MWSFD_CRPRM *cprm)` with `switch (cprm->mode)` RELOADS
+  `lwz r0, 0(r16)` at both sites (the frontend does not CSE `cprm->mode` across the intervening calls; 12w, and the dead `b` still missing) —
+  so the helper's operand is the caller's `mode` r21 and a `cprm->mode` re-read in the body cannot be the deleted statement (p1 `if (cprm->mode
+  == 4) return TRUE;` 133w: load+cmpi CSE'd, `bne; li; b` kept).
+- **Dead `b`, positive mechanism read in the ra.py TU (form A):** `Bool ret = TRUE; switch (mode) { case 4: ret = TRUE; break; case MPV: case
+  VONLY: ret = FALSE; break; default: break; } return ret;` gives EXACTLY the target block layout — tree, `B7: b T` (the emptied case-4 block laid
+  out before F), `F: li 0; b end`, T empty — because the frontend keeps `ret = TRUE` (ret has a live use) and the backend CSE deletes the `li` as
+  redundant with the dominating init; but the init is `li r0,1` scheduled into the tree's first block and T is empty (the target has no `li`
+  before the tree and `li r0,1` at T). With `default: ret = TRUE; break;` added (init dead on every path) the FRONTEND deletes the init and the
+  case-4 `li r0,1; b` is kept (form B/C = 115w shape). Hence the constraint: the deleted case-4 def must be redundant with a dominating def that
+  costs nothing at BOTH inline sites (a coalesced copy or a value already in a register there), and `ret`'s fall-through value must still be
+  produced at T. No caller value fits: the only constants in callee-saved registers before site 1 / site 2 are conditional (`li r26,-1` in the
+  MallocFrmTbl loop, `li r20,0; li r19,0` in the else arm). Still open; not a compiler difference (the shape is one statement away).
+- **CalcWorkSfd 4w, substitution rule pinned down:** the frontend forward-substitutes the single-use chain of `size` (`size = @1019 + adxwk;
+  size += 0x4000; += 0x700; += 0x100` -> merged `+ 0x4800`) into ANY rvalue read of `size` in the next statement — `return sibsiz + size`,
+  `return size + sibsiz`, `sibsiz += size`, `sibsiz += (Uint32)size`, `Uint32 total = sibsiz; total += size`, `return sibsiz + (size +=
+  FNAME)`, `Uint32 size`/`register Sint32 size` declarations, `size2 = size; sibsiz += size2` — all give one EADD tree that the BACKEND
+  reassociates (`addi r0, r25, 0x4800` onto adxwk, 7-14w). Only an lvalue use (`size += sibsiz`, the current form) is not substituted, and it
+  fixes the operand order `add size, size, sib` (ours) — the target's `add r3, r29, r3` is `sibsiz += size` / `sib + size` with `size`
+  NOT substituted. Proof: `sibsiz += size; if (size == 0) return 0; return sibsiz;` (size two-use) gives `add r29, r29, r3` AND the unhoisted
+  epilogue (`lmw; lwz r0; mtlr` after the add) — both residue words fall together, at the price of the guard's own 4 instructions. So the
+  original read `size` twice (or had a frontend-kept boundary between the chain and the sib add); the second read compiles to nothing in the
+  target. Not found: an inlined helper with one return leaves no label (CalcYccSize has none in frontend-02); the if/else join L@1004 is
+  before the chain (rfb/tab come from the arms), so it cannot separate the chain from the add. The peephole that hoists the epilogue fires
+  on a single-predecessor return block whose first instruction is the `lmw`; the target's return block starts with the `add` or has two preds.
+- Flags: `lib/mwsfdcre.c` stays False (8/10); objects.py untouched; no source edits this pass.
+
+### DOL debug closer 3 (debug processBarDisp 138 -> 25 in the tree, size 0x8f8 exact; x3 max variable + tile-6 colour order + clk set after the zero are C, the zero variable is a tagged stand-in; nothing flipped; 111 untouched; 2026-09-12)
+
+Harness ~/.cache/dol_debug3 (tryv.py over variant.sh, GDBG/rtl dumps; deleted at the end). Tree edits: `src/game/debug.cpp` processBarDisp only.
+- **x0 -> x2 -> ... register permutation and the rematerialised `12` (mechanism 2) were ONE source fact: the fourth bar's max is a
+  separate variable, not x0 reused.** `s16 x3; if (x1 > x2) x3 = x1; else x3 = x2; t->y0 = x3 + 30; ... - x3` (jump1 hoists the else
+  arm: `mr x3,x2; cmpw x1,x2; ble; mr x3,x1` = the target's two-mr shape with the compare still on x2). With x0 reused (`x0 = x2; if
+  (x1 > x2) x0 = x1;`) x0 had refs 11 len 134 (pri 2462) and was allocated before x2 (refs 3 len 32: the compare had been rewritten
+  onto the copy, pri 937) -> x0 r29 (pass 0), x2 r31 (pass 1) shared with y0 and the loop's `i`, one callee-saved register left for
+  the `12` (r14). With x3: x0 refs 6 len 104 (1153), x2 refs 4 len 34 (2352, floor(log2 4)=2 vs log2 3=1 is the jump) -> x2 r29 first,
+  x0 r28, x1 r27, y0 r31, all 18 callee-saved registers taken, `12` spilled = `li r0,0xc` at tiles 3 and 6. GDBG ids: x0 = reg 93,
+  x1 94, x2 95, x3 96, `i` 97 (refs 8 len 118 = the loop counter, NOT x2: the earlier sections' "x2 in r31" was `i`). Forms that fail:
+  `x3 = x2; if (x1 > x2) x3 = x1;` (121w: cse rewrites the compare onto x3, x2 drops to 3 refs), the ternary (39w: an `extsh` of the
+  ternary temp, size +4), `if (x2 < x1)` if/else (29w), `x3 = x2` before tile 3's AddPrim or `x3 = x2 = TICKX(..)` (121-125w).
+- **Tile 6 colour order `r, g, b, cd`** (was `g, b, cd, r`): 138 -> 134 alone, as predicted in closer 2.
+- **Two-zero shape (mechanism 1): tagged stand-in applied**, `s16 zz = 0;` right after tile 1's `t->z0 = 0` and `zz` as the third
+  argument of `eprintf2(10, 16, zz, 16, 0, 13, ..)` after the if/else (folds back to `li r5,0`; 138 -> 122 on the base, needed for
+  the 27/25 shapes). The real variable was not found: nothing in the current source is zero between tile 1's z0 store and the `if`
+  (the target's `li r17,0` is a block-0 insn, so the set IS in tile 1's block; the eprintf2 fifth argument is 0 at all 8 calls,
+  the third is 0 once). Placement facts: the codeless `asm("" : : "r"(zz))` use gives 28w (4/5 tie fixed, 6/0 swapped, tile-5 store
+  order moved) or 125w before the "1000/F" call; `zz` as the fifth argument = the same 27w as the third.
+- **`clk = (OSClock*) 0x80000000` assigned right AFTER `zz = 0`** (declared at the top): its `lis r14,0x8000` and the zero's `li` are
+  both block-0 fillers at sched1 (no user in the block), tie by LUID, target `li r17` first: 27 -> 25. Hint for the real variable: in
+  the original the zero's set preceded whatever produced the 0x8000 high, so the original probably had no `clk` at the top either.
+- **Remaining 25 words, all read:** (a) `4`/`5` tie (r19/r20, 7 refs len 498 both, pri 281): allocno_compare ties by pseudo number and
+  tile 1 creates `4` (code) before `5` (w); the target hands r20 to `5` first, so either `5`'s pseudo was created first (swapping
+  `w = 5` above `code = 4` in tile 1 -> 38w: it also reorders the tile-1 stores) or its live length is 1-2 insns shorter (sched1
+  positions of the `li`s / the tile-6 stores). (b) x3 in r8 (ours, pass-0 caller-saved: refs 4 len 29 calls 0, conflicts only r30)
+  vs r28 in the target; the psq copy `mr r8,r0` (y0 = x3+30 for the arm) is r8 in the target and r6 in ours, so in the target r8 was
+  taken/conflicting when x3 was allocated: x3 must conflict with a local qty in r8 or with hard reg r8 (the fast-cast artefact
+  `mr r9,r8` at +0x528 reads hard r8) -- statement order in tile 4 not explored. Also sched2 places the target's `mr r28,r29` before
+  `addi r30,r30,0x20` (callee-saved copy, no call dependence). (c) loop preheader: target `addi r26,r24,16; li r28,0x14; li r27,0x32;
+  lis r23,fmt@ha`, ours the `lis` first: the "%5.0f %s" format high is hoisted AFTER the giv inits in the target (= loop pass 2 or a
+  later insertion), in ours by loop pass 1 (`LOOPDBG thr 71 sav 1 life 5 ic 47 -> move`); pre-existing (hidden in the base's 138 by
+  the size shift); the 0x4330 high (`lis r25`) is hoisted before the givs in both. Not started.
+- Flags unchanged (`game/debug.cpp` not Matching, 10/11). bytecmp: `.text DIFF 25 words, sizes equal`; other sections OK.
+- Late probes of the same pass: `int`/`unsigned int` pixel or sum locals mixed with the `long` Uint32 (t1-t4) emit NO conversions or copies
+  (identical object) — the only copy in ours is the intrinsic ARGUMENT `@12 = (int)stride` of `__dcbt` (call arguments are materialised
+  into @temps; intrinsic packs cost +3 per pack that way, g2). Boundary after the pixel-10 loads (a6, `if (stride < 0) return;` after
+  L10: B3 77 | B4 61) starts the body like a2 but is 51/84 vs 59/84 opcode-matched in the first block; the second block of a2/a6 starts the
+  d[16] pack at its 9th instruction (`rlwinm p9` as soon as p9 is ready) where the target issues all 14 second-half loads first and the
+  pack from its ~26th — the same scheduler-pick residue as the 8x8 (target favours loads / the pack-base sum p1 or p9 chain over the other
+  sums; ours issues ready ALU ops in raw order). Nothing applied to the tree in this pass; the harness stays until the boundary mechanism
+  (>= 28 vanishing initial instructions in the first half, or a construct that makes the check see another block) is found.
