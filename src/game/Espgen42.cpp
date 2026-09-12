@@ -495,7 +495,10 @@ void Espgen42_Move00(EspgenWork* w)
         if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
             // The index is the loop variable `k` (target `lwz r28` = k's register, base+index `lfsx f0,hB,k4`).
             k = (int) ((f32) (int) (nx * ny) * 0.5f);
-            p->hB[k] -= wt_pow;
+            // Byte offset in a variable: inside an address `p->hB[k]` expands to `(plus (mult k 4) hB)` (expr.c
+            // both_summands puts a MULT first) = `lfsx k4,hB`; a register index keeps `(plus hB k4)` = `lfsx hB,k4`.
+            u32 k4 = k * 4;
+            *(f32*) ((u8*) p->hB + k4) -= wt_pow;
         }
         f32 damp = p->damp;
         f32 cdamp = 2.0f - damp * 4.0f;
@@ -551,7 +554,16 @@ void Espgen42_Move00(EspgenWork* w)
                     // COMPILER-DIFF: pin (global alloc ranks i (r24) above j&7 and (k-nx)*12; the target has j&7 r24, i r23,
                     // (k-nx)*12 r26; a pin on i itself disables its IV optimisation). BUMP_INDEX with the pinned last term.
                     register int j7 asm("r24") = j & 7;
-                    p->bump[(j / 8) * 32 + ((i / 4) << 5) * ((nx + 1) >> 3) + i3 + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                    // Both signed divisions through ONE temp `t` (the target's `mr r0,j .. srawi jx,r0 | cmpwi i; mr r0,i`: the
+                    // second copy anti-depends on the first srawi in sched1, so the compare issues before it, and both temps
+                    // share r0); `jx << 5` (a shift, not `jx * 32`: a MULT in an address sum is put first by expand and would
+                    // start the add chain, the target starts it with the i term: `add r9,r9,r0`).
+                    int t = j;
+                    if (j < 0) t = j + 7;
+                    int jx = t >> 3;
+                    t = i;
+                    if (i < 0) t = i + 3;
+                    p->bump[((t >> 2) << 5) * ((nx + 1) >> 3) + (jx << 5) + i3 + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
                 }
                 nrm[k].x += (fx - hx) * inx;
                 nrm[k].z += (fy - hy) * iny;
@@ -586,22 +598,34 @@ void Espgen42_Move00(EspgenWork* w)
                 // n before the hB[k] update: the 0x4330/pool-double and 80.0 movables precede the 4.0 pair in loop.c's
                 // list (the target's inner preheader order is lfd; lfs 80.0; lfs 1.0; ...; 4.0 is in the outer one).
                 f32 n = (f32) nz - 80.0f;
-                hB[k] += sum - hA[k] * 4.0f;
-                hA[k] += n * 0.0001f + hB[k] * 0.04f;
-                hB[k] *= 0.92f;
+                // hB through a byte offset in a variable (`stfsx hB,k4` base first, see the wt_pow store above); hA's
+                // address is the cse'd `c` (`(plus hA k4)` from `c += k`, a non-address context) and is base first as is.
+                u32 k4 = k * 4;
+#define HB (*(f32*) ((u8*) hB + k4))
+                HB += sum - hA[k] * 4.0f;
+                hA[k] += n * 0.0001f + HB * 0.04f;
+                HB *= 0.92f;
+#undef HB
                 pv->y = n * 0.0018f + hA[k];
                 Vec* nrm = p->nrm;
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                PSVECNormalize(&v, &nrm[k]);
+                // COMPILER-DIFF: pin (global alloc order: k (32 refs / 216 insns, 0.74) is allocated before the loop-B
+                // `&nrm[k]` pointer (18 / 110, 0.65) and takes its r30; the target has the pointer in r30 and k below it).
+                register Vec* nk asm("r30") = &nrm[k];
+                PSVECNormalize(&v, nk);
                 {
                     register int j7 asm("r24") = j & 7;   // COMPILER-DIFF: pin (see loop A)
-                    p->bump[(j / 8) * 32 + ((i / 4) << 5) * ((p->nx + 1) >> 3) + ((i & 3) << 3) + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                    // Loop B's index differs from loop A's: `j / 8` in its own statement (first division, own temp), the i
+                    // division inside the sum with its own temp (`mr r9,i` before `cmpwi i`), `(nx+1)>>3` as the FIRST
+                    // multiplicand (`mullw r9,r10,r9` = tied to nx8), `jx << 5` (see loop A).
+                    int jx = j / 8;
+                    p->bump[((p->nx + 1) >> 3) * ((i / 4) << 5) + (jx << 5) + ((i & 3) << 3) + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
                 }
                 nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
-                nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
-                nrm[k].y *= 0.25f;
+                nk->z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
+                nk->y *= 0.25f;
                 k++;
             }
             asm("" : : "r"(dead));   // COMPILER-DIFF: use of the moved asm set (see above); emits nothing

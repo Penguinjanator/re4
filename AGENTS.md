@@ -25090,6 +25090,64 @@ Harness /home/adityas/.cache/cri33/ (regmap.py = per-role register map from `var
   A `Float32 v` local is forward-substituted (E/F/G/J/K/L/P/Q variants: `register`, `*py = v; py++`, a cast, `(void)v`, an
   inlined helper's return); the two-def `v = (Float32)(i - 16); v = 1.164f * v` keeps v a node (product f8, conv f2 =
   target) but generates the conversion first, so the magic/1.164 literal ids swap (8w). Left.
+- **Table makers 9/8/8 -> 0w and .rodata 0x88 / cnvStatic 0w, pure C + one tagged pool reference.** The three
+  `CFT_MakeArgb8888Alp*Tbl` diffs were one scheduler slot: the cb/cr sub-table pointers must derive from the `y` COPY of
+  `tbl` (`cb = (Float32 *)((Uint8 *)y + 0x1000)`, `CFT_MAKE_CHROMA_TBL(y)`), not from `tbl`: the in-order dual-issue
+  scheduler delays an `addi` whose input is a copy-of-a-copy by one cycle, which is exactly where the target has it.
+  .rodata: the version string is a named `static const Char8 cft_version_str[]` (first .rodata object, the `CFT_version`
+  pointer initialised from it), and cnvStatic's asm addresses its literal pool as `cft_version_str + 0x50@ha/@l` (MWCC's asm
+  parser accepts `symbol + constant@ha`, bytecmp resolves the relocation by address); a `static const Float32` scalar for
+  the same purpose is constant-propagated into a literal and its object deferred to the pool end (0x88 -> 0x8c), and a
+  global `const` is stripped by strip_unused.py (".text still references removed symbol"). Tagged COMPILER-DIFF.
+- **Y84C44 179 -> 114w, pure C (semantic bug + variable kinds).** The 179w were a register permutation over IDENTICAL
+  instruction streams except ONE real bug hidden among the register diffs: the chroma tile pointer steps `cskip * 8` words
+  per tile row (`slwi r23, r11, 5`), not `cskip` (ours `slwi .., 2`). Then, reading the target's colours as the Chaitin
+  order (volatiles lowest-free first, callee-saved handed out r31 downward for the spill-candidate picks, the low-degree
+  leftovers coloured last and REUSING handed-out callee-saved from r21 upward), the source shapes that reproduce them:
+  (a) ONE `cnt` variable for both loops (`cnt = ywidth / 8` then `cnt = ywidth / 2 / 4`): it spans both loops, is coloured
+  early and takes ybuf's r4 in place (`addze r4, r4`) in both; separate `cnt`/`ccnt` gave r28/r29. (b) The y-row steps are
+  BYTE offsets kept in own locals: `yskip = ywidth * 3 / 8 * 8; dskip = (width - ywidth) / 8 * 32; y0 = (Float64 *)((Uint8
+  *)y0 + yskip)` — with element counts (`y0 += yskip`) the loop-carried value is the hoisted `slwi` scale temp (high vid,
+  coloured before every own local: r9/r10), with byte offsets the named locals themselves carry the loop (r21/r22, coloured
+  after the y pointers). (c) `ywidth * 3` written twice (y3 offset and yskip) is one CSE temp (r10, volatile), not a local.
+  (d) Loop-2 row pointers are assigned cb-first (`cbp1 = cbp0 + cw; cbp2 = cbp0 + cw * 2; cbp3 = cbp0 + cw3; crp1 ..`, no
+  o1..o3 locals — the offsets come out as the same hoisted `slwi` temps) and declared crp3, crp2, crp1, cbp3, cbp2, cbp1:
+  the spill-candidate ties go to the highest vid, and BOTH the declaration order and the assignment order move the group
+  order. (e) Loop-1 own locals declared in the target's colour order: `ywidth, n, y3, yskip, dskip, y2, y1, d, y0, yw2, hblk,
+  cnt, i` (low-degree own locals are coloured in DECLARATION order, first declared first; `n`'s position is irrelevant — the
+  `while (n-- > 0)` counter copy is coloured before every own local). Residue 114w: two swaps — target crp0 r3 / c r5 /
+  crv r6 / cbp1 r9 / cbv r10 vs ours c r3 / crv r5 / crp0 r6 / cbv r9 / cbp1 r10 (crp0 must be coloured before c; no
+  declaration order, `register`, statement order or cbwidth/o-expression spelling moves it — all 120 permutations of the
+  five loop-2 top declarations tried), and ywidth r9 / n r11 vs ours r11 / r9 (ywidth as a CSE'd `src->ywidth` breaks the
+  in-loop y1 offset: the stores alias). chaitin.py does not replay this function (65 divergences), so no model help.
+- Tree now carries the `do { } while (0);` (menu 30 -> 2, size exact). The 2-word campos residue was confirmed as the register-weight
+  tie: `asm("" : "=m"(ProjType) : "r"(&campos))` after the first memcpy moves the base's REG_DEAD past the loads and the target's
+  y-then-z order appears, but the asm insn takes an issue slot and swaps r0/r8 and two iu2 insns (9 words) -> not applied. A pure-C
+  way to keep `&campos`'s pseudo alive past the z load without a new insn was not found (struct assignment `pos = campos` and a direct
+  `memcpy(&pG->Cam.param.pos, ..)` change the dest pointer shape: 46 words). OPEN.
+- **Y84C44 114 -> 96w (tree): cr rows first, o1..o3 locals, yw3 local, cbp0 declared first.** Corrections to the bullet
+  above (my regmap labels had cb/cr swapped): the target keeps the *cr* row pointers in volatiles (crp1 r9, crp2 r11,
+  crp3 r12) and the cb ones in r31..r29, so the rows are assigned cr-first and declared `cbp3, cbp2, cbp1, crp3, crp2,
+  crp1` (spill picks tie to the highest vid = first declared). The row offsets are NAMED locals `o1 = cw * 4; o2 = cw * 8;
+  o3 = cw3 * 4` and the y3 offset a named `yw3 = ywidth * 3` (declared right after ywidth): a named local as the left
+  operand gives `add rD, rOFF, rPTR`; a CSE'd expression gives the swapped `add rD, rPTR, rTMP` (-8w). Loop-2 top
+  declarations `cbp0, crp0, crv, cbv, c` (6 of 120 orders tie at 96w).
+- **chaitin.py is EXACT on this function with K = 28 and r0 removed from the volatile list** (default K = 29 diverges at
+  the first stuck pick): the asm `li r0, 8/4` + `dcbz d, r0` keep r0 live through both loops, so every loop node has r0 as a
+  precoloured neighbour and there are only 28 colours. Use `chaitin.K = 28; chaitin.VOLATILE = [3..12]` for any function
+  with an asm-pinned r0. With that model the 96w residue is ONE interference edge: crv (and cbv) have residual degree 28 at
+  the moment cbp0 is picked (r0 + c + crp0 + cnt + the 24 `mr` ghosts of the eight packed words, 3 per word); the target
+  needs 27 so that crv/c/cnt simplify and crp0 stays last (crp0 r3, cnt r4, c r5, crv r6, then crp1 r9 / cbv r10). Deleting
+  any single ghost edge in the model reproduces the target's loop-2 colours; no source spelling found that drops one ghost
+  (named accumulators, re-associated terms, crv-term-first all change the instruction stream). Loop 1: the target has
+  ywidth r9, yw3 r10 and the unroll-remainder counter copy r11 (`mr r11, r4; andi. r11, r11, 3`); ours has the copy at
+  r9 because the copy is a loop-transform temp (vid 154, coloured before every frontend local). Every loop form
+  (`while (n-- > 0)`, `for (n = 0; n < cnt; n++)`, down-counting, separate loop-2 counter) produces the same copy temp;
+  computing the count inside the outer loop or using `src->ywidth` in the loop reloads (asm stores are a barrier).
+  Frontend `n` is r65 (dead after the transform); the target's r11 would be n itself if the transform had reused it.
+- Flags: `lib/cftyp422_ppc.c` stays False (6/8 identical, 105w: Init 9w FPR order, Y84C44 96w = one crv/cbv edge +
+  the loop-1 counter-copy vid); objects.py untouched by this pass. `.data` 0x8/0x4 tail pad still open (the target has 4
+  zero bytes after `CFT_version`; ours pads to 8 by alignment). Tree = /home/adityas/.cache/cri33/tree6.c.
 
 ### Tool RELs, t_id pass 5
 
@@ -25622,32 +25680,6 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   peephole off` around the function is wrong elsewhere (`extrwi` -> `srwi`, the pool `addi`). Left at 4w.
 - Flags: `lib/mwsfdcre.c` stays False (8/10, CreateSfd 115w + CalcWorkSfd 4w); objects.py untouched; the tree object rebuilt through the
   locked ninja (bytecmp 8/10). Harness /home/adityas/.cache/cri_mws6 deleted.
-- **Y84C44 179 -> 114w, pure C (semantic bug + variable kinds).** The 179w were a register permutation over IDENTICAL
-  instruction streams except ONE real bug hidden among the register diffs: the chroma tile pointer steps `cskip * 8` words
-  per tile row (`slwi r23, r11, 5`), not `cskip` (ours `slwi .., 2`). Then, reading the target's colours as the Chaitin
-  order (volatiles lowest-free first, callee-saved handed out r31 downward for the spill-candidate picks, the low-degree
-  leftovers coloured last and REUSING handed-out callee-saved from r21 upward), the source shapes that reproduce them:
-  (a) ONE `cnt` variable for both loops (`cnt = ywidth / 8` then `cnt = ywidth / 2 / 4`): it spans both loops, is coloured
-  early and takes ybuf's r4 in place (`addze r4, r4`) in both; separate `cnt`/`ccnt` gave r28/r29. (b) The y-row steps are
-  BYTE offsets kept in own locals: `yskip = ywidth * 3 / 8 * 8; dskip = (width - ywidth) / 8 * 32; y0 = (Float64 *)((Uint8
-  *)y0 + yskip)` — with element counts (`y0 += yskip`) the loop-carried value is the hoisted `slwi` scale temp (high vid,
-  coloured before every own local: r9/r10), with byte offsets the named locals themselves carry the loop (r21/r22, coloured
-  after the y pointers). (c) `ywidth * 3` written twice (y3 offset and yskip) is one CSE temp (r10, volatile), not a local.
-  (d) Loop-2 row pointers are assigned cb-first (`cbp1 = cbp0 + cw; cbp2 = cbp0 + cw * 2; cbp3 = cbp0 + cw3; crp1 ..`, no
-  o1..o3 locals — the offsets come out as the same hoisted `slwi` temps) and declared crp3, crp2, crp1, cbp3, cbp2, cbp1:
-  the spill-candidate ties go to the highest vid, and BOTH the declaration order and the assignment order move the group
-  order. (e) Loop-1 own locals declared in the target's colour order: `ywidth, n, y3, yskip, dskip, y2, y1, d, y0, yw2, hblk,
-  cnt, i` (low-degree own locals are coloured in DECLARATION order, first declared first; `n`'s position is irrelevant — the
-  `while (n-- > 0)` counter copy is coloured before every own local). Residue 114w: two swaps — target crp0 r3 / c r5 /
-  crv r6 / cbp1 r9 / cbv r10 vs ours c r3 / crv r5 / crp0 r6 / cbv r9 / cbp1 r10 (crp0 must be coloured before c; no
-  declaration order, `register`, statement order or cbwidth/o-expression spelling moves it — all 120 permutations of the
-  five loop-2 top declarations tried), and ywidth r9 / n r11 vs ours r11 / r9 (ywidth as a CSE'd `src->ywidth` breaks the
-  in-loop y1 offset: the stores alias). chaitin.py does not replay this function (65 divergences), so no model help.
-- Tree now carries the `do { } while (0);` (menu 30 -> 2, size exact). The 2-word campos residue was confirmed as the register-weight
-  tie: `asm("" : "=m"(ProjType) : "r"(&campos))` after the first memcpy moves the base's REG_DEAD past the loads and the target's
-  y-then-z order appears, but the asm insn takes an issue slot and swaps r0/r8 and two iu2 insns (9 words) -> not applied. A pure-C
-  way to keep `&campos`'s pseudo alive past the z load without a new insn was not found (struct assignment `pos = campos` and a direct
-  `memcpy(&pG->Cam.param.pos, ..)` change the dest pointer shape: 46 words). OPEN.
 - **menuFlag 69 (not improved).** New structural fact from the target: `addi r4,r31,0x15; mr r25,r4; .. mulli r4,r4,0xe` = the row's
   `y + i` is a block-local temp A (r4) with a gcse PRE copy P (r25) for the arms, and the row's `* 14` still reads A (regmove did not
   move A's use to P, so no coalescing); ours has one shared pseudo (`addi r30,r31,0x15; mulli r29,r30,0xe`). Inside the key/target
@@ -25655,7 +25687,6 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   Both point at the same thing: in the original the `(y + i) * 14` of the sub-rows is not the head's expression at loop.c time (a
   copy/temp structure different from writing `(y + i) * 14` in every row). `c` reused as the OFF colour (`c = 7 / c = col`) = 117
   words, wrong direction. The `x + 19` second use and the r16..r31 save (one more callee-saved value, `x` in r16) remain OPEN.
-
 ### Tool RELs, t_id pass 5 (continued: idEditColor, toolIdOption, idEditUnit, toolIdInit, toolIdEditDisp)
 
 - idEditColor 132 -> 0, pure C. Mechanisms: (a) `const char** tbl3 = onOffName3` as a VARIABLE base for the inner
@@ -25833,29 +25864,54 @@ flags gives the same 48w object for mpv_umc as GC/2.7 -- the ra.py dumps are fai
   left: `#pragma peephole off` for this ONE function (M4) with the swap as SFH_SWAP32_STORE and the element search re-spelled to the
   folded displacements -- pass 23 measured 10w / 38-41w for those, so the C form (6w) stays.
 
-### DOL espgen42/45 pass 7 (Espgen42_Move00 104 -> 84w, Espgen45_Move00 121 -> 107w; in progress, 2026-09-12)
+### DOL espgen42/45 pass 7 (Espgen42_Move00 104 -> 34w, Espgen45_Move00 121 -> 77w; sizes now equal; three structural finds + one pin; no flip; 2026-09-12)
 
-- Indexed-address operand order (`lfsx f0,r8,r9` = `(plus hB k4)` in the target vs ours `lfsx f0,r9,r8`): expr.c PLUS_EXPR in
-  EXPAND_SUM mode (an INDIRECT_REF address) ends with "Put a constant term last and put a multiplication first": `p->hB[k]`
-  expands to `(plus (mult k 4) (mem hB))`; rs6000 LEGITIMIZE_ADDRESS clause 2 needs a REG first, so memory_address falls to
-  force_operand -> `add t = k4 + hB` (index first, combine folds it into the lfsx). A REGISTER index (`u32 k4 = k * 4;
-  *(f32*)((u8*)p->hB + k4)`, or `k << 2`) keeps `(plus hB k4)` = base first. `hA[k]` was already base first in ours because its
-  address is the cse'd `c` (`c = hA; c += k;` is a non-address context = binop path, `(plus c k4)`). Applied to the wt_pow store
-  and the loop-B hB accesses of both units (42: 88 -> 84 with the pin below; the loop-B/loop-A `&p->pos[k]` pointer-variable
-  comment in the source is the same rule).
-- 42 k r28 vs r30 / loop-B `&nrm[k]` r30 vs r28 and 45 k4 giv r29/r30 vs the pointer: `register Vec* nk asm("r30") = &nrm[k];`
-  used for the call argument and the .y/.z updates (`nrm[k].x` stays base+index `lfsx r26,r27`): 42 104 -> 88, 45 121 -> 111.
-  Zero-code attempts that failed: a plain `Vec* nk` variable (no change), `asm("" : : "r"(nk))` after the call (output-less asm
-  = volatile barrier, re-orders the tail, 99w but drops the 5th `mr`: size 0x86c/0x86c).
-- Bump-index block (`mr r0,r25; ..; srawi r10,r0,3 | cmpwi r23; mr r0,r23` vs ours `mr r9; srawi r9,r9 | mr r0,r23; cmpwi`):
-  the i-division's `mr t2,i` and `cmpwi i,0` are a sched1 tie in the join block (ready list `670 669 667` = srawi > mr > cmpwi,
-  ascending print, last = best; the compare occupies "iu"+"iu2" and cannot issue once srawi+mr fill both iu2 slots). Target
-  order srawi, cmpwi, mr needs the compare ranked above the copy (REG_WEIGHT/dependents/LUID all tie in ours). With mr first,
-  the j-side temp t (global-allocated, spans the arm) cannot take r0 and lands in r9 = the T chain register. Pins tried:
-  `register int jx asm("r10") = j / 8` (t follows the suggestion into r10, 90w), `register u8* bp asm("r10") = p->bump` (t -> r0
-  as the target, but the hard-reg load is emitted at the declaration = block top instead of after the divisions, 94w),
-  `register int jx32 asm("r0")` (combine merges srawi+slwi into one rlwinm, 200w). Sum order `iside + jside` expands the
-  i-division first (215w). No lever applied yet.
+Harness ~/.cache/dol_espg7 (deleted): `v.sh 42|45 <src> [--diff]` = variant.sh + word count, `tgt.sh 42|45 <from> <to>` = target
+asm by fdiff section offset (Move00 starts at .text 0xe34 / 0x74). Both units carry the same forms; loop A and loop B of the
+ORIGINAL are different spellings (the loop-B `mullw` has the other operand order), so the bump index is no longer one macro.
+
+- **Indexed-address operand order** (`lfsx f0,r8,r9` = `(plus hB k4)` target vs ours `lfsx f0,r9,r8`, the wt_pow store and every
+  loop-B `hB[k]`): expr.c PLUS_EXPR in EXPAND_SUM mode (an INDIRECT_REF address) ends with "Put a constant term last and put a
+  multiplication first", so `p->hB[k]` is `(plus (mult k 4) (mem hB))`; rs6000 LEGITIMIZE_ADDRESS clause 2 needs a REG first,
+  memory_address falls to force_operand: `add t = k4 + hB` (index first, combine folds it into the lfsx). A REGISTER index keeps
+  the base first: `u32 k4 = k * 4; *(f32*)((u8*)p->hB + k4)` (also `k << 2`). `hA[k]` was already base-first because its address
+  is the cse'd `c` from `c = hA; c += k;` (a non-address context = the binop path, `(plus c k4)`). Same rule as the old
+  `Vec* pv = &p->pos[k]` comment (pointer variable = binop path = base first). 42 88 -> 84, 45 111 -> 107.
+- **Loop-A bump index = both divisions through ONE temp**: target `mr r0,j; cmpwi j; bge; addi r0,j,7; srawi r10,r0,3 | cmpwi i;
+  mr r0,i; bge; addi r0,i,3 | extlwi r9,r0,27,3; mullw r9,r9,r0; slwi r0,r10,5; add r9,r9,r0`. Three facts read off it: (1) the
+  second copy is issued AFTER `cmpwi i` although its LUID is earlier — in this haifa a JUMP_INSN has no anti-dependence on the
+  block's earlier sets (sched_analyze_insn only groups USE insns), so ranks are `srawi > mr > cmpwi` by LUID/REG_WEIGHT and the
+  compare (which occupies "iu" + one "iu2" slot) cannot issue once srawi+mr fill both iu2 slots; the target's order needs the
+  copy NOT ready at t=1, i.e. an anti-dependence on the srawi = the copy writes the register the srawi reads = the same temp
+  (both temps are r0 in the target). (2) `srawi r10` and `slwi r0,r10,5` are separate insns although jx has one use: combine
+  cannot substitute `(ashiftrt t 3)` across the redefinition of t. (3) `add r9,r9,r0` starts the chain with the i term: a
+  `(mult jx 32)` in the address sum would be put first (see above), so the j term is a shift `jx << 5`. Source form (applied to
+  both units): `int t = j; if (j < 0) t = j + 7; int jx = t >> 3; t = i; if (i < 0) t = i + 3;` then
+  `p->bump[((t >> 2) << 5) * ((nx + 1) >> 3) + (jx << 5) + i3 + j7]`; the j7 pin must stay the FIRST declaration of the block
+  (declared after the `if`s the `register asm("r24")` variable lost its hard register, 110w). 84 -> 73 in 42. What C the
+  original had for the shared temp is unknown (expand_divmod's `copy_to_mode_reg` never shares); a hand-written division
+  helper macro is the likely shape.
+- **Loop-B bump index is a different spelling**: target `mr r0,j; .. srawi r0,r0,3 | mr r9,i; cmpwi i; .. addi r9,i,3 | lhz
+  r11,nx; extlwi r10,r9; addi r9,r11,1; srawi r9,r9,3; mullw r9,r10,r9; slwi r0,r0,5; add r9,r9,r0`: own temps, the copy before
+  the compare (plain LUID order), `mullw` tied to the nx8 operand = `(mult nx8 ix)`, nx8 loaded in the join block. Best form:
+  `int jx = j / 8;` then `p->bump[((p->nx + 1) >> 3) * ((i / 4) << 5) + (jx << 5) + ((i & 3) << 3) + j7]`: 73 -> 34 in 42,
+  and the 5th dead `mr` (size 0x870 vs 0x86c) disappeared with it (45: 0xa50 -> 0xa54, also equal now). Remaining there: ours
+  expands nx8 (`lhz; addi; srawi`) before the i-division (it is op0 of the MULT), the target in the join block; every form that
+  moves it there (`((i / 4) << 5) * nx8`, `int ix = i / 4`, `nz = ..` as the index, `ix` + keep-alive anchor) re-ties the mullw
+  to the i term or re-allocates the j temp to r5/r6 (53-88w). Open: a form with nx8 expanded after the division AND the
+  mullw tied to nx8 (a non-local `(i/4)<<5` pseudo would do it: global alloc would give it r10 as the target).
+- **42 k r28 vs r30 / loop-B `&nrm[k]` pointer, 45 k4 giv r29/r30**: `register Vec* nk asm("r30") = &nrm[k];` for the call
+  argument and the .y/.z updates (`nrm[k].x` stays the base+index `lfsx r26,r27`). 42 104 -> 88, 45 121 -> 111. A plain
+  `Vec* nk` variable changes nothing; `asm("" : : "r"(nk))` after the call is an output-less asm = volatile barrier (99w).
+- Side effects seen: the 45 `andi. r11 vs r10` / `andi. r9 vs r11` / `lis r11 vs r9` scratch names went away with the bump
+  fix — reload picks `clobber (scratch)` registers from `potential_reload_regs` ordered by hard_reg_n_uses (function-wide
+  pseudo use counts), so any allocation change elsewhere in the function moves them; never chase those directly.
+- Remaining. 42 (34w): loop-A preheader `mr r31,r10 | slwi r27,r28,2` order (sched1 tie of the k*12 copy vs the k*4 giv init);
+  loop-B sum chain (`lfs f13/-4(r7)` and `lfs f12/-4(r11)` FPR names swapped, `lfs f10,4(r9)` issued before the first fadds in
+  the target, `stw r22; addi r3` order, hB[k] load in f12 vs f0 — one local-alloc FPR qty order + sched2 tie group); loop-B
+  nx8 placement (above). 45 (77w): the same two plus loop-A preheader `mulli r10,k,12 / mulli r8,ny,-12` names + `mr r29,r10 |
+  slwi r31` order, loop-A FPR names (`psq_l f10` vs f12, f11/f10/f12 in the sum), loop-B tail `mr r7/r10/r6/r11/r5,r8` copy
+  order + `xoris r4; lfd f12` slot (sched2, downstream of the nx8 placement). Flags untouched (no IDENTICAL).
 
 ### CRI pass 35 (cri_cvfs cvFsOpen 18 -> 0w, unit 11 -> 12/13, cvFsGetFileSize 32 -> 14w; sfd_adxt ExecServerSub 88 -> 59w at target size; sfd_tst SFTST_Calc 79w read, unchanged; no flip; pure C, no pins; 2026-09-12)
 Harness /home/adityas/.cache/cri35/ (deleted at the end): `try.sh <unit> <variant.c> <FUNC> [-d]` over variant.sh, ra.py dumps,
@@ -26082,27 +26138,6 @@ Harness /home/adityas/.cache/cri38/ (deleted: gen.py/genz.py variant generators 
   `subf size` was not a DAG successor of it there. `x++`/`x--` statements are deferred by the frontend to the block end (line of the
   following `if`), so `data++` is a sinker after `size -=` in ours (target: `addi data` at slot 9, `subf size` at 11 = the reverse).
   `register` locals for asm operands (`asm { addi t, ofs, 1 }`, 12w) and `#pragma scheduling off` (41w) do not close it. Not closed.
-- **Y84C44 114 -> 96w (tree): cr rows first, o1..o3 locals, yw3 local, cbp0 declared first.** Corrections to the bullet
-  above (my regmap labels had cb/cr swapped): the target keeps the *cr* row pointers in volatiles (crp1 r9, crp2 r11,
-  crp3 r12) and the cb ones in r31..r29, so the rows are assigned cr-first and declared `cbp3, cbp2, cbp1, crp3, crp2,
-  crp1` (spill picks tie to the highest vid = first declared). The row offsets are NAMED locals `o1 = cw * 4; o2 = cw * 8;
-  o3 = cw3 * 4` and the y3 offset a named `yw3 = ywidth * 3` (declared right after ywidth): a named local as the left
-  operand gives `add rD, rOFF, rPTR`; a CSE'd expression gives the swapped `add rD, rPTR, rTMP` (-8w). Loop-2 top
-  declarations `cbp0, crp0, crv, cbv, c` (6 of 120 orders tie at 96w).
-- **chaitin.py is EXACT on this function with K = 28 and r0 removed from the volatile list** (default K = 29 diverges at
-  the first stuck pick): the asm `li r0, 8/4` + `dcbz d, r0` keep r0 live through both loops, so every loop node has r0 as a
-  precoloured neighbour and there are only 28 colours. Use `chaitin.K = 28; chaitin.VOLATILE = [3..12]` for any function
-  with an asm-pinned r0. With that model the 96w residue is ONE interference edge: crv (and cbv) have residual degree 28 at
-  the moment cbp0 is picked (r0 + c + crp0 + cnt + the 24 `mr` ghosts of the eight packed words, 3 per word); the target
-  needs 27 so that crv/c/cnt simplify and crp0 stays last (crp0 r3, cnt r4, c r5, crv r6, then crp1 r9 / cbv r10). Deleting
-  any single ghost edge in the model reproduces the target's loop-2 colours; no source spelling found that drops one ghost
-  (named accumulators, re-associated terms, crv-term-first all change the instruction stream). Loop 1: the target has
-  ywidth r9, yw3 r10 and the unroll-remainder counter copy r11 (`mr r11, r4; andi. r11, r11, 3`); ours has the copy at
-  r9 because the copy is a loop-transform temp (vid 154, coloured before every frontend local). Every loop form
-  (`while (n-- > 0)`, `for (n = 0; n < cnt; n++)`, down-counting, separate loop-2 counter) produces the same copy temp;
-  computing the count inside the outer loop or using `src->ywidth` in the loop reloads (asm stores are a barrier).
-  Frontend `n` is r65 (dead after the transform); the target's r11 would be n itself if the transform had reused it.
-
 ### Tool RELs, t_camera_data closer 3 (DB_STRING ctor 7 -> 2 words with a memory-input launder; tcDataExport / tcSetBesideOffset see below; 2026-09-12)
 Scratch /home/adityas/.cache/tcam3/ (variants `dbw_<X>.cpp`, `rtl_<X>/` dumps, LADBG logs; deleted at the end).
 - **DB_STRING ctor 7 -> 2 (applied): `u32 zero = 0; asm("" : "+r"(zero) : "m"(ca)); len = zero; str = (char*) zero;`** (the
