@@ -28898,16 +28898,86 @@ Harness /home/adityas/.cache/cri60/ (`mk.py SRC OUT [MARK=func] 'OLD=>NEW'..`, `
   MPS_DecHd / sfmps_CopyPketData take `Uint8 *`: four implicit-conversion errors), so the vendor's parameter was not const; the loads of the scan loop go through
   the local `p` (t2 in any case). Left 5w, M1 pin kept.
 
-### Tool RELs, t_esp pass 24 (t_esp 208/212: InitTool 1570 -> 1415w in the tree, two structural finds read off the target, both pure C: (1) the CreateNumeric2 rows compute their two edit pointers BEFORE the `DB_POINT pos` (54 rows, ID_WINDOW excepted), (2) `g_pLoadDirButton`/`g_pSaveDirButton` are `DB_STRING*` (the store's high crosses the CreateButton call); LOAD..PATH regions mset 0, seg 0 exact; IN PROGRESS 2026-09-12)
+### Tool RELs, t_esp pass 24 (t_esp 208/212: InitTool 1570 -> 1415 -> 1409w in the tree, all pure C: (1) the CreateNumeric2 rows compute their two edit pointers BEFORE the `DB_POINT pos` (54 rows, ID_WINDOW excepted) -- read off seg 378, where the target shares g_pEditSeq's high but loads 284.0/32.0 and g_pEditSeq2's high fresh; (2) `g_pLoadDirButton` is `DB_STRING*` (a NOP_EXPR RHS makes expand_assignment legitimise the LHS address before the CreateButton call -> the high crosses the call -> sched1-hoistable -> the target's callee-saved r24; segs 163/184 exact); (3) cse1 F12 BASEPOS+123 -> +107 (WORKSP2 pad +20, seg 782's 8.0 fresh); LOAD..PATH mset 0, lc 782 gone, seg 0 exact; the block-13 A/Name order read to a 84/84 priority tie; nothing flipped; 2026-09-12)
 
-- **Tree (interim):** src/t_esp/t_esp.cpp = pass 23 + (a) every plain-window `pa_->CreateNumeric2(win_, &A, &B, &pos, &sx, ..)` row
-  written `T* n1 = &A; T* n2 = &B; DB_POINT pos(..); int sx = ..; pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, ..);` (54 rows,
-  the macro classes included; the 10 ID_WINDOW rows keep the in-call form: its ctor is out of line and its standalone copy has the
-  target's [pos stores][g_pEditSeq load] LUID order), (b) `static DB_STRING* g_pLoadDirButton; static DB_STRING* g_pSaveDirButton;`
-  (was DB_BUTTON*), (c) PATH pad `1..8` -> `1:2:3:4` and POS `{ }` -> `1:2:3:5` (F4 moves 4 cse1 insns later, after the row-378
-  n1 computation; every other flush unchanged). Locked ninja + bytecmp: 1415w, size 0xa20c/0xa0d4, 208/212, N 5233 (28 sets, no
-  refit), grids cse1 LOAD_EVENT+6 SAVE_EVENT+27 OPTION+540 PATH+541(=545 base coords) SIZE+174 SPEED+684 COLOR+863 LIFE+8
-  ROTATE+644 WORK0+14 WORK6+14 BASEPOS+123, cse2 unchanged; mset [2 0 0 0 0 0 0 7 15 3 38 0 18 5] (pass 23: [2 8 ..]); lc 623 782.
+- **Tree:** src/t_esp/t_esp.cpp = pass 23 + (a) every non-ID `pa_->CreateNumeric2(win_, &A, &B, &pos, &sx, ..)` row written
+  `T* n1 = &A; T* n2 = &B; DB_POINT pos(..); int sx = ..; pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, ..);` (54 rows incl. the
+  VEC/WORK macro classes and the `->SetKeta()`/`->SetUpdateCallback()` chained rows; the 10 ID_WINDOW rows keep the in-call form),
+  (b) `static DB_STRING* g_pLoadDirButton;` (was DB_BUTTON*; g_pSaveDirButton left DB_BUTTON*, see below), (c) PATH pad `1..8` ->
+  `1:2:3:4` and POS `{ }` -> `1:2:3:5` (F4 +4 cse1 insns later = after row 378's n1; every other flush unchanged), (d) WORKSP2 pad
+  `1:2:3:4` -> `1:2:3:4:5..20` (+20 cse1-only, F12 -16). Locked ninja + bytecmp: 1409w, size 0xa20c/0xa0e0, 208/212, N 5233 (28 sets,
+  autoN: no refit at either step). Grids: cse1 LOAD_EVENT+6 SAVE_EVENT+27 OPTION+540 PATH+541 (own coords; 545 in pass-23 coords)
+  SIZE+174 SPEED+684 COLOR+863 LIFE+8 ROTATE+644 WORK0+14 WORK6+14 BASEPOS+107; cse2 unchanged (LOAD_EVENT+53 OPTION+70 PATH+348
+  SPEED+109 COLOR+554 ANMRATE+43 SUB+47 WORKSP1+78). mset [2 0 0 0 0 0 0 7 15 3 38 0 18 2] (pass 23 [2 8 0 0 0 0 0 7 15 3 38 0 18 5]),
+  lc segs 623 only (782 fixed), seg summary 290 / total_d 1925 (pass 23: 264 / 2124; the segment count rose because the LOAD/PATH
+  register names r16/r17, r21/r22 now show in ~25 segments that were d0 with the old, wrong allocation). Steps: 1570 -> 1564 (row 377
+  n1 only, probe) -> 1617 (row 378 n1 + F4 +4: A gets its 12th ref, B/B2 permute) -> 1604 (g_pLoadDirButton DB_STRING*: segs 163/184
+  exact) -> 1415 (all 54 rows) -> 1409 (F12).
+- **Seg 378 (PATH row `x128[3]`, `pos(284.0f, 32.0f)`) is the whole item-1 reading.** Target: `lis r9; lfs f0` 284.0 FRESH, `lis r11;
+  lfs f27` 32.0 fresh, `lwz r5, g_pEditSeq@l(r17)` = A (the first block-13 head, 350-377 in both) SHARED, `lwz r6, g_pEditSeq2@l(r22)`
+  = B2 fresh. With the row order [pos consts][sx][g_pEditSeq high][g_pEditSeq2 high] this is unreachable: one cse1 flush before the
+  consts makes both highs fresh, one between the highs shares the consts too; cse2 cannot help (F3' must lie in [PATH+314, +356] so
+  that 378's 284.0 is not rescued from 377's load at +313, and A's set (seg 350) is before F3' in any case). So the row computes
+  `&g_pEditSeq->x128[3]` first: [n1][n2][pos][sx] with F4 in (n1, n2] gives exactly T's four states. Row 377 alone (`P1`) changed
+  nothing (F4 at +541 is after row 377); row 378 alone with F4 at +541 (`P3`) changed nothing either (F4 falls before the n1 that now
+  sits at +541..544) -> F4 had to move to +545 (PATH `1..8` -> `1..4`, POS `{ }` -> `1:2:3:5` (4,0) pays it back before F5).
+  Applying the order to ALL rows (`/tmp/t24/n12t.py`, typed locals; `__typeof__` probe `n12.py` gave the byte-identical object) was
+  the big win (1604 -> 1415, regions 350-399 122 -> 36 and 700-749 156 -> 32 with the SAME grids: `d.jump: PATH-4 POS+4`, `.loop`
+  PATH-1 PARENT+1 only). Chained rows (`->SetKeta`) reverted = 1462 (worse), so they are pointers-first too. ID_WINDOW's rows are
+  NOT: its ctor is out of line (`stw r3, g_pIdWin@l` at seg 353 = a call result) and the standalone `__Q215t_esp_namespace9ID_WINDOW..`
+  has the target's [pos stores][g_pEditSeq load] order (it went 0 -> 14w with the n1 form; reverted, 0 again). Reading: the vendor's
+  plain rows went through an inline helper whose pointer parameters are copied before its `DB_POINT pos` body; ID_WINDOW (`n = ...`
+  rows with nameTbl) was written out by hand. Not tried: the real inline helper (its f32/int parameter copies would change every cse1
+  count and the whole grid); the typed-locals form is count-neutral.
+- **Item 2, `g_pLoadDirButton`: seg 183 target `stw r3, g_pLoadDirButton@l(r24)` with `lis r24` at the TOP of seg 163 (hoisted 20
+  segments), ours `lis r9; stw` fresh.** expr.c expand_assignment: when the RHS is a bare CALL_EXPR the call is expanded FIRST and
+  `to_rtx` (the LHS `(mem sym)`, legitimised into high/lo_sum by expand_expr's VAR_DECL `change_address`) only after it -> the high
+  pseudo is set after the call, REG_N_CALLS_CROSSED 0 -> haifa `sched_analyze_1` gives it REG_DEP_ANTI on `last_function_call` ("don't
+  let it cross a call after scheduling if it doesn't already cross one") -> never hoisted -> local scratch `lis r9`. Any non-CALL_EXPR
+  RHS (the `new` form of `g_pXxxWin = new XXX_WINDOW`, a NOP_EXPR from a pointer conversion) goes through store_expr with `to_rtx`
+  legitimised BEFORE the RHS -> the high is set before the call(s) -> hoistable filler -> callee-saved. `static DB_STRING*
+  g_pLoadDirButton` (DB_BUTTON -> DB_STRING base conversion = NOP_EXPR; SetString/SetColor are DB_STRING methods, SetDirName unchanged)
+  reproduces seg 163 exactly and seg 184's `lis r23 g_pEditSeq` (LADBG: q20 reg2756 g_pLoadDirButton-high -> r24, q21 g_pLoadWin-high
+  -> r23, then B2 (17 refs) -> r23 after it dies). **g_pSaveDirButton is the same** (target seg 237 `lis r6 ..DirButton; lis r8 g_pSaveWin`
+  = reload's rotation for a hoisted-then-spilled pseudo; DB_STRING* reproduces both registers, `Q1`/`N6`) but its extra filler
+  (first use 237, priority above the WORK0 head 9682's) pushes 9682's sched1 slot from block insn 718 to 758 = past the LOAD_EVENT
+  `" Name :"` use at seg 221, so 221 inherits Name's r17 (lc 221 back) and seg 210 loses its `lis` -- 1418w vs 1415w: NOT applied,
+  the tree keeps DB_BUTTON* for g_pSaveDirButton. Rule: the target has one fewer filler above 9682 than N6 (or one more slot).
+  Array/struct forms for the two buttons (`g_pDirButton[2]`) break SetDirCallback and seg 163 -- rejected.
+- **Item 3, F12 (BASEPOS, `/tmp/t19/win.py DUMP BASEPOS` + the .LC values):** rows 779-782 are (8.0, 0/16/32/48), 783 (95.0, 0.0);
+  target seg 782 loads 8.0 (LC1564) fresh, ours shared f25: T's F12 lies between row 781's 8.0 use (+95) and row 782's 8.0 high
+  (+112); ours +123. WORKSP2 `1:2:3:4:5..20` (not first-after-flush = (20,0), cse2 untouched) -> BASEPOS+107; +16/+20/+24 all give
+  1409w / 782 d6, +28 (F12 <= +95) 1419w. Residue at 782: `lfs f0` vs `lis r11` order and the BASEPOS `this` name r29/r30.
+- **Block-13 local-alloc order, read (LADBG on the tree, `/tmp/t24/la_tree1.log`):** q135 reg5364 (19 refs, cls 2) 134 -> r24, B2
+  (W2 g_pEditSeq2 head, 17 refs 656-6274) 121 -> r23, q213 const-0 (25 refs, from seg 187) 116 -> r22, B (W2 g_pEditSeq head, 16 refs
+  708-6270) 115 -> r21, q54 reg3270 98 -> r20, PA (9 refs 256-3048) 96 -> r18, **Name (5 refs 22-1208) 84 -> r17, A (12 refs 636-4880)
+  84 -> r16**, A2 (11, 640-4836) 78 -> r15, LoadNowClose (5, 84-1392) 76 -> r14, then 9682 (WORK0 g_pEditSeq head, 21 refs, 1436-)
+  72 -> r17 and 9686 -> r14 after Name/LoadNowClose die, label high q6 (3 refs 20-692) 44 -> r22, g_pLoadDirButton high 39 -> r24,
+  g_pLoadWin high 38 -> r23. Target: r18 PA, r17 A, r16 Name, r15 A2, r14 LoadNowClose, r23 B, r22 B2, r21 label, r24
+  g_pLoadDirButton (then a const 0), r23 g_pLoadWin. So two inversions remain: A vs Name (ours a 84/84 TIE broken by qty number,
+  q7 < q128) and B vs B2 (115 vs 121). Arithmetic: A = floor(log2 12)*12*10000/(death-birth) = 360000/4244; Name = 100000/1186. k
+  extra sched1-stream insns between Name's set (block insn 11) and A's set (318) give Name 100000/(1186+2k) and A 360000/(4244-2k):
+  k = 3 flips it (Name 83, A 84); so does A's set 5 stream insns later or Name's last use (seg 210) 10 insns later. The fillers
+  (dep-free `lis`/`lfs`/`li` heads) are issued by sched1 in priority then LUID order into the free slots of the call chain (`-dS
+  -fsched-verbose-2`: A = uid 9228 at t=159 right after the g_pDataSetWin high, then A2, ..., B2 at t=164, five PARENT fillers, B
+  at t=177); the FINAL `lis` positions are sched2's WAR-limited hoists (T's `lis r23 B` at 184 = right after g_pLoadWin's last r23
+  use; ours identical now), so the final code does not show the sched1 slots -- read them from LADBG birth or the .sched dump. Which
+  three fillers T has above A (or which slot structure) is not found; the visible hoisted set of segs 162-215 is identical in T and
+  ours. B vs B2 needs B's length < 16/17 of B2's (B's set >= 136 stream insns later, or B2's earlier).
+- **Alias status of the dir-button stores (segs 183/237 d6, open):** target order `stw r3,@l(r24); li r3,8; li r24,0; lwz r9,4(r30);
+  stw r31,0x58(r9)`, ours issues the DEACTIVATE `lwz r9,4(r30)` first: in the target the `e->win` load waits for the button store
+  (the store is not `MEM_SCALAR_P`-disjoint from the IN_STRUCT load), i.e. the vendor's store was not a plain scalar global (a struct
+  member?). The array form was rejected (above); a struct form was not tried.
+- Harness /tmp/t24 (kept): base.cpp (pass-23 tree), tree1.cpp (1415w), tree2.cpp (= the tree, 1409w), P1..P4/Q1/Q2/N1..N7/W16..W28
+  variants, ct.sh/scan.sh/pad.py/surv.py/rldmap.py (t23's on /tmp/t24 paths), highs.py (InitTool's `(set r (high sym))` insns in
+  stream order with use counts), n12.py/n12t.py (row rewriter, probe/typed), unn.py (row reverter: chained | line ranges), la_*.log
+  (LADBG), gdbg_Q2.log, rtl_base/rtl_Q2/rtl_tree1 (-dj -dL -dl -dS sched dumps; `sched_*.txt` = InitTool's sched1 issue log). Not
+  run: make_rel --verify, ninja -k 0, shasum (nothing flipped). /tmp/t23, ~/.cache/tesp15, the kit untouched.
+- Next: (1) the A/Name tie: find the 3 stream insns of segs 162-210 (a hoistable high in T that ours pins after a call -- audit every
+  `g_x = f()` store and every `->` store in MODEL..LOAD_SST with the CALL_EXPR rule above; the g_pSaveDirButton typing must come with
+  it, see the 9682 slot); (2) B vs B2 (same family); (3) 489-688 in T are fresh `lis r6` per row for g_pEditSeq while r16 holds the
+  value -- find_equiv_reg is unbounded (reload.c 6216), so something between 484 and 489 must set r16 in T's pre-sched2 order or the
+  461-484 uses are the W10 head's inheritance and the W5..W9 heads are excluded for another reason; (4) lc 623, the 38-bucket.
 
 ### CRI SWAR kernels pass 14 (mpv_mc 8x8 H2 494w unchanged in the tree; the target's two rows are the BACKEND'S x2 UNROLL of a one-row loop (body <= 34 pcodes), the `and w0,a0` / `x0 & m1` order is a same-vreg WAR edge (a0 one web, `#pragma opt_lifetimes off` reproduces the target's 26-opcode row order exactly), and the target's colours are ONE level in declaration order with no temp node in the loop; nothing applied, nothing flipped; V2/16x16 items not started; 2026-09-12)
 Harness /home/adityas/.cache/cri_swar14/ (KEPT, dumps deleted: `mkv.py NAME [--base BODY] [--pre TEXT] 'OLD=>NEW'..` = bodies/NAME.c from the tree's
@@ -29008,3 +29078,25 @@ what-if), `ast1.py FILE [FROM TO]` = one-line AST statements, `blk.py`). Pass-13
   here. Left 115w (2 dead `b`).
 - **Not tried this pass:** nothing else. Tree edits: src/lib/sfd_cre.c (AnalyMpv declarations, test spelling, b7 second def, header comment), config/G4BE08/objects.py
   (`# CRI pass 60` block). sfd_cre IDENTICAL, `ninja -k 0` + `dtk shasum -c` 111 OK. Harness /home/adityas/.cache/cri60 deleted.
+
+### CRI pass 59 (cftfx UserTable 73 -> 2w in the harness, not yet applied: the rows-3/4 level-1 slot = the `|=` pack spelling; in progress; 2026-09-12)
+Harness /home/adityas/.cache/cri59/ (`mk.py`, `v.sh NAME [BLK]` = variant words + scheddump + `chk2.py` = the 7 target pre-RA order facts
+identified by ROLE (y0..y3, t0..t3, slwi/rlwimi/oris 0/1, d0/d1, add, subf) so vreg renumbering does not matter; `search.py` = sched.py on
+B5 with invisible pcodes (coalesced copies / dead defs) inserted at every chain point, singles/pairs/triples x input orders; deleted at the end).
+- **Why the slot could not move (search.py):** in B5 `lbz y2` frees TWO successors at c5/c6 (`lbzx tbl[y2]` AND the `addi y,y,4`, whose preds are
+  the four index loads and y2 is the last one issued), so no input order, alias change or single dead def lets `lwz d0` (frees 0, h10) or
+  `lbzx tbl[y3]` (frees 1, h9) beat it; the only DAG edits that give all 7 facts are a +1-cycle delay on pack 0's `mr v0` AND +1 height on `lwz
+  d0` (pairs: copy after `slwi B0` / after `mr v0` / a dead READ of v0 between `mr` and `rlwimi`, each with a copy after `lwz d0`).
+- **The C: `v0 = (A << 24); v0 |= (B << 8);` (two statements per pack) instead of `v0 = (A << 24) | (B << 8)` (b1: 73 -> 11w, all 7 facts).**
+  The or->rlwimi peephole (pass 01) still inserts the earlier-defined shift (`rlwimi 24,0,7`, same shape) but the `<<24` rlwinm now WRITES v0's
+  register (it is v0's first def) and becomes a dead def that is deleted only at RA: at scheduling time it is a WAW predecessor of the peephole's
+  `mr v0, B` (kind 0), and it is ready only when tbl[y0] arrives (c5), so `mr` moves to c6 (same-GPR IU rule), `rlwimi` to c7, `oris` to c8:
+  `lwz d0` takes the LSU at c6 (before the rlwimi -> tbl[y0] r31), `lbzx tbl[y3]` at c7 (before the oris -> y3 r6). Row 3 (B4) gets its two facts
+  the same way. Rows 1-2 unchanged (their colours never depended on the slot).
+- **Then p3'/pack colours (b2: 11 -> 2w):** with the packs no longer volatile in B5, `@164` (p3's second web) and the row-4 pack webs compete for
+  r26: level 1, descending vid, and the range-split webs are numbered per variable in FIRST-DEF order with the vids descending along the @ numbers,
+  so `p3 = p2; p4 = p2;` must come BEFORE row 1 again (p3's webs numbered before v0/v1's = higher vid = coloured first = r26, packs r27); pass
+  58's "after row 1" placement was only right while the packs were volatile.
+- Left (2w): setup `slwi r0,r11,2` (@155 hoisted `ywidth*4`) before `add r30` (yskip) in the target, after it in ours: a pre-RA c9 tie (both h1,
+  urgent, frees 0) resolved by input order — the hoisted @temps are appended after the for-init `li i,0`, yskip's add precedes it; the post-RA
+  run of B0 keeps the order (c11 tie, input order again).
