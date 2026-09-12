@@ -431,7 +431,7 @@ void AddEditData();
 void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq);
 void ClearSeqData(TOOL_SEQ* seq);
 void InitSeqTbl();
-void InitTool();
+int InitTool();
 void EspToolMain();
 void EspToolTrans();
 void DrawPosCursor();
@@ -4722,7 +4722,15 @@ public:
         }                                                                                                \
     };
 
-#define VEC0_WINDOW_CSE_PAD() { }
+// pass 28: VEC0 is the first window after cse1 flush F9, so a pad ending in `d_ = 4` heads the constant-4 class and
+// survives to cse2: 7 sets = +7 cse1-time, +6 cse2-time insns, which puts cse2's F7' at SUB+41 = between SUB row 1's
+// DB_POINT `this` copy (+37) and its pos.y store (+41): the copy survives, the store and the `&pos` argument both read
+// it (one `lwz r6,slot` + `stfs f22,4(r6)` = the target's seg 692), and the 0.0 is the ROTATE copy C0 (f22), not H0.
+// With WORK0's 24-set in-block pad (below) F8' lands at WORKSP1+49, before WORKSP1 row 1's g_pEditSeq load: the
+// WORK-window g_pEditSeq/g_pEditSeq2 highs then have 19 refs each with WORKSP0 row 3 as their last use (the target's
+// 757-759 are all fresh `lis`), a 66/66 local-alloc tie that qty order resolves to g_pEditSeq r16 / g_pEditSeq2 r14.
+// The +7 cse1 is paid back by SUB's pad (24 -> 17).
+#define VEC0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 4; }
 VEC_WINDOW_CLASS(VEC0_WINDOW, " Vec0", 48.0f, vec0)
 #define VEC1_WINDOW_CSE_PAD() { }
 VEC_WINDOW_CLASS(VEC1_WINDOW, " Vec1", 200.0f, vec1)
@@ -4779,6 +4787,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
                 DB_POINT pos(344.0f, 280.0f);                                                            \
                 f32 w = 104.0f;                                                                          \
                 f32 h = 82.0f;                                                                           \
+                cls##_CSE_PAD2();                                                                        \
                 u32 flg = DB_WIN_KEY_ESC_CLOSE;                                                          \
                 win = pa_->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
             }                                                                                            \
@@ -4898,19 +4907,27 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
         }                                                                                                \
     };
 
+// pass 28: WORK0 in-block pad after `f32 h` = after cse1 F10 (WORK0+14) and before its `flg = 4`, so `d_ = 4` heads the
+// constant-4 class and the pad survives to cse2: 24 sets = +24 cse1-time, +23 cse2-time insns. cse2's F8' moves from
+// WORKSP1+72 to +49 (see VEC0_WINDOW_CSE_PAD); the +24 cse1 is paid back by the WORK1-6 ctor-top pads (4 sets each)
+// removed below, so F11 keeps its content position (WORK6+10 = the old +14 with WORK6's pad gone) and F12 BASEPOS+107.
 #define WORK0_WINDOW_CSE_PAD() { }
+#define WORK0_WINDOW_CSE_PAD2() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 4; }
 WORK_WINDOW_CLASS(WORK0_WINDOW, " Work0", "Work0:", work[0])
-#define WORK1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK1_WINDOW_CSE_PAD() { }
+#define WORK1_WINDOW_CSE_PAD2() { }
 WORK_WINDOW_CLASS(WORK1_WINDOW, " Work1", "Work1:", work[1])
-#define WORK2_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK2_WINDOW_CSE_PAD() { }
+#define WORK2_WINDOW_CSE_PAD2() { }
 WORK_WINDOW_CLASS(WORK2_WINDOW, " Work2", "Work2:", work[2])
-#define WORK3_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK3_WINDOW_CSE_PAD() { }
+#define WORK3_WINDOW_CSE_PAD2() { }
 WORK_WINDOW_CLASS(WORK3_WINDOW, " Work3", "Work3:", work[3])
-#define WORK4_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK4_WINDOW_CSE_PAD() { }
 WORK32_WINDOW_CLASS(WORK4_WINDOW, " Work4", "Work4:", work4)
-#define WORK5_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK5_WINDOW_CSE_PAD() { }
 WORK32_WINDOW_CLASS(WORK5_WINDOW, " Work5", "Work5:", work5)
-#define WORK6_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK6_WINDOW_CSE_PAD() { }
 WORK32_WINDOW_CLASS(WORK6_WINDOW, " Work6", "Work6:", work6)
 #define WORKSP0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS_U(WORKSP0_WINDOW, " WorkSp0", "  SP0:", sp[0])
@@ -4924,8 +4941,9 @@ WORK_WINDOW_CLASS_U(WORKSP3_WINDOW, " WorkSp3", "  SP3:", sp[3])
 class SUB_WINDOW : public TOOL_WINDOW {
 public:
     SUB_WINDOW(DB_PRIM_ARRAY* p) {
-        // pass 27: +24 cse1-only, pays back ROTATE's shared 16.0/32.0 (F10 = WORK0+14 held)
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; }
+        // pass 27: +24 cse1-only, pays back ROTATE's shared 16.0/32.0 (F10 = WORK0+14 held).
+        // pass 28: 24 -> 17 sets, pays for VEC0's 7-set pad (F10 still WORK0+14).
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; }
         pa = p;
         win = NULL;
         {
@@ -5163,7 +5181,8 @@ void InitSeqTbl()
     for (i = 0; i < 4; i++) g_seqFlgNum[i] = 0;
 }
 
-void InitTool()
+// pass 28: the target's epilogue `li r3,1` (seg 802) is a return value: `int InitTool()` returning 1 (callers ignore it).
+int InitTool()
 {
     u32 i;
     DB_PRIM_ARRAY* pa;
@@ -5194,11 +5213,9 @@ void InitTool()
     // pass 15: 116 sets = 5235 with the `tbl` locals of the EDIT row loops; pass 16: 76 sets = 5235 with the
     // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors; pass 21: 32 sets = 5235 with the PARENT 16-set / LIFE 36-set pads, eight tail pads removed, FSTORE_AT POS_MINMAX;
     // pass 22: 28 sets = 5235 with the LIFE 37-set pad and ROTATE's shared `sx2`;
-    // pass 23: 28 sets = 5233 with the LIFE 39-set pad, `sx1`, the SAVE_EVENT in-block pad and the k8/k6 asm removed.)
-    i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
-    i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
-    i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
-    i = 25; i = 26; i = 27; i = 28;
+    // pass 23: 28 sets = 5233 with the LIFE 39-set pad, `sx1`, the SAVE_EVENT in-block pad and the k8/k6 asm removed;
+    // pass 28: 0 sets = 5235 with the VEC0 7-set pad, SUB's 17-set pad, WORK0's 24-set in-block pad and the WORK1-6
+    // pads removed — the block is empty; re-add `i = k;` sets here if a later insn-count change moves N off 5233/5235.)
     for (i = 0; i < 5; i++) {
         g_pEditRow[i] = &g_editRowWk[i];
         g_editRowNo[i] = i;
@@ -5275,6 +5292,7 @@ void InitTool()
     g_page = 0;
     g_editTop = 0;
     g_editCursor = 0;
+    return 1;
 }
 
 /* ------------------------------------------------------------------------- sequence table edits */
