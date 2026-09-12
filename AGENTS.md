@@ -29627,3 +29627,99 @@ Harness /home/adityas/.cache/cri63/ (`mk.py SRC OUT 'OLD=>NEW'..` exact-string e
   (`lbz r20, 0x10(r4)` = the byte a3 in a saved register). Colour residue only; the helper form is NOT the vendor's here (copies kept).
 - Harness: /home/adityas/.cache/cri_swar16 DELETED; /home/adityas/.cache/cri_swar17 kept SMALL (scripts, specs, bodies, t_*.s; dumps deleted).
   Tree: src/lib/mpv_mc.c H2 (above). objects.py untouched (mpv_mc stays False); no `ninja -k 0`, no 111 (nothing flipped).
+
+### Tool RELs, t_esp pass 27 (t_esp 208/212: InitTool 1397 -> 465w in the harness (C2, not yet in the tree): cse1 F6/F9 refitted with a NEW cse1-only lever (an explicit `f32 cK = K;` after a constant's first use = -3 cse1-time insns per later use, 0 cse2), the two flush rows are pointers-first (`T* n1 = &A; T* n2 = &B;` before `pos`: the target's 486 has 0.0 FRESH and one `&pos` pseudo, so the pin is +6/+24 insns, not pass 26's +17/+35), and the r29/r30 `this`/`n` bucket is ONE ctor-scope `DB_NUMERIC2* n` per window (13 sets -> not a local-alloc qty -> global.c -> r29/r28 after `this` r30); IN PROGRESS 2026-09-12)
+- **Lever (measured, `d.jump SPEED-6 / ROTATE-24`, `d.loop` 0 from it):** a pool constant's 2nd..k-th use in one cse1 window costs 3 pre-cse1
+  insns each (high, lo_sum, load) that cse1 deletes (the load becomes a copy of the class head, canon_reg moves the uses, the copy is dead).
+  `f32 c16 = 16.0f;` written AFTER the first use and `c16` in the later uses: the definition is itself deleted the same way (+3 -3), every
+  later use costs 0 -> (3 - 3k, 0). Same for `int sxK` (pass 22/23's `sx1`): (1 - k, 0). Must not cross a cse1 flush (a use after the flush
+  keeps the copy alive). Pads only ADD; this is the only (-n, 0) knob besides the sx sharing.
+- **Pins re-read (T segs 486 and 653):** T's 486 loads 0.0 (50DC) FRESH into f28, `li r0,3` fresh, and has ONE `&pos` pseudo (`lwz r7,slot;
+  mr r11,r7`); with the pos-first in-call row (pass 26's +17 pin, probe A1) ours shares 0.0 (f23) and splits `&pos` (`addi r7,r1,K` for the
+  argument: cse1 cannot merge the argument addressof across the flush, gcse leaves a block-local second occurrence, cse2 merges it only
+  through a REG_EQUAL -> REG_EQUIV -> rematerialised). So the row is pointers-first (`n1; n2; pos; sx; call`): row = pa, win, high1, lo_sum1
+  | F6 | load1 .. -> F6 = ours+6 (.jump insns 12702,12703,pa,win,high,lo_sum). F9 (653, g_pEditSeq2 = the 2nd pointer): 0.0 SHARED there
+  (f22) because cse2 rescues it (the (F8,F9] 0.0 head is ROTATE's first "X:" row, set after F6' = ANMRATE+43; the (F5,F6] head is a SIZE
+  row set before F4' = SPEED+109, so 486's is not rescued); F9 = ours+24 (16 insns 16743..16758 + pa, win, high1, lo_sum1, load1, plus1,
+  high2, lo_sum2). Making all 18 `n =` rows of SPEED/ROTATE pointers-first is count-neutral and 477 -> 465w (C2).
+- **Fit (C2 = /tmp/t27/C2.cpp):** SPEED `f32 c16` after "Y:"(5,16) used by the 95/175/255 "Y:" strings (-6); COLOR pad `1:2:3:5:6:7` (+6, first
+  after F6, not ending in 4 = (6,0)); ROTATE `f32 c16` (6 uses: 95/175/255 "Y:" + rot.y/rotSpd.y/rrot.y = -15) + `f32 c32` (95/175/255 "Z:" +
+  rot.z = -9); SUB pad 24 sets `1:2:3:5..25` (+24). Grids: cse1 unchanged in window offsets (= F6 +6 / F9 +24 in code), cse2 SPEED+108
+  COLOR+552 ANMRATE+40 SUB+47 WORKSP1+78: the -1/-2/-3 are the INHERENT cse2-stream changes of the pinned cse1 grid (a surviving
+  `(set X (lo_sum P sym))` head in SIZE and LIFE, the fresh post-flush highs, the rrot.z 360/-360 now shared) — the target has them too.
+  seg 0 exact, surv 3 copies none visible, mset [2 0 0 0 0 0 0 0 0 0 2 0 4 1], lc 623 only. Gains: 162-446 all d2 -> 0 (PA r18 / reg9001 r19 =
+  T), 486 `lis r6; addi r6; lwz r5,0(r6)` + 653 `lis r11; addi r11; lwz r6,0(r11)` = the module's two addi forms, the 489-688 `lis r6` poison,
+  656-688 `lis r9/r11` poison, 9682/9686 r16/r14.
+- **`this` r30 / `n` r29 (T) vs ours r29/r30 = local-alloc order:** LADBG: every `n` (refs 4, life 12, pri 6666) is allocated before its
+  window's `this` (refs 65/902, pri 4323) and takes the first free callee-saved r30; `this` gets r29. T's `n` is r29 in SIZE/COLOR/ROTATE/BASEPOS
+  and r28 in SPEED (r29 there = the hoisted `lis r29; addi r29, g_pSpeedWin@l` address, 445-520) = allocated AFTER `this` and after that address
+  pseudo: it is not a local qty at all -> ONE variable `DB_NUMERIC2* n;` at ctor scope assigned in every row (REG_N_DEATHS 13 -> reg_qty -1 ->
+  global.c, whose find_reg pass 0 takes the first non-conflicting `regs_used_so_far` register: r29, or r28 in SPEED). ID_WINDOW already had
+  that form (pass 24). Applied in the harness to SIZE/SPEED/COLOR/ROTATE (`DB_NUMERIC2* n`) and BASEPOS (`DB_NUMERIC* n`): 1003 -> 477w
+  (C1), on the pass-26 tree alone 1397 -> 844w (C0).
+- Harness /tmp/t27: base.cpp (= the tree), mkA.py (probe A1: pos-first +17 fit, 1080w, wrong pin), mkB.py (the refit variants; keys in the
+  docstring), mkC.py (ctor-scope `n`), wdiff.py (masked one-line diff of a window's insns between two dumps), ct.sh/scan.sh/pad.py/surv.py/
+  dsum.py/regmap.py (t25's), rtl_*/, gdbg_*.log, la_B1.log.
+
+### CRI pass 64 (sfd_tst SFTST_Calc 79 -> 38w: the colouring residue was `tol` being the inlined Conv's `@123` temp instead of an own local; 2026-09-12)
+Harness ~/.cache/cri64 (wi.py = chaitin what-if with `mv=VID:AFTER` scan-order moves / `addn=VID:N` never-removed ghosts / `noedge`, scored
+against the 16 target colours of the three regions; search.py = single-web sweep; ra_base/ra_B1 dumps; deleted at the end).
+- **The what-if that reproduces all three regions at once (16/16 in chaitin.py, ours IDENTICAL to the compiler apart from 4 cost lines):**
+  give `tol` (@123, vids 93 lo / 94 hi) an OWN-LOCAL vid below `ave` (44/45): `mv=93:43 mv=94:93`. Nothing else. Mechanism: in the L2 scan
+  (ascending vid) ours removes tol (93/94) AFTER visiting ave.hi (45, degree 30 = 28 + the two tol edges), so ave.hi survives to L3 and is
+  coloured at index 8 with a NEW r23; MulDiv (L2) then takes r23 instead of the free r24, diff.lo r23, adiff.hi r25, tol.hi r22 -> every
+  region shifts. With tol below ave, ave.hi is visited after tol in L2 and drops to 28 -> L2; colouring: MulDiv r24 (lowest free handed-out),
+  diff.lo r25, merged adiff/diff.hi r23, adiff.lo r22, sprintf group r22..r30 from out.hi, then ave.hi r22, tol.hi r23, tol.lo r21, and mt.hi
+  (L1, last) r21. Negatives in the model: a `diff` own-local vid (2/16), MulDiv +9 (4/16), ave.hi -2 edges (13/16 but not realisable), a
+  @temp `ave` between @119 and @123 (16/16 in the model, but the helper form `ave = sftst_CalcAve(tst)` coalesces the divw into ave.lo: -4 bytes,
+  115w).
+- **Spelling: `tol = mt->unit * tst->tolerance.cnt / tst->tolerance.unit;` (the Conv expression written inline) 79 -> 38w, size equal.** Why:
+  `tol = sftst_Conv(&tst->tolerance, mt->unit)` = an own local assigned a plain copy of the inlined helper's return temp; the frontend replaces
+  the single-def local by the @ret temp (frontend-01: `EOBJREF [@123]`, no `tol`), and a @temp's vid is ABOVE every own local. An own local
+  assigned an expression (`ave = SumHist(tst) / range`, `est = ..`) keeps its name and its low vid. Catalogue row 1 addendum: "own locals in
+  reverse declaration order" holds only for locals that survive the frontend; a local that is a pure copy of an inline's result becomes that
+  @temp and ranks with the temps.
+- Remaining 38w (5f0-764): the q / step / hist-loop volatile temps (r5/r6, r3/r4, r6/r3 swaps) — being read.
+
+### t_camera_data pass 6 (tcDataExport 27 -> 0w pure C, both tags removed; t_camera_data 17/17, flipped, REL verify OK, 111 OK; 2026-09-12)
+Scratch /tmp/tcam6/ (v*.cpp variants, run.sh = variant + GORDER summary, gsum.py/dbl.py/llsum.py GDBG readers). Tree edits:
+src/t_camera/t_camera_data.cpp (tcDataExport only) + the `# t_camera_data pass 6` MATCHING block in config/G4BE08/modules.py.
+Words: 27 -> 22 (loop-5 `i++` in the for header) -> 12 (raw-word `r->area` store) -> 2 (loop-5 cut walker = the shared `dc`)
+-> 0 (`static const char tag[] = "B404"`); then `for (j = 0; ..)` back in the header and the loop-4 asm tcCdat base removed: still 0.
+- **New fact 1 (local-alloc, generalises pass 5's REG_EQUIV doubling): a MULTI-set pseudo is doubled too when its FIRST set in chain
+  order carries an invariant REG_EQUAL.** update_equiv_regs walks the insns forward; at the first set `REG_N_SETS != 1` is tolerated when the
+  note is invariant and no earlier replacement exists -> REG_EQUIV + `REG_LIVE_LENGTH *= 2`; a later set with another note (or none) calls
+  no_equiv, which removes the notes but never undoes the doubling. cse puts REG_EQUAL (const) on every `li`, so every counter whose first
+  surviving set is `x = 0` is doubled (found 38 -> 76, i 85 -> 170, j 124 -> 248 in the pass-5b form; `r`/`cc`/`no`, first set a copy/load,
+  are not). Read with `dbl.py` (GORDER len vs the `;; LL` sum; `NOEQV=<reg>` confirms). `NOEQV=98` (i) on the pass-5b form = 25 words = the
+  GFORCE=290:5 result, so "i before found" only needed i's priority above 5921 = i's live length down.
+- **Fact 2 (the `found` pin, closed): `for (i = 0; i < pTc->adatNum; i++)` with the increment in the HEADER.** gcse PRE hoists `i + 1` to the
+  body top (`addi r6,r6,1` at 528 in the target IS the PRE copy, allocated to i's register), so i dies at the block top and is reborn at the
+  copy-back: i L170 -> L92, pri 4235 -> 7826 > found 5921 -> i r6, found r5, `cmpw r5,r0` = cse's older zero. The pass-5b statement form
+  `i++;` in the body kept i live through the whole body. Side effect: the PRE'd `i + 1` pseudo is shared with loop 4's (one gcse expression
+  -> one reaching_reg, REG_N_SETS 2), R8 L70 3428 > the tcCdat base 2857, so the base's doubling no longer matters: **the loop-4 asm base is
+  gone** (`c = &tcCdat[i]`, plain C). Also closes (3): r+1 (351) and the loop-5 pTc-high (335) both 2105, allocno order 335 first -> r31/r30.
+- **Fact 3 (`r` r10 / `cc` r8 and `no`'s r9 load temp): the loop-5 body-top sched1 order.** Target issue order 927 lbz no-tmp, 939 subf | 941
+  stw r->area, 919 li found | 929 extsb no, 1218 addi i+1 | 1117 lwz pTc, 935 mr cc | 923 li j, 1215 addi da+1 | 1118 lbz cdatNum, 1221 addi
+  r+1 | extsb | cmpw | bge. Ours issued 1117 at t=3 beside 929 (929 is "birthing": single-set pseudo live at block end -> adjust_priority
+  raises it to max_priority 8; 1117 pri 7 was ready at t=1). In the target 1117 is not ready before t=4 => a TRUE dependence on the store
+  941 (t=2, store cost 2). alias.c true_dependence: `r->area = ..` as a COMPONENT_REF store is MEM_IN_STRUCT_P with a varying address and the
+  `pTc` load is MEM_SCALAR_P at a fixed lo_sum -> fixed_scalar_and_varying_struct_p says disjoint. An INDIRECT_REF store whose address is
+  not a PLUS/aggregate (expr.c 6323) is neither IN_STRUCT nor SCALAR -> dependence. Form: `*(u32*) &r->area = (u8*) da - buf;` (a reference
+  `CameraAreaInfo*& ra = r->area; ra = ..` works too; `*(p + k)`/`p[k]` do NOT: address by addition = in-struct). With the load at t=4 the no
+  temp (r9) is dead before the pTc temp is born -> both r9 (local-alloc), `no` loses its r11 preference, cc's smpref loses r11.
+- **Fact 4 (`cc` r8): the loop-5 cut walker is the same variable as loops 2/4's `dc`** (r8 in all three loops in the target = one pseudo:
+  R40 L90 22222 + loop 5 -> R56 L114 24561, allocated 60th -> r8; `no` 12000 -> r11, `r` 12258 -> r10 because r11 is now taken). A separate
+  `cc` (R16 L24 26666) is allocated before `no`/`r` and takes r10/r11 first; no refs/length spelling of a fresh local reaches 12000.
+- **Fact 5 (the 2 words at +0x5c: `mr r3,buf` before `addi r4,B404@l`): `static const char tag[] = "B404"`.** A `const char* const tag`
+  local computes `(set P (high LC))` at the declaration (block 0); cse (follow_jumps into block 2) reuses P for the strncpy address, so the
+  lo_sum insn kills P (INSN_REG_WEIGHT 0) and sched1 issues it before `mr r3` (weight 1). The static array is a .rodata object emitted at the
+  declaration (keeps the B404-before-EMPT order the pass-5 comment needed) whose address high is computed in block 2 -> the lo_sum waits a
+  cycle, `mr r3` goes first, sched2's LUID tie then keeps it. A bare literal at the call flips the .rodata order (EMPT first, 4 words).
+- Statement order in the loop-5 body top: any order of `no`/`dc = cut`/`found = 0` with the store after them is identical; `dc = cut` after
+  `no` with a separate `j = 0` statement between is 2 words (v22). `for (j = 0; ..)` in the header is fine now (pass 5b's `j = 0` statement
+  was compensating the pinned found's LUID).
+- Flip: bytecmp IDENTICAL, make_rel --verify OK (206300 bytes; the `--link` list comes from `ninja -t commands build/G4BE08/t_camera/t_camera.rel`),
+  `flock .. ninja -k 0` clean, `dtk shasum -c` 111 OK, symbols.txt unchanged. Catalogue rows touched: GCC row 7 (global.c: add "the first set
+  of a multi-set counter is `li` -> doubled; move the increment into the for header to shorten a counter"), row 4 (alias: `*(u32*) &s->f = v`
+  raw-word store as the dependence lever), row 6 (sched1: birthing insns jump to max_priority; a store->load true dependence costs 2).

@@ -948,3 +948,10 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 MATCHING.update({
     "Tools/db_mod.cpp": True,
 })
+
+# t_camera_data pass 6 (2026-09-12): tcDataExport 27 -> 0 pure C (loop 5 `i++` in the header, the
+# shared `dc` as the cut walker, a raw-word `*(u32*) &r->area` store, `static const char tag[]`);
+# the loop-4 asm-emitted tcCdat base became unnecessary. 17/17.
+MATCHING.update({
+    "t_camera/t_camera_data.cpp": True,
+})

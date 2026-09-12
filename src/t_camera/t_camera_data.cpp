@@ -66,7 +66,10 @@ int tcDataExport(u8* buf)
     int j;
     int num;
     int size;
-    const char* const tag = "B404";  // parsed before "EMPT": the .rodata order is B404, EMPT (uses fold to the literal)
+    // a static array, not a pointer local: the .rodata order is B404, EMPT (parsed first), and the
+    // address high is computed at the strncpy (block 2), so `mr r3,buf` issues before `addi r4`
+    // (a pointer local's high sits in block 0 and dies at the call setup: sched1 weight 0 vs 1)
+    static const char tag[] = "B404";
 
     memclr_asm(buf, 0x10);
     if (*(u16*) &pTc->cdatNum == 0) {
@@ -163,15 +166,7 @@ int tcDataExport(u8* buf)
     {
         dc = cut;
         for (i = 0; i < pTc->cdatNum; i++) {
-            // COMPILER-DIFF: #13 (asm-emitted tcCdat base): the hoisted `&tcCdat[i]` base as a C
-            // expression carries a REG_EQUIV (local-alloc doubles its live length 35 -> 70, pri 2857 ->
-            // 1428) and is allocated after the PRE'd `i + 1` copy, which then takes r7; the asm base
-            // keeps len 35, ties `i + 1` at 2857 and wins on allocno number -> r7, `i + 1` r6 (in place)
-            TcCdat* cb;
-            u32 hi;
-            asm("lis %0,tcCdat@ha" : "=b"(hi));
-            asm("addi %0,%1,tcCdat@l" : "=r"(cb) : "b"(hi));
-            c = (TcCdat*) (i * sizeof(TcCdat) + (u32) cb);
+            c = &tcCdat[i];
             if (c->enable != 0xFF) {
                 if (c->type == 6 || c->type == 7) {
                     dc->frames = (u16*) ((u8*) fp - buf);
@@ -187,18 +182,18 @@ int tcDataExport(u8* buf)
         r = rec;  // r, da, size in this order: the preheader `mr r10,r25; mr r7,r28; subf r26` is LUID order
         da = area;
         size = (u8*) fp - buf;
-        for (i = 0; i < pTc->adatNum;) {
-            // COMPILER-DIFF: candidate (global.c allocation order): the target allocates loop-5 `da`
-            // (r7) before `found` (r5); ours gives found r7 first and da r6, which pushes i off r6 and
-            // cascades through loops 1-5 (j r4 vs the loop-2 giv base, `mr r6,r5`). 193 -> 62 words.
-            register int found asm("r5") = 0;
+        // `i++` in the header (the PRE'd `i + 1` shortens i's live range: i is allocated before
+        // found), the cut walker is the shared `dc` (r8 in loops 2/4/5: one pseudo), and the area
+        // offset is a raw word store: an INDIRECT_REF store is not MEM_IN_STRUCT_P, so the `pTc`
+        // reload depends on it and issues after `extsb no` / `addi i` (no's load temp then takes r9)
+        for (i = 0; i < pTc->adatNum; i++) {
             s8 no = da->area_no;
-            CameraCut* cc = cut;
-            r->area = (CameraAreaInfo*) ((u8*) da - buf);
-            i++;
-            for (j = 0; j < pTc->cdatNum; j++, cc++) {
-                if (no == cc->camera_no) {
-                    r->cut = (CameraCut*) ((u8*) cc - buf);
+            dc = cut;
+            int found = 0;
+            *(u32*) &r->area = (u8*) da - buf;
+            for (j = 0; j < pTc->cdatNum; j++, dc++) {
+                if (no == dc->camera_no) {
+                    r->cut = (CameraCut*) ((u8*) dc - buf);
                     found = 1;
                     r->type = tcTypeTbl[no][0];
                     break;
