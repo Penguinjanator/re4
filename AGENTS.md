@@ -29807,3 +29807,105 @@ inserted / dead def deleted / copy coalesced) diffed role-blind against `troles.
   it) — 20 insns later; in the pass-26 tree both sat in one cycle (births 1418/1420). One filler more or less above them (a dep-free
   `lis`/`lfs` head whose consumer precedes WORK0) shifts 9634 into the pre-call slot (18195's) and 9638 into the post-call one (2 apart,
   g_pEditSeq shorter by 2 -> r16). Candidates: the F7'/F8' positions decide which SUB/WORKSP1 highs are fresh heads (= fillers).
+
+### GCC sweep pass 2 (the parked GCC residues re-read with the pass-6 doubling fact and the NOEQV oracle; IN PROGRESS 2026-09-12)
+Scratch /tmp/gsweep2/ (`hv.sh HDR` = a dbg_tool.h variant judged on the four includers through variant.sh; h*.h header variants;
+tea_*.log = LADBG/SCHDBG dumps of ToolEspArea). No tree file edited unless a line below says APPLIED.
+- **Tools/t_esp_area ToolEspArea 7w (+4 reloc-name words), the r28/r29 ctor tie: NOT a doubling question.** `NOEQV=297` (the `li 4`
+  pseudo) and `NOEQV=297,299` (+ the `work` lo_sum) = 11 words unchanged. Reason (local-alloc.c 926-931): update_equiv_regs doubles
+  REG_LIVE_LENGTH with the comment "does not affect the priority in local-alloc"; block_alloc's QTY_CMP_PRI uses its own birth/death
+  suids, and block_alloc never reads reg_equiv_*. The doubling fact only reaches global.c allocnos; this tie (q0 work refs 4 [4,52)
+  1666 vs q2 `li 4` refs 2 [14,26) 1666, tie -> lower qty number) is a local qty pair. Sched1/sched2 tables re-read with SCHDBG
+  (block 13): 940 `addi vt` pri 8 dep 3, 943 `stw x` pri 7 dep 2 (same cycle 6, priority order), every post-strlen store pri 4 w 0
+  dep 1 -> LUID order in BOTH passes. New probe (h1: `numWork = n; pWork = work;` in the header ctor) flips the tie to the target's
+  registers (work death 54 -> life 50 -> 1600 < 1666 -> `li 4` r29, work r28: e08-e64 all clean) but the final store order follows
+  (sched2 LUID = the sched1 order): 6 words in t_esp_area (`stw r11,0x2c; stw r28,0x28` swapped + the 4 relocs... = 2 code words),
+  t_lightarea 4 -> 6, t_event 0 -> 2. So the target's ctor needs pWork's store AFTER numWork's at sched1 and BEFORE it at sched2, or
+  `stw x` before `addi vt` at sched1 (pass 1's priority read stands). Codeless anchors extending `work` (`asm("" : "=m"(rows|pWork|
+  numWork) : "r"(work))` after the stores, h5-h8) are kept insns at sched2 too: 23-240 words in every includer. Not closed; nothing applied.
+- **t_esp/db_widget DB_STRING ctor 2w (launder kept): not a doubling question either.** The ctor is ONE basic block, so every pseudo
+  (this/max_/s included: LADBG q0 reg82 refs 18 -> r30, q2 reg83 -> r29, q1 reg84 -> r28) is a local qty; global.c allocates nothing,
+  REG_LIVE_LENGTH is never read. `NOEQV=93` (zero), `=87` (type), `=85,86,90,93,87` (all four constants) on the plain form
+  (/tmp/gsweep2/dbw_plain.cpp: no launder, `str = 0; len = 0;`) = 11 words each = the plain form's 11. Pass 8's arithmetic re-read
+  off SCHDBG+LADBG (/tmp/gsweep2/sch.py LOG FUNC s1|s2 DUMP = issue table with patterns): sched1 issues the pri-12 stores dying-source
+  first (printed `w` = INSN_REG_WEIGHT+1: vt l12, type l25, ca l32, len l37 at w 0) then the rest in LUID order; LC [12,16) 5000, vt
+  tied hi+lo [14,26) 6666, type [24,28) 5000, zero [20,42) 1363. The target needs `stw vt` >= 2 insns later at sched1 (life 16 = 5000,
+  LC wins the tie on qty number) AND zero above type (zero life <= 14 or type born <= suid 12 / stored last). No pass-6 lever reaches a
+  one-block function (no loop header, no block-0 high, no fixed scalar load: the pool `lfs` is `mem/u`). Launder kept, 2w.
+- **game/db_cam menu 2w (closer 7 stands, no pass-6 lever applies):** the y/z campos loads are block-local 2-ref qtys (LADBG z [30,40)
+  2000 -> r8, y [34,42) 2500 -> r0 = the target's names), the tie is sched2's (prio 29/29, 13/13 dependents, LUID = the z-first
+  sched1 stream). The doubling fact cannot touch a local qty; the raw-word (`*(u32*)&s->f`) store kind changes alias classes for
+  BOTH loads alike (their earlier fixed-scalar neighbour `stw r0,ProjType` already gates y through the r0 anti at t=8, and every later
+  store is already a dependent of both), so it cannot add a y-only dependent; a y-only dependent must be a `4(r9)` reference after the
+  loads, which is closer 7's "fourth use of the lo_sum base -> y-first sched1 -> z takes r0". Not re-probed.
+- **8x8 V2 73 -> 56w APPLIED (`Uint32 x0 = 0, x1 = 0;`): the frontend's range-split webs (`@N`, lifetimes on) are NUMBERED BY THE FIRST DEFINITION
+  OF EACH VARIABLE in the function (all of a variable's webs consecutive, cases in reverse AST order: case 3 lowest @), not by declaration order
+  (three declaration permutations: same numbering), and the RA colours them in ascending @.** The tree's order was w0, a0, w1, a1, x0, x1 (case 0's
+  statement order); v2perm.py (chaitin.py with the six variable groups permuted, 6! x 16 pack/load flips) finds cases 1 and 2 fully right (20/20
+  webs) only with x0 and x1 FIRST: x0 takes r8 before the a0 load, so x1 finds every volatile register blocked and takes r31 (the function's first
+  callee-saved hand-out), a0' r9 / a0 r8 follow. A dead `x0 = 0; x1 = 0;` before the switch or the initialised declaration moves the first
+  definitions (deleted, no code; size unchanged): case 2 identical, case 1 = the kept `mr r28, r31` (a2) + the s0/s1 add positions, case 3 colours.
+- **Case 1's a2 (not closed):** a2 is kept as a web by `a0 = W(s1, 0); a2 = s1[8]; s1 += stride;` (q6/q10: `lbz a2; mr @a1', a2; rlwimi`), but the RA
+  gives a2 the pack web's colour r28 (a2 is NOT adjacent to the copy's destination, and r28 is the lowest free handed-out callee-saved) and
+  deletes the copy; movevid.py (a2 at every vid slot of q6's graph) never yields r31 (r28/r30/r11/r8/r3). The target's a2 (r31) therefore either
+  interferes with a1' (a2 live past the copy) or is coloured after w1'(r29)/a1(r30) and before a1'(r28) — i.e. its web sits INSIDE the a1 group's
+  vid range, which no first-def order of a separate variable gives. Negatives: `Uint8 b0, b1` (substituted like Uint32), `(a2 | a2)` (folded).
+  Case 3's target reads as w2 (r11) and a2 (r28) coloured AFTER the w0/a0 webs (webs, not temps) with w1 the first callee-saved (r31).
+- **game/Espgen42 / espgen45 (9w / 42w unchanged; the xoris slot is not a pass-6 question, but the loop-B `nk` r30 PIN is a
+  `floor(log2 refs)` step that the doubling fact points at):** the Z-block residue (pass 13: two codeless >= 80 insns at t7/t8) is a
+  sched1 DAG question; none of the pass-6 facts adds sched1 insns (the raw-word store kind only changes alias classes of existing
+  MEMs, the counters are already header-incremented, the block is not block 0). Re-read with GDBG on the UNPINNED tree
+  (/tmp/gsweep2/e42_nopin.cpp, 28w): k = reg 91 refs 32 len 217 pri 7373 -> r30, the `&nrm[k]` pointer reg 518 refs 18 len 110
+  6545 -> r28 (the target: pointer r30, k r28). k's 32 weighted refs (flow: 1 per ref at depth 0, 2 at the outer bodies, 3 inside;
+  listed per insn by a 20-line script over the .sched dump: poke set+`k*4` 2, loop-A `k = i*(nx+1)` 2 + `k++` 4 + three giv inits 6,
+  loop-B set 2 + two giv inits 4 + `k-nx`/`k+nx` 6 + `k++` 6) sit EXACTLY on the 2^5 step: one weighted ref fewer gives
+  floor(log2)=4 -> 4*31/217 = 5714 < 6545 -> the pointer is allocated first. Probe p3 (the poke index as a separate local `kc`
+  instead of k: refs 30, 5581) gives k r28 / pointer r30 WITHOUT the pin and the loop-B words = the tree's 9 (17w total: the poke
+  block then differs — the target's poke index `lwz r28,0x64(r1)` IS k's register, so the vendor's poke used k). p1 (`k = i*(nx+1)+1`
+  one statement, refs 28) drops k to r27 (29w). `int k = 0;` at the declaration is deleted as dead (no doubling reachable: k's first
+  set is the fpmem load, no invariant note). So the pin's mechanism is one weighted k-ref (or len >= 245, or 3 more pointer refs
+  / len <= 97) — the vendor's loop-A/B body has one k reference fewer than ours at the same code; candidates: the `k++` of loop A
+  (`x2` = a set+use pair counted 4) written so that the increment reads a giv, or a `k*4`/`k*12` giv init that the vendor's loop.c
+  did not create (a giv shared between `c += k` and `hA[k]`). Not closed; nothing applied. espgen45 carries the same pin (same fix).
+- **Scope of the doubling fact, stated once (from local-alloc.c 926-950 + the four oracles above):** REG_LIVE_LENGTH doubling reaches
+  ONLY global.c allocnos (multi-block pseudos or pseudos with REG_N_DEATHS != 1). A block-local qty's priority is block_alloc's own
+  `refs*size/(death-birth)` over post-sched1 suids; nothing in block_alloc reads reg_equiv_*. So `NOEQV` is the right first test for a
+  residue ONLY when GORDER lists the pseudo; for LADBG-listed ties (t_esp_area's work/`li 4`, db_widget's four constants, db_cam's
+  y/z loads) it is a no-op by construction. Catalogue row 7 (global.c) keeps the pass-6 addendum; rows 6/8 (sched1 tie, local-alloc
+  qty order) should say "REG_EQUIV does not enter".
+- Flags unchanged: Tools/t_esp_area (7w+4 reloc), Tools/t_lightarea (4w, its vtable relocs into t_esp_area; unchanged since t_esp_area
+  did not move), t_esp/db_widget (2w), game/db_cam (2w), game/Espgen42 (9w), game/espgen45 (42w) all False. No tree file edited (the
+  `M config/G4BE08/objects.py` in the tree is another agent's CRI pass 65 block). Nothing built under the lock; every variant through
+  the kit. Scratch /tmp/gsweep2 kept: hv.sh, sch.py, h1-h8.h, tea_*.log, dbw_plain.cpp + rtl_dbw_plain/, e42_nopin/p1-p5.cpp + logs.
+- Next (not this pass): (1) Espgen42/45 — find the ONE weighted k-ref the vendor's body lacks (listing above); with it the r30 `nk`
+  pin goes (17w unpinned includes the loop-A poke's 8 words that come from the `kc` stand-in, so the ref must be elsewhere) — read the
+  loop-A `k++`/giv-init triple with `-dl`; (2) t_esp_area — the h1 swap shows the register question is exactly "pWork's store 2 suids
+  later at sched1", so look for a sched1-only insn between the two dying stores that reload deletes (a same-hard-reg pseudo copy of
+  `work` whose destination ties: `T* w2 = work; pWork = w2;` is folded by cse — try a copy that survives cse, e.g. through the `n`
+  parameter path), keeping t_lightarea/t_event IDENTICAL via hv.sh.
+
+### CRI pass 65 (sfd_mps Matching 25 -> 26/26 FLIPPED, 111 OK: sfmps_DecodeOneUnit 5 -> 0w pure C, M1 pin removed — the two missing ghosts are the PES callback pair's call-result copies as inlined-helper locals; adx_tsvr 2w / sfh_main 6w read in the model (both need an INVISIBLE r0/r4 node live in the join/swap block); 2026-09-12)
+Harness ~/.cache/cri65 (wi.py = chaitin what-if: `mv=VID:AFTER`, `edge=A:B` (B may be physical), `ghost=VID:PHYS`, `ghostlike=VID:PHYS`, `--target v=reg,..`; ra_* dumps; deleted at the end).
+- **sfd_mps `sfmps_DecodeOneUnit` 5 -> 0w (cnt r21), IDENTICAL, flipped.** Pass 55's requirement (+2 never-removed ghosts adjacent to `ret`, on the pinless `?:`-n base) is met by
+  `static void sfmps_SetPesFns(SFD sfd, MPS mps) { void *fn; void *obj; obj = (void *)SFSET_GetCond(sfd, SFD_COND_PESOBJ); fn = (void *)SFSET_GetCond(sfd, SFD_COND_PESFN); MPS_SetPesFn(mps, fn, obj); }`
+  called in place of the second `MPS_SetPesFn(mps, GetCond(FN), GetCond(OBJ))` line. The helper's locals are inlined `@N` webs, so `mr @t,r3; mr obj,@t` /
+  `mr fn,@t` are COMPILER copies: ghost list 9 -> 11 (`r66->r4=@677` = fn onto its argument register, `r88->r67` = the r3 copy into obj's web), chaitin IDENTICAL,
+  cnt r21, bufin/dst r21. Evaluation order matters: `fn` first = 4w (`li r4,0x5b/0x5c` swapped + `mr r4,r3`/`mr r5,r22` swapped); `obj` first (= the argument
+  list's right-to-left order in the original) = IDENTICAL. The first (PSMAP) pair stays inline (a helper for both pairs = 127w/139w: +4 ghosts, the PSMAP pair's
+  named-web bounce). Pin `asm { mr r31, err; mr ret, r31 }` removed (`ret = err;`), `n = (len < 0xB0) ? len : 0xB0`. Catalogue row 2 addendum: a call result
+  that must stay a codeless coalesced copy (a ghost) is an inlined helper's LOCAL (`obj = f(); g(obj)` inside a `static` helper), not an own local (user copy,
+  `mr` kept) and not a plain argument expression (no copy at all).
+- **adx_tsvr `adxt_nlp_trap_entry` 2w (`lha r4` vs `r0` in B16): the what-if is `edge=56:<any r0-coloured node coloured before r56>` (e.g. `edge=56:67`, or
+  `ghost=56:0`) -> r4 with nothing else moving.** The lha temp r56's real neighbours are r1, n2's r3 ghosts, ofst2v r26, ofst1 r27, n1 r28, sji/sjd/p; r0 is free.
+  The target needs an r0 node live in B16 (`lha; cmpwi n1; lha ofst2v; add`) that leaves NO instruction: not a dead def (dead defs have degree 0 in the graph:
+  r52-r54 in sfh_main are `0/0`), not an argument ghost (r3-r10 only), not a value across the else-arm's call (r0 is a physical neighbour of those). Helper
+  forms of the n2 join (`n2 = adxt_nlp_scan2(n1, &ck2, &ofst2)` with an if/else local, an early-return body, `+ 0` on the result) = 2w each: the helper's n2 web
+  coalesces onto the `@ret` r3 exactly like the own local (frontend-01 shows the if/else already as one ECOND -> one backend temp r54 + `@ret` r55 -> r3).
+  `if (n1 != 0) if (n2 != 0)` 2w; `(n1 & n2) != 0` 11w (`and.`); `(Sint16)(Uint16)ofst` casts 13/14w (clrlwi/extsh emitted); `ofst2v = ofst2` first 2w. Left 2w.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w: the colour side is `edge=36:4` (the word r36 = @894 needs physical r4 = `id` live at the load) -> r6 exactly; the fold side
+  is NOT a block-flag question.** The post-RA peephole processes CLEAN blocks too: the asm-chain form (`register w, s; SFH_SWAP32_STORE` without `peephole off`)
+  leaves B37 `000c` through the RA (no dead terms, no copies to coalesce) and pass 15 still folds it to `stwbrx` (flags -> 0004 after the peephole). Also folded:
+  the asm chain with the `stw` inside the asm (`register Sint32 *val`), `mr t, s; stw t` inside the asm; an asm `nop` after the stw stops the fold but reshapes
+  the whole function (65w). So in this compiler the fold fires on any contiguous `rlwinm; rlwimi x3; stw` whose chain reads one register, and the six helper
+  readers' `#pragma peephole off` remains the only blocker. The target's r6 = the same "one more blocked register" as the helpers' (there hdr r5, the dying
+  base; here r4 = id, NOT the dying base r3 which `li r3,1` reuses), i.e. a node live across the swap block that the final code does not show. Left 6w.
