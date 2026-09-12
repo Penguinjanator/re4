@@ -27,6 +27,13 @@
 #include "hermite.h"
 #include "t_id.h"
 
+// The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
+// skeleton of this unit defines it as `common_<mod>`, see em10.cpp / st_room.h): make_rel refuses the
+// link without it. REL_MODULE comes from configure.py.
+#define T_ID_STR2(x) #x
+#define T_ID_STR(x) T_ID_STR2(x)
+asm(".comm common_" T_ID_STR(REL_MODULE) ",52,4");
+
 extern "C" {
 int sprintf(char*, const char*, ...);
 unsigned int strlen(const char*);
@@ -38,7 +45,7 @@ float tanf(float);
 void Draw_tileI(int x, int y, int w, int h, GXColor* color) asm("Draw_tile");
 }
 // COMPILER-DIFF #4: the original passes the (u32) converted height without the u16 truncation.
-void ScreenReSizeI(int w, u32 h) asm("ScreenReSize__FUsUs");
+void ScreenReSizeI(int w, u32 h) asm("ScreenReSize");
 
 // TexAnm header as read by the id editor (texture.h keeps the first 8 bytes opaque)
 struct TexAnmSize {
@@ -597,9 +604,7 @@ static const char* unitMenuName[4] = { "Copy", "Cut", "Paste", "Grp." };
 
 int idEditUnit(IdTool* w, int x, int y)
 {
-    // the target has joy in r11 and the `w->editStep` value in r10; unpinned, global.c gives them
-    // r10/r8 (r8 does not conflict with the editStep value in our local allocation)
-    register JOY* joy asm("r11") = &Joy[0]; // COMPILER-DIFF: pin
+    JOY* joy = &Joy[0];
     int ret = 1;
     ID_DATA* d;
     int i;
@@ -698,7 +703,9 @@ int idEditUnit(IdTool* w, int x, int y)
                 w->grpSw = 1;
             }
             if (joy->rep & 0x20002) {
-                w->grpSw = 2;
+                // = 0, not 2: the target's `stb r10` stores the `trg & 0x100` pseudo cse knows to be
+                // zero on this path (record_jump_equiv on the followed `beq`), not the editStep value
+                w->grpSw = 0;
             }
         }
         break;

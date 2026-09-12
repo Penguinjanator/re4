@@ -130,7 +130,7 @@ struct IdTool {
     u8 pad_16B;
     Vec grid;           // 0x16C
     s8 lang;            // 0x178
-    u8 lang2;           // 0x179
+    s8 lang2;           // 0x179  (s8 like lang: toolIdOption's `lang2 != lang` is a QI compare, loads lang2 first)
     s8 type;            // 0x17A  sub screen kind (index of subScreenName)
     u8 x17B;            // 0x17B
     u8 x17C;            // 0x17C

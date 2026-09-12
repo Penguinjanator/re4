@@ -20,6 +20,14 @@ compared by RESOLVED location, never by name:
 mismatches at equal positions are listed (placeholder names).  Alignment differences are reported but
 do not decide the verdict (dtk gives data sections align 8, GAS 4; the link decides, AGENTS.md DOL sweep
 19a); a size difference that is only zero tail padding up to the alignment is reported as "pad".
+
+Known limitation (REL units, not flipped yet): a WEAK symbol our object DEFINES (a linkonce vtable
+copy the module keeps, `_vt.5cUnit`) is still resolved through the linked ELFs, and while the module's
+ELF is linked from the split object (where the copy is an anonymous `lbl_<mod>_rodata_X` label) the
+name falls through to the DOL's copy. The rows then read `(t_id, .rodata, 0xe20)` vs `(addr, 0x8021d6a8)`
+although the object bytes and the linked REL are identical there (t_id/t_id pass 7: `_._6cCoord`,
+`_._7ID_DATA`, `_._5cUnit`, `__static_initialization_and_destruction_0`, 2/2/2/4 words).  Judge such rows
+with `tools/make_rel.py --verify` on a module ELF linked with our object; after the flip they vanish.
 """
 import sys, os, re, json, difflib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
