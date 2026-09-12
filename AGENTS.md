@@ -29544,3 +29544,22 @@ Scratch /tmp/tcam/ (`ins.py DUMP FUNC [re]` one line per insn; v*.cpp variants; 
   cse1-only savings in SIZE/SPEED (`int sx = sxK` sharing = -1 cse1 each, typed-local vs in-call rows) and in LIFE..ROTATE, paying back after
   F6/F9 with VEC0/COLOR pads) — this closes mechanisms 1 and 3 together and puts the module's two `addi` forms in; (2) then re-read B/B2 and
   the r29/r30 bucket with SCHDBG/LADBG.
+
+### t_camera_data pass 5b (closing facts for tcDataExport's last 27 words: unpinned `found` -> r5 reproduces 25 words, `j = 0` as a statement before the body fixes the j/giv-base tie; nothing more applied; t_camera_data 16/17, tcSetBesideOffset 0w, tcDataExport 27w, size exact, 111 OK; 2026-09-12)
+- **The `found` pin can be removed once two facts hold; both read, neither closed.** (1) j vs the loop-2 giv base (nopin j R50 L242 10330
+  beats reg 390 R38 L184 10326 -> j r4 and 146-188 words): writing `j = 0;` as a statement anywhere in the loop-5 body BEFORE `i++`/`cc =
+  cut` (`for (; j < ..; j++, cc++)`) gives `li r12,0` an earlier LUID -> sched1 issues it earlier -> j L248 (10080) -> giv base first -> j
+  r12, loops 0-3 identical again (v15a-c; `j = 0` after `cc = cut` is too late). Keep `found = 0` BEFORE `j = 0`: the inner loop's entry
+  test `cmpw r5,r0` is cse canonicalising j to the older zero (found); with `j = 0` first the compare would read j. (2) found (reg 290,
+  R15 L76, 5921) is allocated before i (98, R18 L170, 4235) and takes r6, pushing i to r5 (and loop-2 `pos` 93 R6 L72 off r5 -> `mr r6,r8`
+  + a deleted `mr r6,r5`); the target has i r6 / found r5. `GFORCE=290:5` on v15a = 25 words (the pin's `li r12,0`/`li r5,0` order and
+  `cmpw r5` become right); `+351:30,335:31` (r+1 / loop-5 pTc-high) = 22. Not found: what puts i before found (found refs <= 10 with L76,
+  or i len <= 121) — found's 15 weighted refs are init 2, cse'd entry compare 2, two `found = 1` copies (the inner loop's first iteration
+  is peeled by jump/cse before cross-jumping merges the tails) 2x?, `cmpwi` 2, the two zero stores 2+2. Permuting the body statements
+  changes nothing.
+- **Remaining after (1)+(2): `r` (85) r10 / `cc` (294) r8 (ours reverse; cc's smpref has r11 through `no`'s `lbz r11` temp, the target's
+  temp is r9 = `lbz r9,1(r7); extsb r11,r9` with the extsb issued before `lwz r9,pTc@l` — a sched1 order difference in the body-top
+  block that also frees r9 for the pTc load) and r+1 (351, R4 L37 2162) vs loop-5 pTc-high (335, R8 L112 2142): 20 priority points.**
+- Kit: `~/.cache/sngdbg/patches/dbg-hooks.patch` regenerated from the current src (seven files, includes another agent's SCHDBG/reload1
+  hooks and this pass's GFORCE/GFORCEFN/NOEQV); README documents both. `~/.cache/sngdbg/cc1plus` sha1 27268379524a...
+- Flags: t_camera/t_camera_data stays False (tcDataExport 27w). Scratch /tmp/tcam/ left (ins.py, variants v*.cpp, final.cpp = the tree).

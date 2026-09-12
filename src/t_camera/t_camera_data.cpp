@@ -52,6 +52,10 @@ int tcDataExport(u8* buf)
     CameraAreaInfo* area;
     CameraCut* cut;
     CameraLerp* lerp;
+    // one CameraCut* for loops 2 and 4 and one CameraAreaInfo* for loops 1 and 5: gcse's `d + 1`
+    // copies then merge into one pseudo per type (r30 / r4 in the target) and buf takes r29
+    CameraCut* dc;
+    CameraAreaInfo* da;
     Vec* vp;
     Vec* pos;
     u16* fp;
@@ -80,60 +84,60 @@ int tcDataExport(u8* buf)
     vp = (Vec*) (lerp + hdr->numLerp);
 
     {
-        CameraAreaInfo* d = area;
+        da = area;
         for (i = 0; i < 0x60; i++) {
             a = &tcAdat[i];
             if (a->enable != 0xFF) {
-                d->enable = a->enable;
-                d->area_no = a->area_no;
-                d->camera_no = a->cam_no;
-                d->attr = tcTypeTbl[a->area_no][0];
-                d->dir = a->dir;
-                d->attr2 = a->attr2;
-                d->x9 = a->x9;
-                d->height = a->height;
-                d->base_y = a->base_y;
+                da->enable = a->enable;
+                da->area_no = a->area_no;
+                da->camera_no = a->cam_no;
+                da->attr = tcTypeTbl[a->area_no][0];
+                da->dir = a->dir;
+                da->attr2 = a->attr2;
+                da->x9 = a->x9;
+                da->height = a->height;
+                da->base_y = a->base_y;
                 num = a->num;
-                d->points = (Vec*) ((u8*) vp - buf);
-                d->num = num;
+                da->points = (Vec*) ((u8*) vp - buf);
+                da->num = num;
                 for (j = 0; j < a->num; j++) {
                     *vp++ = a->pt[j];
                 }
-                d++;
+                da++;
             }
         }
     }
     pos = (Vec*) vp;
     {
-        CameraCut* d = cut;
+        dc = cut;
         for (i = 0; i < 0x40; i++) {
             TcCdat* cd = &tcCdat[i];
             if (cd->enable != 0xFF) {
                 Vec* pp;
                 Vec* at;
                 f32* roll;
-                d->x0 = cd->enable;
-                d->camera_no = cd->cam_no;
-                d->type = cd->type;
-                d->num = cd->num;
-                d->flags = cd->flags;
-                d->aim_ofs = cd->aim_ofs;
+                dc->x0 = cd->enable;
+                dc->camera_no = cd->cam_no;
+                dc->type = cd->type;
+                dc->num = cd->num;
+                dc->flags = cd->flags;
+                dc->aim_ofs = cd->aim_ofs;
                 switch (cd->type) {
                 case 4:
-                    *(Vec*) &d->floor_ratio = cd->u44.dir;
+                    *(Vec*) &dc->floor_ratio = cd->u44.dir;
                     break;
                 case 8:
-                    d->floor_ratio = cd->u44.floor;
+                    dc->floor_ratio = cd->u44.floor;
                     break;
                 }
                 pp = pos;
                 at = pp + cd->num;
                 roll = (f32*) (at + cd->num);
                 fovy = roll + cd->num;
-                d->pos = (Vec*) ((u8*) pp - buf);
-                d->at = (Vec*) ((u8*) at - buf);
-                d->roll = (f32*) ((u8*) roll - buf);
-                d->fovy = (f32*) ((u8*) fovy - buf);
+                dc->pos = (Vec*) ((u8*) pp - buf);
+                dc->at = (Vec*) ((u8*) at - buf);
+                dc->roll = (f32*) ((u8*) roll - buf);
+                dc->fovy = (f32*) ((u8*) fovy - buf);
                 for (j = 0; j < cd->num; j++) {
                     *pp++ = cd->pos[j];
                     *at++ = cd->at[j];
@@ -141,7 +145,7 @@ int tcDataExport(u8* buf)
                     *fovy++ = cd->fovy[j];
                 }
                 pos = (Vec*) fovy;
-                d++;
+                dc++;
             }
         }
     }
@@ -157,32 +161,40 @@ int tcDataExport(u8* buf)
     }
     fp = (u16*) pos;
     {
-        CameraCut* d = cut;
+        dc = cut;
         for (i = 0; i < pTc->cdatNum; i++) {
-            c = &tcCdat[i];
+            // COMPILER-DIFF: #13 (asm-emitted tcCdat base): the hoisted `&tcCdat[i]` base as a C
+            // expression carries a REG_EQUIV (local-alloc doubles its live length 35 -> 70, pri 2857 ->
+            // 1428) and is allocated after the PRE'd `i + 1` copy, which then takes r7; the asm base
+            // keeps len 35, ties `i + 1` at 2857 and wins on allocno number -> r7, `i + 1` r6 (in place)
+            TcCdat* cb;
+            u32 hi;
+            asm("lis %0,tcCdat@ha" : "=b"(hi));
+            asm("addi %0,%1,tcCdat@l" : "=r"(cb) : "b"(hi));
+            c = (TcCdat*) (i * sizeof(TcCdat) + (u32) cb);
             if (c->enable != 0xFF) {
                 if (c->type == 6 || c->type == 7) {
-                    d->frames = (u16*) ((u8*) fp - buf);
+                    dc->frames = (u16*) ((u8*) fp - buf);
                     for (j = 0; j < c->num; j++) {
                         *fp++ = c->frame[j];
                     }
                 }
-                d++;
+                dc++;
             }
         }
     }
-    size = (u8*) fp - buf;
     {
-        CameraAreaInfo* d = area;
-        r = rec;
+        r = rec;  // r, da, size in this order: the preheader `mr r10,r25; mr r7,r28; subf r26` is LUID order
+        da = area;
+        size = (u8*) fp - buf;
         for (i = 0; i < pTc->adatNum;) {
-            // COMPILER-DIFF: candidate (global.c allocation order): the target allocates loop-5 `d`
-            // (r7) before `found` (r5); ours gives found r7 first and d r6, which pushes i off r6 and
+            // COMPILER-DIFF: candidate (global.c allocation order): the target allocates loop-5 `da`
+            // (r7) before `found` (r5); ours gives found r7 first and da r6, which pushes i off r6 and
             // cascades through loops 1-5 (j r4 vs the loop-2 giv base, `mr r6,r5`). 193 -> 62 words.
             register int found asm("r5") = 0;
-            s8 no = d->area_no;
+            s8 no = da->area_no;
             CameraCut* cc = cut;
-            r->area = (CameraAreaInfo*) ((u8*) d - buf);
+            r->area = (CameraAreaInfo*) ((u8*) da - buf);
             i++;
             for (j = 0; j < pTc->cdatNum; j++, cc++) {
                 if (no == cc->camera_no) {
@@ -194,10 +206,10 @@ int tcDataExport(u8* buf)
             }
             if (found == 0) {
                 r->cut = (CameraCut*) found;
-                d->enable = found;
+                da->enable = found;
             }
             r++;
-            d++;
+            da++;
         }
     }
     return size;
@@ -426,11 +438,14 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     int n = 0;
     int i;
     int j;
+    // one `o` for both loops: the shared pseudo is live across loop 1's r9/r10/r11 temporaries,
+    // so global alloc gives it r8 in loop 2 as well (a loop-local `o` takes r11 there)
+    QfpsOfs* o;
 
     c->num = 24;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 3; j++) {
-            QfpsOfs* o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
+            o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
             c->pos[n] = o->campos;
             c->at[n] = o->target;
             c->roll[n] = o->x24;
@@ -440,7 +455,7 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     }
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 3; j++) {
-            QfpsOfs* o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
+            o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
             c->pos[n++] = o->campos2;
         }
     }
