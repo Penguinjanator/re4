@@ -707,6 +707,7 @@ Sint32 adxsje_encode_data(void *obj)
 	Sint32 ch;
 	Sint16 *bufs[ADXSJE_MAX_NCH];
 	ADXSJE_PRDFLT *prd;
+	ADXSJE_IIRFLT *iir;
 
 	sjo = sje->sjo;
 	nbyte = 0;
@@ -714,12 +715,11 @@ Sint32 adxsje_encode_data(void *obj)
 		if (SJ_GetNumData(sjo, SJ_CK_FREE) / 18 / sje->nch32 <= 0) {
 			break;
 		}
-		n = sje->total - sje->nsmpl;
 		bufs[0] = sje->pcm[0];
 		bufs[1] = sje->pcm[1];
-		if (sje->blksmpl < n) {
-			n = sje->blksmpl;
-		}
+		/* `?:` (not if/else): n's second definition is then a frontend temp created after the bufs
+		 * stores and colours r20 below the loop temporaries like the original */
+		n = (sje->blksmpl < sje->total - sje->nsmpl) ? sje->blksmpl : sje->total - sje->nsmpl;
 		cnt = adxsje_read_pcm(sje, bufs, n);
 		if (cnt == 0) {
 			nenc = 0;
@@ -735,9 +735,10 @@ Sint32 adxsje_encode_data(void *obj)
 			for (ch = 0; ch < sje->nch32; ch++) {
 				adxsje_calc_rsig(sje, ch);
 				prd = sje->prd[ch];
+				iir = prd->iir;
 				sje->scale[ch] = prd->scale;
 				sje->invscale[ch] = prd->invscale;
-				adxsje_set_hist(sje, ch, prd->iir->h1, prd->iir->h2);
+				adxsje_set_hist(sje, ch, iir->h1, iir->h2);
 				adxsje_set_rsig(sje, ch);
 			}
 			nenc = sje->blksmpl;

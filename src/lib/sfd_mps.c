@@ -2,11 +2,9 @@
  * of ring buffer 0, demultiplexes it through an MPS handle and copies the packet payloads into the
  * video (buf 1), audio (buf 2) and private/user-output (buf 7) buffers or user element stream joints.
  *
- * Status: 22/26 functions identical. sfmps_CopyPrvate, sfmps_CopyPketData and sfmps_ExecServerSub
- * have the target's instruction stream with a different callee-saved/volatile register assignment
- * (ExecServerSub: the loop as an inlined helper gives the target's `li ret, 0; mr tot, ret; mr
- * skiptot, ret` copies but sfd stays below the locals, 51w - not applied); sfmps_DecodeOneUnit (93%)
- * still differs in the shape of the "decode this unit" flag computation and a few register choices. */
+ * Status: 24/26 functions identical. sfmps_ExecServerSub (16w: ret/len swapped, the AddRead helper's
+ * `ret` local is the coalescing leader below len) and sfmps_DecodeOneUnit (13w: the scan counter's
+ * colour, one M1 pin) have the target's instruction stream with a different register assignment. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "mps.h"
@@ -485,21 +483,19 @@ static Sint32 sfmps_CopySj(SJ sj, Uint8 *data, Sint32 len)
 static Sint32 sfmps_CopyUoch(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 {
 	SFUO_CH ch;
-	SJ sj;
 	SFMPS_UOCB fn1;
 	SFMPS_UOCB fn2;
 	void *obj;
 	Sint32 ret;
 
 	SFBUF_GetUoch(sfd, sfd->tr[SFMPS_TR].bufout3, chno, &ch);
-	sj = ch.sj;
 	fn1 = (SFMPS_UOCB)ch.prm;
 	fn2 = (SFMPS_UOCB)ch.rsv1;
 	obj = (void *)ch.rsv2;
-	if (sj == NULL) {
+	if (ch.sj == NULL) {
 		return 1;
 	}
-	ret = sfmps_CopySj(sj, data, len);
+	ret = sfmps_CopySj(ch.sj, data, len);
 	if (ret == 1) {
 		if (fn1 != NULL) {
 			fn1(sfd, chno);
@@ -511,20 +507,29 @@ static Sint32 sfmps_CopyUoch(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 	return ret;
 }
 
-Sint32 sfmps_CopyPrvate(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
+static Sint32 sfmps_CopyUo(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 {
-	Sint32 result;
-
-	if (SFHDS_SetHdr(sfd, stmid, data, len, &result)) {
-		if (result != 0 && sfd->tr[SFMPS_TR].bufout3 != 8) {
-			sfmps_CopyUoch(sfd, 0, data - 0x12, len + 0x12);
-		}
-		return 1;
-	}
 	if (sfd->tr[SFMPS_TR].bufout3 == 8) {
 		return 1;
 	}
-	return sfmps_CopyUoch(sfd, stmid, data, len);
+	return sfmps_CopyUoch(sfd, chno, data, len);
+}
+
+Sint32 sfmps_CopyPrvate(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
+{
+	Sint32 result;
+	Sint32 ret;
+
+	if (SFHDS_SetHdr(sfd, stmid, data, len, &result)) {
+		if (result != 0) {
+			data -= 0x12;
+			len += 0x12;
+			sfmps_CopyUo(sfd, 0, data, len);
+		}
+		return 1;
+	}
+	ret = sfmps_CopyUo(sfd, stmid, data, len);
+	return ret;
 }
 
 /* sequence header / GOP start code at the head of a video packet */
@@ -687,17 +692,20 @@ static void sfmps_TermIfInTerm(SFD sfd, Sint32 *term)
 }
 
 /* copies the payload of the packet whose header was just decoded */
-Sint32 sfmps_CopyPketData(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *result)
+Sint32 sfmps_CopyPketData(void *obj, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *result)
 {
 	SFMPS_WORK *wk;
+	SFD sfd;
 	MPS_PKETHD hd;
 	Sint32 ret;
 	Sint32 stmid, type, idx, plen;
 	Sint64 pts;
 	SJ sj;
+	void *outobj;
 	void (*fn)(void *obj, Sint32 stmid);
-	void *obj;
+	Sint32 res;
 
+	sfd = obj;
 	*nbyte = 0;
 	*result = 0;
 	ret = 0;
@@ -724,16 +732,15 @@ Sint32 sfmps_CopyPketData(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint3
 	}
 	sj = wk->outsj[stmid - SFMPS_STMID_MIN];
 	if (sj != NULL) {
-		obj = wk->outobj;
+		outobj = wk->outobj;
 		fn = wk->outfn;
-		ret = sfmps_CopySj(sj, data, plen);
-		if (ret == 1 && fn != NULL) {
-			fn(obj, stmid);
+		res = sfmps_CopySj(sj, data, plen);
+		if (res == 1 && fn != NULL) {
+			fn(outobj, stmid);
 		}
-		*result = ret;
-		ret = 0;
+		*result = res;
 	} else {
-		*result = sfmps_CopyPketFn[type](sfd, stmid, data, plen, pts);
+		*result = sfmps_CopyPketFn[type](sfd, idx, data, plen, pts);
 	}
 	switch (*result) {
 	case 1:

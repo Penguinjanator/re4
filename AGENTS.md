@@ -26300,3 +26300,46 @@ Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replac
   r28/r29 (38-74 words). No pin possible (loop.c pseudos). Left as is.
 - Flags: t_camera/t_camera_data and t_esp/db_widget stay False in config/G4BE08/modules.py; `ninja -k 0` + `dtk shasum -c` 111 OK after
   the two edits. Scratch ~/.cache/tcam2 and ~/.cache/tcam3 deleted; the kit untouched.
+
+### DOL db_cam closer 5 (game/db_cam 11/13: debugCamera::menuFlag 69 -> 45 with two block-scoped locals; menu 2 unchanged; 2026-09-12)
+
+- **menuFlag 69 -> 45 (tree): `{ int xon = x + 15; int xoff = x + 19; eprintf(xon * 8, ..); eprintf(xoff * 8, ..); }` in the
+  case 0/3/4/5 arm** (assigned before the two calls, after the `if (on)` colour select). Mechanism of the old `li r3,0x188`: gcse cprop
+  rewrites `x + 19` into `(set r257 49)` in the arm (validate_replace_rtx_1 folds PLUS/MINUS with a propagated constant; the head's
+  `x << 3` is not folded, so `x` stays a register: `slwi r3,r16,3`); loop.c then keeps that constant set in the body (`LOOPDBG insn 739
+  reg 257 [thr 68 sav 1 life 1 ic 194] -> stay`, pass 2 `[thr 71 life 2 ic 167] -> stay`) and combine folds `49 << 3`. `x + 15` has two
+  uses (arm + case 6: `sav 2 life 2` -> move) = the target's `li r21,0x2d`. A local assigned as a statement lives across the first
+  call (life >> 3) and is hoisted like the target's `li r20,0x31; slwi r3,r20,3`; it also restores the r16..r31 save (`stmw r16`) and
+  the r16/r17/r19 names. Measured on the way: `int xoff = x + 19;` alone before `if (on)` = 73 words (`li r25,0x31` stays in the arm;
+  its set is not even a threshold-tested movable, reason not read); `(x + 15 + 4) * 8` = 69 (no change); `int row = y + i;` at the
+  body top / after the head call with `row * 14` everywhere = 144 words (size exact 0x534, but the whole register order moves).
+- **Remaining 45 words = one mechanism, read, not closed: the head's `y + i` temp A and its PRE copy P.** Target `addi r4,r31,0x15;
+  mr r25,r4; ..; mulli r4,r4,0xe` + per-iteration `mulli r4,r25,0xe` in both j-loops; ours `addi r30,r31,0x15; mulli r29,r30,0xe`
+  (one pseudo) and the j-loop mult hoisted (`LOOPDBG insn 798 reg 272 [thr 71 sav 1 life 14 ic 27] -> move`) + `mr r25,r29` /
+  `mr r4,r25`, size +8. Facts from the dumps: (a) in ours gcse does NOT treat the head's occurrence (insn 585 `r229 = i + 21`, after
+  cprop of y) as available: it reports `PRE/HOIST: end of bb 59, insn 1168, copying expression 57 to reg 350` = a fresh `(plus i 21)`
+  inserted at the head block's end before the switch jump, and 585 is never listed as redundant; the arms' `y + i` (insns 721/796/881)
+  become copies of r350. No set of i (r87: insns 547, 1009 only) exists in bb 59, so why antloc/comp of bb 59 exclude expr 57 is not
+  understood (calls only kill hard regs and MEMs in compute_hash_table). The target's `mr r25,r4` right after the addi is the
+  `pre_insert_copies` shape (copy after an AVAILABLE head occurrence); ours gets the recomputation shape. Whatever makes the head's
+  occurrence available in the original also explains (b): regmove's optimize_reg_copy_1 (stops at JUMP/LABEL/LOOP notes and, with
+  flag_exceptions, at a CALL) did not move A's `* 14` use to P, so A and P stayed separate. (c) The j-loop mult not being hoisted
+  needs the mult to be a non-movable (thr*sav*life is 71*1*14 vs ic 27), i.e. its operand not invariant in the j-loop or a hard-reg
+  dest; the row expression written as `y + i` / `i + y` / a row local does not change it. Next step for whoever continues: dump
+  gcse's antloc/comp for bb 59 (a hook in compute_local_properties) on the current source, or find the source shape whose head
+  `y + i` is in the SAME block as its PRE copy and whose j-loop `(y + i) * 14` is not invariant.
+- **menu 2 words, OPEN, mechanism narrowed.** rs6000 `expand_block_move` (small copy) emits the three loads first, then the three
+  stores; the source base pseudo (`addi r9,campos@l`) gets its REG_DEAD on the z load, the dest base on the z store. haifa's
+  INSN_REG_WEIGHT is +1 per SET (register OR memory dest), -1 per REG_DEAD/REG_UNUSED, lower first at a priority tie: so z-load (0)
+  before y-load (1) AND z-store (0) before y-store (1) in ours. The target has stores x,z,y (dying-base store first, like ours) but
+  loads y,z: an asymmetric tie-break, so in the original either the source base did not die at the z load or the y load also
+  killed something. In sched2 both loads tie exactly (prio 29, 13 dependents each: z has the `lwz r8,target@l` output dep, y the
+  `lwz r0,8(r5)` one) and LUID decides, so a sched2-only lever must add a dependent to y. The `"=m"` anchor with `"m"(campos.z)`
+  after the memcpy (m4) gives the target's sched1 order (y t8, z t9, table otherwise identical) but local-alloc then sees y born
+  first with the longer life (30-42 vs 34-40, both 2 refs) and gives z r0 / y r8, and the addi/LC50-high pair swaps r10/r11: 9 words.
+  So "y first in sched1" contradicts the target's registers unless r0 is blocked for the z temp; a copy shape where y's temp still
+  gets r0 was not found. u32-view copies (`d0[2] = s0[2]` orders) = 60-69 words (the u32 stores alias the loads: serialised);
+  `memcpy(d0 + 8, &campos.z, 4); memcpy(d0, &campos, 8)` = 65.
+- Tree: only the menuFlag edit above (`src/game/db_cam.cpp`, comment updated). `MATCHING["game/db_cam.cpp"]` stays False (11/13,
+  menu 2 + menuFlag 45, size 0x53c vs 0x534). Object rebuilt under the lock; no `ninja -k 0` needed (flag unchanged). Harness
+  ~/.cache/dol_dbcam5 (tv.py spec-driven variant.sh driver, rtl_base/rtl_m4 dumps, LADBG/GDBG logs) deleted at the end of the pass.
