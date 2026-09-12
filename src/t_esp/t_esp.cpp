@@ -3209,7 +3209,7 @@ static void PathClose_callback(DB_WINDOW*)
 class PATH_WINDOW : public TOOL_WINDOW {
 public:
     PATH_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; d_ = 5; d_ = 6; d_ = 7; d_ = 8; }
         pa = p;
         win = NULL;
         {
@@ -3489,14 +3489,14 @@ static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
-#define POS_MINMAX(n)          \
-    (n)->max = 327670.0f;      \
-    (n)->min = -327680.0f;
+#define POS_MINMAX(n)            \
+    FSet((n)->max, 327670.0f);   \
+    FSet((n)->min, -327680.0f);
 
 class POS_WINDOW : public TOOL_WINDOW {
 public:
     POS_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -3641,7 +3641,7 @@ static void SizeWpHUpdate_callback(DB_PRIMITIVE* p)
 class SIZE_WINDOW : public TOOL_WINDOW {
 public:
     SIZE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -3738,7 +3738,7 @@ public:
 class SPEED_WINDOW : public TOOL_WINDOW {
 public:
     SPEED_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -3934,7 +3934,7 @@ static void ShimmerLightUpdateCallback(DB_PRIMITIVE* p)
 class COLOR_WINDOW : public TOOL_WINDOW {
 public:
     COLOR_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {

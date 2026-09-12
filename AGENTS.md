@@ -27729,7 +27729,7 @@ config/G4BE08/modules.py (`"t_event/t_event.cpp": True`). include/event.h UNTOUC
   ARRAY_REF (`p->v[i]`, bound >= 3), index set in the same block; "`lwzu`/update form missing" -> the base's set after the last call before
   the read and the same pointer used later; "load after the first store, target before" -> cache the value in a local after the call.
 
-### CRI SWAR kernels pass 11: sched.py as the oracle for the 16x16 4p block 1 (IN PROGRESS; 2026-09-12)
+### CRI SWAR kernels pass 11: sched.py as the oracle — mpv_mcy 16x16 4p 122 -> 119w APPLIED (pair loads + masked loads: target block split and target pre-RA order of block 1; residue = colours, CSP-consistent), 8x8 4p read (72w unchanged); nothing flipped (2026-09-12)
 Harness /home/adityas/.cache/cri_swar11/ (`gen.py NAME lpos=top|pair|pair2 lord=ab|ba p8=pre|mid cast=1|0 pix=.. mask=0|1 decl=..` whole-function
 generator for the 4p body, `try.sh unit NAME FUNC` = variant.sh + scheddump + sched.py + dtk listing, `score.sh NAME` = the first-half block isolated
 (`whatif.py DUMP BLOCK --keep a-b`: sched.py on an edited block) then `post.py TARGET_LST FROM TO ORDER --valid`: builds the TARGET's post-RA DAG
@@ -27744,3 +27744,181 @@ from its asm (physical registers, same alias record everywhere) and schedules it
   a6 < a4`, `b4 < a5 < b6`, `add p3 < add p0`, `rlwinm p5 < add (a8+b7)+b8`, `add p7 < stw d[0]`.
 - `lpos=pair` + masked loads (`s0[k] & 0xFF`, pass 9's E) splits the body exactly after `d[1]` (B3 = 79 pcodes, B4 = 69), prologue identical,
   119w; the residue of block 1 is now the colours only (same operation multiset in the same pre-RA order).
+
+### CRI pass 49 (sfd_cre AnalyMpv 15w / adx_tsvr nlp_trap_entry 2w / mpv_umc OneReadMb 48w / sfh_main SmpHz 6w read with sched.py; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri49/ (`mk.py BASE OUT FUNC_START FUNC_END 'OLD=>NEW'..` = literal edits inside one function, `try.sh UNIT ABS_SRC FUNC`
+= variant.sh words + differing lines, `whatif.py DUMPDIR BLOCK [ins=i:Pline] [reg=i:arg:cls:reg:rw] [raw=..] [del=i]` = sched.py on one block with DAG edits;
+deleted at the end).
+- **sfd_cre `sfcre_AnalyMpv` 15w: the target's two requirements, both now exact.** (1) RA side (chaitin.py on the v1 dump): the target colours
+  (b4 r4, b7 r5, ofs r6, b5 r6, b6 r7, b8 r8, ofs+1 r0) are reproduced by removing ONE edge, ofs+1 (r49) -- rlwinm temp (r51), PROVIDED b7 is an
+  own local with vid between b4 and ofs. In the tree b7 is forward-substituted into the `if` (same block, single def) as @164 (vid above every own
+  local): removing the edge there gives @164 r4 / b4 r6, wrong. `Uint8 b4; Uint8 b7; Sint32 ofs; ..` + a second def `b7 &= 0xF; if (b7 < 1 || b7 > 8)
+  .. sfcre_mpv_picrate[b7]` (no picrate_code local) keeps b7 an own local (`lbz r42` at its statement), bytes unchanged (15w) -- keep this shape.
+  (2) Scheduler side (sched.py, block B6 = 16 pcodes, 2-wide, 9 cycles = 8 loads): ours c0 `lbz b7 | subf ofs`, c1 `add data | lbz b4` (the
+  `addi ofs+1` is a candidate at c1 but is blocked by the gekko forwarding rule: only one IU free and it reads r42 written by the op that completed
+  in IU1 at the end of c0), c2 `rlwinm | addi ofs+1` (frees 1 > a load's 0), c3 `cmpi | lbz b5` -> ofs+1 lives across the rlwinm temp = the edge.
+  The target needs the addi AFTER the cmpi (c3+) and `lbz b5` after the addi. Raw order cannot do it (frees decides c2); the DAG must change. The
+  model's single-edit hits: (a) an extra int op of class <= 2 (a `mr`) ready at c1 with frees 1 that reads `data` or `ofs` -- it wins c1's first IU
+  pick (class 0 beats add's 2 on the frees/height tie), the `add` is then forwarding-blocked (one IU left, reads r42) -> c1 `mr | lbz b4`, c2 `rlwinm |
+  add`, c3 `cmpi | addi`, c4 `lbz b5 | subf size` = the target colours; the copy must be coalesced/deleted by the RA (the block is dirty anyway:
+  record-form merge). Forms: `mr @t, data` with no in-block consumer (WAR to the add), or `mr @t, ofs` consumed by the `addi` (`ofs + 1` from a
+  copy of ofs). (b) the `subf ofs` delayed to c1 (a copy of p or data that only the subf reads): add and addi both forwarding-blocked at c2 -> c2
+  `rlwinm | lbz`, c3 `cmpi | add`, c4 `addi | lbz b5`; needs the raw load order b6 before b5 (else `lbz b5` takes c2 and interferes with ofs).
+  The post-RA model on the hypothesised pre-RA order with the target's colours reproduces the target's final order exactly (h1/ directory).
+  C probes that did NOT create such a copy (15w, same object): `Sint8 *p` + `q = (Uint8 *)p` for every use (propagated), `Uint32 ofs`,
+  `(Sint32)((Uint32)ofs + 1)`, `(Sint32)(p - data)`, b6 before b5, `data = data + ofs` / `data += ofs` / `ofs + data` pointer forms (all give
+  `add r29,r29,r6`: only the INTEGER form `(Uint32)ofs + (Uint32)data` keeps the source operand order the target has; the frontend preserves int
+  operand order and canonicalises pointer+int to pointer first), `data = data + ofs + 1` (reassociated to `data + (ofs+1)` and CSE'd with size's
+  temp, 26w), `size = size - ofs - 1` (reassociated to `size - (ofs + 1)`, same bytes). Open: the C that leaves a coalescable copy of `data` or
+  `ofs` in B6 (frontend copy sources known so far: `?:` results, call results with >= 2 uses, range-split IV copies, kept parameter copies).
+
+### Tool RELs, t_esp pass 20 (t_esp 208/212: InitTool 2119 -> 2030w in the tree = pass 19's p20b applied (F4/F7 fits + POS_MINMAX `FSet`); the fresh-vs-callee-saved `lis`/`li` pattern of the tail read to reload's spill-reg rotation + find_equiv_reg inheritance; cse2 F6' knob measured; IN PROGRESS 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = /tmp/t19/p20b.cpp (y6 + PATH `1..8`, POS/SIZE/SPEED/COLOR `{ }`, `FSet` POS_MINMAX); locked ninja +
+  bytecmp: InitTool 2030w, 208/212, .rodata/.data/.bss OK, size 0xa20c/0xa0f4. Seg 0 d94 (slot permutation, sizes equal) accepted per
+  the pass-20 decision (spill-set symptom, judged last).
+- **Offsets are per-variant.** `flushes.sh` prints `WINDOW+k` counted in THAT variant's stream: a pad of +p insns at the window top
+  moves every later same-window `+k` by p in code terms (p20b's PATH+541 = y6's PATH+537). Compare flush positions only after
+  subtracting the pad delta (`wincount.py A.loop B.loop` gives the per-window deltas of both streams).
+- **The `li 1` keyMode item (2) read: not a grid effect.** In p20b the PARENT `keyMode = 1` remat (pseudo r5407, single set, REG_EQUIV,
+  not allocated) got the callee-saved SPILL register r14 from reload's spill-reg rotation (`li r14,1`, seg 381); `reload_cse_regs` then
+  serves the 13 later stores of 1 (4 keyMode + 9 `int sx = 1` frame stores, segs 381-560) from r14 (`stw r14`). In g8 and the target the
+  same remat took r8 (volatile: forgotten at the next call) and every store of 1 is a fresh `li r9/r10/r0/r11`. r14-r17 are reload
+  registers in all three (4 `lwz rX,off(r1)` slot reloads each). The pick is the rotation state (`last_spill_reg`) = the number of
+  reloads issued before seg 381, changed by the F4 shift (g8 `1..12` vs p20b `1..8`); no source lever, judge with the spill set.
+- **Same mechanism for the `g_pEditSeq2` high (`/tmp/t20/hl.py O_init.s lbl_t_esp_bss_13C87C _15t_esp_namespace.g_pEditSeq2`
+  prints the per-seg register of a symbol's high, T vs O).** Target: 350-377 r15, 378-443 r22, 461-651 r14 (ONE `lis r14`, 40 uses =
+  exactly ours' four cse1-window heads 6131/6811/7532/8253 of the .loop dump), 656/659 `lis r11` fresh, 668-688 `lis r9` fresh per use
+  (9), 702-751 r14 again, 757-775 `lis r9` fresh. Every head is a single-set `(set rH (high sym))` with REG_EQUIV (ours too: lreg
+  "Register 6811 ... set 1 time", REG_EQUIV note) -> rematerialised by reload; a remat landing in a callee-saved spill register is
+  inherited across calls by `find_equiv_reg`/`reload_cse_regs` until that register is reused (a `lwz r14,slot(r1)` reload), a remat in
+  r9/r11 is fresh per use. So the 461-651 merge is NOT a cse2 window (2400 .loop insns): it is the r14 pick at 461. Ours (p20b) 350-377
+  r16, 378-443 r21, 461-775 r15 (g8: r14 / r18 / r14). Use-count groups 10 / 16 / 40 match ours exactly -> the cse1 grid F3..F8 is
+  consistent with the target; the boundaries the high shows (377|378 = F4, 443|461 = F4' or F5, 651|656, 688|702, 751|757) are the
+  grid signal, the register names are the rotation.
+- **cse2 F6' knob measured (scan /tmp/t20/s1_*, v.sh = p20b pads + overrides):** LIFE pad `1:2:3:5..n:4` (LIFE straddles F8 = LIFE+8:
+  sets 1,2 before the flush, the rest after; `d_ = 4` is the head) adds n-4 cse2 insns AFTER F8 = F6' moves n-4 earlier with F5' fixed;
+  BLEND's pad adds only ~4 cse2 insns (a `(const_int 4)` argument set in COLOR's tail after F7 makes BLEND's `d_ = 4` not the head);
+  COLOR's pad moves F5' AND F7 (F7 must stay >= COLOR+860). Removing a (4,0) pad in FLAG/ROTATE ADDS 4 .loop insns to that window
+  (RELEASE -1, ANMRATE 0): the (n,0) table is cse1-exact only. Results (words / lc regions): p20b 2030 [0 0 0 0 0 0 0 0 2 1 6 0 0 1];
+  LIFE n=48 + RELEASE/ANMRATE/ROTATE `{ }` 2003 [0 0 1 0 0 0 0 0 1 1 3 2 0 2] (F6' ANMRATE+47: 2 short of 619's load at ANMRATE+45);
+  LIFE n=60 + the three `{ }` 1933 [0 0 1 0 0 0 0 0 1 0 1 2 0 1] (F6' ANMRATE+35, F7' SUB+31, F8' WORKSP1+59, F9 ROTATE+623, F10
+  SUB+162 = the WORK0 addressof pair lost); the region-8 residue (seg 545, 5104 fresh) needs F5' outside (COLOR+557, +582] or F7 >
+  COLOR+880 (then 545 is cse1-shared): both blocked (PARENT is the only removable cse1 pad between F4 and F7, F4 sits at its late edge).
+
+### CRI pass 51 (adx_sje write_end_code 2 -> 0 pure C, unit 16 -> 17/17 FLIPPED, 111 OK; mwsfdcre CalcWorkSfd 4w: the epilogue hoist is the RA's deleted `mr r3, size` dirtying B15, the target's `add r3, sib, size` is computed straight into r3; sfd_mps DecodeOneUnit 13w: the model closes with ret adjacent to its own two def ghosts; 2026-09-12)
+Harness /home/adityas/.cache/cri51/ (`sje/try.sh NAME 'stmt'`, `cws/try.sh NAME 'tail'`, `cws/try2.sh NAME 'chain'`, `mps/whatif.py DUMP a:b..` = chaitin replay with added edges; deleted at the end).
+- **adx_sje `adxsje_write_end_code` 2 -> 0, pure C (APPLIED, FLIPPED).** sched.py on the 2.6 dump (17/17 blocks identical to ours) shows site 1's block B12
+  input `lha v; lwz ck.data; sth; mr r3; li; addi; lwz; lwz; mtctr; bctrl`; LHA and LWZ tie on every criterion (both h=10, dl=0 urgent, one successor STH
+  with npreds 2, class 3), so the earlier pcode wins: the target's `lwz r6; mr r3; lha r0` needs the ck.data load BEFORE the value load in the input.
+  The frontend evaluates an EASS's RHS first and forward-substitutes a single-use pointer local (`Sint16 *dst = ck.data; *dst = *src;` = same tree,
+  `register`/split declaration/volatile dst/`((Sint16 *)ck.data)[0]`/index local all 2w; `volatile` on the SOURCE keeps site 2's lha, 7w; memcpy = a
+  real call). A two-use pointer survives: `Sint16 *dp = (Sint16 *)ck.data; *dp++ = *(Sint16 *)src;` (the dead `addi dp,dp,2` is deleted, bytes
+  IDENTICAL; `*dp = ..; dp++;` as two statements and `dp = dp` are substituted again). Not a 2.7-vs-2.6 difference: pass 48's "2.7 reschedules B12" was
+  wrong, both compilers give the same order from the same input.
+- **mwsfdcre `mwPlyCalcWorkSfd` 4w, the two words are ONE event.** blkflags: B15 (the chain block) has its scheduled bit cleared at pass 09 (regalloc)
+  because the RA deletes the coalesced `mr r3, size` of `return size;`; pass 11 merges the 1-pred return block's `lmw; lwz r0; mtlr` into B15 and pass 12
+  (post-RA scheduler) then hoists `lwz r0,0x34(r1)` above the last `add`. The target's `add r3, r29, r3; lmw; lwz r0` = the merged block NOT rescheduled
+  = no copy deleted in it = the return value computed straight into r3 as `sibsiz + size` (sib first). So the source is `return sibsiz + size;` with
+  `size` NOT forward-substituted. Negatives (13w = the whole chain substituted into the return and reassociated by the backend): `{ return .. }`,
+  `if (0) size = 0;`, a dead `size2 = size;`, `+ 0 * size`, `(size2 = size)`, `(size2 = size, size2)` (9w), `*&size`, `(Sint32)(Uint32)size`, `(Sint16)`
+  (10w, +4 bytes), `Uint32 size` with casts, an inlined `mwsfcre_addsiz(sibsiz, size)`, an inlined empty call / empty call taking `size` between,
+  the whole chain in an inlined helper `return sibsiz + helper(..)` or `size = helper(..); return sibsiz + size;`, `asm { }` between (13w; `asm { nop }`
+  53w). A `+=` chain on ONE variable ending `size2 += adxwksiz; += consts; return sibsiz + size2` is merged whole (the constants land on a leaf). Rule
+  read off frontend-01: consecutive constant `+=` merge into one; an rvalue single-use read pulls the def chain in whatever the distance/casts/blocks;
+  `x += var` statements are kept (lvalue). Still open: a codeless second read of `size`, or the reason the vendor's `size` had two uses.
+- **sfd_mps `sfmps_DecodeOneUnit` 13w (pin) / 132w (n2 = no pin + `?:` n):** whatif on the n2 dump: adding ONLY the two edges ret–r89 (the SetErr `mr @t,r3`
+  ghost) and ret–r153 (the CopyPketData `mr @t,r3` ghost) reproduces the target colouring exactly (ret r31, wk r30, nskip r29, nbyte r28, len r27, data
+  r26, sfd r25, delim/p r24, mps r23, total r22, bufin/dst/cnt r21). Those two ghosts are the only ghosts of the function NOT adjacent to ret (ret's
+  old value is dead at its own defs); every other ghost and all of r0/r1/r3..r12 already are. So the vendor's ret was live at its own redefinitions
+  (a read-modify def or a conditional def) or two new ghosts sit in a ret-live region. Negatives: a user copy of `sfd`/`data` at a call (`s = sfd;
+  f(s)`, in a helper or inline) is forward-substituted by the frontend (no ghost, bytes unchanged); a neighbour pin `asm { mr r11/r8, ret; mr ret, rX }`
+  after `ret = 0` is 134/135w (r11 is used once in the target; the r8 form is no better) — the codeless-pin row does not hold for a constant-defined
+  own local here. Tree keeps the M1 pin (13w).
+
+### CRI pass 52 (adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w, sfd_mps DecodeOneUnit 13w: which `?:` shapes are codeless ghost pairs; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri52/ (`mk.py OUT [--base=B] 'OLD=>NEW'..`, `try.sh NAME FUNC --ra` = variant.sh words + ra.py into ra_NAME + `ghosts.py`
+(named colours + ghost list), `whatif.py RA_DIR +ghost:REG:phys=REG.. --target name=reg,..` = chaitin replay with extra never-removed ghosts; deleted at the end).
+- **The pass-47 "18/18" reproduced and made precise.** a7 rebuilt from the pass-47 text (114w, chaitin IDENTICAL). The ghost model that scores 18/18 is a ghost
+  aliased to physical rP whose neighbours are exactly the nodes that already interfere with rP (`phys=`; a ghost adjacent to every node scores 3/18, so the
+  pass-47 wording "adds +1 to every loop node" is wrong for histl: r6/r8 already interfere with 71 of 76 nodes because the final `histl[0] = l1` stores keep them
+  live, and the ghost doubles THAT set). Enumerated multiplicities (0..2 ghosts on r6/r8/r9/r10): 18/18 iff (#r6 + #r8 == 2) and (#r9 + #r10 >= 1); the
+  histl pair alone (2,0,0,0) is 15/18 (s/nblk/t = r20/r21/r19 instead of r21/r19/r20), a pair on both hist pointers (2,2,..) is 5/18 (qtbl jumps to r9, c1e r31).
+- **A `?:` on a parameter makes the pair, and its compare survives:** `hl = histl ? histl : histl;` / `(nfrm > 0) ? histl : histl` / `nblk ? histl : histl`
+  (loads and final stores through hl) -> `r35->r6=histl` + `r71->r6=@58` in the compiler's ghost list, the colouring = the model's (2,0,0,0) (c1e r9, c2e r10,
+  l2 r31 .. qtbl r22 right, s/nblk/t off), but the backend keeps the condition's `cmplwi r6,0` (branch and both `mr @58,r35` arms deleted, size +4, 137w).
+  Frontend AST: ECOND with EINDIRECT histl in both arms; backend-00: `cmpli; bt; B3: mr r71,r35; b; B4: mr r71,r35` = a two-def copy web, which is why r35 is
+  not propagated (the pass-47 rule "source of another mr" = "source of a mr the copy propagation cannot fold" = a multi-def destination).
+- **Frontend-folded (no ghost, 114w unchanged):** `1 ? histl : histr`, `(histl == histl) ? ..`, `(sizeof(Sint16) == 2) ? ..`, `zero = 0; zero ? histr : histl`,
+  `i = 0; hl = i ? histr : histl` (reaching-definition constant, even for the multi-def loop counter), an inlined `static pick(a, b, sel) { return sel ? b : a; }`
+  called with `sel = 0`, `register Sint16 *hl = histl`, a dead second def `hl = histl/histr/NULL` in the early-return arm (dead-store-eliminated in the AST).
+  So the frontend folds every `?:` whose condition it can evaluate, and the backend deletes the select but never the compare: **a `?:` on a parameter is a
+  ghost pair at the price of exactly one compare instruction**; pass 48's `n` was free only because its compare replaced the `if`'s.
+
+### CRI pass 50 (cftfx StaticV 36 -> 16w pure C: `const` parameters give loads an alias class disjoint from the stores, the post-RA scheduler then hoists them above the prologue; UserTable 135w / Argb420 38w / cftyp422 Y84C44 29w read; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri50/ (v.py/ut.py/mac.py literal-edit variant drivers over ~/.cache/kit/variant.sh, sd_* scheddump dirs, ra_* ra.py dumps; deleted at the end).
+- **NEW ALIAS LEVER (pure C): a load through a pointer-to-const gets its own alias record and never aliases a store.** Read off the
+  scheddump records: `lwz r9,4(r4)` with `CFT_ARGBDST *dst` = `t2 bits=2` (the function's "unknown pointer" record, shared with EVERY
+  load/store including the prologue's `stwu`/`stw`, flags 0x22); with `const CFT_ARGBDST *dst` = `t1 obj=@77 off=8388611 size=4`
+  (a pseudo-object per const pointer, flags 0x42), which the may-alias test (obj vs bitset: idx not in {1}) declares disjoint from
+  the t2 stores. `const Uint8 *tbl` gives the `lbzx` a `t0 obj=@96 size=0xFFFFFF` record likewise. A `const Uint8 *y = src->y`
+  LOCAL does not (the class follows the pointer's origin = a load from a non-const struct, still t2). Consequence in the post-RA
+  entry block: the parameter loads no longer depend on the frame store, so `lwz r9,4(r4); li r6,0; stwu; srawi; lwz r5,8(r4)..`
+  with the two `stw r31/r30` saves scattered 10 and 20 slots later = sched.py on ours' B0 with the three stack stores given a
+  disjoint record: IDENTICAL to the target's 23 slots (StaticV). Rule: when the target's prologue has parameter loads ABOVE `stwu`
+  (or scattered callee-saved saves), the vendor's parameter was `const T *`; when `stwu; li; lwz; stmw` (UserTable, `lwz` waiting
+  2 cycles) it was not. UserTable/Argb420's targets have non-const `src`/`dst` (tested: const src hoists `lwz 0xc(r3)` above stwu).
+- **cse2 F6' fit = the LIFE knob, but it cannot be held:** variant /tmp/t20/s1_b.cpp (LIFE `1:2:3:5..60:4`, RELEASE/ANMRATE/ROTATE `{ }`)
+  = 1933w, lc segs 221 545 681 698 699 782 (p20b: 545 555 619 621 623 624 625 663 690 782): every F6' symptom (619/621/623/624/625/
+  663/690, and 5198's 555C) is fixed, F6' = ANMRATE+35 (target interval (FLAG+246, ANMRATE+45] in p20b .loop coordinates = 46..545
+  insns earlier than p20b's ROTATE+21). Cost: the pad's 56 cse1 insns move F9 -48 (ROTATE+623), F10 WORK0+18 -> SUB+162 (the WORK0
+  `DB_POINT pos` addressof pair is (WORK0+14, WORK0+33] and 525C's load at WORK0+9 must be cse1-fresh + cse2-rescued from 681 ->
+  F10 in (WORK0+9, WORK0+33] EXACTLY as p20b has it), F11 WORK5+83, F12 BASEPOS+79, and F7' SUB+95 -> SUB+31 (F7' must not lie between
+  681's and 698's loads). Removable cse1 pads between LIFE and WORK0+18: RELEASE/ANMRATE/ROTATE/VEC0/VEC1/VEC2/SUB/WORK0 = 32 (VEC0's
+  costs 3 cse2), F10's slack 3 -> D <= 35 < 46 needed. So the target has >= 11 MORE cse2-time (and cse1-time) insns between F8 (LIFE+8)
+  and F6' than any pad form gives, or fewer cse1 insns between F8 and F10: not a pad question any more. NOT applied; p20b stays.
+- **F7 is misread by pass 19 (5104 at 545/547):** target 5104 (.LC1529) 543F then SHARED at 545 (jump COLOR+880) and 547 (+916); 50DC
+  16.0 shared at 543 (+853) and fresh at 561 (FLAG+58). Hence F7 in (COLOR+916, FLAG+58] (cse1-shared 545/547), or F7 in (880, 916] with
+  F5' outside (COLOR+557, COLOR+613] .loop (cse2 rescue of 547 from 543's load). p20b's F7 = COLOR+863 gives 545 fresh; a pointer-pair
+  POS_MINMAX (`f32* mm_ = &max; mm_[0]=..; mm_[1]=..`, /tmp/t20/pp.cpp) removes 24 cse1 insns in POS/BASEPOS and puts F7 at +887 (545
+  shared, 547 fresh) but loses the FSet alias effect (PATH region mset 3 -> 14) and 50DC 486 -> 498: 2133w, rejected. Between F4
+  (certain: 284.0/.LC1581 at 376F 377 shared 378F -> a cse1 flush in (PATH+510, PATH+542]) and F7 the target therefore has >= 18 (pointer
+  form) / >= 53 (FSet form) FEWER cse1-time insns than ours; PARENT's pad (4) is the only removable pad there, the `pa_ = pa; win_ =
+  win;` block copies are not cse1 insns (removing them in POS: grid unchanged, 4058w — statement order), FSet costs exactly 1 cse1 insn
+  per store (12 in POS, 6 in BASEPOS; direct stores 0). Open: which real construct in PATH-tail/PARENT/POS/SIZE/SPEED/COLOR-head has
+  ~4-9 more RTL insns per CreateNumeric2 block in ours than in the original (candidates: the named `DB_POINT pos` local vs a
+  `&DB_POINT()` temporary, `int sx` locals, `SetKeta` + POS_MINMAX order); measure with `wincount.py` on the `.jump` dump.
+- **Per-variant harness /tmp/t20 (disposable):** `v.sh NAME PADS..` (p20b pad base), `vv.sh NAME` (any /tmp/t20/NAME.cpp: autoN +
+  grids + words + mset + lc), `scan.sh`, `seg.py O_init.s SEG..` (side-by-side of segments), `hl.py` (symbol-high register timeline),
+  rtl dumps rtl_p20b (.jump/.loop), rtl2_p20b (.cse2), rtl3_p20b (.lreg/.greg). /tmp/t18, /tmp/t19, ~/.cache/tesp15, the kit untouched.
+- Not run: make_rel --verify, ninja -k 0, shasum (nothing flipped; flags untouched). Next: (1) find the per-block RTL surplus between F4
+  and F7 (above) — it is the same kind of thing as pass 16's "+4 per window", with the opposite sign, and it unlocks F7 > 916, F5', and
+  gives the LIFE knob its cse1 room; (2) then the LIFE knob for F6' (D = 46..60) with the cse1 held at F10 in (WORK0+9, +33];
+  (3) the callee-saved/spill picture is reload's rotation over {r0,r6,r8,r9,r10,r11} + the callee-saved reload registers r14-r17:
+  judge after the grid (the `li 1`/`lis` fresh-vs-inherited pattern follows from it).
+- **APPLIED (src/lib/mpv_mcy.c `MPVMC16_OneRef4p_TuneC`, 122 -> 119w, size equal, pure C):** first half = `a0 = s0[0] & 0xFF; b0 = s1[0] & 0xFF;
+  a1 = ..; b1 = ..; p0 = ..; a2; b2; p1 = ..; ... a8; b8; p7; a0 = s0[9] & 0xFF; b0 = ..; p8` (pair loads before each sum, mask at every load,
+  `(Uint32)` casts kept, declaration order px, ps, lv unchanged); second half untouched. Prologue identical (stmw r21/-0x40, loop vars r0/r3-r6,
+  `li r7,0x10`), body split B3 = 79 / B4 = 69 as the target, block-1 operation multiset in the target's pre-RA order. Not flipped (H2/V2 225w).
+- **Residue of block 1 = colours only, and the colours are NOT a contradiction of the graph:** `csp.py` (greedy order search on m1's interference
+  graph with the target's colours per value) finds a colouring order reproducing all 53 block-1 target colours once the callee-saved set r21-r31 is
+  handed out before any block-1 node (the target hands r31..r21 to BLOCK-2 nodes first: p8 r31, p9 r30, p10 r29, p13 r28, b14 r27, b13 r26, a16 r25,
+  b16 r24, b12 r23, b11 r22, a13 r21 — block-1 pixels then take the LOWEST free handed register: b5 r28, a5 r27, a4 r26, b6 r25, b8 r24, p1 r23,
+  b2/b4/p0 r22, a3/b7/p7 r21). So block 2 is coloured before block 1 (higher vids, all L1) in the target as in ours, and the block-1 colouring order
+  the target needs is: p8's chain temps, a7 r8, a8 r9, a9 r10, a6 r7, p6/p3/p2/p1 first adds, a2 r9, .., a3 r21 / b2 r22 late, p0/p5/p6/p7 own
+  locals last. Ours colours block 1 in descending backend-temp creation order (pair form: p8 temps, b9, a9, p7 temps, b8, a8, ..., a1) = 6/49
+  target colours; pixels as own locals in any of 8 declaration orders (chaitin what-if, `csearch.py`) <= 12/49. Open: the vid order (creation order of
+  the sum temps vs the pixel loads) that gives the CSP order; not searched further (time box).
+- **Block 2 (target lines 77-133) starts `lbz a10, lbz b10, add (a10+b9), lbz a11, add +b10, lbz b11, addi, add p9 = a9 + ..` = the same pair
+  pattern; ours (all second-half loads first) is frontend-scrambled (p15's loads and sum first, then p11, p10, p9). A pair-form second half (q1: pixel
+  10 loads, p1, pixel 11, p2, ...) compiles to the same 119w; its block-2 model score was not read (the cross-block values a9/b9/p8 need the `--lv`
+  vreg mapping in sym.py; 5 minutes) — next pass: score it with `post.py t_4p16.txt 77 132 .. --tlv r4=i,r0=stride,r5=s0,r6=s1,r3=d,r12=b9,r10=a9,r31=p8`.
+- **mpv_mc 8x8 4p (72w) read with the same tools (`score8.sh`, `gen8.py`):** ours = target for the first 4 loads, then the target issues `add (a1+b0)`
+  BEFORE `lbz a2` at cycle 5 (both urgent, both free 1; our model gives the load by height 14 vs 11), and loads b5/a6 in ADDRESS order (positions 37/39)
+  where ours hoists them to 13/14 (p5 = the d[1] pack base has the longer chain). Pair/pair2 load placement, `lord=ba`, dcbt after pixel 1 (68w but
+  9/64 model), casts, loads-not-aliasing-stores, stores-not-aliasing (`whatif.py --noalias/--stnoalias/--nomem`) all leave the pick: the target's
+  8x8 DAG has p1's chain no longer than p0's, i.e. its pack/store chain differs from ours in a way the alias records do not explain (the `or` ->
+  `mr + rlwimi` pre-RA chain?). Unchanged at 72w. mpv_mc V2 73w / H2 436w, mpv_mcy H2/V2 225w not touched this pass.
+- Tools kept in the harness (delete with it): `try.sh`, `score.sh`/`score8.sh`, `gen.py`/`gen8.py`, `batch.sh`/`batch8.sh`, `whatif.py`
+  (sched.py on an edited block: `--keep`, `--order`, `--noalias`, `--stnoalias`, `--nomem`), `post.py` (target post-RA DAG + model + `--ties`,
+  `--valid`), `sym.py`/`tsym.py`/`cmp.py`/`colmap.py`/`annot.py`/`csearch.py`/`csp.py`. Kit untouched. objects.py untouched by this pass.
