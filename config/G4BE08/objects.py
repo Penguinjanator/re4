@@ -1958,3 +1958,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_mc.c": True,  # 5/5 (OneRef1p keeps its asm body: lfdux/lwzux update forms are never emitted from C by this compiler). H2 34 -> 0: masks `Uint32 m2; Uint32 m1;` assigned m1 then m2 (web vids by declaration, lis temps by statement order), cases 2/3 inserts as asm-emitted `rlwimi` on `register` helper locals (COMPILER-DIFF: the target's order is the pre-RA schedule of a DAG with no leftover pcode; the or-pack's fused shift is a dead def until the RA and the intrinsic's K6 copy a node, and the scheduler model shows every extra node moving the order). V2 73 -> 0 pure C: `Uint32 x0 = 0, x1 = 0;` dead initialisers (range-split webs are numbered by each variable's FIRST definition and coloured in that order), the third load of each row kept as a variable by the pointer step right after it, the second pack written into it (`w2 = (w1 << 8) | w2` = the target's kept `mr r28, r31` in case 1 and in-place `srwi r28, r28, 8` in case 3)
 })
+
+# CRI pass 66 (2026-09-12)
+MATCHING.update({
+    "lib/mwsfdcre.c": True,  # 10/10: mwsfcre_CreateSfd 115 -> 0 (the two dead `b`). mwsfcre_IsUseAdxt's `case 4:` arm FIRST in the switch with a tagged codeless `asm { mr mode, mode }` on the `register` parameter: the frontend folds an empty arm onto the default label and deletes every side-effect-free statement, so the original's case-4 block held a statement a backend pass (CSE / RA) deleted after layout; laid out between the compare tree and the FALSE arm, the emptied block keeps its `b T` at both inlined sites (an arm after the FALSE arm falls into T). mwPlyCalcWorkSfd keeps its pass-65 asm read
+})

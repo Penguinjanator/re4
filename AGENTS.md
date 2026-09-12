@@ -110,6 +110,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | one value X is coloured one Chaitin level too LOW (falls below 29 one scan too early, lands in r0/r3..r12 or a lower callee-saved than the target; a target node "must be level 2" / "needs more neighbours") | the priority list is built by degree-<29 removal scans; a pinned value is coalesced with the asm's copies, which stay as ghosts aliased to the physical register = never-removed neighbours of THAT value only (total degree of everything else unchanged) | a same-body value that overlaps X (a later use of X, a kept copy), a longer web | **codeless neighbour pin `asm { mr rV, x; mr x, rV }` with rV a VOLATILE register the function never uses (r11, r8, ...)**: +k never-removed neighbours on `x` only, X held one scan longer -> coloured earlier; reserves nothing, both `mr`s deleted (size unchanged); place it AFTER any propagated copy of `x`; `x` must be `register`. A callee-saved rV also RESERVES the register (row 10); on a parameter or a call-defined value the `mr` is emitted (a real copy). Tag M1 (neighbour pin) | "CRI pass 40" (cvFsGetFileSize 14 -> 0, the dump reading), "CRI pass 44" |
 | range-split webs (`@N`, lifetimes on) of a switch's cases coloured in the wrong order: a value takes the wrong callee-saved / volatile register although the graph is one level | the frontend numbers the `@N` webs by the FIRST DEFINITION of each variable in the function (all of a variable's webs consecutive; within a variable the later definition and the later case get the LOWER @), and the RA colours them in ascending @ before the own locals; a load and the pack that replaces it in the same variable are therefore always pack-then-load | dead initialisers in the declaration (`Uint32 x0 = 0, x1 = 0;`: deleted, no code) move a variable's group first; write a pack INTO another variable (`w2 = (w1 << 8) | w2`) when its load must be coloured before it; keep a single-use load as a variable with the pointer step right after it (`w2 = s0[8]; s0 += stride;`) | — | "CRI SWAR kernels pass 18" |
 | a block's target order is reproduced ONLY by the leftover-free DAG (dagx.py: the or-pack's dead fused shift, the intrinsic's K6 copy and an own-local copy each move it) | every C pack spelling of this compiler leaves one pcode until the RA (dead rlwinm / `mr`), and the RA's deletion dirties the block into a post-RA reschedule from the wrong input order | — | `V = base_shift; asm { rlwimi V, src, sh, mb, me }` on `register` locals: an ordinary RLWIMI pcode to the scheduler, tag COMPILER-DIFF (the vendor's TuneC had inline asm there) | "CRI SWAR kernels pass 18" |
+| a dead unconditional `b` in the target that ours lacks (a `switch` arm block reduced to `b join`, `beq` already threaded past it; the function 4/8 bytes short, every later branch offset off) | the frontend folds an EMPTY arm onto the default label and deletes every dead def and side-effect-free statement; a statement it keeps (asm, a live def) and a backend pass deletes (CSE-redundant `li` against a dominating def, an RA-coalesced copy, an asm self-copy) leaves an emptied block that keeps its `b` — but only when the block is laid out where its successor is NOT the fall-through (the arm written BEFORE the arm that jumps elsewhere, e.g. before a `return FALSE` arm); an emptied arm laid out just before the join falls into it | arm ORDER in the source (the dead-`b` arm first) | `asm { mr v, v }` on a `register` parameter/local in the arm (codeless: deleted by the RA, no reservation, colours unchanged), tag M1 (codeless arm) | "CRI pass 66" (mwsfdcre IsUseAdxt), "CRI mwsfdcre pass 7" (form A = the CSE-deleted def) |
 
 ## Tooling kit
 
@@ -30083,3 +30084,69 @@ full `-dj -ds -dS -dl -dL -df -dc -dN -dR -dg` dumps of the unpinned tree; nopin
 - Next: (B) only. The xoris must be born after `add prod,jq32` in sched1: either two more >= 80-priority Z insns that vanish (none found in 4 passes), or the
   conversion's source made dependent on the index chain (no C form: `(f32) j` reads the biv). Consider whether the vendor's loop B converted a DIFFERENT int
   (a function-level index equal to j that is assigned in Z after the bump store, e.g. a `jx`-like variable set from the chain) before spending more on slots.
+
+### CRI pass 66 (mwsfdcre Matching 8 -> 10/10 FLIPPED, 111 OK: mwsfcre_CreateSfd 115 -> 0w — the two dead `b` are the emptied case-4 arm of the inlined IsUseAdxt laid out BEFORE the FALSE arm; frontend/backend deletion census of arm contents; 2026-09-12)
+Harness /home/adityas/.cache/cri66/ (deleted at the end): `gen.py NAME 'case-4 body' [--decl|--pre|--post|--ret|--params|--glob|--order 4first]` (a
+25-line TU: `static Bool IsUse(mode)` switch inlined twice into `Create`, the CreateSfd shape), `try.sh`/`batch.sh` (ra.py dump -> `blocks.py DUMPDIR
+--passes 0,6,14` = one line per block of the tree region after each backend pass, the frontend-01 CASE labels), `bytes.sh` (the GC/2.7 production
+command on the probe, no strip step, llvm-objdump of the tree = the bytes judge; ra.py's pcode dumps do NOT show the emitter's branch threading),
+`real.py NAME 'IsUseAdxt text'` (the tree's unit with the helper replaced, variant.sh).
+- **Correction to the task's premise: the target is the LARGER one (0x2c28 vs ours 0x2c20; CreateSfd 0xe70/0xe68)** — the 115 words are the two
+  extra `b` plus every branch offset behind them; nothing else differs, so the "2 extra words of register residue" do not exist.
+- **The mechanism, read in full.** Target tree at both sites: `cmpwi m,4; beq T; bge T; cmpwi m,2; bge F; b T; b T; F: li 0; b E; T: li 1; E: cmpwi r0,1`.
+  The first `b T` is the tree's own fall-through branch (m < 2 -> default), the second is the CASE-4 ARM'S BLOCK reduced to its `b T`, laid out between
+  the tree and the FALSE arm because the source had `case 4:` FIRST. The `beq` goes to T (not to the block) because the object emitter threads a branch
+  to a `b`-only block but does not delete the unreachable block (the pcode dumps still show `bt B7` -> `B7: b B9`; the bytes show `beq T`). Two
+  conditions, both necessary: (1) the arm was NOT empty at the frontend — an empty arm (`case 4: break;`, or anything the frontend deletes) is folded
+  onto the default label (`CASE 0x4: L@26 = DEFAULT: L@26` in frontend-01) and no block exists; (2) the block sits where its successor is not the
+  fall-through. Pass 60's negative ("a codeless pin in the case-4 arm does not leave the `b`") was condition (2): with `case 4:` written after the
+  MPV/VONLYSFD arms the emptied block is laid out right before T and falls into it — the same pin with the arm first gives the `b` (probe: identical tree).
+- **What the frontend deletes (census, frontend-01 label test):** every def of a local or parameter that is dead afterwards, however spelled (`x = mode`,
+  `x = mode / 2`, `x = (Uint32)mode >> 31`, `register` locals, `mode = 4`, `mode = 0`, `mode++`, `mode = mode`, `{ Sint32 m = mode; mode = m; }`), a def
+  overwritten on every path before its use (`x = 0` then `x = mode` after the switch: liveness-based, not "no use at all"), `(void)mode`, `mode / 0`, a
+  two-level inline whose body folds (`mode = Id(mode)` with `Id` returning its parameter; `r = Id(mode)` with `Id` returning TRUE and `r` redefined after
+  the switch), plus pass 7/65's list (unreachable statements, empty blocks, labels, `if (mode) break;`). Kept: a volatile read (`x = *(volatile Sint32 *)&mode`
+  -> a real `stw`/`lwz`), a store, a call, an `asm` statement, and a LIVE def (a def whose value reaches a use).
+- **What the backend deletes before/at the RA (the arm then keeps its `b`):** (a) `common-subexpression-elimination` (a pass the pipeline adds only when
+  the codegen emitted duplicate expressions; it runs at backend-06 in the probe, 02 and 10 in CreateSfd) deletes a def identical to a dominating def
+  of the SAME vreg with no redefinition between: form A `Bool ret = TRUE; case 4: ret = TRUE;` — the case-4 `li r39,1` is gone after pass 06 while the
+  init `li r0,1` is scheduled into the tree's first block (target has no `li` before the tree, so the vendor's deleted def was not this); (b) the RA
+  deletes coalesced copies — `asm { mr r11, mode; mr mode, r11 }` (`mr r11,r36; mr r39,r11` until pass 08, gone after 09) and the plain self-copy
+  `asm { mr mode, mode }` on a `register` parameter (one `mr r36,r36`, deleted at the RA, no physical register reserved, no ghost: every colour of
+  CreateSfd unchanged). Dead defs never reach the backend (frontend), so candidate (a) "pre-RA dead-store elimination of a register local" does not
+  exist as a backend event; (b) overwritten local = frontend; (c) a memory dead store is never deleted (code); (d) `case 4: case 5: X` shares one
+  block — no separate `b`; (e) an inlined helper that folds = frontend; (f) copy-propagated arm values: a user copy the frontend keeps is live and leaves
+  its `mr`. No pure-C statement was found that the frontend keeps and the backend deletes for free here: the only dominating instruction available
+  at both sites without a call between is the tree's own `cmpi cr0,mode,4` (calls kill the `cprm->mode` load: `mode = cprm->mode` in a macro-form arm
+  is reloaded, `lwz r30,0(r29)`), and a compare statement always keeps its branch (pass 7).
+- **Applied (tagged, `COMPILER-DIFF: M1 (codeless arm)`):** `static Bool mwsfcre_IsUseAdxt(register Sint32 mode)` with `case 4: asm { mr mode, mode }
+  break;` as the FIRST arm, then `case MWSFD_FTYPE_MPV: case MWSFD_FTYPE_VONLYSFD: return FALSE; default: break;` + `return TRUE;`. variant.sh IDENTICAL
+  on the first try; tree object rebuilt under the lock, bytecmp IDENTICAL (10/10), `"lib/mwsfdcre.c": True` in objects.py (`# CRI pass 66` block),
+  `flock ... ninja -k 0` + `dtk shasum -c` = 111 OK. Tree edits: src/lib/mwsfdcre.c (IsUseAdxt + header comment), config/G4BE08/objects.py.
+- Lever catalogue: MWCC row added (the last row) — "a dead unconditional `b` in the target that ours lacks". Rule for any unit: when the target has
+  a `b` to the join that ours lacks and the function is 4 bytes shorter per `b`, look for a switch arm (or if-arm) that the frontend folded away in
+  ours; the original's arm had a statement, and its POSITION in the source decides whether the emptied block needs a branch.
+- Note on the shared tree: `ninja` printed "premature end of file; recovering" (a clobbered .ninja_deps from an unlocked run elsewhere) and re-split
+  once; the locked full build settled (main.dol built, 111 OK on two consecutive checks).
+
+### Tool RELs, t_esp pass 29 (t_esp 209/212: InitTool 431 -> 95w in the harness (/tmp/t29/R1.cpp, not yet in the tree): the SIZE/SPEED/COLOR/ROTATE "spill-register phase" was NOT a reload phase — it is (a) the row form (pointers-first) and (b) every `n->min/max/unit` store spelled `FSTORE_AT` so the NEXT row's g_pEditSeq loads depend on it; IN PROGRESS 2026-09-12)
+- **Read (seg 404 = POS row 1, SCHDBG s1 + LOG_LINKS):** the `this` copy's register (`mr r9,r7` T / `mr r10,r7` ours) is reload's pick for the
+  pos.y store's address (11540 spilled, inherited from the `(set r7 11540)` load), chosen among the spill regs NOT live at the store: ours
+  issues `li r9,1` at sched1 one cycle BEFORE the pos.y store (the store lost the LSU to the two g_pEditSeq/g_pEditSeq2 loads, pri 2071 > 2070,
+  and `li r9` (w 1, dep 4, LUID 8207) took the IU slot before `li r10` (LUID 8208)); T has `li r9` AFTER the store. Pointers-first
+  (`f32* n1 = &..; f32* n2 = &..;` before `DB_POINT pos`) gives the loads LUIDs below the pos stores -> at the 2071 LSU tie the loads issue first,
+  the `addi`s (w 0) take the IU slots, both `li` land after the store -> r9 free -> `mr r9,r7` = T (seg 404 d8 -> 0, no other seg moved).
+  Same for SIZE rows 1 and 3 (segs 428/434 -> 0; 427's `addi/stfs` order too). The `u32 flg = 0` / `int sy = 1` pseudo forms change nothing
+  (cse folds the constant back; INSN_REG_WEIGHT cannot be reached that way). Anti/output dependences cost 1 cycle here (rs6000_adjust_cost
+  returns 0, insn_cost clamps to 1), a store->load true dependence 2.
+- **Read (segs 437/441 and all of SPEED/COLOR/ROTATE 471-659):** T's g_pEditSeq loads of a row sit AFTER the previous row's `n->unit`/`min`/`max`
+  stores (final order `stfs f30,0xb8(r29)` .. `stfs pos.x` .. `lwz r5,g_pEditSeq@l`), i.e. the loads are true-dependent on those stores; ours
+  issued them right after the call (a COMPONENT_REF store `n->unit = v` is MEM_IN_STRUCT_P and disjoint from the fixed-scalar `mem/f` load).
+  `FSTORE_AT(n, 0xB8|0xA4|0xA0, v)` (the pass-19 byte-offset store: not in-struct, not scalar, same insn count) on ALL 33 `n->` stores of
+  SIZE/SPEED/COLOR/ROTATE + ROT_MINMAX: 417 -> 265 (SIZE/SPEED/COLOR) -> 106w (ROTATE 637-659 all exact but 659). ROTATE row 11's three
+  stores then in `max, min, unit` source order like rows 10/12 (659 -> 0, 103w). SetDefault segments 440/522: T issues `mr r3` and the
+  pool `lfs` BEFORE the min store = the min store is anti-dependent on the max value's pool load (the pool `mem` is not `/u` here), so the
+  source order is `max` then `min` (SIZE row 4, COLOR row 1 swapped: 95w).
+- Harness /tmp/t29: base.cpp (= the tree), P3/P5/P6 (pointers-first rows), P9/P10/P11 (FSTORE_AT), Q1 (ROTATE order), R1 (min/max swap),
+  p.sh NAME [seg..] (runv + per-seg d), lipat.py T.s O.s (per-row `li r9`/`li r10`/pos.y-store/copy order T vs O), calls.py LREG IDX..
+  (segment index -> call uid), cycu.py SCHLOG LREG s1|s2 UID [before after] (issue table around a uid with bodies), rtl_*/dbg_*.log.

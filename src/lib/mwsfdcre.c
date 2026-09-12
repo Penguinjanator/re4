@@ -1,9 +1,8 @@
 /* CRI Sofdec MW player: handle creation (mwsfdcre.c)
  *
- * Not Matching (9/10 functions byte-identical, .rodata/.data/.bss identical). Residue:
- * mwsfcre_CreateSfd (115w, all branch offsets): the `case 4:` of the inlined IsUseAdxt switch leaves
- * a second dead `b` in the original (a case-4-first block whose statement the backend deleted).
- * mwPlyCalcWorkSfd matches with one tagged codeless asm read (CRI pass 65). */
+ * Matching (CRI pass 66). Two tagged codeless asm forms: mwPlyCalcWorkSfd's second read of `size`
+ * (CRI pass 65) and the `case 4:` self-copy of mwsfcre_IsUseAdxt (the original's case-4-first arm
+ * held a statement a backend pass deleted, leaving a dead `b` at both inlined sites). */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -486,14 +485,21 @@ static Sint32 mwsfcre_CalcYccSize(Sint32 width, Sint32 height)
 		fsize = mwsfcre_CalcYccSize(width, height); \
 	}
 
-static Bool mwsfcre_IsUseAdxt(Sint32 mode)
+/* COMPILER-DIFF: M1 (codeless arm) - the original's `case 4:` arm came FIRST and held a statement
+ * the frontend kept but a backend pass deleted: its block (`b T`) is laid out between the tree
+ * and the FALSE arm, so the emptied block still needs its branch (the two dead `b` of the
+ * inlined copies in mwsfcre_CreateSfd, 0x2c28). An empty arm is folded onto the default label at
+ * the frontend and an arm laid out after the FALSE arm falls into T without a `b`. The asm
+ * self-copy is the codeless stand-in: kept by the frontend, deleted by the RA (CRI pass 66). */
+static Bool mwsfcre_IsUseAdxt(register Sint32 mode)
 {
 	switch (mode) {
+	case 4:
+		asm { mr mode, mode }
+		break;
 	case MWSFD_FTYPE_MPV:
 	case MWSFD_FTYPE_VONLYSFD:
 		return FALSE;
-	case 4:
-		break;
 	default:
 		break;
 	}
