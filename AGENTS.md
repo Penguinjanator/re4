@@ -30037,7 +30037,7 @@ Harness ~/.cache/cri65 (wi.py = chaitin what-if: `mv=VID:AFTER`, `edge=A:B` (B m
   (`# CRI pass 65`: `lib/sfd_mps.c` True); locked `ninja -k 0` clean, `dtk shasum -c` 111 OK. Harness ~/.cache/cri65 deleted. Note: every locked ninja run this
   pass printed `ninja: warning: premature end of file; recovering` and re-ran the split (another process wrote .ninja_log/.ninja_deps concurrently).
 
-### Espgen pass 14 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in words; the loop-B `nk` r30 PIN REMOVED in both units in pure C: the normal pointer `&nrm[k]` is ONE function-level `Vec* nk` set in both loops (36 refs / 168 insns = 1.07 > k*12_A 1.02 > k*4_B 1.05 > k 0.74), the pass-8 rule again; the loop-A dead test now compares `p->mode`; Z-block xoris slot re-read below; IN PROGRESS 2026-09-12)
+### Espgen pass 14 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in words; THREE pins removed per unit in pure C — the loop-B `nk` r30 pin and both `j7` r24 pins: `&nrm[k]` is ONE function-level `Vec* nk` set in both loops (36 refs / 168 insns = 1.07 > k*12_A 1.02 > k*4_B 1.05 > k 0.74) and `j & 7` is ONE function-level `u8 j7` set at both body tops (18 refs > i's 0.39), the pass-8 rule again; 42's loop-A dead test now compares `p->mode`; Z-block xoris slot re-read with SCHDBG, DAG unchanged, not closed; no flip; 2026-09-12)
 Scratch /tmp/esp14/ (`mk.py OUT BASE 'OLD=>NEW'..`, `t.sh 42|45 SRC [pseudo,..]` = variant.sh word line + GORDER rows, `DIFF=N` side-by-side; `refs.py DUMP FUNC REG`
 = every insn of FUNC mentioning (reg REG) with the running loop depth; `stream.py DUMP FUNC REG [only]` = the insn stream with loop notes/labels/jumps; rtl_nopin/ = the
 full `-dj -ds -dS -dl -dL -df -dc -dN -dR -dg` dumps of the unpinned tree; nopin.cpp/nopin45.cpp = the tree minus the pin; v1-v4.cpp, w1-w2.cpp variants + logs).
@@ -30056,3 +30056,30 @@ full `-dj -ds -dS -dl -dL -df -dc -dN -dR -dg` dumps of the unpinned tree; nopin
   (same 9 Z-block words), 45 42w (same words), both without the r30 pin. Tree edited: src/game/Espgen42.cpp, src/game/espgen45.cpp (Move00 only).
 - Catalogue row 7 addendum (global.c): before hunting a ref, check which OTHER allocno must precede the pinned one in BOTH units of a family; a pointer/temporary
   that exists in two loops of the same function may be one vendor variable (refs add, len adds, log2 step): `GDBG` rows of the two block-local pseudos summed.
+- **The two `j7` r24 pins REMOVED in both units too (same rule): `u8 j7;` next to `nk`, `j7 = j & 7;` at the top of BOTH inner bodies (before `nz`),
+  `nz = .. + j7` (the NOISE_INDEX macro written out with j7), `.. + j7` in both bump indices.** One pseudo (18 refs / 156) ranks above `i` (54 / 698 = 0.39)
+  and takes r24; block-local `j & 7` per loop (9 refs = 0.36) came after i (j1 46w: i r24). Set at the body top so the noise index reads it (cse would merge a
+  later set with the macro's `(and j 7)` anyway; in the bump block it is a gcse-PRE copy). **u8, not int, in 42:** `int j7` drops loop B's loop.c insn count
+  177 -> 176 (the pin's hard-reg copy was one insn) and the 4.0 pool pair moves in the inner pass (thr 44 * 2 * 2 = 176 >= 176; j2 26w = 9 + the outer/inner
+  preheader `lfs` permutation); the narrow store is +1 (177) and combine strips the zero-extension at both uses (j6/j7 9w; `j7 = j; j7 &= 7;` also 9w, j5).
+  Negatives for the +1: a loop-B `if (p->mode == 3) c = NULL;` dead test 321w (the p->mode load and the pool double hoist to the function head), a loop-B
+  `int i3` local 26w (no count change), dropping the two asm statements 26w (174 insns, 8 movables). 45: u8 178 / int 177, both 42w; u8 kept for symmetry.
+  Tags left in Move00: 42 = loop-A dead test (loop.c insn_count) + the loop-B asm pair/use (move_movables); 45 = the loop-B asm set/use.
+- **(B) Z-block xoris slot: re-read with SCHDBG after (A); the DAG is unchanged, nothing applied.** `/tmp/esp14/zsch.py SCHLOG DUMP FUNC REGEX` prints one block's
+  sched1 issue table (clk, uid, pri, INSN_REG_WEIGHT, dependents, LUID, RTL). On pass 11's k4 form re-made on the new tree (`int jx; int mx;` function-level,
+  `jx = t >> 3` in A, `int d = k - p->nx; mx = k + p->nx;` and `int jq = j / 8; jx = (i / 4) << 5; mx = p->nx; bump[jx * ((mx + 1) >> 3) + (jq << 5) ..]` in B):
+  still 45w size +4, and Z (block 29, 84 insns, 2 slots) issues exactly as pass 11/13 read it: t1 `lhz nx` 91 + `extlwi` 88 | t2 `lfsx` 89 + u8-loadaddr 85 |
+  t3 `addi nx1` 89 + `slwi jq32` 84 | t4 `srawi` 88 + `fmuls` 87 | t5 `mullw` 87 + `fadds` 86 | t6 `fadds` 85 + `lwz bump` 82 | t7 `psq_st` 84 + j-loadaddr 80 |
+  **t8 `xoris j` 80** + nx/2-loadaddr 75 | t9 `add prod,jq32` 83 + `lbz` 82 | t10 `add` 82 + j-store1 79 | t11 `add` 81 | t12 `stbx` 80. The xoris is ready at t1
+  and issues in the first slot no >= 80 insn takes; the target's `xoris r0,j` after `add r9,r9,r0(jq32)` is the r0 anti-dependence of sched2, which needs jq32
+  and the xoris pseudo both in r0 = non-overlapping at local-alloc = the xoris born after the first add in sched1 (t9s2 at the earliest). The (A)/j7 changes add
+  no Z insn and move no priority (nk/j7 are set before the call); the loadaddr insns are NOT codeless (they are the `mr rX,r8` copies of Z), so pass 13's "two
+  codeless >= 80 insns at t7/t8" stands as the requirement, with no C spelling found this pass either. The tree's base form (nx8 computed before the i-test
+  branch, block 27) keeps the 9w because its chain starts at `extlwi` (mullw t2, add t6, xoris t7 after it); `((i / 4) << 5) * ((p->nx + 1) >> 3)` alone (z1)
+  = 47w size +4 (mullw tied to the i term + the pass-11 cascade).
+- Tree at the end of the pass: src/game/Espgen42.cpp, src/game/espgen45.cpp (Move00: `Vec* nk;` + `u8 j7;` function-level, three `register .. asm` pins removed
+  per unit, 42's dead test compares `p->mode`); locked ninja build of both objects OK, 42 15/16 (Move00 9w), 45 19/20 (Move00 42w); objects.py untouched
+  (no IDENTICAL), 111 not re-run. Scratch /tmp/esp14 kept (mk.py, t.sh, refs.py, stream.py, zsch.py, rtl_nopin/, rtl_tree/, rtl_k4/, variants + logs).
+- Next: (B) only. The xoris must be born after `add prod,jq32` in sched1: either two more >= 80-priority Z insns that vanish (none found in 4 passes), or the
+  conversion's source made dependent on the index chain (no C form: `(f32) j` reads the biv). Consider whether the vendor's loop B converted a DIFFERENT int
+  (a function-level index equal to j that is assigned in Z after the bump store, e.g. a `jx`-like variable set from the chain) before spending more on slots.

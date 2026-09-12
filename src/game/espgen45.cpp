@@ -139,6 +139,14 @@ void Espgen45_Move00(EspgenWork* w)
     // ties to the loop-A psq_l output / loop-B frsp result and permutes the loop-A/B FPR names and the sched2 slots
     // of the loop-B sum chain (77 -> 47 words).
     f32 n;
+    // normal pointer `&nrm[k]` of both loops: one function-level pseudo (36 refs / 170 insns, 1.06) ranks above loop B's
+    // k*4 giv (35 / 169, 1.04) and k (32 / 215, 0.74) in global alloc and takes r30 for both loops; k*4 then finds r30
+    // taken and gets r29, k r31. A block-local pointer per loop (18 / 111, 0.65) came after both (k*4 r30, pointer r29).
+    Vec* nk;
+    // `j & 7` of both loops (noise index and bump index): one function-level pseudo ranks above `i` in global alloc and
+    // takes r24 (i r23, (k-nx)*12 r26); a block-local `j & 7` per loop came after i, which then took r24. u8 as in
+    // Espgen42 (there the narrow store is the +1 loop.c insn that keeps the 4.0 pool pair for the outer pass).
+    u8 j7;
 
     d0.x = 1.0f;
     d0.z = 0.0f;
@@ -257,7 +265,8 @@ void Espgen45_Move00(EspgenWork* w)
                 // The index in the function-level `nz` (set in both loops = global pseudo, allocated after local-alloc): the
                 // byte pseudo then finds r0 free in local-alloc (its fake-lifetime pass would refuse the register of a
                 // block-local index dying at the lbzx), and global alloc gives nz r0 too: `lbzx r0,noise,r0; stb r0`.
-                nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + ((j) & 7);
+                j7 = j & 7;
+                nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + j7;
                 tmp = noise[nz];
                 PSQ_L_U8_TO(n, &tmp);
                 n -= 80.0f;
@@ -272,11 +281,10 @@ void Espgen45_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - nx].y - p->pos[k + nx].y;
-                PSVECScale(&v, &nrm[k], 1.0f / 2.3f);
+                nk = &nrm[k];   // the function-level pointer (see its declaration); `nrm[k].y/.z` below fold onto it in cse
+                PSVECScale(&v, nk, 1.0f / 2.3f);
                 {
-                    // COMPILER-DIFF: pin (global alloc ranks i (r24) above j&7 and (k-nx)*12; the target has j&7 r24, i r23,
-                    // (k-nx)*12 r26; a pin on i itself disables its IV optimisation). BUMP_INDEX with the pinned last term.
-                    register int j7 asm("r24") = j & 7;
+                    // BUMP_INDEX with the function-level `j7` (r24, see its declaration) as the last term.
                     // Both signed divisions through ONE temp `t` (the target's `mr r0,j .. srawi jx,r0 | cmpwi i; mr r0,i`: the
                     // second copy anti-depends on the first srawi in sched1, so the compare issues before it, and both temps
                     // share r0); `jx << 5` (a shift, not `jx * 32`: a MULT in an address sum is put first by expand and would
@@ -306,7 +314,8 @@ void Espgen45_Move00(EspgenWork* w)
             k = i * (p->nx + 1);
             for (j = 1; j < p->nx; j++) {
                 asm("" : "=r"(dead) : "r"(i));
-                nz = NOISE_INDEX(j, i);
+                j7 = j & 7;
+                nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + (((i) & 3) << 3) + j7;   // NOISE_INDEX with the shared j7
                 nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
                 // As in loop A: the pos address before the hB/hA stores (p has an unknown alias base, so a `lwz pos`
                 // placed after them would wait for them; the target issues it before the first `stfsx hB[k]`).
@@ -332,12 +341,9 @@ void Espgen45_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                // COMPILER-DIFF: pin (global alloc order: k (32 refs / 216 insns, 0.74) is allocated before the loop-B
-                // `&nrm[k]` pointer (18 / 110, 0.65) and takes its r30; the target has the pointer in r30 and k below it).
-                register Vec* nk asm("r30") = &nrm[k];
+                nk = &nrm[k];   // the function-level pointer shared with loop A (r30 in both loops, see its declaration)
                 PSVECScale(&v, nk, 1.0f / 2.3f);
                 {
-                    register int j7 asm("r24") = j & 7;   // COMPILER-DIFF: pin (see loop A)
                     // Loop B's index differs from loop A's: `j / 8` in its own statement (first division, own temp), the i
                     // division inside the sum with its own temp (`mr r9,i` before `cmpwi i`), `(nx+1)>>3` as the FIRST
                     // multiplicand (`mullw r9,r10,r9` = tied to nx8), `jx << 5` (see loop A).
