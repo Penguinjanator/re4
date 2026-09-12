@@ -75,6 +75,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | `switch` compare tree shape (`cmpwi;beq;bgt` chain, default first, folded case constant) | stmt.c/jump.c case tree (tools/casetree.py validated on 836 switches) | case order, `default:` first, empty `case 0: break;`, `no = g->x; switch (no) { case N: num = N; }` | — | "Switch tree model", "Room idioms" |
 | inline boundary: `bl` vs inlined body, deferred inline order, template copies | integrate.c: a `void*` destination is not inlined, inline size limits, `static inline` vs macro, `saved_inlines` order | macro vs inline, `void*` parameter, a helper taking `Vec*`, `template <>` declaration order | — | "Inline-vs-macro sweep", "REL modules" (linkonce), "Sscrn" (candidate #8 end-of-file order) |
 | setcc (`xori;subfic;adde`) vs branch; `%256` as `rlwinm;subf`; one mask vs two `andi.` | fold/expand: `x = (a == 2)` is a setcc, `!= 2` branches; `(on & A) || (on & B)` folds to one mask | `cursor = (mode == 2)`, inline helpers for separate `andi.` tests, `int skip = 1; if (..) skip = 0;` | — | "db_light" passes, "Room idioms" (r11b) |
+| the target re-materialises a symbol high (`lis rX, sym@ha`) per row while a callee-saved register already holds it | reload's `choose_reload_regs` calls `find_equiv_reg(..., NULL_PTR, ...)` so reload-inserted insns are not skipped: the backward scan takes the first `(set hardreg (high sym))`, and if that reg is call-used with a call in between it returns 0 without looking further — one reload `lis rV, sym@ha` into a call-used reg poisons every later unallocated high of that symbol until the next allocated head; such a reload arises from an `addi rX,rX,sym@l` form = `(mem X)` with X ≡ sym unallocated, i.e. a cse1 flush landing between a row's `(set X (lo_sum P sym))` and its `(mem X)` load | move the cse1 flush (pads) so it lands / does not land between a lo_sum set and its load | pads (tagged) | "Tool RELs, t_esp pass 26" |
 
 ### MWCC 2.4.7 (CRI `lib/`: adx_*, sfd_*, mpv_*, sfx_*, mps_*, dct_*, gcci, cri_cvfs, ...)
 
@@ -29482,3 +29483,64 @@ Scratch /tmp/tcam/ (`ins.py DUMP FUNC [re]` one line per insn; v*.cpp variants; 
   ours cascades from j (R50 L242 10330) beating the loop-2 giv base (10326 -> j r4, everything after shifts): 4 priority points. The
   pin adds 2 refs / 12 len to j (52/254 = 10236). Statement order inside the loop-5 body (no/r->area/found/i++/cc permutations) changes
   nothing with the pin and nothing unpinned.
+
+### Tool RELs, t_esp pass 26 (t_esp 208/212: InitTool 1397w unchanged in the tree, ROTATE row 12 stores now `max/min/unit` = seg 662's `stfs` order is the target's; the segs 486-688 "fresh `lis r6` per row" residue READ EXACTLY: reload's find_equiv_reg poisoning by ONE address reload per symbol, which is a cse1 flush landing between a row's `(set X (lo_sum P sym))` and its `(mem X)` load -> T's cse1 F6 = SPEED raccel.x row's g_pEditSeq load (+17 cse1-insns from ours), F9 = ROTATE rrotSpd.x row's g_pEditSeq2 load (+35); a probe with F9 there reproduces the addi form, the 653-688 poison AND the PA/reg9001 flip (162-446 all -2) but costs the LIFE pad (1481w); new `SCHDBG=1` hook; nothing flipped; 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = pass 25 + ROTATE's last row (rrotSpd.z, line ~4613) written `n->max = 10.0f; n->min = -10.0f; n->unit = 0.1f;`
+  (was unit/max/min). Locked ninja + bytecmp: 1397w (unchanged), size 0xa20c/0xa0e0, 208/212, sections identical. Seg 662's three `stfs`
+  now come in T's order (unit 0xb8, max 0xa0, min 0xa4); the seg's d stays 12 because the r29/r30 `this`/`n` names and r18/r19 still differ.
+  Why pass 25's "all 6 permutations neutral" was wrong: the sched1 order of the three stores is NOT LUID — the store that is the LAST
+  source statement carries `n`'s death (INSN_REG_WEIGHT -1 vs 0 for the other two) and rank_for_schedule prefers the smaller weight, so
+  the source-last store issues FIRST and the other two follow in source order; T = unit, max, min <=> source max, min, unit (= row 10's
+  order in the source already). The words did not move, so pass 25 saw no change.
+- **New hook `SCHDBG=1` (~/.cache/sngdbg, haifa-sched.c schedule_block; README updated, patch regenerated, binary re-verified
+  byte-identical with the hook on and off):** one line per issued insn, sched1 and sched2, `clk uid pri w dep luid` = the rank_for_schedule
+  keys. Read with it: reg9001 (`li 0`, uid 16944) pri 787 issues at c323; the g_pRotateWin high (15882) pri 786 at c324; the win->active
+  store 16945 pri 786, the g_pRotateWin store 16954 pri 785 (its only successor is the `new` call at 784: the win->active store also feeds
+  the g_pRotateWin store with an output dependence of cost 1), so **reg9001 vs r8413 is a priority difference of 1, not a tie**: no
+  ROTATE-tail spelling swaps them (swapping the stores' order would need the g_pRotateWin store before the `win->active` store, which is
+  not T's final order either). The three `stfs` 16941/16933/16937 all pri 790 with w -1/0/0 (see above).
+- **Mechanism 3 read exactly (T's fresh `lis r6, g_pEditSeq@ha` in every row 486-688 while r16 holds the high; g_pEditSeq2 r14-inherited
+  486-651, fresh 653-688; both fresh 757-759; ours inherits everywhere):** reload1.c choose_reload_regs calls `find_equiv_reg (search_equiv
+  = (high sym), insn, class, -1, NULL_PTR, ...)` for an unallocated REG_EQUIV high, and with `reload_reg_p == NULL_PTR` the backward scan does
+  NOT skip reload-inserted insns (`INSN_UID (p) < reload_first_uid` is only required when reload_reg_p is a real array). The scan stops at
+  the FIRST insn whose SET_SRC equals `(high sym)` and whose destination is a hard reg (true_regnum; unallocated pseudos are skipped) and
+  then only VALIDATES that register: if it is call-used and a CALL lies between, `return 0` — it never looks further back. Hence one reload
+  insn `lis r6, sym@ha` anywhere after the allocated head's `lis r16` poisons every later unallocated high of that symbol until the next
+  ALLOCATED head (9682/9686's own uses 702-751 are fine, W11 757-775 is poisoned again). Ours never emits such a reload (every row inherits
+  r16/r14, an inherited reload emits no insn), T does exactly twice: the module's only two `addi rX, rX, sym@l` (seg 486 `lis r6; addi r6;
+  lwz r5, 0(r6)` for g_pEditSeq; seg 653 `lis r11; addi r11; lwz r6, 0(r11)` for g_pEditSeq2). That "addi form" = `(mem X)` with X an
+  unallocated pseudo whose reg_equiv_constant is the bare `sym` (find_reloads_address: `strict_memory_address_p (sym)` fails -> push_reload
+  of X into BASE_REG_CLASS -> `lis; addi` + `lwz 0(r)`). Expand emits every `g_pEditSeq->m` reference as `(set P (high sym)); (set X (lo_sum
+  P sym)) [REG_EQUAL sym]; (set t (mem X))` (.jump dump); cse1 normally rewrites the load's address to `(mem (lo_sum P sym))` (find_best_addr)
+  and X dies. **If a cse1 flush falls exactly between X's set and the load, the load keeps `(mem X)`** (X is unknown to the new table),
+  X keeps its REG_EQUAL sym -> REG_EQUIV -> unallocated -> the addi form, and the poison follows. Verified with the probe P2 (below):
+  moving F9 to ROTATE row 10's g_pEditSeq2 load gives `lis r11, g_pEditSeq2@ha; addi r11, r11, @l; lwz r6, 0(r11)` at 653 and fresh
+  `lis r9/r11, g_pEditSeq2@ha` at 656, 659, 668-688, 765-775 (T: 656/659 r11, 668-688 r9, 757-759).
+- **The two pins this gives on T's cse1 grid (Ra/tree uid coordinates, /tmp/t26/rtl_Ra):** F6 = "flush at insn 12729" = the SPEED
+  raccel.x row (`n = CreateNumeric2(win_, &g_pEditSeq->raccel.x, ..)`, the in-call row after the 3 rspeed typed-local rows): X set 12728,
+  load 12729; ours F6 = 12702 -> **+17 cse1-time insns** (count of .jump insns in [12702,12729)). F9 = "flush at insn 16788" = ROTATE
+  rrotSpd.x row's g_pEditSeq2 load (X set 16787); ours 16743 -> **+35**. Both are one-insn windows. F6 also explains T's 486 shape
+  exactly (g_pEditSeq addi, g_pEditSeq2 `@l(r14)` inherited: the flush is before g_pEditSeq2's X/load, whose head P2 then inherits r14).
+  Consistency check with the 0.0 copy at lc 623: T has THREE `fmr` copies at ROTATE's head (623 0.0->f22, 624 16.0->f21, 625 32.0->f23),
+  ours two (16.0, 32.0): the 0.0 copy C is row 10's pos.y pseudo (`(set C H)` made before F9, its store after F9), i.e. T's F9 lies after row
+  10's `(set r8908 (mem LC 0.0))` (16769) too — consistent with 16788 (pointers are computed AFTER pos in the in-call rows). T's VEC rows use
+  C (f22) for 0.0, not H (f28): not yet explained (cse2 canon should prefer H; read it when the grid is refitted).
+- **Probe P2 (/tmp/t26/P2.cpp = tree + LIFE pad 39 -> 4 sets + VEC0 pad 35 sets + autoN; NOT applied): 1481w, regions [74 62 1447 501]
+  vs the tree's [2 88 1344 477].** F9 lands on the pin (P2 uid 16753 = 16788 here), F10 +2. Gains: segs 162-446 every d2 of the PA/reg9001
+  list goes to 0 (LADBG P2: reg9001 death 11602 -> 11598, pri 96 -> 97 -> allocated before PA -> reg9001 r19, PA r18 = T; i.e. mechanism 1
+  is TWO stream insns between reg9001's birth and its last use, not the ROTATE tail), 651/656/659/662/670-672/679-680/688-689 -1..-2 (the
+  poison). Losses: 545-625 +2..+12 (the LIFE pad also sets cse2's F6'/F7'/F8' — pass 21-23 — so ANMRATE/ROTATE-head constants re-shift),
+  667-669/676-678/685-687 +1/+2 (reload's r9/r11 rotation for the fresh highs), 706-735 +2/+4, seg 0 d74 (spill-slot order; autoN kept N
+  5235 but the pad block moved). So the F9 pin needs -35 cse1-only insns in (F8, F9] with the cse2 count kept, or a joint refit of F8..F10
+  with cse2 F6'..F8'; the F6 pin needs -17 in (F5, F6] (no pad exists there: SPEED's top pad is `{ }`, SIZE's 4-set pad is before F5) and
+  +17 in (F6, F7]. Pad weights (pass 18/23): a ctor-top pad of n sets = n cse1-time insns, 0 cse2 unless a flush splits it (LIFE: n-1 cse2).
+- **B vs B2 not touched** (needs B's set >= insn 512 or 18+ refs; with T's F6 at 12729 the SPEED..COLOR heads change, re-read after the
+  refit). The 38-segment bucket (r29/r30 `this`/`n` names in 545-662) not started.
+- Harness /tmp/t26 (kept): base.cpp (pass-25 tree), Ra.cpp (= the tree), P1/P2 (probes), rtl_Ra (-dj -ds -dL -dl dumps + csedbg_Ra.log =
+  the 12 cse1 + 8 cse2 flush uids), rtl_P1, sch_base/sch_Ra.log (SCHDBG), la_Ra/la_P2.log (LADBG), tseg.py (print T/O segments), s1b13_Ra.txt.
+  /tmp/t25, ~/.cache/tesp15, the kit untouched (o_base/o_Ra/o_P1/o_P2 under ~/.cache/tesp15 are this pass's cmpv outputs).
+- Next: (1) refit cse1 F6 -> 12729 (+17) and F9 -> 16788 (+35) with the cse2 grid held (the pass-18 pad-type table; candidates: real-code
+  cse1-only savings in SIZE/SPEED (`int sx = sxK` sharing = -1 cse1 each, typed-local vs in-call rows) and in LIFE..ROTATE, paying back after
+  F6/F9 with VEC0/COLOR pads) — this closes mechanisms 1 and 3 together and puts the module's two `addi` forms in; (2) then re-read B/B2 and
+  the r29/r30 bucket with SCHDBG/LADBG.

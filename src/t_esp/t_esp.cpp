@@ -4610,9 +4610,9 @@ public:
             DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrotSpd.z, &g_pEditSeq2->rrotSpd.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
             n->max = 10.0f;
             n->min = -10.0f;
+            n->unit = 0.1f;
         }
         win->active = 0;
     }
