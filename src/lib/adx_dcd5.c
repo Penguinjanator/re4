@@ -37,20 +37,25 @@ Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint
  * register less (r19..r31) and hands r21 out before t (r20) and nblk (r19). The scales are Sint16
  * locals (the extsh is their definition, as in ADX_DecodeMono4), the table values are the last-
  * declared locals defined before the stores, the declaration order is the original's colouring
- * order (pass 34: chaitin.py reproduces the target up to the r21 node once the nfrm ghost is gone). */
+ * order (pass 34: chaitin.py reproduces the target up to the r21 node once the nfrm ghost is gone).
+ * Pass 72: the table is indexed directly (its address is the backend's hoisted preheader temporary,
+ * coloured r22 after sc_r like the original's) and the key pointer is read through its own address:
+ * the hoisted slot load keeps the argument base live past the smul/sadd loads, which is what puts
+ * sadd/smul in the top level (r0/r11; chaitin.py 20/20 with the base pair on sadd). Residue 11 words:
+ * the entry block's order (the original loads scl before the `add`, so its add temporary is r19 and
+ * the `srawi` follows the loads) and one product pair of the right channel's second sample. */
 Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                            Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
 	Sint32 l2;
 	Sint32 rr2;
 	Sint32 rr1;
-	Sint32 l1;
+	register Sint32 l1;
 	Sint32 i;
 	Sint32 d;
 	Sint32 dr;
 	Sint16 sc_l;
 	Sint16 sc_r;
-	register const Sint32 *qtbl;
 	Sint32 s;
 	Sint32 t;
 	Sint32 nblk;
@@ -58,24 +63,23 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	Sint32 j;
 	Sint32 q_l;
 	Sint32 q_r;
+	Sint16 **pp;
 
 	nblk = nfrm / 2;
-	qtbl = AdxQtbl;
-	/* COMPILER-DIFF: M1 (neighbour pin) - the deleted copy makes histl (r6) a coalesced web, one more never-removed
-	 * neighbour on every loop value (pass 44: 115 -> 41 words; with the right channel's product/prediction split
-	 * below 25 words). The residue is the level of qtbl/sadd: the original colours qtbl as an own local between
-	 * sc_r and s (r22) and sadd in the top level (r0). */
-	asm { mr r6, qtbl }
+	pp = &scl;
 	l1 = histl[0];
 	l2 = histl[1];
 	rr1 = histr[0];
 	rr2 = histr[1];
+	/* COMPILER-DIFF: M1 (neighbour pin) - the deleted copy makes histl (r6) a coalesced web, one more never-removed
+	 * neighbour on every loop value (pass 44: 115 -> 41 words; pass 72: on l1 as in ADX_DecodeSte4AsMono). */
+	asm { mr r6, l1 }
 	for (i = 0; i < nblk; i++) {
 		s = *(Sint16 *)src;
 		if (s & 0x8000) {
 			return i * 2;
 		}
-		key = *scl;
+		key = **pp;
 		sc_l = ((s ^ key) & 0x1FFF) + 1;
 		key = sadd + key * smul;
 		*scl = key;
@@ -84,7 +88,7 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 		if (s & 0x8000) {
 			return i * 2;
 		}
-		key = *scl;
+		key = **pp;
 		sc_r = ((s ^ key) & 0x1FFF) + 1;
 		key = sadd + key * smul;
 		*scl = key;
@@ -99,9 +103,9 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			t = (dr >> 4) * sc_r;
 			t += (c1 * rr1 + c2 * rr2) >> 12;
 			ADX_CLAMP(t);
-			q_l = qtbl[d & 0xF];
+			q_l = AdxQtbl[d & 0xF];
 			outl[0] = l2;
-			q_r = qtbl[dr & 0xF];
+			q_r = AdxQtbl[dr & 0xF];
 			outr[0] = t;
 			l1 = q_l * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
