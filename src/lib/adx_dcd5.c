@@ -42,15 +42,15 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
                            Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
 	Sint32 l2;
-	Sint32 r2;
-	Sint32 r1;
+	Sint32 rr2;
+	Sint32 rr1;
 	Sint32 l1;
 	Sint32 i;
 	Sint32 d;
 	Sint32 dr;
 	Sint16 sc_l;
 	Sint16 sc_r;
-	const Sint32 *qtbl;
+	register const Sint32 *qtbl;
 	Sint32 s;
 	Sint32 t;
 	Sint32 nblk;
@@ -61,10 +61,15 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 
 	nblk = nfrm / 2;
 	qtbl = AdxQtbl;
+	/* COMPILER-DIFF: M1 (neighbour pin) - the deleted copy makes histl (r6) a coalesced web, one more never-removed
+	 * neighbour on every loop value (pass 44: 115 -> 41 words; with the right channel's product/prediction split
+	 * below 25 words). The residue is the level of qtbl/sadd: the original colours qtbl as an own local between
+	 * sc_r and s (r22) and sadd in the top level (r0). */
+	asm { mr r6, qtbl }
 	l1 = histl[0];
 	l2 = histl[1];
-	r1 = histr[0];
-	r2 = histr[1];
+	rr1 = histr[0];
+	rr2 = histr[1];
 	for (i = 0; i < nblk; i++) {
 		s = *(Sint16 *)src;
 		if (s & 0x8000) {
@@ -91,7 +96,8 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			src++;
 			l2 = (d >> 4) * sc_l + ((c1 * l1 + c2 * l2) >> 12);
 			ADX_CLAMP(l2);
-			t = (dr >> 4) * sc_r + ((c1 * r1 + c2 * r2) >> 12);
+			t = (dr >> 4) * sc_r;
+			t += (c1 * rr1 + c2 * rr2) >> 12;
 			ADX_CLAMP(t);
 			q_l = qtbl[d & 0xF];
 			outl[0] = l2;
@@ -99,20 +105,20 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			outr[0] = t;
 			l1 = q_l * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			r1 = q_r * sc_r + ((c1 * t + c2 * r1) >> 12);
-			ADX_CLAMP(r1);
+			rr1 = q_r * sc_r + ((c1 * t + c2 * rr1) >> 12);
+			ADX_CLAMP(rr1);
 			outl[1] = l1;
-			r2 = t;
+			rr2 = t;
 			outl += 2;
-			outr[1] = r1;
+			outr[1] = rr1;
 			outr += 2;
 		}
 		src += 0x12;
 	}
 	histl[0] = l1;
 	histl[1] = l2;
-	histr[0] = r1;
-	histr[1] = r2;
+	histr[0] = rr1;
+	histr[1] = rr2;
 	return nfrm;
 }
 
@@ -174,7 +180,8 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 			outl[0] = m;
 			l1 = sc_l * AdxQtbl[d & 0xF] + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			r1 = sc_r * AdxQtbl[dr & 0xF] + ((c1 * t + c2 * r1) >> 12);
+			r1 = sc_r * AdxQtbl[dr & 0xF];
+			r1 += (c1 * t + c2 * r1) >> 12;
 			ADX_CLAMP(r1);
 			m = (l1 + r1) * 7 / 10;
 			ADX_CLAMP(m);

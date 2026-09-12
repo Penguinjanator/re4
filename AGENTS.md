@@ -26911,3 +26911,63 @@ variants, rtl_base/ rtl_v4a/ rtl_v6a/ dumps; delete at the end of the family). O
   gives `stwx` but three zero registers, 27w - `no` gets local-alloc's REG_EQUIV and is rematerialised; the original's `no` must be
   multi-set or otherwise not REG_EQUIV'd), and the downstream e/cMes r29<->r30 pair of the last loop.
 - Not started: Tools/t_esp_area's 7-word ctor tie (header change) - no time left in the box; flip order unchanged (t_esp_area first).
+
+### CRI pass 44, part 3 (adx_dcd5 Ste4AsSte 41 -> 25w and Ste4AsMono 180 -> 143w APPLIED, both pure-C statement splits found from the model; sizes now equal; 2026-09-12)
+- **The model's prediction held: the `>>4` temps are exactly 29 because the shift is evaluated BEFORE the prediction sum, so it is live across the three prediction
+  temps (c1*x, c2*y, add).** Splitting the statement, `t = (dr >> 4) * sc_r; t += (c1 * rr1 + c2 * rr2) >> 12;`, evaluates the product first: the shift dies at the
+  `mullw`. In pure C alone this changes nothing (115w: the frontend re-merges the two statements, the dump still shows r101 at 29), but on top of the `asm { mr r6, qtbl }`
+  pin it gives **25w** (all of l2 r31 .. sc_r r23, s r21, t r20, nblk r19, both `>>4` temps r21/r20 in place, `stmw r19`); the same split on the left channel or on the
+  l1/r1 lines is worse (96-114w), the asm-defined `qtbl` on top gives 17w (only the L3 set and the prologue positions left, but the `lis/addi` cannot move to the target's
+  0x7c/0x90 because C statements do not cross an asm). Residue 25w = the L3 membership: ours smul r0 / scl r11 / qtbl(temp) r12 with sadd L2 -> r22; target sadd r0 /
+  smul r11 / scl r12 with qtbl L2 -> r22; plus one temp pair swapped (`mullw c1*t` r21/r26 vs `mullw c2*rr1`) that follows from it. Pin positions inside the loop or after
+  it are NOT deleted (+4 bytes, 162w); before `nblk = nfrm / 2` 26w; after the hist loads 25w. The r6/r8 effect is independent of the pinned value (s 41w, nblk/i/l1/t
+  25-26w): it is the histl/histr ghost web (+1 on every loop node), not the pinned value's ghosts. Pure-C attempts to keep `histl` a web (`*histl++ = l1`, a dead
+  `histl += 2`, `l1 = *histl++; l2 = *histl--`, a `register Sint16 *hp` copy) are all folded/propagated (114-115w).
+- **Ste4AsMono 180 -> 143w, pure C, size 0x2f0 = target: `r1 = sc_r * AdxQtbl[dr & 0xF]; r1 += (c1 * t + c2 * r1) >> 12;`** (the right channel's second sample only;
+  the same split on l1 218w, on t/l2/m 180w, l1+r1 218w). The dump (chaitin.py IDENTICAL): no spill pick any more (L4 sadd/smul/scl, L3 the two sc temps r77/r88, the
+  c-ext, l1 l2 r1 r2 nblk i d dr m, L2 five `>>`/`rlwinm` temps + t) where the target is stuck twice (nblk r18 then smul r19 picks; l2 in r12 = an L1 node there). r6/r8
+  pins on nblk 136w, l1 138w, i/r2 204-210w (+4 bytes) - not applied. `r2 = t` after m's clamp 148w, at the body end 158w, `c1 * r2` in r1's prediction 143w, table
+  operand first 143w, `Sint16 sc_l/sc_r` own locals 143w, `m = l1 + r1; m = m * 7 / 10` 143w.
+- Tree: src/lib/adx_dcd5.c Ste4AsSte (split + pin, comment updated) and Ste4AsMono (split). adx_dcd5 2/4, 25w + 143w, .text size equal. Nothing flipped.
+
+### Tool RELs, t_camera_data closer 4 (DB_STRING ctor 2 / tcSetBesideOffset 27 / tcDataExport 62 unchanged; the sched1-only mechanisms found are the store->call dependence kind, INSN_REG_WEIGHT and flow2's dead-anchor deletion; no source change adopted; 2026-09-12)
+Scratch /home/adityas/.cache/tcam4/ (deleted): `prio.sh <variant.cpp>` = rtl.sh + bytecmp + the sched1/sched2 dependence tables,
+`sched.py <dumpdir>` = the ctor's sched1/sched2 issue order with labels `name[uid]prio/dependents`, `ins.py DUMP FUNC [re]` = one line per insn.
+- **DB_STRING ctor (2w, not closed). Three haifa facts read off the source (`~/.cache/sngdbg/src/gcc/haifa-sched.c`, `flow.c`) that the
+  earlier passes modelled wrongly:**
+  (1) **A store before a call gets a TRUE dependence on the call (cost 2 -> prio 13) iff every pseudo it reads has REG_N_CALLS_CROSSED > 0;
+  otherwise the read puts the insn into `sched_before_next_call` (sched_analyze_2 REG case), the call adds that link as REG_DEP_ANTI first,
+  and the MEM loop's true_dependence hit is skipped ("If a dependency already exists") -> prio 12.** That is why `stw max` (reads
+  `this`/`max_`, both live across the base-ctor call) is 13 and every other store (vt, type, 0.0f, zero pseudos born after the call) is 12,
+  in sched1. In sched2 the same split comes from the call's pre-loop over call-used hard regs (`reg_last_uses`): a store reading only
+  callee-saved registers (r29/r30) gets the true dep (13), stores reading r0/r9/r11/f0 get anti (12). A launder-copy of `max_`
+  (`asm("" : "=r"(m) : "0"(max_))`, m dies before `new`) turns `stw max` into a 12 in sched1 and leaves 13 in sched2.
+  (2) **sched1's rank_for_schedule has INSN_REG_WEIGHT right after priority** (before class/dependents/LUID; sched2 skips it): a store
+  whose source register dies there weighs -1, an insn setting a pseudo +1, `"+r"` launders +1, `"=m"` anchors with a dying input -1.
+  So among prio-12 stores the LAST use of a pseudo issues first (the chain `cb = cg = cr = z; ca = z;` issues ca before cr/cg/cb with no
+  dependence at all; `stw vt` and `stw type` are -1 too, `stw max` 0), and the base's `"m"(ca)` launder is only needed for the count of
+  prio>=13 insns between `lis vt` and `stw vt` (7: lfs, li 0, addi vt, stw max, stfs ca(14), li 4, launder), not for the ca-first order.
+  (3) **A codeless `asm("" : "=m"(field) : "r"(x))` whose field is overwritten later in the block with no intervening load/call/volatile
+  asm survives flow1 and sched1 but is deleted by flow2 (`insn_dead_p` walks `mem_set_list`; the sched1 output order decides)** -> it is
+  a sched1-only insn: prio 13 (output dependence into the real store, cost 1), no register output, gone before sched2. Variant Vb
+  (`asm("" : "=m"(str) : "r"(max_))` before `max = max_`, zero launder without a memory input, `cb = cg = cr = z; ca = z; type = ..;`)
+  reproduces the base's sched1 shape (c6: addi vt + launder, c7: anchor + stw max, c8: li 4 + stw vt, vt len 16, zero 5 refs) and the
+  target's store order, but sched2 then puts the zero launder (13, ready c6, 5 dependents) into c7 with `stw max`, pushing `mr r3,r29` to
+  c8 where `stfs ca` (5 dependents: the f0 anti links to lfs 1.0 and the three calls) beats it: residue `stw max; stfs ca; mr r3` = 2w, the
+  mirror of the base's `stfs ca; mr r3; stw max`. The base residue is `stfs ca` at 14 (launder dependent) > `stw max` 13 at c7.
+- **The closed set (do not retry):** the launder must exist in sched2 (its output feeds the two zero stores; it also keeps `li 0` at 2
+  dependents so `lis vt` wins the c4 tie by LUID - an anchor instead of the launder gives `li 0` 3-4 dependents -> c4), so in sched2 it
+  is prio 13 and ready at c6; every input that delays it to c8 raises its producer: `"m"(max)` -> `stw max` 14 (c4 in sched1, c6 in
+  sched2), `"m"(ca)` -> `stfs ca` 14 (the base), `"r"`(type const) -> `li 4` 14 (c4), `"f"`(0.0f) -> ready c6 (asm links cost 1), a
+  max_ launder in front (`"+r"(max_)`, prio 15) reproduces sched1 exactly (D1) but displaces `addi vt` at c6 in sched2. `stw max` cannot
+  be held to c6 in sched1 without a pseudo that 79 (`mr r3,max_`) also reads. Alias-based pass-selective deps run the wrong way
+  (unknown pseudo base -> unknown hard-reg base). What is left: a dependence that exists in sched2 only and delays the launder to c8
+  (an anti/output link through a hard register written at c7, i.e. r29/r3 after `mr r3,r29` - nothing in the function writes them), or
+  an insn in sched2 that outranks `stfs ca` at c8 on the lsu.
+- **tcSetBesideOffset 27 unchanged.** Probes for "one more weighted ref on the n*12 giv" (loop 2 body): `Vec* p = &c->pos[n]; *p = ..`
+  27 (folded back), `.x/.y/.z` member stores 58 (size +8), laundered `p` 44, anchors `asm("" : "=m"(c->num) : "r"(&c->pos[n]))` 37 (size
+  -4) / with `&c->at[n]` too 37 (size +0x10) - the anchor address becomes its own giv as in closer 3. An output-less `asm("" : : "r"(&c->pos[n]))`
+  (a barrier) gives 24 words, size exact, IV updates moved after the stores, r3/r31 still swapped: not adopted.
+- **tcDataExport 62 unchanged** (no probes this pass; closer 3's allocation facts stand: raise loop-4 `tcCdat` base / `pTc`-high above pri
+  4000 or give loop-4 `d+1` a hard conflict with r4-r7).
+- Flags: t_camera/t_camera_data and t_esp/db_widget stay False; no tree edit; nothing rebuilt under the lock (all variants via the kit).
