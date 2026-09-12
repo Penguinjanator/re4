@@ -25074,8 +25074,8 @@ Continues "### DOL option/card closer 2" above (the retry_load_menu mechanics li
   removes (pass 16a's IsGopSkip shape: a store to the inline result that repeats the reaching value); with TRUE as the fall-through
   value of this function that store (`ret = TRUE` with `Bool ret = TRUE` at the top) hoists `li r0, 1` above the tree instead. Open.
 
-### CRI pass 33 (cftyp422_ppc 2/8: .bss order fixed, Init 24 -> 9w; IN PROGRESS 2026-09-12)
-Harness /home/adityas/.cache/cri33/ (variants p_*.c, ra_* dumps; deleted at the end). Kit only.
+### CRI pass 33 (cftyp422_ppc 6/8 identical, 222w -> 105w: .bss order + .rodata/cnvStatic fixed, Init 24 -> 9w, table makers 0w, Y84C44 179 -> 96w; 2026-09-12)
+Harness /home/adityas/.cache/cri33/ (regmap.py = per-role register map from `variant.sh --all`, y84.py / perm5.py declaration-order permutation drivers, model_search.py = chaitin.py single-edit search with K=28, tree1..6.c = tree snapshots). Kit only; variants and ra dumps deleted.
 - **.bss is NOT definition order** (probe: the six objects declared in the target's order leave the layout unchanged); it is
   TU first-reference order in codegen, as pass 16 and the mwsfdcre pass 5 found. Lever applied (tagged, `cftyp_bss_order`): a
   never-called global function defined between cnvDynamic and cnvStatic that stores to cr_r, cr_g, cb_b, cb_g, y in that
@@ -26139,3 +26139,35 @@ Scratch /home/adityas/.cache/tcam3/ (variants `dbw_<X>.cpp`, `rtl_<X>/` dumps, L
   the remainder: try `i` declared in an inner block, a `Sint32 j` remainder loop written by hand after an 8-step main loop with the
   same body — pass 20's hand unroll used eight locals, not the compiler's `i - 16..i - 9` shape — or `#pragma opt_unroll_loops`
   interplay). Read `flags.py`-style: the win condition is B8 `sunk_by_peep=False` with the addi still at slot 27.
+- (02:25) SubToolMessInit's last 2w (`stw r11,0x44(r9)` one slot early): the inlined MessSetLoadFunc stores
+  `pLoadFunc = CallbackLoad` / `loadArg = t`; `t` is a spilled param (reload `lwz 0x532c(sp+0x30000)` inserted right
+  before its store), the load cannot pass the pointer store (alias: unknown base vs frame), so ours is `stw 0x44; lwz t;
+  stw 0x24`. The target has `lwz t` first: its post-reload order was `lwz t; stw 0x24; stw 0x44` and sched2 issued the
+  0x44 store while the 0x24 one waited on the load. Ours puts the 0x44 store first even with `loadArg = arg;` written
+  first (sched1's register-pressure tie-break: the CallbackLoad-address pseudo dies in its store, `t` does not).
+  Probes: store order swapped (same), `(void*) t` (same), `void* larg = t; asm("" : "+r"(larg))` (82w). Open.
+- SubToolMessMove 2a (back-search, 15w): the target's giv inits are `no*24` (callee-saved r27, shared with `e =
+  &m->elem[no]`), `mr r9,e; subi r9,r9,8` (= &elem[no-1].messNo) and `e - 0x18 - 0x18`, i.e. loop.c saw biv init `no`
+  with add_val `m - 8`, while the pre-test still indexes `elem[no-1]` from `j = no - 1` (`subic.; mulli; add`). Ours
+  computes every giv from `j` (the duplicated exit test sets j before the loop, so the biv's start value is j itself).
+  `j = no; while (--j >= 0 ...)`, `for (j = no; --j >= 0 ...)`, explicit `while (--j >= 0) { if (...) break; }` all
+  compile to the current 40w; pointer-stepped forms (`p = e; (p - 1)->messNo`, `(--p)->`, `p = e - 1`) drop the
+  pre-test `mulli` (59-60w, size -0x10). Open: a shape whose peeled test does not redefine the biv.
+- SubToolMessMove 2b (`&mesCnt[1]` base, ~10w): target forms `B = r30 + 0xc4` before the eprintfs (reads `4(B)`,
+  `0(B)`), copies it for the loop (`stwx messNo, B, no`; `stw i, 4(B)`), and forms `A = r30 + 0xc0` via `lwzu` for
+  `stwx no, A, no`. cp/typeck's pointer_int_sum distributes `(no + 1) * 4` only for pointer sums, and the front end
+  reassociates `(mesCnt + 1) + no` back to `mesCnt + (1 + no)`; `(&mesCnt[1])[no]`, `*(mesCnt + (no + 1))` = 39w
+  (`stw 0xc4(rB)`, folded), `s32* mc = &EvtDebug.mesCnt[1]` at the block top = 51-52w (mc becomes the class head:
+  `addi mc, hi, EvtDebug+0xc4@l; subi r30, mc, 0xc4`), `u32`/`s32`/`unsigned long no` = 40w. Open.
+
+### CRI pass 40 (sfd_adxt Matching 27 -> 28/28, cri_cvfs Matching 12 -> 13/13, both with one M1 hard pin; sfd_tst SFTST_Calc 79w IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replace-list patch of the tree source through variant.sh; deleted at the end).
+- **sfadxt_ExecServerSub 59 -> 0: `asm { mr r31, obj; mr sfd, r31 }` (register obj/sfd).** The pass-35 helper split had every register but sfd r30 / err r31 (target sfd r31, err r30, len r29). The hard pin
+  takes r31 out of every other node's range, so err (Transfer's coalesced @ret chain, coloured before sfd by id) falls to the NEW r30 and len to r29; no other register moves, size 0x428 kept. 111 OK, flipped.
+- **cvFsGetFileSize 14 -> 0: a CODELESS level-shifter pin, `asm { mr r11, pdev; mr pdev, r11 }` after `pdev = dev` (register pdev).** The dump: after iteration 1 only errfn-base (32), rodata-base (33),
+  fname 27, tbl (@1414) 26, pdev 28 remain; iteration 2 removes pdev (id 33) then tbl (id 45) -> tbl coloured first (r28). One extra never-removed neighbour on pdev makes it 29 in iteration 2: tbl goes
+  alone, pdev in iteration 3 (28), fname in iteration 4 (27) -> fname r29 > pdev r28 > tbl r27 = the target. A physical register IS such a neighbour, but a callee-saved pin also RESERVES the register
+  (`asm { mr r27, tbl; mr tbl, r27 }` in ResolveDev: pdev r28 right, tbl r26 and every lower local -1, `stmw r22`; pass 35's `la r28` pin: the loads went through r28 and the rodata base fell to r27) and
+  a pin of the top node (fname r29) puts the colour count at 28 and cascades the rodata base to a spill removal (r27). Pinning to a VOLATILE register nobody in the function uses (r11, r8 both give 0w)
+  adds the neighbour and reserves nothing the function wanted: the two `mr`s are deleted (size equal), pdev keeps the direct `0x134(r1)` loads because the pin is AFTER the propagated copy. Same effect
+  from inside ResolveDev with r11, but the caller-side form leaves cvFsOpen's inlined copy untouched. 111 OK, flipped.

@@ -1179,6 +1179,9 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         EvtDebug.flags |= 0x04000000;
         MessDeleteAll();
         sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
+        // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 35 dead pseudos before the inlined
+        // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
+        int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12, dead13, dead14, dead15, dead16, dead17, dead18, dead19, dead20, dead21, dead22, dead23, dead24, dead25, dead26, dead27, dead28, dead29, dead30, dead31, dead32, dead33, dead34;
         EvtMessRead(m, path);
         MessTool.p = new cDbgToolMain<EventMessageData::MessElem>;
         MessCreateMenuWindow(MessTool.p);
@@ -1253,7 +1256,6 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         }
     }
     {
-        int no = 0;
         EventMessageData::MessElem* e;
 
         eprintf(0x50, 0x90, 0, 0, "%3d", EvtDebug.mesCnt[2]);
@@ -1264,10 +1266,16 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         e = t->pMess->elem;
         for (i = 0; i < XML_NODE_MAX; i++, e++) {
             if (IsWorkAlive(e) && ev->cut == e->cutNo && ev->frame == e->frame) {
+                // COMPILER-DIFF: candidate (cse1 in-ebb canon): the original stores the record with
+                // ONE zero register as both index and value (`stwx rN,rBase,rN`) and folds the third
+                // index; `no` declared here (same ebb as the stores) and stored as the value gets that.
+                // Its `mesCnt[no + 1]` base (`&mesCnt[1]` PRE'd at the block top) is still open.
+                int no = 0;
+
                 ev->MesSet(e->messNo, e->timer, 100, EVT_MES_Y);
-                EvtDebug.mesCnt[no] = 0;
+                EvtDebug.mesCnt[no] = no;
                 EvtDebug.mesCnt[no + 1] = e->messNo;
-                EvtDebug.mesCnt[no + 2] = i;
+                EvtDebug.mesCnt[2] = i;
             }
         }
     }
@@ -1489,11 +1497,15 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
     for (i = 0; i < XML_NODE_MAX; i++) {
         e = &m->elem[i];
         if (e->flag & 1) {
-            sprintf(d.node[d.num].s[XN_SETFLG], "true");
-            sprintf(d.node[d.num].s[XN_CUTNO], "%ld", e->cutNo);
-            sprintf(d.node[d.num].s[XN_FRAME], "%ld", e->frame);
-            sprintf(d.node[d.num].s[XN_DAT0], "%ld", e->messNo);
-            sprintf(d.node[d.num].s[XN_DAT1], "%ld", e->timer);
+            // integer arithmetic keeps the written order (`mulli; add rMul, rBase; addi off`);
+            // `d.node[d.num]` puts the base first.
+#define CUR_NODE ((XmlNode*) (d.num * sizeof(XmlNode) + (u32) d.node))
+            sprintf(CUR_NODE->s[XN_SETFLG], "true");
+            sprintf(CUR_NODE->s[XN_CUTNO], "%ld", e->cutNo);
+            sprintf(CUR_NODE->s[XN_FRAME], "%ld", e->frame);
+            sprintf(CUR_NODE->s[XN_DAT0], "%ld", e->messNo);
+            sprintf(CUR_NODE->s[XN_DAT1], "%ld", e->timer);
+#undef CUR_NODE
             d.num++;
         }
     }
@@ -1505,6 +1517,9 @@ int CallbackSave(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;
     EventMessageData* m = t->pMess;
+    // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 13 dead pseudos before the inlined
+    // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
+    int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12;
     char path[0x100];
 
     sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);

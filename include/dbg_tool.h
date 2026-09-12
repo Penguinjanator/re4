@@ -1053,31 +1053,32 @@ public:
         u32 cnt;
         u32 i;
         T* dst;
+        T* src;
 
         {
-            // count loop: a stepped pointer with its OWN counter (an `i` shared with the copy loop below
-            // makes cse canon the entry test to `cmplw i,num`), the pointer assigned before `cnt = 0`
-            T* w = work;
+            // count loop: the SAME stepped pointer as the copy loop (one multi-set pseudo whose
+            // global priority drops below dst's, so dst takes r29 first and the pointer r28 in both
+            // loops) with its OWN counter (an `i` shared with the copy loop makes cse canon the entry
+            // test to `cmplw i,num`). `cnt = 0` sits between the `work` load and `src = work`: cse's
+            // (set REG0 REG1) swap rule needs the load as the previous insn (t_lightarea's own call).
             u32 j;
 
             cnt = 0;
-            for (j = 0; j < num; j++, w++) {
-                if (IsWorkAlive(w)) {
+            src = work;
+            for (j = 0; j < num; j++, src++) {
+                if (IsWorkAlive(src)) {
                     cnt++;
                 }
             }
         }
         memclr_asm(mem, sizeof(DbgToolFileHeader));
         mem->num = cnt;
-        {
-            T* src = work; // stepped pointer (an indexed copy source would be `mulli`)
-
-            dst = (T*) (mem + 1);
-            for (i = 0; i < num; i++, src++) {
-                if (IsWorkAlive(src)) {
-                    *dst = *src;
-                    dst++;
-                }
+        src = work; // stepped pointer (an indexed copy source would be `mulli`)
+        dst = (T*) (mem + 1);
+        for (i = 0; i < num; i++, src++) {
+            if (IsWorkAlive(src)) {
+                *dst = *src;
+                dst++;
             }
         }
         return dst;
