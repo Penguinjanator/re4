@@ -28063,3 +28063,42 @@ edits, `\n` allowed), `ins.py DUMP FUNC` (one line per insn of an rtl.sh dump), 
 - Flags untouched, tree untouched (src/game/Espgen42.cpp, src/game/espgen45.cpp as after pass 9, 9w / 42w); objects.py untouched; 111 not
   re-run. Next: the xoris slot — find what the original's Z block had ready at t7/t8 with priority >= 80 (candidates: the `lwz pos` and
   `slwi jq32` issued later, an extra Z insn feeding the stbx chain, or `(f32) j` written as a Z-derived value); do not permute pins.
+
+### CRI pass 49b (continuation of pass 49: adx_tsvr nlp_trap_entry 2w, mpv_umc OneReadMb 48w, sfh_main SmpHz 6w read with sched.py; nothing applied, nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri49/ deleted; the one-block what-if driver is now in the kit: **`~/.cache/mwccdbg/schedwhatif.py DUMPDIR BLOCK
+[mv=i:j] [del=i] [ins=i:P ..] [reg=i:arg:cls:reg:rw]`** (README entry). sfd_cre's reading is in "CRI pass 49" above (the tree keeps the
+pass-31 form; the b7-own-local two-def shape `b7 &= 0xF` is a zero-cost prerequisite of the target colouring, not applied because it is
+15w alone). Tree untouched, objects.py untouched, no `ninja -k 0` needed.
+- **adx_tsvr `adxt_nlp_trap_entry` 2w: the join block's pre-RA order is NOT the mechanism.** scheddump B16 = `lha ofst; add ofst1; lha ofst2v;
+  cmpi n1; bt` raw -> pre-RA `lha ofst | cmpi` c0, `lha ofst2v` c1, `add` c2, `bt` c3 = the target's final order exactly; blkflags 000c through
+  the post-RA pass (never dirtied, never rescheduled), so the vendor's block had the same order and the same live ranges. The lha temp's
+  neighbours are r1, r3 (n2's @ret ghost `mr r55,r3; mr r54,r55` in the else-arm tail B15), ofst2v r26, ofst1 r27, sji/sjd/p, n1 r28: r0 is
+  free in every order of these five pcodes (the only other values live in B16 are live-through). The target's r4 still needs an r0 node in
+  B16; the BL's physical `R4:0:2` write is the only r0 def nearby and the temp is defined after it. Left 2w (pass 46's pin result stands).
+- **mpv_umc `mpvumc_OneReadMb` 48w: the alias side is settled, the slot is a c33 tie.** (1) Alias records: every pointer load/store of the
+  function shares ONE t2 record (`bits=0x1fa`); the two table loads are `t0 obj=mpvumc_oneref_y idx=3` / `obj=mpvumc_oneref idx=5` and alias
+  the `mc->` stores because bits 3 and 5 are in the set. Membership = non-const objects: `const` tables give `bits=0x2` (only object 1) and
+  the loads become free fillers (sink to the block end, 71w) — NOT the target, whose `lwzx` sit before the stores = urgent through the
+  store chain (h13 in the model: 2 + `stw stride` 11 <- `stw dst` 9 <- `lwz rfb->pln[0]` 7 <- add/add/`stw src2`). Direct indexing
+  `mpvumc_oneref_y[mcflag][vy&1][vx&1]`, `extern` tables, tables never stored in the TU, and a `const MPVUMC_MCFUNC (*tbl_y)[2]` local (cast
+  needed; the flow follows the origin object, cf. pass 50's const-parameter rule) all keep idx 3/5 in the set: 48w each. (2) The pick:
+  vx is loaded at c22; c24-c32 are full of urgent address/rounding ops; c33 = `lwz ofs[1]` (urgent) + the second IU slot: `rlwinm chx`
+  (frees 1, h6 through `and; add cpitch+chx; add; stw src2`) beats `rlwinm yhx` (frees 1, h3: `and`, live-out) on height; c34 = `lwzx fn_y`
+  (urgent, dl 29) + `rlwinm yhx` -> vx lives across the load. The target needs yhx at c33 or earlier: yhx height >= 6 (a same-block store
+  consumer of yhx — the target has none, its luma src2 is after the calls), frees >= 2 (a second in-block reader with npreds 1; a copy `mr
+  @t,yhx` does not count: it puts a WAR pred on the `and`), or chx frees 0 / h < 3 (chx's chain IS in the target: `add r0,r31,r23`). Model
+  deletions that flip the order all remove a target instruction (`add cpitch+chx`, `lha ypitch` reload, `lwz pln[0]`, `stw stride/dst`);
+  raw positions of yhx after the vx load never do. Moving the fn_y statement below `mc->dst = ..` drops the load to h6 and frees c28 for
+  yhx, but then the load follows the stores in the pre-RA output and the post-RA pass cannot hoist it above them (store -> later load
+  edge): not the target either. Left 48w.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w: the swap block's pre-RA order equals the target's final order, so the fold is not a schedule
+  question.** Pre-RA B37 raw = `lwz w; rlwinm x4 (the four terms); mr; rlwimi; mr; rlwimi; mr; rlwimi; stw; li r3,1` (the `|` chain is
+  already `mr + rlwimi` on the word, the four term rlwinm are dead), scheduled `lwz | li` c0, `rlwinm acc | rlwinm t1` c2, `mr | t2` c3,
+  `rlwimi | t3` c4, `mr` c5, `rlwimi` c6, `mr` c7, `rlwimi` c8, `stw` c9. The RA deletes the three dead terms and coalesces the three
+  copies (block dirtied), the post-RA peephole then sees `lwz; li; rlwinm; rlwimi x3; stw` contiguous and folds it to `stwbrx`; the post-RA
+  reschedule of the 3-pcode block leaves `lwz; li; stwbrx`. The target's `lwz r6; li r3,1; rlwinm r0; rlwimi x3; stw` is that same order
+  unfolded. A pcode between the last rlwimi and the stw cannot come from the pre-RA scheduler (the `li` has only 0-latency WAR/WAW edges
+  and takes c0's free slot; an exit-flagged block would keep the raw order, also contiguous), so whatever blocked the vendor's fold sat in
+  the RA output after the chain and vanished before the post-RA pass, or the peephole's pattern state differed (a dead term rlwinm still
+  present = the RA of the vendor's build deleting dead defs AFTER the peephole is the one ordering that explains it and is compiler-side).
+  M4 (`#pragma peephole off` + the asm swap, 10w/38-41w in pass 23) stays unapplied; the C form (6w) stays.
