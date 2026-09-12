@@ -34,9 +34,11 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 	 * the long-lived pixels a3/b2/a4/a5/b5 and the sums are coloured last, and the second half's
 	 * sums stay variables (q/p in one register) except p6' (CRI SWAR kernels pass 12). The pixel
 	 * words are declared BEFORE the sums and the loop variables (pass 10: the five loop variables
-	 * must be the only nodes of the top level). Residue: the original's first block ends after the
-	 * 9th sum (its initial-code count crosses 100 there; ours crosses it two statements later). The dead
-	 * pixel initialisers move the pairs' range-split web groups first (CRI SWAR kernels pass 22: 30 -> 26w). */
+	 * must be the only nodes of the top level). The dead pixel initialisers move the pairs' range-split
+	 * web groups first (CRI SWAR kernels pass 22: 30 -> 26w). Pixel 9 is loaded BEFORE the d[0]/d[1]
+	 * stores: a `Uint8 *` load written after a store shares the store's alias class and cannot be
+	 * scheduled above it, and the original issues both pixel-9 loads before the stores (CRI SWAR
+	 * kernels pass 23: 26 -> 0w; the >100 block split is the same in both builds). */
 	Uint32 a0 = 0, b0 = 0, a1 = 0, b1 = 0, a2 = 0, b2 = 0;
 	Uint32 p0, p1, p2, p3, p4, p5, p6, p7;
 	Sint32 i;
@@ -77,10 +79,10 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 		a2 = s0[8];
 		b2 = s1[8];
 		p7 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
-		d[0] = MPVMC16_AVG4(p0, p1, p2, p3);
-		d[1] = MPVMC16_AVG4(p4, p5, p6, p7);
 		a0 = s0[9];
 		b0 = s1[9];
+		d[0] = MPVMC16_AVG4(p0, p1, p2, p3);
+		d[1] = MPVMC16_AVG4(p4, p5, p6, p7);
 		p0 = (Uint32)a2 + (Uint32)a0 + (Uint32)b2 + (Uint32)b0 + 2;
 		a1 = s0[10];
 		b1 = s1[10];

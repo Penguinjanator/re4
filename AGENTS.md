@@ -30950,3 +30950,37 @@ why.py on the BASE graph (no gsearch solution needed): pop index, level, used/ha
 - Ste residue probes on the tree form (11w): `nblk = nfrm / 2` before/after `pp = &scl` or after the hist loads 11w (no change); `i < nfrm / 2` in the loop test 19w. The 3-word tail at +0x1d4 = the `c1*t` / `c2*rr1` product temps of `rr1 = q_r*sc_r + ((c1*t + c2*rr1) >> 12)` with swapped colours (r21/r26): the target pops `c1*t` first (same instruction order = an IR temp-numbering tie, like Mono's q_l/q_r), not attempted.
 - Two more facts for the catalogue: (a) the sadd round trip works only for STACK parameters because the frontend emits the narrowing IN PLACE on a load-defined vreg (`extsh r42,r42`), while on a register parameter/local it emits `extsh t,x; mr x,t` (a new temp); (b) dead asm writes into the reserved r2/r13 are emitted (+4 bytes each), so there is no K-free physical register to write. Pre-RA check (schedwhatif on the all-web Ste dump): kept c1/c2 copies would be frees-1 `mr`s taking the c1/c2 second slots and push the stack loads later, so the ghost hypothesis does not by itself explain the target's "loads before the add" B1 order (pass 71's (D)); the two facts about the vendor's B1 stay separate.
 - Final state: src/lib/adx_dcd5.c ADX_DecodeSte4AsSte 25 -> 11w APPLIED (Mono 26w unchanged), adx_dcd5 2/4, sizes equal, not flipped, no `ninja -k 0`; objects.py untouched. Harness ~/.cache/cri72 deleted. Next: a C shape whose c1/c2 parameter copies reach the RA (the propagation keeps a copy whose use is a `mr rPHYS, x` — argument/return moves only), or one that loads all three stack parameters as webs before the `nfrm / 2` add with the argument base still live afterwards.
+
+### CRI SWAR kernels pass 23 (mpv_mcy Matching 4 -> 5/5 FLIPPED, 111 OK: MPVMC16_OneRef4p_TuneC 26 -> 0w pure C — the pixel-9 pair loaded BEFORE the d[0]/d[1] stores; the "block 1 ends after the 9th sum" reading of passes 12/13 was wrong, the >100 split after `b2 = s1[11]` is the target's; 2026-09-12)
+Harness ~/.cache/cri_swar23/ (deleted; ~/.cache/cri_swar22 deleted too): `gen.py NAME mask=<sums>:<roles>[:form] p9=before|mid` body generator of the
+three-pair form, `run.sh NAME` = variant words + ra.py dump + the extra backend passes + `cnt.py RA SRC` (cumulative initial pcode count per source line
+= where the >100 split falls), `roles.py RA..` (pixel/sum role -> colour per dump against the target's registers), `valid4p.py RA` (named-node
+interferences vs the target colours), `w.py RA keep=X` (chaitin what-if: X survives scan 1), `norm.py` (vid-blind pcode dump diff). Kit untouched.
+- **The match (h0, APPLIED): `a0 = s0[9]; b0 = s1[9];` moved from after `d[1] = ..` to before `d[0] = ..`; nothing else.** Mechanism: a load through a
+  `Uint8 *` LOCAL written after a store in statement order is in the store's alias class (pass 58: only a `const T *` PARAMETER gets its own object
+  record), so the pre-RA DAG has `stw d[1] -> lbz s0[9]` and the scheduler puts the pixel-9 loads right after the second store (positions 74/75 of
+  block 1) while the target issues them before `stw d[0]` (target lines 62/66 vs 72); with the loads before the stores in the source they schedule at
+  57/61 and the block's live ranges, the Chaitin levels (L3 = the five loop variables alone, L2 = a6 a7 a2 a8 p2 p3 p4 a10 a11 a12 a14 a15 b15 p0'..p5')
+  and every colour follow. The pixel-10 loads stay after the stores in the source (target lines 77/78 after `stw d[1]` at 75). Oracle for the
+  catalogue: **a load's position relative to a store in the target's block is the source's statement order when the pointer is a plain local (the
+  alias edge is one-directional: loads before the store in the source may sink below it, loads after it can never rise above it).**
+- **The split reading corrected:** the target's block 1 = 75 final instructions ending with p1''s `add r30, r10, r30` (line 84), i.e. it holds the
+  pixel-10/11 loads and the p1' sum; the initial-code count (cnt.py on the tree: d[0] 75, d[1] 83, 9th sum 91, `a2 = s0[11]` 100, `b2 = s1[11]` 101 ->
+  B3 = 101 pcodes, split before p2') is the target's. Passes 12/13 read "block 1 ends after the 9th sum" off the post-RA order (the 9th sum's last add
+  at position 67 followed by the pixel-10 loads) — that was the schedule, not the block boundary.
+- **The later-deleted-pcode levers, measured on this body before the statement move was found (all correct as levers, none needed here):**
+  `((Uint32)a & 0xFF)` on a Uint32 pixel variable (twice-used pixel, masked in ONE of its two sums) or `(Uint32)(a & 0xFF)` on a single-use pixel =
+  +1 initial pcode (`rlwinm 0,24,31`), turned into `mr` by the added `constant-propagation` pass and deleted by the `copy-propagation` after it, before
+  scheduling; the pipeline gains constant-propagation + load-deletion + a second copy-propagation/add-propagation/peephole-forward round and NO
+  common-subexpression-elimination (each pixel masked once = no duplicate expression); the pre-RA pcode is identical to the unmasked body modulo vids.
+  `(Uint32)(a & 0xFF)` on a twice-used pixel = 0 net (it breaks the frontend's cast CSE: the `(Uint32)a` @temp `mr` disappears, the rlwinm replaces it).
+  Ten masks (`mask=0-15:bnew 0:bold`) put the split exactly after the 9th sum: 136w = pass 13's number, without any CSE pass — so pass 13's "the CSE
+  pass drops a8/p8 to L1" was a misattribution: with that split the block-1 schedule changes (the 9th-sum chain becomes the block's tail, a8's total
+  degree 37 -> 30, a10/a11/a12/p1'/p5'/a14/a15/b15 drop to L1) and the loop variables' degree after scan 1 falls to 28/29 (d 28, stride 28): L3
+  collapses into L2 and everything is coloured in vid order from r0. The chaitin what-if (`w.py keep=a8`) restores L3 but not the L1/L2 colours
+  (17-18/46): the schedule, not the level set, was the residue.
+- **Model facts kept:** valid4p (named nodes vs target colours) shows 0 conflicts in the 26w tree AND in the mis-cut variants — a conflict-free named
+  graph does not mean the schedule is the vendor's; the tree's graph scores 45/46 in chaitin.py against the hand-read target table (the miss is a
+  table typo), and `chaitin.py --check` is IDENTICAL on every dump of this pass.
+- Flip: objects.py `# CRI SWAR pass 23` block (`"lib/mpv_mcy.c": True`), locked `ninja -k 0`, `dtk shasum -c` 111 OK. Tree edit: src/lib/mpv_mcy.c
+  4p function (two statements moved + comment). No pins, no asm, no pragmas, no tags anywhere in the unit: 1p/H2/V2/4p pure C.

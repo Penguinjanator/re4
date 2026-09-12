@@ -1974,3 +1974,8 @@ MATCHING.update({
     "game/Espgen42.cpp": True,  # 16/16: Espgen42_Move00 9 -> 0. Loop B's bump index with the i term first (`jx * ((mx + 1) >> 3)`, jx/mx function-level: the nx chain sits in the Z block after the i-division branch as in the target), a tagged `register int jq asm("r0")` (the r0 occupant that keeps t_i off r0 -> r9) and three tagged codeless `asm("" : "=m"(v.x/y/z) : "r"(jx))` sched1 slot fillers (priority 90 through the `lfsx nrm[k].x` alias dependence, ready at t2: they hold the t2/t3 issue slots, delay the byte's load to t4 and the fast-cast loadaddr past the `mullw`, and push `xoris j` behind the first index add). Remaining tags in Move00: loop-A dead test (loop.c insn_count), loop-B asm pair (move_movables), the jq pin, the three fillers
     "game/espgen45.cpp": True,  # 20/20: Espgen45_Move00 42 -> 0 with the same loop-B shape (p-field anchors `"=m"(p->damp)` also close 42 but their three p address refs push p from r28 to r31 in 45's global order; the frame anchors on `v` add no p refs). Remaining tags in Move00: loop-B asm set/use, the jq pin, the three fillers
 })
+
+# CRI SWAR pass 23 (2026-09-12)
+MATCHING.update({
+    "lib/mpv_mcy.c": True,  # 5/5, pure C: MPVMC16_OneRef4p_TuneC 26 -> 0. The pixel-9 pair is loaded BEFORE the d[0]/d[1] stores: a `Uint8 *` local's load written after a store shares the store's alias class (pass 58) and the scheduler cannot lift it above the store, while the target issues both pixel-9 loads before the stores; with the loads first the block-1 schedule, the levels and every colour follow (the >100 block split after `b2 = s1[11]` is the target's, not "after the 9th sum"). 1p/H2/V2 as in SWAR passes 5/20/22
+})
