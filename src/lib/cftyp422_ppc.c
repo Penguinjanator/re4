@@ -167,9 +167,14 @@ typedef struct {
 	*++(c) = ((cbv << 16) & 0xFF000000) | ((crv << 8) & 0x00FF0000) | ((cbv << 8) & 0xFF00) | \
 		 (crv & 0xFF)
 
-/* Y plane as 8x4 I8 tiles (four 8-byte rows per tile), CbCr as 4x4 IA8 tiles */
+/* Y plane as 8x4 I8 tiles (four 8-byte rows per tile), CbCr as 4x4 IA8 tiles. The dcbz/dcbt
+ * index is a register variable (ofs = 8 / 4) named as the asm operand: a hard r0 in the asm would
+ * keep r0 reserved over the whole function (the original has r0 free between the two loops and the
+ * index coloured r0 as a plain high-degree node); the __dcbz intrinsic hoists its literal only one
+ * loop level. */
 void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 width, Sint32 height)
 {
+	register Sint32 ofs;
 	Sint32 ywidth;
 	Sint32 yw3;
 	Sint32 n;
@@ -216,35 +221,35 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 	yskip = yw3 / 8 * 8;
 	cnt = ywidth / 8;
 
-	asm { li r0, 8 }
+	ofs = 8;
 	for (i = 0; i < hblk; i++) {
 		y1 = (Float64 *)(ywidth + (Uint32)y0);
 		y2 = (Float64 *)(yw2 + (Uint32)y0);
 		y3 = (Float64 *)(yw3 + (Uint32)y0);
 		n = cnt;
 		while (n-- > 0) {
-			asm { dcbz d, r0 }
+			asm { dcbz d, ofs }
 			w0 = *y0;
 			w1 = *y1;
 			w2 = *y2;
 			w3 = *y3;
-			asm { dcbt y0, r0 }
+			asm { dcbt y0, ofs }
 			asm { stfdu w0, 8(d) }
 			asm { stfdu w1, 8(d) }
 			asm { stfdu w2, 8(d) }
 			asm { stfdu w3, 8(d) }
 			y0++;
-			y1++;
-			y2++;
 			y3++;
+			y2++;
+			y1++;
 		}
 		d = (Float64 *)((Uint8 *)d + dskip);
 		y0 = (Float64 *)((Uint8 *)y0 + yskip);
 	}
 
 	cnt = src->ywidth / 2 / 4;
-	hblk = height / 2 / 4;
 	cskip = (src->cbwidth - src->ywidth / 2) / 4;
+	hblk = height / 2 / 4;
 	cw = src->cbwidth / 4;
 	cw3 = cw * 3;
 	o1 = cw * 4;
@@ -253,7 +258,7 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 	c = (Uint32 *)cbuf - 1;
 	cbp0 = (Uint32 *)src->cb;
 	crp0 = (Uint32 *)src->cr;
-	asm { li r0, 4 }
+	ofs = 4;
 	for (i = 0; i < hblk; i++) {
 		crp1 = (Uint32 *)(o1 + (Uint32)crp0);
 		crp2 = (Uint32 *)(o2 + (Uint32)crp0);
@@ -262,7 +267,7 @@ void CFT_Ycc420plnToY84C44(CFT_YCC420PLN *src, void *ybuf, void *cbuf, Sint32 wi
 		cbp2 = (Uint32 *)(o2 + (Uint32)cbp0);
 		cbp3 = (Uint32 *)(o3 + (Uint32)cbp0);
 		for (n = 0; n < cnt; n++) {
-			asm { dcbz c, r0 }
+			asm { dcbz c, ofs }
 			CFTYP_C44_ROW(c, cbp0, crp0);
 			CFTYP_C44_ROW(c, cbp1, crp1);
 			CFTYP_C44_ROW(c, cbp2, crp2);
@@ -936,14 +941,22 @@ void CFT_Ycc420plnToArgb8888Init(void)
 	Float32 *pcb_b = cb_b;
 	Float32 *pcr_r = cr_r;
 	Float32 *pcr_g = cr_g;
+	Float32 v;
+	Sint32 k;
 
 	CFT_dummy = CFT_version;
 	for (i = 0; i != 256; i++) {
-		*py++ = 1.164f * (Float32)(i - 16);
-		*pcb_g++ = -0.392f * (Float32)(i - 128);
-		*pcb_b++ = 2.017f * (Float32)(i - 128);
-		*pcr_r++ = 1.596f * (Float32)(i - 128);
-		*pcr_g++ = -0.813f * (Float32)(i - 128);
+		/* the y product is a variable node (coloured after the hoisted literal loads): the
+		 * redefinition of k between v's definition and its store blocks the frontend's
+		 * single-use substitution */
+		k = i - 16;
+		v = 1.164f * (Float32)k;
+		k = i - 128;
+		*py++ = v;
+		*pcb_g++ = -0.392f * (Float32)k;
+		*pcb_b++ = 2.017f * (Float32)k;
+		*pcr_r++ = 1.596f * (Float32)k;
+		*pcr_g++ = -0.813f * (Float32)k;
 	}
 }
 

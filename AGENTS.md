@@ -26596,3 +26596,49 @@ does NOT reproduce ours, do not trust). The pass-8 harness was deleted. ra.py ru
   colour-order lever for the 8x8 kernels, not explored; mpv_mcy V2 with `(Uint32)` casts on the word operands (x0 = .. or the AVG2V
   arguments): 225w unchanged. H2 (mpv_mcy/mpv_mc) not touched.
 - Flags unchanged; objects.py untouched; no tree source edited; 111 not re-run (no build).
+
+### CRI pass 42 (cftyp422_ppc 6 -> 7/8 identical, 105 -> 29w: Init 9 -> 0w pure C, Y84C44 96 -> 29w with the dcbz index as a register variable; .data/.bss pads are link alignment, not objects; not flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri42/ (tryfn.py = replace one function body in a copy of the tree source + variant.sh; model.py = chaitin.py
+what-if driver) and the cri33 tools, both deleted at the end. Kit only. 111 OK after the pass (unit still False, objects.py untouched).
+- **Init 9 -> 0w, pure C — a redefinition of a variable the RHS reads blocks the single-use substitution (pass 5's fourth blocker,
+  applied deliberately).** The y product must be a variable node (vid below the two hoisted literal loads, which are BACKEND temps
+  f32 = 1.164 then f33 = the 0x43300000 conversion magic; all of Init's FPR values were backend temps, coloured in descending
+  vid, so the product temp f36 took f6 before them). `k = i - 16; v = 1.164f * (Float32)k; k = i - 128; *py++ = v; *pcb_g++ =
+  -0.392f * (Float32)k; ...` keeps `v` (the RHS reads `k`, which is redefined before the store) with the literal order unchanged:
+  v f8, magic f6, 1.164 f7 = the target. Negative: statement order (product first, store third — the target's schedule stores y
+  third, but two stores between def and use do NOT block the substitution), `v = 1.164f; v = v * conv` (the constant becomes an
+  in-loop `lfs`), a helper `ret` local (substituted, 9w unchanged), `i = i` between def and use (deleted).
+- **Y84C44 96 -> 44w: the `li r0, 8/4` + `dcbz d, r0` asm pinned r0 over the WHOLE function.** A physical register named in an
+  asm block is live from the first asm to the last one (pass 33's "K = 28, r0 excluded" model was describing exactly that); the
+  target uses r0 for the loop-2 setup temps (`srwi r0, r7, 31`) between the two loops, so its index was an ordinary node. Form:
+  `register Sint32 ofs;` declared FIRST (highest own-local vid; degree 84 -> spill-pick level -> coloured first, lowest free = r0),
+  `ofs = 8;` / `ofs = 4;` where the `li r0` asms were, `asm { dcbz d, ofs }`, `asm { dcbt y0, ofs }`, `asm { dcbz c, ofs }` (the
+  asm operand must be a `register` variable). Loop 2's body and the crv/cbv edge residue vanished with it (crp0 r3, crv r6, cbv
+  r10, crp1 r9 = target). Negative: `__dcbz(d, 8)` / `__dcbt(y0, 8)` intrinsics — the literal is materialised at the intrinsic and
+  the backend loop code motion hoists it ONE loop level only (inner-loop preheader inside the outer loop, `li r6, 8` at the
+  outer body top; the target's `li r0, 8` is in the function prologue) and it is coloured after the unroll count; a two-def
+  `Sint32 ofs = 8; .. ofs = 4;` with the intrinsics is constant-propagated into both loops (register or not); `*++d = w0` C
+  stores fold the four increments into `stfd 8/0x10/0x18; stfdu 0x20` (add-propagation) — the four `stfdu` need the asm stores.
+- **44 -> 40w: `y0++; y3++; y2++; y1++;`** — the three `addi rY, rY, 0x20` of the unrolled body follow the increment statement
+  order (target y3, y2, y1); pure C.
+- **40 -> 29w: loop-2 setup order `cnt, cskip, hblk, cw`** (was cnt, hblk, cskip, cw): the `ywidth/2` sign-fix `add` is CSE'd
+  between `cnt = src->ywidth / 2 / 4` and `cskip = (src->cbwidth - src->ywidth / 2) / 4`; with cskip second the cbwidth load
+  is created after the add and coloured r10 (add r9) = target. All 24 orders tried; `cw` before `hblk` reschedules (31w).
+- **Residue 29w (two mechanisms, read off the dumps and the model):** (1) loop 1: target ywidth r9, yw3 r10, unroll-remainder
+  copy r11 (`mr r11, r4; andi. r11, r11, 3`); ours copy r9, ywidth r10, yw3 r11 (+ the prologue/loop-2-setup reschedule that
+  follows from the anti-dependences). chaitin.py replays ours exactly (K = 29 now) and moving the copy's vid (r155, a
+  loop-transform backend temp) to `n`'s slot (between yw3 r66 and y3 r64) reproduces the target with nothing else changed; adding
+  up to 8 edges to ywidth/yw3 does not. So the target's remainder count IS the own local `n` (or a node with n's vid). The
+  transform always emits `mr t, n` (probe: `while (n-- > 0)`, `for (n = cnt; n > 0; n--)`, `for (n = 0; n < cnt; n++)`,
+  `for (k = 0; k < n; k++)`, `while (n) {..; n--}`, guarded `do {} while (--n)` (not unrolled the same way), with or without a
+  separate loop-2 counter) and pass-07 copy propagation rewrites it to `mr t, cnt` because `n = cnt` is a copy — `asm { mr n, cnt }`
+  and `asm { mr r11, cnt; mr n, r11 }` are pcode `mr`s and are propagated the same way (the hard r11 then poisons y3 -> r20,
+  129w); two reaching definitions of n (`n = cnt` before the outer loop and at the body end) block the propagation but cost an
+  extra `mr` (85w). Not found: a source whose `n = cnt` survives as the count node. (2) loop-2 setup: target cw r9 / cw3 r10
+  (`addze r9, r6; mulli r10, r9, 3`), ours cw r6 / cw3 r9: the target's `cw` has a neighbour coloured r6 (the height sign-fix temp
+  or the `cw3 + cskip` add) that ours does not — cw live across one of them, i.e. a different cw/o1/o2/cw3 expression grouping.
+- **`.data` 0x8/0x4 and `.bss` 0x1428/0x1424 are NOT missing objects:** the sym_map entries `lbl_8026F6A4` / `lbl_803097E4` are
+  split-tool fill (original name "."), the next unit (cftfx) starts 8-aligned right after; bytecmp reports them as `pad` and
+  they do not block IDENTICAL (verdict is .text-only). Do not add a static for them.
+- Flags: `lib/cftyp422_ppc.c` stays False (7/8, 29w). Tree = src/lib/cftyp422_ppc.c (Init pure C; Y84C44 asm dcbz/dcbt/stfdu with
+  the `ofs` register operand, commented at the function).
