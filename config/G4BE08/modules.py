@@ -770,6 +770,7 @@ MATCHING = {
     "t_sce/db_filelist.cpp": True,
     "t_id/db_path.cpp": True,
     "t_id/db_sctrl.cpp": True,
+    "t_id/t_id.cpp": True,  # toolIdOption: `col = (i == optCur) ? 4 : 0; sx = 0x2E;` before the menu-name eprintf (the optMenuName lo_sum misses loop pass 1's threshold by one and hoists in pass 2); pure C
     "t_event/db_sctrl.cpp": True,
     "Sscrn/ss_cap.cpp": True,
     "Sscrn/ss_debug.cpp": True,

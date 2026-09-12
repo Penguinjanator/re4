@@ -2738,11 +2738,16 @@ static void toolIdOption(IdTool* w)
     for (i = 0; i <= 2; i++) {
         int y = (r0 + i) * 0xE;
 
-        eprintf(cx << 3, y, (i == optCur) ? 4 : 0, 0, "%s", optMenuName[i]);
-        // sx/r1/r2 after the first eprintf (same ebb as the loop top, before the
-        // if/switch so cse1 does not fold the case constants); mx/vx computed from
+        // col/sx before the menu-name eprintf: `sx = 0x2E` is a pass-1 movable
+        // moved ahead of the optMenuName lo_sum, so the lo_sum's threshold drops
+        // to 65*1*2 = 130 < 131 real insns and it stays until loop pass 2, whose
+        // hoists land after the pass-1 langName2/Screen/pool pairs (the target's
+        // preheader order). r1/r2 stay in the same ebb as the loop top, before the
+        // if/switch so cse1 does not fold the case constants; mx/vx computed from
         // cx right before use so they hoist in loop pass 2 (after the giv inits).
+        col = (i == optCur) ? 4 : 0;
         sx = 0x2E;
+        eprintf(cx << 3, y, col, 0, "%s", optMenuName[i]);
         r1 = 0xC;
         r2 = 0xD;
         if (i == optCur && (w->cnt & 0x18)) {

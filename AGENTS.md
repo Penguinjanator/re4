@@ -27437,3 +27437,89 @@ removal order; deleted at the end).
   a 2-byte struct copy `*(S16 *)ck.data = *(S16 *)src` (same bytes, lha kept). `#pragma scheduling off` on the function 57w. No 2.7 dump exists
   (mwcc_debugger has GC/1.1 and GC/2.6 offsets only); the open question is what 2.7 does to B12 that 2.6 does not.
 - Tree untouched (sfd_mps 25/26 with the M1 pin, adx_sje 16/17); objects.py untouched; no flip, no `ninja -k 0` needed. Harness deleted.
+
+### MWCC pre-RA scheduler (RE)
+(2026-09-12, read off GC/2.6 mwcceppc.exe with `objdump -d -M intel` (`~/.cache/mwsched/dis.sh START END` = one routine without
+byte columns); located from the debugger's "after-scheduling" breakpoint 0x433E0C = the instruction after `push 0; call 0x507c70`
+(post-RA: `push 1; call 0x507c70` at 0x43405c). Raw-input dumper `~/.cache/mwsched/dump.sh lib/unit Func` (gdb script over
+retrowin32's stub; writes `out_Func/sched-{pre1,post1,pre2,post2}.txt` = every block's pcodes with ADDRESS, flags word, operands
+`R<class>:<reg>:<rw>` and the alias record) and the model `~/.cache/mwccdbg/sched.py DUMPDIR [--post]` (README entry).)
+- **Entry 0x507c70(postRA):** picks the machine model from the `-proc` byte 0x5eb096 (gekko = 4 -> table 0x5d5b50; 750 = 3/6 ->
+  0x5d5028; 7400/7450 -> 0x5d4498/0x5d1c48; generic -> 0x5d3970) and walks the blocks: scheduled iff `pcodeCount > 2 &&
+  !(flags & 8) && (postRA || !(flags & 3))`, then `flags |= 8`. Post-RA is the SAME routine; the only differences are the block
+  gate and that the pre-RA-only tie-break (below) is off because 0x5ea638 ("virtual registers in use", set at codegen start
+  0x4fe688, cleared after the RA at 0x50874d) is 0.
+- **Per block 0x507d80:** nodes are built walking the pcodes BACKWARDS (block+0x18 = last pcode, pcode+4 = prev); the DAG
+  builder 0x508090 sees only later pcodes, so every edge goes earlier -> later. Node: lat = model.latency(pcode) (0x57a830:
+  table byte 1, +2 if `flags & 0x20000000 && !(flags & 9)`, + argc-2 for lmw/stmw), height (init lat), npreds, ready, deadline.
+  Edges (0x508480; a duplicate edge only raises the latency and is not counted again):
+  * register operands (kind 0) in operand order; GPR r2, r13 and an r0 with no rw bits (indexed base) are skipped; `rw & 2` =
+    write (a read/write operand counts as a write only). Write -> kind-1 edge to every LATER reader and every later writer of the
+    (class, reg); read -> kind-1 edge to every later writer. The reader/writer lists are never cut at a redefinition (edges are
+    transitively redundant but they COUNT in npreds and in the "frees" criterion).
+  * memory: load (`flags & 0x20002`) -> kind-1 edge to every later store that may alias; store (`0x40004`) -> kind-1 edge to
+    every later load and later store that may alias (`flags & 0x40000` stores also enter the load list). Loads never depend on
+    loads. May-alias (0x511ce0 on the pcode+0x18 records, type byte +0x2c): t0 = whole object (indexed access), t1 = object +
+    off + size, t2 = pointer access with an alias-class bitset. t0/t0: same record; t0|t1 vs t0|t1: same object (or same link
+    name), t1/t1 additionally the byte ranges overlap; obj vs t2: the object's index bit is in the set; t2/t2: same record or
+    the sets intersect. Volatile/type play no role beyond that.
+  * `flags & 0x80`: kind-0 chain in original order among themselves.
+  * barrier = `flags & 0x1000000` (bl/bctrl) or `flags & 0x100` (dcbt) or table byte 5 (every branch, mtctr/mtlr/mtcrf/mfspr/
+    mflr/mfcr/sync/isync): kind-0 edge to EVERY later pcode, and every pcode gets a kind-0 edge to every later barrier.
+  * a node with no successor gets a kind-0 edge to the block's `flags & 1` terminator.
+  * kind-1 latency = lat(source) (for the gekko table WAR/WAW carry it too: model word +4 = 1; word +8 = 0 extra into a branch);
+    kind-0 = 0. height = max(lat, edge lat + succ height); after the walk deadline = maxheight - height.
+- **List scheduling (0x507e5c):** cycle 0,1,2..; per cycle up to model.width (= 2) picks; candidate walk 0x507f50 over the
+  unscheduled pcodes in ORIGINAL order, a candidate needs npreds == 0, ready <= cycle and model.canIssue(). best = the first
+  candidate; a later one replaces it iff, in this order: (1) it is "urgent" (deadline <= cycle) and best is not (best urgent,
+  cand not -> keep); (2) it frees MORE successors (count of successor edges whose target has npreds == 1); (3) its height is
+  GREATER; (4) pre-RA only: its opcodeinfo byte +9 (0x5c0fa8 + op*0x12 + 9) is LOWER (0 = branches/mr/nop/fmr, 1 = stores/
+  cmp/mtctr/mtlr/dcb*, 2 = int arithmetic, 3 = loads, 4 = li/lis/mf*); (5) otherwise keep = the earlier pcode. On issue:
+  succ.npreds--, succ.ready = max(succ.ready, cycle + lat); model.issue(); the pcode is appended to the (emptied) block.
+- **Gekko machine model (0x5d5b50; per-opcode 6 bytes at 0x5d5b78 + op*6 = unit, latency, occ1, occ2, occ3, barrier):**
+  units 0 BPU, 1 IU1, 2 = "IU1 or IU2" (IU1 preferred), 3 -> 4 LSU stages, 5 -> 6 -> 7 FPU stages, 8 SRU. Rows: branches
+  0/0/0 barrier; loads+stores 3, lat 2, occ 1/1; dcbz lat 3, occ 1/2; simple int (add/addi/rlwinm/li/lis/mr/and/or/extsb/
+  cntlzw/srawi/subf/neg/nop) class 2 lat 1; cmp/cmpi/cmpl/cmpli class 2 lat 3 (occ 1); mullw/mulhw class 1 lat 5 occ 5,
+  mulli 3/3, divw 19/19; mtctr/mtlr SRU lat 2 occ 2 barrier, mfspr/mflr/mfcr/mtspr SRU 1/1 barrier, sync 3/3, isync 2/2;
+  FP fadd/fsub/fmr/fneg/fabs/frsp/fctiw/fcmpu/ps_* unit 5 lat 3 occ 1/1/1, fmul/fmadd lat 4 occ 2/1/1, fdiv 31/31;
+  lwarx/stwcx lat 1. State: 9 unit slots (pcode, busy), a 6-entry in-order completion queue (issue needs a free entry; at most
+  2 retire per cycle, only when the head is done), last1/last2 = the ops that completed in IU1/IU2 at the end of the previous
+  cycle. canIssue (0x57a680): queue not full; class-2 op: at least one IU free, and if only one is free the op must not read or
+  write the GPR written by the other IU's occupant nor by last1/last2 (0x507bf0: first operand of the other = a GPR write);
+  other classes: the unit slot must be empty; a store cannot issue while LSU stage 2 holds a store (so stores issue at most
+  every other cycle, loads one per cycle). advance (0x57a260): busy--, retire <= 2, then IU1 / LSU2 / FPU3 / SRU / BPU / IU2
+  slots with busy 0 complete (fdiv/fdivs complete from FPU1), FPU2->3, FPU1->2, LSU1->2 move when the next stage is empty
+  (busy = occ2/occ3).
+- **First validation (sched.py, pre-RA dumps of the three functions):** sfd_cre AnalyMpv 8/8 blocks identical; mpv_umc
+  OneReadMb 2/3 (B1 diverges at slot 38 of 72); mpv_mcy 4p 1/3 (B4 diverges at slot 4). Debugging continues below.
+
+### Tool RELs, t_id pass 8 (toolIdOption 8 -> 0 pure C; t_id/t_id IDENTICAL and FLIPPED, make_rel --verify OK, 111 OK; the 2/2/2/4 artefact rows vanished with the flip as predicted; 2026-09-12)
+Harness /home/adityas/.cache/tid8/ (deleted at the end): variant copies v1-v4, rtl.sh dumps of the base, `gdbg.log` (GDBG=1 LOOPDBG lines).
+- **The pass-7 hypothesis (gcse PRE gives the optMenuName high the lowest LUID) was WRONG in the mechanism but right about the
+  symptom.** `-fno-gcse` via rtl.sh keeps the same preheader order (`lis pool; lis optMenuName; lfs; lis langName2; lis Screen`, 70w
+  elsewhere), so PRE is not what puts it first. Read off `GDBG=1` `LOOPDBG` (production flags through variant.sh; a bare
+  `cc1plus -O2 -mfast-cast` re-run of the .i has DIFFERENT insn/reg numbers, use the kit): loop pass 1 (ic 131) movables in body
+  order are `290 = high optCur` [thr 71 sav 1 life 25 -> move], **`293 = lo_sum optMenuName` [thr 68 sav 1 life 2 = 136 >= 131 ->
+  move]**, sx/r1/r2, langName2 [56*2*5], Screen [50*2*2], pool [44*2*2]; the lo_sum's REG_EQUAL `symbol_ref` makes it a `move_insn`
+  movable, re-emitted by `gen_move_insn` as a fresh `high` + `lo_sum` pair (pseudo 405) at its LIST position = second, hence the
+  early `lis optMenuName` (sched1 prio-2 tie by LUID). The PRE'd high 398 only turns the body's high into a copy (`294 = 398`) that dies.
+- **Target = the lo_sum missed pass 1 and hoisted in pass 2.** loop_optimize runs twice (`flag_rerun_loop_opt`, toplev.c 4199/4212
+  with `delete_trivially_dead_insns` between); pass-2 movables and giv inits are emitted before `loop_start` = AFTER every pass-1
+  hoist, so a pass-2 `high/lo_sum` has a LUID after langName2/Screen/pool and sched1 issues it last among the prio-2 highs
+  (target: `lis pool; lis langName2; lfs; addi r17; lis Screen; lis optMenuName; addi r18; addi r26`). Lever: one more pass-1
+  movable BEFORE the lo_sum in body order costs it 3 of threshold: `sx = 0x2E;` ahead of the menu-name eprintf -> thr 65*1*2 = 130
+  < 131 -> stay; pass 2 (ic 104, thr 71: 142 >= 104) moves it first, then mx/vx, then the giv init `412 = 293` that combine merges
+  into `addi r26`. 8 -> 2w with `sx` alone (its `li r27,0x2e` then precedes `lis optCur`: body order sx < optCur); **`col = (i ==
+  optCur) ? 4 : 0; sx = 0x2E; eprintf(.., col, .., optMenuName[i])` -> 0w** (optCur's high is scanned before sx again; `int c =`
+  or `int sel = (i == optCur)` locals give 0w too; `col` chosen — it is the body's colour variable). The comment in the source
+  records the arithmetic.
+- General rule (new for the catalogue row 1): **the same movable can hoist in loop pass 1 or pass 2, and the pass decides its
+  preheader LUID** — pass-2 hoists come after all pass-1 hoists and giv inits. When a hoisted `lis/addi` pair sits too EARLY in
+  ours, do not look for a later body position: push its `thr*sav*life` under pass-1's `insn_count` (an extra pass-1 movable ahead of
+  it = -3 thr, or +ic) and let pass 2 place it. `GDBG=1` prints both passes' decisions (second block = ic of pass 2).
+- Flip: `"t_id/t_id.cpp": True` in config/G4BE08/modules.py; locked `ninja build/G4BE08/t_id/t_id.rel`; `make_rel.py --verify
+  orig/G4BE08/files/Rel/t_id.rel --out /tmp/x.rel` -> `OK (94652 bytes)`, `cmp` identical; bytecmp t_id/t_id IDENTICAL (the
+  `_._6cCoord`/`_._7ID_DATA`/`_._5cUnit` 2w and `__static_initialization_and_destruction_0` 4w rows disappeared once the module ELF
+  was linked from our object, confirming pass 7's weak-`_vt.5cUnit` reading); `flock ... ninja -k 0` + `dtk shasum -c` = 111 OK;
+  `git diff config/G4BE08/symbols.txt` empty. Tree edits: src/t_id/t_id.cpp (toolIdOption body top), config/G4BE08/modules.py.
+  No tagged forms added; t_id/t_id has none. The t_id module is now fully Matching (tools, db_path, db_sctrl, t_util, t_id).
