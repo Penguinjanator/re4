@@ -29909,3 +29909,104 @@ Harness ~/.cache/cri65 (wi.py = chaitin what-if: `mv=VID:AFTER`, `edge=A:B` (B m
   the whole function (65w). So in this compiler the fold fires on any contiguous `rlwinm; rlwimi x3; stw` whose chain reads one register, and the six helper
   readers' `#pragma peephole off` remains the only blocker. The target's r6 = the same "one more blocked register" as the helpers' (there hdr r5, the dying
   base; here r4 = id, NOT the dying base r3 which `li r3,1` reuses), i.e. a node live across the swap block that the final code does not show. Left 6w.
+- **8x8 V2 56 -> 24 -> 11w APPLIED (size exact now).** (a) The third load of each row (`w2 = s0[8]` / `a2 = s1[8]`, the half in case 2, the
+  word in case 3) is KEPT as a variable in the target (case 1 `lbz r31; mr r28, r31; rlwimi r28, r30`; case 3 `lwz r28; srwi r28, r28, 8` in
+  place and `lwz r11 (w2); srwi r29, r11, 8`: loads coloured AFTER the w0/a0 webs = webs, not backend temps). Pure C: the pointer step right
+  after the last load through it (`w0 = W(s0, 0); w2 = s0[8]; s0 += stride; a0 = W(s1, 0); a2 = s1[8]; s1 += stride;`) blocks the frontend's
+  single-use substitution (the load cannot move past the pointer update); the `add r5/r6` land where the scheduler puts them (late, as in the
+  target). With x0/x1 dead-initialised: 24w, the `mr r28, r31` appears, size 0x330 exact. (b) The first-def order `x0, x1, w0, a0, w2, a2, w1,
+  a1` (dead initialisers `Uint32 x0 = 0, x1 = 0, w0 = 0, a0 = 0, w2 = 0, a2 = 0;`) -> 11w: cases 0/1/2 identical; case 3 = the callee-saved
+  rotation w1/a1/w1'/a2 (target r31/r30/r29/r28, ours r29/r28/r30/r31). Range-split detail: with a variable kept in cases 1-3, ONE case's web
+  stays the own-local node (case 1 here, lowest vids) and the others are `@N` webs (case 3 lowest @). exh6.py (720 first-def orders of the six
+  row variables after x0, x1, 1 s each) running for the case-3 rotation at the time of writing (result below).
+- **16x16 H2 197w / V2 225w (read, nothing applied):** the dead-init lever gives at most 197 -> 194 (climb16.py over the 13 variables); the
+  case-0 byte (`lbz r20`) is a3's own-local web (`a3 = s[16]; a3 = (w3 << 8) | a3`), coloured last, and takes r20 in the target because every
+  volatile register is blocked at that point: the target's level-2 own locals (volatile r9-r12) are i, w1, a1, w2 where ours are i, w2, w3, a2,
+  x2, x3 (+x3 r28) — a live-range (degree >= 29) difference of the case-0 body, not a vid order. `w4 = s[16]` / a separate `b` (219w, size -8:
+  substituted, the pack copies coalesce), x's interleaved with the packs 196w, per-pair statement blocks 231w, reversed pack order 299w.
+  Needs its own pass: role-map the four cases' webs against the target and search the case-0 statement order in chaitin.py.
+- **mwsfdcre `mwPlyCalcWorkSfd` 4 -> 0w APPLIED (tagged, not flipped: CreateSfd 115w).** Form: `register Sint32 size` declared ABOVE rfbsiz/tabsiz, the chain
+  unchanged, then `size += MWSFD_FNAME_SIZE; asm { mr size, size } return sibsiz + size;`. Reading: (1) the identity asm copy IS a second rvalue read for
+  the frontend's pull count, so the last `size` web stays a variable and `return sibsiz + size` is computed straight into r3 (`addi r3,r3,0x4800; add r3, r29,
+  r3`, no `@ret` copy for the RA to delete -> B15 stays `000c` -> the epilogue `lwz r0` is not hoisted); the `mr r39,r39` itself is deleted by backend-02
+  copy propagation, before scheduling (codeless, no dirtying, no ghost — unlike the pass-63 neighbour pin whose copies live to the RA). (2) With the chain
+  kept, `size` is a real node coloured with the own locals: declared after rfbsiz/tabsiz it is coloured last (r5, they r3/r4 = 13w); declared before them
+  it takes r3 first and they r4/r5 = the target (own locals colour in declaration order within the level). Pure-C second reads all fail: `size = size`,
+  `+size`, `size + 0`, `* 1`, `| 0` are folded by the frontend (13w); `size = (Sint32)size` / `(Sint32)(size + 0)` / `(Sint32)(Uint32)size` KEEP the read
+  but create a new web (the constant adds fold into it: `addi r0, r3, 0x4800; add r3, r29, r0`, 2w; placed after `size = size2 + adxwksiz` 3w). Helper
+  forms (the chain in a `static` helper with 7/8 parameters, `return sibsiz + helper(..)`, `return sib + size` inside, or `size = helper(); return sibsiz +
+  size`) collapse the whole chain and reassociate (13w): inlined helper webs are pulled like own locals. Tree: src/lib/mwsfdcre.c mwPlyCalcWorkSfd only.
+- **mwsfdcre `mwsfcre_CreateSfd` 115w (the two dead `b T` of the inlined IsUseAdxt case-4 arm): not addressed.** Arm contents that the frontend deletes
+  (`mode = mode`, `(Sint32)mode`, `mode + 0`, `if (mode) break;`) 115w; `mode = 4; return TRUE` 120w (+8, a second `li 1`), `return (Bool)(mode == 4)` 133w;
+  a hoisted `Bool ret = TRUE` with `case 4: ret = TRUE` (backend-CSE candidate) changes the tree to a dominating `li r0,1` without the `li 0; b; li 1` diamond
+  (125w, -8). The target's diamond = `return FALSE`/`return TRUE` @ret arms plus an emptied case-4 block: its statement survived the frontend and was
+  deleted by a backend pass before the RA (pass 63) — still no C statement found that the frontend keeps and backend-01..05 delete.
+- **mpv_umc `mpvumc_OneReadMb` 48w: not addressed.** Colour read: the target's `lwz r25` vx dies at `clrlwi yhx` BEFORE `lwzx fn_y` (fn_y then reuses r25) and
+  `clrlwi chx` is issued AFTER both table loads (eec), the reverse of ours (chx before fn_y, yhx after) = the pass-49b c33 tie; vx L2 (33 nbs) in ours. Probes:
+  `mc->src2 = mc->src + cpitch + chx` 59w (+4), `yhx &= mcflag` right after its def 48w, `chx = ((Uint32)cvx & 1) & mcflag` 53w, the same for yhx 77w, cvx/cvy
+  right after the vector loads 61w, the whole body as a `static inline` helper behind a wrapper (`#pragma inline_max_size`) 71w. Left 48w.
+
+### Tool RELs, t_esp pass 28 (t_esp 209/212: InitTool 465 -> 431w IN THE TREE (387w while the size was one insn short; `int InitTool()` + `return 1` = the target's epilogue `li r3,1`, size now exact 0xa20c/0xa20c), seg-aligned total_d 627 -> 490, regions [2 46 416 26]; the W heads' r16/r14 swap of D11 READ EXACTLY: the target's WORK heads have 19 refs (WORKSP1 rows 757-759 are ALL fresh `lis`, so F8' precedes WORKSP1 row 1's g_pEditSeq load, not row 2's) = a 66/66 local-alloc tie that qty order resolves to g_pEditSeq r16; seg 692 EXACT with cse2 F7' at SUB+41 (between SUB row 1's DB_POINT `this` copy and its pos.y store: the surviving copy is the target's single `lwz r6,slot`); new cse2 knob: WORK0 in-block pad after `f32 h` (24 sets ending in 4) paid by the WORK1-6 ctor-top pads; nothing flipped; 2026-09-12)
+- **The premise of pass 27 part 2 ("T has refs 20/20 too") was wrong.** T's segs 749-751 (WORKSP0) use r16/r14, 757/758/759 (WORKSP1 rows 1-3)
+  are all `lis r6,g_pEditSeq@ha; lis r9,g_pEditSeq2@ha` fresh (raw T.s: `lbl_t_esp_bss_13C74C`/`13C87C`), so T's cse2 F8' is before WORKSP1 row 1's
+  g_pEditSeq load (WORKSP1+52 in the .loop stream) and after WORKSP0 row 3's g_pEditSeq2 load: the WORK heads have 18 loads = refs 19, deaths at
+  WORKSP0 row 3 (suids 12900/12904), births 1424/1444 (the sched1 slots of D11/C2, unchanged) -> 4*19*10000/11476 = 66.2 and /11460 = 66.3 -> 66/66
+  tie -> qty order (lower qty = earlier birth) -> g_pEditSeq r16, g_pEditSeq2 r14 = T. No filler count change is needed; the sched1 filler list
+  in the band reg9001..W heads is identical in C2 and D11 (fill.py) and all of its heads but K0 are spilled (rematerialised = invisible).
+  Consequence: the W heads' allocation depends only on F8' <= WORKSP1+52 (F5 with F8' = +46 broke 3 segs: keep F8' in [+49, +52]).
+- **cse2 F8' = F7' + 1001 cse2-stream insns.** Moving F8' alone needs cse2 weight in (F7', F8']: the WORK0 in-block pad after `f32 h`
+  (`cls##_CSE_PAD2()` hook in WORK_WINDOW_CLASS, pass 27's mkE.py) = (N, N-1) because it heads the constant-4 class after F10 = WORK0+14;
+  its +N cse1 is paid back by removing the WORK1-6 ctor-top `1:2:3:4` pads (-24, all in (F10, F11]) so F11/F12 keep their content positions
+  (F11 reads WORK6+10 now = the old +14 minus WORK6's 4-set pad; F12 BASEPOS+107 unchanged). PAD2 20 with the pads removed moved F11/F12 by
+  +4 and broke segs 730/735/740 (f30/f27 w/h names, a split `&pos`): the pads must be paid exactly.
+- **Seg 692 (SUB row 1) = a surviving DB_POINT `this` copy.** Ours had `lwz r6,slot` for the pos.y store's reload AND a second `lwz r6,slot`
+  for the `&pos` argument (the move `(set r6 P)` with P spilled becomes a load; reload_cse cannot delete it because the `stfs 4(r6)` store
+  invalidates the slot value: hard-reg base = may-alias). T has one load: with F7' in (37, 41] (= between the copy `(set this P)` at SUB+37 and
+  the pos.y store at +41) the copy survives, the store's base and the argument both read `this`, which local-alloc gives r6 -> `lwz r6,slot`
+  (the copy) + `stfs f22,4(r6)` + r6 passed. surv.py marks it `*` (visible): that is T's form here, not a defect. The 0.0 stays C0 (f22) because
+  the store is after F7' too. F7' at SUB+21 (probe F3: VEC0 27-set pad + SUB 6 + `f32 c4` in SUB) fixed the W heads but left 692 d3.
+- **Applied (G1 = /tmp/t28/G1.cpp; tree = G1 + comments):** VEC0 pad `1:2:3:5:6:7:4` (7 sets: +7 cse1, +6 cse2 -> F7' SUB+37 -> +41), SUB pad
+  24 -> 17 (cse1 window (F9,F10] count held: F10 WORK0+14), WORK0 PAD2 24 sets ending in 4 (+23 cse2 -> F8' WORKSP1+72 -> +49), WORK1-6
+  `_CSE_PAD` -> `{ }` (-24 cse1), the `i = k` gcse-N block -> 0 sets (N 5235, autoN). Grids: cse1 LOAD_EVENT+6 SAVE_EVENT+27 OPTION+540 PATH+541
+  SIZE+174 SPEED+684 COLOR+869 LIFE+8 ROTATE+644 WORK0+14 WORK6+10 BASEPOS+107; cse2 LOAD_EVENT+53 OPTION+70 PATH+348 SPEED+108 COLOR+552
+  ANMRATE+40 SUB+41 WORKSP1+49 (was SUB+47 WORKSP1+78). Segments: 619-635 (ROTATE tail, 0.0/16.0/32.0 `fmr` names), 663-693 (VEC/SUB), 692,
+  702-751 (W heads), 757/758 all exact; 637-656 -2 each; nothing regressed (dsum C2 -> G1: only decreases). Residue 387w: SIZE/SPEED/COLOR spill
+  rotation (404-556, 48+114+70), ROTATE rows 637-659 (18/12/14/../24/20 = spill picks + `lis r6; lwz` order), OPTION 271/323/332/335 (pre-existing,
+  the &pos split of a cse1 flush), BASEPOS 791 d22, 802 `li r3,1` (T 44 / O 43).
+- **`f32 cK` lever accounting:** the saving is 3 - 3k with k = LATER uses (SUB's 4.0 with 4 later uses = -9, not -12; a constant with one later
+  use saves 0). Not applied in the end (G1 needs no cK).
+- Harness /tmp/t28 (kept): base.cpp (= pass-27 tree), D11.cpp (t27's), F1-F5/G1/G2 variants + logs, tree28.cpp (= the tree), mkF.py (vec0=N sub=K
+  c4/c24/c5 levers), apply_g1.py (the WORK edits), mk.py (exact-string edits), ct.sh NAME (autoN + both grids + words + the W heads' LADBG lines
+  + their `lis` names), fill.py SCHLOG LREG [lo hi] (sched1 fillers of block 13 with bodies, marks the W heads), cyc.py (issue table with bodies),
+  heads.py LREG GREG LO HI (every high/const head whose first use is in a stream range, refs/calls/disposition), uses.py LREG REG.. (all insns of
+  a pseudo), off.py DUMP WINDOW REGEX (cse2-stream offsets inside a window; 6 `new`s precede the tail block), rtl_*/sch_*.log dumps.
+  ~/.cache/tesp15, the kit, /tmp/t23-t27 untouched. Nothing flipped: no make_rel/`ninja -k 0`/shasum.
+- **802 `li r3,1` = a return value:** `int InitTool()` with `return 1;` at the end (declaration at line ~434 changed too; the caller ignores
+  it; the mangled name `InitTool__15t_esp_namespacev` carries no return type). Probe R1 = tree + this: 802 T44/O44, d5 -> d4 (the r8/r9 spill
+  pick of the four global zero stores remains), size exact. APPLIED.
+- **Spill rotation read (seg 404 = SIZE row 2, same shape in 428/434/...):** T `li r10,0` (flags) is the row's 2nd insn and `li r9,1` (index)
+  its last; ours the reverse (`li r9,1` 2nd, `li r10,0` last), so the DB_POINT `this` copy (`mr rX,r7` .. `stfs 4(rX)`) takes r9 in T and r10
+  in ours. Both `li` are hard-reg sets with equal priority/weight/dependents in ours -> LUID = argument order (r9 first). T issues the r10 zero
+  first: its `(set r10 ..)` must rank higher (a lower INSN_REG_WEIGHT, i.e. a source pseudo dying there, or a higher priority) — candidates: the
+  flags 0 as a use of a per-row/short-lived zero pseudo (rematerialised `li r10,0` by reload), not a literal. Not probed (time); the same read
+  applies to SPEED/COLOR rows (SIZE 48 / SPEED 114 / COLOR 70 residue words) and to ROTATE 637-659 (`lis r6; lwz r5` after the ROT_MINMAX
+  stores in T: the g_pEditSeq load's sched2 rank).
+- Remaining after this pass (431w): SIZE/SPEED/COLOR spill-register phase (404-556), ROTATE rows 637-659, OPTION 271/323/332/335 (the `&pos`
+  split at a cse1 flush, pre-existing), BASEPOS 791 d22, 802 d4 (r8/r9 pick).
+- **adx_dcd5 `ADX_DecodeSte4AsSte` 25w: the "helper LOCALS as kept copies" lever is negative for PARAMETER sources.** Requirement 1 (two coalesced
+  copies live across the loop) needs a compiler copy whose source the frontend cannot substitute; for a call result that is the callee (sfd_mps above),
+  for a parameter nothing stops it: `hl = histl; hr = histr;` as inlined-helper locals (single-def, or 2-def by a second `hl = histl` before/after the loop,
+  or `hl = histl .. hl = histr` webs) and as own locals (1-def, 2-def, two disjoint webs) are all propagated away (`0/0`, ghost list unchanged, 25w pinned /
+  115w unpinned; the 2-def own pair costs +8). Requirement 3 (`mr qtbl, addi-temp` kept): an identity `asm { mr qtbl, qtbl }` after the def / after the
+  frame loop / at the loop end does not make qtbl multi-def for backend-02 copy propagation (115w/115w/116w unpinned, 25/25/27w pinned); a non-`register`
+  qtbl still gets `lis r75; addi r76; mr r50,r76` folded at backend-02. Model: the tree's pinned dump is order/colour IDENTICAL under `--k 28` (10 cost-only
+  divergences: the compiler's costs are lower for the loop values). Left 25w/143w; the three pass-62 requirements stand.
+- **Catalogue notes from this pass (MWCC rows 2/9):** (a) a codeless coalesced copy of a CALL RESULT = an inlined `static` helper's local (`obj = f(); g(obj)`
+  inside the helper) — the call cannot be moved, the local is an `@N` web, both `mr` coalesce (sfd_mps 5 -> 0w); a parameter copy in the same position is
+  substituted whatever the web shape. (b) `asm { mr x, x }` on a `register` local is a frontend-visible READ that leaves no pcode after backend-02 and does not
+  dirty the block (mwsfdcre 4 -> 0w) — use it where the frontend pulls a single-read web into its use and every C second read is folded or emits code; it is
+  NOT a second def for backend copy propagation (adx_dcd5 qtbl). (c) The post-RA peephole runs on clean blocks too (sfh_main B37 `000c` before pass 15 and
+  still folded), so a block-dirtying difference cannot explain the vendor's unfolded byte-swap chain.
+- Tree at the end of the pass: src/lib/sfd_mps.c (helper + `?:` n + pin removed), src/lib/mwsfdcre.c (mwPlyCalcWorkSfd), config/G4BE08/objects.py
+  (`# CRI pass 65`: `lib/sfd_mps.c` True); locked `ninja -k 0` clean, `dtk shasum -c` 111 OK. Harness ~/.cache/cri65 deleted. Note: every locked ninja run this
+  pass printed `ninja: warning: premature end of file; recovering` and re-ran the split (another process wrote .ninja_log/.ninja_deps concurrently).

@@ -1944,6 +1944,11 @@ MATCHING.update({
     "lib/adx_baif.c": True,  # 6/6, pure C: AIFF_GetInfo 170 -> 0. `Sint32 ckid/type` compared with int constants are read as int-typed indirections of long objects, which the frontend never propagates into (the kept header ckid = `mr r27,r30`); `end = p + cksz - 4`; the *nch/*bps reads spelled `(p[0] & 0xFF) | ((p[1] & 0xFFFF) << 8)` (clrlslwi 16,8 base + rlwimi 0,24,31); exp/mant `Uint16` own locals with `SWAP16((Uint16)(lo | hi << 8))` (the cast breaks the frontend CSE, the 16-bit value is a backend temp coloured before the byte temps)
 })
 
+# CRI pass 65 (2026-09-12)
+MATCHING.update({
+    "lib/sfd_mps.c": True,  # 26/26, pure C, M1 pin removed: sfmps_DecodeOneUnit 5 -> 0. The PES callback pair as `static sfmps_SetPesFns(sfd, mps)` with `obj = GetCond(PESOBJ); fn = GetCond(PESFN); MPS_SetPesFn(mps, fn, obj)` (obj first = the target's evaluation order): the helper's locals are inlined `@N` webs, so both call-result copies are compiler copies that coalesce into codeless ghosts (+2 never-removed neighbours on `ret`, exactly the pass-55 requirement); `n = (len < 0xB0) ? len : 0xB0`; `ret = err` plain
+})
+
 # CRI pass 64 (2026-09-12)
 MATCHING.update({
     "lib/sfd_tst.c": True,  # 11/11, pure C: SFTST_Calc 79 -> 0. `tol = mt->unit * tst->tolerance.cnt / tst->tolerance.unit` written out (a local assigned a plain copy of an inlined helper's result is replaced by the helper's return @temp, ranked above every own local; as an own local below `ave`, ave.hi is removed in the same Chaitin scan right after tol instead of one scan later, and MulDiv/diff/adiff/the sprintf group all shift to the target's registers); the `hist[i] -= step` loop as `static sftst_SubHist` (its `i` is a helper web coloured after the step temps: r6, not r3); sftst_SumHist declares `i` before `sum` (helper-local ids ascend in declaration order, the second inline's sum is coloured first: r4/r5)

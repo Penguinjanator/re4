@@ -1,9 +1,9 @@
 /* CRI Sofdec MW player: handle creation (mwsfdcre.c)
  *
- * Not Matching (8/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
+ * Not Matching (9/10 functions byte-identical, .rodata/.data/.bss identical). Residue:
  * mwsfcre_CreateSfd (115w, all branch offsets): the `case 4:` of the inlined IsUseAdxt switch leaves
- * a second dead `b` in the original (a case-4-first block whose statement the backend deleted);
- * mwPlyCalcWorkSfd (4w): the last `add` operand order and the unmerged epilogue `lwz r0`. */
+ * a second dead `b` in the original (a case-4-first block whose statement the backend deleted).
+ * mwPlyCalcWorkSfd matches with one tagged codeless asm read (CRI pass 65). */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -1104,10 +1104,10 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	Sint32 aibsiz;
 	Sint32 adxibsiz;
 	Sint32 adxwksiz;
+	register Sint32 size; /* declared above rfbsiz/tabsiz: coloured first (r3), they take r4/r5 */
 	Sint32 rfbsiz;
 	Sint32 tabsiz;
 	Sint32 fsize;
-	Sint32 size;
 	Sint32 size2;
 
 	CWS_BUFSIZ(cprm, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
@@ -1122,9 +1122,10 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	}
 	/* two alternating accumulators (target r3 / r0): `b = a + c` is a new node, `b += x` stays in place;
 	 * a single `size` collapses the chain into one node with the constants reassociated. The total is
-	 * `size += sibsiz; return size;` -- `return sibsiz + size` substitutes the whole chain into the
-	 * return expression, where the backend moves the 0x4800 to the end. Residue: the target's last add
-	 * is `add r3, sib, size` (ours `add r3, size, sib`) and the epilogue `lwz r0` is not hoisted. */
+	 * `return sibsiz + size` computed straight into r3 (sib first, no @ret copy for the RA to delete, so
+	 * the epilogue `lwz r0` is not hoisted); the frontend pulls a single-read `size` web into that
+	 * expression and reassociates it, so the web needs a second read that leaves no code: the identity
+	 * asm copy below (deleted by backend copy propagation before scheduling). CRI pass 65. */
 	size = vibsiz + aibsiz;
 	size2 = size + 0x20;
 	size = size2 + sjbsiz;
@@ -1136,6 +1137,6 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	size += MWSFD_HNWORK_SIZE;
 	size += 0x700;
 	size += MWSFD_FNAME_SIZE;
-	size += sibsiz;
-	return size;
+	asm { mr size, size } // COMPILER-DIFF: codeless second read of `size` (every C second read is folded or is code)
+	return sibsiz + size;
 }

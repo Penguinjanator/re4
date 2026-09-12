@@ -776,6 +776,19 @@ static Bool sfmps_IsZero(Sint8 *p, Sint32 n)
 	return TRUE;
 }
 
+/* the PES callback pair as a helper: its `obj`/`fn` locals are inlined `@N` webs, so the two call-result
+ * copies are compiler copies (coalesced, codeless ghosts) - the two extra permanent neighbours that keep
+ * `ret` out of the second Chaitin round (cnt r21; CRI pass 65, replaces the pass-29 M1 pin) */
+static void sfmps_SetPesFns(SFD sfd, MPS mps)
+{
+	void *fn;
+	void *obj;
+
+	obj = (void *)SFSET_GetCond(sfd, SFD_COND_PESOBJ);
+	fn = (void *)SFSET_GetCond(sfd, SFD_COND_PESFN);
+	MPS_SetPesFn(mps, fn, obj);
+}
+
 /* decodes one pack / system header / packet at `data`: *nbyte consumed, *nskip skipped */
 Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *nskip, Sint32 total)
 {
@@ -846,7 +859,7 @@ Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint
 		delim = 0;
 	}
 	MPS_SetPsMapFn(mps, (void *)SFSET_GetCond(sfd, SFD_COND_PSMAPFN), (void *)SFSET_GetCond(sfd, SFD_COND_PSMAPOBJ));
-	MPS_SetPesFn(mps, (void *)SFSET_GetCond(sfd, SFD_COND_PESFN), (void *)SFSET_GetCond(sfd, SFD_COND_PESOBJ));
+	sfmps_SetPesFns(sfd, mps);
 	if (MPS_DecHd(mps, data, len, &hdrlen, &flags) != 0) {
 		ret = SFLIB_SetErr(sfd, SFMPS_ERR_DECHD);
 	}
@@ -855,10 +868,7 @@ Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint
 		if (shdr != NULL && shdr->analyzed == 0) {
 			dst = (Uint8 *)shdr + 0x30;
 			MPS_GetLastSysHd(mps, &syshd);
-			n = 0xB0;
-			if (len < 0xB0) {
-				n = len;
-			}
+			n = (len < 0xB0) ? len : 0xB0;
 			if (syshd.raw[3] > 0) {
 				*(Sint32 *)(dst + 0x160) = n;
 			} else if (syshd.raw[2] > 0) {
@@ -942,7 +952,7 @@ no_syshd:
 		data += hdrlen;
 		len -= hdrlen;
 		err = sfmps_CopyPketData(sfd, data, len, &copied, &cres);
-		asm { mr r31, err; mr ret, r31 } // COMPILER-DIFF: M1 (ret r31: the target's ret/wk/data survive the second Chaitin round with 3 more permanent neighbours than ours; CRI pass 29)
+		ret = err;
 		if (cres == 1) {
 			*nbyte = hdrlen + copied;
 		}
