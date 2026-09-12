@@ -517,6 +517,9 @@ Bool SFH_AnlyElemCodecVid(SFH sfh, Uint8 id, Sint32 *val)
 Bool SFH_AnlyElemSmpHz(SFH sfh, Uint8 id, Sint32 *val)
 {
 	SFH_ELEM *elem;
+	Uint32 w;
+	Sint32 z;
+	Bool ret;
 
 	*val = 0;
 	elem = sfh_GetElem(sfh, id);
@@ -526,8 +529,21 @@ Bool SFH_AnlyElemSmpHz(SFH sfh, Uint8 id, Sint32 *val)
 	if (sfh_GetStmType(id) != SFH_STM_AUD) {
 		return FALSE;
 	}
-	*val = SWAP32(SFH_ELEM_SMPHZ(elem));
-	return TRUE;
+	/* COMPILER-DIFF: M4 (dead conditional, CRI pass 77) -- the original keeps the rlwinm/rlwimi x3/stw
+	 * chain because its store sits in another basic block than the chain: the post-RA peephole's
+	 * stwbrx rule follows a per-block def table, so a block boundary between the value and the store
+	 * is what stops the fold. The frontend keeps `z = 0; if (z != 0)` (it does not propagate own-local
+	 * constants into relational compares), the post-RA peephole then folds `li; cmpi; bt` into the
+	 * fall-through and deletes the unreachable arm. `ret = TRUE` before the compare puts `li r3,1`
+	 * next to the load; the arm's read of `id` keeps r4 live across the load, so the word takes r6. */
+	w = SWAP32(SFH_ELEM_SMPHZ(elem));
+	ret = TRUE;
+	z = 0;
+	if (z != 0) {
+		ret = id;
+	}
+	*val = w;
+	return ret;
 }
 
 Bool SFH_AnlyElemChNum(SFH sfh, Uint8 id, Sint32 *val)

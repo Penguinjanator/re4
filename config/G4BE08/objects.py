@@ -1984,3 +1984,8 @@ MATCHING.update({
 MATCHING.update({
     "game/db_cam.cpp": True,  # 13/13: debugCamera::menu 2 -> 0. The campos copy as three named words (union word view, `*(u32*)((u32)d0 + k)` stores = memcpy's flagless MEMs) plus two tagged codeless anchors: `asm("" : "=&r"(t) : "r"(wy), "f"(0.0f))` after the copy gives the y load its 14th sched2 dependent (the sched2 y/z tie is priority 29/29, LUID z-first from the reg-weight sched1 order; dependents break it before LUID), the `"f"` input makes it ready at t14 behind the roll constant's `lfs` so no local-alloc life moves, `=&r` stops the wy/t tie; `asm("" : "=m"(ProjType) : "r"(t))` after FSet keeps it alive to sched2 (placed there: a slot between the up stores and the FSet pG reload breaks the fake-death overlap that gives the up `addi` r11)
 })
+
+# CRI pass 77 (2026-09-12)
+MATCHING.update({
+    "lib/sfh_main.c": True,  # 36/36: SFH_AnlyElemSmpHz 6 -> 0 (M4 stwbrx closed). The post-RA peephole's stwbrx rule follows a PER-BLOCK def table, so a block boundary between the swap chain and its `stw` keeps the vendor's `rlwinm/rlwimi x3/stw`: `w = SWAP32(..); ret = TRUE; z = 0; if (z != 0) ret = id; *val = w; return ret;` (tagged dead conditional: the frontend keeps own-local constants out of relational compares, pass 15 folds `li; cmpi; bt` into the fall-through and deletes the unreachable arm; `ret = TRUE` before the compare = `li r3,1` next to the load; the arm's `id` read keeps r4 live so the word takes r6). The six sfh_GetHdr* readers keep their pass-18b asm/peephole-off/pin form
+})
