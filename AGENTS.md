@@ -89,6 +89,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | a loop body whose target order = ours' PRE-RA schedule (pass 17) but ours is rescheduled post-RA (stw hi/lo pairs, fctiwz chain hoisted) | peephole-forward after the pre-RA schedule sinks every `addi rX,rX,K` to its next reference / the block end (dirties the block -> post-RA reschedule) unless a later STORE's data register NUMBER == X — compared without the register class, so `stfd f43` stops the sink of `addi r43,r43,8` | change the counter's virtual number (own locals in reverse declaration order, then range-split webs): one counter per loop, a pointer form of another loop, until the pass-17 `addi rX,rX,K` register equals a later `stfd`/`stw`/`stb` data number | — (numbering is C) | "CRI pass 41" |
 | instruction order within a block (two independent loads/stores swapped) | the scheduler: `#pragma scheduling off/603/604/750/7400/7450` never flips a tie; asm statements are scheduled but a C statement never moves across them; ties follow statement order and @temp creation | statement order, splitting a statement (creates an @temp), IV-temp creation order | `#pragma scheduling off` | "CRI pass 16b", "CRI paired-single kernels pass 2", "CRI pass 19b" |
 | a block's pre-RA schedule needs one more node / a different DAG with the final code unchanged (an `addi`/temp issued one cycle too early, a compare chain) | peephole-forward folds mask-then-shift `(x & M) >> k` into one `rlwinm` (record form when compared with 0) and leaves the dead mask def in the block until the RA deletes it: a scheduler node with no consumer; shift-then-mask `(x >> k) & M` is one `rlwinm` + `cmpi` with no leftover; the `& 0xFF` index/value masks of pass 58 are deleted BEFORE scheduling (block-split count only) | spell the test mask-then-shift (sfd_cre AnalyMpv 15 -> 0w) | — | "CRI pass 60", "CRI pass 58" |
+| a setup value the target computes BEFORE a pre-loop statement, while ours computes it from a hoisted loop invariant (`slwi` of a stride used only in the loop body) | frontend hoisting appends the loop's invariant @temps after the for-init in creation order; a pre-RA tie between two independent IU ops is input order; `ptr += step` with a single-def `step = E * 16` on a `Uint32 *` is folded into a new hoisted `E << 6` @temp | make the invariant an own-local statement placed before the statement it must precede; declare it (and every other former @temp of the same level, e.g. a byte-scaled `dskip`) FIRST so its colour stays the @temp's (r0: highest vid of the level); keep the pointer step in bytes (cftfx UserTable 2 -> 0w) | — | "CRI pass 61" |
 | induction pointers coloured before a `register`/pool base; loop temporaries in ascending vs descending statement order | frontend range-split IV @temps have ids above every own local, created in statement order; index-form loops put the IV copies in the preheader | write the pointers as OWN locals declared below the base (`p = ip; q = fp; *p = v; p++;`), index form `a[i]` vs `*p++` | `asm { addi ip, bss, 0 }` (becomes `mr`) — use a relocation form | "CRI pass 19b", "CRI pass 20", "CRI SWAR kernels pass 3" |
 | an expression computed once (@temp) in the target and twice in ours, or the reverse | the frontend CSEs identical expressions (also across macro uses) into one @temp; casts/`void *` views break the CSE; CSE temps rank below inline temps | write it twice vs cache in a local, `(Uint32)` vs pointer views, `(Uint8*)(p +- k) + n` | — | "CRI pass 13", "CRI pass 20", "CRI pass 14" |
 | a hard pin fixes one register and shifts unrelated ones | a hard pin adds a physical neighbour to EVERY node -> colouring levels shift; pins are exclusive with each other | prefer the plain copy (row 2) or one pin of the highest-ranked value; a parameter above the locals = pin at the top | `asm { mr r29, data }` (level-shifter) | "CRI pass 18b", "CRI pass 7", "CRI pass 10" |
@@ -29165,3 +29166,56 @@ variants; dbw_*.cpp db_widget variants; rtl0/ dbw0/ = rtl.sh dumps). No tree fil
   r12 in ours; r3's only earlier use is the `tcCdatPtr` call/result (`mr r28,r3`). Not probed further (box spent on the read).
 - Flags unchanged: Tools/t_esp_area, Tools/t_lightarea, t_esp/db_widget, game/db_cam, game/Espgen42, game/espgen45, t_camera/t_camera_data
   all stay False; no tree file edited; nothing built under the lock (kit only). Flip order for the Tools REL unchanged.
+
+### Tool RELs, t_esp pass 25 (t_esp 208/212: InitTool 1409 -> 1397w in the tree, pure C: the two dir buttons are one-member structs stored through a pointer (`DirButtonSlot* slot = &g_pX; slot->p = CreateButton(..)`) = hoisted high + MEM_IN_STRUCT_P store -> segs 183/237 EXACT, the block-13 A/Name tie flipped to the target's (A r17, Name r16, 9682 r16), seg 210/221 exact; IN PROGRESS 2026-09-12)
+
+- **Item 1 (segs 183/237 + A/Name): the vendor's dir-button stores were struct-member stores through a pointer.** Read: (a) T's
+  seg 237 `lis r6 ..DirButton; lis r8 g_pSaveWin` = two hoisted highs (pass 24's N6 `DB_STRING*` reproduces the registers) and
+  (b) T's `lwz r9,4(r30); stw r31,0x58(r9)` (`win->active = 0`) WAITS for the button store in both 183 and 237, which a fixed-address
+  MEM_SCALAR_P store can never impose on a varying IN_STRUCT load (alias.c fixed_scalar_and_varying_struct_p) -> the store is
+  IN_STRUCT. Forms measured on the pass-24 tree (`~/.cache/tesp15/runv.sh`): plain one-member struct `g_pX.p = f()` (S1) 1412w:
+  the store is IN_STRUCT (237's load order right) but the address is legitimised only in store_field, i.e. after the call (RTL:
+  `high`/`lo_sum` insns 6359/6360 after call 6357), so the high is pinned again (`lis r9`) and 163 loses `lis r24` (d16) -- yet the
+  extra stall at 183/237 alone shifted every later filler ~10-20 insns earlier (A born 636 -> 598, B 708 -> 668, reg9001 1324 -> 1256)
+  and flipped A/Name. `DirButtonSlot* slot = &g_pX; slot->p = f()` (S4) 1397w: the address pseudo (`lo_sum(high, sym)`) is computed
+  before the call and combine folds it back into the store -> `stw r3, sym@l(r24)` hoisted AND IN_STRUCT: 163/183/237/210/221 exact,
+  segs 350-377 (A) d2 -> 0, 167/188/200 (Name) -> 0, 702-751 (9682 r16) -> 0. Placement of the `slot` line inside the row block
+  (first / after win_ / after pos / after sx, 16 combos) changes nothing. Load-only (S6) 1399, Save-only (S5) 1410 -> both.
+  LADBG (S4): A q126 birth 604 death 4880 pri 84, Name q7 22-1216 pri 83 (base 636/1208 = 84/84 tie), A2 78 r15, LNC 75 r14, 9682 -> r16,
+  9686 -> r14 = the target's r14-r18 except PA.
+- **New residue from S4: PA vs reg9001 (the 25-ref `li 0`, cls 2, born 1292 now vs 1324): 1000000/(11602-1292) = 96.99 -> 96 ties PA (96)
+  and loses on qty number -> PA r19, reg9001 r18 (T: PA r18, reg9001 r19); one insn later (birth >= 1294) restores 97.** Shows as
+  d2 in 163/164/165/186/199/209/230/238/251/261/284/291/298/340/347/352/354/380/391 and +2 in 662-698 (`stw r19,0x58(r9)` = win->active).
+  B/B2 unchanged (B2 121 r23, const0 115 r22, B 114 r21; T B r23, B2 r22, const0 r21).
+
+### CRI pass 61 (cftfx 5 -> 6/6 FLIPPED, 111 OK: cnvDynamicYcc420plnToA256UserTable 2 -> 0w pure C — the setup `slwi r0` (ywidth*4) / `add r30` (yskip) tie is input order, so the two strides became OWN locals declared first; no invisible pcodes needed; 2026-09-12)
+Harness /home/adityas/.cache/cri61/ (cri59's scripts + `b2.sh NAME` = variant words + the pre-RA INPUT and scheduled order of B2 in one line each; deleted at the end with /home/adityas/.cache/cri59).
+- **The form (APPLIED, IDENTICAL):** declarations `Sint32 w4; Sint32 dskip;` FIRST (before p4), `Sint32 yskip;` uninitialised after p2, then the statements
+  `w4 = ywidth * 4; yskip = ywidth * 3 + (ywidth - dst->width); dskip = (dst->pitch - dst->width) / 4 * 64;` before the loops, `y = p3 - w4 + 4` in the
+  inner tail and `d = (Uint32 *)((Uint8 *)d + dskip)` in the outer tail (dskip in BYTES). Pre-RA B2 input: `.. lwz buf | rlwinm w4 | mulli | subf | add
+  yskip | lwz pitch | subf | srawi | addze | rlwinm dskip,6 | li i | b` -> scheduled `.. rlwinm w4 | add yskip | rlwinm dskip | b` = the target's block
+  (b0lib replay: 0 differing slots for slwi placed anywhere before the mulli with the dskip chain before the `li` and no dead `<< 4`).
+- **Why the pass-59 pairs were a detour:** the tie IS resolved by input order, and a frontend-hoisted @temp is always appended after the for-init, so
+  the only way to put `ywidth * 4` before yskip's add is an own-local STATEMENT before yskip's (h19: the same statement after yskip's = 2w again). The
+  own local then has to be coloured FIRST (target r0 = the first colour of the whole loop nest: every loop value overlaps it and none is r0): own
+  locals are coloured in declaration order inside their level, but the hoisted @temps (`@155` ywidth*4, `@156` dskip's `<< 6`) sit above every own
+  local, so w4 declared anywhere (h2/h3, 88w) lands behind dskip's @temp (r3 instead of r0, the whole nest shifts). Hence dskip must ALSO be an own
+  local, declared right after w4 (h20 with dskip before w4 = 5w, the r0/r3 swap; h18 with the folded dskip = 5w).
+- **dskip's @temp, read (h9/h10/h14):** `d += dskip` with `Uint32 *d` and a single-def `dskip = E * 16` is algebraically folded by the frontend into
+  `d + (E << 6)`: a NEW expression at the use, hoisted to after the for-init as `@156` with the whole `lwz pitch / subf / srawi / addze` chain
+  re-created there and a dead `rlwinm E,4` leftover (the tree's r68); dskip's own def disappears (declared last) or stays as a dead own-local def
+  (declared first, h9). Declaration order of dskip vs yskip changes nothing (h10 = the tree's dump). In bytes (`/ 4 * 64` + a byte-pointer add) no fold
+  happens: dskip is an own local at its statement position (h14) and there is no dead `<< 4` node — the entry block still schedules the same.
+- **Negative this pass:** helper `@ret` / argument copies as the "coalesced copy after the mulli" (`static Sint32 cft_mul3(Sint32 w) { return w * 3; }`
+  4w, with a helper-local `ret` 4w: the copy is propagated before scheduling, and the inlined body's mulli is even emitted after the subf; a two-argument
+  `cft_add(ywidth * 3, ywidth - width)` 101w: no copies survive, the add becomes the helper's temp r58); `yskip = ..` as a statement inside the outer loop
+  (h7: the parts are hoisted as @temps, the add stays in the loop, 134w); `d += (dst->pitch - dst->width) / 4 * 16` in the loop (h15: only the loads
+  are hoisted, 134w). The b0pairs search (copy/dead-read pairs on B2) reproduces pass 59's list; none was needed.
+- **Catalogue row to add (MWCC table, next to "instruction order within a block"):** a setup value the target computes BEFORE a statement that precedes
+  the loop, while ours computes it from a hoisted loop invariant (`slwi` of a stride used only in the loop body) | frontend hoisting appends the loop's
+  invariant @temps after the for-init, in creation order; a pre-RA tie between two independent IU ops is input order | make the invariant an own-local
+  statement placed before the statement it must precede; declare it (and every other former @temp of the same level, e.g. a byte-scaled `dskip`) FIRST
+  so its colour stays the @temp's (r0: highest vid of the level); keep a pointer step in bytes so `ptr += step` is not folded into a new hoisted `<< k`
+  @temp | — | "CRI pass 61".
+- Flip: objects.py `# CRI pass 61` block (`"lib/cftfx.c": True`), locked `ninja -k 0`, `dtk shasum -c config/G4BE08/build.sha1` 111 OK. Harnesses
+  /home/adityas/.cache/cri59 and /home/adityas/.cache/cri61 deleted; the kit untouched.

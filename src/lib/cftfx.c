@@ -257,10 +257,17 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * size.  The fourth step reuses p3: its second web competes with the row-4 packs for r26 (the
  * original's `subi r26`, packs r27), and range-split webs are numbered per variable in first-def
  * order with the vids descending along them, so p3/p4 are copied BEFORE row 1 (p3's webs above
- * v0/v1's = coloured first; CRI pass 59).  Left (see AGENTS.md): the setup's `slwi r0` / `add
- * r30` order (a pre-RA tie between the hoisted `ywidth * 4` and yskip's add). */
+ * v0/v1's = coloured first; CRI pass 59).  CRI pass 61 (0w): the setup's `slwi r0` (ywidth * 4)
+ * before `add r30` (yskip) is a pre-RA tie resolved by input order, and a hoisted @temp is always
+ * appended after the for-init; so the two strides are OWN locals declared first (w4 r0, dskip r3
+ * = the two highest vids of the level, coloured before p4) with `w4 = ywidth * 4` as a statement
+ * ahead of yskip's.  dskip is kept in bytes (`/ 4 * 64` and a byte-pointer add): `d += dskip`
+ * with a Uint32 step is folded by the frontend into a new hoisted `<< 6` @temp (dskip's own
+ * node vanishes and w4 falls behind it, r3/r0 swapped). */
 void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst, const Uint8 *tbl)
 {
+	Sint32 w4;
+	Sint32 dskip;
 	const Uint8 *p4;
 	const Uint8 *y = src->y;
 	const Uint8 *p3;
@@ -271,10 +278,12 @@ void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGB
 	Sint32 ywidth = src->ywidth;
 	Uint32 *d = dst->buf;
 	const Uint8 *p2;
-	Sint32 yskip = ywidth * 3 + (ywidth - dst->width);
-	Sint32 dskip = (dst->pitch - dst->width) / 4 * 16;
+	Sint32 yskip;
 	Uint32 v0, v1;
 
+	w4 = ywidth * 4;
+	yskip = ywidth * 3 + (ywidth - dst->width);
+	dskip = (dst->pitch - dst->width) / 4 * 64;
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
 			p2 = (Uint8 *)(ywidth - 4);
@@ -289,11 +298,11 @@ void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGB
 			CFT_A256_ROW(d + 6, p4, tbl);
 			p3 = (Uint8 *)(ywidth - 4);
 			p3 += (Uint32)(p4 + 4) - 4;
-			y = p3 - ywidth * 4 + 4;
+			y = p3 - w4 + 4;
 			d += 16;
 		}
 		y += yskip;
-		d += dskip;
+		d = (Uint32 *)((Uint8 *)d + dskip);
 	}
 }
 

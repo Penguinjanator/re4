@@ -1934,3 +1934,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/sfd_cre.c": True,  # 6/6, pure C: sfcre_AnalyMpv 15 -> 0. `((b7 & 0xF0) >> 4) == 0` (mask then shift): peephole-forward folds the pair into one rlwinm and leaves the dead mask def in the block until the RA, one more scheduler node that pushes `addi ofs+1` past the compare (ofs r6 / b5 r6 no longer interfere); b7 declared between b4 and ofs and kept an own local by its second def `b7 &= 0xF` (no picrate_code local)
 })
+
+# CRI pass 61 (2026-09-12)
+MATCHING.update({
+    "lib/cftfx.c": True,  # 6/6, pure C: cnvDynamicYcc420plnToA256UserTable 2 -> 0. The two strides are own locals declared first (`Sint32 w4; Sint32 dskip;` = the level's two highest vids, r0/r3 before p4) with `w4 = ywidth * 4` a statement before yskip's (the setup slwi/add pre-RA tie is input order; a hoisted @temp is appended after the for-init); dskip in bytes (`/ 4 * 64`, byte-pointer add) so `d += dskip` is not folded into a hoisted `<< 6` @temp
+})
