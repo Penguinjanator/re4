@@ -10,8 +10,7 @@
  * The wrappers set the output block pointers through `ob = &mpv->outblk` (assigned AFTER the read
  * call, in the block of the stores: add-propagation folds the stores to `mpv` offsets and the
  * `addi r4` definition stays where `ob` is assigned, before the `mr r3, wk` argument move).
- * OPEN: mpvumc_OneReadMb (the kernel selection by the motion vector) keeps the same operations
- * but a different schedule/registers; MPVUMC_Intra differs in the temporaries' registers (16w). */
+ * All 16 functions match (CRI pass 68: mpvumc_OneReadMb, see its comment). */
 #include "cri_xpt.h"
 #include "mpv.h"
 
@@ -701,13 +700,17 @@ L_80206C54:
  * / `chx = cvx & 1` are written BEFORE the fn_y / fn_c table loads: a range-split web is kept (not
  * sunk into `&= mcflag`) only when a load statement sits between its two definitions, which gives
  * the target's `clrlwi r24, vx; .. and r24, r24, mcflag` / `clrlwi r23; and r23, r23` own-register
- * pairs (chx r23 = target). OPEN 48w: vx r6 / vy r23 / cvx r25 / cvy r24 vs the target's r25 / r11 /
- * r28 / r7 -- the pre-RA scheduler (backend-07) issues `rlwinm yhx` one slot below `lwzx fn_y`
- * (both are low-priority sinkers in the same cycle), so vx interferes with fn_y (33 neighbours,
- * level 2); in the target `clrlwi yhx` precedes the load and vx dies into fn_y's r25. No statement
- * order (2 sweeps, 210 orders), `asm { }` or asm-emitted rlwinm changes the pick. `mby8`/`mby16` as own locals give the target's
- * `mullw r0, mby8, cpitch` operand order (CRI pass 18b); hard pins of vx r25 / vy r11 poison the
- * temporaries the target reuses those registers for (74w). */
+ * pairs (chx r23 = target). CRI pass 68: 48 -> 11w. The chroma half-vectors are NOT own locals but
+ * the frontend's CSE temps of `vx / 2` / `vy / 2`, first evaluated inside the cpos expression: the
+ * target's six `srawi` (XER writers, serialised in statement order by the scheduler) come as
+ * `vx>>1, vy>>1, cvx, cvx>>1, cvy, cvy>>1`, which only `((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch`
+ * produces (`cvx = vx / 2; cvy = vy / 2;` gives cvx, cvy, cvx>>1, cvy>>1). As @temps they are
+ * coloured before the own locals (cvx r28 / cvy r7), and vx then dies into fn_y's r25 as the
+ * target. `mby8`/`mby16` as own locals give the target's `mullw r0, mby8, cpitch` operand order
+ * (CRI pass 18b). `mbx8 = mbx * 8` is a two-use own local declared LAST (`ofs[1]` uses `mbx8 * 2`,
+ * which the peephole folds back into `slwi mbx,4`): with the lowest vid it is coloured after mby /
+ * mbx and takes r12 (r10/r11 = mby/mbx), where a single-use `mbx * 8` is a backend temp coloured
+ * before them (r10, pushing mby/mbx to r11/r12). 11 -> 0w, IDENTICAL. */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
 {
 	Sint32 cpitch;
@@ -720,8 +723,6 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	Sint32 yhx;
 	Sint32 chx;
 	Uint8 *src;
-	Sint32 cvy;
-	Sint32 cvx;
 	Sint32 vy;
 	Sint32 vx;
 	Sint32 mby;
@@ -731,6 +732,7 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	Sint32 mcflag;
 	Sint32 mby8;
 	Sint32 mby16;
+	Sint32 mbx8;
 
 	mby = mpv->mb_y;
 	cpitch = rfb->cpitch;
@@ -738,9 +740,10 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	mcflag = mpv->mcflag;
 	ypitch = rfb->ypitch;
 	mby8 = mby * 8;
-	ofs[0] = mbx * 8 + mby8 * cpitch;
+	mbx8 = mbx * 8;
+	ofs[0] = mbx8 + mby8 * cpitch;
 	mby16 = mby * 16;
-	ofs[1] = mbx * 16 + mby16 * rfb->ypitch;
+	ofs[1] = mbx8 * 2 + mby16 * rfb->ypitch;
 	tbl_y = mpvumc_oneref_y[mcflag];
 	tbl_c = mpvumc_oneref[mcflag];
 	vx = mv->vec[0];
@@ -748,11 +751,9 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	ypos = ofs[1] + (vx >> 1) + (vy >> 1) * ypitch;
 	yhx = (Uint32)vx & 1;
 	fn_y = tbl_y[vy & 1][vx & 1];
-	cvx = vx / 2;
-	cvy = vy / 2;
-	cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch;
-	chx = (Uint32)cvx & 1;
-	fn_c = tbl_c[cvy & 1][cvx & 1];
+	cpos = ofs[0] + ((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch;
+	chx = (Uint32)(vx / 2) & 1;
+	fn_c = tbl_c[(vy / 2) & 1][(vx / 2) & 1];
 	chx &= mcflag;
 	yhx &= mcflag;
 	mc->stride = cpitch;

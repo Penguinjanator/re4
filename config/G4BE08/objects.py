@@ -1963,3 +1963,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mwsfdcre.c": True,  # 10/10: mwsfcre_CreateSfd 115 -> 0 (the two dead `b`). mwsfcre_IsUseAdxt's `case 4:` arm FIRST in the switch with a tagged codeless `asm { mr mode, mode }` on the `register` parameter: the frontend folds an empty arm onto the default label and deletes every side-effect-free statement, so the original's case-4 block held a statement a backend pass (CSE / RA) deleted after layout; laid out between the compare tree and the FALSE arm, the emptied block keeps its `b T` at both inlined sites (an arm after the FALSE arm falls into T). mwPlyCalcWorkSfd keeps its pass-65 asm read
 })
+
+# CRI pass 68 (2026-09-12)
+MATCHING.update({
+    "lib/mpv_umc.c": True,  # 16/16, pure C: mpvumc_OneReadMb 48 -> 0. The chroma half-vectors are the frontend's CSE @temps of `vx / 2` / `vy / 2`, first evaluated inside `cpos = ofs[0] + ((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch` (the target's six srawi = XER writers, serialised by the scheduler in statement order, run vx>>1, vy>>1, cvx, cvx>>1, cvy, cvy>>1; own locals `cvx = vx / 2; cvy = vy / 2;` give cvx, cvy, cvx>>1, cvy>>1); as @temps they are coloured before the own locals (cvx r28, cvy r7) and vx dies into fn_y's r25. `mbx8 = mbx * 8` a two-use own local declared last (`ofs[1]` uses `mbx8 * 2`, folded back to `slwi mbx,4`): coloured after mby/mbx -> r12, mby/mbx r10/r11
+})
