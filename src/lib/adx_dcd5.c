@@ -122,47 +122,59 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	return nfrm;
 }
 
-/* COMPILER-DIFF: M1 - as ADX_DecodeSte4AsSte */
+/* COMPILER-DIFF: M1 (neighbour pin) - as ADX_DecodeSte4AsSte: the deleted copy makes histl (r6) a
+ * coalesced web, one more never-removed neighbour on every loop value (pass 67: 143 -> 62 words).
+ * The body is the stereo body with the mix in `t` (the original keeps `mr r31,r21` = rr2 = t and the
+ * mix in t's register, so t is redefined between the copy and `c1 * rr2`), the same declaration
+ * order as the stereo decoder, and the right channel's second sample predicted from the OLD rr1
+ * (`c2 * rr1` = `mullw r26,r10,r30` in the original; the pass-44 split read the new one). Residue
+ * 62 words = sadd/smul one Chaitin level too low (the original picks smul and nblk as spill
+ * candidates and colours sadd r0 with scl r11; the model needs +3/+2 never-removed neighbours on
+ * the two stack parameters). */
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                             Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
-	Sint32 l1;
 	Sint32 l2;
-	Sint32 r1;
-	Sint32 r2;
-	Sint32 nblk;
+	Sint32 rr2;
+	Sint32 rr1;
+	register Sint32 l1;
 	Sint32 i;
-	Sint32 j;
-	Sint32 s;
-	Sint32 key;
-	Sint32 sc_l;
-	Sint32 sc_r;
 	Sint32 d;
 	Sint32 dr;
+	Sint16 sc_l;
+	Sint16 sc_r;
+	Sint32 s;
 	Sint32 t;
-	Sint32 m;
+	Sint32 nblk;
+	Sint32 key;
+	Sint32 j;
+	Sint32 q_l;
+	Sint32 q_r;
 
 	nblk = nfrm / 2;
 	l1 = histl[0];
 	l2 = histl[1];
-	r1 = histr[0];
-	r2 = histr[1];
+	rr1 = histr[0];
+	rr2 = histr[1];
+	asm { mr r6, l1 }
 	for (i = 0; i < nblk; i++) {
 		s = *(Sint16 *)src;
 		if (s & 0x8000) {
 			return i * 2;
 		}
 		key = *scl;
-		*scl = sadd + key * smul;
-		sc_l = (Sint16)(((s ^ key) & 0x1FFF) + 1);
+		sc_l = ((s ^ key) & 0x1FFF) + 1;
+		key = sadd + key * smul;
+		*scl = key;
 		*scl = *scl & 0x7FFF;
 		s = *(Sint16 *)(src + 0x12);
 		if (s & 0x8000) {
 			return i * 2;
 		}
 		key = *scl;
-		*scl = sadd + key * smul;
-		sc_r = (Sint16)(((s ^ key) & 0x1FFF) + 1);
+		sc_r = ((s ^ key) & 0x1FFF) + 1;
+		key = sadd + key * smul;
+		*scl = key;
 		*scl = *scl & 0x7FFF;
 		src += 2;
 		for (j = 0; j < 16; j++) {
@@ -171,31 +183,32 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 			src++;
 			l2 = (d >> 4) * sc_l + ((c1 * l1 + c2 * l2) >> 12);
 			ADX_CLAMP(l2);
-			t = (dr >> 4) * sc_r + ((c1 * r1 + c2 * r2) >> 12);
+			t = (dr >> 4) * sc_r + ((c1 * rr1 + c2 * rr2) >> 12);
 			ADX_CLAMP(t);
-			m = (l2 + t) * 7 / 10;
-			r2 = t;
-			ADX_CLAMP(m);
-			outr[0] = m;
-			outl[0] = m;
-			l1 = sc_l * AdxQtbl[d & 0xF] + ((c1 * l2 + c2 * l1) >> 12);
+			rr2 = t;
+			t = (l2 + t) * 7 / 10;
+			ADX_CLAMP(t);
+			q_l = AdxQtbl[d & 0xF];
+			outr[0] = t;
+			q_r = AdxQtbl[dr & 0xF];
+			outl[0] = t;
+			l1 = q_l * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			r1 = sc_r * AdxQtbl[dr & 0xF];
-			r1 += (c1 * t + c2 * r1) >> 12;
-			ADX_CLAMP(r1);
-			m = (l1 + r1) * 7 / 10;
-			ADX_CLAMP(m);
-			outr[1] = m;
+			rr1 = q_r * sc_r + ((c1 * rr2 + c2 * rr1) >> 12);
+			ADX_CLAMP(rr1);
+			t = (l1 + rr1) * 7 / 10;
+			ADX_CLAMP(t);
+			outr[1] = t;
 			outr += 2;
-			outl[1] = m;
+			outl[1] = t;
 			outl += 2;
 		}
 		src += 0x12;
 	}
 	histl[0] = l1;
 	histl[1] = l2;
-	histr[0] = r1;
-	histr[1] = r2;
+	histr[0] = rr1;
+	histr[1] = rr2;
 	return nfrm;
 }
 

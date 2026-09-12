@@ -111,6 +111,8 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | range-split webs (`@N`, lifetimes on) of a switch's cases coloured in the wrong order: a value takes the wrong callee-saved / volatile register although the graph is one level | the frontend numbers the `@N` webs by the FIRST DEFINITION of each variable in the function (all of a variable's webs consecutive; within a variable the later definition and the later case get the LOWER @), and the RA colours them in ascending @ before the own locals; a load and the pack that replaces it in the same variable are therefore always pack-then-load | dead initialisers in the declaration (`Uint32 x0 = 0, x1 = 0;`: deleted, no code) move a variable's group first; write a pack INTO another variable (`w2 = (w1 << 8) | w2`) when its load must be coloured before it; keep a single-use load as a variable with the pointer step right after it (`w2 = s0[8]; s0 += stride;`) | — | "CRI SWAR kernels pass 18" |
 | a block's target order is reproduced ONLY by the leftover-free DAG (dagx.py: the or-pack's dead fused shift, the intrinsic's K6 copy and an own-local copy each move it) | every C pack spelling of this compiler leaves one pcode until the RA (dead rlwinm / `mr`), and the RA's deletion dirties the block into a post-RA reschedule from the wrong input order | — | `V = base_shift; asm { rlwimi V, src, sh, mb, me }` on `register` locals: an ordinary RLWIMI pcode to the scheduler, tag COMPILER-DIFF (the vendor's TuneC had inline asm there) | "CRI SWAR kernels pass 18" |
 | a dead unconditional `b` in the target that ours lacks (a `switch` arm block reduced to `b join`, `beq` already threaded past it; the function 4/8 bytes short, every later branch offset off) | the frontend folds an EMPTY arm onto the default label and deletes every dead def and side-effect-free statement; a statement it keeps (asm, a live def) and a backend pass deletes (CSE-redundant `li` against a dominating def, an RA-coalesced copy, an asm self-copy) leaves an emptied block that keeps its `b` — but only when the block is laid out where its successor is NOT the fall-through (the arm written BEFORE the arm that jumps elsewhere, e.g. before a `return FALSE` arm); an emptied arm laid out just before the join falls into it | arm ORDER in the source (the dead-`b` arm first) | `asm { mr v, v }` on a `register` parameter/local in the arm (codeless: deleted by the RA, no reservation, colours unchanged), tag M1 (codeless arm) | "CRI pass 66" (mwsfdcre IsUseAdxt), "CRI mwsfdcre pass 7" (form A = the CSE-deleted def) |
+| two values swapped where one is a `/ 2`, `>> k` or `+ carry` temporary; the target's `srawi`/`addic`/`subfc` (XER writers) come in a different ORDER than ours | the scheduler serialises XER writers (class-0 WAW edges, lat 1) in RAW = statement/evaluation order, pre-RA and post-RA alike: their final order is the vendor's expression order, an oracle for how the source was written | evaluate the sub-expressions in the target's srawi order: `cpos = ofs[0] + ((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch` (frontend CSE @temps for `vx / 2`, `vy / 2`, shared with the table indices) instead of own locals `cvx = vx / 2; cvy = vy / 2;` (mpv_umc OneReadMb 48 -> 11w; the @temps are coloured before the own locals: cvx r28, and vx dies into fn_y's r25) | — | "CRI pass 68" |
+| a block-top temporary (`mbx * 8`) coloured BEFORE the loaded variables it is derived from (takes r10, pushes mby/mbx to r11/r12) while the target colours it after them (r12) | a single-use `x = a * 8` local is substituted into its use and becomes a BACKEND temp (vid above every own local, popped first in L1); a local with two uses stays a variable with its declaration vid | give the temporary a second use (`ofs[1] = mbx8 * 2 + ..`, folded back to `slwi mbx,4` by peephole-forward) and declare it LAST (lowest own-local vid: coloured after mby/mbx) (mpv_umc OneReadMb 11 -> 0w) | — | "CRI pass 68" |
 
 ## Tooling kit
 
@@ -30183,3 +30185,161 @@ Scratch /tmp/esp15/ (`probe.sh 42|45 NAME BASE 'OLD=>NEW'..` = mk + t.sh + (SCH=
 - **Reading for the next pass (do not repeat 11-15's slot search):** the tree form already emits the target's Z from `mullw` on; the whole 9w/42w residue is the nx chain sitting in the Y0 join block. Rather than moving the chain into Z and repairing the cascade, look for a form that keeps the tree's Z sched1 (chain start at extlwi t1, mullw t2) while the `lhz nx`/`addi`/`srawi` are emitted after the i-test: e.g. the nx term evaluated late but NOT feeding the mullw's critical path timing (impossible with a 2-cycle lhz at t1, unless the load is hoisted/pre-loaded before the call into a register that global.c gives r11 — a `mx = p->nx` set BEFORE the call (`v.z = p->pos[k - mx].y - p->pos[k + mx].y` reading it) and the chain `addi r9,r11,1` in Z reading the same pseudo: then Z has no lhz, the target's `lhz r11` would have to be the pre-call load — check the target: the pre-call `lhz r9, 0x6c(r29); add r11,r28,r9; subf r9,r9,r28` puts nx in r9 there, so NO; the target's Z lhz is real). Next candidate: the 45 unit's Z has the 255.0 pool pair inside Z (`lis r11; lfs f13`) = two more insns >= 87 at t1s2/t2 that 42's Z lacks; compare 45's k4 issue table against 42's to see how the target keeps byte r11 / ldj r8 with two extra fillers in 45 (pass 12: 45 e17 gives byte r11 and the xoris slot right with the same anchors) — the 45 slot table is the tighter constraint set and was not read this pass.
 - Tree untouched (src/game/Espgen42.cpp 9w, src/game/espgen45.cpp 42w as after pass 14, verified `cmp` against the pass-start copies); objects.py untouched; no ninja, no 111 (nothing changed). Scratch /tmp/esp15 kept.
 - **45's k4 issue table (k45 = the same edits on espgen45, 49w size -4, block 51; `/tmp/esp15/k45*`):** t1 lhz(91)+extlwi | t2 lfsx(89)+u8ld(85) | t3 addi(89)+pool `lfs` 255.0(89, LSU) | t4 srawi+slwi(84) | t5 mullw+fmuls | t6 fadds+bump lwz(82) | t7 fadds+ldj(80) | t8 psq_st(84)+**xoris(80)** | t9 add1(83)+nx/2-ld | t10 lbz(82)+add2 | t11 add3+store1_j | t12 stbx. The in-Z pool load (the `lis` is a REG_EQUIV high rematerialised by reload) delays the u8 chain one cycle (psq_st t8, lbz t10) and takes the slwi's t3 slot, but the free-slot count before add1 is the same six for the same five fillers: the xoris is again the last >= 80 insn before add1 in both units. Whatever the vendor had, it is common to both Z blocks and independent of the pool pair.
+
+### CRI pass 67 (adx_dcd5 Ste4AsMono 143w read fresh in the model: the tree's Mono is SEMANTICALLY WRONG (pass 44's `r1 = sc_r*q; r1 += (c1*t + c2*r1) >> 12` reads the NEW r1 in the prediction; the target reads the old r1 = `mullw r26,r10,r30`), the target's level structure found as a what-if (20/22 named colours); IN PROGRESS; 2026-09-12)
+Harness ~/.cache/cri67/ (`wi.py RA_DIR --names [fixed=VID:K edge=A:B ghost=VID:PHYS ghostphys=P:PHYS vid=VID:KEY del=VID]` = chaitin what-if with
+name-based target colours, `trace.py RA_DIR [edits]` = per-scan degrees of every long-lived node + picks, `combo2.py RA_DIR` = grid over grouped
+never-removed additions, `t.sh NAME [--ra]` = variant.sh words + ra.py dump of `mono_NAME.c` spliced into base.c; deleted at the end).
+- **Role map of the Mono target (register -> value):** sadd r0, c1e r9, c2e r10 (extsh in place), scl r11, l2 r12 (!), nblk r18, smul r19, body temps
+  r20/r21 only, magic 0x66666667 r22, qtbl r23, sc_r r24 (= key's register in the frame loop), sc_l r25, dr r26 (= the ctr `li 0x10`), d r27, i r28,
+  l1 r29, r1 r30, r2 r31; in place: c2*l2 -> r12, c2*r2 -> r31, c1*l2 -> r27 (d dead), c2*l1 -> r26 (dr's index dead), q_r*sc_r -> r21. `mr r31,r21`
+  (r2 = t) kept because t (r21) and r2 differ; the mix m is ALSO r21 (t dead at the mr) -> the frontend did NOT propagate t into `c1 * r2`, so t is
+  REDEFINED between the copy and the use: the vendor reuses `t` as the mix variable (`r2 = t; t = (l2 + t) * 7 / 10; ...; t = (l1 + r1) * 7 / 10`).
+- **Colouring order = declaration order l2, r2, r1, l1, i, d, dr, sc_l, sc_r (the Ste order) in ONE level after sadd/scl, with qtbl/magic/T's a level
+  below and smul/nblk spill picks.** Scan structure that reproduces it (trace.py): scan 1-2 remove the body temps; the graph is then STUCK -> pick
+  nblk (cost 17), still stuck -> pick smul (33/deg, deg(smul) > deg(sadd)); scan A removes q_r, q_l, the mix web, the surviving `c1*l1`/`d>>4`-type
+  temps (vids below the magic addi), magic (r22) and qtbl (r23) — they are visited AFTER the own locals/c1e/c2e, which stay >= 29 at their visit;
+  scan B removes sc_r, sc_l, dr, d, i, l1, r1, r2, l2, c1e, c2e (ascending vid -> coloured c2e r10, c1e r9, l2 r12 = lowest free, r2 r31 ... sc_r r24);
+  scan C = scl, sadd (sadd r0 first by vid, scl r11 because it is adjacent to physical r9/r10). The colours are NOT "handed out in colouring order"
+  everywhere: key reuses r24 before sc_r, the ctr `li` reuses r26 (dr).
+- **What-if that scores 20/22 on the Ste-shaped correct-semantics variant (mono_b: t reused as the mix, q_l/q_r locals, unsplit r1):** +2 never-removed
+  neighbours on EVERY node adjacent to r6 (two ghosts live across the whole function = the histl/histr copies of Ste's requirement 1) AND +3 on the
+  three stack parameters sadd/smul/scl (or +2 on all three and +1 more on sadd, e.g. the argument-base ghost r73 -> r1 which today is adjacent to
+  scl/smul but not to sadd because sadd's load is its last use). Razor-thin: all+1 or all+3, or sadd+2, give 5-8/22. Remaining misses: q_l/q_r
+  swapped (q_r r21 must be coloured before q_l r20: `q_r` declared before `q_l`, or q_r removed in the later scan) and the spurious `li 0x10` pick.
+
+### CRI pass 68 (mpv_umc Matching 15 -> 16/16 FLIPPED, 111 OK: mpvumc_OneReadMb 48 -> 11 -> 0w pure C — the chroma halves are frontend CSE @temps (`((vx / 2) >> 1)` evaluated inside the cpos expression, read off the target's srawi/XER order) and `mbx8` a two-use own local declared last; 2026-09-12)
+Harness ~/.cache/cri68/ (o2g.py = interference graph rebuilt from a hypothetical pre-RA order + chaitin colours, validated edge-exact on
+ours; search_stmt*.py = sched.py model on statement-group permutations x declaration orders scored against the target's registers;
+try.sh NAME [--dump]).
+- **Hard evidence read off the target's final code: the six `srawi` are serialised by the model's XER (class-0) WAW chain in RAW order,
+  pre-RA and post-RA alike, so their final order IS the vendor's statement order.** Target: `vx>>1, vy>>1, cvx, cvx>>1, cvy, cvy>>1`;
+  ours (own locals `cvx = vx / 2; cvy = vy / 2;` then cpos): `vx>>1, vy>>1, cvx, cvy, cvx>>1, cvy>>1`. Only an expression that evaluates
+  `(vx/2) >> 1` before `vy/2` gives the target's order: `cpos = ofs[0] + ((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch; chx = (Uint32)(vx / 2)
+  & 1; fn_c = tbl_c[(vy / 2) & 1][(vx / 2) & 1];` (the frontend CSEs `vx / 2` / `vy / 2` into @temps @182/@183, created in the cpos
+  statement). 48 -> 11w (harness v2): the whole vector block is byte-identical (vx r25 / vy r11 / cvx r28 / cvy r7 / yhx r24 / chx r23).
+  Mechanism in the model: cvx/cvy as @temps have vids above every own local, so they pop before vx/vy in L1 (cvx takes r28 = ypos's
+  register: all volatiles and r23-r27 taken by its neighbours, ypos not one); vx (L1, 28 neighbours now that the c-chain is issued after its
+  death) pops with all volatiles taken and r23 (tby+ r75, live across vx) / r24 (yhx: vx has a read after `rlwinm yhx` in the new
+  schedule) covered -> r25 = fn_y's register. The pass-49b/65 "yhx before fn_y" reading was right about the colours and wrong about
+  the lever: no DAG edit on the y/c chains was needed, the whole vector block re-ordered itself once cvx/cvy were @temps.
+- Corollary for the catalogue: the pass-49b "c33 tie" was a symptom; the tie never needed flipping. The srawi/XER chain is a general
+  order oracle: any `srawi`/`addic`/`subfc` (XER writers) in a CRI target appear in statement order.
+- Remaining 11w = the top block: mby r10 / mbx r11 (ours r11/r12), `mbx*8` r12 (ours r10): the target's `mbx*8` interferes with BOTH
+  `mby*16` and `mbx*16` (defined before `add ofs0 = mbx8 + mby8*cpitch`), ours only with mby*16. Statement/declaration search 54/56 max.
+- **Second half, 11 -> 0w: `mbx8 = mbx * 8` as a TWO-USE own local declared last.** Target top block: mby r10 / mbx r11 / `mbx*8` r12; ours
+  `mbx*8` r10 (a single-use `mbx * 8` is substituted by the frontend and becomes a backend temp r57, coloured BEFORE mby/mbx in L1 with r10
+  the lowest free volatile, pushing mby/mbx to r11/r12). Model reading (o2g.py, sched.py trace of the completion queue): the target's r12
+  needs r10/r11 covered at `mbx*8`'s colouring; the "interference" route (both `mby*16`/`mbx*16` issued before `add ofs0`) is unreachable
+  — the `mullw mby8*cpitch` holds IU1 for c3-c7 and sits at the head of the 6-entry in-order completion queue, so c5/c6 have ONE IU pick
+  each (lis oneref / addi mc win on frees) and c7/c8 none; no statement or declaration order gives it (search_stmt2 54/56 max). The
+  "colouring-order" route works: with `mbx8` a real variable (two uses: `ofs[0] = mbx8 + mby8 * cpitch; ofs[1] = mbx8 * 2 + mby16 *
+  rfb->ypitch;`, the `* 2` folded by peephole-forward back into `slwi mbx,4` reading mbx) declared LAST, its vid is the lowest own local,
+  it pops after mby/mbx, which hold r10/r11 -> r12; then mby r10 / mbx r11 follow. `mbx8 << 1` identical. IDENTICAL 16/16 in the harness
+  (v4/v5) and in the tree.
+- Flip: `"lib/mpv_umc.c": True` (objects.py `# CRI pass 68` block), locked `ninja -k 0`, `dtk shasum -c` = 111 OK. Tree edits:
+  src/lib/mpv_umc.c (OneReadMb body + its comment, file-header OPEN line), config/G4BE08/objects.py, AGENTS.md. No tagged form; the unit's
+  remaining asm bodies are the paired-single kernels (vendor inline asm, START HERE rule).
+- Method notes for the kit (harness deleted; recipes here): (1) `o2g.py` = liveness over a hypothetical pre-RA order -> B1's interference
+  edges patched into `chaitin.load()`'s graph (edge-exact against the dump on ours; drop dead defs = vregs never read, keep the dump's
+  physical/other-block edges); with `sched.schedule_block()` in front it turns "statement order x declaration order" into a colour score in
+  ~10 ms per candidate — 20k-candidate hill-climbs find the ceiling of a lever class in a minute (26/43 -> 32/43 for statement+declaration
+  on the old form = the pass-31/63 sweeps' negative result, reproduced without compiling). (2) The srawi/XER (class-0 WAW, lat 1) chain is
+  a statement-order oracle in both scheduler passes. (3) `rw` bit 4 in the sched-pre2 operands (`R4:25:5`) appears on last uses only (not used by the model).
+- **IN THE TREE (12:14): InitTool 431 -> 40w, size exact, 209/212 (Load/SaveEmType 2/2 untouched).** Edits, all pure C: POS row 1 /
+  SIZE rows 1, 3 / COLOR row 1 pointers-first; the 33 `n->max/min/unit` stores of SIZE/SPEED/COLOR/ROTATE (+ROT_MINMAX) as FSTORE_AT;
+  ROTATE row 11 `max,min,unit`; SIZE row 4 / COLOR row 1 `max` before `min`; BASEPOS row 2's `nameNum`/`nameTbl` as byte-offset
+  stores (`*(u32*)((u8*)n + 0xC4) = 256; *(const char***)((u8*)n + 0xC0) = tbl;` -> seg 791 d22 -> 0: row 3's g_pSeqHead load waits for
+  them in T); the tail `g_page = 0; g_editTop = 0; g_editCursor = 0; g_fileMenu = 0;` (seg 802 -> 0: g_page's store is first at sched1
+  because its shared high dies there, so at reload r8 (g_fileMenu's allocated high) is live and the g_page remat takes r9; then
+  fileMenu r10 / editTop r8 / editCursor r7 = the local-alloc order of the three short highs, 24 orders tried, only this one is 0);
+  `.bss`: `g_pSaveDirButton` declared BEFORE `g_pLoadDirButton` (T's 154E3C/154E40) and SetDirCallback's SetString/SetColor pairs
+  save-first (SetDirCallback stays identical; the button names are ours); OPTION rows 5/10/12: `n->max = K; n->nameTbl = tbl;
+  n->nameNum = k;` (max first: the pool load of K is issued before the nameNum store in T = the nameNum store is after the load in
+  LUID order; segs 323/332/335 -> 0). Grids unchanged throughout (cse1 LOAD_EVENT+6 .. BASEPOS+107, cse2 LOAD_EVENT+53 .. WORKSP1+49,
+  N 5235).
+- **Remaining 40w = two cse2-grid items, both read, neither fitted:**
+  (a) **SPEED strings 448/449/452/453 (d10/10/10/12): T's cse2 F4' lies in (SPEED+73, SPEED+91] of the .loop stream, ours +108.** Read
+  off `lipat.py`: T issues `lwz r6,slot` (the DB_POINT copy) AFTER the string's `addi r5` in 448/449/450 and BEFORE it in 452+; ours
+  after only in 450. The copy `(set r6 C)` is w 0 and the string lo_sum `(set r5 (lo_sum P LC))` is w 0 only when P dies there, so
+  T's "X:"/"Y:"/"Z:" heads of 448-450 die there (= POS's heads, shared across F3', last use) and T's 452 "X:" is a head that lives
+  on (P1 from cse1, shared with 455/458, rematerialised `lis r8`); ours shares 448 AND 452 with POS's head 5574 because F4' (+108) is
+  after 452's high (+90) — 450's Z: head dies at 450 in ours too (matches). F4' was never T-read before (F5'..F8' were). Cost of the
+  move: +17..35 cse2 insns in (F3', F4'] and the same number removed in (F4', F5'] with cse1 held — and gcse's N (5235 = insn count at
+  gcse /2|1, the `i = k` block is EMPTY so nothing can be subtracted): every cse2-weighted pad set is a gcse insn, so a symmetric
+  +k/-k needs a real-code -k somewhere or the k inside existing cse2 pads (PARENT 16 / VEC0 7 / WORK0 24 / LIFE 39: moving weight
+  between them moves F5'..F8', all T-pinned). Not attempted this pass.
+  (b) **SAVE_EVENT 271 d6 = the `&pos` split (F2 = SAVE_EVENT+27 between the DB_POINT copy at +14 and the argument's addressof at
+  +35).** `DB_POINT* ppos = &pos;` right after `pos` and `ppos` as the argument: cse1 folds the ppos set into the copy before F2,
+  combine folds the copy into the argument -> one pseudo, `lwz r5,slot` = T (X3b: 271 d6 -> d2, 323-335 unchanged). It adds one
+  cse2-stream insn (the copy) -> F2' OPTION+70 -> +69 and everything after -1; removing the SAVE_EVENT `{1,4}` in-block pad (-1
+  cse2, -2 cse1) + SAVE_CHECK pad `1:2` -> `1:2:3:5` (+2 cse1) restores BOTH grids and N exactly (X6) — but the post-sched1 stream
+  is 2 insns shorter from SAVE_EVENT on (the split's `(set A (plus fp K))` + move are gone), and the block-13 local-alloc tie of the
+  two entry highs flips: g_pEditSeq (reg 5438, refs 17, [672,6274]) 121 vs g_pEditSeq2 (5357, [656,6278]) 120 -> r23/r22 = T;
+  in X6 deaths 6270/6274 -> 121/121 -> qty order -> g_pEditSeq2 r23 (segs 404/428/434/437/441 +4 each, 106w). Needs g_pEditSeq2's
+  length +1 insn (death >= 6276) or g_pEditSeq's -1 with the grids held; not found this pass. `pos` declared after `w`/`h` (X1)
+  moves the frame slots and the whole entry (2003w) — not the form.
+- **`f32 cK` lever, corrected:** the saving is -3 per later use ONLY while the constant's uses stay in one cse1 window AND the k-th
+  use is not the window's... (OPTION `c16` over 5 string rows measured -12, over 6 rows -15: one of the uses saved nothing);
+  measure with off.py, do not assume 3k. Pads with values that occur as constants in the code (8, 9, 10, 12, 16, 0x34 ...) become
+  class heads and REWRITE later `li` into copies (Y15: 6502w); use values like 7001+ for long pads.
+- Scratch /tmp/t29 (kept): base/P*/Q*/R*/S1/T*/U*/V*/W*/X*/Y* variants + o_* under ~/.cache/tesp15, rtl_base/rtl_cur2 (-dj -dL
+  -dl) + dbg_*.log (SCHDBG/LADBG/RLDDBG), gdbg_cur/la_cur logs, flushes.sh / flushmap.py / off.py / heads.py / uses.py / wincount.py
+  (the t18/t28 tools patched for `int InitTool`), p.sh, lipat.py, calls.py, cycu.py. Nothing flipped (t_esp 209/212).
+
+### 2-word ties pass 1 (t_esp/db_widget Matching 112 -> 113/113 FLIPPED, t_esp.rel verify OK, 111 OK: DB_STRING ctor 2 -> 0w with four flow2-deleted `"=m"` anchors; game/db_cam menu 2w and lib/adx_tsvr nlp_trap_entry 2w below; 2026-09-12)
+Scratch /tmp/ties/ (dbw/run.sh = variant + SCHDBG/LADBG summary, dbw/anch.sh = which asm anchors survive flow2 via `rtl.sh .. -dg -dw`, sch.py = the gsweep2 issue-table reader).
+- **db_widget `DB_STRING::DB_STRING` 2 -> 0w (tagged, flipped).** Form (src/t_esp/db_widget.cpp): `u32 zero = 0; max = max_;` then four anchors
+  `asm("" : "=m"(cr) : "r"(zero)); asm("" : "=m"(cg) : "r"(zero)); asm("" : "=m"(cb)); asm("" : "=m"(ca));` ABOVE `ca = cb = cg = cr = 0.0f; type = DB_PRIM_STRING;
+  len = zero; str = (char*) zero;` (str the dying zero store). The pass-12 launder (`"+r"(zero) : "m"(ca)`) is gone. Also `primIdCounter` is now a
+  non-static global: the original's `.data+0x780` object is scope global, and a `static` puts the section offset 0x0780 into the three `@l` fields of
+  DB_PRIMITIVE's ctor where the REL has 0 (bytecmp resolves relocs by address and cannot see it; only `make_rel --verify` does: 6 bytes).
+- **The lever = a sched1-only insn, read off flow.c:** a `"=m"(F)` anchor whose F is overwritten later in the block is dead for `insn_dead_p`
+  (mem_set_list, rtx_equal_p on the MEM) unless something between it and the store (backward scan order) invalidates the entry. flow1 sees the
+  SOURCE order: the pool `lfs` of the colour chain sits between the anchors and the colour stores, and a `mem/u (lo_sum ..)` read is NOT the
+  `CONSTANT_POOL_ADDRESS_P (XEXP (x, 0))` case of mark_used_regs (that needs a bare SYMBOL_REF), so anti_dependence (param `this` ADDRESS vs pool
+  symbol = may conflict) splices the entries out and the anchors survive flow1. sched1 issues the `lfs` (prio 14-16) at c5, ABOVE the prio-13
+  anchors, so in flow2's scan (post-sched1 order) nothing sits between anchor and store: all four become NOTE_INSN_DELETED, sched2 never sees them.
+  Tried and refuted on the way: (a) input-less anchors + a third `"=m"(id) : "r"(x)` asm placed after the zero stores (f8/g1-g4/h3) = the third asm
+  survives (never overwritten) AND blocks the deletion of the first two (h1: the same third asm WITHOUT an input does not block; the flow.c reason
+  was not found, recorded as an observation); (b) anchors reading `zero` alone (f1, 11w): `li zero` becomes prio 14 (anchor 13 + 1), beats
+  `lis vt` at c4 (dep count 5 vs 2) and vt's life stays 12; the two extra input-less anchors (m3/m4/f10s/f11s, all IDENTICAL) pay that back.
+- **Why it matches (SCHDBG/LADBG):** (A) LC-before-vt needs the vt store >= 15th issued (life 16 = 5000 = LC's, LC wins on qty number): the
+  four prio-13 anchors (output-dep, cost 1, to their prio-12 colour stores) take issue slots before the prio-12 vptr store: vt [18,34). (B)
+  zero-above-type: 2 anchor reads -> zero 5 refs, floor_log2 2 -> 2777 > type 2500 (type `li` 15th, store 20th) -> zero r0, type r9. (C) sched2
+  order needs the sched1 (LUID) order ca < type < cr < cg < cb (the dep-count-5 group), str < len (dep-count-3 group): the chain's dying `ca`
+  store, `type =` after the chain, `len = zero; str = zero` (str dying) give it. New fact for row 6: a store whose insn touches NO call-free pseudo
+  (`stw max` = reg83 crosses the `new` call) is linked to the call by the call-address MEM scan as a TRUE dependence (prio 13), every store
+  reading a call-free pseudo is in `sched_before_next_call` first and only gets the ANTI (prio 12) — that is why `stw max` leads the group.
+- Zero-code shapes from today's rows, tested once each on the plain form (all 11w = the plain form; none reaches a one-block, `this`-relative
+  store group): raw-word `*(u32*)&str = 0; *(u32*)&len = 0` (z1: no fixed scalar load exists, the pool load is mem/u and never depends on a
+  store); `f32 c0 = 0.0f` after the first colour store (z2: cse1-only, sched1 stream identical); struct-member store through a pointer / `for`
+  header / `static const char tag[]` / `(u8)` constants: no global, no loop, no string, no narrow mode in the ctor — not applicable.
+### CRI pass 67, part 2 (continuation of "CRI pass 67" above — the CRI pass 68 and 2-word ties sections landed between; adx_dcd5 Ste4AsMono 143 -> 62w APPLIED with correct semantics + one r6 neighbour pin; Ste4AsSte 25w unchanged; not flipped; 2026-09-12)
+- **APPLIED (src/lib/adx_dcd5.c ADX_DecodeSte4AsMono 143 -> 62w, Ste4AsSte 25w unchanged, sizes equal, locked ninja + bytecmp 2/4; objects.py
+  untouched, no flip):** the Ste-shaped body (mono_d4): declaration order `l2, rr2, rr1, register l1, i, d, dr, Sint16 sc_l, Sint16 sc_r, s, t,
+  nblk, key, j, q_l, q_r`; Ste's scale block (`sc_l = ((s ^ key) & 0x1FFF) + 1; key = sadd + key * smul; *scl = key; *scl &= 0x7FFF`) so the
+  scales stay own locals; the body `l2 = (d>>4)*sc_l + pred; t = (dr>>4)*sc_r + pred; rr2 = t; t = (l2 + t) * 7 / 10; CLAMP(t); q_l = AdxQtbl[d&0xF];
+  outr[0] = t; q_r = AdxQtbl[dr&0xF]; outl[0] = t; l1 = q_l*sc_l + ((c1*l2 + c2*l1) >> 12); rr1 = q_r*sc_r + ((c1*rr2 + c2*rr1) >> 12); t = (l1 + rr1)
+  * 7 / 10; ...` (correct semantics: the old rr1 in the prediction, no split), and ONE tagged neighbour pin `asm { mr r6, l1 }` after the hist
+  loads (M1, as Ste's). Pin census on the same body: r6 on l1 62w, on l2 64w (= r8 on l2), on rr2 66w; r6+r8 pins 111-113w (too much pressure:
+  sadd becomes a pick); pins placed BEFORE the hist loads 178w; no pin 164w. q_r declared before q_l: 62w (no change). The pure-C correct body
+  without a pin is 164w (mono_b) / 227w with a separate `m` (mono_a).
+- **Residue 62w read in the model (chaitin --k 28 on the d4 dump: picks `li 0x10` r148, nblk, smul; scl r11 top; the cascade level coloured c2e r0,
+  c1e r9, l2 r12, rr2 r31, rr1 r30, l1 r29, i r10, d r28 ... sadd r24):** sadd sits one level too low. `fixed=42:3 fixed=41:2` (three more
+  never-removed neighbours on sadd, two on smul, smul's degree staying above sadd's so smul is the pick) -> 20/22 named colours (only q_l/q_r
+  r20/r21 swapped remain). sadd+3 alone or sadd+2/smul+1 make sadd the pick (11-12/22). In ours smul/scl are adjacent to the argument-base ghost
+  r73 (-> r1) and to physical r1 while sadd is not (its load is the base's last use); the target's pick order needs deg(smul) > deg(sadd) by
+  exactly one or more with sadd raised by 3. Not found in C: the stack loads stay in parameter order whatever the expression order (`key * smul
+  + sadd` identical), own-local copies of histl/histr (`hl = histl`) and of c1/c2 (`c1e = c1`: 240w) create no ghost, an inlined `sethist(h, a, b)`
+  helper for the final stores creates none, `-O4` / `-O3` / `-O2` / `-O4,s` / `-inline off` all move away (only `-O4,p -inline auto` keeps Mono4/
+  Ste4 identical). Modelled negative: c1e/c2e as coalesced parameter webs (extsh in place on a multi-def parameter web) score 2-6/22.
+- **Correction to the pass 44 part 3 record:** the 180 -> 143w "split" `r1 = sc_r * AdxQtbl[dr & 0xF]; r1 += (c1 * t + c2 * r1) >> 12;` changed the
+  semantics (ours multiplied c2 by the NEW r1: `mullw r25,r31,r20; mullw r18,r29,r25` vs the target's `mullw r26,r10,r30` on the old r1). Word counts
+  of a colouring device must be checked against the operand roles, not only the instruction pattern. Removed from the tree by this pass.
+- Catalogue note (MWCC row "two values with swapped registers", picks): when the target hands the LAST callee-saved registers to two cheap
+  long-lived values (nblk r18, smul r19 here) they are Chaitin spill picks — the graph was stuck with every alive node >= 29 — and the pick order is
+  cost/degree with the degree deciding equal costs (33/deg for both Sint16 stack parameters). Use trace.py-style per-scan degrees before adding
+  neighbours: the target's structure needed sadd/smul ABOVE the loop values by +3/+2 and everything else by exactly +1 (the r6 pin), and any
+  other distribution (+2 all, +2 on the prologue values, +1 on sadd) lands 5-12/22.
+- Harness ~/.cache/cri67 and /tmp/cri67f deleted. Tree: src/lib/adx_dcd5.c ADX_DecodeSte4AsMono only. adx_dcd5 2/4 (25w + 62w), not flipped.
