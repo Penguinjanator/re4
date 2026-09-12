@@ -244,21 +244,26 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 
 void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 {
-	/* Case 0: xor-inside macro (frontend CSE temporaries; the original's colours except w0/a0 r28/r30 for
-	 * r17/r18 = the last two hand-outs, made by the original's case-1 offset-0 loads). Cases 1-3 (CRI SWAR
-	 * kernels pass 20): the ten words are loaded into OWN locals of the case p0..p4/q0..q4 (p0/q0 kept as
-	 * variables by the pointer step right after their load -- a single-use load is substituted into its
-	 * pack and becomes a backend temp), the six packs are webs of the case-0 variables w0..a2 written BEFORE
-	 * the four averages (per-pair order keeps p2 live across pair 0's shift: the original's `srwi r28`
-	 * reuses p2's register), the fifth load is packed in place in cases 1/2 (`lbz r22; rlwimi r22`) and into
-	 * w3/a3 in case 3. The target's colouring is a proper colouring of this graph in every case (valid.py);
-	 * the residue is the pop order of the range-split webs across the three cases (see AGENTS.md). */
+	/* Case 0: xor-inside macro (frontend CSE temporaries). Cases 1-3 (CRI SWAR kernels pass 20/21): the
+	 * words at offsets 4/8/12 are loaded INTO the case-0 variables w1..a3 and the packs written into the SAME
+	 * variables (`w1 = (w1 << 24) | (w2 >> 8)`): the frontend numbers a variable's webs pack-then-load per
+	 * case (later definition = lower @), so each pack pops right before the load it inserts -- the original's
+	 * hand-out order p1 r31, A1 r30, q1 r29, W2 r28, ... in case 3, and the lowest-free picks q1 r30 / A1 r29,
+	 * p2 r28 / W2 r27, ... in cases 1/2. The fifth pair is packed in place on the fifth loads in every case
+	 * (`p4 = (w3 << 24) | (p4 >> 8)`: p3/q3 then pop before W3/A3 = r24/r23 before r22/r21); case 1 loads q4
+	 * before p4 so that case 3's q4 web pops before p4's. p0/q0 are own locals of case 1 kept as variables by
+	 * the pointer step right after their load (a single-use load is substituted into its pack otherwise);
+	 * in case 3 only q0 is kept (`s1 += stride` right after it, `s0 += stride` at the end): the original's p0
+	 * there is a substituted single-use load (volatile r8), its q0 the last hand-out (r17).
+	 * Residue (131w): the pointers/masks change level (stride r3, masks r7/r8) because q0's case-3 web and
+	 * p0's case-2 web are L3, and case 1's p1/q1/p2 webs drop to L1 because the case-1 own locals q0/p4/q4
+	 * are removed before them in scan 1 -- the original's case-1 fifth loads are webs (see AGENTS.md). */
 	Uint32 *d;
 	Uint8 *s0;
 	Uint8 *s1;
 	Sint32 stride;
 	Sint32 i;
-	Uint32 w0, a0, w1, a1, a3, w2, a2, w3, p1, p2, p3, p4, q1, q2, q3, q4, p0, q0;
+	Uint32 w0, a0, w1, a1, a3, w2, a2, w3, p4, q4, p0, q0;
 	Uint32 m1 = 0xFEFEFEFE;
 	Uint32 m2 = 0x01010101;
 
@@ -296,26 +301,26 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 		s1 -= 1;
 		for (i = 0; i < 16; i++) {
 			__dcbt(s1, stride);
-			p1 = ((Uint32 *)s0)[1];
-			q1 = ((Uint32 *)s1)[1];
-			p2 = ((Uint32 *)s0)[2];
-			q2 = ((Uint32 *)s1)[2];
-			p3 = ((Uint32 *)s0)[3];
-			p4 = s0[16];
-			q3 = ((Uint32 *)s1)[3];
+			w1 = ((Uint32 *)s0)[1];
+			a1 = ((Uint32 *)s1)[1];
+			w2 = ((Uint32 *)s0)[2];
+			a2 = ((Uint32 *)s1)[2];
+			w3 = ((Uint32 *)s0)[3];
+			a3 = ((Uint32 *)s1)[3];
 			q4 = s1[16];
+			p4 = s0[16];
 			p0 = ((Uint32 *)s0)[0];
 			s0 += stride;
 			q0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 8) | (p1 >> 24);
-			a0 = (q0 << 8) | (q1 >> 24);
-			w1 = (p1 << 8) | (p2 >> 24);
-			a1 = (q1 << 8) | (q2 >> 24);
-			w2 = (p2 << 8) | (p3 >> 24);
-			a2 = (q2 << 8) | (q3 >> 24);
-			p4 = (p3 << 8) | p4;
-			q4 = (q3 << 8) | q4;
+			w0 = (p0 << 8) | (w1 >> 24);
+			a0 = (q0 << 8) | (a1 >> 24);
+			w1 = (w1 << 8) | (w2 >> 24);
+			a1 = (a1 << 8) | (a2 >> 24);
+			w2 = (w2 << 8) | (w3 >> 24);
+			a2 = (a2 << 8) | (a3 >> 24);
+			p4 = (w3 << 8) | p4;
+			q4 = (a3 << 8) | q4;
 			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
 			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
@@ -331,26 +336,26 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 		s1 -= 2;
 		for (i = 0; i < 16; i++) {
 			__dcbt(s1, stride);
-			p1 = ((Uint32 *)s0)[1];
-			q1 = ((Uint32 *)s1)[1];
-			p2 = ((Uint32 *)s0)[2];
-			q2 = ((Uint32 *)s1)[2];
-			p3 = ((Uint32 *)s0)[3];
+			w1 = ((Uint32 *)s0)[1];
+			a1 = ((Uint32 *)s1)[1];
+			w2 = ((Uint32 *)s0)[2];
+			a2 = ((Uint32 *)s1)[2];
+			w3 = ((Uint32 *)s0)[3];
 			p4 = *(Uint16 *)(s0 + 16);
-			q3 = ((Uint32 *)s1)[3];
+			a3 = ((Uint32 *)s1)[3];
 			q4 = *(Uint16 *)(s1 + 16);
 			p0 = ((Uint32 *)s0)[0];
 			s0 += stride;
 			q0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 16) | (p1 >> 16);
-			a0 = (q0 << 16) | (q1 >> 16);
-			w1 = (p1 << 16) | (p2 >> 16);
-			a1 = (q1 << 16) | (q2 >> 16);
-			w2 = (p2 << 16) | (p3 >> 16);
-			a2 = (q2 << 16) | (q3 >> 16);
-			p4 = (p3 << 16) | p4;
-			q4 = (q3 << 16) | q4;
+			w0 = (p0 << 16) | (w1 >> 16);
+			a0 = (q0 << 16) | (a1 >> 16);
+			w1 = (w1 << 16) | (w2 >> 16);
+			a1 = (a1 << 16) | (a2 >> 16);
+			w2 = (w2 << 16) | (w3 >> 16);
+			a2 = (a2 << 16) | (a3 >> 16);
+			p4 = (w3 << 16) | p4;
+			q4 = (a3 << 16) | q4;
 			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
 			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
@@ -366,30 +371,30 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 		s1 -= 3;
 		for (i = 0; i < 16; i++) {
 			__dcbt(s1, stride);
-			p1 = ((Uint32 *)s0)[1];
-			q1 = ((Uint32 *)s1)[1];
-			p2 = ((Uint32 *)s0)[2];
-			q2 = ((Uint32 *)s1)[2];
-			p3 = ((Uint32 *)s0)[3];
+			w1 = ((Uint32 *)s0)[1];
+			a1 = ((Uint32 *)s1)[1];
+			w2 = ((Uint32 *)s0)[2];
+			a2 = ((Uint32 *)s1)[2];
+			w3 = ((Uint32 *)s0)[3];
 			p4 = ((Uint32 *)s0)[4];
-			q3 = ((Uint32 *)s1)[3];
+			a3 = ((Uint32 *)s1)[3];
 			q4 = ((Uint32 *)s1)[4];
 			p0 = ((Uint32 *)s0)[0];
-			s0 += stride;
 			q0 = ((Uint32 *)s1)[0];
 			s1 += stride;
-			w0 = (p0 << 24) | (p1 >> 8);
-			a0 = (q0 << 24) | (q1 >> 8);
-			w1 = (p1 << 24) | (p2 >> 8);
-			a1 = (q1 << 24) | (q2 >> 8);
-			w2 = (p2 << 24) | (p3 >> 8);
-			a2 = (q2 << 24) | (q3 >> 8);
-			w3 = (p3 << 24) | (p4 >> 8);
-			a3 = (q3 << 24) | (q4 >> 8);
+			w0 = (p0 << 24) | (w1 >> 8);
+			a0 = (q0 << 24) | (a1 >> 8);
+			w1 = (w1 << 24) | (w2 >> 8);
+			a1 = (a1 << 24) | (a2 >> 8);
+			w2 = (w2 << 24) | (w3 >> 8);
+			a2 = (a2 << 24) | (a3 >> 8);
+			p4 = (w3 << 24) | (p4 >> 8);
+			q4 = (a3 << 24) | (q4 >> 8);
 			d[0] = MPVMC16_AVG2X(w0, a0, m1, m2);
 			d[1] = MPVMC16_AVG2X(w1, a1, m1, m2);
 			d[16] = MPVMC16_AVG2X(w2, a2, m1, m2);
-			d[17] = MPVMC16_AVG2X(w3, a3, m1, m2);
+			d[17] = MPVMC16_AVG2X(p4, q4, m1, m2);
+			s0 += stride;
 			d += 2;
 			if (i == 7) {
 				d += 16;
