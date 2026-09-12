@@ -943,3 +943,8 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
     MATCHING[f"{_em}/{_em}_set.cpp"] = True
     MATCHING[f"{_em}/em10_tmpl.cpp"] = True
     MATCHING[f"{_em}/em10.cpp"] = True
+
+# Tools/db_mod (2026-09-12): same source as t_esp/db_mod, identical since that flip
+MATCHING.update({
+    "Tools/db_mod.cpp": True,
+})
