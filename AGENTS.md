@@ -27836,7 +27836,7 @@ Harness /home/adityas/.cache/cri51/ (`sje/try.sh NAME 'stmt'`, `cws/try.sh NAME 
   after `ret = 0` is 134/135w (r11 is used once in the target; the r8 form is no better) — the codeless-pin row does not hold for a constant-defined
   own local here. Tree keeps the M1 pin (13w).
 
-### CRI pass 52 (adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w, sfd_mps DecodeOneUnit 13w: which `?:` shapes are codeless ghost pairs; IN PROGRESS; 2026-09-12)
+### CRI pass 52 (adx_dcd5 Ste4AsSte 25w / Ste4AsMono 143w, sfd_mps DecodeOneUnit 13w unchanged: a `?:` on a parameter IS a coalesced ghost pair but always keeps its compare; the pass-47 ghost model made exact (`phys=` adjacency, 18/18); nothing applied, nothing flipped; part 2 below; 2026-09-12)
 Harness /home/adityas/.cache/cri52/ (`mk.py OUT [--base=B] 'OLD=>NEW'..`, `try.sh NAME FUNC --ra` = variant.sh words + ra.py into ra_NAME + `ghosts.py`
 (named colours + ghost list), `whatif.py RA_DIR +ghost:REG:phys=REG.. --target name=reg,..` = chaitin replay with extra never-removed ghosts; deleted at the end).
 - **The pass-47 "18/18" reproduced and made precise.** a7 rebuilt from the pass-47 text (114w, chaitin IDENTICAL). The ghost model that scores 18/18 is a ghost
@@ -27855,7 +27855,7 @@ Harness /home/adityas/.cache/cri52/ (`mk.py OUT [--base=B] 'OLD=>NEW'..`, `try.s
   So the frontend folds every `?:` whose condition it can evaluate, and the backend deletes the select but never the compare: **a `?:` on a parameter is a
   ghost pair at the price of exactly one compare instruction**; pass 48's `n` was free only because its compare replaced the `if`'s.
 
-### CRI pass 50 (cftfx StaticV 36 -> 16w pure C: `const` parameters give loads an alias class disjoint from the stores, the post-RA scheduler then hoists them above the prologue; UserTable 135w / Argb420 38w / cftyp422 Y84C44 29w read; IN PROGRESS; 2026-09-12)
+### CRI pass 50 (cftfx StaticV 36 -> 16w and Argb420 38 -> 24w in pure C: `const` parameters = loads with their own alias class (hoisted above the prologue), the increment order that the addi sink leaves alone; UserTable 135w unchanged (the in-loop `subi` + 2 copies not found); cftyp422 Y84C44 29 -> 28w with `const src` (not applied: sfx.h prototype); nothing flipped; 2026-09-12)
 Harness /home/adityas/.cache/cri50/ (v.py/ut.py/mac.py literal-edit variant drivers over ~/.cache/kit/variant.sh, sd_* scheddump dirs, ra_* ra.py dumps; deleted at the end).
 - **NEW ALIAS LEVER (pure C): a load through a pointer-to-const gets its own alias record and never aliases a store.** Read off the
   scheddump records: `lwz r9,4(r4)` with `CFT_ARGBDST *dst` = `t2 bits=2` (the function's "unknown pointer" record, shared with EVERY
@@ -27943,3 +27943,123 @@ Harness /home/adityas/.cache/cri50/ (v.py/ut.py/mac.py literal-edit variant driv
   sites; not a post-RA physical-r0 CSE either: neither site has r0 == 1 dominating the tree).
 - **mwsfdcre `mwPlyCalcWorkSfd` 4w, more negatives:** a forward `goto total; total:` label, `do { size += 0; } while (0);`, `asm { mr size, size }` on a
   `register size` (13w, the substitution still happens), `asm { mr r0, size }` 91w, a duplicated return under `if (mwsfdcre_bufnum == 0)` 20w / as `?:` 17w.
+- **StaticV 36 -> 16w (APPLIED, `const CFT_YCC420PLN *src, const CFT_ARGBDST *dst` in the prototype and definition).** The 16 left are RA colours in
+  rows 1 and 4 of the tile, both read in chaitin.py (`ra_c1`, IDENTICAL to the compiler): (a) row 4's `t` halves are the frontend's sunk webs
+  (the LAST TWO defs of a reused single-use variable are substituted into their uses whatever sits between def and use: h4 probe with a 9th
+  `t = w >> 3; d[8] &= t` def keeps row-4 hi as @179 and sinks row-4 lo + the 9th; a store between def and use does NOT keep a web (h3: `u = lo;
+  t = hi; d[0] &= t|K; d[1] &= u|K` sinks u's rows 3-4 too); dead `t = 0` / `t = t` / `w = t` / `t += 0` after row 4 are deleted before the
+  web pass and change nothing). As backend temps the row-4 lo (r109) is coloured before the d[6] load (r100): lo r11, hi r12, d6 r31. Moving
+  lo's vid below r100 in the model gives the target's row 4 exactly (d6 r12, hi/hiK/and r11, lo r31, d7 r12): the vendor's row-4 lo was a
+  low-vid node (an own-local web or a frontend @temp defined before the d[6] statement). (b) row 1: t-lo1 (@183 = r43) is coloured before
+  w1 (own local r35) and takes r30, w1 gets r31; the target has w1 coloured first (r30) — w's first web must rank above t's split webs (a
+  range-split web of w, i.e. a def of w before the loop that survives, or w as a @temp). Not found in 45 min: `t` before `w` (16w), t/u
+  pairs (h1/h2 50w: extra callee-saved; h3 20w: row 1 fixed, rows 3-4 broken), `for (t = ..)` as the counter (98w), t as the outer-loop
+  step (58-101w), `t = ystep * 4; y -= t` (33w). Model-confirmed target shape: t-lo(4) low vid + w1 above t's webs.
+- **Argb420 38 -> 24w (APPLIED, pure C): the loop-tail increment ORDER decides whether peephole-forward's addi sink dirties the block.** Pass 43
+  read the mechanism (pre-RA order = target, the sink of `addi cb/cb2/cr,2` dirties the block, post-RA reschedule); the source lever is the
+  statement order `y += ystep; a += ystep; cb++; cb2++; cr++; cr2++; y++; a++; y -= yback; a -= yback; j++; ar += 16; gb += 16;` (t2):
+  blkflags on the tree (ra_argb2): the tail block B13 is STILL sunk-dirty (2004 at 12-15) and post-RA rescheduled (200c at 16) — the sink
+  moves `addi cb/cb2/cr/cr2,2` to the block end in both versions; what changed is their ORDER there (backend-12: `add y; add a; addi y,4;
+  subf y; addi a,4; subf a; addi cb; cb2; cr; cr2; j; ar; gb`), and the post-RA list scheduler fills the two `subf` latency slots with the
+  sunk increments in that input order -> `addi y; addi cb; addi a; addi cb2; subf y; addi cr; subf a; addi cr2; j; ar; gb` = the target.
+  With the tree's order the sunk group was cr2/j/ar/gb first. Increments first (t1) 38w, folded `y += ystep - yback + 1` 35w, cb/cr before
+  cb2/cr2 + j last (t4) 30w. Correction to pass 43: the target's tail IS a post-RA schedule (of the vendor's sunk order), not the pre-RA one. Left 24w = the prologue's y/cb copies (pass 43's reading (1) stands): `a = pln.y; y = a; a += half`
+  forms (a1-a4) coalesce `y = a` anyway (58-61w, the split web of `a` is a @temp and the copy is forwarded).
+- **UserTable 135w unchanged; the target's body read in full (registers: r5 tbl, r6 y, r12 d, r11 ywidth, r0 ywidth*4, r30 yskip, r3 dskip,
+  r8 i, r9 wblk, r10 hblk):** per block `subi r31 = ywidth-4` IN the loop, `mr r7,r31; mr r4,r31` copies, then per row `addi p,p,4` (the
+  macro's `y += 4`) and `add pNEXT, p, w4copy` into the copy's register (p2 = r31, p3 = r7, p4 = r4), the 4th step recomputed `subi r26,r11,4;
+  add r26,r4,r26; subf r4,r0,r26; addi r6,r4,4` = `y += ywidth-4; y -= ywidth*4; y += 4` as three statements. The colours say the two copies
+  are OWN LOCALS coloured before yskip (r4/r7 taken, yskip -> r30, w4 -> r31): declaration order roughly `copy2, y, copy1, i, wblk, hblk,
+  ywidth, d, w4, yskip`. What no form gave: the def in the loop. Probes (all 135-137w unless noted): `const Uint8 *tbl` / `const Uint8 *y`
+  local (no effect: the lbz class follows the pointer's origin), `src->ywidth - 4` in the body (reloads per row, 0x224), + `const src` (hoisted
+  again, and the prologue loads jump above `stwu` — so the vendor's src/dst are NOT const here), per-row `w4 = ywidth - 4; y += w4` with a 5th
+  def `w4 = ywidth * 4; y -= w4` (k8b: size 0x22c exact, webs 1-3 survive, the backend's pass-05 code motion hoists them into ONE preheader
+  `subi`, 137w), three own locals `w4a = ywidth-4; w4b = w4a; w4c = w4a` (k11 137w, hoisted + propagated), block-scope `{ Sint32 o = ywidth-4; }`
+  per row (k10), `Uint32 y` integer address (k14: identical object to the tree). Open: what keeps `subi` in the loop — in the target its
+  register is redefined by the pointer add (`add r31,r6,r31`), so the vendor's step and next-row pointer may be ONE variable (`p = ywidth - 4;
+  ... p += (Uint32)y + 4`-like integer forms) whose second def blocks the backend hoist; not tried (box over).
+- **cftyp422 Y84C44 29 -> 28w with `const CFT_YCC420PLN *src` (y1; NOT applied: the prototype lives in src/lib/cri/sfx.h, another agent's
+  header).** The target's `stwu; li r0,8; lwz r9,0xc(r3); li r8,0; stmw` has the ywidth load in cycle 1 = not dependent on the frame store =
+  const src (same lever as StaticV). The other 28 words: `li r0,8` (= `ofs = 8`, the dcbz index) is slot 1 in the target and slot 10 in ours
+  because ours' B2 (the setup, flags 0004 = not the entry block) is PRE-RA scheduled with vregs: `li r68,8` has no successor in the block
+  (height 1, class 4) and sinks to the end; the RA then hands r0 to the setup's srawi/addze temps (ofs is not live there). In the target no
+  setup temp uses r0 and the li is first: r0 was live/reserved from the block top — either the setup was in an unscheduled block (entry
+  block) or r0 is a physical register named in the asm (`li r0, 8` written in asm, reserved function-wide per pass 42/44). `asm { li ofs, 8 }`
+  at the top (y6) and `register Sint32 ofs = 8` (y5) are ordinary pcodes to the scheduler: still slot 10. Pass 45's residues (1)/(2) untouched.
+- Flags: none flipped (cftfx 3/6 = 16 + 24 + 135w, cftyp422_ppc 7/8 = 29w). Tree edits: src/lib/cftfx.c only (StaticV const prototype +
+  definition and comment, Argb420 tail order + comment). Locked `ninja build/G4BE08/src/lib/cftfx.o` after each; .rodata/.data/.bss unchanged.
+- Catalogue additions (MWCC table): (row "instruction order within a block") a load through `const T *` never aliases a store — the target's
+  parameter loads above `stwu` / scattered `stw` saves / a struct-field load hoisted over an earlier store = the vendor's `const` parameter;
+  (row "loop body rescheduled post-RA") when the block is sunk-dirty in the target too, the residue is the ORDER of the sunk increments at the
+  block end = their statement order; the post-RA scheduler uses them as latency fillers in that order (Argb420 t2: statement order is the lever).
+### CRI pass 52, part 2 (continuation of "CRI pass 52" above; nothing applied, nothing flipped; 2026-09-12)
+- **Why no `?:` can be free in Ste4AsSte / Ste4AsMono:** the target prologue has no compare at all (srwi/extsh/extsh/stmw/add/lis/lwz/lha/srawi/lha/addi/li/
+  4 lha/b), and the only compares in the function are the loop's `rlwinm.` s-tests, the clamps and the bottom `cmpw i,nblk` — none precedes the hist loads.
+  A two-def copy web needs a join; every join without a compare that C can write here (loop-carried `hl = histl` in the body: the `mr` stays because r71 and
+  r35 overlap inside the loop; a dead second def before `return`: removed by the AST optimizer) is either code or folded. Both Ste functions therefore stay at
+  the tree's pin forms (25w / 143w). Model note for Mono: the same `phys=` ghost reading applies (pass 47's "two ghosts on r6/r8" = the histl/histr copies).
+- **DecodeOneUnit (13w), the requirement re-derived on the n2 graph with `ghostwhatif.py`:** two more never-removed nodes adjacent to {ret, data, wk} (or
+  three adjacent to ret alone) give the whole target colouring (ret r31, wk r30, nskip r29, nbyte r28, len r27, data r26, sfd r25, mps r23, total r22, cnt r21,
+  13/13); nothing else moves. The three ghost kinds of this function (pass 48) were re-checked against the target bytes in the cnt-dead region: (1) `?:`
+  argument locals — `n` is the only if/else whose value reaches an argument; the `hdrlen > 0` arms store from both arms in the target (`lwz r0; stw; lwz r0;
+  stw | li r0,1; stw; stw`, four stores), so they were not a `?:`; TermIfInTerm's `t` is already a `?:` in r3; (2) 2-use call results — the region's calls
+  (IsEndcodeSkip 872, IsSystemEndcodeSkip 879, SetTermFlg/GetTermFlg of the inlined TermIfInTerm, CopyPketData = ret's def, MEM_Copy) are all single-use in the
+  target's code shape; (3) own locals dying at an argument move — the target's PKET block is `add r26,r26,r0; subf r27,r0,r27; mr r4,r26; mr r5,r27` (in-place
+  `data += hdrlen; len -= hdrlen;` on the callee-saved webs, not temps). So the +2 is not a `?:`: it must be a shape that changes which values are coalesced
+  copies without changing the bytes — still open. The pin form stays (13w).
+- **The separate IsZero residue (unit r3 / p r4, 8 of the 13 words) read exactly:** unit is the CSE temp r57 (@701), the clone parameter p' is r61 (@681); both
+  L1 (11/12 and 15/15), so p' (higher vid) is coloured first and takes r3. The target colours unit first, i.e. unit had a higher vid than p' — impossible for an
+  expression-CSE temp (created after the inlining: @681 < @701) — so the vendor's `unit` was not `sfd->prm.unit` CSE'd across the three uses but a value
+  created before IsZero's clone (a local/@temp of an earlier inlined helper, or IsZero's own n if p' were not a clone copy). Negative (13w unchanged):
+  `sfmps_IsZero((Sint8 *)data, ..)`, `p = data` moved below the test, `(Sint32)` cast on the count, IsZero parameters swapped `(n, p)`; `p[i]` index form 17w,
+  `while (n-- > 0)` 56w (+4 bytes). IsZero is called only from DecodeOneUnit (its body belongs to the pass-51 owner: not edited).
+- Kit: `~/.cache/mwccdbg/ghostwhatif.py` (README entry). Tree untouched (adx_dcd5 2/4, sfd_mps 25/26), objects.py untouched by this pass, no flip, no
+  `ninja -k 0`. Harness ~/.cache/cri52 deleted.
+
+### DOL espgen42/45 pass 11 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in the tree; loop-B Z block: nx's variable FOUND in pure C (`mx` = `k + p->nx` before the call and `p->nx` in Z, r11 in both, untied, pri 40000 < t_i's 45000) — the target's whole integer chain `lhz r11 | extlwi r10,t_i | addi r9,r11,1 | srawi | mullw r9,r10,r9` now comes out of C; the cascade (t_i r9, jq/jq32 r0, byte r11, pos r6, hA copies) does NOT follow and is a sched1 slot question, not allocation; nothing applied, no flip; 2026-09-12)
+Harness ~/.cache/dol_espg11 (deleted): `t.sh 42|45 SRC` (variant.sh word line, `DIFF=1` side-by-side), `mk.py OUT BASE 'OLD=>NEW'..` (exact-string
+edits, `\n` allowed), `ins.py DUMP FUNC` (one line per insn of an rtl.sh dump), `gsum.py GORDERLOG [minpri]` (GDBGV lines as
+`reg refs len pri conf[..] smp[..] pref[..] -> rN` with the volatile bits named). Variants named below are pass-10's k1 plus:
+- **The form (k4; apply identically to both units, `m` clashes with 45's `f32 m[3][4]` so the name is `mx`):** declarations `int jx; int mx;`
+  next to `int nz;`; loop A `jx = t >> 3;` (was `int jx`); loop B before the call `int d = k - p->nx; mx = k + p->nx; v.z = p->pos[d].y -
+  p->pos[mx].y;` (was `v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;`); loop B bump block `int jq = j / 8; jx = (i / 4) << 5; mx = p->nx;
+  p->bump[jx * ((mx + 1) >> 3) + (jq << 5) + ((i & 3) << 3) + j7] = ..` (was `int jx = j / 8; p->bump[((p->nx + 1) >> 3) * ((i / 4) << 5) +
+  (jx << 5) + ..`). 42: 45w size +4; 45: 49w size -4 (one `mr rX,r8` copy fewer). NOT applied: the count is the cascade below.
+- **Why `mx` works (read off -dl/GDBGV, k4):** `Register 93 used 12 times across 9 insns; set 2 times; user var; dies in 2 places; pref
+  BASE_REGS` = a non-candidate for local-alloc (pass-10 rule), so the Z `addi nx1,nx,1` cannot tie and nx8 (`srawi`) starts the r9 chain
+  (BASE class, from the stbx index) with prod tied to it (`mullw r9,r10,r9`, operand 1 = the global `jx`). Global order: t_j 54000, t_i 45000,
+  **mx 40000** (refs 12 / len 9: before-call segment 3 + Z segment 5, with `d` first so the `add mx` is the LAST use of the `lhz` = REG_WEIGHT 0
+  and sched1 issues it before the `subf` as the target does; with `mx = k + p->nx;` as its own statement BEFORE the v.z line the `subf` comes
+  first (60w, the before-call block permutes: nx r0, pos r10)), jx 17142, jq 10909. mx: conf r9 (t_i in the target, the k-nx chain before the
+  call), r0 excluded by its class (an `addi` operand is `b` = BASE_REGS: **a BASE-class pseudo never gets r0, in local OR global alloc** — the
+  reason the target's nx is r11 needs no smpref argument), `pref r11` (from `(set nx12 (mult mx 12))`: set_preference takes the FIRST operand
+  of any 'e'-format source, not only copies) -> r11 in both places. The lever-catalogue row "block-local temporaries with swapped scratch
+  registers": add **"a temporary that the target does NOT tie into its consumer = the same function-level variable as a value the target
+  keeps in the same register elsewhere (here `k + nx` before the call and `nx` after it); `-dl` must say `set 2 times; dies in 2 places`"**.
+- **The cascade that does not follow (42 k4 Z, target | ours): t_i r9 | r0, jq r0 | r6, jq32 `slwi` r0 | r6, byte `lbz` r11 | r10, pos `lwz`
+  r6 | r5, first hA copy r8 | r11 (`mr rX,r11`).** Read: t_i (pri 45000, GENERAL) takes r0 in pass 0 because `smpref` is {r6, r11}, not {r0}:
+  jq (522) prefers r6 = jq32's LOCAL register. jq32 (532, [14,36), pri 5454) gets r6 because r0 is held by the `xoris j` pseudo (563,
+  [32,42), pri 12000, allocated before it) and r9/r11/r10/r8 by the chain / 564 / byte / 552. In the target jq32 and `xoris j` are both r0,
+  i.e. they do not overlap: the xoris was issued AFTER the first `add prod,jq32` in the target's sched1. Ours (k4 sched1, 2 issue slots):
+  t1 lhz+and(jx) | t2 lfsx+552 | t3 addi+slwi | t4 srawi+fmuls | t5 mullw+fadds | t6 fadds+lwz pos | t7 psq_st+564 | t8 **xoris(80)**+576 |
+  t9 add(83)+lbz | t10 add+stw | t11 add+587 | t12 stbx. The add waits for the mullw (lat 4, t5 -> t9); the xoris (prio 80 = 1 + its
+  fpmem store1) is ready from t1 and nothing >= 80 is left for t8's second slot. In the base (9w) the chain starts at `extlwi` (mullw t2,
+  add t6, xoris t7 = after it), which is why the base's post-mullw Z is identical. So the target's Z had either (a) two more insns of
+  priority >= 80 ready at t7/t8, (b) the xoris not ready (a dependence inside Z: `(f32) j` computed from a Z value), or (c) a lower xoris
+  priority (its store1 later in the fpmem chain — but the final code has conv-j's `stw r0` first after the psq_st, so not (c)). Not found.
+- **Negatives this pass (42 words, k4 = 45):** `jx = (i/4) << 5` before `int jq = j / 8` 53 (size exact but the divisions swap and jq's
+  srawi+slwi merge into one `extlwi`: jq's `srawi` must stay in the Y0 join block, i.e. `int jq = j / 8;` precedes the i test); `u8* bump =
+  p->bump; bump[..]` 45; `+ j7 + ((i & 3) << 3)` 44 (add order wrong); `mx = p->nx + 1; jx * (mx >> 3)` 48 (nx1 global: nx local ties
+  nothing, takes r9); `register int jq32 asm("r0") = jq << 5` 44 (the hard-reg copy breaks jq's preference: `srawi r7`, t_i stays r0);
+  `register u8 b asm("r11") = (u8)(..)` 44; swapping the two `nrm[k]` update statements 67 (j/nrm globals permute); a launder `jj = j; asm("" :
+  "+r"(jj) : "r"(idx))` to push the xoris after the adds 53 (the copy `mr r0,r25` survives; jq32 still r6) — the two-deaths/launder probes
+  stay barriers, as pass 10 said.
+- **45 with the same form:** 49w, size 0xa50 (-4): there jq32 IS r0 (`slwi r0,r7,5`: the `lis/lfs` pool pair between addi and srawi shifts
+  the local order) but jq -> r7 and t_i -> r0 (t_i's own `pref` bits are {r0, r9} in both units — inherited through expand_preferences from
+  `i`'s copy preferences, `(set t_i (reg i))` is a copy — so t_i takes r0 whenever it is free; the target's t_i r9 therefore needs r0 held
+  by a conflicting allocno or in smpref, i.e. jq/jq32 r0 with jq32 overlapping t_i? no: jq32 is born after t_i dies — so it must be
+  `regs_someone_prefers`: jq (lower pri, conflicts with t_i) preferring r0 = jq32 local r0. Everything hinges on jq32 -> r0, i.e. on the
+  xoris slot). One `mr rX,r8` copy disappears in 45 (reload_cse finds the unspec value already in the register).
+- Flags untouched, tree untouched (src/game/Espgen42.cpp, src/game/espgen45.cpp as after pass 9, 9w / 42w); objects.py untouched; 111 not
+  re-run. Next: the xoris slot — find what the original's Z block had ready at t7/t8 with priority >= 80 (candidates: the `lwz pos` and
+  `slwi jq32` issued later, an extra Z insn feeding the stbx chain, or `(f32) j` written as a Z-derived value); do not permute pins.

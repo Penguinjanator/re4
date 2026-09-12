@@ -48,7 +48,7 @@ Float32 cft_yuv_rgb_coeff[9];
 Float32 cft_basic_ccir601[9];
 
 void cnvDynamicYcc420plnToA256UserTable(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl);
-void cnvStaticYcc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst);
+void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst);
 
 /* one tile row pair of the ARGB 4:2:0 conversion (four pixels): AR half from the alpha plane word
  * and the Cb pair, GB half from the luma word and the Cr pair */
@@ -67,8 +67,9 @@ void cnvStaticYcc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst);
 		  ((crv) >> 8)
 
 /* (M1: the original copies the loaded pln.y/pln.cb into the y/cb pointers with two `mr` and uses
- * the loaded registers for the half-plane offset; the end-of-block increments are interleaved with
- * the y/a chain starting from cb, ours from cr2) */
+ * the loaded registers for the half-plane offset; the chroma increments sit between the row steps
+ * and the `y++`/`a++`: the post-schedule addi sink moves them to the block end in statement order
+ * and the post-RA scheduler uses them as the `subf` latency fillers in that order) */
 void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 {
 	CFT_YCC420PLN pln;
@@ -128,14 +129,14 @@ void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 			}
 			y += ystep;
 			a += ystep;
-			y++;
-			a++;
-			y -= yback;
-			a -= yback;
 			cb++;
 			cb2++;
 			cr++;
 			cr2++;
+			y++;
+			a++;
+			y -= yback;
+			a -= yback;
 			j++;
 			ar += 16;
 			gb += 16;
@@ -163,10 +164,13 @@ void CFT_Ycc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
 	(t) = (((w) << 16) & 0xFF000000) | (((w) & 0xFF) << 8);                                \
 	(dst)[1] &= (t) | 0x00FF00FF
 
-/* (M1: the row words go through one reused temporary `t`; its last two webs (the fourth row) are
- * sunk into their uses and colour r31/r11/r12 instead of the original's r12/r11/r31, and the first
- * row's `w` takes r31 instead of r30; identical instruction stream) */
-void cnvStaticYcc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst)
+/* (the `const` parameters are the original's: loads through a pointer-to-const get an alias class
+ * disjoint from the stores, so the post-RA scheduler hoists the parameter loads above the
+ * prologue's `stwu`/`stw` as the target does; M1: the row words go through one reused temporary
+ * `t`; its last two webs (the fourth row) are sunk into their uses and colour r31/r11/r12 instead
+ * of the original's r12/r11/r31, and the first row's `w` takes r31 instead of r30; identical
+ * instruction stream) */
+void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
 {
 	Sint32 i;
 	Sint32 j;
