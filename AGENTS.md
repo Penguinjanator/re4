@@ -27316,3 +27316,56 @@ ladbg.txt), `rtl1.py FILE A B` (one line per insn of a dump line range).
   cse2's flushes 2-8 the same way (their knob is the ending-in-4 pad of the first-after-cse1-flush window: SAVE_EVENT,
   DATASET, PARENT, SPEED?, COLOR?, BLEND, RELEASE, VEC0, WORK1, WORKSP0, and a not-ending-in-4 pad in the windows after it to
   hold cse1), (3) only then the callee-saved names and seg 0.
+
+### Tool RELs, t_event closer 5 (t_event/t_event 17 words and Tools/t_esp_area 7 words READ, nothing applied: SubToolMessMove 17 unchanged, ToolEspArea 7 unchanged; dbg_tool.h and t_event.cpp untouched; not flipped; 2026-09-12)
+Scratch /home/adityas/.cache/tev5/ (`hv.sh HDR [units..]` judges a dbg_tool.h variant on all five includers through `variant.sh` (rewrites
+`#include "dbg_tool.h"` to the variant's absolute path; 1.2 s for the five), `mk.py OUT [--base=B] OLD NEW..` exact-substring variants,
+`ins.py DUMP FUNC [regex]` one line per insn of an `rtl.sh` dump with block/loop notes, `try.sh V.cpp` = SubToolMessMove word lines;
+h*.h header variants, v*.cpp t_event variants; delete at the end of the family). No tree file edited by this pass.
+- **ToolEspArea 7w = the block-13 local-alloc tie, numbers confirmed (LADBG, `variant.sh` baseline reproduces 7/4/IDENT/17/IDENT):**
+  `q0 reg299 work refs 4 birth 4 death 52 pri 1666 -> 29`, `q1 reg301 name refs 5 birth 6 death 48 pri 2380 -> 30` (placed first),
+  `q2 reg297 li 4 refs 2 birth 14 death 26 pri 1666 -> 28`, `q3 reg298 li 25 [18,32) 1428 -> r0`, `q5 reg303 li 5 [34,50) 1250 -> 28`,
+  `q6 reg309 li 32 [38,54) 1250 -> 11`. pri = floor(log2 refs)*refs*10000/life; qty numbers = birth order, tie -> lower qty (work).
+  The suid map (sched1 output = lreg dump order): 912 lis work 4 | 914 lis name 6 | 915 addi name 8 | 913 addi work 10 | 922 li r3,0x304
+  12 | 909 li 4 14 | 923 bl new 16 | 911 li 25 18 | 924 mr r31 20 | 939/940 vt 22/24 | 943 stw x 26 | 941 stw vt 28 | 945 mr r3 30 |
+  944 stw y 32 | 917 li 5 34 | 946 bl strlen 36 | 928 li 32 38 | 956 li 0 40 | 949 li 1 42 | 948 stw w 44 | 954 stw cyMax 46 | 955 stw
+  pName 48 | 960 stw rows 50 | 961 stw pWork 52 | 962 stw numWork 54 | ... Sched1 facts: 912 and 914 both prio 12 (the `addi` of each
+  must precede `bl new`: their highs have REG_N_CALLS_CROSSED 0 -> `sched_before_next_call` anti-deps), tie -> LUID -> lis work first;
+  909 (prio 8) takes the second slot of t=3 (after 922, prio 11) ahead of 911 (prio 8, higher LUID); 917 (prio 5) takes the slot before
+  `bl strlen` at t=8; the post-strlen stores go in LUID order among the weight -1 (dying-source) ones: 948 954 955 960 961 962, then the
+  weight-0 ones. In t_lightarea the same block has work = `lwz` (q2 reg313 refs 2 [10,52) 476 -> 28, the `lis` high q0 [4,10) 3333 ->
+  r9) and the same slots, so the constant is first there by priority; only the combined `lis/addi` qty ties.
+- **What the target needs (unchanged): work pri < 1666 or wx pri > 1666.** Routes and why each fails from the shared header:
+  (a) work life 50 = `stw pWork` at suid 54: needs an RA-time insn between 960 and 961 in sched1's output that leaves no code; the store
+  order itself is LUID-driven and the target has pWork before numWork. (b) work refs 3: impossible while the high is combined (2+2). (c)
+  wx refs 3 with life <= 16, or wx born after `bl new` (life 8) with the `li 4` still hoisted above the call by sched2 (legal: r29 is
+  not call-used, `li r0,25` is). (d) loop-depth doubling of REG_N_REFS (work 8 -> 5000 vs wx 4 -> 6666 flips it) but the LOOP notes
+  change sched1/loop.c: `do {} while (0)` around x..x20 47/51/60, around `x = wx` 19/22/25, around `x = wx; y = wy` 19/22/25.
+  Tried and rejected (t_esp_area/t_lightarea/t_event words): `T* dead; asm("" : "=r"(dead) : "r"(work))` at the ctor top 7/4/17
+  (deleted before RA: flow removes a non-volatile asm whose only output is dead; LADBG numbers unchanged), the same with `"r"(wx)`
+  7/4/17, `register int xw asm("r29"); xw = wx; x = xw;` 18/21/37 (the copy takes a sched1 slot), `register T* pw asm("r28"); pw = work;
+  pWork = pw;` 7/4/17 (cse canonicalises the store back to the pseudo, the pin copy dies), `asm("" : "=m"(x) : "r"(wx))` before `x = wx`
+  7/4/25 (refs still 2 per LADBG: the anchor is gone before RA) and after it 14/12/29. Not tried: an anchor carrying `wx` that survives to
+  RA without a memory operand (none found: an asm output must be a MEM or a used register), caller-side forms in t_esp_area.cpp (not
+  owned by this pass; the previous pass measured the post-ctor `asm("" : : "r"(esp_area_work))` at 226).
+- **SubToolMessMove 17w, the mesCnt block read to the cse mechanism (cse.c find_best_addr, rs6000 `ADDRESS_COST(X) 0`):** at equal
+  address cost cse replaces a MEM address by the class member with the HIGHER rtx cost (`(p->cost + 1) >> 1 > best_rtx_cost`), so a
+  `(mem rB)` with rB = `(plus D 0xc4)` in its class becomes `0xc4(D)` -- that is ours' `lwz r8,0xc4(r30)` for `mc[0]`; the `4(rB)` read
+  survives because `(plus (plus D 0xc4) 4)` is not a valid address. Members are skipped when stale (`exp_equiv_p` with validate: a REG
+  whose tick changed). The target's `lwz r8,0(r28)` therefore had D invalidated between rB's set and the [0] read, or rB not in D's
+  class. Dest addresses get only `canon_reg`, never fold: `EvtDebug.mesCnt[no] = no` expands with the sum INSIDE the MEM (ARRAY_REF via
+  get_inner_reference + LEGITIMIZE_ADDRESS `(plus reg reg)`), so `(ashift no 2)` is canonicalised to `no` (its class {0, no, ..} has `no`
+  as first reg) and stays `stwx no,A,no`; `mc[no]` with mc a POINTER expands `(set T (plus mc (ashift no 2)))` + `(mem T)` (INDIRECT_REF of
+  PLUS_EXPR goes through force_operand), the SET's source folds to `mc` (no = 0 known in the arm) and the store becomes `0(mc)`. The
+  target's `stwx r0,r26,r27` therefore came from an ARRAY_REF whose base pseudo is `D + 0xc4` (fresh per expansion, hence the loop-hoisted
+  copy `mr r26,r28` = reload_cse/cse2 rewriting `addi mc2,D,0xc4` to a copy of rB), and its `lwzu r8,0xc0(r30)` is combine merging
+  `(set A (plus D 0xc0))` into a `(mem A)` read whose address cse did NOT rewrite (same staleness condition), A then feeding the loop's
+  `stwx no,A,no` by PRE. Variants measured (SubToolMessMove words): `d = &EvtDebug;` re-set after the 1st eprintf 17 (the no-op set does
+  not bump D's tick), `asm("" : "+r"(d))` there 28 (`lwz r8,0(r27)` appears -- the staleness mechanism confirmed -- but D is
+  rematerialised for the loop and the size changes), `s32 (&mc)[2] = *(s32 (*)[2]) &d->mesCnt[1]` 17 (the frontend still emits pointer
+  arithmetic), `EvtDebug.mesCnt[no + 1]/[no + 2]` stores 27 (constant offsets fold). Open: a C form that (1) invalidates D between the rB
+  set and the [1]/[0] reads without a second `addi EvtDebug`, (2) writes the loop's `[1]`/`[2]` stores as an ARRAY_REF with a `D + 0xc4`
+  base (a struct member array at 0xc4 in the original EventDebug -- `s32 mesCnt; s32 mesNo[2]`? -- would give exactly `(mem (plus base no))`
+  for `mesNo[no]` and `4(base)` for `mesNo[1]`; check game/event.cpp's other mesCnt uses before changing include/event.h), and (3) leaves
+  e/cMes as r29/r28 (the downstream pair follows once rB dies at the [0] read).
+- Flip order unchanged: t_esp_area needs IDENTICAL first (its 7 words), then t_lightarea's 4 vtable-reloc words, then the Tools REL.
