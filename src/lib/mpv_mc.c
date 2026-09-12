@@ -82,95 +82,144 @@ void MPVMC08_OneRefH2_TuneC(MPVMC *mc)
 	Uint8 *s = mc->src;
 	Uint32 *d = mc->dst;
 	Sint32 stride = mc->stride;
-	Uint32 w0, w1, a0, a1, x0, x1, t0, t1;
+	Uint32 w0, w1, a0, a1, x0, x1;
 	Uint32 m1 = 0xFEFEFEFE;
 	Uint32 m2 = 0x01010101;
 
+/* one row of case 0: the average is accumulated in place (w &= a; a = x & m1; x &= m2; a >>= 1; w += x; w += a) */
+#define MPVMC08_H2ROW0(o0, o1) \
+	__dcbt(s, stride); \
+	w0 = MPVMC08_W(s, 0); \
+	w1 = MPVMC08_W(s, 4); \
+	a1 = s[8]; \
+	a0 = (w1 >> 24) | (w0 << 8); \
+	a1 = (w1 << 8) | a1; \
+	x0 = w0 ^ a0; \
+	s += stride; \
+	w0 &= a0; \
+	x1 = w1 ^ a1; \
+	a0 = x0 & m1; \
+	x0 &= m2; \
+	w1 &= a1; \
+	a1 = x1 & m1; \
+	x1 &= m2; \
+	a0 >>= 1; \
+	w0 += x0; \
+	a1 >>= 1; \
+	w0 += a0; \
+	w1 += x1; \
+	d[o0] = w0; \
+	w1 += a1; \
+	d[o1] = w1;
+
+#define MPVMC08_H2ROW1(o0, o1) \
+	__dcbt(s, stride); \
+	w1 = MPVMC08_W(s, 4); \
+	w0 = MPVMC08_W(s, 0); \
+	a1 = MPVMC08_H(s, 8); \
+	a0 = (w0 << 8) | (w1 >> 24); \
+	w0 = __rlwinm(__rlwimi(w0, w1, 0, 0, 15), 16, 0, 31); \
+	a1 = (w1 << 16) | a1; \
+	x0 = a0 ^ w0; \
+	w1 = __rlwimi(w1 << 8, a1, 24, 24, 31); \
+	a0 &= w0; \
+	w0 = x0 & m1; \
+	x0 &= m2; \
+	x1 = w1 ^ a1; \
+	w1 &= a1; \
+	a1 = x1 & m1; \
+	w0 >>= 1; \
+	a0 += x0; \
+	x1 &= m2; \
+	a0 += w0; \
+	a1 >>= 1; \
+	w1 += x1; \
+	d[o0] = a0; \
+	w1 += a1; \
+	s += stride; \
+	d[o1] = w1;
+
+#define MPVMC08_H2ROW2(o0, o1) \
+	__dcbt(s, stride); \
+	w0 = MPVMC08_W(s, 0); \
+	w1 = MPVMC08_W(s, 4); \
+	x1 = MPVMC08_W(s, 8); \
+	a0 = (w1 >> 8) | (w0 << 24); \
+	w0 = (w1 >> 16) | (w0 << 16); \
+	x0 = w0 ^ a0; \
+	w0 &= a0; \
+	a1 = (x1 >> 8) | (w1 << 24); \
+	a0 = x0 & m1; \
+	w1 = (x1 >> 16) | (w1 << 16); \
+	x0 &= m2; \
+	s += stride; \
+	x1 = w1 ^ a1; \
+	w1 &= a1; \
+	a1 = x1 & m1; \
+	a0 >>= 1; \
+	w0 += x0; \
+	x1 &= m2; \
+	w0 += a0; \
+	a1 >>= 1; \
+	w1 += x1; \
+	d[o0] = w0; \
+	w1 += a1; \
+	d[o1] = w1;
+
+#define MPVMC08_H2ROW3(o0, o1) \
+	__dcbt(s, stride); \
+	a0 = MPVMC08_W(s, 4); \
+	w0 = __rlwimi(__lwbrx(s, 0), a0, 24, 8, 31); \
+	a1 = MPVMC08_W(s, 8); \
+	x0 = w0 ^ a0; \
+	w1 = (a1 >> 8) | (a0 << 24); \
+	w0 &= a0; \
+	a0 = x0 & m1; \
+	x0 &= m2; \
+	x1 = w1 ^ a1; \
+	w1 &= a1; \
+	a1 = x1 & m1; \
+	a0 >>= 1; \
+	w0 += x0; \
+	x1 &= m2; \
+	w0 += a0; \
+	a1 >>= 1; \
+	w1 += x1; \
+	d[o0] = w0; \
+	w1 += a1; \
+	s += stride; \
+	d[o1] = w1;
+
 	switch ((Uint32)s & 3) {
 	case 0:
-		for (i = 0; i < 8; i++) {
-			__dcbt(s, stride);
-			w0 = MPVMC08_W(s, 0);
-			w1 = MPVMC08_W(s, 4);
-			a1 = s[8];
-			a0 = (w1 >> 24) | (w0 << 8);
-			a1 = (w1 << 8) | a1;
-			x0 = w0 ^ a0;
-			s += stride;
-			x1 = w1 ^ a1;
-			t0 = w0 & a0;
-			t0 += x0 & m2;
-			t1 = w1 & a1;
-			t1 += x1 & m2;
-			d[0] = t0 + ((x0 & m1) >> 1);
-			d[1] = t1 + ((x1 & m1) >> 1);
-			d += 2;
+		for (i = 0; i < 4; i++) {
+			MPVMC08_H2ROW0(0, 1)
+			MPVMC08_H2ROW0(2, 3)
+			d += 4;
 		}
 		break;
 	case 1:
 		s -= 1;
-		for (i = 0; i < 8; i++) {
-			__dcbt(s, stride);
-			w1 = MPVMC08_W(s, 4);
-			w0 = MPVMC08_W(s, 0);
-			a1 = MPVMC08_H(s, 8);
-			a0 = (w0 << 8) | (w1 >> 24);
-			w0 = __rlwinm(__rlwimi(w0, w1, 0, 0, 15), 16, 0, 31);
-			a1 = (w1 << 16) | a1;
-			x0 = a0 ^ w0;
-			w1 = __rlwimi(w1 << 8, a1, 24, 24, 31);
-			t0 = a0 & w0;
-			t0 += x0 & m2;
-			x1 = w1 ^ a1;
-			t1 = w1 & a1;
-			t1 += x1 & m2;
-			d[0] = t0 + ((x0 & m1) >> 1);
-			d[1] = t1 + ((x1 & m1) >> 1);
-			s += stride;
-			d += 2;
+		for (i = 0; i < 4; i++) {
+			MPVMC08_H2ROW1(0, 1)
+			MPVMC08_H2ROW1(2, 3)
+			d += 4;
 		}
 		break;
 	case 2:
 		s -= 2;
-		for (i = 0; i < 8; i++) {
-			__dcbt(s, stride);
-			w0 = MPVMC08_W(s, 0);
-			w1 = MPVMC08_W(s, 4);
-			x1 = MPVMC08_W(s, 8);
-			a0 = (w1 >> 8) | (w0 << 24);
-			w0 = (w1 >> 16) | (w0 << 16);
-			x0 = w0 ^ a0;
-			t0 = w0 & a0;
-			a1 = (x1 >> 8) | (w1 << 24);
-			w1 = (x1 >> 16) | (w1 << 16);
-			s += stride;
-			x1 = w1 ^ a1;
-			t1 = w1 & a1;
-			t0 += x0 & m2;
-			t1 += x1 & m2;
-			d[0] = t0 + ((x0 & m1) >> 1);
-			d[1] = t1 + ((x1 & m1) >> 1);
-			d += 2;
+		for (i = 0; i < 4; i++) {
+			MPVMC08_H2ROW2(0, 1)
+			MPVMC08_H2ROW2(2, 3)
+			d += 4;
 		}
 		break;
 	case 3:
 		s -= 3;
-		for (i = 0; i < 8; i++) {
-			__dcbt(s, stride);
-			a0 = MPVMC08_W(s, 4);
-			w0 = __rlwimi(__lwbrx(s, 0), a0, 24, 8, 31);
-			a1 = MPVMC08_W(s, 8);
-			x0 = w0 ^ a0;
-			w1 = (a1 >> 8) | (a0 << 24);
-			t0 = w0 & a0;
-			t0 += x0 & m2;
-			x1 = w1 ^ a1;
-			t1 = w1 & a1;
-			t1 += x1 & m2;
-			d[0] = t0 + ((x0 & m1) >> 1);
-			d[1] = t1 + ((x1 & m1) >> 1);
-			s += stride;
-			d += 2;
+		for (i = 0; i < 4; i++) {
+			MPVMC08_H2ROW3(0, 1)
+			MPVMC08_H2ROW3(2, 3)
+			d += 4;
 		}
 		break;
 	}

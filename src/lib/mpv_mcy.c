@@ -116,6 +116,8 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 	Sint32 stride = mc->stride;
 	Uint32 *d = mc->dst;
 	Uint32 w0, w1, w2, w3, w4, a0, a1, a2, a3, x0, x1, x2, x3;
+	Uint32 m1 = 0xFEFEFEFE;
+	Uint32 m2 = 0x01010101;
 
 	switch ((Uint32)s & 3) {
 	case 0:
@@ -125,19 +127,19 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 			w1 = ((Uint32 *)s)[1];
 			w2 = ((Uint32 *)s)[2];
 			w3 = ((Uint32 *)s)[3];
-			w4 = s[16];
-			a0 = (w0 << 8) | (w1 >> 24);
+						a0 = (w0 << 8) | (w1 >> 24);
 			a1 = (w1 << 8) | (w2 >> 24);
 			a2 = (w2 << 8) | (w3 >> 24);
-			a3 = (w3 << 8) | w4;
+			a3 = s[16];
+			a3 = (w3 << 8) | a3;
 			x0 = w0 ^ a0;
 			x1 = w1 ^ a1;
 			x2 = w2 ^ a2;
 			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {
@@ -154,22 +156,22 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 			w2 = ((Uint32 *)s)[2];
 			w3 = ((Uint32 *)s)[3];
 			w4 = ((Uint32 *)s)[4];
-			a0 = (w0 << 16) | (w1 >> 16);
-			w0 = (w0 << 8) | (w1 >> 24);
-			a1 = (w1 << 16) | (w2 >> 16);
-			w1 = (w1 << 8) | (w2 >> 24);
-			a2 = (w2 << 16) | (w3 >> 16);
-			w2 = (w2 << 8) | (w3 >> 24);
-			a3 = (w3 << 16) | (w4 >> 16);
-			w3 = (w3 << 8) | (w4 >> 24);
-			x0 = w0 ^ a0;
-			x1 = w1 ^ a1;
-			x2 = w2 ^ a2;
-			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			a0 = (w0 << 8) | (w1 >> 24);
+			w0 = (w0 << 16) | (w1 >> 16);
+			a1 = (w1 << 8) | (w2 >> 24);
+			w1 = (w1 << 16) | (w2 >> 16);
+			a2 = (w2 << 8) | (w3 >> 24);
+			w2 = (w2 << 16) | (w3 >> 16);
+			a3 = (w3 << 8) | (w4 >> 24);
+			w3 = (w3 << 16) | (w4 >> 16);
+			x0 = a0 ^ w0;
+			x1 = a1 ^ w1;
+			x2 = a2 ^ w2;
+			x3 = a3 ^ w3;
+			d[0] = MPVMC16_AVG2V(a0, w0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(a1, w1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(a2, w2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(a3, w3, x3, m1, m2);
 			s += stride;
 			d += 2;
 			if (i == 7) {

@@ -28706,3 +28706,85 @@ only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
 - Setup residue (post-split): `subf r7, r10, r11` (ywidth - width) is scheduled before `lwz r12, 0(r4)` (d) and `slwi r0, r11, 2` (yw4)
   before `add r30` (yskip) in the target, after them in ours — the statement order of the setup (yskip's expression before d's load?) once
   the body matches.
+
+### Tool RELs, t_esp pass 23 (t_esp 208/212: InitTool 1788 -> 1771w in the tree, seg 0 EXACT (d136 -> 0) and the pass-14 `k8/k6` spill-set asm REMOVED: the seg-0 "rotation phase" was two DB_POINT `this` copies surviving cse2 (cse2 flushes F2'/F6' inside a copy -> pos.y-store interval), read off RLDDBG + the entry addi classes; the tail's r14-r18 "remat homes" are global.c allocations, not reload; nothing flipped; 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = pass 22 + (a) SAVE_EVENT in-block pad `{ int d_; d_ = 1; d_ = 4; }` after `f32 h` (after
+  cse1 F2 = SAVE_EVENT+27, so `d_ = 4` heads const 4 and the pad is (2 cse1, 1 cse2)), (b) SAVE_CHECK pad 4 -> 2 sets (-2 cse1),
+  (c) LIFE pad 37 -> 39 sets, (d) ROTATE `int sx1;` shared by the ACCELE rows 4-6 (`sx1 = 1; int sx = sx1;` / `int sx = sx1;`
+  x2 = -2 cse1-only), (e) `u32 k8/k6` + the two end-of-function asms deleted; dead-set block 28 (N 5233). Locked ninja + bytecmp:
+  InitTool 1771w (size 0xa20c/0xa0e8), 208/212. Grids: cse1 unchanged (LOAD_EVENT+4 SAVE_EVENT+27 OPTION+540 PATH+541 SIZE+174
+  SPEED+684 COLOR+863 LIFE+8 ROTATE+644(=647 in pass-22 coordinates: 3 ROTATE insns removed before it) WORK0+14 WORK6+14
+  BASEPOS+123), cse2 LOAD_EVENT+53 OPTION+70 PATH+348 SPEED+109 COLOR+554 ANMRATE+43 SUB+47 WORKSP1+78. lc segs 221 782 (623
+  gone), mset [2 9 4 3 4 8 5 9 15 3 38 0 18 5], seg summary 289 differing segments / total_d 2487 (pass 22: 298 / 2664).
+- **Seg 0 d136 read exactly (RLDDBG + `/tmp/t23/rldmap.py GREG RLD` = every reload pick with its post-reload insn):** the 892
+  entry `addi rX,r1,C; stw rX,S(r1)` pairs are output reloads of the PRE'd `&pos` pseudos; `allocate_reload_reg` walks
+  spill_regs {r0,r6,r8,r9,r10,r11,f0,LR} (n_spills 8; f0 and LR ARE in the set) round robin from `last_spill_reg` (persists
+  across insns; every CALL_INSN takes an LR reload = the robin restarts at r0 after each call, so the phase never carries across a
+  `bl`). r6/r9/r11 hold live pseudos in the entry, so BASE-class picks alternate r8/r10 and only a GENERAL-class pick can take
+  r0. Ours differed from the target at exactly two pseudos (C = 0x9a0 = OPTION "FOG   :" CreateString, C = 0x1360 = ANMRATE
+  CreateNumeric2): ours picked r0 (class GENERAL), the target r8 (class BASE), and each skip inverts the r8/r10 alternation until
+  the next GENERAL pick (33 addis, d136). A `&pos` pseudo is GENERAL-class iff its only uses are copies: in ours those two had
+  `(set (reg/v this) P)` copies SURVIVING cse2 (lreg: `used 2 times`, `pref GENERAL_REGS`), every other one has the pos.y store
+  `(mem (plus P 4))` directly (3 uses, `pref BASE_REGS`).
+- **Why the `this` copies survive: cse2 flushes, not cse1.** cse1 never folds `(mem (plus this 4))` -> `(plus (addressof) 4)`
+  (find_best_addr's validate_change fails: not a legitimate address) and never deletes the `this` copy; gcse PRE turns the
+  addressof into `(set this P)`; **cse2's canon_reg** replaces `this` by P in the pos.y store and the argument copy, and then
+  the copy is dead. A cse2 flush between `(set this P)` and the pos.y store leaves `this` with a base use = a real pseudo
+  (`lwz r9,slot; mr r6,r9; stfs 4(r9)` in ours vs `lwz r6,slot; stfs 4(r6)` in the target at seg 303; the seg-619 target shape
+  `lwz r7,slot; mr r9,r7; stfs 4(r9)` is NO copy: `(set r7 P)` first, then the store's BASE reload gets `reload_override_in` = r7
+  from find_equiv_reg and the rotation's r9). A flush between the pos.y store and the argument copy is invisible (the copy is
+  tied to the argument register). Rule: **every cse2 flush must avoid (this-copy, pos.y store] of every DB_POINT block** (2 of
+  ~11 cse2 insns per CreateString block, 4 of ~20 per CreateNumeric2 block); the seg-0 rotation is the oracle for the two
+  visible ones, `/tmp/t23/surv.py DUMP.cse2` lists the survivors (`*` = base use kept = visible).
+- **Fits:** F6' ANMRATE+46 -> +44 (allowed [36,44] with 619's 80.0f still fresh): LIFE 39 sets (+2 cse2 after F8; F7' SUB+48,
+  F8' WORKSP1+79 move too, both harmless: F7' stays outside SUB's interval, F8' still inside WORKSP1's pos.y-store -> argument
+  interval = invisible), cse1 +2 paid back by `sx1` (F9/F10 exact). LIFE 41 + `sx0` sharing (F6' +42) is 1775w, worse. F2'
+  OPTION+71 -> +70 (allowed [62,70] or [73,81]): no pad between F2 and F2' has cse2 weight (LOAD_CHECK's `1:2:3:5:4` = (5,0):
+  SAVE_EVENT's own `flg = 4` after F2 heads const 4, so the (n, n-1) rule needs the pad AFTER F2 in SAVE_EVENT itself, before
+  its `flg`), hence the in-block pad `1:4` = (2,1) + SAVE_CHECK `1:2`. seg 0 d136 -> d58 (F6') -> d2 (F2') -> exact.
+- **`k8/k6` removed (item 2):** with the grids fitted the plain source already has spill_regs {r0,r6,r8,r9,r10,r11,f0,LR}
+  (`Spilling reg 6` 14 / `reg 8` 6 lines in .greg, 284 r6 / 533 r8 picks in RLDDBG), i.e. the pass-14 forcing is unnecessary
+  now (it was needed at 6627w when the tail's pressure differed). Removing it: segs 172/193/203/213/331 (LOAD/OPTION
+  CreateNumeric `li r8,1` position) and 802 (epilogue) closer, 516/517 one insn shorter; words 1734 -> 1771 is difflib
+  alignment across the 4-insn size change (seg metric 2527 -> 2487), applied.
+- **Item 3 (slot permutation) needs nothing:** the C -> S slot map was already identical in both (only the registers of 33
+  addis differed); N 5233 after the removal, dead-set block unchanged.
+- **The tail's `lis r14 LoadNowClose` / `li r14,1` / `lis r14 g_pEditSeq2` names are global.c allocations, not reload picks:**
+  RLDDBG shows no r14-r18 reload in InitTool, `.greg` "Register dispositions" lists 5407 (keyMode `1`) in r14, 4920/4924/9697/
+  9701/12041/12045/12112.. in r15-r18 (32 tail pseudos in r14-r18). Pass 20/22's "spill-register rotation / remat home"
+  reading of them is withdrawn; the next item is global.c order/conflicts (GDBG) for those pseudos: the target leaves the
+  keyMode `1` pseudo UNALLOCATED (fresh `li` per store) and gives r14 to `LoadNowClose_callback`'s high.
+- Harness /tmp/t23 (kept): base.cpp (pass-22 tree), D1.cpp (= the tree), ct.sh/scan.sh (t22's + surv.py + runv), pad.py (also
+  rewrites `TOOL_WINDOW_CSE_PAD();` pads), mkrot.py (ROTATE sx sharing), rldmap.py, surv.py, rld_base.log, greg/lreg/cse/cse2
+  extracts. /tmp/t18..t22, ~/.cache/tesp15, the kit untouched.
+- **APPLIED, mpv_mcy `MPVMC16_OneRefH2_TuneC` 225 -> 197w, .text size now exact (0x470; the unit's `.text` no longer "sizes differ"):** (1) case 0:
+  `a3 = s[16]; a3 = (w3 << 8) | a3;` instead of `w4 = s[16]; a3 = (w3 << 8) | w4;` (s4: 201w, size exact) — the byte-load web is a3's FIRST
+  web and the or->rlwimi fusion's `mr` into a3's second web is kept, giving the target's `lbz r20; mr r8,r20; rlwimi r8,w3,8,0,23` and, with
+  it, the kept `srwi; mr; rlwimi` copies of a0/a1/a2 (the tree had 2 of 4; the `a_k = w_k << 8; a_k |= ..` split spelling (m16a) changes
+  nothing: the frontend forwards the single-use first def; `a_k = w >> 24; a_k |= w << 8` (s2) 206w); (2) case 0 through `MPVMC16_AVG2V(w, a,
+  x, m1, m2)` with `Uint32 m1 = 0xFEFEFEFE; Uint32 m2 = 0x01010101;` function locals = the target's association `(w & a) + (sh + (x & m2))`
+  (the literal-mask macro rebuilds `sh + ((w & a) + (x & m2))`); (3) case 1: the byte shift FIRST and the roles swapped — `a0 = (w0 << 8) |
+  (w1 >> 24); w0 = (w0 << 16) | (w1 >> 16); x0 = a0 ^ w0; d[0] = AVG2V(a0, w0, x0, m1, m2)` (the target computes `srwi w>>24` before `srwi
+  w>>16` for every word and xors byte ^ half; u1/u2 197w, `x0 = w0 ^ a0` order does not matter). In-place accumulation (s6, `w0 &= a0; a0 = x0
+  & m1; ..`) is WRONG for the 16x16 (230w, size -4: the target's `and r27,w0,a0` is a fresh register). Raw-order probes (lbz after a2, loads
+  w1,w2,w0,w3) change nothing (t1/t2 202w). Residue 197w = colours (target stmw r20 = 12 callee-saved, ours r21/r22) + the post-RA order that
+  follows them (target `srwi w3>>24; mr a1; lbz` where ours issues the lbz first: sched.py on ours picks LBZ h=10 / MR h=12 in one cycle).
+- **APPLIED, mpv_mc `MPVMC08_OneRefH2_TuneC` -> the target's structure (436 -> 494w but size 0x324 -> 0x40c vs 0x3ec; the old form was 200
+  bytes short):** `for (i = 0; i < 4; i++) { ROW(0, 1) ROW(2, 3) d += 4; }` per case (two rows per iteration, ctr 4) with the row's average
+  accumulated IN PLACE (`x0 = w0 ^ a0; w0 &= a0; x1 = w1 ^ a1; a0 = x0 & m1; x0 &= m2; w1 &= a1; a1 = x1 & m1; x1 &= m2; a0 >>= 1; w0 += x0; a1 >>=
+  1; w0 += a0; w1 += x1; d[o0] = w0; w1 += a1; d[o1] = w1;` = the target's `and r4,r4,r5 / and r8,r8,r9` in the word registers and `and r10,r10,
+  r12` in x0's), the tree's per-case a0/a1/w0/w1 expressions kept (case 1 `__rlwimi/__rlwinm`, case 3 `__lwbrx`), mask variables m1/m2 (literal
+  masks re-materialise `lis/subi` per case: h8e 506w). Every row is the target's 26 opcodes; the residue is a 2-register frame (ours peaks at
+  12 live: the pre-RA scheduler issues `and (x0 & m1)` in the cycle of `and w0,a0` because it "frees" its srwi, where the target's post-RA
+  order has `and w0,a0; xor x1; and a0=x0&m1` — its `x0 & m1` took a0's register r5, i.e. was coloured after a0 died = emitted after `and w0,
+  a0` within that cycle) -> m2 lands in r31, `stwu/stw r30/r31`, a shared `b epilogue` instead of the target's per-case `blr`/`bgelr`. Next: the
+  in-cycle emission order (pass-11 "sched.py --verbose": frees > height > class > input) — find the DAG change that lets `and w0,a0` go
+  first (e.g. `w0 &= a0` freeing a successor: the `x0 & m2` and issued before it), or make `x0 & m1` share a0's register by construction.
+- **16x16 V2 (225w, colours only):** declaration-order probes v1-v4 (natural, reversed, target-colour order `x1, a3, w3, a2, w2, x0, x2, x3, a0,
+  w0`) 221-230w; nothing applied. The target hands r29 x1, r24 a3, r23 w3, r22 a2, r21 w2, r18 a0, r17 w0 with backend temps in r25-r28 BETWEEN
+  x1 and a3 — not a plain "own locals in declaration order" level; read it with chaitin.py next.
+- Tree: src/lib/mpv_mcy.c (4p 30w unchanged, H2 197w, V2 225w; 2/5), src/lib/mpv_mc.c (H2 two-row form 494w/0x40c, V2 73w; 3/5); locked ninja
+  of both objects OK; objects.py untouched, nothing flipped, no `ninja -k 0`. Pass-12 harness /home/adityas/.cache/cri_swar12 DELETED; the
+  pass-13 harness /home/adityas/.cache/cri_swar13 (gen.py/p.sh/cnt.py/sum.sh/h8gen.py, bodies/, ra_*/out_* dumps) is kept for the next pass —
+  delete it when the 4p cut and the H2 frames are closed.
