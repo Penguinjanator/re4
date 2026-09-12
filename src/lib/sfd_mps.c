@@ -2,9 +2,9 @@
  * of ring buffer 0, demultiplexes it through an MPS handle and copies the packet payloads into the
  * video (buf 1), audio (buf 2) and private/user-output (buf 7) buffers or user element stream joints.
  *
- * Status: 24/26 functions identical. sfmps_ExecServerSub (16w: ret/len swapped, the AddRead helper's
- * `ret` local is the coalescing leader below len) and sfmps_DecodeOneUnit (13w: the scan counter's
- * colour, one M1 pin) have the target's instruction stream with a different register assignment. */
+ * Status: 25/26 functions identical. sfmps_DecodeOneUnit (13w: the scan counter's colour and the
+ * IsZero unit/pointer temporaries, one M1 pin) has the target's instruction stream with a different
+ * register assignment. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "mps.h"
@@ -981,13 +981,14 @@ static Sint32 sfmps_AddRead(SFD sfd, Sint32 nbyte)
 	return ret;
 }
 
-static Sint32 sfmps_ExecServerLoop(SFD sfd)
+/* `len` is the caller's own local passed by address: an own local of ExecServerSub ranks below the
+ * AddRead clone's `ret` (the leader of ret's coalesced class), so ret colours r26 above len r25 */
+static Sint32 sfmps_ExecServerLoop(SFD sfd, Sint32 *len)
 {
 	Sint32 wcnt, rcnt;
 	Sint32 nbyte, nskip;
 	Sint32 r;
 	Sint32 limit;
-	Sint32 len;
 	Sint32 ret;
 	Uint8 *data;
 	Sint32 tot;
@@ -999,11 +1000,11 @@ static Sint32 sfmps_ExecServerLoop(SFD sfd)
 	tot = 0;
 	limit = 0x7FFFFFFF;
 	while (tot < limit) {
-		ret = sfmps_GetRead(sfd, &data, &len, &total);
+		ret = sfmps_GetRead(sfd, &data, len, &total);
 		if (ret != 0) {
 			break;
 		}
-		ret = sfmps_Decode(sfd, data, len, &nbyte, &nskip, total);
+		ret = sfmps_Decode(sfd, data, *len, &nbyte, &nskip, total);
 		if (ret != 0) {
 			break;
 		}
@@ -1033,6 +1034,7 @@ Sint32 sfmps_ExecServerSub(SFD sfd)
 {
 	Sint32 term1, term2, term3;
 	MPS mps;
+	Sint32 len;
 
 	term1 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout2);
 	term2 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout);
@@ -1042,7 +1044,7 @@ Sint32 sfmps_ExecServerSub(SFD sfd)
 	}
 	mps = SFMPS_MPS(sfd);
 	MPS_SetSystemFn(mps, (void *)SFSET_GetCond(sfd, SFD_COND_SYSFN), (void *)SFSET_GetCond(sfd, SFD_COND_SYSOBJ));
-	return sfmps_ExecServerLoop(sfd);
+	return sfmps_ExecServerLoop(sfd, &len);
 }
 
 /* COMPILER-DIFF: M3 -- sfmps_ExecServerSub's loop lives in the inlined sfmps_ExecServerLoop helper (its locals

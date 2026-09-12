@@ -26780,8 +26780,8 @@ block's `stfd`/`stw`/`stb` data numbers after the addi's slot.**
   InitTool 2182 words. Not run: `ninja -k 0`, make_rel --verify, shasum (nothing flipped). Scratch /tmp/t17 (mk.py variant
   generator, v*.py, scanD.sh) is disposable; the kept harness is ~/.cache/tesp15 + the kit.
 
-### CRI pass 43 (sfd_mps ExecServerSub 16 -> 0 and adx_sje encode_data 39 -> 0 in pure C: sfd_mps 25/26, adx_sje 16/17; DecodeOneUnit 13w, write_end_code 2w, cftfx 3/6 unchanged; IN PROGRESS; 2026-09-12)
-Harness /home/adityas/.cache/cri43/ (`try.sh <unit> <variant.c> [FUNC]` over ~/.cache/kit/variant.sh, ra.py dumps ra_*; deleted at the end).
+### CRI pass 43 (sfd_mps ExecServerSub 16 -> 0 and adx_sje encode_data 39 -> 0 in pure C: sfd_mps 25/26, adx_sje 16/17; DecodeOneUnit 13w, write_end_code 2w, cftfx 3/6 unchanged; nothing flipped, 111 OK; 2026-09-12)
+Harness /home/adityas/.cache/cri43/ (deleted: `try.sh <unit> <variant.c> [FUNC]` over ~/.cache/kit/variant.sh, `model.py DUMP names [+|-a:b ..]` = chaitin.py with edited edges, `snap.py`/`order.py` = removal-rule experiments, ra.py dumps ra_*).
 - **sfmps_ExecServerSub 16 -> 0 (pure C): `len` is an OWN local of ExecServerSub passed as `Sint32 *len` into the inlined
   sfmps_ExecServerLoop (which passes it on to GetRead and reads `*len` for Decode).** The dump had ret's class = {@774 ret r47,
   AddRead's `ret` @796 r43 (leader)} coloured after len @775 r46. Own locals of the real function sit at r33-r37, BELOW every clone
@@ -26810,6 +26810,53 @@ Harness /home/adityas/.cache/cri43/ (`try.sh <unit> <variant.c> [FUNC]` over ~/.
   unit is a CSE @temp (lowest ids), the clone param the highest id of level 1. Tried: `unit` own local (substituted, 13w),
   IsZero(data, unit) (13w), the skip arm as a helper (not inlined, strip_unused fails), the scan loop as a helper (58w, param
   copies), `if (total < 0)` after the loop (159w), pins unit r3 / cnt r21 / both (157/133/88w, level shifts).
+- **DecodeOneUnit, the M1 pin's cost measured: the pin `asm { mr r31, err; mr ret, r31 }` makes ret a coalesced ghost (r48 -> r31),
+  so every node live with ret has BOTH r31 and the ghost as neighbours (+1 against a real ret node).** That +1 is what lifts
+  data/len/nbyte/nskip/wk to level 3 (no pin: data 28 at round 2 -> everything removed in round 2, sfd alone L3 -> sfd r31, 155w
+  and the `ret = err` copy folded, size -4), and the same +1 keeps cnt at 31 (level 2, r23) where the target's cnt is level 1
+  (r21 = the lowest free after bufin/dst were handed r21). chaitin.py says ONE fewer cnt edge gives the target (cnt r21, all
+  else unchanged), but see the model caveat below: the compiler needs cnt at <= 28 by its own rule. Levers that do not work:
+  `q = p + len` / `v` for the three kind/xsize/x14 loads as own locals declared last (the temps stay as nodes, 30w/13w),
+  `asm { mr ret, err }` (142w), pins through r0/r12 (350/171w), a mps pin r23 (166w: reserves r23, stmw r20; `asm` on `mps`
+  right after `mps = wk->mps` fails with "not assigned to a register", placed before MPS_DecHd it compiles), total r22 / bufin
+  r21 pins (162/156w), casts on call arguments to create ghosts (no ghost: `(Uint8 *)`, `(void *)`, `(Sint32 *)0`, `(Sint32)f()`
+  all identical objects). What the target must have: ret r31 WITHOUT a pin = ret/wk/nskip/nbyte/len/data/sfd all surviving
+  round 2, i.e. data at >= 29 there (one more neighbour that is not adjacent to cnt) -- a ghost or a value live in the
+  prologue/syshd region only. Not found.
+- **chaitin.py removal-rule caveat (measured on 13 dumps):** the model's ascending scan with in-pass decrement reproduces the
+  compiler on 11 dumps (0 mismatches) but NOT on v1/v3 (an extra own local declared LAST, adjacent to cnt): cnt at 31 total with
+  three lower-id removable neighbours (v/q, ok, hn) is NOT removed in pass 1 by the compiler (19/31, pass 2) although the model
+  removes it at 28; in n1 (no pin, cnt 30 total, two such neighbours) the compiler DOES remove it at 28 in pass 1. Snapshot
+  semantics (degrees frozen at the pass start) fits v1/v3 but breaks n1/ess/ed (24/8/18 mismatches); descending or
+  declaration-order scans are worse. So the in-pass rule is right in general and the case "a newly added lowest-id own local
+  adjacent to the node" misbehaves -- the third decrement did not count. Open; keep using `chaitin.py --check` and trust it
+  only when it reproduces the dump it is fed.
+- **cftfx CFT_Argb420ToArgb8 38w, both mechanisms named:** (1) prologue (the 8-byte size gap): the target keeps `lwz r5 pln.y;
+  lwz r4 pln.cb; mr r9, r4 (cb); mr r6, r5 (y); add r5, r5, r3 (a from the temp)`. In ours the frontend leaves `y = (@211 =
+  pln.y)` + `a = @211 + half` (a2 dump: no forwarding in the AST), and the RA gives @211 y's colour r6 (the copy is a
+  compiler copy with the source still live: no interference edge is added at a copy, so the biased colouring coalesces
+  them); cb's copy survives only because @212's colour r4 is taken by `ar`. The target's y and @211 interfere = y (or
+  @211) is DEFINED while the other is live: y needs a second definition between the copy and `a`'s use of the temp, or
+  the temp must be defined after y. Every ordering of the four statements, `Uint8 *py/pcb` locals, `register`, `y++; y--`,
+  a repeated `y = pln.y` (dead first def removed) give the same object; `y = a - half` keeps the copy but as a real `subf`
+  (22w, size equal). (2) the 7-word loop tail: the pre-RA schedule (backend-10) IS the target's order (cb, cb2, cr, cr2, j,
+  ar, gb increments interleaved with the y/a chain); backend-11 peephole-forward then sinks the `addi cb/cb2/cr, 2` (each
+  followed by a non-increment instruction) to the block end and strips their line numbers -- pass 38's IV-increment sink,
+  here on three of the seven pointer increments (cr2/j/ar/gb, followed only by other increments, stay). The target was not
+  sunk. Independent of the y/cb copies (b8 keeps the tail words).
+- cftfx UserTable 135w: k8 (four `w4 = ywidth - 4; y += w4;` defs) with `#pragma opt_loop_invariants off` around the function
+  still places the surviving web's `subi` in the preheader (the frontend's placement, as pass 36 found). Unchanged.
+- cftfx StaticV 36w: ours DOES reschedule B0 post-RA (flag 0x5 -> 0xd, backend-14) but keeps `stwu` in cycle 0 with the
+  callee-saved `stw`s right after it, while the target issues `lwz r9, 4(r4); li r6, 0` BEFORE `stwu` and scatters the two
+  saves 10 and 20 instructions later: in the target the parameter loads do not depend on the frame store, in ours they do
+  (the same compiler treats `stw r24, 0(r6)` -> `lwz 0x1f74(r3)` as dependent in DecodeOneUnit, both builds). UserTable's
+  target has `stwu; li; lwz; stmw` (stwu first, load before the saves). Not understood; not touched.
+- adx_sje write_end_code: `#pragma scheduling 601/603/604/750/7400/7450/on` for the function: 68/39/24/2/2/25/2w. An inlined
+  `adxsje_st16(ck.data, *(Sint16 *)src)` helper (arguments left to right) still gives the initial code `lha; lwz; sth`
+  (value before address): the store's address load cannot be ordered first from C here.
+- Tree: src/lib/sfd_mps.c (ExecServerSub form, header comment), src/lib/adx_sje.c (encode_data + two helpers, read_pcm
+  declaration order, header comment). objects.py untouched (no unit IDENTICAL). `ninja -k 0` + `dtk shasum -c` 111 OK.
+  (End of CRI pass 43. The idEditUnit bullets that follow were appended by the t_id agent while this section was the file's tail.)
 - **idEditUnit 15 -> 9 (case-2 arm's three `lbz/stb` copies r9/r0/r9 as the target).** local-alloc.c block_alloc's `case 3` sort
   compares QTY NUMBERS 0/1 and 1/2, not `qty_order[]` entries, so with exactly three block-local qtys q0 is allocated first whatever
   the priorities (q0 < q1: two exchanges cancel; q0 >= q1: none) -> the `no` temp (pri 5000: `mr r3,r30` sits inside its pair) gets
@@ -27016,3 +27063,28 @@ Harness /home/adityas/.cache/cri45/ (`v.py NAME 'OLD=>NEW'..` literal edits of t
 - **Pins are unusable in this function (measured):** a physical register named in any asm block is live from the first asm to the last (pass 42), and Y84C44's dcbz/dcbt/stfdu asms span both loops, so `asm { mr rV, x; mr x, rV }` reserves rV over the whole function whatever x and wherever placed: n pinned to r4/r6/r8/r9/r10/r11/r12 after the copy / at the body end / after loop 1 = 126-140 / 175-182 / 224-310w (size +8 after loop 1: the mrs are emitted), cnt pinned = the same numbers, cw pinned to r6/r9/r10/r11 at three positions = 134/126/127/125w (identical to the n pins: the reservation dominates). This reconciles pass 40 ("reserves nothing": cvFsGetFileSize had no other asm) with pass 44 ("reserved for the whole function": Ste4AsSte has asm). Rule: the codeless neighbour pin needs a function with no other asm blocks or a register free over the asm span.
 - **Residue (2), the model (chaitin.py on the cw-before-cw3 dump):** with `Sint32 cw;` declared before `cw3` (cw vid r44 > cw3 r43) plus ONE extra edge from cw to any node coloured r6 (r151 = the hoisted `cw3 + cskip` add, r89 `height + sign`, r91 its `srawi 3`, r93 = cw's own `srawi 2` operand) the prediction is cw r9, cw3 r10, o1/o2/o3/steps unchanged = the target; the declaration move alone = 29w (cw still takes r6 in place). Pre-RA (backend-11) and post-RA (backend-17) orders of the setup block are identical in ours: `addze cw; mulli cw3; rlwinm o1; rlwinm o2; add r151; rlwinm o3; rlwinm r152` (o1/o2 fill the mulli latency, the add waits for cw3, so cw dies before the add). No source form added the edge: cw3/o1/o2/o3 in all 12 orders (29w), `cstep = cw3 + cskip` as an own local at 3 declaration positions with `cbp0 += cstep` (29w: statement 256 is still scheduled after 257/258), o1/o2/o3 hoisted from body pointer arithmetic `crp1 = crp0 + cw; crp2 = crp0 + cw * 2; crp3 = crp0 + cw3` (35w: same colours, the body adds flip to `add r9, r3, r28` = the original wrote `offset + pointer` as ours does), `cw` statement before `hblk` (31w, with the declaration move 34w: the hs chain interleaves, cw r12). What the target must have had: a use of cw (or a compiler copy coalesced into it) that is live past the add or past hblk's `srawi` in the PRE-RA order and gone after RA, or a post-RA reschedule of that block (no `mr` in ours = the block keeps its schedule).
 - Flags: `lib/cftyp422_ppc.c` stays False (7/8, 29w). Tree unchanged from pass 42.
+
+### Tool RELs, t_id pass 7 (the 2/2/2/4-word rows are a bytecmp artefact — REL bytes identical; `common_t_id` + `ScreenReSize` alias fixed so the module links; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/tid7/ (deleted at the end): try.py NAME FUNC 'old=>new'.. (variant.sh on a copy of the tree file), relcheck.sh <t_id.o>
+(links the module with our object into the scratch dir with tools/link_rel.py and runs make_rel --verify; the tree's t_id.elf still holds the split object).
+- **Reloc-row verdict: `_._6cCoord`/`_._7ID_DATA`/`_._5cUnit` 2w and `__static_initialization_and_destruction_0` 4w are bytecmp
+  artefacts, not source.** Pass 6 mis-read the fdiff (`lbl_t_id_bss_14DAC4` is the SECOND diff pair of a longer listing). The words are the
+  `lis/addi _vt.5cUnit` pairs: our object DEFINES `_vt.5cUnit` WEAK in its own .rodata (0xaf8 = module .rodata 0xE20, the target's anonymous
+  `lbl_t_id_rodata_E20`), but bytecmp resolves every weak name through the linked ELFs (module ELF, then the DOL), and the module ELF in build/
+  is linked from the SPLIT object (no `_vt.5cUnit` there) -> the DOL's copy 0x8021d6a8 -> `(t_id, .rodata, 0xe20)` vs `(addr, 0x8021d6a8)`.
+  Proof: module linked with our t_id.o -> `make_rel --verify` lists 33 differing bytes, all inside idEditUnit (9) and toolIdOption (20 + the
+  3 reloc-table entries of its `lis optMenuName/langName2` order); the four small functions are byte-identical in the REL. Noted in
+  tools/bytecmp.py's docstring (no logic change). After the flip the rows vanish by themselves.
+- **Two link blockers fixed in src/t_id/t_id.cpp (needed for the flip, no code change):** (1) `asm(".comm common_" STR(REL_MODULE) ",52,4")`
+  — t_id.cpp is the module's COMMON-block owner (gen_rel_config: the unit with template instantiations), make_rel died with
+  `COMMON symbols take 0x0 bytes, the original had 0x34` once our object replaced the skeleton; (2) `ScreenReSizeI(int, u32) asm("ScreenReSize")`
+  — the alias named the mangled `ScreenReSize__FUsUs`, undefined at link time (bytecmp only listed it as a note); the DOL function is C
+  linkage. The rename also moved toolIdOption 12 -> 10w (gcse hash-bucket order of the label names, catalogue row 2).
+- toolIdOption `lbz lang2`/`lbz lang` (2w, still open). Read off the dumps: the expansion is `load lang2 (QI); zext; load lang (QI); sext; cmp`
+  (rs6000 `zero_extendqisi2` expander wants a register, so every promoted byte field is a QI load + a separate extension); cse1 shares the
+  lang load with the store `w->lang2 = w->lang` (2 uses -> the load stays put), combine merges the single-use lang2 load INTO its extension
+  and then the 3-way (i1 = the zext-load, i2 = `sext lang`, i3 = cmp) is split with the zext(mem lang2) placed at i2's position = AFTER the lang
+  load, and the compare becomes `cmp(zext lang2, subreg:SI lang)`. The target has lang2 first, so its zext-load never moved: its lang2 load
+  was multi-use or the sext was combined 2-way. Spellings that do not change it: `(u8) w->lang` (shorten_compare then loads both bytes
+  first, the merged zext still lands after), `!(==)`, `x17D |= 2` first, `u8 l2 = w->lang2` local, `w->x17D = w->x17D | 2`; `s8 l = w->lang`
+  local: +4 bytes (extsb); `(u8) w->lang != w->lang2`: 11w. A launder/anchor asm on `int l2` gives the order but shifts `w` to r30 (92w).

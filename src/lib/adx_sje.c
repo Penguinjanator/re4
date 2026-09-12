@@ -5,8 +5,8 @@
  * Plain `-inline auto` (not deferred): .text follows the source order, the static helpers are
  * defined before their callers. The zero-initialised scalars take their declaration place in
  * .bss; the filter tables follow in first-reference order (the dead table clear helper), the
- * handle table last. Not flagged: five functions differ only in register naming / one scheduling
- * swap (M1). */
+ * handle table last. Not flagged: adxsje_write_end_code differs by one scheduling swap (2 words,
+ * `lwz ck.data` / `mr r3` / `lha v` order at the first put16 site). */
 #include <string.h>
 #include "cri_xpt.h"
 #include "sj.h"
@@ -187,7 +187,7 @@ Sint32 adxsje_write68(void *src, Sint32 unit, Sint32 n, SJ sj);
 Sint32 adxsje_calc_rsig(ADXSJE sje, Sint32 ch);
 void adxsje_set_rsig(ADXSJE sje, Sint32 ch);
 Sint32 adxsje_output_sdata(ADXSJE sje);
-Sint32 adxsje_encode_data(void *obj);
+Sint32 adxsje_encode_data(ADXSJE sje);
 Sint32 adxsje_write_end_code(ADXSJE sje);
 static Sint32 adxsje_output_header(ADXSJE sje, SJ sjo);
 static void adxsje_encode_exec(ADXSJE sje);
@@ -671,10 +671,10 @@ Sint32 adxsje_write_end_code(ADXSJE sje)
 /* read n samples per channel into the block buffers; 0 when an input has less than n */
 static Sint32 adxsje_read_pcm(ADXSJE sje, Sint16 **bufs, Sint32 n)
 {
+	SJ *sji = sje->sji; /* helper local declared first: colours r24 below cnt like the original */
 	Sint32 cnt = 0;
 	Sint32 ch;
 	SJCK ck;
-	SJ *sji = sje->sji; /* helper local: colours r24 below cnt like the original (own local in the caller: r28) */
 
 	for (ch = 0; ch < sje->nch32; ch++) {
 		cnt = SJ_GetNumData(sji[ch], SJ_CK_DATA) / sizeof(Sint16);
@@ -694,20 +694,48 @@ static Sint32 adxsje_read_pcm(ADXSJE sje, Sint16 **bufs, Sint32 n)
 	return cnt;
 }
 
+/* predict, quantise and pack one block per channel (a helper: its `ch` is a clone local, coloured
+ * before the loop temporaries of encode_data like the original's; `iir = prd->iir` hoists the iir
+ * load right after prd) */
+static void adxsje_encode_blocks(ADXSJE sje)
+{
+	Sint32 ch;
+	ADXSJE_PRDFLT *prd;
+	ADXSJE_IIRFLT *iir;
+
+	for (ch = 0; ch < sje->nch32; ch++) {
+		adxsje_calc_rsig(sje, ch);
+		prd = sje->prd[ch];
+		iir = prd->iir;
+		sje->scale[ch] = prd->scale;
+		sje->invscale[ch] = prd->invscale;
+		adxsje_set_hist(sje, ch, iir->h1, iir->h2);
+		adxsje_set_rsig(sje, ch);
+	}
+}
+
+/* zero the tail of a short last block (a helper for the same reason) */
+static void adxsje_pad_pcm(ADXSJE sje, Sint16 **bufs, Sint32 n)
+{
+	Sint32 ch;
+
+	for (ch = 0; ch < sje->nch32; ch++) {
+		if (bufs[ch] != NULL) {
+			memset(bufs[ch] + n, 0, (sje->blksmpl - n) * 2);
+		}
+	}
+}
+
 /* encode as many blocks as the output has room for and the inputs supply; returns the bytes
  * written */
-Sint32 adxsje_encode_data(void *obj)
+Sint32 adxsje_encode_data(ADXSJE sje)
 {
 	Sint32 nbyte;
 	SJ sjo;
-	ADXSJE sje = obj; /* kept conversion copy: sje r29 above the hoisted address temporaries */
 	Sint32 n;
 	Sint32 cnt;
 	Sint32 nenc;
-	Sint32 ch;
 	Sint16 *bufs[ADXSJE_MAX_NCH];
-	ADXSJE_PRDFLT *prd;
-	ADXSJE_IIRFLT *iir;
 
 	sjo = sje->sjo;
 	nbyte = 0;
@@ -725,22 +753,10 @@ Sint32 adxsje_encode_data(void *obj)
 			nenc = 0;
 		} else {
 			if (n < sje->blksmpl) {
-				for (ch = 0; ch < sje->nch32; ch++) {
-					if (bufs[ch] != NULL) {
-						memset(bufs[ch] + n, 0, (sje->blksmpl - n) * 2);
-					}
-				}
+				adxsje_pad_pcm(sje, bufs, n);
 			}
 			sje->nsmpl += sje->blksmpl;
-			for (ch = 0; ch < sje->nch32; ch++) {
-				adxsje_calc_rsig(sje, ch);
-				prd = sje->prd[ch];
-				iir = prd->iir;
-				sje->scale[ch] = prd->scale;
-				sje->invscale[ch] = prd->invscale;
-				adxsje_set_hist(sje, ch, iir->h1, iir->h2);
-				adxsje_set_rsig(sje, ch);
-			}
+			adxsje_encode_blocks(sje);
 			nenc = sje->blksmpl;
 		}
 		if (nenc == 0) {
