@@ -28605,3 +28605,18 @@ deleted at the end). Tree edits: src/lib/cftfx.c `CFT_Argb420ToArgb8` only; obje
   subi as p2/p3/new p5) 184w, u7 163w, u9/u10 (v0/v1 + increment before the stores: no blocker — a store blocks only defs that LOAD) 185w, t5
   `register y` 185w, t6 integer y 185w, t7 cast-round-trip increments 173w, t8 `y + 2 + 2` / t9 `y += 0` 185w, t20/t21 `(y += 4)` inside the add
   189/184w, t14/t15 188-190w.
+- **Cut rule made exact (B3-relative initial-code counts, `awk` over `backend-00-initial-code.txt` between `B3:` and `B4:`):** the codegen
+  ends the block at the first STATEMENT END where the block's count is >= 101 (tree: d[1] ends at 105, d[0] at 97; w3i: 101 after
+  `b2 = s1[11]` with `a2 = s0[11]` at 100 not taken; c1000: 101 = the 9th sum's last add = the target's cut). w3i has d[1] at 83 and the
+  9th sum's end at 91; the vendor's d[1] ended in [93, 98] (then `a0 = s0[9]`, `b0 = s1[9]`, the sum's 6-7 instructions reach 101).
+  **c1000 = Uint8 pairs with the cast on the FIRST operand only (`p0 = (Uint32)a0 + a1 + b0 + b1 + 2`)** puts the cut exactly there
+  (the `(Uint32)a_k` and the int promotion of the same pixel in the previous sum are two different casts = 3 later-deleted instructions
+  per sum instead of 2; d[1] at 92) with the target's block sizes 79/69, but Uint8 pairs cost the levels: a8 is removed at 27/30 (its
+  three own-local neighbours p5, p6, p7 go first) and p8 is L1, so L2 shrinks to 10 nodes and the five loop variables (24-27 at scan 2)
+  fall into L2 -> 136w; with `p0 = p1 = .. = 0` before the loop (c1000_j) the loop variables are L3 again and block 1 is 24/30 volatile
+  (117w) but a8 stays L1. With Uint32 pairs every partial-cast pattern is a no-op (no count change), masks on one pair per sum are folded
+  by the frontend (u1-u3: 105w, count unchanged), `(Uint32)(Uint8)a` likewise. So the open item is one construct that (a) adds 10..15
+  later-deleted initial instructions before d[1]'s end without changing the Uint32 webs (per-sum +2 or per-store +5..8), or (b) keeps a8
+  at >= 29 with Uint8 pairs and the right cut (the target's a8 has 2 neighbours more than ours at its visit, or p5..p7 are not removed
+  before it). Harness kept: `ev.sh NAME` prints words, block sizes, block-1 colour score and the L2 set (needs ~/.cache/cri_swar11/colmap.py
+  + t_4p16.txt, rebuilt there after the pass-11 harness was deleted; the pass-11 order-scoring tools whatif/post/cmp/sym are gone).

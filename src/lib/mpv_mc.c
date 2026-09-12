@@ -24,33 +24,49 @@
 
 void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
 {
+	/* Three rotating pixel pairs (pixel k in pair k % 3), each pair loaded right before the sum that
+	 * needs it, the prefetch after the first pair, the loop variables declared before the pixel
+	 * words and the sums (CRI SWAR kernels pass 12: byte-identical). */
 	Sint32 i;
-	Sint32 stride = mc->stride;
-	Uint8 *s0 = mc->src;
-	Uint8 *s1 = mc->src2;
-	Uint32 *d = mc->dst;
-	Uint32 a0, b0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8;
+	Sint32 stride;
+	Uint8 *s0;
+	Uint8 *s1;
+	Uint32 *d;
+	Uint32 a0, b0, a1, b1, a2, b2;
 	Uint32 p0, p1, p2, p3, p4, p5, p6, p7;
 
+	stride = mc->stride;
+	s0 = mc->src;
+	s1 = mc->src2;
+	d = mc->dst;
 	for (i = 0; i < 8; i++) {
-		a0 = s0[0]; b0 = s1[0];
+		a0 = s0[0];
+		b0 = s1[0];
 		__dcbt(s1, stride);
-		a1 = s0[1]; b1 = s1[1];
-		a2 = s0[2]; b2 = s1[2];
-		a3 = s0[3]; b3 = s1[3];
-		a4 = s0[4]; b4 = s1[4];
-		a5 = s0[5]; b5 = s1[5];
-		a6 = s0[6]; b6 = s1[6];
-		a7 = s0[7]; b7 = s1[7];
-		a8 = s0[8]; b8 = s1[8];
-		p0 = a0 + a1 + b0 + b1 + 2;
-		p1 = a1 + a2 + b1 + b2 + 2;
-		p2 = a2 + a3 + b2 + b3 + 2;
-		p3 = a3 + a4 + b3 + b4 + 2;
-		p4 = a4 + a5 + b4 + b5 + 2;
-		p5 = a5 + a6 + b5 + b6 + 2;
-		p6 = a6 + a7 + b6 + b7 + 2;
-		p7 = a7 + a8 + b7 + b8 + 2;
+		a1 = s0[1];
+		b1 = s1[1];
+		p0 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 + (Uint32)b1 + 2;
+		a2 = s0[2];
+		b2 = s1[2];
+		p1 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
+		a0 = s0[3];
+		b0 = s1[3];
+		p2 = (Uint32)a2 + (Uint32)a0 + (Uint32)b2 + (Uint32)b0 + 2;
+		a1 = s0[4];
+		b1 = s1[4];
+		p3 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 + (Uint32)b1 + 2;
+		a2 = s0[5];
+		b2 = s1[5];
+		p4 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
+		a0 = s0[6];
+		b0 = s1[6];
+		p5 = (Uint32)a2 + (Uint32)a0 + (Uint32)b2 + (Uint32)b0 + 2;
+		a1 = s0[7];
+		b1 = s1[7];
+		p6 = (Uint32)a0 + (Uint32)a1 + (Uint32)b0 + (Uint32)b1 + 2;
+		a2 = s0[8];
+		b2 = s1[8];
+		p7 = (Uint32)a1 + (Uint32)a2 + (Uint32)b1 + (Uint32)b2 + 2;
 		d[0] = MPVMC08_AVG4(p0, p1, p2, p3);
 		d[1] = MPVMC08_AVG4(p4, p5, p6, p7);
 		s0 += stride;
