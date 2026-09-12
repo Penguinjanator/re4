@@ -763,10 +763,13 @@ int debugCamera::menuFlag(JOY* joy)
     eprintf(x * 8, (y - 1) * 14, 5, 0, "------ FLAG ------");
     // `(y + i) * 14` is written out in every row: PRE shares one `y + i` (r25) for the arms, and in
     // the `case 6` arm cse already knows i == 6, so its `y + 6` becomes the hoisted `li r19,27`.
-    // COMPILER-DIFF: the original also hoists `x + 19` (`li r20,49; slwi r3,r20,3` for the OFF
-    // column) where ours folds it to `li r3,392`; loop.c replaces a single-use invariant with its
-    // constant when the use is close, so the original's `x + 19` pseudo must have a longer
-    // lifetime (a second use); and its OFF colour shares the top row's `c` register (69 words).
+    // The ON/OFF columns are locals (`xon`/`xoff` below): gcse cprop turns `x + 19` into `li 49`
+    // and loop.c keeps a 1-insn-lifetime constant in the arm (thr 71 * life 1 < ic 194, then
+    // combine folds it into `li r3,392`); a local assigned before the `if (on)` lives long enough
+    // to be hoisted (`li r20,49; slwi r3,r20,3`) and takes the extra callee-saved slot (r16..r31).
+    // Remaining (45 words): the head's `y + i` temp and its PRE copy stay separate in the
+    // original (`addi r4; mr r25,r4; mulli r4,r4,14`) and the key/target j-loops recompute
+    // `mulli r4,r25,14` per iteration where ours hoists it and copies `mr r4,r25`.
     for (i = 0; i < 7; i++) {
         int col = (i == cursor) ? 4 : 0;
         u8 c = col;
@@ -799,8 +802,12 @@ int debugCamera::menuFlag(JOY* joy)
                 c_on = 7;
                 c_off = col;
             }
-            eprintf((x + 15) * 8, (y + i) * 14, c_on, 0, "ON ");
-            eprintf((x + 19) * 8, (y + i) * 14, c_off, 0, "OFF");
+            {
+                int xon = x + 15;
+                int xoff = x + 19;
+                eprintf(xon * 8, (y + i) * 14, c_on, 0, "ON ");
+                eprintf(xoff * 8, (y + i) * 14, c_off, 0, "OFF");
+            }
             break;
         }
         case 1:
