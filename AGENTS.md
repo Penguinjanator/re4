@@ -25278,7 +25278,7 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   IDENTICAL); objects.py untouched; every applied step rebuilt through the locked ninja and judged with bytecmp
   (sfd_mps 22/26, cftfx 3/6, adx_sje 15/17). Scratch harness /home/adityas/.cache/cri29 removed at the end of the pass.
 
-### Tool RELs, t_esp pass 16 (t_esp 208/212: InitTool 2880 -> 2851 words: segs 25/0/3 statement order, 12 CreateButton ids (real value bugs, 0 -> 1/2, segs 174..345); the LOAD_EVENT/SAVE FP-constant `fmr` copies and the segs 129/132/135 FPR names are cse1's 1001-insn hash flush landing 13+ insns earlier in the target; not closed, nothing flipped; 2026-09-12)
+### Tool RELs, t_esp pass 16 (t_esp 208/212: InitTool 2880 -> 2068 words: segs 25/0/3 statement order, 12 CreateButton ids (real value bugs, 0 -> 1/2), and the cse1 1001-insn hash-flush grid: the target has ~4 more cse1-time insns per window ctor, reproduced with a tagged 4-dead-set pad in all 34 ctors (dead sets 116 -> 80, N 5235); segs 129/132/135 and most of 176..340 exact; not closed, nothing flipped; 2026-09-12)
 
 - InitTool 2880 -> 2861w (diffsegs 485 -> 482, total_d 4109 -> 4103), all three steps plain C statement order, no insn-count
   change (segment sizes identical, so the 116 dead sets / N 5235 stand). Segments 0..122 are now exact; 123 is the dtk label
@@ -25347,6 +25347,20 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   final code, and probably a different insn profile after it (the later regions want a different shift). Candidates not yet
   tested: per-window insns cse1 itself deletes (folded loads/copies: 5 windows x 3), the target's seg 162 `lwz g_pEditWin1`
   form. Nothing applied; `/tmp/t16/gen2.py D 112 OUT` regenerates the probe from the tree source.
+- **The flush grid is per window: `TOOL_WINDOW_CSE_PAD()` applied (2851 -> 2068w, diffsegs 481 -> 375, total_d 4082 -> 3129).**
+  A flat shift D of the first flush (scan D 13..57 with N refit, `/tmp/t16/scan.sh`) never fixes the later regions (best D 23:
+  2593w, regions [14, 558, 2232, 1033] for segs 0-161/162-340/341-660/661+ vs cur [14, 637, 2245, 1186]); K dead sets of a
+  fresh local at the top of EVERY window ctor (`{ int d_; d_ = 1; .. d_ = K; }`, 34 ctors) shift each later flush by K per
+  window: K=3 2801w [64, 446, 2309, 1192], **K=4 2068w [2, 292, 1848, 987]** (seg 0 exact, region 0-161 = the dtk artefact
+  only), K=5 2284w [74, 567, 2001, 873], K=6 2646w. So the target's ctors carry ~4 cse1-time insns each that we lack; they
+  survive to gcse (N rises 8 buckets per K, so the InitTool dead-set block is refit: 80 sets with K=4 = 5235). Applied as a
+  tagged macro (`#define TOOL_WINDOW_CSE_PAD()` above `g_pMenuWin`, called first in each `XXX_WINDOW(DB_PRIM_ARRAY* p)` ctor).
+  The natural form is unknown: 4 register-only insns per ctor that flow deletes (dead sets) or that cse2/combine fold; the
+  ctors' `pa = p; win = NULL;` and the DB_POINT/w/h/flg locals are all real stores in both binaries. With the pad, seg 163 has
+  the target's FP names (f25/f24/f23 loads, f21/f20/f19 copies) but the three `fmr` and `li r29,0` sit after the
+  CreateNormalWindow call (seg 164) instead of before it, and the 6-`lis` shape of seg 162 is unchanged - those remain the
+  seg 162-163 scheduling item above. Per-window K may differ between ctors (only uniform K was scanned):
+  `/tmp/t16/gen3.py K SETS OUT` and `/tmp/t16/scanw.sh K...` regenerate/scan from `/tmp/t16/cur.cpp` (pre-pad source).
 
 ### DOL card closer 3 (game/card Matching 67/67: saveMain 74 -> 0, errorDisp 99 -> 0, both pure C; 111 OK; 2026-09-12)
 
@@ -26043,8 +26057,8 @@ Harness ~/.cache/dol_debug3 (tryv.py over variant.sh, GDBG/rtl dumps; deleted at
   sums; ours issues ready ALU ops in raw order). Nothing applied to the tree in this pass; the harness stays until the boundary mechanism
   (>= 28 vanishing initial instructions in the first half, or a construct that makes the check see another block) is found.
 
-### CRI pass 38 (sfd_cre AnalyMpv 15w / sfx_zmv MakeOrgZ32TblByCCIR 74w: the post-RA reschedule is gated by a per-block "scheduled" bit that the IV-increment sink of the post-schedule peephole clears; IN PROGRESS 2026-09-12)
-Harness /home/adityas/.cache/cri38/ (gen.py/genz.py variant generators, cmpblk.py block-vs-target aligner, flags.py block-flag summary).
+### CRI pass 38 (sfd_cre AnalyMpv 15w / sfx_zmv MakeOrgZ32TblByCCIR 74w unchanged; the post-RA reschedule is gated by a per-block "scheduled" bit that the IV-increment sink of the post-schedule peephole clears; nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri38/ (deleted: gen.py/genz.py variant generators over ~/.cache/kit/variant.sh, cmpblk.py block-vs-target aligner, flags.py = per-block flag word / sunk? / pre==post? summary of an ra.py dump dir; 15 min to rebuild from this text).
 - **MWCC block flag 0x8 = "scheduled".** In the ra.py dumps the `:{xxxx}` word before each block carries it: the pre-RA scheduler
   (backend-17 in CCIR, -11 in AnalyMpv) sets 0x8 on every block; every later pass that rewrites a block CLEARS it (backend-18
   peephole-forward on the loop blocks, backend-22 peephole on B7/B11); **the post-RA scheduler (backend-23) reschedules ONLY blocks
@@ -26068,3 +26082,60 @@ Harness /home/adityas/.cache/cri38/ (gen.py/genz.py variant generators, cmpblk.p
   `subf size` was not a DAG successor of it there. `x++`/`x--` statements are deferred by the frontend to the block end (line of the
   following `if`), so `data++` is a sinker after `size -=` in ours (target: `addi data` at slot 9, `subf size` at 11 = the reverse).
   `register` locals for asm operands (`asm { addi t, ofs, 1 }`, 12w) and `#pragma scheduling off` (41w) do not close it. Not closed.
+- **Y84C44 114 -> 96w (tree): cr rows first, o1..o3 locals, yw3 local, cbp0 declared first.** Corrections to the bullet
+  above (my regmap labels had cb/cr swapped): the target keeps the *cr* row pointers in volatiles (crp1 r9, crp2 r11,
+  crp3 r12) and the cb ones in r31..r29, so the rows are assigned cr-first and declared `cbp3, cbp2, cbp1, crp3, crp2,
+  crp1` (spill picks tie to the highest vid = first declared). The row offsets are NAMED locals `o1 = cw * 4; o2 = cw * 8;
+  o3 = cw3 * 4` and the y3 offset a named `yw3 = ywidth * 3` (declared right after ywidth): a named local as the left
+  operand gives `add rD, rOFF, rPTR`; a CSE'd expression gives the swapped `add rD, rPTR, rTMP` (-8w). Loop-2 top
+  declarations `cbp0, crp0, crv, cbv, c` (6 of 120 orders tie at 96w).
+- **chaitin.py is EXACT on this function with K = 28 and r0 removed from the volatile list** (default K = 29 diverges at
+  the first stuck pick): the asm `li r0, 8/4` + `dcbz d, r0` keep r0 live through both loops, so every loop node has r0 as a
+  precoloured neighbour and there are only 28 colours. Use `chaitin.K = 28; chaitin.VOLATILE = [3..12]` for any function
+  with an asm-pinned r0. With that model the 96w residue is ONE interference edge: crv (and cbv) have residual degree 28 at
+  the moment cbp0 is picked (r0 + c + crp0 + cnt + the 24 `mr` ghosts of the eight packed words, 3 per word); the target
+  needs 27 so that crv/c/cnt simplify and crp0 stays last (crp0 r3, cnt r4, c r5, crv r6, then crp1 r9 / cbv r10). Deleting
+  any single ghost edge in the model reproduces the target's loop-2 colours; no source spelling found that drops one ghost
+  (named accumulators, re-associated terms, crv-term-first all change the instruction stream). Loop 1: the target has
+  ywidth r9, yw3 r10 and the unroll-remainder counter copy r11 (`mr r11, r4; andi. r11, r11, 3`); ours has the copy at
+  r9 because the copy is a loop-transform temp (vid 154, coloured before every frontend local). Every loop form
+  (`while (n-- > 0)`, `for (n = 0; n < cnt; n++)`, down-counting, separate loop-2 counter) produces the same copy temp;
+  computing the count inside the outer loop or using `src->ywidth` in the loop reloads (asm stores are a barrier).
+  Frontend `n` is r65 (dead after the transform); the target's r11 would be n itself if the transform had reused it.
+
+### Tool RELs, t_camera_data closer 3 (DB_STRING ctor 7 -> 2 words with a memory-input launder; tcDataExport / tcSetBesideOffset see below; 2026-09-12)
+Scratch /home/adityas/.cache/tcam3/ (variants `dbw_<X>.cpp`, `rtl_<X>/` dumps, LADBG logs; deleted at the end).
+- **DB_STRING ctor 7 -> 2 (applied): `u32 zero = 0; asm("" : "+r"(zero) : "m"(ca)); len = zero; str = (char*) zero;`** (the
+  pinned-r0 block is gone). Mechanism read off LADBG + the sched dumps (one 603-style model: 2 issues/cycle, ONE lsu, so stores
+  issue one per cycle and the 2-per-cycle iu slots decide the qty lifetimes): local-alloc allocates LC-high (2 refs, len 4, 5000)
+  BEFORE vt (lis+addi+store, 4 refs) only if vt's length is >= 16 (pri <= 5000, tie -> lower qty number = LC): the vptr store
+  (insn 20, prio 12, lowest LUID) must have 7 insns between `lis vt` (c4 slot 2) and itself, i.e. it must lose c8 to a prio-13
+  insn. Plain `str = 0; len = 0` gives 6 (vt 6666 -> r9, LC r11); the pinned r0 zero gives the stores anti links to every later
+  call (`sched2` dependents 5 vs the target's 3) so they issue first in both passes (7 words). The launder with `"m"(ca)`: in sched1
+  the ca store (56) gains a dependent and beats the vptr store at c7, the launder (prio 13) is ready at c8 and issues before the
+  vptr store -> vt len 16 -> LC r9, vt r11; zero has 5 refs (li + launder in/out + 2 stores, floor_log2 = 2 -> 3846) > type's 2500
+  -> zero r0, type r9; the stores rank last (3 dependents, late LUIDs) = target order. The residue: any "m" input into an asm
+  costs 1 into the asm and the asm costs 1 to its dependents, so the store the launder reads gets sched2 prio 14 and takes c7's
+  lsu slot from `stw max` (prio 13): target `stw max; mr r3; stfs ca`, ours `stfs ca; mr r3; stw max`. Every other memory
+  operand is worse (`"m"(max)` -> 14 -> hoisted to c4 because it is ready from c3 and out-ranks `lis vt` by dependents; cr/cb/cg
+  3/5 words), `"=m"` outputs behave the same (cost into an asm is always 1, LINK_COST_FREE), a hard-register input (`r3`) is an
+  anti dependence in the wrong direction (the launder precedes `mr r3,r29` in the stream), a second launder gives the li prio
+  15 and hoists it into c4. What is missing is a dependence that exists in sched1 only; none of the operand kinds gives one.
+  Numbers: LADBG for `str = 0; len = 0`: vt q4 refs 4 birth 14 death 26 pri 6666 -> r9, LC q3 12-16 5000 -> r11, type 24-28
+  5000 -> r0, zero 20-42 1363 -> r11; with the launder: vt 14-30 5000 -> r11, LC 5000 -> r9, zero 2142 -> r0, type 2000 -> r9.
+- **The sink is generic:** every `addi rX,rX,K` IV update with no later read in the block goes to the block end, not only the exit
+  counter (n3 probe: a second IV `n += 3` in the 1.164 loop is sunk too, block 92 insns; MakeCnvZTbl B43 sinks two; B32 sinks a
+  `stw`), and a pointer IV already last stays (B29 `addi r60,0xa0`). So the vendor's `addi r3,r3,8` at slot 27 was skipped for a
+  reason inside its block: the only skip condition consistent with a generic sink is a LATER READ of r3 in the vendor's pre-RA B8
+  that vanished afterwards — a compiler copy (`mr rX, r3` / range-split web copy of `i`, e.g. a separate web for the remainder loop
+  or a latch copy) coalesced by the RA. Such a copy is raw-last, so the pre-RA scheduler parks it at the block end (no slot shift),
+  the RA deletes it, the block keeps 0x8 and is never rescheduled = the target. No C form found that makes the frontend emit it: the
+  frontend unrolls (AST: loop 2 runs on web @352 `= 0x10; ... += 8`, remainder on the same web, loop 3 on @351, loop 1 on `i`);
+  an inlined `i = sfxzmv_inc(i)`, a `?:` increment, a `volatile` read of i after `i++`, a `k++` counter (pass 20) all stop the
+  unroll (145-148w). `#pragma scheduling off` (both schedulers, 247w) is not a fallback: the pre-RA schedule IS the target.
+- Tests asked for: a call in the block is impossible (any call stops the 8x unroll); a `volatile` byte store `vy[i] = ..` compiles
+  to the identical object (74w: the scheduler ignores volatile on the destination); `#pragma scheduling 750` identical, `603` 178w.
+- Next step for CCIR: a frontend form that creates a coalescable copy of `i` at the latch/exit of the unrolled loop (a second web for
+  the remainder: try `i` declared in an inner block, a `Sint32 j` remainder loop written by hand after an 8-step main loop with the
+  same body — pass 20's hand unroll used eight locals, not the compiler's `i - 16..i - 9` shape — or `#pragma opt_unroll_loops`
+  interplay). Read `flags.py`-style: the win condition is B8 `sunk_by_peep=False` with the addi still at slot 27.
