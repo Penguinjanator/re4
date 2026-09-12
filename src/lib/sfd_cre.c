@@ -216,22 +216,21 @@ static Sint32 sfcre_AnalyPackSiz(Uint8 *data, Sint32 size, Sint32 *mux_rate)
 }
 
 #pragma dont_inline on
-/* COMPILER-DIFF: M1 - the original computes `ofs + 1` into a fresh r0 (ours in place) and numbers
- * the header bytes b4 r4, b7 r5, ofs r6, b6 r7, b5 r6 (reusing ofs's register); pins of the byte
- * loads re-rank the others. Pure C by project decision (CRI pass 8). */
+/* Byte-identical since CRI pass 60 (pure C): the `ofs + 1` temp's fresh r0 and the byte numbering
+ * b4 r4, b7 r5, ofs r6, b6 r7, b5 r6 follow from the mask-then-shift test below and b7's
+ * declaration/second def. */
 Sint32 sfcre_AnalyMpv(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	Uint8 *p;
 	Uint8 b4;
-	Sint32 ofs;
 	Uint8 b7;
+	Sint32 ofs;
 	Uint8 b5;
 	Uint8 b6;
 	Uint8 b8;
 	Uint8 b9;
 	Uint8 b10;
 	Uint8 b11;
-	Uint8 picrate_code;
 
 	while (size > 0) {
 		p = (Uint8 *)MPV_SearchDelim((Sint8 *)data, size, 0x40);
@@ -250,11 +249,15 @@ Sint32 sfcre_AnalyMpv(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 		data = (Uint8 *)((Uint32)ofs + (Uint32)data);
 		data++;
 		size -= ofs + 1;
-		if (((b7 >> 4) & 0xF) == 0) {
+		/* mask-then-shift: the codegen emits `andi` + `srwi`, peephole-forward folds them into one
+		 * `rlwinm` and leaves the dead mask def in the block until the RA deletes it; that extra node
+		 * delays `ofs + 1` past the compare in the pre-RA schedule (CRI pass 60). b7 stays an own
+		 * local (second def below) with its vid between b4 and ofs. */
+		if (((b7 & 0xF0) >> 4) == 0) {
 			continue;
 		}
-		picrate_code = b7 & 0xF;
-		if (picrate_code < 1 || picrate_code > 8) {
+		b7 &= 0xF;
+		if (b7 < 1 || b7 > 8) {
 			continue;
 		}
 		if (((b10 >> 5) & 1) == 0) {
@@ -265,7 +268,7 @@ Sint32 sfcre_AnalyMpv(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 		if (inf->bitrate == 0) {
 			inf->bitrate = ((b8 << 10) | (b9 << 2) | ((b10 >> 6) & 3)) * 50;
 		}
-		inf->picrate = sfcre_mpv_picrate[picrate_code];
+		inf->picrate = sfcre_mpv_picrate[b7];
 		inf->vbvsiz = (((b10 & 0x1F) << 5) | ((b11 >> 3) & 0x1F)) << 11;
 		inf->vtrif = &SFD_tr_vd_mpv;
 		break;

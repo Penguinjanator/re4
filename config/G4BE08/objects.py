@@ -1929,3 +1929,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/cftyp422_ppc.c": True,  # 8/8, pure C: CFT_Ycc420plnToY84C44 29 -> 0. `const CFT_YCC420PLN *src` (parameter loads above the frame stores); the setup's four signed divisions are chained through CA (srawi writes, addze reads: latency edges in statement order), so their statement order yskip, cnt, hblk, dskip is the schedule and `li ofs,8` issues first with r0 live across the temps; ywidth/yw3 reused for the chroma loop (cbwidth/4 and *3) and declared last = one node each, degree >= 29 at scan 1, coloured r9/r10 before the unroll-remainder copy (r11)
 })
+
+# CRI pass 60 (2026-09-12)
+MATCHING.update({
+    "lib/sfd_cre.c": True,  # 6/6, pure C: sfcre_AnalyMpv 15 -> 0. `((b7 & 0xF0) >> 4) == 0` (mask then shift): peephole-forward folds the pair into one rlwinm and leaves the dead mask def in the block until the RA, one more scheduler node that pushes `addi ofs+1` past the compare (ofs r6 / b5 r6 no longer interfere); b7 declared between b4 and ofs and kept an own local by its second def `b7 &= 0xF` (no picrate_code local)
+})
