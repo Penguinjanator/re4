@@ -47,7 +47,7 @@ Float32 *cft_ptr_cr_rgb;
 Float32 cft_yuv_rgb_coeff[9];
 Float32 cft_basic_ccir601[9];
 
-void cnvDynamicYcc420plnToA256UserTable(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl);
+void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst, const Uint8 *tbl);
 void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst);
 
 /* one tile row pair of the ARGB 4:2:0 conversion (four pixels): AR half from the alpha plane word
@@ -222,10 +222,16 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * the four luma samples, packed in two own locals; the pointer moves on by the four samples with
  * ONE increment placed inside the last index expression (a statement-level `y += 4` is forwarded
  * into the next row pointer's add and the +4 sunk; post-increments on every byte give the same
- * real `addi` but 4 pcodes more per row, see AGENTS.md "CRI pass 57") */
+ * real `addi` but 4 pcodes more per row, see AGENTS.md "CRI pass 57").  The `& 0xFF` masks emit
+ * nothing (a byte load is already zero-extended: the index masks are deleted by load-deletion,
+ * the value masks fold into the `rlwinm 24,0,7` that the or->rlwimi peephole replaces) but they
+ * count in the block-splitting pass: 31 initial pcodes per row put the split of the inner body
+ * exactly after the third row-pointer add, as in the original (AGENTS.md "CRI pass 58").  A mask
+ * on the `<< 8` operand would fuse into `clrlslwi` -- only the `<< 24` values may carry one. */
 #define CFT_A256_ROW(dst, y, tbl)                                                              \
-	v0 = ((Uint32)(tbl)[(y)[0]] << 24) | ((Uint32)(tbl)[(y)[1]] << 8);                     \
-	v1 = ((Uint32)(tbl)[(y)[2]] << 24) | ((Uint32)(tbl)[((y) += 4)[-1]] << 8);             \
+	v0 = (((Uint32)(tbl)[(y)[0] & 0xFF] & 0xFF) << 24) | ((Uint32)(tbl)[(y)[1] & 0xFF] << 8); \
+	v1 = (((Uint32)(tbl)[(y)[2] & 0xFF] & 0xFF) << 24) |                                   \
+	     ((Uint32)(tbl)[((y) += 4)[-1] & 0xFF] << 8);                                      \
 	(dst)[0] &= v0 | 0x00FF00FF;                                                           \
 	(dst)[1] &= v1 | 0x00FF00FF
 
@@ -236,42 +242,47 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * and hoists the subi) and puts the added value first (the codegen reassociates `X + (Y + K)` into
  * `add X, Y, X; addi K`, the +-4 cancel).  Declaration order = the target's colouring order
  * (p4 r4, y r6, p3 r7 above i; d r12, p2 r31, yskip r30).  The fourth step is a fresh
- * `ywidth - 4` (not CSE'd, not hoisted) and `y = p5 - ywidth * 4 + 4` = subf temp + addi.
- * Left (see AGENTS.md): row 1's two packs go through `mr r25` copies in the target (v0/v1 get a
- * new callee-saved), the target's block split falls right after `p4 += ...`, and the level-1
- * temp colours cascade from there. */
-void cnvDynamicYcc420plnToA256UserTable(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
+ * `ywidth - 4` (not CSE'd, not hoisted) and `y = p3 - ywidth * 4 + 4` = subf temp + addi.
+ * CRI pass 58 (73w): `const Uint8 *tbl` gives the table loads their own alias class (the
+ * original's, like the StaticV `const` parameters): without the load->store edges the scheduler
+ * orders the two packs' loads by chain length (byte 3 before byte 2), the tail add/subf fall
+ * after the last store, and the block split above lands after `p4 += ...` -- the original's
+ * two blocks (77/28 instructions), frame (`stmw r25`, the row-1 packs' `mr r25` copies) and
+ * size.  The fourth step reuses p3 (its second web is numbered above v0/v1's row webs, so it
+ * is coloured first in the last block and takes r26 = the original's `subi r26`); p3/p4 are
+ * copied after row 1 so that p3's first def follows v0/v1's.  Left (see AGENTS.md): the
+ * level-1 temp colours (the original loads d[k] before the pack's rlwimi in rows 3-4). */
+void cnvDynamicYcc420plnToA256UserTable(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst, const Uint8 *tbl)
 {
-	Uint8 *p4;
-	Uint8 *y = src->y;
-	Uint8 *p3;
+	const Uint8 *p4;
+	const Uint8 *y = src->y;
+	const Uint8 *p3;
 	Sint32 i;
 	Sint32 j;
 	Sint32 wblk = dst->width / 4;
 	Sint32 hblk = dst->height / 4;
 	Sint32 ywidth = src->ywidth;
 	Uint32 *d = dst->buf;
-	Uint8 *p2;
+	const Uint8 *p2;
 	Sint32 yskip = ywidth * 3 + (ywidth - dst->width);
 	Sint32 dskip = (dst->pitch - dst->width) / 4 * 16;
-	Uint8 *p5;
 	Uint32 v0, v1;
 
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
 			p2 = (Uint8 *)(ywidth - 4);
+			CFT_A256_ROW(d, y, tbl);
 			p3 = p2;
 			p4 = p2;
-			CFT_A256_ROW(d, y, tbl);
 			p2 += (Uint32)(y + 4) - 4;
 			CFT_A256_ROW(d + 2, p2, tbl);
 			p3 += (Uint32)(p2 + 4) - 4;
 			CFT_A256_ROW(d + 4, p3, tbl);
 			p4 += (Uint32)(p3 + 4) - 4;
 			CFT_A256_ROW(d + 6, p4, tbl);
-			p5 = (Uint8 *)(ywidth - 4);
-			p5 += (Uint32)(p4 + 4) - 4;
-			y = p5 - ywidth * 4 + 4;
+			p3 = (Uint8 *)(ywidth - 4);
+			p3 += (Uint32)(p4 + 4) - 4;
+			y = p3 - ywidth * 4 + 4;
 			d += 16;
 		}
 		y += yskip;

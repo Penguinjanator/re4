@@ -28813,3 +28813,61 @@ only; objects.py untouched (cftfx 5/6, no `ninja -k 0`).
   rank between the two g_pEditSeq highs (ours ties them at 78), e.g. a ~50-insn longer `" Name :"` life or one more insn between
   the g_pEditSeq2 high's sched1 slot and its death. Re-read LADBG after the F1 step before touching it. lc 623 (ROTATE `fmr`) is
   this allocation class too; 782 (BASEPOS) not started.
+
+### CRI pass 58 (cftfx UserTable 109 -> 73w pure C APPLIED (5/6, not flipped): the block split put after `p4 += ...` with 6 deleted mask pcodes per row, `const Uint8 *tbl` = the table loads' own alias class -> the target's two blocks 77/28, frame `stmw r25`, both row-1 `mr r25` copies and size 0x22c exact; left: the level-1 temp colours (rows 3-4 load d[k] before the pack's rlwimi in the target, ours one slot later) and the setup `slwi r0`/`add r30` order; 2026-09-12)
+Harness /home/adityas/.cache/cri58/ (KEPT, small: `mk.py NAME [--base=B] 'OLD=>NEW'..`, `t.sh NAME [--ra]` = variant words + ra.py dump + `cnt.py` initial
+counts per source line for B4/B5 + final block sizes, `dis.sh NAME` = cleaned dtk listing `ours_NAME.s` + diff against `target.s`, `pc.py RADIR [B]` =
+pre-RA PCode with `vreg=colour`, `chk.sh [schedwhatif edits]` = the target's B5 interference constraints as 0/1 under a DAG edit, `postwhatif.py` /
+`score.sh` = post-RA replay of a pre-RA order with the target's colours against the target's B5, `wo.py` = chaitin what-if on vid order / edges;
+`cur.c` = the tree, `ra_u1`/`out_cur` = its dumps. Delete it when the cascade below is closed.)
+- **Split (APPLIED): the initial count is 25 pcodes per row (3 per byte + addi + 2 or + 2 x (oris, ori, lwz, and, stw)), 2 per `p += (Uint32)(q + 4)
+  - 4` (`add`; `mr X,X` from the -4), 3 setup -> row 3 ends at 82, `p4 +=` at 84, split inside row 4 (B4 = 101/104).** Later-deleted pcodes that
+  leave the final code untouched: `& 0xFF` on a byte INDEX (`tbl[y[k] & 0xFF]`: +1 `rlwinm 0,24,31`, deleted by load-deletion, 107w = colours only)
+  and `& 0xFF` on the `<< 24` VALUE (`((Uint32)tbl[..] & 0xFF) << 24`: +1, the mask folds into the `rlwinm 24,0,7` that the or->rlwimi peephole
+  bypasses; the leftover is a dead def deleted at RA, degree 0/0). A value mask on the `<< 8` operand FUSES (`clrlslwi 24,8`, 8 of them: final code
+  changes, m2/m3) -- never mask the base operand. 4 index + 2 value masks = 31 per row: 3 + 3x31 + 2x2 = 100 <= 100 < 102 -> B4 ends after `p4 +=`
+  (init 102), final B4/B5 = 76/28 (m4, 98w). Uniform per row, so the macro carries the masks. The peephole leftovers (`rlwinm 24,0,7`, h=1) exist in
+  EVERY spelling (7 in B4 without masks) and are RA-deleted; they matter only as "frees" successors in the scheduler's tie-break (row 3: `lbzx tbl[y2]`
+  beats `lwz d0` at c42 because its dead shift has npreds 1).
+- **`const Uint8 *tbl` (APPLIED, 98 -> 83w, size exact, B4 77 = the target's): a `const` POINTER PARAMETER gives its loads an object alias record
+  (`alias=t0@..`), disjoint from the stores' bitset class `t2`; a `const Uint8 *` LOCAL (y, p2..p4, or a copy `tb = tbl`) stays `t2` = the stores'
+  class (t4/t2 probes).** Without the load->later-store edges the tbl loads' heights are their chain heights, so the two packs' loads stop tying
+  (pass 57 (B): the alias chain through the stores equalised them): byte 3 (the `<< 8` base, slwi + mr + rlwimi) is loaded before byte 2 by HEIGHT,
+  the tail `addi p4; add p3'; subf; addi y` falls after the last store (and1 = r4 as in the target), `add` after `oris v1|K` (p4 live -> v1|K r6).
+  `const CFT_YCC420PLN *src, const CFT_ARGBDST *dst` (as StaticV, the vendor's) -> 73w with both row-1 `mr r25` copies and `stmw r25` (frame 0x30).
+  Wrapper `CFT_Ycc420plnToA256V` keeps `Uint8 *tbl`.
+- **Fourth step as p3's second web (APPLIED, same 73w):** `p3 = p2; p4 = p2` AFTER row 1, and `p3 = (Uint8 *)(ywidth - 4); p3 += (Uint32)(p4 + 4) - 4;
+  y = p3 - ywidth * 4 + 4;` -- the range-split web `@164` is numbered above v0/v1's row webs (`@158..@163`: web numbering = first-def order of the
+  VARIABLES, p3's first def now follows v0/v1's), so it is coloured before them and takes r26 (= the target's `subi r26`, live across B5); the
+  target's B5 packs are r27 because r26 is taken and r6/r7 are held by y3/d0 (below). With `p5` (pass 57) the own local is coloured last and gets r26
+  too, but nothing above the packs holds r26.
+- **Setup order:** `subf r7,r10,r11` before `lwz r12` now matches; `slwi r0,r11,2` (hoisted `@155`) before `add r30` (yskip) in the target, after it
+  in ours (B2 is RA-dirtied and post-RA rescheduled; s1-s3 = yskip after dskip / an own-local `yw4` / operand order: 73/77/75w, no).
+- **Level-1 cascade, read exactly (B5 = row 4, coloured first; then rows 3, 2, 1 in descending vid) with `pc.py` + the target's registers:**
+  colouring order per row: and1, v1|K, d1, and0, v0|K, d0, tbl[y3], y3, tbl[y2], y2, tbl[y1], y1, tbl[y0], y0, then the @temp webs, then own locals.
+  Target B5: subf r4, and1 r4, v1|K r6, d1 r7, and0 r6, v0|K r6, d0 r7, tbl[y3] r31, **y3 r6**, tbl[y2] r29, y2 r29, tbl[y1] r6, y1 r6, **tbl[y0]
+  r31**, y0 r7, packs r27, p3' r26; ours: y3 r31, tbl[y0] r7, packs r6/r7 (the rest equal). Necessary pre-RA linear-order facts of the target
+  (chaitin model, `--check` IDENTICAL on ours): (1a) `lbzx tbl[y3]` BEFORE `oris v0|K` (y3 and v0|K share r6); (2) `lwz d0` BEFORE `rlwimi v0`
+  (tbl[y0] = r31 needs r7 = d0 taken); (4) `lbz y3` AFTER `slwi B0` (tbl[y1] = r6 = y3); (11) `slwi B1` after `oris v0|K`; (3a) subf after the
+  last stw; (3b) `oris v1|K < add p3' < and1`. Ours (sched.py IDENTICAL): (4)(11)(3a)(3b) hold; (1a) and (2) fail by ONE position each: c6 =
+  {rlwimi (h11), lwz d0 (h10)}, c7 = {oris (h10), lbzx tbl[y3] (h9)} -- the IU op is picked first by height. Row 3 (B4) shows the same two
+  off-by-one facts (target tbl[y3] r31 = d0 overlaps it -> `lwz d0` before `slwi B1`; tbl[y1] r28 = y3 overlaps it -> `lbz y3` before `slwi B0`),
+  and row 1's colours follow from rows 2-3 handing out r27 (target row 2 tbl[y1]/y2/tbl[y2] r27). The post-RA replay (`score.sh "mv=11:10"`) of
+  ours' pre-RA order with the target's colours and `lbzx tbl[y3]` moved before the oris reproduces the target's B5 except the tail `addi y`/`addi d`
+  tie (input order: in ours the dead shift leftover blocks `addi y` at c16 by the IU same-GPR rule).
+- **What does NOT produce (1a)+(2) (schedwhatif on B5, `chk.sh`):** y3's chain before y2's in input order (only a tie-break; the or's FIRST operand
+  is the one inserted, so `tbl[y3] << 8` first gives `rlwimi 8,16,23` -- o1), `lwz d0` first in input order, the y loads in tbl's alias class,
+  removing the dead shift leftovers, no web `mr` (sunk pack), an extra copy in the pack-0 web chain (gives (1a), loses (2): at c6 the LSU takes
+  `lbzx tbl[y3]` (frees 1) over `lwz d0` (frees 0)), an extra copy after `lwz d0`. Arithmetic of the requirement: the LSU issues one load per
+  cycle; after tbl[y0] (c3) the target needs y3 (c4), d0 (c5), tbl[y3] (c6), y2 (c7) while ours has y3, y2, d0, tbl[y3] -- i.e. `lwz d0` must
+  beat `lbz y2` at c5 (equal height 10; y2 frees its lbzx, d0 frees nothing) AND `lbzx tbl[y3]` (h9) must beat `lbz y2` (h10) at c6, or y2 must
+  not be ready before c7. One deleted instruction in the d0 chain with the lwz earlier in input order gives only the first. Not found: a spelling
+  that delays the y2 load (its `lbz 2(p4)` uses the pre-increment base in the target, so it is not the unfolded `-2(p4')` form) or lengthens the
+  y3 chain by 2 and the d0 chain by 1 with nothing in the final code.
+- Tree: src/lib/cftfx.c (prototype + function + `CFT_A256_ROW`), locked `ninja build/G4BE08/src/lib/cftfx.o`, bytecmp 5/6, UserTable 73w size
+  0x22c/0x22c, opcode multiset identical (all 73 words are register names / post-RA order). objects.py untouched, no flip, no `ninja -k 0`.
+- **Late probes (not applied): the or->rlwimi peephole inserts the operand whose shift is DEFINED EARLIER in the pcode order, not the or's
+  first operand** (q1: `t = tbl[y3] << 8; v1 = (tbl[y2] << 24) | t;` keeps the or's operand order but defines the `<< 8` first -> `rlwimi 8,16,23`,
+  4 of 8 packs wrong, 77w; judge shapes with `shape.sh NAME` = register-blind mnemonic+immediate multiset, the plain opcode multiset misses it).
+  So "y3's chain first in input order" is impossible with the correct fusion unless both bytes are loaded before either shift; byte-value locals
+  `b0/b1` reused per row (r1) do that but lose the row-1 own-local copies (frame 0x20, 101w).
