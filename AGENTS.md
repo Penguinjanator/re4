@@ -29117,3 +29117,51 @@ B5 with invisible pcodes (coalesced copies / dead defs) inserted at every chain 
   whose def is a range-split/argument-style COMPILER copy of `ywidth * 3` (or of `ywidth - width`) plus one more dead setup def; the model
   answers in 0.1 s per candidate (`python3 b0lib.py` API: `evaluate([edits]) -> (slwi_first, post_RA_diff)`).
 - Harness /home/adityas/.cache/cri59/ kept SMALL (scripts, base.c/tree.c, the b2 dumps; obj_*/ra_* deleted); /home/adityas/.cache/cri58 deleted.
+
+### GCC sweep pass 1 (parked GCC residues re-read with the full catalogue: Tools/t_esp_area 7w, t_esp/db_widget 2w, game/db_cam menu 2w, game/Espgen42/45 9w/42w, t_camera/t_camera_data 27w/62w — all unchanged, nothing applied, nothing flipped; the t_esp_area tie and the db_widget residue read to one sched1 number each; 2026-09-12)
+Scratch /tmp/gsweep/ (`hv.sh HDR [units..]` = a dbg_tool.h variant judged on the five includers through variant.sh; h*.h header
+variants; dbw_*.cpp db_widget variants; rtl0/ dbw0/ = rtl.sh dumps). No tree file edited unless a line below says APPLIED.
+- **bytecmp artefact (not code): Tools/t_esp_area now prints 11 words, 4 of them (+0x240/248/480/490) are `lis/addi` relocs whose
+  target symbol resolves to `(t_event, .rodata, 0x2408/0x2458)` in ours vs `(Tools, .rodata, 0x3988/0x39d8)` — the linkonce
+  0x50/0xB0 rodata objects shared with t_event (Matching since closer 6); same bytes 3d200000/3be90000. The code residue is still the
+  7-word r28/r29 ctor tie.**
+- **ToolEspArea 7w, the tie read off the sched1 dump (rtl.sh, block 13 = the edit-window ctor):** two-wide issue (iu2 + lsu); the
+  `li 4` (909, prio 8) fills the iu2 slot of cycle 3 next to `li r3,0x304` (922, prio 11) — pushing it after `bl new` (h1: a
+  `"=m"(unused)` anchor before the `new` in CreateEditWindow takes that slot) makes it a call-free qty (`li r11,4` after the call,
+  28/20/12 words) — so the target's `li r29,4` before the call means life >= [14, stw x). Its store 943 (prio 7, lsu) is issued in
+  cycle 6 AFTER `addi vt` 940 (prio 8, iu2) because in-cycle order = ready-list order = priority; the only way to shorten `li 4`'s
+  life to 10 (pri 8000 > work's 6666) is 943 prio >= 8, i.e. a TRUE (cost 2) store->call link to strlen instead of the ANTI (cost 1)
+  that every `this`-based store has here. The `new` result's REG_NOALIAS base denies it: `NOMALLOC=1` (49 words: the other window
+  ctors lose their late-store shape) and the class-scope `operator new` bound to `__builtin_new` on cDbgEditWindow (h4: 19/14/8 words;
+  the asm label is ignored on a template member, the call becomes `__nw__t14cDbgEditWindow...`, and the stores `stw x; stw y; stw vt`
+  move before `mr r3,name`) both show the target's edit-window `new` DID have the alias base. Left: 940 prio <= 7 needs the vt store
+  941 without a link to the strlen call (impossible: sched_before_next_call on the call-free vt pseudo), or 943 >= 8 without NOALIAS
+  removal. h2 (anchor after the ctor) 19/6/10, h3 (`"r"(wx)` input) 32/26/16. Flip order unchanged (t_esp_area first, then
+  t_lightarea's 4 vtable-reloc words).
+- **db_widget DB_STRING ctor 2w (`stfs ca` before `stw max; mr r3` in ours): the residue is the pass-12 launder's own sched2 cost.**
+  `asm("" : "+r"(zero) : "m"(ca))` holds the zero's re-definition after the ca store 56 at sched1 (t=8, the local-alloc naming),
+  but at sched2 the same true dependence lifts 56 to prio 14 over `stw max` 33 (13): t=7 lsu goes to 56 instead of 33. Any
+  memory input raises its store the same way (`"m"(max)` 11 — 33 jumps to t=4, `"m"(type)` 8, `"m"(cr)` 3, `"m"(cg)` 4, `"m"(cb)` 5,
+  ca+max 12), any register input raises its producer (`"r"(t)` with `u32 t = DB_PRIM_STRING; type = t` 10 — the `li 4` goes to
+  t=4; `"f"(z)` 12; `"r"(this)` 9; no input 9 = the unheld naming). The asm's priority is >= 13 whenever its output feeds a
+  pre-call store and >= 12 for any memory output before the `bl __builtin_vec_new` (flush link), so 56 >= 13 = 33's tie with
+  the worse depend count. Moving the asm after the zero stores with a late-store output (`asm("" : "=m"(cr) : "r"(zero), "m"(ca))`
+  6, cb 8, cg 7, ca 12) keeps the raise through the call link. Needed: a sched1-only hold on 56 (a dependence reload removes),
+  none found in C/asm. 2w form kept.
+- **game/db_cam menu 2w (closer 7 stands):** the y/z `lwz` tie at sched2 t=8 (prio 29/29, 13/13 dependents, LUID) needs a sched2-only
+  dependent on y with priority >= 29 or one fewer on z; the Espgen43 pass-selective lever (`"r"(anti)` pinned to a register a LATER insn
+  writes) only RAISES the asm that carries it (anti link asm -> writer), it cannot add a dependent to y without a read of r0 (live from
+  entry: every earlier r0 temp moves) or a def of r0 between y and its store (excludes r0 from y). Not re-probed.
+- **game/Espgen42/45 (9w/42w, pass 13 stands):** the missing construct is two sched1 insns of priority >= 80 ready at t7/t8 that emit
+  nothing. The only sched1-only codeless insn known (t_camera_data closer 4 fact 3: a `"=m"(field)` anchor whose field is overwritten
+  later in the block with no intervening aliasing load/call/volatile asm is deleted by flow2) needs its output-dependent store to be on
+  the >= 79 chain; in Z every later store (`nrm[k].x +=`, `nk->z +=`, `nk->y *=`) is preceded by its own load of the same MEM and the
+  bump `stbx`/fpmem stores are not nameable, so the anchor would carry the tail stores' priority (2-4). Not probed.
+- **t_camera_data tcSetBesideOffset 27w:** GDBG order this tree: allocno 37 reg 153 (`i+1`, refs 4 len 24, 3333) -> pass1 r3; 38 reg
+  207 (n*4 giv, refs 9 len 82, 3292) -> pass1 r3; 39 reg 205 (n*12 giv, refs 9 len 84, 3214) -> pass1 r31. The target has `i+1` and n*4
+  in r31 and n*12 in r3, i.e. r3 was NOT free for reg 153 there: its loop-2 `ready + i*0x84` pointer is `add r3,r23,r9` (ours reg 132
+  refs 5 len 18 pri 5555 -> pass0 r12, allocno 32, before the givs). So the question is not the giv pair's 2-insn length gap (closers
+  2-4) but why reg 132 took r3 in the target's pass 0 (a `regs_used_so_far` register that does not conflict with 132 over loop 2) and
+  r12 in ours; r3's only earlier use is the `tcCdatPtr` call/result (`mr r28,r3`). Not probed further (box spent on the read).
+- Flags unchanged: Tools/t_esp_area, Tools/t_lightarea, t_esp/db_widget, game/db_cam, game/Espgen42, game/espgen45, t_camera/t_camera_data
+  all stay False; no tree file edited; nothing built under the lock (kit only). Flip order for the Tools REL unchanged.
