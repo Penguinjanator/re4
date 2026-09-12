@@ -30131,7 +30131,7 @@ command on the probe, no strip step, llvm-objdump of the tree = the bytes judge;
 - Note on the shared tree: `ninja` printed "premature end of file; recovering" (a clobbered .ninja_deps from an unlocked run elsewhere) and re-split
   once; the locked full build settled (main.dol built, 111 OK on two consecutive checks).
 
-### Tool RELs, t_esp pass 29 (t_esp 209/212: InitTool 431 -> 95w in the harness (/tmp/t29/R1.cpp, not yet in the tree): the SIZE/SPEED/COLOR/ROTATE "spill-register phase" was NOT a reload phase — it is (a) the row form (pointers-first) and (b) every `n->min/max/unit` store spelled `FSTORE_AT` so the NEXT row's g_pEditSeq loads depend on it; IN PROGRESS 2026-09-12)
+### Tool RELs, t_esp pass 29 (t_esp 209 -> 210/212: InitTool 431 -> 0w IDENTICAL IN THE TREE, pure C (pointers-first rows, FSTORE_AT `n->` stores, store orders, .bss order, tail order, cse2 F4' refit, the SAVE_EVENT `ppos`): the SIZE/SPEED/COLOR/ROTATE "spill-register phase" was NOT a reload phase — it is (a) the row form (pointers-first) and (b) every `n->min/max/unit` store spelled `FSTORE_AT` so the NEXT row's g_pEditSeq loads depend on it; BASEPOS 791/802, OPTION 323-335, the .bss order of the two dir-button slots, and cse2 F4' (SPEED+108 -> +88, T-read off the SPEED string rows) all closed; nothing flipped; 2026-09-12)
 - **Read (seg 404 = POS row 1, SCHDBG s1 + LOG_LINKS):** the `this` copy's register (`mr r9,r7` T / `mr r10,r7` ours) is reload's pick for the
   pos.y store's address (11540 spilled, inherited from the `(set r7 11540)` load), chosen among the spill regs NOT live at the store: ours
   issues `li r9,1` at sched1 one cycle BEFORE the pos.y store (the store lost the LSU to the two g_pEditSeq/g_pEditSeq2 loads, pri 2071 > 2070,
@@ -30246,6 +30246,7 @@ try.sh NAME [--dump]).
   ~10 ms per candidate — 20k-candidate hill-climbs find the ceiling of a lever class in a minute (26/43 -> 32/43 for statement+declaration
   on the old form = the pass-31/63 sweeps' negative result, reproduced without compiling). (2) The srawi/XER (class-0 WAW, lat 1) chain is
   a statement-order oracle in both scheduler passes. (3) `rw` bit 4 in the sched-pre2 operands (`R4:25:5`) appears on last uses only (not used by the model).
+### Tool RELs, t_esp pass 29, part 2 (continuation of "t_esp pass 29" above — other agents' sections landed between; InitTool 431 -> 40w in the tree, then the cse2 F4' read; 2026-09-12)
 - **IN THE TREE (12:14): InitTool 431 -> 40w, size exact, 209/212 (Load/SaveEmType 2/2 untouched).** Edits, all pure C: POS row 1 /
   SIZE rows 1, 3 / COLOR row 1 pointers-first; the 33 `n->max/min/unit` stores of SIZE/SPEED/COLOR/ROTATE (+ROT_MINMAX) as FSTORE_AT;
   ROTATE row 11 `max,min,unit`; SIZE row 4 / COLOR row 1 `max` before `min`; BASEPOS row 2's `nameNum`/`nameTbl` as byte-offset
@@ -30360,3 +30361,47 @@ Scratch /tmp/ties/ (dbw/run.sh = variant + SCHDBG/LADBG summary, dbw/anch.sh = w
 - Flags: `t_esp/db_widget.cpp` True (the `# 2-word ties pass 1` block in config/G4BE08/modules.py), game/db_cam and lib/adx_tsvr unchanged.
   Built under the lock: build/G4BE08/src/t_esp/db_widget.o, t_esp.rel, then `ninja -k 0`; `dtk shasum -c` = 111 OK; symbols.txt unchanged.
   Tree edits: src/t_esp/db_widget.cpp (DB_STRING ctor + `primIdCounter` linkage), config/G4BE08/modules.py, this section. Kit untouched.
+### Tool RELs, t_esp pass 29, part 3 (continuation — InitTool 40 -> 8 -> 0w IDENTICAL in the tree: cse2 F4' refit and the SAVE_EVENT `ppos`; t_esp 210/212, Load/SaveEmType 2/2 left; nothing flipped; 2026-09-12)
+- **IN THE TREE (12:21): InitTool 40 -> 8w — cse2 F4' refitted to T's read (Z3).** PARENT pad 16 -> 36 sets (`1:2:3:5..16:7001..7020:4`,
+  (+20 cse1, +20 cse2)), LIFE pad 39 -> 19 sets (-20 cse1, -20 cse2), POS `f32 c5/c112/c24/c128/c16` after each constant's first
+  use (-18 cse1-only: the lever saves 3 per later use BEYOND the first, i.e. 3(k-1) for k later uses — c5/c112/c24/c128 with 2 later
+  uses = -3 each, c16 with 3 = -6; the pass-27 "3-3k" was measured on 3-use constants), POS pad `1:2:3:5` -> `1:2` (-2), LIFE second
+  block `{ int e_; e_ = 7101..7120; }` after the d_ pad (+20 cse1-only in (F8, F9]). Grids: cse1 unchanged (F5 SIZE+174 .. F12
+  BASEPOS+107), cse2 LOAD_EVENT+53 OPTION+70 PATH+348 **SPEED+88** (was +108) **COLOR+532** (was +552) ANMRATE+40 SUB+41 WORKSP1+49,
+  N 5235. Every COLOR/BLEND/FLAG segment stays exact with F5' at COLOR+532, so the pass-21 word-fit "+552" was never T's position
+  either; segs 448/449/452/453 -> 0 (the SPEED "X:"/"Y:" heads now die at 448/449, 452/453 use the cse1 head P1 like T).
+- **Remaining 8w = seg 271 (SAVE_EVENT CreateNormalWindow, the `&pos` split at cse1 F2 = SAVE_EVENT+27).** The merged form is
+  `DB_POINT* ppos = &pos;` between `pos` and `w` with `ppos` as the argument (Z11: 271 d6 -> d2 = `lwz r5,slot` as T); it is 0 cse1,
+  +1 cse2 (F2' 70 -> 69 and every later flush -1, all harmless) and -2 post-sched1 insns, and it permutes the FP constant registers of
+  the SAVE..OPTION region (segs 217/220/233/271/274-329: f23/f24/f25/f27/f28 names = block-13 local-alloc qty order; the 192.0 head
+  reg3194 gains 2 refs, the 9-ref head born at suid 1468 disappears in favour of an 8-ref head born 1770) — 42w. With the SAVE_EVENT
+  `{1,4}` pad removed + SAVE_CHECK `1:2:3:5` (Z4: F2' back to 70, grids and N exact) the same FP permutation remains, so it is not
+  F2'. `ppos` after `flg` (after F2) = no change at all (Z12 = Z3). `pos` after `w`/`h` moves the frame slots (X1, 2003w). Next: read
+  the FP qty list (la_Z3.log vs la_Z4/Z11: `rg -- '-> (55|56|57|59|60)$'`, births < 3000) to find which 128/144/164/192 head changes
+  class with the ppos copy in the cse2 stream, then place a (0 cse1, +1 cse2) real insn elsewhere in (F1', F2'] or re-pin F2' with it.
+- Harness additions: Z1-Z12 variants (Z3 = the tree), la_Z3/la_Z4/la_Z11.log (LADBG block 13), gdbg_cur.log; ~/.cache/tesp15 o_* for each.
+  Nothing flipped (t_esp 209/212: Load/SaveEmType 2/2, InitTool 8).
+- **IN THE TREE (12:33): InitTool IDENTICAL (431 -> 0w), t_esp 210/212 (Load/SaveEmTypeUpdateCallback 2/2 left).** Seg 271 closed by
+  Z16/Z17: `DB_POINT* ppos = &pos;` right after `pos` in SAVE_EVENT's CreateNormalWindow row, `ppos` as the argument, SAVE_SST pad
+  `1:2:3:4` -> `1:2:3` and SAVE_CHECK `1:2` -> `1:2:3`. Read: the ppos set is folded into the DB_POINT copy C by cse1 (same window,
+  before F2) and the argument's separate `(set A (addressof pos))` disappears, so the cse1 stream is one insn SHORTER from +35 on and
+  F2 (= the 1002nd insn) lands one insn earlier — before the `w` STORE instead of before the `h` high. With the `w` store after the
+  flush, cse1 leaves `(set 3897 3194)` (the w value as a copy of LOAD_EVENT's 192.0 head) alive with its REG_EQUAL 192.0, cse2 then
+  learns 3194 = 192.0 inside (F1', F2'] and merges LOAD_CHECK/SAVE_CHECK's 192.0 loads into it (reg3194 3 -> 5 refs, the 4099 head
+  gone) = the f23/f24/f25/f27/f28 permutation of segs 217-329 (Z4/Z11). SAVE_SST -1 puts F2 back after the store (F2 = SAVE_EVENT+28
+  in the new numbering = the same content), SAVE_CHECK +1 restores F3..F12. Grids: cse1 LOAD_EVENT+6 SAVE_EVENT+28 OPTION+540 PATH+541
+  SIZE+174 SPEED+684 COLOR+869 LIFE+8 ROTATE+644 WORK0+14 WORK6+10 BASEPOS+107; cse2 LOAD_EVENT+53 OPTION+70 PATH+348 SPEED+88
+  COLOR+532 ANMRATE+40 SUB+41 WORKSP1+49; N 5235. fdiff still prints 80 `*` REPLACE lines with identical text (relocation-name
+  artefacts); bytecmp is the judge. Not flipped: the module needs Load/SaveEmTypeUpdateCallback (2/2 words, open since pass 8).
+- Catalogue rows touched (GCC): row 4 (alias): `n->f = v` through a call result is MEM_IN_STRUCT_P and lets the next row's fixed-scalar
+  global loads (`g_pEditSeq`) issue before it; `*(f32*)((u8*)n + off) = v` (FSTORE_AT) is neither in-struct nor scalar and orders them
+  after (T's rows do). Row 6 (sched1 tie): the argument `li rN,K` sets are LUID-ordered among equals, but whether an address copy
+  reload lands in r9 or r10 is decided by which `li` precedes the pos.y store in the sched1 stream — pointers-first rows move the
+  g_pEditSeq loads' LUIDs below the stores. Row "cse2 flush grid": a source change that deletes a cse1-stream insn BEFORE a flush
+  moves that flush one insn earlier in content and can split a load from its store, leaving a copy with a REG_EQUAL constant alive
+  into cse2 (a (0 cse1, +1 cse2) knob with side effects on constant sharing).
+- Load/SaveEmTypeUpdateCallback 2/2 (out of this pass's scope, one probe): the do-loop of ModelTypeGroupSkip has one loop-body high of
+  g_modelType (`lis r12`, hoisted to the preheader) and the entry high r4; T uses the body high for the LAST ref of the body (`t =
+  g_modelType`, `lhz r7`) and r4 for the first (`g_modelType = t + dir`, `sth r9`), ours the reverse. Rotating the loop (one step before
+  a `for (;;)` with the step last) is 47/48w and changes the size — not the form; the ebb/PRE question of which ref keeps the body head is
+  open (read the .cse/.gcse dumps of the do-body).

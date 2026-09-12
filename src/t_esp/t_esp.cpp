@@ -399,8 +399,8 @@ DB_BUTTON* g_pMenuExitButton;
 // reload's r6/r8 at 237). A plain `g_x = f()` pins the high after the call; a plain struct member legitimises the
 // address only at the store (also after the call).
 struct DirButtonSlot { DB_BUTTON* p; };
+static DirButtonSlot g_pSaveDirButton;  // pass 29: .bss order (the save slot sits below the load slot in the target)
 static DirButtonSlot g_pLoadDirButton;
-static DirButtonSlot g_pSaveDirButton;
 DB_NUMERIC2* g_pPosNumX;
 DB_NUMERIC2* g_pPosNumY;
 DB_NUMERIC2* g_pPosNumZ;
@@ -1735,14 +1735,15 @@ static void SetDirCallback(DB_PRIMITIVE*)
         name = "[SerVer]";
         strcpy(g_dir, "X:/Soft/");
     }
-    g_pLoadDirButton.p->SetString(name);
+    // pass 29: the save button (the lower .bss slot) first, as the target orders the two SetString/SetColor pairs
     g_pSaveDirButton.p->SetString(name);
+    g_pLoadDirButton.p->SetString(name);
     if (g_dirLocal == 1) {
-        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
         g_pSaveDirButton.p->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
     } else {
-        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
         g_pSaveDirButton.p->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
+        g_pLoadDirButton.p->SetColor(1.0f, 1.0f, 0.2f, 1.0f);
     }
 }
 
@@ -2479,7 +2480,7 @@ static void SaveSstFileNoUpdateCallback(DB_PRIMITIVE* p)
 class SAVE_SST_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_SST_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; d_ = 3; } // pass 29: 4 -> 3 sets: SAVE_EVENT's `ppos` argument removes the split `&pos` insn, so cse1 flush F2 keeps landing between the `w` store and the `h` load
         pa = p;
         win = NULL;
         {
@@ -2552,6 +2553,7 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
+            DB_POINT* ppos = &pos;  // pass 29: one `&pos` pseudo across cse1 flush F2 (cse2 folds the copy into the argument)
             f32 w = 192.0f;
             f32 h = 128.0f;
             // pass 23: cse1 flush F2 falls between `w` and `h` above, so this `d_ = 4` heads the constant-4 class after
@@ -2561,7 +2563,7 @@ public:
             // The 2 cse1-time insns are paid back by SAVE_CHECK's pad (4 -> 2 sets).
             { int d_; d_ = 1; d_ = 4; }
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa_->CreateNormalWindow("     Save EVENT", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("     Save EVENT", ppos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
@@ -2626,7 +2628,7 @@ static void SaveCheckClose_callback(DB_WINDOW*)
 class SAVE_CHECK_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_CHECK_WINDOW(DB_PRIM_ARRAY* p) {
-        { int d_; d_ = 1; d_ = 2; } // pass 23: 4 -> 2 sets, pays back SAVE_EVENT's in-block pad (cse1-only)
+        { int d_; d_ = 1; d_ = 2; d_ = 3; } // pass 23: 4 -> 2 sets, pays back SAVE_EVENT's in-block pad; pass 29: 3 sets, pays SAVE_SST's (cse1-only)
         pa = p;
         win = NULL;
         {
@@ -2826,9 +2828,9 @@ public:
             DB_POINT pos(88.0f, 72.0f);
             int sx = 0;
             DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_filter, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG);
-            n->nameNum = 0x10;
             n->max = 16.0f;
             n->nameTbl = g_blendNameTbl;
+            n->nameNum = 0x10;
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -2864,9 +2866,9 @@ public:
             DB_POINT pos(88.0f, 152.0f);
             int sx = 0;
             DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_roomCam, &pos, &sx, 9, DB_NUM_FLAG_NO_FLOAT_MSG);
-            n->nameNum = 0x40;
             n->max = 64.0f;
             n->nameTbl = g_filterNameTbl;
+            n->nameNum = 0x40;
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -2881,9 +2883,9 @@ public:
             DB_POINT pos(88.0f, 184.0f);
             int sx = 0;
             DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_render, &pos, &sx, 11, DB_NUM_FLAG_NO_FLOAT_MSG);
-            n->nameNum = 9;
             n->max = 7.0f;
             n->nameTbl = g_renderNameTbl;
+            n->nameNum = 9;
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3354,7 +3356,7 @@ public:
         // survives to cse2 (n sets = n cse1 + n-1 cse2 insns); 16 sets move cse2's F5' 12 insns earlier (COLOR+555, out of
         // the (COLOR+557, +613] interval that kept seg 545/547's 16.0 fresh) with cse1's F7 held at COLOR+863 by the
         // POS_MINMAX form below (12 cse1-time insns fewer in POS)
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 4; }
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 7001; d_ = 7002; d_ = 7003; d_ = 7004; d_ = 7005; d_ = 7006; d_ = 7007; d_ = 7008; d_ = 7009; d_ = 7010; d_ = 7011; d_ = 7012; d_ = 7013; d_ = 7014; d_ = 7015; d_ = 7016; d_ = 7017; d_ = 7018; d_ = 7019; d_ = 7020; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -3541,6 +3543,11 @@ static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
 // g_pEditSeq loads stay below it (sched1), as with FSet; unlike FSet the address sits inside the MEM (one cse1-time insn
 // fewer per store: FSet's reference `addi` was folded into the store by cse1 anyway)
 #define FSTORE_AT(p, off, v) (*(f32*) ((u8*) (p) + (off)) = (v))
+// pass 29: the same store kind for every n->max/min/unit of SIZE/SPEED/COLOR/ROTATE (0xA0/0xA4/0xB8): the NEXT row's
+// g_pEditSeq/g_pEditSeq2 loads must be true-dependent on them (the target issues them after the pos.x store), and a
+// max store before min where a SetDefault call follows (the min store waits for the max value's pool load). The
+// CreateNumeric2 rows whose target copy is mr r9,r7 are pointers-first (the g_pEditSeq loads take the LSU before the
+// pos.y store, both li argument sets land after it, so reload's address copy finds r9 free).
 #define POS_MINMAX(n)                                        \
     FSTORE_AT(n, 0xA0, 327670.0f);  /* DB_NUMERIC::max */     \
     FSTORE_AT(n, 0xA4, -327680.0f); /* DB_NUMERIC::min */
@@ -3548,7 +3555,7 @@ static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
 class POS_WINDOW : public TOOL_WINDOW {
 public:
     POS_WINDOW(DB_PRIM_ARRAY* p) {
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; }
+        { int d_; d_ = 1; d_ = 2; }  // pass 29: 4 -> 2 sets (cse1-only)
         pa = p;
         win = NULL;
         {
@@ -3563,11 +3570,14 @@ public:
         win->SetCloseCallback(ControlClose_callback);
         win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) PosActiveChange_callback);
         pa->CreateString(win, "X:", &DB_POINT(5.0f, 16.0f));
-        pa->CreateString(win, "Y:", &DB_POINT(5.0f, 32.0f));
-        pa->CreateString(win, "Z:", &DB_POINT(5.0f, 48.0f));
-        pa->CreateString(win, "X:", &DB_POINT(112.0f, 16.0f));
-        pa->CreateString(win, "Y:", &DB_POINT(112.0f, 32.0f));
-        pa->CreateString(win, "Z:", &DB_POINT(112.0f, 48.0f));
+        f32 c5 = 5.0f;
+        f32 c16 = 16.0f;  // pass 29: cse1-only savings (-3 per later use) paying PARENT's longer pad
+        pa->CreateString(win, "Y:", &DB_POINT(c5, 32.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(c5, 48.0f));
+        pa->CreateString(win, "X:", &DB_POINT(112.0f, c16));
+        f32 c112 = 112.0f;
+        pa->CreateString(win, "Y:", &DB_POINT(c112, 32.0f));
+        pa->CreateString(win, "Z:", &DB_POINT(c112, 48.0f));
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -3585,16 +3595,19 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(24.0f, 16.0f);
+            f32* n1 = &g_pEditSeq->pos.x;
+            f32* n2 = &g_pEditSeq2->pos.x;
+            DB_POINT pos(24.0f, c16);
             int sx = 0;
-            g_pPosNumX = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.x, &g_pEditSeq2->pos.x, &pos, &sx, 1, 0);
+            g_pPosNumX = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0);
             g_pPosNumX->SetKeta(8);
             POS_MINMAX(g_pPosNumX);
         }
+        f32 c24 = 24.0f;  // pass 29: cse1-only (-3 per later use), pays PARENT's longer pad
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(24.0f, 32.0f);
+            DB_POINT pos(c24, 32.0f);
             int sx = 0;
             g_pPosNumY = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.y, &g_pEditSeq2->pos.y, &pos, &sx, 2, 0);
             g_pPosNumY->SetKeta(8);
@@ -3603,7 +3616,7 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(24.0f, 48.0f);
+            DB_POINT pos(c24, 48.0f);
             int sx = 0;
             g_pPosNumZ = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.z, &g_pEditSeq2->pos.z, &pos, &sx, 3, 0);
             g_pPosNumZ->SetKeta(8);
@@ -3612,16 +3625,17 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(128.0f, 16.0f);
+            DB_POINT pos(128.0f, c16);
             int sx = 1;
             g_pRPosNumX = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.x, &g_pEditSeq2->rpos.x, &pos, &sx, 1, 0);
             g_pRPosNumX->SetKeta(7);
             POS_MINMAX(g_pRPosNumX);
         }
+        f32 c128 = 128.0f;
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(128.0f, 32.0f);
+            DB_POINT pos(c128, 32.0f);
             int sx = 1;
             g_pRPosNumY = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.y, &g_pEditSeq2->rpos.y, &pos, &sx, 2, 0);
             g_pRPosNumY->SetKeta(7);
@@ -3630,7 +3644,7 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
-            DB_POINT pos(128.0f, 48.0f);
+            DB_POINT pos(c128, 48.0f);
             int sx = 1;
             g_pRPosNumZ = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.z, &g_pEditSeq2->rpos.z, &pos, &sx, 3, 0);
             g_pRPosNumZ->SetKeta(7);
@@ -3732,9 +3746,11 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
+            f32* n1 = &g_pEditSeq->w;
+            f32* n2 = &g_pEditSeq2->w;
             DB_POINT pos(64.0f, 16.0f);
             int sx = 0;
-            g_pSizeNumW = pa_->CreateNumeric2(win_, &g_pEditSeq->w, &g_pEditSeq2->w, &pos, &sx, 1, 0);
+            g_pSizeNumW = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0);
             g_pSizeNumW->SetKeta(6);
             g_pSizeNumW->SetDefault(200.0f);
         }
@@ -3750,12 +3766,14 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
+            f32* n1 = &g_pEditSeq->plus;
+            f32* n2 = &g_pEditSeq2->plus;
             DB_POINT pos(204.0f, 0.0f);
             int sx = 1;
-            n = pa_->CreateNumeric2(win_, &g_pEditSeq->plus, &g_pEditSeq2->plus, &pos, &sx, 0, 0);
+            n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(3);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3765,10 +3783,10 @@ public:
             n = pa_->CreateNumeric2(win_, &g_pEditSeq->dplus, &g_pEditSeq2->dplus, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(3);
-            n->min = 0.0f;
-            n->max = 2.0f;
+            FSTORE_AT(n, 0xA0, 2.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3864,10 +3882,10 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 3, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
-            n->max = 2.0f;
-            n->min = 0.0f;
+            FSTORE_AT(n, 0xA0, 2.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3879,7 +3897,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3891,7 +3909,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3903,7 +3921,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 2, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3942,7 +3960,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3954,7 +3972,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -3966,7 +3984,7 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 2, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         win->active = 0;
     }
@@ -4093,15 +4111,17 @@ public:
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
+            f32* n1 = &g_pEditSeq->dr;
+            f32* n2 = &g_pEditSeq2->dr;
             DB_POINT pos(124.0f, 0.0f);
             int sx = 1;
-            n = pa_->CreateNumeric2(win_, &g_pEditSeq->dr, &g_pEditSeq2->dr, &pos, &sx, 0, 0);
+            n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
-            n->min = 0.0f;
-            n->max = 1.0f;
+            FSTORE_AT(n, 0xA0, 1.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4111,10 +4131,10 @@ public:
             n = pa_->CreateNumeric2(win_, &g_pEditSeq->dg, &g_pEditSeq2->dg, &pos, &sx, 1, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
-            n->max = 1.0f;
-            n->min = 0.0f;
+            FSTORE_AT(n, 0xA0, 1.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4124,10 +4144,10 @@ public:
             n = pa_->CreateNumeric2(win_, &g_pEditSeq->db, &g_pEditSeq2->db, &pos, &sx, 2, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
-            n->max = 1.0f;
-            n->min = 0.0f;
+            FSTORE_AT(n, 0xA0, 1.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4137,10 +4157,10 @@ public:
             n = pa_->CreateNumeric2(win_, &g_pEditSeq->da, &g_pEditSeq2->da, &pos, &sx, 3, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
-            n->max = 1.0f;
-            n->min = 0.0f;
+            FSTORE_AT(n, 0xA0, 1.0f);
+            FSTORE_AT(n, 0xA4, 0.0f);
             n->SetDefault(1.0f);
-            n->unit = 0.01f;
+            FSTORE_AT(n, 0xB8, 0.01f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4389,7 +4409,7 @@ public:
         // between it and the pos.y store (a surviving copy there made the `&pos` pseudo GENERAL-class at its entry spill;
         // the target's seg 0 reload rotation shows it BASE-class); the 2 cse1-time insns are paid back by ROTATE's shared
         // `sx1` (below).
-        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 37; d_ = 38; d_ = 39; d_ = 4; }
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 4; } { int e_; e_ = 7101; e_ = 7102; e_ = 7103; e_ = 7104; e_ = 7105; e_ = 7106; e_ = 7107; e_ = 7108; e_ = 7109; e_ = 7110; e_ = 7111; e_ = 7112; e_ = 7113; e_ = 7114; e_ = 7115; e_ = 7116; e_ = 7117; e_ = 7118; e_ = 7119; e_ = 7120; }
         pa = p;
         win = NULL;
         {
@@ -4479,8 +4499,8 @@ public:
 /* ------------------------------------------------------------------------- Rotate window */
 
 #define ROT_MINMAX(n)          \
-    (n)->max = 360.0f;         \
-    (n)->min = -360.0f;
+    FSTORE_AT(n, 0xA0, 360.0f);  \
+    FSTORE_AT(n, 0xA4, -360.0f);
 
 class ROTATE_WINDOW : public TOOL_WINDOW {
 public:
@@ -4633,9 +4653,9 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 0, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
-            n->max = 10.0f;
-            n->min = -10.0f;
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xA0, 10.0f);
+            FSTORE_AT(n, 0xA4, -10.0f);
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4647,9 +4667,9 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 1, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
-            n->unit = 0.1f;
-            n->max = 10.0f;
-            n->min = -10.0f;
+            FSTORE_AT(n, 0xA0, 10.0f);
+            FSTORE_AT(n, 0xA4, -10.0f);
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -4661,9 +4681,9 @@ public:
             n = pa_->CreateNumeric2(win_, n1, n2, &pos, &sx, 2, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
-            n->max = 10.0f;
-            n->min = -10.0f;
-            n->unit = 0.1f;
+            FSTORE_AT(n, 0xA0, 10.0f);
+            FSTORE_AT(n, 0xA4, -10.0f);
+            FSTORE_AT(n, 0xB8, 0.1f);
         }
         win->active = 0;
     }
@@ -5046,8 +5066,8 @@ public:
             int sx = 0;
             n = pa_->CreateNumeric(win_, &g_pSeqHead->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
-            n->nameNum = 256;
-            n->nameTbl = g_partsNameTbl;
+            *(u32*) ((u8*) n + 0xC4) = 256;
+            *(const char***) ((u8*) n + 0xC0) = g_partsNameTbl;
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -5288,10 +5308,10 @@ int InitTool()
     g_pWorkSp2Win = new WORKSP2_WINDOW(g_pPrimArray);
     g_pWorkSp3Win = new WORKSP3_WINDOW(g_pPrimArray);
     g_pBasePosWin = new BASEPOS_WINDOW(g_pPrimArray);
-    g_fileMenu = 0;
     g_page = 0;
     g_editTop = 0;
     g_editCursor = 0;
+    g_fileMenu = 0;
     return 1;
 }
 
