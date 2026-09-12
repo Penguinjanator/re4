@@ -27523,3 +27523,51 @@ Harness /home/adityas/.cache/tid8/ (deleted at the end): variant copies v1-v4, r
   was linked from our object, confirming pass 7's weak-`_vt.5cUnit` reading); `flock ... ninja -k 0` + `dtk shasum -c` = 111 OK;
   `git diff config/G4BE08/symbols.txt` empty. Tree edits: src/t_id/t_id.cpp (toolIdOption body top), config/G4BE08/modules.py.
   No tagged forms added; t_id/t_id has none. The t_id module is now fully Matching (tools, db_path, db_sctrl, t_util, t_id).
+
+### DOL db_cam closer 7 (game/db_cam 12/13: debugCamera::menu 2w unchanged; the y/z sched2 tie proved count-invariant under every hard-register lever, the y-first sched1 world proved unallocatable; nothing applied, not flipped; 2026-09-12)
+
+Harness ~/.cache/dol_dbcam7 (tv.py = snippet-replace driver over `~/.cache/kit/variant.sh`, rtl_base dumps, LADBG log; deleted).
+Tree untouched (`src/game/db_cam.cpp` menu as closer 6 left it); `MATCHING["game/db_cam.cpp"]` stays False.
+- **The tie, read off the sched2 dump (`;; Region Dependences b 32`, ready lists):** 468 (z, `lwz r8,8(r9)`) is ready from t=7
+  (anti on 439 `stw r10,4(r8)`, the loop dst's last read); 465 (y, `lwz r0,4(r9)`) becomes ready at t=8 (anti on 444 `stw r0,ProjType`,
+  t=7). At t=8 the ready list is `513 541 465 468`: prio 29/29, both class 3 against last_scheduled 452 (`addi r10,r7,0x118`),
+  forward dependents 13/13 — z: `470 471 472 481 491 499 500 501 528 529 530 544 557`, y: the same with 497 (`lwz r0,8(r5)`,
+  output r0) in place of 491 (`lwz r8,target@l`, output r8); 481 = `addi r9,r11,0x124` (anti r9, both); 557 = the call. LUID decides.
+  The target needs y issued at t=8 with the same hard-register stream, i.e. dependents y > z, or the LUID order y < z (y-first sched1).
+- **Count invariance (why no hard-register lever can do it):** sched_analyze keeps one `reg_last_sets[r]` and the `reg_last_uses[r]`
+  list since that set; an inserted insn that SETS r0/r8 takes over exactly one edge (it becomes the load's output dependent and the
+  old output dependent re-points to it), an inserted insn that only READS r0 adds a true dependent — but a read needs a definition:
+  an uninitialised `register u32 p asm("r0")` use is live from function entry (blocks r0 for every earlier temp), and a codeless
+  def `asm("" : "=r"(p))` before the read takes the output edge back. Net change 0 in every arrangement (def before/after the
+  loads, r0 or r8, use before/after the stores). Memory dependents are pass-invariant except for `[rN+k]` bases, and a codeless
+  store that aliases campos.y but not campos.z must be `(plus r9 4)` in sched2 = `(plus r209 4)` in sched1 = a fourth use of the
+  lo_sum base -> the base no longer dies at the z load -> y-first sched1 (the closer 5/6 `"m"(campos.z)` result). A laundered copy
+  of the base (`Vec* p = &campos; asm("" : "+r"(p))`) has unknown alias base (dependent of both loads) and needs a register across
+  the loads: every volatile GPR is busy over [26,44) (LADBG: r0 y, r9 base, r11 LC50 high, r10 d0, r8 z, r7 pG, r6/r5 target,
+  r3/r4 up, r30 x) so it would take r29 (prologue change).
+- **Issue slots:** `get_issue_rate()` = 2 for the 750 (rs6000.c); a codeless asm has no unit but consumes one of the two issue
+  slots in BOTH passes (`can_issue_more--` for every scheduled insn), so an asm must land in a cycle with a free slot (this block:
+  t>=10) or it shifts the stream. A hard-register asm def has no sched1 dependences (no hard regs in the pseudo stream) and floats
+  to the top of the block: `register u32 anti asm("r8"); asm("" : "=r"(anti)); asm("" : "=m"(old_cam_mode) : "r"(anti))` placed
+  after `ProjType = 2` still landed above the cameraBak leftover stores and moved the loop dst pointer r8 -> r6 (33w);
+  `"=m"(ProjType)` as the sink additionally swapped this/joy r31/r30 in the prologue (58w).
+- **The y-first world is unallocatable (LADBG on the base):** q10 y reg214 [34,42) refs 2 pri 2500 -> r0, q8 z reg215 [30,40) pri
+  2000 -> r8 (the gap is 514 `addi r4` between the loads at sched1 slots 15/17); q7 dest base [28,42) r10; the target copy's z2/y2
+  tie at 2500/2500 and z2 takes r0 by qsort position. With y loaded first, y = [30,42) 1666 and z = [34,40) 3333: z is allocated
+  first and takes r0 whether z is a local qty (r0 first in `find_free_reg`), a global allocno (r0 is in `regs_used_so_far` and free
+  over z), or y is global (allocated after local-alloc gave z r0). z's range lies inside y's, so no hard-register clobber can
+  exclude r0 for z only; y cannot gain the 3 extra refs (`floor_log2(refs)*refs`) the priority needs; no copy to a hard register
+  (a `qty_phys_copy_sugg`, allocated before every unsuggested qty) exists for a block-move temporary. Measured: `asm("" :
+  "=m"(*(u32*) d0) : "r"(s0))` after the memcpy (base alive -> y first) = 13w with z r0 / y r7 / pG r11.
+- **What sched2 could see that final does not emit:** final.c skips `(set rN rN)` (reload_cse deletes them first) and USE/CLOBBER
+  insns; an output-less asm with clobbers is a volatile barrier. No C spelling produces a byte-free r0 reader after reload_cse.
+- Variants this pass (menu words): float scalar copies through `Vec*`/`Vec&` in x,z,y / x,y,z / y-in-a-local order = 68-71 (lfs/stfs,
+  size 0x330); `pG->Cam.param.pos = campos` 46 (no pG reload: in-struct stores); u32 words through `const u32*` x,z,y 23; `W3`
+  in-struct view + `u32*` stores x,z,y 23 / x,y,z 32 / with `register u32 y asm("r0")` 43 (the pin makes the y load float above the
+  ProjType store); `memcpy((u8*) pG + offsetof(Cam.param.pos), ..)` 2, `static inline VecCopyRaw(u8*, const Vec*)` / `(u8*, const
+  Vec&)` 2 (identical RTL); `asm("" : "=m"(*(u32*)(d0 + 4)))` after the memcpy 63 and size 0x32c (the fake later store makes the
+  real y store dead: flow deletes it); r8 def/use asms 33/58.
+- Left for the record: the target's campos copy needs y before z in sched2 with a z-first sched1 stream and 13/13 dependents.
+  With alias, hard-register and LUID levers all excluded above, the remaining candidates are compiler-side (a different
+  `rank_for_schedule` tie chain or `INSN_LUID` assignment in the original build, cf. "Known compiler-build differences") — not a
+  source spelling. Do not spend another pass on menu from the source side.
