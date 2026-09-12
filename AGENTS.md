@@ -25708,3 +25708,172 @@ redefinition blocker of SWAR pass 5 does not fire on straight-line code); type r
 for the type check moves the loads into block 2 (149w, size equal) — the target's type loads are in the header block. Open: the statement
 that keeps the header ckid a variable (a store between its def and the FORM check? the vendor's LE32 macro reading through a local
 pointer that is then stepped inside a loop?).
+
+### Tool RELs, t_event closer 3, part 2 (t_event/t_event 55 -> 42 words, 66 -> 67/69; CallbackSave IDENTICAL; SubToolMessInit 6 -> 2; includers unchanged; 111 OK; not flipped; 2026-09-12 02:05)
+- Item 3a SOLVED, `add r3, r3, r27` (5w): the record address `d.node[d.num].s[X]` (ARRAY_REF) expands `(plus base T)`;
+  the target's `(plus T base)` is the integer-arithmetic order (AGENTS "add operand order" rule): `((XmlNode*) (d.num *
+  sizeof(XmlNode) + (u32) d.node))->s[X]` (local `CUR_NODE` macro around the five sprintfs) gives `mulli; add rMul, rBase;
+  addi off`. Pointer forms `(d.node + d.num)->s[X]`, `(d.num + d.node)->`, `(&d)->node[..]` all stay base-first (the C++
+  front end/expand canonicalise pointer sums pointer-first; expand's both_summands "MULT first" rule only fires with
+  EXPAND_SUM and a sum-with-constant base, which a call argument never is). Combine never merges the mult into the plus
+  here (the split would give `(plus T base)` too) — not investigated further.
+- Item 3b SOLVED (CallbackSave 4w) / mostly (SubToolMessInit 6 -> 2w): the clear loop's two PRE pseudos `i - 1` (`subi`)
+  and `n + 176` (`addi 0xb0`) tie on priority and are allocated in gcse hash-bucket order. Dump (`-dG`, "Expression
+  hash table (S buckets)") gives the buckets directly: CallbackSave S=161, h(i-1)=150, h(n+1)=2; SubToolMessInit S=609,
+  576 / 141. The hash is linear in regno, so d dead pseudos declared before the inlined call shift both by d and the
+  order flips when h(i-1) wraps: predicted d=11/33, measured d=13/35 (the flip window is [13,16+] / [35,44+]; 1-12 and
+  30-34 do nothing). Form: one `int dead0, ..., deadN;` line (uninitialised, never emitted) before `EvtMessWrite`'s
+  caller body / before `EvtMessRead(m, path)` in SubToolMessInit, tagged `COMPILER-DIFF: candidate (gcse PRE pseudo
+  numbering)`. CallbackLoad (same inline, no lever) already had the target order.
+- Remaining 42w: SubToolMessMove 40 (2a back-search giv inits ~15, 2b `&mesCnt[1]` base pseudo ~10, rest register
+  permutation downstream), SubToolMessInit 2 (`stw r11, 0x44(r9)` one slot earlier in ours at +0xc6c, sched2).
+- Harness additions in ~/.cache/tev3: `mk.py K1 K2 OUT` (dead-pseudo variants), vT/vU (integer address), vX/vY/vZ scans.
+
+### CRI pass 36 (sfd_mps 22/26 -> 24/26: CopyPrvate 60 -> 0, CopyPketData 157 -> 0, pure C; adx_sje encode_data 67 -> 39w; IN PROGRESS 2026-09-12)
+Harness /home/adityas/.cache/cri36/ (mk.py/mkp.py/mks.py block-replace variants over ~/.cache/kit/variant.sh, ghost.py/ghost2.py = chaitin.py as a library with injected edges/nodes; deleted at the end).
+- sfd_mps CopyPrvate 60 -> 0 (pure C): (1) CopyUoch reads `ch.sj` directly (frontend CSE temp, lowest vid -> coloured last, r23) instead of a `sj` local; fn1/fn2/obj stay locals. (2) CopyPrvate has an own `ret` (`if (bufout3 == 8) ret = 1; else ret = CopyUoch(..)` -> `li r24,1; mr r3,r24`); hoisting the `== 8` test into a helper `sfmps_CopyUo(sfd, chno, data, len)` called from both paths also OK. (3) THE residue (chaitin.py: one added edge len~len_a reproduces all 9 target colours): the header copy's arguments are the caller's own variables redefined before the call: `data -= 0x12; len += 0x12; CopyUo(sfd, 0, data, len);` -- a multi-def `len` is not propagated into the inlined param copy, `len` stays live past the `addi` (no in-place r28), len_a takes new r24, then data_b/ret reuse r24 and both sj CSE temps take r23; also gives the target's `mr r5, r24; cmpw r3, r5` (the kept helper-param copy sunk below the GetNumData call) and the 0x80 frame. Expression arguments (`data - 0x12, len + 0x12`), wrapper helpers (2-level: wrong frame order), `n = len` user copies, reversed compares: no.
+- sfd_mps CopyPketData 157 -> 0 (pure C): (1) the CopyPketFn call passes `idx` (hd.raw[MPS_PKT_IDX]) as the stream-id argument, not `stmid` (semantic fix; type/idx/pts then load into r5/r4/r7:r8 right after the header block like the target); (2) the sj path stores its own `res` local (`*result = res`), the function `ret` stays 0 (removes the `li ret,0` after the store and un-merges `li r0,0` (stores) from `li r29,0` (ret)); (3) pass-12 shape: `void *obj` parameter + `SFD sfd = obj;` declared right after `wk` (sfd = own-local vid between wk and ret -> r30); (4) `outobj` declared BEFORE `fn` (obj coloured first takes sfd's dead r30, fn then wk's dead r31; the reverse gives fn r30 / obj a new r25 and shifts the params).
+- adx_sje encode_data 67 -> 39w (pure C, applied): `n = (sje->blksmpl < sje->total - sje->nsmpl) ? sje->blksmpl : sje->total - sje->nsmpl;` after the bufs[] stores (the `?:` makes n's second def a frontend temp created after the bufs stores: n r20 below the loop temps = target; the if/else form kept n an own local r28); `iir = prd->iir` own local in loop D (the target hoists the iir load right after prd). Helper forms for the min (@ret) 62w, memset loop as a helper 64w, no `sjo` local 103w, separate ch/i counters or cnt/n declaration order: no change. Left 39w: magic `lis r3` vs `lis r4` + `lwz r30, 0xc(r29)` vs `(r3)` (ours propagates the obj->sje copy into the sjo load, the target's lis clobbers r3 first), cnt r25 / &sje->sji r24 swapped, memset-loop temps (target bufs-ptr r21, n*2 r22, ch r19; ours r19/r21/r22), loop-D ch r25 vs r19, prd/iir r6/r5 swapped.
+- adx_sje write_end_code 2w: unchanged. put16 site 1: target `lwz r6, 0x1c(r1); mr r3, r29; lha r0` vs ours `mr r3; lwz r6; lha` — a post-RA dual-issue tie (lha cannot pair with the lwz, the ALU slot goes to `mr`; the pick order between lwz and mr inside cycle 0 differs). The GC/2.6 debugger build keeps the pre-RA order `lha; mr; lwz` in its final dump, so the 2.7 post-RA scheduler cannot be read there. Tried: `Sint16 *p` local, `>=` polarity (33w), early return, Sint16 v / -0x7FFF (17w), `#pragma scheduling off` (57w), n after the check (18w), `(Uint16)n`, adxsje_put(&v,2) (33w) — all no.
+
+### CRI pass 37 (mpv_umc OneReadMb 48w / mps_lib MPS_Create 2w / adx_tsvr nlp_trap_entry 2w / sfh_main SFH_AnlyElemSmpHz 6w: four fresh angles, all negative; no source edit, nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri37/ (deleted): try.sh / mk.py (substring variants over ~/.cache/kit/variant.sh, objects compared by
+md5), sfhv.py (SmpHz body variants), ch.py (chaitin.py as a library with edges removed/added), ra.py dumps of the four functions.
+No tree file was edited; the four functions keep the pass-31 forms. Sanity: GC/2.6 (the debugger's compiler) compiled with the unit's
+flags gives the same 48w object for mpv_umc as GC/2.7 -- the ra.py dumps are faithful to production (fdiff: target LEFT, ours RIGHT).
+- **mpv_umc `mpvumc_OneReadMb` 48w: the RA side is now quantified.** vx (r40) has 33 neighbours; chaitin.py on the dump says removing
+  the vx-fn_y edge (or vx-fn_y + vx-chx) does NOT move vx off r6 -- vx is coloured 12th (degree-at-removal 11, level 2) as long as its
+  TOTAL degree is >= 29, and at that position only r0/r3/r4/r5 are blocked, so r6. The target's vx r25 / cvx r28 (= ypos's colour) /
+  vy r11 / cvy r7 are LATE colours: those nodes were simplified in the first scan (degree < 29) and coloured after every r0-r12
+  temporary, taking the lowest free handed-out callee-saved. So vx needs degree <= 28 = five fewer neighbours, i.e. its last use
+  (`rlwinm yhx`) issued before fn_c's row/idx temps (r92/r94), cvx>>1 / cvy>>1 (r84/r85), the mullw (r86), the ofs[1] reload (r66) and
+  the fn_y load -- exactly the pass-31 pre-RA schedule question. Measured: stride+dst stores moved above the vector loads (60w): the loads
+  sink to the block end, `rlwinm yhx` precedes them, vx's degree drops to 29 -- ONE short of the threshold, still r6. Negative
+  variants (all 48w, same object md5 e035213f unless noted): `Sint32 iy = yhx; fn_y = tbl_y[vy & 1][iy]` (propagated; identical
+  object), `tbl_y[vy & 1][yhx]` (identical), yhx through a `static Sint32 mpvumc_Hx(Sint32 v)` helper (48w, different md5: the
+  @ret copy is coalesced, no priority gain), the helper doing the `& mcflag` too (73w: the two-definition web is lost), the two
+  src/src2 stores through an inlined `mpvumc_SetSrc(mc, src, pitch, hx)` helper (48w), `*(volatile Sint32 *)&yhx` as the index (82w).
+  Fact for the next attempt: the pre-RA scheduler issues `lwzx fn_y` and `rlwinm yhx` in the SAME cycle (load listed first); the load's
+  edge over the rlwinm is the WAR chain to the four `mc->` stores; `and yhx` is live-out only (height 1). The lever must give the first
+  yhx definition an in-block consumer chain of height >= the store chain, or take 5 values out of vx's range; neither exists in C
+  without changing the target's instruction set. Left 48w (the M-class lever `#pragma scheduling off` is 87w, pins 74w: not applied).
+- **mps_lib `MPS_Create` 2w: it is a WITHIN-CYCLE order of the post-RA scheduler, not a tie by id.** Pre-post-RA (backend-16) B10 is
+  `stw r6,0; li r5,0; li r4,-1; addi r0,r3,@l; stw r5,4; mr r3,r31; stw r5,8 ..`; the post-RA list is a 2-issue cycle model (cycle 1:
+  `li r6; lis r3`, cycle 2: `stw r6; li r5`, cycle 3: the two fillers `addi r0` + `li r4`, cycle 4: `stw r5,4; mr r3,r31`, then one
+  store per cycle). Ours orders the cycle-3 pair addi-first BOTH when the addi has a lower instruction id (the fn-pointer address
+  formed in an own local `Sint32 (*fn)()` assigned before the -1 stores: 49w, `addi r4 / li r0` colours swap but addi still first) and
+  when it has the higher id (base) -- so the addi's post-RA priority is strictly higher: its WAR successor `mr r3, r31` (the @ret copy,
+  r3 rewritten) plus the late `stw r0, 0xd4`; the `li r4` only has its stores. Not moved (2w, identical md5 772cc2dd): `~0`,
+  `(Sint64)-1`, `-1LL`, `Sint32 m1 = -1` assigned after `x10 = 2`, `return (MPS)(void *)mps`, `fn` assigned after `packhd.rsv` /
+  before `pkethd.pts`; the chained `scr = rsv = mux_rate = -1` is 65w (+4 bytes); moving `packhd.scr` above `x10` / `x10` above
+  `errcode` only permutes the stores (4-5w). The store stream is issued in source order (a store chain or in-order LSU), so the
+  `li r4`'s consumer position cannot be advanced without a visible store permutation. To flip the pair the addi must lose its WAR edge
+  (the lis would have to land outside r3, i.e. r3 busy after the memset call -- no C value lives there) or the `li -1` must gain a
+  successor above the stores; neither has a C spelling here. Left 2w.
+- **adx_tsvr `adxt_nlp_trap_entry` 2w, graph read:** the `lha ofst` temp (r56) has neighbours r1, r3, ofst2v, ofst1, sji, sjd, p,
+  n1 and the n2 ghost (r54 -> r3): lowest free = r0. The target's r4 needs an r0-coloured neighbour in the join block B16
+  (`lha; cmpi n1; lha ofst2v; add`), i.e. a value defined in BOTH arms (`li n2,-1` / the ScanInfoCode result copy) or in B16 before the
+  add -- the then-arm defines nothing but n2 (r3) and B16 defines only ofst2v (r26, callee-saved: it lives across the later calls), and
+  no value can be r0 across the else-arm's call. The only r0-capable candidate is a coalesced ghost, and the ghosts here all target
+  r3/r4 (argument moves, @ret). So the target's extra r0 neighbour has no C source in this control shape; the 20-spelling record of
+  passes 11-23 stands. Left 2w (the 3-pin form moves the 2w to `subi r5` / `mr r3, sji`, pass 19b).
+- **sfh_main `SFH_AnlyElemSmpHz` 6w (M4): the fold is neither register- nor type-dependent, and the target's r6 word is explained.**
+  (1) The word's register is NOT the fold's condition: a hard `asm { lwz r6, 0x1c(e); mr w, r6 }` pin gives `stwbrx r6, r0, r5` (22w:
+  the pin level-shifts every temp of the search); r7 17w, r4 6w. (2) Store type/spelling is irrelevant: `*(Uint32 *)val`, `val[0]`,
+  `(Sint32)` cast, a `Sint32 x` local, `(x & 0xFF) << 24` / `(x & 0xFF00) << 8` / plain `x >> 24` term spellings -- all 6w, same
+  object. (3) `+`/`^` instead of `|`: no pre-RA merge at all (rlwinm x4 + add/xor x3, 8w); the balanced tree `((a|b) | (c|d))` gives
+  TWO rlwimi accumulators joined by an `or` that the post-RA peephole does NOT merge (4w, `rlwinm r4; srwi r0; rlwimi r4; rlwimi
+  r0; or r0, r4, r0`) -- and there the loaded word takes r6 (r4 blocked by the second accumulator), i.e. the target's r6 word is a
+  second partial result live at RA time, consistent with the pass-11 reading that the original merged the chain after allocation.
+  Mixed `(a|b) + (c|d)` 4w, `0xFF00FF00/0x00FF00FF` halves + rotate 10-13w, byte assembly from `aud_smphz[0..3]` 17w. (4) The
+  target's own evidence that the fold is order-blind in ours but not in the original: adx_bwav's `*sfreq = SWAP32(*(Uint32 *)(p +
+  0xC))` (macro order `(x>>24)&FF | (x>>8)&FF00 | (x<<8)&FF0000 | x<<24`) IS `lwz r6; stwbrx r6, r0, r27` in the target, while the
+  Sofdec order `(x<<24) | (x<<8)&FF0000 | (x>>8)&FF00 | (x>>24)&FF` gives the target's `rlwinm 8,8,15 / rlwimi 24,0,7 / rlwimi 24,16,23
+  / rlwimi 8,24,31 / stw` chain and ours folds it. With peephole ON our compiler folds every linear four-part chain into `stwbrx`
+  whatever precedes or follows it (the pre-RA scheduler cannot place an independent instruction between the last rlwimi and the stw:
+  `li r3, 1` is a cycle-1 filler); the only non-folding forms are non-linear chains, which are not the target's instructions. Lever
+  left: `#pragma peephole off` for this ONE function (M4) with the swap as SFH_SWAP32_STORE and the element search re-spelled to the
+  folded displacements -- pass 23 measured 10w / 38-41w for those, so the C form (6w) stays.
+
+### DOL espgen42/45 pass 7 (Espgen42_Move00 104 -> 84w, Espgen45_Move00 121 -> 107w; in progress, 2026-09-12)
+
+- Indexed-address operand order (`lfsx f0,r8,r9` = `(plus hB k4)` in the target vs ours `lfsx f0,r9,r8`): expr.c PLUS_EXPR in
+  EXPAND_SUM mode (an INDIRECT_REF address) ends with "Put a constant term last and put a multiplication first": `p->hB[k]`
+  expands to `(plus (mult k 4) (mem hB))`; rs6000 LEGITIMIZE_ADDRESS clause 2 needs a REG first, so memory_address falls to
+  force_operand -> `add t = k4 + hB` (index first, combine folds it into the lfsx). A REGISTER index (`u32 k4 = k * 4;
+  *(f32*)((u8*)p->hB + k4)`, or `k << 2`) keeps `(plus hB k4)` = base first. `hA[k]` was already base first in ours because its
+  address is the cse'd `c` (`c = hA; c += k;` is a non-address context = binop path, `(plus c k4)`). Applied to the wt_pow store
+  and the loop-B hB accesses of both units (42: 88 -> 84 with the pin below; the loop-B/loop-A `&p->pos[k]` pointer-variable
+  comment in the source is the same rule).
+- 42 k r28 vs r30 / loop-B `&nrm[k]` r30 vs r28 and 45 k4 giv r29/r30 vs the pointer: `register Vec* nk asm("r30") = &nrm[k];`
+  used for the call argument and the .y/.z updates (`nrm[k].x` stays base+index `lfsx r26,r27`): 42 104 -> 88, 45 121 -> 111.
+  Zero-code attempts that failed: a plain `Vec* nk` variable (no change), `asm("" : : "r"(nk))` after the call (output-less asm
+  = volatile barrier, re-orders the tail, 99w but drops the 5th `mr`: size 0x86c/0x86c).
+- Bump-index block (`mr r0,r25; ..; srawi r10,r0,3 | cmpwi r23; mr r0,r23` vs ours `mr r9; srawi r9,r9 | mr r0,r23; cmpwi`):
+  the i-division's `mr t2,i` and `cmpwi i,0` are a sched1 tie in the join block (ready list `670 669 667` = srawi > mr > cmpwi,
+  ascending print, last = best; the compare occupies "iu"+"iu2" and cannot issue once srawi+mr fill both iu2 slots). Target
+  order srawi, cmpwi, mr needs the compare ranked above the copy (REG_WEIGHT/dependents/LUID all tie in ours). With mr first,
+  the j-side temp t (global-allocated, spans the arm) cannot take r0 and lands in r9 = the T chain register. Pins tried:
+  `register int jx asm("r10") = j / 8` (t follows the suggestion into r10, 90w), `register u8* bp asm("r10") = p->bump` (t -> r0
+  as the target, but the hard-reg load is emitted at the declaration = block top instead of after the divisions, 94w),
+  `register int jx32 asm("r0")` (combine merges srawi+slwi into one rlwinm, 200w). Sum order `iside + jside` expands the
+  i-division first (215w). No lever applied yet.
+
+### CRI pass 35 (cri_cvfs cvFsOpen 18 -> 0w, unit 11 -> 12/13, cvFsGetFileSize 32 -> 14w; sfd_adxt ExecServerSub 88 -> 59w at target size; sfd_tst SFTST_Calc 79w read, unchanged; no flip; pure C, no pins; 2026-09-12)
+Harness /home/adityas/.cache/cri35/ (deleted at the end): `try.sh <unit> <variant.c> <FUNC> [-d]` over variant.sh, ra.py dumps,
+`exp_tst.py` (chaitin.py replays with edited `g.adj`/`g.order`). fdiff.py columns: LEFT = target, RIGHT = ours (pass 32 read them
+the other way round for SFTST_Calc: the target colours mt.hi FIRST, ours LAST).
+- **The colour rule, once more, with the arithmetic that matters:** "lowest-NUMBERED free register among those handed out" means
+  a node coloured after r31..r20 are all handed out takes r20 (not r23) when r20 is free. So "X needs an rN-coloured neighbour"
+  is only true for registers BELOW rN; a node that gets a HIGH callee-saved register late (SFTST_Calc mt.hi r30, cvFsOpen dev2 r22)
+  was coloured EARLY (few registers handed out) or with everything below blocked. Read the target's colouring ORDER from the
+  registers by replaying "lowest free" over the handed-out set, then compare with chaitin.py's order on our dump.
+- **cri_cvfs cvFsOpen 18 -> 0 (pure C): the second and third device searches are INDEX loops.** `cvfs_SearchDev(tbl, name)`:
+  `len = strlen(name); for (i = 0; i < CVFS_MAX_DEV; i++) if (strncmp(name, tbl[i].name, len) == 0) return cvfs_tbl[i].vtbl;`.
+  The stepping pointer is then the frontend's strength-reduced IV @temp, copied from `tbl` in the loop PREHEADER (after the
+  `bl strlen` = the target's `mr r20, r26` position) with a LATE id created in program order between the first and the second
+  strlen @ret copies (target order i1 r22 > dev1 r21 > len1 r20 > dev2 r20 > len2 r21; the pointer local `dev = tbl` was an early
+  clone local next to `i`, coloured before the lens -> r22 NEW). The third copy coalesces with the dying `tbl` (in place, `addi r4,
+  r26, 4`). The first search (cvfs_FindDev via cvfs_WantsDevForm) keeps the POINTER form (target dev1 r21 = an early clone local).
+  cvFsGetFileSize follows: 32 -> 14w.
+- **cvFsGetFileSize 14w = one missing never-removed neighbour of fname AND pdev.** chaitin.py on the new dump: fname L3 (27 at
+  removal) r29, tbl (@1414, ResolveDev local) L2 r28, pdev (own local, 28 at removal) L2 r27; target fname r29, pdev r28, tbl r27.
+  Model: `+1` ghost on {fname, pdev} (or on every node) gives exactly the target (fname L4, pdev L3, tbl L2); `+1` on pdev alone
+  puts pdev above fname (r29). cvFsOpen has the neighbours already (dir/rw live across everything) and is identical, so the
+  missing node is a coalesced copy (ghost) or an L2+ value live across the ResolveDev region that GetFileSize alone lacks — or one
+  specific to cvFsGetFileSize: in the model a +1 ghost on the ResolveDev region also moves cvFsOpen's fname r28 -> r26 / pdev
+  r27 -> r28 / len3 r26 -> r27, so it is NOT inside cvfs_ResolveDev. Rejected: `if (pdev ==
+  NULL)` instead of `if (dev == NULL)` (pdev L3 above fname: r29/r28, 15w; the target's `addic. r0, r1, 0x134` tests the array
+  address), dropping `pdev` (103w, frame changes), `asm { la r28, dev(r1); mr pdev, r28 }` pin (20w: shifts fname/rodata, the
+  level-shifter effect of pass 18b).
+- **sfd_adxt ExecServerSub 88 -> 59 (pure C, size 0x428 kept): every block is its own depth-1 helper.** `sfadxt_Transfer` (as
+  before), `sfadxt_PrepOut(sfd)` {bufin, bufout}, `sfadxt_CheckStat(sfd, len)` {wk, adxt, adxterr, stat, tst}, `sfadxt_AnalyAhdr(sfd)`
+  {ahdr, adxt}, `sfadxt_UpdateSvrFreq(sfd)` {wk, adxt, freq}, `sfadxt_WriteTotSmpl(sfd)`. Breadth-first cloning gives each later
+  block's locals LOWER ids than the previous block's, and every depth-1 local a higher id than the depth-2
+  `sfadxt_UpdateFlowCnt` local `wk` (coloured last of all -> r24 = the lowest free after wk r24 died; as a helper called from
+  Transfer it was coloured before the own locals and took a NEW r28). Inside a helper the colour order is the REVERSE
+  declaration order (first declared = lowest id = coloured last): CheckStat `wk, adxt, adxterr, stat, tst` -> stat r28 (backend
+  temp anyway), tst r27, adxterr r26, adxt r25, wk r24; AnalyAhdr `ahdr, adxt` -> IsDecoded adxt r24, ahdr r25; UpdateSvrFreq `wk,
+  adxt` -> adxt r24, wk r25 — all the target's. One helper for PrepOut+CheckStat is NOT inlined (-inline auto size limit;
+  strip_unused then fails on the surviving static) — split them. Every remaining word (59) is sfd r30 / err r31 (target sfd r31,
+  err r30, len r29): L2 = {@464 err (Transfer's `err` local coalesced with the @ret, 21 at removal), sfd (27), len (23)}, coloured
+  by id. Model: either sfd +2 never-removed neighbours (L3) or the caller's `err` as a NODE (the coalesced chain ranks by its
+  lowest-id member: err r3x < sfd) gives the target. The caller's `err = sfadxt_Transfer(sfd, &len)` is propagated into the @ret
+  (no node). `Transfer(sfd, &len, &err)` writing `*err` on each path (void) makes err an own local with the 3 defs (`mr r30, r3`,
+  `li r30, 0`, `mr r30, r3`) and colours sfd r31 / err r30 / len r29 = the target (40w, -4 bytes): the only residue is
+  `if (*err != 0) return;` -> `bne` where the target's value form keeps `beq L; b end` (the deleted coalesced `@ret = err` copy
+  separates the branch from the goto, pass 13b). `*err = ret; return;` in that arm keeps the `mr` (+4 bytes); returning `*err` with
+  the value unused deletes the dead copies (= void); `ret = Transfer(sfd, &len, &err)` / `err = Transfer(.., &err)` interfere with
+  err (101w). `err = 0` before the call (dead, removed), `register err`, `Uint32 err` / Uint32-returning Transfer (49w, the @ret
+  bounces through r3) do nothing. Not closed.
+- **sfd_tst SFTST_Calc 79w read (three regions, all ranking; nothing applied):** with the correct column reading the target's
+  sprintf-block order is mt.hi (r21, FIRST) > out.hi r22 > out.lo r23 > MulDiv r24 > mt.lo r25 > mt_max.hi r27 > mt_max.lo r28 >
+  hlp.hi r29 > hlp.lo r30; ours colours MulDiv (backend temp r403, L2, first) > out.hi > out.lo > mt.lo > mt_max > hlp (L2 by id)
+  > mt.hi (L1, 27 total: it dies at the first dead `subfe`, out.hi at the second) -> r30. The @temps are the ECOMMA chain
+  @171 out (r60/61), @172 mt (r58/59), @173 mt_max, @174 hlp (arg 2's `hlp.cnt / hlp.unit` is NOT replaced by @174; args 3-6 are);
+  a pair's hi has the higher id. Model: mt.hi +2 neighbours puts it in L2 (6 of the 9 colours right) but it is then coloured after
+  out (lower id); the level route needs out.hi/out.lo in L3 (+9 each, 20 at removal) — impossible from the same code. So the
+  target's ids differ: MulDiv must rank between out.lo and mt.lo (a temp created between @171 and @172, not a backend temp) and
+  mt.hi above out.hi (not the hi half of the mt pair). Also: ave/tol region target tol.hi r23 > ave.hi r22 > tol.lo r21 (ours ave.hi
+  L3 r23, tol.hi r22, tol.lo r21 -> tol.hi needs +4 to reach L3 above ave.hi); abs region target adiff.hi (@119) r23 before
+  diff.lo (backend r226) r25. The debug block as a static helper changes nothing (79w). No pin exists for @temps; not closed.
