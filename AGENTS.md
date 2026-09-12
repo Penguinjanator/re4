@@ -28374,3 +28374,76 @@ classes with the real model, `cls.sh NAME` = class (own/@/be) of every block val
   casts / a `Uint8 *` pointer difference?), and the copies are of a multi-def variable. Open.
 - Tree: src/lib/cftfx.c (StaticV macro + `t = 0` + tail; comments), locked `ninja build/G4BE08/src/lib/cftfx.o`, bytecmp 4/6 (Argb420 24w,
   UserTable 135w); cftfx stays False. cftyp422_ppc flipped in part 1 (111 OK re-checked at the end of the pass).
+
+### DOL espgen42/45 pass 13 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in the tree; loop-B Z block on k4 + jq pin: the three candidate "deleted t7/t8 partner" forms — function-level f32 constant locals, a dead frame store of a Z value, a named `fj` local — all negative; the slot arithmetic now says the target needs TWO codeless insns of priority >= 80 that are NOT ready before t7, plus the bump load displaced behind the j loadaddr; nothing applied, no flip; 2026-09-12)
+Harness ~/.cache/dol_espg13 (deleted): `t.sh 42|45 SRC` (variant.sh word line; `DIFF=1` side-by-side), `mk.py OUT BASE 'OLD=>NEW'..`, `probe.sh NAME BASE
+'OLD=>NEW'..` (= mk + t.sh + rtl.sh + `zblk.py DUMP FUNC` (sched1 dependence table + per-cycle issue log of the block holding `xor:SI (reg/v:SI 90)`)
++ LADBG rows of the byte / j-loadaddr / bump qtys). Base chain reproduced: k4 45w (+4), k4 + `register int jq asm("r0")` 39w (+4), e17 (k4p + `u8* bump`
++ `f32 fb` + two `"=m"(v.x)` fb anchors) 38w size exact, LADBG b29 ldj `reg564 refs 12 [34,60) 13846 -> r11`, byte `reg551 refs 6 [38,48) 12000 -> r10`.
+- **(a) function-level `f32` constant locals (`f32 c025 = 0.25f;` / `f32 one = 1.0f;` next to `f32 n;`, used in Z): negative and mechanically empty
+  for the slot.** The set `(set r (mem .LC))` is in block 0, never in Z (update_equiv_regs moves an equiv init to its single use only at `depth == 0`,
+  local-alloc.c 995-1005), so sched1's Z is unchanged (xoris t8s2 in both); the pseudo is allocated normally (global.c 426-443 makes an allocno for every
+  REG_EQUIV pseudo; only `REG_LIVE_LENGTH == -1` = setjmp regs are skipped; the REG_EQUIV effect is `len *= 2`, local-alloc.c 931) and the loop.c pool
+  hoist that gives the target its f27..f30 callee-saved constants disappears: c025 128w (the .LC numbering shift also breaks Trans/SetIndMtx/TransSub:
+  2/10/14w), `one` 60w size -4. An f32 constant local can only reproduce a body `lfs` — the target's loop-B body has none (preheader lfs f20..f31 only).
+- **(b) a real dead store of a Z value (`v.x = fb;` before the bump store): the store survives to the code (size +4, 25w) and lands at t8s1, xoris t8s2.**
+  flow deletes a frame store only when a LATER store to the identical MEM exists in the same block with no may-alias read between (flow.c insn_dead_p
+  2973-2988 + mem_set_list, reset per block and cleared by calls); `v.x = fb; v.x = fb;` = the first is deleted before sched1 (b2 = b1, 25w). A frame
+  store in Z after the call is never dead, so it is real code; the REG_EQUIV-memory route (local-alloc.c 812-826, `(set (mem) reg)` of a single-set
+  block-local pseudo) deletes the store only if the pseudo gets NO register, and `fb` is the block's first qty (pri 68750). Store priorities read:
+  `v.x = fb` alone 81 (1 + the second `lhz nx` 78 + 2 that must follow it); with `u8* bump = p->bump` AFTER it 84-85 (the bump load then waits on it:
+  d1 39w, bump t10, ldj at t6s2 [26,60) 10588 < byte 12000 = the target's local order, byte -> r0 because the xoris is at t7s2; d3 = d1 + two fb
+  anchors 28w size +4: psq_st pushed to t8, xoris t7s2).
+- **(c) `f32 fj = (f32) j;` (c1, after the bump block) is RTL-identical to the inline cast (39w = b0); before the bump block (c2a) it puts the j
+  conversion first on the fpmem chain = 66w** (the target's `stw r0,0x64` after the psq_st and the `psq_st -> lbz -> stw` order are fpmem output/anti
+  dependences on `(reg:DF 76 fpmem)` that sched2 keeps, so the final order IS the RTL order: u8 conversion first, then j, nx/2, nx, i, ny/2, ny).
+  A second use of fj does not exist in the statement; no legal C spelling changes the RTL here.
+- **Slot arithmetic of Z (k4 chain, 2 issue slots, one lsu; zblk on e17/b0/d1-d5):** chain insns with fixed cycles: lhz t1, lfsx t2, addi t3, srawi
+  t4, fmuls t4, mullw t5, fadds t5, fadds t6, psq_st t7, add t9, lbz t9, add t10, add t11, stbx t12. Free slots before the first add: t1s2 t2s2 t3s2
+  t6s2 t7s2 t8s1 t8s2 = 7; fillers >= 80 ready at t1: extlwi 88, u8-loadaddr 85, slwi 84, bump lwz 83, j-loadaddr 80, xoris 80 (ldj beats the xoris
+  on the tie: 3 dependents vs 1, rank_for_schedule). So the xoris is at t8s2 at the latest unless >= 2 extra insns >= 80 exist (e17's two anchors), and
+  the j-loadaddr is born at t8s2 (suid 34) in every such form. **The target's byte-before-loadaddr local order (byte r11, ldj r8) needs ldj at t6s2
+  (birth 26, len 34 -> 10588 < 12000; birth 30 = t7s2 gives 12000 = a tie lost on qty number, local-alloc.c qty_compare_1)**, i.e. the bump load
+  (83) must NOT be ready at t6 and THREE fillers >= 80 must occupy t7s2/t8s1/t8s2 with the bump load among them: d4 (`fb; A1; u8* bump = p->bump; A2;`,
+  41w size exact) gives ldj t6s2 + A1 t7s2 + bump t8s1 (true dep on A1) but A2 also waits on the bump load (WAR) and issues at t10 -> xoris t8s2.
+  A third fb anchor (d5) chains behind A1/A2 by output dependence (t10/t11), 58w. So the missing construct = **two insns of priority >= 80 that become
+  ready at t7/t8 (fed by `fb` = the fadds at t6, or by the loadaddr/psq_st at t6/t7), placed BEFORE the bump load in the RTL stream (so the load waits
+  on one of them and they do not wait on the load), and emitting nothing** — no C spelling found: a real store stays (size +4), a REG_EQUIV constant
+  init sits in block 0, a copy of a dying pseudo is propagated by cse before flow, and the only post-sched1 deletions (reload's REG_EQUIV inits,
+  same-hard-reg copies, reload_cse redundant sets) need a pseudo that either loses allocation or ties — neither is available for an fb-fed value.
+- Not run: ninja, 111. Tree untouched (src/game/Espgen42.cpp 9w, src/game/espgen45.cpp 42w, as after pass 9); objects.py untouched; 45 not re-probed
+  (pass 12: e17 49w). Best forms stay e17 38w / e10 15w (42), both above the tree. Next: (1) read the byte's `refs 6` vs the loadaddr's `refs 12`
+  again — a byte with 3 refs (9) or a loadaddr with 3 (2 uses: the store2 `stw r22` reading a DIFFERENT loadaddr pseudo, e.g. the hi-word store
+  emitted from its own `(unspec 11)` set) flips the order without any slot change; (2) whether the original's byte store was `(u8)` of an `int`
+  (fctiwz + stb) — no: the psq_st is in the target; (3) the two >= 80 partners as reload-deleted `(set X Y)` copies of `fb`-fed values with both
+  sides in one qty (combine_regs tie) — needs a copy cse cannot propagate (a hard-reg source, a two-set destination).
+
+### CRI pass 55 (sfd_mps DecodeOneUnit 5w unchanged: the +2 requirement is "two more never-removed neighbours on ret, anywhere outside the scan loop"; the frontend's web-naming rule found (first def keeps the variable, later disjoint webs are @temps whose copies are COMPILER copies = coalesced/codeless); the GetCond pair as 2-def locals gives exactly +2 and 14/14 but its first pair costs 8 bytes; nothing applied, nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri55/ (`mk.py OUT [--base=B] 'OLD=>NEW'..`, `try.sh NAME [--ra]` = variant.sh words + ra.py dump + ghost list + `w.sh` score against the 14
+target colours, base v7 = tree minus the M1 pin + `?:` n, chaitin IDENTICAL; deleted at the end).
+- **Requirement made exact on v7 with ghostwhatif (pass 54's "5/14 for ret alone" does not reproduce):** two never-removed ghosts adjacent to ret ALONE give
+  14/14; so does any pair adjacent to a set containing ret (`names=ret,wk,data[,sfd,len,nbyte,nskip,mps,total,bufin,dst,delim,p]`), and `like=N` pairs for
+  every real node N adjacent to ret score 14/14 EXCEPT the scan-loop temps r118-r127 / p / hn / ok (13/14, cnt r23). Exactly 2: one ghost 5/14, three 4/14,
+  four 2/14. So the vendor's graph has exactly two more coalesced copies, anywhere ret is live and cnt is dead (prologue, go chain, GetCond, syshd, no_syshd,
+  skip-tail, PKET arm). On the if-form base (tree minus pin, nopin) the same target needs THREE ghosts adjacent to {ret,wk,data} (3 like=65 give 6/14).
+- **Frontend web rule (v11/v12, read off frontend-01 + the ghost lists):** a variable with two DISJOINT webs keeps its name on the first surviving def
+  (a dead initialiser is deleted first, v15) and turns every later web into a range-split `@temp`. Copies into the named web are USER copies (the RA never
+  coalesces them: `mr @t,r3; mr obj,@t` stays as two real `mr` whenever the pre-RA scheduler interleaves the next call's `mr r3,sfd` between them — it
+  always does for a call result followed by a call); copies into a `@temp` web are COMPILER copies (coalesced, codeless). A single-use load web is propagated
+  into its use (no trace); a call-result web is not (the call cannot move) — it survives as `mr @t,r3; mr @temp,@t` and BOTH coalesce (ghost `@t->@temp`,
+  `@temp->rArg` when it dies at an argument move). A load into the NAMED web that dies at an argument move is a ghost too (v11: TermOut `buf` first def per
+  inlined copy -> r4 ghost; its 2nd/3rd defs propagated): 4 TermOut bodies -> +4 ghosts, 131w, size equal.
+- **GetCond pair as 2-def locals `obj = GetCond(OBJ); fn = GetCond(FN); MPS_SetPsMapFn(mps, fn, obj);` twice (v12):** the second (PES) pair is range-split
+  (@709/@710) and byte-identical with +2 ghosts (r89->@709, @710->r4) = exactly the requirement, 14/14 including cnt r21 and bufin/dst r21; the first (PSMAP)
+  pair is the named web -> `mr r0,r3; mr r21,r0` bounce + `mr r0,r3; mr r4,r0` = +8 bytes (62w). A `void *obj` parameter reused as the local (v14) +12
+  bytes; dead `= NULL` initialisers (v15) change nothing; an inlined `GetCondPtr` wrapper with or without a `ret` local (v17/v19) = the `@ret` bounce on all
+  four calls, +6 ghosts, 131w. So the vendor's +2 has the SHAPE of one range-split call-result pair; which variable carried a harmless first web is open
+  (no `void *`/Sint32 value with a load-to-argument first def exists in the body; TermOut/TermIfInTerm bodies are inlined 4/3 times).
+- **Negatives (127w, ghost list unchanged):** `void *obj` parameter + `SFD sfd = obj` (v9: 74w, obj -> r3 ghost with 8 neighbours, sfd r25 right, but sfd
+  becomes own local r49 and can never be coloured 7th: 11/14 at best — the target's sfd IS the parameter node r32); `void *obj` on the inlined GetSeeShdr
+  (clone copy propagated); GetSeeShdr through a 3-def `ret` local (propagated into @ret); TermIfInTerm returning `t` with the value ignored (dead copy
+  deleted); an inlined `sfmps_IsEndcodeSkip` wrapper (compare use propagated); 2-def `err` for DecHd/IsEndcodeSkip (both propagated, the second in the
+  frontend, the first by backend-03 in-block copy propagation); `delim = 0; *nbyte = delim; *nskip = delim;` 234w +4. **Codeless neighbour pin on ret is
+  impossible:** `asm { mr r11, ret; mr ret, r11 }` after `ret = 0` is constant-folded to `li r11,0` (129w), after the SetErr join backend-02 CSE deletes
+  the back copy and the lone `mr r11,ret` adds no node (129w, model 5/14); `asm { mr r11, err; mr ret, r11 }` would emit both `mr` (call-defined err).
+- Tree: sfd_mps 25/26 (5w, M1 pin kept); objects.py not touched by this pass, no flip, no `ninja -k 0`. Harness deleted.
