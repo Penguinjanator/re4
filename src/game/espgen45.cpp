@@ -100,7 +100,9 @@ void Espgen45_static_init()
 // u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot). volatile (no
 // memory clobber): a volatile asm is a scheduling barrier for everything in RTL order around it, which is what puts
 // the pos/cur address adds before the noise lbzx and the neighbour loads after it in the target's loop A.
-#define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p), "m"(*(p))); f_; })
+// Loads straight into the destination variable (no statement-expression temp): the target's `psq_l f10; fsubs f10,f10`
+// is one pseudo, the function-level `n`.
+#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p), "m"(*(p)))
 
 // Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
 // separate blocks, so their order is the source order) and `(y / 4) << 5`: with `* 32` fold would
@@ -133,6 +135,10 @@ void Espgen45_Move00(EspgenWork* w)
     int j;
     int k;
     int nz;   // noise index / byte of both loops: one function-level pseudo (see loop A)
+    // noise value of both loops: also one function-level pseudo (global alloc, f10 in both loops). A block-local `n`
+    // ties to the loop-A psq_l output / loop-B frsp result and permutes the loop-A/B FPR names and the sched2 slots
+    // of the loop-B sum chain (77 -> 47 words).
+    f32 n;
 
     d0.x = 1.0f;
     d0.z = 0.0f;
@@ -249,7 +255,8 @@ void Espgen45_Move00(EspgenWork* w)
                 // block-local index dying at the lbzx), and global alloc gives nz r0 too: `lbzx r0,noise,r0; stb r0`.
                 nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + ((j) & 7);
                 tmp = noise[nz];
-                f32 n = PSQ_L_U8(&tmp) - 80.0f;
+                PSQ_L_U8_TO(n, &tmp);
+                n -= 80.0f;
                 f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 next[k] = damp * sum + cdamp * cur[k] - next[k];
                 // FGet: a reference read is a MEM with neither the struct nor the scalar flag, so it depends on the
@@ -307,7 +314,7 @@ void Espgen45_Move00(EspgenWork* w)
                 f32 sum = c[-1] + c[1] + *(c - p->ny - 1) + *(c + p->ny + 1);
                 // n before the hB[k] update: the 0x4330/pool-double and 80.0 movables precede the 4.0 pair in loop.c's
                 // list (the target's inner preheader order is lfd; lfs 80.0; lfs 1.0; ...; 4.0 is in the outer one).
-                f32 n = (f32) nz - 80.0f;
+                n = (f32) nz - 80.0f;
                 // hB through a byte offset in a variable (`stfsx hB,k4` base first, see the wt_pow store above); hA's
                 // address is the cse'd `c` (`(plus hA k4)` from `c += k`, a non-address context) and is base first as is.
                 u32 k4 = k * 4;

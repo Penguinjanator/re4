@@ -26476,9 +26476,9 @@ edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug cl
   -> loop.c single-use substitution needs no label between the set and the argument move: compute conditional arguments (ternaries)
   in a statement before the call (or the reverse to force the hoist).
 
-### DOL espgen42/45 pass 8 (Espgen42_Move00 34 -> 11w, Espgen45_Move00 77 -> 47w; one structural find: the noise value `n` is a function-level variable; in progress; 2026-09-12)
+### DOL espgen42/45 pass 8 (Espgen42_Move00 34 -> 11w, Espgen45_Move00 77 -> 47w; one structural find: the noise value `n` is a function-level variable; no flip; 2026-09-12)
 
-Harness ~/.cache/dol_espg8 (deleted at the end): `v.sh 42|45 <src> [--diff]` = variant.sh + word count, `mk.py 42|45 <out> <old> <new>..`
+Harness ~/.cache/dol_espg8 (deleted): `v.sh 42|45 <src> [--diff]` = variant.sh + word count, `mk.py 42|45 <out> <old> <new>..`
  = exact-string variant of the tree source.
 - **`n` (the noise value) is function-level, like `nz` and `c`, and the psq_l writes it directly** (`f32 n;` at the top, loop A
   `PSQ_L_U8_TO(n, &tmp); n -= 80.0f;`, loop B `n = (f32) nz - 80.0f;`; the statement-expression macro `PSQ_L_U8` with its own
@@ -26489,6 +26489,36 @@ Harness ~/.cache/dol_espg8 (deleted at the end): `v.sh 42|45 <src> [--diff]` = v
   fell at once: 42 34 -> 11, 45 77 -> 47. Rule of thumb for these units: every scalar temporary the original reused across the
   two loops is ONE function-level variable (nz, c, n so far); when a target register is untied where local-alloc would tie, look
   for a second block that sets the same variable.
+- **Loop-B nx8 placement (42 9w / 45 the same + downstream tail), read but not closed.** Target join block Z: `lhz r11,nx; extlwi r10,t_i;
+  addi r9,r11,1; srawi r9; mullw r9,r10,r9; slwi r0,jx,5; ... add r9,r9,r0`. Register facts (GDBGV, see below): in ours t_j -> r0
+  (pri 45000), t_i -> r11 (33750; r0 excluded only by an allocno conflict with t_j, i.e. sched1 issued `mr t_i` before `srawi jx`
+  in the 7-insn Y1 block; r9 by the local `lhz/addi` qty in Y1), nx8 -> r10 (global, set in Y1 used in Z), jx -> r0 (9230). In every
+  form that moves the `lhz/addi/srawi` into Z (`int ix = i / 4;` + `nx8 * (ix << 5)`, `int ix32 = ..` + either operand order, a
+  function-level `ix32`/`nxv` made global by an `asm volatile("" : "=r"(ix32), "=r"(nxv))` dead set after the inner loop) Y1 shrinks
+  to `srawi jx; mr t_i; cmpwi; bge` in LUID order, t_i no longer overlaps t_j, takes r0, and jx falls to r6 (53-77w, +4 bytes).
+  The target needs r0 blocked for t_i AND for ix32/nx while t_j does not overlap t_i (target Y1 `srawi; mr; cmpwi; bge`): the only
+  candidate is a LOCAL r0 qty in Z covering `extlwi`, i.e. `slwi jx32` issued at the top of Z by sched1 (ours: 6th, after the
+  mullw; with `lhz -> addi -> srawi -> mullw` in Z the mullw is late and the slwi could move up — not verified). With r0 blocked:
+  t_i r9 (global, before the locals? no: the local nx1/nx8/prod chain takes r9 first, t_i dies at extlwi = no conflict), nx must be
+  NON-LOCAL and allocated after t_i (r0 jx32, r9 t_i -> r11) and ix32 non-local too (r0, r9 chain, r11 nx -> r10) — both untied
+  operands of the mullw (`mullw r9,r10,r9` = prod tied to nx8 = `(mult nx8 ix32)` with ix32 not tie-able, or `(mult ix32 nx8)`
+  with ix32 non-local). `nx` not tied to `nx + 1` although it dies there is the strongest signal: a global pseudo (set in another
+  block) or a class mismatch (`reg_meets_class_p`: nx BASE_REGS from the addi operand vs nx1 GENERAL) — ours ties them, so the
+  original's `p->nx` read had another set/use or another class. Not found: which function-level variable holds `p->nx` in loop B
+  (loop A's `nx` is r21 and would keep r21). Pins `register int ix32 asm("r10")` (73w) and `+ register u32 nxv asm("r11")` (71w:
+  the pinned nxv becomes the chain, `addi r11,r11,1`) do not help; not applied.
+- **42 preheader `mr r31,r10 | slwi r27,r28,2` (2w) and 45 `mulli r10/r8` names + `mr r29 | slwi r31` (5w): giv-init order.** The
+  two insns are loop.c giv inits (k*4 giv 1655, k*12 copy 1663 in the flow dump), emitted in `bl->giv` list order = reverse
+  discovery order, tie in sched1 by LUID. Swapping `c = cur; c += k;` above `Vec* pv = &p->pos[k]` (vS), `c = cur + k` (52w), or a
+  `f32* nk4 = &next[k]` pointer before pv (vS3) leave the order unchanged (the k4 giv is the `k << 2` feeding `c += k`, not a
+  memory giv). No source handle found for a giv init's LUID; not applied.
+- Kit extension: `GDBGV=1` (with `GDBG=1`) prefixes every `used/conf/smpref/pref/cpref` bit string of the GORDER line with r0..r12
+  and a ':' (the volatile GPRs were invisible before). `~/.cache/sngdbg/src/gcc/global.c gdbg_regs`, rebuilt with `make all`;
+  production identity unaffected (env-gated print only). The patch file was regenerated and the README updated.
+- Remaining: 42 (11w) = preheader tie 2w + loop-B nx8 9w; 45 (47w) = preheader 5w + nx8 + the loop-B tail `mr r7/r10/r6/r11/r5,r8`
+  copy order / `xoris r4; lfd f12` slot (sched2, downstream of nx8: the five dead hA copies take the registers the nx8 shape
+  frees). Flags untouched (no IDENTICAL). Tree edits this pass: `src/game/Espgen42.cpp`, `src/game/espgen45.cpp` (the `n`
+  change only; both units compile, sizes equal).
 
 ### Tool RELs, t_id pass 6 (toolIdInit 12 -> 0 pure C, toolIdEditDisp 4 -> 0 two tagged asm forms; 61 -> 63/69; IN PROGRESS 2026-09-12)
 Harness /home/adityas/.cache/tid6/ (deleted at the end): try.py NAME FUNC 'old=>new'.. (variant.sh wrapper on a copy of the tree file),
@@ -26685,33 +26715,3 @@ was never sunk = its counter's virtual number equalled a store data register num
 webs before the counter (extra loop counters, a pointer form of another loop) until the pass-17 `addi rX,rX,K` register hits one of the
 block's `stfd`/`stw`/`stb` data numbers after the addi's slot.**
 - sfd_cre `sfcre_AnalyMpv` 15w not touched (time). Flags: `lib/sfx_zmv.c` True (CRI pass 41 block in objects.py), 111 OK.
-- **Loop-B nx8 placement (42 9w / 45 the same + downstream tail), read but not closed.** Target join block Z: `lhz r11,nx; extlwi r10,t_i;
-  addi r9,r11,1; srawi r9; mullw r9,r10,r9; slwi r0,jx,5; ... add r9,r9,r0`. Register facts (GDBGV, see below): in ours t_j -> r0
-  (pri 45000), t_i -> r11 (33750; r0 excluded only by an allocno conflict with t_j, i.e. sched1 issued `mr t_i` before `srawi jx`
-  in the 7-insn Y1 block; r9 by the local `lhz/addi` qty in Y1), nx8 -> r10 (global, set in Y1 used in Z), jx -> r0 (9230). In every
-  form that moves the `lhz/addi/srawi` into Z (`int ix = i / 4;` + `nx8 * (ix << 5)`, `int ix32 = ..` + either operand order, a
-  function-level `ix32`/`nxv` made global by an `asm volatile("" : "=r"(ix32), "=r"(nxv))` dead set after the inner loop) Y1 shrinks
-  to `srawi jx; mr t_i; cmpwi; bge` in LUID order, t_i no longer overlaps t_j, takes r0, and jx falls to r6 (53-77w, +4 bytes).
-  The target needs r0 blocked for t_i AND for ix32/nx while t_j does not overlap t_i (target Y1 `srawi; mr; cmpwi; bge`): the only
-  candidate is a LOCAL r0 qty in Z covering `extlwi`, i.e. `slwi jx32` issued at the top of Z by sched1 (ours: 6th, after the
-  mullw; with `lhz -> addi -> srawi -> mullw` in Z the mullw is late and the slwi could move up — not verified). With r0 blocked:
-  t_i r9 (global, before the locals? no: the local nx1/nx8/prod chain takes r9 first, t_i dies at extlwi = no conflict), nx must be
-  NON-LOCAL and allocated after t_i (r0 jx32, r9 t_i -> r11) and ix32 non-local too (r0, r9 chain, r11 nx -> r10) — both untied
-  operands of the mullw (`mullw r9,r10,r9` = prod tied to nx8 = `(mult nx8 ix32)` with ix32 not tie-able, or `(mult ix32 nx8)`
-  with ix32 non-local). `nx` not tied to `nx + 1` although it dies there is the strongest signal: a global pseudo (set in another
-  block) or a class mismatch (`reg_meets_class_p`: nx BASE_REGS from the addi operand vs nx1 GENERAL) — ours ties them, so the
-  original's `p->nx` read had another set/use or another class. Not found: which function-level variable holds `p->nx` in loop B
-  (loop A's `nx` is r21 and would keep r21). Pins `register int ix32 asm("r10")` (73w) and `+ register u32 nxv asm("r11")` (71w:
-  the pinned nxv becomes the chain, `addi r11,r11,1`) do not help; not applied.
-- **42 preheader `mr r31,r10 | slwi r27,r28,2` (2w) and 45 `mulli r10/r8` names + `mr r29 | slwi r31` (5w): giv-init order.** The
-  two insns are loop.c giv inits (k*4 giv 1655, k*12 copy 1663 in the flow dump), emitted in `bl->giv` list order = reverse
-  discovery order, tie in sched1 by LUID. Swapping `c = cur; c += k;` above `Vec* pv = &p->pos[k]` (vS), `c = cur + k` (52w), or a
-  `f32* nk4 = &next[k]` pointer before pv (vS3) leave the order unchanged (the k4 giv is the `k << 2` feeding `c += k`, not a
-  memory giv). No source handle found for a giv init's LUID; not applied.
-- Kit extension: `GDBGV=1` (with `GDBG=1`) prefixes every `used/conf/smpref/pref/cpref` bit string of the GORDER line with r0..r12
-  and a ':' (the volatile GPRs were invisible before). `~/.cache/sngdbg/src/gcc/global.c gdbg_regs`, rebuilt with `make all`;
-  production identity unaffected (env-gated print only). The patch file was not regenerated.
-- Remaining: 42 (11w) = preheader tie 2w + loop-B nx8 9w; 45 (47w) = preheader 5w + nx8 + the loop-B tail `mr r7/r10/r6/r11/r5,r8`
-  copy order / `xoris r4; lfd f12` slot (sched2, downstream of nx8: the five dead hA copies take the registers the nx8 shape
-  frees). Flags untouched (no IDENTICAL). Tree edits this pass: `src/game/Espgen42.cpp`, `src/game/espgen45.cpp` (the `n`
-  change only; both units compile, sizes equal).
