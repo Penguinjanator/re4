@@ -90,6 +90,7 @@ read the mechanism's numbers with `GDBG=1`/`LADBG=1` (GCC) or `ra.py`/`chaitin.p
 | instruction order within a block (two independent loads/stores swapped) | the scheduler: `#pragma scheduling off/603/604/750/7400/7450` never flips a tie; asm statements are scheduled but a C statement never moves across them; ties follow statement order and @temp creation | statement order, splitting a statement (creates an @temp), IV-temp creation order | `#pragma scheduling off` | "CRI pass 16b", "CRI paired-single kernels pass 2", "CRI pass 19b" |
 | a block's pre-RA schedule needs one more node / a different DAG with the final code unchanged (an `addi`/temp issued one cycle too early, a compare chain) | peephole-forward folds mask-then-shift `(x & M) >> k` into one `rlwinm` (record form when compared with 0) and leaves the dead mask def in the block until the RA deletes it: a scheduler node with no consumer; shift-then-mask `(x >> k) & M` is one `rlwinm` + `cmpi` with no leftover; the `& 0xFF` index/value masks of pass 58 are deleted BEFORE scheduling (block-split count only) | spell the test mask-then-shift (sfd_cre AnalyMpv 15 -> 0w) | — | "CRI pass 60", "CRI pass 58" |
 | a setup value the target computes BEFORE a pre-loop statement, while ours computes it from a hoisted loop invariant (`slwi` of a stride used only in the loop body) | frontend hoisting appends the loop's invariant @temps after the for-init in creation order; a pre-RA tie between two independent IU ops is input order; `ptr += step` with a single-def `step = E * 16` on a `Uint32 *` is folded into a new hoisted `E << 6` @temp | make the invariant an own-local statement placed before the statement it must precede; declare it (and every other former @temp of the same level, e.g. a byte-scaled `dskip`) FIRST so its colour stays the @temp's (r0: highest vid of the level); keep the pointer step in bytes (cftfx UserTable 2 -> 0w) | — | "CRI pass 61" |
+| a pack/expression written straight into a VARIABLE's register in the target while ours keeps `mr own, t` (a temp node that shifts the whole colouring) | the RA coalesces a copy only into a backend temp or an `@N` web (range-split web, CSE temp, INLINED HELPER LOCAL); a copy into an own local never coalesces; a copy FROM an `@N` web into a backend temp (the K6 `mr t, w0` of `__rlwimi(w0, ..)`) does not either; helper-local vids ascend in declaration order (reverse of own locals) | put the body in a `static inline` helper (its locals are `@N` webs) with `#pragma opt_lifetimes off` around the CALLER (around the helper definition it does nothing); `#pragma inline_max_size` if the helper is large | `#pragma opt_lifetimes off` | "CRI SWAR kernels pass 16" |
 | induction pointers coloured before a `register`/pool base; loop temporaries in ascending vs descending statement order | frontend range-split IV @temps have ids above every own local, created in statement order; index-form loops put the IV copies in the preheader | write the pointers as OWN locals declared below the base (`p = ip; q = fp; *p = v; p++;`), index form `a[i]` vs `*p++` | `asm { addi ip, bss, 0 }` (becomes `mr`) — use a relocation form | "CRI pass 19b", "CRI pass 20", "CRI SWAR kernels pass 3" |
 | an expression computed once (@temp) in the target and twice in ours, or the reverse | the frontend CSEs identical expressions (also across macro uses) into one @temp; casts/`void *` views break the CSE; CSE temps rank below inline temps | write it twice vs cache in a local, `(Uint32)` vs pointer views, `(Uint8*)(p +- k) + n` | — | "CRI pass 13", "CRI pass 20", "CRI pass 14" |
 | a hard pin fixes one register and shifts unrelated ones | a hard pin adds a physical neighbour to EVERY node -> colouring levels shift; pins are exclusive with each other | prefer the plain copy (row 2) or one pin of the highest-ranked value; a parameter above the locals = pin at the top | `asm { mr r29, data }` (level-shifter) | "CRI pass 18b", "CRI pass 7", "CRI pass 10" |
@@ -29306,3 +29307,101 @@ Pass-14 harness /home/adityas/.cache/cri_swar14 DELETED.
   ninja, no 111. Next for H2: find what makes a pack's base copy coalesce into a one-web variable (test `#pragma opt_lifetimes off` on the
   4p Matching function to see whether the vendor could have had it file-wide; probe the `-O4,p` vs `-O4` and `opt_common_subs` pragmas'
   effect on the `mr own, t` copies with wi.py as the judge before touching the rows).
+
+### CRI pass 62 (adx_baif Matching 5 -> 6/6 FLIPPED, 111 OK: AIFF_GetInfo 170 -> 0w pure C — the `long`-vs-`int` compare quirk keeps a single-use local, a `(Uint16)` cast on a duplicated macro argument breaks the frontend CSE; adx_dcd5 below; 2026-09-12)
+Harness /home/adityas/.cache/cri62/ (probe.sh = variant.sh on a body file, mkh.py; deleted at the end). Tree: src/lib/adx_baif.c AIFF_GetInfo
+body + comment, config/G4BE08/objects.py `# CRI pass 62` block. Locked `ninja -k 0`, `dtk shasum -c` = 111 OK.
+- **AIFF_GetInfo 170 -> 0w, four source shapes, all read off the dumps in ~35 min (each one a 1-second probe once the mechanism was named):**
+  1. **The kept header `ckid` (target `mr r27,r30; rlwimi r27,r31,24,0,7` = an own local written by the last OR; ours substituted it into the
+     compare):** the vendor's `ckid` is `Sint32` (= `long`). MWCC types `long != int-constant` by converting the LONG operand to `int`, and it does
+     so by RETYPING the indirection: frontend-00 shows `ENOTEQU int (EINDIRECT int (EOBJREF [ckid] pointer(long)), EINTCONST int)` against the
+     def `EASS long <- ETYPCON long (EOR unsigned long ..)`. The frontend's single-use substitution requires the use's EINDIRECT type to equal
+     the object's type, so the `int` read of a `long` object is never substituted: the variable is kept whatever the block structure. Probes:
+     `Uint32 ckid` (169-170w, substituted), `int ckid` 169w, `Sint32 ckid` vs `(Sint32)AIFF_FORM` 169w, `(Sint32)ckid != AIFF_FORM` on a Uint32
+     169w — ONLY `long` object vs `int` constant keeps it (49w). Arithmetic does not retype (`hi & 0xFFFF` on a long = `EAND long` with the
+     constant converted; h18 propagated). `ssnd_flg != 0` on the tree's `Sint32 ssnd_flg` shows the same `EINDIRECT int` read.
+  2. **`end`: target `subi r10,r12,4; add r10,r8,r10`, ours `add; subi`:** `end = p + (cksz - 4)` is codegen'd `add; addi -4` (the backend
+     reassociates pointer + (int + K)); `end = p + cksz - 4` gives the target (47w). `&p[cksz-4]`, `cksz -= 4`, `(Uint32)` casts: no change.
+  3. **The 16-bit reads stored to `*nch`/`*bps` (`clrlslwi r12,r12,16,8; rlwimi r12,r29,0,24,31`):** the OR's operands are BOTH masked values
+     and the or->rlwimi peephole keeps the rotate-and-mask one as the base: `(p[0] & 0xFF) | ((p[1] & 0xFFFF) << 8)` (h22, 30w). Without the
+     `& 0xFF` on the low byte the base is the plain lbz and the 16-bit mask is folded into `rlwimi 8,16,23` (h23 = the tree). backend-01 shows
+     peephole-forward merging `rlwinm 0,16,31; rlwinm 8,0,23` into `rlwinm 8,8,23` (= clrlslwi 16,8) and narrowing it to 16..23 only when it
+     folds it into an rlwimi (it uses the lbz range there, not before). Negatives (47w, propagated/folded): Uint16/Sint16/Sint32/int locals for
+     hi/lo with one use each, `(Uint16)(int)hi`, `(hi + 0)`, `Sint8 *`/`char *` views (extsb appears), the mask on all four reads (57w, +0x10:
+     exp/mant use the clean form).
+  4. **exp/mant (`clrlwi r27,r31,16` / `clrlwi r28,r12,16` write callee-saved registers = kept own locals; the COMM block hands out r29/r30/r31
+     before the loop's byte temps):** `Uint16 exp, mant` (kept: the `(Uint16)` conversion writes the variable) = 27w, and the loop/COMM colours
+     need the LE16 value under SWAP16 to be a BACKEND temp (high vid, coloured in its own statement region: mant lo -> r30, exp swap -> r31,
+     exp lo -> r29 new, then bps/nsmpl/nch lo bytes reuse r29) instead of the frontend's CSE @temp (low vid, coloured last): `exp =
+     SWAP16((Uint16)(p[8] | (p[9] << 8)))` — the `(Uint16)` cast on the duplicated macro argument stops the frontend CSE (pass 13's "casts break
+     the CSE"), the backend's load-deletion/CSE merges the duplicate into one value used twice. `(Uint32)`/`(Sint32)` casts do NOT break it (25w),
+     `& 0xFFFF` gives +8 bytes. IDENTICAL with either `exp = SWAP16((Uint16)..)` or `(Uint16)SWAP16((Uint16)..)`.
+- Colouring facts confirmed in chaitin.py (order/colours exact on this graph; the model's cost column differs for rlwimi read-write operands,
+  irrelevant at level 1): all nodes are level 1, so the colouring order is plain DESCENDING vid = reverse statement order; a callee-saved
+  register once handed out is preferred over a new one and the handed-out set is tried in ASCENDING number (r29 before r30 before r31), so
+  which statement region first needs a third callee-saved register decides every later temp colour in the function.
+- Catalogue additions (MWCC table): row 2 (kept copy / substituted single-use local) — a `Sint32` local compared with an `int` constant is
+  read as an `int` indirection and never substituted (`Uint32`/`int` locals are); row "expression computed once/twice" — a cast on a macro
+  argument that the macro duplicates (`SWAP16((Uint16)x)`) turns the frontend @temp into a backend temp (colour rank: coloured with its
+  statement's temps, not last); row "two values with swapped registers" — the handed-out callee-saved set is tried in ascending order.
+
+### CRI SWAR kernels pass 16 (mpv_mc 8x8 H2: the pack copy DOES coalesce when the row variables are the locals of an inlined `static inline` helper and `#pragma opt_lifetimes off` is on the CALLER — case 0 is the target's 49 opcodes in the target's order with no temp node; the allocator model gives the target's colours from that graph with the helper declaration order `m2, m1, x0, a1, w1, s, d, a0, w0, stride, x1`; cases 1/2 still leave K6 nodes / exceed the 35-pcode unroll budget; nothing applied, nothing flipped (H2 494w, V2 73w, mpv_mcy H2 197w / V2 225w unchanged); 2026-09-12)
+Harness /home/adityas/.cache/cri_swar16/ (cri_swar15's scripts with the path changed; `h2gen.py` gained `@func` = static inline helper name (the public
+function then goes in `@post`) and `@sw` = the switch expression; `wi.py --at` treats `@N` webs as named nodes (`--order @63,@71,..`); `pc.py` reads
+backend-10; specs h1a/h1b/h1c/h4a-c/h5/h6a-b/h7 + bodies/tree.c; DELETE it at the end of the next pass). Pass-15 harness deleted.
+- **H1 (single-def row values, lifetimes on; h1a 435w): confirmed for @temp webs, not for own locals.** Cases 1-3's row webs are @temps and their pack
+  bases coalesce into them (ghost list `r47->@87 ..`); case 0's first webs are own locals: `mr a0, t` stays a node (deleted only by the equal colour
+  r7). Every lifetimes-on form (h1a, h1c with `x1 = (Uint32)s & 3; switch (x1)` = the switch temp as x1's first web, own-local x1 r7 8/8) has
+  s/d/stride/m1/m2 at degree 65-101 -> level 2 (r0/r3/r4/r5/r6): ~40 per-case @temps. The target's graph must have ONE node per row variable
+  across the four cases (pass 15 stands). `#pragma opt_lifetimes off` written around a `static inline` helper's DEFINITION has no effect on the
+  inlined copy (h4b-1 = h4a byte for byte); it must enclose the caller.
+- **The coalescing rule completed (h4b/h4c/h5 dumps): the RA coalesces `mr X, Y` only when X (the destination) is a backend temp or an `@N` web
+  (helper locals ARE `@N` webs); a copy whose destination is an own local never coalesces, and a copy FROM an `@N` web into a backend temp (the K6
+  `mr t, w0` of `__rlwimi(w0, ..)`, `mr t, a1` of `__rlwimi(a1, ..)`) does not either (h4c B14: r60/r61 stay nodes r7/r6).** So `a0 = (w1 >> 24) |
+  (w0 << 8)` with a0 a helper local under lifetimes off gives `slwi a0, w0, 8; rlwimi a0, w1, 8, 24, 31` with NO node (r56 -> @67 coalesced;
+  the fused `srwi` leftover r55 is a 0-degree dead def), and `a1 = __rlwimi(a1, w1, 8, 0, 23)` with a1 = the lbz gives `lbz a1; rlwimi a1` the
+  same way (r57 -> @65). h4c/h5 case 0: `rows.py` order diff 0 lines (the target's 49 opcodes in the target's order, registers only).
+- **Helper-local vids ascend in DECLARATION order (first declared = lowest = coloured last), the reverse of own locals**: h5 decl `s, d, stride,
+  w0, a0, w1, a1, x0, x1, m1, m2` -> r39 @71 s .. r49 @61 m2 (the frontend numbers the webs @71 downwards in the same order). With the intrinsic
+  K6 results the BACKEND copy propagation (pass 02) replaces the variable's reads by the temp (`xor .., r63, r61` for `w1 = __rlwimi(w1 << 8,
+  ..)`), so an intrinsic-assigned variable's pack is a node whatever the web kind; the or-pack's `mr @67, t; rlwimi @67` is not propagatable
+  (the rlwimi modifies @67) and coalesces.
+- **The model on h5's graph (`wi.py ra_h5 --at --drop-loop-temps --order @63,@69,@68,@67,@70,@71,@66,@65,@64,@62,@61`, i.e. every loop temp
+  NODE deleted, ghosts kept, vid order x1 > stride > w0 > a0 > d > s > w1 > a1 > x0 > m1 > m2) = the target EXACTLY: switch r0, lis r4/r5, x1 r0,
+  stride r3, w0 r4, a0 r5, d r6, s r7, w1 r8, a1 r9, x0 r10, m1 r11, m2 r12.** Without the deletion the trio and m1/m2 are level 2 (m1 @62 30
+  neighbours: 9 variables + m2 + switch + lis + 4 ctr `li` + 14 loop ghosts/temps). Budget read off it: m1/m2 are visited FIRST in the scan
+  (lowest vids) with nothing removed, so 16 + G < 29 -> at most 12-13 loop ghosts in the whole function = exactly the target's coalesced copies
+  (case 0: 2, case 1: 4, case 2: 4, case 3: 2 = 12). Ghosts count like nodes (a hand-unrolled two-row case doubles them: h7 = h5 with cases 1/2
+  as `for (i < 4) { ROW ROW }` -> degrees 38-42, level 2 again, 494w) -> the vendor's rows were one-row loops unrolled by the backend, and
+  every pack copy of every case coalesced (no node), and the helper's declaration order was `m2, m1, x0, a1, w1, s, d, a0, w0, stride, x1`
+  (any position for `i`). A level-2 reading is excluded: m1/m2 last (r11/r12) needs them below the row variables while m1 is adjacent to a
+  superset of every row variable's neighbours.
+- **Left for H2 8x8 — case 1's `rlwimi w0, w1, 0, 0, 15; rotlwi w0, 16` and `rlwimi lhz, w1, 16, 0, 15` in place with no node, and case 2's
+  four packs at <= 35 pcodes:** the or-pack costs 4 pcodes after pass 03 (rlwinm base, dead fused rlwinm, `mr`, rlwimi) -> case 2 = 39 (h5
+  B18, not unrolled; the dead def and the `mr` both count: 39 - 4 would have unrolled), the intrinsic `__rlwimi(w0 << 24, ..)` costs 3 but its
+  result is a propagated node. Probes negative: `w0 <<= 16; w0 |= w1 >> 16` (the destroyed-source shift is not fused: `slwi; srwi; or`, h6a
+  37 pcodes), `a0 = w0; a0 <<= 24; a0 |= w1 >> 8` (copy-propagated to `rlwinm a0`, then a0's own def is the fused operand: `srwi t; mr a0, t;
+  rlwimi a0, w0, 24, 0, 7`, h6b 35 pcodes unrolled but wrong shape), `__rlwimi(H(s, 8), w1, 16, 0, 15)` = lhz + K6 on a LOAD coalesces
+  (backend->backend) and is the right form for case 1's a1. Count of the target's case-2 row: 29 final + `addi d` + ctr `addi` = 31, so its
+  four packs cost <= 4 extra pcodes in total: a pack form with the base rlwinm written into the variable's register and the fused shift not a
+  separate pcode (or no `mr`) is still to be found; the `-inline auto` inlining of a ~120-statement helper also needs `#pragma inline_max_size`
+  in ours (the vendor's helper was inlined without it, or was smaller).
+- **H2/H3 not run** (the box went to the helper-local finding): the same-vreg WAR order residue of pass 14 is moot once a0 is one `@N` web
+  (h4c/h5 case 0 = target order with lifetimes off); left-to-right vs right-to-left association only matters for 3+ operand packs (16x16).
+- **8x8 V2 case 1 (73w) and 16x16 H2/V2 colours: not started this pass.** For V2 case 1 the reading above applies: the target's kept `lbz r31
+  (a2); mr r28, r31; rlwimi r28, r30` is a copy INTO a helper-local/@temp web from an own local or a byte value that stays live (the `mr` is
+  deleted only by equal colours; a copy into an own local is a node, a copy into an `@N` web coalesces) — test the V2 body as the same helper
+  form first. For the 16x16 (ctr 16, no unroll) use `wi.py --at` on a helper-form dump with `--order` to read the declaration order that gives
+  the target's r17-r29 handing.
+- Tree untouched (src/lib/mpv_mc.c H2 494w/0x40c, V2 73w; src/lib/mpv_mcy.c H2 197w, V2 225w); objects.py untouched; no ninja, no 111.
+  Catalogue row to add (MWCC table, "parameter copy kept" neighbour): a pack/shift written straight into a VARIABLE's register in the target
+  (`slwi a0, w0, 8; rlwimi a0`) while ours keeps `mr own, t` | the RA coalesces a copy only into a backend temp or an `@N` web (range-split
+  web, CSE temp, INLINED HELPER LOCAL); never into an own local, never from an `@N` web into a backend temp | put the kernel body in a
+  `static inline` helper (its locals are `@N` webs, vids in declaration order) and, for one web per variable across the switch cases,
+  `#pragma opt_lifetimes off` around the CALLER | — | "CRI SWAR kernels pass 16".
+- **Addendum (h8 = h5 with the helper declared `m2, m1, x0, a1, w1, s, d, a0, w0, stride, x1`):** case 0 keeps the target's opcode order; the
+  trio stays level 2 (33: cases 1/2 temps still present) so the real colours cannot confirm the model yet, and a NEW effect: with the constant
+  locals declared FIRST, m2's web is dead (`@61` 0/0 = constant-propagated into its uses, `lis/subi` per case, size 0x320) while declared LAST
+  (h5) both masks stay webs (29/30). The tree's `#pragma opt_propagation off` was there for this; whether the vendor's order or a pragma kept
+  the masks is open — read m1/m2's AST in the next pass before fixing the order. Harness kept small (`ra_h5`, `ra_h4c`, specs, listings);
+  /home/adityas/.cache/cri_swar15 deleted.
