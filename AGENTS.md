@@ -28102,3 +28102,65 @@ pass-31 form; the b7-own-local two-def shape `b7 &= 0xF` is a zero-cost prerequi
   the RA output after the chain and vanished before the post-RA pass, or the peephole's pattern state differed (a dead term rlwinm still
   present = the RA of the vendor's build deleting dead defs AFTER the peephole is the one ordering that explains it and is compiler-side).
   M4 (`#pragma peephole off` + the asm swap, 10w/38-41w in pass 23) stays unapplied; the C form (6w) stays.
+
+### CRI pass 54 (sfd_mps DecodeOneUnit 13 -> 5w: the IsZero `unit`/`p'` residue is the frontend CSE of `sfd->prm.unit` — the target's unit is a BACKEND temp (the compare's own load, the two later loads merged by load-deletion); adx_dcd5 Ste4AsSte/Mono: no prologue branch exists for a two-def copy web; IN PROGRESS; 2026-09-12)
+Harness /home/adityas/.cache/cri54/ (`mk.py OUT [--base=B] 'OLD=>NEW'..`, `try.sh NAME [FUNC] [--ra]` / `mtry.sh NAME [--ra]` = variant.sh words + ra.py dump + ghost list,
+`w.py RA_DIR [--k N] +ghost:R:phys=P|like=V  move:VID:AFTER  +edge:A:B  name:VID:N --target ..` = chaitin replay with graph edits, `w.sh`/`mw.sh` = the Ste / DecodeOneUnit
+target lists, `combos.sh`, `retadj.py DIR` = is ret adjacent to its r3 def ghosts; deleted at the end).
+- **DecodeOneUnit `unit` r3 / `p'` r4 (8 of the 13 words) SOLVED in mechanism:** frontend @temps get vids in REVERSE creation order (r51=@707 .. r57=@701, r58=@692:
+  the later-created CSE temp @701 sits BELOW the clone parameter @681/@692), so no frontend CSE temp and no own local (`unit = sfd->prm.unit;` declared first or last,
+  13w; IsZero loading `sfd->prm.unit` from an `SFD` parameter itself, 13w — the frontend CSEs across the inline boundary too) can ever be coloured before p'. The target's
+  unit is a BACKEND temp (vids above every @temp): the compare's load `len >= X + 3` NOT frontend-CSE'd with the argument/store loads, the two later loads merged into it
+  by backend-08 load-deletion (one `lwz r3,0x28(r25)`, `addi r0,r3,3`, `mtctr r3`, `cmpwi r3,0`, `stw r3,0(r29)` = the target). Probe `len >= *(Sint32 *)((Uint8 *)sfd +
+  0x28) + 3 && sfmps_IsZero(p, sfd->prm.unit)` -> 5w (only cnt r21/r23 left), size equal; the same byte-view on all three reads -> 13w (CSE'd again as identical
+  expressions), `(&sfd->prm)->unit` 13w (same AST). Open: the natural spelling that differs in AST from `sfd->prm.unit` for the compare only (a macro over a different
+  member path, a `const`/typed view, a parameter of an inlined helper that reads it once) — the byte view is a tagged stopgap.
+- **cnt r21 (the other 5 words) = pass 51's exact requirement re-confirmed on the new base (v7 = no pin + `?:` n + the unit view, chaitin IDENTICAL):** ret adjacent to
+  BOTH of its own def ghosts (SetErr `mr @t,r3` r89 and CopyPketData r154) -> 14/14 incl. cnt r21; either edge alone or any single `phys=` ghost (r3/4/5/9-12/25/26/30/31)
+  leaves 4-5/14. `err = SFLIB_SetErr(..); ret = err;` (register or plain err) range-splits err into two more r3 ghosts (r46/r50) but none adjacent to ret; `ret = err = ..`
+  identical graph to the plain form. A straight-line def always kills the old ret at `mr @t,r3`, so the adjacency needs a shape where ret's value is live across its own
+  call-result assignment (still open).
+- **adx_dcd5 Ste4AsSte / Ste4AsMono (this pass's hypothesis = copies in both arms of an existing branch):** neither target prologue has a branch (`srwi/add/srawi` for
+  nfrm/2, no odd/even test); the only branches are inside the frame loop (early return, clamps, inner ctr loop), and any copy of histl/histr placed inside the loop
+  overlaps the parameter (live across the back edge for the next copy) -> the `mr` stays (pass 52 part 2). `*histl++ = l1; *histl = l2;` (a second def of the parameter)
+  is folded by backend-03 add-propagation BEFORE the last copy propagation, so r35 is single-def again and propagated (115w, no r6 ghost); the in-place parameters that
+  DO leave ghosts (src r3, nfrm r4, outl r5, outr r7) are those whose addi survives to the RA. K&R-style parameter lists are rejected by `-lang=c` here. Own-local
+  `c1e = c1; c2e = c2;` 126w (size -4). Ghost model on the current a7 (tree minus pin, 115w): phys=9/10 adjacency is only the 13 prologue-live nodes (c1/c2 die at the
+  hoisted extsh), so the pass-52 "(#r6+#r8 == 2, #r9+#r10 >= 1) = 18/18" does not reproduce here (6/18 with qtbl moved to vid r50); the pass-52 a7 differed.
+
+### CRI pass 53 (cftyp422_ppc Matching 7 -> 8/8 FLIPPED, 111 OK: Y84C44 29 -> 0w pure C — the CA chain orders the setup, ywidth/yw3 reused for the chroma loop; sfx.h `const src` applied, 15 includers byte-identical; cftfx below; 2026-09-12)
+Harness /home/adityas/.cache/cri53/ (`v.sh UNIT FUNC NAME SRC [--ra]` = variant.sh words + ra.py dump into ra_NAME; `wi.py PRE2 BLK SPEC` = sched.py on a
+hand-written block (`CONST` token = a const-pointer load record); `cwi.py RA_DIR [+a:b,c] [--vid r65=36.5,..] --show names` = chaitin what-if with edited
+edges / scan positions; `gen.py OUT ORDER` = the loop-1 setup statements A..J reordered; deleted at the end).
+- **Y84C44 `li r0,8` slot 1 (pass 50's open item) = the carry chain, not an unscheduled block.** `srawi` WRITES XER[CA] and `addze` READS it
+  (`R0:0:3` operand, SPR class: kind-1 edges write->later reader/writer), so the four `/4`, `/8` signed divisions of the setup are a latency chain in
+  STATEMENT order and the pre-RA scheduler cannot pull `hblk = height / 4` (ready at cycle 0 with only a parameter) ahead of the ones written before
+  it. Target chain order read off `srawi r4,r10; addze r11; srawi r4,r9; addze r4; srawi r11,r7; addze r24; srawi r6; addze r6` = yskip, cnt, hblk,
+  dskip (ours had hblk, dskip first: its `srawi r0,r7,2` filled cycle-0 slot 1, so the `li ofs` sank to slot 10 and the temps took r0 before ofs was
+  live). With hblk fourth the only IU ops ready at cycle 0 are `addi d`, `li ofs`, `li i`: ofs (r0) is defined at the block top, interferes with
+  every setup temp (target temps r11/r6/r4), and post-RA the `li r0,8` is the first IU candidate after `stwu` (the target's order is a fixed point of
+  sched.py --post with const-src load records; 21w after the reorder, entry block identical). Rule for the catalogue: **a group of signed divisions /
+  `addze` sign-fixes is scheduled in statement order (CA dependence), so their order in the target listing IS the source order.**
+- **Residue (1)+(2) closed together: the target reuses `ywidth`/`yw3` for the chroma loop (`ywidth = src->cbwidth / 4; yw3 = ywidth * 3`, cw/cw3 are
+  the same registers r9/r10 as ywidth/yw3), and declares them LAST.** One node each, live across both loops: degree 33/34 instead of 27/26, and with
+  the lowest own-local vids no own-local neighbour is removed before their scan-1 turn (degree at the turn 33/34 >= 29 -> level 2, coloured before
+  the level-1 loop-transform remainder copy r153, which then takes r11 after r9/r10). chaitin what-if `--vid r65=36.6,r64=36.5` predicted the exact
+  colours before the source was written; declared in the other order (ywidth last) = ywidth r10 / yw3 r9. Reuse alone (declared first) 23w: still
+  level 1 (10 lower-vid neighbours removed first). So pass 45's "copy needs an own-local vid" was the wrong reading: the copy stays a backend temp,
+  ywidth/yw3 move UP a level.
+- **Applied (src/lib/cftyp422_ppc.c, pure C, no pins):** `const CFT_YCC420PLN *src`; setup order ywidth, yw2, y0, d, yw3, yskip, cnt, hblk, dskip,
+  ofs; `cw`/`cw3` removed in favour of `ywidth`/`yw3` declared after `c`. **src/lib/cri/sfx.h: `const CFT_YCC420PLN *src` in the prototype**; the 15
+  includers (sfx_cnv, sfx_lib, sfx_YCC420PLN_to_ARGB8888PLN, sfx_YCC420PLN_to_Y84C44, sfx_zmv, mwsfdcre/frm/lib/ply/set/sfx/sst/svr, mwsfx_ARGB8888PLN,
+  mwsfx_Y84C44) deleted and rebuilt under the lock: sha1 identical to before. objects.py `# CRI pass 53` block, `ninja -k 0`, 111 OK.
+- **APPLIED (src/lib/sfd_mps.c `sfmps_DecodeOneUnit`, 13 -> 5w, size equal, locked ninja + bytecmp 5w):** the padding test reads the count through the handle's
+  creation-parameter view, `len >= ((SFD_CREPRM *)sfd)->unit + 3 && sfmps_IsZero(p, sfd->prm.unit)` (tag `COMPILER-DIFF: M (frontend CSE)`; `(*(SFD_CREPRM *)sfd).unit`
+  and the byte view give the same 5w). Negatives (13w, all frontend-CSE'd into one late @temp): nested `if (len >= X + 3) { if (IsZero(p, X)) {..; goto skip_done;} }`,
+  an own local `unit = X` (declared first or last), IsZero taking `SFD` and loading X itself, `(&sfd->prm)->unit`; a helper `IsPadding(sfd, p, len, nskip)` and an
+  inline `zero` flag loop both materialise a Bool (46w/51w, size +0x10/+4); named `fn`/`obj` locals for the GetCond results 88w (+8: two argument copies survive).
+- **cnt r21 (5w left), where the two missing ghosts may sit (model on v7, chaitin IDENTICAL):** two new never-removed nodes with the adjacency of EITHER existing delim
+  ghost (r65 = first CheckDelim `mr @t,r3`, r82 = the second), or of the `n` pair (r56, syshd block), or of the GetCond->r4 pair (r84/r86) each give 14/14 (cnt r21,
+  bufin/dst r21); two ghosts adjacent to ret alone, or to {ret,wk,data} alone, or with the adjacency of the SetErr/CopyPketData ghosts (r89/r154) give 5/14, and the
+  pass-51 pair of edges ret-r89 + ret-r154 stays the only edge-only fix (enumerated: no single edge on ret, no pair among the top 40 candidates besides it). So the
+  vendor's +2 coalesced copies sit in the prologue / GetCond / syshd regions (ret, data, wk, sfd, len, nbyte, nskip, mps live; cnt dead) — the same regions pass 52 named.
+  Ghost kinds still unfound there without code (a 1-use call result assigned to a named local is propagated: `mr r22,r3` direct, no @temp).
+- Tree: sfd_mps 25/26 (5w, M1 pin kept), adx_dcd5 2/4 untouched (25w/143w); objects.py untouched, no flip, no `ninja -k 0`. Harness deleted.

@@ -2,9 +2,8 @@
  * of ring buffer 0, demultiplexes it through an MPS handle and copies the packet payloads into the
  * video (buf 1), audio (buf 2) and private/user-output (buf 7) buffers or user element stream joints.
  *
- * Status: 25/26 functions identical. sfmps_DecodeOneUnit (13w: the scan counter's colour and the
- * IsZero unit/pointer temporaries, one M1 pin) has the target's instruction stream with a different
- * register assignment. */
+ * Status: 25/26 functions identical. sfmps_DecodeOneUnit (5w: the scan counter's colour r21/r23,
+ * one M1 pin) has the target's instruction stream with a different register assignment. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "mps.h"
@@ -882,7 +881,12 @@ no_syshd:
 	} else if (delim == 0) {
 		*nskip = 0;
 		p = (Sint8 *)data;
-		if (len >= sfd->prm.unit + 3 && sfmps_IsZero(p, sfd->prm.unit)) {
+		/* COMPILER-DIFF: M (frontend CSE) - the original's unit value is the compare's own load (a backend
+		 * temp, coloured before IsZero's cloned `p`: r3/r4), the argument and store loads merged into it by
+		 * the backend; `sfd->prm.unit` three times is frontend-CSE'd into a @temp created after the inlining
+		 * (a lower vid, r4/r3). The creation-parameter view of the handle keeps the compare's read a separate
+		 * expression (CRI pass 54). */
+		if (len >= ((SFD_CREPRM *)sfd)->unit + 3 && sfmps_IsZero(p, sfd->prm.unit)) {
 			*nskip = sfd->prm.unit;
 		} else {
 			cnt = 0;
