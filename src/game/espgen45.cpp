@@ -135,6 +135,12 @@ void Espgen45_Move00(EspgenWork* w)
     int j;
     int k;
     int nz;   // noise index / byte of both loops: one function-level pseudo (see loop A)
+    // loop A's `j / 8` and loop B's `(i / 4) << 5`: one function-level pseudo (r10 in both loops; a block-local
+    // `(i / 4) << 5` would be tied into the `mullw` by local-alloc, the target ties the nx term).
+    int jx;
+    // loop B's `k + p->nx` (before the call) and `p->nx` (after it): one function-level pseudo (r11 in both places,
+    // "set 2 times; dies in 2 places" = no local-alloc tie, so the Z block's `addi r9,r11,1` starts a fresh r9 chain).
+    int mx;
     // noise value of both loops: also one function-level pseudo (global alloc, f10 in both loops). A block-local `n`
     // ties to the loop-A psq_l output / loop-B frsp result and permutes the loop-A/B FPR names and the sched2 slots
     // of the loop-B sum chain (77 -> 47 words).
@@ -291,7 +297,7 @@ void Espgen45_Move00(EspgenWork* w)
                     // start the add chain, the target starts it with the i term: `add r9,r9,r0`).
                     int t = j;
                     if (j < 0) t = j + 7;
-                    int jx = t >> 3;
+                    jx = t >> 3;
                     t = i;
                     if (i < 0) t = i + 3;
                     p->bump[((t >> 2) << 5) * ((nx + 1) >> 3) + (jx << 5) + i3 + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
@@ -340,15 +346,33 @@ void Espgen45_Move00(EspgenWork* w)
                 Vec* nrm = p->nrm;
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
-                v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
+                // `d` first: the `add mx` is then the last use of the `lhz nx` (REG_WEIGHT 0) and issues before the `subf`.
+                int d = k - p->nx;
+                mx = k + p->nx;
+                v.z = p->pos[d].y - p->pos[mx].y;
                 nk = &nrm[k];   // the function-level pointer shared with loop A (r30 in both loops, see its declaration)
                 PSVECScale(&v, nk, 1.0f / 2.3f);
                 {
                     // Loop B's index differs from loop A's: `j / 8` in its own statement (first division, own temp), the i
-                    // division inside the sum with its own temp (`mr r9,i` before `cmpwi i`), `(nx+1)>>3` as the FIRST
-                    // multiplicand (`mullw r9,r10,r9` = tied to nx8), `jx << 5` (see loop A).
-                    int jx = j / 8;
-                    p->bump[((p->nx + 1) >> 3) * ((i / 4) << 5) + (jx << 5) + ((i & 3) << 3) + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                    // term FIRST (`jx * nx8`: the nx chain `lhz; addi; srawi` is then evaluated after the i-division's branch,
+                    // inside the Z block as in the target, and `mullw r9,r10,r9` ties the nx term), `jq << 5` (see loop A).
+                    // COMPILER-DIFF: candidate #17 (r0 occupant): `j / 8` pinned to r0 = a hard-register conflict of the i
+                    // copy `t_i` with r0 during the i-division blocks, so global.c's preference override skips r0 and t_i
+                    // takes r9 (the target's `mr r9,i`); jq's shift then inherits r0 (`slwi r0,r0,5`).
+                    register int jq asm("r0") = j / 8;
+                    jx = (i / 4) << 5;
+                    mx = p->nx;
+                    // COMPILER-DIFF: candidate (sched1 slot fillers). Three codeless frame stores of `v` (dead after the
+                    // call) that read `jx`: ready at t2, priority 90 (the `lfsx nrm[k].x` below may alias them), they take
+                    // the t2/t3 issue slots and delay that load to t4, so the byte chain (fmuls .. psq_st) runs one cycle
+                    // later and the fast-cast loadaddr (`unspec 17`, prints nothing) is born after the `mullw` (jx dead:
+                    // it can take r10), the j loadaddr lives longer than the byte (byte r11, loadaddr r8) and `xoris j` is
+                    // issued after the first index `add` (jq32 and the xoris share r0). Without them the loadaddr is issued
+                    // at t2 and the xoris before the add: 49 words in the Z block. What the original had there is unknown.
+                    asm("" : "=m"(v.x) : "r"(jx));
+                    asm("" : "=m"(v.y) : "r"(jx));
+                    asm("" : "=m"(v.z) : "r"(jx));
+                    p->bump[jx * ((mx + 1) >> 3) + (jq << 5) + ((i & 3) << 3) + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
                 }
                 nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
                 nk->z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);

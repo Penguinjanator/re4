@@ -1968,3 +1968,9 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_umc.c": True,  # 16/16, pure C: mpvumc_OneReadMb 48 -> 0. The chroma half-vectors are the frontend's CSE @temps of `vx / 2` / `vy / 2`, first evaluated inside `cpos = ofs[0] + ((vx / 2) >> 1) + ((vy / 2) >> 1) * cpitch` (the target's six srawi = XER writers, serialised by the scheduler in statement order, run vx>>1, vy>>1, cvx, cvx>>1, cvy, cvy>>1; own locals `cvx = vx / 2; cvy = vy / 2;` give cvx, cvy, cvx>>1, cvy>>1); as @temps they are coloured before the own locals (cvx r28, cvy r7) and vx dies into fn_y's r25. `mbx8 = mbx * 8` a two-use own local declared last (`ofs[1]` uses `mbx8 * 2`, folded back to `slwi mbx,4`): coloured after mby/mbx -> r12, mby/mbx r10/r11
 })
+
+# Espgen pass 16 (2026-09-12)
+MATCHING.update({
+    "game/Espgen42.cpp": True,  # 16/16: Espgen42_Move00 9 -> 0. Loop B's bump index with the i term first (`jx * ((mx + 1) >> 3)`, jx/mx function-level: the nx chain sits in the Z block after the i-division branch as in the target), a tagged `register int jq asm("r0")` (the r0 occupant that keeps t_i off r0 -> r9) and three tagged codeless `asm("" : "=m"(v.x/y/z) : "r"(jx))` sched1 slot fillers (priority 90 through the `lfsx nrm[k].x` alias dependence, ready at t2: they hold the t2/t3 issue slots, delay the byte's load to t4 and the fast-cast loadaddr past the `mullw`, and push `xoris j` behind the first index add). Remaining tags in Move00: loop-A dead test (loop.c insn_count), loop-B asm pair (move_movables), the jq pin, the three fillers
+    "game/espgen45.cpp": True,  # 20/20: Espgen45_Move00 42 -> 0 with the same loop-B shape (p-field anchors `"=m"(p->damp)` also close 42 but their three p address refs push p from r28 to r31 in 45's global order; the frame anchors on `v` add no p refs). Remaining tags in Move00: loop-B asm set/use, the jq pin, the three fillers
+})
