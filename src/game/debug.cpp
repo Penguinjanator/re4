@@ -128,7 +128,11 @@ void processBarDisp()
     s16 x0;
     s16 x1;
     s16 x2;
-    s16 x3;
+    // The bar width, declared here and assigned in tile 1: the pseudo of the shared `5` is created at
+    // the declaration (below x2, above tile 1's `4`) while its `li` keeps tile 1's statement position,
+    // so on the global-alloc priority tie with the `4` (7 refs, len 498 both) the `5` is allocated
+    // first (r20) and the `4` second (r19). `s16 w = 5;` here instead moves the `li` up: 34 words.
+    s16 w;
     u32 i;
 
     total = (f32) frameTick;
@@ -144,7 +148,8 @@ void processBarDisp()
     t->code = 4;
     t->x0 = 6;
     t->y0 = 30;
-    t->w = 5;
+    w = 5;
+    t->w = w;
     t->c0.r = 0x80;
     t->c0.g = 0x80;
     t->c0.b = 0x20;
@@ -193,16 +198,19 @@ void processBarDisp()
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
-    // A separate max variable (not x0 reused): x0 keeps 6 refs / len 104 and x2 (4 refs, len 34)
-    // is allocated before it, giving the target's x2 r29 / x0 r28 / x1 r27 / y0 r31 and leaving no
-    // callee-saved register for the `12` (rematerialised `li r0,0xc` at tiles 3 and 6). The if/else
-    // spelling (jump1 hoists the else arm: `mr x3,x2; cmpw x1,x2; mr x3,x1`) keeps the compare on x2.
+    // The fourth bar's base is x0 reused as the max of x1/x2, in the if/else spelling: jump1 hoists
+    // the else arm (`mr x0,x2; cmpw x1,x2; ble; mr x0,x1`) with the compare still on x2, and x0
+    // (10 refs, len ~133) is allocated right after x2 (r29) in pass 0 among the call-crossing
+    // registers already in use: r28 (the join block's 0x8000 high), which is what the target has
+    // (`mr r28,r29 .. subf r0,r28,r0`). A separate `x3` variable (4 refs, len 29, no call) took the
+    // first free caller-saved register r8 instead; `x0 = x2; if (x1 > x2) x0 = x1;` lets cse
+    // rewrite the compare onto x0 (121 words).
     if (x1 > x2) {
-        x3 = x1;
+        x0 = x1;
     } else {
-        x3 = x2;
+        x0 = x2;
     }
-    t->y0 = x3 + 30;
+    t->y0 = x0 + 30;
     t->c0.g = 0x80;
     t->code = 4;
     t->x0 = 6;
@@ -211,7 +219,7 @@ void processBarDisp()
     t->c0.r = 0x20;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    t->h = TICKX(proc_tick[3]) - x3;
+    t->h = TICKX(proc_tick[3]) - x0;
     if (SysRef(pSys)->flags & 0x40000000) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
@@ -266,6 +274,15 @@ void processBarDisp()
     g_proc_cnt = (u32) ((f32) proc_tick[3] * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f);
     eprintf2(10, 16, 42, 28, 0, 2, "1000/F");
     for (i = 5; i < proc_tick_idx_bak + 5; i++) {
+        // COMPILER-DIFF: loop.c insn_count stand-in. The "%5.0f %s" format high is the loop's last
+        // movable (threshold 71 - 3 * 8 moved = 47, savings 1, life 1); our body has exactly 47 real
+        // insns at loop pass 1, so it is hoisted there, before the giv inits (`addi r26; li r28; li
+        // r27`). The target hoists it in pass 2 (after the giv inits): its pass-1 body had >= 48
+        // insns. This dead test (load, compare, branch, store: +4; the store is dead by liveness and
+        // goes in flow, the test in jump2) emits no code; the real extra statement is unknown.
+        if (proc_tick_idx == 0) {
+            x0 = 0;
+        }
         eprintf2(10, 16, 32, 50 + (i - 5) * 16, 0, 2, "%5.0f %s", TICK_1000F(proc_tick[i] - proc_tick[i - 1]), proc_name[i]);
     }
     cnt = (cnt + 1) & 3;

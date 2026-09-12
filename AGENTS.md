@@ -26406,3 +26406,43 @@ Harness /home/adityas/.cache/cri40/ (`try.sh <unit> <X.patch> <FUNC>` = a replac
 - Flags: `MATCHING["game/em_sub.cpp"] = True` (51/51, no tags added), `ninja -k 0` + dtk shasum 111 OK. Harnesses
   ~/.cache/dol_emsub2 (previous agent) and ~/.cache/dol_emsub3 (this pass: tv.py, sf.py compact RTL insn filter, variants
   c1-c5 / z1-z15) deleted.
+
+### DOL debug closer 4 (debug processBarDisp 25 -> 0, game/debug Matching 11/11; the `4`/`5` tie and the x3 register are C, the loop preheader order is a tagged dead test; 111 OK; 2026-09-12)
+
+Harness ~/.cache/dol_debug4 (variant copies v1-v10 over `~/.cache/kit/variant.sh`, `rtl.sh` dumps, GDBG log; deleted at the end). Tree
+edits: `src/game/debug.cpp` processBarDisp only, plus the flag block `# debug closer 4` in config/G4BE08/objects.py.
+- **Mechanism 1, the `4`/`5` global-alloc tie (25 -> 11): a pseudo's NUMBER is fixed at the DECLARATION, its `li` at the assignment.**
+  `allocno_compare` ties (7 refs, len 498, pri 281 both) by allocno = pseudo number; the constants' pseudos are created by expand in
+  tile-1 statement order (`4` reg 124, `6` 125, `30` 126, `5` 127, then 0x80/0x20/0xff 128-131; `zz` 123) and cse1 (skip-blocks
+  path through the six tile `if`s) rewrites tiles 2-6 onto tile 1's pseudos (make_regs_eqv keeps the first pseudo as qty head
+  unless the new one lives longer beyond the block). A user variable gets its pseudo from `expand_decl` at the declaration, so
+  `s16 w;` declared above tile 1 + `w = 5; t->w = w;` at tile 1's w position gives the `5` a lower pseudo (reg 96, right below
+  x2 = 95) than the `4` (reg 124) with the same `li` LUID (sched1 slot 0x228) and the same refs/len/pri (7/498/281) -> `5` first
+  (r20), `4` second (r19) = target. `s16 w5 = 5;` initialised at
+  the top (34w): the `li` moves to the block head, len +2, the `5` drops below the 0xff (r18). `t->w = w = 5;` in one statement:
+  no change (25w). Original shape: a width variable.
+- **Mechanism 2, x3 r8 vs r28 (11 -> 4): the fourth bar's base IS x0 reused, in the if/else spelling.** `if (x1 > x2) x0 = x1; else
+  x0 = x2;` -> jump1 hoists the else arm (`mr x0,x2; cmpw x1,x2; ble; mr x0,x1`, compare still on x2, unlike the hand-written
+  `x0 = x2; if (x1 > x2) x0 = x1;` of closer 3 = 121w where cse1 canonicalises the compare onto x0). x0 then has 10 refs / len
+  134 (pri 2238, floor(log2 10) = 3; GDBG on the final source), is allocated right after x2 (2352, r29) and before `i` (1935), crosses calls, and pass 0
+  among the call-crossing registers already in use finds r28 (the join block's 0x8000 high, pri 3375, allocated earlier) free:
+  x0's own earlier range (tiles 1-3) ends before tile 3's AddPrim. The separate `x3` (4 refs, len 29, calls 0) was a pass-0
+  caller-saved allocno: r3-r7 conflict, r8 is the first free -> r8, and the y0 copy (reg 270, pri 714) then took r6 instead of r8.
+  Closer 3's "x3 max variable" reading was wrong: x0 refs 6 -> 10 does not change the x2-first order because log2 rounds down.
+- **Mechanism 3, the "%5.0f %s" high after the giv inits (4 -> 0): loop pass 1's threshold arithmetic, read off `-dL`.** Our loop
+  has 47 real insns at pass 1 (`Loop from 1211 to 1325: 47 real insns`); the fmt high is the 9th and last movable (insn order =
+  argument expansion order; 8 moved before it, `thr 71 - 3*8 = 47, sav 1, life 1`), and `47 >= 47` hoists it in pass 1, before
+  strength_reduce's giv inits (`addi r26,r24,16; li r28,0x14; li r27,0x32`). The target's pass 1 left it (>= 48 insns, or one more
+  movable before it) and pass 2 (the second `loop_optimize` call of rest_of_compilation, thr 71 vs 33 insns) hoisted it after the
+  givs. Zero-code candidates that do not change the count: `(i-5)*16+50` spellings, `i` as int, a `u32 d` temp, `busClock / 4`,
+  `(f64)` cast, `while`/`do`; `16*i - 30` or a `y += 16` counter LOWER it. Applied the catalogue's dead test as the tagged
+  stand-in (`// COMPILER-DIFF: loop.c insn_count stand-in`): `if (proc_tick_idx == 0) x0 = 0;` at the body TOP (load, cmpwi, beq,
+  li = +4 -> 51; x0 is dead after tile 4 so flow deletes the store, jump2 the test; `proc_tick_idx` is an sda21 symbol the function
+  does not otherwise reference, so no new `high` occurrence for PRE). Placement matters: at the body END (39w) the `i++` lands in
+  the block after the test and can no longer be scheduled above the call; `asm("" : : "r"(i))` at the top = 120w and size -4 (not
+  analysed). Check with the LOOPDBG line: the movable at `thr T sav S life L ic I` must show `T*S*L < I` in pass 1.
+- Flags: `MATCHING["game/debug.cpp"] = True` (`# debug closer 4` block), `flock ... ninja -k 0`, `dtk shasum -c` 111 OK, 0 failures.
+- Open (not needed for the bytes): the real tile-1 zero variable (`zz`, closer 3) and the real loop statement behind the dead test.
+  Both are "a local declared at the top and assigned in tile 1 / a body statement of >= 1 insn deleted after loop1"; the `w`
+  finding suggests the original set several tile parameters through locals (`w = 5`, a zero), so a `z = 0` local read by the
+  eprintf2 third argument is the first thing to try when hunting the `zz` tag.

@@ -1904,3 +1904,8 @@ MATCHING.update({
 MATCHING.update({
     "game/em_sub.cpp": True,  # 51/51, pure C: EmCatchMotionMove (one `tmp` for the rot.y load and the turn step: two deaths -> global.c f13, no local-alloc ties into ry / rate); RandomItemCk (RandomHandgunAmmo writes the caller's num through a `u32&` -> one global pseudo whose preference is the first-dice chain's r29; `*= 5` as a separate statement)
 })
+
+# debug closer 4 (2026-09-12)
+MATCHING.update({
+    "game/debug.cpp": True,  # 11/11: processBarDisp 25 -> 0. C: the bar width `s16 w;` declared above tile 1 and assigned there (the shared `5`'s pseudo precedes the `4`'s on the global-alloc tie -> r20/r19); the fourth bar's base is x0 reused as the max (if/else spelling, r28 in pass 0 after x2). Tagged stand-in: a dead `if (proc_tick_idx == 0) x0 = 0;` at the loop body top (+4 real insns at loop pass 1 so the "%5.0f %s" high misses the 47 threshold and is hoisted in pass 2, after the giv inits)
+})
