@@ -27606,3 +27606,52 @@ Tree untouched (`src/game/db_cam.cpp` menu as closer 6 left it); `MATCHING["game
   `schedtrace.sh`/`schedtrace_gdb.py` (the compiler's picks), `schedcheck.sh` (dump + check per function), `dis26.sh`
   (objdump one GC/2.6 routine); README entry. Scratch ~/.cache/mwsched (probe.sh = which model table a -proc selects,
   dbg.py = per-node DAG print + candidate trace, out_* dumps) kept small, mw26.dis deleted. No src/ or config/ edit.
+
+### Tool RELs, t_esp pass 19 (t_esp 208/212: InitTool 2182 -> 2119w in the tree = pass 18's y6 applied (seg 0 d56 = the spill-set symptom, recorded); cse1 F4 and F7 read and fitted, POS_MINMAX is a reference store (`FSet`), best variant /tmp/t19/p20b.cpp 2030w not applied (seg 0 d94 > y6's); the per-constant timeline tool; nothing flipped; 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = /tmp/t18/y6.cpp (MODEL `1:2:3:5..12:4`, LOAD/LOAD_EM/LOAD_ROOM/LOAD_SST `1:2`, SAVE `{ }`, SAVE_EM `1:2`,
+  the macro classes `cls##_CSE_PAD()` all `1:2:3:4`); locked ninja + bytecmp: InitTool 2119w, 208/212, .rodata/.data/.bss unchanged.
+  Seg 0 d56 = `&pos` slot / 0x28xx spill-slot permutation only (size 1850/1850): the spill-set symptom, judged last (pass 18).
+- **Reading tool (kept in /tmp/t19, disposable but 10 min to rebuild): `tl.py O_init.s [LABEL..]`** = per pool constant the timeline of
+  segments where the target / ours load it FRESH (`F`) or issue an `fmr` copy right after the fresh load (`C`); target labels
+  `lbl_t_esp_rodata_X` = ours `.rodata+0x(X-0x35E0)`. `lc.py O_init.s` = the .LC-only region metric (mset restricted to rodata-label
+  insns: the grid signal without allocation noise); `ss.py DUMP WINDOW` = `high .LC` / call offsets per final segment (its seg column
+  is 1 low); `win.py DUMP WINDOW a b` = the raw stream; `v.sh NAME PAD..` = mk.py on y6's pad set + autoN + both grids + fl.sh;
+  `scan.sh PREFIX "BASE" "L:pads".." runs variants in parallel (7 in 45 s).
+- **Reading rules confirmed.** (1) A constant is shared in the final code if cse1 shares it (no flush between the two loads) OR cse2
+  rescues it (the earlier load must be a cse2-time LOAD insn, i.e. itself cse1-fresh, inside the same cse2 window); a rescue is an
+  `fmr` copy that survives only when the source stays live (sched1 hoists the copy above the store), so `C` is weak evidence and `F`
+  is the strong one. (2) The pass-18 "(n,0) pad" table holds for long pads (`1..20`). (3) A cse1 flush between the two `addressof`
+  sets of a `DB_POINT pos` (the ctor stores and the `&pos` argument) gives `addi rX,r1,pos` for the argument + both stores through
+  the pointer; outside the pair the first store goes direct (`stfs f,pos(r1)`) and the argument reuses the pointer. The target has
+  that `addi` form ONLY at seg 698 (WORK0, 0x1630) = y6's F10 (WORK0+18) is inside the right pair; but target seg 271 (F2 between
+  `w` and `h`, inside SAVE_EVENT's pair) shows the pointer form, so the `addi` signal is not reliable on its own — read the `.LC`s.
+- **F4 (PATH) read and fitted:** target seg 377 shares 284.0/16.0 (.LC1581/.LC1514) and its second `addressof`, seg 378 loads 284.0
+  and 32.0 fresh with the pointer shared -> F4 in y6-stream [PATH+525, PATH+537]; ours +541 -> PATH pad `1..8` (+4 insns, F4 at
+  537) .. `1..16`. With `1..12` (d=8): seg 378 mset-exact, PATH region mset 19 -> 14; the rest of the PATH region (380/391 remat
+  `lis g_pPrimArray`, 381/392/402/412/414 `li 1` for keyMode fresh in the target vs shared) is allocation/const-1 sharing.
+- **POS_MINMAX (segs 406-414, pure C):** the target reloads `g_pPosNumX` after the `max` store (`lwz; stfs 0xa0; lis; lwz; stfs 0xa4`):
+  `#define POS_MINMAX(n) FSet((n)->max, 327670.0f); FSet((n)->min, -327680.0f);` (reference store = may alias the fixed scalar,
+  lever-catalogue alias.c row). PATH region mset 14 -> 3 on top of the F4 fit. In /tmp/t19/base.cpp only, NOT in the tree (see below).
+- **F5 (SIZE), F6 (SPEED) unreadable:** every constant between cse2 F3' (PATH+349) and F4' (SPEED+122) is rescued by cse2, `lc.py`
+  shows no .LC evidence in SIZE/SPEED for shifts -12..+16 (`/tmp/t19/f5_*`); left where the F4 fit puts them.
+- **F7 (COLOR) read and fitted:** 50DC (16.0, .LC1519) is SHARED at seg 543 (COLOR+857..859) and FRESH at seg 561 (FLAG+55..58) in
+  the target; ours (after the F4 fit) flushed at COLOR+847 (543 fresh, 561 shared). F7 target in [COLOR+860, FLAG+58]; fitted by
+  removing pads: PATH `1..8` + POS/SIZE/SPEED/COLOR `{ }` (PARENT keeps `1:2:3:4`: it is first-after-F4, its `d_ = 4` is cse2's) =
+  F7 COLOR+863, and F8..F12 land back on y6's positions (LIFE+8 ROTATE+671 WORK0+18 WORK6+14 BASEPOS+123: the F10 addressof form
+  at 698 returns). Variant **/tmp/t19/p20b.cpp: 2030w**, lc segs 17 -> 10 (543/561/681/698/699 fixed), mset [2 8 5 3 5 8 5 9 18 5
+  56 6 28 9] vs y6 [2 8 5 3 5 19 6 9 18 5 56 6 28 9], N 5235. NOT applied: seg 0 d94 (y6 d56; same permutation class, sizes equal)
+  and the task's "seg 0 not worse than y6" guard. The F7 `1:2` pad forms (q_A..q_D) do not bring the `li 1` keyMode form back.
+- **What the remaining .LC evidence says (p20b): all cse2.** 50EC (.LC1523): target fresh at 619 (ANMRATE+76) although loaded at 571
+  (FLAG+208) with no cse1 flush between (F8 is FLAG+7xx in both) -> the target's cse2 window boundary (F5'/F6') lies between
+  FLAG+208 and ANMRATE+76; ours F6' = ROTATE+17 (.loop). The same boundary explains 621 (50D4 fresh at ROTATE+15, loaded at 579),
+  and 663/690 (ours fresh: ours F9 ROTATE+671 sits between 619/621 and 663/690 and cse2 cannot rescue because 619/621's loads
+  precede F6' = ROTATE+17; the target's F6' before 619's load rescues both). So cse2 F6' must move ~40-80 .loop insns EARLIER
+  (ending-in-4 pads lengthened in the first-after-cse1-flush windows before it, cse1 held with `{ }` pads after) — F8, F9 stay.
+  623C/624C/625C (target copies) are the weak signal (VEC-window uses rescued, copy hoisted above the store).
+- **F1 (LOAD_EVENT+4)**: LOAD_EVENT's own pad (+6..+9) sits AFTER F1, so LOAD_EVENT is the "first window after F1" for the cse2 knob,
+  not SAVE. F2's interval is one insn wide (SAVE_EVENT+26/27), so any cse2 pad growth before it must be matched exactly by `{ }`/
+  `1:2` pads in SAVE_EM/SAVE_ROOM/SAVE_SST (10 insns available).
+- Not run: ninja -k 0, make_rel --verify, shasum (nothing flipped). Kept: /tmp/t18 (pass 18), /tmp/t19 (this pass; p20b.cpp, g8.cpp
+  = F4 fit + FSet 2058w, base.cpp = tree + FSet). Next: (1) decide on p20b (2030w) vs the seg-0 guard, or first move cse2 F6' as
+  above and re-measure seg 0; (2) cse2 F5'/F6' fit with tl.py on 619/621/663/690; (3) callee-saved names, seg 0 last.

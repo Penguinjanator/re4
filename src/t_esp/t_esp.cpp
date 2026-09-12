@@ -1632,7 +1632,7 @@ static void ModelClose_callback(DB_WINDOW*)
 class MODEL_WINDOW : public TOOL_WINDOW {
 public:
     MODEL_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -1749,7 +1749,7 @@ static void LoadClose_callback(DB_WINDOW*)
 class LOAD_WINDOW : public TOOL_WINDOW {
 public:
     LOAD_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; }
         pa = p;
         win = NULL;
         {
@@ -1903,7 +1903,7 @@ static void LoadEmTypeUpdateCallback(DB_PRIMITIVE* p)
 class LOAD_EM_WINDOW : public TOOL_WINDOW {
 public:
     LOAD_EM_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; }
         pa = p;
         win = NULL;
         {
@@ -1963,7 +1963,7 @@ static void LoadRoomNameUpdateCallback(DB_PRIMITIVE* p)
 class LOAD_ROOM_WINDOW : public TOOL_WINDOW {
 public:
     LOAD_ROOM_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; }
         pa = p;
         win = NULL;
         {
@@ -2015,7 +2015,7 @@ static void LoadSstNameUpdateCallback(DB_PRIMITIVE* p)
 class LOAD_SST_WINDOW : public TOOL_WINDOW {
 public:
     LOAD_SST_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; }
         pa = p;
         win = NULL;
         {
@@ -2219,7 +2219,7 @@ static void SaveClose_callback(DB_WINDOW*)
 class SAVE_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -2341,7 +2341,7 @@ static void SaveEmFileNoUpdateCallback(DB_PRIMITIVE* p)
 class SAVE_EM_WINDOW : public TOOL_WINDOW {
 public:
     SAVE_EM_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { int d_; d_ = 1; d_ = 2; }
         pa = p;
         win = NULL;
         {
@@ -4509,7 +4509,7 @@ public:
     class cls : public TOOL_WINDOW {                                                                     \
     public:                                                                                              \
         cls(DB_PRIM_ARRAY* p) {                                                                          \
-            TOOL_WINDOW_CSE_PAD();                                                                    \
+            cls##_CSE_PAD();                                                                    \
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
@@ -4550,8 +4550,11 @@ public:
         }                                                                                                \
     };
 
+#define VEC0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 VEC_WINDOW_CLASS(VEC0_WINDOW, " Vec0", 48.0f, vec0)
+#define VEC1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 VEC_WINDOW_CLASS(VEC1_WINDOW, " Vec1", 200.0f, vec1)
+#define VEC2_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 VEC_WINDOW_CLASS(VEC2_WINDOW, " Vec2", 344.0f, vec2)
 
 /* ------------------------------------------------------------------------- Sub window */
@@ -4596,7 +4599,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
     class cls : public TOOL_WINDOW {                                                                     \
     public:                                                                                              \
         cls(DB_PRIM_ARRAY* p) {                                                                          \
-            TOOL_WINDOW_CSE_PAD();                                                                    \
+            cls##_CSE_PAD();                                                                    \
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
@@ -4640,7 +4643,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
     class cls : public TOOL_WINDOW {                                                                     \
     public:                                                                                              \
         cls(DB_PRIM_ARRAY* p) {                                                                          \
-            TOOL_WINDOW_CSE_PAD();                                                                    \
+            cls##_CSE_PAD();                                                                    \
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
@@ -4684,7 +4687,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
     class cls : public TOOL_WINDOW {                                                                     \
     public:                                                                                              \
         cls(DB_PRIM_ARRAY* p) {                                                                          \
-            TOOL_WINDOW_CSE_PAD();                                                                    \
+            cls##_CSE_PAD();                                                                    \
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
@@ -4709,16 +4712,27 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
         }                                                                                                \
     };
 
+#define WORK0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS(WORK0_WINDOW, " Work0", "Work0:", work[0])
+#define WORK1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS(WORK1_WINDOW, " Work1", "Work1:", work[1])
+#define WORK2_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS(WORK2_WINDOW, " Work2", "Work2:", work[2])
+#define WORK3_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS(WORK3_WINDOW, " Work3", "Work3:", work[3])
+#define WORK4_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK32_WINDOW_CLASS(WORK4_WINDOW, " Work4", "Work4:", work4)
+#define WORK5_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK32_WINDOW_CLASS(WORK5_WINDOW, " Work5", "Work5:", work5)
+#define WORK6_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK32_WINDOW_CLASS(WORK6_WINDOW, " Work6", "Work6:", work6)
+#define WORKSP0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS_U(WORKSP0_WINDOW, " WorkSp0", "  SP0:", sp[0])
+#define WORKSP1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS_U(WORKSP1_WINDOW, " WorkSp1", "  SP1:", sp[1])
+#define WORKSP2_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS_U(WORKSP2_WINDOW, " WorkSp2", "  SP2:", sp[2])
+#define WORKSP3_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS_U(WORKSP3_WINDOW, " WorkSp3", "  SP3:", sp[3])
 
 class SUB_WINDOW : public TOOL_WINDOW {
