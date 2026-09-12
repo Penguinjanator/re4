@@ -3311,7 +3311,11 @@ public:
 class PARENT_WINDOW : public TOOL_WINDOW {
 public:
     PARENT_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        // pass 21: PARENT is the first ctor after cse1 flush F4, so its `d_ = 4` heads the constant-4 class and the pad
+        // survives to cse2 (n sets = n cse1 + n-1 cse2 insns); 16 sets move cse2's F5' 12 insns earlier (COLOR+555, out of
+        // the (COLOR+557, +613] interval that kept seg 545/547's 16.0 fresh) with cse1's F7 held at COLOR+863 by the
+        // POS_MINMAX form below (12 cse1-time insns fewer in POS)
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -3489,9 +3493,14 @@ static void PosStickRPosUpdateCallback(DB_PRIMITIVE* p)
     }
 }
 
-#define POS_MINMAX(n)            \
-    FSet((n)->max, 327670.0f);   \
-    FSet((n)->min, -327680.0f);
+// the min/max stores through a byte-offset pointer: the store is not MEM_IN_STRUCT_P (the address is a cast, not a
+// COMPONENT_REF), so it may alias the fixed-scalar pointer load (reloaded for `->min`) and the following window's
+// g_pEditSeq loads stay below it (sched1), as with FSet; unlike FSet the address sits inside the MEM (one cse1-time insn
+// fewer per store: FSet's reference `addi` was folded into the store by cse1 anyway)
+#define FSTORE_AT(p, off, v) (*(f32*) ((u8*) (p) + (off)) = (v))
+#define POS_MINMAX(n)                                        \
+    FSTORE_AT(n, 0xA0, 327670.0f);  /* DB_NUMERIC::max */     \
+    FSTORE_AT(n, 0xA4, -327680.0f); /* DB_NUMERIC::min */
 
 class POS_WINDOW : public TOOL_WINDOW {
 public:
@@ -4267,7 +4276,11 @@ public:
 class LIFE_WINDOW : public TOOL_WINDOW {
 public:
     LIFE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        // pass 21: LIFE straddles cse1 flush F8 (LIFE+8), so this `d_ = 4` heads the constant-4 class after it and the pad
+        // survives to cse2: 36 sets move cse2's F6' 32 insns earlier (ROTATE+9 -> ANMRATE+47, one short of seg 619's
+        // load at +46) and F7' to SUB+51 (>= +49: segs 681/698 share); the 32 cse1-time insns are paid back by the
+        // RELEASE/ANMRATE/ROTATE/VEC0/VEC1/VEC2/SUB/WORK0 pads removed below (F10 stays at WORK0+18 in pad-4 terms)
+        { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 5; d_ = 6; d_ = 7; d_ = 8; d_ = 9; d_ = 10; d_ = 11; d_ = 12; d_ = 13; d_ = 14; d_ = 15; d_ = 16; d_ = 17; d_ = 18; d_ = 19; d_ = 20; d_ = 21; d_ = 22; d_ = 23; d_ = 24; d_ = 25; d_ = 26; d_ = 27; d_ = 28; d_ = 29; d_ = 30; d_ = 31; d_ = 32; d_ = 33; d_ = 34; d_ = 35; d_ = 36; d_ = 4; }
         pa = p;
         win = NULL;
         {
@@ -4295,7 +4308,7 @@ public:
 class RELEASE_WINDOW : public TOOL_WINDOW {
 public:
     RELEASE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -4323,7 +4336,7 @@ public:
 class ANMRATE_WINDOW : public TOOL_WINDOW {
 public:
     ANMRATE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -4357,7 +4370,7 @@ public:
 class ROTATE_WINDOW : public TOOL_WINDOW {
 public:
     ROTATE_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -4550,11 +4563,11 @@ public:
         }                                                                                                \
     };
 
-#define VEC0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define VEC0_WINDOW_CSE_PAD() { }
 VEC_WINDOW_CLASS(VEC0_WINDOW, " Vec0", 48.0f, vec0)
-#define VEC1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define VEC1_WINDOW_CSE_PAD() { }
 VEC_WINDOW_CLASS(VEC1_WINDOW, " Vec1", 200.0f, vec1)
-#define VEC2_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define VEC2_WINDOW_CSE_PAD() { }
 VEC_WINDOW_CLASS(VEC2_WINDOW, " Vec2", 344.0f, vec2)
 
 /* ------------------------------------------------------------------------- Sub window */
@@ -4712,7 +4725,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
         }                                                                                                \
     };
 
-#define WORK0_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
+#define WORK0_WINDOW_CSE_PAD() { }
 WORK_WINDOW_CLASS(WORK0_WINDOW, " Work0", "Work0:", work[0])
 #define WORK1_WINDOW_CSE_PAD() { int d_; d_ = 1; d_ = 2; d_ = 3; d_ = 4; }
 WORK_WINDOW_CLASS(WORK1_WINDOW, " Work1", "Work1:", work[1])
@@ -4738,7 +4751,7 @@ WORK_WINDOW_CLASS_U(WORKSP3_WINDOW, " WorkSp3", "  SP3:", sp[3])
 class SUB_WINDOW : public TOOL_WINDOW {
 public:
     SUB_WINDOW(DB_PRIM_ARRAY* p) {
-        TOOL_WINDOW_CSE_PAD();
+        { }
         pa = p;
         win = NULL;
         {
@@ -5008,17 +5021,11 @@ void InitTool()
     // (pass 14: 118 sets give 5233 buckets = the target order and offsets with the `pa` form of the EDIT windows;
     // the count is (real insns at gcse) / 2 | 1, so every change to InitTool's insn count re-fits it.
     // pass 15: 116 sets = 5235 with the `tbl` locals of the EDIT row loops; pass 16: 76 sets = 5235 with the
-    // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors.)
+    // TOOL_WINDOW_CSE_PAD sets in the 48 window ctors; pass 21: 32 sets = 5235 with the PARENT 16-set / LIFE 36-set pads, eight tail pads removed, FSTORE_AT POS_MINMAX.)
     i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
     i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
     i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
     i = 25; i = 26; i = 27; i = 28; i = 29; i = 30; i = 31; i = 32;
-    i = 33; i = 34; i = 35; i = 36; i = 37; i = 38; i = 39; i = 40;
-    i = 41; i = 42; i = 43; i = 44; i = 45; i = 46; i = 47; i = 48;
-    i = 49; i = 50; i = 51; i = 52; i = 53; i = 54; i = 55; i = 56;
-    i = 57; i = 58; i = 59; i = 60; i = 61; i = 62; i = 63; i = 64;
-    i = 65; i = 66; i = 67; i = 68; i = 69; i = 70; i = 71; i = 72;
-    i = 73; i = 74; i = 75; i = 76;
     for (i = 0; i < 5; i++) {
         g_pEditRow[i] = &g_editRowWk[i];
         g_editRowNo[i] = i;

@@ -28164,3 +28164,131 @@ edges / scan positions; `gen.py OUT ORDER` = the loop-1 setup statements A..J re
   vendor's +2 coalesced copies sit in the prologue / GetCond / syshd regions (ret, data, wk, sfd, len, nbyte, nskip, mps live; cnt dead) — the same regions pass 52 named.
   Ghost kinds still unfound there without code (a 1-use call result assigned to a named local is propagated: `mr r22,r3` direct, no @temp).
 - Tree: sfd_mps 25/26 (5w, M1 pin kept), adx_dcd5 2/4 untouched (25w/143w); objects.py untouched, no flip, no `ninja -k 0`. Harness deleted.
+
+### Tool RELs, t_esp pass 21 (t_esp 208/212: InitTool 2030 -> 1811w in the tree: the F4..F7 "surplus" was the F7 reading, not a construct; cse2 F5' fitted (PARENT 16-set pad + `FSTORE_AT` POS_MINMAX, 2030 -> 1919w) and F6'/F7' fitted to one insn (LIFE 36-set pad, eight tail pads removed, 1919 -> 1811w); lc segs 10 -> 5; nothing flipped; 2026-09-12)
+
+- **Tree:** src/t_esp/t_esp.cpp = p20b + (a) POS_MINMAX as `FSTORE_AT(n, 0xA0/0xA4, v)` = `*(f32*) ((u8*) (n) + off) = v`,
+  (b) PARENT pad `1:2:3:5..16:4`, (c) LIFE pad `1:2:3:5..36:4`, (d) RELEASE/ANMRATE/ROTATE/SUB `{ }` and the macro pads
+  VEC0/VEC1/VEC2/WORK0 `{ }`, (e) dead-set block 76 -> 32 (N 5235). Locked ninja + bytecmp: InitTool 1811w (size 0xa20c/0xa0fc),
+  208/212, .rodata/.data/.bss OK, full `ninja -k 0` 111 OK. Flags untouched (no IDENTICAL, no make_rel).
+- **Item 1, the recount (CSEDBG grids + `wincount.py` on p20b's `.jump`):** ours between F4 (PATH+541 of 579) and F7 (COLOR+863
+  of 1020): PARENT 212, POS 578, SIZE 492, SPEED 823 = 3003 + 3 (flushmap offsets). The target's implied count depends on the
+  F7 reading: (A) F7 in [COLOR+856, +880] (after 543's 16.0 load, before 545's 5104 load) with 545/547 rescued by cse2 from
+  543's cse1-fresh load, which needs F5' outside (COLOR+557, +613] .loop -- ours' 863 already satisfies it, so the target
+  has the SAME cse1 count as ours between F4 and F7 (0..24 fewer); (B) F7 > COLOR+916 (cse1-shared) needs >= 54 fewer. The
+  per-window insn-kind tallies (`/tmp/t21/kinds.py`: argsets 736, loads 319, stores 273, addressof 260, LC high/lo_sum/mem
+  251/251/243, sym high/lo_sum 198/125, plus 96, set-const 74) show no construct that could lose 54 cse1-time insns with the
+  final code unchanged, and the region COLOR+863..WORK0+18 needs +35..+59 (the 44 tail pads) although ROTATE has the same
+  statement mix as SPEED/COLOR -- so reading (B)'s deficit does not exist; (A) is the target. Pass 20's "≥18/≥53 fewer" is
+  withdrawn.
+- **The only cse1-only construct found: FSet's reference `addi`.** `.jump` -> `.cse` diff per window (`/tmp/t21/diffuid.py`):
+  cse1 deletes `(set rA (plus rP 160))` of `FSet((n)->max, v)` by folding the address into the store (`find_best_addr`), so
+  FSet costs (1 cse1, 0 cse2) per store -- the same class as the pad dead sets. `*(f32*) ((u8*) n + 0xA0) = v` gives the
+  1-insn store `(mem (plus rP 160))` that is still NOT `MEM_IN_STRUCT_P` (expr.c INDIRECT_REF sets the flag only for a
+  PLUS_EXPR / aggregate operand; the cast is a NOP_EXPR), so both alias effects stay: the pointer is reloaded for `->min`
+  (fixed_scalar_and_varying_struct_p needs IN_STRUCT on the varying side) AND the next block's fixed-scalar `g_pEditSeq`
+  loads stay below the min store in sched1 (segs 406-414 exact, PATH region mset 8 as before). The struct-VIEW form
+  (`((NumPtrView*) &g)->p->max = v`, IN_STRUCT load + IN_STRUCT store) reloads the pointer too but frees the following
+  loads from the store: sched1 hoists the next block's `lwz g_pEditSeq2` above it, r6 is clobbered, the second `lis` is
+  rematerialised into r10 (segs 408/410, 21 insns vs 20) -- rejected. `offsetof` is not available in this TU.
+- **cse2 F5' fit (2030 -> 1919w, /tmp/t21/c_c12.cpp).** Pads in a first-after-flush window are (n, n-1) = n cse2 insns minus
+  the window's displaced `li flg,4`; there is no cse2-only knob, so F5' (COLOR+567, inside (557, 613]) can only move with a
+  matching cse1 change: PARENT `1:2:3:5..16:4` = +12 cse1 / +12 cse2 (F5' -> COLOR+555, F4' SPEED+122 -> +110, no .LC change
+  in SIZE/SPEED) and the FSTORE_AT form = -12 cse1 in POS (F5 SIZE+174 -> +186 alone, back to +174 together): the cse1 grid is
+  p20b's to the insn, cse2 F6'/F7'/F8' move -12 (ROTATE+9, SUB+83, WORKSP1+114). lc segs 10 -> 8 (545 and 663 fixed), mset
+  [2 8 4 3 5 8 5 9 18 5 54 0 18 7] vs p20b [2 8 5 3 5 8 5 9 18 5 56 6 28 9]. D = 10 leaves 663 (F6' -10 only), D = 13/14 lose
+  681/698 (F7' too early). The COLOR-pad route (n, n-1) fails: it moves F7 below +856 (543's 16.0 fresh).
+- **cse2 F6'/F7' (the LIFE knob, item 3; 1919 -> 1811w, /tmp/t21/M_l36.cpp).** With F5' at COLOR+555 the F6' target
+  (<= ANMRATE+46: 619's load; l37 with F6' = +46 fixes 619, l36 with +47 does not) is 33 .loop insns away, not 46: LIFE
+  `1:2:3:5..n:4` with RELEASE/ANMRATE/ROTATE/VEC0/VEC1/VEC2/SUB/WORK0 `{ }` (-32 cse1, VEC0's -3 cse2) keeps F10 at WORK0+18
+  (pad-4 terms; F9 ROTATE+671 -> +651, F11/F12 unchanged) for n <= 36. Edges read off n = 34..44: 619 shared iff F6' <= ANMRATE+46
+  (n >= 37); 681/698/699 shared iff F7' >= SUB+49 (n = 36 gives +51 OK, n = 37 gives +48 bad; p20b's +95 and c12's +83 were OK,
+  s1_b's +31 bad, so the rule is "F7' after 681's load", not "not between"). F7' - F6' = 1001 puts the two edges ONE cse2 insn
+  apart: the target has 1..3 fewer cse2-time insns than ours between ANMRATE+46 and SUB+49 (ROTATE/VEC0-2/SUB real code; the
+  pads there are cse1-only), so both cannot hold with pads. Applied n = 36 (F6' ANMRATE+47, F7' SUB+51, F8' WORKSP1+82): lc
+  segs 8 -> 5 = 221 619 623 690 782, mset [2 9 4 3 5 8 5 9 17 5 40 0 18 7], shape 1109 -> 1096. Seg 221 (LOAD_EVENT " Name :")
+  is allocation: the string's `high` pseudo got callee-saved r18 in this variant (target fresh `lis r8`), a spill-set effect
+  of the changed tail, not the grid (F1' unchanged). 623 = the weak `fmr` copy signal, 690 = F6' one short, 782 = BASEPOS.
+- **Coordinates:** `flushes.sh` prints `WINDOW+k` in the variant's own stream; a pad of p sets at that window's top shifts every
+  same-window offset by p (c8/c12 looked like "F7 unchanged" and were -8/-12 in code terms; FLAG `1..28` looked like F8 = FLAG+728
+  twice). Adding insns before a flush moves it EARLIER; to move F8 later after a cse1 change before it, REMOVE insns between.
+- **Item 5 (seg 0 / spill rotation): not touched.** Seg 0 d136 (p20b d94, c12 d128), same permutation class from line 698
+  (`&pos` slot offsets / 0x28xx spill slots), size 1850/1850; POS segs 406-414 and the `li 1` keyMode pattern unchanged.
+- Harness /tmp/t21 (kept small: v.sh/vv.sh/scan.sh = the t20 scripts with `BASE=` for the pad base, `kinds.py DUMP WINS` insn-kind
+  tally, `diffuid.py A B WIN [v]` = insns present in dump A and gone in B, `wc2.py` multi-dump wincount, cbase.cpp = pass-19 base +
+  FSTORE_AT, rtl_base/ = p20b's jump/cse/gcse/loop/cse2/flow dumps). /tmp/t18, /tmp/t19, /tmp/t20, ~/.cache/tesp15, the kit untouched.
+- Next: (1) the 1-3 cse2-time insns of ROTATE..SUB (a real insn surviving cse1 that flow/combine delete: the `(set r r3)` copies of the
+  `->SetKeta()` chains, the `keyMode = 1` / `flg = 4` constant sets in VEC0 (first after F9), the PRE-rewritten addressof copies) --
+  one removed (1,1) insn plus a `1:2` (2,0) pad lets n = 37 hold both edges; (2) then the callee-saved/spill picture (seg 221, 380/391
+  remat `lis g_pPrimArray`, the `li 1` pattern) and seg 0 last.
+- Last probe (not applied): l37 + one `1:2:3:4` (4,0) pad in VEC1 / VEC2 / SUB / ROTATE gives the SAME grid in all four (cse1
+  F10 WORK0+13 -> +9 in pad-0 terms = +13 pad-4, below the (+14, +33] pair; cse2 F7' SUB+48 -> +49) and 681/698/699 stay fresh,
+  1873w: the +1 cse2 shift is N/PRE-side (the autoN refit changes which `lo_sum`s gcse deletes in the tail), not the pad's
+  window, and F7' = +49 with F10 at +13 does not share 681/698 -- so either the 681 edge is >= +50/+51 or 698's pair is the
+  binding one; 1-3 real cse2-time insns of ROTATE..SUB remain the missing knob.
+
+### DOL espgen42/45 pass 12 (Espgen42_Move00 9w, Espgen45_Move00 42w unchanged in the tree; loop-B Z block on k4: the xoris slot is REPRODUCED by two codeless `"=m"` anchors fed by the byte's float value (xoris after both adds, jq/jq32/xoris r0, t_i r9 with a `jq` r0 pin), the t_i-r9 mechanism read exactly (a hard-r0 conflict, not smpref), the j-launder ruled out by j's log2 ref step; best forms 15w / 38w (42) and 49w (45) = above the tree, nothing applied, no flip; 2026-09-12)
+Harness ~/.cache/dol_espg12 (deleted): `t.sh 42|45 SRC` (variant.sh word line, `DIFF=1` side-by-side), `mk.py OUT BASE 'OLD=>NEW'..`, `k4.sh BASE OUT`
+(pass-11 form), `zblk.py DUMP.sched uUID` (the haifa dependence table + per-cycle issue log of the sched1 block containing insn UID; find the
+UID with `rg -n 'xor:SI \(reg/v:SI 90\)' X.i.sched` = the `(f32) j` xoris), `gsum.py GORDERLOG FUNC [re]` (GDBG lines as `idx reg refs len pri -> rN`).
+k4 reproduced first: 42 45w size +4, 45 49w size -4 (pass 11's numbers).
+- **Baseline k4 sched1 of Z (2-wide issue, one lsu, `zblk.py`):** t1 lhz nx(91)+extlwi(88) | t2 lfsx nrm.x(89)+byte loadaddr(85) | t3 addi
+  nx+1(89)+slwi jq32(84) | t4 srawi(88)+fmuls(87) | t5 mullw(87)+fadds(86) | t6 fadds(85)+lwz bump(82) | t7 psq_st(84)+j loadaddr(80) | **t8 xoris
+  j(80)+nx/2 loadaddr(75)** | t9 add prod+jq32(83)+lbz(82) | t10 add(82)+stw j(79) | t11 add(81) | t12 stbx(80). Every priority >= 80 comes from the
+  fpmem chain (byte, j, nx/2, nx, i, ny/2, ny conversions serialised through `(reg:DF 76 fpmem)`, ending in the 17-cycle fdivs) and from the stbx's
+  memory dependences on the later `lhz nx`/nrm loads (bump has an unknown alias base). All 15 insns >= 80 that are ready before t8 are issued before
+  t8; the xoris is the only one left, so with the target's insn multiset the xoris is at t8 unless (a) two NEW >= 80 insns are ready at t7/t8 or (b)
+  the xoris has a dependence. The target's final code (`add; add; xoris r0; lbz r11; add; stw r0; mr r10,r8; stbx`) needs jq32 dead before the
+  xoris is born, i.e. the xoris after the first add in the sched1 stream (sched2 cannot move a write of r0 above a read of r0).
+- **(b) a `"+r"(j)` launder works mechanically and is ruled out by allocation:** `int prod = jx * ((mx + 1) >> 3); asm("" : "+r"(j) : "r"(prod));
+  bump[prod + ..]` (e1, 51w, size EXACT, the four hA-source copies right, downstream identical) makes the xoris depend on the asm; BUT haifa gives an
+  ASM consumer a FREE link (`insn_cost`: `INSN_CODE (used) < 0` -> `LINK_COST_FREE`), so the asm is ready the cycle after the mullw ISSUES (t6, not
+  t9), is issued at t7 and the xoris at t8 again (e3 dump: asm t7, xoris t8, add t9). An asm input issued at t9+ (the index sum e6/e2: 55/74w, the
+  full index e7: 57w — the sum pseudo gets a second use and the add operands/allocation permute; the byte as `u8 b` e5: 99w, the asm promotes it to
+  SI = `clrlwi`) breaks the chain. And the launder itself costs j two refs at loop weight 3: refs 59 -> 65 crosses the `floor(log2 refs)` step
+  (5 -> 6: pri 4638 -> 6112 > nrm's 5172), so j is allocated before nrm and the two swap r25/r26 everywhere (the 16 words outside Z in e1). A
+  `register int j asm("r25")` pin (e3, 34w, size -4) folds `cmpwi r25,0` into `mr. r7,r25`. Rule: **a codeless launder on a loop counter is only
+  free if `refs + 2*depth_weight` stays below the next power of two.**
+- **(a) codeless `"=m"` anchors on the dead stack Vec `v` (frame slot, no new frame object) are the lever that moves the xoris.** An
+  `asm("" : "=m"(v.x) : "r"(x))` is a store to a frame slot: alias.c `base_alias_check` returns "may alias" against every p-based load/store
+  (frame ADDRESS vs unknown base), so the anchor gets a WAR dependence on every earlier p-load and a true dependence into every later one =
+  priority ~83-90 in Z, and it occupies an issue slot ("unit none"). Forms (42, k4 base, words / size delta):
+  - e9 anchor on `k` before the bump statement: 20w, size exact. The anchor issues at t2 (it must follow the `lhz nx` WAR), the `lfsx nrm.x` waits
+    for it (true dep, t3) so the FP chain and psq_st shift +1; xoris still t8, but jq32 is born at t4 (shorter life) and local-alloc hands it r0
+    before the xoris: `slwi r0,r7,5`, xoris r10, t_j r0.
+  - e10 = e9 + `register int jq asm("r0") = j / 8;` (COMPILER-DIFF pin): **15w, size exact** — the target's entire integer chain (t_j r0, jq r0,
+    jq32 r0, t_i r9, extlwi r10, nx chain r9, prod r9) with the xoris still before the add (r10 / byte r0 / bump r5 / hA-copies r11 left).
+  - e17 = e10 with `u8* bump = p->bump; f32 fb = nrm[k].x * 255.0f * 2.0f + 128.0f; asm("" : "=m"(v.x) : "f"(fb)); asm("" : "=m"(v.x) : "f"(fb));
+    bump[..] = (u8) fb;` instead of the k anchor: the two anchors are ready at t7 (fb = the second fadds, t6) and chained by their output
+    dependence: t7 psq_st + A1 (82), t8 A2 (81) + j loadaddr (80), t9 add + lbz, **t10 add + xoris** -> `xoris r0` after the adds, `stw r0` in
+    the target's slot, jq32/xoris share r0 (zblk on the e17 dump). 38w, size exact: what is left is local-alloc's order of the remaining Z
+    temporaries (below) plus the downstream f0/f13 swap of the nx/2 and nx conversions that follows from it. On 45 the same e17 edit gives 49w
+    (= k4; the byte IS r11 there and the xoris/`stw` match; bump r7 vs r5, j loadaddr r10 vs r8, the fifth copy deleted, f0/f13 swapped).
+  - Negatives: two anchors on v.x and v.y fed by `k` (e8, 96w: p moves r29 -> r28), two fb anchors with the bump load after them (e14, 52w: the
+    `lwz bump` then depends on the anchors and issues after the lbz), one fb anchor (e12/e13, 21/20w: the anchor takes t7's second slot and the xoris
+    t8 with the lwz), k anchor + one fb anchor (e15/e16, 37w: the freed t6/t7 slots go to the j loadaddr and the xoris at t7).
+- **t_i r9 read exactly (GDBGV on k4/e9 + global.c prune_preferences):** t_i's own preferences are {r0, r9} (from i's, via `(set X (ashift i 6))`
+  with X local r0 / r9 — set_preference takes the first operand of an 'e'-format source), and `prune_preferences` REMOVES an allocno's own preferred
+  registers from its `regs_someone_prefers` (global.c 999-1001: "if we also prefer some of those registers, don't exclude them"), so jq's r0
+  preference can never keep t_i off r0 (pass 11's smpref reading is wrong there). `find_reg`'s preference override then takes the LOWEST preferred
+  register not in `used`; the target's r9 therefore needs r0 in `used` = **a hard-register conflict of t_i with r0**: a pseudo already renumbered to r0
+  (local-alloc or a pin) live somewhere in t_i's range (Y0 block `mr r9,r23` .. Z `extlwi`). The `register int jq asm("r0")` pin supplies exactly
+  that (jq is born at the srawi before t_i and dies at the slwi after it); with it t_j -> r0 too (tie through `srawi r0,r0,3`) and jq32 -> r0
+  (local suggestion). Open: the C shape that gives the original that r0 occupant — a block-local r0 value alive across the i-division blocks
+  (jq itself if it were block-local, i.e. if the j-division and the Z block were ONE basic block — impossible with the `bge` — or another Z-top
+  local born before the extlwi; none of Z's insns can beat the extlwi's priority 88 at t1).
+- **The remaining Z allocation (LADBG b29 on e17), target | ours:** byte `lbz` r11 | r10, j loadaddr (the source of the `mr rX,r8` copies:
+  reload_cse_regs treats `(unspec [(const_int 0)] 11)` as one value, the first int-conversion loadaddr keeps its register and the other five
+  become `mr` copies of it, one deleted when its own register already holds the value; the u8 conversion's loadaddr is unspec 17 = a different
+  value and emits nothing) r8 | r11, bump r6 | r7. Local-alloc order (`floor(log2 refs)*refs/(death-birth)`): in ours the j loadaddr (12 refs, life
+  [34,60) = 13846) is placed before the byte (6 refs, [38,48) = 12000) and takes r11, the byte r10; the BASE-class free order here is r11, r8, r10,
+  r7, r6 (the copies' registers in that sequence in both target and ours). So the target's byte was placed FIRST (took r11) and the j loadaddr
+  second (r8): its life was >= 2 insns longer (born earlier, t6 or before, or dying later) or the byte's shorter. In e17 the loadaddr is born at
+  t8 (the anchor A2's cycle) — the target had the t8 partner slot filled by something else and the loadaddr at t6/t7.
+- Not run: ninja, 111. Tree untouched (src/game/Espgen42.cpp 9w, src/game/espgen45.cpp 42w, as after pass 9); objects.py untouched. k4 not
+  applied (best 42 form 15w e10 / 38w e17, 45 49w: all above the tree's counts). Next: (1) the t8 partner of the psq_st — a real Z insn of
+  priority >= 80 ready at t7/t8 that the original had and we do not (candidates: the bump address as a separate `add`? no — target uses stbx; a
+  second `"=m"`-like store, i.e. a real store to a frame object in the loop body of the original — `v` is written before the call only; check
+  the frame for a slot the target writes in Z: none in the final code, so the insn was deleted later — a dead store, a REG_EQUIV'd set); (2) with
+  e17's slot, the byte-before-loadaddr local order (a longer j-loadaddr life: born at t6 = the `lwz bump` NOT at t6 — e.g. bump loaded before the
+  call as `u8* bump` at the block top (pass 11: 45w, neutral) so t6's second slot is free for the loadaddr); (3) then the f0/f13 pair follows.
