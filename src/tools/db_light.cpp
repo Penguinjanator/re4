@@ -51,7 +51,7 @@ f32 sinf(f32 x);
 }
 
 // A colour as one word (DrawTile swatches). The user copy constructor makes it BLKmode: every inlined
-// drawColorTile shares one frame slot (see the FadeSet colour pair note in AGENTS.md).
+// drawColorTile shares one frame slot (see the FadeSet colour pair note in docs/matching.md).
 struct GXColorW {
     u32 w;
     GXColorW() {}

@@ -1073,7 +1073,7 @@ static void r202_throwRock(cCatapult* c)
     const f32 step = -0.034906585f;
     v = -0.06981317f;
     lim = -0.24137f;
-    // Loop shapes (see AGENTS.md COMPILER-DIFF #7/#9, both closed as source forms): the exit store on
+    // Loop shapes (see docs/matching.md COMPILER-DIFF #7/#9, both closed as source forms): the exit store on
     // the break path keeps jump1 from folding the peeled exit test; this loop's exit code is > 20 insns
     // at jump1 (the constant in `v +=` costs 3), so the peel is made by the pre-cse2 jump pass, after
     // loop.c hoisted the exit store's constant (`fmr f28,f30`); the bounce loop's exit code is never

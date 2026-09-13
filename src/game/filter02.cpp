@@ -18,7 +18,7 @@ extern f32 ZFAR;
 
 extern "C" {
 void Filter02GetEFB(int div, void* buf, int mip, f32 scale);
-// DrawBuffer's call sites issue the FPR argument move before the GPR ones (see AGENTS.md,
+// DrawBuffer's call sites issue the FPR argument move before the GPR ones (see docs/matching.md,
 // cAtariInfo::init): ABI-identical redeclaration with the float first.
 void Filter02GetEFBF(f32 scale, int div, void* buf, int mip) asm("Filter02GetEFB");
 void Filter02Render();

@@ -395,7 +395,7 @@ void PrimitiveBuffDisp()
     }
 }
 
-static inline void KeyTypeSet(int v) { CamDbg.key_type = v; }   // the SCR store: its `li 1` precedes the CamDbg address (life 3), so loop.c hoists the shared 1 (see AGENTS "DOL debug/db_cam closer")
+static inline void KeyTypeSet(int v) { CamDbg.key_type = v; }   // the SCR store: its `li 1` precedes the CamDbg address (life 3), so loop.c hoists the shared 1 (see docs/research/ "DOL debug/db_cam closer")
 #define CFG_ON(p) (strncmp(p, "ON", 2) == 0)
 #define CFG_OFF3(p) (strncmp(p, "OFF", 3) == 0)
 

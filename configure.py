@@ -199,7 +199,7 @@ config.linker_version = PRODG_VERSION
 # cc1/cc1plus built natively from SN's GPL source drop ("2.95.3 SN BUILD v1.79"): the shipped
 # ngccc.exe pack is v1.76, whose rs6000.md shares one fpmem-address unspec between the GQR
 # fast-cast conversions and the classic double-trick ones (dead `mr` copies the original never
-# has). Build/copy: /home/adityas/Projects/re4-orig/sn-gcc/build.sh (see AGENTS.md "Compiler").
+# has). Built by tools/sn-gcc/build.sh (see docs/matching.md "Compiler").
 PRODG_NATIVE_DIR = Path("build") / "compilers" / (PRODG_VERSION + "-v1.79")
 if args.prodg_driver == "native":
     if is_windows():
@@ -207,13 +207,13 @@ if args.prodg_driver == "native":
     for exe in ("cc1plus", "cc1"):
         if not (PRODG_NATIVE_DIR / exe).exists():
             sys.exit(
-                f"{PRODG_NATIVE_DIR / exe} missing: build it with re4-orig/sn-gcc/build.sh "
+                f"{PRODG_NATIVE_DIR / exe} missing: build it with tools/sn-gcc/build.sh "
                 "(or configure with --prodg-driver ngccc)"
             )
     config.prodg_native_dir = PRODG_NATIVE_DIR
 config.prodg_ldscript = Path("config") / config.version / "ldscript.ld"
 # REL modules (config.yml `modules:`): ngcld -r with rel_ldscript.ld, then tools/make_rel.py rebuilds the
-# REL from the ELF, config/G4BE08/modules/<mod>/rel.json and the DOL symbols (AGENTS.md "REL modules").
+# REL from the ELF, config/G4BE08/modules/<mod>/rel.json and the DOL symbols (docs/matching.md "REL modules").
 config.rel_ldscript = Path("config") / config.version / "rel_ldscript.ld"
 config.rel_config_dir = Path("config") / config.version / "modules"
 config.rel_dol_symbols = Path("config") / config.version / "symbols.txt"
@@ -502,7 +502,7 @@ objects_mod = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(objects_mod)
 UNITS: List[str] = objects_mod.UNITS
-MATCHING: Dict[str, bool] = getattr(objects_mod, "MATCHING", {})
+NON_MATCHING = set(getattr(objects_mod, "NON_MATCHING", ()))
 STRIP_UNUSED = set(getattr(objects_mod, "STRIP_UNUSED", ()))
 # game/ units whose flags deviate from cflags_game (flag -> replacement, like SDK_CFLAG_OVERRIDES;
 # the sound library is -O0).
@@ -522,7 +522,7 @@ lib_objects: List[Object] = []
 sdk_objects: Dict[str, List[Object]] = {lib: [] for lib in SDK_LIBS}
 cri_objects: Dict[str, List[Object]] = {lib: [] for lib in CRI_LIBS}
 for unit in UNITS:
-    status = MATCHING.get(unit, NonMatching)
+    status = NonMatching if unit in NON_MATCHING else Matching
     name = unit
     if unit not in split_units:
         alt = str(Path(unit).with_suffix(".cpp"))
@@ -621,7 +621,7 @@ for unit in UNITS:
     else:
         lib_objects.append(Object(status, name, source=unit))
 
-# REL module units: config/G4BE08/modules.py (UNITS boundaries, MATCHING) plus one default unit
+# REL module units: config/G4BE08/modules.py (UNITS boundaries, NON_MATCHING) plus one default unit
 # "<mod>/<mod>.cpp" per module of config.yml. REL code has no small data (every DOL global goes
 # through lis/addi: -G 0), so cflags_game minus small data.
 cflags_rel = [*cflags_game, "-G 0"]
@@ -630,7 +630,7 @@ modules_mod = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 spec.loader.exec_module(modules_mod)
 REL_UNITS: Dict[str, List] = getattr(modules_mod, "UNITS", {})
-REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
+REL_NON_MATCHING = set(getattr(modules_mod, "NON_MATCHING", ()))
 # module units the original REL link dead-stripped at function level (stage em_wrap.cpp/cSceObj.cpp):
 # tools/strip_unused.py --module keeps what the module's sym_map.tsv names for the unit
 REL_STRIP_UNUSED = set(getattr(modules_mod, "STRIP_UNUSED", ()))
@@ -671,7 +671,7 @@ for _mod in _module_names:
         # to define the module's COMMON block placeholder (include/st_room.h, `common_<mod>`).
         rel_objects.append(
             Object(
-                REL_MATCHING.get(unit, NonMatching),
+                NonMatching if unit in REL_NON_MATCHING else Matching,
                 unit,
                 source=_src[0] if _src and _src[0] else unit,
                 cflags=[*cflags_rel, f"-DREL_MODULE={_mod}", *REL_CFLAGS.get(_mod, []), *REL_UNIT_CFLAGS.get(unit, [])],

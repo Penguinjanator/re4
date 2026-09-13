@@ -1210,7 +1210,7 @@ def generate_build_ninja(
             n.comment(f"Link {self.name}")
             if self.module_id != 0 and linker_family == "prodg":
                 # ngcld -r into a relocatable ELF, then tools/make_rel.py writes the REL the way
-                # snmakerel did (see AGENTS.md "REL modules")
+                # snmakerel did (see docs/matching.md "REL modules")
                 elf_path = self.partial_output()
                 n.build(
                     outputs=elf_path,

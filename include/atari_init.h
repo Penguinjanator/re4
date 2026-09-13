@@ -10,7 +10,7 @@
 // emrock/emBarred/embarrel). GCC 2.95 emits the argument moves in declaration order, so sched1/sched2
 // (equal priority, equal register weight, LUID tie-break) always issue the int immediates first.
 // The GPR and FPR argument registers are assigned independently by the SysV ABI, so declaring the
-// same symbol with the float parameters first gives exactly that move order (see AGENTS.md).
+// same symbol with the float parameters first gives exactly that move order (see docs/matching.md).
 void atariInitF(cAtariInfo* at, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int flags,
                 int cnt) asm("init__10cAtariInfoiiifffffff");
 

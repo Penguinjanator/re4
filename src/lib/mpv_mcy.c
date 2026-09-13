@@ -6,7 +6,7 @@
  * words/bytes of a row are read into variables before the stores (each byte is loaded once), the
  * 8-iteration copy loops are unrolled by the compiler (1p case 0 is the hand software-pipelined
  * two-row form), the 16-row loops keep the `i == 7` block step. Residue: instruction schedule and
- * register assignment (see AGENTS.md "CRI paired-single kernels pass 1"). */
+ * register assignment (see docs/research/ "CRI paired-single kernels pass 1"). */
 #include "cri_xpt.h"
 #include "mpv.h"
 

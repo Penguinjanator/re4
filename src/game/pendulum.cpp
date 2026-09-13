@@ -50,7 +50,7 @@ static inline void penWindScale(Vec* wind, f32 rate)
 #define PEN_AT_CK(c, p0, p1, at) \
     (((c)->flags & 0x80) ? penClothAtCkBorder(p0, p1, at) : penClothAtCk(p0, p1, at))
 
-// COMPILER-DIFF: codeless anchors (see AGENTS.md "DOL pendulum closer pass 2"). The final loop's
+// COMPILER-DIFF: codeless anchors (see docs/research/ "DOL pendulum closer pass 2"). The final loop's
 // `if (uw) hit = PEN_AT_CK(..&uw->pos..); else hit = PEN_AT_CK(..&parts->worldPos..);` diamond is
 // cross-jumped by the original the other way round from ours: the two penClothAtCk tails are merged
 // (`b` into the else arm's `mr r5; bl penClothAtCk`) and both penClothAtCkBorder tails are kept. jump2
@@ -311,7 +311,7 @@ void PenClothMove(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((c->flags & 0x200) && c->x30) {
-                // COMPILER-DIFF: register pins + address-copy asm (see AGENTS.md "DOL pendulum closer
+                // COMPILER-DIFF: register pins + address-copy asm (see docs/research/ "DOL pendulum closer
                 // pass 2"). The original computes this call's `&v` straight into r5 and copies it to the
                 // callee-saved `&v` pseudo before the call (`addi r5,r1,0x38; mr r3; mr r4; mr r28,r5`):
                 // the #3 frame-address PRE family. Ours keeps a pseudo for the argument (`addi r30; mr
@@ -329,7 +329,7 @@ void PenClothMove(cModel* m, PenCloth* c)
                     PSVECNormalize(pv, pv);
                     PSVECScale(pv, pv, spdLen);
                     ang = 1.0f;
-                    // COMPILER-DIFF: launder (see AGENTS.md "DOL pendulum closer pass 2"). Hides ang == 1.0
+                    // COMPILER-DIFF: launder (see docs/research/ "DOL pendulum closer pass 2"). Hides ang == 1.0
                     // from cse1 so the `+ 1.0f` below stays a pool load: with the wind block's `+ 1.0f` it
                     // is then loop.c's combined (savings 2) constant movable, re-emitted in the preheader
                     // through emit_move_insn with a fresh high (`lis r9; lfs f30`), which is the original.
@@ -1179,7 +1179,7 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
         PSMTXMultVec(p0->mat, &at->p0, &v0);
         penPartsWorldPos(p1, &at->p1, &v1);
         // &v1 inside the inline is a fresh `addi r5, r1, 0x18` (hard-reg arg set, never PRE'd); the case
-        // bodies share one pseudo that loop.c hoists (`addi r26, r1, 0x18`). See AGENTS.md "FadeSet colour pair".
+        // bodies share one pseudo that loop.c hoists (`addi r26, r1, 0x18`). See docs/matching.md "FadeSet colour pair".
         Vec* pv1 = &v1;
         switch (at->x0) {
         case 0:

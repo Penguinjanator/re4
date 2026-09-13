@@ -21,7 +21,7 @@ void OSReport(const char* fmt, ...);
 Cloth ClothWk[8];
 
 // clothTrans builds a temporary cModel for the light setup. The real cModel is 0x320 bytes
-// (see the KNOWN DEBT note in AGENTS.md: motion/atari fields still live in cEm/cObj), so an
+// (see the KNOWN DEBT note in docs/matching.md: motion/atari fields still live in cEm/cObj), so an
 // unused pad local follows it to keep the original frame layout until cModel carries them itself.
 
 f32 K_PARAM = 7.5f;   // spring constant

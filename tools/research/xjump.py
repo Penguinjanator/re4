@@ -32,7 +32,7 @@ protected by the flow nop), pl_class isKamae (`goto ng` form: the first copy sur
 `bne` to it), item use (ours: everything collapses).  The jump2 POLICY itself is the original's: every
 policy variant (fall-through minimum 2 / none, no label decrement, oldest-first chain, no jump-around
 bonus, no USE move, no range swap, swap in round 1) regresses 400-3800 matched functions in a
-whole-tree build and fixes none (see AGENTS.md "COMPILER-DIFF #6 resolved").
+whole-tree build and fixes none (see docs/research/compiler.md "COMPILER-DIFF #6 resolved").
 
 Usage:  python3 tools/xjump.py FILE.py     FILE.py defines `items = [...]` (and optionally `trace = False`)
         python3 tools/xjump.py --selftest

@@ -7001,7 +7001,7 @@ void em39BloodSet(cEm39* em)
     case 0:
     case 0x14:
     default:
-        break; // explicit: the two nodes shape the tree (tools/casetree.py search)
+        break; // explicit: the two nodes shape the tree (tools/research/casetree.py search)
     }
 }
 

@@ -18,8 +18,8 @@ compared by RESOLVED location, never by name:
   - a location inside the unit's own .text -> (function, offset) of the object's own function table.
 .text is reported per function (differing words), the function order/sizes are checked, and named-symbol
 mismatches at equal positions are listed (placeholder names).  Alignment differences are reported but
-do not decide the verdict (dtk gives data sections align 8, GAS 4; the link decides, AGENTS.md DOL sweep
-19a); a size difference that is only zero tail padding up to the alignment is reported as "pad".
+do not decide the verdict (dtk gives data sections align 8, GAS 4; the link decides, docs/research/ "DOL sweep
+19a"); a size difference that is only zero tail padding up to the alignment is reported as "pad".
 
 Known limitation (REL units, not flipped yet): a WEAK symbol our object DEFINES (a linkonce vtable
 copy the module keeps, `_vt.5cUnit`) is still resolved through the linked ELFs, and while the module's
@@ -582,7 +582,7 @@ def audit(unit, verbose_funcs=()):
 
 
 def residue_line(r):
-    """one AGENTS.md status line: functions with differing words (target/ours sizes) + section/order issues"""
+    """one research-log status line: functions with differing words (target/ours sizes) + section/order issues"""
     unit, ident, nf, nok, nw, issues, pads, notes = r.summary
     fns = ', '.join(f'{n} {w}' + (f' ({sz.split()[1]})' if sz else '')
                     for (s, n, w, sz) in sorted(r.func_rows, key=lambda x: -x[2]))

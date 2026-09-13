@@ -1089,7 +1089,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
 
     // COMPILER-DIFF: #8 -- the original ranks `mr r29,r4` (mode) after `fmr f31,f1`, i.e. as if r4
     // did not die at the copy; the HImode read of r4 keeps it live past the copy (regmove only moves
-    // the death when the dying mode matches the copy's), see AGENTS.md #8.
+    // the death when the dying mode matches the copy's), see docs/matching.md #8.
     asm("" : "=m"(pl->x400) : "r"(hm));
     if (pl->pLockEm == 0) {
         return;

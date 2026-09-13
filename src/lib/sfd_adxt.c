@@ -827,7 +827,7 @@ static void sfadxt_WriteTotSmpl(SFD sfd)
  * tst r27, adxterr r26, adxt r25, wk r24; AnalyAhdr adxt r24 / ahdr r25; UpdateSvrFreq adxt r24 / wk r25.
  * As own locals of ExecServerSub (pass 32) the ahdr/svrfreq/UpdateFlowCnt values took the lowest free
  * r28/r29. Left (59w, size equal): sfd r30 / err r31 - the target colours sfd first (sfd L3, or the
- * caller's `err` kept as the lowest member of the @ret chain; see AGENTS.md "CRI pass 35"). */
+ * caller's `err` kept as the lowest member of the @ret chain; see docs/research/ "CRI pass 35"). */
 static void sfadxt_PrepOut(SFD sfd)
 {
 	Sint32 bufin;

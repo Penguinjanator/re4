@@ -423,7 +423,7 @@ static inline f32 FCRef(const f32& v) { return v; }
 static void r104_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
-    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, cSceObj).
+    // depend on stores), a `static const` read through a reference stays below (docs/matching.md, cSceObj).
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 14);
@@ -709,7 +709,7 @@ static void r104_execEvent00()
     DC.setAramSort(0);
     // The user variable on one side of the two tests keeps the pre-cse1 thread_jumps from threading the
     // first `beq` past the second test (rtx_equal_for_thread_p rejects REG_USERVAR_P pseudos): the second
-    // compare is cse-deleted but its `bne` survives, as in the original (AGENTS.md, st1_1 pass 2).
+    // compare is cse-deleted but its `bne` survives, as in the original (docs/research/, st1_1 pass 2).
     u32 f = pG->flags_54;
     if (f & 0x40) {
         skip = 1;

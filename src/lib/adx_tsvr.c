@@ -2,7 +2,7 @@
  * decoder-information stage and the decoder trap / stream end-of-sector callbacks (looping and
  * linked files). 6/6 functions byte-identical; adxt_nlp_trap_entry carries one tagged form (the
  * `lha ofst` temporary takes r4 in the original = a no-r0 web: a dead conditional keeps an addi
- * use of it to the register allocator, see AGENTS.md "CRI pass 79").
+ * use of it to the register allocator, see docs/research/ "CRI pass 79").
  * The decoder trap callbacks are `void (*)(void *obj)` handlers: the `void *` -> ADXT conversion
  * keeps the handle copy as its own node, ranked above the locals (r31) like the original (CRI pass
  * 12; replaces the pass-5 `asm { mr p, adxt }` pins). */

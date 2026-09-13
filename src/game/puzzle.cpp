@@ -1051,7 +1051,7 @@ void pzlPlayer::giveupExtraPiece()
 // shared between the outer `||` and the inner `if` (cr7). The clamp on the break path makes the
 // rotated loop's exit code (`cur += d; if (p == 0) { clamp; break; }`) longer than 20 insns, so
 // jump1's duplicate_loop_exit_test never peels it and the loop is entered with a plain `b INC`
-// (AGENTS.md COMPILER-DIFF #9, closed: a source form, not a compiler difference).
+// (docs/matching.md COMPILER-DIFF #9, closed: a source form, not a compiler difference).
 #define SEL_CHECK(cur, size, lo, hi, done)                                                          \
     if (b->cur < 0 || b->cur > b->size - 1) {                                                        \
         if (b->cur < 0) {                                                                            \
@@ -1596,7 +1596,7 @@ void pzlPlayer::salvCursor()
 // unsigned compares); `item` is declared before `info`; each loop has its own counter (the two
 // placement nests share i/j); the fill-up loop is a guarded do-while (`cmpwi nOrder,0; ble`).
 // `last` is r31 in the target = an allocno that crosses a call; the three COMPILER-DIFF lines below
-// give it a codeless def before get() (see AGENTS.md "DOL puzzle final closer").
+// give it a codeless def before get() (see docs/research/ "DOL puzzle final closer").
 int PutInCase(u16 id, u16 num, int type)
 {
     ItemWork item;

@@ -113,7 +113,7 @@ static const Char8 *sfhlib_version_dummy;
  * is written as an asm-defined register local and the six sfh_GetHdrU32 callers are compiled under
  * `#pragma peephole off` (the loaded word took the dying base register r5, the original a fresh r6 --
  * the original's peephole merged the rlwinm/or chain after register allocation, so one partial-result
- * temporary was still live and coloured next to the word; same root as M4, see AGENTS.md "CRI pass 11";
+ * temporary was still live and coloured next to the word; same root as M4, see docs/research/ "CRI pass 11";
  * closed in CRI pass 18b by a hard r5 pin of hdr in the two helpers, which keeps r5 away from the word).
  * SFH_AnlyElemSmpHz keeps the C form (stwbrx, 6 words): its inlined element search needs the
  * peephole's displacement folding `lbz 408(hdr)` and the pre-peephole schedule that folding implies

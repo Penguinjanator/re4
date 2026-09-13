@@ -16,7 +16,7 @@ to an `assign_temp` slot, 24-byte block move, vptr restored).  The original bina
 after the tail stores of the block move (esp0a Esp0a_Trans / SetFreeWork, esp0e Esp0e_Trans); stock
 v1.79 hoists the reload above them.
 
-Evidence (2026-09-11, ~/.cache/ccpatch harness: every prodg_cc unit of build.ninja compiled with the
+Evidence (2026-09-11, whole-tree harness: every prodg_cc unit of build.ninja compiled with the
 installed v1.79 cc1plus/cc1 and with the patched pair, masked per-function compare against the split
 objects):
   * 763 units, 19119 functions identical before; 0 regressions, 0 changed objects with the sources
@@ -25,7 +25,7 @@ objects):
     6/6 identical, esp0e with `*p = *esp` is 8/8 identical (4/6 and 7/8 without the patch).
   * Widening the edit to put_reg_into_stack (function.c 1740) regresses item `combine` (a #17-pinned
     function) for no gain, so the shipped build differs at assign_temp + assign_parms only.
-  * An earlier run (AGENTS.md "Structural tag hunt (2026-09-11)") listed 7 more newly identical
+  * An earlier run (docs/research/compiler.md "Structural tag hunt (2026-09-11)") listed 7 more newly identical
     functions (objRobo x3, sce_com SceChapterEnd, t_se_at x3); those did not reproduce against the
     committed sources with the same edit -- they were concurrent source edits by other agents that
     landed between that run's base and variant builds, not compiler effects.

@@ -2,7 +2,7 @@
 // planks when shot and falls to the ground as a three-node rope.
 //
 // Byte-identical. setFall carries a COMPILER-DIFF #8 keep-alive (the `fmr f29, gravity` prologue copy
-// ranks last in the original: the incoming f1 did not die at the copy there, AGENTS.md #8).
+// ranks last in the original: the incoming f1 did not die at the copy there, docs/matching.md #8).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -158,7 +158,7 @@ void cEmShield::beginEvent()
 // Damage: every few hits a plank (hit box parts 2..10) breaks off; the fourth plank, an explosion
 // or a heavy weapon destroys the shield.
 // Byte-identical. Shape notes: the compare tree needs the default-labelled members 0..4, 0xB, 0xE,
-// 0x10, 0x11, 0x14, 0x1B, 0x1D, 0x26, 0x27, 0x2B (tools/casetree.py: [0,4] and [16,17] only add
+// 0x10, 0x11, 0x14, 0x1B, 0x1D, 0x26, 0x27, 0x2B (tools/research/casetree.py: [0,4] and [16,17] only add
 // balance weight, their compares are jump-threaded away); the two plank bodies (default arm / B arm)
 // stay separate copies only because they use different pointer variables (`parts0` = the top
 // getPartsPtr(0) variable, also the breakAll/D one, so it crosses calls and is callee-saved r31;

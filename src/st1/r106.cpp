@@ -408,7 +408,7 @@ static void r106_shakeClosetDoorR(cModel* m)
 
     // The exit store inside the break path keeps jump1 from folding the peeled exit test's
     // `ble TOP` over `b END`; jump2's fall-through cross-jump then merges the two exit jumps
-    // (`cmp; b TEST; ...; TEST: ble TOP`) -- see AGENTS.md COMPILER-DIFF #7/#9 (not a diff).
+    // (`cmp; b TEST; ...; TEST: ble TOP`) -- see docs/matching.md COMPILER-DIFF #7/#9 (not a diff).
     for (;;) {
         m->rot.y += 0.02617994f;
         if (m->rot.y > lim) {

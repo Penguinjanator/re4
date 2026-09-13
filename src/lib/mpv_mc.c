@@ -6,7 +6,7 @@
  * two-definition `t = w & a; t += x & m2; t + ((x & m1) >> 1)` with the masks as function-level
  * variables, the 1p rows are hand-unrolled with the original's dcbt placement); mpv_mcy.c holds the
  * 16x16 counterparts. Residues: instruction schedule / register assignment, and the 1p update-form
- * loads (lfdux/lwzux), which this compiler never emits from C (AGENTS.md "CRI SWAR kernels pass 2"). */
+ * loads (lfdux/lwzux), which this compiler never emits from C (docs/research/ "CRI SWAR kernels pass 2"). */
 #include "cri_xpt.h"
 #include "mpv.h"
 
@@ -86,7 +86,7 @@ void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
  * intrinsic's K6 copy is a node; the scheduler model shows every such extra node moving the order), so the
  * inserts are asm-emitted `rlwimi` single instructions there (COMPILER-DIFF; the vendor's "tuned C" had them as
  * asm too: no C spelling of this compiler produces a bare rlwimi). Masks: function-level webs, materialised once
- * (the target's `lis r5, 0xfeff; lis r4, 0x101` at the top). AGENTS.md "CRI SWAR kernels pass 14-18". */
+ * (the target's `lis r5, 0xfeff; lis r4, 0x101` at the top). docs/research/ "CRI SWAR kernels pass 14-18". */
 #pragma opt_propagation off /* COMPILER-DIFF: the masks would be propagated into every case (lis/addi per case, bodies > 35 pcodes, no unroll) */
 #pragma inline_max_size(100000) /* COMPILER-DIFF: the ~120-statement helper is not inlined under -inline auto */
 #pragma inline_max_total_size(100000)
@@ -357,7 +357,7 @@ void MPVMC08_OneRefV2_TuneC(MPVMC *mc)
 
 /* MPVMC08_OneRef1p_TuneC: kept as inline asm -- `lfdux`/`lwzux` are never emitted from C by MWCC 2.4.7
  * (13 probe forms; only constant loop steps fold to `lwzu`) and case 3/7 row 3 carries a `dcbt` stride typo, so
- * this kernel was asm in CRI's source (see AGENTS.md "CRI SWAR kernels pass 2"). */
+ * this kernel was asm in CRI's source (see docs/research/ "CRI SWAR kernels pass 2"). */
 void MPVMC08_OneRef1p_TuneC(MPVMC *mc)
 {
 	register Uint8 *s = mc->src;

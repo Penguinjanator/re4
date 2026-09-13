@@ -209,7 +209,7 @@ void EtcSetAddAmb(cModel* m, int no);
 int EspGetEfmTplAddr(int id, void** tpl);   // game/eff_sys.cpp
 
 // cRoomData::getRoomSavePtr(u16) called with GetEtcFlgPtr's int room: the original passes the
-// register through unmasked (narrow-argument compiler difference, see AGENTS.md), so it is called
+// register through unmasked (narrow-argument compiler difference, see docs/matching.md), so it is called
 // through an int-parameter alias.
 u8* RoomDataGetRoomSavePtr(cRoomData* r, int room) asm("getRoomSavePtr__9cRoomDataUs");
 

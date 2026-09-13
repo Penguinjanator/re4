@@ -341,16 +341,16 @@ extern "C" int em10SearchParasite(cEm10* em);
 // EstSet with the enemy as owner argument (esp.h declares the int form).
 void EstSetEm(cModel* em, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, cModel* g, void* h) asm("EstSet");
 
-// COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4). The original passes -1 to the u16
+// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4). The original passes -1 to the u16
 // count of Ctrl12CntAdd as `li r5, -1`; an int-view declaration reproduces it.
 void Ctrl12CntAddI(cCtrl* c, int idx, int add) asm("Ctrl12CntAdd__FP5cCtrliUs");
-// COMPILER-DIFF: narrow-argument extension (AGENTS.md item 2): the s16 wait time is sign-extended.
+// COMPILER-DIFF: narrow-argument extension (docs/matching.md item 2): the s16 wait time is sign-extended.
 void Ctrl12SetS(cCtrl* c, int idx, s16 val) asm("Ctrl12Set__FP5cCtrliUs");
-// COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4): int-view of the u16 se number / block.
+// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of the u16 se number / block.
 u32 Ctrl11SetSe2I(cCtrl* c, cModel* m, s16 time, int no, int idx, int blk) asm("Ctrl11SetSe2__FP5cCtrlP6cModelsUsiUs");
-// COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4): int-view of em10CallVoiceSe's u16 se number (em10SetDamageVoice).
+// COMPILER-DIFF: narrow-argument truncation (docs/matching.md item 4): int-view of em10CallVoiceSe's u16 se number (em10SetDamageVoice).
 extern "C" void em10CallVoiceSeI(cEm10* em, int no) asm("em10CallVoiceSe");
-// COMPILER-DIFF: argument-move order (AGENTS.md item 1): em10_R1_R10FGondola's setThrow issues the
+// COMPILER-DIFF: argument-move order (docs/matching.md item 1): em10_R1_R10FGondola's setThrow issues the
 // `addi r5, Em10AtkTbl` before `fmr f1, t`; the GPR-args-first redeclaration is ABI-identical.
 void cEmWepSetThrowF(cEmWep* wep, Vec* spd, EmAtkInfo* atk, f32 grav) asm("setThrow__6cEmWepP3VecfP9EmAtkInfo");
 
@@ -3318,7 +3318,7 @@ static void em10_R0_Init(cEm10* em)
     switch (em->emsetNo & 0xF) {
     default: {
         sc = fRand1_1() * 0.01f + 1.03f;
-        const f32 k = 1.01f; // pool order: 1.01 before the 1.1 of case 7 (AGENTS.md const-local idiom)
+        const f32 k = 1.01f; // pool order: 1.01 before the 1.1 of case 7 (docs/matching.md const-local idiom)
         break;
     }
     case 7:
@@ -6354,7 +6354,7 @@ static void em10_R1_br_Walk(cEm10* em)
     Em10Work* w = EM10_WK(em);
 
     if (em->hp > 0) {
-        int one = 1; // kept in a callee-saved reg across the calls (AGENTS.md)
+        int one = 1; // kept in a callee-saved reg across the calls (docs/matching.md)
         if (pG->flags_64 & 0x2000000) {
             EmRoutineSet(em, one, 0, 0, 0);
         } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
@@ -6497,7 +6497,7 @@ static void em10_R1_br_Dash(cEm10* em)
     Em10Work* w = EM10_WK(em);
 
     if (em->hp > 0) {
-        int one = 1; // kept in a callee-saved reg across the calls (AGENTS.md)
+        int one = 1; // kept in a callee-saved reg across the calls (docs/matching.md)
         if (pG->flags_64 & 0x2000000) {
             EmRoutineSet(em, one, 0, 0, 0);
         } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
@@ -10638,7 +10638,7 @@ static void em10_R1_br_CSawWalkAtk(cEm10* em)
     Em10Work* w = EM10_WK(em);
 
     if (em->hp > 0) {
-        int one = 1; // kept in a callee-saved reg across the calls (AGENTS.md)
+        int one = 1; // kept in a callee-saved reg across the calls (docs/matching.md)
         if (pG->flags_64 & 0x2000000) {
             EmRoutineSet(em, one, 0, 0, 0);
         } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
@@ -16613,7 +16613,7 @@ extern "C" u32 em10WanderRouteUpdate(cEm10* em, int no)
     Em10Work* w = EM10_WK(em);
     Vec pos;
 
-    // Early return: the label in front of the main path keeps its `mr r3, r31` (see AGENTS.md
+    // Early return: the label in front of the main path keeps its `mr r3, r31` (see docs/matching.md
     // "early return merged with the final return").
     if (no <= 0) {
         return em10GetWanderRoute(em);

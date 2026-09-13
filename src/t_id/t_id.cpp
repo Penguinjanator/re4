@@ -144,7 +144,7 @@ static void toolIdInit(IdTool* w)
     w->lang2 = w->lang;
     // Store order = sched1 "dying source first" (INSN_REG_WEIGHT) then sched2 "more dependents first"
     // (r0/r9/r11 are rewritten after the calls); the QI zeros must all precede the SI chain, whose
-    // subreg the later QI zero stores would otherwise take (see AGENTS.md "t_id pass 6").
+    // subreg the later QI zero stores would otherwise take (see docs/research/ "t_id pass 6").
     w->type = 0;
     w->x17B = 0;
     w->pause = 0;

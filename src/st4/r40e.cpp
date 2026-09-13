@@ -113,7 +113,7 @@ static inline f32 FCRef(const f32& v) { return v; }
 static void r40e_execShowView()
 {
     // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
-    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, r104).
+    // depend on stores), a `static const` read through a reference stays below (docs/matching.md, r104).
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 3);

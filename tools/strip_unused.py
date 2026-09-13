@@ -19,7 +19,7 @@ usage: strip_unused.py --unit lib/OS.c build/G4BE08/src/lib/OS.o
        strip_unused.py --gcc --unit lib/_eh.c build/G4BE08/src/lib/_eh.o   (ProDG objects)
        strip_unused.py --gcc --module st1_1 --unit st1_1/em_wrap.cpp build/G4BE08/src/st1_1/em_wrap.o
            (REL module unit: keep what config/<ver>/modules/<mod>/sym_map.tsv lists for the unit;
-           modules.py STRIP_UNUSED names the units, see AGENTS.md "REL modules")
+           modules.py STRIP_UNUSED names the units, see docs/matching.md "REL modules")
 """
 import argparse
 import os

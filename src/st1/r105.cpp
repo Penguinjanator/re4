@@ -796,7 +796,7 @@ static void r105_execOpenCover()
     obj = SmdGetObjPtr(0x30);
     SndCall(6, 0x5F, &obj->pos, 0, 0, 0);
     // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
-    // exit test unfolded so jump2 merges the two exit jumps (AGENTS.md COMPILER-DIFF #7/#9).
+    // exit test unfolded so jump2 merges the two exit jumps (docs/matching.md COMPILER-DIFF #7/#9).
     f32 step = 0.06981317f;
 
     for (;;) {

@@ -22,7 +22,7 @@
 extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" void OSReport(const char* fmt, ...);
 
-// HALT() as the original header spells it (a plain block, see AGENTS.md)
+// HALT() as the original header spells it (a plain block, see docs/matching.md)
 #define DBG_TOOL_HALT()                                    \
     {                                                      \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);     \

@@ -792,7 +792,7 @@ void OpeOwTypeSet(u8 type)
 // setPos through an inline helper: the caller's `&pos` (a `(plus vsv N)`) is substituted for the
 // read-only pointer parameter in the hard-register argument set (fresh `addi r4, r1, 0x68`, never
 // a pseudo), so the following `Vec* r = &pos` for setAng is a fresh pseudo that cse cannot merge
-// with it (`addi r9, r1, 0x68`, `stfs f31, 8(r9)`). See AGENTS.md "FadeSet colour pair".
+// with it (`addi r9, r1, 0x68`, `stfs f31, 8(r9)`). See docs/matching.md "FadeSet colour pair".
 static inline void PlSetPosW(cPlayer* pl, Vec* v)
 {
     pl->setPos(v);

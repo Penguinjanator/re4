@@ -1800,7 +1800,7 @@ EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
     register s16 hm asm("r5"); // COMPILER-DIFF: #8
 
     // COMPILER-DIFF: #8 -- the original ranks `mr r26,r5` (out) after `fmr f28,f1`, i.e. as if r5
-    // did not die at the copy; the HImode read of r5 keeps it live past the copy (AGENTS.md #8).
+    // did not die at the copy; the HImode read of r5 keeps it live past the copy (docs/matching.md #8).
     // The dummy memory output is a stack local: naming `em->hitInfo.flags` here gave `em` one more
     // reference than `pos`, which swaps their r23/r24 global-alloc order.
     asm("" : "=m"(q) : "r"(hm));

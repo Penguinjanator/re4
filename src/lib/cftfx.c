@@ -222,13 +222,13 @@ void cnvStaticYcc420plnToA256V(const CFT_YCC420PLN *src, const CFT_ARGBDST *dst)
  * the four luma samples, packed in two own locals; the pointer moves on by the four samples with
  * ONE increment placed inside the last index expression (a statement-level `y += 4` is forwarded
  * into the next row pointer's add and the +4 sunk; post-increments on every byte give the same
- * real `addi` but 4 pcodes more per row, see AGENTS.md "CRI pass 57").  The `& 0xFF` masks emit
+ * real `addi` but 4 pcodes more per row, see docs/research/ "CRI pass 57").  The `& 0xFF` masks emit
  * nothing (a byte load is already zero-extended: the index masks are deleted by load-deletion,
  * the value masks fold into the `rlwinm 24,0,7` that the or->rlwimi peephole replaces) but they
  * count in the block-splitting pass: 31 initial pcodes per row put the split of the inner body
- * exactly after the third row-pointer add, as in the original (AGENTS.md "CRI pass 58").  A mask
+ * exactly after the third row-pointer add, as in the original (docs/research/ "CRI pass 58").  A mask
  * on the `<< 8` operand would fuse into `clrlslwi` -- only the `<< 24` values may carry one.
- * Each pack is TWO statements (`v = A << 24; v |= B << 8;`, AGENTS.md "CRI pass 59"): the
+ * Each pack is TWO statements (`v = A << 24; v |= B << 8;`, docs/research/ "CRI pass 59"): the
  * or->rlwimi peephole gives the same `slwi B; mr v, B; rlwimi v, a, 24, 0, 7`, but the `<< 24`
  * rlwinm now writes v itself and stays a dead def until the RA, i.e. a WAW predecessor of the
  * `mr` at scheduling time: the pack chain starts one cycle later and the destination load and

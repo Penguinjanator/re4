@@ -243,7 +243,7 @@ void em29DmCk(cEm29* em)
             dmg = (Rnd() & 1) + 999;
         }
         break;
-    // default-grouped nodes shape the tree (tools/casetree.py): 0xF gives the left half the weight
+    // default-grouped nodes shape the tree (tools/research/casetree.py): 0xF gives the left half the weight
     // that keeps [0x10,0x11] the root, [0x2C,0x2D] makes 0x21 the right root; their compares fold
     // into `b default`. The default arm is written before case 0xE (bodies laid out A, X, D, Y).
     case 5:

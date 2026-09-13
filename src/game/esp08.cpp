@@ -97,7 +97,7 @@ extern f32 ZFAR;
 // reloads y0 twice, as if the divides sat in another block (COMPILER-DIFF: asm-emitted fdivs).
 // The `=m` keep-alive after the mask quad keeps y and st1 live through it (global-alloc order
 // y after the double loop's 0x4330 magic, st1 after y1: f24/f21 as the original) without
-// touching ss1/x. See "DOL esp08/esp18 final closer" in AGENTS.md.
+// touching ss1/x. See "DOL esp08/esp18 final closer" in docs/research/.
 #define ESP08_TILES()                                                                             \
     ds = s1 - s0;                                                                                 \
     dt = t1 - t0;                                                                                 \

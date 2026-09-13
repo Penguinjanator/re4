@@ -1859,7 +1859,7 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
 
     // COMPILER-DIFF: #8 -- the original ranks `fmr f30,f1` (grav) after `mr r26,r5; addi w`, i.e. as
     // if f1 did not die at the copy; the DFmode read of f1 keeps it live past the copy (see
-    // emshield setFall / AGENTS.md #8).
+    // emshield setFall / docs/matching.md #8).
     asm("" : "=m"(hp) : "f"(hd));
     if (spd) {
         v = *spd;

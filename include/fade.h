@@ -36,7 +36,7 @@ void fadeDraw(FadeWork* f);
 // store of a *constant* through P is rejected by recog (no store-immediate on PPC) and keeps P
 // (`stw rZ, 4(rP)`, `mr r4, rP`, PRE'd across blocks); `black` is stale for that substitution
 // after the label of the first `if`, so its store goes through the substituted frame address and
-// its `li` follows the zero's. See AGENTS.md "FadeSet colour pair".
+// its `li` follows the zero's. See docs/matching.md "FadeSet colour pair".
 struct FadeColorPair {
     GXColor start;
     GXColor end;

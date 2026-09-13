@@ -442,7 +442,7 @@ int DB_ACTIVE_SELECT::AddPrimitive(DB_PRIMITIVE* p, int x, int y)
         }
     }
     // value-select return: the join's dead `mr r3,ret` becomes a (use r3) before the return label,
-    // which keeps the first `return 0` copy from being cross-jumped into this one (see AGENTS.md #6)
+    // which keeps the first `return 0` copy from being cross-jumped into this one (see docs/matching.md #6)
     if (tbl[w * y + x] == 0) {
         tbl[w * y + x] = p;
         num++;
@@ -1663,7 +1663,7 @@ void DB_NUMERIC2::OnCalcMsg(int msg)
     case DB_CALC_MIN:
         // `v = 0.0f` BEFORE the call in the three call arms: the arm blocks then end in the CALL_INSN, the
         // fall-through arm (DEFAULT) gets flow.c's `(use (const_int 0))` nop and cannot be a cross-jump target;
-        // MIN merges its 3-insn tail into MAX's (see AGENTS.md COMPILER-DIFF #6 resolved)
+        // MIN merges its 3-insn tail into MAX's (see docs/matching.md COMPILER-DIFF #6 resolved)
         v = 0.0f;
         SetNumFloat(min);
         break;

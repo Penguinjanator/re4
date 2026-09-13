@@ -226,7 +226,7 @@ struct Em10Work {
 class cObjGatling;
 
 // The enemy attached at Em10Work 0x58C lives in another module: only its virtual slots are known
-// (AGENTS.md: a class with undefined virtuals emits no vtable). Slot names are the vtable byte offsets.
+// (docs/matching.md: a class with undefined virtuals emits no vtable). Slot names are the vtable byte offsets.
 class cEmPartner : public cEm {
 public:
     virtual int v50();
