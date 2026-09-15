@@ -27,9 +27,9 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# Source drop: ProDGforNGCv393_Source_Code.zip -> "GC source code/NGC_GNU_SRC.zip", from
-# "SNSystems ProDG for GameCube + Sources + .NET and more.rar"
-# (https://repo.mariocube.com/SDK/Nintendo%20GameCube%20SDK/). Point SN_GCC_SRC at the extracted NGC/ dir.
+# Source drop: SN Systems' GPL source release of their GCC 2.95.3 port, shipped with ProDG for
+# GameCube 3.9.3 as ProDGforNGCv393_Source_Code.zip -> "GC source code/NGC_GNU_SRC.zip".
+# Point SN_GCC_SRC at the extracted NGC/ directory (the one containing gcc/ and include/).
 DROP="${SN_GCC_SRC:?set SN_GCC_SRC to the extracted NGC_GNU_SRC/NGC directory}"
 RE4="${RE4:-$(cd "$HERE/../.." && pwd)}"
 DEST="$RE4/build/compilers/ProDG/3.9.3-v1.79"
