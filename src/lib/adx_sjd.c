@@ -95,7 +95,7 @@ ADXSJD_OBJ adxsjd_obj[ADXSJD_MAX_OBJ];
 
 void ADXSJD_ExecHndl(ADXSJD sjd);
 void adxsjd_decexec_start(ADXSJD sjd);
-void *adxsjd_get_wr(ADXSJD sjd, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap);
+void *adxsjd_get_wr(void *obj, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap);
 void adxsjd_decode_prep(ADXSJD sjd);
 
 void ADXSJD_RestoreSnapshot(ADXSJD sjd)
@@ -486,16 +486,15 @@ void adxsjd_decexec_start(ADXSJD sjd)
 }
 
 /* ADXB write callback: where and how much PCM may be written. */
-void *adxsjd_get_wr(register ADXSJD sjd, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap)
+void *adxsjd_get_wr(void *obj, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap)
 {
+	/* the typed copy of the `void *` handle is a kept user copy (`mr r31, r3`) that ranks s r31 above
+	 * trap r30 / nsmpl r29; a typed parameter gets r29 below them */
+	ADXSJD s = obj;
 	SJ sjo0;
 	Sint32 i;
 	Sint32 n;
-	/* COMPILER-DIFF: M1 -- asm-defined `register` copy of sjd (coalesced into the prologue mr) ranks it r31
-	 * above trap r30 / nsmpl r29; the plain parameter gets r29 below them. */
-	register ADXSJD s;
 
-	asm { mr s, sjd }
 	sjo0 = s->sjo[0];
 	for (i = 0; i < ADXB_GetNumChan(s->adxb); i++) {
 		SJ_GetChunk(s->sjo[i], SJ_CK_FREE, 0x4000, &s->outck[i]);
@@ -671,7 +670,7 @@ ADXSJD ADXSJD_Create(SJ sji, Sint32 nch, SJ *sjo)
 	if (sjd->adxb == NULL) {
 		return NULL;
 	}
-	ADXB_EntryGetWrFunc(sjd->adxb, (void *(*)(void *, Sint32 *, Sint32 *, Sint32 *))adxsjd_get_wr, sjd);
+	ADXB_EntryGetWrFunc(sjd->adxb, adxsjd_get_wr, sjd);
 	sjd->sji = sji;
 	sjd->nch = nch;
 	for (i = 0; i < nch; i++) {

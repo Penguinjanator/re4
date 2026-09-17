@@ -124,14 +124,6 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 	Sint32 need;
 	Sint32 ofs;
 	Uint8 *p;
-	/* COMPILER-DIFF: M1 -- the target gives q the freed len register r4 and the ADX_LD32 byte temporaries
-	 * r3/r7/r8; ours ranks the macro's temporaries first (q r8). With the four byte loads named as
-	 * asm-defined `register` locals the volatiles are numbered in declaration order. */
-	register Uint8 *q;
-	register Uint32 b0;
-	register Uint32 b1;
-	register Uint32 b2;
-	register Uint32 b3;
 
 	*ainfsiz = 0;
 	err = adx_GetVer(data, len, &ver, &minor);
@@ -159,18 +151,16 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 	if (*(Sint16 *)(p + 2) != 0) {
 		ofs += 0x14;
 	}
-	q = data + ofs;
-	asm {
-		lbz b1, 1(q)
-		lbz b0, 0(q)
-		lbz b2, 2(q)
-		lbz b3, 3(q)
-	}
-	if (((b0 << 24) | (b1 << 16) | (b2 << 8) | b3) != ADX_AINF) {
+	/* the AINF address is an expression, not a local: `data + ofs` of data[ofs] and of the +4 read is
+	 * one frontend CSE temp (byte 0 = `lbz 0(t)`), the +1..+3 reads and the memcpy argument recompute
+	 * it as backend adds that the pre-RA CSE folds into that one add; the argument's copy `mr r4, t;
+	 * addi r4, r4, 8` is coalesced, so the address takes r4 and the byte temporaries r3/r7/r8. A `q`
+	 * local ranks below the byte temporaries (q r8). */
+	if (ADX_LD32(&data[ofs]) != ADX_AINF) {
 		return -2;
 	}
-	*ainfsiz = *(Sint32 *)(q + 4);
-	memcpy(ainf, q + 8, 16);
+	*ainfsiz = *(Sint32 *)(data + ofs + 4);
+	memcpy(ainf, &data[ofs + 8], 16);
 	p = (Uint8 *)((Uint32)ofs + (Uint32)data);
 	*a = *(Sint16 *)(p + 0x18);
 	b[0] = *(Sint16 *)(p + 0x1C);

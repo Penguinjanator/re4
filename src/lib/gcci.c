@@ -135,16 +135,9 @@ Sint32 gcCiGetNumTr(GCCI gcci)
 	return gcci->numtr;
 }
 
-/* COMPILER-DIFF: M1 -- the sector-length recomputation's temporaries are asm-defined `register` locals so the
- * volatile numbering follows the declaration order (n r5, sl r6, pos_byte r7; the C form gave r7/r5/r6). */
-void gcCiSetSctLen(register GCCI gcci, Sint32 sctlen)
+void gcCiSetSctLen(GCCI gcci, Sint32 sctlen)
 {
-	register Sint32 n;
-	register Sint32 sl;
-	register Sint32 pos_byte;
-	register Sint32 ps;
-	register Sint32 sl0;
-	register Sint32 fb;
+	Sint32 pos_byte;
 
 	if (gcci == NULL) {
 		gcci_CallErr("E0040302:handl is null.", NULL);
@@ -154,11 +147,11 @@ void gcCiSetSctLen(register GCCI gcci, Sint32 sctlen)
 		gcci_CallErr("E0040303:invalidate size.", NULL);
 		return;
 	}
-	asm { lwz ps, GCCI_OBJ.pos_sct(gcci); lwz sl0, GCCI_OBJ.sctlen(gcci) } // COMPILER-DIFF: M1
+	pos_byte = gcci->pos_sct * gcci->sctlen;
 	gcci->sctlen = sctlen;
-	asm { mullw pos_byte, ps, sl0 } // COMPILER-DIFF: M1
-	asm { lwz sl, GCCI_OBJ.sctlen(gcci); lwz fb, GCCI_OBJ.fsize_byte(gcci); add n, sl, fb } // COMPILER-DIFF: M1
-	gcci->fsize_sct = (n - 1) / sl;
+	/* `fb + (sl - 1)`: the frontend moves the constant out (`add sl, fb; subi`) -- `(sl + fb - 1)` gives
+	 * `subi fb; add`, and a named sum local is substituted back into the same shape */
+	gcci->fsize_sct = (gcci->fsize_byte + (gcci->sctlen - 1)) / gcci->sctlen;
 	gcci->pos_sct = pos_byte / gcci->sctlen;
 	gcci->numtr = gcci->rqsct * sctlen;
 }

@@ -45,14 +45,17 @@ Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint
  * (r0/r11) with all three stack loads before the `add`; the table value is written back into the
  * nibble (`d = AdxQtbl[d & 0xF]`, a range-split web) as in the mono decoder. Pass 78: the original
  * pops the `c1 * t` product of the right channel's second sample before `c2 * rr1` (one more
- * neighbour on it), reproduced by the `x` copy of `t` below (3 -> 0 words). */
+ * neighbour on it), reproduced by the `x` copy of `t` below (3 -> 0 words). The pass-44 `asm { mr r6, l1 }`
+ * neighbour pin is redundant since pass 73 (removed, bytes unchanged); the c1/c2 writes are not: they need
+ * the register of a parameter live across the loop (r6 histl or r8 histr give the same bytes, every other
+ * volatile shifts the colouring), so they are not a swappable codeless neighbour pin. */
 Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                            register Sint16 c1, register Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
 	Sint32 l2;
 	Sint32 rr2;
 	Sint32 rr1;
-	register Sint32 l1;
+	Sint32 l1;
 	Sint32 i;
 	Sint32 d;
 	Sint32 dr;
@@ -74,9 +77,6 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	l2 = histl[1];
 	rr1 = histr[0];
 	rr2 = histr[1];
-	/* COMPILER-DIFF: M1 (neighbour pin) - the deleted copy makes histl (r6) a coalesced web, one more never-removed
-	 * neighbour on every loop value (pass 44: 115 -> 41 words; pass 72: on l1 as in ADX_DecodeSte4AsMono). */
-	asm { mr r6, l1 }
 	for (i = 0; i < nblk; i++) {
 		s = *(Sint16 *)src;
 		if (s & 0x8000) {
@@ -135,9 +135,9 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	return nfrm;
 }
 
-/* COMPILER-DIFF: M1 (neighbour pin) - as ADX_DecodeSte4AsSte: the deleted copy makes histl (r6) a
- * coalesced web, one more never-removed neighbour on every loop value (pass 67: 143 -> 62 words).
- * The body is the stereo body with the mix in `t` (the original keeps `mr r31,r21` = rr2 = t and the
+/* COMPILER-DIFF: M1 - the pass-44/67 `asm { mr r6, l1 }` neighbour pin after the loop is redundant since
+ * pass 81 (removed, bytes unchanged); the five r6 writes below remain (r6 histl / r8 histr only, see
+ * ADX_DecodeSte4AsSte). The body is the stereo body with the mix in `t` (the original keeps `mr r31,r21` = rr2 = t and the
  * mix in t's register, so t is redefined between the copy and `c1 * rr2`), the same declaration
  * order as the stereo decoder, and the right channel's second sample predicted from the OLD rr1
  * (`c2 * rr1` = `mullw r26,r10,r30` in the original; the pass-44 split read the new one). Pass 73:
@@ -158,7 +158,7 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	Sint32 l2;
 	Sint32 rr2;
 	Sint32 rr1;
-	register Sint32 l1;
+	Sint32 l1;
 	Sint32 i;
 	Sint32 d;
 	Sint32 dr;
@@ -268,9 +268,6 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 		}
 		src += 0x12;
 	}
-	/* The pin sits after the loop: in the entry block its copy took the issue slot that the
-	 * original gives the nblk `srawi` (pass 70: 28 -> 26 words). */
-	asm { mr r6, l1 }
 	histl[0] = l1;
 	histl[1] = l2;
 	histr[0] = rr1;

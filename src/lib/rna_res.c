@@ -117,12 +117,14 @@ void RNARES_Setup(Uint32 aram_ptr, Sint32 aram_size)
 void RNARES_Init(void)
 {
 	/* COMPILER-DIFF: M1 -- the target numbers the loop's volatiles ofs r4, 0x1000 r5, ptr+ofs r6, ptr r7,
-	 * res r8; with the two compiler temporaries (the hoisted constant and the sum) named as asm-defined
-	 * `register` locals every volatile is numbered in declaration order from r4. The zero-code form
-	 * (`res->size = RNARES_BUF_SIZE / 2; res->buf = (ptr + ofs) >> 1`) ranks the temporaries first. */
+	 * res r8. The sum is an own local (`sum = ptr + ofs` kept as a variable by the `ofs +=` redefinition
+	 * before its use). The hoisted 0x1000 is named as an asm-defined `register` local: as C it is a
+	 * backend temp (vid above every own local, coloured before ofs -> r4/r5 swapped), and the frontend
+	 * substitutes every constant own-local def (the only kept form, a dead conditional's second def,
+	 * emits the `li` as a statement before the loop guard instead of in the code-motion preheader). */
 	register Uint32 ofs;
 	register Uint32 half;
-	register Uint32 sum;
+	Uint32 sum;
 	register Uint32 ptr;
 	Uint32 i;
 	Uint32 n;
@@ -141,10 +143,10 @@ void RNARES_Init(void)
 		ofs = 0;
 		asm { li half, RNARES_BUF_SIZE / 2 }
 		for (i = 0; i < n; i++, res++) {
-			asm { add sum, ptr, ofs }
+			sum = ptr + ofs;
+			ofs += RNARES_BUF_SIZE;
 			res->buf = sum >> 1;
 			res->size = half;
-			ofs += RNARES_BUF_SIZE;
 		}
 	}
 	rnares_init_cnt++;

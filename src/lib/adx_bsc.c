@@ -353,6 +353,13 @@ static void adxb_CopySmpl(Sint16 *dst, Sint16 *src, Sint32 n)
 	}
 }
 
+/* `ofst = x70 + ofst` is the target's in-place `add o, X, o`: with range splitting on the frontend
+ * gives the new value its own web (the old one stays live for pad's `blksmpl - 1` through the pre-RA
+ * CSE, `add o', X, o`), while `o += X` is an EADDASS = `add o, o, X`; without splitting the add is in
+ * place, pad's second `subi` is hoisted above it by the scheduler and becomes `mr` in the post-RA CSE.
+ * The mono copy loop reads through its own pointer `sp` (one `src` web would also cover the Pro Logic
+ * loop, where src is the r5 argument next to the r4 sample -> the copy loop's pointer must be r4). */
+#pragma opt_lifetimes off
 void ADXB_ExecOneAdx(ADXB adxb)
 {
 	Sint32 chofst;
@@ -362,17 +369,18 @@ void ADXB_ExecOneAdx(ADXB adxb)
 	Sint32 pad;
 	Sint32 nch;
 	Sint32 blksmpl;
-	register Sint32 ofst; // COMPILER-DIFF: M1
+	Sint32 ofst;
 	Sint32 i;
 	Sint32 n;
 	ADXPD_OBJ *pd;
-	register Sint32 x70; // COMPILER-DIFF: M1
+	Sint32 x70;
 	Sint32 nsmpl;
 	Sint32 nblk;
 	Sint32 nblk2;
 	Sint32 cnt;
 	Sint16 *dst;
 	Sint16 *src;
+	Sint16 *sp;
 
 	if (adxb->stat == ADXB_STAT_DECODE && ADXPD_GetStat(adxb->pd) == 0) {
 		adxb->getwr_func(adxb->getwr_obj, &adxb->wr_pos, &adxb->wr_nsmpl, &adxb->wr_x70);
@@ -401,7 +409,7 @@ void ADXB_ExecOneAdx(ADXB adxb)
 			chofst = adxb->x44;
 			ofst = blksmpl - 1;
 			x70 = adxb->wr_x70;
-			asm { add ofst, x70, ofst } // COMPILER-DIFF: M1 (ofst += x70: the target's `add o, X, o` operand order; every C spelling gives `add o, o, X` or CSEs blksmpl - 1 into pad)
+			ofst = x70 + ofst;
 			nblk2 = ofst / blksmpl;
 			pad = (blksmpl - 1) - ofst % blksmpl;
 			nblk = ADXPD_GetNumBlk(adxb->pd);
@@ -419,9 +427,9 @@ void ADXB_ExecOneAdx(ADXB adxb)
 					adxb_CopySmpl(pcm + chofst, pcm + (chofst + bufsmpl), pos);
 				} else {
 					cnt = pos;
-					src = pcm + bufsmpl;
+					sp = pcm + bufsmpl;
 					while (cnt-- > 0) {
-						*pcm++ = *src++;
+						*pcm++ = *sp++;
 					}
 				}
 			}
@@ -431,6 +439,7 @@ void ADXB_ExecOneAdx(ADXB adxb)
 		}
 	}
 }
+#pragma opt_lifetimes on
 
 /* hand the input to the expander: stereo, Pro Logic II or mono (the `void *` copies keep the
  * arms' wr_pos reloads apart from the caller's pos, and the out_nch/xdc tests in the caller;
@@ -478,13 +487,15 @@ static void adxb_EntryMono(void *obj, Sint32 n)
 	ADXPD_Start(pd);
 }
 
+/* `ofst = x70 + ofst` in place: see ADXB_ExecOneAdx */
+#pragma opt_lifetimes off
 void ADXB_EvokeDecode(ADXB adxb)
 {
 	Sint32 n;
 	Sint32 pad;
-	register Sint32 ofst; // COMPILER-DIFF: M1
+	Sint32 ofst;
 	Sint32 bufsmpl;
-	register Sint32 x70; // COMPILER-DIFF: M1
+	Sint32 x70;
 	Sint32 nblk;
 	Sint32 wr_nsmpl;
 	Sint32 nblk2;
@@ -499,7 +510,7 @@ void ADXB_EvokeDecode(ADXB adxb)
 	n = adxb->inbuf_nsmpl / adxb->out_nch;
 	ofst = blksmpl - 1;
 	x70 = adxb->wr_x70;
-	asm { add ofst, x70, ofst } // COMPILER-DIFF: M1 (see ADXB_ExecOneAdx)
+	ofst = x70 + ofst;
 	nblk = ofst / blksmpl;
 	pad = (blksmpl - 1) - (ofst - nblk * blksmpl);
 	nblk2 = (blksmpl + (bufsmpl - pos) - 1) / blksmpl;
@@ -527,6 +538,7 @@ void ADXB_EvokeDecode(ADXB adxb)
 		adxb_EntryMono(adxb, n);
 	}
 }
+#pragma opt_lifetimes on
 
 Sint32 ADXB_GetDecNumSmpl(ADXB adxb)
 {
