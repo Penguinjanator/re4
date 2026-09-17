@@ -458,8 +458,11 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     cModel* m;
     u32 f;
     // COMPILER-DIFF: #13 (int shape, em27DmCk): the EstSet stack zero is a function-scope constant with
-    // one use in another block, so update_equiv_regs moves the `li` next to the store (r0)
-    int zero = 0;
+    // one use in another block, so update_equiv_regs moves the `li` next to the store (r0). It is assigned
+    // right before the evtToolOn() test: for sched1 the set is a free insn of that block and takes the t1 slot
+    // next to the `lis`, so the inline's `on = 1` slips to t2 behind the flags load (the target's
+    // reload-materialised `li`), out of the high's r9 range, and `on` reuses r9.
+    int zero;
 
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
@@ -473,19 +476,9 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     } else {
         f = (u16) (8 << (mode - 1));
     }
-    {
-        // COMPILER-DIFF: #13 (asm-emitted constant): the evtToolOn() `on = 1` is issued after the flags load
-        // in the target (its `li` was a reload-materialised constant); an asm `li` reading the loaded word
-        // gives the same slot and lets `on` reuse the high's r9.
-        int on;
-        u32 fl = EvtDebug.flags;
-        asm("li %0,1" : "=r"(on) : "r"(fl));
-        if ((fl & 0x40000000) == 0) {
-            on = 0;
-        }
-        if (on) {
-            f |= 0x1000;
-        }
+    zero = 0;
+    if (evtToolOn()) {
+        f |= 0x1000;
     }
     EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, (void*) zero);
 }
@@ -838,7 +831,6 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             u32 prod;
             u32 rr;
             EventDebug* ed0;
-            u32 hi0;
 
             bin.init();
             tpl.init();
@@ -866,11 +858,12 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 strcat(path, name);
                 xtra.append(path);
             }
-            // COMPILER-DIFF: #13 -- the pScr block's `&EvtDebug` is a REG_EQUIV lo_sum pseudo the original never allocated:
-            // it is re-materialised here (`lis r9; addi r9,r9; lwz 0xe0(r9)`, the offset not folded because the pseudo had a
-            // second use, the j loop's copy) and again in the j loop (EvtDebug_j)
-            asm("lis %0,EvtDebug@ha" : "=b"(hi0));
-            asm("addi %0,%1,EvtDebug@l" : "=r"(ed0) : "b"(hi0));
+            // COMPILER-DIFF: #13 -- the pScr block's `&EvtDebug` is a REG_EQUIV symbol pseudo the original never allocated:
+            // re-materialised here as `lis r9; addi r9,r9; lwz 0xe0(r9)` (the offset stays outside the @l because the
+            // equivalence is the bare symbol) and again in the j loop (EvtDebug_j). The plain pointer local gives the
+            // same: loop.c hoists the lo_sum to the i preheader and leaves `ed0 = copy` with REG_EQUIV EvtDebug; the copy
+            // spans the whole body (96 calls), global.c spills it and reload re-materialises the symbol at the use.
+            ed0 = &EvtDebug;
             s = M0->pScr;
             if (s) {
                 bin.append(s->pInfo->pData);
@@ -1444,22 +1437,20 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     Vec v;
 
     if (DB_isGetComeEventTool() == 1) {
-        // COMPILER-DIFF: #13 (the original never allocates the REG_EQUIV `high` pseudo, so `tbl` carries no
-        // r9 copy preference and `p` takes r9 in global-alloc pass 0; the `p = 0` is the jump.c
-        // "if (c) { x = a; goto l; } x = b" hoist of a single-insn then-arm, issued after the compare because
-        // it depends on `tbl`). asm lis/addi = the address without the preference, asm li = the hoisted set
-        // (its four dummy `no` inputs give `no` the refs to be allocated before `p`: 7 refs / 7 insns
-        // = 2.0 ties p's 4 / 4 and the lower regno wins), asm volatile load = the single-insn else arm.
+        // COMPILER-DIFF: #13 (the original never allocates the REG_EQUIV `high` pseudo, so the table address
+        // carries no r9 preference and `p` takes r9 in global-alloc pass 0). Same bytes from C: the address is a
+        // u32 local set before the test (`lis r9; addi r11` in the compare block) and the element address an
+        // unflagged `la + (no << 2)` sum, so regclass makes both operands BASE_REGS and the index is local-alloc'd
+        // r9 (not r0, not tied to `no`); the index lives while `la` does, which prunes `la`'s r9 preference and
+        // leaves r9 to `p` (`la` r11). The `li r9,0` before the `bgt` is jump2's post-reload
+        // "if (c) { x = a; goto l; } x = b" hoist: the else arm's first insn `slwi r9,r0,2` sets `p`'s register.
         u32 no = gen->x6;
-        cModel** hi;
-        cModel** tbl;
+        u32 la = (u32) EspEvModList;
         cModel* p;
-        asm("lis %0,EspEvModList@ha" : "=b"(hi));
-        asm("addi %0,%1,EspEvModList@l" : "=r"(tbl) : "b"(hi));
         if (no > 0x7F) {
-            asm("li %0,0" : "=r"(p) : "r"(tbl), "r"(no), "r"(no), "r"(no), "r"(no));
+            p = 0;
         } else {
-            asm volatile("slwi %0,%1,2\n\tlwzx %0,%2,%0" : "=&r"(p) : "r"(no), "b"(tbl));
+            p = *(cModel**) (la + (no << 2));
         }
         em = p;
         if (em == 0) {
