@@ -154,16 +154,16 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred);
 		MPVDEC_START(mpv, bofs);                                                       \
 	}
 
-/* end of slice: return the consumed bytes, skip to the next start code.
- * COMPILER-DIFF: M1 -- the asm-defined register local `data` keeps ck.data out of the argument
- * register (target lwz r8 / q in r4; the C form reuses the dying r4 in place). */
+/* end of slice: return the consumed bytes, skip to the next start code. The byte pointer is
+ * `(Uint8 *)(ptr - 2) + n` as in mpv_hdec's MPVHDEC_BYTEPTR_M2: the codegen emits `(ptr + n) - 8` with
+ * the sum a backend temporary created after the `ck.data` load (target `lwz r8; add r4; subi r0, r4,
+ * 8; subf r4, r8, r0`), while MPVBIT_BYTEPTR's `q = ptr; q += n; q -= 8` reuses the dying argument
+ * register in place. */
 #define MPVDEC_END(mpv, sj)                                                                    \
 	{                                                                                      \
 		SJCK rest;                                                                     \
-		register Uint8 *data;                                                          \
-		MPVBIT_BYTEPTR(q);                                                             \
-		asm { lwz data, MPV_OBJ.ck.data(mpv) } /* COMPILER-DIFF: M1 */                       \
-		SJ_SplitChunk(&(mpv)->ck, q - data, &(mpv)->ck, &rest);                        \
+		q = (Uint8 *)(ptr - 2) + ((bitpos + 7) >> 3);                                  \
+		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
 		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}                                                                                      \

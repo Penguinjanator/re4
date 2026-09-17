@@ -278,17 +278,20 @@ Sint32 MPV_GoNextDelimSj(SJ sj)
 	return delim;
 }
 
-/* COMPILER-DIFF: M1 -- `p = &buf[(Uint32)i + 4]` written as an asm add of the register locals: the C form
- * emits `add p, i, buf` (index first), the original has buf first. */
-Sint32 mpvhdec_DecSeqUdsc(MPV mpv, register Char8 *buf, Sint32 len)
+/* `p` is defined twice (`buf + i`, then the word step `+ 1`), which gives the target's `add p, buf, i;
+ * addi p, p, 4` in place: `&buf[i + 4]` / `(buf + 4) + i` fold to `buf + (i + 4)` (index first), and with
+ * range splitting on the two definitions become two webs (`add r3; addi r26, r3, 4`). */
+#pragma opt_lifetimes off // COMPILER-DIFF: pragma (keeps the two definitions of p one web)
+Sint32 mpvhdec_DecSeqUdsc(MPV mpv, Char8 *buf, Sint32 len)
 {
 	Sint32 ret;
-	register Char8 *p;
-	register Sint32 i;
+	Char8 *p;
+	Sint32 i;
 
 	ret = 0;
 	for (i = 0; i < len - 4; i++) {
-		asm { add p, buf, i; addi p, p, 4 } // COMPILER-DIFF: M1
+		p = buf + i;
+		p = (Char8 *)((Uint32 *)p + 1);
 		if (strncmp(p, "IDCPREC", 7) == 0) {
 			if (atoi(p + 16) == 0) {
 				mpv->dcprec = 0;
@@ -326,6 +329,8 @@ Sint32 mpvhdec_DecSeqUdsc(MPV mpv, register Char8 *buf, Sint32 len)
 	}
 	return ret;
 }
+
+#pragma opt_lifetimes on
 
 Sint32 mpvhdec_AnalyUd(MPV mpv, Uint8 *buf, Sint32 len)
 {

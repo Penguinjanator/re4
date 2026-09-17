@@ -19,15 +19,12 @@ extern void MPVUMC_EndOfFrame(MPV_OBJ *mpv);
 extern Sint32 MPV_GoNextDelimSj(SJ sj);
 extern Sint32 MPV_MoveChunk(SJ sj, Sint32 id, Sint32 nbyte);
 
-Sint32 MPV_SkipFrmSj(register MPV hn, SJ sj)
+Sint32 MPV_SkipFrmSj(MPV hn, SJ sj)
 {
-	/* COMPILER-DIFF: M1 -- callee-saved order mpv r31 / code r30 / sj r29: the asm-defined `register` copy of
-	 * hn (coalesced into the prologue mr) ranks it first; `MPV_OBJ *mpv = hn` gets r29. */
-	register MPV_OBJ *mpv;
+	MPV_OBJ *mpv = (MPV_OBJ *)hn;
 	Sint32 code;
 	Sint32 delim;
 
-	asm { mr mpv, hn }
 	if (MPVLIB_CheckHn(hn) != 0) {
 		return MPVERR_SetCode(NULL, 0xFF03020A);
 	}
@@ -48,16 +45,13 @@ Sint32 MPV_SkipFrmSj(register MPV hn, SJ sj)
 	return MPVERR_SetCode(mpv, code);
 }
 
-Sint32 MPV_DecodeFrmSj(register MPV hn, SJ sj, MPV_FRM *frm)
+Sint32 MPV_DecodeFrmSj(MPV hn, SJ sj, MPV_FRM *frm)
 {
-	/* COMPILER-DIFF: M1 -- asm-defined `register` copy of hn: mpv r31 above sj r27 / frm r28 and the locals
-	 * nfrm r30 / nbyte r29 (the plain copy gets r27 and pushes the parameters up). */
-	register MPV_OBJ *mpv;
+	MPV_OBJ *mpv = (MPV_OBJ *)hn;
 	UTY_GQR gqr;
 	Sint32 nfrm, nbyte;
 	Sint32 ret;
 
-	asm { mr mpv, hn }
 	if (MPVLIB_CheckHn(hn) != 0) {
 		return MPVERR_SetCode(NULL, 0xFF030209);
 	}

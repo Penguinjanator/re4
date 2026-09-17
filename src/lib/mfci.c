@@ -47,7 +47,7 @@ MFCI mfCiOpen(const Char8 *fname, void *dir, Sint32 rw);
 void mfCiClose(MFCI mfci);
 Sint32 mfCiSeek(MFCI mfci, Sint32 pos, Sint32 type);
 Sint32 mfCiTell(MFCI mfci);
-Sint32 mfCiReqRd(MFCI mfci, Sint32 nsct, Uint8 *buf);
+Sint32 mfCiReqRd(void *hn, Sint32 nsct, Uint8 *buf);
 void mfCiStopTr(MFCI mfci);
 Sint32 mfCiGetStat(MFCI mfci);
 Sint32 mfCiGetSctLen(MFCI mfci);
@@ -205,7 +205,7 @@ void mfCiStopTr(MFCI mfci)
 	SVM_Unlock();
 }
 
-Sint32 mfCiReqRd(register MFCI mfci, Sint32 nsct, Uint8 *buf)
+Sint32 mfCiReqRd(void *hn, Sint32 nsct, Uint8 *buf)
 {
 	Uint32 adr;
 	Uint32 size;
@@ -213,12 +213,9 @@ Sint32 mfCiReqRd(register MFCI mfci, Sint32 nsct, Uint8 *buf)
 	Sint32 rem;
 	Sint32 rd_ofst;
 	Sint32 rd_nbyte;
-	/* COMPILER-DIFF: M1 -- the target ranks the parameters mfci r29 / buf r28 / nsct r27 (ours buf r29,
-	 * mfci r28); an asm-defined `register` copy of mfci (coalesced into the prologue `mr.`, no extra
-	 * instruction) is what gives mfci the top register. */
-	register MFCI p;
-
-	asm { mr p, mfci }
+	/* CVFS_IF slot: the `void *` handle's typed copy is kept (it is passed to mfci_CallErr in r5) and
+	 * ranks mfci r29 above buf r28 / nsct r27; the copy is the prologue `mr. r29, r3`. */
+	MFCI p = hn;
 
 	if (p == NULL) {
 		mfci_CallErr("E01100307:handl is null.", NULL);

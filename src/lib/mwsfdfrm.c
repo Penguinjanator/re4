@@ -276,13 +276,15 @@ Sint32 mwPlyGetFxType(MWPLY mwply)
 }
 
 /* look for the Sofdec header in the second and third sectors of the file head.
- * COMPILER-DIFF: M1 -- inf pinned to r31 through the asm-defined register copy (then -1 r30, sfh r29,
- * i r28 fall into place). The fxtype analysis is written out with `type` at function scope between
- * nmax and nvid: the address-taken scalars take their stack slots in declaration order (0x18 down)
- * and the macro's block-local `type` would push nmax to the lowest slot. */
-void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, register MWSFFRM_TOTINF *inf)
+ * COMPILER-DIFF: M1 (codeless neighbour pin) -- the target colours the `void *` handle's kept copy p
+ * FIRST (r31, then -1 r30, sfh r29, i r28, size r27, data r26): p must survive the first Chaitin scan,
+ * but at its turn it has 28 neighbours (30 minus data and size, removed before it). The pin takes r11
+ * (unused here) out of the colour set (K 29 -> 28), so p stays for the second scan and pops first; both
+ * `mr` are deleted (r8 in place of r11 gives identical bytes). The fxtype analysis is written out with
+ * `type` at function scope between nmax and nvid: the address-taken scalars take their stack slots in
+ * declaration order (0x18 down) and the macro's block-local `type` would push nmax to the lowest slot. */
+void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, void *obj)
 {
-	register MWSFFRM_TOTINF *p;
 	SFH sfh;
 	Sint32 i;
 	Sint32 issfd;
@@ -292,8 +294,10 @@ void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, register MWSFFRM_TOTINF 
 	Sint32 naud;
 	Sint32 fxtype;
 	Sint32 ofst;
+	register MWSFFRM_TOTINF *p;
 
-	asm { mr r31, inf; mr p, r31 } // COMPILER-DIFF: M1
+	p = obj;
+	asm { mr r11, p; mr p, r11 } // COMPILER-DIFF: M1 (codeless: K 29 -> 28, see above)
 	p->maxfrm = -1;
 	if (size < MWSFFRM_SFH_SIZE || data == NULL) {
 		return;
@@ -592,49 +596,43 @@ static Bool mwsffrm_IsPicUsrDat(MWPLY mwply)
 	return mwply->picusr_dat != NULL;
 }
 
-/* COMPILER-DIFF: M1 -- hard-register pins: mwply r30 (parameter copy), sfd r27 (call result pinned through
- * the s0 copy), nskip r26 (load), i r28 (pinned through its increment: an asm `li` init is constant-propagated
- * away), usrptr/usrlen r27/r28 (loads), ftype r27 (pinned after the DecideFrmType switch, written out here, into
- * the ft2 copy that carries the later `= 2`). A hard register written in an asm is unavailable to every other
- * value of the function, so the loop registers had to be pinned once usrptr/usrlen were. */
-void mwPlyGetCurFrm(register MWPLY mwply, register MWS_FRM *frm)
+/* Both handles come in as `void *` and are kept as typed copies (the copies survive because each is later moved
+ * into an argument register): mp r30 / frm r29 above the loop and user-data locals, `mr r30, r3; mr r29, r4` in
+ * that order. The callee-saved locals are coloured in declaration order: i r28, sfd r27, then usrptr r27 /
+ * usrlen r28 (usrptr popped first takes the free r27), ftype r27, nskip r26 last. */
+void mwPlyGetCurFrm(void *obj, void *frmobj)
 {
-	register MWPLY mp;
-	register MWS_FRM *f;
+	MWPLY mp = obj;
+	MWS_FRM *frm = frmobj;
+	Sint32 i;
+	void *sfd;
+	void *usrptr;
+	Sint32 usrlen;
+	Sint32 ftype;
+	Sint32 nskip;
 	MWSFFRM_VFRM *vfrm;
 	Sint32 slen;
 	void *sptr;
-	register Sint32 i;
-	register void *sfd;
-	register void *s0;
-	register Sint32 nskip;
-	register void *usrptr;
-	register Sint32 usrlen;
-	register MWSFFRM_USRDAT *u;
+	MWSFFRM_USRDAT *u;
 	Sint32 coladj;
-	register Sint32 ftype;
-	register Sint32 ft2;
 	MWSFFRM_VFRM *p;
 
-	asm { mr r30, mwply; mr mp, r30 } // COMPILER-DIFF: M1
 	if (MWSFD_IsEnableHndl(mp) == 0) {
 		MWSFSVM_Error("E1122614: mwPlyGetCurFrm: handle is invalid.");
 		frm->bufadr = NULL;
 		return;
 	}
-	s0 = mwPlyGetSfdHn(mp);
-	asm { mr r27, s0; mr sfd, r27 } // COMPILER-DIFF: M1
+	sfd = mwPlyGetSfdHn(mp);
 	SFD_GetFrm(sfd, &vfrm);
 	if (vfrm != NULL && mp->noskip == 0) {
-		asm { lwz r26, MWPLY_OBJ.prm.max_skip(mp); mr nskip, r26 } // COMPILER-DIFF: M1
-		for (i = 0; i < nskip;) {
+		nskip = mp->prm.max_skip;
+		for (i = 0; i < nskip; i++) {
 			if (mwPlyIsNextFrmReady(mp) != 1) {
 				break;
 			}
 			SFD_RelFrm(sfd, vfrm);
 			mp->nskipdisp++;
 			SFD_GetFrm(sfd, &vfrm);
-			asm { addi r28, i, 1; mr i, r28 } // COMPILER-DIFF: M1
 		}
 	}
 	if (vfrm != NULL) {
@@ -651,8 +649,8 @@ void mwPlyGetCurFrm(register MWPLY mwply, register MWS_FRM *frm)
 		mp->xa8 = 0;
 		mwl_convFrmInfFromSFD(mp, vfrm, frm);
 		u = vfrm->usr;
-		asm { lwz r27, MWSFFRM_USRDAT.ptr(u); mr usrptr, r27 } // COMPILER-DIFF: M1
-		asm { lwz r28, MWSFFRM_USRDAT.len(u); mr usrlen, r28 } // COMPILER-DIFF: M1
+		usrptr = u->ptr;
+		usrlen = u->len;
 		if (MWSFD_GetUsePicUsr() == 1 && mp->picusr_buf != NULL) {
 			if (usrptr != NULL && usrlen > 4) {
 				SUD_SearchSudDat((Uint8 *)usrptr + 4, usrlen - 4, &sptr, &slen);
@@ -703,11 +701,10 @@ void mwPlyGetCurFrm(register MWPLY mwply, register MWS_FRM *frm)
 			MWSFSVM_Error("E301271: mwsffrm_DecideFrmType() : Invalid Pstruct");
 			break;
 		}
-		asm { mr r27, ftype; mr ft2, r27 } // COMPILER-DIFF: M1
 		if (MWSFD_GetUsePicUsr() == 1 && MWSFD_IsFrmDivField(mp) == 1) {
-			ft2 = 2;
+			ftype = 2;
 		}
-		frm->ftype = ft2;
+		frm->ftype = ftype;
 		mp->sfh_cur = frm->frmno;
 		MWSFSFX_SetFxType(mp, mwsffrm_GetCurFxType(mp));
 	} else {
