@@ -3,12 +3,14 @@
 #include "sfd.h"
 
 /* refresh the byte-rate estimate from whatever is known */
-static void sfsee_CalcByteRateWk(SFSEE_WORK *wk)
+static void sfsee_CalcByteRate(SFD sfd)
 {
+	SFSEE_WORK *wk;
 	Sint32 fsize;
 	Sint32 tottime;
 	Sint32 tunit;
 
+	wk = sfd->see.wk;
 	if (wk->byterate > 0) {
 		wk->rate = wk->byterate;
 		return;
@@ -36,12 +38,6 @@ static void sfsee_CalcByteRateWk(SFSEE_WORK *wk)
 		return;
 	}
 	wk->rate = wk->ncount;
-}
-
-/* split so that sfsee_ExecEstimate can pass a register-pinned wk (COMPILER-DIFF: M1) */
-static void sfsee_CalcByteRate(SFD sfd)
-{
-	sfsee_CalcByteRateWk(sfd->see.wk);
 }
 
 Sint32 SFD_SetSeekPos(SFD sfd, Sint32 pos)
@@ -202,13 +198,16 @@ static Sint32 sfsee_GetInputEndPos(SFD sfd)
 }
 
 /* estimate the file size and the total time once the input driver knows them */
-static void sfsee_ExecEstimate(register SFD sfd, SFSEE_WORK *wk, SFSEE_REQ *req)
+static void sfsee_ExecEstimate(SFD sfd, SFSEE_HN *see)
 {
-	register SFSEE_WORK *w; // COMPILER-DIFF: M1
 	Sint32 upd;
 	Sint32 pos;
 	Sint32 endpos;
+	SFSEE_WORK *wk;
+	SFSEE_REQ *req;
 
+	wk = see->wk;
+	req = &see->req;
 	if (SFCON_IsEndcodeSkip(sfd) != 0) {
 		return;
 	}
@@ -235,27 +234,24 @@ static void sfsee_ExecEstimate(register SFD sfd, SFSEE_WORK *wk, SFSEE_REQ *req)
 		}
 	}
 	if (upd != 0) {
-		asm { lwz r29, SFD_OBJ.see.wk(sfd); mr w, r29 } // COMPILER-DIFF: M1 (the reload takes the dead wk register r29, not sfd's r31)
-		sfsee_CalcByteRateWk(w);
+		sfsee_CalcByteRate(sfd);
 	}
 }
 
-/* COMPILER-DIFF: M1 - the original gives the inlined sfsee_ExecEstimate arguments wk r29 and
- * &see.req r30 (ours the reverse): hard-register asm pins (`mr wk, r29` is coalesced away). */
-void SFSEE_ExecServer(register SFD sfd)
+/* sfd r31 / req r30 / wk r29: wk and req are locals of the inlined sfsee_ExecEstimate (their
+ * vids sit above the helper's upd/pos and GetInputEndPos's temporaries, so wk drops to level 1 and
+ * req, declared after wk, is coloured first); `see` with three uses keeps the req addi as a
+ * two-step address. */
+void SFSEE_ExecServer(SFD sfd)
 {
 	SFSEE_HN *see;
-	register SFSEE_WORK *wk; // COMPILER-DIFF: M1
-	register SFSEE_REQ *req; // COMPILER-DIFF: M1
 
 	see = &sfd->see;
 	if (see->wk == NULL) {
 		return;
 	}
 	sfsee_ExecHeadAnaly(sfd);
-	asm { lwz r29, SFD_OBJ.see.wk(sfd); mr wk, r29 } // COMPILER-DIFF: M1
-	asm { addi r30, sfd, SFD_OBJ.see.req; mr req, r30 } // COMPILER-DIFF: M1
-	sfsee_ExecEstimate(sfd, wk, req);
+	sfsee_ExecEstimate(sfd, see);
 }
 
 void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b)
