@@ -151,11 +151,15 @@ Sint32 mwPlyGetNumRemainFrm(MWPLY mwply)
 	}
 
 /* SFD header callback (cond 0x4B / 0x4C): record what the Sofdec header says about the video.
- * COMPILER-DIFF: M1 -- mwply pinned to r30 through the asm-defined register copy so sfh takes r31. */
-static void mwsffrm_AnalySofdecHeader(register MWPLY mwply, void *data, Uint32 size)
+ * COMPILER-DIFF: M4 (dead conditional) -- the target colours sfh r31 above the handle copy p r30, so
+ * sfh must survive the first Chaitin scan: declared last it is visited first with its full degree 27
+ * and needs 29. The dead arm before `ccs = 0` reads one field through p while sfh is live (the load
+ * temp and z are two more neighbours of sfh, none of ccs, which has slack 1); `li; cmpi; bt` and the
+ * arm are deleted post-RA. Placed at the block that starts with the IsExistStmId setup so the split
+ * changes no schedule. The plain copy p = mwply is coalesced into the prologue `mr r30, r3`. */
+static void mwsffrm_AnalySofdecHeader(MWPLY mwply, void *data, Uint32 size)
 {
-	register MWPLY p;
-	SFH sfh;
+	MWPLY p;
 	Sint32 ccs;
 	Sint32 maxfrm;
 	Sint32 fxtype;
@@ -164,8 +168,10 @@ static void mwsffrm_AnalySofdecHeader(register MWPLY mwply, void *data, Uint32 s
 	Sint32 exist;
 	Sint32 num;
 	Sint32 wr;
+	Sint32 z;
+	SFH sfh;
 
-	asm { mr r30, mwply; mr p, r30 } // COMPILER-DIFF: M1
+	p = mwply;
 	p->sfh_cnt++;
 	if (size < MWSFFRM_SFH_SIZE || data == NULL) {
 		return;
@@ -177,6 +183,10 @@ static void mwsffrm_AnalySofdecHeader(register MWPLY mwply, void *data, Uint32 s
 	if (SFH_IsSfdHeader(sfh, &issfd) == 0 || issfd == 0) {
 		SFH_Destroy(sfh);
 		return;
+	}
+	z = 0;
+	if (z != 0) {
+		sfh = (SFH)((Uint32)sfh + p->sfh_cnt);
 	}
 	ccs = 0;
 	if (SFH_IsExistStmId(sfh, MWSFFRM_VID_STMID, &exist) == 0 || exist == 0) {

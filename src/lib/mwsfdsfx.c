@@ -444,10 +444,17 @@ void mwPlyFxCnvFrmZ16(MWPLY mwply, void *dst)
  * layout and keeps the arm's dead `b end`, which the original has in all four switches; the first
  * switch's variable must be `v` too (the elimination needs a prior definition of the variable).
  * The four messages are named statics declared in reverse use order: the original's pool holds
- * them reversed (OPEN why; anonymous literals are emitted in use order). COMPILER-DIFF: M1 -
- * mwply/frm/sfxfrm r30/r27/r31 above the pool base r29 (ours ranked the pool base first) and the
- * plane-1 load order are hard-register / asm-defined register pins. The .rodata order of the tag
- * strings is fixed at mwsftag_GetAinfFromSj (COMPILER-DIFF: M3). */
+ * them reversed (OPEN why; anonymous literals are emitted in use order). Register ranking: the
+ * original colours the parameters mwply/sfxfrm r30/r31 above the pool base r29, i.e. the pool
+ * base (a backend temp, the highest vid) is removed in the FIRST Chaitin scan: at its turn it
+ * counts 12 physical registers, the width r4 ghost, mwply, sfxfrm and every backend temp of the
+ * function (single-use loads substituted into their stores) and needs < 29. Five of those loads
+ * are therefore written as own locals with a cast `+ 0` second definition (the frontend keeps a
+ * two-def local as a web instead of substituting it, the backend folds `addi x, x, 0` to nothing):
+ * cb/cbw of plane 1 (also the original's load order there: buf r0 before width r3, both own locals
+ * in declaration order, while planes 0/2 load the inlined helper's kept width parameter first) and
+ * the three mwply->x94/x98/x9c copies. The .rodata order of the tag strings is fixed at
+ * mwsftag_GetAinfFromSj (COMPILER-DIFF: M3). */
 static const Char8 mwsfsfx_msg_chromapos[] = "E301274 : chromapos is invalid.";
 static const Char8 mwsfsfx_msg_chroma_format[] = "E301273 : chroma_format is invalid.";
 static const Char8 mwsfsfx_msg_pic_struct[] = "E301272 : picture_structure is invalid.";
@@ -471,22 +478,21 @@ typedef struct {
 	Sint32 crwidth;
 } MWSFSFX_YCC420PLN;
 
-void MWSFSFX_CnvFrmInfToSfx(register MWPLY mwply0, register MWS_FRM *frm0, register SFX_FRM *sfxfrm0)
+void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 {
-	register MWPLY mwply; // COMPILER-DIFF: M1 (r30, r27, r31: parameters above the pool base r29)
-	register MWS_FRM *frm;
-	register SFX_FRM *sfxfrm;
-
 	MWSFSFX_YCC420PLN pln;
 	Sint32 tag_b;
 	Sint32 tag_a;
 	Sint32 width;
 	Sint32 height;
 	Sint32 v;
-	register void *cb; // COMPILER-DIFF: M1 (plane 1 loads buf r0 before width r3)
-	register Sint32 cbw;
+	void *cb;
+	Sint32 cbw;
+	Sint32 x94;
+	Sint32 x98;
+	Sint32 x9c;
 
-	switch (frm0->fmt) {
+	switch (frm->fmt) {
 	case MWSFD_BUFFMT_1:
 		v = 1;
 		break;
@@ -501,9 +507,6 @@ void MWSFSFX_CnvFrmInfToSfx(register MWPLY mwply0, register MWS_FRM *frm0, regis
 		v = 3;
 		break;
 	}
-	asm { mr r27, frm0; mr frm, r27 } // COMPILER-DIFF: M1 (hard-register pins, coalesced into the prologue copies; placed after the first frm use so that use keeps r4 and `lis r4` follows it)
-	asm { mr r30, mwply0; mr mwply, r30 } // COMPILER-DIFF: M1
-	asm { mr r31, sfxfrm0; mr sfxfrm, r31 } // COMPILER-DIFF: M1
 	sfxfrm->frmfmt = v;
 	width = frm->width;
 	height = frm->height;
@@ -514,7 +517,10 @@ void MWSFSFX_CnvFrmInfToSfx(register MWPLY mwply0, register MWS_FRM *frm0, regis
 	} else {
 		mwPlyCalcYccPlane(frm->bufadr, width, height, (CFT_YCC420PLN *)&pln);
 		mwsfsfx_SetPln(&sfxfrm->pln[0], pln.y, pln.ywidth, height);
-		asm { lwz cb, pln.cb; lwz cbw, pln.cbwidth } // COMPILER-DIFF: M1 (asm-defined register locals: load order + r0/r3 by declaration order)
+		cb = pln.cb;
+		cbw = pln.cbwidth;
+		cb = (void *)((Uint32)cb + 0);
+		cbw = (Sint32)((Uint32)cbw + 0);
 		mwsfsfx_SetPln(&sfxfrm->pln[1], cb, cbw, height);
 		mwsfsfx_SetPln(&sfxfrm->pln[2], pln.cr, pln.crwidth, height);
 	}
@@ -557,9 +563,15 @@ void MWSFSFX_CnvFrmInfToSfx(register MWPLY mwply0, register MWS_FRM *frm0, regis
 	}
 	sfxfrm->chroma_format = v;
 	v = 1;
-	sfxfrm->x68 = mwply->x94;
-	sfxfrm->x6c = mwply->x98;
-	sfxfrm->x70 = mwply->x9c;
+	x94 = mwply->x94;
+	x94 = (Sint32)((Uint32)x94 + 0);
+	sfxfrm->x68 = x94;
+	x98 = mwply->x98;
+	x98 = (Sint32)((Uint32)x98 + 0);
+	sfxfrm->x6c = x98;
+	x9c = mwply->x9c;
+	x9c = (Sint32)((Uint32)x9c + 0);
+	sfxfrm->x70 = x9c;
 	switch (mwply->chromapos_h) {
 	case 0:
 		v = 0;
