@@ -511,9 +511,14 @@ static void edit_select_sub()
     if (pWork->joy[0].rep & 4) {
         pWork->subCursor = (pWork->subCursor + 4 + 1) % 4;
     }
-    // the original keeps ONE high(scrollWorkPtr) register (r10) for the last two work loads; our
-    // cse2 re-materialises the PRE'd copy after the join (REG_EQUAL (high) cost 0): opaque asm
-    // high + lo-loads (the volatile keeps gcse from hoisting the input-less asm to the top)
+    // the original keeps ONE high(scrollWorkPtr) register (r10) for the last two work loads (`-fno-gcse`
+    // reproduces it): cse1's AROUND path shares the high pseudo into the join block, but our gcse PREs
+    // high(scrollWorkPtr) from bb 0, turns this block's set into a copy of the PRE reg, and the final
+    // cprop propagates that reg into the join's load (the copy is available there; nothing in C can set a
+    // compiler temporary in the then-arm to kill it). The PRE reg then has 2 refs and local-alloc moves
+    // its `lis` into the join block. A different symbol view (asm-labelled alias) hoists above the
+    // dispList loop instead. Opaque asm high + lo-loads (the volatile keeps gcse from hoisting the
+    // input-less asm to the top)
     {
         u32 hi;
         ScrollWork* w;
@@ -955,14 +960,11 @@ static void edit_litmask()
             obj->lightInfo.x54 |= 1 << i;
         }
     }
+    // `one` is set here and used once in the next block: local-alloc's reg_equiv_replace moves the `li 1` to
+    // just before the `slw` (after the x54 load), which is where the original has it
+    u32 one = 1;
     if (pWork->joy[0].rep & 0x100) {
-        // COMPILER-DIFF: #13 (reload-materialised `li 1` after the x54 load) + candidate #17 (value-carrying pins:
-        // the asm-li alone rotates r9/r11/r0)
-        register u32 x54 asm("r11");
-        register u32 one asm("r9");
-        x54 = obj->lightInfo.x54;
-        asm("li %0,1" : "=r"(one) : "r"(x54));
-        u32 mask = x54 ^ (one << pWork->id);
+        u32 mask = obj->lightInfo.x54 ^ (one << pWork->id);
 
         do {
             obj->lightInfo.x54 = mask;
@@ -1813,18 +1815,12 @@ static void printEditTable()
             for (j = 0; j < 8; j++) {
                 name[j] = 0;
             }
-            {
-                // COMPILER-DIFF: 3 -- the original keeps a fresh `lis scrollWorkPtr@ha` at each of the three
-                // pWork sites of the loop; our block LCM PREs this single occurrence above the name loop and
-                // then merges all three into one hoisted high (r14), which displaces the "SCL" string high.
-                // COMPILER-DIFF: #13 -- the high is r11 / the pointer r9 (the original's REG_EQUIV high is
-                // reload-materialised after local-alloc gave the pointer r9); as pseudos both take r9.
-                register ScrollWork* wb asm("r9");
-                register u32 hib asm("r11");
-                asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hib));
-                asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(wb) : "r"(hib));
-                n = wb->nameTbl[no];
-            }
+            // COMPILER-DIFF: candidate #17 (global.c live length) -- the high of this load is the PRE'd
+            // scrollWorkPtr high (7 refs, no register left: reload materialises `lis r11` here), so at
+            // global-alloc time this block is one insn shorter than the original's and `x*8` (4 refs/38)
+            // outranks `no+1` (10 refs/144) for r25. The codeless insn restores the count (39 vs 145).
+            asm volatile("");
+            n = pWork->nameTbl[no];
             if ((u32) n >= 0x80000000 && (u32) n <= 0x82FFFFFF) {
                 strncpy(name, n, 7);
             }
@@ -1835,6 +1831,10 @@ static void printEditTable()
         // reach the tail with 0x11; a plain `x2 = 0x11` (or `x + 9`) is folded by cprop pass 1 and never PRE'd.
         // The input-less asm is a gcse expression: PRE inserts it at the end of both arms (`li r27,0x11` at the
         // target's LUID) and cse2 + flow remove the `x2 = R` copy because x2 has no other set.
+        // `x += 4; x2 = x + 9;` gives the same two `li 0x11` (cprop pass 1 cannot fold `x + 9` while x's set is
+        // still `x + 4`; PRE moves it to the arms; cprop pass 2 folds the copies), but cse2 then tags both
+        // constant sets REG_EQUAL and update_equiv_regs makes the base REG_EQUIV: live length 121 -> 484,
+        // priority 0.73 -> 0.18, and the base is allocated after `no`/`y`/`col` (r29/r27/r31 rotation).
         asm("li %0,0x11" : "=r"(x2));
         eprintf(x2 * 8, y * 14, col, 0, "%02d", obj->x12E == 2 ? obj->type : obj->id);
         {
