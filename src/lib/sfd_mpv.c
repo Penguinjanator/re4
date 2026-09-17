@@ -208,7 +208,7 @@ extern const SFD_TR_IF SFD_tr_ad_adxt;
 Sint32 SFMPV_Init(void);
 Sint32 SFMPV_Finish(void);
 Sint32 SFMPV_ExecServer(SFD sfd);
-static Sint32 SFMPV_Create(SFD sfd);
+static Sint32 SFMPV_Create(void *obj);
 Sint32 SFMPV_Destroy(SFD sfd);
 Sint32 SFMPV_Standby(SFD sfd);
 Sint32 SFMPV_Start(SFD sfd);
@@ -250,7 +250,7 @@ static inline Bool sfmpv_IsGopSkip(SFD sfd, Sint32 ptype);
 static inline Bool sfmpv_IsEmptySkip(SFD sfd, Sint32 ptype, SJCK *ck);
 static inline Bool sfmpv_IsCondSkip(SFD sfd, Sint32 ptype);
 static inline Bool sfmpv_IsSeekSkip(SFD sfd);
-static Sint32 SFMPV_Create(SFD sfd);
+static Sint32 SFMPV_Create(void *obj);
 static inline Sint32 sfmpv_ChkPara(SFMPV_PARA *para);
 static Sint32 SFMPV_GetWrite(SFD sfd);
 static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg);
@@ -2050,8 +2050,8 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 {
 	SFBUF_RINF inf;
 	Sint8 *p;
-	register Sint32 n; // COMPILER-DIFF: pin
-	register Sint32 t; // COMPILER-DIFF: pin
+	register Sint32 n;
+	register Sint32 t;
 	Sint32 code;
 	Sint32 found;
 	Sint32 i;
@@ -2068,9 +2068,11 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 		rest = inf.ck1.len + inf.ck2.len;
 		rest = rest - 3;
 		/* the original copies the branchless max out of a temporary (`and r0; mr n, r0`); every C
-		 * spelling renames the temporary into n (28 forms) */
+		 * spelling renames the single-use temporary into n (28 forms). The codeless self copy is an
+		 * opaque second def of t, so `n = t` stays a user copy (COMPILER-DIFF: codeless self copy). */
 		t = (rest > 0) ? rest : 0;
-		asm { mr n, t } // COMPILER-DIFF: pin
+		asm { mr t, t }
+		n = t;
 	} else if ((Uint8 *)inf.ck1.data <= (Uint8 *)p && (Uint8 *)p < (Uint8 *)inf.ck1.data + inf.ck1.len) {
 		/* sfmpv_DlmOfst written out: its inlined return value would be a second copy into n, and
 		 * only one of the two copies coalesces */
@@ -2102,19 +2104,32 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 	return n;
 }
 
-static Sint32 SFMPV_Create(register SFD sfd)
+static Sint32 SFMPV_Create(void *obj)
 {
-	register SFMPV_WORK *mpv; // COMPILER-DIFF: pin
+	SFD sfd;
+	SFMPV_WORK *mpv;
 	MPV hn;
 	Sint32 ret;
+	register Sint32 z;
+
+	/* the original colours sfd r31 > mpv r30 > .bss pool base r29 > hn r28. The pool base is the
+	 * first backend temporary (above every frontend id), so mpv can only precede it by popping from
+	 * a higher Chaitin level: the dead conditional before the return extends mpv (and one read of
+	 * sfd) across the inlined sfmpv_SetPicUsrBuf, lifting both to level 2 (36 neighbours), and sfd
+	 * as an own local declared before mpv outranks it there (the copy of `obj` is the original's
+	 * `mr r31, r3`). `z = 0`, kept to the scheduler by the self copy, is a dead `li` of the entry
+	 * block that takes the issue slot next to the copy, so the pool `addi` is issued before
+	 * `li r4, 5` and the pool `lis` temporary keeps r4 (COMPILER-DIFF: M4 (dead conditional),
+	 * codeless self copy). */
+	sfd = obj;
+	z = 0;
+	asm { mr z, z }
 
 	if (SFSET_GetCond(sfd, 5) == 0) {
 		return 0;
 	}
-	/* the original colours `mpv` (r30) before the .bss pool base (r29); as an own local it ranks
-	 * below the backend's pool temporary (mpv r29 / pool r30), 8 more forms did not move it.
-	 * The inlined sfmpv_SetPicUsrBuf is exact (see the `p = buf` note there). */
-	asm { addi r30, sfd, 0x23a0; mr mpv, r30 } // COMPILER-DIFF: pin
+	/* the inlined sfmpv_SetPicUsrBuf is exact (see the `p = buf` note there). */
+	mpv = &sfd->mpv;
 	sfd->tr[SFMPV_TR].hn = mpv;
 	ret = sfmpv_InitInf(sfd, mpv);
 	if (ret != 0) {
@@ -2135,7 +2150,12 @@ static Sint32 SFMPV_Create(register SFD sfd)
 	if (SFPLY_GetResetFlg() != 0) {
 		sfmpv_SetPicUsrBuf(sfd, sfmpv_picusr_pbuf, sfmpv_picusr_bufnum, sfmpv_picusr_buf1siz);
 	}
-	return 0;
+	ret = 0;
+	z = 0;
+	if (z != 0) {
+		ret = ret + mpv->picstat + sfd->prm.x38;
+	}
+	return ret;
 }
 
 /* the frame records of a fresh handle. `frm` stepped in the `for` increment (a source IV, not a
