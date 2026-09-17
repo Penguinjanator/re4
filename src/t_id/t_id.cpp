@@ -2333,6 +2333,7 @@ void toolIdEditDisp(IdTool* w)
     int i;
     ID_DATA* d;
     int n1, n2;
+    int k, x128;
 
     if (w->focus == 0) {
         return;
@@ -2363,18 +2364,26 @@ void toolIdEditDisp(IdTool* w)
     }
     {
         // COMPILER-DIFF: candidate (sched tie: the target's `li r24,0xc` sits between cmpwi and bne,
-        // i.e. it was not ready before t=3 in either scheduler; a codeless asm at t=2 feeding the
-        // asm-emitted li reproduces that. The if/else form (jump.c "x = b; if (c) x = a") gives
-        // the same LUID order but both schedulers hoist the li to t=1.)
-        int top = w->dispTop;
-        int t2;
-        asm("" : "=r"(t2) : "r"(top));
-        if (top == 0) {
+        // i.e. jump.c's "if (c) x = a; else x = b" -> "x = b; if (c) x = a" fired only in jump2
+        // (after sched2), which puts `x = b` right before the branch. With a one-insn else arm the
+        // transform fires in jump1 and both schedulers hoist the li to t=1; a multi-insn else arm
+        // (a zero cse cannot fold, combine folds it) keeps the arms apart until jump2.)
+        if (w->dispTop == 0) {
             row = 0x13;
         } else {
-            asm("li %0,12" : "=r"(row) : "r"(t2));
+            int t2 = ((u32) w & 8) >> 4;
+            row = t2 + 12;
         }
     }
+    // COMPILER-DIFF: candidate (sched1 tie `li r3,0x128` vs `addi r7,fmt@l` at the CLIPBOARD eprintf:
+    // the target's li has INSN_REG_WEIGHT 0, i.e. it was a copy of a dying pseudo at sched1 that
+    // reload/update_equiv_regs later rematerialised as `li`. x128 is a single-set constant pseudo
+    // with one use in another block (REG_EQUIV, cross-block single-use replacement); the constant
+    // is hidden from cse1 by the LOOP_END note and from gcse cprop by the same-block `k`, so only
+    // cse2 folds the def (adding the REG_EQUAL note) and nothing propagates it into the copy.
+    k = 0;
+    do { } while (0);
+    x128 = k + 0x128;
     y = row * 0xE;
     d = toolIdGetPtrU(w->parentNo);
     for (i = w->level - 1; i >= 0; i--) {
@@ -2387,10 +2396,6 @@ void toolIdEditDisp(IdTool* w)
     eprintf(0x128, y, 0, 0, "Num of ID USE:%3d EMP:%3d", n1, n2);
     if (w->useCnt != 0) {
         int yy = ((w->dispTop != 0) ? row + 1 : row - 1) * 0xE;
-        // COMPILER-DIFF: candidate (sched1 tie `li r3,0x128` vs `addi r7,fmt@l`: the target's li has
-        // INSN_REG_WEIGHT 0 (a dying source); the dead `i` input gives the asm-emitted li that weight)
-        register int x128 asm("r3");
-        asm("li %0,0x128" : "=r"(x128) : "r"(i));
         eprintf(x128, yy, 0, 0, "CLIPBOARD USE:%3d EMP:%3d", w->useCnt, w->empCnt);
     }
 }

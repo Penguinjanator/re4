@@ -426,11 +426,11 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
         int flg;
 
         if (!(t->pJoy0->on & 0x10)) {
-            // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the original stores a fresh `li r0,0`; our
-            // cse1 knows the `andi.` result is 0 on the fall-through and stores that register (t_mv mvInit).
-            int z;
-            asm("li %0,0" : "=r"(z));
-            t->stopWait = z;
+            // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the original stores a fresh `li r0,0`; a
+            // literal 0 here is related by cse (record_jump_equiv on the not-taken `bne`) to the `andi.`
+            // result and that register is stored instead (t_mv mvInit). `(t & 8) >> 4` is a zero cse cannot
+            // fold; combine folds it (nonzero_bits) to a fresh constant after cse2.
+            t->stopWait = ((u32) t & 0x8) >> 4;
         }
         flg = 0;
         if (--t->stopWait <= 0) {
@@ -1245,9 +1245,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         int no = MessTool.p->pEdit->GetCurrentNo();
 
         if (cx == 3) {
-            // COMPILER-DIFF: candidate #17 (global.c order): m before e in the target (m r30, e r29);
-            // ours ranks e first (5 refs vs 3) once the giv-init `add` below is spelled as an asm.
-            register EventMessageData* m asm("r30");
+            EventMessageData* m;
             EventMessageData::MessElem* e;
 
             m = t->pMess;
@@ -1258,22 +1256,22 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
                     EventMessageData::MessElem* p = 0;
                     int cnt = 1;
                     int j;
-                    // COMPILER-DIFF: candidate #17 (global.c pass 1): the back-search counter is a
-                    // scratch r11 in the target; ours gets a virgin callee-saved register.
-                    register int k asm("r11");
+                    int k;
 
                     // Back-search over the preceding -1 records, hand-peeled: the target's loop is
                     // loop.c-shaped (`subi p; addi cnt; subic. k; blt; lwzu messNo; mr p; cmpwi; beq`)
                     // with giv inits `(m + no*24) - 8` (reload_cse'd to `mr rT,e; subi rT,rT,8`) and
                     // `e - 24`; no loop.c spelling found gives biv init `no` with a reduced `k - 1`
-                    // giv, so the induction variables are written out and the `mr` is asm-emitted.
-                    // COMPILER-DIFF: asm-emitted `mr` (the target's reload_cse copy of `m + no*24`).
+                    // giv, so the induction variables are written out. The giv init `m + no*24` is
+                    // spelled `m - (-(no*24))` so cse does not fold it into `e` (a different
+                    // expression until combine makes it `add T,m,A`, which reload_cse then rewrites
+                    // to the target's `mr T,e`); a plain `(u8*) m + ofs` is cse'd to `subi T,e,8`.
                     k = no - 1;
                     if (k >= 0 && (p = &m->elem[k])->messNo == -1) {
                         EventMessageData::MessElem* q = e - 1;
                         u32 ofs = no * sizeof(EventMessageData::MessElem);
-                        u8* base;
-                        asm("mr %0,%1" : "=r"(base) : "r"(e), "r"(ofs));
+                        s32 nofs = -(s32) ofs;
+                        u8* base = (u8*) m - nofs;
                         s32* mp = (s32*) (base - 8);
                         do {
                             q--;
