@@ -20,3 +20,7 @@ tools/sn-gcc/src/
 tools/sn-gcc/obj/
 tools/sn-gcc/cc1
 tools/sn-gcc/cc1plus
+
+# external checkouts used by tools/research/mwccdbg (see its README)
+tools/research/mwccdbg/mwcc-debugger
+tools/research/mwccdbg/retrowin32

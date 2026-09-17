@@ -54,11 +54,30 @@ the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows o
 
 Every unit compiles to the original bytes with the original compilers. Where the compiler needed a
 particular source shape to reproduce a register choice or a schedule and no natural spelling was
-found, the construct is marked with a `// COMPILER-DIFF:` comment (782 of them: dead tests, empty
-`asm("")` statements, register pins, padding statements — all compile to zero bytes). Each tag's
-mechanism is documented in `docs/matching.md` and `docs/research/`. A handful of functions are
-assembly bodies where the original almost certainly was too (SDK cache/context routines, paired-single
-matrix kernels, crt0, the scheduler's context switch, one CRI motion-compensation kernel).
+found, the construct is marked with a `// COMPILER-DIFF:` comment (644 of them: dead tests, empty
+`asm("")` launders and anchors, `register T x asm("rN")` pins, padding statements). None of them
+emits an instruction: `python3 tools/asmcheck.py --all` compiles every GCC unit with its asm templates
+marked and lists the instructions that came from a template — the only hits are the hardware kernels
+below. An earlier state of this tree had ~100 hand-placed instructions (`asm("li %0,0")`,
+`asm("lis/addi")`, `asm("mr")`) in the game code and ~100 register-pinning `asm { }` blocks in the CRI
+libraries; they were replaced by C on 2026-09-17 (`docs/research/asm-removal.md` records the recipe
+and the compiler mechanism per site). Each tag's mechanism is documented in `docs/matching.md` and
+`docs/research/`.
+
+Assembly that remains, all of it code the original authors also wrote in assembly because their
+compilers had no other way to express it:
+
+- GCC 2.95 game code: paired-single kernels (`SINF`/`COSF`/`RSQRT`/`LIMIT_ANGLE` in `math_sub`, the
+  matrix kernels in `trans`, `shape`, `dbmodule`, quantised `psq_l` in `Espgen42`/`espgen45`), the
+  GQR setup in `main`/`scheduler`, and the libsn `sndvd` exception handler.
+- MWCC CRI libraries: the paired-single / cache / SPR kernels (`mpv_umc`, `mpv_mc`, `dct_fsri`,
+  `cftyp422_ppc`, `mpv_lib`), the SDK's `mtx`/`vec`/`quat`/`GX` intrinsics, and one register-steering
+  block in `dct_ac` (`dctac_Init`: the vendor's compiler build pooled `.bss` but not the function's
+  8-byte literals; ours pools both). Codeless `asm { mr r11, x; mr x, r11 }` pins (both moves are
+  deleted by the allocator; they narrow the colour set by one register) and `asm { mr v, v }` self
+  copies (an opaque second definition) remain in 27 places.
+- Eight `.s` units: crt0 (`__start`), `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`, and
+  Capcom's `memset_2` and `yz2asm`.
 
 ## Legal
 

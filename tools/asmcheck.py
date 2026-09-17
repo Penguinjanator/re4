@@ -35,8 +35,10 @@ def mark_source(src: str) -> str:
         tpl = "".join(lits)
         if not re.search(r"\s", tpl) and tpl.strip() not in NOARG:
             return m.group(0)  # pin or alias
-        tpl = tpl.replace("\\n", "\\n" + MARK)  # multi-line templates: mark every line
-        return f'{m.group(1)}"{MARK}{tpl}"'
+        line = src.count("\n", 0, m.start()) + 1
+        mark = f"{MARK}{line}@"  # source line of the asm statement travels with every emitted line
+        tpl = tpl.replace("\\n", "\\n" + mark)  # multi-line templates: mark every line
+        return f'{m.group(1)}"{mark}{tpl}"'
 
     return ASM_STMT.sub(repl, src)
 
@@ -88,15 +90,15 @@ def check(unit: str) -> int:
     for ln in lines:
         if MARK not in ln:
             continue
-        text = ln.split(MARK, 1)[1].strip()
-        for part in re.split(r"\s*;\s*|\\n", text):
+        line, text = ln.split(MARK, 1)[1].split("@", 1)
+        for part in re.split(r"\s*;\s*|\\n", text.strip()):
             part = part.strip()
             if not part or part.startswith(".") or part.startswith("#") or re.fullmatch(r"[\w.$]+:", part):
                 continue
-            hits.append(part)
+            hits.append((int(line), part))
     print(f"{unit} {len(hits)}")
-    for h in hits:
-        print(f"    {h}")
+    for line, h in hits:
+        print(f"    {line:5d}  {h}")
     return len(hits)
 
 
