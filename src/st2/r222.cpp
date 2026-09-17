@@ -241,6 +241,11 @@ static void r222_TreasureBoxOpened(int id)
 
 // Treasure box lid: swings the parts open (`opened` 1: already open).
 // 2.1206448f as a named .rodata word in the pool position (see the COMPILER-DIFF note in r222_BoxMove).
+// It has to be a LOCAL label: a C `extern const` definition is emitted in the same place but its
+// global symbol makes the -r link keep the @l relocations unresolved (the REL's instruction fields
+// then hold 0 instead of the section offset), and a `static const` at file scope is deferred to the
+// end of the file. The wait body reads the word through the asm-labelled alias (a distinct
+// SYMBOL_REF: gcse cannot share the `high` r10 of the arms with it, the target reloads `lis r11`).
 asm(".section \".rodata\"\n\t.align 2\nr222_k212:\n\t.long 0x4007b8a5\n\t.section \".text\"");
 extern const f32 r222_k212;
 extern const f32 r222_k212_v asm("r222_k212");
@@ -250,23 +255,21 @@ void r222_BoxMove(cObj* obj, int opened)
     SndCall(6, 0x5B, &obj->pos, 0, 0, 0);
     obj->be_flag |= 0x20;
     // COMPILER-DIFF: #3 (the original's gcse shares one `high` of the 2.12 constant between the two arms
-    // of the `if`; ours computes it per arm) / #13 (asm-emitted high and loads, the pool word as a named
-    // .rodata object in its pool position): the high lives in r10 across the branch, both arms load
-    // through it, the wait body reloads the word through the extern view.
-    register u32 hi asm("r10");
-    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&r222_k212));
+    // of the `if`; ours computes it per arm, the block-based LCM never hoists from two sibling arms).
+    // The dead address computation puts the `high` in this block (r10, live across the branch); cse
+    // and gcse then make both arms' loads use it. The `lo_sum` is dead and flow deletes it.
+    {
+        const f32* pk = &r222_k212;
+    }
     if (opened == 1) {
-        f32 t;
-
-        asm("lfs %0,%1@l(%2)" : "=f"(t) : "i"(&r222_k212), "r"(hi));
-        obj->pParts->rot.x = t;
+        obj->pParts->rot.x = r222_k212;
     } else {
         f32 lim;
         f32 r;
         // a goto loop: the constants are reloaded per iteration; the limit is computed in both
         // predecessors of `test` (the target loads 2.12 there and compares/stores that register)
         r = obj->pParts->rot.x;
-        asm("lfs %0,%1@l(%2)" : "=f"(lim) : "i"(&r222_k212), "r"(hi), "f"(r));
+        lim = r222_k212;
         obj->pParts->rot.x = r + 0.05f;
         goto test;
     wait:

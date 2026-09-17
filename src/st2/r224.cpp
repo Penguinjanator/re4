@@ -184,12 +184,14 @@ void R224Init()
 void R224Main()
 {
     if (pG->flags_174 & 0x20000000) {
-        int zero;
         u32 v = pG->flags_174 & ~0x20000000;
 
         pG->flags_174 = v;
-        asm("li %0,0" : "=r"(zero) : "r"(v)); // COMPILER-DIFF: 13 (the stack-argument zero is born after the RMW value: r0 after the store, like the reload-materialised original)
-        ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, zero);
+        // COMPILER-DIFF: 13 (the stack-argument zero reuses `v`: a two-set pseudo has no REG_EQUIV,
+        // its `li` waits for the `stw` that reads v and it shares v's r0, like the
+        // reload-materialised original; a fresh `0` is born early and takes r9 from pG)
+        v = 0;
+        ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, v);
         if (Key.trg & 0x00080000) {
             SceExec(0x12, (TaskFunc) r224_toroko, 0, 0, 2, 0);
         }
@@ -356,17 +358,26 @@ static void r224_toroko()
 
 // The lever handle swings to its other end and back.
 // COMPILER-DIFF: 12: the target loads `spd = 0.0f` before SndCall and RE-LOADS the same pool 0.0
-// for the hoisted loop compare (`lfs f26`); our cse folds every constant-pool load to its
-// CONST_DOUBLE and rewrites the hoisted one as `fmr f26,f31` from spd. The 0.0 word is therefore
-// a named `static const` one-member struct k0 (same .rodata slot as the pool entry; a struct so the
-// front end does not fold the read, a `const` static so the MEM is /u like a pool load and sched1
-// does not order it after the be_flag store) read through opaque `lis/lfs` asms for spd's init;
-// `zero = k0.v` is the compare constant, the in-loop reload reads it through FCRef (a plain MEM:
-// loop.c hoists its high like the target's r28). `BitOn` for be_flag makes the `lfs acc` depend on
-// the store (target: `lfs f30,acc` last). The dead `if (spd == 1.85f) up = 0;` is a 4th ref for
-// the hoisted 1.85 constant so it ranks above zero in global-alloc (f27 vs f26; zero has no
-// REG_EQUIV doubling, the pool constant has).
+// for the hoisted loop compare (`lfs f26`), each with its own `lis`; our cse folds every
+// constant-pool load to its CONST_DOUBLE and rewrites the hoisted one as `fmr f26,f31` from spd,
+// and merges the two `high` pseudos of one symbol into a callee-saved register. The 0.0 word is
+// therefore the named .rodata word r224_zero in the pool entry's slot (a top-level asm: it must be
+// a LOCAL label with a fixed name -- a function-local static gets a numbered private name, a
+// file-scope `static const` is deferred to the end of the file, and a global symbol leaves the
+// REL's @l fields unresolved), declared `extern const f32` so the MEM is /u like a pool load and
+// sched1 does not order it after the be_flag store. spd's init reads it through the asm-labelled
+// alias r224_zero_v (a different SYMBOL_REF: cse cannot merge its `high` or its MEM with the
+// compare constant's), `zero = r224_zero` is the compare constant, the in-loop reload reads it
+// through FCRef (a plain MEM: loop.c hoists its high like the target's r28; the symbol's first
+// occurrence after `reva_acc` keeps gcse's expression index order = the preheader `lis` order;
+// the name's gcse bucket (20) must stay below reva_high's (35)). `BitOn` for be_flag makes the
+// `lfs acc` depend on the store (target: `lfs f30,acc` last). The dead `if (spd == 1.85f) up = 0;`
+// is a 4th ref for the hoisted 1.85 constant so it ranks above zero in global-alloc (f27 vs f26;
+// zero has no REG_EQUIV doubling, the pool constant has).
 static inline f32 FCRef(const f32& v) { return v; }
+asm(".section \".rodata\"\n\t.align 2\nr224_zero:\n\t.long 0\n\t.section \".text\"");
+extern const f32 r224_zero;
+extern const f32 r224_zero_v asm("r224_zero");
 
 static void reva_common_move()
 {
@@ -377,16 +388,13 @@ static void reva_common_move()
     f32 hi;
     f32 acc;
     f32 zero;
-    u32 zh;
-    static const struct { f32 v; } k0 = {0.0f};
 
-    asm("lis %0,%1@ha" : "=b"(zh) : "i"(&k0.v));
-    asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0.v), "b"(zh));
+    spd = r224_zero_v;
     hi = reva_high;
     SndCall(6, 4, &obj->pos, 0, 0, 0);
     BitOn(obj->be_flag, 0x20);
     acc = reva_acc;
-    zero = k0.v;
+    zero = r224_zero;
     for (;;) {
         int up;
 
@@ -401,7 +409,7 @@ static void reva_common_move()
             if (up ? (*py < hi) : (*py > hi)) {
                 spd += acc * 1.85f;
             } else if (pG->flags_174 & 0x40000000) {
-                spd = FCRef(k0.v);
+                spd = FCRef(r224_zero);
                 *py = reva_high;
             } else {
                 spd = -acc;
@@ -529,16 +537,15 @@ void gnd_close()
     SmdGetObjPtr(0x13)->rot.x = 0.0f;
     {
         cObj* o = SmdGetObjPtr(0x14);
-        int five;
-        int zero;
 
         o->rot.x = 0.0f;
         // COMPILER-DIFF: 13 -- the target issues `li r3,5; li r4,0` after the store; ours issues
-        // the free `li r4,0` in the store's slot. The opaque sets chain 5 after the store (a memory
-        // input) and 0 after 5, so both wait for the stfs and keep the r3, r4 order.
-        asm("li %0,5" : "=r"(five) : "m"(o->rot.x));
-        asm("li %0,0" : "=r"(zero) : "r"(five));
-        SceAtSetEnable(five, zero);
+        // the free `li r4,0` in the stfs's cycle (2-issue, `li r3` waits for the stfs's r3) in
+        // sched1 and again in sched2. The codeless barrier keeps both argument `li`s after the
+        // store, where the tie falls back to their emission order.
+        asm volatile("");
+        SceAtSetEnable(5, 0);
+
     }
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
