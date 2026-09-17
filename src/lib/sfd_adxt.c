@@ -591,26 +591,28 @@ static Sint32 sfadxt_SearchFrmTop(SFD sfd, Uint8 *data, Sint32 len)
 }
 
 /* transfer state 2: skip the ADX header; without a header (old mux versions) find the frame
- * alignment from the end codes (M1: the data parameter is coloured first in the target, r29) */
+ * alignment from the end codes. COMPILER-DIFF: M1 (codeless neighbour pin) - the target colours data
+ * r29 above sfd r28, one Chaitin level higher than ours (data has exactly 28 neighbours). The pinned
+ * volatile register leaves the colour set (28 colours: chaitin.py --k 28 reproduces the target), so
+ * data survives its scan; both `mr`s are deleted by the RA (CRI pass 40) */
 void sfadxt_ExcludeHdr(SFD sfd, register Uint8 *data, Sint32 len, Sint32 *nbyte)
 {
-	register Uint8 *d; // COMPILER-DIFF: M1 (data r29 above sfd r28 in the target; the hard pin of the parameter copy, CRI pass 18b)
 	SFADXT_WORK *wk;
 	Sint32 skip;
 	Sint32 hdrsiz;
 
-	asm { mr r29, data; mr d, r29 } // COMPILER-DIFF: M1
+	asm { mr r11, data; mr data, r11 } // COMPILER-DIFF: M1 (codeless neighbour pin)
 	*nbyte = 0;
 	wk = SFADXT_WK(sfd);
 	if (len < SFADXT_HDRSIZ) {
 		return;
 	}
-	if (ADXT_IsHeader(d, len, &hdrsiz)) {
+	if (ADXT_IsHeader(data, len, &hdrsiz)) {
 		skip = hdrsiz;
 	} else if (SFHDS_GetMuxVerNum(sfd) >= 108) {
 		skip = 0;
 	} else {
-		skip = sfadxt_SearchFrmTop(sfd, d, len);
+		skip = sfadxt_SearchFrmTop(sfd, data, len);
 	}
 	wk->func = sfadxt_AdjustSync;
 	*nbyte = skip;
@@ -932,15 +934,15 @@ static void sfadxt_UpdateSvrFreq(SFD sfd)
 	}
 }
 
-static Sint32 sfadxt_ExecServerSub(register void *obj)
+/* COMPILER-DIFF: M1 (codeless neighbour pin) - the target colours sfd r31 above Transfer's err chain r30
+ * and len r29: sfd has 28 neighbours left at the second scan; the pinned r11 leaves the colour set
+ * (28 colours), so sfd survives one scan longer; both `mr`s are deleted by the RA (CRI pass 40) */
+static Sint32 sfadxt_ExecServerSub(register SFD sfd)
 {
-	register SFD sfd;
 	Sint32 err;
 	Sint32 len;
 
-	/* CRI pass 40: the target colours sfd r31 / err r30 / len r29; ours ranked err (Transfer's @ret chain)
-	 * above sfd. The hard pin of the handle takes r31 out of every other node's range, so err falls to r30. */
-	asm { mr r31, obj; mr sfd, r31 } // COMPILER-DIFF: M1
+	asm { mr r11, sfd; mr sfd, r11 } // COMPILER-DIFF: M1 (codeless neighbour pin)
 	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
 		return 0;
 	}

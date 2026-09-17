@@ -313,16 +313,12 @@ Sint32 sfhds_SetHdrRaw(SFD sfd, Uint8 *data, Sint32 size)
 }
 #pragma dont_inline off
 
-/* COMPILER-DIFF: M1 - the r31 pin of sfh is for the copy inlined into SFHDS_SetHdr (see there); the
- * standalone function is unchanged by it */
 Bool SFHDS_IsSfdHeader(void *data, Sint32 size)
 {
-	register SFH sfh; // COMPILER-DIFF: M1
+	SFH sfh;
 	Sint32 flag;
-	register SFH sfh0; // COMPILER-DIFF: M1
 
-	sfh0 = SFH_Create(data, size);
-	asm { mr r31, sfh0; mr sfh, r31 } // COMPILER-DIFF: M1
+	sfh = SFH_Create(data, size);
 	if (sfh == NULL) {
 		return 0;
 	}
@@ -359,21 +355,24 @@ static Bool sfhds_SetHdrPkt(SFD sfd, Uint8 *p, Sint32 len, Sint32 *result)
 }
 
 /* the file header travels in a private stream 2 packet: `data` points at its payload */
-/* COMPILER-DIFF: M1 - target result r30, len r29, p r28, sfd r27, sfh r31: in ours all five sit in one
- * colouring level ordered by id (p, len above the result parameter). Hard pins of p r28 / len r29 (and
- * sfh r31 in the inlined SFHDS_IsSfdHeader) add three physical neighbours to result/sfd, which lifts
- * them to the next level where result (higher id) takes the new r30 and sfd r27 (CRI pass 18b). */
-Bool SFHDS_SetHdr(SFD sfd, Sint32 type, register Uint8 *data, register Sint32 size, Sint32 *result)
+/* COMPILER-DIFF: M1 (codeless neighbour pin) - the target keeps a copy of `result` (`mr r30, r7`) as the
+ * first own local (r30 above len r29 / p r28 / sfd r27). `result` only feeds stores, so a plain typed copy
+ * is removed by the backend copy propagation (CRI pass 12); the pin's `mr r11, res` is a register move
+ * that cannot collapse, which keeps the copy, and both `mr`s of the pin are deleted by the RA (pass 40) */
+Bool SFHDS_SetHdr(SFD sfd, Sint32 type, Uint8 *data, Sint32 size, Sint32 *result)
 {
-	register Sint32 len; // COMPILER-DIFF: M1
-	register Uint8 *p; // COMPILER-DIFF: M1
+	register Sint32 *res;
+	Sint32 len;
+	Uint8 *p;
 
-	*result = 0;
+	res = (Sint32 *)(void *)result;
+	asm { mr r11, res; mr res, r11 } // COMPILER-DIFF: M1 (codeless neighbour pin)
+	*res = 0;
 	if (type != 2) {
 		return 0;
 	}
-	asm { addi r28, data, -6; mr p, r28 } // COMPILER-DIFF: M1
-	asm { addi r29, size, 6; mr len, r29 } // COMPILER-DIFF: M1
+	p = data - 6;
+	len = size + 6;
 	if (sfhds_GetStartCode(p) != SFHDS_STARTCODE_PRV2) {
 		p -= 2;
 		len += 2;
@@ -381,7 +380,7 @@ Bool SFHDS_SetHdr(SFD sfd, Sint32 type, register Uint8 *data, register Sint32 si
 			return 0;
 		}
 	}
-	return sfhds_SetHdrPkt(sfd, p, len, result);
+	return sfhds_SetHdrPkt(sfd, p, len, res);
 }
 
 void SFHDS_FinishFhd(SFHDS_FHD *fhd)

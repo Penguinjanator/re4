@@ -2244,19 +2244,18 @@ void sfmpv_ErrFn(void *obj, Sint32 code)
 	}
 }
 
-/* the buffers survive in the file statics for the next creation */
-Sint32 SFMPV_Destroy(SFD obj)
+/* the buffers survive in the file statics for the next creation.
+ * COMPILER-DIFF: M1 (codeless neighbour pin) - the original ranks the handle above the .bss pool base
+ * (sfd r31, pool r30, mpv r29): a level-2 node where ours has exactly 28 neighbours; the pinned r11
+ * leaves the colour set (28 colours), so sfd survives its scan; both `mr`s are deleted by the RA
+ * (CRI pass 40) */
+Sint32 SFMPV_Destroy(register SFD sfd)
 {
-	register SFD sfd; // COMPILER-DIFF: pin
-	register SFMPV_WORK *mpv; // COMPILER-DIFF: pin
+	SFMPV_WORK *mpv;
 	MPV hn;
 
-	/* the original ranks the handle above the .bss pool base (sfd r31, pool r30, mpv r29): a level-2
-	 * node (>= 29 neighbours) where ours has 28 as a kept `(SFD)(SFD_OBJ *)obj` copy or as the plain
-	 * parameter. The copy reads the incoming r3 itself, not `obj`: a copy of the parameter is
-	 * propagated into the first load (`lwz mpv, 0x1fb8(r3)`) and the pool `lis` then cannot reuse r3 */
-	asm { mr r31, r3; mr sfd, r31 } // COMPILER-DIFF: pin
-	asm { lwz r29, SFD_OBJ.tr[SFMPV_TR].hn(r31); mr mpv, r29 } // COMPILER-DIFF: pin
+	asm { mr r11, sfd; mr sfd, r11 } // COMPILER-DIFF: M1 (codeless neighbour pin)
+	mpv = sfd->tr[SFMPV_TR].hn;
 	hn = mpv->mpv;
 
 	if (hn == NULL) {
