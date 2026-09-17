@@ -1279,9 +1279,11 @@ int stageSelect(TitleWork* w)
         u->no = 3;
         u->flags_7F |= 2;
         // The target's `li r30,0` sits right before MercSysGetSaveWork; a plain `mode = 0` there lets
-        // jump1 turn the first `if` into a store-flag (`xori/subfic/adde`), earlier it is hoisted.
-        // An asm-emitted zero (cse cannot fold it) whose memory input keeps it below the last store.
-        asm("li %0,0" : "=r"(mode) : "m"(u->no));  // COMPILER-DIFF: #13 (asm-emitted constant)
+        // jump1 turn the first `if` into a store-flag (`xori/subfic/adde`: reg_set_last finds the
+        // constant), earlier it is hoisted. A mask cse cannot fold (no nonzero-bits logic) is not a
+        // constant for jump1; combine folds it to `(set mode 0)` (no REG_EQUAL note) after cse2.
+        // COMPILER-DIFF: #13 (constant spelled as a combine-folded mask)
+        mode = ((u32) u >> 16) & 0xFFFF0000;
     }
     {
         MercSysGetSaveWork(&save);

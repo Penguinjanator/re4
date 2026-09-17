@@ -2967,7 +2967,12 @@ void GetDropBullet(int* id, int* num)
                 break;
             }
             *id = i;
-            *num = 0;
+            // Codeless launder: keeps the zero and its store from being cross-jumped two insns deep
+            // into the fallback's else arm (see `fallback:`); the `*num` input is an anti-dependence
+            // on the store, so sched2 still issues the `*id` store first.
+            int z = 0;
+            asm("" : "+r"(z) : "m"(*num));
+            *num = z;
             return;
         }
         if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
@@ -3053,23 +3058,28 @@ void GetDropBullet(int* id, int* num)
                 break;
             }
             *id = i;
-            *num = 0;
+            // Codeless launder: keeps the zero and its store from being cross-jumped two insns deep
+            // into the fallback's else arm (see `fallback:`); the `*num` input is an anti-dependence
+            // on the store, so sched2 still issues the `*id` store first.
+            int z = 0;
+            asm("" : "+r"(z) : "m"(*num));
+            *num = z;
             return;
         }
     fallback:
         // `li r0,0; ble; li r0,0x14; stw`: jump.c's post-reload "if (..) x = a; else x = b" hoist, after
         // the then-arm's store cross-jumped into the else arm's store (a fresh label, so the two
-        // `Rnd() % 3` sites above keep their own `li r0,0`). A plain `*num = 0` else arm is matched
-        // two insns deep by those sites first, which pins their jumps on the else label and blocks the
-        // hoist; the asm-emitted zero (no REG_EQUIV note, hard r0) is compared as a different insn.
-        // COMPILER-DIFF: candidate (jump2 cross-jump order vs the x = a / x = b hoist)
+        // `Rnd() % 3` sites above keep their own `li r0,0`). A plain `*num = 0` there is matched two
+        // insns deep by those sites first (their `li r0,0; stw` tails), which pins their jumps on the
+        // else label and blocks the hoist; the codeless launder between each site's zero and its
+        // store (see `z` above) is the insn find_cross_jump compares against this `li`, so the sites
+        // match one insn (the store) only. COMPILER-DIFF: candidate (jump2 cross-jump order vs the
+        // x = a / x = b hoist)
         *id = 4;
         if (pG->stage_no > 1) {
             *num = 20;
         } else {
-            register int z asm("r0");
-            asm("li %0,0" : "=r"(z));
-            *num = z;
+            *num = 0;
         }
     }
 }

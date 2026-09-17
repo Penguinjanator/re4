@@ -549,13 +549,15 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
             // by a `goto` INTO its body (a jump into the loop invalidates it for loop.c: no giv for
             // j*2, `e + 6` recomputed per iteration, and the exit block's guard targets a label of
             // another loop so find_and_verify_loops leaves `item[0] = itemNo; return` in place).
-            // COMPILER-DIFF: asm-emitted `li j,0`. A C `j = 0` gets cse's REG_EQUAL note, and
-            // update_equiv_regs (the first set of j in chain order) doubles j's live length
-            // (11 -> 22: priority 30909 < e+6 48000 / j*2 40000, so j is allocated third and
-            // lands in r10); the asm set has no note, j keeps 11 (61818) and is allocated first
-            // (r9, e+6 r11, j*2 r10, e r8 = the target). Also keeps j a pseudo: a hard-reg pin
-            // makes combine fold expand_mult's `copy + j` into `slwi` where the target has `add`.
-            asm("li %0,0" : "=r"(j));
+            // COMPILER-DIFF: `li j,0` spelled as a mask combine folds to 0. A C `j = 0` gets cse's
+            // REG_EQUAL note, and update_equiv_regs (the first set of j in chain order) doubles j's
+            // live length (11 -> 22: priority 30909 < e+6 48000 / j*2 40000, so j is allocated third
+            // and lands in r10). cse cannot fold `(e >> 16) & 0xFFFF0000` (no nonzero-bits logic) so
+            // the set carries no note; combine folds it to `(set j 0)` after cse2, j keeps 11 (61818)
+            // and is allocated first (r9, e+6 r11, j*2 r10, e r8 = the target). Also keeps j a
+            // pseudo: a hard-reg pin makes combine fold expand_mult's `copy + j` into `slwi` where
+            // the target has `add`.
+            j = ((u32) e >> 16) & 0xFFFF0000;
             if (e->item[0] >= 0) {
                 goto next;
             }

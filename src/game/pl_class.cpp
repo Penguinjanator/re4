@@ -1735,9 +1735,12 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
 {
     // COMPILER-DIFF: 2 (narrow-argument extension at entry). The original zero-extends the u8
     // parameter into a callee-saved register (`clrlwi r28, r9, 24`) before both int uses; ours
-    // treats it as promoted and no source form produces the mask.
-    int mode;
-    asm("clrlwi %0,%1,24" : "=r"(mode) : "r"(b));
+    // treats it as promoted: combine knows the promoted r9 has only 8 nonzero bits and strips
+    // any mask written on `b`. Reading the incoming register through a pin gives the
+    // zero_extendqisi2 no LOG_LINK to fold through (and no CC clobber: sched1 weight 0, so it
+    // is ranked like the original's insn).
+    register int rb asm("r9");
+    int mode = (u8) rb;
 
     model = m;
     rate = 0.0f;

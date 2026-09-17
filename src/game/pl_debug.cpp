@@ -281,7 +281,7 @@ void cPlMaho::regist(const char* code, void (*func)())
 
 // DrawGage: `len` is the one variable for both widths and the right edge (a multi-set pseudo is
 // never tied to the dying product, so `fw*fnow` stays in f12 like the original); the original's
-// `fadds f25,f13,f25` (fx first, result tied to len) is an opaque asm (see the tag there).
+// `fadds f25,f13,f25` (fx first) comes from adding a cse-deleted copy of len (see the note there).
 void DrawGage(int x, int y, int h, int w, int now, int max, int color)
 {
     Vec pos;
@@ -305,10 +305,12 @@ void DrawGage(int x, int y, int h, int w, int now, int max, int color)
     size.x = len;
     size.y = fh;
     size.z = 1.0f;
-    // COMPILER-DIFF: candidate (operand order). `len = fx + len` is expanded with the destination
-    // operand first (`fadds len,len,fx`, optabs' target == op1 swap); the original has `fadds
-    // len,fx,len`. Opaque add with the original's operand order.
-    asm("fadds %0,%1,%2" : "=f"(len) : "f"(fx), "f"(len));
+    // `len = fx + len` is expanded with the destination operand first (`fadds len,len,fx`:
+    // expand_binop swaps a commutative op when op1 is the target rtx); the original has `fadds
+    // len,fx,len`. Adding a copy of len keeps op1 != target, cse canonicalises the copy back to
+    // len (deleting it) and leaves the operand order alone.
+    f32 l2 = len;
+    len = fx + l2;
     Draw_quad(&pos, &size, color);
 
     pos.x = len;
