@@ -124,11 +124,15 @@ Sint32 SFD_Init(register SFD_INIT_PRM *prm)
 	SJRBF_Init();
 	UTY_MemsetDword((Uint32 *)&SFLIB_libwork, 0, sizeof(SFLIB_libwork) / 4 - 1);
 	MEM_Copy(&SFLIB_libwork, SFPLY_cond_dfl, sizeof(SFLIB_libwork.cond));
-	/* COMPILER-DIFF: M1 -- the original loads prm1 (word 4) before trif_tbl (word 0) and stores
-	 * trif_tbl first; every C form (locals, direct stores, two-word struct copy) either loads word 0
-	 * first or gives the first-stored value r4, so the two loads are spelled as asm */
-	asm { lwz p1, 4(prm) }
-	asm { lwz tbl, 0(prm) }
+	/* The original loads prm1 (word 4) before trif_tbl (word 0) and stores trif_tbl first: both are
+	 * own locals (p1 declared first = coloured first, r4/r5) loaded in statement order. p1 stays a
+	 * variable because the trif_tbl store sits between its load and its use; tbl's only use is that
+	 * first store, so the frontend would substitute the load into it (a backend temp above p1 -> r4).
+	 * The cast `+ 0` redefinition is a second def the frontend keeps; the backend turns the
+	 * `addi tbl, tbl, 0` into a self copy that the RA deletes. */
+	p1 = prm->prm1;
+	tbl = prm->trif_tbl;
+	tbl = (SFTRN_TRIF_TBL *)((Uint32)tbl + 0);
 	SFLIB_libwork.trif_tbl = tbl;
 	SFLIB_libwork.prm1 = p1;
 	SFLIB_libwork.x198 = 0;

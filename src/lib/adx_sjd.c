@@ -404,8 +404,7 @@ void ADXSJD_ExecHndl(ADXSJD sjd)
 	adxsjd_skip_out(sjd);
 }
 
-/* start decoding the next block: hand the input chunk to the decoder, or finish at the footer.
- * M1: the hoisted 0x7FFFFFFF takes r31 and len r28 in the original, ours the reverse. */
+/* start decoding the next block: hand the input chunk to the decoder, or finish at the footer. */
 void adxsjd_decexec_start(ADXSJD sjd)
 {
 	SJCK ck2;
@@ -413,12 +412,10 @@ void adxsjd_decexec_start(ADXSJD sjd)
 	ADXB adxb;
 	SJ sji;
 	Sint32 blksmpl;
-	/* COMPILER-DIFF: M1 -- the hoisted 0x7FFFFFFF (`lis 0x8000` + subi) of the padding-skip loop takes
-	 * the dead adxb register r31 in the target and len r28; as a compiler temporary it gets r28 and len
-	 * r31. An asm-defined `register` constant declared between len and i gives the target's order. */
 	Sint32 len;
-	register Sint32 big;
 	Sint32 i;
+	Sint32 n;
+	Sint32 z;
 
 	adxb = sjd->adxb;
 	sji = sjd->sji;
@@ -446,9 +443,8 @@ void adxsjd_decexec_start(ADXSJD sjd)
 		}
 		if (sjd->lnksw != 0) {
 			/* skip the zero padding up to the next linked file */
-			asm { lis big, 0x8000 }
 			for (;;) {
-				SJ_GetChunk(sji, SJ_CK_DATA, big - 1, &sjd->inck);
+				SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &sjd->inck);
 				len = sjd->inck.len;
 				if (len == 0) {
 					return;
@@ -473,8 +469,20 @@ void adxsjd_decexec_start(ADXSJD sjd)
 		SJ_UngetChunk(sji, SJ_CK_DATA, &sjd->inck);
 		return;
 	}
+	/* COMPILER-DIFF: M4 (dead conditional) -- the hoisted 0x7FFFFFFF (`lis 0x8000` + subi) of the
+	 * padding-skip loop is coloured r31 and len r28 in the target, which needs blksmpl coloured AFTER
+	 * that temporary: blksmpl must survive as an own local (`mr r28, r3`). Backend copy propagation
+	 * replaces a single-def copy of the call result by the `@ret` temp (coloured first, it hands out
+	 * r28 and the `lis` takes it); the dead second def `blksmpl = sjd->decpos` blocks it. Placed after
+	 * the SJ_GetNumData call so the copy stays in that call's setup block; the post-RA peephole folds
+	 * `li; cmpi; bt` into the fall-through and deletes the unreachable arm. */
 	blksmpl = ADXB_GetBlkSmpl(sjd->adxb);
-	if (SJ_GetNumData(sjd->sjo[0], SJ_CK_FREE) / 2 < blksmpl) {
+	n = SJ_GetNumData(sjd->sjo[0], SJ_CK_FREE);
+	z = 0;
+	if (z != 0) {
+		blksmpl = sjd->decpos;
+	}
+	if (n / 2 < blksmpl) {
 		SJ_UngetChunk(sji, SJ_CK_DATA, &sjd->inck);
 		return;
 	}
@@ -523,7 +531,8 @@ void adxsjd_decode_prep(ADXSJD sjd)
 	Sint32 hdrlen;
 	Sint32 i;
 	Sint32 fmt;
-	register Sint32 len; // COMPILER-DIFF: M1 (hard-register asm pin: the post-call single-use length takes r5, not r0)
+	Sint32 len;
+	Sint32 z;
 
 	sji = sjd->sji;
 	adxb = sjd->adxb;
@@ -535,7 +544,15 @@ void adxsjd_decode_prep(ADXSJD sjd)
 	}
 	SJ_SplitChunk(&ck, i, &ck2, &ck);
 	SJ_PutChunk(sji, SJ_CK_FREE, &ck2);
-	asm { lwz r5, ck.len; mr len, r5 } // COMPILER-DIFF: M1
+	/* COMPILER-DIFF: M4 (dead conditional) -- the post-call single-use length is r5 in the target, i.e.
+	 * its web has r0/r3/r4 neighbours that leave no instruction. The dead arm's three field loads are
+	 * live together with len at RA time (coloured r0, r3, r4 before it) and are deleted with the arm by
+	 * the post-RA peephole (`li; cmpi; bt` folded into the fall-through). One load gives r3, two r4. */
+	len = ck.len;
+	z = 0;
+	if (z != 0) {
+		len = len + sjd->decpos + sjd->trap_cnt + sjd->trap_nsmpl;
+	}
 	if (len < 16) {
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
 		return;
