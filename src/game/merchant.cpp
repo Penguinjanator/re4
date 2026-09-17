@@ -1508,25 +1508,18 @@ PriceEntry* Merchant::exerciseItemId(u16 id)
 int Merchant::buyupPrice(u16 id, int num)
 {
     ItemInfo info;
-    u32 hi;
     PriceEntry* p;
-    f32 half;
     int price;
     int n;
     int type;
 
-    // COMPILER-DIFF: 3. The original keeps `lis r29,0.5f@ha` in the prologue (callee-saved) and
-    // only the `lfs f11` inside the 0.5f arm: a gcse PRE copy of a top-of-function `high` whose
-    // REG_EQUAL (high) note our cse2 folds back into a fresh `lis` in the arm (the arm is not on
-    // any cse path from bb 0, so only the note can do it). Reproduced with the high in an asm and
-    // the 0.5 as a named .rodata object; the dead `if (0)` call emits the format string before
-    // the object so .rodata keeps the target order [string][0.5][0.9][0x4330].
-    if (0) {
-        pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
-    }
-    static const f32 k05 __attribute__((nosda)) = 0.5f;
+    // The 0.5 arm is written three times (one per test group) and the last test as
+    // `id == 0xFE`: jump1 swaps that arm ahead of the 0.9 arm, so all three 0.5 loads sit
+    // on a cse1 path from block 0 and share the `half` declaration's high (4 refs: no
+    // update_equiv_regs move, global gives it r29); jump2 cross-jumps the three arms into
+    // one. Declaring `half`/`nine` first keeps the pool order [string][0.5][0.9][0x4330].
+    const f32 half = 0.5f;
     const f32 nine = 0.9f;
-    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k05));
     p = exerciseItemId(id);
     if (p == 0) {
         pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
@@ -1539,11 +1532,16 @@ int Merchant::buyupPrice(u16 id, int num)
     if (type == 5 || type == 0xC) {
         return (int) ((f32) price * 1.0f);
     }
-    if (!((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE)) {
-        return (int) ((f32) price * nine);
+    if (type == 1 || type == 2) {
+        return (int) ((f32) price * half);
     }
-    asm("lfs %0,%1@l(%2)" : "=f"(half) : "i"(&k05), "r"(hi));
-    return (int) ((f32) price * half);
+    if (type == 3 || type == 6) {
+        return (int) ((f32) price * half);
+    }
+    if (id == 0xFE) {
+        return (int) ((f32) price * half);
+    }
+    return (int) ((f32) price * nine);
 }
 
 int Merchant::buyupPrice(ItemWork* item, int num)
