@@ -1,7 +1,7 @@
 # Resident Evil 4 (GameCube) — decompilation
 
 A complete, byte-identical decompilation of *Resident Evil 4* for the Nintendo GameCube: the
-`G4BE08` **debug build** (the "Nov 25 2004" prototype, Disc 1), whose `Bio4.sym` files name every
+`G4BE08` **debug build** (the "Nov 25 2004" prototype, both discs), whose `Bio4.sym` files name every
 function. Building the repository reproduces `main.dol` and all 110 REL overlays exactly
 (`config/G4BE08/build.sha1`, checked on every build).
 
@@ -25,8 +25,8 @@ wibo, the CodeWarrior builds) are downloaded by the first configure run, except 
 # 1. the native cc1/cc1plus (once): needs SN's GPL source drop, see tools/sn-gcc/build.sh
 SN_GCC_SRC=/path/to/NGC_GNU_SRC/NGC tools/sn-gcc/build.sh
 
-# 2. your disc image
-cp re4_debug_disc1.iso orig/G4BE08/
+# 2. your disc images (disc 1: main.dol + 110 RELs; disc 2: the four island-stage RELs st3_0..st3_3)
+cp re4_debug_disc1.iso re4_debug_disc2.gcm orig/G4BE08/
 
 # 3. build and verify
 python3 configure.py && ninja

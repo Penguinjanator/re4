@@ -59,6 +59,9 @@ class Gcm:
         d = d + '/' if d else ''
         return [p[len(d):] for p, _, _ in self.files.values() if p.lower().startswith(d) and '/' not in p[len(d):]]
 
+    def exists(self, path):
+        return path == 'sys/main.dol' or self._fst_path(path) in self.files
+
     def read(self, path):
         if path == 'sys/main.dol':
             self.f.seek(self.dol_off)
@@ -88,6 +91,13 @@ class DiscDir:
 
     def listdir(self, d):
         return os.listdir(self._find(d))
+
+    def exists(self, path):
+        try:
+            self._find(path)
+            return True
+        except KeyError:
+            return False
 
     def read(self, path):
         return open(self._find(path), 'rb').read()
@@ -130,6 +140,9 @@ def main():
         if out:
             d, fn = m['object'].split('/')[1:]
             if d == 'Rel':
+                if not disc.exists(m['object']):
+                    print(f'{out}: not on this disc (st3_* are on disc 2)')
+                    continue
                 data = disc.read(m['object'])
             else:
                 a = Drs(disc.read(f'files/{d}/{name}.drs'))

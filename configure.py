@@ -652,10 +652,12 @@ if _missing and args.mode == "configure":
     _images = sorted(_orig_dir.glob("*.iso")) + sorted(_orig_dir.glob("*.gcm"))
     if not _images:
         sys.exit(
-            f"{len(_missing)} original REL(s) missing under {_orig_dir} ({_missing[0]}, ...): put the disc "
+            f"{len(_missing)} original REL(s) missing under {_orig_dir} ({_missing[0]}, ...): put the disc 1 (and disc 2 for st3_*) "
             f"image in {_orig_dir}/ or run python3 tools/extract_orig.py {config.config_path} <image or extracted disc>"
         )
-    subprocess.check_call([sys.executable, "tools/extract_orig.py", str(config.config_path), str(_images[0])])
+    # disc 1 carries the DOL and 110 RELs, disc 2 adds st3_0..st3_3: extract from every image present
+    for _img in _images:
+        subprocess.check_call([sys.executable, "tools/extract_orig.py", str(config.config_path), str(_img)])
 for _mod in _module_names:
     for unit, _first, *_src in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
         # a third element names a source shared by several modules (st2/st2.cpp ends every st2_* REL);
