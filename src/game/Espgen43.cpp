@@ -127,17 +127,25 @@ void AddSandPowerSub(EspgenWork* w)
 void AddSandPower(Vec* pos, f32 power)
 {
     if (pG->flags_500C & 2) {
-        // COMPILER-DIFF: asm-emitted stfs (sched2 slot). The original issues `stfs Add_power` in the
-        // first cycle's second slot (sched2 priority >= 6) while sched1 keeps it at cycle 3 (priority 3,
-        // the local-alloc order W0 > W4 > W8 > high > addi depends on that position). A C store has
-        // the same dependences in both passes (the `*pos` loads are exempt: fixed scalar vs varying
-        // struct). The `r11` input gives the asm an anti-dependence on `lwz r11, 8(r7)` that exists
-        // only after reload (priority 5 + 1 = 6); before reload the load writes a pseudo, so sched1
-        // and the allocation are unchanged.
-        register u32 anti asm("r11");
-        asm("stfs %1,%0" : "=m"(Add_power) : "f"(power), "r"(anti));
+        // COMPILER-DIFF: word copy with the .z word pinned to r11 (the original issues `stfs Add_power`
+        // in the first cycle in both schedulers). Scalar `u32` loads are not MEM_IN_STRUCT_P, so the
+        // plain `Add_power` store gates them (priority 7) and takes the first cycle in sched1 too;
+        // that moves the Chk_pos high's birth one slot later, which would rank it above the .z word
+        // (2 refs) in local-alloc and give it r11. Pinning the .z word removes that qty: high takes
+        // r10 (r11 busy), addi r8, W0 r0, W4 r9 as in the original. Order 0,4,8 keeps the addi's
+        // death on the .z store so sched1 issues S0, S8, S4.
+        register u32 c asm("r11");
+        u32* s = (u32*) pos;
+        u32* d = (u32*) &Chk_pos;
+        u32 a, b;
+        Add_power = power;
         ISet(Height_find, 0);
-        Chk_pos = *pos;
+        a = s[0];
+        b = s[1];
+        c = s[2];
+        d[0] = a;
+        d[1] = b;
+        d[2] = c;
         EspgenApplyFunc(AddSandPowerSub);
     }
 }
