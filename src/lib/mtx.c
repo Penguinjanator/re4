@@ -622,14 +622,16 @@ void C_MTXRotTrig(Mtx m, char axis, f32 sinA, f32 cosA) {
     }
 }
 
+/* The two frsp of the parameters are C round trips through double; scheduling off keeps them
+ * ahead of the constant loads (the FPU takes one frsp per two cycles, so a scheduled block
+ * interleaves the first lfs between them). */
+#pragma scheduling off
 void PSMTXRotTrig(register Mtx m, register char axis, register f32 sinA, register f32 cosA) {
     register f32 fc0, fc1, nsinA;
     register f32 fw0, fw1, fw2, fw3;
 
-	asm {
-		frsp        sinA, sinA
-		frsp        cosA, cosA
-	}
+    sinA = (f32)(f64)sinA;
+    cosA = (f32)(f64)cosA;
 
     fc0 = 0.0f;
     fc1 = 1.0f;
@@ -684,6 +686,7 @@ void PSMTXRotTrig(register Mtx m, register char axis, register f32 sinA, registe
 	_end:
 	}
 }
+#pragma scheduling on
 
 static void __PSMTXRotAxisRadInternal(register Mtx m, const register Vec* axis, register f32 sT, register f32 cT) {
     register f32 tT, fc0;

@@ -135,6 +135,9 @@ f32 C_VECMag(const Vec* v) {
     return sqrtf(C_VECSquareMag(v));
 }
 
+/* The Newton step after frsqrte is C (fp_contract on for the fnmsubs); the paired-single
+ * prologue stays asm and branches over it to the C label. */
+#pragma fp_contract on
 f32 PSVECMag(const register Vec* v) {
     register f32 vxy, vzz;
     register f32 sqmag, rmag;
@@ -157,17 +160,16 @@ f32 PSVECMag(const register Vec* v) {
 
     c_three = 3.0f;
 
-    asm {
-        fmuls nwork0, rmag, rmag
-        fmuls nwork1, rmag, c_half
-        fnmsubs nwork0, nwork0, sqmag, c_three
-        fmuls rmag, nwork0, nwork1
-        fmuls sqmag, sqmag, rmag
-    L_000005F0:
-    }
+    nwork0 = rmag * rmag;
+    nwork1 = rmag * c_half;
+    nwork0 = c_three - nwork0 * sqmag;
+    rmag = nwork0 * nwork1;
+    sqmag = sqmag * rmag;
+L_000005F0:
 
     return sqmag;
 }
+#pragma fp_contract off
 
 f32 C_VECDotProduct(const Vec* a, const Vec* b) {
     f32 dot;
