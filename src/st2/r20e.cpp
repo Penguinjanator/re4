@@ -241,21 +241,18 @@ void R20eMain()
 
 void cFence20e::move()
 {
-    // COMPILER-DIFF: #13 (asm-emitted pool constant): the lift height is a reload-rematerialised
-    // constant in the original (`lis r9` reusing the dead 50.0 high's register one insn after its
-    // last use, `lfs f12` a cycle later); as a pseudo our local-alloc gives its high r11 (the fake
-    // lifetime of a qty born right after another's death) and sched2 hoists the load.  The named
-    // static const takes the pool's first slot (the pool keeps 50.0 and 20.0), so .rodata is unchanged.
-    static const f32 k2200 = 2200.0f;
-
     if (obj && active) {
         if (state == 1) {
-            register u32 hi asm("r9");   // COMPILER-DIFF: #13
-            f32 up;
+            f32 up = 2200.0f;
+            f32 y = obj->pos.y + 50.0f;
 
-            obj->pos.y += 50.0f;
-            asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k2200));                 // COMPILER-DIFF: #13
-            asm("lfs %0,%1@l(%2)" : "=f"(up) : "i"(&k2200), "r"(hi));   // COMPILER-DIFF: #13
+            // COMPILER-DIFF: #5 (codeless sched1 slot): local-alloc marks a qty's FAKE lifetime
+            // (birth-2 .. death+2), so the 2200 high may share the dead 50.0 high's r9 only if its
+            // `lis` is issued two insns after `lfs f13` in sched1.  This anchor (no code; an output
+            // dependence on the `stfs`, prio 9) takes the second issue slot of that cycle ahead of
+            // the `lis` (prio 6); sched2 then puts `lis r9` after `lfs f13` and `lfs f12` after `fadds`.
+            asm("" : "=m"(spd));
+            obj->pos.y = y;
             if (obj->pos.y > baseY + up || force == 1) {
                 obj->pos.y = baseY + up;
                 SceAtSetEnable(atNo, 0);

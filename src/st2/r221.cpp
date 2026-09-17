@@ -1223,7 +1223,12 @@ static void r201_throwBonbe(int no)
     Vec pos = {0.0f, 0.0f, 0.0f};
     Mtx m;
     int atNo = 0;
-    int eff0 = 0;
+    // COMPILER-DIFF: 2 (pin): the original keeps both `clrlwi r8,r16,24` for `(u8) eff0`; our combine
+    // deletes them from reg_nonzero_bits (the OR of the four constant sets 0/2/4/0xB fits a byte).
+    // That summary exists only for pseudos (set_nonzero_bits_and_sign_copies skips hard registers),
+    // so pinning eff0 to its own r16 keeps the masks with no other change (no extra ref, same
+    // global-alloc order for eff3/r17).
+    register int eff0 asm("r16") = 0;
     int eff1 = 0;
     int eff2 = 0;
     int eff3 = 0;
@@ -1264,7 +1269,7 @@ static void r201_throwBonbe(int no)
     case 1:
         bonbe = r221_work.p->bonbe[1];
         atNo = 5;
-        asm("li %0,2" : "=r"(eff0)); // COMPILER-DIFF: 2 (opaque set keeps the (u8) eff0 masks)
+        eff0 = 2;
         RsfSet(G_ROOM_ID, 1);
         eff1 = 7;
         eff2 = 3;
