@@ -279,8 +279,13 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     // The next point pn is recomputed from idx: loop.c strength-reduces it as a giv of the biv idx
     // (`addi -12` after idx--, `add r25,r14,r20` after the wrap) and its preheader init folds to
     // the block-0 temporary `s` (kept as cse's head by the dead trailing `p = s`). The Subtract
-    // argument reads the giv register (`mr r3,r25`) and `p = pn` is the asm-emitted `mr r29,r25`
-    // (a plain copy makes p a second giv). idx-- between the two copies puts the giv `addi` before
+    // argument reads the giv register (`mr r3,r25`) and `p = pn` is a codeless asm whose input is
+    // tied to the output (a plain copy makes p a second giv; loop.c never derives a giv from an
+    // ASM_OPERANDS): regmove's matching-constraint fixup emits the one `mr r29,r25`. That copy is one
+    // insn more than the asm alone inside pp's live range (pp 14/126 = esp 17/204 = 3333 in
+    // global-alloc), so a codeless `"=m"` anchor at the loop top, outside pp's range, lengthens esp
+    // (17/205) and keeps the target's order p > pp > esp.
+    // idx-- between the two copies puts the giv `addi` before
     // `mr pp,p`. The two codeless asms give p (2 in-loop mentions -> 17 refs) and pp (4 -> 14 refs)
     // the target's global-alloc order p r29 > pp r28 > esp r27 (ours ranked esp first); the pp asm
     // sits after the second PSVECAdd with a memory input written by that call so it takes no issue
@@ -288,6 +293,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     s = &w->pts[idx];
     p = s;
     for (i = 0; i < n1; i++) {
+        asm("" : "=m"(d));  // COMPILER-DIFF: candidate (global-alloc priority): +1 insn in esp's range only
         p0 = p;
         idx--;
         pp = p;
@@ -296,7 +302,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
             asm("" : "=m"(d) : "r"(p), "r"(p));  // COMPILER-DIFF: candidate (global-alloc priority)
         }
         pn = &w->pts[idx];
-        asm("mr %0,%1" : "=r"(p) : "r"(pn), "0"(p));  // COMPILER-DIFF: candidate (cse canonical register)
+        asm("" : "=r"(p) : "0"(pn));  // COMPILER-DIFF: candidate (cse canonical register): tied copy, regmove emits the mr
         rate = (f32)i / (f32)n1;
         half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
         PSVECSubtract(pn, p0, &d);

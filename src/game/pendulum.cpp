@@ -311,18 +311,20 @@ void PenClothMove(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((c->flags & 0x200) && c->x30) {
-                // COMPILER-DIFF: register pins + address-copy asm (see docs/research/ "DOL pendulum closer
+                // COMPILER-DIFF: register pins + address copy (see docs/research/ "DOL pendulum closer
                 // pass 2"). The original computes this call's `&v` straight into r5 and copies it to the
                 // callee-saved `&v` pseudo before the call (`addi r5,r1,0x38; mr r3; mr r4; mr r28,r5`):
                 // the #3 frame-address PRE family. Ours keeps a pseudo for the argument (`addi r30; mr
-                // r5,r30`) and copies after the call. The three argument pins fix the argument moves, the
-                // asm copies r5 into pv (pinned to the pseudo's r28); its r3/r4 inputs put it after the
-                // last argument move in sched2, and the pin order (r5, r3, r4) is the target's issue order.
+                // r5,r30`) and copies after the call. The three argument pins fix the argument moves; the
+                // plain hard-register copy `pv = pa` survives (r5 is still live for the call, so combine
+                // cannot fold it and regmove stops at the call); the codeless asm reading pv with r3/r4
+                // inputs puts the copy after the last argument move in sched2, the target's issue order.
                 register Vec* pa asm("r5") = &v;
                 register Vec* pw asm("r3") = &w->pos;
                 register Vec* pm asm("r4") = &mpos;
                 register Vec* pv asm("r28");
-                asm("mr %0,%1" : "=r"(pv) : "r"(pa), "r"(pm), "r"(pw));
+                pv = pa;
+                asm("" : "+r"(pv) : "r"(pm), "r"(pw));
                 PSVECSubtract(pw, pm, pa);
                 v.y = 0.0f;
                 if (v.x != 0.0f && v.z != 0.0f) {

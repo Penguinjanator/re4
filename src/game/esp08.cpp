@@ -91,10 +91,12 @@ extern f32 ZFAR;
 // promoted to canonical: its last use is beyond the ebb and later than the original's), gcse
 // copy-propagates it back and cse2 canonicalises again, so one register serves both quads;
 // the codeless asm after each copy makes it opaque (COMPILER-DIFF: first-tile copy canon).
-// The mask arm's du/dv are asm-emitted fdivs: with C divides the scheduler's non-pipelined
-// divider (fdivs blockage 17) delays the `cu + du` / `cv + dv` adds past the second y0 store,
-// so reload inherits the first y0 reload; the original has the adds right after GXBegin and
-// reloads y0 twice, as if the divides sat in another block (COMPILER-DIFF: asm-emitted fdivs).
+// The mask arm's du/dv divides sit in a `do { } while (0)`: as plain statements the scheduler's
+// non-pipelined divider (fdivs blockage 17) delays the `cu + du` / `cv + dv` adds past the
+// second y0 store, so reload inherits the first y0 reload; the original has the adds right
+// after GXBegin and reloads y0 twice, as if the divides sat in another block. The loop notes
+// give exactly that: NOTE_INSN_LOOP_END ends the cse1 ebb and is a haifa scheduling barrier
+// for the insn that follows (COMPILER-DIFF: candidate (first-tile divider blockage)).
 // The `=m` keep-alive after the mask quad keeps y and st1 live through it (global-alloc order
 // y after the double loop's 0x4330 magic, st1 after y1: f24/f21 as the original) without
 // touching ss1/x. See "DOL esp08/esp18 final closer" in docs/research/.
@@ -130,8 +132,10 @@ extern f32 ZFAR;
             } else {                                                                              \
                 f32 cu = 0.0f;                                                                    \
                 f32 cv = 0.0f;                                                                    \
-                asm("fdivs %0,%1,%2" : "=f"(du) : "f"(w->ofsX), "f"(w->rateX)); /* COMPILER-DIFF: asm-emitted fdivs (first-tile divider blockage) */ \
-                asm("fdivs %0,%1,%2" : "=f"(dv) : "f"(w->ofsY), "f"(w->rateY));                  \
+                do { /* COMPILER-DIFF: candidate (first-tile divider blockage): the loop notes */ \
+                    du = w->ofsX / w->rateX; /* end the cse1 ebb and are a haifa barrier, so   */ \
+                    dv = w->ofsY / w->rateY; /* the divides are scheduled as in another block  */ \
+                } while (0);                                                                      \
                 ESP08_QUAD2(x0, y0, x1, y1, ss0, st0, s1, t1, cu, cv, cu + du, cv + dv)           \
                 asm("" : "=m"(inv[0][0]) : "f"(y), "f"(st1)); /* COMPILER-DIFF: candidate (keep-alive, global-alloc order) */ \
             }                                                                                     \

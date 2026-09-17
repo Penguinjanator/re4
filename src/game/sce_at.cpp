@@ -1166,9 +1166,12 @@ static void sceAtGetItem(SceAtWork* w_)
             SceSleep(1);
         }
         if (cancel == 0) {
-            s8 res = cMes.getWork()->result;
+            // COMPILER-DIFF: candidate #12 (r0 pin): cse1 follows the `bne` into the else arm and would
+            // canonicalise `res == 2` to sel; canon_reg never replaces a hard register, so the pinned res
+            // keeps `cmpwi r0,2` and sel (a pseudo: preferred as class head) keeps `mr; cmpwi sel,1`.
+            register int res asm("r0") = cMes.getWork()->result;
 
-            asm("mr %0,%1" : "=r"(sel) : "r"(res)); // COMPILER-DIFF: candidate #12 (taken-arm form): the original's cse never rewrote `res == 2` to sel
+            sel = res;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1266,6 +1269,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     int mes = 0;
     int put = 1;
     int sel;
+    // COMPILER-DIFF: codeless def: a mention of sel before the result block so cse1 makes sel the
+    // head of the `sel = res` class (a block-local sel is replaced by the sign-extend temp: 4 refs, r31).
+    asm("" : "=r"(sel));
     int i;
     ItemInfo info;
     ItemWork tmp;
@@ -1401,9 +1407,12 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             SceSleep(1);
         }
         if (cancel == 0) {
-            s8 res = cMes.getWork()->result;
+            // COMPILER-DIFF: candidate #12 (r0 pin): cse1 follows the `bne` into the else arm and would
+            // canonicalise `res == 2` to sel; canon_reg never replaces a hard register, so the pinned res
+            // keeps `cmpwi r0,2` and sel (a pseudo: preferred as class head) keeps `mr; cmpwi sel,1`.
+            register int res asm("r0") = cMes.getWork()->result;
 
-            asm("mr %0,%1" : "=r"(sel) : "r"(res)); // COMPILER-DIFF: candidate #12 (taken-arm form): the original's cse never rewrote `res == 2` to sel
+            sel = res;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {

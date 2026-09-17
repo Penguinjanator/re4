@@ -1260,11 +1260,14 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
         }
         {
             // The target keeps `n - 1` in a local (r0) and copies it to `last` BEFORE the compare
-            // (gcse's pre_insert_copies shape); ours coalesces the copy in regmove.
-            int m = n - 1;
-            asm("mr %0,%1" : "=r"(last) : "r"(m));  // COMPILER-DIFF: gcse copy kept
+            // (gcse's pre_insert_copies shape); a plain copy is coalesced by regmove. The r0 pin plus
+            // the codeless use in the error arm keep m live past the compare, so combine cannot fold
+            // the copy and regmove's forward scan stops at the branch (COMPILER-DIFF: gcse copy kept).
+            register int m asm("r0") = n - 1;
+            last = m;
             asm("" : : "r"(last));                    // COMPILER-DIFF: last must outrank n for r30
             if (idx > m) {
+                asm("" : : "r"(m));                   // COMPILER-DIFF: keep-alive for the r0 temp
                 pLog->err(0, 0, "H.I.(): axis=%d, hist=%d nFrm=%d, Invalid key history.", axis, idx, n);
                 idx = 0;
                 ret = 1;

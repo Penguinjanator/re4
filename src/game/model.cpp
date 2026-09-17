@@ -334,18 +334,17 @@ void cModel::matBlend(f32 rate)
     Vec trans;
 
     for (p = pPartsHead; p; p = p->pNext) {
-        MtxPtr wm;
-        {
-            // The original computes `&p->worldMat` into a temp and copies it (`addi r0,r31,60;
-            // mr r28,r0`); every plain form folds the copy into the addi. The opaque copy hides
-            // wm's value from cse, so the `[0][0]` store below stays written through `p`.
-            MtxPtr t = p->worldMat;
-            asm("mr %0,%1" : "=r"(wm) : "r"(t)); // COMPILER-DIFF: 3 (address-copy shape)
-        }
+        // COMPILER-DIFF: 3 (address-copy shape). The original computes `&p->worldMat` into a temp
+        // and copies it (`addi r0,r31,60; mr r28,r0`). With the temp pinned to r0 and kept live
+        // past the copy by the codeless anchor below (before the PSVECMag call), combine cannot
+        // fold the copy into the addi (the r0 set is still needed) and regmove skips hard registers.
+        register MtxPtr t asm("r0") = p->worldMat;
+        MtxPtr wm = t;
 
         vx.x = p->worldMat[0][0];
         vx.y = p->worldMat[1][0];
         vx.z = p->worldMat[2][0];
+        asm("" : "=m"(vx) : "r"(t)); // COMPILER-DIFF: 3 (keep-alive for the r0 temp)
         len.x = PSVECMag(&vx);
         vy.x = p->worldMat[0][1];
         vy.y = p->worldMat[1][1];
