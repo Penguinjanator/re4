@@ -492,7 +492,8 @@ UNITS = {
 }
 
 # Units whose compiled object does not yet match: linked from the original bytes instead.
-NON_MATCHING = set()
+# Disc 2 island stage modules (added 2026-09-18): linked from the split original objects until matched.
+NON_MATCHING = {f"st3_{i}/st3_{i}.cpp" for i in range(4)}
 # The 16 Ganado modules (em10..em20) are three objects. (1) The same em10.cpp ("D:/Bio4/Prog/em10.cpp":
 # cEm10 and its em10*/em1c*/plem10* helpers, .text 0-0x43518, .rodata 0-0x1D40, all of .data/.bss,
 # byte-identical in every module). (2) A header-only object whose name is not in the binary

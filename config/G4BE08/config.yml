@@ -66,6 +66,22 @@ modules:
   name: st2_4
   splits: config/G4BE08/modules/st2_4/splits.txt
   symbols: config/G4BE08/modules/st2_4/symbols.txt
+- object: files/Rel/st3_0.rel
+  name: st3_0
+  splits: config/G4BE08/modules/st3_0/splits.txt
+  symbols: config/G4BE08/modules/st3_0/symbols.txt
+- object: files/Rel/st3_1.rel
+  name: st3_1
+  splits: config/G4BE08/modules/st3_1/splits.txt
+  symbols: config/G4BE08/modules/st3_1/symbols.txt
+- object: files/Rel/st3_2.rel
+  name: st3_2
+  splits: config/G4BE08/modules/st3_2/splits.txt
+  symbols: config/G4BE08/modules/st3_2/symbols.txt
+- object: files/Rel/st3_3.rel
+  name: st3_3
+  splits: config/G4BE08/modules/st3_3/splits.txt
+  symbols: config/G4BE08/modules/st3_3/symbols.txt
 - object: files/Rel/st4_0.rel
   name: st4_0
   splits: config/G4BE08/modules/st4_0/splits.txt
