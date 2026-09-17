@@ -771,7 +771,11 @@ struct PlPtr {
 // keep-alive of pass 8 is not needed (and its extra insn shifted the truncated priorities of the
 // four loop-hoisted highs Key/ActBtn/"%d"/2^31 -- 30000/len at 434..442 -- away from the target's).
 // COMPILER-DIFF: 12 (regmove operand pick, `rp` below): `addi r4,mdl,0xa0` must be computed from
-// mdl's register before `mr r3,mdl` (the r20d execRoundSwitch "cc"-clobber asm).
+// mdl's register before `mr r3,mdl`. Plain `&mdl->rot` is combined into the `r4` argument move
+// (placed after `r3 = mdl`, where mdl dies) and regmove rewrites it as `addi r4,r3`. The codeless
+// `asm("" : "+r"(rp) : : "cc")` makes `rp` two-set so combine leaves the `addi` at its own (earlier)
+// position and mdl dies at the `mr`; the "cc" clobber (a PARALLEL) keeps the launder from being
+// merged into the `r4` move, which would add a second `r4` writer and swap setPos's `mr`/`addi`.
 // COMPILER-DIFF: candidate (gcse PRE pseudo numbering) -- the 21 dead `f32 lcN` locals at the top of
 // EventChandelier1 (below): the four loop-hoisted highs Key/ActBtn/"%d"/2^31 tie at global priority 68
 // (Key 69) and are allocated in PRE pseudo order = gcse bucket order, bucket = (7933 + h(name)) % size
@@ -866,8 +870,8 @@ struct PlPtr {
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         {                                                                                                          \
-            Vec* rp;                                                                                               \
-            asm("addi %0,%1,0xa0" : "=r"(rp) : "r"(mdl) : "cc"); /* COMPILER-DIFF: 12 */                           \
+            Vec* rp = &mdl->rot;                                                                                   \
+            asm("" : "+r"(rp) : : "cc"); /* COMPILER-DIFF: 12 (codeless, see above) */                            \
             mdl->setAng(rp);                                                                                       \
         }                                                                                                          \
         pPL->motionSet(motPl, 3, 0, 1, 0);                                                                         \

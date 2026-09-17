@@ -351,28 +351,17 @@ static void r20d_setEm()
     }
 }
 
-// The switch that raises / lowers fence 0.
-// COMPILER-DIFF: #12 (AROUND form): the target's tail `move(0.0f)` reloads the pool 0.0
-// (`lfs f1,0.0@l(r29)`, the high shared with the other 0.0 loads); our cse1 reaches the tail
-// through the AROUND path of the down-loop exit and folds it to the compare's 0.0 register
-// (`fmr f1,f28`). No compiler load form keeps the shared high AND the reload, so the 0.0 word is a
-// named `static const` in the pool's first slot (.rodata unchanged) and every 0.0 load is an
-// asm-emitted `lfs` through one asm-emitted `lis` (`hi`, r29). Consequences handled below:
-// - the asm loads have no REG_EQUAL const note, so spd/zero lose global-alloc's live-length
-//   doubling: `spd` gets a tail keep-alive (the tail load's "f"(spd) input), `zero` one in the
-//   sleep block (live everywhere, ranked below the pool constants and above z0);
-// - an asm load has latency 1 (the pool `lfs` has 2), so the compare copy `zero = spd` would be
-//   ready one cycle early and take the `li r30,0` slot: `open = 0` is an asm `li` with a fake "=m"(sw) output (anti-dependent on the
-//   load's "m"(sw) read -> ready with `li r4,1`, memory write -> the call depends on it, weight 2
-//   -> issued after `li r4,1`).
+// The switch that raises / lowers fence 0. The three 0.0 loads (the `t != 0.0` compare, `spd = 0.0`,
+// the tail `move(0.0f)`) share one high (`lis r29`, callee-saved) only when every occurrence is
+// inside the outer loop: gcse PRE then inserts the single `high(LC)` at the end of the preheader
+// and all three loads become redundant copies of it (a `z0 = 0.0f` before the loop is its own
+// non-redundant occurrence and PRE re-inserts a second high for the other two). loop.c hoists the
+// compare's load to the preheader (`lfs f27`); the other two stay in their blocks.
 static void r20d_checkSwitch(int opened)
 {
-    static const f32 k0 = 0.0f; // COMPILER-DIFF: #12
     cEm* sw;
     int open;
-    u32 hi;   // COMPILER-DIFF: #12 (asm-emitted high of k0)
-    f32 z0;   // COMPILER-DIFF: #12
-    f32 zero; // COMPILER-DIFF: #12
+    f32 zero;
 
     getRoomEtcSwitch(0xF, &sw, 1);
     if (sw == 0) {
@@ -385,10 +374,9 @@ static void r20d_checkSwitch(int opened)
         open = 1;
         ((cEmSwitch*) sw)->setOpened();
     }
-    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k0));                 // COMPILER-DIFF: #12
-    asm("lfs %0,%1@l(%2)" : "=f"(z0) : "i"(&k0), "r"(hi));    // COMPILER-DIFF: #12
     for (;;) {
         f32 t = r20d_work.p->fence[0].t;
+        f32 z0 = 0.0f;
 
         if (open == 0) {
             if (t != z0) {
@@ -421,8 +409,8 @@ static void r20d_checkSwitch(int opened)
                 f32 spd;
 
                 SndCall(6, 0x26, 0, 0, 0, 0);
-                asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0), "r"(hi), "m"(sw)); // COMPILER-DIFF: #12
-                asm("li %0,0" : "=r"(open), "=m"(sw));                          // COMPILER-DIFF: #12
+                spd = 0.0f;
+                open = 0;
                 zero = spd;
                 SceAtSetEnable(0, 1);
                 for (;;) {
@@ -439,16 +427,11 @@ static void r20d_checkSwitch(int opened)
                     }
                 }
                 SndCall(6, 0x27, 0, 0, 0, 0);
-                {
-                    f32 v;
-                    asm("lfs %0,%1@l(%2)" : "=f"(v) : "i"(&k0), "r"(hi), "f"(spd)); // COMPILER-DIFF: #12 (+ spd keep-alive)
-                    r20d_work.p->fence[0].move(v);
-                }
+                r20d_work.p->fence[0].move(0.0f);
             }
         }
     sleep:
         SceSleep(1);
-        asm("" : : "f"(zero)); // COMPILER-DIFF: #12 (zero keep-alive, see above)
     }
 }
 
@@ -846,11 +829,10 @@ yes:
         FSet(r20d_work.p->roundSwitch->rot.y, ang);
         pl = pPL;
         pl->setPos(&pl->pos);
-        {
-            Vec* rot;
-            asm("addi %0,%1,0xa0" : "=r"(rot) : "r"(pl) : "cc"); // COMPILER-DIFF: 12 (regmove operand pick)
-            pl->setAng(rot);
-        }
+        pl->setAng(&pl->rot);
+        asm("" : : "r"(pl)); // COMPILER-DIFF: 12 (regmove operand pick): `pl` must not die at the
+                             // `addi r4,pl,0xa0` argument insn, or regmove rewrites it as `addi r4,r3`
+                             // after the `mr r3,pl` copy; the codeless use after the call keeps the death there.
         SceSleep(30);
         while (MotionGetState(pPL) != 4) {
             SceSleep(1);
