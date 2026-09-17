@@ -14,25 +14,23 @@ void espgen10_Move01(EspgenWork* w);
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* p8, int flag)
 {
-    EspGenWork* rec = &head->rec[no];
+    // COMPILER-DIFF #13 block: the original never allocates `list` (REG_EQUIV symbol_ref) and
+    // reload materialises `lis r9; addi r11` before the compare. Here `list` is a 2-set variable
+    // (the rec offset, then the table address): no REG_EQUIV, global gives it r11, the high is
+    // a plain local-alloc qty (r9) since the addi's destination is not a hard register.
+    u32 list;
+    EspGenWork* rec;
     int ret = 1;
 
+    list = no * sizeof(EspGenWork) + 0x30;
+    rec = (EspGenWork*) ((u32) head + list);
     if (info->x0 & 0x1000) {
-        // COMPILER-DIFF #13 block: in the original `list` (REG_EQUIV symbol_ref) and `no`
-        // (REG_EQUIV mem) are never allocated -- reload materialises `lis r9; addi r11` before
-        // the compare (so r9 is busy and `flag` falls to r30) and reloads `no` into r0, so the
-        // `no << 2` temp is not tied to it (r9). Written out as pinned registers + asm insns.
-        register u32 hi asm("r9");    // COMPILER-DIFF: #13 (reload-materialised high)
-        register u32 list asm("r11");  // COMPILER-DIFF: #13
         u32 no = rec->x6;
-        asm("lis %0,EspEvModList@ha" : "=r"(hi));
-        asm("addi %0,%1,EspEvModList@l" : "=r"(list) : "r"(hi));
+        list = (u32) EspEvModList;
         if (no > 0x7F) {
             model = NULL;
         } else {
-            register u32 idx asm("r9");  // COMPILER-DIFF: #13
-            idx = no << 2;
-            model = *(cModel**) (list + idx);
+            model = *(cModel**) (list + (no << 2));
         }
     }
 
