@@ -2651,6 +2651,7 @@ static int dbmod_p_info()
     static u16 pinfoParts[FILE_NUM];
     static u8 pinfoType[FILE_NUM];
     DB_EM* em = &dbModSlot[pDbModState.p->no];
+    u32 em2 = (u32) em; // COMPILER-DIFF: the p-info zero colour (see the j-loop below)
     cEm* model = em->pEm;
     JOY* joy = &Joy[0];
     MotionWork* mw;
@@ -2660,7 +2661,7 @@ static int dbmod_p_info()
     int type;
     int x;
     int y = 4;
-    register Vec* v asm("r26"); // COMPILER-DIFF: pin (the target ranks v between the label giv r27 and the zero r25)
+    Vec* v;
 
     if (model == 0) {
         pDbModState.p->mode--;
@@ -2754,16 +2755,14 @@ static int dbmod_p_info()
             p = (cParts*) model->getPartsPtr(em->partsNo);
             for (j = 0; j <= 4; j++) {
                 // COMPILER-DIFF: the colour of both calls is ONE zero-valued pseudo that gcse PREs into the j-loop
-                // preheader (`li r25,0` after the four dbmodPinfo* highs) and that cprop never folds: an asm-produced
-                // zero as the 5th argument of both calls, forced onto the same source line so the two ASM_OPERANDS
-                // are equal (gcse hashes the line number). The `"m"` use gives the label giv one more ref (r27 above
-                // the zero's r25).
+                // preheader (`li r25,0` after the four dbmodPinfo* highs; a REG_EQUIV constant, doubled live length,
+                // lowest global priority): `em - em2` is not foldable before gcse (the copy `em2` is set in another
+                // ebb), cprop turns it into `em - em` (not a constant, so PRE hoists the one expression of both
+                // calls into the preheader) and cse2 folds the hoisted pseudo to 0.
                 if (j == 0) {
-#line 2960
-                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + 1) * dbmodPinfoH, ({ int z; asm("li %0,0" : "=r"(z)); z; }), 0, "%s %08x",
+                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + 1) * dbmodPinfoH, (int) ((u32) em - em2), 0, "%s %08x",
                              dbmodPinfoLabel[j], p->motParts.flags);
                 } else {
-                    asm("" : : "m"(dbmodPinfoLabel[j])); // COMPILER-DIFF (see above)
                     switch (j) {
                     case 1:
                         v = &p->pos;
@@ -2778,8 +2777,7 @@ static int dbmod_p_info()
                         v = &p->worldPos;
                         break;
                     }
-#line 2960
-                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + j + 1) * dbmodPinfoH, ({ int z; asm("li %0,0" : "=r"(z)); z; }), 0,
+                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + j + 1) * dbmodPinfoH, (int) ((u32) em - em2), 0,
                              "%s (%f, %f, %f)", dbmodPinfoLabel[j], v->x, v->y, v->z);
 #line 3101
                 }

@@ -1024,11 +1024,12 @@ void editScreenDisp()
     {
         // COMPILER-DIFF: 3 -- the original computes `base - 4` and `base + rows * 0x14 + 4` here from a copy of
         // base (`mr r10,r23`); our block LCM PREs the single `base - 4` occurrence above the two loops. The
-        // opaque copy (with the loop counter as a dummy input so it is not hoisted itself) is that copy.
+        // copy into a pinned hard register is that copy (a hard-register operand is not anticipatable at the
+        // block entry, so neither sum is PRE'd, and a plain register copy is never a gcse expression).
         // the copy shares the dead work-pointer register r10 and `b - 4` is a fresh r0 (not in place)
         register int b asm("r10"); // COMPILER-DIFF: candidate (local-alloc qty order)
         register int t asm("r0");  // COMPILER-DIFF: candidate (local-alloc qty order)
-        asm("mr %0,%1" : "=r"(b) : "r"(base), "r"(i));
+        b = base;
         pt[0].x = x;
         pt[0].z = 0;
         t = b - 4; // before the pt[1] stores: the hard-reg `subi r0` then follows `li r30,0; lfd f0` in LUID order

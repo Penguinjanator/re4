@@ -179,6 +179,8 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y);
 void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y);
 void disp_seq_volume(SND_SEQ_WORK* seq);
 static void snd_test_disp_rit();
+// Snd_test_get_str_name with the caller's second argument (see test_play_or_stop).
+const char* Snd_test_get_str_name2(int type, u16 no) asm("Snd_test_get_str_name__Fi");
 int str_get_player_id();
 void disp_cursor(SndTestWork* w, int x, int y);
 void disp_str_status(SndTestWork* w, int x, int y);
@@ -626,11 +628,10 @@ int test_play_or_stop(SndTestWork* w)
                 w->sndId = id;
             }
         } else {
-            // COMPILER-DIFF: asm-emitted dead load. The original loads w->reqCur into r4 BEFORE the
-            // inner call and re-reads it after; ours precomputes the argument into a callee-saved
-            // pseudo when the call is nested (see "Nested call as an argument").
-            asm volatile("lhz 4,%0" : : "m"(w->reqCur) : "r4");
-            char* name = (char*) Snd_test_get_str_name(blk);
+            // The original passes w->reqCur as a second argument to Snd_test_get_str_name (`lhz r4` before
+            // the call; the callee ignores it) and re-reads it for Snd_str_prepare: a two-argument view of
+            // the same symbol.
+            char* name = (char*) Snd_test_get_str_name2(blk, w->reqCur);
             id = Snd_str_prepare(blk, w->reqCur, name, -1);
             if (id) {
                 w->sndId = id;
@@ -1233,12 +1234,11 @@ static void snd_test_disp_rit()
     SND_RIT* rit = blk->rit;
     SND_SHD* shd;
     SND_STR_WORK* str;
-    // COMPILER-DIFF: #13 (rematerialised REG_EQUIV constant). The MONOPOLY row's y is `li r4,84;
-    // addi r4,r4,84` in the original: a single-set constant pseudo whose init local-alloc's
-    // update_equiv_regs moves in front of its only use. cse must fold the set (REG_EQUAL 84) and the
-    // use must reject a constant operand ("0" asm below); a literal `k = 84` has no REG_EQUAL note.
-    int half = 42;
-    int k = half + half;
+    // The MONOPOLY row's y is `li r4,84; addi r4,r4,84` in the original: a single-set constant pseudo
+    // (REG_EQUIV 84) whose init local-alloc's update_equiv_regs moves in front of its only use, because
+    // substituting 84 into `y0 + 0x54` fails: validate_replace_rtx's "constant last" swap of
+    // `(plus 84 84)` is a no-op (rtx_equal_p), so the PLUS is never folded (both constants must be equal).
+    int y0 = 0x54;
 
     // rit is advanced in place: cse cannot rewrite the first rit-> load's address as
     // base+offset (the base register was overwritten), so combine forms the lhzux update load
@@ -1278,11 +1278,7 @@ static void snd_test_disp_rit()
         eprintf(0xD0, 0x8C, 0, 1, "STR_TYPE  :   BGM");
     }
     eprintf(0xD0, 0x9A, 0, 1, "CH_NO     : %5d", rit->voice_start);
-    {
-        int y;
-        asm("addi %0,%0,84" : "=r"(y) : "0"(k)); // COMPILER-DIFF: #13 (see `k` above)
-        eprintf(0xD0, y, 0, 1, "MONOPOLY  : %5d", rit->voice_num);
-    }
+    eprintf(0xD0, y0 + 0x54, 0, 1, "MONOPOLY  : %5d", rit->voice_num);
     eprintf(0xD0, 0xB6, 0, 1, "PLAYER_ID : %5d", rit->str_no);
     eprintf(0xD0, 0xC4, 0, 1, "AUX_A     : %5d", rit->auxA);
     eprintf(0xD0, 0xD2, 0, 1, "AUX_B     : %5d", rit->auxB);

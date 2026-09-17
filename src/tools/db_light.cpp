@@ -692,9 +692,10 @@ static void edit_cutsel()
     static void (*cutsel_tbl[])() = {edit_cutsel_main, edit_cutsel_sub};
     int i;
     cLightEnv* env;
-    // COMPILER-DIFF: #4 (reverse): the original stores `i + 6` into this narrow local as a plain `mr r30, r0`
-    // (no mask); ours emits `clrlwi 24` (an `int line` folds the copy into the `addi`), so the copy is an asm `mr`
-    u8 line;
+    // COMPILER-DIFF: #4 (reverse): the original stores `i + 6` into a narrow local as a plain `mr r30, r0` (no
+    // mask); a `u8 line` gives `clrlwi 24`, an `int line` folds the copy into the `addi`, so the sum goes through a
+    // pinned, laundered r0 temp into an `int` line (the copy is opaque to loop.c, so `line * 14` stays a mulli)
+    int line;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
     eprintf(0x20, 0x46, 4, pTool->color, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
@@ -702,8 +703,10 @@ static void edit_cutsel()
         env = pTool->lit.getCut(pTool->top + i);
         eprintf(0x20, 0x54 + i * 14, pTool->top + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->top + i);
         {
-            int t = i + 6;
-            asm("mr %0,%1" : "=r"(line) : "r"(t)); // COMPILER-DIFF: 4 (unmasked narrow store)
+            register int t asm("r0"); // COMPILER-DIFF: 4 (unmasked narrow store, see `line`)
+            t = i + 6;
+            asm("" : "+r"(t)); // combine would fold the hard-reg copy into the addi
+            line = t;
         }
         if (PTR_OK(env)) {
             eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
@@ -4826,11 +4829,14 @@ void printEditTable()
                 eprintf(7 * 8, 0x150 + i * 14, c, pTool->color, "%02d", l->type);
                 // COMPILER-DIFF: candidate #12 (gcse cprop): the target keeps `li r30,10` and `li r3,80`
                 // as pseudos of the pre-diamond block (`x + 1` and the "P" call's r3 not folded); ours
-                // const-propagates both into the "P" join block.
-                asm("li %0,10" : "=r"(x));
+                // const-propagates both into the "P" join block unless the two constants are laundered
+                // after cse folded them (the launders are the last sets of the block: nothing to propagate,
+                // and `t80` is not a single-set constant).
+                x = 10;
                 {
-                    int t80;
-                    asm("li %0,80" : "=r"(t80)); // COMPILER-DIFF: candidate #12 (gcse cprop)
+                    int t80 = x * 8;
+                    asm("" : "+r"(t80));
+                    asm("" : "+r"(x));
                     eprintf(t80, 0x150 + i * 14, c, pTool->color, "%s", (l->xF & 1) ? "P" : "-");
                 }
                 x++;
