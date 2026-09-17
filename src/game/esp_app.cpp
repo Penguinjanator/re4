@@ -424,14 +424,14 @@ void EffEm2d_setTexRender(cModel* m)
     m->pInfo->setBlendRatio(0);
 }
 
-// The 0.8f pool high is a reload-materialised `lis r11` in the original (#13); as a local qty in
-// ours it is BASE_REGS-allocated first (20000 priority, born after reload 1 died) and takes r9,
-// flipping every later `esp` reload (r9,r9,r11,r9,r11 -> r11,r11,r9,r11,r9). Recipe: the constant
-// as a named .rodata word (`k08`, nosda, emitted at the pool's position), `lis` and `lfs` as asms
-// with `hi` (r11 by allocation), plus `li r8,5` as an asm chained lis -> ... so the asm `lfs` (an IU insn
-// for the scheduler, unlike the real LSU load) is ready one cycle later: `c5` depends on `c4`
-// (issued with the `lis`), the `lfs` on `c5`, so sched2 gives `stb; li r8,5; lfs` and `li r10,4`
-// keeps the first slot (two dependents like the `lis`, earlier LUID).
+// The five `esp` reloads and the 0.8f pool high are local-alloc qtys allocated by priority
+// refs*log2(refs)/life over the sched1 order with +-1-insn fake lifetimes: the high (refs 2,
+// life 2 = 10000) goes first and takes r9, flipping every reload (r9,r9,r11,r9,r11 ->
+// r11,r11,r9,r11,r9). The codeless asm below mentions reload 1 twice (refs 4, dies one insn
+// later: 80000/12 = 6666) and, being output-dependent on `stb a4`, is ready one cycle after
+// the `lis` in sched1 and lands between `lis` and `lfs` (the high's life 2 -> 4 = 5000).
+// Reload 1 is then allocated before the high (r9), the high falls to r11 and the walk gives
+// the target; in sched2 the asm fills the empty slot beside the `lfs` and emits nothing.
 void EspDrawLaserLine(Vec from, Vec to, f32 width)
 {
     cEsp* esp;
@@ -450,19 +450,13 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     w->target = to;
     w->len *= width;
     if (pGS->flags_5010 & 1) {
-        static const f32 k08 __attribute__((nosda)) = 0.8f;
-        u32 hi;
-        register int c5 asm("r8"); // COMPILER-DIFF: #13
-        int c4 = 4;
-        f32 k;
-        asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k08)); // COMPILER-DIFF: #13
-        asm("li %0,5" : "=r"(c5) : "r"(c4)); // COMPILER-DIFF: #13
-        esp->xA4 = 1;
-        esp->xA5 = c4;
-        asm("lfs %0,%1@l(%2)" : "=f"(k) : "i"(&k08), "r"(hi), "r"(c5)); // COMPILER-DIFF: #13
-        esp->xA6 = c5;
+        cEsp* e1 = esp;
+        e1->xA4 = 1;
+        asm("" : "=m"(esp) : "r"(e1), "r"(e1)); // COMPILER-DIFF: candidate (local-alloc qty order)
+        esp->xA5 = 4;
+        esp->xA6 = 5;
         esp->xA7 = 0;
-        esp->colA *= k;
+        esp->colA *= 0.8f;
     }
 }
 
