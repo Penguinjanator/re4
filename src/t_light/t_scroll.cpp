@@ -120,6 +120,10 @@ struct ScrollWorkPtr {
 };
 static ScrollWorkPtr scrollWorkPtr;
 #define pWork scrollWorkPtr.p
+// second view of the same symbol: an asm-labelled decl gets the assembler name "*scrollWorkPtr", a different
+// string from "scrollWorkPtr", so gcse/cse hash `high(sym)` of the two views as different expressions while
+// the assembler output is the same (edit_select_sub)
+extern ScrollWorkPtr scrollWorkPtrV asm("scrollWorkPtr");
 
 static char* localPath = "d:\\bio4/room/st%x/r%x%02x/r%x%02x%02d.smx";
 static char* serverPath = "x:\\soft/room/st%x/r%x%02x/r%x%02x%02d.smx";
@@ -511,25 +515,28 @@ static void edit_select_sub()
     if (pWork->joy[0].rep & 4) {
         pWork->subCursor = (pWork->subCursor + 4 + 1) % 4;
     }
-    // the original keeps ONE high(scrollWorkPtr) register (r10) for the last two work loads (`-fno-gcse`
-    // reproduces it): cse1's AROUND path shares the high pseudo into the join block, but our gcse PREs
-    // high(scrollWorkPtr) from bb 0, turns this block's set into a copy of the PRE reg, and the final
-    // cprop propagates that reg into the join's load (the copy is available there; nothing in C can set a
-    // compiler temporary in the then-arm to kill it). The PRE reg then has 2 refs and local-alloc moves
-    // its `lis` into the join block. A different symbol view (asm-labelled alias) hoists above the
-    // dispList loop instead. Opaque asm high + lo-loads (the volatile keeps gcse from hoisting the
-    // input-less asm to the top)
+    // COMPILER-DIFF: 3 (gcse PRE of high(sym)) -- the original keeps ONE high(scrollWorkPtr) register (r10)
+    // for the last two work loads: cse1's AROUND path shares the high pseudo into the join block. Our
+    // gcse (lcm.c) makes every later occurrence of an expression redundant once it is anticipated at bb 0
+    // and a loop breaks the delay chain: it PREs high(scrollWorkPtr) to the end of bb 0, turns this
+    // block's set into a copy of the PRE reg, cprop propagates the PRE reg into the join's load, and
+    // update_equiv_regs moves the 2-ref PRE reg next to that load (`lis r9` twice). Two levers, both
+    // needed: (1) the loads read the `*scrollWorkPtr` view, a different gcse expression from the
+    // `scrollWorkPtr` highs of the blocks above; (2) an always-true test that cse1 cannot fold (the
+    // LOOP_END note ends its ebb; cse2 folds it, 0 code) gives the blocks above an exit path that skips
+    // this block, so the view's high is not anticipated before it (EARLYIN lands here, LATEIN = 1,
+    // not redundant, no insertion). Without (2) the view's high is PRE'd above the dispList loop.
     {
-        u32 hi;
-        ScrollWork* w;
-        asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hi));           // COMPILER-DIFF: 3 (cse2 high re-materialisation)
-        asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(w) : "r"(hi));      // COMPILER-DIFF: 3
-        if (w->joy[0].rep & 0x900) {
-            w->sub -= 0x14;
-        }
-        asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(w) : "r"(hi));      // COMPILER-DIFF: 3
-        if (w->joy[0].rep & 0x200) {
-            w->editMode -= 0xF;
+        int z = 0;
+        do {
+        } while (0);
+        if (z < 128) {
+            if (scrollWorkPtrV.p->joy[0].rep & 0x900) {
+                scrollWorkPtrV.p->sub -= 0x14;
+            }
+            if (scrollWorkPtrV.p->joy[0].rep & 0x200) {
+                scrollWorkPtrV.p->editMode -= 0xF;
+            }
         }
     }
 }
@@ -1750,19 +1757,24 @@ static void printEditTable()
     int no;
     int x;
     int col;
-    int x2;  // the tail column base: a second variable (x for 4/8 lives in r3 and never crosses a call; the
-             // 0x11 base is callee-saved), set ONCE at the tail top (its two `li r27,0x11` are gcse PRE
-             // insertions in the arms; a set in each arm keeps a `mr` copy). `obj->be_flag` is re-read at
-             // every use (the target's `mr r11,r0` is gcse's PRE copy of the isAlive load, not a `flag` local).
+    int xb;  // copy of x that delays cprop's fold of the tail base (see the tail)
+    // COMPILER-DIFF: #17 -- the tail column base pinned to r27 (x for 4/8 lives in r3 and never crosses a
+    // call; the 0x11 base is callee-saved and shared with the dead `no`). The pin makes r27 ever-live
+    // (global.c pass 0 `regs_used_so_far`), so `no` takes r27 in pass 0 and y r31, i r26 as in the original;
+    // and the hard register carries the base through the tail without a REG_EQUIV (see the tail).
+    // `obj->be_flag` is re-read at every use (the target's `mr r11,r0` is gcse's PRE copy of the isAlive
+    // load, not a `flag` local).
+    register int x2 asm("r27");
     char name[8];
 
     {
-        // COMPILER-DIFF: candidate #17 -- global.c pass 0 `regs_used_so_far`: the tail base (22 refs) is the
-        // first call-crossing allocno and would take r31 in pass 1; the original gives it r27 (shared with
-        // the dead `no`), y r31, i r26. The pins emit nothing.
+        // COMPILER-DIFF: candidate #17 -- a volatile asm at the function top is a sched1 barrier: the PRE'd
+        // high(scrollWorkPtr) (bb 0 end) is scheduled right after it, above the first eprintf call, which
+        // gives it the original's live length / calls crossed (534/17: priority 262 < the "SCL" string
+        // high's 270, so it is the one left without a register and re-materialised at each use; scheduled
+        // after the call it is 512/16 -> 273 and takes r14 from the string high). Emits nothing.
         register int pin asm("r27");
-        asm("" : "=r"(pin));
-        asm("" : : "r"(pin));
+        asm volatile("" : "=r"(pin));
     }
     eprintf(0x20, 0x15E, 4, 0, "NO= NAME==== ID LIT_MASK OT FLAG COL  TEX POS ANG SCL ========");
     // increment order y, no, i: gcse's PRE insertions of the three `+1` follow the first-occurrence order,
@@ -1806,6 +1818,12 @@ static void printEditTable()
                 col = 5;
             }
         }
+        // the tail base is `xb + 9` (see the tail): cprop pass 1 copy-propagates xb -> x in that insn and
+        // cannot fold `x + 9` in the same pass, so PRE moves it into the arms; the LOOP_END ends cse1's ebb
+        // so cse1 does not rewrite the UNKNOWN arm's `x * 8` note to xb (cse2 would then fold it to 0x40)
+        xb = x;
+        do {
+        } while (0);
         if (obj->x12E != 2 && obj->x12E != 4) {
             eprintf(x * 8, y * 14, col, 0, "UNKNOWN");
         } else {
@@ -1827,16 +1845,27 @@ static void printEditTable()
             name[7] = 0;
             eprintf(x * 8, y * 14, col, 0, "%8s", name);
         }
-        // COMPILER-DIFF: candidate #12 (cprop): the original keeps `(x2 + k) * 8` unfolded although both arms
-        // reach the tail with 0x11; a plain `x2 = 0x11` (or `x + 9`) is folded by cprop pass 1 and never PRE'd.
-        // The input-less asm is a gcse expression: PRE inserts it at the end of both arms (`li r27,0x11` at the
-        // target's LUID) and cse2 + flow remove the `x2 = R` copy because x2 has no other set.
-        // `x += 4; x2 = x + 9;` gives the same two `li 0x11` (cprop pass 1 cannot fold `x + 9` while x's set is
-        // still `x + 4`; PRE moves it to the arms; cprop pass 2 folds the copies), but cse2 then tags both
-        // constant sets REG_EQUAL and update_equiv_regs makes the base REG_EQUIV: live length 121 -> 484,
-        // priority 0.73 -> 0.18, and the base is allocated after `no`/`y`/`col` (r29/r27/r31 rotation).
-        asm("li %0,0x11" : "=r"(x2));
-        eprintf(x2 * 8, y * 14, col, 0, "%02d", obj->x12E == 2 ? obj->type : obj->id);
+        // COMPILER-DIFF: #13 / candidate #12 -- the two `li r27,0x11` are gcse PRE insertions at the arm ends
+        // (their LUID puts them after `no*4` and the "%8s" high in sched1). A plain `x2 = 0x11` (or `x + 9`)
+        // is folded by cprop pass 1 and never PRE'd; `t = xb + 9` (xb = x above) is copy-propagated to
+        // `x + 9` in pass 1, PRE'd into the arms, folded to 0x11 by pass 2, and cse2 gives both sets
+        // REG_EQUAL 0x11, so the PRE reg R is REG_EQUIV (live length x4). R therefore cannot be the base
+        // itself (priority 0.73 -> 0.18, allocated after no/y/col); the base is the hard register r27 and
+        // R is copied into it: R prefers r27 (copy preference; the copy is a no-op after allocation), and
+        // R must be allocated before the "%8s" string high (4 refs/70 -> 1142) or that takes r27 in
+        // pass 1: R's refs are 2 sets + `t * 8` + the copy, the copy inside a do-while so flow weights it
+        // by loop depth 3: 4 + 2 + 3 = 9 refs / 4*58 -> 1163. `a0` and `tid` are computed before the
+        // copy so the loop notes' sched barrier falls on the ternary's `lbz` (after the notes), not on the
+        // `slwi`; a0 is allocated r3 (arg copy preference), so `slwi r3,r27,3` stays before the branch.
+        {
+            int t = xb + 9;
+            int a0 = t * 8;
+            int tid = obj->x12E == 2 ? obj->type : obj->id;
+            do {
+                x2 = t;
+            } while (0);
+            eprintf(a0, y * 14, col, 0, "%02d", tid);
+        }
         {
             // COMPILER-DIFF: candidate #1 (arg copy): the target issues `addi r3,x2,3` before `lwz r8,x54`;
             // in ours the load (2 dependents: the call and the next call's r8 set) outranks the addi chain.
