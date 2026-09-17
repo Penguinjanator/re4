@@ -462,20 +462,18 @@ static ADXT sfadxt_CreateAdxt(SFADXT_WORK *wk)
 	return adxt;
 }
 
-/* M1: the original has wk r30 / adxt r29 */
-/* COMPILER-DIFF: M1 - wk r30 above adxt r29 in the target (ours the reverse): hard pin of wk (CRI pass 18b) */
-Sint32 SFADXT_Create(register SFD sfd)
+/* the body is a static helper: its `wk` is an inlined-helper local, which ranks above the nested
+ * sfadxt_CreateAdxt's return temporary (adxt) -- wk r30 / adxt r29 as in the original; as an own local
+ * of SFADXT_Create, wk ranked below that temporary (r29 / r30) */
+static Sint32 sfadxt_CreateSub(SFD sfd)
 {
-	register SFADXT_WORK *wk; // COMPILER-DIFF: M1
+	SFADXT_WORK *wk;
 	ADXT adxt;
 	SJ sj;
 	Sint32 ret;
 	SFAOAP *aoap;
 
-	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
-		return 0;
-	}
-	asm { addi r30, sfd, SFD_OBJ.adxt; mr wk, r30 } // COMPILER-DIFF: M1 (wk = &sfd->adxt)
+	wk = &sfd->adxt;
 	sfd->tr[SFADXT_TR].hn = wk;
 	ret = sfadxt_InitInf(sfd, wk);
 	if (ret != 0) {
@@ -504,6 +502,14 @@ Sint32 SFADXT_Create(register SFD sfd)
 	SFTIM_SetTimeFn(sfd, sfadxt_GetTime, 2);
 	SFSET_SetCond(sfd, 0xF, 2);
 	return 0;
+}
+
+Sint32 SFADXT_Create(SFD sfd)
+{
+	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
+		return 0;
+	}
+	return sfadxt_CreateSub(sfd);
 }
 
 /* transfer state 1: skip the silence frames the muxer put before the audio (old mux versions) */
