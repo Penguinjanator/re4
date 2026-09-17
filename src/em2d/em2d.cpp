@@ -2704,12 +2704,16 @@ static void em2d_R1_W_Walk(cEm2d* em)
             if (t) {
                 w->timer8 = t - 1;
             } else {
-                f32 ny = w->wallNrm.y;
-                // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the target compares the load temp (f0) and then
-                // `alpha` (f12, a copy of it); our cse1 folds either compare onto the canonical register of the
-                // pair, so the copy is made opaque.
-                asm("fmr %0,%1" : "=f"(alpha) : "f"(ny));
-                if (ny > 0.899999976f || alpha < -0.899999976f) {
+                // COMPILER-DIFF: candidate #12 (fallthrough-arm form) + #8: the target compares the load temp (f0)
+                // and then `alpha` (f12, a copy of it, `fmr f12,f0` before the first compare). cse never
+                // canonicalises a hard register, so the fr0 pin keeps the first compare on the load; the
+                // DFmode read of fr0 in the second arm keeps it live past the copy, so regmove does not move
+                // its death onto the copy (docs/matching.md #8) and the `fmr` survives.
+                register f32 ny asm("fr0");
+                register f64 nyd asm("fr0");
+                ny = w->wallNrm.y;
+                alpha = ny;
+                if (ny > 0.899999976f || ({ asm("" : "=m"(inv[0][0]) : "f"(nyd)); alpha; }) < -0.899999976f) {
                     w->atkWait = Rnd() % 30 + 30;
                     EmRoutineSet(em, 1, 0x14, t, t);
                     break;

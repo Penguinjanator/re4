@@ -43,17 +43,6 @@ extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info
 
 typedef void (*Em18Func)(cEm18*);
 
-// COMPILER-DIFF: #5. The original has one `fabsf(lp.y) > 700` check after the type if/else and its
-// interblock scheduler copied it into the first arm (`fabs f13, f0` with the 700 still in f12); ours
-// forms no region there, so the check is written in both arms with an early-clobber fabs that keeps
-// the input register.
-static inline f32 fabsfE(f32 x)
-{
-    f32 r;
-    asm volatile("fabs %0,%1" : "=&f"(r) : "f"(x));
-    return r;
-}
-
 static void em18_R0_Init(cEm18* em);
 static void em18_R0_Move(cEm18* em);
 static void em18_R1_Wait(cEm18* em);
@@ -376,6 +365,11 @@ void em18ActEvtSetTrade(cEm18* em)
 {
     Mtx inv;
     Vec lp;
+    // COMPILER-DIFF: #5. The original has one `fabsf(lp.y) > 700` check after the type if/else and its
+    // interblock scheduler copied it into the first arm (`fabs f13, f0` with the 700 still in f12); ours
+    // forms no region there, so the check is written in both arms through one shared `ay`: a pseudo set
+    // in two blocks is global-allocated, so local-alloc cannot tie the fabs result to its dying input.
+    f32 ay;
 
     if (em->hp <= 0) {
         return;
@@ -392,7 +386,8 @@ void em18ActEvtSetTrade(cEm18* em)
         if (lp.x > 700.0f || lp.x < -700.0f) {
             return;
         }
-        if (fabsfE(lp.y) > 700.0f) {
+        ay = fabsf(lp.y);
+        if (ay > 700.0f) {
             return;
         }
     } else {
@@ -404,7 +399,8 @@ void em18ActEvtSetTrade(cEm18* em)
                 return;
             }
         }
-        if (fabsfE(lp.y) > 700.0f) {
+        ay = fabsf(lp.y);
+        if (ay > 700.0f) {
             return;
         }
     }

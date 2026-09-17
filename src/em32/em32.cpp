@@ -784,7 +784,6 @@ static void em32_R0_Init(cEm32* em)
         register int hp asm("r0"); // COMPILER-DIFF: #13
         register int six asm("r11"); // COMPILER-DIFF: #13
         register int one asm("r0"); // COMPILER-DIFF: #13
-        int flip;
         hp = 500;
         em->hp = hp;
         six = 6;
@@ -793,11 +792,12 @@ static void em32_R0_Init(cEm32* em)
         em->xFD = six;
         em->xFE = zero;
         em->xFF = zero;
-        // the MotionSetCore `0` (r9) as an opaque set with a dummy read of `one`: sched2's tie between
-        // `li r0,1` and `stb r11,0xfd` (both priority 15) is broken by dependent counts, and this gives the
-        // `li` its sixth dependent so it is issued first like the original's (no extra insn: the asm IS the li r9,0)
-        asm("li %0,0" : "=r"(flip) : "r"(one)); // COMPILER-DIFF: #13
-        MotionSetCore(em, &em->mot, ARC(9), 0, 0, 1, flip);
+        MotionSetCore(em, &em->mot, ARC(9), 0, 0, 1, 0);
+        // sched2's tie between `li r0,1` and `stb r11,0xfd` (both priority 15) is broken by dependent counts
+        // (5 vs 6): the code-less read of `one` gives the `li` its sixth dependent so it is issued first like
+        // the original's. Placed after the call so the anchor (priority 8, tied to the callee-saved `w`)
+        // ranks below the argument `li`s and takes no issue slot of the block.
+        asm("" : "+r"(w) : "r"(one)); // COMPILER-DIFF: #13 (codeless anchor)
     }
     MotionMoveF(em, 0);
     em32_R0_Move(em);

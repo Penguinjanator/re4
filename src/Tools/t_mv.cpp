@@ -107,15 +107,14 @@ static int mvInit()
     SetToolLight(2);
     memclr_asm(pMv, 0x18);
     // COMPILER-DIFF: candidate #12 (fallthrough-arm form). The original's then arm has its own `li r10,0`
-    // for `cursor = 0`; our cse1 re-walks the entry block with the `bne` NOT_TAKEN, so the fallthrough
-    // arm knows `zero == 0` (and `loaded == 0`), reuses r29 and the arms cross-jump. A plain launder is
-    // substituted too (`asm("" : "+r"(c))` on `u8 c = 0` becomes `mr r10,r29`); the constant has to be
-    // produced by the asm itself so cse never sees a `(const_int 0)` source.
+    // for `cursor = 0`; our cse1 re-walks the entry block with the `bne` NOT_TAKEN, so a plain literal in
+    // the fallthrough arm is canonicalised to the `zero` register (r29) and the arms cross-jump. The
+    // code-less `do {} while (0)` puts a NOTE_INSN_LOOP_END at the arm top, which ends cse's path, so
+    // the arm's zero stays its own pseudo (gcse cprop cannot store a constant).
     if (pDbModState->loaded == 0) {
-        u8 c;
-        asm("li %0,0" : "=r"(c));
+        do { } while (0);
         pMv->step = 1;
-        pMv->cursor = c;
+        pMv->cursor = 0;
     } else {
         pMv->step = 2;
         pMv->cursor = zero;

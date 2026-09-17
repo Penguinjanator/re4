@@ -264,8 +264,12 @@ static void r118_ThunderMove()
             if (cnt == (int) 0x88888889) cnt = 0;
             if (EffGetAreaState(3) == 0 && (em == 0 || ((cEmDog*) em)->ckFindPL() != 1)) {
                 if (Rnd() & 0x80) {
+                    // COMPILER-DIFF: candidate #12 (fallthrough-arm form): a plain zero here is folded by cse1 into
+                    // the EffGetAreaState result (path re-walk); the code-less `do {} while (0)` ends cse's path
+                    // at its NOTE_INSN_LOOP_END, so the zero stays a constant pseudo that loop.c hoists (r28).
                     void* zero;
-                    asm("li %0,0" : "=r"(zero));   // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
+                    do { } while (0);
+                    zero = 0;
                     EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
                 } else {
                     EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
