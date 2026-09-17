@@ -62,11 +62,11 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	Sint16 sc_l;
 	Sint16 sc_r;
 	Sint32 s;
-	register Sint32 t;
+	Sint32 t;
 	Sint32 nblk;
 	Sint32 key;
 	Sint32 j;
-	register Sint32 x;
+	Sint32 x;
 
 	nblk = nfrm / 2;
 	/* COMPILER-DIFF: M1 (kept parameter copies) - dead writes into the already pinned r6: the copies
@@ -112,12 +112,12 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 			outr[0] = t;
 			l1 = d * sc_l + ((c1 * l2 + c2 * l1) >> 12);
 			ADX_CLAMP(l1);
-			/* COMPILER-DIFF: M1 (neighbour copy) - the second sample's `c1 * t` product must be
-			 * coloured before `c2 * rr1` (one more neighbour, pass 78). `t` has three reaching
-			 * definitions (the clamp), so the backend keeps this copy; `x` takes the dying `t`'s
-			 * register and the `mr r20,r20` is deleted after allocation: `x` is a real node live
-			 * across both products, `rr2 = x` is the original's `mr r30,r20`. */
-			asm { mr x, t }
+			/* The second sample's `c1 * t` product must be coloured before `c2 * rr1` (one more
+			 * neighbour, pass 78). The cast keeps the frontend from substituting the copy; `t` has
+			 * three reaching definitions (the clamp), so the backend keeps `mr x, t` too; `x` takes
+			 * the dying `t`'s register and the `mr r20,r20` is deleted after allocation: `x` is a
+			 * real node live across both products, `rr2 = x` is the original's `mr r30,r20`. */
+			x = (Sint32)(Uint32)t;
 			rr1 = dr * sc_r + ((c1 * x + c2 * rr1) >> 12);
 			ADX_CLAMP(rr1);
 			outl[1] = l1;
