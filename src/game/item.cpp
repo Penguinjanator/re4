@@ -1202,6 +1202,7 @@ int cItemMgr::init()
 {
     ItemWork* p;
     int i;
+    u32 sz;
 
     nItems = 0x180;
 #line 2508 "D:/Bio4/Prog/item.cpp"
@@ -1213,14 +1214,15 @@ int cItemMgr::init()
     p = pItems;
     for (i = 0; i < nItems; i++, p++) {
         p->flags = 0;
+        // COMPILER-DIFF: #13 (the flag-table size as a reload-materialised constant, weight 0 like the
+        // string addi): set inside the loop body, the single set does not dominate the call block, so
+        // gcse cprop leaves `sz` a pseudo (sched1 ranks the r3 copy at weight 0 next to the stw) and
+        // update_equiv_regs substitutes the constant afterwards.
+        sz = 8 * sizeof(u32);
     }
     nFlags = 8;
-    {
-        u32 sz; // COMPILER-DIFF: #13 (the size as a reload-materialised constant: weight 0 like the string addi)
-        asm("li %0,32" : "=r"(sz) : "r"(p));
 #line 2522 "D:/Bio4/Prog/item.cpp"
-        pFlags = (u32*) MEM_ALLOC(sz, 1, 13);
-    }
+    pFlags = (u32*) MEM_ALLOC(sz, 1, 13);
     if (pFlags == 0) {
         Mem_free(pItems);
         Mem_free(pOrder);

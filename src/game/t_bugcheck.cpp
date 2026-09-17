@@ -168,9 +168,11 @@ void cToolBugcheck::menuLife()
 
     {
         // COMPILER-DIFF: candidate (gcse hash bucket of the .LC label name): the nine hoisted string
-        // highs are numbered in expr-hash bucket order of "*.LCn"; the target's r16-r24 order needs
-        // this function's labels shifted by 9 (the original TU had more header-inline string
-        // literals before it).
+        // highs are PRE reaching regs numbered in expr-hash bucket order of "*.LCn" ((7933 + h) % 183
+        // buckets, h = h*129 + c); global-alloc ties (equal priority) go by that number. Thirteen dead
+        // labels put the strings at .LC42-.LC50: the decade step 49 -> 50 wraps ">" (bucket 48) below
+        // ASHLEY..L-TRIG (106-111), so ">" is allocated first at the shared priority 46 (r24) and the
+        // six follow in eprintf order (r23-r18); LIFE/PLAYER (.LC42/43) sit at 45 (see the loop end).
         f32 lc1 = 1.0f;
         f32 lc2 = 2.0f;
         f32 lc3 = 3.0f;
@@ -180,12 +182,11 @@ void cToolBugcheck::menuLife()
         f32 lc7 = 7.0f;
         f32 lc8 = 8.0f;
         f32 lc9 = 9.0f;
+        f32 lc10 = 10.0f;
+        f32 lc11 = 11.0f;
+        f32 lc12 = 12.0f;
+        f32 lc13 = 13.0f;
     }
-    // COMPILER-DIFF: #13 (asm pool constant): the "LIFE" high is allocated before "PLAYER"'s in the
-    // original (r17/r16) although its live length is longer; emitting it as a pinned asm `lis` in the
-    // preheader (LUID before the eight PRE'd highs) leaves the rest at r16, r18-r24 as the target.
-    register u32 hiL asm("r17");
-    asm("lis %0,%1@ha" : "=r"(hiL) : "i"("LIFE"));
     while (1) {
         if (Joy[0].trg & JOY_UP) {
             cur--;
@@ -268,11 +269,7 @@ void cToolBugcheck::menuLife()
             }
             break;
         }
-        {
-            const char* sL;  // COMPILER-DIFF: #13 (asm pool constant): low half from the pinned high
-            asm("addi %0,%1,%2@l" : "=r"(sL) : "r"(hiL), "i"("LIFE"));
-            eprintf(48, 56, 4, 0, sL);
-        }
+        eprintf(48, 56, 4, 0, "LIFE");
         lv = lifeLevel(20, TOOL_HALF(OFS_PL_LIFE_MAX), 1200);
         eprintf(48, 70, 0, 0, "PLAYER:%4d/%4d[%2d]", (s16) TOOL_HALF(OFS_PL_LIFE), (s16) TOOL_HALF(OFS_PL_LIFE_MAX), lv);
         DrawGage(216, 70, 8, 100, (s16) TOOL_HALF(OFS_PL_LIFE), (s16) TOOL_HALF(OFS_PL_LIFE_MAX), -1);
@@ -289,9 +286,14 @@ void cToolBugcheck::menuLife()
             break;
         }
         TaskSleep(1);
-        // COMPILER-DIFF: tie (global-alloc live length): one more insn in the loop at global-alloc
-        // time makes ">" (the last hoisted high) the only one at priority 47 (r24).
+        // COMPILER-DIFF: tie (global-alloc live length): two more insns in the loop at global-alloc
+        // time (+4 REG_LIVE_LENGTH for every loop-invariant pseudo). The nine string highs are born
+        // in eprintf order in the preheader (2 per insn): LIFE 656 and PLAYER 654 drop to priority
+        // int(30000/len) = 45 (allocated last, in bucket order: LIFE r17, PLAYER r16) while
+        // ASHLEY..L-TRIG (652-642) and ">" (640) share 46. The second anchor must not be the same
+        // asm again (cse deletes the repeated store as redundant).
         asm("" : "=m"(PlKaiou));
+        asm("" : "+m"(PlKaiou));
     }
 }
 

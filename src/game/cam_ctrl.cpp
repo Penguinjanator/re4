@@ -1483,6 +1483,12 @@ void CameraControl::r0_UpCut()
 {
 }
 
+// r0_RailBehind: argument addresses substituted into the hard-register sets (see COMPILER-DIFF #3 there).
+static inline void VecLinComb(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
+{
+    VecLinearCombination(a, b, s, t, out);
+}
+
 void CameraControl::r0_RailBehind()
 {
     static Camera camera_old;
@@ -1729,20 +1735,13 @@ void CameraControl::r0_RailBehind()
         n = (f32) nI;
         mm = (f32) mI;
         k = 1.0f / (mm + n);
-        {
-            // COMPILER-DIFF: #3 fresh-addi arguments. The target recomputes the three pointer arguments of
-            // this one call (`addi r3,r1,0xb8; addi r4,r1,0xac; addi r5,r1,0x220`) while every surrounding
-            // call copies them from the live address registers (`mr r3,r28` ...). gcse PRE turns the
-            // `&x` recomputations of this block into copies of the reaching registers; `la` through asm
-            // is not a PRE expression, and the dying temporaries are retargeted to r3/r4/r5 by regmove.
-            Vec* atp;
-            Vec* posp;
-            Vec* floorp;
-            asm("la %0,%1" : "=r"(atp) : "m"(cam.param.at.x));
-            asm("la %0,%1" : "=r"(posp) : "m"(cam.param.pos.x));
-            asm("la %0,%1" : "=r"(floorp) : "m"(floor.x));
-            VecLinearCombination(atp, posp, mm * k, n * k, floorp);
-        }
+        // COMPILER-DIFF: #3 fresh-addi arguments. The target recomputes the three pointer arguments of
+        // this one call (`addi r3,r1,0xb8; addi r4,r1,0xac; addi r5,r1,0x220`) while every surrounding
+        // call copies them from the live address registers (`mr r3,r28` ...). Inside this `if` the
+        // `&x` arguments of a plain call are precomputed into pseudos and gcse PRE turns them into
+        // copies of the reaching registers; through the inline wrapper integrate substitutes the
+        // addresses straight into the hard-register argument sets, which PRE never touches.
+        VecLinComb(&cam.param.at, &cam.param.pos, mm * k, n * k, &floor);
         PSVECSubtract(&cam.param.at, &cam.param.pos, &dir);
         dir.y = 0.0f;
         PSVECCrossProduct(&yaxis, &dir, &xaxis);

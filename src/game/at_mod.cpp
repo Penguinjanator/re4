@@ -27,9 +27,10 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
 // register copy (s_ r0, sp_ r9) -- ComnHitCheck is byte-identical with it.
 // ObaLineHitChk (matching): one PSVECMag call squared (`mag * mag`), tc/s clamped with ternaries (s in
 // place: its temporary is copied back into f30), den anchored in f0 (anchor gated by `de * ef` so the
-// hoisted `mr r3,r27` keeps its slot), and the `&p0` argument after the getPartsPtr call emitted as an
-// asm `addi` off r1 (the target's fresh `addi r4,r1,8`; cse folds a C `&p0` into the copy's address
-// pseudo through the `beq` AROUND path).
+// hoisted `mr r3,r27` keeps its slot), and the getPartsPtr `if` written with an explicit `else pm = m`
+// so cse's extended block ends at the join and the `&p0` argument after the call stays a fresh
+// `addi r4,r1,8` (with `pm = m` hoisted before the `if`, cse skips the arm and folds `&p0` into the
+// copy's address pseudo).
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
@@ -716,20 +717,18 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     p0 = info->pos;
     p0.y += info->h;
     parts = info->partsNo;
-    pm = m;
+    // COMPILER-DIFF: 12 (cse AROUND path): the target's `&p0` argument is a fresh `addi r4,r1,8` (the
+    // copy's address pseudo dies at the copy). With `pm = m; if (parts) pm = ..;` cse skips the arm and
+    // carries the copy pseudo into the join, folding `&p0` into it across the getPartsPtr call. The
+    // explicit else arm is followed as a TAKEN branch and falls into the join label, which ends the
+    // extended block: `&p0` stays a hard-reg argument set (never PRE'd, no longer cse-folded).
     if (parts != 0) {
         pm = m->getPartsPtr(parts - 1);
+    } else {
+        pm = m;
     }
     rad = info->rectX * 0.75f;
-    {
-        // COMPILER-DIFF: 12 (cse AROUND path): the target's `&p0` argument is a fresh `addi r4,r1,8`
-        // (the copy's address pseudo dies at the copy); ours folds it into that pseudo across the
-        // getPartsPtr call. An asm-emitted addi off r1 is the one form cse cannot fold.
-        register u32 sp asm("r1");
-        Vec* pp;
-        asm("addi %0,%1,8" : "=r"(pp) : "r"(sp));
-        PSMTXMultVec(pm->mat, pp, &w0);
-    }
+    PSMTXMultVec(pm->mat, &p0, &w0);
     PSMTXMultVec(pm->mat, &p1, &w1);
     PSVECSubtract(&w1, &w0, &d);
     PSVECSubtract(b, a, &e);
