@@ -338,12 +338,12 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         col = colorRRGGBBAA((u8) u0->col[0], (u8) u0->col[1], (u8) u0->col[2], (u8) u0->col[3]);
         {
             // COMPILER-DIFF: 5 (sched1 tie). Case 1 of the target issues the `col` copy before the
-            // `wk->x2B0` reload, so local-alloc ties the load to r3 (`mr r30,r3; lwz r3,0x2b0(r31)`);
-            // ours issues the load first in both arms (load latency 2 outranks the copy) and case 2 is
-            // the unfolded `lwz r0; mr r30,r3; mr r3,r0` in both. The asm-emitted load takes `col` as an
-            // input so it follows the copy.
-            pzlPlayer* pl;
-            asm("lwz %0,%1" : "=r"(pl) : "m"(wk->x2B0), "r"(col));
+            // `wk->x2B0` reload, so the load lands in r3 (`mr r30,r3; lwz r3,0x2b0(r31)`); a pseudo
+            // load outranks the copy (load latency 2) and gives case 2's `lwz r0; mr r30,r3; mr r3,r0`
+            // in both arms. The r3 pin makes the load's destination the hard register: its
+            // anti-dependence on the `col` copy (which reads r3) orders it after the copy.
+            register pzlPlayer* pl asm("r3");
+            pl = wk->x2B0;
             p = pl->ptrPiece(pl->cur);
         }
         if (p) {
@@ -656,25 +656,31 @@ void screenPos2puzzlePos(Vec* pos, Vec* out)
 // Relocates the piece_info model / texture offsets of ss_pzzl.dat into pointers.
 void pieceTblInit(SUB_SCREEN* wk)
 {
-    // The target's `tbl` is a REG_EQUIV pseudo that reload rematerialises (`lis r9; addi r11,r9`) and
-    // whose loop copy is an inherited reload (`mr r7,r11`); ours allocates it, folds the entry load into
-    // the lo_sum and cse2 turns the copy into `addi r7,r9,piece_info@l`. The two asms below emit the
-    // target's own instructions and keep `tbl` opaque; the `mr` copy is an early-clobber asm so that
-    // local-alloc cannot tie it to the dying `tbl`. COMPILER-DIFF: 13.
+    // The target keeps `tbl` (`lis r9; addi r11,r9,@l`) as a register: the entry load is `lhz 0(r11)`
+    // and the loop base is a copy (`mr r7,r11`). A plain `tbl->id` load is folded into the lo_sum by
+    // cse's find_best_addr (same address cost, higher rtx cost wins), so the entry test indexes with a
+    // zero pseudo: `(mem (plus z tbl))` is not a register address for cse (the folded `(reg tbl)`
+    // is the cheaper form, so it is kept as written), gcse's cprop only propagates sets that reach
+    // the block entry (`z = 0` is in the same block), and combine folds the single-use `z = 0` into
+    // `(mem (reg tbl))` after both cse passes. COMPILER-DIFF: 13.
     PieceInfo* tbl;
-    // COMPILER-DIFF: candidate #17 -- base/mp have no REG_EQUAL notes (asm output / opaque sum), so
-    // their live lengths are not halved and they would outrank the byte-offset biv in global-alloc.
-    register PieceInfo* base asm("r7");
-    register void** mp asm("r6");
-    u32 hi;
+    PieceInfo* base;
+    void** mp;
     u32 ofs;
 
-    asm("lis %0,piece_info@ha" : "=r"(hi));                 // COMPILER-DIFF: 13
-    asm("addi %0,%1,piece_info@l" : "=&r"(tbl) : "b"(hi));  // COMPILER-DIFF: 13
-    if (tbl->id == 0xFFFF) {
-        return;
+    tbl = piece_info;
+    {
+        u32 z = 0;
+        if (((PieceInfo*) (z + (u32) tbl))->id == 0xFFFF) {
+            return;
+        }
     }
-    asm("mr %0,%1" : "=&r"(base) : "r"(tbl));  // COMPILER-DIFF: 13
+    // The dead `tbl = 0` (deleted by flow) kills the copy `base = tbl` for gcse's copy propagation
+    // and for cse's canon of `mp` (tbl leaves base's class), so the copy survives; base/mp keep
+    // cse's REG_EQUAL notes (symbol, symbol+84), which halves their global-alloc length below the
+    // byte-offset biv like the target (r7/r6 after r8). COMPILER-DIFF: 13.
+    base = tbl;
+    tbl = 0;
     // Explicit byte-offset biv (user init: `li r8,0` precedes the hoisted 0xFFFF constant) with a
     // separate store pointer biv based at model[4] (`stw -4(r6)`/`stw 0(r6)`); the id re-reads are
     // volatile so that gcse's PRE does not merge the identical `(mem (plus ofs base))` loads (the

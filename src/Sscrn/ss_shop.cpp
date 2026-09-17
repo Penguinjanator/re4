@@ -2017,10 +2017,10 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
         char tag[2];
         int max;
         // COMPILER-DIFF: 13. `cur` is the digit block's `val[]` index: a single constant set whose
-        // only register use is the asm below, so it stays a REG_EQUIV pseudo that loses the
-        // callee-saved race (it is live across the whole type loop) and reload rematerialises it
-        // as `li r0,1` right before the `slwi` -- the extra reload is what puts the doloop count
-        // reload on r9 (round-robin over the spill registers). `tag[cur]` folds to `lbz 1(r16)`.
+        // only register use is the digit loop's index shift, so it stays a REG_EQUIV pseudo that
+        // loses the callee-saved race (it is live across the whole type loop) and reload
+        // rematerialises it as `li r0,1` right before the `slwi` -- the extra reload is what puts the
+        // doloop count reload on r9 (round-robin over the spill registers). `tag[cur]` folds to `lbz 1(r16)`.
         int cur = 1;
 
         for (type = 0; type < 4; type++) {
@@ -2119,13 +2119,9 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             }
             {
             int digit[3];
-            int c4;
             for (j = 0; j < 3; j++) {
-                // COMPILER-DIFF: 13 (see `cur`): the index shift as an asm so gcse's cprop cannot
-                // fold `cur * 4` to 4; loop.c hoists it to the preheader like the target's `slwi r7,r0,2`.
-                asm("slwi %0,%1,2" : "=r"(c4) : "r"(cur));
-                digit[j] = *(int*) ((u8*) val + c4) % 10;
-                *(int*) ((u8*) val + c4) /= 10;
+                digit[j] = val[cur] % 10;  // `cur * 4`: gcse's cprop cannot fold a constant into `ashift`
+                val[cur] /= 10;            // (operand 1 must be a register); loop.c hoists it (`slwi r7,r0,2`)
             }
             i = 0;  // the leading-zero flag reuses the function's `i` (r31: it outranks `j` in global-alloc)
             for (j = 2; j >= 0; j--) {
@@ -2180,17 +2176,16 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 x = (int) ((pos2.x + 320.0f) * 0.8f);
                 y = (int) ((240.0f - pos2.y) * 0.8f);
             }
-            cMes.setLayout(0xC, 6);
-            cMes.MesSet(0x28, x, y, 0x200A1, 0xC, 0, 3);
             {
-                // COMPILER-DIFF: candidate #12 (address form). The target adds 0xB10 to &cMes in a
-                // register (`addi r30,r30,cMes@l; addi r30,r30,2832`) instead of folding it into the
-                // relocation; the asm-emitted addi keeps our cse from folding it.
-                u32 a = (u32) &cMes;
-                Message* mm;
-                asm("addi %0,%1,%2" : "=r"(mm) : "b"(a), "i"(0xC * sizeof(Message)));
-                ((Message*) ((u32) mm + sizeof(u32)))->ot = 0x13;
-                ((Message*) ((u32) mm + sizeof(u32)))->otNo = 6;
+                // The slot number is a variable: `cMes.mes[no]` expands to `&cMes + no * 0xEC`
+                // (+0x20 in the store displacements) and cse folds `no * 0xEC` to the constant
+                // 0xB10 added to the `&cMes` register (`addi r30,r30,cMes@l; addi r30,r30,2832`);
+                // a literal index is folded into the relocation at expand.
+                int no = 0xC;
+                cMes.setLayout(no, 6);
+                cMes.MesSet(0x28, x, y, 0x200A1, no, 0, 3);
+                cMes.mes[no].ot = 0x13;
+                cMes.mes[no].otNo = 6;
             }
         }
     }

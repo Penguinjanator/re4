@@ -1248,12 +1248,15 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
     PSMTXMultVecSR(plMat, &fwd, &fwd);
     satA.init(hdrA->getSat(0), &zero, &zero);
     {
-        // COMPILER-DIFF: 5 (sched1 LUID tie): the original issues the `&zero` argument copy
-        // before the getSat result copy; the asm's memory input anchors it after the call and its
-        // 3-insn chain to `init` outranks the result copy's priority.
+        // COMPILER-DIFF: 5 (sched1 tie): the original issues the `&zero` argument copy before the
+        // getSat result copy, i.e. its `&zero` was a separate pseudo (a copy of the hoisted address
+        // that regmove then feeds into `mr r6,r5`) whose 3-insn chain to `init` outranks the result
+        // copy's priority. The codeless asm keeps `z` a separate pseudo: the early-clobber output
+        // stops local-alloc's tie, the duplicate input stops regmove's rename (count_occurrences > 1),
+        // the memory input anchors it after the call, and reload emits the `mr` for the "0" match.
         cSatFile* sb = hdrB->getSat(0);
         Vec* z;
-        asm("mr %0,%1" : "=&r"(z) : "r"(&zero), "m"(zero));
+        asm("" : "=&r"(z) : "0"(&zero), "r"(&zero), "m"(zero));
         satB.init(sb, z, z);
     }
     a = pl;

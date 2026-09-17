@@ -1234,16 +1234,21 @@ void itemMakeInit(SUB_SCREEN* wk)
     int i;
 
     for (i = 0; i < 2; i++) {
-        int types;
+        // COMPILER-DIFF: 12. The target keeps both arm `li`s in place and masks `& 0xFF`; with a plain
+        // pseudo jump.c hoists the else set above the compare (`x = b; if (c) x = a`) and combine
+        // narrows the mask to `& 0xF` (reg_nonzero_bits = the union of the two constants). The r29 pin
+        // (the target's register) keeps combine from tracking the constants (no reg_nonzero_bits for a
+        // hard register); the dead `types = 0` in each arm makes the arm two insns until flow deletes
+        // it (jump1/cse-jump cannot hoist) and gives each `li` a REG_WAS_0 note next to cse's REG_EQUAL
+        // (two notes: jump2 cannot hoist either).
+        register int types asm("r29");  // COMPILER-DIFF: 12
         mk->id[i] = 0;
-        // COMPILER-DIFF: 12. The target keeps both arm `li`s in place and masks `& 0xFF`; with plain
-        // constant sets jump1 hoists the else set above the compare and combine narrows the mask to
-        // `& 0xF` (reg_nonzero_bits = the union of the two constants). The volatile asm `li`s hide
-        // the constants from both (no natural form found: switch/u16/init/ternary/local copies all fold).
         if (i == 0) {
-            asm volatile("li %0,%1" : "=r"(types) : "i"(0x0707));  // COMPILER-DIFF: 12
+            types = 0;  // COMPILER-DIFF: 12 (dead set, see above)
+            types = 0x0707;
         } else {
-            asm volatile("li %0,%1" : "=r"(types) : "i"(0x050C));  // COMPILER-DIFF: 12
+            types = 0;  // COMPILER-DIFF: 12 (dead set, see above)
+            types = 0x050C;
         }
         // The match test is written in the loop condition (a comma expression): an inline
         // returning `a || b` materialises the 0/1 (`li r11` + `cmpwi`) where the target branches.
