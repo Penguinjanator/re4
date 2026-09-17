@@ -762,14 +762,18 @@ struct PlPtr {
 // inserts its reaching copy at the END of the compare block (before the branch); a `mf -= 5` before
 // the test is tied by regmove. `BitOn(pl->be_flag, 0x10)` (reference store) keeps the tail's pPL
 // reload below the flag store.
-// COMPILER-DIFF: #13 (asm-emitted high `rh`): the target's `&crot0` is a two-register
-// `lis r30; addi r25,r30,crot0@l` (ours ties the dying high to the lo_sum, `addi r30,r30`) -- one
-// more callee-saved GPR (stmw r16) and, through the save-area rounding, a frame 8 bytes smaller.
-// COMPILER-DIFF: candidate #17 (`rot` r25, `mdl` r30 pins): block 0's local-alloc gives `rot` the
-// first free callee-saved register (r27) ahead of the pG/work highs (target: pG r27, work r26, rot
-// r25), and global-alloc excludes r30 for `mdl` (target r30, ours r28); with rot pinned the `rh`
-// keep-alive of pass 8 is not needed (and its extra insn shifted the truncated priorities of the
-// four loop-hoisted highs Key/ActBtn/"%d"/2^31 -- 30000/len at 434..442 -- away from the target's).
+// `&crot0` is a two-register `lis r30; addi r25,r30,crot0@l` in the target (the high P in its own
+// callee-saved register, `rot` r25 the last callee-saved local of block 0). Pure C: pass `&crot0`
+// to low_RotMatrix directly and assign `rot = &crot0` AFTER that call. cse cannot fold the argument
+// lo_sum into `rot` (rot is set later; r4 is invalidated by the call), so P has three refs and
+// dies at the `addi r4,P` argument (a hard-reg output: local-alloc has nothing to tie P to);
+// sched1 hoists the `addi rot,P` above the argument. P (3 refs / span 52) then outranks cpos (500)
+// and takes the first callee-saved register r30 that pPL@ha (853) cannot use because the pinned
+// `mdl` r30 is live later in the block; `rot` (2 refs: set + setAng use, 192) is allocated last ->
+// r25; reload_cse turns the low_RotMatrix `addi r4,r30,@l` into `mr r4,r25`. A `rot` set before
+// low_RotMatrix ties P to `rot` (`addi r30,r30`, stmw r17, frame +8).
+// COMPILER-DIFF: candidate #17 (`mdl` r30 pin): global-alloc excludes r30 for `mdl` (target r30,
+// ours r28), and the pin's r30 in block 0's regs_live_at is what keeps pPL@ha off r30 (see above).
 // COMPILER-DIFF: 12 (regmove operand pick, `rp` below): `addi r4,mdl,0xa0` must be computed from
 // mdl's register before `mr r3,mdl`. Plain `&mdl->rot` is combined into the `r4` argument move
 // (placed after `r3 = mdl`, where mdl dies) and regmove rewrites it as `addi r4,r3`. The codeless
@@ -799,14 +803,12 @@ struct PlPtr {
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
         register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
-        register u32 rh asm("r30"); /* COMPILER-DIFF: #13 */                                                       \
-        register Vec* rot asm("r25"); /* COMPILER-DIFF: candidate #17 */                                           \
+        Vec* rot;                                                                                                  \
                                                                                                                    \
-        asm("lis %0,%1@ha" : "=r"(rh) : "i"(&crot0)); /* COMPILER-DIFF: #13 */                                     \
-        asm("addi %0,%1,%2@l" : "=r"(rot) : "r"(rh), "i"(&crot0)); /* COMPILER-DIFF: #13 */                        \
         ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
         ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
-        low_RotMatrix(m, rot);                                                                                     \
+        low_RotMatrix(m, (Vec*) &crot0);                                                                           \
+        rot = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
         FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
