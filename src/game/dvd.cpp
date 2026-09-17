@@ -834,19 +834,19 @@ int cDvdQueue::Read()
     int ret = 1;
     int pc = 1;
 
-    if ((pG->flags_54 & 0x20000) == 0) {
+    if ((pG->System_flg & 0x20000) == 0) {
         pc = 0;
     }
     if (pcMode) {
-        pG->flags_54 |= 0x20000;
+        pG->System_flg |= 0x20000;
     } else {
-        pG->flags_54 &= ~0x20000;
+        pG->System_flg &= ~0x20000;
     }
     (this->*func_tbl[mode])();
     if (pc) {
-        pG->flags_54 |= 0x20000;
+        pG->System_flg |= 0x20000;
     } else {
-        pG->flags_54 &= ~0x20000;
+        pG->System_flg &= ~0x20000;
     }
     if (chk(0x400000)) {
         ret = 0;
@@ -870,7 +870,7 @@ void cDvdQueue::Initialize()
         entrynum = DVDConvertPathToEntrynum(w->name);
         sprintf(name, "%s", w->name);
     }
-    if (pG->flags_54 & 0x20000) {
+    if (pG->System_flg & 0x20000) {
         sprintf(buf, "d:\\bio4/data/%s", name);
         sprintf(name, "%s", buf);
     }
@@ -909,7 +909,7 @@ void cDvdQueue::Initialize()
     sprintf(file, "%s", w->file);
     line = w->line;
     pc = 1;
-    if ((pGS->flags_54 & 0x20000) == 0) {
+    if ((pGS->System_flg & 0x20000) == 0) {
         pc = 0;
     }
     pcMode = pc;
@@ -1252,7 +1252,7 @@ int cDvd::FileExistCheck(const char* name, u32* pLength)
     DVDFileInfo fi;
     int ret;
 
-    if (pG->flags_54 & 0x20000) {
+    if (pG->System_flg & 0x20000) {
         ret = -1;
     } else {
         ret = DVDConvertPathToEntrynum(name);
@@ -1557,17 +1557,17 @@ int cDvd::ErrCheck(int disc, int flag)
         // One shared body (goto) instead of two identical arms: the duplicated `li r30,-1;
         // li r27,0` that jump2 would cross-jump later still counts at global-alloc time and
         // puts pMes/pStr (3 refs each, live around the loop) into different priority buckets.
-        if (pG->flags_54 & 0x8000) {
+        if (pG->System_flg & 0x8000) {
             goto stop;
-        } else if (pG->flags_54 & 0x200) {
+        } else if (pG->System_flg & 0x200) {
         stop:
             msg = -1;
             cont = 0;
         }
         if (msg != -1) {
-            BitOff(pG->flags_54, 0x400);
+            BitOff(pG->System_flg, 0x400);
             if (shown == 0) {
-                if (pG->flags_54 & 0x40000) {
+                if (pG->System_flg & 0x40000) {
                     paused = 1;
                 }
                 PADControlMotor(0, 2);
@@ -1648,7 +1648,7 @@ void MesSysMessage(int msg, int disc)
 {
     int f = 1;
 
-    if ((pG->flags_58 & 0x800) == 0) {
+    if ((pG->Disp_flg & 0x800) == 0) {
         f = 0;
     }
     u16* pos = mes_pos[pSys->language][0];
@@ -1662,11 +1662,11 @@ void MesSysMessage(int msg, int disc)
     }
     pos += no * 2;
     cMes.MesSet(mes_no[msg], pos[0], pos[1], 0x01020090, 0xF, 0, 1);
-    pG->flags_58 &= ~0x800;
+    pG->Disp_flg &= ~0x800;
     cMes.Move();
     cMes.Trans();
     if (f == 1) {
-        pG->flags_58 |= 0x800;
+        pG->Disp_flg |= 0x800;
     }
 }
 

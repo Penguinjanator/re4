@@ -148,7 +148,7 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 // Door flag words at pG+0x51BC, addressed as an integer base plus the word offset (cast-then-deref).
 static inline u32 doorFlagBase()
 {
-    return (u32) &pG->flags_51BC;
+    return (u32) &pG->Item_find_flg;
 }
 static inline void FlagOn(u32 base, u32 no)
 {
@@ -1006,7 +1006,7 @@ static void r209_2ndBattle()
     memclr_asm(r209_work.p->em, sizeof(R209Em) * 23);
     SceSleep(2);
     SndBgmTblSet(0x209, 1);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SubScreenWait(60);
     if (r209_work.p->evd->waitLoadOk() == 1) {
         MemorySwap(m->pArc, (u32) r209_work.p->evd->addr, r209_work.p->evd->size);

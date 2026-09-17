@@ -144,8 +144,8 @@ void R105Init()
         SceAtDataSet_exec(6, 0x12, 0, r105_mark, 0, 1);
         obj = SmdGetObjPtr(0x22);
         if (obj) {
-            obj->x136 = 1;
-            obj->x137 = 2;
+            obj->Shader_type = 1;
+            obj->Refract_pow = 2;
         }
     } else {
         r105_markDoorOpen();
@@ -547,7 +547,7 @@ static void r105_Event()
         SndRoomStrStop(0);
         EvtMgr.EvtReadExec("event/evd/r105s00.evd", 0x15, 0x10);
         EvtMgr.EvtReadAram("event/evd/r105s10.evd", 0x15, 0, 0, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         SceSleep(2);
         r105_EmSet();
     } else {
@@ -559,7 +559,7 @@ static void r105_Event()
             ((cEmDoor*) door)->setNormal();
         }
     }
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
         SceSetChapterEnd(1, -1);

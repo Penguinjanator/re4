@@ -182,17 +182,17 @@ IdUnit* IDSystem::unitPtr(u8 id, u8 type)
     return &tmpId;
 }
 
-static int cmp_id_no(IdData2* d, u8 id, int mode)
+static int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
 {
     u8 no;
 
     switch (mode) {
     case 0:
     default:
-        no = d->id;
+        no = p_id_v2->id;
         break;
     case 1:
-        no = d->parentNo;
+        no = p_id_v2->parentNo;
         break;
     }
     return no == id;
@@ -235,7 +235,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->unitNo = p1->no;
                     u->level = p1->level;
                     u->parentNo = p1->parentNo;
-                    u->x7 = p1->x8;
+                    u->rowNo = p1->x8;
                     u->kind = p1->kind;
                     u->texId = p1->texId;
                     u->vtxType = p1->vtxType;
@@ -262,7 +262,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->blendType = p1->blendType;
                     u->transType = p1->transType;
                     u->maskId = p1->maskId;
-                    u->flags_7F = p1->flags_7F;
+                    u->tex_flag = p1->flags_7F;
                     u->transSub = p1->transSub;
                     a = p1->ofs[0];
                     if (a) {
@@ -343,7 +343,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->unitNo = p2->no;
                     u->level = p2->level;
                     u->parentNo = p2->parentNo;
-                    u->x7 = p2->x8;
+                    u->rowNo = p2->x8;
                     u->kind = p2->kind;
                     u->texId = p2->texId;
                     u->vtxType = p2->vtxType;
@@ -370,7 +370,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->blendType = p2->blendType;
                     u->transType = p2->transType;
                     u->maskId = p2->maskId;
-                    u->flags_7F = p2->flags_7F;
+                    u->tex_flag = p2->flags_7F;
                     u->transSub = p2->transSub;
                     a = p2->ofs[0];
                     if (a) {
@@ -946,14 +946,14 @@ void idSysMove04(IdUnit* u)
         pLog->err(0, 0, "idSysMove04():(c[%02x],u[%02x]) texId[%02x] No such Texture.", u->type, u->unitNo, u->texId);
         return;
     }
-    if (!(u->flags_7F & 0x2)) {
+    if (!(u->tex_flag & 0x2)) {
         u->no = u->texCnt;
         u->texCnt++;
         if (u->texCnt >= anm->numTex) {
             u->texCnt = 0;
         }
     }
-    if (!(u->flags_7F & 0x1)) {
+    if (!(u->tex_flag & 0x1)) {
         return;
     }
     {
@@ -961,7 +961,7 @@ void idSysMove04(IdUnit* u)
             pLog->err(0, 0, "idSysMove04():[%02x,%02x] maskId[%x] No such Texture.", u->type, u->unitNo, u->maskId);
             return;
         }
-        if (!(u->flags_7F & 0x4)) {
+        if (!(u->tex_flag & 0x4)) {
             u->maskNo = u->maskCnt;
             u->maskCnt++;
             if (u->maskCnt >= anm->numTex) {
@@ -976,7 +976,7 @@ void IDSystem::trans()
     int i;
     IdUnit* u;
 
-    if (pG->flags_58 & 0x2000) {
+    if (pG->Disp_flg & 0x2000) {
         return;
     }
     if ((s32) pG->flags_64 < 0) {
@@ -984,7 +984,7 @@ void IDSystem::trans()
     }
     u = pUnit;
     for (i = 0; i < num; i++, u++) {
-        if ((pG->flags_58 & 0x10000) && u->ot == 0x13) {
+        if ((pG->Disp_flg & 0x10000) && u->ot == 0x13) {
             continue;
         }
         if (IdBitGet(disp, u->type)) {
@@ -1096,7 +1096,7 @@ void IdCommonTrans(IdUnit* u)
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetBlendMode(blend[u->blendType][0], blend[u->blendType][1], blend[u->blendType][2], blend[u->blendType][3]);
-    if (u->flags_7F & 0x1) {
+    if (u->tex_flag & 0x1) {
         TexWk* wk = IdGetTexWk(u->maskId, 1);
         if (wk != 0) {
             GXTexObj obj;
@@ -1351,7 +1351,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 7, 7, 5);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    if (u->flags_7F & 0x1) {
+    if (u->tex_flag & 0x1) {
         TexWk* wk = IdGetTexWk(u->maskId, 1);
         if (wk != 0) {
             TEXDescriptor* td = TEXGet(wk->pTpl, u->maskNo);

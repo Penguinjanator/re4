@@ -111,22 +111,22 @@ void SceEventStart(int mode)
 
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 == 0) {
-            s->x70 = SceCTask()->task->flag;
+        if (s->task_kind_back == 0) {
+            s->task_kind_back = SceCTask()->task->flag;
             SceCTask()->task->flag |= 2;
         }
     }
-    if (SceSys.x6E != 0) {
-        SceSys.x6E++;
+    if (SceSys.event_start_cnt != 0) {
+        SceSys.event_start_cnt++;
         return;
     }
-    SceSys.x6E++;
+    SceSys.event_start_cnt++;
     s = &SceSys;
-    s->x64 = pG->flags_54;
+    s->system_bak = pG->System_flg;
     if (mode == 0) {
         EmMgr.beginEvent(0);
         ObjMgr.beginEvent(0);
-        s->x6D = 1;
+        s->event_no_cut_back = 1;
         EffectEventDelete();
         DmgMgr.beginEvent(0);
         SceKill(5);
@@ -147,7 +147,7 @@ void SceEventStart(int mode)
     IdSys.dispSw(0x21, 0);
     SceSys.dmg = pPL->dmg;
     pPL->dmg.set(0, 0x80);
-    BitOn(pG->flags_54, 0x800);
+    BitOn(pG->System_flg, 0x800);
     BitOn(pG->flags_170, 0x100);
     BitOn(pG->flags_170, 0x400000);
     SndBlkStop(2);
@@ -160,14 +160,14 @@ void SceEventEnd(int mode)
 {
     cSceSys* s = &SceSys;
 
-    if (s->x6E == 0) {
+    if (s->event_start_cnt == 0) {
         pLog->err(0, 0, "SceEventEnd: CALLS TO MACH");
     }
-    if (--s->x6E != 0) {
+    if (--s->event_start_cnt != 0) {
         return;
     }
-    if (s->x6D == 1) {
-        s->x6D = 0;
+    if (s->event_no_cut_back == 1) {
+        s->event_no_cut_back = 0;
         EmMgr.endEvent(mode);
         ObjMgr.endEvent(0);
         CamCtrl.Comeback(0);
@@ -180,24 +180,24 @@ void SceEventEnd(int mode)
     BitOff(pG->flags_500C, 0x1000);
     BitOff(pG->flags_5010, 0x10000000);
     BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     Cckpt.lifeMeterDisp(1);
     IdSys.dispSw(0x21, 1);
     BitOff(pG->flags_170, 0x100);
     BitOff(pG->flags_170, 0x400000);
     ShadowMemClear();
-    if (SceSys.x64 & 0x800) {
-        BitOn(pG->flags_54, 0x800);
+    if (SceSys.system_bak & 0x800) {
+        BitOn(pG->System_flg, 0x800);
     } else {
-        BitOff(pG->flags_54, 0x800);
+        BitOff(pG->System_flg, 0x800);
     }
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 != 0) {
-            SceTaskFlagSet(SceCTask(), s->x70);
+        if (s->task_kind_back != 0) {
+            SceTaskFlagSet(SceCTask(), s->task_kind_back);
         }
     }
-    SceSys.x70 = 0;
+    SceSys.task_kind_back = 0;
     SubScreenWait(10);
 }
 
@@ -207,18 +207,18 @@ void SceUpCutStart()
 
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 == 0) {
-            s->x70 = SceCTask()->task->flag;
+        if (s->task_kind_back == 0) {
+            s->task_kind_back = SceCTask()->task->flag;
             SceCTask()->task->flag |= 2;
         }
     }
-    if (SceSys.x6C == 0) {
+    if (SceSys.stop_bak_flg == 0) {
         SceSys.x60 = pG->flags_170;
-        SceSys.x6C = 1;
+        SceSys.stop_bak_flg = 1;
     }
     KeyStop(0xEFCF0000);
-    BitOn(pG->flags_58, 0x40000000);
-    BitOn(pG->flags_58, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x20000000);
     pPL->atari.clrFlag100();
     BitOn(pGS->flags_5010, 0x10000000);  // the pG load waits for the clrFlag100 store
     BitSet(pG->flags_170, 0xFFFFFFFF);
@@ -240,22 +240,22 @@ void SceUpCutEnd()
     cSceSys* s = &SceSys;
 
     BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_58, 0x40000000);
-    BitOff(pG->flags_58, 0x20000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x20000000);
     pPL->atari.setFlag100();
     BitOff(pGS->flags_5010, 0x10000000);  // the pG load waits for the setFlag100 store
-    if (s->x6C == 1) {
+    if (s->stop_bak_flg == 1) {
         pG->flags_170 = s->x60;
-        s->x6C = 0;
+        s->stop_bak_flg = 0;
     }
     if (s->checkCTaskRange() == 1) {
-        if (s->x70 != 0) {
+        if (s->task_kind_back != 0) {
             ScePrim* p = SceCTask();
-            u8 v = s->x70;  // read before the task pointer (both loads after the call)
+            u8 v = s->task_kind_back;  // read before the task pointer (both loads after the call)
             p->task->flag = v;
         }
     }
-    SceSys.x70 = 0;
+    SceSys.task_kind_back = 0;
     Cckpt.lifeMeterDisp(1);
     IdSys.dispSw(0x21, 1);
     SubScreenWait(10);
@@ -467,46 +467,46 @@ void SceInitItemEvent()
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 
-void SceExecItemEvent(SceItemEvent* e)
+void SceExecItemEvent(SceItemEvent* data)
 {
     u32 i;
     int flag;  // `lbz` straight into the callee-saved register (a u8 local adds an `mr` copy)
     u16 room;
 
-    SceAtSetEnable(e->atNo, 0);
+    SceAtSetEnable(data->atNo, 0);
     for (i = 0; i <= 7; i++) {
-        if (e->item[i] >= 0) {
+        if (data->item[i] >= 0) {
             cModel* m;
-            SceAtSetEnable(e->item[i], 1);
-            m = SceAtItemModelPtr(e->item[i]);
+            SceAtSetEnable(data->item[i], 1);
+            m = SceAtItemModelPtr(data->item[i]);
             if (m) {
                 m->setNoSuspend(1);
             }
         }
     }
-    flag = e->flag;
+    flag = data->flag;
     room = pG->room_id;
     RsfSet(room, flag);
     SceUpCutStart();
-    if (e->cut >= 0) {
-        CamCtrl.CutCall((s8) e->cut);
-        e->func(e->arg);
+    if (data->cut >= 0) {
+        CamCtrl.CutCall((s8) data->cut);
+        data->func(data->arg);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
         SceSleep(0xF);
         CamCtrl.Comeback(0);
     } else {
-        e->func(e->arg);
+        data->func(data->arg);
     }
     SceUpCutEnd();
     for (i = 0; i < 16; i++) {
         SceItemEvent* p = (SceItemEvent*) ItemEventTbl[i];
-        if (p && p->atNo == e->atNo) {
+        if (p && p->atNo == data->atNo) {
             ItemEventTbl[i] = 0;
         }
     }
-    __builtin_delete(e);
+    __builtin_delete(data);
 }
 
 void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), TaskFunc doneFunc, int arg, int enable)
@@ -723,11 +723,11 @@ void SceChapterEnd()
         SceSleep(1);
     }
     sel = 0;
-    disp_bak = pG->flags_58;
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x2000);
-    BitOff(pG->flags_58, 0x800);
-    BitOff(pG->flags_58, 0x10000);
+    disp_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x2000);
+    BitOff(pG->Disp_flg, 0x800);
+    BitOff(pG->Disp_flg, 0x10000);
     stop_bak = pG->flags_170;
     BitSet(pG->flags_170, 0xFFFFFFFF);
     BitOff(pG->flags_170, 0x800000);
@@ -776,7 +776,7 @@ void SceChapterEnd()
             pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
             FSet(pPL->rot.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
-            U8Set(pG->x4FA2, pG->x4F9E);
+            U8Set(pG->Part_old, pG->x4F9E);
             U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
             U8Set(pG->room_no, SceAtPtr(SceSys.x78)->dstRoom);
             U8Set(pG->x4F9E, SceAtPtr(SceSys.x78)->dstX4F9E);
@@ -806,7 +806,7 @@ void SceChapterEnd()
         CardSave(0, 10);
         SceSleep(1);
     }
-    BitSet(pG->flags_58, disp_bak);
+    BitSet(pG->Disp_flg, disp_bak);
     BitSet(pG->flags_170, stop_bak);
     FadeSetW(0, 0, 0, 0);
     FadeKill(2);

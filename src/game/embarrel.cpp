@@ -20,13 +20,13 @@
 #include "db_log.h"
 
 extern "C" {
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int a);                                                  // em_sub.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
+void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 u8 EspPullCoreKind();                                                                        // eff_sys.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 }
 
 typedef void (*EmBarrelFunc)(cEmBarrel*);
@@ -134,16 +134,16 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     }
     if (em->hp <= 0) {
         em->clearStatus(5);
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
         em->setStatus(5);
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     emBarrelEatSet(em);
     return em;
@@ -198,11 +198,11 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     em->setStatus(1);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    em->xFC = 1;
-    em->xFD = 2;
+    em->r_no_0 = 1;
+    em->r_no_1 = 2;
     w->flags = 0;
-    em->xFE = zero;
-    em->xFF = 0;
+    em->r_no_2 = zero;
+    em->r_no_3 = 0;
     return em;
 }
 
@@ -469,10 +469,10 @@ void emBarrelSetBreak(cEmBarrel* em, int kind)
             SndCall(6, 3, &em->pos, 0, 0, em);
         }
     }
-    em->xFC = 1;
-    em->xFD = 1;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 1;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void cEmBarrel::move()
@@ -485,7 +485,7 @@ void cEmBarrel::move()
         emBarrelDmCk2(this);
     }
     be_flag &= ~0x4000;
-    EmBarrel_R0_move_tbl[xFC](this);
+    EmBarrel_R0_move_tbl[r_no_0](this);
     if ((be_flag & 0x201) == 1) {
         EmAtCheck(this);
         atari.move();
@@ -502,29 +502,29 @@ void cEmBarrel::move()
 
 void emBarrel_R0_Init(cEmBarrel* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emBarrel_R0_Move(cEmBarrel* em)
 {
-    EmBarrel_R1_move_tbl[em->xFD](em);
+    EmBarrel_R1_move_tbl[em->r_no_1](em);
 }
 
 void emBarrel_R1_Set(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -534,7 +534,7 @@ void emBarrel_R1_Break(cEmBarrel* em)
     EmBarrelWork* w = EMBARREL_WK(em);
     u16* flg;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 0 || em->type == 2) {
             flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
@@ -547,7 +547,7 @@ void emBarrel_R1_Break(cEmBarrel* em)
         em->atari.flags &= ~0x200;
         em->clearStatus(5);
         w->timer = 10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -567,17 +567,17 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
     f32 dist;
     f32 spin;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (emBarrelSetRollRoute(em) == 0) {
             em->pos.x = em->mat[0][3];
             em->pos.y = em->mat[1][3];
             em->pos.z = em->mat[2][3];
             Matrix2AxisAngle(em->mat, &em->rot);
-            em->xFC = 1;
-            em->xFD = 1;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 1;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
         em->atari.throughOn();
@@ -591,7 +591,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (emBarrelSetRollSpd(em)) {
             emBarrelSetBreak(em, 0);
@@ -965,9 +965,9 @@ void emBarrelRunDownCk(cEmBarrel* em)
             continue;
         }
         e->hp = 0;
-        e->xFC = 3;
-        e->xFD = 4;
-        e->xFE = 0;
-        e->xFF = 0;
+        e->r_no_0 = 3;
+        e->r_no_1 = 4;
+        e->r_no_2 = 0;
+        e->r_no_3 = 0;
     }
 }

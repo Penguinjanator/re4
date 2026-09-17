@@ -17,9 +17,9 @@ void cMotBase::set(cMotModel* m, MotionData* data, Vec* p, Vec* r, u8 c)
     cnt = c;
 }
 
-void cMotBase::set(cMotModel* m, Vec* p, Vec* r, u8 c)
+void cMotBase::set(cMotModel* m, Vec* p, Vec* r, u8 hokan0)
 {
-    set(m, m->mot.data, p, r, c);
+    set(m, m->mot.data, p, r, hokan0);
     m->mot.flags &= ~1;
 }
 

@@ -152,7 +152,7 @@ public:
     int req;              // 0x08  mode move() dispatches on
     u8 step;              // 0x0C
     u8 sub;               // 0x0D
-    u8 xE;                // 0x0E
+    u8 rno3;                // 0x0E
     u8 padF;
     int timer;            // 0x10
     u8 pad14[0xC];

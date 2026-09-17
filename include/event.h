@@ -144,7 +144,7 @@ public:
     u8 xC;                 // 0x0C
     s8 endStep;            // 0x0D  DelEvt: 0 run ExeEndEvt, 1 wait `endWait` frames
     s8 endWait;            // 0x0E
-    u8 xF;                 // 0x0F
+    u8 Id;                 // 0x0F
     u8 type;               // 0x10  constructor argument (EventMgr::construct id)
     u8 pad_11[3];
     int effNo;             // 0x14  effect owner slot: -1 none, 0/1 -> EspDataLoad owner 0xC4 + effNo
@@ -175,8 +175,8 @@ public:
     u32 strId[2];          // 0xC8  SndStrReq id per block
     int cancelCut;         // 0xD0  RunEvtCancel: cut the cancel skips to
     int mesTimer;          // 0xD4
-    int xD8;               // 0xD8
-    int xDC;               // 0xDC
+    int NoEvt;               // 0xD8
+    int NoLit;               // 0xDC
     int toolFrame;         // 0xE0  RunTool: frame the tool seeks to
     int actBtnOn;          // 0xE4
     int actBtnCount;       // 0xE8
@@ -204,7 +204,7 @@ public:
     int EspToolSetDat();
     void EspToolSetMod(int no, char* name);
     int GetModelPtrNo(int* no, cModel** mod, char* name);
-    int RunTool(int mode, int arg);
+    int RunTool(int mode, int subFrame);
     int RunEvtCancel();
     void CancelSet();
     void CancelNoSet();
@@ -249,7 +249,7 @@ public:
     static int ExePacket_EndPac(Event* evt);
     void ExeBeginEvt(Event* evt, int mode);
     void ExeEndEvt(Event* evt, u32 mode);
-    int ExeFunc(int mode, int arg);
+    int ExeFunc(int mode, int param);
     void CalNextPacket();
     void CalNextFrame();
     void ChkCutZero();
@@ -332,10 +332,10 @@ public:
     int DelEvt(void* evt, int a);
     int SetBin(char* name, void* data, void* dat2, int flag);
     // Looks a file of the running event up by name; 0 when it is not loaded.
-    int GetBin(void** out, const char* name, int a);
+    int GetBin(void** out, const char* name, int flagGet);
     int DelBin(char* name);
     int SetEvd(char* name, void* data, void* dat2, int flag);
-    int GetEvd(void** out, char* name, int a);
+    int GetEvd(void** out, char* name, int flagGet);
     int DelEvd(char* name);
     int SetFunc(char* name, void* func);
     int GetFunc(void** out, char* name);
@@ -348,7 +348,7 @@ public:
     void ClearEmWindowFcv();
     void SetEmWindowFcv(void* a, void* b, void* c);
     // Replaces the three window jump motions of the running event (emwindow ExeWindowEvent).
-    void GetEmWindowFcv(void** a, void** b, void** c);
+    void GetEmWindowFcv(void** win1FIn, void** win1FOut, void** win2FOut);
 };
 
 extern EventMgr EvtMgr;
@@ -380,7 +380,7 @@ extern EventDebug EvtDebug;
 
 // game/event.cpp (C linkage): streamed sound blocks of the running event
 extern "C" {
-int SndStrPlayBlock(int a, int no, f32 vol);
+int SndStrPlayBlock(int blk, int no, f32 vol);
 void SndStrStopBlock(int blk);
 }
 

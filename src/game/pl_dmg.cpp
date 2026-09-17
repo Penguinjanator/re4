@@ -29,10 +29,10 @@ void Pl_R0_Die(cPlayer* pl);
 // second `li r0, 0` after the call is reproduced instead of a callee-saved zero.
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 void Pl_R0_Damage(cPlayer* pl)
@@ -43,7 +43,7 @@ void Pl_R0_Damage(cPlayer* pl)
         damageBlast,
     };
 
-    funcTbl[pl->xFD](pl);
+    funcTbl[pl->r_no_1](pl);
 }
 
 void damageNormal(cPlayer* pl)
@@ -54,15 +54,15 @@ void damageNormal(cPlayer* pl)
     f32 wh;
     Vec* pos;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->beginDamage();
         if ((s16) pG->pl_life <= 0) {
-            pl->xFF = 6;
+            pl->r_no_3 = 6;
         }
-        switch (pl->xFF) {
+        switch (pl->r_no_3) {
         default:
-            pl->xFF = 0;
+            pl->r_no_3 = 0;
         case 0:
             mot = PL_ARC_PTR(pG->pPlArc, 0x48);
             pl->x3E0 = 0x1E;
@@ -99,11 +99,11 @@ void damageNormal(cPlayer* pl)
         } else {
             pl->x3E4 = 0;
         }
-        if (pl->xFF != 6) {
+        if (pl->r_no_3 != 6) {
             PlSetDamageSe(0);
         }
         pl->setFace(1);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->st.x325 |= 0x80;
     case 1:
         if (pl->frame > 19.7f && pl->frame < 20.3f) {
@@ -113,11 +113,11 @@ void damageNormal(cPlayer* pl)
             pl->x3E0--;
         }
         if (pl->motionMove() != 0 || (pl->x3E0 == 0 && (Key.on & 0x10F))) {
-            if (pl->xFF == 6) {
-                pl->xFC = 2;
-                pl->xFE = 0;
-                pl->xFD = 2;
-                pl->xFF = 0;
+            if (pl->r_no_3 == 6) {
+                pl->r_no_0 = 2;
+                pl->r_no_2 = 0;
+                pl->r_no_1 = 2;
+                pl->r_no_3 = 0;
             } else {
                 pl->st.x324 = 0;
                 pl->st.x325 = 5;
@@ -133,7 +133,7 @@ void damageNormal(cPlayer* pl)
     case 0xA:
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x4F), pG->pPlArc->ofs[0x50] + (u32) pG->pPlArc, 3, 5, 0);
         EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, (u32) pl, 0);
-        pl->xFE = 0xB;
+        pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
         if (pl->frame > 34.7f && pl->frame < 35.3f) {
@@ -164,7 +164,7 @@ void damageNormal(cPlayer* pl)
         }
         break;
     default:
-        pLog->err(0, 0, "invalid r_no_2 %d", pl->xFE);
+        pLog->err(0, 0, "invalid r_no_2 %d", pl->r_no_2);
         break;
     }
 }
@@ -180,7 +180,7 @@ void damageBlow(cPlayer* pl)
     u32 dead;
     u32 n;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->beginDamage();
         dead = 1;
@@ -218,7 +218,7 @@ void damageBlow(cPlayer* pl)
         }
         pl->setFace(1);
         pl->x3E8 = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->st.x325 |= 0x80;
     case 1:
         if (MotionCheckCrossFrame(&pl->pMotion, 20.0f)) {
@@ -236,19 +236,19 @@ void damageBlow(cPlayer* pl)
         }
         if (pl->motionMove()) {
             if (pl->x3E0 != 0) {
-                pl->xFC = 2;
-                pl->xFD = 2;
-                pl->xFE = 0;
-                pl->xFF = 0;
+                pl->r_no_0 = 2;
+                pl->r_no_1 = 2;
+                pl->r_no_2 = 0;
+                pl->r_no_3 = 0;
             } else {
-                pl->xFE = 0xA;
+                pl->r_no_2 = 0xA;
             }
         }
         break;
     case 0xA:
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x4F), pG->pPlArc->ofs[0x50] + (u32) pG->pPlArc, 3, 5, 0);
         EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0x10 : 0xF, 0, 0, (u32) pl, 0);
-        pl->xFE = 0xB;
+        pl->r_no_2 = 0xB;
     case 0xB:
         pos = &pl->pos;
         if (pl->frame > 34.7f && pl->frame < 35.3f) {
@@ -284,7 +284,7 @@ void damageBlow(cPlayer* pl)
 void damageBlast(cPlayer* pl)
 {
     f32 ang;
-    int no = pl->xFE;
+    int no = pl->r_no_2;
 
     switch (no) {
     case 0:
@@ -300,7 +300,7 @@ void damageBlast(cPlayer* pl)
             pl->x3E4 = no;
         }
         pl->setFace(1);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->st.x325 |= 0x80;
     case 1:
         if (pl->frame > 19.7f && pl->frame < 20.3f) {
@@ -318,7 +318,7 @@ void damageBlast(cPlayer* pl)
 
 void Pl_R0_Die(cPlayer* pl)
 {
-    int no = pl->xFD;
+    int no = pl->r_no_1;
 
     switch (no) {
     case 0:
@@ -331,7 +331,7 @@ void Pl_R0_Die(cPlayer* pl)
             pl->setFace(1);
         }
         pl->atari.partsNo = 4;
-        pl->xFD = 1;
+        pl->r_no_1 = 1;
         pl->x3E0 = no;
     case 1:
         if (pl->frame > 39.7f && pl->frame < 40.3f) {
@@ -341,7 +341,7 @@ void Pl_R0_Die(cPlayer* pl)
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 3, 1);
         }
         if (pl->motionMove()) {
-            pl->xFD = 2;
+            pl->r_no_1 = 2;
         }
         break;
     case 2:

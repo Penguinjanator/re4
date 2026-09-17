@@ -238,7 +238,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             size.z = bound->size.z;
             PSVECSubtract(&bound->center, &obj->pParts->pos, &center);
             obj->lightInfo.init2(2, 1, &center, &size, light);
-            obj->x103 = 0x80;
+            obj->alpha_omit = 0x80;
         } else {
             obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         }
@@ -296,17 +296,17 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         break;
     }
     if (info->pEm != 0 && obj != 0 && (info->pEm->be_flag & 9) == 9) {
-        u8 r = info->pEm->x139;
-        u8 g = info->pEm->x13A;
-        u8 b = info->pEm->x13B;
+        u8 r = info->pEm->AddAmb_r;
+        u8 g = info->pEm->AddAmb_g;
+        u8 b = info->pEm->AddAmb_b;
         if (r == 0 && ((g == 0) & (b == 0))) {
             obj->be_flag &= ~8;
         } else {
             obj->be_flag |= 8;
         }
-        obj->x139 = r;
-        obj->x13A = g;
-        obj->x13B = b;
+        obj->AddAmb_r = r;
+        obj->AddAmb_g = g;
+        obj->AddAmb_b = b;
     }
     return obj;
 }
@@ -371,11 +371,11 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->bMul = gen->xA8;
     w->aMul = gen->xAC;
     if (gen->flags & 0x400000) {
-        obj->x12F = 2;
+        obj->ot_type = 2;
     } else if (w->a < 250.0f) {
-        obj->x12F = 1;
+        obj->ot_type = 1;
     } else {
-        obj->x12F = 0;
+        obj->ot_type = 0;
     }
     w->fadeStart = gen->xB0;
     w->fadeLen = gen->xB2;
@@ -404,9 +404,9 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         } else {
             obj->be_flag |= 8;
         }
-        obj->x139 = c;
-        obj->x13A = c;
-        obj->x13B = c;
+        obj->AddAmb_r = c;
+        obj->AddAmb_g = c;
+        obj->AddAmb_b = c;
     }
     if (gen->prm.w.xD0 != 0) {
         setModTexRender(obj, gen->prm.w.xD0 - 1);
@@ -418,7 +418,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         obj->be_flag |= 0x20000;
     }
     if (w->flags & 0x200000) {
-        obj->x12C = 1;
+        obj->z_mode = 1;
     }
     switch (w->x79) {
     case 0xFF:
@@ -530,7 +530,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         PSVECAdd(&obj->rot, &v, &obj->rot);
     }
     if (w->flags & 0x200000) {
-        obj->x12C = 1;
+        obj->z_mode = 1;
     }
     w->rotSpd = gen->x70;
     w->rotSpd.x += gen->x7C.x * fRandSeed1_1(seed);
@@ -558,11 +558,11 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->bMul = gen->xA8;
     w->aMul = gen->xAC;
     if (gen->flags & 0x400000) {
-        obj->x12F = 2;
+        obj->ot_type = 2;
     } else if (w->a < 250.0f) {
-        obj->x12F = 1;
+        obj->ot_type = 1;
     } else {
-        obj->x12F = 0;
+        obj->ot_type = 0;
     }
     w->fadeStart = gen->xB0;
     w->fadeLen = gen->xB2;
@@ -664,7 +664,7 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
 
     BitOn(obj->be_flag, 0x10);
     if (pG->flags_64 & 0x00800000) {
-        pG->flags_58 &= ~0x02000000;
+        pG->Disp_flg &= ~0x02000000;
     }
     w->core = *info;
     w->basePos = gen->pos;
@@ -749,7 +749,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->a = (f32) w->a0;
         w->bMul = 1.0f;
         w->aMul = 1.0f;
-        obj->x12F = 1;
+        obj->ot_type = 1;
         obj->pInfo->color[0] = (u8) w->r;
         obj->pInfo->color[1] = (u8) w->g;
         obj->pInfo->color[2] = (u8) w->b;
@@ -782,9 +782,9 @@ void setModTexRender(cObj* obj, int no)
     tbl[5] = mgr->texId;
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
-    obj->x136 = 1;
-    obj->x137 = 0xF;
-    obj->x138 = 0xB4;
+    obj->Shader_type = 1;
+    obj->Refract_pow = 0xF;
+    obj->Refract_ratio = 0xB4;
 }
 
 // .sdata alignment padding of the split object

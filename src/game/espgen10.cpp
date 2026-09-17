@@ -24,7 +24,7 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
 
     list = no * sizeof(EspGenWork) + 0x30;
     rec = (EspGenWork*) ((u32) head + list);
-    if (info->x0 & 0x1000) {
+    if (info->Core_flg & 0x1000) {
         u32 no = rec->x6;
         list = (u32) EspEvModList;
         if (no > 0x7F) {
@@ -59,11 +59,11 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
 }
 void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e)
 {
-    w->info.x0 = a;
-    w->info.x2 = c;
-    w->info.x4 = b;
+    w->info.Core_flg = a;
+    w->info.Core_kind = c;
+    w->info.Call_no = b;
     w->info.x8 = d;
-    w->info.x3 = e;
+    w->info.owner = e;
 }
 
 int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front)

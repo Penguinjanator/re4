@@ -27,7 +27,7 @@ extern cModel* pSUB;
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int a);
+int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, int max, u16 flag);
 void BoxWorldCalc(Vec* src, Vec* dst, Vec* pos, Vec* rot);
 f32 GetXZAngle(Vec* from, Vec* to);

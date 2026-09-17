@@ -27,8 +27,8 @@ struct WepTarget {
 
 extern "C" {
 void EffectEspDelete(int a, int b, cModel* m, int c);     // game/est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 void ReadWepData(int no, int type);                       // game/read.cpp
 u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
@@ -36,7 +36,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec
 void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
 void EspSetWaterHitmark(Vec* pos);
 void GameAddPoint(int no);                                // game/game.cpp
-f32 GetXZAngleLocal(Vec* a, Vec* b, f32 ang);             // game/sub2.cpp
+f32 GetXZAngleLocal(Vec* v0, Vec* v1, f32 ang);             // game/sub2.cpp
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);       // game/Espgen42.cpp
 void AddWaterPower(Vec* pos, f32 power);
 f64 atan2(f64 y, f64 x);
@@ -190,10 +190,10 @@ void cPlayer::weaponInit()
         WeaponInitFunc(this);
     }
     if (!(pG->flags_5010 & 0x200000) && !(flags_420 & 0x40)) {
-        xFC = 0;
-        xFD = 0;
-        xFE = 0;
-        xFF = 1;
+        r_no_0 = 0;
+        r_no_1 = 0;
+        r_no_2 = 0;
+        r_no_3 = 1;
         x4FD = 0;
         x4FC = 0;
     }
@@ -212,7 +212,7 @@ static f32 wepRate(cPlWep* w)
     return w->pitch;
 }
 
-u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
+u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len)
 {
     cPlayer* pl = (cPlayer*) plm;
     WepTarget list[20];
@@ -344,10 +344,10 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     case 0x17:
     case 0x29:
     case 0x2D:
-        n = GetWepTargetListBomb(p0, list, prio, type, f4, len);
+        n = GetWepTargetListBomb(pPos, list, prio, type, f4, len);
         break;
     default:
-        n = GetWepTargetList2(p0, p1, list, prio, &hit, &nrm, &attr, type, f4, len);
+        n = GetWepTargetList2(pPos, pPos2, list, prio, &hit, &nrm, &attr, type, f4, len);
         break;
     }
     for (i = 0; i < n; i++) {
@@ -369,7 +369,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
             break;
         }
         if (!(dmg->stat & 1)) {
-            dmg->set(0, 10, type, p0, part->rad, part);
+            dmg->set(0, 10, type, pPos, part->rad, part);
             if (part->flags & 0x20) {
                 dmg->stat |= 0x20;
             }
@@ -392,7 +392,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     }
     if (pl != 0 && !(flag & 1)) {
         if (pl->pWep->pObj != 0) {
-            wepSetWaterShot(p0, p1, type);
+            wepSetWaterShot(pPos, pPos2, type);
             memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->pWep->pObj->wep.marker, sizeof(Vec));
             switch (type) {
             case 0xD:
@@ -523,13 +523,13 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
 // `mr r11,r9` copy every later block uses.
 f32 cPlWep::getAngle()
 {
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return 0.0f;
     }
-    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
+    if (pPL->r_no_1 != 6 && pPL->r_no_1 != 0xB) {
         return 0.0f;
     }
-    if (pPL->xFE == 3) {
+    if (pPL->r_no_2 == 3) {
         return 0.0f;
     }
     return pitch;
@@ -537,13 +537,13 @@ f32 cPlWep::getAngle()
 
 f32 cPlWep::getPitch()
 {
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return 0.0f;
     }
-    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
+    if (pPL->r_no_1 != 6 && pPL->r_no_1 != 0xB) {
         return 0.0f;
     }
-    if (pPL->xFE == 3) {
+    if (pPL->r_no_2 == 3) {
         return 0.0f;
     }
     return m3r[0];
@@ -560,7 +560,7 @@ int cPlWep::getMarkerPos(Vec* out)
 {
     cPlayer* pl = pPL;
 
-    if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->xFF == 0) {
+    if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->r_no_3 == 0) {
         return 0;
     }
     *out = pObj->wep.marker;
@@ -1055,10 +1055,10 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
     sY = wep->pObj->wep.lockRandYawStep;
     if (flag & 1) {
         wep->pitch = *pitch;
-        wep->x2C = *yaw;
+        wep->m_CenterY = *yaw;
     } else if (flag & 2) {
         *pitch = fRand1_1() * rP * lockRandCtr + wep->pitch;
-        *yaw = fRand1_1() * rY * lockRandCtr + wep->x2C;
+        *yaw = fRand1_1() * rY * lockRandCtr + wep->m_CenterY;
     } else {
         *pitch = sP * fRand1_1() + *pitch;
         *yaw = sY * fRand1_1() + *yaw;
@@ -1067,10 +1067,10 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
         } else if (*pitch < wep->pitch - rP) {
             *pitch = wep->pitch - rP;
         }
-        if (*yaw > wep->x2C + rP) {
-            *yaw = wep->x2C + rP;
-        } else if (*yaw < wep->x2C - rP) {
-            *yaw = wep->x2C - rP;
+        if (*yaw > wep->m_CenterY + rP) {
+            *yaw = wep->m_CenterY + rP;
+        } else if (*yaw < wep->m_CenterY - rP) {
+            *yaw = wep->m_CenterY - rP;
         }
     }
     *pitch *= 2.0f / PI;

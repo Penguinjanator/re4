@@ -176,7 +176,7 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP_03 : WK1 invalid.");
         return 0;
     }
-    xB8 = 100000000.0f;
+    m_Radius = 100000000.0f;
     dispFlag |= 2;
     return 1;
 }

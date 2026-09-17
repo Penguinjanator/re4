@@ -130,7 +130,7 @@ static inline u32 evtFlagBase()
 }
 static inline u32 doorFlagBase()
 {
-    return (u32) &pG->flags_51BC;
+    return (u32) &pG->Item_find_flg;
 }
 static inline u32 FlagChk(u32 base, u32 no)
 {
@@ -592,14 +592,14 @@ static void r212_AshleyPointTo(cEm* sub)
 {
     cObj* o = SmdGetObjPtr(0x15);
 
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 10, 0, 1, 0);
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 10, 0, 1, 0);
-            sub->xFE++;
+            sub->r_no_2++;
             cMes.MesSet(r212_work.p->mesNo, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x01000052, 0, 0, 4);
             RoomSeCall(0x13, &sub->pos, 0, 0, sub);
         }
@@ -609,7 +609,7 @@ static void r212_AshleyPointTo(cEm* sub)
             int i;
 
             sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x27), 10, 0, 1, 0);
-            sub->xFE++;
+            sub->r_no_2++;
             MessageControl* m = &cMes;
             for (i = 0; i < 16; i++) {
                 m->Delete(i);
@@ -618,10 +618,10 @@ static void r212_AshleyPointTo(cEm* sub)
         break;
     case 3:
         if (sub->motionMove()) {
-            sub->xFC = 0;
-            sub->xFD = 0;
-            sub->xFE = 0;
-            sub->xFF = 0;
+            sub->r_no_0 = 0;
+            sub->r_no_1 = 0;
+            sub->r_no_2 = 0;
+            sub->r_no_3 = 0;
         }
         break;
     }
@@ -837,21 +837,21 @@ static void r212_DrillMove()
 // SetSubAux routine: Ashley's reaction to the drill.
 static void r212_AshleyDrillAction(cEm* sub)
 {
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 10, 0, 1, 0);
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 10, 0, 1, 0);
             EmSeCallP(3, &sub->pos, 3, 0, 0, 0);
-            sub->xFE++;
+            sub->r_no_2++;
         }
         break;
     case 2:
         if (sub->motionMove()) {
             sub->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 5, 0);
-            sub->xFE++;
+            sub->r_no_2++;
         }
         break;
     case 3:

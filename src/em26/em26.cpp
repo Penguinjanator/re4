@@ -45,10 +45,10 @@ static void em26_R1_Die_Normal(cEm26* em);
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 extern "C" void _prolog()
@@ -231,16 +231,16 @@ void cEm26::move()
 {
     Em26Work* w = EM26_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em26DmCk(this);
     }
     w->flags &= ~0xF;
-    if (xFC) {
+    if (r_no_0) {
         getPartsPtr(1)->scale.x = 1.0f;
         getPartsPtr(2)->scale.x = 1.0f;
     }
-    Em26_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em26_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -260,14 +260,14 @@ static void em26_R0_Init(cEm26* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em26() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(4), ARC(6)) == 0) {
             pLog->err(0, 0, "em26() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
@@ -324,24 +324,24 @@ static void em26_R0_Init(cEm26* em)
 
 static void em26_R0_Move(cEm26* em)
 {
-    Em26_R1_move_tbl[em->xFD](em);
+    Em26_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Wait(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (w->flags & 0x10) {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 0x45, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 5, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
-            em->xFE++;
+            em->r_no_2++;
         } else {
             em26BreathSe(em);
         }
@@ -354,10 +354,10 @@ static void em26_R1_Wait(cEm26* em)
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 4, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -382,7 +382,7 @@ static void em26_R1_Atk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         f32 ang = Muku(&em->pos, &pPL->pos, em->rot.y, PI);
         int mode = 1;
@@ -396,7 +396,7 @@ static void em26_R1_Atk(cEm26* em)
             MotionSetCore(em, MOTION(em), ARC(0xF), (int) ARC(0x17), 0, mode, 0);
         }
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em->seFlags28B & 1) {
@@ -420,14 +420,14 @@ static void em26_R0_Damage(cEm26* em)
     Em26Work* w = EM26_WK(em);
 
     w->flags |= 8;
-    Em26_R2_move_tbl[em->xFD](em);
+    Em26_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Dm_Small(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         EmHitInfo* part = em->dmPart;
         int mode = 1;
@@ -458,7 +458,7 @@ static void em26_R1_Dm_Small(cEm26* em)
             MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, mode, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -473,14 +473,14 @@ static void em26_R0_Die(cEm26* em)
     Em26Work* w = EM26_WK(em);
 
     w->flags |= 8;
-    Em26_R3_move_tbl[em->xFD](em);
+    Em26_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Die_Normal(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* seq;
         int mode;
@@ -516,7 +516,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 0x1E, 2, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (w->flags & 0x20) {
@@ -533,7 +533,7 @@ static void em26_R1_Die_Normal(cEm26* em)
             cModel* p = em->getPartsPtr(2);
 
             EstSet(0, -1, &p->worldPos, &em->rot, 0x1E, 4, 0, 0, 0, 0);
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }

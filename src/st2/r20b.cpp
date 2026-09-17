@@ -644,9 +644,9 @@ static void R20bDoorEventEnd()
     obj->pInfo->setBlendRatio(0xFF);        \
     obj->pInfo->setBlendType(1);            \
     obj->pInfo->color[3] = 0xF0;            \
-    obj->x136 = 2;                          \
-    obj->x137 = 4;                          \
-    obj->x138 = 0x20;                       \
+    obj->Shader_type = 2;                          \
+    obj->Refract_pow = 4;                          \
+    obj->Refract_ratio = 0x20;                       \
     obj->alpha = 0.7f;
 
 // The hall floor: a render target blended into the two floor objects.
@@ -940,14 +940,14 @@ extern "C" void Evt_R20BS00_Func(Event* e)
                     ((cModel*) mod2)->lightInfo.x50 = 0x40;
                 }
                 if (e->GetMod(&mod2, "evm9300", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                     ((cModel*) mod2)->be_flag |= 0x10;
                 }
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
             }
             break;

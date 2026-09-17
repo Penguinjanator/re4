@@ -720,7 +720,7 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
             if (pPL == m) {
                 pLog->err(0, 0, "MotionMoveCore(): Pl, Invalid parts %d.", pno);
             } else {
-                pLog->err(0, 0, "MotionMoveCore(): %s[%0xh], Invalid parts %d. [0x%x]", kind_str[m->x12E], m->id, pno, m);
+                pLog->err(0, 0, "MotionMoveCore(): %s[%0xh], Invalid parts %d. [0x%x]", kind_str[m->kindid], m->id, pno, m);
             }
         }
         p = m->getPartsPtr(pno);

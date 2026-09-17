@@ -61,7 +61,7 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
     f32 kp = 10.0f;
 
     em->type = d->type;
-    em->x38D = d->x3;
+    em->set = d->x3;
     em->flags_3C8 = d->flags4;
     em->x3D0 = d->xB;
     em->x3CC = (f32) d->x1A * kx;
@@ -88,7 +88,7 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
         f32 kr = 3.1415927f / 16384.0f;                                                   \
         f32 kp = 10.0f;                                                                   \
         (em)->type = (d)->type;                                                           \
-        (em)->x38D = (d)->x3;                                                             \
+        (em)->set = (d)->x3;                                                             \
         (em)->flags_3C8 = (d)->flags4;                                                    \
         (em)->x3D0 = (d)->xB;                                                             \
         (em)->x3CC = (f32) (d)->x1A * kx;                                                 \

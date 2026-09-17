@@ -155,16 +155,16 @@ void R225Init()
     }
     SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) SceElevator_r225, &r225_elvLeave, 1);
     if (pG->room_id_prev == 0x226) {
-        if (!(pG->flags_54 & 0x80000)) {
-            if (!(pG->flags_54 & 0x100)) {
+        if (!(pG->System_flg & 0x80000)) {
+            if (!(pG->System_flg & 0x100)) {
                 SceExec(0x12, (TaskFunc) SceElevator_r225, (int) &r225_elvArrive, 0, 2, 0);
             }
         }
     }
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r225_checkGrave, 0, 1);
     if (pG->room_id_prev == 0x21D) {
-        if (!(pG->flags_54 & 0x80000)) {
-            if (!(pG->flags_54 & 0x100)) {
+        if (!(pG->System_flg & 0x80000)) {
+            if (!(pG->System_flg & 0x100)) {
                 SceExec(0x12, (TaskFunc) r225_moveGrave, 0, 0, 2, 0);
             }
         }
@@ -466,7 +466,7 @@ static void r225_moveGrave(int dir)
             }
         }
         SceEventStart(0);
-        pG->flags_58 |= 0x02000000;
+        pG->Disp_flg |= 0x02000000;
         if (dir == 1) {
             CamCtrl.CutCall(6);
             SndCall(6, 7, 0, 0, 0, 0);
@@ -489,7 +489,7 @@ static void r225_moveGrave(int dir)
             SceSleep(15);
             CamCtrl.Comeback(0);
         }
-        pG->flags_58 &= ~0x02000000;
+        pG->Disp_flg &= ~0x02000000;
         SceEventEnd(0);
     }
 }

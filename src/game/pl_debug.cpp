@@ -37,14 +37,14 @@ void mahoInfBul()
 void mahoSkelOn()
 {
     BitOn(pG->flags_60, 0x8000000);
-    BitOn(pG->flags_58, 0x8000000);
+    BitOn(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON ON");
 }
 
 void mahoSkelOff()
 {
     BitOff(pG->flags_60, 0x8000000);
-    BitOff(pG->flags_58, 0x8000000);
+    BitOff(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON OFF");
 }
 

@@ -159,7 +159,7 @@ void StackOverflowCheck(TASK* t)
     }
 }
 
-void* TaskExec_hook(void* arg)
+void* TaskExec_hook(void* value)
 {
     if (ParentThread() != NULL) {
         OSSuspendThread(ParentThread());
@@ -180,7 +180,7 @@ void* TaskExec_hook(void* arg)
         :
         : "r3");
     GXSetCurrentGXThread();
-    CTASK->func((int) arg);
+    CTASK->func((int) value);
     return NULL;
 }
 

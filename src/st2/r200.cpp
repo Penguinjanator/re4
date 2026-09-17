@@ -175,8 +175,8 @@ static void r200_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 4);
-    if ((pG->flags_54 & 0x40) == 0) {
-        BitOn(pG->flags_54, 0x40);
+    if ((pG->System_flg & 0x40) == 0) {
+        BitOn(pG->System_flg, 0x40);
         r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, FCRef(vol));
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
@@ -196,7 +196,7 @@ static void r200_execEvent00()
     RsfSet(G_ROOM_ID, 2);
     SndRoomStrStop(3);
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     EmMgr.destroyAll();
     SceSleep(2);
     EmReadInit();
@@ -367,10 +367,10 @@ extern "C" void Evt_R200S00_Func(Event* e)
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
                 if (e->GetMod(&mod, "evm0900", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);

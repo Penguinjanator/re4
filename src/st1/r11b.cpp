@@ -86,19 +86,19 @@ void R11bInit()
     cObj* obj = 0;   // the zero of the EstSet data arguments and the list entry's x3 (r27)
     int one = 1;     // COMPILER-DIFF: #13 (single use: update_equiv_regs moves the li next to the store)
 
-    BitOn(pG->flags_54, 0x800);
+    BitOn(pG->System_flg, 0x800);
     if (pG->x4F9F == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
     SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, 2, 0);
-    BitOn(pG->flags_51BC, 8);
+    BitOn(pG->Item_find_flg, 8);
     // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
     // store (output dependence) and is issued in the idle cycle between it and the next pG reload,
     // so local-alloc's fake lifetimes of the two pG values no longer touch and both take r9 (the
     // original's `lwz r9; ... lwz r9`); without it the first load gets r11.
     asm("" : "=m"(rot2.x));
-    BitOn(pG->flags_51BC, 2);
+    BitOn(pG->Item_find_flg, 2);
     BitOn(pG->flags_51C0, 0x01000000);
     BitOff(pG->door_flags_51CC, 0x8000);
     BitOff(pG->door_flags_51CC, 0x200);
@@ -116,7 +116,7 @@ void R11bInit()
     }
     l = EM_LIST(0x3C);
     l->x3 = 0;
-    if (pG->room_id_prev == 0x10D && !(pG->flags_54 & 0x100)) {
+    if (pG->room_id_prev == 0x10D && !(pG->System_flg & 0x100)) {
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
         static const Vec r11b_boatRot0 = {0.0f, -0.68f, 0.0f};
 
@@ -386,22 +386,22 @@ static void R11b_Event()
 
     SceSleep(1);
     seen = 0;
-    BitOn(pG->flags_54, 0x400);
-    if (pG->flags_54 & 0x40) {
+    BitOn(pG->System_flg, 0x400);
+    if (pG->System_flg & 0x40) {
         seen = 1;
     }
     BitOn(pG->flags_5010, 0x800);
-    if (!(pG->flags_54 & 0x40)) {
+    if (!(pG->System_flg & 0x40)) {
         EvtMgr.EvtReadExec("event/evd/r11bs00.evd", 0, 4);
     }
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     BitOff(pG->flags_5010, 0x800);
     SndBgmTblSet(0x11B, 1);
     SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, 2, 0);
     if (seen == 0) {
         OpeSetOpenTerm(8, 0.0f, 0.0f, 0.0f, 0.0f);
     }
-    if (pG->flags_54 & 0x40) {
+    if (pG->System_flg & 0x40) {
         SndRoomBgmStart(0, 30);
     }
 }

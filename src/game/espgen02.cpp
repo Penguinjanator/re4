@@ -367,7 +367,7 @@ void espgen02_Update(EspgenWork* w)
                         PSVECScale(&esp->spd, &esp->spd, spdR);
                     }
                     if (bCol) {
-                        esp->x83 = (u8) ((f32) (int) esp->x83 * colR);
+                        esp->m_Col_start_a = (u8) ((f32) (int) esp->m_Col_start_a * colR);
                         esp->colA *= colR;
                     }
                 }
@@ -401,7 +401,7 @@ void Espgen02_Move(EspgenWork* w)
 }
 
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;
 
@@ -440,11 +440,11 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
     PSMTXCopy(*mtx, p->mtx);
-    if (p8 != NULL) {
+    if (pSct != NULL) {
         p->pOpt = &p->opt;
-        p->opt = *p8;
+        p->opt = *pSct;
     } else {
-        p->pOpt = p8;
+        p->pOpt = pSct;
     }
     p->pathId = rec->x104;
     p->pathNo = rec->x105;

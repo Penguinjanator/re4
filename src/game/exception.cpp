@@ -523,8 +523,8 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     dar = va_arg(ap, u32);
     PPCMtmsr(0xB032);
     OSEnableScheduler();
-    BitOn(pG->flags_54, 0x20000000);
-    BitOff(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x20000000);
+    BitOff(pG->System_flg, 0x400);
     w = &test;
     n = 0;
     memclr_asm(w, sizeof(MemDump));

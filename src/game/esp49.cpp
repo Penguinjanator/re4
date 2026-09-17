@@ -51,7 +51,7 @@ void cEsp49::move()
                 if (w->estOn & 1) {
                     r.x = r.y = r.z = 0.0f;
                     ep = pos;
-                    EstSet(0, -1, &ep, &r, w->estNo, w->estPrm, info.x0, info.x2, info.x8, 0);
+                    EstSet(0, -1, &ep, &r, w->estNo, w->estPrm, info.Core_flg, info.Core_kind, info.x8, 0);
                 }
                 PushEsp(this);
             } else if (d < w->fadeDepth) {

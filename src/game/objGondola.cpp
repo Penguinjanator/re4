@@ -52,7 +52,7 @@ struct SubCharPtr {
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void DiedemoExec(int no, int a);
+void DiedemoExec(int no, int demo_type);
 void objGondola_R0_Set(cObjGondola* obj);
 void objGondola_R0_Move(cObjGondola* obj);
 void objGondola_R0_Down(cObjGondola* obj);
@@ -60,7 +60,7 @@ void objGondola_R0_Up(cObjGondola* obj);
 void objGondola_R0_Break(cObjGondola* obj);
 void objGondolaSatClear(cObjGondola* obj);
 void objGondolaSatSet(cObjGondola* obj);
-void objGondolaRideEmAdjust(cObjGondola* obj, Vec* d);
+void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec);
 }
 void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
@@ -119,10 +119,10 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->subWork = 0;
     w->subMot = 0;
     w->breakMot = 0;
-    obj->xFC = 0;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     objGondolaSatSet((cObjGondola*) obj);
     return obj;
 }
@@ -135,7 +135,7 @@ void cObjGondola::move()
     if (w->cnt) {
         w->cnt--;
     }
-    ObjGondola_R0_move_tbl[xFC](this);
+    ObjGondola_R0_move_tbl[r_no_0](this);
 }
 
 void objGondola_R0_Set(cObjGondola* obj)
@@ -245,10 +245,10 @@ void objGondola_R0_Up(cObjGondola* obj)
         }
         pG->flags_500C &= ~0x20;
         w->ridePL = 0;
-        obj->xFC = 1;
-        obj->xFD = 0;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 0;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
 }
 
@@ -264,17 +264,17 @@ void objGondola_R0_Break(cObjGondola* obj)
     Vec* ca;
     static Camera ObjGondolaCam;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
-        w->x14.x = 0.0f;
-        w->x14.y = 0.0f;
-        w->x14.z = 0.0f;
+        w->Spd.x = 0.0f;
+        w->Spd.y = 0.0f;
+        w->Spd.z = 0.0f;
         if (w->ridePL) {
             pG->pl_life = 0;
             DiedemoExec(0x3C, 0);
         }
         w->timer = 42;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         parts = obj->getPartsPtr(0);
         v.x = -2000.0f;
@@ -498,10 +498,10 @@ static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
 void cObjGondola::setMoveMotion(void* mot, int frame)
 {
     MotionSetCore(this, &pMotion, mot, 0, 0, 0x8005, frame);
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cObjGondola::ckRide()
@@ -558,13 +558,13 @@ void cObjGondola::setBreak()
 {
     QuakeExec(0, 0, 10, 30.0f, 2);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-    xFC = 4;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 4;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
-void objGondolaRideEmAdjust(cObjGondola* obj, Vec* d)
+void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec)
 {
     GondolaWork* w = &obj->gondola;
     cModel* parts = obj->getPartsPtr(1);
@@ -577,7 +577,7 @@ void objGondolaRideEmAdjust(cObjGondola* obj, Vec* d)
     PSMTXMultVec(parts->mat, &c, &c);
     for (i = 0; i < 5; i++) {
         if (w->rideEm[i]) {
-            PSVECAdd(&w->rideEm[i]->pos, d, &w->rideEm[i]->pos);
+            PSVECAdd(&w->rideEm[i]->pos, pVec, &w->rideEm[i]->pos);
             w->rideEm[i]->setPos(&w->rideEm[i]->pos);
             if ((c.x - w->rideEm[i]->pos.x) * (c.x - w->rideEm[i]->pos.x) +
                 (c.y - w->rideEm[i]->pos.y) * (c.y - w->rideEm[i]->pos.y) +
@@ -612,19 +612,19 @@ void cObjGondola::setRidePL()
         w->rideSUB = 1;
     }
     pG->flags_500C |= 0x20;
-    xFC = 2;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 2;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjGondola::setGetOffPL()
 {
     pG->flags_500C &= ~0x20;
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjGondola::setSubMotion(MotionWork* work, void* mot, void* breakMot)

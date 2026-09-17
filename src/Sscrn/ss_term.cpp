@@ -593,7 +593,7 @@ int SsTermMain::OpeSeqMove(TermSeq* s)
 
 void SsTermMain::OpeMesSet(int no, int wait)
 {
-    pG->flags_58 &= ~0x800;
+    pG->Disp_flg &= ~0x800;
     if (no == -1) {
         cMes.WaitEnd(0);
     } else {
@@ -618,7 +618,7 @@ void SsTermMain::OpeMesClear()
         ope.mesWait--;
         if (ope.mesWait <= 0) {
             ope.mesWait = 0;
-            pG->flags_58 |= 0x800;
+            pG->Disp_flg |= 0x800;
         }
     }
     sub.count++;

@@ -53,7 +53,7 @@ void cActionButton::move()
             continue;
         }
         active = 1;
-        if (!(pG->flags_58 & 0x1000) && !(w->flags & 8)) {
+        if (!(pG->Disp_flg & 0x1000) && !(w->flags & 8)) {
             disp(w);
         }
         if (checkButton(w) == 1 && w->func != 0) {

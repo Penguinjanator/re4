@@ -258,7 +258,7 @@ void R204Init()
         EvtMgr.EvtReadAram("event/evd/r204s00.evd", 0, 0, 0, 0);
         EmReadSearch(0x14, 0, 0);
     }
-    if ((pG->flags_54 & 0x100) && RsfCheck(G_ROOM_ID, 8)) {
+    if ((pG->System_flg & 0x100) && RsfCheck(G_ROOM_ID, 8)) {
         SceAtSetEnable(0xF, 1);
         SmdGetObjPtr(0x39)->be_flag |= 0x20;
         SmdGetObjPtr(0x39)->pos.y = 0.0f;
@@ -531,7 +531,7 @@ static void r204_nige_check()
                     BitOff(pG->flags_5010, 0x10000000);
                     pPL->dmg.set(0, 0x80);
                     BitOn(pG->flags_170, 0x10000000);
-                    BitOn(pG->flags_58, 0x40000000);
+                    BitOn(pG->Disp_flg, 0x40000000);
                     PlEndCamera();
                     pl->pWep->pObj->setDisp(1, 1);
                     CamCtrl.CutCall(0xF);
@@ -550,7 +550,7 @@ static void r204_nige_check()
                         BitOff(pG->flags_5010, 0x10000000);
                         pPL->dmg.set(0, 0x80);
                         BitOn(pG->flags_170, 0x10000000);
-                        BitOn(pG->flags_58, 0x40000000);
+                        BitOn(pG->Disp_flg, 0x40000000);
                         PlEndCamera();
                     }
                     CamCtrl.CutCall(0x10);
@@ -580,7 +580,7 @@ static void r204_nige_check()
                     CamCtrl.Comeback(0);
                     pPL->dmg.clear();
                     BitOff(pG->flags_170, 0x10000000);
-                    BitOff(pG->flags_58, 0x40000000);
+                    BitOff(pG->Disp_flg, 0x40000000);
                     SceUpCutEnd();
                 }
             }
@@ -1060,7 +1060,7 @@ static void door_move()
     pPL->setNoSuspend(1);
     r204_work.p->sw->setNoSuspend(1);
     BitOn(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     CamCtrl.CutCall(0xD);
     SceSleep(0x28);
     ((cEmBarred*) r204_work.p->barred[1])->setClosed();

@@ -67,10 +67,10 @@ void cEmControl::EndControl()
         em.setCharacter(0);
         p = em.getPtr();
         if (p != 0) {
-            p->xFC = 1;
-            p->xFD = 0;
-            p->xFE = 0;
-            p->xFF = 0;
+            p->r_no_0 = 1;
+            p->r_no_1 = 0;
+            p->r_no_2 = 0;
+            p->r_no_3 = 0;
         }
     }
 }
@@ -413,8 +413,8 @@ int cEmWrap::isNoSuspend()
 void cEmWrap::setRno(u8 r0, u8 r1)
 {
     if (isAlive() == 1) {
-        pEm->xFC = r0;
-        pEm->xFD = r1;
+        pEm->r_no_0 = r0;
+        pEm->r_no_1 = r1;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setRno error", no);
     }
@@ -425,7 +425,7 @@ int cEmWrap::ckRno01(int r0, int r1)
     if (isAlive() == 1) {
         cEm* p = pEm;
 
-        if (p->xFC == r0 && p->xFD == r1) {
+        if (p->r_no_0 == r0 && p->r_no_1 == r1) {
             return 1;
         }
     } else {

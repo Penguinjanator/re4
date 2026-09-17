@@ -735,13 +735,13 @@ void cObjRobo::SatMove(cObjRobo* robo, Vec* pos, int side)
 }
 
 // `em` stands within 100 of the foot at `pos`: move it by `d`. Returns 1 when it did.
-int cObjRobo::SatMoveSub(cModel* em, Vec* pos, Vec* d)
+int cObjRobo::SatMoveSub(cModel* em, Vec* pos, Vec* pVecMov)
 {
     Vec t;
 
     if (pos->x - 1000.0f <= em->pos.x && pos->x + 1000.0f >= em->pos.x && pos->z - 1000.0f <= em->pos.z &&
         pos->z + 1000.0f >= em->pos.z && __builtin_fabsf(pos->y - em->pos.y) <= posysub) {
-        PSVECAdd(&em->pos, d, &t);
+        PSVECAdd(&em->pos, pVecMov, &t);
         em->setPos(&t);
         return 1;
     }

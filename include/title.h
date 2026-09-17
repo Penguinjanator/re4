@@ -10,7 +10,7 @@ struct TitleWork {
     s8 mode;          // 0x00  titleFuncTbl index (0 init, 1 wait, 2 nintendo, 3 warning, 4 logo, 5 main, 6 sub/omake, 7 exit)
     s8 step;          // 0x01  state inside the mode
     s8 sub;           // 0x02  sub state (demo movie steps, stage select)
-    u8 x3;            // 0x03
+    u8 Rno3;            // 0x03
     u8 demoNo;        // 0x04  alternates between the two demo movies
     u8 pad_5[3];
     int sndFlag;      // 0x08  1 = title.snd read done, BGM not started yet (titleLogo)
@@ -25,7 +25,7 @@ struct TitleWork {
     IdUnit* menu[5];  // 0x2C  menu id units
     int scroll;       // 0x40  1 = the background scroll follows the stick (titleLoop)
     f32 speed;        // 0x44  background scroll speed
-    int x48;          // 0x48  1 = the title logo time was pushed forward (debug menu)
+    int dbg_mode;          // 0x48  1 = the title logo time was pushed forward (debug menu)
     struct TitleArc* pOmk;  // 0x4C  omk_tX.dat (offset table)
     int omkSize;      // 0x50
     s8 omkCursor;     // 0x54  omake menu: 0 start, 1 back

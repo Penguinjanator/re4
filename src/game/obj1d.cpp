@@ -54,11 +54,11 @@ cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->parts1 = 0;
     w->parts2 = 0;
     w->cloth = 0;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
-    Obj1d_R1_move_tbl[obj->xFD]((cObjChain*) obj);
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
+    Obj1d_R1_move_tbl[obj->r_no_1]((cObjChain*) obj);
     return obj;
 }
 
@@ -75,7 +75,7 @@ void cObjChain::move()
     if (pMotion) {
         MotionMove(this, 0);
     }
-    Obj1d_R1_move_tbl[xFD](this);
+    Obj1d_R1_move_tbl[r_no_1](this);
     if ((be_flag & 0x201) == 1) {
         chainMove();
     }
@@ -98,19 +98,19 @@ void obj1d_R1_LostWait(cObjChain* obj)
 {
     ChainWork* w = &obj->chain;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 90;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer == 0) {
             obj->alpha -= 0.1f;
             if (obj->alpha <= 0.0f) {
                 obj->alpha = 0.0f;
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
                 break;
             }
         } else {
@@ -123,10 +123,10 @@ void obj1d_R1_LostWait(cObjChain* obj)
             p = obj->pos;
             GetScreenPos(&p, &scr);
             if (scr.z > 1.0f) {
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
         break;
@@ -140,8 +140,8 @@ void obj1d_R1_LostWait(cObjChain* obj)
 
 void obj1d_R1_Lost(cObjChain* obj)
 {
-    if (obj->xFE == 0) {
-        obj->xFE++;
+    if (obj->r_no_2 == 0) {
+        obj->r_no_2++;
         obj->be_flag &= ~2;
         obj->be_flag &= ~0x20;
         ObjMgr.destroy(obj);
@@ -274,10 +274,10 @@ void cObjChain::setParent(cModel* parent, int parts, Vec* ofs, int flag)
     } else {
         w->flags &= ~2;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag)
@@ -294,10 +294,10 @@ void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Ve
     } else {
         w->flags &= ~2;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjChain::setChain(PenCloth* cloth)

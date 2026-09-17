@@ -99,7 +99,7 @@ static inline int itemEmpty(ItemWork* p)
 
 #define ITEM_TYPE(id) (itemInfo((id), &info), info.type)
 #define ITEM_UNIT(id) (itemInfo((id), &info), info.x3)
-#define ITEM_MAX(id) (itemInfo((id), &info), info.x4)
+#define ITEM_MAX(id) (itemInfo((id), &info), info.maxNum)
 
 // display order of the item ids (gld_order)
 u16 g_item_order[] = {
@@ -196,7 +196,7 @@ cItemMgr ItemMgr;
 
 int healing(u16 n)
 {
-    if (ItemMgr.x12 == 0) {
+    if (ItemMgr.m_to_whom == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
             U16Set(pG->pl_life, n + pG->pl_life);
             if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
@@ -204,7 +204,7 @@ int healing(u16 n)
             }
             return 1;
         }
-    } else if (ItemMgr.x12 == 1) {
+    } else if (ItemMgr.m_to_whom == 1) {
         if ((s16) pG->sub_life < (s16) pG->sub_life_max) {
             U16Set(pG->sub_life, n + pG->sub_life);
             if ((s16) pG->sub_life > (s16) pG->sub_life_max) {
@@ -1130,7 +1130,7 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!flagNeg(pG->flags_54) && !chkFlag(pG->flags_54, 0x40000000)) {
+    if (!flagNeg(pG->System_flg) && !chkFlag(pG->System_flg, 0x40000000)) {
         if (pG->x4FB8 == 1) {
             type = 0;
         }
@@ -1178,9 +1178,9 @@ void cItemMgr::gameInit()
             type = 1;
         }
     } else {
-        if ((s32) pG->flags_54 < 0) {
+        if ((s32) pG->System_flg < 0) {
             set_ada(2);
-        } else if (pG->flags_54 & 0x40000000) {
+        } else if (pG->System_flg & 0x40000000) {
             set_char(pG->x4FB8);
         }
     }
@@ -1269,8 +1269,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x99:
     case 0xAB:
         info->type = 1;
-        info->x3 = 0;
-        info->x4 = 0;
+        info->defNum = 0;
+        info->maxNum = 0;
         break;
     case 0x01:
     case 0x02:
@@ -1280,58 +1280,58 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x38:
     case 0x6D:
         info->type = 3;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x04:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 50;
+        info->defNum = 10;
+        info->maxNum = 50;
         break;
     case 0x00:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x18:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 15;
+        info->defNum = 10;
+        info->maxNum = 15;
         break;
     case 0x07:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x6A:
         info->type = 2;
-        info->x3 = 50;
-        info->x4 = 100;
+        info->defNum = 50;
+        info->maxNum = 100;
         break;
     case 0x20:
         info->type = 2;
-        info->x3 = 50;
-        info->x4 = 100;
+        info->defNum = 50;
+        info->maxNum = 100;
         break;
     case 0x1A:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 10;
+        info->defNum = 10;
+        info->maxNum = 10;
         break;
     case 0x46:
         info->type = 2;
-        info->x3 = 1;
-        info->x4 = 5;
+        info->defNum = 1;
+        info->maxNum = 5;
         break;
     case 0xA0:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x72:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 20;
+        info->defNum = 5;
+        info->maxNum = 20;
         break;
     case 0x3F:
     case 0x42:
@@ -1341,16 +1341,16 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xAA:
     case 0xC5:
         info->type = 9;
-        info->x3 = 0;
-        info->x4 = 0;
+        info->defNum = 0;
+        info->maxNum = 0;
         break;
     case 0x05:
     case 0x08:
     case 0x09:
     case 0x0A:
         info->type = 6;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x06:
     case 0x12:
@@ -1364,8 +1364,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x97:
     case 0xA8:
         info->type = 6;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x56:
     case 0x57:
@@ -1384,8 +1384,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xD3:
     case 0xD4:
         info->type = 12;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x1B:
     case 0x58:
@@ -1443,32 +1443,32 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xDA:
     case 0xDB:
         info->type = 5;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x78:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x79:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
     case 0x71:
         info->type = 8;
-        info->x3 = 5;
-        info->x4 = 999;
+        info->defNum = 5;
+        info->maxNum = 999;
         break;
     case 0x73:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x75:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x48:
     case 0x49:
@@ -1502,8 +1502,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xFC:
     case 0xFD:
         info->type = 10;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x54:
     case 0x55:
@@ -1514,8 +1514,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xA9:
     case 0xFE:
         info->type = 11;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0xDC:
     case 0xDD:
@@ -1542,18 +1542,18 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xF2:
     case 0xF3:
         info->type = 13;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x0C:
         info->type = 14;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     default:
         info->type = 7;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     }
 }
@@ -1801,15 +1801,15 @@ int cItemMgr::get(int id, int num)
         }
         return addMoney(5000);
     case 0x73:
-        x28 = num;
+        m_bonus_time = num;
         MercSysSetAddTime(num);
-        pG->cdown_add_sec = x28;
+        pG->cdown_add_sec = m_bonus_time;
         return 1;
     case 0x75:
         if (num == 0) {
             num = 30;
         }
-        x2C = num * 30;
+        m_bonus_point = num * 30;
         MercSysSetBonusTime(num * 30);
         return 1;
     }
@@ -1825,11 +1825,11 @@ int cItemMgr::get(int id, int num)
 
                 if (num == 0) {
                     itemInfoIW(id, &inf);
-                    num = inf.x3;
+                    num = inf.defNum;
                 }
                 total = p->num + num;
                 itemInfoW(p->id, &inf);
-                if (total <= inf.x4) {
+                if (total <= inf.maxNum) {
                     {
                         int t = num + p->num;
 
@@ -1848,9 +1848,9 @@ int cItemMgr::get(int id, int num)
         max = 1;
     } else {
         if (num == 0) {
-            num = pInfo->x3;
+            num = pInfo->defNum;
         }
-        max = pInfo->x4;
+        max = pInfo->maxNum;
     }
     if (num > max) {
         num = (u16) max;
@@ -1875,7 +1875,7 @@ int cItemMgr::get(int id, int num)
 
 static inline int useSubChar(cItemMgr* m)
 {
-    if (m->x12 == 0) {
+    if (m->m_to_whom == 0) {
         return pG->x4FB8 == 1;
     }
     return 1;
@@ -2168,18 +2168,18 @@ int itemCombineCheck(u16 id)
     return 0;
 }
 
-int itemCombine(u16 a, u16 b, u16* result)
+int itemCombine(u16 srcA, u16 srcB, u16* result)
 {
     int i;
 
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
-        if (a == combination_info[i].a && b == combination_info[i].b) {
+        if (srcA == combination_info[i].a && srcB == combination_info[i].b) {
             *result = combination_info[i].result;
             return 1;
         }
     }
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
-        if (b == combination_info[i].a && a == combination_info[i].b) {
+        if (srcB == combination_info[i].a && srcA == combination_info[i].b) {
             *result = combination_info[i].result;
             return 1;
         }
@@ -2293,7 +2293,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             int room;
 
             itemInfo(a->id, &info);
-            room = info.x4 - a->num;
+            room = info.maxNum - a->num;
             if (room == 0) {
                 ret = 0;
             } else {
@@ -2441,7 +2441,7 @@ int cItemMgr::arm(ItemWork* p)
         if (ITEM_TYPE(p->id) == 1) {
             pG->wep_lv = p->x6 >> 12;
             pG->wep_lv_mag = (p->x6 >> 8) & 0xF;
-            pG->x4FBA = (p->x6 >> 4) & 0xF;
+            pG->weapon_lv_reload = (p->x6 >> 4) & 0xF;
             pG->wep_lv_ex = LV_EX(p);
         }
         goto ok;
@@ -3055,7 +3055,7 @@ int WeaponId2MaxLevel(u16 id, int type)
     return 1;
 }
 
-void cItemMgr::debugNumDisp(int a)
+void cItemMgr::debugNumDisp(int print_page)
 {
     static int sX = 48;
     static int sY = 5;
@@ -3119,7 +3119,7 @@ void cItemMgr::debugNumDisp(int a)
                 color = 5;
                 break;
             }
-            eprintf((sX - col) * 8, (sY + row++) * 14, color, a, "Item%02x : %03d", id, n);
+            eprintf((sX - col) * 8, (sY + row++) * 14, color, print_page, "Item%02x : %03d", id, n);
         }
         if (row > 21) {
             row = 0;

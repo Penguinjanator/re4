@@ -36,8 +36,8 @@ struct KeyWork {
     s8 ssy;    // 0x03
     u8 trigL;  // 0x04
     u8 trigR;  // 0x05
-    u8 x6;     // 0x06
-    u8 x7;     // 0x07
+    u8 analogA;     // 0x06
+    u8 analogB;     // 0x07
     u64 old;   // 0x08
     u64 on;    // 0x10
     u64 trg;   // 0x18  (bit 31 = skip TV-mode prompt)

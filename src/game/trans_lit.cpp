@@ -24,7 +24,7 @@ void lightSetParallel(cLight* l, GXLightObj* obj);
 void lightSetSpotQuad(cLight* l, GXLightObj* obj);
 void lightSetLocalAmb(cLight* l, GXColor* amb);
 void lightSetColor(GXLightObj* obj, cLight* l, cEm* em);
-void lightSetAmbient(GXColor* c);
+void lightSetAmbient(GXColor* col0);
 void LightDisable();
 }
 
@@ -133,9 +133,9 @@ void LightSetModel(cModel* m)
         amb.b = MAX(LightMgr.getEnvPtr()->ambSub.b, amb.b);
     }
     if (m->be_flag & 8) {
-        amb.r += m->x139;
-        amb.g += m->x13A;
-        amb.b += m->x13B;
+        amb.r += m->AddAmb_r;
+        amb.g += m->AddAmb_g;
+        amb.b += m->AddAmb_b;
     }
     lightSetAmbient(&amb);
     mat = *(GXColor*) info->color;
@@ -504,9 +504,9 @@ void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
     GXInitLightColor(obj, c);
 }
 
-void lightSetAmbient(GXColor* c)
+void lightSetAmbient(GXColor* col0)
 {
-    GXSetChanAmbColor(4, *c);
+    GXSetChanAmbColor(4, *col0);
 }
 
 void LightDisable()

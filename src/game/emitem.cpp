@@ -16,7 +16,7 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
 
 typedef void (*EmItemFunc)(cEmItem*);
@@ -125,20 +125,20 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         }
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 4;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else if (em->type != 1) {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     return em;
 }
@@ -159,18 +159,18 @@ void emItemDmCk(cEmItem* em)
             switch (em->type) {
             case 0:
             default:
-                em->xFC = 1;
-                em->xFD = 3;
+                em->r_no_0 = 1;
+                em->r_no_1 = 3;
                 em->hp = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 break;
             case 1:
-                em->xFC = 1;
-                em->xFD = 4;
+                em->r_no_0 = 1;
+                em->r_no_1 = 4;
                 em->hp = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 EstSet((int) em, -1, 0, 0, w->eff, 0, 0, 0, (u32) em, 0);
                 break;
             }
@@ -208,17 +208,17 @@ void emItemDmCk(cEmItem* em)
             dir.z = 0.0f;
         }
         EstSet(0, -1, &em->getPartsPtr(0)->worldPos, &dir, 0, 0x57, 0, 0, 0, 0);
-        em->xFC = 1;
-        em->xFD = 3;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 3;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 1:
-        em->xFC = 1;
-        em->xFD = 4;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
         em->hp = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         EstSet((int) em, -1, 0, 0, w->eff, 0, 0, 0, (u32) em, 0);
         break;
     }
@@ -231,38 +231,38 @@ void cEmItem::move()
 {
     emItemDmCk(this);
     be_flag &= ~0x4000;
-    EmItem_R0_move_tbl[xFC](this);
+    EmItem_R0_move_tbl[r_no_0](this);
 }
 
 void emItem_R0_Init(cEmItem* em)
 {
     if (em->type != 1) {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
 void emItem_R0_Move(cEmItem* em)
 {
-    EmItem_R1_move_tbl[em->xFD](em);
+    EmItem_R1_move_tbl[em->r_no_1](em);
 }
 
 void emItem_R1_Set(cEmItem* em)
 {
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -343,7 +343,7 @@ void emItem_R1_Drop(cEmItem* em)
     EmItemWork* w = EMITEM_WK(em);
     f32 floor;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
@@ -352,7 +352,7 @@ void emItem_R1_Drop(cEmItem* em)
         w->spd.x = 0.0f;
         w->spd.y = -10.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->spd.y -= 10.0f;
         floor = EatMgr.getFloor(&em->pos, 0.0f, 100000.0f, 0, 0);
@@ -360,7 +360,7 @@ void emItem_R1_Drop(cEmItem* em)
         if (em->pos.y < floor) {
             em->pos.y = floor;
             w->status = 1;
-            em->xFE++;
+            em->r_no_2++;
         }
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
@@ -379,7 +379,7 @@ void emItem_R1_Break(cEmItem* em)
     EmItemWork* w = EMITEM_WK(em);
     u16* flg;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->status = 2;
         em->hp = 0;
@@ -388,7 +388,7 @@ void emItem_R1_Break(cEmItem* em)
         if (flg) {
             *flg |= 1;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->be_flag |= 0x4000;
         break;
@@ -427,10 +427,10 @@ void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
     w->pParent = parent;
     w->partsNo = partsNo;
     w->noNormalize = noNormalize;
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
     ((cEm*) parent)->atari.flags &= ~0x200;
 }
 

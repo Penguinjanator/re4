@@ -54,7 +54,7 @@ void debugInfoDisp(int slot, int type);
 void CRCInit();
 u32 CRCCalc(u8* data, u32 len);
 int CRCVerify(u8* data, u32 len, u32 saved);
-void setMsgBG(int a, int b);
+void setMsgBG(int a, int flag);
 }
 
 // cGameSave::save reads a mode in r5 (see emrock.cpp).
@@ -682,7 +682,7 @@ void cCard::loadMain()
     switch (step) {
     case 0:
         setMsgWindow(1, 1);
-        BitOn(pG->flags_54, 0x200);
+        BitOn(pG->System_flg, 0x200);
         cardMesSet(0xD, 0, 0);
         if (slot == 2) {
             step = 2;
@@ -703,15 +703,15 @@ void cCard::loadMain()
     case 2:
         if (slot == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             HDRead(name, pSaveBuf);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
             step++;
         } else {
@@ -760,7 +760,7 @@ void cCard::loadMain()
         GameSave.load(pSaveData);
         GameSaveSave(&GameSave, pSaveData, pG->game_mode);
         BitOn(pG->x8, 4);
-        BitOff(pG->flags_54, 0x200);
+        BitOff(pG->System_flg, 0x200);
         setMsgWindow(1, 0);
                 mode++;
         step = 0;
@@ -904,7 +904,7 @@ void cCard::saveMain()
     switch (step) {
     case 0:
         setMsgWindow(1, 1);
-        BitOn(pG->flags_54, 0x200);
+        BitOn(pG->System_flg, 0x200);
         if (isSystem == 0) {
             cardMesSet(0xB, 0, 0);
             step = 2;
@@ -992,15 +992,15 @@ void cCard::saveMain()
     case 6:
         if (slot == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             HDWrite_only(name, buf, blocks << 13);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
             if (mode == 3) {
                 // The zero stored into step shares `no`'s pseudo with the shift count: its `li` then
@@ -1081,7 +1081,7 @@ void cCard::saveMain()
         break;
     case 10:
         BitOn(flag, 1);
-        BitOff(pG->flags_54, 0x200);
+        BitOff(pG->System_flg, 0x200);
         cardMesSet(0xC, 0, 0);
         if (Key.trg & (KEY_START | KEY_Z)) {
             deleteAllMes();
@@ -1097,7 +1097,7 @@ void cCard::saveMain()
         if (timer == 0) {
             deleteAllMes();
             setMsgWindow(1, 0);
-            BitOff(pG->flags_54, 0x200);
+            BitOff(pG->System_flg, 0x200);
             mode = 4;
             step = 0;
             sub = 0;
@@ -1149,7 +1149,7 @@ void cCard::exit()
         pG->flags_170 = saveFlags170;
         TaskSignal(0);
         if (!(pG->x8 & 0x80)) {
-            pG->flags_58 = saveFlags58;
+            pG->Disp_flg = saveFlags58;
             SndStrReq(bgmStrId, 4, 200, 0);
             ScreenReSizeI(scrWidth, 448);
             if (type != 0 || !(pG->x8 & 4)) {
@@ -1438,7 +1438,7 @@ void cCard::errorDisp()
     if (slot != 2) {
         probe = CARDProbeEx(slot, 0, 0);
     }
-    BitOff(pG->flags_54, 0x200);
+    BitOff(pG->System_flg, 0x200);
     switch (step) {
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
@@ -1749,10 +1749,10 @@ int cCard::initialize(int type)
             while (Fade[0].flags & 1) {
                 TaskSleep(1);
             }
-            BitSet(saveFlags58, pG->flags_58);
-            BitSet(pG->flags_58, 0xFFFFFFFF);
-            BitOff(pG->flags_58, 0x800);
-            BitOff(pG->flags_58, 0x2000);
+            BitSet(saveFlags58, pG->Disp_flg);
+            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            BitOff(pG->Disp_flg, 0x800);
+            BitOff(pG->Disp_flg, 0x2000);
         }
         if (swap.SwapOut(addr, useMemSize, 0) == 0) {
             return 0;
@@ -2145,9 +2145,9 @@ void cCard::MainLoop(int arg)
     }
 }
 
-void CardMainTask(int arg)
+void CardMainTask(int mode)
 {
-    BitOn(pG->flags_54, 0x1000);
+    BitOn(pG->System_flg, 0x1000);
     pCard = new cCard;
     g_id = new CardID;
     if (pSys->language == 0) {
@@ -2159,7 +2159,7 @@ void CardMainTask(int arg)
     cMes.setLayout(0, 3);
     cMes.setLayout(1, 3);
     cMes.setLayout(2, 3);
-    pCard->MainLoop(arg);
+    pCard->MainLoop(mode);
     if (pCard) {
         delete pCard;
     }
@@ -2169,7 +2169,7 @@ void CardMainTask(int arg)
     cMes.setLayout(0, 0);
     cMes.setLayout(1, 0);
     cMes.setLayout(2, 0);
-    BitOff(pG->flags_54, 0x1000);
+    BitOff(pG->System_flg, 0x1000);
     TaskExit();
 }
 
@@ -2515,11 +2515,11 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         }
         if (s->chan == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", fileNo);
             if (file_exist(fileName)) {
@@ -2542,7 +2542,7 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                 memclr_asm(pDbgSaveInfo[fileNo], 0x200);
             }
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
             fileNo++;
         } else {
@@ -2774,16 +2774,16 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
     case 2:
         if (slot == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             sprintf(fileName, "d:\\bio4/room/sysdata.dat");
             r = HDRead(fileName, pSysBuf);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
             if (r == 0) {
                 ret = -1;
@@ -2869,7 +2869,7 @@ void cCard::createSysfile()
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
             cardMesSet(0x27, 0, 0);
-            BitOn(pG->flags_54, 0x200);
+            BitOn(pG->System_flg, 0x200);
             step++;
             break;
         case 2:
@@ -2970,7 +2970,7 @@ void cCard::createSysfile()
     case 10:
         if (timer == 0) {
             deleteAllMes();
-            BitOff(pG->flags_54, 0x200);
+            BitOff(pG->System_flg, 0x200);
             mode = 4;
             step = 0;
             sub = 0;
@@ -3031,13 +3031,13 @@ void cCard::calcTplAddr(TEXPalette* tpl)
     }
 }
 
-void cCard::setMsgWindow(int a, int b)
+void cCard::setMsgWindow(int a, int sw)
 {
     if (type != 2) {
         if (pG->x8 & 0x80) {
-            Cckpt.msgWindow(b);
+            Cckpt.msgWindow(sw);
         } else {
-            setMsgBG(a, b);
+            setMsgBG(a, sw);
         }
     }
 }
@@ -3109,7 +3109,7 @@ void CardDbgCacheSet()
             d[i] = num % 10;                              \
             num /= 10;                                    \
             u = (id)->unitPtr((idNo_) - i, type);         \
-            u->flags_7F |= 2;                             \
+            u->tex_flag |= 2;                             \
             u->no = d[i];                                 \
         }                                                 \
     }
@@ -3169,10 +3169,10 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 skip:
     getChapterSection(chapter, &chap, &sec);
     u = id->unitPtr(5, type);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = sec;
     u = id->unitPtr(3, type);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = chap;
     if (broken || special) {
         id->unitPtr(3, type)->flags &= ~8;
@@ -3197,11 +3197,11 @@ skip:
     putNumber(id, h, 0xC, 2, type);
     u = id->unitPtr(0xD, type);
     u->no = 0xB;
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     putNumber(id, m, 0xF, 2, type);
     u = id->unitPtr(0x10, type);
     u->no = 0xB;
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     putNumber(id, s, 0x12, 2, type);
     if (broken) {
         id->unitPtr(0xB, type)->flags &= ~8;
@@ -3276,14 +3276,14 @@ skip:
     }
 }
 
-void CardID::updateSaveInfo(cCard* c)
+void CardID::updateSaveInfo(cCard* pCard)
 {
     int i;
 
     for (i = 0; i < 7; i++) {
         int type = 0x40 + i;
-        s8 sl = c->slot;
-        int base = c->fileNo - 3;
+        s8 sl = pCard->slot;
+        int base = pCard->fileNo - 3;
         int no = base + i;
         u32 f;
         // The original loop body spans more than 100 insn slots (notes included), so haifa never
@@ -3296,12 +3296,12 @@ void CardID::updateSaveInfo(cCard* c)
             no -= 20;
         }
         g_id->idsys.unitPtrI(0x15, type)->flags |= 8;
-        f = (&c->slotw[sl])->fileFlag[no];
+        f = (&pCard->slotw[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 1);
+                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 0);
+                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
             }
         } else {
             dispSaveInfoI(no, 0, type, 0);
@@ -3374,7 +3374,7 @@ void CardID::init(int type, CardArc* data)
     {
         IdUnit* w = IdSys.unitPtr(2, 0x10);
         w->no = 0;
-        w->flags_7F |= 2;
+        w->tex_flag |= 2;
     }
     state = 0;
     step = 0;
@@ -3382,7 +3382,7 @@ void CardID::init(int type, CardArc* data)
     x77 = 0;
 }
 
-void CardID::move(cCard* c)
+void CardID::move(cCard* pCard)
 {
     static void (CardID::*tbl[6])(cCard*) = {
         &CardID::wait, &CardID::start, &CardID::normal, &CardID::up_down, &CardID::up_down, &CardID::save,
@@ -3390,7 +3390,7 @@ void CardID::move(cCard* c)
     IdUnit* a;
     IdUnit* b;
 
-    (this->*tbl[state])(c);
+    (this->*tbl[state])(pCard);
     if (state == 3) {
         idsys.unitPtr(1, 0x18)->flags &= ~8;
         idsys.unitPtr(0x15, 0x40)->flags &= ~8;
@@ -3398,7 +3398,7 @@ void CardID::move(cCard* c)
         idsys.unitPtr(1, 0x18)->flags |= 8;
         idsys.unitPtr(0x15, 0x40)->flags |= 8;
     }
-    if (c->mode == 5) {
+    if (pCard->mode == 5) {
         a = idsys.unitPtr(0, 0x18);
         b = idsys.unitPtr(0xA, 0x18);
         if ((a->dir & 0xF) == 0) {
@@ -3417,17 +3417,17 @@ void CardID::move(cCard* c)
     }
 }
 
-void CardID::wait(cCard* c)
+void CardID::wait(cCard* pCard)
 {
     IdUnit* a;
     IdUnit* b;
     int v = 1;
 
-    if (!(c->flag & 2)) {
+    if (!(pCard->flag & 2)) {
         v = 0;
     }
     if (v) {
-        BitOff(c->flag, 2);
+        BitOff(pCard->flag, 2);
         a = g_id->idsys.unitPtr(0, 0x18);
         b = g_id->idsys.unitPtr(0xA, 0x18);
         a->path0 = b->path0;
@@ -3438,13 +3438,13 @@ void CardID::wait(cCard* c)
         IdSys.setTime(a, 0);
         a->dir &= ~0xF;
         IdSys.unitPtr(5, 0x10)->dir &= ~0xF;
-        updateSaveInfo(c);
+        updateSaveInfo(pCard);
         state = 1;
         SndCall(0, 0x2D, 0, 0, 0, 0);
     }
 }
 
-void CardID::start(cCard* c)
+void CardID::start(cCard* pCard)
 {
     state = 2;
     if (idsys.unitPtr(0, 0x18)->end & 1) {
@@ -3452,7 +3452,7 @@ void CardID::start(cCard* c)
     }
 }
 
-void CardID::normal(cCard* c)
+void CardID::normal(cCard* pCard)
 {
     IdUnit* u;
 
@@ -3464,19 +3464,19 @@ void CardID::normal(cCard* c)
         SndCall(0, 0x2D, 0, 0, 0, 0);
     } else if (action & 1) {
         state = 3;
-        updateSaveInfo(c);
-        up_down(c);
+        updateSaveInfo(pCard);
+        up_down(pCard);
     } else if (action & 2) {
         state = 4;
-        updateSaveInfo(c);
-        up_down(c);
+        updateSaveInfo(pCard);
+        up_down(pCard);
     } else {
         u = IdSys.unitPtr(2, 0x10);
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
     }
 }
 
-void CardID::up_down(cCard* c)
+void CardID::up_down(cCard* pCard)
 {
     IdUnit* a;
     IdUnit* b;
@@ -3503,12 +3503,12 @@ void CardID::up_down(cCard* c)
             }
             w = IdSys.unitPtr(2, 0x10);
             w->texCnt = 0;
-            w->flags_7F |= 2;
+            w->tex_flag |= 2;
         } else {
             b = idsys.unitPtr(9, 0x18);
             w = IdSys.unitPtr(2, 0x10);
             w->texCnt = 0;
-            w->flags_7F &= ~2;
+            w->tex_flag &= ~2;
         }
         a->path0 = b->path0;
         a->curve[0] = b->curve[0];
@@ -3543,21 +3543,21 @@ void CardID::up_down(cCard* c)
             w = IdSys.unitPtr(2, 0x10);
             if (w->texCnt > 4) {
                 w->texCnt = 0;
-                w->flags_7F |= 2;
+                w->tex_flag |= 2;
             }
         }
         break;
     }
 }
 
-void CardID::save(cCard* c)
+void CardID::save(cCard* pCard)
 {
     IdUnit* u = IdSys.unitPtr(1, 0x10);
     Hermite1* h = u->curve[0];
     int n = ((s8*) h)[3];
     int i;
 
-    if (c->mode == 5) {
+    if (pCard->mode == 5) {
         u->dir |= 0xF;
         return;
     }
@@ -3571,7 +3571,7 @@ void CardID::save(cCard* c)
             case 0:
                 break;
             case 1:
-                updateSaveInfo(c);
+                updateSaveInfo(pCard);
                 break;
             case 2:
             case 3:
@@ -3598,7 +3598,7 @@ void CardID::setAction(int a)
     action = a;
 }
 
-void setMsgBG(int a, int b)
+void setMsgBG(int a, int flag)
 {
     IdUnit* u;
 
@@ -3607,7 +3607,7 @@ void setMsgBG(int a, int b)
     } else {
         u = IdSys.unitPtr(1, 0x11);
     }
-    switch (b) {
+    switch (flag) {
     case 1:
         u->flags |= 8;
         u->dir &= ~0xF;

@@ -160,7 +160,7 @@ void cObjLadder::move()
             w->pair->sub2B4.atari.clrFlag200();
         }
     } else {
-        ObjLadder_R1_move_tbl[xFD](this);
+        ObjLadder_R1_move_tbl[r_no_1](this);
         EmAtCheck((cEm*) this);
         sub2B4.atari.move();
     }
@@ -196,9 +196,9 @@ void objLadder_R1_Fall(cObjLadder* obj)
     Vec v;
 
     w->status = 4;
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->downTimer) {
             if (--w->downTimer == 0) {
@@ -211,10 +211,10 @@ void objLadder_R1_Fall(cObjLadder* obj)
             }
             if (MotionMove(obj, 0)) {
                 w->status = 1;
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
         break;
@@ -258,9 +258,9 @@ void objLadder_R1_Reset(cObjLadder* obj)
     LadderWork* w = &obj->ladder;
 
     w->status = 4;
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (obj->pMotion) {
             if (obj->motEvent & 1) {
@@ -269,10 +269,10 @@ void objLadder_R1_Reset(cObjLadder* obj)
             }
             if (MotionMove(obj, 0)) {
                 w->status = 0;
-                obj->xFC = 1;
-                obj->xFD = 0;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 0;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
         break;
@@ -328,10 +328,10 @@ void cObjLadder::setLadderInfo(int num, u8 t)
 void cObjLadder::setStand()
 {
     ladder.status = 0;
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjLadder::setDowned()
@@ -348,10 +348,10 @@ void cObjLadder::setDowned()
     parts->rot.x = 0.0f;
     parts->rot.y = 0.0f;
     parts->rot.z = 0.0f;
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjLadder::setDown(void* mot, int a)
@@ -365,10 +365,10 @@ void cObjLadder::setDown(void* mot, int a)
         w->pair->sub2B4.atari.clrFlag200();
     }
     MotionSetCore(this, &pMotion, mot, a, 0, 1, 0);
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjLadder::setDown2()
@@ -412,10 +412,10 @@ void cObjLadder::setDown2()
         w->pair->sub2B4.atari.clrFlag200();
     }
     MotionSetCore(this, &pMotion, mot, (int) a, 0, 1, frame);
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cObjLadder::ckReset()
@@ -442,10 +442,10 @@ void cObjLadder::setReset(int t)
         MotionSetCore(this, &pMotion, w->mot[8], (int) w->mot[13], 0, 1, 0);
         break;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjLadder::setTransOld()
@@ -515,7 +515,7 @@ void objLadderClimbActEvtCk(cObjLadder* obj)
     if (w->climbTimer) {
         return;
     }
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return;
     }
     if (fabsf(Muku2(pPL->rot.y, obj->rot.y, PI)) < PI / 2.0f) {
@@ -561,7 +561,7 @@ void plobjLadderClimb(cPlayer* pl)
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     pGS->flags_5010 |= 0x00040000;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', obj->rot.y);
         TransMatrix(m, &obj->pos);
@@ -578,7 +578,7 @@ void plobjLadderClimb(cPlayer* pl)
         if (w->camera != -1) {
             CamCtrl.CutCall((s8) w->camera);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->frame > 9.7f && em->frame < 10.3f) {
             SndCall(6, 0x43, &em->pos, 0, 0, 0);
@@ -589,15 +589,15 @@ void plobjLadderClimb(cPlayer* pl)
         if (MotionMove(em, 0)) {
             em->x3E0 -= 4;
             if ((int) em->x3E0 > 0) {
-                em->xFE++;
+                em->r_no_2++;
             } else {
-                em->xFE = 4;
+                em->r_no_2 = 4;
             }
         }
         break;
     case 2:
         MotionSetCore(em, &em->pMotion, w->mot[1], 0, 5, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (em->frame > 11.7f && em->frame < 12.3f) {
             SndCall(6, 0x43, &em->pos, 0, 0, 0);
@@ -610,7 +610,7 @@ void plobjLadderClimb(cPlayer* pl)
             if ((int) em->x3E0 > 0) {
                 break;
             }
-            em->xFE = 4;
+            em->r_no_2 = 4;
         }
         break;
     case 4:
@@ -623,7 +623,7 @@ void plobjLadderClimb(cPlayer* pl)
             CamCtrl.Comeback(0);
         }
         em->x3E0 = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (obj->getType() == 1) {
             if (em->frame > 10.7f && em->frame < 11.3f) {
@@ -746,7 +746,7 @@ void subobjLadderClimb(cEm* pl)
 
     obj->ladder.flags |= 4;
     em->dmg.set(0, 2);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', obj->rot.y);
         TransMatrix(m, &obj->pos);
@@ -764,7 +764,7 @@ void subobjLadderClimb(cEm* pl)
         em->subFlags |= 0x20;
         em->subHideMode = obj->getLadderNum();
         em->subX534 = 8;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->subX534) {
             em->subX534--;
@@ -780,15 +780,15 @@ void subobjLadderClimb(cEm* pl)
         if (MotionMove(em, 0)) {
             em->subHideMode -= 4;
             if (em->subHideMode > 0) {
-                em->xFE++;
+                em->r_no_2++;
             } else {
-                em->xFE = 4;
+                em->r_no_2 = 4;
             }
         }
         break;
     case 2:
         MotionSetCore(em, &em->pMotion, w->mot[17], 0, 5, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         pG->flags_5010 |= 8;
         if (em->frame > 11.7f && em->frame < 12.3f) {
@@ -802,7 +802,7 @@ void subobjLadderClimb(cEm* pl)
             if (em->subHideMode > 0) {
                 break;
             }
-            em->xFE = 4;
+            em->r_no_2 = 4;
         }
         break;
     case 4:
@@ -814,7 +814,7 @@ void subobjLadderClimb(cEm* pl)
             em->subX534 = 0x23;
         }
         em->subHideMode = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (em->subX534) {
             em->subX534--;
@@ -910,7 +910,7 @@ void objLadderDownActEvtCk(cObjLadder* obj)
     if (w->status) {
         return;
     }
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return;
     }
     if (fabsf(Muku2(pPL->rot.y, obj->rot.y, PI)) > PI / 2.0f) {
@@ -971,7 +971,7 @@ void plobjLadderDown(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', obj->rot.y);
         v.x = 0.0f;
@@ -995,7 +995,7 @@ void plobjLadderDown(cPlayer* pl)
             obj->setDown(w->mot[10], (int) w->mot[14]);
         }
         em->atari.throughOn();
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (obj->getType() == 1) {
             if (em->frame > 16.7f && em->frame < 17.3f) {
@@ -1053,7 +1053,7 @@ void objLadderResetActEvtCk(cObjLadder* obj)
     if (w->status != 1) {
         return;
     }
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return;
     }
     if ((obj->pos.x - pPL->pos.x) * (obj->pos.x - pPL->pos.x) + (obj->pos.z - pPL->pos.z) * (obj->pos.z - pPL->pos.z) > 2250000.0f) {
@@ -1082,7 +1082,7 @@ void plobjLadderReset(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', obj->rot.y);
         TransMatrix(m, &obj->pos);
@@ -1105,7 +1105,7 @@ void plobjLadderReset(cPlayer* pl)
         MotionSetCore(em, &em->pMotion, w->mot[4], 0, 5, motA, 0);
         obj->setReset(0);
         em->atari.flags |= 0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
             EndPlDamage();

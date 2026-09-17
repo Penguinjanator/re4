@@ -41,13 +41,13 @@ public:
     int cancelArg;        // 0x1C
     u32 otag[16];         // 0x20  ordering table, otag[15] is the list head
     u32 x60;              // 0x60  pG->flags_170 saved by SceUpCutStart
-    u32 x64;              // 0x64  pG->flags_54 saved by SceEventStart
+    u32 system_bak;              // 0x64  pG->flags_54 saved by SceEventStart
     u32 stop_bak;         // 0x68  pG->flags_170 before the event cancel
-    u8 x6C;               // 0x6C  1 = an up-cut is running (flags_170 saved in x60)
-    u8 x6D;               // 0x6D  1 = SceEventStart(0) told the managers
-    u8 x6E;               // 0x6E  SceEventStart nesting count
-    u8 x6F;               // 0x6F
-    u8 x70;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
+    u8 stop_bak_flg;               // 0x6C  1 = an up-cut is running (flags_170 saved in x60)
+    u8 event_no_cut_back;               // 0x6D  1 = SceEventStart(0) told the managers
+    u8 event_start_cnt;               // 0x6E  SceEventStart nesting count
+    u8 up_cut_start_cnt;               // 0x6F
+    u8 task_kind_back;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
     u8 eventCancel;       // 0x71  1 = the running event may be cancelled
     s8 cancelFlagNo;      // 0x72  flags_174 bit set when the event is cancelled (-1 = none)
     u8 x73;               // 0x73  set while readEmData waits inside a scenario task
@@ -83,7 +83,7 @@ void SceSleep(int frames);
 void SceExit();
 ScePrim* SceCTask();
 void SceExecInitCondition();
-int SceExecCheckCondition_sub(SceCond* c);
+int SceExecCheckCondition_sub(SceCond* pP);
 void SceExecCheckCondition();
 void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg, u8 flag);
 void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, int arg, u8 flag);

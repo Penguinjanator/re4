@@ -100,10 +100,10 @@ struct SubCharPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 static inline void IntSet(int& d, int v) { d = v; }
@@ -262,7 +262,7 @@ void cEm2f::move()
 {
     Em2fWork* w = EM2F_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em2fDmCk(this);
     }
     if (w->waitTimer) {
@@ -270,8 +270,8 @@ void cEm2f::move()
     }
     w->flags &= ~0x58F;
     em2fRouteCk(this);
-    Em2f_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em2f_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -319,14 +319,14 @@ static void em2f_R0_Init(cEm2f* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em2b() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(6), ARC(7)) == 0) {
             pLog->err(0, 0, "em2b() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
@@ -380,16 +380,16 @@ static void em2f_R0_Init(cEm2f* em)
     w->routeIdx = -1;
     w->nextRouteType = em2fSetNextRoute(em);
     w->routeType = w->nextRouteType;
-    switch (em->x38D) {
+    switch (em->set) {
     case 0:
     default:
         em->setStatus(5);
         // plain byte stores (em30 rule): the int inline's SI zero would take r9 and reload_cse
         // would delete MotionSetCore's `li r9, 0`
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
         MotionMoveF(em, 0);
         break;
@@ -422,7 +422,7 @@ static void em2f_R0_Init(cEm2f* em)
 static void em2f_R0_Move(cEm2f* em)
 {
     em->flags_3C8 &= ~0x1FC;
-    Em2f_R1_move_tbl[em->xFD](em);
+    Em2f_R1_move_tbl[em->r_no_1](em);
     if (em->seFlags28B & 1) {
         em->flags_3C8 |= 4;
     }
@@ -436,10 +436,10 @@ static void em2f_R0_Move(cEm2f* em)
 
 static void em2f_R1_Wait(cEm2f* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 10, 0x405, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         break;
@@ -450,10 +450,10 @@ static void em2f_R1_Walk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(9), 0, 10, 0x405, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 32.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -470,12 +470,12 @@ static void em2f_R1_SwimWait(cEm2f* em)
     // single use in another block: update_equiv_regs moves the li next to the stb (short qty, r0)
     int one = 1;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
         MotionMoveF(em, 0);
         em->be_flag &= ~2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (pG->flags_5010 & 0x00200000) {
             em->be_flag |= 2;
@@ -495,7 +495,7 @@ static void em2f_R1_Swim(cEm2f* em)
     if (w->flags & 0x20) {
         flip = 0x445;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->atari.flags &= ~0x100;
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 30, flip, 0);
@@ -509,7 +509,7 @@ static void em2f_R1_Swim(cEm2f* em)
             w->dive = w->waterY - em->pos.y;
         }
         w->timer = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->nextPos, em->rot.y, PI / 200.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -529,20 +529,20 @@ static void em2f_R1_Swim(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, flip, 0);
         em2fEstSet(em, w, 0xC);
         w->timer = 80;
-        em->xFE++;
+        em->r_no_2++;
         goto swim;  // the target's case 2 runs the swim step too (tails cross-jumped into case 4's)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) ARC(0x1E), 30, flip, 0);
         em2fEstSet(em, w, 4);
         w->timer = 80;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
     case 5:
     swim:
         em->rot.y += Muku(&em->pos, &w->nextPos, em->rot.y, PI / 200.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -596,12 +596,12 @@ static void em2f_R1_Swim(cEm2f* em)
         if (w->flags & 0x10) {
             if (w->routeType == 0) {
                 w->flags &= ~0x10;
-                em->xFE = 4;
+                em->r_no_2 = 4;
             }
         } else {
             if (w->routeType == 1) {
                 w->flags |= 0x10;
-                em->xFE = 2;
+                em->r_no_2 = 2;
             }
         }
     }
@@ -616,7 +616,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
     if (w->flags & 0x20) {
         flip = 0x445;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Muku(&em->pos, &w->nextPos, em->rot.y, PI) < 0.0f) {
             if (w->flags & 0x20) {
@@ -637,7 +637,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
                 em2fEstSet(em, w, 0xD);
             }
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->seFlags28B & 2) {
             em->rot.y += Muku(&em->pos, &w->nextPos, em->rot.y, PI / 200.0f);
@@ -661,7 +661,7 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
     if (w->flags & 0x20) {
         flip = 0x445;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (w->flags & 0x10) {
             MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x2B), 30, flip, 0);
@@ -672,7 +672,7 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
             w->flags |= 0x10;
             em2fEstSet(em, w, 0x11);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 3, 0, 0);
@@ -692,7 +692,7 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
     if (w->flags & 0x20) {
         flip = 0x445;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if ((pG->flags_5010 & 0x00200000) && w->atkCnt) {
             w->atkCnt--;
@@ -711,7 +711,7 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
             em2fEstSet(em, w, 8);
         }
         w->flags &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             w->flags &= ~0x10;
@@ -735,7 +735,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     int one = 1;
 
     em->flags_3C8 |= 0x80;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em2fSetPosBetweenBoat(em);
         w->flags &= ~0x20;
@@ -744,7 +744,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         w->timer2 = 15;
         w->risingOk = 0;
         w->flags |= 0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
@@ -754,7 +754,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
                 EmRoutineSet(em, one, 3, 0, 0);
                 break;
             }
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
         do { w->timer--; } while (0);  // LOOP_END barrier: the timer2 load stays below the store
@@ -774,14 +774,14 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 75);
         w->flags |= 0x10;
         w->timer = 170;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -790,7 +790,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         em2fEstSet(em, w, 7);
         w->timer = 0;
         w->timer2 = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (w->timer2) {
             w->timer2--;
@@ -837,7 +837,7 @@ static void em2f_R1_Packman(cEm2f* em)
     u32 hide;  // see em2f_R1_RisingDragon
     int one = 1;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em2fSetPosBetweenBoat(em);
         w->flags &= ~0x20;
@@ -846,7 +846,7 @@ static void em2f_R1_Packman(cEm2f* em)
         w->risingOk = 0;
         w->timer2 = 15;
         w->flags |= 0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
@@ -856,7 +856,7 @@ static void em2f_R1_Packman(cEm2f* em)
                 EmRoutineSet(em, one, 3, 0, 0);
                 break;
             }
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
         do { w->timer--; } while (0);  // LOOP_END barrier: the timer2 load stays below the store
@@ -876,14 +876,14 @@ static void em2f_R1_Packman(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
         w->flags |= 0x10;
         w->timer = 180;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -892,7 +892,7 @@ static void em2f_R1_Packman(cEm2f* em)
         em2fEstSet(em, w, 0xF);
         w->timer = 0;
         w->timer2 = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (w->timer2) {
             w->timer2--;
@@ -907,7 +907,7 @@ static void em2f_R1_Packman(cEm2f* em)
                 em2fChangeRoute(em);
                 EmRoutineSet(em, 1, 3, 0, 0);
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         } else {
             if (em->seFlags28B & 1) {
@@ -930,7 +930,7 @@ static void em2f_R1_Packman(cEm2f* em)
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, 1, 0);
         em2fEstSet(em, w, 0xC);
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         if (MotionMoveF(em, 0)) {
             em2fChangeRoute(em);
@@ -960,7 +960,7 @@ static void em2f_R1_HideMode(cEm2f* em)
     if (w->flags & 0x40) {
         w->hideRush = 1;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x1C), (int) ARC(0x2D), 30, flip, 0);
         w->flags &= ~0x20;
@@ -969,7 +969,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         SndRoomStrStop(5);
         SndEventStrStop(5);
         w->flags |= 0x200;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -978,21 +978,21 @@ static void em2f_R1_HideMode(cEm2f* em)
         }
         if (MotionMoveF(em, 0)) {
             em->be_flag &= ~2;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 0, 5, 0);
         w->flags |= 0x10;
         w->timer = Rnd() % 90 + 90;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->flags_3C8 |= 0x128;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -1003,12 +1003,12 @@ static void em2f_R1_HideMode(cEm2f* em)
         SndRoomStrStart(1, 3, 1);
         w->flags &= ~0x200;
         em2fEstSet(em, w, 0x15);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em->flags_3C8 |= 0x12C;
         w->flags |= 0x480;
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 6:
@@ -1016,16 +1016,16 @@ static void em2f_R1_HideMode(cEm2f* em)
         SndCall(8, 0x1A, &em->pos, em->id, 0, em);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         w->flags &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         em->flags_3C8 |= 0x12C;
         w->flags |= 0x580;
         MotionMoveF(em, 0);
         if (em->plDist2 < 900000000.0f) {
             if (w->hideRush) {
-                em->xFE = 0xA;
+                em->r_no_2 = 0xA;
             } else {
-                em->xFE = 8;
+                em->r_no_2 = 8;
             }
         }
         break;
@@ -1034,7 +1034,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         w->flags &= ~0x10;
         em2fEstSet(em, w, 0xF);
         w->timer2 = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 9:
         em->flags_3C8 |= 0x12C;
         if (w->timer2) {
@@ -1054,7 +1054,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, flip, 0);
         em2fEstSet(em, w, 0x16);
         w->timer2 = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 0xB:
         em->flags_3C8 |= 0x28;
         if (w->timer2) {
@@ -1079,7 +1079,7 @@ static void em2f_R1_Critical(cEm2f* em)
     Mtx m;
     Vec v;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->rot.y = -1.57f;
         PSMTXRotRad(m, 'y', -1.57f);
@@ -1092,7 +1092,7 @@ static void em2f_R1_Critical(cEm2f* em)
         MotionMoveF(em, 0);
         em->be_flag &= ~2;
         w->timer = 5;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if ((em2f_die_pos.x - pPL->pos.x) * (em2f_die_pos.x - pPL->pos.x) + (em2f_die_pos.z - pPL->pos.z) * (em2f_die_pos.z - pPL->pos.z)
             > 6250000.0f) {
@@ -1108,7 +1108,7 @@ static void em2f_R1_Critical(cEm2f* em)
             QuakeExec(0, 0, 30, 3.0f, 2);
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -1131,7 +1131,7 @@ static void em2f_R1_Critical(cEm2f* em)
         w->timer2 = 15;
         MotionSetCore(em, MOTION(em), ARC(0x1B), (int) ARC(0x2C), 0, 1, 0);
         em2fEstSet(em, w, 0x13);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->timer) {
             w->timer--;
@@ -1159,7 +1159,7 @@ static void em2f_R1_Critical(cEm2f* em)
         if (MotionMoveF(em, 0)) {
             em->hp = 0;
             em->be_flag &= ~2;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
@@ -1207,15 +1207,15 @@ static void em2f_R0_Damage(cEm2f* em)
     Em2fWork* w = EM2F_WK(em);
 
     w->flags |= 8;
-    Em2f_R2_move_tbl[em->xFD](em);
+    Em2f_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em2f_R1_Dm_Normal(cEm2f* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(9), 0, 3, 0x401, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -1229,7 +1229,7 @@ static void em2f_R0_Die(cEm2f* em)
     Em2fWork* w = EM2F_WK(em);
 
     w->flags |= 8;
-    Em2f_R3_move_tbl[em->xFD](em);
+    Em2f_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em2f_R1_Die_Normal(cEm2f* em)
@@ -1237,27 +1237,27 @@ static void em2f_R1_Die_Normal(cEm2f* em)
     Em2fWork* w = EM2F_WK(em);
     cPlayer* pl;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em2fSetPosDie(em);
         MotionSetCore(em, MOTION(em), ARC(0x2E), 0, 0, 0x401, 0);
         pl = pPL;
-        pl->xFD = 0xF;
-        pl->xFE = 0xC;
-        pl->xFC = 0;
-        pl->xFF = 0;
+        pl->r_no_1 = 0xF;
+        pl->r_no_2 = 0xC;
+        pl->r_no_0 = 0;
+        pl->r_no_3 = 0;
         if (w->pBoat) {
-            w->pBoat->xFC = 1;
-            w->pBoat->xFD = 1;
-            w->pBoat->xFE = 0;
-            w->pBoat->xFF = 0;
+            w->pBoat->r_no_0 = 1;
+            w->pBoat->r_no_1 = 1;
+            w->pBoat->r_no_2 = 0;
+            w->pBoat->r_no_3 = 0;
         }
         w->timer = 112;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(5);
-            em->xFE++;
+            em->r_no_2++;
         } else if (w->timer) {
             w->timer--;
             if (w->timer == 0) {
@@ -1267,7 +1267,7 @@ static void em2f_R1_Die_Normal(cEm2f* em)
         break;
     case 2:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->timer) {
             w->timer--;
@@ -1294,7 +1294,7 @@ void em2fRouteCk(cEm2f* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;

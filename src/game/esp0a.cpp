@@ -109,8 +109,8 @@ void Esp0a_Trans(cEsp0a* esp)
                     e.p->colGSpd = 1.0f;
                     e.p->colBSpd = 1.0f;
                     e.p->colASpd = 1.0f;
-                    e.p->xA8 = 0;
-                    e.p->xAA = 0;
+                    e.p->m_Col_max_cnt = 0;
+                    e.p->m_Col_start_cnt = 0;
                     e.p->spdCnt = 0;
                     e.p->scaleCnt = 0;
                     e.p->life = 1;
@@ -148,7 +148,7 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP0a : WK1 not 0!!");
     }
     w->type = gen->xCA;
-    w->alpha = x83;
+    w->alpha = m_Col_start_a;
     switch (w->type) {
     case 0: {
         cEsp* base;
@@ -167,8 +167,8 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
                     p->colGSpd = 1.0f;
                     p->colBSpd = 1.0f;
                     p->colASpd = 1.0f;
-                    p->xA8 = 0;
-                    p->xAA = 0;
+                    p->m_Col_max_cnt = 0;
+                    p->m_Col_start_cnt = 0;
                     p->spdCnt = 0;
                     p->scaleCnt = 0;
                     p->cnt = 0;

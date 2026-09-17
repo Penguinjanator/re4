@@ -219,7 +219,7 @@ void R10cMain()
 {
     U32Set(r10c_work.p->cnt, r10c_work.p->cnt + 1);
     if (pG->item_flags[0] & 0x00400000) {
-        pG->flags_51BC |= 0x100;
+        pG->Item_find_flg |= 0x100;
     }
     r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot);
     r10c_work.p->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->rot);
@@ -488,9 +488,9 @@ static void r10c_ThunderMove()
     obj->pInfo->setTexBlendTbl(tbl);            \
     obj->pInfo->setBlendRatio(0xFF);            \
     obj->pInfo->color[3] = col;                 \
-    obj->x136 = v136;                           \
-    obj->x137 = v137;                           \
-    obj->x138 = v138;
+    obj->Shader_type = v136;                           \
+    obj->Refract_pow = v137;                           \
+    obj->Refract_ratio = v138;
 
 // The water surface: a render target blended into the water objects.
 extern "C" void setTexRender()

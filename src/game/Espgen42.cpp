@@ -1119,7 +1119,7 @@ void Espgen42_Destruct(EspgenWork* w)
 }
 
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
     Vec r;

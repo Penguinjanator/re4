@@ -55,7 +55,7 @@ void cObj26::move()
             return;
         }
     }
-    Obj26_R1_move_tbl[xFD](this);
+    Obj26_R1_move_tbl[r_no_1](this);
     if (alpha == 0.0f) {
         ObjMgr.destroy(this);
     }
@@ -65,9 +65,9 @@ void obj26_R1_Set(cObj26* obj)
 {
     Obj26Work* w = &obj->obj26;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         obj->scale.x = obj->scale.x * 0.9f + w->tgtScale.x * 0.1f;
         obj->scale.y = obj->scale.y * 0.9f + w->tgtScale.y * 0.1f;
@@ -82,15 +82,15 @@ void obj26_R1_Set(cObj26* obj)
 
 void obj26_R1_Die(cObj26* obj)
 {
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         obj->scale.y = obj->scale.z = obj->scale.x = obj->scale.x * 0.9f;
         obj->alpha *= 0.9f;
         if (obj->alpha <= 0.01f) {
             obj->alpha = 0.0f;
-            obj->xFE++;
+            obj->r_no_2++;
         } else if (obj->pMotion) {
             MotionMove(obj, 0);
         }

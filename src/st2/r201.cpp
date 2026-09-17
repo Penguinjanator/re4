@@ -113,7 +113,7 @@ void R201Init()
     wp = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
     if (pG->x4F9F == 2) {
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->flags_51BC, 0x10000);
+        BitOn(pG->Item_find_flg, 0x10000);
         RsfSet(G_ROOM_ID, 5);
         RsfSet(G_ROOM_ID, 4);
         SceExec(0x12, (TaskFunc) r201_execEmReset, 0, 0, 2, 0);
@@ -156,7 +156,7 @@ void R201Init()
         if (obj) {
             obj->be_flag &= ~2;
         }
-        if ((pG->flags_54 & 0x100) || pG->room_id_prev == 0x203 || pG->room_id_prev == 0xFFF) {
+        if ((pG->System_flg & 0x100) || pG->room_id_prev == 0x203 || pG->room_id_prev == 0xFFF) {
             if (RsfCheck(G_ROOM_ID, 5)) {
                 SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r201_execEmReset, 0, 1);
             }
@@ -192,7 +192,7 @@ void R201Init()
             SceAtSetEnable(5, 0);
         }
     }
-    if (!(pG->flags_51BC & 0x10000)) {
+    if (!(pG->Item_find_flg & 0x10000)) {
         r201_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
         r201_work.p->evd->setCommand(2, 0, 0);
         EmReadSearch(0x1B, 0, r201_work.p->evd->size);
@@ -1063,10 +1063,10 @@ static void r201_execEvent00()
     ReadModule* m;
     u32 key;
 
-    BitOn(pG->flags_51BC, 0x10000);
+    BitOn(pG->Item_find_flg, 0x10000);
     SceEventStart(0);
     if (r201_work.p->evd->waitLoadOk() == 1) {
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         SceSleep(2);
         m = SearchEmModule(0x1B);
         MemorySwap(m->pArc, (u32) r201_work.p->evd->addr, r201_work.p->evd->size);
@@ -1089,7 +1089,7 @@ static void r201_execEvent00_sub()
     RsfSet(G_ROOM_ID, 4);
     SndCall(6, 3, 0, 0, 0, 0);
     for (i = 0; i < 120; i++) {
-        if (pG->flags_51BC & 0x10000) {
+        if (pG->Item_find_flg & 0x10000) {
             SceExit();
         }
         SceSleep(1);

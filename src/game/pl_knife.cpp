@@ -51,7 +51,7 @@ void PlKnifeMove(cPlayer* pl)
         knife_r2_down,
     };
 
-    func_tbl[pl->xFE](pl);
+    func_tbl[pl->r_no_2](pl);
     pl->pWep->lockMove();
     pl->checkXbutton();
 }
@@ -64,8 +64,8 @@ void knife_r2_ready(cPlayer* pl)
     };
 
     pl->x3E0 = 0;
-    if (pl->xFF == 100) {
-        pl->xFF = 0;
+    if (pl->r_no_3 == 100) {
+        pl->r_no_3 = 0;
         pl->x3E0 = 1;
     }
     if (Key.on & 1) {
@@ -81,20 +81,20 @@ void knife_r2_ready(cPlayer* pl)
             pl->pWep->knifeStance = 1;
         }
     }
-    func_tbl[pl->xFF](pl);
-    if (joyLKamae() == 0 && pl->xFF != 3) {
+    func_tbl[pl->r_no_3](pl);
+    if (joyLKamae() == 0 && pl->r_no_3 != 3) {
         setWepTrans(pl, 1);
         FACE_SET(pl, 0.0f);
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
     } else {
         if (pl->pLockEm) {
@@ -116,7 +116,7 @@ void knife_r3_ready00(cPlayer* pl)
     void* mot0;
     void* mot1;
 
-    pl->pWep->x2C = 0.0f;
+    pl->pWep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
@@ -142,7 +142,7 @@ void knife_r3_ready00(cPlayer* pl)
     mot3.move(m3r[0]);
     pl->motionMove();
     lockCtr = 0;
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 void knife_r3_ready10(cPlayer* pl)
@@ -154,13 +154,13 @@ void knife_r3_ready10(cPlayer* pl)
     if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
         if (MotionCheckCrossFrame(&pl->pMotion, 10.0f)) {
             ((cObjLauncher*) pl->pWep->pObj)->gripBack();
-            pl->xFE = 1;
-            pl->xFF = 4;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 4;
         }
     } else {
         if (pl->frame >= 10.0f) {
-            pl->xFE = 1;
-            pl->xFF = 4;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 4;
         }
     }
     mot3.move(m3r[0]);
@@ -177,30 +177,30 @@ void knife_r2_set(cPlayer* pl)
         knife_r3_set40,
     };
 
-    func_tbl[pl->xFF](pl);
-    if (pl->xFF != 4) {
+    func_tbl[pl->r_no_3](pl);
+    if (pl->r_no_3 != 4) {
         PlWepLockCtrl(pl);
     }
     if (joyLKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else if (pG->wep_no == 0xD && joyKamae()) {
-            pl->xFC = 0;
-            pl->xFF = 2;
-            pl->xFE = 0;
-            pl->xFD = 6;
+            pl->r_no_0 = 0;
+            pl->r_no_3 = 2;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 6;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 0xB;
-            pl->xFE = 3;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0xB;
+            pl->r_no_2 = 3;
+            pl->r_no_3 = 0;
         }
     } else if (joyFireTrg() || joyFireOn()) {
-        pl->xFE = 2;
-        pl->xFF = 0;
+        pl->r_no_2 = 2;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -211,7 +211,7 @@ void knife_r3_set00(cPlayer* pl)
     mot3.set(pl, PL_ARC_PTR(arc, 0x81), PL_ARC_PTR(arc, 0x83), PL_ARC_PTR(arc, 0x85), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 void knife_r3_set10(cPlayer* pl)
@@ -222,7 +222,7 @@ void knife_r3_set10(cPlayer* pl)
 void knife_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
@@ -236,7 +236,7 @@ void knife_r3_set20(cPlayer* pl)
 void knife_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     MotionMove(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
@@ -250,7 +250,7 @@ void knife_r3_set30(cPlayer* pl)
 static void knife_r3_set40(cPlayer* pl)
 {
     if (MotionMove(pl, 0) || (Key.on & 0x10F)) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -261,7 +261,7 @@ void knife_r2_fire(cPlayer* pl)
         knife_r3_fire10,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     PlWepLockCtrl(pl);
 }
 
@@ -329,7 +329,7 @@ void knife_r3_fire00(cPlayer* pl)
     EstSet((int) pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
     pl->pBody->waistMove();
     pl->partsWorldCalc();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 void knife_r3_fire10(cPlayer* pl)
@@ -366,8 +366,8 @@ void knife_r3_fire10(cPlayer* pl)
         }
     }
     if (pl->frame >= (f32) (pl->frameMax - 2)) {
-        pl->xFE = 1;
-        pl->xFF = 4;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 4;
     }
 }
 
@@ -378,7 +378,7 @@ void knife_r2_down(cPlayer* pl)
         knife_r3_down10,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     FSet(pl->rot.y, pl->rot.y - pl->pWaist->set(0.0f, 0.4f));
     BitOn(pG->flags_500C, 0x2000000);
     pl->checkCtrl();
@@ -412,24 +412,24 @@ void knife_r3_down00(cPlayer* pl)
     if (mot0 == 0) {
         FACE_SET(pl, 0.0f);
         setWepTrans(pl, 1);
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 0;
-        pl->xFF = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 0;
+        pl->r_no_3 = 0;
     } else {
         pl->motionSet(mot0, 5, 0, ((G_WEP_ID & 0xFFFF0000) == 0x0E000000) ? 0x100 : 0, (int) mot1);
         pl->motionMove();
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
     }
 }
 
 // back to routine 0 (both exits of down10 share this tail)
 #define KNIFE_RESET(pl)   \
     do {                  \
-        (pl)->xFC = 0;    \
-        (pl)->xFD = 0;    \
-        (pl)->xFE = 0;    \
-        (pl)->xFF = 0;    \
+        (pl)->r_no_0 = 0;    \
+        (pl)->r_no_1 = 0;    \
+        (pl)->r_no_2 = 0;    \
+        (pl)->r_no_3 = 0;    \
     } while (0)
 
 void knife_r3_down10(cPlayer* pl)
@@ -447,10 +447,10 @@ void knife_r3_down10(cPlayer* pl)
         if (pl->x3E0 == 0) {
             KNIFE_RESET(pl);
         } else {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 0;
             pl->pWep->pitch = 0.0f;
             m3r[1] = 0.0f;
             m3r[0] = 0.0f;

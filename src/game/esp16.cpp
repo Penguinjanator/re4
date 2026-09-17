@@ -52,7 +52,7 @@ void cEsp16::move()
         PushEsp(this);
         return;
     }
-    FSet(xB8, 100000000.0f);
+    FSet(m_Radius, 100000000.0f);
     if (parent == pEffParentWorld) {
         pos0 = pos;
     } else {
@@ -295,7 +295,7 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->warn(0, 0, "ESP_16 : Buf alloc failed.");
         return 0;
     }
-    FSet(xB8, 100000000.0f);
+    FSet(m_Radius, 100000000.0f);
     BitOn16(dispFlag, 2);
     z.z = 0.0f;
     z.y = 0.0f;

@@ -50,8 +50,8 @@ struct Obj16Parts {
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int a);
-void LifeDownSet(cEm* em, int dmg, int a);
+int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
+void LifeDownSet(cEm* em, int dmg, int rnd);
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 void obj16_R1_Set(cObj16* obj);
 void obj16_R1_CoreMove(cObj16* obj);
@@ -145,8 +145,8 @@ cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, 
     w->lostWait = 150;
     w->estTimer = (Rnd() & 3) + 9;
     w->neckAng = 0.0f;
-    w->x76 = 60;
-    w->x72 = 0;
+    w->Appear_timer = 60;
+    w->Eff_wait3 = 0;
     w->mot[0] = 0;
     w->mot[1] = 0;
     w->mot[2] = 0;
@@ -161,16 +161,16 @@ cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, 
     w->plMotA = 0;
     w->mot[3] = 0;
     w->x6C = 0;
-    w->x73 = 0;
-    w->x74 = 0;
+    w->Atk_wait = 0;
+    w->Atk_timer = 0;
     w->active = 0;
     w->atkHit = 0;
     obj16MatCalc((cObj16*) obj);
-    w->x28 = 0;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    w->Wait_mno = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     if (target->be_flag & 0x800) {
         obj->setNoSuspend(1);
     } else {
@@ -270,8 +270,8 @@ void cObj16::move()
             scale.z = scale.z * decRate + w->scale.z * addRate;
         }
     }
-    if (w->x76) {
-        w->x76--;
+    if (w->Appear_timer) {
+        w->Appear_timer--;
     }
     if (w->body && type == 1) {
         if (((cEm*) w->body)->x39D) {
@@ -285,7 +285,7 @@ void cObj16::move()
         }
     }
     w->atkEnable = 0;
-    Obj16_R1_move_tbl[xFD](this);
+    Obj16_R1_move_tbl[r_no_1](this);
     if (w->target) {
         switch (type) {
         case 2:
@@ -434,7 +434,7 @@ void obj16_R1_CoreMove(cObj16* obj)
     w->atkEnable = 1;
     w->atkHit = 0;
     atk = 0;
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         if (w->active) {
             MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 3, 4, (u8) ((u32) Rnd() % 15));
@@ -444,14 +444,14 @@ void obj16_R1_CoreMove(cObj16* obj)
             MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 3, 4, 0);
         }
         w->timer = (u8) ((u32) Rnd() % 5) + 15;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             if (obj->type == 4) {
                 break;
             }
             if (obj->type == 3 || obj->type == 0xD) {
-                obj->xFE = 0;
+                obj->r_no_2 = 0;
                 break;
             }
             if (obj->type == 2 || obj->type == 0xB || obj->type == 0xE) {
@@ -461,17 +461,17 @@ void obj16_R1_CoreMove(cObj16* obj)
                        (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z);
                 if (w->active) {
                     if ((Rnd() & 3) == 0 && dist > 49000000.0f) {
-                        obj->xFE = 2;
+                        obj->r_no_2 = 2;
                         break;
                     }
                 } else {
                     if ((Rnd() & 3) == 0 || dist < 25000000.0f) {
-                        obj->xFE = 4;
+                        obj->r_no_2 = 4;
                         break;
                     }
                 }
             } else if ((Rnd() & 3) == 0) {
-                obj->xFE = 0;
+                obj->r_no_2 = 0;
                 break;
             }
         }
@@ -509,7 +509,7 @@ void obj16_R1_CoreMove(cObj16* obj)
             EffectEfmDelete(0, w->espKind2, (int) obj);
         }
         w->timer = 36;
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         if (w->timer) {
             if (--w->timer == 0) {
@@ -518,7 +518,7 @@ void obj16_R1_CoreMove(cObj16* obj)
         }
         if (MotionMove(obj, 0)) {
             w->active = 0;
-            obj->xFE = 0;
+            obj->r_no_2 = 0;
         }
         break;
     case 4:
@@ -534,7 +534,7 @@ void obj16_R1_CoreMove(cObj16* obj)
             w->estTimer = 3;
         }
         w->timer = 20;
-        obj->xFE++;
+        obj->r_no_2++;
     case 5:
         if (w->timer) {
             if (--w->timer == 0) {
@@ -542,7 +542,7 @@ void obj16_R1_CoreMove(cObj16* obj)
             }
         }
         if (MotionMove(obj, 0)) {
-            obj->xFE = 0;
+            obj->r_no_2 = 0;
         }
         break;
     }
@@ -563,12 +563,12 @@ void obj16_R1_Atk(cObj16* obj)
     int atk;
     int flag;
 
-    if (obj->xFE == 0 && w->active) {
-        obj->xFE = 2;
+    if (obj->r_no_2 == 0 && w->active) {
+        obj->r_no_2 = 2;
     }
     w->atkHit = 0;
     atk = 0;
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0xA, 0, 0);
         if (obj->type == 2) {
@@ -581,19 +581,19 @@ void obj16_R1_Atk(cObj16* obj)
             EstSet((int) obj, -1, 0, 0, 0x31, 0x17, 0, w->espKind2, (u32) obj, 0);
             w->estTimer = 3;
         }
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             w->active = 1;
-            obj->xFE++;
+            obj->r_no_2++;
         }
         break;
     case 2:
-        if ((Rnd() & 1) || obj->xFF) {
+        if ((Rnd() & 1) || obj->r_no_3) {
             MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0xA, 0, 0);
             w->timer = 34;
             w->atkTimer = 8;
-            obj->xFF = 0;
+            obj->r_no_3 = 0;
             if (obj->type == 2) {
                 EstSet((int) obj, -1, 0, 0, 0x10, 0x6C, 0, 0, (u32) obj, 0);
             }
@@ -604,7 +604,7 @@ void obj16_R1_Atk(cObj16* obj)
             MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 3, 0, 0);
             w->timer = 28;
             w->atkTimer = 6;
-            obj->xFF = 1;
+            obj->r_no_3 = 1;
             if (obj->type == 2) {
                 EstSet((int) obj, -1, 0, 0, 0x10, 0x6F, 0, 0, (u32) obj, 0);
             }
@@ -618,13 +618,13 @@ void obj16_R1_Atk(cObj16* obj)
         if (obj->type == 0xB) {
             SndCall(8, 0x1E, &w->target->pos, w->target->id, 0, 0);
         }
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         if (MotionMove(obj, 0)) {
-            obj->xFC = 1;
-            obj->xFD = 1;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 1;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         } else {
             if (w->timer) {
                 if (--w->timer == 0) {
@@ -655,7 +655,7 @@ void obj16_R1_Atk(cObj16* obj)
     obj16MatCalc(obj);
     if (atk) {
         flag = 0;
-        if (obj->xFF) {
+        if (obj->r_no_3) {
             flag = 1;
         }
         obj16AtkCk(obj, flag, 0x10);
@@ -678,7 +678,7 @@ void obj16_R1_Critical(cObj16* obj)
 
     w->atkHit = 0;
     atk = 0;
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 3, 0, 0);
         if (obj->type == 3) {
@@ -690,10 +690,10 @@ void obj16_R1_Critical(cObj16* obj)
             SndCall(8, 0x28, &w->target->pos, w->target->id, 0, 0);
         }
         w->timer = 0;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
-            obj->xFE++;
+            obj->r_no_2++;
         }
         break;
     case 2:
@@ -742,13 +742,13 @@ void obj16_R1_Critical(cObj16* obj)
             EstSet((int) obj, -1, 0, 0, 0x31, 0xB, 0, 0, (u32) obj, 0);
             SndCall(8, 0x29, &w->target->pos, w->target->id, 0, 0);
         }
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         if (MotionMove(obj, 0)) {
-            obj->xFC = 1;
-            obj->xFD = 1;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 1;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         } else {
             if (w->timer) {
                 if (--w->timer == 0) {
@@ -791,7 +791,7 @@ void obj16_R1_Damage(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         if (w->active) {
             MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0, 0);
@@ -813,7 +813,7 @@ void obj16_R1_Damage(cObj16* obj)
         }
         w->timer = 30;
         w->atkTimer = 0;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (obj->type == 3 || obj->type == 0xD) {
             if (w->timer) {
@@ -841,15 +841,15 @@ void obj16_R1_Damage(cObj16* obj)
                 }
             }
             if (w->body && ((cEm*) w->body)->hp > 0 && (u8) ((u32) Rnd() % 10) > 5 && obj->type == 2) {
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             } else {
-                obj->xFC = 1;
-                obj->xFD = 1;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 1;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
         break;
@@ -942,10 +942,10 @@ void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* 
         EstSet((int) this, -1, 0, 0, 0x31, 0x1A, 0, w->espKind, (u32) this, 0);
         EstSet((int) this, -1, 0, 0, 0x31, 0xF, 0, w->espKind2, (u32) this, 0);
     }
-    xFC = 1;
-    xFD = 1;
-    xFE = 1;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 1;
+    r_no_3 = 0;
 }
 
 void cObj16::setPlDmgMot(void* mot, int a)
@@ -958,28 +958,28 @@ void cObj16::setPlDmgMot(void* mot, int a)
 
 void cObj16::setAtk(u8 flag)
 {
-    xFC = 1;
-    xFD = 2;
+    r_no_0 = 1;
+    r_no_1 = 2;
     o16.atkHit = 0;
-    xFE = 0;
-    xFF = flag;
+    r_no_2 = 0;
+    r_no_3 = flag;
 }
 
 void cObj16::setCritical()
 {
-    xFC = 1;
-    xFD = 3;
+    r_no_0 = 1;
+    r_no_1 = 3;
     o16.atkHit = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObj16::setDamage()
 {
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cObj16::ckAtkEnable()
@@ -1065,11 +1065,11 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
                 if (fabsf(Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI)) < PI / 2) {
                     ang = Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI);
                     FSet(pPL->rot.y, pPL->rot.y + ang);
-                    pPL->xFF = 0;
+                    pPL->r_no_3 = 0;
                 } else {
                     ang = Muku(&w->body->pos, &pPL->pos, pPL->rot.y, PI);
                     FSet(pPL->rot.y, pPL->rot.y + ang);
-                    pPL->xFF = 1;
+                    pPL->r_no_3 = 1;
                 }
             } else {
                 if (obj->type == 2) {
@@ -1287,26 +1287,26 @@ void plemDmMStar(cPlayer* pl)
     Obj16Work* w = &((cObj*) pPL->dmgType)->o16;
     int hokan;
 
-    if (pl->xFF == 0) {
+    if (pl->r_no_3 == 0) {
         pl->dmg.set(0, 2);
     }
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
-        if (pl->xFF) {
+        if (pl->r_no_3) {
             hokan = 0x41;
         } else {
             hokan = 1;
         }
         MotionSetCore(pl, &pl->pMotion, w->plMot, w->plMotA, 3, hokan, 0);
         PlSetDamageSe(0);
-        if (pl->xFF) {
+        if (pl->r_no_3) {
             pl->dmg.set(0, 0xF);
         }
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMove(pl, 0)) {
             EndPlDamage();
-            if (pl->xFF == 0) {
+            if (pl->r_no_3 == 0) {
                 pl->dmg.set(0, 0xF);
             }
         }

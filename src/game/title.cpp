@@ -202,16 +202,16 @@ void titleWait(TitleWork* w)
                 ISet(w->sndFlag, 1);
                 w->step = z;
                 ISet(w->cnt, 0);
-                ISet(w->x48, 0);
+                ISet(w->dbg_mode, 0);
             }
             if (pRK->x17 != 0) {
                 w->mode = 5;
                 w->cnt = 585;
                 titleSet(w, 585);
-                if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+                if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
                     w->saveStep = w->step;
                     w->saveSub = w->sub;
-                    w->saveX3 = w->x3;
+                    w->saveX3 = w->Rno3;
                     w->saveCnt = w->cnt;
                     w->mode = 6;
                     w->step = 0;
@@ -559,7 +559,7 @@ void titleMain(TitleWork* w)
     FadeColor c1;
 
     pRK->x17 = 1;
-    if (!(pG->flags_54 & 0x100) && (pSys->x4 & 0x40000000)) {
+    if (!(pG->System_flg & 0x100) && (pSys->x4 & 0x40000000)) {
         titleLoop(w);
     }
     switch (w->step) {
@@ -570,8 +570,8 @@ void titleMain(TitleWork* w)
         break;
     case 1: {
         int sel = titleMenuSelect(w);
-        BitOff(pG->flags_54, 0x80000000);
-        BitOff(pG->flags_54, 0x40000000);
+        BitOff(pG->System_flg, 0x80000000);
+        BitOff(pG->System_flg, 0x40000000);
         switch (sel) {
         case 1:
             Snd.room_ok = 1;
@@ -595,15 +595,15 @@ void titleMain(TitleWork* w)
         case 3:
             switch (sel) {
             case 2:
-                pG->flags_54 |= 0x80000000;
+                pG->System_flg |= 0x80000000;
                 break;
             case 3:
-                pG->flags_54 |= 0x40000000;
+                pG->System_flg |= 0x40000000;
                 break;
             }
             w->saveStep = w->step;
             w->saveSub = w->sub;
-            w->saveX3 = w->x3;
+            w->saveX3 = w->Rno3;
             w->saveCnt = w->cnt;
             w->mode = 6;
             w->step = 0;
@@ -628,7 +628,7 @@ void titleMain(TitleWork* w)
             SndCall(0, 0x33, 0, 0, 0, 0);
             break;
         }
-        if (w->step == 1 && !(pG->flags_54 & 8)) {
+        if (w->step == 1 && !(pG->System_flg & 8)) {
             if (Key.trg & (KEY_UP | KEY_DOWN)) {
                 demo_loop_cnt = 600;
             }
@@ -755,9 +755,9 @@ void titleMain(TitleWork* w)
     case 7:
         if (CardLoad() == 1) {
             w->step = 3;
-            pG->flags_54 |= 0x100;
+            pG->System_flg |= 0x100;
         } else {
-            pG->flags_54 |= 0x04000000;
+            pG->System_flg |= 0x04000000;
             return;
         }
         break;
@@ -769,17 +769,17 @@ void titleMain(TitleWork* w)
                 w->cnt = 645;
             }
             IdSys.setTimeS(u, (s16) w->cnt);
-            w->x48 = 1;
+            w->dbg_mode = 1;
             w->sub++;
         }
         case 1:
             if (Joy[0].trg & 0x1100) {
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->mode = 7;
-                if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+                if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
                     w->saveSub = w->sub;
                     w->saveStep = w->step;
-                    w->saveX3 = w->x3;
+                    w->saveX3 = w->Rno3;
                     w->saveCnt = w->cnt;
                     w->mode = 6;
                     w->step = zero;
@@ -866,9 +866,9 @@ void titleSub(TitleWork* w)
 
     switch (w->step) {
     case 0:
-        if ((s32) pG->flags_54 < 0) {
+        if ((s32) pG->System_flg < 0) {
             omake_dat[12] = '0';
-        } else if (pG->flags_54 & 0x40000000) {
+        } else if (pG->System_flg & 0x40000000) {
             omake_dat[12] = '1';
         }
         setLangExt3(omake_dat + 3);
@@ -880,9 +880,9 @@ void titleSub(TitleWork* w)
         }
         FadeSetW(0, 5, 0, 0);
         w->step++;
-        if ((s32) pG->flags_54 < 0) {
+        if ((s32) pG->System_flg < 0) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
-        } else if (pG->flags_54 & 0x40000000) {
+        } else if (pG->System_flg & 0x40000000) {
             snd_id = SndStrReq(0, 55, 0x80000003, 0, 0, 0.0f);
         }
         break;
@@ -904,7 +904,7 @@ void titleSub(TitleWork* w)
         IdSys.kill(0xFF, ID_MENU);
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
-        if (pG->flags_54 & 0x40000000) {
+        if (pG->System_flg & 0x40000000) {
             if (!(pSys->x4 & 0x08000000)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->flags &= ~8;
             }
@@ -930,14 +930,14 @@ void titleSub(TitleWork* w)
             SndStrReq(snd_id, 4, 200, 0);
         } else if (Key.trg & KEY_A) {
             if (w->omkCursor == 0) {
-                if ((s32) pG->flags_54 < 0) {
+                if ((s32) pG->System_flg < 0) {
                     w->mode = 7;
                     FadeSetW(0, 90, 0, 0);
                     pG->x4FB8 = 2;
                     pG->costume = 1;
                     w->sndId = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
-                } else if (pG->flags_54 & 0x40000000) {
+                } else if (pG->System_flg & 0x40000000) {
                     if (!(pSys->x4 & 0x00400000)) {
                         pSys->x4 |= 0x00400000;
                         {
@@ -1007,7 +1007,7 @@ void titleSub(TitleWork* w)
             w->mode = 5;
             w->step = w->saveStep;
             w->sub = w->saveSub;
-            w->x3 = w->saveX3;
+            w->Rno3 = w->saveX3;
             w->cnt = w->saveCnt;
             titleSet(w, w->saveCnt);
             titleMenuInit(w);
@@ -1029,7 +1029,7 @@ void titleSub(TitleWork* w)
         for (i = 0; i < 5; i++) {
             IdUnit* u = IdSys.unitPtr(i, ID_OMAKE);
             u->no = i;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
         }
         w->step++;
         break;
@@ -1119,10 +1119,10 @@ void titleSub(TitleWork* w)
             b->scr = a->scr;
             u = IdSys.unitPtr(5, ID_OMAKE);
             u->no = sel;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u = IdSys.unitPtr(6, ID_OMAKE);
             u->no = sel;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
         }
         if (w->omkChar == 0 || omkFlagChk(charBit[w->omkChar])) {
             id_color_copy(0xFC, 5, ID_OMAKE);
@@ -1221,7 +1221,7 @@ int stageSelect(TitleWork* w)
         for (i = 0; i < 4; i++) {
             IdUnit* u = IdSys.unitPtr(i + 0x11, ID_OMAKE);
             u->no = i;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
         }
     }
     {
@@ -1253,7 +1253,7 @@ int stageSelect(TitleWork* w)
             u->flags |= 8;
         }
         u->no = 0;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u = IdSys.unitPtr(2, ID_OMAKE);
         if (pSys->x4 & 0x02000000) {
             u->flags &= ~8;
@@ -1261,7 +1261,7 @@ int stageSelect(TitleWork* w)
             u->flags |= 8;
         }
         u->no = 1;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u = IdSys.unitPtr(3, ID_OMAKE);
         if (pSys->x4 & 0x04000000) {
             u->flags &= ~8;
@@ -1269,7 +1269,7 @@ int stageSelect(TitleWork* w)
             u->flags |= 8;
         }
         u->no = 2;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u = IdSys.unitPtr(4, ID_OMAKE);
         if (pSys->x4 & 0x01000000) {
             u->flags &= ~8;
@@ -1277,7 +1277,7 @@ int stageSelect(TitleWork* w)
             u->flags |= 8;
         }
         u->no = 3;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         // The target's `li r30,0` sits right before MercSysGetSaveWork; a plain `mode = 0` there lets
         // jump1 turn the first `if` into a store-flag (`xori/subfic/adde`: reg_set_last finds the
         // constant), earlier it is hoisted. A mask cse cannot fold (no nonzero-bits logic) is not a
@@ -1326,7 +1326,7 @@ int stageSelect(TitleWork* w)
             } else {
                 IdUnit* u = IdSys.unitPtr(i * 16 + 0x88, ID_OMAKE);
                 u->flags |= 8;
-                u->flags_7F |= 2;
+                u->tex_flag |= 2;
                 IdSetNum(&IdSys, i * 16 + 0x81, ID_OMAKE, save.stage[i].score, 9999999, 7, 0);
             }
             } while (0);
@@ -1339,11 +1339,11 @@ static cRoomJmp* pRj;
 
 void titleExit(TitleWork* w)
 {
-    if ((s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000)) {
+    if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
         pG->x4FB8 = 0;
         pG->costume2 = 0;
     }
-    if (!(pG->flags_54 & 0x100) && (s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000)) {
+    if (!(pG->System_flg & 0x100) && (s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
         pRj = new cRoomJmp(roomInfoAddr);
         w->dbgStage = pG->stage_no;
         w->dbgRoom[w->dbgStage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
@@ -1368,9 +1368,9 @@ void titleExit(TitleWork* w)
         switch (w->dbgCursor) {
         case 1:
             if (CardLoad() == 1) {
-                pG->flags_54 |= 0x100;
+                pG->System_flg |= 0x100;
             } else {
-                pG->flags_54 |= 0x04000000;
+                pG->System_flg |= 0x04000000;
             }
             return;
         case 2:
@@ -1380,10 +1380,10 @@ void titleExit(TitleWork* w)
             break;
         case 0x12:
             BitOn(pSys->x4, 0x40000000);
-            pG->flags_54 |= 0x04000000;
+            pG->System_flg |= 0x04000000;
             return;
         }
-        if ((s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000)) {
+        if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
             PlSetCostume();
         }
         if (!(pG->x4FB8_32 & 0xFF0000FF)) {
@@ -1392,7 +1392,7 @@ void titleExit(TitleWork* w)
                 pG->costume = 0;
             } else {
                 pG->costume = 1;
-                pG->flags_51BC |= 0x00200000;
+                pG->Item_find_flg |= 0x00200000;
             }
         }
         if (pG->stage_no == 2) {
@@ -1411,11 +1411,11 @@ void titleExit(TitleWork* w)
         case 0:
             break;
         case 1:
-            BitOn(pG->flags_51BC, 4);
+            BitOn(pG->Item_find_flg, 4);
             break;
         case 2:
-            BitOn(pG->flags_51BC, 4);
-            BitOn(pG->flags_51BC, 2);
+            BitOn(pG->Item_find_flg, 4);
+            BitOn(pG->Item_find_flg, 2);
             if ((pG->room_id32 & 0xFFFF00FF) != 0x02000000) {
                 BitOn(pG->flags_51C0, 0x00800000);
             }
@@ -1431,12 +1431,12 @@ void titleExit(TitleWork* w)
     {
         u8 point = 0;
         BitOff(pG->flags_6C, 0x00200000);
-        if (!(pG->flags_54 & 0x100)) {
-            pG->flags_54 |= 0x2000;
+        if (!(pG->System_flg & 0x100)) {
+            pG->System_flg |= 0x2000;
         }
         G_ROOM_ID_PREV = 0xFFF;
         pG->emlist_no = -1;
-        if (pG->flags_54 & 0x80000000) {
+        if (pG->System_flg & 0x80000000) {
             G_ROOM_ID = 0x405;
             pG->x4F9F = point;
             pG->x4F9E = point;
@@ -1444,7 +1444,7 @@ void titleExit(TitleWork* w)
         FSet(pG->sub_pos.y, -16798.0f);
         FSet(pG->sub_pos.z, -40000.0f);
         FSet(pG->sub_angle, -2.49f);
-        } else if (pG->flags_54 & 0x40000000) {
+        } else if (pG->System_flg & 0x40000000) {
         switch (w->omkStage) {
         case 0:
             G_ROOM_ID = 0x400;
@@ -1503,7 +1503,7 @@ void titleExit(TitleWork* w)
         Mem_free(w->pDat);
         w->pDat = 0;
     }
-    if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+    if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
         Mem_free(w->pOmk);
     }
     pG->flags_5014 &= ~0x8000;
@@ -1583,9 +1583,9 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->x4F93]);
-    if ((s32) pG->flags_54 < 0) {
+    if ((s32) pG->System_flg < 0) {
         eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
-    } else if (pG->flags_54 & 0x40000000) {
+    } else if (pG->System_flg & 0x40000000) {
         eprintf(x + 96, y += 16, 4, 0, "ETC GAME");
     } else {
         y += 16;

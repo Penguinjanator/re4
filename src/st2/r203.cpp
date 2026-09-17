@@ -73,7 +73,7 @@ void R203Init()
 
 #line 69 "D:/Bio4/Prog/r203.cpp"
     r203_work.p = (R203Work*) MEM_CALLOC(sizeof(R203Work), 1, 0xd);
-    if (pG->flags_51BC & 0x00010000) {
+    if (pG->Item_find_flg & 0x00010000) {
         setEm(0x27, -1, 0, 1, 0);
         setEm(0x29, -1, 0, 1, 0);
         if (r203_work.p->em[0].setEm(0x34, 2, 0, 1, 0) == 1) {

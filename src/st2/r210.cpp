@@ -42,10 +42,10 @@ static inline void U16And(u16& d, u16 mask) { d &= mask; }
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 
 static f32 r210_daiZ = -32012.0f;
@@ -99,10 +99,10 @@ void R210Init()
         if (flags & 0x04000000) {
             SubCharInit(1, &pPL->pos, pPL->rot.y);
             SubCharCtrl(1, 0);
-            pG->flags_51BC &= ~0x80;
+            pG->Item_find_flg &= ~0x80;
         }
     }
-    if ((pG->flags_54 & 0x100) == 0 && pG->room_id_prev == 0x222) {
+    if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
         if ((pG->flags_51C0 & 0x40) == 0) {
             SubCharInit(1, &pPL->pos, pPL->rot.y);
             BitOn(pG->flags_5018, 0x04000000);
@@ -123,7 +123,7 @@ void R210Init()
                 }
                 SubCharCtrl(7, 0);
             }
-            pG->flags_51BC |= 0x80;
+            pG->Item_find_flg |= 0x80;
         }
         SmdGetObjPtr(0x20)->be_flag |= 0x20;
         SmdGetObjPtr(0x21)->be_flag |= 0x20;
@@ -135,7 +135,7 @@ void R210Init()
     SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) asl_chase, 0, 1);
     SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) toroko_go, 0, 1);
     SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) toroko_go, (void*) 1, 1);
-    if ((pG->flags_54 & 0x100) == 0 && pG->room_id_prev == 0x210) {
+    if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x210) {
         if (pG->x4F9E == 1) {
             SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, 2, 0);
         } else if (pG->x4F9E == 2) {
@@ -156,7 +156,7 @@ void R210Main()
 {
     if (pPL->pos.z < -20000.0f) {
         SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        pG->Item_find_flg |= 0x80;
     }
 }
 
@@ -177,19 +177,19 @@ static void r222_dai_set()
     SceAtSetEnable(6, 1);
     if ((int) pG->flags_174 < 0) {
         BitOff(pG->flags_174, 0x80000000);
-        pG->flags_51BC &= ~0x80;
+        pG->Item_find_flg &= ~0x80;
     }
 }
 
 // Ashley's jump onto the lift (SetSubAux routine).
 static void funcAshley2(cEm* p)
 {
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         cAtariInfo* at = &pSUB->atari;
 
         at->throughOn();
         p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x27), 0x2D, 0x2D, 1, 0);
-        p->xFE = 1;
+        p->r_no_2 = 1;
         p->motSpeedRate = 0.2f;
     }
     if (p->motionMove()) {
@@ -221,7 +221,7 @@ static void r222_dai_go()
         at = &pSUB->atari;
         at->throughOff();
         SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        pG->Item_find_flg |= 0x80;
     }
     if ((pG->flags_51C0 & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
@@ -329,7 +329,7 @@ static void r222_dai_ret()
         at = &pSUB->atari;
         at->throughOff();
         SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        pG->Item_find_flg |= 0x80;
     }
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);
@@ -598,14 +598,14 @@ static void toroko_ret(int dir)
 // Leon's ride motion on the lift (SetPlDamage routine).
 static void plemRide(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pPL->setNoSuspend(1);
         MotionSetCore(pPL, &pPL->mot, pl->pMotTbl[11], 0, 0, 0x201, 0);
-        pl->xFE++;
-        pl->xFF = 0;
+        pl->r_no_2++;
+        pl->r_no_3 = 0;
     case 1:
-        pl->xFF++;
+        pl->r_no_3++;
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
         }

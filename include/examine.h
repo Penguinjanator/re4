@@ -43,7 +43,7 @@ public:
     void setup();
     void idSet();
     void init(u16 id, cModel* model, u8 mode);
-    void level(s8 a, s8 b, s8 c, s8 d);
+    void level(s8 pwr, s8 spd, s8 rld, s8 blt);
     void move();
     void trans();
     void quit();

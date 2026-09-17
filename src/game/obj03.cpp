@@ -5,7 +5,7 @@
 extern "C" {
 void PathGetMatEm(void* path, void* data, f32 t, u16* hist, Mtx m);
 void Draw_local_pos(Vec* pos, int size, Mtx m);
-void Draw_line3d(Vec* a, Vec* b, int color, int type);
+void Draw_line3d(Vec* p0, Vec* p1, int color, int type);
 }
 
 // Path object: every parts is placed along a path, spaced 40 units apart.

@@ -187,7 +187,7 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out);
 int Et63_init(void* arc, EtcSetData* d, cModel** out);
 int Et66_init(void* arc, EtcSetData* d, cModel** out);
 int Et67_init(void* arc, EtcSetData* d, cModel** out);
-int EtcModelSet(EtcSetData* d);
+int EtcModelSet(EtcSetData* pDat);
 int EtcGetDasAddr(int id, void** out);
 int getRoomEtcBreak(int no, cEm** out, int flag);
 int setRoomEtcDisp(int no, int on, int flag);
@@ -2043,337 +2043,337 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 }
 
 
-int EtcModelSet(EtcSetData* d)
+int EtcModelSet(EtcSetData* pDat)
 {
     void* arc;
     int ret = 0;
     cModel* model = 0;
 
-    if (d->no > 0x3F) {
-        pLog->err(0, 0, "EtcModelSet() : Invalid EtcModel No[%d](MAX:%d)", d->no, 0x40);
+    if (pDat->no > 0x3F) {
+        pLog->err(0, 0, "EtcModelSet() : Invalid EtcModel No[%d](MAX:%d)", pDat->no, 0x40);
         return 0;
     }
-    if (EtcGetDasAddr(d->id, &arc)) {
-        switch (d->id) {
+    if (EtcGetDasAddr(pDat->id, &arc)) {
+        switch (pDat->id) {
     case 0x00:
-        ret = Et00_init(arc, d, &model, 0);
+        ret = Et00_init(arc, pDat, &model, 0);
         break;
     case 0x01:
-        ret = Et01_init(arc, d, &model);
+        ret = Et01_init(arc, pDat, &model);
         break;
     case 0x02:
-        ret = Et02_init(arc, d, &model);
+        ret = Et02_init(arc, pDat, &model);
         break;
     case 0x03:
-        ret = Et03_init(arc, d, &model);
+        ret = Et03_init(arc, pDat, &model);
         break;
     case 0x04:
-        ret = Et04_init(arc, d, &model);
+        ret = Et04_init(arc, pDat, &model);
         break;
     case 0x05:
-        ret = Et05_init(arc, d, &model);
+        ret = Et05_init(arc, pDat, &model);
         break;
     case 0x06:
-        ret = Et06_init(arc, d, &model);
+        ret = Et06_init(arc, pDat, &model);
         break;
     case 0x07:
-        ret = Et07_init(arc, d, &model, 1);
+        ret = Et07_init(arc, pDat, &model, 1);
         break;
     case 0x08:
-        ret = Et08_init(arc, d, &model);
+        ret = Et08_init(arc, pDat, &model);
         break;
     case 0x09:
-        ret = Et09_init(arc, d, &model);
+        ret = Et09_init(arc, pDat, &model);
         break;
     case 0x0A:
-        ret = Et0a_init(arc, d, &model);
+        ret = Et0a_init(arc, pDat, &model);
         break;
     case 0x0B:
-        ret = Et0b_init(arc, d, &model);
+        ret = Et0b_init(arc, pDat, &model);
         break;
     case 0x0C:
-        ret = Et0c_init(arc, d, &model);
+        ret = Et0c_init(arc, pDat, &model);
         break;
     case 0x0D:
-        ret = Et0d_init(arc, d, &model);
+        ret = Et0d_init(arc, pDat, &model);
         break;
     case 0x0E:
-        ret = Et0e_init(arc, d, &model);
+        ret = Et0e_init(arc, pDat, &model);
         break;
     case 0x0F:
-        ret = Et0f_init(arc, d, &model);
+        ret = Et0f_init(arc, pDat, &model);
         break;
     case 0x10:
-        ret = Et10_init(arc, d, &model);
+        ret = Et10_init(arc, pDat, &model);
         break;
     case 0x11:
-        ret = Et11_init(arc, d, &model);
+        ret = Et11_init(arc, pDat, &model);
         break;
     case 0x12:
-        ret = Et12_init(arc, d, &model);
+        ret = Et12_init(arc, pDat, &model);
         break;
     case 0x13:
-        ret = Et13_init(arc, d, &model);
+        ret = Et13_init(arc, pDat, &model);
         break;
     case 0x14:
-        ret = Et14_init(arc, d, &model);
+        ret = Et14_init(arc, pDat, &model);
         break;
     case 0x15:
-        ret = Et15_init(arc, d, &model);
+        ret = Et15_init(arc, pDat, &model);
         break;
     case 0x16:
-        ret = Et16_init(arc, d, &model);
+        ret = Et16_init(arc, pDat, &model);
         break;
     case 0x17:
-        ret = Et17_init(arc, d, &model);
+        ret = Et17_init(arc, pDat, &model);
         break;
     case 0x18:
-        ret = Et18_init(arc, d, &model);
+        ret = Et18_init(arc, pDat, &model);
         break;
     case 0x19:
-        ret = Et19_init(arc, d, &model);
+        ret = Et19_init(arc, pDat, &model);
         break;
     case 0x1A:
-        ret = Et1a_init(arc, d, &model);
+        ret = Et1a_init(arc, pDat, &model);
         break;
     case 0x1B:
-        ret = Et1b_init(arc, d, &model);
+        ret = Et1b_init(arc, pDat, &model);
         break;
     case 0x1C:
-        ret = Et1c_init(arc, d, &model);
+        ret = Et1c_init(arc, pDat, &model);
         break;
     case 0x1D:
-        ret = Et1d_init(arc, d, &model, 2);
+        ret = Et1d_init(arc, pDat, &model, 2);
         break;
     case 0x1E:
-        ret = Et1e_init(arc, d, &model);
+        ret = Et1e_init(arc, pDat, &model);
         break;
     case 0x1F:
-        ret = Et1f_init(arc, d, &model);
+        ret = Et1f_init(arc, pDat, &model);
         break;
     case 0x20:
-        ret = Et20_init(arc, d, &model);
+        ret = Et20_init(arc, pDat, &model);
         break;
     case 0x21:
-        ret = Et21_init(arc, d, &model);
+        ret = Et21_init(arc, pDat, &model);
         break;
     case 0x22:
-        ret = Et22_init(arc, d, &model);
+        ret = Et22_init(arc, pDat, &model);
         break;
     case 0x23:
-        ret = Et23_init(arc, d, &model);
+        ret = Et23_init(arc, pDat, &model);
         break;
     case 0x24:
-        ret = Et24_init(arc, d, &model);
+        ret = Et24_init(arc, pDat, &model);
         break;
     case 0x25:
-        ret = Et25_init(arc, d, &model, 3);
+        ret = Et25_init(arc, pDat, &model, 3);
         break;
     case 0x26:
-        ret = Et26_init(arc, d, &model);
+        ret = Et26_init(arc, pDat, &model);
         break;
     case 0x27:
-        ret = Et27_init(arc, d, &model);
+        ret = Et27_init(arc, pDat, &model);
         break;
     case 0x28:
-        ret = Et28_init(arc, d, &model);
+        ret = Et28_init(arc, pDat, &model);
         break;
     case 0x29:
-        ret = Et29_init(arc, d, &model, 4);
+        ret = Et29_init(arc, pDat, &model, 4);
         break;
     case 0x2A:
-        ret = Et2a_init(arc, d, &model);
+        ret = Et2a_init(arc, pDat, &model);
         break;
     case 0x2B:
-        ret = Et2b_init(arc, d, &model);
+        ret = Et2b_init(arc, pDat, &model);
         break;
     case 0x2C:
-        ret = Et2c_init(arc, d, &model, 5);
+        ret = Et2c_init(arc, pDat, &model, 5);
         break;
     case 0x2D:
-        ret = Et2d_init(arc, d, &model);
+        ret = Et2d_init(arc, pDat, &model);
         break;
     case 0x2E:
-        ret = Et2e_init(arc, d, &model);
+        ret = Et2e_init(arc, pDat, &model);
         break;
     case 0x2F:
-        ret = Et2f_init(arc, d, &model);
+        ret = Et2f_init(arc, pDat, &model);
         break;
     case 0x30:
-        ret = Et30_init(arc, d, &model);
+        ret = Et30_init(arc, pDat, &model);
         break;
     case 0x31:
-        ret = Et31_init(arc, d, &model);
+        ret = Et31_init(arc, pDat, &model);
         break;
     case 0x32:
-        ret = Et32_init(arc, d, &model);
+        ret = Et32_init(arc, pDat, &model);
         break;
     case 0x33:
-        ret = Et33_init(arc, d, &model);
+        ret = Et33_init(arc, pDat, &model);
         break;
     case 0x34:
-        ret = Et34_init(arc, d, &model);
+        ret = Et34_init(arc, pDat, &model);
         break;
     case 0x35:
-        ret = Et35_init(arc, d, &model, 6);
+        ret = Et35_init(arc, pDat, &model, 6);
         break;
     case 0x36:
-        ret = Et36_init(arc, d, &model, 7);
+        ret = Et36_init(arc, pDat, &model, 7);
         break;
     case 0x37:
-        ret = Et37_init(arc, d, &model);
+        ret = Et37_init(arc, pDat, &model);
         break;
     case 0x38:
-        ret = Et38_init(arc, d, &model);
+        ret = Et38_init(arc, pDat, &model);
         break;
     case 0x39:
-        ret = Et39_init(arc, d, &model);
+        ret = Et39_init(arc, pDat, &model);
         break;
     case 0x3A:
-        ret = Et3a_init(arc, d, &model);
+        ret = Et3a_init(arc, pDat, &model);
         break;
     case 0x3B:
-        ret = Et3b_init(arc, d, &model);
+        ret = Et3b_init(arc, pDat, &model);
         break;
     case 0x3C:
-        ret = Et3c_init(arc, d, &model);
+        ret = Et3c_init(arc, pDat, &model);
         break;
     case 0x3D:
-        ret = Et3d_init(arc, d, &model);
+        ret = Et3d_init(arc, pDat, &model);
         break;
     case 0x3E:
-        ret = Et3e_init(arc, d, &model);
+        ret = Et3e_init(arc, pDat, &model);
         break;
     case 0x3F:
-        ret = Et3f_init(arc, d, &model);
+        ret = Et3f_init(arc, pDat, &model);
         break;
     case 0x40:
-        ret = Et40_init(arc, d, &model);
+        ret = Et40_init(arc, pDat, &model);
         break;
     case 0x41:
-        ret = Et41_init(arc, d, &model);
+        ret = Et41_init(arc, pDat, &model);
         break;
     case 0x42:
-        ret = Et42_init(arc, d, &model);
+        ret = Et42_init(arc, pDat, &model);
         break;
     case 0x43:
-        ret = Et43_init(arc, d, &model);
+        ret = Et43_init(arc, pDat, &model);
         break;
     case 0x44:
-        ret = Et44_init(arc, d, &model, 8);
+        ret = Et44_init(arc, pDat, &model, 8);
         break;
     case 0x45:
-        ret = Et45_init(arc, d, &model);
+        ret = Et45_init(arc, pDat, &model);
         break;
     case 0x46:
-        ret = Et46_init(arc, d, &model);
+        ret = Et46_init(arc, pDat, &model);
         break;
     case 0x47:
-        ret = Et47_init(arc, d, &model);
+        ret = Et47_init(arc, pDat, &model);
         break;
     case 0x48:
-        ret = Et48_init(arc, d, &model, 9);
+        ret = Et48_init(arc, pDat, &model, 9);
         break;
     case 0x49:
-        ret = Et49_init(arc, d, &model);
+        ret = Et49_init(arc, pDat, &model);
         break;
     case 0x4A:
-        ret = Et4a_init(arc, d, &model, 10);
+        ret = Et4a_init(arc, pDat, &model, 10);
         break;
     case 0x4B:
-        ret = Et4b_init(arc, d, &model);
+        ret = Et4b_init(arc, pDat, &model);
         break;
     case 0x4C:
-        ret = Et4c_init(arc, d, &model);
+        ret = Et4c_init(arc, pDat, &model);
         break;
     case 0x4D:
-        ret = Et4d_init(arc, d, &model);
+        ret = Et4d_init(arc, pDat, &model);
         break;
     case 0x4E:
-        ret = Et4e_init(arc, d, &model);
+        ret = Et4e_init(arc, pDat, &model);
         break;
     case 0x4F:
-        ret = Et4f_init(arc, d, &model);
+        ret = Et4f_init(arc, pDat, &model);
         break;
     case 0x50:
-        ret = Et50_init(arc, d, &model, 11);
+        ret = Et50_init(arc, pDat, &model, 11);
         break;
     case 0x51:
-        ret = Et51_init(arc, d, &model, 12);
+        ret = Et51_init(arc, pDat, &model, 12);
         break;
     case 0x52:
-        ret = Et52_init(arc, d, &model, 13);
+        ret = Et52_init(arc, pDat, &model, 13);
         break;
     case 0x53:
-        ret = Et53_init(arc, d, &model, 14);
+        ret = Et53_init(arc, pDat, &model, 14);
         break;
     case 0x54:
-        ret = Et54_init(arc, d, &model, 15);
+        ret = Et54_init(arc, pDat, &model, 15);
         break;
     case 0x55:
-        ret = Et55_init(arc, d, &model, 16);
+        ret = Et55_init(arc, pDat, &model, 16);
         break;
     case 0x56:
-        ret = Et56_init(arc, d, &model, 17);
+        ret = Et56_init(arc, pDat, &model, 17);
         break;
     case 0x57:
-        ret = Et57_init(arc, d, &model, 18);
+        ret = Et57_init(arc, pDat, &model, 18);
         break;
     case 0x58:
-        ret = Et58_init(arc, d, &model, 19);
+        ret = Et58_init(arc, pDat, &model, 19);
         break;
     case 0x5A:
-        ret = Et5a_init(arc, d, &model, 20);
+        ret = Et5a_init(arc, pDat, &model, 20);
         break;
     case 0x5B:
-        ret = Et5b_init(arc, d, &model, 21);
+        ret = Et5b_init(arc, pDat, &model, 21);
         break;
     case 0x5C:
-        ret = Et5c_init(arc, d, &model, 22);
+        ret = Et5c_init(arc, pDat, &model, 22);
         break;
     case 0x5D:
-        ret = Et5d_init(arc, d, &model, 23);
+        ret = Et5d_init(arc, pDat, &model, 23);
         break;
     case 0x5E:
-        ret = Et5e_init(arc, d, &model, 24);
+        ret = Et5e_init(arc, pDat, &model, 24);
         break;
     case 0x5F:
-        ret = Et5f_init(arc, d, &model, 25);
+        ret = Et5f_init(arc, pDat, &model, 25);
         break;
     case 0x60:
-        ret = Et60_init(arc, d, &model, 26);
+        ret = Et60_init(arc, pDat, &model, 26);
         break;
     case 0x64:
-        ret = Et64_init(arc, d, &model, 27);
+        ret = Et64_init(arc, pDat, &model, 27);
         break;
     case 0x65:
-        ret = Et65_init(arc, d, &model, 28);
+        ret = Et65_init(arc, pDat, &model, 28);
         break;
     case 0x59:
-        ret = Et59_init(arc, d, &model);
+        ret = Et59_init(arc, pDat, &model);
         break;
     case 0x61:
-        ret = Et61_init(arc, d, &model);
+        ret = Et61_init(arc, pDat, &model);
         break;
     case 0x62:
-        ret = Et62_init(arc, d, &model);
+        ret = Et62_init(arc, pDat, &model);
         break;
     case 0x63:
-        ret = Et63_init(arc, d, &model);
+        ret = Et63_init(arc, pDat, &model);
         break;
     case 0x66:
-        ret = Et66_init(arc, d, &model);
+        ret = Et66_init(arc, pDat, &model);
         break;
     case 0x67:
-        ret = Et67_init(arc, d, &model);
+        ret = Et67_init(arc, pDat, &model);
         break;
         default:
-            pLog->err(0, 0, "EtcModelSet() : Invalid EtcModelID[%02x]", d->id);
+            pLog->err(0, 0, "EtcModelSet() : Invalid EtcModelID[%02x]", pDat->id);
             return 0;
         }
     }
     if (ret == 1) {
-        g_EtcTbl[d->no].RegistData(d, model);
+        g_EtcTbl[pDat->no].RegistData(pDat, model);
     } else {
         pLog->err(0, 0, "EtcModelSet() : Init failed.");
         return 0;
@@ -3020,7 +3020,7 @@ void EtcSetAddAmb(cModel* m, int no)
     } else {
         m->be_flag |= 8;
     }
-    m->x139 = r;
-    m->x13A = g;
-    m->x13B = b;
+    m->AddAmb_r = r;
+    m->AddAmb_g = g;
+    m->AddAmb_b = b;
 }

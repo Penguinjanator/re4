@@ -21,7 +21,7 @@ struct EmDoorWork {
     EmHitInfo hit[16];    // 0x028 (0x408)  [0..2] door boxes, [3..10] the breakable panes (parts 2..9), [11] right lock, [12] left lock, [13..15] chain
     u32 x368;             // 0x368 (0x748)
     u32 rnd;              // 0x36C (0x74C)  Rnd() % 5 at creation
-    u32 x370;             // 0x370 (0x750)
+    u32 Se_switch;             // 0x370 (0x750)
     f32 dmg;              // 0x374 (0x754)  pane hits left before the next pane breaks
     int chainHp[3];       // 0x378 (0x758)
     int lockHpL;          // 0x384 (0x764)
@@ -33,7 +33,7 @@ struct EmDoorWork {
     Mtx mat;              // 0x39C (0x77C)  closed door -> world (rot.y, pos, shifted by -width)
     Mtx inv;              // 0x3CC (0x7AC)  world -> closed door
     u32 keyNo;            // 0x3FC (0x7DC)  pG->door_unlock bit (setKey), 0x36 = none
-    int x400;             // 0x400 (0x7E0)  0x96 while opening
+    int Open_timer;             // 0x400 (0x7E0)  0x96 while opening
     Vec target;           // 0x404 (0x7E4)  position of the one that opened the door (setOpen: the open direction)
     cSat* sat[6];         // 0x410 (0x7F0)  effect collision pieces: [1] door, [2] panel above, [3..5] the panels of type 4 / 5 ([0] unused)
     cObj12* pLockL;       // 0x428 (0x808)  left lock object (setLock side 1)
@@ -62,12 +62,12 @@ public:
     void setYarare();
     u32 ckOpen();           // 0 can be opened, 1 open / broken, 2 an object blocks it, 3 locked
     int ckKick(Vec* pos);
-    void setOpen(Vec* pos, int a, int b, int c);
-    void setOpen2(int a);
-    void setShock(int a, Vec* pos, int b);
+    void setOpen(Vec* pos, int mode, int se_off, int down_ck);
+    void setOpen2(int type);
+    void setShock(int mode, Vec* pos, int se_off);
     void setBreak(Vec* pos);
     int ckObj();            // 0 when a cEm 0x45 object stands in the door
-    void setOpenLock(int a);
+    void setOpenLock(int type);
     void setCloseLock(int a);
     void setClose();
     void setDowned(int dir);

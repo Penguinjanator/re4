@@ -181,8 +181,8 @@ void ReadAreaData()
     u32 decodeTime;
 
     sprintf(name, "st%x/r%03x.das", pG->stage_no, pG->room_id);
-    if (pG->flags_54 & 0x02000000) {
-        pG->flags_54 &= ~0x02000000;
+    if (pG->System_flg & 0x02000000) {
+        pG->System_flg &= ~0x02000000;
     } else {
         StopwatchStart();
 #line 147 "D:/Bio4/Prog/read.cpp"
@@ -267,21 +267,21 @@ void InitModule(ReadModule* m)
 
 static void* readEm(int id, void* addr, u32 size)
 {
-    u32 flags = pG->flags_58;
+    u32 flags = pG->Disp_flg;
     ReadModule* m;
 
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x800);
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x800);
     m = pullEmModule();
     if (m == NULL) {
         return NULL;
     }
     if (readEmData(m, id, addr, size) == 0) {
-        pG->flags_58 = flags;
+        pG->Disp_flg = flags;
         return NULL;
     }
     setEmModule(m, id);
-    pG->flags_58 = flags;
+    pG->Disp_flg = flags;
     return m->pArc;
 }
 
@@ -594,10 +594,10 @@ void ReadPlayerData(int type, int costume)
     OSModuleHeader* pModule;
     void* bss;
 
-    if (!(pG->flags_4FBE & 1)) {
+    if (!(pG->pl_flag & 1)) {
         return;
     }
-    pG->flags_4FBE &= ~1;
+    pG->pl_flag &= ~1;
     ReleasePlData();
     pG->pPlArc = (PlArc*) PL_DATA_ADDR;
     data = (u8*) PL_DATA_ADDR;

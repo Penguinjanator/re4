@@ -10,21 +10,21 @@ Vec BoxTmp[16];
 #define SQ_DIST(a, b) \
     (((a)->x - (b)->x) * ((a)->x - (b)->x) + ((a)->y - (b)->y) * ((a)->y - (b)->y) + ((a)->z - (b)->z) * ((a)->z - (b)->z))
 
-int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* p0, Vec* p1)
+int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2)
 {
     f32 d0;
     f32 d1;
 
-    d0 = At_surface_point_rel(a, n, p0);
-    d1 = At_surface_point_rel(a, n, p1);
+    d0 = At_surface_point_rel(a, n, point1);
+    d1 = At_surface_point_rel(a, n, point2);
     if (d0 * d1 < 0.0f) {
         f32 a0 = fabsf(d0);
         f32 a1 = fabsf(d1);
-        InterVectorXYZ(out, p0, p1, a1 / (a0 + a1));
+        InterVectorXYZ(out, point1, point2, a1 / (a0 + a1));
         return 1;
     }
     if (out) {
-        *out = *p1;
+        *out = *point2;
     }
     return 0;
 }
@@ -164,16 +164,16 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
     return 0;
 }
 
-void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color)
+void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color)
 {
     Vec dir;
     Vec p;
     f32 len;
     u32 n;
 
-    Draw_sphere(p0, r, color, 1, 1);
-    Draw_sphere(p1, r, color, 1, 1);
-    PSVECSubtract(p0, p1, &dir);
+    Draw_sphere(pPosTop, r, color, 1, 1);
+    Draw_sphere(pPosBot, r, color, 1, 1);
+    PSVECSubtract(pPosTop, pPosBot, &dir);
     len = RootSumSquare3(&dir);
     n = (u32) (len / (r + r)) + 2;
     len = len / (f32) n;
@@ -183,7 +183,7 @@ void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color)
 #line 418 "D:/Bio4/Prog/at_sub.cpp"
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
-    p = *p1;
+    p = *pPosBot;
     n--;
     while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
@@ -247,7 +247,7 @@ void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color)
     Draw_line3d(&v[3], &v[7], color, 0);
 }
 
-u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u32 flag, u32 mask)
+u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask)
 {
     Vec d0;
     Vec d1;
@@ -266,12 +266,12 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     f32 s1;
     u32 attr;
 
-    d0.x = p0->x - v0->x;
-    d0.y = p0->y - v0->y;
-    d0.z = p0->z - v0->z;
-    d1.x = p1->x - v0->x;
-    d1.y = p1->y - v0->y;
-    d1.z = p1->z - v0->z;
+    d0.x = vert0->x - v0->x;
+    d0.y = vert0->y - v0->y;
+    d0.z = vert0->z - v0->z;
+    d1.x = vert1->x - v0->x;
+    d1.y = vert1->y - v0->y;
+    d1.z = vert1->z - v0->z;
     dp0 = d0.x * nrm->x + d0.y * nrm->y;
     dp0 += d0.z * nrm->z;
     dp1 = d1.x * nrm->x + d1.y * nrm->y;
@@ -280,19 +280,19 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
         return 0;
     }
     v1 = &vtx[poly->v[1]];
-    PSVECSubtract(p1, p0, &a);
-    PSVECSubtract(p0, v0, &b);
+    PSVECSubtract(vert1, vert0, &a);
+    PSVECSubtract(vert0, v0, &b);
     PSVECCrossProduct(&pd->edge[poly->e[0]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
     v2 = &vtx[poly->v[2]];
-    PSVECSubtract(p0, v1, &b);
+    PSVECSubtract(vert0, v1, &b);
     PSVECCrossProduct(&pd->edge[poly->e[1]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(p0, v2, &b);
+    PSVECSubtract(vert0, v2, &b);
     PSVECCrossProduct(&pd->edge[poly->e[2]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
@@ -301,14 +301,14 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     if (t >= 1.0f || t < 0.0f) {
         return 0;
     }
-    s0 = PSVECDotProduct(nrm, p0) - PSVECDotProduct(nrm, v0);
-    s1 = PSVECDotProduct(nrm, p1) - PSVECDotProduct(nrm, v0);
+    s0 = PSVECDotProduct(nrm, vert0) - PSVECDotProduct(nrm, v0);
+    s1 = PSVECDotProduct(nrm, vert1) - PSVECDotProduct(nrm, v0);
     if (s0 * s1 < 0.0f) {
         f32 a0 = fabsf(s0);
         f32 a1 = fabsf(s1);
-        InterVectorXYZ(out, p0, p1, a1 / (a0 + a1));
+        InterVectorXYZ(out, vert0, vert1, a1 / (a0 + a1));
     } else if (out) {
-        *out = *p1;
+        *out = *vert1;
     }
     attr = Get_poly_attr(poly);
     if (SEck == 0) {

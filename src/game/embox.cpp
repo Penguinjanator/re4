@@ -25,11 +25,11 @@ struct EmPtr {
 };
 
 extern "C" {
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int a);                                                  // em_sub.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
+void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 void SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);                                  // esp_efm.cpp
-int getRoomEtc(int no, int kind, cEm** out, int a);                                          // EtcModel.cpp
+int getRoomEtc(int no, int kind, cEm** out, int bDispErr);                                          // EtcModel.cpp
 void SceAtCreateItemAt(Vec* pos, u16 no, int num, int a, int b, int c, int d);              // sce_at.cpp
 extern u32 tubo_amb;                                                                         // esp.cpp
 }
@@ -217,16 +217,16 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         em->clearStatus(5);
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         em->setStatus(5);
     }
     return em;
@@ -458,10 +458,10 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
     if (w->itemNo != -1) {
         emBoxSetItem(em);
     }
-    em->xFC = 1;
-    em->xFD = 1;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 1;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void cEmBox::move()
@@ -474,14 +474,14 @@ void cEmBox::move()
         } else {
             be_flag |= 8;
         }
-        x139 = amb;
-        x13A = amb;
-        x13B = amb;
+        AddAmb_r = amb;
+        AddAmb_g = amb;
+        AddAmb_b = amb;
         eprintf(80, 200, 0, 0, "amb = %d", tubo_amb);
     }
     emBoxDmCk(this);
     be_flag &= ~0x4000;
-    EmBox_R0_move_tbl[xFC](this);
+    EmBox_R0_move_tbl[r_no_0](this);
     EmAtCheck(this);
     atari.move();
     emBoxActEvtCk(this);
@@ -489,26 +489,26 @@ void cEmBox::move()
 
 void emBox_R0_Init(cEmBox* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emBox_R0_Move(cEmBox* em)
 {
-    EmBox_R1_move_tbl[em->xFD](em);
+    EmBox_R1_move_tbl[em->r_no_1](em);
 }
 
 void emBox_R1_Set(cEmBox* em)
 {
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -518,7 +518,7 @@ void emBox_R1_Break(cEmBox* em)
     EmBoxWork* w = EMBOX_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
         if (flg) {
             *flg |= 1;
@@ -528,7 +528,7 @@ void emBox_R1_Break(cEmBox* em)
         em->clearStatus(5);
         w->timer = 150;
         em->atari.throughOn();
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -597,8 +597,8 @@ void cEmBox::setItem(int no, int num, u16 c, u16 d)
 
     w->itemNo = no;
     w->itemNum = num;
-    w->item22C = c;
-    w->item22E = d;
+    w->Item_flg = c;
+    w->Auto_item_flg = d;
 }
 
 void emBoxActEvtCk(cEmBox* em)

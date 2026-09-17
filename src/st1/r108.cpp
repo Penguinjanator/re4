@@ -101,7 +101,7 @@ static void r108_str_check();
 
 void R108Init()
 {
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 44 "D:/Bio4/Prog/r108.cpp"
     r108_work = (R108Work*) MEM_CALLOC(sizeof(R108Work), 1, 0xd);
 
@@ -292,7 +292,7 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     if ((m = SceAtItemModelPtr(0x82)) != 0) {
         m->setNoSuspend(1);
     }
-    if (!(pG->flags_51BC & 0x8000)) {
+    if (!(pG->Item_find_flg & 0x8000)) {
         SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_execPuzzle, 0, 1);
     } else {
         FAdd(r108_coverL->pos.x, 220.0f);
@@ -417,7 +417,7 @@ static void r108_execPuzzle()
         }
         if (ok == 1) {
             r108_openCover();
-            pG->flags_51BC |= 0x8000;
+            pG->Item_find_flg |= 0x8000;
             SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_getItem, 0, 1);
             SceAtPtr(0xA)->x4A = 0x28;
             break;

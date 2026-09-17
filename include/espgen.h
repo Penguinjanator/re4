@@ -242,9 +242,9 @@ int PullEspgen(EspgenWork** out);
 int PullEspgenFront(EspgenWork** out);
 void PushEspgen(EspgenWork* w);
 int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                      Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                      Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 parts, Mtx* mtx, Vec* pos, Vec* rot,
-                 EspSeqOpt* p8, int flag);
+                 EspSeqOpt* pSct, int flag);
 void EspgenArrayClear();
 void EspgenDelete(int a, int b, int c);
 void EspgenDeleteEvent();
@@ -252,15 +252,15 @@ int EspgenGetCallNo();
 void EspgenIncCallNo();
 
 // game/esp_sub.cpp
-int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, f32 f, cEsp** out,
-              EspSeqOpt* p8, Vec* pos);
+int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int flg, f32 f, cEsp** out,
+              EspSeqOpt* pSct, Vec* pos);
 
 // game/est.cpp
 extern cModel* EspEvModList[0x80];
 
 // game/espgen10.cpp
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
-                  Vec* rot, EspSeqOpt* p8, int flag);
+                  Vec* rot, EspSeqOpt* pSct, int flag);
 void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e);
 int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front);
 void Espgen10_Move(EspgenWork* w);
@@ -268,39 +268,39 @@ void Espgen10_Move(EspgenWork* w);
 // game/espgen00.cpp
 void Espgen00_Move(EspgenWork* w);
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen01.cpp
 void Espgen01_Move(EspgenWork* w);
 void Espgen01_Trans(EspgenWork* w);
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen02.cpp
 void Espgen02_Move(EspgenWork* w);
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 
 // game/espgen44.cpp
 void Espgen44_Move(EspgenWork* w);
 void Espgen44_Trans(EspgenWork* w);
 void Espgen44_Destruct(EspgenWork* w);
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/Espgen42.cpp
 void Espgen42_Move(EspgenWork* w);
 void Espgen42_Trans(EspgenWork* w);
 void Espgen42_Destruct(EspgenWork* w);
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/Espgen43.cpp
 void Espgen43_Move(EspgenWork* w);
 void Espgen43_Trans(EspgenWork* w);
 void Espgen43_Destruct(EspgenWork* w);
 int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct);
 
 // game/espgen45.cpp
 void Espgen45_static_init();
@@ -320,7 +320,7 @@ void Espgen45_Move(EspgenWork* w);
 void Espgen45_Trans(EspgenWork* w);
 void Espgen45_Destruct(EspgenWork* w);
 int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct);
 }
 
 // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): swap the espgen pool like EspArrayPush.

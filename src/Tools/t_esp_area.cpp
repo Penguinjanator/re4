@@ -180,7 +180,7 @@ void OptionExec()
     u32 rep;
 
     eprintf(0xAA, 0xA0, 4, 0, "FOG : ");
-    if (pG->flags_58 & 0x4000) {
+    if (pG->Disp_flg & 0x4000) {
         eprintf(0xAA, 0xA0, 0, 0, "       ON");
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
@@ -204,10 +204,10 @@ void OptionExec()
     switch (cursor) {
     case 0:
         if ((rep & 0x30003) || (Joy[0].trg & 0x100)) {
-            if (pG->flags_58 & 0x4000) {
-                pG->flags_58 &= ~0x4000;
+            if (pG->Disp_flg & 0x4000) {
+                pG->Disp_flg &= ~0x4000;
             } else {
-                pG->flags_58 |= 0x4000;
+                pG->Disp_flg |= 0x4000;
             }
         }
         break;
@@ -332,11 +332,11 @@ void tEspAreaInit()
     BitOn(pG->flags_170, 0x00400000);
     BitOn(pG->flags_170, 0x00010000);
     BitOn(pG->flags_170, 0x00002000);
-    BitOn(pG->flags_58, 0x20000000);
-    BitOn(pG->flags_58, 0x40000000);
-    BitOn(pG->flags_58, 0x04000000);
-    BitOn(pG->flags_58, 0x02000000);
-    BitOn(pG->flags_58, 0x00100000);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x04000000);
+    BitOn(pG->Disp_flg, 0x02000000);
+    BitOn(pG->Disp_flg, 0x00100000);
     BitOn(pG->flags_60, 0x10000000);
     CamDbg.target_type = 4;
     Block.dispAllBlock(1);
@@ -351,12 +351,12 @@ void tEspAreaExit()
     BitOff(pG->flags_170, 0x00400000);
     BitOff(pG->flags_170, 0x00010000);
     BitOff(pG->flags_170, 0x00002000);
-    BitOff(pG->flags_58, 0x20000000);
-    BitOff(pG->flags_58, 0x40000000);
-    BitOff(pG->flags_58, 0x04000000);
-    BitOff(pG->flags_58, 0x02000000);
-    BitOff(pG->flags_58, 0x00100000);
-    BitOff(pG->flags_58, 0x00004000);
+    BitOff(pG->Disp_flg, 0x20000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x04000000);
+    BitOff(pG->Disp_flg, 0x02000000);
+    BitOff(pG->Disp_flg, 0x00100000);
+    BitOff(pG->Disp_flg, 0x00004000);
     BitOff(pG->flags_60, 0x10000000);
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)

@@ -17,25 +17,25 @@ extern "C" {
 int MotionMove(cModel* m, int a);
 void* memset(void* p, int c, unsigned int n);
 void obj18SetOya(cObj18* obj);
-void Em34ClothSet1(cModel* m, PlCloth* c);
-void Em34ClothSet2(cModel* m, PlCloth* c);
-void Em34ClothMove1(cModel* m, PlCloth* c);
-void Em34ClothMove2(cModel* m, PlCloth* c);
+void Em34ClothSet1(cModel* m, PlCloth* pCloth);
+void Em34ClothSet2(cModel* m, PlCloth* pCloth);
+void Em34ClothMove1(cModel* m, PlCloth* pCloth);
+void Em34ClothMove2(cModel* m, PlCloth* pCloth);
 void Em34ClothReset(cModel* m);
-void Em37HairSet(cModel* m, PlCloth* c);
-void Em37CoatSet(cModel* m, PlCloth* c);
-void Em37HairMove(cModel* m, PlCloth* c);
-void Em37CoatMove(cModel* m, PlCloth* c);
+void Em37HairSet(cModel* m, PlCloth* pCloth);
+void Em37CoatSet(cModel* m, PlCloth* pCloth);
+void Em37HairMove(cModel* m, PlCloth* pCloth);
+void Em37CoatMove(cModel* m, PlCloth* pCloth);
 void Em37ClothReset(cModel* m);
-void Em30ClothSet1(cModel* m, PlCloth* c);
-void Em30ClothSet2(cModel* m, PlCloth* c);
-void Em30ClothMove1(cModel* m, PlCloth* c);
-void Em30ClothMove2(cModel* m, PlCloth* c);
+void Em30ClothSet1(cModel* m, PlCloth* pCloth);
+void Em30ClothSet2(cModel* m, PlCloth* pCloth);
+void Em30ClothMove1(cModel* m, PlCloth* pCloth);
+void Em30ClothMove2(cModel* m, PlCloth* pCloth);
 void Em30ClothReset(cModel* m);
-void Em33ClothSet(cModel* m, PlCloth* c, int a);
-void Em33ClothSet2(cModel* m, PlCloth* c, int a);
-void Em33ClothMove(cModel* m, PlCloth* c);
-void Em33ClothMove2(cModel* m, PlCloth* c);
+void Em33ClothSet(cModel* m, PlCloth* pCloth, int mode);
+void Em33ClothSet2(cModel* m, PlCloth* pCloth, int mode);
+void Em33ClothMove(cModel* m, PlCloth* pCloth);
+void Em33ClothMove2(cModel* m, PlCloth* pCloth);
 void Em33ClothReset(cModel* m);
 cObj* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl);
 }
@@ -385,7 +385,7 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
     if (obj == 0) {
         return;
     }
-    if (obj->x12E != 1) {
+    if (obj->kindid != 1) {
         return;
     }
     if (obj->id != 0x18) {
@@ -488,7 +488,7 @@ void Obj18CmfSet(cObj* obj, u32 cmf)
     if (obj == 0) {
         return;
     }
-    if (obj->x12E != 1) {
+    if (obj->kindid != 1) {
         return;
     }
     if (obj->id != 0x18) {
@@ -502,7 +502,7 @@ u32 Obj18CmfGet(cObj* obj)
     if (obj == 0) {
         return 0;
     }
-    if (obj->x12E != 1 || obj->id != 0x18) {
+    if (obj->kindid != 1 || obj->id != 0x18) {
         return 0;
     }
     return obj->o18.cmf;

@@ -124,9 +124,9 @@ void R224Init()
         cObj* obj = r224_work.p->obj;
 
         obj->be_flag |= 8;
-        obj->x139 = 0x3C;
-        obj->x13A = 0x50;
-        obj->x13B = 0x64;
+        obj->AddAmb_r = 0x3C;
+        obj->AddAmb_g = 0x50;
+        obj->AddAmb_b = 0x64;
     }
     r224_work.p->obj2 = ObjMgr.create(2);
     r224_work.p->obj2->pos.x = -4413.0f;
@@ -156,9 +156,9 @@ void R224Init()
     if (yagura) {
         ((cObjYagura*) yagura)->setMotionVib(ROOM_ARC_PTR(pG->pRoomArc, 0x2C));
         yagura->be_flag |= 8;
-        yagura->x139 = 0x1E;
-        yagura->x13A = 0x28;
-        yagura->x13B = 0x28;
+        yagura->AddAmb_r = 0x1E;
+        yagura->AddAmb_g = 0x28;
+        yagura->AddAmb_b = 0x28;
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
         cObj* obj;

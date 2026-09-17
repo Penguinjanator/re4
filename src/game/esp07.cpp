@@ -70,7 +70,7 @@ void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
             }
             p = esp->pos;
             p.y = floorY + 65.0f;
-            EstSet(0, -1, &p, &rot, w->estNo, w->estPrm, esp->info.x0, esp->info.x2, esp->info.x8, NULL);
+            EstSet(0, -1, &p, &rot, w->estNo, w->estPrm, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
             if (w->estCall != 2) {
                 PushEsp(esp);
                 return;
@@ -136,9 +136,9 @@ void Esp07_HitWall(cEsp07* esp)
                 rot.y = atan2f(esp->spd.x, esp->spd.z);
             }
             if (nrm.y > 0.98f) {
-                EstSet(0, -1, &esp->pos, &rot, w->estNo, w->estPrm, esp->info.x0, esp->info.x2, esp->info.x8, NULL);
+                EstSet(0, -1, &esp->pos, &rot, w->estNo, w->estPrm, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
             } else {
-                EstSet(0, -1, &esp->pos, &rot, w->estNo2, w->estPrm2, esp->info.x0, esp->info.x2, esp->info.x8, NULL);
+                EstSet(0, -1, &esp->pos, &rot, w->estNo2, w->estPrm2, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
             }
             if (w->estCall != 2) {
                 PushEsp(esp);

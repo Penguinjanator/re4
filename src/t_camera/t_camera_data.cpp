@@ -443,7 +443,7 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
             o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
             c->pos[n] = o->campos;
             c->at[n] = o->target;
-            c->roll[n] = o->x24;
+            c->roll[n] = o->Roll;
             c->fovy[n] = o->fovy;
             n++;
         }
@@ -478,7 +478,7 @@ void tcSetBesideCamera()
                 }
                 o->campos = c->pos[n];
                 o->target = c->at[n];
-                o->x24 = c->roll[n];
+                o->Roll = c->roll[n];
                 o->fovy = c->fovy[n];
             }
         }

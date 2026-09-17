@@ -315,12 +315,12 @@ ToolEvt::ToolEvt()
 
     mode = 0;
     step = 0;
-    x04 = 0;
-    x06 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
     subMode = 0;
-    x0A = 0;
-    x0C = 0;
-    x0E = 0;
+    r_no_1_sub = 0;
+    r_no_2_sub = 0;
+    r_no_3_sub = 0;
     stopWait = 0;
     startWait = 0;
     curveNo = 0;
@@ -331,8 +331,8 @@ ToolEvt::ToolEvt()
     camMode = 0;
     camCnt = 0;
     flags = 0;
-    x18 = 0;
-    x1C = 0;
+    ListCur = 0;
+    ListBase = 0;
     capCnt = 0;
     pEvd = 0;
     pLightTool = 0;
@@ -476,8 +476,8 @@ void ToolEvt::MainMenu(ToolEvt* t)
     if (sel != -1) {
         t->mode = sel + 1;
         t->step = zero;
-        t->x04 = zero;
-        t->x06 = zero;
+        t->r_no_2 = zero;
+        t->r_no_3 = zero;
     }
 }
 
@@ -503,8 +503,8 @@ void ToolEvt::MainPreview(ToolEvt* t)
         if (t->pJoy0->trg & 0x200) {
             t->mode = 0;
             t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
         }
         break;
     case 1:
@@ -531,8 +531,8 @@ void ToolEvt::MainPreview(ToolEvt* t)
         case 1:
             t->mode = 0;
             t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
         break;
@@ -551,8 +551,8 @@ void ToolEvt::MainPreview(ToolEvt* t)
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
             t->mode = 1;
             t->step = 4;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
         t->flags &= ~0x02000000;
@@ -566,15 +566,15 @@ void ToolEvt::MainPreview(ToolEvt* t)
     case 3: {
         Event* ev;
 
-        if (pG->flags_54 & 0x400) {
-            pG->flags_54 &= ~0x400;
+        if (pG->System_flg & 0x400) {
+            pG->System_flg &= ~0x400;
         }
         if (EvtMgr.GetEvt(&EvtMgr.x34, (void**) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
             t->mode = 1;
             t->step = 4;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
         if (t->flags & 0x00040000) {
@@ -703,8 +703,8 @@ void ToolEvt::MainPreview(ToolEvt* t)
         if (!(t->flags & 0x00080000)) {
             t->mode = 0;
             t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
         } else {
             t->flags |= 0x80000000;
         }
@@ -730,8 +730,8 @@ void ToolEvt::MainExit(ToolEvt* t)
     case 1:
         t->mode = 0;
         t->step = 0;
-        t->x04 = 0;
-        t->x06 = 0;
+        t->r_no_2 = 0;
+        t->r_no_3 = 0;
         break;
     }
 }
@@ -781,16 +781,16 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         break;
     case 3:
         t->subMode = 1;
-        t->x0A = 0;
-        t->x0C = 0;
-        t->x0E = 0;
+        t->r_no_1_sub = 0;
+        t->r_no_2_sub = 0;
+        t->r_no_3_sub = 0;
         t->fogCur = 0;
         break;
     case 4:
         t->subMode = 2;
-        t->x0A = 0;
-        t->x0C = 0;
-        t->x0E = 0;
+        t->r_no_1_sub = 0;
+        t->r_no_2_sub = 0;
+        t->r_no_3_sub = 0;
         t->focusCur = 0;
         break;
     case 5:

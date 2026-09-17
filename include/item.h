@@ -34,8 +34,8 @@ struct ItemInfo {
     u8 x0;
     u8 x1;
     u8 type;       // 0x02  1 weapon, 2 ammo, 3 = weapon with a magazine (sscrn: empty check), 5/0xC treasure, 9 weapon part, 0xA file ...
-    u8 x3;         // 0x03  default count when get(id, 0)
-    u16 x4;        // 0x04  max count per slot
+    u8 defNum;         // 0x03  default count when get(id, 0)
+    u16 maxNum;        // 0x04  max count per slot
 };
 
 // One saved slot (cItemMgr::save/load, 12 bytes; 0x180 of them after the 4-byte header).
@@ -65,15 +65,15 @@ public:
     u8 pad_A[2];
     ItemWork* pArm;             // 0x0C  equipped weapon slot (NULL = bare hands)
     u16 armId;                  // 0x10  equipped weapon item id
-    s8 x12;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
+    s8 m_to_whom;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
     u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
     ItemWork* pItems;           // 0x14
     ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
     s32 nItems;                 // 0x1C
     ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
     s32 nOrder;                 // 0x24  entries in pOrder
-    u32 x28;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)
-    u32 x2C;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
+    u32 m_bonus_time;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)
+    u32 m_bonus_point;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
 
     void clear();
     int set_game(int no);
@@ -141,7 +141,7 @@ public:
     int offboardDump(ItemWork* keep);
     void takeOver();
     int countFiles();
-    void debugNumDisp(int a);
+    void debugNumDisp(int print_page);
     void debugWeapon(int id);
 };
 
@@ -177,7 +177,7 @@ u16 bareHand();
 int itemCombineCheck(u16 id);
 // COMPILER-DIFF: 4 (int view: the original passes a u16 local without the zero-extension, ss_pzzl itemCommandType)
 int itemCombineCheckI(int id) asm("itemCombineCheck");
-int itemCombine(u16 a, u16 b, u16* result);
+int itemCombine(u16 srcA, u16 srcB, u16* result);
 int reload_main(ItemWork* wep, ItemWork* ammo, int max);
 u8 gld_order(u8 idx);
 int gld_cmp(const void* a, const void* b);

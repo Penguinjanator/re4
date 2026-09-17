@@ -1210,7 +1210,7 @@ void r20e_initPuzzle()
     if (p->frame) {
         p->frame->be_flag |= 0x20;
         p->frame->be_flag &= ~2;
-        p->frame->x12C = 2;
+        p->frame->z_mode = 2;
     }
     {
         int hidden = n - 1;

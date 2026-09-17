@@ -54,17 +54,17 @@ class ToolEvt {
 public:
     s16 mode;             // 0x00  main routine (0 menu, 1 preview, 2 exit)
     s16 step;             // 0x02  preview step
-    s16 x04;              // 0x04
-    s16 x06;              // 0x06
+    s16 r_no_2;              // 0x04
+    s16 r_no_3;              // 0x06
     s16 subMode;          // 0x08  preview sub routine (0 menu, 1 fog, 2 focus)
-    s16 x0A;              // 0x0A
-    s16 x0C;              // 0x0C
-    s16 x0E;              // 0x0E
+    s16 r_no_1_sub;              // 0x0A
+    s16 r_no_2_sub;              // 0x0C
+    s16 r_no_3_sub;              // 0x0E
     s16 stopWait;         // 0x10  frames the start button is held before the stop toggles
     s16 startWait;        // 0x12  frames before the event starts
     u32 flags;            // 0x14
-    u32 x18;              // 0x18
-    u32 x1C;              // 0x1C
+    u32 ListCur;              // 0x18
+    u32 ListBase;              // 0x1C
     int capCnt;           // 0x20  capture frame counter
     u8 curveNo;           // 0x24  edited curve (0 start / near, 1 end / far)
     s8 menuCur;           // 0x25  main menu cursor

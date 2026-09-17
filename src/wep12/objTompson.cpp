@@ -64,7 +64,7 @@ void cObjTompson::moveReload()
         void* mot;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             mot = WEP_ARC_PTR(0x28);
             break;
@@ -76,7 +76,7 @@ void cObjTompson::moveReload()
             break;
         }
         motionSet(mot, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -89,7 +89,7 @@ void cObjTompson::moveReload()
         }
         wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }

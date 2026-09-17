@@ -107,7 +107,7 @@ void cObjFn57::moveReload()
         u16 se;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x36);
                 break;
@@ -119,7 +119,7 @@ void cObjFn57::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x33);
                 break;
@@ -132,7 +132,7 @@ void cObjFn57::moveReload()
             }
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -146,7 +146,7 @@ void cObjFn57::moveReload()
         wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    if (MotionCheckCrossFrame(&mot, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }

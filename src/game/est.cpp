@@ -233,10 +233,10 @@ void EspDelete(int a, int b, u32 c, cModel* model)
         if ((esp->flag & 1) == 0) {
             continue;
         }
-        if (a != 0 && esp->info.x0 != a) {
+        if (a != 0 && esp->info.Core_flg != a) {
             continue;
         }
-        if (b != 0 && esp->info.x2 != b) {
+        if (b != 0 && esp->info.Core_kind != b) {
             continue;
         }
         if (c != 0 && esp->info.x8 != c) {
@@ -246,7 +246,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
             if (esp->pModel != model) {
                 continue;
             }
-            if (esp->x20 != model->serial) {
+            if (esp->m_Guid_pMod != model->serial) {
                 continue;
             }
         }
@@ -263,9 +263,9 @@ void EspDeleteEvent()
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
         if (esp->flag & 1) {
-            int ev = !(esp->info.x0 & 1);
+            int ev = !(esp->info.Core_flg & 1);
 
-            if (ev && !(esp->info.x0 & 0x800)) {
+            if (ev && !(esp->info.Core_flg & 0x800)) {
                 PushEsp(esp);
             }
         }

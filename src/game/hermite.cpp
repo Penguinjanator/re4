@@ -117,10 +117,10 @@ void Hermite_1Reverse(Hermite1* h)
     Debug_free(tmp);
 }
 
-void Hermite_1(HermiteKey* a, HermiteKey* b, f32 t, f32* out)
+void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out)
 {
-    f32 dt = b->t - a->t;
-    f32 s = (t - a->t) / dt;
+    f32 dt = pH1->t - pH0->t;
+    f32 s = (t - pH0->t) / dt;
     f32 s2 = s * s;
     f32 s3 = s * s2;
     f32 h01 = -(s3 + s3) + 3.0f * s2;
@@ -128,18 +128,18 @@ void Hermite_1(HermiteKey* a, HermiteKey* b, f32 t, f32* out)
     f32 h10 = h11 - s2 + s;
     f32 h00 = -h01 + 1.0f;
 
-    *out = h00 * a->v + h01 * b->v + dt * (h10 * a->out + h11 * b->in);
+    *out = h00 * pH0->v + h01 * pH1->v + dt * (h10 * pH0->out + h11 * pH1->in);
 }
 
-void Hermite_1_dt(HermiteKey* a, HermiteKey* b, f32 t, f32* out)
+void Hermite_1_dt(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out)
 {
-    f32 dt = b->t - a->t;
-    f32 s = (t - a->t) / dt;
+    f32 dt = pH1->t - pH0->t;
+    f32 s = (t - pH0->t) / dt;
     f32 s2 = s * s;
     f32 dh11 = 3.0f * s2 - 2.0f * s;
     f32 dh10 = 3.0f * s2 - 2.0f * s - 2.0f * s + 1.0f;
     f32 dh00 = dh10 + dh11 - 1.0f;
     f32 dh01 = -dh00;
 
-    *out = dh00 * a->v + dh01 * b->v + dt * (dh10 * a->out + dh11 * b->in);
+    *out = dh00 * pH0->v + dh01 * pH1->v + dt * (dh10 * pH0->out + dh11 * pH1->in);
 }

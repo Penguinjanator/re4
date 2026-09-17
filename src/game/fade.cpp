@@ -22,7 +22,7 @@ void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late)
         f->flags |= 4;
     }
     f->start = s;
-    f->x1A = 0;
+    f->state = 0;
     f->end = e;
     f->time = time;
     f->count = 0;

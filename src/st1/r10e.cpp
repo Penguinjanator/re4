@@ -32,7 +32,7 @@ void R10eInit()
         SceAtSetEnable(1, 0);
     } else {
         SceAtSetEnable(0, 0);
-        if (pG->room_id_prev == 0x10E && !(pG->flags_54 & 0x100)) {
+        if (pG->room_id_prev == 0x10E && !(pG->System_flg & 0x100)) {
             SceAtSetEnable(4, 0);
             SceAtSetEnable(5, 0);
             SceExec(0x12, (TaskFunc) R10e_door_set, 0, 0, 2, 0);

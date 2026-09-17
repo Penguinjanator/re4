@@ -9,21 +9,21 @@
 class Cloth {
 public:
     u8 flag;           // 0x00 bit0: in use
-    u8 x1;             // 0x01
+    u8 attr;             // 0x01
     u8 nx;             // 0x02 grid columns
     u8 ny;             // 0x03 grid rows
-    f32 x4;            // 0x04 cell width
-    f32 x8;            // 0x08 cell height
-    f32 xC;            // 0x0C
+    f32 Wgap;            // 0x04 cell width
+    f32 Hgap;            // 0x08 cell height
+    f32 Scale;            // 0x0C
     Vec* pos;          // 0x10 grid positions (nx*ny)
     Vec* nrm;          // 0x14 grid normals (calcNormal; {0,0,1} initially)
     Vec* spd;          // 0x18
     Mtx mat;           // 0x1C
-    Vec x4C;           // 0x4C
-    f32 x58;           // 0x58
+    Vec center;           // 0x4C
+    f32 radius;           // 0x58
     GXTexObj* tex;     // 0x5C
     GXTlutObj* tlut;   // 0x60
-    void* x64;         // 0x64
+    void* pTobjA;         // 0x64
     union {
         GXColor color; // 0x68 material colour (clothTrans passes it by value)
         struct {
@@ -54,7 +54,7 @@ void ClothCalcTplAddr(void* tpl);
 int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut);
 int PullCloth(Cloth** out);
 void ClothDraw();
-void clothTrans(Cloth* c);
+void clothTrans(Cloth* pCL);
 }
 
 #endif

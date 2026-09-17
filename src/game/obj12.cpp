@@ -34,7 +34,7 @@ struct Obj12Node {
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int a);
+int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 }
 
 void cObj12::move()
@@ -142,7 +142,7 @@ void cObj12::move()
         chainMove();
         if (w->oya) {
             alpha = w->oya->alpha;
-            x158 = w->oya->x158;
+            invisible_factor2 = w->oya->invisible_factor2;
             if (w->oya->be_flag & 2) {
                 be_flag |= 2;
             } else {

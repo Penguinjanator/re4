@@ -98,10 +98,10 @@ void PadRead()
     for (i = 0; i < 4; i++) {
         joy = &Joy[i];
         pad = &Pad_data[i];
-        joy->x8 = pad->err;
-        if (joy->x8 != 0) {
+        joy->err = pad->err;
+        if (joy->err != 0) {
             memclr_asm(joy, sizeof(JOY));
-            joy->x8 = pad->err;
+            joy->err = pad->err;
             continue;
         }
         joy->old = joy->on;
@@ -277,8 +277,8 @@ void PadRead()
     } else {
         KeyStop(0);
     }
-    Key.x6 = 0;
-    Key.x7 = 0;
+    Key.analogA = 0;
+    Key.analogB = 0;
     Pad_test();
     if (pG->flags_170 & 0x10000000) {
         KeyStopFlagClear();
@@ -429,10 +429,10 @@ void VibSetClearType(u32 type)
 
 int PadCheckStatus(JOY* joy)
 {
-    if (pG->flags_54 & 8) {
+    if (pG->System_flg & 8) {
         return 0;
     }
-    return joy->x8 == 0;
+    return joy->err == 0;
 }
 
 void Pad_test()

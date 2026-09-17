@@ -38,7 +38,7 @@ public:
     void setOpened();
     void setClosed();
     void setBarred(cEmBarred* b);
-    void setBarred2nd(cEmBarred* b);
+    void setBarred2nd(cEmBarred* pBarred);
     void setConnectSwitch(cEmSwitch* s);
     void setActButton(int on);
     void setOpenOnly();

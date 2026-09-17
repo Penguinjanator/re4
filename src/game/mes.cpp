@@ -26,7 +26,7 @@ void C_MTXOrtho(f32 m[4][4], f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void calcTplOffset(TEXPalette* tpl);  // game/model.cpp
 u16 getCharCode(u16 code);
 int isCtrlCode(u16 code);
-void setAttribute(MesFontTex* t);
+void setAttribute(FONT_TEX* t);
 void draw(MesQue* q);
 void messageCamera();
 void messageTrans(MesQue* q);
@@ -179,7 +179,7 @@ void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
 {
     u32 i;
     TEXDescriptor* d;
-    MesFontTex* t;
+    FONT_TEX* t;
 
     pTpl = tpl;
     if ((s32) tpl->descriptorArray >= 0) {
@@ -542,7 +542,7 @@ void MessageControl::Trans()
     int act;
     int i;
 
-    if (pG->flags_58 & 0x800) {
+    if (pG->Disp_flg & 0x800) {
         return;
     }
     m = &mes[15];
@@ -647,7 +647,7 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     xB = 0;
     xA = 0;
     x9 = 0;
-    x8 = 0;
+    r_no_0 = 0;
     cursor = 0;
     result = 0;
     selNum = 0;
@@ -668,7 +668,7 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     jumpCnt = 0;
     scaleX = 1.0f;
     jumpIdx = 0;
-    x71 = -1;
+    m_evt_no = -1;
     scaleY = 1.0f;
     if (attr & 0x40) {
         speed = 0;
@@ -945,7 +945,7 @@ void Message::setJump(u16 pos)
     }
 }
 
-void setAttribute(MesFontTex* t)
+void setAttribute(FONT_TEX* t)
 {
     GXSetCullMode(0);
     GXSetZMode(0, 3, 1);
@@ -987,7 +987,7 @@ void draw(MesQue* q)
     s16 y = q->y;
     u8 w = q->w;
     u8 h = q->h;
-    MesFontTex* t = &font->tex[0];
+    FONT_TEX* t = &font->tex[0];
     s16 cw;
     int cols, rows;
     s16 u, v;
@@ -1134,7 +1134,7 @@ int Message::code00()
     waitEnd = 0;
     selNum = 0;
     speedSave = 0;
-    x70 = 0;
+    m_btn = 0;
     cursorAnim = 0;
     skip = 0;
     return 0;
@@ -1142,9 +1142,9 @@ int Message::code00()
 
 int Message::code01()
 {
-    switch (x8) {
+    switch (r_no_0) {
     case 0:
-        x8++;
+        r_no_0++;
         break;
     case 1:
         flags2 |= 2;
@@ -1243,12 +1243,12 @@ int Message::code08()
     if (attr & 0x02000000) {
         return 0;
     }
-    if (x70 == 0) {
+    if (m_btn == 0) {
         if (attr & 0x00400000) {
             cursor = selNum - 1;
             putSelCursol();
         }
-        x70 = 1;
+        m_btn = 1;
         return 2;
     }
     if (waitCnt != 0) {
@@ -1441,7 +1441,7 @@ int Message::code0c()
 int Message::code0d()
 {
     pMsg++;
-    x71 = *pMsg;
+    m_evt_no = *pMsg;
     return 0;
 }
 
@@ -1476,7 +1476,7 @@ int Message::code10()
 {
     savePtr = pMsg;
     saveFont = font;
-    pMsg = MesData.getAddr(x1A, 3);
+    pMsg = MesData.getAddr(m_item_no, 3);
     return 0;
 }
 
@@ -1504,6 +1504,6 @@ int Message::code11()
 int Message::code12()
 {
     pMsg++;
-    xE4 = *pMsg;
+    m_who = *pMsg;
     return 0;
 }

@@ -85,10 +85,10 @@ static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
 static inline int isDeadEm(cEm* em) { return (em->flags_324 & 0xFFFF0000) != 0; }
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 
 void r206_die_event();
@@ -358,7 +358,7 @@ static void Evt_R206S00_Func(Event* e)
         case 0xF:
             if (e->frame == 0) {
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                     TexRenderModSet((cModel*) mod, 0, r206_work.p->texTbl, r206_work.p->tex, 0, 1, 1, 1, 1.0f);
                 }
                 EffectEspDelete(r206_work.p->tex->mask | 0x3001, 2, 0, 0);
@@ -428,28 +428,28 @@ static void funcAshley(cEm* p)
     PSVECScale(&d, &d, 0.15f);
     PSVECAdd(&pSUB->pos, &d, &d);
     pSUB->setPos(&d);
-    switch (p->xFE) {
+    switch (p->r_no_2) {
     case 0:
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x21), 0xA, 0, 1, 0);
         SndCall(6, 0xD, &pSUB->pos, 0, 0, 0);
-        p->xFE = 1;
+        p->r_no_2 = 1;
     case 1:
         if (p->motionMove() != 0) {
-            p->xFE = 2;
+            p->r_no_2 = 2;
         }
         break;
     case 2:
         p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0xA, 0, 1, 0);
-        p->xFE = 3;
+        p->r_no_2 = 3;
     case 3:
         if (p->motionMove() != 0) {
-            p->xFE = 4;
+            p->r_no_2 = 4;
         }
         break;
     case 4:
         p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0xA, 0, 1, 0);
-        p->xFE = 5;
+        p->r_no_2 = 5;
     default:
         if (p->motionMove() != 0) {
             EmRoutineSet(p, 0, 0, 0, 0);
@@ -463,10 +463,10 @@ static void funcAshley(cEm* p)
 
 static void funcAshley2(cEm* p)
 {
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x27), 0x19, 0, 1, 0);
-        p->xFE = 1;
+        p->r_no_2 = 1;
     }
     if (p->motionMove() != 0) {
         EmRoutineSet(p, 0, 0, 0, 0);
@@ -477,23 +477,23 @@ static void funcAshley2(cEm* p)
 
 static void funcAshley3(cEm* p)
 {
-    int step = p->xFE;
+    int step = p->r_no_2;
 
     switch (step) {
     case 0:
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x31), 0x19, 0, 1, 0);
         r206_work.p->cnt3 = step;
-        p->xFE = 1;
+        p->r_no_2 = 1;
     case 1:
         if (p->motionMove() != 0) {
-            p->xFE = 2;
+            p->r_no_2 = 2;
         }
         break;
     case 2:
         r206_work.p->cnt3++;
         if (r206_work.p->cnt3 > 0x1E) {
-            p->xFE = 3;
+            p->r_no_2 = 3;
         }
         break;
     default:
@@ -561,7 +561,7 @@ static void r206_snipe()
     obj0 = SmdGetObjPtr(0xC);
     obj1 = SmdGetObjPtr(0xD);
     obj2 = SmdGetObjPtr(0xE);
-    BitOn(pG->flags_51BC, 0x80);
+    BitOn(pG->Item_find_flg, 0x80);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         hit0 = SetEmHit(ROOM_ARC_PTR(pG->pArc, 8), ROOM_ARC_PTR(pG->pArc, 9), &r206_hitPos0, &r206_hitRot, 0);
         BitOn(obj0->be_flag, 0x20);

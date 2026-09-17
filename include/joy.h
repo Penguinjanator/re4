@@ -23,7 +23,7 @@ struct JOY {
     u8 trigR; // 0x05  analog R
     u8 anaA;  // 0x06
     u8 anaB;  // 0x07
-    s8 x8;    // 0x08  PADStatus err (tv_mode: -3/-2 counts toward the progressive-mode prompt)
+    s8 err;    // 0x08  PADStatus err (tv_mode: -3/-2 counts toward the progressive-mode prompt)
     u8 pad_9[3];
     u32 old;  // 0x0C  `on` of the previous frame
     u32 on;   // 0x10  buttons currently held

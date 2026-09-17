@@ -59,7 +59,7 @@ void CRoomInfo::setNextPos()
         FSet(pG->next_angle, 0.0f);
     }
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->x4FA2, pG->x4F9E);
+    U8Set(pG->Part_old, pG->x4F9E);
     U16Set(pG->next_room, room_id);
     U8Set(pG->next_point, 0);
 }
@@ -364,7 +364,7 @@ void roomJumpExit(test* w)
         pG->x21 = 0;
         pG->x22 = 0;
         pG->x23 = 0;
-        pG->flags_54 &= ~0x40;
+        pG->System_flg &= ~0x40;
     }
     BitSet(pG->flags_170, w->stop_bak);
     BitOff(pG->flags_60, 0x80000000);

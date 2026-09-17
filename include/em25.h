@@ -41,7 +41,7 @@ struct Em25Work {
     u8 espKind;           // 0x39C (0x77C)  EspPullCoreKind at creation
     u8 pad_39D[3];
     int seTimer;          // 0x3A0 (0x780)  frames until the next crawl SE
-    int x3A4;             // 0x3A4 (0x784)
+    int Eff_wait1;             // 0x3A4 (0x784)
     int estTimer;         // 0x3A8 (0x788)  frames until the next attached effect
     u8 dead;              // 0x3AC (0x78C)  ckDie
     u8 atkHit;            // 0x3AD (0x78D)  the attack already hit (em25AtkCk)

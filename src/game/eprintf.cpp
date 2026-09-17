@@ -84,23 +84,23 @@ int EprintfSetCurrentNo()
     return Moji.cur_no;
 }
 
-void eprintf(int x, int y, int color, int a, const char* fmt, ...)
+void eprintf(int x, int y, int color, int p, const char* fmt, ...)
 {
     va_list ap;
     if (eprintf_init) {
         va_start(ap, fmt);
-        EprintfSetEnv(x, y, color, a, 0);
+        EprintfSetEnv(x, y, color, p, 0);
         eprintf_main(8, 14, fmt, ap);
         va_end(ap);
     }
 }
 
-void eprintf2(int w, int h, int x, int y, int color, int a, const char* fmt, ...)
+void eprintf2(int w, int h, int x, int y, int color, int p, const char* fmt, ...)
 {
     va_list ap;
     if (eprintf_init) {
         va_start(ap, fmt);
-        EprintfSetEnv(x, y, color, a, 0);
+        EprintfSetEnv(x, y, color, p, 0);
         eprintf_main(w, h, fmt, ap);
         va_end(ap);
     }

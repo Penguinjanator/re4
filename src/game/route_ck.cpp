@@ -52,7 +52,7 @@ static inline s8 rtpNext(s8* tbl, int a, int b)
 }
 
 extern "C" {
-static int rckLineHitCheck(Vec* a, Vec* b, int attr, int flag);
+static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag);
 }
 
 void RouteCk()
@@ -379,16 +379,16 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     return 0;
 }
 
-int RouteCkConnectPosCk(Vec* a, Vec* b)
+int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2)
 {
     int p;
     int t;
 
-    p = getNearPoint(a, 0, 0);
+    p = getNearPoint(pPos1, 0, 0);
     if (p == -1) {
         return 0;
     }
-    t = getNearPoint(b, 0, 0);
+    t = getNearPoint(pPos2, 0, 0);
     if (t == -1) {
         return 0;
     }
@@ -461,7 +461,7 @@ int RouteCkGetPointNumber()
     return rtp != NULL ? rtp->nPoint : -1;
 }
 
-f32 RouteCkGetDist(int a, int b)
+f32 RouteCkGetDist(int n0, int n1)
 {
     f32 d = 0.0f;
     int next;
@@ -470,26 +470,26 @@ f32 RouteCkGetDist(int a, int b)
     s8* tbl;
     Vec tmp;
 
-    if (a == b) {
+    if (n0 == n1) {
         return d;
     }
     {
         RtpData* r = (RtpData*) Global.pRoomRtp;
         tbl = (s8*) (r->nextOfs + (u32) r);
     }
-    pt = &rtpPoint(rtpData())[a];
+    pt = &rtpPoint(rtpData())[n0];
     do {
-        next = rtpNext(tbl, a, b);
+        next = rtpNext(tbl, n0, n1);
         if (next == -1) {
-            PSVECSubtract(&rtpPoint(rtpData())[a].pos, &rtpPoint(rtpData())[b].pos, &tmp);
+            PSVECSubtract(&rtpPoint(rtpData())[n0].pos, &rtpPoint(rtpData())[n1].pos, &tmp);
             return PSVECMag(&tmp);
         }
         np = &rtpPoint(rtpData())[next];
         PSVECSubtract(&pt->pos, &np->pos, &tmp);
         d += PSVECMag(&tmp);
-        a = next;
+        n0 = next;
         pt = np;
-    } while (a != b);
+    } while (n0 != n1);
     return d;
 }
 
@@ -510,14 +510,14 @@ int RouteCkGetNearPoint(Vec* pos)
     return getNearPoint(pos, 0, 0);
 }
 
-static int rckLineHitCheck(Vec* a, Vec* b, int attr, int flag)
+static int rckLineHitCheck(Vec* from, Vec* to, int attr, int flag)
 {
     Vec pa;
     Vec pb;
     int mask;
 
-    pa = *a;
-    pb = *b;
+    pa = *from;
+    pb = *to;
     if (pGS->debug_mode == 8) {
         Draw_line3d(&pa, &pb, 0xFFFF0000, 0);
     }
@@ -532,16 +532,16 @@ static int rckLineHitCheck(Vec* a, Vec* b, int attr, int flag)
     return SatMgr.hitCheck(&pa, &pb, NULL, NULL, attr, mask);
 }
 
-int getNearInfo(cEm* em, int a, int mask)
+int getNearInfo(cEm* em, int mode, int mask)
 {
     if (em->rckFlag & 1) {
         return em->rckNear;
     }
     em->rckFlag |= 1;
-    return getNearPoint(&em->pos, a, mask);
+    return getNearPoint(&em->pos, mode, mask);
 }
 
-s8 getNearPoint(Vec* pos, int a, int mask)
+s8 getNearPoint(Vec* pos, int mode, int mask)
 {
     f32 dist[10];
     int idx[10];
@@ -590,7 +590,7 @@ s8 getNearPoint(Vec* pos, int a, int mask)
         }
         pt++;
     }
-    if (a != 0) {
+    if (mode != 0) {
         return idx[0];
     }
     pt = rtpPoint(rtpData());

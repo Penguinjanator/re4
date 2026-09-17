@@ -648,7 +648,7 @@ static inline void carPartsClear(cModel* m, int no)
 
 extern "C" void DbModCarSet(cModel* m)
 {
-    m->x12F = 4;
+    m->ot_type = 4;
     m->be_flag |= 0x10;
     m->be_flag |= 0x2000000;
     carPartsClear(m, 0x12);
@@ -734,7 +734,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     BitOff(pG->flags_500C, 0x1000000);
     BitOff(pG->flags_5010, 0x10000000);
     BitOn(pG->flags_170, 0x1000000);
-    BitOff(pG->flags_58, 0x1000000);
+    BitOff(pG->Disp_flg, 0x1000000);
     BitOff(pG->flags_170, 0x40000);
     db_fcvData = 0;
     db_emArray = one;
@@ -750,7 +750,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     BitOn(pG->flags_60, 0x40000);
     BitOn(pG->flags_60, 0x20000000);
     BitOn(pG->flags_170, 0x10000000);
-    BitOn(pG->flags_58, 0x2000000);
+    BitOn(pG->Disp_flg, 0x2000000);
     BitOn(pG->flags_170, 0x800000);
     BitOn(pG->flags_60, 0x10000000);
     LightToolStart();
@@ -960,9 +960,9 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 if ((u32) slot <= 0x7F) {
                     *(cModel**) (la + ((u32) slot << 2)) = p;
                 }
-                em->x12F = M.x638;
+                em->ot_type = M.x638;
                 if (flagOn(M.flags, 0x80000000)) {
-                    em->x12C = 1;
+                    em->z_mode = 1;
                 }
                 if (flagOn(M.flags, 0x40000000)) {
                     em->be_flag |= 0x1000;
@@ -999,18 +999,18 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     INFO3(em)->be_flag |= 4;
                     INFO4(em)->be_flag |= 4;
                     INFO5(em)->be_flag |= 4;
-                    em->x136 = 2;
-                    em->x137 = 0x10;
-                    em->x138 = 0x90;
+                    em->Shader_type = 2;
+                    em->Refract_pow = 0x10;
+                    em->Refract_ratio = 0x90;
                 }
                 t = GetTexRenderMgrAddr(1);
                 if (t->used) {
                     texBlendTbl(tbl1, t);
                     texBlendSet(INFO7(em), tbl1);
                     texBlendSet(INFO8(em), tbl1);
-                    em->x136 = 2;
-                    em->x137 = 0x10;
-                    em->x138 = 0x90;
+                    em->Shader_type = 2;
+                    em->Refract_pow = 0x10;
+                    em->Refract_ratio = 0x90;
                 }
                 if (db_cutNo == 6) {
                     BitOn(INFO7(em)->be_flag, 8);
@@ -1140,7 +1140,7 @@ extern "C" void EspToolExit()
     BitOff(pG->flags_60, 0x40000);
     BitOff(pG->flags_170, 0x10000000);
     BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_58, 0x2000000);
+    BitOff(pG->Disp_flg, 0x2000000);
     BitOff(pG->flags_170, 0x800000);
     BitOff(pG->flags_170, 0x1000000);
     BitOff(pG->flags_60, 0x10000000);
@@ -1228,9 +1228,9 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
         BitOn(pG->flags_170, 0x20000000);
     }
     if (db_fog) {
-        pG->flags_58 &= ~0x4000;
+        pG->Disp_flg &= ~0x4000;
     } else {
-        pG->flags_58 |= 0x4000;
+        pG->Disp_flg |= 0x4000;
     }
     if (db_cinesco) {
         pG->flags_500C |= 0x1000000;

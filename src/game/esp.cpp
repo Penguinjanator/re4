@@ -55,7 +55,7 @@ int ESP_IsActive(cEsp* esp)
         return 0;
     }
     if (pG->flags_5010 & 0x10000000) {
-        if (!(esp->info.x0 & 1)) {
+        if (!(esp->info.Core_flg & 1)) {
             return 0;
         }
         if (esp->parent != pEffParentWorld) {
@@ -219,14 +219,14 @@ int EspMove()
         if (esp->parent != pEffParentWorld) {
             cModel* m = esp->pModel;
             if (m != NULL) {
-                if ((m->be_flag & 0x201) != 1 || m->serial != esp->x20) {
+                if ((m->be_flag & 0x201) != 1 || m->serial != esp->m_Guid_pMod) {
                     PushEsp(esp);
                     continue;
                 }
             }
         }
         if (pause) {
-            if (!(esp->info.x0 & 0x8000)) {
+            if (!(esp->info.Core_flg & 0x8000)) {
                 continue;
             }
         }
@@ -234,7 +234,7 @@ int EspMove()
         if (esp->flag & 1) {
             cnt++;
             if (pG->debug_mode == 0xE) {
-                esp_num_list[esp->info.x3]++;
+                esp_num_list[esp->info.owner]++;
             }
         }
     }
@@ -325,7 +325,7 @@ int EspTrans()
         if (trans == NULL) {
             continue;
         }
-        if (esp->info.x0 & 0x400) {
+        if (esp->info.Core_flg & 0x400) {
             if (pG->flags_5010 & 0x04000000) {
                 continue;
             }
@@ -344,7 +344,7 @@ int EspTrans()
             prio = 8;
         }
         if (pG->flags_5010 & 2) {
-            if (!(esp->info.x0 & 0x8000)) {
+            if (!(esp->info.Core_flg & 0x8000)) {
                 continue;
             }
             AddOtDirect(0x14, esp, (void (*)()) trans, 0, prio, NULL, 0.0f);
@@ -353,18 +353,18 @@ int EspTrans()
         if (esp->flags & 0x10000) {
             BitOn(pG->flags_5010, 0x08000000);
             ot = 0;
-            if (!(esp->info.x0 & 8)) {
-                if (esp->info.x0 & 0x10) {
+            if (!(esp->info.Core_flg & 8)) {
+                if (esp->info.Core_flg & 0x10) {
                     ot = 1;
-                } else if (esp->info.x0 & 0x20) {
+                } else if (esp->info.Core_flg & 0x20) {
                     ot = 2;
-                } else if (esp->info.x0 & 0x40) {
+                } else if (esp->info.Core_flg & 0x40) {
                     ot = 3;
-                } else if (esp->info.x0 & 0x80) {
+                } else if (esp->info.Core_flg & 0x80) {
                     ot = 4;
-                } else if (esp->info.x0 & 0x100) {
+                } else if (esp->info.Core_flg & 0x100) {
                     ot = 5;
-                } else if (esp->info.x0 & 0x200) {
+                } else if (esp->info.Core_flg & 0x200) {
                     ot = 6;
                 } else if ((s32) pG->flags_60 >= 0) {
                     pLog->err(6, 0, "ESP : FLG_TEX_RENDER but no set tex_no");
@@ -462,13 +462,13 @@ int EspTrans()
         }
         wp = &wpos;
         zlimit = 0.0f;
-        if (esp->xB8 == zlimit) {
+        if (esp->m_Radius == zlimit) {
             AddOtWorldPos(esp, (void (*)(void*)) trans, wp, prio, 200.0f);
         } else {
             if ((esp->dispFlag & 2) == 0 && (esp->flags & 1) == 0) {
                 zlimit = 200.0f;
             }
-            AddOtWorldPosRadius(esp, (void (*)(void*)) trans, wp, esp->xB8, prio, zlimit);
+            AddOtWorldPosRadius(esp, (void (*)(void*)) trans, wp, esp->m_Radius, prio, zlimit);
         }
     }
     return 1;

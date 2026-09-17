@@ -21,23 +21,23 @@ cLightInfo::cLightInfo()
     size.x = size.y = size.z = 0.0f;
 }
 
-int cLightInfo::init2(int a, int b, const Vec* p0, const Vec* p1, int c)
+int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask)
 {
     int i;
 
-    if (!VALID_PTR(p0) || !VALID_PTR(p1)) {
-        pLog->err(0, 0, "cLightInfo::init2() PTR ERROR %08X %08X", p0, p1);
+    if (!VALID_PTR(pOffset) || !VALID_PTR(pSize)) {
+        pLog->err(0, 0, "cLightInfo::init2() PTR ERROR %08X %08X", pOffset, pSize);
         return 0;
     }
     for (i = 0; i < 8; i++) {
         pLight[i] = 0;
     }
-    x51 = a;
-    x50 = c;
-    x52 = b;
+    x51 = type;
+    x50 = mask;
+    x52 = partsNo;
     x54 = 0xFFFFFFFF;
-    ofs = *p0;
-    size = *p1;
+    ofs = *pOffset;
+    size = *pSize;
     if ((x51 & 3) == 0) {
         radius = size.x + size.y;
     } else if ((x51 & 3) != 2) {
@@ -90,7 +90,7 @@ cModel* cLightInfo::getPos(cModel* m, Vec* out)
     if (x52 > 0) {
         c = m->getPartsPtr(x52 - 1);
         if (!VALID_PTR(c)) {
-            pLog->err(0, 0, "litHitCk PNo%d %d %d %x %x", x52 - 1, m->x12E, m->id, x51, x50);
+            pLog->err(0, 0, "litHitCk PNo%d %d %d %x %x", x52 - 1, m->kindid, m->id, x51, x50);
             c = m;
         }
         PSMTXMultVecSR(c->mat, &ofs, out);

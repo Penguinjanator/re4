@@ -49,15 +49,15 @@ void cEsp0c::move()
     est.flag1 |= 6;
     est.sizeX = sizeX * 0.005f;
     est.sizeY = sizeY * 0.005f;
-    est.col[0] = x80;
-    est.col[1] = x81;
-    est.col[2] = x82;
-    est.col[3] = x83;
+    est.col[0] = m_Col_start_r;
+    est.col[1] = m_Col_start_g;
+    est.col[2] = m_Col_start_b;
+    est.col[3] = m_Col_start_a;
     est.spd = spd;
     if (w->onWater == 1) {
-        EstSet(0, -1, &pos, &rot, w->estNo2, w->estPrm2, info.x0, info.x2, info.x8, &est);
+        EstSet(0, -1, &pos, &rot, w->estNo2, w->estPrm2, info.Core_flg, info.Core_kind, info.x8, &est);
     } else {
-        EstSet(0, -1, &pos, &rot, w->estNo, w->estPrm, info.x0, info.x2, info.x8, &est);
+        EstSet(0, -1, &pos, &rot, w->estNo, w->estPrm, info.Core_flg, info.Core_kind, info.x8, &est);
     }
     PushEsp(this);
 }

@@ -48,17 +48,17 @@ static inline void PSet(void*& d, void* v) { d = v; }
 
 static inline void RoutineSet(cSubLuis* o, int r0)
 {
-    o->xFC = r0;
-    o->xFD = 0;
-    o->xFE = 0;
-    o->xFF = 0;
+    o->r_no_0 = r0;
+    o->r_no_1 = 0;
+    o->r_no_2 = 0;
+    o->r_no_3 = 0;
 }
 
 static inline void RoutineStepClear(cSubLuis* o)
 {
-    o->xFF = 0;
-    o->xFE = 0;
-    o->xFD = 0;
+    o->r_no_3 = 0;
+    o->r_no_2 = 0;
+    o->r_no_1 = 0;
 }
 
 // LuisInit is public and defined before the first initialised public object: the static initializer's
@@ -132,7 +132,7 @@ void cSubLuis::init()
 {
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
-    x12D = 1;
+    TevScaleGroup = 1;
     lightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
     // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
     atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
@@ -227,7 +227,7 @@ void cSubLuis::think()
     }
 
     if (Chk8(flags, 1)) {
-        if (xFC == 4) action.set(6);
+        if (r_no_0 == 4) action.set(6);
         else action.set(5);
         flags &= ~1;
         analysis.flags &= ~4;
@@ -295,10 +295,10 @@ int cSubLuis::rackCheck()
 void cRoutine::init(cSubLuis* o)
 {
     owner = o;
-    o->xFF = 0;
-    o->xFE = 0;
-    o->xFD = 0;
-    o->xFC = 0;
+    o->r_no_3 = 0;
+    o->r_no_2 = 0;
+    o->r_no_1 = 0;
+    o->r_no_0 = 0;
     saved[2] = 0xFF;
     saved[1] = 0xFF;
     saved[0] = 0xFF;
@@ -308,10 +308,10 @@ void cRoutine::init(cSubLuis* o)
 
 int cRoutine::move()
 {
-    if (owner->xFC == 4) {
+    if (owner->r_no_0 == 4) {
         owner->evFunc();
     } else {
-        (this->*cRoutine_move_tbl[owner->xFC])();
+        (this->*cRoutine_move_tbl[owner->r_no_0])();
     }
     voice.move();
     return 1;
@@ -319,9 +319,9 @@ int cRoutine::move()
 
 void cRoutine::moveFootwork()
 {
-    if (owner->xFD == 0) {
+    if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x40 / 4), 5, 0, 5, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     }
     owner->motionMove();
 }
@@ -330,18 +330,18 @@ void cRoutine::moveDamage()
 {
     void* mot = 0;
 
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         switch (x110) {
-        case 0: mot = OARC(0xB4 / 4); owner->xFD = 1; break;
-        case 1: mot = OARC(0xB8 / 4); owner->xFD = 1; break;
-        case 2: mot = OARC(0xBC / 4); owner->xFD = 1; break;
-        case 3: mot = OARC(0xC0 / 4); owner->xFD = 1; break;
-        case 4: mot = OARC(0xC4 / 4); owner->xFD = 1; break;
-        case 5: mot = OARC(0xC8 / 4); owner->xFD = 1; break;
-        case 6: mot = OARC(0xCC / 4); owner->xFD = 0xA; break;
-        case 7: mot = OARC(0xD4 / 4); owner->xFD = 0xA; break;
-        case 8: mot = OARC(0xDC / 4); owner->xFD = 0x14; break;
+        case 0: mot = OARC(0xB4 / 4); owner->r_no_1 = 1; break;
+        case 1: mot = OARC(0xB8 / 4); owner->r_no_1 = 1; break;
+        case 2: mot = OARC(0xBC / 4); owner->r_no_1 = 1; break;
+        case 3: mot = OARC(0xC0 / 4); owner->r_no_1 = 1; break;
+        case 4: mot = OARC(0xC4 / 4); owner->r_no_1 = 1; break;
+        case 5: mot = OARC(0xC8 / 4); owner->r_no_1 = 1; break;
+        case 6: mot = OARC(0xCC / 4); owner->r_no_1 = 0xA; break;
+        case 7: mot = OARC(0xD4 / 4); owner->r_no_1 = 0xA; break;
+        case 8: mot = OARC(0xDC / 4); owner->r_no_1 = 0x14; break;
         }
         MotionSetCore(owner, &owner->mot, mot, 0, 3, 1, 0);
         SndCall(8, 9, &owner->pParts->worldPos, owner->id, 0, 0);
@@ -358,26 +358,26 @@ void cRoutine::moveDamage()
         }
         if (owner->motionMove()) {
             owner->dmg.clear();
-            owner->xFD = 0x32;
+            owner->r_no_1 = 0x32;
         }
         break;
     case 0xA:
         MotionMoveF(owner, 0);
         break;
     case 0x14:
-        if (MotionMoveF(owner, 0)) owner->xFD = 0x15;
+        if (MotionMoveF(owner, 0)) owner->r_no_1 = 0x15;
         break;
     case 0x15:
         MotionSetCore(owner, &owner->mot, OARC(0xD8 / 4), 0, 3, 1, 0);
-        owner->xFD = 0x16;
+        owner->r_no_1 = 0x16;
     case 0x16:
         if (MotionMoveF(owner, 0)) {
             owner->dmg.clear();
-            owner->xFD = 0x32;
+            owner->r_no_1 = 0x32;
         }
         break;
     case 0x32:
-        owner->xFD = 0x33;
+        owner->r_no_1 = 0x33;
         break;
     case 0x33:
         end();
@@ -387,16 +387,16 @@ void cRoutine::moveDamage()
 
 void cRoutine::moveDie()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         MotionSetCore(owner, &owner->mot, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
         SndCall(1, 0xD, &owner->getPartsPtr(4)->worldPos, owner->id, 0, 0);
         owner->dmType |= 0x80;
         owner->atari.partsNo = 4;
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
         break;
     case 1:
-        if (owner->motionMove()) owner->xFD = 2;
+        if (owner->motionMove()) owner->r_no_1 = 2;
         break;
     case 2:
         owner->motionMove();
@@ -413,9 +413,9 @@ void cRoutine::moveWalk()
     Vec out;
 
     RouteCkToPos(OEM, &target, &out, 0, 0);
-    if (owner->xFD == 0) {
+    if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x58 / 4), 5, 0, 5, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     }
     owner->rot.y += Muku(&owner->pos, &out, owner->rot.y, 0.20943952f);
     owner->motionMove();
@@ -428,9 +428,9 @@ void cRoutine::moveRun()
     int r;
 
     r = RouteCkToPos(OEM, &target, &out, 0, 0);
-    if (owner->xFD == 0) {
+    if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x68 / 4), 5, 0, 5, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     }
     owner->rot.y += Muku(&owner->pos, &out, owner->rot.y, 0.20943952f);
     owner->motionMove();
@@ -439,10 +439,10 @@ void cRoutine::moveRun()
 
 void cRoutine::moveWepReady()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x78 / 4), 10, 0, 1, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (pTarget) owner->rot.y += Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.44879895f);
         if (owner->motionMove()) {
@@ -457,7 +457,7 @@ void cRoutine::moveWepSet()
 {
     Vec d;
 
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         mot3.set(owner, OARC(0x7C / 4), OARC(0x94 / 4), OARC(0x98 / 4), 0, 3, 0, 4, 0);
         if (VALID_PTR(pTarget) && VALID_PTR(pTarget->pParts)) {
@@ -468,7 +468,7 @@ void cRoutine::moveWepSet()
             RoutineSet(owner, 0xC);
             break;
         }
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
         end();
     case 1:
         mot3.move(rate);
@@ -484,7 +484,7 @@ void cRoutine::moveWepFire()
     f32 a;
     const f32 lim = 0.19634955f;   // pool order: the fabsf limit precedes Muku's PI/8
 
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         if (pTarget == 0) {
             end();
@@ -493,7 +493,7 @@ void cRoutine::moveWepFire()
         PSVECSubtract(&pTarget->pParts->worldPos, &owner->pParts->worldPos, &d);
         rate = VecElevation(&d);
         mot3.set(owner, OARC(0x7C / 4), OARC(0x94 / 4), OARC(0x98 / 4), 0, 3, 0, 4, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         mot3.move(rate);
         if (pTarget == 0) {
@@ -503,7 +503,7 @@ void cRoutine::moveWepFire()
         a = Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.3926991f);
         owner->rot.y += a;
         owner->motionMove();
-        if (fabsf(a) < lim) owner->xFD = 2;
+        if (fabsf(a) < lim) owner->r_no_1 = 2;
         break;
     case 2:
         if (!isTarget(owner, pTarget)) {
@@ -527,7 +527,7 @@ void cRoutine::moveWepFire()
             owner->motionSet(OARC(0x100 / 4), 10, 0, 1, 0);
             shotCnt = 0;
         }
-        owner->xFD = 3;
+        owner->r_no_1 = 3;
     case 3:
         if (shotCnt) mot3.move(rate);
         if (owner->motionMove()) {
@@ -545,10 +545,10 @@ void cRoutine::moveWepFire()
 
 void cRoutine::moveWepDown()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x88 / 4), 10, 0, 1, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (owner->motionMove()) end();
         break;
@@ -559,11 +559,11 @@ void cRoutine::moveWepDown()
 
 void cRoutine::moveThrowItem()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x124 / 4), 10, 0, 1, 0);
         voice.set(0x59, 1, 60);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (MotionCheckCrossFrame(&owner->mot, 18.0f)) setItem();
         if (owner->frame <= 30.0f) {
@@ -584,15 +584,15 @@ void cRoutine::moveDown()
 {
     f32 a;
 
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x118 / 4), 10, 0, 1, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (owner->motionMove()) {
             mot3.set(owner, OARC(0x11C / 4), OARC(0x128 / 4), OARC(0x12C / 4), 0, 3, 1, 4, 0);
             rate = 0.0f;
-            owner->xFD = 2;
+            owner->r_no_1 = 2;
             end();
         }
         break;
@@ -610,10 +610,10 @@ void cRoutine::moveDown()
 
 void cRoutine::moveUp()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x120 / 4), 10, 0, 1, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (owner->motionMove()) end();
         break;
@@ -622,10 +622,10 @@ void cRoutine::moveUp()
 
 void cRoutine::moveBlast()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         owner->motionSet(OARC(0x130 / 4), 10, 0, 1, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (owner->motionMove()) end();
         break;
@@ -634,7 +634,7 @@ void cRoutine::moveBlast()
 
 void cRoutine::moveAvoid()
 {
-    switch (owner->xFD) {
+    switch (owner->r_no_1) {
     case 0:
         if (GetDistance(&pPL->pos, &pSUB->pos) < 9000000.0f) {
             owner->rot.y = LIMIT_ANGLE(pPL->rot.y + PI);
@@ -643,7 +643,7 @@ void cRoutine::moveAvoid()
         }
         owner->motionSet(OARC(0x114 / 4), 10, 0, 1, 0);
         owner->dmg.set(0, 0x80);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     case 1:
         if (owner->motionMove()) {
             owner->dmg.clear();
@@ -657,11 +657,11 @@ void cRoutine::moveTurn()
 {
     void* mot;
 
-    if (owner->xFD == 0) {
+    if (owner->r_no_1 == 0) {
         if (x110) mot = OARC(0x50 / 4);
         else mot = OARC(0x48 / 4);
         owner->motionSet(mot, 5, 0, 5, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     }
     owner->motionMove();
     if (x114) {
@@ -672,9 +672,9 @@ void cRoutine::moveTurn()
 
 void cRoutine::moveTurn180()
 {
-    if (owner->xFD == 0) {
+    if (owner->r_no_1 == 0) {
         owner->motionSet(OARC(0x70 / 4), 5, 0, 5, 0);
-        owner->xFD = 1;
+        owner->r_no_1 = 1;
     }
     if (owner->motionMove()) end();
 }
@@ -707,14 +707,14 @@ int cRoutine::set(int no)
     }
 
     if (p > prio) {
-        saved[prio] = owner->xFC;
+        saved[prio] = owner->r_no_0;
         prio = p;
-        owner->xFC = r;
+        owner->r_no_0 = r;
         RoutineStepClear(owner);
         flags &= ~1;
         ret = 1;
     } else if (p == prio) {
-        owner->xFC = r;
+        owner->r_no_0 = r;
         RoutineStepClear(owner);
         flags &= ~1;
         ret = 1;
@@ -739,7 +739,7 @@ int cRoutine::eor()
 
 void cAction::init(cSubLuis* o)
 {
-    xE = 0;
+    rno3 = 0;
     sub = 0;
     step = 0;
     owner = o;
@@ -1057,7 +1057,7 @@ void cAction::set(int m)
     if (ok) {
         mode = m;
         req = m;
-        xE = 0;
+        rno3 = 0;
         sub = 0;
         step = 0;
     }
@@ -1525,7 +1525,7 @@ void cObjLuisItem::move()
     u8 r;
     u16 item;
 
-    switch (xFC) {
+    switch (r_no_0) {
     case 0:
         PSVECAdd(&pos, &LITEM->spd, &pos);
         PSVECAdd(&LITEM->spd, &LITEM->acc, &LITEM->spd);
@@ -1535,7 +1535,7 @@ void cObjLuisItem::move()
                 PSVECAdd(&hit, &nrm, &pos);
             }
             pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
-            xFC = 1;
+            r_no_0 = 1;
         }
         LITEM->timer++;
         if (LITEM->timer > 150) {

@@ -23,7 +23,7 @@ extern "C" {
 static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
 void EspCommonTransNega(cEsp* esp, u32 type);
 f32 EspGetCameraPan();   // game/esp.cpp
-int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);
+int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);
 void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out);
 void Esp1b_SpTrans(cEsp* esp);
 }
@@ -88,8 +88,8 @@ void EspCommonTrans(cEsp* esp)
     f32 ox;
     f32 oy;
 
-    if (esp->xEC != 0) {
-        EspCommonTransShimmer(esp, esp->xED, esp->xEC);
+    if (esp->m_Shimmer_type != 0) {
+        EspCommonTransShimmer(esp, esp->m_Shimmer_pow, esp->m_Shimmer_type);
         return;
     }
     if (esp->flags & 0x2000) {
@@ -848,14 +848,14 @@ int cEsp::CommonMove()
         return 0;
     }
     cnt++;
-    xB8 = SQRTF(sizeX * sizeX + sizeY * sizeY) * scale;
+    m_Radius = SQRTF(sizeX * sizeX + sizeY * sizeY) * scale;
     return 1;
 }
 
 int cEsp::ColorUpdate()
 {
-    if (xA8 < cnt) {
-        if (xA8 + xAA <= cnt) {
+    if (m_Col_max_cnt < cnt) {
+        if (m_Col_max_cnt + m_Col_start_cnt <= cnt) {
             colR *= colRSpd;
             colG *= colGSpd;
             colB *= colBSpd;
@@ -877,14 +877,14 @@ int cEsp::ColorUpdate()
                 return 0;
             }
         }
-    } else if (xA8 != 0) {
-        f32 rate = (f32) cnt / (f32) xA8;
+    } else if (m_Col_max_cnt != 0) {
+        f32 rate = (f32) cnt / (f32) m_Col_max_cnt;
         if (blendType == 3) {
-            colR = (f32) x80 * rate;
-            colG = (f32) x81 * rate;
-            colB = (f32) x82 * rate;
+            colR = (f32) m_Col_start_r * rate;
+            colG = (f32) m_Col_start_g * rate;
+            colB = (f32) m_Col_start_b * rate;
         }
-        colA = (f32) x83 * rate;
+        colA = (f32) m_Col_start_a * rate;
     }
     return 1;
 }
@@ -1000,7 +1000,7 @@ int cEsp::ChannelSet()
         col.b = (u32) col.b * fin.b >> 8;
         col.a = (u32) col.a * fin.a >> 8;
     }
-    if (x16 != 0) {
+    if (m_Del_far != 0) {
         Camera* cam;
         f32 dot;
 
@@ -1019,8 +1019,8 @@ int cEsp::ChannelSet()
         d.y = p.y - cam->param.pos.y;
         d.z = p.z - cam->param.pos.z;
         dot = PSVECDotProduct(&dir, &d);
-        if (dot < x16 * 10.0f) {
-            f32 rate = 1.0f - (x16 * 10.0f - dot) / ((x16 - x14) * 10.0f);
+        if (dot < m_Del_far * 10.0f) {
+            f32 rate = 1.0f - (m_Del_far * 10.0f - dot) / ((m_Del_far - x14) * 10.0f);
             if (dispFlag & 1) {
                 col.r = (u8) (col.r * rate);
                 col.g = (u8) (col.g * rate);
@@ -1077,7 +1077,7 @@ void cEsp::Destruct()
 {
 }
 
-int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
+int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend)
 {
     EspSeqData* head;
     EspGenWork* rec;
@@ -1085,17 +1085,17 @@ int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
     Mtx m;
     u8 type;
 
-    head = EspGetEstAddr(a, b, 0);
+    head = EspGetEstAddr(owner, id, 0);
     if (head == 0) {
-        pLog->err(0, 0, "EspEstSetSelect:[%x/0x%02x] OWNER Invalid", a, b);
+        pLog->err(0, 0, "EspEstSetSelect:[%x/0x%02x] OWNER Invalid", owner, id);
         return 0;
     }
-    if ((u32) c >= head->num) {
-        pLog->err(0, 0, "EspEstSetSelect() : invalid no[%d] MAX=%d", c, head->num);
+    if ((u32) no >= head->num) {
+        pLog->err(0, 0, "EspEstSetSelect() : invalid no[%d] MAX=%d", no, head->num);
         return 0;
     }
     u32 seed = 0x12345678;
-    rec = &head->rec[c];
+    rec = &head->rec[no];
     type = rec->type;
     if (type != 0) {
         if (type == 1) {
@@ -1107,14 +1107,14 @@ int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
     }
     PSMTXIdentity(m);
     memclr_asm(&info, sizeof(info));
-    if (d == 1) {
-        info.x0 |= 1;
+    if (bNoSuspend == 1) {
+        info.Core_flg |= 1;
     }
     return EspSeqSet(rec, &info, &seed, 0, &m, 0, 0.0f, out, 0, 0) == 1;
 }
 
-int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, f32 f, cEsp** out,
-              EspSeqOpt* p8, Vec* pos)
+int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int flg, f32 f, cEsp** out,
+              EspSeqOpt* pSct, Vec* pos)
 {
     static int bl[6][4] = {
         {1, 4, 5, 0}, {1, 4, 1, 0}, {1, 1, 1, 0}, {1, 2, 1, 0}, {1, 2, 0, 0}, {1, 4, 3, 0},
@@ -1148,7 +1148,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         e.p->anmNo = rec->x2;
         e.p->xF = rec->x3;
         e.p->partsNo = rec->x7;
-        if (!(info->x0 & 0x1000) && rec->x6 != 0) {
+        if (!(info->Core_flg & 0x1000) && rec->x6 != 0) {
             model = SmdGetObjPtr(rec->x6 - 1);
             if (model == 0) {
                 pLog->err(0, 0, "ESP : PARENT_NO[%d] Invalid.", rec->x6);
@@ -1180,7 +1180,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         e.p->spd.x += rec->x34.x * fRandSeed1_1(seed);
         e.p->spd.y += rec->x34.y * fRandSeed1_1(seed);
         e.p->spd.z += rec->x34.z * fRandSeed1_1(seed);
-        if (a) {
+        if (flg) {
             v.x = 0.0f;
             v.y = f;
             v.z = 0.0f;
@@ -1210,10 +1210,10 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         e.p->sizeY += rnd;
         e.p->scaleSpd = rec->x94;
         e.p->scaleScale = rec->x98;
-        e.p->x80 = rec->x9C;
-        e.p->x81 = rec->x9D;
-        e.p->x82 = rec->x9E;
-        e.p->x83 = rec->x9F;
+        e.p->m_Col_start_r = rec->x9C;
+        e.p->m_Col_start_g = rec->x9D;
+        e.p->m_Col_start_b = rec->x9E;
+        e.p->m_Col_start_a = rec->x9F;
         e.p->colR = (f32) rec->x9C;
         e.p->colG = (f32) rec->x9D;
         e.p->colB = (f32) rec->x9E;
@@ -1236,8 +1236,8 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         if (rec->xC2 == 4) {
             e.p->dispFlag |= 1;
         }
-        e.p->xA8 = rec->xB0;
-        e.p->xAA = rec->xB2;
+        e.p->m_Col_max_cnt = rec->xB0;
+        e.p->m_Col_start_cnt = rec->xB2;
         e.p->spdCnt = rec->xB4;
         e.p->scaleCnt = rec->xB6;
         e.p->life = rec->xB8;
@@ -1246,12 +1246,12 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         e.p->anmSpd = rec->xBD + 0x20;
         e.p->anmCnt = rec->xBE;
         e.p->parentCnt = rec->xC0;
-        e.p->xEC = rec->xC3;
-        e.p->xED = rec->xC4;
+        e.p->m_Shimmer_type = rec->xC3;
+        e.p->m_Shimmer_pow = rec->xC4;
         e.p->anmNo2 = rec->xC5;
-        e.p->x16 = rec->xC6 * 10;
+        e.p->m_Del_far = rec->xC6 * 10;
         e.p->x14 = rec->xC7 * 10;
-        if (e.p->xEC != 0) {
+        if (e.p->m_Shimmer_type != 0) {
             e.p->dispFlag |= 4;
         }
         switch (e.p->partsNo) {
@@ -1302,7 +1302,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     e.p->pos.z += rec->x20 * fRandSeed1_1(seed);
                 } else {
                     e.p->pModel = model;
-                    e.p->x20 = model->serial;
+                    e.p->m_Guid_pMod = model->serial;
                     e.p->parent = model->getPartsPtr(e.p->partsNo);
                     if (pos) {
                         PSVECAdd(&e.p->pos, pos, &e.p->pos);
@@ -1317,122 +1317,122 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
             break;
         }
         ret = e.p->SetFreeWork(rec, seed);
-        if (p8) {
-            if (p8->set & 1) {
-                e.p->spd = p8->spd;
+        if (pSct) {
+            if (pSct->set & 1) {
+                e.p->spd = pSct->spd;
                 e.p->spd.x += rec->x34.x * fRandSeed1_1(seed);
                 e.p->spd.y += rec->x34.y * fRandSeed1_1(seed);
                 e.p->spd.z += rec->x34.z * fRandSeed1_1(seed);
             }
-            if (p8->set & 2) {
-                e.p->sizeX = p8->sizeX;
-                e.p->sizeY = p8->sizeY;
+            if (pSct->set & 2) {
+                e.p->sizeX = pSct->sizeX;
+                e.p->sizeY = pSct->sizeY;
             }
-            if (p8->set & 4) {
-                e.p->x80 = p8->r;
-                e.p->x81 = p8->g;
-                e.p->x82 = p8->b;
-                e.p->x83 = p8->a;
-                e.p->colR = (f32) p8->r;
-                e.p->colG = (f32) p8->g;
-                e.p->colB = (f32) p8->b;
-                e.p->colA = (f32) p8->a;
+            if (pSct->set & 4) {
+                e.p->m_Col_start_r = pSct->r;
+                e.p->m_Col_start_g = pSct->g;
+                e.p->m_Col_start_b = pSct->b;
+                e.p->m_Col_start_a = pSct->a;
+                e.p->colR = (f32) pSct->r;
+                e.p->colG = (f32) pSct->g;
+                e.p->colB = (f32) pSct->b;
+                e.p->colA = (f32) pSct->a;
             }
-            if (p8->mul & 1) {
-                e.p->spd.x *= p8->spd.x;
-                e.p->spd.y *= p8->spd.y;
-                e.p->spd.z *= p8->spd.z;
+            if (pSct->mul & 1) {
+                e.p->spd.x *= pSct->spd.x;
+                e.p->spd.y *= pSct->spd.y;
+                e.p->spd.z *= pSct->spd.z;
             }
-            if (p8->mul & 2) {
-                e.p->sizeX *= p8->sizeX;
-                e.p->sizeY *= p8->sizeY;
+            if (pSct->mul & 2) {
+                e.p->sizeX *= pSct->sizeX;
+                e.p->sizeY *= pSct->sizeY;
             }
-            if (p8->mul & 4) {
+            if (pSct->mul & 4) {
                 f32 c;
-                c = (f32) e.p->x80 * (f32) (int) p8->r * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_r * (f32) (int) pSct->r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x80 = (u8) c;
-                c = (f32) e.p->x81 * (f32) (int) p8->g * (1.0f / 255.0f);
+                e.p->m_Col_start_r = (u8) c;
+                c = (f32) e.p->m_Col_start_g * (f32) (int) pSct->g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x81 = (u8) c;
-                c = (f32) e.p->x82 * (f32) (int) p8->b * (1.0f / 255.0f);
+                e.p->m_Col_start_g = (u8) c;
+                c = (f32) e.p->m_Col_start_b * (f32) (int) pSct->b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x82 = (u8) c;
-                c = (f32) e.p->x83 * (f32) (int) p8->a * (1.0f / 255.0f);
+                e.p->m_Col_start_b = (u8) c;
+                c = (f32) e.p->m_Col_start_a * (f32) (int) pSct->a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x83 = (u8) c;
-                e.p->colR = (f32) e.p->x80;
-                e.p->colG = (f32) e.p->x81;
-                e.p->colB = (f32) e.p->x82;
-                e.p->colA = (f32) e.p->x83;
+                e.p->m_Col_start_a = (u8) c;
+                e.p->colR = (f32) e.p->m_Col_start_r;
+                e.p->colG = (f32) e.p->m_Col_start_g;
+                e.p->colB = (f32) e.p->m_Col_start_b;
+                e.p->colA = (f32) e.p->m_Col_start_a;
             }
-            if (p8->add & 1) {
-                e.p->spd.x += p8->spd.x;
-                e.p->spd.y += p8->spd.y;
-                e.p->spd.z += p8->spd.z;
+            if (pSct->add & 1) {
+                e.p->spd.x += pSct->spd.x;
+                e.p->spd.y += pSct->spd.y;
+                e.p->spd.z += pSct->spd.z;
             }
-            if (p8->add & 2) {
-                e.p->sizeX += p8->sizeX;
-                e.p->sizeY += p8->sizeY;
+            if (pSct->add & 2) {
+                e.p->sizeX += pSct->sizeX;
+                e.p->sizeY += pSct->sizeY;
             }
-            if (p8->add & 4) {
+            if (pSct->add & 4) {
                 f32 c;
-                c = (f32) e.p->x80 + (f32) (int) p8->r * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_r + (f32) (int) pSct->r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x80 = (u8) c;
-                c = (f32) e.p->x81 + (f32) (int) p8->g * (1.0f / 255.0f);
+                e.p->m_Col_start_r = (u8) c;
+                c = (f32) e.p->m_Col_start_g + (f32) (int) pSct->g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x81 = (u8) c;
-                c = (f32) e.p->x82 + (f32) (int) p8->b * (1.0f / 255.0f);
+                e.p->m_Col_start_g = (u8) c;
+                c = (f32) e.p->m_Col_start_b + (f32) (int) pSct->b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x82 = (u8) c;
-                c = (f32) e.p->x83 + (f32) (int) p8->a * (1.0f / 255.0f);
+                e.p->m_Col_start_b = (u8) c;
+                c = (f32) e.p->m_Col_start_a + (f32) (int) pSct->a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
                 if (c < 0.0f) {
                     c = 0.0f;
                 }
-                e.p->x83 = (u8) c;
-                e.p->colR = (f32) e.p->x80;
-                e.p->colG = (f32) e.p->x81;
-                e.p->colB = (f32) e.p->x82;
-                e.p->colA = (f32) e.p->x83;
+                e.p->m_Col_start_a = (u8) c;
+                e.p->colR = (f32) e.p->m_Col_start_r;
+                e.p->colG = (f32) e.p->m_Col_start_g;
+                e.p->colB = (f32) e.p->m_Col_start_b;
+                e.p->colA = (f32) e.p->m_Col_start_a;
             }
         }
     } else {

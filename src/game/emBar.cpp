@@ -21,7 +21,7 @@ extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                 // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                 // EtcModel.cpp
 int PlBombHitCk(Vec* pos, f32 r);                    // em_sub.cpp
 void SetPlDamage(int type, void (*func)(cPlayer*));  // pl_sub.cpp
 void EndPlDamage();
@@ -97,15 +97,15 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     return em;
 }
@@ -232,36 +232,36 @@ void emBarSetBreak(cEmBar* em, u32 type)
         }
     }
     em->be_flag &= ~2;
-    em->xFC = 1;
-    em->xFD = 1;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 1;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void cEmBar::move()
 {
     emBarDmCk(this);
     be_flag &= ~0x4000;
-    EmBar_R0_move_tbl[xFC](this);
+    EmBar_R0_move_tbl[r_no_0](this);
 }
 
 void emBar_R0_Init(cEmBar* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emBar_R0_Move(cEmBar* em)
 {
-    EmBar_R1_move_tbl[em->xFD](em);
+    EmBar_R1_move_tbl[em->r_no_1](em);
 }
 
 void emBar_R1_Set(cEmBar* em)
 {
     EmBarWork* w = EMBAR_WK(em);
-    u8 step = em->xFE;
+    u8 step = em->r_no_2;
 
     if (step == 0) {
         RotMatrix(em->mat, &em->rot);
@@ -271,7 +271,7 @@ void emBar_R1_Set(cEmBar* em)
         em->partsWorldCalc();
         w->escaping = step;
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
     if (em->plDist2 < 25000000.0f) {
@@ -300,10 +300,10 @@ void plemEscape(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->pMotion, w->motion, 0, 5, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
             EndPlDamage();
@@ -316,7 +316,7 @@ void plemEscape(cPlayer* pl)
 void emBar_R1_Break(cEmBar* em)
 {
     EmBarWork* w = EMBAR_WK(em);
-    u8 step = em->xFE;
+    u8 step = em->r_no_2;
 
     if (step == 0) {
         u16* flg = GetEtcFlgPtr(w->flagNo, pG->room_id);
@@ -326,7 +326,7 @@ void emBar_R1_Break(cEmBar* em)
         }
         em->hp = step;
         em->be_flag &= ~2;
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }

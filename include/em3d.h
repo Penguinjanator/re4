@@ -27,7 +27,7 @@ struct Em3dWork {
     u32 targetNo;         // 0x2B4 (0x694)  index into the position / target tables (0..7)
     u8 targetSet;         // 0x2B8 (0x698)  setTarget / setTargetPos: leave the patrol
     u8 pad_2B9[3];
-    int x2BC;             // 0x2BC (0x69C)  (ctor: 150)
+    int Target_chg;             // 0x2BC (0x69C)  (ctor: 150)
     cEm* pTargetEm;       // 0x2C0 (0x6A0)  enemy the rockets aim at (em3dGetTargetEm)
     u32 sndId;            // 0x2C4 (0x6A4)  voice handle (SndStop before the next one)
     int mesTimer;         // 0x2C8 (0x6A8)  frames the radio message is held

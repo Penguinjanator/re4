@@ -954,12 +954,12 @@ void MerchantDataLoad(void* src)
     }
 }
 
-void stockDataInit(MerchantData* d)
+void stockDataInit(MerchantData* p_data)
 {
-    StockEntry* s = d->stock.e;
+    StockEntry* s = p_data->stock.e;
     int i;
 
-    memclr_asm(d->stock.e, sizeof(StockTable));
+    memclr_asm(p_data->stock.e, sizeof(STOCK_INFO));
     for (i = 0; i < STOCK_MAX; i++, s++) {
         s->id = 0xFFFF;
     }
@@ -1034,12 +1034,12 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
     }
 }
 
-void levelDataInit(MerchantData* d)
+void levelDataInit(MerchantData* p_data)
 {
-    LevelEntry* l = d->level.e;
+    LevelEntry* l = p_data->level.e;
     int i;
 
-    memclr_asm(d->level.e, sizeof(LevelTable));
+    memclr_asm(p_data->level.e, sizeof(LEVEL_INFO));
     for (i = 0; i < LEVEL_MAX; i++, l++) {
         l->id = 0xFFFF;
     }
@@ -1114,33 +1114,33 @@ Merchant::Merchant(MerchantCharacter* c)
     pSell = c->pSell;
     pExer = c->pExer;
     pLevel = c->pLevel;
-    memclr_asm(&stock, sizeof(StockTable));
-    memclr_asm(&level, sizeof(LevelTable));
+    memclr_asm(&stock, sizeof(STOCK_INFO));
+    memclr_asm(&level, sizeof(LEVEL_INFO));
     load(c->data);
 }
 
-void Merchant::save(MerchantData* d)
+void Merchant::save(MerchantData* p_data)
 {
-    d->stock = stock;
-    d->level = level;
-    d->favor = favor;
-    d->x301 = x311;
-    d->discount = discount;
-    d->x303 = x313;
+    p_data->stock = stock;
+    p_data->level = level;
+    p_data->favor = favor;
+    p_data->x301 = x311;
+    p_data->discount = discount;
+    p_data->x303 = x313;
 }
 
-void Merchant::load(MerchantData* d)
+void Merchant::load(MerchantData* p_data)
 {
-    if (d == 0) {
+    if (p_data == 0) {
         pLog->err(0, 0, "Merchant::load() Data is empty.");
         return;
     }
-    stock = d->stock;
-    level = d->level;
-    favor = d->favor;
-    x311 = d->x301;
-    discount = d->discount;
-    x313 = d->x303;
+    stock = p_data->stock;
+    level = p_data->level;
+    favor = p_data->favor;
+    x311 = p_data->x301;
+    discount = p_data->discount;
+    x313 = p_data->x303;
 }
 
 StockEntry* Merchant::stockPtr(u16 id)
@@ -1362,7 +1362,7 @@ int checkSellingItem(u16 id)
 
     switch (id) {
     case 0x40:
-        if (pG->flags_51BC & 0x00040000) {
+        if (pG->Item_find_flg & 0x00040000) {
             u32 sold = pG->item_flags[0] & 0x10000000;
             ret = sold == 0;
         } else {

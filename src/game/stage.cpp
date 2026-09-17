@@ -60,7 +60,7 @@ static inline int emListVillage(int room)
 int checkEmListNo(u16 room)
 {
     int stage = room >> 8;
-    u32 flags = pG->flags_54;
+    u32 flags = pG->System_flg;
 
     if ((s32) flags < 0) {
         return 8;
@@ -182,7 +182,7 @@ int getEmListNum()
 void StageSet()
 {
     GlobalWork* g = pG;
-    u32 flags = g->flags_54;
+    u32 flags = g->System_flg;
     int reload = 0;
     int relink = 0;
 
@@ -201,7 +201,7 @@ void StageSet()
         MemSetCurrentHeap(2);
         cMes.stageInit();
         if (pG->stage_no == 1) {
-            pG->flags_51BC |= 0x4;
+            pG->Item_find_flg |= 0x4;
         }
         TaskSleep(1);
     }
@@ -229,7 +229,7 @@ void readEmList(int mode)
     no = checkEmListNo(G_ROOM_ID);
     if (no >= 0) {
         GlobalWork* g = pG;
-        if (no > g->emlist_no || (g->flags_54 & 0x2000) || g->game_mode == 3 ||
+        if (no > g->emlist_no || (g->System_flg & 0x2000) || g->game_mode == 3 ||
             ((s32) g->flags_68 < 0 && g->emlist_no != no)) {
             name = getEmListName(no);
             pG->emlist_no = no;
@@ -340,7 +340,7 @@ void subMissionSt1()
         timer = 150;
         SetFree(0, count);
         if (count == 10) {
-            pG->flags_51BC |= 0x40000;
+            pG->Item_find_flg |= 0x40000;
             timer = 450;
             stockDataAdd(&merchantData, stock_1st_mission);
             pG->flags_5014 &= ~0x40000;
@@ -379,7 +379,7 @@ void subMissionSt1()
             for (j = 0; j <= 1; j++) {
                 u = IdSys.unitPtr(base + j, 0x33);
                 u->flags |= 0x8;
-                u->flags_7F |= 0x2;
+                u->tex_flag |= 0x2;
                 u->no = digit[j];
             }
         }

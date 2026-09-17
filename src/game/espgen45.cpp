@@ -18,16 +18,16 @@
 // Parameter block handed over by esp4c (Esp4cWork, 0x20 bytes; the layout is esp4c.cpp's).
 struct Esp4cWork {
     u8 type;      // 0x00
-    u8 x1;        // 0x01
-    u8 x2;        // 0x02
-    u8 x3;        // 0x03
+    u8 Refrect_type;        // 0x01
+    u8 Spec_Tex;        // 0x02
+    u8 wave_ratio_base;        // 0x03
     s16 indS;     // 0x04 indirect matrix parameters (SetIndMtx)
     s16 indT;     // 0x06
     f32 damp;     // 0x08 (Espgen42Work::damp)
     f32 spread;   // 0x0C (Espgen42Work::spread)
     Vec rot;      // 0x10 surface rotation (SetWaterWork45)
     u8 flag;      // 0x1C
-    u8 x1D;       // 0x1D
+    u8 Mask_Tex;       // 0x1D
     u8 x1E;       // 0x1E
     u8 x1F;       // 0x1F
 };
@@ -189,7 +189,7 @@ void Espgen45_Move00(EspgenWork* w)
     if (g_bSetParam == 0) {
         rotY = p->rotY;
     } else {
-        rotY = g_Free.x3;
+        rotY = g_Free.wave_ratio_base;
     }
     rate = 1.0f - (f32) (int) rotY / 255.0f;
     if (rate == 0.0f) {
@@ -628,7 +628,7 @@ void Espgen45_TransSub(EspgenWork* w)
             u8 texId;
             EspTexWk* tw;
             if (g_bSetParam == 1) {
-                texId = g_Free.x1D;
+                texId = g_Free.Mask_Tex;
             } else {
                 texId = p->xC5;
             }
@@ -992,7 +992,7 @@ void Espgen45_Destruct(EspgenWork* w)
 }
 
 int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
     Vec r;

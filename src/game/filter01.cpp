@@ -40,7 +40,7 @@ void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
 void Filter01Init()
 {
     filter01_buff = 0;
-    LightMgr.getEnvPtr()->x2D = 0;
+    LightMgr.getEnvPtr()->FocusLevel = 0;
     g_LeNear.on = 0;
     g_LeNear.mode = 0;
     g_LeFar.on = 0;
@@ -50,7 +50,7 @@ void Filter01Init()
 void Filter01RoomInit()
 {
     filter01_buff = 0;
-    LightMgr.getEnvPtr()->x2D = 0;
+    LightMgr.getEnvPtr()->FocusLevel = 0;
     g_LeNear.on = 0;
     g_LeNear.mode = 0;
     g_LeFar.on = 0;
@@ -61,11 +61,11 @@ void Filter01Trans()
 {
     if (Render_checkBlurPermission()) {
         cLightEnv* env = LightMgr.getEnvPtr();
-        if (g_LeNear.on == 0 && g_LeFar.on == 0 && env->x2D) {
+        if (g_LeNear.on == 0 && g_LeFar.on == 0 && env->FocusLevel) {
             g_LeLit.on = 1;
-            g_LeLit.z = env->x28;
-            g_LeLit.level = (f32) env->x2D;
-            g_LeLit.mode = env->x2E;
+            g_LeLit.z = env->FocusZ;
+            g_LeLit.level = (f32) env->FocusLevel;
+            g_LeLit.mode = env->FocusMode;
             AddOtDirect(0x12, &g_LeLit, (void (*)()) Filter01Render, 7, 0x400, 0, 0.0f);
         }
         if (g_LeNear.on) {

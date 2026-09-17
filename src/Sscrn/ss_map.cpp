@@ -370,7 +370,7 @@ static inline u32 flagBit(u32 tbl, u32 no)
 }
 static inline u32 stageFlag(u32 no)
 {
-    return flagBit((u32) &pG->flags_51BC, no);
+    return flagBit((u32) &pG->Item_find_flg, no);
 }
 static inline u32 doorFlag(u32 no)
 {
@@ -392,7 +392,7 @@ int getStageNo()
     if (pG->flags_51C0 & 0x00800000) {
         return 2;
     }
-    if (pG->flags_51BC & 4) {
+    if (pG->Item_find_flg & 4) {
         return 1;
     }
     return 0;
@@ -1094,7 +1094,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         for (j = 0; j < 2; j++) {
             u = IdSub.unitPtr(0x12 - j, 0x10);
             u->flags |= 8;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[j];
         }
         v = m->nCoin;
@@ -1105,7 +1105,7 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         for (j = 0; j < 2; j++) {
             u = IdSub.unitPtr(0x15 - j, 0x10);
             u->flags |= 8;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[j];
         }
     }
@@ -1889,8 +1889,8 @@ static inline void mapModelLight(cModel* m)
     static const Vec size = {1000.0f, 1000.0f, 0.0f};
 
     m->lightInfo.init2(0, 0, &ofs, &size, 4);
-    m->x135 = 2;
-    m->x12F = 3;
+    m->CullMode = 2;
+    m->ot_type = 3;
 }
 
 void mapModelInit(SUB_SCREEN* wk)
@@ -2118,7 +2118,7 @@ void mapCameraInit(SUB_SCREEN* wk, Camera* cam)
     cam->up.y = 0.0f;
     cam->up.z = -1.0f;
     CameraSetOrientationUp(cam);
-    wk->x2AD = 0;
+    wk->Key_disable = 0;
 }
 
 void mapCameraMove(SUB_SCREEN* wk)
@@ -2317,8 +2317,8 @@ void SsMapInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
     case 0:
-        if (wk->x4C(wk) == 1) {
-            if (wk->x266 == 2) {
+        if (wk->scrn_out_func(wk) == 1) {
+            if (wk->menu_old == 2) {
                 wk->x44 = 1;
             }
             IdSubErase();
@@ -2537,7 +2537,7 @@ void SsMapMain::move(SUB_SCREEN* wk)
     }
     case 1:
         if (sscrnMainMenu(wk)) {
-            switch ((s8) wk->x264) {
+            switch ((s8) wk->menu_no) {
             case 1:
                 transit(0, wk);
                 break;
@@ -2651,7 +2651,7 @@ void SsMapMain::quit(SUB_SCREEN* wk)
     Mem_free(wk->pMapWk);
     wk->x34 |= 4;
     sscrn_map_out_init(wk);
-    wk->x4C = sscrn_map_out;
+    wk->scrn_out_func = sscrn_map_out;
 }
 
 void sscrn_map_out_init(SUB_SCREEN* wk)

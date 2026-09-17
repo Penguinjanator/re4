@@ -78,10 +78,10 @@ static inline void PSet(void*& d, void* v) { d = v; }
 // (x4FD = 5) or a frame are direct byte stores in the original (see pl_R1_Walk / pl_R1_Run).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 // 1 when the push target is gone or dead.
@@ -142,14 +142,14 @@ void PlayerInit()
         U8Set(pG->wep_lv, 0);
         U8Set(pG->wep_lv_mag, 0);
         U8Set(pG->wep_lv_ex, 0);
-        U8Set(pG->x4FBA, 0);
+        U8Set(pG->weapon_lv_reload, 0);
         break;
     case 2:
         U8Set(pG->wep_no, 1);
         U8Set(pG->wep_lv, 0);
         U8Set(pG->wep_lv_mag, 0);
         U8Set(pG->wep_lv_ex, 0);
-        U8Set(pG->x4FBA, 0);
+        U8Set(pG->weapon_lv_reload, 0);
         U8Set(pG->wep_type, 0);
         break;
     case 4:
@@ -157,7 +157,7 @@ void PlayerInit()
         U8Set(pG->wep_lv, 0);
         U8Set(pG->wep_lv_mag, 0);
         U8Set(pG->wep_lv_ex, 0);
-        U8Set(pG->x4FBA, 0);
+        U8Set(pG->weapon_lv_reload, 0);
         U8Set(pG->wep_type, 0);
         break;
     case 3:
@@ -165,7 +165,7 @@ void PlayerInit()
         U8Set(pG->wep_lv, 0);
         U8Set(pG->wep_lv_mag, 0);
         U8Set(pG->wep_lv_ex, 0);
-        U8Set(pG->x4FBA, 0);
+        U8Set(pG->weapon_lv_reload, 0);
         U8Set(pG->wep_type, 0);
         break;
     case 5:
@@ -174,14 +174,14 @@ void PlayerInit()
         U8Set(pG->wep_lv, 0);
         U8Set(pG->wep_lv_mag, 0);
         U8Set(pG->wep_lv_ex, 0);
-        U8Set(pG->x4FBA, 0);
+        U8Set(pG->weapon_lv_reload, 0);
         break;
     }
     PlayerLifeReset();
     U16Set(pG->pl_life_max, pG->pl_life);
     BitOff(pG->flags_68, 0x00040000);
     ReleaseWepData();
-    U16Set(pG->flags_4FBE, 1);
+    U16Set(pG->pl_flag, 1);
     PlKaiou = 0;
 }
 
@@ -192,7 +192,7 @@ void PlayerLifeReset()
     switch (pG->x4FB8) {
     case 0:
         U16Set2(pG->pl_life, pG->pl_life_max, 1200);
-        if (pG->flags_54 & 0x40000000) {
+        if (pG->System_flg & 0x40000000) {
             U16Set2(pG->pl_life, pG->pl_life_max, 1860);
         }
         break;
@@ -264,7 +264,7 @@ void cPlayer::init1()
     }
     pNeck = new cPlNeck(this);
     be_flag |= 0x07000000;
-    x12F = 7;
+    ot_type = 7;
     {
         static const Vec lightOfs = { 0.0f, 0.0f, 0.0f };
         static const Vec lightSize = { 1000.0f, 1000.0f, 0.0f };
@@ -373,12 +373,12 @@ moveChecked:
     }
     moveBinocular();
     subCharLiveCheck();
-    Pl_func_tbl[xFC](this);
+    Pl_func_tbl[r_no_0](this);
     if (pG->flags_68 & 0x00010000) {
         // the u8 compared as an int (`cmpwi -1`): the original's test, always true
         if (PlKaiou != -1) {
             for (i = 0; i < PlKaiou + 1; i++) {
-                Pl_func_tbl[xFC](this);
+                Pl_func_tbl[r_no_0](this);
             }
         }
     }
@@ -429,17 +429,17 @@ void pl_R0_Move(cPlayer* pl)
         pl->dmgCnt522 = 0;
     }
     pl->dmgFlag520 = 0;
-    Pl_func_move_tbl[pl->xFD](pl);
+    Pl_func_move_tbl[pl->r_no_1](pl);
 }
 
 // Idle: footwork motion (pMotTbl[0] / the damaged pair 0x5F), neck motions 0x3F/0x40.
 void pl_R1_Footwork(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0: {
         int hokan;
         int frame;
-        if (pl->xFF & 1) {
+        if (pl->r_no_3 & 1) {
             hokan = pl->x4FD;
             frame = pl->x4FC;
         } else {
@@ -452,14 +452,14 @@ void pl_R1_Footwork(cPlayer* pl)
         } else {
             pl->pNeck->init(PL_ARC_PTR(pG->pPlArc, 0x40), PL_ARC_PTR(pG->pPlArc, 0x41), 0);
         }
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     case 1:
         pl->motionMove();
         break;
     case 2:
         if (pl->motionMove()) {
-            pl->xFE = 0;
+            pl->r_no_2 = 0;
         }
         break;
     }
@@ -475,11 +475,11 @@ void pl_R1_Footwork(cPlayer* pl)
 // Walk (pMotTbl[2] / damaged 0x61), turning with SPEED_WALK_TURN; run (routine 3) on the run key.
 void pl_R1_Walk(cPlayer* pl)
 {
-    if (pl->xFE == 0) {
+    if (pl->r_no_2 == 0) {
         void** tbl;
         u32 frame;
         int hokan;
-        if (pl->xFF & 4) {
+        if (pl->r_no_3 & 4) {
             MotionData* data;
             if (dmMotCk()) {
                 data = (MotionData*) pl->pMotTbl[6];
@@ -501,15 +501,15 @@ void pl_R1_Walk(cPlayer* pl)
         } else {
             pl->pNeck->init(PL_ARC_PTR(pG->pPlArc, 0x42), PL_ARC_PTR(pG->pPlArc, 0x43), (u16) frame);
         }
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     pl->motionMove();
     if (pl->actionSelect() == 0) {
         if ((Key.on & 0x40000000) && joyKamae() == 0) {
-            pl->xFC = 0;
-            pl->xFD = 3;
-            pl->xFE = 2;
-            pl->xFF = 4;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 3;
+            pl->r_no_2 = 2;
+            pl->r_no_3 = 4;
             pl->x4FD = 5;
             pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
         } else if (!(Key.on & 1)) {
@@ -530,11 +530,11 @@ void pl_R1_Walk(cPlayer* pl)
 // Back step (pMotTbl[8] / damaged 0x63): turning with SPEED_WALK_TURN while the back key is held.
 void pl_R1_Back(cPlayer* pl)
 {
-    if (pl->xFE == 0) {
+    if (pl->r_no_2 == 0) {
         void** tbl = pl->pMotTbl;
         pl->motionSet(tbl[8], tbl[9], tbl[0x63], tbl[0x64], 8, 0);
         pl->pNeck->motL = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     pl->motionMove();
     if (pl->actionSelect() == 0) {
@@ -560,10 +560,10 @@ void pl_R1_Run(cPlayer* pl)
     static s8 breath_ctr;
     static f32 pl_speed2_xxx = 1.1f;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 1:
         if (pl->motionMove()) {
-            pl->xFE = 2;
+            pl->r_no_2 = 2;
         }
         break;
     case 0:
@@ -571,7 +571,7 @@ void pl_R1_Run(cPlayer* pl)
         void** tbl;
         u32 frame;
         int hokan;
-        if (pl->xFF & 4) {
+        if (pl->r_no_3 & 4) {
             MotionData* data;
             if (dmMotCk()) {
                 data = (MotionData*) pl->pMotTbl[6];
@@ -582,7 +582,7 @@ void pl_R1_Run(cPlayer* pl)
             }
             frame = (u32) ((f32) (data->maxFrame & 0x3FFF) * (f32) pl->x4FC * 0.00390625f);
             hokan = pl->x4FD;
-        } else if (pl->xFF & 2) {
+        } else if (pl->r_no_3 & 2) {
             frame = pl->x4FC;
             hokan = pl->x4FD;
             tbl = pl->pMotTbl;
@@ -600,7 +600,7 @@ void pl_R1_Run(cPlayer* pl)
         pl->pWaist->cur = 0.0f;
         pl->x3E0 = 0;
         breath_ctr = 0;
-        pl->xFE = 3;
+        pl->r_no_2 = 3;
     }
     default:
         pl->motionMove();
@@ -625,10 +625,10 @@ void pl_R1_Run(cPlayer* pl)
     }
     if (pl->actionSelect() == 0) {
         if ((Key.on & 1) && !(Key.on & 0x40000000)) {
-            pl->xFC = 0;
-            pl->xFD = 1;
-            pl->xFE = 0;
-            pl->xFF = 4;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 1;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 4;
             pl->x4FD = 5;
             pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
         } else {
@@ -644,10 +644,10 @@ void pl_R1_Run(cPlayer* pl)
             } else if (!(Key.on & 0x40000000) || !(Key.on & 1)) {
                 if (Key.on & 1) {
                     pl->x4FD = 5;
-                    pl->xFC = 0;
-                    pl->xFD = 1;
-                    pl->xFF = 4;
-                    pl->xFE = 0;
+                    pl->r_no_0 = 0;
+                    pl->r_no_1 = 1;
+                    pl->r_no_3 = 4;
+                    pl->r_no_2 = 0;
                     pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
                 } else {
                     PlRoutineSet(pl, 0, 0, 0, 0);
@@ -665,14 +665,14 @@ void pl_R1_Run(cPlayer* pl)
 // Turn in place (pMotTbl[0xD] left / [0xF] right, damaged 0x67 / 0x69) while the side key is held.
 void pl_R1_Turn(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         if (Key.on & 4) {
             pl->motionSet(pl->pMotTbl[0xD], pl->pMotTbl[0xE], pl->pMotTbl[0x67], pl->pMotTbl[0x6A], 7, 0);
-            pl->xFE = 1;
+            pl->r_no_2 = 1;
         } else {
             pl->motionSet(pl->pMotTbl[0xF], pl->pMotTbl[0x10], pl->pMotTbl[0x69], pl->pMotTbl[0x6A], 7, 0);
-            pl->xFE = 2;
+            pl->r_no_2 = 2;
         }
         pl->pNeck->motL = 0;
         pl->motionMove();
@@ -701,7 +701,7 @@ void pl_R1_Turn180(cPlayer* pl)
     static Vec dd0;
     int end;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0: {
         Vec v;
         void** tbl = pl->pMotTbl;
@@ -712,7 +712,7 @@ void pl_R1_Turn180(cPlayer* pl)
         PSMTXMultVec(pl->mat, &v, &dd0);
         CamCtrlShoulderSetSearchFrame(30);
         pl->pNeck->motL = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     case 1: {
         u32 frame;
@@ -802,12 +802,12 @@ static void plLadderPosSet(cPlayer* pl)
 void pl_R1_Ladder(cPlayer* pl)
 {
     BitOn(pG->flags_5010, 0x00040000);
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         FSet(pl->x400, pl->pos.y);
         pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x27), 5, 0, 1, 0);
         pl->pNeck->motL = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->flags_420 &= ~0x800;
     case 1:
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
@@ -818,10 +818,10 @@ void pl_R1_Ladder(cPlayer* pl)
             pl->x400 += 500.0f;
             if (pl->x3E0 != 0) {
                 pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x28), 3, 0, 5, 0);
-                pl->xFE = 2;
+                pl->r_no_2 = 2;
             } else {
                 pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x29), 5, 0, 1, 0);
-                pl->xFE = 3;
+                pl->r_no_2 = 3;
             }
         }
         break;
@@ -840,7 +840,7 @@ void pl_R1_Ladder(cPlayer* pl)
             if (pl->x3E0 == 0) {
                 pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x29), 5, 0, 1, 0);
                 pl->shdCol = 0xFF;
-                pl->xFE = 3;
+                pl->r_no_2 = 3;
             }
         }
         break;
@@ -877,7 +877,7 @@ void pl_R1_Ladder(cPlayer* pl)
         FSet(pl->x400, pl->pos.y);
         pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x2A), 5, 0, 1, 0);
         pl->pNeck->motL = 0;
-        pl->xFE = 0xB;
+        pl->r_no_2 = 0xB;
         pl->flags_420 &= ~0x800;
     case 0xB:
         if (pl->frame > 7.7f && pl->frame < 8.3f) {
@@ -892,10 +892,10 @@ void pl_R1_Ladder(cPlayer* pl)
             pl->x400 -= 1500.0f;
             if (pl->x3E0 != 0) {
                 pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x2B), 3, 0, 5, 0);
-                pl->xFE = 0xC;
+                pl->r_no_2 = 0xC;
             } else {
                 pl->motionMove();
-                pl->xFE = 0xD;
+                pl->r_no_2 = 0xD;
             }
         }
         break;
@@ -914,7 +914,7 @@ void pl_R1_Ladder(cPlayer* pl)
             if (pl->x3E0 == 0) {
                 pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x2C), 5, 0, 1, 0);
                 pl->motionMove();
-                pl->xFE = 0xD;
+                pl->r_no_2 = 0xD;
             }
         }
         break;
@@ -949,20 +949,20 @@ void pl_R1_Crouch(cPlayer* pl)
     Vec rot;
     const f32 endFrame = 8.0f;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->endCamera();
         CamCtrl.resetCameraAngle();
         pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x5A), 3, 0, 0, 0);
         pl->pNeck->motL = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->flags_420 |= 0x40;
         pl->x400 = pl->rot.y;
     case 1:
         if (pl->motionMove()) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x5B), 3, 0, 5, 0);
             pl->motionMove();
-            pl->xFE = 0xA;
+            pl->r_no_2 = 0xA;
         }
         break;
     case 0xA:
@@ -976,11 +976,11 @@ void pl_R1_Crouch(cPlayer* pl)
         }
         if (pl->pParts->rot.y > 1.0471976f) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x68), 3, 0, 1, 0);
-            pl->xFE = 0xB;
+            pl->r_no_2 = 0xB;
         }
         if (pl->pParts->rot.y < -1.0471976f) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x69), 3, 0, 1, 0);
-            pl->xFE = 0xC;
+            pl->r_no_2 = 0xC;
         }
         pl->motionMove();
         break;
@@ -998,7 +998,7 @@ void pl_R1_Crouch(cPlayer* pl)
         if (pl->motionMove()) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x5B), 3, 0, 5, 0);
             pl->motionMove();
-            pl->xFE = 0xA;
+            pl->r_no_2 = 0xA;
         }
         break;
     case 0xC:
@@ -1015,7 +1015,7 @@ void pl_R1_Crouch(cPlayer* pl)
         if (pl->motionMove()) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x5B), 3, 0, 5, 0);
             pl->motionMove();
-            pl->xFE = 0xA;
+            pl->r_no_2 = 0xA;
         }
         break;
     case 0x14:
@@ -1027,11 +1027,11 @@ void pl_R1_Crouch(cPlayer* pl)
         }
         break;
     }
-    if (pl->xFE >= 0xA && pl->xFE <= 0x13) {
+    if (pl->r_no_2 >= 0xA && pl->r_no_2 <= 0x13) {
         if (Joy[0].trg & 0x300) {
             pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x5C), 5, 0, 1, 0);
             pl->motionMove();
-            pl->xFE = 0x14;
+            pl->r_no_2 = 0x14;
             pl->flags_420 &= ~0x40;
         }
         if (joyKamae()) {
@@ -1045,14 +1045,14 @@ void pl_R1_Crouch(cPlayer* pl)
 void pl_R1_JumpFall(cPlayer* pl)
 {
     pl->flags_420 &= ~0x180;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x5E), (int) PL_ARC_PTR(pG->pPlArc, 0x60), 3, 0x201, 0);
         pl->pNeck->motL = 0;
         pl->atari.throughOn();
         pl->shdCol = 0xFF;
         pl->x3E0 = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->flags_420 &= ~0x800;
     case 1:
         pl->x3E0++;
@@ -1065,7 +1065,7 @@ void pl_R1_JumpFall(cPlayer* pl)
                 MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x5F), (int) PL_ARC_PTR(pG->pPlArc, 0x61), 3, 0x201, 0);
                 pl->dmg.clear();
                 pl->atari.throughOff();
-                pl->xFE = 2;
+                pl->r_no_2 = 2;
                 pl->flags_420 |= 0x880;
             }
         }
@@ -1083,11 +1083,11 @@ void pl_R1_JumpFall(cPlayer* pl)
 // Whistle (motion 0x7C): the SE and flags_500C bit23 at frame 20.
 void pl_R1_Whistle(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->motionSet(PL_ARC_PTR(pG->pPlArc, 0x7C), 7, 0, 1, 0);
         pl->pNeck->motL = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     case 1:
         if (MotionCheckCrossFrame(MOTION(pl), 20.0f)) {
             SndCall(1, 0xE, &pl->pParts->worldPos, 0, 0, 0);
@@ -1114,7 +1114,7 @@ void pl_R1_LevelUp(cPlayer* pl)
     Vec rot;
 
     pl->dmg.set(0, 10);
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0: {
         void* m0;
         void* m1;
@@ -1136,7 +1136,7 @@ void pl_R1_LevelUp(cPlayer* pl)
         rot.y = pl->x400;
         rot.z = 0.0f;
         pl->pMotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     case 1:
         if (pl->motionMove()) {
@@ -1155,7 +1155,7 @@ void pl_R1_LevelDown(cPlayer* pl)
     Vec rot;
 
     pl->dmg.set(0, 10);
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->flags_420 &= ~0x800;
         pl->atari.throughOn();
@@ -1168,7 +1168,7 @@ void pl_R1_LevelDown(cPlayer* pl)
         rot.y = pl->x400;
         rot.z = 0.0f;
         pl->pMotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     case 1:
         if (pl->motionMove()) {
             if (pl->x3E0 == 1) {
@@ -1186,48 +1186,48 @@ void pl_R1_LevelDown(cPlayer* pl)
 // 0x16 the object stopped (0x31), 0x28 release (0x22), 0x32 release without a target (idle).
 void pl_R1_ObjPush(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         CamCtrl.startPushObject();
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x20), 0, 6, 5, 0);
         pl->pNeck->motL = 0;
         pl->x3E0 = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         pl->flags_420 |= 8;
     case 1:
         if (pl->motionMove()) {
-            pl->xFE = 0x14;
+            pl->r_no_2 = 0x14;
         }
         if ((Joy[0].on & 0x100) && !pushTargetDead(pl->pPush)) {
             if (pl->pPush->plAdjust()) {
                 break;
             }
         }
-        pl->xFE = 0x32;
+        pl->r_no_2 = 0x32;
         break;
     case 0x14:
         pl->pPush->pushTargetInit(0);
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x21), 0, 0, 5, 0);
         SndCall(6, 0x55, &pl->getPartsPtr(0)->worldPos, 0, 0, 0);
         pl->x3E0 = 0;
-        pl->xFE = 0x15;
+        pl->r_no_2 = 0x15;
     case 0x15:
         if (!(Joy[0].on & 0x100) || pushTargetDead(pl->pPush)) {
             pl->pPush->stopTarget();
-            pl->xFE = 0x28;
+            pl->r_no_2 = 0x28;
         }
         if (pl->motionMove()) {
             SndCall(6, 0x55, &pl->getPartsPtr(0)->worldPos, 0, 0, 0);
         }
         if (pl->pPush->pushTarget()) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x31), 0, 3, 5, 0);
-            pl->xFE = 0x16;
+            pl->r_no_2 = 0x16;
         }
         break;
     case 0x16:
         pl->motionMove();
         if (!(Joy[0].on & 0x100) || pushTargetDead(pl->pPush)) {
-            pl->xFE = 0x28;
+            pl->r_no_2 = 0x28;
         }
         break;
     case 0x28:
@@ -1254,15 +1254,15 @@ void pl_R1_Fance(cPlayer* pl)
     Vec rot;
     int end;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->atari.clrFlag100();
         pl->atari.setPriority(2);
         if (pG->x4FB8 == 1 || pG->x4FB8 == 2 || pG->x4FB8 == 4) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x53), (int) PL_ARC_PTR(pG->pPlArc, 0x54), 3, 5, 0);
-        } else if (pl->xFF & 4) {
+        } else if (pl->r_no_3 & 4) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x55), (int) PL_ARC_PTR(pG->pPlArc, 0x56), 3, 5, 0);
-        } else if ((pl->xFF & 2) || fanceWidthCheck(pl)) {
+        } else if ((pl->r_no_3 & 2) || fanceWidthCheck(pl)) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x53), (int) PL_ARC_PTR(pG->pPlArc, 0x54), 3, 5, 0);
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x55), (int) PL_ARC_PTR(pG->pPlArc, 0x56), 3, 5, 0);
@@ -1286,9 +1286,9 @@ void pl_R1_Fance(cPlayer* pl)
         }
         pl->pMotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
         PlFanceFlag = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     case 1:
-        if (!(pl->xFF & 1)) {
+        if (!(pl->r_no_3 & 1)) {
             if (pl->frame <= 24.0f) {
                 fanceAdjust(pl);
             }
@@ -1429,7 +1429,7 @@ void pl_R1_Fall(cPlayer* pl)
         lim = 20;
         break;
     }
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x2D), (int) PL_ARC_PTR(pG->pPlArc, 0x2E), 3, 5, 0);
         pl->atari.throughOn();
@@ -1447,7 +1447,7 @@ void pl_R1_Fall(cPlayer* pl)
         rot.y = pl->x400;
         rot.z = 0.0f;
         pl->pMotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
-        pl->xFE = 3;
+        pl->r_no_2 = 3;
     case 3:
         if (pl->frame <= adjustFrame) {
             v.x = 0.0f;
@@ -1493,7 +1493,7 @@ void pl_R1_Fall(cPlayer* pl)
             FSet(pl->pos.y, SatMgr.getFloor(&pl->pos, 600.0f, 100000.0f, 0, 0));
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x2F), (int) PL_ARC_PTR(pG->pPlArc, 0x30), 0, 5, 0);
             pl->motionMove();
-            pl->xFE = 4;
+            pl->r_no_2 = 4;
             pl->flags_420 |= 0x800;
         }
         break;
@@ -1512,7 +1512,7 @@ void pl_R1_Fall(cPlayer* pl)
 // at frame 60.
 void pl_R0_Dijection(cPlayer* pl)
 {
-    if (pl->xFD == 0) {
+    if (pl->r_no_1 == 0) {
         cModelInfo* face;
         pl->endCamera();
         face = pl->pBody->pFace;
@@ -1522,7 +1522,7 @@ void pl_R0_Dijection(cPlayer* pl)
             face->x5C = 0.0f;
         }
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlArc, 0x57), (int) PL_ARC_PTR(pG->pPlArc, 0x58), 3, 1, 0);
-        pl->xFD = 1;
+        pl->r_no_1 = 1;
     }
     if (MotionCheckCrossFrame(MOTION(pl), 60.0f)) {
         SndCall(1, 0x45, &pl->pParts->worldPos, 0, 0, 0);
@@ -1533,9 +1533,9 @@ void pl_R0_Dijection(cPlayer* pl)
 // Boat driving idle (pMotTbl[0] / archive 0x32 when damaged).
 void pl_R1_BoatDrive(cPlayer* pl)
 {
-    if (pl->xFE == 0) {
+    if (pl->r_no_2 == 0) {
         pl->motionSet(pl->pMotTbl[0], pl->pMotTbl[1], PL_ARC_PTR(pG->pPlArc, 0x32), PL_ARC_PTR(pG->pPlArc, 0x33), 3, 0);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     }
     pl->motionMove();
     pl->checkCtrl();

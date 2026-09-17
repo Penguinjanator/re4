@@ -129,7 +129,7 @@ void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
     }
 }
 
-void Draw_line(Vec* a, Vec* b, u32 color)
+void Draw_line(Vec* p0, Vec* b, u32 color)
 {
     Mtx44 proj;
     Mtx m;
@@ -161,8 +161,8 @@ void Draw_line(Vec* a, Vec* b, u32 color)
     GXSetVtxAttrFmt(0, 9, 1, 3, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
 
-    x0 = (s16) a->x;
-    y0 = (s16) a->y;
+    x0 = (s16) p0->x;
+    y0 = (s16) p0->y;
     x1 = (s16) b->x;
     y1 = (s16) b->y;
     GXBegin(0xB0, 0, 2);
@@ -219,12 +219,12 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
     GXColor4u8(cg, cb, ca, cr);
 }
 
-void Draw_line3d(Vec* a, Vec* b, u32 color, int blend)
+void Draw_line3d(Vec* p0, Vec* b, u32 color, int blend)
 {
-    Draw_line3d_local(a, b, pG->Cam.viewMat, color, blend);
+    Draw_line3d_local(p0, b, pG->Cam.viewMat, color, blend);
 }
 
-void Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, int blend)
+void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
 {
     u8 cr, cg, cb;
 
@@ -257,7 +257,7 @@ void Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, int blend)
     GXLoadPosMtxImm(mtx, 0);
     GXSetCurrentMtx(0);
     GXBegin(0xB0, 0, 2);
-    GXPosition3f32(a->x, a->y, a->z);
+    GXPosition3f32(p0->x, p0->y, p0->z);
     GXColor4u8(cr, cg, cb, 0xFF);
     GXPosition3f32(b->x, b->y, b->z);
     GXColor4u8(cr, cg, cb, 0xFF);

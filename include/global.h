@@ -68,7 +68,7 @@ struct GxStageWork {
 };
 
 // Item left in a room (pG->save_item[256], game/sce_at.cpp), 16 bytes.
-struct SceAtSaveItem {
+struct ITEM_SAVE_WORK {
     u8 type;          // 0x00  0 item area, 1 item handed to an area
     u8 atNo;          // 0x01
     s8 effType;       // 0x02
@@ -118,8 +118,8 @@ struct GlobalWork {
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     void* pOptionData;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
     struct PlArc* pPlArc;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
-    u32 flags_54;          // 0x54
-    u32 flags_58;          // 0x58
+    u32 System_flg;          // 0x54
+    u32 Disp_flg;          // 0x58
     u32 time_base;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
     u32 flags_60;          // 0x60
     u32 flags_64;          // 0x64
@@ -185,7 +185,7 @@ struct GlobalWork {
             u8 room_prev;  // 0x4FA1
         };
     };
-    u8 x4FA2;              // 0x4FA2  copy of x4F9E (room_jmp)
+    u8 Part_old;              // 0x4FA2  copy of x4F9E (room_jmp)
     s8 emlist_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
     u16 pl_life;           // 0x4FA4  (compared as s16 by the debug tools)
     u16 pl_life_max;       // 0x4FA6
@@ -204,12 +204,12 @@ struct GlobalWork {
         struct {
             u8 x4FB8;      // 0x4FB8  player character: 0 Leon, 1 Ashley, 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker, 6 Leon+Ashley
             u8 costume;    // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
-            u8 x4FBA;      // 0x4FBA
+            u8 weapon_lv_reload;      // 0x4FBA
             u8 costume2;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
         };
     };
     u8 pad_4FBC[2];
-    u16 flags_4FBE;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
+    u16 pl_flag;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
     Vec sub_pos;           // 0x4FC0  sub character start position (sce_sys ScenarioRoomInit)
     f32 sub_angle;         // 0x4FCC
     u8 pad_4FD0[0x500C - 0x4FD0];
@@ -219,7 +219,7 @@ struct GlobalWork {
     u32 flags_5018;        // 0x5018  (main_sub: 0x10000000 letterbox scissor)
     u32 em_dead[12][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
     u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
-    u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
+    u32 Item_find_flg;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
     u32 flags_51C4;        // 0x51C4
     u32 door_flags_51C8;   // 0x51C8  (game DoorFlagInit presets bits of these three words)
@@ -230,7 +230,7 @@ struct GlobalWork {
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
     u32 sce_free[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
-    SceAtSaveItem save_item[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
+    ITEM_SAVE_WORK save_item[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
     u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
     u8 pad_82ED[3];
@@ -242,7 +242,7 @@ struct GlobalWork {
     u32 x8330;             // 0x8330  (game clearGlobalSaveData keeps x8330/x8334 across the clear)
     u32 x8334;             // 0x8334
     u16 x8338;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
-    u16 x833A;             // 0x833A  (option: result screen counter next to x8338)
+    u16 g_continue_cnt;             // 0x833A  (option: result screen counter next to x8338)
     u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
     u32 em_die_cnt2;       // 0x8340
     u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)

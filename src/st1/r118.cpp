@@ -55,7 +55,7 @@ void R118Init()
     cModel* m;
     int zero = 0;
 
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 47 "D:/Bio4/Prog/r118.cpp"
     r118_work = (R118Work*) MEM_CALLOC(sizeof(R118Work), 1, 0xd);
 
@@ -75,7 +75,7 @@ void R118Init()
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r118_checkDoor117, 0, 1);
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, 2, 0);
     }
-    if (pG->flags_51BC & 0x00100000) {
+    if (pG->Item_find_flg & 0x00100000) {
         EM_LIST(0x82)->flags &= ~1;
         EM_LIST(0x83)->flags &= ~1;
         EM_LIST(0x84)->flags &= ~1;

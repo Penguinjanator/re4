@@ -590,7 +590,7 @@ void R20cExecShootInit()
         }
         obj = SmdGetObjPtr(9);
         if (obj) {
-            obj->x12F = 4;
+            obj->ot_type = 4;
         }
         R20cKaigaMoved(0);
     }

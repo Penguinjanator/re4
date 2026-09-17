@@ -32,11 +32,11 @@ class cMessageDebug {
 public:
     u8 step;              // 0x00
     u8 sub;               // 0x01
-    u8 x2;                // 0x02
-    u8 x3;                // 0x03
+    u8 r_no_2;                // 0x02
+    u8 r_no_3;                // 0x03
     u8* buf;              // 0x04
     cIdToolMenu* pMenu;   // 0x08
-    int xC;               // 0x0C
+    int m_language;               // 0x0C
     u32 attr;             // 0x10
     s16 mesNo;            // 0x14
     s16 mesMax;           // 0x16
@@ -44,7 +44,7 @@ public:
     s16 y;                // 0x1A
     // 0x1C vptr
 
-    cMessageDebug() { step = sub = x2 = x3 = 0; }
+    cMessageDebug() { step = sub = r_no_2 = r_no_3 = 0; }
     virtual ~cMessageDebug() {}
     void move();
     void init();

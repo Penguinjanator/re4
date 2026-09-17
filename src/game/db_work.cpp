@@ -150,7 +150,7 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "SCALE    %4.2f %4.2f %4.2f", m->scale.x, m->scale.y, m->scale.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "RTN NO   %02X %02X %02X %02X", m->xFC, m->xFD, m->xFE, m->xFF);
+    eprintf(x, y * 14, 0, 0, "RTN NO   %02X %02X %02X %02X", m->r_no_0, m->r_no_1, m->r_no_2, m->r_no_3);
     y++;
     eprintf(x, y * 14, 0, 0, "ID       %02X", m->id);
     y++;
@@ -164,7 +164,7 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "SHD COL  %02X", m->shdCol);
     y++;
-    eprintf(x, y * 14, 0, 0, "CullMode %d", m->x135);
+    eprintf(x, y * 14, 0, 0, "CullMode %d", m->CullMode);
     y++;
     eprintf(x, y * 14, 0, 0, "pModInfo %08X", m->pInfo);
     y++;

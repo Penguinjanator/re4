@@ -466,7 +466,7 @@ void cSofdec::finishMovie()
     if (resized != 0) {
         ScreenReSize(0x280, 0x1C0);
     }
-    SetU32(pG->flags_58, save58);
+    SetU32(pG->Disp_flg, save58);
     SetU32(pG->flags_170, save170);
     SetSystemVcnt(vcnt);
     BitOff(pG->flags_500C, 0x10000000);
@@ -476,7 +476,7 @@ void cSofdec::finishMovie()
         MemSignalHeap(heapNo);
         MemSetCurrentHeap(heapNo);
     }
-    BitOff(pG->flags_54, 0x00100000);
+    BitOff(pG->System_flg, 0x00100000);
     if (!chkFlag(0x100)) {
         systemVISetBlack(0);
     }
@@ -494,8 +494,8 @@ int cSofdec::initWork(const char* fname)
     }
     SetU32(save170, pG->flags_170);
     SetU32(pG->flags_170, 0xFFFFFFFF);
-    SetU32(save58, pG->flags_58);
-    SetU32(pG->flags_58, 0xFFFFFFFF);
+    SetU32(save58, pG->Disp_flg);
+    SetU32(pG->Disp_flg, 0xFFFFFFFF);
     if (!(pG->flags_5014 & 0x8000)) {
         heapNo = MemGetCurrentHeap();
         heapStart = MemGetHeapStartAddr(heapNo);
@@ -504,7 +504,7 @@ int cSofdec::initWork(const char* fname)
         MemCreateHeap(11, heapStart, heapStart + 0x500000);
         MemSetCurrentHeap(11);
     }
-    pG->flags_54 |= 0x00100000;
+    pG->System_flg |= 0x00100000;
     return 1;
 }
 

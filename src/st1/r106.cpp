@@ -81,7 +81,7 @@ void R106Init()
 #line 66 "D:/Bio4/Prog/r106.cpp"
     r106_work = (R106Work*) MEM_CALLOC(sizeof(R106Work), 1, 0xd);
 
-    pG->flags_51BC |= 0x800;
+    pG->Item_find_flg |= 0x800;
     EvtMgr.SetFunc("evt_r106s00_func", (void*) Evt_R106S00_Func);
     EatMgr.registEffInfo(4, (AtEffInfo*) &r106_eff_info);
     if (getRoomEtcDoor(8, &door, 1)) {
@@ -89,7 +89,7 @@ void R106Init()
     }
     SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, (void (*)()) r106_openedShelf, 0, 0);
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, (void (*)()) r106_openedShelf, 1, 0);
-    if (!(pG->flags_51BC & 0x00200000)) {
+    if (!(pG->Item_find_flg & 0x00200000)) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r106_Event, 0, 1);
         PSet(r106_work->evd, DC.setData(EvtMgr.NameChange("evd/r106s00.evd")));
         r106_work->evd->setCommand(2, 0, 0);
@@ -345,10 +345,10 @@ static void r106_Event()
 {
     Event* ev;
 
-    BitOn(pG->flags_51BC, 0x00200000);
-    BitOn(pG->flags_51BC, 0x400);
+    BitOn(pG->Item_find_flg, 0x00200000);
+    BitOn(pG->Item_find_flg, 0x400);
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SndRoomStrStop(3);
     EmMgr.destroyAll();
     SceSleep(2);
@@ -466,7 +466,7 @@ static void r106_setCloset()
     body = GetPartsAddr(obj->pParts, 0);
     doorR = GetPartsAddr(obj->pParts, 2);
     doorL = GetPartsAddr(obj->pParts, 1);
-    while (!(pG->flags_51BC & 0x00200000)) {
+    while (!(pG->Item_find_flg & 0x00200000)) {
         if (cnt <= 0) {
             Vec sp = {157059.0f, -9245.0f, -43597.0f};
 

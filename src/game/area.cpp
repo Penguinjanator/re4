@@ -25,7 +25,7 @@ f32 SQRTF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
 // game/sub2.cpp; really takes Vec*, declared by value here (same ABI) so the caller copies its Vec.
 int GetScreenPos(Vec pos, Vec* scr);
-void Draw_line3d(Vec* a, Vec* b, u32 color, int blend);
+void Draw_line3d(Vec* p0, Vec* p1, u32 color, int blend);
 void Draw_poly(Vec* p, u32 color, int zupd);
 void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd);
 void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color);
@@ -55,34 +55,34 @@ int AreaHitCheck(void* area, Vec* pos)
     return ret;
 }
 
-int areaHitCheck_xz4(AreaXZ4* a, Vec* pos)
+int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pos)
 {
     f32 dz, dx;
 
-    if (pos->y + 100.0f < a->y || pos->y >= a->y + a->h) {
+    if (pos->y + 100.0f < pXz4->y || pos->y >= pXz4->y + pXz4->h) {
         return 0;
     }
-    if ((a->p[3].x - a->p[0].x) * (pos->z - a->p[0].z) > (a->p[3].z - a->p[0].z) * (pos->x - a->p[0].x) ||
-        (a->p[1].x - a->p[0].x) * (pos->z - a->p[0].z) < (a->p[1].z - a->p[0].z) * (pos->x - a->p[0].x)) {
+    if ((pXz4->p[3].x - pXz4->p[0].x) * (pos->z - pXz4->p[0].z) > (pXz4->p[3].z - pXz4->p[0].z) * (pos->x - pXz4->p[0].x) ||
+        (pXz4->p[1].x - pXz4->p[0].x) * (pos->z - pXz4->p[0].z) < (pXz4->p[1].z - pXz4->p[0].z) * (pos->x - pXz4->p[0].x)) {
         return 0;
     }
-    if ((a->p[3].x - a->p[2].x) * (pos->z - a->p[2].z) < (a->p[3].z - a->p[2].z) * (pos->x - a->p[2].x) ||
-        (a->p[1].x - a->p[2].x) * (pos->z - a->p[2].z) > (a->p[1].z - a->p[2].z) * (pos->x - a->p[2].x)) {
+    if ((pXz4->p[3].x - pXz4->p[2].x) * (pos->z - pXz4->p[2].z) < (pXz4->p[3].z - pXz4->p[2].z) * (pos->x - pXz4->p[2].x) ||
+        (pXz4->p[1].x - pXz4->p[2].x) * (pos->z - pXz4->p[2].z) > (pXz4->p[1].z - pXz4->p[2].z) * (pos->x - pXz4->p[2].x)) {
         return 0;
     }
     return 1;
 }
 
-int areaHitCheck_Cylinder(AreaCylinder* a, Vec* pos)
+int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pos)
 {
     f32 dx, dz;
 
-    if (pos->y + 100.0f < a->y || pos->y >= a->y + a->h) {
+    if (pos->y + 100.0f < pCld->y || pos->y >= pCld->y + pCld->h) {
         return 0;
     }
-    dz = pos->z - a->z;
-    dx = pos->x - a->x;
-    return SQRTF(dx * dx + dz * dz) < a->r;
+    dz = pos->z - pCld->z;
+    dx = pos->x - pCld->x;
+    return SQRTF(dx * dx + dz * dz) < pCld->r;
 }
 
 int AreaViewCheck(AreaData* area, GeoCone* cone)
@@ -263,14 +263,14 @@ void area_Draw_sphere(Vec pos, f32 r, u32 color, Mtx mtx)
     Draw_sphere(&pos, r, color, 0, 0);
 }
 
-void area_Draw_line(Vec a, Vec b, u32 color, Mtx mtx)
+void area_Draw_line(Vec pos1, Vec pos2, u32 color, Mtx mtx)
 {
     if (mtx) {
-        PSMTXMultVec(mtx, &a, &a);
-        PSMTXMultVec(mtx, &b, &b);
+        PSMTXMultVec(mtx, &pos1, &pos1);
+        PSMTXMultVec(mtx, &pos2, &pos2);
     }
     GXSetLineWidth(16, 0);
-    Draw_line3d(&a, &b, color, 0);
+    Draw_line3d(&pos1, &pos2, color, 0);
     GXSetLineWidth(6, 0);
 }
 
@@ -368,7 +368,7 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
 // The split object's .sdata (sel/Rcnt below) is 8-byte aligned.
 asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");
 
-void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
+void area_xz4_Edit(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     static u32 sel = 0;
     static f32 Rcnt = 0.0f;
@@ -406,11 +406,11 @@ void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, V
     case 1:
         // The point is written back through plain float pointers (`*d = v`, no member access): such
         // a store is assumed to alias the static `sel`, which is reloaded before the second store.
-        px = &a->p[0].x;
-        pz = &a->p[0].z;
-        p.x = a->p[sel].x;
-        p.y = a->y;
-        p.z = a->p[sel].z;
+        px = &pXz4->p[0].x;
+        pz = &pXz4->p[0].z;
+        p.x = pXz4->p[sel].x;
+        p.y = pXz4->y;
+        p.z = pXz4->p[sel].z;
         PSVECScale(&vx, &t, dx);
         PSVECAdd(&t, &p, &p);
         PSVECScale(&vy, &t, dy);
@@ -422,75 +422,75 @@ void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, V
         break;
     case 2:
         for (i = 0; i < 4; i++) {
-            p.x = a->p[i].x;
-            p.y = a->y;
-            p.z = a->p[i].z;
+            p.x = pXz4->p[i].x;
+            p.y = pXz4->y;
+            p.z = pXz4->p[i].z;
             PSVECScale(&vx, &t, dx);
             PSVECAdd(&t, &p, &p);
             PSVECScale(&vy, &t, dy);
             PSVECAdd(&t, &p, &p);
-            a->p[i].x = p.x;
-            a->p[i].z = p.z;
+            pXz4->p[i].x = p.x;
+            pXz4->p[i].z = p.z;
         }
         break;
     case 3:
-        a->h += dy;
+        pXz4->h += dy;
         break;
     case 4:
-        a->y += dy;
+        pXz4->y += dy;
         break;
     }
 
     r = rate * 100.0f;
     switch (mode) {
     case 0:
-        p.x = a->p[sel].x;
-        p.y = a->y;
-        p.z = a->p[sel].z;
+        p.x = pXz4->p[sel].x;
+        p.y = pXz4->y;
+        p.z = pXz4->p[sel].z;
         area_Draw_sphere(p, Rcnt, 0x00FF00FE, mtx);
-        q.x = a->p[sel].x;
-        q.y = a->y + a->h;
-        q.z = a->p[sel].z;
+        q.x = pXz4->p[sel].x;
+        q.y = pXz4->y + pXz4->h;
+        q.z = pXz4->p[sel].z;
         area_Draw_line(p, q, 0xFF00FF00, mtx);
         break;
     case 1:
-        p.x = a->p[sel].x;
-        p.y = a->y;
-        p.z = a->p[sel].z;
+        p.x = pXz4->p[sel].x;
+        p.y = pXz4->y;
+        p.z = pXz4->p[sel].z;
         area_Draw_sphere(p, r, 0xFFFF00FE, mtx);
         break;
     case 2:
         for (i = 0; i < 4; i++) {
-            p.x = a->p[i].x;
-            p.y = a->y;
-            p.z = a->p[i].z;
+            p.x = pXz4->p[i].x;
+            p.y = pXz4->y;
+            p.z = pXz4->p[i].z;
             area_Draw_sphere(p, r, 0xFFFF00FE, mtx);
         }
         break;
     case 3:
         for (i = 0; i < 4; i++) {
-            p.x = a->p[i].x;
-            p.y = a->y + a->h;
-            p.z = a->p[i].z;
+            p.x = pXz4->p[i].x;
+            p.y = pXz4->y + pXz4->h;
+            p.z = pXz4->p[i].z;
             area_Draw_sphere(p, r, 0xFFFF00FE, mtx);
         }
         break;
     case 4:
         for (i = 0; i < 4; i++) {
-            p.x = a->p[i].x;
-            p.y = a->y;
-            p.z = a->p[i].z;
+            p.x = pXz4->p[i].x;
+            p.y = pXz4->y;
+            p.z = pXz4->p[i].z;
             area_Draw_sphere(p, r, 0xFFFF00FE, mtx);
-            p.y = a->y + a->h;
+            p.y = pXz4->y + pXz4->h;
             area_Draw_sphere(p, r, 0xFFFF00FE, mtx);
         }
         break;
     }
 
-    area_xz4_Disp(a, color, flag, mtx);
+    area_xz4_Disp(pXz4, color, flag, mtx);
 }
 
-void area_cylinder_Edit(AreaCylinder* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
+void area_cylinder_Edit(AreaCylinder* pCld, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     Vec p;
     Vec t;
@@ -508,27 +508,27 @@ void area_cylinder_Edit(AreaCylinder* a, u32 color, int flag, Mtx mtx, u32 mode,
     case 0:
         break;
     case 1:
-        a->r += dx;
-        if (a->r < 10.0f) {
-            a->r = 10.0f;
+        pCld->r += dx;
+        if (pCld->r < 10.0f) {
+            pCld->r = 10.0f;
         }
         break;
     case 2:
-        p.x = a->x;
-        p.y = a->y;
-        p.z = a->z;
+        p.x = pCld->x;
+        p.y = pCld->y;
+        p.z = pCld->z;
         PSVECScale(&vx, &t, dx);
         PSVECAdd(&t, &p, &p);
         PSVECScale(&vy, &t, dy);
         PSVECAdd(&t, &p, &p);
-        a->x = p.x;
-        a->z = p.z;
+        pCld->x = p.x;
+        pCld->z = p.z;
         break;
     case 3:
-        a->h += dy;
+        pCld->h += dy;
         break;
     case 4:
-        a->y += dy;
+        pCld->y += dy;
         break;
     }
 
@@ -544,9 +544,9 @@ void area_cylinder_Edit(AreaCylinder* a, u32 color, int flag, Mtx mtx, u32 mode,
         n = 1;
         col = 0xFFFF00FE;
         div = 1;
-        c.x = a->x;
-        c.y = a->y;
-        c.z = a->z;
+        c.x = pCld->x;
+        c.y = pCld->y;
+        c.z = pCld->z;
         area_Draw_sphere(c, r, 0xFFFF00FE, mtx);
         break;
     case 2:
@@ -568,27 +568,27 @@ void area_cylinder_Edit(AreaCylinder* a, u32 color, int flag, Mtx mtx, u32 mode,
 
     for (j = start; j < n; j++) {
         if (j == 0) {
-            c.y = a->y;
+            c.y = pCld->y;
         } else {
-            c.y = a->y + a->h;
+            c.y = pCld->y + pCld->h;
         }
-        c.x = a->x;
-        c.z = a->z;
+        c.x = pCld->x;
+        c.z = pCld->z;
         ang = 0.0f;
         for (k = 0; k < div; k++) {
-            q.x = a->r * sinf(ang);
+            q.x = pCld->r * sinf(ang);
             q.y = 0.0f;
-            q.z = a->r * cosf(ang);
+            q.z = pCld->r * cosf(ang);
             PSVECAdd(&c, &q, &p);
             area_Draw_sphere(p, r, col, mtx);
             ang += 6.28f / (f32) (div - 1);
         }
     }
 
-    area_cylinder_Disp(a, color, flag, mtx);
+    area_cylinder_Disp(pCld, color, flag, mtx);
 }
 
-void area_eye_trigger_Edit(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
+void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
     Vec p;
     Vec t;
@@ -605,37 +605,37 @@ void area_eye_trigger_Edit(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx, u32 
     case 0:
         break;
     case 1:
-        a->r += dy * 0.05f;
-        if (a->r < 0.0f) {
-            a->r = 0.0f;
+        pEtg->r += dy * 0.05f;
+        if (pEtg->r < 0.0f) {
+            pEtg->r = 0.0f;
         }
-        a->open += dx * 0.0005f;
-        if (a->open < 0.0f) {
-            a->open = 0.0f;
+        pEtg->open += dx * 0.0005f;
+        if (pEtg->open < 0.0f) {
+            pEtg->open = 0.0f;
         }
-        if (a->open > 6.28f) {
-            a->open = 6.28f;
+        if (pEtg->open > 6.28f) {
+            pEtg->open = 6.28f;
         }
         break;
     case 2:
-        p.x = a->x;
-        p.y = a->y;
-        p.z = a->z;
+        p.x = pEtg->x;
+        p.y = pEtg->y;
+        p.z = pEtg->z;
         PSVECScale(&vx, &t, dx);
         PSVECAdd(&t, &p, &p);
         PSVECScale(&vy, &t, dy);
         PSVECAdd(&t, &p, &p);
-        a->x = p.x;
-        a->z = p.z;
+        pEtg->x = p.x;
+        pEtg->z = p.z;
         break;
     case 3:
-        a->y += dy;
+        pEtg->y += dy;
         break;
     case 4:
-        a->ang_x += dy * 0.0005f;
-        a->ang_y += dx * 0.0005f;
-        a->ang_x = LIMIT_ANGLE(a->ang_x);
-        a->ang_y = LIMIT_ANGLE(a->ang_y);
+        pEtg->ang_x += dy * 0.0005f;
+        pEtg->ang_y += dx * 0.0005f;
+        pEtg->ang_x = LIMIT_ANGLE(pEtg->ang_x);
+        pEtg->ang_y = LIMIT_ANGLE(pEtg->ang_y);
         break;
     }
 
@@ -649,9 +649,9 @@ void area_eye_trigger_Edit(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx, u32 
         n = 1;
         col = 0xFFFF00FE;
         div = 1;
-        c.x = a->x;
-        c.y = a->y;
-        c.z = a->z;
+        c.x = pEtg->x;
+        c.y = pEtg->y;
+        c.z = pEtg->z;
         area_Draw_sphere(c, r, 0xFFFF00FE, mtx);
         break;
     case 2:
@@ -670,24 +670,24 @@ void area_eye_trigger_Edit(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx, u32 
 
     for (j = 0; j < n; j++) {
         if (j == 0) {
-            c.y = a->y;
+            c.y = pEtg->y;
         } else {
-            c.y = a->y + a->h;
+            c.y = pEtg->y + pEtg->h;
         }
-        c.x = a->x;
-        c.z = a->z;
+        c.x = pEtg->x;
+        c.z = pEtg->z;
         ang = 0.0f;
         for (k = 0; k < div; k++) {
-            q.x = a->r * sinf(ang);
+            q.x = pEtg->r * sinf(ang);
             q.y = 0.0f;
-            q.z = a->r * cosf(ang);
+            q.z = pEtg->r * cosf(ang);
             PSVECAdd(&c, &q, &p);
             area_Draw_sphere(p, r, col, mtx);
             ang += 6.28f / (f32) (div - 1);
         }
     }
 
-    area_eye_trigger_Disp(a, color, flag, mtx);
+    area_eye_trigger_Disp(pEtg, color, flag, mtx);
 }
 
 void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx)
@@ -711,23 +711,23 @@ void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx)
     }
 }
 
-void area_xz4_Disp(AreaXZ4* a, u32 color, int flag, Mtx mtx)
+void area_xz4_Disp(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx)
 {
     Vec v[5];
     Vec w[5];
     u32 i;
 
     for (i = 0; i < 4; i++) {
-        v[i].x = a->p[i].x;
-        v[i].y = a->y;
-        v[i].z = a->p[i].z;
+        v[i].x = pXz4->p[i].x;
+        v[i].y = pXz4->y;
+        v[i].z = pXz4->p[i].z;
     }
-    v[4].x = a->p[0].x;
-    v[4].y = a->y;
-    v[4].z = a->p[0].z;
+    v[4].x = pXz4->p[0].x;
+    v[4].y = pXz4->y;
+    v[4].z = pXz4->p[0].z;
     for (i = 0; i < 5; i++) {
         w[i] = v[i];
-        w[i].y += a->h;
+        w[i].y += pXz4->h;
     }
     if (mtx) {
         for (i = 0; i < 5; i++) {
@@ -780,7 +780,7 @@ void area_xz4_Disp(AreaXZ4* a, u32 color, int flag, Mtx mtx)
     }
 }
 
-void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
+void area_cylinder_Disp(AreaCylinder* pCld, u32 color, int flag, Mtx mtx)
 {
     Vec tri2[3];
     Vec tri[3];
@@ -795,27 +795,27 @@ void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
 
     for (j = 0; j < 2; j++) {
         if (j == 0) {
-            c.y = a->y;
+            c.y = pCld->y;
         } else {
-            c.y = a->y + a->h;
+            c.y = pCld->y + pCld->h;
         }
-        c.x = a->x;
-        c.z = a->z;
+        c.x = pCld->x;
+        c.z = pCld->z;
         if (mtx) {
             PSMTXMultVec(mtx, &c, &c);
         }
         ang = 0.0f;
         for (k = 0; k < div; k++) {
-            q.x = a->r * sinf(ang);
+            q.x = pCld->r * sinf(ang);
             q.y = 0.0f;
-            q.z = a->r * cosf(ang);
+            q.z = pCld->r * cosf(ang);
             PSVECAdd(&c, &q, &p);
             if (k != 0) {
                 Draw_line3d(&prev, &p, color, 0);
             }
             if (j == 0) {
                 q.x = 0.0f;
-                q.y = a->h;
+                q.y = pCld->h;
                 q.z = 0.0f;
                 PSVECAdd(&p, &q, &q);
                 Draw_line3d(&p, &q, color, 0);
@@ -830,13 +830,13 @@ void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
                         tri2[0] = p;
                         tri2[1] = prev;
                         tri2[2] = prev;
-                        tri2[2].y += a->h;
+                        tri2[2].y += pCld->h;
                         Draw_poly(tri2, col, 0);
                         tri2[0] = p;
                         tri2[1] = prev;
                         tri2[2] = p;
-                        tri2[0].y += a->h;
-                        tri2[1].y += a->h;
+                        tri2[0].y += pCld->h;
+                        tri2[1].y += pCld->h;
                         Draw_poly(tri2, col, 0);
                     }
                 }
@@ -847,28 +847,28 @@ void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
     }
 }
 
-void area_eye_trigger_Disp(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx)
+void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx)
 {
     Vec c;
 
-    c.x = a->x;
-    c.y = a->y;
-    c.z = a->z;
+    c.x = pEtg->x;
+    c.y = pEtg->y;
+    c.z = pEtg->z;
     area_Draw_sphere(c, 10.0f, color, mtx);
-    area_Draw_sphere(c, a->r, color, mtx);
-    if (a->open != 0.0f) {
+    area_Draw_sphere(c, pEtg->r, color, mtx);
+    if (pEtg->open != 0.0f) {
         Mtx m;
         Vec dir;
         Vec rot;
         dir.x = 0.0f;
         dir.y = 0.0f;
         dir.z = 1.0f;
-        rot.x = a->ang_x;
-        rot.y = a->ang_y;
+        rot.x = pEtg->ang_x;
+        rot.y = pEtg->ang_y;
         rot.z = 0.0f;
         RotMatrix(m, &rot);
         PSMTXMultVecSR(m, &dir, &dir);
-        Draw_corn2(&c, &dir, 1000.0f, a->open * 360.0f / 6.28f, color);
+        Draw_corn2(&c, &dir, 1000.0f, pEtg->open * 360.0f / 6.28f, color);
     }
 }
 

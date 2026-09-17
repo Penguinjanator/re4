@@ -142,10 +142,10 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     for (i = 0; i < 9; i++) {
         *p++ = 0;
     }
-    obj->xFC = 0;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     objTrolleySatSet((cObjTrolley*) obj);
     return obj;
 }
@@ -153,7 +153,7 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
 void cObjTrolley::move()
 {
     objTrolleySatClear(this);
-    ObjTrolley_R0_move_tbl[xFC](this);
+    ObjTrolley_R0_move_tbl[r_no_0](this);
 }
 
 void objTrolley_R0_Set(cObjTrolley* obj)
@@ -172,10 +172,10 @@ void objTrolley_R0_Set(cObjTrolley* obj)
     if (w->flags & 1) {
         pG->flags_500C |= 0x20;
         w->ride = 1;
-        obj->xFC = 1;
-        obj->xFD = 0;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 0;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
 }
 
@@ -184,26 +184,26 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     TrolleyWork* w = &obj->trolley;
 
     objTrolleyPushMtx(obj);
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             SndCall(6, 2, 0, 0, 0, 0);
             SndCall(6, 3, 0, 0, 0, 0);
             w->flags |= 4;
-            obj->xFE++;
+            obj->r_no_2++;
         }
         break;
     case 2:
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         MotionMove(obj, 0);
         if (w->flags & 2) {
-            obj->xFE++;
+            obj->r_no_2++;
         }
         break;
     case 4:
@@ -211,16 +211,16 @@ void objTrolley_R0_Move(cObjTrolley* obj)
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
         w->timer = 20;
-        obj->xFF = Rnd() & 1;
-        obj->xFE++;
+        obj->r_no_3 = Rnd() & 1;
+        obj->r_no_2++;
     case 5:
         if (MotionMove(obj, 0) && w->ride) {
             w->ride = 0;
             SetPlDamage((int) obj, plobjTrolleyDie);
-            obj->xFC = 2;
-            obj->xFD = 0;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 2;
+            obj->r_no_1 = 0;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         } else {
             if (obj->motFrame > 2250.0f) {
                 pG->flags_5014 |= 0x08000000;
@@ -229,7 +229,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
                 EstSet((int) obj, -1, 0, 0, 1, 0x13, 0, 0, (u32) obj, 0);
             }
             if (obj->motFrame > 2865.0f) {
-                if (obj->xFF) {
+                if (obj->r_no_3) {
                     ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 3, 0, 0);
                 } else {
                     ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 4, 0, 0);
@@ -253,13 +253,13 @@ void objTrolley_R0_Break(cObjTrolley* obj)
     TrolleyWork* w = &obj->trolley;
 
     objTrolleyPushMtx(obj);
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         obj->pos.x = -201000.0f;
         obj->pos.y = -52400.0f;
         obj->pos.z = 78000.0f;
         obj->rot.y = 0.0f;
-        if (obj->xFF) {
+        if (obj->r_no_3) {
             MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
         } else {
             MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, 0);
@@ -267,7 +267,7 @@ void objTrolley_R0_Break(cObjTrolley* obj)
         SndCall(6, 2, 0, 0, 0, 0);
         SndCall(6, 3, 0, 0, 0, 0);
         objTrolleyFallEM(obj);
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             objTrolleyLostEM(obj);
@@ -356,10 +356,10 @@ void objTrolleyEscapeAction(cObjTrolley* obj)
 {
     obj->trolley.ride = 0;
     SetPlDamage((int) obj, plobjTrolleyEscape);
-    obj->xFC = 2;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 1;
+    obj->r_no_0 = 2;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 1;
 }
 
 void plobjTrolleyEscape(cPlayer* pl)
@@ -371,7 +371,7 @@ void plobjTrolleyEscape(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->pos.x = -201027.56f;
         em->pos.y = -51832.78f;
@@ -380,10 +380,10 @@ void plobjTrolleyEscape(cPlayer* pl)
         MotionSetCore(em, &em->pMotion, w->mot[4], 0, 0, 0x201, 0);
         em->atari.throughOn();
         em->be_flag &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         } else {
             if (em->frame > 15.7f && em->frame < 16.3f) {
                 SndCall(1, 0x10, &parts->worldPos, 0, 0, em);
@@ -411,7 +411,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         if (pG->x4F88 > 7) {
             em->x3E4 = 15;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
         if (Key.trg & 0x80000000) {
@@ -423,9 +423,9 @@ void plobjTrolleyEscape(cPlayer* pl)
         if (em->x3E0) {
             em->x3E0--;
         } else if (em->x3E4) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         } else {
-            em->xFE = 4;
+            em->r_no_2 = 4;
         }
         break;
     case 4:
@@ -434,7 +434,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.z = 95773.43f;
         em->rot.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[7], 0, 0, 0x201, 0);
-        em->xFE++;
+        em->r_no_2++;
         SndRoomStrStop(2);
         SndStrReq(1, 0x2F, 0x80000003, 0, 0, 0.0f);
     case 5:
@@ -459,7 +459,7 @@ void plobjTrolleyEscape(cPlayer* pl)
         MotionSetCore(em, &em->pMotion, w->mot[8], 0, 0, 0x201, 0);
         SndCall(1, 0x4A, &pPL->getPartsPtr(4)->worldPos, 0, 0, em);
         pG->pl_life = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         MotionMove(em, 0);
         break;
@@ -476,7 +476,7 @@ void plobjTrolleyDie(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    step = em->xFE;
+    step = em->r_no_2;
     switch (step) {
     case 0:
         em->pos.x = -201000.0f;
@@ -487,7 +487,7 @@ void plobjTrolleyDie(cPlayer* pl)
         em->atari.throughOn();
         pGS->pl_life = step;
         em->be_flag &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMove(em, 0);
         break;
@@ -700,9 +700,9 @@ void objTrolleyHitCk(cObjTrolley* obj)
     cModel* parts;
 
     parts = obj->getPartsPtr(0);
-    if ((parts->worldPos.x - parts->x88.x) * (parts->worldPos.x - parts->x88.x) +
-        (parts->worldPos.y - parts->x88.y) * (parts->worldPos.y - parts->x88.y) +
-        (parts->worldPos.z - parts->x88.z) * (parts->worldPos.z - parts->x88.z) < 2500.0f) {
+    if ((parts->worldPos.x - parts->world_old2.x) * (parts->worldPos.x - parts->world_old2.x) +
+        (parts->worldPos.y - parts->world_old2.y) * (parts->worldPos.y - parts->world_old2.y) +
+        (parts->worldPos.z - parts->world_old2.z) * (parts->worldPos.z - parts->world_old2.z) < 2500.0f) {
         return;
     }
     v.x = 0.0f;
@@ -733,10 +733,10 @@ void objTrolleyFallEM(cObjTrolley* obj)
             em->hp = 0;
             em->x9BC = em->rot.y;
             em->be_flag |= 0x10000;
-            em->xFC = 2;
-            em->xFD = 7;
-            em->xFE = 0;
-            em->xFF = 1;
+            em->r_no_0 = 2;
+            em->r_no_1 = 7;
+            em->r_no_2 = 0;
+            em->r_no_3 = 1;
         }
     }
 }

@@ -29,7 +29,7 @@ extern f32 ZNEAR;
 u32 SubCharGetStatus();
 int GetWaterHeight(Vec* pos, f32* height);
 void QuakeInit();
-void eprintf(int x, int y, int color, int a, const char* fmt, ...);
+void eprintf(int x, int y, int color, int p, const char* fmt, ...);
 
 
 #define PI 3.1415927f
@@ -195,7 +195,7 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* p)
 
 int CameraControl::IsChangeCamera()
 {
-    if (flags_30 & 2) {
+    if (m_state_flag & 2) {
         return 1;
     }
     return 0;
@@ -204,10 +204,10 @@ int CameraControl::IsChangeCamera()
 void CameraControl::Comeback(int)
 {
     data = (CameraDataHeader*) pG->pRoomCamData;
-    flags_30 &= ~4;
-    flags_2C = (flags_2C & ~8) | 0x10;
-    if (flags_2C & 0x20) {
-        flags_2C &= ~0x20;
+    m_state_flag &= ~4;
+    m_system_flag = (m_system_flag & ~8) | 0x10;
+    if (m_system_flag & 0x20) {
+        m_system_flag &= ~0x20;
     }
     Check();
 }
@@ -215,17 +215,17 @@ void CameraControl::Comeback(int)
 void CameraControl::Disable()
 {
     state = 0;
-    flags_2C |= 8;
+    m_system_flag |= 8;
 }
 
 void CameraControl::AreaCheckOnOff(int mode)
 {
     switch (mode) {
     case 0:
-        flags_2C |= 8;
+        m_system_flag |= 8;
         break;
     case 1:
-        flags_2C = (flags_2C & ~8) | 0x10;
+        m_system_flag = (m_system_flag & ~8) | 0x10;
         break;
     }
 }
@@ -276,7 +276,7 @@ CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_
     return NULL;
 }
 
-CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* d)
+CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
 {
     int ver2;
     int i;
@@ -284,52 +284,52 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* d)
     CameraAreaInfo* area;
     CameraCut* cut;
 
-    if (cameraDataVersion((char*) d) <= 1) {
-        return d;
+    if (cameraDataVersion((char*) pBuff) <= 1) {
+        return pBuff;
     }
     ver2 = 0;  // assigned after the early return: its `li` lands after the strncmp call
-    if (strncmp((char*) d, "B402", 4) == 0) {
+    if (strncmp((char*) pBuff, "B402", 4) == 0) {
         ver2 = 1;
         OSReport("CameraControl::calcAddr(): R%1d%02x Ver02", pG->stage_no, pG->room_no);
     }
 
-    rec = (CameraAreaRec*) (d + 1);
-    for (i = 0; i < d->numArea; i++, rec++) {
+    rec = (CameraAreaRec*) (pBuff + 1);
+    for (i = 0; i < pBuff->numArea; i++, rec++) {
         if ((s32) rec->area < 0) {
-            return d;
+            return pBuff;
         }
-        rec->area = (CameraAreaInfo*) ((u32) rec->area + (u32) d);
+        rec->area = (CameraAreaInfo*) ((u32) rec->area + (u32) pBuff);
         if (rec->cut) {
-            rec->cut = (CameraCut*) ((u32) rec->cut + (u32) d);
+            rec->cut = (CameraCut*) ((u32) rec->cut + (u32) pBuff);
         }
     }
 
     area = (CameraAreaInfo*) rec;
-    for (i = 0; i < d->numArea; i++, area++) {
-        area->points = (Vec*) ((u32) area->points + (u32) d);
+    for (i = 0; i < pBuff->numArea; i++, area++) {
+        area->points = (Vec*) ((u32) area->points + (u32) pBuff);
         if (ver2) {
             area->attr = 3;
         }
         if (area->attr & 8) {
             area->attr |= 0x20;
         }
-        if (cameraDataVersion((char*) d) <= 3) {
+        if (cameraDataVersion((char*) pBuff) <= 3) {
             area->attr2 = 1;
             area->x9 = 0xFF;
             OSReport("CameraControl::calcAddr(): R%1d%02x Ver%02d", pG->stage_no, pG->room_no,
-                     cameraDataVersion((char*) d));
+                     cameraDataVersion((char*) pBuff));
         }
     }
 
     cut = (CameraCut*) area;
-    for (i = 0; i < d->numCut; i++, cut++) {
-        cut->pos = (Vec*) ((u32) cut->pos + (u32) d);
-        cut->at = (Vec*) ((u32) cut->at + (u32) d);
-        cut->roll = (f32*) ((u32) cut->roll + (u32) d);
-        cut->fovy = (f32*) ((u32) cut->fovy + (u32) d);
-        cut->frames = (u16*) ((u32) cut->frames + (u32) d);
+    for (i = 0; i < pBuff->numCut; i++, cut++) {
+        cut->pos = (Vec*) ((u32) cut->pos + (u32) pBuff);
+        cut->at = (Vec*) ((u32) cut->at + (u32) pBuff);
+        cut->roll = (f32*) ((u32) cut->roll + (u32) pBuff);
+        cut->fovy = (f32*) ((u32) cut->fovy + (u32) pBuff);
+        cut->frames = (u16*) ((u32) cut->frames + (u32) pBuff);
     }
-    return d;
+    return pBuff;
 }
 
 void CameraControl::RoomDataRead(CameraDataHeader* room)
@@ -530,8 +530,8 @@ void CameraControl::CutCall(int no)
         clearAttachCamera();
         interp.frame = 0;
         switchCamera(rec);
-        flags_2C |= 8;
-        flags_30 |= 4;
+        m_system_flag |= 8;
+        m_state_flag |= 4;
     } else {
         pLog->err(0, 0, "CameraControl::CutCall(): Cut %02d doesn't exist.", no);
     }
@@ -548,7 +548,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     int size;
 
     if (area_no != -1) {
-        lerp = LerpDataSearch(area_no, x691, area->area_no, area->camera_no);
+        lerp = LerpDataSearch(area_no, areaSuffix, area->area_no, area->camera_no);
         if (lerp && lerp->enable == 1) {
             interp.set(lerp->frame, &cur);
         }
@@ -556,7 +556,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         interp.frame = 0;
     }
 
-    if (flags_2C & 2) {
+    if (m_system_flag & 2) {
         if (!(rec->area->attr & 8)) {
             d = data;
             for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
@@ -565,7 +565,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
                 }
             }
         }
-        flags_2C &= ~2;
+        m_system_flag &= ~2;
     }
 
     if (area_rec != NULL) {
@@ -583,20 +583,20 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     }
 
     area_no = area->area_no;
-    x691 = area->camera_no;
+    areaSuffix = area->camera_no;
     camera_no = cut->camera_no;
     area_rec = rec;
 
     if (area_no != -1) {
-        if (flags_2C & 0x10) {
-            if (!(flags_2C & 0x40)) {
+        if (m_system_flag & 0x10) {
+            if (!(m_system_flag & 0x40)) {
                 LightMgr.update(area_no, -1);
             }
         } else if (!(area->attr & 0x80)) {
             LightMgr.update(area_no, -1);
         }
     }
-    flags_30 |= 2;
+    m_state_flag |= 2;
 
     switch (cut->type) {
     case 0:
@@ -656,7 +656,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         }
         q->setAreaData(area_rec->cut);
         q->bindAreaCamera(area_rec);
-        if (prev_state == 10 && !(flags_2C & 0x10)) {
+        if (prev_state == 10 && !(m_system_flag & 0x10)) {
             qfps.setBlendCount(10);
         } else {
             qfps.init();
@@ -666,7 +666,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         break;
     }
     }
-    flags_2C &= ~0x10;
+    m_system_flag &= ~0x10;
 }
 
 int areaAttr(CameraAreaInfo* area, u8 attr, u8 attr2)
@@ -852,31 +852,31 @@ void CameraControl::areaHitCheck()
     if (d == NULL) {
         camera_no = -1;
         area_no = -1;
-        x691 = -1;
+        areaSuffix = -1;
         state = 0xA;  // LAST: its 0xa register stays live across the `flags_2C & 0x10` test (andi. r10, not r9)
-        if (old_area != -1 || (flags_2C & 0x10)) {
+        if (old_area != -1 || (m_system_flag & 0x10)) {
             qfps.init();
-            flags_2C &= ~0x10;
+            m_system_flag &= ~0x10;
         }
         area_rec = NULL;
         return;
     }
-    if (flags_2C & 1) {
-        if (flags_2C & 0x10) {
+    if (m_system_flag & 1) {
+        if (m_system_flag & 0x10) {
             state = 0xA;
             qfps.init();
-            flags_2C &= ~0x10;
+            m_system_flag &= ~0x10;
         }
         return;
     }
     if (cameraDataVersion((char*) d) <= 1) {
         camera_no = -1;
         area_no = -1;
-        x691 = -1;
+        areaSuffix = -1;
         state = 0xA;  // LAST: its 0xa register stays live across the `flags_2C & 0x10` test (andi. r10, not r9)
-        if (old_area != -1 || (flags_2C & 0x10)) {
+        if (old_area != -1 || (m_system_flag & 0x10)) {
             qfps.init();
-            flags_2C &= ~0x10;
+            m_system_flag &= ~0x10;
         }
         area_rec = NULL;
         return;
@@ -913,7 +913,7 @@ void CameraControl::areaHitCheck()
         area = rec->area;
         cut = rec->cut;
         if (areaAttr(area, 0x20, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
-            if ((flags_2C & 0x10) || cut->camera_no != camera_no) {
+            if ((m_system_flag & 0x10) || cut->camera_no != camera_no) {
                 switchCamera(rec);
             }
             return;
@@ -936,14 +936,14 @@ void CameraControl::areaHitCheck()
             area_attr = 1;
         }
     }
-    if (flags_2C & 4) {
+    if (m_system_flag & 4) {
         area_attr = 2;
     }
     if (old_attr != area_attr) {
-        flags_2C |= 0x10;
+        m_system_flag |= 0x10;
     }
 
-    if (area_no != -1 && !(flags_2C & 0x10)) {
+    if (area_no != -1 && !(m_system_flag & 0x10)) {
         area = area_rec->area;
         if (areaAttr(area, area_attr, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
             return;
@@ -955,7 +955,7 @@ void CameraControl::areaHitCheck()
         area = rec->area;
         cut = rec->cut;
         if (areaAttr(area, area_attr, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
-            if ((flags_2C & 0x10) || cut->camera_no != camera_no) {
+            if ((m_system_flag & 0x10) || cut->camera_no != camera_no) {
                 switchCamera(rec);
             }
             return;
@@ -963,12 +963,12 @@ void CameraControl::areaHitCheck()
     }
 
     area_no = -1;
-    x691 = -1;
+    areaSuffix = -1;
     camera_no = -1;
     area_rec = NULL;
     state = 0xA;  // LAST (see the reset arms above); store order found by permutation
-    if (flags_2C & 0x10) {
-        flags_2C &= ~0x10;
+    if (m_system_flag & 0x10) {
+        m_system_flag &= ~0x10;
         qfps.bindDefaultCamera();
         qfps.init();
         sub_state = 0;
@@ -992,9 +992,9 @@ void CameraControl::roomInit()
 
     BitOn(pG->flags_500C, 0x100);
     if (data == NULL) {
-        flags_28 = 0;
+        be_flag = 0;
     } else {
-        flags_2C = 0x10;
+        m_system_flag = 0x10;
         ver = cameraDataVersion((char*) data);
         switch (ver) {
         case 2:
@@ -1015,40 +1015,40 @@ void CameraControl::roomInit()
                 if (ver > 4) {
                     goto clear;
                 }
-                flags_28 |= 1;
+                be_flag |= 1;
             } else {
-                flags_28 |= 1;
-                flags_2C |= 1;
+                be_flag |= 1;
+                m_system_flag |= 1;
             }
         } else {
         clear:
-            flags_28 = 0;
+            be_flag = 0;
         }
     }
     area_rec = NULL;
     state = 0xA;
-    flags_28 &= ~4;
-    flags_30 &= ~4;
+    be_flag &= ~4;
+    m_state_flag &= ~4;
     qfps.offsetCorrection();
     qfps.bindDefaultCamera();
     qfps.setFloorRatio(0.33333334f);
     qfps.init();
     area_no = -1;
-    x691 = -1;
+    areaSuffix = -1;
     camera_no = -1;
-    x6CC = 60.0f;
-    x6D0 = 600.0f;
-    x6D4 = 400.0f;
-    x6D8 = 0.7853982f;
-    x6DC = 0.3926991f;
-    x6E0 = 0xF;
-    x6E4 = 0.001f;
-    x6E8 = 0.75f;
+    m_behind_fovy = 60.0f;
+    m_side_play = 600.0f;
+    m_back_play = 400.0f;
+    m_ang_h_limit = 0.7853982f;
+    m_ang_v_limit = 0.3926991f;
+    m_quick_cnt = 0xF;
+    m_key_speed = 0.001f;
+    m_behind_A_ratio = 0.75f;
     clearAttachCamera();
-    BitOn(flags_2C, 2);
-    if (pG->flags_54 & 0x200000) {
+    BitOn(m_system_flag, 2);
+    if (pG->System_flg & 0x200000) {
         state = 0;
-        BitOn(flags_2C, 8);
+        BitOn(m_system_flag, 8);
     }
     x250 = 0;
     extra = NULL;
@@ -1068,15 +1068,15 @@ void CameraControl::Check()
     if (pG->flags_500C & 0x40000) {
         return;
     }
-    if (!(flags_28 & 1)) {
+    if (!(be_flag & 1)) {
         return;
     }
-    if (flags_28 & 4) {
+    if (be_flag & 4) {
         return;
     }
-    flags_30 &= ~2;
+    m_state_flag &= ~2;
     prev_state = state;
-    if (!(flags_2C & 8)) {
+    if (!(m_system_flag & 8)) {
         areaHitCheck();
     }
     checkAttachCamera();
@@ -1089,7 +1089,7 @@ void CameraControl::Check()
     if (x250 != 0) {
         return;
     }
-    if (flags_30 & 4) {
+    if (m_state_flag & 4) {
         return;
     }
     if (pPL->p2A4 && ((EmWork2A4*) pPL->p2A4)->x5) {
@@ -1108,7 +1108,7 @@ void CameraControl::Check()
     } else {
         if (d.y > 500.0f) {
             interp.set(30, &camera.param);
-            flags_2C = 0x10;
+            m_system_flag = 0x10;
         }
     }
 }
@@ -1123,10 +1123,10 @@ void CameraControl::Move()
     if (pG->flags_500C & 0x40000) {
         return;
     }
-    if (!(flags_28 & 1)) {
+    if (!(be_flag & 1)) {
         return;
     }
-    flags_30 &= ~1;
+    m_state_flag &= ~1;
     if (area_rec) {
         CalcAim(area_rec->cut);
     }
@@ -1215,7 +1215,7 @@ void CameraControl::Move()
     CamSmth.move(&interp.param);
     camera.param = *CamSmth.getParam();
     CameraSetOrientationRoll(&camera);
-    if (!(pG->flags_60 & 0x10000000) && (flags_30 & 4)) {
+    if (!(pG->flags_60 & 0x10000000) && (m_state_flag & 4)) {
         pG->Cam = CamCtrl.camera;
     }
 }
@@ -1545,7 +1545,7 @@ void CameraControl::r0_RailBehind()
         }
         pos_old = pPL->pos;
         memclr_asm(&camera_old, sizeof(Camera));
-        x36 = 0;
+        r2 = 0;
         sub_state++;
         edge_camera = 0;
         init_flg = 1;
@@ -1592,29 +1592,29 @@ void CameraControl::r0_RailBehind()
             }
         } else {
             if (joy->on & 0xF00000) {
-                ang.y -= (f32) joy->ssx * x6E4;
-                ang.x -= (f32) joy->ssy * x6E4;
-                ang.y = ang.y < -x6D8 ? -x6D8 : (ang.y > x6D8 ? x6D8 : ang.y);
-                ang.x = ang.x < -x6DC ? -x6DC : (ang.x > x6DC ? x6DC : ang.x);
+                ang.y -= (f32) joy->ssx * m_key_speed;
+                ang.x -= (f32) joy->ssy * m_key_speed;
+                ang.y = ang.y < -m_ang_h_limit ? -m_ang_h_limit : (ang.y > m_ang_h_limit ? m_ang_h_limit : ang.y);
+                ang.x = ang.x < -m_ang_v_limit ? -m_ang_v_limit : (ang.x > m_ang_v_limit ? m_ang_v_limit : ang.x);
                 c_rno++;
             } else {
-                if (c_rno < x6E0) {
+                if (c_rno < m_quick_cnt) {
                     ang.x = 0.0f;
                     ang.y = 0.0f;
                     switch (key_flg) {
                     case 0:
                         break;
                     case 1:
-                        ang.x = -x6DC;
+                        ang.x = -m_ang_v_limit;
                         break;
                     case 2:
-                        ang.x = x6DC;
+                        ang.x = m_ang_v_limit;
                         break;
                     case 3:
-                        ang.y = x6D8;
+                        ang.y = m_ang_h_limit;
                         break;
                     case 4:
-                        ang.y = -x6D8;
+                        ang.y = -m_ang_h_limit;
                         break;
                     }
                 }
@@ -1665,7 +1665,7 @@ void CameraControl::r0_RailBehind()
         p2 = cam.param.at;
         PSVECSubtract(&p1, &p2, &dir);
         dir.y = 0.0f;
-        switch (x36) {
+        switch (r2) {
         case 0:
             if (init_flg == 1 && edge_camera == 1) {
                 PSVECSubtract(&pPL->pos, &p0, &v);
@@ -1680,7 +1680,7 @@ void CameraControl::r0_RailBehind()
                 }
                 reset = 1;
             }
-            x36++;
+            r2++;
             break;
         case 1:
             PSVECSubtract(&pPL->pos, &c->param.pos, &v);
@@ -1715,7 +1715,7 @@ void CameraControl::r0_RailBehind()
         PSMTXMultVecSR(m, &dbg_at, &cam.param.at);
         PSVECAdd(&cam.param.at, &floor, &cam.param.at);
         if (!(cut->flags & 1)) {
-            cam.param.fovy = x6CC;
+            cam.param.fovy = m_behind_fovy;
             cam.param.roll = 0.0f;
         } else {
             cam.param.roll = 0.0f;
@@ -1758,9 +1758,9 @@ void CameraControl::r0_RailBehind()
             pos_old = pPL->pos;
             PSMTXMultVecSR(inv, &d, &d);
             FSet(move_z, move_z + d.z);
-            if (move_z > x6D4 || move_z < -x6D4) {
+            if (move_z > m_back_play || move_z < -m_back_play) {
                 if (edge_camera == 0) {
-                    x36 = 0;
+                    r2 = 0;
                 }
             }
         } else {
@@ -1774,12 +1774,12 @@ void CameraControl::r0_RailBehind()
             cam.param.at = pPL->pos;
             cam.param.at.y += 1550.0f;
         } else {
-            CamSmth.ratio = x6E8;
+            CamSmth.ratio = m_behind_A_ratio;
         }
         cur = cam.param;
         CamSmth.flags |= 1;
         if (reset == 1) {
-            CamSmth.ratio = x6E8;
+            CamSmth.ratio = m_behind_A_ratio;
         }
         break;
     }
@@ -1842,10 +1842,10 @@ void CameraControl::r0_Free()
         PSMTXMultVec(cam_mat, &dbg_pos, &cam.param.pos);
         PSMTXMultVec(cam_mat, &dbg_at, &cam.param.at);
         cam.param.roll = 0.0f;
-        cam.param.fovy = x6CC;
+        cam.param.fovy = m_behind_fovy;
         cur = cam.param;
         CamSmth.flags |= 1;
-        x36 = 0;
+        r2 = 0;
         sub_state++;
     }
     case 1: {
@@ -1875,13 +1875,13 @@ void CameraControl::r0_Free()
             PSMTXMultVec(m, &dbg_at, &dbg_at);
         }
         {
-            int st = x36;
+            int st = r2;
 
             asm("" : "+r"(st));  // COMPILER-DIFF 2: the original zero-extends the loaded byte again
             switch ((u8) st) {
             case 0:
                 if (JoyTrg(joy, 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
-                    x36 = st + 1;
+                    r2 = st + 1;
                 }
                 break;
             case 1: {
@@ -1897,7 +1897,7 @@ void CameraControl::r0_Free()
                     // the pairs fold to one halfword test each; the second pointer keeps fold
                     // from merging all four bytes into one word compare
                     if (PSVECMag(&d) < 0.05f || (joy->ssx != 0 || joy->ssy != 0) || (joy2->sx != 0 || joy2->sy != 0)) {
-                        x36--;
+                        r2--;
                     }
                 }
                 break;
@@ -1907,7 +1907,7 @@ void CameraControl::r0_Free()
         PSMTXMultVec(cam_mat, &dbg_pos, &cam.param.pos);
         PSMTXMultVec(cam_mat, &dbg_at, &cam.param.at);
         cam.param.roll = 0.0f;
-        cam.param.fovy = x6CC;
+        cam.param.fovy = m_behind_fovy;
         rate = 0.8f;
         PSVECScale(&cam.param.pos, &cam.param.pos, rate);
         PSVECScale(&cur.pos, &tmp, 1.0f - rate);
@@ -2218,7 +2218,7 @@ void CameraControl::startScope(Vec* pos, Vec* at)
         BitOn(pG->flags_500C, 0x8000);
         extra = new (extra_buf) CameraScope(pos, at);
         state = 0x10;
-        BitOn(pG->flags_58, 0x40000000);
+        BitOn(pG->Disp_flg, 0x40000000);
         AreaCheckOnOff(0);
     }
 }
@@ -2228,7 +2228,7 @@ void CameraControl::endScope()
     if (pG->flags_500C & 0x40) {
         BitOff(pG->flags_500C, 0x40);
         BitOff(pG->flags_500C, 0x8000);
-        BitOff(pG->flags_58, 0x40000000);
+        BitOff(pG->Disp_flg, 0x40000000);
         if (extra) {
             delete extra;
         }
@@ -2257,9 +2257,9 @@ void CameraControl::loadScopeParam()
     ((CameraScope*) extra)->id.load(0);
 }
 
-void CameraControl::SetBinocularRange(f32 a, f32 b, f32 c, f32 d)
+void CameraControl::SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
-    ((CameraBinocular*) extra)->setRange(a, b, c, d);
+    ((CameraBinocular*) extra)->setRange(x_low, x_up, y_low, y_up);
 }
 
 void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
@@ -2268,7 +2268,7 @@ void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
     BitOn(pG->flags_500C, 0x8000);
     extra = new (extra_buf) CameraBinocular(pos, at, id_a, id_b);
     state = 0xC;
-    BitOn(pG->flags_58, 0x40000000);
+    BitOn(pG->Disp_flg, 0x40000000);
     AreaCheckOnOff(0);
 }
 
@@ -2276,22 +2276,22 @@ void CameraControl::LowerBinocular()
 {
     BitOff(pG->flags_500C, 0x400);
     BitOff(pG->flags_500C, 0x8000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     if (extra) {
         delete extra;
     }
     Comeback(0);
 }
 
-void CameraControl::GetBinocularIDAddr(void** a, void** b)
+void CameraControl::GetBinocularIDAddr(void** eff_addr, void** uwf_addr)
 {
-    *a = ((CameraBinocular*) extra)->id_a;
-    *b = ((CameraBinocular*) extra)->id_b;
+    *eff_addr = ((CameraBinocular*) extra)->id_a;
+    *uwf_addr = ((CameraBinocular*) extra)->id_b;
 }
 
 void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 {
-    BitOn(flags_2C, 0x28);
+    BitOn(m_system_flag, 0x28);
     BitOn(pG->flags_5014, 0x10000000);
     extra = new (extra_buf) CameraMotion(motion, 0, 0, speed);
     ((CameraMotion*) extra)->base_mat = NULL;
@@ -2301,7 +2301,7 @@ void CameraControl::MotionSet(void* motion, int frame, f32 speed)
 
 int CameraControl::IsMotionSet()
 {
-    if (flags_2C & 0x20) {
+    if (m_system_flag & 0x20) {
         return 1;
     }
     return 0;
@@ -2427,7 +2427,7 @@ void CameraControl::checkAttachCamera()
     if (pG->flags_500C & 0x40) {
         return;
     }
-    if (flags_30 & 4) {
+    if (m_state_flag & 4) {
         return;
     }
     switch (attach_num) {
@@ -2448,7 +2448,7 @@ void CameraControl::checkAttachCamera()
     if (model) {
         ac = getAttachCamera(model);
         if (attach_cur != model) {
-            BitOn(flags_2C, 8);
+            BitOn(m_system_flag, 8);
             interp.set(ac->frame, &pG->Cam.param);
             state = 0x11;
             if (extra) {
@@ -2462,7 +2462,7 @@ void CameraControl::checkAttachCamera()
         }
         inter_frame = ac->frame;
     } else if (attach_cur) {
-        BitSet(flags_2C, 0x10);
+        BitSet(m_system_flag, 0x10);
         interp.set(inter_frame, &pG->Cam.param);
     }
     attach_cur = model;

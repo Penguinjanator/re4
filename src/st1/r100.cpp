@@ -136,7 +136,7 @@ void R100Init()
     cModelInfo* info;
     u32 flag;
 
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     if (pG->x4F9F == 1 || DebugTrg(1)) {
         RsfSet(G_ROOM_ID, 10);
         RsfSet(G_ROOM_ID, 3);
@@ -292,7 +292,7 @@ void R100Init()
         if (info) {
             o->addModel(info);
         }
-        W->cop[0]->x12F = 4;
+        W->cop[0]->ot_type = 4;
         MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0, 0, 5, 0);
         o->setNoSuspend(0);
         o2 = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x25), &pos, &rot, 0x10, 1);
@@ -305,7 +305,7 @@ void R100Init()
         if (info) {
             o2->addModel(info);
         }
-        W->cop[1]->x12F = 4;
+        W->cop[1]->ot_type = 4;
         MotionSetCore(o2, &o2->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 5, 0);
         o2->setNoSuspend(0);
     }
@@ -325,10 +325,10 @@ void R100Init()
         cEm* em = W->em;
 
         if (em != 0 && em != errEm) {
-            em->xFC = 1;
-            em->xFD = 0x10;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0x10;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             em->flags_3C8 |= 1;
         }
     }
@@ -562,16 +562,16 @@ static void r100_StartEvent()
     u32 flag;
 
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(1);
     BitOff(SmdGetObjPtr(0x44)->be_flag, 2);
     BitOn(pG->flags_5010, 0x800);
-    BitOn(pG->flags_58, 0x20000);
-    flag = pG->flags_54;
+    BitOn(pG->Disp_flg, 0x20000);
+    flag = pG->System_flg;
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!(pG->flags_54 & 0x40) && !(pG->flags_51C0 & 0x10)) {
+    if (!(pG->System_flg & 0x40) && !(pG->flags_51C0 & 0x10)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
@@ -582,7 +582,7 @@ static void r100_StartEvent()
             freeEvent(9, 1);
         }
     } else {
-        pG->flags_54 &= ~0x400;
+        pG->System_flg &= ~0x400;
         freeEvent(9, 0);
     }
     BitOn(SmdGetObjPtr(0x44)->be_flag, 2);
@@ -606,7 +606,7 @@ static void r100_StartEvent()
         p->setAng(&ang);
     }
     SceEventEnd(0);
-    BitOff(pG->flags_58, 0x20000);
+    BitOff(pG->Disp_flg, 0x20000);
     if (skip == 0 && !(pG->flags_51C0 & 0x10)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -749,7 +749,7 @@ static void r100_HouseEvent()
     pos.z = 0.0f;
     pPL->setAng(&pos);
     BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x34), 10, 0, 1, 0);
     SndStrReq(1, 0x22, 0x80000003, 0, 0, 0.0f);
@@ -864,7 +864,7 @@ static void r100_Sce_look()
     SceEventStart(0);
     SceAtSetEnable(0xA, 0);
     RsfSet(G_ROOM_ID, 3);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(2);
     if (readEvent(0, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
@@ -873,7 +873,7 @@ static void r100_Sce_look()
         }
         freeEvent(0, 1);
     }
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(2);
     em = W->em;
     if (em != 0 && em != errEm) {
@@ -897,7 +897,7 @@ static void r100_Sce_look()
     }
     pPL->cCoord::matUpdate();
     SceSleep(1);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
 }
 
@@ -934,7 +934,7 @@ static void r100_Sce_zombi_dead(cEm* em)
         freeEvent(3, 1);
     }
     zero = 0;
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     W->ems[0]->setNoSuspend(0);
     W->ems[1]->setNoSuspend(0);
     W->ems[2]->setNoSuspend(0);
@@ -973,8 +973,8 @@ static void r100_Sce_zombi_dead(cEm* em)
     SceAtSetEnable(0x1C, 1);
     SceAtSetEnable(0x1E, 0);
     RsfSet(G_ROOM_ID, 10);
-    BitOn(pG->flags_51BC, 0x4000);
-    BitOff(pG->flags_54, 0x400);
+    BitOn(pG->Item_find_flg, 0x4000);
+    BitOff(pG->System_flg, 0x400);
     DC.setAramSort(1);
     SceEventEnd(0);
     OpeSetOpenTerm(1, -81500.0f, 860.0f, -38900.0f, 1.6f);
@@ -1178,7 +1178,7 @@ static void r100_EventBrige()
     pos.z = -4420.0f;
     pPL->setPos(&pos);
     W->car->setNoSuspend(1);
-    W->car->x12F = 1;
+    W->car->ot_type = 1;
     W->cop[0]->setNoSuspend(0);
     W->cop[1]->setNoSuspend(0);
     pG->flags_5010 |= 0x800;
@@ -1202,9 +1202,9 @@ static void r100_EventBrige()
     obj->pInfo->setTexBlendTbl(tbl);            \
     obj->pInfo->setBlendRatio(0xFF);            \
     obj->pInfo->color[3] = col;                 \
-    obj->x136 = v136;                           \
-    obj->x137 = v137;                           \
-    obj->x138 = v138;
+    obj->Shader_type = v136;                           \
+    obj->Refract_pow = v137;                           \
+    obj->Refract_ratio = v138;
 
 // The pond surface: a render target blended into the water objects.
 extern "C" void setTexRender()

@@ -147,9 +147,9 @@ void DbMenuExec()
     BitOn(pG->flags_170, ~0x4000);
     pG->debug_disp = pG->debug_mode;
     pG->debug_mode = 1;
-    if (pG->flags_54 & 0x10000) {
-        if (!(pG->flags_54 & 0x20000)) {
-            pG->flags_54 |= 0x20000;
+    if (pG->System_flg & 0x10000) {
+        if (!(pG->System_flg & 0x20000)) {
+            pG->System_flg |= 0x20000;
             t->flag = 1;
         } else {
             t->flag = 0;
@@ -178,8 +178,8 @@ void DbMenuExitAfterCheck()
         pG->debug_mode = pG->debug_disp;
         pG->debug_disp = -1;
     }
-    if ((pG->flags_54 & 0x10000) && t->flag == 1) {
-        pG->flags_54 &= ~0x20000;
+    if ((pG->System_flg & 0x10000) && t->flag == 1) {
+        pG->System_flg &= ~0x20000;
     }
     DbmenuModuleInit();
     ResetDebugAlloc();

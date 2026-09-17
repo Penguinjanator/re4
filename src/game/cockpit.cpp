@@ -554,13 +554,13 @@ void BulletInfo::move()
     empty = IdSys.unitPtr(0x3F, ID_LIFE);
     empty->flags &= ~8;
     u[0] = IdSys.unitPtr(0xB, ID_LIFE);
-    u[0]->flags_7F |= 2;
+    u[0]->tex_flag |= 2;
     u[0]->no = digit[0];
     u[1] = IdSys.unitPtr(0xA, ID_LIFE);
-    u[1]->flags_7F |= 2;
+    u[1]->tex_flag |= 2;
     u[1]->no = digit[1];
     u[2] = IdSys.unitPtr(0x17, ID_LIFE);
-    u[2]->flags_7F |= 2;
+    u[2]->tex_flag |= 2;
     u[2]->no = digit[2];
 
     mark = dispBulletIconMarkNo(wepNo);
@@ -778,34 +778,34 @@ void CountDown::move()
 
     p = IdSys.unitPtr(6, ID_CDOWN);
     p->no = 0xB;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(7, ID_CDOWN);
     p->no = 0xC;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
 
     d.hi = min / 10;
     d.lo = min % 10;
     p = IdSys.unitPtr(0, ID_CDOWN);
     p->no = d.hi;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(1, ID_CDOWN);
     p->no = d.lo;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
 
     d.hi = sec / 10;
     d.lo = sec % 10;
     p = IdSys.unitPtr(2, ID_CDOWN);
     p->no = d.hi;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(3, ID_CDOWN);
     p->no = d.lo;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
 
     d.hi = cs / 10;
     d.lo = cs % 10;
     p = IdSys.unitPtr(4, ID_CDOWN);
     p->no = d.hi;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
     if (ft != 0.0f) {
         t = (u32) ft;
         t = t / 10 * 10;
@@ -815,7 +815,7 @@ void CountDown::move()
     }
     p = IdSys.unitPtr(5, ID_CDOWN);
     p->no = d.lo;
-    p->flags_7F |= 2;
+    p->tex_flag |= 2;
 }
 
 void CountDown::disp(int sw)

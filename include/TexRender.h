@@ -65,9 +65,9 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
 void TexRenderModRes(cModel* m);
 void TexRenderModAddOt(int ot, cModel* m);
 void TexRenderModAddOtMirror(int ot, cModel* m);
-void TexRenderCamAddOt(int ot, TexRenderCam* c, TexRenderEvt* evt, void* data);
-void CamRenderPrev(TexRenderCam* c);
-void CamRenderAfter(TexRenderCam* c);
+void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data);
+void CamRenderPrev(TexRenderCam* pWk);
+void CamRenderAfter(TexRenderCam* pWk);
 }
 
 #endif

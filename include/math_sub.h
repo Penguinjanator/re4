@@ -35,7 +35,7 @@ f32 VecElevation(Vec* v);
 void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad);
 void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out);
 void VecInternalDivisionAngle(Vec* a, Vec* b, f32 s, Vec* out, f32 t);
-void VecLinearDecomposition(Vec* v, Vec* a, Vec* b, f32* s, f32* t);
+void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t);
 f32 hermite(f32* p, f32* v, f32 t);
 f32** malloc_2dim_array_f32(int n, int m);
 void free_2dim_array_f32(int n, int m, f32** p);
@@ -43,7 +43,7 @@ int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out);
 // COMPILER-DIFF 1: cam_ctrl BSpline issues `lfs f1` (t) before the `addi`/`lwz` of out/k; the
 // floats-first redeclaration reproduces the original's argument-move order (ABI-identical).
 int de_Boor_CoxF(int n, f32* knot, f32 t, int k, f32* out) asm("de_Boor_Cox");
-f32 MtxNNLUDecomposition(int n, f32* a, int* ip);
+f32 MtxNNLUDecomposition(int n, f32* A, int* ip);
 f32 MtxNNInverse(int n, f32* m, f32* inv);
 void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out);
 void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane_n);
@@ -52,13 +52,13 @@ f32 SQRTF(f32 x);
 f32 SINF(f32 x);
 f32 COSF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
-f32 VecAngle(Vec* a, Vec* b);
+f32 VecAngle(Vec* vec_a, Vec* vec_b);
 // game/sub2.cpp
 f32 RootSumSquare3(Vec* v);
 int GetScreenPos(Vec* pos, Vec* scr);
-f32 GetDistance(Vec* a, Vec* b);      // squared distance
-f32 GetDistance3(Vec* a, Vec* b);     // distance
-f32 GetDistanceXZ(Vec* a, Vec* b);    // squared distance in the XZ plane
+f32 GetDistance(Vec* v0, Vec* v1);      // squared distance
+f32 GetDistance3(Vec* v0, Vec* v1);     // distance
+f32 GetDistanceXZ(Vec* v0, Vec* v1);    // squared distance in the XZ plane
 void RotVector(Vec* src, Vec* rot, Vec* dst);
 // Angle step from `ang` towards `target` seen from `pos`, clamped to +-limit.
 f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit);
@@ -67,7 +67,7 @@ f32 Muku2(f32 ang, f32 target, f32 limit);
 // Muku2 towards the XZ direction of `dir`.
 f32 Muku3(Vec* dir, f32 ang, f32 limit);
 // out = a + (b - a) * t
-void PosToPos(Vec* a, Vec* b, Vec* out, f32 t);
+void PosToPos(Vec* pos1, Vec* pos2, Vec* out, f32 t);
 f32 GetXZAngle(Vec* from, Vec* to);   // atan2 of to - from in the XZ plane, limited to +-PI
 f32 GetXYAngle(Vec* from, Vec* to);
 f32 GetXZAngleLocal(Vec* from, Vec* to, f32 ang);   // GetXZAngle relative to `ang`
@@ -83,7 +83,7 @@ void Get3DPosFrom2D(Vec* out, f32 sx, f32 sy, f32 y);
 void VecToCamVec(Vec* v, Vec* out);
 // Segment a-b against the sphere (c, r): 1 with the entry point in `out` (a itself when a is inside).
 int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, Vec* out, f32 r);
-int SphereHitCk(Vec* a, Vec* b, f32 ra, f32 rb);
+int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 ra, f32 rb);
 // Launch vector for a parabola from `from` to `to` peaking `h` above the higher end (gravity 20).
 void CalcParabolaVector(Vec* out, Vec* from, Vec* to, f32 h);
 f32 CalcStopDist(f32 speed, f32 decel);
@@ -99,7 +99,7 @@ f32 asinf(f32 x);
 }
 
 // game/sub2.cpp (C++ linkage)
-f32 GetDistance(Vec& a, Vec& b);
+f32 GetDistance(Vec& v0, Vec& v1);
 class cModel;
 int Front_check(cModel* a, cModel* b, f32 ang);   // b within +-ang of a's heading
 int Front_check(cModel* a, Vec* b, f32 ang);

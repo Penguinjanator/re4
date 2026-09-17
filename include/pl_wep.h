@@ -92,7 +92,7 @@ public:
     int ckBoss();
     void launch();
     void drop(int se);
-    void grip(int a);
+    void grip(int onoff);
     void gripBack();
 };
 
@@ -109,8 +109,8 @@ public:
     u8 x26;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
     u8 pad_27;
     f32 pitch;           // 0x28  aim pitch
-    f32 x2C;             // 0x2C
-    f32 x30;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
+    f32 m_CenterY;             // 0x2C
+    f32 m_CamAdjY;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
     cObjWep* pObj;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];
@@ -129,7 +129,7 @@ public:
 };
 
 // knife/weapon collision (pl, top, bottom, type, flags, length)
-u32 PlWepHitCheck2(cModel* pl, Vec* p0, Vec* p1, int type, u32 flag, f32 len);
+u32 PlWepHitCheck2(cModel* pl, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len);
 void PlWepLockCtrl(cModel* pl);
 
 extern "C" {

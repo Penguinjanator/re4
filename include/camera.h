@@ -37,7 +37,7 @@ f32 CameraGetRoll(Camera* cam);
 void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);
 void CameraTargetRot(Camera* cam, char axis, f32 rad);
 void CameraCamposRot(Camera* cam, char axis, f32 rad);
-void CameraDolly(Camera* cam, Vec* d);
+void CameraDolly(Camera* cam, Vec* speed);
 void CameraCamposDistance(Camera* cam, f32 dist);
 void CameraSetWithRoll(Camera* cam, Vec* pos, Vec* at, f32 roll, f32 fovy);
 // game/camera.cpp

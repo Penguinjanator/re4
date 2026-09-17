@@ -497,7 +497,7 @@ void EspSetGatling(Vec pos, Vec dir)
     VECNormalize(&esp->spd, &esp->spd);
     PSVECScale(&esp->spd, &esp->spd, 3000.0f);
     if (pG->flags_5014 & 0x02000000) {
-        esp->info.x0 |= 1;
+        esp->info.Core_flg |= 1;
     }
 }
 
@@ -507,9 +507,9 @@ void setPlWaterOtType()
     f32 h;
 
     if (GetWaterHeight(&pPL->pos, &h) && wp->y < h) {
-        pPL->x12F = 0;
+        pPL->ot_type = 0;
     } else {
-        pPL->x12F = 7;
+        pPL->ot_type = 7;
     }
 }
 

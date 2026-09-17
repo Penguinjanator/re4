@@ -72,10 +72,10 @@ static inline void And16(u16& f, u16 m) { f &= m; }
 // stores come out in the original's order (ff, fd, fc, fe for a plain routine change).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 // Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80. An
@@ -83,7 +83,7 @@ static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 inline void cPlayer::subCharLiveCheck()
 {
     cEm* sub = pSubEm;
-    if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
+    if (sub && sub->id == 3 && sub->hp <= 0 && r_no_0 == 0) {
         PlRoutineSet(this, 6, 0, 0, 0);
         dmg.set(0, 0x80);
         pWep->pObj->interrupt();
@@ -572,7 +572,7 @@ int cPlayer::actionSelect()
     u8 dir;
     cEmWindow* win;
 
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         return 0;
     }
     if ((Key.on & 1) && (Key.on & 2)) {
@@ -591,19 +591,19 @@ int cPlayer::actionSelect()
         PlRoutineSet(this, 0, 0xB, 0, 0);
         return 1;
     }
-    if (xFD != 5 && (Key.trg & 0x100)) {
+    if (r_no_1 != 5 && (Key.trg & 0x100)) {
         PlRoutineSet(this, 0, 5, 0, 0);
         return 1;
     }
-    if (xFD == 0 && ((Key.on & 4) || (Key.on & 8))) {
+    if (r_no_1 == 0 && ((Key.on & 4) || (Key.on & 8))) {
         PlRoutineSet(this, 0, 4, 0, 0);
         return 1;
     }
-    if (xFD != 1 && xFD != 3 && (Key.on & 1)) {
+    if (r_no_1 != 1 && r_no_1 != 3 && (Key.on & 1)) {
         PlRoutineSet(this, 0, 1, 0, 0);
         return 1;
     }
-    if (xFD != 2 && (Key.on & 2)) {
+    if (r_no_1 != 2 && (Key.on & 2)) {
         PlRoutineSet(this, 0, 2, 0, 0);
         return 1;
     }
@@ -776,19 +776,19 @@ void cPlayer::visibleCtrl()
 // 1 when the sub screen may open in the current routine.
 int cPlayer::subScrCheck()
 {
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         return 0;
     }
-    if (xFD == 6) {
-        if (xFE == 2 || xFE == 4 || xFE == 5) {
+    if (r_no_1 == 6) {
+        if (r_no_2 == 2 || r_no_2 == 4 || r_no_2 == 5) {
             return 0;
         }
-    } else if (xFD == 0xF) {
-        if (xFE == 2) {
+    } else if (r_no_1 == 0xF) {
+        if (r_no_2 == 2) {
             return 1;
         }
-        return xFE == 0xA;
-    } else if (xFD > 4 && xFD != 0x11) {
+        return r_no_2 == 0xA;
+    } else if (r_no_1 > 4 && r_no_1 != 0x11) {
         return 0;
     }
     return 1;
@@ -815,10 +815,10 @@ void cPlayer::setFootwork()
     int frame;
     int hokan;
 
-    if (xFF & 4) {
+    if (r_no_3 & 4) {
         partsFixMemory(0x13);
     }
-    if (xFF & 2) {
+    if (r_no_3 & 2) {
         frame = x4FC;
         hokan = x4FD;
     } else {
@@ -914,11 +914,11 @@ int cPlayer::isKamae()
             return 1;
         }
     }
-    if (xFD == 6) {
+    if (r_no_1 == 6) {
         if ((stat & 0xFFFF) == 0) {
             return 0;
         }
-        if (xFE == 4) {
+        if (r_no_2 == 4) {
             if (PlReloadDirect == 1) {
                 return 0;
             }
@@ -927,13 +927,13 @@ int cPlayer::isKamae()
         // label precedes this `return 1`, so jump2 cannot cross-jump it into the later copies
         // (a CODE_LABEL before the scanned tail lowers find_cross_jump's minimum); the later
         // copies merge into this one instead, which is the original's survivor.
-        if (xFE == 6 || xFE == 3) {
+        if (r_no_2 == 6 || r_no_2 == 3) {
             goto ng;
         }
         return 1;
     }
-    if (xFD == 0xB) {
-        if (xFE != 3) {
+    if (r_no_1 == 0xB) {
+        if (r_no_2 != 3) {
             return 1;
         }
         if (joyKamae() == 0) {
@@ -1006,10 +1006,10 @@ int cPlayer::actCheck()
     if (flags_420 & 4) {
         return 0;
     }
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         return 0;
     }
-    switch (xFD) {
+    switch (r_no_1) {
     case 5:
     case 7:
     case 8:
@@ -1243,7 +1243,7 @@ void cPlayer::endEvent0(u32 mode)
 
 int cPlayer::checkEvent()
 {
-    return xFC == 0;
+    return r_no_0 == 0;
 }
 
 // Action (routine 5) start: like an event without the neck / weapon interrupt.
@@ -1584,7 +1584,7 @@ void cPlNeck::move()
     if (!VALID_PTR2(motR)) {
         return;
     }
-    if (pPL->xFC > 1) {
+    if (pPL->r_no_0 > 1) {
         return;
     }
     head = pPL->getPartsPtr(0);
@@ -1600,7 +1600,7 @@ void cPlNeck::move()
             timer = 0;
         }
     }
-    if (pPL->xFC != 0 || pPL->xFD > 3) {
+    if (pPL->r_no_0 != 0 || pPL->r_no_1 > 3) {
         timer = 0;
     }
     if (timer) {

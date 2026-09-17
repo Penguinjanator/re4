@@ -365,11 +365,11 @@ static void gameResult()
     u32 size;
     AdaResult* res;
 
-    disp_bak = pG->flags_58;
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x2000);
-    BitOff(pG->flags_58, 0x800);
-    BitOff(pG->flags_58, 0x10000);
+    disp_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x2000);
+    BitOff(pG->Disp_flg, 0x800);
+    BitOff(pG->Disp_flg, 0x10000);
     stop_bak = pG->flags_170;
     BitSet(pG->flags_170, 0xFFFFFFFF);
     BitOff(pG->flags_170, 0x00800000);
@@ -425,7 +425,7 @@ static void gameResult()
         delete res;
         swap.SwapIn();
     }
-    pG->flags_54 |= 0x04000000;
+    pG->System_flg |= 0x04000000;
 }
 
 extern "C" void Evt_R40ES00_Func(Event* e)

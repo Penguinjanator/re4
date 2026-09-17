@@ -45,11 +45,11 @@ struct SceAtFieldInfo {
 };
 
 extern "C" {
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
-void EmDmBloodSet3(cEm* em, int a, int type, int b, int c, int d);                           // em_sub.cpp
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
+void EmDmBloodSet3(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);                           // em_sub.cpp
 int LadderNearCk(Vec* pos);                                                                  // obj13.cpp
 void LadderEventTrans(int on);
 SceAtFieldInfo* SceAtCheckFieldInfo(Vec* pos);                                               // sce_at.cpp
@@ -133,7 +133,7 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
     return em;
 }
 
-int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
+int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out)
 {
     SceAtFieldInfo* info;
     cEmWindow* win;
@@ -145,7 +145,7 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
         pLog->err(0, 0, "SceAtCheck : param error");
         return 0;
     }
-    info = SceAtCheckFieldInfo(b);
+    info = SceAtCheckFieldInfo(pos1);
     if (info == 0) {
         return 0;
     }
@@ -179,7 +179,7 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
             return 0;
         }
     }
-    if (Front_check(win, a, PI / 2) == 0 && Front_check(win, b, PI / 2) == 1) {
+    if (Front_check(win, pos0, PI / 2) == 0 && Front_check(win, pos1, PI / 2) == 1) {
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = -1.0f;
@@ -193,7 +193,7 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
         *status = win->ChkStatus();
         return 1;
     }
-    if (Front_check(win, a, PI / 2) == 1 && Front_check(win, b, PI / 2) == 0) {
+    if (Front_check(win, pos0, PI / 2) == 1 && Front_check(win, pos1, PI / 2) == 0) {
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = 1.0f;
@@ -297,7 +297,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     lockOfs.y = 0.0f;
     lockOfs.z = 0.0f;
     be_flag &= ~0x10;
-    x12F = WindowData[type].type2;
+    ot_type = WindowData[type].type2;
     setNoSuspend(1);
     if (WindowData[type].field == 1) {
         CalFloor();
@@ -347,12 +347,12 @@ void cEmWindow::move()
     eff = getEff();
     DmCk();
     EmObjMove();
-    switch (xFC) {
+    switch (r_no_0) {
     case 0:
         w->rotBase.x = rot.x;
         w->rotBase.y = rot.y;
         w->rotBase.z = rot.z;
-        xFC = 1;
+        r_no_0 = 1;
         if (WindowAlive(this)) {
             if (WindowData[type].breakEff == 1) {
                 EstSet(0, -1, &pos, &rot, eff, 8, 0x801, 0x31, (u32) this, 0);
@@ -725,7 +725,7 @@ int cEmWindow::SetShake()
     return 1;
 }
 
-int cEmWindow::SetBreakAll(Vec* p, int a, int b)
+int cEmWindow::SetBreakAll(Vec* p, int break_size, int breakType)
 {
     if (ChkEtcFlag(3) == 0) {
         switch (type) {
@@ -739,7 +739,7 @@ int cEmWindow::SetBreakAll(Vec* p, int a, int b)
             SndCall(6, 0x3B, &pos, 0, 0, this);
             break;
         }
-        SetBreakEsp(ChkBreakDir(p), a, b);
+        SetBreakEsp(ChkBreakDir(p), break_size, breakType);
         SetBreakModel();
     }
     return 1;

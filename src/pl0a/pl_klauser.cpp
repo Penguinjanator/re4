@@ -210,10 +210,10 @@ int cPlKlauser::checkXbutton()
 {
     if ((Joy[0].trg & 0x400) && !(pG->flags_5018 & 0x00800000) && x894 == 0) {
         pAuxFunc = pl_R1_KlauserAttack;
-        xFC = 0;
-        xFD = 0xA;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 0;
+        r_no_1 = 0xA;
+        r_no_2 = 0;
+        r_no_3 = 0;
         x894 = -1;
         return 1;
     }
@@ -285,7 +285,7 @@ void cPlKlauser::setModel()
     krModel[2]->color[3] = 0;
     krModel[2]->xD8 = 0.9999f;
     setTexRender(info);
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(1);
@@ -417,7 +417,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
 {
     const f32 hitLen = 3000.0f;   // pool order: the case-0x15 constant comes first
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
@@ -431,16 +431,16 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         SndCall(1, 0x51, &pl->pos, 0, 0, 0);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->pWep->pObj->setDisp(1, 0);
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
         // fallthrough
     case 1:
         if (pl->motionMove()) {
-            pl->xFE = 0xA;
+            pl->r_no_2 = 0xA;
         }
         break;
     case 0xA:
         pl->motionSet(PL_ARC(0x8B), 5, 0, 1, 0);
-        pl->xFE = 0xB;
+        pl->r_no_2 = 0xB;
         break;
     case 0xB:
         if (Key.on & 4) {
@@ -451,9 +451,9 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         }
         pl->motionMove();
         if (Joy[0].trg & 0x100) {
-            pl->xFE = 0x14;
+            pl->r_no_2 = 0x14;
         } else if (Joy[0].trg & 0x600) {
-            pl->xFE = 0x1E;
+            pl->r_no_2 = 0x1E;
         }
         break;
     case 0x14:
@@ -462,7 +462,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->dmg.set(0, 0x80);
         EstSet((int) pl, -1, 0, 0, 3, 0xB, 0, 0x3F, (u32) pl, 0);
         SndCall(1, 0x53, &pl->pos, 0, 0, 0);
-        pl->xFE = 0x15;
+        pl->r_no_2 = 0x15;
         // fallthrough
     case 0x15:
         if (pl->frame <= 15.0f) {
@@ -480,10 +480,10 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
             EffectEspgenDelete(0, 0x3F, (int) pl);
             EffectEfmDelete(0, 0x3F, (int) pl);
             pl->x894 = 0x546;
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
         break;
     case 0x1E:
@@ -496,14 +496,14 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         EffectEfmDelete(0, 0x3F, (int) pl);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
         pl->pWep->pObj->setDisp(1, 1);
-        pl->xFE = 0x1F;
+        pl->r_no_2 = 0x1F;
         // fallthrough
     case 0x1F:
         if (pl->motionMove()) {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
         break;
     }

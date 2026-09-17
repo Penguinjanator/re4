@@ -448,8 +448,8 @@ void Esp08_Trans(cEsp08* esp)
     u32 j;
     int ind = 0;
 
-    if (esp->xEC != 0) {
-        Esp08_TransShimmer(esp, esp->xED);
+    if (esp->m_Shimmer_type != 0) {
+        Esp08_TransShimmer(esp, esp->m_Shimmer_pow);
         return;
     }
     if (!EspGetAnmAddr(esp->anmNo, &anm)) {
@@ -643,7 +643,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     ESP08_TEXCOORD_SET()
     if (ESP_PARTS_SCREEN(esp)) {
         ofs = 56.0f;
-    } else if (pG->flags_54 & 0x800) {
+    } else if (pG->System_flg & 0x800) {
         ofs = 56.0f;
     } else {
         ofs = 0.0f;
@@ -679,7 +679,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
         f32 fovy = pG->Cam.param.fovy;
-        if (pG->flags_54 & 0x800) {
+        if (pG->System_flg & 0x800) {
             C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         } else {
             C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
@@ -695,7 +695,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     GXSetIndTexOrder(0, 1, 0);
     GXSetIndTexCoordScale(0, 0, 0);
     dot = 2500.0f;
-    if (esp->xEC != 3) {
+    if (esp->m_Shimmer_type != 3) {
         indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
         indMtx[0][1] = 0.0f;
         indMtx[0][2] = 0.0f;
@@ -719,7 +719,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         u8 signedOfs;
         u8 replace;
 
-        switch (esp->xEC) {
+        switch (esp->m_Shimmer_type) {
         case 1:
             signedOfs = 0;
             replace = 0;
@@ -733,7 +733,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
             replace = 1;
             break;
         default:
-            pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", esp->xEC);
+            pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", esp->m_Shimmer_type);
             signedOfs = 0;
             replace = 1;
             break;

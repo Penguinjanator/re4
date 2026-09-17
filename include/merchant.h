@@ -22,18 +22,18 @@ struct LevelEntry {
     u8 pad_7;
 };
 
-struct StockTable {
+struct STOCK_INFO {
     StockEntry e[64];  // 0x200
 };
 
-struct LevelTable {
+struct LEVEL_INFO {
     LevelEntry e[32];  // 0x100
 };
 
 // Per-merchant persistent data (saved with the game).
 struct MerchantData {
-    StockTable stock;  // 0x000
-    LevelTable level;  // 0x200
+    STOCK_INFO stock;  // 0x000
+    LEVEL_INFO level;  // 0x200
     s8 favor;          // 0x300  0..100
     u8 x301;
     s8 discount;       // 0x302  percent off the selling price
@@ -97,8 +97,8 @@ public:
     PriceEntry* pSell;       // 0x004  selling price table
     PriceEntry* pExer;       // 0x008  exercise (buy-up) price table
     LevelPrice* pLevel;      // 0x00C  weapon tune price table
-    StockTable stock;        // 0x010
-    LevelTable level;        // 0x210
+    STOCK_INFO stock;        // 0x010
+    LEVEL_INFO level;        // 0x210
     s8 favor;                // 0x310
     u8 x311;
     s8 discount;             // 0x312
@@ -109,8 +109,8 @@ public:
     u8 sellingList[0xFF];    // 0x415  sellPrice indexes of the items for sale
 
     Merchant(MerchantCharacter* c);
-    void save(MerchantData* d);
-    void load(MerchantData* d);
+    void save(MerchantData* p_data);
+    void load(MerchantData* p_data);
     StockEntry* stockPtr(u16 id);
     void stockAdd(u16 id, int num);
     void stockSub(u16 id, int num);
@@ -165,10 +165,10 @@ void MerchantRoomInit();
 int MerchantDataSize();
 void MerchantDataSave(void* dst);
 void MerchantDataLoad(void* src);
-void stockDataInit(MerchantData* d);
+void stockDataInit(MerchantData* p_data);
 void add_stock(StockEntry* dst, StockEntry* src);
 void stockDataAdd(MerchantData* d, StockEntry* tbl);
-void levelDataInit(MerchantData* d);
+void levelDataInit(MerchantData* p_data);
 void levelDataAdd(MerchantData* d, LevelEntry* tbl);
 int checkSellingItem(u16 id);
 int checkExerciseItem(u16 id);

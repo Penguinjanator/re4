@@ -32,7 +32,7 @@ static u8 weskerJacketDp[24] = {65, 0xFF, 67, 0xFF, 69, 0xFF, 71, 0xFF, 73, 0xFF
 static f32 weskerJacketMax[24] = {0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f};
 static f32 weskerJacketWindS[24] = {0.0f, 0.0f, 0.4f, 0.4f, 0.9f, 0.9f, 1.2f, 1.2f, 1.5f, 1.5f, 1.7f, 1.7f, 1.9f, 1.9f, 2.1f, 2.1f, 2.4f, 2.4f, 2.8f, 2.8f, 3.1f, 3.1f, -2.8f, -2.8f};
 static f32 weskerJacketWindR[24] = {0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f};
-PlClothAt weskerJacketAt[6] = {
+CLOTH_AT_SET weskerJacketAt[6] = {
     {0x0000, 0x11, 0x11, 1.0f, 130.0f, {-30.0f, 0.0f, 10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x11, 0x11, 1.0f, 130.0f, {30.0f, 0.0f, 10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x11, 0x12, 0.4f, 125.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -52,24 +52,24 @@ void testJacketSetWesker(cModel* pl, PlCloth* c)
     c->pLeft = weskerJacketLp;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = weskerJacketUp;
     c->pDown = weskerJacketDp;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pMax = weskerJacketMax;
     c->pWindS = weskerJacketWindS;
     c->pWindR = weskerJacketWindR;
     c->pAt = weskerJacketAt;
     c->nAt = 6;
-    c->x3C = 25.0f;
+    c->Gravity = 25.0f;
     rate = 0.5f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 0.1f;
+    c->Bundle_num = 4;
+    c->WindSin = 0.0f;
+    c->Stretchy = 0.1f;
     c->pModel = 0;
-    c->x40 = rate;
-    c->x50 = rate;
+    c->Rate = rate;
+    c->Move_rate = rate;
     c->flags = 0x100;
     c->x54 = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
@@ -161,7 +161,7 @@ void cPlWesker::setModel()
     }
     addModel(info);
     pBody->pHair = info;
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(0);

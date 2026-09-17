@@ -44,15 +44,15 @@ struct Pl0fWork {
     f32 pitchPhase;   // 0x044
     f32 roll;         // 0x048
     f32 pitch;        // 0x04C
-    f32 x50;          // 0x050
+    f32 Vib_sin;          // 0x050
     f32 spdXZ;        // 0x054  |pos - oldPos| in the XZ plane
     f32 dirAng;       // 0x058  heading change towards the movement direction
     f32 dirAngAbs;    // 0x05C
     int engineCnt;    // 0x060  frames the engine ran (SE 8/0xB after 60, 8/0x10 before)
-    int cnt64;        // 0x064  0x1D countdown outside rooms 10D / 10E (wave effect)
+    int Ripple_wait;        // 0x064  0x1D countdown outside rooms 10D / 10E (wave effect)
     u32 seNo;         // 0x068  engine SE handle
     u8 espKind;       // 0x06C  EspPullCoreKind at creation
-    u8 x6D;           // 0x06D  plboat_R2_Swim: first swim after the drop
+    u8 First_camck;           // 0x06D  plboat_R2_Swim: first swim after the drop
     u8 bossMode;      // 0x06E  1 while the boss pulls the boat (camera / anchor)
     u8 anchorEff;     // 0x06F  anchor rope effect state (pl0fAnchorEffMove)
     Vec hist[10];     // 0x070  boss position history (pl0f_R0_Move)

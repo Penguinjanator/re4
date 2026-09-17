@@ -59,7 +59,7 @@ void cObjHkSniper::moveReload()
         void* m;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x21);
             break;
@@ -71,7 +71,7 @@ void cObjHkSniper::moveReload()
             break;
         }
         MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;

@@ -85,7 +85,7 @@ void cObjMagnum::moveReload()
         void* m;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x33);
             break;
@@ -97,7 +97,7 @@ void cObjMagnum::moveReload()
             break;
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;

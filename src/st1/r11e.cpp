@@ -133,33 +133,33 @@ void R11eInit()
 // Ashley's escape motions (SetSubAux routine): three motions in a row, turning towards the target.
 extern "C" void funcAshley(cModel* m)
 {
-    switch (m->xFE) {
+    switch (m->r_no_2) {
     case 0:
         SubCharSetHand(3);
         m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0xA, 0, 1, 0);
-        m->xFE = 1;
+        m->r_no_2 = 1;
     case 1:
         if (m->motionMove()) {
-            m->xFE = 2;
+            m->r_no_2 = 2;
         }
         break;
     case 2:
         m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0xA, 0, 1, 0);
-        m->xFE = 3;
+        m->r_no_2 = 3;
     case 3:
         if (m->motionMove()) {
-            m->xFE = 4;
+            m->r_no_2 = 4;
         }
         break;
     case 4:
         m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0xA, 0, 1, 0);
-        m->xFE = 5;
+        m->r_no_2 = 5;
     default:
         if (m->motionMove()) {
-            m->xFC = 0;
-            m->xFD = 0;
-            m->xFE = 0;
-            m->xFF = 0;
+            m->r_no_0 = 0;
+            m->r_no_1 = 0;
+            m->r_no_2 = 0;
+            m->r_no_3 = 0;
             SubCharSetHand(0);
         }
         break;

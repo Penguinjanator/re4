@@ -216,7 +216,7 @@ void cDataUnit::setLoadToMram()
         no = DvdReadN(name, (void*) dest, 0, 0, 0, wait | 0x10, __FILE__, __LINE__);
         if (pG->dev_mode == 1) {
 #line 226 "D:/Bio4/Prog/datactrl.cpp"
-            DC.setDummyId(DvdReadN("dummy.dat", DC.dummyBuf, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
+            DC.setDummyId(DvdReadN("dummy.dat", DC.m_DummyDataMem, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
         }
         reqNo = no;
         if (no >= 0) {
@@ -316,7 +316,7 @@ void cDataUnit::setLoadToAram()
         no = DvdReadN(name, NULL, dest, 0, 0, wait | 0x8, __FILE__, __LINE__);
         if (pG->dev_mode == 1) {
 #line 370 "D:/Bio4/Prog/datactrl.cpp"
-            DC.setDummyId(DvdReadN("dummy.dat", DC.dummyBuf, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
+            DC.setDummyId(DvdReadN("dummy.dat", DC.m_DummyDataMem, 0, 0, 0, wait | 0x10, __FILE__, __LINE__));
         }
         reqNo = no;
         if (no >= 0) {
@@ -665,7 +665,7 @@ u32 cDataCtrl::getAramFree(u32 size)
 void cDataCtrl::init()
 {
     initDataUnit();
-    dummyBuf = Debug_alloc(0x100, 1);
+    m_DummyDataMem = Debug_alloc(0x100, 1);
     dispBuf = Debug_alloc(0x400, 1);
 }
 
@@ -908,7 +908,7 @@ void cDataCtrl::initDummyId()
     int i;
 
     for (i = 0; i < 32; i++) {
-        dummyId[i] = -1;
+        m_id_dummy[i] = -1;
     }
 }
 
@@ -918,8 +918,8 @@ void cDataCtrl::setDummyId(int id)
 
     if (pG->dev_mode != 0 && id >= 0) {
         for (i = 0; i < 32; i++) {
-            if (dummyId[i] == -1) {
-                dummyId[i] = id;
+            if (m_id_dummy[i] == -1) {
+                m_id_dummy[i] = id;
                 return;
             }
         }
@@ -934,10 +934,10 @@ void cDataCtrl::checkDummyId()
 
     if (pG->dev_mode != 0) {
         for (i = 0; i < 32; i++) {
-            if (dummyId[i] != -1) {
-                ret = Dvd.ReadCheck(dummyId[i], NULL, NULL, NULL);
+            if (m_id_dummy[i] != -1) {
+                ret = Dvd.ReadCheck(m_id_dummy[i], NULL, NULL, NULL);
                 if (ret > 0) {
-                    dummyId[i] = -1;
+                    m_id_dummy[i] = -1;
                 } else if (ret < 0) {
                     pLog->err(0, 0, "cDataCtrl::checkDummyId: failed");
                 }

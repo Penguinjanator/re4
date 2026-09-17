@@ -195,7 +195,7 @@ void R11cInit()
     if (getRoomEtcRack(2, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 10000.0f, 0.0f, 10000.0f);
     }
-    if (!(pG->flags_51BC & 0x00020000)) {
+    if (!(pG->Item_find_flg & 0x00020000)) {
         SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r11c_EventBesiegedStart, 0, 1);
         r11c_eventInit();
         if (!r11c_emDead(0xC8)) {
@@ -248,7 +248,7 @@ void R11cInit()
         RoomEfmRegist(GetEtcAddr(arc, "et1400.bin"), GetEtcAddr(arc, "et1400.tpl"), 0x6F);
     }
     FlrAtSetDefVal(0, 0, 3);
-    if (!(pG->flags_51BC & 0x00020000) && RoomData.checkPassed(pG->room_id, 0) == 0) {
+    if (!(pG->Item_find_flg & 0x00020000) && RoomData.checkPassed(pG->room_id, 0) == 0) {
         levelDataAdd(merchantData, level_null);
         stockDataAdd(merchantData, stock_r11c);
     }
@@ -299,7 +299,7 @@ static void r11c_EventBesiegedStart()
     ReadModule* mod;
     int err;
 
-    BitOn(pG->flags_51BC, 0x00020000);
+    BitOn(pG->Item_find_flg, 0x00020000);
     BitOn(pG->flags_174, 0x40000000);
     EffectEspDelete(0, (u8) W->eff, 0, 0);
     EffectEspgenDelete(0, (u8) W->eff, 0);
@@ -313,7 +313,7 @@ static void r11c_EventBesiegedStart()
         door->setNoSuspend(0);
         cEmDoorSetCloseLock(door);
     }
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     err = W->evd0->waitLoadOk() == 0;
     EmMgr.destroy(W->em);
     SceSleep(2);
@@ -360,7 +360,7 @@ static void r11c_EventBesiegedStart()
         MemorySwap(mod->pArc, (u32) W->evd0->addr, W->evd0->size);
     }
     W->evd0->setCommand(4, 0, 0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     EmReadSearch(4, 0, 0x120000);
     W->ashley = EmMgr.create(4);
     // Mid-function declarations: the two error arms above own block-local pos/ang pairs, so these
@@ -376,7 +376,7 @@ static void r11c_EventBesiegedStart()
     pa->y = ry;
     ang.z = 0.0f;
     ashley->setAng(&ang);
-    W->ashley->x38D = 1;
+    W->ashley->set = 1;
     W->mod4 = SearchEmModule(4);
     {
         cPlayer* pl = pPLS;
@@ -410,7 +410,7 @@ static void r11c_EventBesiegedStart()
 
     W->evd1->setCommand(2, 0, 0);
     SceSleep(2);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
     CamCtrl.AreaOnOff(1, 0, 1);
     SndRoomStrStart(1, 3, 1);
@@ -493,7 +493,7 @@ static void r11c_EventBesiegedStart()
             if (pG->flags_174 & 0x20000000) {
                 SceEventStart(0);
                 SndRoomStrStop(3);
-                pG->flags_54 |= 0x400;
+                pG->System_flg |= 0x400;
                 SceDestroyEm(0x10, 0x20);
                 SceSleep(2);
                 InitModule(SearchEmModule(0x13));
@@ -513,7 +513,7 @@ static void r11c_EventBesiegedStart()
         t++;
         if (t == 3600) {
             r11c_save()->flags |= 0x02000000;
-            W->ashley->x38D = 2;
+            W->ashley->set = 2;
             if (getRoomEtcLadder(6, &ladder, 1)) {
                 ((cObjLadder*) ladder)->setOn();
             }
@@ -552,7 +552,7 @@ static void r11c_EventBesiegedStart()
     }
     SndRoomStrStop(5);
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     err2 = W->evd1->waitLoadOk() == 0;
     for (i = 0; i < n; i++) {
         e = em[i];
@@ -580,7 +580,7 @@ static void r11c_EventBesiegedStart()
         }
     }
     W->evd1->setCommand(4, 0, 0);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
     r11c_initGate();
     BitOn(pG->flags_5018, 0x04000000);
@@ -632,7 +632,7 @@ static void r11c_EventBesiegedStart()
         // calls below, so sched1 may hoist it): a block-local, as in r111.
         void* zero = 0;
 
-        pG->flags_51BC |= 0x40;
+        pG->Item_find_flg |= 0x40;
         stockDataAdd(merchantData, stock_r11c_after_event);
         merchantChar.setChar(&merchant_info_A, merchantData, g_item_price_tbl, g_item_price_tbl, level_price);
         SceAtSetEnable(8, 0);
@@ -702,7 +702,7 @@ extern "C" void r11c_initGate()
     cObj* g1 = SmdGetObjPtr(0x34);
 
     if (g0 && g1) {
-        if (!(pG->flags_51BC & 0x00020000)) {
+        if (!(pG->Item_find_flg & 0x00020000)) {
             const f32 h = 3600.0f;
 
             g0->pos.y += h;

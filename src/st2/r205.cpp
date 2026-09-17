@@ -206,7 +206,7 @@ void R205Main()
 {
     u32 i;
 
-    pPL->x12F = 5;
+    pPL->ot_type = 5;
     for (i = 0; i < 8; i++) {
         R205Em* e = &r205_work.p->ems[i];
 
@@ -432,7 +432,7 @@ static void r205_ExecDieDemo(R205Pend* p)
         SceExit();
     }
     BitOn(pG->flags_174, 0x40000000);
-    BitOn(pG->flags_54, 0x40);
+    BitOn(pG->System_flg, 0x40);
     BEGIN_EVENT(pPL, 0);
     d = p->rot - p->rotPrev;
     if (pPL->rot.y >= -1.5707964f && pPL->rot.y <= 1.5707964f) {
@@ -476,7 +476,7 @@ static void r205_ExecDieDemo(R205Pend* p)
     CamCtrl.cur = cam.param;
     CamSmth.ratio = 0.0f;
     CamCtrl.interp.frame = 0;
-    CamCtrl.flags_28 |= 4;
+    CamCtrl.be_flag |= 4;
 }
 
 static void r205_DrainEvent()
@@ -572,9 +572,9 @@ static void setTexRender()
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->setBlendType(1);
-    obj->x136 = 2;
-    obj->x137 = 5;
-    obj->x138 = 0x40;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 5;
+    obj->Refract_ratio = 0x40;
 }
 
 static void r205_EnemyAppear()
@@ -588,7 +588,7 @@ static void r205_EnemyAppear()
     RsfSet(G_ROOM_ID, 9);
     SceEventStart(0);
     BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
     EstSet(0, -1, 0, 0, 1, 6, 1, 3, (u32) zero, zero);
     CamCtrl.CutCall(9);

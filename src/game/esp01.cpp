@@ -61,7 +61,7 @@ void cEsp01::move()
             PushEsp(this);
             return;
         }
-        xB8 = 100000000.0f;
+        m_Radius = 100000000.0f;
         dispFlag |= 2;
     }
 }

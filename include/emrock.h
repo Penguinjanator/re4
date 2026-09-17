@@ -49,8 +49,8 @@ struct EmRockWork {
     int routeIdx;         // 0x0A4 (0x484)  current EMI route point (type 6) of the rolling rock
     EmiEntry* pRoute;     // 0x0A8 (0x488)
     u8 started;           // 0x0AC (0x48C)  Set: the roll started
-    u8 xAD;               // 0x0AD (0x48D)  Roll: room 104 flag
-    u8 xAE;               // 0x0AE (0x48E)  Drop2 / escape: the player escaped / died
+    u8 First_bound;               // 0x0AD (0x48D)  Roll: room 104 flag
+    u8 Act_ck;               // 0x0AE (0x48E)  Drop2 / escape: the player escaped / died
     u8 pad_AF;
     u32 sndId2;           // 0x0B0 (0x490)  Roll: rolling sound handle
     void* plMot[16];      // 0x0B4 (0x494)  player motions of the roll escape (setPlMotion)

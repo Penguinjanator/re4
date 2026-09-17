@@ -78,8 +78,8 @@ public:
     u32 dispBase;        // 0xA14
     u32 dispEnd;         // 0xA18
     s32 dbgHeap;         // 0xA1C  1 = allocate from the debug heap
-    s32 dummyId[32];     // 0xA20  dummy.dat read requests (dev mode)
-    void* dummyBuf;      // 0xAA0
+    s32 m_id_dummy[32];     // 0xA20  dummy.dat read requests (dev mode)
+    void* m_DummyDataMem;      // 0xAA0
 
     u32 getAramFree(u32 size);
     void init();

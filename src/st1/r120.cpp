@@ -90,7 +90,7 @@ extern "C" void R120Event()
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     {
         Vec pos = {-109450.0f, -515.0f, 820.0f};
         Vec rot = {0, 0, 0};
@@ -162,13 +162,13 @@ extern "C" void Evt_R120S00_Func(Event* e)
                 }
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x100000;
-                    ((cModel*) mod)->x12F = 4;
+                    ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->lightInfo.x50 = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
-                    ((cModel*) mod)->x12C = 1;
+                    ((cModel*) mod)->ot_type = 1;
+                    ((cModel*) mod)->z_mode = 1;
                     Obj18CmfOn((cObj*) mod, 5);
                 }
                 EventCarInit(e);
@@ -214,7 +214,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
         switch (e->cut) {
         case 0:
             if (e->frame == 0) {
-                pG->flags_58 |= 0x08000000;
+                pG->Disp_flg |= 0x08000000;
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -241,14 +241,14 @@ extern "C" void Evt_R120S00_Func(Event* e)
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
                 }
-                pG->flags_58 &= ~0x08000000;
+                pG->Disp_flg &= ~0x08000000;
             }
             break;
         }
         break;
     case 2:
         r120_setTrans(1);
-        pG->flags_58 &= ~0x08000000;
+        pG->Disp_flg &= ~0x08000000;
         break;
     case 3:
         pG->flags_51C0 |= 0x10;
@@ -337,13 +337,13 @@ extern "C" void Evt_R120S01_Func(Event* e)
             if (e->frame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x100000;
-                    ((cModel*) mod)->x12F = 4;
+                    ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->lightInfo.x50 = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
-                    ((cModel*) mod)->x12C = 1;
+                    ((cModel*) mod)->ot_type = 1;
+                    ((cModel*) mod)->z_mode = 1;
                     Obj18CmfOn((cObj*) mod, 5);
                 }
                 EventCarInit(e);
@@ -450,8 +450,8 @@ extern "C" void Evt_R120S01_Func(Event* e)
         break;
     case 2:
         r120_setTrans(1);
-        BitOff(pG->flags_58, 0x08000000);
-        pG->flags_54 |= 0x400;
+        BitOff(pG->Disp_flg, 0x08000000);
+        pG->System_flg |= 0x400;
         break;
     case 3:
         pG->flags_51C0 |= 0x10;
@@ -467,7 +467,7 @@ extern "C" void EventCarInit(Event* e)
 
     if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x100000;
-        ((cModel*) mod)->x12F = 1;
+        ((cModel*) mod)->ot_type = 1;
     }
     if (e->GetMod(&mod, "pl0700", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x10;
@@ -481,7 +481,7 @@ extern "C" void EventCarInit(Event* e)
     }
     if (e->GetMod(&mod, "obm1a00", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x10;
-        ((cModel*) mod)->x12F = 4;
+        ((cModel*) mod)->ot_type = 4;
         p = ((cModel*) mod)->getPartsPtr(0x12);
         if (p) {
             p->scale.x = 0.0f;
@@ -526,33 +526,33 @@ extern "C" void EventCarInit(Event* e)
         }
     }
     if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
     if (e->GetMod(&mod, "obm3000b", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
     if (e->GetMod(&mod, "obm3000c", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
     if (e->GetMod(&mod, "obm3000d", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
     if (e->GetMod(&mod, "obm3000e", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
     if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
         ((cModel*) mod)->lightInfo.x50 = 2;
     }
 }

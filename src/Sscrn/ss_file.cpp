@@ -278,10 +278,10 @@ void SsFileInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
     case 0:
-        if (wk->x4C(wk) != 1) {
+        if (wk->scrn_out_func(wk) != 1) {
             break;
         }
-        if (wk->x266 == 2) {
+        if (wk->menu_old == 2) {
             wk->x44 = 1;
         }
         IdSubErase();
@@ -306,7 +306,7 @@ void SsFileInit::move(SUB_SCREEN* wk)
         if (file_read_req <= 0) {
             break;
         }
-        if (wk->x266 == 2 && wk->type != 0x40) {
+        if (wk->menu_old == 2 && wk->type != 0x40) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
@@ -404,9 +404,9 @@ void SsFileMain::init(SUB_SCREEN* wk)
     IdSub.unitPtr(0, 0x1E)->dir |= 0xF;
     IdSub.unitPtr(4, 0x1E)->flags &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    if (wk->x266 == 2 && wk->type != 0x40) {
-        wk->x269 = 0;
-        wk->x26A = 10;
+    if (wk->menu_old == 2 && wk->type != 0x40) {
+        wk->alpha_flag = 0;
+        wk->alpha_cnt = 10;
     }
     MesData.setPtr(0, (u8*) SS_ARC_PTR(wk->pCmmn, 5));
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pFile, 5));
@@ -476,7 +476,7 @@ void SsFileMain::move(SUB_SCREEN* wk)
     }
     case 1:
         if (sscrnMainMenu(wk)) {
-            switch ((s8) wk->x264) {
+            switch ((s8) wk->menu_no) {
             case 1:
                 transit(0, wk);
                 break;
@@ -523,15 +523,15 @@ void SsFileMain::quit(SUB_SCREEN* wk)
     Mem_free(wk->pTplBuf);
     Mem_free(wk->pFileWk);
     sscrn_file_out_init(wk);
-    wk->x4C = sscrn_file_out;
+    wk->scrn_out_func = sscrn_file_out;
 }
 
 void sscrn_file_out_init(SUB_SCREEN* wk)
 {
     IdSub.unitPtr(0, 0x19)->dir |= 1;
-    if (wk->x265 == 2) {
+    if (wk->menu_next == 2) {
         Cckpt.life.frameOut();
-        wk->x269 = 1;
+        wk->alpha_flag = 1;
     }
 }
 
@@ -925,25 +925,25 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             IdSub.unitPtr(0x10, 0x1E)->flags &= ~8;
             IdSub.unitPtr(0x13, 0x1E)->flags &= ~8;
             u = IdSub.unitPtr(0x11, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = d[0];
             u = IdSub.unitPtr(0x12, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = e[0];
         } else {
             IdSub.unitPtr(0x10, 0x1E)->flags |= 8;
             IdSub.unitPtr(0x13, 0x1E)->flags |= 8;
             u = IdSub.unitPtr(0x10, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = d[1];
             u = IdSub.unitPtr(0x11, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = d[0];
             u = IdSub.unitPtr(0x12, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = e[1];
             u = IdSub.unitPtr(0x13, 0x1E);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = e[0];
         }
         {

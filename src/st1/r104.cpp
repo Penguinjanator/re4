@@ -160,13 +160,13 @@ void R104Init()
             cEmDoor* d = r104_work->door0;
 
             BitOn(d->be_flag, 8);
-            d->x13B = d->x13A = d->x139 = 0x28;
+            d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
         {
             cEmDoor* d = r104_work->door1;
 
             BitOn(d->be_flag, 8);
-            d->x13B = d->x13A = d->x139 = 0x28;
+            d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
     }
     EvtMgr.SetFunc("evt_r104s00_func", (void*) Evt_R104S00_Func);
@@ -710,13 +710,13 @@ static void r104_execEvent00()
     // The user variable on one side of the two tests keeps the pre-cse1 thread_jumps from threading the
     // first `beq` past the second test (rtx_equal_for_thread_p rejects REG_USERVAR_P pseudos): the second
     // compare is cse-deleted but its `bne` survives, as in the original (docs/research/, st1_1 pass 2).
-    u32 f = pG->flags_54;
+    u32 f = pG->System_flg;
     if (f & 0x40) {
         skip = 1;
     }
-    if (!(pG->flags_54 & 0x40)) {
+    if (!(pG->System_flg & 0x40)) {
         SceEventStart(0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadAram("event/evd/r104s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s02.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s10.evd", 0, 0, 0, 0);
@@ -728,11 +728,11 @@ static void r104_execEvent00()
             r104_work->door1->setOpenLock(0);
         }
         if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
-            BitOn(pG->flags_54, 0x400);
+            BitOn(pG->System_flg, 0x400);
             if ((int) pG->flags_174 < 0) {
                 EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
             } else {
-                pG->flags_54 &= ~0x40;
+                pG->System_flg &= ~0x40;
                 EvtMgr.EvtReadExec("event/evd/r104s02.evd", 0, 2);
                 for (;;) {
                     SceSleep(1);
@@ -817,7 +817,7 @@ static void Evt_R104S00_Func(Event* e)
                     ((cModel*) mod2)->be_flag |= 0x10;
                 }
                 if (e->GetMod(&mod2, "evm3700", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
             }
             if (e->frame == 120) {
@@ -833,7 +833,7 @@ static void Evt_R104S00_Func(Event* e)
         case 0x1E:
             BitOff(pG->flags_170, 0x100);
             if (!(pG->flags_174 & 0x80000000)) {
-                BitOff(pG->flags_58, 0x800);
+                BitOff(pG->Disp_flg, 0x800);
                 if (!(pG->flags_174 & 0x04000000)) {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 4, 0, 0);
                 } else {

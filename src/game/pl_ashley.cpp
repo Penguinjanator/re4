@@ -93,7 +93,7 @@ void cPlAshley::setModel()
         return;
     }
     addModel(info);
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(0);
@@ -266,7 +266,7 @@ void cPlAshley::moveBust()
     cModel* parts;
     cModel* body = getPartsPtr(0);
 
-    if (GetDistance3(&body->worldPos, &body->x88) > 5.0f) {
+    if (GetDistance3(&body->worldPos, &body->world_old2) > 5.0f) {
         bul = max;
     }
     if (Joy[1].on & JOY_X) {

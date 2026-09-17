@@ -15,11 +15,11 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int a);                                                  // em_sub.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
+void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 }
 
 typedef void (*EmTorchFunc)(cEmTorch*);
@@ -148,15 +148,15 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     return em;
 }
@@ -331,10 +331,10 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     case 0:
         em->be_flag &= ~2;
         SndCall(1, 0x40, &em->pos, 0, 0, em);
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 2:
     case 3:
@@ -344,16 +344,16 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     case 4:
         em->be_flag &= ~2;
         SndCall(6, 0x2A, &em->pos, 0, 0, em);
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 5:
-        em->xFC = 1;
-        em->xFD = 3;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 3;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     }
 }
@@ -362,34 +362,34 @@ void cEmTorch::move()
 {
     emTorchDmCk(this);
     be_flag &= ~0x4000;
-    EmTorch_R0_move_tbl[xFC](this);
+    EmTorch_R0_move_tbl[r_no_0](this);
 }
 
 void emTorch_R0_Init(cEmTorch* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emTorch_R0_Move(cEmTorch* em)
 {
-    EmTorch_R1_move_tbl[em->xFD](em);
+    EmTorch_R1_move_tbl[em->r_no_1](em);
 }
 
 void emTorch_R1_Set(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -459,15 +459,15 @@ void emTorch_R1_Break(cEmTorch* em)
     EmTorchWork* w = EMTORCH_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
         em->hp = 0;
         em->be_flag &= ~2;
-        w->x60 = 150;
-        em->xFE++;
+        w->Lost_wait = 150;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -478,7 +478,7 @@ void emTorch_R1_Fall(cEmTorch* em)
     u16* flg;
     f32 floor;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
         if (flg) {
@@ -490,7 +490,7 @@ void emTorch_R1_Fall(cEmTorch* em)
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
         SndCall(6, 0x2D, &em->pos, 0, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
@@ -504,7 +504,7 @@ void emTorch_R1_Fall(cEmTorch* em)
             SndCall(6, 0x58, &em->pos, 0, 0, em);
             DmgMgr.set(5, 0x4B, &em->pos, 2500.0f, 1500.0f);
             em->be_flag &= ~2;
-            em->xFE++;
+            em->r_no_2++;
         } else {
             RotMatrix(em->mat, &em->rot);
             TransMatrix(em->mat, &em->pos);
@@ -556,10 +556,10 @@ void cEmTorch::setBreak()
 
 void cEmTorch::setDelete()
 {
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmTorch::setEff(u8 eff)
@@ -583,8 +583,8 @@ void cEmTorch::setParent(cModel* parent, int partsNo, int flag)
     } else {
         w->flags &= ~1;
     }
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }

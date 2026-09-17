@@ -100,7 +100,7 @@ void cEsp14::move()
                 sizeY = SQRTF(sy * sy + cy * cy);
             }
         }
-        xB8 = 100000000.0f;
+        m_Radius = 100000000.0f;
         dispFlag |= 2;
     }
 }

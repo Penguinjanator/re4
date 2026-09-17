@@ -184,7 +184,7 @@ void R21dInit()
     r21d_initSwitch();
     r21d_initFence();
     SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r21d_checkGrave, 0, 1);
-    if (pG->room_id_prev == 0x225 && flagBit(pG->flags_54, 0x100) == 0 && flagBit(pG->flags_54, 0x80000) == 0) {
+    if (pG->room_id_prev == 0x225 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x80000) == 0) {
         SceExec(0x12, (TaskFunc) r21d_moveGrave, 0, 0, 2, 0);
     }
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0,
@@ -792,7 +792,7 @@ static void r21d_moveGrave(int dir)
             }
         }
         SceEventStart(0);
-        pG->flags_58 |= 0x02000000;
+        pG->Disp_flg |= 0x02000000;
         if (dir == 1) {
             CamCtrl.CutCall(0xE);
             SndCall(6, 7, 0, 0, 0, 0);
@@ -815,7 +815,7 @@ static void r21d_moveGrave(int dir)
             SceSleep(15);
             CamCtrl.Comeback(0);
         }
-        pG->flags_58 &= ~0x02000000;
+        pG->Disp_flg &= ~0x02000000;
         SceEventEnd(0);
     }
 }

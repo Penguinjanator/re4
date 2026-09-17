@@ -129,10 +129,10 @@ struct PlayerPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void PlRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 static Pl0fFunc Pl0f_R0_move_tbl[5] = {
@@ -187,12 +187,12 @@ void cPl0f::move()
     Pl0fWork* w = PL0F_WK(this);
 
     w->flags &= ~0xC;
-    Pl0f_R0_move_tbl[xFC](this);
+    Pl0f_R0_move_tbl[r_no_0](this);
     if (pG->room_id != 0x10D && pG->room_id != 0x10E) {
-        if (w->cnt64) {
-            w->cnt64--;
+        if (w->Ripple_wait) {
+            w->Ripple_wait--;
         } else {
-            w->cnt64 = 0x1D;
+            w->Ripple_wait = 0x1D;
             EstSet((int) this, -1, 0, 0, 0xF, 7, 0, 0x35, (u32) this, 0);
         }
     }
@@ -296,7 +296,7 @@ static void pl0f_R0_Init(cPl0f* em)
 
     em->modelInit(ARC(0x5), ARC(0x6));
     em->be_flag &= ~0x10;
-    em->x12F = 0;
+    em->ot_type = 0;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
@@ -335,16 +335,16 @@ static void pl0f_R0_Init(cPl0f* em)
             m->dist[i] = len;
         }
     }
-    w->cnt64 = 0x1D;
+    w->Ripple_wait = 0x1D;
     w->flags = 0;
     w->roll = 0.0f;
     w->pitch = 0.0f;
     w->rollPhase = 0.0f;
     w->pitchPhase = 0.0f;
-    w->x50 = 0.0f;
+    w->Vib_sin = 0.0f;
     w->bossMode = 0;
     w->tiller = 0;
-    w->x6D = 0;
+    w->First_camck = 0;
     w->anchorEff = 0;
     w->swayAmp.x = 0.0f;
     w->swayAmp.y = 0.0f;
@@ -365,7 +365,7 @@ static void pl0f_R0_Init(cPl0f* em)
     switch (em->type) {
     case 0:
     default:
-        switch (em->x38D) {
+        switch (em->set) {
         case 0:
         default:
             PlRoutineSet(em, 1, 0, 0, 0);
@@ -406,7 +406,7 @@ static void pl0f_R0_Move(cPl0f* em)
         p->rot.z += 1.0471976f;
         p->rot.z = LIMIT_ANGLE(p->rot.z);
     }
-    Pl0f_R1_move_tbl[em->xFD](em);
+    Pl0f_R1_move_tbl[em->r_no_1](em);
     if (w->pBoss) {
         w->hist[w->histIdx] = w->pBoss->pos;
         w->histIdx++;
@@ -485,7 +485,7 @@ static void pl0f_R1_RideStart(cPl0f* em)
     w->seNo = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
     if (pSUBS) {
         SetSubDamage((int) em, (void*) subBoatRide);
-        pSUB->xFE = 2;
+        pSUB->r_no_2 = 2;
     }
     PlRoutineSet(em, 1, 1, 0, 0);
     pl0fBoatSpdControl(em);
@@ -505,10 +505,10 @@ static void pl0f_R1_BossMove(cPl0f* em)
     em->partsMatCalc();
     em->partsWorldCalc();
     if (w->pBoss && (s16) w->pBoss->hp <= 0) {
-        em->xFC = 1;   // plain byte stores: the QImode 1 is the `bossMode = 1` pseudo (r30) kept across the calls
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;   // plain byte stores: the QImode 1 is the `bossMode = 1` pseudo (r30) kept across the calls
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         {
             int zero = 0;   // one SImode zero for both stores, separate from the routine's QImode zero
 
@@ -517,10 +517,10 @@ static void pl0f_R1_BossMove(cPl0f* em)
         }
         return;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         if (BOSS_NEAR(w->pBoss, em)) {
             PlRoutineSet(pPL, 0, 0xF, 7, 0);
@@ -554,12 +554,12 @@ static void pl0f_R1_Guard(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x1D), 0, 0, 5, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         VibSetData(VIB_TBL, 0xB, 1);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             PlRoutineSet(em, 1, 1, 0, 0);
@@ -584,14 +584,14 @@ static void pl0f_R1_Drop(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
 
     w->flags |= 0xC;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x1F), 0, 0, 5, 0);
         EstSet((int) em, -1, 0, 0, 0xF, 0xB, 0, 0x35, (u32) em, 0);
         LifeDownSet2(em, 100, 0, 1);
         em->getPartsPtr(1)->rot.y = 0.0f;
         w->timer = 60;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             PlRoutineSet(em, 1, 0, 0, 0);
@@ -646,13 +646,13 @@ static void pl0f_R1_WaterRide(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
 
     w->flags |= 4;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x22), 0, 0, 5, 0);
         EstSet((int) em, -1, 0, 0, 0xF, 0xC, 0, 0x35, (u32) em, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         w->timer = 60;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             PlRoutineSet(em, 1, 6, 0, 0);
@@ -666,11 +666,11 @@ static void pl0f_R1_WaterRide(cPl0f* em)
 
 static void pl0f_R1_BossGuard(cPl0f* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x1D), 0, 0, 5, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             PlRoutineSet(em, 1, 6, 0, 0);
@@ -691,7 +691,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
 { \
     cPlayer* pl = pPL; \
  \
-    switch (em->xFE) { \
+    switch (em->r_no_2) { \
     case 0: \
         EmSet(pl->pBoat, em); \
         BoatMoveFunc = PlBoatMove; \
@@ -702,7 +702,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         w->timer = t1; \
         w->timer2 = t2; \
         w->cnt = 0; \
-        em->xFE++; \
+        em->r_no_2++; \
     case 1: \
         w->cnt++; \
         if (w->cnt & 1) { \
@@ -1784,7 +1784,7 @@ static void PlBoatMove(cPlayer* pl)
     pl->subArc = pl->pBoat->subArc;
     pl->motFlags2 &= ~0x40000000;
     pl->neckMot.flags2 &= ~0x40000000;
-    plboat_R2_move_tbl[pl->xFE](pl);
+    plboat_R2_move_tbl[pl->r_no_2](pl);
     pl->motFlags2 &= ~0x40000000;
     pl->neckMot.flags2 &= ~0x40000000;
     pl0fSetAnchorEm2f(pl);
@@ -1809,7 +1809,7 @@ static void plboat_R2_Ride(cPlayer* pl)
     cPl0f* boat = PL_BOAT(pl);
     Vec v;
 
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         v.x = 1500.0f;
         v.y = 500.0f;
@@ -1828,7 +1828,7 @@ static void plboat_R2_Ride(cPlayer* pl)
         pl->pBody->initWepHand((u32) PLARC(0x8));
         pl->setRightHand(1);
         pl->pWep->setTrans(0, 0);
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         if (pl->x3E0) {
             pl->x3E0--;
@@ -1862,7 +1862,7 @@ static void plboat_R2_Getoff(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
 
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->mot, PLARC(0x2A), 0, 0, 5, 0);
         pl->pos = pl->evTarget;
@@ -1876,7 +1876,7 @@ static void plboat_R2_Getoff(cPlayer* pl)
         }
         pl->x3E0 = 20;
         pl->x400 = 100.0f;
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         pl0fGetoffCamMove(boat);
         if (pl->x3E0) {
@@ -1918,7 +1918,7 @@ static void plboat_R2_Move(cPlayer* pl)
     } else {
         boss = 0;
     }
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl->blendRate500 = 0.0f;
         pl->x4FD = 0xA;
@@ -1927,7 +1927,7 @@ static void plboat_R2_Move(cPlayer* pl)
             pl->pSpear->setLost();
             pl->pSpear = 0;
         }
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x9), PLARC(0xB), PLARC(0xA), 0, 0, 0);
         if (Key.on & 0xC) {
@@ -2055,21 +2055,21 @@ static void plboat_R2_SpearSet(cPlayer* pl)
     } else {
         boss = 0;
     }
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->mot, PLARC(0xC), 0, 0xA, 1, 0);
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         pl->blendRate500 = 0.0f;
         pl->x3EC = 0xF;
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plOnBoat(pl);
         if (pl->frame > 6.7f && pl->frame < 7.3f) {
             plboatSetSpear(pl);
         }
         if (MotionMoveF(pl, 0)) {
-            pl->xFF++;
+            pl->r_no_3++;
         } else if (!(Key.on & 0x10) || (boss && (boss->flags_3C8 & 0x20))) {
             if (pl->pSpear) {
                 pl->pSpear->setLost();
@@ -2083,7 +2083,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         plboatSetSpear(pl);
-        pl->xFF++;
+        pl->r_no_3++;
     case 3:
         plboatBlendMotSet(pl, PLARC(0xE), PLARC(0xF), PLARC(0xD), 0, 0, 0);
         PLBOAT_AIM_CONTROL();
@@ -2091,7 +2091,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         MotionMoveF(pl, 0);
         plboatSightCurMove(pl);
         if ((boss && (boss->flags_3C8 & 0x20)) || !(Key.on & 0x10)) {
-            pl->xFF++;
+            pl->r_no_3++;
         } else if (Key.trg & 0x80) {
             PlRoutineSet(pPL, 0, 0xF, 4, 0);
         }
@@ -2099,7 +2099,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
     case 4:
         MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
-        pl->xFF++;
+        pl->r_no_3++;
     case 5:
         plOnBoat(pl);
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -2127,12 +2127,12 @@ static void plboat_R2_SpearSet(cPlayer* pl)
 
 static void plboat_R2_SpearThrow(cPlayer* pl)
 {
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         U32Set(pl->x3E0, 0);
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
@@ -2176,7 +2176,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
     } else {
         boss = 0;
     }
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl0fHidePosSet(pl);
         MotionSetCore(pl, &pl->mot, PLARC(0x27), 0, 0xA, 1, 0);
@@ -2185,21 +2185,21 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         pl->x4FD = 0xA;
         pl->x3EC = 0xF;
         pl0fHideModeCamSet(pl);
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plOnBoat(pl);
         if (pl->frame > 89.7f && pl->frame < 90.3f) {
             plboatSetSpear(pl);
         }
         if (MotionMoveF(pl, 0)) {
-            pl->xFF++;
+            pl->r_no_3++;
         }
         break;
     case 2:
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         plboatSetSpear(pl);
-        pl->xFF++;
+        pl->r_no_3++;
     case 3:
         ActBtn.set(0x17, 5, 0, 0, 0, 1, 0, 0);
         plboatBlendMotSet(pl, PLARC(0xE), PLARC(0xF), PLARC(0xD), 0, 0, 0);
@@ -2208,7 +2208,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         MotionMoveF(pl, 0);
         plboatSightCurMove(pl);
         if (boss && !(boss->flags_3C8 & 0x20)) {
-            pl->xFF++;
+            pl->r_no_3++;
         } else if (Key.trg & 0x80) {
             PlRoutineSet(pPL, 0, 0xF, 0xB, 0);
         }
@@ -2216,7 +2216,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
     case 4:
         MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
-        pl->xFF++;
+        pl->r_no_3++;
     case 5:
         plOnBoat(pl);
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -2244,12 +2244,12 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
 static void plboat_R2_SpearThrow2(cPlayer* pl)
 {
     ActBtn.set(0x17, 5, 0, 0, 0, 1, 0, 0);
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         U32Set(pl->x3E0, 0);
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plboatBlendMotSet(pl, PLARC(0x11), PLARC(0x12), PLARC(0x10), 0, 0, 0);
         plOnBoat(pl);
@@ -2271,27 +2271,27 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
 
 static void plboat_R2_BossDie(cPlayer* pl)
 {
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl0fBossDiePosSet(pl);
         plboatSetSpear(pl);
         MotionSetCore(pl, &pl->mot, PLARC(0xE), 0, 0, 1, 0);
         pl0fBossDieCamSet(pl);
         pl->x3E0 = 300;
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plOnBoat(pl);
         MotionMoveF(pl, 0);
         if (pl->x3E0) {
             pl->x3E0--;
         } else {
-            pl->xFF++;
+            pl->r_no_3++;
         }
         break;
     case 2:
         MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
-        pl->xFF++;
+        pl->r_no_3++;
     case 3:
         plOnBoat(pl);
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
@@ -2310,7 +2310,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
 
 static void plboat_R2_Guard(cPlayer* pl)
 {
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->mot, PLARC(0x1E), 0, 0xA, 1, 0);
         pl->x4FD = 0xA;
@@ -2320,7 +2320,7 @@ static void plboat_R2_Guard(cPlayer* pl)
             pl->pSpear->setLost();
             pl->pSpear = 0;
         }
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         plOnBoat(pl);
         if (MotionMoveF(pl, 0)) {
@@ -2338,7 +2338,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
     cPl0f* boat = PL_BOAT(pl);
 
     pG->flags_5010 |= 0x00400000;
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->mot, PLARC(0x20), 0, 3, 1, 0);
         pl->rot.x = 0.0f;
@@ -2365,7 +2365,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         } else {
             PlSetDamageSe(0);
         }
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         if (pl->x3E0) {
             pl->x3E0--;
@@ -2418,8 +2418,8 @@ static void plboat_R2_Swim(cPlayer* pl)
     if (boat) {
         Pl0fWork* w = PL0F_WK(boat);
 
-        if (w->x6D == 0) {
-            w->x6D = 1;
+        if (w->First_camck == 0) {
+            w->First_camck = 1;
             first = 1;
         }
     }
@@ -2428,7 +2428,7 @@ static void plboat_R2_Swim(cPlayer* pl)
     // crosses the calls, so it gets the TRUE store->call link and is issued first (source order).
     one = 1;
     pG->flags_5010 |= 0x00400000;
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl->rot.x = 0.0f;
         pl->rot.z = 0.0f;
@@ -2456,7 +2456,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         pl->evTarget.z = 50.0f;
         pl->rot.y += Muku(&pl->pos, &pl->pBoat->pos, pl->rot.y, PI);
         pl->rot.y = LIMIT_ANGLE(pl->rot.y);
-        pl->xFF++;
+        pl->r_no_3++;
     case 1: {
         int n = (int) pl->x3E0 / 20;
         int lim;
@@ -2564,10 +2564,10 @@ static void plboat_R2_Swim(cPlayer* pl)
     }
     if (pl->pBoat->plDist2 < 3240000.0f) {
         PlRoutineSet(pPL, 0, 0xF, 8, 0);
-        pl->pBoat->xFC = 1;
-        pl->pBoat->xFD = 5;
-        pl->pBoat->xFE = 0;
-        pl->pBoat->xFF = 0;
+        pl->pBoat->r_no_0 = 1;
+        pl->pBoat->r_no_1 = 5;
+        pl->pBoat->r_no_2 = 0;
+        pl->pBoat->r_no_3 = 0;
     }
     if (pl->x3EC) {
         pl->x3EC--;
@@ -2596,7 +2596,7 @@ static void plboat_R2_WaterRide(cPlayer* pl)
     Mtx m;
     Vec v;
 
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         MotionSetCore(pl, &pl->mot, PLARC(0x21), 0, 0xF, 5, 0);
         pl->sightRate = 0.0f;
@@ -2613,7 +2613,7 @@ static void plboat_R2_WaterRide(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 0xF, 0x16, 0, 0x35, (u32) boat, 0);
         plboat_ride_pos = boat->pos;
         plboat_ride_ang = boat->rot.y;
-        pl->xFF++;
+        pl->r_no_3++;
     case 1:
         PSVECScale(&pl->evTarget, &v, 0.3f);
         PSVECAdd(&pl->pos, &v, &pl->pos);
@@ -2647,7 +2647,7 @@ static void plboat_R2_Die(cPlayer* pl)
     } else {
         boss = 0;
     }
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0: {
         int eaten = 0;
 
@@ -2672,7 +2672,7 @@ static void plboat_R2_Die(cPlayer* pl)
             pl->x3E4 = 1;
         }
         VibSetData(VIB_TBL, 0xD, 1);
-        pl->xFF++;
+        pl->r_no_3++;
     }
     case 1:
         if (boss) {
@@ -2711,7 +2711,7 @@ static void plboat_R2_Die(cPlayer* pl)
 // lfs, mr, stw).
 #define PLBOAT_ROOM_IN() \
 { \
-    switch (pl->xFF) { \
+    switch (pl->r_no_3) { \
     case 0: \
         pl->pBody->initWepHand((u32) PLARC(0x8)); \
         pl->setRightHand(1); \
@@ -2720,7 +2720,7 @@ static void plboat_R2_Die(cPlayer* pl)
         pl->x4FD = 0; \
         pl->x4FC = 0; \
         pl->blendRate500 = 0.0f; \
-        pl->xFF++; \
+        pl->r_no_3++; \
     case 1: \
         plboatBlendMotSet(pl, PLARC(0x9), PLARC(0xB), PLARC(0xA), 0, 0, 0); \
         plOnBoat(pl); \
@@ -2749,7 +2749,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
 { \
     Vec v; \
  \
-    switch (pl->xFF) { \
+    switch (pl->r_no_3) { \
     case 0: \
         v.x = 1500.0f; \
         v.y = 500.0f; \
@@ -2768,7 +2768,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl->pBody->initWepHand((u32) PLARC(0x8)); \
         pl->setRightHand(1); \
         pl->pWep->setTrans(0, 0); \
-        pl->xFF++; \
+        pl->r_no_3++; \
     case 1: \
         if (pl->x3FC) { \
             pl->x3FC--; \
@@ -2792,7 +2792,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         } \
         if (MotionMoveF(pl, 0)) { \
             PLBOAT_ENGINE_START(); \
-            pl->xFF++; \
+            pl->r_no_3++; \
         } \
         break; \
     case 2: \
@@ -2808,7 +2808,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         EffectEspgenDelete(0, 0x35, (int) boat); \
         EffectEfmDelete(0, 0x35, (int) boat); \
         pl->x3E0 = 0; \
-        pl->xFF++; \
+        pl->r_no_3++; \
     case 3: \
         pl->x3E0++; \
         if (pl->x3E0 & 1) { \
@@ -3125,7 +3125,7 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
     void* m;
     int f;
 
-    MotionSetCore(sub, &sub->mot, m0, a, sub->sub409, 4, sub->sub408);
+    MotionSetCore(sub, &sub->mot, m0, a, sub->m_Hokan, 4, sub->m_Frame);
     if (sub->subBlendRate < 0.0f) {
         m = m1;
         f = b;
@@ -3134,15 +3134,15 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
         f = c;
     }
     bm = &sub->subBackMot;
-    MotionSetCore(sub, bm, m, f, sub->sub409, 4, sub->sub408);
+    MotionSetCore(sub, bm, m, f, sub->m_Hokan, 4, sub->m_Frame);
     sub->blendMot = bm;
     bm->blendRate = rate * (1.0f / 256.0f);
-    if (sub->sub409) {
-        sub->sub409--;
+    if (sub->m_Hokan) {
+        sub->m_Hokan--;
     }
-    sub->sub408++;
-    if (sub->sub408 >= sub->frameMax) {
-        sub->sub408 = 0;
+    sub->m_Frame++;
+    if (sub->m_Frame >= sub->frameMax) {
+        sub->m_Frame = 0;
     }
 }
 
@@ -3173,7 +3173,7 @@ int testSearchEm2f(cPl0f* em)
     for (n = 0; n < EmMgr.nArray; n++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * n);
 
-        if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0 && e->x38D == 1) {
+        if ((e->be_flag & 0x201) == 1 && e->id == 0x2F && (s16) e->hp > 0 && e->set == 1) {
             Vec v;
             f32 len;
             int i;
@@ -3181,10 +3181,10 @@ int testSearchEm2f(cPl0f* em)
             Pl0fNode* n = &w->node[0];   // node pointer kept callee-saved across the calls; `w` itself dies before them
 
             w->pBoss = e;
-            em->xFC = 1;   // plain byte stores: the 6 stays in the loop, the zero is hoisted (an int inline hoists both)
-            em->xFD = 6;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;   // plain byte stores: the 6 stays in the loop, the zero is hoisted (an int inline hoists both)
+            em->r_no_1 = 6;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             {
                 // A second work pointer: cse turns it into a copy of `w` that loop.c hoists (`mr r12, r6`
                 // before the loop) and the pSelf store goes through the copy.
@@ -3290,26 +3290,26 @@ void pl0fLongRopeSet(cPl0f* em)
         w->cloth.num = 30;
         w->cloth.pParts = pl0f_rope_parts;
         w->cloth.x58 = em;
-        w->cloth.x48 = 0.0f;
-        w->cloth.x50 = 0.0f;
+        w->cloth.WindSin = 0.0f;
+        w->cloth.Move_rate = 0.0f;
         w->cloth.pUp = pl0f_rope_up;
         w->cloth.pDown = pl0f_rope_down;
-        w->cloth.x3C = 5.0f;
-        w->cloth.x40 = 0.9f;
-        w->cloth.x44 = 100;
-        w->cloth.x4C = 0.1f;
+        w->cloth.Gravity = 5.0f;
+        w->cloth.Rate = 0.9f;
+        w->cloth.Bundle_num = 100;
+        w->cloth.Stretchy = 0.1f;
         w->cloth.flags = 0x108;
-        w->cloth.x08 = 0;
-        w->cloth.x0C = 0;
-        w->cloth.x10 = 0;
-        w->cloth.x14 = 0;
+        w->cloth.pLeft = 0;
+        w->cloth.pRight = 0;
+        w->cloth.pUpLeft = 0;
+        w->cloth.pUpRight = 0;
         w->cloth.pMax = 0;
-        w->cloth.x2C = 0;
-        w->cloth.x30 = 0;
-        w->cloth.x34 = 0;
-        w->cloth.x20 = 0;
-        w->cloth.x24 = 0;
-        w->cloth.x38 = 0;
+        w->cloth.pWindSin = 0;
+        w->cloth.pWindRate = 0;
+        w->cloth.pAtset = 0;
+        w->cloth.pGravity = 0;
+        w->cloth.pRate = 0;
+        w->cloth.At_num = 0;
         w->cloth.x54 = 0;   // the last zero store (dying zero register) is issued first
         w->pRope->setChain(&w->cloth);
         pos.x = 0.0f;
@@ -3528,8 +3528,8 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         } \
     } else if (w->spdXZ > hi) { \
         sub->subHideMode = 1; \
-        sub->subSelf->sub409 = 5; \
-        sub->sub408 = 0; \
+        sub->subSelf->m_Hokan = 5; \
+        sub->m_Frame = 0; \
         sub->subBlendRate = 0.0f; \
     } \
     if (sub->subHideMode) { \
@@ -3550,7 +3550,7 @@ static void subBoatRide()
     sub->subArc = boat->subArc;
     sub->dmType = 0x1E;
     sub->motFlags2 &= ~0x40000000;
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->mot, SUBARC(0x2B), 0, 5, 5, 0);
         v.x = 984.32f;
@@ -3564,7 +3564,7 @@ static void subBoatRide()
         sub->rot.y = boat->rot.y - PI / 2;
         sub->rot.y = LIMIT_ANGLE(sub->rot.y);
         sub->atari.flags &= 0xFCFF;
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (sub->subHideMode) {
             sub->subHideMode--;
@@ -3575,7 +3575,7 @@ static void subBoatRide()
             sub->sub52C -= dy;
         }
         if (MotionMoveF(sub, 0)) {
-            sub->xFE++;
+            sub->r_no_2++;
         } else {
             if (sub->frame > 21.7f && sub->frame < 22.3f) {
                 SndCall(8, 6, &sub->pos, boat->id, 0, 0);
@@ -3589,7 +3589,7 @@ static void subBoatRide()
         MotionSetCore(sub, &sub->mot, SUBARC(0x2C), 0, 5, 5, 0);
         sub->atari.flags &= 0xFCFF;
         sub->subHideMode = 0;
-        sub->xFE++;
+        sub->r_no_2++;
     case 3:
         SUB_BOAT_SIT(50.0f, 30.0f);
         break;
@@ -3606,12 +3606,12 @@ static void subBoatGetoff()
     sub->subArc = boat->subArc;
     sub->dmType = 0x1E;
     sub->motFlags2 &= ~0x40000000;
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->mot, SUBARC(0x2D), 0, 5, 5, 0);
         sub->subHideMode = 20;
         sub->sub52C = 100.0f;
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (sub->subHideMode) {
             sub->subHideMode--;
@@ -3639,12 +3639,12 @@ static void subBoatGetoff()
     sub->subArc = boat->subArc; \
     sub->dmType = 0x1E; \
     sub->motFlags2 &= ~0x40000000; \
-    switch (sub->xFE) { \
+    switch (sub->r_no_2) { \
     case 0: \
         MotionSetCore(sub, &sub->mot, SUBARC(0x2C), 0, 0, 5, 0); \
         sub->atari.flags &= 0xFCFF; \
         sub->subHideMode = 0; \
-        sub->xFE++; \
+        sub->r_no_2++; \
     case 1: \
         SUB_BOAT_SIT(50.0f, 30.0f); \
         break; \

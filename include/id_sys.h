@@ -14,7 +14,7 @@ struct IdUnit {
     u8 kind;         // 0x04  1: group (children follow)
     u8 level;        // 0x05  depth in the parent tree
     u8 parentNo;     // 0x06
-    u8 x7;           // 0x07
+    u8 rowNo;           // 0x07
     Mtx mat;         // 0x08  world matrix
     Mtx localMat;    // 0x38
     IdUnit* parent;  // 0x68
@@ -30,7 +30,7 @@ struct IdUnit {
     u8 scaleType;    // 0x7C  0x10: scale x only, 0x20: y only
     u8 rotAxis;      // 0x7D
     u8 dir;          // 0x7E  bit n: timer n counts up
-    u8 flags_7F;     // 0x7F  0x01: mask texture, 0x02: no texture animation, 0x04: no mask animation
+    u8 tex_flag;     // 0x7F  0x01: mask texture, 0x02: no texture animation, 0x04: no mask animation
     u8 ot;           // 0x80
     u8 prio;         // 0x81
     u8 transType;    // 0x82  0: common, 1: negative, 2/3: shimmer

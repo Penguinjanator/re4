@@ -50,10 +50,10 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
@@ -147,8 +147,8 @@ void cEm24::move()
 
     em24DmCk(this);
     w->flags &= ~4;
-    Em24_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em24_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -202,7 +202,7 @@ static void em24_R0_Init(cEm24* em)
 
     if (em->modelInit(ARC(5), ARC(6)) == 0) {
         pLog->err(0, 0, "em24() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     scale = (f32) (int) Rnd() * 0.15f * (1.0f / 256.0f) + 1.1f;
@@ -240,7 +240,7 @@ static void em24_R0_Init(cEm24* em)
     w->slopeRot.x = 0.0f;
     w->slopeRot.y = 0.0f;
     w->slopeRot.z = 0.0f;
-    switch (em->x38D) {
+    switch (em->set) {
     default:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
         MotionMoveF(em, 0);
@@ -257,7 +257,7 @@ static void em24_R0_Init(cEm24* em)
 
 static void em24_R0_Move(cEm24* em)
 {
-    Em24_R1_move_tbl[em->xFD](em);
+    Em24_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em24_R1_BoxWait(cEm24* em)
@@ -265,12 +265,12 @@ static void em24_R1_BoxWait(cEm24* em)
     Em24Work* w = EM24_WK(em);
 
     w->flags |= 4;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 5, 0);
         AtariOff(&em->atari, 0xFCFF);
         w->timer = 45;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI);
         MotionMoveF(em, 0);
@@ -281,7 +281,7 @@ static void em24_R1_BoxWait(cEm24* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -293,7 +293,7 @@ static void em24_R1_BoxWait(cEm24* em)
         w->atkHit = 0;
         SndCall(8, 4, &em->pos, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 0x1C, 5, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3: {
         int two = 2;
 
@@ -336,19 +336,19 @@ static void em24_R1_BoxWait(cEm24* em)
 
 static void em24_R1_CoilWait(cEm24* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em->plDist2 < 9000000.0f) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 0, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -361,7 +361,7 @@ static void em24_R1_Free(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(7), 0, 3, 5, 0);
@@ -375,7 +375,7 @@ static void em24_R1_Free(cEm24* em)
         w->timer = Rnd() % 3 + 3;
         w->turnTimer = Rnd() % 30 + 30;
         w->stuckCnt = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->turnTimer) {
             w->turnTimer--;
@@ -388,7 +388,7 @@ static void em24_R1_Free(cEm24* em)
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (MotionMoveF(em, 0)) {
             if (w->stuckCnt > 1) {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
@@ -398,10 +398,10 @@ static void em24_R1_Free(cEm24* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0xA), 0, 3, 1, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -411,19 +411,19 @@ static void em24_R1_Coil(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 5, 0);
         w->timer = Rnd() % 90 + 90;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 64.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -431,12 +431,12 @@ static void em24_R1_Coil(cEm24* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 3, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 64.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -456,25 +456,25 @@ static void em24_R0_Die(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
 
-    switch (em->xFD) {
+    switch (em->r_no_1) {
     case 0:
         AtariOff(&em->atari, 0xFEFF);
         if (w->flags & 0x20) {
-            em->xFF = 1;
+            em->r_no_3 = 1;
         } else {
-            em->xFF = 0;
+            em->r_no_3 = 0;
         }
-        if (em->xFF) {
+        if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
             EstSet((int) em, -1, 0, 0, 0x1C, 7, 0, 0, (u32) em, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
         }
         EmSetDie(em);
-        em->xFD++;
+        em->r_no_1++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFD++;
+            em->r_no_1++;
         }
         break;
     case 2: {
@@ -485,7 +485,7 @@ static void em24_R0_Die(cEm24* em)
         cEmWep* wep;
 
         w->timer = 60;
-        if (em->xFF) {
+        if (em->r_no_3) {
             EstSet((int) em, -1, 0, 0, 0x1C, 3, 0, 0, (u32) em, 0);
         } else {
             EstSet((int) em, -1, 0, 0, 0x1C, 1, 0, 0, (u32) em, 0);
@@ -521,7 +521,7 @@ static void em24_R0_Die(cEm24* em)
             wep->setSeDamage(8, 0xC, em->id);
         }
         SndCall(8, 0xF, &em->pos, em->id, 0, em);
-        em->xFD++;
+        em->r_no_1++;
     }
     case 3:
         em->pos.y -= 2.0f;
@@ -531,7 +531,7 @@ static void em24_R0_Die(cEm24* em)
                 em->alpha = 0.0f;
                 em->be_flag &= ~2;
                 em->be_flag |= 0x4000;
-                em->xFD++;
+                em->r_no_1++;
                 w->flags |= 0x10;
                 break;
             }

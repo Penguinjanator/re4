@@ -29,19 +29,19 @@ void cEsp47::move()
     }
 }
 
-void Esp47_Trans(cEsp* e)
+void Esp47_Trans(cEsp* pEsp)
 {
     EspAnmData* anm;
-    f32 sx = e->sizeX * e->scale;
-    f32 sy = e->sizeY * e->scale;
+    f32 sx = pEsp->sizeX * pEsp->scale;
+    f32 sy = pEsp->sizeY * pEsp->scale;
     f32 rx;
     f32 ry;
     f32 w;
     f32 h;
     int flag;
 
-    if (!EspGetAnmAddr(e->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", e->anmNo);
+    if (!EspGetAnmAddr(pEsp->anmNo, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", pEsp->anmNo);
         return;
     }
     if ((f32)anm->x4 == 0.0f) {
@@ -57,72 +57,72 @@ void Esp47_Trans(cEsp* e)
     w = rx * sx;
     h = ry * sy;
 
-    while (e->pos.x > SCR_W) {
-        e->pos.x -= SCR_H;
+    while (pEsp->pos.x > SCR_W) {
+        pEsp->pos.x -= SCR_H;
     }
-    while (e->pos.x < SCR_L) {
-        e->pos.x += SCR_H;
+    while (pEsp->pos.x < SCR_L) {
+        pEsp->pos.x += SCR_H;
     }
-    while (e->pos.y > SCR_H) {
-        e->pos.y -= SCR_H;
+    while (pEsp->pos.y > SCR_H) {
+        pEsp->pos.y -= SCR_H;
     }
-    while (e->pos.y < 0.0f) {
-        e->pos.y += SCR_H;
+    while (pEsp->pos.y < 0.0f) {
+        pEsp->pos.y += SCR_H;
     }
 
     flag = 0;
-    EspCommonTrans(e);
-    if (e->pos.x + w < SCR_L) {
+    EspCommonTrans(pEsp);
+    if (pEsp->pos.x + w < SCR_L) {
         flag = 1;
-        e->pos.x += SCR_H;
-        EspCommonTrans(e);
-        e->pos.x -= SCR_H;
+        pEsp->pos.x += SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x -= SCR_H;
     }
-    if (e->pos.x - w > SCR_W) {
+    if (pEsp->pos.x - w > SCR_W) {
         flag |= 2;
-        e->pos.x -= SCR_H;
-        EspCommonTrans(e);
-        e->pos.x += SCR_H;
+        pEsp->pos.x -= SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x += SCR_H;
     }
-    if (e->pos.y + h < 0.0f) {
+    if (pEsp->pos.y + h < 0.0f) {
         flag |= 4;
-        e->pos.y += SCR_H;
-        EspCommonTrans(e);
-        e->pos.y -= SCR_H;
+        pEsp->pos.y += SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.y -= SCR_H;
     }
-    if (e->pos.y - h > SCR_H) {
+    if (pEsp->pos.y - h > SCR_H) {
         flag |= 8;
-        e->pos.y -= SCR_H;
-        EspCommonTrans(e);
-        e->pos.y += SCR_H;
+        pEsp->pos.y -= SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.y += SCR_H;
     }
     if (flag == 5) {
-        e->pos.x += SCR_H;
-        e->pos.y += SCR_H;
-        EspCommonTrans(e);
-        e->pos.x -= SCR_H;
-        e->pos.y -= SCR_H;
+        pEsp->pos.x += SCR_H;
+        pEsp->pos.y += SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x -= SCR_H;
+        pEsp->pos.y -= SCR_H;
     }
     if (flag == 9) {
-        e->pos.x += SCR_H;
-        e->pos.y -= SCR_H;
-        EspCommonTrans(e);
-        e->pos.x -= SCR_H;
-        e->pos.y += SCR_H;
+        pEsp->pos.x += SCR_H;
+        pEsp->pos.y -= SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x -= SCR_H;
+        pEsp->pos.y += SCR_H;
     }
     if (flag == 6) {
-        e->pos.x -= SCR_H;
-        e->pos.y += SCR_H;
-        EspCommonTrans(e);
-        e->pos.x += SCR_H;
-        e->pos.y -= SCR_H;
+        pEsp->pos.x -= SCR_H;
+        pEsp->pos.y += SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x += SCR_H;
+        pEsp->pos.y -= SCR_H;
     }
     if (flag == 10) {
-        e->pos.x -= SCR_H;
-        e->pos.y -= SCR_H;
-        EspCommonTrans(e);
-        e->pos.x += SCR_H;
-        e->pos.y += SCR_H;
+        pEsp->pos.x -= SCR_H;
+        pEsp->pos.y -= SCR_H;
+        EspCommonTrans(pEsp);
+        pEsp->pos.x += SCR_H;
+        pEsp->pos.y += SCR_H;
     }
 }
 

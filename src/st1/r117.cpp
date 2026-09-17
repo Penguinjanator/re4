@@ -150,7 +150,7 @@ void R117Init()
     W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
-    if (!(pG->flags_51BC & 0x00100000)) {
+    if (!(pG->Item_find_flg & 0x00100000)) {
         cEm* door;
 
         if (getRoomEtcDoor(0, &door, 1)) {
@@ -166,7 +166,7 @@ void R117Init()
         EvtMgr.SetFunc("evt_r117s10_func", (void*) Evt_R117S10_Func);
         W->mod = SearchEmModule(3);
     } else {
-        if (!(pG->flags_54 & 0x100) && pG->x4F9E == 0) {
+        if (!(pG->System_flg & 0x100) && pG->x4F9E == 0) {
             setEm(0x50, -1, 0, 1, 0);
             setEm(0x51, -1, 0, 1, 0);
         }
@@ -377,7 +377,7 @@ static void r117_EventAshleyFind()
 {
     cEm* door;
 
-    BitOn(pG->flags_51BC, 0x00100000);
+    BitOn(pG->Item_find_flg, 0x00100000);
     BitOff(pG->door_flags_51CC, 0x8000);
     if (W->evd0->waitLoadOk() == 1) {
         MemorySwap(W->mod->pArc, (u32) W->evd0->addr, W->evd0->size);
@@ -385,7 +385,7 @@ static void r117_EventAshleyFind()
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         MemorySwap(W->mod->pArc, (u32) W->evd0->addr, W->evd0->size);
         W->evd0->setCommand(4, 0, 0);
     }
@@ -416,7 +416,7 @@ static void r117_EventSaddlerAppear()
     Event* ev;
 
     SceEventStart(0);
-    BitOn(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x400);
     EmMgr.destroy(pSUB);
     pG->flags_5018 &= ~0x04000000;
     SceSleep(3);

@@ -172,7 +172,7 @@ void (*ObjInitFunc[0x40])(cObj*);
 cObjMgr::cObjMgr() : cManager<cObj>(sizeof(cObj), 2)
 {
     setName("cObjMgr");
-    x34 = 0;
+    Guid = 0;
 }
 
 void cObjMgr::log(const char* fmt, ...)
@@ -303,8 +303,8 @@ int cObjMgr::construct(cObj* p, int id)
         ObjInitFunc[id](p);
         break;
     }
-    p->serial = x34;
-    x34++;
+    p->serial = Guid;
+    Guid++;
     p->id = id;
     return 1;
 }
@@ -364,7 +364,7 @@ void cObjMgr::destroy(cObj* p)
 cObj::cObj()
 {
     be_flag |= 0x21;
-    x12E = 1;
+    kindid = 1;
 }
 
 cObjMgr ObjMgr;

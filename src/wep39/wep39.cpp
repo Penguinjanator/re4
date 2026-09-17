@@ -185,7 +185,7 @@ void cObjMachinegun::moveReload()
         wep.seHandle = SndCall(2, 2, &pParts->worldPos, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, (f32) reloadEnd[pG->x4FBA])) {
+    if (MotionCheckCrossFrame(&mot, (f32) reloadEnd[pG->weapon_lv_reload])) {
         SndCall(2, 4, &pParts->worldPos, 0, 0, 0);
         ItemMgr.reload();
     }

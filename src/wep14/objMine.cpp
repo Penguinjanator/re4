@@ -190,7 +190,7 @@ void cObjMine::moveReload()
         int se;
 
         partsSet(this);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x1F);
             break;
@@ -200,7 +200,7 @@ void cObjMine::moveReload()
         }
         motionSet(m, 0, 0, 1, 0);
         EstSet((int) this, -1, 0, 0, 0x48, 1, 0, 0xA, 0, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -214,7 +214,7 @@ void cObjMine::moveReload()
         // reload frame (the mine change) by reload tune level
         static const f32 reloadFrame[2] = { 74.0f, 58.0f };
 
-        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->x4FBA])) {
+        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->weapon_lv_reload])) {
             ItemMgr.reload();
         }
         if (MotionGetState(this)) {

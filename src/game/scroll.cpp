@@ -96,9 +96,9 @@ void SmdClear(int mode)
 void workInit(cObj* obj)
 {
     obj->setNoSuspend(1);
-    obj->x12E = 2;
+    obj->kindid = 2;
     obj->type = 0;
-    obj->x12F = 3;
+    obj->ot_type = 3;
     obj->blk = -2;
 }
 
@@ -231,7 +231,7 @@ void SmxSetFlag(cObj* obj, u32 flags)
         obj->be_flag &= ~0x2000000;
     }
     if (flags & 8) {
-        obj->x103 = 0x80;
+        obj->alpha_omit = 0x80;
     }
     if (flags & 0x10) {
         obj->be_flag |= 0x8000;
@@ -255,7 +255,7 @@ int SmxGetFlag(cObj* obj)
     if (be & 0x2000000) {
         flags |= 4;
     }
-    if (obj->x103 != 0xFF) {
+    if (obj->alpha_omit != 0xFF) {
         flags |= 8;
     }
     if (be & 0x8000) {
@@ -297,9 +297,9 @@ void smxInit(cObj* obj, SmxWork* w)
     }
     obj->type = w->type;
     obj->lightInfo.x54 = w->x4;
-    obj->x12F = w->type2;
+    obj->ot_type = w->type2;
     SmxSetFlag(obj, w->flags);
-    obj->x135 = w->x3;
+    obj->CullMode = w->x3;
     mi = obj->pInfo;
     if (mi != NULL) {
         col = w->color;
@@ -415,7 +415,7 @@ void BlockDestroy(int blk)
             cur = p;
             next = (cObj*) cur->next;
             p = next;
-            if (cur->x12E == 2 && cur->blk == blk) {
+            if (cur->kindid == 2 && cur->blk == blk) {
                 ObjMgr.destroy(cur);
             }
         } while (next != NULL);

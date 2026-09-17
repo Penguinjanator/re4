@@ -58,10 +58,10 @@ static void em18_R1_Die_Normal(cEm18* em);
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 extern "C" void _prolog()
@@ -203,12 +203,12 @@ void cEm18::move()
 {
     Em18Work* w = EM18_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em18DmCk(this);
     }
     w->flags &= ~0x1F;
-    Em18_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em18_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -230,7 +230,7 @@ static void em18_R0_Init(cEm18* em)
 
     if (em->modelInit(ARC(5), ARC(6)) == 0) {
         pLog->err(0, 0, "em18() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     tpl = ARC(8);
@@ -292,7 +292,7 @@ static void em18_R0_Init(cEm18* em)
 
 static void em18_R0_Move(cEm18* em)
 {
-    Em18_R1_move_tbl[em->xFD](em);
+    Em18_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em18_R1_Wait(cEm18* em)
@@ -300,10 +300,10 @@ static void em18_R1_Wait(cEm18* em)
     Em18Work* w = EM18_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         break;
@@ -315,12 +315,12 @@ static void em18_R1_Trade(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 10, 1, 0);
         w->sndId = SndCall(8, 9, &em->pos, em->id, 0, 0);
         KeyStop(0xEFCF0000);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->dmType = 2;
         if (em->motFrame > 35.7f && em->motFrame < 36.3f) {
@@ -333,12 +333,12 @@ static void em18_R1_Trade(cEm18* em)
         em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 16.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         if (SubScreenOpen(0x10, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 3:
@@ -346,7 +346,7 @@ static void em18_R1_Trade(cEm18* em)
         SndCall(8, 0xA, &em->pos, em->id, 0, 0);
         w->sndId = SndCall(8, 7, &em->pos, em->id, 0, 0);
         pGS->flags_170 &= 0x7FFFFFFF;
-        em->xFE++;
+        em->r_no_2++;
     case 4:
         if (em->motFrame > 33.7f && em->motFrame < 34.3f) {
             em18ClothPartsSet(em, 0);
@@ -429,7 +429,7 @@ static void em18_R0_Damage(cEm18* em)
     Em18Work* w = EM18_WK(em);
 
     w->flags |= 8;
-    Em18_R2_move_tbl[em->xFD](em);
+    Em18_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em18_R1_Dm_Normal(cEm18* em)
@@ -437,10 +437,10 @@ static void em18_R1_Dm_Normal(cEm18* em)
     Em18Work* w = EM18_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 10);
@@ -454,14 +454,14 @@ static void em18_R0_Die(cEm18* em)
     Em18Work* w = EM18_WK(em);
 
     w->flags |= 8;
-    Em18_R3_move_tbl[em->xFD](em);
+    Em18_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em18_R1_Die_Normal(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 2:
     default:
         break;
@@ -469,12 +469,12 @@ static void em18_R1_Die_Normal(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 3, 1, 0);
         SndStop(w->sndId, 0);
         SndCall(8, 8, &em->pos, em->id, 0, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(5);
             em->atari.flags &= ~0x300;
-            em->xFE++;
+            em->r_no_2++;
         } else {
             if (em->motFrame > 34.7f && em->motFrame < 35.3f) {
                 SndCall(8, 5, &em->pos, em->id, 0, 0);

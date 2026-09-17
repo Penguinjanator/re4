@@ -39,8 +39,8 @@ struct Em3cWork {
     EmHitInfo hit[11];    // 0x098 (0x478)  extra hit boxes (YarareAdd); [9] the parasite, [10] the head object
     u8 pad_2D4[0x3A4 - 0x2D4];
     int bombTimer;        // 0x3A4 (0x784)  frames until the head parts are hidden (em3cPartsBombHead)
-    cModelInfo* pInfo3A8; // 0x3A8 (0x788)  em3cModelInit extra models
-    cModelInfo* pInfo3AC; // 0x3AC (0x78C)
+    cModelInfo* pWeapon; // 0x3A8 (0x788)  em3cModelInit extra models
+    cModelInfo* pChainmail; // 0x3AC (0x78C)
     cObj16* pParasite;    // 0x3B0 (0x790)  head object (em3cSetParasite)
     cObj16* pPara[4];     // 0x3B4 (0x794)  its four parasites (types 0 / 1)
     u8 pad_3C4[4];

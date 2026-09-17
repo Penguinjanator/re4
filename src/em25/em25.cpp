@@ -143,10 +143,10 @@ struct PlayerPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -262,7 +262,7 @@ void cEm25::move()
 {
     Em25Work* w = EM25_WK(this);
 
-    if (xFC && w->pParent && !w->pParent->isAlive()) {
+    if (r_no_0 && w->pParent && !w->pParent->isAlive()) {
         w->pParent = 0;
         EmRoutineSet(this, 1, 0, 0, 0);
     }
@@ -283,8 +283,8 @@ void cEm25::move()
         w->dmGuard--;
     }
     em25RouteCk(this);
-    Em25_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em25_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -331,7 +331,7 @@ static void em25_R0_Init(cEm25* em)
 
     if (em->modelInit(ARC(4), ARC(5)) == 0) {
         pLog->err(0, 0, "em25() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     em->setStatus(0xB);
@@ -359,7 +359,7 @@ static void em25_R0_Init(cEm25* em)
     w->parentParts = zero;
     w->hitCnt = zero;
     w->dead = zero;
-    w->x3A4 = zero;
+    w->Eff_wait1 = zero;
     w->estTimer = zero;
     w->waitTimer = zero;
     w->atkEnable = zero;
@@ -367,22 +367,22 @@ static void em25_R0_Init(cEm25* em)
         w->pPara[i] = 0;
     }
     w->espKind = EspPullCoreKind();
-    switch (em->x38D) {
+    switch (em->set) {
     case 0:
     default:
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         w->mode = 0;
         break;
     case 1:
         em->setStatus(5);
         w->lifeTimer = 900;
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->espKind, (u32) em, 0);
         em25SetParasite(em);
         break;
@@ -392,8 +392,8 @@ static void em25_R0_Init(cEm25* em)
 
 static void em25_R0_Move(cEm25* em)
 {
-    Em25_R1_move_tbl[em->xFD * 2](em);
-    Em25_R1_move_tbl[em->xFD * 2 + 1](em);
+    Em25_R1_move_tbl[em->r_no_1 * 2](em);
+    Em25_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
 static void em25_R1_br_Dummy(cEm25* em)
@@ -406,7 +406,7 @@ static void em25_R1_Hide(cEm25* em)
     cModelInfo* info;
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(8), 0, 0, 5, 0);
         MotionMoveF(em, 0);
@@ -430,7 +430,7 @@ static void em25_R1_Hide(cEm25* em)
             p->scale.z = 1.0f;
         }
         w->scaleY = 1.0f;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         em->be_flag |= 0x4000;
@@ -443,7 +443,7 @@ static void em25_R1_Birth(cEm25* em)
     Em25Work* w = EM25_WK(em);
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->scale.x = 1.0f;
         em->scale.y = 1.0f;
@@ -467,7 +467,7 @@ static void em25_R1_Birth(cEm25* em)
         w->lifeTimer = 900;
         EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->espKind, (u32) em, 0);
         em25SetParasite(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -480,13 +480,13 @@ static void em25_R1_Wait(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x19), 0, 5, 5, 0);
         if (w->waitTimer <= 29) {
             w->waitTimer = (u8) (Rnd() % 30) + 30;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if ((s16) pG->pl_life > 0) {
@@ -515,11 +515,11 @@ static void em25_R1_Walk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x1A), (int) ARC(0x1B), 5, 5, 0);
         w->timer = (u8) (Rnd() % 5) + 5;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, 0.0981747732f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -548,11 +548,11 @@ static void em25_R1_Run(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x1C), (int) ARC(0x1D), 5, 5, 0);
         w->timer = (u8) (Rnd() % 3) + 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, 0.0981747732f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -581,18 +581,18 @@ static void em25_R1_Turn90(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Muku(&em->pos, &pPL->pos, em->rot.y, 3.14159274f) < 0.0f) {
             MotionSetCore(em, &em->mot, ARC(0x1E), (int) ARC(0x1F), 5, 1, 0);
         } else {
             MotionSetCore(em, &em->mot, ARC(0x1E), (int) ARC(0x1F), 5, 0x41, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.14159274f)) > 1.22173047f) {
-                em->xFE = 0;
+                em->r_no_2 = 0;
             } else if (em->plDist2 > 9000000.0f) {
                 if (em->plDist2 > 25000000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
@@ -623,12 +623,12 @@ static void em25_R1_JumpAtk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
         w->timer = 10;
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -650,7 +650,7 @@ static void em25_R1_Bite(cEm25* em)
     int fe;
     int end;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x27), 0, 0, 1, 0);
@@ -660,9 +660,9 @@ static void em25_R1_Bite(cEm25* em)
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
         w->timer = 50;
         w->catchTimer = 10;
-        em->xFF = Rnd() & 3;
+        em->r_no_3 = Rnd() & 3;
         w->sndId = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->dmg.set(0, 10);
         PlGachaMove();
@@ -693,7 +693,7 @@ static void em25_R1_Bite(cEm25* em)
                 }
                 if ((s16) pG->pl_life <= 1) {
                     pG->pl_life = 0;
-                    em->xFE++;
+                    em->r_no_2++;
                 } else {
                     SndStop(w->sndId, 0);
                     SndCall(8, 0x14, &em->pos, em->id, 0, em);
@@ -706,8 +706,8 @@ static void em25_R1_Bite(cEm25* em)
         SndStop(w->sndId, 0);
         PlSetDamageSe(0xD);
         EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, 24.3600006f, 0.0f, 307.75f);
-        pPL->xFE = fe;
-        em->xFE++;
+        pPL->r_no_2 = fe;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             at = &em->atari;
@@ -729,13 +729,13 @@ static void plem25_Bite(cPlayer* pl)
     pG->flags_5010 |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = ((cEm*) pPL->dmgType)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->mot, PL_ARC(0x2F), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->x3E0 = 10;
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (pl->x3E0) {
             pl->x3E0--;
@@ -751,7 +751,7 @@ static void plem25_Bite(cPlayer* pl)
     case 2:
         MotionSetCore(pl, &pl->mot, PL_ARC(0x30), 0, 0, 1, 0);
         pl->atari.set(10, 480.000031f, 400.0f);
-        pl->xFE++;
+        pl->r_no_2++;
     case 3:
         MotionMoveF(pl, 0);
         break;
@@ -765,7 +765,7 @@ static void em25_R1_P_Appear(cEm25* em)
     Em25Work* w = EM25_WK(em);
     int fe;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         em->scale.x = 0.0f;
@@ -779,7 +779,7 @@ static void em25_R1_P_Appear(cEm25* em)
         w->scaleY = 1.0f;
         em->alpha = 0.0f;
         em->be_flag |= 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->scale.x = em->scale.x * 0.899999976f + 0.100000001f;
         em->scale.y = em->scale.y * 0.899999976f + 0.100000001f;
@@ -828,11 +828,11 @@ static void em25_R1_P_Wait(cEm25* em)
     if (ang > 0.523598790f || ang < -0.523598790f) {
         w->flags |= 0x20;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(8), 0, 30, 5, 0);
         w->timer = 10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em25OnParent(em);
         MotionMoveF(em, 0);
@@ -840,12 +840,12 @@ static void em25_R1_P_Wait(cEm25* em)
             w->timer--;
             break;
         }
-        if (!(em->xFE == 2 || em->xFE == 3) && ang > 1.04719758f) {
-            em->xFE = 2;
+        if (!(em->r_no_2 == 2 || em->r_no_2 == 3) && ang > 1.04719758f) {
+            em->r_no_2 = 2;
             break;
         }
-        if (!(em->xFE == 4 || em->xFE == 5) && ang < -1.04719758f) {
-            em->xFE = 4;
+        if (!(em->r_no_2 == 4 || em->r_no_2 == 5) && ang < -1.04719758f) {
+            em->r_no_2 = 4;
             break;
         }
         p = em->getPartsPtr(0);
@@ -853,12 +853,12 @@ static void em25_R1_P_Wait(cEm25* em)
             (pPL->pos.y - p->worldPos.y) * (pPL->pos.y - p->worldPos.y) +
             (pPL->pos.z - p->worldPos.z) * (pPL->pos.z - p->worldPos.z);
         if (d < 25000000.0f) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(9), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em25OnParent(em);
         MotionMoveF(em, 0);
@@ -867,17 +867,17 @@ static void em25_R1_P_Wait(cEm25* em)
             (pPL->pos.y - p->worldPos.y) * (pPL->pos.y - p->worldPos.y) +
             (pPL->pos.z - p->worldPos.z) * (pPL->pos.z - p->worldPos.z);
         if ((d > 64000000.0f && ang < 0.785398185f) || ang < -0.523598790f) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     case 4:
         MotionSetCore(em, &em->mot, ARC(0xA), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em25OnParent(em);
         MotionMoveF(em, 0);
         if (ang > -0.785398185f) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -888,13 +888,13 @@ static void em25_R1_P_Atk(cEm25* em)
     Em25Work* w = EM25_WK(em);
     int fe;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x13), (int) ARC(0x14), 5, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x1D, 0xC, 0, 0, (u32) em, (void*) fe);
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em25OnParent(em);
         if (MotionMoveF(em, 0)) {
@@ -910,11 +910,11 @@ static void em25_R1_P_Poison(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x15), (int) ARC(0x16), 5, 1, 0);
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em25OnParent(em);
         if (MotionMoveF(em, 0)) {
@@ -929,14 +929,14 @@ static void em25_R1_P_Poison(cEm25* em)
 static void em25_R0_Damage(cEm25* em)
 {
     EM25_WK(em)->flags |= 8;
-    Em25_R2_move_tbl[em->xFD](em);
+    Em25_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em25_R1_Dm_P_Normal(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, &em->mot, ARC(0xE), 0, 5, 5, 0);
@@ -945,7 +945,7 @@ static void em25_R1_Dm_P_Normal(cEm25* em)
         }
         SndCall(8, 5, &em->pos, em->id, 0, em);
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em25OnParent(em);
         if (w->timer) {
@@ -969,7 +969,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
     Vec hit;
     int fe;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         em->setStatus(5);
@@ -991,7 +991,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
         em->oldPos = em->pos;
         w->mode = 0;
         w->pParent = 0;
-        if (em->xFF) {
+        if (em->r_no_3) {
             MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         } else {
             MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
@@ -1004,7 +1004,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
         em->dmType = 2;
         MotionMoveF(em, 0);
         em->partsWorldCalc();
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         AtariOn(&em->atari, 0x300);
@@ -1017,12 +1017,12 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
 
 static void em25_R1_Dm_Small(cEm25* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x21), 0, 5, 1, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -1033,23 +1033,23 @@ static void em25_R1_Dm_Small(cEm25* em)
 
 static void em25_R1_Dm_Big(cEm25* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x29), (int) ARC(0x2A), 5, 1, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 1, 0, 0);
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -1062,12 +1062,12 @@ static void em25_R1_Dm_Frame(cEm25* em)
 {
     cModelInfo* info;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x29), 0, 5, 1, 0);
         LifeDownSet(em, 1000, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
@@ -1075,7 +1075,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
                 em->be_flag &= ~0x10000;
                 EmRoutineSet(em, 3, 1, 0, 0);
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         } else if (em->hp <= 0) {
             for (info = em->pInfo; info; info = info->pNext) {
@@ -1088,7 +1088,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -1099,14 +1099,14 @@ static void em25_R1_Dm_Frame(cEm25* em)
 
 static void em25_R0_Die(cEm25* em)
 {
-    Em25_R3_move_tbl[em->xFD](em);
+    Em25_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em25_R1_Die_P_Normal(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x10), 0, 5, 1, 0);
         w->dead = 1;
@@ -1116,7 +1116,7 @@ static void em25_R1_Die_P_Normal(cEm25* em)
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em25OnParent(em);
         MotionMoveF(em, 0);
@@ -1143,7 +1143,7 @@ static void em25_R1_Die_Normal(cEm25* em)
     Em25Work* w = EM25_WK(em);
     int fe;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x20), 0, 5, 1, 0);
@@ -1155,11 +1155,11 @@ static void em25_R1_Die_Normal(cEm25* em)
         em->clearStatus(5);
         SndCall(8, 0xE, &em->pos, em->id, 0, em);
         em->hp = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
-            em->xFE++;
+            em->r_no_2++;
             em->setStatus(8);
             EmSetDropItem(em);
             SndCall(8, 0xD, &em->pos, em->id, 0, em);
@@ -1183,7 +1183,7 @@ static void em25_R1_Die_Big(cEm25* em)
     Em25Work* w = EM25_WK(em);
     int fe;
 
-    fe = em->xFE;
+    fe = em->r_no_2;
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x22), (int) ARC(0x23), 5, 1, 0);
@@ -1195,11 +1195,11 @@ static void em25_R1_Die_Big(cEm25* em)
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
         em->hp = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
-            em->xFE++;
+            em->r_no_2++;
             em->setStatus(8);
             EmSetDropItem(em);
         }
@@ -1308,11 +1308,11 @@ void cEm25::setWait()
 
 void cEm25::setAtk()
 {
-    xFC = 1;
-    xFD = 0xA;
+    r_no_0 = 1;
+    r_no_1 = 0xA;
     EM25_WK(this)->atkHit = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cEm25::ckAtkHit()
@@ -1522,7 +1522,7 @@ void em25RouteCk(cEm25* em)
     if (w->mode != 0) {
         return;
     }
-    if (em->xFC != 0) {
+    if (em->r_no_0 != 0) {
         if ((pG->flags_51E4 & 7) != (em->emsetNo & 7)) {
             return;
         }
@@ -1532,7 +1532,7 @@ void em25RouteCk(cEm25* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, 3.14159274f);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;

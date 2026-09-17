@@ -992,12 +992,12 @@ static void edit_ot()
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
     if (pWork->sub2 == 0) {
         edit_id_normal();
-        pWork->id = obj->x12F;
+        pWork->id = obj->ot_type;
         pWork->sub2 = 1;
     }
     eprintf(0x40, 0x8C, 4, 0, "MODEL PROPATY");
-    eprintf(0x40, 0x9A, 0, 0, "%02d %s", obj->x12F, otName[obj->x12F]);
-    if (obj->x12F != pWork->id) {
+    eprintf(0x40, 0x9A, 0, 0, "%02d %s", obj->ot_type, otName[obj->ot_type]);
+    if (obj->ot_type != pWork->id) {
         eprintf(0xD0, 0x9A, 6, 0, "--> %02d %s", pWork->id, otName[pWork->id]);
     }
     if (pWork->joy[0].rep & 2) {
@@ -1009,10 +1009,10 @@ static void edit_ot()
     if (pWork->joy[0].rep & 0x100) {
         int id;
 
-        obj->x12F = pWork->id;
-        id = obj->x12F;  // read back the just-stored member: forwarded as a plain copy
+        obj->ot_type = pWork->id;
+        id = obj->ot_type;  // read back the just-stored member: forwarded as a plain copy
         while ((obj = SmdGetGroupNext(obj)) != NULL) {
-            obj->x12F = id;
+            obj->ot_type = id;
         }
     }
     if (pWork->joy[0].rep & 0x200) {
@@ -1075,10 +1075,10 @@ void edit_flag_core(cObj* obj)
         obj->be_flag ^= 0x2000000;
         break;
     case 3:
-        if (obj->x103 == 0xFF) {
-            obj->x103 = 0x80;
+        if (obj->alpha_omit == 0xFF) {
+            obj->alpha_omit = 0x80;
         } else {
-            obj->x103 = 0xFF;
+            obj->alpha_omit = 0xFF;
         }
         break;
     case 4:
@@ -1173,7 +1173,7 @@ static void edit_col()
     eprintf(0xA0, 0xEE, 0, 0, "%d", info->color2[1]);
     eprintf(0xA0, 0xFC, 0, 0, "%d", info->color2[2]);
     eprintf(0xA0, 0x10A, 0, 0, "%s", blendName[info->xD6]);
-    eprintf(0xA0, 0x118, 0, 0, "%s", cullName[obj->x135]);
+    eprintf(0xA0, 0x118, 0, 0, "%s", cullName[obj->CullMode]);
     eprintf(0x38, (pWork->sub2 + 0xB) * 14, 0, 0, ">");
     do {
         edit_col_core(obj);
@@ -1237,10 +1237,10 @@ void edit_col_core(cObj* obj)
         break;
     case 9:
         if (pWork->joy[0].rep & 2) {
-            obj->x135 = (obj->x135 + 3 + 1) % 3;
+            obj->CullMode = (obj->CullMode + 3 + 1) % 3;
         }
         if (pWork->joy[0].rep & 1) {
-            obj->x135 = (obj->x135 + 3 - 1) % 3;
+            obj->CullMode = (obj->CullMode + 3 - 1) % 3;
         }
         break;
     }
@@ -1618,9 +1618,9 @@ int saveMain(const char* path)
         rec->id = i;
         rec->type = obj->type;
         rec->x4 = obj->lightInfo.x54;
-        rec->type2 = obj->x12F;
+        rec->type2 = obj->ot_type;
         rec->flags = SmxGetFlag(obj);
-        rec->x3 = obj->x135;
+        rec->x3 = obj->CullMode;
         *(u32*) rec->color = obj->pInfo->colorWord;
         rec->color[3] = obj->pInfo->xD6;
         *(u32*) rec->color2 = *(u32*) obj->pInfo->color2;
@@ -1731,12 +1731,12 @@ void setMirrorModel(cObj* obj, int on)
 {
     switch (on) {
     case 1:
-        obj->x12E = 4;
+        obj->kindid = 4;
         obj->be_flag &= ~2;
         obj->be_flag |= 0x100;
         break;
     case 0:
-        obj->x12E = 2;
+        obj->kindid = 2;
         obj->be_flag |= 2;
         obj->be_flag &= ~0x100;
         break;
@@ -1785,7 +1785,7 @@ static void printEditTable()
         if (obj == NULL || !obj->isAlive()) {
             col = 0x14;
         } else {
-            if (obj->x12E != 2 && obj->x12E != 4) {
+            if (obj->kindid != 2 && obj->kindid != 4) {
                 col = 5;
             } else if (!(obj->be_flag & 4)) {
                 col = 0x14;
@@ -1802,13 +1802,13 @@ static void printEditTable()
         // two `!=` tests with re-reads (not a `switch`): each re-read is its own load/zero_extend pair, so
         // thread_jumps can walk the `== 4` test back to its load and thread the `beq` past the `== 4`
         // re-test below (a switch index is one promoted pseudo and the walk stops at the `== 2` jump)
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             if (pWork->flags & 1) {
                 eprintf(x * 8, y * 14, 0x14, 0, "UNKNOWN MODEL");
                 continue;
             }
         }
-        if (obj->x12E == 4) {
+        if (obj->kindid == 4) {
             col = 6;
         } else if (!flagBit(obj->be_flag, 4) || !flagBit(obj->be_flag, 2)) {
             col = 0x14;
@@ -1824,7 +1824,7 @@ static void printEditTable()
         xb = x;
         do {
         } while (0);
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             eprintf(x * 8, y * 14, col, 0, "UNKNOWN");
         } else {
             char* n;
@@ -1860,7 +1860,7 @@ static void printEditTable()
         {
             int t = xb + 9;
             int a0 = t * 8;
-            int tid = obj->x12E == 2 ? obj->type : obj->id;
+            int tid = obj->kindid == 2 ? obj->type : obj->id;
             do {
                 x2 = t;
             } while (0);
@@ -1874,9 +1874,9 @@ static void printEditTable()
             asm("" : "+r"(cx));
             eprintf(cx, y * 14, col, 0, "%08x", obj->lightInfo.x54);
         }
-        eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->x12F);
+        eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->ot_type);
         eprintf((x2 + 0xF) * 8, y * 14, col, 0, "FLAG");
-        eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->x135]);
+        eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->CullMode]);
         eprintf((x2 + 0x19) * 8, y * 14, col, 0, "TEX");
         eprintf((x2 + 0x1D) * 8, y * 14, col, 0, "POS");
         eprintf((x2 + 0x21) * 8, y * 14, col, 0, "ANG");
@@ -1907,7 +1907,7 @@ int wkck(cObj* obj, int no)
         return 0;
     }
     if (pWork->flags & 1) {
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             return 0;
         }
     }
@@ -1919,19 +1919,19 @@ int smxCk(cObj* obj)
 {
     int ret = 0;
 
-    if (obj->x12E == 2 && obj->id == 2) {
+    if (obj->kindid == 2 && obj->id == 2) {
         cModelInfo* info;
 
         if (!(obj->be_flag & 4)) {
             return 0;
         }
         info = obj->pInfo;
-        if (obj->type != 0 || obj->lightInfo.x54 != -1 || obj->x12F != 3 || SmxGetFlag(obj) != 0 || obj->x135 != 0 ||
+        if (obj->type != 0 || obj->lightInfo.x54 != -1 || obj->ot_type != 3 || SmxGetFlag(obj) != 0 || obj->CullMode != 0 ||
             (obj->pInfo->colorWord & 0xFFFFFF00) != 0xFFFFFF00 || (*(u32*) obj->pInfo->color2 & 0xFFFFFF00) != 0 ||
             obj->pInfo->xD6 != 0 || obj->pInfo->uvScrollU != 0.0f || obj->pInfo->uvScrollV != 0.0f) {
             ret = 1;
         }
-    } else if (obj->x12E == 4) {
+    } else if (obj->kindid == 4) {
         ret = 1;
     }
     return ret;

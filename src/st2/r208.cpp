@@ -102,10 +102,10 @@ static inline void PSet(cObj*& d, cObj* v) { d = v; }
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe (r206).
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 
 // Hit effects of attribute types 4 and 5
@@ -351,7 +351,7 @@ void R208Init()
             ((cEmBarred*) b1)->setClosed();
         }
     }
-    if (RsfCheck(G_ROOM_ID, 12) && (pG->flags_54 & 0x00080000)) {
+    if (RsfCheck(G_ROOM_ID, 12) && (pG->System_flg & 0x00080000)) {
         W->em[22].setEm(0xAA, 2, 0, 1, 1);
         W->em[23].setEm(0xAB, 2, 0, 1, 1);
         W->em[24].setEm(0xAC, 2, 0, 1, 1);
@@ -648,7 +648,7 @@ static void funcAshley(cEm* p)
         W->crank = SmdGetObjPtr(0x52);
     }
     W->crank->be_flag |= 0x20;
-    switch (p->xFE) {
+    switch (p->r_no_2) {
     case 0:
         p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x36), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x37));
         W->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x2B));
@@ -663,7 +663,7 @@ static void funcAshley(cEm* p)
             p->setPos(&pos);
             p->setAng(rot);
         }
-        p->xFE = 1;
+        p->r_no_2 = 1;
     case 1:
         p->motionMove();
         if (MotionCheckCrossFrame(&p->mot, 0.0f) == 1 || MotionCheckCrossFrame(&p->mot, 50.0f) == 1
@@ -739,10 +739,10 @@ static void funcAshley(cEm* p)
 // Ashley waves to the player (SetSubAux routine).
 static void funcAshley2(cEm* p)
 {
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         AtariFlagsAndV(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x43), 0x19, 0, 1, 0);
-        p->xFE = 1;
+        p->r_no_2 = 1;
         W->ashleyCnt = 0;
     }
     p->rot.y += Muku(&p->pos, &pPL->pos, p->rot.y, 0.09817477f);
@@ -762,11 +762,11 @@ static void funcAshley3(cEm* p)
 {
     Vec target = {15468.0f, 10000.0f, -52881.0f};
 
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         SubCharSetHand(3);
         AtariFlagsAndV(&pSUB->atari, 0xFCFF);
         p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x44), 0, 0, 1, 0);
-        p->xFE = 1;
+        p->r_no_2 = 1;
         W->ashleyCnt = 0;
     }
     p->rot.y += Muku(&p->pos, &target, p->rot.y, 0.09817477f);
@@ -864,9 +864,9 @@ extern "C" void setTexRender()
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 0x20;
-    obj->x138 = 0x80;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 0x20;
+    obj->Refract_ratio = 0x80;
 }
 
 // The first Ganado come at the player, then walk to the courtyard points.

@@ -733,7 +733,7 @@ void r227_initGondola()
     r227_work.p->gondola.initMove1_pos(obj, 0x8C, &d, 20.0f, 20.0f);
     r227_work.p->gondola.setVibration(10, 10, 2.0f, 0.5f, 2.0f);
     BitOn(obj->be_flag, 0x20);
-    if (pG->room_id_prev == 0x228 || (pG->flags_54 & 0x100)) {
+    if (pG->room_id_prev == 0x228 || (pG->System_flg & 0x100)) {
         r227_work.p->gondola.setReverse(1);
     }
 }
@@ -822,7 +822,7 @@ static void r227_execEvent00()
     pG->door_flags_51CC |= 0x08000000;
     SceEventStart(0);
     SceSleep(1);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     if (SmdGetObjPtr(0x9A)) {
         SmdGetObjPtr(0x9A)->be_flag &= ~2;
     }
@@ -835,7 +835,7 @@ static void r227_execEvent00()
         EvtMgr.SetEvt(r227_work.p->evd[0]->addr, &key0);
         ((Event*) key0)->status |= 0x800;
         r227_waitEvt();
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         r227_work.p->evd[0]->setCommand(4, 0, 0);
         if ((int) pG->flags_174 < 0) {
             if (r227_work.p->evd[1]->waitLoadOk() != 0) {
@@ -867,7 +867,7 @@ static void r227_execEvent00()
     if (SmdGetObjPtr(0x9B)) {
         SmdGetObjPtr(0x9B)->be_flag |= 2;
     }
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     r227_work.p->evd[1]->setCommand(4, 0, 0);
     r227_work.p->evd[2]->setCommand(4, 0, 0);
     SceEventEnd(0);
@@ -909,7 +909,7 @@ static void Evt_R227S00_Func(Event* e)
             BitOff(pG->flags_170, 0x100);
             if (!(pG->flags_174 & 0x80000000)) {
                 if (e->frame > 15) {
-                    BitOff(pG->flags_58, 0x800);
+                    BitOff(pG->Disp_flg, 0x800);
                     if (!(pG->flags_174 & 0x40000000)) {
                         ActBtn.set(0x25, 5, (int) r227_succeedAction, 0, 0x42, 4, 0, 0);
                     } else {

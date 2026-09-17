@@ -119,7 +119,7 @@ void R10bInit()
     Vec rot;
     cObj* obj;
 
-    pG->flags_54 |= 0x800;
+    pG->System_flg |= 0x800;
 #line 95 "D:/Bio4/Prog/r10b.cpp"
     r10b_work = (R10bWork*) MEM_CALLOC(sizeof(R10bWork), 1, 0xd);
 
@@ -289,7 +289,7 @@ static void R10b_chkEmDie()
             SndEventStrStop(0);
             ((cEm2f*) GetEmPtrFromList(0xA0))->setDie();
             SceEventStart(0);
-            BitOn(pG->flags_54, 0x400);
+            BitOn(pG->System_flg, 0x400);
             EmMgr.destroy(r10b_work->boss);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -367,7 +367,7 @@ static void R10b_chkWater()
             pos.y = em->pos.y;
             pos.z = -31975.0f;
             ((cEm2f*) em)->setCamPos(&pos, -1.12f);
-            pPL->x12F = 0;
+            pPL->ot_type = 0;
         }
         zero = 0;
         if (pG->flags_174 & 0x80000000) {
@@ -415,7 +415,7 @@ static void r10b_GakeEvent()
         SceAtSetEnable(4, 0);
         RsfSet(G_ROOM_ID, 0);
         SceEventStart(0);
-        BitOn(pG->flags_54, 0x400);
+        BitOn(pG->System_flg, 0x400);
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
@@ -432,16 +432,16 @@ static void r10b_GakeEvent()
             freeEvent(3);
         }
         PSet(r10b_work->boat, EmSetFromList2(0xA3, 0));    // reference store: the pG load waits for it
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         SceSleep(4);
         SceEventEnd(0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
         EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
         EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
-        pG->flags_54 &= ~0x400;
+        pG->System_flg &= ~0x400;
     }
 }
 
@@ -463,7 +463,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
                 Evt_R10BSXX_Func_Em2f(e);
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag &= ~0x01000000;
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
             }
             break;

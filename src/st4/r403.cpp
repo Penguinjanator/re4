@@ -706,9 +706,9 @@ static void setTexRender()
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 8;
-    obj->x138 = 0x40;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 8;
+    obj->Refract_ratio = 0x40;
 }
 
 // The ladder motions of the Ada game (her own climb set from the etc archive).

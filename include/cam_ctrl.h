@@ -135,8 +135,8 @@ public:
 
 class CameraControl {
 public:
-    u8 x0;                        // 0x00
-    u8 x1;                        // 0x01
+    u8 m_attached_cam_flag_old;                        // 0x00
+    u8 m_attach_cam_flag;                        // 0x01
     u8 attach_num;                // 0x02
     u8 x3;                        // 0x03
     AttachCamera* attach_cam[3];  // 0x04
@@ -144,13 +144,13 @@ public:
     cModel* attach_cur;           // 0x1C
     f32 scope_param0;             // 0x20
     f32 scope_param1;             // 0x24
-    u8 flags_28;                  // 0x28  bit 0 = data valid, bit 2 = disabled
+    u8 be_flag;                  // 0x28  bit 0 = data valid, bit 2 = disabled
     u8 pad_29[3];
-    u32 flags_2C;                 // 0x2C
-    u32 flags_30;                 // 0x30
+    u32 m_system_flag;                 // 0x2C
+    u32 m_state_flag;                 // 0x30
     u8 state;                     // 0x34
     u8 sub_state;                 // 0x35
-    u8 x36;                       // 0x36
+    u8 r2;                       // 0x36
     u8 prev_state;                // 0x37
     CameraParam cur;              // 0x38
     u32 counter_58;               // 0x58
@@ -164,7 +164,7 @@ public:
     u8 extra_buf[0x200];          // 0x48C  placement storage for cCamera subclasses
     cCamera* extra;               // 0x68C
     s8 area_no;                   // 0x690
-    s8 x691;                      // 0x691
+    s8 areaSuffix;                      // 0x691
     s8 camera_no;                 // 0x692
     u8 area_attr;                 // 0x693
     CameraAreaRec* area_rec;      // 0x694
@@ -173,14 +173,14 @@ public:
     Vec up_pos;                   // 0x6A8
     Vec up_at;                    // 0x6B4
     Vec up_vec;                   // 0x6C0
-    f32 x6CC;                     // 0x6CC
-    f32 x6D0;                     // 0x6D0
-    f32 x6D4;                     // 0x6D4
-    f32 x6D8;                     // 0x6D8
-    f32 x6DC;                     // 0x6DC
-    s32 x6E0;                     // 0x6E0
-    f32 x6E4;                     // 0x6E4
-    f32 x6E8;                     // 0x6E8
+    f32 m_behind_fovy;                     // 0x6CC
+    f32 m_side_play;                     // 0x6D0
+    f32 m_back_play;                     // 0x6D4
+    f32 m_ang_h_limit;                     // 0x6D8
+    f32 m_ang_v_limit;                     // 0x6DC
+    s32 m_quick_cnt;                     // 0x6E0
+    f32 m_key_speed;                     // 0x6E4
+    f32 m_behind_A_ratio;                     // 0x6E8
     Vec dbg_pos;                  // 0x6EC
     Vec dbg_at;                   // 0x6F8
 
@@ -230,10 +230,10 @@ public:
     void getTrajectory(Vec* pos, Vec* at);
     void saveScopeParam();
     void loadScopeParam();
-    void SetBinocularRange(f32 a, f32 b, f32 c, f32 d);
+    void SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     void HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at);
     void LowerBinocular();
-    void GetBinocularIDAddr(void** a, void** b);
+    void GetBinocularIDAddr(void** eff_addr, void** uwf_addr);
     void MotionSet(void* motion, int frame, f32 speed);
     int IsMotionSet();
     int IsMotionEnd();

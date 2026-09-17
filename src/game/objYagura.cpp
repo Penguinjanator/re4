@@ -61,16 +61,16 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->rot.z = 0.0f;
     }
     w->pMotionVib = 0;
-    obj->xFC = 0;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     return obj;
 }
 
 void cObjYagura::move()
 {
-    ObjYagura_R0_move_tbl[xFC](this);
+    ObjYagura_R0_move_tbl[r_no_0](this);
 }
 
 void objYagura_R0_Set(cObjYagura* obj)

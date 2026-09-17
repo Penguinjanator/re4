@@ -32,7 +32,7 @@ struct MesQue {
 };
 
 // One texture sheet of a font (0x64 bytes).
-struct MesFontTex {
+struct FONT_TEX {
     GXTexObj tex;       // 0x00
     GXTlutObj tlut;     // 0x20
     Mtx mtx;            // 0x2C
@@ -45,7 +45,7 @@ class MessageFont {
 public:
     u32 flags;          // 0x00  bit 0 = loaded
     TEXPalette* pTpl;   // 0x04
-    MesFontTex tex[2];  // 0x08
+    FONT_TEX tex[2];  // 0x08
     u8* pWidth;         // 0xD0  per glyph: left, right (s8 pairs)
     u16 texW;           // 0xD4  sheet 0 width
     u16 texH;           // 0xD6  sheet 0 height
@@ -64,7 +64,7 @@ class Message {
 public:
     u32 saveStop;       // 0x00  pG->flags_170 saved while the message stops the game
     u32 flags;          // 0x04  bit 0 = active, bit 1 = first frame
-    u8 x8;              // 0x08  code01 step
+    u8 r_no_0;              // 0x08  code01 step
     u8 x9;
     u8 xA;
     u8 xB;
@@ -73,7 +73,7 @@ public:
     f32 scaleY;         // 0x14
     s8 fontW;           // 0x18
     s8 fontH;           // 0x19
-    u16 x1A;            // 0x1A  message number for code10 (type 3 table)
+    u16 m_item_no;            // 0x1A  message number for code10 (type 3 table)
     u16 ot;             // 0x1C  ordering table
     u16 otNo;           // 0x1E
     MessageFont* font;  // 0x20
@@ -85,8 +85,8 @@ public:
     s16 maxW;           // 0x6A
     u16 x6C;
     u16 waitCnt;        // 0x6E
-    u8 x70;             // 0x70  code08 started
-    s8 x71;             // 0x71  code0d
+    u8 m_btn;             // 0x70  code08 started
+    s8 m_evt_no;             // 0x71  code0d
     s8 line;            // 0x72
     u8 x73;
     u16 numW;           // 0x74  width added by numbers/tables (code0a)
@@ -126,7 +126,7 @@ public:
     s8 result;          // 0xE1  menu selection (0 = none yet)
     s8 cursor;          // 0xE2
     s8 cursorAnim;      // 0xE3
-    u8 xE4;             // 0xE4  code12
+    u8 m_who;             // 0xE4  code12
     u8 pad_E5[3];
 
     virtual ~Message() {}

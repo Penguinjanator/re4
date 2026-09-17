@@ -130,8 +130,8 @@ void plemBackjump(cPlayer* pl);
 void plemFrontEscape(cPlayer* pl);
 void emWepEscapeCamMove(cEmWep* em);
 void emWepPlHeadLost();
-int emWepShotHitVaseCk(Vec* a, Vec* b);
-int emWepShotHitWindowCk(Vec* a, Vec* b);
+int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2);
+int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2);
 }
 
 #endif

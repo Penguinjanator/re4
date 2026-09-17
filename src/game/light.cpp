@@ -25,7 +25,7 @@ extern u32 aniso;
 #define IN_RANGE(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 #define IS_ALIVE(p) (((p)->be_flag & 0x201) == 1)
 
-void funcDelCtrl(cCtrl* c);
+void funcDelCtrl(cCtrl* pCtr);
 
 // Light control work (cCtrl::work): the electric power path
 struct LightCtrlWork {
@@ -66,8 +66,8 @@ void cLightMgr::init(void (**funcTbl)(cLight*))
     pPath = 0;
     memset_asm(kindFlags, 0xFF, sizeof(kindFlags));
     x204 = 0;
-    x1AC = 0;
-    x1B0 = 0;
+    dbFlag = 0;
+    dbMem = 0;
 }
 
 int cLightMgr::roomInit(cLit* core, cLit* room, cLit* third)
@@ -108,8 +108,8 @@ int cLightMgr::roomInit(cLit* core, cLit* room, cLit* third)
     tune[2].b = 0xF0;
     tune[2].a = 0x80;
     x204 = 0;
-    x1AC = 0;
-    x1B0 = 0;
+    dbFlag = 0;
+    dbMem = 0;
     memset_asm(kindFlags, 0xFF, sizeof(kindFlags));
     return 1;
 }
@@ -321,10 +321,10 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
     return 1;
 }
 
-void funcDelCtrl(cCtrl* c)
+void funcDelCtrl(cCtrl* pCtr)
 {
-    if (c->id == 1) {
-        CtrlMgr.destroy(c);
+    if (pCtr->id == 1) {
+        CtrlMgr.destroy(pCtr);
     }
 }
 
@@ -516,7 +516,7 @@ void cLightMgr::setModel2(cModel* m)
             return;
         }
         m->lightInfo.pLight[n] = l;
-        pri[n] = (f32) l->x2B;
+        pri[n] = (f32) l->Priority;
         n++;
     }
 }
@@ -809,7 +809,7 @@ void cLightMgr::setFog()
     LightFog* fog = &env.fog;
     u8 c = 0;
 
-    if ((pG->flags_58 & 0x4000) || (pG->flags_5010 & 0x04000000)) {
+    if ((pG->Disp_flg & 0x4000) || (pG->flags_5010 & 0x04000000)) {
         GXColor black;
         black.r = black.g = black.b = black.a = c;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, black);
@@ -1075,9 +1075,9 @@ cLight& cLight::operator=(cLightWork& w)
     parentType = w.parentType;
     kind = w.kind;
     attr = w.attr;
-    x2B = w.x2B;
+    Priority = w.Priority;
     parentId = w.parentId;
-    x30 = w.x30;
+    HitRadius = w.HitRadius;
     x32 = w.x32;
     x34 = w.x34;
     setParent(w.parentType, w.parentId);
@@ -1100,9 +1100,9 @@ cLightWork& cLightWork::operator=(cLight& l)
     parentType = l.parentType;
     kind = l.kind;
     attr = l.attr;
-    x2B = l.x2B;
+    Priority = l.Priority;
     parentId = l.parentId;
-    x30 = l.x30;
+    HitRadius = l.HitRadius;
     x32 = l.x32;
     x34 = l.x34;
     spot = l.spot;
@@ -1362,7 +1362,7 @@ void cLight::hitAdjust()
     Vec pos;
     Vec top;
 
-    if (x30 == 0.0f) {
+    if (HitRadius == 0.0f) {
         return;
     }
     pos = curPos;
@@ -1373,7 +1373,7 @@ void cLight::hitAdjust()
     } else {
         top = pos;
     }
-    if (SatMgr.polySphereCk(&top, &pos, (f32) x30, 0x80, 0, 0x8C2800) == 1) {
+    if (SatMgr.polySphereCk(&top, &pos, (f32) HitRadius, 0x80, 0, 0x8C2800) == 1) {
         curPos = pos;
     }
 }
@@ -1555,7 +1555,7 @@ int cLit::versionUp()
             if (VALID_PTR(cut = getCut(i))) {
                 for (j = 0; j < cut->nLight; j++) {
                     w = cut->getLightWork(j);
-                    w->x2B = 3;
+                    w->Priority = 3;
                 }
             }
         }
@@ -1565,7 +1565,7 @@ int cLit::versionUp()
             if (VALID_PTR(cut = getCut(i))) {
                 cut->wind.dir = 0;
                 cut->wind.power = 0;
-                cut->wind.x2 = 0;
+                cut->wind.frequency = 0;
             }
         }
     }
@@ -1646,7 +1646,7 @@ void cLightMgr::outSscrn(u32 mode)
 
 void cPenWind::set()
 {
-    PenWindSet((f32) dir * 3.1415927f / 127.0f, (f32) power * 0.01f, (f32) x2 * 0.01f);
+    PenWindSet((f32) dir * 3.1415927f / 127.0f, (f32) power * 0.01f, (f32) frequency * 0.01f);
 }
 
 cLightMgr LightMgr;

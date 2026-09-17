@@ -263,14 +263,14 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
         }
     }
     if (keepRefrect == 0) {
-        m->x136 = 2;
-        m->x137 = 0x10;
-        m->x138 = 0x90;
+        m->Shader_type = 2;
+        m->Refract_pow = 0x10;
+        m->Refract_ratio = 0x90;
         ModelInfoRefrectOffAll(m);
         ModelInfoRefrectOn(m, parts);
     }
     if (keep12C == 0) {
-        m->x12C = 2;
+        m->z_mode = 2;
     }
     m->alpha = alpha;
 }
@@ -290,9 +290,9 @@ void TexRenderModRes(cModel* m)
         info->setBlendRatio(0);
         info->resetTexBlendTbl();
     }
-    m->x136 = 0;
-    m->x137 = 0x10;
-    m->x138 = 0x90;
+    m->Shader_type = 0;
+    m->Refract_pow = 0x10;
+    m->Refract_ratio = 0x90;
 }
 
 void TexRenderModAddOt(int ot, cModel* m)
@@ -321,17 +321,17 @@ void TexRenderModAddOtMirror(int ot, cModel* m)
     m->be_flag |= 8;
     {
         u8 c = 0xFF;
-        m->x13B = m->x13A = m->x139 = c;
+        m->AddAmb_b = m->AddAmb_g = m->AddAmb_r = c;
     }
     m->alpha = 0.4f;
 }
 
-void TexRenderCamAddOt(int ot, TexRenderCam* c, TexRenderEvt* evt, void* data)
+void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data)
 {
-    c->pEvt = evt;
-    c->data = data;
-    AddOtDirect(ot, c, (void (*)()) CamRenderPrev, 4, 1, NULL, 0.0f);
-    AddOtDirect(ot, c, (void (*)()) CamRenderAfter, 2, 1, NULL, 0.0f);
+    pWk->pEvt = evt;
+    pWk->data = data;
+    AddOtDirect(ot, pWk, (void (*)()) CamRenderPrev, 4, 1, NULL, 0.0f);
+    AddOtDirect(ot, pWk, (void (*)()) CamRenderAfter, 2, 1, NULL, 0.0f);
 }
 
 struct F32S {
@@ -343,9 +343,9 @@ static inline bool evtFlag(TexRenderEvt* e, u32 bit)
     return (e->flags & bit) != 0;
 }
 
-void CamRenderPrev(TexRenderCam* c)
+void CamRenderPrev(TexRenderCam* pWk)
 {
-    TexRenderEvt* e = c->pEvt;
+    TexRenderEvt* e = pWk->pEvt;
     int frame = e->frame;
 
     if (evtFlag(e, 0x40000000)) {
@@ -354,15 +354,15 @@ void CamRenderPrev(TexRenderCam* c)
     if (evtFlag(e, 0x08000000)) {
         frame = e->frameEnd - 1;
     }
-    c->pCam = new (&c->cam) CameraMotion(c->data, 0, 0, (f32) frame);
-    c->pCam->move();
-    c->save = pG->Cam;
-    pGS->Cam = *c->pCam;
+    pWk->pCam = new (&pWk->cam) CameraMotion(pWk->data, 0, 0, (f32) frame);
+    pWk->pCam->move();
+    pWk->save = pG->Cam;
+    pGS->Cam = *pWk->pCam;
     C_MTXPerspective(pGS->Cam.projMat, pGS->Cam.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
     C_MTXLookAt(pG->Cam.viewMat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
 }
 
-void CamRenderAfter(TexRenderCam* c)
+void CamRenderAfter(TexRenderCam* pWk)
 {
-    pG->Cam = c->save;
+    pG->Cam = pWk->save;
 }

@@ -15,7 +15,7 @@ struct EmTorchWork {
     u8 pad_14[0x48 - 0x14];
     Vec size;             // 0x048 (0x428)  yarare box size
     Vec spd;              // 0x054 (0x434)  fall speed
-    int x60;              // 0x060 (0x440)  150 when broken
+    int Lost_wait;              // 0x060 (0x440)  150 when broken
     u8 estNo;             // 0x064 (0x444)  effect number of the flame (50)
     u8 eff;               // 0x065 (0x445)  setEff: effect owner id of the flame, 0xFF = none
     u8 etcNo;             // 0x066 (0x446)  etc flag index (broken / taken flag)

@@ -83,10 +83,10 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
             w->hit->setParent(obj, 0, 0);
         }
     }
-    obj->xFC = 0;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     return obj;
 }
 
@@ -104,7 +104,7 @@ void cObjMissile::move()
             return;
         }
     }
-    ObjMissile_R0_move_tbl[xFC](this);
+    ObjMissile_R0_move_tbl[r_no_0](this);
 }
 
 void objMissile_R0_Set(cObjMissile* obj)
@@ -181,7 +181,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
     Vec v2;
     cModel* parent = w->parent;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 15;
         switch (obj->type) {
@@ -192,15 +192,15 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         case 1:
             break;
         }
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
         } else {
-            obj->xFC = 3;
-            obj->xFD = 0;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 3;
+            obj->r_no_1 = 0;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         }
         break;
     }
@@ -259,7 +259,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
 {
     MissileWork* w = &obj->missile;
 
-    if (obj->xFE == 0) {
+    if (obj->r_no_2 == 0) {
         Vec d;
 
         obj->pos.x = obj->mat[0][3];
@@ -300,7 +300,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
         }
         PSMTXMultVecSR(obj->mat, &w->spd, &w->spd);
         w->parent = 0;
-        obj->xFE++;
+        obj->r_no_2++;
     }
     Vec hit;
     Vec nrm;
@@ -351,10 +351,10 @@ void objMissile_R0_Fire(cObjMissile* obj)
     if (w->timer) {
         w->timer--;
     } else {
-        obj->xFC = 4;
-        obj->xFD = 0;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 4;
+        obj->r_no_1 = 0;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
 }
 
@@ -377,10 +377,10 @@ void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
     w->parent = parent;
     w->partsNo = partsNo;
     w->noNormalize = noNormalize;
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjMissile::setFire(Vec* target)
@@ -392,10 +392,10 @@ void cObjMissile::setFire(Vec* target)
         w->target = *target;
         w->hasTarget = 1;
     }
-    xFC = 2;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 2;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void objMissileBomb(cObjMissile* obj, Vec* pos)
@@ -421,8 +421,8 @@ void objMissileBomb(cObjMissile* obj, Vec* pos)
     if (G_ROOM_ID == 0x320) {
         pG->flags_174 |= 0x80000000;
     }
-    obj->xFC = 4;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 4;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
 }

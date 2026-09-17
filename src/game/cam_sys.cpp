@@ -173,10 +173,10 @@ void CameraCamposRot(Camera* cam, char axis, f32 rad)
     CameraRotAxisPosRad(cam, &v, &cam->param.at, rad);
 }
 
-void CameraDolly(Camera* cam, Vec* d)
+void CameraDolly(Camera* cam, Vec* speed)
 {
-    PSVECAdd(&cam->param.pos, d, &cam->param.pos);
-    PSVECAdd(&cam->param.at, d, &cam->param.at);
+    PSVECAdd(&cam->param.pos, speed, &cam->param.pos);
+    PSVECAdd(&cam->param.at, speed, &cam->param.at);
     CameraSetOrientationUp(cam);
 }
 

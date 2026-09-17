@@ -77,7 +77,7 @@ void TaskScheduler();
 void TaskSchedulerMain(TASK* t);
 void stackUsedCheck();
 void StackOverflowCheck(TASK* t);
-void* TaskExec_hook(void* arg);
+void* TaskExec_hook(void* value);
 TASK* TaskExec(int prio, TaskFunc func, int arg);
 void TaskChain(TaskFunc func, int arg);
 void TaskKill(int prio);

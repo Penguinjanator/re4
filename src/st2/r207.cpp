@@ -795,7 +795,7 @@ void r207_ItemModelSet(cModel* m, int mode)
 {
     int at = 0;
 
-    m->x12F = 0;
+    m->ot_type = 0;
     switch (mode) {
     case 2:
         m->pos = r207_swordPos;

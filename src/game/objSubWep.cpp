@@ -75,7 +75,7 @@ void cSubWep::move()
 {
     static void (cSubWep::*funcTbl[2])() = { &cSubWep::moveNormal, &cSubWep::moveWater };
 
-    (this->*funcTbl[xFC])();
+    (this->*funcTbl[r_no_0])();
 }
 
 void cSubWep::moveNormal()
@@ -289,7 +289,7 @@ void cSubWep::addSpeed()
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             AddWaterPower(&pos, 0.5f);
-            xFC = 1;
+            r_no_0 = 1;
             be_flag &= ~2;
         } else {
             subWep.life = 1;
@@ -342,7 +342,7 @@ void cSubWep::addSpeed()
                 EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
-            xFC = 1;
+            r_no_0 = 1;
             be_flag &= ~2;
         } else {
             subWep.life = 1;
@@ -544,7 +544,7 @@ void setThrowSpeed(Vec* spd, f32 power)
     RotVector(&v, &ang, &v);
     PSMTXMultVecSR(pPL->mat, &v, spd);
     parts = pPL->getPartsPtr(0);
-    PSVECSubtract(&parts->worldPos, &parts->x88, &d);
+    PSVECSubtract(&parts->worldPos, &parts->world_old2, &d);
     PSVECAdd(spd, &d, spd);
 }
 

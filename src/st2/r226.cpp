@@ -248,8 +248,8 @@ void R226Init()
     }
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) SceElevator, &r226_elvLeave, 1);
     SceAtSetActColor(0, 1);
-    if (!((pG->flags_54 & 0x80000) && RsfCheck(G_ROOM_ID, 17))) {
-        if (!(pG->flags_54 & 0x100)) {
+    if (!((pG->System_flg & 0x80000) && RsfCheck(G_ROOM_ID, 17))) {
+        if (!(pG->System_flg & 0x100)) {
             if (pG->room_id_prev == 0x225) {
                 SceExec(0x12, (TaskFunc) SceElevator, (int) &r226_elvArrive, 0, 2, 0);
             }
@@ -1127,7 +1127,7 @@ static void playerRunMovePassage(cPlayer* pl)
     void* mot[8] = {ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x30),
                     ROOM_ARC_PTR(pG->pRoomArc, 0x31), ROOM_ARC_PTR(pG->pRoomArc, 0x32), ROOM_ARC_PTR(pG->pRoomArc, 0x33), ROOM_ARC_PTR(pG->pRoomArc, 0x34)};
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->x3E0 = 0x55;
         Cckpt.lifeMeterDisp(0);
@@ -1139,10 +1139,10 @@ static void playerRunMovePassage(cPlayer* pl)
         r226_work.p->spdOld = 0;
         r226_work.p->spdNew = 0;
         r226_work.p->sub = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     case 1:
         MotionSetCore(pl, &pl->mot, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
-        pl->xFE = 2;
+        pl->r_no_2 = 2;
         pl->x400 = 1.0f;
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
@@ -1181,7 +1181,7 @@ static void playerRunMovePassage(cPlayer* pl)
             if (hit) {
                 BitOff(pG->flags_174, 0x20000000);
                 BitOn(pG->flags_174, 0x10000000);
-                pl->xFE = 3;
+                pl->r_no_2 = 3;
                 break;
             }
         }
@@ -1191,18 +1191,18 @@ static void playerRunMovePassage(cPlayer* pl)
         playerRunCamMovePassage(pl, 1.0f);
         MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x37), 0, 10, 1, 0);
         SndCall(1, 0x43, &pl->pos, 0, 0, 0);
-        pl->xFE = 4;
+        pl->r_no_2 = 4;
     case 4:
         playerRunCamMovePassage(pl, 1.0f);
         pl->st.x325 = 0x78;
         if (MotionMoveF(pl, 0)) {
             BitOff(pG->flags_174, 0x10000000);
             if (pG->flags_174 & 0x08000000) {
-                pl->xFE = 5;
+                pl->r_no_2 = 5;
                 SceExec(0x12, (TaskFunc) R226EventRoboWalkPassageGoal, (int) robo, 0, 2, 0);
                 EndPlDamage();
             } else {
-                pl->xFE = 1;
+                pl->r_no_2 = 1;
             }
         }
         break;
@@ -1219,7 +1219,7 @@ static void playerRunMoveBridge(cPlayer* pl)
     u32 smd1[6] = {0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
     u32 i;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->x3E0 = 0x55;
         Cckpt.lifeMeterDisp(0);
@@ -1233,10 +1233,10 @@ static void playerRunMoveBridge(cPlayer* pl)
         r226_work.p->spdOld = 0;
         r226_work.p->spdNew = 0;
         r226_work.p->sub = 0;
-        pl->xFE = 1;
+        pl->r_no_2 = 1;
     case 1:
         MotionSetCore(pl, &pl->mot, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
-        pl->xFE = 2;
+        pl->r_no_2 = 2;
         pl->x400 = 1.0f;
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
@@ -1249,7 +1249,7 @@ static void playerRunMoveBridge(cPlayer* pl)
                 SndCall(1, 0x43, &pl->pos, 0, 0, 0);
                 BitOff(pG->flags_174, 0x20000000);
                 BitOn(pG->flags_174, 0x10000000);
-                pl->xFE = 3;
+                pl->r_no_2 = 3;
                 break;
             }
         } else {
@@ -1273,7 +1273,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         BitOff(pPL->be_flag, 0x10);
         MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x69), 0, 3, 0x201, 0);
         MotionMoveF(pl, 0);
-        pl->xFE = 4;
+        pl->r_no_2 = 4;
     case 4:
         pl->st.x325 = 0x78;
         if (pl->frame >= (f32) r226_pushFrame) {
@@ -1297,7 +1297,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             IntSet(r226_work.p->timer, 0);
             MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x6A), 0, 10, 0x204, 0);
             MotionMoveF(pl, 0);
-            pl->xFE = 5;
+            pl->r_no_2 = 5;
         }
         break;
     case 5:
@@ -1315,14 +1315,14 @@ static void playerRunMoveBridge(cPlayer* pl)
                 MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x6B), 0, 3, 0x201, 0);
                 MotionMoveF(pl, 0);
                 r226_work.p->str = SndStrPlayBlock(1, 0x2F, 0.0f);
-                pl->xFE = 6;
+                pl->r_no_2 = 6;
             } else {
                 U16Set(pG->pl_life, 0);
                 AtariFlagsAndV(&pl->atari, 0xFCFF);
                 MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x6C), 0, 3, 0x201, 0);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);
                 MotionMoveF(pl, 0);
-                pl->xFE = 7;
+                pl->r_no_2 = 7;
             }
         }
         break;
@@ -1332,7 +1332,7 @@ static void playerRunMoveBridge(cPlayer* pl)
             BitOff(pG->flags_174, 0x10000000);
             RsfSet(G_ROOM_ID, 13);
             pPL->be_flag |= 0x10;
-            pl->xFE = 8;
+            pl->r_no_2 = 8;
             SceAtSetEnable(0x16, 1);
             if (r226_work.p->eat[3]) {
                 r226_work.p->eat[3]->flags &= ~4;
@@ -1364,12 +1364,12 @@ void playerRunDieSet(int type, int which)
 // SetPlDamage routine: crushed in the passage.
 static void playerRunDiePassage(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x36), 0, 3, 1, 0);
         pG->pl_life = 0;
         PlSetDamageSe(0xA);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (pl->frame > 22.7f && pl->frame < 23.3f) {
             PlSetDamageSe(0xD);
@@ -1386,7 +1386,7 @@ static void playerRunDieBridge(cPlayer* pl)
     f32 start = 100.0f;
     f32 step = 10.0f;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x36), 0, 3, 1, 0);
         CamCtrl.MotionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x60), 0, 0.0f);
@@ -1394,7 +1394,7 @@ static void playerRunDieBridge(cPlayer* pl)
         pl->atari.throughOn();
         PlSetDamageSe(0xA);
         r226_work.p->dieY = start;
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         r226_work.p->dieY += step;
         setPosXYZ(pl, pl->pos.x, pl->pos.y - r226_work.p->dieY, pl->pos.z);

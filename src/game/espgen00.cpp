@@ -195,12 +195,12 @@ void espgen00_Update(EspgenWork* w)
                         PSVECScale(&esp->spd, &esp->spd, spdR);
                     }
                     if (bCol) {
-                        f32 a = (f32) (int) esp->x83 * colR;
+                        f32 a = (f32) (int) esp->m_Col_start_a * colR;
 
                         if (a > 255.0f) {
                             a = 255.0f;
                         }
-                        esp->x83 = (u8) a;
+                        esp->m_Col_start_a = (u8) a;
                         esp->colA *= colR;
                     }
                 }
@@ -241,7 +241,7 @@ void Espgen00_Move(EspgenWork* w)
 }
 
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {
     Espgen00Work* p = (Espgen00Work*) w->work;
 
@@ -280,11 +280,11 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
     PSMTXCopy(*mtx, p->mtx);
-    if (p8 != NULL) {
+    if (pSct != NULL) {
         p->pOpt = &p->opt;
-        p->opt = *p8;
+        p->opt = *pSct;
     } else {
-        p->pOpt = p8;
+        p->pOpt = pSct;
     }
     return 1;
 }

@@ -32,9 +32,9 @@ extern "C" {
 extern int SEck;   // game/atari.cpp: scenario-effect check mode (skips the attribute filters)
 
 // Signed distance of `p` from the plane through `a` with normal `n`.
-f32 At_surface_point_rel(Vec* a, Vec* n, Vec* p);
+f32 At_surface_point_rel(Vec* vert, Vec* n, Vec* p);
 // Segment p0-p1 against that plane; the crossing point goes to `out` (p1 when it does not cross).
-int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* p0, Vec* p1);
+int At_surface_line_ck(Vec* out, Vec* a, Vec* n, Vec* point1, Vec* point2);
 // Point `p` (on the plane) inside the triangle `poly` with normal `nrm`.
 int At_poly_point_rel(Vec* poly, Vec* nrm, Vec* p);
 // Sphere against a box given as 8 vertices.
@@ -43,10 +43,10 @@ int At_box_sphere_ck(Vec* box, Vec* p, f32 r);
 void Get_normal(Vec* tri, Vec* out);
 u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1);
 u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1);
-void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color);
+void AtCapsuleDisp(Vec* pPosTop, Vec* pPosBot, f32 r, u32 color);
 void AtCubeDisp(Mtx m, f32 sx, f32 sy, f32 sz, Vec* pos, u32 color);
 // Segment p0-p1 against one polygon; returns the attribute | 0x01000000 or 0.
-u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u32 flag, u32 mask);
+u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* vert0, Vec* vert1, u32 flag, u32 mask);
 // Sphere moving from `oldPos` to `pos` against one polygon; `pos` is pushed out. Returns the hit
 // kind (1 crossed the plane, 2 touching) or 0.
 u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask);
@@ -58,7 +58,7 @@ int At_rect_rect_ck(Vec* ra, Vec* rb);
 // Quadrant of an angle: 0 front (|a| <= pi/4), 1 right, 2 back, 3 left.
 int Get_ang_dir(f32 ang);
 // out = a * t + b * (1 - t)
-void InterVectorXYZ(Vec* out, Vec* a, Vec* b, f32 t);
+void InterVectorXYZ(Vec* out, Vec* p0, Vec* p1, f32 t);
 int EatGetEffectType(u32 attr);
 }
 

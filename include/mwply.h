@@ -16,8 +16,8 @@ typedef struct {
     void* (*QueryInterface)(MWPLY hn, void* iid);  // 0x00
     u32 (*AddRef)(MWPLY hn);                       // 0x04
     u32 (*Release)(MWPLY hn);                      // 0x08
-    void (*x0C)(MWPLY hn);                         // 0x0C
-    void (*x10)(MWPLY hn);                         // 0x10
+    void (*VsyncHndl)(MWPLY hn);                         // 0x0C
+    void (*ExecSvrHndl)(MWPLY hn);                         // 0x10
     void (*Destroy)(MWPLY hn);                     // 0x14
     void (*StartFname)(MWPLY hn, const char* fname); // 0x18
     void (*Stop)(MWPLY hn);                        // 0x1C

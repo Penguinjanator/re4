@@ -60,10 +60,10 @@ struct SubCharPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -185,13 +185,13 @@ void cEm30::move()
 {
     Em30Work* w = EM30_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em30DmCk(this);
     }
     w->flags &= ~0x1F;
     em30RouteCk(this);
-    Em30_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em30_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -211,7 +211,7 @@ static void em30_R0_Init(cEm30* em)
 
     if (em->modelInit(ARC(4), ARC(5)) == 0) {
         pLog->err(0, 0, "em30() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     w->pInfo0 = ModInfoMgr.create(ARC(6), ARC(7));
@@ -275,10 +275,10 @@ static void em30_R0_Init(cEm30* em)
         em30SetParasite(em, 1);
         em30SetParasite(em, 2);
     }
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     MotionSetCore(em, MOTION(em), ARC(0xF), 0, 0, 1, 0);
     MotionMoveF(em, 0);
     em30_R0_Move(em);
@@ -286,7 +286,7 @@ static void em30_R0_Init(cEm30* em)
 
 static void em30_R0_Move(cEm30* em)
 {
-    Em30_R1_move_tbl[em->xFD](em);
+    Em30_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em30_R1_Wait(cEm30* em)
@@ -294,10 +294,10 @@ static void em30_R1_Wait(cEm30* em)
     Em30Work* w = EM30_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em30DeadCk(em)) {
@@ -312,10 +312,10 @@ static void em30_R1_Walk(cEm30* em)
     Em30Work* w = EM30_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x10), 0, 10, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -332,7 +332,7 @@ static void em30_R0_Damage(cEm30* em)
     Em30Work* w = EM30_WK(em);
 
     w->flags |= 8;
-    Em30_R2_move_tbl[em->xFD](em);
+    Em30_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em30_R1_Dm_Normal(cEm30* em)
@@ -340,10 +340,10 @@ static void em30_R1_Dm_Normal(cEm30* em)
     Em30Work* w = EM30_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 10);
@@ -357,17 +357,17 @@ static void em30_R0_Die(cEm30* em)
     Em30Work* w = EM30_WK(em);
 
     w->flags |= 8;
-    Em30_R3_move_tbl[em->xFD](em);
+    Em30_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em30_R1_Die_Normal(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(0);
@@ -375,12 +375,12 @@ static void em30_R1_Die_Normal(cEm30* em)
             em->clearStatus(6);
             em->clearStatus(7);
             em->atari.flags &= ~0x300;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->timer) {
             w->timer--;
@@ -407,7 +407,7 @@ void em30RouteCk(cEm30* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;

@@ -552,10 +552,10 @@ void tp_pl_weapon()
                 pl->weaponRelease();
                 pl->weaponLoad(pT->cursor, pT->rno[3]);
                 pl->weaponInit();
-                pl->xFC = 0;
-                pl->xFD = 0;
-                pl->xFE = 0;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_1 = 0;
+                pl->r_no_2 = 0;
+                pl->r_no_3 = 0;
                 ItemMgr.debugWeapon(WeaponNo2WeaponId(pT->cursor, pT->rno[3]));
             } else {
                 pT->cursor = 0;
@@ -764,7 +764,7 @@ void tp_scr_flag()
     eprintf(32, 42, 4, 0, "FLAG EDIT");
     eprintf(40, 56, pG->flags_6C & 0x2000 ? 0 : 20, 0, "BG COLOR GREEN");
     eprintf(40, 70, pG->flags_6C & 0x4000000 ? 0 : 20, 0, "LOG OFF");
-    eprintf(40, 84, pG->flags_58 & 0x4000 ? 0 : 20, 0, "FOG OFF");
+    eprintf(40, 84, pG->Disp_flg & 0x4000 ? 0 : 20, 0, "FOG OFF");
     eprintf(40, 98, Block.allDisp == 1 ? 0 : 20, 0, "BLOCK ALL DISP");
     eprintf(40, 112, pG->flags_6C & 0x400000 ? 0 : 20, 0, "ERROR CHECK");
     int num = 5;

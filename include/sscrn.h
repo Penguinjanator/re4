@@ -35,7 +35,7 @@ struct SUB_SCREEN {
     s32 x40;
     s32 x44;
     s32 x48;
-    int (*x4C)(SUB_SCREEN*);  // 0x04C  screen exit routine (Sscrn ss_*: sscrn_*_out), run until it returns 1
+    int (*scrn_out_func)(SUB_SCREEN*);  // 0x04C  screen exit routine (Sscrn ss_*: sscrn_*_out), run until it returns 1
     u32 save170;              // 0x050  pG->flags_170 while open
     u32 save58;               // 0x054  pG->flags_58 while open
     Camera cam;               // 0x058  pG->Cam while open
@@ -46,7 +46,7 @@ struct SUB_SCREEN {
     u16 room;                 // 0x1B2  sscrnRoomNo()
     u8 scope;                 // 0x1B4  1: the scope was up, 2: and flags_5010 bit 26
     u8 bino;                  // 0x1B5  the binocular was up
-    u8 x1B6;                  // 0x1B6  flags_5010 bit 28 (always 0: the mask is stored as a byte)
+    u8 suspend_flag;                  // 0x1B6  flags_5010 bit 28 (always 0: the mask is stored as a byte)
     u8 noBullet;              // 0x1B7  the equipped weapon (type 3) was empty
     u8 x1B8;                  // 0x1B8  item 0xFE owned
     u8 pad_1B9[3];
@@ -74,39 +74,39 @@ struct SUB_SCREEN {
     void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
-    class cLight* x21C[8];    // 0x21C  screen lights (Sscrn sscrnLightCreate / sscrnLightClear)
-    void* x23C;               // 0x23C  0x3E800-byte buffer
-    void* x240;               // 0x240  item examine model data (Sscrn SsItemExamine: x23C)
-    void* x244;               // 0x244  item examine texture data
+    class cLight* p_light[8];    // 0x21C  screen lights (Sscrn sscrnLightCreate / sscrnLightClear)
+    void* pExamDat;               // 0x23C  0x3E800-byte buffer
+    void* pItemBin;               // 0x240  item examine model data (Sscrn SsItemExamine: x23C)
+    void* pItemTpl;               // 0x244  item examine texture data
     ItemWork* x248;           // 0x248  selected item slot (Sscrn CapSelect)
     cMap* x24C;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
-    u8 x250;                  // 0x250  Sscrn weapon change task state (3 = done)
-    s8 x251;                  // 0x251  weapon change request slot
-    s16 x252;                 // 0x252  weapon change fade counter (Sscrn weaponChangeTask)
+    u8 wep_rno;                  // 0x250  Sscrn weapon change task state (3 = done)
+    s8 wep_idx;                  // 0x251  weapon change request slot
+    s16 wep_cnt;                 // 0x252  weapon change fade counter (Sscrn weaponChangeTask)
     struct {
         s32 req;              // 0x254  request pending
         u16 no;               // 0x258  weapon number
         u16 type;             // 0x25A  weapon type
     } wepChange[2];           // 0x254  Sscrn weaponChangeRequest
-    u8 x264;                  // 0x264  2 for type 2, else 1
-    u8 x265;                  // 0x265
-    u8 x266;                  // 0x266  2: the player model is shown (Sscrn ss_file)
-    u8 x267;                  // 0x267  Sscrn ss_item: 0 select, 1 command, 2 combine (cleared every frame)
-    u8 x268;                  // 0x268  Sscrn ss_item: the cursor moved this frame
-    u8 x269;                  // 0x269
-    u16 x26A;                 // 0x26A
-    s8 x26C;                  // 0x26C  Sscrn ss_item: command cursor
+    u8 menu_no;                  // 0x264  2 for type 2, else 1
+    u8 menu_next;                  // 0x265
+    u8 menu_old;                  // 0x266  2: the player model is shown (Sscrn ss_file)
+    u8 cursor_mode;                  // 0x267  Sscrn ss_item: 0 select, 1 command, 2 combine (cleared every frame)
+    u8 cursor_flag;                  // 0x268  Sscrn ss_item: the cursor moved this frame
+    u8 alpha_flag;                  // 0x269
+    u16 alpha_cnt;                 // 0x26A
+    s8 cmd_menu_no;                  // 0x26C  Sscrn ss_item: command cursor
     u8 pad_26D[3];
     Mtx plMapMat;             // 0x270  player matrix on the map (Sscrn ss_map mapPositionCheck)
-    u8 x2A0;                  // 0x2A0
+    u8 map_help;                  // 0x2A0
     u8 mapRooms;              // 0x2A1  Sscrn ss_map: model count of the area's rooms (door models start there)
     s8 mapFloor;              // 0x2A2  Sscrn ss_map: player floor (y / 100 rounded)
     u8 pad_2A3[0x2AD - 0x2A3];
-    u8 x2AD;                  // 0x2AD  Sscrn ss_map mapCameraInit clears it
-    u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
-    u8 x2AF;                  // 0x2AF
-    class pzlPlayer* x2B0;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
-    u8 x2B4;                  // 0x2B4  Sscrn ss_shop: the bought piece is in hand (case placement)
+    u8 Key_disable;                  // 0x2AD  Sscrn ss_map mapCameraInit clears it
+    u8 board_size;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
+    u8 board_next;                  // 0x2AF
+    class pzlPlayer* puzzlePlayer;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
+    u8 back2;                  // 0x2B4  Sscrn ss_shop: the bought piece is in hand (case placement)
     u8 pad_2B5[0x2FA - 0x2B5];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count

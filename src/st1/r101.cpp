@@ -145,8 +145,8 @@ void R101Init()
     PSet(r101_work->pEm[7], &r101_work->em[7]);
     PSet(r101_work->pEm[8], &r101_work->em[8]);
     PSet(r101_work->pEm[9], &r101_work->em[9]);
-    if (!(pG->flags_51BC & 0x2000)) {
-        pG->flags_51BC |= 0x2000;
+    if (!(pG->Item_find_flg & 0x2000)) {
+        pG->Item_find_flg |= 0x2000;
         SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, 2, 0);
     }
     EvtMgr.SetFunc("evt_r101s21_func", (void*) Evt_R101S21_Func);
@@ -233,7 +233,7 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
             SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, 2, 0);
         }
-        if (pG->flags_51BC & 0x00200000) {
+        if (pG->Item_find_flg & 0x00200000) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 r101_emListOn(0x14);
@@ -478,7 +478,7 @@ static void r101_Event30()
         SceSleep(1);
     }
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SndRoomStrStop(3);
     SceDestroyEm(0x10, 0x20);
     SceSleep(2);
@@ -498,7 +498,7 @@ static void r101_Event30()
             while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
                 SceSleep(1);
             }
-            pG->flags_54 &= ~0x400;
+            pG->System_flg &= ~0x400;
         }
     }
     BitOn(pG->flags_174, 0x20000000);
@@ -629,7 +629,7 @@ static void r101_Event20()
     diff = r101_work->emNum - SceCountEmAlive(0x10, 0x20);
     SceAtSetEnable(8, 0);
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SndRoomStrStop(3);
     if (r101_work->evt21->waitLoadOk() == 0) {
         fail = 1;
@@ -671,7 +671,7 @@ static void r101_Event20()
                 }
                 SceSleep(1);
             }
-            BitOff(pG->flags_54, 0x400);
+            BitOff(pG->System_flg, 0x400);
             MemorySwap(m->pArc, (u32) r101_work->evt21->addr, r101_work->evt21->size);
         }
     }
@@ -970,7 +970,7 @@ static void r101_Event00()
         if (r101_work->evt00->waitLoadOk() == 1) {
             ReadModule* m;
 
-            pG->flags_54 |= 0x400;
+            pG->System_flg |= 0x400;
             SceSleep(2);
             m = SearchEmModule(0x26);
             MemorySwap(m->pArc, (u32) r101_work->evt00->addr, r101_work->evt00->size);

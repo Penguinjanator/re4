@@ -5,11 +5,11 @@
 // Est generator 45 parameter block filled from this effect (game/espgen45.cpp).
 struct Esp4cWork {
     u8 type;      // 0x00
-    u8 x1;        // 0x01
-    u8 x2;        // 0x02
-    u8 x3;        // 0x03
-    u16 x4;       // 0x04
-    u16 x6;       // 0x06
+    u8 Refrect_type;        // 0x01
+    u8 Spec_Tex;        // 0x02
+    u8 wave_ratio_base;        // 0x03
+    u16 Shimmer_pow1;       // 0x04
+    u16 Shimmer_pow2;       // 0x06
     f32 spread;   // 0x08
     f32 damp;     // 0x0C
     Vec dir;      // 0x10
@@ -94,7 +94,7 @@ int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4cWork* w = &work;
 
-    w->x3 = gen->xFE;
+    w->wave_ratio_base = gen->xFE;
     w->type = gen->xC8;
     if (w->type == 2) {
         w->spread = 0.5f - (f32)(s8)gen->xC9 * 0.005f;
@@ -106,10 +106,10 @@ int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
         }
         w->damp = 0.99f - gen->xCA * 0.001f;
     }
-    w->x2 = gen->x2;
-    w->x4 = gen->prm.h.xCE;
-    w->x6 = gen->prm.h.xD2;
-    w->x1 = gen->xCB;
+    w->Spec_Tex = gen->x2;
+    w->Shimmer_pow1 = gen->prm.h.xCE;
+    w->Shimmer_pow2 = gen->prm.h.xD2;
+    w->Refrect_type = gen->xCB;
     w->dir = gen->x58;
     PSVECScale(&w->dir, &w->dir, 3.14 / 180);
     if (gen->flags & 0x4000) {

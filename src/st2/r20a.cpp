@@ -208,9 +208,9 @@ void setTexRender()
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->setBlendType(1);
     obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 8;
-    obj->x138 = 0x20;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 8;
+    obj->Refract_ratio = 0x20;
     obj->alpha = 0.7f;
 }
 

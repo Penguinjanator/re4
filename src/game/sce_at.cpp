@@ -112,7 +112,7 @@ static inline u32* eventFlags()
 }
 static inline u32* flags51BC()
 {
-    return &pG->flags_51BC;
+    return &pG->Item_find_flg;
 }
 static inline u32* doorUnlock()
 {
@@ -127,7 +127,7 @@ static inline u32* itemFindFlags()
     return &pG->item_flags[4];
 }
 // pG->save_item as a pointer (the original adds the record offset to pG before the index).
-static inline SceAtSaveItem* saveItemTbl()
+static inline ITEM_SAVE_WORK* saveItemTbl()
 {
     return pG->save_item;
 }
@@ -786,7 +786,7 @@ int CheckAshleyActive()
 
 int CheckDoorJumpWithAshley()
 {
-    if (pSUB != 0 && !(pG->flags_51BC & 0x80)) {
+    if (pSUB != 0 && !(pG->Item_find_flg & 0x80)) {
         if (CheckAshleyActive() == 0) {
             return 0;
         }
@@ -829,7 +829,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->next_pos.z, w->dstPos.z);
     FSet(pG->next_angle, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->x4FA2, pG->x4F9E);
+    U8Set(pG->Part_old, pG->x4F9E);
     pG->next_stage = w->dstStage;
     pG->next_room_no = w->dstRoom;
     pG->next_point = w->dstX4F9E;
@@ -839,7 +839,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->x22 = 0;
     pG->x23 = 0;
     U16Set(pG->x4F90, 0);
-    BitOff(pG->flags_54, 0x40);
+    BitOff(pG->System_flg, 0x40);
     return 1;
 }
 
@@ -1040,7 +1040,7 @@ static void sceAtGetItem(SceAtWork* w_)
             break;
         }
         cMes.MesSet(0x15, 0x64, y, 0x11, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         itemInfo(it->id, &info);
         if (info.type == 7) {
             cMes.mes[0].waitCnt = 0x1E;
@@ -1054,10 +1054,10 @@ static void sceAtGetItem(SceAtWork* w_)
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
-            cMes.mes[0].setNumber(ItemMgr.x28, 0);
+            cMes.mes[0].setNumber(ItemMgr.m_bonus_time, 0);
             cMes.MesSet(0x94, 0x64, y, 0x10000011, 0, 0, 4);
         } else if (it->id == 0x75) {
-            cMes.mes[0].setNumber(ItemMgr.x2C, 0);
+            cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
             if ((s32) money < (s32) pG->x4F98) {
@@ -1078,23 +1078,23 @@ static void sceAtGetItem(SceAtWork* w_)
     case 9:
         mes = 1;
         cMes.MesSet(0x11, 0x64, y, 0x111, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         break;
     case 2:
         cMes.MesSet(0x13, 0x64, y, 0x211, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         if (it->num != 0) {
             cMes.mes[0].setNumber(it->num, 0);
         } else {
             itemInfo(it->id, &info);
-            cMes.mes[0].setNumber(info.x3, 0);
+            cMes.mes[0].setNumber(info.defNum, 0);
         }
         mes = 1;
         break;
     case 0xE:
         cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
         mes = 1;
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         break;
     case 6:
         switch (it->id) {
@@ -1119,7 +1119,7 @@ static void sceAtGetItem(SceAtWork* w_)
             cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
             break;
         }
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         mes = 1;
         break;
     case 0xA:
@@ -1140,12 +1140,12 @@ static void sceAtGetItem(SceAtWork* w_)
     sel = 0;
     cancel = 0;
     BitOn(pG->flags_5010, 2);
-    disp_flag_bak = pG->flags_58;
-    BitSet(pG->flags_58, -1);
-    BitOff(pG->flags_58, 0x00010000);
-    BitOff(pG->flags_58, 0x04000000);
-    BitOff(pG->flags_58, 0x00002000);
-    BitOff(pG->flags_58, 0x00000800);
+    disp_flag_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, -1);
+    BitOff(pG->Disp_flg, 0x00010000);
+    BitOff(pG->Disp_flg, 0x04000000);
+    BitOff(pG->Disp_flg, 0x00002000);
+    BitOff(pG->Disp_flg, 0x00000800);
     itemExam.init(w->item.id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
@@ -1173,7 +1173,7 @@ static void sceAtGetItem(SceAtWork* w_)
 
             sel = res;
             if (sel == 1) {
-                put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
+                put = PutInCase(it->id, it->num, (s8) SubScreenWk.board_size);
                 if (put != 1) {
                     if (SubScreenOpen(4, 0) == 0) {
                         SceSleep(1);
@@ -1190,11 +1190,11 @@ static void sceAtGetItem(SceAtWork* w_)
                 tmp.id = it->id;
                 if (n == 0) {
                     itemInfo(it->id, &info);
-                    tmp.num = info.x3;
+                    tmp.num = info.defNum;
                 } else {
                     tmp.num = n;
                 }
-                ItemMgr.x12 = 0;
+                ItemMgr.m_to_whom = 0;
                 // `put = 1` after the call (as in sceAtGetItem_NoModel): sched2 hoists the
                 // callee-saved li above the call with the highest LUID, so `addi r4,&tmp` issues first.
                 ItemMgr.use(&tmp);
@@ -1209,7 +1209,7 @@ static void sceAtGetItem(SceAtWork* w_)
         }
     }
     itemExam.quit();
-    pG->flags_58 = disp_flag_bak;
+    pG->Disp_flg = disp_flag_bak;
     if (CamCtrl.area_no != -1) {
         LightMgr.update(CamCtrl.area_no, 0);
     } else {
@@ -1237,7 +1237,7 @@ static void sceAtGetItem(SceAtWork* w_)
     SceAtSetEnable(w->no, 0);
     releaseModel(w, 0);
     if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
-        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(SceAtSaveItem));
+        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
     }
     if (w->flag & 4) {
         Mem_free(w);
@@ -1278,7 +1278,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
 
     SceUpCutStart();
     pPL->setNoSuspend(1);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     swep_flag = 0;
     // COMPILER-DIFF: 12 (sched2 rank in block 0): the `it->id` load after the swep_flag store ranks
     // `li r31,0` (cancel) above `addi r29,&w->item` in the prologue.
@@ -1302,7 +1302,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             break;
         }
         cMes.MesSet(0x15, 0x64, y, 0x11, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         itemInfo(it->id, &info);
         if (info.type == 7) {
             cMes.mes[0].waitCnt = 0x1E;
@@ -1314,10 +1314,10 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
-            cMes.mes[0].setNumber(ItemMgr.x28, 0);
+            cMes.mes[0].setNumber(ItemMgr.m_bonus_time, 0);
             cMes.MesSet(0x94, 0x64, y, 0x10000011, 0, 0, 4);
         } else if (it->id == 0x75) {
-            cMes.mes[0].setNumber(ItemMgr.x2C, 0);
+            cMes.mes[0].setNumber(ItemMgr.m_bonus_point, 0);
             cMes.MesSet(0x95, 0x64, y, 0x10000011, 0, 0, 4);
         } else {
             if ((s32) money < (s32) pG->x4F98) {
@@ -1338,23 +1338,23 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     case 9:
         mes = 1;
         cMes.MesSet(0x11, 0x64, y, 0x111, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         break;
     case 2:
         cMes.MesSet(0x13, 0x64, y, 0x211, 0, 0, 4);
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         if (it->num != 0) {
             cMes.mes[0].setNumber(it->num, 0);
         } else {
             itemInfo(it->id, &info);
-            cMes.mes[0].setNumber(info.x3, 0);
+            cMes.mes[0].setNumber(info.defNum, 0);
         }
         mes = 1;
         break;
     case 0xE:
         cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
         mes = 1;
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         break;
     case 6:
         switch (it->id) {
@@ -1379,7 +1379,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             cMes.MesSet(0x11, 0x64, y, 0x411, 0, 0, 4);
             break;
         }
-        cMes.mes[0].x1A = it->id;
+        cMes.mes[0].m_item_no = it->id;
         mes = 1;
         break;
     case 0xA:
@@ -1414,7 +1414,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
 
             sel = res;
             if (sel == 1) {
-                put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
+                put = PutInCase(it->id, it->num, (s8) SubScreenWk.board_size);
                 if (put != 1) {
                     if (SubScreenOpen(4, 0) == 0) {
                         SceSleep(1);
@@ -1431,11 +1431,11 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                 tmp.id = it->id;
                 if (n == 0) {
                     itemInfo(it->id, &info);
-                    tmp.num = info.x3;
+                    tmp.num = info.defNum;
                 } else {
                     tmp.num = n;
                 }
-                ItemMgr.x12 = 0;
+                ItemMgr.m_to_whom = 0;
                 ItemMgr.use(&tmp);
                 put = 1;
             }
@@ -1463,7 +1463,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     }
     SceAtSetEnable(w->no, 0);
     if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
-        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(SceAtSaveItem));
+        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
     }
     if (w->flag & 4) {
         Mem_free(w);
@@ -1942,7 +1942,7 @@ FOUND:
             SubCharCtrlHide(&pPL->pos, 0);
             if (w->hide.cut != 0) {
                 SceUpCutStart();
-                BitOff(pG->flags_58, 0x20000000);
+                BitOff(pG->Disp_flg, 0x20000000);
                 pSUB->setNoSuspend(1);
                 BitOff(pG->flags_170, 0x1000);
                 if (p != 0) {
@@ -3246,7 +3246,7 @@ void SceAtCancelItemAt(int key)
 
     for (i = 0; i <= 15; i++) {
         if (SceAtSys.reserve[i].key == key) {
-            memclr_asm(&pG->save_item[SceAtSys.reserve[i].saveNo], sizeof(SceAtSaveItem));
+            memclr_asm(&pG->save_item[SceAtSys.reserve[i].saveNo], sizeof(ITEM_SAVE_WORK));
             SceAtSys.reserve[i].saveNo = SceAtSys.reserve[i].key = 0;
             break;
         }
@@ -3569,7 +3569,7 @@ int SceAtSetItemModel(SceAtWork* w, cModel* m)
     }
     w->item.pModel = m;
     if (w->item.id == 0xAF) {
-        m->x12F = 1;
+        m->ot_type = 1;
     }
     m->pos.x = w->item.pos.x;
     m->pos.y = w->item.pos.y;

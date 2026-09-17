@@ -48,10 +48,10 @@ static void em28_R1_Die_Air(cEm28* em);
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Struct-member view of the player pointer (cam_ctrl.cpp PlayerPtr).
@@ -227,15 +227,15 @@ void cEm28::move()
     Em28Work* w = EM28_WK(this);
     f32 spd;
 
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         em28DmCk(this);
     }
     w->flags &= ~0x1F;
     if (w->escapeWait) {
         w->escapeWait--;
     }
-    Em28_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em28_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -265,14 +265,14 @@ static void em28_R0_Init(cEm28* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em28() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(4), ARC(6)) == 0) {
             pLog->err(0, 0, "em28() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
@@ -310,7 +310,7 @@ static void em28_R0_Init(cEm28* em)
 
 static void em28_R0_Move(cEm28* em)
 {
-    Em28_R1_move_tbl[em->xFD](em);
+    Em28_R1_move_tbl[em->r_no_1](em);
 }
 
 // Take off when the floor under the crow drops away (its perch broke).
@@ -337,20 +337,20 @@ static void em28_R1_Wait(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0x1E, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if ((int) em->flags_3C8 >= 0) {
                 if (Rnd() & 1) {
                     if (Rnd() & 3) {
-                        em->xFE++;
+                        em->r_no_2++;
                     } else if ((Rnd() & 3) == 0 && !(w->flags & 0x20)) {
-                        em->xFE = 6;
+                        em->r_no_2 = 6;
                     } else {
-                        em->xFE = 4;
+                        em->r_no_2 = 4;
                     }
                 }
             }
@@ -358,11 +358,11 @@ static void em28_R1_Wait(cEm28* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0xA, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             if (Rnd() & 1) {
-                em->xFE = 0;
+                em->r_no_2 = 0;
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
@@ -370,11 +370,11 @@ static void em28_R1_Wait(cEm28* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 0xA, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
             if (Rnd() & 1) {
-                em->xFE = 0;
+                em->r_no_2 = 0;
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
             }
@@ -383,7 +383,7 @@ static void em28_R1_Wait(cEm28* em)
     case 6:
         MotionSetCore(em, MOTION(em), ARC(0x19), 0, 0xA, 1, 0);
         w->timer = 15;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         if (w->timer) {
             w->timer--;
@@ -442,7 +442,7 @@ static void em28_R1_Walk(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(0xE), 0, 0xA, 5, 0);
@@ -451,7 +451,7 @@ static void em28_R1_Walk(cEm28* em)
         }
         w->targetAng = fRand1_1() * PI;
         w->timer = (u8) (Rnd() % 5) + 3;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 128.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -474,7 +474,7 @@ static void em28_R1_Walk(cEm28* em)
 static void em28_R1_Dash(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
-    int st = em->xFE;
+    int st = em->r_no_2;
 
     switch (st) {
     case 0:
@@ -487,8 +487,8 @@ static void em28_R1_Dash(cEm28* em)
         EstSet(0, -1, &em->getPartsPtr(0)->worldPos, 0, 0x20, 0, 0, 0, 0, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
         em28BellSet(em);
-        em->xFF = Rnd() & 1;
-        em->xFE++;
+        em->r_no_3 = Rnd() & 1;
+        em->r_no_2++;
     case 1:
         if (w->turnTimer) {
             w->turnTimer--;
@@ -500,7 +500,7 @@ static void em28_R1_Dash(cEm28* em)
         em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 16.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (w->stuckCnt > 3) {
-            if (em->xFF) {
+            if (em->r_no_3) {
                 w->targetAng += PI / 5.0f;
             } else {
                 w->targetAng -= PI / 5.0f;
@@ -524,21 +524,21 @@ static void em28_R1_Jump(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x12), (int) ARC(0x1C), 3, 1, 0);
         w->targetAng = GetXZAngle(&pPL->pos, &em->pos);
         w->targetAng += fRand1_1() * (PI / 2.0f);
         w->targetAng = LIMIT_ANGLE(w->targetAng);
         w->timer = (Rnd() & 3) + 4;
-        em->xFF = Rnd() & 1;
+        em->r_no_3 = Rnd() & 1;
         SndCall(8, 2, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 16.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (w->stuckCnt > 3) {
-            if (em->xFF) {
+            if (em->r_no_3) {
                 w->targetAng += PI / 16.0f;
             } else {
                 w->targetAng -= PI / 16.0f;
@@ -546,7 +546,7 @@ static void em28_R1_Jump(cEm28* em)
             w->targetAng = LIMIT_ANGLE(w->targetAng);
         }
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -556,7 +556,7 @@ static void em28_R1_Jump(cEm28* em)
         w->spd.z = fRand0_1() * 50.0f + 150.0f;
         EstSet(0, -1, &em->getPartsPtr(0)->worldPos, 0, 0x20, 0, 0, 0, 0, 0);
         em28BellSet(em);
-        em->xFE++;
+        em->r_no_2++;
     case 3: {
         Vec v;
 
@@ -579,7 +579,7 @@ static void em28_R1_Jump(cEm28* em)
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
-                em->xFE++;
+                em->r_no_2++;
                 MotionMoveF(em, 0);
                 break;
             }
@@ -589,7 +589,7 @@ static void em28_R1_Jump(cEm28* em)
     }
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x14), (int) ARC(0x1E), 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -604,15 +604,15 @@ static void em28_R0_Damage(cEm28* em)
     Em28Work* w = EM28_WK(em);
 
     w->flags |= 8;
-    Em28_R2_move_tbl[em->xFD](em);
+    Em28_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em28_R1_Dm_Small(cEm28* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 0, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -626,7 +626,7 @@ static void em28_R0_Die(cEm28* em)
     Em28Work* w = EM28_WK(em);
 
     w->flags |= 8;
-    Em28_R3_move_tbl[em->xFD](em);
+    Em28_R3_move_tbl[em->r_no_1](em);
 }
 
 // Fade every part while dying (work flag bit6).
@@ -648,7 +648,7 @@ static void em28_R1_Die_Normal(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->clearStatus(5);
         switch ((u8) (Rnd() % 3)) {
@@ -666,7 +666,7 @@ static void em28_R1_Die_Normal(cEm28* em)
         }
         w->timer = 14;
         em->atari.flags &= ~0x200;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em28DieFade(em, w);
         if (w->timer) {
@@ -678,7 +678,7 @@ static void em28_R1_Die_Normal(cEm28* em)
         if (MotionMoveF(em, 0)) {
             em->setStatus(8);
             EmSetDropItem(em);
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
@@ -688,10 +688,10 @@ static void em28_R1_Die_Air(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         Vec v;
 
@@ -709,7 +709,7 @@ static void em28_R1_Die_Air(cEm28* em)
             if (em->pos.y < fl) {
                 em->pos.y = fl;
                 w->spd.y = 0.0f;
-                em->xFE++;
+                em->r_no_2++;
                 MotionMoveF(em, 0);
                 break;
             }
@@ -722,13 +722,13 @@ static void em28_R1_Die_Air(cEm28* em)
         em->clearStatus(5);
         em->atari.flags &= ~0x200;
         SndCall(8, 1, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em28DieFade(em, w);
         if (MotionMoveF(em, 0)) {
             em->setStatus(8);
             EmSetDropItem(em);
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }

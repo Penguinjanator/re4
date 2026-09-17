@@ -62,10 +62,10 @@ struct SubCharPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -179,13 +179,13 @@ void cEm34::move()
 {
     Em34Work* w = EM34_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em34DmCk(this);
     }
     w->flags &= ~0x1F;
     em34RouteCk(this);
-    Em34_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em34_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -223,7 +223,7 @@ static void em34_R0_Init(cEm34* em)
     default:
         if (em->modelInit(ARC(4), ARC(8)) == 0) {
             pLog->err(0, 0, "em34() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(5), ARC(8));
@@ -245,7 +245,7 @@ static void em34_R0_Init(cEm34* em)
     case 1:
         if (em->modelInit(ARC(9), ARC(0xB)) == 0) {
             pLog->err(0, 0, "em37() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xA), ARC(0xB));
@@ -256,7 +256,7 @@ static void em34_R0_Init(cEm34* em)
     case 2:
         if (em->modelInit(ARC(0xC), ARC(0xE)) == 0) {
             pLog->err(0, 0, "em33() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xD), ARC(0xE));
@@ -268,7 +268,7 @@ static void em34_R0_Init(cEm34* em)
     case 3:
         if (em->modelInit(ARC(0xC), ARC(0xF)) == 0) {
             pLog->err(0, 0, "em33() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xD), ARC(0xF));
@@ -347,7 +347,7 @@ static void em34_R0_Init(cEm34* em)
 
 static void em34_R0_Move(cEm34* em)
 {
-    Em34_R1_move_tbl[em->xFD](em);
+    Em34_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Wait(cEm34* em)
@@ -355,7 +355,7 @@ static void em34_R1_Wait(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -370,7 +370,7 @@ static void em34_R1_Wait(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 30, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em34DeadCk(em)) {
@@ -385,7 +385,7 @@ static void em34_R1_Walk(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -400,7 +400,7 @@ static void em34_R1_Walk(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x18), 0, 10, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -423,7 +423,7 @@ static void em34_R1_Atk(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -439,7 +439,7 @@ static void em34_R1_Atk(cEm34* em)
             break;
         }
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 32.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -457,7 +457,7 @@ static void em34_R0_Damage(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 8;
-    Em34_R2_move_tbl[em->xFD](em);
+    Em34_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Dm_Normal(cEm34* em)
@@ -465,7 +465,7 @@ static void em34_R1_Dm_Normal(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -480,7 +480,7 @@ static void em34_R1_Dm_Normal(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 10);
@@ -494,14 +494,14 @@ static void em34_R0_Die(cEm34* em)
     Em34Work* w = EM34_WK(em);
 
     w->flags |= 8;
-    Em34_R3_move_tbl[em->xFD](em);
+    Em34_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Die_Normal(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -516,7 +516,7 @@ static void em34_R1_Die_Normal(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(0);
@@ -524,12 +524,12 @@ static void em34_R1_Die_Normal(cEm34* em)
             em->clearStatus(6);
             em->clearStatus(7);
             em->atari.flags &= ~0x300;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->timer) {
             w->timer--;
@@ -556,7 +556,7 @@ void em34RouteCk(cEm34* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;

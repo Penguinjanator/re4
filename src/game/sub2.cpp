@@ -65,26 +65,26 @@ f32 GetXZAngleLocal(Vec* from, Vec* to, f32 ang)
     return LIMIT_ANGLE(GetXZAngle(from, to) - ang);
 }
 
-f32 GetDistance(Vec* a, Vec* b)
+f32 GetDistance(Vec* v0, Vec* v1)
 {
-    f32 x = b->x - a->x;
-    f32 y = b->y - a->y;
-    f32 z = b->z - a->z;
+    f32 x = v1->x - v0->x;
+    f32 y = v1->y - v0->y;
+    f32 z = v1->z - v0->z;
     return x * x + y * y + z * z;
 }
 
-f32 GetDistance(Vec& a, Vec& b)
+f32 GetDistance(Vec& v0, Vec& v1)
 {
-    f32 x = b.x - a.x;
-    f32 y = b.y - a.y;
-    f32 z = b.z - a.z;
+    f32 x = v1.x - v0.x;
+    f32 y = v1.y - v0.y;
+    f32 z = v1.z - v0.z;
     return x * x + y * y + z * z;
 }
 
-f32 GetDistanceXZ(Vec* a, Vec* b)
+f32 GetDistanceXZ(Vec* v0, Vec* v1)
 {
-    f32 x = b->x - a->x;
-    f32 z = b->z - a->z;
+    f32 x = v1->x - v0->x;
+    f32 z = v1->z - v0->z;
     return x * x + z * z;
 }
 
@@ -198,13 +198,13 @@ f32 RootSumSquare3(Vec* v)
     return SQRTF(v->x * v->x + v->y * v->y + v->z * v->z);
 }
 
-f32 GetDistance3(Vec* a, Vec* b)
+f32 GetDistance3(Vec* v0, Vec* v1)
 {
     Vec d;
 
-    d.x = b->x - a->x;
-    d.y = b->y - a->y;
-    d.z = b->z - a->z;
+    d.x = v1->x - v0->x;
+    d.y = v1->y - v0->y;
+    d.z = v1->z - v0->z;
     return RootSumSquare3(&d);
 }
 
@@ -300,13 +300,13 @@ static f32 sub2_dead4(f32 x)
     return x;
 }
 
-void PosToPos(Vec* a, Vec* b, Vec* out, f32 t)
+void PosToPos(Vec* pos1, Vec* pos2, Vec* out, f32 t)
 {
     Vec ta;
     Vec tb;
 
-    PSVECScale(a, &ta, 1.0f - t);
-    PSVECScale(b, &tb, t);
+    PSVECScale(pos1, &ta, 1.0f - t);
+    PSVECScale(pos2, &tb, t);
     PSVECAdd(&ta, &tb, out);
 }
 
@@ -386,12 +386,12 @@ int LineSphereCrossCk(Vec* a, Vec* b, Vec* c, Vec* out, f32 r)
     return 1;
 }
 
-int SphereHitCk(Vec* a, Vec* b, f32 ra, f32 rb)
+int SphereHitCk(Vec* pPos1, Vec* pPos2, f32 ra, f32 rb)
 {
     Vec d;
     f32 r;
 
-    PSVECSubtract(a, b, &d);
+    PSVECSubtract(pPos1, pPos2, &d);
     r = ra + rb;
     return d.x * d.x + d.y * d.y + d.z * d.z < r * r;
 }

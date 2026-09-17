@@ -79,10 +79,10 @@ public:
 };
 
 cCtrl* GetCtrlCtrl12();
-void Ctrl12Set(cCtrl* c, int idx, u16 val);
-int Ctrl12Ck(cCtrl* c, int idx);
-void Ctrl12CntAdd(cCtrl* c, int idx, u16 add);
-int Ctrl12CntCk(cCtrl* c, int idx, u16 val);
+void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val);
+int Ctrl12Ck(cCtrl* pCtrl, int idx);
+void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add);
+int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val);
 struct TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm32(cCtrl* c);
@@ -108,8 +108,8 @@ public:
     virtual f32 getDir2();
     virtual void addWidth(f32 x);
     virtual void addHeight(f32 y);
-    virtual void addDir(f32 d);
-    virtual void setDir(f32 d);
+    virtual void addDir(f32 add);
+    virtual void setDir(f32 dir);
     virtual void resetDir();
     virtual void setFire();
     virtual int ckHitFire(Vec* p);
@@ -119,10 +119,10 @@ public:
 cCtrl* GetCtrlDragon(u32 type);
 
 cCtrl* GetCtrlCtrl11();
-u32 Ctrl11SetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx);
-u32 Ctrl11SetSe2(cCtrl* c, cModel* m, s16 time, u16 no, int idx, u16 blk);
-u32 Ctrl11StopAndSetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx);
-u32 Ctrl11SetSeEm38(cCtrl* c, cModel* m, u16 no);
+u32 Ctrl11SetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx);
+u32 Ctrl11SetSe2(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx, u16 blk);
+u32 Ctrl11StopAndSetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx);
+u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* m, u16 no);
 
 #line 8 "D:/Bio4/Prog/ctrl.h"
 

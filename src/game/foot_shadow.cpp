@@ -43,7 +43,7 @@ void DrawFootShadow(cEm* em)
     cLight* l;
     int cnt;
 
-    if (pG->flags_58 & 0x02000000) {
+    if (pG->Disp_flg & 0x02000000) {
         return;
     }
     if (em->shdCol == 0xFF) {

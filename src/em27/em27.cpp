@@ -53,10 +53,10 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the inline
@@ -244,7 +244,7 @@ void cEm27::move()
         be_flag &= ~0x20;
         return;
     }
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         em27DmCk(this);
     }
     if (w->dashTimer) {
@@ -289,8 +289,8 @@ void cEm27::move()
             PSMTXMultVec(mat, &v, &w->target);
         }
     }
-    Em27_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em27_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -312,10 +312,10 @@ static void em27_R0_Init(cEm27* em)
     f32 wh;
     int zero;
 
-    em->x12F = 0;
+    em->ot_type = 0;
     if (em->modelInit(ARC(4), ARC(5)) == 0) {
         pLog->err(0, 0, "em27() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     em->be_flag &= ~0x10;
@@ -379,7 +379,7 @@ static void em27_R0_Init(cEm27* em)
 
 static void em27_R0_Move(cEm27* em)
 {
-    Em27_R1_move_tbl[em->xFD](em);
+    Em27_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Wait(cEm27* em)
@@ -387,7 +387,7 @@ static void em27_R1_Wait(cEm27* em)
     Em27Work* w = EM27_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 5, 0);
@@ -399,7 +399,7 @@ static void em27_R1_Wait(cEm27* em)
         w->spdTarget.y = 0.0f;
         w->spdTarget.z = 0.0f;
         w->spdTarget.z = fRand1_1() * 10.0f + 10.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em27SetSPeed(em, 0.1f);
         MotionMoveF(em, 0);
@@ -422,7 +422,7 @@ static void em27_R1_Walk(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 5, 5, 0);
@@ -434,7 +434,7 @@ static void em27_R1_Walk(cEm27* em)
         w->spdTarget.x = 0.0f;
         w->spdTarget.y = fRand1_1() * 10.0f;
         w->timer = (Rnd() & 0x3C) + 60;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 32.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -460,7 +460,7 @@ static void em27_R1_Dash(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 5, 5, 0);
         w->timer = Rnd() % 6 + 7;
@@ -468,7 +468,7 @@ static void em27_R1_Dash(cEm27* em)
         w->spdTarget.x = 0.0f;
         w->spdTarget.y = fRand1_1() * 15.0f;
         w->spdTarget.z = 130.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 16.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -488,7 +488,7 @@ static void em27_R1_Bank(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         Vec v;
 
@@ -500,7 +500,7 @@ static void em27_R1_Bank(cEm27* em)
         v.y = w->waterHeight + 300.0f;
         EstSet(0, -1, &v, &em->rot, 0x1F, 0xF, 0, 0, 0, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 32.0f);
@@ -517,7 +517,7 @@ static void em27_R1_Turn180(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* m;
         int flag;
@@ -533,7 +533,7 @@ static void em27_R1_Turn180(cEm27* em)
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), m, 0, 5, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -551,7 +551,7 @@ static void em27_R1_Jump(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* m0;
         void* m1;
@@ -574,7 +574,7 @@ static void em27_R1_Jump(cEm27* em)
             flag = 0x40;
         }
         MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
@@ -593,34 +593,34 @@ static void em27_R0_Damage(cEm27* em)
     Em27Work* w = EM27_WK(em);
 
     w->flags |= 8;
-    Em27_R2_move_tbl[em->xFD](em);
+    Em27_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Dm_Normal(cEm27* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         int flag;
 
         em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
         if (Rnd() & 1) {
             flag = 0;
-            em->xFF = flag;
+            em->r_no_3 = flag;
         } else {
-            em->xFF = 1;
+            em->r_no_3 = 1;
             flag = 0x40;
         }
         MotionSetCore(em, MOTION(em), ARC(0x11), (int) ARC(0x1F), 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         if ((em->seFlags28B & 4) && em->hp <= 0) {
-            em->xFC = 3;
-            em->xFD = 0;
-            em->xFE = 0;
+            em->r_no_0 = 3;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -628,25 +628,25 @@ static void em27_R1_Dm_Normal(cEm27* em)
 
 static void em27_R1_Dm_Big(cEm27* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         int flag;
 
         em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
-        em->xFF = Rnd() & 1;
-        if (em->xFF) {
+        em->r_no_3 = Rnd() & 1;
+        if (em->r_no_3) {
             flag = 0x40;
         } else {
             flag = 0;
         }
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
-            em->xFC = 3;
-            em->xFD = 0;
-            em->xFE = 0;
+            em->r_no_0 = 3;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -659,24 +659,24 @@ static void em27_R1_Dm_Air(cEm27* em)
     Vec v;
     int flag;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
-        em->xFF = Rnd() & 1;
-        if (em->xFF) {
+        em->r_no_3 = Rnd() & 1;
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
         }
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
@@ -685,7 +685,7 @@ static void em27_R1_Dm_Air(cEm27* em)
         w->spd.x = 0.0f;
         w->spd.y = -100.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         w->spd.y -= 5.0f;
         PSMTXRotRad(m, 'y', em->rot.y);
@@ -693,11 +693,11 @@ static void em27_R1_Dm_Air(cEm27* em)
         PSVECAdd(&em->pos, &v, &em->pos);
         MotionMoveF(em, 0);
         if (em->pos.y < w->waterHeight) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         w->spd.y += 20.0f;
         PSMTXRotRad(m, 'y', em->rot.y);
@@ -710,22 +710,22 @@ static void em27_R1_Dm_Air(cEm27* em)
         MotionMoveF(em, 0);
         if (w->spd.y > 0.0f) {
             if (em->hp <= 0) {
-                em->xFC = 3;
-                em->xFD = 0;
-                em->xFE = 0;
+                em->r_no_0 = 3;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 6:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
         }
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -739,7 +739,7 @@ static void em27_R0_Die(cEm27* em)
     Em27Work* w = EM27_WK(em);
 
     w->flags |= 8;
-    Em27_R3_move_tbl[em->xFD](em);
+    Em27_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Die_Normal(cEm27* em)
@@ -749,9 +749,9 @@ static void em27_R1_Die_Normal(cEm27* em)
     int no;
 
     w->flags |= 0x80;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
@@ -777,7 +777,7 @@ static void em27_R1_Die_Normal(cEm27* em)
             break;
         }
         SceAtSetItemModel(no, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->spd.y += PI / 32.0f;
         w->spd.y = LIMIT_ANGLE(w->spd.y);
@@ -794,14 +794,14 @@ static void em27_R1_Die_Normal(cEm27* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         w->timer = Rnd() % 60 + 60;
         w->upDown = 0;
         w->spd.y = fRand1_1() * PI;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         w->spd.y += PI / 32.0f;
         w->spd.y = LIMIT_ANGLE(w->spd.y);
@@ -821,7 +821,7 @@ static void em27_R1_Die_Normal(cEm27* em)
             v.z = p->worldPos.z;
             EstSet(0, -1, &v, &em->rot, 0x1F, 5, 0, 0, 0, 0);
             w->upDown = Rnd() % 60 + 5;
-            if (em->xFF) {
+            if (em->r_no_3) {
                 flag = 0x41;
             }
             if (w->dieVariant) {

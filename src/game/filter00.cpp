@@ -91,7 +91,7 @@ void Filter00Render()
         { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 }, { 1, 4, 3, 0 },
     };
 
-    if ((pG->flags_58 & 0x100000) || (blur_rate == 0 && is_eff_spread_on == 0 && g_cont_level == 0)) {
+    if ((pG->Disp_flg & 0x100000) || (blur_rate == 0 && is_eff_spread_on == 0 && g_cont_level == 0)) {
         pG->flags_500C &= ~0x80000;
         return;
     }

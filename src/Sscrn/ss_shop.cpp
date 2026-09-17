@@ -370,7 +370,7 @@ void shopStrPlay(SUB_SCREEN* wk, int no)
 
 void shopModelAlloc(SUB_SCREEN* wk)
 {
-    pzlPlayer* pl = wk->x2B0;
+    pzlPlayer* pl = wk->puzzlePlayer;
     int i;
 
     wk->x38 |= 1;
@@ -551,9 +551,9 @@ void SsShopMain::init(SUB_SCREEN* wk)
     u = IdSub.unitPtr(0xF4, 0x1E);
     u->dir |= 0xF;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    wk->x2B0 = new pzlPlayer;
-    if (!wk->x2B0->init((s8) wk->x2AE)) {
-        delete wk->x2B0;
+    wk->puzzlePlayer = new pzlPlayer;
+    if (!wk->puzzlePlayer->init((s8) wk->board_size)) {
+        delete wk->puzzlePlayer;
     }
     shopModelAlloc(wk);
     pieceModelInit(wk);
@@ -587,7 +587,7 @@ void SsShopMain::move(SUB_SCREEN* wk)
         w->move(wk);
         next = w->cur;
     }
-    wk->x2B0->save();
+    wk->puzzlePlayer->save();
     wk->pMerchant->makeList();
     wk->pMerchant->save(mc->data);
     if (cur == topMenu && topMenu->result == 1) {
@@ -601,7 +601,7 @@ void SsShopMain::quit(SUB_SCREEN* wk)
 {
     int i;
 
-    delete wk->x2B0;
+    delete wk->puzzlePlayer;
     Mem_free(wk->pShopWk);
     setShopMsgQueue(0);
     for (i = 0; i < 5; i++) {
@@ -639,7 +639,7 @@ int getGreetMsg(int* num, int* tbl)
     }
     g = pG;
     if (g->stage_no == 1) {
-        if (!(g->flags_51BC & 0x40000)) {
+        if (!(g->Item_find_flg & 0x40000)) {
             if (!(g->flags_51C0 & 0x01000000) && g->x4F8E == 0) {
                 tbl[(*num)++] = 3;
             }
@@ -1158,7 +1158,7 @@ void SellItemNum::move(SUB_SCREEN* wk)
             }
             u = IdSub.unitPtr(base + i, 0x1F);
             u->flags |= 8;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[i];
         }
     }
@@ -1303,7 +1303,7 @@ void SellConfirm::move(SUB_SCREEN* wk)
                 ItemMgr.arm(0);
             }
         }
-        wk->x2B0->rehash();
+        wk->puzzlePlayer->rehash();
         shopStrPlay(wk, shop_msg[8].str);
         SndCall(0, 0x25, 0, 0, 0, 0);
         break;
@@ -1553,7 +1553,7 @@ void BuyItemNum::move(SUB_SCREEN* wk)
                     msg = 0xE;
                     break;
                 case 0x21:
-                    if ((pG->flags_51BC & 0x40000) && !(pG->item_flags[0] & 0x10000000)) {
+                    if ((pG->Item_find_flg & 0x40000) && !(pG->item_flags[0] & 0x10000000)) {
                         msg = 0x10;
                     } else {
                         msg = 0xF;
@@ -1620,9 +1620,9 @@ void BuyItemNum::move(SUB_SCREEN* wk)
                 ItemMgr.construct(&sw->buy, sw->buyId);
                 sw->buy.flags |= 1;
                 sw->buy.num = (u16) sw->count;
-                wk->x2B0->appendExtraPiece(&sw->buy);
-                wk->x2B0->inHandExtraPiece();
-                pl = wk->x2B0;
+                wk->puzzlePlayer->appendExtraPiece(&sw->buy);
+                wk->puzzlePlayer->inHandExtraPiece();
+                pl = wk->puzzlePlayer;
                 p = pl->extra;
                 h = pl->spaceBoard->h;
                 w = pl->spaceBoard->w;
@@ -1648,8 +1648,8 @@ void BuyItemNum::move(SUB_SCREEN* wk)
             PUT:
                 pl->cur = pl->spaceBoard;
                 pl->getPiece(pl->spaceBoard);
-                pieceModelSet(wk->x2B0->extra);
-                wk->x2B4 = 1;
+                pieceModelSet(wk->puzzlePlayer->extra);
+                wk->back2 = 1;
                 sw->placed = 1;
                 dispItem(0, 0);
                 transit(2, wk);
@@ -1684,7 +1684,7 @@ void BuyItemNum::quit(SUB_SCREEN* wk)
 
 int deleteExtraPiece(SUB_SCREEN* wk)
 {
-    pzlPlayer* pl = wk->x2B0;
+    pzlPlayer* pl = wk->puzzlePlayer;
 
     if (pl->extra) {
         if (pl->removeExtraPiece()) {
@@ -1708,32 +1708,32 @@ int buyItem(SUB_SCREEN* wk)
             p->y = sw->buy.y;
             p->orient = sw->buy.orient;
             p->board = sw->buy.board;
-            wk->x2B0->extra->item = p;
+            wk->puzzlePlayer->extra->item = p;
         }
     } else {
         ItemWork* p = ItemMgr.pLast;
         if (p) {
             switch (p->id) {
             case 0x7C:
-                wk->x2AF = ret;
+                wk->board_next = ret;
                 ret = 1;
                 break;
             case 0x7D:
-                wk->x2AF = 1;
+                wk->board_next = 1;
                 ret = 1;
                 break;
             case 0x7E:
-                wk->x2AF = 2;
+                wk->board_next = 2;
                 ret = 1;
                 break;
             case 0x7F:
-                wk->x2AF = 3;
+                wk->board_next = 3;
                 ret = 1;
                 break;
             }
         }
     }
-    wk->x2B0->save();
+    wk->puzzlePlayer->save();
     return ret;
 }
 
@@ -1832,8 +1832,8 @@ void BuyConfirm::move(SUB_SCREEN* wk)
         }
         break;
     case 3:
-        wk->x2B0->spaceBoard->rmPiece(wk->x2B0->extra);
-        wk->x2B0->inHandExtraPiece();
+        wk->puzzlePlayer->spaceBoard->rmPiece(wk->puzzlePlayer->extra);
+        wk->puzzlePlayer->inHandExtraPiece();
         transit(2, wk);
         IdSub.unitPtr(0xF9, 0x1C)->dir |= 0xF;
         break;
@@ -1852,7 +1852,7 @@ void BuyPuzzleEnd::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
 
-    if (wk->x2B0->caseBoard->search(wk->x2B0->extra)) {
+    if (wk->puzzlePlayer->caseBoard->search(wk->puzzlePlayer->extra)) {
         buyItem(wk);
         transit(1, wk);
         shopStrPlay(wk, shop_msg[21].str);
@@ -2085,7 +2085,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             } else {
                 arrow->flags |= 8;
                 lvNum->no = lv;
-                lvNum->flags_7F |= 2;
+                lvNum->tex_flag |= 2;
             }
             {
                 u16 id = item->id;
@@ -2127,7 +2127,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             for (j = 2; j >= 0; j--) {
                 IdUnit* u = IdSub.unitPtr(tag[cur] + j, 0x1D);
 
-                u->flags_7F |= 2;
+                u->tex_flag |= 2;
                 u->no = digit[j];
                 if (type == 3) {
                     if (i == 0 && digit[j] == 0) {
@@ -2703,7 +2703,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
         for (int i = 2; i >= 0; i--) {
             IdUnit* d = IdSub.unitPtr(numBase + i, 0x1C);
 
-            d->flags_7F |= 2;
+            d->tex_flag |= 2;
             d->no = digit[i];
             if (type == 3) {
                 if (on == 0 && digit[i] == 0) {
@@ -2756,7 +2756,7 @@ void stockNumDisp(int num, int sw)
             }
             d = IdSub.unitPtr(0xA1 + i, 0x1C);
             d->flags |= 8;
-            d->flags_7F |= 2;
+            d->tex_flag |= 2;
             d->no = digit[i];
         }
     } else {
@@ -2804,7 +2804,7 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
             }
             d = IdSub.unitPtrI(0x11 + i, type);
             d->flags |= 8;
-            d->flags_7F |= 2;
+            d->tex_flag |= 2;
             d->no = digit[i];
         }
     } else {
@@ -2835,7 +2835,7 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
             }
             d = IdSub.unitPtrI(1 + i, type);
             d->flags |= 8;
-            d->flags_7F |= 2;
+            d->tex_flag |= 2;
             d->no = digit[i];
         }
     } else {
@@ -2901,7 +2901,7 @@ void dispItem(int id, int sw)
     }
     if (itemTexNo(id)) {
         u->flags |= 8;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->no = itemTexNo(id);
         m->be_flag &= ~2;
         return;
@@ -2915,8 +2915,8 @@ void dispItem(int id, int sw)
 
             m->modelInit(((void**) data)[0], ((void**) data)[1]);
             m->lightInfo.init2(0, 0, &light_p0, &light_p1, 0x10);
-            m->x135 = 2;
-            m->x12F = 6;
+            m->CullMode = 2;
+            m->ot_type = 6;
             setOrientation(id, m);
             moveItem();
             m->be_flag |= 2;

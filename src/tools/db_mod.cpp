@@ -111,7 +111,7 @@ public:
 // One viewer slot (0x2754).
 class DB_EM {
 public:
-    s8 x0;                    // model load step
+    s8 m_load_model_rno;                    // model load step
     s8 x1;                    // motion load step
     u8 alive;                 // 0x002  model loaded
     u8 x3;
@@ -129,16 +129,16 @@ public:
     DbMotWork mot[FILE_NUM];  // 0x108
     s8 motStat[FILE_NUM];     // 0xE08
     u8 motFlag[FILE_NUM];     // 0xE18
-    s8 xE28;                  // 0xE28
-    s8 xE29;                  // 0xE29
+    s8 mot_num;                  // 0xE28
+    s8 mot_cnt;                  // 0xE29
     u16 setNo;                // 0xE2A
     cEm* parent;              // 0xE2C  parent model (setParent)
     s8 no;                    // 0xE30  slot number / parent slot
     u8 xE31;
     s16 parentParts;          // 0xE32  parts of the parent this model hangs on (-1: the model itself)
-    u8 xE34;                  // 0xE34  bit0: draw the skeleton
+    u8 opt_flag;                  // 0xE34  bit0: draw the skeleton
     u8 pad_E35[3];
-    u32 xE38;                 // 0xE38
+    u32 em_flag;                 // 0xE38
     s16 partsNo;              // 0xE3C  P_INFO parts cursor
     u8 pad_E3E[2];
     DB_MODEL_FILES files[3];  // 0xE40 bin, 0x169C tex, 0x1EF8 mot (one array: the static ctor loops 3x64)
@@ -377,8 +377,8 @@ void init_dbEm(DB_EM* em, int start, int end)
             memclr_asm(&em->mot[i], sizeof(DbMotWork));
             em->motStat[i] = em->motFlag[i] = 0; // chain: motStat's address first, motFlag's store first
         }
-        em->xE28 = 0;
-        em->xE29 = 0;
+        em->mot_num = 0;
+        em->mot_cnt = 0;
         em->mot[0].flags = 0x15;
         em->mot[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
         dbModelSetCamera(n, &pGS->Cam);
@@ -2379,10 +2379,10 @@ static int dbmod_option()
         switch (pDbModState.p->sub) {
         case 0:
             if (joy->trg & 0x10001) {
-                em->xE34 |= 1;
+                em->opt_flag |= 1;
             }
             if (joy->trg & 0x20002) {
-                em->xE34 &= ~1;
+                em->opt_flag &= ~1;
             }
             break;
         case 1:
@@ -2436,7 +2436,7 @@ static int dbmod_option()
         }
         switch (i) {
         case 0:
-            if (em->xE34 & 1) {
+            if (em->opt_flag & 1) {
                 eprintf((x + 10) * 8, y * 14, 0, 0, "ON-/---");
             } else {
                 eprintf((x + 10) * 8, y * 14, 0, 0, "---/OFF");
@@ -2881,7 +2881,7 @@ void dbModMotionSet(int frame)
             }
             model->pos = em->pos;
             model->rot = em->rot;
-            em->xE38 &= ~1;
+            em->em_flag &= ~1;
         }
     }
 }
@@ -2975,7 +2975,7 @@ void dbModMotionMove()
                     if (!(pDbModState.p->viewFlag & 2)) {
                         dbModPlayMode(&em->mot[0].flags);
                     }
-                    if (em->xE38 & 1) {
+                    if (em->em_flag & 1) {
                         em->mot[0].flags |= 8;
                     }
                 } else {
@@ -2988,17 +2988,17 @@ void dbModMotionMove()
         if (noMotion == 0 && !(pG->flags_170 & 0x04000000)) {
             model->mot.flags = em->mot[0].flags;
             dbmodMotionMove(model, 0);
-            if (model->mot.blend == 0 && em->xE28 > 1 && model->mot.state != 0) {
-                em->xE29++;
-                if (em->xE29 > em->xE28 - 1) {
-                    em->xE29 = 0;
+            if (model->mot.blend == 0 && em->mot_num > 1 && model->mot.state != 0) {
+                em->mot_cnt++;
+                if (em->mot_cnt > em->mot_num - 1) {
+                    em->mot_cnt = 0;
                 }
-                MotionSetCore(model, &model->mot, em->motData[em->xE29], 0, em->motFlag[em->xE29], em->mot[0].flags | 0x200,
-                              (u16) em->motStat[em->xE29]);
+                MotionSetCore(model, &model->mot, em->motData[em->mot_cnt], 0, em->motFlag[em->mot_cnt], em->mot[0].flags | 0x200,
+                              (u16) em->motStat[em->mot_cnt]);
             }
-            if ((pDbModState.p->viewFlag & 1) && (em->xE38 & 1) == 0) {
+            if ((pDbModState.p->viewFlag & 1) && (em->em_flag & 1) == 0) {
                 if (model->mot.state != 0) {
-                    em->xE38 |= 1;
+                    em->em_flag |= 1;
                 } else {
                     allDone = 0;
                 }
@@ -3086,7 +3086,7 @@ void dbModMotionMove()
             PartsWorldPosCalc(model);
         }
         model->partsWorldCalc();
-        if (em->xE34 & 1) {
+        if (em->opt_flag & 1) {
             model->debugSkeletonDisp();
         }
     }
@@ -3094,7 +3094,7 @@ void dbModMotionMove()
         for (n = 0; n <= SLOT_NUM - 1; n++) {
             em = &dbModSlot[n];
             if (em->alive) {
-                em->xE38 &= ~1;
+                em->em_flag &= ~1;
             }
         }
     }
@@ -3144,7 +3144,7 @@ void dbModMotionMove()
         model->mat[2][2] = az2.z;
         model->partsMatCalc();
         model->partsWorldCalc();
-        if (em->xE34 & 1) {
+        if (em->opt_flag & 1) {
             model->debugSkeletonDisp();
         }
     }
@@ -3468,7 +3468,7 @@ int DB_EM::loadModelSet(DB_MODEL_FILES* bin, DB_MODEL_FILES* tex)
         files[1].set(tex->m_num, tex->m_data);
         break;
     }
-    x0 = 0;
+    m_load_model_rno = 0;
     if (pEm) {
         pEm->be_flag &= ~2;
     }
@@ -3481,11 +3481,11 @@ int DB_EM::loadModel()
     cModelInfo* info;
     int i;
 
-    switch (x0) {
+    switch (m_load_model_rno) {
     case 0:
         switch (files[0].read(bin)) {
         case 0:
-            x0 = 1;
+            m_load_model_rno = 1;
             break;
         case 1:
             return -1;
@@ -3496,7 +3496,7 @@ int DB_EM::loadModel()
     case 1:
         switch (files[1].read(tex)) {
         case 0:
-            x0 = 2;
+            m_load_model_rno = 2;
             break;
         case 1:
             return -1;
@@ -3639,8 +3639,8 @@ int DB_EM::loadMotion()
 {
     int i;
 
-    xE28 = 0;
-    xE29 = 0;
+    mot_num = 0;
+    mot_cnt = 0;
     switch (x1) {
     case 0:
         switch (files[2].read(motData)) {
@@ -3661,7 +3661,7 @@ int DB_EM::loadMotion()
                     mot[i].flags2 |= 0x10000000;
                 }
                 MotionSetCore(pEm, &mot[i], motData[i], 0, 0, mot[0].flags | 0x200, 0);
-                xE28++;
+                mot_num++;
             }
             switch (i) {
             case 0:

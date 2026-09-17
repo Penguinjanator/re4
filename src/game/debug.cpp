@@ -565,15 +565,15 @@ void ConfigSet()
             PlMode = num_get(&p);
         } else if (symbol_check(&p, "SN_PC_READ")) {
             if (CFG_ON(p)) {
-                BitOn(pG->flags_54, 0x00020000);
+                BitOn(pG->System_flg, 0x00020000);
             } else {
-                BitOff(pG->flags_54, 0x00020000);
+                BitOff(pG->System_flg, 0x00020000);
             }
         } else if (symbol_check(&p, "SN_PC_READ_TOOL")) {
             if (CFG_ON(p)) {
-                BitOn(pG->flags_54, 0x00010000);
+                BitOn(pG->System_flg, 0x00010000);
             } else {
-                BitOff(pG->flags_54, 0x00010000);
+                BitOff(pG->System_flg, 0x00010000);
             }
         } else if (symbol_check(&p, "NO_DEATH")) {
             if (CFG_ON(p)) {
@@ -614,9 +614,9 @@ void ConfigSet()
             }
         } else if (symbol_check(&p, "PUBLICITY_VER")) {
             if (CFG_ON(p)) {
-                BitOn(pG->flags_54, 8);
+                BitOn(pG->System_flg, 8);
             } else {
-                BitOff(pG->flags_54, 8);
+                BitOff(pG->System_flg, 8);
             }
         } else if (symbol_check(&p, "AIM_REVERSE")) {
             if (CFG_ON(p)) {

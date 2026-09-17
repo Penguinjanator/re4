@@ -60,7 +60,7 @@ void KeyClear(u64 mask);
 void VibControl();
 VibWork* PullVibWork();
 void VibSet(u32 time, u32 level, u16 wait, u16 type);
-void VibSetDataCore(VibData* d, u32 type);
+void VibSetDataCore(VibData* pInfo, u32 type);
 void VibSetData(VibDataTbl* t, u32 no, u32 type);
 void VibSetClearType(u32 type);
 int PadCheckStatus(JOY* joy);

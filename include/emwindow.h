@@ -37,7 +37,7 @@ public:
     int ChkStatus();        // etc flag word of this window (GetEtcFlgPtr), 0 when none; bit0 = broken
     void SetStatus(u16 f);
     int SetShake();
-    int SetBreakAll(Vec* pos, int a, int b);
+    int SetBreakAll(Vec* pos, int break_size, int breakType);
     int SetBreakModel();
     int SetChangeModel(void* bin, void* tpl);
     int SetAtariOff();
@@ -57,7 +57,7 @@ cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcN
 extern "C" {
 // Window in front of `m` (its field `id` from SceAtCheckFieldInfo(b)): 1 when `m` may go through it;
 // `status` gets the etc flag word, `dir` the through direction, `pos` the window position.
-int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out);
+int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Vec* pos, cEmWindow** out);
 }
 
 #endif

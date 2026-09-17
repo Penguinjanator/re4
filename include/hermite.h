@@ -23,8 +23,8 @@ int Hermite_1CurveCalc(Hermite1* h, f32 t, f32* out);
 void Hermite_1Scale(Hermite1* h, f32 sx, f32 sy);
 void Hermite_1Trans(Hermite1* h, f32 tx, f32 ty);
 void Hermite_1Reverse(Hermite1* h);
-void Hermite_1(HermiteKey* a, HermiteKey* b, f32 t, f32* out);
-void Hermite_1_dt(HermiteKey* a, HermiteKey* b, f32 t, f32* out);
+void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out);
+void Hermite_1_dt(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out);
 }
 
 // C++ overload (Hermite_1CurveCalc__FP8Hermite1f): evaluate the curve, 0.0f when t is outside.

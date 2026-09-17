@@ -391,7 +391,7 @@ struct GatlingWork {
 // Helicopter missile work (game/objMissile.cpp `cObjMissile`): hangs from a parts of the
 // helicopter (setParent), then flies toward `target` (setFire) and explodes (objMissileBomb).
 struct MissileWork {
-    u32 x00;              // 0x00
+    u32 Be_flg;              // 0x00
     int timer;            // 0x04  fire wait / flight frames
     int hitWait;          // 0x08  frames before the hit checks start
     cModel* parent;       // 0x0C
@@ -407,13 +407,13 @@ struct MissileWork {
 // Gondola work (game/objGondola.cpp `cObjGondola`): a cable car the player / partner / up to
 // five enemies ride; five scenario collision quads follow it.
 struct GondolaWork {
-    u32 x00;              // 0x00
+    u32 Be_flg;              // 0x00
     int timer;            // 0x04  break: frames before the sub motion starts
     u8 ridePL;            // 0x08  player is on board (ckRide)
     u8 pad_9[3];
     int rideSUB;          // 0x0C  partner is on board
     int cnt;              // 0x10  counts down every frame
-    Vec x14;              // 0x14
+    Vec Spd;              // 0x14
     class cEm* rideEm[5]; // 0x20
     class cSat* sat[5];   // 0x34
     class cSat* sat2[5];  // 0x48
@@ -606,7 +606,7 @@ struct BullWork {
     class cSat* eat;      // 0x44  effect piece (type 7)
     int cnt;              // 0x48  MotionMove calls of the current routine
     int timer;            // 0x4C  frames in the current routine (getMoveFrame*)
-    u32 x50;              // 0x50  SetBull 5th argument
+    u32 Move_point;              // 0x50  SetBull 5th argument
     u32 type;             // 0x54  SetBull 5th argument: setRide start routine (0: break1st, 1: break2nd, 2: lift wait, 3: to3rd, 4: break3rd)
     u8 break1st;          // 0x58  break repeats left
     u8 break2nd;          // 0x59
@@ -615,7 +615,7 @@ struct BullWork {
     void (*adjustFunc)(cObj*);  // 0x5C  setAdjustMode: called before the player is carried along
     u8 adjustMode;        // 0x60  0: the riders are not carried along
     u8 ride;              // 0x61  the player rides the bulldozer (setRide)
-    u8 x62;               // 0x62
+    u8 Act_ck;               // 0x62
     u8 breakTruck;        // 0x63  setBreakTruck: Collision continues with step 2
 };
 
@@ -652,7 +652,7 @@ struct Obj16Work {
     int seTimer;          // 0x1C  frames between the type 2 / 3 loop SEs
     u32 seHandle;         // 0x20  SndCall handle of the loop SE (SndStop)
     int lostWait;         // 0x24  frames before the fade out when the enemies are dead (150)
-    int x28;              // 0x28
+    int Wait_mno;              // 0x28
     int dieEffTimer;      // 0x2C  frames before the die effect (setDieEff: 3)
     int estTimer;         // 0x30  frames between the idle effects
     f32 neckAng;          // 0x34  neck yaw toward the player (smoothed)
@@ -661,14 +661,14 @@ struct Obj16Work {
     int plMotA;           // 0x68  its MotionSetCore 4th argument
     int x6C;              // 0x6C
     s16 atkWait;          // 0x70  frames the kind 2 attack is disabled after a hit (90)
-    u8 x72;               // 0x72
-    u8 x73;               // 0x73
-    u8 x74;               // 0x74
+    u8 Eff_wait3;               // 0x72
+    u8 Atk_wait;               // 0x73
+    u8 Atk_timer;               // 0x74
     u8 active;            // 0x75  the head is awake (R1_CoreMove picks the awake motions)
-    u8 x76;               // 0x76  (60, counts down)
+    u8 Appear_timer;               // 0x76  (60, counts down)
     u8 espKind;           // 0x77  effect owner kind (0x3D)
     u8 espKind2;          // 0x78  effect owner kind of the attack effects (0x3E)
-    u8 x79;               // 0x79
+    u8 EffKindId3;               // 0x79
     u8 atkEnable;         // 0x7A  ckAtkEnable: R1_CoreMove ran this frame
     u8 atkHit;            // 0x7B  ckAtkHit: obj16AtkCk hit the player this frame
     Vec scale;            // 0x7C  target scale (setScale), blended into cModel::scale by move
@@ -731,7 +731,7 @@ public:
 
 class cObjMgr : public cManager<cObj> {
 public:
-    u32 x34;
+    u32 Guid;
 
     cObjMgr();
     virtual void* memAlloc(u32 size) { return MemAlloc(size, 1); }

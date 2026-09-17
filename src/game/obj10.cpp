@@ -36,7 +36,7 @@ void cWepItem::move()
 {
     static void (cWepItem::*funcTbl[2])() = { &cWepItem::move00, &cWepItem::move01 };
 
-    (this->*funcTbl[xFC])();
+    (this->*funcTbl[r_no_0])();
 }
 
 void cWepItem::move00()
@@ -76,7 +76,7 @@ void cWepItem::move00()
                 SndCall(1, 0x15, &pos, 0, 0, 0);
                 SndCall(1, 0x16, &pos, 0, 0, 0);
                 dmgSet(1);
-                xFC = 1;
+                r_no_0 = 1;
                 return;
             case 0:
             default:
@@ -159,14 +159,14 @@ void cWepItem::move00()
         PSMTXConcat(parts->mat, mat, mat);
         TransMatrix(mat, &pos);
         alpha = w->hold->alpha;
-        x158 = w->hold->x158;
+        invisible_factor2 = w->hold->invisible_factor2;
     } else {
         RotMatrix(worldMat, &rot);
         TransMatrix(worldMat, &pos);
         ScaleMatrix(worldMat, &scale);
         PSMTXCopy(worldMat, mat);
         alpha = 1.0f;
-        x158 = 1.0f;
+        invisible_factor2 = 1.0f;
     }
     partsMatCalc();
     partsWorldCalc();
@@ -174,12 +174,12 @@ void cWepItem::move00()
 
 void cWepItem::move01()
 {
-    xFE++;
-    if (xFE > 30) {
-        xFE = 0;
+    r_no_2++;
+    if (r_no_2 > 30) {
+        r_no_2 = 0;
         SndCall(1, 0x16, &pos, 0, 0, 0);
-        xFF++;
-        if (xFF > 5) {
+        r_no_3++;
+        if (r_no_3 > 5) {
             ObjMgr.destroy(this);
         }
     }
@@ -272,7 +272,7 @@ int obj10AddSpeed(cWepItem* obj)
             EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->estPrm1, 0, 0, 0, 0);
             SndCall(1, 0x15, &obj->pos, 0, 0, 0);
             SndCall(1, 0x16, &obj->pos, 0, 0, 0);
-            obj->xFC = 1;
+            obj->r_no_0 = 1;
             obj->be_flag &= ~2;
             return 0;
         case 0:

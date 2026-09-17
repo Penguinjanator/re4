@@ -175,14 +175,14 @@ RESTART:
                 U32SetOfs(pSys->x20, j * 4, pRK->sys_x20[j]);
             }
             if ((s32) pRK->g_flags_54 < 0) {
-                pG->flags_54 |= 0x80000000;
+                pG->System_flg |= 0x80000000;
             }
             if (pRK->g_flags_54 & 0x40000000) {
-                pG->flags_54 |= 0x40000000;
+                pG->System_flg |= 0x40000000;
             }
         }
         ret = 0;
-        if (pG->flags_54 & 0x8) {
+        if (pG->System_flg & 0x8) {
             U16Set(pG->room_id, 0x120);
             pG->x4F9F = 0;
             pSys->language = 1;
@@ -205,13 +205,13 @@ RESTART:
             pG->flags_51E4++;
             TaskScheduler();
             ProcessTickGet(5, "TaskScheduler");
-            if (!(pG->flags_54 & 0x100000) || (pG->flags_500C & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (pG->flags_500C & 0x40000)) {
                 IdSys.move();
             }
-            if (!(pG->flags_54 & 0x100000) || (pG->flags_500C & 0x40000)) {
+            if (!(pG->System_flg & 0x100000) || (pG->flags_500C & 0x40000)) {
                 IdSys.trans();
             }
-            if (!(pG->flags_54 & 0x100000)) {
+            if (!(pG->System_flg & 0x100000)) {
                 Trans();
             }
             Dvd.Watcher();
@@ -243,7 +243,7 @@ RESTART:
             while (vsync_cnt < GetSystemVcnt()) {}
             vsync_cnt = 0;
             systemVSyncPost();
-            BitOff(pG->flags_54, 0x10000000);
+            BitOff(pG->System_flg, 0x10000000);
             ProcessTickGet(0, "PROCESS TOTAL");
             ret = systemResetCheck();
             if (ret == 1) {
@@ -265,7 +265,7 @@ void postVSyncCallback()
     if (vsync_cnt >= GetSystemVcnt()) {
         iTaskSuspend();
     }
-    if (!(pG->flags_54 & 0x20000000)) {
+    if (!(pG->System_flg & 0x20000000)) {
         haltExecCheck();
     }
 }
@@ -384,8 +384,8 @@ void systemRestartInit()
     GXCopyDisp(pCurrent_buff, 1);
     ConfigSet();
     if (DBIsDebuggerPresent() == 0) {
-        BitOff(pG->flags_54, 0x20000);
-        BitOff(pG->flags_54, 0x10000);
+        BitOff(pG->System_flg, 0x20000);
+        BitOff(pG->System_flg, 0x10000);
     }
     if (pRK->brightness == 0) {
         U8Set(pRK->brightness, 0x40);
@@ -463,11 +463,11 @@ int checkHardReset()
     } else {
         if (OSGetResetButtonState() == 0) {
             reset_check = 0;
-            pG->flags_54 |= 0x8000;
+            pG->System_flg |= 0x8000;
         }
     }
-    if (pG->flags_54 & 0x8000) {
-        if (!(pG->flags_54 & 0x200)) {
+    if (pG->System_flg & 0x8000) {
+        if (!(pG->System_flg & 0x200)) {
             systemHardReset();
             PADRecalibrate(0xF0000000);
             OSResetSystem(0, 0, 0);
@@ -485,18 +485,18 @@ int systemResetCheck()
         Soft_reset_cnt += GetSystemVcnt();
         if (Soft_reset_cnt > 30) {
             if (pG->dev_mode == 1) {
-                pG->flags_54 |= 0x4000000;
+                pG->System_flg |= 0x4000000;
             } else {
-                pG->flags_54 |= 0x8000;
+                pG->System_flg |= 0x8000;
             }
         }
     } else {
         Soft_reset_cnt = 0;
     }
     checkHardReset();
-    if (!(pG->flags_54 & 0x8000)) {
-        if (pG->flags_54 & 0x4000000) {
-            if (!(pG->flags_54 & 0x200)) {
+    if (!(pG->System_flg & 0x8000)) {
+        if (pG->System_flg & 0x4000000) {
+            if (!(pG->System_flg & 0x200)) {
                 systemSoftReset();
                 return 1;
             }
@@ -520,7 +520,7 @@ void systemResetCommon()
     U8Set(pRK->region, pSys->region);
     U8Set(pRK->x16, pG->x4F93);
     U32Set(pRK->sys_x4, pSys->x4);
-    U32Set(pRK->g_flags_54, pG->flags_54);
+    U32Set(pRK->g_flags_54, pG->System_flg);
     for (i = 0; i < 4; i++) {
         U32SetOfs(pRK->sys_x10, i * 4, pSys->x10[i]);
     }

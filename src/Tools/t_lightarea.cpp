@@ -316,7 +316,7 @@ void OptionExec()
     u32 rep;
 
     eprintf(0xAA, 0xA0, 4, 0, "FOG : ");
-    if (pG->flags_58 & 0x4000) {
+    if (pG->Disp_flg & 0x4000) {
         eprintf(0xAA, 0xA0, 0, 0, "       ON");
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
@@ -340,10 +340,10 @@ void OptionExec()
     switch (cursor) {
     case 0:
         if ((rep & 0x30003) || (Joy[0].trg & 0x100)) {
-            if (pG->flags_58 & 0x4000) {
-                pG->flags_58 &= ~0x4000;
+            if (pG->Disp_flg & 0x4000) {
+                pG->Disp_flg &= ~0x4000;
             } else {
-                pG->flags_58 |= 0x4000;
+                pG->Disp_flg |= 0x4000;
             }
         }
         break;
@@ -368,7 +368,7 @@ void ToolLightAreaMain()
     int plNoHit = 0;
     u32 i;
 
-    if (pG->flags_54 & 0x800) {
+    if (pG->System_flg & 0x800) {
         plNoHit = 1;
     }
     TutilInitDefault();
@@ -425,7 +425,7 @@ void ToolLightAreaMain()
                 BitOn(pG->flags_170, 0x20000000);
                 TaskSleep(10);
                 if (plNoHit == 0) {
-                    BitOff(pG->flags_54, 0x800);
+                    BitOff(pG->System_flg, 0x800);
                 }
                 preview ^= 1;
             } else if (!(Joy[0].on & 0x10)) {
@@ -486,7 +486,7 @@ void ToolLightAreaMain()
                     preview ^= 1;
                     ((cUnitEventView*) pPL)->endEvent(0);
                     BitOff(pG->flags_60, 0x10000000);
-                    BitOn(pG->flags_54, 0x800);
+                    BitOn(pG->System_flg, 0x800);
                 }
             }
         }

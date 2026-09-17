@@ -19,10 +19,10 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int GetWepTargetPos(Vec* from, Vec* to, int a, int wepNo, cEm** target, u32* attr);
+int GetWepTargetPos(Vec* from, Vec* to, int mode, int wepNo, cEm** target, u32* attr);
 void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend);
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend);
-void drawPoint(Vec* p0, Vec* p1);
+void drawPoint(Vec* lpos, Vec* lcross);
 }
 
 // Display flag helpers: through a reference with the bit as a parameter the mask stays 32-bit
@@ -79,16 +79,16 @@ void cObjWep::move()
     }
     moveAll();
     if (DispChk(wep.disp, 4) == 0 || DispChk(wep.disp, 8) == 0 || DispChk(wep.disp, 0x10) == 0 ||
-        (wep.parent && (wep.parent->isTrans() == 0 || (pG->flags_58 & 0x40000000)))) {
+        (wep.parent && (wep.parent->isTrans() == 0 || (pG->Disp_flg & 0x40000000)))) {
         be_flag &= ~2;
     } else {
         be_flag |= 2;
     }
     if (wep.parent) {
         alpha = wep.parent->alpha;
-        x158 = wep.parent->x158;
+        invisible_factor2 = wep.parent->invisible_factor2;
     }
-    x12F = pPL->x12F;
+    ot_type = pPL->ot_type;
     if (pMotion) {
         MotionMove(this, 0);
     } else {

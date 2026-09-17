@@ -36,13 +36,13 @@ void cEsp0b::move()
     Mtx inv;
     Camera* cam;
 
-    if (!(info.x0 & 0x8000)) {
+    if (!(info.Core_flg & 0x8000)) {
         PSVECSubtract(&pos, &w->ofs, &pos);
     }
     if (CommonMove()) {
         if (!AnmMove()) {
             PushEsp(this);
-        } else if (!(info.x0 & 0x8000)) {
+        } else if (!(info.Core_flg & 0x8000)) {
             cam = &pG->Cam;
             if (parent != pEffParentWorld) {
                 PSMTXMultVec(parent->mat, &pos, &wpos);
@@ -83,7 +83,7 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
     Mtx inv;
     Camera* cam;
 
-    if (esp->info.x0 & 0x8000) {
+    if (esp->info.Core_flg & 0x8000) {
         Esp0bWork* w = &esp->work;
         cam = &pG->Cam;
         if (esp->parent != pEffParentWorld) {

@@ -29,7 +29,7 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);   // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);   // EtcModel.cpp
 void Em_R0_Scenario(cEm* em);          // em_sub.cpp
 }
 void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
@@ -173,7 +173,7 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
     w->keyNo = 0x36;
     w->rnd = Rnd() % 5;
     w->dmg = (Rnd() & 1) + 1;
-    w->x400 = 0;
+    w->Open_timer = 0;
     w->pDoor = 0;
     w->sndId = 0;
     ry = em->rot.y;
@@ -192,10 +192,10 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 4;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         em->clearStatus(5);
         if (flg && (*flg & 0xC0)) {
             if (*flg & 0x40) {
@@ -203,16 +203,16 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
             } else {
                 w->dir = 1;
             }
-            em->xFC = 1;
-            em->xFD = 9;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 9;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         em->setStatus(5);
     }
     if (em->hp > 0) {
@@ -445,10 +445,10 @@ void emDoorDmCkWood(cEmDoor* em)
         emDoorSetDmgChain(em, 2);
         EstSet((int) em, -1, 0, 0, w->eff, 6, 0, 0, (u32) em, 0);
         SndCall(6, 0x37, &em->pos, 0, 0, em);
-        em->xFC = 1;
-        em->xFD = 4;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
@@ -1304,10 +1304,10 @@ void emDoorSetBrkDoor(cEmDoor* em, Vec* pos)
         }
     }
     SndCall(6, 0x37, &em->pos, 0, 0, em);
-    em->xFC = 1;
-    em->xFD = 4;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 4;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 int emDoorBrkCk(cEmDoor* em)
@@ -1359,7 +1359,7 @@ void cEmDoor::move()
     }
     emDoorActEvtCk(this);
     be_flag &= ~0x4000;
-    EmDoor_R0_move_tbl[xFC](this);
+    EmDoor_R0_move_tbl[r_no_0](this);
     EmAtCheck(this);
     atari.move();
     if (hp > 0) {
@@ -1371,25 +1371,25 @@ void cEmDoor::move()
 
 void emDoor_R0_Init(cEmDoor* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emDoor_R0_Move(cEmDoor* em)
 {
-    EmDoor_R1_move_tbl[em->xFD](em);
+    EmDoor_R1_move_tbl[em->r_no_1](em);
 }
 
 void emDoor_R1_Set(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         emDoorMatUpdate(em);
-        em->xFE++;
+        em->r_no_2++;
         SndStop(w->sndId, 0);
         break;
     case 1:
@@ -1413,12 +1413,12 @@ void emDoor_R1_Open(cEmDoor* em)
     Vec v;
     s16 hp;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 |= 0x20000000;
         w->kickCnt = 1;
         w->timer = 0x14;
-        w->x400 = 0x96;
+        w->Open_timer = 0x96;
         emDoorSetDmgLock_L(em, 1);
         emDoorSetDmgLock_R(em, 1);
         emDoorSetDmgChain(em, 0);
@@ -1432,7 +1432,7 @@ void emDoor_R1_Open(cEmDoor* em)
             w->dir = 1;
         }
         emDoorDropWeapon(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->dir) {
             ang = LIMIT_ANGLE(w->rotY - PI / 2);
@@ -1446,7 +1446,7 @@ void emDoor_R1_Open(cEmDoor* em)
         d = fabsf(d);
         if (d < PI / 1024) {
             em->rot.y = ang;
-            em->xFE++;
+            em->r_no_2++;
         }
         if (w->kickCnt != 0) {
             w->kickCnt--;
@@ -1461,7 +1461,7 @@ void emDoor_R1_Open(cEmDoor* em)
                 v.z = 600.0f;
             }
             PSMTXMultVec(w->mat, &v, &v);
-            if (em->xFF != 0) {
+            if (em->r_no_3 != 0) {
                 hp = 0;
                 if (pSUB) {
                     hp = pSUB->hp;
@@ -1478,7 +1478,7 @@ void emDoor_R1_Open(cEmDoor* em)
         break;
     case 2:
         w->timer = 2;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->dir) {
             ang = w->rotY - PI / 2;
@@ -1495,10 +1495,10 @@ void emDoor_R1_Open(cEmDoor* em)
             em->rot.y = LIMIT_ANGLE(em->rot.y);
         } else {
             em->rot.y = ang;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             em->flags_3C8 |= 0x10000000;
         }
         break;
@@ -1510,7 +1510,7 @@ static void emDoor_R1_Open2(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 |= 0x20000000;
         emDoorSetDmgLock_L(em, 1);
@@ -1519,7 +1519,7 @@ static void emDoor_R1_Open2(cEmDoor* em)
         emDoorSetDmgChain(em, 1);
         emDoorSetDmgChain(em, 2);
         em->hp = 1000;
-        switch (em->xFF) {
+        switch (em->r_no_3) {
         case 1:
             MotionSetCore(em, &em->pMotion, PL_ARC_PTR(pG->pPlArc, 0x1F), 0, 0, 0x41, 0);
             break;
@@ -1533,7 +1533,7 @@ static void emDoor_R1_Open2(cEmDoor* em)
             break;
         }
         emDoorDropWeapon(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->frame > 14.7f && em->frame < 15.3f) {
             if (w->seCancel == 0) {
@@ -1556,10 +1556,10 @@ static void emDoor_R1_Open2(cEmDoor* em)
         }
         if (MotionMove(em, 0)) {
             em->flags_3C8 |= 0x30000000;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -1577,12 +1577,12 @@ void emDoor_R1_Down(cEmDoor* em)
     Vec v;
     s16 hp;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 |= 0x20000000;
         w->kickCnt = 1;
         w->timer = 0x14;
-        w->x400 = 0x96;
+        w->Open_timer = 0x96;
         emDoorSetDmgLock_L(em, 1);
         emDoorSetDmgLock_R(em, 1);
         emDoorSetDmgChain(em, 0);
@@ -1627,21 +1627,21 @@ void emDoor_R1_Down(cEmDoor* em)
             w->spd = 7.0f * (PI / 180.0f);
         }
         em->pos.y += 40.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->dir) {
             w->spd -= PI / 180.0f;
             em->rot.x += w->spd;
             if (em->rot.x < -PI / 2) {
                 em->rot.x = -PI / 2;
-                em->xFE++;
+                em->r_no_2++;
             }
         } else {
             w->spd += PI / 180.0f;
             em->rot.x += w->spd;
             if (em->rot.x > PI / 2) {
                 em->rot.x = PI / 2;
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         if (w->kickCnt != 0) {
@@ -1657,7 +1657,7 @@ void emDoor_R1_Down(cEmDoor* em)
                 v.z = 600.0f;
             }
             PSMTXMultVec(w->mat, &v, &v);
-            if (em->xFF != 0) {
+            if (em->r_no_3 != 0) {
                 hp = 0;
                 if (pSUB) {
                     hp = pSUB->hp;
@@ -1698,7 +1698,7 @@ void emDoor_R1_Down(cEmDoor* em)
             }
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (w->dir) {
             em->rot.x = -PI / 2;
@@ -1714,7 +1714,7 @@ void emDoor_R1_Down(cEmDoor* em)
             em->rot.x += r;
         } else {
             em->flags_3C8 |= 0x10000000;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -1727,7 +1727,7 @@ void emDoor_R1_Downed(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         if (w->dir) {
             em->rot.x = -PI / 2;
@@ -1736,7 +1736,7 @@ void emDoor_R1_Downed(cEmDoor* em)
         }
         em->pos.y += 40.0f;
         em->flags_3C8 |= 0x30000000;
-        em->xFE++;
+        em->r_no_2++;
     }
     emDoorMatUpdate(em);
 }
@@ -1745,11 +1745,11 @@ void emDoor_R1_Close(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 &= ~0x30000000;
         w->timer = 0x14;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku2(em->rot.y, w->rotY, PI) * 0.3f;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -1757,10 +1757,10 @@ void emDoor_R1_Close(cEmDoor* em)
             w->timer--;
         } else {
             em->rot.y = w->rotY;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -1772,7 +1772,7 @@ void emDoor_R1_Break(cEmDoor* em)
     EmDoorWork* w = EMDOOR_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
         em->clearStatus(5);
@@ -1787,7 +1787,7 @@ void emDoor_R1_Break(cEmDoor* em)
 
             tbl[w->keyNo >> 5] |= 0x80000000 >> (w->keyNo & 0x1F);
         }
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -1796,7 +1796,7 @@ void emDoor_R1_Shock(cEmDoor* em)
     EmDoorWork* w = EMDOOR_WK(em);
     f32 r;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = 7;
         if (em->ckObj() == 0) {
@@ -1807,7 +1807,7 @@ void emDoor_R1_Shock(cEmDoor* em)
         if (em->hp <= 0) {
             em->hp = 1;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer != 0) {
             w->timer--;
@@ -1819,10 +1819,10 @@ void emDoor_R1_Shock(cEmDoor* em)
             em->rot.y = LIMIT_ANGLE(em->rot.y);
         } else {
             em->rot.y = w->rotY;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -1835,11 +1835,11 @@ void emDoor_R1_OpenLock(cEmDoor* em)
     f32 ang;
     int unlock;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 |= 0x30000000;
         w->timer = 0x14;
-        if (em->xFF) {
+        if (em->r_no_3) {
             w->dir = 1;
             ang = w->rotY;
             ang -= PI / 2;
@@ -1849,14 +1849,14 @@ void emDoor_R1_OpenLock(cEmDoor* em)
             ang += PI / 2;
         }
         em->rot.y = ang;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         unlock = !(w->flags & 1);
         if (unlock) {
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -1868,11 +1868,11 @@ void emDoor_R1_CloseLock(cEmDoor* em)
     EmDoorWork* w = EMDOOR_WK(em);
     int unlock;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->flags_3C8 &= ~0x30000000;
         w->timer = 0x14;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku2(em->rot.y, w->rotY, PI) * 0.3f;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -1882,10 +1882,10 @@ void emDoor_R1_CloseLock(cEmDoor* em)
             em->rot.y = w->rotY;
             unlock = !(w->flags & 1);
             if (unlock) {
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
         }
         break;
@@ -2214,10 +2214,10 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
     if (em->ckObj() == 0) {
         return 0;
     }
-    em->xFC = 1;
-    em->xFD = 3;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 3;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     em->flags_3C8 &= ~0x20000000;
     return 1;
 }
@@ -2533,7 +2533,7 @@ int cEmDoor::ckKick(Vec* pos)
     return 1;
 }
 
-void cEmDoor::setOpen(Vec* pos, int a, int b, int c)
+void cEmDoor::setOpen(Vec* pos, int mode, int se_off, int down_ck)
 {
     EmDoorWork* w = EMDOOR_WK(this);
 
@@ -2544,42 +2544,42 @@ void cEmDoor::setOpen(Vec* pos, int a, int b, int c)
     switch (type) {
     case 2:
     case 3:
-        if (a) {
-            xFC = 1;
-            xFD = 8;
-            xFE = 0;
-            xFF = 1;
+        if (mode) {
+            r_no_0 = 1;
+            r_no_1 = 8;
+            r_no_2 = 0;
+            r_no_3 = 1;
         } else {
-            xFC = 1;
-            xFD = 8;
-            xFE = 0;
-            xFF = 0;
+            r_no_0 = 1;
+            r_no_1 = 8;
+            r_no_2 = 0;
+            r_no_3 = 0;
         }
         break;
     default:
-        if (c) {
-        if (a) {
-            xFC = 1;
-            xFD = 8;
-            xFE = 0;
-            xFF = 1;
+        if (down_ck) {
+        if (mode) {
+            r_no_0 = 1;
+            r_no_1 = 8;
+            r_no_2 = 0;
+            r_no_3 = 1;
         } else {
-            xFC = 1;
-            xFD = 8;
-            xFE = 0;
-            xFF = 0;
+            r_no_0 = 1;
+            r_no_1 = 8;
+            r_no_2 = 0;
+            r_no_3 = 0;
         }
         } else {
-            if (a) {
-                xFC = 1;
-                xFD = 1;
-                xFE = 0;
-                xFF = 1;
+            if (mode) {
+                r_no_0 = 1;
+                r_no_1 = 1;
+                r_no_2 = 0;
+                r_no_3 = 1;
             } else {
-                xFC = 1;
-                xFD = 1;
-                xFE = 0;
-                xFF = 0;
+                r_no_0 = 1;
+                r_no_1 = 1;
+                r_no_2 = 0;
+                r_no_3 = 0;
             }
         }
         break;
@@ -2590,11 +2590,11 @@ void cEmDoor::setOpen(Vec* pos, int a, int b, int c)
     emDoorSetDmgChain(this, 0);
     emDoorSetDmgChain(this, 1);
     emDoorSetDmgChain(this, 2);
-    if (b == 0) {
+    if (se_off == 0) {
         switch (type) {
         case 0:
         default:
-            if (a) {
+            if (mode) {
                 SndCall(1, 0x1E, &this->pos, 0, 0, this);
             } else {
                 SndCall(1, 0x19, &this->pos, 0, 0, this);
@@ -2604,21 +2604,21 @@ void cEmDoor::setOpen(Vec* pos, int a, int b, int c)
         case 4:
         case 5:
         case 7:
-            if (a) {
+            if (mode) {
                 SndCall(1, 0x20, &this->pos, 0, 0, this);
             } else {
                 SndCall(1, 0x1C, &this->pos, 0, 0, this);
             }
             break;
         case 2:
-            if (a) {
+            if (mode) {
                 SndCall(6, 0x17, &this->pos, 0, 0, this);
             } else {
                 SndCall(1, 0x1C, &this->pos, 0, 0, this);
             }
             break;
         case 3:
-            if (a) {
+            if (mode) {
                 SndCall(6, 0x2C, &this->pos, 0, 0, this);
             } else {
                 SndCall(6, 0x2C, &this->pos, 0, 0, this);
@@ -2628,7 +2628,7 @@ void cEmDoor::setOpen(Vec* pos, int a, int b, int c)
     }
 }
 
-void cEmDoor::setOpen2(int a)
+void cEmDoor::setOpen2(int type)
 {
     int near;
 
@@ -2640,28 +2640,28 @@ void cEmDoor::setOpen2(int a)
         near = 1;
     }
     if (near) {
-        if (a) {
-            xFC = 1;
-            xFD = 2;
-            xFE = 0;
-            xFF = 3;
+        if (type) {
+            r_no_0 = 1;
+            r_no_1 = 2;
+            r_no_2 = 0;
+            r_no_3 = 3;
         } else {
-            xFC = 1;
-            xFD = 2;
-            xFE = 0;
-            xFF = 2;
+            r_no_0 = 1;
+            r_no_1 = 2;
+            r_no_2 = 0;
+            r_no_3 = 2;
         }
     } else {
-        if (a) {
-            xFC = 1;
-            xFD = 2;
-            xFE = 0;
-            xFF = 1;
+        if (type) {
+            r_no_0 = 1;
+            r_no_1 = 2;
+            r_no_2 = 0;
+            r_no_3 = 1;
         } else {
-            xFC = 1;
-            xFD = 2;
-            xFE = 0;
-            xFF = 0;
+            r_no_0 = 1;
+            r_no_1 = 2;
+            r_no_2 = 0;
+            r_no_3 = 0;
         }
     }
     flags_3C8 |= 0x20000000;
@@ -2672,7 +2672,7 @@ void cEmDoor::setOpen2(int a)
     emDoorSetDmgChain(this, 2);
 }
 
-void cEmDoor::setShock(int a, Vec* pos, int b)
+void cEmDoor::setShock(int mode, Vec* pos, int se_off)
 {
     EmDoorWork* w = EMDOOR_WK(this);
     f32 ang;
@@ -2712,12 +2712,12 @@ void cEmDoor::setShock(int a, Vec* pos, int b)
             }
         }
         w->bendChain = -PI / 2;
-        if (a == 2) {
+        if (mode == 2) {
             return;
         }
         SndCall(6, 0x15, &this->pos, 0, 0, this);
     }
-    if (a == 2) {
+    if (mode == 2) {
         return;
     }
     if (ang < PI / 2) {
@@ -2755,11 +2755,11 @@ void cEmDoor::setShock(int a, Vec* pos, int b)
             }
         }
     }
-    if (b == 0) {
+    if (se_off == 0) {
         switch (type) {
         case 0:
         default:
-            if (a) {
+            if (mode) {
                 SndCall(1, 0x1D, &this->pos, 0, 0, this);
             } else {
                 SndCall(1, 0x18, &this->pos, 0, 0, this);
@@ -2770,14 +2770,14 @@ void cEmDoor::setShock(int a, Vec* pos, int b)
         case 4:
         case 5:
         case 7:
-            if (a) {
+            if (mode) {
                 SndCall(1, 0x1F, &this->pos, 0, 0, this);
             } else {
                 SndCall(1, 0x1B, &this->pos, 0, 0, this);
             }
             break;
         case 3:
-            if (a) {
+            if (mode) {
                 SndCall(6, 0x2B, &this->pos, 0, 0, this);
             } else {
                 SndCall(6, 0x2B, &this->pos, 0, 0, this);
@@ -2788,10 +2788,10 @@ void cEmDoor::setShock(int a, Vec* pos, int b)
             SndCall(6, 0x5D, &this->pos, 0, 0, this);
         }
     }
-    xFC = 1;
-    xFD = 5;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 5;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmDoor::setBreak(Vec* pos)
@@ -2817,10 +2817,10 @@ void cEmDoor::setBreak(Vec* pos)
     EstSet((int) this, -1, 0, 0, w->eff, 6, 0, 0, (u32) this, (void*) zero);
     SndCall(6, 0x37, &this->pos, 0, 0, this);
     hp = zero;
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void emDoorActEvtCk(cEmDoor* em)
@@ -2947,10 +2947,10 @@ void emDoorAction2(cEmDoor* em)
     }
     if (kick) {
         SetPlDamage((int) em, plemDoorKick);
-        pPL->xFF = 1;
+        pPL->r_no_3 = 1;
     } else {
         SetPlDamage((int) em, plemDoorOpen);
-        pPL->xFF = 1;
+        pPL->r_no_3 = 1;
     }
 }
 
@@ -2971,40 +2971,40 @@ void plemDoorKick(cPlayer* pl)
     Vec v;
 
     U32Set(pl->x378, door2->x378);
-    if (pl->xFE == 0 || pl->xFE == 4) {
+    if (pl->r_no_2 == 0 || pl->r_no_2 == 4) {
         if (door->ckKick(&pPL->pos) && (w->pDoor == 0 || w->pDoor->ckKick(&pPL->pos))) {
-            if (pl->xFE == 0) {
-                pl->xFE = 2;
+            if (pl->r_no_2 == 0) {
+                pl->r_no_2 = 2;
             }
-            if (pl->xFE == 4) {
-                pl->xFE = 6;
+            if (pl->r_no_2 == 4) {
+                pl->r_no_2 = 6;
             }
         }
     }
     frame = 0;
-    if (pl->xFE == 4) {
-        pl->xFE = 0;
+    if (pl->r_no_2 == 4) {
+        pl->r_no_2 = 0;
         frame = 6;
     }
-    if (pl->xFE == 6) {
-        pl->xFE = 2;
+    if (pl->r_no_2 == 6) {
+        pl->r_no_2 = 2;
         frame = 6;
     }
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x1D), 0, 5, 1, frame);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
             door->setShock(1, &pl->pos, 0);
-            if (pl->xFF && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
+            if (pl->r_no_3 && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
                 w->pDoor->setShock(1, &pl->pos, 1);
             }
             emDoorBellSet(&pl->pos);
         }
         if (pl->frame > 16.7f && pl->frame < 17.3f) {
             door->setShock(2, &pl->pos, 0);
-            if (pl->xFF && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
+            if (pl->r_no_3 && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
                 w->pDoor->setShock(2, &pl->pos, 1);
             }
         }
@@ -3014,7 +3014,7 @@ void plemDoorKick(cPlayer* pl)
         break;
     case 2:
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x1C), 0, 5, 1, frame);
-        pl->xFE++;
+        pl->r_no_2++;
     case 3:
         if (pl->frame > 13.7f && pl->frame < 14.3f) {
             v.x = 0.0f;
@@ -3022,7 +3022,7 @@ void plemDoorKick(cPlayer* pl)
             v.z = -500.0f;
             PSMTXMultVec(pl->mat, &v, &v);
             door->setOpen(&v, 1, 0, 0);
-            if (pl->xFF && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
+            if (pl->r_no_3 && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
                 w->pDoor->setOpen(&v, 1, 0, 0);
                 w->pDoor->setSeCancel();
             }
@@ -3046,7 +3046,7 @@ void plemDoorOpen(cPlayer* pl)
     Vec v;
 
     U32Set(pl->x378, door2->x378);
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         d = Muku2(pl->rot.y, door->rot.y, PI);
         if (fabsf(d) > PI / 2) {
@@ -3060,7 +3060,7 @@ void plemDoorOpen(cPlayer* pl)
             FSet(pl->x400, LIMIT_ANGLE(pl->x400));
             MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x1E), 0, 5, 1, 0);
             door->setOpen2(0);
-            if (pl->xFF && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
+            if (pl->r_no_3 && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
                 w->pDoor->setOpen2(1);
                 w->pDoor->setSeCancel();
             }
@@ -3074,7 +3074,7 @@ void plemDoorOpen(cPlayer* pl)
             FSet(pl->x400, ((cEmDoor*) pl->dmgType)->rot.y);
             MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x1E), 0, 5, 1, 0);
             door->setOpen2(1);
-            if (pl->xFF && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
+            if (pl->r_no_3 && w->pDoor && !(w->pDoor->flags_3C8 & 0x10000000)) {
                 w->pDoor->setOpen2(0);
                 w->pDoor->setSeCancel();
             }
@@ -3082,11 +3082,11 @@ void plemDoorOpen(cPlayer* pl)
         pl->dmg.set(0, 0x26);
         pl->atari.clrFlag200();
         pl->x3E0 = 0x2D;
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         pl->rot.y += Muku2(pl->rot.y, pl->x400, PI / 16);
         pl->rot.y = LIMIT_ANGLE(pl->rot.y);
-        if (pl->xFF == 0) {
+        if (pl->r_no_3 == 0) {
             PSVECScale(&pl->evTarget, &v, 0.1f);
             PSVECAdd(&pl->pos, &v, &pl->pos);
             PSVECSubtract(&pl->evTarget, &v, &pl->evTarget);
@@ -3098,19 +3098,19 @@ void plemDoorOpen(cPlayer* pl)
         } else if (pl->x3E0 != 0) {
             pl->x3E0--;
             if (Key.trg & 0x400) {
-                flag = pl->xFF;
+                flag = pl->r_no_3;
                 SetPlDamage((int) pl->dmgType, plemDoorKick);
-                pl->xFF = flag;
-                pl->xFE = 4;
-                door->xFC = 1;
-                door->xFD = 0;
-                door->xFE = 0;
-                door->xFF = 0;
-                if (pl->xFF && w->pDoor) {
-                    w->pDoor->xFC = 1;
-                    w->pDoor->xFD = 0;
-                    w->pDoor->xFE = 0;
-                    w->pDoor->xFF = 0;
+                pl->r_no_3 = flag;
+                pl->r_no_2 = 4;
+                door->r_no_0 = 1;
+                door->r_no_1 = 0;
+                door->r_no_2 = 0;
+                door->r_no_3 = 0;
+                if (pl->r_no_3 && w->pDoor) {
+                    w->pDoor->r_no_0 = 1;
+                    w->pDoor->r_no_1 = 0;
+                    w->pDoor->r_no_2 = 0;
+                    w->pDoor->r_no_3 = 0;
                 }
             }
         }
@@ -3209,14 +3209,14 @@ int cEmDoor::ckObj()
     return 1;
 }
 
-void cEmDoor::setOpenLock(int a)
+void cEmDoor::setOpenLock(int type)
 {
     EmDoorWork* w = EMDOOR_WK(this);
 
-    xFC = 1;
-    xFD = 6;
-    xFE = 0;
-    xFF = a;
+    r_no_0 = 1;
+    r_no_1 = 6;
+    r_no_2 = 0;
+    r_no_3 = type;
     flags_3C8 |= 0x20000000;
     w->flags |= 1;
 }
@@ -3225,10 +3225,10 @@ void cEmDoor::setCloseLock(int a)
 {
     EmDoorWork* w = EMDOOR_WK(this);
 
-    xFC = 1;
-    xFD = 7;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 7;
+    r_no_2 = 0;
+    r_no_3 = 0;
     flags_3C8 &= ~0x20000000;
     w->flags |= 1;
 }
@@ -3238,10 +3238,10 @@ void cEmDoor::setClose()
     EmDoorWork* w = EMDOOR_WK(this);
 
     rot.y = w->rotY;
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
     emDoorMatUpdate(this);
 }
 
@@ -3260,10 +3260,10 @@ void cEmDoor::setDowned(int dir)
             *flg |= 0x80;
         }
     }
-    xFC = 1;
-    xFD = 9;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 9;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmDoor::setNormal()
@@ -3365,16 +3365,16 @@ void subDoorKick()
     cSubChar* sub = pSUB;
     cEmDoor* door = (cEmDoor*) sub->dmgType;
 
-    if (sub->xFE == 0) {
+    if (sub->r_no_2 == 0) {
         if (door->ckKick(&sub->pos)) {
-            sub->xFE = 2;
+            sub->r_no_2 = 2;
         }
     }
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR((PlArc*) sub->x378, 0x2B), 0, 5, 1, 0);
         sub->subHideMode = 0xE;
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (sub->subHideMode != 0) {
             sub->subHideMode--;
@@ -3391,7 +3391,7 @@ void subDoorKick()
     case 2:
         MotionSetCore(sub, &sub->pMotion, PL_ARC_PTR((PlArc*) sub->x378, 0x2A), 0, 5, 1, 0);
         sub->subHideMode = 0xE;
-        sub->xFE++;
+        sub->r_no_2++;
     case 3:
         if (sub->subHideMode != 0) {
             sub->subHideMode--;

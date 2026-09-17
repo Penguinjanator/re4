@@ -58,7 +58,7 @@ void obj1b_R1_Parent(cObjSpear* obj);
 void obj1b_R1_Fall(cObjSpear* obj);
 void obj1b_R1_Throw(cObjSpear* obj);
 int obj1bHitCk(cObjSpear* obj);
-int GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, int max, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
+int GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, int max, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
 }
 
 void (*Obj1b_R1_move_tbl[6])(cObjSpear*) = { obj1b_R1_Set, obj1b_R1_LostWait, obj1b_R1_Lost, obj1b_R1_Parent, obj1b_R1_Fall, obj1b_R1_Throw };
@@ -118,10 +118,10 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->x6C = 0xFF;
     w->x6D = 0xFF;
     w->espId = 0x32;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     RotMatrix(obj->mat, &obj->rot);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
@@ -145,7 +145,7 @@ void cObjSpear::move()
         ObjMgr.destroy(this);
         return;
     }
-    Obj1b_R1_move_tbl[xFD](this);
+    Obj1b_R1_move_tbl[r_no_1](this);
     if ((be_flag & 0x201) != 1) {
         return;
     }
@@ -159,7 +159,7 @@ void cObjSpear::move()
         return;
     }
     alpha = w->parent->alpha;
-    x158 = w->parent->x158;
+    invisible_factor2 = w->parent->invisible_factor2;
     if (w->parent->be_flag & 2) {
         be_flag |= 2;
     } else {
@@ -192,19 +192,19 @@ void obj1b_R1_LostWait(cObjSpear* obj)
     Vec scr;
     Vec p;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 120;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer == 0) {
             obj->alpha -= 0.1f;
             if (obj->alpha <= 0.0f) {
                 obj->alpha = 0.0f;
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
                 break;
             }
         } else {
@@ -213,10 +213,10 @@ void obj1b_R1_LostWait(cObjSpear* obj)
         p = obj->pos;
         GetScreenPos(&p, &scr);
         if (scr.z > 1.0f) {
-            obj->xFC = 1;
-            obj->xFD = 2;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 2;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         }
         break;
     }
@@ -229,11 +229,11 @@ void obj1b_R1_LostWait(cObjSpear* obj)
 
 void obj1b_R1_Lost(cObjSpear* obj)
 {
-    if (obj->xFE == 0) {
+    if (obj->r_no_2 == 0) {
         obj->be_flag &= ~2;
         obj->be_flag &= ~0x20;
         ObjMgr.destroy(obj);
-        obj->xFE++;
+        obj->r_no_2++;
     }
 }
 
@@ -476,10 +476,10 @@ void obj1b_R1_Fall(cObjSpear* obj)
         obj->pos.y = obj->mat[1][3];
         obj->pos.z = obj->mat[2][3];
         Matrix2AxisAngle(obj->mat, &obj->rot);
-        obj->xFC = 1;
-        obj->xFD = 1;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 1;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
     obj->partsWorldCalc();
 }
@@ -493,11 +493,11 @@ void obj1b_R1_Throw(cObjSpear* obj)
     f32 wh;
     f32 len;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
         w->timer2 = 60;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -508,10 +508,10 @@ void obj1b_R1_Throw(cObjSpear* obj)
             }
         }
         if (w->timer2 == 0) {
-            obj->xFC = 1;
-            obj->xFD = 2;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 2;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
             return;
         }
         w->timer2--;
@@ -522,10 +522,10 @@ void obj1b_R1_Throw(cObjSpear* obj)
     if (EatMgr.hitCheck(&obj->oldPos, &obj->pos, &hit, 0, 0, 0)) {
         obj->pos = hit;
         SndCall(6, 1, &obj->pos, 0, 0, 0);
-        obj->xFC = 1;
-        obj->xFD = 1;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 1;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
         return;
     }
     PSVECSubtract(&obj->pos, &obj->oldPos, &d);
@@ -630,10 +630,10 @@ void cObjSpear::setParent(cModel* parent, int partsNo, int noNormalize)
     } else {
         w->flags &= ~1;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setFall(u8 type, Vec* dir)
@@ -692,10 +692,10 @@ void cObjSpear::setFall(u8 type, Vec* dir)
     pos.y = mat[1][3];
     pos.z = mat[2][3];
     Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setThrow(Vec* dir)
@@ -725,16 +725,16 @@ void cObjSpear::setThrow(Vec* dir)
     RotMatrix(mat, &rot);
     TransMatrix(mat, &pos);
     w->parent = 0;
-    xFC = 1;
-    xFD = 5;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 5;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setLost()
 {
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }

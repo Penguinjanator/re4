@@ -104,7 +104,7 @@ void ToolCamera()
                     LightMgr.move();
                     PTC->x634 = CamCtrl.camera_no;
                     PTC->x635 = CamCtrl.area_no;
-                    PTC->x636 = CamCtrl.x691;
+                    PTC->x636 = CamCtrl.areaSuffix;
                     tcGameCamera2ToolCamera();
                 }
                 if (TC_TRG & 0x1000) {
@@ -176,7 +176,7 @@ static void tcInit()
     PTC->x5E1 = -1;
     PTC->x634 = CamCtrl.camera_no;
     PTC->x635 = CamCtrl.area_no;
-    PTC->x636 = CamCtrl.x691;
+    PTC->x636 = CamCtrl.areaSuffix;
     if (CamCtrl.data) {
         if (cameraDataVersion((char*) CamCtrl.data) > 1) {
             tcDataImport((u8*) CamCtrl.data);
@@ -1795,7 +1795,7 @@ void tcEdit_camera_rail()
         case 0:
             if ((TC_TRG & 0x800) && (tcCdatPtr(PTC->cdatNo)->type == 6 || tcCdatPtr(PTC->cdatNo)->type == 7)) {
                 PTC->x2++;
-                CamCtrl.flags_2C &= ~1;
+                CamCtrl.m_system_flag &= ~1;
                 pG->flags_60 &= ~0x10000000;
             } else {
                 edit_frame_no();
@@ -2907,7 +2907,7 @@ static void tcQuit()
     if (*(u16*) &PTC->cdatNum != 0) {
         tcDataExport((u8*) g_pToolCamData);
         CamCtrl.RoomDataRead((CameraDataHeader*) g_pToolCamData);
-        CamCtrl.flags_2C = (CamCtrl.flags_2C & ~1) | 0x10;
+        CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~1) | 0x10;
     }
     BitOff(pG->flags_60, 0x80000000);
     BitOff(pG->flags_60, 0x20000000);
@@ -2992,7 +2992,7 @@ void tcToolCameraMove(Camera* cam)
 void tcPreviewOnOff(int on)
 {
     PTC->preview = on;
-    CamCtrl.flags_2C = (CamCtrl.flags_2C & ~1) | 0x10;
+    CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~1) | 0x10;
     if (PTC->preview) {
         pG->flags_60 &= ~0x10000000;
     } else {

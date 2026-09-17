@@ -181,8 +181,8 @@ void SubScreenGameInit()
     sscrnSetLanguage(wk, pSys->language);
     wk->relAddr = 0;
     SubScreenAramRead();
-    wk->x2AF = 0;
-    wk->x2AE = 0;
+    wk->board_next = 0;
+    wk->board_size = 0;
     wk->x348 = 0;
     memset(&pG->ope_x82E8, 0, 0x44);
     pG->ope_mdt_no = 0x18;
@@ -198,21 +198,21 @@ void SubScreenRoomInit()
     wk->x34 = 0;
     wk->wait = 0;
     if (ItemMgr.search(0x7C)) {
-        wk->x2AE = 0;
+        wk->board_size = 0;
     }
     if (ItemMgr.search(0x7D)) {
-        wk->x2AE = 1;
+        wk->board_size = 1;
     }
     if (ItemMgr.search(0x7E)) {
-        wk->x2AE = 2;
+        wk->board_size = 2;
     }
     if (ItemMgr.search(0x7F)) {
-        wk->x2AE = 3;
+        wk->board_size = 3;
     }
-    wk->x2AF = wk->x2AE;
+    wk->board_next = wk->board_size;
     if (pG->x4FB8 == 1) {
-        wk->x2AF = 0;
-        wk->x2AE = 0;
+        wk->board_next = 0;
+        wk->board_size = 0;
     }
     BitOn(pG->flags_500C, 0x02000000);
     BitOff(pG->flags_500C, 0x00040000);
@@ -267,7 +267,7 @@ int sscrnStageNo()
         return 3;
     } else if (pG->flags_51C0 & 0x00800000) {
         return 2;
-    } else if (pG->flags_51BC & 4) {
+    } else if (pG->Item_find_flg & 4) {
         return 1;
     }
     return 0;
@@ -342,8 +342,8 @@ void SubScreenExec()
             if (!(wk->type & 0x20)) {
                 SndCall(0, 2, 0, 0, 0, 0);
             }
-            wk->x269 = 0;
-            wk->x26A = 0;
+            wk->alpha_flag = 0;
+            wk->alpha_cnt = 0;
             if (pSUB && pSUB->id == 3) {
                 wk->healing = SubCharCheckHealing();
             } else {
@@ -405,15 +405,15 @@ void SubScreenExec()
             }
             {
                 u32 t = pG->flags_5010 & 0x10000000;
-                wk->x1B6 = t;
+                wk->suspend_flag = t;
             }
             BitOff(pG->flags_5010, 0x10000000);
-            wk->save58 = pG->flags_58;
-            BitSet(pG->flags_58, 0xFFFFFFFF);
-            BitOff(pG->flags_58, 0x10000);
-            BitOff(pG->flags_58, 0x2000);
-            BitOff(pG->flags_58, 0x800);
-            BitOff(pG->flags_58, 0x04000000);
+            wk->save58 = pG->Disp_flg;
+            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            BitOff(pG->Disp_flg, 0x10000);
+            BitOff(pG->Disp_flg, 0x2000);
+            BitOff(pG->Disp_flg, 0x800);
+            BitOff(pG->Disp_flg, 0x04000000);
             BitOn(pG->flags_5010, 2);
             cnt = 0;
             step++;
@@ -424,14 +424,14 @@ void SubScreenExec()
             }
             break;
         case 4:
-            if (pG->flags_54 & 0x40000000) {
+            if (pG->System_flg & 0x40000000) {
                 IdTexRelease(6);
             }
             Cckpt.getCountDown()->saveDisp();
             systemVISetBlack(1);
             ScreenReSize(640, 448);
             systemVISetBlack(0);
-            pG->flags_58 |= 0x400;
+            pG->Disp_flg |= 0x400;
             FadeKill(1);
             switch (wk->type) {
             case 2:
@@ -523,13 +523,13 @@ void SubScreenExec()
             }
             Cckpt.life.fix(0);
 #line 808 "D:/Bio4/Prog/sscrn.cpp"
-            wk->x23C = MEM_ALLOC(0x3E800, 1, 13);
+            wk->pExamDat = MEM_ALLOC(0x3E800, 1, 13);
             if (wk->type == 2) {
-                wk->x265 = 2;
-                wk->x264 = 2;
+                wk->menu_next = 2;
+                wk->menu_no = 2;
             } else {
-                wk->x265 = 1;
-                wk->x264 = 1;
+                wk->menu_next = 1;
+                wk->menu_no = 1;
             }
             wk->x28 = 1;
             wk->x44 = 0;
@@ -538,7 +538,7 @@ void SubScreenExec()
             {
                 int i;
                 for (i = 0; i < 8; i++) {
-                    wk->x21C[i] = 0;
+                    wk->p_light[i] = 0;
                 }
             }
             {
@@ -640,7 +640,7 @@ void SubScreenExit()
             sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 979 "D:/Bio4/Prog/sscrn.cpp"
             Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->pzzlOfs, 0, 0, 9), 0, 0, 0);
-            pG->flags_58 &= ~0x400;
+            pG->Disp_flg &= ~0x400;
             break;
         case 3:
             if (cnt++ > 0) {
@@ -684,12 +684,12 @@ void SubScreenExit()
             systemVISetBlack(0);
             pG->Cam = wk->cam;
             View.move();
-            BitSet(pG->flags_58, wk->save58);
+            BitSet(pG->Disp_flg, wk->save58);
             if (wk->bino == 0) {
                 pG->flags_170 &= ~0x80000000;
             }
             BitOff(pG->flags_5010, 2);
-            if (wk->x1B6) {
+            if (wk->suspend_flag) {
                 pG->flags_5010 |= 0x10000000;
             }
             {
@@ -717,7 +717,7 @@ void SubScreenExit()
             {
                 u32 clear = 0;
                 cMes.roomInit();
-                if (pG->flags_54 & 0x40000000) {
+                if (pG->System_flg & 0x40000000) {
                     mercId.set();
                 }
                 {
@@ -827,7 +827,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
     }
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     wk->pObj = 0;
     wk->mdtNo = no;
     OpeMdtSetInit();
@@ -837,7 +837,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     wk->strBlk = SndStrPlayBlock(1, strTbl[no], 0.0f);
     MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     for (i = 0; i <= 20; i++) {
         if (Key.trg & 0x20000000) {
             OpeSetOpenTermCancel();
@@ -886,7 +886,7 @@ END:
         pPL->setPos(&wk->savePos);
         pPL->setAng(&wk->saveRot);
     }
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
 }
 

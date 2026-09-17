@@ -55,7 +55,7 @@ void R229Init()
 {
     R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
 
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
 #line 56 "D:/Bio4/Prog/r229.cpp"
     wp = (R229Work*) MEM_CALLOC(sizeof(R229Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -66,7 +66,7 @@ void R229Init()
     }
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
-    pPL->x12F = 5;
+    pPL->ot_type = 5;
     pG->flags_51C4 |= 0x02000000;
 }
 
@@ -140,9 +140,9 @@ static void r221_execEmCamera1()
     obj->pInfo->setTexBlendTbl(tbl);                 \
     obj->pInfo->setBlendRatio(0xFF);                 \
     obj->pInfo->color[3] = col;                      \
-    obj->x136 = v136;                                \
-    obj->x137 = v137;                                \
-    obj->x138 = v138;
+    obj->Shader_type = v136;                                \
+    obj->Refract_pow = v137;                                \
+    obj->Refract_ratio = v138;
 
 // The water surface: two render targets blended into the water objects.
 static void setTexRender()
@@ -180,7 +180,7 @@ static void setTexRender()
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->setBlendType(1);
     obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 8;
-    obj->x138 = 0x30;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 8;
+    obj->Refract_ratio = 0x30;
 }

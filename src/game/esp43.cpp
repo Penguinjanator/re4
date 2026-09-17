@@ -45,11 +45,11 @@ void cEsp43::move()
         }
     }
     if (w->started == 0) {
-        xAA = on;
+        m_Col_start_cnt = on;
         cnt = 0;
     } else {
-        if (xAA == cnt && w->estNo != 0xff) {
-            EstSet(0, -1, &pos, &rot, 1, w->estNo, info.x0, info.x2, info.x8, 0);
+        if (m_Col_start_cnt == cnt && w->estNo != 0xff) {
+            EstSet(0, -1, &pos, &rot, 1, w->estNo, info.Core_flg, info.Core_kind, info.x8, 0);
         }
         if (!CommonMove()) {
             return;

@@ -46,8 +46,8 @@ public:
     EmHitInfo* part;      // 0x14  hit part
 
     cDmgInfo();
-    void set(int a, int b, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
-    void set(int a, int b);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
+    void set(int flag, int timer, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
+    void set(int flag, int timer);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
     void clear();
     void move();              // counts x1 down; clears stat when it reaches 0
 };
@@ -123,7 +123,7 @@ public:
     };
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
     u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
-    u8 x38D;              // 0x38D  (db_cam "set=")
+    u8 set;              // 0x38D  (db_cam "set=")
     u8 pad_38E[2];
     void (*pScenario)(cEm*);  // 0x390  em_sub EmScenario: called with the enemy when set
     u8 pad_394[4];
@@ -153,8 +153,8 @@ public:
     u8 pad_3D2[4];
     u16 itemNo;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
     u16 itemNum;          // 0x3D8  setItem b
-    u16 item3DA;          // 0x3DA  setItem c
-    u16 item3DC;          // 0x3DC  setItem d
+    u16 Item_flg;          // 0x3DA  setItem c
+    u16 Auto_item_flg;          // 0x3DC  setItem d
     u8 pad_3DE[2];
     union {
         u32 x3E0;         // 0x3E0  player: event walk flag / damage timer
@@ -216,11 +216,11 @@ public:
         };
         struct {
             u8 sub404;            // 0x404  cSubChar
-            u8 sub405;            // 0x405
-            u16 sub406;           // 0x406  frame counter
-            u8 sub408;            // 0x408
-            u8 sub409;            // 0x409
-            u8 sub40A;            // 0x40A  timer
+            u8 m_BackRno2;            // 0x405
+            u16 m_BackTime;           // 0x406  frame counter
+            u8 m_Frame;            // 0x408
+            u8 m_Hokan;            // 0x409
+            u8 m_Timer;            // 0x40A  timer
             u8 pad_40B;
             f32 subBlendRate;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
             f32 subAng;           // 0x410  angle to the player (analyze)
@@ -229,9 +229,9 @@ public:
             f32 sub424;           // 0x424
             Vec subOfs;           // 0x428  offset behind the player (atckPos)
             u32 subPlStatus;      // 0x434  PlGetStatus() of the frame
-            u32 sub438;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
-            Vec sub43C;           // 0x43C  hit point of the action wall check (actionCheck)
-            Vec sub448;           // 0x448  its normal
+            u32 satAttr;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
+            Vec satCross;           // 0x43C  hit point of the action wall check (actionCheck)
+            Vec satNorm;           // 0x448  its normal
             MotionWorkSub subBackMot;   // 0x454 .. 0x524  look-back motion blended in (backCheckSet -> blendMot)
         };
     };
@@ -316,7 +316,7 @@ public:
     cEm();
     virtual ~cEm() {}
     virtual void move();
-    virtual void setItem(u16 a, u16 b, u16 c, u16 d, u8 e);  // 0x3D6.. item drop (0x3D1 flag)
+    virtual void setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff);  // 0x3D6.. item drop (0x3D1 flag)
     virtual void setNoItem();
     virtual int checkThrow();
     void setStatus(int bit);     // status |= 1 << bit
@@ -329,7 +329,7 @@ public:
 // read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {
 public:
-    u32 x34;              // 0x34  next cModel::serial (construct)
+    u32 Guid;              // 0x34  next cModel::serial (construct)
 
     static const char* idName[96];   // debug names per construct id
 
@@ -371,7 +371,7 @@ public:
     void setDown(Vec* pos);
     void setShock();
     void setEff(u8 eff);
-    void setRange(f32 a, f32 b, f32 c, f32 d);
+    void setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     int adjustRange(u8 dir);
 };
 

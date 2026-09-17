@@ -48,7 +48,7 @@ u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 // game/em_dm_val.cpp (declared in em10.h, which is not included here: emwep.h's extern "C" plemBackjump would
 // turn this unit's static plemBackjump into a global C function).
-int GetWepDmVal(cEm* em, u32 a, int b);
+int GetWepDmVal(cEm* em, u32 wep_no, int near);
 
 typedef void (*Em38Func)(cEm38*);
 
@@ -115,10 +115,10 @@ struct SubCharPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Routine test / store on the cModel status word (em10.cpp EM_RTN / EM_RTN_SET).
@@ -195,16 +195,16 @@ void em38DmCk(cEm38* em)
         EmSetDie(em);
         EmSetDieCntE(em);
         em->hp = 0;
-        em->xFC = 3;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 3;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         if (w->pBody) {
             w->pBody->hp = 0;
-            w->pBody->xFC = 3;
-            w->pBody->xFD = 0;
-            w->pBody->xFE = 0;
-            w->pBody->xFF = 0;
+            w->pBody->r_no_0 = 3;
+            w->pBody->r_no_1 = 0;
+            w->pBody->r_no_2 = 0;
+            w->pBody->r_no_3 = 0;
         }
     } else {
         if (w->flags & 0x10) {
@@ -301,7 +301,7 @@ void cEm38::move()
 {
     Em38Work* w = EM38_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em38DmCk(this);
     }
     w->flags &= ~0xBF;
@@ -318,13 +318,13 @@ void cEm38::move()
         w->atkWait = Rnd() % 120 + 120;
     }
     em38RouteCk(this);
-    Em38_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em38_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
     em38SearchParts(this);
-    if (xFC) {
+    if (r_no_0) {
         em38ShellControl(this);
     }
     em38EyeMove(this);
@@ -372,7 +372,7 @@ static void em38_R0_Init(cEm38* em)
     default:
         if (em->modelInit(ARC(4), ARC(8)) == 0) {
             pLog->err(0, 0, "em38() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         w->pInfo = ModInfoMgr.create(ARC(9), ARC(0xA));
@@ -383,28 +383,28 @@ static void em38_R0_Init(cEm38* em)
     case 1:
         if (em->modelInit(ARC(5), ARC(8)) == 0) {
             pLog->err(0, 0, "em38() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 2:
         if (em->modelInit(ARC(5), ARC(8)) == 0) {
             pLog->err(0, 0, "em38() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 3:
         if (em->modelInit(ARC(6), ARC(8)) == 0) {
             pLog->err(0, 0, "em38() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 4:
         if (em->modelInit(ARC(7), ARC(8)) == 0) {
             pLog->err(0, 0, "em38() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         em->pos.x = 0.0f;
@@ -486,10 +486,10 @@ static void em38_R0_Init(cEm38* em)
     case 0:
     default:
         em->setStatus(5);
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 1, 0);
         MotionMoveF(em, 0);
         break;
@@ -523,8 +523,8 @@ static void em38_R0_Init(cEm38* em)
 
 static void em38_R0_Move(cEm38* em)
 {
-    Em38_R1_move_tbl[em->xFD * 2](em);
-    Em38_R1_move_tbl[em->xFD * 2 + 1](em);
+    Em38_R1_move_tbl[em->r_no_1 * 2](em);
+    Em38_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
 static void em38_R1_br_Dummy(cEm38* em)
@@ -538,7 +538,7 @@ static void em38_R1_Wait(cEm38* em)
     f32 t;
     f32 ang;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->mot[0] = ARC(0xC);
         w->mot[1] = ARC(0xE);
@@ -548,7 +548,7 @@ static void em38_R1_Wait(cEm38* em)
         w->blendB = 0;
         w->timer = 0;
         w->waitCnt = (Rnd() & 1) + 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         t = Muku(&p->worldPos, &pPL->pos, em->rot.y, PI);
         if (t > 0.6981317f) {
@@ -590,7 +590,7 @@ static void em38_R1_HeadUp(cEm38* em)
     f32 t;
     f32 ang;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->mot[0] = ARC(0x20);
         w->mot[1] = ARC(0x23);
@@ -605,7 +605,7 @@ static void em38_R1_HeadUp(cEm38* em)
         if (w->pTent[1]) {
             w->pTent[1]->setAtkWait(180);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->flags |= 0x20;
         w->blendRate *= 0.98f;
@@ -613,7 +613,7 @@ static void em38_R1_HeadUp(cEm38* em)
         if (MotionMoveF(em, 0) == 0) {
             return;
         }
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 2:
         w->mot[0] = ARC(0x1D);
@@ -621,7 +621,7 @@ static void em38_R1_HeadUp(cEm38* em)
         w->mot[2] = ARC(0x1E);
         w->blendKind = 5;
         w->blendB = w->blendA = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         w->flags |= 0x20;
         w->blendRate *= 0.98f;
@@ -633,7 +633,7 @@ static void em38_R1_HeadUp(cEm38* em)
                     return;
                 }
             }
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -643,7 +643,7 @@ static void em38_R1_HeadUp(cEm38* em)
         w->mot[3] = ARC(0x25);
         w->blendKind = 1;
         w->blendB = w->blendA = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         w->flags |= 0x20;
         t = Muku(&p->worldPos, &pPLS->pos, em->rot.y, PI);
@@ -668,7 +668,7 @@ static void em38_R1_HeadStamp(cEm38* em)
     Em38Work* w = EM38_WK(em);
     cModel* p = em->getPartsPtr(4);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 30, 1, 0);
         if (w->pTent[0]) {
@@ -680,7 +680,7 @@ static void em38_R1_HeadStamp(cEm38* em)
         w->blendRate = 0.0f;
         EstSet((int) em, -1, 0, 0, 0x2E, 0xF, 1, w->espKind, (u32) em, 0);
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
@@ -723,7 +723,7 @@ static void em38_R1_Atk(cEm38* em)
     f32 t;
     f32 ang;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->mot[0] = ARC(0xF);
         w->mot[3] = ARC(0x10);
@@ -742,7 +742,7 @@ static void em38_R1_Atk(cEm38* em)
         }
         EstSet((int) em, -1, 0, 0, 0x2E, 6, 1, w->espKind, (u32) em, 0);
         w->timer = 15;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->flags |= 0x80;
         if (w->timer) {
@@ -773,14 +773,14 @@ static void em38_R1_AtkHit(cEm38* em)
 
     em->dmType = 2;
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 0, 1, 0);
         SetPlDamage((int) em, plem38_AtkHit);
         w->blendRate = 0.0f;
         EstSet((int) em, -1, 0, 0, 0x2E, 8, 0, 0, (u32) em, 0);
         SndCall(8, 0x21, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         break;
@@ -793,7 +793,7 @@ static void plem38_AtkHit(cPlayer* pl)
     pG->flags_5010 |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0: {
         Vec v;
 
@@ -807,7 +807,7 @@ static void plem38_AtkHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x46), 0, 0, 1, 0);
         pG->pl_life = 0;
         PlSetFace(1);
-        pl->xFE++;
+        pl->r_no_2++;
     }
     case 1:
         MotionMoveF(pl, 0);
@@ -821,14 +821,14 @@ static void em38_R1_T_Wait(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x2F), 0, 30, 5, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x2F), 0, 30, 0x45, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (w->pBody && w->pBody->hp <= 0) {
@@ -873,9 +873,9 @@ static void em38_R1_T_Hide(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->xFE++;
+        em->r_no_2++;
         w->flags &= ~0x40;
     case 1:
         if (em->type == 2) {
@@ -893,7 +893,7 @@ static void em38_R1_T_In(cEm38* em)
     Em38Work* w = EM38_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x30), 0, 0, 5, 0);
@@ -906,7 +906,7 @@ static void em38_R1_T_In(cEm38* em)
         w->atkWait = 0;
         SndCall(8, 8, &em->pos, em->id, 0, em);
         w->flags |= 0x40;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 5, 0, 0);
@@ -920,7 +920,7 @@ static void em38_R1_T_Out(cEm38* em)
     Em38Work* w = EM38_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EffectEspDelete(1, w->espKind, (u32) em, 0);
         EffectEspgenDelete(1, w->espKind, (int) em);
@@ -934,7 +934,7 @@ static void em38_R1_T_Out(cEm38* em)
         }
         SndCall(8, 9, &em->pos, em->id, 0, em);
         w->flags &= ~0x40;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 6, 0, 0);
@@ -961,7 +961,7 @@ static void em38_R1_T_Atk(cEm38* em)
     int end;
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->blendB = 0;
         w->blendA = 30;
@@ -985,7 +985,7 @@ static void em38_R1_T_Atk(cEm38* em)
         w->escaped = 0;
         w->timer = 25;
         w->actVar = Rnd() & 1;
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         Vec v;
         f32 ang;
@@ -1051,13 +1051,13 @@ static void em38_R1_T_Atk(cEm38* em)
                 em38AtkCk(em, 0, 0x11);
                 em38AtkCk(em, 0, 0x12);
             }
-            if (pPL->xFC == 1 || pPL->xFC == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
                 if ((pPLS->pos.x < -3000.0f && em->type == 1) || (pPLS->pos.x > 3000.0f && em->type == 2)) {
-                    if (pPL->xFC == 4) {
+                    if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
                             ActBtn.set(0x25, 0xB, (int) em38EscapeAction, (int) em, 3, 3, 0, 0);
                         } else {
@@ -1108,7 +1108,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
     int end;
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x32), (int) ARC(0x33), 10, 1, 0);
@@ -1123,7 +1123,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         w->timer = 25;
         w->timer2 = 10;
         w->actVar = Rnd() & 1;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         end = MotionMoveF(em, 0);
         if (end) {
@@ -1134,7 +1134,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->xFC == 1 || pPL->xFC == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -1142,7 +1142,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
             } else if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
                 if ((pPLS->pos.x < 4000.0f && em->type == 1) || (pPLS->pos.x > -4000.0f && em->type == 2)) {
-                    if (pPL->xFC == 4) {
+                    if (pPL->r_no_0 == 4) {
                         if (w->actVar) {
                             ActBtn.set(0x25, 0xB, (int) em38BackjumpAction, (int) em, 3, 3, 0, 0);
                         } else {
@@ -1192,7 +1192,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
     int end;
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x3A), (int) ARC(0x3B), 10, 1, 0);
@@ -1207,7 +1207,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
         w->timer = 30;
         w->timer2 = 20;
         w->actVar = Rnd() & 1;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         end = MotionMoveF(em, 0);
         if (end) {
@@ -1216,7 +1216,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
         } else {
-            if (pPL->xFC == 1 || pPL->xFC == 2 || (pG->flags_5010 & 0x8000)) {
+            if (pPL->r_no_0 == 1 || pPL->r_no_0 == 2 || (pG->flags_5010 & 0x8000)) {
                 w->escaped = 1;
             }
             if (w->timer2) {
@@ -1224,7 +1224,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
             } else if (w->timer && w->atkHit == 0 && w->escaped == 0) {
                 w->timer--;
                 if ((pPLS->pos.x < 6000.0f && em->type == 1) || (pPLS->pos.x > -6000.0f && em->type == 2)) {
-                    if (pPL->xFC == 4) {
+                    if (pPL->r_no_0 == 4) {
                         if (em->type == 1) {
                             if (w->actVar) {
                                 ActBtn.set(0x25, 0xB, (int) em38SitAction, (int) em, 3, 3, 0, 0);
@@ -1266,7 +1266,7 @@ static void em38_R1_T_DownAtk(cEm38* em)
     int end;
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x38), (int) ARC(0x39), 10, 1, 0);
@@ -1277,7 +1277,7 @@ static void em38_R1_T_DownAtk(cEm38* em)
         }
         em38SetTentAtkWait(w);
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         end = MotionMoveF(em, 0);
         if (end) {
@@ -1310,7 +1310,7 @@ static void em38_R1_T_CatchHit(cEm38* em)
     Em38Work* w = EM38_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 1, 0);
@@ -1318,11 +1318,11 @@ static void em38_R1_T_CatchHit(cEm38* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x3F), 0, 0x41, 0);
             SetPlDamage((int) em, plem38_CatchHit);
-            pPL->xFF = 1;
+            pPL->r_no_3 = 1;
         }
         w->timer = 91;
         EstSet((int) em, -1, 0, 0, 0x2E, 7, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->frame > 14.7f && em->frame < 15.3f && w->pUpper) {
             Ctrl11SetSeEm38(w->pCtrl11, w->pUpper, 0x29);
@@ -1344,10 +1344,10 @@ static void plem38_CatchHit(cPlayer* pl)
     pG->flags_5010 |= 0x8000;
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pl)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->atari.throughOn();
-        if (pPLS->xFF) {
+        if (pPLS->r_no_3) {
             Vec v;
 
             v.x = -7405.05f;
@@ -1370,12 +1370,12 @@ static void plem38_CatchHit(cPlayer* pl)
         }
         EstSet((int) pl, -1, 0, 0, 0x2E, 0xE, 0, 0, (u32) pl, 0);
         PlSetFace(1);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
             LifeDownSet(pPL, 0x226, 0);
             if ((s16) pG->pl_life > 0) {
-                pl->xFE++;
+                pl->r_no_2++;
             }
         } else if (pl->frame > 87.7f && pl->frame < 88.3f) {
             PlSetDamageSe(0);
@@ -1389,7 +1389,7 @@ static void plem38_CatchHit(cPlayer* pl)
         SndCall(1, 0x29, &pl->getPartsPtr(0)->worldPos, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
         EstSet((int) pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, (u32) pl, 0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 3:
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
@@ -1410,11 +1410,11 @@ static void plem38_CatchHit(cPlayer* pl)
 
 static void em38_R1_U_Wait(cEm38* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x29), 0, 30, 5, 0);
         em38SearchParts(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
         MotionMoveF(em, 0);
@@ -1426,13 +1426,13 @@ static void em38_R1_U_Critical(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x2C), 0, 10, 1, 0);
         em38SearchParts(em);
         Ctrl11SetSeEm38(w->pCtrl11, em, 0x27);
         w->seWait = 180;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
         if (MotionMoveF(em, 0)) {
@@ -1445,10 +1445,10 @@ static void em38_R1_U_Critical(cEm38* em)
 static void em38_R1_L_Wait(cEm38* em)
 {
     em38SearchParts(em);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x50), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         break;
@@ -1458,14 +1458,14 @@ static void em38_R1_L_Wait(cEm38* em)
 static void em38_R0_Damage(cEm38* em)
 {
     EM38_WK(em)->flags |= 8;
-    Em38_R2_move_tbl[em->xFD](em);
+    Em38_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em38_R1_Dm_Down(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->mot[0] = ARC(0x15);
         w->mot[1] = ARC(0x1A);
@@ -1480,7 +1480,7 @@ static void em38_R1_Dm_Down(cEm38* em)
         EffectEspDelete(1, w->espKind, (u32) em, 0);
         EffectEspgenDelete(1, w->espKind, (int) em);
         EffectEfmDelete(1, w->espKind, (int) em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->blendRate *= 0.9f;
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
@@ -1495,24 +1495,24 @@ static void em38_R1_Dm_Down(cEm38* em)
             }
             w->shellTimer = 240;
             w->blendRate = 0.0f;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, 5, 0);
         w->timer = 190;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x18), (int) ARC(0x19), 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0xA);
@@ -1523,7 +1523,7 @@ static void em38_R1_Dm_Down(cEm38* em)
 
 static void em38_R1_Dm_Upper(cEm38* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if ((u8) (Rnd() % 10) > 4) {
             MotionSetCore(em, MOTION(em), ARC(0x2A), 0, 5, 1, 0);
@@ -1531,7 +1531,7 @@ static void em38_R1_Dm_Upper(cEm38* em)
             MotionSetCore(em, MOTION(em), ARC(0x2B), 0, 5, 1, 0);
         }
         em38SearchParts(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
         if (MotionMoveF(em, 0)) {
@@ -1544,14 +1544,14 @@ static void em38_R1_Dm_Upper(cEm38* em)
 static void em38_R0_Die(cEm38* em)
 {
     EM38_WK(em)->flags |= 8;
-    Em38_R3_move_tbl[em->xFD](em);
+    Em38_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em38_R1_Die_Body(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x28), 0, 3, 1, 0);
         em->clearStatus(5);
@@ -1560,7 +1560,7 @@ static void em38_R1_Die_Body(cEm38* em)
         EffectEfmDelete(1, w->espKind2, (int) em);
         SndStrReq(1, 0x30, 0x80000003, 0, 0, 0.0f);
         em->atari.throughOn();
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0) == 0) {
             if (em->frame > 199.7f && em->frame < 200.3f) {
@@ -1573,11 +1573,11 @@ static void em38_R1_Die_Body(cEm38* em)
 
 static void em38_R1_Die_Upper(cEm38* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x2E), 0, 3, 1, 0);
         em->clearStatus(5);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
         if (MotionMoveF(em, 0)) {
@@ -1599,7 +1599,7 @@ void em38RouteCk(cEm38* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;
@@ -2192,7 +2192,7 @@ static void plemDmStamp(cPlayer* pl)
     pl->dmg.set(0, 10);
     BitOn(pG->flags_5010, 0x8000);
     pl->subArc = PL_EM(pl)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         if ((s16) pG->pl_life <= 0) {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x49), 0, 5, 1, 0);
@@ -2204,7 +2204,7 @@ static void plemDmStamp(cPlayer* pl)
             PlSetDamageSe(0);
         }
         PlSetFace(1);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0) && (s16) pG->pl_life > 0) {
             EndPlDamage();
@@ -2261,7 +2261,7 @@ static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmType = 0x1E;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0: {
         Vec a;
         Vec b;
@@ -2313,7 +2313,7 @@ static void plemEscape(cPlayer* pl)
         SndCall(1, 0x11, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
         pl->x3E0 = 50;
         pl->x3E4 = 15;
-        pl->xFE++;
+        pl->r_no_2++;
     }
     case 1:
         if (pl->x3E8) {
@@ -2397,7 +2397,7 @@ static void plemBackjump(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmType = 0x1E;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4E), 0, 5, 1, 5);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
@@ -2406,7 +2406,7 @@ static void plemBackjump(cPlayer* pl)
         pl->x3E0 = 50;
         pl->x3E4 = 15;
         pl->x3E8 = 0;
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (pl->x3E4) {
             pl->rot.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->rot.y, 0.3926991f);
@@ -2451,11 +2451,11 @@ static void plemSit(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
     pl->dmg.set(0, 30);
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4F), 0, 5, 1, 0);
         GameAddPoint(0xB);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
@@ -2649,7 +2649,7 @@ void em38RootMove(cEm38* em)
 void cEm38::setIn()
 {
     if (type == 1 || type == 2) {
-        if (xFD == 6) {
+        if (r_no_1 == 6) {
             hp = 200;
             EmRoutineSet(this, 1, 7, 0, 0);
         }

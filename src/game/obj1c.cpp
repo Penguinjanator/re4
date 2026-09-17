@@ -22,8 +22,8 @@ extern "C" {
 int MotionMove(cModel* m, int a);
 u8 EspPullCoreKind();
 void EffectEspDelete(int a, int kind, cObj* obj, int b);
-void EffectEspgenDelete(int a, int kind, cObj* obj);
-void EffectEfmDelete(int a, int kind, cObj* obj);
+void EffectEspgenDelete(int Core_flg, int kind, cObj* obj);
+void EffectEfmDelete(int Core_flg, int kind, cObj* obj);
 void obj1c_R1_Set(cObj1c* obj);
 void obj1c_R1_Crash(cObj1c* obj);
 void obj1c_R1_CrashBig(cObj1c* obj);
@@ -69,10 +69,10 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->spd.y = 0.0f;
     w->spd.z = 0.0f;
     w->espKind = EspPullCoreKind();
-    obj->xFD = 0;
-    obj->xFC = 1;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     RotMatrix(obj->mat, &obj->rot);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
@@ -93,7 +93,7 @@ void cObj1c::move()
     if (w->crashEstWait) {
         w->crashEstWait--;
     }
-    Obj1c_R1_move_tbl[xFD](this);
+    Obj1c_R1_move_tbl[r_no_1](this);
     f = be_flag;
     if ((f & 0x201) == 1) {
         if (pG->flags_5010 & 0x80000) {
@@ -144,10 +144,10 @@ void obj1c_R1_Crash(cObj1c* obj)
                 } else {
                     MotionSetCore(obj, &obj->pMotion, w->motIdle, 0, 0, 5, 0);
                 }
-                obj->xFC = 1;
-                obj->xFD = 0;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 0;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
     } else {
@@ -172,10 +172,10 @@ void obj1c_R1_CrashBig(cObj1c* obj)
                 } else {
                     MotionSetCore(obj, &obj->pMotion, w->motIdle, 0, 0, 5, 0);
                 }
-                obj->xFC = 1;
-                obj->xFD = 0;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 0;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
     } else {
@@ -212,10 +212,10 @@ void cObj1c::setCrash()
         } else {
             MotionSetCore(this, &pMotion, w->motCrash, 0, 0, 1, 0);
         }
-        xFC = 1;
-        xFE = 0;
-        xFD = 1;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_2 = 0;
+        r_no_1 = 1;
+        r_no_3 = 0;
     }
     if (w->crashEstWait == 0) {
         w->crashEstWait = 15;
@@ -243,10 +243,10 @@ void cObj1c::setCrashBig(Vec* from)
         } else {
             MotionSetCore(this, &pMotion, w->motCrash, 0, 0, 1, 0);
         }
-        xFC = 1;
-        xFD = 2;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 2;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
     if (w->crashEstWait == 0) {
         w->crashEstWait = 15;

@@ -152,7 +152,7 @@ void cObjMachinegun::moveReload()
         void* mot;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x29);
                 break;
@@ -164,7 +164,7 @@ void cObjMachinegun::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x28);
                 break;
@@ -180,7 +180,7 @@ void cObjMachinegun::moveReload()
         wep.seHandle = SndCall(2, 2, &pParts->worldPos, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, (f32) reloadEnd[pG->x4FBA])) {
+    if (MotionCheckCrossFrame(&mot, (f32) reloadEnd[pG->weapon_lv_reload])) {
         SndCall(2, 4, &pParts->worldPos, 0, 0, 0);
         ItemMgr.reload();
     }

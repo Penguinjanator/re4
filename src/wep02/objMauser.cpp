@@ -151,7 +151,7 @@ void cObjMauser::setCartridge()
 // that motion go to reloadFrame / pinFrame.
 #define MAUSER_RELOAD_MOTION(m)                    \
     if (ItemMgr.bulletNum()) {                     \
-        switch (pG->x4FBA) {                       \
+        switch (pG->weapon_lv_reload) {                       \
         default:                                   \
             m = WEP_ARC_PTR(0x36);                 \
             reloadFrame = 44.0f;                   \
@@ -169,7 +169,7 @@ void cObjMauser::setCartridge()
             break;                                 \
         }                                          \
     } else {                                       \
-        switch (pG->x4FBA) {                       \
+        switch (pG->weapon_lv_reload) {                       \
         default:                                   \
             m = WEP_ARC_PTR(0x33);                 \
             reloadFrame = 44.0f;                   \
@@ -199,7 +199,7 @@ void cObjMauser::moveReload()
         } else {
             MAUSER_RELOAD_MOTION(m);
         }
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;

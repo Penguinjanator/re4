@@ -49,10 +49,10 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member (em27.cpp).
@@ -230,15 +230,15 @@ void cEm3d::move()
 {
     Em3dWork* w = EM3D_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em3dDmCk(this);
     }
     w->flags &= ~0x47;
     if (w->mesTimer) {
         w->mesTimer--;
     }
-    Em3d_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em3d_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -272,7 +272,7 @@ static void em3d_R0_Init(cEm3d* em)
 
     if (em->modelInit(ARC(5), ARC(6)) == 0) {
         pLog->err(0, 0, "em3d() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     {
@@ -309,7 +309,7 @@ static void em3d_R0_Init(cEm3d* em)
     w->spd.z = 0.0f;
     w->targetNo = 0;
     w->pTargetEm = 0;
-    w->x2BC = 150;
+    w->Target_chg = 150;
     for (i = 0; i < 4; i++) {
         Vec pos;
         Vec rot;
@@ -335,7 +335,7 @@ static void em3d_R0_Init(cEm3d* em)
 
 static void em3d_R0_Move(cEm3d* em)
 {
-    Em3d_R1_move_tbl[em->xFD](em);
+    Em3d_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em3d_R1_Patrol(cEm3d* em)
@@ -345,18 +345,18 @@ static void em3d_R1_Patrol(cEm3d* em)
 
     w->flags |= 0x40;
     target = w->patrolPos;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        if (em->xFF) {
+        if (em->r_no_3) {
             w->timer = 30;
         } else {
             w->timer = 0;
         }
-        em->xFF = 0;
+        em->r_no_3 = 0;
         w->flags &= ~0x10;
         w->count = Rnd() % 90 + 90;
         w->pTargetEm = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -368,12 +368,12 @@ static void em3d_R1_Patrol(cEm3d* em)
         if (w->count) {
             w->count--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         w->timer = Rnd() % 30 + 120;
-        em->xFE++;
+        em->r_no_2++;
     case 3: {
         Vec v;
 
@@ -400,7 +400,7 @@ static void em3d_R1_Patrol(cEm3d* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -410,10 +410,10 @@ static void em3d_R1_Patrol(cEm3d* em)
         // Plain byte stores: one QI zero serves targetSet and the routine bytes (the int inline's SI zero
         // would be a second `li`).
         w->targetSet = 0;
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
@@ -424,22 +424,22 @@ static void em3d_R1_TargetMove(cEm3d* em)
     Vec target = Em3d_target_tbl[w->targetNo];
     Vec pos = Em3d_pos_tbl[w->targetNo];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em3dVoice(em, w, 0x69);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         EM3D_TURN_TO(em, &pos, 0.1f, 0.034906585f, -0.034906585f);
         EM3D_HOVER_MOVE(em, w, 0.95f);
         if (fabsf(Muku(&em->pos, &pos, em->rot.y, PI)) < 0.034906585f) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         v.x = 0.0f;
         v.y = 0.0f;
@@ -473,12 +473,12 @@ static void em3d_R1_Atk(cEm3d* em)
     Vec target = Em3d_target_tbl[w->targetNo];
     Vec pos = Em3d_pos_tbl[w->targetNo];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->count = 0;
         w->timer = 240;
         w->mesDone = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->pos.y > pos.y + 500.0f) {
             w->spd.y = -15.0f;
@@ -496,7 +496,7 @@ static void em3d_R1_Atk(cEm3d* em)
         }
         if (w->timer == 0) {
             em3dRocketFire(em);
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
         w->timer--;
@@ -519,7 +519,7 @@ static void em3d_R1_Atk(cEm3d* em)
         break;
     case 2:
         w->timer = 45;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (em->pos.y > pos.y + 500.0f) {
             w->spd.y = -30.0f;
@@ -562,7 +562,7 @@ static void em3d_R1_WarpMove(cEm3d* em)
     Vec target = Em3d_target_tbl[w->targetNo];
     Vec pos = Em3d_pos_tbl[w->targetNo];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', em->rot.y);
         w->spd.x = 1000.0f;
@@ -570,7 +570,7 @@ static void em3d_R1_WarpMove(cEm3d* em)
         w->spd.z = 0.0f;
         PSMTXMultVecSR(m, &w->spd, &w->spd);
         w->timer = 45;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         EM3D_TURN_TO(em, &pos, 0.1f, 0.034906585f, -0.034906585f);
         Muku(&em->pos, &pos, em->rot.y, PI);
@@ -903,10 +903,10 @@ void cEm3d::setTargetPos(u32 no, Vec* pos, f32 rotY, f32 range)
     rot.y = rotY;
     setPos(pos);
     // Plain byte stores: the QI one of targetSet is reused for xFC (an int inline's SI one is a second `li`).
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cEm3d::ckMissileFire()

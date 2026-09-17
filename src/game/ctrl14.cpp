@@ -14,7 +14,7 @@
 
 extern "C" {
 u8 EspPullCoreKind();
-void EffectEspgenDelete(int a, int kind, cModel* obj);
+void EffectEspgenDelete(int Core_flg, int kind, cModel* obj);
 }
 
 cCtrl* GetCtrlDragon(u32 type)
@@ -268,13 +268,13 @@ void cCtrl14::addHeight(f32 y)
     }
 }
 
-void cCtrl14::addDir(f32 d)
+void cCtrl14::addDir(f32 add)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
     cModel* o = w->obj[1];
 
     if (o) {
-        o->rot.y += d;
+        o->rot.y += add;
         if (w->obj[0]) {
             w->obj[1]->rot.y = w->obj[0]->rot.y + Muku2(w->obj[0]->rot.y, w->obj[1]->rot.y, PI / 4.0f);
             w->obj[1]->rot.y = LIMIT_ANGLE(w->obj[1]->rot.y);
@@ -282,12 +282,12 @@ void cCtrl14::addDir(f32 d)
     }
 }
 
-void cCtrl14::setDir(f32 d)
+void cCtrl14::setDir(f32 dir)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
 
     if (w->obj[1] && w->obj[0]) {
-        w->obj[1]->rot.y = w->obj[0]->rot.y + d;
+        w->obj[1]->rot.y = w->obj[0]->rot.y + dir;
         w->obj[1]->rot.y = LIMIT_ANGLE(w->obj[1]->rot.y);
     }
 }

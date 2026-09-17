@@ -136,7 +136,7 @@ int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp15Work* w = &work;
 
-    x16 = (s8)gen->xC8 * 10;
+    m_Del_far = (s8)gen->xC8 * 10;
     x14 = (s8)gen->xC9 * 10;
     w->fadeRate = (f32)(s8)gen->xCA / 100.0f;
     if (w->fadeRate > 1.0f) {

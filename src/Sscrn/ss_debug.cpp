@@ -153,7 +153,7 @@ void ssDbgPzzl::init(SUB_SCREEN* wk)
     pSave = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 13);
     if (pSave) {
         ItemMgr.save(pSave);
-        caseSize = wk->x2AE;
+        caseSize = wk->board_size;
     }
 }
 
@@ -211,13 +211,13 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             if (itemSet == 0x17) {
                 if (pSave) {
                     ItemMgr.load(pSave);
-                    wk->x2AF = caseSize;
+                    wk->board_next = caseSize;
                 } else {
                     itemSet = 0;
-                    wk->x2AF = ItemMgr.setUp(itemSet);
+                    wk->board_next = ItemMgr.setUp(itemSet);
                 }
             } else {
-                wk->x2AF = ItemMgr.setUp(itemSet);
+                wk->board_next = ItemMgr.setUp(itemSet);
             }
             changed = 1;
         }
@@ -243,20 +243,20 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
         }
         break;
     case 2: {
-        s8 old = wk->x2AF;
+        s8 old = wk->board_next;
         if (joy->trg & 0x10001) {
-            wk->x2AF--;
+            wk->board_next--;
         }
         if (joy->trg & 0x20002) {
-            wk->x2AF++;
+            wk->board_next++;
         }
-        wk->x2AF = (s8) wk->x2AF < 0 ? 3 : ((s8) wk->x2AF > 3 ? 0 : wk->x2AF);
-        if (old != (s8) wk->x2AF) {
+        wk->board_next = (s8) wk->board_next < 0 ? 3 : ((s8) wk->board_next > 3 ? 0 : wk->board_next);
+        if (old != (s8) wk->board_next) {
             ItemMgr.dump(0x7C);
             ItemMgr.dump(0x7D);
             ItemMgr.dump(0x7E);
             ItemMgr.dump(0x7F);
-            switch ((s8) wk->x2AF) {
+            switch ((s8) wk->board_next) {
             case 0:
                 ItemMgr.get(0x7C, 0);
                 break;
@@ -341,15 +341,15 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
         break;
     }
     if (changed) {
-        wk->x2AE = wk->x2AF;
-        wk->x2B0->quit();
-        delete wk->x2B0;
-        wk->x2B0 = new pzlPlayer;
-        if (wk->x2B0->init((s8) wk->x2AE) == 0) {
-            delete wk->x2B0;
+        wk->board_size = wk->board_next;
+        wk->puzzlePlayer->quit();
+        delete wk->puzzlePlayer;
+        wk->puzzlePlayer = new pzlPlayer;
+        if (wk->puzzlePlayer->init((s8) wk->board_size) == 0) {
+            delete wk->puzzlePlayer;
         }
         pieceModelInit(wk);
-        wk->x2B0->save();
+        wk->puzzlePlayer->save();
     }
     {
         const char* items[6] = {"Item Set :", "Bullet   :", "Case Size:", "Peseta   :", "Case Rot :", "Boss Bar :"};
@@ -381,7 +381,7 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             }
             case 2: {
                 const char* tbl[4] = {"SMALL", "MEDIUM", "LARGE", "HUGE"};
-                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[(s8) wk->x2AF]);
+                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[(s8) wk->board_next]);
                 break;
             }
             case 3: {

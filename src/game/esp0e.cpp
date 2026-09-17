@@ -265,7 +265,7 @@ void Esp0e_HideCheck(cEsp* esp0)
     // f11/f10 (a separate result variable ties the fmadds to zv instead).
     inv2 = inv2 * zv + Zoffset;
     zi = (u32)(inv2 * 16777215.0f);
-    if (pG->flags_54 & 0x800) {
+    if (pG->System_flg & 0x800) {
         margin = 56.0f;
     } else {
         margin = 0.0f;

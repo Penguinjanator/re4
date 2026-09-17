@@ -12,7 +12,7 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 int SubCharCheckCtrl();                         // game/pl_sub.cpp
-void SubCharCtrl(int a, int b);                 // game/pl_sub.cpp
+void SubCharCtrl(int mode, int sccf);                 // game/pl_sub.cpp
 }
 u32 SubCharGetStatus();                         // game/pl_npc.cpp
 void ShapeSet(void* info, int a, void* data, int b);  // game/shape.cpp
@@ -145,7 +145,7 @@ void cPlLeon::setModel()
     if (pG->flags_51C0 & 0x20) {
         setWound();
     }
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(1);

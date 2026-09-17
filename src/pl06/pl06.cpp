@@ -78,7 +78,7 @@ void cPlHunk::setModel()
         addModel(info);
         pBody->pLeft = info;
     }
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(1);

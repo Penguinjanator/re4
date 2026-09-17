@@ -633,7 +633,7 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
             VecLinearCombination(&old[i].campos, &cur[i].campos, r, r1, &o[i].campos);
             VecLinearCombination(&old[i].target, &cur[i].target, r, r1, &o[i].target);
             VecLinearCombination(&old[i].campos2, &cur[i].campos2, r, r1, &o[i].campos2);
-            o[i].x24 = r * old[i].x24 + r1 * cur[i].x24;
+            o[i].Roll = r * old[i].Roll + r1 * cur[i].Roll;
             o[i].fovy = r * old[i].fovy + r1 * cur[i].fovy;
         }
     } else {
@@ -686,7 +686,7 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
     out->campos = d;
     out->campos2 = b;
     out->target = c;
-    out->x24 = o[1].x24;
+    out->Roll = o[1].Roll;
     out->fovy = o[1].fovy;
     if (angle_x != 0.0f) {
         PSMTXRotRad(m, 'y', angle_x);
@@ -824,7 +824,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
 
         out->pos = ofs->campos;
         out->at = ofs->target;
-        out->roll = ofs->x24;
+        out->roll = ofs->Roll;
         out->fovy = ofs->fovy;
         if (fA || fB || fC) {
             f32 dmin = PSVECDistance(&out->pos, &ofs->campos2);
@@ -959,7 +959,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                 if (cut->flags & 0x30) {
                     p->campos = cut->pos[k];
                     p->target = cut->at[k];
-                    p->x24 = cut->roll[k];
+                    p->Roll = cut->roll[k];
                     p->fovy = cut->fovy[k];
                 }
             } else {
@@ -967,7 +967,7 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
                 if (!(cut->flags & 0x20)) {
                     p->campos = cut->pos[k];
                     p->target = cut->at[k];
-                    p->x24 = cut->roll[k];
+                    p->Roll = cut->roll[k];
                     p->fovy = cut->fovy[k];
                 }
             }
@@ -1146,7 +1146,7 @@ void CameraQuasiFPS::init()
     FSet(smooth_ratio, 0.8f);
     FSet(CamSmth.ratio, 0.8f);
     fz = 0.0f;  // after the 0.8 stores: pool order 0.8, 0.0
-    FSet(x1A8, fz);
+    FSet(m_zoom_ratio, fz);
     { u8& r_ = reset; r_ = one; }
     { s16& r_ = search_frame; r_ = zero; }
     { u8& r_ = site; r_ = two; }

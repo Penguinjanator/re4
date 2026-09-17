@@ -28,11 +28,11 @@ struct WepTarget {
 
 extern "C" {
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 // em_sub.cpp: enemies on the line p0-p1 (at most `prio` of them) into `list`; hit point / normal / attribute out.
-u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
-int CheckInWater(cModel* m, int a);                                                          // em_sub.cpp
+u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
+int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 }
 
 // Rope node of the falling arrow (emMine_R1_Fall).
@@ -164,15 +164,15 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     }
     if (type == 2) {
         em->hp = 0;
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     emMine_R0_Move(em);
     return em;
@@ -212,20 +212,20 @@ void emMineDmCk(cEmMine* em)
 void cEmMine::move()
 {
     emMineDmCk(this);
-    EmMine_R0_move_tbl[xFC](this);
+    EmMine_R0_move_tbl[r_no_0](this);
 }
 
 void emMine_R0_Init(cEmMine* em)
 {
-    em->xFC = 1;
-    em->xFD = 8;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 8;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emMine_R0_Move(cEmMine* em)
 {
-    EmMine_R1_move_tbl[em->xFD](em);
+    EmMine_R1_move_tbl[em->r_no_1](em);
 }
 
 void emMine_R1_Shot(cEmMine* em)
@@ -240,11 +240,11 @@ void emMine_R1_Shot(cEmMine* em)
     AtEffInfo* info;
     AtEffInfo* wi;  // the water blocks' own pointer: its zero (not the HitCk result's) feeds their EstSet stack zeros
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EstSet((int) em, -1, 0, 0, 0, 0x38, 0, w->espKind, (u32) em, 0);
         w->life = 210;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->life == 0) {
             em->setBomb();
@@ -289,18 +289,18 @@ void emMine_R1_Shot(cEmMine* em)
                     w->hitFlag = 0;
                     w->snd1 = 0x17;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    em->xFC = 1;
-                    em->xFD = 3;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 3;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                 } else {
                     w->snd0 = 1;
                     w->snd1 = 0x14;
                     SndCall(2, 0x14, &em->pos, 0, 0, em);
-                    em->xFC = 1;
-                    em->xFD = 2;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 2;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                 }
             } else {
                 if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
@@ -328,20 +328,20 @@ void emMine_R1_Shot(cEmMine* em)
                     EffectEspDelete(0, w->espKind, em, 0);
                     EffectEspgenDelete(0, w->espKind, em);
                     EffectEfmDelete(0, w->espKind, em);
-                    em->xFC = 1;
-                    em->xFD = 3;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 3;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                     return;
                 }
                 w->effNo = 0x36;
                 w->snd1 = 0x14;
                 w->effKind = 0;
                 w->snd0 = 1;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 SndCall(2, 0x14, &em->pos, 0, 0, em);
                 // Tail written out (jump2 cross-jumps it into DELETE_EFFECT): the SndCall block then
                 // runs through the three Effect*Delete calls, so its r7/r8 argument moves collect an
@@ -382,10 +382,10 @@ void emMine_R1_Shot(cEmMine* em)
             EffectEspDelete(0, w->espKind, em, 0);
             EffectEspgenDelete(0, w->espKind, em);
             EffectEfmDelete(0, w->espKind, em);
-            em->xFC = 1;
-            em->xFD = 3;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 3;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
         PSVECSubtract(&em->pos, &em->oldPos, &d);
@@ -410,11 +410,11 @@ void emMine_R1_ShotArrow(cEmMine* em)
     int attr;
     AtEffInfo* info;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EstSet((int) em, -1, 0, 0, 0, 0x4C, 0, w->espKind, (u32) em, 0);
         w->life = 210;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->life == 0) {
             em->setLost();
@@ -458,10 +458,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
                 w->snd0 = 1;
                 w->snd1 = 0x14;
                 SndCall(1, 0x50, &em->pos, 0, 0, em);
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 return;
             }
             if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
@@ -496,10 +496,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
             w->snd1 = 0x14;
             w->effKind = 0;
             w->snd0 = 1;
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             SndCall(1, 0x50, &em->pos, 0, 0, em);
             EffectEspDelete(0, w->espKind, em, 0); // tail written out, see emMine_R1_Shot
             EffectEspgenDelete(0, w->espKind, em);
@@ -685,7 +685,7 @@ void emMine_R1_Set(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
@@ -695,7 +695,7 @@ void emMine_R1_Set(cEmMine* em)
         w->life = 150;
         w->timer = 1;
         w->count = 17;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         if (em->type != 2 && w->timer != 0) {
@@ -739,7 +739,7 @@ void emMine_R1_SetWater(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
@@ -748,7 +748,7 @@ void emMine_R1_SetWater(cEmMine* em)
         }
         w->life = 150;
         em->be_flag &= ~2;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         if (w->life == 0) {
@@ -777,7 +777,7 @@ void emMine_R1_Parent(cEmMine* em)
     if (parent == 0) {
         em->setLost();
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
@@ -787,7 +787,7 @@ void emMine_R1_Parent(cEmMine* em)
         w->life = 150;
         w->timer = 1;
         w->count = 17;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         if (w->timer != 0 && em->type != 2) {
@@ -887,10 +887,10 @@ void emMine_R1_BombWait(cEmMine* em)
     EmMineWork* w = EMMINE_WK(em);
     Vec v;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = 4;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -917,12 +917,12 @@ void emMine_R1_BombWait2(cEmMine* em)
     Vec p;
     f32 r;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->hp = 0;
         em->be_flag &= ~2;
         w->timer = 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -1095,13 +1095,13 @@ void emMine_R1_Lost(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
         EffectEspDelete(0, w->espKind, em, 0);
         EffectEspgenDelete(0, w->espKind, em);
         EffectEfmDelete(0, w->espKind, em);
-        em->xFE++;
+        em->r_no_2++;
         EmMgr.destroy(em);
     }
 }
@@ -1112,20 +1112,20 @@ void cEmMine::setParent(cEm* parent, int partsNo_)
 
     w->pParent = parent;
     w->partsNo = partsNo_;
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmMine::setLost()
 {
     hp = 0;
     be_flag &= ~2;
-    xFC = 1;
-    xFD = 8;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 8;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmMine::setBomb()
@@ -1137,10 +1137,10 @@ void cEmMine::setBomb()
     hp = 0;
     hit = w->hitFlag;
     if (hit) {
-        xFC = 1;
-        xFD = 5;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 5;
+        r_no_2 = 0;
+        r_no_3 = 0;
         return;
     }
     p.x = 0.0f;
@@ -1166,10 +1166,10 @@ void cEmMine::setBomb()
     // the store source, the codeless keep-alive after the stores keeps `hit`/`this` from dying at
     // the xFE store (weight -1 would issue it first; the target has it last, source order).
     asm("" : "+r"(hit));
-    xFF = 0;
-    xFC = 1;
-    xFD = 6;
-    xFE = hit;
+    r_no_3 = 0;
+    r_no_0 = 1;
+    r_no_1 = 6;
+    r_no_2 = hit;
     asm("" : "=m"(hp) : "r"(hit));
 }
 
@@ -1193,10 +1193,10 @@ void cEmMine::setFall()
     pos.y = mat[1][3];
     pos.z = mat[2][3];
     Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 7;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 7;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int emMineHitCk(cEmMine* em)

@@ -56,7 +56,7 @@ public:
     u16 nA;          // 0x0C  polygon groups: [0, nA), [nA, nA + nB), the last nC (cSatMgr::disp)
     u16 nB;          // 0x0E
     u16 nC;          // 0x10
-    u16 x12;         // 0x12
+    u16 m_nBlock;         // 0x12
     // 0x14: Vec vtx[nVertex]; Vec nrm[nNormal]; Vec edge[nEdge]; AtPoly poly[nPoly]; cSatBlock blocks
 
     Vec* getVertexPtr();
@@ -88,7 +88,7 @@ public:
     u16 idx[0];      // 0x24  polygon indices
 
     int lineOverlap(Vec* p, Vec* dir, Vec* absDir);
-    int hitCheckSphere(Vec* a, Vec* b, f32 r);
+    int hitCheckSphere(Vec* pos0, Vec* pos1, f32 r);
 };
 
 // One scenario collision piece (game/atari.cpp), returned by cSatMgr::create. Owners toggle
@@ -104,7 +104,7 @@ public:
     u16 nA;          // 0x20
     u16 nB;          // 0x22
     u16 nC;          // 0x24
-    u16 x26;         // 0x26
+    u16 bb_num;         // 0x26
     u16 nNormal;     // 0x28
     s8 flags;        // 0x2A  bit1: pFile was allocated by cSatMgr::create (freed by destroy), bit2: piece takes part in the collision checks (signed: `&= ~4` is a word rlwinm)
     u8 pad_2B;
@@ -166,7 +166,7 @@ public:
     // receives the address of the hit polygon's normal (in the piece's space).
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int mask);
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
-    int hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int flag, int mask);
+    int hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask);
     // Floor height under `pos`, searching `up` above and `down` below it.
     f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
     // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the

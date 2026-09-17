@@ -31,7 +31,7 @@ void cObj01::move()
 {
     static void (cObj01::*funcTbl[2])() = { &cObj01::move00, &cObj01::move01 };
 
-    (this->*funcTbl[xFC])();
+    (this->*funcTbl[r_no_0])();
 }
 
 void cObj01::move00()
@@ -74,7 +74,7 @@ void cObj01::move00()
                 } else {
                     dmgSet(5);
                 }
-                xFC = 1;
+                r_no_0 = 1;
                 return;
             case 3:
                 BitOn(pG->flags_500C, 0x800000);
@@ -86,7 +86,7 @@ void cObj01::move00()
                 } else {
                     dmgSet(5);
                 }
-                xFC = 1;
+                r_no_0 = 1;
                 return;
             case 0:
             default:
@@ -169,14 +169,14 @@ void cObj01::move00()
         PSMTXConcat(parts->mat, mat, mat);
         TransMatrix(mat, &pos);
         alpha = w->hold->alpha;
-        x158 = w->hold->x158;
+        invisible_factor2 = w->hold->invisible_factor2;
     } else {
         RotMatrix(worldMat, &rot);
         TransMatrix(worldMat, &pos);
         ScaleMatrix(worldMat, &scale);
         PSMTXCopy(worldMat, mat);
         alpha = 1.0f;
-        x158 = 1.0f;
+        invisible_factor2 = 1.0f;
     }
     partsMatCalc();
     partsWorldCalc();
@@ -184,12 +184,12 @@ void cObj01::move00()
 
 void cObj01::move01()
 {
-    xFE++;
-    if (xFE > 30) {
-        xFE = 0;
+    r_no_2++;
+    if (r_no_2 > 30) {
+        r_no_2 = 0;
         SndCall(1, 0x16, &pos, 0, 0, 0);
-        xFF++;
-        if (xFF > 5) {
+        r_no_3++;
+        if (r_no_3 > 5) {
             ObjMgr.destroy(this);
         }
     }
@@ -279,7 +279,7 @@ int obj01AddSpeed(cObj01* obj)
                 SndCall(1, 0x15, &obj->pos, 0, 0, 0);
                 SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             }
-            obj->xFC = 1;
+            obj->r_no_0 = 1;
             obj->be_flag &= ~2;
             return 0;
         case 3:
@@ -292,7 +292,7 @@ int obj01AddSpeed(cObj01* obj)
                 SndCall(1, 0x15, &obj->pos, 0, 0, 0);
                 SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             }
-            obj->xFC = 1;
+            obj->r_no_0 = 1;
             obj->be_flag &= ~2;
             return 0;
         case 4:

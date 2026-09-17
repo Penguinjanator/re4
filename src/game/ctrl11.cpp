@@ -36,17 +36,17 @@ cCtrl* GetCtrlCtrl11()
     return c;
 }
 
-u32 Ctrl11SetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx)
+u32 Ctrl11SetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx)
 {
     Ctrl11Work* w;
 
-    if (c == 0) {
+    if (pCtrl == 0) {
         return 0;
     }
-    if (c->id != 0x11) {
+    if (pCtrl->id != 0x11) {
         return 0;
     }
-    w = (Ctrl11Work*) c->work;
+    w = (Ctrl11Work*) pCtrl->work;
     if (w->timer[idx] != 0) {
         return 0;
     }
@@ -55,50 +55,50 @@ u32 Ctrl11SetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx)
     return w->handle[idx];
 }
 
-u32 Ctrl11SetSe2(cCtrl* c, cModel* m, s16 time, u16 no, int idx, u16 blk)
+u32 Ctrl11SetSe2(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx, u16 blk)
 {
     Ctrl11Work* w;
 
-    if (c == 0) {
+    if (pCtrl == 0) {
         return 0;
     }
-    if (c->id != 0x11) {
+    if (pCtrl->id != 0x11) {
         return 0;
     }
-    w = (Ctrl11Work*) c->work;
+    w = (Ctrl11Work*) pCtrl->work;
     w->handle[idx] = SndCall(blk, no, &m->getPartsPtr(0)->worldPos, m->id, 0, m);
     w->timer[idx] = time;
     return w->handle[idx];
 }
 
-u32 Ctrl11StopAndSetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx)
+u32 Ctrl11StopAndSetSe(cCtrl* pCtrl, cModel* m, s16 time, u16 no, int idx)
 {
     Ctrl11Work* w;
 
-    if (c == 0) {
+    if (pCtrl == 0) {
         return 0;
     }
-    if (c->id != 0x11) {
+    if (pCtrl->id != 0x11) {
         return 0;
     }
-    w = (Ctrl11Work*) c->work;
+    w = (Ctrl11Work*) pCtrl->work;
     SndStop(w->handle[idx], 0);
     w->handle[idx] = SndCall(8, no, &m->getPartsPtr(0)->worldPos, m->id, 0, m);
     w->timer[idx] = time;
     return w->handle[idx];
 }
 
-u32 Ctrl11SetSeEm38(cCtrl* c, cModel* m, u16 no)
+u32 Ctrl11SetSeEm38(cCtrl* pCtrl, cModel* m, u16 no)
 {
     Ctrl11Work* w;
 
-    if (c == 0) {
+    if (pCtrl == 0) {
         return 0;
     }
-    if (c->id != 0x11) {
+    if (pCtrl->id != 0x11) {
         return 0;
     }
-    w = (Ctrl11Work*) c->work;
+    w = (Ctrl11Work*) pCtrl->work;
     SndStop(w->handle38, 0);
     w->handle38 = SndCall(8, no, &m->getPartsPtr(0)->worldPos, m->id, 0, m);
     return w->handle38;

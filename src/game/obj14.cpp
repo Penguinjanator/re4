@@ -86,17 +86,17 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->pEmHit->setParent(obj, 1, 0);
         YarareInit(w->pEmHit, 0.0f, -650.0f, 0.0f, 300.0f, 50.0f, 1, 1);
     }
-    obj->xFD = 0;
-    obj->xFC = 1;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     return obj;
 }
 
 void cObjBell::move()
 {
     obj14DmCk(this);
-    Obj14_R1_move_tbl[xFD](this);
+    Obj14_R1_move_tbl[r_no_1](this);
     obj14ClothMove(this);
 }
 
@@ -126,13 +126,13 @@ void obj14_R1_Break(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
 
-    if (obj->xFE == 0) {
+    if (obj->r_no_2 == 0) {
         obj->be_flag &= ~2;
         if (w->pEmHit) {
             w->pEmHit->hp = 0;
         }
         EstSet(0, -1, &obj->pos, &obj->rot, 1, 7, 0, 0, 0, 0);
-        obj->xFE++;
+        obj->r_no_2++;
     }
     obj14MatCalc(obj);
 }
@@ -250,10 +250,10 @@ void obj14DmCk(cObjBell* obj)
 
 void cObjBell::setBreak()
 {
-    xFC = 1;
-    xFE = 0;
-    xFD = 1;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_2 = 0;
+    r_no_1 = 1;
+    r_no_3 = 0;
 }
 
 int cObjBell::ckBreakEnable()
@@ -275,23 +275,23 @@ void obj14ClothSet(cObjBell* obj)
     w->cloth.pUp = obj14ClothUp;
     w->cloth.pDown = obj14ClothDp;
     w->cloth.pMax = obj14ClothMax;
-    w->cloth.x3C = 15.0f;
-    w->cloth.x40 = 1.0f;
-    w->cloth.x08 = 0;
-    w->cloth.x0C = 0;
-    w->cloth.x10 = 0;
-    w->cloth.x14 = 0;
-    w->cloth.x2C = 0;
-    w->cloth.x30 = 0;
-    w->cloth.x20 = 0;
-    w->cloth.x24 = 0;
-    w->cloth.x34 = 0;
-    w->cloth.x38 = 0;
+    w->cloth.Gravity = 15.0f;
+    w->cloth.Rate = 1.0f;
+    w->cloth.pLeft = 0;
+    w->cloth.pRight = 0;
+    w->cloth.pUpLeft = 0;
+    w->cloth.pUpRight = 0;
+    w->cloth.pWindSin = 0;
+    w->cloth.pWindRate = 0;
+    w->cloth.pGravity = 0;
+    w->cloth.pRate = 0;
+    w->cloth.pAtset = 0;
+    w->cloth.At_num = 0;
     w->cloth.x58 = 0;
-    w->cloth.x44 = 0;
-    w->cloth.x48 = 0.0f;
-    w->cloth.x4C = 0.0f;
-    w->cloth.x50 = 0.0f;
+    w->cloth.Bundle_num = 0;
+    w->cloth.WindSin = 0.0f;
+    w->cloth.Stretchy = 0.0f;
+    w->cloth.Move_rate = 0.0f;
     w->cloth.flags = 0x100;
     w->cloth.x54 = 0;
     PenClothSet(obj, &w->cloth, 100.0f);

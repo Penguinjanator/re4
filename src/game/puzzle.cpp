@@ -252,12 +252,12 @@ void pzlPiece::mirror(int axis)
     }
 }
 
-void pzlPiece::init(PieceData* d)
+void pzlPiece::init(PieceData* p_data)
 {
-    data = d;
+    data = p_data;
     flags |= 1;
-    cx = d->cx;
-    cy = d->cy;
+    cx = p_data->cx;
+    cy = p_data->cy;
     state = 0;
     orient = 0;
 }
@@ -1618,9 +1618,9 @@ int PutInCase(u16 id, u16 num, int type)
         max = 1;
     } else {
         if (num == 0) {
-            num = info.x3;
+            num = info.defNum;
         }
-        max = info.x4;
+        max = info.maxNum;
     }
     if (num > max) {
         num = max;

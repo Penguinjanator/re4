@@ -20,7 +20,7 @@ public:
     cCoord* pParent;  // 0x6C  parent coord (parts: the model; pl_ashley concatenates its mat)
     Vec worldPos;   // 0x70
     Vec oldWorldPos;  // 0x7C  worldPos of the previous frame (cAtariInfo::getSpeedVector)
-    Vec x88;        // 0x88  (pl_ashley moveBust: GetDistance3 from worldPos)
+    Vec world_old2;        // 0x88  (pl_ashley moveBust: GetDistance3 from worldPos)
     Vec pos;        // 0x94
     Vec rot;        // 0xA0
     Vec scale;      // 0xAC
@@ -211,7 +211,7 @@ public:
     f32 radius;      // 0x70  bounding radius from size (init2: cylinder x + y, box length, sphere x)
 
     cLightInfo();
-    int init2(int a, int b, const Vec* p0, const Vec* p1, int c);  // a -> x51, b -> x52, c -> x50
+    int init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask);  // a -> x51, b -> x52, c -> x50
     void updateMatrix(cModel* m);
     u32 getLightNum();
     cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to
@@ -398,41 +398,41 @@ public:
     union {
         u32 stat;    // 0xFC  the four status bytes as one word (obj14 ckBreak: word compares)
         struct {
-            u8 xFC;  // 0xFC  routine / state
-            u8 xFD;  // 0xFD  routine index (move table)
-            u8 xFE;  // 0xFE  step
-            u8 xFF;  // 0xFF  (t_option clears FC..FF after a weapon change)
+            u8 r_no_0;  // 0xFC  routine / state
+            u8 r_no_1;  // 0xFD  routine index (move table)
+            u8 r_no_2;  // 0xFE  step
+            u8 r_no_3;  // 0xFF  (t_option clears FC..FF after a weapon change)
         };
     };
     u8 id;           // 0x100
     u8 type;         // 0x101 per-object sub type
     u8 nParts;       // 0x102
-    u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
+    u8 alpha_omit;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
     Vec speed;       // 0x104
     Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
     Vec wallNrm;     // 0x11C  normal of the wall the scenario check pushed the model out of (atari scrAtCheckSphere), zero when none
     union {
         struct {
             Vec* pFloorNrm;  // 0x128  player: floor normal the shoulder camera tilts with (cam_qfps setPlayerLocation)
-            u8 x12C;         // 0x12C  (TexRenderModSet sets 2)
-            u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
-            u8 x12E;         // 0x12E  2 = scroll (Smd) object
-            u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
+            u8 z_mode;         // 0x12C  (TexRenderModSet sets 2)
+            u8 TevScaleGroup;         // 0x12D  (pl_leon setModel sets 1)
+            u8 kindid;         // 0x12E  2 = scroll (Smd) object
+            u8 ot_type;         // 0x12F  scroll: SmxWork.type2 (3 by default)
             void* pCldShMd;  // 0x130  (db_work "pCldShMd")
             u8 shdCol;       // 0x134  (db_work "SHD COL")
-            u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
-            u8 x136;         // 0x136  TexRender: 2 while rendered to texture, 0 after
-            u8 x137;         // 0x137  TexRender: 0x10
-            u8 x138;         // 0x138  TexRender: 0x90
-            u8 x139;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
-            u8 x13A;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
-            u8 x13B;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 CullMode;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
+            u8 Shader_type;         // 0x136  TexRender: 2 while rendered to texture, 0 after
+            u8 Refract_pow;         // 0x137  TexRender: 0x10
+            u8 Refract_ratio;         // 0x138  TexRender: 0x90
+            u8 AddAmb_r;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 AddAmb_g;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 AddAmb_b;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
             int fixParts;    // 0x13C  parts index + 1 whose world position partsFixAdjust holds (partsFixMemory), 0 = none
             Vec fixPos;      // 0x140  that parts' world position when it was fixed
-            u8 x14C;         // 0x14C  (cModel::cModel: 0)
-            u8 x14D;         // 0x14D
-            u8 x14E;         // 0x14E
-            u8 x14F;         // 0x14F
+            u8 invisible_trg;         // 0x14C  (cModel::cModel: 0)
+            u8 invisible_old;         // 0x14D
+            u8 invisible_mode;         // 0x14E
+            u8 invisible_busy;         // 0x14F
         };
         // Effect model parts physics (obj05 cObj05::move runs its parts as loose particles).
         struct {
@@ -445,10 +445,10 @@ public:
     // to parts 1/2 here); the object itself keeps its alpha at 0x154.
     union {
         f32 x150;          // 0x150
-        u32 x150w;         // 0x150  (cModel::cModel clears it as a word)
+        u32 invisible_timer;         // 0x150  (cModel::cModel clears it as a word)
     };
     f32 alpha;             // 0x154  0..1 (obj04: work color a / 255)
-    f32 x158;              // 0x158
+    f32 invisible_factor2;              // 0x158
     cModelInfo* pInfo;     // 0x15C
     cModelInfo* pShMdInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo lightInfo;  // 0x164 .. 0x1D8
@@ -504,7 +504,7 @@ public:
         struct {
             cAtariInfo atari;          // 0x2B4 .. 0x300  (rect size at 0x2C0/0x2C4)
             u32 x300;                  // 0x300  (cModel::cModel clears it)
-            u32 x304;                  // 0x304  (cModel::cModel clears it)
+            u32 pPath;                  // 0x304  (cModel::cModel clears it)
             void* pFootShadowTbl;      // 0x308  foot shadow table (pl_leon: pl_fs_tbl; trans FootShadow)
             EmLightArea litArea;       // 0x30C .. 0x31C  light_area: per-light colour scale (trans_lit lightSetColor)
             cTexChg* pTexChg;          // 0x31C  texture change work (trans commonModelTrans: pTexChg->move)

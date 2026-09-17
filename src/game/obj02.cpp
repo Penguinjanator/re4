@@ -82,11 +82,11 @@ void cObjScr::moveSwingRot()
 {
     ObjScrSwingWork* w = (ObjScrSwingWork*)work;
 
-    if (xFC == 0) {
+    if (r_no_0 == 0) {
         w->baseRot.x = rot.x;
         w->baseRot.y = rot.y;
         w->baseRot.z = rot.z;
-        xFC = 1;
+        r_no_0 = 1;
     }
     w->time += 1.0f;
     rot.x = w->baseRot.x + w->ampX * sinf(w->freqX * w->time + w->phaseX);

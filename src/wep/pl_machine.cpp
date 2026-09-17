@@ -23,10 +23,10 @@ int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 // Routine bytes through int parameters (player.cpp PlRoutineSet).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 u8 lockCtr = 0;
@@ -56,7 +56,7 @@ void PlMachineMove(cPlayer* pl)
         wep11_r2_reload,
     };
 
-    func_tbl[pl->xFE](pl);
+    func_tbl[pl->r_no_2](pl);
     pl->pWep->lockMove();
 }
 
@@ -75,25 +75,25 @@ static void wep11_r2_ready(cPlayer* pl)
         foo22,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
     } else if (pl->keyReload() && pl->pWep->pObj->reloadable()) {
         pl->pWep->x26 |= 1;
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 4;
-        pl->xFF = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 4;
+        pl->r_no_3 = 0;
         pl->x3E0 = 1;
     } else {
         Vec aim = {0.0f, 1000.0f, 10000.0f};
@@ -111,9 +111,9 @@ static void wep11_r3_ready00(cPlayer* pl)
     void* mot;
 
     pl->x3E4 = 0;
-    pl->pWep->x2C = 0.0f;
+    pl->pWep->m_CenterY = 0.0f;
     pl->x400 = 0.0f;
-    pl->pWep->x30 = CamCtrl.getCameraDirection();
+    pl->pWep->m_CamAdjY = CamCtrl.getCameraDirection();
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
@@ -133,7 +133,7 @@ static void wep11_r3_ready00(cPlayer* pl)
     mot3.set(pl, mot, mot, mot, 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     lockCtr = 0;
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep11_r3_ready10(cPlayer* pl)
@@ -141,10 +141,10 @@ static void wep11_r3_ready10(cPlayer* pl)
     const f32 endFrame = 5.0f;   // pool order: 5.0 before the 3.0 / 4.0 / 2.0 of the statements above
 
     if (pl->frame <= 3.0f) {
-        f32 d = pl->pWep->x30 / (4.0f - pl->frame);
+        f32 d = pl->pWep->m_CamAdjY / (4.0f - pl->frame);
 
         pl->rot.y += d;
-        pl->pWep->x30 -= d;
+        pl->pWep->m_CamAdjY -= d;
     }
     if (MotionCheckCrossFrame(&pl->mot, 2.0f)) {
         int se = 0x28;
@@ -187,15 +187,15 @@ static void wep11_r2_set(cPlayer* pl)
         wep11_r3_set40,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     PlWepLockCtrl(pl);
     pl->setLaserSight(1, 0);
     if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 3;
 
@@ -240,7 +240,7 @@ static void wep11_r3_set00(cPlayer* pl)
     mot3.set(pl, PL_ARC_PTR(arc, 0x1B), PL_ARC_PTR(arc, 0x1F), PL_ARC_PTR(arc, 0x21), 0, hokan, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep11_r3_set10(cPlayer* pl)
@@ -251,7 +251,7 @@ static void wep11_r3_set10(cPlayer* pl)
 static void wep11_r3_set40(cPlayer* pl)
 {
     if (pl->motionMove() || (Key.on & 0x10F)) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -264,7 +264,7 @@ static void wep11_r2_fire(cPlayer* pl)
     };
 
     PlWepLockCtrl(pl);
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
 }
 
 // Never called (its two static Vecs are the 0x18 unreferenced .bss bytes before fire00's p0/p1).
@@ -315,7 +315,7 @@ static void wep11_r3_fire00(cPlayer* pl)
         m3r[0] = pitch;
     }
     pl->pWep->pObj->drawLaserSight(1, 0);
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep11_r3_fire10(cPlayer* pl)
@@ -326,7 +326,7 @@ static void wep11_r3_fire10(cPlayer* pl)
         if (joyKamae()) {
             if (joyFireOn()) {
                 if (pl->pWep->pObj->bulletNum()) {
-                    pl->xFF = 0;
+                    pl->r_no_3 = 0;
                 } else {
                     SndCall(2, 0x17, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
                     PlRoutineSet(pl, 0, 6, 1, 0);
@@ -338,10 +338,10 @@ static void wep11_r3_fire10(cPlayer* pl)
             }
 
         } else if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 3;
 
@@ -357,11 +357,11 @@ static void wep11_r2_down(cPlayer* pl)
         MotionSetCore(pl, &pl->mot, WEP_ARC_PTR(0x1D), 0, 3, 5, 0);
         PlRoutineSet(pl, 0, 0, 2, 0);
     } else {
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         pl->x4FD = 0xF;
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 0;
         pl->x4FC = 0;
     }
     pl->motionMove();
@@ -369,12 +369,12 @@ static void wep11_r2_down(cPlayer* pl)
 
 static void wep11_r2_reload(cPlayer* pl)
 {
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0: {
         void* mot;
         cObjWep* obj;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             mot = WEP_ARC_PTR(0x1E);
             break;
@@ -388,21 +388,21 @@ static void wep11_r2_reload(cPlayer* pl)
         MotionSetCore(pl, &pl->mot, mot, 0, 3, 5, 0);
         MotionMoveI(pl, 0);
         pl->pWep->knifeStance = 1;
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         obj = pl->pWep->pObj;
         obj->wep.mode = 4;
         obj->wep.step = 0;
         break;
     }
     case 1:
-        if (MotionCheckCrossFrame(&pl->mot, PlReloadEndTbl[pG->wep_no][pG->x4FBA]) && joyKamae() == 0) {
+        if (MotionCheckCrossFrame(&pl->mot, PlReloadEndTbl[pG->wep_no][pG->weapon_lv_reload]) && joyKamae() == 0) {
             if (pl->flags_420 & 0x40) {
-                pl->xFC = 0;
-                pl->xFE = 0;
-                pl->xFD = 0x11;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_2 = 0;
+                pl->r_no_1 = 0x11;
+                pl->r_no_3 = 0;
             } else {
-                pl->xFE = 3;
+                pl->r_no_2 = 3;
             }
         } else if (MotionMoveI(pl, 0)) {
             PlRoutineSet(pl, 0, 6, 1, 0);
@@ -411,10 +411,10 @@ static void wep11_r2_reload(cPlayer* pl)
         break;
     case 3:
         if (MotionMoveI(pl, 0)) {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
         break;
 

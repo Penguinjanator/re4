@@ -68,7 +68,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     w->flagNo = flagNo;
     em->type = type;
     if (type == 6) {
-        em->x12F = 1;
+        em->ot_type = 1;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetEmBarred() failed.");
@@ -246,10 +246,10 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         w->status = 2;
         w->open = 0;
     }
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     emBarredEatSet(em);
     return em;
 }
@@ -374,67 +374,67 @@ void emBarredDmCk(cEmBarred* em)
 void cEmBarred::move()
 {
     emBarredDmCk(this);
-    EmBarred_R1_move_tbl[xFD](this);
+    EmBarred_R1_move_tbl[r_no_1](this);
     EmAtCheck(this);
     atari.move();
     emBarredEatSet(this);
 }
 
-void cEmBarred::setOpen(int a)
+void cEmBarred::setOpen(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
     if (w->status == 1) {
         return;
     }
-    if (xFD == 1) {
+    if (r_no_1 == 1) {
         return;
     }
-    if (xFD == 3) {
+    if (r_no_1 == 3) {
         return;
     }
     w->status = 0;
     w->open = 1;
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = a;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = mode;
 }
 
-void cEmBarred::setClose(int a)
+void cEmBarred::setClose(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
     if (w->status == 2) {
         return;
     }
-    if (xFD == 2) {
+    if (r_no_1 == 2) {
         return;
     }
-    if (xFD == 3) {
+    if (r_no_1 == 3) {
         return;
     }
     w->status = 0;
     w->open = 0;
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = a;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = mode;
 }
 
 void cEmBarred::setOpened()
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
-    if (xFD != 3) {
+    if (r_no_1 != 3) {
         w->status = 1;
         w->open = 1;
         pos.y = w->pos0.y + 2500.0f;
         SndStop(w->sndId, 0);
-        xFC = 1;
-        xFD = 0;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 0;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }
 
@@ -442,21 +442,21 @@ void cEmBarred::setClosed()
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
-    if (xFD != 3) {
+    if (r_no_1 != 3) {
         w->status = 2;
         w->open = 0;
         pos = w->pos0;
         SndStop(w->sndId, 0);
-        xFC = 1;
-        xFD = 0;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 0;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }
 
-void cEmBarred::setLockMode(u8 a)
+void cEmBarred::setLockMode(u8 mode)
 {
-    EMBARRED_WK(this)->lockMode = a;
+    EMBARRED_WK(this)->lockMode = mode;
 }
 
 int cEmBarred::ckStatus()
@@ -477,9 +477,9 @@ void emBarred_R1_Set(cEmBarred* em)
     EmBarredWork* w = EMBARRED_WK(em);
 
     em->matUpdate();
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         w->timer = 0;
-        em->xFE++;
+        em->r_no_2++;
     }
     if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
         if (emBarredNearCk(em)) {
@@ -487,10 +487,10 @@ void emBarred_R1_Set(cEmBarred* em)
             if (w->status != 1 && w->lockMode == 0) {
                 w->open = 1;
                 w->status = 0;
-                em->xFC = 1;
-                em->xFD = 1;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 1;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 if (w->pDouble) {
                     w->pDouble->setOpen(1);
                 }
@@ -500,10 +500,10 @@ void emBarred_R1_Set(cEmBarred* em)
             if (w->status == 1 && w->timer > 30 && w->lockMode == 0) {
                 w->status = 0;
                 w->open = 0;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 if (w->pDouble) {
                     w->pDouble->setClose(1);
                 }
@@ -520,10 +520,10 @@ void emBarred_R1_Open(cEmBarred* em)
 
     w->status = 0;
     w->open = 1;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         SndStop(w->sndId, 0);
-        if (em->xFF == 0) {
+        if (em->r_no_3 == 0) {
             switch (em->type) {
             case 5:
             case 6:
@@ -536,7 +536,7 @@ void emBarred_R1_Open(cEmBarred* em)
                 break;
             }
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         switch (em->type) {
         case 0xA:
@@ -548,7 +548,7 @@ void emBarred_R1_Open(cEmBarred* em)
             }
             if (em->pos.y > w->pos0.y + w->openH) {
                 em->pos.y = w->pos0.y + w->openH;
-                em->xFE++;
+                em->r_no_2++;
             }
             break;
         case 5:
@@ -561,10 +561,10 @@ void emBarred_R1_Open(cEmBarred* em)
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 1690000.0f) {
                 w->status = 1;
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
             break;
         case 8:
@@ -576,10 +576,10 @@ void emBarred_R1_Open(cEmBarred* em)
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
                 w->status = 1;
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
             break;
         case 9:
@@ -591,21 +591,21 @@ void emBarred_R1_Open(cEmBarred* em)
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
                 w->status = 1;
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
             break;
         }
         break;
     case 2:
-        if (em->xFF == 0) {
+        if (em->r_no_3 == 0) {
             SndStop(w->sndId, 0);
             w->sndId = SndCall(6, 0x25, &em->pos, 0, 0, em);
         }
         w->timer = 5;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
         em->pos.y = fRand0_1() * 20.0f + (w->pos0.y + w->openH);
@@ -616,10 +616,10 @@ void emBarred_R1_Open(cEmBarred* em)
             em->pos = w->pos0;
             em->pos.y = w->pos0.y + w->openH;
             w->status = 1;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -633,7 +633,7 @@ void emBarred_R1_Close(cEmBarred* em)
 
     w->status = 0;
     w->open = 0;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 4) {
             w->spd = -10.0f;
@@ -641,7 +641,7 @@ void emBarred_R1_Close(cEmBarred* em)
             w->spd = -50.0f;
         }
         SndStop(w->sndId, 0);
-        if (em->xFF == 0) {
+        if (em->r_no_3 == 0) {
             switch (em->type) {
             case 5:
             case 6:
@@ -654,7 +654,7 @@ void emBarred_R1_Close(cEmBarred* em)
                 break;
             }
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         switch (em->type) {
         default:
@@ -667,7 +667,7 @@ void emBarred_R1_Close(cEmBarred* em)
             }
             if (em->pos.y < w->pos0.y) {
                 em->pos.y = w->pos0.y;
-                em->xFE++;
+                em->r_no_2++;
             }
             break;
         case 5:
@@ -677,7 +677,7 @@ void emBarred_R1_Close(cEmBarred* em)
             PSVECSubtract(&w->pos0, &em->pos, &d);
             if (d.x * d.x + d.y * d.y + d.z * d.z <= 10000.0f) {
                 em->pos = w->pos0;
-                em->xFE++;
+                em->r_no_2++;
             } else {
 #line 996 "D:/Bio4/Prog/emBarred.cpp"
                 VECNormalize(&d, &d);
@@ -689,10 +689,10 @@ void emBarred_R1_Close(cEmBarred* em)
         if (emBarredUnderCk(em)) {
             w->status = 0;
             w->open = 1;
-            em->xFC = 1;
-            em->xFD = 1;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 1;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             if (w->pDouble) {
                 w->pDouble->setOpen(1);
             }
@@ -706,7 +706,7 @@ void emBarred_R1_Close(cEmBarred* em)
         case 9:
             break;
         default:
-            if (em->xFF == 0) {
+            if (em->r_no_3 == 0) {
                 SndStop(w->sndId, 0);
                 w->sndId = SndCall(6, 0x27, &em->pos, 0, 0, em);
             }
@@ -725,7 +725,7 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         }
         w->timer = 5;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
         em->pos.y = fRand0_1() * 20.0f + w->pos0.y;
@@ -735,10 +735,10 @@ void emBarred_R1_Close(cEmBarred* em)
         } else {
             em->pos = w->pos0;
             w->status = 2;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -749,10 +749,10 @@ void emBarred_R1_Close(cEmBarred* em)
                 if (w->status != 1) {
                     w->status = 0;
                     w->open = 1;
-                    em->xFC = 1;
-                    em->xFD = 1;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 1;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                     if (w->pDouble) {
                         w->pDouble->setOpen(1);
                     }
@@ -767,7 +767,7 @@ void emBarred_R1_Break(cEmBarred* em)
     EmBarredWork* w = EMBARRED_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
         em->clearStatus(5);
@@ -776,7 +776,7 @@ void emBarred_R1_Break(cEmBarred* em)
         if (flg) {
             *flg |= 1;
         }
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -1042,10 +1042,10 @@ void cEmBarred::setBreak(Vec* target)
         EstSet(0, -1, &pos, &v, w->eff, 3, 0, 0, 0, 0);
         atari.throughOn();
         hp = 0;
-        xFC = 1;
-        xFD = 3;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 3;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }
 

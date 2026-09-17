@@ -169,7 +169,7 @@ public:
     void screenTrans();
     void cardMesSet(int no, int slot, u32 attr);
     void calcTplAddr(struct TEXPalette* tpl);
-    void setMsgWindow(int a, int b);
+    void setMsgWindow(int a, int sw);
 
 #line 386 "D:/Bio4/Prog/card.h"
     void* operator new(unsigned int size) { return MEM_CALLOC(size, 1, 13); }
@@ -179,12 +179,12 @@ public:
 extern "C" {
 void CardFirstCheck();
 int CardCheckDone();
-void CardSave(int a, int b);
+void CardSave(int terminal_no, int attr);
 int CardLoad();
 void CardSysSave();
 void CardInit();
 void CardDbgCacheSet();
-void CardMainTask(int arg);
+void CardMainTask(int mode);
 }
 
 #endif

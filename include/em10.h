@@ -20,13 +20,13 @@
 // Field names are the work-relative offsets; the comment gives the cEm offset.
 struct Em10Work {
     u32 flags;            // 0x000 (0x3E0)
-    int x4;               // 0x004 (0x3E4)  routine timer
-    int x8;               // 0x008 (0x3E8)
-    int xC;               // 0x00C (0x3EC)
-    int x10;              // 0x010 (0x3F0)
-    int x14;              // 0x014 (0x3F4)
-    f32 x18;              // 0x018 (0x3F8)
-    f32 x1C;              // 0x01C (0x3FC)
+    int Timer;               // 0x004 (0x3E4)  routine timer
+    int Timer2;               // 0x008 (0x3E8)
+    int Timer3;               // 0x00C (0x3EC)
+    int Timer4;              // 0x010 (0x3F0)
+    int Timer5;              // 0x014 (0x3F4)
+    f32 TmpF;              // 0x018 (0x3F8)
+    f32 TmpF2;              // 0x01C (0x3FC)
     int x20;              // 0x020 (0x400)
     Vec x24;              // 0x024 (0x404)
     void* mot[79];        // 0x030 (0x410)  motion data table (Em10Set / Em10WeaponSet fill it; [0x29..] weapons)
@@ -36,13 +36,13 @@ struct Em10Work {
     cObj* x178;           // 0x178 (0x558)
     cObj* x17C;           // 0x17C (0x55C)
     cEm* pHead;           // 0x180 (0x560)  lost head enemy
-    cModelInfo* x184;     // 0x184 (0x564)  hand parts info (setHand(1))
-    cModelInfo* x188;     // 0x188 (0x568)  hand parts info (setHand(0))
+    cModelInfo* pRHand;     // 0x184 (0x564)  hand parts info (setHand(1))
+    cModelInfo* pLHand;     // 0x188 (0x568)  hand parts info (setHand(0))
     cModelInfo* x18C;     // 0x18C (0x56C)  head parts info (em10HeadSet)
-    cModelInfo* x190;     // 0x190 (0x570)  type 6: body parts info (em10ModelInit)
-    cModelInfo* x194;     // 0x194 (0x574)  type 6: cloth parts info (em10ClothPartsSet)
-    cModelInfo* x198;     // 0x198 (0x578)  type 6: goods parts info (em10GoodsPartsSet)
-    cModelInfo* x19C;     // 0x19C (0x57C)  chainsaw Ganado: sack parts info (em10SackSet)
+    cModelInfo* pRobe;     // 0x190 (0x570)  type 6: body parts info (em10ModelInit)
+    cModelInfo* pCloth;     // 0x194 (0x574)  type 6: cloth parts info (em10ClothPartsSet)
+    cModelInfo* pGoods;     // 0x198 (0x578)  type 6: goods parts info (em10GoodsPartsSet)
+    cModelInfo* pSack;     // 0x19C (0x57C)  chainsaw Ganado: sack parts info (em10SackSet)
     cModel* x1A0;         // 0x1A0 (0x580)
     cModel* x1A4;         // 0x1A4 (0x584)
     cModel* x1A8;         // 0x1A8 (0x588)
@@ -63,18 +63,18 @@ struct Em10Work {
     cModel* pSwitch;      // 0x4E8 (0x8C8)  setGotoSwitch: the switch object walked to
     Vec x4EC;             // 0x4EC (0x8CC)
     Vec x4F8;             // 0x4F8 (0x8D8)
-    f32 x504;             // 0x504 (0x8E4)
-    f32 x508;             // 0x508 (0x8E8)
-    f32 x50C;             // 0x50C (0x8EC)
-    f32 x510;             // 0x510 (0x8F0)
-    f32 x514;             // 0x514 (0x8F4)
-    f32 x518;             // 0x518 (0x8F8)
-    f32 x51C;             // 0x51C (0x8FC)
-    f32 x520;             // 0x520 (0x900)
-    f32 x524;             // 0x524 (0x904)
-    f32 x528;             // 0x528 (0x908)
-    f32 x52C;             // 0x52C (0x90C)
-    f32 x530;             // 0x530 (0x910)
+    f32 Pl_dir;             // 0x504 (0x8E4)
+    f32 Pl_rot;             // 0x508 (0x8E8)
+    f32 Sub_dir;             // 0x50C (0x8EC)
+    f32 Sub_rot;             // 0x510 (0x8F0)
+    f32 L_sub;             // 0x514 (0x8F4)
+    f32 Go_dir;             // 0x518 (0x8F8)
+    f32 Go_rot;             // 0x51C (0x8FC)
+    f32 L_go;             // 0x520 (0x900)
+    f32 L_pl_route;             // 0x524 (0x904)
+    f32 L_sub_route;             // 0x528 (0x908)
+    f32 L_pl_guard;             // 0x52C (0x90C)
+    f32 L_guard;             // 0x530 (0x910)
     Vec x534;             // 0x534 (0x914)
     Vec x540;             // 0x540 (0x920)
     Vec x54C;             // 0x54C (0x92C)
@@ -95,16 +95,16 @@ struct Em10Work {
     Vec x5A4;             // 0x5A4 (0x984)
     class cCtrl* pCtrl12; // 0x5B0 (0x990)  GetCtrlCtrl12()
     class cCtrl* pCtrl11; // 0x5B4 (0x994)  GetCtrlCtrl11()
-    u32 x5B8;             // 0x5B8 (0x998)
-    u32 x5BC;             // 0x5BC (0x99C)
-    u32 x5C0;             // 0x5C0 (0x9A0)
-    u32 x5C4;             // 0x5C4 (0x9A4)
-    f32 x5C8;             // 0x5C8 (0x9A8)
-    f32 x5CC;             // 0x5CC (0x9AC)
-    f32 x5D0;             // 0x5D0 (0x9B0)
-    f32 x5D4;             // 0x5D4 (0x9B4)
-    f32 x5D8;             // 0x5D8 (0x9B8)
-    f32 x5DC;             // 0x5DC (0x9BC)
+    u32 Seid_voice;             // 0x5B8 (0x998)
+    u32 Seid_breath;             // 0x5BC (0x99C)
+    u32 Seid_frame;             // 0x5C0 (0x9A0)
+    u32 Seid_csaw;             // 0x5C4 (0x9A4)
+    f32 Neck_dir_x;             // 0x5C8 (0x9A8)
+    f32 Neck_dir_y;             // 0x5CC (0x9AC)
+    f32 Finger_dir;             // 0x5D0 (0x9B0)
+    f32 Waist_dir_y;             // 0x5D4 (0x9B4)
+    f32 Compress_y;             // 0x5D8 (0x9B8)
+    f32 Target_dir;             // 0x5DC (0x9BC)
     Vec x5E0;             // 0x5E0 (0x9C0)
     u32 x5EC;             // 0x5EC (0x9CC)  ckGoto
     Vec x5F0;             // 0x5F0 (0x9D0)
@@ -371,8 +371,8 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
 void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad);
 void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int prm2, int no3, int prm3, u8 flag);
 void SetObj08Se(cObj* obj, u16 blk, u16 no);
-void Obj01SetEst(cObj* obj, int a, int b, u32 c, int d, int e, int f, int g, int h, int i);
-int GetWepDmVal(cEm* em, u32 a, int b);
+void Obj01SetEst(cObj* obj, int eff, int est, u32 action, int eff2, int est2, int f, int g, int h, int i);
+int GetWepDmVal(cEm* em, u32 wep_no, int near);
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);
 extern "C" {
 void MotSetObj16(cObj* obj, void* mot, int a, int b);

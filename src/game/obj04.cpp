@@ -101,11 +101,11 @@ void cObj04::move()
         f32 ratio = (f32) w->frame / (f32) w->fadeStart;
         w->a = (f32) w->alpha0 * ratio;
     }
-    if (x12F != 2) {
+    if (ot_type != 2) {
         if (w->a < 250.0f) {
-            x12F = 1;
+            ot_type = 1;
         } else {
-            x12F = 0;
+            ot_type = 0;
         }
     }
     if (w->life != 0 && w->life <= w->frame) {

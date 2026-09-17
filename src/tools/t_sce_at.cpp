@@ -1080,7 +1080,7 @@ void tSceAtDataInput_door_PosSet()
         FSet(pG->next_pos.z, pCur->dstPos.z);
         FSet(pG->next_angle, pCur->dstAngle);
         U16Set(pG->room_id_prev, pG->room_id);
-        U8Set(pG->x4FA2, pG->x4F9E);
+        U8Set(pG->Part_old, pG->x4F9E);
         U8Set(pG->next_stage, pCur->dstStage);
         U8Set(pG->next_room_no, pCur->dstRoom);
         U8Set(pG->next_point, pCur->dstX4F9E);
@@ -1123,7 +1123,7 @@ void tSceAtDataInput_door_PosSet()
     FSet(pG->next_pos.z, pW->savePos.z);
     FSet(pG->next_angle, pW->saveRot.y);
     U16Set(pG->room_id_prev, pG->room_id);
-    U8Set(pG->x4FA2, pG->x4F9E);
+    U8Set(pG->Part_old, pG->x4F9E);
     U8Set(pG->next_stage, pW->saveStage);
     U8Set(pG->next_room_no, pW->saveRoom);
     U8Set(pG->next_point, pW->saveX4F9E);

@@ -42,7 +42,7 @@ void Espgen44_Destruct(EspgenWork* w)
 }
 
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen44Work* p = (Espgen44Work*) w->work;
     if (rec->x1 == 0) {

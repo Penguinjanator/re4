@@ -10,12 +10,12 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void PenClothMove(cModel* m, PenCloth* c);   // game/pendulum.cpp
+void PenClothMove(cModel* m, PenCloth* pInfo);   // game/pendulum.cpp
 }
 extern f32 adaHairMax[14];   // game/pl_cloth.cpp
 extern f32 adaHairWindS[14];
 extern f32 adaHairWindR[14];
-extern PlClothAt adaHairAt[6];
+extern CLOTH_AT_SET adaHairAt[6];
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
@@ -33,7 +33,7 @@ static u8 adaHolsterP[5] = {26, 31, 78, 79, 80};
 static u8 adaHolsterUp[5] = {0xFF, 0xFF, 0xFF, 78, 79};
 static u8 adaHolsterDp[5] = {0xFF, 0xFF, 79, 80, 0xFF};
 static f32 adaHolsterMax[5] = {0.2f, 0.2f, 1.0f, 1.0f, 1.0f};
-PlClothAt adaHolsterAt[1] = {
+CLOTH_AT_SET adaHolsterAt[1] = {
     {0x0000, 0x11, 0x11, 1.0f, 170.0f, {50.0f, -120.0f, 30.0f}, {0.0f, 0.0f, 0.0f}},
 };
 
@@ -44,22 +44,22 @@ static void testHairSetAda2(cModel* pl, PlCloth* c)
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = adaHair2Up;
     c->pDown = adaHair2Dp;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pWindS = adaHairWindS;
     c->pWindR = adaHairWindR;
     c->pMax = adaHairMax;
     c->pAt = adaHairAt;
     c->nAt = 6;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
+    c->Gravity = 15.0f;
+    c->Rate = 0.75f;
+    c->Bundle_num = 4;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
+    c->Move_rate = 0.5f;
     c->pModel = 0;
     c->flags = 0x302;
     c->x54 = 0;
@@ -78,23 +78,23 @@ void testHolsterSetAda2(cModel* pl, PlCloth* c)
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = adaHolsterUp;
     c->pDown = adaHolsterDp;
     c->pWindS = 0;
     c->pWindR = 0;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pMax = adaHolsterMax;
     c->pAt = adaHolsterAt;
     c->nAt = 1;
-    c->x3C = 15.0f;
-    c->x40 = 0.7f;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.3f;
+    c->Gravity = 15.0f;
+    c->Rate = 0.7f;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
+    c->Move_rate = 0.3f;
     c->pModel = 0;
-    c->x44 = 0;
+    c->Bundle_num = 0;
     c->flags = 0x302;
     c->x54 = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
@@ -200,7 +200,7 @@ void cPlAda::setModel()
     }
     info->be_flag |= 0x40;
     addModel(info);
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(0);

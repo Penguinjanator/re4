@@ -59,7 +59,7 @@ static u32 battleCheckFlag;
 cEmMgr::cEmMgr() : cManager<cEm>(sizeof(cEm), 2)
 {
     setName("cEmMgr");
-    x34 = 0;
+    Guid = 0;
 }
 
 void cEmMgr::log(const char* fmt, ...)
@@ -192,8 +192,8 @@ int cEmMgr::construct(cEm* p, u32 id)
         p->id = 0x10;
         break;
     }
-    p->serial = x34;
-    x34++;
+    p->serial = Guid;
+    Guid++;
     p->emsetNo = 0xFF;
     p->be_flag |= 0x40;
     p->id = id;
@@ -336,21 +336,21 @@ int cEm::checkThrow()
     return 0;
 }
 
-void cEm::setItem(u16 a, u16 b, u16 c, u16 d, u8 e)
+void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff)
 {
-    itemNo = a;
-    itemNum = b;
-    item3DA = c;
-    item3DC = d;
-    itemFlag = e;
+    itemNo = item_id;
+    itemNum = num;
+    Item_flg = item_flg;
+    Auto_item_flg = auto_item_flg;
+    itemFlag = item_eff;
 }
 
 void cEm::setNoItem()
 {
     itemNo = 0xFFFF;
     itemNum = 0;
-    item3DA = 0;
-    item3DC = 0;
+    Item_flg = 0;
+    Auto_item_flg = 0;
     itemFlag = 0;
 }
 
@@ -399,7 +399,7 @@ void emMove(cEm* em)
     if (em->be_flag & 0x80000000) {
         em->drawAllBoundingBox(em->pInfo);
     }
-    em->x158 = 1.0f;
+    em->invisible_factor2 = 1.0f;
 }
 
 void cEm::move()
@@ -409,7 +409,7 @@ void cEm::move()
 int cEm::initWork()
 {
     be_flag = 0x21;
-    x12E = 0;
+    kindid = 0;
     return 1;
 }
 
@@ -418,20 +418,20 @@ cDmgInfo::cDmgInfo()
     clear();
 }
 
-void cDmgInfo::set(int a, int b, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
+void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
 {
-    stat = a | 1;
-    x1 = b;
+    stat = flag | 1;
+    x1 = timer;
     this->kind = kind;
     pos = *p;
     rad = r;
     part = prt;
 }
 
-void cDmgInfo::set(int a, int b)
+void cDmgInfo::set(int flag, int timer)
 {
-    stat = a;
-    x1 = b;
+    stat = flag;
+    x1 = timer;
 }
 
 void cDmgInfo::clear()

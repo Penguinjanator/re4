@@ -40,6 +40,6 @@ void EmListWaitDelete();
 }
 
 // Creates an enemy from a list record built by the caller (C++ linkage; sce_at, the stage rooms).
-cEm* EmSetEvent(EmListData* d);
+cEm* EmSetEvent(EmListData* pData);
 
 #endif

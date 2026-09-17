@@ -73,7 +73,7 @@ void cObjCivilian::moveReload()
         void* m;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x33);
             break;
@@ -85,7 +85,7 @@ void cObjCivilian::moveReload()
             break;
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -98,7 +98,7 @@ void cObjCivilian::moveReload()
         }
         wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }

@@ -19,7 +19,7 @@ void SetFree(int no, u32 v);
 u32 GetFree(int no);
 void SceMesSet(int no, u32 flags, int sel, int x, int y);
 void SceMesCamSndSet(int no, int cut, int se);
-void SceUpCut(int a, int b, int c, int flags);
+void SceUpCut(int mes_no, int cam_no, int se_no, int flags);
 int SceMesGetSelection();
 void SceMesWait();
 void SceSndCallThunder();

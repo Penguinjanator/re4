@@ -15,7 +15,7 @@
 #include "db_log.h"
 
 extern "C" {
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
 // esp.h declares the effect id as int; this unit passes the u8 `eff` byte straight into r7
@@ -142,15 +142,15 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 4;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 4;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     emRackSatSet(em);
     return em;
@@ -174,10 +174,10 @@ void emRackDmCk(cEmRack* em)
                 case 5:
                 case 7:
                     em->hp = 0;
-                    em->xFC = 1;
-                    em->xFD = 2;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 2;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                     return;
                 }
             }
@@ -253,10 +253,10 @@ void emRackDmCk(cEmRack* em)
     case 8:
         if (part->rad < 36000000.0f) {
             if (w->xE8 <= 0.0f) {
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 3;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 3;
                 return;
             }
             if (part->partsNo != 0) {
@@ -292,10 +292,10 @@ void emRackDmCk(cEmRack* em)
     case 0x2D:
     case 0x2E:
     default:
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 2;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 2;
         break;
     case 0:
     case 0x14:
@@ -307,7 +307,7 @@ void emRackDmCk(cEmRack* em)
 void cEmRack::move()
 {
     emRackDmCk(this);
-    EmRack_R0_move_tbl[xFC](this);
+    EmRack_R0_move_tbl[r_no_0](this);
     if (hp > 0) {
         EmAtCheck(this);
         atari.move();
@@ -317,15 +317,15 @@ void cEmRack::move()
 
 void emRack_R0_Init(cEmRack* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emRack_R0_Move(cEmRack* em)
 {
-    EmRack_R1_move_tbl[em->xFD](em);
+    EmRack_R1_move_tbl[em->r_no_1](em);
 }
 
 void emRack_R1_Set(cEmRack* em)
@@ -350,15 +350,15 @@ void emRack_R1_Down(cEmRack* em)
     cModel* p;
     int done;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->downSpd = 0.0f;
         em->hp = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         p = em->getPartsPtr(0);
         done = 0;
-        switch (em->xFF) {
+        switch (em->r_no_3) {
         case 0:
         default:
             p->rot.x += w->downSpd;
@@ -387,10 +387,10 @@ void emRack_R1_Down(cEmRack* em)
         }
         w->downSpd += 0.01f;
         if (done) {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 1;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 1;
         }
         break;
     }
@@ -406,7 +406,7 @@ void emRack_R1_Break(cEmRack* em)
     EmRackWork* w = EMRACK_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
         flg = GetEtcFlgPtr(w->etcNo, pGS->room_id);
@@ -418,7 +418,7 @@ void emRack_R1_Break(cEmRack* em)
             if (w->eff == 0xFF) {
                 break;
             }
-            switch (em->xFF) {
+            switch (em->r_no_3) {
             case 0:
             default:
                 EstSet((int) em, -1, 0, 0, w->eff, 3, 0, 0, (u32) em, 0);
@@ -444,7 +444,7 @@ void emRack_R1_Break(cEmRack* em)
             if (w->eff == 0xFF) {
                 break;
             }
-            switch (em->xFF) {
+            switch (em->r_no_3) {
             case 0:
             default:
                 EstSet(0, -1, &em->pos, &em->rot, w->eff, 3, 0, 0, 0, 0);
@@ -476,7 +476,7 @@ void emRack_R1_Break(cEmRack* em)
             break;
         }
         emRackSatClear(em);
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -485,7 +485,7 @@ void emRack_R1_Shock(cEmRack* em)
     EmRackWork* w = EMRACK_WK(em);
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->shockTimer = 7;
         em->hp -= 50;
@@ -493,7 +493,7 @@ void emRack_R1_Shock(cEmRack* em)
             em->hp = 1;
         }
         SndCall(6, 0x5F, &em->pos, 0, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         p = em->getPartsPtr(0);
         if (w->shockTimer != 0) {
@@ -504,10 +504,10 @@ void emRack_R1_Shock(cEmRack* em)
             }
         } else {
             p->rot.y = 0.0f;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -638,15 +638,15 @@ void emRackYarareInit(cEmRack* em)
 void cEmRack::setBreak()
 {
     if (type == 4) {
-        xFC = 1;
-        xFD = 2;
-        xFE = 0;
-        xFF = 5;
+        r_no_0 = 1;
+        r_no_1 = 2;
+        r_no_2 = 0;
+        r_no_3 = 5;
     } else {
-        xFC = 1;
-        xFD = 2;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 2;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }
 
@@ -661,34 +661,34 @@ void cEmRack::setDown(Vec* target)
     ang = Muku(&pos, target, rot.y, 3.1415927f);
     abs = fabsf(ang);
     if (ang < 0.0f) {
-        xFF = 3;
+        r_no_3 = 3;
     } else {
-        xFF = 2;
+        r_no_3 = 2;
     }
     if (abs < 0.78539819f) {
-        xFF = 1;
+        r_no_3 = 1;
     }
     if (abs > 2.3561945f) {
-        xFF = 0;
+        r_no_3 = 0;
     }
-    if (xFF == 0 && type == 1) {
-        xFC = 1;
-        xFD = 1;
-        xFE = 0;
+    if (r_no_3 == 0 && type == 1) {
+        r_no_0 = 1;
+        r_no_1 = 1;
+        r_no_2 = 0;
     } else {
-        xFC = 1;
-        xFD = 2;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 2;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }
 
 void cEmRack::setShock()
 {
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmRack::setEff(u8 eff)
@@ -698,28 +698,28 @@ void cEmRack::setEff(u8 eff)
     w->eff = eff;
 }
 
-void cEmRack::setRange(f32 a, f32 b, f32 c, f32 d)
+void cEmRack::setRange(f32 n, f32 e, f32 s, f32 w)
 {
     RotMatrix(rackMat, &rot);
     TransMatrix(rackMat, &pos);
     PSMTXInverse(rackMat, rackInvMat);
-    if (a > 0.0f) {
-        rackRange[0] = a;
+    if (n > 0.0f) {
+        rackRange[0] = n;
     } else {
         rackRange[0] = 0.0f;
     }
-    if (b > 0.0f) {
-        rackRange[1] = b;
+    if (e > 0.0f) {
+        rackRange[1] = e;
     } else {
         rackRange[1] = 0.0f;
     }
-    if (c > 0.0f) {
-        rackRange[2] = c;
+    if (s > 0.0f) {
+        rackRange[2] = s;
     } else {
         rackRange[2] = 0.0f;
     }
-    if (d > 0.0f) {
-        rackRange[3] = d;
+    if (w > 0.0f) {
+        rackRange[3] = w;
     } else {
         rackRange[3] = 0.0f;
     }

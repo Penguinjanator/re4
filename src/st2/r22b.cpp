@@ -49,10 +49,10 @@ extern "C" void R22bEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadExec("event/evd/r22bs00.evd", 0, 0);
         SceSetChapterEnd(0xA, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
     }
 }
 

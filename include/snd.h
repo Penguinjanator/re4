@@ -295,7 +295,7 @@ int SndRoomBgmVolReset(u8 no, int time);
 int SndRoomBgmMute(u8 no, int on, int time);
 void SndRoomBgmMuteAll(int on, int time);
 void SndRoomStrStartCheck();
-void SndRoomStrStart(int a, int time, int loop);
+void SndRoomStrStart(int flag, int time, int loop);
 void SndRoomStrStop(int time);
 int SndRoomStrVolSet(int vol, int time);
 int SndRoomStrVolReset(int time);

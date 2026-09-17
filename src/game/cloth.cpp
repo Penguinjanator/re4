@@ -66,9 +66,9 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     int i;
     int j;
 
-    x4 = w;
-    x8 = h;
-    xC = d;
+    Wgap = w;
+    Hgap = h;
+    Scale = d;
     nx = nx_;
     ny = ny_;
     x70 = flag_;
@@ -89,8 +89,8 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     spd = ps;
     for (j = 0; j < ny_; j++) {
         for (i = 0; i < nx_; i++) {
-            pp->x = i * x4;
-            pp->y = -j * x8;
+            pp->x = i * Wgap;
+            pp->y = -j * Hgap;
             if (flag_ != 0 && (j >= 0 && j <= 3)) {
                 int m = i % 6;
                 pp->z = sinf(m * 6.2831855f / 6.0f) * -2.0f;
@@ -108,14 +108,14 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
         calcSpeed(0.9f);
         move();
     }
-    x4C.x = x4 * nx * 0.5f * xC;
-    x4C.y = 0.0f;
-    x4C.z = 0.0f;
-    PSMTXMultVec(mat, &x4C, &x4C);
-    x58 = x4 * nx * 0.5f * xC;
+    center.x = Wgap * nx * 0.5f * Scale;
+    center.y = 0.0f;
+    center.z = 0.0f;
+    PSMTXMultVec(mat, &center, &center);
+    radius = Wgap * nx * 0.5f * Scale;
     tex = tex_;
     tlut = tlut_;
-    x64 = p_;
+    pTobjA = p_;
     flag = 0x31;
     colR = 0xFF;
     colG = 0xFF;
@@ -203,32 +203,32 @@ void Cloth::calcSpeed(f32 damping)
             if (j != 0) {
                 PSVECSubtract(&p[k - 1], &p[k], &v);
                 len = PSVECMag(&v);
-                if (len > x4) {
-                    PSVECScale(&v, &v, K_PARAM * (len - x4) / len);
+                if (len > Wgap) {
+                    PSVECScale(&v, &v, K_PARAM * (len - Wgap) / len);
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
             if (j != nx - 1) {
                 PSVECSubtract(&p[k + 1], &p[k], &v);
                 len = PSVECMag(&v);
-                if (len > x4) {
-                    PSVECScale(&v, &v, K_PARAM * (len - x4) / len);
+                if (len > Wgap) {
+                    PSVECScale(&v, &v, K_PARAM * (len - Wgap) / len);
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
             if (i != 0) {
                 PSVECSubtract(&p[k - w], &p[k], &v);
                 len = PSVECMag(&v);
-                if (len > x8) {
-                    PSVECScale(&v, &v, K_PARAM * (len - x8) / len);
+                if (len > Hgap) {
+                    PSVECScale(&v, &v, K_PARAM * (len - Hgap) / len);
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
             if (i != ny - 1) {
                 PSVECSubtract(&p[k + w], &p[k], &v);
                 len = PSVECMag(&v);
-                if (len > x8) {
-                    PSVECScale(&v, &v, K_PARAM * (len - x8) / len);
+                if (len > Hgap) {
+                    PSVECScale(&v, &v, K_PARAM * (len - Hgap) / len);
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
@@ -324,12 +324,12 @@ void ClothDraw()
     }
 }
 
-void clothTrans(Cloth* c)
+void clothTrans(Cloth* pCL)
 {
     Mtx texMtx;
-    GXTexObj* tex = c->tex;
-    void* tex2 = c->x64;
-    GXTlutObj* tlut = c->tlut;
+    GXTexObj* tex = pCL->tex;
+    void* tex2 = pCL->pTobjA;
+    GXTlutObj* tlut = pCL->tlut;
     int nStages;
     int i;
     int j;
@@ -355,7 +355,7 @@ void clothTrans(Cloth* c)
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
         model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
-    model.pos = c->x4C;
+    model.pos = pCL->center;
     LightMgr.setClothN(&model, 8);
     if (model.lightInfo.size.x > model.lightInfo.size.y) {
         r = model.lightInfo.size.x;
@@ -363,7 +363,7 @@ void clothTrans(Cloth* c)
         r = model.lightInfo.size.y;
     }
     commonClothLightSet(model.lightInfo.pLight, 8, model.pos, r);
-    GXSetChanMatColor(4, c->color);
+    GXSetChanMatColor(4, pCL->color);
     GXSetNumTexGens(1);
     GXLoadTexObj(tex, 0);
     if (tlut != 0) {
@@ -371,7 +371,7 @@ void clothTrans(Cloth* c)
     }
     GXLoadTexMtxImm(texMtx, 0x1E, 1);
     GXSetTexCoordGen2(0, 1, 4, 0x1E, 0, 0x7D);
-    if (c->x74 == 0) {
+    if (pCL->x74 == 0) {
         GXSetBlendMode(1, 4, 5, 0);
     } else {
         GXSetBlendMode(1, 1, 1, 0);
@@ -391,8 +391,8 @@ void clothTrans(Cloth* c)
     {
         Mtx scale;
         Mtx tmp;
-        PSMTXScale(scale, c->xC, c->xC, c->xC);
-        PSMTXConcat(c->mat, scale, tmp);
+        PSMTXScale(scale, pCL->Scale, pCL->Scale, pCL->Scale);
+        PSMTXConcat(pCL->mat, scale, tmp);
         PSMTXConcat(pG->Cam.viewMat, tmp, scale);
         GXLoadPosMtxImm(scale, 0);
         PSMTXInverse(scale, tmp);
@@ -407,23 +407,23 @@ void clothTrans(Cloth* c)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 10, 0, 4, 0);
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
-    for (i = 0; i < c->ny - 1; i++) {
-        GXBegin(0x98, 0, c->nx * 2);
-        for (j = 0; j < c->nx * 2; j++) {
+    for (i = 0; i < pCL->ny - 1; i++) {
+        GXBegin(0x98, 0, pCL->nx * 2);
+        for (j = 0; j < pCL->nx * 2; j++) {
             Vec* pp;
             Vec* pn;
             if (j & 1) {
-                k = c->nx * (i + 1) + j / 2;
+                k = pCL->nx * (i + 1) + j / 2;
                 t = 1;
             } else {
-                k = i * c->nx + j / 2;
+                k = i * pCL->nx + j / 2;
                 t = 0;
             }
-            pp = &c->pos[k];
-            pn = &c->nrm[k];
+            pp = &pCL->pos[k];
+            pn = &pCL->nrm[k];
             GXPosition3f32(pp->x, pp->y, pp->z);
             GXNormal3f32(pn->x, pn->y, pn->z);
-            GXTexCoord2f32((f32) (j / 2) / (f32) (c->nx - 1), (f32) (i + t) / (f32) (c->ny - 1));
+            GXTexCoord2f32((f32) (j / 2) / (f32) (pCL->nx - 1), (f32) (i + t) / (f32) (pCL->ny - 1));
         }
     }
 }

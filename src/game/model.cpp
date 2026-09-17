@@ -73,7 +73,7 @@ cModel::cModel()
 {
     AtariInfoConstruct(&atari);
     LightAreaInit(&litArea);
-    x103 = 0xFF;
+    alpha_omit = 0xFF;
     speed.x = 0.0f;
     speed.y = 0.0f;
     speed.z = 0.0f;
@@ -84,29 +84,29 @@ cModel::cModel()
     wallNrm.y = 0.0f;
     wallNrm.z = 0.0f;
     pParts = 0;
-    xFC = 0;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 0;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
     id = 0;
     type = 0;
     nParts = 0;
     pFloorNrm = 0;
-    x12D = 0;
-    x12E = 0;
-    x12F = 0;
+    TevScaleGroup = 0;
+    kindid = 0;
+    ot_type = 0;
     pCldShMd = 0;
     shdCol = 0;
-    x135 = 0;
-    x136 = 0;
-    x137 = 0;
+    CullMode = 0;
+    Shader_type = 0;
+    Refract_pow = 0;
     fixParts = 0;
     fixPos.x = 0.0f;
-    x14C = 0;
-    x14D = 0;
-    x14E = 0;
-    x14F = 0;
-    x150w = 0;
+    invisible_trg = 0;
+    invisible_old = 0;
+    invisible_mode = 0;
+    invisible_busy = 0;
+    invisible_timer = 0;
     pInfo = 0;
     pShMdInfo = 0;
     fixPos.y = 0.0f;
@@ -116,7 +116,7 @@ cModel::cModel()
     mot.blend = 0;
     mot.flip = 0;
     x300 = 0;
-    x304 = 0;
+    pPath = 0;
     pTexChg = 0;
 }
 
@@ -148,16 +148,16 @@ int cModel::modelInit(void* bin, void* tpl)
         releaseModelInfo();
         return 0;
     }
-    if (pG->flags_54 & 0x800000) {
+    if (pG->System_flg & 0x800000) {
         alpha = 0.0f;
     } else {
         alpha = 1.0f;
     }
     be_flag |= 6;
-    x158 = 1.0f;
-    U8Set(x12D, 0);
-    U8Set(x135, 0);
-    if (x12E == 0) {
+    invisible_factor2 = 1.0f;
+    U8Set(TevScaleGroup, 0);
+    U8Set(CullMode, 0);
+    if (kindid == 0) {
         be_flag |= 0x10;
     }
     pShMdInfo = 0;
@@ -229,7 +229,7 @@ void cModel::setPartsOffset(void* bin)
     partsWorldCalc();
     for (p = pPartsHead; p; p = p->pNext) {
         p->oldWorldPos = p->worldPos;
-        p->x88 = p->worldPos;
+        p->world_old2 = p->worldPos;
     }
 }
 
@@ -489,7 +489,7 @@ void cModel::updateOldPos()
 
     oldPos = pos;
     for (p = pPartsHead; p; p = p->pNext) {
-        p->x88 = p->oldWorldPos;
+        p->world_old2 = p->oldWorldPos;
         p->oldWorldPos = p->worldPos;
     }
 }
@@ -516,7 +516,7 @@ void cModel::setPos(Vec* pos)
         mat[2][3] = this->pos.z;
     }
     lightInfo.updateMatrix(this);
-    atari.x26 |= 1;
+    atari.m_stat |= 1;
 }
 
 void cModel::setAng(Vec* ang)
@@ -1154,7 +1154,7 @@ cParts::cParts()
 }
 
 // Bounding box of the original vertices (s16 * 2^-shift, 8 bytes each): centre and half size.
-void getBoundingBox(ModelData* d, ModelBound* b)
+void getBoundingBox(ModelData* d, ModelBound* pBox)
 {
     f32 maxZ = -65536.0f;
     f32 maxY = -65536.0f;
@@ -1195,12 +1195,12 @@ void getBoundingBox(ModelData* d, ModelBound* b)
             v += 4;
         } while (--i != 0);
     }
-    b->size.x = (maxX - minX) * 0.5f;
-    b->size.y = (maxY - minY) * 0.5f;
-    b->size.z = (maxZ - minZ) * 0.5f;
-    b->center.x = maxX - b->size.x;
-    b->center.y = maxY - b->size.y;
-    b->center.z = maxZ - b->size.z;
+    pBox->size.x = (maxX - minX) * 0.5f;
+    pBox->size.y = (maxY - minY) * 0.5f;
+    pBox->size.z = (maxZ - minZ) * 0.5f;
+    pBox->center.x = maxX - pBox->size.x;
+    pBox->center.y = maxY - pBox->size.y;
+    pBox->center.z = maxZ - pBox->size.z;
 }
 
 cPartsMgr::cPartsMgr() : cManager<cParts>(sizeof(cParts), 0)

@@ -13,7 +13,7 @@ struct QfpsOfs {
     Vec campos;    // 0x00
     Vec campos2;   // 0x0C  close point
     Vec target;    // 0x18
-    f32 x24;       // 0x24  roll
+    f32 Roll;       // 0x24  roll
     f32 fovy;      // 0x28
 };
 
@@ -35,7 +35,7 @@ public:
     Vec dir_ofs;                  // 0x168  one-shot look direction applied to the base matrix
     Mtx pl_mat;                   // 0x174  player matrix saved by setPlayerLocation
     Vec* pl_nrm;                  // 0x1A4  player floor normal (cModel::pFloorNrm)
-    f32 x1A8;                     // 0x1A8
+    f32 m_zoom_ratio;                     // 0x1A8
     f32 smooth_ratio;             // 0x1AC  CamSmth.ratio while the player moves
     u8 trans_type;                // 0x1B0
     u8 ready_type;                // 0x1B1

@@ -58,7 +58,7 @@ void cObjRocket::move()
     static int blastDbg = 0;
     cPlayer* pl = pPL;
 
-    switch (xFC) {
+    switch (r_no_0) {
     case 0:
         if (pl->pWep->pObj && pl->pWep->pObj->isTrans()) {
             be_flag |= 2;
@@ -104,7 +104,7 @@ void cObjRocket::move()
             AddWaterPower(&pos, 1.0f);
             SndCall(1, 0x17, &pos, 0, 0, 0);
             PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
-            xFC = 2;
+            r_no_0 = 2;
         } else {
             u32 res;
 
@@ -116,7 +116,7 @@ void cObjRocket::move()
                 PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
                 EstSet(0, -1, &pos, 0, 0, 0x27, 0, 10, 0, 0);
                 SndCall(1, 0x14, &pos, 0, 0, 0);
-                xFC = 2;
+                r_no_0 = 2;
             } else {
                 Vec nrm;
                 u32 attr;
@@ -156,22 +156,22 @@ void cObjRocket::move()
                     pG->bell_stat = 1;
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                     PlWepHitCheck2(0, &rocket.oldPos, &pos, 0x12, 0, blastDmWidth);
-                    xFC = 2;
+                    r_no_0 = 2;
                 }
             }
         }
         if (motFrame >= (f32) (motSeqMax - 1)) {
-            xFC = 2;
+            r_no_0 = 2;
         }
         rocket.timer--;
         if (rocket.timer < 0) {
-            xFC = 2;
+            r_no_0 = 2;
         }
         break;
     }
     case 2:
         ObjMgr.destroy(this);
-        xFC = 3;
+        r_no_0 = 3;
         break;
     }
 }
@@ -183,12 +183,12 @@ void cObjRocket::fire()
     EstSet((int) this, -1, 0, 0, 0, 0x29, 0, 10, 0, 0);
     rocket.timer = 300;
     type = 1;
-    xFC = 1;
+    r_no_0 = 1;
 }
 
 void cObjRocket::beginEvent()
 {
-    if (xFC) {
+    if (r_no_0) {
         ObjMgr.destroy(this);
     }
 }
@@ -301,7 +301,7 @@ int cObjLauncher::ckBoss()
         partsWorldCalc();
         getMarkerPos(&a, &b);
         PSVECSubtract(&b, &a, &a);
-        BitOn(pG->flags_54, 0x400);
+        BitOn(pG->System_flg, 0x400);
         SND_BIT_SET(&pG->flags_174, (u32) pPL->boss1);
         return 1;
     }
@@ -377,9 +377,9 @@ void cObjLauncher::drop(int se)
     setDisp(0, 0);
 }
 
-void cObjLauncher::grip(int a)
+void cObjLauncher::grip(int onoff)
 {
-    if (pG->wep_type == 2 || a == 1) {
+    if (pG->wep_type == 2 || onoff == 1) {
         PSet(pParts->pParent, pPL->getPartsPtr(10));
         motionSet(WEP_ARC_PTR(0x1D), 0, 0, 1, 0);
     } else {

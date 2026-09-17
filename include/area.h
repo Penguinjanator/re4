@@ -68,22 +68,22 @@ struct GeoCone;
 int AreaHitCheck(void* area, Vec* pos);
 
 extern "C" {
-int areaHitCheck_xz4(AreaXZ4* a, Vec* pos);
-int areaHitCheck_Cylinder(AreaCylinder* a, Vec* pos);
+int areaHitCheck_xz4(AreaXZ4* pXz4, Vec* pos);
+int areaHitCheck_Cylinder(AreaCylinder* pCld, Vec* pos);
 int AreaViewCheck(AreaData* area, GeoCone* cone);
 void AreaGetCenterPos(Vec* out, AreaData* area);
 void AreaGetInsidePos(Vec* out, AreaData* area);
 void AreaDataInit(AreaData* area, Vec* pos, u8 type, f32 size, f32 height);
 void area_Draw_sphere(Vec pos, f32 r, u32 color, Mtx mtx);
-void area_Draw_line(Vec a, Vec b, u32 color, Mtx mtx);
+void area_Draw_line(Vec pos1, Vec pos2, u32 color, Mtx mtx);
 void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate);
-void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
-void area_cylinder_Edit(AreaCylinder* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
-void area_eye_trigger_Edit(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
+void area_xz4_Edit(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
+void area_cylinder_Edit(AreaCylinder* pCld, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
+void area_eye_trigger_Edit(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate);
 void AreaDataDisp(AreaData* area, u32 color, int flag, Mtx mtx);
-void area_xz4_Disp(AreaXZ4* a, u32 color, int flag, Mtx mtx);
-void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx);
-void area_eye_trigger_Disp(AreaEyeTrigger* a, u32 color, int flag, Mtx mtx);
+void area_xz4_Disp(AreaXZ4* pXz4, u32 color, int flag, Mtx mtx);
+void area_cylinder_Disp(AreaCylinder* pCld, u32 color, int flag, Mtx mtx);
+void area_eye_trigger_Disp(AreaEyeTrigger* pEtg, u32 color, int flag, Mtx mtx);
 void AreaDataInfoDisp(AreaData* area, int x, s16 y);
 void AreaDataHelpDisp(AreaData* area, int x, s16 y);
 }

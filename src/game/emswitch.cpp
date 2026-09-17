@@ -173,10 +173,10 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     w->timer = 0;
     w->ckDist = 1500.0f;
     em->setActButton(1);
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     return em;
 }
 
@@ -188,7 +188,7 @@ void cEmSwitch::move()
         w->timer--;
     }
     emSwitchDmCk(this);
-    EmSwitch_R1_move_tbl[xFD](this);
+    EmSwitch_R1_move_tbl[r_no_1](this);
     EmAtCheck(this);
 }
 
@@ -203,10 +203,10 @@ void emSwitch_R1_Open(cEmSwitch* em)
     EmSwitchWork* w = EMSWITCH_WK(em);
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         SndCall(6, 0x23, &em->pos, 0, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         p = em->getPartsPtr(1);
         p->rot.x -= 0.17453292f;
@@ -222,15 +222,15 @@ void emSwitch_R1_Open(cEmSwitch* em)
             if (w->mode == 2) {
                 w->state = 0;
                 w->opened = 0;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             } else {
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
         }
         break;
@@ -243,10 +243,10 @@ void emSwitch_R1_Close(cEmSwitch* em)
     EmSwitchWork* w = EMSWITCH_WK(em);
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         SndCall(6, 0x23, &em->pos, 0, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         p = em->getPartsPtr(1);
         p->rot.x += 0.17453292f;
@@ -275,15 +275,15 @@ void emSwitch_R1_Close(cEmSwitch* em)
             if (w->mode == 3) {
                 w->state = 0;
                 w->opened = 1;
-                em->xFC = 1;
-                em->xFD = 1;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 1;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             } else {
-                em->xFC = 1;
-                em->xFD = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
             }
         }
         break;
@@ -311,10 +311,10 @@ void cEmSwitch::setOpen()
     if (w->state == 2) {
         w->state = 0;
         w->opened = 1;
-        xFC = 1;
-        xFD = 1;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 1;
+        r_no_2 = 0;
+        r_no_3 = 0;
         if (w->pConnect) {
             w->pConnect->setOpen();
         }
@@ -328,10 +328,10 @@ void cEmSwitch::setClose()
     if (w->state == 1 && w->mode != 1) {
         w->state = 0;
         w->opened = 0;
-        xFC = 1;
-        xFD = 2;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 2;
+        r_no_2 = 0;
+        r_no_3 = 0;
         if (w->pConnect) {
             w->pConnect->setClose();
         }
@@ -369,16 +369,16 @@ void cEmSwitch::setBarred(cEmBarred* b)
     }
 }
 
-void cEmSwitch::setBarred2nd(cEmBarred* b)
+void cEmSwitch::setBarred2nd(cEmBarred* pBarred)
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    w->pBarred2 = b;
+    w->pBarred2 = pBarred;
     if (w->state == 1) {
-        b->setOpened();
+        pBarred->setOpened();
     }
     if (w->state == 2) {
-        b->setClosed();
+        pBarred->setClosed();
     }
 }
 

@@ -318,7 +318,7 @@ int MercSysMoveStart(MercSysWork* wk)
             MotionClear(smd, 0);
             ObjMgr.destroy(smd);
             CamCtrl.clearAttachCamera();
-            CamCtrl.flags_2C &= ~8;
+            CamCtrl.m_system_flag &= ~8;
             st[0] = 0;
             break;
         }
@@ -647,11 +647,11 @@ int MercSysResultMove(MercSysWork* wk)
                 if (IdIsAnimEnd(&mercId.idsys, 0, ID_MERC_MES)) {
                     FadeSetW(2, 0, 0, 0);
                     MercSysResultInit(wk);
-                    disp_bak = pG->flags_58;
-                    BitSet(pG->flags_58, 0xFFFFFFFF);
-                    BitOff(pG->flags_58, 0x2000);
-                    BitOff(pG->flags_58, 0x800);
-                    BitOff(pG->flags_58, 0x10000);
+                    disp_bak = pG->Disp_flg;
+                    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+                    BitOff(pG->Disp_flg, 0x2000);
+                    BitOff(pG->Disp_flg, 0x800);
+                    BitOff(pG->Disp_flg, 0x10000);
                     stop_bak = pG->flags_170;
                     BitSet(pG->flags_170, 0xFFFFFFFF);
                     BitOff(pG->flags_170, 0x00800000);
@@ -699,7 +699,7 @@ int MercSysResultMove(MercSysWork* wk)
         SceSleep(1);
         FadeSetW(2, 0, 0, 0);
         CardSysSave();
-        pG->flags_54 |= 0x04000000;
+        pG->System_flg |= 0x04000000;
         CamCtrl.Comeback(0);
         SceEventEnd(0);
     }
@@ -784,7 +784,7 @@ int MercSysSetPoint(int kind, int pt)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->flags_54 & 0x40000000)) {
+    if (!(pG->System_flg & 0x40000000)) {
         return 1;
     }
     if (kind == 9) {
@@ -828,7 +828,7 @@ int MercSysSetAddTime(int sec)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->flags_54 & 0x40000000)) {
+    if (!(pG->System_flg & 0x40000000)) {
         return 1;
     }
     wk->addTime += sec;
@@ -844,7 +844,7 @@ int MercSysSetBonusTime(int frames)
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
         return 0;
     }
-    if (!(pG->flags_54 & 0x40000000)) {
+    if (!(pG->System_flg & 0x40000000)) {
         return 1;
     }
     if (wk->bonusTimer == 0) {
@@ -966,7 +966,7 @@ void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int m
         } else {
             u->flags |= 8;
             show = 1;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = d[i];
         }
     }
@@ -980,7 +980,7 @@ void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
         pLog->err(0, 0, "IdSetTexNo : pIdUnit is NULL");
     } else {
         u->no = texNo;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
     }
 }
 

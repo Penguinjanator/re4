@@ -377,7 +377,7 @@ int retry_load_menu(OptionScreen* o)
                 o->sub++;
             }
             o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
-            if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+            if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
                 if (o->sub == 1) {
                     if (Key.trg & KEY_UP) {
                         o->sub = 0;
@@ -402,7 +402,7 @@ int retry_load_menu(OptionScreen* o)
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
-            if (((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) && i == 1) {
+            if (((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) && i == 1) {
                 u->col0[0] = 0x40;
                 u->col0[1] = 0x40;
                 u->col0[2] = 0x40;
@@ -482,7 +482,7 @@ int retry_load_menu(OptionScreen* o)
         break;
     case 3:
         if (SndEndCheck(snd_id)) {
-            pG->flags_54 |= 0x04000000;
+            pG->System_flg |= 0x04000000;
         }
         break;
     }
@@ -825,7 +825,7 @@ int brightness_menu(OptionScreen* o)
         digits /= 10;
         u = IdSys.unitPtr((u8) (3 - j), ID_OPT);
         u->no = d;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         if (o->sub == 0) {
             setColor(u, base);
         } else {
@@ -983,7 +983,7 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
         } else {
             u->flags |= 8;
             show = 1;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = d[i];
         }
     }
@@ -1017,7 +1017,7 @@ int GameResult::move()
     }
     num(hit, 3, 1, 1, ID_RESULT, 0);
     num(pG->em_die_cnt2, 4, 1, 0x11, ID_RESULT, 0);
-    num(pG->x833A, 3, 1, 0x21, ID_RESULT, 0);
+    num(pG->g_continue_cnt, 3, 1, 0x21, ID_RESULT, 0);
     SecToTime(pG->play_time, &h, &m, &s);
     num(h, 2, 0, 0x35, ID_RESULT, 0);
     num(m, 2, 0, 0x33, ID_RESULT, 0);
@@ -1025,7 +1025,7 @@ int GameResult::move()
     u = IdSys.unitPtr(0x30, ID_RESULT);
     u->no = 0xB;
     u->flags |= 8;
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u = IdSys.unitPtr(0, ID_RESULT);
     if (pG->x4F8E > 1) {
         u->flags |= 8;
@@ -1087,26 +1087,26 @@ int ChapterEnd::move()
 
     getChapterSection(chapter, &chap, &sec);
     u = IdSys.unitPtr(0, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = chap;
     u = IdSys.unitPtr(1, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = char_bar;
     u = IdSys.unitPtr(2, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = sec;
     u = IdSys.unitPtr(0x1A, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = sec - 1;
     getChapterSection(chapter + 1, &chap2, &sec2);
     u = IdSys.unitPtr(3, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = chap2;
     u = IdSys.unitPtr(4, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = char_bar;
     u = IdSys.unitPtr(5, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = sec2;
     if (pG->shotTotal != 0) {
         hit = (int) ((f32) pG->shotHit * 100.0f / (f32) pG->shotTotal + 0.5f);
@@ -1115,7 +1115,7 @@ int ChapterEnd::move()
     }
     num(hit, 3, 1, 8, ID_RESULT, 1);
     u = IdSys.unitPtr(9, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = char_per;
     if (pG->shotTotal2 != 0) {
         hit = (int) ((f32) pG->shotHit2 * 100.0f / (f32) pG->shotTotal2 + 0.5f);
@@ -1124,12 +1124,12 @@ int ChapterEnd::move()
     }
     num(hit, 3, 1, 0xC, ID_RESULT, 1);
     u = IdSys.unitPtr(0xD, ID_RESULT);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = char_per;
     num(pG->em_die_cnt, 3, 1, 0x10, ID_RESULT, 1);
     num(pG->em_die_cnt2, 3, 1, 0x13, ID_RESULT, 1);
     num(pG->x8338, 3, 1, 0x16, ID_RESULT, 1);
-    num(pG->x833A, 3, 1, 0x19, ID_RESULT, 1);
+    num(pG->g_continue_cnt, 3, 1, 0x19, ID_RESULT, 1);
     return 0;
 }
 

@@ -42,7 +42,7 @@ static void r219_openedShelf(int no);
 
 void R219Init()
 {
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 48 "D:/Bio4/Prog/r219.cpp"
     r219_work = (R219Work*) MEM_CALLOC(sizeof(R219Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
@@ -50,10 +50,10 @@ void R219Init()
             pG->flags_5018 |= 0x04000000;
         }
     }
-    SmdGetObjPtr(0x27)->x136 = 2;
-    SmdGetObjPtr(0x27)->x137 = 0x10;
-    SmdGetObjPtr(0x27)->x138 = 0x40;
-    pPL->x12F = 1;
+    SmdGetObjPtr(0x27)->Shader_type = 2;
+    SmdGetObjPtr(0x27)->Refract_pow = 0x10;
+    SmdGetObjPtr(0x27)->Refract_ratio = 0x40;
+    pPL->ot_type = 1;
     SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) toroko_go, 0, 1);
     SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) toroko_go, (void*) 1, 1);
     if (pG->room_id_prev == 0x219) {

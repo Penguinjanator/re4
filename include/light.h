@@ -54,9 +54,9 @@ public:
     u8 parentType;     // 0x1C
     u8 kind;           // 0x1D
     u8 attr;           // 0x1E
-    u8 x2B;            // 0x1F
+    u8 Priority;            // 0x1F
     u32 parentId;      // 0x20  parts no << 16 | parent no
-    u16 x30;           // 0x24  hit adjust radius
+    u16 HitRadius;           // 0x24  hit adjust radius
     u16 x32;           // 0x26
     u32 x34;           // 0x28
     LightSpot spot;    // 0x2C
@@ -80,7 +80,7 @@ public:
     u8 parentType;     // 0x28  0 none, 1 enemy, 2 scroll group, 3 room etc model, 4 object
     u8 kind;           // 0x29  (0x7F = item light)
     u8 attr;           // 0x2A  (db_work "ATTR")
-    u8 x2B;            // 0x2B
+    u8 Priority;            // 0x2B
     union {
         u32 parentId;  // 0x2C  parts no << 16 | parent no
         struct {
@@ -88,7 +88,7 @@ public:
             u16 no;        // 0x2E
         } parent;
     };
-    u16 x30;           // 0x30  hit adjust radius
+    u16 HitRadius;           // 0x30  hit adjust radius
     u16 x32;           // 0x32
     u32 x34;           // 0x34
     union {
@@ -170,7 +170,7 @@ class cPenWind {
 public:
     s8 dir;            // 0x00  angle -128..127 (units of pi/127)
     u8 power;          // 0x01
-    u8 x2;             // 0x02
+    u8 frequency;             // 0x02
 
     void set();
 };
@@ -196,10 +196,10 @@ struct cLightEnv {
         LightFog mfog;   // 0x18  mirror fog (db_light "MIRROR FOG")
         u8 pad_18[0x28 - 0x18];
     };
-    s32 x28;         // 0x28  focus depth (screen z, 0..65535)
-    u8 x2C;          // 0x2C
-    u8 x2D;          // 0x2D  focus level (0 = depth of field off)
-    u8 x2E;          // 0x2E  focus mode (0 near, 1 far)
+    s32 FocusZ;         // 0x28  focus depth (screen z, 0..65535)
+    u8 FocusFlag;          // 0x2C
+    u8 FocusLevel;          // 0x2D  focus level (0 = depth of field off)
+    u8 FocusMode;          // 0x2E  focus mode (0 near, 1 far)
     u8 blurAlpha;    // 0x2F  Filter00SetAlpha
     u8 tuneOn;       // 0x30  bit0: tune colours below are valid
     u8 pad_31[3];
@@ -272,8 +272,8 @@ public:
     u8 pad_198[4];
     GXColor tune[3];       // 0x19C
     f32 colBrendRate;      // 0x1A8
-    u32 x1AC;              // 0x1AC
-    cLit* x1B0;            // 0x1B0  lit built by the light tool (db_light updateLit), x1AC bit0: valid
+    u32 dbFlag;              // 0x1AC
+    cLit* dbMem;            // 0x1B0  lit built by the light tool (db_light updateLit), x1AC bit0: valid
     u8 pad_1B4[0x204 - 0x1B4];
     u32 x204;              // 0x204
 

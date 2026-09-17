@@ -808,7 +808,7 @@ int weaponSelect(int sel)
             itemSave();
         }
         ItemMgr.clear();
-        SubScreenWk.x2AE = SubScreenWk.x2AF = ItemMgr.set_range(0);
+        SubScreenWk.board_size = SubScreenWk.board_next = ItemMgr.set_range(0);
         pl->weaponRelease();
         if (wep != 7 && wep != 0xB && wep != 0x13) {
             wep = 7;
@@ -825,7 +825,7 @@ int weaponSelect(int sel)
             itemSave();
         }
         ItemMgr.clear();
-        SubScreenWk.x2AE = SubScreenWk.x2AF = ItemMgr.set_range(1);
+        SubScreenWk.board_size = SubScreenWk.board_next = ItemMgr.set_range(1);
         pl->weaponRelease();
         if (wep != 2 && wep != 9 && wep != 0x13) {
             wep = 2;
@@ -856,7 +856,7 @@ void itemSave()
         pLog->err(0, 0, "ITEM BACKUP FAILED.");
     } else {
         ItemMgr.save(r22c_work.p->itemSaveBuf);
-        r22c_work.p->itemSel = (s8) SubScreenWk.x2AE;
+        r22c_work.p->itemSel = (s8) SubScreenWk.board_size;
     }
 }
 
@@ -899,7 +899,7 @@ void gameEnd()
     FadeSetW(2, 5, 0, 0);
     SceSleep(5);
     ItemMgr.clear();
-    SubScreenWk.x2AE = SubScreenWk.x2AF = (u8) r22c_work.p->itemSel;
+    SubScreenWk.board_size = SubScreenWk.board_next = (u8) r22c_work.p->itemSel;
     ItemMgr.load(r22c_work.p->itemSaveBuf);
     Mem_free(r22c_work.p->itemSaveBuf);
     r22c_work.p->itemSaveBuf = 0;
@@ -1725,7 +1725,7 @@ void ResultScreen::highscore(int score)
         } else {
             score = 1;
             u->flags |= 8;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[i];
         }
     }
@@ -1772,19 +1772,19 @@ int ResultScreen::move(int flag)
     }
     n = r22c_work.p->hits;
     u = IdSys.unitPtr(1, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     n /= 10;
     u = IdSys.unitPtr(2, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     n = r22c_work.p->total;
     u = IdSys.unitPtr(0x11, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     n /= 10;
     u = IdSys.unitPtr(0x12, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     n = r22c_work.p->score;
     for (i = 0; i < 6; i++) {
@@ -1799,7 +1799,7 @@ int ResultScreen::move(int flag)
         } else {
             on = 1;
             u->flags |= 8;
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[i];
         }
     }
@@ -1809,11 +1809,11 @@ int ResultScreen::move(int flag)
     }
     n = sum;
     u = IdSys.unitPtr(0x31, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     n /= 10;
     u = IdSys.unitPtr(0x32, 0x28);
-    u->flags_7F |= 2;
+    u->tex_flag |= 2;
     u->no = n % 10;
     switch (r22c_work.p->capId) {
     case 0xFFFF:
@@ -1948,7 +1948,7 @@ void ScoreSet(int pt, Vec* pos)
         IdUnit* du = r22c_work.p->score2.unitPtrI(i + 1, type);
 
         if (i - n >= 0) {
-            du->flags_7F = 2;
+            du->tex_flag = 2;
             du->no = d[i - n];
         } else {
             du->flags &= ~8;

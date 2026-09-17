@@ -51,7 +51,7 @@ void Filter0bTrans();
 void Filter00SetAlpha(u8 alpha);
 void Filter00SetPower(s8 power);
 void Filter00SetType(u32 type);
-void Filter00SetContrast(u8 r, u8 g, u8 b);
+void Filter00SetContrast(u8 r, u8 g, u8 bias);
 
 extern "C" {
 // filter00.cpp: additive radial blur request (highest priority wins)

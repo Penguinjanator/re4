@@ -94,8 +94,8 @@ public:
     CameraScope(Vec* pos, Vec* at);
     virtual ~CameraScope();
     virtual void move();
-    void setParam(f32 a, f32 b);
-    void getParam(f32* a, f32* b);
+    void setParam(f32 zoom_ratio, f32 x_radian);
+    void getParam(f32* zoom_ratio, f32* x_radian);
 };
 
 // Binocular ids (IdSys unit 0x27).
@@ -139,7 +139,7 @@ public:
     CameraBinocular(Vec* pos, Vec* at, void* id_a, void* id_b);
     virtual ~CameraBinocular();
     virtual void move();
-    void setRange(f32 a, f32 b, f32 c, f32 d);
+    void setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
 };
 
 class CameraPushObject : public cCamera {

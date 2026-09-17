@@ -91,10 +91,10 @@ static inline cEm* em29EmWork(u32 no)
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Damage / death routine per the wait state the bat was in (0: flying, 1: on the ceiling, 2: on the ground).
@@ -354,7 +354,7 @@ void cEm29::move()
 {
     Em29Work* w = EM29_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em29DmCk(this);
     }
     if (w->escTimer) {
@@ -365,8 +365,8 @@ void cEm29::move()
     }
     w->flags &= ~0x6F;
     em29RouteCk(this);
-    Em29_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em29_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -389,10 +389,10 @@ static void em29_R0_Init(cEm29* em)
     int zero;
 
     one = 1;
-    em->x12F = one;
+    em->ot_type = one;
     if (em->modelInit(ARC(4), ARC(5)) == 0) {
         pLog->err(0, 0, "em29() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     em->be_flag &= ~0x10;
@@ -431,7 +431,7 @@ static void em29_R0_Init(cEm29* em)
     w->initRot = em->rot;
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
-    switch (em->x38D) {
+    switch (em->set) {
     case 0:
     default:
         EmRoutineSet(em, one, zero, zero, zero);
@@ -448,7 +448,7 @@ static void em29_R0_Init(cEm29* em)
 
 static void em29_R0_Move(cEm29* em)
 {
-    Em29_R1_move_tbl[em->xFD](em);
+    Em29_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em29_R1_WaitLand(cEm29* em)
@@ -457,27 +457,27 @@ static void em29_R1_WaitLand(cEm29* em)
     u8 se;
 
     w->flags |= 0x20;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 5, Rnd() % 20);
         w->timer = Rnd() % 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em->plDist2 < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -501,24 +501,24 @@ static void em29_R1_WaitCeiling(cEm29* em)
     u8 se;
 
     w->flags |= 0x40;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 5, Rnd() % 20);
         w->timer = Rnd() % 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em->plDist2 < 25000000.0f) {
             if (w->timer) {
                 w->timer--;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(9), 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             w->atkTimer = 180;
@@ -538,7 +538,7 @@ static void em29_R1_Walk(cEm29* em)
     Em29Work* w = EM29_WK(em);
     int hit;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 5, 0);
@@ -555,7 +555,7 @@ static void em29_R1_Walk(cEm29* em)
             w->escTimer = 15;
         }
         w->timer = (Rnd() & 0xA) + 10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 32.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -583,7 +583,7 @@ static void em29_R1_Turn(cEm29* em)
     Em29Work* w = EM29_WK(em);
     void* mot;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (w->targetAngAbs > 2.0943952f) {
             mot = ARC(0xF);
@@ -599,7 +599,7 @@ static void em29_R1_Turn(cEm29* em)
             w->tgtSpd.y = fRand0_1() * 50.0f + 50.0f;
         }
         w->tgtSpd.z = fRand1_1() * 40.0f + 80.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em29SetSPeed(em, 0.5f);
         if (MotionMoveF(em, 0)) {
@@ -618,7 +618,7 @@ static void em29_R1_AtkDash(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x12), (int) ARC(0x19), 5, 1, 0);
         w->escTimer = 0;
@@ -627,7 +627,7 @@ static void em29_R1_AtkDash(cEm29* em)
         w->tgtSpd.y = 0.0f;
         w->tgtSpd.z = 0.0f;
         w->timer = 5;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -638,7 +638,7 @@ static void em29_R1_AtkDash(cEm29* em)
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if ((em->seFlags28B & 1) && w->atkHit == 0 && em29AtkCk(em, 0)) {
             Ctrl12Set(w->pCtrl12, 2, 60);
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -648,7 +648,7 @@ static void em29_R1_AtkDash(cEm29* em)
         w->tgtSpd.x = 0.0f;
         w->tgtSpd.y = fRand1_1() * 100.0f;
         w->tgtSpd.z = 130.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em29SetSPeed(em, 0.5f);
         if (MotionMoveF(em, 0)) {
@@ -664,7 +664,7 @@ static void em29_R1_AtkRush(cEm29* em)
     Em29Work* w = EM29_WK(em);
 
     w->flags |= 0x10;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 2, 5, 0);
         w->tgtSpd.x = 0.0f;
@@ -677,7 +677,7 @@ static void em29_R1_AtkRush(cEm29* em)
             w->tgtSpd.y = fRand0_1() * 100.0f;
         }
         w->timer = Rnd() % 10 + 10;
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         f32 dy;
 
@@ -687,11 +687,11 @@ static void em29_R1_AtkRush(cEm29* em)
         MotionMoveF(em, 0);
         dy = fabsf(em->pos.y - (pPL->pos.y + 1300.0f));
         if (w->targetAngAbs < PI / 8.0f && w->targetDist < 360000.0f && dy < 400.0f && w->escTimer == 0) {
-            em->xFE++;
+            em->r_no_2++;
         } else if (w->timer) {
             w->timer--;
         } else {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -717,19 +717,19 @@ static void em29_R1_AtkRush(cEm29* em)
                 PlSetDamage(0, 0, 0);
             }
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 16.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         em29SetSPeed(em, 0.5f);
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
             w->escTimer = 15;
         } else {
             w->timer--;
             if (w->targetDist > 640000.0f) {
-                em->xFE = 0;
+                em->r_no_2 = 0;
                 w->escTimer = 15;
             }
         }
@@ -749,7 +749,7 @@ static void em29_R0_Damage(cEm29* em)
     Em29Work* w = EM29_WK(em);
 
     w->flags |= 8;
-    Em29_R2_move_tbl[em->xFD](em);
+    Em29_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em29_R1_Dm_Air(cEm29* em)
@@ -759,11 +759,11 @@ static void em29_R1_Dm_Air(cEm29* em)
     Vec hit;
     int flag;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->xFF = Rnd() & 1;
+        em->r_no_3 = Rnd() & 1;
         flag = 1;
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, flag, 0);
@@ -771,7 +771,7 @@ static void em29_R1_Dm_Air(cEm29* em)
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->spd.y -= w->grav;
         PSVECAdd(&em->pos, &w->spd, &em->pos);
@@ -781,14 +781,14 @@ static void em29_R1_Dm_Air(cEm29* em)
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
             MotionMoveF(em, 0);
-            em->xFE = 4;
+            em->r_no_2 = 4;
         } else if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         flag = 1;
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 3, flag, 0);
@@ -796,7 +796,7 @@ static void em29_R1_Dm_Air(cEm29* em)
         if (Rnd() & 1) {
             w->dmRot = -w->dmRot;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->rot.y += w->dmRot;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -808,21 +808,21 @@ static void em29_R1_Dm_Air(cEm29* em)
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
             MotionMoveF(em, 0);
-            em->xFE = 4;
+            em->r_no_2 = 4;
         } else {
             MotionMoveF(em, 0);
         }
         break;
     case 4:
         flag = 1;
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, flag, 0);
         if (em->be_flag & 2) {
             SndCall(8, 0xF, &em->pos, em->id, 0, em);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
@@ -842,14 +842,14 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
     Vec hit;
     int flag;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->xFF = Rnd() & 1;
+        em->r_no_3 = Rnd() & 1;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
         flag = 1;
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 3, flag, 0);
@@ -858,7 +858,7 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
         if (Rnd() & 1) {
             w->dmRot = -w->dmRot;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += w->dmRot;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -870,21 +870,21 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
         if (SatMgr.hitCheck(&a, &em->pos, &hit, 0, 0, 0)) {
             em->pos.y = hit.y;
             MotionMoveF(em, 0);
-            em->xFE++;
+            em->r_no_2++;
         } else {
             MotionMoveF(em, 0);
         }
         break;
     case 2:
         flag = 1;
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, flag, 0);
         if (em->be_flag & 2) {
             SndCall(8, 0xF, &em->pos, em->id, 0, em);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
@@ -899,10 +899,10 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
 
 static void em29_R1_Dm_Land(cEm29* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
@@ -917,10 +917,10 @@ static void em29_R1_Dm_Land(cEm29* em)
 
 static void em29_R1_Dm_Recovery(cEm29* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x10), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -934,18 +934,18 @@ static void em29_R0_Die(cEm29* em)
     Em29Work* w = EM29_WK(em);
 
     w->flags |= 8;
-    Em29_R3_move_tbl[em->xFD](em);
+    Em29_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em29_R1_Die_Normal(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->atari.flags &= ~0x100;
         w->timer = Rnd() % 30 + 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -957,7 +957,7 @@ static void em29_R1_Die_Normal(cEm29* em)
                 if (em29FriendCk(em) && !(w->flags & 0x80)) {
                     EmRoutineSet(em, 3, 1, 0, 0);
                 } else {
-                    em->xFE++;
+                    em->r_no_2++;
                 }
             }
         }
@@ -970,7 +970,7 @@ static void em29_R1_Die_Reset(cEm29* em)
     Em29Work* w = EM29_WK(em);
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->pos = w->initPos;
         em->rot = w->initRot;
@@ -981,13 +981,13 @@ static void em29_R1_Die_Reset(cEm29* em)
         PartsWorldPosCalc(em);
         for (p = em->pParts; p; p = p->pParts) {
             p->oldWorldPos = p->worldPos;
-            p->x88 = p->oldWorldPos;
+            p->world_old2 = p->oldWorldPos;
         }
         em->hp = 1000;
         em->atari.flags |= 0x100;
         em->alpha = 0.0f;
         em->be_flag |= 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->alpha += 0.1f;
         if (em->alpha > 1.0f) {
@@ -1008,7 +1008,7 @@ static void em29_R1_Die_FadeOut(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 5, 0);
         w->tgtSpd.z = fRand1_1() * 25.0f + 75.0f;
@@ -1020,7 +1020,7 @@ static void em29_R1_Die_FadeOut(cEm29* em)
         w->escTimer = 100;
         w->timer = (Rnd() & 0xA) + 10;
         em->hp = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 32.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -1030,7 +1030,7 @@ static void em29_R1_Die_FadeOut(cEm29* em)
         if (em->alpha < 0.0f) {
             em->alpha = 0.0f;
             em->be_flag &= ~2;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
@@ -1057,7 +1057,7 @@ void em29RouteCk(cEm29* em)
     }
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;
@@ -1264,7 +1264,7 @@ int em29AtkCk(cEm29* em, int no)
     Em29Work* w = EM29_WK(em);
     EmAtkInfo* atk = &em29_atk_tbl[no];
     cModel* p = GetPartsAddr(em->pParts, 2);
-    int hit = EmAtkHitCk(atk, &p->worldPos, &p->x88, 0);
+    int hit = EmAtkHitCk(atk, &p->worldPos, &p->world_old2, 0);
 
     if (hit) {
         if (hit & 1) {
@@ -1287,11 +1287,11 @@ static void plem29_BatRush(cPlayer* pl)
 {
     pl->dmg.set(0, 10);
     pl->subArc = PL_EM(pPL)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x18), 0, 3, 5, 0);
         PlSetDamageSe(0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();

@@ -95,7 +95,7 @@ void cObjVp70::moveReload()
         u16 se;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x26);
                 break;
@@ -107,7 +107,7 @@ void cObjVp70::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x25);
                 break;
@@ -120,7 +120,7 @@ void cObjVp70::moveReload()
             }
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -138,7 +138,7 @@ void cObjVp70::moveReload()
         // reload frame (the magazine change) by reload tune level
         static const f32 reloadFrame[3] = { 33.0f, 27.0f, 19.0f };
 
-        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->x4FBA])) {
+        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->weapon_lv_reload])) {
             ItemMgr.reload();
         }
     }

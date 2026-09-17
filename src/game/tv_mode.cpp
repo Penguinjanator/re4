@@ -68,7 +68,7 @@ void tvModeCheckTask()
 void tvModeTrigger(TvModeWork* tv)
 {
     if (VIGetDTVStatus() != 0 && pRK->tv_mode_done == 0) {
-        if (Joy[0].x8 == -3 || Joy[0].x8 == -2) {
+        if (Joy[0].err == -3 || Joy[0].err == -2) {
             tv_mode_cnt++;
             if (tv_mode_cnt <= 29) {
                 return;

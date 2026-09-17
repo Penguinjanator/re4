@@ -4,8 +4,8 @@
 
 struct Esp46Work {
     int type;   // 0x00 filter03 type
-    u8 x4;      // 0x04
-    u8 x5;      // 0x05
+    u8 priority;      // 0x04
+    u8 sp_flag;      // 0x05
 };
 
 // Screen filter (filter03) driver: never drawn itself, feeds its color into the filter.
@@ -28,12 +28,12 @@ void cEsp46::move()
     CommonMove();
 }
 
-void Esp46_Trans(cEsp46* e)
+void Esp46_Trans(cEsp46* pEsp)
 {
-    Esp46Work* w = &e->work;
-    f32 a = e->colA * (1.0f / 255.0f);
+    Esp46Work* w = &pEsp->work;
+    f32 a = pEsp->colA * (1.0f / 255.0f);
 
-    Filter03SetParam(w->type, (u8)(e->colR * a), (u8)(e->colG * a), (u8)(e->colB * a), w->x4, w->x5);
+    Filter03SetParam(w->type, (u8)(pEsp->colR * a), (u8)(pEsp->colG * a), (u8)(pEsp->colB * a), w->priority, w->sp_flag);
 }
 
 int cEsp46::SetFreeWork(EspGenWork* gen, u32* seed)
@@ -41,9 +41,9 @@ int cEsp46::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp46Work* w = &work;
 
     w->type = (s8)gen->xC8;
-    w->x4 = gen->xC9;
+    w->priority = gen->xC9;
     if ((s8)gen->xCA <= 1) {
-        w->x5 = gen->xCA;
+        w->sp_flag = gen->xCA;
     } else {
         pLog->err(0, 0, "ESP46 : WK2[%x] invalid.", (s8)gen->xCA);
     }

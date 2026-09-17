@@ -87,7 +87,7 @@ int cMapMgr::dispInfo()
 
 cMap::cMap()
 {
-    x12E = 2;
+    kindid = 2;
     be_flag |= 0x1023;
 }
 
@@ -95,11 +95,11 @@ void cMap::move()
 {
     static int timer = 0;
 
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         return;
     }
     timer = 0;
-    xFC++;
+    r_no_0++;
 }
 
 // unreferenced (the second .sdata word of the unit; the map lost its name)

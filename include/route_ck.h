@@ -39,16 +39,16 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag);
 void RouteCkEscEm(cEm* em, cEm* from, Vec* out);
 int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist);
 int RouteCkPosToPos(Vec* from, Vec* to, Vec* out);
-int RouteCkConnectPosCk(Vec* a, Vec* b);
+int RouteCkConnectPosCk(Vec* pPos1, Vec* pPos2);
 f32 RouteCkPosToPosDis(Vec* from, Vec* to);
 void RouteCkGetPoint(int no, Vec* out);
 int RouteCkGetPointNumber();
-f32 RouteCkGetDist(int a, int b);
+f32 RouteCkGetDist(int n0, int n1);
 int RouteCkGetNearPoint(Vec* pos);
 // Nearest way point of `em`, cached in rckNear for the frame.
-int getNearInfo(cEm* em, int a, int mask);
+int getNearInfo(cEm* em, int mode, int mask);
 // Nearest way point to `pos` that the position can reach (a != 0: nearest regardless), -1 = none.
-s8 getNearPoint(Vec* pos, int a, int mask);
+s8 getNearPoint(Vec* pos, int mode, int mask);
 void Draw_rtp();
 void Draw_eminfo();
 }

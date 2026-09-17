@@ -129,7 +129,7 @@ int ShdInit(ShdHeader* data)
         if (obj == 0) {
             continue;
         }
-        obj->x12E = 3;
+        obj->kindid = 3;
         if (data->version <= 0x1F) {
             if (e->shdCol == 0) {
                 e->shdCol = 0xFF;
@@ -261,10 +261,10 @@ void ShadowTrans()
 
     g_Shd_num = 0;
     g_SelfShdNum = 0;
-    if (BitChk(pG->flags_58, 0x02000000)) {
+    if (BitChk(pG->Disp_flg, 0x02000000)) {
         return;
     }
-    if (pG->flags_58 & 0x8000) {
+    if (pG->Disp_flg & 0x8000) {
         isSelfUse = 0;
     } else {
         isSelfUse = 1;
@@ -337,15 +337,15 @@ void ShadowTrans()
             continue;
         }
         if (em == pPL) {
-            if (pG->flags_58 & 0x40000000) {
+            if (pG->Disp_flg & 0x40000000) {
                 continue;
             }
         } else if (em == pSUB) {
-            if (pG->flags_58 & 0x20000000) {
+            if (pG->Disp_flg & 0x20000000) {
                 continue;
             }
         } else {
-            if (pG->flags_58 & 0x80000000) {
+            if (pG->Disp_flg & 0x80000000) {
                 continue;
             }
         }
@@ -538,15 +538,15 @@ void FixShadowLightSet(cLight* l)
             continue;
         }
         if (em == pPL) {
-            if (pG->flags_58 & 0x40000000) {
+            if (pG->Disp_flg & 0x40000000) {
                 continue;
             }
         } else if (em == pSUB) {
-            if (pG->flags_58 & 0x20000000) {
+            if (pG->Disp_flg & 0x20000000) {
                 continue;
             }
         } else {
-            if (pG->flags_58 & 0x80000000) {
+            if (pG->Disp_flg & 0x80000000) {
                 continue;
             }
         }
@@ -587,12 +587,12 @@ void FixShadowLightSet(cLight* l)
         if ((obj->be_flag & 0x13) != 0x13) {
             continue;
         }
-        if (obj->x12E == 2) {
-            if (pG->flags_58 & 0x08000000) {
+        if (obj->kindid == 2) {
+            if (pG->Disp_flg & 0x08000000) {
                 return;
             }
         } else {
-            if (pG->flags_58 & 0x10000000) {
+            if (pG->Disp_flg & 0x10000000) {
                 return;
             }
         }
@@ -1220,7 +1220,7 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
     if (num == 0) {
         return;
     }
-    if (m->x12E == 3) {
+    if (m->kindid == 3) {
         m->be_flag |= 2;
         commonScreenMat(m);
         m->be_flag &= ~2;

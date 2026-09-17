@@ -36,11 +36,11 @@ class cEmBarred : public cEm {
 public:
     virtual void move();   // key function: the vtable stays in this unit (cEmMgr::construct stores it)
 
-    void setOpen(int a);
-    void setClose(int a);
+    void setOpen(int mode);
+    void setClose(int mode);
     void setOpened();
     void setClosed();
-    void setLockMode(u8 a);
+    void setLockMode(u8 mode);
     int ckStatus();
     int ckOpen();
     void setEff(u8 eff);

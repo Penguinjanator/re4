@@ -171,7 +171,7 @@ void cObjMachinegun::moveReload()
         void* mot;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x29);
                 break;
@@ -183,7 +183,7 @@ void cObjMachinegun::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x28);
                 break;

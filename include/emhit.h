@@ -51,11 +51,11 @@ void emHitYarareInit(cEmHit* em);
 // The parts number / flags come last: the callers' `li` argument loads are scheduled after the
 // float moves (emhit, obj14, obj15 ...).
 void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
-void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
+void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
 void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
-void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
+void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
 int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
-void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
+void EmDmBloodSet2(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);               // em_sub.cpp
 int VehicleAdjust(Vec* pos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
 }
 
@@ -70,10 +70,10 @@ struct EmAtkInfo {
 };
 
 extern "C" {
-void EmPlBloodSet2(cModel* m, Vec* pos, int a, int b, int type);                 // em_sub.cpp
+void EmPlBloodSet2(cModel* m, Vec* pos, int a, int eff_id, int type);                 // em_sub.cpp
 // Line `a`-`b` against the enemies: the hit enemy or NULL; hit point / normal and the scenario attribute out.
-cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
-void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* a, Vec* b);                 // em_sub.cpp
+cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
+void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                 // em_sub.cpp
 }
 
 void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage; obj10 hitCkPl)

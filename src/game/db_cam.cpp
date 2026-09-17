@@ -199,11 +199,11 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                     col = 2;
                 }
                 eprintf2(8, 14, 32, 358, col, 7, "Id=%02x, be=%08x, type=%02x, set=%02x, List=%02d", em->id,
-                         em->be_flag, em->type, em->x38D, em->emsetNo);
+                         em->be_flag, em->type, em->set, em->emsetNo);
                 eprintf2(8, 14, 32, 372, col, 7, "POS[%.2f, %.2f, %.2f], Dir[%.2f]", em->pos.x, em->pos.y,
                          em->pos.z, em->rot.y);
-                eprintf2(8, 14, 32, 386, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[ %d], FRAME[%d/%d] ", em->xFC,
-                         em->xFD, em->xFE, em->xFF, em->hp, (u32) em->frame, em->frameMax);
+                eprintf2(8, 14, 32, 386, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[ %d], FRAME[%d/%d] ", em->r_no_0,
+                         em->r_no_1, em->r_no_2, em->r_no_3, em->hp, (u32) em->frame, em->frameMax);
                 eprintf2(8, 14, 32, 344, col, 7, "Flag=[%08x], L_pl[%.2f]", em->flags_3C8, SQRTF(em->plDist2));
                 if (em->checkStatus(1)) {
                     eprintf2(10, 16, 400, 344, col, 7, "LOCKOFF");
@@ -499,19 +499,19 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     if (old_cam_mode != cam_mode) {
         switch (cam_mode) {
         case 0:
-            CamCtrl.flags_2C = (CamCtrl.flags_2C & ~8) | 0x10;
+            CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~8) | 0x10;
             break;
         case 2:
             CamCtrl.state = 10;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.m_system_flag |= 8;
             break;
         case 3:
             CamCtrl.state = 7;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.m_system_flag |= 8;
             break;
         case 4:
             CamCtrl.state = 8;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.m_system_flag |= 8;
             break;
         }
         CamCtrl.sub_state = 0;
@@ -886,7 +886,7 @@ int debugCamera::menuHitDisp(JOY* joy)
         switch (view_mode) {
         case 0:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
             BitOff(pG->flags_60, 0x800000);
             BitOff(pG->flags_500C, 0x80000000);
@@ -897,7 +897,7 @@ int debugCamera::menuHitDisp(JOY* joy)
             break;
         case 3:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
             BitOff(pG->flags_500C, 0x80000000);
             BitOff(pG->flags_60, 0x40000000);
@@ -905,7 +905,7 @@ int debugCamera::menuHitDisp(JOY* joy)
             break;
         case 5:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
             BitOff(pG->flags_500C, 0x80000000);
             BitOff(pG->flags_60, 0x200000);
@@ -914,9 +914,9 @@ int debugCamera::menuHitDisp(JOY* joy)
         case 2:
         case 4:
         case 6:
-            shadow_flag = pG->flags_58 & 0x2000000;
+            shadow_flag = pG->Disp_flg & 0x2000000;
             BitOn(pG->flags_500C, 0x80000000);
-            BitOn(pG->flags_58, 0x2000000);
+            BitOn(pG->Disp_flg, 0x2000000);
             break;
         case 7:
             BitOff(pG->flags_500C, 0x80000000);

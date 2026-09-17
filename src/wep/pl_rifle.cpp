@@ -26,10 +26,10 @@ static inline void ISet(int& d, int v) { d = v; }
 // Routine bytes through int parameters (player.cpp PlRoutineSet).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 // Scope camera on: the thermal light set for the infrared scope (weapon type 2 / weapon 0x1D).
@@ -70,7 +70,7 @@ void PlRifleMove(cPlayer* pl)
         wep09_r2_next,
     };
 
-    func_tbl[pl->xFE](pl);
+    func_tbl[pl->r_no_2](pl);
     pl->pWep->lockMove();
 }
 
@@ -81,18 +81,18 @@ static void wep09_r2_ready(cPlayer* pl)
         wep09_r3_ready10,
     };
 
-    func_tbl[pl->xFF](pl);
-    if (joyKamae() == 0 && pl->xFF != 3) {
+    func_tbl[pl->r_no_3](pl);
+    if (joyKamae() == 0 && pl->r_no_3 != 3) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
     } else {
         if (pl->pLockEm) {
@@ -119,16 +119,16 @@ static void wep09_r3_ready00(cPlayer* pl)
     void* mot;
     cPlWep* w = pl->pWep;
 
-    w->x2C = 0.0f;
+    w->m_CenterY = 0.0f;
     w->pitch = 0.0f;
-    pl->pWep->x30 = CamCtrl.getCameraDirection();
+    pl->pWep->m_CamAdjY = CamCtrl.getCameraDirection();
     pl->pNeck->init(0, 0, 0);
     pl->pWep->lockInit();
     mot = WEP_ARC_PTR(0x14);
     mot3.set(pl, mot, mot, mot, 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
     pl->x3E4 = 0;
     pl->x3F0 = 0;
 }
@@ -136,10 +136,10 @@ static void wep09_r3_ready00(cPlayer* pl)
 static void wep09_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
-        f32 d = pl->pWep->x30 / (4.0f - pl->frame);
+        f32 d = pl->pWep->m_CamAdjY / (4.0f - pl->frame);
 
         pl->rot.y += d;
-        pl->pWep->x30 -= d;
+        pl->pWep->m_CamAdjY -= d;
     }
     if (pl->motionMove()) {
         PlRoutineSet(pl, 0, 6, 1, 0);
@@ -156,7 +156,7 @@ static void wep09_r2_set(cPlayer* pl)
         wep09_r3_set20,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     pl->setLaserSight(0, 0);
     if (pl->x3E4 == 0 && MotionCheckCrossFrame(&pl->mot, 2.0f)) {
         SndCall(2, 9, &pl->pParts->worldPos, 0, 0, 0);
@@ -169,10 +169,10 @@ static void wep09_r2_set(cPlayer* pl)
         Vec at;
 
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 3;
 
@@ -211,7 +211,7 @@ static void wep09_r3_set00(cPlayer* pl)
     scopeOn(pl);
     pl->motionSet(WEP_ARC_PTR(0x15), 5, 0, 1, 0);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep09_r3_set10(cPlayer* pl)
@@ -222,7 +222,7 @@ static void wep09_r3_set10(cPlayer* pl)
 static void wep09_r3_set20(cPlayer* pl)
 {
     if (pl->motionMove()) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -236,7 +236,7 @@ static void wep09_r2_fire(cPlayer* pl)
         0,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
 }
 
 static void wep09_r3_fire00(cPlayer* pl)
@@ -273,7 +273,7 @@ static void wep09_r3_fire00(cPlayer* pl)
     pl->pWep->pObj->setDisp(1, 0);
     CamCtrl.getTrajectory(&pl->evTarget, &dir);
     PSVECSubtract(&dir, &pl->evTarget, &pl->evTarget);
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep09_r3_fire10(cPlayer* pl)
@@ -288,7 +288,7 @@ static void wep09_r3_fire10(cPlayer* pl)
             PlRoutineSet(pl, 0, 6, 1, 0);
             pl->x3F0 = 10;
         } else {
-            pl->xFF = 2;
+            pl->r_no_3 = 2;
         }
     } else if (pG->wep_no != 9 && pl->x3F0 > 10 && joyKamae() == 0) {
         PlRoutineSet(pl, 0, 6, 3, 0);
@@ -310,26 +310,26 @@ static void wep09_r3_fire20(cPlayer* pl)
     obj = pl->pWep->pObj;
     obj->wep.mode = 2;
     obj->wep.step = 0;
-    pl->xFF = 3;
+    pl->r_no_3 = 3;
 }
 
 static void wep09_r3_fire30(cPlayer* pl)
 {
     if (joyKamae() == 0 && pl->frame >= 25.0f) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             // store order brute-forced (x3E0 first, xFD last, the 3 through an int local)
             int md = 3;
 
             pl->x3E0 = 1;
-            pl->xFC = 0;
-            pl->xFE = md;
-            pl->xFF = 0;
-            pl->xFD = 6;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = md;
+            pl->r_no_3 = 0;
+            pl->r_no_1 = 6;
         }
     } else if (pl->motionMove()) {
         if (joyKamae()) {
@@ -339,19 +339,19 @@ static void wep09_r3_fire30(cPlayer* pl)
             scopeOn(pl);
             PlRoutineSet(pl, 0, 6, 1, 0);
         } else if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             // store order brute-forced (x3E0 first, xFD last, the 3 through an int local)
             int md = 3;
 
             pl->x3E0 = 1;
-            pl->xFC = 0;
-            pl->xFE = md;
-            pl->xFF = 0;
-            pl->xFD = 6;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = md;
+            pl->r_no_3 = 0;
+            pl->r_no_1 = 6;
         }
     }
 }
@@ -388,11 +388,11 @@ static void wepDown(cPlayer* pl)
         mot3.move(m3r[0]);
         PlRoutineSet(pl, 0, 0, 2, 0);
     } else {
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         pl->x4FD = 0xF;
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 0;
         pl->x4FC = 0;
     }
     pl->motionMove();
@@ -400,7 +400,7 @@ static void wepDown(cPlayer* pl)
 
 static void wep09_r2_reload(cPlayer* pl)
 {
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0: {
         void* mot;
         cObjWep* obj;
@@ -408,7 +408,7 @@ static void wep09_r2_reload(cPlayer* pl)
         m3r[1] = 0.0f;
         m3r[0] = 0.0f;
         pl->endCamera();
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             mot = WEP_ARC_PTR(0x17);
             break;
@@ -422,19 +422,19 @@ static void wep09_r2_reload(cPlayer* pl)
         MotionSetCore(pl, &pl->mot, mot, 0, 3, 5, 0);
         pl->motionMove();
         pl->pWep->knifeStance = 1;
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         obj = pl->pWep->pObj;
         obj->wep.mode = 4;
         obj->wep.step = 0;
         break;
     }
     case 1:
-        if (joyKamae() == 0 && pl->mot.frame >= PlReloadEndTbl[pG->wep_no][pG->x4FBA]) {
+        if (joyKamae() == 0 && pl->mot.frame >= PlReloadEndTbl[pG->wep_no][pG->weapon_lv_reload]) {
             if (pl->flags_420 & 0x40) {
-                pl->xFC = 0;
-                pl->xFE = 0;
-                pl->xFD = 0x11;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_2 = 0;
+                pl->r_no_1 = 0x11;
+                pl->r_no_3 = 0;
             } else {
                 int md = 3;
 
@@ -459,10 +459,10 @@ static void wep09_r2_next(cPlayer* pl)
 {
     cModel* em = pl->pLockEm;
 
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
         pl->x3E0 = 0;
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
     case 1:
         if (em) {
             if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
@@ -484,10 +484,10 @@ static void wep09_r2_next(cPlayer* pl)
     } else {
         if (joyKamae() == 0) {
             if (pl->flags_420 & 0x40) {
-                pl->xFC = 0;
-                pl->xFE = 0;
-                pl->xFD = 0x11;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_2 = 0;
+                pl->r_no_1 = 0x11;
+                pl->r_no_3 = 0;
             } else {
                 int md = 1;
 

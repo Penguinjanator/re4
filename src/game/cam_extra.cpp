@@ -297,17 +297,17 @@ CameraScope::~CameraScope()
     memset(this, 9, 0x200);
 }
 
-void CameraScope::setParam(f32 a, f32 b)
+void CameraScope::setParam(f32 zoom_ratio, f32 x_radian)
 {
-    zoom = a;
-    angle_x = b;
+    zoom = zoom_ratio;
+    angle_x = x_radian;
     focus.clear();
 }
 
-void CameraScope::getParam(f32* a, f32* b)
+void CameraScope::getParam(f32* zoom_ratio, f32* x_radian)
 {
-    *a = zoom;
-    *b = angle_x;
+    *zoom_ratio = zoom;
+    *x_radian = angle_x;
 }
 
 // Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
@@ -619,12 +619,12 @@ CameraBinocular::~CameraBinocular()
     memset(this, 9, 0x200);
 }
 
-void CameraBinocular::setRange(f32 a, f32 b, f32 c, f32 d)
+void CameraBinocular::setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
-    x10C = a;
-    x110 = c;
-    x118 = b;
-    x11C = d;
+    x10C = x_low;
+    x110 = y_low;
+    x118 = x_up;
+    x11C = y_up;
 }
 
 void CameraBinocular::move()
@@ -805,7 +805,7 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(1, 0x24);
         u->flags |= 8;
         u->no = 3;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->scr.x = (0.0f - lo) * (scr2.x - scr1.x) + scr1.x;
         cnt = 1;
     }
@@ -813,7 +813,7 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 0;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->scr.x = (0.5f - lo) * (scr2.x - scr1.x) + scr1.x;
         cnt++;
     }
@@ -821,7 +821,7 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 1;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->scr.x = (1.0f - lo) * (scr2.x - scr1.x) + scr1.x;
         cnt++;
     }
@@ -829,7 +829,7 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 2;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->scr.x = (1.5f - lo) * (scr2.x - scr1.x) + scr1.x;
         cnt++;
     }
@@ -837,7 +837,7 @@ void IdBinocular::move(void* p)
         IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 3;
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
         u->scr.x = (2.0f - lo) * (scr2.x - scr1.x) + scr1.x;
         cnt++;
     }
@@ -877,7 +877,7 @@ void IdBinocular::move(void* p)
         }
         for (int k = 0; k <= 3; k++) {
             IdUnit* u = IdSys.unitPtr(0x20 + k, 0x24);
-            u->flags_7F |= 2;
+            u->tex_flag |= 2;
             u->no = digit[k];
         }
         ratio = 1.0f - ((f32) dist - t0[0]) / (t0[1] - t0[0]);

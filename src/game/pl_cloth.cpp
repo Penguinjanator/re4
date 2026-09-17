@@ -11,7 +11,7 @@
 #include "math_sub.h"
 
 extern "C" {
-void PenClothMove(cModel* m, PenCloth* c);   // game/pendulum.cpp
+void PenClothMove(cModel* m, PenCloth* pInfo);   // game/pendulum.cpp
 f32 sqrtf(f32 x);
 f32 asinf(f32 x);
 }
@@ -27,23 +27,23 @@ PlCloth adaDress;
 PlCloth adaHair;
 PlCloth adaRibbon;
 
-void testHairSetLeon(cModel* pl, PlCloth* c);
-void testHairMoveLeon(cModel* pl, PlCloth* c);
-void testJacketSetLeon(cModel* pl, PlCloth* c);
-void testJacketMoveLeon(cModel* pl, PlCloth* c);
-void testHolsterSetLeon(cModel* pl, PlCloth* c);
-void testHolsterMoveLeon(cModel* pl, PlCloth* c);
-void testHairSetGirl(cModel* pl, PlCloth* c, int evt);
-void testHairMoveGirl(cModel* pl, PlCloth* c);
-void testSkirtSetGirl(cModel* pl, PlCloth* c, int evt);
-void testSkirtMoveGirl(cModel* pl, PlCloth* c);
+void testHairSetLeon(cModel* pl, PlCloth* pCloth);
+void testHairMoveLeon(cModel* pl, PlCloth* pCloth);
+void testJacketSetLeon(cModel* pl, PlCloth* pCloth);
+void testJacketMoveLeon(cModel* pl, PlCloth* pCloth);
+void testHolsterSetLeon(cModel* pl, PlCloth* pCloth);
+void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth);
+void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt);
+void testHairMoveGirl(cModel* pl, PlCloth* pCloth);
+void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt);
+void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth);
 void testSweaterSetGirl(cModel* pl, PlCloth* c);
 void testSweaterMoveGirl(cModel* pl, PlCloth* c);
-void testRibbonSetGirl(cModel* pl, PlCloth* c);
-void testRibbonMoveGirl(cModel* pl, PlCloth* c);
+void testRibbonSetGirl(cModel* pl, PlCloth* pCloth);
+void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth);
 void girlLapelMove(cModel* pl);
-void testHairSetLuis(cModel* pl, PlCloth* c);
-void testHairMoveLuis(cModel* pl, PlCloth* c);
+void testHairSetLuis(cModel* pl, PlCloth* pCloth);
+void testHairMoveLuis(cModel* pl, PlCloth* pCloth);
 void testDressSetAda(cModel* pl, PlCloth* c, int evt);
 void testDressMoveAda(cModel* pl, PlCloth* c);
 void testHairSetAda(cModel* pl, PlCloth* c);
@@ -56,7 +56,7 @@ u8 leonHairDp[21] = {66, 67, 0xFF, 69, 0xFF, 71, 0xFF, 73, 0xFF, 75, 0xFF, 77, 0
 f32 leonHairMax[21] = {0.4f, 0.5f, 0.6f, 0.4f, 0.5f, 0.4f, 0.5f, 0.3f, 0.3f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.3f, 0.3f, 0.4f, 0.5f, 0.4f, 0.5f};
 f32 leonHairWindS[21] = {0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.5f, 1.5f, 2.0f, 2.0f, 2.5f, 2.5f, 3.0f, 3.0f, -2.5f, -2.5f, -2.0f, -2.0f, -1.5f, -1.5f, 0.0f, 0.0f};
 f32 leonHairWindR[21] = {0.5f, 1.0f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f};
-PlClothAt leonHairAt[4] = {
+CLOTH_AT_SET leonHairAt[4] = {
     {0x0000, 0x04, 0x04, 1.0f, 90.0f, {0.0f, 90.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 85.0f, {0.0f, 90.0f, 50.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 90.0f, {0.0f, 100.0f, 25.0f}, {0.0f, 0.0f, 0.0f}},
@@ -72,7 +72,7 @@ u8 leonJacketDp[24] = {87, 88, 0xFF, 90, 0xFF, 92, 0xFF, 94, 0xFF, 96, 0xFF, 98,
 f32 leonJacketMax[24] = {0.1f, 0.2f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.3f, 0.1f, 0.2f, 0.3f};
 f32 leonJacketWindS[24] = {0.0f, 0.0f, 0.0f, 0.4f, 0.4f, 0.9f, 0.9f, 1.2f, 1.2f, 1.5f, 1.5f, 1.7f, 1.7f, 1.9f, 1.9f, 2.1f, 2.1f, 2.4f, 2.4f, 2.8f, 2.8f, 3.1f, 3.1f, 3.1f};
 f32 leonJacketWindR[24] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-PlClothAt leonJacketAt[6] = {
+CLOTH_AT_SET leonJacketAt[6] = {
     {0x0000, 0x02, 0x02, 1.0f, 130.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x02, 0x02, 1.0f, 130.0f, {0.0f, -50.0f, 20.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x02, 0x11, 0.5f, 130.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -90,7 +90,7 @@ u8 leonHolsterDp[2] = {0xFF, 0xFF};
 f32 leonHolsterMax[2] = {0.1f, 0.1f};
 f32 leonHolsterWindS[2] = {0.0f, 1.5f};
 f32 leonHolsterWindR[2] = {0.1f, 0.1f};
-PlClothAt leonHolsterAt[1] = {
+CLOTH_AT_SET leonHolsterAt[1] = {
     {0x0000, 0x02, 0x02, 1.0f, 90.0f, {0.0f, 50.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
 };
 
@@ -102,14 +102,14 @@ f32 girlHairMax[21] = {0.4f, 0.5f, 0.4f, 0.5f, 0.4f, 0.5f, 0.3f, 0.4f, 0.5f, 0.3
 f32 girlHairMaxEvt[21] = {0.4f, 0.5f, 0.1f, 0.3f, 0.4f, 0.5f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f};
 f32 girlHairWindS[21] = {0.0f, 0.2f, 1.0f, 1.2f, 0.0f, 0.2f, 1.0f, 1.2f, 1.4f, 0.0f, 0.2f, 0.4f, 1.0f, 1.2f, 1.4f, 0.0f, 0.2f, 0.4f, 1.0f, 1.2f, 1.4f};
 f32 girlHairWindR[21] = {0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f};
-PlClothAt girlHairAt[5] = {
+CLOTH_AT_SET girlHairAt[5] = {
     {0x0000, 0x04, 0x04, 1.0f, 72.0f, {0.0f, 50.0f, -10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x03, 0x04, 0.5f, 75.0f, {0.0f, 60.0f, 0.0f}, {0.0f, 60.0f, 0.0f}},
     {0x0000, 0x03, 0x03, 1.0f, 100.0f, {0.0f, -20.0f, 10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 70.0f, {-3.0f, 100.0f, 42.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 68.0f, {-3.0f, 60.0f, 45.0f}, {0.0f, 0.0f, 0.0f}},
 };
-PlClothAt girlHairAtEvt[7] = {
+CLOTH_AT_SET girlHairAtEvt[7] = {
     {0x0000, 0x04, 0x04, 1.0f, 65.0f, {0.0f, 50.0f, -10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x03, 0x04, 0.5f, 80.0f, {0.0f, 50.0f, 0.0f}, {0.0f, 50.0f, 0.0f}},
     {0x0000, 0x03, 0x03, 1.0f, 90.0f, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -128,7 +128,7 @@ f32 girlSkirtMax[48] = {0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.
 f32 girlSkirtMaxEvt[48] = {0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f};
 f32 girlSkirtWindS[48] = {0.0f, 0.0f, 0.0f, 0.2f, 0.2f, 0.2f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.2f, 1.2f, 1.2f, 1.5f, 1.5f, 1.5f, 1.8f, 1.8f, 1.8f, 2.0f, 2.0f, 2.0f, 2.2f, 2.2f, 2.2f, 2.5f, 2.5f, 2.5f, 2.7f, 2.7f, 2.7f, 3.0f, 3.0f, 3.0f, 1.0f, 1.0f, 1.0f, 1.5f, 1.5f, 1.5f, 2.0f, 2.0f, 2.0f};
 f32 girlSkirtWindR[48] = {0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f, 0.3f, 0.6f, 1.0f};
-PlClothAt girlSkirtAt[11] = {
+CLOTH_AT_SET girlSkirtAt[11] = {
     {0x0000, 0x12, 0x12, 1.0f, 80.0f, {10.0f, -50.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 80.0f, {10.0f, -100.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 80.0f, {10.0f, -150.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
@@ -141,7 +141,7 @@ PlClothAt girlSkirtAt[11] = {
     {0x0000, 0x12, 0x16, 0.5f, 80.0f, {0.0f, -100.0f, -20.0f}, {0.0f, -100.0f, -20.0f}},
     {0x0000, 0x12, 0x16, 0.5f, 85.0f, {0.0f, -150.0f, -20.0f}, {0.0f, -150.0f, -20.0f}},
 };
-PlClothAt girlSkirtAtEvt[11] = {
+CLOTH_AT_SET girlSkirtAtEvt[11] = {
     {0x0000, 0x12, 0x12, 1.0f, 90.0f, {10.0f, -50.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 90.0f, {10.0f, -100.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 90.0f, {10.0f, -150.0f, -20.0f}, {0.0f, 0.0f, 0.0f}},
@@ -163,7 +163,7 @@ u8 girlSweaterDp[8] = {86, 0xFF, 88, 0xFF, 90, 0xFF, 92, 0xFF};
 f32 girlSweaterMax[8] = {0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f};
 f32 girlSweaterWindS[8] = {0.0f, 0.0f, 1.0f, 1.0f, 2.0f, 2.0f, 3.0f, 3.0f};
 f32 girlSweaterWindR[8] = {0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f};
-PlClothAt girlSweaterAt[6] = {
+CLOTH_AT_SET girlSweaterAt[6] = {
     {0x0000, 0x02, 0x02, 1.0f, 100.0f, {-70.0f, 0.0f, 0.0f}, {-70.0f, 0.0f, 0.0f}},
     {0x0000, 0x02, 0x02, 1.0f, 100.0f, {70.0f, 0.0f, 0.0f}, {70.0f, 0.0f, 0.0f}},
     {0x0000, 0x02, 0x03, 0.75f, 100.0f, {-70.0f, 0.0f, 0.0f}, {-70.0f, 0.0f, 0.0f}},
@@ -179,7 +179,7 @@ u8 girlRibbonDp[12] = {145, 0xFF, 147, 0xFF, 149, 0xFF, 151, 0xFF, 153, 0xFF, 15
 f32 girlRibbonMax[12] = {0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f, 0.3f, 0.6f};
 f32 girlRibbonWindS[12] = {0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 1.5f, 1.5f, 2.0f, 2.0f, 2.5f, 2.5f};
 f32 girlRibbonWindR[12] = {0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f};
-PlClothAt girlRibbonAt[8] = {
+CLOTH_AT_SET girlRibbonAt[8] = {
     {0x0000, 0x02, 0x02, 1.0f, 110.0f, {-30.0f, 0.0f, 0.0f}, {-30.0f, 0.0f, 0.0f}},
     {0x0000, 0x02, 0x02, 1.0f, 110.0f, {30.0f, 0.0f, 0.0f}, {30.0f, 0.0f, 0.0f}},
     {0x0000, 0x01, 0x02, 0.75f, 110.0f, {-30.0f, 0.0f, 0.0f}, {-30.0f, 0.0f, 0.0f}},
@@ -197,7 +197,7 @@ u8 luisHairDp[26] = {65, 0xFF, 67, 68, 0xFF, 70, 71, 0xFF, 73, 0xFF, 75, 0xFF, 7
 f32 luisHairMax[26] = {0.2f, 0.3f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.15f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f, 0.4f, 0.2f, 0.3f};
 f32 luisHairWindS[26] = {0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.5f, 1.5f, 1.5f, 2.0f, 2.0f, 2.5f, 2.5f, 3.0f, 3.0f, -2.5f, -2.5f, -2.0f, -2.0f, -1.5f, -1.5f, -1.5f, -1.0f, -1.0f, -1.0f, -0.5f, -0.5f};
 f32 luisHairWindR[26] = {0.5f, 1.0f, 0.5f, 1.0f, 1.0f, 0.5f, 1.0f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f, 1.0f, 0.5f, 1.0f, 1.0f, 0.5f, 1.0f};
-PlClothAt luisHairAt[7] = {
+CLOTH_AT_SET luisHairAt[7] = {
     {0x0000, 0x04, 0x04, 1.0f, 75.0f, {0.0f, 50.0f, 8.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 70.0f, {0.0f, 90.0f, 75.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x04, 0x04, 1.0f, 75.0f, {0.0f, 70.0f, 35.0f}, {0.0f, 0.0f, 0.0f}},
@@ -216,7 +216,7 @@ u8 adaDressULp[146] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF
 f32 adaDressMax[146] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 f32 adaDressWindS[146] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 2.5f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.5f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.5f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
 f32 adaDressWindR[146] = {0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-PlClothAt adaDressAt[35] = {
+CLOTH_AT_SET adaDressAt[35] = {
     {0x0000, 0x12, 0x12, 1.0f, 85.0f, {20.0f, 100.0f, 0.0f}, {20.0f, 100.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 85.0f, {20.0f, 50.0f, 0.0f}, {20.0f, 50.0f, 0.0f}},
     {0x0000, 0x12, 0x12, 1.0f, 85.0f, {20.0f, 0.0f, 0.0f}, {20.0f, 0.0f, 0.0f}},
@@ -261,7 +261,7 @@ u8 adaHairDp[14] = {66, 0xFF, 68, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 220, 0xFF, 222, 
 f32 adaHairMax[14] = {0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.2f, 0.1f, 0.1f, 0.1f, 0.1f};
 f32 adaHairWindS[14] = {0.0f, 0.0f, 0.5f, 0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.0f, -2.5f, -2.5f, -2.0f, -2.0f};
 f32 adaHairWindR[14] = {0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 1.0f, 0.5f, 1.0f, 0.5f, 1.0f};
-PlClothAt adaHairAt[6] = {
+CLOTH_AT_SET adaHairAt[6] = {
     {0x0000, 0x04, 0x04, 1.0f, 65.0f, {0.0f, 50.0f, -10.0f}, {0.0f, 0.0f, 0.0f}},
     {0x0000, 0x03, 0x04, 0.5f, 70.0f, {0.0f, 50.0f, 0.0f}, {0.0f, 50.0f, 0.0f}},
     {0x0000, 0x03, 0x03, 1.0f, 60.0f, {0.0f, 30.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
@@ -277,7 +277,7 @@ u8 adaRibbonDp[22] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0xFF, 13, 14, 15, 16, 17, 
 f32 adaRibbonMax[22] = {0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 f32 adaRibbonWindS[22] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 f32 adaRibbonWindR[22] = {0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-PlClothAt adaRibbonAt[10] = {
+CLOTH_AT_SET adaRibbonAt[10] = {
     {0x0000, 0x04, 0x04, 1.0f, 90.0f, {0.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 20.0f}},
     {0x0000, 0x03, 0x03, 1.0f, 70.0f, {0.0f, 0.0f, 20.0f}, {0.0f, 0.0f, 20.0f}},
     {0x0000, 0x03, 0x02, 0.666f, 130.0f, {0.0f, 0.0f, 30.0f}, {0.0f, 0.0f, 30.0f}},
@@ -355,201 +355,201 @@ void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
     pl->be_flag &= ~0x00E00000;
 }
 
-void testHairSetLeon(cModel* pl, PlCloth* c)
+void testHairSetLeon(cModel* pl, PlCloth* pCloth)
 {
-    c->num = 21;
-    c->pParts = leonHairP;
-    c->pLeft = 0;
-    c->pRight = 0;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = leonHairUp;
-    c->pDown = leonHairDp;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->pMax = leonHairMax;
-    c->pWindS = leonHairWindS;
-    c->pWindR = leonHairWindR;
-    c->pAt = leonHairAt;
-    c->nAt = 4;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x302;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->num = 21;
+    pCloth->pParts = leonHairP;
+    pCloth->pLeft = 0;
+    pCloth->pRight = 0;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = leonHairUp;
+    pCloth->pDown = leonHairDp;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->pMax = leonHairMax;
+    pCloth->pWindS = leonHairWindS;
+    pCloth->pWindR = leonHairWindR;
+    pCloth->pAt = leonHairAt;
+    pCloth->nAt = 4;
+    pCloth->Gravity = 15.0f;
+    pCloth->Rate = 0.75f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 1.0f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x302;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testHairMoveLeon(cModel* pl, PlCloth* c)
+void testHairMoveLeon(cModel* pl, PlCloth* pCloth)
 {
-    PenClothMove(pl, (PenCloth*) c);
+    PenClothMove(pl, (PenCloth*) pCloth);
 }
 
-void testJacketSetLeon(cModel* pl, PlCloth* c)
+void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->costume != 0) {
         return;
     }
-    c->num = 24;
-    c->pParts = leonJacketP;
-    c->pLeft = leonJacketLp;
-    c->pRight = leonJacketRp;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = leonJacketUp;
-    c->pDown = leonJacketDp;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->pMax = leonJacketMax;
-    c->pWindS = leonJacketWindS;
-    c->pWindR = leonJacketWindR;
-    c->pAt = leonJacketAt;
-    c->nAt = 6;
-    c->x3C = 25.0f;
-    c->pModel = 0;
-    c->x40 = 0.5f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 0.1f;
-    c->x50 = 0.5f;
-    c->flags = 0x100;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->num = 24;
+    pCloth->pParts = leonJacketP;
+    pCloth->pLeft = leonJacketLp;
+    pCloth->pRight = leonJacketRp;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = leonJacketUp;
+    pCloth->pDown = leonJacketDp;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->pMax = leonJacketMax;
+    pCloth->pWindS = leonJacketWindS;
+    pCloth->pWindR = leonJacketWindR;
+    pCloth->pAt = leonJacketAt;
+    pCloth->nAt = 6;
+    pCloth->Gravity = 25.0f;
+    pCloth->pModel = 0;
+    pCloth->Rate = 0.5f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 0.1f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->flags = 0x100;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testJacketMoveLeon(cModel* pl, PlCloth* c)
+void testJacketMoveLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->costume == 0) {
-        PenClothMove3(pl, (PenCloth*) c);
+        PenClothMove3(pl, (PenCloth*) pCloth);
     }
 }
 
-void testHolsterSetLeon(cModel* pl, PlCloth* c)
+void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->costume != 1) {
         return;
     }
-    c->num = 2;
-    c->pParts = leonHolsterP;
-    c->pLeft = leonHolsterLp;
-    c->pRight = leonHolsterRp;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = leonHolsterUp;
-    c->pDown = leonHolsterDp;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->pMax = leonHolsterMax;
-    c->pWindS = leonHolsterWindS;
-    c->pWindR = leonHolsterWindR;
-    c->pAt = leonHolsterAt;
-    c->nAt = 1;
-    c->x3C = 25.0f;
-    c->x40 = 0.7f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x100;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->num = 2;
+    pCloth->pParts = leonHolsterP;
+    pCloth->pLeft = leonHolsterLp;
+    pCloth->pRight = leonHolsterRp;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = leonHolsterUp;
+    pCloth->pDown = leonHolsterDp;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->pMax = leonHolsterMax;
+    pCloth->pWindS = leonHolsterWindS;
+    pCloth->pWindR = leonHolsterWindR;
+    pCloth->pAt = leonHolsterAt;
+    pCloth->nAt = 1;
+    pCloth->Gravity = 25.0f;
+    pCloth->Rate = 0.7f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 1.0f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x100;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testHolsterMoveLeon(cModel* pl, PlCloth* c)
+void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth)
 {
     if (pG->costume == 1) {
-        PenClothMove3(pl, (PenCloth*) c);
+        PenClothMove3(pl, (PenCloth*) pCloth);
     }
 }
 
-void testHairSetGirl(cModel* pl, PlCloth* c, int evt)
+void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
-    c->num = 21;
-    c->pParts = girlHairP;
-    c->pLeft = 0;
-    c->pRight = 0;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = girlHairUp;
-    c->pDown = girlHairDp;
-    c->pWindS = girlHairWindS;
-    c->pWindR = girlHairWindR;
+    pCloth->num = 21;
+    pCloth->pParts = girlHairP;
+    pCloth->pLeft = 0;
+    pCloth->pRight = 0;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = girlHairUp;
+    pCloth->pDown = girlHairDp;
+    pCloth->pWindS = girlHairWindS;
+    pCloth->pWindR = girlHairWindR;
     if (evt) {
-        c->pMax = girlHairMaxEvt;
-        c->pAt = girlHairAtEvt;
-        c->nAt = 7;
+        pCloth->pMax = girlHairMaxEvt;
+        pCloth->pAt = girlHairAtEvt;
+        pCloth->nAt = 7;
     } else {
-        c->pMax = girlHairMax;
-        c->pAt = girlHairAt;
-        c->nAt = 5;
+        pCloth->pMax = girlHairMax;
+        pCloth->pAt = girlHairAt;
+        pCloth->nAt = 5;
     }
-    c->x20 = 0;
-    c->pRate = 0;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x302;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->Gravity = 15.0f;
+    pCloth->Rate = 0.75f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 1.0f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x302;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testHairMoveGirl(cModel* pl, PlCloth* c)
+void testHairMoveGirl(cModel* pl, PlCloth* pCloth)
 {
-    PenClothMove(pl, (PenCloth*) c);
+    PenClothMove(pl, (PenCloth*) pCloth);
 }
 
-void testSkirtSetGirl(cModel* pl, PlCloth* c, int evt)
+void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
-    c->num = 48;
-    c->pParts = girlSkirtP;
-    c->pLeft = girlSkirtLp;
-    c->pRight = 0;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = girlSkirtUp;
-    c->pDown = girlSkirtDp;
+    pCloth->num = 48;
+    pCloth->pParts = girlSkirtP;
+    pCloth->pLeft = girlSkirtLp;
+    pCloth->pRight = 0;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = girlSkirtUp;
+    pCloth->pDown = girlSkirtDp;
     if (evt) {
-        c->pMax = girlSkirtMaxEvt;
-        c->pAt = girlSkirtAtEvt;
-        c->nAt = 11;
+        pCloth->pMax = girlSkirtMaxEvt;
+        pCloth->pAt = girlSkirtAtEvt;
+        pCloth->nAt = 11;
     } else {
-        c->pMax = girlSkirtMax;
-        c->pAt = girlSkirtAt;
-        c->nAt = 11;
+        pCloth->pMax = girlSkirtMax;
+        pCloth->pAt = girlSkirtAt;
+        pCloth->nAt = 11;
     }
-    c->pWindS = girlSkirtWindS;
-    c->pWindR = girlSkirtWindR;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->x3C = 10.0f;
-    c->x40 = 0.9f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x100;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->pWindS = girlSkirtWindS;
+    pCloth->pWindR = girlSkirtWindR;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->Gravity = 10.0f;
+    pCloth->Rate = 0.9f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 1.0f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x100;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testSkirtMoveGirl(cModel* pl, PlCloth* c)
+void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth)
 {
     if (pG->flags_5010 & 0x200000) {
-        c->x50 = 0.9f;
+        pCloth->Move_rate = 0.9f;
     } else {
-        c->x50 = 0.5f;
+        pCloth->Move_rate = 0.5f;
     }
-    PenClothMove3(pl, (PenCloth*) c);
+    PenClothMove3(pl, (PenCloth*) pCloth);
 }
 
 void testSweaterSetGirl(cModel* pl, PlCloth* c)
@@ -559,22 +559,22 @@ void testSweaterSetGirl(cModel* pl, PlCloth* c)
     c->pLeft = girlSweaterLp;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = girlSweaterUp;
     c->pDown = girlSweaterDp;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pMax = girlSweaterMax;
     c->pWindS = girlSweaterWindS;
     c->pWindR = girlSweaterWindR;
     c->pAt = girlSweaterAt;
     c->nAt = 6;
-    c->x3C = 10.0f;
-    c->x40 = 0.7f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 0.1f;
-    c->x50 = 0.5f;
+    c->Gravity = 10.0f;
+    c->Rate = 0.7f;
+    c->Bundle_num = 4;
+    c->WindSin = 0.0f;
+    c->Stretchy = 0.1f;
+    c->Move_rate = 0.5f;
     c->pModel = 0;
     c->flags = 0x100;
     c->x54 = 0;
@@ -586,38 +586,38 @@ void testSweaterMoveGirl(cModel* pl, PlCloth* c)
     PenClothMove(pl, (PenCloth*) c);
 }
 
-void testRibbonSetGirl(cModel* pl, PlCloth* c)
+void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
 {
-    c->num = 12;
-    c->pParts = girlRibbonP;
-    c->pLeft = 0;
-    c->pRight = 0;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = girlRibbonUp;
-    c->pDown = girlRibbonDp;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->pMax = girlRibbonMax;
-    c->pWindS = girlRibbonWindS;
-    c->pWindR = girlRibbonWindR;
-    c->pAt = girlRibbonAt;
-    c->nAt = 8;
-    c->x3C = 10.0f;
-    c->x40 = 0.7f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 0.1f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x100;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->num = 12;
+    pCloth->pParts = girlRibbonP;
+    pCloth->pLeft = 0;
+    pCloth->pRight = 0;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = girlRibbonUp;
+    pCloth->pDown = girlRibbonDp;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->pMax = girlRibbonMax;
+    pCloth->pWindS = girlRibbonWindS;
+    pCloth->pWindR = girlRibbonWindR;
+    pCloth->pAt = girlRibbonAt;
+    pCloth->nAt = 8;
+    pCloth->Gravity = 10.0f;
+    pCloth->Rate = 0.7f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 0.1f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x100;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testRibbonMoveGirl(cModel* pl, PlCloth* c)
+void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
 {
-    PenClothMove(pl, (PenCloth*) c);
+    PenClothMove(pl, (PenCloth*) pCloth);
 }
 
 // One lapel of Ashley's alternate costume: the part is rotated away from the body by the angle the
@@ -712,38 +712,38 @@ void girlLapelMove(cModel* pl)
     }
 }
 
-void testHairSetLuis(cModel* pl, PlCloth* c)
+void testHairSetLuis(cModel* pl, PlCloth* pCloth)
 {
-    c->num = 26;
-    c->pParts = luisHairP;
-    c->pLeft = 0;
-    c->pRight = 0;
-    c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = luisHairUp;
-    c->pDown = luisHairDp;
-    c->x20 = 0;
-    c->pRate = 0;
-    c->pMax = luisHairMax;
-    c->pWindS = luisHairWindS;
-    c->pWindR = luisHairWindR;
-    c->pAt = luisHairAt;
-    c->nAt = 7;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
-    c->pModel = 0;
-    c->flags = 0x302;
-    c->x54 = 0;
-    PenClothSet(pl, (PenCloth*) c, 100.0f);
+    pCloth->num = 26;
+    pCloth->pParts = luisHairP;
+    pCloth->pLeft = 0;
+    pCloth->pRight = 0;
+    pCloth->pUpLeft = 0;
+    pCloth->pUpRight = 0;
+    pCloth->pUp = luisHairUp;
+    pCloth->pDown = luisHairDp;
+    pCloth->pGravity = 0;
+    pCloth->pRate = 0;
+    pCloth->pMax = luisHairMax;
+    pCloth->pWindS = luisHairWindS;
+    pCloth->pWindR = luisHairWindR;
+    pCloth->pAt = luisHairAt;
+    pCloth->nAt = 7;
+    pCloth->Gravity = 15.0f;
+    pCloth->Rate = 0.75f;
+    pCloth->Bundle_num = 4;
+    pCloth->WindSin = 0.0f;
+    pCloth->Stretchy = 1.0f;
+    pCloth->Move_rate = 0.5f;
+    pCloth->pModel = 0;
+    pCloth->flags = 0x302;
+    pCloth->x54 = 0;
+    PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
-void testHairMoveLuis(cModel* pl, PlCloth* c)
+void testHairMoveLuis(cModel* pl, PlCloth* pCloth)
 {
-    PenClothMove(pl, (PenCloth*) c);
+    PenClothMove(pl, (PenCloth*) pCloth);
 }
 
 // The zero stores come out in source order because none of them is the zero's last use: `x54 = 0`
@@ -764,24 +764,24 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     c->pWindR = adaDressWindR;
     c->pAt = adaDressAt;
     c->nAt = 35;
-    c->x3C = 20.0f;
+    c->Gravity = 20.0f;
     rate = 0.7f;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
     c->pRight = 0;
-    c->x14 = 0;
-    c->x20 = 0;
+    c->pUpRight = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pModel = 0;
-    c->x40 = rate;
+    c->Rate = rate;
     c->flags = 0;
     c->x54 = 0;
     if (evt) {
-        c->x50 = rate;
-        c->x44 = 2;
+        c->Move_rate = rate;
+        c->Bundle_num = 2;
     } else {
-        c->x50 = rate;
-        c->x44 = 10;
+        c->Move_rate = rate;
+        c->Bundle_num = 10;
     }
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
@@ -798,22 +798,22 @@ void testHairSetAda(cModel* pl, PlCloth* c)
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = adaHairUp;
     c->pDown = adaHairDp;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pWindS = adaHairWindS;
     c->pWindR = adaHairWindR;
     c->pMax = adaHairMax;
     c->pAt = adaHairAt;
     c->nAt = 6;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
+    c->Gravity = 15.0f;
+    c->Rate = 0.75f;
+    c->Bundle_num = 4;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
+    c->Move_rate = 0.5f;
     c->pModel = 0;
     c->flags = 0x302;
     c->x54 = 0;
@@ -840,18 +840,18 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
+    c->pUpRight = 0;
     c->pUp = adaRibbonUp;
     c->pDown = adaRibbonDp;
-    c->x20 = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pMax = adaRibbonMax;
-    c->x3C = 10.0f;
-    c->x40 = 0.8f;
-    c->x44 = 0;
+    c->Gravity = 10.0f;
+    c->Rate = 0.8f;
+    c->Bundle_num = 0;
     zero = 0.0f;
-    c->x50 = 0.5f;
-    c->x4C = 1.0f;
+    c->Move_rate = 0.5f;
+    c->Stretchy = 1.0f;
     c->x54 = 0;
     c->pWindS = adaRibbonWindS;
     c->pWindR = adaRibbonWindR;
@@ -859,7 +859,7 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     c->nAt = 10;
     c->flags = 0x200;
     c->pModel = pl;
-    c->x48 = zero;
+    c->WindSin = zero;
     pos.x = zero;
     pos.y = zero;
     pos.z = zero;

@@ -287,7 +287,7 @@ void HideCheck(cEsp* esp)
     iw = 1.0f / -v.z;
     m22 = m22 * v.z;
     zval = (u32) ((iw * ((m22 + m23) * Zscale) + Zoffset) * 16777215.0f);
-    if (pG->flags_54 & 0x800) {
+    if (pG->System_flg & 0x800) {
         border = 56.0f;
     } else {
         border = 0.0f;
@@ -329,7 +329,7 @@ void HideCheck(cEsp* esp)
 }
 
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
     Mtx m1;

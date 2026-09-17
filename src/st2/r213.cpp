@@ -244,9 +244,9 @@ void R213SuInit()
         if (obj) {
             obj->pInfo->setTexBlendTbl(tbl);
             obj->pInfo->setBlendRatio(0xFF);
-            obj->x136 = 1;
-            obj->x137 = 0xF;
-            obj->x138 = 0xB4;
+            obj->Shader_type = 1;
+            obj->Refract_pow = 0xF;
+            obj->Refract_ratio = 0xB4;
             obj->pInfo->setSpecular(0xFF, 0xFF, 0xFF);
         }
         EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
@@ -546,7 +546,7 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         cObjChain* chain;
 
         r213_cloth.num = r213_chainNum;
-        r213_cloth.x44 = 200;
+        r213_cloth.Bundle_num = 200;
         r213_cloth.pParts = r213_chainParts;
         r213_cloth.pUp = r213_chainUp;
         r213_cloth.pDown = r213_chainDown;
@@ -554,25 +554,25 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         // 0.0 f11): the non-dying x48 store sits behind three zero stores in sched1 (0.0's life
         // 63 > 1.5x the others'), x4C last puts its store after the dying x54 (0.1's life = 50's,
         // the earlier qty wins). sched2 issues the FP stores first anyway (4 dependents vs 2).
-        r213_cloth.x3C = 50.0f;
-        r213_cloth.x40 = 0.8f;
-        r213_cloth.x08 = 0;
-        r213_cloth.x0C = 0;
-        r213_cloth.x10 = 0;
-        r213_cloth.x48 = 0.0f;
-        r213_cloth.x50 = 0.0f;
-        r213_cloth.x14 = 0;
+        r213_cloth.Gravity = 50.0f;
+        r213_cloth.Rate = 0.8f;
+        r213_cloth.pLeft = 0;
+        r213_cloth.pRight = 0;
+        r213_cloth.pUpLeft = 0;
+        r213_cloth.WindSin = 0.0f;
+        r213_cloth.Move_rate = 0.0f;
+        r213_cloth.pUpRight = 0;
         r213_cloth.pMax = 0;
-        r213_cloth.x2C = 0;
-        r213_cloth.x30 = 0;
-        r213_cloth.x34 = 0;
-        r213_cloth.x20 = 0;
-        r213_cloth.x24 = 0;
-        r213_cloth.x38 = 0;
+        r213_cloth.pWindSin = 0;
+        r213_cloth.pWindRate = 0;
+        r213_cloth.pAtset = 0;
+        r213_cloth.pGravity = 0;
+        r213_cloth.pRate = 0;
+        r213_cloth.At_num = 0;
         r213_cloth.x58 = 0;
         r213_cloth.flags = 0;
         r213_cloth.x54 = 0;
-        r213_cloth.x4C = 0.1f;
+        r213_cloth.Stretchy = 0.1f;
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 

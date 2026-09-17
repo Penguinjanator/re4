@@ -23,9 +23,9 @@
 extern "C" {
 int MotionMove(cModel* m, int a);
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
-int CheckInWater(cModel* m, int a);                                                          // em_sub.cpp
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
+int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 }
 
 typedef void (*EmShieldFunc)(cEmShield*);
@@ -140,10 +140,10 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->effOfs.y = 0.0f;
     w->effOfs.z = 0.0f;
     w->estNo = 50;
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     emShield_R0_Move(em);
     return em;
 }
@@ -272,10 +272,10 @@ void emShieldDmCk(cEmShield* em)
                 SndCall(8, 0xAE, &parts0->worldPos, w->pParent->id, 0, em);
             }
             em->hp = 0;
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             break;
         }
         parts = em->getPartsPtr(part->partsNo - 1);
@@ -318,10 +318,10 @@ void emShieldDmCk(cEmShield* em)
         Matrix2AxisAngle(parts0->mat, &r);
         EstSet(0, -1, &p, &r, 0x10, 0x62, 0, 0, 0, 0);
         em->hp = 0;
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         if (w->pParent) {
             do {
                 SndCallV(8, 0xAE, &parts0->worldPos, w->pParent->id, 0, em);
@@ -363,11 +363,11 @@ void cEmShield::move()
     Vec p;
 
     emShieldDmCk(this);
-    EmShield_R0_move_tbl[xFC](this);
+    EmShield_R0_move_tbl[r_no_0](this);
     if ((be_flag & 0x201) == 1) {
         if (w->pParent) {
             alpha = w->pParent->alpha;
-            x158 = w->pParent->x158;
+            invisible_factor2 = w->pParent->invisible_factor2;
             if (w->pParent->be_flag & 2) {
                 be_flag |= 2;
             } else {
@@ -399,15 +399,15 @@ void cEmShield::move()
 
 void emShield_R0_Init(cEmShield* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emShield_R0_Move(cEmShield* em)
 {
-    EmShield_R1_move_tbl[em->xFD](em);
+    EmShield_R1_move_tbl[em->r_no_1](em);
 }
 
 void emShield_R1_Set(cEmShield* em)
@@ -429,20 +429,20 @@ void emShield_R1_LostWait(cEmShield* em)
     Vec scr;
     Vec pos;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->setStatus(1);
         w->timer = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer == 0) {
             em->alpha -= 0.1f;
             if (em->alpha <= 0.0f) {
                 em->alpha = 0.0f;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 break;
             }
         } else {
@@ -451,10 +451,10 @@ void emShield_R1_LostWait(cEmShield* em)
         pos = em->pos;
         GetScreenPos(&pos, &scr);
         if (scr.z > 1.0f) {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
@@ -469,7 +469,7 @@ void emShield_R1_Lost(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x20;
@@ -477,7 +477,7 @@ void emShield_R1_Lost(cEmShield* em)
         EffectEspDelete(0, w->estNo, em, 0);
         EffectEspgenDelete(0, w->estNo, em);
         EffectEfmDelete(0, w->estNo, em);
-        em->xFE++;
+        em->r_no_2++;
         EmMgr.destroy(em);
     }
 }
@@ -695,10 +695,10 @@ void emShield_R1_Fall(cEmShield* em)
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
         Matrix2AxisAngle(em->mat, &em->rot);
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     em->partsWorldCalc();
     if (w->inWater == 0) {
@@ -724,10 +724,10 @@ void cEmShield::setParent(cModel* parent, int partsNo, int flag)
     } else {
         w->flags &= ~1;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Drops the shield: node speeds from `spd` (node 0 as is, nodes 1 / 2 rotated +-90 degrees around Y)
@@ -796,8 +796,8 @@ void cEmShield::setFall(f32 gravity, Vec* spd)
     pos.y = mat[1][3];
     pos.z = mat[2][3];
     Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }

@@ -310,7 +310,7 @@ public:
 // op/opNN.das message sequences)
 class SsTermInit : public Widget<SUB_SCREEN> {
 public:
-    int x10;
+    int _counter;
     int state;  // 0x14  starts at 2
 
     virtual void init(SUB_SCREEN* wk);

@@ -103,7 +103,7 @@ void cObjShotgun::moveReload()
 {
     static const f32 reloadEnd[3] = { 30.0f, 26.0f, 17.0f };
     static const f32 reloadSe[3] = { 66.0f, 60.0f, 40.0f };
-    int lv = pG->x4FBA;
+    int lv = pG->weapon_lv_reload;
 
     if (wep.step == 0) {
         void* m;

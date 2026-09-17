@@ -251,7 +251,7 @@ int Event::init(char* nm, EvtHeader* data)
     xC = 0;
     endStep = 0;
     endWait = 0;
-    xF = 0;
+    Id = 0;
     pPrevPacket = 0;
     pPosOya = 0;
     totalFrame = 0;
@@ -291,8 +291,8 @@ int Event::Run()
     int wait;
 
     MesClear();
-    if ((pG->flags_54 & 0x400) && (cut != 0 || frame != 0)) {
-        pG->flags_54 &= ~0x400;
+    if ((pG->System_flg & 0x400) && (cut != 0 || frame != 0)) {
+        pG->System_flg &= ~0x400;
     }
     while ((flg = IsExePacket()) != 0) {
         ChkCutZero();
@@ -306,7 +306,7 @@ int Event::Run()
         if (totalFrame == maxTotalFrame - 0x1E) {
             FadeSetW(2, 0x2D, 0, 0);
             IntSet(mesWait, 0xF);
-            pG->flags_58 &= ~0x800;
+            pG->Disp_flg &= ~0x800;
             EvtMesDeleteAll();
         }
     }
@@ -315,7 +315,7 @@ int Event::Run()
             if (totalFrame == maxTotalFrame - 0x1E || totalFrame == maxTotalFrame) {
                 SetDiedemoExec();
                 IntSet(mesWait, 0xF);
-                pG->flags_58 &= ~0x800;
+                pG->Disp_flg &= ~0x800;
                 EvtMesDeleteAll();
             }
         }
@@ -466,9 +466,9 @@ void Event::EspToolSetMod(int no, char* nm)
     }
     if (GetModelPtrNo(&modNo, &mod, mname)) {
         EvtDebug.pModel[no].pModel = (cModel*) modNo;
-        EvtDebug.pModel[no].x638 = mod->x12F;
+        EvtDebug.pModel[no].x638 = mod->ot_type;
         EvtDebug.pModel[no].x639 = mod->lightInfo.x50;
-        if (mod->x12C == 1) {
+        if (mod->z_mode == 1) {
             BitOn(EvtDebug.pModel[no].flags, 0x80000000);
         }
         if (BeFlgChk(mod, 0x1000) == 1) {
@@ -515,14 +515,14 @@ int Event::GetModelPtrNo(int* no, cModel** mod, char* nm)
     return 0;
 }
 
-int Event::RunTool(int mode, int arg)
+int Event::RunTool(int mode, int subFrame)
 {
     int frm = frame;
     int c = cut;
 
     switch (mode) {
     case 0:
-        frm -= arg;
+        frm -= subFrame;
         if (frm < 0) {
             c--;
             if (c < 0) {
@@ -628,7 +628,7 @@ cancel_end:
     EvtMesDeleteAll();
     key = (u32*) name;
     IntSet(mesTimer, 0);
-    pG->flags_58 &= ~0x800;
+    pG->Disp_flg &= ~0x800;
     EvtMgr.EvtSndStrStop(key, 1, 1);
     ExeFunc(3, 0);
     if (EvtChk(status, 0x10000000)) {
@@ -687,7 +687,7 @@ void Event::ControlTransFlag()
             if (Obj18CmfGet((cObj*) m) & 0x04000000) {
                 break;
             }
-            if (m->x12E == 2) {
+            if (m->kindid == 2) {
                 return;
             }
             if (EvtChk(status, 0x00100000) || EvtChk(status, 0x00400000)) {
@@ -705,7 +705,7 @@ void Event::ControlTransFlag()
                 m->be_flag |= 0x20;
                 m->be_flag |= 2;
             }
-            if (m->x12E == 1 && m->id == 0x18) {
+            if (m->kindid == 1 && m->id == 0x18) {
                 w = &((cObj*) m)->o18;
                 if (w->type == 3 && w->child != 0 && !(((cObj*) m)->o18.x74 & 0x04000000)) {
                     if ((m->be_flag & 0x20) == 0) {
@@ -1157,7 +1157,7 @@ int Event::ExePacket_Pos(Event* evt)
         rot.z += oya->rot.z;
     }
     if (pac->flag & 0x40000000) {
-        if (m->x12E == 1 && m->id == 0x18) {
+        if (m->kindid == 1 && m->id == 0x18) {
             OyaSetObj18((cObj*) m, oya, pac->pos.partsNo);
             m->lightInfo.x51 = 1;
         }
@@ -1205,11 +1205,11 @@ int Event::ExePacket_Mot(Event* evt)
     }
     MotionClear(m, 1);
     MotionSetCore(m, &((cEm*) m)->pMotion, dat, 0, 0, 1, (u16) frm);
-    if (m->x12E == 0 && m->id == 0) {
+    if (m->kindid == 0 && m->id == 0) {
         m->be_flag |= 0x00200000;
     }
     ClrShape(m);
-    if (m->x12E == 1 && m->id == 0x18) {
+    if (m->kindid == 1 && m->id == 0x18) {
         Obj18Work* w = &((cObj*) m)->o18;
         t = w->type;
         if ((t >= 1 && t <= 4) || t == 7 || t == 8 || t == 9 || t == 0xA || t == 0x13 || t == 0x14 || t == 0x15 || t == 0x16
@@ -1512,7 +1512,7 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 2);
     }
     EvtMesDeleteAll();
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     if (!EvtChk(evt->pData->sndFlag, 0x80000000)) {
         SndEventInit();
     }
@@ -1585,13 +1585,13 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         CamCtrl.setMotionBaseMatPtr(0);
         CamCtrl.Comeback(0);
     }
-    pG->flags_58 &= ~0x800;
+    pG->Disp_flg &= ~0x800;
     cMes.roomInit();
     EvtMesDeleteAll();
     ShadowMemClear();
     ExeFunc(2, 0);
     pPL->move();
-    pG->flags_54 |= 0x40;
+    pG->System_flg |= 0x40;
     SubScreenWait(0xF);
     cMes.loadStageFont();
     if (!EvtChk(evt->pData->sndFlag, 0x80000000)) {
@@ -1603,7 +1603,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
     SceEventEnd(0);
 }
 
-int Event::ExeFunc(int mode, int arg)
+int Event::ExeFunc(int mode, int param)
 {
     char nm[0x30];
     char a[8];
@@ -1630,7 +1630,7 @@ int Event::ExeFunc(int mode, int arg)
         pLog->err(0, 0, "Event::ExeFunc: func failed");
         return 1;
     }
-    ((EvtFunc) fn)(this, arg);
+    ((EvtFunc) fn)(this, param);
     return 1;
 }
 
@@ -1705,7 +1705,7 @@ int Event::CalMaxCut(int* out)
     return 1;
 }
 
-int Event::CalMaxFrame(int* out, int c)
+int Event::CalMaxFrame(int* out, int noCut)
 {
     void* dat;
     EvtPacket* p;
@@ -1723,7 +1723,7 @@ int Event::CalMaxFrame(int* out, int c)
             return 0;
         }
         if (p->id == 6) {
-            if (c == n) {
+            if (noCut == n) {
                 if (EvtMgr.GetBin(&dat, p->mod.name, 0) == 0) {
                     pLog->err(0, 0, "Event::CalMaxFrame : dat failed");
                     return 0;
@@ -1734,7 +1734,7 @@ int Event::CalMaxFrame(int* out, int c)
             n++;
         }
         if (p->id == 8) {
-            if (c == n) {
+            if (noCut == n) {
                 *out = p->val.no;
                 return 1;
             }
@@ -1826,7 +1826,7 @@ void Event::ExecActBtn()
     if (actBtnOn != 1) {
         return;
     }
-    pG->flags_58 &= ~0x800;
+    pG->Disp_flg &= ~0x800;
     ActBtn.set(actBtnNo, 5, 0, 0, 2, 2, 0, 0);
     pG->flags_170 &= ~0x100;
     if (Key.trg & 0x80000) {
@@ -1839,7 +1839,7 @@ void Event::MesSet(int no, int time, int x, int y)
     int i;
 
     if (pSys->language != 1) {
-        pG->flags_58 &= ~0x800;
+        pG->Disp_flg &= ~0x800;
         if (no == -1) {
             cMes.WaitEnd(0);
         } else {
@@ -1863,7 +1863,7 @@ void Event::MesClear()
         mesTimer--;
         if (mesTimer <= 0) {
             IntSet(mesTimer, 0);
-            pG->flags_58 |= 0x800;
+            pG->Disp_flg |= 0x800;
         }
     }
     no = 0;
@@ -1934,7 +1934,7 @@ void Event::MotClear()
             if (Obj18CmfGet((cObj*) m) & 0x04000000) {
                 break;
             }
-            if (m->x12E == 2) {
+            if (m->kindid == 2) {
                 return;
             }
             MotionClear(m, 1);
@@ -2367,7 +2367,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     }
     BitOn(pG->flags_5014, 0x00080000);
     BitOn(pG->flags_5014, 0x00010000);
-    BitOn(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x400);
     if (em != 0) {
         SceSleep(2);
     }
@@ -2414,7 +2414,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
         pLog->err(0, 0, "EventMgr::EvtReadExec : mem over");
         ret = 0;
     }
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     BitOff(pG->flags_5014, 0x00080000);
     BitOff(pG->flags_5014, 0x00010000);
     CamCtrl.Comeback(0);
@@ -2552,7 +2552,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     case 0:
         evt->ExeEndEvt(evt, 0);
         if (flag == 1) {
-            pG->flags_54 |= 0x400;
+            pG->System_flg |= 0x400;
             evt->endWait = 0;
             evt->endStep++;
             return 1;
@@ -2563,10 +2563,10 @@ int EventMgr::DelEvt(void* evt_, int flag)
         if (evt->endWait <= 0) {
             return 1;
         }
-        pG->flags_54 &= ~0x400;
+        pG->System_flg &= ~0x400;
         break;
     }
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     {
         char* p = nm;
         strcpy(p, evt->name);
@@ -2601,7 +2601,7 @@ int EventMgr::SetBin(char* nm, void* data, void* dat2, int flag)
     return 1;
 }
 
-int EventMgr::GetBin(void** out, const char* nm, int a)
+int EventMgr::GetBin(void** out, const char* nm, int flagGet)
 {
     u8 type;
     void* dat;
@@ -2613,7 +2613,7 @@ int EventMgr::GetBin(void** out, const char* nm, int a)
     if (binTbl.GetDat(&dat, &type, nm, 0) == 0) {
         char path[0x100];
         pLog->warn(0, 0, "EventMgr::GetBin : non data[%s]", nm);
-        if (a == 0) {
+        if (flagGet == 0) {
             strcpy(path, "x:/soft/room/");
             strcat(path, nm);
             if (HDReadDebugAlloc(path, &dat, 1) == 0) {
@@ -2673,7 +2673,7 @@ int EventMgr::SetEvd(char* nm, void* data, void* dat2, int flag)
     return 1;
 }
 
-int EventMgr::GetEvd(void** out, char* nm, int a)
+int EventMgr::GetEvd(void** out, char* nm, int flagGet)
 {
     u8 type;
     void* dat;
@@ -2685,7 +2685,7 @@ int EventMgr::GetEvd(void** out, char* nm, int a)
     if (evdTbl.GetDat(&dat, &type, nm, 0) == 0) {
         char path[0x100];
         pLog->warn(0, 0, "EventMgr::GetEvd : non data[%s]", nm);
-        if (a == 0) {
+        if (flagGet == 0) {
             strcpy(path, "x:/soft/room/");
             strcat(path, nm);
             if (HDReadDebugAlloc(path, &dat, 1) == 0) {
@@ -2974,16 +2974,16 @@ void EventMgr::SetEmWindowFcv(void* a, void* b, void* c)
     emWindowFcv[2] = c;
 }
 
-void EventMgr::GetEmWindowFcv(void** a, void** b, void** c)
+void EventMgr::GetEmWindowFcv(void** win1FIn, void** win1FOut, void** win2FOut)
 {
-    if (a != 0) {
-        *a = emWindowFcv[0];
+    if (win1FIn != 0) {
+        *win1FIn = emWindowFcv[0];
     }
-    if (b != 0) {
-        *b = emWindowFcv[1];
+    if (win1FOut != 0) {
+        *win1FOut = emWindowFcv[1];
     }
-    if (c != 0) {
-        *c = emWindowFcv[2];
+    if (win2FOut != 0) {
+        *win2FOut = emWindowFcv[2];
     }
 }
 

@@ -82,10 +82,10 @@ static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -213,7 +213,7 @@ void cEm2a::move()
 {
     Em2aWork* w = EM2A_WK(this);
 
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         switch (type) {
         case 0:
         default:
@@ -228,8 +228,8 @@ void cEm2a::move()
         }
     }
     w->flags &= ~0xF;
-    Em2a_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em2a_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
     } else {
         partsWorldCalc();
@@ -248,14 +248,14 @@ static void em2a_R0_Init(cEm2a* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em2a 00() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(6), ARC(7)) == 0) {
             pLog->err(0, 0, "em2a 01() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         // the wire scaling is written out in case 1 AND case 2 (jump2 cross-jumps the copies): the
@@ -275,7 +275,7 @@ static void em2a_R0_Init(cEm2a* em)
     case 2:
         if (em->modelInit(ARC(8), ARC(9)) == 0) {
             pLog->err(0, 0, "em2a 02() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         if (em->hp <= 0) {
@@ -337,7 +337,7 @@ static void em2a_R0_Init(cEm2a* em)
     switch (em->type) {
     case 0:
     default:
-        switch (em->x38D) {
+        switch (em->set) {
         default:
             EmRoutineSet(em, 1, 0, zero, zero);
             break;
@@ -371,8 +371,8 @@ static void em2a_R0_Init(cEm2a* em)
 
 static void em2a_R0_Move(cEm2a* em)
 {
-    Em2a_R1_move_tbl[em->xFD * 2](em);
-    Em2a_R1_move_tbl[em->xFD * 2 + 1](em);
+    Em2a_R1_move_tbl[em->r_no_1 * 2](em);
+    Em2a_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
 static void em2a_R1_br_Dummy(cEm2a* em)
@@ -388,10 +388,10 @@ static void em2a_R1_br_Trap1Set(cEm2a* em)
 
 static void em2a_R1_Trap1Set(cEm2a* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         break;
@@ -403,7 +403,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
     Em2aWork* w = EM2A_WK(em);
     EmListData* l = EM_LIST(em->emsetNo);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xB), (int) ARC(0xD), 5, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
@@ -413,18 +413,18 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
         w->biteTimer = 10;
         VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 7, 1);
         l->x3 = 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->biteTimer) {
             w->biteTimer--;
             if (EmCatchMotionMove(em, 1.0f, 1.0f)) {
                 em->hp = 0;
-                em->xFE++;
+                em->r_no_2++;
             }
         } else {
             if (MotionMoveF(em, 0)) {
                 em->hp = 0;
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         if (w->camTimer) {
@@ -437,7 +437,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
             MotionSetCore(em, MOTION(em), ARC(0xB), 0, 0, 1, frame);
             MotionMoveF(em, 0);
             em->hp = 0;
-            em->xFE++;
+            em->r_no_2++;
         } else {
             em->x3A8 = em->pos;
         }
@@ -448,14 +448,14 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
 static void plem2a_Trap1Bite(cPlayer* pl)
 {
     pl->subArc = PL_EM(pPL)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x10), (int) PL_ARC(0x11), 5, 1, 0);
         PlSetFace(1);
         EstSet((int) pl, -1, 0, 0, 0x22, 1, 0, 0, (u32) pl, 0);
         LifeDownSet2(pPL, 300, 0, 1);
         pl->dmg.set(0, 0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (EmCatchMotionMove(pl, 0.3f, 0.2f)) {
             EndPlDamage();
@@ -471,7 +471,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
     EmListData* l = EM_LIST(em->emsetNo);
     int r;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 5, 5, 0);
         SubCharSetFace(1);
@@ -481,7 +481,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         w->biteTimer = 10;
         em->hp = 0;
         l->x3 = 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->biteTimer) {
             w->biteTimer--;
@@ -490,13 +490,13 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
             r = MotionMoveF(em, 0);
         }
         if (r) {
-            em->xFE++;
+            em->r_no_2++;
         }
         em->x3A8 = em->pos;
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 5, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         MotionMoveF(em, 0);
         if (em2aDeadCk(pSUB)) {
@@ -511,7 +511,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x18), (int) ARC(0x19), 5, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         MotionMoveF(em, 0);
         break;
@@ -524,16 +524,16 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
 
     sub->subArc = PL_EM(sub)->subArc;
     pGS->flags_5014 |= 0x20000000;
-    switch (sub->xFE) {
+    switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1A), 0, 5, 5, 0);
         EstSet((int) sub, -1, 0, 0, 0x22, 7, 0, 0, (u32) sub, 0);
         LifeDownSet2(pSUB, 300, 0, 1);
         sub->dmg.set(0, 2);
-        sub->xFE++;
+        sub->r_no_2++;
     case 1:
         if (EmCatchMotionMove(sub, 0.3f, 0.2f)) {
-            sub->xFE++;
+            sub->r_no_2++;
             break;
         }
         if (sub->frame > 15.7f && sub->frame < 16.3f) {
@@ -543,7 +543,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     case 2:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1B), 0, 5, 5, 0);
         sub->subHideMode = 0;
-        sub->xFE++;
+        sub->r_no_2++;
     case 3:
         EmCatchMotionMove(sub, 0.3f, 0.2f);
         LifeDownSet2(pSUB, 3, 0, 1);
@@ -560,7 +560,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     case 4:
         MotionSetCore(sub, MOTION(sub), SUB_ARC(0x1C), 0, 5, 1, 0);
         EstSet((int) sub, -1, 0, 0, 0x22, 8, 0, 0, (u32) sub, 0);
-        sub->xFE++;
+        sub->r_no_2++;
     case 5:
         sub->dmType = 2;
         if (MotionMoveF(sub, 0)) {
@@ -582,8 +582,8 @@ static void em2aResuceAshleyAction(cSubChar* sub)
     SetPlDamage(sub->dmgType, plemResuceAshley);
     sub->dmType = 10;
     pPL->dmType = 10;
-    sub->xFE = 4;
-    PL_EM(sub)->xFE = 4;
+    sub->r_no_2 = 4;
+    PL_EM(sub)->r_no_2 = 4;
 }
 
 static void plemResuceAshley(cPlayer* pl)
@@ -594,7 +594,7 @@ static void plemResuceAshley(cPlayer* pl)
 
     pl->subArc = em->subArc;
     pPLS->dmType = 10;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pl->rot.y = em->rot.y + PI / 2.0f;
         pl->rot.y = LIMIT_ANGLE(pl->rot.y);
@@ -605,7 +605,7 @@ static void plemResuceAshley(cPlayer* pl)
         v.z = -685.31f;
         PSMTXMultVec(m, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x1D), 0, 3, 1, 0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
@@ -657,9 +657,9 @@ static void em2a_R1_Trap1Break(cEm2a* em)
 {
     EmListData* l = EM_LIST(em->emsetNo);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        if (em->xFF) {
+        if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(0xC), (int) ARC(0xF), 0, 1, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0xC), (int) ARC(0xE), 0, 1, 0);
@@ -668,10 +668,10 @@ static void em2a_R1_Trap1Break(cEm2a* em)
         }
         l->x3 = 2;
         em->clearStatus(5);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
@@ -679,19 +679,19 @@ static void em2a_R1_Trap1Break(cEm2a* em)
 
 static void em2a_R1_Trap1Reset(cEm2a* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EM_LIST(em->emsetNo)->x3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 0, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->hp = 1;
-            em->xFC = 1;
-            em->xFD = 0;
-            em->xFF = 0;
-            em->xFE = 1;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0;
+            em->r_no_3 = 0;
+            em->r_no_2 = 1;
         }
         break;
     }
@@ -699,24 +699,24 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
 
 static void em2a_R1_Trap1R100(cEm2a* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
         MotionMoveF(em, 0);
         if (em->flags_3C8 & 1) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         EM_LIST(em->emsetNo)->x3 = 0;
         em->hp = 0;
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
@@ -735,16 +735,16 @@ static void em2a_R1_Trap2Bomb(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->camTimer = 3;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->camTimer) {
             w->camTimer--;
         } else {
             em2aTrap2Bomb(em);
-            em->xFE++;
+            em->r_no_2++;
         }
         RotMatrix(em->worldMat, &em->rot);
         TransMatrix(em->worldMat, &em->pos);

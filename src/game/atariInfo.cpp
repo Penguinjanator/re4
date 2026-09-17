@@ -20,13 +20,13 @@ void cAtariInfo::init0(int parts, int cnt, int flag, f32 x, f32 y, f32 z, f32 rx
     rectZ2 = rz;
     rectX = rx;
     rectZ = rz;
-    x2C = w;
+    m_radius3 = w;
     h = hh;
     partsNo = parts;
     this->cnt = cnt;
     flags = flag | 0x300;
     x48 = 0;
-    x26 = 1;
+    m_stat = 1;
 }
 
 void cAtariInfo::init(int parts, int flag, int cnt, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)

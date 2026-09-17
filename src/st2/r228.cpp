@@ -382,7 +382,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
-                    pG->flags_54 |= 0x400;
+                    pG->System_flg |= 0x400;
                 }
             }
             if (e->frame == 0) {
@@ -396,7 +396,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
-                    pG->flags_54 &= ~0x400;
+                    pG->System_flg &= ~0x400;
                 }
             }
             if (e->frame == e->maxFrame - 30) {
@@ -410,7 +410,7 @@ extern "C" void Evt_R228S00_Func(Event* e)
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
-                    pG->flags_54 |= 0x400;
+                    pG->System_flg |= 0x400;
                 }
             }
             break;
@@ -459,7 +459,7 @@ extern "C" void Evt_R228S01_Func(Event* e)
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
-                    pG->flags_54 &= ~0x400;
+                    pG->System_flg &= ~0x400;
                 }
             }
         }

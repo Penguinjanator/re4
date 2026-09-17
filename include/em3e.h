@@ -51,7 +51,7 @@ class cEmMark : public cEm {
 public:
     cEmMark();
     virtual void move();
-    void init(EmMarkData* d);
+    void init(EmMarkData* p_data);
     void init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z);
     void downCheck();
     void damageCheck();

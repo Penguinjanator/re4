@@ -329,7 +329,7 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if ((pG->flags_51BC & 0x00080000) && !(pG->flags_174 & 0x02000000)) {
+        if ((pG->Item_find_flg & 0x00080000) && !(pG->flags_174 & 0x02000000)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");

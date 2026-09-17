@@ -14,7 +14,7 @@ class cModelInfo;
 class cEm31;
 
 // One eye of the giant's back parasite (em31EyelidInit / em31EyelidMove / em31EyelidDmcK), 0x1C bytes.
-struct Em31Eyelid {
+struct EYELID_WK {
     u8 state;             // 0x00  0 open wait, 1 opening, 2 blink, 3 closing, 4 broken, 5 closed
     u8 closed;            // 0x01  the lid is shut (no damage)
     u8 parts;             // 0x02  lid parts (rotated / scaled)
@@ -35,7 +35,7 @@ struct Em31Work {
                           //                bit9: appearing (cloth off), bit10: attack hit, bit11: tentacle dead (die variant),
                           //                bit12: down, bit13: tentacle weak point hit, bit14: down enable, bit15: dashing (foot SE)
     int timer;            // 0x004 (0x3E4)
-    int x008;             // 0x008 (0x3E8)
+    int Timer2;             // 0x008 (0x3E8)
     int motVar;           // 0x00C (0x3EC)  em31_R1_BridgeVs / T_Wait: motion variant chosen at the state start
     int x010;             // 0x010 (0x3F0)
     Vec jumpSpd;          // 0x014 (0x3F4)  em31_R1_Jump: movement left towards bridgePos
@@ -43,13 +43,13 @@ struct Em31Work {
     u8 pad_604[0x638 - 0x604];
     f32 routeAng;         // 0x638 (0xA18)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x63C (0xA1C)
-    f32 x640;             // 0x640 (0xA20)
-    f32 x644;             // 0x644 (0xA24)
+    f32 Sub_dir;             // 0x640 (0xA20)
+    f32 Sub_rot;             // 0x644 (0xA24)
     f32 targetAng;        // 0x648 (0xA28)  copy of the route angle / distance
     f32 targetAngAbs;     // 0x64C (0xA2C)
-    f32 x650;             // 0x650 (0xA30)
+    f32 L_go;             // 0x650 (0xA30)
     Vec routePos;         // 0x654 (0xA34)  RouteCkPosToPos result towards the player
-    Vec x660;             // 0x660 (0xA40)
+    Vec Sub_pos;             // 0x660 (0xA40)
     Vec targetPos;        // 0x66C (0xA4C)
     int x678;             // 0x678 (0xA58)
     cEm31* pBody;         // 0x67C (0xA5C)  tentacle: the body (em31SearchBody)
@@ -81,7 +81,7 @@ struct Em31Work {
     int x8F8;             // 0x8F8 (0xCD8)
     u16 tailSeTimer;      // 0x8FC (0xCDC)  em31TailAtkCk: frames until the next tail SE
     s16 hitTimer;         // 0x8FE (0xCDE)  frames the eyelids stay shut after a weapon 0x17 hit
-    Em31Eyelid eye[4];    // 0x900 (0xCE0)
+    EYELID_WK eye[4];    // 0x900 (0xCE0)
     u8 atkHit;            // 0x970 (0xD50)  the attack hit the player
     u8 escaped;           // 0x971 (0xD51)  the player escaped the stamp (em31ActEscape)
     u8 atkEnable;         // 0x972 (0xD52)  tentacle: the body may attack (ckAtkEnable)

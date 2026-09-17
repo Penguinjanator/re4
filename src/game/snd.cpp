@@ -1383,7 +1383,7 @@ void SndWatcher()
         }
     }
 
-    if (!(pG->flags_500C & 0x40000) && !(pG->flags_54 & 0x1000) && pSndRaw->room_ok != 0) {
+    if (!(pG->flags_500C & 0x40000) && !(pG->System_flg & 0x1000) && pSndRaw->room_ok != 0) {
         at = FlrAtCheck(2, &pPL->pos, 0xFF);
         if (at != NULL) {
             b = (SndFlrAtBgm*) &at->x44;
@@ -1434,7 +1434,7 @@ static void nextRoomStreamCheck()
         } else {
             u16 s = (u16) rs->str[0];
             if (w->used != 0) {
-                if ((pG->flags_54 & 0x100) || ((pG->flags_54 >> 19) & 1)) { // two tests, not merged into one mask
+                if ((pG->System_flg & 0x100) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
                     stop = 1;
                 } else {
                     SND_STR_WORK* sw = Snd_search_str_work_snd_id(w->id);
@@ -1477,7 +1477,7 @@ static void nextRoomBgmCheck()
                     }
                 }
             }
-            if ((pG->flags_54 & 0x100) || ((pG->flags_54 >> 19) & 1)) { // two tests, not merged into one mask
+            if ((pG->System_flg & 0x100) || ((pG->System_flg >> 19) & 1)) { // two tests, not merged into one mask
                 flag = 1;
             }
             if (flag == 1) {
@@ -1688,7 +1688,7 @@ void SndRoomBgmStartCheck(int reset)
     }
     for (i = 0; i < 2; i++) {
         u16 b;
-        if ((pG->flags_54 & 0x100) || reset != 0) {
+        if ((pG->System_flg & 0x100) || reset != 0) {
             b = (u16) (pSnd->room_bgm[pG->snd_tbl_no + 1] >> (i * 16));
         } else {
             b = (u16) (pSnd->room_bgm[0] >> (i * 16));
@@ -1809,7 +1809,7 @@ void SndRoomStrStartCheck()
 {
     u32 s;
 
-    if (pG->flags_54 & 0x100) {
+    if (pG->System_flg & 0x100) {
         s = pSnd->room_str[pG->snd_tbl_no + 1];
     } else {
         s = pSnd->room_str[0];
@@ -1821,7 +1821,7 @@ void SndRoomStrStartCheck()
     }
 }
 
-void SndRoomStrStart(int a, int time, int loop)
+void SndRoomStrStart(int flag, int time, int loop)
 {
     int req = 3;
 

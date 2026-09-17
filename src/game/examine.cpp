@@ -485,7 +485,7 @@ void ItemExamine::idSet()
                 started = 0;
                 for (j = 2; j >= 0; j--) {
                     IdUnit* u = pIdSys->unitPtr(base2 + j, 0x27);
-                    u->flags_7F |= 2;
+                    u->tex_flag |= 2;
                     u->no = d[j];
                     if (kind == 3) {
                         if (started == 0 && d[j] == 0) {
@@ -569,7 +569,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     saveFlag = model_->be_flag;
     savePos = model_->pos;
     saveRot = model->rot;
-    saveX12F = model->x12F;
+    saveX12F = model->ot_type;
     model->be_flag |= 0x4000;
     saveParent = model->pParts->pParent;
     model->pParts->pParent = model;
@@ -593,7 +593,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         info = 0;
         break;
     }
-    model->x12F = 6;
+    model->ot_type = 6;
     if (info) {
         model->rot.x = info->rot.x * 3.1415927f / 180.0f;
         model->rot.y = info->rot.y * 3.1415927f / 180.0f;
@@ -684,12 +684,12 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     }
 }
 
-void ItemExamine::level(s8 a, s8 b, s8 c, s8 d)
+void ItemExamine::level(s8 pwr, s8 spd, s8 rld, s8 blt)
 {
-    lv[0] = a;
-    lv[1] = b;
-    lv[2] = c;
-    lv[3] = d;
+    lv[0] = pwr;
+    lv[1] = spd;
+    lv[2] = rld;
+    lv[3] = blt;
 }
 
 void ItemExamine::move()
@@ -854,7 +854,7 @@ void ItemExamine::quit()
 {
     int i;
 
-    model->x12F = saveX12F;
+    model->ot_type = saveX12F;
     EffectEspDelete(0xA001, 0x3B, (u32) model, 0);
     EffectEspgenDelete(0xA001, 0x3B, (int) model);
     EffectEfmDelete(0xA001, 0x3B, (int) model);
@@ -871,7 +871,7 @@ void ItemExamine::reset()
     model->be_flag = saveFlag;
     model->pos = savePos;
     model->rot = saveRot;
-    model->x12F = saveX12F;
+    model->ot_type = saveX12F;
     model->pParts->pParent = saveParent;
     model->pParts->pos = savePartsPos;
     model->pParts->rot = savePartsRot;

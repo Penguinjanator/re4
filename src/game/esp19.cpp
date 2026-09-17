@@ -27,7 +27,7 @@ cEsp* Esp19_Create()
 void cEsp19::move()
 {
     if (CommonMove()) {
-        xB8 = 100000000.0f;
+        m_Radius = 100000000.0f;
         dispFlag |= 2;
     }
 }

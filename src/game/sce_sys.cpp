@@ -70,11 +70,11 @@ void ScenarioRoomInit()
     // otherwise replace it), eventCancel is the last use of that pseudo and pause the last use of
     // the word zero (sched1 issues the dying store of each group first), and the sched2 anti-
     // dependence of the byte stores on the pG load's r9 ranks their group and its `li` last.
-    SceSys.x6D = 0;
-    SceSys.x6C = 0;
-    SceSys.x6E = 0;
-    SceSys.x6F = 0;
-    SceSys.x70 = 0;
+    SceSys.event_no_cut_back = 0;
+    SceSys.stop_bak_flg = 0;
+    SceSys.event_start_cnt = 0;
+    SceSys.up_cut_start_cnt = 0;
+    SceSys.task_kind_back = 0;
     SceSys.eventCancel = 0;
     SceSys.sndFlag = 1;
     SceSys.cancelFlagNo = -1;
@@ -88,7 +88,7 @@ void ScenarioRoomInit()
     SceSys.x75 = 0;
     SceSys.x76 = 0;
     SceSys.pause = 0;
-    pGS->flags_51BC &= ~0x80;
+    pGS->Item_find_flg &= ~0x80;
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();
@@ -386,16 +386,16 @@ static inline u32 emDeadRow(int n)
     return n * 32 + (u32) pG + 0x501C;
 }
 
-int SceExecCheckCondition_sub(SceCond* c)
+int SceExecCheckCondition_sub(SceCond* pP)
 {
     cEm* em;
     u32* row;
     u32 no;
     u32 bit;
 
-    switch (c->type) {
+    switch (pP->type) {
     case 0:
-        no = (u32) c->param;
+        no = (u32) pP->param;
         if (pG->emlist_no >= 0) {
             // Row address as integer arithmetic (index first, the list offset added last), like sce_at.
             bit = *(u32*) (((no >> 5) << 2) + emDeadRow(pG->emlist_no)) & (0x80000000 >> (no & 31));
@@ -407,29 +407,29 @@ int SceExecCheckCondition_sub(SceCond* c)
         }
         break;
     case 1:
-        if (CamCtrl.CurrentAreaNo() == (int) c->param) {
+        if (CamCtrl.CurrentAreaNo() == (int) pP->param) {
             return 1;
         }
         break;
     case 2:
-        em = (cEm*) c->param;
+        em = (cEm*) pP->param;
         // Raw (non-struct) read: keeps the load behind the store of `em` to its stack slot.
-        if (*(s16*) ((u32) em + 0x320) <= 0 && em->xFC == 3) {
+        if (*(s16*) ((u32) em + 0x320) <= 0 && em->r_no_0 == 3) {
             return 1;
         }
         break;
     case 3:
-        if (((int (*)()) c->param)() == 1) {
+        if (((int (*)()) pP->param)() == 1) {
             return 1;
         }
         break;
     case 4:
-        if (getRoomEtcBreak(c->param, &em, 1) == 1 && em->hp <= 0) {
+        if (getRoomEtcBreak(pP->param, &em, 1) == 1 && em->hp <= 0) {
             return 1;
         }
         break;
     case 5:
-        if (SceAtPtr((int) c->param) != 0 && SceAtItemFlgCk((int) c->param) == 1) {
+        if (SceAtPtr((int) pP->param) != 0 && SceAtItemFlgCk((int) pP->param) == 1) {
             return 1;
         }
         break;

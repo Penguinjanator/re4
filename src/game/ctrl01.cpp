@@ -6,13 +6,13 @@
 
 // Dead-stripped by the original linker (STRIP_UNUSED): only its strings, the strings of the
 // inlined CtrlMgr.destroy() (which instantiates cManager<cCtrl>::log) and its constant pool remain.
-static void Ctrl01_Move(cCtrl* c)
+static void Ctrl01_Move(cCtrl* pCtr)
 {
-    s32* w = (s32*) c->work;
+    s32* w = (s32*) pCtr->work;
 
     if (w[0] == 0) {
         pLog->err(0, 0, "Ctrl01_Move() PATH PTR ERR %08X", w[0]);
-        CtrlMgr.destroy(c);
+        CtrlMgr.destroy(pCtr);
         return;
     }
     w[1] = (s32) ((f32) w[2] * 0.005f);

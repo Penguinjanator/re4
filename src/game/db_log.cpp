@@ -40,50 +40,50 @@ void cLog::init()
     clear();
 }
 
-void cLog::mes(int a, int b, const char* fmt, ...)
+void cLog::mes(int flag, int col, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vmes(a, b, fmt, ap);
+    vmes(flag, col, fmt, ap);
     va_end(ap);
 }
 
-void cLog::err(int a, int b, const char* fmt, ...)
+void cLog::err(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    verr(a, b, fmt, ap);
+    verr(flag, errId, fmt, ap);
     va_end(ap);
 }
 
-void cLog::warn(int a, int b, const char* fmt, ...)
+void cLog::warn(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vwarn(a, b, fmt, ap);
+    vwarn(flag, errId, fmt, ap);
     va_end(ap);
 }
 
-void cLog::vmes(int a, int b, const char* fmt, va_list ap)
+void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
 {
     if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, 0, fmt, ap);
-        w->color = b;
+        cLogWork* w = add(flag, 0, fmt, ap);
+        w->color = col;
     }
 }
 
-void cLog::verr(int a, int b, const char* fmt, va_list ap)
+void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
 {
     if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, b, fmt, ap);
+        cLogWork* w = add(flag, errId, fmt, ap);
         w->color = 0x16;
     }
 }
 
-void cLog::vwarn(int a, int b, const char* fmt, va_list ap)
+void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
 {
     if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, b, fmt, ap);
+        cLogWork* w = add(flag, errId, fmt, ap);
         w->color = 0x10;
     }
 }

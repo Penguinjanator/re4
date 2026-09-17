@@ -219,7 +219,7 @@ void Render_done()
 
 void Render_swap()
 {
-    if (!(pG->flags_54 & 0x400)) {
+    if (!(pG->System_flg & 0x400)) {
         VISetNextFrameBuffer(pCurrent_buff);
         if (pCurrent_buff == pFrame_buff[0]) {
             pCurrent_buff = pFrame_buff[1];
@@ -258,7 +258,7 @@ void Render_DrawSyncCallback(u16 token)
 {
     if (token == 0xADEB) {
         ProcessTickGet(1, "RENDER END");
-        pG->flags_54 |= 0x10000000;
+        pG->System_flg |= 0x10000000;
     }
 }
 
@@ -266,10 +266,10 @@ void systemVISetBlack(int black)
 {
     if (black == 1) {
         VISetBlack(1);
-        pG->flags_54 |= 0x40000;
+        pG->System_flg |= 0x40000;
     } else {
         VISetBlack(0);
-        pG->flags_54 &= ~0x40000;
+        pG->System_flg &= ~0x40000;
     }
 }
 

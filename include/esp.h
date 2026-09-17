@@ -192,11 +192,11 @@ struct EspAnmData {
 
 // Effect owner info at the head of every cEsp (copied as a block by esp3f).
 struct EspInfo {
-    u16 x0;            // 0x00
-    u8 x2;             // 0x02
-    u8 x3;             // 0x03
+    u16 Core_flg;            // 0x00
+    u8 Core_kind;             // 0x02
+    u8 owner;             // 0x03
     union {
-        u32 x4;        // 0x04
+        u32 Call_no;        // 0x04
         struct {
             u8 x4;     // 0x04
             u8 x5;     // 0x05
@@ -219,10 +219,10 @@ public:
     u8 x11;            // 0x11
     u16 x12;           // 0x12
     u16 x14;           // 0x14
-    u16 x16;           // 0x16
+    u16 m_Del_far;           // 0x16
     u32 flags;         // 0x18 effect option bits
     cModel* pModel;    // 0x1C model the effect is attached to
-    u32 x20;           // 0x20
+    u32 m_Guid_pMod;           // 0x20
     cCoord* parent;    // 0x24 parent coordinate (pEffParentWorld = world)
     u8 partsNo;        // 0x28 parts of pModel the effect follows
     u8 parentCnt;      // 0x29 frames to stay attached to parent (0xFF = forever)
@@ -238,10 +238,10 @@ public:
     f32 scale;         // 0x74
     f32 scaleSpd;      // 0x78
     f32 scaleScale;    // 0x7C
-    u8 x80;            // 0x80 (esp0c: copied into the est work colour bytes)
-    u8 x81;            // 0x81
-    u8 x82;            // 0x82
-    u8 x83;            // 0x83
+    u8 m_Col_start_r;            // 0x80 (esp0c: copied into the est work colour bytes)
+    u8 m_Col_start_g;            // 0x81
+    u8 m_Col_start_b;            // 0x82
+    u8 m_Col_start_a;            // 0x83
     f32 colR;          // 0x84
     f32 colG;          // 0x88
     f32 colB;          // 0x8C
@@ -254,8 +254,8 @@ public:
     u8 xA5;            // 0xA5
     u8 xA6;            // 0xA6
     u8 xA7;            // 0xA7
-    u16 xA8;           // 0xA8
-    u16 xAA;           // 0xAA
+    u16 m_Col_max_cnt;           // 0xA8
+    u16 m_Col_start_cnt;           // 0xAA
     u16 spdCnt;        // 0xAC frames the speed is applied (0 = always)
     u16 scaleCnt;      // 0xAE frames the scale speed is applied (0 = always)
     u16 life;          // 0xB0 life time in frames (0 = infinite)
@@ -263,13 +263,13 @@ public:
     u8 anmPtn;         // 0xB4 current animation pattern
     u8 anmSpd;         // 0xB5
     u16 anmCnt;        // 0xB6
-    f32 xB8;           // 0xB8
+    f32 m_Radius;           // 0xB8
     Mtx mat;           // 0xBC model matrix built by the Trans functions
     union {
         u8 pad_EC[0xF4 - 0xEC];
         struct {
-            u8 xEC;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
-            u8 xED;        // 0xED  (EspGenWork xC4)
+            u8 m_Shimmer_type;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
+            u8 m_Shimmer_pow;        // 0xED  (EspGenWork xC4)
             u16 anmCnt2;   // 0xEE  mask texture animation counter
             u8 anmPtn2;    // 0xF0  mask texture animation pattern
             u8 anmNo2;     // 0xF1  mask texture animation id (EspGenWork xC5)
@@ -331,7 +331,7 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
 // game/trans_ot.cpp: AddOtWorldPos & co. are declared in trans_ot.h (void* data / u16 kind).
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
-int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
+int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
 // game/esp_app.cpp: laser sight line (objWep drawLaserSight), Vec by value
 void EspDrawLaserLine(Vec from, Vec to, f32 width);
 // game/eff_sys.cpp
@@ -384,7 +384,7 @@ int GetSandHeight(Vec* pos, f32* height);
 void AddSandPower(Vec* pos, f32 power);
 // game/eff_sys.cpp
 int EspChkTexId(int no);   // 1 when texture `no` has an object
-GXTexObj* EspGetTexObj(int no, int a);
+GXTexObj* EspGetTexObj(int no, int ptn_no);
 GXTlutObj* EspGetTlutObj(int no);
 struct EspTexWk* EspGetTexWk(int id, int quiet);   // NULL (and an error unless quiet) when the id has no texture
 int EspGetTexOwner(int id, u32* out);

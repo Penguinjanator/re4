@@ -1073,7 +1073,7 @@ void r221_initInsectboss()
         }
         r221_moveElevatoDoor(0, 1);
     } else {
-        if (pG->room_id_prev == 0x220 && flagBit(pG->flags_54, 0x100) == 0 && flagBit(pG->flags_54, 0x00080000) == 0) {
+        if (pG->room_id_prev == 0x220 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x00080000) == 0) {
             r221_moveElevatoDoor(0, 1);
             SceExec(0x12, (TaskFunc) r221_moveElevator, 1, 0, 2, 0);
         } else {
@@ -1402,7 +1402,7 @@ static void setTexRender()
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 0x10;
-    obj->x138 = 0x30;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 0x10;
+    obj->Refract_ratio = 0x30;
 }

@@ -46,7 +46,7 @@ public:
     void orientation(int o);
     void rotate(int dir);
     void mirror(int axis);
-    void init(PieceData* d);
+    void init(PieceData* p_data);
     f32 ver0_x();
     f32 ver0_y();
     int size_x();
