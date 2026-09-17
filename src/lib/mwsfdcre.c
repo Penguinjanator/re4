@@ -305,16 +305,21 @@ void mwSfdDestroy(MWPLY obj)
 }
 
 /* SFX handle work and additional-information stream joint buffer */
-/* COMPILER-DIFF: M1 - the original ranks mwply (r31) above the .rodata pool base (r30); every plain
- * form (parameter, `void *` kept copy, declaration orders) colours the pool first. Hard-register pin. */
-Sint32 mwsfcre_MallocCompoWork(register MWPLY obj)
+/* COMPILER-DIFF: M1 (codeless K-pin) - the original colours mwply (r31) before the .rodata pool base
+ * (r30), i.e. mwply survives the second Chaitin scan. The kept `void *` copy declared last is visited
+ * first in that scan with 25 never-removed neighbours (11 volatile registers, 11 r3 ghosts of the call
+ * results, pool, prm, size) and needs 29; every plain form removes it there (pool r31, mwply r28..r30).
+ * The asm copies to four volatile registers no value of this function takes remove those four from
+ * the colour set (K 29 -> 25), all five `mr` are deleted (r5/r6/r7 in place of r8/r9/r10 give identical
+ * bytes; three registers do not hold it). */
+Sint32 mwsfcre_MallocCompoWork(void *obj)
 {
-	register MWPLY mwply; // COMPILER-DIFF: M1 (r31)
 	MWSFD_CRPRM *prm;
 	Sint32 size;
 	void *wk;
+	register MWPLY mwply = obj;
 
-	asm { mr r31, obj; mr mwply, r31 } // COMPILER-DIFF: M1
+	asm { mr r8, mwply; mr r9, mwply; mr r10, mwply; mr r11, mwply; mr mwply, r11 } // COMPILER-DIFF: M1 (codeless K-pin)
 	prm = &mwply->prm;
 	size = MWSFSFX_CalcHnWorkSiz(prm->max_width, prm->max_height);
 	wk = MWSFD_Malloc(mwply, size);
