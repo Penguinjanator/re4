@@ -114,7 +114,7 @@ public:
     cObjWep* m_pWep;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];
-    u8 x40;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)
+    u8 m_LockTime;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)  (PS2 m_LockTime)
     u8 pad_41[3];
 
     cPlWep();

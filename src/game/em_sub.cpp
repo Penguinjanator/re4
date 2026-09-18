@@ -2145,11 +2145,11 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* pPos, Vec* pPosOld, int noSub)
     hit = EmAtkHitCk2(info, pPos, pPosOld);
     if (hit) {
         keep = 0;
-        if (info->x0A & 4) {
+        if (info->flag & 4) {
             keep = 1;
         }
         LifeDownSet2(pPL, info->dmg, 0, keep);
-        if (info->x0A & 8) {
+        if (info->flag & 8) {
             pG->pl_life = 0;
         }
         PlSetDamage(hit - 1, 0, 0);
@@ -2373,11 +2373,11 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
         type += 2;
     }
     keep = 0;
-    if (info->x0A & 4) {
+    if (info->flag & 4) {
         keep = 1;
     }
     LifeDownSet2(pPL, info->dmg, 0, keep);
-    if (info->x0A & 8) {
+    if (info->flag & 8) {
         pG->pl_life = 0;
     }
     PlSetDamage(type, 0, 0);

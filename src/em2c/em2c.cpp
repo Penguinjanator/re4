@@ -3864,7 +3864,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         MotionSetCore(em, &em->Motion, ARC(0x87), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         if (em->flags_3C8 & 2) {
-            EM_LIST(em->emset_no)->x3 = 3;
+            EM_LIST(em->emset_no)->set = 3;
             EmRoutineSet(em, 1, 0x25, 0, 0);
             break;
         }

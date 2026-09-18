@@ -49,7 +49,7 @@ struct Em22Work {
     int paraWait;         // 0x2B4 (0x694)  frames until a parasite may grow (em22SetParasiteCk)
     int lockCnt;          // 0x2B8 (0x698)  frames the player has aimed at the enemy (em22LockCk)
     u32 sndId[3];         // 0x2BC (0x69C)  catch scene SE handles (SndStop)
-    int x2C8;             // 0x2C8 (0x6A8)
+    int Seid_foot;             // 0x2C8 (0x6A8)  em22FootSeControl Ctrl11SetSe handle, SndStop on death
     int slaverTimer;      // 0x2CC (0x6AC)  em22SlaverSet
     int x2D0;             // 0x2D0 (0x6B0)
     int voiceTimer;       // 0x2D4 (0x6B4)  frames until the next growl while a parasite is out

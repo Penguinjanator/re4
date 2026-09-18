@@ -488,9 +488,9 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
     int hit;
 
     if ((s16) pG->pl_life > 500) {
-        atk->x0A |= 4;
+        atk->flag |= 4;
     } else {
-        atk->x0A &= ~4;
+        atk->flag &= ~4;
     }
     hit = EmAtkHitCk(atk, pos, &w->St_pos, 1);
     if (hit) {

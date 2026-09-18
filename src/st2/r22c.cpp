@@ -1435,7 +1435,7 @@ static void r22cSetWepMan()
         memclr_asm(&d, sizeof(d));
         d.id = 0x18;
         d.type = 0;
-        d.x3 = 0;
+        d.set = 0;
         d.flags4 = 0;
         d.pos[0] = 0x122;
         d.pos[1] = 0;

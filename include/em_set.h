@@ -9,7 +9,7 @@ struct EmListData {
     u8 flags;       // 0x00  bit0: alive flag (EmListSetAlive), bit1: set (an enemy was created from it), bit2/bit3: set toggles
     u8 id;          // 0x01  enemy id (0 = empty entry, 0xF / 0x25 are created at the back of the work array)
     u8 type;        // 0x02  -> cModel::type
-    u8 x3;          // 0x03  -> cEm::x38D
+    u8 set;          // 0x03  -> cEm::x38D  -> cEm::set
     u32 flags4;     // 0x04  -> cEm::flags_3C8
     u16 hp;         // 0x08
     u8 pad_A;

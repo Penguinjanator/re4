@@ -64,8 +64,8 @@ struct EmAtkInfo {
     f32 range;   // 0x00
     int type;    // 0x04
     u16 dmg;     // 0x08
-    u16 x0A;     // 0x0A
-    u16 x0C;     // 0x0C
+    u16 flag;     // 0x0A  bit2: LifeDownSet2 keep, bit3: pl_life = 0 (PS2 ATK_INFO.flag)
+    u16 dm_cnt;     // 0x0C  (PS2 ATK_INFO.dm_cnt)
     u16 x0E;     // 0x0E
 };
 

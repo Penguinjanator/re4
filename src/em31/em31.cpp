@@ -3305,9 +3305,9 @@ int em31AtkCk(cEm31* em, Vec* pos, Vec* oldPos, int no)
     }
     info = &em31_atk_tbl[no];
     if ((s16) pG->pl_life > 1) {
-        info->x0A |= 4;
+        info->flag |= 4;
     } else {
-        info->x0A &= ~4;
+        info->flag &= ~4;
     }
     hit = EmAtkHitCk(info, pos, oldPos, 1);
     if (hit != 0) {

@@ -461,8 +461,8 @@ cEm2b::~cEm2b()
             ObjMgr.destroy(w->pTen[i]);
         }
     }
-    if (w->pObj4C4 && w->pObj4C4->isAlive()) {
-        ObjMgr.destroy(w->pObj4C4);
+    if (w->pChain && w->pChain->isAlive()) {
+        ObjMgr.destroy(w->pChain);
     }
     if (w->pChain2 && w->pChain2->isAlive()) {
         ObjMgr.destroy(w->pChain2);
@@ -499,11 +499,11 @@ void cEm2b::setNoSuspend(int on)
             }
         }
     }
-    if (w->pObj4C4) {
-        if (w->pObj4C4->isAlive()) {
-            w->pObj4C4->setNoSuspend(on);
+    if (w->pChain) {
+        if (w->pChain->isAlive()) {
+            w->pChain->setNoSuspend(on);
         } else {
-            w->pObj4C4 = 0;
+            w->pChain = 0;
         }
     }
     if (w->pChain2) {
@@ -1017,7 +1017,7 @@ static void em2b_R0_Init(cEm2b* em)
             w->pTen[i] = 0;
         }
     }
-    w->pObj4C4 = 0;
+    w->pChain = 0;
     w->pChain2 = 0;
     w->pChain3 = 0;
     if (em->type == 0) {
@@ -2340,9 +2340,9 @@ static void em2b_R1_ThrowRock(cEm2b* em)
                 PSMTXMultVecSR(m, &spd, &spd);
                 atk = &em2b_atk_info[6];
                 if ((s16) pG->pl_life > 1) {
-                    atk->x0A |= 4;
+                    atk->flag |= 4;
                 } else {
-                    atk->x0A &= ~4;
+                    atk->flag &= ~4;
                 }
                 w->pRock->setThrow(&spd, atk);
                 w->pRock->setSeFall(8, 0xA, em->id);
@@ -3111,9 +3111,9 @@ static void em2b_R1_Dm_Face(cEm2b* em)
             EmAtkInfo* atk = &em2b_atk_info[6];
 
             if ((s16) pG->pl_life > 1) {
-                atk->x0A |= 4;
+                atk->flag |= 4;
             } else {
-                atk->x0A &= ~4;
+                atk->flag &= ~4;
             }
             w->pRock->setFall(atk);
             w->pRock->setSeFall(8, 0xA, em->id);
@@ -3886,8 +3886,8 @@ static void em2b_R1_Die_Lost(cEm2b* em)
             break;
         }
         em->invisible_factor -= 0.100000001f;
-        if (w->pObj4C4) {
-            w->pObj4C4->invisible_factor = em->invisible_factor;
+        if (w->pChain) {
+            w->pChain->invisible_factor = em->invisible_factor;
         }
         if (w->pChain2) {
             w->pChain2->invisible_factor = em->invisible_factor;
@@ -3899,8 +3899,8 @@ static void em2b_R1_Die_Lost(cEm2b* em)
             em->invisible_factor = 0.0f;
             em->be_flag &= ~2;
             em->be_flag |= 0x4000;
-            if (w->pObj4C4) {
-                w->pObj4C4->be_flag &= ~2;
+            if (w->pChain) {
+                w->pChain->be_flag &= ~2;
             }
             if (w->pChain2) {
                 w->pChain2->be_flag &= ~2;
@@ -4236,9 +4236,9 @@ int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no)
     if (w->Atk_ck == 0) {
         atk = &em2b_atk_info[no];
         if ((s16) pG->pl_life > 1) {
-            atk->x0A |= 4;
+            atk->flag |= 4;
         } else {
-            atk->x0A &= ~4;
+            atk->flag &= ~4;
         }
         hit = EmAtkHitCk(atk, a, b, 0);
         if (hit) {
@@ -4496,7 +4496,7 @@ void em2bFootSe(cEm2b* em)
     if (w->Be_flg & 0x100) {
         EstSet((int) em, -1, 0, 0, w->espKind2, 0xF, 0, 0, (u32) em, 0);
     }
-    if (em->type == 3 && w->pObj4C4) {
+    if (em->type == 3 && w->pChain) {
         SndCall(6, 0x11, &em->getPartsPtr(0)->world, em->id, 0, em);
     }
 }
@@ -4597,7 +4597,7 @@ void em2bShortRopeSet(cEm2b* em)
     w->rope[1].Bundle_num = k100;
     g01 = 0.100000001f;
     w->rope[1].Stretchy = g01;
-    w->pObj4C4 = (cObj*) chain;
+    w->pChain = (cObj*) chain;
     w->rope[1].Num = five;
     zero = 0;
     w->rope[1].pPtbl = (cModel**) zero;
@@ -4621,7 +4621,7 @@ void em2bShortRopeSet(cEm2b* em)
     b.x = -290.0f;
     b.y = -412.320007f;
     b.z = 39.1500015f;
-    ((cObjChain*) w->pObj4C4)->setParent2(em, 3, &pos, 4, &b, 0);
+    ((cObjChain*) w->pChain)->setParent2(em, 3, &pos, 4, &b, 0);
 }
 
 // Type 3: the three chains on the arms.
@@ -4664,12 +4664,12 @@ void em2bChainSet(cEm2b* em)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(ARC(0x13), ARC(0x14), &pos, &rot);
-    w->pObj4C4 = (cObj*) chain;
+    w->pChain = (cObj*) chain;
     chain->setChain(&w->rope[0]);
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
-    ((cObjChain*) w->pObj4C4)->setParent(em, 0x3B, &pos, 0);
+    ((cObjChain*) w->pChain)->setParent(em, 0x3B, &pos, 0);
 
     w->rope[1].Num = 8;
     w->rope[1].pCloth = em2b_chain_parts;

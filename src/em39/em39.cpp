@@ -217,8 +217,8 @@ cEm39::~cEm39()
     if (w->pArrow && w->pArrow->isAlive()) {
         EmMgr.destroy(w->pArrow);
     }
-    if (w->pObj12 && w->pObj12->isAlive()) {
-        ObjMgr.destroy(w->pObj12);
+    if (w->pCap && w->pCap->isAlive()) {
+        ObjMgr.destroy(w->pCap);
     }
 }
 
@@ -243,8 +243,8 @@ void cEm39::setNoSuspend(int on)
     if (w->pArrow) {
         w->pArrow->setNoSuspend(on);
     }
-    if (w->pObj12) {
-        w->pObj12->setNoSuspend(on);
+    if (w->pCap) {
+        w->pCap->setNoSuspend(on);
     }
 }
 
@@ -720,9 +720,9 @@ static void em39_R0_Init(cEm39* em)
             rot2.x = 0.0f;
             rot2.y = 0.0f;
             rot2.z = 0.0f;
-            w->pObj12 = SetObj12(ARC(0x16), ARC(0x19), &pos2, &rot2);
-            if (w->pObj12) {
-                ((cObj12*) w->pObj12)->setParent(em, 4, 1);
+            w->pCap = SetObj12(ARC(0x16), ARC(0x19), &pos2, &rot2);
+            if (w->pCap) {
+                ((cObj12*) w->pCap)->setParent(em, 4, 1);
             }
         }
         w->pModKnife = ModInfoMgr.create(ARC(9), ARC(0x10));
@@ -849,10 +849,10 @@ static void em39_R0_Init(cEm39* em)
     r11c = 10;
     r9c = -1;
     r10c = 450;
-    w->x59C = 0.0f;
+    w->Neck_dir_y = 0.0f;
     w->pDoor = 0;
     w->Be_flg = z0;
-    w->x598 = 0.0f;
+    w->Neck_dir_x = 0.0f;
     w->Atk_wait = z0;
     w->Route_type = z0;
     w->pGotoPoint = 0;
@@ -5615,7 +5615,7 @@ static void em39_R0_Damage(cEm39* em)
 
 // Damage entry: drop the hanging object and the grenade in hand, delete the effects, voice + speech.
 #define EM39_DM_DROP(em, w, voice, speech)                                                          \
-    if ((w)->pObj12 && (w)->Cap_hp == 0) {                                                           \
+    if ((w)->pCap && (w)->Cap_hp == 0) {                                                           \
         Mtx m;                                                                                     \
         Vec v;                                                                                     \
                                                                                                    \
@@ -5624,8 +5624,8 @@ static void em39_R0_Damage(cEm39* em)
         v.y = 40.0f;                                                                               \
         v.z = -50.0f;                                                                              \
         PSMTXMultVecSR(m, &v, &v);                                                                 \
-        ((cObj12*) (w)->pObj12)->setFall(&v, 2);                                                   \
-        (w)->pObj12 = 0;                                                                           \
+        ((cObj12*) (w)->pCap)->setFall(&v, 2);                                                   \
+        (w)->pCap = 0;                                                                           \
     }                                                                                              \
     if ((w)->pBomb) {                                                                           \
         Vec spd;                                                                                   \
@@ -6256,7 +6256,7 @@ void em39NeckMove(cEm39* em)
         f32 len;
         f32 pitch;
 
-        w->x59C = w->x59C * 0.9f + ang * 0.1f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.9f + ang * 0.1f;
         PSVECSubtract(&a, &p->world, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
         pitch = -atan2f(d.y, len);
@@ -6266,15 +6266,15 @@ void em39NeckMove(cEm39* em)
         if (pitch < -0.7853982f) {
             pitch = -0.7853982f;
         }
-        w->x598 = w->x598 * 0.9f + pitch * 0.1f;
+        w->Neck_dir_x = w->Neck_dir_x * 0.9f + pitch * 0.1f;
     } else {
-        w->x598 *= 0.9f;
-        w->x59C *= 0.9f;
+        w->Neck_dir_x *= 0.9f;
+        w->Neck_dir_y *= 0.9f;
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.x = w->x598;
-    ((cParts*) p)->addRot.y = w->x59C;
+    ((cParts*) p)->addRot.x = w->Neck_dir_x;
+    ((cParts*) p)->addRot.y = w->Neck_dir_y;
     ((cParts*) p)->addRot.z = 0.0f;
 }
 

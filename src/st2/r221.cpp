@@ -715,7 +715,7 @@ static void r221_operateElevator()
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
-        EM_LIST(0x8C)->x3 = 2;
+        EM_LIST(0x8C)->set = 2;
         U16Set(EM_LIST(0x8C)->hp, em.getHp());
         S16Set(EM_LIST(0x8C)->pos[0], -1458);
         S16Set(EM_LIST(0x8C)->pos[1], 0x32);
@@ -766,7 +766,7 @@ static void r221_checkBossAppear_end()
                 emDeadWords(list)[0x8C >> 5] &= ~(0x80000000 >> (0x8C & 31));
             }
         }
-        EM_LIST(0x8C)->x3 = zero;
+        EM_LIST(0x8C)->set = zero;
         EM_LIST(0x8C)->flags = zero;
         S16Set(EM_LIST(0x8C)->pos[0], -0x4F8);
         S16Set(EM_LIST(0x8C)->pos[1], 0x58);

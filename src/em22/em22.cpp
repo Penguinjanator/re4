@@ -1788,7 +1788,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
         }
         PSMTXMultVecSR(em->mat, &w->blowSpd, &w->blowSpd);
         if (em->hp <= 0) {
-            SndStop(w->x2C8, 0);
+            SndStop(w->Seid_foot, 0);
             SndCall(8, 0x1E, &em->pos, em->id, 0, em);
         } else {
             SndCall(8, 0xC, &em->pos, em->id, 0, em);
@@ -2573,7 +2573,7 @@ void em22FootSeControl(cEm22* em)
     case 9:
         // Allocation lever (loop notes, no code): at depth 2 the two `w` refs count 3x (w 9 refs /
         // 30 insns beats em 11 / 47), so w takes r31 and em r30.
-        do { do { w->x2C8 = Ctrl11SetSe(w->pCtrl11, em, 10, no, 0xE); } while (0); } while (0);
+        do { do { w->Seid_foot = Ctrl11SetSe(w->pCtrl11, em, 10, no, 0xE); } while (0); } while (0);
         em->seNo = 0;
         break;
     }

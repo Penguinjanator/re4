@@ -182,7 +182,7 @@ void R100Init()
 
         d.id = 0x12;
         d.type = 0;
-        d.x3 = 0x13;
+        d.set = 0x13;
         d.flags4 = 0x21000020;
         d.pos[0] = -7763;
         d.pos[1] = 86;
@@ -941,9 +941,9 @@ static void r100_Sce_zombi_dead(cEm* em)
     BitOn(W->ems[1]->flags_3C8, 1);
     BitOn(W->ems[2]->flags_3C8, 1);
     l = EM_LIST(4);
-    l->x3 = zero;
+    l->set = zero;
     l = EM_LIST(5);
-    l->x3 = zero;
+    l->set = zero;
     r100_Car_pos_move();
     SceSleep(1);
     r100_trap_set();

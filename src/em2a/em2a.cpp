@@ -412,7 +412,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
         w->camTimer = 120;
         w->biteTimer = 10;
         VibSetData((VibDataTbl*) (pGS->pArc->ofs_1C + (u32) pGS->pArc), 7, 1);
-        l->x3 = 2;
+        l->set = 2;
         em->r_no_2++;
     case 1:
         if (w->biteTimer) {
@@ -480,7 +480,7 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
         w->camTimer = 120;
         w->biteTimer = 10;
         em->hp = 0;
-        l->x3 = 2;
+        l->set = 2;
         em->r_no_2++;
     case 1:
         if (w->biteTimer) {
@@ -666,7 +666,7 @@ static void em2a_R1_Trap1Break(cEm2a* em)
             SndCall(8, 0, &em->pos, em->id, 0, em);
             EstSet((int) em, -1, 0, 0, 0x22, 2, 0, 0, (u32) em, 0);
         }
-        l->x3 = 2;
+        l->set = 2;
         em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
@@ -681,7 +681,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
 {
     switch (em->r_no_2) {
     case 0:
-        EM_LIST(em->emset_no)->x3 = 0;
+        EM_LIST(em->emset_no)->set = 0;
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 0, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -710,7 +710,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         }
         break;
     case 2:
-        EM_LIST(em->emset_no)->x3 = 0;
+        EM_LIST(em->emset_no)->set = 0;
         em->hp = 0;
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
         em->r_no_2++;

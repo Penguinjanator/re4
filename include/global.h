@@ -83,7 +83,7 @@ struct ITEM_SAVE_WORK {
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
     s32 dev_mode;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
-    u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
+    u8 shooting_mode;      // 0x04  shooting range mode (title: shoot_mode[] name table; em10/em39: 9999 damage, marker lines)
     u8 save_no;            // 0x05  save file number last loaded/saved (card dataSelect)
     u8 pad_6[2];
     u32 CardStatus;                // 0x08  card flags (card: 4 loaded, 8/0x10/0x20/0x40/0x80 CardSave modes, bit 31 first check done; main: bit 31 saved into pRK->x3C)
@@ -129,10 +129,7 @@ struct GlobalWork {
     Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
     u8 pad_16C[4];
     u32 Stop_flg;          // 0x170  stop flags (debug tools save/restore it)
-    u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
-    u32 flags_178;         // 0x178  (objRobo WalkHitCk: bit31 = the statue caught the player)
-    u32 sceat_x17C;        // 0x17C  (sce_at SceAtWorkLoopInit clears both every frame)
-    u32 sceat_x180;        // 0x180
+    u32 Room_flg[4];       // 0x174  per-room flag words: [0] room scripts (pl_sub joyFireOn 0x20000000 in room 11C), [1] objRobo WalkHitCk bit31 = the statue caught the player, [2]/[3] cleared by SceAtWorkLoopInit every frame
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
     Mtx mtxPalette[0xF8];  // 0x190  skinning matrix palette (trans.cpp calcWeightMat / MakeWeightPalette)
     u8 pad_3010[0x4F10 - 0x3010];  // 0x3010  GXTexObj texObj[0xF8] (trans.cpp GxWork view of 0x184..0x4F14)
@@ -220,8 +217,7 @@ struct GlobalWork {
     u32 em_dead[12][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
     u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
     u32 Item_find_flg;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
-    u32 flags_51C0;        // 0x51C0  (stage: route flags)
-    u32 flags_51C4;        // 0x51C4
+    u32 Scenario_flg[2];   // 0x51C0  scenario progress bits set by the room scripts ([0]: stage route flags)
     u32 door_flags_51C8;   // 0x51C8  (game DoorFlagInit presets bits of these three words)
     u32 door_flags_51CC;   // 0x51CC
     u32 door_flags_51D0;   // 0x51D0

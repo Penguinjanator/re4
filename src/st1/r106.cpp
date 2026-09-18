@@ -187,7 +187,7 @@ extern "C" void r106_setRollingStone()
 
         d.id = 0x12;
         d.type = 3;
-        d.x3 = 0x1C;
+        d.set = 0x1C;
         d.flags4 = 0;
         d.pos[0] = 0x78D;
         d.pos[1] = 0x193;
@@ -202,7 +202,7 @@ extern "C" void r106_setRollingStone()
 
         d.id = 0x12;
         d.type = 1;
-        d.x3 = 0x1C;
+        d.set = 0x1C;
         d.flags4 = 0;
         d.pos[0] = 0x81A;
         d.pos[1] = 0x193;
@@ -217,7 +217,7 @@ extern "C" void r106_setRollingStone()
 
         d.id = 0x12;
         d.type = 0;
-        d.x3 = 0x1C;
+        d.set = 0x1C;
         d.flags4 = 0;
         d.pos[0] = 0x6EC;
         d.pos[1] = 0x19A;
@@ -565,7 +565,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xA30;
     d.rot[1] = -0x1EEE;
     d.type = 0;
-    d.x3 = 1;
+    d.set = 1;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0xA;
@@ -578,7 +578,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xA30;
     d.rot[1] = -0x1EEE;
     d.type = 0;
-    d.x3 = 1;
+    d.set = 1;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0xA;
@@ -591,7 +591,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xA33;
     d.rot[1] = -0x1EEE;
     d.type = 0;
-    d.x3 = 1;
+    d.set = 1;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0xA;
@@ -604,7 +604,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xD20;
     d.rot[1] = -0xDDD;
     d.type = 1;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0x3E8;
@@ -617,7 +617,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xDC6;
     d.rot[1] = 0x3BBB;
     d.type = 0;
-    d.x3 = 1;
+    d.set = 1;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0x3E8;
@@ -630,7 +630,7 @@ extern "C" void r106_setEm()
     d.pos[2] = -0xCD6;
     d.rot[1] = -0x25B0;
     d.type = 1;
-    d.x3 = 1;
+    d.set = 1;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 0x3E8;

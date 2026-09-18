@@ -438,7 +438,7 @@ static void r11e_EmSet()
     e->pos[2] = 0xC06;
     e->rot[1] = 0x3FA4;
     e->flags |= 1;
-    e->x3 = 1;
+    e->set = 1;
     SceEventStart(0);
     SndStrReq(r11e_work->strId, 2, 0, 0);
     r11e_work->em.setNoSuspend(1);

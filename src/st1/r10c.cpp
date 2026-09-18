@@ -368,7 +368,7 @@ static void r10c_EmEvent_exit()
         EmListData* l = EM_LIST(3);
 
         l->flags |= 1;
-        l->x3 = 0;
+        l->set = 0;
     }
     EmSetFromList2(3, 1);
     EM_LIST(4)->flags |= 1;
@@ -392,7 +392,7 @@ static void r10c_EmEvent()
             EmListData* l = EM_LIST(2);
 
             em = EmSetFromList2(2, 1);
-            l->x3 = 0;
+            l->set = 0;
         }
         em->setNoSuspend(1);
         r10c_work.p->em = em;

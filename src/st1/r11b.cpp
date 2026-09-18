@@ -115,7 +115,7 @@ void R11bInit()
         SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     l = EM_LIST(0x3C);
-    l->x3 = 0;
+    l->set = 0;
     if (pG->room_id_prev == 0x10D && !(pG->System_flg & 0x100)) {
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
         static const Vec r11b_boatRot0 = {0.0f, -0.68f, 0.0f};
@@ -125,14 +125,14 @@ void R11bInit()
         // r29/r30 (an assignment `pos = tbl` goes through the synthesized operator= and loses /u).
         new (&pos) Vec(r11b_boatPos0);
         new (&rot) Vec(r11b_boatRot0);
-        l->x3 = one;
+        l->set = one;
         PSet(r11b_work.p->boat, EmSetFromList2(0x3C, 0));
         pG->room_id_prev = 0x11B;
         r11b_work.p->boat->setPos(&pos);
         r11b_work.p->boat->setAng(&rot);
     } else {
         r11b_work.p->boat = EmSetFromList2(0x3C, 0);
-        l->x3 = 1;
+        l->set = 1;
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             static const Vec r11b_boatPos1 = {127560.0f, -1300.0f, 149100.0f};
             static const Vec r11b_boatRot1 = {0.0f, 3.0898211f, 0.0f};
@@ -281,22 +281,22 @@ extern "C" void EmSetChange()
     l->pos[0] = -5972;
     l->pos[1] = 267;
     l->pos[2] = -1348;
-    l->x3 = 0;
+    l->set = 0;
     l = EM_LIST_S(0x41);
     l->flags = 1;
-    l->x3 = 0;
+    l->set = 0;
     l->pos[0] = -5582;
     l->pos[1] = 394;
     l->pos[2] = -1958;
     l = EM_LIST_S(0x3E);
     l->flags = 1;
-    l->x3 = 0;
+    l->set = 0;
     l->pos[0] = -6060;
     l->pos[1] = 386;
     l->pos[2] = -2616;
     l = EM_LIST_S(0x3F);
     l->flags = 1;
-    l->x3 = 0;
+    l->set = 0;
     l->pos[0] = -6440;
     l->pos[1] = 375;
     l->pos[2] = -2932;

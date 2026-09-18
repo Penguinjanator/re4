@@ -13,8 +13,9 @@ function. Building the repository reproduces `main.dol` and all 110 REL overlays
 | CRI middleware (`src/lib/adx_*`, `sfd_*`, `mpv_*`, …) | Metrowerks CodeWarrior 2.4.7 (GC/2.7), the compiler CRI shipped the libraries with |
 | Nintendo SDK (`src/lib/OS*`, `GX*`, …) | Metrowerks CodeWarrior GC/1.2.5n, sources from [dolsdk2004](https://github.com/doldecomp/dolsdk2004) |
 
-The repository contains no game assets and no code or data copied from the disc. You need your
-own image of the debug disc to build; the original files are read from it at configure time.
+The repository contains no game assets and no code or data copied from the discs. You need your
+own images of the debug discs to build (disc 1 for `main.dol` and most RELs, disc 2 for the four
+island-stage RELs); the original files are read from them at configure time.
 
 ## Building
 
@@ -78,6 +79,22 @@ compilers had no other way to express it:
   copies (an opaque second definition) remain in 27 places.
 - Eight `.s` units: crt0 (`__start`), `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`, and
   Capcom's `memset_2` and `yz2asm`.
+
+### Naming
+
+Function names are Capcom's, from the debug build's `Bio4.sym` files; they are C++-mangled, which is
+why the game code is C++ and the SDK, CRI and newlib units are C. File names and unit boundaries come
+from the `D:/Bio4/Prog/<file>.cpp` strings the asserts left in the binaries. Struct and field names are
+of three kinds: the vendor's, from the PS2 debug build's type information (matched to the GameCube
+layouts by `tools/ps2sym.py`); ours, named from usage and marked as such; and placeholders `xNN`
+(offset in hex, meaning unknown). Vendor names keep the vendor's spelling, so the tree mixes
+conventions on purpose. `#line` directives reproduce the vendor's line numbers in the assert strings.
+`docs/naming.md` has the full account and the counts.
+
+## Contributing
+
+`CONTRIBUTING.md`: build, the three verification checks, the rules (bytes never change, no
+instruction-emitting asm, naming), and how to propose a rename with evidence.
 
 ## Legal
 

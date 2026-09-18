@@ -120,7 +120,7 @@ void R10aInit()
 
             d.id = 0x12;
             d.type = 1;
-            d.x3 = 0x1C;
+            d.set = 0x1C;
             d.flags4 = 0;
             d.pos[0] = -0x1163;
             d.pos[1] = 0x63D;
@@ -135,7 +135,7 @@ void R10aInit()
 
             d.id = 0x12;
             d.type = 0;
-            d.x3 = 0x1C;
+            d.set = 0x1C;
             d.flags4 = 0;
             d.pos[0] = -0x10EA;
             d.pos[1] = 0x63D;
@@ -150,7 +150,7 @@ void R10aInit()
 
             d.id = 0x12;
             d.type = 3;
-            d.x3 = 0x1C;
+            d.set = 0x1C;
             d.flags4 = 0;
             d.pos[0] = -0x11CE;
             d.pos[1] = 0x63D;

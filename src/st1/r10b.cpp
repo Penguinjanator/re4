@@ -838,7 +838,7 @@ static void r10b_setEm()
     d.pos[2] = 0x81C;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 1000;
@@ -851,7 +851,7 @@ static void r10b_setEm()
     d.pos[2] = 0xA14;
     d.rot[1] = -0x19F4;
     d.type = 0;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 1000;
@@ -864,7 +864,7 @@ static void r10b_setEm()
     d.pos[2] = 0x766;
     d.rot[1] = -0x19F4;
     d.type = 0;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 1000;
@@ -877,7 +877,7 @@ static void r10b_setEm()
     d.pos[2] = 0x8F5;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 1000;
@@ -890,7 +890,7 @@ static void r10b_setEm()
     d.pos[2] = 0x93A;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
+    d.set = 0;
     d.flags4 = 0;
     d.xB = 0;
     d.hp = 1000;

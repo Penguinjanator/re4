@@ -93,7 +93,7 @@ struct Em2bWork {
     f32 Neck_dir_y;          // 0x3A0 (0x780)
     PenCloth Cloth;       // 0x3A4 (0x784)  chain cloth (em2bClothSet, type 1)
     PenCloth rope[2];     // 0x404 (0x7E4)  short rope / chain pendulums (em2bShortRopeSet, em2bChainSet)
-    cObj* pObj4C4;        // 0x4C4 (0x8A4)
+    cObj* pChain;        // 0x4C4 (0x8A4)  chain object (PS2 pChain before pChain2/pChain3)
     cObj* pChain2;        // 0x4C8 (0x8A8)
     cObj* pChain3;        // 0x4CC (0x8AC)
     cObj16* pParasite;    // 0x4D0 (0x8B0)

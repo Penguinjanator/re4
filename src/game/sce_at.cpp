@@ -3694,7 +3694,7 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
     case 0x1000:
         d.id = 0x24;
         d.type = 0;
-        d.x3 = 0;
+        d.set = 0;
         d.flags4 = 1;
         d.pos[0] = (s16) (pos->x / 10.0f);
         d.pos[1] = (s16) (pos->y / 10.0f);

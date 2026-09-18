@@ -22598,7 +22598,7 @@ int em10AtkCk(cEm10* em, Vec* a, Vec* b, int no, int parts)
     }
     if ((pG->flags_5010 & 0x2000) && pG->x4F88 > 3) {
         info.dmg = 9999;
-        info.x0A = 4;
+        info.flag = 4;
     }
     hit = EmAtkHitCk(&info, a, b, 0);
     if (hit) {

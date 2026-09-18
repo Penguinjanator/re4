@@ -608,12 +608,12 @@ cModel* cPlWep::lockInit()
         PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &((cEm*) pl->pLockEm)->lockOfs, &v);
         ang = GetXZAngleLocal(&pl->pos, &v, pl->ang.y);
         if (ang <= PI && ang >= -PI) {
-            x40 = 10;
+            m_LockTime = 10;
         } else {
-            x40 = 0;
+            m_LockTime = 0;
         }
     } else {
-        x40 = 0;
+        m_LockTime = 0;
     }
     return pl->pLockEm;
 }
@@ -666,9 +666,9 @@ void cPlWep::lockMove()
     cPlayer* pl = pPL;
 
     if (Joy[0].on & 0xF0000) {
-        x40 = 0;
+        m_LockTime = 0;
     }
-    if (pl->pLockEm && x40 != 0 && (pSys->flags & 0x20000000)) {
+    if (pl->pLockEm && m_LockTime != 0 && (pSys->flags & 0x20000000)) {
         PlWepAutoTrack(pl, 0, 1.0f);
     }
 }
@@ -733,7 +733,7 @@ cModel* cPlWep::lockNext()
     cPlayer* pl = pPL;
 
     if ((pl->pLockEm = SearchLockEm(&pl->getPartsPtr(3)->world, pl->pLockEm)) != 0) {
-        x40 = 10;
+        m_LockTime = 10;
     }
     return pl->pLockEm;
 }

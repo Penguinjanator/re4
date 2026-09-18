@@ -94,10 +94,10 @@ void TaskScheduler()
 
 void TaskSchedulerMain(TASK* t)
 {
-    if ((pG->flags_5010 & 0x10000000) && !(t->flag & 2)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(t->flag & 2)) {
         return;
     }
-    if ((pG->flags_500C & 0x100000) && !(t->flag & 4)) {
+    if ((pG->Status_flg[0] & 0x100000) && !(t->flag & 4)) {
         return;
     }
     switch (t->Status) {

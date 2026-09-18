@@ -41,15 +41,15 @@ struct Em39Work {
     cEmWep* pArrow;         // 0x58C (0x96C)  thrown knife (setFall when the enemy moves)
     cEmWep* pBomb;     // 0x590 (0x970)  grenade in hand (AppearGR / AppearGR2)
     cEmWep* pFlash;       // 0x594 (0x974)  flash grenade in hand (Flash)
-    f32 x598;             // 0x598 (0x978)
-    f32 x59C;             // 0x59C (0x97C)
+    f32 Neck_dir_x;             // 0x598 (0x978)  em39NeckMove: smoothed head pitch -> parts 4 addRot.x (PS2 Neck_dir_x)
+    f32 Neck_dir_y;             // 0x59C (0x97C)  em39NeckMove: smoothed head yaw -> parts 4 addRot.y (PS2 Neck_dir_y)
     u8 pad_5A0[0x664 - 0x5A0];
     cModelInfo* pHandInfo;   // 0x664 (0xA44)  em39HandSet: right hand parts info
     cModelInfo* pHandL;  // 0x668 (0xA48)  em39HandSet: left hand parts info
     cModelInfo* pModKnife;     // 0x66C (0xA4C)
     u8 Hand_type;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
     u8 pad_671[3];
-    cObj* pObj12;         // 0x674 (0xA54)  hanging object (SetObj12)
+    cObj* pCap;         // 0x674 (0xA54)  hanging object (SetObj12)  (PS2 pCap, next to Cap_hp)
     int Cap_hp;             // 0x678 (0xA58)
     u8 pad_67C[2];
     u16 dmgTotal;         // 0x67E (0xA5E)  damage taken

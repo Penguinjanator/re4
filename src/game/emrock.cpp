@@ -661,9 +661,9 @@ void emRock_R1_Throw2(cEmRock* em)
         RootSumSquare3(&w->spd);
         C_VECReflect(&w->spd, &nrm, &d);
         if ((s16) pG->pl_life > 500) {
-            w->pAtk->x0A |= 4;
+            w->pAtk->flag |= 4;
         } else {
-            w->pAtk->x0A &= ~4;
+            w->pAtk->flag &= ~4;
         }
         p = em->pos;
         p.y += 1000.0f;
