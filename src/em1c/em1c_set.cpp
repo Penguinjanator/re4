@@ -232,7 +232,7 @@ void Em1cSet(cEm10* em)
         Em10SetSeTbl(em, 1);
         break;
     }
-    w->x6C5 = 1;
+    w->Ganado = 1;
     Em1cWeaponSet(em);
 }
 

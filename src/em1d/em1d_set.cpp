@@ -297,7 +297,7 @@ void Em1dSet(cEm10* em)
         Em10SetSeTbl(em, 1);
         break;
     }
-    w->x6C5 = 2;
+    w->Ganado = 2;
     Em1dWeaponSet(em);
     EspDataLoad((u32) ARC(0x1A4), 0xcc, 0);
     EspDataLoad((u32) ARC(0x278), 0xcd, 0);

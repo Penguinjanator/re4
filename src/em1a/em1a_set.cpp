@@ -193,7 +193,7 @@ void Em1aSet(cEm10* em)
         }
         break;
     }
-    w->x6C5 = 1;
+    w->Ganado = 1;
     Em1aWeaponSet(em);
 }
 

@@ -190,7 +190,7 @@ void Em19Set(cEm10* em)
         }
         break;
     }
-    w->x6C5 = 1;
+    w->Ganado = 1;
     Em19WeaponSet(em);
 }
 

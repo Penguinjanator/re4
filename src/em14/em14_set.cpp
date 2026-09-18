@@ -235,9 +235,9 @@ void Em14Set(cEm10* em)
         break;
     }
     if (em->type == 6) {
-        w->x6C5 = 0;
+        w->Ganado = 0;
     } else {
-        w->x6C5 = 1;
+        w->Ganado = 1;
     }
     Em14WeaponSet(em);
 }
