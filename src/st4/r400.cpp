@@ -129,12 +129,12 @@ void R400Init()
 
 static void r400_TreasureBoxOpen(int no)
 {
-    OpenBoxMain(3, 0, 0x5B, no, -1, -1);
+    OpenBoxMain(OpenBoxUpXP, 0, 0x5B, no, -1, -1);
 }
 
 static void r400_TreasureBoxOpened(int no)
 {
-    OpenBoxMain(3, 1, 0x5B, no, -1, -1);
+    OpenBoxMain(OpenBoxUpXP, 1, 0x5B, no, -1, -1);
 }
 
 void reset_40()
@@ -310,7 +310,7 @@ void R400Main()
             r400_work.p->timer = 1;
             em_destroy();
         }
-        GameAddPoint(0xE);
+        GameAddPoint(LVADD_TIMECOUNT);
         r400_work.p->point++;
         if (r400_work.p->point > 450) {
             pG->flags_174 |= 0x40000000;

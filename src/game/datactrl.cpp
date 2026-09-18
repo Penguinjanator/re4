@@ -381,7 +381,7 @@ void cDataUnit::setLoadToAram()
                 }
             } else {
                 setClear();
-                setCommand(2, 0, 0);
+                setCommand(CMND_ARAM_LOAD, 0, 0);
             }
         }
         break;
@@ -796,7 +796,7 @@ int cDataCtrl::checkAramSort()
         base = ARAM_FREE_BASE;
         for (i = 0; i < n; i++) {
             if (base < (u32) tbl[i]->m_addr) {
-                tbl[i]->setCommand(2, base, 0);
+                tbl[i]->setCommand(CMND_ARAM_LOAD, base, 0);
                 tbl[i]->setLoadToAram();
                 return 1;
             }

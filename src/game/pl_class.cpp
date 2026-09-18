@@ -397,7 +397,7 @@ void fanceOn()
 // Action button: go through the window (its event as a scenario task).
 void windowOn(cEmWindow* w)
 {
-    SceExec(0x12, (TaskFunc) ExeWindowEventTask, (int) w, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) ExeWindowEventTask, (int) w, 2, SCE_PRIO_DEF_2, 0);
     PlFanceFlag = 1;
 }
 
@@ -1592,7 +1592,7 @@ void cPlNeck::move()
     if (em) {
         if (em != target) {
             target = em;
-            m_lockCtr = em->checkStatus(9) ? 0x7FFFFFFF : 20;
+            m_lockCtr = em->checkStatus(EM_STATUS_LOOK_ME) ? 0x7FFFFFFF : 20;
         }
     } else {
         if (target && target->hp <= 0) {
@@ -1680,7 +1680,7 @@ cEm* cPlNeck::getTarget()
 
     from = &pPL->getPartsPtr(3)->world;
     for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
-        if (em->checkStatus(1)) {
+        if (em->checkStatus(EM_STATUS_LOCKOFF)) {
             continue;
         }
         if (em->hp <= 0) {
@@ -1694,7 +1694,7 @@ cEm* cPlNeck::getTarget()
         }
         Vec* to = &em->getPartsPtr(em->lockParts)->world;
         f32 d = GetDistance(from, to);
-        if (em->checkStatus(9)) {
+        if (em->checkStatus(EM_STATUS_LOOK_ME)) {
             d -= 100000.0f;
         }
         if (d < bestDist) {

@@ -174,7 +174,7 @@ void cSubChar::init()
         s->lockOfs.y = 0.0f;
         s->lockOfs.z = 0.0f;
     }
-    subSelf->setStatus(1);
+    subSelf->setStatus(EM_STATUS_LOCKOFF);
     // statement order brute-forced (store schedule + shared zero registers)
     sub550 = 0;
     sub580 = 0;
@@ -1114,7 +1114,7 @@ void cSubChar::moveFance()
         SUB_MOTBASE(this)->set((cMotModel*) this, &p, &r, 10);
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x2C), SUB_MOT(subSelf, 0x67), 7, 5, 0);
         AtariOff(&subSelf->atari, 0xFEFF);
-        atari.setPriority(2);
+        atari.setPriority(PRI_LV2);
         subSelf->dmg.set(0, 0x80);
         subSelf->cCoord::matUpdate();
         subSelf->r_no_2 = 1;
@@ -1209,7 +1209,7 @@ void cSubChar::moveFall()
         AtariOff(&pPL->atari, 0xFCFF);
         AtariOn(&atari, 0x200);
         AtariOff(&atari, 0xFEFF);
-        atari.setPriority(3);
+        atari.setPriority(PRI_LV3);
         ang.y = pPL->ang.y - 4.712389f;
         FSet(ang.y, LIMIT_ANGLE(ang.y));
         PSMTXMultVec(pPL->mat, &v_ok, &pos);
@@ -1606,7 +1606,7 @@ void cSubChar::moveHide()
         pos.x = a.x;
         pos.z = a.z;
         AtariOn(&atari, 0x200);
-        subSelf->atari.setPriority(3);
+        subSelf->atari.setPriority(PRI_LV3);
         AtariOff(&atari, 0xFEFF);
         dmg.set(0, 0x80);
         sub52C = getAdjustX(8) * 0.1f;
@@ -2798,7 +2798,7 @@ int cSubChar::checkBackEm()
         if (em == pSUB) {
             continue;
         }
-        if (em->checkStatus(1)) {
+        if (em->checkStatus(EM_STATUS_LOCKOFF)) {
             continue;
         }
         d = GetDistance(&pos, &em->pos);
@@ -2865,7 +2865,7 @@ void cSubChar::analyze()
             if (em->hp <= 0) {
                 continue;
             }
-            if (em->checkStatus(5)) {
+            if (em->checkStatus(EM_STATUS_ACTIVE)) {
                 continue;
             }
             if (em == this) {
@@ -2877,7 +2877,7 @@ void cSubChar::analyze()
             if (em->id > 0x3F) {
                 continue;
             }
-            if (em->checkStatus(0xB)) {
+            if (em->checkStatus(EM_STATUS_ASHLEY_NO_HELP)) {
                 continue;
             }
             if (GetDistance(pos, em->pos) < 16000000.0f) {

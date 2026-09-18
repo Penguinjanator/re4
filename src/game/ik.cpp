@@ -313,7 +313,7 @@ void InverseKinematics(cModel* m, int flag)
         joint = p->pParts;
         eff = joint->pParts;
         PSMTXMultVec(m->mat, &eff->pos, &target);
-        if (!em->checkStatus(3) && !(IK_FLAGS(p) & 0x200)) {
+        if (!em->checkStatus(EM_STATUS_IK_OFF) && !(IK_FLAGS(p) & 0x200)) {
             if (!(em->atari.m_flag & 0x100)) {
                 floorY = target.y - eff->pos.y;
             } else if (IK_FLAGS(p) & 0x800) {

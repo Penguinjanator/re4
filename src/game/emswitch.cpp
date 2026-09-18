@@ -145,9 +145,9 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     f32 zero = 0.0f;
     AtariInit(&em->atari, zero, zero, -700.0f, 350.0f, 700.0f, 700.0f, 2000.0f, 0, 2, 0);
     em->atari.m_flag &= ~0x300;
-    em->atari.setPriority(3);
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->atari.setPriority(PRI_LV3);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInitCube((cEmHit*) em, zero, -300.0f, zero, 250.0f, 600.0f, 200.0f, 0, 1);
     em->hp_max = 1000;
     em->hp = 0;

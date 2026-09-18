@@ -285,10 +285,10 @@ static void em3d_R0_Init(cEm3d* em)
     at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f);
     zero = 0;
     AtariOff(at, 0xFCFF);
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 750.0f, -3000.0f, 1500.0f, 6000.0f, 1, 0x45);
     em->lockParts = 2;
     em->lockOfs.x = 0.0f;

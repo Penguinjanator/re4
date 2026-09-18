@@ -272,7 +272,7 @@ static void em26_R0_Init(cEm26* em)
         }
         break;
     }
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->pXFlip = em26_flip_tbl;
     if (Rnd() & 1) {
         w->flags |= 0x10;
@@ -296,8 +296,8 @@ static void em26_R0_Init(cEm26* em)
     }
     AtariInit(&em->atari, 0.0f, 750.0f, 650.0f, 350.0f, 1250.0f, 1250.0f, 750.0f, 0, 2, 0);   // COMPILER-DIFF: #1
     zero = 0;
-    em->setStatus(3);
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_IK_OFF);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->atari.m_flag &= ~0x100;
     em->atari.m_flag |= 0x10;
     YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, 5);
@@ -311,7 +311,7 @@ static void em26_R0_Init(cEm26* em)
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
     w->x194 = zero;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     EmRoutineSet(em, 1, zero, zero, zero);
     if (w->flags & 0x10) {
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 0x41, 0);
@@ -485,8 +485,8 @@ static void em26_R1_Die_Normal(cEm26* em)
         void* seq;
         int mode;
 
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EmSetDie(em);
         switch (em->emset_no % 5) {

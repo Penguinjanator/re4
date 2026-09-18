@@ -62,8 +62,8 @@ void R211Init()
             obj->setNoSuspend(1);
         }
     } else {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r211_InspectStatue, 0, 1);
-        SceExec(0x12, (TaskFunc) r211_CheckUseCup, 0, 0, 2, 0);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r211_InspectStatue, 0, 1);
+        SceExec(0x12, (TaskFunc) r211_CheckUseCup, 0, 0, SCE_PRIO_DEF_2, 0);
         if (ItemMgr.num(0x6E)) {
             pG->flags_174 |= 0x80000000;
         }
@@ -79,8 +79,8 @@ void R211Init()
             obj->setNoSuspend(1);
         }
     } else {
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r211_InspectStatue, (void*) 1, 1);
-        SceExec(0x12, (TaskFunc) r211_CheckUseCup, 1, 0, 2, 0);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r211_InspectStatue, (void*) 1, 1);
+        SceExec(0x12, (TaskFunc) r211_CheckUseCup, 1, 0, SCE_PRIO_DEF_2, 0);
         if (ItemMgr.num(0x6F)) {
             pG->flags_174 |= 0x40000000;
         }
@@ -88,7 +88,7 @@ void R211Init()
     if (RsfCheck(G_ROOM_ID, 2)) {
         SmdGetObjPtr(0x1B)->be_flag &= ~2;
     } else {
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r211_DoorMessage, 0, 1);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r211_DoorMessage, 0, 1);
     }
     if (flagBit(pG->flags_174, 0x80000000) && flagBit(pG->flags_174, 0x40000000)) {
         setEm(0xAA, -1, 0, 1, 0);
@@ -117,13 +117,13 @@ static void r211_InspectStatue(int no)
     case 0:
         SceUpCut(0, 8, -1, 0);
         if (ItemMgr.num(0x6E)) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         }
         break;
     case 1:
         SceUpCut(0, 7, -1, 0);
         if (ItemMgr.num(0x6F)) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         }
         break;
     }

@@ -78,7 +78,7 @@ void cObjRocket::move()
             AtEffInfo* info;
 
             pos.y = wh + 20.0f;
-            info = EatMgr.getEffInfo(2);
+            info = EatMgr.getEffInfo(EAT_ET_WATER);
             if (info == 0) {
                 pLog->err(0, 0, "GRENADE CANT FOUND WATER INFORMATION");
                 pLog->err(0, 0, "  PLEASE SET EatMgr.registEffInfo()");

@@ -225,7 +225,7 @@ void init(struct test* t)
 {
     int no;
     FadeKill(0);
-    FadeKill(1);
+    FadeKill(FADE_NO_SCENARIO);
     t->x = 176;
     t->y = 30;
     t->x3 = 0;

@@ -73,16 +73,16 @@ void R200Init()
         RsfSet(G_ROOM_ID, 2);
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceExec(0x12, (TaskFunc) r200_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r200_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r200_execEvent00, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r200_execEvent00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r200s00.evd", 0, 0, 0, 0);
         EmReadSearch(3, 0, 0);
         EmReadSearch(0x12, 0, 0);
         EmReadSearch(0x3B, 0, 0);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r200_execTruckEvent, 0, 1);
+            SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r200_execTruckEvent, 0, 1);
             SceAtSetEnable(0x8A, 0);
         }
     } else {
@@ -206,7 +206,7 @@ static void r200_execEvent00()
     SceAtInitSaveItem();
     levelDataAdd(merchantData, level_r200);
     stockDataAdd(merchantData, stock_2st_first);
-    SceSetChapterEnd(5, 9);
+    SceSetChapterEnd(CHAPTER_2_3, 9);
 }
 
 static void r200_checkDoor()
@@ -216,7 +216,7 @@ static void r200_checkDoor()
 
 void r200_lockDoor()
 {
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r200_checkDoor, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r200_checkDoor, 0, 1);
     memclr_asm(pG->item_save, 0x1000);
 }
 
@@ -302,7 +302,7 @@ static void r200_execTruckEvent_end()
         SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
         EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     }
-    SceExec(0x12, (TaskFunc) r200_checkEmSetEvent, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r200_checkEmSetEvent, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Area 0: the truck drives in.

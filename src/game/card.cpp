@@ -1773,8 +1773,8 @@ int cCard::initialize(int type)
             c0 = 0xFF;
             c1 = 0;
             FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
-            FadeKill(2);
-            FadeKill(1);
+            FadeKill(FADE_NO_ROOM);
+            FadeKill(FADE_NO_SCENARIO);
             s = Snd.str_work;
             i = 0;
             do {
@@ -2156,9 +2156,9 @@ void CardMainTask(int mode)
         cMes.loadFont(32, 32, "Font/common_p.fnt", 0);
     }
     cMes.setLanguage(pSys->language);
-    cMes.setLayout(0, 3);
-    cMes.setLayout(1, 3);
-    cMes.setLayout(2, 3);
+    cMes.setLayout(0, LAYOUT_MEMCARD);
+    cMes.setLayout(1, LAYOUT_MEMCARD);
+    cMes.setLayout(2, LAYOUT_MEMCARD);
     pCard->MainLoop(mode);
     if (pCard) {
         delete pCard;
@@ -3325,7 +3325,7 @@ void CardID::init(int type, CardArc* data)
     pBg = (u8*) (data->ofs[5] + (u32) data);
     m_IdSave.gameInit(0x100);
     IdTexRoomInit();
-    IdTexDataLoad(pTex, 6);
+    IdTexDataLoad(pTex, TEX_OWNER_ID_EVENT);
     IdSys.kill(0xFF, 0x28);
     IdSys.kill(0xFF, 0x29);
     IdSys.kill(0xFF, 0x21);

@@ -172,7 +172,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x300;
         break;
     }
@@ -180,7 +180,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f, 1, 0x2000, 10);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         break;
     }
@@ -189,7 +189,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         break;
     }
@@ -202,8 +202,8 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->Etc_no = etcNo;
@@ -221,13 +221,13 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
     } else {
         em->r_no_0 = 1;
         em->r_no_1 = 0;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
     }
     return em;
 }
@@ -525,7 +525,7 @@ void emBox_R1_Break(cEmBox* em)
         }
         em->hp = 0;
         em->be_flag &= ~2;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         w->Lost_wait = 150;
         em->atari.throughOn();
         em->r_no_2++;

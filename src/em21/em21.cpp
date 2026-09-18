@@ -261,9 +261,9 @@ static void em21_R0_Init(cEm21* em)
         }
         break;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     zero = 0;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     at = &em->atari;
     em->hp = 1000;
     em->pXFlip = em21_flip_tbl;
@@ -291,7 +291,7 @@ static void em21_R0_Init(cEm21* em)
         EmRoutineSet(em, 1, 0, 0, 0);
         break;
     case 1:
-        at->setPriority(1);
+        at->setPriority(PRI_LV1);
         EmRoutineSet(em, 1, 5, 0, 0);
         break;
     case 2:
@@ -914,7 +914,7 @@ int em21SearchElgigante(cEm21* em)
         if (e == em) {
             continue;
         }
-        if (e->checkStatus(5) == 0) {
+        if (e->checkStatus(EM_STATUS_ACTIVE) == 0) {
             continue;
         }
         w->pGigante = e;

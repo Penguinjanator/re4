@@ -112,7 +112,7 @@ void R20bInit()
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0, 0, 0);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R20bEventS00, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) R20bEventS00, 0, 1);
         SmdSetTrans(0x51, 1);
         SmdSetTrans(0x52, 0);
         SmdSetTrans(0x53, 0);
@@ -141,8 +141,8 @@ void R20bInit()
     }
     SceAtSetEnable(0x8C, 0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R20bDoorCheck, 0, 1);
-        SceExec(0x12, (TaskFunc) R20bDoorEventMain, 0, 0, 2, 0);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) R20bDoorCheck, 0, 1);
+        SceExec(0x12, (TaskFunc) R20bDoorEventMain, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(5, 0);
         SmdSetTrans(0x8F, 0);
@@ -154,15 +154,15 @@ void R20bInit()
     SceSetItemEvent(0x15, 0x87, 0x10, 7, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x87, 0);
     SceSetItemEvent(0x18, 0x8D, 0x13, 0xB, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x8D, 0);
     if (RsfCheck(G_ROOM_ID, 17) == 0) {
-        SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) R20bOpenTerm, 0, 1);
+        SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) R20bOpenTerm, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
-        SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->flags_5018 & 0x04000000)) {
         r20b_work.p->cnt = zero;
-        SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     setTexRender();
     TexRenderInit(&r20b_work.p->tex1, 0, 1);
@@ -272,38 +272,38 @@ static void R20bOpenTerm()
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x86) {
-        OpenBoxMain(3, 1, 0x5B, 0x87, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x87, -1, -1);
     }
     if (id == 0x89) {
-        OpenBoxMain(3, 1, 0x5B, 0x88, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x88, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(6, 1, 0x5B, 0x89, -1, -1);
+        OpenBoxMain(OpenBoxUpZM, 1, 0x5B, 0x89, -1, -1);
     }
     if (id == 0x87) {
-        OpenBoxMain(3, 1, 0x5B, 0x8A, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x8A, -1, -1);
     }
     if (id == 0x8D) {
-        OpenBoxMain(0x17, 1, 0x19, 0x9E, 0x9F, -1);
+        OpenBoxMain(OpenBoxLR2, 1, 0x19, 0x9E, 0x9F, -1);
     }
 }
 
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x86) {
-        OpenBoxMain(3, 0, 0x5B, 0x87, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x87, -1, -1);
     }
     if (id == 0x89) {
-        OpenBoxMain(3, 0, 0x5B, 0x88, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x88, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(6, 0, 0x5B, 0x89, -1, -1);
+        OpenBoxMain(OpenBoxUpZM, 0, 0x5B, 0x89, -1, -1);
     }
     if (id == 0x87) {
-        OpenBoxMain(3, 0, 0x5B, 0x8A, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x8A, -1, -1);
     }
     if (id == 0x8D) {
-        OpenBoxMain(0x17, 0, 0x19, 0x9E, 0x9F, -1);
+        OpenBoxMain(OpenBoxLR2, 0, 0x19, 0x9E, 0x9F, -1);
     }
 }
 
@@ -574,9 +574,9 @@ static void SceBgmCheck()
 static void R20bDoorCheck()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceUpCut(1, 4, 2, 4);
+        SceUpCut(1, 4, 2, UP_CUT_ATTR_CUT_FIX);
         if (ItemMgr.num(0x7A) != 0 || (ItemMgr.num(0x3A) != 0 && ItemMgr.num(0x69) != 0)) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         } else {
             CamCtrl.Comeback(0);
         }
@@ -683,7 +683,7 @@ static void R20bEventS00()
         SceDestroyEm(0x22, 0x22);
         SceSleep(1);
         EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0);
-        SceSetChapterEnd(7, -1);
+        SceSetChapterEnd(CHAPTER_3_2, -1);
     }
 }
 

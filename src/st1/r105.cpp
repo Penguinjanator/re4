@@ -130,18 +130,18 @@ void R105Init()
     SceSetItemEvent(0xE, 0x88, 9, 0xB, r105_moveShelf, (void (*)()) r105_movedShelf, 0x88, 0);
     SceSetItemEvent(0xF, 0x8B, 0xA, 0xA, r105_moveShelf, (void (*)()) r105_movedShelf, 0x8B, 0);
     if (RsfCheck(G_ROOM_ID, 12) == 0) {
-        SceAtDataSet_exec(0x1A, 0x12, 0, r105_keyItem, 0, 1);
+        SceAtDataSet_exec(0x1A, SCE_LEVEL10, 0, r105_keyItem, 0, 1);
     }
-    SceExec(0x12, r105_bgmCheck, 0, 0, 2, 0);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r105_eff_info);
+    SceExec(0x12, r105_bgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r105_eff_info);
     if (!(pG->door_unlock[0] & 0x02000000)) {
-        SceAtDataSet_exec(1, 0x12, 0, r105_checkDoor, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, r105_checkDoor, 0, 1);
     } else {
         SmdSetTrans(0x23, 0);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         r105_markMtxInit();
-        SceAtDataSet_exec(6, 0x12, 0, r105_mark, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, r105_mark, 0, 1);
         obj = SmdGetObjPtr(0x22);
         if (obj) {
             obj->Shader_type = 1;
@@ -167,7 +167,7 @@ void R105Init()
     } else {
         r105_EmSet();
         if (RsfCheck(G_ROOM_ID, 11) == 0) {
-            SceExec(0x12, r105_openTerm, 0, 0, 2, 0);
+            SceExec(0x12, r105_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if (getRoomEtcWindow(5, &win2, 1)) {
@@ -178,7 +178,7 @@ void R105Init()
     if (getRoomEtcDoor(1, &door, 1)) {
         door->LightInfo.x50 = 4;
     }
-    SceExec(0x12, r105_initCesspit, 0, 0, 2, 0);
+    SceExec(0x12, r105_initCesspit, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R105Main()
@@ -190,7 +190,7 @@ void R105Main()
         BitOn(pG->flags_174, 0x40000000);
         if (RsfCheck(G_ROOM_ID, 1) == 0 || RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtSetEnable(8, 1);
-            SceAtDataSet_exec(8, 0x12, 0, r105_Event, 0, 1);
+            SceAtDataSet_exec(8, SCE_LEVEL10, 0, r105_Event, 0, 1);
             if (door) {
                 cEmDoorSetCloseLock(door);
             }
@@ -210,10 +210,10 @@ static void r105_movedShelf(int id)
         OpenBoxMain(0, 1, 0x1A, 0x37, 0x38, -1);
     }
     if (id == 0x88) {
-        OpenBoxMain(0xB, 1, 0x18, 0x39, 0xFFFFFFFF, -1);
+        OpenBoxMain(OpenBoxDwXP, 1, 0x18, 0x39, 0xFFFFFFFF, -1);
     }
     if (id == 0x93) {
-        OpenBoxMain(0x10, 1, 0x1B, 0x3B, 0xFFFFFFFF, 0x93);
+        OpenBoxMain(OpenBoxPosXM500, 1, 0x1B, 0x3B, 0xFFFFFFFF, 0x93);
     }
 }
 
@@ -229,10 +229,10 @@ static void r105_moveShelf(int id)
         OpenBoxMain(0, 0, 0x1A, 0x37, 0x38, -1);
     }
     if (id == 0x88) {
-        OpenBoxMain(0xB, 0, 0x18, 0x39, 0xFFFFFFFF, -1);
+        OpenBoxMain(OpenBoxDwXP, 0, 0x18, 0x39, 0xFFFFFFFF, -1);
     }
     if (id == 0x93) {
-        OpenBoxMain(0x10, 0, 0x1B, 0x3B, 0xFFFFFFFF, 0x93);
+        OpenBoxMain(OpenBoxPosXM500, 0, 0x1B, 0x3B, 0xFFFFFFFF, 0x93);
     }
 }
 
@@ -562,7 +562,7 @@ static void r105_Event()
     pG->System_flg &= ~0x400;
     SceEventEnd(0);
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
-        SceSetChapterEnd(1, -1);
+        SceSetChapterEnd(CHAPTER_1_2, -1);
         r105_openTerm();
     }
 }
@@ -585,7 +585,7 @@ extern "C" void r105_EmSet()
     r105_work->em[9].setEm(0x6D, -1, 0, 1, 1);
     r105_work->em[10].setEm(0x6E, -1, 0, 1, 1);
     r105_work->em[11].setEm(0x59, -1, 0, 1, 1);
-    SceExec(0x12, r105_StreanChk, 0, 0, 2, 0);
+    SceExec(0x12, r105_StreanChk, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Battle stream: starts while an enemy sees the player, fades out otherwise.
@@ -904,7 +904,7 @@ extern "C" void r105_checkCesspit0()
     if (RsfCheck(G_ROOM_ID, 5)) {
         SceAtSetEnable(0x8D, 0);
     }
-    SceAtDataSet_exec(0xC, 0x12, 0, r105_execOpenCover, 0, 1);
+    SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, r105_execOpenCover, 0, 1);
     SceAtSetEnable(9, 0);
     r105_checkCesspit1();
 }
@@ -968,15 +968,15 @@ static void r105_initCesspit()
     SceAtSetEnable(0x9B, 1);
     BitOn(SmdGetObjPtr(0x30)->be_flag, 0x20);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceExec(0x12, r105_checkCloseCover, 0, 0, 2, 0);
-        SceExec(0x12, r105_checkCesspit0, 0, 0, 2, 0);
+        SceExec(0x12, r105_checkCloseCover, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, r105_checkCesspit0, 0, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(0x11, 0);
         SceAtSetEnable(0x8D, 1);
     } else {
         BitOff(SmdGetObjPtr(0x31)->be_flag, 2);
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             SmdGetObjPtr(0x30)->pParts->ang.z = 0.69f;
-            SceAtDataSet_exec(0xC, 0x12, 0, r105_execOpenCover, 0, 1);
+            SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, r105_execOpenCover, 0, 1);
             SceAtSetEnable(9, 0);
             if (RsfCheck(G_ROOM_ID, 5)) {
                 SceAtSetEnable(0x8D, 1);
@@ -988,12 +988,12 @@ static void r105_initCesspit()
             } else {
                 SceAtSetEnable(0x11, 1);
             }
-            SceExec(0x12, r105_checkCesspit1, 0, 0, 2, 0);
+            SceExec(0x12, r105_checkCesspit1, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
             SmdGetObjPtr(0x30)->pParts->ang.z = -(73.0f * 0.01f);
             SceAtSetEnable(0x11, 0);
             if (SceAtItemFlgCk(0x8D) == 0) {
-                SceExec(0x12, r105_checkCesspit2, 0, 0, 2, 0);
+                SceExec(0x12, r105_checkCesspit2, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }

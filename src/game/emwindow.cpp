@@ -288,9 +288,9 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     setYarare(0, &satPos, 0x21, cube, size.x, size.y, size.z);
     be_flag &= ~0x01000000;
     hp_max = hp = 1000;
-    setStatus(1);
-    setStatus(0xB);
-    atari.setPriority(3);
+    setStatus(EM_STATUS_LOCKOFF);
+    setStatus(EM_STATUS_ASHLEY_NO_HELP);
+    atari.setPriority(PRI_LV3);
     atari.throughOn();
     lockParts = 0;
     lockOfs.x = 0.0f;

@@ -474,7 +474,7 @@ void IdScope::init(void* type)
 {
     s8 t = *(u8*) type;
 
-    IdTexDataLoad(WEP_ARC_PTR(4), 0xB);
+    IdTexDataLoad(WEP_ARC_PTR(4), TEX_OWNER_ID_SCOPE);
     switch (t) {
     case 0:
         IdSys.set(WEP_ARC_PTR(5), 0xFF, 0x25, 0x13, 6, 0);
@@ -545,7 +545,7 @@ void IdScope::load(int)
 
 void IdScope::quit(void*)
 {
-    IdTexRelease(0xB);
+    IdTexRelease(TEX_OWNER_ID_SCOPE);
     IdSys.kill(0xFF, 0x25);
 }
 
@@ -727,8 +727,8 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     IdSys.kill(0xFF, 0x23);
     IdSys.kill(0xFF, 0x30);
     pG->Stop_flg |= 0x100;
-    IdTexRelease(4);
-    IdTexDataLoad(a, 4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
+    IdTexDataLoad(a, TEX_OWNER_ID_COCKPIT);
     IdSys.set(b, 0xFF, 0x24, 0x13, 5, 0);
     m_pos0_L = IdSys.unitPtr(1, 0x24)->scr;
     m_pos0_C = IdSys.unitPtr(2, 0x24)->scr;
@@ -854,7 +854,7 @@ void IdBinocular::move(void* p)
         Message* ms;
         s16 x = (s16) ((u->scr.x + 320.0f) * 0.8f);
         s16 y = (s16) ((240.0f - u->scr.y) * 0.8f);
-        cMes.setLayout(1, 1);
+        cMes.setLayout(1, LAYOUT_ACT_BTN);
         mc = &cMes;
         ms = &mc->mes[1];
         mc->MesSet(1, x, (s16) (y - ms->m_font_h / 2), 0x20081, 1, 0, 4);

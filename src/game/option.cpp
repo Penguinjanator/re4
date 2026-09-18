@@ -125,7 +125,7 @@ void OptionScreen::init(int title)
     IdSys.dispSw(0x21, 0);
     IdSys.dispSw(0x20, 0);
     IdSys.dispSw(0x23, 0);
-    IdTexDataLoad(OPT_PTR(0x20), 10);
+    IdTexDataLoad(OPT_PTR(0x20), TEX_OWNER_ID_DEAD);
     IdSys.set(OPT_PTR(0x24), 0xFF, ID_OPT_BG, 0x13, 4, 0);
     if (fromTitle != 0) {
         IdUnit* u = IdSys.unitPtr(0, ID_OPT_BG);
@@ -176,7 +176,7 @@ int OptionScreen::move()
 
 void OptionScreen::quit()
 {
-    IdTexRelease(10);
+    IdTexRelease(TEX_OWNER_ID_DEAD);
     IdSys.kill(0xFF, ID_OPT_BG);
     IdSys.kill(0xFF, ID_OPT);
 }
@@ -468,7 +468,7 @@ int retry_load_menu(OptionScreen* o)
                 ck->m_LifeMeter.fix(1);
                 ck->lifeMeterDisp(0);
             }
-            IdTexDataLoad(OPT_PTR(0x20), 10);
+            IdTexDataLoad(OPT_PTR(0x20), TEX_OWNER_ID_DEAD);
             IdSys.set(OPT_PTR(0x24), 0xFF, ID_OPT_BG, 0x13, 4, 0);
             {
                 IdUnit* bg = IdSys.unitPtr(0, ID_OPT_BG);
@@ -992,9 +992,9 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
 void GameResult::init(void* d)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x14), 0xFF, ID_RESULT, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
@@ -1047,9 +1047,9 @@ void GameResult::quit()
 void GameResult::omake_init(void* d)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x18), 0xFF, ID_RESULT, 0x13, 6, 0);
 }
 
@@ -1064,9 +1064,9 @@ int GameResult::omake_move()
 void ChapterEnd::init(void* d, u8 ch)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x14), 0xFF, ID_RESULT, 0x13, 6, 0);
     _chapter = ch;
 }

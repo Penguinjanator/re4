@@ -3,6 +3,14 @@
 
 #include "types.h"
 
+enum DATA_COMMAND {
+    CMND_NONE = 0,
+    CMND_MRAM_LOAD = 1,
+    CMND_ARAM_LOAD = 2,
+    CMND_CLEAR_DATA = 3,
+    CMND_DEL_DATA = 4
+};
+
 // One streamed data file (game/datactrl.cpp, 0x50 bytes).
 class cDataUnit {
 public:

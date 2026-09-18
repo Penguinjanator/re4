@@ -171,6 +171,25 @@ void SubScreenWait(int frames);
 void SubScreenCall();
 int sscrnStageNo();
 u16 sscrnRoomNo(u16 room);
+enum SS_OPEN_FLAG {
+    SS_OPEN_NULL = 0,
+    SS_OPEN_NORMAL = 1,
+    SS_OPEN_MAP = 2,
+    SS_OPEN_PZZL = 4,
+    SS_OPEN_SHOP = 16,
+    SS_OPEN_TERM = 32,
+    SS_OPEN_FILE = 64,
+    SS_OPEN_ITEM = 128,
+    SS_OPEN_CAP = 256
+};
+
+enum SS_ATTR_FLAG {
+    SS_ATTR_NULL = 0,
+    SS_ATTR_EVENT = 1,
+    SS_ATTR_BOAT = 2,
+    SS_ATTR_ASHLEY = 4
+};
+
 int SubScreenOpen(int type, int flags);
 void SubScreenMiss();
 void SubScreenExec();

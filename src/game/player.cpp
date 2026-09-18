@@ -340,7 +340,7 @@ void cPlayer::move()
     BitOff(pG->flags_5014, 0x40000000);
     BitOff(pG->flags_5014, 0x01000000);
     BitOff(pG->flags_5010, 0x00040000);
-    clearStatus(3);
+    clearStatus(EM_STATUS_IK_OFF);
     BitOff(pG->flags_5014, 0x80000000);
     if (Wep->m_pWep) {
         Wep->m_pWep->wep.target = 0;
@@ -1257,7 +1257,7 @@ void pl_R1_Fance(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         pl->atari.clrFlag100();
-        pl->atari.setPriority(2);
+        pl->atari.setPriority(PRI_LV2);
         if (pG->pl_type == 1 || pG->pl_type == 2 || pG->pl_type == 4) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), (int) PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
         } else if (pl->r_no_3 & 4) {
@@ -1434,7 +1434,7 @@ void pl_R1_Fall(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x2D), (int) PL_ARC_PTR(pG->pPlayer, 0x2E), 3, 5, 0);
         pl->atari.throughOn();
         pl->Neck->motL = 0;
-        pl->atari.setPriority(2);
+        pl->atari.setPriority(PRI_LV2);
         if (pSUB) {
             SubCharRegistPlAction(pSUB, &pl->pos, 0, pl->ang.y);
         }

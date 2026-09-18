@@ -113,8 +113,8 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     em->rackFlags = 0xF;
@@ -123,7 +123,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         at->init(0, 2, 0, 0.0f, w->size.y * 0.5f, 0.0f, w->size.x - 100.0f, w->size.z - 100.0f,
                  w->size.z - 100.0f, w->size.y * 0.5f);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
     w->xEC = zero;

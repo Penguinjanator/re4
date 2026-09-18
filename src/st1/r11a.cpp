@@ -29,7 +29,7 @@ void R11aInit()
 
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0, 0, (u32) pPL, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0, 0, (u32) pPL, zero);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r11a_eff_info);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11a_eff_info);
 }
 
 void R11aMain()

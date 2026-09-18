@@ -226,7 +226,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
         partsWorldCalc();
         getMarkerPos(&lpos, &lcross);
         res = GetWepTargetPos(&lpos, &lcross, 0, pG->weapon_no, &wep.target, &attr);
-        if (wep.target && wep.target->checkStatus(10)) {
+        if (wep.target && wep.target->checkStatus(EM_STATUS_DONT_FIRE)) {
             donfire = 1;
         }
         dist = (lcross.x - lpos.x) * (lcross.x - lpos.x) + (lcross.y - lpos.y) * (lcross.y - lpos.y) +

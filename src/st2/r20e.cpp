@@ -190,7 +190,7 @@ void R20eInit()
         if (SceAtItemFlgCk(0x80) == 0) {
             cModel* m;
 
-            SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r20d_getSalazarCrest, 0, 1);
+            SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r20d_getSalazarCrest, 0, 1);
             SceAtSetEnable(0x80, 1);
             m = SceAtItemModelPtr(0x80);
             m->LightInfo.x50 |= 4;
@@ -212,8 +212,8 @@ void R20eInit()
     SceSetItemEvent(2, 0x81, 0, 2, (void (*)(int)) r20e_openShelf, (void (*)()) r20e_openedShelf, 0, 0);
     SceSetItemEvent(3, 0x83, 1, 3, (void (*)(int)) r20e_openShelf, (void (*)()) r20e_openedShelf, 1, 0);
     SceSetItemEvent(4, 0x82, 2, 4, (void (*)(int)) r20e_openBox, (void (*)()) r20e_openedBox, 0, 0);
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r20e_execThrough, 0, 1);
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r20e_execThrough, (void*) 1, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r20e_execThrough, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r20e_execThrough, (void*) 1, 1);
     obj = SmdGetObjPtr(0x43);
     if (obj) {
         obj->be_flag &= ~2;
@@ -455,10 +455,10 @@ void r20e_initMaze()
 {
     u32 i;
 
-    SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r20e_checkSwitch, 0, 1);
-    SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r20e_checkSwitch, (void*) 1, 1);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r20e_checkSwitch, (void*) 2, 1);
-    SceExec(0x12, (TaskFunc) r20e_checkEnableSwitch3, 0, 0, 2, 0);
+    SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r20e_checkSwitch, 0, 1);
+    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r20e_checkSwitch, (void*) 1, 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r20e_checkSwitch, (void*) 2, 1);
+    SceExec(0x12, (TaskFunc) r20e_checkEnableSwitch3, 0, 0, SCE_PRIO_DEF_2, 0);
     for (i = 0; i < 3; i++) {
         r20e_work->fence[i].init(&r20e_fenceTbl[i]);
     }
@@ -477,7 +477,7 @@ static void r20e_execThrough(int no)
 
     pl->beginAction();
     AtariFlagsAnd(&pPLS->atari, 0xFEFF);
-    pPLS->atari.setPriority(1);
+    pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     t = &r20e_throughTbl[no];
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
@@ -666,7 +666,7 @@ static void r20d_getSnakeObject()
     while (SceAtItemFlgCk(0x85) == 0) {
         SceSleep(1);
     }
-    SceExec(0x12, (TaskFunc) r20e_moveCrestDoor, 1, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r20e_moveCrestDoor, 1, 0, SCE_PRIO_DEF_2, 0);
     {
         cEmWrap em0;
         cEmWrap em1;
@@ -749,7 +749,7 @@ static void r20d_getSalazarCrest_end()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     SceAtSetEnable(6, 1);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r20d_getSnakeObject, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r20d_getSnakeObject, 0, 1);
 }
 
 static void r20d_getSalazarCrest()
@@ -862,7 +862,7 @@ static void r20d_checkPuzzle2()
         SceEventStart(0);
         CamCtrl.CutCall(5);
         SceSleep(20);
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         SceEventEnd(0);
     }
 }
@@ -1113,8 +1113,8 @@ static void r20d_checkPuzzle()
                 SceSleep(1);
             }
             RsfSet(G_ROOM_ID, 3);
-            SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
-            SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, 2, 0);
+            SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
+            SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, SCE_PRIO_DEF_2, 0);
             w = cMes.getWork();
             SceMesSet(1, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
             break;
@@ -1233,7 +1233,7 @@ void r20e_initPuzzle()
         } while (0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r20d_checkPuzzle, 0, 1);
         SceAtSetEnable(0xD, 0);
         r20e_moveCrestDoor(0, 1);
     } else {
@@ -1249,8 +1249,8 @@ void r20e_initPuzzle()
             } while (0);
         }
         if (RsfCheck(G_ROOM_ID, 4) == 0) {
-            SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
-            SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, 2, 0);
+            SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
+            SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, SCE_PRIO_DEF_2, 0);
             r20e_moveCrestDoor(0, 1);
         } else {
             R20ePuzzle* q = &r20e_work->puzzle;

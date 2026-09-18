@@ -1123,7 +1123,7 @@ static void sceAtGetItem(SceAtWork* w_)
         mes = 1;
         break;
     case 0xA:
-        if (SubScreenOpen(0x40, 0) == 0) {
+        if (SubScreenOpen(SS_OPEN_FILE, 0) == 0) {
             SceSleep(1);
         }
         SubScreenWk.get_item_id = it->id;
@@ -1175,7 +1175,7 @@ static void sceAtGetItem(SceAtWork* w_)
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.board_size);
                 if (put != 1) {
-                    if (SubScreenOpen(4, 0) == 0) {
+                    if (SubScreenOpen(SS_OPEN_PZZL, 0) == 0) {
                         SceSleep(1);
                     }
                     SubScreenWk.get_item_id = it->id;
@@ -1383,7 +1383,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         mes = 1;
         break;
     case 0xA:
-        if (SubScreenOpen(0x40, 0) == 0) {
+        if (SubScreenOpen(SS_OPEN_FILE, 0) == 0) {
             SceSleep(1);
         }
         SubScreenWk.get_item_id = it->id;
@@ -1416,7 +1416,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.board_size);
                 if (put != 1) {
-                    if (SubScreenOpen(4, 0) == 0) {
+                    if (SubScreenOpen(SS_OPEN_PZZL, 0) == 0) {
                         SceSleep(1);
                     }
                     SubScreenWk.get_item_id = it->id;
@@ -1484,14 +1484,14 @@ static int sceAtFunc_item(SceAtWork* w, cModel* m)
     KeyClear(0xEFCF0000);
     ret = itemZoom(w);
     if (ret == 1) {
-        p = SceExec(5, (TaskFunc) sceAtGetItem, (int) w, 0, 0xF, 0);
+        p = SceExec(5, (TaskFunc) sceAtGetItem, (int) w, 0, SCE_PRIO_15, 0);
         if (p != 0) {
             SceSys.x76 = ret;
             p->task->flag |= 2;
             it->pModel->setNoSuspend(1);
         }
     } else {
-        p = SceExec(5, (TaskFunc) sceAtGetItem_NoModel, (int) w, 0, 0xF, 0);
+        p = SceExec(5, (TaskFunc) sceAtGetItem_NoModel, (int) w, 0, SCE_PRIO_15, 0);
         if (p != 0) {
             SceSys.x76 = 1;
             p->task->flag |= 2;
@@ -1571,7 +1571,7 @@ static int sceAtFunc_mes(SceAtWork* w, cModel* m)
     SceAtMesData* d = &w->mes;
 
     if (d->x4 != 0) {
-        SceExec(5, (TaskFunc) SceAtSetMes, (int) d, 0, 2, 0);
+        SceExec(5, (TaskFunc) SceAtSetMes, (int) d, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetMes(d);
     }
@@ -1810,7 +1810,7 @@ static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
     sceAtGetLadderPos(&w->ladder, &pos, &ang);
     PlSetLadder(&pos, w->ladder.level, ang);
     if (w->ladder.cut1 != 0) {
-        SceSys.x134 = SceExec(5, (TaskFunc) sceAtLadder, (int) w, 0, 2, 0);
+        SceSys.x134 = SceExec(5, (TaskFunc) sceAtLadder, (int) w, 0, SCE_PRIO_DEF_2, 0);
     }
     return 0;
 }
@@ -1918,7 +1918,7 @@ FOUND:
         if (SubCharGetStatus() & 0x08000000) {
             if (w->hide.func != 0) {
                 SceKill(w->hide.func);
-                SceExec(0x12, (TaskFunc) w->hide.func, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) w->hide.func, 0, 0, SCE_PRIO_DEF_2, 0);
             }
             w->hide.step++;
             pS->hideActive = step;
@@ -1936,7 +1936,7 @@ FOUND:
             p = 0;
             if (w->hide.func != 0) {
                 SceKill(w->hide.func);
-                p = SceExec(0x12, (TaskFunc) w->hide.func, 1, 0, 2, 0);
+                p = SceExec(0x12, (TaskFunc) w->hide.func, 1, 0, SCE_PRIO_DEF_2, 0);
             }
             BitOff(pG->Stop_flg, 0x80000000);
             SubCharCtrlHide(&pPL->pos, 0);
@@ -3350,9 +3350,9 @@ void sceAtLink_check()
             em = GetEmPtrFromList(w->linkNo);
             if (em != 0) {
                 if (w->x35 == 3) {
-                    flag = em->checkStatus(8) == 1;
+                    flag = em->checkStatus(EM_STATUS_ITEMSET) == 1;
                 } else {
-                    flag = em->checkStatus(5) == 0;
+                    flag = em->checkStatus(EM_STATUS_ACTIVE) == 0;
                 }
             } else {
                 u32 d;

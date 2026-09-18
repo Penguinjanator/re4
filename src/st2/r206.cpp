@@ -162,18 +162,18 @@ void R206Init()
         Vec pos = {0.0f, 0.0f, 900.0f};
 
         SubCharInit(1, &pos, -3.14f);
-        SceExec(0x12, (TaskFunc) r206_snipe, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r206_auto_door_ck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r206_snipe, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r206_auto_door_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         luis_set();
     }
     if (RsfCheck(G_ROOM_ID, 4) && RsfCheck(G_ROOM_ID, 9) == 0) {
         FadeSetW(1, 0, 0, 0);
-        SceExec(0x12, (TaskFunc) item_chk, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) item_chk, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (pG->room_id_prev == 0x20D && RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
-        SceExec(0x12, (TaskFunc) r206_gouryuu_event, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r206_gouryuu_event, 0, 0, SCE_PRIO_DEF_2, 0);
         BitOn(pG->flags_51C0, 0x10000000);
         BitOn(pG->flags_5018, 0x04000000);
     }
@@ -181,21 +181,21 @@ void R206Init()
     EvtMgr.SetFunc("evt_r206s10_func", (void*) Evt_R206S10_Func);
     EvtMgr.SetFunc("evt_r206s20_func", (void*) Evt_R206S20_Func);
     SmdSetTrans(8, 0);
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r206_checkDoor, 0, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r206_checkDoor, 0, 1);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r206_checkDoorToR20c, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r206_checkDoorToR20c, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 4)) {
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r206_checkDoor2, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r206_checkDoor2, 0, 1);
         SmdSetTrans(0xC, 0);
         SmdSetTrans(0xD, 0);
         SmdSetTrans(0xE, 0);
-        SceExec(0x12, (TaskFunc) destroy_key_atari, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) destroy_key_atari, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r206_asl_call, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r206_asl_call, 0, 1);
     }
-    SceExec(0x12, (TaskFunc) r206_snipe_end, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r206_snipe_end, 0, 0, SCE_PRIO_DEF_2, 0);
     TexRenderInit(&r206_work.p->tex, 0, 2);
 }
 
@@ -207,7 +207,7 @@ void r206_die_event()
 {
     EvtMgr.EvtReadExec("event/evd/r206s00.evd", 0x11, 0);
     EvtMgr.EvtReadAram("event/evd/r206s10.evd", 0, 0, 0, 0);
-    SceSetChapterEnd(8, -1);
+    SceSetChapterEnd(CHAPTER_3_3, -1);
 }
 
 static void r206_gouryuu_event()
@@ -216,7 +216,7 @@ static void r206_gouryuu_event()
     BitOn(pG->door_flags_51CC, 0x80000000);
     SceSleep(1);
     EvtMgr.EvtReadExec("event/evd/r206s20.evd", 0x11, 0);
-    SceSetChapterEnd(9, -1);
+    SceSetChapterEnd(CHAPTER_3_4, -1);
     FadeSetW(1, 0, 0, 0);
     item_chk();
 }
@@ -229,7 +229,7 @@ static void item_chk()
     ItemMgr.takeOver();
     U32Set(pG->x4F98, pG->x4F98 + pG->x832C);
     pG->x832C = zero;
-    SubScreenOpen(1, 4);
+    SubScreenOpen(SS_OPEN_NORMAL, SS_ATTR_ASHLEY);
     SceSleep(1);
     r206_openTerm();
 }
@@ -454,7 +454,7 @@ static void funcAshley(cEm* p)
         if (p->motionMove() != 0) {
             EmRoutineSet(p, 0, 0, 0, 0);
             AtariFlagsOr(&pSUB->atari, 0x300);
-            SubCharCtrl(1, 0);
+            SubCharCtrl(SCC_CHASE, 0);
         }
         break;
     }
@@ -471,7 +471,7 @@ static void funcAshley2(cEm* p)
     if (p->motionMove() != 0) {
         EmRoutineSet(p, 0, 0, 0, 0);
         AtariFlagsOr(&pSUB->atari, 0x300);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
 }
 
@@ -499,7 +499,7 @@ static void funcAshley3(cEm* p)
     default:
         EmRoutineSet(p, 0, 0, 0, 0);
         AtariFlagsOr(&pSUB->atari, 0x300);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
         break;
     }
 }
@@ -512,7 +512,7 @@ int chkAliveGanadeNum()
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(5) != 0 && (em->be_flag & 0x201) == 1) {
+        if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && (em->be_flag & 0x201) == 1) {
             cnt++;
         }
     }
@@ -595,7 +595,7 @@ static void r206_snipe()
         }
         luis_set();
     }
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pSUB->st.x325 = 0x80;
     {
@@ -721,7 +721,7 @@ snipe_done:
     r206_work.p->em[0].setBeFlag(0x10000, 1);
     r206_work.p->em[1].setBeFlag(0x10000, 1);
     r206_work.p->em[2].setBeFlag(0x10000, 1);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r206_checkDoorToR20c, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r206_checkDoorToR20c, 0, 1);
     SceSleep(1);
     while (chkAliveGanadeNum() != 0) {
         SceSleep(1);
@@ -776,7 +776,7 @@ snipe_done:
         r206_work.p->head->setNoSuspend(1);
         OyaSetObj00(r206_work.p->head, r206_work.p->em[7].getPtr(), 2);
         r206_work.p->esp = EspPullCoreKind();
-        SceExec(0x12, (TaskFunc) r206_checkEmDead, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r206_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     r206_work.p->em[4].setNoSuspend(1);
     r206_work.p->em[5].setNoSuspend(1);
@@ -804,7 +804,7 @@ snipe_done:
     r206_work.p->em[5].setNoSuspend(0);
     r206_work.p->em[6].setNoSuspend(0);
     r206_work.p->em[7].setNoSuspend(0);
-    SceExec(0x12, (TaskFunc) chkReaderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) chkReaderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SubCharMoveTo(0, 4316.0f, 0.0f, -6652.0f, 193.0f);
     moved = 0;
     wave = 1;
@@ -933,7 +933,7 @@ static void chkReaderMove()
                     r206_work.p->em[7].setGoto(&pSUB->pos, 8);
                 }
                 if ((r206_work.p->gotoNo == 0 && cnt == 0x1A4)
-                    || (cnt > 0x257 && (em->be_flag & 0x201) == 1 && em->checkStatus(5) == 1
+                    || (cnt > 0x257 && (em->be_flag & 0x201) == 1 && em->checkStatus(EM_STATUS_ACTIVE) == 1
                         && isDeadEm(em))) {
                     timer = 0x5A;
                 }
@@ -1080,7 +1080,7 @@ void r206_openShelf_main(int no, int opened)
 {
     cObj* obj;
 
-    OpenBoxMain(0x15, opened, 0x15, 9, -1, -1);
+    OpenBoxMain(OpenBoxFall, opened, 0x15, 9, -1, -1);
     obj = SmdGetObjPtr(9);
     if (obj != NULL) {
         Vec* rot = &obj->ang;

@@ -70,7 +70,7 @@ void R215Init()
     EvtMgr.SetFunc("evt_r215s02_func", (void*) Evt_R215S02_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadMram("event/evd/r215s00.evd", 0, 0, 0, 0);
-        SceExec(0x12, (TaskFunc) R215_Event, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R215_Event, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 

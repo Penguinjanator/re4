@@ -75,7 +75,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         break;
     }
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.m_flag &= ~0x300;
     emItemYarareInit(em);
     em->hp_max = em->hp = 1000;
@@ -91,7 +91,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->Be_flg = 0;

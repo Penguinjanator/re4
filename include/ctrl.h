@@ -79,8 +79,35 @@ public:
 };
 
 cCtrl* GetCtrlCtrl12();
+enum CTRL12_ID {
+    CTRL12_ID_EM1A_LIVE = 0,
+    CTRL12_ID_EM27_RUSH = 1,
+    CTRL12_ID_EM29_RUSH = 2,
+    CTRL12_ID_EM29_LIVE = 3,
+    CTRL12_ID_EM_ATK = 4,
+    CTRL12_ID_EM10_PARASITE = 5,
+    CTRL12_ID_EM10_ATK = 6,
+    CTRL12_ID_EM10_LOST = 7,
+    CTRL12_ID_EM10_THROW = 8,
+    CTRL12_ID_EM10_NOT_NEAR = 9,
+    CTRL12_ID_EM2B_ATK = 10,
+    CTRL12_ID_BIGEFF = 11,
+    CTRL12_ID_BACKSIGN = 12,
+    CTRL12_ID_NUM = 13
+};
+
 void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val);
 int Ctrl12Ck(cCtrl* pCtrl, int idx);
+enum CTRL12_ID_CNT {
+    CTRL12_ID_CNT_EM1A_DIE = 0,
+    CTRL12_ID_CNT_EM27_DIE = 1,
+    CTRL12_ID_CNT_EM29_DIE = 2,
+    CTRL12_ID_CNT_EM10_SET = 3,
+    CTRL12_ID_CNT_PARASITE = 4,
+    CTRL12_ID_CNT_EM2D_RESET = 5,
+    CTRL12_ID_CNT_NUM = 6
+};
+
 void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add);
 int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val);
 struct TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* c);

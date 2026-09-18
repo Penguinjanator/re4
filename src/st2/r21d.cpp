@@ -183,14 +183,14 @@ void R21dInit()
     r21d_initEmSet();
     r21d_initSwitch();
     r21d_initFence();
-    SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r21d_checkGrave, 0, 1);
+    SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r21d_checkGrave, 0, 1);
     if (pG->room_id_prev == 0x225 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x80000) == 0) {
-        SceExec(0x12, (TaskFunc) r21d_moveGrave, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r21d_moveGrave, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0,
                    ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
                    ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26));
-    SceExec(0x12, (TaskFunc) r21d_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r21d_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R21dMain()
@@ -307,7 +307,7 @@ void r21d_searchEmReset()
                     break;
                 }
                 r21d_work.p->resetting[i] = 1;
-                SceExec(0x12, (TaskFunc) r21d_setEmReset, i, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r21d_setEmReset, i, 0, SCE_PRIO_DEF_2, 0);
                 r21d_work.p->emSetCount++;
                 break;
             }
@@ -391,9 +391,9 @@ void r21d_initEmSet()
     for (i = 0; i < 16; i++) {
         r21d_work.p->resetting[i] = 0;
     }
-    SceExec(0x12, (TaskFunc) r21d_checkEmReset, 0, 0, 2, 0);
-    SceAtDataSet_exec(0xD, 0x12, 0, (TaskFunc) r21d_setEm2, 0, 1);
-    SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) r21d_setEm2, 0, 1);
+    SceExec(0x12, (TaskFunc) r21d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r21d_setEm2, 0, 1);
+    SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) r21d_setEm2, 0, 1);
 }
 
 // The iron seal: shown while the lasers are on (done 0), replaced by the opened one (done 1).
@@ -555,7 +555,7 @@ void r21d_operateSwitch_end(u32 n)
         r21d_setEm3();
         break;
     case 2:
-        SceExec(0x12, (TaskFunc) r21d_setEmFinal, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r21d_setEmFinal, 0, 0, SCE_PRIO_DEF_2, 0);
         r21d_initIronSeal(1);
         EffectEspDelete(0, r21d_work.p->eff, 0, 0);
         EffectEspgenDelete(0, r21d_work.p->eff, 0);
@@ -651,13 +651,13 @@ void r21d_initSwitch()
     r21d_work.p->sw[1].initMove1_pos(o24, 2, &d, 0.0f, 0.0f);
     if (RsfCheck(G_ROOM_ID, 7) == 0 || RsfCheck(G_ROOM_ID, 8) == 0) {
         if (RsfCheck(G_ROOM_ID, 7) == 0) {
-            SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r21d_operateSwitch, 0, 1);
+            SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r21d_operateSwitch, 0, 1);
             LightMgr.offKind(1);
         } else {
             r21d_onSwitch(0, 1);
         }
         if (RsfCheck(G_ROOM_ID, 8) == 0) {
-            SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r21d_operateSwitch, (void*) 1, 1);
+            SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) r21d_operateSwitch, (void*) 1, 1);
             LightMgr.offKind(2);
         } else {
             r21d_onSwitch(1, 1);
@@ -733,9 +733,9 @@ yes:
     r21d_moveFence();
     SceEventEnd(0);
     SceAtSetEnable(0x12, 0);
-    SceExec(0x12, (TaskFunc) r21d_moveDeathTrap, 0, 6, 2, 0);
+    SceExec(0x12, (TaskFunc) r21d_moveDeathTrap, 0, 6, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(0x15, 0x12, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
+        SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
     }
     GameSaveSave(&GameSave, pSaveData, -1);
 }
@@ -751,14 +751,14 @@ void r21d_initFence()
         r21d_work.p->fence[1].initMove1_pos(o21, 60, &d, 20.0f, 0.0f);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(0x13, 0x12, 0, (TaskFunc) r21d_checkFence, 0, 1);
+        SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) r21d_checkFence, 0, 1);
     } else {
         r21d_work.p->fence[0].setReverse(1);
         r21d_work.p->fence[1].setReverse(1);
         SceAtSetEnable(0x12, 0);
-        SceExec(0x12, (TaskFunc) r21d_moveDeathTrap, 0, 6, 2, 0);
+        SceExec(0x12, (TaskFunc) r21d_moveDeathTrap, 0, 6, SCE_PRIO_DEF_2, 0);
         if (RsfCheck(G_ROOM_ID, 9) == 0) {
-            SceAtDataSet_exec(0x15, 0x12, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
+            SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r21d_checkDeathTrapSwitch, 0, 1);
         }
     }
     r21d_initDeathTrapSwitch();
@@ -826,7 +826,7 @@ static void r21d_checkGrave()
     r21d_moveGrave(1);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
-        SceSetChapterEnd(0xB, 0xC);
+        SceSetChapterEnd(CHAPTER_4_2, 0xC);
     } else {
         SceAtExecute(0xC);
     }
@@ -977,7 +977,7 @@ static void r21d_moveDeathTrap()
     }
     SceSleep(1);
     if (RsfCheck(G_ROOM_ID, 9)) {
-        SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, SCE_PRIO_DEF_2, 0);
     }
     while (1) {
         if (RsfCheck(G_ROOM_ID, 4) == 0) {
@@ -999,7 +999,7 @@ static void r21d_checkDeathTrapSwitch_end()
     if ((int) pG->flags_174 < 0) {
         r21d_work.p->deathSw.setEndPos();
         if (!(pG->flags_174 & 0x40000000)) {
-            SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, 2, 0);
+            SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, SCE_PRIO_DEF_2, 0);
         }
     }
     CamCtrl.Comeback(0);
@@ -1034,7 +1034,7 @@ yes:
         SceSleep(1);
     }
     pG->flags_174 |= 0x40000000;
-    SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r21d_setDeathTrap2nd, 0, 2, SCE_PRIO_DEF_2, 0);
     SceSleep(150);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

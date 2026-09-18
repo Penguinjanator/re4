@@ -99,7 +99,7 @@ void ScenarioRoomInit()
     }
     if (pG->flags_5018 & 0x4000000) {
         SubCharInit(1, &pG->sub_pos, pG->sub_angle);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     EmSetFromList();
     SceAtRoomSet();
@@ -450,7 +450,7 @@ void SceExecCheckCondition()
         if ((s32) v < 0) {
             if (SceExecCheckCondition_sub(c) == 1) {
                 if (c->func != 0) {
-                    SceExec(c->prio, c->func, c->arg, c->flag, 2, 0);
+                    SceExec(c->prio, c->func, c->arg, c->flag, SCE_PRIO_DEF_2, 0);
                 }
                 DelPrim(&SceExecOt, (u32*) c);
                 Mem_free(c);
@@ -527,7 +527,7 @@ void SceExecEventCancel()
         }
     }
     if (SceSys.pCancelFunc != 0) {
-        SceExec(slot, SceSys.pCancelFunc, SceSys.cancelArg, 2, 2, 0);
+        SceExec(slot, SceSys.pCancelFunc, SceSys.cancelArg, 2, SCE_PRIO_DEF_2, 0);
     }
     FadeSetW(0x80000000, 10, 0, 0);
 }

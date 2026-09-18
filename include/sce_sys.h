@@ -78,6 +78,34 @@ void ScenarioMove();
 u32* scenarioSetOtStart();
 u32* scenarioGetOtAddr(u32* p);
 void SceTaskDelete(TASK* t);
+enum SCE_PRIORITY {
+    SCE_PRIO_0 = 0,
+    SCE_PRIO_1 = 1,
+    SCE_PRIO_2 = 2,
+    SCE_PRIO_3 = 3,
+    SCE_PRIO_4 = 4,
+    SCE_PRIO_5 = 5,
+    SCE_PRIO_6 = 6,
+    SCE_PRIO_7 = 7,
+    SCE_PRIO_8 = 8,
+    SCE_PRIO_9 = 9,
+    SCE_PRIO_10 = 10,
+    SCE_PRIO_11 = 11,
+    SCE_PRIO_12 = 12,
+    SCE_PRIO_13 = 13,
+    SCE_PRIO_14 = 14,
+    SCE_PRIO_15 = 15,
+    SCE_PRIO_DEF_0 = 0,
+    SCE_PRIO_DEF_1 = 1,
+    SCE_PRIO_DEF_2 = 2,
+    SCE_PRIO_ACT = 5,
+    SCE_PRIO_ACT_2 = 6,
+    SCE_PRIO_ACT_3 = 7,
+    SCE_PRIO_GET = 8,
+    SCE_PRIO_ATTACK = 11,
+    SCE_PRIO_ATTACK_2 = 12
+};
+
 ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* model);
 void SceSleep(int frames);
 void SceExit();

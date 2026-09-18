@@ -138,7 +138,7 @@ void em2aDmCkTrap1(cEm2a* em)
     if ((em->stat & 0xFFFF0000) == 0x01050000) {
         EmRoutineSet(em, 1, 4, 0, 0);
     } else {
-        GameAddPoint(9);
+        GameAddPoint(LVADD_CRITICALHIT);
         EmRoutineSet(em, 1, 3, 0, 0);
     }
 }
@@ -165,7 +165,7 @@ void em2aDmCkTrap2(cEm2a* em)
             return;
         }
         EmDmBloodSet2(em, 0x22, 9, 0, 0, 0);
-        GameAddPoint(9);
+        GameAddPoint(LVADD_CRITICALHIT);
         em->hp = 0;
         EmSetDie(em);
         EmRoutineSet(em, 1, 7, 0, 0);
@@ -326,14 +326,14 @@ static void em2a_R0_Init(cEm2a* em)
     at->init(3, 0x2000, 10, 0.0f, 0.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1500.0f);
     zero = 0;
     AtariOff(at, 0xFCFF);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em2aYarareInit(em);
     w->espKind = EspPullCoreKind();
     EspDataLoad((u32) ARC(0x12), 0x22, 0);
     w->flags = zero;
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->type) {
     case 0:
     default:
@@ -351,7 +351,7 @@ static void em2a_R0_Init(cEm2a* em)
             int z = 0;
 
             em->hp = zero;
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             EmRoutineSet(em, 1, 3, z, 1);
             break;
         }
@@ -667,7 +667,7 @@ static void em2a_R1_Trap1Break(cEm2a* em)
             EstSet((int) em, -1, 0, 0, 0x22, 2, 0, 0, (u32) em, 0);
         }
         l->x3 = 2;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -873,7 +873,7 @@ void em2aTrap2Bomb(cEm2a* em)
     em->hp = 0;
     EmSetDie(em);
     em->be_flag &= ~2;
-    em->clearStatus(5);
+    em->clearStatus(EM_STATUS_ACTIVE);
     SndCall(1, 0x14, &em->pos, em->id, 0, em);
     EffectEspDelete(0, (u8) w->espKind, (u32) em, 0);
     EffectEspgenDelete(0, (u8) w->espKind, (int) em);

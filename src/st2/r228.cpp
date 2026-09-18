@@ -154,7 +154,7 @@ static void r228_checkSalazarBattle()
             if (e && ((cEm38*) e)->ckDown() == 1) {
                 RsfSet(G_ROOM_ID, 2);
                 r228_work.p->se = 0;
-                r228_work.p->se = SceExec(0x12, (TaskFunc) r228_execSalazarNeckDown, 0, 0, 2, 0);
+                r228_work.p->se = SceExec(0x12, (TaskFunc) r228_execSalazarNeckDown, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         SceSleep(1);
@@ -278,7 +278,7 @@ static void r228_execEvent00()
     setEm(0x31, -1, 1, 1, 1);
     setEm(0x32, -1, 1, 1, 1);
     TexRenderModSet(em1.getPtr(), 1, r228_work.p->texTbl, r228_work.p->texEvt, 0, 1, 1, 1, 1.0f);
-    SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void r228_initEvent00()
@@ -289,7 +289,7 @@ void r228_initEvent00()
     PSet(r228_work.p->obj79, SmdGetObjPtr(0x79));
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadMram("event/evd/r228s00.evd", 0, 0, 0, 0);
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r228_execEvent00, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r228_execEvent00, 0, 1);
         SceAtSetEnable(8, 0);
         cObj* o = SmdGetObjPtr(1);
         if (o) {
@@ -311,7 +311,7 @@ void r228_initEvent00()
             r228_work.p->obj79->be_flag &= ~2;
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r228_checkSalazarBattle, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     r228_work.p->sat = 0;

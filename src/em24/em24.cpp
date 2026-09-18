@@ -225,9 +225,9 @@ static void em24_R0_Init(cEm24* em)
     em->lockOfs.z = 0.0f;
     atariInitF(at, 0.0f, -50.0f, 0.0f, 350.0f, 150.0f, 150.0f, 100.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
     AtariOff(at, 0xFDFF);
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x10;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 1, 5);
     YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 3, 5);
     YarareAdd(em, &w->hit[1], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 6, 5);

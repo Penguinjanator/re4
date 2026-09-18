@@ -1973,9 +1973,9 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         dmg = (int) ((f32) dmg * rate);
         if (dmg > 100) {
             if (dmg > 500) {
-                GameAddPoint(3);
+                GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
-                GameAddPoint(2);
+                GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
         if (pG->x4F88 <= 2 && (s16) pG->pl_life > 300) {
@@ -2011,9 +2011,9 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         dmg = (int) ((f32) dmg * rate);
         if (dmg > 100) {
             if (dmg > 500) {
-                GameAddPoint(3);
+                GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
-                GameAddPoint(2);
+                GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
         if ((s16) pG->ashley_life < dmg) {
@@ -2058,7 +2058,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
             }
             dmg = (int) ((f32) dmg * rate);
             if (em->id >= 0x10 && em->id <= 0x3F && dmg > 100) {
-                GameAddPoint(0xC);
+                GameAddPoint(LVADD_EM_DAMAGE);
             }
             break;
         }
@@ -2074,7 +2074,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         }
         ret = em->hp;
         if (ret <= 0 && (u32) (em->id - 0x10) <= 0x2F) {
-            GameAddPoint(0xD);
+            GameAddPoint(LVADD_EM_DIE);
         }
     }
     return ret;
@@ -2444,8 +2444,8 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     p.z = z;
     PSMTXMultVec(m, &p, &p);
     PSVECSubtract(&p, &em->pos, &d);
-    pPL->atari.setPriority(1);
-    em->atari.setPriority(1);
+    pPL->atari.setPriority(PRI_LV1);
+    em->atari.setPriority(PRI_LV1);
     switch (type) {
     case 0:
     default:
@@ -2503,8 +2503,8 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     PSMTXMultVec(m, &p, &p);
     PSVECSubtract(&p, &sub->pos, &d);
     PSVECScale(&d, &d, -1.0f);
-    sub->atari.setPriority(1);
-    em->atari.setPriority(1);
+    sub->atari.setPriority(PRI_LV1);
+    em->atari.setPriority(PRI_LV1);
     switch (type) {
     case 0:
     default:

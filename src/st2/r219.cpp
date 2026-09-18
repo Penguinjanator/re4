@@ -54,13 +54,13 @@ void R219Init()
     SmdGetObjPtr(0x27)->Refract_pow = 0x10;
     SmdGetObjPtr(0x27)->Refract_ratio = 0x40;
     pPL->ot_type = 1;
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) toroko_go, 0, 1);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) toroko_go, (void*) 1, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) toroko_go, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) toroko_go, (void*) 1, 1);
     if (pG->room_id_prev == 0x219) {
         if (pG->x4F9E == 1) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, SCE_PRIO_DEF_2, 0);
         } else if (pG->x4F9E == 2) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if ((pG->room_id_prev == 0x219 && pG->x4F9E == 2) || pG->room_id_prev == 0x201) {
@@ -123,7 +123,7 @@ static void toroko_go(int dir)
         pl->setRightHand(1);
         pl->Wep->setTrans(0, 0);
         PlSetHand(1, 0);
-        SubCharCtrl(5, 0);
+        SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
             ((cUnitEventView*) pSUB)->beginEvent(0);
         }
@@ -197,7 +197,7 @@ static void toroko_ret(int dir)
         pl->Wep->setTrans(0, 0);
         PlSetHand(1, 0);
         SceSleep(1);
-        SubCharCtrl(5, 0);
+        SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
             ((cUnitEventView*) pSUB)->beginEvent(0);
         }
@@ -224,7 +224,7 @@ static void toroko_ret(int dir)
             pSUB->setNoSuspend(0);
             ((cUnitEventView*) pSUB)->endEvent(0);
         }
-        SubCharCtrl(1, 1);
+        SubCharCtrl(SCC_CHASE, 1);
         ObjMgr.destroy(obj);
         SmdGetObjPtr(0x18)->be_flag |= 2;
         SmdGetObjPtr(0x19)->be_flag |= 2;
@@ -262,7 +262,7 @@ void r219_openShelf_main(int no, int mode)
 {
     cObj* obj;
 
-    OpenBoxMain(0x15, mode, 0x15, 0x17, -1, -1);
+    OpenBoxMain(OpenBoxFall, mode, 0x15, 0x17, -1, -1);
     obj = SmdGetObjPtr(0x17);
     if (obj) {
         Vec* pos = &obj->pos;

@@ -48,14 +48,14 @@ void R107Init()
     if (getRoomEtcDoor(0, &door0, 1) && getRoomEtcDoor(0x15, &door1, 1)) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
     }
-    SceExec(0x12, (TaskFunc) r107_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r107_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
     }
     SceSetItemEvent(3, 0x92, 1, 0xB, r104_openKiln, (void (*)()) r104_openedKiln, 0, 0);
     SceSetItemEvent(5, 0x93, 2, 0xC, r104_openKiln, (void (*)()) r104_openedKiln, 1, 0);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r107_eff_info);
-    SceExec(0x12, (TaskFunc) r107_setFish, 0, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r107_eff_info);
+    SceExec(0x12, (TaskFunc) r107_setFish, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R107Main()

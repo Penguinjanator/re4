@@ -84,10 +84,10 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.clrFlag100();
     w->Be_flg = 0;
     em->be_flag &= ~0x10;

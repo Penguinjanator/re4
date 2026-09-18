@@ -160,12 +160,12 @@ void R20cInit()
         if (RsfCheck(G_ROOM_ID, 3)) {
             R20cExecCageDown(0);
             SndBgmTblSet(0x20C, 2);
-            SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
             if (checkEmListNo(pG->room_id) == 3 && !(pG->flags_5018 & 0x04000000)) {
-                SceExec(0x12, (TaskFunc) R20cEmSetMain, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R20cEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         } else {
-            SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R20cExecCageMain, 0, 1);
+            SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) R20cExecCageMain, 0, 1);
             SndBgmTblSet(0x20C, 0);
             SndRoomStrStart(1, 0, 1);
         }
@@ -179,7 +179,7 @@ void R20cMain()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         if (!(pG->flags_174 & 0x00800000)) {
             if (r20c_work.p->hit && r20c_work.p->hit->ckStatus() == 1) {
-                SceExec(0x12, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -307,7 +307,7 @@ static void R20cExecCageMain()
         SndRoomStrStop(3);
         SndBgmTblSet(0x20C, 1);
         SndRoomStrStart(1, 0, 1);
-        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
         SceEventStart(0);
         SceSetEventCancel(1, (TaskFunc) R20cExecCageEnd, 0, -1, 1);
         CamCtrl.CutCall(6);
@@ -392,7 +392,7 @@ static void R20cExecCageEnd()
     for (i = 0; i < 2; i++) {
         R20cExecCageEmResetSub(i);
     }
-    SceExec(0x12, (TaskFunc) R20cExecCageEmReset, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R20cExecCageEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventEnd(0);
     SceExit();
 }
@@ -554,7 +554,7 @@ static void R20cExecShootKaigaOpenMain()
 static void R20cExecShootKaigaOpenEnd()
 {
     R20cKaigaMoved(1);
-    SceExec(0x12, (TaskFunc) R20cExecShootMain, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R20cExecShootMain, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventEnd(0);
     SceExit();
 }
@@ -576,7 +576,7 @@ void R20cExecShootInit()
         if (barred) {
             ((cEmBarred*) barred)->setClosed();
         }
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) R20cExecShootKaigaOpenMain, 0, 1);
         obj = SmdGetObjPtr(7);
         if (obj) {
             r20c_work.p->kaigaHit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, 0, 1);
@@ -602,7 +602,7 @@ static void R20cExecShootMain()
 {
     for (;;) {
         if (r20c_work.p->kaigaHit[0] && r20c_work.p->kaigaHit[0]->ckStatus() == 1) {
-            SceExec(0x12, (TaskFunc) R20cDoorOpenMain, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R20cDoorOpenMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
         if (r20c_work.p->kaigaHit[1] && r20c_work.p->kaigaHit[1]->ckStatus() == 1) {
@@ -676,12 +676,12 @@ void R20cDoorOpenEnd(int mode)
 
 static void OpenedBoxTreasure()
 {
-    OpenBoxMain(6, 1, 0x5B, 0x11, -1, -1);
+    OpenBoxMain(OpenBoxUpZM, 1, 0x5B, 0x11, -1, -1);
 }
 
 static void OpenBoxTreasure()
 {
-    OpenBoxMain(6, 0, 0x5B, 0x11, -1, -1);
+    OpenBoxMain(OpenBoxUpZM, 0, 0x5B, 0x11, -1, -1);
 }
 
 // Room stream: on while the player is found by an enemy.

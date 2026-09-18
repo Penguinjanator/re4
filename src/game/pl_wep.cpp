@@ -689,10 +689,10 @@ int lockEmCk(cEm* em, Vec* pos)
     if (em->hp <= 0) {
         return 0;
     }
-    if (em->checkStatus(1)) {
+    if (em->checkStatus(EM_STATUS_LOCKOFF)) {
         return 0;
     }
-    if (em->checkStatus(5) == 0) {
+    if (em->checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     if (em->pParts == 0) {

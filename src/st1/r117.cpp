@@ -146,7 +146,7 @@ void R117Init()
 #line 63 "D:/Bio4/Prog/r117.cpp"
     W = (R117Work*) MEM_CALLOC(sizeof(R117Work), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) r117_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r117_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
@@ -157,11 +157,11 @@ void R117Init()
             cEmDoorSetCloseLock(door);
         }
         W->evd0 = DC.setData(EvtMgr.NameChange("evd/r117s00.evd"));
-        W->evd0->setCommand(2, 0, 0);
+        W->evd0->setCommand(CMND_ARAM_LOAD, 0, 0);
         W->evd1 = DC.setData(EvtMgr.NameChange("evd/r117s10.evd"));
         EmReadSearch(3, 0, W->evd1->m_size);
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r117_EventAshleyFind, 0, 1);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r117_EventChandelier, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r117_EventAshleyFind, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r117_EventChandelier, 0, 1);
         EvtMgr.SetFunc("evt_r117s00_func", (void*) Evt_R117S00_Func);
         EvtMgr.SetFunc("evt_r117s10_func", (void*) Evt_R117S10_Func);
         W->mod = SearchEmModule(3);
@@ -206,7 +206,7 @@ extern "C" void r117_MechanismInit()
             }
         }
     } else {
-        SceAtDataSet_exec(8, 0x12, 8, (TaskFunc) r117_LightMechanism, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 8, (TaskFunc) r117_LightMechanism, 0, 1);
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             W->cur[0] = 2;
             W->cur[1] = 3;
@@ -387,11 +387,11 @@ static void r117_EventAshleyFind()
         }
         pG->System_flg |= 0x400;
         MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
-        W->evd0->setCommand(4, 0, 0);
+        W->evd0->setCommand(CMND_DEL_DATA, 0, 0);
     }
     BitOn(pG->flags_5018, 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
-    SubCharCtrl(4, 0);
+    SubCharCtrl(SCC_BEHIND, 0);
     SceSleep(2);
     OpeOwTypeSet(3);
     OpeSetOpenTerm(0xA, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -400,8 +400,8 @@ static void r117_EventAshleyFind()
         SceAtExecute(0x8F);
         SceSleep(1);
     }
-    W->evd1->setCommand(2, 0, 0);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r117_EventSaddlerAppear, 0, 1);
+    W->evd1->setCommand(CMND_ARAM_LOAD, 0, 0);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r117_EventSaddlerAppear, 0, 1);
     if (getRoomEtcDoor(0, &door, 1)) {
         ((cEmDoor*) door)->setNormal();
     }
@@ -429,7 +429,7 @@ static void r117_EventSaddlerAppear()
             SceSleep(1);
         }
         MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
-        W->evd1->setCommand(4, 0, 0);
+        W->evd1->setCommand(CMND_DEL_DATA, 0, 0);
     }
     EffectEspDelete(0x2001, 3, 0, 0);
     void* zero = 0;
@@ -447,9 +447,9 @@ static void r117_EventSaddlerAppear()
     ang.z = 0.0f;
     pl->setAng(pa);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     SndBgmTblSet(0x117, 1);
-    SceSetChapterEnd(3, -1);
+    SceSetChapterEnd(CHAPTER_2_1, -1);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 0x26, 0x800, 0, (u32) zero, zero);
 }
@@ -1001,7 +1001,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 skip = 0;
             }
             if (skip == 0) {
-                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, 2, 0);
+                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, SCE_PRIO_DEF_2, 0);
             }
         }
         break;
@@ -1014,7 +1014,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 skip = 0;
             }
             if (skip == 0) {
-                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, 2, 0);
+                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, SCE_PRIO_DEF_2, 0);
             }
         }
         break;
@@ -1033,7 +1033,7 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 skip = 0;
             }
             if (skip == 0) {
-                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, 2, 0);
+                SceExec(0x12, (TaskFunc) R117S0_WhiteFade, 0, 2, SCE_PRIO_DEF_2, 0);
             }
         }
         break;

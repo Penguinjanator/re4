@@ -809,7 +809,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     IdUnit* u;
     cModel* m;
 
-    IdTexDataLoad(SS_ARC_PTR(wk->pTerm, 5), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pTerm, 5), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pTerm, 8), 0xFF, 0x14, 0xC, 5, 0);
     IdSub.set(SS_ARC_PTR(wk->pTerm, 9), 0xFF, 0x10, 0xF, 2, 0);
     u = IdSub.unitPtr(0x12, 0x10);
@@ -826,7 +826,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pTerm, 4), 3);
     }
-    cMes.setLayout(0, 4);
+    cMes.setLayout(0, LAYOUT_OPERATOR);
     memset(&ope, 0, sizeof(ope));
     SndCall(0, 0x14, 0, 0, 0, 0);
     OpeMesTblInit(wk);

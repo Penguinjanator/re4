@@ -130,15 +130,15 @@ void R205Init()
 #line 103 "D:/Bio4/Prog/r205.cpp"
     *wp = (R205Work*) MEM_CALLOC(sizeof(R205Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 12) == 0) {
-        SceAtDataSet_exec(0x1C, 0x12, 0, (TaskFunc) r205_ContinuePointSet, 0, 1);
+        SceAtDataSet_exec(0x1C, SCE_LEVEL10, 0, (TaskFunc) r205_ContinuePointSet, 0, 1);
     }
     setTexRender();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r205_DrainEvent, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r205_DrainEvent, 0, 1);
         SetSstDispFlag(0xC, 1);
         SetSstDispFlag(0xD, 0);
         SceAtSetEnable(0x11, 0);
-        EatMgr.registEffInfo(2, (AtEffInfo*) &r205_effInfo);
+        EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r205_effInfo);
     } else {
         SceAtSetEnable(8, 0);
         SceAtSetEnable(7, 0);
@@ -147,7 +147,7 @@ void R205Init()
         SceAtSetEnable(0x15, 0);
     }
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r205_EnemyAppear, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r205_EnemyAppear, 0, 1);
     }
     r205_work.p->pend[0].obj = SmdGetObjPtr(5);
     r205_work.p->pend[1].obj = SmdGetObjPtr(6);
@@ -157,11 +157,11 @@ void R205Init()
     r205_work.p->pole[1] = NULL;
     r205_work.p->pole[2] = SmdGetObjPtr(0x6C);
     r205_work.p->pole[3] = SmdGetObjPtr(0x6D);
-    SceExec(0x12, (TaskFunc) r205_PendulumMove, 0, 0, 2, 0);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[0], 1);
-    SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[1], 1);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[2], 1);
-    SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[3], 1);
+    SceExec(0x12, (TaskFunc) r205_PendulumMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[0], 1);
+    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[1], 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[2], 1);
+    SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[3], 1);
     if (r205_work.p->ems[6].em.setEm(0x6C, -1, 0, 1, 1) == 0) {
         r205_work.p->ems[6].dead = 1;
     }
@@ -187,7 +187,7 @@ void R205Init()
             cEmDoorSetCloseLock(r205_work.p->door1);
         }
     }
-    SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     {
         Vec pos = {0.0f, -425.0f, 0.0f};
 
@@ -525,7 +525,7 @@ static void r205_DrainEventEnd()
     SceAtSetEnable(0x11, 1);
     SndRoomStrVolReset(0x15E);
     SceAtSetEnable(0x15, 0);
-    SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r205_Em88Appear, 0, 1);
+    SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r205_Em88Appear, 0, 1);
 }
 
 // Room stream: on while the player is found by an enemy.
@@ -618,12 +618,12 @@ static void r205_RoomExitFunc()
 
 static void r205_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(4, 0, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpXM, 0, 0x5B, id, -1, -1);
 }
 
 static void r205_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(4, 1, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpXM, 1, 0x5B, id, -1, -1);
 }
 
 static void r205_ContinuePointSet()

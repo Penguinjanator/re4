@@ -98,7 +98,7 @@ void tvModeMenu_progressive(TvModeWork* tv)
     switch (tv->sub) {
     case 0:
         MesData.ptr[tv->sub] = (u8*) (pG->pArc->ofs_70 + (u32) pG->pArc);
-        cMes.setLayout(0, 5);
+        cMes.setLayout(0, LAYOUT_SYSTEM);
         cMes.MesSet(0, 100, 220, 0x1000051, 0, 0, 1);
         timer = 0;
         w = cMes.getWork();

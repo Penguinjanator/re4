@@ -591,18 +591,18 @@ static void em3c_R0_Init(cEm3c* em)
     switch (no) {
     case 0:
     default:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         EmRoutineSet(em, 1, 2, 0, 0);
         break;
     case 1:
-        em->setStatus(0xB);
+        em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
         em->atari.throughOn();
         w->Be_flg |= 0x400;
         EmRoutineSet(em, 1, 0, 0, 0);
         break;
     case 2:
-        em->setStatus(0xB);
-        em->atari.setPriority(2);
+        em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
+        em->atari.setPriority(PRI_LV2);
         em->atari.clrFlag100();
         em->be_flag |= 0x10000;
         w->Be_flg |= 0x400;
@@ -642,10 +642,10 @@ static void em3c_R1_StartWait(cEm3c* em)
         if (!(em->flags_3C8 & 1)) {
             break;
         }
-        em->clearStatus(0xB);
+        em->clearStatus(EM_STATUS_ASHLEY_NO_HELP);
         em->r_no_2++;
     case 2:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->hp = em->hp_max;
         w->Be_flg |= 0x80;
         em->atari.throughOff();
@@ -824,7 +824,7 @@ static void plemEscapeAction(cEm3c* em)
             SetSubDamage((int) em, (void*) subemSit);
         }
     }
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemEscape(cPlayer* pl)
@@ -1210,7 +1210,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (w->Atk_ck != 0 || em->plDist2 < 6250000.0f) {
                 w->Atk_wait = 45;
@@ -1536,15 +1536,15 @@ static void em3c_R1_Die_Normal(cEm3c* em)
         if (w->Timer) {
             w->Timer--;
             if (w->Timer == 0) {
-                em->clearStatus(5);
-                em->setStatus(8);
+                em->clearStatus(EM_STATUS_ACTIVE);
+                em->setStatus(EM_STATUS_ITEMSET);
                 EmSetDropItem(em);
                 if (em->r_no_3 == 0) {
                     SndCall(8, 0x3E, &em->pos, em->id, 0, em);
                 }
             }
         } else {
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->invisible_factor -= 0.02857f;
             em->ot_type = 1;
             if (em->invisible_factor < 0.0f) {
@@ -2241,7 +2241,7 @@ int em3cStayCk(cEm3c* em)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e->hp > 0 && e != em && e->checkStatus(5)
+        if ((e->be_flag & 0x201) == 1 && e->id == 0x3C && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE)
             && EM3C_WK(e)->L_pl_route < w->L_pl_route) {
             cnt++;
         }

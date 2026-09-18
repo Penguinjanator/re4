@@ -96,12 +96,12 @@ void R11dInit()
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, (u32) zero, zero);
     BitOn(pG->flags_5010, 0x400);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
     } else {
-        SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->door_unlock[0] & 0x00010000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r11d_checkDoor, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11d_checkDoor, 0, 1);
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
     }
@@ -110,14 +110,14 @@ void R11dInit()
     SceAtDataSet_hide(4, r11d_execHide1);
     SceAtDataSet_hide(5, r11d_execHide2);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceExec(0x12, (TaskFunc) r11d_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
-        SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SmdGetObjPtr(0x1A)->be_flag &= ~2;
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r11d_execEmAppear, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r11d_execEmAppear, 0, 1);
     } else {
         r11d_setEmSister();
     }
@@ -125,8 +125,8 @@ void R11dInit()
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
             ((cEmDoor*) r11d_work->door)->setKey(0xB);
         }
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     } else if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
         ((u8*) pG->pEmi)[0xD08] = 0;
     }
@@ -174,11 +174,11 @@ static void r11d_checkIronDoorKeyUse()
 static void r11d_checkIronDoor()
 {
     if (ItemMgr.num(0x8C) == 0) {
-        SceUpCut(1, -1, 3, 4);
+        SceUpCut(1, -1, 3, UP_CUT_ATTR_CUT_FIX);
         CamCtrl.Comeback(0);
     } else {
         SndCall(6, 3, 0, 0, 0, 0);
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -216,7 +216,7 @@ extern "C" void r11d_appearBigSister()
         }
         r11d_work->eff0 = EspPullCoreKind();
         EstSet((int) obj, -1, 0, 0, 0, 0x2D, 0x801, r11d_work->eff0, (u32) zero, zero);
-        SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -355,8 +355,8 @@ static void r11d_execShowView_end()
     SndStrReq(r11d_work->strId, 4, 50, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 

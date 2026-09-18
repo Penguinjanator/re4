@@ -437,7 +437,7 @@ static void em22_R0_Init(cEm22* em)
     } else {
         EstSet((int) em, -1, 0, 0, 0x1A, 2, 0, w->espKind, (u32) em, 0);
     }
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->set) {
     case 0:
     default:
@@ -669,7 +669,7 @@ static void em22_R1_R11B_C(cEm22* em)
         MotionMoveF(em, 0);
         if (w->timer == 0) {
             em->hp = 0;
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->invisible_factor = 0.0f;
             em->be_flag &= ~2;
             em->be_flag |= 0x4000;
@@ -1256,7 +1256,7 @@ static void em22_R1_JumpAtk(cEm22* em)
         }
         em22DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             if (em22GotoCk(em)) {
                 return;
             }
@@ -1480,7 +1480,7 @@ static void em22_R1_ParaAtk(cEm22* em)
         }
         em22DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 0xA, 0, 0);
         } else {
             if (em->motEvent & 0x80) {
@@ -1926,8 +1926,8 @@ static void em22_R1_Die_Lost(cEm22* em)
         EmSetDie(em);
         EmReserveDropItem(em);
         EmSetDieCntE(em);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);

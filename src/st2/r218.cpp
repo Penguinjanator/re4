@@ -75,7 +75,7 @@ void R218Init()
     SceAtSetEnable(2, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EmReadSearch(0x1C, 0, 0);
-        SceExec(0x12, (TaskFunc) r218_appearClawMan, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r218_appearClawMan, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         cObj* o28 = SmdGetObjPtr(0x28);
         cObj* o29 = SmdGetObjPtr(0x29);
@@ -88,7 +88,7 @@ void R218Init()
         }
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceExec(0x12, (TaskFunc) r218_checkEmSet, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r218_checkEmSet, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         pos.x = -13650.0f;
@@ -108,7 +108,7 @@ void R218Init()
         rot.z = 0.0f;
         r218_work.p->bell[1] = (cObjBell*) SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot);
     }
-    SceExec(0x12, (TaskFunc) r218_checkBellBreak, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r218_checkBellBreak, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R218Main()
@@ -252,7 +252,7 @@ static void r218_appearClawMan_end()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    SceExec(0x12, (TaskFunc) r218_checkClawManDead, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r218_checkClawManDead, 0, 0, SCE_PRIO_DEF_2, 0);
     pG->door_flags_51C8 &= ~0x20;
 }
 

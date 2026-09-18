@@ -395,7 +395,7 @@ int SceCheckEmAlive(cEm* em)
     if (!em->isAlive()) {
         return 0;
     }
-    if (em->checkStatus(5) == 0) {
+    if (em->checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     return 1;
@@ -526,7 +526,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
                 SceAtSetEnable(itemNo, 1);
             }
         }
-        SceExec(0x12, doneFunc, arg, 0, 2, 0);
+        SceExec(0x12, doneFunc, arg, 0, SCE_PRIO_DEF_2, 0);
         return;
     }
     if (itemNo >= 0) {
@@ -599,7 +599,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     ne->arg = arg;
     ne->flag = flagNo;
     ne->atNo = atNo;
-    SceAtDataSet_exec(atNo, 0x12, 0, (TaskFunc) SceExecItemEvent, ne, 1);
+    SceAtDataSet_exec(atNo, SCE_LEVEL10, 0, (TaskFunc) SceExecItemEvent, ne, 1);
 }
 
 void getChapterSection(int chapter, int* chap, int* sec)
@@ -809,7 +809,7 @@ void SceChapterEnd()
     BitSet(pG->Disp_flg, disp_bak);
     BitSet(pG->Stop_flg, stop_bak);
     FadeSetW(0, 0, 0, 0);
-    FadeKill(2);
+    FadeKill(FADE_NO_ROOM);
     if (SceSys.x78 >= 0) {
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
@@ -845,7 +845,7 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SceSys.x74 = chapter;
     SceSys.x78 = doorAt;
     SetGameTime();
-    SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, 2, 0);
+    SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(1);
     SceEventEnd(0);
 }

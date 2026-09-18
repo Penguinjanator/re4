@@ -129,7 +129,7 @@ void R404Init()
 #line 45 "D:/Bio4/Prog/r404.cpp"
     r404_work.p = (R404Work*) MEM_CALLOC(sizeof(R404Work), 1, 0xd);
     r404_work.p->emId = 0;
-    SceExec(0x12, (TaskFunc) r404_execEmSetCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r404_execEmSetCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     setTexRender();
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
@@ -144,7 +144,7 @@ void R404Init()
     r404_work.p->slide->Motion.Seq_speed = 0.0f;
     r404_work.p->slide->be_flag |= 0x1000;
     r404_work.p->slide->setNoSuspend(0);
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) slide_move, 0, 1);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) slide_move, 0, 1);
     {
         u8 n = r404_initEmSet();
         R404MercInit init;
@@ -199,13 +199,13 @@ void r404_openBox_main(int no, int mode)
 {
     switch ((u32) no) {
     case 1:
-        OpenBoxMain(8, mode, 0x5B, 0x74, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpXM, mode, 0x5B, 0x74, -1, -1);
         break;
     case 2:
-        OpenBoxMain(9, mode, 0x5B, 0x75, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, mode, 0x5B, 0x75, -1, -1);
         break;
     case 3:
-        OpenBoxMain(7, mode, 0x5B, 0x76, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpXP, mode, 0x5B, 0x76, -1, -1);
         break;
     }
 }
@@ -683,14 +683,14 @@ static void r404_execEmSetCheck()
     r404_work.p->cnt13 = 0;
     r404_work.p->cnt14 = 0;
     r404_work.p->cnt15 = 0;
-    SceExec(0x12, (TaskFunc) r404_checkEmSetA, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetB, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetC, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetD, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetK, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetL, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetM, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r404_checkEmSetChainSaw, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetA, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetB, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetC, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetD, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetK, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetL, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetM, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r404_checkEmSetChainSaw, 0, 0, SCE_PRIO_DEF_2, 0);
     for (;;) {
         r404_work.p->cnt = SceCountEmAlive(r404_work.p->emId, -1);
         eprintf(0x1E, 0x8C, 0, 0, "em_num:%d", r404_work.p->cnt);
@@ -739,7 +739,7 @@ static void slide_move()
     pl->beginAction();
     pPLS->atari.clrFlag100();
     pPLS->atari.clrFlag200();
-    pPLS->atari.setPriority(1);
+    pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);

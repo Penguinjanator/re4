@@ -91,7 +91,7 @@ void R11bInit()
         RsfSet(G_ROOM_ID, 0);
     }
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
-    SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, SCE_PRIO_DEF_2, 0);
     BitOn(pG->Item_find_flg, 8);
     // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
     // store (output dependence) and is issued in the idle cycle between it and the next pG reload,
@@ -105,14 +105,14 @@ void R11bInit()
     BitOff(pG->door_flags_51CC, 0x10);
 #line 106 "D:/Bio4/Prog/r11b.cpp"
     wp = (R11bWork*) MEM_CALLOC(sizeof(R11bWork), 1, 0xd);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r11b_eff_info);
-    SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11b_eff_info);
+    SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EvtMgr.SetFunc("evt_r11bs00_func", (void*) Evt_R11BS00_Func);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
     EstSet((int) pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
     BitOn(pG->flags_5010, 0x400);
     if (RsfCheck(G_ROOM_ID, 0)) {
-        SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     l = EM_LIST(0x3C);
     l->x3 = 0;
@@ -143,7 +143,7 @@ void R11bInit()
             r11b_work.p->boat->setAng(&rot2);
             if (RsfCheck(G_ROOM_ID, 0) == 0) {
                 RsfSet(G_ROOM_ID, 0);
-                SceExec(0x12, (TaskFunc) R11b_Event, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R11b_Event, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -152,8 +152,8 @@ void R11bInit()
         EmSetChange();
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r11b_EmEvent, 0, 1);
-        SceExec(0x12, (TaskFunc) r11b_str_check, 0, 2, 2, 0);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r11b_EmEvent, 0, 1);
+        SceExec(0x12, (TaskFunc) r11b_str_check, 0, 2, SCE_PRIO_DEF_2, 0);
     }
     pos.x = 60782.0f;
     pos.y = -1300.0f;
@@ -397,7 +397,7 @@ static void R11b_Event()
     BitOff(pG->System_flg, 0x400);
     BitOff(pG->flags_5010, 0x800);
     SndBgmTblSet(0x11B, 1);
-    SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (seen == 0) {
         OpeSetOpenTerm(8, 0.0f, 0.0f, 0.0f, 0.0f);
     }

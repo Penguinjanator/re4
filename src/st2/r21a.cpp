@@ -127,8 +127,8 @@ void R21aInit()
         win->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) R21aDoorCheck, 0, 1);
-        SceExec(0x12, (TaskFunc) R21aDoorMain, 0, 0, 2, 0);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R21aDoorCheck, 0, 1);
+        SceExec(0x12, (TaskFunc) R21aDoorMain, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(3, 0);
         SmdSetTrans(0x19, 0);
@@ -136,7 +136,7 @@ void R21aInit()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         cObj* obj;
 
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) R21aFallRoofStartMain, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) R21aFallRoofStartMain, 0, 1);
         SceAtSetEnable(8, 0);
         SmdSetTrans(0x41, 0);
         obj = SmdGetObjPtr(0x3F);
@@ -169,8 +169,8 @@ void R21aInit()
         r21a_work.p->em[15].destroy();
         r21a_work.p->em[16].destroy();
     }
-    SceExec(0x12, (TaskFunc) R21aEmSetMain, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R21aEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     r21a_work.p->x248 = 0;
     for (i = 0; i < 23; i++) {
         r21a_work.p->cnt[i] = 0;
@@ -184,16 +184,16 @@ void R21aMain()
 static void r21a_movedShelf(int no)
 {
     if (no == 0x84) {
-        OpenBoxMain(0xF, 1, 0xB, 0x27, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x27, -1, -1);
     }
     if (no == 0x85) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
     if (no == 0x88) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
     if (no == 0x89) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
 }
 
@@ -205,16 +205,16 @@ static void r21a_moveShelf(int no)
         EstSet(0, -1, 0, 0, 1, 0x11, 1, 0, 0, 0);
     }
     if (no == 0x84) {
-        OpenBoxMain(0xF, 0, 0xB, 0x27, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x27, -1, -1);
     }
     if (no == 0x85) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
     if (no == 0x88) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
     if (no == 0x89) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
 }
 
@@ -305,11 +305,11 @@ static void R21aEmSetMain()
 static void R21aDoorCheck()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceUpCut(1, -1, 8, 4);
+        SceUpCut(1, -1, 8, UP_CUT_ATTR_CUT_FIX);
         if (ItemMgr.num(0x7B) == 0) {
             CamCtrl.Comeback(0);
         } else {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         }
     }
 }
@@ -472,7 +472,7 @@ static void R21aFallRoofStartEnd()
         r21a_work.p->em[14].setEm(0x65, -1, 0, 1, 1);
         r21a_work.p->em[14].setNoSuspend(0);
     }
-    SceExec(0x12, (TaskFunc) R21aFallRoofMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R21aFallRoofMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventEnd(0);
     SceExit();
 }
@@ -629,7 +629,7 @@ static void R21aFallRoofMove()
             EffectEfmDelete(1, 6, 0);
             SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 0.0f) {
-                SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, SCE_PRIO_DEF_2, 0);
                 return;
             }
             break;
@@ -654,7 +654,7 @@ static void R21aFallRoofMove()
             EffectEspDelete(1, 6, 0, 0);
             EffectEspgenDelete(1, 6, 0);
             EffectEfmDelete(1, 6, 0);
-            SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
         if (r21a_work.p->em[13].isActive() == 0) {

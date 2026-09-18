@@ -124,26 +124,26 @@ void R10cInit()
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
     pG->flags_5010 |= 0x400;
-    SceExec(0x12, (TaskFunc) r10c_ThunderMove, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) moveWheel, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r10c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) moveWheel, 0, 2, SCE_PRIO_DEF_2, 0);
     setTexRender();
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r10c_TestPosMove, 0, 1);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r10c_TestPosMove, (void*) 1, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r10c_TestPosMove, 0, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r10c_TestPosMove, (void*) 1, 1);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) chkSwitchA, 0, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) chkSwitchA, 0, 1);
     } else {
         SmdGetObjPtr(0xC)->be_flag |= 0x20;
         SmdGetObjPtr(0xC)->pParts->ang.z = -1.6f;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r10c_EmEvent, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r10c_EmEvent, 0, 1);
     }
     RsfCheck(G_ROOM_ID, 2);
     RsfCheck(G_ROOM_ID, 3);
     RsfCheck(G_ROOM_ID, 4);
-    SceExec(0x12, (TaskFunc) SetEmHitAtari, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r10c_StrCheck, 0, 2, 2, 0);
-    SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r10c_ItemGet, 0, 1);
+    SceExec(0x12, (TaskFunc) SetEmHitAtari, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r10c_StrCheck, 0, 2, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r10c_ItemGet, 0, 1);
     if (RsfCheck(G_ROOM_ID, 8)) {
         cObj* obj;
 
@@ -177,7 +177,7 @@ void R10cInit()
         SceAtSetEnable(0xD, 0);
         eat_swap();
         if (RsfCheck(G_ROOM_ID, 9) == 0) {
-            SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r10c_EmSet, 0, 1);
+            SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10c_EmSet, 0, 1);
         }
     } else {
         SetSstDispFlag(9, 0);
@@ -562,7 +562,7 @@ static void chkSwitchA_exit()
     SceAtSetEnable(0x11, 0);
     SceAtSetEnable(0x12, 0);
     r10c_work.p->cnt = 0;
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r10c_EmSet, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10c_EmSet, 0, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     pG->flags_5014 &= ~0x10000;
@@ -966,7 +966,7 @@ static void SetEmHitAtari()
         cObj* obj;
 
         SmdSetTrans(0x6A, 0);
-        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, 2, 0);
+        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, SCE_PRIO_DEF_2, 0);
         obj = SmdGetObjPtr(0x61);
         obj->pos.x = 93412.0f;
         obj->pos.y = -16601.0f;
@@ -986,7 +986,7 @@ static void SetEmHitAtari()
         cObj* obj;
 
         SmdSetTrans(0x6B, 0);
-        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x62), 0, 2, 0);
+        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x62), 0, SCE_PRIO_DEF_2, 0);
         obj = SmdGetObjPtr(0x62);
         obj->pos.x = 93412.0f;
         obj->pos.y = -16601.0f;
@@ -1006,7 +1006,7 @@ static void SetEmHitAtari()
         cObj* obj;
 
         SmdSetTrans(0x6C, 0);
-        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x63), 0, 2, 0);
+        SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x63), 0, SCE_PRIO_DEF_2, 0);
         obj = SmdGetObjPtr(0x63);
         obj->pos.x = 93412.0f;
         obj->pos.y = -16601.0f;
@@ -1100,7 +1100,7 @@ static void SetEmHitAtari()
                 SmdSetTrans(0x6A, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x61)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x61)->pos, 0, 1, 0xA, 0, 0, 0, 0);
-                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, 2, 0);
+                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 14);
             }
         }
@@ -1113,7 +1113,7 @@ static void SetEmHitAtari()
                 SmdSetTrans(0x6B, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x62)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x62)->pos, 0, 1, 0xA, 0, 0, 0, 0);
-                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x62), 0, 2, 0);
+                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x62), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 15);
             }
         }
@@ -1126,7 +1126,7 @@ static void SetEmHitAtari()
                 SmdSetTrans(0x6C, 0);
                 SndCall(6, 1, &SmdGetObjPtr(0x63)->pos, 0, 0, 0);
                 EstSet(0, -1, &SmdGetObjPtr(0x63)->pos, 0, 1, 0xA, 0, 0, 0, 0);
-                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x63), 0, 2, 0);
+                SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x63), 0, SCE_PRIO_DEF_2, 0);
                 RsfSet(G_ROOM_ID, 16);
             }
         }

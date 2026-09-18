@@ -108,10 +108,10 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         break;
     }
     em->atari.clrFlag100();
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->setNoSuspend(1);
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     switch (em->type) {
     case 1:
     case 5:
@@ -770,7 +770,7 @@ void emBarred_R1_Break(cEmBarred* em)
     if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->atari.throughOn();
         flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
         if (flg) {

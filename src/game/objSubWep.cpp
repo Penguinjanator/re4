@@ -238,7 +238,7 @@ void cSubWep::addSpeed()
     EatMgr.hitCheck(&old, &pos, &hit, 0, 0, 0x4000);
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh && hit.y < wh) {
         pos.y = wh + 20.0f;
-        info = EatMgr.getEffInfo(2);
+        info = EatMgr.getEffInfo(EAT_ET_WATER);
         if (info == 0) {
             pLog->err(0, 0, "GRENADE CANT FOUND WATER INFORMATION");
             pLog->err(0, 0, "  PLEASE SET EatMgr.registEffInfo()");

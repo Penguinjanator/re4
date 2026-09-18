@@ -458,7 +458,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         break;
     case 0x14:
         pl->motionSet(PL_ARC(0x8C), 5, 0, 1, 0);
-        pl->atari.setPriority(2);
+        pl->atari.setPriority(PRI_LV2);
         pl->dmg.set(0, 0x80);
         EstSet((int) pl, -1, 0, 0, 3, 0xB, 0, 0x3F, (u32) pl, 0);
         SndCall(1, 0x53, &pl->pos, 0, 0, 0);

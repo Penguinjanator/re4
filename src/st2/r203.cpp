@@ -77,13 +77,13 @@ void R203Init()
         setEm(0x27, -1, 0, 1, 0);
         setEm(0x29, -1, 0, 1, 0);
         if (r203_work.p->em[0].setEm(0x34, 2, 0, 1, 0) == 1) {
-            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         if (r203_work.p->em[1].setEm(0x35, 2, 0, 1, 0) == 1) {
-            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 1, 0, SCE_PRIO_DEF_2, 0);
         }
         if (r203_work.p->em[2].setEm(0x36, 2, 0, 1, 0) == 1) {
-            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 2, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r203_GanadoWandering, 2, 0, SCE_PRIO_DEF_2, 0);
         }
     } else {
         u32 i;
@@ -91,25 +91,25 @@ void R203Init()
         for (i = 0; i < 9; i++) {
             cEmWrapSetEmI(&r203_work.p->em[tbl[i][0]], tbl[i][1], 2, 0, 1, 0);
         }
-        SceAtDataSet_exec(0x8A, 0x12, 0, (TaskFunc) r203_GetKeyItem, 0, 1);
-        SceExec(0x12, (TaskFunc) r203_GanadoEscape, 0, 0, 2, 0);
+        SceAtDataSet_exec(0x8A, SCE_LEVEL10, 0, (TaskFunc) r203_GetKeyItem, 0, 1);
+        SceExec(0x12, (TaskFunc) r203_GanadoEscape, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if ((pG->door_unlock[0] & 0x00020000) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r203_LockDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r209_CheckUseKey, 0, 0, 2, 0);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r203_LockDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r209_CheckUseKey, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         if ((pG->flags_5018 & 0x04000000) == 0) {
             BitOn(pG->flags_5018, 0x04000000);
             SubCharInit(1, &pPL->pos, pPL->ang.y);
-            SubCharCtrl(1, 0);
+            SubCharCtrl(SCC_CHASE, 0);
         }
         r203_work.p->data = DC.setData(EvtMgr.NameChange("evd/r203s00.evd"));
-        r203_work.p->data->setCommand(2, 0, 0);
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r203_EventMeetAgain, 0, 1);
+        r203_work.p->data->setCommand(CMND_ARAM_LOAD, 0, 0);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r203_EventMeetAgain, 0, 1);
         EvtMgr.SetFunc("evt_r203s00_func", (void*) Evt_R203S00_Func);
     }
-    SceExec(0x12, (TaskFunc) r203_StreamCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r203_StreamCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSetItemEvent(7, 0x8A, 4, 3, r203_TreasureBoxOpen, (void (*)()) r203_TreasureBoxOpened, 0x17, 0);
     SceSetItemEvent(8, 0x88, 6, 4, (void (*)(int)) r203_ShelfOpen, r203_ShelfOpened, 0, 0);
 }
@@ -121,9 +121,9 @@ void R203Main()
 // The door needs the key item: open the item screen when the player has it.
 static void r203_LockDoor()
 {
-    SceUpCut(0, -1, 3, 4);
+    SceUpCut(0, -1, 3, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0xA7)) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     } else {
         CamCtrl.Comeback(0);
     }
@@ -243,7 +243,7 @@ static void r203_EventMeetAgain()
             SceSleep(1);
         }
         MemorySwap(m->pArc, (u32) r203_work.p->data->m_addr, r203_work.p->data->m_size);
-        r203_work.p->data->setCommand(4, 0, 0);
+        r203_work.p->data->setCommand(CMND_DEL_DATA, 0, 0);
     }
     {
         f32 ry = -2.45f;
@@ -264,7 +264,7 @@ static void r203_EventMeetAgain()
                 pa->y = ry;
                 ang.z = 0.0f;
                 sub->setAng(pa);
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
             }
         }
     }
@@ -282,12 +282,12 @@ static void r203_EventMeetAgain()
 
 static void r203_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(5, 0, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpZP, 0, 0x5B, id, -1, -1);
 }
 
 static void r203_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(5, 1, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpZP, 1, 0x5B, id, -1, -1);
 }
 
 static void r203_ShelfOpen()
@@ -313,7 +313,7 @@ static void r203_StreamCheck()
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-            if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(5) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
+            if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
                 && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < lim) {
                 find = 1;
             }

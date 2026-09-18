@@ -118,9 +118,9 @@ void R204Init()
 #line 98 "D:/Bio4/Prog/r204.cpp"
     *wp = (R204Work*) MEM_CALLOC(sizeof(R204Work), 1, 0xd);
     EvtMgr.SetFunc("evt_r204s00_func", (void*) Evt_R204S00_Func);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r204_EventExec, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r204_EventExec, 0, 1);
     if (RsfCheck(G_ROOM_ID, 0) && RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceExec(0x12, (TaskFunc) r204_openTerm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r204_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     getRoomEtcSwitch(8, &r204_work.p->sw, 1);
     getRoomEtcBarred(0xB, &r204_work.p->barred[0], 1);
@@ -149,13 +149,13 @@ void R204Init()
                                           (Vec*) &r204_chandRot1, 0x10, 1);
         r204_work.p->chand[1]->be_flag |= 0x1000;
     }
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
     if ((pG->room_id_prev == 0x205 && pG->x4F9E == 1) || DebugTrg(1)) {
         BitOn(pG->flags_51C0, 0x40000);
         readEmList(1);
         if (!RsfCheck(G_ROOM_ID, 1)) {
-            SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         RsfSet(G_ROOM_ID, 1);
     }
@@ -169,7 +169,7 @@ void R204Init()
         }
         if (!RsfCheck(G_ROOM_ID, 2)) {
             r204_work.p->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
-            SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
             for (i = 0; i <= 10; i++) {
                 cEmWrapSetEmI(&r204_work.p->em[i], 0x4A + i, 3, 0, 1, 1);
                 if (r204_work.p->em[i].isAlive() == 1) {
@@ -268,7 +268,7 @@ void R204Init()
         SceAtSetEnable(0xF, 0);
     }
     SceSetRoomExitFunc((int) door_rsf_off, 0);
-    SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void door_rsf_off()
@@ -346,7 +346,7 @@ void R204Main()
     if (!RsfCheck(G_ROOM_ID, 6)) {
         if (((cEmSwitch*) r204_work.p->sw)->ckSwitch() == 1 || DebugTrg(0)) {
             RsfSet(G_ROOM_ID, 6);
-            SceExec(0x12, (TaskFunc) door_move, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) door_move, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
 }
@@ -654,13 +654,13 @@ static void r204_nige_check()
                         }
                     }
                     if (r204_work.p->cnt > 0x1C1 && far == 1) {
-                        SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                        SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                     }
                     if (r204_work.p->cnt > 0x12C) {
                         FSub(SmdGetObjPtr(0x39)->pos.y, 7.0666666f);
                         if (!(pG->flags_174 & 0x20000000)) {
                             if (SmdGetObjPtr(0x39)->pos.y < 1800.0f) {
-                                SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                                SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                             }
                         }
                     }
@@ -678,7 +678,7 @@ static void r204_nige_check()
         }
         if (alive != 0 && !(pG->flags_174 & 0x20000000)) {
             if (pPL->pos.y < 3000.0f && pPL->pos.z < -25000.0f) {
-                SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         SceSleep(1);
@@ -953,7 +953,7 @@ static void r204_EventExec()
             EmMgr.destroy(pSubEm);
             BitOff(pG->flags_5018, 0x04000000);
         }
-        SceSetChapterEnd(6, -1);
+        SceSetChapterEnd(CHAPTER_3_1, -1);
         r204_openTerm();
     }
 }

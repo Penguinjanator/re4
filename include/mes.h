@@ -168,6 +168,19 @@ public:
 
 typedef Message MesWork;
 
+enum LAYOUT_TYPE {
+    LAYOUT_CAPTION = 0,
+    LAYOUT_ACT_BTN = 1,
+    LAYOUT_SUBSCRN = 2,
+    LAYOUT_MEMCARD = 3,
+    LAYOUT_OPERATOR = 4,
+    LAYOUT_SYSTEM = 5,
+    LAYOUT_SHOP_LIST = 6,
+    LAYOUT_FILE = 7,
+    LAYOUT_MANUAL = 8,
+    LAYOUT_NUM = 9
+};
+
 // game/mes.cpp
 class MessageControl {
 public:

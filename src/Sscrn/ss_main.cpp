@@ -439,7 +439,7 @@ void SsExitInit::move(SUB_SCREEN* wk)
     case 2:
         sscrnModelFree(wk);
         sscrnLightClear(wk);
-        IdTexRelease(8);
+        IdTexRelease(TEX_OWNER_ID_SHARE);
         IdSubErase();
         IdNumErase();
         IdFreeBuffer();
@@ -596,7 +596,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         _itemExam.move();
         _itemExam.trans();
         pos = IdSub.unitPtr(0xFE, 0x27);
-        cMes.setLayout(7, 2);
+        cMes.setLayout(7, LAYOUT_SUBSCRN);
         cMes.MesSet(exam_id, (int) ((pos->scr.x + 320.0f) * 0.8f), (int) ((240.0f - pos->scr.y) * 0.8f), 0x20084, 7, 0, 4);
         if (Key.trg & 0x20000) {
             ssItemInfo(exam_id, &info);
@@ -714,7 +714,7 @@ void IdSubErase()
     IdSub.kill(0xFF, 0x82);
     IdSub.kill(0xFF, 0x83);
     IdSub.kill(0xFF, 0x84);
-    IdTexRelease(9);
+    IdTexRelease(TEX_OWNER_ID_SSCRN);
 }
 
 void IdNumErase()

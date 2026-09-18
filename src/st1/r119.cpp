@@ -118,7 +118,7 @@ void R119Init()
     EvtMgr.SetFunc("evt_r119s10_func", (void*) Evt_R119S10_Func);
     EvtMgr.SetFunc("evt_r119s20_func", (void*) Evt_R119S20_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r119_EventGolemAppear, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r119_EventGolemAppear, 0, 1);
         SmdSetTrans(0x2C, 0);
         SceAtSetEnable(5, 0);
     } else {
@@ -129,7 +129,7 @@ void R119Init()
     SmdGetObjPtr(0x2C)->be_flag |= 0x20;
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     SmdGetObjPtr(0x24)->be_flag |= 0x20;
-    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
     PSetSat(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
     PSetSat(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
     PSetSat(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
@@ -155,7 +155,7 @@ void R119Init()
     if (RsfCheck(G_ROOM_ID, 3)) {
         koyaC_delete();
     }
-    SceExec(0x12, (TaskFunc) r119_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r119_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetEnable(3, 0);
     SceAtSetEnable(4, 0);
     pos.x = 108540.0f;
@@ -297,7 +297,7 @@ static void r119_EventGolemAppear()
         int stat;
         cPlayer* pl;
 
-        stat = r119_work->golem->checkStatus(5);
+        stat = r119_work->golem->checkStatus(EM_STATUS_ACTIVE);
         if (stat == 0) {
             RsfSet(G_ROOM_ID, 7);
             SndRoomStrStop(3);
@@ -352,12 +352,12 @@ static void r119_EventGolemAppear()
             }
             if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
                 pG->flags_174 |= 0x02000000;
-                SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->flags_174 & 0x01000000)) || DebugTrg(0) != 0) {
             pG->flags_174 |= 0x01000000;
-            SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         SceSleep(1);
     }

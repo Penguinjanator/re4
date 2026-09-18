@@ -243,6 +243,24 @@ SceAtWork* SceAtPtr(int no);
 int sceAtPullAtNo(u8* out);
 void SceAtSetDoorFunc(int no, TaskFunc func, int arg);
 // Area `no`: run `func(obj)` (prio, otPrio) when the player enters it.
+enum SCE_LEVEL {
+    SCE_NO_TASK = 0,
+    SCE_LEVEL_EV = 7,
+    SCE_LEVEL00 = 8,
+    SCE_LEVEL01 = 9,
+    SCE_LEVEL02 = 10,
+    SCE_LEVEL03 = 11,
+    SCE_LEVEL04 = 12,
+    SCE_LEVEL05 = 13,
+    SCE_LEVEL06 = 14,
+    SCE_LEVEL07 = 15,
+    SCE_LEVEL08 = 16,
+    SCE_LEVEL09 = 17,
+    SCE_LEVEL10 = 18,
+    SCE_LEVEL11 = 19,
+    SCE_LEVEL_ANY = 20
+};
+
 void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b);
 void SceAtDataReset(int no);
 void SceAtSetEnable(int no, int on);

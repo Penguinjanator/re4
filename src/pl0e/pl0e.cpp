@@ -214,10 +214,10 @@ static void pl0e_R0_Init(cPl0e* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     em->atari.m_flag &= 0xFCFF;
-    em->atari.setPriority(1);
-    em->setStatus(1);
+    em->atari.setPriority(PRI_LV1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     EspDataLoad((u32) ARC(0x4), 0xE, 0);
     w->flags = zero;
     w->cnt68 = 0x1D;

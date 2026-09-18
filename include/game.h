@@ -57,6 +57,25 @@ void primFree();
 void GameLoad();
 void GameContinue(int mode);
 void GamePointInit(u32 mode);
+enum LVADD {
+    LVADD_UPDATE = 0,
+    LVADD_DIE = 1,
+    LVADD_PL_DAMAGE = 2,
+    LVADD_PL_BIG_DAMAGE = 3,
+    LVADD_MISS_HANDGUN = 4,
+    LVADD_MISS_SHOTGUN = 5,
+    LVADD_MISS_GRENADE = 6,
+    LVADD_MISS_SNIPER = 7,
+    LVADD_MISS_MACHINEGUN = 8,
+    LVADD_CRITICALHIT = 9,
+    LVADD_RECOVERY = 10,
+    LVADD_ESCAPEATTACK = 11,
+    LVADD_EM_DAMAGE = 12,
+    LVADD_EM_DIE = 13,
+    LVADD_TIMECOUNT = 14,
+    LVADD_NUM = 15
+};
+
 void GameAddPoint(int type);
 void GamePointBossReset();
 void PrimDispWorkNum(int x, int y, int col);

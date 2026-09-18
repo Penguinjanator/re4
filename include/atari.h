@@ -188,6 +188,17 @@ public:
 
 extern cSatMgr SatMgr;
 
+enum EAT_EFFECT_TYPE {
+    EAT_ET_NORMAL = 0,
+    EAT_ET_BULLET = 1,
+    EAT_ET_WATER = 2,
+    EAT_ET_PAD = 3,
+    EAT_ET_ROOM0 = 4,
+    EAT_ET_ROOM1 = 5,
+    EAT_ET_ROOM2 = 6,
+    EAT_ET_ROOM3 = 7
+};
+
 // Effect collision manager (game/atari.cpp `EatMgr`, 0x260 bytes).
 class cEatMgr : public cSatMgr {
 public:

@@ -247,7 +247,7 @@ void SsItemMain::init(SUB_SCREEN* wk)
     exam->connect(0, sel);
     cur = sel;
     itemCameraInit(wk, &pGS->Cam);
-    IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
     }

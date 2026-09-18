@@ -202,7 +202,7 @@ void em2fDmCk(cEm2f* em)
     if (em->hp <= 0) {
         EmSetDie(em);
         EmSetDieCntE(em);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
     }
 }
 
@@ -383,7 +383,7 @@ static void em2f_R0_Init(cEm2f* em)
     switch (em->set) {
     case 0:
     default:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         // plain byte stores (em30 rule): the int inline's SI zero would take r9 and reload_cse
         // would delete MotionSetCore's `li r9, 0`
         em->r_no_0 = 1;
@@ -395,7 +395,7 @@ static void em2f_R0_Init(cEm2f* em)
         break;
     case 1:
         em->atari.m_flag &= ~0x100;
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->scale.x = 2.0f;
         em->scale.y = 2.0f;
         em->scale.z = 2.0f;
@@ -408,7 +408,7 @@ static void em2f_R0_Init(cEm2f* em)
         em->scale.x = 2.0f;
         em->scale.y = 2.0f;
         em->scale.z = 2.0f;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em->atari.m_flag &= ~0x300;
         em->atari.m_flag |= 8;
         EmRoutineSet(em, 1, 0xA, 0, 0);
@@ -1256,12 +1256,12 @@ static void em2f_R1_Die_Normal(cEm2f* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
         } else if (w->timer) {
             w->timer--;
             if (w->timer == 0) {
-                em->clearStatus(5);
+                em->clearStatus(EM_STATUS_ACTIVE);
             }
         }
         break;

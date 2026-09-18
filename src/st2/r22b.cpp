@@ -36,7 +36,7 @@ void R22bInit()
     r22b_work = (R22bWork*) MEM_CALLOC(sizeof(R22bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r22bs00_func", (void*) Evt_R22bS00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceExec(0x12, (TaskFunc) R22bEventS00, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) R22bEventS00, 0, 2, SCE_PRIO_DEF_2, 0);
         EvtMgr.EvtReadAram("event/evd/r22bs00.evd", 0, 0, 0, 0);
     }
 }
@@ -51,7 +51,7 @@ extern "C" void R22bEventS00()
         RsfSet(G_ROOM_ID, 0);
         pG->System_flg |= 0x400;
         EvtMgr.EvtReadExec("event/evd/r22bs00.evd", 0, 0);
-        SceSetChapterEnd(0xA, 0);
+        SceSetChapterEnd(CHAPTER_4_1, 0);
         pG->System_flg |= 0x400;
     }
 }

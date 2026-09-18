@@ -59,10 +59,10 @@ void R229Init()
 #line 56 "D:/Bio4/Prog/r229.cpp"
     wp = (R229Work*) MEM_CALLOC(sizeof(R229Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r221_execEmCamera1, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r221_execEmCamera1, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceExec(0x12, (TaskFunc) r229_openTerm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r229_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);

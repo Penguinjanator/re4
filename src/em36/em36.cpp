@@ -568,7 +568,7 @@ void cEm36::move()
         }
     }
     w->frameCnt++;
-    clearStatus(3);
+    clearStatus(EM_STATUS_IK_OFF);
     if (hp > 0) {
         hp++;
         if (hp > hp_max) {
@@ -591,7 +591,7 @@ void cEm36::move()
     }
     if (seFlags28B & 0x80) {
         w->flags |= 0xA0;
-        setStatus(3);
+        setStatus(EM_STATUS_IK_OFF);
     }
     em36NeckMove(this);
     em36SlopeMove(this);
@@ -742,7 +742,7 @@ static void em36_R0_Init(cEm36* em)
     default:
         // Plain byte stores (QImode zero): MotionSetCore's 0 argument gets its own `li r9, 0`.
         em36AppearEsp(em, w);
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->r_no_0 = 1;
         em->r_no_1 = 0;
         em->r_no_2 = 0;
@@ -761,19 +761,19 @@ static void em36_R0_Init(cEm36* em)
     case 2:
         em36AppearEsp(em, w);
         EmRoutineSet(em, 1, 0x1C, 0, 0);
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         break;
     case 3:
         EmRoutineSet(em, 1, 0x1D, 0, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         MotionSetCore(em, MOTION(em), ARC(0x97), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         break;
     case 4:
         EmRoutineSet(em, 1, 0x1E, 0, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         MotionSetCore(em, MOTION(em), ARC(0x9B), 0, 0, 0x100, 0);
         MotionMoveF(em, 0);
         break;
@@ -835,7 +835,7 @@ static void em36_R1_R307Appear(cEm36* em)
 
             em->flags_3C8 &= ~1;
             w->flags |= 0x200;
-            em->setStatus(5);
+            em->setStatus(EM_STATUS_ACTIVE);
             EmRoutineSet(em, 1, 1, 0, 0);
             at = &em->atari;
             at->throughOff();
@@ -852,7 +852,7 @@ static void em36_R1_R309Appear(cEm36* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
@@ -885,7 +885,7 @@ static void em36_R1_R308Appear(cEm36* em)
         if (em->flags_3C8 & 1) {
             em->flags_3C8 &= ~1;
             em->hp = em->hp_max;
-            em->setStatus(5);
+            em->setStatus(EM_STATUS_ACTIVE);
             w->flags |= 0x200;
             em->r_no_2++;
         }
@@ -933,7 +933,7 @@ static void em36_R1_R310Appear(cEm36* em)
             at = &em->atari;
             at->throughOff();
             em->hp = em->hp_max;
-            em->setStatus(5);
+            em->setStatus(EM_STATUS_ACTIVE);
             w->flags |= 0x200;
             em->r_no_2++;
         }
@@ -1181,7 +1181,7 @@ static void em36_R1_JumpDown(cEm36* em)
         em->ang.y += Muku2(em->ang.y, w->jumpAng, 0.19634955f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         w->flags |= 0x440;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         end = MotionMoveF(em, 0);
         if (!(em->seFlags28B & 0x20)) {
             Vec v;
@@ -1386,7 +1386,7 @@ static void em36_R1_Atk(cEm36* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (w->atkHit) {
                 w->wait = 0;
@@ -1445,7 +1445,7 @@ static void em36_R1_SpineAtk(cEm36* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (w->atkHit) {
                 w->wait = 0;
@@ -1605,7 +1605,7 @@ static void em36_R1_Catch(cEm36* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
             }
@@ -1873,7 +1873,7 @@ static void em36_R1_LongCatch(cEm36* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             em36SetFindWait(w);
             if (w->targetAngAbs > 2.3561945f) {
                 EmRoutineSet(em, 1, 3, 0, 0);
@@ -3082,8 +3082,8 @@ static inline void em36DieCore(cEm36* em, int mot0, int mot1)
 
         end = MotionMoveF(em, 0);
         if (end) {
-            em->clearStatus(5);
-            em->setStatus(8);
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;
@@ -4762,7 +4762,7 @@ int cEm36::ckFindPL()
     if (hp <= 0) {
         return 0;
     }
-    if (checkStatus(5) && (w->flags & 0x200)) {
+    if (checkStatus(EM_STATUS_ACTIVE) && (w->flags & 0x200)) {
         return 1;
     }
     return 0;

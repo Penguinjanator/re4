@@ -89,10 +89,10 @@ cEmShield* SetShield(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     w->Be_flg = 0;
     em->be_flag &= ~0x10;
@@ -431,7 +431,7 @@ void emShield_R1_LostWait(cEmShield* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         w->Timer = 90;
         em->r_no_2++;
     case 1:
@@ -473,7 +473,7 @@ void emShield_R1_Lost(cEmShield* em)
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x20;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         EffectEspDelete(0, w->estNo, em, 0);
         EffectEspgenDelete(0, w->estNo, em);
         EffectEfmDelete(0, w->estNo, em);
@@ -571,7 +571,7 @@ void emShield_R1_Fall(cEmShield* em)
     cModel* parts0;
 
     em->hp = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 80.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];

@@ -1576,7 +1576,7 @@ int cDvd::ErrCheck(int disc, int flag)
                 }
                 if (pG->x1C == 1) {
                     pMes[4] = (u8*) (pG->pArc->ofs_6C + (u32) pG->pArc);
-                    cMes.setLayout(0xF, 5);
+                    cMes.setLayout(0xF, LAYOUT_SYSTEM);
                 }
                 systemVISetBlack(0);
                 GXSetCopyClear(BkBlack, 0xFFFFFF);

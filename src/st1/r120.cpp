@@ -46,7 +46,7 @@ void R120Init()
     EvtMgr.SetFunc("evt_r120s00_func", (void*) Evt_R120S00_Func);
     EvtMgr.SetFunc("evt_r120s01_func", (void*) Evt_R120S01_Func);
     if (DebugTrg(1) == 0) {
-        SceExec(0x12, R120Event, 0, 0, 2, 0);
+        SceExec(0x12, R120Event, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     TexRenderInit(&r120_work->mgr, 0x100, 1);
 }
@@ -61,7 +61,7 @@ extern "C" void R120Event()
     SceSleep(1);
     if (pG->x4F8E != 0) {
         FadeSetW(1, 0, 0, 0);
-        SubScreenOpen(0x10, 0);
+        SubScreenOpen(SS_OPEN_SHOP, 0);
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }

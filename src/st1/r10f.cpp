@@ -91,14 +91,14 @@ void R10fInit()
     register GlobalWork* g asm("r10");
     g = pG;
     if (!(g->door_unlock[0] & 0x00800000)) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r10f_DoorClose, 0, 1);
-        SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, 0, 1);
+        SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->door_unlock[0] & 0x00010000)) {
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11D, 1);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11D, 1);
     }
     if (!(pG->door_unlock[0] & 0x00080000)) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11E, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11E, 1);
     }
     {
         R10fMotWork* m;
@@ -124,12 +124,12 @@ void R10fInit()
             }
         }
     }
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r10f_GondolaGetOn, 0, 1);
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r10f_GondolaGetOn, (void*) 1, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOn, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOn, (void*) 1, 1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         cEm* em;
 
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r10f_GondolaGetOff, (void*) 1, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOff, (void*) 1, 1);
         if ((em = EmSetFromList2(0x32, 1)) != 0) {
             ((cEmGanado*) em)->setGondolaMotion(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x32));
         }
@@ -208,7 +208,7 @@ static void r10f_GondolaGetOn(int side)
         }
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 3, 0, 0x201, 0);
         if (pSUB != 0) {
-            SubCharCtrl(5, 0);
+            SubCharCtrl(SCC_AUX_MOT, 0);
             pSUB->setNoSuspend(1);
             {
                 cSubChar* s = pSUB;
@@ -299,7 +299,7 @@ static void r10f_GondolaGetOn(int side)
         }
         r10f_work.p->idx = 0;
         r10f_work.p->gondola[0]->setRidePL();
-        SceExec(0x12, (TaskFunc) r10f_GondolaEmSet, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r10f_GondolaEmSet, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     obj->setNoSuspend(0);
     ObjMgr.destroy(obj);
@@ -307,7 +307,7 @@ static void r10f_GondolaGetOn(int side)
     if (RsfCheck(G_ROOM_ID, 0)) {
         r10f_GondolaGetOff(side == 0);
     }
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
 }
 
 // Get off at `side`.
@@ -343,7 +343,7 @@ static void r10f_GondolaGetOff(int side)
         }
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 0x201, 0);
         if (pSUB != 0) {
-            SubCharCtrl(5, 0);
+            SubCharCtrl(SCC_AUX_MOT, 0);
             pSUB->setNoSuspend(1);
             {
                 cSubChar* s = pSUB;
@@ -375,7 +375,7 @@ static void r10f_GondolaGetOff(int side)
     obj->setNoSuspend(0);
     ObjMgr.destroy(obj);
     SceEventEnd(0);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     r10f_work.p->gondola[r10f_work.p->idx]->setGetOffPL();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
@@ -473,7 +473,7 @@ extern "C" void r10f_DoorOpen()
     ang.z = 0.0f;
     pl->setAng(&ang);
     SndStrReq(1, 0xE3, 0x80000003, 0, 0, 0.0f);
-    cam = SceExec(0x12, (TaskFunc) r10f_DoorOpenCamera, 0, 0, 2, 0);
+    cam = SceExec(0x12, (TaskFunc) r10f_DoorOpenCamera, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(30);
     while (MotionGetState(pl) != 4) {
         SceSleep(1);
@@ -527,7 +527,7 @@ static void r10f_DoorClose(u32 no)
 {
     if (no == 0 && ItemMgr.num(0x3D) != 0) {
         SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         SceExit();
     }
     SndCall(6, 7, 0, 0, 0, 0);
@@ -556,10 +556,10 @@ static void r10f_LockerOpened(int id)
 
 static void r10f_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(3, 0, 0x5B, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxUpXP, 0, 0x5B, id, 0xFFFFFFFF, -1);
 }
 
 static void r10f_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(3, 1, 0x5B, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxUpXP, 1, 0x5B, id, 0xFFFFFFFF, -1);
 }

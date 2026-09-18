@@ -99,17 +99,17 @@ void R113Init()
 #line 73 "D:/Bio4/Prog/r113.cpp"
     r113_work = (R113Work*) MEM_CALLOC(sizeof(R113Work), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
     pG->flags_5010 |= 0x400;
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r113_DoorCheck, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
     if (!(pG->door_unlock[0] & 0x08000000) && (pG->flags_5018 & 0x04000000)) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
     }
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r113_eff_info);
-    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r113_cesspit, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r113_eff_info);
+    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r113_cesspit, 0, SCE_PRIO_DEF_2, 0);
     r103_setSubMissionTarget(8);
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
@@ -122,7 +122,7 @@ void R113Init()
     if (!(pG->item_flags[0] & 0x800)) {
         U32Set(r113_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r113_work->eff, 0, 0);
-        SceAtDataSet_exec(0x82, 0x12, 0, (TaskFunc) r113_getFile, 0, 1);
+        SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);
     }
 }
 
@@ -200,7 +200,7 @@ static void r113_EventRideShoulder()
     r113_work->strId = 0;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     U32Set(r113_work->strId, SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f));
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);

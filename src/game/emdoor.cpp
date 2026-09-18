@@ -132,9 +132,9 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
     zero = 0;
     w->Eff_id = 0xFF;
     AtariInit(&em->atari, -w->Width, w->Height * 0.5f, 0.0f, w->Width + 50.0f, 150.0f, 150.0f, w->Height * 0.5f + 50.0f, zero, 2, zero);
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.clrFlag100();
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     w->pSat[0] = 0;
     w->pSat[3] = 0;
     w->pSat[2] = 0;
@@ -153,8 +153,8 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->Lock_L_bend = 0.0f;
@@ -196,7 +196,7 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
         em->r_no_1 = 4;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         if (flg && (*flg & 0xC0)) {
             if (*flg & 0x40) {
                 w->Open_flag = 0;
@@ -213,7 +213,7 @@ cEmDoor* SetDoor(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int flagNo)
         em->r_no_1 = 0;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
     }
     if (em->hp > 0) {
         emDoorSatSet(em);
@@ -1044,7 +1044,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
             w->pLockL->setFallSe(6, 0x3C, 0);
             d->flags4 &= ~0x80000000;
             em->flags_3C8 &= ~0x80000000;
-            em->setStatus(1);
+            em->setStatus(EM_STATUS_LOCKOFF);
             w->pLockL = 0;
             emDoorHitOff(hit);
         }
@@ -1064,7 +1064,7 @@ void emDoorSetDmgLock_L(cEmDoor* em, int mode)
         EstSet((int) w->pLockL, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockL, 0);
         d->flags4 &= ~0x80000000;
         em->flags_3C8 &= ~0x80000000;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         w->pLockL = 0;
         emDoorHitOff(hit);
         break;
@@ -1110,7 +1110,7 @@ void emDoorSetDmgLock_R(cEmDoor* em, int mode)
             w->pLockR->setFallSe(6, 0x3C, 0);
             d->flags4 &= ~0x40000000;
             em->flags_3C8 &= ~0x40000000;
-            em->setStatus(1);
+            em->setStatus(EM_STATUS_LOCKOFF);
             flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
             if (flg) {
                 *flg |= 4;
@@ -1134,7 +1134,7 @@ void emDoorSetDmgLock_R(cEmDoor* em, int mode)
         EstSet((int) w->pLockR, -1, 0, 0, 0xC9, 1, 0, 0, (u32) w->pLockR, 0);
         d->flags4 &= ~0x40000000;
         em->flags_3C8 &= ~0x40000000;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         w->pLockR = 0;
         emDoorHitOff(hit);
         break;
@@ -1775,7 +1775,7 @@ void emDoor_R1_Break(cEmDoor* em)
     if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         emDoorSatClear(em);
         em->flags_3C8 |= 0x30000000;
         flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
@@ -2185,7 +2185,7 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
-        if (e->checkStatus(5) == 0) {
+        if (e->checkStatus(EM_STATUS_ACTIVE) == 0) {
             continue;
         }
         switch (e->id) {
@@ -2281,7 +2281,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         lockOfs.z = 150.0f;
         flags_3C8 |= 0x80000000;
         lockParts = 0;
-        clearStatus(1);
+        clearStatus(EM_STATUS_LOCKOFF);
         v.x = -1160.0f;
         v.y = 1050.0f;
         v.z = 80.0f;
@@ -2309,7 +2309,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         lockOfs.z = -150.0f;
         flags_3C8 |= 0x40000000;
         lockParts = 0;
-        clearStatus(1);
+        clearStatus(EM_STATUS_LOCKOFF);
         v.x = -1160.0f;
         v.y = 1050.0f;
         v.z = -80.0f;

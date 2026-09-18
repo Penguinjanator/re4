@@ -171,11 +171,11 @@ void R202Init()
     if (RsfCheck(*(u16*) &g->stage_no, 1) == 0) {
         r202_initCatapult();
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r202_CatapultGo, 0, 1);
+            SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r202_CatapultGo, 0, 1);
             r202_changeIdoSmd(0);
         } else {
             r202_changeIdoSmd(1);
-            SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
             pG->flags_174 |= 0x80000000;
             r202_work.p->em180.setPtr(0x2A, 2, 0);
             r202_work.p->em180.setFlag(1);
@@ -206,12 +206,12 @@ void R202Init()
             r202_work.p->ido2->pos.y -= 7539.0f;
             pos.y = -7539.0f;
             r202_work.p->sat->setCoord(&pos, &rot);
-            SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r202_operateCrank, 0, 1);
+            SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r202_operateCrank, 0, 1);
             SceAtSetEnable(0x15, 1);
             SceAtSetEnable(0x16, 0);
             r202_initEmPatrol();
         } else if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r202_operateCannon, 0, 1);
+            SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r202_operateCannon, 0, 1);
             SmdGetObjPtr(0x25)->be_flag |= 2;
             SmdGetObjPtr(0x6A)->be_flag &= ~2;
             SceAtSetEnable(0x15, 0);
@@ -247,10 +247,10 @@ void R202Init()
     SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, (void (*)()) r202_openedBox, 0, 0);
     SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, (void (*)()) r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        SceAtDataSet_exec(0x17, 0x12, 0, (TaskFunc) r202_execEmSet2, 0, 1);
+        SceAtDataSet_exec(0x17, SCE_LEVEL10, 0, (TaskFunc) r202_execEmSet2, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r202_execShowView, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r202_execShowView, 0, 1);
     }
 }
 
@@ -408,10 +408,10 @@ void r202_initEmPatrol()
     r202_work.p->pat[1].pos[0] = p2;
     r202_work.p->pat[1].pos[1] = p3;
     if (r202_work.p->pat[0].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[0], 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[0], 0, SCE_PRIO_DEF_2, 0);
     }
     if (r202_work.p->pat[1].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[1], 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[1], 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -497,7 +497,7 @@ static void r202_operateCannon()
     EmListSetAlive(0x30, 1);
     if (pG->flags_174 & 0x01000000) {
         SubCharInit(1, &pPL->pos, pPL->ang.y);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     CamCtrl.Comeback(0);
     SceAtSetEnable(3, 0);
@@ -525,12 +525,12 @@ static void r202_operateCannon()
                     v.z = -27553.0f;
                     sub->setPos(&v);
                 }
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
             }
         }
     }
     SceSleep(30);
-    SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 1, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 1, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // The player turns the crank: the wall rises while the button is held.
@@ -679,7 +679,7 @@ static void r202_operateCrank()
         RsfSet(G_ROOM_ID, 0);
         SndCall(6, 8, 0, 0, 0, 0);
         SceSleep(30);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r202_operateCannon, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r202_operateCannon, 0, 1);
     } else {
         SceAtSetEnable(2, 1);
     }
@@ -705,7 +705,7 @@ void r202_changeIdoSmd(int on)
 // The rock of the gate catapult lands: the wall changes.
 static void r202_waitRockImpact(cEm* rock)
 {
-    while (rock->checkStatus(5) == 1) {
+    while (rock->checkStatus(EM_STATUS_ACTIVE) == 1) {
         SceSleep(1);
     }
     r202_changeIdoSmd(1);
@@ -720,7 +720,7 @@ static void r202_CatapultGo_end()
 
         r202_work.p->em180.setFlag(1);
         r202_work.p->cat[2].state = 5;
-        SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 4, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 4, SCE_PRIO_DEF_2, 0);
     }
     r202_work.p->em180.setNoSuspend(0);
     r202_work.p->cat[2].em.setNoSuspend(0);
@@ -760,7 +760,7 @@ static void r202_CatapultGo()
     pG->flags_174 |= 0x02000000;
     r202_work.p->em180.setFlag(1);
     r202_work.p->cat[2].state = 5;
-    SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(60);
     SceSetEventCancel(0, 0, 0, -1, 1);
     r202_CatapultGo_end();
@@ -814,7 +814,7 @@ void r202_initCatapult()
     r202_work.p->cat[0].setNewArea(0xC, -1);
     r202_work.p->cat[0].speed = 7000.0f;
     r202_work.p->cat[2].timer = zero;
-    r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, 2, 0);
+    r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void cCatapult::setNewArea(int a, int b)
@@ -895,7 +895,7 @@ void cCatapult::move()
     if (em.isActive() == 0) {
         return;
     }
-    if (em.checkStatus(5) == 0) {
+    if (em.checkStatus(EM_STATUS_ACTIVE) == 0) {
         return;
     }
     if (em.getHp() <= 0) {
@@ -912,7 +912,7 @@ void cCatapult::move()
         timer--;
         break;
     case 1:
-        setRockTask = SceExec(0x12, (TaskFunc) r202_setRock, (int) this, 0, 2, 0);
+        setRockTask = SceExec(0x12, (TaskFunc) r202_setRock, (int) this, 0, SCE_PRIO_DEF_2, 0);
         rockSet = 0;
         state = 2;
         break;
@@ -971,7 +971,7 @@ void cCatapult::move()
         timer--;
         break;
     case 7:
-        throwRockTask = SceExec(0x12, (TaskFunc) r202_throwRock, (int) this, 0, 2, 0);
+        throwRockTask = SceExec(0x12, (TaskFunc) r202_throwRock, (int) this, 0, SCE_PRIO_DEF_2, 0);
         state = 8;
         break;
     case 8:
@@ -1017,7 +1017,7 @@ static void r202_setRock(cCatapult* c)
         rock->setParent(c->em.getPtr(), 0xA, 0);
     }
     SceSleep(50);
-    if (c->em.checkStatus(5) != 0) {
+    if (c->em.checkStatus(EM_STATUS_ACTIVE) != 0) {
         int i;
 
         c->setRock();

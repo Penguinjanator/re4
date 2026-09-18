@@ -632,7 +632,7 @@ cancel_end:
     EvtMgr.EvtSndStrStop(key, 1, 1);
     ExeFunc(3, 0);
     if (EvtChk(StatusFlag, 0x10000000)) {
-        FadeKill(2);
+        FadeKill(FADE_NO_ROOM);
         FadeSetW(0x80000001, 0xA, 0, 0);
     }
     return 1;
@@ -1538,7 +1538,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         pPL->zeroPartsPosInit(&pos, &rot);
     }
     if (!EvtChk(evt->StatusFlag, 0x40)) {
-        SubCharCtrl(4, 0);
+        SubCharCtrl(SCC_BEHIND, 0);
     }
     n = evt->ModTbl.GetNumDat();
     for (i = 0; i < n; i++) {
@@ -1798,7 +1798,7 @@ void Event::SetDiedemoExec()
 {
     StatusFlag |= 0x100;
     if (EvtChk(StatusFlag, 0x04000000)) {
-        FadeKill(2);
+        FadeKill(FADE_NO_ROOM);
         EvtFadeSetW(0x80000001, 0xA, 0, 0);
     }
     DiedemoExec(0, 1);
@@ -2288,10 +2288,10 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
                 if (out != 0) {
                     *out = (int) r;
                 }
-                unit->setCommand(2, 0, 1);
+                unit->setCommand(CMND_ARAM_LOAD, 0, 1);
             }
             if (unit->waitLoadOk() == 0) {
-                unit->setCommand(3, 0, 0);
+                unit->setCommand(CMND_CLEAR_DATA, 0, 0);
                 DelRead(nm);
                 pLog->err(0, 0, "readEvent() : out of memory (0x%x)[%s]", unit->m_size, nm);
                 return 0;
@@ -2315,9 +2315,9 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
                 *out = (int) r;
             }
         } else {
-            unit->setCommand(1, 0, 1);
+            unit->setCommand(CMND_MRAM_LOAD, 0, 1);
             if (unit->waitUseOk() == 0) {
-                unit->setCommand(3, 0, 0);
+                unit->setCommand(CMND_CLEAR_DATA, 0, 0);
                 DelRead(nm);
                 pLog->err(0, 0, "readEvent() : out of memory (0x%x)[%s]", unit->m_size, nm);
                 return 0;
@@ -2340,9 +2340,9 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
             }
         }
         if (wait == 0) {
-            unit->setCommand(2, 0, 0);
+            unit->setCommand(CMND_ARAM_LOAD, 0, 0);
         } else {
-            unit->setCommand(2, 0, 1);
+            unit->setCommand(CMND_ARAM_LOAD, 0, 1);
         }
     }
     return 1;
@@ -2449,7 +2449,7 @@ int EventMgr::EvtFree(char* nm)
             readEm[no].swapped = 0;
             EspEmDataSwapPop(em);
         }
-        unit->setCommand(3, 0, 0);
+        unit->setCommand(CMND_CLEAR_DATA, 0, 0);
     }
     return 1;
 }
@@ -2576,7 +2576,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     strcpy(NowExeEvtName, "");
     zero = 0; // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the li to the store, r0)
     if (fade) {
-        FadeKill(2);
+        FadeKill(FADE_NO_ROOM);
         {
             u32 col[2];
             u32* c = col;

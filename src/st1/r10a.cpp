@@ -70,10 +70,10 @@ void R10aInit()
 #line 92 "D:/Bio4/Prog/r10a.cpp"
     r10a_work = (R10aWork*) MEM_CALLOC(sizeof(R10aWork), 1, 0xd);
 
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r10a_eff_info);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r10a_StrStart, 0, 1);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r10a_StrStart, 0, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r10a_zouen_ck, 0, 1);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r10a_eff_info);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r10a_StrStart, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r10a_StrStart, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10a_zouen_ck, 0, 1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         Vec pos;
         Vec rot;

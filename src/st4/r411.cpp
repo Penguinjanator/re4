@@ -39,15 +39,15 @@ void R411Init()
     r411_work = (R411Work*) MEM_CALLOC(sizeof(R411Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         r411_lockDoor();
-        SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r411_checkEmSet1, 0, 1);
+        SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) r411_checkEmSet1, 0, 1);
     } else if (RsfCheck(G_ROOM_ID, 3) == 0) {
         r411_lockDoor();
-        SceExec(0x12, (TaskFunc) r411_checkDoorUnlock, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r411_checkDoorUnlock, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(0xF, 0);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r411_checkEmSet2, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r411_checkEmSet2, 0, 1);
     }
 }
 
@@ -71,7 +71,7 @@ static void r411_checkDoorUnlock()
     if (getRoomEtcDoor(1, &door, 1)) {
         ((cEmDoor*) door)->setNormal();
     }
-    SceExec(0x12, (TaskFunc) r411_checkEmSet3, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r411_checkEmSet3, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 extern "C" void r411_lockDoor()
@@ -123,7 +123,7 @@ static void r411_checkEmSet1()
     em3.setEm(0xE4, -1, 0, 1, 1);
     em4.setEm(0xE5, -1, 0, 1, 1);
     SceAtDataReset(0xF);
-    SceExec(0x12, (TaskFunc) r411_checkDoorUnlock, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r411_checkDoorUnlock, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventStart(0);
     em0.setNoSuspend(1);
     em1.setNoSuspend(1);

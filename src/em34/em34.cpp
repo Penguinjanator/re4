@@ -520,9 +520,9 @@ static void em34_R1_Die_Normal(cEm34* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(0);
-            em->clearStatus(5);
-            em->clearStatus(6);
-            em->clearStatus(7);
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->clearStatus(EM_STATUS_DOGCK);
+            em->clearStatus(EM_STATUS_DOGATK);
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;
         }

@@ -127,9 +127,9 @@ void R223Init()
         }
     }
     RsfSet(G_ROOM_ID, 6);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) reva2_move, 0, 1);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) reva3_move, 0, 1);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r223_GanadoEscapeCheck, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) reva2_move, 0, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) reva3_move, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r223_GanadoEscapeCheck, 0, 1);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     r223_work.p->toroko = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
@@ -149,21 +149,21 @@ void R223Init()
         AreaGetCenterPos(&pos, &SceAtPtr(0xB)->area);
         r223_work.p->em[16].setGoto(&pos, 7);
     }
-    SceExec(0x12, (TaskFunc) r223_EmCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r223_EmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         SceAtSetEnable(0x80, 0);
     }
-    SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r223_ItemGet, 0, 1);
+    SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r223_ItemGet, 0, 1);
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
-        SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r223_ItemUse, 0, 1);
-        SceExec(0x12, (TaskFunc) r223_ItemUse_exec, 0, 0, 2, 0);
+        SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r223_ItemUse, 0, 1);
+        SceExec(0x12, (TaskFunc) r223_ItemUse_exec, 0, 0, SCE_PRIO_DEF_2, 0);
         EstSet(0, -1, 0, 0, 1, 0x1E, 1, 2, 0, 0);
     } else {
         SceAtSetEnable(0x11, 0);
         SceAtSetEnable(0x12, 0);
         SceAtSetEnable(0x13, 0);
     }
-    SceExec(0x12, (TaskFunc) r223_StrCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r223_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 7)) {
         SET_POS_XYZ(SmdGetObjPtr(0x16), pos, -7794.0f, 4315.0f, -37212.0f);
         SET_ANG_XYZ(SmdGetObjPtr(0x16), pos, 0.0f, -0.121f, 0.0f);
@@ -361,7 +361,7 @@ void reva2_use_pre_reva3()
         SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     } else if (RsfCheck(G_ROOM_ID, 7) == 0) {
         RsfSet(G_ROOM_ID, 7);
-        SceExec(0x12, (TaskFunc) toroko_go_and_stop, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) toroko_go_and_stop, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
@@ -602,7 +602,7 @@ static void r223_EmCheck()
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0 && (int) pG->sceat_x17C < 0 && isZouenGo2() == 1) {
             RsfSet(G_ROOM_ID, 1);
-            SceExec(0x12, (TaskFunc) r223_EmApper, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r223_EmApper, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         timer++;
         if (timer > 100) {
@@ -756,14 +756,14 @@ static void r223_ItemUse_exec()
     SET_POS_XYZ(r223_work.p->dai, pos, -650.0f, 800.0f, -32100.0f);
     BitOn(r223_work.p->dai->be_flag, 2);
     RsfSet(G_ROOM_ID, 10);
-    SceExec(0x12, (TaskFunc) r223_Bomb, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r223_Bomb, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void r223_ItemUse()
 {
     SceUpCut(8, 0xC, -1, 0);
     if (ItemMgr.num(0x8D) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 

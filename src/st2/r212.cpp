@@ -183,7 +183,7 @@ void R212Init()
     r212_work.p->door[1].setOpened();
     r212_work.p->door[2].setOpened();
     r212_TrapInit();
-    SceExec(0x12, (TaskFunc) r212_DoorLock, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r212_DoorLock, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSetItemEvent(0xB, 0x81, 3, 0xA, r212_TreasureBoxOpen, (void (*)()) r212_TreasureBoxOpened, 6, 0);
     SceSetItemEvent(0xC, 0x80, 4, 0xB, r212_TreasureBoxOpen, (void (*)()) r212_TreasureBoxOpened, 0x3E, 0);
 }
@@ -196,11 +196,11 @@ void r212_TrapInit()
     cSat* e0 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &o->pos, &o->ang, 2);
     PSetSat(r212_work.p->eat0, e0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r212_EventTrap, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r212_EventTrap, 0, 1);
         r212_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r212s00.evd"));
-        r212_work.p->evd->setCommand(2, 0, 0);
+        r212_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EvtMgr.SetFunc("evt_r212s00_func", (void*) Evt_R212S00_Func);
-        SceExec(0x12, (TaskFunc) r212_RoofTrapWatcher, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r212_RoofTrapWatcher, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SceAtSetEnable(9, 0);
     if (RsfCheck(G_ROOM_ID, 1)) {
@@ -209,11 +209,11 @@ void r212_TrapInit()
             r212_work.p->door[0].setOpened();
         }
     } else {
-        SceExec(0x12, (TaskFunc) r212_Puzzle, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r212_Puzzle, 0, 0, SCE_PRIO_DEF_2, 0);
         if (!(pG->flags_5018 & 0x04000000)) {
             pG->flags_5018 |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
-            SubCharCtrl(1, 0);
+            SubCharCtrl(SCC_CHASE, 0);
         }
     }
     if (getRoomEtcRack(5, &r212_work.p->rack[0], 1)) {
@@ -245,7 +245,7 @@ void r212_TrapInit()
             g = (cEmGanado*) r212_work.p->em[1].getPtr();
             g->setDrill(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), drill, (void*) 1);
         }
-        SceExec(0x12, (TaskFunc) r212_DrillAppearCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r212_DrillAppearCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         u32 id[3] = {0x2A, 0x2B, 0x2C};
         f32 y[3] = {13363.0f, 15384.0f, 16017.0f};
@@ -392,7 +392,7 @@ static void r212_EventTrap()
             SceSleep(1);
         }
         MemorySwap(m->pArc, (u32) r212_work.p->evd->m_addr, r212_work.p->evd->m_size);
-        r212_work.p->evd->setCommand(4, 0, 0);
+        r212_work.p->evd->setCommand(CMND_DEL_DATA, 0, 0);
     }
     Vec* pa = &ang;
     f32 ry = -2.68f;
@@ -416,12 +416,12 @@ static void r212_EventTrap()
             pa->y = ry;
             ang.z = 0.0f;
             sub->setAng(pa);
-            SubCharCtrl(1, 0);
+            SubCharCtrl(SCC_CHASE, 0);
         }
     }
     r212_work.p->door[0].setClosed();
-    SceExec(0x12, (TaskFunc) r212_RoofMove, 0, 0, 2, 0);
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r212_DoorMessage, 0, 1);
+    SceExec(0x12, (TaskFunc) r212_RoofMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r212_DoorMessage, 0, 1);
     SceEventEnd(0);
 }
 
@@ -470,7 +470,7 @@ static void r212_RoofMove()
     o1->be_flag |= 0x20;
     o3->be_flag |= 0x1020;
     QuakeExec(0, 0, 3000, 5.0f, 2);
-    SceExec(0x12, (TaskFunc) r212_AdhleyToPointWait, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r212_AdhleyToPointWait, 0, 0, SCE_PRIO_DEF_2, 0);
     cnt = 0;
     do {
         if (cnt % 10 == 0) {
@@ -565,7 +565,7 @@ static void r212_MesRoofDoor()
     SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (!(pG->flags_174 & 0x01000000)) {
         pG->flags_174 |= 0x01000000;
-        SceExec(0x12, (TaskFunc) r212_AshleyPointToCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r212_AshleyPointToCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -720,7 +720,7 @@ static void r212_DrillAppearCheckEndProc()
         v.z = 0.0f;
         pl->setAng(&v);
     }
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     {
         cEm* sub = pSUB;
 
@@ -740,8 +740,8 @@ static void r212_DrillAppearCheckEndProc()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r212_work.p->eat2->m_Flag &= ~4;
-    SceExec(0x12, (TaskFunc) r212_DrillMove, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r212_DrillEndCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r212_DrillMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r212_DrillEndCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Task: both drill Ganados dead -> the last door opens.
@@ -759,7 +759,7 @@ static void r212_DrillEndCheck()
         SceSleep(1);
     }
     SceSleep(5);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     SceAtDataReset(0);
 }
 
@@ -862,7 +862,7 @@ static void r212_AshleyDrillAction(cEm* sub)
 
 static void r212_DoorMessage()
 {
-    SceUpCut(0x67, -1, -1, 1);
+    SceUpCut(0x67, -1, -1, UP_CUT_ATTR_MES_COMMON);
 }
 
 // Task: the entrance door lock.
@@ -896,7 +896,7 @@ void cR212Door::init(u32 id_)
             break;
         case 0x16:
             openH = 2400.0f;
-            SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r212_MesRoofDoor, 0, 1);
+            SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r212_MesRoofDoor, 0, 1);
             flagNo = 0x8B;
             break;
         case 0x22:
@@ -1119,10 +1119,10 @@ static void r212_TreasureBoxOpen(int id)
 {
     switch (id) {
     case 6:
-        OpenBoxMain(4, 0, 0x5B, 6, -1, -1);
+        OpenBoxMain(OpenBoxUpXM, 0, 0x5B, 6, -1, -1);
         break;
     case 0x3E:
-        OpenBoxMain(0x11, 0, 0x1B, 0x3E, -1, -1);
+        OpenBoxMain(OpenBoxPosZP500, 0, 0x1B, 0x3E, -1, -1);
         break;
     }
 }
@@ -1131,10 +1131,10 @@ static void r212_TreasureBoxOpened(int id)
 {
     switch (id) {
     case 6:
-        OpenBoxMain(4, 1, 0x5B, 6, -1, -1);
+        OpenBoxMain(OpenBoxUpXM, 1, 0x5B, 6, -1, -1);
         break;
     case 0x3E:
-        OpenBoxMain(0x11, 1, 0x1B, 0x3E, -1, -1);
+        OpenBoxMain(OpenBoxPosZP500, 1, 0x1B, 0x3E, -1, -1);
         break;
     }
 }

@@ -2399,7 +2399,7 @@ void SsMapMain::init(SUB_SCREEN* wk)
     modeSel->connect(0, entire);
     modeSel->connect(1, read);
     cur = focus;
-    IdTexDataLoad(SS_ARC_PTR(wk->pMapCmn, 4), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pMapCmn, 4), TEX_OWNER_ID_SSCRN);
     if (!IdSub.setCk(0x11)) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x11, 0xF, 1, 0);
     }

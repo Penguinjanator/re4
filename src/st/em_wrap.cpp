@@ -80,7 +80,7 @@ int cEmPatrol::SetPatrol(s16 no, Vec* tbl, int n, u8 prio, int errOn)
     if (SetControl(no, tbl, n, errOn) == 0) {
         return 0;
     }
-    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, SCE_PRIO_DEF_2, 0);
     return 1;
 }
 
@@ -115,7 +115,7 @@ int cEmGuard::SetGuard(s16 no, Vec* tbl, int n, int (*check)(cEmWrap*), f32 ang,
     if (SetControl(no, tbl, n, errOn) == 0) {
         return 0;
     }
-    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, SCE_PRIO_DEF_2, 0);
     this->ang = ang;
     guard_r = em.getGuard_r();
     this->check = check;
@@ -292,7 +292,7 @@ int cEmWrap::isAlive()
 
 int cEmWrap::isActive()
 {
-    if (isAlive() == 1 && pEm->checkStatus(5) == 1) {
+    if (isAlive() == 1 && pEm->checkStatus(EM_STATUS_ACTIVE) == 1) {
         return 1;
     }
     return 0;
@@ -386,7 +386,7 @@ int cEmWrap::isBeFlag(u32 bit)
 int cEmWrap::isDamage()
 {
     if (isAlive() == 1) {
-        return pEm->checkStatus(1);
+        return pEm->checkStatus(EM_STATUS_LOCKOFF);
     }
     err("EM_SET_NO(%d) cEmWrap::isDamage error", no);
     return 0;

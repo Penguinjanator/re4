@@ -250,7 +250,7 @@ int MercSysInitRoom(MercInit* pMInit)
     pPL->setAng(&pMInit->rot);
     pPL->matUpdate();
     CamCtrl.Comeback(0);
-    SceExec(0x12, (TaskFunc) MercSysMoveMain, (int) wk, 4, 2, 0);
+    SceExec(0x12, (TaskFunc) MercSysMoveMain, (int) wk, 4, SCE_PRIO_DEF_2, 0);
     {
         int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
 
@@ -1022,13 +1022,13 @@ void MercID::init(int num)
 
 void MercID::set()
 {
-    IdTexRelease(6);
-    IdTexDataLoad(pTex, 6);
+    IdTexRelease(TEX_OWNER_ID_EVENT);
+    IdTexDataLoad(pTex, TEX_OWNER_ID_EVENT);
 }
 
 void MercID::kill()
 {
-    IdTexRelease(6);
+    IdTexRelease(TEX_OWNER_ID_EVENT);
     _idSys.kill(0xFF, ID_MERC);
     _idSys.kill(0xFF, ID_MERC_MES);
 }
@@ -1058,7 +1058,7 @@ int MercResult::init(MercSysWork* wk)
 #line 1866 "D:/Bio4/Prog/mercenaries.cpp"
     Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
     pData = addr;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
     pTex = DATA_PTR(pData, 0x10);
     pIdRank[0] = DATA_PTR(pData, 0x14);
@@ -1068,7 +1068,7 @@ int MercResult::init(MercSysWork* wk)
     pIdRank[4] = DATA_PTR(pData, 0x24);
     pIdExtra = DATA_PTR(pData, 0x28);
     pIdEnd = DATA_PTR(pData, 0x2C);
-    IdTexDataLoad(pTex, 7);
+    IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
     IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
@@ -1211,11 +1211,11 @@ void AdaResult::init(int no)
 #line 2141 "D:/Bio4/Prog/mercenaries.cpp"
     Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
     pData = addr;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
     pTex = DATA_PTR(pData, 0x10);
     pId = DATA_PTR(pData, 0x14);
-    IdTexDataLoad(pTex, 7);
+    IdTexDataLoad(pTex, TEX_OWNER_ID_TITLE);
     IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;

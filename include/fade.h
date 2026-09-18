@@ -22,6 +22,14 @@ extern FadeWork Fade[4];
 extern "C" {
 void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late);
 void FadeKillAll();
+enum FADE_NO {
+    FADE_NO_SYSTEM = 0,
+    FADE_NO_SCENARIO = 1,
+    FADE_NO_ROOM = 2,
+    FADE_NO_ERROR = 3,
+    FADE_NUM = 4
+};
+
 void FadeKill(int no);
 void FadeInit();
 void FadeControl(int late);

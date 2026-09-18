@@ -343,7 +343,7 @@ static void em27_R0_Init(cEm27* em)
     em->scale.z = scale;
     at->init(1, 0x2800, 10, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f);
     em->atari.m_flag &= 0xFDFF;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);
     EspDataLoad((u32) ARC(6), 0x1F, 0);
     w->Be_flg = zero;
@@ -368,7 +368,7 @@ static void em27_R0_Init(cEm27* em)
     w->Start_ang = em->ang;
     w->pCtrlPlAvoid = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     AtariOff(at, 0xFDFF);
     EmRoutineSet(em, 1, zero, zero, zero);
     em->ang.y = fRand1_1() * PI;
@@ -762,7 +762,7 @@ static void em27_R1_Die_Normal(cEm27* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 15, flag, 0);
         }
-        Ctrl12CntAdd(w->pCtrl12, 1, 1);
+        Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM27_DIE, 1);
         em->atari.m_flag &= 0xFCFF;
         w->Timer = 120;
         w->Spd.y = fRand1_1() * PI;

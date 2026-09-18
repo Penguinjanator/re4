@@ -35,12 +35,12 @@ static void first_init();
 
 static void r40a_DuraluminCaseOpen(int id)
 {
-    OpenBoxMain(7, 0, 0x18, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxPartsUpXP, 0, 0x18, id, 0xFFFFFFFF, -1);
 }
 
 static void r40a_DuraluminCaseOpened(int id)
 {
-    OpenBoxMain(7, 1, -1, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxPartsUpXP, 1, -1, id, 0xFFFFFFFF, -1);
 }
 
 static void r40a_TanaOpen(int id)
@@ -67,8 +67,8 @@ void R40aInit()
     r40a_work = (R40aWork*) MEM_CALLOC(sizeof(R40aWork), 1, 0xd);
     BitOn(pG->flags_64, 0x00020000);
     EmReadSearch(0x1F, 0, 0);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) em_set, 0, 1);
-    SceExec(0x12, (TaskFunc) em_set2, 0, 0, 2, 0);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) em_set, 0, 1);
+    SceExec(0x12, (TaskFunc) em_set2, 0, 0, SCE_PRIO_DEF_2, 0);
     if (pG->room_id_prev == 0x407) {
         cEmWrap em;
 
@@ -76,7 +76,7 @@ void R40aInit()
         em.setFlag(1);
     }
     if (pG->room_id_prev == 0x406) {
-        SceExec(0x12, (TaskFunc) first_init, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) first_init, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SceSetItemEvent(8, 0x80, 1, 9, r40a_DuraluminCaseOpen, (void (*)()) r40a_DuraluminCaseOpened, 0x17, 0);
     SceSetItemEvent(9, 0x87, 2, 8, r40a_TanaOpen, (void (*)()) r40a_TanaOpened, 0x19, 0);

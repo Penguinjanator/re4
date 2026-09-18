@@ -485,7 +485,7 @@ static void em38_R0_Init(cEm38* em)
     switch (em->type) {
     case 0:
     default:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->r_no_0 = 1;
         em->r_no_1 = 0;
         em->r_no_2 = 0;
@@ -506,7 +506,7 @@ static void em38_R0_Init(cEm38* em)
         MotionMoveF(em, 0);
         break;
     case 3:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         EmRoutineSet(em, 1, 0xE, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0x29), 0, 0, 1, 0);
         MotionMoveF(em, 0);
@@ -684,7 +684,7 @@ static void em38_R1_HeadStamp(cEm38* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             w->blendRate = 0.0f;
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -759,7 +759,7 @@ static void em38_R1_Atk(cEm38* em)
         }
         em38BlendMotSet(em, w->mot[0], w->mot[1], w->mot[2], w->mot[3], 0, 0, w->blendKind);
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             w->atkWait = 210;
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -1031,7 +1031,7 @@ static void em38_R1_T_Atk(cEm38* em)
         end = MotionMoveF(em, 0);
         if (end) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EmRoutineSet(em, 1, 5, 0, 0);
         } else if (em->hp <= 1) {
@@ -1128,7 +1128,7 @@ static void em38_R1_T_MdlAtk(cEm38* em)
         end = MotionMoveF(em, 0);
         if (end) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EmRoutineSet(em, 1, 5, 0, 0);
         } else if (em->hp <= 1) {
@@ -1211,7 +1211,7 @@ static void em38_R1_T_BigAtk(cEm38* em)
     case 1:
         end = MotionMoveF(em, 0);
         if (end) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 5, 0, 0);
         } else if (em->hp <= 1) {
             EmRoutineSet(em, 1, 8, 0, 0);
@@ -1282,7 +1282,7 @@ static void em38_R1_T_DownAtk(cEm38* em)
         end = MotionMoveF(em, 0);
         if (end) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EmRoutineSet(em, 1, 5, 0, 0);
         } else if (em->hp <= 1) {
@@ -1554,7 +1554,7 @@ static void em38_R1_Die_Body(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x28), 0, 3, 1, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         EffectEspDelete(1, w->espKind2, (u32) em, 0);
         EffectEspgenDelete(1, w->espKind2, (int) em);
         EffectEfmDelete(1, w->espKind2, (int) em);
@@ -1576,7 +1576,7 @@ static void em38_R1_Die_Upper(cEm38* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x2E), 0, 3, 1, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
         em38UpperOnBody(em);
@@ -2254,7 +2254,7 @@ static void em38EscapeAction(cEm38* em)
 
     SetPlDamage((int) em, plemEscape);
     w->escaped = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemEscape(cPlayer* pl)
@@ -2308,7 +2308,7 @@ static void plemEscape(cPlayer* pl)
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x4A), (int) PL_ARC(0x4B), 5, 0x41, 0);
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->x3E0 = 50;
@@ -2390,7 +2390,7 @@ static void em38BackjumpAction(cEm38* em)
 
     SetPlDamage((int) em, plemBackjump);
     w->escaped = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemBackjump(cPlayer* pl)
@@ -2444,7 +2444,7 @@ static void em38SitAction(cEm38* em)
 
     SetPlDamage((int) em, plemSit);
     w->escaped = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemSit(cPlayer* pl)
@@ -2454,7 +2454,7 @@ static void plemSit(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4F), 0, 5, 1, 0);
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {

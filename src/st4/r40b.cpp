@@ -47,7 +47,7 @@ void R40bInit()
         }
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceExec(0x12, (TaskFunc) r40b_checkEmSet1, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r40b_checkEmSet1, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->item_flags[0] & 8)) {
         cModel* m;
@@ -57,7 +57,7 @@ void R40bInit()
         if (m) {
             m->setNoSuspend(1);
         }
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r40b_getItem, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r40b_getItem, 0, 1);
     }
 }
 

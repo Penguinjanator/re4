@@ -132,19 +132,19 @@ void R217Init()
         }
         SeAtSetOnOff(0, 0);
         SeAtSetOnOff(1, 0);
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r217_Puzzle, 0, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r217_Puzzle, 0, 1);
         EmReadSearch(0x11, 0, 0);
     } else {
         SmdGetObjPtr(0x88)->be_flag |= 0x20;
         SmdGetObjPtr(0x88)->pParts->ang.x = 1.6f;
         SceAtSetEnable(5, 0);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r217_3rd_set, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         for (u32 n = 0; n < 3; n++) {
             cEmWrapSetEmI(&r217_work.p->em[n], r217_emTbl[n], -1, 0, 1, 1);
         }
     }
     if (!(pG->flags_51C0 & 0x40000000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r217_close_door, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r217_close_door, 0, 1);
     } else {
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->pos.y = 6790.0f;
@@ -160,7 +160,7 @@ void R217Main()
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             if ((int) pG->sceat_x17C < 0) {
                 RsfSet(G_ROOM_ID, 1);
-                SceExec(0x12, (TaskFunc) r217_2nd_set, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r217_2nd_set, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -413,8 +413,8 @@ static void r217_Puzzle_exit()
             PSVECScale(&r217_work.p->pos[i], v, 1.0f);
             SmdGetObjPtr(r217_objTbl[i])->be_flag |= 0x20;
         }
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r217_1st_set, 0, 1);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r217_3rd_set, 0, 1);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r217_1st_set, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         SceAtSetEnable(5, 0);
         GameSaveSave(&GameSave, pSaveData, -1);
         SceSleep(90);
@@ -445,25 +445,25 @@ static void r217_Puzzle()
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         CamCtrl.CutCall(6);
         SndCall(6, 3, 0, 0, 0, 0);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(9);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(4);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(5);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(6);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(3);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(9);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(4);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(6);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(5);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }

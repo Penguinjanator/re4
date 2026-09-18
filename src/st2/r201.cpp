@@ -116,7 +116,7 @@ void R201Init()
         BitOn(pG->Item_find_flg, 0x10000);
         RsfSet(G_ROOM_ID, 5);
         RsfSet(G_ROOM_ID, 4);
-        SceExec(0x12, (TaskFunc) r201_execEmReset, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r201_execEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SceAtSetEnable(0, 0);
     SceAtSetEnable(1, 0);
@@ -131,7 +131,7 @@ void R201Init()
     if (SceAtItemFlgCk(0x80) == 0) {
         cModel* m;
 
-        SceAtDataSet_exec(0x20, 0x12, 0, (TaskFunc) r201_checkPicture, 0, 1);
+        SceAtDataSet_exec(0x20, SCE_LEVEL10, 0, (TaskFunc) r201_checkPicture, 0, 1);
         SceAtSetEnable(0x80, 1);
         m = SceAtItemModelPtr(0x80);
         if (m) {
@@ -140,7 +140,7 @@ void R201Init()
     }
     SceAtSetEnable(0x29, 0);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r201_execClawManUpCut, 0, 1);
+        SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) r201_execClawManUpCut, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         cEmWrap em;
@@ -149,7 +149,7 @@ void R201Init()
         if (em.getPtr()) {
             ((cEmGanado*) em.getPtr())->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, ROOM_ARC_PTR(pG->pRoom, 0x21), 0);
         }
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) r201_appearClawMan, 0, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) r201_appearClawMan, 0, 1);
     } else {
         cObj* obj = SmdGetObjPtr(0x57);
 
@@ -158,15 +158,15 @@ void R201Init()
         }
         if ((pG->System_flg & 0x100) || pG->room_id_prev == 0x203 || pG->room_id_prev == 0xFFF) {
             if (RsfCheck(G_ROOM_ID, 5)) {
-                SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r201_execEmReset, 0, 1);
+                SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r201_execEmReset, 0, 1);
             }
         }
     }
     r201_work.p->doorY = SmdGetObjPtr(0x53)->pos.y;
     if (!(pGS->door_unlock[0] & 0x8000)) {
         r201_setBattleArea(0, 1);
-        SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r201_checkDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r201_checkDungeonKeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r201_checkDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r201_checkDungeonKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         if (RsfCheck(G_ROOM_ID, 1)) {
             r201_setBattleArea(1, 1);
@@ -181,7 +181,7 @@ void R201Init()
         if (RsfCheck(G_ROOM_ID, 5) == 0) {
             ((cEmBarred*) r201_work.p->barred)->setClosed();
             ((cEmSwitch*) r201_work.p->sw)->setClosed();
-            SceExec(0x12, (TaskFunc) r201_checkSwitch, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r201_checkSwitch, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
             ((cEmBarred*) r201_work.p->barred)->setOpened();
             ((cEmSwitch*) r201_work.p->sw)->setClosed();
@@ -194,14 +194,14 @@ void R201Init()
     }
     if (!(pG->Item_find_flg & 0x10000)) {
         r201_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
-        r201_work.p->evd->setCommand(2, 0, 0);
+        r201_work.p->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EmReadSearch(0x1B, 0, r201_work.p->evd->m_size);
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r201_execEvent00, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r201_execEvent00, 0, 1);
     } else {
         EmReadSearch(0x1B, 0, 0);
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r201_execEvent00_sub, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r201_execEvent00_sub, 0, 1);
     }
     // mid-function declarations (after the cEmWrap block): both bells share the two slots
     Vec pos;
@@ -225,7 +225,7 @@ void R201Init()
         rot.z = 0.0f;
         r201_work.p->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
-    SceExec(0x12, (TaskFunc) r201_checkBellBreak, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r201_checkBellBreak, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSetItemEvent(0x26, 0x8F, 0xC, 0x10, (void (*)(int)) r201_openShelf, (void (*)()) r201_openedShelf, 0, 0);
     SceSetItemEvent(0x27, 0x90, 0xD, 0x11, (void (*)(int)) r201_openShelf, (void (*)()) r201_openedShelf, 1, 0);
     {
@@ -247,7 +247,7 @@ void r201_openShelf_main(int no, int opened)
 
     switch (no) {
     case 0:
-        OpenBoxMain(0x15, opened, 0x15, 0x63, -1, -1);
+        OpenBoxMain(OpenBoxFall, opened, 0x15, 0x63, -1, -1);
         obj = SmdGetObjPtr(0x63);
         if (obj) {
             Vec* pa = &obj->ang;
@@ -266,7 +266,7 @@ void r201_openShelf_main(int no, int opened)
         }
         break;
     case 1:
-        OpenBoxMain(0x16, opened, 0x15, 0x40, -1, -1);
+        OpenBoxMain(OpenBoxFallNoRot, opened, 0x15, 0x40, -1, -1);
         obj = SmdGetObjPtr(0x40);
         if (obj) {
             Vec* pa = &obj->ang;
@@ -385,7 +385,7 @@ void r201_initAltar()
 {
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         r201_moveAltarObj(1, 1);
-        SceAtDataSet_exec(0x22, 0x12, 0, (TaskFunc) r201_closeAltar, 0, 1);
+        SceAtDataSet_exec(0x22, SCE_LEVEL10, 0, (TaskFunc) r201_closeAltar, 0, 1);
     } else {
         if (RsfCheck(G_ROOM_ID, 6) && RsfCheck(G_ROOM_ID, 7) && RsfCheck(G_ROOM_ID, 8)) {
             r201_moveAltarObj(1, 1);
@@ -397,8 +397,8 @@ void r201_initAltar()
         r201_moveAltarObj(0, 1);
     }
     r201_initGemObj();
-    SceExec(0x12, (TaskFunc) r201_checkSetGem, 0, 0, 2, 0);
-    SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r201_checkAltar, 0, 1);
+    SceExec(0x12, (TaskFunc) r201_checkSetGem, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r201_checkAltar, 0, 1);
 }
 
 // A gem model rides along with the altar (first free sub slot).
@@ -660,7 +660,7 @@ static void r201_checkAltar()
         SceSleep(1);
     }
     if (ItemMgr.num(0x1E) != 0 || ItemMgr.num(0x1F) != 0 || ItemMgr.num(0x39) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
     SceEventEnd(0);
 }
@@ -693,11 +693,11 @@ static void r201_checkDungeonKeyUse()
 
 static void r201_checkDoor()
 {
-    SceUpCut(0, -1, 0, 4);
+    SceUpCut(0, -1, 0, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0xC3) == 0) {
         CamCtrl.Comeback(0);
     } else {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -771,7 +771,7 @@ void r201_setBattleArea(int open, int init)
         } else {
             SndCall(6, 0x26, 0, 0, 0, 0);
         }
-        SceExec(0x12, (TaskFunc) r201_setBattleArea_sub, open, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r201_setBattleArea_sub, open, 0, SCE_PRIO_DEF_2, 0);
         if (open == 1) {
             EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, 0, 0);
         } else {
@@ -832,7 +832,7 @@ static void r201_execEmReset()
     r201_work.p->em2[0].setPtr(0x57, 2, 0);
     r201_work.p->em2[1].setPtr(0x5B, 2, 0);
     r201_work.p->em2[2].setPtr(0x5C, 2, 0);
-    SceExec(0x12, (TaskFunc) r201_execEmReset_sub, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r201_execEmReset_sub, 0, 0, SCE_PRIO_DEF_2, 0);
     AreaGetCenterPos(&pos, &SceAtPtr(0xD)->area);
     r201_work.p->em2[0].setGoto(&pos, 2);
     while (r201_work.p->em2[0].ckGoto() != 0) {
@@ -863,7 +863,7 @@ static void r201_disarmTrap_end()
     SceEventEnd(0);
     pPL->setNoSuspend(0);
     if (RsfCheck(G_ROOM_ID, 0)) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r201_execEmReset, 0, 1);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r201_execEmReset, 0, 1);
     }
 }
 
@@ -933,7 +933,7 @@ static void r201_appearClawMan()
     EstSet(0, -1, 0, 0, 1, 4, 0, 0, 0, 0);
     SndRoomStrStart(1, 0, 1);
     SceAtSetEnable(0x29, 1);
-    SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r201_closeBattleArea, 0, 1);
+    SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r201_closeBattleArea, 0, 1);
     SceSleep(17);
     obj = SmdGetObjPtr(0x57);
     if (obj) {
@@ -966,7 +966,7 @@ static void r201_appearClawMan()
     SceAtSetEnable(0x11, 0);
     SndRoomStrStop(3);
     if (RsfCheck(G_ROOM_ID, 5)) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r201_execEmReset, 0, 1);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r201_execEmReset, 0, 1);
     }
 }
 
@@ -1046,7 +1046,7 @@ static void r201_checkSwitch(int on)
     while (on != 1) {
         if (r201_work.p->sw && ((cEmSwitch*) r201_work.p->sw)->ckOpen() == 1) {
             SndCall(6, 0x23, 0, 0, 0, 0);
-            SceExec(0x12, (TaskFunc) r201_disarmTrap, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r201_disarmTrap, 0, 0, SCE_PRIO_DEF_2, 0);
             break;
         }
         SceSleep(1);
@@ -1077,7 +1077,7 @@ static void r201_execEvent00()
         }
         MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
     }
-    r201_work.p->evd->setCommand(4, 0, 0);
+    r201_work.p->evd->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     OpeOwTypeSet(4);
 }

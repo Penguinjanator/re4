@@ -185,8 +185,8 @@ void cObjRobo::R0Init(cObjRobo* robo)
             smd->be_flag &= ~2;
         }
     }
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) TaskSwitchBack, robo, 1);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) TaskSwitchFront, robo, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchBack, robo, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) TaskSwitchFront, robo, 1);
     if (RsfCheck(pG->room_id, 9)) {
         w->step = 0;
         w->r_no_0 = 1;
@@ -273,10 +273,10 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
             robo->SatMove(robo, &ft[i], i);
         }
         if (w->pEmHitTbl[13] && w->pEmHitTbl[13]->ckStatus() == 1 && !(pG->flags_174 & 0x80000000)) {
-            SceExec(0x12, (TaskFunc) TaskSwitchFront, (int) robo, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) TaskSwitchFront, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
         if (w->pEmHitTbl[12] && w->pEmHitTbl[12]->ckStatus() == 1 && !(pG->flags_174 & 0x40000000)) {
-            SceExec(0x12, (TaskFunc) TaskSwitchBack, (int) robo, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) TaskSwitchBack, (int) robo, 0, SCE_PRIO_DEF_2, 0);
         }
         for (i = 0; i < 14; i++) {
             hit = w->pEmHitTbl[i];

@@ -963,7 +963,7 @@ void cEm2c::move()
             break;
         }
     }
-    clearStatus(3);
+    clearStatus(EM_STATUS_IK_OFF);
     w->flags &= ~0x007F91FE;
     if (w->atkWait) {
         w->atkWait--;
@@ -1076,7 +1076,7 @@ void em2cInitRtnSet(cEm2c* em)
     w->pTail = (cEm*) zero;
     w->x534 = zero;
     w->homePos = em->pos;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->type) {
     case 0:
     default:
@@ -2013,7 +2013,7 @@ static void em2c_R1_Atk(cEm2c* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             w->dmgTotal = 0;
             w->atkWait = 5;
@@ -2048,7 +2048,7 @@ static void em2c_R1_Atk(cEm2c* em)
 static inline void em2cAtkEndSet(cEm2c* em, Em2cWork* w)
 {
     if (w->atkHit == 0) {
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
     }
     w->dmgTotal = 0;
     w->atkWait = 5;
@@ -2476,7 +2476,7 @@ static void em2c_R1_DownJump(cEm2c* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         w->flags |= 0x120;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
         if (MotionMoveF(em, 0)) {
             w->wallNrm.x = 0.0f;
@@ -2538,7 +2538,7 @@ static void em2c_R1_ToCeiling(cEm2c* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         w->flags |= 0x120;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
         if (MotionMoveF(em, 0)) {
             w->wallNrm.x = 0.0f;
@@ -2606,7 +2606,7 @@ static void em2c_R1_ToHide(cEm2c* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         w->flags |= 0x120;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 1.0f);
         if (MotionMoveF(em, 0)) {
             EffectEspDelete(0, w->espKind, (u32) em, 0);
@@ -2975,7 +2975,7 @@ static void em2c_R1_WallOver(cEm2c* em)
         em->r_no_2++;
     case 3:
         w->flags |= 0x20;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2cSetWallMatrix2(em, 0.400000006f);
         MotionMoveF(em, 0);
         t = w->timer;
@@ -3211,7 +3211,7 @@ static void em2c_R1_W_Wait(cEm2c* em)
     Vec plPos;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x60), 0, 30, 5, 0);
@@ -3244,7 +3244,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
     int r;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x29), (int) ARC(0x2A), 10, 5, 0);
@@ -3351,7 +3351,7 @@ static void em2c_R1_W_Atk(cEm2c* em)
     int fe;
 
     w->flags |= 0x20;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     fe = em->r_no_2;
     switch (fe) {
     case 0:
@@ -3406,7 +3406,7 @@ static void em2c_R1_W_Turn180(cEm2c* em)
     Vec rot;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x47), (int) ARC(0x48), 5, 0, 0);
@@ -3432,7 +3432,7 @@ static void em2c_R1_W_Fall(cEm2c* em)
     f32 fl;
 
     w->flags |= 0x140;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x61), (int) ARC(0x62), 5, 1, 0);
@@ -4211,7 +4211,7 @@ static void em2c_R1_Dm_Jump(cEm2c* em)
     u8 fe;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     fe = em->r_no_2;
     switch (fe) {
     case 0:
@@ -4268,7 +4268,7 @@ static void em2c_R1_Dm_Wall(cEm2c* em)
     u8 fe;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     fe = em->r_no_2;
     switch (fe) {
     case 0:
@@ -4433,7 +4433,7 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
     u8 fe;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     fe = em->r_no_2;
     switch (fe) {
     case 0:
@@ -4488,7 +4488,7 @@ static void em2cKickAction(cEm2c* em)
         }
     }
     w->x6B8 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemKick(cPlayer* pl)
@@ -4503,7 +4503,7 @@ static void plemKick(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x7C), 0, 6, 1, 0);
         pl->x3E4 = 10;
         pl->x3E8 = 33;
-        GameAddPoint(9);
+        GameAddPoint(LVADD_CRITICALHIT);
         pl->x3E0 = 17;
         pl->r_no_3 = Rnd() & 3;
         pl->r_no_2++;
@@ -4674,8 +4674,8 @@ static void em2c_R1_Die_Lost(cEm2c* em)
         AtariOff(&em->atari, 0xFCFF);
         EmSetDie(em);
         EmReserveDropItem(em);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         em2cDieEffDelete(em, w);
         if (em->be_flag & 2) {
@@ -4776,7 +4776,7 @@ static void em2c_R1_Die_Wall(cEm2c* em)
     u8 fe;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     fe = em->r_no_2;
     switch (fe) {
     case 0:
@@ -5758,7 +5758,7 @@ static void em2cSitAction(cEm2c* em)
 
     SetPlDamage((int) em, plem2cSit);
     w->x6B8 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plem2cSit(cPlayer* pl)
@@ -5768,7 +5768,7 @@ static void plem2cSit(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x73), 0, 5, 1, 0);
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
@@ -5785,7 +5785,7 @@ static void em2cEscapeAction(cEm2c* em)
 
     SetPlDamage((int) em, plem2cEscape);
     w->x6B8 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Player escapes the ambush: a back jump when walls are on both sides, a side roll otherwise.
@@ -5852,7 +5852,7 @@ static void plem2cEscape(cPlayer* pl)
             SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
             pl->x3E8 = 1;
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->x3E0 = 50;
         pl->x3E4 = 15;
         pl->r_no_2++;
@@ -5942,7 +5942,7 @@ static void em2cBackjumpAction(cEm2c* em)
 
     SetPlDamage((int) em, plemBackjump);
     w->x6B8 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemBackjump(cPlayer* pl)
@@ -5959,7 +5959,7 @@ static void plemBackjump(cPlayer* pl)
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->x3E8 = fe;
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->x3E0 = 35;
         pl->x3E4 = fe;
         pl->r_no_2++;
@@ -5989,7 +5989,7 @@ static void em2cBackjumpAction2(cEm2c* em)
 
     SetPlDamage((int) em, plemBackjump2);
     w->x6B8 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemBackjump2(cPlayer* pl)
@@ -6005,7 +6005,7 @@ static void plemBackjump2(cPlayer* pl)
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, (void*) fe);
         pl->x3E8 = fe;
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->dmg.x1 = 0x14;
         pl->x3E0 = 35;
         pl->x3E4 = fe;

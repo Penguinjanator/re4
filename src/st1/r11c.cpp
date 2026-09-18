@@ -145,7 +145,7 @@ void R11cInit()
 #line 75 "D:/Bio4/Prog/r11c.cpp"
     W = (R11cWork*) MEM_CALLOC(sizeof(R11cWork), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) r11c_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11c_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 0, 0x23, 0x800, 0, 0, 0);
@@ -196,7 +196,7 @@ void R11cInit()
         ((cEmRack*) rack)->setRange(0.0f, 10000.0f, 0.0f, 10000.0f);
     }
     if (!(pG->Item_find_flg & 0x00020000)) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r11c_EventBesiegedStart, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r11c_EventBesiegedStart, 0, 1);
         r11c_eventInit();
         if (!r11c_emDead(0xC8)) {
             W->em = EmSetFromList2(0xC8, 0);
@@ -242,7 +242,7 @@ void R11cInit()
     EvtMgr.SetFunc("evt_r11cs10_func", (void*) Evt_R11CS10_Func);
     EvtMgr.SetFunc("evt_r11cs20_func", (void*) Evt_R11CS20_Func);
     if (!(pG->flags_51C0 & 0x00020000)) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r11c_operator, 0, 1);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r11c_operator, 0, 1);
     }
     if (EtcGetDasAddr(0x14, &arc)) {
         RoomEfmRegist(GetEtcAddr(arc, "et1400.bin"), GetEtcAddr(arc, "et1400.tpl"), 0x6F);
@@ -281,13 +281,13 @@ void R11cMain()
 extern "C" void r11c_eventInit()
 {
     W->evd0 = DC.setData(EvtMgr.NameChange("evd/r11cs00.evd"));
-    W->evd0->setCommand(2, 0, 0);
+    W->evd0->setCommand(CMND_ARAM_LOAD, 0, 0);
     W->evd1 = DC.setData(EvtMgr.NameChange("evd/r11cs10.evd"));
     EmReadSearch(0x13, 0, W->evd0->m_size);
     EmReadSearch(3, 0, 0x120000);
     BitOn(pG->flags_5018, 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     W->mod3 = SearchEmModule(3);
 }
 
@@ -359,7 +359,7 @@ static void r11c_EventBesiegedStart()
         }
         MemorySwap(mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
     }
-    W->evd0->setCommand(4, 0, 0);
+    W->evd0->setCommand(CMND_DEL_DATA, 0, 0);
     pG->System_flg |= 0x400;
     EmReadSearch(4, 0, 0x120000);
     W->ashley = EmMgr.create(4);
@@ -408,7 +408,7 @@ static void r11c_EventBesiegedStart()
     ReadModule* mod2;
     int err2;
 
-    W->evd1->setCommand(2, 0, 0);
+    W->evd1->setCommand(CMND_ARAM_LOAD, 0, 0);
     SceSleep(2);
     pG->System_flg &= ~0x400;
     SceEventEnd(0);
@@ -579,13 +579,13 @@ static void r11c_EventBesiegedStart()
             MemorySwap(mod2->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         }
     }
-    W->evd1->setCommand(4, 0, 0);
+    W->evd1->setCommand(CMND_DEL_DATA, 0, 0);
     pG->System_flg &= ~0x400;
     SceEventEnd(0);
     r11c_initGate();
     BitOn(pG->flags_5018, 0x04000000);
     SubCharInit(1, &pPL->pos, pPL->ang.y);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     if (!r11c_emDead(0xC8)) {
         EM_LIST(0xC8)->flags &= ~2;
         EmSetFromList2(0xC8, 0);
@@ -641,7 +641,7 @@ static void r11c_EventBesiegedStart()
         EstSet(0, -1, 0, 0, 1, 0xA, 1, 0, (u32) zero, zero);
     }
     pG->flags_174 &= ~0x40000000;
-    SceSetChapterEnd(4, -1);
+    SceSetChapterEnd(CHAPTER_2_2, -1);
 }
 
 // Thunder while the siege is not running.
@@ -708,7 +708,7 @@ extern "C" void r11c_initGate()
             g0->pos.y += h;
             g1->pos.y += h;
         } else {
-            SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r11c_selectRoute, 0, 2);
+            SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r11c_selectRoute, 0, 2);
             if (!(r11c_save()->flags & 0x40000000)) {
                 g0->pos.y = 0.0f;
                 g1->pos.y = 0.0f;
@@ -912,8 +912,8 @@ extern "C" void r11c_moveLever(int dir, int noGear)
         SceSleep(1);
     }
     if (noGear == 0) {
-        W->gear = SceExec(0x12, (TaskFunc) r11c_moveGear, dir, 0, 2, 0);
-        W->chain = SceExec(0x12, (TaskFunc) r11c_moveChain, dir, 0, 2, 0);
+        W->gear = SceExec(0x12, (TaskFunc) r11c_moveGear, dir, 0, SCE_PRIO_DEF_2, 0);
+        W->chain = SceExec(0x12, (TaskFunc) r11c_moveChain, dir, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -1005,7 +1005,7 @@ static void r11c_selectRoute()
     case 1:
         if ((r11c_save()->flags & 0x40000000) && !(r11c_save()->flags & 0x20000000)) {
             r11c_moveLever(-1, 1);
-            SceExec(0x12, (TaskFunc) r11c_moveLever2, -1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r11c_moveLever2, -1, 0, SCE_PRIO_DEF_2, 0);
         } else {
             SceSetEventCancel(1, (TaskFunc) r11c_selectRoute_end, -1, 3, 1);
             r11c_moveLever(-1, 0);
@@ -1020,12 +1020,12 @@ static void r11c_selectRoute()
             CamCtrl.CutCall(6);
             r11c_openGate(0x33);
             if (r11c_save()->flags & 0x40000000) {
-                W->closeGate = SceExec(0x12, (TaskFunc) r11c_closeGate, 0x34, 0, 2, 0);
+                W->closeGate = SceExec(0x12, (TaskFunc) r11c_closeGate, 0x34, 0, SCE_PRIO_DEF_2, 0);
             }
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
             }
-            SceExec(0x12, (TaskFunc) r11c_moveLever2, -1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r11c_moveLever2, -1, 0, SCE_PRIO_DEF_2, 0);
             SceSetEventCancel(0, 0, 0, -1, 1);
             r11c_selectRoute_end(-1);
             return;
@@ -1034,7 +1034,7 @@ static void r11c_selectRoute()
     case 2:
         if ((r11c_save()->flags & 0x40000000) && (r11c_save()->flags & 0x20000000)) {
             r11c_moveLever(1, 1);
-            SceExec(0x12, (TaskFunc) r11c_moveLever2, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r11c_moveLever2, 1, 0, SCE_PRIO_DEF_2, 0);
         } else {
             SceSetEventCancel(1, (TaskFunc) r11c_selectRoute_end, 1, 3, 1);
             r11c_moveLever(1, 0);
@@ -1049,12 +1049,12 @@ static void r11c_selectRoute()
             CamCtrl.CutCall(7);
             r11c_openGate(0x34);
             if (r11c_save()->flags & 0x40000000) {
-                W->closeGate = SceExec(0x12, (TaskFunc) r11c_closeGate, 0x33, 0, 2, 0);
+                W->closeGate = SceExec(0x12, (TaskFunc) r11c_closeGate, 0x33, 0, SCE_PRIO_DEF_2, 0);
             }
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
             }
-            SceExec(0x12, (TaskFunc) r11c_moveLever2, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r11c_moveLever2, 1, 0, SCE_PRIO_DEF_2, 0);
             SceSetEventCancel(0, 0, 0, -1, 1);
             r11c_selectRoute_end(1);
             return;

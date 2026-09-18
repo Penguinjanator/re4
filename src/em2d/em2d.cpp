@@ -782,7 +782,7 @@ void cEm2d::move()
     if (r_no_0 != 0) {
         em2dDmCk(this);
     }
-    clearStatus(3);
+    clearStatus(EM_STATUS_IK_OFF);
     w->flags &= ~0x002F19FE;
     if (w->atkWait) {
         w->atkWait--;
@@ -915,7 +915,7 @@ void em2dInitRtnSet(cEm2d* em)
     if (em->type == 4) {
         em->flags_3C8 |= 0x40000000;
     }
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->set) {
     case 0:
     default:
@@ -1112,7 +1112,7 @@ static void em2d_R1_R213NestWait(cEm2d* em)
     Mtx rot;
 
     w->flags |= 0x20;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     AtariOff(&em->atari, 0xFCFF);
     switch (em->r_no_2) {
     case 0:
@@ -1503,7 +1503,7 @@ static void em2d_R1_SideStep(cEm2d* em)
         em->r_no_2++;
     case 3:
         w->flags |= 0x20;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dSetWallMatrix(em);
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0x15, 0, 0);
@@ -1570,7 +1570,7 @@ static void em2d_R1_Atk(cEm2d* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
             if (w->atkHit) {
@@ -1668,7 +1668,7 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -1773,7 +1773,7 @@ static void em2d_R1_JumpAtk(cEm2d* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             fe = 0;
             w->dmgTotal = fe;
@@ -1814,14 +1814,14 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
         MotionSetCore(em, &em->Motion, ARC(0x3B), (int) ARC(0x3C), 5, 1, 0);
         PlSetDamageSe(0);
         EmCatchPLSet(em, 0.0f, 2, (int) plem2d_JumpAtkHit, -48.1500015f, 0.0f, 921.190002f);
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         EstSet((int) em, -1, 0, 0, 0x25, 1, 0, 0, (u32) em, (void*) fe);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         w->timer = 10;
         em->r_no_2++;
     case 1:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         PlGachaMove();
         if (em->seFlags28B & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
@@ -1849,7 +1849,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 3:
     case 9:
     step3:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -1891,7 +1891,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
         EstSet((int) em, -1, 0, 0, 0x25, 6, 0, 0, (u32) em, 0);
         em->r_no_2++;
     case 7:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -1920,7 +1920,7 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     case 10:
         em->r_no_2++;
     case 11:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -2118,7 +2118,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         w->timer = 7;
         em->r_no_2++;
     case 1:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dCatchCamMove(em, em);
         if (w->timer) {
             w->timer--;
@@ -2226,7 +2226,7 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
         PSMTXMultVec(m, &em->pos, &em->pos);
         pPL->ang.y = GetXZAngle(&pPL->pos, &em->pos);
         MotionSetCore(em, &em->Motion, ARC(0x40), (int) ARC(0x41), 5, 1, 5);
-        GameAddPoint(9);
+        GameAddPoint(LVADD_CRITICALHIT);
         w->timer = fe;
         w->flags &= ~0x4000;
         w->spd.x = 0.0f;
@@ -2293,7 +2293,7 @@ static void em2dKickAction(cEm2d* em)
         }
     }
     EmRoutineSet(em, 1, 0xD, 0, 0);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plem2dKick(cPlayer* pl)
@@ -2306,7 +2306,7 @@ static void plem2dKick(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x60), 0, 6, 1, 5);
-        GameAddPoint(9);
+        GameAddPoint(LVADD_CRITICALHIT);
         pl->x3E0 = 27;
         pl->x3E4 = 7;
         pl->x3E8 = 10;
@@ -2438,7 +2438,7 @@ static void em2d_R1_DownJump(cEm2d* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         w->flags |= 0x120;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dSetWallMatrix2(em, 1.0f);
         if (MotionMoveF(em, 0)) {
             w->wallNrm.x = 0.0f;
@@ -2500,7 +2500,7 @@ static void em2d_R1_ToCeiling(cEm2d* em)
         PSMTXInverse(em->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &plPos);
         w->flags |= 0x120;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dSetWallMatrix2(em, 1.0f);
         if (MotionMoveF(em, 0)) {
             w->wallNrm.x = 0.0f;
@@ -2602,7 +2602,7 @@ static void em2d_R1_WallOver(cEm2d* em)
         em->r_no_2++;
     case 3:
         w->flags |= 0x20;
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dSetWallMatrix2(em, 0.4f);
         MotionMoveF(em, 0);
         t = w->timer;
@@ -2631,7 +2631,7 @@ static void em2d_R1_W_Wait(cEm2d* em)
     Vec plPos;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x46), 0, 30, 5, 0);
@@ -2667,7 +2667,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
     f32 alpha;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x48), (int) ARC(0x49), 10, 5, 0);
@@ -2792,7 +2792,7 @@ static void em2d_R1_W_WalkTest(cEm2d* em)
     Em2dWork* w = EM2D_WK(em);
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x48), (int) ARC(0x49), 10, 5, 0);
@@ -2811,7 +2811,7 @@ static void em2d_R1_W_Atk(cEm2d* em)
     Vec plPos;
 
     w->flags |= 0x20;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         PSMTXInverse(em->mat, inv);
@@ -2829,7 +2829,7 @@ static void em2d_R1_W_Atk(cEm2d* em)
         em2dSetWallMatrix2(em, 0.4f);
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (w->atkHit) {
                 em2dSetAtkWait(w, 100, 75, 60, 45, 30);
@@ -2861,7 +2861,7 @@ static void em2d_R1_W_AtkPoison(cEm2d* em)
     int end;
 
     w->flags |= 0x20;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     w->flags |= 0x10000;
     fe = em->r_no_2;
     switch (fe) {
@@ -2913,7 +2913,7 @@ static void em2d_R1_W_Turn180(cEm2d* em)
     Vec rot;
 
     w->flags |= 0x120;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x1A), (int) ARC(0x1B), 5, 0, 0);
@@ -2966,7 +2966,7 @@ static void em2d_R1_W_Fall(cEm2d* em)
     int t;
 
     w->flags |= 0x140;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x4B), (int) ARC(0x4C), 5, 1, 0);
@@ -3079,7 +3079,7 @@ static void em2d_R1_ToGround(cEm2d* em)
     f32 fl;
 
     w->flags |= 0x840;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x36), (int) ARC(0x39), 5, 4, 0);
@@ -3143,7 +3143,7 @@ static void em2d_R1_A_Wait(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x5D), 0, 5, 5, 0);
@@ -3251,7 +3251,7 @@ static void em2d_R1_A_Walk(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x67), 0, 5, 0, em->r_no_3);
@@ -3289,7 +3289,7 @@ static void em2d_R1_A_Back(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x68), 0, 5, 0, 0);
@@ -3318,7 +3318,7 @@ static void em2d_R1_A_Step(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         if (em2dLockCk(em)) {
@@ -3371,7 +3371,7 @@ static void em2d_R1_A_Up(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x6A), 0, 5, 0, 0);
@@ -3402,7 +3402,7 @@ static void em2d_R1_A_Down(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x6B), 0, 5, 1, 0);
@@ -3429,7 +3429,7 @@ static void em2d_R1_A_Turn180(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
@@ -3469,7 +3469,7 @@ static void em2d_R1_A_Atk(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     w->flags |= 0x10000;
     switch (em->r_no_2) {
     case 0:
@@ -3526,7 +3526,7 @@ static void em2d_R1_A_Catch(cEm2d* em)
     f32 fl;
 
     w->flags |= 0x840;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     w->flags |= 0x10000;
     switch (em->r_no_2) {
     case 0:
@@ -3543,7 +3543,7 @@ static void em2d_R1_A_Catch(cEm2d* em)
             em->pos.y = fl;
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             w->atkWait = 30;
             em2dAirNextRtnSet(em);
         }
@@ -3556,7 +3556,7 @@ static void em2d_R1_A_CatchKick(cEm2d* em)
     Em2dWork* w = EM2D_WK(em);
 
     w->flags |= 0x840;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     w->flags |= 0x10000;
     switch (em->r_no_2) {
     case 0:
@@ -3569,7 +3569,7 @@ static void em2d_R1_A_CatchKick(cEm2d* em)
         w->timer = 7;
         em->r_no_2++;
     case 1:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         em2dCatchCamMove(em, em);
         if (w->timer) {
             w->timer--;
@@ -3591,7 +3591,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     int fe;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     em->dmg.set(0, 2);
     w->flags |= 0x10000;
     fe = em->r_no_2;
@@ -3602,13 +3602,13 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         em->pos.y = pPL->pos.y;
         EmCatchPLSet(em, 0.0f, 2, (int) plem2d_A_CatchHit, -48.1500015f, 0.0f, 921.190002f);
         pPL->r_no_3 = 1;
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         EstSet((int) em, -1, 0, 0, 0x25, 1, 0, 0, (u32) em, (void*) fe);
         SndCall(8, 0x1C, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         PlGachaMove();
         if (em->seFlags28B & 1) {
             LifeDownSet2(pPL, 500, 0, 1);
@@ -3630,7 +3630,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     case 3:
     case 9:
     step3:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -3663,7 +3663,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         EstSet((int) em, -1, 0, 0, 0x25, 6, 0, 0, (u32) em, 0);
         em->r_no_2++;
     case 7:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -3692,7 +3692,7 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     case 10:
         em->r_no_2++;
     case 11:
-        em->setStatus(3);
+        em->setStatus(EM_STATUS_IK_OFF);
         MotionGetSpeed(em, &em->Motion, 0, &spd, &rot);
         if (w->timer8) {
             w->timer8--;
@@ -3808,7 +3808,7 @@ static void em2d_R1_C_Wait(cEm2d* em)
     int t;
 
     w->flags |= 0x180;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x47), 0, 30, 5, 0);
@@ -3840,7 +3840,7 @@ static void em2d_R1_C_Fall(cEm2d* em)
     f32 fl;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x4D), 0, 5, 1, 0);
@@ -4097,7 +4097,7 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
     Vec ofs;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &em->x328);
@@ -4148,7 +4148,7 @@ static void em2d_R1_Dm_Wall(cEm2d* em)
     Mtx m;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         PSVECScale(&w->wallNrm, &w->spd, 100.0f);
@@ -4187,7 +4187,7 @@ static void em2d_R1_Dm_Air(cEm2d* em)
 
     w->flags |= 0x840;
     w->flags |= 0x40000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         flip = 0x41;
@@ -4226,7 +4226,7 @@ static void em2d_R1_Dm_Ceiling(cEm2d* em)
     int end;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x52), 0, 0, 5, 0);
@@ -4302,8 +4302,8 @@ static void em2d_R1_Die_Lost(cEm2d* em)
         EmSetDie(em);
         EmReserveDropItem(em);
         EmSetDieCntE(em);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
@@ -4444,7 +4444,7 @@ static void em2d_R1_Die_Wall(cEm2d* em)
     Mtx m;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         PSVECScale(&w->wallNrm, &w->spd, 100.0f);
@@ -4477,7 +4477,7 @@ static void em2d_R1_Die_Air(cEm2d* em)
     Vec d;
 
     w->flags |= 0x840;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->ang.y = GetXZAngle(&em->pos, &em->x328);
@@ -4520,7 +4520,7 @@ static void em2d_R1_Die_Ceiling(cEm2d* em)
     Mtx m;
 
     w->flags |= 0x40;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         w->spd.x = 0.0f;
@@ -5388,7 +5388,7 @@ int em2dStayCk(cEm2d* em)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(5) &&
+        if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE) &&
             (EM2D_WK(e)->flags & 0x200) && e->plDist2 < em->plDist2) {
             cnt++;
         }
@@ -5903,7 +5903,7 @@ int cEm2d::ckFindPL()
     if (hp <= 0) {
         return 0;
     }
-    if (checkStatus(5) == 0) {
+    if (checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     if (EM2D_WK(this)->flags & 0x200) {
@@ -6184,7 +6184,7 @@ int em2dSomebodyFindCk(cEm2d* em)
         if (e == em) {
             continue;
         }
-        if (e->checkStatus(5) == 0) {
+        if (e->checkStatus(EM_STATUS_ACTIVE) == 0) {
             continue;
         }
         if (!(EM2D_WK(e)->flags & 0x200)) {
@@ -6338,7 +6338,7 @@ void em2dHumSeMove(cEm2d* em)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(5) &&
+        if ((e->be_flag & 0x201) == 1 && e->id == 0x2D && e->hp > 0 && e != em && e->checkStatus(EM_STATUS_ACTIVE) &&
             (EM2D_WK(e)->flags & 0x40000) &&
             (cam->param.pos.x - e->pos.x) * (cam->param.pos.x - e->pos.x) +
                     (cam->param.pos.y - e->pos.y) * (cam->param.pos.y - e->pos.y) +

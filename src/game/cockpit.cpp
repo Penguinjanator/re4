@@ -38,7 +38,7 @@ void Cockpit::roomInit()
 {
     IdSys.roomInit();
     IdTexRoomInit();
-    IdTexDataLoad(ARC_PTR(ofs_74), 4);
+    IdTexDataLoad(ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
     IdSys.set(ARC_PTR(ofs_88), 0xFF, ID_FRAME, 0x13, 0, 0);
     IdSys.kill(0xFF, ID_MSG);
     action.roomInit();

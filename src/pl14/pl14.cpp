@@ -143,7 +143,7 @@ void cSubLuis::init()
         s->lockOfs.y = 0.0f;
         s->lockOfs.z = 0.0f;
     }
-    setStatus(1);
+    setStatus(EM_STATUS_LOCKOFF);
     hp = hpMax = 0x4B0;
     m_PlAtack = 5;
     be_flag |= 0x2000000;
@@ -1298,7 +1298,7 @@ int cSubLuis::damageCheck()
         if (m_PlAtack == 0) {
             flags |= 2;
         } else {
-            if (m_PlAtack == 1) setStatus(0xA);
+            if (m_PlAtack == 1) setStatus(EM_STATUS_DONT_FIRE);
             analysis.flags |= 0x40;
             routine.x114 = m_PlAtack;
         }
@@ -1604,7 +1604,7 @@ int isTarget(cSubLuis* luis, cEm* em)
         pLog->err(0, 0, "LUIS isTarget() INVALIED PTR 0x%08x", em);
         return 0;
     }
-    if (!VALID_PTR(em) || (em->be_flag & 0x201) != 1 || em->hp <= 0 || em->id <= 0xF || em->checkStatus(1) ||
+    if (!VALID_PTR(em) || (em->be_flag & 0x201) != 1 || em->hp <= 0 || em->id <= 0xF || em->checkStatus(EM_STATUS_LOCKOFF) ||
         EatMgr.hitCheck(&luis->pParts->world, &em->pParts->world, 0, 0, 0, 0x400000) ||
         doorHitCheck(&luis->pParts->world, &em->pParts->world)) {
         return 0;

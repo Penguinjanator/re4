@@ -577,7 +577,7 @@ void cEm39::move()
     if ((w->Be_flg & 0x800) && w->Back_atk_wait) {
         w->Back_atk_wait--;
     }
-    clearStatus(3);
+    clearStatus(EM_STATUS_IK_OFF);
     em39RouteCk(this);
     Em39_R0_move_tbl[r_no_0](this);
     if (r_no_0 == 0xFF) {
@@ -875,7 +875,7 @@ static void em39_R0_Init(cEm39* em)
     if (em->type != 2) {
         int rtn;
 
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         rtn = em->set;
         // The routine bytes are stored in every arm (jump2 cross-jumps the identical tails): in their own
         // blocks the QI stores precede the subArc load, and the dying `xFF` store leads the `xFE` one.
@@ -907,7 +907,7 @@ static void em39_R0_Init(cEm39* em)
     } else {
         int no;
 
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         no = em->set;
         switch (no) {
         case 0:
@@ -2362,7 +2362,7 @@ static void em39_R1_JumpDown(cEm39* em)
     Vec v;
     f32 fl;
 
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         if (em->r_no_3 == 0) {
@@ -2441,7 +2441,7 @@ static void em39_R1_JumpUp(cEm39* em)
     Vec v;
 
     w->Be_flg |= 0x100;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         PSMTXRotRad(m, 'y', w->Target_dir);
@@ -2486,7 +2486,7 @@ static void em39_R1_JumpUp2(cEm39* em)
     Vec v;
 
     w->Be_flg |= 0x100;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0: {
         // COMPILER-DIFF: #2 -- the target's `fmuls f12,f0,f12` ties the product to the constant's
@@ -2558,7 +2558,7 @@ static void em39_R1_JumpUp3(cEm39* em)
     Vec v;
 
     w->Be_flg |= 0x100;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0: {
         if (fabsf(Muku(&em->pos, &w->jumpPos, em->ang.y, PI)) < 1.5707964f) {
@@ -2683,7 +2683,7 @@ static void em39_R1_FanceJump(cEm39* em)
     Em39Work* w = EM39_WK(em);
 
     w->Be_flg |= 0x100;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x4A), (int) ARC(0x4B), 3, 1, 0);
@@ -2736,7 +2736,7 @@ static void em39_R1_AtkKnife(cEm39* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -2776,7 +2776,7 @@ static void em39_R1_AtkKnife(cEm39* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -2939,7 +2939,7 @@ static void em39_R1_KnifeCatch(cEm39* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
             } else {
@@ -3575,7 +3575,7 @@ static void em39_R1_Atk_MG(cEm39* em)
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if ((s16) pG->pl_life <= 0) {
                 EmRoutineSet(em, 1, 4, 0, 0);
@@ -3752,7 +3752,7 @@ static void em39_R1_AppearMG(cEm39* em)
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             em->r_no_2++;
         } else {
@@ -3903,7 +3903,7 @@ static void em39_R1_AppearMG2(cEm39* em)
         em39BlendMotSet(em, ARC(0x7F), ARC(0x80), ARC(0x81), 0, 0, 0, 5);
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (em->plDist2 < 9000000.0f || (u8) (Rnd() % 10) > 6) {
                 EmRoutineSet(em, 1, 8, 0, 0);
@@ -4502,7 +4502,7 @@ static void em39_R1_Hide(cEm39* em)
             w->pArrow = 0;
         }
         em->be_flag |= 0x10000000;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         w->Back_atk_wait = 450;
         w->Flash_damage = 0;
         w->Goto_mode = 0;
@@ -4543,7 +4543,7 @@ static void em39_R1_Hide(cEm39* em)
         }
         if (w->Flash_damage < lim && w->Hide_timer == 0 && em39AppearCk(em)) {
             em->be_flag &= ~0x10000000;
-            em->clearStatus(1);
+            em->clearStatus(EM_STATUS_LOCKOFF);
         }
         break;
     }
@@ -4626,7 +4626,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
         }                                                                                          \
     } else if (em->seFlags28B & 4) {                                                               \
         if (w->Atk_ck == 0) {                                                                        \
-            GameAddPoint(0xB);                                                                     \
+            GameAddPoint(LVADD_ESCAPEATTACK);                                                                     \
         }                                                                                          \
         EmRoutineSet(em, 1, 0xE, end, 1);                                                          \
     }
@@ -4780,7 +4780,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
             }
         } else if (em->seFlags28B & 4) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EmRoutineSet(em, 1, 0xE, end, 1);
         } else if (em->seFlags28B & 2) {
@@ -4855,7 +4855,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
             }
         } else if (em->seFlags28B & 4) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
                 if (w->Atk_ck == 0) {
                     int rtn = em39AtkRtnCk(em);
 
@@ -4931,7 +4931,7 @@ static void em39SitAction(cEm39* em)
 
     SetPlDamage((int) em, plem39Sit);
     w->Act_ck = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plem39Sit(cPlayer* pl)
@@ -4945,7 +4945,7 @@ static void plem39Sit(cPlayer* pl)
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x110), 0, 5, 1, 0);
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
@@ -4966,7 +4966,7 @@ static void em39BackjumpAction(cEm39* em)
         pPL->r_no_2 = 2;
     }
     w->Act_ck = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // The dodge: back jump (cases 0/1) or side roll (cases 2/3), cancelled by any button after 35 frames.
@@ -4979,7 +4979,7 @@ static void em39BackjumpAction(cEm39* em)
     EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);                                       \
     SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);                                     \
     SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);                                     \
-    GameAddPoint(0xB);                                                                             \
+    GameAddPoint(LVADD_ESCAPEATTACK);                                                                             \
     pl->x3E0 = 35;                                                                                 \
     pl->x3E4 = 0;                                                                                  \
     pl->r_no_2++;
@@ -5113,7 +5113,7 @@ static void em39_R1_T_Kick(cEm39* em)
             }
         } else if (em->seFlags28B & 4) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (em->r_no_3 == 0 && em->plDist2 < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->routeAngAbs < 1.0471976f) {
                 int hit = w->Atk_ck;
@@ -5194,7 +5194,7 @@ static void em39_R1_T_LowKick(cEm39* em)
             int f;
 
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             f = em->r_no_3;
             if (f == 0 && em->plDist2 < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->routeAngAbs < 1.0471976f &&
@@ -6062,8 +6062,8 @@ static void em39_R1_Die_Normal(cEm39* em)
         MotionData* mot = (MotionData*) ARC(0xE7);
 
         MotionSetCore(em, MOTION(em), mot, 0, 0, 0x100, (u16) ((mot->maxFrame & 0x3FFF) - 1));
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EM39_K4_EFF_DELETE(em, w);
         EstSet(0, -1, 0, 0, 0x2F, 0x46, 0, 0, 0, 0);
@@ -6120,12 +6120,12 @@ static void em39_R1_Die_Flash(cEm39* em)
                 if (w->Timer) {
                     break;
                 }
-                em->clearStatus(5);
-                em->setStatus(8);
+                em->clearStatus(EM_STATUS_ACTIVE);
+                em->setStatus(EM_STATUS_ITEMSET);
                 EmSetDropItem(em);
                 AtariOff(&em->atari, 0xFCFF);
                 em->be_flag |= 0x10000000;
-                em->setStatus(1);
+                em->setStatus(EM_STATUS_LOCKOFF);
                 em->be_flag &= ~2;
                 em->r_no_2++;
                 break;
@@ -6135,7 +6135,7 @@ static void em39_R1_Die_Flash(cEm39* em)
         }
         AtariOff(&em->atari, 0xFCFF);
         em->be_flag |= 0x10000000;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         em->be_flag &= ~2;
         em->r_no_2++;
         break;
@@ -6406,7 +6406,7 @@ int em39GunHitCk(cEm39* em)
 static void em39ActOn(cEm39* em)
 {
     EM39_WK(em)->Act_ck = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void plemDmSide(cPlayer* pl)

@@ -35,7 +35,7 @@ void R10eInit()
         if (pG->room_id_prev == 0x10E && !(pG->System_flg & 0x100)) {
             SceAtSetEnable(4, 0);
             SceAtSetEnable(5, 0);
-            SceExec(0x12, (TaskFunc) R10e_door_set, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R10e_door_set, 0, 0, SCE_PRIO_DEF_2, 0);
             if (pG->x4F9E == 2) {
                 RsfClear(G_ROOM_ID, 0);
                 EmSetFromList2(0x10, 1);

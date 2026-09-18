@@ -259,8 +259,8 @@ static void em23_R0_Init(cEm23* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->atari.init(1, 0x2000, 10, 0.0f, -100.0f, 0.0f, 350.0f, 150.0f, 150.0f, 200.0f);
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     EspDataLoad((u32) ARC(4), 0x1B, 0);
     em->pXFlip = em23_flip_tbl;
     YarareInit(em, 0.0f, -100.0f, 0.0f, 250.0f, 200.0f, 1, 1);
@@ -970,7 +970,7 @@ static void em23_R1_Die_Normal(cEm23* em)
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 5, 1, 0);
         AtariOff(&em->atari, 0xFCFF);
         SndCall(8, 8, &em->pos, em->id, 0, em);
-        em->setStatus(8);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EmSetDie(em);
         EmReserveDropItem(em);

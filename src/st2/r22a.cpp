@@ -50,20 +50,20 @@ void R22aInit()
 {
 #line 50 "D:/Bio4/Prog/r22a.cpp"
     r22a_work = (R22aWork*) MEM_CALLOC(sizeof(R22aWork), 1, 0xd);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r22a_RopeMove, 0, 1);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r22a_RopeMove, (void*) 1, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r22a_RopeMove, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r22a_RopeMove, (void*) 1, 1);
     EvtMgr.SetFunc("evt_r22as00_func", (void*) Evt_R22AS00_Func);
     EvtMgr.SetFunc("evt_r22as99_func", (void*) Evt_R22AS00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtSetEnable(6, 1);
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) R22A_Event, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) R22A_Event, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r22as00.evd", 0, 0, 0, 0);
     } else {
         SceAtSetEnable(6, 0);
     }
     SmdSetTrans(0x50, 0);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r22a_EleDown, 0, 1);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r22a_EleUp, 0, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r22a_EleDown, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r22a_EleUp, 0, 1);
     if (pG->System_flg & 0x100) {
         SmdGetObjPtr(0x4F)->be_flag |= 0x20;
         SmdGetObjPtr(0x4F)->pos.y = -8500.0f;
@@ -204,7 +204,7 @@ extern "C" void R22A_Event()
         SceEventEnd(0);
         pG->flags_51C0 |= 0x10000;
         SceAtInitSaveItem();
-        SceSetChapterEnd(0xD, 1);
+        SceSetChapterEnd(CHAPTER_4_4, 1);
     }
 }
 

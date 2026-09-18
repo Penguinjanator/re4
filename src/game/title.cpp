@@ -194,7 +194,7 @@ void titleWait(TitleWork* w)
             primInit();
             IdTexRoomInit();
             IdSys.roomInit();
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
+            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), TEX_OWNER_ID_TITLE);
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
@@ -615,13 +615,13 @@ void titleMain(TitleWork* w)
             SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 5:
-            IdTexRelease(7);
+            IdTexRelease(TEX_OWNER_ID_TITLE);
             IdSys.kill(0xFF, ID_TITLE);
             IdSys.kill(0xFF, ID_MENU);
             MesData.ptr[2] = (u8*) G_ARC_PTR(ofs_28);
             OptScrn.init(1);
-            IdTexDataLoad(G_ARC_PTR(ofs_74), 4);
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), 6);
+            IdTexDataLoad(G_ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
+            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), TEX_OWNER_ID_EVENT);
             IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, ID_OPTION, 0x13, 5, 0);
             w->saveCnt = w->counter;
             w->Rno1 = 4;
@@ -670,11 +670,11 @@ void titleMain(TitleWork* w)
         break;
     case 4:
         if (OptScrn.move() == 1) {
-            IdTexRelease(4);
-            IdTexRelease(6);
+            IdTexRelease(TEX_OWNER_ID_COCKPIT);
+            IdTexRelease(TEX_OWNER_ID_EVENT);
             IdSys.kill(0xFF, ID_OPTION);
             OptScrn.quit();
-            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
+            IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), TEX_OWNER_ID_TITLE);
             w->Rno0 = 5;
             w->Rno1 = 0;
             w->cursor = 2;
@@ -899,7 +899,7 @@ void titleSub(TitleWork* w)
         break;
     case 3: {
         FadeSetW(0x80000000, 5, 0, 0);
-        IdTexDataLoad(OMK_PTR(4), 6);
+        IdTexDataLoad(OMK_PTR(4), TEX_OWNER_ID_EVENT);
         IdSys.kill(0xFF, ID_TITLE);
         IdSys.kill(0xFF, ID_MENU);
         IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
@@ -999,7 +999,7 @@ void titleSub(TitleWork* w)
         break;
     case 5:
         if ((Fade[0].flags & 1) == 0) {
-            IdTexRelease(6);
+            IdTexRelease(TEX_OWNER_ID_EVENT);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             Mem_free(w->pOmk);
@@ -1015,7 +1015,7 @@ void titleSub(TitleWork* w)
         break;
     case 6:
         if ((Fade[0].flags & 1) == 0) {
-            IdTexRelease(6);
+            IdTexRelease(TEX_OWNER_ID_EVENT);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             w->Rno1++;
@@ -1024,7 +1024,7 @@ void titleSub(TitleWork* w)
     case 7: {
         int i;
         FadeSetW(0x80000000, 5, 0, 0);
-        IdTexDataLoad(OMK_PTR(4), 6);
+        IdTexDataLoad(OMK_PTR(4), TEX_OWNER_ID_EVENT);
         IdSys.set(OMK_PTR(7), 0xFF, ID_OMAKE, 0x13, 4, 0);
         for (i = 0; i < 5; i++) {
             IdUnit* u = IdSys.unitPtr(i, ID_OMAKE);
@@ -1134,7 +1134,7 @@ void titleSub(TitleWork* w)
     }
     case 9:
         if ((Fade[0].flags & 1) == 0) {
-            IdTexRelease(6);
+            IdTexRelease(TEX_OWNER_ID_EVENT);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             w->Rno1 = 3;
@@ -1495,8 +1495,8 @@ void titleExit(TitleWork* w)
             TaskSleep(1);
         }
     }
-    IdTexRelease(7);
-    IdTexRelease(6);
+    IdTexRelease(TEX_OWNER_ID_TITLE);
+    IdTexRelease(TEX_OWNER_ID_EVENT);
     IdSys.roomInit();
     primFree();
     if (w->pDat) {

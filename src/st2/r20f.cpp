@@ -147,7 +147,7 @@ void R20fInit()
             if (r20f_work.p->eat[2]) {
                 r20f_work.p->eat[2]->m_Flag &= ~4;
             }
-            SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) R20fSwitchMain, 0, 1);
+            SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R20fSwitchMain, 0, 1);
         }
         obj0->matUpdate();
         obj1->matUpdate();
@@ -156,7 +156,7 @@ void R20fInit()
         int id = GetEmIdFromList(0xED);
 
         EmReadSearch((u8) id, 0, 0);
-        SceExec(0x12, (TaskFunc) R20fEmSetMain, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R20fEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     {
         u32 flags = pG->flags_5018;
@@ -166,7 +166,7 @@ void R20fInit()
             SceAtSetEnable(8, 0);
         }
     }
-    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R20fMain()

@@ -123,16 +123,16 @@ void R227Init()
         } else {
             pG->flags_174 &= ~0x40000000;
         }
-        SceExec(0x12, (TaskFunc) r227_execEvent00, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r227_execEvent00, 0, 0, SCE_PRIO_DEF_2, 0);
         EvtMgr.SetFunc("evt_r227s00_func", (void*) Evt_R227S00_Func);
         EvtMgr.SetFunc("evt_r227s01_func", (void*) Evt_R227S01_Func);
         EvtMgr.SetFunc("evt_r227s02_func", (void*) Evt_R227S02_Func);
         r227_work.p->evd[0] = DC.setData(EvtMgr.NameChange("evd/r227s00.evd"));
-        r227_work.p->evd[0]->setCommand(1, 0, 0);
+        r227_work.p->evd[0]->setCommand(CMND_MRAM_LOAD, 0, 0);
         r227_work.p->evd[1] = DC.setData(EvtMgr.NameChange("evd/r227s01.evd"));
-        r227_work.p->evd[1]->setCommand(2, 0, 0);
+        r227_work.p->evd[1]->setCommand(CMND_ARAM_LOAD, 0, 0);
         r227_work.p->evd[2] = DC.setData(EvtMgr.NameChange("evd/r227s02.evd"));
-        r227_work.p->evd[2]->setCommand(2, 0, 0);
+        r227_work.p->evd[2]->setCommand(CMND_ARAM_LOAD, 0, 0);
     } else {
         r227_setEm1();
         if (RsfCheck(G_ROOM_ID, 6) == 0) {
@@ -154,10 +154,10 @@ void r227_openShelf_main(int id, int opened)
 {
     switch (id) {
     case 0:
-        OpenBoxMain(8, opened, 0x5B, 0xBC, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpXM, opened, 0x5B, 0xBC, -1, -1);
         break;
     case 1:
-        OpenBoxMain(8, opened, 0x5B, 0xA1, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpXM, opened, 0x5B, 0xA1, -1, -1);
         break;
     }
 }
@@ -410,9 +410,9 @@ static void r227_setEmOnElv1()
     cEmWrap e3;
     e0.setEm(0x85, -1, 1, 1, 1);
     e1.setEm(0x86, -1, 1, 1, 1);
-    SceExec(0x12, (TaskFunc) r227_checkEmFall, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r227_checkEmFall, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(360);
-    SceExec(0x12, (TaskFunc) r227_setEmOnElv2, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r227_setEmOnElv2, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Moves the lift group dy above its start height.
@@ -478,7 +478,7 @@ static void r227_operateElv()
     SceAtSetEnable(0xD, 1);
     SceAtSetEnable(0xF, 1);
     SceAtSetEnable(0x14, 1);
-    SceExec(0x12, (TaskFunc) r227_setEmOnElv1, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r227_setEmOnElv1, 0, 0, SCE_PRIO_DEF_2, 0);
     SndCall(6, 9, &r227_work.p->elv->pos, 0, 0, 0);
     dy = 0.0f;
     // const locals fold into their uses (the step is hoisted by loop.c after `lim`, QuakeExec gets a
@@ -541,17 +541,17 @@ void r227_initCargoElv()
         SceAtSetEnable(0x14, 0);
         SceAtSetParent(0xE, r227_work.p->elv, 0);
         SceAtSetParent(3, r227_work.p->elv, 0);
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r227_operateElv, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r227_operateElv, 0, 1);
         if (getRoomEtcRack(5, &r227_work.p->rack[0], 1)) {
             if (RsfCheck(G_ROOM_ID, 1) == 0) {
                 ((cEmRack*) r227_work.p->rack[0])->setRange(0.0f, 0.0f, 3000.0f, 0.0f);
-                SceExec(0x12, (TaskFunc) r227_checkBox0Fall, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r227_checkBox0Fall, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if (getRoomEtcRack(9, &r227_work.p->rack[1], 1)) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 ((cEmRack*) r227_work.p->rack[1])->setRange(0.0f, 0.0f, 0.0f, 3000.0f);
-                SceExec(0x12, (TaskFunc) r227_checkBox1Fall, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r227_checkBox1Fall, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         for (i = 0; i < 3; i++) {
@@ -713,12 +713,12 @@ void r227_setEm1()
 {
     EmReadSearch(0x14, 0, 0);
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r227_setEm2, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r227_setEm2, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r227_setEm3, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r227_setEm3, 0, 1);
     } else {
-        SceExec(0x12, (TaskFunc) r227_setEm3_after, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r227_setEm3_after, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -726,8 +726,8 @@ void r227_initGondola()
 {
     cObj* obj;
 
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r227_execGondola, 0, 1);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r227_execGondola, (void*) 1, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r227_execGondola, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r227_execGondola, (void*) 1, 1);
     obj = SmdGetObjPtr(0xA2);
     Vec d = {0.0f, 6850.0f, 0.0f};
     r227_work.p->gondola.initMove1_pos(obj, 0x8C, &d, 20.0f, 20.0f);
@@ -836,12 +836,12 @@ static void r227_execEvent00()
         ((Event*) key0)->StatusFlag |= 0x800;
         r227_waitEvt();
         pG->System_flg |= 0x400;
-        r227_work.p->evd[0]->setCommand(4, 0, 0);
+        r227_work.p->evd[0]->setCommand(CMND_DEL_DATA, 0, 0);
         if ((int) pG->flags_174 < 0) {
             if (r227_work.p->evd[1]->waitLoadOk() != 0) {
                 u32 key1;
 
-                r227_work.p->evd[1]->setCommand(1, 0, 1);
+                r227_work.p->evd[1]->setCommand(CMND_MRAM_LOAD, 0, 1);
                 if (EvtMgr.SetEvt(r227_work.p->evd[1]->m_addr, &key1)) {
                     ((Event*) key1)->StatusFlag |= 0x800;
                 }
@@ -851,7 +851,7 @@ static void r227_execEvent00()
             if (r227_work.p->evd[2]->waitLoadOk() != 0) {
                 u32 key2;
 
-                r227_work.p->evd[2]->setCommand(1, 0, 1);
+                r227_work.p->evd[2]->setCommand(CMND_MRAM_LOAD, 0, 1);
                 if (EvtMgr.SetEvt(r227_work.p->evd[2]->m_addr, &key2)) {
                     ((Event*) key2)->StatusFlag |= 0x100000;
                     ((Event*) key2)->StatusFlag |= 0x200;
@@ -868,8 +868,8 @@ static void r227_execEvent00()
         SmdGetObjPtr(0x9B)->be_flag |= 2;
     }
     pG->System_flg &= ~0x400;
-    r227_work.p->evd[1]->setCommand(4, 0, 0);
-    r227_work.p->evd[2]->setCommand(4, 0, 0);
+    r227_work.p->evd[1]->setCommand(CMND_DEL_DATA, 0, 0);
+    r227_work.p->evd[2]->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     r227_setEm1();
     SndBgmTblSet(0x227, 1);

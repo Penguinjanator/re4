@@ -102,7 +102,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
     if (em->type != 1) {
@@ -121,7 +121,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->Etc_no = etcNo;
@@ -133,13 +133,13 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
     } else {
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->r_no_0 = 1;
         em->r_no_1 = 0;
         em->r_no_2 = 0;
@@ -181,7 +181,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
     }
     YarareInit((cEmHit*) em, -350.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
@@ -195,7 +195,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     em->r_no_0 = 1;
@@ -545,7 +545,7 @@ void emBarrel_R1_Break(cEmBarrel* em)
         em->be_flag &= ~2;
         em->hp = 0;
         em->atari.m_flag &= ~0x200;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         w->Timer = 10;
         em->r_no_2++;
     case 1:

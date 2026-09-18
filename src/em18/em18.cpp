@@ -264,7 +264,7 @@ static void em18_R0_Init(cEm18* em)
     em->litArea.on(1);
     one = 1;
     em->setStatus(one);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, 0.0f, 150.0f, 120.0f, 5, 1);
     YarareAdd(em, &w->hit[0], 0.0f, -30.0f, 0.0f, 200.0f, 300.0f, 2, 1);
     YarareAdd(em, &w->hit[1], -20.0f, -400.0f, 0.0f, 150.0f, 400.0f, 0x14, 1);
@@ -286,7 +286,7 @@ static void em18_R0_Init(cEm18* em)
     EmRoutineSet(em, one, 0, 0, 0);
     MotionSetCore(em, MOTION(em), ARC(0x14), 0, 0, 1, 0);
     MotionMoveF(em, 0);
-    em->clearStatus(5);
+    em->clearStatus(EM_STATUS_ACTIVE);
     em18_R0_Move(em);
 }
 
@@ -337,7 +337,7 @@ static void em18_R1_Trade(cEm18* em)
         }
         break;
     case 2:
-        if (SubScreenOpen(0x10, 0)) {
+        if (SubScreenOpen(SS_OPEN_SHOP, 0)) {
             em->r_no_2++;
         }
         break;
@@ -413,14 +413,14 @@ static void em18TradeAction(cEm18* em)
 
     if (em->type != 1) {
         if (w->Be_flg & 0x20) {
-            SubScreenOpen(0x10, 0);
+            SubScreenOpen(SS_OPEN_SHOP, 0);
         } else {
             BitOn(w->Be_flg, 0x20);
             EmRoutineSet(em, 1, 1, 0, 0);
             pPL->dmg.set(0, 30);
         }
     } else {
-        SubScreenOpen(0x10, 0);
+        SubScreenOpen(SS_OPEN_SHOP, 0);
     }
 }
 
@@ -472,7 +472,7 @@ static void em18_R1_Die_Normal(cEm18* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->atari.m_flag &= ~0x300;
             em->r_no_2++;
         } else {

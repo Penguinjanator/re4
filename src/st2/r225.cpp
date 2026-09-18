@@ -119,7 +119,7 @@ void R225Init()
 #line 81 "D:/Bio4/Prog/r225.cpp"
     r225_work = (R225Work*) MEM_CALLOC(sizeof(R225Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r225_operateCrank, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r225_operateCrank, 0, 1);
         SceAtSetEnable(5, 0);
         SceAtSetEnable(6, 0);
         SceAtSetEnable(0xA, 1);
@@ -131,8 +131,8 @@ void R225Init()
         SmdGetObjPtr(0x27)->pos.x = 1393.0f;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r225_DoorMes, 0, 1);
-        SceExec(0x12, (TaskFunc) r225_DoorMes_exec, 0, 0, 2, 0);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r225_DoorMes, 0, 1);
+        SceExec(0x12, (TaskFunc) r225_DoorMes_exec, 0, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(0xD, 1);
     } else {
         SmdGetObjPtr(0x25)->be_flag |= 0x20;
@@ -153,24 +153,24 @@ void R225Init()
         SceAtSetEnable(8, 0);
         SceAtSetEnable(0xB, 1);
     }
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) SceElevator_r225, &r225_elvLeave, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) SceElevator_r225, &r225_elvLeave, 1);
     if (pG->room_id_prev == 0x226) {
         if (!(pG->System_flg & 0x80000)) {
             if (!(pG->System_flg & 0x100)) {
-                SceExec(0x12, (TaskFunc) SceElevator_r225, (int) &r225_elvArrive, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) SceElevator_r225, (int) &r225_elvArrive, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r225_checkGrave, 0, 1);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r225_checkGrave, 0, 1);
     if (pG->room_id_prev == 0x21D) {
         if (!(pG->System_flg & 0x80000)) {
             if (!(pG->System_flg & 0x100)) {
-                SceExec(0x12, (TaskFunc) r225_moveGrave, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r225_moveGrave, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) first_cut, 0, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) first_cut, 0, 1);
     }
     {
         Vec pos;
@@ -435,7 +435,7 @@ static void r225_DoorMes()
 {
     SceUpCut(0, -1, 6, 0);
     if (ItemMgr.num(0x82) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -625,7 +625,7 @@ void SceElevator_r225(SceElevatorData* d)
                     asm volatile("" : : "r"(d));
                     RsfSet(G_ROOM_ID, 4);
                     SceEventEnd(0);
-                    SceSetChapterEnd(0xC, 1);
+                    SceSetChapterEnd(CHAPTER_4_3, 1);
                     for (;;) {
                         SceSleep(1);
                     }

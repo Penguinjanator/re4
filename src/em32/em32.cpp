@@ -702,7 +702,7 @@ static void em32_R0_Init(cEm32* em)
     // Compound literals: the zero template is shared with plem32_P_CatchHit's light init.
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1500.0f, 1, 0x2000, 10);
-    em->atari.setPriority(1);
+    em->atari.setPriority(PRI_LV1);
     em->litArea.on(1);
     fzero = 0.0f;
     v.x = fzero;
@@ -1515,7 +1515,7 @@ static void em32_R1_AtkWalk(cEm32* em)
             if (w->x991) {
                 goto threat;
             }
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             hit = w->x991;
             if (hit) {
             threat:
@@ -1761,7 +1761,7 @@ static void em32_R1_AmbushAtk(cEm32* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->x991 == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EM32_ATK_END_CK(em, w, 16000000.0f, 4);
             if (w->targetAngAbs > 1.30899692f) {
@@ -1803,7 +1803,7 @@ static void em32_R1_Atk(cEm32* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->x991 == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
@@ -1853,7 +1853,7 @@ static void em32_R1_Catch(cEm32* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
                 EmRoutineSet(em, 1, 0xC, 0, 0);
@@ -1881,7 +1881,7 @@ static void em32_R1_CatchHit(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 0, 1, 0);
         PlSetDamageSe(0);
         EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_CatchHit, -244.559998f, 0.0f, -1746.93994f);
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         SndStop(w->sndId, 0);
         w->voiceTimer = 2;
@@ -2071,7 +2071,7 @@ static void em32_R1_LongAtk(cEm32* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->x991 == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EM32_ATK_END_CK(em, w, 16000000.0f, 7);
             if (w->targetAngAbs > 1.30899692f) {
@@ -2107,14 +2107,14 @@ static void em32_R1_LongAtk(cEm32* em)
 static void em32SitAction(cEm32* em)
 {
     SetPlDamage((int) em, plemSit);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 static void em32SitUpAction(cEm32* em)
 {
     SetPlDamage((int) em, plemSit);
     pPL->r_no_3 = 1;
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Player ducks under the swipe (xFF: gets up again).
@@ -2140,7 +2140,7 @@ static void plemSit(cPlayer* pl)
                 MotionSetCore(pl, &pl->Motion, PL_ARC(0x91), 0, 3, 1, 0);
             }
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 1:
         if (MotionMoveF(pl, 0)) {
@@ -2157,7 +2157,7 @@ static void em32BackjumpAction(cEm32* em)
 
     w->actionSet = 1;
     SetPlDamage((int) em, plemBackjump);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Player jumps back out of the tunnel attack, facing away from the enemy.
@@ -2185,7 +2185,7 @@ static void plemBackjump(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, (void*) fe);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->x3E0 = 45;
         pl->x3E4 = fe;
         pl->r_no_2++;
@@ -2220,7 +2220,7 @@ static void plemBackjump(cPlayer* pl)
 static void em32EscapeAction(cEm32* em)
 {
     SetPlDamage((int) em, plemEscape);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Player escapes the lunge with a side roll (away from the wall when one is near).
@@ -2269,7 +2269,7 @@ static void plemEscape(cPlayer* pl)
         } else {
             MotionSetCore(pl, &pl->Motion, PL_ARC(0x92), (int) PL_ARC(0x93), 3, 0x41, 0);
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->x3E0 = 50;
@@ -2874,7 +2874,7 @@ static void em32_R1_C_Atk(cEm32* em)
             }
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             if ((w->x991 || (Rnd() & 1)) && em32JumpDownCk(em)) {
                 return;
             }
@@ -2913,7 +2913,7 @@ static void em32_R1_C_AtkHit(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0x27), (int) ARC(0x28), 0, 1, 0);
         PlSetDamageSe(0);
         EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_C_AtkHit, -83.8300018f, 0.0f, -2411.40991f);
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         AtariOff(&em->atari, 0xFCFF);
         EstSet((int) em, -1, 0, 0, 0x2A, 0xD, 0, 0, (u32) em, (void*) step);
@@ -3053,7 +3053,7 @@ static void em32_R1_P_Atk(cEm32* em)
         }
         if (MotionMoveF(em, 0)) {
             if (w->x991 == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (w->x991) {
                 w->wait = 60;
@@ -3120,7 +3120,7 @@ static void em32_R1_P_Catch(cEm32* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             if (w->mode == 0 && Rnd() % 10 > 7 && em32JumpUpCk(em)) {
                 return;
             }
@@ -3154,7 +3154,7 @@ static void em32_R1_P_CatchHit(cEm32* em)
         MotionSetCore(em, &em->Motion, ARC(0xA5), (int) ARC(0xA6), 0, 1, 0);
         PlSetDamageSe(0);
         EmCatchPLSet(em, 3.14159274f, 1, (int) plem32_P_CatchHit, 248.539993f, 0.0f, -3618.96997f);
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         PlGachaInit();
         EstSet((int) em, -1, 0, 0, 0x2A, 0xE, 0, w->espKind[1], (u32) em, (void*) step);
         SndStop(w->sndId, 0);
@@ -3580,12 +3580,12 @@ static void em32_R1_Die_Normal(cEm32* em)
         EM32_EFFECT_DELETE(w->espKind[0], em);
         EM32_EFFECT_DELETE(w->espKind[1], em);
         EstSet((int) em, -1, 0, 0, 0x2A, 0x27, 1, w->espKind[1], (u32) em, (void*) step);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         w->scale = 1.0f;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->setStatus(8);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             w->flags |= 0x2000;
             em->r_no_2++;

@@ -334,7 +334,7 @@ static void em25_R0_Init(cEm25* em)
         em->r_no_0 = 0xFF;
         return;
     }
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     zero = 0;
     em->pXFlip = em25_flip_tbl;
     EspDataLoad((u32) ARC(7), 0x1D, 0);
@@ -377,7 +377,7 @@ static void em25_R0_Init(cEm25* em)
         w->Mode = 0;
         break;
     case 1:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         w->Alive_timer = 900;
         em->r_no_0 = 1;
         em->r_no_1 = 2;
@@ -416,7 +416,7 @@ static void em25_R1_Hide(cEm25* em)
         w->pEm_oya = 0;
         w->dead = 0;
         AtariOff(&em->atari, 0xFCFF);
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         em->be_flag &= ~0x10;
         w->Compress_y = 1.0f;
         for (info = em->pModelInfo; info; info = info->pList) {
@@ -460,9 +460,9 @@ static void em25_R1_Birth(cEm25* em)
             p->scale.y = 1.0f;
             p->scale.z = 1.0f;
         }
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         AtariOn(&em->atari, 0x300);
-        em->clearStatus(1);
+        em->clearStatus(EM_STATUS_LOCKOFF);
         w->Compress_y = 1.0f;
         w->Alive_timer = 900;
         EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, (u32) em, 0);
@@ -636,7 +636,7 @@ static void em25_R1_JumpAtk(cEm25* em)
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -773,7 +773,7 @@ static void em25_R1_P_Appear(cEm25* em)
         em->scale.z = 0.0f;
         MotionSetCore(em, &em->Motion, ARC(0xC), (int) ARC(0xD), 0, 1, 0);
         w->Se_breath_wait = 0;
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, (u32) em, (void*) fe);
         w->Atk_enable = 0;
         w->Compress_y = 1.0f;
@@ -972,7 +972,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
     fe = em->r_no_2;
     switch (fe) {
     case 0:
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         if (w->pEm_oya) {
             em->ang.y = w->pEm_oya->ang.y;
         }
@@ -1112,7 +1112,7 @@ static void em25_R1_Die_P_Normal(cEm25* em)
         w->dead = 1;
         w->Timer = 15;
         em->hp = 0;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         EffectEspDelete(0, w->EffKindId, (u32) em, 0);
         EffectEspgenDelete(0, w->EffKindId, (int) em);
         EffectEfmDelete(0, w->EffKindId, (int) em);
@@ -1152,7 +1152,7 @@ static void em25_R1_Die_Normal(cEm25* em)
         EffectEspDelete(0, w->EffKindId, (u32) em, 0);
         EffectEspgenDelete(0, w->EffKindId, (int) em);
         EffectEfmDelete(0, w->EffKindId, (int) em);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         SndCall(8, 0xE, &em->pos, em->id, 0, em);
         em->hp = 0;
         em->r_no_2++;
@@ -1160,7 +1160,7 @@ static void em25_R1_Die_Normal(cEm25* em)
         if (MotionMoveF(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
             em->r_no_2++;
-            em->setStatus(8);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             SndCall(8, 0xD, &em->pos, em->id, 0, em);
         }
@@ -1187,7 +1187,7 @@ static void em25_R1_Die_Big(cEm25* em)
     switch (fe) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x22), (int) ARC(0x23), 5, 1, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em25ClearParasite(em);
         EstSet((int) em, -1, 0, 0, 0x1D, 4, 0, 0, (u32) em, (void*) fe);
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
@@ -1200,7 +1200,7 @@ static void em25_R1_Die_Big(cEm25* em)
         if (MotionMoveF(em, 0)) {
             AtariOff(&em->atari, 0xFCFF);
             em->r_no_2++;
-            em->setStatus(8);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
         }
         break;

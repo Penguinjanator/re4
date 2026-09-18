@@ -175,19 +175,19 @@ void R104Init()
         RsfSet(G_ROOM_ID, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceExec(0x12, (TaskFunc) r104_execEvent00, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r104_execEvent00, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
-        SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
-        SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r104_execEvent10, 0, 1);
+        SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r104_execEvent10, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 22) == 0) {
         if (RsfCheck(G_ROOM_ID, 1)) {
             EvtMgr.EvtReadAram("event/evd/r104s20.evd", 0, 0, 0, 0);
         }
-        SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) r104_execEvent20, 0, 1);
+        SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r104_execEvent20, 0, 1);
     }
     SceAtSetEnable(0x97, 1);
     m = SceAtItemModelPtr(0x97);
@@ -197,21 +197,21 @@ void R104Init()
     }
     if (!(pG->door_unlock[0] & 0x00400000)) {
         SceAtSetEnable(0x97, 0);
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r104_checkDoor107, 0, 1);
-        SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r104_checkDoor107, 0, 1);
+        SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r104_execShowView, 0, 1);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r104_execShowView, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r104_execEmDash, 0, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r104_execEmDash, 0, 1);
     }
     SceSetItemEvent(0xB, 0x84, 0x10, 7, r104_openShelf, r104_openedShelf, 0, 0);
     SceSetItemEvent(0xC, 0x8E, 0x11, 8, r104_openShelf, r104_openedShelf, 1, 0);
     SceSetItemEvent(0xD, 0x89, 0x12, 9, r104_openShelf, r104_openedShelf, 2, 0);
     SceSetItemEvent(0xF, 0x8F, 0x13, 0xA, r104_openBox, r104_openedBox, 0, 0);
     SceSetItemEvent(0x10, 0x90, 0x14, 0xB, r104_openBox, r104_openedBox, 1, 0);
-    SceExec(0x12, (TaskFunc) r104_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r104_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R104Main()
@@ -459,15 +459,15 @@ static void r104_checkDoor107KeyUse()
 // The locked door: the sub screen when the key or both halves are held.
 static void r104_checkDoor107()
 {
-    SceUpCut(0, 0xC, 2, 4);
+    SceUpCut(0, 0xC, 2, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0xA6) == 0) {
         if (ItemMgr.num(0xA4) == 1 && ItemMgr.num(0xA5) == 1) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         } else {
             CamCtrl.Comeback(0);
         }
     } else {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -686,7 +686,7 @@ static void r104_execEvent20()
     pos.z = 0.0f;
     pl->setAng(&pos);
     FadeSetW(1, 0, 0, 0);
-    SubScreenOpen(0x10, 0);
+    SubScreenOpen(SS_OPEN_SHOP, 0);
 }
 
 static void r104_execEvent10()
@@ -759,8 +759,8 @@ static void r104_execEvent00()
     setEm(0xFA, -1, 0, 1, 1);
     setEm(0xFB, -1, 0, 1, 1);
     setEm(0xFE, -1, 0, 1, 1);
-    SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     SndBgmTblSet(0x104, 1);
     if (skip == 0) {
         OpeSetOpenTerm(4, 0.0f, 0.0f, 0.0f, 0.0f);

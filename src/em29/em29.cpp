@@ -196,7 +196,7 @@ void em29DmCk(cEm29* em)
         case 6:
         case 8:
             em->hp = 0;
-            Ctrl12CntAdd(w->pCtrl12, 2, 1);
+            Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 1);
             Ctrl11SetSe(w->pCtrl11, em, 1, 0x1C, 0xA);
             w->flags |= 0x80;
             em29DmRoutineSet(em, kind);
@@ -282,7 +282,7 @@ void em29DmCk(cEm29* em)
     do {
         EstSet(0, -1, &em->pos, &em->ang, 0x21, 0, 0, 0, (u32) zero, (void*) zero);
         em->be_flag &= ~2;
-        Ctrl12CntAdd(w->pCtrl12, 2, 1);
+        Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 1);
         em29LastCk(em);
         em29DmRoutineSetZ(em, kind, zero);
     } while (0);
@@ -375,7 +375,7 @@ void cEm29::move()
     atari.move();
     SatMgr.checkAir(this, 0);
     if (hp > 0 && (be_flag & 2)) {
-        Ctrl12Set(w->pCtrl12, 3, 2);
+        Ctrl12Set(w->pCtrl12, CTRL12_ID_EM29_LIVE, 2);
     }
     if (em29FriendCk(this) == 0) {
         EmSetDie(this);
@@ -414,7 +414,7 @@ static void em29_R0_Init(cEm29* em)
     em->scale.z = 1.5f;
     AtariInit(&em->atari, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f, 1, 0x2800, 10);   // COMPILER-DIFF: #1
     em->atari.m_flag &= ~0x200;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, -30.0f, 0.0f, 100.0f, 60.0f, 5, 1);
     EspDataLoad((u32) ARC(6), 0x21, 0);
     w->flags = zero;
@@ -561,7 +561,7 @@ static void em29_R1_Walk(cEm29* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em29SetSPeed(em, 0.1f);
         MotionMoveF(em, 0);
-        hit = Ctrl12CntCk(w->pCtrl12, 2, 10);
+        hit = Ctrl12CntCk(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10);
         if (hit) {
             em->hp = 0;
             EmRoutineSet(em, 3, 2, 0, 0);
@@ -605,7 +605,7 @@ static void em29_R1_Turn(cEm29* em)
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
-        if (Ctrl12CntCk(w->pCtrl12, 2, 10)) {
+        if (Ctrl12CntCk(w->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10)) {
             em->hp = 0;
             EmRoutineSet(em, 3, 2, 0, 0);
         }
@@ -637,7 +637,7 @@ static void em29_R1_AtkDash(cEm29* em)
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if ((em->seFlags28B & 1) && w->atkHit == 0 && em29AtkCk(em, 0)) {
-            Ctrl12Set(w->pCtrl12, 2, 60);
+            Ctrl12Set(w->pCtrl12, CTRL12_ID_EM29_RUSH, 60);
             em->r_no_2++;
         }
         break;
@@ -735,7 +735,7 @@ static void em29_R1_AtkRush(cEm29* em)
         }
         break;
     }
-    if (Ctrl12Ck(w->pCtrl12, 2) == 0 || (s16) pG->pl_life <= 0) {
+    if (Ctrl12Ck(w->pCtrl12, CTRL12_ID_EM29_RUSH) == 0 || (s16) pG->pl_life <= 0) {
         w->escTimer = 30;
         w->atkTimer = 180;
         EmRoutineSet(em, 1, 2, 0, 0);
@@ -1216,7 +1216,7 @@ int em29FriendCk(cEm29* em)
 {
     u32 i;
 
-    if (Ctrl12CntCk(EM29_WK(em)->pCtrl12, 2, 10)) {
+    if (Ctrl12CntCk(EM29_WK(em)->pCtrl12, CTRL12_ID_CNT_EM29_DIE, 10)) {
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {

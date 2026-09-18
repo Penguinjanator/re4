@@ -292,7 +292,7 @@ static void toolIdPrev(IdTool* w)
             if (HDRead(path, pIdBuf1) > 0x100000) {
                 pLog->err(0, 0, "toolIdInit(): Eff(%s) file is too large.", path);
             } else if (w->type != 0) {
-                IdTexDataLoad(pIdBuf1, 4);
+                IdTexDataLoad(pIdBuf1, TEX_OWNER_ID_COCKPIT);
             }
             sprintf(path, "x:\\soft/Room/SubScreen/%s/share.eff", langName[w->lang]);
             if (HDRead(path, pIdBuf2) > 0x300000) {
@@ -300,14 +300,14 @@ static void toolIdPrev(IdTool* w)
             } else {
                 int t = w->type;
                 if (t > 1 || w->type < 0) {
-                    IdTexDataLoad(pIdBuf2, 8);
+                    IdTexDataLoad(pIdBuf2, TEX_OWNER_ID_SHARE);
                 }
             }
             sprintf(path, "x:\\soft/Room/SubScreen/%s/%s.eff", langName[w->lang], subScreenName[w->type]);
             if (HDRead(path, pIdBuf3) > 0x900000) {
                 pLog->err(0, 0, "toolIdInit(): Eff(%s) file is too large.", path);
             } else if (w->type != 1 && w->type != 5) {
-                IdTexDataLoad(pIdBuf3, 3);
+                IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
             }
             w->x17D = 0;
             break;
@@ -316,7 +316,7 @@ static void toolIdPrev(IdTool* w)
             if (HDRead(path, pIdBuf3) > 0x900000) {
                 pLog->err(0, 0, "toolIdInit(): Eff(%s) file is too large.", path);
             } else {
-                IdTexDataLoad(pIdBuf3, 3);
+                IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
             }
             w->x17D = 0;
             break;
@@ -2882,17 +2882,17 @@ static void toolIdFile(IdTool* w)
                     } else {
                         switch (w->type) {
                         case 1:
-                            IdTexRelease(4);
-                            IdTexRelease(8);
-                            IdTexRelease(3);
-                            IdTexDataLoad(pIdBuf1, 4);
+                            IdTexRelease(TEX_OWNER_ID_COCKPIT);
+                            IdTexRelease(TEX_OWNER_ID_SHARE);
+                            IdTexRelease(TEX_OWNER_ID_TOOL);
+                            IdTexDataLoad(pIdBuf1, TEX_OWNER_ID_COCKPIT);
                             break;
                         case 5:
-                            IdTexRelease(4);
-                            IdTexRelease(8);
-                            IdTexRelease(3);
-                            IdTexDataLoad(pIdBuf1, 4);
-                            IdTexDataLoad(pIdBuf2, 4);
+                            IdTexRelease(TEX_OWNER_ID_COCKPIT);
+                            IdTexRelease(TEX_OWNER_ID_SHARE);
+                            IdTexRelease(TEX_OWNER_ID_TOOL);
+                            IdTexDataLoad(pIdBuf1, TEX_OWNER_ID_COCKPIT);
+                            IdTexDataLoad(pIdBuf2, TEX_OWNER_ID_COCKPIT);
                             break;
                         case 0:
                         case 0xD:
@@ -2903,18 +2903,18 @@ static void toolIdFile(IdTool* w)
                         case 0x12:
                         case 0x13:
                         case 0x14:
-                            IdTexRelease(4);
-                            IdTexRelease(8);
-                            IdTexRelease(3);
-                            IdTexDataLoad(pIdBuf3, 3);
+                            IdTexRelease(TEX_OWNER_ID_COCKPIT);
+                            IdTexRelease(TEX_OWNER_ID_SHARE);
+                            IdTexRelease(TEX_OWNER_ID_TOOL);
+                            IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
                             break;
                         default:
-                            IdTexRelease(4);
-                            IdTexRelease(8);
-                            IdTexRelease(3);
-                            IdTexDataLoad(pIdBuf1, 4);
-                            IdTexDataLoad(pIdBuf2, 8);
-                            IdTexDataLoad(pIdBuf3, 3);
+                            IdTexRelease(TEX_OWNER_ID_COCKPIT);
+                            IdTexRelease(TEX_OWNER_ID_SHARE);
+                            IdTexRelease(TEX_OWNER_ID_TOOL);
+                            IdTexDataLoad(pIdBuf1, TEX_OWNER_ID_COCKPIT);
+                            IdTexDataLoad(pIdBuf2, TEX_OWNER_ID_SHARE);
+                            IdTexDataLoad(pIdBuf3, TEX_OWNER_ID_TOOL);
                             break;
                         }
                         w->x17D &= ~1;
@@ -2936,8 +2936,8 @@ static void toolIdFile(IdTool* w)
                             case 0x14:
                                 break;
                             default:
-                                IdTexRelease(4);
-                                IdTexDataLoad(pIdBuf1, 4);
+                                IdTexRelease(TEX_OWNER_ID_COCKPIT);
+                                IdTexDataLoad(pIdBuf1, TEX_OWNER_ID_COCKPIT);
                                 break;
                             }
                             sprintf(effPath, "x:\\soft/Room/SubScreen/%s/share.eff", langName[w->lang]);
@@ -2957,8 +2957,8 @@ static void toolIdFile(IdTool* w)
                                 case 0x14:
                                     break;
                                 default:
-                                    IdTexRelease(8);
-                                    IdTexDataLoad(pIdBuf2, 8);
+                                    IdTexRelease(TEX_OWNER_ID_SHARE);
+                                    IdTexDataLoad(pIdBuf2, TEX_OWNER_ID_SHARE);
                                     break;
                                 }
                                 w->x17D &= ~2;

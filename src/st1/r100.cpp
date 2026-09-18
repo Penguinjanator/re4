@@ -269,7 +269,7 @@ void R100Init()
         r100_Car_pos_move();
         r100_trap_set();
         SceAtSetEnable(1, 1);
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r100_GakeEvent, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r100_GakeEvent, 0, 1);
         readEvent(4, 0, 0);
     } else {
         Vec pos;
@@ -320,7 +320,7 @@ void R100Init()
     flag = RsfCheck(G_ROOM_ID, 3);
     if (flag == 0) {
         SceAtSetEnable(0xA, 1);
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r100_Sce_look, 0, 2);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r100_Sce_look, 0, 2);
     } else {
         cEm* em = W->em;
 
@@ -332,21 +332,21 @@ void R100Init()
             em->flags_3C8 |= 1;
         }
     }
-    SceExec(0x12, (TaskFunc) r100_WindowBreakCk, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r100_DoorCk, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r100_StreanChk, 0, 0, 2, 0);
-    SceAtDataSet_exec(0x15, 0x12, 0, (TaskFunc) r100_HouseEvent, 0, 1);
-    SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r100_MesTruck, 0, 1);
-    SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r100_MesCar00, 0, 1);
-    SceAtDataSet_exec(0x1A, 0x12, 0, (TaskFunc) r100_MesCar01, 0, 1);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r100_MesDoor, 0, 1);
+    SceExec(0x12, (TaskFunc) r100_WindowBreakCk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r100_DoorCk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r100_StreanChk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r100_HouseEvent, 0, 1);
+    SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r100_MesTruck, 0, 1);
+    SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r100_MesCar00, 0, 1);
+    SceAtDataSet_exec(0x1A, SCE_LEVEL10, 0, (TaskFunc) r100_MesCar01, 0, 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r100_MesDoor, 0, 1);
     SceAtSetEnable(0xB, 0);
-    SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r100_EventBrige, 0, 1);
+    SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r100_EventBrige, 0, 1);
     if (RsfCheck(G_ROOM_ID, 10)) {
         SceAtSetEnable(0xC, 0);
         SceAtSetEnable(0x19, 0);
         SceAtSetEnable(0x1A, 0);
-        SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r100_MesBrige, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r100_MesBrige, 0, 1);
         SceAtSetEnable(0x1C, 1);
         SceAtSetEnable(0x1E, 0);
     } else {
@@ -356,14 +356,14 @@ void R100Init()
     if (RsfCheck(G_ROOM_ID, 13) == 0) {
         RsfSet(G_ROOM_ID, 13);
         SeAtSetOnOff(2, 0);
-        SceExec(0x12, (TaskFunc) r100_StartEvent, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r100_StartEvent, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r100_eff_info2);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r100_eff_info4);
-    EatMgr.registEffInfo(5, (AtEffInfo*) &r100_eff_info5);
-    SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) r100_mes_gaikotu, 0, 1);
-    SceAtDataSet_exec(0x22, 0x12, 0, (TaskFunc) r100_mes_gaikotu_bgm_down, 0, 1);
-    SceAtDataSet_exec(0x23, 0x12, 0, (TaskFunc) r100_mes_gaikotu_bgm_up, 0, 1);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r100_eff_info2);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r100_eff_info4);
+    EatMgr.registEffInfo(EAT_ET_ROOM1, (AtEffInfo*) &r100_eff_info5);
+    SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu, 0, 1);
+    SceAtDataSet_exec(0x22, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu_bgm_down, 0, 1);
+    SceAtDataSet_exec(0x23, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu_bgm_up, 0, 1);
 }
 
 static inline f32 FCRef(const f32& v) { return v; }
@@ -446,7 +446,7 @@ extern "C" int readEvent(int no, int wait, void** out)
                 goto fail;
             }
             if (W->evt[no]->waitLoadOk() == 0) {
-                W->evt[no]->setCommand(3, 0, 0);
+                W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
                 pLog->err(0, 0, "r100::readEvent() : out of memory");
                 goto fail;
             }
@@ -459,9 +459,9 @@ extern "C" int readEvent(int no, int wait, void** out)
                 }
             }
         } else {
-            W->evt[no]->setCommand(1, 0, 1);
+            W->evt[no]->setCommand(CMND_MRAM_LOAD, 0, 1);
             if (W->evt[no]->waitUseOk() == 0) {
-                W->evt[no]->setCommand(3, 0, 0);
+                W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
                 pLog->err(0, 0, "readEvent() : out of memory.", no, r100_evtName[no]);
                 pLog->err(0, 0, "readEvent() : size(0x%x)[%d:%s]", W->evt[no]->m_size, no, r100_evtName[no]);
                 return 0;
@@ -476,9 +476,9 @@ extern "C" int readEvent(int no, int wait, void** out)
         }
     } else {
         if (no == 9) {
-            W->evt[no]->setCommand(2, 0, 1);
+            W->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 1);
         } else {
-            W->evt[no]->setCommand(2, 0, 0);
+            W->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
         }
     }
     return 1;
@@ -496,7 +496,7 @@ extern "C" void freeEvent(int no, int swap)
             MemorySwap(m->pArc, (u32) W->evt[no]->m_addr, W->evt[no]->m_size);
             EspEmDataSwapPop(0x12);
         }
-        W->evt[no]->setCommand(3, 0, 0);
+        W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
     }
 }
 
@@ -915,7 +915,7 @@ static void r100_Sce_zombi_dead(cEm* em)
     } else {
         em->setNoSuspend(0);
     }
-    while (em->checkStatus(5) != 0) {
+    while (em->checkStatus(EM_STATUS_ACTIVE) != 0) {
         SceSleep(1);
     }
     while (SceCheckEventStart() == 0) {
@@ -959,17 +959,17 @@ static void r100_Sce_zombi_dead(cEm* em)
     at[3].x = -750.0f;
     at[3].y = 0.0f;
     at[3].z = -750.0f;
-    if (SceAtCreateExecAt(em, at, 1, 8, 1, 1000.0f, 1, 0.0f, 0.0f, 1, 0x12, (TaskFunc) r100_MesGanado, zero, 2) == -1) {
+    if (SceAtCreateExecAt(em, at, 1, 8, 1, 1000.0f, 1, 0.0f, 0.0f, 1, SCE_LEVEL10, (TaskFunc) r100_MesGanado, zero, 2) == -1) {
         pLog->err(0, 0, "move : SceAt no create");
     }
     SceAtSetEnable(1, 1);
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r100_GakeEvent, 0, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r100_GakeEvent, 0, 1);
     readEvent(4, 0, 0);
     SetSstDispFlag(0x11, 1);
     SceAtSetEnable(0xC, 0);
     SceAtSetEnable(0x19, 0);
     SceAtSetEnable(0x1A, 0);
-    SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r100_MesBrige, 0, 1);
+    SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r100_MesBrige, 0, 1);
     SceAtSetEnable(0x1C, 1);
     SceAtSetEnable(0x1E, 0);
     RsfSet(G_ROOM_ID, 10);
@@ -1327,7 +1327,7 @@ static void r100_mes_gaikotu_bgm()
 static void r100_mes_gaikotu()
 {
     pG->flags_174 &= ~0x20000000;
-    SceExec(0x12, (TaskFunc) r100_mes_gaikotu_bgm, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r100_mes_gaikotu_bgm, 0, 2, SCE_PRIO_DEF_2, 0);
     SceUpCut(0x2F, 0xB, -1, 0);
     pG->flags_174 |= 0x20000000;
 }

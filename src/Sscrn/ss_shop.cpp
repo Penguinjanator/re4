@@ -423,7 +423,7 @@ void SsShopInit::move(SUB_SCREEN* wk)
             break;
         }
         IdSub.kill(0xFF, 0x14);
-        IdTexRelease(9);
+        IdTexRelease(TEX_OWNER_ID_SSCRN);
         state++;
     case 3: {
         int result;
@@ -498,8 +498,8 @@ void SsShopMain::init(SUB_SCREEN* wk)
     }
     setShopMsgQueue(1);
     puzzleCameraInit(wk, &pG->Cam);
-    IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), 9);
-    IdTexDataLoad(SS_ARC_PTR(wk->pShop, 4), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
+    IdTexDataLoad(SS_ARC_PTR(wk->pShop, 4), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
     IdSub.set(SS_ARC_PTR(wk->x1E4, 0x1AB), 0xFF, 0x10, 0xF, 0, 0);
     tempSpaceDisp(0);
@@ -936,7 +936,7 @@ void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
             y = (int) ((240.0f - pos.y) * 0.8f);
         }
         slot = row + 8;
-        cMes.setLayout(slot, 6);
+        cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
         U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
@@ -1121,7 +1121,7 @@ void SellItemNum::move(SUB_SCREEN* wk)
     u = IdSub.unitPtr(0xFC, 0x1C);
     x = (int) ((u->scr.x + 320.0f) * 0.8f);
     y = (int) ((240.0f - u->scr.y) * 0.8f);
-    cMes.setLayout(0, 2);
+    cMes.setLayout(0, LAYOUT_SUBSCRN);
     cMes.MesSet(sw->item->id, x, y, 0x20088, 0, 0, 4);
     u = IdSub.unitPtr(0, 0x1F);
     u->be_flag |= 8;
@@ -1262,7 +1262,7 @@ void SellConfirm::move(SUB_SCREEN* wk)
     u = IdSub.unitPtr(0xFC, 0x1C);
     x = (int) ((u->scr.x + 320.0f) * 0.8f);
     y = (int) ((240.0f - u->scr.y) * 0.8f);
-    cMes.setLayout(0, 2);
+    cMes.setLayout(0, LAYOUT_SUBSCRN);
     cMes.MesSet(sw->item->id, x, y, 0x20088, 0, 0, 4);
     if (Key.trg & 0x40000000) {
         cMes.Delete(1);
@@ -1382,7 +1382,7 @@ void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
             y = (int) ((240.0f - pos.y) * 0.8f);
         }
         slot = row + 8;
-        cMes.setLayout(slot, 6);
+        cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
         U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
@@ -1932,7 +1932,7 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
             y = (int) ((240.0f - pos.y) * 0.8f);
         }
         slot = (u8) (row + 8);
-        cMes.setLayout(slot, 6);
+        cMes.setLayout(slot, LAYOUT_SHOP_LIST);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
         U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
         U16Set(cMes.getMes(slot)->m_ot_no, 6);
@@ -2038,7 +2038,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 x = (int) ((pos.x + 320.0f) * 0.8f);
                 y = (int) ((240.0f - pos.y) * 0.8f);
             }
-            cMes.setLayout(slot, 6);
+            cMes.setLayout(slot, LAYOUT_SHOP_LIST);
             cMes.MesSet(type + 6, x, y, 0x200A1, slot, 0, 3);
             U16Set(cMes.getMes(slot)->m_ot_type, 0x13);
             U16Set(cMes.getMes(slot)->m_ot_no, 6);
@@ -2182,7 +2182,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 // 0xB10 added to the `&cMes` register (`addi r30,r30,cMes@l; addi r30,r30,2832`);
                 // a literal index is folded into the relocation at expand.
                 int no = 0xC;
-                cMes.setLayout(no, 6);
+                cMes.setLayout(no, LAYOUT_SHOP_LIST);
                 cMes.MesSet(0x28, x, y, 0x200A1, no, 0, 3);
                 cMes.mes[no].m_ot_type = 0x13;
                 cMes.mes[no].m_ot_no = 6;
@@ -2343,7 +2343,7 @@ void LvUpItemSelect::move(SUB_SCREEN* wk)
     u = IdSub.unitPtr(0xFC, 0x1C);
     x = (int) ((u->scr.x + 320.0f) * 0.8f);
     y = (int) ((240.0f - u->scr.y) * 0.8f);
-    cMes.setLayout(1, 2);
+    cMes.setLayout(1, LAYOUT_SUBSCRN);
     if (sw->lvType == 4) {
         cMes.MesSet(specialCaption(item->id), x, y, 0x20081, 1, 0, 3);
     } else {

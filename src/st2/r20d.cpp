@@ -169,23 +169,23 @@ void R20dInit()
                                          ROOM_ARC_PTR(pG->pRoom, 0x3F), ROOM_ARC_PTR(pG->pRoom, 0x40));
         r20d_initFence();
         r20d_initCrank();
-        SceExec(0x12, (TaskFunc) r20d_setEm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r20d_setEm, 0, 0, SCE_PRIO_DEF_2, 0);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            SceExec(0x12, (TaskFunc) r20d_checkSwitch, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r20d_checkSwitch, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
-            SceExec(0x12, (TaskFunc) r20d_checkSwitch, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r20d_checkSwitch, 1, 0, SCE_PRIO_DEF_2, 0);
         }
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 0, 1);
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 1, 1);
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 2, 1);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 3, 1);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 4, 1);
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 5, 1);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 6, 1);
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 7, 1);
-        SceAtDataSet_exec(0x1C, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 8, 1);
-        SceAtDataSet_exec(0x1D, 0x12, 0, (TaskFunc) r20d_execThrough, (void*) 9, 1);
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) r20d_checkDoor, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 1, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 2, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 3, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 4, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 5, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 6, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 7, 1);
+        SceAtDataSet_exec(0x1C, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 8, 1);
+        SceAtDataSet_exec(0x1D, SCE_LEVEL10, 0, (TaskFunc) r20d_execThrough, (void*) 9, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) r20d_checkDoor, 0, 1);
     } else {
         cObj* o = SmdGetObjPtr(0x18);
 
@@ -203,7 +203,7 @@ void R20dInit()
     SceSetItemEvent(0x15, 0x80, 5, 5, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 0, 0);
     SceSetItemEvent(0x16, 0x83, 6, 7, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 1, 0);
     SceSetItemEvent(0x17, 0x86, 7, 8, r20d_openDrawer, (void (*)()) r20d_openedDrawer, 2, 0);
-    SceExec(0x12, (TaskFunc) r20d_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r20d_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetActColor(0x1B, 1);
 }
 
@@ -446,17 +446,17 @@ void r20d_initCrank()
     ObjPSet(r20d_work.p->crank[1], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p1, &rot, 0x10, 1));
     ObjPSet(r20d_work.p->crank[2], SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &p2, &rot, 0x10, 1));
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r20d_operateCrank, (void*) 0, 1);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 0, 1);
     } else {
         r20d_work.p->fence[0].move(1.0f);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_operateCrank, (void*) 1, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 1, 1);
     } else {
         r20d_work.p->fence[1].move(1.0f);
     }
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r20d_operateCrank, (void*) 2, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r20d_operateCrank, (void*) 2, 1);
     } else {
         r20d_work.p->fence[2].move(1.0f);
     }
@@ -688,7 +688,7 @@ void r20d_initFence()
     for (i = 0; i < r20d_work.p->nFence; i++) {
         r20d_work.p->fence[i].init(&r20d_fenceData[i]);
     }
-    SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r20d_execFlagOn, 0, 1);
+    SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r20d_execFlagOn, 0, 1);
 }
 
 static void r20d_execDeathTrap()
@@ -758,7 +758,7 @@ static void r20d_dbgWall(int frame)
 
 void r20d_checkPictureCombination()
 {
-    SceExec(0x12, (TaskFunc) r20d_moveWall, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r20d_moveWall, 0, 0, SCE_PRIO_DEF_2, 0);
     RsfSet(G_ROOM_ID, 2);
     pG->door_flags_51C8 |= 4;
     SceAtSetEnable(0xD, 0);
@@ -783,11 +783,11 @@ static void r20d_checkSalazarCrestUse()
 static void r20d_execRoundSwitch()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceUpCut(1, 0x3C, -1, 4);
+        SceUpCut(1, 0x3C, -1, UP_CUT_ATTR_CUT_FIX);
         if (ItemMgr.num(0xF) == 0) {
             CamCtrl.Comeback(0);
         } else {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         }
         SceExit();
     }
@@ -867,9 +867,9 @@ void r20d_initRoundSwitch()
     }
     if (pG->pl_type == 1) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            SceAtDataSet_exec(0xD, 0x12, 0, (TaskFunc) r20d_execRoundSwitch, 0, 1);
-            SceExec(0x12, (TaskFunc) r20d_checkSalazarCrestUse, 0, 0, 2, 0);
-            SceAtDataSet_exec(0x13, 0x12, 0, (TaskFunc) r20d_execDeathTrap, 0, 1);
+            SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r20d_execRoundSwitch, 0, 1);
+            SceExec(0x12, (TaskFunc) r20d_checkSalazarCrestUse, 0, 0, SCE_PRIO_DEF_2, 0);
+            SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) r20d_execDeathTrap, 0, 1);
             SceAtSetEnable(0x13, 0);
         } else {
             SmdGetObjPtr(0x17)->pos.y = 4000.0f;
@@ -899,7 +899,7 @@ static void r20d_execThrough(int no)
     // pPLS (struct view) on both sides of the `sth atari.flags` store: cse1 then invalidates the first
     // pPL load and setPriority reloads pPL (target: `lwz r3,pPL@l; addi r3,r3,0x2b4`).
     AtariFlagsAnd(&pPLS->atari, 0xFEFF);
-    pPLS->atari.setPriority(1);
+    pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     d = &r20d_throughData[no];
     if (d->cut >= 0) {
@@ -1003,7 +1003,7 @@ void cLantern::initLantern(void* arc, void* m1, void* m2, void* m3, void* m4, vo
             num++;
         }
     }
-    SceExec(0x12, (TaskFunc) cLantern::checkLantern, (int) this, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) cLantern::checkLantern, (int) this, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void cLantern::checkLantern(cLantern* p)

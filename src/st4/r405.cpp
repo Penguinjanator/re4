@@ -78,17 +78,17 @@ void R405Init()
     EvtMgr.SetFunc("evt_r405s00_func", (void*) Evt_R405S00_Func);
     EvtMgr.SetFunc("evt_r405s99_func", (void*) Evt_R405S00_Func);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) em_set, 0, 1);
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) em_set, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) em_set, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) em_set, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) em_set3, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) em_set3, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceExec(0x12, (TaskFunc) R405ExecEventS00, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R405ExecEventS00, 0, 0, SCE_PRIO_DEF_2, 0);
         EvtMgr.EvtReadAram("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0, 0, 0);
     }
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r405_eff_info);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r405_eff_info);
     if (pG->pl_type == 2) {
         PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
                        ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0,
@@ -221,7 +221,7 @@ static void em_set()
         SndRoomStrStop(3);
         SndBgmTblSet(0x405, 1);
         SndRoomStrStart(1, 0, 1);
-        SceExec(0x12, (TaskFunc) r405_StrCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r405_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
         cEmWrap em0;
         cEmWrap em1;
         cEmWrap em2;

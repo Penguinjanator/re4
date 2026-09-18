@@ -424,18 +424,18 @@ static void em3b_R0_Init(cEm3b* em)
         break;
     }
     at = &em->atari;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     switch (em->type) {
     case 0:
     default:
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         YarareInitCube(em, 0.0f, -500.0f, 0.0f, 500.0f, 1500.0f, 3305.0f, 1, 1);
         YarareAddCube(em, &w->hit, 0.0f, 1000.0f, -1500.0f, 850.0f, 1500.0f, 1850.0f, 1, 1);
         break;
     case 1:
     case 2:
-        at->setPriority(3);
+        at->setPriority(PRI_LV3);
         at->m_flag &= ~0x100;
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 700.0f, 1000.0f, 1300.0f, 1, 1);
         break;
@@ -445,7 +445,7 @@ static void em3b_R0_Init(cEm3b* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     EspDataLoad((u32) ARC(6), 0x30, 0);
     w->espKind = EspPullCoreKind();
     w->flags = zero;
@@ -577,7 +577,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
             EstSet((int) em, -1, 0, 0, 1, 0x24, 0, 0, (u32) em, 0);
             em->flags_3C8 |= 2;
             em->hp = 0;
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             SndStop(w->sndId, 0);
         }
         break;
@@ -611,7 +611,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
     }
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
             break;
         }
@@ -710,7 +710,7 @@ static void em3b_R1_Cart_Damage(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 1, 0);
         w->sndId2 = SndCall(6, 9, &em->pos, 0, 0, em);
         EmSetDie(em);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -764,7 +764,7 @@ static void em3b_R1_Cart_Lost(cEm3b* em)
         em->atari.m_flag &= ~0x300;
         EmSetDie(em);
         em->hp = st;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     }
 }

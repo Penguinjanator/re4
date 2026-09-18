@@ -112,9 +112,9 @@ void R224Init()
 
 #line 74 "D:/Bio4/Prog/r224.cpp"
     r224_work.p = (R224Work*) MEM_CALLOC(sizeof(R224Work), 1, 0xd);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r224_toroko, 0, 1);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) reva_move, 0, 1);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r224_eff_info);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r224_toroko, 0, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) reva_move, 0, 1);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r224_eff_info);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     r224_work.p->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
@@ -140,7 +140,7 @@ void R224Init()
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
-    SceExec(0x12, (TaskFunc) r224_str_check, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r224_str_check, 0, 2, SCE_PRIO_DEF_2, 0);
     PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     {
         Vec rot2;
@@ -177,7 +177,7 @@ void R224Init()
         obj = SmdGetObjPtr(0x12);
         obj->be_flag |= 0x20;
         obj->pos.y = 4700.0f;
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r224_em_set, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r224_em_set, 0, 1);
     }
 }
 
@@ -193,7 +193,7 @@ void R224Main()
         v = 0;
         ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, v);
         if (Key.trg & 0x00080000) {
-            SceExec(0x12, (TaskFunc) r224_toroko, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r224_toroko, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
 }
@@ -223,8 +223,8 @@ static void r224_em_set_exit()
     AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
     AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
     pGS->flags_174 |= 0x04000000;
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r224_door_mes, 0, 1);
-    SceExec(0x12, (TaskFunc) em_die_ck, 0, 0, 2, 0);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r224_door_mes, 0, 1);
+    SceExec(0x12, (TaskFunc) em_die_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     GamePointBossReset();
     AtariFlagsOr(&r224_work.p->em0.getPtr()->atari, 0x300);
     AtariFlagsOr(&r224_work.p->em1.getPtr()->atari, 0x300);
@@ -260,7 +260,7 @@ static void r224_em_set()
         pl->setPos(&v);
     }
     SceEventStart(0);
-    SceExec(0x12, (TaskFunc) r224_cam_task, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r224_cam_task, 0, 0, SCE_PRIO_DEF_2, 0);
     r224_work.p->em0.setEm(0xC8, -1, 1, 1, 1);
     r224_work.p->em1.setEm(0xC9, -1, 1, 1, 1);
     r224_work.p->em0.setNoSuspend(1);
@@ -320,7 +320,7 @@ static void r224_toroko()
     pl->beginAction();
     AtariFlagsAnd(&pPLS->atari, 0xFEFF);
     AtariFlagsAnd(&pPLS->atari, 0xFDFF);
-    pPLS->atari.setPriority(1);
+    pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
@@ -612,11 +612,11 @@ static void reva_move()
             if (Key.trg & 0x00080000) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 5, 0, 1, 0);
                 frames = (u32) MotionGetMaxFrame(&pPL->Motion);
-                SceExec(0x12, (TaskFunc) reva_common_move, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) reva_common_move, 0, 0, SCE_PRIO_DEF_2, 0);
                 state = 2;
                 if ((pG->flags_174 & 0x40000000) == 0) {
                     pG->flags_174 |= 0x40000000;
-                    SceExec(0x12, (TaskFunc) futa_move, 0, 0, 2, 0);
+                    SceExec(0x12, (TaskFunc) futa_move, 0, 0, SCE_PRIO_DEF_2, 0);
                 }
             }
         } else {
@@ -682,7 +682,7 @@ void door_close()
 {
     SndCall(6, 2, &SmdGetObjPtr(0x16)->pos, 0, 0, 0);
     SndCall(6, 6, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r224_door_mes, 0, 1);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r224_door_mes, 0, 1);
     SceAtSetEnable(8, 1);
     for (;;) {
         u32 cnt = 0;
@@ -732,7 +732,7 @@ static void r224_str_check()
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm* em = r224_emWork(i);
 
-            if (em->id == 0x2B && em->checkStatus(5) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
+            if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 found = 1;
             }
         }

@@ -83,28 +83,28 @@ void R106Init()
 
     pG->Item_find_flg |= 0x800;
     EvtMgr.SetFunc("evt_r106s00_func", (void*) Evt_R106S00_Func);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r106_eff_info);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r106_eff_info);
     if (getRoomEtcDoor(8, &door, 1)) {
         ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0);
     }
     SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, (void (*)()) r106_openedShelf, 0, 0);
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, (void (*)()) r106_openedShelf, 1, 0);
     if (!(pG->Item_find_flg & 0x00200000)) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r106_Event, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r106_Event, 0, 1);
         PSet(r106_work->evd, DC.setData(EvtMgr.NameChange("evd/r106s00.evd")));
-        r106_work->evd->setCommand(2, 0, 0);
+        r106_work->evd->setCommand(CMND_ARAM_LOAD, 0, 0);
         EmReadSearch(0x12, 0, 0x3C0000);
         EmReadSearch(0x29, 0, 0);
         EmReadSearch(0x2A, 0, 0);
         EmReadSearch(0x2E, 0, 0);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r106_ctrlBgm, (void*) 1, 1);
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r106_ctrlBgm, 0, 1);
-        SceExec(0x12, (TaskFunc) r106_setCloset, 0, 0, 2, 0);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r106_ctrlBgm, (void*) 1, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r106_ctrlBgm, 0, 1);
+        SceExec(0x12, (TaskFunc) r106_setCloset, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(0xE, 0);
     }
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r106_ctrlEm0, 0, 1);
-    SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r106_ctrlEm1, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r106_ctrlEm0, 0, 1);
+    SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r106_ctrlEm1, 0, 1);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         r106_setRollingStone();
     }
@@ -230,7 +230,7 @@ extern "C" void r106_setRollingStone()
         d.xB = 1;
         EmSetEvent(&d);
     }
-    SceExec(0x12, (TaskFunc) r106_checkRollingStone, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r106_checkRollingStone, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Area 8: Ganado 0x8F walks to its post.
@@ -353,7 +353,7 @@ static void r106_Event()
     EmMgr.destroyAll();
     SceSleep(2);
     EmReadInit();
-    r106_work->evd->setCommand(1, 0, 1);
+    r106_work->evd->setCommand(CMND_MRAM_LOAD, 0, 1);
     if (r106_work->evd->waitLoadOk()) {
         EventMgr* evt;
 
@@ -365,7 +365,7 @@ static void r106_Event()
             SceSleep(1);
         }
     }
-    r106_work->evd->setCommand(4, 0, 0);
+    r106_work->evd->setCommand(CMND_DEL_DATA, 0, 0);
     PlSetCostume();
     SceEventEnd(0);
     SceSetChapterEnd(0, 3);
@@ -471,9 +471,9 @@ static void r106_setCloset()
             Vec sp = {157059.0f, -9245.0f, -43597.0f};
 
             SndCall(6, 4, &sp, 0, 0, 0);
-            SceExec(0x12, (TaskFunc) r106_shakeClosetBody, (int) body, 0, 2, 0);
-            SceExec(0x12, (TaskFunc) r106_shakeClosetDoorR, (int) doorR, 0, 2, 0);
-            SceExec(0x12, (TaskFunc) r106_shakeClosetDoorL, (int) doorL, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r106_shakeClosetBody, (int) body, 0, SCE_PRIO_DEF_2, 0);
+            SceExec(0x12, (TaskFunc) r106_shakeClosetDoorR, (int) doorR, 0, SCE_PRIO_DEF_2, 0);
+            SceExec(0x12, (TaskFunc) r106_shakeClosetDoorL, (int) doorL, 0, SCE_PRIO_DEF_2, 0);
             cnt = ((Rnd() >> 2) & 0xFF) + 5;
         }
         cnt--;

@@ -1058,7 +1058,7 @@ static inline void SubBullSeat(cEm* em)
 void Sub_bull_drive(cEm* em)
 {
     pG->flags_5014 |= 0x00800000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
@@ -1086,7 +1086,7 @@ void Sub_bull_drive(cEm* em)
 void Sub_bull_operation(cEm* em)
 {
     pG->flags_5014 |= 0x00800000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
@@ -1108,7 +1108,7 @@ void Sub_bull_lookback(cEm* em)
     cModel* parts;
 
     pG->flags_5014 |= 0x00800000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
@@ -1136,7 +1136,7 @@ void Sub_bull_lookback(cEm* em)
 void Sub_bull_look(cEm* em)
 {
     pG->flags_5014 |= 0x00800000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
@@ -1159,7 +1159,7 @@ void Sub_dm_bull(cEm* em)
     int type = 2;
 
     pG->flags_5014 |= 0x00800000;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     em->dmType = type;
     switch (em->r_no_2) {
     case 0:

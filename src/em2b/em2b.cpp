@@ -660,7 +660,7 @@ void em2bDmCk(cEm2b* em)
         EmSetDie(em);
         EmReserveDropItem(em);
         EmSetDieCntE(em);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         EmRoutineSet(em, 3, 0, 0, 0);
         return;
     }
@@ -958,7 +958,7 @@ static void em2b_R0_Init(cEm2b* em)
     em2bClothSet(em);
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     atariInitF(at, 0.0f, 0.0f, 0.0f, 1700.0f, 1500.0f, 1500.0f, 3000.0f, 1, 0x2000, 0xA);
-    at->setPriority(1);
+    at->setPriority(PRI_LV1);
     YarareInit(em, 0.0f, -200.0f, 0.0f, 500.0f, 400.0f, 5, 1);
     YarareAdd(em, &w->hit[0], 0.0f, -100.0f, 0.0f, 900.0f, 1300.0f, 2, 1);
     YarareAdd(em, &w->hit[1], -80.0f, -1600.0f, 0.0f, 500.0f, 1600.0f, 0x14, 1);
@@ -1035,8 +1035,8 @@ static void em2b_R0_Init(cEm2b* em)
     SetObaModel((cObj*) em, 0x17, &v, 700.0f, 0, 1000.0f);
     SetObaModel((cObj*) em, 0x18, &v, 600.0f, 0, 1000.0f);
     SetObaModel((cObj*) em, 0x19, &v, 500.0f, 0, 1000.0f);
-    em->setStatus(9);
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_LOOK_ME);
+    em->setStatus(EM_STATUS_ACTIVE);
     {
         int st = em->set;
         switch (st) {
@@ -2456,7 +2456,7 @@ static void em2b_R1_Strangle(cEm2b* em)
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
         pG->flags_5014 |= 0x02000000;
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         em->r_no_2++;
     case 1:
         em->flags_3C8 |= 8;
@@ -2697,7 +2697,7 @@ static void em2b_R1_SubCatch(cEm2b* em)
 
         MotionSetCore(em, &em->Motion, ARC(0x4A), (int) ARC(0x98), 0, flip, 0);
         SetSubDamage((int) em, (void*) subem2b_Catch);
-        GameAddPoint(2);
+        GameAddPoint(LVADD_PL_DAMAGE);
         w->Parasite_damage = 100;
         em->r_no_2++;
     }
@@ -3239,7 +3239,7 @@ static inline void em2bParasiteDieSet(cEm2b* em)
     EmSetDie(em);
     EmReserveDropItem(em);
     EmSetDieCntE(em);
-    em->clearStatus(5);
+    em->clearStatus(EM_STATUS_ACTIVE);
     em->atari.m_flag &= ~0x100;
     EmRoutineSet(em, 3, 0, 0, 0);
 }
@@ -3832,8 +3832,8 @@ static void em2b_R1_Die_Normal(cEm2b* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
-            em->setStatus(8);
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             w->scaleRate = 1.0f;
             EmRoutineSet(em, 3, 1, 0, 0);
@@ -3929,8 +3929,8 @@ static void em2b_R1_Die_Event(cEm2b* em)
         em->pos.z = 5681.25f;
         em->ang.y = GetXZAngle(&em->pos, &pPLS->pos);
         MotionSetCore(em, &em->Motion, ARC(0x3C), 0, 0, 1, 0);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         em->atari.setFlag200();
         v.x = 0.0f;
         v.y = 0.0f;
@@ -3977,8 +3977,8 @@ static void em2b_R1_Die_R224Drop(cEm2b* em)
             SndCall(6, 0xE, &p->world, 0, 0, em);
         }
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
-            em->setStatus(8);
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmRoutineSet(em, 1, 0x16, 0, 0);
         }
         break;
@@ -4355,7 +4355,7 @@ static void plem2b_dm_BlowKick(cPlayer* pl)
 static void em2bDashEscapeAction(cEm2b* em)
 {
     SetPlDamage((int) em, plem2bDashEscape);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Dash out from under the falling giant.
@@ -4377,7 +4377,7 @@ static void plem2bDashEscape(cPlayer* pl)
         if (pSUB) {
             AtariFlagsAndV(&pSUB->atari, 0xFDFF);
         }
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         if (pSUB) {
             pSUB->be_flag &= ~2;
         }
@@ -5269,7 +5269,7 @@ void em2bPlBlowAtkScrCk(cPlayer* pl)
 static void em2bEscapeAction(cEm2b* em)
 {
     SetPlDamage((int) em, plem2bEscapeTree);
-    GameAddPoint(9);
+    GameAddPoint(LVADD_CRITICALHIT);
 }
 
 // Ducks under the swung tree.
@@ -5292,7 +5292,7 @@ static void plem2bEscapeTree(cPlayer* pl)
         break;
     case 2:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0xBF), 0, 3, 1, 0);
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
         pl->r_no_2++;
     case 3:
         if (MotionMoveF(pl, 0)) {
@@ -6211,7 +6211,7 @@ int em2bStayCk(cEm2b* em)
         if (e == em) {
             continue;
         }
-        if (!e->checkStatus(5)) {
+        if (!e->checkStatus(EM_STATUS_ACTIVE)) {
             continue;
         }
         if (e->plDist2 < em->plDist2) {
@@ -6252,7 +6252,7 @@ void em2bObaHitCk(cEm2b* em)
         if (e == em) {
             continue;
         }
-        if (!e->checkStatus(5)) {
+        if (!e->checkStatus(EM_STATUS_ACTIVE)) {
             continue;
         }
         PSVECSubtract(&em->pos, &e->pos, &d);
@@ -6332,7 +6332,7 @@ int em2bFriendCk(cEm2b* em)
         if (e == em) {
             continue;
         }
-        if (!e->checkStatus(5)) {
+        if (!e->checkStatus(EM_STATUS_ACTIVE)) {
             continue;
         }
         return 1;

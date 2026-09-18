@@ -100,10 +100,10 @@ void R103Init()
         EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
     }
     pG->Item_find_flg |= 0x1000;
-    SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r103_cesspit, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r103_cesspit, 0, SCE_PRIO_DEF_2, 0);
     r103_setSubMissionTarget(8);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r103_eff_info);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r103_eff_info);
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
     }
@@ -113,7 +113,7 @@ void R103Init()
     if (!(pG->item_flags[0] & 0x800)) {
         U32Set(r103_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r103_work->eff, 0, 0);
-        SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r103_getFile, 0, 1);
+        SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);
     }
     SceAtSetActColor(2, 1);
 }
@@ -380,7 +380,7 @@ extern "C" void r103_checkCesspit0(R103Cesspit* c)
     if (pG->Item_find_flg & 0x10) {
         SceAtSetEnable(c->itemAt, 0);
     }
-    SceAtDataSet_exec(c->at18, 0x12, 0, (TaskFunc) r103_execOpenCover, c, 1);
+    SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);
     SceAtSetEnable(c->at14, 0);
     r103_checkCesspit1(c);
 }
@@ -451,15 +451,15 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
     SceAtSetEnable(c->itemAt2, 1);
     BitOn(SmdGetObjPtr(c->lid)->be_flag, 0x20);
     if (!(pG->Item_find_flg & 0x20)) {
-        SceExec(0x12, (TaskFunc) r103_checkCloseCover, (int) c, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r103_checkCesspit0, (int) c, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r103_checkCloseCover, (int) c, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r103_checkCesspit0, (int) c, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(c->at10, 0);
         SceAtSetEnable(c->itemAt, 1);
     } else {
         BitOff(SmdGetObjPtr(c->cover)->be_flag, 2);
         if (!(pG->flags_51C0 & 0x04000000)) {
             SmdGetObjPtr(c->lid)->pParts->ang.x = 1.12f;
-            SceAtDataSet_exec(c->at18, 0x12, 0, (TaskFunc) r103_execOpenCover, c, 1);
+            SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);
             SceAtSetEnable(c->at14, 0);
             if (pG->Item_find_flg & 0x10) {
                 SceAtSetEnable(c->itemAt, 1);
@@ -471,12 +471,12 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
             } else {
                 SceAtSetEnable(c->at10, 1);
             }
-            SceExec(0x12, (TaskFunc) r103_checkCesspit1, (int) c, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r103_checkCesspit1, (int) c, 0, SCE_PRIO_DEF_2, 0);
         } else {
             SmdGetObjPtr(c->lid)->pParts->ang.x = -1.83f;
             SceAtSetEnable(c->at10, 0);
             if (SceAtItemFlgCk(c->itemAt) == 0) {
-                SceExec(0x12, (TaskFunc) r103_checkCesspit2, (int) c, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r103_checkCesspit2, (int) c, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }

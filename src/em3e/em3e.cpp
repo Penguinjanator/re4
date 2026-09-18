@@ -38,7 +38,7 @@ void em3eInit(cEm* em)
 
 cEmMark::cEmMark()
 {
-    setStatus(1);
+    setStatus(EM_STATUS_LOCKOFF);
 }
 
 void cEmMark::init(EmMarkData* d)

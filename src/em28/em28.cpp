@@ -278,9 +278,9 @@ static void em28_R0_Init(cEm28* em)
         break;
     }
     em->be_flag &= ~0x10;
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     zero = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->pXFlip = em28_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -293,7 +293,7 @@ static void em28_R0_Init(cEm28* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 300.0f, 200.0f, 200.0f, 500.0f, 3, 0x2000, 10);   // COMPILER-DIFF: #1
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -130.0f, 200.0f, 100.0f, 3, 5);
     EspDataLoad((u32) ARC(0xB), 0x20, 0);
     w->flags = zero;
@@ -301,7 +301,7 @@ static void em28_R0_Init(cEm28* em)
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
     w->x17C = zero;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     EmRoutineSet(em, 1, zero, zero, zero);
     MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, 5, 0);
     MotionMoveF(em, 0);
@@ -650,7 +650,7 @@ static void em28_R1_Die_Normal(cEm28* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         switch ((u8) (Rnd() % 3)) {
         case 0:
         default:
@@ -676,7 +676,7 @@ static void em28_R1_Die_Normal(cEm28* em)
             }
         }
         if (MotionMoveF(em, 0)) {
-            em->setStatus(8);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             em->r_no_2++;
         }
@@ -719,14 +719,14 @@ static void em28_R1_Die_Air(cEm28* em)
     }
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 3, 1, 0);
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         em->atari.m_flag &= ~0x200;
         SndCall(8, 1, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 3:
         em28DieFade(em, w);
         if (MotionMoveF(em, 0)) {
-            em->setStatus(8);
+            em->setStatus(EM_STATUS_ITEMSET);
             EmSetDropItem(em);
             em->r_no_2++;
         }

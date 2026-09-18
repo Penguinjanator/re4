@@ -62,7 +62,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     w->size.y = 200.0f;
     w->size.z = 200.0f;
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     emHitYarareInit(em);
     em->hp_max = em->hp = 1000;
@@ -76,8 +76,8 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     w->Be_flg = 0;
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;

@@ -96,7 +96,7 @@ void SsCapMain::init(SUB_SCREEN* wk)
     exam = new SsItemExamine;
     sel->connect(0, exam);
     exam->connect(0, sel);
-    IdTexDataLoad(SS_ARC_PTR(wk->pExam, 5), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pExam, 5), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pExam, 6), 0xFF, 0x14, 0xC, 6, 0);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x14));
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pExam, 4));
@@ -116,7 +116,7 @@ void SsCapMain::init(SUB_SCREEN* wk)
 
 void SsCapMain::move(SUB_SCREEN* wk)
 {
-    cMes.setLayout(0, 2);
+    cMes.setLayout(0, LAYOUT_SUBSCRN);
     if (state == 0) {
         Widget<SUB_SCREEN>* w = cur;
         w->move(wk);

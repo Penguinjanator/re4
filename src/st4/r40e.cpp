@@ -75,9 +75,9 @@ void R40eInit()
     r40e_initElevator();
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r40e_execEmAppear, 0, 1);
+            SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r40e_execEmAppear, 0, 1);
         } else {
-            SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         r40e_work->elv.setReverse(1);
         SceAtSetEnable(5, 1);
@@ -87,12 +87,12 @@ void R40eInit()
     EvtMgr.SetFunc("evt_r40es00_func", (void*) Evt_R40ES00_Func);
     EvtMgr.SetFunc("evt_r40es99_func", (void*) Evt_R40ES00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R40EExecEventS00, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) R40EExecEventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0, 0, 0);
     }
     TexRenderInit(&r40e_work->tex, 0, 1);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceExec(0x12, (TaskFunc) r40e_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r40e_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -183,7 +183,7 @@ static void r40e_moveElevator(u32 dir)
             obj->pModelInfo->uvScrollU = -0.05f;
         }
     }
-    SceExec(0x12, (TaskFunc) r40e_setElvCamera, dir, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r40e_setElvCamera, dir, 0, SCE_PRIO_DEF_2, 0);
     if (dir <= 1) {
         cPlayer* pl = pPL;
         cSceObj* elv = &r40e_work->elv;
@@ -249,8 +249,8 @@ static void r40e_moveElevator(u32 dir)
 
 void r40e_initElevator()
 {
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r40e_moveElevator, 0, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r40e_moveElevator, (void*) 1, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r40e_moveElevator, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40e_moveElevator, (void*) 1, 1);
     cObj* obj = SmdGetObjPtr(9);
     Vec d = {0.0f, 11656.0f, 0.0f};
     r40e_work->elv.initMove1_pos(obj, 210, &d, 20.0f, 20.0f);
@@ -268,7 +268,7 @@ static void r40e_execEmAppear_end()
     pPL->setNoSuspend(0);
     *EM_LIST(0xDD) = *EM_LIST(0xDE);
     EmListSetAlive(0xDD, 1);
-    SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Area 4: the enemy drops in (cut 9).
@@ -346,7 +346,7 @@ static void R40EExecEventS00()
                 EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0);
                 FadeSetW(0, 0, 0, 0);
                 SceSleep(1);
-                SceExec(0x12, (TaskFunc) gameResult, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) gameResult, 0, 0, SCE_PRIO_DEF_2, 0);
                 SceEventEnd(0);
             }
         }
@@ -377,7 +377,7 @@ static void gameResult()
     BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     systemVISetBlack(1);
-    FadeKill(2);
+    FadeKill(FADE_NO_ROOM);
     ScreenReSize(0x200, 0x1C0);
     if (!(pSys->x4 & 0x00200000)) {
         pSys->x4 |= 0x00200000;

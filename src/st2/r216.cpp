@@ -133,13 +133,13 @@ void R216Init()
         r216_work.p->pole[1].setOpened();
         r216_work.p->pole[2].setOpened();
     } else {
-        SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r216_BattleStart, 0, 1);
+        SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r216_BattleStart, 0, 1);
         r216_work.p->armor[0].em.setEm(0xE5, -1, 1, 1, 1);
         r216_work.p->armor[1].em.setEm(0xE6, -1, 1, 1, 1);
         r216_work.p->armor[2].em.setEm(0xE7, -1, 1, 1, 1);
         r216_work.p->armor[3].em.setEm(0xE8, -1, 1, 1, 1);
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r216_ArmorDispOnOff, (void*) 1, 1);
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r216_ArmorDispOnOff, 0, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r216_ArmorDispOnOff, (void*) 1, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r216_ArmorDispOnOff, 0, 1);
     }
 }
 
@@ -186,7 +186,7 @@ static void r216_BattleStart()
         SceSleep(1);
     }
     pG->flags_174 &= ~0x08000000;
-    r216_work.p->prim = SceExec(0x12, (TaskFunc) r216_ArmorAppearCamera, 0, 0, 2, NULL);
+    r216_work.p->prim = SceExec(0x12, (TaskFunc) r216_ArmorAppearCamera, 0, 0, SCE_PRIO_DEF_2, NULL);
     r216_work.p->pole[0].setOpen();
     r216_work.p->pole[1].setOpen();
     r216_work.p->pole[2].setOpen();
@@ -229,7 +229,7 @@ static void r216_BattleStartEndProc()
         SceSleep(1);
     }
     CamCtrl.Comeback(0);
-    SceExec(0x12, (TaskFunc) r216_BattleEndCheck, 0, 0, 2, NULL);
+    SceExec(0x12, (TaskFunc) r216_BattleEndCheck, 0, 0, SCE_PRIO_DEF_2, NULL);
     r216_work.p->em[6].em.setNoSuspend(0);
     r216_work.p->em[7].em.setNoSuspend(0);
     r216_work.p->em[8].em.setNoSuspend(0);
@@ -299,12 +299,12 @@ static void r216_BattleEndCheck()
             }
         }
         if (dead == 6) {
-            SceExec(0x12, (TaskFunc) r216_BattleEnd, 0, 0, 2, NULL);
+            SceExec(0x12, (TaskFunc) r216_BattleEnd, 0, 0, SCE_PRIO_DEF_2, NULL);
             SceExit();
         } else if (dead == 3) {
             if (!(pG->flags_174 & 0x10000000)) {
                 pG->flags_174 |= 0x10000000;
-                SceExec(0x12, (TaskFunc) r216_2ndArmorAppear, 0, 0, 2, NULL);
+                SceExec(0x12, (TaskFunc) r216_2ndArmorAppear, 0, 0, SCE_PRIO_DEF_2, NULL);
             }
         }
         SceSleep(1);

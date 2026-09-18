@@ -485,11 +485,11 @@ void R22cInit()
     if (Joy[0].on & 0x40) {
         r22c_work.p->level = 4;
     }
-    SceExec(0x12, (TaskFunc) r22cSetWepMan, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r22cGateCtrl, 0, 0, 2, 0);
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r22c_startShootingGame, 0, 1);
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r22c_checkShootingScore, 0, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r22c_checkExitDoor, 0, 1);
+    SceExec(0x12, (TaskFunc) r22cSetWepMan, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r22cGateCtrl, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r22c_startShootingGame, 0, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r22c_checkShootingScore, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r22c_checkExitDoor, 0, 1);
     SceAtSetActColor(2, 1);
     if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
         ((cEmDoor*) r22c_work.p->door[0])->setDoor((cEmDoor*) r22c_work.p->door[1]);
@@ -500,7 +500,7 @@ void R22cInit()
     SmdGetObjPtr(1)->be_flag &= ~2;
     SmdGetObjPtr(2)->be_flag &= ~2;
     SmdGetObjPtr(3)->be_flag &= ~2;
-    SceExec(0x12, (TaskFunc) r22c_AshleyCtrl, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r22c_AshleyCtrl, 0, 0, SCE_PRIO_DEF_2, 0);
     LightMgr.onKind(1);
     LightMgr.offKind(2);
     {
@@ -598,7 +598,7 @@ static void r22c_AshleyCtrl()
 
     SceSleep(1);
     if (pSUB) {
-        SubCharCtrl(7, 1);
+        SubCharCtrl(SCC_STOP, 1);
         cEm* sub = pSUB;
         v.x = -1600.0f;
         v.y = 0.0f;
@@ -609,7 +609,7 @@ static void r22c_AshleyCtrl()
         v.x = 0.0f;
         v.z = 0.0f;
         sub->setAng(&v);
-        pSUB->atari.setPriority(1);
+        pSUB->atari.setPriority(PRI_LV1);
     }
 }
 
@@ -817,7 +817,7 @@ int weaponSelect(int sel)
         pl->weaponInit();
         ItemMgr.arm(ItemMgr.search(WeaponNo2WeaponId(wep, 0)));
         if (ask) {
-            SubScreenOpen(1, 0);
+            SubScreenOpen(SS_OPEN_NORMAL, 0);
         }
         break;
     case 2:
@@ -834,7 +834,7 @@ int weaponSelect(int sel)
         pl->weaponInit();
         ItemMgr.arm(ItemMgr.search(WeaponNo2WeaponId(wep, 0)));
         if (ask) {
-            SubScreenOpen(1, 0);
+            SubScreenOpen(SS_OPEN_NORMAL, 0);
         }
         break;
     }
@@ -1234,7 +1234,7 @@ static void shootMain()
             if (r22c_work.p->combo == 5) {
                 r22c_work.p->combo = 0;
                 if (!(pG->flags_174 & 0x40000000)) {
-                    SceExec(0x12, (TaskFunc) funcUfo, 0, 0, 2, 0);
+                    SceExec(0x12, (TaskFunc) funcUfo, 0, 0, SCE_PRIO_DEF_2, 0);
                     r22c_work.p->ufoWait = 3;
                 }
             }
@@ -1449,7 +1449,7 @@ static void r22cSetWepMan()
         em = EmSetEvent(&d);
         r22c_work.p->wepMan = em;
         em->dmg.set(0, 0x80);
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r22c_talkWepMan, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r22c_talkWepMan, 0, 1);
         SceSleep(10);
         cEmWrap w;
         w.setPtr(em, 1);
@@ -1614,7 +1614,7 @@ void R22cHitEffect(int no)
             return;
         }
         r22c_work.p->effFlags |= 0x10;
-        SceExec(0x12, (TaskFunc) r22c_BirdsFly, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r22c_BirdsFly, 0, 0, SCE_PRIO_DEF_2, 0);
         r22c_work.p->effTimer = 0x1E0;
         break;
     case 1:
@@ -1629,7 +1629,7 @@ void R22cHitEffect(int no)
         if (r22c_work.p->effFlags & 0x40) {
             return;
         }
-        SceExec(0x12, (TaskFunc) r22c_BeeFly, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r22c_BeeFly, 0, 0, SCE_PRIO_DEF_2, 0);
         r22c_work.p->effFlags |= 0x40;
         r22c_work.p->effTimer = 0x4B0;
         break;
@@ -1638,7 +1638,7 @@ void R22cHitEffect(int no)
             return;
         }
         r22c_work.p->effFlags |= 0x80;
-        SceExec(0x12, (TaskFunc) r22c_ShootingStar, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r22c_ShootingStar, 0, 0, SCE_PRIO_DEF_2, 0);
         r22c_work.p->effTimer = 0x4B0;
         break;
     case 3:
@@ -1651,7 +1651,7 @@ void R22cHitEffect(int no)
     case 5:
         if (flagBit(r22c_work.p->effFlags, 1) && !(r22c_work.p->effFlags & 2)) {
             r22c_work.p->effFlags |= 2;
-            SceExec(0x12, (TaskFunc) r22c_FireWorks, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r22c_FireWorks, 0, 0, SCE_PRIO_DEF_2, 0);
             r22c_work.p->effTimer = 0x4B0;
         } else {
             if (r22c_work.p->effFlags & 8) {
@@ -1690,8 +1690,8 @@ void ResultScreen::read()
 
 void ResultScreen::reloadtime()
 {
-    IdTexRelease(6);
-    IdTexDataLoad(RES_PTR(data, ofsTexReload), 6);
+    IdTexRelease(TEX_OWNER_ID_EVENT);
+    IdTexDataLoad(RES_PTR(data, ofsTexReload), TEX_OWNER_ID_EVENT);
     IdSys.kill(0xFF, 0x2C);
     IdSys.set(RES_PTR(data, ofsIdReload), 0xFF, 0x2C, 0x13, 6, 0);
 }
@@ -1702,9 +1702,9 @@ void ResultScreen::highscore(int score)
     int i;
     register int pin asm("r28"); // COMPILER-DIFF: candidate #17 (see below)
 
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(RES_PTR(data, ofsTexResult), 7);
+    IdTexDataLoad(RES_PTR(data, ofsTexResult), TEX_OWNER_ID_TITLE);
     IdSys.set(RES_PTR(data, ofsIdHigh), 0xFF, 0x28, 0x13, 6, 0);
     for (i = 0; i < 7; i++) {
         digit[i] = score % 10;
@@ -1733,9 +1733,9 @@ void ResultScreen::highscore(int score)
 
 void ResultScreen::init()
 {
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(RES_PTR(data, ofsTexResult), 7);
+    IdTexDataLoad(RES_PTR(data, ofsTexResult), TEX_OWNER_ID_TITLE);
     IdSys.set(RES_PTR(data, ofsIdResult), 0xFF, 0x28, 0x13, 6, 0);
     if (r22c_work.p->capId == 0xFFFF) {
         SndCall(6, 0xA, 0, 0, 0, 0);

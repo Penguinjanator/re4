@@ -78,6 +78,21 @@ struct EmiEntry;   // embarrel.h
 class cSubChar;    // pl_npc.h
 class cLight;      // light.h
 
+enum EM_STATUS {
+    EM_STATUS_ATTACKING = 0,
+    EM_STATUS_LOCKOFF = 1,
+    EM_STATUS_MIST_ON = 2,
+    EM_STATUS_IK_OFF = 3,
+    EM_STATUS_ALERT = 4,
+    EM_STATUS_ACTIVE = 5,
+    EM_STATUS_DOGCK = 6,
+    EM_STATUS_DOGATK = 7,
+    EM_STATUS_ITEMSET = 8,
+    EM_STATUS_LOOK_ME = 9,
+    EM_STATUS_DONT_FIRE = 10,
+    EM_STATUS_ASHLEY_NO_HELP = 11
+};
+
 // Character work (game/em.cpp), sizeof 0xDE0: the cModel (0x320, which carries the motion work,
 // the cAtariInfo, pFootShadowTbl and the light area) plus the fields below.
 class cEm : public cModel {

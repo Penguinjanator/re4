@@ -163,11 +163,11 @@ static void em2e_R0_Init(cEm2e* em)
         }
         break;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     zero = 0;
     at = &em->atari;
     em->be_flag &= ~0x01000000;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     EspDataLoad((u32) ARC(7), 0x26, 0);
     em->hp = 1;
     {

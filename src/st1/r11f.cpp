@@ -93,7 +93,7 @@ void R11fInit()
     r11f_work = (R11fWork*) MEM_CALLOC(sizeof(R11fWork), 1, 0xD);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r11fs00.evd", 0, 0, 0, 0);
-        SceAtDataSet_exec(0x18, 0x12, 0, r11f_EventS00, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, r11f_EventS00, 0, 1);
         EvtMgr.SetFunc("evt_r11fs00_func", (void*) Evt_R11FS00_Func);
         EvtMgr.SetFunc("evt_r11fs01_func", (void*) Evt_R11FS01_Func);
         EvtMgr.SetFunc("evt_r11fs02_func", (void*) Evt_R11FS02_Func);
@@ -105,7 +105,7 @@ void R11fInit()
         if (!(pG->flags_5018 & 0x04000000)) {
             pG->flags_5018 |= 0x04000000;
             SubCharInit(1, &pPLS->pos, pPLS->ang.y);
-            SubCharCtrl(1, 0);
+            SubCharCtrl(SCC_CHASE, 0);
         }
         SceAtSetEnable(8, 0);
     } else {
@@ -179,7 +179,7 @@ static void r11f_EventS00()
     SndRoomBgmVolSet(0, 1, 600);
     SndRoomBgmVolSet(1, 1, 600);
     SceEventStart(0);
-    SubCharCtrl(2, 0);
+    SubCharCtrl(SCC_KILL, 0);
     EvtMgr.EvtReadExec("event/evd/r11fs00.evd", 0, 0);
     r11f_DoorReplace();
     if (!(pG->flags_174 & 0x80000000)) {
@@ -207,7 +207,7 @@ static void r11f_EventS00()
         pG->flags_5010 |= 1;
         EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
         EstSet(0, -1, 0, 0, 1, 4, 0x801, 2, 0, 0);
-        SceExec(0x12, r11f_EventS10, 0, 0, 2, 0);
+        SceExec(0x12, r11f_EventS10, 0, 0, SCE_PRIO_DEF_2, 0);
         SeAtSetOnOff(0, 1);
         SeAtSetOnOff(1, 1);
     }
@@ -531,7 +531,7 @@ static void r11f_EventS10EndProc()
     if (r11f_work->em0.isActive()) {
         Cckpt.m_LifeMeter.flags = (u32) r11f_work->em0.getPtr();
     }
-    SceExec(0x12, r11f_Eventxxx, 0, 0, 2, 0);
+    SceExec(0x12, r11f_Eventxxx, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // After the fight: the s10 event once the boss is gone.
@@ -546,7 +546,7 @@ static void r11f_Eventxxx()
     ((cEm2b*) r11f_work->em0.getPtr())->v50();
     SndRoomStrStop(2);
     EvtMgr.EvtReadExec("event/evd/r11fs10.evd", 0, 0);
-    SceAtDataSet_exec(0x80, 0x12, 0, r11f_EventS11, 0, 1);
+    SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, r11f_EventS11, 0, 1);
     SceEventEnd(0);
 }
 
@@ -595,14 +595,14 @@ static void r11f_EventS11()
     EffectEfmDelete(0x801, 2, 0);
     EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
     pG->flags_5010 &= ~1;
-    SceExec(0x12, r11f_AshleyRunUp, 0, 0, 2, 0);
+    SceExec(0x12, r11f_AshleyRunUp, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void r11f_AshleyRunUp()
 {
     SceSleep(30);
     if (!(SubCharGetStatus() & 0x20000000)) {
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     RoomSeCall(0, &pSubEm->pos, 0, 0, pSubEm);
 }

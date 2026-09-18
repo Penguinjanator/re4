@@ -1348,7 +1348,7 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     exam->connect(0, select);
     caseChange->connect(0, select);
     puzzleCameraInit(wk, &pG->Cam);
-    IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->x1E4, 0x1AA), TEX_OWNER_ID_SSCRN);
     if (!IdSub.setCk(0x14)) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
     }
@@ -1826,7 +1826,7 @@ void openMsgWindow(SUB_SCREEN* wk, int no)
     msg_open = 1;
     cMes.Delete(1);
     cMes.Delete(2);
-    cMes.setLayout(1, 2);
+    cMes.setLayout(1, LAYOUT_SUBSCRN);
     cMes.MesSet(no, msg_x, msg_y, 0x11, 1, 0, 3);
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xA), 0xFF, 3, 0x13, 0, 0);
 }

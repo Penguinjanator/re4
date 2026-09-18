@@ -468,11 +468,11 @@ void gameRoomInit()
         SatMgr.seCk = 0;
         EatMgr.seCk = 1;
         EatMgr.initEffInfo();
-        EatMgr.registEffInfo(2, (AtEffInfo*) &effInfoWater);
-        EatMgr.registEffInfo(4, (AtEffInfo*) &effInfoNormal);
-        EatMgr.registEffInfo(5, (AtEffInfo*) &effInfoNormal);
-        EatMgr.registEffInfo(6, (AtEffInfo*) &effInfoNormal);
-        EatMgr.registEffInfo(7, (AtEffInfo*) &effInfoNormal);
+        EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &effInfoWater);
+        EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &effInfoNormal);
+        EatMgr.registEffInfo(EAT_ET_ROOM1, (AtEffInfo*) &effInfoNormal);
+        EatMgr.registEffInfo(EAT_ET_ROOM2, (AtEffInfo*) &effInfoNormal);
+        EatMgr.registEffInfo(EAT_ET_ROOM3, (AtEffInfo*) &effInfoNormal);
     }
     SceAtInit(GetDataExt(pG->pRoom, "AEV", 0), GetDataExt(pG->pRoom, "ITA", 0));
     EvtMgr.roomInit();
@@ -1078,7 +1078,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             break;
         case 1:
-            IdTexDataLoad((void*) (((OptionArc*) pG->pOption)->ofs_10 + (u32) pG->pOption), 10);
+            IdTexDataLoad((void*) (((OptionArc*) pG->pOption)->ofs_10 + (u32) pG->pOption), TEX_OWNER_ID_DEAD);
             IdSys.kill(0xFF, 0x21);
             kind = w->demo_type;
             if (kind == 0) {
@@ -1173,7 +1173,7 @@ void gameDiedemo(DiedemoWork* w)
             if (sel == 1) {
                 OSReport("--CONTINUE SELECT!!\n");
                 GameContinue(0);
-                GameAddPoint(1);
+                GameAddPoint(LVADD_DIE);
             } else {
                 OSReport("--SOFT_RESET SELECT!!\n");
                 BitOn(pG->System_flg, 0x4000000);

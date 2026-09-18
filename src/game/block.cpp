@@ -489,13 +489,13 @@ int cBlockUnit::checkBlockLoadToMramSet()
         Block.stopFlagSet = 1;
     case 4:
         if (Block.noMemCtrl == 1) {
-            pData->setCommand(1, 0, arg);
+            pData->setCommand(CMND_MRAM_LOAD, 0, arg);
         } else {
             p = Block.getBlockMemFree(pData->m_size);
             if (p == 0) {
                 return 1;
             }
-            pData->setCommand(1, (u32) p, arg);
+            pData->setCommand(CMND_MRAM_LOAD, (u32) p, arg);
         }
     case 2:
     case 5:
@@ -542,7 +542,7 @@ int cBlockUnit::checkBlockLoadToAramSet()
     case 0:
         ret = 1;
     case 2:
-        pData->setCommand(2, 0, arg);
+        pData->setCommand(CMND_ARAM_LOAD, 0, arg);
     case 6:
         state = BLOCK_ARAM_LOAD;
         break;

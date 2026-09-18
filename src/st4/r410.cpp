@@ -34,7 +34,7 @@ static void r410_ItemBoxOpen(int id)
     if (id == 0xF) {
         OpenBoxMain(0, 0, 6, 0xF, 0x10, -1);
     } else {
-        OpenBoxMain(9, 0, 0x18, id, 0xFFFFFFFF, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 0, 0x18, id, 0xFFFFFFFF, -1);
     }
 }
 
@@ -43,6 +43,6 @@ static void r410_ItemBoxOpened(int id)
     if (id == 0xF) {
         OpenBoxMain(0, 1, 6, 0xF, 0x10, -1);
     } else {
-        OpenBoxMain(9, 1, 0x18, id, 0xFFFFFFFF, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 1, 0x18, id, 0xFFFFFFFF, -1);
     }
 }

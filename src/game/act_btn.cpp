@@ -102,7 +102,7 @@ void cActionButton::disp(ActBtnWork* w)
     if (w->flags & 0x80) {
         col = 7;
     }
-    cMes.setLayout(1, 1);
+    cMes.setLayout(1, LAYOUT_ACT_BTN);
     switch (btn) {
     case 1:
     case 6:

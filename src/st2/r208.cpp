@@ -254,8 +254,8 @@ void R208Init()
 #line 157 "D:/Bio4/Prog/r208.cpp"
     r208_work.p = (R208Work*) MEM_CALLOC(sizeof(R208Work), 1, 0xd);
     W->gotoWait = 900;
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r208_eff_info4);
-    EatMgr.registEffInfo(5, (AtEffInfo*) &r208_eff_info5);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r208_eff_info4);
+    EatMgr.registEffInfo(EAT_ET_ROOM1, (AtEffInfo*) &r208_eff_info5);
     W->em[0].setEm(2, 2, 0, 1, 1);
     W->em[1].setEm(3, 2, 0, 1, 1);
     W->em[2].setEm(4, 2, 0, 1, 1);
@@ -269,13 +269,13 @@ void R208Init()
         W->em[9].setEm(0x3C, 2, 0, 1, 1);
         W->em[10].setEm(0x3D, 2, 0, 1, 1);
     }
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) atari_exec_A, 0, 1);
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) atari_exec_A, 0, 1);
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) atari_exec_B, 0, 1);
-    SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) atari_exec_B, 0, 1);
-    SceAtDataSet_exec(0x15, 0x12, 0, (TaskFunc) atari_exec_D, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) atari_exec_A, 0, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) atari_exec_A, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) atari_exec_B, 0, 1);
+    SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) atari_exec_B, 0, 1);
+    SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) atari_exec_D, 0, 1);
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) asl_yubisasi, 0, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) asl_yubisasi, 0, 1);
     }
     if (pG->x4F9F == 1) {
         RsfSet(G_ROOM_ID, 5);
@@ -298,7 +298,7 @@ void R208Init()
     if (pG->room_id_prev == 0xFFF && (pG->flags_5018 & 0x04000000) == 0) {
         BitOn(pG->flags_5018, 0x04000000);
         SubCharInit(1, &pPL->pos, pPL->ang.y);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     setTexRender();
     W->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r208_satPos, &r208_zeroVec, 3);
@@ -307,7 +307,7 @@ void R208Init()
         SmdSetTrans(0x4F, 1);
         SceAtSetEnable(0xD, 1);
         if (RsfCheck(G_ROOM_ID, 6) == 0) {
-            SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r208_checkCrank, 0, 1);
+            SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r208_checkCrank, 0, 1);
         } else {
             SmdGetObjPtr(0x21)->be_flag |= 0x20;
             SmdGetObjPtr(0x21)->ang.x = 2.0943952f;
@@ -318,11 +318,11 @@ void R208Init()
         SmdSetTrans(0x4E, 0);
         SmdSetTrans(0x4F, 0);
         SceAtSetEnable(0xD, 0);
-        SceExec(0x12, (TaskFunc) setEmGo, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) setEmGo, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r208_snipe, 0, 1);
-        SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) r208_snipe, 0, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r208_snipe, 0, 1);
+        SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r208_snipe, 0, 1);
         pG->flags_174 |= 0x10000000;
     } else {
         SceAtSetEnable(0x1D, 0);
@@ -359,7 +359,7 @@ void R208Init()
         W->em[26].setEm(0xAE, 2, 0, 1, 1);
     }
     if (RsfCheck(G_ROOM_ID, 12)) {
-        SceExec(0x12, (TaskFunc) em_all_destroy_task, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) em_all_destroy_task, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -378,7 +378,7 @@ void R208Main()
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         if (((pG->flags_174 & 0x02000000) && (pGS->flags_174 & 0x01000000)) || DebugTrg(0) != 0) {
             RsfSet(G_ROOM_ID, 5);
-            SceExec(0x12, (TaskFunc) crank_set, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) crank_set, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if ((pG->flags_174 & 0x00800000) == 0) {
@@ -639,7 +639,7 @@ static void funcAshley(cEm* p)
     if (pSUB == NULL) {
         return;
     }
-    pSUB->atari.setPriority(3);
+    pSUB->atari.setPriority(PRI_LV3);
     if (pG->flags_174 & 0x08000000) {
         W->crank = SmdGetObjPtr(0x4E);
     } else if (pG->flags_174 & 0x80000000) {
@@ -682,10 +682,10 @@ static void funcAshley(cEm* p)
             if (SmdGetObjPtr(0x21)->ang.x < 1.0f) {
                 SmdGetObjPtr(0x21)->ang.x += (f32) (mot + 2) * 0.0007f;
             } else {
-                SceExec(0x12, (TaskFunc) brige1_down, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) brige1_down, 0, 0, SCE_PRIO_DEF_2, 0);
                 pG->flags_174 &= ~0x08000000;
                 EmRoutineSet(p, mot, mot, mot, mot);
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
             }
         } else if (pG->flags_174 & 0x80000000) {
             if (DebugTrg(0) != 0) {
@@ -694,10 +694,10 @@ static void funcAshley(cEm* p)
             W->footACnt++;
             if ((u32) W->footACnt > limit) {
                 pG->flags_174 |= 0x40000000;
-                SceExec(0x12, (TaskFunc) footingA_up, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) footingA_up, 0, 0, SCE_PRIO_DEF_2, 0);
                 pG->flags_174 &= ~0x80000000;
                 EmRoutineSet(p, 0, 0, 0, 0);
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
                 if (pG->flags_174 & 0x20000000) {
                     Vec pos;
 
@@ -716,10 +716,10 @@ static void funcAshley(cEm* p)
             W->footBCnt++;
             if ((u32) W->footBCnt > limit) {
                 pG->flags_174 |= 0x20000000;
-                SceExec(0x12, (TaskFunc) footingB_up, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) footingB_up, 0, 0, SCE_PRIO_DEF_2, 0);
                 pG->flags_174 |= 0x80000000;
                 EmRoutineSet(p, 0, 0, 0, 0);
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
                 if (pG->flags_174 & 0x40000000) {
                     Vec pos;
 
@@ -753,7 +753,7 @@ static void funcAshley2(cEm* p)
     if (p->motionMove() != 0) {
         EmRoutineSet(p, 0, 0, 0, 0);
         AtariFlagsOr(&pSUB->atari, 0x300);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
 }
 
@@ -775,7 +775,7 @@ static void funcAshley3(cEm* p)
         EmRoutineSet(p, 0, 0, 0, 0);
         AtariFlagsOr(&pSUB->atari, 0x300);
         SubCharSetHand(0);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
 }
 
@@ -1161,7 +1161,7 @@ static void crank_set()
     SmdGetObjPtr(0x4E)->be_flag |= 0x20;
     SmdGetObjPtr(0x4F)->be_flag |= 0x20;
     SceAtSetEnable(0xD, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r208_checkCrank, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r208_checkCrank, 0, 1);
     SceSetEventCancel(1, (TaskFunc) crank_set_exit, 0, -1, 1);
     W->crankSe = SndCall(6, 0, &SmdGetObjPtr(0x4E)->pos, 0, 0, 0);
     y = 2751.0f;
@@ -1192,9 +1192,9 @@ static void r208_checkCrank()
         sel = SceMesGetSelection();
     }
     if (sel == 1) {
-        SceExec(0x12, (TaskFunc) r208_operateCrank, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r208_operateCrank, 0, 0, SCE_PRIO_DEF_2, 0);
     } else if (sel == 2) {
-        SceExec(0x12, (TaskFunc) SubUnderCrankExec, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) SubUnderCrankExec, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(2, 1);
     }
@@ -1303,7 +1303,7 @@ static void r208_operateCrank()
         W->crankSeCnt++;
         // `!(x < y)`: a single `blt` past the exit block (`>=` would need the unordered cror).
         if (!(SmdGetObjPtr(0x21)->ang.x < 1.0f)) {
-            SceExec(0x12, (TaskFunc) brige1_down, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) brige1_down, 0, 0, SCE_PRIO_DEF_2, 0);
             SceSleep(1);
             break;
         }
@@ -1424,7 +1424,7 @@ static void r208_snipe()
     SceAtSetEnable(0x16, 0);
     r208_CarryOnShoulder();
     RsfSet(G_ROOM_ID, 13);
-    SceExec(0x12, (TaskFunc) under_set_task, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) under_set_task, 0, 0, SCE_PRIO_DEF_2, 0);
     R208_setEm(0x16);
     R208_setEm(0x17);
     R208_setEm(0x18);
@@ -1546,7 +1546,7 @@ extern "C" void r208_CarryOnShoulder()
     }
     SndStrReq(1, 0x31, 0x80000003, 0, 0, 0.0f);
     SceEventStart(0);
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);
     if (pPL->pos.x > 0.0f) {
@@ -1602,7 +1602,7 @@ extern "C" void r208_CarryOnShoulder()
         pPL->setNoSuspend(0);
         pSUB->setNoSuspend(0);
         SetPosAng(pSUB, &b, &pPL->ang);
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
         SceEventEnd(0);
     }
 }
@@ -1750,7 +1750,7 @@ static void SubUnderCrankExec()
                 }
             } else if ((SubCharGetStatus() & 0x01000000) == 0) {
                 if (set != 0) {
-                    SubCharCtrl(1, 0);
+                    SubCharCtrl(SCC_CHASE, 0);
                     break;
                 }
                 SubCharMoveTo(0, pos.x, pos.y, pos.z, 193.0f);

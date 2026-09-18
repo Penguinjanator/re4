@@ -90,27 +90,27 @@ void R406Init()
                        ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
                        ROOM_ARC_PTR(pG->pRoom, 0x24));
     }
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r406_eff_info.info);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r406_eff_info.info);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceExec(0x12, (TaskFunc) r406_checkEmSet1, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r406_checkEmSet1, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r406_checkEmSet2, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r406_checkEmSet2, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r406_checkEmSet3, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r406_checkEmSet3, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r406_setFindPL1, 0, 1);
+        SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r406_setFindPL1, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r406_setFindPL2, 0, 1);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r406_setFindPL2, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        SceExec(0x12, (TaskFunc) r406_checkEmSet4, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r406_checkEmSet4, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceExec(0x12, (TaskFunc) r406_checkRockWall, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r406_checkRockWall, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(5, 0);
         obj = SmdGetObjPtr(0x2D);
@@ -135,7 +135,7 @@ void R406Main()
 void r406_openShelf_main(int no, int mode)
 {
     if (no == 0) {
-        OpenBoxMain(9, mode, 0x5B, 0x2E, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, mode, 0x5B, 0x2E, -1, -1);
     }
 }
 

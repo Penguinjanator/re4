@@ -147,11 +147,11 @@ void R101Init()
     PSet(r101_work->pEm[9], &r101_work->em[9]);
     if (!(pG->Item_find_flg & 0x2000)) {
         pG->Item_find_flg |= 0x2000;
-        SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r101_execOperator2, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     EvtMgr.SetFunc("evt_r101s21_func", (void*) Evt_R101S21_Func);
     EvtMgr.SetFunc("evt_r101s30_func", (void*) Evt_R101S30_Func);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r101_eff_info);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r101_eff_info);
     if (getRoomEtcDoor(0xB, &door, 1)) {
         ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0);
     }
@@ -198,21 +198,21 @@ void R101Init()
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         if (RsfCheck(G_ROOM_ID, 6) == 0) {
-            SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 0, 0, 2, 0);
-            SceAtDataSet_exec(0x13, 0x12, 0, (TaskFunc) r101_callGanadoVoice, 0, 1);
+            SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 0, 0, SCE_PRIO_DEF_2, 0);
+            SceAtDataSet_exec(0x13, SCE_LEVEL10, 0, (TaskFunc) r101_callGanadoVoice, 0, 1);
             PSet(r101_work->evt00, DC.setData(EvtMgr.NameChange("evd/r101s00.evd")));
-            r101_work->evt00->setCommand(2, 0, 0);
+            r101_work->evt00->setCommand(CMND_ARAM_LOAD, 0, 0);
             EmReadSearch(0x26, 0, r101_work->evt00->m_size);
-            SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r101_Event00, 0, 1);
+            SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r101_Event00, 0, 1);
         } else {
-            SceExec(0x12, (TaskFunc) r101_checkEmNum, 0, 0, 2, 0);
-            SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
-            SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
+            SceExec(0x12, (TaskFunc) r101_checkEmNum, 0, 0, SCE_PRIO_DEF_2, 0);
+            SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
+            SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
         }
         PSet(r101_work->evt30, DC.setData(EvtMgr.NameChange("evd/r101s30.evd")));
         if (RsfCheck(G_ROOM_ID, 8) == 0) {
             PSet(r101_work->evt21, DC.setData(EvtMgr.NameChange("evd/r101s21.evd")));
-            r101_work->evt21->setCommand(2, 0, 0);
+            r101_work->evt21->setCommand(CMND_ARAM_LOAD, 0, 0);
             if (r101_work->evt21->m_size > r101_work->evt30->m_size) {
                 EmReadSearch(0x15, 0, r101_work->evt21->m_size);
             } else {
@@ -224,14 +224,14 @@ void R101Init()
             if (getRoomEtcWindow(0x13, &win, 1)) {
                 ((cEmWindow*) win)->SetEnableDamage(0);
             }
-            SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r101_Event20, 0, 2);
-            SceExec(0x12, (TaskFunc) r101_DoorCk, 0, 0, 2, 0);
+            SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r101_Event20, 0, 2);
+            SceExec(0x12, (TaskFunc) r101_DoorCk, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        SceExec(0x12, (TaskFunc) r101_checkTowerBesieged, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r101_checkTowerBesieged, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
-        SceExec(0x12, (TaskFunc) r101_setChickenFlag, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r101_setChickenFlag, 0, 0, SCE_PRIO_DEF_2, 0);
         if (RsfCheck(G_ROOM_ID, 10) == 0) {
-            SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r101_execOperator, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         if (pG->Item_find_flg & 0x00200000) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
@@ -256,15 +256,15 @@ void R101Init()
                 ((EmListData*) &pGS->Em_list[0x49 * 0x20])->flags |= 1;
                 ((EmListData*) &pGS->Em_list[0x4A * 0x20])->flags |= 1;
             }
-            SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if (!(pG->door_unlock[0] & 0x02000000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r101_DoorDontOpen3, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen3, 0, 1);
     }
     if (!(pG->door_unlock[0] & 0x20000000)) {
-        SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r101_checkDoor102, 0, 1);
-        SceExec(0x12, (TaskFunc) r101_checkDoor102KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r101_checkDoor102, 0, 1);
+        SceExec(0x12, (TaskFunc) r101_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SceAtSetEnable(0xA3, 1);
     {
@@ -327,7 +327,7 @@ static inline void r101_startEvent30()
     BitOff(pG->flags_51C0, 0x08000000);
     BitOn(pG->door_flags_51CC, 0x200);
     BitOn(pG->door_flags_51CC, 0x20);
-    SceExec(0x12, (TaskFunc) r101_Event30, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r101_Event30, 0, 0, SCE_PRIO_DEF_2, 0);
     pG->flags_174 |= 0x10000000;
 }
 
@@ -347,12 +347,12 @@ static void r101_checkEmNum()
         alive = SceCountEmAlive(0x10, 0x20);
         if (RsfCheck(G_ROOM_ID, 3) == 0 && r101_work->emNum - alive > 4) {
             RsfSet(G_ROOM_ID, 3);
-            SceExec(0x12, (TaskFunc) r101_checkEmReset, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r101_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
             continue;
         }
         if (RsfCheck(G_ROOM_ID, 2) == 0 && r101_work->emNum - alive > 9) {
             RsfSet(G_ROOM_ID, 2);
-            SceExec(0x12, (TaskFunc) r101_checkEmReset2, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r101_checkEmReset2, 0, 0, SCE_PRIO_DEF_2, 0);
             continue;
         }
         if (RsfCheck(G_ROOM_ID, 7)) {
@@ -399,13 +399,13 @@ static void r101_Event30_TitleCall()
     } else {
         tex = DC.setData("etc/eng/id101.eff");
     }
-    tex->setCommand(1, 0, 0);
+    tex->setCommand(CMND_MRAM_LOAD, 0, 0);
     if (pSys->language == 0) {
         id = DC.setData("etc/jpn/event001.uwf");
     } else {
         id = DC.setData("etc/eng/event001.uwf");
     }
-    id->setCommand(1, 0, 0);
+    id->setCommand(CMND_MRAM_LOAD, 0, 0);
     while (tex->isUseOk() != 1 || id->isUseOk() != 1) {
         if (pG->flags_174 & 0x20000000) {
             goto end;
@@ -432,7 +432,7 @@ static void r101_Event30_TitleCall()
         SceSleep(1);
     } while (1);
     IdSys.dispSw(0x21, 0);
-    IdTexDataLoad(tex->m_addr, 6);
+    IdTexDataLoad(tex->m_addr, TEX_OWNER_ID_EVENT);
     IdSys.set(id->m_addr, 0xFF, 0x2C, 0x13, 6, 0);
     while (1) {
         if (pG->flags_174 & 0x20000000) {
@@ -441,10 +441,10 @@ static void r101_Event30_TitleCall()
         SceSleep(1);
     }
 end:
-    tex->setCommand(4, 0, 0);
-    id->setCommand(4, 0, 0);
+    tex->setCommand(CMND_DEL_DATA, 0, 0);
+    id->setCommand(CMND_DEL_DATA, 0, 0);
     IdSys.kill(0xFF, 0x2C);
-    IdTexRelease(6);
+    IdTexRelease(TEX_OWNER_ID_EVENT);
     IdSys.dispSw(0x21, 1);
 }
 
@@ -463,9 +463,9 @@ static void r101_Event30()
     BitOn(pG->door_flags_51CC, 0x20);
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         SceAtSetEnable(8, 0);
-        r101_work->evt21->setCommand(4, 0, 0);
+        r101_work->evt21->setCommand(CMND_DEL_DATA, 0, 0);
     }
-    r101_work->evt30->setCommand(2, 0, 0);
+    r101_work->evt30->setCommand(CMND_ARAM_LOAD, 0, 0);
     SceSleep(60);
     while (r101_work->evt30->isLoadOk() == 0) {
         if (r101_work->evt30->m_err != 0) {
@@ -492,8 +492,8 @@ static void r101_Event30()
         } else {
             EspDataRelease(0x10, 0, 1);
             InitModule(m);
-            r101_work->evt30->setCommand(1, 0, 1);
-            SceExec(0x12, (TaskFunc) r101_Event30_TitleCall, 0, 2, 2, 0);
+            r101_work->evt30->setCommand(CMND_MRAM_LOAD, 0, 1);
+            SceExec(0x12, (TaskFunc) r101_Event30_TitleCall, 0, 2, SCE_PRIO_DEF_2, 0);
             EvtMgr.SetEvt(r101_work->evt30->m_addr, 0);
             while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
                 SceSleep(1);
@@ -502,7 +502,7 @@ static void r101_Event30()
         }
     }
     BitOn(pG->flags_174, 0x20000000);
-    r101_work->evt30->setCommand(4, 0, 0);
+    r101_work->evt30->setCommand(CMND_DEL_DATA, 0, 0);
     SceEventEnd(0);
     SceAtDataReset(0);
     SceAtDataReset(2);
@@ -675,7 +675,7 @@ static void r101_Event20()
             MemorySwap(m->pArc, (u32) r101_work->evt21->m_addr, r101_work->evt21->m_size);
         }
     }
-    r101_work->evt21->setCommand(4, 0, 0);
+    r101_work->evt21->setCommand(CMND_DEL_DATA, 0, 0);
     setEm(0x3C, -1, 1, 1, 1);
     setEm(0x3D, -1, 1, 1, 1);
     setEm(0x3E, -1, 1, 1, 1);
@@ -867,11 +867,11 @@ static void r101_checkDoor102KeyUse()
 // The locked door: the up-cut message, or the key use through the sub screen.
 static void r101_checkDoor102()
 {
-    SceUpCut(1, 0xE, 0x28, 4);
+    SceUpCut(1, 0xE, 0x28, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0x3B) == 0) {
         CamCtrl.Comeback(0);
     } else {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -894,7 +894,7 @@ static void r101_checkFindPlayer(int mode)
         }
         break;
     case 1:
-        SceExec(0x12, (TaskFunc) r101_FindPlayer2, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r101_FindPlayer2, 0, 0, SCE_PRIO_DEF_2, 0);
         break;
     }
 }
@@ -916,15 +916,15 @@ extern "C" void r101_FindPlayer()
     BitOff(pG->door_flags_51CC, 0x200);
     BitOff(pG->door_flags_51CC, 0x20);
     SceAtSetEnable(7, 0);
-    r101_work->evt00->setCommand(4, 0, 0);
+    r101_work->evt00->setCommand(CMND_DEL_DATA, 0, 0);
     setEm(0x22, -1, 1, 1, 1);
     setEm(0x23, -1, 1, 1, 1);
     setEm(0x24, -1, 1, 1, 1);
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
     SndRoomStrStart(1, 3, 1);
-    SceExec(0x12, (TaskFunc) r101_checkEmNum, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r101_setChickenFlag, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r101_checkEmNum, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r101_setChickenFlag, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // The chickens (enemy 0x28) stop laying.
@@ -980,7 +980,7 @@ static void r101_Event00()
             }
             MemorySwap(m->pArc, (u32) r101_work->evt00->m_addr, r101_work->evt00->m_size);
         }
-        r101_work->evt00->setCommand(4, 0, 0);
+        r101_work->evt00->setCommand(CMND_DEL_DATA, 0, 0);
         r101_setEmSuspend(0);
         SceEventEnd(0);
     }

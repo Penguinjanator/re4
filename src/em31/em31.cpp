@@ -615,7 +615,7 @@ static void em31_R0_Init(cEm31* em)
         em->pXFlip = em31_flip1;
         break;
     }
-    em->setStatus(3);
+    em->setStatus(EM_STATUS_IK_OFF);
     if (em->type == 0) {
         Em31ClothSet2(em, &w->Cloth2);
         Em31ClothSet3(em, &w->Cloth3);
@@ -625,7 +625,7 @@ static void em31_R0_Init(cEm31* em)
     em->LightInfo.init2(0, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 10000.0f, 10000.0f, 10000.0f }), 2);
     atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 2000.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
     em->litArea.on(1);
-    em->atari.setPriority(1);
+    em->atari.setPriority(PRI_LV1);
     if (em->type == 1) {
         em->atari.throughOn();
     }
@@ -763,7 +763,7 @@ static void em31_R1_Appear(cEm31* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x40), 0, 0, 1, 0);
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         EstSet((int) em, -1, 0, 0, 0x29, 0x26, 1, w->EffKindId, (u32) em, 0);
         em->r_no_2++;
     case 3:
@@ -1365,7 +1365,7 @@ static void em31_R1_BerserkEnd(cEm31* em)
 static inline void em31StampEnd(cEm31* em, Em31Work* w)
 {
     if (w->Atk_ck == 0) {
-        GameAddPoint(0xB);
+        GameAddPoint(LVADD_ESCAPEATTACK);
     }
     if (w->Atk_ck && (w->Be_flg & 0x40)) {
         EmRoutineSet(em, 1, 6, 0, 0);
@@ -1689,7 +1689,7 @@ static void em31_R1_Catch(cEm31* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         break;
@@ -1832,7 +1832,7 @@ static void em31_R1_StepCatch(cEm31* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            GameAddPoint(0xB);
+            GameAddPoint(LVADD_ESCAPEATTACK);
             w->Berserk_wait = 450;
             w->Berserk_timer = 0;
             w->Be_flg &= ~0x40;
@@ -1999,7 +1999,7 @@ static void em31_R1_T_Appear(cEm31* em)
         MotionSetCore(em, MOTION(em), ARC(0x5C), 0, 0, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x29, 0x24, 1, w->EffKindId, (u32) em, 0);
         EstSet(0, -1, 0, 0, 0x29, 0x25, 1, w->EffKindId, (u32) em, 0);
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
@@ -2174,7 +2174,7 @@ static void em31_R1_T_Atk(cEm31* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             if (em->r_no_3) {
                 EmRoutineSet(em, 1, 0x12, 0, 0);
@@ -2208,7 +2208,7 @@ static void em31_R1_T_DashAtk(cEm31* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->Atk_ck == 0) {
-                GameAddPoint(0xB);
+                GameAddPoint(LVADD_ESCAPEATTACK);
             }
             EstSet((int) em, -1, 0, 0, 0x29, 0x1A, 0, 0, (u32) em, 0);
         }
@@ -2621,7 +2621,7 @@ static void em31_R1_T_Die(cEm31* em)
         em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
         }
         break;
@@ -3091,7 +3091,7 @@ static void em31_R1_Die_Normal(cEm31* em)
             EffectEspDelete(1, w->EffKindId, (u32) em, 0);
             EffectEspgenDelete(1, w->EffKindId, (int) em);
             EffectEfmDelete(1, w->EffKindId, (int) em);
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             em->r_no_2++;
         }
         break;
@@ -3119,7 +3119,7 @@ static void em31_R1_Die_Normal(cEm31* em)
                 EM31_DIE_FADE_END(w->pTen->pModelInfo);
             }
         }
-        em->setStatus(8);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         em->r_no_2++;
     case 5:
@@ -4485,7 +4485,7 @@ void cEm31::setAppearCancel()
         em31ScaleReset(this);
         MotionSetCore(this, MOTION(this), PL_ARC_PTR(subArc, 0xA), 0, 0, 5, 0);
         MotionMoveF(this, 0);
-        setStatus(5);
+        setStatus(EM_STATUS_ACTIVE);
         EffectEspDelete(1, w->EffKindId, (u32) this, 0);
         EffectEspgenDelete(1, w->EffKindId, (int) this);
         EffectEfmDelete(1, w->EffKindId, (int) this);
@@ -4495,7 +4495,7 @@ void cEm31::setAppearCancel()
         em31ScaleReset(this);
         MotionSetCore(this, MOTION(this), PL_ARC_PTR(subArc, 0x44), 0, 0, 5, 0);
         MotionMoveF(this, 0);
-        setStatus(5);
+        setStatus(EM_STATUS_ACTIVE);
         EffectEspDelete(1, w->EffKindId, (u32) this, 0);
         EffectEspgenDelete(1, w->EffKindId, (int) this);
         EffectEfmDelete(1, w->EffKindId, (int) this);

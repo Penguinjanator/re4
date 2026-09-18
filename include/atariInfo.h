@@ -6,6 +6,13 @@
 
 class cModel;
 
+enum PRIORITY {
+    PRI_NORMAL = 0,
+    PRI_LV1 = 1,
+    PRI_LV2 = 2,
+    PRI_LV3 = 3
+};
+
 // Character collision info (game/atariInfo.cpp), 0x4C bytes; embedded in cPlayer at 0x2B4.
 // The flag helpers are parameterless in-class inlines on purpose: the original accesses go
 // `addi rX,this,0x2B4; lhz 0x1A(rX); andi. 0xFCFF` (address computed once, used by the load and

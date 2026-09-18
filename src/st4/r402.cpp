@@ -119,10 +119,10 @@ void R402Init()
     R402EmSetSub(0x2C, 0xA5, 1);
     R402EmSetSub(0x2D, 0xA6, 1);
     R402EmSetSub(0x2E, 0xA7, 1);
-    SceExec(0x12, (TaskFunc) R402EmSetMain, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R402EmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
     R402InitDoor02();
-    SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R402ExecEvent02Main, 0, 1);
-    SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) R402ExecEvent01Main, 0, 1);
+    SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) R402ExecEvent02Main, 0, 1);
+    SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) R402ExecEvent01Main, 0, 1);
     SceAtSetEnable(0x11, 0);
     if (getRoomEtcLadder(0x15, &ladder, 1)) {
         ((cObjLadder*) ladder)->setOff();
@@ -220,26 +220,26 @@ static void setLadderMotion(int no)
 static void OpenedBoxTreasure(int no)
 {
     if (no == 0x80) {
-        OpenBoxMain(9, 1, 0x5B, 0x3D, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 1, 0x5B, 0x3D, -1, -1);
     }
     if (no == 0x81) {
-        OpenBoxMain(9, 1, 0x5B, 0x3E, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 1, 0x5B, 0x3E, -1, -1);
     }
     if (no == 0x82) {
-        OpenBoxMain(9, 1, 0x5B, 0x3C, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 1, 0x5B, 0x3C, -1, -1);
     }
 }
 
 static void OpenBoxTreasure(int no)
 {
     if (no == 0x80) {
-        OpenBoxMain(9, 0, 0x5B, 0x3D, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 0, 0x5B, 0x3D, -1, -1);
     }
     if (no == 0x81) {
-        OpenBoxMain(9, 0, 0x5B, 0x3E, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 0, 0x5B, 0x3E, -1, -1);
     }
     if (no == 0x82) {
-        OpenBoxMain(9, 0, 0x5B, 0x3C, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, 0, 0x5B, 0x3C, -1, -1);
     }
 }
 
@@ -273,7 +273,7 @@ static void R402ExecEvent01Main()
     }
     SceEventStart(1);
     SceSetEventCancel(1, (TaskFunc) R402ExecEvent01End, 0, -1, 1);
-    SceExec(0x12, (TaskFunc) R402MoveDoor02, 1, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) R402MoveDoor02, 1, 2, SCE_PRIO_DEF_2, 0);
     CamCtrl.CutCall(0xB);
     for (i = 0; i < 20; i++) {
         SceSleep(1);
@@ -290,7 +290,7 @@ static void R402ExecEvent01Main()
 
 static void R402ExecEvent01End()
 {
-    SceExec(0x12, (TaskFunc) R402MoveDoor02, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) R402MoveDoor02, 0, 2, SCE_PRIO_DEF_2, 0);
     r402_work.p->em[0x5A].setPos(&r402_gotoPos0);
     r402_work.p->em[0x5B].setPos(&r402_gotoPos1);
     r402_work.p->em[0x5C].setPos(&r402_gotoPos2);
@@ -796,14 +796,14 @@ static void R402EmSetMain()
                     if (MercSysWk.kill > 19) {
                         if (r402_work.p->em[0x38].isActive() != 1 || !(pG->flags_178 & 0x10000)) {
                             pG->flags_174 |= 0x200;
-                            SceExec(0x12, (TaskFunc) R402ExecEvent03Main00, 0, 0, 2, 0);
+                            SceExec(0x12, (TaskFunc) R402ExecEvent03Main00, 0, 0, SCE_PRIO_DEF_2, 0);
                         }
                     }
                 } else if (!(pG->flags_174 & 0x100)) {
                     if (r402_work.p->c584 > 149) {
                         if (MercSysWk.kill > 89) {
                             pG->flags_174 |= 0x100;
-                            SceExec(0x12, (TaskFunc) R402ExecEvent03Main01, 0, 0, 2, 0);
+                            SceExec(0x12, (TaskFunc) R402ExecEvent03Main01, 0, 0, SCE_PRIO_DEF_2, 0);
                         }
                     } else {
                         r402_work.p->c584++;

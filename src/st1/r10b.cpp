@@ -123,10 +123,10 @@ void R10bInit()
 #line 95 "D:/Bio4/Prog/r10b.cpp"
     r10b_work = (R10bWork*) MEM_CALLOC(sizeof(R10bWork), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) R10b_chkWater, 0, 2, 2, 0);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r10b_eff_info);
+    SceExec(0x12, (TaskFunc) R10b_chkWater, 0, 2, SCE_PRIO_DEF_2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r10b_eff_info);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r10b_GakeEvent, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r10b_GakeEvent, 0, 1);
     }
     readEvent(1, 0, 0);
     readEvent(2, 0, 0);
@@ -232,7 +232,7 @@ extern "C" int readEvent(int no, int wait, void** out)
         u32 max;
 
         if (R10B_WORK->evt[no]->waitLoadOk() == 0) {
-            R10B_WORK->evt[no]->setCommand(3, 0, 0);
+            R10B_WORK->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
             pLog->err(0, 0, "readEvent() : out of memory (0x%x)", R10B_WORK->evt[no]->m_size);
             return 0;
         }
@@ -249,7 +249,7 @@ extern "C" int readEvent(int no, int wait, void** out)
         MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->m_addr, R10B_WORK->evt[no]->m_size);
         *out = m->pArc;
     } else {
-        R10B_WORK->evt[no]->setCommand(2, 0, 0);
+        R10B_WORK->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
     }
     return 1;
 fail:
@@ -264,7 +264,7 @@ extern "C" void freeEvent(int no)
         m = SearchEmModule(0x2F);
         MemorySwap(m->pArc, (u32) r10b_work->evt[no]->m_addr, r10b_work->evt[no]->m_size);
         EspEmDataSwapPop(0x2F);
-        r10b_work->evt[no]->setCommand(3, 0, 0);
+        r10b_work->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
     }
 }
 
@@ -284,7 +284,7 @@ static void R10b_chkEmDie()
         if (DebugTrg(1)) {
             boss->hp = 1;
         }
-        if (boss != 0 && boss->checkStatus(5) == 0) {
+        if (boss != 0 && boss->checkStatus(EM_STATUS_ACTIVE) == 0) {
             SndRoomStrStop(0);
             SndEventStrStop(0);
             ((cEm2f*) GetEmPtrFromList(0xA0))->setDie();
@@ -320,7 +320,7 @@ static void R10b_chkEmDie()
                 }
             }
             SceEventStart(0);
-            SceSetChapterEnd(2, 6);
+            SceSetChapterEnd(CHAPTER_1_3, 6);
         }
         SceSleep(1);
     }
@@ -360,7 +360,7 @@ static void R10b_chkWater()
             readEvent(0, 0, 0);
             GamePointBossReset();
             r10b_work->boss = EmSetFromList2(0xA1, 1);
-            SceExec(0x12, (TaskFunc) R10b_chkEmDie, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R10b_chkEmDie, 0, 0, SCE_PRIO_DEF_2, 0);
             CamCtrl.Comeback(0);
             em = GetEmPtrFromList(0xA0);
             pos.x = 67713.0f;

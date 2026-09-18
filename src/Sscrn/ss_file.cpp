@@ -392,7 +392,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     sel->connect(0, disp);
     disp->connect(0, sel);
     fileCameraInit(wk, &pG->Cam);
-    IdTexDataLoad(SS_ARC_PTR(wk->pFile, 6), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pFile, 6), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
     }
@@ -420,7 +420,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     wk->pFileWk->cursor = 0;
 #line 629 "D:/Bio4/Prog/ss_file.cpp"
     wk->pTplDat = MEM_ALLOC(0x20000, 1, 13);
-    cMes.setLayout(0, 2);
+    cMes.setLayout(0, LAYOUT_SUBSCRN);
     if (wk->type == 0x40) {
         int no = fileId2No(wk->get_item_id);
         ItemMgr.get(wk->get_item_id, 0);
@@ -776,13 +776,13 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     }
     switch (wk->pFileWk->layout) {
     case 0:
-        cMes.setLayout(0, 7);
+        cMes.setLayout(0, LAYOUT_FILE);
         break;
     case 1:
-        cMes.setLayout(0, 8);
+        cMes.setLayout(0, LAYOUT_MANUAL);
         break;
     case 2:
-        cMes.setLayout(0, 4);
+        cMes.setLayout(0, LAYOUT_OPERATOR);
         break;
     }
     fw = wk->pFileWk;

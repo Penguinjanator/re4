@@ -166,10 +166,10 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.clrFlag100();
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
@@ -229,7 +229,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->mot3 = (void*) 0;
     w->pSat = (cSat*) 0;
     w->espKind = EspPullCoreKind();
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     em->flags_3C8 &= ~1;
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -330,7 +330,7 @@ void emRock_R1_Lost(cEmRock* em)
     case 0:
         em->hp = 0;
         em->be_flag &= ~2;
-        em->clearStatus(5);
+        em->clearStatus(EM_STATUS_ACTIVE);
         EffectEspgenDelete(0, w->espKind, em);
         em->r_no_2++;
         w->Timer = 30;

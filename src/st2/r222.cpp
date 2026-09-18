@@ -204,10 +204,10 @@ void R222Init()
     r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
-        SceExec(0x12, (TaskFunc) first_cut, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) em_appear, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) em_appear, 0, 1);
     } else {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             r222_work.p->em1.setEm(0x14, -1, 1, 1, 1);
@@ -216,7 +216,7 @@ void R222Init()
             r222_work.p->em2.setEm(0x15, -1, 1, 1, 1);
         }
     }
-    SceExec(0x12, (TaskFunc) dragon_down_ck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) dragon_down_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetEnable(0x80, 1);
     m = SceAtItemModelPtr(0x80);
     if (m) {
@@ -231,12 +231,12 @@ void R222Init()
 
 static void r222_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(5, 0, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpZP, 0, 0x5B, id, -1, -1);
 }
 
 static void r222_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(5, 1, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpZP, 1, 0x5B, id, -1, -1);
 }
 
 // Treasure box lid: swings the parts open (`opened` 1: already open).
@@ -323,7 +323,7 @@ void R222Main()
     int seReset = 30;
 
     if (DebugTrg(0)) {
-        SceExec(0x12, (TaskFunc) dragon_down, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) dragon_down, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SmdGetObjPtr(1)->pParts->ang.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->ang.y);
     ry = SmdGetObjPtr(1)->pParts->ang.y;
@@ -384,7 +384,7 @@ void R222Main()
     }                                                                                   \
     if (r222_work.p->hp[no] <= 0 || r222_work.p->hp[no + 1] <= 0) {                     \
         r222_work.p->em.setHp(0);                                                       \
-        SceExec(0x12, (TaskFunc) down, 0, 0, 2, 0);                                     \
+        SceExec(0x12, (TaskFunc) down, 0, 0, SCE_PRIO_DEF_2, 0);                                     \
     }
 
 static void dragon_down_ck()
@@ -397,22 +397,22 @@ static void dragon_down_ck()
             R222_DRAGON_CHECK(0, 0x16, 0x17, dragon, dragon_down);
             if (RsfCheck(G_ROOM_ID, 3) == 0 && (int) pG->flags_174 < 0) {
                 RsfSet(G_ROOM_ID, 3);
-                SceExec(0x12, (TaskFunc) dragon_appear, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) dragon_appear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
             if ((r222_work.p->dragon.isAlive() == 1 && r222_work.p->dragon.ckResetEnable() != 0) || r222_work.p->dragon.getPosY() < -10000.0f) {
-                SceExec(0x12, (TaskFunc) dragon_down, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) dragon_down, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             R222_DRAGON_CHECK(2, 0xD, 0xE, em1, dragon_down2);
             if ((r222_work.p->em1.isAlive() == 1 && r222_work.p->em1.ckResetEnable() != 0) || r222_work.p->em1.getPosY() < -10000.0f) {
-                SceExec(0x12, (TaskFunc) dragon_down2, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) dragon_down2, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             R222_DRAGON_CHECK(4, 0x12, 0x13, em2, dragon_down3);
             if ((r222_work.p->em2.isAlive() == 1 && r222_work.p->em2.ckResetEnable() != 0) || r222_work.p->em2.getPosY() < -10000.0f) {
-                SceExec(0x12, (TaskFunc) dragon_down3, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) dragon_down3, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         SceSleep(1);
@@ -589,7 +589,7 @@ static void dragon_down2()
             SndCall(6, 0xE, &pos, 0, 0, 0);
         }
     }
-    SceExec(0x12, (TaskFunc) box_appear1, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) box_appear1, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void box_appear2_exit()
@@ -682,7 +682,7 @@ static void dragon_down3()
             SndCall(6, 0xE, &pos, 0, 0, 0);
         }
     }
-    SceExec(0x12, (TaskFunc) box_appear2, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) box_appear2, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void dragon_appear_exit()

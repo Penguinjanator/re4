@@ -27,8 +27,8 @@ void R112Init()
     r112_work = (R112Work*) MEM_CALLOC(sizeof(R112Work), 1, 0xd);
 
     Espgen42SetNoWater(1);
-    SceExec(0x12, (TaskFunc) r112_ThunderMove, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r112_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R112Main()

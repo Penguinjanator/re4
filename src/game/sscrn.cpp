@@ -245,10 +245,10 @@ void SubScreenCall()
         }
         wk->wait = 0;
         if (Key.trg & 0x100000) {
-            SubScreenOpen(1, 0);
+            SubScreenOpen(SS_OPEN_NORMAL, 0);
         } else if (Key.trg & 0x200000) {
             if (!(pG->flags_5014 & 0x00200000)) {
-                SubScreenOpen(2, 0);
+                SubScreenOpen(SS_OPEN_MAP, 0);
             }
         }
     }
@@ -425,14 +425,14 @@ void SubScreenExec()
             break;
         case 4:
             if (pG->System_flg & 0x40000000) {
-                IdTexRelease(6);
+                IdTexRelease(TEX_OWNER_ID_EVENT);
             }
             Cckpt.getCountDown()->saveDisp();
             systemVISetBlack(1);
             ScreenReSize(640, 448);
             systemVISetBlack(0);
             pG->Disp_flg |= 0x400;
-            FadeKill(1);
+            FadeKill(FADE_NO_SCENARIO);
             switch (wk->type) {
             case 2:
             case 0x10:
@@ -479,14 +479,14 @@ void SubScreenExec()
             if (pSys->language == 0) {
                 cMes.setupFont(28, 28, (TEXPalette*) SS_ARC_PTR(wk->pCmmn, 4), 3);
             }
-            cMes.setLayout(1, 2);
-            cMes.setLayout(7, 2);
+            cMes.setLayout(1, LAYOUT_SUBSCRN);
+            cMes.setLayout(7, LAYOUT_SUBSCRN);
             if (wk->type == 0x20) {
                 IdSub.gameInit(0x80);
             } else {
                 IdSub.gameInit(0x200);
             }
-            IdTexDataLoad(SS_ARC_PTR(wk->pCmmn, 6), 8);
+            IdTexDataLoad(SS_ARC_PTR(wk->pCmmn, 6), TEX_OWNER_ID_SHARE);
             if (wk->type == 0x20) {
                 IdNum.gameInit(0);
             } else {
@@ -873,7 +873,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
         SceSleep(1);
     }
-    SubScreenOpen(0x20, 0);
+    SubScreenOpen(SS_OPEN_TERM, 0);
     SubScreenWait(0);
     SceSleep(1);
 END:
@@ -908,7 +908,7 @@ void OpeSetOpenTermEnd()
     }
     PlSetEyeMode(0);
     FadeSetW(0x80000000, 3, 0, 0);
-    FadeKill(2);
+    FadeKill(FADE_NO_ROOM);
     FadeSetW(0x80000001, 10, 0, 0);
 }
 

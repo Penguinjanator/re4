@@ -168,7 +168,7 @@ void R213Init()
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtSetEnable(2, 1);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R213Event, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) R213Event, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r213s00.evd", 0x2D, 0, 0, 0);
     } else {
         SceAtSetEnable(2, 0);
@@ -179,7 +179,7 @@ void R213Init()
     SceSetItemEvent(0xB, 0x84, 0xA, 0xC, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x84, 0);
     SceSetItemEvent(0xC, 0x90, 0xB, 0xD, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x90, 0);
     R213BridgeInit();
-    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     SetSstAddAreaFlag(0x800);
 }
 
@@ -190,26 +190,26 @@ void R213Main()
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x81) {
-        OpenBoxMain(4, 1, 0x5B, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxUpXM, 1, 0x5B, 0x42, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(0x12, 1, 0x1B, 0x44, -1, -1);
+        OpenBoxMain(OpenBoxPosZM500, 1, 0x1B, 0x44, -1, -1);
     }
     if (id == 0x90) {
-        OpenBoxMain(0x12, 1, 0x1B, 0x45, -1, -1);
+        OpenBoxMain(OpenBoxPosZM500, 1, 0x1B, 0x45, -1, -1);
     }
 }
 
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x81) {
-        OpenBoxMain(4, 0, 0x5B, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxUpXM, 0, 0x5B, 0x42, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(0x12, 0, 0x1B, 0x44, -1, -1);
+        OpenBoxMain(OpenBoxPosZM500, 0, 0x1B, 0x44, -1, -1);
     }
     if (id == 0x90) {
-        OpenBoxMain(0x12, 0, 0x1B, 0x45, -1, -1);
+        OpenBoxMain(OpenBoxPosZM500, 0, 0x1B, 0x45, -1, -1);
     }
 }
 
@@ -250,7 +250,7 @@ void R213SuInit()
             obj->pModelInfo->setSpecular(0xFF, 0xFF, 0xFF);
         }
         EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
-        SceExec(0x12, (TaskFunc) R213SuMove, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R213SuMove, 0, 0, SCE_PRIO_DEF_2, 0);
         {
             cObj* o = SmdGetObjPtr(0x12);
 
@@ -335,7 +335,7 @@ static void R213SuMove()
                         hit->hp -= dm;
                         if (hit->hp <= 0) {
                             hit->hp = 0;
-                            SceExec(0x12, (TaskFunc) R213EventSuBreakMain, 0, 0, 2, 0);
+                            SceExec(0x12, (TaskFunc) R213EventSuBreakMain, 0, 0, SCE_PRIO_DEF_2, 0);
                             return;
                         }
                     }
@@ -449,7 +449,7 @@ void R213EmSet()
 void R213BridgeInit()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R213EventSwitchMain, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) R213EventSwitchMain, 0, 1);
         R213StatusSetSwitch(0);
     } else {
         R213StatusSetSwitch(1);
@@ -458,7 +458,7 @@ void R213BridgeInit()
     R213ChainInit(1, 0x41, 2, 4);
     R213ChainBreakNumCalc();
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceExec(0x12, (TaskFunc) R213BridgeManager, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R213BridgeManager, 0, 0, SCE_PRIO_DEF_2, 0);
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             R213StatusSetBridge(0);
         } else {
@@ -654,7 +654,7 @@ static void R213BridgeManager()
                         which = 1;
                     }
                 }
-                SceExec(0x12, (TaskFunc) R213EventChainBreakMove, which, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R213EventChainBreakMove, which, 0, SCE_PRIO_DEF_2, 0);
             }
             if (RsfCheck(G_ROOM_ID, 3) && RsfCheck(G_ROOM_ID, 4)) {
                 break;
@@ -975,7 +975,7 @@ static void R213EventChainBreakEnd()
 {
     R213StatusSetBridge(1);
     if (RsfCheck(G_ROOM_ID, 3) && RsfCheck(G_ROOM_ID, 4)) {
-        SceExec(0x12, (TaskFunc) R213EventBridgeDownMain, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R213EventBridgeDownMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     SceEventEnd(0);
 }
@@ -1044,7 +1044,7 @@ static void R213Event()
         RsfSet(G_ROOM_ID, 0);
         SceAtSetEnable(2, 0);
         pG->flags_51C0 |= 0x40;
-        SubCharCtrl(2, 0);
+        SubCharCtrl(SCC_KILL, 0);
         pG->flags_5018 &= ~0x04000000;
         EvtMgr.EvtReadExec("event/evd/r213s00.evd", 0x2D, 0);
         R213EmSet();

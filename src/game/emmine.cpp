@@ -115,11 +115,11 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->be_flag &= ~0x01000000;
-    at->setPriority(3);
+    at->setPriority(PRI_LV3);
     at->m_flag &= ~0x300;
     em->be_flag &= ~0x10;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     w->Be_flg = 0;
     w->Norm.x = 0.0f;
     w->Norm.y = 1.0f;
@@ -204,7 +204,7 @@ void emMineDmCk(cEmMine* em)
     if (wep == 0x2A) {
         return;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->hp = 0;
     em->setBomb();
 }
@@ -305,7 +305,7 @@ void emMine_R1_Shot(cEmMine* em)
             } else {
                 if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
                     em->pos.y = wh;
-                    wi = EatMgr.getEffInfo(2);
+                    wi = EatMgr.getEffInfo(EAT_ET_WATER);
                     if (wi) {
                         if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
                             EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
@@ -359,7 +359,7 @@ void emMine_R1_Shot(cEmMine* em)
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            wi = EatMgr.getEffInfo(2);
+            wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
                 if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
                     EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
@@ -468,7 +468,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
                 em->pos.y = wh;
                 // Block-scoped water pointers (one single-set pseudo per block: each ranks below `em`
                 // in global-alloc, so em keeps r29 and both take r28; one two-set `wi` outranks em).
-                AtEffInfo* wi = EatMgr.getEffInfo(2);
+                AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
                 if (wi) {
                     EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                     w->Bomb_eff = (u8) wi->eff6[0];
@@ -513,7 +513,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            AtEffInfo* wi = EatMgr.getEffInfo(2);
+            AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
                 EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                 w->Bomb_eff = (u8) wi->eff6[0];
@@ -968,7 +968,7 @@ void emMine_R1_Fall(cEmMine* em)
     f32 dd;
 
     em->hp = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): two dead sets (deleted by flow) take the
     // expression table from 235 to 237 buckets, so `w+48`/`fp+100` (13389) hash below `fp+144` (13433)

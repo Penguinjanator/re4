@@ -1045,7 +1045,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 2) {
                 EmPlBloodSet2(obj, pp, 1, 0x10, 0x6D);
             }
-            Ctrl12Set(w->pCtrlGroup, 9, 0x1E);
+            Ctrl12Set(w->pCtrlGroup, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
             if (obj->type == 2 && w->target) {
                 SndCall(8, 0x3E, &w->target->pos, w->target->id, 0, 0);
             }
@@ -1084,7 +1084,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 2) {
                 EmPlBloodSet2(obj, pp, 1, 0x10, 0x6E);
             }
-            Ctrl12Set(w->pCtrlGroup, 9, 0x1E);
+            Ctrl12Set(w->pCtrlGroup, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
             if (obj->type == 2 && w->target) {
                 SndCall(8, 0x3E, &w->target->pos, w->target->id, 0, 0);
             }
@@ -1105,7 +1105,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             if (obj->type == 0xB) {
                 EmPlBloodSet2(obj, pp, 1, 0x31, 7);
             }
-            Ctrl12Set(w->pCtrlGroup, 9, 0x1E);
+            Ctrl12Set(w->pCtrlGroup, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
             if (obj->type == 2 && w->target) {
                 SndCall(8, 0x3E, &w->target->pos, w->target->id, 0, 0);
             }
@@ -1128,7 +1128,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
     }
     if (hit & 2) {
         if (kind != 3) {
-            Ctrl12Set(w->pCtrlGroup, 9, 0x1E);
+            Ctrl12Set(w->pCtrlGroup, CTRL12_ID_EM10_NOT_NEAR, 0x1E);
         } else {
             if (pSUB->id & 3) {
                 LifeDownSet(pSUB, 9999, 0);

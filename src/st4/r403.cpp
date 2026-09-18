@@ -139,7 +139,7 @@ void R403Init()
     r403_work.p->slide->Motion.Seq_speed = 0.0f;
     r403_work.p->slide->be_flag |= 0x1000;
     r403_work.p->slide->setNoSuspend(0);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) slide_move, 0, 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) slide_move, 0, 1);
     setTexRender();
     R403MercInit init;
     memset(&init, 0, sizeof(init));
@@ -212,12 +212,12 @@ void R403Init()
 
 static void r403_DuraluminCaseOpen(int no)
 {
-    OpenBoxMain(8, 0, 0x5B, no, -1, -1);
+    OpenBoxMain(OpenBoxPartsUpXM, 0, 0x5B, no, -1, -1);
 }
 
 static void r403_DuraluminCaseOpened(int no)
 {
-    OpenBoxMain(8, 1, -1, no, -1, -1);
+    OpenBoxMain(OpenBoxPartsUpXM, 1, -1, no, -1, -1);
 }
 
 // Resets list entry `no` (chk: only while fewer than 10 enemies are alive); 1 when it was set.
@@ -630,7 +630,7 @@ static void slide_move()
     pl->beginAction();
     pPLS->atari.clrFlag100();
     pPLS->atari.clrFlag200();
-    pPLS->atari.setPriority(1);
+    pPLS->atari.setPriority(PRI_LV1);
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);

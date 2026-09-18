@@ -410,7 +410,7 @@ static void em3a_R0_Init(cEm3a* em)
         EstSet((int) em, -1, 0, 0, 2, 0xA, 1, w->espKind, (u32) em, 0);
         break;
     }
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->type) {
     case 0:
     case 1:
@@ -918,7 +918,7 @@ static void em3a_R1_Die(cEm3a* em)
         if (em->type == 2) {
             PlWepHitCheck2(0, &em->pos, &em->pos, 0x13, 3, 4000.0f);
         }
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->be_flag &= ~2;
         AtariOff(&em->atari, 0xFCFF);
         em->r_no_2++;
@@ -1245,8 +1245,8 @@ static void em3a_R1_B_Bomb(cEm3a* em)
         EstSet((int) em, -1, 0, 0, 2, 0x10, 0, 0, (u32) em, 0);
         SndStop(w->sndId, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         p = em->pos;
         p.y += 250.0f;

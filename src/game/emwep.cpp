@@ -152,9 +152,9 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     em->be_flag &= ~0x10;
     w->At_no = -1;
@@ -257,7 +257,7 @@ void emWepDmCk(cEmWep* em)
     if (wep == 0xE) {
         return;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->hp = 0;
     switch (em->r_no_1) {
     case 3:
@@ -446,7 +446,7 @@ void emWep_R1_LostWait(cEmWep* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         if (pG->room_id == 0x30F) {
             w->Timer = 1;
         } else {
@@ -493,7 +493,7 @@ void emWep_R1_Lost(cEmWep* em)
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x20;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
@@ -542,7 +542,7 @@ void emWep_R1_Fall(cEmWep* em)
     f32 d;
 
     em->hp = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
@@ -740,8 +740,8 @@ void emWep_R1_Throw(cEmWep* em)
             }
             em->setFall(0, 0, 20.0f);
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
         }
     }
     PSVECSubtract(&em->pos, &em->pos_old, &d);
@@ -817,8 +817,8 @@ void emWep_R1_ThrowScythe(cEmWep* em)
                 emWepPlHeadLost();
             }
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
         }
     }
     PSVECSubtract(&em->pos, &em->pos_old, &d);
@@ -877,7 +877,7 @@ void emWep_R1_Shot(cEmWep* em)
         w->pEm_old = 0;
         w->timer4 = 60;
         em->hp = 0;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         em->r_no_2++;
     case 3:
         em->partsWorldCalc();
@@ -951,8 +951,8 @@ void emWep_R1_Shot(cEmWep* em)
             EffectEspgenDelete(0, w->espKind, (int) em);
             EffectEfmDelete(0, w->espKind, (int) em);
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
             return;
         }
         part = EmAtkLineHitCkSub(&em->pos_old, &em->pos, &hitPos, &nrm);
@@ -1043,7 +1043,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
         break;
     case 2:
         w->pEm_old = 0;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         w->Bomb_wait = 63;
         w->Timer2 = 15;
         w->Timer = 0;
@@ -1656,7 +1656,7 @@ void plemBackjump(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        GameAddPoint(0xB);
+        GameAddPoint(11);
         pl->x3E0 = 35;
         pl->x3E4 = 0;
         pl->r_no_2++;
@@ -1699,7 +1699,7 @@ void plemFrontEscape(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        GameAddPoint(0xB);
+        GameAddPoint(11);
         pl->x3E0 = 35;
         pl->x3E4 = 0;
         pl->r_no_2++;

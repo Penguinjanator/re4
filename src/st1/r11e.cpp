@@ -96,10 +96,10 @@ void R11eInit()
 
     EmReadSearch(0x2B, 0, 0);
     if (!(pG->door_unlock[0] & 0x00080000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r11e_checkDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11e_checkDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
     PSet(r11e_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
     PSet(r11e_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
     PSet(r11e_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
@@ -122,12 +122,12 @@ void R11eInit()
     if (RsfCheck(G_ROOM_ID, 3)) {
         sakuB_delete();
     }
-    SceExec(0x12, (TaskFunc) r11e_move_sasaeki1, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11e_move_sasaeki1, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         r11e_work->strId = SndStrReq(1, 0x4C, 0x80000001, 0, 0, 0.0f);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r11e_EmSet, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11e_EmSet, 0, 1);
     }
-    SceExec(0x12, (TaskFunc) r11e_str_check, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r11e_str_check, 0, 2, SCE_PRIO_DEF_2, 0);
 }
 
 // Ashley's escape motions (SetSubAux routine): three motions in a row, turning towards the target.
@@ -469,7 +469,7 @@ static void r11e_str_check()
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-            if (em->id == 0x2B && em->checkStatus(5) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
+            if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 find = 1;
             }
         }
@@ -505,6 +505,6 @@ static void r11e_checkDoor()
 {
     SceUpCut(0, -1, 4, 0);
     if (ItemMgr.num(0x8B) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
