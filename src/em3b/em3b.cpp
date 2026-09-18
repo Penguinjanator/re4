@@ -500,7 +500,7 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
-        } else if (em->flags_3C8 & 1) {
+        } else if (em->flag & 1) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -575,7 +575,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         f = em->frame;
         if (f > 464.7f && f < 465.3f) {
             EstSet((int) em, -1, 0, 0, 1, 0x24, 0, 0, (u32) em, 0);
-            em->flags_3C8 |= 2;
+            em->flag |= 2;
             em->hp = 0;
             em->clearStatus(EM_STATUS_ACTIVE);
             SndStop(w->sndId, 0);
@@ -633,7 +633,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
             f = em->frame;
             if (f > 42.7f && f < 43.3f) {
                 SndCall(6, 8, &p->world, 0, 0, em);
-                em->flags_3C8 |= 2;
+                em->flag |= 2;
                 em->hp = 0;
                 SndStop(w->sndId, 0);
             }
@@ -645,7 +645,7 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
             f = em->frame;
             if (f > 110.7f && f < 111.3f) {
                 SndCall(6, 8, &p->world, 0, 0, em);
-                em->flags_3C8 |= 2;
+                em->flag |= 2;
                 em->hp = 0;
                 SndStop(w->sndId, 0);
             }

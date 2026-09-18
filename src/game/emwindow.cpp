@@ -467,7 +467,7 @@ void cEmWindow::DmCk()
         break;
     }
     if (hp <= 0) {
-        SetBreakAll(&x328, a, 0);
+        SetBreakAll(&dmPos, a, 0);
     } else if (type == 1) {
         if (eff != 0xFF) {
             EmDmBloodSet2(this, eff, 5, 0, 0, 0);

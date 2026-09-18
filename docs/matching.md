@@ -487,7 +487,11 @@ python3 tools/sync_symbols.py build/G4BE08/src/game/foo.o   # renames placeholde
 ninja                                          # rebuild, refresh report (must still say main.dol OK); ninja reruns configure itself
 python3 tools/fdiff.py game/foo <mangled_symbol>   # side-by-side diff of one function (only differing lines; --all for everything)
 python3 tools/bytecmp.py game/foo                  # THE judge: every section byte-compared with relocs resolved by address;
-                                                   # `... game/foo FUNC` = word diff of one function. objdiff %s are reloc-NAME artefacts.
+                                                   # `... game/foo FUNC` = word diff of one function.
+python3 tools/sync_data_symbols.py                 # once a unit is IDENTICAL and marked complete: the split's data/.bss symbols
+                                                   # (lbl_ placeholders, sizes, padding labels) follow the compiled object, so the
+                                                   # report's data % is real and the asm reads the source names. All units at once,
+                                                   # idempotent, needs a complete build (refuses to run while ninja runs).
 ```
 
 Repeat until `tools/bytecmp.py` says IDENTICAL (unit_info's 100% is neither necessary nor sufficient). Then
@@ -683,6 +687,12 @@ original: fix the source, do not link it.
   declaring the callee `void` when the original ignores its result changes the order.
 - objdiff scores 100% even when constant-pool *values* differ (relocs compared symbolically): always
   cmp .rodata bytes against the split object before flipping a flag.
+- objdiff.json's `base_path` is `build/G4BE08/objdiff/<unit>.o`, not the linked object: tools/objdiff_base.py
+  copies the compiled object with the bytes under data relocations zeroed (NgcAs/MWCC store the
+  `.section+off` addend in place, dtk's split holds 0) and the split's symbols over our anonymous strings
+  and pools (objdiff compares a data section only up to its last symbol). The report's data % counts
+  a section only at exactly 100%; .bss is scored by the (offset, size) layout of the visible symbols,
+  which tools/sync_data_symbols.py makes agree for every complete unit.
 - In-class inline members of the class whose vtable the unit owns are emitted after the destructor at
   the end of `.text`.
 - Interblock scheduling is on: an independent `i++` in a loop's join block is hoisted into the loop

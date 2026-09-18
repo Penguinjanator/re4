@@ -433,7 +433,7 @@ void SceDestroyEm(int lo, int hi)
             if (em->isAlive()) {
                 EmListData* l = GetListPtrFromEm(em);
                 if (l) {
-                    l->flags &= ~1;
+                    l->be_flag &= ~1;
                 }
                 EmMgr.destroy(em);
             }

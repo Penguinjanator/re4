@@ -20,7 +20,7 @@ void cEmObj::EmObjInit()
 {
     EmObjWork* w = EMOBJ_WK(this);
 
-    x3E0 = 0;
+    m_Work0 = 0;
     w->pSat = 0;
     w->pEat = 0;
     w->eff = 0xFF;
@@ -34,7 +34,7 @@ void cEmObj::EmObjMove()
     RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     ScaleMatrix(mat, &scale);
-    if (x3E0 & 1) {
+    if (m_Work0 & 1) {
         MotionMove(this, 0);
     } else {
         partsMatCalc();
@@ -61,7 +61,7 @@ void cEmObj::setSat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
     w->satSize.z = sz;
     w->satN = n;
     w->satFlag = flag;
-    x3E0 |= 2;
+    m_Work0 |= 2;
     setSatMain();
 }
 
@@ -100,7 +100,7 @@ void cEmObj::clrSat()
     if (w->pSat) {
         w->pSat->m_Flag &= ~4;
     }
-    x3E0 &= ~2;
+    m_Work0 &= ~2;
 }
 
 void cEmObj::setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
@@ -115,7 +115,7 @@ void cEmObj::setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
     w->eatSize.z = sz;
     w->eatN = n;
     w->eatFlag = flag;
-    x3E0 |= 4;
+    m_Work0 |= 4;
     setEatMain();
 }
 
@@ -154,7 +154,7 @@ void cEmObj::clrEat()
     if (w->pEat) {
         w->pEat->m_Flag &= ~4;
     }
-    x3E0 &= ~4;
+    m_Work0 &= ~4;
 }
 
 void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 rad)

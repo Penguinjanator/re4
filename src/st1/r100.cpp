@@ -183,7 +183,7 @@ void R100Init()
         d.id = 0x12;
         d.type = 0;
         d.set = 0x13;
-        d.flags4 = 0x21000020;
+        d.flag = 0x21000020;
         d.pos[0] = -7763;
         d.pos[1] = 86;
         d.pos[2] = -3650;
@@ -191,8 +191,8 @@ void R100Init()
         d.rot[1] = 0x2000;
         d.rot[2] = 0;
         d.hp = 500;
-        d.x1A = 10;
-        d.xB = 0;
+        d.Guard_r = 10;
+        d.Character = 0;
         em = EmSetEvent(&d);
         W->em = em;
         if (em == 0 || em == errEm) {
@@ -329,7 +329,7 @@ void R100Init()
             em->r_no_1 = 0x10;
             em->r_no_2 = 0;
             em->r_no_3 = 0;
-            em->flags_3C8 |= 1;
+            em->flag |= 1;
         }
     }
     SceExec(0x12, (TaskFunc) r100_WindowBreakCk, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -697,13 +697,13 @@ static void r100_WindowBreakCk()
         if (!(pG->Room_flg[2] & 0x80000000)) {
             RsfSet(G_ROOM_ID, 4);
             if (W->ems[0] != errEm) {
-                W->ems[0]->flags_3C8 |= 0x80;
+                W->ems[0]->flag |= 0x80;
             }
             if (W->ems[1] != errEm) {
-                W->ems[1]->flags_3C8 |= 0x80;
+                W->ems[1]->flag |= 0x80;
             }
             if (W->ems[2] != errEm) {
-                W->ems[2]->flags_3C8 |= 0x80;
+                W->ems[2]->flag |= 0x80;
             }
             break;
         }
@@ -877,7 +877,7 @@ static void r100_Sce_look()
     SceSleep(2);
     em = W->em;
     if (em != 0 && em != errEm) {
-        em->flags_3C8 |= 1;
+        em->flag |= 1;
         pos.x = -79116.0f;
         pos.y = 860.0f;
         pos.z = -38890.0f;
@@ -938,8 +938,8 @@ static void r100_Sce_zombi_dead(cEm* em)
     W->ems[0]->setNoSuspend(0);
     W->ems[1]->setNoSuspend(0);
     W->ems[2]->setNoSuspend(0);
-    BitOn(W->ems[1]->flags_3C8, 1);
-    BitOn(W->ems[2]->flags_3C8, 1);
+    BitOn(W->ems[1]->flag, 1);
+    BitOn(W->ems[2]->flag, 1);
     l = EM_LIST(4);
     l->set = zero;
     l = EM_LIST(5);

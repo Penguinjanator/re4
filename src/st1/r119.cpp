@@ -336,7 +336,7 @@ static void r119_EventGolemAppear()
             } else {
                 SceDebugDisp("PL[NO]");
             }
-            if (!(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+            if (!(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
                 SceDebugDisp("EM[OK]");
             } else {
                 SceDebugDisp("EM[NO]");
@@ -350,7 +350,7 @@ static void r119_EventGolemAppear()
                     }
                 }
             }
-            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
                 pG->Room_flg[0] |= 0x02000000;
                 SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }

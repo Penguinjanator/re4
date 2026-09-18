@@ -114,7 +114,7 @@ extern "C" void Evt_R101S30_Func(Event* e);
 // Marks list entry `no` alive; clears its death bit of the loaded list.
 static inline void r101_emListOn(int no)
 {
-    EM_LIST(no)->flags |= 1;
+    EM_LIST(no)->be_flag |= 1;
 }
 
 static inline void r101_emDeadClear(int no)
@@ -252,9 +252,9 @@ void R101Init()
                 r101_emDeadClear(0x19);
                 r101_emDeadClear(0x1E);
                 r101_emDeadClear(0x1F);
-                ((EmListData*) &pGS->Em_list[0x48 * 0x20])->flags |= 1;
-                ((EmListData*) &pGS->Em_list[0x49 * 0x20])->flags |= 1;
-                ((EmListData*) &pGS->Em_list[0x4A * 0x20])->flags |= 1;
+                ((EmListData*) &pGS->Em_list[0x48 * 0x20])->be_flag |= 1;
+                ((EmListData*) &pGS->Em_list[0x49 * 0x20])->be_flag |= 1;
+                ((EmListData*) &pGS->Em_list[0x4A * 0x20])->be_flag |= 1;
             }
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, SCE_PRIO_DEF_2, 0);
         }
@@ -937,7 +937,7 @@ static void r101_setChickenFlag()
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
         if (em->id == 0x28 && em->isAlive()) {
-            em->flags_3C8 &= ~0x80000000;
+            em->flag &= ~0x80000000;
         }
     }
 }

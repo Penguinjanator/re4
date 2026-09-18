@@ -913,7 +913,7 @@ void em2dInitRtnSet(cEm2d* em)
         }
     }
     if (em->type == 4) {
-        em->flags_3C8 |= 0x40000000;
+        em->flag |= 0x40000000;
     }
     em->setStatus(EM_STATUS_ACTIVE);
     switch (em->set) {
@@ -1118,7 +1118,7 @@ static void em2d_R1_R213NestWait(cEm2d* em)
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x46), 0, 30, 5, 0);
         em->hp = 1;
-        em->flags_3C8 |= 0x20000000;
+        em->flag |= 0x20000000;
         w->timer = (Rnd() & 1) + 2;
         em->r_no_2++;
     case 1:
@@ -1328,7 +1328,7 @@ static void em2d_R1_Walk(cEm2d* em)
         }
     }
 next:
-    if (!(w->flags & 0x2000) && !(em->flags_3C8 & 0x40000000) && (pG->Frame_cnt & 3) != (em->emset_no & 3)) {
+    if (!(w->flags & 0x2000) && !(em->flag & 0x40000000) && (pG->Frame_cnt & 3) != (em->emset_no & 3)) {
         Vec a;
         Vec b;
 
@@ -1460,7 +1460,7 @@ static void em2d_R1_SideStep(cEm2d* em)
             }
             break;
         }
-        if ((em->seFlags28B & 1) && !(em->flags_3C8 & 0x40000000)) {
+        if ((em->seFlags28B & 1) && !(em->flag & 0x40000000)) {
             cModel* p = em->getPartsPtr(0);
             RotMatrix(m, &em->ang);
             TransMatrix(m, &p->world);
@@ -1949,14 +1949,14 @@ static void plem2d_JumpAtkHit(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x5F), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
-        pl->x3E0 = 127;
+        pl->m_Work0 = 127;
         EstSet((int) pl, -1, 0, 0, 0x25, 0x13, 0, 0, (u32) pl, (void*) fe);
         pl->r_no_3 = Rnd() & 1;
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             MotionMoveF(pl, 0);
@@ -2191,13 +2191,13 @@ static void plem2d_JumpKickHit(cPlayer* pl)
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x66), 0, 5, 1, 0);
         PlSetFace(1);
-        pl->x3E0 = 7;
+        pl->m_Work0 = 7;
         pl->r_no_2++;
     case 1:
         EmCatchMotionMove(pl, 0.3f, 0.2f);
-        t = pl->x3E0;
+        t = pl->m_Work0;
         if (t) {
-            pl->x3E0 = t - 1;
+            pl->m_Work0 = t - 1;
         } else {
             PlSetDamage(8, 0, 0);
             EstSet((int) pl, -1, 0, 0, 0x25, 0x1A, 0, 0, (u32) pl, (void*) t);
@@ -2307,9 +2307,9 @@ static void plem2dKick(cPlayer* pl)
     case 0:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x60), 0, 6, 1, 5);
         GameAddPoint(LVADD_CRITICALHIT);
-        pl->x3E0 = 27;
-        pl->x3E4 = 7;
-        pl->x3E8 = 10;
+        pl->m_Work0 = 27;
+        pl->m_Work1 = 7;
+        pl->m_Work2 = 10;
         SndCall(1, 0x35, &pPLS->pos, 0, 0, pPLS);  // struct view: the pPL load stays below the stores
         pl->r_no_2++;
     case 1:
@@ -3722,14 +3722,14 @@ static void plem2d_A_CatchHit(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x5F), 0, 5, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
-        pl->x3E0 = 127;
+        pl->m_Work0 = 127;
         EstSet((int) pl, -1, 0, 0, 0x25, 0x13, 0, 0, (u32) pl, (void*) fe);
         pl->r_no_3 = Rnd() & 1;
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             MotionMoveF(pl, 0);
@@ -3815,7 +3815,7 @@ static void em2d_R1_C_Wait(cEm2d* em)
         em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
-        t = em->flags_3C8 & 1;
+        t = em->flag & 1;
         if (t) {
             w->flags |= 0x200;
             EmRoutineSet(em, 1, 0x28, 0, 0);
@@ -3926,7 +3926,7 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
     w->flags |= 0x100;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->x328, em->ang.y, 3.14159274f)) < 1.57079637f) {
+        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
             side = 0;
         } else {
             side = 1;
@@ -3992,12 +3992,12 @@ static void em2d_R1_Dm_Blow(cEm2d* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->x328, em->ang.y, 3.14159274f)) < 1.57079637f) {
-            em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
+            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         } else {
-            em->ang.y += Muku(&em->x328, &em->pos, em->ang.y, 3.14159274f);
+            em->ang.y += Muku(&em->dmPos, &em->pos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x26), (int) ARC(0x27), 5, 1, 0);
         }
@@ -4100,7 +4100,7 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
-        em->ang.y = GetXZAngle(&em->pos, &em->x328);
+        em->ang.y = GetXZAngle(&em->pos, &em->dmPos);
         ofs.x = 0.0f;
         ofs.y = -1028.31995f;
         ofs.z = 0.0f;
@@ -4194,12 +4194,12 @@ static void em2d_R1_Dm_Air(cEm2d* em)
         if (Rnd() & 1) {
             flip = 1;
         }
-        if (fabsf(Muku(&em->pos, &em->x328, em->ang.y, 3.14159274f)) < 1.57079637f) {
-            em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f)) < 1.57079637f) {
+            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x72), 0, 5, flip, 0);
         } else {
-            em->ang.y += Muku(&em->x328, &em->pos, em->ang.y, 3.14159274f);
+            em->ang.y += Muku(&em->dmPos, &em->pos, em->ang.y, 3.14159274f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
             MotionSetCore(em, &em->Motion, ARC(0x73), 0, 5, flip, 0);
         }
@@ -4480,7 +4480,7 @@ static void em2d_R1_Die_Air(cEm2d* em)
     em->setStatus(EM_STATUS_IK_OFF);
     switch (em->r_no_2) {
     case 0:
-        em->ang.y = GetXZAngle(&em->pos, &em->x328);
+        em->ang.y = GetXZAngle(&em->pos, &em->dmPos);
         RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
@@ -4619,10 +4619,10 @@ void em2dRouteCk(cEm2d* em)
     w->pTarget = pPLS;  // before the flags RMW: the pPL load (may alias a w store) precedes `stw flags`
     w->flags &= ~4;
     if (w->flags & 0x8000) {
-        if (w->homeDist < em->x3CC) {
+        if (w->homeDist < em->Guard_r) {
             w->flags &= ~0x8000;
         }
-    } else if (w->homeDist > em->x3CC + 10000.0f) {
+    } else if (w->homeDist > em->Guard_r + 10000.0f) {
         w->flags |= 0x8000;
     }
     em2dReturnPosCk(em);
@@ -4694,10 +4694,10 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
         switch ((u32) no) {
         case 0:
             if (em->motFlags & 0x40) {
-                pPL->x328 = em->pos;
+                pPL->dmPos = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xE);
             } else {
-                pPL->x328 = em->pos;
+                pPL->dmPos = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0x1B);
             }
             if ((s16) pG->pl_life <= 0) {
@@ -4706,10 +4706,10 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             break;
         case 1:
             if (em->motFlags & 0x40) {
-                pPL->x328 = em->pos;
+                pPL->dmPos = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0xD);
             } else {
-                pPL->x328 = em->pos;
+                pPL->dmPos = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x25, 0x1C);
             }
             if ((s16) pG->pl_life <= 0) {
@@ -5031,7 +5031,7 @@ void em2dCamouflageMove(cEm2d* em)
             w->blendRatio = on;
         }
     }
-    if (em->flags_3C8 & 0x80000000) {
+    if (em->flag & 0x80000000) {
         return;
     }
     if (w->blendRatio == 0xFF) {
@@ -5817,7 +5817,7 @@ int em2dDownJumpCk(cEm2d* em)
     if (!(w->flags & 0x4000)) {
         return 0;
     }
-    if (em->flags_3C8 & 0x40000000) {
+    if (em->flag & 0x40000000) {
         return 0;
     }
     r = Rnd() & 1;
@@ -5841,7 +5841,7 @@ int em2dToCeilingCk(cEm2d* em)
     Vec b;
     int r;
 
-    if (em->flags_3C8 & 0x40000000) {
+    if (em->flag & 0x40000000) {
         return 0;
     }
     if (Rnd() & 1) {
@@ -6017,7 +6017,7 @@ int em2dWallOverCk(cEm2d* em)
     if (w->stuckCnt % 20 != 18) {
         return 0;
     }
-    zero = em->flags_3C8 & 0x40000000;
+    zero = em->flag & 0x40000000;
     if (zero) {
         return 0;
     }
@@ -6237,7 +6237,7 @@ void cEm2d::setReset(Vec* pos, Vec* rot)
     setPos(&p);
     pos_old = p;
     set = w->startSet;
-    flags_3C8 = w->startSet2;
+    flag = w->startSet2;
     hp = hp_max;
     w->homePos = this->pos;
     em2dInitRtnSet(this);

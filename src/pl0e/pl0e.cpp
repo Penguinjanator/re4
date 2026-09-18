@@ -367,7 +367,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             if (w->flags & 8) {
                 MotionSetCore(em, &em->Motion, ARC(0x14), 0, 0xA, 1, 0);
                 PlRoutineSet(pPL, 0, 0xF, 2, 0);
-                U32Set(pPL->x3E0, 2);
+                U32Set(pPL->m_Work0, 2);
                 if (pSUB) {
                     SetSubDamage((int) em, (void*) subBoatJump);
                     pSUB->r_no_3 = 2;
@@ -375,7 +375,7 @@ static void pl0e_R1_Jump(cPl0e* em)
             } else {
                 MotionSetCore(em, &em->Motion, ARC(0xE), 0, 0xA, 1, 0);
                 PlRoutineSet(pPL, 0, 0xF, 2, 0);
-                U32Set(pPL->x3E0, 1);
+                U32Set(pPL->m_Work0, 1);
                 if (pSUB) {
                     SetSubDamage((int) em, (void*) subBoatJump);
                     pSUB->r_no_3 = 1;
@@ -384,7 +384,7 @@ static void pl0e_R1_Jump(cPl0e* em)
         } else {
             MotionSetCore(em, &em->Motion, ARC(0xB), 0, 0xA, 1, 0);
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
-            U32Set(pPL->x3E0, 0);
+            U32Set(pPL->m_Work0, 0);
             if (pSUB) {
                 SetSubDamage((int) em, (void*) subBoatJump);
             }
@@ -838,7 +838,7 @@ static void plboat_R2_Jump(cPlayer* pl)
 {
     switch (pl->r_no_3) {
     case 0:
-        switch ((int) pl->x3E0) {
+        switch ((int) pl->m_Work0) {
         case 0:
         default:
             MotionSetCore(pl, &pl->Motion, PLARC(0x19), 0, 0xA, 1, 0);

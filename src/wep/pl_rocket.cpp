@@ -128,7 +128,7 @@ static void wep13_r3_ready00(cPlayer* pl)
     f32 pitch;
     void* mot;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
@@ -139,7 +139,7 @@ static void wep13_r3_ready00(cPlayer* pl)
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     pl->Neck->init(0, 0, 0);
     pl->Wep->lockInit();
@@ -346,7 +346,7 @@ static void wep13_r3_fire00(cPlayer* pl)
     obj->wep.step = 0;
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
@@ -548,19 +548,19 @@ static void wep13_r2_next(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         pl->r_no_3 = 1;
-        pl->x3E4 = 0;
+        pl->m_Work1 = 0;
     case 1:
         if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
             pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, PI / 10.0f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        pl->x400 = 0.0f;
+        pl->m_Fwork0 = 0.0f;
         pl->Waist->set(0.0f, 0.4f);
         pl->Body->waistMove();
         pl->motionMove();
-        if ((int) pl->x3E0++ > 9) {
+        if ((int) pl->m_Work0++ > 9) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 1;

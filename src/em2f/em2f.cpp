@@ -421,16 +421,16 @@ static void em2f_R0_Init(cEm2f* em)
 
 static void em2f_R0_Move(cEm2f* em)
 {
-    em->flags_3C8 &= ~0x1FC;
+    em->flag &= ~0x1FC;
     Em2f_R1_move_tbl[em->r_no_1](em);
     if (em->seFlags28B & 1) {
-        em->flags_3C8 |= 4;
+        em->flag |= 4;
     }
     if (em->seFlags28B & 0x80) {
-        em->flags_3C8 |= 8;
+        em->flag |= 8;
     }
     if (em->seFlags28B & 8) {
-        em->flags_3C8 |= 0x10;
+        em->flag |= 0x10;
     }
 }
 
@@ -734,7 +734,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     u32 hide;
     int one = 1;
 
-    em->flags_3C8 |= 0x80;
+    em->flag |= 0x80;
     switch (em->r_no_2) {
     case 0:
         em2fSetPosBetweenBoat(em);
@@ -746,7 +746,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         w->flags |= 0x10;
         em->r_no_2++;
     case 1:
-        em->flags_3C8 |= 0x108;
+        em->flag |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
             hide = pG->Status_flg[1] & 0x00400000;
@@ -776,7 +776,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         w->timer = 170;
         em->r_no_2++;
     case 3:
-        em->flags_3C8 |= 0x108;
+        em->flag |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
@@ -794,7 +794,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     case 5:
         if (w->timer2) {
             w->timer2--;
-            em->flags_3C8 |= 0x100;
+            em->flag |= 0x100;
         }
         r = MotionMoveF(em, 0);
         if (r) {
@@ -808,14 +808,14 @@ static void em2f_R1_RisingDragon(cEm2f* em)
                     SndCall(8, 0x1F, &pPL->pos, em->id, 0, pPL);
                 }
                 w->timer = 30;
-                em->flags_3C8 |= 0x40;
+                em->flag |= 0x40;
             }
             if (w->timer) {
                 w->timer--;
                 AddWaterPower(&em->pos, 3.0f);
             }
             if (em->motFrame > 129.7f && em->motFrame < 130.3f) {
-                em->flags_3C8 |= 0x40;
+                em->flag |= 0x40;
             }
         }
         break;
@@ -848,7 +848,7 @@ static void em2f_R1_Packman(cEm2f* em)
         w->flags |= 0x10;
         em->r_no_2++;
     case 1:
-        em->flags_3C8 |= 0x108;
+        em->flag |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
             hide = pG->Status_flg[1] & 0x00400000;
@@ -878,7 +878,7 @@ static void em2f_R1_Packman(cEm2f* em)
         w->timer = 180;
         em->r_no_2++;
     case 3:
-        em->flags_3C8 |= 0x108;
+        em->flag |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
@@ -896,7 +896,7 @@ static void em2f_R1_Packman(cEm2f* em)
     case 5:
         if (w->timer2) {
             w->timer2--;
-            em->flags_3C8 |= 0x100;
+            em->flag |= 0x100;
         }
         if (em->seFlags28B & 4) {
             SndCall(8, 0x19, &em->pos, em->id, 0, em);
@@ -923,7 +923,7 @@ static void em2f_R1_Packman(cEm2f* em)
                 AddWaterPower(&em->pos, 3.0f);
             }
             if (em->motFrame > 59.7f && em->motFrame < 60.3f) {
-                em->flags_3C8 |= 0x40;
+                em->flag |= 0x40;
             }
         }
         break;
@@ -974,7 +974,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->flags_3C8 |= 0x28;
+            em->flag |= 0x28;
         }
         if (MotionMoveF(em, 0)) {
             em->be_flag &= ~2;
@@ -987,7 +987,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         w->timer = Rnd() % 90 + 90;
         em->r_no_2++;
     case 3:
-        em->flags_3C8 |= 0x128;
+        em->flag |= 0x128;
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
@@ -1005,7 +1005,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         em2fEstSet(em, w, 0x15);
         em->r_no_2++;
     case 5:
-        em->flags_3C8 |= 0x12C;
+        em->flag |= 0x12C;
         w->flags |= 0x480;
         if (MotionMoveF(em, 0)) {
             em->r_no_2++;
@@ -1018,7 +1018,7 @@ static void em2f_R1_HideMode(cEm2f* em)
         w->flags &= ~0x10;
         em->r_no_2++;
     case 7:
-        em->flags_3C8 |= 0x12C;
+        em->flag |= 0x12C;
         w->flags |= 0x580;
         MotionMoveF(em, 0);
         if (em->plDist2 < 900000000.0f) {
@@ -1036,10 +1036,10 @@ static void em2f_R1_HideMode(cEm2f* em)
         w->timer2 = 90;
         em->r_no_2++;
     case 9:
-        em->flags_3C8 |= 0x12C;
+        em->flag |= 0x12C;
         if (w->timer2) {
             w->timer2--;
-            em->flags_3C8 |= 0x100;
+            em->flag |= 0x100;
         }
         w->flags |= 0x480;
         if (em->seFlags28B & 4) {
@@ -1056,10 +1056,10 @@ static void em2f_R1_HideMode(cEm2f* em)
         w->timer2 = 90;
         em->r_no_2++;
     case 0xB:
-        em->flags_3C8 |= 0x28;
+        em->flag |= 0x28;
         if (w->timer2) {
             w->timer2--;
-            em->flags_3C8 |= 0x100;
+            em->flag |= 0x100;
         }
         if (MotionMoveF(em, 0)) {
             em2fChangeRoute(em);
@@ -1306,11 +1306,11 @@ void em2fRouteCk(cEm2f* em)
     w->pTarget = pPLS;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->x374) {
+        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
-            w->targetDist = em->x374;
+            w->targetDist = em->l_sub;
             w->pTarget = pSUBS;
             w->flags |= 4;
         }

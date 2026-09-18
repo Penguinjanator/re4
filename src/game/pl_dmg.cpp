@@ -65,39 +65,39 @@ void damageNormal(cPlayer* pl)
             pl->r_no_3 = 0;
         case 0:
             mot = PL_ARC_PTR(pG->pPlayer, 0x48);
-            pl->x3E0 = 0x1E;
+            pl->m_Work0 = 0x1E;
             break;
         case 1:
             mot = PL_ARC_PTR(pG->pPlayer, 0x49);
-            pl->x3E0 = 0x23;
+            pl->m_Work0 = 0x23;
             break;
         case 2:
         case 4:
             mot = PL_ARC_PTR(pG->pPlayer, 0x4A);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x64);
-            pl->x3E0 = 0x23;
+            pl->m_Work0 = 0x23;
             break;
         case 3:
         case 5:
             mot = PL_ARC_PTR(pG->pPlayer, 0x4B);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x65);
-            pl->x3E0 = 0x23;
+            pl->m_Work0 = 0x23;
             break;
         case 6:
             mot = PL_ARC_PTR(pG->pPlayer, 0x4C);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x4D);
-            pl->x3E0 = 0x3E7;
+            pl->m_Work0 = 0x3E7;
             break;
         }
         MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, 5, 1, 0);
-        if (pl->x400 != 123.0f) {
-            ang = Muku2(pl->ang.y, pl->x400, PI);
+        if (pl->m_Fwork0 != 123.0f) {
+            ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
             pl->ang.y += ang;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             pl->getPartsPtr(0)->ang.y -= ang;
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         } else {
-            pl->x3E4 = 0;
+            pl->m_Work1 = 0;
         }
         if (pl->r_no_3 != 6) {
             PlSetDamageSe(0);
@@ -109,10 +109,10 @@ void damageNormal(cPlayer* pl)
         if (pl->frame > 19.7f && pl->frame < 20.3f) {
             pl->setFace(0);
         }
-        if (pl->x3E0 != 0) {
-            pl->x3E0--;
+        if (pl->m_Work0 != 0) {
+            pl->m_Work0--;
         }
-        if (pl->motionMove() != 0 || (pl->x3E0 == 0 && (Key.on & 0x10F))) {
+        if (pl->motionMove() != 0 || (pl->m_Work0 == 0 && (Key.on & 0x10F))) {
             if (pl->r_no_3 == 6) {
                 pl->r_no_0 = 2;
                 pl->r_no_2 = 0;
@@ -125,7 +125,7 @@ void damageNormal(cPlayer* pl)
                 PlRoutineSet(pl, 0, 0, 0, 0);
             }
         }
-        if (pl->x3E4 != 0) {
+        if (pl->m_Work1 != 0) {
             cModel* p = pl->getPartsPtr(0);
             p->ang.y += Muku2(pl->getPartsPtr(0)->ang.y, 0.0f, PI / 10.0f);
         }
@@ -187,7 +187,7 @@ void damageBlow(cPlayer* pl)
         if ((s16) pG->pl_life > 0) {
             dead = 0;
         }
-        BitSet(pl->x3E0, dead);
+        BitSet(pl->m_Work0, dead);
         if (dead) {
             mot = PL_ARC_PTR(pG->pPlayer, 0x4E);
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x66);
@@ -196,46 +196,46 @@ void damageBlow(cPlayer* pl)
             mot2 = PL_ARC_PTR(pG->pPlayer, 0x67);
         }
         MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, 5, 1, 0);
-        n = pl->x3E0;
+        n = pl->m_Work0;
         if (n) {
             EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 0xE : 0xD, 0, 0, (u32) pl, 0);
         } else {
             EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 6 : 5, 0, 0, (u32) pl, (void*) n);
         }
-        if (pl->x400 != 123.0f) {
-            ang = Muku2(pl->ang.y, pl->x400, PI);
+        if (pl->m_Fwork0 != 123.0f) {
+            ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
             pl->ang.y += ang;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             pl->getPartsPtr(0)->ang.y -= ang;
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         } else {
-            pl->x3E4 = 0;
+            pl->m_Work1 = 0;
         }
-        if (pl->x3E0 == 0) {
+        if (pl->m_Work0 == 0) {
             PlSetDamageSe(0);
         } else {
             SndCall(1, 0x4A, &pl->getPartsPtr(2)->world, 0, 0, 0);
         }
         pl->setFace(1);
-        pl->x3E8 = 0;
+        pl->m_Work2 = 0;
         pl->r_no_2 = 1;
         pl->st.x325 |= 0x80;
     case 1:
         if (MotionCheckCrossFrame(&pl->pMotion, 20.0f)) {
             pl->setFace(0);
         }
-        if (pl->x3E0 == 0 && pl->frame > 9.7f && pl->frame < 10.3f) {
+        if (pl->m_Work0 == 0 && pl->frame > 9.7f && pl->frame < 10.3f) {
             SndCall(5, 5, &pl->pos, 0, 0, 0);
         }
         if (pl->frame >= 5.0f) {
-            splash = pl->x3E8;
+            splash = pl->m_Work2;
             if (splash == 0 && GetWaterHeight(&pl->pParts->world, &wh) && pl->pParts->world.y < wh + 400.0f) {
-                pl->x3E8 = 1;
+                pl->m_Work2 = 1;
                 EstSet((int) pl, -1, 0, 0, 1, 0x24, 0, 0, (u32) pl, (void*) splash);
             }
         }
         if (pl->motionMove()) {
-            if (pl->x3E0 != 0) {
+            if (pl->m_Work0 != 0) {
                 pl->r_no_0 = 2;
                 pl->r_no_1 = 2;
                 pl->r_no_2 = 0;
@@ -290,14 +290,14 @@ void damageBlast(cPlayer* pl)
     case 0:
         pl->beginDamage();
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x52), 0, 5, 1, 0);
-        if (pl->x400 != 123.0f) {
-            ang = Muku2(pl->ang.y, pl->x400, PI);
+        if (pl->m_Fwork0 != 123.0f) {
+            ang = Muku2(pl->ang.y, pl->m_Fwork0, PI);
             pl->ang.y += ang;
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             pl->getPartsPtr(0)->ang.y -= ang;
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         } else {
-            pl->x3E4 = no;
+            pl->m_Work1 = no;
         }
         pl->setFace(1);
         pl->r_no_2 = 1;
@@ -332,7 +332,7 @@ void Pl_R0_Die(cPlayer* pl)
         }
         pl->atari.m_parts_no = 4;
         pl->r_no_1 = 1;
-        pl->x3E0 = no;
+        pl->m_Work0 = no;
     case 1:
         if (pl->frame > 39.7f && pl->frame < 40.3f) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 3, 1);

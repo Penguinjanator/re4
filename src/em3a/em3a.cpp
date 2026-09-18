@@ -971,7 +971,7 @@ static void em3a_R1_B_HideWait(cEm3a* em)
         break;
     }
     if (em->r_no_3) {
-        if (em->flags_3C8 & 1) {
+        if (em->flag & 1) {
             w->flags |= 1;
         }
     } else if (em3aFindPLCk(em)) {
@@ -1327,7 +1327,7 @@ void em3aPatrolInit(cEm3a* em)
         u32 o = i * 0x40 + 8;
         EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == 0) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
             EmiSet(w->pRoute, e);
             return;
         }
@@ -1355,7 +1355,7 @@ int em3aPatrolUpdate(cEm3a* em)
     for (i = 0; i < emi->n; i++) {
         EmiEntry* e = &emi->entry[i];
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == w->pRoute->pad_3 + 1) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == w->pRoute->pad_3 + 1) {
             w->pRoute = e;
             return 1;
         }
@@ -1363,7 +1363,7 @@ int em3aPatrolUpdate(cEm3a* em)
     for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
         EmiEntry* e = &((EmiData*) pG->pEmi)->entry[i];
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == 0) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
             w->pRoute = e;
             return 1;
         }

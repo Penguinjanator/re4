@@ -734,11 +734,11 @@ static void plem25_Bite(cPlayer* pl)
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x2F), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             end = MotionMoveF(pl, 0);

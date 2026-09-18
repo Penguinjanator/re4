@@ -290,7 +290,7 @@ int r404_setEm(u32 no, int force)
         return 0;
     }
     cEmWrap em;
-    if (!(EM_LIST_V(no).flags & 2)) {
+    if (!(EM_LIST_V(no).be_flag & 2)) {
         cEmWrapSetEmI(&em, no, -1, 1, 1, 1);
     } else {
         cEmWrapSetPtrI(&em, no, -1, 1);

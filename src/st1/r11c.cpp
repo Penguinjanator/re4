@@ -587,7 +587,7 @@ static void r11c_EventBesiegedStart()
     SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(SCC_CHASE, 0);
     if (!r11c_emDead(0xC8)) {
-        EM_LIST(0xC8)->flags &= ~2;
+        EM_LIST(0xC8)->be_flag &= ~2;
         EmSetFromList2(0xC8, 0);
     }
     CamCtrl.AreaOnOff(1, 0, 0);

@@ -76,9 +76,9 @@ void R118Init()
         SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (pG->Item_find_flg & 0x00100000) {
-        EM_LIST(0x82)->flags &= ~1;
-        EM_LIST(0x83)->flags &= ~1;
-        EM_LIST(0x84)->flags &= ~1;
+        EM_LIST(0x82)->be_flag &= ~1;
+        EM_LIST(0x83)->be_flag &= ~1;
+        EM_LIST(0x84)->be_flag &= ~1;
         EmSetFromList2(0x79, 1);
         EmSetFromList2(0x7A, 1);
         EmSetFromList2(0x7B, 1);

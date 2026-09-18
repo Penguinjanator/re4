@@ -767,7 +767,7 @@ static void r221_checkBossAppear_end()
             }
         }
         EM_LIST(0x8C)->set = zero;
-        EM_LIST(0x8C)->flags = zero;
+        EM_LIST(0x8C)->be_flag = zero;
         S16Set(EM_LIST(0x8C)->pos[0], -0x4F8);
         S16Set(EM_LIST(0x8C)->pos[1], 0x58);
         S16Set(EM_LIST(0x8C)->pos[2], -0x1FA1);

@@ -491,7 +491,7 @@ void R209Main()
                     SceAtSetEnable(0x1A, 0);
                     SceAtSetEnable(0x1C, 0);
                     SceAtSetEnable(0x1D, 0);
-                    r209_work.p->leader.getPtr()->x3D0 = 0;
+                    r209_work.p->leader.getPtr()->Character = 0;
                 }
             }
         }
@@ -567,7 +567,7 @@ static void r209_LeaderPointAtPlayer()
     getRoomEtcDoor(1, &door, 1);
     r209_work.p->leader.setFindPL();
     do {
-        if (door->flags_3C8 & 0x10000000) {
+        if (door->flag & 0x10000000) {
             opened = 1;
         }
         SceSleep(1);
@@ -660,7 +660,7 @@ static void r209_DoorOpen1F(int no)
                     ang.z = 0.0f;
                     w->setAng(&ang);
                 }
-                while ((r209_work.p->door2->flags_3C8 & 0x10000000) == 0) {
+                while ((r209_work.p->door2->flag & 0x10000000) == 0) {
                     SceSleep(1);
                 }
                 r209_LeaderMoveToPoint(4, 1);
@@ -671,7 +671,7 @@ static void r209_DoorOpen1F(int no)
                 r209_work.p->em[0].w.setEm(0x79, 3, 0, 0, 0);
             }
         }
-        while (r209_work.p->door2->flags_3C8 & 0x10000000) {
+        while (r209_work.p->door2->flag & 0x10000000) {
             SceSleep(1);
         }
         if (r209_work.p->plInPlace == 0) {
@@ -685,7 +685,7 @@ static void r209_DoorOpen1F(int no)
                 SceAtSetEnable(0x1C, 0);
                 SceAtSetEnable(0x1D, 0);
                 r209_LeaderMoveToPoint(3, 1);
-                r209_work.p->leader.getPtr()->x3D0 = 0;
+                r209_work.p->leader.getPtr()->Character = 0;
                 SceExit();
             } else {
                 goto inPlace;
@@ -731,14 +731,14 @@ static void r209_DoorOpen2F(int no)
                 ang.z = 0.0f;
                 w->setAng(&ang);
             }
-            while ((r209_work.p->door3->flags_3C8 & 0x10000000) == 0) {
+            while ((r209_work.p->door3->flag & 0x10000000) == 0) {
                 SceSleep(1);
             }
             r209_LeaderMoveToPoint(2, 1);
         } else if (r209_work.p->task[0] == 0) {
             r209_work.p->task[0] = SceExec(0x12, (TaskFunc) r209_ToPoint1F, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        while (r209_work.p->door3->flags_3C8 & 0x10000000) {
+        while (r209_work.p->door3->flag & 0x10000000) {
             SceSleep(1);
         }
         if (r209_work.p->plInPlace == 0) {
@@ -751,7 +751,7 @@ static void r209_DoorOpen2F(int no)
                 SceAtSetEnable(0x1A, 0);
                 SceAtSetEnable(0x1C, 0);
                 SceAtSetEnable(0x1D, 0);
-                r209_work.p->leader.getPtr()->x3D0 = 0;
+                r209_work.p->leader.getPtr()->Character = 0;
                 SceExit();
             } else {
                 goto inPlace;
@@ -998,7 +998,7 @@ static void r209_2ndBattle()
 {
     ReadModule* m = SearchEmModule(0x1A);
 
-    while ((r209_work.p->door4->flags_3C8 & 0x10000000) == 0) {
+    while ((r209_work.p->door4->flag & 0x10000000) == 0) {
         SceSleep(1);
     }
     RsfSet(G_ROOM_ID, 3);
@@ -1382,7 +1382,7 @@ static void r209_BridgeAppearCheckEnd()
     while (1) {
         if (SceAtHitCheck(0x25) != 0) {
             getRoomEtcDoor(0x21, &door, 1);
-            if (door != NULL && door->hp > 0 && (door->flags_3C8 & 0x10000000) == 0) {
+            if (door != NULL && door->hp > 0 && (door->flag & 0x10000000) == 0) {
                 SceSleep(1);
             }
             r209_work.p->em[21].w.setFlag(1);

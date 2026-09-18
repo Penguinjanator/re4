@@ -226,7 +226,7 @@ static int em_reset(int no, int chk)
     if (chk == 1 && r403_work.p->cnt > 9) {
         return 0;
     }
-    if (EM_LIST_V(no).flags & 2) {
+    if (EM_LIST_V(no).be_flag & 2) {
         return 0;
     }
     cEmWrap em;
@@ -482,7 +482,7 @@ void emset_gatling(int no)
 {
     int list;
 
-    EM_LIST_V(no).flags &= ~2;
+    EM_LIST_V(no).be_flag &= ~2;
     list = pG->em_list_no;
     if (list >= 0) {
         u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);

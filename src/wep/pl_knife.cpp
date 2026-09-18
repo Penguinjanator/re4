@@ -80,10 +80,10 @@ static void knife_r2_ready(cPlayer* pl)
         knife_r3_ready10,
     };
 
-    pl->x3E0 = 0;
+    pl->m_Work0 = 0;
     if (pl->r_no_3 == 100) {
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
         if (pl->Wep->knifeStance != 0) {
@@ -143,7 +143,7 @@ static void knife_r3_ready00(cPlayer* pl)
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
         mot0 = pl->pMotTbl[0x59];
@@ -342,7 +342,7 @@ static void knife_r3_fire00(cPlayer* pl)
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
     MotionMove(pl, 0);
-    pl->Waist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
     EstSet((int) pl, -1, 0, 0, 0, 0x2B, 0, 0xA, 0, 0);
     pl->Body->waistMove();
     pl->partsWorldCalc();
@@ -415,7 +415,7 @@ static void knife_r3_down00(cPlayer* pl)
         obj->wep.step = 0;
         mot0 = pl->pMotTbl[0x57];
         mot1 = pl->pMotTbl[0x58];
-        pl->x3E0 = on;
+        pl->m_Work0 = on;
     } else {
         if (dmMotCk()) {
             mot0 = pl->pMotTbl[0x5B];
@@ -424,7 +424,7 @@ static void knife_r3_down00(cPlayer* pl)
             mot0 = PL_ARC_PTR(pG->pPlayer, 0x87);
             mot1 = 0;
         }
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
     }
     if (mot0 == 0) {
         FACE_SET(pl, 0.0f);
@@ -461,7 +461,7 @@ static void knife_r3_down10(cPlayer* pl)
         }
     }
     if (pl->motionMove()) {
-        if (pl->x3E0 == 0) {
+        if (pl->m_Work0 == 0) {
             KNIFE_RESET(pl);
         } else {
             pl->r_no_0 = 0;
@@ -472,7 +472,7 @@ static void knife_r3_down10(cPlayer* pl)
             m3r[1] = 0.0f;
             m3r[0] = 0.0f;
         }
-    } else if ((Key.on & 0x10F) || (pl->x3E0 != 0 && joyKamae() == 0) || (pl->x3E0 == 0 && joyKamae() != 0)) {
+    } else if ((Key.on & 0x10F) || (pl->m_Work0 != 0 && joyKamae() == 0) || (pl->m_Work0 == 0 && joyKamae() != 0)) {
         FACE_SET(pl, 0.0f);
         setWepTrans(pl, 1);
         if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {

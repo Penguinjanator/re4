@@ -8,7 +8,7 @@ static array may be split at each referenced offset). objdiff pairs symbols by n
 the (offset, size) layout of the visible symbols, so a byte-identical unit still shows .bss/.data below
 100% in the progress report, and the target asm reads `lbl_80276805` where the source says `PlCapNum`.
 
-For every unit that has a compiled object (objdiff.json: target_path + base_path), per section
+For every matched unit (objdiff.json unit with a target, a source and `complete: true`), per section
 (.bss/.sbss and .data/.rodata/.sdata/.sdata2), the target's symbols are made to agree with the
 compiled object's visible symbols:
   * a target symbol at a compiled symbol's offset takes the compiled name and size (placeholders
@@ -16,7 +16,8 @@ compiled object's visible symbols:
   * a compiled symbol with no target symbol at its offset is added;
   * a placeholder with no compiled symbol at its offset is deleted in .bss/.sbss (alignment padding:
     dtk fills it with a hidden gap symbol); in the data sections it stays (a string or pool the
-    compiled object has no symbol for).
+    compiled object has no symbol for) unless it is zero bytes behind the compiled section's end
+    (the split's alignment padding).
 The edits of a section are applied only if every address any split object relocates against stays
 inside a visible symbol (dtk resolves REL relocations through the symbol table before it fills gaps),
 and only if no non-placeholder target symbol disagrees with the compiled object; otherwise the section
@@ -280,7 +281,7 @@ def collect_refs(files, targets):
         sf.refs = {sec: sorted(v) for sec, v in d.items()}
 
 
-def plan_section(sf, unit, section, start, end, base, tdata):
+def plan_section(sf, unit, section, start, end, base, tdata, bsize):
     """Edits that make the target symbols of [start, end) agree with the compiled `base`
     ({offset: (size, name, bind)}), or None with a reason when the section must be left alone."""
     entries = sf.entries(section, start, end)
@@ -295,6 +296,10 @@ def plan_section(sf, unit, section, start, end, base, tdata):
         container = [o for o in base if o < off < o + base[o][0]]
         if is_placeholder(e.name) and (section in BSS_SECTIONS or container):
             deletes.add(off)  # padding (.bss) or a fragment of a compiled object
+        elif is_placeholder(e.name) and off >= bsize and not any(tdata[off:off + e.size]):
+            deletes.add(off)  # zero bytes behind the compiled section's end: the split's alignment padding
+        elif off < bsize < off + e.size and not any(tdata[bsize:off + e.size]):
+            resizes.append((e, bsize - off))  # the same padding swallowed by the last symbol
         elif container:
             problems.append(f"{e.name} ({section}+{off:#x}) lies inside compiled {base[container[0]][1]}")
         elif section in BSS_SECTIONS:
@@ -386,7 +391,7 @@ def sync_unit(sf, unit, target, base_obj):
             continue
         start, end = splits[section]
         base = base_obj.syms.get(section, {})
-        plan, problems, notes = plan_section(sf, unit, section, start, end, base, target.data.get(section, b""))
+        plan, problems, notes = plan_section(sf, unit, section, start, end, base, target.data.get(section, b""), base_obj.sizes[section])
         sf.log.extend(notes)
         if problems:
             sf.log.append(f"  {section} left alone: " + "; ".join(problems))
@@ -437,8 +442,12 @@ def main():
             print(f"{u['name']}: no split unit for {stem} in {os.path.relpath(sf.path, ROOT)}")
             continue
         targets.append((module, unit, tp))
-        bp = os.path.join(ROOT, u.get("base_path", "")) if u.get("base_path") else None
-        if bp and os.path.isfile(bp) and (not wanted or u["base_path"] in wanted):
+        if not u["metadata"].get("complete"):
+            continue  # a unit still being matched: its compiled layout is not the truth yet
+        # the compiled object itself, not objdiff.json's base_path (tools/objdiff_base.py's copy of it
+        # carries the target's symbols over our anonymous data)
+        bp = os.path.join(BUILD, "src", stem + ".o")
+        if u.get("base_path") and os.path.isfile(bp) and (not wanted or os.path.relpath(bp, ROOT) in wanted):
             work.append((u["name"], sf, unit, tp, bp))
     collect_refs(files, targets)
     for name, sf, unit, tp, bp in work:

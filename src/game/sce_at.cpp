@@ -2848,8 +2848,8 @@ static void sceAtItemFindCheck()
             cEm* m = (cEm*) w->item.pModel;
             f32 fl = EatMgr.getFloor(&m->pos, 0.0f, 100000.0f, 0, 0);
 
-            m->pos.y -= m->x328.y;
-            m->x328.y += 10.0f;
+            m->pos.y -= m->dmPos.y;
+            m->dmPos.y += 10.0f;
             if (m->pos.y < fl) {
                 m->pos.y = fl;
                 it->flag2 &= ~0x40;
@@ -3695,7 +3695,7 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         d.id = 0x24;
         d.type = 0;
         d.set = 0;
-        d.flags4 = 1;
+        d.flag = 1;
         d.pos[0] = (s16) (pos->x / 10.0f);
         d.pos[1] = (s16) (pos->y / 10.0f);
         d.pos[2] = (s16) (pos->z / 10.0f);
@@ -3709,8 +3709,8 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
             d.rot[2] = 0;
         }
         d.hp = 1000;
-        d.x1A = 1;
-        d.xB = 0;
+        d.Guard_r = 1;
+        d.Character = 0;
         EmSetEvent(&d);
         goto fail;
     // The fail tail is written out in both RandomItemCk arms: jump2 first cross-jumps each copy into
@@ -3982,7 +3982,7 @@ void sceAtSetItem(SceAtWork* w)
             if (ok2 == 0 && it->effType == 0) {
                 it->effType = 1;
             }
-            ((cEm*) w->item.pModel)->x328.y = 0.0f;
+            ((cEm*) w->item.pModel)->dmPos.y = 0.0f;
             if (it->effNo == 0) {
                 sceAtItemEffSet(w, w->item.pModel);
             }

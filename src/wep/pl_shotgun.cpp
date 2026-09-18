@@ -90,7 +90,7 @@ static void wep07_r2_ready(cPlayer* pl)
         pl->motSpeedRate = 1.0f;
         pl->Wep->m_Flag |= 1;
         PlRoutineSet(pl, 0, 6, 4, 0);
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     } else if (pl->pLockEm) {
         CamCtrlShoulderSetAim(&pl->pLockEm->pos);
     } else {
@@ -109,7 +109,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     void* mot;
     int hokan;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_ShotTimer = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
@@ -121,7 +121,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     m3r[1] = pitch;
     m3r[0] = pitch;
     m3r[2] = 0.0f;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     pl->Wep->lockInit();
@@ -148,7 +148,7 @@ static void wep07_r3_ready10(cPlayer* pl)
     if (pl->frame > 1.7f && pl->frame < 2.3f) {
         int se = 0x28;
 
-        if (pl->x3E8 == 1) {
+        if (pl->m_Work2 == 1) {
             se = 0x29;
         }
         SndCall(1, (u16) se, &pl->getPartsPtr(0)->world, 0, 0, 0);
@@ -214,7 +214,7 @@ static void wep07_r2_set(cPlayer* pl)
         } else if (pl->Wep->m_pWep->reloadable()) {
             pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
-            pl->x3E0 = 0;
+            pl->m_Work0 = 0;
         } else {
             SndCall(2, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
             goto reload;
@@ -226,7 +226,7 @@ static void wep07_r2_set(cPlayer* pl)
         if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
             pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
         }
     }
 }
@@ -398,13 +398,13 @@ static void wep07_r3_fire00(cPlayer* pl)
         }
         PlWepHitCheck2(pl, &p0, &p1, pG->weapon_no, flag, 6000.0f);
     }
-    pl->x3F4 = 1;
-    pl->x3F0 = 1;
+    pl->m_Work5 = 1;
+    pl->m_Work4 = 1;
     obj = pl->Wep->m_pWep;
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     {
         // COMPILER-DIFF: #13: the original never allocates the REG_EQUIV 0.0 pseudo; reload
@@ -547,11 +547,11 @@ static void wep07_r2_reload(cPlayer* pl)
         PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x1A), PL_ARC_PTR(arc, 0x20), PL_ARC_PTR(arc, 0x22), 0, 9, 0, 4, 0);
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         pl->r_no_3 = 3;
     }
     case 3:
-        if ((int) ++pl->x3E0 > 8) {
+        if ((int) ++pl->m_Work0 > 8) {
             PlRoutineSet(pl, 0, 6, 1, 0);
         }
         mot3.move(m3r[0]);

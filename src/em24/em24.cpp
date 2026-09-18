@@ -274,7 +274,7 @@ static void em24_R1_BoxWait(cEm24* em)
     case 1:
         em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI);
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             em->dmType = 2;
             break;
         }

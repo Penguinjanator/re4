@@ -311,8 +311,8 @@ void cPlLeon::setHead(void* bin, void* tpl)
 
 int cPlLeon::checkXbutton()
 {
-    if (xButtonWait) {
-        xButtonWait--;
+    if (m_CmdTimer) {
+        m_CmdTimer--;
     }
     if (pSUB == 0) {
         return 0;
@@ -321,7 +321,7 @@ int cPlLeon::checkXbutton()
         return 0;
     }
     pG->Status_flg[1] |= 4;
-    if (xButtonWait != 0) {
+    if (m_CmdTimer != 0) {
         return 0;
     }
     if (SubCharCheckCtrl() == 0) {
@@ -337,7 +337,7 @@ int cPlLeon::checkXbutton()
         SndCall(1, 0x36, &pParts->world, 0, 0, 0);
         SubCharCtrl(0, 0);
     }
-    xButtonWait = 8;
+    m_CmdTimer = 8;
     pG->Status_flg[0] |= 0x800000;
     return 1;
 }

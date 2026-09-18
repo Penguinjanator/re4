@@ -705,7 +705,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
         MotionMoveF(em, 0);
-        if (em->flags_3C8 & 1) {
+        if (em->flag & 1) {
             em->r_no_2++;
         }
         break;

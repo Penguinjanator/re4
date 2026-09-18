@@ -1038,7 +1038,7 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000026C4	0x4	t_movie/t_prim.cpp	local	lbl_t_movie_rodata_26C4	lbl_t_movie_rodata_26C4
 .rodata	0x000026C8	0x14	t_movie/t_prim.cpp	local	lbl_t_movie_rodata_26C8	lbl_t_movie_rodata_26C8
 .rodata	0x000026DC	0x4	t_movie/t_prim.cpp	global	TprimHtrSize	TprimHtrSize
-.rodata	0x000026E0	0x48	t_movie/t_prim.cpp	local	lbl_t_movie_rodata_26E0	lbl_t_movie_rodata_26E0
+.rodata	0x000026E0	0x44	t_movie/t_prim.cpp	local	lbl_t_movie_rodata_26E0	lbl_t_movie_rodata_26E0
 .rodata	0x00002740	0x8	t_movie/t_se_at.cpp	local	lbl_t_movie_rodata_2740	lbl_t_movie_rodata_2740
 .rodata	0x00002748	0x8	t_movie/t_se_at.cpp	local	lbl_t_movie_rodata_2748	lbl_t_movie_rodata_2748
 .rodata	0x00002750	0x8	t_movie/t_se_at.cpp	local	lbl_t_movie_rodata_2750	lbl_t_movie_rodata_2750

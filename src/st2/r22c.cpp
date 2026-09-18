@@ -1436,7 +1436,7 @@ static void r22cSetWepMan()
         d.id = 0x18;
         d.type = 0;
         d.set = 0;
-        d.flags4 = 0;
+        d.flag = 0;
         d.pos[0] = 0x122;
         d.pos[1] = 0;
         d.pos[2] = -0x234;
@@ -1444,8 +1444,8 @@ static void r22cSetWepMan()
         d.rot[1] = -0x205B;
         d.rot[2] = 0;
         d.hp = 0x3E8;
-        d.x1A = 0;
-        d.xB = 0;
+        d.Guard_r = 0;
+        d.Character = 0;
         em = EmSetEvent(&d);
         r22c_work.p->wepMan = em;
         em->dmg.set(0, 0x80);

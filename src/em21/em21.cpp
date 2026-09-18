@@ -604,7 +604,7 @@ static void em21_R1_R100TrapCancel(cEm21* em)
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x19), (int) ARC(0x1C), 3, 5, 0);
         if (w->pTrap) {
-            w->pTrap->flags_3C8 |= 1;
+            w->pTrap->flag |= 1;
         }
         SndStrReq(1, 0xE, 0x80000003, 0, 0, 0.0f);
         pG->Item_find_flg |= 0x80000;
@@ -731,7 +731,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 25000000.0f
-            && (g->flags_3C8 & 4)) {
+            && (g->flag & 4)) {
             em->r_no_2 = 6;
             break;
         }
@@ -768,7 +768,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 25000000.0f
-            && (g->flags_3C8 & 4)) {
+            && (g->flag & 4)) {
             em->r_no_2 = 6;
             break;
         }
@@ -876,7 +876,7 @@ static void em21_R1_VsElgigante(cEm21* em)
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 9000000.0f
-            && (g->flags_3C8 & 4)) {
+            && (g->flag & 4)) {
             em->r_no_2 = 6;
             break;
         }

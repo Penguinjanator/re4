@@ -376,7 +376,7 @@ void emMove(cEm* em)
     dz = pPL->pos.z - em->pos.z;
     dx = pPL->pos.x - em->pos.x;
     em->plDist2 = dx * dx + dz * dz;
-    em->x374 = 1e16f;
+    em->l_sub = 1e16f;
     em->dmg.move();
     em->move();
     if ((em->be_flag & 0x201) != 1) {
@@ -421,7 +421,7 @@ cDmgInfo::cDmgInfo()
 void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
 {
     stat = flag | 1;
-    x1 = timer;
+    m_Timer = timer;
     this->kind = kind;
     pos = *p;
     rad = r;
@@ -431,25 +431,25 @@ void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
 void cDmgInfo::set(int flag, int timer)
 {
     stat = flag;
-    x1 = timer;
+    m_Timer = timer;
 }
 
 void cDmgInfo::clear()
 {
     stat = 0;
-    x1 = 0;
+    m_Timer = 0;
 }
 
 void cDmgInfo::move()
 {
-    if (x1 & 0x80) {
+    if (m_Timer & 0x80) {
         return;
     }
-    if ((x1 & 0x7F) == 0) {
+    if ((m_Timer & 0x7F) == 0) {
         return;
     }
-    x1--;
-    if (x1 == 0) {
+    m_Timer--;
+    if (m_Timer == 0) {
         stat = 0;
     }
 }

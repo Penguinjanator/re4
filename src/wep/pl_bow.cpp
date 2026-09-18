@@ -100,7 +100,7 @@ static void wep28_r3_ready00(cPlayer* pl)
     cObjWep* obj;
     int hokan;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
@@ -111,7 +111,7 @@ static void wep28_r3_ready00(cPlayer* pl)
     m3r[1] = pitch;
     m3r[0] = pitch;
     m3r[2] = 0.0f;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     obj = pl->Wep->m_pWep;
@@ -263,14 +263,14 @@ static void wep28_r3_fire00(cPlayer* pl)
     mot3.set(pl, PL_ARC_PTR(arc, 0x22), PL_ARC_PTR(arc, 0x25), PL_ARC_PTR(arc, 0x28), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMoveI(pl, 0);
-    pl->x3F4 = 1;
-    pl->x3F0 = 1;
+    pl->m_Work5 = 1;
+    pl->m_Work4 = 1;
     obj = pl->Wep->m_pWep;
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pl->setRightHand(0);
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;

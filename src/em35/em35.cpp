@@ -1666,11 +1666,11 @@ static void plem35_BearHug(cPlayer* pl)
             pl->dmg.set(0, 30);
         } else {
             if (pl->frame > 72.7f && pl->frame < 73.3f) {
-                U32Set(pl->x3E0, SndCall(8, 0x4B, &pl->pos, PL_EM(pl)->id, 0, pl));
+                U32Set(pl->m_Work0, SndCall(8, 0x4B, &pl->pos, PL_EM(pl)->id, 0, pl));
                 VibSetData(VIB_TBL, 0xB, 1);
             }
             if (pl->frame > 157.7f && pl->frame < 158.3f) {
-                U32Set(pl->x3E0, SndCall(8, 0x4D, &pl->pos, PL_EM(pl)->id, 0, pl));
+                U32Set(pl->m_Work0, SndCall(8, 0x4D, &pl->pos, PL_EM(pl)->id, 0, pl));
                 VibSetData(VIB_TBL, 0xB, 1);
             }
         }
@@ -1689,7 +1689,7 @@ static void plem35_BearHug(cPlayer* pl)
         LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x94), 0, 0, 1, 0);
-        SndStop(pl->x3E0, 0);
+        SndStop(pl->m_Work0, 0);
         SndCall(1, 0x3D, &pPL->pos, pPL->id, 0, pPL);
         pl->r_no_2++;
     }
@@ -2134,14 +2134,14 @@ static void plem35_CriticalHit(cPlayer* pl)
         PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x90), 0, 0, 1, 0);
         PlSetFace(1);
-        pl->x3E0 = 100;
+        pl->m_Work0 = 100;
         EstSet((int) pl, -1, 0, 0, 0x2C, 0x10, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
     }
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
-            if (pl->x3E0 == 0) {
+        if (pl->m_Work0) {
+            pl->m_Work0--;
+            if (pl->m_Work0 == 0) {
                 pG->pl_life = 0;
             }
         }
@@ -2172,12 +2172,12 @@ static void plem35DashEscape(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
         em35EscapeCamMove(PL_EM(pl));
-        if (pl->x3E4) {
+        if (pl->m_Work1) {
             pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
@@ -2186,8 +2186,8 @@ static void plem35DashEscape(cPlayer* pl)
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -3479,7 +3479,7 @@ static void em35_R1_Dm_U_Fall(cEm35* em)
         Vec a;
         Vec b;
 
-        ang = fabsf(Muku(&em->pos, &em->x328, em->ang.y, PI));
+        ang = fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI));
 
         a.x = 0.0f;
         a.y = 500.0f;
@@ -3797,10 +3797,10 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 0:
             case 1:
                 if (no == 0) {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 em35PlKnock(em);
@@ -3821,10 +3821,10 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 5:
             case 6:
                 if (no == 5) {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 if (pPL->pos.y > em->pos.y + 2000.0f) {
@@ -3845,10 +3845,10 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 8:
             case 9:
                 if (no == 8) {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x14);
                 } else {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x15);
                 }
                 em35PlKnock(em);
@@ -3857,17 +3857,17 @@ int em35AtkCk(cEm35* em, u32 no, int parts)
             case 0xA:
             case 0xB:
                 if (no == 0xA) {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x1A);
                 } else {
-                    pPL->x328 = em->pos;
+                    pPL->dmPos = em->pos;
                     EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x1B);
                 }
                 em35PlKnock(em);
                 SndCall(8, 0x11, &em->pos, em->id, 0, em);
                 break;
             case 0xC:
-                pPL->x328 = em->pos;
+                pPL->dmPos = em->pos;
                 EmPlBloodSet2(em, &p->world, 1, 0x2C, 0x19);
                 em35PlKnock(em);
                 SndCall(8, 0x11, &em->pos, em->id, 0, em);

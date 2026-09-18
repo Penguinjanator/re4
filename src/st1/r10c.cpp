@@ -367,11 +367,11 @@ static void r10c_EmEvent_exit()
     {
         EmListData* l = EM_LIST(3);
 
-        l->flags |= 1;
+        l->be_flag |= 1;
         l->set = 0;
     }
     EmSetFromList2(3, 1);
-    EM_LIST(4)->flags |= 1;
+    EM_LIST(4)->be_flag |= 1;
     EmSetFromList2(4, 1);
     r10c_setPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
     r10c_setAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
@@ -397,7 +397,7 @@ static void r10c_EmEvent()
         em->setNoSuspend(1);
         r10c_work.p->em = em;
         EstSet((int) em, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
-        BitOn(em->flags_3C8, 1);
+        BitOn(em->flag, 1);
         MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
         SceEventStart(0);

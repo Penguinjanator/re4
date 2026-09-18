@@ -343,7 +343,7 @@ static void em28_R1_Wait(cEm28* em)
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            if ((int) em->flags_3C8 >= 0) {
+            if ((int) em->flag >= 0) {
                 if (Rnd() & 1) {
                     if (Rnd() & 3) {
                         em->r_no_2++;
@@ -657,7 +657,7 @@ static void em28_R1_Die_Normal(cEm28* em)
             MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
             break;
         case 1:
-            em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, PI);
+            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, 1, 0);
             break;
         case 2:

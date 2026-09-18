@@ -573,7 +573,7 @@ void plobjLadderClimb(cPlayer* pl)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionSetCore(em, &em->pMotion, w->mot[0], 0, 5, 1, 0);
         em->atari.throughOn();
-        em->x3E0 = obj->getLadderNum();
+        em->m_Work0 = obj->getLadderNum();
         em->be_flag &= ~0x10;
         if (w->camera != -1) {
             CamCtrl.CutCall((s8) w->camera);
@@ -587,8 +587,8 @@ void plobjLadderClimb(cPlayer* pl)
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->x3E0 -= 4;
-            if ((int) em->x3E0 > 0) {
+            em->m_Work0 -= 4;
+            if ((int) em->m_Work0 > 0) {
                 em->r_no_2++;
             } else {
                 em->r_no_2 = 4;
@@ -606,8 +606,8 @@ void plobjLadderClimb(cPlayer* pl)
             SndCall(6, 0x42, &em->pos, 0, 0, 0);
         }
         if (MotionMove(em, 0)) {
-            em->x3E0 -= 2;
-            if ((int) em->x3E0 > 0) {
+            em->m_Work0 -= 2;
+            if ((int) em->m_Work0 > 0) {
                 break;
             }
             em->r_no_2 = 4;
@@ -622,7 +622,7 @@ void plobjLadderClimb(cPlayer* pl)
         if (w->camera != -1) {
             CamCtrl.Comeback(0);
         }
-        em->x3E0 = 0;
+        em->m_Work0 = 0;
         em->r_no_2++;
     case 5:
         if (obj->getType() == 1) {
@@ -646,8 +646,8 @@ void plobjLadderClimb(cPlayer* pl)
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->world, em->id, 0, 0);
             }
         }
-        em->x3E0++;
-        if (obj->getType() != 1 && (int) em->x3E0 > 0x17) {
+        em->m_Work0++;
+        if (obj->getType() != 1 && (int) em->m_Work0 > 0x17) {
             fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
             if (em->pos.y < fl) {
                 em->pos.y = em->pos.y * 0.9f + fl * 0.1f;

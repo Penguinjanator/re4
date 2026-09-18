@@ -82,10 +82,10 @@ static void wep19_r2_ready(cPlayer* pl)
         wep19_r3_ready30,
     };
 
-    pl->x3E0 = 0;
+    pl->m_Work0 = 0;
     if (pl->r_no_3 == 100) {
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
         if (pl->Wep->knifeStance != 0) {
@@ -131,7 +131,7 @@ static void wep19_r3_ready00(cPlayer* pl)
     f32 pitch;
     void* mot;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = 0.0f;
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     pitch = CamCtrl.getCameraPitch();
@@ -143,7 +143,7 @@ static void wep19_r3_ready00(cPlayer* pl)
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     pl->Wep->lockInit();
     mot = WEP_ARC_PTR(0xF);
@@ -381,19 +381,19 @@ static void wep19_r3_fire00(cPlayer* pl)
         PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x15), PL_ARC_PTR(arc, 0x18), 0, 3, 0, 4, 0);
-        pl->x3F0 = 0;
+        pl->m_Work4 = 0;
     } else {
         PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
-        pl->x3F0 = 1;
+        pl->m_Work4 = 1;
     }
     mot3.move(m3r[0]);
     MotionMoveI(pl, 0);
     SndCall(1, 1, &pl->pParts->world, 0, 0, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->Waist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
     pl->r_no_3 = 1;
 }
 
@@ -410,7 +410,7 @@ static void wep19_r3_fire10(cPlayer* pl)
             pl->Wep->pObj2->setDisp(0, 0);
         }
     }
-    if (pl->x3F0 == 0) {
+    if (pl->m_Work4 == 0) {
         if (pl->frame > 24.7f && pl->frame < 25.3f) {
             readyWeapon(pl);
             SndCall(1, 0, &pl->pParts->world, 0, 0, 0);
@@ -466,19 +466,19 @@ static void wep19_r2_next(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         pl->r_no_3 = 1;
-        pl->x3E4 = 0;
+        pl->m_Work1 = 0;
     case 1:
         if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
             pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, PI / 10.0f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        pl->x400 = 0.0f;
+        pl->m_Fwork0 = 0.0f;
         pl->Waist->set(0.0f, 0.4f);
         pl->Body->waistMove();
         pl->motionMove();
-        n = pl->x3E0++;
+        n = pl->m_Work0++;
         if (n > 9) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;

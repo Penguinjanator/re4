@@ -118,10 +118,10 @@ static void wep17_r2_ready(cPlayer* pl)
         wep17_r3_ready30,
     };
 
-    pl->x3E0 = 0;
+    pl->m_Work0 = 0;
     if (pl->r_no_3 == 0x64) {
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
         if (pl->Wep->knifeStance != 0) {
@@ -157,7 +157,7 @@ static void wep17_r2_ready(cPlayer* pl)
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     } else if (pl->pLockEm) {
         CamCtrlShoulderSetAim(&pl->pLockEm->pos);
     } else {
@@ -211,7 +211,7 @@ static void wep17_r3_ready00(cPlayer* pl)
     void* m;
     int md;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = zero;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > zero) {
@@ -222,7 +222,7 @@ static void wep17_r3_ready00(cPlayer* pl)
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = zero;
+    pl->m_Fwork0 = zero;
     pl->Neck->init(0, 0, 0);
     SndCall(2, 9, &pl->getPartsPtr(0xA)->world, 0, 0, 0);
     obj = WEP_OBJ(pl);
@@ -230,7 +230,7 @@ static void wep17_r3_ready00(cPlayer* pl)
     obj->wep.mode = md;
     obj->wep.step = 0;
     AtariFlagsOr(WEP_ATARI(pl), 0x200);
-    if (pG->stage_no > 1 && pl->x3E0 == 0 && (pG->Status_flg[3] & 0x08000000)) {
+    if (pG->stage_no > 1 && pl->m_Work0 == 0 && (pG->Status_flg[3] & 0x08000000)) {
         Vec nrm;
         Vec v0;
         Vec v1;
@@ -261,8 +261,8 @@ static void wep17_r3_ready00(cPlayer* pl)
                 RotVector(&v1, &pl->ang, &v1);
                 PSVECAdd(&v1, &v0, &v1);
                 if (SatMgr.hitCheck(&v0, &v1, 0, 0, 0, 0) == 0) {
-                    pl->x3E0 = 0;
-                    pl->x3E4 = 1;
+                    pl->m_Work0 = 0;
+                    pl->m_Work1 = 1;
                     pl->r_no_2 = 6;
                     pl->r_no_3 = 0;
                     v0.x = -nrm.x;
@@ -288,8 +288,8 @@ static void wep17_r3_ready00(cPlayer* pl)
                 RotVector(&v1, &pl->ang, &v1);
                 PSVECAdd(&v1, &v0, &v1);
                 if (SatMgr.hitCheck(&v0, &v1, 0, 0, 0, 0) == 0) {
-                    pl->x3E0 = 1;
-                    pl->x3E4 = 1;
+                    pl->m_Work0 = 1;
+                    pl->m_Work1 = 1;
                     pl->r_no_2 = 6;
                     pl->r_no_3 = 0;
                     v0.x = -nrm.x;
@@ -303,10 +303,10 @@ static void wep17_r3_ready00(cPlayer* pl)
         if (ckEmWep(pl)) {
             int side = ((Key.on >> 2) ^ 1) & 1;
 
-            pl->x3E4 = 0;
+            pl->m_Work1 = 0;
             pl->r_no_3 = 0;
             pl->r_no_2 = 6;
-            pl->x3E0 = side;
+            pl->m_Work0 = side;
             return;
         }
     }
@@ -322,7 +322,7 @@ static void wep17_r3_ready10(cPlayer* pl)
     if (pl->frame > 1.7f && pl->frame < 2.3f) {
         int se;
 
-        if (pl->x3E8 == 1) {
+        if (pl->m_Work2 == 1) {
             se = 0x29;
         } else {
             se = 0x28;
@@ -449,7 +449,7 @@ static void wep17_r2_set(cPlayer* pl)
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;
             pl->r_no_3 = 0;
-            pl->x3E0 = fire;
+            pl->m_Work0 = fire;
             return;
         }
         SndCall(2, 0x17, &pl->getPartsPtr(4)->world, 0, 0, 0);
@@ -466,7 +466,7 @@ static void wep17_r2_set(cPlayer* pl)
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     }
 }
 
@@ -477,7 +477,7 @@ static void wep17_r3_set00(cPlayer* pl)
     mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x17), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->x3F0 = 0;
+    pl->m_Work4 = 0;
     pl->r_no_3 = 1;
 }
 
@@ -562,7 +562,7 @@ static void wep17_r3_fire00(cPlayer* pl)
     MotionMoveI(pl, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->Waist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
     WEP_ATARI(pl)->clrFlag200();
     pl->Body->waistMove();
     pl->partsWorldCalc();
@@ -577,12 +577,12 @@ static void wep17_r3_fire00(cPlayer* pl)
     PSMTXMultVecSR(parts->mat, &p1, &p1);
     PSVECAdd(&p0, &p1, &p1);
     PlWepHitCheck2(pl, &p0, &p1, pG->weapon_no, 0, 6000.0f);
-    pl->x3F0++;
+    pl->m_Work4++;
     obj = WEP_OBJ(pl);
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
@@ -595,11 +595,11 @@ static void wep17_r3_fire10(cPlayer* pl)
 {
     pl->motionMove();
     if (joyKamae() && joyFireOn() && pG->weapon_no == 0x11 && MotionCheckCrossFrame(&pl->Motion, 3.0f)
-        && pl->x3F0 <= 2 && WEP_OBJ(pl)->bulletNum()) {
+        && pl->m_Work4 <= 2 && WEP_OBJ(pl)->bulletNum()) {
         pl->r_no_3 = 0;
     }
     if (MotionCheckCrossFrame(&pl->Motion, 11.0f)) {
-        pl->x3F0 = 0;
+        pl->m_Work4 = 0;
         WEP_ATARI(pl)->setFlag200();
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
@@ -698,15 +698,15 @@ static void wep17_r2_next(cPlayer* pl)
     switch (step) {
     case 0:
         MotionMoveI(pl, 0);
-        pl->x3E0 = 0;
-        pl->x3E4 = 0;
+        pl->m_Work0 = 0;
+        pl->m_Work1 = 0;
         if (em) {
             ang = Muku(&pl->pos, &em->pos, pl->ang.y, PI);
         } else {
             ang = 0.0f;
         }
         if (ang < cPlWaist::ROT_LIMIT && ang > -cPlWaist::ROT_LIMIT) {
-            pl->x400 = ang;
+            pl->m_Fwork0 = ang;
             pl->r_no_3 = 2;
         } else {
             if (ang > 3.0f * PI / 4.0f || ang < -3.0f * PI / 4.0f) {
@@ -714,7 +714,7 @@ static void wep17_r2_next(cPlayer* pl)
             } else {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 1, 0);
             }
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
             pl->r_no_3 = 1;
         }
         break;
@@ -724,22 +724,22 @@ static void wep17_r2_next(cPlayer* pl)
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         pl->Waist->set(0.0f, 0.4f);
-        if (pl->x3E4 == 0) {
+        if (pl->m_Work1 == 0) {
             pl->partsFixMemory(0x19);
         }
         MotionMoveI(pl, 0);
-        if ((int) pl->x3E0 > 9) {
+        if ((int) pl->m_Work0 > 9) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 1;
             pl->r_no_3 = 0;
         }
-        pl->x3E0++;
+        pl->m_Work0++;
         break;
     case 2:
         MotionMoveI(pl, 0);
-        if (fabsf(pl->Waist->set(pl->x400, 0.4f)) < 0.01f) {
-            pl->Waist->cur = pl->x400;
+        if (fabsf(pl->Waist->set(pl->m_Fwork0, 0.4f)) < 0.01f) {
+            pl->Waist->cur = pl->m_Fwork0;
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 1;
@@ -786,7 +786,7 @@ static void wep17_r2_out(cPlayer* pl)
 {
     switch (pl->r_no_3) {
     case 0:
-        if (pl->x3E0 == 0) {
+        if (pl->m_Work0 == 0) {
             MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
         } else {
             MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
@@ -797,13 +797,13 @@ static void wep17_r2_out(cPlayer* pl)
             pl->ang.y += Muku(&pl->pos, &pCkEm->pos, pl->ang.y, 0.31415927f);
         }
         if (MotionMoveI(pl, 0)) {
-            if (pl->x3E0 == 0) {
+            if (pl->m_Work0 == 0) {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
             } else {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
             }
             pl->r_no_3 = 2;
-            pl->x400 = pl->ang.y;
+            pl->m_Fwork0 = pl->ang.y;
         }
         break;
     case 2:
@@ -815,19 +815,19 @@ static void wep17_r2_out(cPlayer* pl)
         }
         MotionMoveI(pl, 0);
         if (Key.trg & 0x40000000) {
-            pl->x3E4 = 0;
+            pl->m_Work1 = 0;
         }
         if (joyKamae() == 0) {
-            if (pl->x3E4 == 1) {
-                if (pl->x3E0 == 0) {
+            if (pl->m_Work1 == 1) {
+                if (pl->m_Work0 == 0) {
                     MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 5);
                 } else {
                     MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 5);
                 }
                 pl->r_no_3 = 6;
-                pl->ang.y = pl->x400;
+                pl->ang.y = pl->m_Fwork0;
             } else {
-                if (pl->x3E0 == 0) {
+                if (pl->m_Work0 == 0) {
                     MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
                 } else {
                     MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
@@ -856,7 +856,7 @@ static void wep17_r2_out(cPlayer* pl)
             PSMTXMultVecSR(parts->mat, &p1, &p1);
             PSVECAdd(&p0, &p1, &p1);
             PlWepHitCheck2(pl, &p0, &p1, pG->weapon_no, 0, 6000.0f);
-            if (pl->x3E0 == 0) {
+            if (pl->m_Work0 == 0) {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
             } else {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
@@ -880,7 +880,7 @@ static void wep17_r2_out(cPlayer* pl)
             end |= 1;
         }
         if (end) {
-            if (pl->x3E0 == 0) {
+            if (pl->m_Work0 == 0) {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);
             } else {
                 MotionSetCore(pl, &pl->Motion, 0, 0, 3, 5, 0);

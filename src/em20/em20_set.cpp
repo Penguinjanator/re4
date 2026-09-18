@@ -292,7 +292,7 @@ void Em20Set(cEm10* em)
         w->mot[38] = 0;
         w->mot[39] = 0;
         w->mot[40] = 0;
-        em->flags_3C8 |= 0x10000000;
+        em->flag |= 0x10000000;
         Em10SetSeTbl(em, 1);
         break;
     }

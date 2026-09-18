@@ -266,9 +266,9 @@ int actWallCheck(cPlayer* pl)
         return 0;
     }
     PSVECScale(&nrm, &ofs, -1000.0f);
-    pl->x400 = (f32) atan2(-nrm.x, -nrm.z);
+    pl->m_Fwork0 = (f32) atan2(-nrm.x, -nrm.z);
     rot.x = 0.0f;
-    rot.y = pl->x400;
+    rot.y = pl->m_Fwork0;
     rot.z = 0.0f;
     p0.x = 350.0f;
     p0.y = 300.0f;
@@ -315,7 +315,7 @@ int fanceCheck(cPlayer* pl)
         return 0;
     }
     rot.x = 0.0f;
-    rot.y = pl->x400;
+    rot.y = pl->m_Fwork0;
     rot.z = 0.0f;
     PSVECScale(&pl->m_ActNorm, &dir, -1000.0f);
     p0.x = 400.0f;
@@ -344,7 +344,7 @@ int fanceCheck(cPlayer* pl)
     if (fabsf(hit.y - pl->pos.y) > 300.0f) {
         return 0;
     }
-    pl->x3E0 = 1;
+    pl->m_Work0 = 1;
     return 1;
 }
 
@@ -365,8 +365,8 @@ int windowCheck(cPlayer* pl, u8* dir, cEmWindow** out)
     RotVector(&p1, &pl->ang, &p1);
     PSVECAdd(&p1, &pl->pos, &p1);
     if (ChkWindow(pl, &p0, &p1, 1, &status, d, &wpos, &win) == 1) {
-        pl->x400 = (f32) atan2(-d->x, -d->z);
-        pl->x3E0 = 0;
+        pl->m_Fwork0 = (f32) atan2(-d->x, -d->z);
+        pl->m_Work0 = 0;
         PSVECScale(d, &PlFancePos, 400.0f);
         PSVECAdd(&PlFancePos, &wpos, &PlFancePos);
         if (EmRackCk(pl, &pl->pos, atan2f(-wdir.x, -wdir.z)) == 0) {
@@ -384,7 +384,7 @@ void fanceOn()
 {
     cPlayer* pl = pPL;
 
-    if (pl->x3E0) {
+    if (pl->m_Work0) {
         PlFanceFlag = 0;
         PlRoutineSet(pl, 0, 0xC, 0, 0);
     } else {
@@ -426,7 +426,7 @@ void levelUpOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 7, 0, 0);
-    BitSet(pPL->x3E0, 0);
+    BitSet(pPL->m_Work0, 0);
     pPL->dmg.set(0, 10);
 }
 
@@ -435,7 +435,7 @@ void levelDownOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 8, 0, 0);
-    BitSet(pPL->x3E0, 0);
+    BitSet(pPL->m_Work0, 0);
     pPL->dmg.set(0, 10);
 }
 
@@ -444,7 +444,7 @@ void level2UpOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 7, 0, 0);
-    BitSet(pPL->x3E0, 1);
+    BitSet(pPL->m_Work0, 1);
     pPL->dmg.set(0, 10);
 }
 
@@ -453,7 +453,7 @@ void level2DownOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 8, 0, 0);
-    BitSet(pPL->x3E0, 1);
+    BitSet(pPL->m_Work0, 1);
     pPL->dmg.set(0, 10);
 }
 
@@ -609,7 +609,7 @@ int cPlayer::actionSelect()
     }
     if (keyReload() && Wep->m_pWep && Wep->m_pWep->reloadable()) {
         PlRoutineSet(this, 0, 6, 4, 0);
-        x3E0 = 1;
+        m_Work0 = 1;
         return 1;
     }
     actWallCheck(this);
@@ -700,12 +700,12 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
 {
     beginDamage();
     LifeDownSet2(this, arg, 0, 1);
-    dmgCnt522 += b;
-    if (dmgCnt522 > 0xFE) {
+    m_ConDmTimer += b;
+    if (m_ConDmTimer > 0xFE) {
         if (ang != 123.0f) {
             f32 d = Muku2(this->ang.y, ang, 3.1415927f);
             if (d < 1.5707964f && d > -1.5707964f) {
-                x400 = ang;
+                m_Fwork0 = ang;
                 switch (kind) {
                 case 0:
                 case 1:
@@ -721,7 +721,7 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
                     break;
                 }
             } else {
-                x400 = LIMIT_ANGLE(ang + 3.1415927f);
+                m_Fwork0 = LIMIT_ANGLE(ang + 3.1415927f);
                 switch (kind) {
                 case 0:
                 case 1:
@@ -738,7 +738,7 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
                 }
             }
         } else {
-            x400 = 123.0f;
+            m_Fwork0 = 123.0f;
         }
         switch (kind) {
         default:
@@ -752,9 +752,9 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
             PlRoutineSet(this, 1, 2, 0, 0);
             break;
         }
-        dmgCnt522 = 0;
+        m_ConDmTimer = 0;
     }
-    dmgFlag520 = 1;
+    m_ConDmFlag = 1;
 }
 
 // Fade the player (and the weapon) out while pG->flags_500C bit13 is set.
@@ -989,13 +989,13 @@ void cPlayer::keyConfig()
 void cPlayer::keyConfigTypeA()
 {
     Key.trg &= ~0x100;
-    if (x4FE) {
-        x4FE--;
+    if (m_BbtnCnt) {
+        m_BbtnCnt--;
     }
     if (Key.trg & 0x40000000) {
-        x4FE = 2;
+        m_BbtnCnt = 2;
     }
-    if ((Key.on & 2) && x4FE != 0) {
+    if ((Key.on & 2) && m_BbtnCnt != 0) {
         Key.trg |= 0x100;
     }
 }
@@ -1099,7 +1099,7 @@ void cPlayer::beginEvent()
             Wep->m_pWep->resetMotion();
         }
         setFootwork();
-        flags_41C &= ~0x100;
+        m_Flag &= ~0x100;
         break;
     case 1:
         PlRoutineSet(this, 5, 2, 0, 0);
@@ -1115,7 +1115,7 @@ void cPlayer::interrupt()
 
     endCamera();
     flags_420 |= 0x800;
-    x4FE = 0;
+    m_BbtnCnt = 0;
     Neck->m_Mode = 1;
     MOTION(this)->Seq_speed = 1.0f;
     flags_420 &= ~0x40;
@@ -1151,9 +1151,9 @@ void cPlayer::interrupt()
             x894 = 1;
         }
     }
-    if (sndId504) {
-        SndStop(sndId504, 1);
-        sndId504 = 0;
+    if (m_SeId) {
+        SndStop(m_SeId, 1);
+        m_SeId = 0;
     }
 }
 
@@ -1228,7 +1228,7 @@ void cPlayer::endEvent0(u32 mode)
             PlRoutineSet(this, 0, 0, 0, one);
             break;
         case 1:
-            flags_41C |= 0x100;
+            m_Flag |= 0x100;
             break;
         case 2:
             PlRoutineSet(this, 0, 0, 0, 0);

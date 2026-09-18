@@ -896,7 +896,7 @@ static void R226EventTowerLookMain()
     RsfSet(G_ROOM_ID, 14);
     SceAtSetEnable(0x22, 0);
     getRoomEtcDoor(0xA, &door, 1);
-    while (!(door->flags_3C8 & 0x10000000)) {
+    while (!(door->flag & 0x10000000)) {
         SceSleep(1);
     }
     SceEventStart(0);
@@ -1129,7 +1129,7 @@ static void playerRunMovePassage(cPlayer* pl)
 
     switch (pl->r_no_2) {
     case 0:
-        pl->x3E0 = 0x55;
+        pl->m_Work0 = 0x55;
         Cckpt.lifeMeterDisp(0);
         FSetP(pPL->pos.x, -8540.0f);
         FSetP(pPL->pos.y, 1000.0f);
@@ -1143,7 +1143,7 @@ static void playerRunMovePassage(cPlayer* pl)
     case 1:
         MotionSetCore(pl, &pl->Motion, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
-        pl->x400 = 1.0f;
+        pl->m_Fwork0 = 1.0f;
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
         playerRunCamMovePassage(pl, 1.0f);
@@ -1221,7 +1221,7 @@ static void playerRunMoveBridge(cPlayer* pl)
 
     switch (pl->r_no_2) {
     case 0:
-        pl->x3E0 = 0x55;
+        pl->m_Work0 = 0x55;
         Cckpt.lifeMeterDisp(0);
         AtariFlagsAndV(&pPL->atari, 0xFEFF);
         FSetP(pPL->pos.x, -70500.0f);
@@ -1237,7 +1237,7 @@ static void playerRunMoveBridge(cPlayer* pl)
     case 1:
         MotionSetCore(pl, &pl->Motion, data, (int) mot[r226_work.p->spdNew], 10, 5, 0);
         pl->r_no_2 = 2;
-        pl->x400 = 1.0f;
+        pl->m_Fwork0 = 1.0f;
     case 2:
         eprintf(0x40, 0x10, 0, 0, "HItPoint:[%d] SpdOld;[%d] SpdNew:[%d] Sub:[%d] ", r226_work.p->hitPoint, r226_work.p->spdOld, r226_work.p->spdNew, r226_work.p->sub);
         playerRunCamMoveBridge(pl, 1.0f);

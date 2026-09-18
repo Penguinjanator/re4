@@ -81,6 +81,7 @@ class Object:
         self.asm_path: Optional[Path] = None
         self.src_obj_path: Optional[Path] = None
         self.asm_obj_path: Optional[Path] = None
+        self.objdiff_obj_path: Optional[Path] = None  # copy of the compiled object objdiff compares (tools/objdiff_base.py)
         self.ctx_path: Optional[Path] = None
 
     def resolve(self, config: "ProjectConfig", lib: Library) -> "Object":
@@ -128,6 +129,7 @@ class Object:
         base_name = Path(self.name).with_suffix("")
         obj.src_obj_path = build_dir / "src" / f"{base_name}.o"
         obj.asm_obj_path = build_dir / "mod" / f"{base_name}.o"
+        obj.objdiff_obj_path = build_dir / "objdiff" / f"{base_name}.o"
         obj.ctx_path = build_dir / "src" / f"{base_name}.ctx"
         return obj
 
@@ -1358,6 +1360,17 @@ def generate_build_ninja(
                 )
                 n.newline()
 
+        objdiff_base_script = config.tools_dir / "objdiff_base.py"
+        strip_unused_script = config.tools_dir / "strip_unused.py"
+        objdiff_base_inputs: List[Path] = []
+        n.comment("objdiff base objects (tools/objdiff_base.py)")
+        n.rule(
+            name="objdiff_base",
+            command=f"$python {objdiff_base_script} $target $in $out",
+            description="OBJDIFF_BASE $out",
+        )
+        n.newline()
+
         def c_build(obj: Object, src_path: Path) -> Optional[Path]:
             # Avoid creating duplicate build rules
             if obj.src_obj_path is None or obj.src_obj_path in source_added:
@@ -1565,6 +1578,23 @@ def generate_build_ninja(
                 # Use the original (extracted) object
                 link_step.add(Path(obj_path))
 
+            if (
+                built_obj_path is not None
+                and obj_path is not None
+                and obj.objdiff_obj_path is not None
+                and obj.objdiff_obj_path not in objdiff_base_inputs
+            ):
+                # objdiff's base object: the compiled object with the bytes under data relocations
+                # zeroed and the target's symbols over our anonymous data (tools/objdiff_base.py)
+                n.build(
+                    outputs=obj.objdiff_obj_path,
+                    rule="objdiff_base",
+                    inputs=built_obj_path,
+                    variables={"target": obj_path},
+                    implicit=[Path(obj_path), objdiff_base_script, strip_unused_script],
+                )
+                objdiff_base_inputs.append(obj.objdiff_obj_path)
+
         # Add DOL link step
         link_step = LinkStep(build_config)
         for unit in build_config["units"]:
@@ -1707,6 +1737,13 @@ def generate_build_ninja(
             inputs=source_inputs,
         )
         n.newline()
+        n.comment("Build all objdiff base objects")
+        n.build(
+            outputs="all_objdiff",
+            rule="phony",
+            inputs=objdiff_base_inputs,
+        )
+        n.newline()
 
         ###
         # Check hash
@@ -1761,7 +1798,7 @@ def generate_build_ninja(
         n.build(
             outputs=report_path,
             rule="report",
-            implicit=[objdiff, "objdiff.json", "all_source"],
+            implicit=[objdiff, "objdiff.json", "all_source", "all_objdiff"],
             order_only="post-build",
         )
 
@@ -1788,7 +1825,7 @@ def generate_build_ninja(
         n.build(
             outputs=report_baseline_path,
             rule="report",
-            implicit=[objdiff, "all_source", "always"],
+            implicit=[objdiff, "all_source", "all_objdiff", "always"],
             order_only="post-build",
         )
         n.build(
@@ -2071,7 +2108,8 @@ def generate_objdiff_config(
 
         src_exists = obj.src_path is not None and obj.src_path.exists()
         if src_exists:
-            unit_config["base_path"] = obj.src_obj_path
+            # with a target object the base is tools/objdiff_base.py's copy of the compiled object
+            unit_config["base_path"] = obj.objdiff_obj_path if obj_path is not None else obj.src_obj_path
             unit_config["metadata"]["source_path"] = obj.src_path
 
         # Filter out include directories

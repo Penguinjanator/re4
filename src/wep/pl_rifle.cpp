@@ -109,7 +109,7 @@ static void wep09_r2_ready(cPlayer* pl)
             pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->Wep->m_pWep->setDisp(1, 1);
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
         }
     }
 }
@@ -129,8 +129,8 @@ static void wep09_r3_ready00(cPlayer* pl)
     mot3.move(m3r[0]);
     pl->motionMove();
     pl->r_no_3 = 1;
-    pl->x3E4 = 0;
-    pl->x3F0 = 0;
+    pl->m_Work1 = 0;
+    pl->m_Work4 = 0;
 }
 
 static void wep09_r3_ready10(cPlayer* pl)
@@ -143,7 +143,7 @@ static void wep09_r3_ready10(cPlayer* pl)
     }
     if (pl->motionMove()) {
         PlRoutineSet(pl, 0, 6, 1, 0);
-        pl->x3F0 = 10;
+        pl->m_Work4 = 10;
     }
     pl->Waist->set(0.0f, 0.4f);
 }
@@ -158,12 +158,12 @@ static void wep09_r2_set(cPlayer* pl)
 
     func_tbl[pl->r_no_3](pl);
     pl->setLaserSight(0, 0);
-    if (pl->x3E4 == 0 && MotionCheckCrossFrame(&pl->Motion, 2.0f)) {
+    if (pl->m_Work1 == 0 && MotionCheckCrossFrame(&pl->Motion, 2.0f)) {
         SndCall(2, 9, &pl->pParts->world, 0, 0, 0);
-        pl->x3E4 = 1;
+        pl->m_Work1 = 1;
     }
-    if (pl->x3F0 != 0) {
-        pl->x3F0--;
+    if (pl->m_Work4 != 0) {
+        pl->m_Work4--;
     }
     if (joyKamae() == 0) {
         Vec at;
@@ -178,17 +178,17 @@ static void wep09_r2_set(cPlayer* pl)
 
             PlRoutineSet(pl, 0, 6, md, 0);
         }
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         CamCtrl.getTrajectory(&pl->evTarget, &at);
         PSVECSubtract(&at, &pl->evTarget, &pl->evTarget);
-    } else if (joyFireOn() && pl->x3F0 == 0 && pl->Wep->m_pWep->bulletNum()) {
+    } else if (joyFireOn() && pl->m_Work4 == 0 && pl->Wep->m_pWep->bulletNum()) {
         PlRoutineSet(pl, 0, 6, 2, 0);
     } else if (joyFireTrg() && pl->Wep->m_pWep->bulletNum() == 0) {
         if (pl->Wep->m_pWep->reloadable()) {
             pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->Wep->m_pWep->setDisp(1, 1);
-            pl->x3E0 = 0;
+            pl->m_Work0 = 0;
         } else {
             SndCall(2, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
             goto reload;
@@ -199,7 +199,7 @@ static void wep09_r2_set(cPlayer* pl)
             pl->Wep->m_pWep->setDisp(1, 1);
             pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
         }
     }
 }
@@ -264,7 +264,7 @@ static void wep09_r3_fire00(cPlayer* pl)
         SndCall(2, 0, &pl->getPartsPtr(4)->world, 0, 0, 0);
     }
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
-    ISet(pl->x3F0, 0);
+    ISet(pl->m_Work4, 0);
     if (pG->weapon_no == 0xA) {
         obj = pl->Wep->m_pWep;
         obj->wep.mode = 2;
@@ -281,18 +281,18 @@ static void wep09_r3_fire10(cPlayer* pl)
     cPlWep* w;
 
     pl->motionMove();
-    ISet(pl->x3F0, pl->x3F0 + 1);   // reference store: the pG load stays below it
+    ISet(pl->m_Work4, pl->m_Work4 + 1);   // reference store: the pG load stays below it
     w = pl->Wep;
-    if (pl->x3F0 > (u8) PlShotFrameTbl[pG->weapon_no][pG->weapon_lv_speed]) {
+    if (pl->m_Work4 > (u8) PlShotFrameTbl[pG->weapon_no][pG->weapon_lv_speed]) {
         if (pG->weapon_no != 9 || w->m_pWep->bulletNum() == 0) {
             PlRoutineSet(pl, 0, 6, 1, 0);
-            pl->x3F0 = 10;
+            pl->m_Work4 = 10;
         } else {
             pl->r_no_3 = 2;
         }
-    } else if (pG->weapon_no != 9 && pl->x3F0 > 10 && joyKamae() == 0) {
+    } else if (pG->weapon_no != 9 && pl->m_Work4 > 10 && joyKamae() == 0) {
         PlRoutineSet(pl, 0, 6, 3, 0);
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
     }
 }
 
@@ -325,7 +325,7 @@ static void wep09_r3_fire30(cPlayer* pl)
             // store order brute-forced (x3E0 first, xFD last, the 3 through an int local)
             int md = 3;
 
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
             pl->r_no_0 = 0;
             pl->r_no_2 = md;
             pl->r_no_3 = 0;
@@ -347,7 +347,7 @@ static void wep09_r3_fire30(cPlayer* pl)
             // store order brute-forced (x3E0 first, xFD last, the 3 through an int local)
             int md = 3;
 
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
             pl->r_no_0 = 0;
             pl->r_no_2 = md;
             pl->r_no_3 = 0;
@@ -371,7 +371,7 @@ static void wepDown(cPlayer* pl)
             void* mot = WEP_ARC_PTR(0x16);
 
             mot3.set(pl, mot, mot, mot, 0, 5, 0, 4, 0);
-        } else if (pl->x3E0 == 0) {
+        } else if (pl->m_Work0 == 0) {
             PlArc* arc = (PlArc*) pG->pWep;
 
             mot3.set(pl, PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), PL_ARC_PTR(arc, 0x1A), 0, 0, 0, 4, 0);
@@ -439,7 +439,7 @@ static void wep09_r2_reload(cPlayer* pl)
                 int md = 3;
 
                 PlRoutineSet(pl, 0, 6, md, 0);
-                pl->x3E0 = 1;
+                pl->m_Work0 = 1;
             }
         }
         if (pl->frame >= (f32) (pl->frameMax - 5)) {
@@ -448,7 +448,7 @@ static void wep09_r2_reload(cPlayer* pl)
             scopeOn(pl);
             SndCall(2, 9, &pl->pParts->world, 0, 0, 0);
             PlRoutineSet(pl, 0, 6, 1, 2);
-            pl->x3F0 = 10;
+            pl->m_Work4 = 10;
         }
         MotionMoveI(pl, 0);
         break;
@@ -461,7 +461,7 @@ static void wep09_r2_next(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         pl->r_no_3 = 1;
     case 1:
         if (em) {
@@ -470,7 +470,7 @@ static void wep09_r2_next(cPlayer* pl)
                 pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             }
         }
-        if ((int) pl->x3E0++ > 9) {
+        if ((int) pl->m_Work0++ > 9) {
             PlRoutineSet(pl, 0, 6, 1, 0);
         }
         break;

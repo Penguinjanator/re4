@@ -1068,7 +1068,7 @@ void em29RouteCk(cEm29* em)
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
     if ((em->pos.x - w->initPos.x) * (em->pos.x - w->initPos.x) + (em->pos.z - w->initPos.z) * (em->pos.z - w->initPos.z)
-        > em->x3CC * em->x3CC) {
+        > em->Guard_r * em->Guard_r) {
         RouteCkToPos(em, &w->initPos, &w->targetPos, 0, 0);
         w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);

@@ -446,7 +446,7 @@ void R208Main()
                         }
                     }
                     R208_EmSetEvent(EM_LIST(no));
-                    ((EmListData*) ((u32) pG + (no << 5) + 0x52E8))->flags |= 2; // shift form: add operands pG-first, address not tied to no<<5
+                    ((EmListData*) ((u32) pG + (no << 5) + 0x52E8))->be_flag |= 2; // shift form: add operands pG-first, address not tied to no<<5
                     incResetNum();
                 }
             }

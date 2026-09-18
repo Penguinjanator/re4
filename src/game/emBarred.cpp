@@ -295,7 +295,7 @@ void emBarredDmCk(cEmBarred* em)
         em->dmType = 0x11;
     }
     if (em->type == 6 && part == &em->hitInfo && w->Eff_id != 0xFF) {
-        ang = Muku(&em->pos, &em->x328, em->ang.y, PI);
+        ang = Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
             ang = em->ang.y;
         } else {

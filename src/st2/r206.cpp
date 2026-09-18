@@ -972,10 +972,10 @@ static void chkReaderMove()
 
         if (n == 1) {
             if (r206_work.p->em[4].isActive() != 0) {
-                r206_work.p->em[4].getPtr()->flags_3C8 |= 0x40;
+                r206_work.p->em[4].getPtr()->flag |= 0x40;
             }
             if (r206_work.p->em[6].isActive() != 0) {
-                r206_work.p->em[6].getPtr()->flags_3C8 |= 0x40;
+                r206_work.p->em[6].getPtr()->flag |= 0x40;
             }
             r206_work.p->em[4].setGoto(&pSUB->pos, 1);
             r206_work.p->em[6].setGoto(&pSUB->pos, 1);
@@ -984,7 +984,7 @@ static void chkReaderMove()
         if (n == 2) {
             if (r206_work.p->em[4].isActive() != 0 && r206_work.p->em[6].isActive() != 0) {
                 if (r206_work.p->em[4].isActive() != 0) {
-                    r206_work.p->em[4].getPtr()->flags_3C8 |= 0x40;
+                    r206_work.p->em[4].getPtr()->flag |= 0x40;
                 }
                 r206_work.p->em[4].setGoto(&pSUB->pos, 1);
                 SceSleep(0x168);

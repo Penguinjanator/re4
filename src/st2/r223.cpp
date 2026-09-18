@@ -484,7 +484,7 @@ int isZouenGo2()
 void setFlagStart(cEmWrap* em)
 {
     if (em->isAlive() == 1 && em->isNormalGanade() == 1) {
-        em->getPtr()->flags_3C8 |= 1;
+        em->getPtr()->flag |= 1;
     }
 }
 
@@ -787,10 +787,10 @@ static void r223_Bomb()
     r223_work.p->em[21].setFindPL();
     r223_work.p->em[22].setFindPL();
     if (r223_work.p->em[21].isActive()) {
-        r223_work.p->em[21].getPtr()->x3D0 = 0;
+        r223_work.p->em[21].getPtr()->Character = 0;
     }
     if (r223_work.p->em[22].isActive()) {
-        r223_work.p->em[22].getPtr()->x3D0 = 0;
+        r223_work.p->em[22].getPtr()->Character = 0;
     }
 }
 

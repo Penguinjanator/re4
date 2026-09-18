@@ -238,9 +238,9 @@ static void r104_checkBgmPlay()
 static void r104_execEmDash()
 {
     RsfSet(G_ROOM_ID, 15);
-    EM_LIST(0xF2)->flags |= 1;
-    EM_LIST(0xFC)->flags |= 1;
-    EM_LIST(0xFD)->flags |= 1;
+    EM_LIST(0xF2)->be_flag |= 1;
+    EM_LIST(0xFC)->be_flag |= 1;
+    EM_LIST(0xFD)->be_flag |= 1;
     setEm(0xF2, -1, 0, 1, 1);
     setEm(0xFC, -1, 0, 1, 1);
     setEm(0xFD, -1, 0, 1, 1);

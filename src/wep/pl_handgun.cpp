@@ -102,7 +102,7 @@ static void wep02_r2_ready(cPlayer* pl)
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     } else {
         Vec aim = {0.0f, 1000.0f, 10000.0f};
         Vec hit;
@@ -119,11 +119,11 @@ static void wep02_r3_ready00(cPlayer* pl)
     void* mot1;
     cObjWep* obj;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = 0.0f;
     pl->Wep->lockInit();
     PlSetLockPitch(pl);
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     obj = WEP_OBJ(pl);
     obj->wep.mode = 1;
@@ -142,7 +142,7 @@ static void wep02_r3_ready00(cPlayer* pl)
 static void wep02_r3_ready10(cPlayer* pl)
 {
     if (pl->frame > 1.7f && pl->frame < 2.3f) {
-        if (pl->x3E8 == 1) {
+        if (pl->m_Work2 == 1) {
             SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, 0);
         } else {
             SndCall(1, 0x28, &pl->getPartsPtr(0)->world, 0, 0, 0);
@@ -279,7 +279,7 @@ static void wep02_r2_set(cPlayer* pl)
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;
             pl->r_no_3 = 0;
-            pl->x3E0 = fire;
+            pl->m_Work0 = fire;
             return;
         }
         SndCall(2, 0x17, &pl->getPartsPtr(4)->world, 0, 0, 0);
@@ -295,7 +295,7 @@ static void wep02_r2_set(cPlayer* pl)
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     }
 }
 
@@ -348,7 +348,7 @@ static void wep02_r3_fire00(cPlayer* pl)
     MotionMoveI(pl, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->Waist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
     WEP_ATARI(pl)->clrFlag200();
     pl->Body->waistMove();
     pl->partsWorldCalc();
@@ -363,13 +363,13 @@ static void wep02_r3_fire00(cPlayer* pl)
     PSMTXMultVecSR(parts->mat, &p1, &p1);
     PSVECAdd(&p0, &p1, &p1);
     PlWepHitCheck2(pl, &p0, &p1, pG->weapon_no, 0, 6000.0f);
-    pl->x3F4 = 1;
-    pl->x3F0 = 1;
+    pl->m_Work5 = 1;
+    pl->m_Work4 = 1;
     obj = WEP_OBJ(pl);
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
@@ -492,12 +492,12 @@ static void wep02_r2_reload(cPlayer* pl)
         PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x26), PL_ARC_PTR(arc, 0x27), PL_ARC_PTR(arc, 0x28), 0, 9, 0, 4, 0);
-        pl->x3E0 = 0;
+        pl->m_Work0 = 0;
         pl->r_no_3 = 3;
     }
     case 3:
-        pl->x3E0++;
-        if ((int) pl->x3E0 > 8) {
+        pl->m_Work0++;
+        if ((int) pl->m_Work0 > 8) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 1;

@@ -1611,11 +1611,11 @@ void em38RouteCk(cEm38* em)
     w->pTarget = pPLS;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->x374) {
+        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
-            w->targetDist = em->x374;
+            w->targetDist = em->l_sub;
             w->pTarget = pSUBS;
             w->flags |= 4;
         }
@@ -2311,27 +2311,27 @@ static void plemEscape(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
         pl->r_no_2++;
     }
     case 1:
-        if (pl->x3E8) {
+        if (pl->m_Work2) {
             em38EscapeCamMove(PL_EM(pl));
             if (pl->frame > 11.7f && pl->frame < 12.3f) {
                 EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
         }
-        if (pl->x3E4) {
+        if (pl->m_Work1) {
             pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
-            pl->x3E0 = 0;
+            pl->m_Work0 = 0;
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -2403,12 +2403,12 @@ static void plemBackjump(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
-        pl->x3E8 = 0;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
+        pl->m_Work2 = 0;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E4) {
+        if (pl->m_Work1) {
             pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
@@ -2425,10 +2425,10 @@ static void plemBackjump(cPlayer* pl)
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMoveF(pl, 0)) {
-            pl->x3E0 = 0;
+            pl->m_Work0 = 0;
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }

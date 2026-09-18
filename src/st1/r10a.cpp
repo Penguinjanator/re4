@@ -121,7 +121,7 @@ void R10aInit()
             d.id = 0x12;
             d.type = 1;
             d.set = 0x1C;
-            d.flags4 = 0;
+            d.flag = 0;
             d.pos[0] = -0x1163;
             d.pos[1] = 0x63D;
             d.pos[2] = 0x18F0;
@@ -129,14 +129,14 @@ void R10aInit()
             d.rot[1] = 0x3E9;
             d.rot[2] = 0;
             d.hp = 0;
-            d.x1A = 1;
-            d.xB = 1;
+            d.Guard_r = 1;
+            d.Character = 1;
             EmSetEvent(&d);
 
             d.id = 0x12;
             d.type = 0;
             d.set = 0x1C;
-            d.flags4 = 0;
+            d.flag = 0;
             d.pos[0] = -0x10EA;
             d.pos[1] = 0x63D;
             d.pos[2] = 0x18E3;
@@ -144,14 +144,14 @@ void R10aInit()
             d.rot[1] = -0x60B;
             d.rot[2] = 0;
             d.hp = 0;
-            d.x1A = 1;
-            d.xB = 1;
+            d.Guard_r = 1;
+            d.Character = 1;
             EmSetEvent(&d);
 
             d.id = 0x12;
             d.type = 3;
             d.set = 0x1C;
-            d.flags4 = 0;
+            d.flag = 0;
             d.pos[0] = -0x11CE;
             d.pos[1] = 0x63D;
             d.pos[2] = 0x1909;
@@ -159,8 +159,8 @@ void R10aInit()
             d.rot[1] = 0x5B0;
             d.rot[2] = 0;
             d.hp = 0;
-            d.x1A = 1;
-            d.xB = 1;
+            d.Guard_r = 1;
+            d.Character = 1;
             EmSetEvent(&d);
         }
     }
@@ -176,7 +176,7 @@ void R10aInit()
 void R10aMain()
 {
     setPlWaterOtType();
-    if (RsfCheck(G_ROOM_ID, 2) == 0 && r10a_work->rock != 0 && (r10a_work->rock->flags_3C8 & 1)) {
+    if (RsfCheck(G_ROOM_ID, 2) == 0 && r10a_work->rock != 0 && (r10a_work->rock->flag & 1)) {
         RsfSet(G_ROOM_ID, 2);
     }
 }

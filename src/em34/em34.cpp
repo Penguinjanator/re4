@@ -568,11 +568,11 @@ void em34RouteCk(cEm34* em)
     w->pEm = pPLS;
     w->Be_flg &= ~4;
     if (w->Be_flg & 2) {
-        if (!(w->Be_flg & 1) || em->plDist2 > em->x374) {
+        if (!(w->Be_flg & 1) || em->plDist2 > em->l_sub) {
             w->Go_pos = w->Sub_pos;
             w->Go_dir = w->Sub_dir;
             w->Go_rot = w->Sub_rot;
-            w->L_go = em->x374;
+            w->L_go = em->l_sub;
             w->pEm = pSUBS;
             w->Be_flg |= 4;
         }

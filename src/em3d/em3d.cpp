@@ -160,8 +160,8 @@ void em3dDmCk(cEm3d* em)
         return;
     }
     near = 0;
-    if ((em->x328.x - pPL->pos.x) * (em->x328.x - pPL->pos.x) + (em->x328.y - pPL->pos.y) * (em->x328.y - pPL->pos.y)
-            + (em->x328.z - pPL->pos.z) * (em->x328.z - pPL->pos.z)
+    if ((em->dmPos.x - pPL->pos.x) * (em->dmPos.x - pPL->pos.x) + (em->dmPos.y - pPL->pos.y) * (em->dmPos.y - pPL->pos.y)
+            + (em->dmPos.z - pPL->pos.z) * (em->dmPos.z - pPL->pos.z)
         < 9000000.0f) {
         near = 1;
     }

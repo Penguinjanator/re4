@@ -58,7 +58,7 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000000B0	0x28	wep39/pl_machine.cpp	local	lbl_wep39_rodata_B0	lbl_wep39_rodata_B0
 .rodata	0x000000D8	0x28	wep39/pl_machine.cpp	local	lbl_wep39_rodata_D8	lbl_wep39_rodata_D8
 .rodata	0x00000100	0x38	wep39/pl_machine.cpp	local	lbl_wep39_rodata_100	lbl_wep39_rodata_100
-.rodata	0x00000138	0x48	wep39/pl_machine.cpp	local	lbl_wep39_rodata_138	lbl_wep39_rodata_138
+.rodata	0x00000138	0x44	wep39/pl_machine.cpp	local	lbl_wep39_rodata_138	lbl_wep39_rodata_138
 .rodata	0x000001D4	0x24	wep39/wep39.cpp	local	lbl_wep39_rodata_1D4	lbl_wep39_rodata_1D4
 .rodata	0x000001F8	0x2C	wep39/wep39.cpp	local	lbl_wep39_rodata_1F8	lbl_wep39_rodata_1F8
 .rodata	0x00000224	0xC	wep39/wep39.cpp	local	p0.366	p0.366

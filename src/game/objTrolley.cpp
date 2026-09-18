@@ -403,26 +403,26 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[6], 0, 0, 0x201, 0);
         PlGachaInit();
-        em->x3E0 = 90;
-        em->x3E4 = 10;
+        em->m_Work0 = 90;
+        em->m_Work1 = 10;
         if (pG->Game_level <= 2) {
-            em->x3E4 = 5;
+            em->m_Work1 = 5;
         }
         if (pG->Game_level > 7) {
-            em->x3E4 = 15;
+            em->m_Work1 = 15;
         }
         em->r_no_2++;
     case 3:
         ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
         if (Key.trg & 0x80000000) {
-            if (em->x3E4) {
-                em->x3E4--;
+            if (em->m_Work1) {
+                em->m_Work1--;
             }
         }
         MotionMove(em, 0);
-        if (em->x3E0) {
-            em->x3E0--;
-        } else if (em->x3E4) {
+        if (em->m_Work0) {
+            em->m_Work0--;
+        } else if (em->m_Work1) {
             em->r_no_2 = 6;
         } else {
             em->r_no_2 = 4;

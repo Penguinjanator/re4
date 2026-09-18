@@ -230,7 +230,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->pSat = (cSat*) 0;
     w->espKind = EspPullCoreKind();
     em->setStatus(EM_STATUS_ACTIVE);
-    em->flags_3C8 &= ~1;
+    em->flag &= ~1;
     em->r_no_0 = 1;
     em->r_no_1 = 0;
     em->r_no_2 = 0;
@@ -311,7 +311,7 @@ void emRock_R1_Set(cEmRock* em)
         if (w->Roll_flag == 0 && em->type == 1) {
             if (emRockRollStartCk(em)) {
                 w->Roll_flag = 1;
-                em->flags_3C8 |= 1;
+                em->flag |= 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 6;
                 em->r_no_2 = 0;
@@ -867,7 +867,7 @@ void emRock_R1_Drop(cEmRock* em)
         em->r_no_2++;
     case 1:
         MotionMove(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         em->r_no_2++;
@@ -921,7 +921,7 @@ void emRock_R1_Drop2(cEmRock* em)
     case 1:
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
         MotionMove(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         if ((s16) pG->pl_life <= 0) {
@@ -1013,11 +1013,11 @@ void plemDropFind(cPlayer* pl)
     pl->st.x325 = 2;
     switch (pl->r_no_2) {
     case 0:
-        pl->x3E0 = 25;
+        pl->m_Work0 = 25;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             MotionSetCore(pl, &pl->pMotion, w->mot5, 0, 3, 1, 0);
             emRockPushCamMove(PL_ROCK(pl));
         } else {
@@ -1510,7 +1510,7 @@ void plemRockEscape(cPlayer* pl)
     mot = w->plMot[2];
     switch (pl->r_no_2) {
     case 0:
-        pl->x3E0 = 85;
+        pl->m_Work0 = 85;
         Cckpt.lifeMeterDisp(0);
         pl->Wep->setTrans(0, 0);
         switch (pG->room_no) {
@@ -1537,8 +1537,8 @@ void plemRockEscape(cPlayer* pl)
         pl->r_no_2++;
     case 1:
         pl->st.x325 = 0x1E;
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             emRockPushCamMove(PL_ROCK(pl));
             MotionSetCore(pl, &pl->pMotion, w->plMot[0], (int) w->plMot[1], 0, 1, 0);
             pl->ang.y += Muku(&pl->pos, &PL_ROCK(pl)->pos, pl->ang.y, 3.1415927f);
@@ -1554,22 +1554,22 @@ void plemRockEscape(cPlayer* pl)
         break;
     case 2:
         MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, 10, 5, 0);
-        pl->x3E0 = 0;
-        pl->x3E4 = 0;
-        pl->x3E8 = 0;
-        pl->x3EC = plemRockSetEscapeRoute();
-        pl->x3F0 = 0;
-        pl->x3F4 = 0;
-        pl->x3F8 = 0;
-        pl->x3FC = Rnd() & 1;
-        pl->x400 = 0.1f;
+        pl->m_Work0 = 0;
+        pl->m_Work1 = 0;
+        pl->m_Work2 = 0;
+        pl->m_Work3 = plemRockSetEscapeRoute();
+        pl->m_Work4 = 0;
+        pl->m_Work5 = 0;
+        pl->m_Work6 = 0;
+        pl->m_Work7 = Rnd() & 1;
+        pl->m_Fwork0 = 0.1f;
         w->Act_ck = 0;
         pl->r_no_2++;
     case 3:
-        plemRockEscapeCamMove(pl, pl->x400);
-        pl->x400 += 0.05f;
-        if (pl->x400 > 1.0f) {
-            pl->x400 = 1.0f;
+        plemRockEscapeCamMove(pl, pl->m_Fwork0);
+        pl->m_Fwork0 += 0.05f;
+        if (pl->m_Fwork0 > 1.0f) {
+            pl->m_Fwork0 = 1.0f;
         }
         lim = 8;
         if (pG->Game_level <= 2) {
@@ -1578,25 +1578,25 @@ void plemRockEscape(cPlayer* pl)
         if (pG->Game_level > 7) {
             lim = 5;
         }
-        pl->x3F0++;
-        if (pl->x3F0 > lim) {
-            pl->x3F0 = lim;
-            pl->x3E0 -= 5;
-            if ((int) pl->x3E0 < 0) {
-                pl->x3E0 = 0;
+        pl->m_Work4++;
+        if (pl->m_Work4 > lim) {
+            pl->m_Work4 = lim;
+            pl->m_Work0 -= 5;
+            if ((int) pl->m_Work0 < 0) {
+                pl->m_Work0 = 0;
             }
         }
-        n = (int) pl->x3E0 / 20;
+        n = (int) pl->m_Work0 / 20;
         if (n > 7) {
             n = 7;
         }
-        if (n != pl->x3E4) {
+        if (n != pl->m_Work1) {
             f32 ratio;
             f32 f;
             u32 cnt;
             u32 fr;
 
-            pl->x3E4 = n;
+            pl->m_Work1 = n;
             switch (n) {
             case 0:
             default:
@@ -1634,14 +1634,14 @@ void plemRockEscape(cPlayer* pl)
             MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, pl->motHokanCnt, 5, (u16) fr);
         }
         if (Key.trg & 0x80000) {
-            pl->x3E0 += pl->x3F0;
-            pl->x3F0 = 0;
-            if ((int) pl->x3E0 > 0x9F) {
-                pl->x3E0 = 0x9F;
+            pl->m_Work0 += pl->m_Work4;
+            pl->m_Work4 = 0;
+            if ((int) pl->m_Work0 > 0x9F) {
+                pl->m_Work0 = 0x9F;
             }
         }
-        if (pl->x3EC != -1) {
-            u32 o = pl->x3EC * 0x40 + 8;
+        if (pl->m_Work3 != -1) {
+            u32 o = pl->m_Work3 * 0x40 + 8;
             EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
             RouteCkToPos(pl, &e->pos, &v, 0, 0);
@@ -1649,13 +1649,13 @@ void plemRockEscape(cPlayer* pl)
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionMove(pl, 0);
-        if (pl->x3F8 == 0) {
+        if (pl->m_Work6 == 0) {
             if (plemRockEscapeCk(pl)) {
-                pl->x3F8 = 1;
+                pl->m_Work6 = 1;
             }
         }
-        if (pl->x3F8 && w->Act_ck == 0) {
-            if (pl->x3FC) {
+        if (pl->m_Work6 && w->Act_ck == 0) {
+            if (pl->m_Work7) {
                 ActBtn.set(0x25, 5, (int) plemRockEscAction, (int) pl, 0x42, 3, 0, 0);
             } else {
                 ActBtn.set(0x25, 5, (int) plemRockEscAction, (int) pl, 0x42, 4, 0, 0);
@@ -1667,20 +1667,20 @@ void plemRockEscape(cPlayer* pl)
     case 4:
         mot = w->plMot[11];
         flag = 1;
-        if (pl->x3F4) {
+        if (pl->m_Work5) {
             flag = 0x41;
         }
         MotionSetCore(pl, &pl->pMotion, mot, 0, 3, flag, 0);
-        pl->x3E0 = 20;
+        pl->m_Work0 = 20;
         SndCall(1, 0x48, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->r_no_2++;
     case 5:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             plemRockEscapeCamMove(pl, 1.0f);
         } else {
-            plemRockEscapeCamMove2(pl, pl->x3F4);
+            plemRockEscapeCamMove2(pl, pl->m_Work5);
         }
         pl->st.x325 = 0x78;
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
@@ -1779,7 +1779,7 @@ int plemRockEscapeCk(cPlayer* pl)
     if ((pl->pos.x - e->pos.x) * (pl->pos.x - e->pos.x) + (pl->pos.z - e->pos.z) * (pl->pos.z - e->pos.z) > 9000000.0f) {
         return 0;
     }
-    pl->x3F4 = e->sub;
+    pl->m_Work5 = e->sub;
     return 1;
 }
 
@@ -2167,7 +2167,7 @@ void emRockPushCk(cEmRock* em, int frame)
         if (n > 2) {
             n = 0;
         }
-        e->flags_3C8 |= 1;
+        e->flag |= 1;
     }
 }
 
@@ -2302,7 +2302,7 @@ int emRockDropHitCkEm2b(cEmRock* em)
               (q->world.z - p->world.z) * (q->world.z - p->world.z);
         r = w->Radius + 2000.0f;
         if (len < r * r) {
-            if (!(e->flags_3C8 & 8)) {
+            if (!(e->flag & 8)) {
                 e->r_no_0 = 2;
                 e->r_no_1 = 4;
                 e->r_no_2 = 0;

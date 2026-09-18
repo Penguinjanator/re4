@@ -136,7 +136,7 @@ static void wep14_r2_ready(cPlayer* pl)
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
         pl->r_no_3 = 0;
-        pl->x3E0 = 1;
+        pl->m_Work0 = 1;
     } else if (pl->pLockEm) {
         CamCtrlShoulderSetAim(&pl->pLockEm->pos);
     } else {
@@ -158,7 +158,7 @@ static void wep14_r3_ready00(cPlayer* pl)
     int normal;
     int hokan;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_CenterY = zero;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > zero) {
@@ -169,7 +169,7 @@ static void wep14_r3_ready00(cPlayer* pl)
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = zero;
+    pl->m_Fwork0 = zero;
     FSet(pl->Wep->m_CamAdjY, CamCtrl.getCameraDirection());
     wep14changeRightHand(pl, WEP_ARC_PTR(0xA));
     pl->Neck->init(0, 0, 0);
@@ -316,7 +316,7 @@ static void wep14_r2_set(cPlayer* pl)
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;
             pl->r_no_3 = 0;
-            pl->x3E0 = fire;
+            pl->m_Work0 = fire;
         } else {
             SndCall(2, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
             goto reload;
@@ -333,7 +333,7 @@ static void wep14_r2_set(cPlayer* pl)
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;
             pl->r_no_3 = 0;
-            pl->x3E0 = 1;
+            pl->m_Work0 = 1;
         }
     }
 }
@@ -408,7 +408,7 @@ static void wep14_r3_fire00(cPlayer* pl)
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
@@ -519,8 +519,8 @@ static void wep14_r2_next(cPlayer* pl)
 
     switch (step) {
     case 0:
-        U32Set(pl->x3E0, 0);
-        IntSet(pl->x3E4, 0);
+        U32Set(pl->m_Work0, 0);
+        IntSet(pl->m_Work1, 0);
         MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x12), 0, 0xA, 1, 0);
         pl->r_no_3 = 1;
     case 1:
@@ -528,11 +528,11 @@ static void wep14_r2_next(cPlayer* pl)
             pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, 0.31415927f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        pl->x400 = 0.0f;
+        pl->m_Fwork0 = 0.0f;
         pl->Waist->set(0.0f, 0.4f);
         pl->Body->waistMove();
         pl->motionMove();
-        if ((int) pl->x3E0++ > 9) {
+        if ((int) pl->m_Work0++ > 9) {
             PlRoutineSet(pl, 0, 6, 1, 0);
         }
         break;

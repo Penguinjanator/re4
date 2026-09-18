@@ -3114,11 +3114,11 @@ static void plem39_KnifeHit(cPlayer* pl)
         break;
     case 4:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x115), 0, 5, 1, 0);
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 5:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             end = MotionMoveF(pl, 0);
@@ -3442,11 +3442,11 @@ static void plem39_Knife4Atk(cPlayer* pl)
             EstSet((int) pl, -1, 0, 0, 0x2F, 0x28, 0, 0, (u32) pl, 0);
         }
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 9:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             end = MotionMoveF(pl, 0);
@@ -3459,11 +3459,11 @@ static void plem39_Knife4Atk(cPlayer* pl)
     case 0xA:
         MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x118), 0, 0, 1, 0);
         EstSet((int) pl, -1, 0, 0, 0x2F, 0x25, 0, 0, (u32) pl, 0);
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         pl->r_no_2++;
     case 0xB:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             end = EmCatchMotionMove(pl, 0.3f, 0.2f);
         } else {
             end = MotionMoveF(pl, 0);
@@ -4980,15 +4980,15 @@ static void em39BackjumpAction(cEm39* em)
     SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);                                     \
     SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);                                     \
     GameAddPoint(LVADD_ESCAPEATTACK);                                                                             \
-    pl->x3E0 = 35;                                                                                 \
-    pl->x3E4 = 0;                                                                                  \
+    pl->m_Work0 = 35;                                                                                 \
+    pl->m_Work1 = 0;                                                                                  \
     pl->r_no_2++;
 
 #define PLEM39_BACKJUMP_KEY(pl)                                                                     \
     if (pl->x3E0) {                                                                                \
         pl->x3E0--;                                                                                \
     } else if (Key.on & 0x1F) {                                                                    \
-        pl->x3E4 = 1;                                                                              \
+        pl->m_Work1 = 1;                                                                              \
     }
 
 static void plemBackjump(cPlayer* pl)
@@ -5012,7 +5012,7 @@ static void plemBackjump(cPlayer* pl)
         if (PL_FRAME_IN(pl, 37.7f, 38.3f) || PL_FRAME_IN(pl, 50.7f, 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->x3E4) {
+        if (MotionMoveF(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -5030,7 +5030,7 @@ static void plemBackjump(cPlayer* pl)
         if (PL_FRAME_IN(pl, 34.7f, 35.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->x3E4) {
+        if (MotionMoveF(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -5379,12 +5379,12 @@ static void plem39_LowKickHit(cPlayer* pl)
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x120), 0, 0, 1, 0);
         }
-        pl->x3E0 = 10;
+        pl->m_Work0 = 10;
         SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
         pl->r_no_2++;
     case 3:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             end = EmCatchMotionMove(pl, 1.0f, 1.0f);
         } else {
             end = MotionMoveF(pl, 0);
@@ -5712,7 +5712,7 @@ static void em39_R1_Dm_Normal(cEm39* em)
     w->Total_damage = 0;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->x328, em->ang.y, PI)) < 1.5707964f) {
+        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI)) < 1.5707964f) {
             if ((u8) (Rnd() % 10) > 5) {
                 MotionSetCore(em, MOTION(em), ARC(0x56), (int) ARC(0x57), 3, 1, 0);
             } else {
@@ -5819,7 +5819,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
     w->Total_damage = 0;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->x328, em->ang.y, PI)) < 1.5707964f) {
+        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x5A), (int) ARC(0x5B), 3, 1, 0);
             EstSet((int) em, -1, 0, 0, 0x2F, 0x15, 0, 0, (u32) em, 0);
             w->Be_flg |= 0x200;

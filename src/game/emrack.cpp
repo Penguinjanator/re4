@@ -187,7 +187,7 @@ void emRackDmCk(cEmRack* em)
         return;
     }
     em->dmHit = 0;
-    if ((int) em->flags_3C8 < 0) {
+    if ((int) em->flag < 0) {
         return;
     }
     wep = em->dmWep;
@@ -299,7 +299,7 @@ void emRackDmCk(cEmRack* em)
         break;
     case 0:
     case 0x14:
-        em->setDown(&em->x328);
+        em->setDown(&em->dmPos);
         break;
     }
 }

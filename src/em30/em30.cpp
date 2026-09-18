@@ -264,7 +264,7 @@ static void em30_R0_Init(cEm30* em)
     EspDataLoad((u32) ARC(0xE), 0x28, 0);
     w->neckAng = 0.0f;
     w->flags = 0;
-    if ((int) em->flags_3C8 < 0) {
+    if ((int) em->flag < 0) {
         if (w->pInfo0) {
             w->pInfo0->be_flag &= ~8;
         }
@@ -419,11 +419,11 @@ void em30RouteCk(cEm30* em)
     w->pTarget = pPLS;
     w->flags &= ~4;
     if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->x374) {
+        if (!(w->flags & 1) || em->plDist2 > em->l_sub) {
             w->targetPos = w->subRoutePos;
             w->targetAng = w->subAng;
             w->targetAngAbs = w->subAngAbs;
-            w->targetDist = em->x374;
+            w->targetDist = em->l_sub;
             w->pTarget = pSUBS;
             w->flags |= 4;
         }

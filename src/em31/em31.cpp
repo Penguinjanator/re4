@@ -756,7 +756,7 @@ static void em31_R1_Appear(cEm31* em)
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x40), 0, 0, 1, 0);
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         em->r_no_2++;
@@ -1508,12 +1508,12 @@ static void plemEscape(cPlayer* pl)
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
         em31EscapeCamMove(PL_EM(pl));
-        if (pl->x3E4) {
+        if (pl->m_Work1) {
             pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
@@ -1522,8 +1522,8 @@ static void plemEscape(cPlayer* pl)
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -1990,7 +1990,7 @@ static void em31_R1_T_Appear(cEm31* em)
     case 1:
         MotionSetCore(em, MOTION(em), ARC(0x5C), 0, 0, 1, 0);
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         em->r_no_2++;
@@ -2422,7 +2422,7 @@ static void em31_R1_T_Dm_Normal(cEm31* em)
         w->Total_damage = 0;
         em->setVoice(0x1C, 2);
         em31WeakMode(em, 0);
-        em->flags_3C8 &= ~1;
+        em->flag &= ~1;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -2451,7 +2451,7 @@ static void em31_R1_T_Down(cEm31* em)
         w->Total_damage = 0;
         em->setVoice(0x1C, 2);
         em31WeakMode(em, 0);
-        em->flags_3C8 &= ~1;
+        em->flag &= ~1;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -2475,7 +2475,7 @@ static void em31_R1_T_Down(cEm31* em)
         }
         w->Timer++;
         MotionMoveF(em, 0);
-        if (em->flags_3C8 & 1) {
+        if (em->flag & 1) {
             em->r_no_2++;
         } else {
             em31BreathSe(em);
@@ -2514,7 +2514,7 @@ static void em31_R1_T_Down(cEm31* em)
         if (MotionMoveF(em, 0)) {
             w->Hokan = 0;
             em->r_no_2 = 2;
-        } else if (em->flags_3C8 & 1) {
+        } else if (em->flag & 1) {
             em->r_no_2 = 4;
         }
         break;
@@ -2538,7 +2538,7 @@ static void em31_R1_T_Dm_Crane(cEm31* em)
         em31PillarDrop(em, w);
         em->setVoice(0x1C, 2);
         em31WeakMode(em, 1);
-        em->flags_3C8 &= ~1;
+        em->flag &= ~1;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -2774,7 +2774,7 @@ static void em31_R1_Dm_Down(cEm31* em)
             break;
         }
         if (w->pTen) {
-            w->pTen->flags_3C8 |= 1;
+            w->pTen->flag |= 1;
         }
         em->r_no_2++;
     case 5:

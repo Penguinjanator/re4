@@ -176,8 +176,8 @@ void cSubChar::init()
     }
     subSelf->setStatus(EM_STATUS_LOCKOFF);
     // statement order brute-forced (store schedule + shared zero registers)
-    sub550 = 0;
-    sub580 = 0;
+    m_FallWaitTimer = 0;
+    m_PlActTime = 0;
     be_flag |= 0x02200000;
     subFlags |= 0x40;
     subFlags &= 0xFFF4;
@@ -241,8 +241,8 @@ void cSubChar::move()
             }
         }
     }
-    if (sub580) {
-        sub580--;
+    if (m_PlActTime) {
+        m_PlActTime--;
     }
     backCheckMove();
     neckCtrl();
@@ -508,9 +508,9 @@ void cSubChar::moveFootwork()
     if (plStat & 0x40000) {
         return;
     }
-    if (sub550) {
-        sub550--;
-        if (sub550 == 0) {
+    if (m_FallWaitTimer) {
+        m_FallWaitTimer--;
+        if (m_FallWaitTimer == 0) {
             checkAnotherRoute();
         }
         return;
@@ -550,7 +550,7 @@ void cSubChar::moveFootwork()
                     break;
                 }
             }
-            if (dist > 1100.0f || sub580) {
+            if (dist > 1100.0f || m_PlActTime) {
                 subSelf->m_Frame = 0;
                 subSelf->m_Hokan = 5;
                 SubRoutineSet(subSelf, 0, 1, 0, 0);
@@ -599,7 +599,7 @@ void cSubChar::moveMove()
         }
         checkAnotherRoute();
         subBackMot.blendRate = 0.0f;
-        sub404 = 0;
+        m_BackRno = 0;
         m_BackRno2 = 0;
         m_BackTime = 30;
         subSelf->r_no_2 = 1;
@@ -657,7 +657,7 @@ void cSubChar::moveMove()
             }
             break;
         }
-        if (dist > 400.0f || SUBFLAG(this)->check(3) || sub580) {
+        if (dist > 400.0f || SUBFLAG(this)->check(3) || m_PlActTime) {
             ang.y += Muku(&pos, &distPos, ang.y, 0.20943952f);
         } else if (plStat & 4) {
             f32 a = LIMIT_ANGLE(pPL->ang.y + 3.1415927f);
@@ -666,7 +666,7 @@ void cSubChar::moveMove()
         } else {
             ang.y += Muku2(ang.y, pPL->ang.y, 0.10471976f);
         }
-        if (SUBFLAG(this)->check(3) || sub580) {
+        if (SUBFLAG(this)->check(3) || m_PlActTime) {
             if (dist <= 400.0f) {
                 r_no_2 = 4;
                 motFlags &= ~1;
@@ -778,7 +778,7 @@ void cSubChar::moveMove()
         SubRoutineSet(this, 0, 0, 0, 0);
     } else if (SUBFLAG2(this)->check(8)) {
         return;
-    } else if (sub550) {
+    } else if (m_FallWaitTimer) {
         SubRoutineSet(this, 0, 0, 0, 0);
     } else if ((plStat & 0x400) && !SUBFLAG(this)->check(3)) {
         SubRoutineSet(this, 0, 0, 0, 0);
@@ -933,7 +933,7 @@ void cSubChar::moveKagamu()
     case 2:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x43), 0, 1, 5, 0);
         subSelf->r_no_2 = 3;
-        sub424 = subSelf->pos.y;
+        fyBak = subSelf->pos.y;
         AtariOff(&subSelf->atari, 0xFDFF);
     case 3:
         if (subSelf->frame > 7.7f && subSelf->frame < 8.3f) {
@@ -1107,7 +1107,7 @@ void cSubChar::moveFance()
             }
         } else {
             p = pos;
-            r.y = sub52C;
+            r.y = fWork0;
             r.x = 0.0f;
             r.z = 0.0f;
         }
@@ -1196,7 +1196,7 @@ void cSubChar::moveFall()
         BitOff16(subFlags2, 0x80);
         AtariOff(&atari, 0xFCFF);
         dmg.set(0, 0x80);
-        sub580 = 0;
+        m_PlActTime = 0;
         subFlags |= 0x20;
         r_no_2 = 1;
     case 1:
@@ -1272,7 +1272,7 @@ void cSubChar::moveAction()
             break;
         case 4:
             r_no_2 = 4;
-            sub52C = getJumpAdjY();
+            fWork0 = getJumpAdjY();
             break;
         }
         if (subHideMode == 4) {
@@ -1313,7 +1313,7 @@ void cSubChar::moveAction()
             jumpAdjust();
         }
         if (subSelf->frame >= 35.0f && subSelf->frame <= 44.0f) {
-            pos.y += sub52C * 0.1f;
+            pos.y += fWork0 * 0.1f;
         }
         if (motionMove()) {
             AtariOn(&atari, 0x300);
@@ -1609,15 +1609,15 @@ void cSubChar::moveHide()
         subSelf->atari.setPriority(PRI_LV3);
         AtariOff(&atari, 0xFEFF);
         dmg.set(0, 0x80);
-        sub52C = getAdjustX(8) * 0.1f;
+        fWork0 = getAdjustX(8) * 0.1f;
         sub538 = 10;
         r_no_2 = 0xB;
     case 0xB:
-        if (sub52C != 0.0f && sub538) {
+        if (fWork0 != 0.0f && sub538) {
             Vec v;
 
             PSMTXMultVecSR(subSelf->mat, &vdz0, &v);
-            PSVECScale(&v, &v, sub52C);
+            PSVECScale(&v, &v, fWork0);
             PSVECSubtract(&pos, &v, &pos);
             sub538--;
         }
@@ -1738,18 +1738,18 @@ void cSubChar::moveFallWait()
             backCheckSet(0);
         }
         subX534 = 0;
-        if (sub580) {
+        if (m_PlActTime) {
             subHideMode = 5;
             r_no_2 = 1;
         } else {
-            sub564 = atan2(satNorm.x, satNorm.z) + 3.1415927f;
-            sub564 = LIMIT_ANGLE(sub564);
+            m_PlActAngY = atan2(satNorm.x, satNorm.z) + 3.1415927f;
+            m_PlActAngY = LIMIT_ANGLE(m_PlActAngY);
             subHideMode = 5;
             r_no_2 = 1;
         }
     case 1:
         motionMove();
-        ang = Muku2(subSelf->ang.y, sub564, 0.31415927f);
+        ang = Muku2(subSelf->ang.y, m_PlActAngY, 0.31415927f);
         subSelf->ang.y += ang;
         if (fabsf(ang) < 0.15707964f) {
             subHideMode--;
@@ -2380,7 +2380,7 @@ int cSubChar::windowCheck()
             SubRoutineSet(this, 0, 0x12, 0, 0);
             return 2;
         }
-        sub52C = atan2(-dir.x, -dir.z);
+        fWork0 = atan2(-dir.x, -dir.z);
         return 1;
     }
     return 0;
@@ -2437,20 +2437,20 @@ void catchOn()
     pPL->dmg.set(0, 0x80);
     sub->dmg.set(0, 0x80);
     SubRoutineSet(sub, 0, 9, 0, 0);
-    if (sub->sub580) {
-        p = sub->sub558;
+    if (sub->m_PlActTime) {
+        p = sub->m_PlActPos;
         p.y = sub->pos.y;
-        if (fabsf(sub->pos.y - sub->sub558.y) < 300.0f && GetDistance(&p, &sub->pos) < 25000000.0f) {
-            f32 y = sub->sub564;
+        if (fabsf(sub->pos.y - sub->m_PlActPos.y) < 300.0f && GetDistance(&p, &sub->pos) < 25000000.0f) {
+            f32 y = sub->m_PlActAngY;
 
-            sub->setPos(&sub->sub558);
+            sub->setPos(&sub->m_PlActPos);
             r.y = y;
             r.x = 0.0f;
             r.z = 0.0f;
             sub->setAng(&r);
         }
     }
-    sub->sub580 = 0;
+    sub->m_PlActTime = 0;
 }
 
 // Wall in front (analyze's sub438 attribute): pick the action (jump down / climb / wait) for it.
@@ -2488,7 +2488,7 @@ int cSubChar::actionCheck()
             if (getCliffHeight(atan2(-satNorm.x, -satNorm.z)) < 2900.0f) {
                 subSelf->subHideMode = 3;
                 ret = 1;
-            } else if (sub580 == 0) {
+            } else if (m_PlActTime == 0) {
                 r_no_0 = 0;
                 r_no_1 = 0x12;
                 r_no_2 = 0;
@@ -2504,11 +2504,11 @@ int cSubChar::actionCheck()
         d.z = -satNorm.z;
         ang.y += Muku3(&d, ang.y, 3.1415927f);
     }
-    if (sub580 && dist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
-        if (getCliffHeight(sub564) < 2900.0f) {
-            sub580 = 0;
-            pos = sub558;
-            ang.y = sub564;
+    if (m_PlActTime && dist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
+        if (getCliffHeight(m_PlActAngY) < 2900.0f) {
+            m_PlActTime = 0;
+            pos = m_PlActPos;
+            ang.y = m_PlActAngY;
             subSelf->subHideMode = 3;
             ret = 1;
         } else {
@@ -2697,7 +2697,7 @@ void cSubChar::backCheckMove()
     if (w == 0) {
         return;
     }
-    switch (sub404) {
+    switch (m_BackRno) {
     case 0:
         break;
     case 1:
@@ -2705,7 +2705,7 @@ void cSubChar::backCheckMove()
             w->blendRate -= d;
             if (subSelf->blendMot->blendRate < 0.0f) {
                 subSelf->blendMot->blendRate = 0.0f;
-                sub404 = 0;
+                m_BackRno = 0;
             }
         }
         break;
@@ -2714,7 +2714,7 @@ void cSubChar::backCheckMove()
             blendMot->blendRate += d;
             if (blendMot->blendRate > 1.0f) {
                 blendMot->blendRate = 1.0f;
-                sub404 = 0;
+                m_BackRno = 0;
             }
         }
         break;
@@ -2727,7 +2727,7 @@ void cSubChar::backCheckCtrlFootwork()
     switch (m_BackRno2) {
     case 0:
         if (checkBackEm()) {
-            sub404 = 2;
+            m_BackRno = 2;
             m_BackTime = (u8) (Rnd() >> 2) + 30;
             m_BackRno2 = 1;
         }
@@ -2736,7 +2736,7 @@ void cSubChar::backCheckCtrlFootwork()
         m_BackTime--;
         if (m_BackTime & 0x8000) {
             if (!checkBackEm()) {
-                sub404 = 1;
+                m_BackRno = 1;
                 m_BackRno2 = 0;
             }
             m_BackTime = (u8) (Rnd() >> 2) + 30;
@@ -2753,7 +2753,7 @@ void cSubChar::backCheckCtrlMove()
         m_BackTime--;
         if (m_BackTime & 0x8000) {
             if (checkBackEm()) {
-                sub404 = 2;
+                m_BackRno = 2;
                 m_BackTime = (u8) (Rnd() >> 2) + 30;
                 m_BackRno2 = 1;
             }
@@ -2763,7 +2763,7 @@ void cSubChar::backCheckCtrlMove()
         m_BackTime--;
         if (m_BackTime & 0x8000) {
             if (!checkBackEm()) {
-                sub404 = 1;
+                m_BackRno = 1;
                 m_BackRno2 = 0;
             }
             m_BackTime = (u8) (Rnd() >> 2) + 30;
@@ -2891,31 +2891,31 @@ void cSubChar::analyze()
             }
         }
     }
-    if (sub554 && moveAnotherRoute()) {
-        sub554 = 0;
+    if (pAnotherRoute && moveAnotherRoute()) {
+        pAnotherRoute = 0;
     }
-    if (sub580 && !SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0)) {
-        sub580 = 0;
+    if (m_PlActTime && !SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0)) {
+        m_PlActTime = 0;
     }
     up = 0;
     if (fabsf(distPos.y - pos.y) > 1000.0f) {
         up = 1;
     }
-    if (sub554) {
-        if (fabsf(sub554->pos.y - pos.y) > 1000.0f) {
+    if (pAnotherRoute) {
+        if (fabsf(pAnotherRoute->pos.y - pos.y) > 1000.0f) {
             up = 1;
         }
-        r = RouteCkToPos(this, &sub554->pos, &distPos, up, &subX5C8);
+        r = RouteCkToPos(this, &pAnotherRoute->pos, &distPos, up, &subX5C8);
     } else if (SUBFLAG(this)->check(3)) {
         if (fabsf(subMoveTo[1] - pos.y) > 1000.0f) {
             up = 1;
         }
         r = RouteCkToPos(this, (Vec*) subMoveTo, &distPos, up, &subX5C8);
-    } else if (sub580) {
-        if (fabsf(sub558.y - pos.y) > 1000.0f) {
+    } else if (m_PlActTime) {
+        if (fabsf(m_PlActPos.y - pos.y) > 1000.0f) {
             up = 1;
         }
-        r = RouteCkToPos(this, &sub558, &distPos, up, &subX5C8);
+        r = RouteCkToPos(this, &m_PlActPos, &distPos, up, &subX5C8);
     } else {
         if (delayMove) {
             delayMove--;
@@ -3255,7 +3255,7 @@ int cSubChar::checkAnotherRoute()
     // load below it: a member store never conflicts with a fixed scalar load in GCC 2.95.
     e = 0;
     id = 0;
-    *(u32*) &sub554 = 0;
+    *(u32*) &pAnotherRoute = 0;
     emi = (EmiData*) pG->pEmi;
     if (emi == 0) {
         return 0;
@@ -3351,7 +3351,7 @@ int cSubChar::checkAnotherRoute()
     if (found == -1) {
         return 0;
     }
-    sub554 = e;
+    pAnotherRoute = e;
     return 1;
 }
 
@@ -3370,22 +3370,22 @@ int cSubChar::moveAnotherRoute()
     if (emi->n == 0) {
         bad = 1;
     }
-    if (sub554 == 0) {
+    if (pAnotherRoute == 0) {
         bad = 1;
     }
     if (bad) {
-        sub554 = f;
+        pAnotherRoute = f;
         return 1;
     }
-    if (sub554->state > 1) {
+    if (pAnotherRoute->state > 1) {
         dist = (pos.x - pPL->pos.x) * (pos.x - pPL->pos.x) + (pos.y - pPL->pos.y) * (pos.y - pPL->pos.y) +
                (pos.z - pPL->pos.z) * (pos.z - pPL->pos.z);
         if (dist < 4000000.0f) {
             return 1;
         }
     }
-    dist = (pos.x - sub554->pos.x) * (pos.x - sub554->pos.x) + (pos.y - sub554->pos.y) * (pos.y - sub554->pos.y) +
-           (pos.z - sub554->pos.z) * (pos.z - sub554->pos.z);
+    dist = (pos.x - pAnotherRoute->pos.x) * (pos.x - pAnotherRoute->pos.x) + (pos.y - pAnotherRoute->pos.y) * (pos.y - pAnotherRoute->pos.y) +
+           (pos.z - pAnotherRoute->pos.z) * (pos.z - pAnotherRoute->pos.z);
     if (dist > 1000000.0f) {
         return 0;
     }
@@ -3397,10 +3397,10 @@ int cSubChar::moveAnotherRoute()
         if (((u8*) pG->pEmi)[o] != 0xB) {
             continue;
         }
-        if (f->sub != sub554->sub) {
+        if (f->sub != pAnotherRoute->sub) {
             continue;
         }
-        if (f->state == sub554->state + 1) {
+        if (f->state == pAnotherRoute->state + 1) {
             next = i;
             break;
         }
@@ -3408,7 +3408,7 @@ int cSubChar::moveAnotherRoute()
     if (next == -1) {
         return 1;
     }
-    sub554 = f;
+    pAnotherRoute = f;
     return 0;
 }
 
@@ -3453,12 +3453,12 @@ void cSubChar::damageCheck()
         } else {
             LifeDownSet2(this, 9999, 0, 0);
             SubRoutineSet(this, 1, 0, 0, 0);
-            if (Front_check(this, &x328, 1.5707964f)) {
+            if (Front_check(this, &dmPos, 1.5707964f)) {
                 subHideMode = 7;
-                ang.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &dmPos, 3.1415927f, 3.1415927f);
             } else {
                 subHideMode = 9;
-                ang.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &dmPos, 3.1415927f, 3.1415927f);
             }
         }
         break;
@@ -3492,7 +3492,7 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
         f32 ang = Muku2(this->ang.y, power, 3.1415927f);
 
         if (ang < 1.5707964f && ang > -1.5707964f) {
-            sub52C = power;
+            fWork0 = power;
             switch (kind) {
             case 0:
             case 1:
@@ -3508,7 +3508,7 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
                 break;
             }
         } else {
-            sub52C = LIMIT_ANGLE(power + 3.1415927f);
+            fWork0 = LIMIT_ANGLE(power + 3.1415927f);
             switch (kind) {
             case 0:
             case 1:
@@ -3525,7 +3525,7 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
             }
         }
     } else {
-        sub52C = 123.0f;
+        fWork0 = 123.0f;
     }
     r_no_0 = 1;
     r_no_1 = 0;
@@ -3537,10 +3537,10 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
 // The player registers a ledge for her to wait at (pos / facing angle), for 240 frames.
 void cSubChar::registPlAction(Vec* pos, f32 ang)
 {
-    sub558 = *pos;
-    sub564 = ang;
-    sub580 = 0xF0;
-    sub581 = 0;
+    m_PlActPos = *pos;
+    m_PlActAngY = ang;
+    m_PlActTime = 0xF0;
+    m_PlActType = 0;
 }
 
 // Water ripples / splashes while she wades (rooms 10A / 11A).
@@ -3946,8 +3946,8 @@ void cSubChar::debugMove()
         return;
     }
     Draw_pos(&distPos, 1000);
-    Draw_pos(&sub558, 500);
-    eprintf(0x18, 0x8C, 0, 0, "PAT:%d", sub580);
+    Draw_pos(&m_PlActPos, 500);
+    eprintf(0x18, 0x8C, 0, 0, "PAT:%d", m_PlActTime);
     eprintf(0x18, 0x118, 0, 0, "R:%02d.%02d.%02d.%02d", r_no_0, r_no_1, r_no_2, r_no_3);
 }
 

@@ -155,7 +155,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (p->flags & 0x4000) {
         *pos = p->pos;
         dir->x = 0.0f;
-        dir->y = GetXZAngle(pos, &em->x328);
+        dir->y = GetXZAngle(pos, &em->dmPos);
         dir->z = 0.0f;
         return 1;
     }
@@ -193,7 +193,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (PSMTXInverse(m, inv) == 0) {
         PSMTXIdentity(inv);
     }
-    PSMTXMultVec(inv, &em->x328, &v);
+    PSMTXMultVec(inv, &em->dmPos, &v);
     switch (type) {
     case 0:
         d.x = 0.0f;
@@ -255,7 +255,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         break;
     }
     dir->x = 0.0f;
-    dir->y = GetXZAngle(&c, &em->x328);
+    dir->y = GetXZAngle(&c, &em->dmPos);
     dir->z = 0.0f;
     return 1;
 }

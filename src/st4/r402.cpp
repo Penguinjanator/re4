@@ -764,7 +764,7 @@ static void R402EmSetMain()
                 cEm* door;
 
                 getRoomEtcDoor(0x1B, &door, 1);
-                if (door->flags_3C8 & 0x10000000) {
+                if (door->flag & 0x10000000) {
                     pG->Room_flg[0] |= 0x8000;
                     R402EmSetSub(0x53, 0xDC, 1);
                     R402EmSetSub(0x54, 0xDD, 1);

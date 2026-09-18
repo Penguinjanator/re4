@@ -132,7 +132,7 @@ void R106Main()
 static void r106_checkRollingStone()
 {
     for (;;) {
-        if (r106_work->rock != 0 && (r106_work->rock->flags_3C8 & 1)) {
+        if (r106_work->rock != 0 && (r106_work->rock->flag & 1)) {
             RsfSet(G_ROOM_ID, 2);
         }
         SceSleep(1);
@@ -188,7 +188,7 @@ extern "C" void r106_setRollingStone()
         d.id = 0x12;
         d.type = 3;
         d.set = 0x1C;
-        d.flags4 = 0;
+        d.flag = 0;
         d.pos[0] = 0x78D;
         d.pos[1] = 0x193;
         d.pos[2] = -0x1E3;
@@ -196,14 +196,14 @@ extern "C" void r106_setRollingStone()
         d.rot[1] = 0x1C7;
         d.rot[2] = 0;
         d.hp = 0;
-        d.x1A = 1;
-        d.xB = 1;
+        d.Guard_r = 1;
+        d.Character = 1;
         EmSetEvent(&d);
 
         d.id = 0x12;
         d.type = 1;
         d.set = 0x1C;
-        d.flags4 = 0;
+        d.flag = 0;
         d.pos[0] = 0x81A;
         d.pos[1] = 0x193;
         d.pos[2] = -0x1D8;
@@ -211,14 +211,14 @@ extern "C" void r106_setRollingStone()
         d.rot[1] = -0x7D2;
         d.rot[2] = 0;
         d.hp = 0;
-        d.x1A = 1;
-        d.xB = 1;
+        d.Guard_r = 1;
+        d.Character = 1;
         EmSetEvent(&d);
 
         d.id = 0x12;
         d.type = 0;
         d.set = 0x1C;
-        d.flags4 = 0;
+        d.flag = 0;
         d.pos[0] = 0x6EC;
         d.pos[1] = 0x19A;
         d.pos[2] = -0x1C2;
@@ -226,8 +226,8 @@ extern "C" void r106_setRollingStone()
         d.rot[1] = 0x999;
         d.rot[2] = 0;
         d.hp = 0;
-        d.x1A = 1;
-        d.xB = 1;
+        d.Guard_r = 1;
+        d.Character = 1;
         EmSetEvent(&d);
     }
     SceExec(0x12, (TaskFunc) r106_checkRollingStone, 0, 0, SCE_PRIO_DEF_2, 0);
@@ -566,10 +566,10 @@ extern "C" void r106_setEm()
     d.rot[1] = -0x1EEE;
     d.type = 0;
     d.set = 1;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0xA;
-    d.x1A = 0xB;
+    d.Guard_r = 0xB;
     EmSetEvent(&d);
 
     d.id = 0x29;
@@ -579,10 +579,10 @@ extern "C" void r106_setEm()
     d.rot[1] = -0x1EEE;
     d.type = 0;
     d.set = 1;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0xA;
-    d.x1A = 0xA;
+    d.Guard_r = 0xA;
     EmSetEvent(&d);
 
     d.id = 0x29;
@@ -592,10 +592,10 @@ extern "C" void r106_setEm()
     d.rot[1] = -0x1EEE;
     d.type = 0;
     d.set = 1;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0xA;
-    d.x1A = 0xB;
+    d.Guard_r = 0xB;
     EmSetEvent(&d);
 
     d.id = 0x2E;
@@ -605,10 +605,10 @@ extern "C" void r106_setEm()
     d.rot[1] = -0xDDD;
     d.type = 1;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0x3E8;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x2E;
@@ -618,10 +618,10 @@ extern "C" void r106_setEm()
     d.rot[1] = 0x3BBB;
     d.type = 0;
     d.set = 1;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0x3E8;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x2E;
@@ -631,9 +631,9 @@ extern "C" void r106_setEm()
     d.rot[1] = -0x25B0;
     d.type = 1;
     d.set = 1;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 0x3E8;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 }

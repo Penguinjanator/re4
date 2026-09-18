@@ -263,7 +263,7 @@ void emWepDmCk(cEmWep* em)
     case 3:
     case 0xA:
     default:
-        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->x328));
+        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->dmPos));
         v.x = fRand1_1() * 200.0f;
         v.y = fRand0_1() * 50.0f + 50.0f;
         v.z = fRand0_1() * 100.0f + -250.0f;
@@ -1619,12 +1619,12 @@ static void plemEscape(cPlayer* pl)
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
         emWepEscapeCamMove(PL_WEP(pl));
-        if (pl->x3E4 && w->pEm_old) {
+        if (pl->m_Work1 && w->pEm_old) {
             pl->ang.y += Muku(&pl->pos, &w->pEm_old->pos, pl->ang.y, 0.19634955f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
@@ -1633,8 +1633,8 @@ static void plemEscape(cPlayer* pl)
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -1657,14 +1657,14 @@ void plemBackjump(cPlayer* pl)
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
-        pl->x3E0 = 35;
-        pl->x3E4 = 0;
+        pl->m_Work0 = 35;
+        pl->m_Work1 = 0;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         }
         if (pl->frame > 10.7f && pl->frame < 11.3f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
@@ -1678,7 +1678,7 @@ void plemBackjump(cPlayer* pl)
         if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMove(pl, 0) || pl->x3E4) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -1700,14 +1700,14 @@ void plemFrontEscape(cPlayer* pl)
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(11);
-        pl->x3E0 = 35;
-        pl->x3E4 = 0;
+        pl->m_Work0 = 35;
+        pl->m_Work1 = 0;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         }
         if (pl->frame > 21.7f && pl->frame < 22.3f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
@@ -1715,7 +1715,7 @@ void plemFrontEscape(cPlayer* pl)
         if (pl->frame > 34.7f && pl->frame < 35.3f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMove(pl, 0) || pl->x3E4) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;

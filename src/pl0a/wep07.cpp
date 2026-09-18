@@ -63,7 +63,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     void* mot;
     int hokan;
 
-    pl->x3E4 = 0;
+    pl->m_Work1 = 0;
     pl->Wep->m_ShotTimer = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
@@ -75,7 +75,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     m3r[1] = pitch;
     m3r[2] = 0.0f;
     m3r[0] = pitch;
-    pl->x400 = 0.0f;
+    pl->m_Fwork0 = 0.0f;
     pl->Neck->init(0, 0, 0);
     pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     hokan = 4;

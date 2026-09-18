@@ -845,7 +845,7 @@ void em_reset()
             cEm* em = EmSetEvent(EM_LIST(0x19 + idx));
 
             if (em) {
-                em->flags_3C8 |= 1;
+                em->flag |= 1;
             }
             incResetNum();
             r222_work.p->resetTimer = 210;

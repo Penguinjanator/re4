@@ -359,13 +359,13 @@ static void r11e_move_sasaeki1()
             RsfSet(G_ROOM_ID, 4);
             EstSet(0, -1, &r11e_rockAPos, &r11e_rockARot, 1, 0, 0, 0, 0, 0);
             BitOff(objA->be_flag, 2);
-            r11e_work->rock[0]->flags_3C8 |= 1;
+            r11e_work->rock[0]->flag |= 1;
         }
         if (RsfCheck(G_ROOM_ID, 5) == 0 && hitB->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 5);
             EstSet(0, -1, &r11e_rockBPos, &r11e_rockBRot, 1, 0, 0, 0, 0, 0);
             BitOff(objB->be_flag, 2);
-            r11e_work->rock[1]->flags_3C8 |= 1;
+            r11e_work->rock[1]->flag |= 1;
         }
         SceSleep(1);
     }
@@ -437,7 +437,7 @@ static void r11e_EmSet()
     e->pos[1] = 8;
     e->pos[2] = 0xC06;
     e->rot[1] = 0x3FA4;
-    e->flags |= 1;
+    e->be_flag |= 1;
     e->set = 1;
     SceEventStart(0);
     SndStrReq(r11e_work->strId, 2, 0, 0);

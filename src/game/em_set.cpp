@@ -62,9 +62,9 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
 
     em->type = d->type;
     em->set = d->set;
-    em->flags_3C8 = d->flags4;
-    em->x3D0 = d->xB;
-    em->x3CC = (f32) d->x1A * kx;
+    em->flag = d->flag;
+    em->Character = d->Character;
+    em->Guard_r = (f32) d->Guard_r * kx;
     em->hp_max = em->hp = d->hp;
     em->ang.x = (f32) d->rot[0] * kr;
     em->ang.y = (f32) d->rot[1] * kr;
@@ -89,9 +89,9 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
         f32 kp = 10.0f;                                                                   \
         (em)->type = (d)->type;                                                           \
         (em)->set = (d)->set;                                                             \
-        (em)->flags_3C8 = (d)->flags4;                                                    \
-        (em)->x3D0 = (d)->xB;                                                             \
-        (em)->x3CC = (f32) (d)->x1A * kx;                                                 \
+        (em)->flag = (d)->flag;                                                    \
+        (em)->Character = (d)->Character;                                                             \
+        (em)->Guard_r = (f32) (d)->Guard_r * kx;                                                 \
         (em)->hp_max = (em)->hp = (d)->hp;                                                 \
         (em)->ang.x = (f32) (d)->rot[0] * kr;                                             \
         (em)->ang.y = (f32) (d)->rot[1] * kr;                                             \
@@ -154,10 +154,10 @@ void EmSetFromList()
         EmListData* d = EM_LIST(i);
         cEm* em;
 
-        if (!(d->flags & 1)) {
+        if (!(d->be_flag & 1)) {
             continue;
         }
-        if (d->flags & 2) {
+        if (d->be_flag & 2) {
             continue;
         }
         if (EmSetDieCk(i)) {
@@ -186,15 +186,15 @@ void EmSetFromList()
             continue;
         }
         EmSetWork(em, d, i);
-        d->flags |= 2;
-        if (d->flags & 4) {
-            d->flags |= 8;
-            d->flags &= ~4;
-        } else if (!(d->flags & 8)) {
-            d->flags |= 4;
+        d->be_flag |= 2;
+        if (d->be_flag & 4) {
+            d->be_flag |= 8;
+            d->be_flag &= ~4;
+        } else if (!(d->be_flag & 8)) {
+            d->be_flag |= 4;
         }
         EmSetDist(em);
-        em->x374 = 1.0e16f;
+        em->l_sub = 1.0e16f;
         em->move();
     }
 }
@@ -213,7 +213,7 @@ cEm* EmSetFromList2(int no, int chkDead)
     if (pG->room_no != (d->room & 0xFF)) {
         return errEm;
     }
-    if (d->flags & 2) {
+    if (d->be_flag & 2) {
         return errEm;
     }
     if (d->id == 0) {
@@ -233,15 +233,15 @@ cEm* EmSetFromList2(int no, int chkDead)
         return errEm;
     }
     EM_SET_WORK(em, d, no);
-    d->flags |= 2;
-    if (d->flags & 4) {
-        d->flags |= 8;
-        d->flags &= ~4;
-    } else if (!(d->flags & 8)) {
-        d->flags |= 4;
+    d->be_flag |= 2;
+    if (d->be_flag & 4) {
+        d->be_flag |= 8;
+        d->be_flag &= ~4;
+    } else if (!(d->be_flag & 8)) {
+        d->be_flag |= 4;
     }
     EmSetDist(em);
-    em->x374 = 1.0e16f;
+    em->l_sub = 1.0e16f;
     em->move();
     return em;
 }
@@ -260,9 +260,9 @@ cEm* EmSetEvent(EmListData* d)
         return errEm;
     }
     EM_SET_WORK(em, d, 0xFF);
-    d->flags = 7;
+    d->be_flag = 7;
     EmSetDist(em);
-    em->x374 = 1.0e16f;
+    em->l_sub = 1.0e16f;
     em->move();
     return em;
 }
@@ -314,9 +314,9 @@ void EmListSetAlive(int no, int on)
         return;
     }
     if (on == 1) {
-        d->flags |= 1;
+        d->be_flag |= 1;
     } else {
-        d->flags &= ~1;
+        d->be_flag &= ~1;
     }
 }
 
@@ -350,7 +350,7 @@ void EmSetRoomInit()
     for (i = 0; i < 256; i++) {
         EmListData* d = EM_LIST(i);
 
-        d->flags &= ~2;
+        d->be_flag &= ~2;
     }
 }
 

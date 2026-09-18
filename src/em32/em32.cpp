@@ -893,10 +893,10 @@ static void em32_R1_2ndAppear(cEm32* em)
     case 1:
         MotionSetCore(em, &em->Motion, ARC(0x53), (int) ARC(0x54), 0, 5, 0);
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
-        em->flags_3C8 &= ~1;
+        em->flag &= ~1;
         em->r_no_2++;
     case 2:
         zero = 0;
@@ -925,11 +925,11 @@ static void em32_R1_3rdAppear(cEm32* em)
         em->be_flag &= ~2;
         em->invisible_factor = 0.0f;
         {
-            u32 t = em->flags_3C8 ^ 1;
+            u32 t = em->flag ^ 1;
             zero = t & 1;
         }
         if (zero == 0) {
-            em->flags_3C8 &= ~1;
+            em->flag &= ~1;
             em32SetYarareMark(em, 1);
             em32GetJumpDownNo(em);
             EmRoutineSet(em, 1, 0x18, zero, 1);
@@ -973,7 +973,7 @@ static void em32_R1_4thAppear(cEm32* em)
     case 1:
         MotionSetCore(em, &em->Motion, ARC(0x7A), 0, 0, 1, 0);
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         em->r_no_2++;
@@ -1219,7 +1219,7 @@ static void em32_R1_Walk(cEm32* em)
         switch (mode) {
         case 0:
         default:
-            if (em->pos.x > 7000.0f || (int) em->flags_3C8 < 0) {
+            if (em->pos.x > 7000.0f || (int) em->flag < 0) {
                 EmRoutineSet(em, 1, 0, 0, 0);
                 break;
             }
@@ -1258,7 +1258,7 @@ static void em32_R1_Walk(cEm32* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
             }
-            ret = em->flags_3C8 & 0x40000000;
+            ret = em->flag & 0x40000000;
             if (ret) {
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
@@ -1355,7 +1355,7 @@ static void em32_R1_Dash(cEm32* em)
         switch (mode) {
         case 0:
         default:
-            if (em->pos.x > 7000.0f || (int) em->flags_3C8 < 0) {
+            if (em->pos.x > 7000.0f || (int) em->flag < 0) {
                 EmRoutineSet(em, 1, 0, 0, 0);
                 break;
             }
@@ -1396,7 +1396,7 @@ static void em32_R1_Dash(cEm32* em)
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
             }
-            ret = em->flags_3C8 & 0x40000000;
+            ret = em->flag & 0x40000000;
             if (ret) {
                 EmRoutineSet(em, 1, 1, 0, 0);
                 break;
@@ -1999,11 +1999,11 @@ static void plem32_CatchHit(cPlayer* pl)
     case 2:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x8A), 0, 0, 1, 0);
         EstSet((int) pl, -1, 0, 0, 0x2A, 0x29, 0, 0, (u32) pl, 0);
-        pl->x3E0 = 15;
+        pl->m_Work0 = 15;
         pl->r_no_2++;
     case 3:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             EmCatchMotionMove(pl, 1.0f, 1.0f);
         } else if (MotionMoveF(pl, 0)) {
             AtariOn(&pl->atari, 0x300);
@@ -2169,7 +2169,7 @@ static void plemBackjump(cPlayer* pl)
 
     pl->subArc = PL_EM(pl)->subArc;
     fe = pl->r_no_2;
-    pl->dmg.x1 = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     switch (fe) {
     case 0:
         ry = LIMIT_ANGLE(PL_EM(pl)->ang.y + 1.57079637f);
@@ -2186,14 +2186,14 @@ static void plemBackjump(cPlayer* pl)
         SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
         SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         GameAddPoint(LVADD_ESCAPEATTACK);
-        pl->x3E0 = 45;
-        pl->x3E4 = fe;
+        pl->m_Work0 = 45;
+        pl->m_Work1 = fe;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         }
         if (pl->frame > 10.6999998f && pl->frame < 11.3000002f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
@@ -2209,7 +2209,7 @@ static void plemBackjump(cPlayer* pl)
             (pl->frame > 50.7000008f && pl->frame < 51.2999992f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMoveF(pl, 0) || pl->x3E4) {
+        if (MotionMoveF(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -2231,7 +2231,7 @@ static void plemEscape(cPlayer* pl)
     int side;
 
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmg.x1 = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         // The side from the angle is overridden by the random pick right after (dead in the
@@ -2272,8 +2272,8 @@ static void plemEscape(cPlayer* pl)
         GameAddPoint(LVADD_ESCAPEATTACK);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
         SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
         pl->r_no_2++;
     case 1:
         em32EscapeCamMove(PL_EM(pl));
@@ -2281,15 +2281,15 @@ static void plemEscape(cPlayer* pl)
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
-        if (pl->x3E4) {
+        if (pl->m_Work1) {
             pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.392699093f);
             pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
-            pl->x3E0 = 0;
+            pl->m_Work0 = 0;
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -3009,11 +3009,11 @@ static void plem32_C_AtkHit(cPlayer* pl)
     case 2:
         MotionSetCore(pl, &pl->Motion, PL_ARC(0x88), 0, 0, 0x201, 0);
         EstSet((int) pl, -1, 0, 0, 0x2A, 0x28, 0, 0, (u32) pl, 0);
-        pl->x3E0 = 15;
+        pl->m_Work0 = 15;
         pl->r_no_2++;
     case 3:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             EmCatchMotionMove(pl, 1.0f, 1.0f);
         } else {
             AtariOn(&pl->atari, 0x300);
@@ -3283,11 +3283,11 @@ static void plem32_P_CatchHit(cPlayer* pl)
             w->pCatchObj->wep.parent = pPLS;
             w->pCatchObj->getPartsPtr(1)->ang.y = 3.14159274f;
         }
-        pl->x3E0 = 15;
+        pl->m_Work0 = 15;
         pl->r_no_2++;
     case 3:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             EmCatchMotionMove(pl, 1.0f, 1.0f);
         } else if (MotionMoveF(pl, 0)) {
             if (w->pCatchObj) {
@@ -4363,7 +4363,7 @@ void cEm32::setNext(int no)
         U8Set(w->mode, 1);
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
-        flags_3C8 &= ~1;
+        flag &= ~1;
         w->flags |= 0x100000;
         if (w->pTexModel) {
             w->flags |= 0x140000;
@@ -4375,7 +4375,7 @@ void cEm32::setNext(int no)
         U8Set(w->mode, 1);
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
-        flags_3C8 &= ~1;
+        flag &= ~1;
         w->flags |= 0x100000;
         if (w->pTexModel) {
             w->flags |= 0x140000;
@@ -4387,7 +4387,7 @@ void cEm32::setNext(int no)
     case 6:
         hp = hp_max;
         AtariOff(&atari, 0xFCFF);
-        flags_3C8 &= ~1;
+        flag &= ~1;
         r_no_1 = 0xD;
         r_no_2 = 0;
         r_no_0 = 1;

@@ -602,7 +602,7 @@ static void em27_R1_Dm_Normal(cEm27* em)
     case 0: {
         int flag;
 
-        em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         if (Rnd() & 1) {
             flag = 0;
             em->r_no_3 = flag;
@@ -632,7 +632,7 @@ static void em27_R1_Dm_Big(cEm27* em)
     case 0: {
         int flag;
 
-        em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         em->r_no_3 = Rnd() & 1;
         if (em->r_no_3) {
             flag = 0x40;
@@ -661,7 +661,7 @@ static void em27_R1_Dm_Air(cEm27* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         em->r_no_3 = Rnd() & 1;
         if (em->r_no_3) {
             flag = 0x41;

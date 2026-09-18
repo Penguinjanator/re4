@@ -991,20 +991,20 @@ void PlWepLockCtrl(cModel* plm)
         if (d != 0.0f) {
             moved = 1;
         }
-        pl->x400 += d;
-        if (pl->x400 > lim) {
+        pl->m_Fwork0 += d;
+        if (pl->m_Fwork0 > lim) {
             // COMPILER-DIFF: candidate (alias): the target reloads repCtr in the shared `rot.y -=`
             // else-arm below (`lfs f12,repCtr`), ours kept the value loaded for the yaw stick step.
             asm("" : "=m"(repCtr));
-            pl->x400 = lim;
+            pl->m_Fwork0 = lim;
             if (Joy[0].on & 1) {
                 pl->ang.y += 0.039269908f;
             } else {
                 pl->ang.y -= spd * (f32) Joy[0].stickX * repCtr * PI / 10.0f / 200.0f / 20.0f;
             }
         }
-        if (pl->x400 < -lim * 0.8f) {
-            pl->x400 = -lim * 0.8f;
+        if (pl->m_Fwork0 < -lim * 0.8f) {
+            pl->m_Fwork0 = -lim * 0.8f;
             if (Joy[0].on & 2) {
                 pl->ang.y -= 0.039269908f;
             } else {
@@ -1014,7 +1014,7 @@ void PlWepLockCtrl(cModel* plm)
     }
 rand:
     tmp = m3r[0];
-    PlWepLockRand(pl, moved, &tmp, &pl->x400);
+    PlWepLockRand(pl, moved, &tmp, &pl->m_Fwork0);
     {
         // COMPILER-DIFF: candidate (sched LUID): the target issues the 0.0 pool load before the m3r[2]
         // load (both prio 4, weight 0, so RTL order decides); a laundered local puts the constant's
@@ -1031,7 +1031,7 @@ rand:
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->Waist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
 }
 
 void PlWepLockRandInit()
@@ -1090,7 +1090,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     // COMPILER-DIFF: #8 -- the original ranks `mr r29,r4` (mode) after `fmr f31,f1`, i.e. as if r4
     // did not die at the copy; the HImode read of r4 keeps it live past the copy (regmove only moves
     // the death when the dying mode matches the copy's), see docs/matching.md #8.
-    asm("" : "=m"(pl->x400) : "r"(hm));
+    asm("" : "=m"(pl->m_Fwork0) : "r"(hm));
     if (pl->pLockEm == 0) {
         return;
     }
@@ -1099,7 +1099,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
                  &tgt);
     dist = GetDistance3(hand, &tgt);
     if (dist > 400.0f) {
-        d = Muku(hand, &tgt, pl->ang.y + pl->x400, rate * PI);
+        d = Muku(hand, &tgt, pl->ang.y + pl->m_Fwork0, rate * PI);
         if (d > 0.52359879f) {
             d = 0.52359879f;
         }
@@ -1107,10 +1107,10 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
             d = -0.52359879f;
         }
         if (mode != 0) {
-            na = pl->x400 + d;
+            na = pl->m_Fwork0 + d;
             if (na <= 0.20943952f && na >= -0.20943952f) {
-                pl->x400 = na;
-            } else if (pl->x400 + d > 0.20943952f) {
+                pl->m_Fwork0 = na;
+            } else if (pl->m_Fwork0 + d > 0.20943952f) {
                 pl->ang.y += 0.052359879f;
             } else {
                 pl->ang.y -= 0.052359879f;

@@ -839,10 +839,10 @@ static void r10b_setEm()
     d.rot[1] = -0xBBB;
     d.type = 0;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -852,10 +852,10 @@ static void r10b_setEm()
     d.rot[1] = -0x19F4;
     d.type = 0;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -865,10 +865,10 @@ static void r10b_setEm()
     d.rot[1] = -0x19F4;
     d.type = 0;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -878,10 +878,10 @@ static void r10b_setEm()
     d.rot[1] = -0xBBB;
     d.type = 0;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -891,10 +891,10 @@ static void r10b_setEm()
     d.rot[1] = -0xBBB;
     d.type = 0;
     d.set = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 }
 

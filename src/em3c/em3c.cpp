@@ -639,7 +639,7 @@ static void em3c_R1_StartWait(cEm3c* em)
             MotionSetCore(em, MOTION(em), ARC(0x19), (int) ARC(0x1A), 0, 1, 0);
         }
         MotionMoveF(em, 0);
-        if (!(em->flags_3C8 & 1)) {
+        if (!(em->flag & 1)) {
             break;
         }
         em->clearStatus(EM_STATUS_ASHLEY_NO_HELP);
@@ -736,7 +736,7 @@ static void em3c_R1_AtkWait(cEm3c* em)
         }
         if (w->Atk_ck) {
             w->Act_ck = 1;
-            em->flags_3C8 |= 2;
+            em->flag |= 2;
         }
         if (em->seFlags28B & 4) {
             Vec v;
@@ -791,12 +791,12 @@ static void plemSurprised(cPlayer* pl)
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x63), 0, 3, 1, 0);
         }
-        pl->x3E0 = 5;
+        pl->m_Work0 = 5;
         pl->r_no_2++;
     }
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             pl->atari.throughOff();
         }
@@ -900,7 +900,7 @@ static void subemSurprised()
     }
     case 1:
         MotionMoveF(sub, 0);
-        if (!(PL_EM(sub)->flags_3C8 & 2) && sub->subHideMode) {
+        if (!(PL_EM(sub)->flag & 2) && sub->subHideMode) {
             sub->subHideMode--;
         } else {
             sub->r_no_2++;
@@ -1364,7 +1364,7 @@ static void em3c_R1_Dm_Normal(cEm3c* em)
         void* m0;
         void* m1;
 
-        ang = fabsf(Muku(&em->pos, &em->x328, em->ang.y, PI));
+        ang = fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI));
         int dir = 1;
         if (ang < PI / 2.0f) {
             dir = 0;

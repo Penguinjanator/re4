@@ -210,7 +210,7 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", this->no);
         return 0;
     }
-    if (((EmListView*) pG)->emlist[no].flags & 2) {
+    if (((EmListView*) pG)->emlist[no].be_flag & 2) {
         pEm = GetEmPtrFromList(no);
     } else {
         pEm = EmSetFromList2(no, chkDead == 1);
@@ -304,7 +304,7 @@ void cEmWrap::destroy()
         EmListData* d = GetListPtrFromEm(pEm);
 
         if (d != 0) {
-            d->flags &= ~1;
+            d->be_flag &= ~1;
         }
         EmMgr.destroy(pEm);
     } else {
@@ -464,7 +464,7 @@ s16 cEmWrap::getHpMax()
 u8 cEmWrap::Character()
 {
     if (isAlive() == 1) {
-        return pEm->x3D0;
+        return pEm->Character;
     }
     err("EM_SET_NO(%d) cEmWrap::Character error", no);
     return 0;
@@ -473,7 +473,7 @@ u8 cEmWrap::Character()
 void cEmWrap::setCharacter(u8 c)
 {
     if (isAlive() == 1) {
-        pEm->x3D0 = c;
+        pEm->Character = c;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setCharacter error", no);
     }
@@ -482,7 +482,7 @@ void cEmWrap::setCharacter(u8 c)
 f32 cEmWrap::getGuard_r()
 {
     if (isAlive() == 1) {
-        return pEm->x3CC;
+        return pEm->Guard_r;
     }
     err("EM_SET_NO(%d) cEmWrap::Guard_r error", no);
     return 0.0f;
@@ -491,7 +491,7 @@ f32 cEmWrap::getGuard_r()
 void cEmWrap::setGuard_r(f32 r)
 {
     if (isAlive() == 1) {
-        pEm->x3CC = r;
+        pEm->Guard_r = r;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setGuard_r error", no);
     }
@@ -536,7 +536,7 @@ void cEmWrap::setSca(Vec* sca)
 void cEmWrap::setFlag(u32 bit)
 {
     if (isAlive() == 1) {
-        pEm->flags_3C8 |= bit;
+        pEm->flag |= bit;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setFlag error", no);
     }
@@ -546,7 +546,7 @@ int cEmWrap::ckFlag(u32 bit)
 {
     if (isAlive() != 1) {
         err("EM_SET_NO(%d) cEmWrap::setFlag error", no);
-    } else if (pEm->flags_3C8 & bit) {
+    } else if (pEm->flag & bit) {
         return 1;
     }
     return 0;
@@ -856,7 +856,7 @@ f32 cEmWrap::get_l_pl()
 {
     if (isAlive() == 1) {
         if (isNormalGanade() == 1) {
-            return pEm->x3CC;   // dead in every module: the field is a guess (only the strings and the -1.0 pool survive)
+            return pEm->Guard_r;   // dead in every module: the field is a guess (only the strings and the -1.0 pool survive)
         }
         err("EM_SET_NO(%d) id[%2x] invalid.[get_l_pl]", pEm->id);
     } else {

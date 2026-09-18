@@ -549,12 +549,12 @@ static void plemEscape(cPlayer* pl)
         SndCall(1, 0x48, &em->pos, 0, 0, em);
         SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
         memclr_asm(&Cam, sizeof(Camera));
-        em->x3E0 = 50;
-        em->x3E4 = 15;
+        em->m_Work0 = 50;
+        em->m_Work1 = 15;
         em->r_no_2++;
     case 1:
         EscapeCamMove();
-        if (em->x3E4) {
+        if (em->m_Work1) {
             em->ang.y += Muku(&em->pos, &w->Break_pos, em->ang.y, PI / 16);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -563,8 +563,8 @@ static void plemEscape(cPlayer* pl)
             EstSet(0, -1, &em->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &em->pos, 0, 0, em);
         }
-        if (em->x3E0) {
-            em->x3E0--;
+        if (em->m_Work0) {
+            em->m_Work0--;
         } else {
             EndPlDamage();
         }

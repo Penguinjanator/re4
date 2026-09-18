@@ -428,7 +428,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
         sub->pos.x += 1.0f;
         sub->pos.z += 2.0f;
     }
-    sub->flags_3C8 |= 1;
+    sub->flag |= 1;
     pSUB = sub;
 }
 
@@ -608,10 +608,10 @@ void PlSetLadder(Vec* pos, int level, f32 ang)
     pl->r_no_3 = 0;
     pl->r_no_0 = 0;
     if (level > 0) {
-        pl->x3E0 = level - 2;
+        pl->m_Work0 = level - 2;
     } else {
         pl->r_no_2 = 0xA;
-        pl->x3E0 = -2 - level;
+        pl->m_Work0 = -2 - level;
     }
 }
 

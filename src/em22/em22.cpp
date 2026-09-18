@@ -459,7 +459,7 @@ static void em22_R0_Init(cEm22* em)
         EmRoutineSet(em, 1, em->set, 0, 0);
         break;
     }
-    if (em->flags_3C8 & 0x40000000) {
+    if (em->flag & 0x40000000) {
         em22SetParasite(em);
     }
     MotionSetCore(em, mot, ARC(7), 0, 0, 5, 0);
@@ -693,7 +693,7 @@ static void em22_R1_InCage(cEm22* em)
         em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
-        if (em->flags_3C8 & 1) {
+        if (em->flag & 1) {
             if (em22GotoCk(em) == 0) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             }
@@ -717,11 +717,11 @@ static void em22_R1_JumpWait(cEm22* em)
         if (em22GotoCk(em)) {
             return;
         }
-        if ((w->flags & 1) && em->plDist2 < em->x3CC * em->x3CC) {
+        if ((w->flags & 1) && em->plDist2 < em->Guard_r * em->Guard_r) {
             EmRoutineSet(em, 1, 7, 0, 0);
             return;
         }
-        if (em->flags_3C8 & 1) {
+        if (em->flag & 1) {
             em->r_no_2++;
         }
         break;
@@ -784,12 +784,12 @@ static void em22_R1_Wait(cEm22* em)
     if (em22GotoCk(em)) {
         return;
     }
-    if (em->flags_3C8 & 1) {
-        em->flags_3C8 &= ~1;
+    if (em->flag & 1) {
+        em->flag &= ~1;
         EmRoutineSet(em, 1, 7, 0, 0);
         return;
     }
-    if ((w->flags & 1) && em->plDist2 < em->x3CC * em->x3CC) {
+    if ((w->flags & 1) && em->plDist2 < em->Guard_r * em->Guard_r) {
         EmRoutineSet(em, 1, 7, 0, 0);
         return;
     }
@@ -1405,13 +1405,13 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         break;
     case 4:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x37), 0, 3, 1, 0);
-        pl->x3E0 = 45;
+        pl->m_Work0 = 45;
         VibSetClearType(1);
         pl->r_no_2++;
     case 5:
-        if (pl->x3E0) {
-            pl->x3E0--;
-            if (pl->x3E0 == 0) {
+        if (pl->m_Work0) {
+            pl->m_Work0--;
+            if (pl->m_Work0 == 0) {
                 pl->Wep->setTrans(1, 0);
             }
         }
@@ -1537,13 +1537,13 @@ static void plem22_ParaAtkHit(cPlayer* pl)
         PlSetFace(1);
         EstSet((int) pl, -1, 0, 0, 0x1A, 0xC, 0, 0, (u32) pl, 0);
         VibSetData(VIB_TBL, 0xE, 1);
-        pl->x3E0 = 45;
+        pl->m_Work0 = 45;
         pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
             LifeDownSet2(pPLS, 10, 0, 0);
-            if (pl->x3E0 == 0 && (s16) pG->pl_life <= 0) {
+            if (pl->m_Work0 == 0 && (s16) pG->pl_life <= 0) {
                 PlSetDamageSe(0xD);
                 PlSetDamage(6, 0, 0);
                 break;
@@ -1730,7 +1730,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
     w->flags |= 2;
     switch (em->r_no_2) {
     case 0:
-        ang = Muku(&em->pos, &em->x328, em->ang.y, PI);
+        ang = Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         angAbs = fabsf(ang);
         em->r_no_3 = ang < 0.0f ? 3 : 2;
         if (angAbs < 0.7853982f) {
