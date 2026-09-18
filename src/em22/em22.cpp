@@ -2299,7 +2299,7 @@ void em22CamMove(cEm22* em, int type)
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 int em22SetParasiteCk(cEm22* em)

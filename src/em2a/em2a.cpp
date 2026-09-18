@@ -650,7 +650,7 @@ void plem2aTrapCamMove(cModel* m)
     }
     cam->param.fovy = 55.0f;
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 static void em2a_R1_Trap1Break(cEm2a* em)
@@ -964,7 +964,7 @@ void em2aTrap1CamMove(cEm2a* em)
     }
     w->cam.param.fovy = 55.0f;
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 int em2aTrap1BiteCk(cEm2a* em)

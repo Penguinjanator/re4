@@ -2233,7 +2233,7 @@ void em35EscapeCamMove(cEm35* em)
                         (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 static void plem35DmStamp(cPlayer* pl)
@@ -2287,7 +2287,7 @@ void em35StampCamMove(cEm35* em)
                         (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 static void em35_R1_br_Catch(cEm35* em)

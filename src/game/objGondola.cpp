@@ -297,7 +297,7 @@ void objGondola_R0_Break(cObjGondola* obj)
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
         ObjGondolaCam.dist = SQRTF(len);
         CameraSetOrientationUp(&ObjGondolaCam);
-        CamCtrl.x250 = (s32) &ObjGondolaCam;
+        CamCtrl.m_pExtraCamera = (s32) &ObjGondolaCam;
         if (w->Timer) {
             w->Timer--;
             if (w->Timer == 0) {

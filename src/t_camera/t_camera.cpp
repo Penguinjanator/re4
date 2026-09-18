@@ -102,9 +102,9 @@ void ToolCamera()
                     tcPlayerMove();
                     CameraMove();
                     LightMgr.move();
-                    PTC->x634 = CamCtrl.cameraNo;
-                    PTC->x635 = CamCtrl.areaNo;
-                    PTC->x636 = CamCtrl.areaSuffix;
+                    PTC->cameraNo = CamCtrl.cameraNo;
+                    PTC->areaNo = CamCtrl.areaNo;
+                    PTC->areaSuffix = CamCtrl.areaSuffix;
                     tcGameCamera2ToolCamera();
                 }
                 if (TC_TRG & 0x1000) {
@@ -169,14 +169,14 @@ static void tcInit()
     memclr_asm(pTc, sizeof(TcWork));
     tcGameCamera2ToolCamera();
     PTC->routine = 1;
-    PTC->x637 = pSys->key_type;
+    PTC->keyTypeBak = pSys->key_type;
     tcDataInitialize();
     PTC->cdatNo = -1;
     PTC->adatNo = -1;
-    PTC->x5E1 = -1;
-    PTC->x634 = CamCtrl.cameraNo;
-    PTC->x635 = CamCtrl.areaNo;
-    PTC->x636 = CamCtrl.areaSuffix;
+    PTC->adatSuffix = -1;
+    PTC->cameraNo = CamCtrl.cameraNo;
+    PTC->areaNo = CamCtrl.areaNo;
+    PTC->areaSuffix = CamCtrl.areaSuffix;
     if (CamCtrl.data) {
         if (cameraDataVersion((char*) CamCtrl.data) > 1) {
             tcDataImport((u8*) CamCtrl.data);
@@ -374,7 +374,7 @@ static void tcEdit()
                 }
                 PTC->cdatNo = c->cam_no;
                 PTC->adatNo = PTC->cdatNo;
-                PTC->x5E1 = head_suffix(PTC->adatNo);
+                PTC->adatSuffix = head_suffix(PTC->adatNo);
                 x = tcMenuPos[4];
                 y = tcMenuPos[5];
                 eprintf(x * 8, y * 14, 5, 0, "Camera[  ]");
@@ -382,13 +382,13 @@ static void tcEdit()
                 eprintf(x * 8, y * 14, 0, 0, "%02d", PTC->cdatNo);
             } else if (w->editSel == 0) {
                 if (TC_REP & 0x1) {
-                    PTC->pAdat = tcNextAdatPtr(w->adatNo, w->x5E1, -1);
+                    PTC->pAdat = tcNextAdatPtr(w->adatNo, w->adatSuffix, -1);
                 }
                 if (TC_REP & 0x2) {
-                    PTC->pAdat = tcNextAdatPtr(PTC->adatNo, PTC->x5E1, 1);
+                    PTC->pAdat = tcNextAdatPtr(PTC->adatNo, PTC->adatSuffix, 1);
                 }
                 PTC->adatNo = PTC->pAdat->area_no;
-                PTC->x5E1 = PTC->pAdat->cam_no;
+                PTC->adatSuffix = PTC->pAdat->cam_no;
                 PTC->cdatNo = PTC->adatNo;
                 x = tcMenuPos[4];
                 y = tcMenuPos[5];
@@ -399,7 +399,7 @@ static void tcEdit()
                 } else {
                     eprintf(x * 8, y * 14, 5, 0, "Area[    ]");
                     x += 5;
-                    eprintf(x * 8, y * 14, 0, 0, "%02d-%1d", PTC->adatNo, PTC->x5E1);
+                    eprintf(x * 8, y * 14, 0, 0, "%02d-%1d", PTC->adatNo, PTC->adatSuffix);
                 }
             }
             if (PTC->editSel == 1 && (s8) PTC->viewMode == 0) {
@@ -409,9 +409,9 @@ static void tcEdit()
                     int no;
                     s8 n;
                     lastCam = PTC->cdatNo;
-                    PTC->x2 = 0;
-                    PTC->x6 = 0;
-                    PTC->x627 = 0;
+                    PTC->selMode = 0;
+                    PTC->editCursor = 0;
+                    PTC->curKey = 0;
                     tcCameraPullPoint(tcCdatPtr(PTC->cdatNo));
                     no = PTC->cdatNo;
                     n = no;
@@ -496,7 +496,7 @@ void tcEdit_select()
         }
     }
     keyMode = 0;
-    switch (PTC->x2) {
+    switch (PTC->selMode) {
     case 0:
         keyMode = 1;
         if (TC_TRG & 0x200) {
@@ -506,12 +506,12 @@ void tcEdit_select()
         PTC->cdatNo = no;
         PTC->adatNo = no;
         if (cursor <= 2) {
-            PTC->x5E1 = head_suffix(PTC->adatNo);
+            PTC->adatSuffix = head_suffix(PTC->adatNo);
         } else {
-            PTC->x5E1 = cursor - 3;
+            PTC->adatSuffix = cursor - 3;
         }
         c = tcCdatPtr(PTC->cdatNo);
-        a = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+        a = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
         if (TC_TRG & 0x100) {
             switch (cursor) {
             case 0:
@@ -521,7 +521,7 @@ void tcEdit_select()
                 }
                 PTC->editSel = 1;
                 PTC->editMode = 1;
-                PTC->x6 = 0;
+                PTC->editCursor = 0;
                 if (c->type == 8) {
                     tcSetBesideCamera();
                 }
@@ -530,8 +530,8 @@ void tcEdit_select()
                 break;
             case 2:
                 if (c != 0 && a != 0) {
-                    PTC->x2 = 3;
-                    PTC->x6 = 0;
+                    PTC->selMode = 3;
+                    PTC->editCursor = 0;
                 }
                 break;
             default:
@@ -540,11 +540,11 @@ void tcEdit_select()
                     if (PTC->adatTypeNum[PTC->adatNo] == 0) {
                         tcTypeTbl[PTC->adatNo][0] = 3;
                     }
-                    tcAdatInit(a, PTC->adatNo, PTC->x5E1);
+                    tcAdatInit(a, PTC->adatNo, PTC->adatSuffix);
                 }
                 PTC->editSel = 0;
                 PTC->editMode = 1;
-                PTC->x6 = 0;
+                PTC->editCursor = 0;
                 break;
             }
             switch (cursor) {
@@ -569,16 +569,16 @@ void tcEdit_select()
         } else if (TC_TRG & 0x800) {
             if (cursor == 0) {
                 if (c != 0) {
-                    PTC->x2 = 1;
-                    PTC->x3 = 0;
-                    PTC->x6 = 0;
+                    PTC->selMode = 1;
+                    PTC->selStep = 0;
+                    PTC->editCursor = 0;
                     sel = 0;
                 }
             } else if (cursor != 1) {
                 if (a != 0) {
-                    PTC->x2 = 1;
-                    PTC->x3 = 0;
-                    PTC->x6 = 0;
+                    PTC->selMode = 1;
+                    PTC->selStep = 0;
+                    PTC->editCursor = 0;
                     sel = 1;
                 }
             }
@@ -589,8 +589,8 @@ void tcEdit_select()
                 break;
             default:
                 if (a != 0) {
-                    PTC->x2 = 2;
-                    PTC->x3 = 0;
+                    PTC->selMode = 2;
+                    PTC->selStep = 0;
                     sel = 1;
                 }
                 break;
@@ -599,18 +599,18 @@ void tcEdit_select()
         break;
     case 1:
         c = tcCdatPtr(PTC->cdatNo);
-        a = tcAdatPtr(PTC->adatNo, PTC->x5E1);
-        switch (PTC->x3) {
+        a = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
+        switch (PTC->selStep) {
         case 0:
             if (TC_TRG & 0x200) {
-                PTC->x2 = 0;
+                PTC->selMode = 0;
                 break;
             }
             blink = 0x18;
-            switch (PTC->x6) {
+            switch (PTC->editCursor) {
             case 0:
                 if (TC_TRG & 0x100) {
-                    PTC->x2 = 0;
+                    PTC->selMode = 0;
                 }
                 if (sel == 0) {
                     flag = c->enable;
@@ -640,12 +640,12 @@ void tcEdit_select()
                 if (TC_TRG & 0x100) {
                     copyCursor = cursor;
                     copyNo = no;
-                    PTC->x3++;
+                    PTC->selStep++;
                 }
                 if (sel == 0) {
                     eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d] -> ", PTC->cdatNo);
                 } else if (sel == 1) {
-                    eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d-%1d] -> ", PTC->adatNo, PTC->x5E1);
+                    eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d-%1d] -> ", PTC->adatNo, PTC->adatSuffix);
                 }
                 break;
             case 2:
@@ -656,12 +656,12 @@ void tcEdit_select()
                         tcAdatDel(a);
                         PTC->adatTypeNum[PTC->adatNo]--;
                     }
-                    PTC->x2 = 0;
+                    PTC->selMode = 0;
                 }
                 if (sel == 0) {
                     eprintf(0x2B * 8, 0x1B * 14, 0, 0, "[%02d]", PTC->cdatNo);
                 } else if (sel == 1) {
-                    eprintf(0x2B * 8, 0x1B * 14, 0, 0, "[%02d-%1d]", PTC->adatNo, PTC->x5E1);
+                    eprintf(0x2B * 8, 0x1B * 14, 0, 0, "[%02d-%1d]", PTC->adatNo, PTC->adatSuffix);
                 }
                 break;
             }
@@ -670,7 +670,7 @@ void tcEdit_select()
             s8 dstNo;
             keyMode = 2;
             if (TC_TRG & 0x200) {
-                PTC->x3--;
+                PTC->selStep--;
                 break;
             }
             dstNo = no;
@@ -685,8 +685,8 @@ void tcEdit_select()
                         n->cam_no = dstNo;
                     }
                 } else if (sel == 1) {
-                    if (dst != PTC->adatNo || dstSfx != PTC->x5E1) {
-                        TcAdat* src = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+                    if (dst != PTC->adatNo || dstSfx != PTC->adatSuffix) {
+                        TcAdat* src = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
                         TcAdat* n = tcAdatNew();
                         if (PTC->adatTypeNum[dst] != 0) {
                             tcTypeTbl[dst][0] = 3;
@@ -697,19 +697,19 @@ void tcEdit_select()
                         PTC->adatTypeNum[n->area_no]++;
                     }
                 }
-                PTC->x2 = 0;
+                PTC->selMode = 0;
                 cursor = copyCursor;
                 no = copyNo;
             }
             if (sel == 0) {
                 eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d] -> [%02d]", PTC->cdatNo, dstNo);
             } else if (sel == 1) {
-                eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d-%1d] -> [%02d-%1d]", PTC->adatNo, PTC->x5E1, dstNo, dstSfx);
+                eprintf(0x2B * 8, 0x1A * 14, 0, 0, "[%02d-%1d] -> [%02d-%1d]", PTC->adatNo, PTC->adatSuffix, dstNo, dstSfx);
             }
             break;
         }
         }
-        switch (PTC->x3) {
+        switch (PTC->selStep) {
         case 0:
             col = 0;
             break;
@@ -717,34 +717,34 @@ void tcEdit_select()
             col = 6;
             break;
         }
-        tcMenuSelect(0x23 * 8, 0x19 * 14, col, menu, 3, &PTC->x6);
+        tcMenuSelect(0x23 * 8, 0x19 * 14, col, menu, 3, &PTC->editCursor);
         break;
     case 2: {
         int x;
         int y;
-        switch (PTC->x3) {
+        switch (PTC->selStep) {
         case 0:
             keyMode = 2;
             if (TC_TRG & 0x200) {
-                PTC->x2 = 0;
+                PTC->selMode = 0;
                 break;
             }
             dstSfx = cursor - 3;
             dst = no;
             if (TC_TRG & 0x100) {
                 if (tcAdatPtr(dst, dstSfx) != 0) {
-                    LdatSet(PTC->pLdat, tcLdatPtr(PTC->adatNo, PTC->x5E1, dst, dstSfx));
+                    LdatSet(PTC->pLdat, tcLdatPtr(PTC->adatNo, PTC->adatSuffix, dst, dstSfx));
                     if (PTC->pLdat == 0) {
                         LdatSet(PTC->pLdat, tcLdatNew());
-                        tcLdatInit(PTC->pLdat, PTC->adatNo, PTC->x5E1, dst, dstSfx, 0);
+                        tcLdatInit(PTC->pLdat, PTC->adatNo, PTC->adatSuffix, dst, dstSfx, 0);
                     }
-                    PTC->x3++;
+                    PTC->selStep++;
                 }
             }
             break;
         case 1:
             if (TC_TRG & 0x200) {
-                PTC->x3--;
+                PTC->selStep--;
                 break;
             }
             if (TC_REP & 0x1) {
@@ -758,7 +758,7 @@ void tcEdit_select()
                 if (PTC->pLdat->frame == 0) {
                     tcLdatDel(PTC->pLdat);
                 }
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
             break;
         }
@@ -767,17 +767,17 @@ void tcEdit_select()
         eprintf(x * 8, y * 14, 0, 0, "-SRC- -DST- -FRM-");
         x++;
         y++;
-        eprintf(x * 8, y * 14, 0, 0, "%02d-%1d", PTC->adatNo, PTC->x5E1);
+        eprintf(x * 8, y * 14, 0, 0, "%02d-%1d", PTC->adatNo, PTC->adatSuffix);
         x += 6;
         for (i = 0; i < 0x40; i++) {
             if (tcLdat[i].enable != 0xFF) {
                 TcLdat* l = &tcLdat[i];
                 if (PTC->adatNo == l->area_from) {
-                    if (PTC->x5E1 == l->cam_from) {
+                    if (PTC->adatSuffix == l->cam_from) {
                         eprintf(x * 8, y * 14, 0, 0, "%02d-%1d", l->area_to, l->cam_to, tcLdat[i].frame);
                         eprintf((x + 7) * 8, y * 14, 0, 0, "%3d", tcLdat[i].frame);
                         if (PTC->pLdat == l) {
-                            if (PTC->x3 == 0) {
+                            if (PTC->selStep == 0) {
                                 eprintf((x - 1) * 8, y * 14, 0, 0, ">");
                             } else {
                                 eprintf((x + 6) * 8, y * 14, 0, 0, ">");
@@ -793,25 +793,25 @@ void tcEdit_select()
     case 3: {
         s8 attr = tcTypeTbl[PTC->cdatNo][0];
         if (TC_TRG & 0x200) {
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             break;
         }
         if (TC_TRG & 0x100) {
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             break;
         }
         if (TC_REP & 0x8) {
-            PTC->x6--;
+            PTC->editCursor--;
         }
         if (TC_REP & 0x4) {
-            PTC->x6++;
+            PTC->editCursor++;
         }
-        PTC->x6 = PTC->x6 < 0 ? 7 : (PTC->x6 > 7 ? 0 : PTC->x6);
+        PTC->editCursor = PTC->editCursor < 0 ? 7 : (PTC->editCursor > 7 ? 0 : PTC->editCursor);
         if (TC_TRG & 0x1) {
-            attr |= 1 << PTC->x6;
+            attr |= 1 << PTC->editCursor;
         }
         if (TC_TRG & 0x2) {
-            attr &= ~(1 << PTC->x6);
+            attr &= ~(1 << PTC->editCursor);
         }
         if (attr & 0x8) {
             attr |= 0x20;
@@ -826,7 +826,7 @@ void tcEdit_select()
             eprintf(x * 8, y * 14, 5, 0, "-- ATTRIBUTE --");
             y++;
             for (i = 0; i < 8; i++) {
-                if (PTC->x6 == i) {
+                if (PTC->editCursor == i) {
                     eprintf((x - 1) * 8, y * 14, 0, 0, ">");
                 }
                 eprintf(x * 8, y * 14, 0, 0, "%s", attrShort[i]);
@@ -863,7 +863,7 @@ void tcEdit_select()
                 col2 = 0;
                 break;
             }
-            if (i != PTC->x634 || (pG->Frame_cnt & 0x18)) {
+            if (i != PTC->cameraNo || (pG->Frame_cnt & 0x18)) {
                 on = 1;
             }
             if (on) {
@@ -894,7 +894,7 @@ void tcEdit_select()
                     col2 = 0;
                     break;
                 }
-                if (i != PTC->x635 || j != PTC->x636 || (pG->Frame_cnt & 0x18)) {
+                if (i != PTC->areaNo || j != PTC->areaSuffix || (pG->Frame_cnt & 0x18)) {
                     on = 1;
                 }
                 if (on) {
@@ -1025,7 +1025,7 @@ void tcAdatInit(TcAdat* a, int area_no, int cam_no)
     a->attr = 0;
     PTC->adatTypeNum[area_no]++;
     a->attr2 = 1;
-    a->x9 = 0xFF;
+    a->attr3 = 0xFF;
     PSMTXIdentity(a->mat);
     a->height = 1000.0f;
     a->base_y = 0.0f;
@@ -1128,7 +1128,7 @@ void tcEdit_area()
                                       "DIRECTION", "DIS LIGHT"};
     static const char* charName[8] = {"LEON", "LEON_ASHLEY", "ASHLEY", "ADA", "WESKER", "HUNK", "KLAUSER", "???????????"};
     static const char* addrName[8] = {"NORMAL", "HIGH", "GRENADE", "???????", "???????", "???????", "???????", "???????"};
-    TcAdat* a = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+    TcAdat* a = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
     TcAdat* ad;
     TcPoly* p;
     int x;
@@ -1136,7 +1136,7 @@ void tcEdit_area()
     int y;
     int i;
 
-    switch (PTC->x2) {
+    switch (PTC->selMode) {
     case 0:
         if (TC_TRG & 0x200) {
             PTC->editMode = 0;
@@ -1144,37 +1144,37 @@ void tcEdit_area()
         }
         if (!(TC_ON & 0x500)) {
             if (TC_TRG & 0x8) {
-                PTC->x6--;
+                PTC->editCursor--;
             }
             if (TC_TRG & 0x4) {
-                PTC->x6++;
+                PTC->editCursor++;
             }
-            PTC->x6 = PTC->x6 < 0 ? 0 : (PTC->x6 > 7 ? 7 : PTC->x6);
+            PTC->editCursor = PTC->editCursor < 0 ? 0 : (PTC->editCursor > 7 ? 7 : PTC->editCursor);
             if (TC_TRG & 0xC) {
-                PTC->x630 = 0;
+                PTC->attrCursor = 0;
             }
         }
-        switch (PTC->x6) {
+        switch (PTC->editCursor) {
         case 0:
             if (TC_ON & 0x500) {
                 if (TC_ON & 0x400) {
-                    PTC->x625 = -1;
+                    PTC->curVtx = -1;
                 }
                 tcAreaMoveVertex(a, 0);
             } else {
                 tcAreaSelectVertex(a);
             }
             if (TC_TRG & 0x800) {
-                PTC->x2 = 1;
+                PTC->selMode = 1;
             }
             break;
         case 1:
             if (TC_ON & 0x500) {
-                vtxSave = PTC->x625;
-                PTC->x625 = -1;
+                vtxSave = PTC->curVtx;
+                PTC->curVtx = -1;
                 tcAreaMoveVertex(a, 1);
             } else {
-                PTC->x625 = vtxSave;
+                PTC->curVtx = vtxSave;
             }
             break;
         case 2:
@@ -1184,14 +1184,14 @@ void tcEdit_area()
             break;
         case 3:
             if (TC_REP & 0x1) {
-                PTC->x630++;
+                PTC->attrCursor++;
             }
             if (TC_REP & 0x2) {
-                PTC->x630--;
+                PTC->attrCursor--;
             }
-            PTC->x630 = PTC->x630 < 0 ? 0 : (PTC->x630 > 7 ? 7 : PTC->x630);
+            PTC->attrCursor = PTC->attrCursor < 0 ? 0 : (PTC->attrCursor > 7 ? 7 : PTC->attrCursor);
             if (TC_TRG & 0x100) {
-                tcTypeTbl[a->area_no][0] ^= 1 << PTC->x630;
+                tcTypeTbl[a->area_no][0] ^= 1 << PTC->attrCursor;
             }
             break;
         case 4:
@@ -1210,26 +1210,26 @@ void tcEdit_area()
             break;
         case 5:
             if (TC_REP & 0x1) {
-                PTC->x630++;
+                PTC->attrCursor++;
             }
             if (TC_REP & 0x2) {
-                PTC->x630--;
+                PTC->attrCursor--;
             }
-            PTC->x630 = PTC->x630 < 0 ? 0 : (PTC->x630 > 7 ? 7 : PTC->x630);
+            PTC->attrCursor = PTC->attrCursor < 0 ? 0 : (PTC->attrCursor > 7 ? 7 : PTC->attrCursor);
             if (TC_TRG & 0x100) {
-                a->attr2 ^= 1 << PTC->x630;
+                a->attr2 ^= 1 << PTC->attrCursor;
             }
             break;
         case 6:
             if (TC_REP & 0x1) {
-                PTC->x630++;
+                PTC->attrCursor++;
             }
             if (TC_REP & 0x2) {
-                PTC->x630--;
+                PTC->attrCursor--;
             }
-            PTC->x630 = PTC->x630 < 0 ? 0 : (PTC->x630 > 7 ? 7 : PTC->x630);
+            PTC->attrCursor = PTC->attrCursor < 0 ? 0 : (PTC->attrCursor > 7 ? 7 : PTC->attrCursor);
             if (TC_TRG & 0x100) {
-                a->x9 ^= 1 << PTC->x630;
+                a->attr3 ^= 1 << PTC->attrCursor;
             }
             break;
         case 7:
@@ -1243,48 +1243,48 @@ void tcEdit_area()
         break;
     case 1:
         if (TC_TRG & 0x200) {
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             break;
         }
-        tcMenuSelect(tcMenuPos[6] * 8, tcMenuPos[7] * 14, 0, menu, 2, &PTC->x7);
-        switch (PTC->x7) {
+        tcMenuSelect(tcMenuPos[6] * 8, tcMenuPos[7] * 14, 0, menu, 2, &PTC->vtxMenuCursor);
+        switch (PTC->vtxMenuCursor) {
         case 0:
             tcAreaSelectSide(a);
             if (TC_TRG & 0x100) {
                 tcAreaInsertVertex(a);
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
             break;
         case 1:
             tcAreaSelectVertex(a);
             if (TC_TRG & 0x100) {
                 tcAreaDeleteVertex(a);
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
             break;
         }
         break;
     }
-    ad = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+    ad = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
     p = &ad->poly;
     x = tcMenuPos[0];
     y = tcMenuPos[1];
     if ((s8) PTC->adatTypeNum[PTC->adatNo] <= 1) {
         eprintf(x * 8, y * 14, 5, 0, "<--- AREA EDIT [%02d] --->", PTC->adatNo);
     } else {
-        eprintf(x * 8, y * 14, 5, 0, "<--- AREA EDIT [%02d-%1d] --->", PTC->adatNo, PTC->x5E1);
+        eprintf(x * 8, y * 14, 5, 0, "<--- AREA EDIT [%02d-%1d] --->", PTC->adatNo, PTC->adatSuffix);
     }
     y++;
     x2 = x + 9;
     for (i = 0; i < 8; i++) {
-        eprintf(x * 8, (y + i) * 14, i == PTC->x6 ? 4 : 0, 0, areaMenuName[i]);
+        eprintf(x * 8, (y + i) * 14, i == PTC->editCursor ? 4 : 0, 0, areaMenuName[i]);
     }
     for (i = 0; i < 8; i++) {
         switch (i) {
         case 0:
-            if (PTC->x625 != -1) {
-                eprintf(x2 * 8, y * 14, 0, 0, "V[%02d] = (%f, %f, %f)", PTC->x625, p->pt[PTC->x625].x, p->pt[PTC->x625].y,
-                        p->pt[PTC->x625].z);
+            if (PTC->curVtx != -1) {
+                eprintf(x2 * 8, y * 14, 0, 0, "V[%02d] = (%f, %f, %f)", PTC->curVtx, p->pt[PTC->curVtx].x, p->pt[PTC->curVtx].y,
+                        p->pt[PTC->curVtx].z);
             } else {
                 eprintf(x2 * 8, y * 14, 0, 0, "ALL VERTEX");
             }
@@ -1297,9 +1297,9 @@ void tcEdit_area()
             break;
         case 3:
             eprintf(x2 * 8, y * 14, 0, 0, "%08x", BtoX(tcTypeTbl[ad->area_no][0]));
-            if (PTC->x6 == 3) {
-                eprintf((x2 + 7 - PTC->x630) * 8, y * 14, 4, 0, "%1x", BtoX((tcTypeTbl[ad->area_no][0] >> PTC->x630) & 1));
-                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%10s]", attrLong[PTC->x630]);
+            if (PTC->editCursor == 3) {
+                eprintf((x2 + 7 - PTC->attrCursor) * 8, y * 14, 4, 0, "%1x", BtoX((tcTypeTbl[ad->area_no][0] >> PTC->attrCursor) & 1));
+                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%10s]", attrLong[PTC->attrCursor]);
             }
             break;
         case 4:
@@ -1307,16 +1307,16 @@ void tcEdit_area()
             break;
         case 5:
             eprintf(x2 * 8, y * 14, 0, 0, "%08x", BtoX(ad->attr2));
-            if (PTC->x6 == 5) {
-                eprintf((x2 + 7 - PTC->x630) * 8, y * 14, 4, 0, "%1x", BtoX((ad->attr2 >> PTC->x630) & 1));
-                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%11s]", charName[PTC->x630]);
+            if (PTC->editCursor == 5) {
+                eprintf((x2 + 7 - PTC->attrCursor) * 8, y * 14, 4, 0, "%1x", BtoX((ad->attr2 >> PTC->attrCursor) & 1));
+                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%11s]", charName[PTC->attrCursor]);
             }
             break;
         case 6:
-            eprintf(x2 * 8, y * 14, 0, 0, "%08x", BtoX(ad->x9));
-            if (PTC->x6 == 6) {
-                eprintf((x2 + 7 - PTC->x630) * 8, y * 14, 4, 0, "%1x", BtoX((ad->x9 >> PTC->x630) & 1));
-                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%7s]", addrName[PTC->x630]);
+            eprintf(x2 * 8, y * 14, 0, 0, "%08x", BtoX(ad->attr3));
+            if (PTC->editCursor == 6) {
+                eprintf((x2 + 7 - PTC->attrCursor) * 8, y * 14, 4, 0, "%1x", BtoX((ad->attr3 >> PTC->attrCursor) & 1));
+                eprintf((x2 + 9) * 8, y * 14, 0, 0, "[%7s]", addrName[PTC->attrCursor]);
             }
             break;
         case 7:
@@ -1355,11 +1355,11 @@ void tcAreaMoveVertex(TcAdat* a, int mode)
         }
         if (d.x != 0.0f || d.y != 0.0f) {
             moveOnPlaneXZ(&d, &d);
-            if (PTC->x625 != -1) {
+            if (PTC->curVtx != -1) {
                 f32* px = &a->pt[0].x;
                 f32* pz = &a->pt[0].z;
-                VEC_ELEM(px, PTC->x625) += d.x;
-                VEC_ELEM(pz, PTC->x625) += d.z;
+                VEC_ELEM(px, PTC->curVtx) += d.x;
+                VEC_ELEM(pz, PTC->curVtx) += d.z;
             } else {
                 for (i = 0; i < p->num; i++) {
                     p->pt[i].x += d.x;
@@ -1395,23 +1395,23 @@ void tcAreaMoveVertex(TcAdat* a, int mode)
 void tcAreaSelectVertex(TcAdat* a)
 {
     if (TC_REP & 0x1) {
-        PTC->x625--;
+        PTC->curVtx--;
     }
     if (TC_REP & 0x2) {
-        PTC->x625++;
+        PTC->curVtx++;
     }
-    PTC->x625 = PTC->x625 < 0 ? a->num - 1 : (PTC->x625 > a->num - 1 ? 0 : PTC->x625);
+    PTC->curVtx = PTC->curVtx < 0 ? a->num - 1 : (PTC->curVtx > a->num - 1 ? 0 : PTC->curVtx);
 }
 
 void tcAreaSelectSide(TcAdat* a)
 {
     if (TC_REP & 0x1) {
-        PTC->x626--;
+        PTC->curSide--;
     }
     if (TC_REP & 0x2) {
-        PTC->x626++;
+        PTC->curSide++;
     }
-    PTC->x626 = PTC->x626 < 0 ? a->num - 1 : (PTC->x626 > a->num - 1 ? 0 : PTC->x626);
+    PTC->curSide = PTC->curSide < 0 ? a->num - 1 : (PTC->curSide > a->num - 1 ? 0 : PTC->curSide);
 }
 
 void tcAreaInsertVertex(TcAdat* a)
@@ -1423,21 +1423,21 @@ void tcAreaInsertVertex(TcAdat* a)
     int i1;
 
     if (p->num <= 15) {
-        for (i = p->num; i > PTC->x626; i--) {
+        for (i = p->num; i > PTC->curSide; i--) {
             p->pt[i] = p->pt[i - 1];
         }
         p->num++;
-        i0 = PTC->x626;
+        i0 = PTC->curSide;
         if (i0 < 0) {
             i0 += p->num;
         }
-        i1 = PTC->x626 + 2;
+        i1 = PTC->curSide + 2;
         if (i1 > p->num - 1) {
             i1 -= p->num;
         }
         PSVECAdd(&p->pt[i0], &p->pt[i1], &v);
-        PSVECScale(&v, &p->pt[PTC->x626 + 1], 0.5f);
-        PTC->x625 = PTC->x626 + 1;
+        PSVECScale(&v, &p->pt[PTC->curSide + 1], 0.5f);
+        PTC->curVtx = PTC->curSide + 1;
     }
 }
 
@@ -1450,7 +1450,7 @@ void tcAreaDeleteVertex(TcAdat* a)
         return;
     }
     p->num--;
-    for (i = PTC->x625; i < p->num; i++) {
+    for (i = PTC->curVtx; i < p->num; i++) {
         p->pt[i] = p->pt[i + 1];
     }
 }
@@ -1470,7 +1470,7 @@ void tcDrawArea()
     for (i = 0; i < 0x60; i++) {
         ad = &tcAdat[i];
         if (PTC->preview == 0) {
-            if (ad == tcAdatPtr(PTC->adatNo, PTC->x5E1)) {
+            if (ad == tcAdatPtr(PTC->adatNo, PTC->adatSuffix)) {
                 continue;
             }
         }
@@ -1503,7 +1503,7 @@ void tcDrawArea()
         }
     }
     if (PTC->preview == 0) {
-        ad = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+        ad = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
     } else {
         ad = 0;
     }
@@ -1521,8 +1521,8 @@ void tcDrawArea()
             tcFillNgon((TcNgon*) p, col2 & 0x808080FF);
         }
         for (i = 0; i < p->num; i++) {
-            if (PTC->editMode == 0 && PTC->editSel == 0 && PTC->x2 == 1 && PTC->x7 == 0) {
-                if (i == PTC->x626) {
+            if (PTC->editMode == 0 && PTC->editSel == 0 && PTC->selMode == 1 && PTC->vtxMenuCursor == 0) {
+                if (i == PTC->curSide) {
                     col = 0x00FF00FF;
                 } else {
                     col = col2;
@@ -1541,7 +1541,7 @@ void tcDrawArea()
         for (i = 0; i < p->num; i++) {
             col = col2;
             if (PTC->editMode == 1 && PTC->editSel == 0) {
-                if ((PTC->x6 == 0 && i == PTC->x625) || (PTC->x6 == 2 && (TC_ON & 0x500))) {
+                if ((PTC->editCursor == 0 && i == PTC->curVtx) || (PTC->editCursor == 2 && (TC_ON & 0x500))) {
                     col = 0x00FF00FF;
                 }
             }
@@ -1552,13 +1552,13 @@ void tcDrawArea()
         for (i = 0; i < p->num; i++) {
             f32 r = 60.0f;
             if (PTC->editMode == 1 && PTC->editSel == 0) {
-                if (PTC->x6 == 0 && (PTC->x625 == -1 || i == PTC->x625)) {
+                if (PTC->editCursor == 0 && (PTC->curVtx == -1 || i == PTC->curVtx)) {
                     r = (f32) rad;
-                } else if ((TC_ON & 0x500) && (PTC->x6 == 1 || PTC->x6 == 2)) {
+                } else if ((TC_ON & 0x500) && (PTC->editCursor == 1 || PTC->editCursor == 2)) {
                     r = (f32) rad;
                 }
             }
-            if (PTC->editMode == 1 && PTC->editSel == 0 && PTC->x6 == 2 && (TC_ON & 0x500)) {
+            if (PTC->editMode == 1 && PTC->editSel == 0 && PTC->editCursor == 2 && (TC_ON & 0x500)) {
                 tcDrawSphere(&poly.pt[i], 0x00FF00FE, r);
             } else {
                 tcDrawSphere(&p->pt[i], 0x00FF00FE, r);
@@ -1601,7 +1601,7 @@ void tcEdit_camera()
 {
     TcCdat* c = tcCdatPtr(PTC->cdatNo);
 
-    if (PTC->x62C != 0) {
+    if (PTC->typeEdit != 0) {
         if (TC_ON & 0x100) {
             if (TC_TRG & 0x1) {
                 c->type--;
@@ -1611,11 +1611,11 @@ void tcEdit_camera()
             }
             c->type = c->type < 0 ? 8 : (c->type > 8 ? 0 : c->type);
         } else {
-            if (PTC->x62D != c->type) {
-                PTC->x62B = 1;
+            if (PTC->typeOld != c->type) {
+                PTC->typeChanged = 1;
             }
-            PTC->x62D = c->type;
-            PTC->x62C = 0;
+            PTC->typeOld = c->type;
+            PTC->typeEdit = 0;
         }
         fix_camera_dat(tcCdatPtr(PTC->cdatNo));
     }
@@ -1670,30 +1670,30 @@ void tcEdit_camera_qfps()
     switch (sel[0]) {
     case 0:
         if (TC_TRG & 0x100) {
-            PTC->x62D = c->type;
-            PTC->x62C = 1;
+            PTC->typeOld = c->type;
+            PTC->typeEdit = 1;
         }
         break;
     case 6:
         if (TC_REP & 0x1) {
-            PTC->x630++;
+            PTC->attrCursor++;
         }
         if (TC_REP & 0x2) {
-            PTC->x630--;
+            PTC->attrCursor--;
         }
-        PTC->x630 = PTC->x630 < 0 ? 0 : (PTC->x630 > 7 ? 7 : PTC->x630);
+        PTC->attrCursor = PTC->attrCursor < 0 ? 0 : (PTC->attrCursor > 7 ? 7 : PTC->attrCursor);
         if (TC_TRG & 0x100) {
-            c->flags ^= 1 << PTC->x630;
+            c->flags ^= 1 << PTC->attrCursor;
         }
         break;
     case 7:
         if (TC_REP & 0x1) {
-            PTC->x5E1 = next_suffix(PTC->x5E1, -1);
+            PTC->adatSuffix = next_suffix(PTC->adatSuffix, -1);
         }
         if (TC_REP & 0x2) {
-            PTC->x5E1 = next_suffix(PTC->x5E1, 1);
+            PTC->adatSuffix = next_suffix(PTC->adatSuffix, 1);
         }
-        PTC->pAdat = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+        PTC->pAdat = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
         if (TC_TRG & 0x100) {
             if (PTC->pAdat != 0) {
                 PTC->editSel = 0;
@@ -1723,8 +1723,8 @@ void tcEdit_camera_qfps()
         case 6:
             eprintf(x * 8, y * 14, 0, 0, "%08x", BtoX(c->flags));
             if (sel[0] == 6) {
-                eprintf((x + 7 - PTC->x630) * 8, y * 14, 4, 0, "%1x", BtoX((c->flags >> PTC->x630) & 1));
-                eprintf((x + 9) * 8, y * 14, 0, 0, "[%10s]", qfpsAttrName[PTC->x630]);
+                eprintf((x + 7 - PTC->attrCursor) * 8, y * 14, 4, 0, "%1x", BtoX((c->flags >> PTC->attrCursor) & 1));
+                eprintf((x + 9) * 8, y * 14, 0, 0, "[%10s]", qfpsAttrName[PTC->attrCursor]);
             }
             break;
         case 7:
@@ -1733,7 +1733,7 @@ void tcEdit_camera_qfps()
             } else if ((s8) PTC->adatTypeNum[PTC->adatNo] <= 1) {
                 eprintf(x * 8, y * 14, 0, 0, "Area[%02d]", PTC->adatNo);
             } else {
-                eprintf(x * 8, y * 14, 0, 0, "Area[%02d-%1d]", PTC->adatNo, PTC->x5E1);
+                eprintf(x * 8, y * 14, 0, 0, "Area[%02d-%1d]", PTC->adatNo, PTC->adatSuffix);
             }
             break;
         }
@@ -1750,51 +1750,51 @@ void tcEdit_camera_rail()
     int y;
     int i;
 
-    PTC->x62F = 0;
-    if (!(TC_ON & 0x500) && PTC->x2 == 0) {
+    PTC->distTarget = 0;
+    if (!(TC_ON & 0x500) && PTC->selMode == 0) {
         if (TC_TRG & 0x8) {
-            PTC->x6--;
+            PTC->editCursor--;
         }
         if (TC_TRG & 0x4) {
-            PTC->x6++;
+            PTC->editCursor++;
         }
-        PTC->x6 = PTC->x6 < 0 ? 0 : (PTC->x6 > 8 ? 8 : PTC->x6);
+        PTC->editCursor = PTC->editCursor < 0 ? 0 : (PTC->editCursor > 8 ? 8 : PTC->editCursor);
         if (TC_TRG & 0x200) {
             PTC->editMode = 0;
             return;
         }
     }
-    switch (PTC->x6) {
+    switch (PTC->editCursor) {
     case 0:
         if (TC_TRG & 0x100) {
-            PTC->x62D = c->type;
-            PTC->x62C = 1;
+            PTC->typeOld = c->type;
+            PTC->typeEdit = 1;
         }
         break;
     case 1:
     case 2:
     case 3:
     case 4:
-        switch (PTC->x2) {
+        switch (PTC->selMode) {
         case 0:
             if (!(TC_ON & 0x500) && (TC_TRG & 0x800)) {
-                PTC->x2 = 1;
+                PTC->selMode = 1;
             }
             edit_rail_figure();
             break;
         case 1:
             if (TC_TRG & 0x200) {
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
             edit_rail_point();
             break;
         }
         break;
     case 5:
-        switch (PTC->x2) {
+        switch (PTC->selMode) {
         case 0:
             if ((TC_TRG & 0x800) && (tcCdatPtr(PTC->cdatNo)->type == 6 || tcCdatPtr(PTC->cdatNo)->type == 7)) {
-                PTC->x2++;
+                PTC->selMode++;
                 CamCtrl.m_system_flag &= ~1;
                 pG->Debug_flg[0] &= ~0x10000000;
             } else {
@@ -1808,27 +1808,27 @@ void tcEdit_camera_rail()
                 Vec pos = {0.0f, 0.0f, 0.0f};
                 Vec at = {0.0f, 0.0f, 0.0f};
                 Vec up = {0.0f, 0.0f, 0.0f};
-                if (PTC->x640 != 0) {
+                if (PTC->coreData != 0) {
                     CamCtrl.UpCutCall(PTC->cdatNo, &pos, &at, &up, 0);
                 } else {
                     CamCtrl.UpCutCall(PTC->cdatNo, &pos, &at, &up, 1);
                 }
             }
-            PTC->x2++;
+            PTC->selMode++;
             break;
         case 2:
             if (CamCtrl.IsMotionEnd()) {
-                PTC->x2++;
+                PTC->selMode++;
             }
             break;
         case 3:
             tcPreviewOnOff(0);
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             break;
         }
-        if (PTC->x2 != 0) {
+        if (PTC->selMode != 0) {
             tcDataExport((u8*) g_pToolCamData);
-            if (PTC->x640 != 0) {
+            if (PTC->coreData != 0) {
                 CamCtrl.CoreDataRead((CameraDataHeader*) g_pToolCamData);
             } else {
                 CamCtrl.RoomDataRead((CameraDataHeader*) g_pToolCamData);
@@ -1840,14 +1840,14 @@ void tcEdit_camera_rail()
         break;
     case 6:
         if (TC_REP & 0x1) {
-            PTC->x630++;
+            PTC->attrCursor++;
         }
         if (TC_REP & 0x2) {
-            PTC->x630--;
+            PTC->attrCursor--;
         }
-        PTC->x630 = PTC->x630 < 0 ? 0 : (PTC->x630 > 7 ? 7 : PTC->x630);
+        PTC->attrCursor = PTC->attrCursor < 0 ? 0 : (PTC->attrCursor > 7 ? 7 : PTC->attrCursor);
         if (TC_TRG & 0x100) {
-            c->flags ^= 1 << PTC->x630;
+            c->flags ^= 1 << PTC->attrCursor;
         }
         break;
     case 7:
@@ -1855,12 +1855,12 @@ void tcEdit_camera_rail()
         break;
     case 8:
         if (TC_REP & 0x1) {
-            PTC->x5E1 = next_suffix(PTC->x5E1, -1);
+            PTC->adatSuffix = next_suffix(PTC->adatSuffix, -1);
         }
         if (TC_REP & 0x2) {
-            PTC->x5E1 = next_suffix(PTC->x5E1, 1);
+            PTC->adatSuffix = next_suffix(PTC->adatSuffix, 1);
         }
-        PTC->pAdat = tcAdatPtr(PTC->adatNo, PTC->x5E1);
+        PTC->pAdat = tcAdatPtr(PTC->adatNo, PTC->adatSuffix);
         if (TC_TRG & 0x100) {
             if (PTC->pAdat != 0) {
                 PTC->editSel = 0;
@@ -1884,9 +1884,9 @@ void tcEdit_camera_rail()
     eprintf(x * 8, y * 14, 5, 0, "<--- CAMERA EDIT [%02d] --->", PTC->cdatNo);
     y++;
     for (i = 0; i < 9; i++) {
-        int col = i == PTC->x6 ? 4 : 0;
+        int col = i == PTC->editCursor ? 4 : 0;
         if (i >= 1 && i <= 5) {
-            eprintf(x * 8, (y + i) * 14, col, 0, "%s[%02d]", railMenuName[i], PTC->x627);
+            eprintf(x * 8, (y + i) * 14, col, 0, "%s[%02d]", railMenuName[i], PTC->curKey);
         } else {
             eprintf(x * 8, (y + i) * 14, col, 0, "%s", railMenuName[i]);
         }
@@ -1898,33 +1898,33 @@ void tcEdit_camera_rail()
             eprintf(x * 8, y * 14, 0, 0, "%s", tcTypeName[c->type]);
             break;
         case 1:
-            eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->pos[PTC->x627].x, c->pos[PTC->x627].y, c->pos[PTC->x627].z);
+            eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->pos[PTC->curKey].x, c->pos[PTC->curKey].y, c->pos[PTC->curKey].z);
             break;
         case 2:
-            eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->at[PTC->x627].x, c->at[PTC->x627].y, c->at[PTC->x627].z);
+            eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->at[PTC->curKey].x, c->at[PTC->curKey].y, c->at[PTC->curKey].z);
             break;
         case 3:
-            eprintf(x * 8, y * 14, 0, 0, "%.3f", c->roll[PTC->x627] * 57.29578f);
+            eprintf(x * 8, y * 14, 0, 0, "%.3f", c->roll[PTC->curKey] * 57.29578f);
             break;
         case 4:
-            eprintf(x * 8, y * 14, 0, 0, "%2.2f", c->fovy[PTC->x627]);
+            eprintf(x * 8, y * 14, 0, 0, "%2.2f", c->fovy[PTC->curKey]);
             break;
         case 6:
             eprintf(x * 8, y * 14, 0, 0, "%08x", BtoX(c->flags));
-            if (PTC->x6 == 6) {
-                eprintf((x + 7 - PTC->x630) * 8, y * 14, 4, 0, "%1x", BtoX((c->flags >> PTC->x630) & 1));
-                eprintf((x + 9) * 8, y * 14, 0, 0, "[%10s]", railAttrName[PTC->x630]);
+            if (PTC->editCursor == 6) {
+                eprintf((x + 7 - PTC->attrCursor) * 8, y * 14, 4, 0, "%1x", BtoX((c->flags >> PTC->attrCursor) & 1));
+                eprintf((x + 9) * 8, y * 14, 0, 0, "[%10s]", railAttrName[PTC->attrCursor]);
             }
             break;
         case 5:
             if (c->type == 6 || c->type == 7) {
-                eprintf(x * 8, y * 14, 0, 0, "%3d", (s16) c->frame[PTC->x627]);
+                eprintf(x * 8, y * 14, 0, 0, "%3d", (s16) c->frame[PTC->curKey]);
             }
             break;
         case 7:
             if (c->type != 4) {
                 eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->aim_ofs.x, c->aim_ofs.y, c->aim_ofs.z);
-            } else if (PTC->x631 == 0) {
+            } else if (PTC->railOfsTarget == 0) {
                 eprintf(x * 8, y * 14, 0, 0, "(%f, %f, %f)", c->aim_ofs.x, c->aim_ofs.y, c->aim_ofs.z);
                 eprintf((x - 6) * 8, y * 14, 0, 0, "[CMPS]");
             } else {
@@ -1938,7 +1938,7 @@ void tcEdit_camera_rail()
             } else if ((s8) PTC->adatTypeNum[PTC->adatNo] <= 1) {
                 eprintf(x * 8, y * 14, 0, 0, "Area[%02d]", PTC->adatNo);
             } else {
-                eprintf(x * 8, y * 14, 0, 0, "Area[%02d-%1d]", PTC->adatNo, PTC->x5E1);
+                eprintf(x * 8, y * 14, 0, 0, "Area[%02d-%1d]", PTC->adatNo, PTC->adatSuffix);
             }
             break;
         }
@@ -2056,11 +2056,11 @@ void fix_camera_dat(TcCdat* c)
     int dummy[1];
     int i;
 
-    if (PTC->x62B != 0) {
+    if (PTC->typeChanged != 0) {
         switch (c->type) {
         case 0:
         case 1:
-            PTC->x627 = 0;
+            PTC->curKey = 0;
             break;
         case 2:
         case 3:
@@ -2070,7 +2070,7 @@ void fix_camera_dat(TcCdat* c)
                 c->at[1] = c->at[0];
                 c->roll[1] = c->roll[0];
                 c->fovy[1] = c->fovy[0];
-                PTC->x627 = 1;
+                PTC->curKey = 1;
             }
             break;
         case 6:
@@ -2102,7 +2102,7 @@ void fix_camera_dat(TcCdat* c)
         if (PTC->viewMode == 0) {
             tcCameraPullPoint(c);
         }
-        PTC->x62B = 0;
+        PTC->typeChanged = 0;
     }
     adjust_qFPS(Joy, tcMenuPos[0] * 8, (tcMenuPos[1] + 2) * 14, 3, dummy);
 }
@@ -2115,7 +2115,7 @@ void edit_rail_figure()
     if (c == 0) {
         return;
     }
-    switch (PTC->x6) {
+    switch (PTC->editCursor) {
     case 1:
         if (PTC->viewMode != 0 && (TC_ON & 0x500)) {
             tcCameraMovePoint(c, 0);
@@ -2125,7 +2125,7 @@ void edit_rail_figure()
         break;
     case 2:
         if (PTC->viewMode == 0) {
-            PTC->x62F = 1;
+            PTC->distTarget = 1;
         }
         if (PTC->viewMode != 0 && (TC_ON & 0x500)) {
             tcCameraMovePoint(c, 1);
@@ -2160,8 +2160,8 @@ void edit_rail_point()
     if (c == 0) {
         return;
     }
-    tcMenuSelect(tcMenuPos[8] * 8, tcMenuPos[9] * 14, 0, menu, 2, &PTC->x7);
-    switch (PTC->x7) {
+    tcMenuSelect(tcMenuPos[8] * 8, tcMenuPos[9] * 14, 0, menu, 2, &PTC->vtxMenuCursor);
+    switch (PTC->vtxMenuCursor) {
     case 0:
         if (PTC->viewMode != 0) {
             tcCameraSelectSegment(c);
@@ -2198,32 +2198,32 @@ void edit_frame_no()
     if (TC_ON & 0x500) {
         if (TC_ON & 0x100) {
             if (TC_REP & 0x1) {
-                c->frame[PTC->x627]--;
+                c->frame[PTC->curKey]--;
             }
             if (TC_REP & 0x2) {
-                c->frame[PTC->x627]++;
+                c->frame[PTC->curKey]++;
             }
         } else if (TC_ON & 0x400) {
             if (TC_REP & 0x1) {
-                c->frame[PTC->x627] -= 10;
+                c->frame[PTC->curKey] -= 10;
             }
             if (TC_REP & 0x2) {
-                c->frame[PTC->x627] += 10;
+                c->frame[PTC->curKey] += 10;
             }
         }
         if (TC_ON & 0x500) {
-            if (PTC->x627 == 0) {
-                if (c->frame[PTC->x627] < 0) {
-                    c->frame[PTC->x627] = 0;
+            if (PTC->curKey == 0) {
+                if (c->frame[PTC->curKey] < 0) {
+                    c->frame[PTC->curKey] = 0;
                 }
             } else {
-                if (c->frame[PTC->x627] <= c->frame[PTC->x627 - 1]) {
-                    c->frame[PTC->x627] = c->frame[PTC->x627 - 1] + 1;
+                if (c->frame[PTC->curKey] <= c->frame[PTC->curKey - 1]) {
+                    c->frame[PTC->curKey] = c->frame[PTC->curKey - 1] + 1;
                 }
             }
-            if (PTC->x627 != c->num - 1) {
-                if (c->frame[PTC->x627] >= c->frame[PTC->x627 + 1]) {
-                    c->frame[PTC->x627] = c->frame[PTC->x627 + 1] - 1;
+            if (PTC->curKey != c->num - 1) {
+                if (c->frame[PTC->curKey] >= c->frame[PTC->curKey + 1]) {
+                    c->frame[PTC->curKey] = c->frame[PTC->curKey + 1] - 1;
                 }
             }
         }
@@ -2240,12 +2240,12 @@ void tcMoveOffsetPoint()
 
     if (tcCdatPtr(PTC->cdatNo)->type == 4) {
         if ((TC_ON & 0x101) == 0x1) {
-            PTC->x631 = 0;
+            PTC->railOfsTarget = 0;
         }
         if ((TC_ON & 0x102) == 0x2) {
-            PTC->x631 = 1;
+            PTC->railOfsTarget = 1;
         }
-        if (PTC->x631 == 0) {
+        if (PTC->railOfsTarget == 0) {
             ofs = &tcCdatPtr(PTC->cdatNo)->aim_ofs;
         } else {
             ofs = &tcCdatPtr(PTC->cdatNo)->u44.dir;
@@ -2308,18 +2308,18 @@ void tcCameraSetPoint(TcCdat* c)
     if (PTC->viewMode != 0) {
         return;
     }
-    if ((PTC->x6 == 1 || PTC->x6 == 2) && (TC_TRG & 0x100)) {
-        c->pos[PTC->x627] = PTC->cam.param.pos;
-        c->at[PTC->x627] = PTC->cam.param.at;
+    if ((PTC->editCursor == 1 || PTC->editCursor == 2) && (TC_TRG & 0x100)) {
+        c->pos[PTC->curKey] = PTC->cam.param.pos;
+        c->at[PTC->curKey] = PTC->cam.param.at;
         tcCdatFixPan(c);
     }
-    if ((PTC->x6 == 3 || PTC->x6 == 4) && (TC_ON & 0x500)) {
-        PTC->cam.param.roll = c->roll[PTC->x627];
-        PTC->cam.param.fovy = c->fovy[PTC->x627];
+    if ((PTC->editCursor == 3 || PTC->editCursor == 4) && (TC_ON & 0x500)) {
+        PTC->cam.param.roll = c->roll[PTC->curKey];
+        PTC->cam.param.fovy = c->fovy[PTC->curKey];
     }
     CameraSetOrientationRoll(&PTC->cam);
     if ((c->type == 6 || c->type == 7) && (TC_TRG & 0x100)) {
-        int i = PTC->x627;
+        int i = PTC->curKey;
         if (i > 0) {
             if (c->frame[i] == 0) {
                 f32 f;
@@ -2328,7 +2328,7 @@ void tcCameraSetPoint(TcCdat* c)
                 } else {
                     f = (f32) (c->frame[i - 1] + c->frame[i + 1]) * 0.5f / 30.0f;
                 }
-                c->frame[PTC->x627] = (int) (f * 30.0f);
+                c->frame[PTC->curKey] = (int) (f * 30.0f);
             }
         }
     }
@@ -2405,30 +2405,30 @@ void tcCameraMovePoint(TcCdat* c, int mode)
         f32* px = &c->pos[0].x;
         f32* py = &c->pos[0].y;
         f32* pz = &c->pos[0].z;
-        VEC_ELEM(px, PTC->x627) += d.x;
-        VEC_ELEM(py, PTC->x627) += d.y;
-        VEC_ELEM(pz, PTC->x627) += d.z;
+        VEC_ELEM(px, PTC->curKey) += d.x;
+        VEC_ELEM(py, PTC->curKey) += d.y;
+        VEC_ELEM(pz, PTC->curKey) += d.z;
         break;
     }
     case 1: {
         f32* px = &c->at[0].x;
         f32* py = &c->at[0].y;
         f32* pz = &c->at[0].z;
-        VEC_ELEM(px, PTC->x627) += d.x;
-        VEC_ELEM(py, PTC->x627) += d.y;
-        VEC_ELEM(pz, PTC->x627) += d.z;
+        VEC_ELEM(px, PTC->curKey) += d.x;
+        VEC_ELEM(py, PTC->curKey) += d.y;
+        VEC_ELEM(pz, PTC->curKey) += d.z;
         break;
     }
     case 2: {
-        f32 deg = c->roll[PTC->x627] * 57.29578f + d.x;
+        f32 deg = c->roll[PTC->curKey] * 57.29578f + d.x;
         deg = deg < -180.0f ? 180.0f : (deg > 180.0f ? -180.0f : deg);
-        c->roll[PTC->x627] = deg * 0.017453292f;
+        c->roll[PTC->curKey] = deg * 0.017453292f;
         break;
     }
     case 3:
-        c->fovy[PTC->x627] += d.x;
-        c->fovy[PTC->x627] =
-            c->fovy[PTC->x627] < 10.0f ? 10.0f : (c->fovy[PTC->x627] > 90.0f ? 90.0f : c->fovy[PTC->x627]);
+        c->fovy[PTC->curKey] += d.x;
+        c->fovy[PTC->curKey] =
+            c->fovy[PTC->curKey] < 10.0f ? 10.0f : (c->fovy[PTC->curKey] > 90.0f ? 90.0f : c->fovy[PTC->curKey]);
         break;
     }
     tcCdatFixPan(c);
@@ -2441,35 +2441,35 @@ void tcCameraPullPoint(TcCdat* c)
         return;
     }
     if (c->type != 8) {
-        PTC->x627 = PTC->x627 < 0 ? c->num - 1 : (PTC->x627 > c->num - 1 ? 0 : PTC->x627);
-        PTC->cam.param.pos = c->pos[PTC->x627];
-        PTC->cam.param.at = c->at[PTC->x627];
-        PTC->cam.param.roll = c->roll[PTC->x627];
-        PTC->cam.param.fovy = c->fovy[PTC->x627];
+        PTC->curKey = PTC->curKey < 0 ? c->num - 1 : (PTC->curKey > c->num - 1 ? 0 : PTC->curKey);
+        PTC->cam.param.pos = c->pos[PTC->curKey];
+        PTC->cam.param.at = c->at[PTC->curKey];
+        PTC->cam.param.roll = c->roll[PTC->curKey];
+        PTC->cam.param.fovy = c->fovy[PTC->curKey];
     }
     CameraSetOrientationRoll(&PTC->cam);
 }
 
 void tcCameraSelectPoint(TcCdat* c)
 {
-    int old = PTC->x627;
+    int old = PTC->curKey;
 
     if (TC_REP & 0x1) {
-        PTC->x627--;
+        PTC->curKey--;
     }
     if (TC_REP & 0x2) {
-        PTC->x627++;
+        PTC->curKey++;
     }
     switch (c->type) {
     case 0:
     case 1:
-        PTC->x627 = 0;
+        PTC->curKey = 0;
         break;
     default:
-        PTC->x627 = PTC->x627 < 0 ? c->num - 1 : (PTC->x627 > c->num - 1 ? 0 : PTC->x627);
+        PTC->curKey = PTC->curKey < 0 ? c->num - 1 : (PTC->curKey > c->num - 1 ? 0 : PTC->curKey);
         break;
     }
-    if (PTC->viewMode == 0 && old != PTC->x627) {
+    if (PTC->viewMode == 0 && old != PTC->curKey) {
         tcCameraPullPoint(c);
     }
 }
@@ -2477,12 +2477,12 @@ void tcCameraSelectPoint(TcCdat* c)
 void tcCameraSelectSegment(TcCdat* c)
 {
     if (TC_REP & 0x1) {
-        PTC->x628--;
+        PTC->curSeg--;
     }
     if (TC_REP & 0x2) {
-        PTC->x628++;
+        PTC->curSeg++;
     }
-    PTC->x628 = PTC->x628 < 0 ? c->num - 2 : (PTC->x628 > c->num - 2 ? 0 : PTC->x628);
+    PTC->curSeg = PTC->curSeg < 0 ? c->num - 2 : (PTC->curSeg > c->num - 2 ? 0 : PTC->curSeg);
 }
 
 // insert a key in the middle of the selected segment
@@ -2494,22 +2494,22 @@ void tcCameraInsertPoint(TcCdat* c)
     int i1;
 
     if (c->num <= 25) {
-        for (i = c->num; i > PTC->x628; i--) {
+        for (i = c->num; i > PTC->curSeg; i--) {
             c->pos[i] = c->pos[i - 1];
             c->at[i] = c->at[i - 1];
             c->roll[i] = c->roll[i - 1];
             c->fovy[i] = c->fovy[i - 1];
         }
         c->num++;
-        i0 = PTC->x628;
+        i0 = PTC->curSeg;
         i1 = i0 + 2;
         PSVECAdd(&c->pos[i0], &c->pos[i1], &v);
-        PSVECScale(&v, &c->pos[PTC->x628 + 1], 0.5f);
+        PSVECScale(&v, &c->pos[PTC->curSeg + 1], 0.5f);
         PSVECAdd(&c->at[i0], &c->at[i1], &v);
-        PSVECScale(&v, &c->at[PTC->x628 + 1], 0.5f);
-        c->roll[PTC->x628 + 1] = (c->roll[i0] + c->roll[i1]) * 0.5f;
-        c->fovy[PTC->x628 + 1] = (c->fovy[i0] + c->fovy[i1]) * 0.5f;
-        PTC->x627 = PTC->x628 + 1;
+        PSVECScale(&v, &c->at[PTC->curSeg + 1], 0.5f);
+        c->roll[PTC->curSeg + 1] = (c->roll[i0] + c->roll[i1]) * 0.5f;
+        c->fovy[PTC->curSeg + 1] = (c->fovy[i0] + c->fovy[i1]) * 0.5f;
+        PTC->curKey = PTC->curSeg + 1;
     }
 }
 
@@ -2520,12 +2520,12 @@ void tcCameraSelectLR(TcCdat* c)
 
     x += 10;
     if (TC_REP & 0x1) {
-        PTC->x629 = 0;
+        PTC->copySide = 0;
     }
     if (TC_REP & 0x2) {
-        PTC->x629 = 1;
+        PTC->copySide = 1;
     }
-    if (PTC->x629 != 0) {
+    if (PTC->copySide != 0) {
         eprintf(x * 8, y * 14, 0, 0, "-----/RIGHT");
     } else {
         eprintf(x * 8, y * 14, 0, 0, "LEFT-/-----");
@@ -2541,37 +2541,37 @@ void tcCameraCopyPoint(TcCdat* c)
     TcWork* p;
 
     if (c->num <= 25) {
-        i = PTC->x627;
+        i = PTC->curKey;
         // both arms: `v.x >= 0` test first, a shared `p` and one `x627++` behind `goto skip` -- the
         // layout jump2 needs to cross-jump A2 into B1 and B2 into A1 (four per-arm copies leave 13 words)
         if (i - 1 >= 0) {
             PSMTXMultVec(pG->Cam.v_mat, &c->at[i - 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
-                if (p->x629 != 0) {
+                if (p->copySide != 0) {
                     goto skip;
                 }
             } else {
                 p = PTC;
-                if (p->x629 == 0) {
+                if (p->copySide == 0) {
                     goto skip;
                 }
             }
-            p->x627++;
+            p->curKey++;
         } else {
             PSMTXMultVec(pG->Cam.v_mat, &c->at[i + 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
-                if (p->x629 == 0) {
+                if (p->copySide == 0) {
                     goto skip;
                 }
             } else {
                 p = PTC;
-                if (p->x629 != 0) {
+                if (p->copySide != 0) {
                     goto skip;
                 }
             }
-            p->x627++;
+            p->curKey++;
         }
     skip:
         for (j = c->num; j > i; j--) {
@@ -2592,7 +2592,7 @@ void tcCameraDeletePoint(TcCdat* c)
 
     if (c->num > 2) {
         c->num--;
-        for (i = PTC->x627; i < c->num; i++) {
+        for (i = PTC->curKey; i < c->num; i++) {
             c->pos[i] = c->pos[i + 1];
             c->at[i] = c->at[i + 1];
             c->roll[i] = c->roll[i + 1];
@@ -2637,7 +2637,7 @@ void tcDrawRail()
         u32 col;
         f32 r;
         col = 0xFF0000FE;
-        if (i == PTC->x627 && PTC->x6 == 1) {
+        if (i == PTC->curKey && PTC->editCursor == 1) {
             r = (f32) rad;
             col = 0x00FF00FE;
         } else {
@@ -2647,7 +2647,7 @@ void tcDrawRail()
             r = 60.0f;
         }
         tcDrawSphere(&c->pos[i], col, r);
-        if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->x627 && PTC->x6 == 1) {
+        if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->curKey && PTC->editCursor == 1) {
             v = c->pos[i];
             {
                 register Vec* a3 asm("r3");  // COMPILER-DIFF: candidate #18 (struct-return-like address in r3 before a no-argument call)
@@ -2658,7 +2658,7 @@ void tcDrawRail()
             tcDrawLine3D(&c->pos[i], &v, 0xFF0000FE);
         }
         col = 0x0000FFFE;
-        if (i == PTC->x627 && PTC->x6 == 2) {
+        if (i == PTC->curKey && PTC->editCursor == 2) {
             r = (f32) rad;
             col = 0x00FF00FE;
         } else {
@@ -2668,7 +2668,7 @@ void tcDrawRail()
             r = 60.0f;
         }
         tcDrawSphere(&c->at[i], col, r);
-        if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->x627 && PTC->x6 == 2) {
+        if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->curKey && PTC->editCursor == 2) {
             v = c->at[i];
             {
                 register Vec* a3 asm("r3");  // COMPILER-DIFF: candidate #18 (struct-return-like address in r3 before a no-argument call)
@@ -2679,10 +2679,10 @@ void tcDrawRail()
             tcDrawLine3D(&c->at[i], &v, 0xFF0000FE);
         }
         if (PTC->editMode == 1 && PTC->editSel == 1) {
-            if (i == PTC->x627) {
+            if (i == PTC->curKey) {
                 tcDrawLine3D(&c->pos[i], &c->at[i], 0xFFFF00FE);
             }
-            if (c->type != 0 && c->type != 1 && PTC->x2 == 1 && PTC->x7 == 0 && i == PTC->x628) {
+            if (c->type != 0 && c->type != 1 && PTC->selMode == 1 && PTC->vtxMenuCursor == 0 && i == PTC->curSeg) {
                 tcDrawLine3D(&c->pos[i], &c->pos[i + 1], 0x00FF00FE);
                 tcDrawLine3D(&c->at[i], &c->at[i + 1], 0x00FF00FE);
             }
@@ -2709,13 +2709,13 @@ static void tcLoad()
 
     eprintf(x * 8, y * 14, 4, 0, "--- LOAD FILE ---");
     col = 6;
-    if (PTC->x2 == 0) {
+    if (PTC->selMode == 0) {
         col = 0;
     }
     y++;
-    tcMenuSelect(x * 8, y * 14, col, menu, 4, &PTC->x6);
+    tcMenuSelect(x * 8, y * 14, col, menu, 4, &PTC->editCursor);
     x += 16;
-    switch (PTC->x2) {
+    switch (PTC->selMode) {
     case 0:
         if (TC_ON & 0x2) {
             flags |= 1;
@@ -2724,10 +2724,10 @@ static void tcLoad()
         }
         if (TC_TRG & 0x200) {
             PTC->routine = 1;
-            PTC->x6 = 0;
+            PTC->editCursor = 0;
             return;
         } else if (TC_TRG & 0x100) {
-            PTC->x2 = 1;
+            PTC->selMode = 1;
             yesNo = 0;
         }
         break;
@@ -2736,36 +2736,36 @@ static void tcLoad()
             yesNo = yesNo == 0;
         }
         if (yesNo != 0) {
-            eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "YES/---");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "YES/---");
         } else {
-            eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "---/NO-");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "---/NO-");
         }
         if (TC_TRG & 0x200) {
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             return;
         } else if (TC_TRG & 0x100) {
             if (yesNo != 0) {
-                PTC->x2 = 2;
+                PTC->selMode = 2;
             } else {
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
         }
         break;
     case 2:
-        if (PTC->x6 == 3) {
-            PTC->x640 = 1;
+        if (PTC->editCursor == 3) {
+            PTC->coreData = 1;
         } else {
-            PTC->x640 = 0;
+            PTC->coreData = 0;
         }
-        if (PTC->x640 != 0) {
+        if (PTC->coreData != 0) {
             flags |= 2;
         } else {
             flags &= ~2;
         }
-        tcGetFileName(path, (u8) PTC->x6, flags);
+        tcGetFileName(path, (u8) PTC->editCursor, flags);
         if (HDRead(path, g_pToolCamData) != 0) {
             if (cameraDataVersion((char*) g_pToolCamData) > 1) {
-                if (PTC->x640 != 0) {
+                if (PTC->coreData != 0) {
                     CamCtrl.CoreDataRead((CameraDataHeader*) g_pToolCamData);
                 } else {
                     CamCtrl.RoomDataRead((CameraDataHeader*) g_pToolCamData);
@@ -2775,27 +2775,27 @@ static void tcLoad()
             }
             PTC->routine = 1;
             PTC->editMode = 0;
-            PTC->x2 = 0;
+            PTC->selMode = 0;
         } else {
-            PTC->x2 = 3;
+            PTC->selMode = 3;
             failTimer = 0;
         }
         break;
     case 3:
         if (failTimer++ <= 89) {
-            eprintf(x * 8, (y + PTC->x6) * 14, 2, 0, "FAILED!!");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 2, 0, "FAILED!!");
         } else {
             PTC->routine = 1;
             PTC->editMode = 0;
-            PTC->x2 = 0;
+            PTC->selMode = 0;
         }
         break;
     }
     x -= 7;
     if (flags & 1) {
-        eprintf(x * 8, (y + PTC->x6) * 14, 5, 0, "SERVER");
+        eprintf(x * 8, (y + PTC->editCursor) * 14, 5, 0, "SERVER");
     } else {
-        eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "LOCAL-");
+        eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "LOCAL-");
     }
 }
 
@@ -2814,13 +2814,13 @@ static void tcSave()
 
     eprintf(x * 8, y * 14, 4, 0, "--- SAVE FILE ---");
     col = 6;
-    if (PTC->x2 == 0) {
+    if (PTC->selMode == 0) {
         col = 0;
     }
     y++;
-    tcMenuSelect(x * 8, y * 14, col, menu, 4, &PTC->x6);
+    tcMenuSelect(x * 8, y * 14, col, menu, 4, &PTC->editCursor);
     x += 16;
-    switch (PTC->x2) {
+    switch (PTC->selMode) {
     case 0:
         if (TC_ON & 0x2) {
             flags |= 1;
@@ -2829,10 +2829,10 @@ static void tcSave()
         }
         if (TC_TRG & 0x200) {
             PTC->routine = 1;
-            PTC->x6 = 0;
+            PTC->editCursor = 0;
             return;
         } else if (TC_TRG & 0x100) {
-            PTC->x2 = 1;
+            PTC->selMode = 1;
             yesNo = 0;
         }
         break;
@@ -2841,64 +2841,64 @@ static void tcSave()
             yesNo = yesNo == 0;
         }
         if (yesNo != 0) {
-            eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "YES/---");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "YES/---");
         } else {
-            eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "---/NO-");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "---/NO-");
         }
         if (TC_TRG & 0x200) {
-            PTC->x2 = 0;
+            PTC->selMode = 0;
             return;
         } else if (TC_TRG & 0x100) {
             if (yesNo != 0) {
-                PTC->x2 = 2;
+                PTC->selMode = 2;
             } else {
-                PTC->x2 = 0;
+                PTC->selMode = 0;
             }
         }
         break;
     case 2:
-        if (PTC->x6 == 3) {
-            PTC->x640 = 1;
+        if (PTC->editCursor == 3) {
+            PTC->coreData = 1;
         } else {
-            PTC->x640 = 0;
+            PTC->coreData = 0;
         }
-        if (PTC->x640 != 0) {
+        if (PTC->coreData != 0) {
             flags |= 2;
         } else {
             flags &= ~2;
         }
-        tcGetFileName(path, (u8) PTC->x6, flags);
+        tcGetFileName(path, (u8) PTC->editCursor, flags);
         size = tcDataExport((u8*) g_pToolCamData);
         ret = HDWrite(path, g_pToolCamData, size);
-        if (PTC->x640 != 0) {
+        if (PTC->coreData != 0) {
             CamCtrl.CoreDataRead((CameraDataHeader*) g_pToolCamData);
         } else {
             CamCtrl.RoomDataRead((CameraDataHeader*) g_pToolCamData);
         }
         if (ret != size) {
-            PTC->x2 = 3;
+            PTC->selMode = 3;
             failTimer = 0;
         } else {
             PTC->routine = 1;
             PTC->editMode = 0;
-            PTC->x2 = 0;
+            PTC->selMode = 0;
         }
         break;
     case 3:
         if (failTimer++ <= 89) {
-            eprintf(x * 8, (y + PTC->x6) * 14, 2, 0, "FAILED!!");
+            eprintf(x * 8, (y + PTC->editCursor) * 14, 2, 0, "FAILED!!");
         } else {
             PTC->routine = 1;
             PTC->editMode = 0;
-            PTC->x2 = 0;
+            PTC->selMode = 0;
         }
         break;
     }
     x -= 7;
     if (flags & 1) {
-        eprintf(x * 8, (y + PTC->x6) * 14, 5, 0, "SERVER");
+        eprintf(x * 8, (y + PTC->editCursor) * 14, 5, 0, "SERVER");
     } else {
-        eprintf(x * 8, (y + PTC->x6) * 14, 0, 0, "LOCAL-");
+        eprintf(x * 8, (y + PTC->editCursor) * 14, 0, 0, "LOCAL-");
     }
 }
 
@@ -2913,7 +2913,7 @@ static void tcQuit()
     BitOff(pG->Debug_flg[0], 0x20000000);
     BitOff(pG->Debug_flg[0], 0x10000000);
     BitOff(pG->Stop_flg, 0x400000);
-    pSys->key_type = PTC->x637;
+    pSys->key_type = PTC->keyTypeBak;
     CameraSetProjection(1);
     if (!(Joy[0].on & 0x400)) {
         CamCtrl.Comeback(0);
@@ -2945,7 +2945,7 @@ void tcToolCameraMove(Camera* cam)
                 d.z = dist - 500.0f;
                 dist = 500.0f;
             }
-            if (PTC->x62F) {
+            if (PTC->distTarget) {
                 CameraTargetDistance(cam, dist);
             } else {
                 CameraCamposDistance(cam, dist);
@@ -2972,14 +2972,14 @@ void tcToolCameraMove(Camera* cam)
     }
     if (PTC->joy.stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        if (PTC->x62F) {
+        if (PTC->distTarget) {
             CameraRotAxisPosRad(cam, &axis, &cam->param.pos, (f32) PTC->joy.stickX / 20.0f * 0.017453292f);
         } else {
             CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) PTC->joy.stickX / 20.0f * 0.017453292f);
         }
     }
     if (PTC->joy.stickY) {
-        if (PTC->x62F) {
+        if (PTC->distTarget) {
             CameraTargetRot(cam, 'x', (f32) PTC->joy.stickY / -20.0f * 0.017453292f);
         } else {
             CameraCamposRot(cam, 'x', (f32) PTC->joy.stickY / -20.0f * 0.017453292f);

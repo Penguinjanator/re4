@@ -1199,7 +1199,7 @@ void em2fCriCamMove(cEm2f* em)
         cam->dist = SQRTF(dx * dx + dy * dy + dz * dz);
     }
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 static void em2f_R0_Damage(cEm2f* em)

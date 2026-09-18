@@ -1569,7 +1569,7 @@ void em31EscapeCamMove(cEm31* em)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 // Kick hit: the foot's matrix origin shifted by `x`, raised by 250.
@@ -3420,7 +3420,7 @@ void em31StampCamMove(cEm31* em)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 void em31SearchBody(cEm31* em)

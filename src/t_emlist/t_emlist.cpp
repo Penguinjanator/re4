@@ -2761,7 +2761,7 @@ void emlistCamToPoin()
                   (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z) * (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z));
         EmList.wk->cam.param.fovy = cam->param.fovy;
         CameraSetOrientationUp(&EmList.wk->cam);
-        CamCtrl.x250 = (s32) &EmList.wk->cam;
+        CamCtrl.m_pExtraCamera = (s32) &EmList.wk->cam;
         cam->param.at = EmList.wk->cam.param.at;
         cam->param.pos = EmList.wk->cam.param.pos;
         EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;

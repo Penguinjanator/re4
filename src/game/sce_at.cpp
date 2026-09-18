@@ -319,7 +319,7 @@ void SceAtInit(void* atData, void* itemData)
             for (i = ((SceAtFileHead*) pS->pAtData)->num - 1; i >= 0; i--) {
                 SceAtWork* w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pAtWork);
 
-                AddPrim(&pS->ot[w->x44], (u32*) w);
+                AddPrim(&pS->ot[w->otNo], (u32*) w);
             }
         }
     }
@@ -336,7 +336,7 @@ void SceAtInit(void* atData, void* itemData)
 
                 ((SceAtWork*) (i * sizeof(SceAtWork) + pS->pItemWork))->no += 0x80;
                 w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pItemWork);
-                AddPrim(&pS->ot[w->x44], (u32*) w);
+                AddPrim(&pS->ot[w->otNo], (u32*) w);
             }
         }
     }
@@ -400,7 +400,7 @@ static void sceAtDataLoopInit()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 == 0) {
+        if (w->type == 0) {
             memclr_asm(w->data, sizeof(w->data));
         }
     }
@@ -516,27 +516,27 @@ int sceAtCheck_main(cEm* em, int type)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (!(w->x39 & type)) {
+        if (!(w->checkType & type)) {
             continue;
         }
         if (sceAtHitCheck(w, em, &front, &pos) == 0) {
-            if (w->x35 == 9) {
+            if (w->type == 9) {
                 sceAtFunc_shd_disp_reverse(w);
             }
             continue;
         }
         SceAtSetHitFlg(w->no);
-        if (w->x38 & 1) {
+        if (w->trigger & 1) {
             col = 6;
-        } else if (w->x38 & 2) {
+        } else if (w->trigger & 2) {
             col = 4;
-        } else if (w->x38 & 4) {
+        } else if (w->trigger & 4) {
             col = 0;
         }
-        eprintf2(8, 0x10, cnt * 8 + 0x168, 8, col, 0, "%c", name[w->x35]);
+        eprintf2(8, 0x10, cnt * 8 + 0x168, 8, col, 0, "%c", name[w->type]);
         cnt++;
         cnt &= 7;
-        t = w->x35;
+        t = w->type;
         if (t == 2 && w->func == 0) {
             continue;
         }
@@ -544,11 +544,11 @@ int sceAtCheck_main(cEm* em, int type)
         if (w->func == 0) {
             ft = t;
         }
-        if (w->x38 & 8) {
+        if (w->trigger & 8) {
             c = 0;
-            kind = w->x4A;
-            if (w->x53 != 0) {
-                c = (w->x53 == 1) << 7;
+            kind = w->actBtnKind;
+            if (w->actBtnColor != 0) {
+                c = (w->actBtnColor == 1) << 7;
             }
             if (t == 1) {
                 c |= 0x80;
@@ -570,7 +570,7 @@ int sceAtCheck_main(cEm* em, int type)
                     continue;
                 }
                 if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
-                    ActBtn.set(kind, w->x44, (int) sceAtFunc_tbl[0x12].func, (int) w, 1, 6, 2, (int) em);
+                    ActBtn.set(kind, w->otNo, (int) sceAtFunc_tbl[0x12].func, (int) w, 1, 6, 2, (int) em);
                 }
                 continue;
             case 3:
@@ -582,11 +582,11 @@ int sceAtCheck_main(cEm* em, int type)
                 }
                 break;
             }
-            ActBtn.set(kind, w->x44, (int) sceAtFunc_tbl[ft].func, (int) w, c, 1, 2, (int) em);
+            ActBtn.set(kind, w->otNo, (int) sceAtFunc_tbl[ft].func, (int) w, c, 1, 2, (int) em);
             continue;
         }
-        if (!(t == 1 && w->func == 0 && (w->x38 & 2) && (flag & 4))) {
-            if (!(w->x38 & flag)) {
+        if (!(t == 1 && w->func == 0 && (w->trigger & 2) && (flag & 4))) {
+            if (!(w->trigger & flag)) {
                 continue;
             }
         }
@@ -600,7 +600,7 @@ int sceAtCheck_main(cEm* em, int type)
         if (sceAtFunc_tbl[ft].func(w, em) == 1) {
             hit = 1;
         }
-        if (w->x38 & 0x80) {
+        if (w->trigger & 0x80) {
             if (ft == 2 && w->func == 0) {
                 continue;
             }
@@ -708,7 +708,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
         }
     } else {
         // Both arms written out (cross-jumped `AreaHitCheck` tail, the null test stays per arm).
-        if (w->x37 & 1) {
+        if (w->checkFlag & 1) {
             if (front != 0 && AreaHitCheck(&area, front) == 1) {
                 ret = 1;
             }
@@ -717,7 +717,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
                 ret = 1;
             }
         }
-        if (m != 0 && (w->x37 & 2) && ret == 1) {
+        if (m != 0 && (w->checkFlag & 2) && ret == 1) {
             f32 d = LIMIT_ANGLE(ang - m->ang.y);
             int r = w->angleRange;
 
@@ -725,7 +725,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
                 ret = 0;
             }
         }
-        if (w->x35 == 3 && ret == 1) {
+        if (w->type == 3 && ret == 1) {
             if (SceAtItemHitCheck(w, 0) == 0) {
                 ret = 0;
             }
@@ -823,7 +823,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         SceSys.pDoorParam = w->doorArg;
         w->doorFunc = 0;
     }
-    SceSys.x75 = w->x77;
+    SceSys.m_door_fade_eff = w->doorFadeEff;
     FSet(pG->NextPos.x, w->dstPos.x);
     FSet(pG->NextPos.y, w->dstPos.y);
     FSet(pG->NextPos.z, w->dstPos.z);
@@ -832,7 +832,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     U8Set(pG->Part_old, pG->Part);
     pG->next_stage = w->dstStage;
     pG->next_room_no = w->dstRoom;
-    pG->next_point = w->dstX4F9E;
+    pG->next_point = w->dstPart;
     pG->door_no = w->doorNo;
     pG->Rno0 = 4;
     pG->Rno1 = 0;
@@ -852,7 +852,7 @@ static int sceAtFunc_exec(SceAtWork* w, cModel* m)
         SetTaskModelPtr(m, 0);
         ((void (*)(int)) w->func)(w->arg);
     } else {
-        SceExec(w->prio, w->func, w->arg, w->x45, w->x44, m);
+        SceExec(w->prio, w->func, w->arg, w->execFlag, w->otNo, m);
     }
     return 1;
 }
@@ -990,7 +990,7 @@ void releaseModel(SceAtWork* w, int keep)
         releaseModel(w, 1);                               \
         BitOff(pG->Status_flg[1], 2);                        \
         BitOn(pG->Status_flg[2], 0x10000000);                \
-        SceSys.x76 = 0;                                   \
+        SceSys.m_item_get = 0;                                   \
         SceUpCutEnd();                                    \
         return;                                           \
     }
@@ -1243,7 +1243,7 @@ static void sceAtGetItem(SceAtWork* w_)
         Mem_free(w);
         DelPrim(&pS->ot[15], (u32*) w);
     }
-    SceSys.x76 = 0;
+    SceSys.m_item_get = 0;
     SceUpCutEnd();
     BitOff(pG->Status_flg[1], 2);
     BitOn(pG->Status_flg[2], 0x10000000);
@@ -1251,7 +1251,7 @@ static void sceAtGetItem(SceAtWork* w_)
 
 #define ITEM_CANCEL_NOMODEL()                             \
     {                                                     \
-        SceSys.x76 = 0;                                   \
+        SceSys.m_item_get = 0;                                   \
         BitOn(pG->Status_flg[2], 0x10000000);                \
         SceUpCutEnd();                                    \
         return;                                           \
@@ -1470,7 +1470,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         DelPrim(&pS->ot[15], (u32*) w);
     }
     pPL->setNoSuspend(0);
-    SceSys.x76 = 0;
+    SceSys.m_item_get = 0;
     BitOn(pG->Status_flg[2], 0x10000000);
     SceUpCutEnd();
 }
@@ -1486,14 +1486,14 @@ static int sceAtFunc_item(SceAtWork* w, cModel* m)
     if (ret == 1) {
         p = SceExec(5, (TaskFunc) sceAtGetItem, (int) w, 0, SCE_PRIO_15, 0);
         if (p != 0) {
-            SceSys.x76 = ret;
+            SceSys.m_item_get = ret;
             p->task->flag |= 2;
             it->pModel->setNoSuspend(1);
         }
     } else {
         p = SceExec(5, (TaskFunc) sceAtGetItem_NoModel, (int) w, 0, SCE_PRIO_15, 0);
         if (p != 0) {
-            SceSys.x76 = 1;
+            SceSys.m_item_get = 1;
             p->task->flag |= 2;
         }
     }
@@ -1570,7 +1570,7 @@ static int sceAtFunc_mes(SceAtWork* w, cModel* m)
 {
     SceAtMesData* d = &w->mes;
 
-    if (d->x4 != 0) {
+    if (d->camCut != 0) {
         SceExec(5, (TaskFunc) SceAtSetMes, (int) d, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetMes(d);
@@ -1582,9 +1582,9 @@ void SceAtSetMes(SceAtMesData* m)
 {
     u32 flags = 0x10;
 
-    if (m->x4 != 0) {
+    if (m->camCut != 0) {
         SceUpCutStart();
-        CamCtrl.CutCall((s8) (m->x4 - 1));
+        CamCtrl.CutCall((s8) (m->camCut - 1));
         flags = 0x30;
     }
     if (m->no >= 0) {
@@ -1594,18 +1594,18 @@ void SceAtSetMes(SceAtMesData* m)
             SceMesSet(m->no, flags | 1, 1, 0x64, MES_Y);
         }
     }
-    if (m->x6 != 0) {
-        if (m->x5 == 0) {
-            SndCall(6, m->x6 - 1, 0, 0, 0, 0);
+    if (m->se != 0) {
+        if (m->seBlk == 0) {
+            SndCall(6, m->se - 1, 0, 0, 0, 0);
         } else {
-            SndCall(0, m->x6 - 1, 0, 0, 0, 0);
+            SndCall(0, m->se - 1, 0, 0, 0, 0);
         }
     }
-    if (m->x4 != 0) {
+    if (m->camCut != 0) {
         if (m->no >= 0) {
             SceMesWait();
         }
-        if (!(m->x8 & 4)) {
+        if (!(m->flag & 4)) {
             CamCtrl.Comeback(0);
         }
         SceUpCutEnd();
@@ -1661,7 +1661,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
     if (time == 0) {
         time = 1;
     }
-    if (w->x39 & 1) {
+    if (w->checkType & 1) {
         int dead = 1;
 
         if ((pPL->flags_324 & 0xFFFF0000) == 0) {
@@ -1685,7 +1685,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
             }
         }
     }
-    if (w->x39 & 8) {
+    if (w->checkType & 8) {
         if (pSUB != 0) {
             int dead = 1;
 
@@ -1711,7 +1711,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
             }
         }
     }
-    if (w->x39 & 2) {
+    if (w->checkType & 2) {
         switch (w->area.type) {
         case 1:
             pt[0].x = w->area.u.xz4.p[0].x;
@@ -1799,7 +1799,7 @@ void sceAtLadder(SceAtWork* w)
         SceSleep(1);
     }
     CamCtrl.Comeback(0);
-    SceSys.x134 = 0;
+    SceSys.pLadderTask = 0;
 }
 
 static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
@@ -1810,7 +1810,7 @@ static int sceAtFunc_ladder(SceAtWork* w, cModel* m)
     sceAtGetLadderPos(&w->ladder, &pos, &ang);
     PlSetLadder(&pos, w->ladder.level, ang);
     if (w->ladder.cut1 != 0) {
-        SceSys.x134 = SceExec(5, (TaskFunc) sceAtLadder, (int) w, 0, SCE_PRIO_DEF_2, 0);
+        SceSys.pLadderTask = SceExec(5, (TaskFunc) sceAtLadder, (int) w, 0, SCE_PRIO_DEF_2, 0);
     }
     return 0;
 }
@@ -1872,7 +1872,7 @@ void SceAtDataSet_hide(int no, void (*func)(int))
 
     if (w == 0) {
         pLog->err(0, 0, "SceAtDataSet_hide(): AT NOT FOUND");
-    } else if (w->x35 != 0x12) {
+    } else if (w->type != 0x12) {
         pLog->err(0, 0, "SceAtDataSet_hide(): ID is not HIDE");
     } else {
         w->hide.func = func;
@@ -1901,7 +1901,7 @@ void SceAtCheckHideProc()
         if (off) {
             continue;
         }
-        if (w->x35 != 0x12) {
+        if (w->type != 0x12) {
             continue;
         }
         step = w->hide.step;
@@ -2002,7 +2002,7 @@ void SceAtRoomSet()
     SceAtWork* w = sceAtSetOtStart();
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        u8 t = w->x35;
+        u8 t = w->type;
 
         switch (t) {
         case 0xB:
@@ -2011,54 +2011,54 @@ void SceAtRoomSet()
             }
             break;
         case 1:
-            if (bitOff(w->x38) && !(w->x38 & 8)) {
-                w->x53 = 1;
-                w->x4A = 0x10;
-                w->x38 = (w->x38 & 0x80) | 8;
-                w->x44 = 2;
+            if (bitOff(w->trigger) && !(w->trigger & 8)) {
+                w->actBtnColor = 1;
+                w->actBtnKind = 0x10;
+                w->trigger = (w->trigger & 0x80) | 8;
+                w->otNo = 2;
             }
             break;
         case 5:
-            if (!(w->x38 & 8)) {
-                w->x4A = 1;
-                w->x38 = (w->x38 & 0x80) | 8;
-                w->x44 = 2;
+            if (!(w->trigger & 8)) {
+                w->actBtnKind = 1;
+                w->trigger = (w->trigger & 0x80) | 8;
+                w->otNo = 2;
             }
             break;
         case 0xE:
-            if (!(w->x38 & 8)) {
-                w->x4A = 0x13;
-                w->x38 = (w->x38 & 0x80) | 8;
-                w->x44 = 5;
+            if (!(w->trigger & 8)) {
+                w->actBtnKind = 0x13;
+                w->trigger = (w->trigger & 0x80) | 8;
+                w->otNo = 5;
             }
             break;
         case 8:
-            if (!(w->x38 & 8)) {
-                w->x4A = 0x2F;
-                w->x38 = (w->x38 & 0x80) | 8;
-                w->x44 = 5;
+            if (!(w->trigger & 8)) {
+                w->actBtnKind = 0x2F;
+                w->trigger = (w->trigger & 0x80) | 8;
+                w->otNo = 5;
             }
             break;
         case 0x10:
-            if (!(w->x38 & 8)) {
-                w->x38 = (w->x38 & 0x80) | 8;
+            if (!(w->trigger & 8)) {
+                w->trigger = (w->trigger & 0x80) | 8;
                 if (w->ladder.level > 0) {
-                    w->x4A = 8;
+                    w->actBtnKind = 8;
                 } else {
-                    w->x4A = 9;
+                    w->actBtnKind = 9;
                 }
-                w->x44 = 5;
+                w->otNo = 5;
             }
             break;
         case 0x12:
-            if (!(w->x38 & 8)) {
-                w->x4A = 0x20;
-                w->x38 = (w->x38 & 0x80) | 8;
-                w->x44 = 5;
+            if (!(w->trigger & 8)) {
+                w->actBtnKind = 0x20;
+                w->trigger = (w->trigger & 0x80) | 8;
+                w->otNo = 5;
             }
             break;
         case 0x11:
-            w->x38 = 1;
+            w->trigger = 1;
             break;
         }
     }
@@ -2067,18 +2067,18 @@ void SceAtRoomSet()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 == 3) {
+        if (w->type == 3) {
             if (w->item.id == 0x1000) {
                 EmReadSearch(0x24, 0, 0);
             }
             sceAtSetItem(w);
         }
         if (pG->language == 0) {
-            if (w->x52 & 2) {
+            if (w->langDisable & 2) {
                 SceAtSetEnable(w->no, 0);
             }
         } else {
-            if (w->x52 & 1) {
+            if (w->langDisable & 1) {
                 SceAtSetEnable(w->no, 0);
             }
         }
@@ -2167,7 +2167,7 @@ void SceAtCheckMoveScrAt()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 != 0xB) {
+        if (w->type != 0xB) {
             continue;
         }
         if (w->pParent == 0) {
@@ -2241,7 +2241,7 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
         pLog->err(0, 0, "SceAtDataSet_exec(): AT NOT FOUND");
         return;
     }
-    if (w->x35 == 0xF) {
+    if (w->type == 0xF) {
         w->skey.obj = obj;
         w->skey.func = func;
         w->skey.flag = b;
@@ -2254,9 +2254,9 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
     }
     if (a != 0) {
         if (w->prioBak == 0) {
-            w->prioBak = w->x38;
+            w->prioBak = w->trigger;
         }
-        w->x38 = a;
+        w->trigger = a;
     }
     if (w->prio > 0x12) {
         w->prio = 0x12;
@@ -2265,7 +2265,7 @@ void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b)
     }
     w->func = func;
     w->arg = (int) obj;
-    w->x45 = b;
+    w->execFlag = b;
 }
 
 void SceAtDataReset(int no)
@@ -2277,7 +2277,7 @@ void SceAtDataReset(int no)
         return;
     }
     if (w->prioBak != 0) {
-        w->x38 = w->prioBak;
+        w->trigger = w->prioBak;
         w->prioBak = 0;
     }
     w->prio = 0;
@@ -2297,7 +2297,7 @@ void SceAtSetEnable(int no, int on)
     } else {
         w->flag &= ~1;
     }
-    switch (w->x35) {
+    switch (w->type) {
     case 3:
         if (on == 1) {
             sceAtSetItem(w);
@@ -2345,7 +2345,7 @@ void SceAtExecute(int no)
         pLog->err(0, 0, "SceAtExecute(): AT NOT FOUND");
         return;
     }
-    sceAtFunc_tbl[w->x35].func(w, 0);
+    sceAtFunc_tbl[w->type].func(w, 0);
 }
 
 int SceAtCheckHitModel(int no, cModel* m)
@@ -2372,7 +2372,7 @@ void SceAtSetActColor(int no, int col)
     if (w == 0) {
         pLog->err(0, 0, "SceAtSetActColor(): AT NOT FOUND");
     } else {
-        w->x53 = col;
+        w->actBtnColor = col;
     }
 }
 
@@ -2444,7 +2444,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     default:
         return 0;
     }
-    if (w->x35 == 3) {
+    if (w->type == 3) {
         w->item.pos.x -= parent->pos.x;
         w->item.pos.y -= parent->pos.y;
         w->item.pos.z -= parent->pos.z;
@@ -2512,14 +2512,14 @@ void SceAtExecRoomJump(u16 room, Vec* pos, Vec* rot, int a)
 {
     SceAtWork w;
 
-    w.x52 = 0;
+    w.langDisable = 0;
     w.dstStage = room >> 8;
     w.dstRoom = room;
     w.dstPos.x = pos->x;
     w.dstPos.y = pos->y;
     w.dstPos.z = pos->z;
     w.dstAngle = rot->y;
-    w.dstX4F9E = a;
+    w.dstPart = a;
     w.doorFunc = 0;
     sceAtFunc_door(&w, 0);
 }
@@ -2536,7 +2536,7 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 != 0xD) {
+        if (w->type != 0xD) {
             continue;
         }
         if (sceAtHitCheck(w, 0, pos, pos) == 1) {
@@ -2564,7 +2564,7 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 != 0x10) {
+        if (w->type != 0x10) {
             continue;
         }
         if (sceAtHitCheck(w, 0, mp, mp) != 1) {
@@ -2598,7 +2598,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
         if (bitOff(w->flag)) {
             continue;
         }
-        if (!(w->x35 & 0x10)) {
+        if (!(w->type & 0x10)) {
             continue;
         }
         l = &w->ladder;
@@ -2638,7 +2638,7 @@ static void sceAtCamCtrlCheck()
         if (bitOff(w->flag)) {
             continue;
         }
-        if (w->x35 != 0xC) {
+        if (w->type != 0xC) {
             continue;
         }
         c = &w->cam;
@@ -2762,7 +2762,7 @@ static void sceAtDebugDisp()
             }
             AreaDataDisp(&w->area, 0x80808080, 1, mat);
         }
-        if (w->x35 == 3 && (w->item.flag & 1)) {
+        if (w->type == 3 && (w->item.flag & 1)) {
             SceAtDataEyeTriggreCopy(&eye, w);
             AreaDataDisp(&eye, 0x80808080, 1, 0);
         }
@@ -2775,7 +2775,7 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
 
     out->Be_flag = 1;
     out->type = 3;
-    if (w->x35 != 3) {
+    if (w->type != 3) {
         return;
     }
     it = &w->item;
@@ -2802,7 +2802,7 @@ static void sceAtItemFindCheck()
         if (off) {
             continue;
         }
-        if (w->x35 != 3) {
+        if (w->type != 3) {
             continue;
         }
         it = &w->item;
@@ -2926,7 +2926,7 @@ int SceAtItemFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0 && w->x35 == 3) {
+    if (w != 0 && w->type == 3) {
         return sceAtItemFlgCk(&w->item);
     }
     return 0;
@@ -2936,7 +2936,7 @@ int SceAtItemFindFlgCk(int no)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0 && w->x35 == 3) {
+    if (w != 0 && w->type == 3) {
         return sceAtItemFindFlgCk(&w->item);
     }
     return 0;
@@ -3033,18 +3033,18 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     if (sceAtPullAtNo(&w->no) == 0) {
         return -1;
     }
-    w->x37 = a;
-    w->x38 = b;
-    w->x39 = c;
-    w->x4A = e;
-    w->x44 = d;
+    w->checkFlag = a;
+    w->trigger = b;
+    w->checkType = c;
+    w->actBtnKind = e;
+    w->otNo = d;
     w->prio = prio;
-    w->x45 = flag;
+    w->execFlag = flag;
     w->pParent = m;
     w->func = func;
     w->arg = arg;
     w->flag = 7;
-    w->x35 = 2;
+    w->type = 2;
     w->parentParts = -1;
     w->angle = (s8) (ang * 0.5f * 57.295776f);
     w->angleRange = (s8) (range * 0.5f * 57.295776f);
@@ -3058,7 +3058,7 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->area.u.xz4.p[2].z = pos[2].z;
     w->area.u.xz4.p[3].x = pos[3].x;
     w->area.u.xz4.p[3].z = pos[3].z;
-    AddPrim(&pSS->ot[w->x44], (u32*) w);
+    AddPrim(&pSS->ot[w->otNo], (u32*) w);
     return w->no;
 }
 
@@ -3076,17 +3076,17 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     if (sceAtPullAtNo(&w->no) == 0) {
         return -1;
     }
-    w->x37 = a;
-    w->x38 = b;
-    w->x39 = c;
-    w->x4A = e;
-    w->x44 = d;
+    w->checkFlag = a;
+    w->trigger = b;
+    w->checkType = c;
+    w->actBtnKind = e;
+    w->otNo = d;
     w->prio = 0;
     w->func = 0;
     w->arg = 0;
-    w->x45 = 0;
+    w->execFlag = 0;
     w->flag = 7;
-    w->x35 = 0xD;
+    w->type = 0xD;
     w->parentParts = -1;
     w->pParent = m;
     w->angle = (s8) (ang * 0.5f * 57.295776f);
@@ -3103,7 +3103,7 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->area.u.xz4.p[3].z = pos[3].z;
     w->field.value = val;
     w->field.pModel = m;
-    AddPrim(&pSS->ot[w->x44], (u32*) w);
+    AddPrim(&pSS->ot[w->otNo], (u32*) w);
     *out = &w->field;
     return w->no;
 }
@@ -3152,12 +3152,12 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     w->pParent = parent;
     w->parentParts = parts;
     w->flag = 7;
-    w->x37 |= 1;
-    w->x35 = 3;
-    w->x39 = 1;
-    w->x38 = 8;
-    w->x44 = 8;
-    w->x4A = 0x28;
+    w->checkFlag |= 1;
+    w->type = 3;
+    w->checkType = 1;
+    w->trigger = 8;
+    w->otNo = 8;
+    w->actBtnKind = 0x28;
     SceAtItemAutoArea(&w->area, pos, 0.0f);
     w->item.num = num;
     w->item.id = id;
@@ -3194,7 +3194,7 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     }
     sceAtCheckItemModelParent(w);
     sceAtItemEffSet(w, 0);
-    AddPrim(&pS->ot[w->x44], (u32*) w);
+    AddPrim(&pS->ot[w->otNo], (u32*) w);
     return w->no;
 }
 
@@ -3349,7 +3349,7 @@ void sceAtLink_check()
         case 1:
             em = GetEmPtrFromList(w->linkNo);
             if (em != 0) {
-                if (w->x35 == 3) {
+                if (w->type == 3) {
                     flag = em->checkStatus(EM_STATUS_ITEMSET) == 1;
                 } else {
                     flag = em->checkStatus(EM_STATUS_ACTIVE) == 0;
@@ -3371,7 +3371,7 @@ void sceAtLink_check()
             if (flag == 1) {
                 if (w->flag & 1) {
                     SceAtSetEnable(w->no, 0);
-                } else if (w->x35 == 3) {
+                } else if (w->type == 3) {
                     if (w->item.effType == 0 || w->item.effType == 6) {
                         w->item.effType = sceAtCheckItemEffectCol(w->item.id);
                     }
@@ -3389,7 +3389,7 @@ void sceAtLink_check()
                 w->linkType = 0;
                 w->linkNo = 0;
             }
-            if (w->x35 == 3 && bitOff(w->item.flag2)) {
+            if (w->type == 3 && bitOff(w->item.flag2)) {
                 em = GetEmPtrFromList(w->linkNo);
                 if (em != 0 && bitOff(w->item.flag2)) {
                     SceAtSetEmItem(em, w);
@@ -3512,7 +3512,7 @@ void sceAtCheckItemModelParent(SceAtWork* w)
         if (bitOff(p->flag)) {
             continue;
         }
-        if (p->x35 != 0x14) {
+        if (p->type != 0x14) {
             continue;
         }
         if (p->pParent == 0) {
@@ -3617,7 +3617,7 @@ cModel* SceAtItemModelPtr(int no)
         pLog->err(0, 0, "SceAtItemModelPtr(): AT NOT FOUND");
         return 0;
     }
-    if (w->x35 != 3) {
+    if (w->type != 3) {
         pLog->err(0, 0, "SceAtItemModelPtr(): not ID == ITEM");
         return 0;
     }
@@ -3930,14 +3930,14 @@ void sceAtSetItem(SceAtWork* w)
     w->linkType = 0;
     w->linkNo = 0;
     if (!(it->flag2 & 0x80)) {
-        if (!(w->x38 & 8)) {
-            w->x38 = 8;
-            w->x4A = 0x28;
+        if (!(w->trigger & 8)) {
+            w->trigger = 8;
+            w->actBtnKind = 0x28;
         } else {
-            w->x38 &= 0x7F;
+            w->trigger &= 0x7F;
         }
     } else {
-        w->x38 = 2;
+        w->trigger = 2;
     }
     if (bitOff(it->flag2)) {
         if (it->flag2 & 0x10) {

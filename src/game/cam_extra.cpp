@@ -601,13 +601,13 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         PSMTXMultVecSR(inv, &this->up, &m_up_vec);
     }
     // Store order pinned by the dying-store rule (the last use of each constant is issued first).
-    x124 = 0.0f;
-    x100 = 0.0f;
-    x104 = 0.0f;
-    x10C = -1.0471976f;
-    x110 = -1.0471976f;
-    x118 = 1.0471976f;
-    x11C = 1.0471976f;
+    m_zoom_ratio = 0.0f;
+    m_rad.x = 0.0f;
+    m_rad.y = 0.0f;
+    m_rad_low.x = -1.0471976f;
+    m_rad_low.y = -1.0471976f;
+    m_rad_up.x = 1.0471976f;
+    m_rad_up.y = 1.0471976f;
     id.init(this, id_a, id_b);
     m_focus.init(-1);
 }
@@ -621,10 +621,10 @@ CameraBinocular::~CameraBinocular()
 
 void CameraBinocular::setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up)
 {
-    x10C = x_low;
-    x110 = y_low;
-    x118 = x_up;
-    x11C = y_up;
+    m_rad_low.x = x_low;
+    m_rad_low.y = y_low;
+    m_rad_up.x = x_up;
+    m_rad_up.y = y_up;
 }
 
 void CameraBinocular::move()
@@ -632,7 +632,7 @@ void CameraBinocular::move()
     static f32 zoom_limit = 3.0f;
     static f32 BINO_VEL_Y = 0.062831856f;
     static f32 BINO_VEL_X = 0.062831856f;
-    f32 old_zoom = x124;
+    f32 old_zoom = m_zoom_ratio;
     f32 gain;
     f32 add;
     f32 ang;
@@ -647,18 +647,18 @@ void CameraBinocular::move()
     {
         f32 sy = (f32) Joy[0].substickY;
         if (sy != 0.0f) {
-            x124 = sy * 0.001f + x124;
+            m_zoom_ratio = sy * 0.001f + m_zoom_ratio;
         }
     }
     {
         // clamped copy kept in a register (`fmr f12`), stored once, reused by the fovy formula
-        f32 zoom = (x124 < 0.0f) ? 0.0f : (x124 > 1.0f) ? 1.0f : x124;
-        x124 = zoom;
+        f32 zoom = (m_zoom_ratio < 0.0f) ? 0.0f : (m_zoom_ratio > 1.0f) ? 1.0f : m_zoom_ratio;
+        m_zoom_ratio = zoom;
         if (zoom != 0.0f) {
             param.fovy = zoom * (zoom_limit - param.fovy) + param.fovy;
         }
     }
-    gain = x124 * -0.9f + 1.0f;
+    gain = m_zoom_ratio * -0.9f + 1.0f;
     if (Joy[0].stickX != 0 || (Joy[0].on & 3)) {
         Vec axis = {0.0f, 1.0f, 0.0f}; // initialised inside this block (the stores sit below the stb)
         add = gain * (f32) Joy[0].stickX * -0.05f * DEG;
@@ -668,14 +668,14 @@ void CameraBinocular::move()
         if (Joy[0].on & 2) {
             add = add - gain * BINO_VEL_Y;
         }
-        ang = x104;
-        if (ang + add < x110) { // two arms: the `fsubs` tails are cross-jumped, each with its own limit
-            add = x110 - ang;
-        } else if (ang + add > x11C) {
-            add = x11C - ang;
+        ang = m_rad.y;
+        if (ang + add < m_rad_low.y) { // two arms: the `fsubs` tails are cross-jumped, each with its own limit
+            add = m_rad_low.y - ang;
+        } else if (ang + add > m_rad_up.y) {
+            add = m_rad_up.y - ang;
         }
         CameraRotAxisPosRad(this, &axis, &param.pos, add);
-        x104 = x104 + add;
+        m_rad.y = m_rad.y + add;
     }
     if (Joy[0].stickY != 0 || (Joy[0].on & 0xC)) {
         add = gain * (f32) Joy[0].stickY * 0.05f * DEG;
@@ -688,14 +688,14 @@ void CameraBinocular::move()
         if (pSys->flags & 0x80000000) {
             add = -add;
         }
-        ang = x100;
-        if (ang + add < x10C) {
-            add = x10C - ang;
-        } else if (ang + add > x118) {
-            add = x118 - ang;
+        ang = m_rad.x;
+        if (ang + add < m_rad_low.x) {
+            add = m_rad_low.x - ang;
+        } else if (ang + add > m_rad_up.x) {
+            add = m_rad_up.x - ang;
         }
         CameraTargetRot(this, 'x', add);
-        x100 = x100 + add;
+        m_rad.x = m_rad.x + add;
     }
     if (mode != 0) {
         m_campos = param.pos;
@@ -707,7 +707,7 @@ void CameraBinocular::move()
     }
     CameraSetOrientationUp(this); // unconditional: mode 0 jumps to it
     id.move(this);
-    if (old_zoom != x124) {
+    if (old_zoom != m_zoom_ratio) {
         m_focus.move(1);
     } else {
         m_focus.move(0);

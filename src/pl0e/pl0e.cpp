@@ -689,7 +689,7 @@ void pl0eCamMove(cPl0e* em)
         pl0e_camera.dist = SQRTF((cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z));
     }
     CameraSetOrientationUp(&pl0e_camera);
-    CamCtrl.x250 = (s32) &pl0e_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0e_camera;
 }
 
 void pl0eRideActEvtCk(cPl0e* em)

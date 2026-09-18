@@ -611,7 +611,7 @@ void EscapeCamMove()
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 

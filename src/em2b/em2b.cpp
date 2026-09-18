@@ -3714,7 +3714,7 @@ void em2bParasiteAtkCamMove(cEm2b* em)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 // Hit by the thrown-back rock.
@@ -4452,7 +4452,7 @@ void em2bEscapeCamMove(cEm2b* em)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 // Foot landing of the walk: quake, step SE, dust; the chain giant rattles.
@@ -5375,7 +5375,7 @@ void em2bBlowCamMove(cEm2b* em, f32 rate)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 // Camera of the stamp: pulled behind and above the player.
@@ -5401,7 +5401,7 @@ void em2bStampCamMove(cEm2b* em)
                         (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y) +
                         (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z));
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 // Event placement: position / angle and the wait pose.

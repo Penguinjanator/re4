@@ -991,7 +991,7 @@ void plem21TrapCamMove(cModel* m)
     }
     cam->param.fovy = 55.0f;
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 void Em21RouteCk(cEm21* em)

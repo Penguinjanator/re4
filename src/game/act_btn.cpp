@@ -74,7 +74,7 @@ void cActionButton::move()
 
                 SceAtSetExecFlg(at->no);
                 ((ActBtnFunc) w->func)(w->arg, w->d);
-                if (at->x38 & 0x80) {
+                if (at->trigger & 0x80) {
                     SceAtSetEnable(at->no, 0);
                 }
                 break;

@@ -1198,7 +1198,7 @@ void gameDoordemo()
     } else if (Flag54(0x80000) || Flag54(0x100)) {
         fadeSetG(0, 0, 0, 0);
     } else {
-        switch (SceSys.x75) {
+        switch (SceSys.m_door_fade_eff) {
         case 0:
         default: {
             Filter09GetEFB_801D19E0();

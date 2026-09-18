@@ -97,7 +97,7 @@ int tcDataExport(u8* buf)
                 da->attr = tcTypeTbl[a->area_no][0];
                 da->dir = a->dir;
                 da->attr2 = a->attr2;
-                da->x9 = a->x9;
+                da->attr3 = a->attr3;
                 da->height = a->height;
                 da->base_y = a->base_y;
                 num = a->num;
@@ -283,10 +283,10 @@ int tcDataImport(u8* buf)
             a->dir = s->dir;
             if (ver <= 3) {
                 a->attr2 = 1;
-                a->x9 = 0xFF;
+                a->attr3 = 0xFF;
             } else {
                 a->attr2 = s->attr2;
-                a->x9 = s->x9;
+                a->attr3 = s->attr3;
             }
             {
                 Vec* pt = s->points;
@@ -349,8 +349,8 @@ int tcDataImport(u8* buf)
     if (hdr->numArea != 0) {
         pTc->cdatNo = rec->area->area_no;
         pTc->adatNo = pTc->cdatNo;
-        pTc->x5E1 = 0;
-        pTc->pAdat = tcAdatPtr(pTc->adatNo, pTc->x5E1);
+        pTc->adatSuffix = 0;
+        pTc->pAdat = tcAdatPtr(pTc->adatNo, pTc->adatSuffix);
     }
     return 0;
 }
@@ -373,8 +373,8 @@ void tcPlayerMove()
     }
     tcPreview.blink++;
     if (tcPreview.blink > 31) tcPreview.blink = 0;
-    eprintf(0xD8, 0x10A, 0, 0, "C:%02d", pTc->x634);
-    eprintf(0x100, 0x10A, 0, 0, "A:%02d-%1d", pTc->x635, pTc->x636);
+    eprintf(0xD8, 0x10A, 0, 0, "C:%02d", pTc->cameraNo);
+    eprintf(0x100, 0x10A, 0, 0, "A:%02d-%1d", pTc->areaNo, pTc->areaSuffix);
     pPL->move();
 }
 

@@ -131,8 +131,8 @@ void SceEventStart(int mode)
         DmgMgr.beginEvent(0);
         SceKill(5);
     } else {
-        if (s->x134) {
-            SceKill(s->x134);
+        if (s->pLadderTask) {
+            SceKill(s->pLadderTask);
         }
     }
     PlEndCamera();
@@ -213,7 +213,7 @@ void SceUpCutStart()
         }
     }
     if (SceSys.stop_bak_flg == 0) {
-        SceSys.x60 = pG->Stop_flg;
+        SceSys.stop_bak = pG->Stop_flg;
         SceSys.stop_bak_flg = 1;
     }
     KeyStop(0xEFCF0000);
@@ -245,7 +245,7 @@ void SceUpCutEnd()
     pPL->atari.setFlag100();
     BitOff(pGS->Status_flg[1], 0x10000000);  // the pG load waits for the setFlag100 store
     if (s->stop_bak_flg == 1) {
-        pG->Stop_flg = s->x60;
+        pG->Stop_flg = s->stop_bak;
         s->stop_bak_flg = 0;
     }
     if (s->checkCTaskRange() == 1) {
@@ -351,14 +351,14 @@ void SceUpCut(int a, int b, int c, int flags)
         m.type = 0;
     }
     if (flags & 2) {
-        m.x5 = 1;
+        m.seBlk = 1;
     } else {
-        m.x5 = 0;
+        m.seBlk = 0;
     }
     m.no = a;
-    m.x4 = b + 1;
-    m.x6 = c + 1;
-    m.x8 = flags;
+    m.camCut = b + 1;
+    m.se = c + 1;
+    m.flag = flags;
     SceAtSetMes(&m);
     SceMesWait();
 }
@@ -584,9 +584,9 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
         return;
     }
     if (SceAtPtr(atNo)) {
-        SceAtPtr(atNo)->x38 = 8;
-        SceAtPtr(atNo)->x4A = 0x10;
-        SceAtPtr(atNo)->x44 = 5;
+        SceAtPtr(atNo)->trigger = 8;
+        SceAtPtr(atNo)->actBtnKind = 0x10;
+        SceAtPtr(atNo)->otNo = 5;
     }
     ne = (SceItemEvent*) __builtin_new(sizeof(SceItemEvent));
     for (k = 0; k < 8; k++) {
@@ -714,7 +714,7 @@ void SceChapterEnd()
     EventMgr* ev = &EvtMgr;
     u32* key = &ev->x34;
 
-    pG->chapter = SceSys.x74 + 1;
+    pG->chapter = SceSys.m_chapter_no + 1;
     if (ev->IsAliveEvt(key, 0, 1)) {
         ev->GetEvt(key, &evt);
         ev->DelEvt(evt, 0);
@@ -735,10 +735,10 @@ void SceChapterEnd()
     SceSleep(2);
     chap = 0;
     sec = 0;
-    getChapterSection(SceSys.x74, &chap, &sec);
-    if (SceSys.x74 == 0x11) {
+    getChapterSection(SceSys.m_chapter_no, &chap, &sec);
+    if (SceSys.m_chapter_no == 0x11) {
         sprintf(chap_data_name, "SS/___/chap06.dat");
-    } else if (SceSys.x74 == 0xD) {
+    } else if (SceSys.m_chapter_no == 0xD) {
         sprintf(chap_data_name, "SS/___/chap07.dat");
     } else {
         sprintf(chap_data_name, "SS/___/chap%02ld.dat", chap);
@@ -752,7 +752,7 @@ void SceChapterEnd()
 #line 994 "D:/Bio4/Prog/sce_com.cpp"
     req = DVD_READ_N(chap_data_name, 0, 0, 0, 0, 5);
     Dvd.ReadCheck(req, 0, 0, &data);
-    ce->init(data, SceSys.x74);
+    ce->init(data, SceSys.m_chapter_no);
     ce->move();
     FadeKillAll();
     FadeSetW(0x80000000, 10, 0, 0);
@@ -765,21 +765,21 @@ void SceChapterEnd()
     // room declared first (the global-alloc tie for r25/r24).
     room = 0;
     x4F9E = 0;
-    if (SceSys.x78 >= 0) {
+    if (SceSys.m_chapter_door >= 0) {
         plPos = pPL->pos;
         plRot = pPL->ang;
         room = pG->room_id;
         x4F9E = pG->Part;
-        if (SceAtPtr(SceSys.x78)->x35 == 1) {
-            pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
-            pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
-            pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
-            FSet(pPL->ang.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
+        if (SceAtPtr(SceSys.m_chapter_door)->type == 1) {
+            pPL->pos.x = SceAtPtr(SceSys.m_chapter_door)->dstPos.x;
+            pPL->pos.y = SceAtPtr(SceSys.m_chapter_door)->dstPos.y;
+            pPL->pos.z = SceAtPtr(SceSys.m_chapter_door)->dstPos.z;
+            FSet(pPL->ang.y, SceAtPtr(SceSys.m_chapter_door)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
             U8Set(pG->Part_old, pG->Part);
-            U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
-            U8Set(pG->room_no, SceAtPtr(SceSys.x78)->dstRoom);
-            U8Set(pG->Part, SceAtPtr(SceSys.x78)->dstX4F9E);
+            U8Set(pG->stage_no, SceAtPtr(SceSys.m_chapter_door)->dstStage);
+            U8Set(pG->room_no, SceAtPtr(SceSys.m_chapter_door)->dstRoom);
+            U8Set(pG->Part, SceAtPtr(SceSys.m_chapter_door)->dstPart);
             U8Set(pG->JumpPoint, 0);
             U16Set(pG->r_continue_cnt, 0);
         } else {
@@ -810,14 +810,14 @@ void SceChapterEnd()
     BitSet(pG->Stop_flg, stop_bak);
     FadeSetW(0, 0, 0, 0);
     FadeKill(FADE_NO_ROOM);
-    if (SceSys.x78 >= 0) {
+    if (SceSys.m_chapter_door >= 0) {
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);
         U8Set(pG->Part, x4F9E);
-        if (SceAtPtr(SceSys.x78)) {
-            SceAtPtr(SceSys.x78)->x77 = 2;
-            SceAtExecute(SceSys.x78);
+        if (SceAtPtr(SceSys.m_chapter_door)) {
+            SceAtPtr(SceSys.m_chapter_door)->doorFadeEff = 2;
+            SceAtExecute(SceSys.m_chapter_door);
         }
     } else {
         SndRoomBgmStartCheck(1);
@@ -842,8 +842,8 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SceEventStart(0);
     BitOff(pG->Stop_flg, 0x800000);
     SceSys.pause = 1;
-    SceSys.x74 = chapter;
-    SceSys.x78 = doorAt;
+    SceSys.m_chapter_no = chapter;
+    SceSys.m_chapter_door = doorAt;
     SetGameTime();
     SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(1);
@@ -865,7 +865,7 @@ void SceCamMove(Vec* pos, Vec* at, f32 fovy)
     SceCam.up.z = 0.0f;
     SceCam.dist = vecDist(&SceCam.param.pos, &SceCam.param.at);
     CameraSetOrientationUp(&SceCam);
-    CamCtrl.x250 = (s32) &SceCam;
+    CamCtrl.m_pExtraCamera = (s32) &SceCam;
 }
 
 void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
@@ -1427,8 +1427,8 @@ void SceDebugDisp(const char* fmt, ...)
     va_start(ap, fmt);
     char buf[0x100];  // declared after va_start: the register save area and ap get their slots first
     vsprintf(buf, fmt, ap);
-    eprintf(0x14, (s16) SceSys.x7A, 0, 1, "%s", buf);
-    SceSys.x7A += 0xF;
+    eprintf(0x14, (s16) SceSys.m_debug_disp_y, 0, 1, "%s", buf);
+    SceSys.m_debug_disp_y += 0xF;
 }
 
 // Called from title.cpp with an argument (`DebugTrg(1)`): the parameter exists, the body ignores it.

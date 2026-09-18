@@ -783,14 +783,14 @@ static void r221_checkBossAppear_end()
         EffectEspgenDelete(1, 2, (int) em.getPtr());
         EffectEfmDelete(1, 2, (int) em.getPtr());
     }
-    SceAtPtr(1)->x4A = 0x35;
-    SceAtPtr(2)->x4A = 0x35;
-    SceAtPtr(3)->x4A = 0x35;
-    SceAtPtr(0x10)->x4A = 0x35;
-    SceAtPtr(1)->x38 |= 0x80;
-    SceAtPtr(2)->x38 |= 0x80;
-    SceAtPtr(3)->x38 |= 0x80;
-    SceAtPtr(0x10)->x38 |= 0x80;
+    SceAtPtr(1)->actBtnKind = 0x35;
+    SceAtPtr(2)->actBtnKind = 0x35;
+    SceAtPtr(3)->actBtnKind = 0x35;
+    SceAtPtr(0x10)->actBtnKind = 0x35;
+    SceAtPtr(1)->trigger |= 0x80;
+    SceAtPtr(2)->trigger |= 0x80;
+    SceAtPtr(3)->trigger |= 0x80;
+    SceAtPtr(0x10)->trigger |= 0x80;
     em.setNoSuspend(0);
     BitOn(pG->Room_flg[0], 0x00800000);
     BitOn(pG->Room_flg[0], 0x00200000);
@@ -1136,19 +1136,19 @@ void r201_initBonbe()
     SceAtSetEnable(6, 0);
     SceAtSetEnable(0x11, 0);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtPtr(1)->x4A = 1;
-        SceAtPtr(2)->x4A = 1;
-        SceAtPtr(3)->x4A = 1;
-        SceAtPtr(0x10)->x4A = 1;
+        SceAtPtr(1)->actBtnKind = 1;
+        SceAtPtr(2)->actBtnKind = 1;
+        SceAtPtr(3)->actBtnKind = 1;
+        SceAtPtr(0x10)->actBtnKind = 1;
     } else {
-        SceAtPtr(1)->x4A = 0x35;
-        SceAtPtr(2)->x4A = 0x35;
-        SceAtPtr(3)->x4A = 0x35;
-        SceAtPtr(0x10)->x4A = 0x35;
-        SceAtPtr(1)->x38 |= 0x80;
-        SceAtPtr(2)->x38 |= 0x80;
-        SceAtPtr(3)->x38 |= 0x80;
-        SceAtPtr(0x10)->x38 |= 0x80;
+        SceAtPtr(1)->actBtnKind = 0x35;
+        SceAtPtr(2)->actBtnKind = 0x35;
+        SceAtPtr(3)->actBtnKind = 0x35;
+        SceAtPtr(0x10)->actBtnKind = 0x35;
+        SceAtPtr(1)->trigger |= 0x80;
+        SceAtPtr(2)->trigger |= 0x80;
+        SceAtPtr(3)->trigger |= 0x80;
+        SceAtPtr(0x10)->trigger |= 0x80;
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, 0, 1);

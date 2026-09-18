@@ -1763,7 +1763,7 @@ void emWepEscapeCamMove(cEmWep* em)
     w->Cam.up.z = 0.0f;
     w->Cam.dist = SQRTF(len);
     CameraSetOrientationUp(&w->Cam);
-    CamCtrl.x250 = (s32) &w->Cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 void cEmWep::setParent(cEm* parent, int partsNo_, int flag)

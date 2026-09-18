@@ -607,9 +607,9 @@ void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
     em->ang.y = LIMIT_ANGLE(em->ang.y);
     em->setPos(&v);
     if (em->id == 0) {
-        if (CamCtrl.x250) {
-            PSVECAdd(&((Camera*) CamCtrl.x250)->param.at, &d, &((Camera*) CamCtrl.x250)->param.at);
-            PSVECAdd(&((Camera*) CamCtrl.x250)->param.pos, &d, &((Camera*) CamCtrl.x250)->param.pos);
+        if (CamCtrl.m_pExtraCamera) {
+            PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.at, &d, &((Camera*) CamCtrl.m_pExtraCamera)->param.at);
+            PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.pos, &d, &((Camera*) CamCtrl.m_pExtraCamera)->param.pos);
         }
         pG->quake_ofs = d;
     }

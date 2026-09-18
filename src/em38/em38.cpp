@@ -2380,7 +2380,7 @@ void em38EscapeCamMove(cEm38* em)
                         (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 // Action button of em38_R1_T_MdlAtk / T_BigAtk: the player jumps back.

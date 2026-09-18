@@ -315,7 +315,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* pBuff)
         }
         if (cameraDataVersion((char*) pBuff) <= 3) {
             area->attr2 = 1;
-            area->x9 = 0xFF;
+            area->attr3 = 0xFF;
             OSReport("CameraControl::calcAddr(): R%1d%02x Ver%02d", pG->stage_no, pG->room_no,
                      cameraDataVersion((char*) pBuff));
         }
@@ -1050,7 +1050,7 @@ void CameraControl::roomInit()
         r0 = 0;
         BitOn(m_system_flag, 8);
     }
-    x250 = 0;
+    m_pExtraCamera = 0;
     extra = NULL;
     interp.frame = 0;
     Check();
@@ -1086,7 +1086,7 @@ void CameraControl::Check()
     if (pG->Status_flg[0] & 0x1000) {
         return;
     }
-    if (x250 != 0) {
+    if (m_pExtraCamera != 0) {
         return;
     }
     if (m_state_flag & 4) {

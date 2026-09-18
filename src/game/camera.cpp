@@ -97,11 +97,11 @@ void CameraMove()
         CamCtrl.Move();
         if ((pG->Status_flg[0] & 0x100) && !(pG->Debug_flg[0] & 0x10000000)) {
             pG->Cam = CamCtrl.camera;
-            if (CamCtrl.x250 != 0) {
-                pG->Cam = *(Camera*) CamCtrl.x250;
+            if (CamCtrl.m_pExtraCamera != 0) {
+                pG->Cam = *(Camera*) CamCtrl.m_pExtraCamera;
             }
         }
-        CamCtrl.x250 = 0;
+        CamCtrl.m_pExtraCamera = 0;
         if (!(pG->Stop_flg & 0x10000)) {
             QuakeMove();
         }

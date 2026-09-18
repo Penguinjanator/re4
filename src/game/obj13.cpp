@@ -894,7 +894,7 @@ void objLadderClimbCamMove(cEm* em)
     objLadderClimbCam.dist = LadderCamDist(&objLadderClimbCam.param.pos, &objLadderClimbCam.param.at);
     objLadderClimbCam.param.fovy = 55.0f;
     CameraSetOrientationUp(&objLadderClimbCam);
-    CamCtrl.x250 = (s32) &objLadderClimbCam;
+    CamCtrl.m_pExtraCamera = (s32) &objLadderClimbCam;
 }
 
 void objLadderDownActEvtCk(cObjLadder* obj)
@@ -1040,7 +1040,7 @@ void objLadderDownCamMove(cEm* em)
     objLadderDownCam.dist = LadderCamDist(&objLadderDownCam.param.pos, &objLadderDownCam.param.at);
     objLadderDownCam.param.fovy = 55.0f;
     CameraSetOrientationUp(&objLadderDownCam);
-    CamCtrl.x250 = (s32) &objLadderDownCam;
+    CamCtrl.m_pExtraCamera = (s32) &objLadderDownCam;
 }
 
 void objLadderResetActEvtCk(cObjLadder* obj)
@@ -1141,7 +1141,7 @@ void objLadderResetCamMove(cEm* em)
     objLadderResetCam.dist = LadderCamDist(&objLadderResetCam.param.pos, &objLadderResetCam.param.at);
     objLadderResetCam.param.fovy = 55.0f;
     CameraSetOrientationUp(&objLadderResetCam);
-    CamCtrl.x250 = (s32) &objLadderResetCam;
+    CamCtrl.m_pExtraCamera = (s32) &objLadderResetCam;
 }
 
 void cObjLadder::setMotion(void** tbl)

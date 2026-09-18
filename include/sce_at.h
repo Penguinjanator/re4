@@ -47,10 +47,10 @@ struct SceAtDoor {
     u8 lockType;      // 0x12 (0x6E)  1 locked, 2 locked until the flag is set
     u8 lockFlag;      // 0x13 (0x6F)  pG->flags_51DC bit
     void (*func)();   // 0x14 (0x70)  SceSys.x10 / x14 handed over at the jump (SceAtSetDoorFunc)
-    u8 dstX4F9E;      // 0x18 (0x74)
+    u8 dstPart;       // 0x18 (0x74)  pG->Part in the destination room
     s8 se;            // 0x19 (0x75)  locked door SE
     u8 doorNo;        // 0x1A (0x76)  pG->door_no
-    u8 x77;           // 0x1B (0x77)  SceSys.x75 (2 = execute now, SceChapterEnd)
+    u8 fadeEff;       // 0x1B (0x77)  SceSys.m_door_fade_eff (2 = execute now, SceChapterEnd)
     int arg;          // 0x1C (0x78)
 };
 
@@ -141,10 +141,10 @@ struct SceAtSkey {
 struct SceAtMesData {
     s16 type;         // 0x00
     s16 no;           // 0x02  < 0: no message
-    u8 x4;            // 0x04  camera cut + 1
-    u8 x5;            // 0x05  SE block select
-    u16 x6;           // 0x06  SE + 1
-    u8 x8;            // 0x08  bit2: keep the camera
+    u8 camCut;        // 0x04  camera cut + 1 (CamCtrl.CutCall)
+    u8 seBlk;         // 0x05  SE block select (0: SndCall block 6, else block 0)
+    u16 se;           // 0x06  SE + 1
+    u8 flag;          // 0x08  bit2: keep the camera cut after the message
     u8 pad_9[3];
 };
 
@@ -153,27 +153,27 @@ struct SceAtWork {
     u32 next;         // 0x00  OTag link
     AreaData area;    // 0x04 .. 0x34
     u8 flag;          // 0x34  bit0 enabled, bit2 allocated (SceAtCreate*), bit3 parent rotation ignored
-    u8 x35;           // 0x35  type (index into sceAtFunc_tbl)
+    u8 type;          // 0x35  area type (index into sceAtFunc_tbl)
     u8 no;            // 0x36  area number (SceAtPtr key; ITA records + 0x80)
-    u8 x37;           // 0x37  bit0 test the front point instead of the position, bit1 angle check
-    u8 x38;           // 0x38  checker mask: 1 player, 2 enemy, 8 partner; bit3 (8) action button, bit7 disable after use
-    u8 x39;           // 0x39  target mask compared with the checker type
+    u8 checkFlag;     // 0x37  bit0 test the front point instead of the position, bit1 angle check
+    u8 trigger;       // 0x38  hit state bits that fire the area (1/2/4), bit3 (8) action button, bit7 disable after use
+    u8 checkType;     // 0x39  who may trigger it: 1 player, 2 enemy, 8 partner (SceAtCheck type mask)
     u8 prio;          // 0x3A  SceExec priority (0 = call func directly)
-    u8 prioBak;       // 0x3B  x38 saved by SceAtDataSet_exec
+    u8 prioBak;       // 0x3B  trigger saved by SceAtDataSet_exec
     int arg;          // 0x3C
     TaskFunc func;    // 0x40
-    u8 x44;           // 0x44  ordering table index (0..15)
-    u8 x45;           // 0x45  SceExec flag
+    u8 otNo;          // 0x44  ordering table index (0..15) passed to SceExec / ActBtn.set
+    u8 execFlag;      // 0x45  SceExec flag
     u8 linkType;      // 0x46  1 enemy list entry, 2 etc model
     u8 linkNo;        // 0x47
     s8 angle;         // 0x48  * 2 degrees
     s8 angleRange;    // 0x49  * 2 degrees
-    u8 x4A;           // 0x4A  action button kind
+    u8 actBtnKind;    // 0x4A  action button kind (ActBtn.set)
     u8 pad_4B;
     cModel* pParent;  // 0x4C
     s16 parentParts;  // 0x50  -1 = the model itself
-    u8 x52;           // 0x52  bit0 / bit1: disabled at room start depending on pG->x4F93
-    u8 x53;           // 0x53  action button colour
+    u8 langDisable;   // 0x52  bit0 / bit1: disabled at room start depending on pG->language
+    u8 actBtnColor;   // 0x53  action button colour (1 = alternate)
     u8 pad_54[8];
     union {
         cModel* hitModel[16];  // 0x5C  type 0: models inside this frame
@@ -186,10 +186,10 @@ struct SceAtWork {
             u8 lockType;      // 0x6E
             u8 lockFlag;      // 0x6F
             void (*doorFunc)();  // 0x70
-            u8 dstX4F9E;      // 0x74
+            u8 dstPart;       // 0x74  pG->Part in the destination room
             s8 doorSe;        // 0x75
             u8 doorNo;        // 0x76
-            u8 x77;           // 0x77  (2 = execute now, SceChapterEnd)
+            u8 doorFadeEff;   // 0x77  -> SceSys.m_door_fade_eff (2 = execute now, SceChapterEnd)
             int doorArg;      // 0x78
         };
         SceAtCamCtrl cam;

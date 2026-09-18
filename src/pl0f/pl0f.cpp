@@ -1195,7 +1195,7 @@ void pl0fRideCamMove(cPl0f* em, f32 rate)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 static Vec pl0f_getoff_cam_ofs = { -1000.0f, 1500.0f, -5000.0f };
@@ -1218,7 +1218,7 @@ void pl0fGetoffCamMove(cPl0f* em)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 static Vec pl0f_boss_cam_ofs = { -1200.0f, 1400.0f, 0.0f };
@@ -1371,7 +1371,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 static Vec pl0f_hide_cam_at = { -500.0f, 1850.0f, -1800.0f };
@@ -1415,7 +1415,7 @@ void pl0fHideModeCamMove(cPlayer* pl)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 static Vec pl0f_die_cam_at = { -300.0f, 1700.0f, -2500.0f };
@@ -1459,7 +1459,7 @@ void pl0fBossDieCamMove(cPlayer* pl)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 void pl0fRideActEvtCk(cPl0f* em)
@@ -2915,7 +2915,7 @@ void pl00SwimCamMove(cPlayer* pl)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 void pl00SetChaseCam(cPlayer* pl)
@@ -2950,7 +2950,7 @@ void pl00ChaseCamMove(cPlayer* pl)
     pl0f_camera.up.y = 1.0f;
     pl0f_camera.up.z = 0.0f;
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 void pl00SetDieCam(cPlayer* pl)
@@ -2988,7 +2988,7 @@ void pl00DieCamMove(cPlayer* pl)
     PSMTXRotRad(m, 'y', pl->ang.y);
     PSMTXMultVecSR(m, &v, &pl0f_camera.up);
     CAM_SET(pl0f_camera);
-    CamCtrl.x250 = (s32) &pl0f_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
 void pl00SetDropCam(cPlayer* pl)
@@ -3033,7 +3033,7 @@ void pl00DropCamMove(cPlayer* pl)
     pl00_drop_camera.up.y = 1.0f;
     pl00_drop_camera.up.z = 0.0f;
     CAM_SET(pl00_drop_camera);
-    CamCtrl.x250 = (s32) &pl00_drop_camera;
+    CamCtrl.m_pExtraCamera = (s32) &pl00_drop_camera;
     pG->Status_flg[1] &= ~0x00100000;
     if (GetWaterHeight(&at, &h)) {
         switch (pl->x3EC) {

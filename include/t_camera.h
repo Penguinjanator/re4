@@ -32,7 +32,7 @@ struct TcAdat {                  // camera hit area, 0x11C
     u8 attr;                     // 0x03
     f32 dir;                     // 0x04
     u8 attr2;                    // 0x08
-    u8 x9;                       // 0x09
+    u8 attr3;                    // 0x09  attribute bits edited by the attribute cursor (0xFF = none)
     u8 pad_A[0x20 - 0xA];
     Mtx mat;                     // 0x20
     f32 height;                  // 0x50
@@ -80,12 +80,12 @@ struct TcLdat {                  // camera lerp, 0x10 (CameraLerp)
 struct TcWork {
     s8 routine;                  // 0x000  tcRoutineTbl index (tcInit, tcMenu, tcEdit, tcLoad, tcSave, tcQuit)
     s8 editMode;                 // 0x001  tcEdit: 0 select, 1 edit
-    s8 x2;                       // 0x002  tcEdit_select mode: 0 list, 1 flag/copy/delete, 2 links, 3 attributes
-    s8 x3;                       // 0x003  tcEdit_select step
+    s8 selMode;                  // 0x002  tcEdit_select mode: 0 list, 1 flag/copy/delete, 2 links, 3 attributes
+    s8 selStep;                  // 0x003  tcEdit_select step
     s8 cursor;                   // 0x004  main menu cursor
     s8 subCursor;                // 0x005  sub menu cursor
-    s8 x6;                       // 0x006  editor menu cursor
-    s8 x7;                       // 0x007  area vertex insert/delete menu cursor
+    s8 editCursor;               // 0x006  editor menu cursor
+    s8 vtxMenuCursor;            // 0x007  area vertex insert/delete menu cursor
     TcAdat* pAdat;               // 0x008  current area
     TcLdat* pLdat;               // 0x00C  link being edited (tcEdit_select)
     Camera cam;                  // 0x010  tool copy of pG->Cam
@@ -97,36 +97,36 @@ struct TcWork {
     u8 pad_5DE;
     s8 cdatNo;                   // 0x5DF  current camera data
     s8 adatNo;                   // 0x5E0  current area data
-    s8 x5E1;                     // 0x5E1
+    s8 adatSuffix;               // 0x5E1  suffix (cam_no) of the current area data, -1 = none
     s8 cdatNum;                  // 0x5E2
     s8 adatNum;                  // 0x5E3
     s8 ldatNum;                  // 0x5E4
     u8 adatTypeNum[0x40];        // 0x5E5  per camera type
-    s8 x625;                     // 0x625  area editor: current vertex (-1 all)
-    s8 x626;                     // 0x626  area editor: current side
-    s8 x627;                     // 0x627  camera editor: current key point
-    s8 x628;                     // 0x628  camera editor: current segment (insert)
-    s8 x629;                     // 0x629  camera editor: copy side (1 = right)
+    s8 curVtx;                   // 0x625  area editor: current vertex (-1 all)
+    s8 curSide;                  // 0x626  area editor: current side
+    s8 curKey;                   // 0x627  camera editor: current key point
+    s8 curSeg;                   // 0x628  camera editor: current segment (insert)
+    s8 copySide;                 // 0x629  camera editor: copy side (1 = right)
     u8 pad_62A;
-    u8 x62B;                     // 0x62B  camera type changed (fix_camera_dat)
-    u8 x62C;                     // 0x62C  camera type edit active
-    s8 x62D;                     // 0x62D  camera type before the edit
+    u8 typeChanged;              // 0x62B  camera type changed (fix_camera_dat)
+    u8 typeEdit;                 // 0x62C  camera type edit active
+    s8 typeOld;                  // 0x62D  camera type before the edit
     u8 viewMode;                 // 0x62E  1 = working view
-    u8 x62F;                     // 0x62F
-    s8 x630;                     // 0x630  attribute bit cursor
-    u8 x631;                     // 0x631  rail editor: offset edits the target (1) or the campos (0)
+    u8 distTarget;               // 0x62F  working view: the distance edits the target (1) or the campos (0)
+    s8 attrCursor;               // 0x630  attribute bit cursor
+    u8 railOfsTarget;            // 0x631  rail editor: offset edits the target (1) or the campos (0)
     u8 previewReq;               // 0x632
     u8 preview;                  // 0x633  preview on
-    s8 x634;                     // 0x634  CamCtrl+0x692
-    s8 x635;                     // 0x635  CamCtrl+0x690
-    s8 x636;                     // 0x636  CamCtrl+0x691
-    u8 x637;                     // 0x637  pSys->xB
+    s8 cameraNo;                 // 0x634  CamCtrl.cameraNo at tool start (highlighted in the list)
+    s8 areaNo;                   // 0x635  CamCtrl.areaNo
+    s8 areaSuffix;               // 0x636  CamCtrl.areaSuffix
+    u8 keyTypeBak;               // 0x637  pSys->key_type saved while the tool runs
     u8 lightTool;                // 0x638  1 while the light tool runs
     u8 areaDetail;               // 0x639
     u8 blink;                    // 0x63A  frame counter
     u8 pad_63B;
     cLightTool* pLightTool;      // 0x63C
-    u8 x640;                     // 0x640  core camera data (CoreDataRead) instead of room data
+    u8 coreData;                 // 0x640  1 = core camera data (CoreDataRead) instead of room data
     u8 pad_641[0x644 - 0x641];
 };
 

@@ -461,7 +461,7 @@ static void r205_ExecDieDemo(R205Pend* p)
             cam.param.at = parts->world;
             i++;
             CameraSetOrientationUp(&cam);
-            CamCtrl.x250 = (s32) &cam;
+            CamCtrl.m_pExtraCamera = (s32) &cam;
             SceSleep(1);
         } else {
             break;

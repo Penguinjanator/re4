@@ -1430,7 +1430,7 @@ void playerRunCamMovePassage(cPlayer* pl, f32 t)
     cam->up.z = 0.0f;
     cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 void playerRunCamMoveBridge(cPlayer* pl, f32 t)
@@ -1458,7 +1458,7 @@ void playerRunCamMoveBridge(cPlayer* pl, f32 t)
     cam->up.z = 0.0f;
     cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 void playerRunCamDiePassage(cPlayer* pl)
@@ -1476,7 +1476,7 @@ void playerRunCamDiePassage(cPlayer* pl)
     cam->up.z = 0.0f;
     cam->dist = vecDist(&r226_cam.param.pos, &r226_cam.param.at);
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 // Starts the pillar `smdNo` falling once the player passed it by `dist`.

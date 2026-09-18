@@ -1833,7 +1833,7 @@ void plemRockEscapeCamMove(cPlayer* pl, f32 rate)
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 
@@ -1881,7 +1881,7 @@ void plemRockEscapeCamMove2(cPlayer* pl, int side)
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 
@@ -1918,7 +1918,7 @@ void plemRockDropDieCamMove(cEmRock* em)
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 
@@ -1968,7 +1968,7 @@ void emRockPushCamMove(cEmRock* em)
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 
@@ -2020,7 +2020,7 @@ void emRockPushCamMove2(cEmRock* em)
         cam->up.z = 0.0f;
         cam->dist = SQRTF(len);
         CameraSetOrientationUp(cam);
-        CamCtrl.x250 = (s32) cam;
+        CamCtrl.m_pExtraCamera = (s32) cam;
     }
 }
 
@@ -2052,7 +2052,7 @@ void emRockDropCamMove(cEmRock* em)
     len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
     cam->dist = SQRTF(len);
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 // Enemies (ids 0x10..0x20) within 1.5 radii of the rock are knocked down (routine 3/4).

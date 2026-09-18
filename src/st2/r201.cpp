@@ -231,8 +231,8 @@ void R201Init()
     {
         u8 kind = 1;
 
-        SceAtPtr(0x26)->x4A = kind;
-        SceAtPtr(0x27)->x4A = kind;
+        SceAtPtr(0x26)->actBtnKind = kind;
+        SceAtPtr(0x27)->actBtnKind = kind;
     }
 }
 

@@ -608,7 +608,7 @@ static void reva_move()
             PSMTXMultVecSR(mtx, &d, &d);
             PSVECAdd(&d, &cam->param.pos, &cam->param.at);
             CameraSetOrientationUp(&r224_work.p->cam);
-            CamCtrl.x250 = (s32) &r224_work.p->cam;
+            CamCtrl.m_pExtraCamera = (s32) &r224_work.p->cam;
             if (Key.trg & 0x00080000) {
                 pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 5, 0, 1, 0);
                 frames = (u32) MotionGetMaxFrame(&pPL->Motion);

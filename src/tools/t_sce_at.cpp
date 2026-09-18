@@ -460,13 +460,13 @@ static void tSceAtAreaEdit()
         pW->step2 = 0;
     }
     if (pW->copyValid) {
-        eprintf(pW->x, pW->y - 0x10, 7, 0, "->AREA[ %d ]  ID:%s", pW->copySrc, TYPE_NAME(pW->area[pW->copySrc].x35));
+        eprintf(pW->x, pW->y - 0x10, 7, 0, "->AREA[ %d ]  ID:%s", pW->copySrc, TYPE_NAME(pW->area[pW->copySrc].type));
     }
     pCur = &pW->area[pW->areaNo];
     eprintf(pW->x, pW->y, 4, 0, "AREA[ %d ]", pW->areaNo);
     if (pCur->flag & 1) {
         eprintf(pW->x + 0x58, pW->y, 0, 0, "ID:");
-        eprintf(pW->x + 0x58, pW->y, 6, 0, "   %s", TYPE_NAME(pCur->x35));
+        eprintf(pW->x + 0x58, pW->y, 6, 0, "   %s", TYPE_NAME(pCur->type));
     } else {
         eprintf(pW->x + 0x58, pW->y, 2, 0, "no data:");
     }
@@ -556,12 +556,12 @@ static void tSceAtAreaEdit_AreaCreate()
                 }
             }
             pCur->flag |= 3;
-            pCur->x38 = 2;
-            pCur->x39 = 1;
-            pCur->x37 |= 1;
+            pCur->trigger = 2;
+            pCur->checkType = 1;
+            pCur->checkFlag |= 1;
             pCur->angle = 0;
             pCur->angleRange = 0x2D;
-            pCur->x44 = 2;
+            pCur->otNo = 2;
             pW->editCursor = 0;
             SUB_RESET();
         }
@@ -645,32 +645,32 @@ void tSceAtAreaEdit_disp()
         if ((pW->area[i].flag & 1) == 0) continue;
         col = 0x60808080;
         if (pW->areaNo == i) col = 0xA0FF8080;
-        if (pW->area[i].x35 != 0xC) {
+        if (pW->area[i].type != 0xC) {
             AreaDataDisp(&pW->area[i].area, col, 1, NULL);
-            if (pW->area[i].x37 & 2) angle_arrow_disp(&pW->area[i]);
+            if (pW->area[i].checkFlag & 2) angle_arrow_disp(&pW->area[i]);
         }
-        if (pW->area[i].x35 == 0xC) {
+        if (pW->area[i].type == 0xC) {
             if (pW->areaNo == i) {
                 tSceAtCamCtrlDataDisp(&pW->area[i].cam, 1);
             } else {
                 tSceAtCamCtrlDataDisp(&pW->area[i].cam, 0);
             }
         }
-        if (pW->area[i].x35 == 0x10) {
+        if (pW->area[i].type == 0x10) {
             if (pW->areaNo == i) {
                 tSceAtLadderDataDisp((TSceAtLadder*) pW->area[i].data, 1);
             } else {
                 tSceAtLadderDataDisp((TSceAtLadder*) pW->area[i].data, 0);
             }
         }
-        if (pW->area[i].x35 == 0x13) {
+        if (pW->area[i].type == 0x13) {
             if (pW->areaNo == i) {
                 tSceAtPosJumpDataDisp((TSceAtPosJump*) pW->area[i].data, 1);
             } else {
                 tSceAtPosJumpDataDisp((TSceAtPosJump*) pW->area[i].data, 0);
             }
         }
-        if (pW->area[i].x35 == 0x12) {
+        if (pW->area[i].type == 0x12) {
             if (pW->areaNo == i) {
                 tSceAtHideDataDisp((TSceAtHide*) pW->area[i].data, 1);
             } else {
@@ -709,7 +709,7 @@ static void tSceAtAreaEdit_DataInput()
                              tSceAtDataInput_hide,       tSceAtDataInput_pos_jump, tSceAtDataInput_normal};
 
     if (pCur->flag & 1) {
-        routine[pCur->x35]();
+        routine[pCur->type]();
     }
     if (Joy[0].trg & JOY_B) {
         SUB_RESET();
@@ -746,19 +746,19 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
     int m;
     u8 on;
 
-    on = pCur->x37 & 2;
+    on = pCur->checkFlag & 2;
     if (on) on = 1;
     menu[2].Be_flg = on;
     menu[3].Be_flg = on;
     do { } while (0); // COMPILER-DIFF: #12 (ends the cse1 path from bb0; sched region split)
-    on = PC(m5)->x38 & 8;
+    on = PC(m5)->trigger & 8;
     if (on) on = 1;
     menu[5].Be_flg = on;
     x = pW->x + 0x80;
     y = pW->y;
     switch (sel) {
     case 0:
-        n = PC(c0)->x35;
+        n = PC(c0)->type;
         if (Joy[0].rep & REP_RIGHT) {
             n++;
             if (n == 3) n = 4;
@@ -768,18 +768,18 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
             if (n == 3) n = 2;
         }
         CLAMP(n, m, 0x14);
-        pCur->x35 = m;
+        pCur->type = m;
         break;
     case 1:
-        n = PC(c1)->x37;
+        n = PC(c1)->checkFlag;
         if (Joy[0].rep & REP_RIGHT) n--;
         if (Joy[0].rep & REP_LEFT) n++;
         m = WRAP(n, 3);
-        pCur->x37 = m;
+        pCur->checkFlag = m;
         break;
     case 2: {
         SceAtWork* a = PC(c2);
-        if (a->x37 & 2) {
+        if (a->checkFlag & 2) {
             n = a->angle;
             if (Joy[0].rep & 0x20000) n += 0x2D;
             if (Joy[0].rep & 0x10000) n -= 0x2D;
@@ -792,7 +792,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     }
     case 3:
-        if (PC(c3)->x37 & 2) {
+        if (PC(c3)->checkFlag & 2) {
             n = PC(c3)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
@@ -802,7 +802,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     case 4: {
         SceAtWork* a = PC(c4);
-        u8 f = a->x38;
+        u8 f = a->trigger;
         n = f & 0x7F;
         if (Joy[0].rep & REP_RIGHT) {
             switch (n) {
@@ -817,7 +817,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
                 break;
             case 8:
                 if (!(f & 0x80)) {
-                    a->x38 = f | 0x80;
+                    a->trigger = f | 0x80;
                     n = 2;
                 }
                 break;
@@ -826,8 +826,8 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         if (Joy[0].rep & REP_LEFT) {
             switch (n) {
             case 2:
-                if (pCur->x38 & 0x80) {
-                    pCur->x38 &= 0x7F;
+                if (pCur->trigger & 0x80) {
+                    pCur->trigger &= 0x7F;
                     n = 8;
                 }
                 break;
@@ -842,28 +842,28 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
                 break;
             }
         }
-        pCur->x38 = (pCur->x38 & 0x80) | n;
+        pCur->trigger = (pCur->trigger & 0x80) | n;
         break;
     }
     case 5:
-        if (PC(c5)->x38 & 8) {
-            n = PC(c5)->x4A;
+        if (PC(c5)->trigger & 8) {
+            n = PC(c5)->actBtnKind;
             STEP(rep2, n);
             m = WRAP(n, 0x41);
-            pCur->x4A = m;
+            pCur->actBtnKind = m;
         }
         break;
     case 6:
-        n = PC(c6)->x39;
+        n = PC(c6)->checkType;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
-        pCur->x39 = m;
+        pCur->checkType = m;
         break;
     case 7:
-        n = PC(c7)->x44;
+        n = PC(c7)->otNo;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
-        pCur->x44 = m;
+        pCur->otNo = m;
         break;
     default:
         eprintf(x + 0x40, y - 0x10, 5, 0, "(push Y:data init.)");
@@ -872,11 +872,11 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         }
         break;
     }
-    eprintf(x, y, 0, 0, "%s", TYPE_NAME(pCur->x35));
+    eprintf(x, y, 0, 0, "%s", TYPE_NAME(pCur->type));
     y += 0x10;
-    eprintf(x, y, 0, 0, "%s", tSceAtHitTypeName[pCur->x37]);
+    eprintf(x, y, 0, 0, "%s", tSceAtHitTypeName[pCur->checkFlag]);
     y += 0x10;
-    if (pCur->x37 & 2) {
+    if (pCur->checkFlag & 2) {
         eprintf(x, y, 0, 0, "%d", pCur->angle * 2);
         y += 0x10;
         eprintf(x, y, 0, 0, "%d", pCur->angleRange * 2);
@@ -885,23 +885,23 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         y += 0x20;
     }
     {
-        u32 t = pCur->x38 & 0x7F;
+        u32 t = pCur->trigger & 0x7F;
         eprintf(x, y, 0, 0, "%s", t <= 8 ? tSceAtTrgName[t] : "...no string");
     }
-    if (pCur->x38 & 0x80) {
+    if (pCur->trigger & 0x80) {
         eprintf(x, y, 6, 0, "         (boot up only ones.)");
     }
     y += 0x10;
-    if (pCur->x38 & 8) {
-        eprintf(x, y, 0, 0, "%d", pCur->x4A);
+    if (pCur->trigger & 8) {
+        eprintf(x, y, 0, 0, "%d", pCur->actBtnKind);
     }
     y += 0x10;
-    eprintf(x, y, 0, 0, "%s", tSceAtTargetName[pCur->x39]);
+    eprintf(x, y, 0, 0, "%s", tSceAtTargetName[pCur->checkType]);
     y += 0x10;
-    if (pCur->x44 == 2) {
+    if (pCur->otNo == 2) {
         eprintf(x, y, 0, 0, "default");
     } else {
-        eprintf(x, y, 0, 0, "%d", pCur->x44);
+        eprintf(x, y, 0, 0, "%d", pCur->otNo);
     }
     eprintf(x, y, 6, 0, "        [0:low - 15:high]");
     pW->y = y + 0x10;
@@ -973,10 +973,10 @@ static void tSceAtDataInput_door()
         pCur->dstRoom = m;
         break;
     case 0xA:
-        n = pCur->dstX4F9E;
+        n = pCur->dstPart;
         STEP(rep2, n);
         m = WRAP(n, 0x7F);
-        pCur->dstX4F9E = m;
+        pCur->dstPart = m;
         break;
     case 0xB:
         if (Joy[0].trg & JOY_A) tSceAtDataInput_door_PosSet();
@@ -1019,10 +1019,10 @@ static void tSceAtDataInput_door()
         pCur->doorNo = m;
         break;
     case 0x14:
-        n = pCur->x77;
+        n = pCur->doorFadeEff;
         STEP(rep2, n);
         m = WRAP(n, 2);
-        pCur->x77 = m;
+        pCur->doorFadeEff = m;
         break;
     }
     x = pW->x + 0x80;
@@ -1031,7 +1031,7 @@ static void tSceAtDataInput_door()
     y += 0x10;
     eprintf(x, y, 0, 0, "%02x", pCur->dstRoom);
     y += 0x10;
-    eprintf(x, y, 0, 0, "%02x", pCur->dstX4F9E);
+    eprintf(x, y, 0, 0, "%02x", pCur->dstPart);
     y += 0x20;
     eprintf(x, y, 0, 0, " %.0f", pCur->dstPos.x);
     y += 0x10;
@@ -1049,7 +1049,7 @@ static void tSceAtDataInput_door()
     y += 0x10;
     eprintf(x, y, 0, 0, "%d", pCur->doorNo);
     y += 0x10;
-    eprintf(x, y, 0, 0, "%s", (u32) pCur->x77 <= 2 ? tSceAtFadeName[pCur->x77] : "...no string");
+    eprintf(x, y, 0, 0, "%s", (u32) pCur->doorFadeEff <= 2 ? tSceAtFadeName[pCur->doorFadeEff] : "...no string");
     pW->y = y + 0x10;
 }
 
@@ -1083,7 +1083,7 @@ void tSceAtDataInput_door_PosSet()
         U8Set(pG->Part_old, pG->Part);
         U8Set(pG->next_stage, pCur->dstStage);
         U8Set(pG->next_room_no, pCur->dstRoom);
-        U8Set(pG->next_point, pCur->dstX4F9E);
+        U8Set(pG->next_point, pCur->dstPart);
     }
     *(TOOL_PTR(0x8678)) = 7;
     TOOL_FLAG(0x68) |= 0x80000000;
@@ -1203,22 +1203,22 @@ static void tSceAtDataInput_mes()
         d->no = n;
         break;
     case 0xA:
-        n = d->x4;
+        n = d->camCut;
         STEP(rep2, n);
         CLAMP(n, m, 0xFF);
-        d->x4 = m;
+        d->camCut = m;
         break;
     case 0xB:
-        n = d->x5;
+        n = d->seBlk;
         STEP(rep, n);
         CLAMP(n, m, 1);
-        d->x5 = m;
+        d->seBlk = m;
         break;
     case 0xC:
-        n = d->x6;
+        n = d->se;
         STEP(rep2, n);
         CLAMP(n, m, 0x1FF);
-        d->x6 = m;
+        d->se = m;
         break;
     }
     x = pW->x + 0x80;
@@ -1239,18 +1239,18 @@ static void tSceAtDataInput_mes()
         }
     }
     y += 0x10;
-    if (d->x4 == 0) {
+    if (d->camCut == 0) {
         eprintf(x, y, 0, 0, "no cam");
     } else {
-        eprintf(x, y, 0, 0, "%d", d->x4 - 1);
+        eprintf(x, y, 0, 0, "%d", d->camCut - 1);
     }
     y += 0x10;
-    eprintf(x, y, 0, 0, "%s", d->x5 != 0 ? "SE_PL" : "SE_ROOM");
+    eprintf(x, y, 0, 0, "%s", d->seBlk != 0 ? "SE_PL" : "SE_ROOM");
     y += 0x10;
-    if (d->x6 == 0) {
+    if (d->se == 0) {
         eprintf(x, y, 0, 0, "no se");
     } else {
-        eprintf(x, y, 0, 0, "%d", d->x6 - 1);
+        eprintf(x, y, 0, 0, "%d", d->se - 1);
     }
 }
 
@@ -1427,7 +1427,7 @@ static void tSceAtDataInput_damage()
     case 8:
         n = d->kind;
         STEP(rep, n);
-        em = pCur->x39 & 9;
+        em = pCur->checkType & 9;
         if (em != 0) {
             CLAMP(n, m, 0x1E);
             n = m;
@@ -1467,7 +1467,7 @@ static void tSceAtDataInput_damage()
     }
     x = pW->x + 0x80;
     y = pW->y;
-    em = pCur->x39 & 9;
+    em = pCur->checkType & 9;
     if (em != 0) {
         eprintf(x, y, 0, 0, "%d", d->kind);
     } else {
@@ -2518,7 +2518,7 @@ void tSceAtSaveDataCreate()
 
     pW->saveNum = 0;
     for (i = 0; i < AREA_NUM; i++) {
-        if ((pW->area[i].flag & 1) && pW->area[i].x35 != 3) {
+        if ((pW->area[i].flag & 1) && pW->area[i].type != 3) {
             pW->area[i].no = i;
             pW->area[i].func = NULL;
             pW->area[i].arg = 0;

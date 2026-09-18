@@ -2335,7 +2335,7 @@ void em32EscapeCamMove(cEm32* em)
                         (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y) +
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 // Step up onto a container: the run-up towards stepPos, then the tunnel attack / wait / step down.

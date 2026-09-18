@@ -26,7 +26,7 @@ struct CameraAreaInfo {  // hit area
     u8 attr;      // 0x03  bit 4 = ?, bit 8 = ?, 0x20 set from 8 by calcAddr, 0x40 = check dir, 0x80 = no light update
     f32 dir;      // 0x04  facing angle the player must have (attr & 0x40)
     u8 attr2;     // 0x08  matched against battle/state attribute
-    u8 x9;        // 0x09
+    u8 attr3;     // 0x09  third attribute byte (t_camera TcAdat::attr3; 0xFF = none)
     u8 pad_A[0x20 - 0x0A];
     f32 height;   // 0x20
     f32 base_y;   // 0x24
@@ -158,7 +158,7 @@ public:
     Camera camera;                // 0x60
     Mtx prev_mat;                 // 0x158  camera matrix CamStick2World keeps while the cut changes
     u8 pad_188[0x250 - 0x188];
-    s32 x250;                     // 0x250  nonzero blocks the fall-check in Check()
+    s32 m_pExtraCamera;           // 0x250  Camera* of a boss/event camera (em2a/em2b/em2c/em2d); nonzero blocks the fall-check in Check()
     CameraInterpolation interp;   // 0x254
     CameraQuasiFPS m_QuasiFPS;          // 0x278
     u8 m_Free[0x200];          // 0x48C  placement storage for cCamera subclasses

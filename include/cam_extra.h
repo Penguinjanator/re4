@@ -118,16 +118,10 @@ public:
 class CameraBinocular : public cCamera {
 public:
     s32 mode;          // 0x0FC
-    f32 x100;          // 0x100
-    f32 x104;          // 0x104
-    f32 x108;          // 0x108
-    f32 x10C;          // 0x10C
-    f32 x110;          // 0x110
-    f32 x114;          // 0x114
-    f32 x118;          // 0x118
-    f32 x11C;          // 0x11C
-    f32 x120;          // 0x120
-    f32 x124;          // 0x124
+    Vec m_rad;         // 0x100  view angles (x yaw, y pitch), clamped between m_rad_low / m_rad_up
+    Vec m_rad_low;     // 0x10C  setRange lower limits (default -60 deg)
+    Vec m_rad_up;      // 0x118  setRange upper limits (default 60 deg)
+    f32 m_zoom_ratio;  // 0x124  zoom 0..1 (fovy gain = 1 - 0.9 * zoom)
     IdBinocular id;    // 0x128
     FocusAnimation m_focus;  // 0x168
     Vec m_campos;     // 0x178

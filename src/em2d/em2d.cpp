@@ -5351,7 +5351,7 @@ int em2dCamMove(cEm2d* em, int mode, f32 rate)
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
     return blocked ^ 1;
 }
 
@@ -5377,7 +5377,7 @@ void em2dDieCamMove(cEm2d* em)
                         (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z));
     w->cam.param.fovy = 50.0f;
     CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
 int em2dStayCk(cEm2d* em)

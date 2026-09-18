@@ -84,9 +84,9 @@ void ScenarioRoomInit()
     SceSys.pDoorParam = 0;
     SceSys.pCancelFunc = 0;
     SceSys.cancelArg = 0;
-    SceSys.x134 = 0;
-    SceSys.x75 = 0;
-    SceSys.x76 = 0;
+    SceSys.pLadderTask = 0;
+    SceSys.m_door_fade_eff = 0;
+    SceSys.m_item_get = 0;
     SceSys.pause = 0;
     pGS->Item_find_flg &= ~0x80;
     ScenarioTaskAllOff();
@@ -118,9 +118,9 @@ void ScenarioTaskAllOff()
 
 void scenarioLoopBeforeInit()
 {
-    SceSys.x7A = 0x3C;
+    SceSys.m_debug_disp_y = 0x3C;
     if (pSUB != 0) {
-        SceSys.x7A = 0x5A;
+        SceSys.m_debug_disp_y = 0x5A;
     }
     SceExecCheckCondition();
 }
@@ -137,7 +137,7 @@ void ScenarioMove()
         return;
     }
     scenarioLoopBeforeInit();
-    if (SceSys.x76 == 0 && SceSys.pause == 0) {
+    if (SceSys.m_item_get == 0 && SceSys.pause == 0) {
         if (!(pG->Status_flg[0] & 0x100000)) {
             scenarioCheckEventCancel();
             RoomData.execMainFunc(pG->room_id);
@@ -195,7 +195,7 @@ void cSceSys::scheduler()
 
     pParentThread = 0;
     ctask = pCTask;
-    if (SceSys.x76 == 0 && SceSys.pause == 0) {
+    if (SceSys.m_item_get == 0 && SceSys.pause == 0) {
         for (i = 0; i < 13; i++) {
             prim[i].running = 0;
         }
@@ -223,7 +223,7 @@ void cSceSys::scheduler()
             pCTask->Status = running;
         }
         if (pG->Rno0 == 2) {
-            waitRead = (x73 != 0) ? 1 : 0;
+            waitRead = (m_init_loop_flag != 0) ? 1 : 0;
             if (waitRead) {
                 pParentThread = parent;
                 pCTask = ctask;
