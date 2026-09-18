@@ -1,17 +1,23 @@
+// game/filter05: screen filter 05 (D:/Bio4/Prog/filter05.cpp): removed from the retail build, every
+// entry is empty. Effect controller 44 still calls Filter05SetParam.
 #include "filter.h"
 
+// Empty (filter removed).
 void Filter05Init()
 {
 }
 
+// Empty (filter removed).
 void Filter05RoomInit()
 {
 }
 
+// Empty (filter removed).
 void Filter05Trans()
 {
 }
 
+// Empty: parameters from effect controller 44 are ignored.
 void Filter05SetParam(int a, int b, int c, int d, int e, int f, int g, f32 x, f32 y, f32 z)
 {
 }

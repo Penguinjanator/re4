@@ -1,3 +1,9 @@
+// game/model: the model class hierarchy (D:/Bio4/Prog/model.cpp). cModel (a cCoord with parts) owns
+// a chain of cModelInfo (one per .bin model data + TPL: the body, then added parts models) and a
+// linked list of cParts (one per joint, from cPartsMgr), and carries the MotionWork, collision
+// info, light info and draw parameters used by every character/object. Also: pointer relocation
+// of model/TPL files (calcModelAddr / calcTplAddr and their inverses), bounding boxes, the parts
+// and model-info managers (PartsMgr, ModInfoMgr), and the debug skeleton display.
 #include "atari.h"
 #include "model.h"
 #include "motion.h"
@@ -52,6 +58,7 @@ static inline u32 U32Get(u32& v)
     return v;
 }
 
+// Clears a model's light-area state.
 // The 0.0 pool load of the light area sinks below the three word stores: an inlined helper
 // (integrate.c drops RTX_UNCHANGING_P from the pool MEM).
 static inline void LightAreaInit(EmLightArea* la)
@@ -69,6 +76,8 @@ static inline void U8Set(u8& d, u8 v)
     d = v;
 }
 
+// Empty model: collision/light-area info constructed, no parts, no model info, motion cleared,
+// alpha_omit 0xFF.
 cModel::cModel()
 {
     AtariInfoConstruct(&atari);
@@ -120,6 +129,9 @@ cModel::cModel()
     pTexChg = 0;
 }
 
+// Loads a model: relocates bin/tpl, creates the first cModelInfo, builds the parts list from the
+// model's joints (initJoint), sets visible/alive flags (invisible_factor 1, or 0 when the
+// System_flg 0x800000 fade-in mode), enemies (kindid 0) get be_flag 0x10. Returns the info (0 on failure).
 int cModel::modelInit(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -167,6 +179,8 @@ int cModel::modelInit(void* bin, void* tpl)
     return (int) info;
 }
 
+// Creates nParts cParts for the model's joints, links parents, sets rest offsets and the
+// blend/flip tables. 0 when the parts pool is exhausted.
 int cModel::initJoint(void* bin)
 {
     releaseJoint();
@@ -185,6 +199,7 @@ int cModel::initJoint(void* bin)
     return 1;
 }
 
+// Frees the parts list.
 void cModel::releaseJoint()
 {
     if (pParts != NULL) {
@@ -192,6 +207,9 @@ void cModel::releaseJoint()
     }
 }
 
+// Puts every parts at its rest position (the joint centres from the model data), computes the rest
+// matrices at the origin (lt_inv_mat = inverse rest translation, used by skinning) and then the
+// world matrices at the model position; initialises world_old.
 void cModel::setPartsOffset(void* bin)
 {
     cParts* p = pList;
@@ -233,6 +251,7 @@ void cModel::setPartsOffset(void* bin)
     }
 }
 
+// Links each parts to its parent joint from the model data (0xFF = the model itself).
 void cModel::setPartsParent()
 {
     cParts* p = pList;
@@ -250,6 +269,7 @@ void cModel::setPartsParent()
     }
 }
 
+// Rebuilds every parts' local matrix (l_mat, copied to mat) from its ang/pos/scale.
 void cModel::partsMatCalc()
 {
     cParts* p;
@@ -263,6 +283,7 @@ void cModel::partsMatCalc()
     }
 }
 
+// Base move: nothing.
 // Out-of-line inlines. Deferred-inline emission is definition order: ~cModelInfo, then the two
 // managers (implicit dtor + in-class memAlloc/memFree/memClear, model.h), ~cParts, ~cModel, then
 // these three and getPartsPtr, then the cManager::destroy instantiations and the ~cManager
@@ -271,6 +292,7 @@ inline void cModel::move()
 {
 }
 
+// be_flag 0x800: the model keeps moving while the game is suspended (events, pause).
 inline void cModel::setNoSuspend(int on)
 {
     if (on) {
@@ -280,6 +302,7 @@ inline void cModel::setNoSuspend(int on)
     }
 }
 
+// 1 when the model is drawn (be_flag bit 1).
 inline int cModel::isTrans()
 {
     int ret = 0;
@@ -319,6 +342,8 @@ inline cModel* cModel::getPartsPtr(int no)
     return p;
 }
 
+// Motion blend: for every parts, mixes the current l_mat (rotation as a quaternion slerp, scale
+// and translation linearly) with the parts' ang/pos/scale by `rate` (1 = only the new pose).
 void cModel::matBlend(f32 rate)
 {
     cParts* p;
@@ -401,6 +426,7 @@ void cModel::matBlend(f32 rate)
     }
 }
 
+// Places the model at pos/rot, clears its motion and rebuilds the matrices (player after events).
 void cModel::zeroPartsPosInit(Vec* pos, Vec* rot)
 {
     setPos(pos);
@@ -409,6 +435,9 @@ void cModel::zeroPartsPosInit(Vec* pos, Vec* rot)
     matUpdate();
 }
 
+// Computes every parts' world matrix from its parent (parent mat * l_mat, with non-uniform parent
+// scale removed and re-applied), applies pending addRot corrections (flag 0x40000000), stores the
+// world position and the accumulated r_scale; parts with motParts flag 2 (IK-fixed) are skipped.
 void cModel::partsWorldCalc()
 {
     cParts* p;
@@ -469,6 +498,7 @@ void cModel::partsWorldCalc()
     Motion.Pos_world = pos;
 }
 
+// Attaches the root parts to another model (parent coordinate) with an offset and rotation.
 void cModel::setParent(cModel* parent, Vec* pos, Vec* rot)
 {
     cParts* p = pList;
@@ -478,11 +508,14 @@ void cModel::setParent(cModel* parent, Vec* pos, Vec* rot)
     p->ang = *rot;
 }
 
+// Attaches the root parts to parts partsNo of another model.
 void cModel::setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot)
 {
     setParent(parent->getPartsPtr(partsNo), pos, rot);
 }
 
+// End of frame: pos_old and each parts' world_old/world_old2 history (used for motion trails and
+// collision sweeps).
 void cModel::updateOldPos()
 {
     cParts* p;
@@ -494,6 +527,8 @@ void cModel::updateOldPos()
     }
 }
 
+// Moves the model and every parts by the delta without recomputing the pose; updates the light
+// volume matrix and flags the collision as moved.
 void cModel::setPos(Vec* pos)
 {
     Vec d;
@@ -519,18 +554,21 @@ void cModel::setPos(Vec* pos)
     atari.m_stat |= 1;
 }
 
+// Sets the rotation and rebuilds all matrices.
 void cModel::setAng(Vec* ang)
 {
     this->ang = *ang;
     matUpdate();
 }
 
+// Sets the scale and rebuilds all matrices.
 void cModel::setSca(Vec* sca)
 {
     scale = *sca;
     matUpdate();
 }
 
+// Debug: draws the joint tree (spheres, parent links, local axes) with parts numbers on screen.
 void cModel::debugSkeletonDisp()
 {
     cParts* p;
@@ -662,6 +700,7 @@ void cModel::debugSkeletonDisp()
     }
 }
 
+// Appends a model info (extra parts model: weapon, head, clothes) to the model's chain.
 void cModel::addModel(cModelInfo* info)
 {
     cModelInfo* p;
@@ -675,6 +714,7 @@ void cModel::addModel(cModelInfo* info)
     p->pList = info;
 }
 
+// Remembers parts `no`'s world position so partsFixAdjust can keep it planted (foot lock).
 void cModel::partsFixMemory(int no)
 {
     cModel* p;
@@ -688,6 +728,8 @@ void cModel::partsFixMemory(int no)
     Fix_parts = no + 1;
 }
 
+// Moves the model in XZ so the remembered parts stays where it was, then recomputes the parts
+// world positions; clears the lock.
 void cModel::partsFixAdjust()
 {
     cModel* p;
@@ -705,6 +747,7 @@ void cModel::partsFixAdjust()
     Fix_parts = 0;
 }
 
+// Kills the model: clears alive/visible flags and frees its parts and model infos.
 void cModel::push()
 {
     if (isAlive()) {
@@ -714,6 +757,7 @@ void cModel::push()
     }
 }
 
+// Debug: draws the bounding box of every model info in the chain.
 void cModel::drawAllBoundingBox(cModelInfo* info)
 {
     for (; info; info = info->pList) {
@@ -722,6 +766,7 @@ void cModel::drawAllBoundingBox(cModelInfo* info)
 }
 
 
+// New model info: white colour, identity matrix, visible, opaque.
 cModelInfo::cModelInfo() : cUnit(1)
 {
     static u32 col = 0xFFFFFFFF;
@@ -732,12 +777,14 @@ cModelInfo::cModelInfo() : cUnit(1)
     invisible_factor = 1.0f;
 }
 
+// Sets (and relocates) the texture palette.
 void cModelInfo::setTplAddr(void* tpl)
 {
     tpl_addr = tpl;
     calcTplAddr((TEXPalette*) tpl);
 }
 
+// Sets an additional texture palette (nAddTex textures appended to the model's texture indices).
 void cModelInfo::addTplAddr(void* tpl)
 {
     pAddTpl = (TEXPalette*) tpl;
@@ -745,28 +792,34 @@ void cModelInfo::addTplAddr(void* tpl)
     nAddTex = pAddTpl->numDescriptors;
 }
 
+// Installs a texture blend table (per material texture replacement, e.g. tex-render / damage
+// textures) and marks it active (flagsDC bit 2).
 void cModelInfo::setTexBlendTbl(void* tbl)
 {
     texBlendTbl = tbl;
     flagsDC |= 4;
 }
 
+// Removes the texture blend table.
 void cModelInfo::resetTexBlendTbl()
 {
     texBlendTbl = 0;
     flagsDC &= ~4;
 }
 
+// Blend ratio (0..255) between the original and blend-table textures.
 void cModelInfo::setBlendRatio(u16 ratio)
 {
     blendRatio = ratio;
 }
 
+// Selects the TEV blend type used by the blend table.
 void cModelInfo::setBlendType(u8 type)
 {
     blendType = type;
 }
 
+// Sets the specular colour of every material of the model data.
 void cModelInfo::setSpecular(u8 r, u8 g, u8 b)
 {
     ModelData* d = pData;
@@ -785,6 +838,7 @@ void cModelInfo::setSpecular(u8 r, u8 g, u8 b)
     }
 }
 
+// Halts (sleep loop) on a model file with an unknown version.
 // Never called (the original linker dropped the bodies): the "not bin data" wait loop
 // cModInfoMgr::create inlines, and the two shadow model registrations.
 static inline void notBinData()
@@ -800,6 +854,7 @@ static int lbl_80314C2C = 0;
 // bytes between the cCoord and cUnit vtable copies in .rodata).
 static const s32 ShadowPtNum[4] = { 0, 0, 0, 0 };
 
+// Leftover shadow model bookkeeping: only the "PtNum Over" check survives.
 static void ShadowModelInit(int em, int sh)
 {
     if (lbl_80314C2C + ShadowPtNum[em] > sh) {
@@ -807,6 +862,7 @@ static void ShadowModelInit(int em, int sh)
     }
 }
 
+// Leftover shadow model bookkeeping (see ShadowModelInit).
 static void AddShadowModel(int em, int sh)
 {
     if (lbl_80314C2C + ShadowPtNum[em] > sh) {
@@ -814,6 +870,7 @@ static void AddShadowModel(int em, int sh)
     }
 }
 
+// Removes (and destroys) the model info whose data is `data` from the chain; 0 when absent.
 int cModel::deleteModelData(ModelData* data)
 {
     cModelInfo* prev = NULL;
@@ -836,6 +893,7 @@ int cModel::deleteModelData(ModelData* data)
     return 0;
 }
 
+// Removes and destroys a model info from the chain; 0 when absent.
 int cModel::deleteModelInfo(cModelInfo* target)
 {
     cModelInfo* prev = NULL;
@@ -858,6 +916,7 @@ int cModel::deleteModelInfo(cModelInfo* target)
     return 0;
 }
 
+// Replaces the model info holding `data` by newInfo in place (costume/damage model swaps).
 int cModel::swapModelInfo(ModelData* data, cModelInfo* newInfo)
 {
     cModelInfo* prev = NULL;
@@ -882,6 +941,8 @@ int cModel::swapModelInfo(ModelData* data, cModelInfo* newInfo)
     return 0;
 }
 
+// After the owning archive moved in memory by ofs (be_flag 0x80000 models): shifts the data/tpl
+// pointers of every model info and reconverts them to offsets for the next relocation.
 void cModel::moveDataAddr(int ofs)
 {
     cModelInfo* info;
@@ -900,6 +961,9 @@ void cModel::moveDataAddr(int ofs)
     }
 }
 
+// Converts a model file's section offsets (colour, texture, joint heads, weights, parts, original
+// vertices/normals, blend/flip tables) to pointers, once (pClr sign bit marks the state). Halts
+// when the parts block is not 32-byte aligned.
 // Relocates the file offsets of a model bin to pointers (once: pClr is a pointer afterwards).
 void calcModelAddr(ModelData* d)
 {
@@ -929,6 +993,7 @@ void calcModelAddr(ModelData* d)
     }
 }
 
+// Inverse of calcModelAddr: pointers back to offsets (before the file is moved or saved).
 void calcModelOffset(ModelData* d)
 {
     u8* base = (u8*) d;
@@ -978,6 +1043,7 @@ void slideModelAddr(u32 addr, int ofs)
     }
 }
 
+// Converts a TPL's descriptor/texture header/image offsets to pointers, once.
 void calcTplAddr(TEXPalette* tpl)
 {
     u32 i;
@@ -1000,6 +1066,7 @@ void calcTplAddr(TEXPalette* tpl)
     }
 }
 
+// Inverse of calcTplAddr.
 void calcTplOffset(TEXPalette* tpl)
 {
     u32 i;
@@ -1019,6 +1086,7 @@ void calcTplOffset(TEXPalette* tpl)
     tpl->descriptorArray = (TEXDescriptor*) ((u8*) tpl->descriptorArray - (u8*) tpl);
 }
 
+// Shifts a relocated TPL's pointers by ofs.
 void slideTplAddr(void* p, int ofs)
 {
     TEXPalette* tpl = (TEXPalette*) p;
@@ -1036,6 +1104,7 @@ void slideTplAddr(void* p, int ofs)
     }
 }
 
+// Destroys every model info of the chain.
 void cModel::releaseModelInfo()
 {
     cModelInfo* info = pModelInfo;
@@ -1048,6 +1117,8 @@ void cModel::releaseModelInfo()
     pModelInfo = 0;
 }
 
+// Allocates n (0 = nParts) cParts: a contiguous run when the pool has one (be_flag 0x2000, fast
+// indexing), else one by one; links them as pList. 0 when the pool is full (list freed).
 int cModel::makePartsList(int n)
 {
     u32 num;
@@ -1077,6 +1148,7 @@ int cModel::makePartsList(int n)
     return 1;
 }
 
+// Binds the motion blend table and flip table of a version 0x20030818 model file to the MotionWork.
 void cModel::setJointInfo(void* bin)
 {
     ModelData* d = (ModelData*) bin;
@@ -1098,6 +1170,7 @@ void cModel::setJointInfo(void* bin)
     }
 }
 
+// Frees the parts from index `no` to the end (0 = all, clearing pParts/nParts).
 void cModel::releasePartsList(int no)
 {
     cParts* p;
@@ -1124,21 +1197,25 @@ void cModel::releasePartsList(int no)
     prev->pList = 0;
 }
 
+// Starts a motion on this model (MotionSetCore wrapper with reordered arguments).
 void cModel::motionSet(void* data, int a, int b, int c, int d)
 {
     MotionSetCore(this, &Motion, data, d, a, c, b);
 }
 
+// Advances the motion one frame (MotionMove).
 int cModel::motionMove()
 {
     return MotionMoveF(this, 0);
 }
 
+// Pauses the motion.
 void cModel::motionPause()
 {
     MotionPause(this);
 }
 
+// Rebuilds the model matrix (cCoord), all parts matrices and the light volume matrix.
 void cModel::matUpdate()
 {
     cCoord::matUpdate();
@@ -1149,6 +1226,7 @@ void cModel::matUpdate()
     LightInfo.updateMatrix(this);
 }
 
+// Parts constructor: nothing beyond cModel.
 cParts::cParts()
 {
 }
@@ -1203,11 +1281,13 @@ void getBoundingBox(ModelData* d, ModelBound* pBox)
     pBox->center.z = maxZ - pBox->size.z;
 }
 
+// Manager of the cParts pool.
 cPartsMgr::cPartsMgr() : cManager<cParts>(sizeof(cParts), 0)
 {
     setName("cPartsMgr");
 }
 
+// Manager warnings to the log.
 void cPartsMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -1216,6 +1296,7 @@ void cPartsMgr::log(const char* fmt, ...)
     pLog->vwarn(6, 0, fmt, ap);
 }
 
+// Unit construction: placement-new of cParts.
 int cPartsMgr::construct(cParts* p, u32 id)
 {
     new (p) cParts;
@@ -1231,6 +1312,8 @@ static inline cParts* PartsMgrWork(cPartsMgr* m, u32 no)
     return (cParts*) ((u8*) m->pArray + m->size * no);
 }
 
+// Allocates n consecutive free parts slots (linked as pList) so the model can index them directly;
+// 0 when no run of n is free.
 cParts* cPartsMgr::createSequential(u32 n)
 {
     u32 i;
@@ -1271,11 +1354,13 @@ cParts* cPartsMgr::createSequential(u32 n)
 
 cPartsMgr PartsMgr;
 
+// Manager of the cModelInfo pool.
 cModInfoMgr::cModInfoMgr() : cManager<cModelInfo>(sizeof(cModelInfo), 0)
 {
     setName("cModInfoMgr");
 }
 
+// Manager warnings to the log.
 void cModInfoMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -1284,12 +1369,15 @@ void cModInfoMgr::log(const char* fmt, ...)
     pLog->vwarn(6, 0, fmt, ap);
 }
 
+// Unit construction: placement-new of cModelInfo.
 int cModInfoMgr::construct(cModelInfo* p, u32 id)
 {
     new (p) cModelInfo;
     return 1;
 }
 
+// Creates a model info for a bin/tpl pair: relocates both, checks the file version (0x20010801 or
+// 0x20030818, else halts), flags shape (morph) data (be_flag 2) and computes the bounding box.
 cModelInfo* cModInfoMgr::create(void* bin, void* tpl)
 {
     cModelInfo* info = cManager<cModelInfo>::create();
@@ -1314,6 +1402,7 @@ cModelInfo* cModInfoMgr::create(void* bin, void* tpl)
 
 cModInfoMgr ModInfoMgr;
 
+// Parts `no` by walking the pParts chain from `parts`.
 cModel* GetPartsAddr(cModel* parts, int no)
 {
     int cnt = no;
@@ -1335,6 +1424,7 @@ cModel* GetPartsAddr(cModel* parts, int no)
     return parts;
 }
 
+// Model info `no` of a chain.
 cModelInfo* GetModelInfoAddr(cModelInfo* info, int no)
 {
     int cnt = no;
@@ -1356,6 +1446,7 @@ cModelInfo* GetModelInfoAddr(cModelInfo* info, int no)
     return info;
 }
 
+// Length of a model info chain (error above 100).
 int GetModelInfoNum(cModelInfo* info)
 {
     int n = 1;
@@ -1377,6 +1468,7 @@ int GetModelInfoNum(cModelInfo* info)
     return 0;
 }
 
+// Excludes every model info of m from the reflection (mirror/water) render (be_flag 4).
 void ModelInfoRefrectOffAll(cModel* m)
 {
     int n;
@@ -1395,6 +1487,7 @@ void ModelInfoRefrectOffAll(cModel* m)
     }
 }
 
+// Re-includes model info `no` in the reflection render.
 void ModelInfoRefrectOn(cModel* m, int no)
 {
     cModelInfo* info;
@@ -1409,6 +1502,7 @@ void ModelInfoRefrectOn(cModel* m, int no)
     }
 }
 
+// Shows/hides model info `no` (be_flag 8).
 void ModelInfoSetTrans(cModel* m, int no, int on)
 {
     cModelInfo* info = GetModelInfoAddr(m->pModelInfo, no);
@@ -1429,6 +1523,7 @@ static inline void VecSet(Vec* v, f32 x, f32 y, f32 z)
     v->z = z;
 }
 
+// Debug: draws a bounding box transformed by m as 12 lines.
 void drawBoundingBox(Mtx m, ModelBound* bound)
 {
     static u8 ptbl[6][4] = {

@@ -1,3 +1,10 @@
+// game/main_mem: heap management over OSAlloc (D:/Bio4/Prog/main_mem.cpp). The main RAM map is
+// fixed (SystemMemMap: ELF, DVD, sound, FIFO, XFB, core/option/player/weapon archives, then the
+// heap up to 0x817F4000). Thirteen logical heaps (Heap[], MEM_HEAP_NUM) live in that range: 0
+// system, 1 game, 2 stage, 3 DLL, 4 room ... created with MemCreateHeap / carved off the end of
+// another with MemReplaceHeap; heaps can be suspended (descriptor backed up) and resumed.
+// mem_alloc tags every block with "MAD" + file(line) for MemCheckUsedHeap; Debug_alloc serves
+// the tools from the current debug heap. operator new/delete route here.
 #include "types.h"
 #include "global.h"
 #include "main_mem.h"
@@ -75,26 +82,33 @@ static u8 CurrentDbgHeap;
 void* pMemTile;
 static u32 _epy;
 
+// Zeroed allocation from the current heap.
 void* operator new(unsigned int size)
 {
     return mem_calloc(size, "operator new", 0, 1, MEM_HEAP_CURRENT);
 }
 
+// Zeroed array allocation from the current heap.
 void* operator new[](unsigned int size)
 {
     return mem_calloc(size, "operator new", 0, 1, MEM_HEAP_CURRENT);
 }
 
+// Frees to the current heap.
 void operator delete(void* p)
 {
     Mem_free(p);
 }
 
+// Frees to the current heap.
 void operator delete[](void* p)
 {
     Mem_free(p);
 }
 
+// Boot: fixes the memory map, inits OSAlloc over [weapon archive end, heap_end/arena hi), creates
+// heap 0 over the whole range and allocates the reset-keep block pRK (a 0x40-byte save region
+// tagged "_reset_keep_" that survives soft resets).
 void SystemMemInit()
 {
     SysMem.heap_end = 0x817F4000;
@@ -140,6 +154,7 @@ void SystemMemInit()
     }
 }
 
+// Clears the 13 heap slots and the suspend backups.
 void memInitHeapTbl()
 {
     int i;
@@ -153,6 +168,7 @@ void memInitHeapTbl()
     memclr_asm(heap_backup, sizeof(heap_backup));
 }
 
+// Suspends heap no: saves its OSAlloc descriptor and empties the live one (allocations from it fail).
 void MemSuspendHeap(int no)
 {
     int h = Heap[no].handle;
@@ -165,6 +181,7 @@ void MemSuspendHeap(int no)
     }
 }
 
+// Resumes a suspended heap from its backup.
 void MemSignalHeap(int no)
 {
     int h = Heap[no].handle;
@@ -179,16 +196,19 @@ void MemSignalHeap(int no)
     }
 }
 
+// 1 when the heap is suspended.
 int memGetHeapSattus(int no)
 {
     return Heap[no].status;
 }
 
+// 1 when the heap is not suspended.
 int memCheckHeapActive(int no)
 {
     return memGetHeapSattus(no) == 0;
 }
 
+// Makes heap no the current allocation heap (and the debug heap); 0 when it is missing/suspended.
 int MemSetCurrentHeap(int no)
 {
     if (memCheckHeapActive(no) && Heap[no].handle >= 0) {
@@ -200,6 +220,7 @@ int MemSetCurrentHeap(int no)
     return 0;
 }
 
+// Points the debug heap at the current heap (no must be active).
 int MemSetCurrentDbgHeap(int no)
 {
     if (memCheckHeapActive(no) && Heap[no].handle >= 0) {
@@ -209,26 +230,32 @@ int MemSetCurrentDbgHeap(int no)
     return 0;
 }
 
+// Current heap number.
 u8 MemGetCurrentHeap()
 {
     return CurrentHeap;
 }
 
+// Current debug heap number.
 u8 MemGetCurrentDbgHeap()
 {
     return CurrentDbgHeap;
 }
 
+// Start address of heap no.
 u32 MemGetHeapStartAddr(int no)
 {
     return Heap[no].start;
 }
 
+// End address of heap no.
 u32 MemGetHeapEndAddr(int no)
 {
     return Heap[no].end;
 }
 
+// Highest address in use by heap no (end of its last allocated cell, or the free list start when
+// nothing is allocated); 0 when inactive.
 // OPEN (-4): the original places `li r3,0` between the compare and the branch and reloads
 // d->allocated for the loop init after the if/else join (ours forwards it); if/else, ternary,
 // `end = 0` first and HeapHead[h] index forms tried.
@@ -263,6 +290,7 @@ u32 MemCheckHeapEnd(int no)
     return end;
 }
 
+// Creates (or recreates) heap no over [start, end).
 int MemCreateHeap(int no, u32 start, u32 end)
 {
     if (!memCheckHeapActive(no)) {
@@ -283,6 +311,7 @@ int MemCreateHeap(int no, u32 start, u32 end)
     return 0;
 }
 
+// Destroys heap no (resuming it first if suspended).
 int MemDestroyHeap(int no)
 {
     if (!memCheckHeapActive(no)) {
@@ -299,6 +328,9 @@ int MemDestroyHeap(int no)
     return 0;
 }
 
+// Shrinks heap `from` to what it has in use and creates heap `to` over the freed tail (or over
+// `to`'s previous range when `from` does not exist); records the current heap's allocation list
+// head in cell_main/game/stage/dll for the checker. 0 on failure.
 int MemReplaceHeap(int from, int to)
 {
     u32 start;
@@ -341,6 +373,7 @@ int MemReplaceHeap(int from, int to)
     return MemCreateHeap(to, start, end);
 }
 
+// Destroys every heap (soft reset).
 void MemClearAllHeap()
 {
     u32 i;
@@ -352,6 +385,9 @@ void MemClearAllHeap()
     }
 }
 
+// Allocates size (rounded to 32) from `heap` (MEM_HEAP_CURRENT = current) with a 32-byte "MAD"
+// tag holding "file(line)" after the block; flag 1 logs allocation failures. NULL when size is 0,
+// the heap is suspended or full.
 void* mem_alloc(u32 size, const char* file, int line, int flag, int heap)
 {
     char str[64] = "";
@@ -396,6 +432,7 @@ void* mem_alloc(u32 size, const char* file, int line, int flag, int heap)
     return p;
 }
 
+// mem_alloc plus zero fill.
 void* mem_calloc(u32 size, const char* file, int line, int flag, int heap)
 {
     void* p = mem_alloc(size, file, line, flag, heap);
@@ -406,11 +443,13 @@ void* mem_calloc(u32 size, const char* file, int line, int flag, int heap)
     return p;
 }
 
+// Frees a block to the current heap.
 void Mem_free(void* p)
 {
     Mem_free_h(p, CurrentHeap);
 }
 
+// Frees a block (to the OS current heap) when heap `heap` is active.
 void Mem_free_h(void* p, int heap)
 {
     if (heap == MEM_HEAP_CURRENT) {
@@ -421,6 +460,7 @@ void Mem_free_h(void* p, int heap)
     }
 }
 
+// Tool mode: Debug_alloc(flag 1) blocks are tagged "toolmem" so ResetDebugAlloc can free them.
 void SetDebugAlloc()
 {
     Dalloc_flg = 1;
@@ -433,6 +473,7 @@ struct MemCellHead {
     s32 size;          // 0x08
 };
 
+// Frees every "toolmem" block of the debug heap and leaves tool mode.
 void ResetDebugAlloc()
 {
     OSHeapCell* cell;
@@ -452,6 +493,7 @@ void ResetDebugAlloc()
     }
 }
 
+// Zeroed allocation from the debug heap (flag 1 in tool mode adds the "toolmem" tag).
 void* Debug_alloc(u32 size, int flag)
 {
     u8* p;
@@ -476,11 +518,13 @@ void* Debug_alloc(u32 size, int flag)
     return p;
 }
 
+// Frees a debug heap block.
 void Debug_free(void* p)
 {
     Debug_free_h(p, CurrentDbgHeap);
 }
 
+// Frees a debug block after wiping it (poison for stale pointers).
 void Debug_free_h(void* p, int heap)
 {
     if (heap == MEM_HEAP_CURRENT) {
@@ -492,6 +536,7 @@ void Debug_free_h(void* p, int heap)
     }
 }
 
+// Game allocation, or a debug-heap allocation when Debug_flg[3] 0x200000 (tool memory mode).
 void* MemAlloc(u32 size, int flag)
 {
     void* p;
@@ -505,6 +550,7 @@ void* MemAlloc(u32 size, int flag)
     return p;
 }
 
+// Counterpart of MemAlloc.
 void MemFree(void* p)
 {
     if (pG->Debug_flg[3] & 0x200000) {
@@ -548,6 +594,8 @@ static inline void ISet(int& d, int v) { d = v; }
 
 #define MEM_TAG_OK(tag) ((tag)[0] == 0 && (tag)[1] == 'M' && (tag)[2] == 'A' && (tag)[3] == 'D')
 
+// Debug display (debug_mode 4): draws the heap map (tiles per heap) and lists the allocated cells
+// with their "file(line)" tags; C-stick scrolls, Z+Y writes the list to a host file.
 void MemCheckUsedHeap()
 {
     char* p = NULL;
@@ -837,6 +885,7 @@ void MemCheckUsedHeap()
     }
 }
 
+// Counts memset errors (leftover debug hook).
 // Dead-stripped helper: only its string and statics survive (STRIP_UNUSED).
 static void memSetCheck()
 {

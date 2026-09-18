@@ -1,3 +1,5 @@
+// game/light02: light type 2, sine pulse (D:/Bio4/Prog/light02.cpp): brightness rate = base + amp *
+// sin(phase), phase advancing freq cycles per second (30 fps).
 #include "light.h"
 #include "math_sub.h"
 
@@ -8,6 +10,7 @@ struct Light02Work {
     f32 phase;  // 0x0C
 };
 
+// LightFuncTbl[2]: pulsing light; DispCol = Col * rate clamped to 0..255.
 // Pulsing light: brightness rate = base + amp * sin(phase), clamped to [0, 255] per channel.
 void Light02_Move(cLight* l)
 {

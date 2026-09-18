@@ -1,3 +1,8 @@
+// game/esp_app: application-side glue of the effect system (D:/Bio4/Prog/esp_app.cpp): the
+// id -> Create/Trans function table (EffSetId), effect sound-effect dispatch (EspCallSeType, the
+// per-room SE callback table pSeFunc), footstep/water splash effects for the player, the effect
+// area state update (EffAreaUpdate, from the SstArea list of the room), and the laser sight /
+// gatling / em2d tex-render helpers used by the weapons and enemies.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -107,6 +112,9 @@ struct TexRenderMngPtr {
 #define pMgrView (((TexRenderMngPtr*) &g_pMgr)->p)
 static inline void ISet(int& d, int v) { d = v; }
 
+// Fills the effect function table: for every effect id 0x00..0x52 registers its Create function and
+// its Trans (draw) function (EspCommonTrans for plain sprites). Called once from the effect system
+// init (eff_sys.cpp).
 void EffSetId()
 {
     EspFuncTblSet(0x00, Esp00_Create, EspCommonTrans);
@@ -156,10 +164,13 @@ void EffSetId()
     EspFuncTblSet(0x4f, Esp4f_Create, EspCommonTrans);
 }
 
+// Debug hook of the effect init (eff_sys.cpp): empty in the retail build.
 void EspFreeSizeCheckAll()
 {
 }
 
+// Plays the sound effect selected by an effect record's SeType (esp07): 1 = SE 0x2F, 2 = SE 0x0D,
+// 0/3 = silent. Skipped while the generator runs in loop-preview mode (EspGenGetMoveLoop).
 void EspCallSeType(int type, Vec* pos)
 {
     if (EspGenGetMoveLoop()) {
@@ -182,6 +193,9 @@ void EspCallSeType(int type, Vec* pos)
     }
 }
 
+// Footstep effect for the player's foot `type` (0 left / 1 right): `no` is the ground material's
+// FootSeNo (1/3 dust, 2 splash, 4 room-specific effect from pl->m_pEffRoom[4|5] spawned at the
+// floor height under the player). Spawns through EstSet.
 void EspFootCall(int type, int no, Vec* pos)
 {
     cPlayer* pl = pPL;
@@ -245,6 +259,9 @@ void EspFootCall(int type, int no, Vec* pos)
     }
 }
 
+// Called from the sound system for the player's water footsteps: when the point is more than 90 units
+// below the water surface, pushes the water at the player position (AddWaterPower 0.25) and returns
+// 1; otherwise 0.
 int EspPlWaterCall(int type, Vec* pos)
 {
     Vec wpos;
@@ -262,6 +279,7 @@ int EspPlWaterCall(int type, Vec* pos)
     return ret;
 }
 
+// Registers a room's effect sound callback in slot 0..7 of pSeFunc (called by room code).
 void EffSetRoomSeFunc(int no, EffSeFunc func)
 {
     if (no < 0 || no > 7) {
@@ -271,6 +289,7 @@ void EffSetRoomSeFunc(int no, EffSeFunc func)
     pSeFunc[no] = func;
 }
 
+// Clears the 8 room effect sound callbacks (room change).
 void EffCrearRoomSeFunc()
 {
     EffSeFunc* p = pSeFunc;
@@ -281,6 +300,8 @@ void EffCrearRoomSeFunc()
     }
 }
 
+// Calls room effect sound callback `no` with the effect position; logs when the slot is out of range
+// or not registered.
 void EffCallRoomSeFunc(int no, Vec* pos)
 {
     if (no < 0 || no > 7) {
@@ -294,6 +315,11 @@ void EffCallRoomSeFunc(int no, Vec* pos)
     pSeFunc[no](pos);
 }
 
+// Per-frame update of the effect area states: tests the player position (+100 y; the camera position
+// when Status_flg[2] bit 0x10000) against every SstAreaEnt of the room, ORs in cEspSystem::Add_area_bit
+// and turns each of the 32 area states on/off (EffSetAreaState). An area with flag bit 0 sets
+// Status_flg[1] bit 0x02000000 (player in a "special" effect area, also mirrored from bit 0x800).
+// Skipped while Stop_flg bit 0x20 is set. Debug_flg[3] bit 0x8000 prints the hit area numbers.
 void EffAreaUpdate()
 {
     cEspSystem* sys = g_pEspSys;
@@ -353,6 +379,7 @@ void EffAreaUpdate()
     }
 }
 
+// 1 when the point is inside any effect area whose flag bit 0 is set (the flagged areas of the room).
 int EffAreaCheckInRoom(Vec* pos)
 {
     cEspSystem* sys = g_pEspSys;
@@ -370,6 +397,7 @@ int EffAreaCheckInRoom(Vec* pos)
     return 0;
 }
 
+// 1 when the point is inside the effect area with number `areaNo` (esp4f gating).
 int EffAreaCheckNo(Vec* pos, u8 areaNo)
 {
     cEspSystem* sys = g_pEspSys;
@@ -387,6 +415,9 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
     return 0;
 }
 
+// Gives the model a texture-render blend table (4 stages onto the TexRender manager's texture) so it
+// shows the screen-rendered texture; on first use (Status_flg[1] bit 0x10 clear) allocates the
+// manager, grows its buffer and spawns the est 0x25/0x1F render effect.
 void EffEm2d_setTexRender(cModel* m)
 {
     static u8 buf[0x80];
@@ -424,6 +455,9 @@ void EffEm2d_setTexRender(cModel* m)
     m->pModelInfo->setBlendRatio(0);
 }
 
+// Draws one frame of the laser sight line (est owner 0 id 3, effect 0x19) from `from` to `to`;
+// `width` scales the record's max_laser_dist. In the pGS Status_flg[1] bit 0 mode (night vision /
+// scope) the blend is switched to additive-ish and alpha is reduced to 80%. Debug_flg[3] bit 0x40 hides it.
 // The five `esp` reloads and the 0.8f pool high are local-alloc qtys allocated by priority
 // refs*log2(refs)/life over the sched1 order with +-1-insn fake lifetimes: the high (refs 2,
 // life 2 = 10000) goes first and takes r9, flipping every reload (r9,r9,r11,r9,r11 ->
@@ -460,6 +494,8 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     }
 }
 
+// Draws a laser line of the given colour in both directions (two est-3 lines so it is visible from
+// either side), without suspending on effect-count limits.
 void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
 {
     cEsp* esp;
@@ -484,6 +520,8 @@ void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
     }
 }
 
+// Spawns the gatling muzzle effect (est id 0x52) at `pos` travelling 3000 units/frame along `dir`;
+// Status_flg[2] bit 0x02000000 marks it with Core_flg bit 0.
 void EspSetGatling(Vec pos, Vec dir)
 {
     cEsp* esp;
@@ -501,6 +539,8 @@ void EspSetGatling(Vec pos, Vec dir)
     }
 }
 
+// Called by water rooms: puts the player into draw order type 0 while parts 3 (waist) is under the
+// water surface, otherwise type 7 (drawn with the water refraction pass).
 void setPlWaterOtType()
 {
     Vec* wp = &pPL->getPartsPtr(3)->world;

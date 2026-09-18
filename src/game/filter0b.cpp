@@ -1,3 +1,7 @@
+// game/filter0b: captured-screen overlay (D:/Bio4/Prog/filter0b.cpp). Filter0bCapture copies the
+// frame into a dedicated half-size buffer (Filter0bAllocBuf) and the next frame it is blended back
+// once with filter0b_alpha inside the letterbox: the cross-fade used by the sub screens / result
+// screens.
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -31,17 +35,20 @@ void Filter0bDrawBuffer();
 void* filter0b_buff = 0;
 u8 filter0b_alpha = 0;
 
+// Boot: same as the room init.
 void Filter0bInit()
 {
     Filter0bRoomInit();
 }
 
+// Room init: buffer pointer and alpha cleared.
 void Filter0bRoomInit()
 {
     filter0b_buff = 0;
     filter0b_alpha = 0;
 }
 
+// Allocates the 0x38000-byte capture buffer (memory group 13) if not yet present.
 void Filter0bAllocBuf()
 {
     if (filter0b_buff == 0) {
@@ -50,6 +57,7 @@ void Filter0bAllocBuf()
     }
 }
 
+// Frees the capture buffer.
 void Filter0bFreeBuf()
 {
     if (filter0b_buff) {
@@ -58,16 +66,19 @@ void Filter0bFreeBuf()
     }
 }
 
+// Copies the current frame into the capture buffer.
 void Filter0bCapture()
 {
     Filter0bGetEFB(1, 1);
 }
 
+// Sets the alpha of the next overlay draw (0 = nothing drawn).
 void Filter0bSetAlpha(u8 alpha)
 {
     filter0b_alpha = alpha;
 }
 
+// Queues Filter0bRender when an alpha is pending.
 void Filter0bTrans()
 {
     if (filter0b_alpha == 0) {
@@ -78,6 +89,7 @@ void Filter0bTrans()
     }
 }
 
+// Copies the frame at 1/div x 1/div2 into the capture buffer.
 void Filter0bGetEFB(int div, int div2)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -92,6 +104,7 @@ void Filter0bGetEFB(int div, int div2)
     GXInvalidateTexAll();
 }
 
+// OT callback: draws the captured frame and restores scissor/fog.
 void Filter0bRender()
 {
     DCInvalidateRange(filter0b_buff, 0x38000);
@@ -103,6 +116,7 @@ void Filter0bRender()
     LightMgr.setFog();
 }
 
+// Draws the capture buffer as a screen quad (letterboxed) with the given alpha.
 void Filter0bGXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 ofs, int div)
 {
     GXTexObj tex;
@@ -125,6 +139,7 @@ void Filter0bGXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 ofs
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// Draws the captured frame once with filter0b_alpha and clears the alpha.
 void Filter0bDrawBuffer()
 {
     Mtx44 proj;

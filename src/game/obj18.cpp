@@ -1,3 +1,8 @@
+// game/obj18: object id 0x18, the event body / cloth model (D:/Bio4/Prog/obj18.cpp). The event
+// player creates one per SetOm packet: a character model that follows a parts of its parent
+// (OyaSetObj18, slerp catch-up) and runs the cloth simulation of its `type` (1 Leon hair/jacket/
+// holster, 2 Ashley, 3 Ada with the ribbon child, 4 Luis, 7/8/9/0xA/0x13..0x16 the enemy cloth sets,
+// 0xB the El Gigante rope child); `cmf` holds the event's model control flags (Obj18Cmf*).
 #include "atari.h"
 #include "event.h"
 #include "obj.h"
@@ -40,6 +45,7 @@ void Em33ClothReset(cModel* m);
 cObj* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl);
 }
 
+// Unused work-size error message.
 // Never called: the original keeps the message of this unused inline in .rodata.
 static inline void obj18FreeSizeErr(int size)
 {
@@ -63,6 +69,9 @@ PlCloth Evt_adaDress;
 static PlCloth Evt_adaHair;
 static PlCloth Evt_luisHair;
 
+// Creates the body (back of the pool) with the light class of its type, a bound-box light volume,
+// no parent, and sets up the type's cloth (loading the ribbon / rope child models from the event
+// bins). 0 on failure.
 cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
 {
     cObj* obj;
@@ -276,6 +285,7 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     return obj;
 }
 
+// Destroys the body's child object (ribbon / rope) before the body itself is destroyed.
 int DelObj18(cObj* obj)
 {
     if (obj == 0) {
@@ -288,6 +298,9 @@ int DelObj18(cObj* obj)
     return 1;
 }
 
+// Per-frame: motion, matrix, parent follow (dropped when the parent dies), parts (unless a double
+// joint drives them), and the type's cloth move unless be_flag 0x40 (cloth off; Ashley's cloth is
+// always off in the armour costume).
 void cObj18::move()
 {
     Obj18Work* w = &o18;
@@ -378,6 +391,7 @@ void cObj18::move()
     }
 }
 
+// Attaches an obj18 to parts partsNo of `oya` (no catch-up blend).
 void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
 {
     Obj18Work* w;
@@ -398,6 +412,7 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
     w->be_flag &= ~3;
 }
 
+// Parent model of an obj18 (1 when it has one with parts).
 int obj18GetOya(cModel** out, cObj* obj)
 {
     *out = 0;
@@ -411,6 +426,8 @@ int obj18GetOya(cModel** out, cObj* obj)
     return 1;
 }
 
+// Parent follow: parent parts matrix * own matrix, axes normalised, with the oya_hokan slerp catch-up
+// (be_flag bit 3) from the saved matrix; copies the parent's light class 2.
 void obj18SetOya(cObj18* obj)
 {
     Obj18Work* w = &obj->o18;
@@ -483,6 +500,7 @@ void obj18SetOya(cObj18* obj)
     }
 }
 
+// Sets the event control flags (SetOm packet flag word).
 void Obj18CmfSet(cObj* obj, u32 cmf)
 {
     if (obj == 0) {
@@ -497,6 +515,7 @@ void Obj18CmfSet(cObj* obj, u32 cmf)
     obj->o18.cmf = cmf;
 }
 
+// Event control flags of an obj18 (0 for other objects).
 u32 Obj18CmfGet(cObj* obj)
 {
     if (obj == 0) {
@@ -508,6 +527,7 @@ u32 Obj18CmfGet(cObj* obj)
     return obj->o18.cmf;
 }
 
+// Sets one event control flag bit.
 void Obj18CmfOn(cObj* obj, u32 no)
 {
     u32 cmf[1];

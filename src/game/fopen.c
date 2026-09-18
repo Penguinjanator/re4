@@ -5,6 +5,7 @@
 FILE _sn_iobf[10];
 struct _glue _sn_stat_g;
 
+/* Initialises one of the three standard FILEs (stdin/stdout/stderr) on the SN read/write/seek/close hooks. */
 static void snstd(FILE *ptr, int flags, int file, struct _reent *data)
 {
     ptr->_p = 0;
@@ -22,6 +23,7 @@ static void snstd(FILE *ptr, int flags, int file, struct _reent *data)
     ptr->_data = data;
 }
 
+/* First-use stdio init (CHECK_INIT): sets up stdin/stdout/stderr and the static 10-FILE pool glue. */
 void _sn_sinit(struct _reent *s)
 {
     /* make sure we clean up on exit */
@@ -40,12 +42,14 @@ void _sn_sinit(struct _reent *s)
     _sn_stat_g._iobs = _sn_iobf;
 }
 
+/* Exit-time stdio cleanup: flushes every open stream. */
 void _cleanup_r(struct _reent *ptr)
 {
     /* (void) _fwalk(fclose); */
     (void)_fwalk(ptr, fflush); /* `cheating' */
 }
 
+/* Stub: file opening is not supported on the console build; reports the error on fd 1 and returns NULL. */
 FILE *fopen(const char *file, const char *mode)
 {
     write(1, "\nfopen error:  **too many open streams**\n", 0x2b);

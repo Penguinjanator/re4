@@ -1,3 +1,7 @@
+// game/objMissile: object id 0x38, the helicopter missile (D:/Bio4/Prog/objMissile.cpp): mounted on
+// a parts of the helicopter (R0 1 Parent), ignites (R0 2 FireWait), flies towards its target with
+// increasing speed (R0 3 Fire) and explodes on the scenery or an enemy (objMissileBomb), clearing
+// enemies with a large player-weapon hit sphere. Type 1 is the shootable variant with a hit box.
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -37,6 +41,8 @@ void (*ObjMissile_R0_move_tbl[5])(cObjMissile*) = {
     objMissile_R0_Set, objMissile_R0_Parent, objMissile_R0_FireWait, objMissile_R0_Fire, objMissile_R0_Lost,
 };
 
+// Creates a missile (id 0x38) of `type` (0 helicopter rocket; 1 a shootable missile with a cEmHit
+// hit box that detonates it when shot) at pos/rot.
 cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
     cObj* obj;
@@ -90,6 +96,7 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     return obj;
 }
 
+// Per-frame: destroyed (with its hit box) when the launcher dies; runs the R0 routine.
 void cObjMissile::move()
 {
     MissileWork* w = &missile;
@@ -107,11 +114,13 @@ void cObjMissile::move()
     ObjMissile_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: free: matrices only.
 void objMissile_R0_Set(cObjMissile* obj)
 {
     obj->matUpdate();
 }
 
+// Rno0 == 1: mounted on parts partsNo of the launcher (axes normalised unless noNormalize).
 void objMissile_R0_Parent(cObjMissile* obj)
 {
     MissileWork* w = &obj->missile;
@@ -172,6 +181,8 @@ void objMissile_R0_Parent(cObjMissile* obj)
     obj->partsWorldCalc();
 }
 
+// Rno0 == 2 (setFire): 15 frames on the mount with the ignition effect (type 0: est 0x32/4),
+// then Fire.
 void objMissile_R0_FireWait(cObjMissile* obj)
 {
     MissileWork* w = &obj->missile;
@@ -255,6 +266,9 @@ void objMissile_R0_FireWait(cObjMissile* obj)
     obj->partsWorldCalc();
 }
 
+// Rno0 == 3: launch from the mount aimed at Target (type 0: 300 units/frame with the smoke trail
+// and sound, type 1: 150), speed x1.1 per frame, 90-frame limit; explodes (objMissileBomb) on the
+// scenario 300 units back along the path, on a character (type 1), or when its hit box is shot.
 void objMissile_R0_Fire(cObjMissile* obj)
 {
     MissileWork* w = &obj->missile;
@@ -358,6 +372,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
     }
 }
 
+// Rno0 == 4: removes the missile and its hit box.
 void objMissile_R0_Lost(cObjMissile* obj)
 {
     MissileWork* w = &obj->missile;
@@ -370,6 +385,7 @@ void objMissile_R0_Lost(cObjMissile* obj)
     ObjMgr.destroy(obj);
 }
 
+// Mounts the missile on parts partsNo of `parent` -> Parent.
 void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
 {
     MissileWork* w = &missile;
@@ -383,6 +399,7 @@ void cObjMissile::setParent(cModel* parent, int partsNo, int noNormalize)
     r_no_3 = 0;
 }
 
+// Fires the missile at `target` (NULL = straight ahead) -> FireWait.
 void cObjMissile::setFire(Vec* target)
 {
     MissileWork* w = &missile;
@@ -398,6 +415,9 @@ void cObjMissile::setFire(Vec* target)
     r_no_3 = 0;
 }
 
+// Explosion at pos: type 0 est 0x32/7, sound and a player weapon hit sphere (kind 0x12, radius
+// 8000) that destroys enemies; type 1 est 2/5 with radius 2000 (kind 0x13). Kills the hit box, in
+// r320 raises Room_flg[0] 0x80000000, -> Lost.
 void objMissileBomb(cObjMissile* obj, Vec* pos)
 {
     MissileWork* w = &obj->missile;

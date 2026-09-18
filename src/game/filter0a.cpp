@@ -1,3 +1,7 @@
+// game/filter0a: masked blur filter (D:/Bio4/Prog/filter0a.cpp). Quarter-size feedback blur of the
+// frame blended back through an ID-system texture mask (filter0a_mask_id, alpha filter0a_mask_alpha):
+// the scope / binocular vignette. Runs while use_filter0a is set and the scope flag Status_flg[1]
+// 0x04000000 is off.
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -34,6 +38,7 @@ void* filter0a_buff = 0;
 
 static const f32 level_tbl2[32] = { 0.002f, 0.004f, 0.002f, 0.004f, 0.008f, 0.016f, 0.008f, 0.016f };
 
+// Loads the mask texture (CI8/CI4 with its TLUT, or direct) from the id texture work into map 1.
 void filter0a_mask_tex()
 {
     GXTexObj tex;
@@ -76,6 +81,7 @@ void filter0a_mask_tex()
     GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);
 }
 
+// Boot: off, no mask.
 void Filter0aInit()
 {
     filter0a_buff = 0;
@@ -84,6 +90,7 @@ void Filter0aInit()
     filter0a_mask_id = 0;
 }
 
+// Room init: off, no mask.
 void Filter0aRoomInit()
 {
     filter0a_buff = 0;
@@ -92,6 +99,7 @@ void Filter0aRoomInit()
     filter0a_mask_id = 0;
 }
 
+// Queues Filter0aRender when enabled and the thermal scope is not active.
 void Filter0aTrans()
 {
     if (use_filter0a == 0) {
@@ -105,6 +113,7 @@ void Filter0aTrans()
     }
 }
 
+// Copies the frame at 1/div x 1/div2 into the filter buffer.
 void Filter0aGetEFB(int div, int div2)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -119,6 +128,7 @@ void Filter0aGetEFB(int div, int div2)
     GXInvalidateTexAll();
 }
 
+// OT callback: runs the blur passes and restores the fog.
 void Filter0aRender()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -134,6 +144,7 @@ void Filter0aRender()
     LightMgr.setFog();
 }
 
+// Draws the buffer as a screen quad; mask != 0 adds the mask texture stage.
 void Filter0aGXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, int div, int mask)
 {
     GXTexObj tex;
@@ -185,6 +196,8 @@ void Filter0aGXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, int div
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// Quarter copy, nFeedLp feedback passes with the level_tbl2 offsets, then the masked blend with
+// filter0a_mask_alpha.
 void Filter0aDrawBuffer()
 {
     Mtx44 proj;

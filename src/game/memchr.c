@@ -4,6 +4,7 @@
 #define UNALIGNED(X) ((long)X & (LBLOCKSIZE - 1))
 #define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
+/* Finds the first byte equal to c in the block, scanning a word at a time when aligned; NULL when absent. */
 void *memchr(const void *src_void, int c, size_t length)
 {
     const unsigned char *src = (const unsigned char *)src_void;

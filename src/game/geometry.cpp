@@ -1,3 +1,6 @@
+// game/geometry: primitive intersection tests (D:/Bio4/Prog/geometry.cpp): point vs cone
+// (the flashlight / spotlight volume used by the light system) and sphere vs hexahedron (the
+// view frustum test of trans_ot). Several inline helpers only survive as their string/constant pools.
 #include "types.h"
 #include "vec.h"
 #include "db_log.h"
@@ -32,6 +35,7 @@ static inline void SetAxisMatrix(Mtx m, Vec* ax, Vec* ay, Vec* az, Vec* pos)
     m[2][3] = pos->z;
 }
 
+// Unit vector perpendicular to the cone direction and world up.
 // Never called: the original linker dropped the body but kept its constant pool (one 0.0f, the
 // VECNormalize strings and the {0,1,0} template are shared with collision_point_cone_rev_play).
 static void collision_cone_axis(GeoCone* cone, Vec* axis)
@@ -43,6 +47,8 @@ static void collision_cone_axis(GeoCone* cone, Vec* axis)
 }
 #line 220
 
+// 1 when point p lies inside the cone (apex at cone->pos, axis direction, height, half angle in
+// radians) widened by `margin`; also stores the base radius in cone->radius.
 int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
 {
     int ret = 0;
@@ -80,6 +86,8 @@ int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
     return ret;
 }
 
+// Cone test plus a facing test: the surface normal `face` must point back towards the cone axis
+// within `angle` radians.
 int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, Vec* face, f32 margin, f32 angle)
 {
     Vec v;
@@ -103,6 +111,8 @@ static inline int collision_point_check(Vec* p)
     return p->x < lim.x && p->y < lim.y && p->z < lim.z;
 }
 
+// 1 when the sphere touches the convex hexahedron given by six outward normals (three through
+// pointA, three through pointB); used for frustum culling.
 int collision_sphere_hexahedron(GeoSphere* s, GeoHexahedron* h)
 {
     int ret = 1;

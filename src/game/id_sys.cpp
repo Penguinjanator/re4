@@ -1,3 +1,10 @@
+// game/id_sys: the "ID" 2D sprite system (D:/Bio4/Prog/id_sys.cpp) that draws the HUD, menus and
+// sub-screen graphics. An id data table (IdData/IdData2 records built by the ID tool) describes
+// units: a textured quad or a group node with position/size/colour/rotation Hermite curves, an
+// optional path, a parent link and a texture animation. IDSystem::set instantiates a table's units
+// of one class (`type`) into the IdUnit pool, move() plays the curves level by level, trans()
+// queues each visible root into the OT (IdGeneralTrans: common / frame-buffer "negative" /
+// shimmer draws). IdSys is the main-screen instance; sscrn owns IdSub.
 #include "light.h"
 #include "id_sys.h"
 #include "global.h"
@@ -44,6 +51,7 @@ static inline void IdBitOn(u32* tbl, u8 n) { ID_BIT_WORD(tbl, n) |= 0x80000000 >
 static inline void IdBitOff(u32* tbl, u8 n) { ID_BIT_WORD(tbl, n) &= ~(0x80000000 >> (n & 0x1F)); }
 #define ID_UNIT(i) ((IdUnit*) ((i) * sizeof(IdUnit) + (u32) pUnit))
 
+// Allocates the pool of n IdUnits (memory group 13) and clears it.
 void IDSystem::gameInit(int n)
 {
 #line 66 "D:/Bio4/Prog/id_sys.cpp"
@@ -58,6 +66,7 @@ void IDSystem::gameInit(int n)
     roomInit();
 }
 
+// Frees every unit (be_flag 0xFF) and clears the per-class display-off and set bit tables.
 void IDSystem::roomInit()
 {
     int i;
@@ -71,6 +80,7 @@ void IDSystem::roomInit()
     memclr_asm(m_set_flag, sizeof(m_set_flag));
 }
 
+// Releases the unit pool.
 void IDSystem::free()
 {
     Mem_free(pUnit);
@@ -78,6 +88,7 @@ void IDSystem::free()
     m_maxId = 0;
 }
 
+// 1 when a table of class `type` is currently set (m_set_flag bit).
 int IDSystem::setCk(u8 type)
 {
     register int raw asm("r4");  // COMPILER-DIFF: #2 (the original masks the incoming u8 at the entry)
@@ -85,6 +96,7 @@ int IDSystem::setCk(u8 type)
     return IdBitChk(m_set_flag, t);
 }
 
+// Shows (sw 1) or hides (sw 0) every unit of class `type` at draw time (m_disp_off bit).
 void IDSystem::dispSw(u8 type, int sw)
 {
     register int r4v asm("r4");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
@@ -99,6 +111,7 @@ void IDSystem::dispSw(u8 type, int sw)
     }
 }
 
+// Frees a unit (and, for a group, all its children); warns when it is still queued in the OT.
 void IDSystem::unitPush(IdUnit* u)
 {
     int i;
@@ -121,6 +134,7 @@ void IDSystem::unitPush(IdUnit* u)
     m_nId--;
 }
 
+// Takes a free unit, cleared with default UVs and be_flag 0xD (alive, move, visible); 0 when full.
 IdUnit* IDSystem::unitPull()
 {
     int i;
@@ -141,6 +155,7 @@ IdUnit* IDSystem::unitPull()
     return 0;
 }
 
+// Assigns tree depth `level` to a unit and level+1 to its children; tracks m_levelMax.
 void IDSystem::unitLevel(IdUnit* u, u8 level)
 {
     int i;
@@ -159,12 +174,14 @@ void IDSystem::unitLevel(IdUnit* u, u8 level)
     u->levelNo = level;
 }
 
+// Links child under parent and renumbers its level.
 void IDSystem::unitParent(IdUnit* parent, IdUnit* child)
 {
     child->pParent = parent;
     unitLevel(child, parent->levelNo + 1);
 }
 
+// Finds the live unit with mark id `id` of class `type`; logs and returns a static dummy when absent.
 IdUnit* IDSystem::unitPtr(u8 id, u8 type)
 {
     static IdUnit tmpId;
@@ -182,6 +199,7 @@ IdUnit* IDSystem::unitPtr(u8 id, u8 type)
     return &tmpId;
 }
 
+// v2 record match: mode 0 compares the record id, mode 1 (child pass) its parent number.
 static int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
 {
     u8 no;
@@ -198,6 +216,11 @@ static int cmp_id_no(IdData2* p_id_v2, u8 id, int mode)
     return no == id;
 }
 
+// Instantiates the units of id table `data` (version string at its start; 1.x IdData or 2.x IdData2
+// records) whose id matches (`id` 0xFF = all) as class `type`, OT type `ot`, priority `prio`:
+// copies geometry/colour/flags, resolves path and curve offsets, links parents by number (v2 also
+// recurses into the children of a selected id) and marks the class set. mode 1 is the recursive
+// child pass.
 void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
 {
     IdDataHeader* hdr = (IdDataHeader*) data;
@@ -456,6 +479,8 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
     }
 }
 
+// Frees the units of class `type` with mark id `id` (0xFF = whole class; type 0xFF = everything)
+// and clears the class set bit.
 void IDSystem::kill(u8 id, u8 type)
 {
     register int r5v asm("r5");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
@@ -480,6 +505,8 @@ void IDSystem::kill(u8 id, u8 type)
     IdBitOff(m_set_flag, (u8) raw);
 }
 
+// Rewinds every live unit's four timers by one step against their direction (holds the animation
+// while paused).
 void IDSystem::stop()
 {
     int i;
@@ -514,6 +541,9 @@ void IDSystem::stop()
     }
 }
 
+// Per-frame (unless Stop_flg 0x40): rebuilds the screen matrix from the camera fov, then for each
+// tree level runs the five movers on every moving unit (position/path, size curve, colour curve,
+// rotation, texture animation).
 void IDSystem::move()
 {
     int lv;
@@ -547,6 +577,7 @@ void IDSystem::move()
     }
 }
 
+// Starts (1) or freezes (0) the animation of a unit and its children (be_flag 0x4).
 void IDSystem::beMove(IdUnit* u, int sw)
 {
     int i;
@@ -570,6 +601,7 @@ void IDSystem::beMove(IdUnit* u, int sw)
     }
 }
 
+// Sets all four curve timers of a unit and its children to `time` (frames).
 void IDSystem::setTime(IdUnit* u, u16 time)
 {
     int i;
@@ -589,6 +621,7 @@ void IDSystem::setTime(IdUnit* u, u16 time)
     u->timer[0] = time;
 }
 
+// Recomputes the position of a unit and its children immediately (idSysMove00).
 void IDSystem::movePos(IdUnit* u)
 {
     int i;
@@ -630,6 +663,8 @@ void IDSystem::movePos(IdUnit* u)
         }                                                                                     \
     }
 
+// Mover 0: position = scr + path point at the curve-0 parameter (timer[0] stepped forward/back
+// with loop/end flags), then rebuilds the quad vertices from sizeX/size_H and vtxType (anchor).
 void idSysMove00(IdUnit* u)
 {
     Vec tmp;
@@ -682,6 +717,8 @@ void idSysMove00(IdUnit* u)
     }
 }
 
+// Builds the four quad vertices from sizeX/size_H with the anchor selected by vtxType & 0xF
+// (0 centre, 1..4 corners).
 void IdCalcVertex(IdUnit* u)
 {
     switch (u->vtxType & 0xF) {
@@ -750,6 +787,7 @@ void IdCalcVertex(IdUnit* u)
     }
 }
 
+// Mover 1: scale from curve 1 applied to the vertices (size_flag 0x10 x only, 0x20 y only, else both).
 void idSysMove01(IdUnit* u)
 {
     f32 s;
@@ -798,6 +836,8 @@ void idSysMove01(IdUnit* u)
     }
 }
 
+// Mover 2: colour from curve 2 (interpolates col0 -> col1 when col1 is set, else alpha only), then
+// multiplied by the parent's colour.
 void idSysMove02(IdUnit* u)
 {
     f32 r;
@@ -878,6 +918,8 @@ void idSysMove02(IdUnit* u)
     }
 }
 
+// Mover 3: rotation = rot0 plus the curve-3 angle on the axis selected by rot_flag (degrees),
+// builds l_mat and, under a group parent, concatenates the parent matrix.
 void idSysMove03(IdUnit* u)
 {
     Vec rot;
@@ -934,6 +976,8 @@ void idSysMove03(IdUnit* u)
     }
 }
 
+// Mover 4: texture animation: steps texNo (and the mask frame) through the TexAnm pattern list every
+// frame unless tex_flag holds them (0x2 / 0x4); hides the unit when the texture id is unknown.
 void idSysMove04(IdUnit* u)
 {
     TexAnm* anm;
@@ -971,6 +1015,8 @@ void idSysMove04(IdUnit* u)
     }
 }
 
+// Per-frame draw (unless Disp_flg 0x2000 hides the HUD): queues every visible root unit whose class
+// is not switched off (Disp_flg 0x10000 also skips OT type 0x13).
 void IDSystem::trans()
 {
     int i;
@@ -999,6 +1045,7 @@ void IDSystem::trans()
     }
 }
 
+// Queues a unit (and, for groups, its children first) into the OT with IdGeneralTrans.
 void IDSystem::unitTrans(IdUnit* u)
 {
     IdUnit* c = pUnit; // declared before i: decides the r25/r26 split of the i+1 / c+1 loop temps
@@ -1034,6 +1081,8 @@ void IDSystem::unitTrans(IdUnit* u)
     }
 }
 
+// OT callback: draws the unit by trans_type (0 common quad, 1 negative with pow <= 1, 2 negative
+// mode 2, 3.. shimmer), or a plain colour quad when it has no texture.
 void IdGeneralTrans(IdUnit* u)
 {
     u->be_flag &= ~0x10;
@@ -1065,6 +1114,7 @@ void IdGeneralTrans(IdUnit* u)
     LightMgr.setFog();
 }
 
+// Vertex format of the id quads (position, colour, one texcoord).
 static inline void IdVtxFmt()
 {
     GXClearVtxDesc();
@@ -1077,6 +1127,8 @@ static inline void IdVtxFmt()
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
 }
 
+// Standard textured quad draw: blend table by blend_type, texture + colour channel, optional mask
+// texture stage (tex_flag 0x1, CI formats with TLUT), the unit's l_mat under the screen matrix.
 void IdCommonTrans(IdUnit* u)
 {
     int blend[5][4] = {
@@ -1149,6 +1201,8 @@ void IdCommonTrans(IdUnit* u)
     GXSetAlphaUpdate(0);
 }
 
+// Frame-buffer quad: copies the screen behind the unit into the id buffer and draws it back through
+// the unit's texture (mode selects the TEV combine: invert / multiply).
 void IdNegativeTrans(IdUnit* u, u32 mode)
 {
     IdBlend blend[5] = {
@@ -1248,6 +1302,8 @@ void IdNegativeTrans(IdUnit* u, u32 mode)
     GXSetAlphaUpdate(0);
 }
 
+// Heat-shimmer quad: the screen copy is drawn through an indirect stage warped by the unit's
+// texture with strength alpha * (1 + sub/32) scaled by depth; type selects signed/replace warp.
 void IdShimmerTrans(IdUnit* u, int sub, int type)
 {
     IdBlend2 blend[5] = {
@@ -1416,12 +1472,14 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     LightMgr.setFog();
 }
 
+// Allocates the 0x46000-byte screen-copy buffer (memory group 13) for negative/shimmer draws.
 void IdAllocBuffer()
 {
 #line 2779 "D:/Bio4/Prog/id_sys.cpp"
     g_pIdBuff = MEM_ALLOC(0x46000, 1, 0xD);
 }
 
+// Frees the screen-copy buffer.
 void IdFreeBuffer()
 {
     if (g_pIdBuff != 0) {
@@ -1430,17 +1488,21 @@ void IdFreeBuffer()
     g_pIdBuff = 0;
 }
 
+// Debug-heap variant of IdAllocBuffer.
 void IdDebugAllocBuffer()
 {
     g_pIdBuff = Debug_alloc(0x46000, 1);
 }
 
+// Frees the debug-heap buffer.
 void IdDebugFreeBuffer()
 {
     Debug_free(g_pIdBuff);
     g_pIdBuff = 0;
 }
 
+// Buffer for a screen copy of kind `type`: the private id buffer in the sub-screen / stopped states,
+// otherwise draw temp buffer 0xF.
 void* IdGetBufferAddr(int type)
 {
     if ((pG->Debug_flg[1] & 0x100000) || (pG->Status_flg[0] & 0x40000) || (pG->Status_flg[2] & 0x8000)) {
@@ -1450,6 +1512,7 @@ void* IdGetBufferAddr(int type)
     return GetDrawTmpBufAddr(0xF);
 }
 
+// Records which copy kind currently owns the id buffer.
 void IdSetBufferType(int type)
 {
     IdBuffType = type;

@@ -1,3 +1,7 @@
+// game/main_sub: render frame plumbing and system helpers (D:/Bio4/Prog/main_sub.cpp): the GX
+// render mode (Rmode, 512x448 non-AA), frame buffers and FIFO set-up (Render_init), the per-frame
+// begin/done/swap, screen/scissor size, near clip control, play-time accounting, screen shots,
+// stopwatch, VI brightness filter, TPL/texture quad drawing and REL module link/unlink.
 #include "types.h"
 #include "global.h"
 #include "gx.h"
@@ -110,6 +114,7 @@ struct OSLowMem {
 
 #line 30 "D:/Bio4/Prog/main_sub.cpp"
 
+// GX verify callback: forwards warnings to OSReport.
 // Dead-stripped in the original (its string survives in .rodata).
 static void GXVerifyCallback(int level, u32 id, const char* msg)
 {
@@ -146,6 +151,8 @@ static char* AutoScreenShotFilename;
 static int ScreenShotFrame;
 static u8 Line;
 
+// Boot: TV mode, two XFBs at 0x80460000, the 0x70000-byte GX FIFO at 0x803F0000, GXInit, the
+// screen GX state, first VI configure and the 512x448 screen size.
 void Render_init()
 {
     GXRenderModeObj* rm = &Rmode;
@@ -178,6 +185,7 @@ void Render_init()
     ScreenReSize(512, 448);
 }
 
+// Frame start: field-rendering viewport jitter and the default (dim) copy filter.
 void Render_before()
 {
     if (Rmode.field_rendering) {
@@ -190,6 +198,9 @@ void Render_before()
     Bg_brightness_set(64.0f);
 }
 
+// Frame end: waits for the scenario C-task when it is outside its frame range, runs the
+// after-render OT (0x16), sets the brightness filter, copies the EFB to the XFB with the draw
+// sync token 0xADEB.
 void Render_done()
 {
     GXSetZMode(1, 3, 1);
@@ -217,6 +228,7 @@ void Render_done()
     }
 }
 
+// Presents the current XFB (unless System_flg 0x400 holds the picture) and flips buffers.
 void Render_swap()
 {
     if (!(pG->System_flg & 0x400)) {
@@ -230,6 +242,8 @@ void Render_swap()
     VIFlush();
 }
 
+// Start of the game frame: restores ZNEAR to 100 unless a SetNearClipDist request is pending
+// (Status_flg[1] 0x1000), which it consumes.
 void UpdateNearClipDist()
 {
     GlobalWork* g = pG;
@@ -239,12 +253,14 @@ void UpdateNearClipDist()
     g->Status_flg[1] &= ~0x1000;
 }
 
+// Requests a different near clip distance for this frame (water/ filter copies).
 void SetNearClipDist(f32 dist)
 {
     FSet(ZNEAR, dist);
     pG->Status_flg[1] |= 0x1000;
 }
 
+// 1 in the game steps where post filters may run (Rno0 3 main loop, 4 door demo, 6 option).
 int Render_checkBlurPermission()
 {
     u8 mode = pG->Rno0;
@@ -254,6 +270,7 @@ int Render_checkBlurPermission()
     return 0;
 }
 
+// GX draw sync callback: token 0xADEB marks the end of the frame's rendering (System_flg 0x10000000).
 void Render_DrawSyncCallback(u16 token)
 {
     if (token == 0xADEB) {
@@ -262,6 +279,7 @@ void Render_DrawSyncCallback(u16 token)
     }
 }
 
+// Blanks / unblanks the video output and mirrors it in System_flg 0x40000.
 void systemVISetBlack(int black)
 {
     if (black == 1) {
@@ -273,6 +291,7 @@ void systemVISetBlack(int black)
     }
 }
 
+// Restores the normal scissor (full frame, or none when Status_flg[3] 0x10000000).
 void SetScissorState()
 {
     if (pG->Status_flg[3] & 0x10000000) {
@@ -282,23 +301,28 @@ void SetScissorState()
     }
 }
 
+// Disables the scissor rectangle (full-screen copies).
 void SetNoScissor()
 {
     GXSetScissor((u32) Screen.x, (u32) Screen.y, (u32) Screen.width, (u32) Screen.height);
 }
 
+// 1 when the screen origin is 0.
 // Dead-stripped in the original (its SF 0.0 constant survives in .rodata).
 static int ScreenIsOrigin()
 {
     return Screen.x == 0.0f;
 }
 
+// Sets viewport, scissor, display copy source/destination and pixel format for the current screen size.
 void ScreenGXSet()
 {
     GXSetViewport(Screen.x, Screen.y, Screen.width, Screen.height, 0.0f, 1.0f);
     SetScissorState();
 }
 
+// Changes the EFB/screen size (e.g. 512x448 normal, smaller for the movie player), reconfigures VI
+// and the GX state.
 void ScreenReSize(u16 w, u16 h)
 {
     Mtx44 mtx;
@@ -320,6 +344,7 @@ void ScreenReSize(u16 w, u16 h)
     GXSetProjection(mtx, 1);
 }
 
+// Sets the Screen size only (viewport/scissor follow on the next ScreenGXSet).
 void EFBReSize(int w, int h)
 {
     Screen.width = (f32) w;
@@ -328,6 +353,7 @@ void EFBReSize(int w, int h)
     GXSetScissor((u32) Screen.x, (u32) Screen.y, (u32) Screen.width, (u32) Screen.height);
 }
 
+// Splits seconds into h/m/s (any output may be NULL).
 void SecToTime(u32 sec, u32* h, u32* m, u32* s)
 {
     u32 hour = sec / 3600;
@@ -342,12 +368,14 @@ void SecToTime(u32 sec, u32* h, u32* m, u32* s)
     }
 }
 
+// Marks the start of a play-time segment (game_start_time = now).
 void InitGameTime()
 {
     OSTime t = OSGetTime();
     pG->game_start_time = OSTicksToSeconds(t);
 }
 
+// Total play time in seconds (saved play_time + the running segment), also split into h/m/s.
 u32 GetGameTime(u32* h, u32* m, u32* s)
 {
     u32 sec;
@@ -357,6 +385,7 @@ u32 GetGameTime(u32* h, u32* m, u32* s)
     return sec;
 }
 
+// Folds the running segment into pG->play_time and restarts the segment (before saves/pauses).
 void SetGameTime()
 {
     OSTime t = OSGetTime();
@@ -365,6 +394,7 @@ void SetGameTime()
     pG->game_start_time = OSTicksToSeconds(t);
 }
 
+// Tool: starts an automatic screen shot sequence (name prefix, frame count).
 void ScreenShotStart(char* name, int frame, int flag)
 {
     static int AutoScreenShotExecFlag = 1;
@@ -374,6 +404,7 @@ void ScreenShotStart(char* name, int frame, int flag)
     AutoScreenShotFilename = name;
 }
 
+// Tool: stops the automatic screen shots.
 void ScreenShotEnd()
 {
     AutoScreenShotExec = 0;
@@ -382,6 +413,7 @@ void ScreenShotEnd()
 int ScreenShotExec = 0;
 int lbl_80314C0C = 0;  // ScreenShotWait: unreferenced, Bio4.sym has no name
 
+// Boot: builds the screen shot file name stamp (_MMDDhhmm_) and clears the shot state.
 void SelfScreenShotInit()
 {
     OSCalendarTime ct;
@@ -393,6 +425,7 @@ void SelfScreenShotInit()
     AutoScreenShotExec = 0;
 }
 
+// Tool: writes the current frame as d:\bio4/Room/Sc_shot/r<room><stamp><frame>.bmp on the host.
 // Dead-stripped in the original (strings and constant pool survive in .rodata).
 static void ScreenShotMain(int frame)
 {
@@ -405,18 +438,21 @@ static void ScreenShotMain(int frame)
     }
 }
 
+// Debug profiling: inits the stopwatch and the print line.
 void StopwatchInit()
 {
     OSInitStopwatch(&SW, "");
     Line = 0;
 }
 
+// Debug profiling: restarts the stopwatch.
 void StopwatchStart()
 {
     OSResetStopwatch(&SW);
     OSStartStopwatch(&SW);
 }
 
+// Debug profiling: stops and returns the elapsed microseconds (printed with `name` when given).
 u32 StopwatchStop(const char* name)
 {
     OSTime us;
@@ -429,6 +465,8 @@ u32 StopwatchStop(const char* name)
     return us;
 }
 
+// Runs the after-render OT list (0x16: filters that need the finished frame) and releases the draw
+// temp buffer.
 void after_render_proc()
 {
     flag_render_after = 1;
@@ -437,6 +475,8 @@ void after_render_proc()
     flag_render_after = 0;
 }
 
+// Sets the VI vertical copy filter from a brightness (64 = normal): the 7 taps are scaled and the
+// remainder distributed in the `order` sequence.
 void Bg_brightness_set(f32 brightness)
 {
     u8 vf[7] = {8, 8, 10, 12, 10, 8, 8};
@@ -466,6 +506,8 @@ void Bg_brightness_set(f32 brightness)
     GXSetCopyFilter(rm->aa, rm->sample_pattern, 1, rm->vfilter);
 }
 
+// Draws texture 0 of a TPL (relocating its offsets on first use, CI formats with TLUT) as a screen
+// quad at (x, y) of w x h pixels.
 void DrawTpl(TEXPalette* tpl, int x, int y, int w, int h)
 {
     GXTexObj texObj;
@@ -512,6 +554,7 @@ void DrawTpl(TEXPalette* tpl, int x, int y, int w, int h)
     DrawTexture(&texObj, x, y, 1, w, h);
 }
 
+// Draws a texture object as a white screen-space quad (ortho 448 x fbWidth).
 void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
 {
     GXColor color;
@@ -560,6 +603,7 @@ void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
     GXTexCoord2f32(0.0f, 1.0f);
 }
 
+// Runs a REL's epilog and unlinks it; a failure logs and halts after 60 frames.
 void DLL_Unlink(OSModuleHeader* module)
 {
     if (module->epilog) {
@@ -574,6 +618,7 @@ void DLL_Unlink(OSModuleHeader* module)
     OSReport("The unlink of DLL was completed.\n");
 }
 
+// Links a REL with its bss; a failure logs and halts after 60 frames.
 void DLL_Link(OSModuleHeader* module, void* bss)
 {
     if (OSLink(module, bss) != 1) {

@@ -102,6 +102,7 @@ public:
 };
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
+// Removes all 16 message slots (event messages are cleared on cancel/end/begin).
 // Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
 static inline void EvtMesDeleteAll()
 {
@@ -119,12 +120,14 @@ static inline void IntSet(int& d, int v)
     d = v;
 }
 
+// StatusFlag bit test helper.
 // Status / tool flag test: the `li 1; andis.; bne; li 0; cmpwi` chains.
 static inline int EvtChk(u32 f, u32 mask)
 {
     return (f & mask) ? 1 : 0;
 }
 
+// be_flag bit test helper.
 // Reversed form (`li 0; andi.; beq; li 1`), compared against 1 by EspToolSetMod.
 static inline int BeFlgChk(cUnit* u, u32 mask)
 {
@@ -134,6 +137,7 @@ static inline int BeFlgChk(cUnit* u, u32 mask)
     return 0;
 }
 
+// Event model number -> model (EspEvModList slot, 0 when out of range).
 // The event model list entry when `no` is a valid index.
 static inline cModel* EspEvModGet(int no)
 {
@@ -143,6 +147,7 @@ static inline cModel* EspEvModGet(int no)
     return 0;
 }
 
+// Index of an Event in the manager's array (its effect owner slot), -1 when not found.
 // Index of `e` in the manager's work array (-1 when it is not one of them).
 static inline int EvtWorkNo(EventMgr* mgr, Event* e)
 {
@@ -205,6 +210,7 @@ typedef int (*PacFunc)(Event*);
 typedef void (*EvtFunc)(Event*, int);
 
 template <class T>
+// Destroys a unit immediately (bypassing the deferred die list) by clearing the manager flag around destroy.
 void cManager<T>::destroyNow(T* p)
 {
     u8 f = flag;
@@ -220,16 +226,21 @@ EventDebug EvtDebug;
 #define EVT_STR_FRAME 26.85312f
 #define EVT_FRAME_RATE 29.97f
 
+// Event unit constructor: only records the manager id.
 Event::Event(u8 t) : cUnit(1)
 {
     Type = t;
 }
 
+// Clears the type; the model table is torn down by ExeEndEvt / DelEvt.
 Event::~Event()
 {
     Type = 0;
 }
 
+// Prepares an event from its loaded "event" header: first packet, a fresh 0x60-entry model table,
+// cleared EspEvModList / counters / stream slots, the room's Evt_*_Func table (EvtMgr.GetFunc by
+// name) and the cut/frame totals (CalMaxTotalFrame). Returns 0 on bad data or no memory.
 int Event::init(char* nm, EvtHeader* data)
 {
     u32 i;
@@ -282,6 +293,11 @@ int Event::init(char* nm, EvtHeader* data)
     return 0;
 }
 
+// One event frame: executes every packet due at (NowCut, NowFrame), then the end-of-event
+// automatics (bit 0x400: fade to black 30 frames before the end; bit 0x200: the died demo),
+// fog/focus curves, the stream re-sync (bit 0x10000), the room's evt func (mode 1), model
+// visibility (ControlTransFlag), the action button and the frame/cut advance. Returns 0 on a
+// packet error (the manager then deletes the event).
 int Event::Run()
 {
     int flg;
@@ -359,6 +375,7 @@ func:
     return 1;
 }
 
+// Appends a model to EspEvModList (event model numbers used by effect records with Core_flg 0x1000).
 void Event::EspSetModelPtr(cModel* m)
 {
     u32 tbl = (u32) EspEvModList;
@@ -370,6 +387,8 @@ void Event::EspSetModelPtr(cModel* m)
     EmListNo++;
 }
 
+// t_esp tool: rewinds the event, scans the SetOm/Cam/BeginEvt packets of the whole stream and fills
+// EventDebug's model file list (EspToolSetMod for each model).
 int Event::EspToolSetDat()
 {
     char nm[0x20];
@@ -409,6 +428,9 @@ int Event::EspToolSetDat()
     return 1;
 }
 
+// t_esp tool: for model `nm` (costume-adjusted) reads x:/soft/room/event/evd/evt_bin_<model>.xml for
+// its bin/tpl file names and records the model pointer number, ot_type, light mask and flags in
+// EvtDebug.pModel[no].
 void Event::EspToolSetMod(int no, char* nm)
 {
     char path[0x100];
@@ -489,6 +511,7 @@ static inline int EspToolSetDatOya(Event* evt, char* nm)
     return 0;
 }
 
+// Looks a named event model up and returns it with its EspEvModList number; 0 when unknown.
 int Event::GetModelPtrNo(int* no, cModel** mod, char* nm)
 {
     u8 type;
@@ -515,6 +538,9 @@ int Event::GetModelPtrNo(int* no, cModel** mod, char* nm)
     return 0;
 }
 
+// t_event tool seek: mode 0 = back subFrame frames, 1 = start of the current/previous cut, 2 = next
+// cut, 3 = start of the current cut. Rewinds to the first packet and fast-forwards (StatusFlag
+// 0x40000000: only set-up packets run, camera/motion start at FFNowFrame) until the target.
 int Event::RunTool(int mode, int subFrame)
 {
     int frm = NowFrame;
@@ -588,6 +614,10 @@ int Event::RunTool(int mode, int subFrame)
     return 1;
 }
 
+// Event skip (START): fades to black, then fast-forwards the remaining packets (StatusFlag 0x08000000,
+// motions/camera jump to their last frame; bit 0x10000000 stops at cut EvtCancelCut instead) running
+// the player/body moves on the last cut so they settle, then stops the stream, runs the evt func in
+// cancel mode (3) and fades back in.
 int Event::RunEvtCancel()
 {
     u32* key;
@@ -638,6 +668,7 @@ cancel_end:
     return 1;
 }
 
+// Requests a cancel from game code (StatusFlag 0x4000) and clears the cancel-to-cut mode.
 void Event::CancelSet()
 {
     StatusFlag |= 0x4000;
@@ -645,11 +676,15 @@ void Event::CancelSet()
     StatusFlag &= ~0x10000000;
 }
 
+// Forbids the player from skipping this event (StatusFlag 0x02000000).
 void Event::CancelNoSet()
 {
     StatusFlag |= 0x02000000;
 }
 
+// Per-frame visibility of the event models (types 0..2): a model whose motion has ended or is not
+// set is hidden (be_flag 0x20 / 2 off), otherwise shown; obj18 chained children and parents copy
+// the state. Costume-1 (Ashley) replacement models are always hidden. Skipped while DelTimer runs.
 void Event::ControlTransFlag()
 {
     int n;
@@ -737,6 +772,7 @@ void Event::ControlTransFlag()
     }
 }
 
+// Debug line "[EVENT EXEC] EV cut/frame/total" at (16,32); also snapshots the counters for the tool.
 void Event::DebugDisp()
 {
     char buf[0x20];
@@ -756,6 +792,7 @@ void Event::DebugDisp()
     BakMaxTotalFrame = MaxTotalFrame;
 }
 
+// Debug line "[EVENT TOOL] ..." from the snapshot taken by DebugDisp.
 void Event::DebugDispTool()
 {
     char buf[0x20];
@@ -769,6 +806,8 @@ void Event::DebugDispTool()
             BakMaxCut, BakNowFrame, BakMaxFrame, BakNowTotalFrame, BakMaxTotalFrame);
 }
 
+// 1 when the current packet is due: its cut is before NowCut, or equal with frame <= NowFrame;
+// 0 at the end of the stream (bit 0x00800000) or past the last cut in loop mode (0x20000000).
 int Event::IsExePacket()
 {
     EvtPacket* pac;
@@ -789,6 +828,9 @@ ng:
     return 0;
 }
 
+// Executes the current packet through packetTbl (id 0..0x20). In tool fast-forward (0x40000000)
+// only the set-up/camera/motion/shape/effect/fog/focus packets run; in loop mode (0x20000000) only
+// ids 6..0x14 and 0x1D..0x1F. Returns 0 on a bad id or handler failure.
 int Event::ExePacket()
 {
     static PacFunc packetTbl[] = {
@@ -860,11 +902,13 @@ int Event::ExePacket()
     return 1;
 }
 
+// Packet 0 (BeginEvt): nothing to do (the begin work is ExeBeginEvt).
 int Event::ExePacket_BeginEvt(Event* evt)
 {
     return 1;
 }
 
+// Packet 1 (SetPl): puts the real player into the event (beginEvent, no suspend) as model type 0.
 int Event::ExePacket_SetPl(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
@@ -879,11 +923,15 @@ int Event::ExePacket_SetPl(Event* evt)
     return 1;
 }
 
+// Packet 2 (SetEm): unused.
 int Event::ExePacket_SetEm(Event* evt)
 {
     return 1;
 }
 
+// Packet 3 (SetOm): creates an event body as an obj18 from the bin/tpl named in the packet; the model
+// name prefix (pl00, em10, evm.., scr, wep, ...) selects the obj18 type and foot shadow table;
+// "pl0000" becomes the event player body (PPl). Registered as model type 2.
 int Event::ExePacket_SetOm(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
@@ -972,6 +1020,8 @@ int Event::ExePacket_SetOm(Event* evt)
     return 1;
 }
 
+// Packet 4 (SetParts): attaches a parts model to a parent, substituting the costume-specific
+// files (pl000e / ev0100.tpl) for Leon's alternate costumes and Ashley's armour.
 int Event::ExePacket_SetParts(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
@@ -999,6 +1049,8 @@ int Event::ExePacket_SetParts(Event* evt)
     }
 }
 
+// Creates the parts cModelInfo from bin/tpl and adds it to parent `oya` (the ev*02 head parts also
+// set the parent's parts offset); registered as model type 3.
 int Event::ExePacket_SetPartsSub(char* nm, char* bin, char* tpl, char* oya)
 {
     void* b;
@@ -1035,11 +1087,14 @@ int Event::ExePacket_SetPartsSub(char* nm, char* bin, char* tpl, char* oya)
     return 1;
 }
 
+// Packet 5 (SetList): unused.
 int Event::ExePacket_SetList(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x1C (SetEff): loads the event's effect data as effect owner 0xC4 + effNo (bit 0x40000 =
+// loaded, released in ExeEndEvt).
 int Event::ExePacket_SetEff(Event* evt)
 {
     void* dat;
@@ -1061,6 +1116,8 @@ int Event::ExePacket_SetEff(Event* evt)
     return 1;
 }
 
+// Packet 0x20 (SetMdt): installs the event's message data as MesData.ptr[1] (bit 0x2000 makes
+// MesSet use message file 0xF2).
 int Event::ExePacket_SetMdt(Event* evt)
 {
     void* dat;
@@ -1075,6 +1132,9 @@ int Event::ExePacket_SetMdt(Event* evt)
     return 1;
 }
 
+// Packet 6 (Cam) = start of a cut: starts the camera motion (from FFNowFrame in tool seek, the last
+// frame in cancel), clears fog/focus curves and all model motions, deletes the previous cut's
+// effects and starts this cut's est (EventCutEstSet).
 int Event::ExePacket_Cam(Event* evt)
 {
     void* dat;
@@ -1107,16 +1167,21 @@ int Event::ExePacket_Cam(Event* evt)
     return 1;
 }
 
+// Packet 7 (CamPos): unused.
 int Event::ExePacket_CamPos(Event* evt)
 {
     return 1;
 }
 
+// Packet 8 (CamDammy) = a cut without camera data (its length is val.no); nothing to execute.
 int Event::ExePacket_CamDammy(Event* evt)
 {
     return 1;
 }
 
+// Packet 9 (Pos): places a model (or "cam0000", the camera base matrix) at pos (units) / rot
+// (degrees), optionally relative to a parent ("oya0000" = PModOya; flag sign bit) and, with flag
+// 0x40000000, chains an obj18 to the parent's parts.
 int Event::ExePacket_Pos(Event* evt)
 {
     Vec pos;
@@ -1173,11 +1238,14 @@ int Event::ExePacket_Pos(Event* evt)
     return 1;
 }
 
+// Packet 0xA (PosPl): unused.
 int Event::ExePacket_PosPl(Event* evt)
 {
     return 1;
 }
 
+// Packet 0xB (Mot): starts motion `bin` on the named model (frame FFNowFrame / last frame in tool
+// and cancel modes) and flags the player / body types for be_flag 0x00200000 (event motion).
 int Event::ExePacket_Mot(Event* evt)
 {
     cModel* m;
@@ -1223,6 +1291,7 @@ int Event::ExePacket_Mot(Event* evt)
     return 1;
 }
 
+// Packet 0xC (Shp): starts a face shape animation on the model (or its cModelInfo for a type-2 body).
 int Event::ExePacket_Shp(Event* evt)
 {
     cModel* m;
@@ -1255,6 +1324,9 @@ int Event::ExePacket_Shp(Event* evt)
     return 1;
 }
 
+// Packet 0xD (Esp): starts an est on the named model (or the world): type 0 = owner 1 (common event
+// effects), 5 = the event's own effect data (0xC4 + effNo), 6 = owner 0x54; flag sign bit places it
+// relative to PModOya.
 int Event::ExePacket_Esp(Event* evt)
 {
     Vec pos;
@@ -1305,6 +1377,7 @@ int Event::ExePacket_Esp(Event* evt)
     return 1;
 }
 
+// Packet 0xE (Lit): switches the room lighting to the event's light data (not repeated in tool seek).
 int Event::ExePacket_Lit(Event* evt)
 {
     cLit* dat;
@@ -1328,6 +1401,7 @@ int Event::ExePacket_Lit(Event* evt)
     return 1;
 }
 
+// Packet 0x1E (Fog): installs the fog start/end Hermite curves played by FogMove.
 int Event::ExePacket_Fog(Event* evt)
 {
     void* dat;
@@ -1344,6 +1418,7 @@ int Event::ExePacket_Fog(Event* evt)
     return 1;
 }
 
+// Packet 0x1F (Focus): installs the depth-of-field near/far curves played by FocusMove.
 int Event::ExePacket_Focus(Event* evt)
 {
     void* dat;
@@ -1366,6 +1441,8 @@ static inline const char* EvtDebugEvdName()
     return "event/evd/r100s40.evd";
 }
 
+// Packet 0xF (Str): starts stream (voice/music) val.arg in stream block val.no (0 = BGM block;
+// flag 0x20000000 = no frame sync); ChangeNoStr overrides the stream number once.
 int Event::ExePacket_Str(Event* evt)
 {
     char nm[0x40];
@@ -1391,6 +1468,7 @@ int Event::ExePacket_Str(Event* evt)
     return 1;
 }
 
+// Packet 0x10 (Se): plays sound effect (val.no, val.arg) at the player position.
 int Event::ExePacket_Se(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
@@ -1399,6 +1477,7 @@ int Event::ExePacket_Se(Event* evt)
     return 1;
 }
 
+// Packet 0x1D (Fade): fade slot 2 in (val.no == 0) or out over val.time frames.
 int Event::ExePacket_Fade(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
@@ -1411,6 +1490,7 @@ int Event::ExePacket_Fade(Event* evt)
     return 1;
 }
 
+// Packet 0x11 (Mes): shows subtitle val.no for val.arg frames at the bottom of the screen.
 int Event::ExePacket_Mes(Event* evt)
 {
     EvtPacket* pac;
@@ -1426,6 +1506,7 @@ int Event::ExePacket_Mes(Event* evt)
     return 1;
 }
 
+// Packet 0x12 (Func): calls entry val.no of the room's event function table with val.arg.
 int Event::ExePacket_Func(Event* evt)
 {
     u32 tbl = evt->PFuncTbl;
@@ -1441,51 +1522,64 @@ int Event::ExePacket_Func(Event* evt)
     return 1;
 }
 
+// Packet 0x13 (ParentOn): unused.
 int Event::ExePacket_ParentOn(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x14 (ParentOff): unused.
 int Event::ExePacket_ParentOff(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x15 (EndPl): unused.
 int Event::ExePacket_EndPl(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x16 (EndEm): unused.
 int Event::ExePacket_EndEm(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x17 (EndOm): unused.
 int Event::ExePacket_EndOm(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x18 (EndParts): unused.
 int Event::ExePacket_EndParts(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x19 (EndList): unused.
 int Event::ExePacket_EndList(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x1A (EndEvt): unused (the end work is ExeEndEvt).
 int Event::ExePacket_EndEvt(Event* evt)
 {
     return 1;
 }
 
+// Packet 0x1B (EndPac) terminates the stream; nothing to execute.
 int Event::ExePacket_EndPac(Event* evt)
 {
     return 1;
 }
 
+// Event start (first Run after SetEvt): tells the scenario system (SceEventStart, bit 0x80 = "true"
+// start), sets Status_flg[2] 0x80000/0x10000 (event running), loads the event font, runs the evt
+// func in begin mode (0), registers Leon's own model files as bins, clears messages and inits the
+// event sound unless the header's sndFlag sign bit is set.
 void Event::ExeBeginEvt(Event* evt, int mode)
 {
     int i;
@@ -1518,6 +1612,11 @@ void Event::ExeBeginEvt(Event* evt, int mode)
     }
 }
 
+// Event end: moves the real player to the event body's position/heading (unless bit 0x800), returns
+// the partner behind the player (unless bit 0x40), releases every registered model (player
+// endEvent0, obj18 bodies destroyed, parts destroyed, type-5 motions cleared), the effect data,
+// all event effects, restores room lighting and the camera, clears messages/shadows, runs the evt
+// func in end mode (2), reloads the stage font and ends the event sound / scenario state.
 void Event::ExeEndEvt(Event* evt, u32 mode)
 {
     Vec pos;
@@ -1603,6 +1702,8 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
     SceEventEnd(0);
 }
 
+// Calls the room's "evt_<room><no>_func" handler with funcMode = mode (0 begin, 1 run, 2 end,
+// 3 cancel); skipped when bit 0x20000 (no func) or during cancel fast-forward for mode 1.
 int Event::ExeFunc(int mode, int param)
 {
     char nm[0x30];
@@ -1634,6 +1735,7 @@ int Event::ExeFunc(int mode, int param)
     return 1;
 }
 
+// Advances to the next packet; sets bit 0x00800000 when the stream is exhausted.
 void Event::CalNextPacket()
 {
     pPrevPacket = pPacket;
@@ -1643,6 +1745,8 @@ void Event::CalNextPacket()
     }
 }
 
+// Advances NowFrame/NowTotalFrame; a pending ChangeNowCut jumps to that cut; at MaxFrame moves to the
+// next cut and recomputes its length.
 void Event::CalNextFrame()
 {
     char buf[0x20];
@@ -1670,6 +1774,7 @@ void Event::CalNextFrame()
     }
 }
 
+// Runs the evt func once when the packets cross from the pre-roll (cut -1) into cut 0.
 void Event::ChkCutZero()
 {
     if (pPrevPacket != 0 && pPrevPacket->cut < 0 && pPacket->cut == 0) {
@@ -1677,6 +1782,7 @@ void Event::ChkCutZero()
     }
 }
 
+// Counts the cuts of the stream (Cam and CamDammy packets) up to EndPac.
 int Event::CalMaxCut(int* out)
 {
     EvtPacket* p;
@@ -1705,6 +1811,7 @@ int Event::CalMaxCut(int* out)
     return 1;
 }
 
+// Length in frames of cut `noCut`: the camera motion's frame count + 1, or a CamDammy's val.no.
 int Event::CalMaxFrame(int* out, int noCut)
 {
     void* dat;
@@ -1746,6 +1853,7 @@ int Event::CalMaxFrame(int* out, int noCut)
     return 1;
 }
 
+// Cut count and total frame count of the event.
 int Event::CalMaxTotalFrame(int* outCut, int* outTotal)
 {
     int mc;
@@ -1777,6 +1885,7 @@ int Event::CalMaxTotalFrame(int* outCut, int* outTotal)
 }
 
 
+// FadeSet with black->clear (no sign bit) or clear->black colours.
 static inline void EvtFadeSetW(int no, u32 time, u32 z, int late)
 {
     FadeColorPair col;
@@ -1794,6 +1903,8 @@ static inline void EvtFadeSetW(int no, u32 time, u32 z, int late)
     FadeSet(no, &col.start, &col.end, time, z, late);
 }
 
+// Starts the death demo from a died-demo event (bit 0x100 = done) and fades back in when a cancel
+// fade is up.
 void Event::SetDiedemoExec()
 {
     StatusFlag |= 0x100;
@@ -1804,6 +1915,7 @@ void Event::SetDiedemoExec()
     DiedemoExec(0, 1);
 }
 
+// Enables the action-button prompt `no` for the event (button mash counting).
 void Event::BeginActBtn(int no)
 {
     memset(&actBtnOn, 0, 0xC);
@@ -1811,16 +1923,19 @@ void Event::BeginActBtn(int no)
     actBtnOn = 1;
 }
 
+// Disables the action-button prompt.
 void Event::EndActBtn()
 {
     actBtnOn = 0;
 }
 
+// Number of presses counted while the prompt was up.
 int Event::GetActBtnCount()
 {
     return actBtnCount;
 }
 
+// Per-frame prompt: shows ActBtn `actBtnNo` and counts A-button (Key.trg 0x80000) presses.
 void Event::ExecActBtn()
 {
     if (actBtnOn != 1) {
@@ -1834,6 +1949,8 @@ void Event::ExecActBtn()
     }
 }
 
+// Shows subtitle `no` (message file 0xF0, or 0xF2 with an event mdt) for `time` frames at (x, y);
+// -1 ends the current one. Suppressed in Japanese (language 1).
 void Event::MesSet(int no, int time, int x, int y)
 {
     int i;
@@ -1855,6 +1972,7 @@ void Event::MesSet(int no, int time, int x, int y)
     TimerMes = time;
 }
 
+// Counts the subtitle timer down and restores Disp_flg 0x800 (HUD) when it expires.
 void Event::MesClear()
 {
     int no;
@@ -1870,6 +1988,7 @@ void Event::MesClear()
     EvtDebug.mesCnt[no]++;
 }
 
+// Applies the cut's fog start/end Hermite curves at the current frame.
 void Event::FogMove(Event* evt, void* fog)
 {
     f32 start;
@@ -1891,6 +2010,7 @@ void Event::FogMove(Event* evt, void* fog)
     LightMgr.setFog();
 }
 
+// Applies the cut's depth-of-field near/far curves (Filter01 camera-Z blur) at the current frame.
 void Event::FocusMove(Event* evt, void* focus)
 {
     f32 near_;
@@ -1914,6 +2034,7 @@ void Event::FocusMove(Event* evt, void* focus)
     }
 }
 
+// Clears the motion of every event model of types 0/1/2/5 (start of a cut).
 void Event::MotClear()
 {
     cModel* m;
@@ -1943,6 +2064,7 @@ void Event::MotClear()
     }
 }
 
+// Registers a model in the event's name table (type 0 player, 2 obj18 body, 3 parts, 5 external).
 int Event::SetMod(char* nm, void* mod, u8 type, void* dat2, u8 flag, int* wkNo)
 {
     int no;
@@ -1960,6 +2082,7 @@ int Event::SetMod(char* nm, void* mod, u8 type, void* dat2, u8 flag, int* wkNo)
     return 1;
 }
 
+// Looks a model up by event name; Debug_flg[3] bit 3 redirects "pl0200" to "pl0300".
 int Event::GetMod(void** mod, char* nm, u8* type, int* wkNo)
 {
     u8 t;
@@ -2024,14 +2147,17 @@ static inline int EventDelMod(Event* evt, char* nm)
     return 1;
 }
 
+// Manager for at most 2 simultaneous events.
 EventMgr::EventMgr() : cManager<Event>(sizeof(Event), 2)
 {
 }
 
+// Nothing to release.
 EventMgr::~EventMgr()
 {
 }
 
+// Unit construction hook: runs the Event constructor and gives it its array index as effect slot.
 int EventMgr::construct(Event* p, u32 id)
 {
     Event* e;
@@ -2049,12 +2175,15 @@ int EventMgr::construct(Event* p, u32 id)
     return 1;
 }
 
+// System init: names the manager.
 int EventMgr::init()
 {
     setName("EventMgr");
     return 1;
 }
 
+// Room init: allocates the evd (0x20), bin (0x140), func (0x10) and read (8) tables, clears the
+// running-event key and the window FCV pointers.
 int EventMgr::myRoomInit()
 {
     int i;
@@ -2081,6 +2210,7 @@ static inline int EventMgrEnd(EventMgr* mgr)
     return 1;
 }
 
+// Deletes every live event immediately (room change).
 int EventMgr::DelAll()
 {
     u32 i;
@@ -2095,6 +2225,10 @@ int EventMgr::DelAll()
     return 1;
 }
 
+// Per-frame: for each live, not finished/paused event runs ExeBeginEvt on its first frame, Run(),
+// the START-button / requested cancel (unless forbidden, finished or died-demo), and when the
+// stream is done counts DelTimer down and deletes it (or parks it: bits 0x00100000 -> 0x00080000,
+// 0x00400000 -> 0x00200000 keep the event alive for the caller).
 int EventMgr::Run()
 {
     u32 i;
@@ -2153,6 +2287,7 @@ int EventMgr::Run()
     return 1;
 }
 
+// 1 when an event named *key is alive (chk != 1 ignores parked ones); *out receives the Event.
 int EventMgr::IsAliveEvt(u32* key, int out, int chk)
 {
     char nm[0x20];
@@ -2182,6 +2317,7 @@ int EventMgr::IsAliveEvt(u32* key, int out, int chk)
     return 0;
 }
 
+// Preloads an event file into ARAM (skipped with Debug_flg[0] 0x02000000).
 int EventMgr::EvtReadAram(char* nm, int em, int* out, int wait, u32 sz)
 {
     int ret = 0;
@@ -2192,11 +2328,14 @@ int EventMgr::EvtReadAram(char* nm, int em, int* out, int wait, u32 sz)
     return ret;
 }
 
+// Loads an event file into main RAM (see EvtReadSub).
 int EventMgr::EvtReadMram(char* nm, int em, int* out, int wait, u32 sz)
 {
     return EvtReadSub(nm, 0, em, out, wait, sz);
 }
 
+// 1 when the event name is one of the 37 cutscenes with a separate Ashley-armour version (only in
+// game_costume 1).
 int EventMgr::NameCheck(char* nm)
 {
     char tbl[37][0x20] = {
@@ -2219,6 +2358,7 @@ int EventMgr::NameCheck(char* nm)
     return 0;
 }
 
+// Returns the file name to load: in game_costume 1 the "rXXXsYY" of a NameCheck event becomes "sXXXsYY".
 char* EventMgr::NameChange(char* nm)
 {
     char* p;
@@ -2237,6 +2377,10 @@ char* EventMgr::NameChange(char* nm)
     return NameTmp;
 }
 
+// Loads event file `nm` through the data cache: registers a read slot, and either queues an ARAM
+// load (aram != 0) or loads to MRAM; with an enemy module `em` the event is swapped into that
+// module's archive memory (MemorySwap, EspEmDataSwapPush) so it borrows the enemy's space.
+// *out receives the address. Returns 0 on any failure (logged).
 int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
 {
     cDataUnit* unit = 0;
@@ -2348,6 +2492,11 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
     return 1;
 }
 
+// The scenario's "play event" call: marks the event state, loads the file (MRAM, into module `em`),
+// creates the event with the option bits (2 died demo + keep, 0x40 keep alive, 0x20 no player
+// reposition, 0x10 auto fade, 0x80 true scenario start, 0x100 no partner recall, 4 fade in after,
+// 0x200 wait for SceCheckEventStart), sleeps until it is gone, then frees the file and clears the
+// event state (unless kept). Returns 0 when the load failed.
 int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
 {
     int addr;
@@ -2422,6 +2571,8 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     return ret;
 }
 
+// Releases a loaded event file: swaps the enemy module memory back if it was borrowed and clears
+// the data cache unit.
 int EventMgr::EvtFree(char* nm)
 {
     cDataUnit* unit = 0;
@@ -2454,12 +2605,15 @@ int EventMgr::EvtFree(char* nm)
     return 1;
 }
 
+// t_event tool: drops all evd and bin registrations.
 void EventMgr::ToolCoreEvdDel()
 {
     EvdTbl.DelAll(0);
     BinTbl.DelAll(0);
 }
 
+// Starts an event from a loaded "event" block: validates the tag, registers it (SetEvd) and creates
+// the Event; *key receives it. Refused while Stop_flg 0x400 or Debug_flg[3] 0x80.
 int EventMgr::SetEvt(void* data, u32* key)
 {
     Event* evt;
@@ -2496,6 +2650,8 @@ int EventMgr::SetEvt(void* data, u32* key)
     return 1;
 }
 
+// Creates and inits the Event for registered evd `nm`, marks it begin-pending (0x01000000) and records
+// it as the running event name.
 int EventMgr::SetEvt(char* nm, Event** out)
 {
     void* evd;
@@ -2536,11 +2692,14 @@ int EventMgr::SetEvt(char* nm, Event** out)
     return 1;
 }
 
+// Finds a live event by name (parked ones included).
 int EventMgr::GetEvt(u32* key, void** out)
 {
     return IsAliveEvt(key, (int) out, 1);
 }
 
+// Ends and destroys an event: ExeEndEvt, then (flag == 1) one frame later the unit is destroyed, its
+// evd unregistered and, if a cancel fade is up, the screen faded back in.
 int EventMgr::DelEvt(void* evt_, int flag)
 {
     char nm[0x20];
@@ -2588,6 +2747,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     return 1;
 }
 
+// Registers a named data block (model/motion/camera/... file) for the event packets.
 int EventMgr::SetBin(char* nm, void* data, void* dat2, int flag)
 {
     if ((int) data >= 0) {
@@ -2601,6 +2761,7 @@ int EventMgr::SetBin(char* nm, void* data, void* dat2, int flag)
     return 1;
 }
 
+// Looks a registered bin up by name; in the tool (flagGet) a missing one is read from x:/soft/room/.
 int EventMgr::GetBin(void** out, const char* nm, int flagGet)
 {
     u8 type;
@@ -2633,6 +2794,7 @@ int EventMgr::GetBin(void** out, const char* nm, int flagGet)
     return 1;
 }
 
+// Unregisters a bin.
 int EventMgr::DelBin(char* nm)
 {
     if (BinTbl.DelDat(nm) == 0) {
@@ -2642,6 +2804,7 @@ int EventMgr::DelBin(char* nm)
     return 1;
 }
 
+// Registers an event data block and every bin listed in its header table.
 int EventMgr::SetEvd(char* nm, void* data, void* dat2, int flag)
 {
     EvtHeader* hdr = (EvtHeader*) data;
@@ -2673,6 +2836,7 @@ int EventMgr::SetEvd(char* nm, void* data, void* dat2, int flag)
     return 1;
 }
 
+// Looks a registered evd up by name (tool: read from disk when missing).
 int EventMgr::GetEvd(void** out, char* nm, int flagGet)
 {
     u8 type;
@@ -2705,6 +2869,7 @@ int EventMgr::GetEvd(void** out, char* nm, int flagGet)
     return 1;
 }
 
+// Unregisters an evd and all its bins.
 int EventMgr::DelEvd(char* nm)
 {
     EvtHeader* hdr;
@@ -2724,6 +2889,7 @@ int EventMgr::DelEvd(char* nm)
     return 1;
 }
 
+// Registers a room's event function table under the event name (rooms call this at init).
 int EventMgr::SetFunc(char* nm, void* func)
 {
     if (FuncTbl.SetDat(nm, func, 0, 0, 0, 0) == 0) {
@@ -2743,6 +2909,7 @@ static inline int EventMgrDelFunc(EventMgr* mgr, char* nm)
     return 1;
 }
 
+// Looks an event function (table) up by name.
 int EventMgr::GetFunc(void** out, char* nm)
 {
     u8 type;
@@ -2759,6 +2926,7 @@ int EventMgr::GetFunc(void** out, char* nm)
     return 1;
 }
 
+// Registers a loading data cache unit under the event file name; *wkNo = its slot.
 int EventMgr::SetRead(char* nm, int* wkNo, void* unit)
 {
     int no = 0;
@@ -2775,6 +2943,7 @@ int EventMgr::SetRead(char* nm, int* wkNo, void* unit)
     return 1;
 }
 
+// Finds the data cache unit of a loading event file.
 int EventMgr::GetRead(void** out, int* wkNo, char* nm)
 {
     u8 type;
@@ -2796,6 +2965,7 @@ int EventMgr::GetRead(void** out, int* wkNo, char* nm)
     return 1;
 }
 
+// Unregisters a read slot.
 int EventMgr::DelRead(char* nm)
 {
     if (ReadTbl.DelDat(nm) == 0) {
@@ -2805,6 +2975,7 @@ int EventMgr::DelRead(char* nm)
     return 1;
 }
 
+// Registers every event contained in an "evs" bundle (table of offsets) as evd.
 int EventMgr::SetEvs(void* evs)
 {
     EvsHeader* hdr = (EvsHeader*) evs;
@@ -2834,6 +3005,8 @@ int EventMgr::SetEvs(void* evs)
 static inline int& evtStrNo(Event* evt, int blk) { u32 p = (u32) evt->NowStr; return *(int*) (p + (blk << 2)); }
 static inline u32& evtStrId(Event* evt, int blk) { u32 p = (u32) evt->SndId; return *(u32*) (p + (blk << 2)); }
 
+// Stops the stream playing in block `blk` of the named event and waits for it to end (mode 1 also
+// waits for the request to clear); clears the block's slot.
 int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
 {
     Event* evt;
@@ -2883,6 +3056,8 @@ int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
     return 0;
 }
 
+// Starts stream `no` in block `blk` for the named event (mode 1: wait until it is playing, then
+// unpause); block 0 goes through the room BGM start. Records the id/number in the event and EvtDebug.
 void EventMgr::EvtSndStrPlay(u32* key, int blk, int no, int mode, f32 vol)
 {
     Event* evt;
@@ -2930,6 +3105,8 @@ void EventMgr::EvtSndStrPlay(u32* key, int blk, int no, int mode, f32 vol)
     }
 }
 
+// World position of the model's root parts snapped to the floor, and the heading of its child parts:
+// where the real player is put when an event body ends.
 int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
 {
     Vec v;
@@ -2960,6 +3137,7 @@ int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
     return 1;
 }
 
+// Clears the three window-break camera (FCV) pointers.
 void EventMgr::ClearEmWindowFcv()
 {
     emWindowFcv[0] = 0;
@@ -2967,6 +3145,7 @@ void EventMgr::ClearEmWindowFcv()
     emWindowFcv[2] = 0;
 }
 
+// Stores the window-break camera data (window 1 in/out, window 2 out) for the room.
 void EventMgr::SetEmWindowFcv(void* a, void* b, void* c)
 {
     emWindowFcv[0] = a;
@@ -2974,6 +3153,7 @@ void EventMgr::SetEmWindowFcv(void* a, void* b, void* c)
     emWindowFcv[2] = c;
 }
 
+// Returns the window-break camera data.
 void EventMgr::GetEmWindowFcv(void** win1FIn, void** win1FOut, void** win2FOut)
 {
     if (win1FIn != 0) {
@@ -2987,20 +3167,24 @@ void EventMgr::GetEmWindowFcv(void** win1FIn, void** win1FOut, void** win2FOut)
     }
 }
 
+// t_event tool state; nothing to construct.
 EventDebug::EventDebug()
 {
 }
 
+// Nothing to release.
 EventDebug::~EventDebug()
 {
 }
 
+// Room init: clears the tool's disable bits (FlagEtc).
 int EventDebug::myRoomInit()
 {
     FlagEtc = 0;
     return 1;
 }
 
+// Clears the 0x60 model file records of the tool.
 void EventDebug::ClrModelFiles()
 {
     int i;
@@ -3010,6 +3194,7 @@ void EventDebug::ClrModelFiles()
     }
 }
 
+// Adds a bin/tpl file pair to model record `no`.
 int EventDebug::AddNameBinTpl(int no, char* bin, char* tpl)
 {
     EvtDebugModel* m = &pModel[no];
@@ -3025,16 +3210,19 @@ int EventDebug::AddNameBinTpl(int no, char* bin, char* tpl)
     return 1;
 }
 
+// Name -> data table; empty until init.
 DatTbl::DatTbl()
 {
     pWork = 0;
 }
 
+// Frees the table.
 DatTbl::~DatTbl()
 {
     end();
 }
 
+// Allocates n entries (memory group 13).
 int DatTbl::init(int n)
 {
     NumDatTbl = n;
@@ -3051,6 +3239,7 @@ int DatTbl::init(int n)
     return 1;
 }
 
+// Frees the entries.
 int DatTbl::end()
 {
     if (pWork == 0) {
@@ -3066,6 +3255,7 @@ int DatTbl::end()
     return 1;
 }
 
+// Registers (name, data, type); a name already present only bumps its reference Count. *wkNo = slot.
 int DatTbl::SetDat(const char* nm, void* dat, u8 type, void* dat2, u8 flag, int* wkNo)
 {
     int i;
@@ -3106,6 +3296,7 @@ int DatTbl::SetDat(const char* nm, void* dat, u8 type, void* dat2, u8 flag, int*
     return 0;
 }
 
+// Finds an entry by name; 0 when absent.
 int DatTbl::GetDat(void** dat, u8* type, const char* nm, int* wkNo)
 {
     int i;
@@ -3139,6 +3330,7 @@ int DatTbl::GetDat(void** dat, u8* type, const char* nm, int* wkNo)
     return 0;
 }
 
+// 1 when the name is registered.
 int DatTbl::ChkDat(const char* nm)
 {
     int i;
@@ -3159,6 +3351,7 @@ int DatTbl::ChkDat(const char* nm)
     return 0;
 }
 
+// Slot number of a name.
 int DatTbl::GetWkNo(int* wkNo, const char* nm)
 {
     int i;
@@ -3183,11 +3376,13 @@ int DatTbl::GetWkNo(int* wkNo, const char* nm)
     return 0;
 }
 
+// Table capacity (slots to scan).
 int DatTbl::GetNumDat()
 {
     return NumDatTbl;
 }
 
+// Entry by slot; 0 when the slot is empty.
 int DatTbl::GetDatWkNo(void** dat, u8* type, int wkNo)
 {
     if (dat == 0) {
@@ -3210,6 +3405,7 @@ int DatTbl::GetDatWkNo(void** dat, u8* type, int wkNo)
     return 0;
 }
 
+// 1 when slot wkNo holds the given name.
 int DatTbl::ChkDatWkNoName(int wkNo, const char* nm)
 {
     DatTblEntry* e;
@@ -3229,6 +3425,7 @@ int DatTbl::ChkDatWkNoName(int wkNo, const char* nm)
     return 0;
 }
 
+// Drops one reference of the slot; frees it (and its debug dat2 buffer) when the count reaches 0.
 int DatTbl::DelDatWkNo(int wkNo)
 {
     if (pWork == 0) {
@@ -3253,6 +3450,7 @@ int DatTbl::DelDatWkNo(int wkNo)
     return 0;
 }
 
+// Drops one reference of the named entry.
 int DatTbl::DelDat(const char* nm)
 {
     int i;
@@ -3281,6 +3479,7 @@ int DatTbl::DelDat(const char* nm)
     return 0;
 }
 
+// Clears every entry (all != 0 also the ones flagged permanent).
 int DatTbl::DelAll(int all)
 {
     int i;
@@ -3300,6 +3499,7 @@ int DatTbl::DelAll(int all)
     return 1;
 }
 
+// Starts stream `no` in block `blk` and waits until it is playing (scenario helper).
 int SndStrPlayBlock(int blk, int no, f32 vol)
 {
     u32 id = SndStrReq(blk, no, 1, 0, 0, vol);
@@ -3313,6 +3513,7 @@ int SndStrPlayBlock(int blk, int no, f32 vol)
     return id;
 }
 
+// Stops the stream in block `blk` and waits for it to end.
 void SndStrStopBlock(int blk)
 {
     u32 id = blk;

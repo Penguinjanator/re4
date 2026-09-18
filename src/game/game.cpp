@@ -128,6 +128,7 @@ union FadeColor {
     u32 w;
 };
 
+// FadeSet with the black/clear pair: sign bit set = fade from black to clear (fade in), clear = fade to black.
 // game.cpp variant of FadeSetW: `black` is set before the start choice, so its `li` leads.
 static inline void fadeSetG(int no, u32 time, u32 z, int late)
 {
@@ -221,6 +222,8 @@ static const PlRoomEff effRoom[6] = {
     {1, {0, 0, 0}, 0x21}, {1, {0, 0, 0}, 0x22}, {1, {0, 0, 0}, 0x23},
 };
 
+// New game: presets the door state flags (door_flags_51C8/51CC/51D0) of the doors that start
+// locked/opened for the scenario.
 void DoorFlagInit()
 {
     BitOn(pG->door_flags_51CC, 0x200);
@@ -238,6 +241,9 @@ void DoorFlagInit()
     BitOn(pG->door_flags_51CC, 0x400000);
 }
 
+// The game task (TaskExec'd by main): loops forever running game_func_tbl[pG->Rno0] once per frame
+// (0 gameInit, 1 gameStageInit, 2 gameRoomInit, 3 gameMainLoop, 4 gameDoordemo, 5 gameEnding,
+// 6 gameOption) after gameDebug and the play-time update.
 void GameTask()
 {
     static void (*game_func_tbl[7])() = {
@@ -260,6 +266,9 @@ void GameTask()
     }
 }
 
+// Rno0 == 0: game start. Inits cloth, messages, sub screen, cockpit, lights, scenario, player, items
+// (System_flg 0x2000 = new game), merchant and play time; System_flg 0x100 (continue/load) loads
+// the save; sets the difficulty points and door flags, then Rno0 = 1.
 void gameInit()
 {
     ClothInit();
@@ -309,6 +318,10 @@ void gameInit()
     pG->Rno0 = 1;
 }
 
+// Rno0 == 1: stage/room entry. Marks continue mode (System_flg 0x80), offers the Ashley costume
+// choice at r120 on a new game (unlocked extras), swaps to the disc of the stage (disc 2 from stage
+// 3 on, except r22c), saves the game (GameSaveSave) when allowed and starts the room load
+// (StageSet); Rno0 = 2.
 void gameStageInit()
 {
     pLog->warn(1, 0, "-- R%03x ----------", pG->room_id);
@@ -369,6 +382,12 @@ void gameStageInit()
     pG->Rno0 = 2;
 }
 
+// Rno0 == 2: room set-up after the room archive is loaded: player/area data, every manager's room
+// init + array allocation sized by the room "CNS" counts (models, parts, enemies, objects, sprites,
+// controllers, ctrl, lights, damage, SAT/EAT collision, events), the room data blocks (SMD/SMX
+// scroll objects, LIT lights, SHD shadows, EFF effects, EAR/SAR areas, TEX/ITM/ETM models, CAM,
+// BLK, EVS, FSE, AEV/ITA scenario collision), the room SST effects, BGM, then the fade-in and
+// Rno0 = 3.
 void gameRoomInit()
 {
     int n;
@@ -576,6 +595,11 @@ void gameRoomInit()
     pG->SaveKind = 0;
 }
 
+// Rno0 == 3: one frame of play. Order: stop-mode keys, difficulty update, died-demo check,
+// scenario collision + action button, ScenarioMove, EmMgr.move (every other_slow-th frame during
+// the weapon zoom slow-motion), player move, ObjMgr/CtrlMgr, camera, effect areas/controllers/
+// sprites, lights, damage, debug displays, light areas, cockpit, sub screen; the Z (Key 0x2000)
+// button opens the option screen (Rno0 = 6) when OptionOpenCheck allows.
 void gameMainLoop()
 {
     static int other_slow = 3;
@@ -746,6 +770,8 @@ void gameMainLoop()
     }
 }
 
+// Loads pSaveData into the game (cGameSave::load) and sets the continue-from-save state: pl_flag 1,
+// System_flg 0x100, next room/point = the saved room.
 void GameLoad()
 {
     GameSave.load(pSaveData);
@@ -757,6 +783,9 @@ void GameLoad()
     pG->next_point = pG->Part;
 }
 
+// Continue after death: reloads the save keeping play time and the continue counters (+1 for mode
+// 0), re-applies costume/weapon data, restores the saved position/angle and jumps to the door demo
+// (Rno0 = 4) of the saved room.
 void GameContinue(int mode)
 {
     u32 time = pG->play_time;
@@ -798,6 +827,8 @@ struct GlobalKeep2 {
     u32 x8334;
 };
 
+// New-round reset of the save block (0x36F8 bytes at save_data_start_addr) keeping game count,
+// pesetas, language, game mode, save kind and the two keep blocks; life refilled, play time reset.
 void clearGlobalSaveData()
 {
     GlobalKeep keep;
@@ -823,6 +854,9 @@ void clearGlobalSaveData()
     InitGameTime();
 }
 
+// Restores the game from a GameSaveData image: the global block (0x4F80..), room flags, sub screen,
+// merchant and item data; SaveKind 3 (new round) clears the block, resets rooms/BGM and starts at
+// r120 with the carried-over merchant/items (2nd round bonuses).
 int cGameSave::load(void* p)
 {
     GameSaveData* data = (GameSaveData*) p;
@@ -853,6 +887,8 @@ int cGameSave::load(void* p)
     return 1;
 }
 
+// cGameSave::save: writes the game state into the image (player position/angle when in play,
+// SaveKind = mode, global block, room flags, sub screen, merchant, items).
 // cGameSave::save(void*): the original also reads `mode` from r5 (see game.h).
 extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
 {
@@ -873,6 +909,7 @@ extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
     return 1;
 }
 
+// Re-bases the image's pointers when it was copied from another address (memory card load).
 void cGameSave::checkAddr(GameSaveData* data)
 {
     GameSaveData* base = data->base;
@@ -883,6 +920,7 @@ void cGameSave::checkAddr(GameSaveData* data)
     }
 }
 
+// Converts the image's section pointers to offsets from base (before writing to card).
 void cGameSave::calcOffset(GameSaveData* data, void* base)
 {
     u32 p;
@@ -907,6 +945,7 @@ void cGameSave::calcOffset(GameSaveData* data, void* base)
     data->pItem = (void*) (p - (u32) base);
 }
 
+// Converts the image's section offsets back to pointers (base = the image itself).
 void cGameSave::calcAddr(GameSaveData* data)
 {
     u32 p;
@@ -929,6 +968,8 @@ void cGameSave::calcAddr(GameSaveData* data)
 
 #define ALIGN32(n) (((n) + 0x1F) & ~0x1F)
 
+// Allocates the save image: global block at 0x40, room data at 0x3740, then sub screen, merchant
+// and item sections (32-byte aligned), and fixes the pointers.
 GameSaveData* cGameSave::alloc()
 {
     u32 globalOfs = 0x40;
@@ -964,6 +1005,8 @@ GameSaveData* cGameSave::alloc()
     return d;
 }
 
+// Rno0 == 5: the ending screen: loads Etc/Ending.tpl, fades in and shows it until START, then
+// requests the soft reset (System_flg 0x4000000).
 void gameEnding()
 {
     static TEXPalette* pTpl;
@@ -990,6 +1033,8 @@ void gameEnding()
     }
 }
 
+// Rno0 == 6: the option screen over the paused game: Rno1 0 stops everything (Stop_flg) and opens
+// OptScrn, 1 runs it, 2 restores Stop_flg, the HUD ids and returns to the saved mode (Game.Rno_bak).
 void gameOption()
 {
     static u32 stop_bak;
@@ -1023,6 +1068,8 @@ void gameOption()
     }
 }
 
+// Starts the death demo after `time` frames (type 0 Leon, 2 Ada/Separate Ways): sets Status_flg[0]
+// 0x100000, stops input/movement, hides the HUD and runs gameDiedemo as a task.
 void DiedemoExec(int time, int type)
 {
     if (pG->Status_flg[0] & 0x100000) {
@@ -1041,6 +1088,8 @@ void DiedemoExec(int time, int type)
     TaskExec(1, (TaskFunc) gameDiedemo, (int) &diedemo_work);
 }
 
+// Per-frame: starts the death demo when the partner's life (ashley_life) or the player's life
+// (pl_life) is <= 0 (skipped in debug no-death mode).
 void gameDiedemoCheck()
 {
     if ((s32) pG->Debug_flg[0] < 0) {
@@ -1058,6 +1107,9 @@ void gameDiedemoCheck()
     }
 }
 
+// The death demo task: waits exec_frame, shows "YOU ARE DEAD" (variant when the partner is alive),
+// fades and stops the sound, after 270 frames or START shows the Continue / Load Game menu, then
+// GameContinue(0) + LVADD_DIE or the soft reset.
 void gameDiedemo(DiedemoWork* w)
 {
     int cnt = 0;
@@ -1186,6 +1238,10 @@ void gameDiedemo(DiedemoWork* w)
     }
 }
 
+// Rno0 == 4: the room transition: stops everything, fades out (m_door_fade_eff 0 = 120-frame stop
+// filter, 1 = 15-frame fade, 2 = instant), runs the pending door/exit callbacks, cancels loads,
+// plays the door sound, moves the player to NextPos/NextY, sets room_id/Part to the next room and
+// goes back to Rno0 = 1.
 void gameDoordemo()
 {
     OSReport("--DOORDEMO START!!\n");
@@ -1264,6 +1320,9 @@ void gameDoordemo()
     OSReport("--DOORDEMO END!!\n");
 }
 
+// Frees the room heap: in the shooting-range mode swaps a 0x188000 block with ARAM and creates
+// heap 10, otherwise replaces heap 3/4; clears the room part of the global work (pad_16C..) and
+// the debug/status flags.
 void gameRoomMemInit()
 {
     if (pG->System_flg & 0x200000) {
@@ -1294,6 +1353,8 @@ void gameRoomMemInit()
     }
 }
 
+// Sets the starting difficulty points by game mode (normal 5500, professional 11000, easy 4500,
+// Separate Ways 4000 / room specific, Assignment Ada 9999) and applies them (GameAddPoint(0)).
 void GamePointInit(u32 mode)
 {
     switch (mode) {
@@ -1338,6 +1399,10 @@ void GamePointInit(u32 mode)
     GameAddPoint(0);
 }
 
+// Dynamic difficulty: adds the LVADD_* delta for the event (death -800, damage -400/-500, misses
+// -1..-50, critical hit / kill / recovery +1..+75), scaled by the current rank (upTbl/dnTbl), clamps
+// to 0..11000 (fixed 9999 for Ada, max in professional/shooting range, min 1000 outside Japan) and
+// recomputes pG->Game_level (points/1000; /1833 easy, /2750 Separate Ways, fixed 10 professional).
 void GameAddPoint(int type)
 {
     int add;
@@ -1474,6 +1539,8 @@ void GameAddPoint(int type)
     }
 }
 
+// Before a boss: raises the points to at least 5500 (except Ada / professional / continue) and
+// mirrors them into the save block.
 void GamePointBossReset()
 {
     if ((s32) pG->System_flg < 0) {
@@ -1491,6 +1558,8 @@ void GamePointBossReset()
     pSaveData->pGlobal->point = pG->point;
 }
 
+// Allocates the room's primitive (line/poly) buffer of nPrim words, halving the count until the
+// allocation succeeds, and registers it with the draw code.
 void primInit()
 {
     S32Set(pG->prim_cnt, 0);
@@ -1507,12 +1576,14 @@ void primInit()
     SetPrimBuffPtr();
 }
 
+// Frees the primitive buffer.
 void primFree()
 {
     Mem_free((void*) pG->prim_cnt);
     pG->prim_cnt = 0;
 }
 
+// Debug: prints the primitive buffer usage at (x, y).
 void PrimDispWorkNum(int x, int y, int col)
 {
     eprintf(x, y, 0, col, "%5X/%5X", (int) ((f32) pG->nPrim * pG->prim_rate), pG->nPrim);
@@ -1522,6 +1593,7 @@ u32 stop_rno = 0;
 static int lbl_80314BA4 = 0;
 static u32 stop_bak;
 
+// Ends the debug pause (Stop_flg restored) if it was active.
 void GameStopModeEnd()
 {
     if (stop_rno != 0) {
@@ -1530,6 +1602,8 @@ void GameStopModeEnd()
     }
 }
 
+// Debug pause on pad 2 START: stop_rno 1 = paused (all move Stop_flg bits on), 2 = one-frame step
+// when START is pressed again; released by another START.
 void gameStopMove()
 {
     if (stop_rno == 0 && !(pG->Stop_flg & 0x10000000)) {
@@ -1572,6 +1646,8 @@ void gameStopMove()
     }
 }
 
+// Debug overlays by debug_mode: player position/routine/life line, the enemy line-of-sight lines
+// (Debug_flg[2] 0x1000), SAT/EAT collision, camera paths, enemy info, room wireframe, ...
 void gameDebugDisp()
 {
     int col;
@@ -1724,6 +1800,8 @@ void gameDebugDisp()
     }
 }
 
+// Debug input: START + pad button opens the debug menu; in the shooting range mode pad 4 moves and
+// turns the player directly.
 void gameDebug()
 {
     if ((Joy[0].trg & 0x1000) && (Joy[0].on & 0x40) && (s32) pG->Debug_flg[0] >= 0) {
@@ -1789,6 +1867,7 @@ void gameDebug()
 }
 
 template <class T>
+// Debug: prints the manager's alive/peak/array counts at (x, y) (sub = entries reserved for the scroll objects).
 int cManager<T>::dispWorkNum(int x, int y, int col, int sub)
 {
     u32 n;

@@ -1,6 +1,11 @@
+// game/filter: dispatcher of the full-screen post filters 00..0b (D:/Bio4/Prog/filter.cpp). Each
+// filter owns its state in filterXX.cpp and queues an OT type 0x12 render callback that copies the
+// frame buffer into a draw temp buffer and blends it back. FilterInit / FilterRoomInit / FilterTrans
+// call the per-filter entries in a fixed order (08 before 02: zoom blur before depth of field).
 #include "filter.h"
 #include "main_sub.h"
 
+// Boot init of all twelve filters (allocates filter00's blur buffer).
 int FilterInit()
 {
     Filter00Init();
@@ -18,6 +23,7 @@ int FilterInit()
     return 1;
 }
 
+// Room init of all twelve filters: resets their parameters and forgets their temp buffers.
 int FilterRoomInit()
 {
     Filter00RoomInit();
@@ -35,6 +41,8 @@ int FilterRoomInit()
     return 1;
 }
 
+// Per-frame: queues every filter's render pass, only on the full 512x448 frame buffer with blur
+// permission and while the pause filter (09) is not active.
 // Full-screen filters only run on the full-size frame buffer.
 void FilterTrans()
 {

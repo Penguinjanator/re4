@@ -1,3 +1,8 @@
+// game/objGondola: object id 0x35, the cable car of the castle (D:/Bio4/Prog/objGondola.cpp). It
+// travels along its motion (R0 1 Move without / 2 Down / 3 Up with the player), carrying the
+// player, the partner and up to five enemies by the displacement of its floor point (4828 below
+// parts 1), places a floor collision quad under them, and can break (R0 4) with a camera change and
+// the player's death. setRidePL / setRideEm / setMoveMotion are the room script entry points.
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -68,6 +73,8 @@ static void (*ObjGondola_R0_move_tbl[5])(cObjGondola*) = {
     objGondola_R0_Set, objGondola_R0_Move, objGondola_R0_Down, objGondola_R0_Up, objGondola_R0_Break,
 };
 
+// Creates the cable car (id 0x35) at pos/rot with its box collision and the floor quad (SatSet),
+// no riders.
 cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -127,6 +134,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: releases the floor collision, action wait timer, R0 routine.
 void cObjGondola::move()
 {
     GondolaWork* w = &gondola;
@@ -138,12 +146,15 @@ void cObjGondola::move()
     ObjGondola_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: parked: matrices only.
 void objGondola_R0_Set(cObjGondola* obj)
 {
     obj->matUpdate();
     obj->partsWorldCalc();
 }
 
+// Rno0 == 1: moving without the player: advances the motion and carries the riding enemies by the
+// floor point's displacement.
 void objGondola_R0_Move(cObjGondola* obj)
 {
     Vec b;
@@ -168,6 +179,8 @@ void objGondola_R0_Move(cObjGondola* obj)
     objGondolaRideEmAdjust(obj, &d);
 }
 
+// Rno0 == 2: descending with the player (and partner) aboard: motion, riders moved by the floor
+// displacement (also fed to the camera quake offset), floor collision re-placed.
 void objGondola_R0_Down(cObjGondola* obj)
 {
     GondolaWork* w = &obj->gondola;
@@ -200,6 +213,8 @@ void objGondola_R0_Down(cObjGondola* obj)
     objGondolaSatSet(obj);
 }
 
+// Rno0 == 3: ascending with the player: as Down; at motion frame 4105 (arrival) the player and
+// partner are put on the platform and the ride flag cleared.
 void objGondola_R0_Up(cObjGondola* obj)
 {
     GondolaWork* w = &obj->gondola;
@@ -252,6 +267,9 @@ void objGondola_R0_Up(cObjGondola* obj)
     }
 }
 
+// Rno0 == 4: the car breaks: kills the player if aboard (death demo after 60 frames), 42 frames
+// later blends in the break motion, then keeps carrying the riders; drives an extra camera looking
+// at the car from the side.
 void objGondola_R0_Break(cObjGondola* obj)
 {
     GondolaWork* w = &obj->gondola;
@@ -338,6 +356,7 @@ void objGondola_R0_Break(cObjGondola* obj)
     }
 }
 
+// Disables the car's collision quads (flag 4 off) for this frame.
 void objGondolaSatClear(cObjGondola* obj)
 {
     GondolaWork* w = &obj->gondola;
@@ -353,6 +372,8 @@ void objGondolaSatClear(cObjGondola* obj)
     }
 }
 
+// Places the floor collision quad (2000 x 3000 at 4828 below parts 0, yaw from the car) at the car's
+// position, creating it on first use; the four wall quads are compiled out (loop bound 1).
 void objGondolaSatSet(cObjGondola* obj)
 {
     GondolaWork* w = &obj->gondola;
@@ -444,6 +465,7 @@ void objGondolaSatSet(cObjGondola* obj)
     }
 }
 
+// (Unused) angular/box test whether em stands in the boarding area.
 // Never called (dead-stripped by the original linker, STRIP_UNUSED): only their constant pools
 // survive in .rodata (3000^2, pi, pi/3, 4250, 4343, 1850, 1950, 4828.03, 5000^2 / 4828.03, 5000^2).
 static int objGondolaRideAreaCk(cObjGondola* obj, cEm* em)
@@ -483,6 +505,7 @@ static int objGondolaRideAreaCk(cObjGondola* obj, cEm* em)
     return 1;
 }
 
+// (Unused) 1 when em is within 5000 units of the car floor.
 static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
 {
     Vec d;
@@ -495,6 +518,7 @@ static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
     return 1;
 }
 
+// Starts the car's travel motion at `frame` (looping, sequence frame from the table).
 void cObjGondola::setMoveMotion(void* mot, int frame)
 {
     MotionSetCore(this, &pMotion, mot, 0, 0, 0x8005, frame);
@@ -504,6 +528,7 @@ void cObjGondola::setMoveMotion(void* mot, int frame)
     r_no_3 = 0;
 }
 
+// 1 while the player rides the car.
 int cObjGondola::ckRide()
 {
     if (gondola.Ride_pl) {
@@ -512,6 +537,7 @@ int cObjGondola::ckRide()
     return 0;
 }
 
+// Puts an enemy aboard in the first free of five slots (positions 300 apart along the floor).
 void cObjGondola::setRideEm(cEm* em)
 {
     GondolaWork* w = &gondola;
@@ -536,6 +562,7 @@ void cObjGondola::setRideEm(cEm* em)
     }
 }
 
+// Removes an enemy from the rider slots.
 void cObjGondola::setGetOffEm(cEm* em)
 {
     GondolaWork* w = &gondola;
@@ -548,12 +575,14 @@ void cObjGondola::setGetOffEm(cEm* em)
     }
 }
 
+// Hit feedback: a 5-frame quake and controller vibration.
 void cObjGondola::setDamage()
 {
     QuakeExec(0, 0, 5, 22.0f, 2);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
 }
 
+// Break feedback: a 10-frame quake and vibration.
 void cObjGondola::setBreak()
 {
     QuakeExec(0, 0, 10, 30.0f, 2);
@@ -564,6 +593,8 @@ void cObjGondola::setBreak()
     r_no_3 = 0;
 }
 
+// Moves every riding enemy by the floor displacement; an enemy more than 4000 units from the floor
+// centre has left the car.
 void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec)
 {
     GondolaWork* w = &obj->gondola;
@@ -588,6 +619,8 @@ void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec)
     }
 }
 
+// Puts the player (and the partner, 500/800 behind him) on the car floor facing 2.84 rad and sets
+// the riding flag Status_flg[0] 0x20.
 void cObjGondola::setRidePL()
 {
     GondolaWork* w = &gondola;
@@ -618,6 +651,7 @@ void cObjGondola::setRidePL()
     r_no_3 = 0;
 }
 
+// Clears the riding flag.
 void cObjGondola::setGetOffPL()
 {
     pG->Status_flg[0] &= ~0x20;
@@ -627,6 +661,7 @@ void cObjGondola::setGetOffPL()
     r_no_3 = 0;
 }
 
+// Installs the secondary MotionWork with the shake and break motions blended over the travel motion.
 void cObjGondola::setSubMotion(MotionWork* work, void* mot, void* breakMot)
 {
     GondolaWork* w = &gondola;
@@ -636,6 +671,7 @@ void cObjGondola::setSubMotion(MotionWork* work, void* mot, void* breakMot)
     w->breakMot = breakMot;
 }
 
+// Hit shake: blends the shake motion in (rate 1, additive), quake and vibration.
 void cObjGondola::setVib()
 {
     GondolaWork* w = &gondola;

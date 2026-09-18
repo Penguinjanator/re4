@@ -13,6 +13,8 @@ int commonScreenMat(cModel* m);
 
 static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat);
 
+// OT callback for a mirror model: sets the screen matrix and draws the model with the render-to-
+// texture result projected onto it.
 void MirrorDraw2(cModel* m)
 {
     if (m == 0) {
@@ -22,6 +24,9 @@ void MirrorDraw2(cModel* m)
     mirrorModelTrans2(m, m->pModelInfo, pG->Cam.v_mat);
 }
 
+// Draws every cModelInfo of the model with one TEV stage sampling TexRender texture 0 through a
+// camera-space projection texture matrix (the reflected scene), single-parts non-skinned models
+// only; applies invisible_factor to the alpha.
 static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
 {
     GxStageWork* st = &pG->gxStage;

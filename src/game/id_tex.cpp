@@ -1,3 +1,6 @@
+// game/id_tex: textures of the ID sprite system (D:/Bio4/Prog/id_tex.cpp). A cTexSys ("IdTex", 0x200
+// slots) registers TPL + TexAnm pairs from id texture data blocks per owner id (IdTexDataLoad);
+// IdTexSet loads a texture frame for a quad, IdChannelSet its colour.
 #include "light.h"
 #include "atari.h"
 #include "id_sys.h"
@@ -8,6 +11,7 @@
 
 cTexSys* g_pIdTexSys;
 
+// Allocates and inits the id texture system.
 void IdTexGameInit()
 {
     cTexSys* sys;
@@ -19,11 +23,13 @@ void IdTexGameInit()
     IdTexRoomInit();
 }
 
+// Room init: drops every registered texture.
 void IdTexRoomInit()
 {
     g_pIdTexSys->Clear();
 }
 
+// Releases the textures registered by owner `id`.
 void IdTexRelease(int id)
 {
     g_pIdTexSys->TexRelease(id);
@@ -38,6 +44,8 @@ struct IdTexData {
     u32 ofsAnm;   // 0x1C  -> TexOfsTbl of TexAnms
 };
 
+// Registers every texture of an id texture data block (version 0xB: id table, TPL table, TexAnm
+// table) under owner `id`; texture id 0x80 skips the duplicate check. Returns 0 on a bad version.
 int IdTexDataLoad(void* data, int id)
 {
     u32 addr = (u32) data;
@@ -77,6 +85,7 @@ static inline int getTexObj(u8 id, u16 no, GXTexObj** t)
     return g_pIdTexSys->GetTexObj(id, no, t);
 }
 
+// Loads frame `no` of texture `id` (and its TLUT when CI) into texture map 0 with an identity texture matrix.
 void IdTexSet(u8 id, u8 no)
 {
     Mtx m;
@@ -105,11 +114,13 @@ void IdTexSet(u8 id, u8 no)
     GXSetTexCoordGen(0, 1, 4, 0x1E);
 }
 
+// Texture animation record of id texture `id`; 0 when unknown.
 int IdGetAnmAddr(u8 id, TexAnm** out)
 {
     return g_pIdTexSys->GetAnmAddr(id, out);
 }
 
+// Sets the material colour channel from the unit's current col[] (0..255 floats).
 void IdChannelSet(IdUnit* u)
 {
     GXColor c;
@@ -124,6 +135,7 @@ void IdChannelSet(IdUnit* u)
     GXSetChanMatColor(4, c);
 }
 
+// Texture work (TPL + animation) of id texture `id`; quiet suppresses the not-found log.
 TexWk* IdGetTexWk(u8 id, int quiet)
 {
     return g_pIdTexSys->GetTexWk(id, quiet);

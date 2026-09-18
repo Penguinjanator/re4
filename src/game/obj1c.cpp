@@ -1,3 +1,8 @@
+// game/obj1c: object id 0x1C, the floating island / raft of the lake (D:/Bio4/Prog/obj1c.cpp):
+// drifts back to its home position (50 units/frame outside a 50-unit radius), is pushed away
+// (300 units/frame, decaying) and plays a crash motion when Del Lago hits it (setCrash /
+// setCrashBig; ckCrash reports the 15-frame crash window to the room), spawns water effects
+// every 30 frames, and is hidden with its effects during Status_flg[1] 0x80000.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -33,6 +38,7 @@ int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 void (*Obj1c_R1_move_tbl[3])(cObj1c*) = { obj1c_R1_Set, obj1c_R1_Crash, obj1c_R1_CrashBig };
 
+// Creates the island at pos/rot (home = pos) with its own effect owner kind.
 cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -81,6 +87,7 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: timers, R1 routine, and hide/show with effect deletion by Status_flg[1] 0x80000.
 void cObj1c::move()
 {
     IslandWork* w = &island;
@@ -107,6 +114,7 @@ void cObj1c::move()
     }
 }
 
+// Rno1 == 0: drift, a water effect (est 1/0) every 30 frames while visible, idle motion.
 void obj1c_R1_Set(cObj1c* obj)
 {
     IslandWork* w = &obj->island;
@@ -131,6 +139,7 @@ void obj1c_R1_Set(cObj1c* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 1: crash motion, then back to the idle motion (big variant when scale >= 1.5).
 void obj1c_R1_Crash(cObj1c* obj)
 {
     IslandWork* w = &obj->island;
@@ -159,6 +168,7 @@ void obj1c_R1_Crash(cObj1c* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 2: same as Crash (the big crash entry).
 void obj1c_R1_CrashBig(cObj1c* obj)
 {
     IslandWork* w = &obj->island;
@@ -187,6 +197,7 @@ void obj1c_R1_CrashBig(cObj1c* obj)
     obj->partsWorldCalc();
 }
 
+// Installs the idle/crash motions (normal and big-scale variants) and starts the idle.
 void cObj1c::setMotion(void* idle, void* crash, void* idleBig, void* crashBig)
 {
     IslandWork* w = &island;
@@ -202,6 +213,7 @@ void cObj1c::setMotion(void* idle, void* crash, void* idleBig, void* crashBig)
     }
 }
 
+// Plays the crash motion and the splash effect (15-frame effect cooldown).
 void cObj1c::setCrash()
 {
     IslandWork* w = &island;
@@ -223,6 +235,8 @@ void cObj1c::setCrash()
     }
 }
 
+// Big hit: pushes the island away from `from` at 300 units/frame, crash motion + splash, and opens
+// the 15-frame crash window (ckCrash).
 void cObj1c::setCrashBig(Vec* from)
 {
     IslandWork* w = &island;
@@ -255,6 +269,7 @@ void cObj1c::setCrashBig(Vec* from)
     w->crashTimer = 15;
 }
 
+// 1 during the 15 frames after a big crash (the room throws the player off).
 int cObj1c::ckCrash()
 {
     if (island.crashTimer) {
@@ -263,6 +278,8 @@ int cObj1c::ckCrash()
     return 0;
 }
 
+// Drift: with no push speed moves 50/frame towards home (outside 50 units); a push speed moves the
+// island and decays by 10% per frame until below 50.
 void obj1cSpdMove(cObj1c* obj)
 {
     IslandWork* w = &obj->island;

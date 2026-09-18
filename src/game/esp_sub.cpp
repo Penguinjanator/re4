@@ -1,3 +1,9 @@
+// game/esp_sub: the shared part of the effect sprites (D:/Bio4/Prog/esp_sub.cpp): the cEsp base
+// class members (CommonMove life/motion/colour update, AnmMove texture animation, ChannelSet
+// colour + distance fade, ApplyMatrix), the common sprite draw EspCommonTrans with its heat
+// shimmer and frame-buffer ("nega") variants, and EspSeqSet, which turns one EspGenWork record
+// of an effect sequence into a live esp (or an effect model through EfmSeqSet). EspEstSetSelect
+// spawns one record of an est table directly (laser sight, gatling, ...).
 #include "atari.h"
 #include "light.h"
 #include "gx.h"
@@ -74,6 +80,12 @@ struct EspPtr {
         }                                                                                         \
     }
 
+// Default Trans (draw) entry of a sprite effect: dispatches to the shimmer / nega variants
+// (m_Shimmer_type, Tool_flg 0x2000), sets the blend mode, and when the previous OT entry was not a
+// sprite selects the projection (screen ortho 512x448 for parts 0xF8..0xFD, else the camera) and
+// the texture; then builds the sprite matrix (billboard / axis-aligned per Tool_flg, camera pan
+// for screen sprites), the colour through ChannelSet and draws the quad (mask texture stage when
+// Tool_flg 0x4000). Tool_flg 0x100000 forces the alpha compare, 0x808000 disables alpha update.
 // Shared sprite draw: the sprite quad (g_EspCommonDisplayList) with the effect's texture, an
 // optional mask texture in TEV stage 1, screen-space or camera-relative placement.
 void EspCommonTrans(cEsp* esp)
@@ -815,11 +827,17 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     LightMgr.setFog();
 }
 
+// Base move: only reached for an id without its own class; logs the id.
 void cEsp::move()
 {
     pLog->err(0, 0, "ESP : ESP_ID[%x] move() invalid", m_Id);
 }
 
+// Per-frame update shared by every effect: detaches from the parent parts after m_Release_time
+// frames (baking the parent matrix into pos/speed), integrates speed (+Speed_plus, *D_speed) once
+// m_Pos_start_cnt has passed, scale (m_Size_mul += m_Size_plus, *D_size_plus; dies at <= 0) once
+// m_Size_start_cnt has passed, angle, colour (ColorUpdate), and kills the effect (PushEsp) when
+// m_Life_time reaches m_Life_max. Returns 0 when the effect died this frame. Updates m_Radius.
 int cEsp::CommonMove()
 {
     if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
@@ -852,6 +870,9 @@ int cEsp::CommonMove()
     return 1;
 }
 
+// Colour envelope: fades in over the first m_Col_max_cnt frames (alpha, and rgb for Blend_type 3),
+// holds for m_Col_start_cnt frames, then multiplies rgba by m_Col_d_* every frame (clamped to 255)
+// and kills the effect when alpha drops below 4. Returns 0 when it died.
 int cEsp::ColorUpdate()
 {
     if (m_Col_max_cnt < m_Life_time) {
@@ -889,11 +910,16 @@ int cEsp::ColorUpdate()
     return 1;
 }
 
+// Base per-id parameter set-up: nothing to read (returns 1); ids with their own work override it.
 int cEsp::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     return 1;
 }
 
+// Advances the texture animation: m_Anm_cnt accumulates m_Anm_rate (1/32 frame units) against the
+// current pattern's frame count and steps m_Ptn_no; at the end Loop 0 returns 0 (animation over,
+// callers stop drawing), 1 restarts, 2 holds the last pattern. Same for the mask animation
+// (m_MaskTex_id / m_MaskPtn_no) when Tool_flg 0x4000.
 int cEsp::AnmMove()
 {
     EspAnmData* anm;
@@ -956,6 +982,11 @@ int cEsp::AnmMove()
     return 1;
 }
 
+// Sets the sprite's material colour for the draw: lit sprites (Tool_flg 0x40) get the effect light
+// list, Tool_flg 0x80/0x20000 select colour/alpha scaling; m_Flg bit 0 premultiplies rgb by alpha
+// (additive sprites); the final colour filter (EffGetFinalCol) is applied unless m_Flg bit 2; the
+// sprite fades out between m_Del_far and m_Del_near (x10 units along the camera axis). Returns 1
+// when the resulting alpha is non-zero (worth drawing).
 #line 1730 "D:/Bio4/Prog/esp_sub.cpp"
 int cEsp::ChannelSet()
 {
@@ -1040,6 +1071,8 @@ int cEsp::ChannelSet()
     }
 }
 
+// Transforms position, speed and acceleration by m (world attachment); with Tool_flg bit 0 also
+// rotates m_Ang by the matrix.
 void cEsp::ApplyMatrix(Mtx m)
 {
     Mtx r;
@@ -1054,6 +1087,8 @@ void cEsp::ApplyMatrix(Mtx m)
     }
 }
 
+// GX state shared by the sprite draws: no culling, alpha compare, Z test without write, one TEV
+// stage with texture matrix 0x1E.
 void cEsp::CommonStateSet()
 {
     GXSetCullMode(0);
@@ -1065,18 +1100,24 @@ void cEsp::CommonStateSet()
     GXSetTexCoordGen(0, 1, 4, 0x1E);
 }
 
+// Effects are pool objects: the constructor does nothing (PullEsp clears the work).
 cEsp::cEsp()
 {
 }
 
+// Nothing to release in the base class.
 cEsp::~cEsp()
 {
 }
 
+// Hook run by PushEsp for ids that own external resources (cloth, buffers); empty in the base.
 void cEsp::Destruct()
 {
 }
 
+// Spawns record `no` of est table (owner, id) as one esp at the origin (identity matrix, fixed seed),
+// bypassing the sequence timing; only Kind 0 records are allowed. bNoSuspend == 1 marks it with
+// Core_flg bit 0 (kept through pauses). Returns 1 with *out = the esp, 0 (with the dummy) on error.
 int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend)
 {
     EspSeqData* head;
@@ -1113,6 +1154,14 @@ int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend)
     return EspSeqSet(rec, &info, &seed, 0, &m, 0, 0.0f, out, 0, 0) == 1;
 }
 
+// Creates one esp from an effect record: Id 0xFC..0xFF are effect models (EfmSeqSet); otherwise
+// pulls an esp of that id, copies the record (position/speed/acceleration/angle with the R_*
+// random spreads from `seed`, sizes, colours and fade counts, blend table, life, release time,
+// shimmer/mask ids, delete distances x10), resolves the parent (Parent_no scroll object unless
+// event mode; Parts_no 0xFF = world through *mtx, 0xF8..0xFD screen, 0xFE free, else a parts of
+// `model`, Tool_flg 0x20 = rotation only), runs the id's SetFreeWork, then the EspSeqOpt
+// overrides/multipliers (speed, size, colour). flg != 0 rotates the speed by `f` radians about y
+// (controller angle spread). Returns 1 with *out set; 0 with the dummy esp on failure.
 int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int flg, f32 f, cEsp** out,
               EspSeqOpt* pSct, Vec* pos)
 {
@@ -1475,6 +1524,8 @@ struct Esp1bSpWork {
     Vec p3;    // 0x1C
 };
 
+// Draws esp1b's deformed sprite: the unit quad with the three corner offsets of Esp1bSpWork,
+// subdivided div x div, as textured quads with an up normal.
 void Esp1b_SpTrans(cEsp* esp)
 {
     static Vec p0;

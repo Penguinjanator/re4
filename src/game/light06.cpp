@@ -1,3 +1,5 @@
+// game/light06: light type 6, linear fade (D:/Bio4/Prog/light06.cpp): the brightness rate starts at
+// `start` and moves by `speed` per frame, clamped to 0..1.
 #include "light.h"
 
 struct Light06Work {
@@ -6,6 +8,7 @@ struct Light06Work {
     f32 rate;   // 0x08 current brightness rate 0..1
 };
 
+// LightFuncTbl[6]: Rno0 0 loads the start rate, 1 fades and writes DispCol = Col * rate.
 // Fade light: brightness rate moves from `start` by `speed` and is clamped to [0, 1].
 void Light06_Move(cLight* l)
 {

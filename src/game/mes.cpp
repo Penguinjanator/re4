@@ -77,16 +77,19 @@ MessageFont MesFont[4];
 MessageData MesData;
 static MesQue MsgQueue[3][0x100];
 
+// Message text word -> font glyph index (codes 0x80.. are glyphs).
 u16 getCharCode(u16 code)
 {
     return code - 0x80;
 }
 
+// 1 when a message word is a control code (< 0x80).
 int isCtrlCode(u16 code)
 {
     return code < 0x80;
 }
 
+// Debug ROM font drawer over an OSFontHeader (ortho 544x408 projection set up).
 RomFont::RomFont(void* font)
 {
     Mtx44 proj;
@@ -113,6 +116,7 @@ RomFont::RomFont(void* font)
 
 #define FONT_HDR ((OSFontHeader*) m_FontData)
 
+// Loads a font sheet as the texture with a 1/sheet-size texture matrix.
 void RomFont::setup(void* image)
 {
     Mtx m;
@@ -129,6 +133,7 @@ void RomFont::setup(void* image)
 
 #define WGFIFO_S16(v) (GXWGFifo->s16 = (v))
 
+// Draws one cell of the font sheet (cell at cx, cy) at screen x, y.
 void RomFont::draw(int x, int y, int cx, int cy)
 {
     s16 x0 = x;
@@ -163,6 +168,7 @@ void RomFont::draw(int x, int y, int cx, int cy)
     WGFIFO_S16(v1);
 }
 
+// Glyph advance of `code` from the width table (left/right bearings); glyph 0 uses entry 1.
 s16 MessageFont::getSize(s16 code, s8* left, s8* right)
 {
     int idx = code * 2;
@@ -175,6 +181,8 @@ s16 MessageFont::getSize(s16 code, s8* left, s8* right)
     return *right - *left;
 }
 
+// Builds a message font from a .fnt file: relocates the TPL once, records each texture sheet
+// (FONT_TEX: texture + TLUT), the width table and the cell size w x h.
 void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
 {
     u32 i;
@@ -226,6 +234,7 @@ void MessageFont::create(int w, int h, TEXPalette* tpl, u8* width)
     m_tex_h = t->pTex->height;
 }
 
+// Releases the font (TPL offsets restored so it can be reloaded).
 void MessageFont::destroy()
 {
     calcTplOffset(m_tpl);
@@ -239,6 +248,8 @@ struct MesTblBlock {
     u32 ofs[1];   // 0x08
 };
 
+// Text of message `no` in message file `type` (0 core, 1 room/event mdt, 2 core, 3 item names,
+// 4 ...) for the current language; NULL when out of range.
 u16* MessageData::getAddr(int no, int type)
 {
     u32* tbl = (u32*) ptr[type];
@@ -250,6 +261,7 @@ u16* MessageData::getAddr(int no, int type)
     return (u16*) ((u8*) blk + blk->ofs[no]);
 }
 
+// Number of messages in file `type` for the current language.
 int MessageData::getMesNum(int type)
 {
     u32* tbl = (u32*) ptr[type];
@@ -258,6 +270,7 @@ int MessageData::getMesNum(int type)
     return blk->count;
 }
 
+// Width of a space glyph (13 px Japanese, 8 px otherwise).
 int MessageData::getSpaceWidth()
 {
     if (lang == 0) {
@@ -266,6 +279,7 @@ int MessageData::getSpaceWidth()
     return 8;
 }
 
+// Applies layout preset `layout` (font size, char spacing, line gap; per language) to slot `no`.
 void MessageControl::setLayout(int no, int layout)
 {
     static s8 layout_tbl[2][9][6] = {
@@ -300,6 +314,8 @@ void MessageControl::setLayout(int no, int layout)
     SetU16(MES(no)->m_line_gap, p_layout[5]);
 }
 
+// Selects the language block of the message files (0 Japanese, 1 English, 2..5 French/German/
+// Spanish/Italian; unknown -> 1).
 void MessageControl::setLanguage(int lang)
 {
     switch (lang) {
@@ -331,6 +347,7 @@ void MessageControl::setLanguage(int lang)
     }
 }
 
+// Creates font slot `no` from a loaded .fnt buffer (TPL and width table offsets).
 void MessageControl::setupFont(int w, int h, TEXPalette* tpl, int no)
 {
     MesFontFile* f = (MesFontFile*) tpl;
@@ -339,11 +356,13 @@ void MessageControl::setupFont(int w, int h, TEXPalette* tpl, int no)
     MesFont[no].create(w, h, (TEXPalette*) ((u8*) f + f->tplOfs), (u8*) f + f->widthOfs);
 }
 
+// Destroys font slot `no`.
 void MessageControl::releaseFont(int no)
 {
     MesFont[no].destroy();
 }
 
+// Loads a .fnt from disc into fontBuf[no] and creates the font; 0 on read failure.
 #line 703 "D:/Bio4/Prog/mes.cpp"
 int MessageControl::loadFont(int w, int h, const char* name, int no)
 {
@@ -357,6 +376,8 @@ int MessageControl::loadFont(int w, int h, const char* name, int no)
     return 1;
 }
 
+// Boot: allocates the common and system font buffers by file size, loads them, sets the language,
+// binds the three 0x100-entry glyph queues to slots 0..2 and clears the state.
 void MessageControl::init()
 {
     u32 size;
@@ -397,6 +418,8 @@ void MessageControl::init()
     }
 }
 
+// Game start: binds the message files (core text for types 0..2, item names for 3), reloads the
+// common font, resets the state.
 void MessageControl::gameInit()
 {
     MesData.setPtr(0, (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc));
@@ -410,6 +433,8 @@ void MessageControl::gameInit()
     m_state = 0;
 }
 
+// Room init: deletes all 16 slots, binds the room text (RoomMes) as type 1, default layout, and
+// reloads the stage font when the event font was loaded.
 void MessageControl::roomInit()
 {
     int i;
@@ -425,6 +450,7 @@ void MessageControl::roomInit()
     }
 }
 
+// Loads Font/common_j.fnt (28 px) or common_p.fnt (32 px) into slot 0.
 void MessageControl::loadCommonFont()
 {
     if (pSys->language == 0) {
@@ -434,6 +460,7 @@ void MessageControl::loadCommonFont()
     }
 }
 
+// Loads Font/system_j.fnt (20 px) into slot 1 (Japanese); other languages reuse the common font.
 void MessageControl::loadSystemFont()
 {
     if (pSys->language == 0) {
@@ -443,6 +470,8 @@ void MessageControl::loadSystemFont()
     }
 }
 
+// Stage start: allocates the stage font buffer (largest of stageN/eventN/stage1 .fnt) and loads
+// the stage font.
 void MessageControl::stageInit()
 {
     char name[0x100];
@@ -473,6 +502,7 @@ void MessageControl::stageInit()
     loadStageFont();
 }
 
+// Japanese: loads Font/stageN_j.fnt into slot 2 and clears state bit 0 (event font loaded).
 void MessageControl::loadStageFont()
 {
     char name[0x100];
@@ -484,6 +514,7 @@ void MessageControl::loadStageFont()
     }
 }
 
+// Japanese: loads Font/eventN_j.fnt into slot 2 and sets state bit 0.
 void MessageControl::loadEventFont()
 {
     char name[0x100];
@@ -495,21 +526,25 @@ void MessageControl::loadEventFont()
     }
 }
 
+// Sets state bits.
 void MessageControl::setState(u32 b)
 {
     m_state |= b;
 }
 
+// Clears state bits.
 void MessageControl::unsetState(u32 b)
 {
     m_state &= ~b;
 }
 
+// Tests state bits.
 int MessageControl::checkState(u32 b)
 {
     return (m_state & b) ? 1 : 0;
 }
 
+// Per-frame: runs slot 15 (the system/pause message) first, then every active slot 0..15.
 void MessageControl::Move()
 {
     Message* m = &mes[15];
@@ -535,6 +570,7 @@ void MessageControl::Move()
     }
 }
 
+// Per-frame draw of every active slot (slot 15 first) while the HUD is on (Disp_flg 0x800).
 void MessageControl::Trans()
 {
     Message* p = &mes[0];
@@ -565,6 +601,7 @@ void MessageControl::Trans()
     }
 }
 
+// Sets the glyph draw size of slot `no`.
 void MessageControl::setFontSize(int no, s8 w, s8 h)
 {
     Message* m = getMes(no);
@@ -572,6 +609,11 @@ void MessageControl::setFontSize(int no, s8 w, s8 h)
     m->m_font_h = h;
 }
 
+// Starts message `no` in slot `slot` at (x, y): the font by `type` (0 common, 2 stage/event, 3
+// item names; attr bit 0 = core text; slot 15 uses the system font), colour mes_col_tbl[col]
+// and attribute bits (0x80 = no wait/stop, 0x10 = do not stop the game, 0x40 = instant, 0x20 = OT
+// draw, alignment bits 0x20000/0x80000/0x10000, ...). Unless attr 0x80, saves Stop_flg and
+// stops the game and input while the message runs.
 void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, int type)
 {
     MessageFont* font;
@@ -620,6 +662,7 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
     }
 }
 
+// Kills slot `no`.
 void MessageControl::Delete(int no)
 {
     if (no > 15) {
@@ -629,6 +672,7 @@ void MessageControl::Delete(int no)
     mes[no].flags2 &= ~1;
 }
 
+// Requests slot `no` to finish its current wait.
 void MessageControl::WaitEnd(int no)
 {
     if (no > 15) {
@@ -637,6 +681,9 @@ void MessageControl::WaitEnd(int no)
     mes[no].WaitEnd();
 }
 
+// Resets a slot for message `no`: routine numbers, position, colour, speed (attr 0x40 = 0 frames
+// per char), text pointer from the file selected by attr bits 0/1/2/3 (falls back to message 0
+// with an error), OT type 0x15.
 void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
 {
     int i;
@@ -696,6 +743,8 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     m_ot_no = 1;
 }
 
+// Per-frame text engine: A/B speeds the text up; executes control codes (CommandExec: 2 = wait
+// this frame) and queues one glyph per m_spd frames into the glyph queue (space = getSpaceWidth).
 void Message::move()
 {
     int ret;
@@ -738,6 +787,10 @@ void Message::move()
     }
 }
 
+// Pre-pass over the message (flags2 bit 3): measures each line's width (glyphs, numbers,
+// spaces), then computes the line start x positions from the alignment attributes (0x20000 left,
+// 0x80000 per-line centre, else centre on the widest; right-aligned when set) and the vertical
+// centring (0x10000), and rewinds.
 void Message::WidthCk()
 {
     int n = 0;
@@ -852,6 +905,8 @@ void Message::WidthCk()
     m_jump_idx = 0;
 }
 
+// Emits glyph `code` at the pen position: appended to the glyph queue (drawn by trans), or drawn
+// immediately when the slot has no queue; advances the pen by the glyph width + charSpace.
 void Message::QueSet(int code, MessageFont* fnt)
 {
     s8 l, r;
@@ -887,6 +942,7 @@ void Message::QueSet(int code, MessageFont* fnt)
     m_pos_x += w + (s16) charSpace;
 }
 
+// Sets the number shown by control code 0x0A (`digits` 0 = as many as needed).
 void Message::setNumber(u32 num, u16 digits)
 {
     s16 i;
@@ -915,6 +971,7 @@ void Message::setNumber(u32 num, u16 digits)
     digitSave = digit;
 }
 
+// Shows the cursor glyph at the selected choice (selCur queue entries, code 1 = on).
 void Message::putSelCursol()
 {
     int i;
@@ -924,6 +981,7 @@ void Message::putSelCursol()
     }
 }
 
+// Blinks the "next page" cursor (timer 1..30; reset restarts at 20).
 void Message::putNextCursol(int reset)
 {
     if (reset == 0) {
@@ -935,6 +993,7 @@ void Message::putNextCursol(int reset)
     }
 }
 
+// Adds a message number to the jump table used by control codes 02/0F/11 with argument 0xFFFF (max 3).
 void Message::setJump(u16 pos)
 {
     if (m_jump_max <= 2) {
@@ -945,6 +1004,7 @@ void Message::setJump(u16 pos)
     }
 }
 
+// Loads a font sheet texture (with TLUT for CI formats) into texture map 0.
 void setAttribute(FONT_TEX* t)
 {
     GXSetCullMode(0);
@@ -971,6 +1031,8 @@ void setAttribute(FONT_TEX* t)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
 }
 
+// Draws one queued glyph: cell (code % cols, code / cols) of the font sheet, colour from the queue,
+// at (x, y) with size w x h, then restores the fog.
 void draw(MesQue* q)
 {
     MessageFont* font = q->font;
@@ -1031,6 +1093,7 @@ void draw(MesQue* q)
     LightMgr.setFog();
 }
 
+// Screen-space ortho projection (512 x 384) for message glyphs.
 void messageCamera()
 {
     Mtx44 proj;
@@ -1043,12 +1106,14 @@ void messageCamera()
     GXSetCurrentMtx(0);
 }
 
+// OT callback / direct draw of one glyph.
 void messageTrans(MesQue* q)
 {
     messageCamera();
     draw(q);
 }
 
+// Draws the slot's glyph queue, through the OT (attr 0x20) or directly.
 void Message::trans()
 {
     MesQue* q;
@@ -1062,6 +1127,8 @@ void Message::trans()
     }
 }
 
+// Dispatches the control code at the text pointer to code00..code12; returns 0 continue, 2 wait,
+// 3 unknown.
 int Message::CommandExec()
 {
     switch (*m_pMes) {
@@ -1107,6 +1174,7 @@ int Message::CommandExec()
     return 3;
 }
 
+// Number of argument words following the current control code.
 int Message::CommandArg()
 {
     static const s16 arg[19] = { 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1 };
@@ -1114,11 +1182,14 @@ int Message::CommandArg()
     return arg[*m_pMes];
 }
 
+// Ends the current 0x09 wait.
 void Message::WaitEnd()
 {
     m_wait_cnt = 1;
 }
 
+// Code 00 (page start): clears the glyph queue, measures the page (WidthCk) and resets the pen,
+// line, speed, choice and cursor state.
 int Message::code00()
 {
     if (qbase != NULL) {
@@ -1140,6 +1211,8 @@ int Message::code00()
     return 0;
 }
 
+// Code 01 (end): marks the message finished (flags2 bit 1); unless attr 0x01000000 (keep
+// displayed) frees the slot, restores Stop_flg (unless attr 0x10) and the life meter.
 int Message::code01()
 {
     switch (r_no_0) {
@@ -1163,6 +1236,8 @@ int Message::code01()
     return 2;
 }
 
+// Code 02 (call): saves the return address and jumps to message arg (0xFFFF = next jump table
+// entry) in the same file type.
 int Message::code02()
 {
     u16 no;
@@ -1189,6 +1264,7 @@ int Message::code02()
     return 0;
 }
 
+// Code 03 (new line): next line start.
 int Message::code03()
 {
     m_pos_y += m_line_gap;
@@ -1197,6 +1273,7 @@ int Message::code03()
     return 0;
 }
 
+// Code 04 (new page): restarts the page (code00); ignored in no-wait mode.
 int Message::code04()
 {
     if (m_attr & 0x80) {
@@ -1207,6 +1284,7 @@ int Message::code04()
     return 2;
 }
 
+// Code 05 (speed): frames per glyph = arg.
 int Message::code05()
 {
     if (m_attr & 0x80) {
@@ -1218,6 +1296,7 @@ int Message::code05()
     return 0;
 }
 
+// Code 06 (colour): colour = mes_col_tbl[arg].
 int Message::code06()
 {
     m_pMes++;
@@ -1225,6 +1304,7 @@ int Message::code06()
     return 0;
 }
 
+// Code 07 (choice): records a cursor slot for a selectable line (text speed forced instant).
 int Message::code07()
 {
     if (m_spd_old == 0) {
@@ -1236,6 +1316,9 @@ int Message::code07()
     return 0;
 }
 
+// Code 08 (wait for input): with choices, up/down (or left/right with attr 0x00100000) move the
+// cursor with sounds, A confirms (m_sel = choice + 1), B cancels (m_sel = -1 or the last choice
+// with 0x00200000); without choices A/B continues; the blinking next cursor is shown.
 int Message::code08()
 {
     int ret = 2;
@@ -1346,6 +1429,7 @@ int Message::code08()
     return ret;
 }
 
+// Code 09 (timed wait): waits arg frames (skipped in no-wait mode).
 int Message::code09()
 {
     int ret = 2;
@@ -1367,6 +1451,8 @@ int Message::code09()
     return ret;
 }
 
+// Code 0A (number): emits the digits of m_number (set by setNumber) one per frame with the digit
+// glyphs of the current font (Japanese: system-font digits, optional "%" glyph with attr 0x10000000).
 int Message::code0a()
 {
     u32 d;
@@ -1424,6 +1510,7 @@ int Message::code0a()
     return 0;
 }
 
+// Code 0B: pen x = arg.
 int Message::code0b()
 {
     m_pMes++;
@@ -1431,6 +1518,7 @@ int Message::code0b()
     return 0;
 }
 
+// Code 0C: pen y = arg.
 int Message::code0c()
 {
     m_pMes++;
@@ -1438,6 +1526,7 @@ int Message::code0c()
     return 0;
 }
 
+// Code 0D: sets m_evt_no (event/scenario hook number read by the caller).
 int Message::code0d()
 {
     m_pMes++;
@@ -1445,6 +1534,7 @@ int Message::code0d()
     return 0;
 }
 
+// Code 0E (return): back to the caller of code02/0F/10/11.
 int Message::code0e()
 {
     if (m_pRetAddr != NULL) {
@@ -1457,6 +1547,7 @@ int Message::code0e()
     return 2;
 }
 
+// Code 0F (call core text): saves the return and jumps to core message arg with the common font.
 int Message::code0f()
 {
     u16 no;
@@ -1472,6 +1563,7 @@ int Message::code0f()
     return 0;
 }
 
+// Code 10 (item name): inserts the item-name message m_item_no (file type 3).
 int Message::code10()
 {
     m_pRetAddr = m_pMes;
@@ -1480,6 +1572,8 @@ int Message::code10()
     return 0;
 }
 
+// Code 11 (call item text): jumps to item-name message arg (0xFFFF = jump table) with the common
+// font in Japanese.
 int Message::code11()
 {
     u16 no;
@@ -1501,6 +1595,7 @@ int Message::code11()
     return 0;
 }
 
+// Code 12 (speaker): sets m_who (speaker id for the caller).
 int Message::code12()
 {
     m_pMes++;

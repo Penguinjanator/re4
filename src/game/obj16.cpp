@@ -1,3 +1,9 @@
+// game/obj16: object id 0x16, the plaga head (D:/Bio4/Prog/obj16.cpp): the parasite that bursts
+// from a Ganado's neck, hung on parts `parts_no` of its `body` model and owned by `target` (the
+// enemy work). `type` selects the plaga kind (2/0xB tentacle, 3/0xD head-biter, 4 spider ...).
+// R1 routines: 0 Set (plain motion), 1 CoreMove (idle / spit attack cycle), 2 Atk (bite), 3
+// Critical (the decapitating bite), 4 Damage. It tracks the player with the neck (obj16NeckMove),
+// spawns its drip/glow effects, and shrinks/fades away (Lost_wait) once the body dies.
 #include "atari.h"
 #include "light.h"
 #include "ctrl.h"
@@ -79,6 +85,8 @@ EmAtkInfo obj16_atk_info[4] = {
     { 800.0f, 8, 0x270F, 0, 0xA, 0 },
 };
 
+// Creates the head on parts partsNo of `body` for enemy `target`, scale growing from 0 to Scale,
+// effect owner kinds 0x3D/0x3E, appear timer 60, Lost_wait 150. 0 when target/body have no parts.
 cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -189,6 +197,10 @@ cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, 
     EffectEfmDelete(0, (w)->EffKindId2, (int) (obj));           \
     ObjMgr.destroy(obj)
 
+// Per-frame: dies with target/body; fades and shrinks when the target is dead or Lost_wait ran out
+// (deleting its effects); eases scale to Scale (half size while the body's x39D flag); runs the R1
+// routine; the looping plaga sound and the periodic drip/glow effects per type (thermal mode swaps
+// the light class); follows the target's no-suspend flag.
 void cObj16::move()
 {
     Obj16Work* w = &o16;
@@ -417,6 +429,7 @@ void cObj16::move()
     }
 }
 
+// Rno1 == 0: plays the current motion and follows the body.
 void obj16_R1_Set(cObj16* obj)
 {
     if (obj->pMotion) {
@@ -425,6 +438,10 @@ void obj16_R1_Set(cObj16* obj)
     obj16MatCalc(obj);
 }
 
+// Rno1 == 1 (idle cycle): Rno2 0 starts the idle/wait motion (mot[0..2]) with a random timer, 1
+// loops it deciding to attack (types 2/0xB spit when the player is near / far by random), 2 the
+// attack wind-up (mot[10]) with its effects, 3 the spit (mot[9]) with the spit effects; obj16AtkCk
+// kind 2 on parts 0x10..0x15 while spitting.
 void obj16_R1_CoreMove(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
@@ -557,6 +574,9 @@ void obj16_R1_CoreMove(cObj16* obj)
     }
 }
 
+// Rno1 == 2 (bite attack, setAtk): Rno2 0 spit motion (mot[9]), 1 one of two bite motions
+// (mot[3]/mot[4], r_no_3 forces the second) with their effects and sound, 2 the bite window
+// (atkTimer) with obj16AtkCk kind 0/1, 3 recovery; Atk_ck reports a hit to the body.
 void obj16_R1_Atk(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
@@ -667,6 +687,10 @@ void obj16_R1_Atk(cObj16* obj)
     }
 }
 
+// Rno1 == 3 (decapitation bite, types 3/0xD): Rno2 0 wind-up (mot[9]), 1 chooses the bite by the
+// victim's head position (player or nearer partner: high mot[6], near mot[3], mid mot[4], far
+// mot[5]), 2 plays it with sounds at frames 10 and 42 and obj16AtkCk kind 3 on parts 9 after
+// Timer (kills the player outright through obj16PlHeadLost).
 void obj16_R1_Critical(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
@@ -787,6 +811,9 @@ void obj16_R1_Critical(cObj16* obj)
     }
 }
 
+// Rno1 == 4 (hit reaction, setDamage): plays mot[7]/mot[8] (types 3/0xD shrink to 0.3 for 30
+// frames), the pain sound loop for type 4, then back to the idle cycle (a live body may go
+// straight to an attack for type 2).
 void obj16_R1_Damage(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
@@ -857,6 +884,7 @@ void obj16_R1_Damage(cObj16* obj)
     obj16MatCalc(obj);
 }
 
+// Starts a motion on the head with attr a and frame b (10-frame blend).
 void MotSetObj16(cObj* obj, void* mot, int a, int b)
 {
     if (obj == 0) {
@@ -865,6 +893,8 @@ void MotSetObj16(cObj* obj, void* mot, int a, int b)
     MotionSetCore(obj, &obj->pMotion, mot, 0, 0xA, (u16) a, (u16) b);
 }
 
+// Places the head: its pos/ang/scale under the body parts' matrix (or free), then the parts with
+// the neck tracking rotation applied.
 void obj16MatCalc(cObj16* obj)
 {
     Obj16Work* w = &obj->o16;
@@ -890,28 +920,34 @@ void obj16MatCalc(cObj16* obj)
     obj->partsWorldCalc();
 }
 
+// Target scale the head eases towards.
 void cObj16::setScale(Vec* s)
 {
     o16.Scale = *s;
 }
 
+// Starts the death drip effect (Eff_wait 3).
 void cObj16::setDieEff()
 {
     o16.Eff_wait = 3;
 }
 
+// Makes the head fade out now (Be_flag bit 0, Lost_wait 0).
 void cObj16::clearLostWait()
 {
     o16.Lost_wait = 0;
     o16.Be_flag |= 1;
 }
 
+// Fades the head out after n frames.
 void cObj16::setLostWait(int n)
 {
     o16.Lost_wait = n;
     o16.Be_flag |= 1;
 }
 
+// Installs the 11 head motions (idle, wait, wait2, bites 3..6, damage 7/8, spit 9, wind-up 10) and
+// starts the idle/wait one.
 void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, void* m6, void* m7, void* m8,
                         void* m9, void* m10)
 {
@@ -948,6 +984,7 @@ void cObj16::setMotData(void* m0, void* m1, void* m2, void* m3, void* m4, void* 
     r_no_3 = 0;
 }
 
+// Player damage motion (and sequence) played on a bite hit (plemDmMStar).
 void cObj16::setPlDmgMot(void* mot, int a)
 {
     Obj16Work* w = &o16;
@@ -956,6 +993,7 @@ void cObj16::setPlDmgMot(void* mot, int a)
     w->Seq_pl_dm = a;
 }
 
+// Starts the bite attack routine (flag -> r_no_3: force the second bite motion).
 void cObj16::setAtk(u8 flag)
 {
     r_no_0 = 1;
@@ -965,6 +1003,7 @@ void cObj16::setAtk(u8 flag)
     r_no_3 = flag;
 }
 
+// Starts the decapitation routine.
 void cObj16::setCritical()
 {
     r_no_0 = 1;
@@ -974,6 +1013,7 @@ void cObj16::setCritical()
     r_no_3 = 0;
 }
 
+// Starts the hit reaction routine.
 void cObj16::setDamage()
 {
     r_no_0 = 1;
@@ -982,6 +1022,7 @@ void cObj16::setDamage()
     r_no_3 = 0;
 }
 
+// 1 while the head is in its idle cycle (an attack may be started).
 int cObj16::ckAtkEnable()
 {
     if (o16.Atk_enable == 0) {
@@ -996,6 +1037,10 @@ static inline int PlIsDead()
     return (pPL->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Attack hit test of parts partsNo with obj16_atk_info[kind] (0/1 bite, 2 spit, 3 decapitation):
+// on a player hit plays the blood/hit effects, sound, vibration and quake, puts the player into the
+// damage motion (plemDmMStar, turned towards/away from the body), kind 3 kills him
+// (obj16PlHeadLost); a partner hit (bit 1) kills the partner (LifeDownSet 9999). Sets Atk_ck.
 int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
 {
     Obj16Work* w = &obj->o16;
@@ -1138,6 +1183,8 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
     return 1;
 }
 
+// The decapitation: player life 0, death damage type 6, region-specific scream, the player's head
+// hidden and the body's own head-lost effect by enemy id.
 // The head bit the player's head off: game over.
 void obj16PlHeadLost(cObj16* obj)
 {
@@ -1177,6 +1224,8 @@ void obj16PlHeadLost(cObj16* obj)
     }
 }
 
+// Eases Neck_dir towards the direction of the player (or the nearer partner) and writes it as an
+// override rotation (flag 0x40000000) on the neck parts (1/2 for the tentacle types, others per type).
 // Turn the neck parts (1, 2) toward the player and tilt the head (parts 0) along the body parts.
 static void obj16NeckMove(cObj16* obj)
 {
@@ -1265,6 +1314,7 @@ static void obj16NeckMove(cObj16* obj)
     }
 }
 
+// Tints the head dark (burnt).
 void cObj16::setBurn()
 {
     cModelInfo* info;
@@ -1276,11 +1326,14 @@ void cObj16::setBurn()
     }
 }
 
+// 1 when the last attack routine hit.
 int cObj16::ckAtkHit()
 {
     return o16.Atk_ck ? 1 : 0;
 }
 
+// Player damage routine for a plaga bite (SetPlDamage): plays Mot_pl_dm (mirrored blend for
+// r_no_3), damage sound, then EndPlDamage.
 // Player damage routine while the head holds him (SetPlDamage callback).
 void plemDmMStar(cPlayer* pl)
 {

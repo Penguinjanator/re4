@@ -1,3 +1,10 @@
+// game/espgen: the effect controller ("ESP_CTRL") pool (D:/Bio4/Prog/espgen.cpp). A controller is
+// an EspgenWork (0xC8 bytes) driven by id-indexed Move/Trans/SetFreeWork/Destruct tables: ids
+// 0x00..0x3F are the generic controllers (00 emitter, 01 lens flare, 02 path emitter, 10 sequence
+// player), 0x40..0x45 the application ones (42/45 water surfaces, 43 sand, 44 filter). The pool
+// (EspgenArray, nEspgen) is allocated per room; EspgenMove / EspgenTrans run every active
+// controller each frame, PullEspgen / PushEspgen allocate and release, EspgenSeqSet creates a
+// controller from a Kind-1 record of an effect sequence, EspgenDelete removes by owner.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -155,6 +162,7 @@ static inline void Espgen45_FreeSizeCheck(u32 size)
     }
 }
 
+// Init-time check that the application controller works (40..45) fit the EspgenWork free area.
 void EspgenFreeSizeCheckApp()
 {
     Espgen40_FreeSizeCheck(0);
@@ -165,6 +173,7 @@ void EspgenFreeSizeCheckApp()
     Espgen45_FreeSizeCheck(0);
 }
 
+// Move entry of the unassigned controller ids: logs the invalid id.
 static void EspgenDummyMove(EspgenWork* w)
 {
     pLog->err(0, 0, "ESP_CTRL : CTRL_ID[%d] invalid.", w->id);
@@ -198,6 +207,7 @@ static inline void Espgen10_FreeSizeCheck(u32 size)
     }
 }
 
+// Init-time check that the generic controller works (00/01/02/10) fit the EspgenWork free area.
 void EspgenFreeSizeCheck()
 {
     Espgen00_FreeSizeCheck(0);
@@ -206,11 +216,14 @@ void EspgenFreeSizeCheck()
     Espgen10_FreeSizeCheck(0);
 }
 
+// System init of the controller pool (same as the room init).
 int EspgenInit()
 {
     return EspgenRoomInit();
 }
 
+// Room init: forgets the pool pointer, resets the call counter, re-inits the water (EspWaterInit) and
+// runs the work-size checks. The array itself is allocated separately by EspgenArrayAlloc.
 int EspgenRoomInit()
 {
     EspgenArray = NULL;
@@ -223,11 +236,14 @@ int EspgenRoomInit()
     return 1;
 }
 
+// Number of controller ids (0x46).
 u32 GetEspgenIdMax()
 {
     return ESPGEN_ID_MAX;
 }
 
+// Allocates the pool of n controllers (memory group 13, zeroed), freeing any previous one. Returns 0
+// when n == 0 or the allocation failed.
 int EspgenArrayAlloc(int n)
 {
     u32 size;
@@ -247,6 +263,7 @@ int EspgenArrayAlloc(int n)
     return 1;
 }
 
+// Frees the controller pool; returns 0 when there was none.
 int EspgenArrayFree()
 {
     if (EspgenArray == NULL) {
@@ -257,6 +274,7 @@ int EspgenArrayFree()
     return 1;
 }
 
+// Debug tools: swaps in a temporary pool of n controllers from the debug heap, saving the room pool.
 int EspgenArrayPush(int n)
 {
     if (pEspgenArrayBack != NULL) {
@@ -269,6 +287,7 @@ int EspgenArrayPush(int n)
     return 1;
 }
 
+// Debug tools: frees the temporary pool and restores the saved room pool.
 int EspgenArrayPop()
 {
     if (pEspgenArrayBack == NULL) {
@@ -281,6 +300,8 @@ int EspgenArrayPop()
     return 1;
 }
 
+// Takes a free controller searching from the BACK of the pool (moved/drawn last), clears it and
+// marks it in use. On failure *out is the dummy controller and 0 is returned.
 int PullEspgen(EspgenWork** out)
 {
     EspgenWork* base = EspgenArray;
@@ -303,6 +324,8 @@ int PullEspgen(EspgenWork** out)
     return ret;
 }
 
+// Releases a controller: sets the delete-request bit (flag bit 1; the slot is reused after the next
+// EspgenMove) and runs the id's Destruct entry (frees water/sand buffers, resets filters).
 void PushEspgen(EspgenWork* w)
 {
     if ((w->flag & 1) && !(w->flag & 2)) {
@@ -324,6 +347,7 @@ void PushEspgen(EspgenWork* w)
     }
 }
 
+// Like PullEspgen but searches from the FRONT of the pool (controllers that must move/draw first).
 int PullEspgenFront(EspgenWork** out)
 {
     EspgenWork* base = EspgenArray;
@@ -346,6 +370,7 @@ int PullEspgenFront(EspgenWork** out)
     return ret;
 }
 
+// Releases every controller (room change).
 void EspgenArrayClear()
 {
     EspgenWork* w;
@@ -356,6 +381,9 @@ void EspgenArrayClear()
     }
 }
 
+// Per-frame move of all controllers: clears the slots deleted last frame, then runs the id's Move
+// entry for every active one (during an event only those with Core_flg bit 0; while Status_flg[1]
+// bit 1 pauses the game only those with Core_flg 0x8000). Prints the active count at (472,216).
 int EspgenMove()
 {
     EspgenWork* base = EspgenArray;
@@ -399,6 +427,7 @@ int EspgenMove()
     return 1;
 }
 
+// Per-frame draw pass: runs the id's Trans entry (when any) for every active controller.
 int EspgenTrans()
 {
     EspgenWork* w;
@@ -428,6 +457,8 @@ int EspgenTrans()
     return 1;
 }
 
+// Releases every controller whose owner info matches Core_flg == a, Core_kind == b, Core_pEm == c
+// (each test skipped when 0): effects owned by a dying enemy/object.
 void EspgenDelete(int a, int b, int c)
 {
     EspgenWork* w;
@@ -449,6 +480,8 @@ void EspgenDelete(int a, int b, int c)
     }
 }
 
+// Releases every controller that is neither permanent (Core_flg bit 0) nor event-owned (bit 0x800):
+// event end.
 void EspgenDeleteEvent()
 {
     EspgenWork* w;
@@ -463,6 +496,7 @@ void EspgenDeleteEvent()
     }
 }
 
+// Debug display at (416,70): active / peak / pool size of the controllers.
 int EspgenDispInfo()
 {
     static int max = 0;
@@ -486,16 +520,19 @@ int EspgenDispInfo()
     return 1;
 }
 
+// Current effect call number (g_Call_no, stamped into EspInfo::Call_no by est.cpp).
 int EspgenGetCallNo()
 {
     return g_Call_no;
 }
 
+// Advances the effect call number (one per EstSet call).
 void EspgenIncCallNo()
 {
     g_Call_no++;
 }
 
+// Calls func on every active controller (debug tools / bulk parameter updates).
 int EspgenApplyFunc(void (*func)(EspgenWork* w))
 {
     EspgenWork* w;
@@ -509,6 +546,8 @@ int EspgenApplyFunc(void (*func)(EspgenWork* w))
     return 1;
 }
 
+// Runs the id's SetFreeWork entry (generic table with `flag`, application table without) to fill a
+// freshly pulled controller from its record; returns its result (1 when the id has no entry).
 int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                       Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {
@@ -529,6 +568,10 @@ int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* 
     return ret;
 }
 
+// Creates the controller described by record `no` (Kind 1) of a sequence: Espgen_id selects the
+// type (0xFF is the special "set generator loop count" record, EspGenSetMoveLoop), the owner info is
+// copied from `info`, then SetFreeWork fills it. Returns 0 (controller released) on a bad id, a full
+// pool or a SetFreeWork failure.
 int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 parts, Mtx* mtx, Vec* pos, Vec* rot,
                  EspSeqOpt* pSct, int flag)
 {

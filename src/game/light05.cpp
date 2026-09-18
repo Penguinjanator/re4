@@ -1,3 +1,5 @@
+// game/light05: light type 5, path-animated brightness (D:/Bio4/Prog/light05.cpp): plays a light
+// path (byte sequence 0..200 = brightness in 1/200, 0xFF = end) from the room's light path data.
 #include "light.h"
 
 struct Light05Work {
@@ -6,6 +8,8 @@ struct Light05Work {
     u8 pathIdx;  // 0x0D path inside the data
 };
 
+// LightFuncTbl[5]: Rno0 0 binds the path (pathNo/pathIdx from the work), 1 steps it each frame and
+// scales Col by value/200 into DispCol; the light is destroyed when the path ends.
 // Path light: follows a light path; the path returns the brightness (0..200) or 0xFF at the end.
 void Light05_Move(cLight* l)
 {

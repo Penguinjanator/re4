@@ -1,3 +1,8 @@
+// game/obj1b: object id 0x1B, the spear (D:/Bio4/Prog/obj1b.cpp) thrown by the em2f/em3x
+// spear-carriers. R1 routines: 0 Set (held, plain motion), 1 LostWait (2 s then fade), 2 Lost
+// (destroyed), 3 Parent (stuck in a parts of the victim, falls off after parentTimer), 4 Fall
+// (three-point rope fall), 5 Throw (flies along throwSpd, hits the scenario or a character through
+// GetWepTargetList2 and sticks). setParent / setFall / setThrow / setLost switch the routines.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -63,6 +68,7 @@ int GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, int max, Vec* hit,
 
 void (*Obj1b_R1_move_tbl[6])(cObjSpear*) = { obj1b_R1_Set, obj1b_R1_LostWait, obj1b_R1_Lost, obj1b_R1_Parent, obj1b_R1_Fall, obj1b_R1_Throw };
 
+// Creates a spear at pos/rot with all sound/effect ids unset (0xFF), effect kind 0x32.
 cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -130,6 +136,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Event start: a loose spear (no parent) is removed.
 void cObjSpear::beginEvent()
 {
     if (spear.parent == 0) {
@@ -137,6 +144,8 @@ void cObjSpear::beginEvent()
     }
 }
 
+// Per-frame: dies with its parent, runs the R1 routine, inherits the parent's light class,
+// invisibility and draw flag; hidden when stuck in the player during Status_flg[0] 0x400.
 void cObjSpear::move()
 {
     SpearWork* w = &spear;
@@ -173,6 +182,7 @@ void cObjSpear::move()
     }
 }
 
+// Rno1 == 0: motion and matrices (the spear as held by the thrower).
 void obj1b_R1_Set(cObjSpear* obj)
 {
     if (obj->pMotion) {
@@ -186,6 +196,7 @@ void obj1b_R1_Set(cObjSpear* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 1: waits 120 frames then fades out (or vanishes at once when off screen) -> Lost.
 void obj1b_R1_LostWait(cObjSpear* obj)
 {
     SpearWork* w = &obj->spear;
@@ -227,6 +238,7 @@ void obj1b_R1_LostWait(cObjSpear* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 2: hides and destroys the spear.
 void obj1b_R1_Lost(cObjSpear* obj)
 {
     if (obj->r_no_2 == 0) {
@@ -237,6 +249,9 @@ void obj1b_R1_Lost(cObjSpear* obj)
     }
 }
 
+// Rno1 == 3: stuck in parts partsNo of the parent (matrix under the parts, axes normalised unless
+// flags bit 0), falls off when parentTimer expires, blood effects every other frame while estTimer
+// runs.
 void obj1b_R1_Parent(cObjSpear* obj)
 {
     SpearWork* w = &obj->spear;
@@ -324,6 +339,8 @@ void obj1b_R1_Parent(cObjSpear* obj)
     }
 }
 
+// Rno1 == 4: three-point rope fall (nodes by `type` offsets, floor from EatMgr + 50, per-type bounce
+// damping, landing sound and effect once), then at rest (node speeds < 25) -> LostWait.
 void obj1b_R1_Fall(cObjSpear* obj)
 {
     SpearWork* w = &obj->spear;
@@ -484,6 +501,8 @@ void obj1b_R1_Fall(cObjSpear* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 5: flies along throwSpd (whoosh sound every 4 frames, 60-frame limit -> Lost), oriented
+// along the velocity; sticks into the scenario (-> LostWait) or a character (obj1bHitCk).
 void obj1b_R1_Throw(cObjSpear* obj)
 {
     SpearWork* w = &obj->spear;
@@ -553,6 +572,10 @@ void obj1b_R1_Throw(cObjSpear* obj)
     }
 }
 
+// Sweep pos_old -> pos against characters (GetWepTargetList2, attribute 0x15): damages the victim
+// (power 10) and sticks the spear into the hit parts (local position 50 units back along the
+// hit, scale 1.5; a non-pierceable parts sticks at the parts origin), blood effects (special
+// speed-following variant for em2f 0x2F), sound; estTimer 600, falls off after 1800 frames.
 int obj1bHitCk(cObjSpear* obj)
 {
     SpearWork* w = &obj->spear;
@@ -619,6 +642,7 @@ int obj1bHitCk(cObjSpear* obj)
     return 0;
 }
 
+// Sticks / holds the spear on parts partsNo of `parent` (noNormalize keeps the parts scale) -> Parent.
 void cObjSpear::setParent(cModel* parent, int partsNo, int noNormalize)
 {
     SpearWork* w = &spear;
@@ -636,6 +660,8 @@ void cObjSpear::setParent(cModel* parent, int partsNo, int noNormalize)
     r_no_3 = 0;
 }
 
+// Starts the rope fall of type `type` with node speeds from dir (nodes 1/2 rotated +-90 degrees) or
+// a random upward toss.
 void cObjSpear::setFall(u8 type, Vec* dir)
 {
     SpearWork* w = &spear;
@@ -698,6 +724,7 @@ void cObjSpear::setFall(u8 type, Vec* dir)
     r_no_3 = 0;
 }
 
+// Throws the spear along dir (or its own forward axis * 1000) from its current position -> Throw.
 void cObjSpear::setThrow(Vec* dir)
 {
     SpearWork* w = &spear;
@@ -731,6 +758,7 @@ void cObjSpear::setThrow(Vec* dir)
     r_no_3 = 0;
 }
 
+// Removes the spear at once (-> Lost).
 void cObjSpear::setLost()
 {
     r_no_0 = 1;

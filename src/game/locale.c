@@ -42,6 +42,7 @@ static const struct lconv lconv = {
     CHAR_MAX, CHAR_MAX, CHAR_MAX, CHAR_MAX,
 };
 
+/* Reentrant setlocale: only "C" and the "C-*" multibyte variants are accepted for LC_ALL/LC_CTYPE; returns the current name (dead-stripped). */
 char *_setlocale_r(struct _reent *p, int category, const char *locale)
 {
     static char lc_ctype[8] = "C";
@@ -85,11 +86,13 @@ char *_setlocale_r(struct _reent *p, int category, const char *locale)
     return "C";
 }
 
+/* The fixed "C" numeric/monetary formatting table. */
 struct lconv *_localeconv_r(struct _reent *data)
 {
     return (struct lconv *)&lconv;
 }
 
+/* setlocale on the global reent (dead-stripped). */
 char *setlocale(int category, const char *locale)
 {
     return _setlocale_r(_REENT, category, locale);

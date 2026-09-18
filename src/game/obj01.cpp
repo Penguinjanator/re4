@@ -1,3 +1,8 @@
+// game/obj01: object id 1, thrown grenade / bottle (D:/Bio4/Prog/obj01.cpp): hand, incendiary and
+// flash grenades and enemy-thrown objects. Flies under gravity with a spin, bounces off the
+// scenario (EatMgr), splashes into water, and when `life` runs out spawns the effects set by
+// Obj01SetEst and the damage (DmgMgr) of its eff_action type; can be held on a model's parts
+// until release_timer expires.
 #include "atari.h"
 #include "light.h"
 #include "dmg.h"
@@ -27,6 +32,7 @@ int obj01AddSpeed(cObj01* obj);
 }
 int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
+// r_no_0 dispatch: 0 flying/held, 1 exploded (fading out).
 void cObj01::move()
 {
     static void (cObj01::*funcTbl[2])() = { &cObj01::move00, &cObj01::move01 };
@@ -34,6 +40,12 @@ void cObj01::move()
     (this->*funcTbl[r_no_0])();
 }
 
+// Rno0 == 0: counts `life` down (not for type 2, which detonates on impact) and on 0 detonates by
+// eff_action: 1 hand grenade (blast effect or water burst, PlWepHitCheck2 radius 6000, rings the
+// bell), 2 flash grenade (two effects, flash damage 4/5), 3 incendiary (fire effect attached to
+// the object), 0/4 nothing; then Rno0 = 1. Plays the pending motion; while held (w->hold) follows the parts
+// and releases after release_timer (snapping out of the wall); otherwise obj01AddSpeed moves it
+// (destroyed when it says so) and the spin is applied to parts 0.
 void cObj01::move00()
 {
     Obj01Work* w = &o1;
@@ -182,6 +194,7 @@ void cObj01::move00()
     partsWorldCalc();
 }
 
+// Rno0 == 1: after-explosion: a sound every 30 frames, destroyed after the 6th.
 void cObj01::move01()
 {
     r_no_2++;
@@ -195,6 +208,7 @@ void cObj01::move01()
     }
 }
 
+// Registers the explosion damage volume: 2/8 fire (radius 3000 / 15000), 4/5 flash (1500).
 void cObj01::dmgSet(int kind)
 {
     switch ((u32) kind) {
@@ -211,6 +225,10 @@ void cObj01::dmgSet(int kind)
     }
 }
 
+// Physics step: gravity, move; with be_flag bit 2 checks water (splash effect, drown -> life 0;
+// returns 1 to destroy for non-exploding types) and the scenario (reflect the speed at 20%, damp
+// the spin; on a floor hit slower than 50 stop with the landing sound / effect). Returns 1 when
+// the object should be destroyed.
 int obj01AddSpeed(cObj01* obj)
 {
     Obj01Work* w = &obj->o1;
@@ -306,6 +324,9 @@ int obj01AddSpeed(cObj01* obj)
     return 0;
 }
 
+// Creates a thrown object at pos/rot with speed spd, gravity grav per frame, radius rad and fuse
+// `life` frames; flags: 1 scenario collision, 2 random tumble, 4 slow forward tumble, 0x10 fixed
+// tumble.
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags)
 {
     cObj* obj;
@@ -370,6 +391,8 @@ cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
     return obj;
 }
 
+// Sets the detonation type (eff_action) and its four est (owner, id) pairs: burst, secondary,
+// water splash on landing, water explosion.
 void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3)
 {
     Obj01Work* w;

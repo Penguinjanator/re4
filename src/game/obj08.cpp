@@ -1,3 +1,8 @@
+// game/obj08: object id 8, enemy-thrown object (D:/Bio4/Prog/obj08.cpp): the bottles, dynamite,
+// axes and other projectiles the Ganados throw. Flies under gravity with an optional spin, hits
+// the scenario (EatMgr), other enemies (GetWepTargetList box sweep, flags sign bit) and the player
+// / partner (EmAtkHitCk with the thrower's attack record, flags 0x40000000); the four est pairs
+// set by SetObj08Est give the trail, break, floor and character-hit effects.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -46,6 +51,9 @@ Vec obj08HitBox[8] = {
     { -500.0f, 500.0f, 500.0f },  { 500.0f, 500.0f, 500.0f },
 };
 
+// Creates the projectile for thrower `parent` at pos/rot (bin NULL = the invisible dummy model):
+// flags sign bit enables enemy hits (low 16 bits = the GetWepTargetList attribute mask),
+// 0x40000000 enables the player hit with attack record `atk`. Speed comes from SetObj08Spd.
 cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int flags, void* atk)
 {
     cObj* obj;
@@ -100,6 +108,7 @@ cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int fla
     return obj;
 }
 
+// Sets speed, life in frames (-1 = until it hits), gravity per frame and hit radius (min 1).
 void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad)
 {
     Obj08Work* w;
@@ -123,6 +132,8 @@ void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad)
     }
 }
 
+// Sets the four est (owner, id) pairs: [1] break/expire, [2] floor landing (normal.y > 0.7), [3]
+// character hit; `flag` (hit_type) attaches the hit effect to the victim instead of the surface.
 void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int prm2, int no3, int prm3, u8 flag)
 {
     Obj08Work* w;
@@ -148,6 +159,7 @@ void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int p
     w->hit_type = flag;
 }
 
+// Sets the impact sound (block, number), played with the thrower's id.
 void SetObj08Se(cObj* obj, u16 blk, u16 no)
 {
     Obj08Work* w;
@@ -166,6 +178,9 @@ void SetObj08Se(cObj* obj, u16 blk, u16 no)
     w->call_no = no;
 }
 
+// Per-frame: life countdown (expire effect [1] on 0), motion start/advance, gravity move, then the
+// enemy hit, player hit and scenario hit checks (the latter destroys the object); spins when
+// be_flag bit 3.
 void cObj08::move()
 {
     Obj08Work* w = &o8;
@@ -204,6 +219,7 @@ void cObj08::move()
     partsWorldCalc();
 }
 
+// Gravity + move.
 void obj08AddSpeed(cObj08* obj)
 {
     Obj08Work* w = &obj->o8;
@@ -212,6 +228,8 @@ void obj08AddSpeed(cObj08* obj)
     PSVECAdd(&obj->pos, &w->spd, &obj->pos);
 }
 
+// Scenario sweep pos_old -> pos: on a hit plays the sound, spawns the floor effect [2] (on a
+// horizontal surface) or the break effect [1] oriented by the normal, destroys the object; returns 1.
 int obj08ScrHitCk(cObj08* obj)
 {
     Obj08Work* w = &obj->o8;
@@ -248,6 +266,9 @@ int obj08ScrHitCk(cObj08* obj)
     return 0;
 }
 
+// Enemy hit (once, be_flag 0x10): sweeps a box of radius r along the frame's movement through
+// GetWepTargetList (up to 3 targets) and damages each (dmg.set kind 0, power 10, the attribute
+// mask), spawning the hit effect. Returns 1 on a hit.
 int obj08ToEmHitCk(cObj08* obj)
 {
     Obj08Work* w = &obj->o8;
@@ -318,6 +339,8 @@ int obj08ToEmHitCk(cObj08* obj)
     return 1;
 }
 
+// Player / partner hit (once, be_flag 0x20) through the thrower's attack record: hit effect on the
+// victim's hit info, sound, controller vibration. Returns 1 on a hit.
 int obj08ToPlHitCk(cObj08* obj)
 {
     Obj08Work* w = &obj->o8;
@@ -355,6 +378,8 @@ int obj08ToPlHitCk(cObj08* obj)
     return 0;
 }
 
+// Spawns the character-hit effect [3]: attached to the victim when hit_type, otherwise on the
+// surface of the hit parts (facing the projectile, clamped to 70% of the parts height), plus the sound.
 void obj08DmEstSet(cObj08* obj, cModel* em, Vec* oldPos, EmHitInfo* part)
 {
     Obj08Work* w = &obj->o8;

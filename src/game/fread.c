@@ -1,12 +1,14 @@
 /* newlib 1.8.2 libc/stdio/fread.c, SN version: byte copy instead of memcpy */
 #include "newlib_stdio.h"
 
+/* Byte copy used instead of memcpy by this SN build of fread. */
 void memcpyalpha(char *dst, const char *src, int n)
 {
     while (n--)
         *dst++ = *src++;
 }
 
+/* Reads count items of size bytes from a stream, refilling through __srefill; returns the items read. */
 size_t fread(void *buf, size_t size, size_t count, FILE *fp)
 {
     register size_t resid;

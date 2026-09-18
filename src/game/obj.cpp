@@ -1,3 +1,7 @@
+// game/obj: the object manager (D:/Bio4/Prog/obj.cpp). ObjMgr (cObjMgr) owns the pool of 0x3D8-byte
+// cObj works; construct() placement-news the per-id class (obj00..objBull, ids 0..0x3F) so the
+// virtual move() dispatches to the unit that implements it, move() runs every alive object once a
+// frame (objMove), destroy() frees an object's model resources first.
 #include "atari.h"
 #include "event.h"
 #include "obj.h"
@@ -169,12 +173,14 @@ public:
 
 void (*ObjInitFunc[0x40])(cObj*);
 
+// Manager of the 0x3D8-byte cObj works (kind 2 of the unit managers).
 cObjMgr::cObjMgr() : cManager<cObj>(sizeof(cObj), 2)
 {
     setName("cObjMgr");
     Guid = 0;
 }
 
+// Manager warnings to the log.
 void cObjMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -183,6 +189,7 @@ void cObjMgr::log(const char* fmt, ...)
     pLog->vwarn(6, 0, fmt, ap);
 }
 
+// Unit construction: placement-news the per-id class (0 cObj00 ... 0x3F) into the work.
 #line 130 "D:/Bio4/Prog/obj.cpp"
 int cObjMgr::construct(cObj* p, int id)
 {
@@ -309,11 +316,13 @@ int cObjMgr::construct(cObj* p, int id)
     return 1;
 }
 
+// cManager entry point: forwards to the int version.
 int cObjMgr::construct(cObj* p, u32 id)
 {
     return construct(p, (int) id);
 }
 
+// Per-frame: die check, then objMove on every alive object.
 void cObjMgr::move()
 {
     cObj* p;
@@ -330,6 +339,9 @@ void cObjMgr::move()
     }
 }
 
+// One object's frame: skips inactive objects (be_flag 0x20 clear) and, during an event
+// (Status_flg[1] 0x10000000), objects without the no-suspend flag; runs move(), the shape
+// animation, the position history; debug: obstacle / skeleton / bounding box displays.
 void objMove(cObj* p)
 {
     if (!(p->be_flag & 0x20)) {
@@ -352,6 +364,7 @@ void objMove(cObj* p)
     }
 }
 
+// Destroys an object: releases its model/parts (push) when it was alive, then the manager slot.
 void cObjMgr::destroy(cObj* p)
 {
     if ((p->be_flag & 0x201) != 1) {
@@ -361,6 +374,7 @@ void cObjMgr::destroy(cObj* p)
     cManager<cObj>::destroy(p);
 }
 
+// New object: active + alive flags, kindid 1.
 cObj::cObj()
 {
     be_flag |= 0x21;

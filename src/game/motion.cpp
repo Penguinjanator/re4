@@ -1,3 +1,11 @@
+// game/motion: skeletal animation playback (D:/Bio4/Prog/motion.cpp). A MotionWork plays a
+// MotionData (per joint: kind byte, Fcc key type, and per-axis Hermite key streams) on a cModel's
+// parts. MotionSetCore starts a motion (optionally through a sequence table of 10.6 fixed-point
+// frames with SE/free bytes, with `hokan` frames of blend from the previous pose); MotionMove
+// advances it each game frame: root speed applied to the model (Mot_attr bit 0), a second
+// blended MotionWork (blend/Brate), the per-parts keys (MotionMoveCore), leg IK, the pose
+// interpolation (MotionHokan) and the quaternion blend table. Fcc_get_data_* decode the ten key
+// stream layouts (f32 / s16 values and tangents).
 #include "motion.h"
 #include "global.h"
 #include "db_log.h"
@@ -55,6 +63,8 @@ void Fcc_get_data_033(u8* d, int i0, int i1, f32* v, f32* t);
 void dummy(u8* d, int i0, int i1, f32* v, f32* t);
 }
 
+// Moves every parts' world position/matrix by the model's displacement since the last pose
+// computation (Pos_world), without recomputing the pose (cheap follow after setPos-style moves).
 void PartsWorldPosCalc(cModel* m)
 {
     cModel* p;
@@ -76,16 +86,20 @@ void PartsWorldPosCalc(cModel* m)
     }
 }
 
+// Drops the blended second motion.
 void MotionBlendOff(cModel* m)
 {
     MOTION(m)->blend = 0;
 }
 
+// Pauses the motion (Mot_attr bit 3: the sequence frame stops advancing).
 void MotionPause(cModel* m)
 {
     MOTION(m)->Mot_attr |= 8;
 }
 
+// Removes the motion: every parts back to its bind pose (position from the bind matrices, zero
+// rotation, unit scale unless flag bit 0), the attach camera reset, pMot = NULL.
 void MotionClear(cModel* m, int flag)
 {
     MotionWork* w = MOTION(m);
@@ -126,6 +140,14 @@ void MotionClear(cModel* m, int flag)
     MOTION(m)->pMot = 0;
 }
 
+// Starts motion `data` on work w (usually MOTION(m)): resets root pos/rot state, Mot_attr = flags
+// (bit 0 apply root speed, 1 reverse, 2 loop, 6 flip left/right, ...), the sequence (seq table
+// or linear over maxFrame+1 frames) starting at `frame`, the joint tables and key stream
+// pointers (relocated once), IK chains (unless Mot_flag 0x10000000), the root pos/rot joint
+// indices and attach camera channels, clears the key histories, sets the `hokan` blend frames
+// (saving the current l_mat as prevMat), and samples the root at the start/end to get the
+// motion's total displacement (Pos_dist/Ang_dist) for looping. Mot_flag 0x20000000 keeps the
+// blend motion.
 void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int flags, int frame)
 {
     MotionWork* w = (MotionWork*) w_;
@@ -404,6 +426,12 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
     }
 }
 
+// One frame of the model's motion: with Mot_attr bit 0 moves the model by the root speed (mixed
+// with the blend motion by Brate), evaluates the main motion (MotionMoveCore + sequence step),
+// then the blend motion either as a matrix slerp (matBlend) or, for Mot_flag sign-bit blends, as
+// an additive pose; runs the leg IK on the unscaled model, the hokan interpolation and the
+// quaternion blend table (blendTbl: dst = slerp(c, a, percent)). Returns Mot_state (1/2 looped,
+// 4/8 ended).
 u16 MotionMove(cModel* m)
 {
     static int new_add = 1;
@@ -602,6 +630,7 @@ u16 MotionMove(cModel* m)
     return MOTION(m)->Mot_state;
 }
 
+// Advances a secondary MotionWork (no root speed): pose, sequence, hokan. Returns its Mot_state.
 u16 MotionMoveSub(cModel* m, MotionWork* w)
 {
     MotionMoveCore(m, w, 0);
@@ -612,6 +641,11 @@ u16 MotionMoveSub(cModel* m, MotionWork* w)
     return w->Mot_state;
 }
 
+// Evaluates the pose at the current sequence frame: for each motion joint decodes the Hermite
+// keys of the axes it animates (kind bit 1 rotation, else rot + pos + scale) into the parts'
+// ang/pos/scale (with the left/right flip remap and mirroring when Mot_attr 0x40), skipping parts
+// flagged 0x20000000; attach-camera channels 6/7 go to the AttachCamera outputs. Rebuilds the
+// model matrix unless Mot_flag 0x40000000.
 void MotionMoveCore(cModel* m, MotionWork* w, int flag)
 {
     HermitePrm prm;
@@ -766,6 +800,7 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
     } while (++i < n);
 }
 
+// |d| < eps.
 // The caller forms `1.0f - v`: with the subtraction inside the inline body the argument copy
 // (a load) precedes the constant load in RTL and sched1 keeps that order (equal prio/weight).
 static inline int nearZero(f32 d, f32 eps)
@@ -776,6 +811,9 @@ static inline int nearZero(f32 d, f32 eps)
     return 0;
 }
 
+// Pose interpolation over the Hokan_frame frames after a motion change: each parts' l_mat is
+// blended between prevMat and the new pose (translation linear, rotation by quaternion slerp,
+// scale linear or cancelled by the parent's scale with flag 0x20000).
 void MotionHokan(cModel* m, MotionWork* w)
 {
     static int g_scale_cancel = 1;
@@ -925,6 +963,10 @@ void MotionHokan(cModel* m, MotionWork* w)
     }
 }
 
+// Root displacement of this frame: samples the root pos/rot joints at the current frame, subtracts
+// the previous sample (adding/subtracting Pos_dist/Ang_dist across a loop), rotates the position
+// delta by the previous root yaw into model space, mirrors it for flipped motions, and with
+// Mot_attr 0x400 blends the XZ speed from the previous motion's speed over the hokan frames.
 void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
 {
     HermitePrm prm;
@@ -1011,6 +1053,7 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
     }
 }
 
+// Applies a root delta to the model: position rotated by the model matrix, rotation added.
 void MotionAddSpeed(cModel* m, MotionWork* w, Vec* pos, Vec* rot)
 {
     Vec t;
@@ -1020,6 +1063,7 @@ void MotionAddSpeed(cModel* m, MotionWork* w, Vec* pos, Vec* rot)
     PSVECAdd(&m->ang, rot, &m->ang);
 }
 
+// Root position/rotation keys at the previous sequence frame (Seq_old), without touching the state.
 void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
 {
     MotionWork* w = MOTION(m);
@@ -1064,6 +1108,10 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
     }
 }
 
+// Advances the sequence frame by Seq_speed * pG->mot_speed per frame (unless paused): forward or
+// reverse (Mot_attr bit 1), looping (bit 2: Mot_state 1/2) or clamping at the end (Mot_state
+// 4/8); then resolves the motion frame (10.6 fixed) from the sequence table with interpolation
+// between table entries, or linearly. Returns Mot_state.
 u16 MotionSequenceCtrl(MotionWork* w)
 {
     f32 f;
@@ -1146,11 +1194,13 @@ u16 MotionSequenceCtrl(MotionWork* w)
     return w->Mot_state;
 }
 
+// Frame count word of an FCV (camera curve) block.
 u16 FcvGetMaxFrame(u16* data)
 {
     return data[0];
 }
 
+// Last frame of the motion (-1 without motion).
 f32 MotionGetMaxFrame(MotionWork* w)
 {
     if (w->pMot == 0) {
@@ -1159,6 +1209,7 @@ f32 MotionGetMaxFrame(MotionWork* w)
     return w->Mot_frame_max;
 }
 
+// Current motion frame (-1 without motion).
 f32 MotionGetCurrentFrame(MotionWork* w)
 {
     if (w->pMot == 0) {
@@ -1167,6 +1218,8 @@ f32 MotionGetCurrentFrame(MotionWork* w)
     return w->Mot_frame;
 }
 
+// 1 when the motion passed `frame` since the previous update (handles loops); 0 on the first
+// frame after a set (Mot_flag 0x04000000). Used to trigger footsteps/attacks at key frames.
 int MotionCheckCrossFrame(MotionWork* w, f32 frame)
 {
     f32 cur;
@@ -1195,6 +1248,7 @@ int MotionCheckCrossFrame(MotionWork* w, f32 frame)
     return 0;
 }
 
+// Mot_state of the model's motion, -1 when none is set.
 int MotionGetState(cModel* m)
 {
     MotionWork* w = MOTION(m);
@@ -1205,6 +1259,10 @@ int MotionGetState(cModel* m)
     return w->Mot_state;
 }
 
+// Evaluates one joint's three axis key streams at prm->frame: finds the key pair around the frame
+// starting from the per-axis history index (hist, updated unless flags bit 3), wraps for looping
+// motions (flags 4), holds the last key past the end, and Hermite-interpolates value/tangent pairs
+// decoded by Fcc_get_data_tbl[prm->type]. Returns 1 when a history index was invalid.
 int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
 {
     static FccGetData Fcc_get_data_tbl[16] = {
@@ -1359,6 +1417,7 @@ typedef union {
     (dst) = (f32) cs.s * 0.0001f;
 #define FCC_S8(dst, i) (dst) = (f32) (s8) d[(i)] * 0.0001f;
 
+// Key layout 0: f32 value, f32 in-tangent, f32 out-tangent (12 bytes/key); reads keys i0, i1.
 void Fcc_get_data_000(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1369,6 +1428,7 @@ void Fcc_get_data_000(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_F32(t[1], i1 * 12 + 4);
 }
 
+// Key layout 1: f32 value, s16 tangents (8 bytes/key).
 void Fcc_get_data_001(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1380,6 +1440,7 @@ void Fcc_get_data_001(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_S16(t[1], i1 * 8 + 4);
 }
 
+// Key layout 2: f32 value, s8 tangents (6 bytes/key).
 void Fcc_get_data_002(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1390,6 +1451,7 @@ void Fcc_get_data_002(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_S8(t[1], i1 * 6 + 4);
 }
 
+// Key layout 4: s16 value, f32 tangents (10 bytes/key).
 void Fcc_get_data_010(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1401,6 +1463,7 @@ void Fcc_get_data_010(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_F32(t[1], i1 * 10 + 2);
 }
 
+// Key layout 5: s16 value, s16 tangents (6 bytes/key). s16 and s8 fields are in 1/10000 units (FCC_S16 / FCC_S8).
 void Fcc_get_data_011(u8* d, int i0, int i1, f32* v, f32* t)
 {
     static int flag = 0;
@@ -1419,6 +1482,7 @@ void Fcc_get_data_011(u8* d, int i0, int i1, f32* v, f32* t)
     }
 }
 
+// Key layout 6: s16 value, s8 tangents (4 bytes/key).
 void Fcc_get_data_012(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccS16 cs;
@@ -1429,6 +1493,7 @@ void Fcc_get_data_012(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_S8(t[1], i1 * 4 + 2);
 }
 
+// Key layout 8: s8 value, f32 tangents (9 bytes/key).
 void Fcc_get_data_020(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1439,6 +1504,7 @@ void Fcc_get_data_020(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_F32(t[1], i1 * 9 + 1);
 }
 
+// Key layout 9: s8 value, s16 tangents (5 bytes/key).
 void Fcc_get_data_021(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccS16 cs;
@@ -1449,6 +1515,7 @@ void Fcc_get_data_021(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_S16(t[1], i1 * 5 + 1);
 }
 
+// Key layout 10: s8 value, s8 tangents (3 bytes/key).
 void Fcc_get_data_022(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FCC_S8(v[0], i0 * 3);
@@ -1457,6 +1524,7 @@ void Fcc_get_data_022(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_S8(t[1], i1 * 3 + 1);
 }
 
+// Key layout 15: f32 value only, no tangents (4 bytes/key; stepped/linear data).
 void Fcc_get_data_033(u8* d, int i0, int i1, f32* v, f32* t)
 {
     FccF32 cf;
@@ -1465,10 +1533,12 @@ void Fcc_get_data_033(u8* d, int i0, int i1, f32* v, f32* t)
     FCC_F32(v[1], i1 * 4);
 }
 
+// Unused key layouts.
 void dummy(u8* d, int i0, int i1, f32* v, f32* t)
 {
 }
 
+// Byte size of an axis stream of n keys for key layout `type` (offset to the next axis).
 int Fcc_next_axis_addr(int type, int n)
 {
     switch (type) {
@@ -1513,6 +1583,7 @@ int Fcc_next_axis_addr(int type, int n)
 // keeps the split label as its name (and the section forced) so strip_unused leaves it in place.
 static Vec lbl_80314C44 __attribute__((section(".sdata"))) = { 0.0f, 0.0f, 0.0f };
 
+// Debug (dead-stripped): header line of the motion speed display.
 // The two label pointers at .rodata+0x218 (relocated words) are a function-local static table
 // declared AFTER the first eprintf: its strings and the table are assembled when the declaration
 // is reached, i.e. after "MOTION SPEED ---" and before the "%s" of the following call.
@@ -1525,6 +1596,7 @@ void MotionSpeedDispHeader(int x, int y, int who)
     }
 }
 
+// Debug (dead-stripped): prints the model's motion frame/speed values.
 void MotionSpeedDisp(cModel* m, int x, int y)
 {
     MotionWork* w = MOTION(m);

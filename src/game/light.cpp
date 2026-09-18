@@ -1,3 +1,11 @@
+// game/light: the light manager (D:/Bio4/Prog/light.cpp). cLightMgr (LightMgr) owns the cLight
+// pool (cManager) and the current light environment (LightEnv: fog, background colour, blur,
+// contrast, mipmap, tune colours, wind). Light data comes as cLit blocks (core archive, room "LIT",
+// third set) holding per-camera-cut cLightEnv records each followed by cLightWork lights;
+// update(cut) swaps the room lights to a cut (fog interpolated over Hokan frames), move() runs
+// every light's type function (LightFuncTbl) and parent tracking, setModel2/setCloth/setEsp pick
+// up to 8 lights hitting a model volume. cLight adds parent attachment (enemy / scroll / etc /
+// object parts) and spot direction helpers.
 #include "light.h"
 #include "ctrl.h"
 #include "atari.h"
@@ -39,11 +47,13 @@ static LightFog fogNew;
 // value unknown: the linker dropped the object, only the `_GLOBAL_.I.FarDistance__9cLightMgr` name survives
 const f32 cLightMgr::FarDistance = 100000.0f;
 
+// Manager of cLight units.
 cLightMgr::cLightMgr() : cManager<cLight>(sizeof(cLight), 0)
 {
     setName("cLightMgr");
 }
 
+// Debug log when m_logMode is on.
 void cLightMgr::log(const char* fmt, ...)
 {
     va_list ap;
@@ -54,6 +64,7 @@ void cLightMgr::log(const char* fmt, ...)
     }
 }
 
+// Boot init: installs the type function table, clears the environment, power and kind flags.
 void cLightMgr::init(void (**funcTbl)(cLight*))
 {
     cManager<cLight>::init(funcTbl);
@@ -70,6 +81,8 @@ void cLightMgr::init(void (**funcTbl)(cLight*))
     dbMem = 0;
 }
 
+// Room init: binds the three light data blocks (upgrading old versions), makes the room block the
+// active one, resets the tune colours and kind flags.
 int cLightMgr::roomInit(cLit* core, cLit* room, cLit* third)
 {
     cManager<cLight>::roomInit();
@@ -114,6 +127,7 @@ int cLightMgr::roomInit(cLit* core, cLit* room, cLit* third)
     return 1;
 }
 
+// Unit construction: placement-news the cLight subclass for type id (1, 2, 6, 7, 8 have their own).
 int cLightMgr::construct(cLight* p, u32 id)
 {
     switch (id) {
@@ -139,6 +153,7 @@ int cLightMgr::construct(cLight* p, u32 id)
     return 1;
 }
 
+// Creates a light from a cLightWork record (front of the pool), copies it and runs its first move.
 cLight* cLightMgr::create(cLightWork* w)
 {
     cLight* l = cManager<cLight>::create(w->Type);
@@ -153,6 +168,7 @@ cLight* cLightMgr::create(cLightWork* w)
     return l;
 }
 
+// Same as create(cLightWork*) but allocated from the back of the pool.
 cLight* cLightMgr::createBack(cLightWork* w)
 {
     cLight* l = cManager<cLight>::createBack(w->Type);
@@ -164,6 +180,9 @@ cLight* cLightMgr::createBack(cLightWork* w)
     return l;
 }
 
+// Creates light `lightNo` of cut `cutNo` of the data block with extra be_flag bits `flag`; the
+// negative numbers are bulk operations: -1 load every light of the cut, -2 apply the cut's
+// environment, -3 both. Returns the light (0 for the bulk forms / failures).
 cLight* cLightMgr::create(cLit* lit, int cutNo, int lightNo, int flag)
 {
     cLightEnv* cut;
@@ -206,6 +225,7 @@ cLight* cLightMgr::create(cLit* lit, int cutNo, int lightNo, int flag)
     return l;
 }
 
+// Back-of-pool variant of create(cLit*, ...).
 cLight* cLightMgr::createBack(cLit* lit, int cutNo, int lightNo, int flag)
 {
     cLightEnv* cut;
@@ -241,6 +261,7 @@ cLight* cLightMgr::createBack(cLit* lit, int cutNo, int lightNo, int flag)
     return l;
 }
 
+// create() on data block litNo (0 core, 1 room, 2 third).
 cLight* cLightMgr::create(int litNo, int cutNo, int lightNo, int flag)
 {
     cLit* lit;
@@ -260,6 +281,7 @@ cLight* cLightMgr::create(int litNo, int cutNo, int lightNo, int flag)
     return create(lit, cutNo, lightNo, flag);
 }
 
+// createBack() on data block litNo.
 cLight* cLightMgr::createBack(int litNo, int cutNo, int lightNo, int flag)
 {
     cLit* lit;
@@ -279,6 +301,7 @@ cLight* cLightMgr::createBack(int litNo, int cutNo, int lightNo, int flag)
     return createBack(lit, cutNo, lightNo, flag);
 }
 
+// Adds d to the global electric power factor (clamped 0..1); returns the new value.
 f32 cLightMgr::setElecPower(f32 d)
 {
     ElecPower += d;
@@ -290,6 +313,8 @@ f32 cLightMgr::setElecPower(f32 d)
     return ElecPower;
 }
 
+// Replaces the light-control ctrl unit (Id 1) with one that plays light path pathNo (power
+// flicker of the room lights); 0 when the path or a ctrl slot is missing.
 int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
 {
     cCtrl* c;
@@ -321,6 +346,7 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
     return 1;
 }
 
+// Destroys the light-control ctrl units (Id 1).
 void funcDelCtrl(cCtrl* pCtr)
 {
     if (pCtr->Id == 1) {
@@ -328,18 +354,21 @@ void funcDelCtrl(cCtrl* pCtr)
     }
 }
 
+// Enables light kind `kind` (kinds are switched off by events / sub screens / item examine).
 int cLightMgr::onKind(u8 kind)
 {
     kindFlags[kind >> 5] |= 1 << (kind & 31);
     return 1;
 }
 
+// Disables light kind `kind`.
 int cLightMgr::offKind(u8 kind)
 {
     kindFlags[kind >> 5] &= ~(1 << (kind & 31));
     return 1;
 }
 
+// 1 when light kind `kind` is enabled.
 int cLightMgr::checkKind(u8 kind)
 {
     if (kindFlags[kind >> 5] & (1 << (kind & 31))) {
@@ -348,6 +377,7 @@ int cLightMgr::checkKind(u8 kind)
     return 0;
 }
 
+// First alive light of the given kind.
 cLight* cLightMgr::getKindLight(u8 kind)
 {
     cLight* l;
@@ -360,6 +390,7 @@ cLight* cLightMgr::getKindLight(u8 kind)
     return 0;
 }
 
+// Selects the active light data block (0 = the room block); events switch it to their own.
 int cLightMgr::roomLitSet(cLit* lit)
 {
     if (lit == 0) {
@@ -373,11 +404,14 @@ int cLightMgr::roomLitSet(cLit* lit)
     return 1;
 }
 
+// 1 when the room block is the active one.
 int cLightMgr::roomLitCheck()
 {
     return pLitHeader == m_pLitRoom;
 }
 
+// Per-frame: fog interpolation, die check, then lightMove on every alive light. Sets Status_flg[1]
+// 0x200 (lights moved this frame).
 int cLightMgr::move()
 {
     cLight* l;
@@ -403,6 +437,8 @@ int cLightMgr::move()
     return 1;
 }
 
+// Interpolates the current fog towards fogNew over the remaining m_Hokan frames and updates the
+// far plane (fog Type 0 = ZFAR, else fog end scaled by far_play_ratio).
 void cLightMgr::hokanMove()
 {
     if (m_Hokan != 0) {
@@ -424,6 +460,9 @@ void cLightMgr::hokanMove()
     }
 }
 
+// One light's frame: destroys it when its parent model died, recomputes World from the parent
+// parts (be_flag 2 = attached), snaps against collision (hitAdjust), runs the type function; an
+// etc-model parent (type 3) with hp <= 0 detaches the light.
 void lightMove(cLight* l)
 {
     cModel* p = l->pParent;
@@ -449,16 +488,21 @@ void lightMove(cLight* l)
     }
 }
 
+// The current light environment.
 cLightEnv* cLightMgr::getEnvPtr()
 {
     return &LightEnv;
 }
 
+// LightFuncTbl[0] and the unused types: static light, DispCol = Col.
 void Light00_Move(cLight* l)
 {
     l->DispCol = l->Col;
 }
 
+// Picks the lights for a model: every alive, enabled light (xF mask vs EnableMask, kind on, not a
+// foot-shadow type 4, SelectMask bit, non-black colour, volume hit test) up to 8, stored in
+// LightInfo.pLight; during an event only lights on event-flagged parents.
 void cLightMgr::setModel2(cModel* m)
 {
     cLight* l;
@@ -521,6 +565,7 @@ void cLightMgr::setModel2(cModel* m)
     }
 }
 
+// Picks up to 8 cloth lights (xF bit 0x10) hitting the model for the cloth renderer.
 void cLightMgr::setCloth(cModel* m)
 {
     cLight* l;
@@ -561,6 +606,7 @@ void cLightMgr::setCloth(cModel* m)
     }
 }
 
+// Fills the effect light list with every alive light whose xF matches `mask` (max 8).
 void cLightMgr::setEsp(EspLightList* list, u8 mask)
 {
     cLight* l;
@@ -584,6 +630,8 @@ void cLightMgr::setEsp(EspLightList* list, u8 mask)
     }
 }
 
+// Does the light reach the model's light volume? Dispatches on LightInfo.Flag & 3 (0 cylinder, 1/3
+// sphere, 2 box).
 int lightHitCheck(cModel* m, cLight* l)
 {
     static int (*funcTbl[4])(cModel*, cLight*) = {
@@ -595,6 +643,7 @@ int lightHitCheck(cModel* m, cLight* l)
     return funcTbl[m->LightInfo.Flag & 3](m, l);
 }
 
+// Sphere volume (Size.x) vs light radius (0 = infinite).
 int lightHitCheckSphere(cModel* m, cLight* l)
 {
     Vec pos;
@@ -609,6 +658,7 @@ int lightHitCheckSphere(cModel* m, cLight* l)
     return 0;
 }
 
+// Capsule volume: spheres of Size.x at +-Size.y along the parts' up axis vs the light radius.
 int lightHitCheckCylinder(cModel* m, cLight* l)
 {
     static const Vec vech = { 0.0f, 1.0f, 0.0f };
@@ -637,6 +687,7 @@ int lightHitCheckCylinder(cModel* m, cLight* l)
     return GetDistance3(&tmp, &lpos) < li->Size.x + r;
 }
 
+// Box volume: the light position in the volume's local space against Size * model scale + radius.
 int lightHitCheckBBox(cModel* m, cLight* l)
 {
     Vec p;
@@ -660,6 +711,10 @@ int lightHitCheckBBox(cModel* m, cLight* l)
     return 1;
 }
 
+// Switches the room lighting to camera cut `cut_no` (-1 = 0; clamped by getSafeCutNo): deletes the
+// current room lights, applies the cut's environment (fog over `hokan` frames, -1 = the cut's own)
+// and loads its lights, then reserves the spare slots (nMaxLight - nLight, at least 10) as
+// invisible placeholders. No-op in thermal mode; Status_flg[2] 0x00400000 keeps the old cut.
 int cLightMgr::update(int cut_no, int hokan)
 {
     cLightEnv* cut;
@@ -705,6 +760,7 @@ int cLightMgr::update(int cut_no, int hokan)
     return 1;
 }
 
+// Thermal scope lighting: replaces the room lights with core cut 11.
 int cLightMgr::setThermo()
 {
     cLightEnv* cut;
@@ -728,6 +784,7 @@ int cLightMgr::setThermo()
     return 1;
 }
 
+// Applies a cut: environment (setEnv) then all its lights (loadLit), clamped to the pool size.
 int cLightMgr::registCut(cLightEnv* cut, int hokan)
 {
     setEnv(cut, hokan);
@@ -740,6 +797,7 @@ int cLightMgr::registCut(cLightEnv* cut, int hokan)
     return 1;
 }
 
+// Light record `no` following the cut header (0 when the cut has no lights).
 cLightWork* cLightEnv::getLightWork(int no)
 {
     cLightWork* w;
@@ -752,11 +810,13 @@ cLightWork* cLightEnv::getLightWork(int no)
     return w;
 }
 
+// Byte size of the cut record with its lights.
 u32 cLightEnv::getSize()
 {
     return sizeof(cLightEnv) + nLight * sizeof(cLightWork);
 }
 
+// Cut record of block litNo (0 core, 1 room, 2 third).
 cLightEnv* cLightMgr::getCutAddr(int litNo, int cutNo)
 {
     cLit* lit;
@@ -776,6 +836,7 @@ cLightEnv* cLightMgr::getCutAddr(int litNo, int cutNo)
     return lit->getCut(cutNo);
 }
 
+// The cut number, or 0 when it is out of range / missing.
 int cLit::getSafeCutNo(int no)
 {
     if (no < 0 || no >= CutNum || !VALID_PTR(getCut(no))) {
@@ -784,26 +845,31 @@ int cLit::getSafeCutNo(int no)
     return no;
 }
 
+// Event fog curve: sets the fog start distance.
 void cLightMgr::setFogStart(f32 v)
 {
     LightEnv.fogStart = v;
 }
 
+// Event fog curve: sets the fog end distance.
 void cLightMgr::setFogEnd(f32 v)
 {
     LightEnv.fogEnd = v;
 }
 
+// Current fog start distance.
 f32 cLightMgr::getFogStart()
 {
     return LightEnv.fogStart;
 }
 
+// Current fog end distance.
 f32 cLightMgr::getFogEnd()
 {
     return LightEnv.fogEnd;
 }
 
+// Programs GX fog from LightEnv.Fog (black when Disp_flg 0x4000 or thermal) and the view far plane.
 void cLightMgr::setFog()
 {
     LightFog* fog = &LightEnv.Fog;
@@ -823,6 +889,7 @@ void cLightMgr::setFog()
     }
 }
 
+// Pushes the environment's blur rate/power/type and contrast to filter00.
 void cLightMgr::setBlur()
 {
     s8 power = LightEnv.blur_power;
@@ -837,6 +904,7 @@ void cLightMgr::setBlur()
     Filter00SetContrast(r, g, b);
 }
 
+// Destroys every room ("scr") light (be_flag 4), keeping the dynamic ones.
 void cLightMgr::deleteScr()
 {
     cLight* l;
@@ -850,6 +918,7 @@ void cLightMgr::deleteScr()
     }
 }
 
+// Clears mask bits from every room light's xF (light class mask).
 void cLightMgr::offScr(u8 mask)
 {
     cLight* l;
@@ -863,6 +932,7 @@ void cLightMgr::offScr(u8 mask)
     }
 }
 
+// Number of room lights alive.
 int cLightMgr::countScr()
 {
     u32 i;
@@ -876,6 +946,9 @@ int cLightMgr::countScr()
     return n;
 }
 
+// Installs a cut's environment: fog target (interpolated over hokan frames, -1 = cut->Hokan; with
+// interpolation the old fog/bg colour are kept as the start), fog, blur, mipmap, tune, wind and
+// the two TEV colour scales.
 int cLightMgr::setEnv(cLightEnv* cut, int hokan)
 {
     fogNew = cut->Fog;
@@ -913,6 +986,7 @@ int cLightMgr::setEnv(cLightEnv* cut, int hokan)
     return 1;
 }
 
+// Tune colours (the three character colour tints): the cut's when tuneOn bit 0, else the defaults.
 void cLightMgr::setTune(cLightEnv* cut)
 {
     if (cut->tuneOn & 1) {
@@ -935,6 +1009,7 @@ void cLightMgr::setTune(cLightEnv* cut)
     }
 }
 
+// Global texture LOD settings from the cut (min/max lod 0..9, anisotropy 0..2, lod bias -5..10).
 int cLightMgr::setMipmap(cLightEnv* cut)
 {
     if (!VALID_PTR(cut)) {
@@ -981,6 +1056,7 @@ int cLightMgr::setMipmap(cLightEnv* cut)
     return 0;
 }
 
+// Creates n lights from consecutive records; attached ones get their parent and world position.
 int cLightMgr::loadLit(cLightWork* w, u32 n)
 {
     cLight* l;
@@ -997,6 +1073,7 @@ int cLightMgr::loadLit(cLightWork* w, u32 n)
     return 1;
 }
 
+// Tool: writes every room light back into cLightWork records.
 int cLightMgr::saveLit(cLightWork* w)
 {
     cLight* l;
@@ -1012,11 +1089,13 @@ int cLightMgr::saveLit(cLightWork* w)
     return 1;
 }
 
+// Address of the active light block pointer (tools).
 cLit** cLightMgr::getLitPPtr()
 {
     return &pLitHeader;
 }
 
+// Binds the light path block of the core archive.
 int cLightMgr::initPath(LightPathHeader* p)
 {
     if (!IN_RANGE(p)) {
@@ -1027,6 +1106,7 @@ int cLightMgr::initPath(LightPathHeader* p)
     return 1;
 }
 
+// Light path `no` (0 with an error when missing).
 cLightPathData* cLightMgr::getPathPtr(u8 no)
 {
     u32 ofs;
@@ -1046,22 +1126,26 @@ cLightPathData* cLightMgr::getPathPtr(u8 no)
     return (cLightPathData*) ((u8*) pLitPath + ofs);
 }
 
+// The light path block.
 LightPathHeader* cLightMgr::getPathHeader()
 {
     return pLitPath;
 }
 
+// Fresh light: alive + attached flags, no lit index.
 cLight::cLight()
 {
     be_flag = 3;
     LitIndex = -1;
 }
 
+// Runs the light type function (LightFuncTbl[Type]).
 void cLight::move()
 {
     LightMgr.funcTbl[Type](this);
 }
 
+// Copies a data record into the live light and resolves its parent.
 cLight& cLight::operator=(cLightWork& w)
 {
     be_flag = w.BeFlag;
@@ -1087,6 +1171,7 @@ cLight& cLight::operator=(cLightWork& w)
     return *this;
 }
 
+// Copies a live light back into a data record (tool save).
 cLightWork& cLightWork::operator=(cLight& l)
 {
     BeFlag = l.be_flag;
@@ -1111,6 +1196,7 @@ cLightWork& cLightWork::operator=(cLight& l)
     return *this;
 }
 
+// 1 when this is an alive room light (be_flag 4).
 int cLight::checkScr()
 {
     if (IS_ALIVE(this)) {
@@ -1122,11 +1208,13 @@ int cLight::checkScr()
     return 0;
 }
 
+// Sets the parent parts number (high 16 bits of ParentNo).
 void cLight::setPartsNo(int no)
 {
     ParentNo = (no << 16) | parent.no;
 }
 
+// Attaches the light to parent (type, id) and resolves the model pointer.
 int cLight::setParent(u8 type, u32 id)
 {
     ParentType = type;
@@ -1135,6 +1223,7 @@ int cLight::setParent(u8 type, u32 id)
     return 1;
 }
 
+// Attaches to a model by searching it among enemies (type 1), scroll objects (2) and objects (4).
 int cLight::setParent(cModel* m)
 {
     u32 i;
@@ -1167,6 +1256,7 @@ int cLight::setParent(cModel* m)
     return 0;
 }
 
+// Resolves pParent from ParentType/ParentNo: 1 enemy, 2 scroll object, 3 etc model, 4 object.
 cModel* cLight::calcParent()
 {
     switch (ParentType) {
@@ -1195,6 +1285,7 @@ cModel* cLight::calcParent()
     return pParent;
 }
 
+// The parent's parts the light follows (0 when unattached or dead).
 cModel* cLight::getCoord()
 {
     cModel* p = pParent;
@@ -1206,16 +1297,20 @@ cModel* cLight::getCoord()
     return 0;
 }
 
+// 1 when m is the parent model.
 int cLight::isParent(cModel* m)
 {
     return m == pParent;
 }
 
+// Local -> world position through the parent (calcPos).
 int cLight::getPos2(Vec* src, Vec* dst)
 {
     return calcPos(src, dst);
 }
 
+// Transforms a local position by the parent parts' matrix (etc models by number); unattached
+// lights copy; a missing parent detaches the light (setTrans(0)).
 int cLight::calcPos(Vec* src, Vec* dst)
 {
     cModel* p;
@@ -1263,6 +1358,7 @@ int cLight::calcPos(Vec* src, Vec* dst)
     return 1;
 }
 
+// Rotates a local direction by the parent parts' matrix (enemy / scroll / etc / object parents).
 int cLight::getNormal(Vec* src, Vec* dst)
 {
     cModel* p;
@@ -1348,6 +1444,7 @@ int cLight::getNormal(Vec* src, Vec* dst)
     return 1;
 }
 
+// Attaches (1) / detaches (0) the light from its parent (be_flag 2).
 void cLight::setTrans(int on)
 {
     if (on) {
@@ -1357,6 +1454,7 @@ void cLight::setTrans(int on)
     }
 }
 
+// Pushes the light out of the collision (SatMgr sphere test with HitRadius) from above the parent.
 void cLight::hitAdjust()
 {
     Vec pos;
@@ -1378,6 +1476,7 @@ void cLight::hitAdjust()
     }
 }
 
+// Sets the spot direction (only for spot types xD 3 / 6).
 void cLight::setSpotNormal(Vec* n)
 {
     if (xD != 3 && xD != 6) {
@@ -1387,6 +1486,7 @@ void cLight::setSpotNormal(Vec* n)
     normal = *n;
 }
 
+// Aims the spot at a world point.
 void cLight::setSpotTarget(Vec* target)
 {
     Vec n;
@@ -1397,28 +1497,33 @@ void cLight::setSpotTarget(Vec* target)
     setSpotNormal(&n);
 }
 
+// Creates the item examine light (core block, cut 10, light 0).
 void cLightMgr::setItemLight()
 {
     cLight* l = create(0, 10, 0, 0);
     l->Kind = 0x7F;
 }
 
+// Event start: disables light kind 0x7F.
 void cLightMgr::beginEvent()
 {
     offKind(0x7F);
 }
 
+// Event end: re-enables kind 0x7F.
 void cLightMgr::endEvent()
 {
     onKind(0x7F);
 }
 
+// Tool: replaces the room light block.
 void cLightMgr::dbSetRoomLit(cLit* lit)
 {
     pLitHeader = lit;
     m_pLitRoom = lit;
 }
 
+// Cut record `no` of the block (0 when absent).
 cLightEnv* cLit::getCut(u16 no)
 {
     cLightEnv* cut;
@@ -1435,6 +1540,8 @@ cLightEnv* cLit::getCut(u16 no)
     return cut;
 }
 
+// Upgrades a light block from versions <= 0x2B to 0x2C in place (default lod/aniso, tev scales,
+// tune, contrast, hokan, class bits, wind) and refreshes nMaxLight.
 int cLit::versionUp()
 {
     cLightEnv* cut;
@@ -1591,6 +1698,7 @@ int cLit::versionUp()
     return 1;
 }
 
+// Largest light count of any cut in the block.
 u32 cLit::getMaxLight()
 {
     cLightEnv* cut;
@@ -1615,6 +1723,7 @@ cLight* pAliveBak;
 static inline cLight* PGet(cLight*& p) { return p; }
 static inline void PSet(cLight*& d, cLight* v) { d = v; }
 
+// Entering the sub screen: drops the room lights, limits the pool to 10 and disables kind 0x7F.
 void cLightMgr::inSscrn()
 {
     deleteScr();
@@ -1624,6 +1733,8 @@ void cLightMgr::inSscrn()
     offKind(0x7F);
 }
 
+// Leaving the sub screen: restores the pool and reloads the lights (mode 0 cut 0, 1 the camera's
+// area cut, 2 thermal) and kind 0x7F.
 void cLightMgr::outSscrn(u32 mode)
 {
     BitSet(nArray, nArrayBak);
@@ -1644,6 +1755,7 @@ void cLightMgr::outSscrn(u32 mode)
     LightMgr.onKind(0x7F);
 }
 
+// Applies the cut's wind (direction in 1/127 pi, power and frequency in 1/100) to the pendulum/cloth wind.
 void cPenWind::set()
 {
     PenWindSet((f32) direction * 3.1415927f / 127.0f, (f32) power * 0.01f, (f32) frequency * 0.01f);

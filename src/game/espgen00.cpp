@@ -1,3 +1,7 @@
+// game/espgen00: effect controller 00, the repeating emitter (D:/Bio4/Prog/espgen00.cpp). A
+// controller record of Kind 1 / Espgen_type 0 spawns its esp record `num+1` times every `wait`
+// frames for `life` frames, following a parts of its model, with per-emission scale/speed/alpha
+// curves (Calc_D256). Entry points: Espgen00_Move (EspgenMoveTbl), Espgen00_SetFreeWork.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -44,6 +48,9 @@ struct Espgen00Work {
     EspSeqOpt* pOpt;   // 0x98
 };
 
+// Rebuilds the emitter matrix from parts `parts` of pMod (parts rotation + Offset/Ang), once when
+// flags2 bit 0 is not set (bit 1 = keep following every frame). 0xFE = free position (matrix left
+// as set up); 0xF8..0xFD/0xFF or a missing parent kill the controller (PushEspgen) with a log.
 void espgen00_UpdateMatrix(EspgenWork* w)
 {
     Espgen00Work* p = (Espgen00Work*) w->work;
@@ -105,6 +112,10 @@ static f32 Calc_D256(Espgen00Work* p, u8 d, f32 rate)
     return ret;
 }
 
+// One emitter frame: kills the controller when the model died or was reused (serial mismatch), then
+// when waitCnt reaches 0 emits num+1 copies of the record through EspSeqSet (Flg bit 0 spreads them
+// over 2pi), scaling size/speed/alpha by the life-rate curves scaleD/spdD/colD and reloading
+// waitCnt from wait (+waitD curve, +-waitRnd). Ends itself after `life` frames.
 void espgen00_Update(EspgenWork* w)
 {
     Espgen00Work* p = (Espgen00Work*) w->work;
@@ -215,17 +226,21 @@ void espgen00_Update(EspgenWork* w)
     }
 }
 
+// Step 0 of Espgen00MoveTbl: first frame, then moves to step 1.
 void espgen00_Move00(EspgenWork* w)
 {
     espgen00_Update(w);
     w->step = 1;
 }
 
+// Step 1 of Espgen00MoveTbl: steady state, one Update per frame.
 void espgen00_Move01(EspgenWork* w)
 {
     espgen00_Update(w);
 }
 
+// EspgenMoveTbl entry for controller type 0: dispatches on w->step; while Status_flg[1] bit
+// 0x10000000 (event pause) is set a controller whose model has be_flag 0x800 clear does not run.
 void Espgen00_Move(EspgenWork* w)
 {
     static void (*Espgen00MoveTbl[])(EspgenWork*) = {espgen00_Move00, espgen00_Move01};
@@ -240,6 +255,10 @@ void Espgen00_Move(EspgenWork* w)
     Espgen00MoveTbl[w->step](w);
 }
 
+// Fills the emitter from the controller record: life (Espgen_work16[0]), wait (x10C), num (x10D),
+// the D curves (x124..x127), Espgen_flg, random wait range; head flag bit 0 keeps following the
+// parts, `flag` == 1 passes the position on to the children; fixed seed 0x12345678+x10E when Flg
+// bit 1. Copies the optional EspSeqOpt. Always returns 1.
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {

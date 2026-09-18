@@ -1,4 +1,9 @@
 // game/exception: OS error handler with symbol lookup and register/memory dump (D:/Bio4/Prog/exception.cpp).
+// ExceptionInit installs ErrorHandler for the CPU exceptions; on a crash it saves the context,
+// walks the stack chain into call_stack, prints registers/FPSCR/heap state to the console, loads
+// the .sym files of the DOL and every loaded REL (excepLoadSymbol) to name the PC and return
+// addresses, and then loops forever drawing an on-screen dump (registers, call stack, a scrollable
+// memory viewer driven by the pad) until the reset button is pressed.
 #include "types.h"
 #include "map_obj.h"
 #include "light.h"
@@ -129,6 +134,7 @@ const char* const e_str[] = {
     "OS_ERROR_FPE",
 };
 
+// Console print of the floating-point exception bits set in FPSCR.
 // Dead-stripped in the original (STRIP_UNUSED): only its strings survive in .rodata.
 static void excepFpscrDump(u32 fpscr)
 {
@@ -177,6 +183,8 @@ static void excepFpscrDump(u32 fpscr)
     }
 }
 
+// Installs ErrorHandler for the fatal exceptions (program/trace/breakpoint only when no debugger
+// is attached). Called from main at boot.
 void ExceptionInit()
 {
     OSSetErrorHandler(OS_ERROR_SYSTEM_RESET, ErrorHandler);
@@ -194,6 +202,9 @@ void ExceptionInit()
     }
 }
 
+// Loads one .sym file synchronously from disc into symbolInfo[] (max 9); `module` gives the REL whose
+// text base offsets the entries (0 for the DOL). Returns a symbol_err_tbl code: 1 ok, 2 memory,
+// 4 open error, 5 table full.
 // Reads a symbol file; returns the symbol_err_tbl index (1 ok, 2 memory, 4 open, 5 table full).
 int excepLoadSymbolSub(char* name, OSModuleHeader* module)
 {
@@ -228,6 +239,9 @@ int excepLoadSymbolSub(char* name, OSModuleHeader* module)
     return ret;
 }
 
+// Loads bio4.sym and the .sym of each loaded module: the enemy modules (EmReadModule, with the
+// pl10/pl11/pl14/pl0e/pl0f/emmark special names), the player module, the weapon module, the
+// sub-screen module and the room module (name from FileTbl).
 void excepLoadSymbol()
 {
     int i;
@@ -302,6 +316,7 @@ void excepLoadSymbol()
     }
 }
 
+// "name (file)" of the symbol containing addr across all loaded tables, or "unknown".
 char* excepGetSymbolName(u32 addr)
 {
     static char null_data[] = "unknown";
@@ -319,6 +334,7 @@ char* excepGetSymbolName(u32 addr)
     return null_data;
 }
 
+// Linear search of one symbol table for the entry whose [addr, addr+size) contains the address.
 char* excepGetSymbolNameSub(u32 addr, SymbolInfo* info)
 {
     SymHeader* h = info->symbol_ptr;
@@ -340,6 +356,8 @@ char* excepGetSymbolNameSub(u32 addr, SymbolInfo* info)
     return 0;
 }
 
+// Pad control of the memory viewer: mode 0 browses (Z cycles byte/half/word width, X enters the
+// address editor, stick/D-pad scroll), mode 1 edits the jump address digit by digit.
 void excepMemoryDumpMove(MemDump* w, int y)
 {
     static s8 index = 0;
@@ -406,6 +424,7 @@ void excepMemoryDumpMove(MemDump* w, int y)
     }
 }
 
+// Draws 16 lines of memory from w->addr at the viewer's width, plus the address editor.
 void excepMemoryDump(MemDump* w, int y)
 {
     int i;
@@ -442,6 +461,8 @@ void excepMemoryDump(MemDump* w, int y)
     }
 }
 
+// Console dump after a crash: error name, DSISR/DAR, PC/LR with symbol names, GPRs, FPSCR, the
+// call stack, and the free size of the game and debug heaps.
 void excepRegConsoleDump(int error, u32 dsisr, u32 dar)
 {
     int i;
@@ -477,6 +498,10 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar)
     OSReport("\n");
 }
 
+// The installed OS error handler: copies the context, re-enables interrupts and the scheduler, walks
+// the stack chain (up to 16 frames), dumps to the console, then loops forever rendering the
+// on-screen crash display (loading symbols after 60 frames), scrolled with the C stick, with the
+// memory viewer, until the reset button is pressed.
 // The loop-invariant `lis` of "DSISR: %08X  DAR: %08X", symbol_err_tbl and "CALL STACK (%s)" are
 // gcse PRE pseudos of equal priority, numbered (and so allocated r16/r15/r14) in hash-bucket order:
 // bucket = (h(name) + 90) % 253 with h = h*129 + c per char ("*.LCn" for a string label), 253 =

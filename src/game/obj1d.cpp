@@ -1,3 +1,7 @@
+// game/obj1d: object id 0x1D, chain link (D:/Bio4/Prog/obj1d.cpp): a model hung between two parts
+// of a parent (position and orientation interpolated half-way between them, setParent2) or on one
+// parts (setParent), with an optional pendulum cloth (setChain); fades out (LostWait/Lost) when
+// released. Used for the El Gigante / trolley chains.
 #include "atari.h"
 #include "obj.h"
 #include "global.h"
@@ -27,6 +31,7 @@ void obj1d_R1_Parent(cObjChain* obj);
 static void (*Obj1d_R1_move_tbl[4])(cObjChain*) = { obj1d_R1_Set, obj1d_R1_LostWait, obj1d_R1_Lost,
                                                      obj1d_R1_Parent };
 
+// Creates the chain link (back of the pool) at pos/rot with no parent or cloth.
 cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -62,6 +67,7 @@ cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: dies with the parent, motion, R1 routine, pendulum step.
 void cObjChain::move()
 {
     ChainWork* w = &chain;
@@ -81,6 +87,7 @@ void cObjChain::move()
     }
 }
 
+// Rno1 == 0: free: motion and matrices.
 void obj1d_R1_Set(cObjChain* obj)
 {
     if (obj->pMotion) {
@@ -94,6 +101,7 @@ void obj1d_R1_Set(cObjChain* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 1: waits 90 frames then fades out (or vanishes off screen) -> Lost.
 void obj1d_R1_LostWait(cObjChain* obj)
 {
     ChainWork* w = &obj->chain;
@@ -138,6 +146,7 @@ void obj1d_R1_LostWait(cObjChain* obj)
     obj->partsWorldCalc();
 }
 
+// Rno1 == 2: hides and destroys the link.
 void obj1d_R1_Lost(cObjChain* obj)
 {
     if (obj->r_no_2 == 0) {
@@ -148,6 +157,8 @@ void obj1d_R1_Lost(cObjChain* obj)
     }
 }
 
+// Rno1 == 3: hung between parts1 and parts2 of the parent: orientation = slerp of the two parts
+// matrices (axes normalised unless flags bit 1), position = midpoint of the two offsets.
 void obj1d_R1_Parent(cObjChain* obj)
 {
     ChainWork* w = &obj->chain;
@@ -260,6 +271,7 @@ void obj1d_R1_Parent(cObjChain* obj)
     obj->partsWorldCalc();
 }
 
+// Hangs the link on one parts (both ends the same); flag = keep the parts scale.
 void cObjChain::setParent(cModel* parent, int parts, Vec* ofs, int flag)
 {
     ChainWork* w = &chain;
@@ -280,6 +292,7 @@ void cObjChain::setParent(cModel* parent, int parts, Vec* ofs, int flag)
     r_no_3 = 0;
 }
 
+// Hangs the link between two parts with their offsets.
 void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag)
 {
     ChainWork* w = &chain;
@@ -300,6 +313,7 @@ void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Ve
     r_no_3 = 0;
 }
 
+// Attaches a pendulum cloth to the link.
 void cObjChain::setChain(PenCloth* cloth)
 {
     chain.cloth = cloth;
@@ -308,6 +322,7 @@ void cObjChain::setChain(PenCloth* cloth)
     }
 }
 
+// Steps the pendulum cloth; clears the shadow/cull flags 0x00E00000.
 void cObjChain::chainMove()
 {
     if (chain.cloth) {

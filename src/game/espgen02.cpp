@@ -1,3 +1,7 @@
+// game/espgen02: effect controller 02, the path emitter (D:/Bio4/Prog/espgen02.cpp). Like
+// controller 00 but each emitted esp is placed at a (random) fraction of an effect path
+// (EspGetPathAddr / PathGetPos), optionally scaled/rotated and oriented along the path tangent
+// (mode bits). Entry points: Espgen02_Move, Espgen02_SetFreeWork.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -54,6 +58,8 @@ struct Espgen02Work {
     u8 mode;           // 0xB0 bit0: orient along the path, bit1: orient along the path (type 2)
 };
 
+// Rebuilds the emitter matrix from parts Null_parts_no of pMod (same rules as espgen00): 0xFE = free
+// position, invalid parts numbers kill the controller.
 void espgen02_UpdateMatrix(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;
@@ -115,6 +121,10 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
     return ret;
 }
 
+// One emitter frame: same life/wait/curve logic as espgen00, but every emission picks a point on
+// the path at Start_ratio (+random Rnd_ratio) percent of its length (weighted paths follow pMod),
+// applies PathScale / PathRot_x,y (1/256 turns) and, for mode bit 0 or 1, a basis along the path
+// tangent (up = +y or -y), then ApplyMatrix on the spawned esp.
 // The shared 0.0f is loaded into spdR and copied to scaleR and colR. The FPR order scaleR f25 /
 // colR f24 / spdR f23 is a global-alloc live-length knife edge (all three have 6 weighted refs):
 // with the copies between the `bScale` and `bSpd` zero stores (the original's sched order) colR
@@ -382,17 +392,20 @@ void espgen02_Update(EspgenWork* w)
     }
 }
 
+// Step 0 of Espgen02MoveTbl: first frame, then step 1.
 static void espgen02_Move00(EspgenWork* w)
 {
     espgen02_Update(w);
     w->step = 1;
 }
 
+// Step 1 of Espgen02MoveTbl: steady state.
 void espgen02_Move01(EspgenWork* w)
 {
     espgen02_Update(w);
 }
 
+// EspgenMoveTbl entry for controller type 2: dispatches on w->step.
 void Espgen02_Move(EspgenWork* w)
 {
     static void (*Espgen02MoveTbl[])(EspgenWork*) = {espgen02_Move00, espgen02_Move01};
@@ -400,6 +413,9 @@ void Espgen02_Move(EspgenWork* w)
     Espgen02MoveTbl[w->step](w);
 }
 
+// Fills the path emitter from the record: the espgen00 fields plus path group/id
+// (Espgen_work8_4[0..1]), Start_ratio/Rnd_ratio (percent), PathRot_x/y and mode (Espgen_work8_3[1..3]),
+// and PathScale = 1 + Espgen_vec0/10 when non-zero. Always returns 1.
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {

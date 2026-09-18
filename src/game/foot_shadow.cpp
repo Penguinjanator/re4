@@ -35,6 +35,12 @@ static inline f32 shadowRate(Vec* pos, Vec* lpos, f32 range)
     return 1.0f - d * d;
 }
 
+// Draws the character's foot/body shadow blobs: for every alive type-4 light in mode 5 that reaches
+// the character (radius, enable mask, optional spot cone for xD == 2), projects each joint of the
+// character's FootShadowTbl along the light direction onto the floor under the character and draws
+// a shadow sprite (texture 0x13) per joint plus interpolated blobs between flagged joints; alpha
+// scales with the light's red component, Shd_color and the distance rate. Disp_flg 0x02000000 or
+// Shd_color 0xFF disables it.
 void DrawFootShadow(cEm* em)
 {
     Vec dir;
@@ -226,6 +232,7 @@ void DrawFootShadow(cEm* em)
     }
 }
 
+// Draws one flat shadow quad of half-size `size` at pos (floor height) with the given alpha.
 void drawShadowParts(GXTexObj* tex, Vec* pos, f32 size, f32 alpha)
 {
     GXColor col;

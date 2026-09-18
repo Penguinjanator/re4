@@ -1,3 +1,7 @@
+// game/filter09: pause / stop screen filter (D:/Bio4/Prog/filter09.cpp). While the game is stopped
+// (Filter09SetbUse(1)) it keeps a half-size copy of the last frame in temp buffer 12 and blends it
+// back every frame, optionally spreading it outwards (g_bSpred: the death / option screen ripple);
+// FilterTrans skips every other filter while it is in use.
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -32,11 +36,13 @@ static int g_bUse;
 int g_bSpred;
 int g_bGet;
 
+// Boot: same as the room init.
 void Filter09Init()
 {
     Filter09RoomInit();
 }
 
+// Room init: off, no capture pending.
 void Filter09RoomInit()
 {
     filter09_buff = 0;
@@ -44,6 +50,7 @@ void Filter09RoomInit()
     g_bGet = 0;
 }
 
+// Queues Filter09Render (called from the stop screen code, not FilterTrans).
 // Never called (the original linker dropped the body; its 0.0f pool constant stayed).
 static void Filter09Trans()
 {
@@ -52,6 +59,7 @@ static void Filter09Trans()
     }
 }
 
+// Copies the frame at 1/div x 1/div2 into the filter buffer.
 void Filter09GetEFB(int div, int div2)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -66,6 +74,8 @@ void Filter09GetEFB(int div, int div2)
     GXInvalidateTexAll();
 }
 
+// OT callback while in use: takes temp buffer 12 (error when someone else holds a temp buffer and no
+// capture was requested) and draws the stored frame.
 void Filter09Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -90,6 +100,7 @@ void Filter09Render()
     LightMgr.setFog();
 }
 
+// Draws the buffer as a screen quad scaled by ofs around the centre.
 static void Filter09GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 ofs, int div)
 {
     GXTexObj tex;
@@ -112,6 +123,8 @@ static void Filter09GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, 
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// Captures the frame when requested, draws it back, and with g_bSpred adds the expanding
+// fade_alpha/fade_scale copy and recaptures (feedback ripple).
 void Filter09DrawBuffer()
 {
     Mtx44 proj;
@@ -170,17 +183,20 @@ void Filter09DrawBuffer()
     GXSetAlphaUpdate(1);
 }
 
+// Requests a fresh capture of the frame on the next render.
 void Filter09GetEFB_801D19E0()
 {
     g_bGet = 1;
 }
 
+// Turns the stop filter on/off and selects the spreading variant.
 void Filter09SetbUse(int use, int spred)
 {
     g_bUse = use;
     g_bSpred = spred;
 }
 
+// 1 while the stop filter is in use (FilterTrans then skips the other filters).
 int Filter09GetbUse()
 {
     return g_bUse;

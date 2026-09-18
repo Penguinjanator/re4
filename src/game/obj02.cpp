@@ -1,3 +1,6 @@
+// game/obj02: object id 2, scripted map object cObjScr (D:/Bio4/Prog/obj02.cpp): the room "SMD"
+// scroll models (doors, gates, machinery) with a per-type mover (type 1 rotate, 2 swing) selected
+// by `type`, an optional motion and a room callback.
 #include "atari.h"
 #include "obj.h"
 #include "math_sub.h"
@@ -36,12 +39,14 @@ public:
     void SetSwingRot(f32 amp, f32 period, f32 phase);
 };
 
+// New scroll object: no callback.
 cObjScr::cObjScr()
 {
     x3D0 = 0;
     callBack = 0;
 }
 
+// Per-frame: type mover, motion, matrix update, callback, light volume.
 void cObjScr::move()
 {
     static void (cObjScr::*funcTbl[16])() = {
@@ -63,10 +68,12 @@ void cObjScr::move()
     LightInfo.updateMatrix(this);
 }
 
+// Type 0 and unused types: nothing.
 void cObjScr::moveNormal()
 {
 }
 
+// Type 1: adds rotSpd to the object angle (flag bit 0: to parts 0 instead).
 void cObjScr::moveRotate()
 {
     ObjScrRotWork* w = (ObjScrRotWork*)work;
@@ -78,6 +85,7 @@ void cObjScr::moveRotate()
     }
 }
 
+// Type 2: sinusoidal swing of the three angles around the start angles (amp * sin(freq * t + phase)).
 void cObjScr::moveSwingRot()
 {
     ObjScrSwingWork* w = (ObjScrSwingWork*)work;
@@ -94,6 +102,7 @@ void cObjScr::moveSwingRot()
     ang.z = w->baseRot.z + w->ampZ * sinf(w->freqZ * w->time + w->phaseZ);
 }
 
+// Sets a y-axis swing: amplitude (radians), period (in 1/10000 s -> frequency), phase.
 // Never called: the original linker dead-stripped the body (unit in STRIP_UNUSED) and kept its
 // pool [1.0, 10000.0, 2pi] right after moveSwingRot's; the body is a guess with that pool.
 void cObjScr::SetSwingRot(f32 amp, f32 period, f32 phase)
@@ -107,6 +116,7 @@ void cObjScr::SetSwingRot(f32 amp, f32 period, f32 phase)
     w->phaseY = phase;
 }
 
+// Installs the room's per-frame callback.
 void cObjScr::SetCallBack(void (*func)(cObj*))
 {
     callBack = func;

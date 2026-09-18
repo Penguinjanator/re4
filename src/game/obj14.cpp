@@ -1,3 +1,6 @@
+// game/obj14: object id 0x14, the church bell (D:/Bio4/Prog/obj14.cpp): a two-link pendulum
+// (PenCloth on parts 1/2) with a cEmHit body so shots swing it and ring it (pG->bell_pos /
+// bell_stat 2 for 90 frames: the village Ganados react); setBreak drops it (R1 1).
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -35,6 +38,7 @@ u8 obj14ClothUp[] = { 0xFF, 1 };
 u8 obj14ClothDp[] = { 2, 0xFF };
 f32 obj14ClothMax[] = { 0.7853982f, 0.43633232f };
 
+// Creates the bell at pos/rot with its pendulum set-up and a cEmHit hit body attached to parts 1.
 cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -93,6 +97,7 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: damage check, R1 routine, pendulum step.
 void cObjBell::move()
 {
     obj14DmCk(this);
@@ -100,6 +105,8 @@ void cObjBell::move()
     obj14ClothMove(this);
 }
 
+// Rno1 == 0: hanging: matrices, and while ringTimer runs publishes the bell position (floor point
+// 250 units in front) as the ringing bell (Status_flg[1] 0x20000000, bell_stat 2).
 void obj14_R1_Set(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
@@ -122,6 +129,7 @@ void obj14_R1_Set(cObjBell* obj)
     }
 }
 
+// Rno1 == 1: broken: hides the bell, kills its hit body and spawns the break effect (est 1/7) once.
 void obj14_R1_Break(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
@@ -137,6 +145,7 @@ void obj14_R1_Break(cObjBell* obj)
     obj14MatCalc(obj);
 }
 
+// Rebuilds the bell matrix and parts (when no motion drives them).
 void obj14MatCalc(cObjBell* obj)
 {
     RotMatrix(obj->l_mat, &obj->ang);
@@ -149,6 +158,8 @@ void obj14MatCalc(cObjBell* obj)
     obj->partsWorldCalc();
 }
 
+// Weapon hits on the hit body: spark/blood effect by weapon kind, the bell sound, ringTimer 90,
+// and a swing impulse (50/30/100 by weapon) from the hit direction on the two pendulum links.
 void obj14DmCk(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
@@ -248,6 +259,7 @@ void obj14DmCk(cObjBell* obj)
     PSVECAdd((Vec*) &parts->x150, &dir, (Vec*) &parts->x150);
 }
 
+// Switches to the broken routine.
 void cObjBell::setBreak()
 {
     r_no_0 = 1;
@@ -256,16 +268,19 @@ void cObjBell::setBreak()
     r_no_3 = 0;
 }
 
+// 1 when the room flagged the bell as breakable (stat high half 0x0100).
 int cObjBell::ckBreakEnable()
 {
     return (stat & 0xFFFF0000) == 0x01000000;
 }
 
+// 1 when the bell is broken (stat high half 0x0101).
 int cObjBell::ckBreak()
 {
     return (stat & 0xFFFF0000) == 0x01010000;
 }
 
+// Pendulum set-up: parts 1 -> 2 chain with max swing 45 / 25 degrees, gravity 15.
 void obj14ClothSet(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
@@ -297,6 +312,7 @@ void obj14ClothSet(cObjBell* obj)
     PenClothSet(obj, &w->cloth, 100.0f);
 }
 
+// Pendulum step (PenClothMove3).
 void obj14ClothMove(cObjBell* obj)
 {
     PenClothMove3(obj, &obj->bell.cloth);

@@ -13,6 +13,7 @@
 /* Threshhold for punting to the byte copier.  */
 #define TOO_SMALL(LEN) ((LEN) < BIGBLOCKSIZE)
 
+/* Copies len0 bytes, 16 and 4 bytes at a time when both pointers are word aligned; the game's C++ code also declares it extern "C". */
 void *memcpy(void *dst0, const void *src0, size_t len0)
 {
     char *dst = dst0;

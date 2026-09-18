@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/fwalk.c */
 #include "newlib_stdio.h"
 
+/* Calls function on every open FILE of the reent's glue chain, OR-ing the results (fflush(NULL), cleanup). */
 int _fwalk(struct _reent *ptr, register int (*function)())
 {
     register FILE *fp;

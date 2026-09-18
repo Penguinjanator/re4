@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/makebuf.c, SN version: no malloc, every stream ends up unbuffered */
 #include "newlib_stdio.h"
 
+/* Stream buffer set-up without malloc: every stream becomes unbuffered (one-byte _nbuf), optimised seeking only for regular files. */
 void __smakebuf(register FILE *fp)
 {
     struct stat st;

@@ -1,3 +1,8 @@
+// game/file_app: development-host file helpers over the SN ProDG PC file server (D:/Bio4/Prog/file_app.cpp):
+// HDRead* / HDWrite* read and write whole files on the host disk (x:/soft/room/... in the tools),
+// with automatic .bak backups and a per-file ".lock" ownership scheme (file_lock / file_unlock /
+// file_lock_check, keyed on pUser_name) so two developers do not overwrite each other's room data.
+// Only active when System_flg 0x20000 (host file system present); retail builds never reach it.
 #include "types.h"
 #include "file.h"
 #include "main_mem.h"
@@ -33,6 +38,7 @@ static int hdRead_malloc(const char* path, void** buf, int mode, int flag);
 static int hdWrite_main(const char* path, void* buf, int size);
 static void createBackupFile(const char* path);
 
+// Reads the whole host file into buf; returns the byte count (0 = not found / empty).
 int HDRead(const char* path, void* buf)
 {
     int fd;
@@ -57,6 +63,7 @@ int HDRead(const char* path, void* buf)
     return ret;
 }
 
+// Reads len bytes from offset ofs of a host file into buf; returns the byte count.
 int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len)
 {
     int fd;
@@ -79,16 +86,19 @@ int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len)
     return ret;
 }
 
+// Reads a host file into a new game-heap block (group 13); *buf receives it. Returns the size.
 int HDReadMemAlloc(const char* path, void** buf)
 {
     return hdRead_malloc(path, buf, 0, 0);
 }
 
+// Reads a host file into a new debug-heap block (Debug_alloc flag). Returns the size.
 int HDReadDebugAlloc(const char* path, void** buf, int flag)
 {
     return hdRead_malloc(path, buf, 1, flag);
 }
 
+// Shared body: opens, measures, allocates (mode 0 game heap, 1 debug heap), reads and closes.
 static int hdRead_malloc(const char* path, void** buf, int mode, int flag)
 {
     int fd;
@@ -130,6 +140,8 @@ static int hdRead_malloc(const char* path, void** buf, int mode, int flag)
     return ret;
 }
 
+// Writes a host file after checking the lock (refuses when another user holds it and the user
+// declines to overwrite) and saving the old contents as path.bak.
 int HDWrite(const char* path, void* buf, int size)
 {
     if (file_lock_check(path) == 1) {
@@ -140,11 +152,13 @@ int HDWrite(const char* path, void* buf, int size)
     return hdWrite_main(path, buf, size);
 }
 
+// Writes a host file without lock check or backup.
 int HDWrite_only(const char* path, void* buf, int size)
 {
     return hdWrite_main(path, buf, size);
 }
 
+// Shared body: creates (size 0 -> truncates) or rewrites the file. Returns bytes written.
 static int hdWrite_main(const char* path, void* buf, int size)
 {
     int fd;
@@ -172,6 +186,7 @@ static int hdWrite_main(const char* path, void* buf, int size)
     return ret;
 }
 
+// Copies the current contents of path to path.bak (debug heap temporaries).
 static void createBackupFile(const char* path)
 {
     void* data;
@@ -201,6 +216,7 @@ static void createBackupFile(const char* path)
     file_close(fd);
 }
 
+// 1 when the file's .lock exists, names another user and that user declined the overwrite prompt.
 int file_lock_check(const char* path)
 {
     char lock[64];
@@ -224,6 +240,8 @@ int file_lock_check(const char* path)
     return 0;
 }
 
+// Takes the lock for the current user (writes pUser_name into the .lock), asking before taking it
+// over from another user; returns 1 when held.
 int file_lock(const char* path)
 {
     char lock[64];
@@ -254,6 +272,7 @@ int file_lock(const char* path)
     return 1;
 }
 
+// Releases the lock when it is held by the current user (truncates the .lock). Returns 1 on success.
 int file_unlock(const char* path)
 {
     char lock[64];
@@ -276,6 +295,8 @@ int file_unlock(const char* path)
     return 0;
 }
 
+// Turns a room data path into its lock file name: the "room"/"Room"/"ROOM" directory component
+// becomes "lock" and ".lock" is appended (in place). NULL when the path has no room component.
 char* get_lock_file(char* path)
 {
     char* p;
@@ -295,6 +316,8 @@ char* get_lock_file(char* path)
     return path;
 }
 
+// Blocking on-screen YES/NO prompt (mode 0 "UNLOCKED?", 1 "OVER WRITE?") driven by the pad; returns
+// the cursor (0 yes, 1 no).
 int file_lock_msg(int mode, const char* path, const char* user)
 {
     int cur = 1;

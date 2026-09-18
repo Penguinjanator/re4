@@ -1,3 +1,7 @@
+// game/filter07: thermal vision filter (D:/Bio4/Prog/filter07.cpp). While Status_flg[1] 0x04000000
+// (infrared scope) is set, the frame's green channel is copied to a half-size I8 texture, blurred
+// with feedback passes and drawn back through the ThermoTlut palette; the scope noise effect
+// (est 0/0x1E, kind 0xB) is started with it and deleted when it ends.
 #include "filter.h"
 #include "light.h"
 #include "atari.h"
@@ -37,11 +41,13 @@ void* filter07_pLit = 0;
 
 static const f32 level_tbl3[32] = { 0.02f, 0.02f, 0.02f, 0.01f, 0.008f, 0.016f, 0.008f, 0.016f };
 
+// Boot: same as the room init.
 void Filter07Init()
 {
     Filter07RoomInit();
 }
 
+// Room init: buffer/noise/light pointers cleared.
 void Filter07RoomInit()
 {
     filter07_buff = 0;
@@ -49,6 +55,8 @@ void Filter07RoomInit()
     filter07_pLit = 0;
 }
 
+// Per-frame: when the scope is off, deletes the noise effect (once); when on, starts it (once) and
+// queues Filter07Render.
 void Filter07Trans()
 {
     static int use_filter7 = 1;
@@ -75,6 +83,7 @@ void Filter07Trans()
     }
 }
 
+// Copies the frame's green channel at 1/div x 1/div2 as I8 into the filter buffer.
 void Filter07GetEFB(int div, int div2)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -89,6 +98,7 @@ void Filter07GetEFB(int div, int div2)
     GXInvalidateTexAll();
 }
 
+// OT callback: runs the thermal passes without scissor and restores the fog.
 void Filter07Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -106,6 +116,7 @@ void Filter07Render()
     LightMgr.setFog();
 }
 
+// Draws the I8 buffer as a screen quad, through the thermal palette when tlut != 0.
 static void Filter07GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, int div, int tlut)
 {
     {
@@ -135,6 +146,8 @@ static void Filter07GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, 
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// The thermal passes: half copy, nFeedLp07 feedback passes with level_tbl3 offsets, then the final
+// palette draw (debug: Y held shows the raw I8 image).
 void Filter07DrawBuffer()
 {
     Mtx44 proj;

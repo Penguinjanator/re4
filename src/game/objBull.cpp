@@ -1,3 +1,8 @@
+// game/objBull: object id 0x3E, the bulldozer of the island chase (D:/Bio4/Prog/objBull.cpp). Its
+// R0 routines run the scripted route (four barrier breaks, the lift, the truck collision) through
+// the room's 12 motions; parts 2 carries the player, the partner (who drives, Sub_bull_*) and the
+// enemies standing on it (objBullMoveAdjust*), the blade crushes enemies in front (objBullHitCk),
+// and the ck* queries let the room script follow the progress (BullWork::Be_flg bits).
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -91,6 +96,9 @@ Vec Bull_vec;               // movement of this frame (objBullGetAdjust)
 static u8 Bull_parts = 2;   // the parts the riders stand on
 static f32 Bull_dir;        // turn of this frame
 
+// Creates the bulldozer (id 0x3E) at pos/rot: box collision, no rider, 12 motion slots empty, the
+// four barrier break counters (1, 3, 1, 3 hits), Move_point = type, ride adjust mode 1, and its
+// SAT/EAT collision from room archive entry 5.
 cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
 {
     cObj* obj;
@@ -152,12 +160,14 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     return obj;
 }
 
+// Per-frame: releases the moving collision, then the R0 routine (ObjBull_R0_move_tbl).
 void cObjBull::move()
 {
     objBullSatClear(this);
     ObjBull_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: parked at the start with mot[0] on its first frame; collision placed.
 void objBull_R0_Set(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -175,6 +185,9 @@ void objBull_R0_Set(cObjBull* obj)
     objBullSatSet(obj, 0);
 }
 
+// Rno0 == 1: first barrier: sound, the partner starts operating (Sub_bull_operation), the bump
+// motion mot[0] repeated break1st times (Be_flg 2 when broken), riders carried along, enemy hit
+// check in front of the blade.
 void objBull_R0_Break1st(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -225,6 +238,7 @@ void objBull_R0_Break1st(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 2: drives to the second barrier (mot[1]), carrying the riders and hitting enemies.
 void objBull_R0_To2nd(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -258,6 +272,7 @@ void objBull_R0_To2nd(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 3: second barrier (mot[2], break2nd hits, Be_flg 4).
 void objBull_R0_Break2nd(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -308,6 +323,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 4: drives onto the lift (mot[3]).
 static void objBull_R0_ToLift(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -341,6 +357,8 @@ static void objBull_R0_ToLift(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 5: waits on the lift holding the last frame of mot[3] until the room sets Room_flg[0]
+// 0x08000000 (the lift is called).
 void objBull_R0_LiftWait(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -375,6 +393,8 @@ void objBull_R0_LiftWait(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 6: the lift ride (mot[4], Be_flg 0x20 while lifting, 0x100 at the top), then holds until
+// Room_flg[0] 0x00400000.
 void objBull_R0_Lift(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -419,6 +439,7 @@ void objBull_R0_Lift(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 7: drives off the lift to the third barrier (mot[5]).
 void objBull_R0_To3rd(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -453,6 +474,7 @@ void objBull_R0_To3rd(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 8: third barrier (mot[6], break3rd hits, Be_flg 8).
 void objBull_R0_Break3rd(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -503,6 +525,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 9: drives to the fourth barrier (mot[7]).
 void objBull_R0_To4th(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -536,6 +559,7 @@ void objBull_R0_To4th(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 10: fourth barrier (mot[8], break4th hits, Be_flg 0x10).
 void objBull_R0_Break4th(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -586,6 +610,9 @@ void objBull_R0_Break4th(cObjBull* obj)
     w->timer++;
 }
 
+// Rno0 == 11: the truck collision finale: the approach mot[9] (Be_flg 0x40 = truck coming), on
+// setBreakTruck the crash mot[10] with the partner's reaction, Be_flg 1 at its end (goal), then
+// the wreck loop mot[11] (Be_flg 0x80).
 void objBull_R0_Collision(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -644,6 +671,7 @@ void objBull_R0_Collision(cObjBull* obj)
     w->timer++;
 }
 
+// Disables the bulldozer's collision (SAT, EAT, moving SAT) for this frame.
 void objBullSatClear(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
@@ -659,6 +687,8 @@ void objBullSatClear(cObjBull* obj)
     }
 }
 
+// Places the collision (room archive entry 5) 500 above the rider parts; `moving` also places the
+// second SAT set (kind 8) used while driving.
 void objBullSatSet(cObjBull* obj, int moving)
 {
     BullWork* w = &obj->bull;
@@ -699,6 +729,7 @@ void objBullSatSet(cObjBull* obj, int moving)
     }
 }
 
+// Installs the 12 route motions and starts mot[0].
 void cObjBull::setMotion(void** tbl)
 {
     BullWork* w = &bull;
@@ -718,11 +749,13 @@ void cObjBull::setMotion(void** tbl)
     MotionSetCore(this, &pMotion, tbl[0], 0, 0, 0x8001, 0);
 }
 
+// Saves the rider parts matrix of the previous frame (Bull_MatOld) before the motion advances.
 void objBullPushMtx(cObjBull* obj)
 {
     PSMTXCopy(obj->getPartsPtr(Bull_parts)->mat, Bull_MatOld);
 }
 
+// 1 when pos lies inside the rider box of the previous-frame parts (x +-2300, y -500..1000, z +-4400).
 static int objBullGetBullNo(cObjBull* obj, Vec* pos)
 {
     Mtx inv;
@@ -736,6 +769,7 @@ static int objBullGetBullNo(cObjBull* obj, Vec* pos)
     return 0;
 }
 
+// 1 when pos lies inside the rider box of the current parts (y 0..1000).
 int objBullGetBullNo2(cObjBull* obj, Vec* pos)
 {
     Mtx inv;
@@ -749,6 +783,7 @@ int objBullGetBullNo2(cObjBull* obj, Vec* pos)
     return 0;
 }
 
+// Computes this frame's rider displacement (Bull_vec) and turn (Bull_dir) of the rider parts.
 void objBullGetAdjust(cObjBull* obj)
 {
     Vec p1;
@@ -781,6 +816,8 @@ void objBullGetAdjust(cObjBull* obj)
     Bull_dir = Muku2(a0, a1, PI);
 }
 
+// Moves a rider by the displacement/turn (mode 0: re-projects it through the parts matrices),
+// also shifting the extra camera.
 void objBullSetAdjust(cObjBull* obj, cEm* em)
 {
     BullWork* w = &obj->bull;
@@ -814,6 +851,7 @@ void objBullSetAdjust(cObjBull* obj, cEm* em)
     }
 }
 
+// Carries the player (and partner) standing on the rider parts.
 static void objBullMoveAdjustPL(cObjBull* obj)
 {
     if (obj->bull.adjust_func) {
@@ -822,6 +860,7 @@ static void objBullMoveAdjustPL(cObjBull* obj)
     objBullSetAdjust(obj, pPL);
 }
 
+// Carries every enemy standing in the rider box.
 void objBullMoveAdjustEM(cObjBull* obj)
 {
     u32 i;
@@ -843,6 +882,7 @@ void objBullMoveAdjustEM(cObjBull* obj)
     }
 }
 
+// 1 when pos is in the rider box: *partsNo = the rider parts, *out = the local position.
 int cObjBull::ckBullRide(Vec* pos, u8* partsNo, Vec* out)
 {
     Mtx inv;
@@ -862,6 +902,7 @@ int cObjBull::ckBullRide(Vec* pos, u8* partsNo, Vec* out)
     return 1;
 }
 
+// 1 when pos is in the rider box; *out = the position re-projected onto the current parts.
 int cObjBull::ckBullRideAdjust(Vec* pos, Vec* out)
 {
     Mtx inv;
@@ -878,6 +919,8 @@ int cObjBull::ckBullRideAdjust(Vec* pos, Vec* out)
     return 1;
 }
 
+// While the blade (parts 4) moves, runs five player-weapon hit spheres (radius 1000, kind 0x12)
+// along the blade front so the dozer crushes enemies in its way.
 void objBullHitCk(cObjBull* obj)
 {
     Vec v;
@@ -916,6 +959,7 @@ void objBullHitCk(cObjBull* obj)
     PlWepHitCheck2(0, &v, &v, 0x12, 3, 1000.0f);
 }
 
+// 1 after the truck crash finished (Be_flg 1).
 int cObjBull::ckGoal()
 {
     if (bull.Be_flg & 1) {
@@ -924,6 +968,7 @@ int cObjBull::ckGoal()
     return 0;
 }
 
+// Puts the player on the rider parts and marks him riding.
 void cObjBull::setRide()
 {
     BullWork* w = &bull;
@@ -979,6 +1024,7 @@ void cObjBull::setRide()
     }
 }
 
+// 1 when the first barrier is broken (Be_flg 2).
 int cObjBull::ckBreak1st()
 {
     if (bull.Be_flg & 2) {
@@ -987,6 +1033,7 @@ int cObjBull::ckBreak1st()
     return 0;
 }
 
+// 1 when the second barrier is broken (Be_flg 4).
 int cObjBull::ckBreak2nd()
 {
     if (bull.Be_flg & 4) {
@@ -995,6 +1042,7 @@ int cObjBull::ckBreak2nd()
     return 0;
 }
 
+// 1 when the third barrier is broken (Be_flg 8).
 int cObjBull::ckBreak3rd()
 {
     if (bull.Be_flg & 8) {
@@ -1003,6 +1051,7 @@ int cObjBull::ckBreak3rd()
     return 0;
 }
 
+// 1 when the fourth barrier is broken (Be_flg 0x10).
 int cObjBull::ckBreak4th()
 {
     if (bull.Be_flg & 0x10) {
@@ -1011,6 +1060,7 @@ int cObjBull::ckBreak4th()
     return 0;
 }
 
+// 1 while on the lift (Be_flg 0x20).
 int cObjBull::ckLift()
 {
     if (bull.Be_flg & 0x20) {
@@ -1019,6 +1069,7 @@ int cObjBull::ckLift()
     return 0;
 }
 
+// 1 once the truck approach started (Be_flg 0x40).
 int cObjBull::ckTruckGo()
 {
     if (bull.Be_flg & 0x40) {
@@ -1027,6 +1078,7 @@ int cObjBull::ckTruckGo()
     return 0;
 }
 
+// 1 when the lift reached the top (Be_flg 0x100).
 int cObjBull::ckLiftWait()
 {
     if (bull.Be_flg & 0x100) {
@@ -1055,6 +1107,8 @@ static inline void SubBullSeat(cEm* em)
     }
 }
 
+// Partner routine (SetSubBulldozer): driving idle motion (room motion 50) in the seat; a
+// look-back is queued when enemies approach (SubCkNearEm).
 void Sub_bull_drive(cEm* em)
 {
     pG->Status_flg[2] |= 0x00800000;
@@ -1083,6 +1137,7 @@ void Sub_bull_drive(cEm* em)
     }
 }
 
+// Partner routine: the lever operation motion (room motion 51) at each barrier, then back to driving.
 void Sub_bull_operation(cEm* em)
 {
     pG->Status_flg[2] |= 0x00800000;
@@ -1103,6 +1158,7 @@ void Sub_bull_operation(cEm* em)
     }
 }
 
+// Partner routine: looks back at the pursuers (room motion 66), then back to driving.
 void Sub_bull_lookback(cEm* em)
 {
     cModel* parts;
@@ -1133,6 +1189,7 @@ void Sub_bull_lookback(cEm* em)
     }
 }
 
+// Partner routine: points ahead (room motion 67), then back to driving.
 void Sub_bull_look(cEm* em)
 {
     pG->Status_flg[2] |= 0x00800000;
@@ -1153,6 +1210,8 @@ void Sub_bull_look(cEm* em)
     }
 }
 
+// Partner damage routine while driving: damage by the hit's type (grabbed/thrown 9999 = knocked
+// off, else 500), the hit motion (room motion 52/53), then back to driving.
 void Sub_dm_bull(cEm* em)
 {
     int dmg;
@@ -1209,6 +1268,7 @@ void Sub_dm_bull(cEm* em)
     }
 }
 
+// Room call: partner into the driving routine on this dozer.
 void cObjBull::setSubBullDrive()
 {
     if (pSUB) {
@@ -1220,6 +1280,7 @@ void cObjBull::setSubBullDrive()
     }
 }
 
+// Room call: partner points ahead.
 void cObjBull::setSubBullFinger()
 {
     if (pSUB) {
@@ -1230,6 +1291,7 @@ void cObjBull::setSubBullFinger()
     }
 }
 
+// Room call: partner looks back.
 void cObjBull::setSubBullLookBack()
 {
     if (pSUB) {
@@ -1241,16 +1303,19 @@ void cObjBull::setSubBullLookBack()
     }
 }
 
+// Frames spent in the current routine (timer).
 int cObjBull::getMoveFrameToLift()
 {
     return bull.timer;
 }
 
+// Frames spent in the current routine (timer).
 int cObjBull::getMoveFrameRtn()
 {
     return bull.timer;
 }
 
+// Rider adjust mode (0 re-project, 1 displacement) and the room callback.
 void cObjBull::setAdjustMode(u8 mode, void (*func)(cObj*))
 {
     BullWork* w = &bull;
@@ -1259,6 +1324,7 @@ void cObjBull::setAdjustMode(u8 mode, void (*func)(cObj*))
     w->adjust_func = func;
 }
 
+// Room call: the truck hits (Collision routine advances to the crash).
 void cObjBull::setBreakTruck()
 {
     bull.Truck_down = 1;

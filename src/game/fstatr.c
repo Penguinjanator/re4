@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/reent/fstatr.c */
 #include "newlib_stdio.h"
 
+/* Reentrant fstat wrapper storing errno into the reent structure. */
 int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
 {
     int ret;

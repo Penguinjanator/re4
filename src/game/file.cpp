@@ -1,3 +1,6 @@
+// game/file: thin wrapper over the SN ProDG host PC file system (D:/Bio4/Prog/file.cpp): open /
+// close / read / write / seek / exist on the development host, rooted at d:\bio4. Every call is a
+// no-op unless System_flg 0x20000 (host connection detected at boot).
 #include "types.h"
 #include "global.h"
 #include "fileserver.h"
@@ -21,6 +24,7 @@ static inline void usb_connect(int port)
     OSReport("USB port: %d\n", port);
 }
 
+// Boot: initialises the PC file server link and sets its root directory to d:\bio4.
 int InitFile()
 {
     PCinit();
@@ -29,6 +33,7 @@ int InitFile()
     return 1;
 }
 
+// Opens a host file: mode 0/2 create+write (FILE_OPEN_WRITE / RDWR), 1 read. Returns the fd, 0 on failure.
 int file_open(const char* name, int mode)
 {
     int fd;
@@ -53,6 +58,7 @@ int file_open(const char* name, int mode)
     return 0;
 }
 
+// Closes a host fd; 0 ok, -1 failure.
 int file_close(int fd)
 {
     int ret;
@@ -69,6 +75,7 @@ int file_close(int fd)
     return ret;
 }
 
+// Reads size bytes; returns the count.
 int file_read(int fd, void* buf, int size)
 {
     int ret = 0;
@@ -79,6 +86,7 @@ int file_read(int fd, void* buf, int size)
     return ret;
 }
 
+// Writes size bytes; returns the count.
 int file_write(int fd, const void* buf, int size)
 {
     int ret = 0;
@@ -89,6 +97,7 @@ int file_write(int fd, const void* buf, int size)
     return ret;
 }
 
+// Seeks (whence 0 set, 1 cur, 2 end); returns the new position, -1 without host.
 int file_seek(int fd, int offset, int whence)
 {
     int ret = -1;
@@ -99,6 +108,7 @@ int file_seek(int fd, int offset, int whence)
     return ret;
 }
 
+// 1 when the host file can be opened for reading.
 int file_exist(const char* name)
 {
     int fd;
@@ -114,6 +124,7 @@ int file_exist(const char* name)
     return 1;
 }
 
+// Changes the host root directory ("SETROOT:dir").
 int file_path(const char* dir)
 {
     char buf[64];

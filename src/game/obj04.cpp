@@ -1,3 +1,7 @@
+// game/obj04: object id 4, the effect model Efm04 (D:/Bio4/Prog/obj04.cpp): a model spawned by an
+// effect record (esp_efm.cpp EfmSetObj04) that flies with speed/acceleration/damping, spins,
+// scales and fades over its life, follows its parent parts until rotFrame, and bounces off the
+// scenario and floor (flags bit 1) until it comes to rest.
 #include "atari.h"
 #include "obj.h"
 #include "esp.h"
@@ -16,6 +20,9 @@ public:
     virtual void move();
 };
 
+// Per-frame Efm04 update: dies with its parent (pointer + serial), detaches from the parent at
+// rotFrame, position/speed/scale/rotation/colour envelopes (fadeStart / fadeLen / life like the
+// esp sprites), floor + scenario bounces with bounceXZ/bounceY and stops below speed 15.
 void cObj04::move()
 {
     Efm04Work* w = &efm04;

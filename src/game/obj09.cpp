@@ -1,3 +1,8 @@
+// game/obj09: object id 9, the rigid-body effect model Efm09 (D:/Bio4/Prog/obj09.cpp): crates,
+// barrels and debris spawned by effect records (esp_efm.cpp EfmSetObj09) as boxes with mass and
+// moments of inertia. Each frame forces (gravity, corner spring/damper contacts with the scenario,
+// body-body contacts, player push, water/sand drag) are accumulated with AddForce and integrated
+// (Calc: velocity, RK2 angular velocity, orientation re-orthonormalised).
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -73,6 +78,9 @@ void dwdt(Vec* w, Vec* t, Vec* moment, Vec* out)
     out->z = (t->z + (moment->x - moment->y) * w->x * w->y) / moment->z;
 }
 
+// Integrates linear velocity (force/mass) and angular velocity (second-order Runge-Kutta on dwdt,
+// capped at 16 rad/s) over dt, converts the angular velocity to world space (x74) and clears the
+// accumulators.
 // Integrate the linear and angular velocities over `dt` and clear the accumulators.
 static void CalcVel(cObj* obj, f32 dt)
 {
@@ -434,6 +442,7 @@ EXIT:
     return det;
 }
 
+// Solves the LU system for x.
 static void solve(f32 a[][3], f32* b, int* ip, f32* x)
 {
     int i, j, ii;
@@ -559,6 +568,10 @@ static void calcPointHit(cObj* obj, Efm09Work* w, Vec* old, Vec* lp, Vec* wp, Ve
     AddForce(obj, hit, &d);
 }
 
+// Per-frame Efm09: gravity, corner contacts with the scenario (SatMgr sweeps of the 8 corners),
+// contacts with the other rigid bodies, water (buoyancy/drag + ripples) and sand (drag + sand
+// deformation), a push from the player when he walks into it, the Calc step (dt from the frame
+// rate), then writes pos/ang from basePos/mat; destroyed when it falls out of the room.
 void cObj09::move()
 {
     static f32 water_regist = -0.5f;

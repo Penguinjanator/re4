@@ -1,3 +1,7 @@
+// game/light_area: room light areas (D:/Bio4/Prog/light_area.cpp). The room's "SAR" block lists
+// areas with a light number per character class (player / enemies / partner) and a power scale;
+// every frame each character's EmLightArea is told which area light applies and eases its light
+// scale towards the area power (or back to 1 outside). The player's weapon and rocket copy his.
 #include "atari.h"
 #include "em.h"
 #include "area.h"
@@ -47,11 +51,13 @@ struct LightAreaLauncher {
 #define WEP_OBJ() (((LightAreaWep*) em->Wep)->pObj)
 #define WEP_ROCKET(w) (((LightAreaLauncher*) (w))->rocket)
 
+// Sets a light-area flag bit (1 = active, 2 = inside an area).
 static inline void LitAreaSet(EmLightArea* la, u32 bit)
 {
     la->flags |= bit;
 }
 
+// Clears a light-area flag bit.
 static inline void LitAreaReset(EmLightArea* la, u32 bit)
 {
     la->flags &= ~bit;
@@ -65,17 +71,21 @@ static inline void LitAreaScaleInit(EmLightArea* la)
     }
 }
 
+// Room init: no light area data.
 void LightAreaInit()
 {
     g_pLightAreaHed = 0;
 }
 
+// Binds the room's SAR block.
 int LightAreaDataLoad(LightAreaHed* p)
 {
     g_pLightAreaHed = p;
     return 1;
 }
 
+// Per-frame: updates the light area state of every alive character with litArea active (type 0
+// player, 2 partner, 1 other enemies).
 void LightAreaUpdate()
 {
     u32 i;
@@ -107,6 +117,10 @@ void LightAreaUpdate()
     }
 }
 
+// Finds the first area containing the character (pos + 100 y) with a light for its type, sets
+// litArea.lightNo and eases litArea.scale towards power/100 (or 1 when outside, clearing flag 2
+// within 0.05); for the player also mirrors the state onto the held weapon object and, for the
+// rocket launcher, its rocket.
 void LightAreaUpdateSub(cEm* em, int type)
 {
     static f32 lit_pow_mul = 0.3f;

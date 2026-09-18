@@ -7,6 +7,7 @@
 /* Threshhold for punting to the byte copier.  */
 #define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
+/* Compares two blocks (word-wise when both are aligned); <0/0/>0 like strcmp. */
 int memcmp(const void *m1, const void *m2, size_t n)
 {
     unsigned char *s1 = (unsigned char *)m1;

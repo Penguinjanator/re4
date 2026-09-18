@@ -1,9 +1,13 @@
+// game/lightPath: light brightness paths (D:/Bio4/Prog/lightPath.cpp). The core archive's light
+// path block (cLightPathHeader: offsets to byte strings) drives light type 5: each byte is a
+// brightness 0..200, 0xFF ends the path; cLightPath walks one string, looping.
 #include "lightPath.h"
 #include "db_log.h"
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
+// Total byte size of the path block (header, offset table and the last string up to its 0xFF).
 u32 cLightPathHeader::getSize()
 {
     u8* p;
@@ -19,6 +23,7 @@ u32 cLightPathHeader::getSize()
     return (u32) p - (u32) this;
 }
 
+// Path string `no` (0 with an error log when out of range).
 cLightPathData* cLightPathHeader::getPathData(u32 no)
 {
     if (no >= num) {
@@ -28,6 +33,7 @@ cLightPathData* cLightPathHeader::getPathData(u32 no)
     return (cLightPathData*) ((u8*) this + *(u32*) (no * 4 + (u32) this + 4));
 }
 
+// Length of the string including the 0xFF terminator.
 u32 cLightPathData::getSize()
 {
     u8* p = data;
@@ -40,6 +46,7 @@ u32 cLightPathData::getSize()
     return n;
 }
 
+// Starts walking `data`; `no` is the flag byte (bit 1 = inverted brightness 200 - v).
 int cLightPath::setPath(cLightPathData* data, u8 no)
 {
     if (!VALID_PTR(data)) { pLog->err(0, 0, "setPath() INVALID PTR %08X", data); return 0; }
@@ -47,6 +54,8 @@ int cLightPath::setPath(cLightPathData* data, u8 no)
     Flag = no;
     return 1;
 }
+// Returns the current brightness (0..200, inverted with Flag bit 1) and advances; wraps to the
+// start at 0xFF.
 int cLightPath::movePath()
 {
     u8 v;

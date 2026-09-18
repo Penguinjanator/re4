@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdio/fflush.c */
 #include "newlib_stdio.h"
 
+/* Writes out a write stream's buffer (all streams when fp is NULL); the game's streams are unbuffered (makebuf.c). */
 int fflush(register FILE *fp)
 {
     register unsigned char *p;

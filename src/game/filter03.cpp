@@ -1,3 +1,7 @@
+// game/filter03: alpha glow filter (D:/Bio4/Prog/filter03.cpp). The frame's alpha channel (written by
+// glowing surfaces) is copied to quarter-size textures, blurred by feedback passes and blended over
+// the screen in the requested colour. Rooms/enemies request it with Filter03SetParam (priority
+// ordered, 0xFF locks it); flag sets Status_flg[1] bit 0x80 while active.
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -40,11 +44,13 @@ void Filter03GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f
 static void Filter03DrawBuffer();
 }
 
+// Boot: forgets the buffer.
 void Filter03Init()
 {
     filter03_buff = 0;
 }
 
+// Room init: glow off, default level 1 / 2 passes / orange colour.
 void Filter03RoomInit()
 {
     filter03_buff = 0;
@@ -56,6 +62,8 @@ void Filter03RoomInit()
     flt03.b = 0x40;
 }
 
+// Requests the glow this frame: passes = level + 2 (min 0), colour r,g,b; a request only replaces a
+// pending one of lower priority (pri 0xFF = locked); flag != 0 raises Status_flg[1] 0x80.
 void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag)
 {
     if (flt03.on == 1) {
@@ -81,6 +89,7 @@ void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag)
     }
 }
 
+// Queues Filter03Render when a request is pending (and clears the request).
 void Filter03Trans()
 {
     static int use_filter3 = 1;
@@ -97,6 +106,7 @@ void Filter03Trans()
     }
 }
 
+// Copies the frame alpha at 1/div x 1/div2 into the filter buffer.
 void Filter03GetEFB(int div, int div2)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -111,6 +121,8 @@ void Filter03GetEFB(int div, int div2)
     GXInvalidateTexAll();
 }
 
+// OT callback: runs the glow passes without scissor and restores the fog; clears Status_flg[1] 0x80
+// unless flag was set.
 void Filter03Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -131,6 +143,7 @@ void Filter03Render()
     }
 }
 
+// Draws the buffer as a screen quad (scale s, offset u,v, colour r,g,b,a).
 void Filter03GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f32 s, int div, int fmt)
 {
     GXTexObj tex;
@@ -153,6 +166,8 @@ void Filter03GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// The glow passes: 1/2, 1/4 copies, then `loop` feedback passes with the level_tbl3 offsets, and the
+// final additive draw in flt03 colour.
 static void Filter03DrawBuffer()
 {
     Mtx44 proj;

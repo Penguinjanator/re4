@@ -1,3 +1,8 @@
+// game/filter01: depth-of-field filter (D:/Bio4/Prog/filter01.cpp). Blurs the pixels in front of
+// (Mode 0 near) or behind (Mode 1 far) a screen-Z focus plane by drawing a half-size copy of the
+// frame back shifted by level_tbl1[level] pixels with the Z test against the focus depth. Driven by
+// the room light environment (FocusLevel/FocusZ/FocusMode), the event focus curves
+// (Filter01SetParam_CamZ) and rooms (Filter01SetParam).
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -37,6 +42,7 @@ void Filter01SetParam(int mode, int z, u8 type, f32 level);
 void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz);
 }
 
+// Boot: focus off in the light environment and both near/far works.
 void Filter01Init()
 {
     filter01_buff = 0;
@@ -47,6 +53,7 @@ void Filter01Init()
     g_LeFar.Mode = 1;
 }
 
+// Room init: same as Filter01Init.
 void Filter01RoomInit()
 {
     filter01_buff = 0;
@@ -57,6 +64,8 @@ void Filter01RoomInit()
     g_LeFar.Mode = 1;
 }
 
+// Queues a render for the light environment's focus (when no explicit near/far request is pending)
+// and for each of the near/far requests set this frame, then clears the requests.
 void Filter01Trans()
 {
     if (Render_checkBlurPermission()) {
@@ -93,6 +102,9 @@ static inline void Filter01CopyEFB(u8* vf)
     GXInvalidateTexAll();
 }
 
+// OT callback: copies the frame, then draws it back 1..4 times shifted diagonally by the level's
+// pixel offset (type 0: number of taps from the level; type 1: four taps scaled by level*0.33 plus
+// an extra fade pass for levels > 1), each pass Z-tested at the focus depth (+100 per pass).
 void Filter01Render(LensEffectWork* w)
 {
     GXTexObj tex;
@@ -303,6 +315,7 @@ void Filter01Render(LensEffectWork* w)
     LightMgr.setFog();
 }
 
+// Sets a focus from a normalised screen Z (0..1).
 // Never called: the original linker dropped the body but kept its statics and constant pool.
 static void Filter01SetParam_ScrZ(int mode, u8 type, f32 level, f32 z)
 {
@@ -313,6 +326,8 @@ static void Filter01SetParam_ScrZ(int mode, u8 type, f32 level, f32 z)
     Filter01SetParam(mode, (u32) (z * 65535.0f), type, level);
 }
 
+// Sets a focus from a camera-space distance (units): converts through the projection to the 16-bit
+// screen Z. Used by the event focus curves.
 void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz)
 {
     static f32 Zscale = 1.0f;
@@ -329,6 +344,8 @@ void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz)
     Filter01SetParam(mode, (u32) (((1.0f / -camz) * zv + Zoffset) * 65535.0f), type, level);
 }
 
+// Requests this frame's near (mode 0) or far (mode 1) blur at screen depth z (0..65535) with the
+// given type and level.
 void Filter01SetParam(int mode, int z, u8 type, f32 level)
 {
     if (mode == 0) {

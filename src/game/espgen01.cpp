@@ -1,3 +1,9 @@
+// game/espgen01: effect controller 01, lens flare (D:/Bio4/Prog/espgen01.cpp). Projects a light
+// position (a parts of a model or a fixed point) to the screen and, while it is in front of the
+// camera, respawns the est table's sprites every frame along the line to the screen centre,
+// with alpha from screen distance, view direction cone, camera distance and a Z-buffer
+// occlusion sample (HideCheck, run after the render). Entry points: Espgen01_Move,
+// Espgen01_Trans, Espgen01_SetFreeWork.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -47,17 +53,20 @@ f32 GetDirAlpha(EspgenWork* w, Vec* dir);
 void HideCheck(cEsp* esp);
 }
 
+// Step 0 of Espgen01MoveTbl: first frame, then step 1.
 void espgen01_Move00(EspgenWork* w)
 {
     SetEsp(w);
     w->step = 1;
 }
 
+// Step 1 of Espgen01MoveTbl: steady state.
 void espgen01_Move01(EspgenWork* w)
 {
     SetEsp(w);
 }
 
+// EspgenMoveTbl entry for controller type 1: dispatches on w->step.
 void Espgen01_Move(EspgenWork* w)
 {
     static void (*Espgen01MoveTbl[])(EspgenWork*) = {espgen01_Move00, espgen01_Move01};
@@ -65,6 +74,8 @@ void Espgen01_Move(EspgenWork* w)
     Espgen01MoveTbl[w->step](w);
 }
 
+// EspgenTransTbl entry: queues HideCheck to run after the scene render (needs the final Z buffer)
+// for a live controller.
 void Espgen01_Trans(EspgenWork* w)
 {
     if ((w->flag & 1) && !(w->flag & 2)) {
@@ -72,6 +83,11 @@ void Espgen01_Trans(EspgenWork* w)
     }
 }
 
+// Per-frame flare: computes the light's world position (parts matrix * offset) and its screen
+// position; when it is in front of the camera, alpha = 1 - (dist to screen centre / (height *
+// sizeRate*0.7))^2, times GetDirAlpha (flg bit 0), GetDistAlpha and hide_alpha (flg bit 1), and if
+// > 0.01 spawns every est table record (one-frame sprites, screen-space parts 0xF8) spaced along
+// the centre line by their record x offset, scaled by alpha*scaleRate.
 void SetEsp(EspgenWork* w)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
@@ -185,11 +201,14 @@ void SetEsp(EspgenWork* w)
     v.z = 0.0f;
 }
 
+// Number of records in the flare's est table.
 u32 GetEstTblnum(EspSeqData* head)
 {
     return head->num;
 }
 
+// Spawns record `no` of the est table with an identity matrix; returns the new esp (the dummy esp
+// when the pool is full).
 cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
@@ -203,6 +222,7 @@ cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no)
     return esp;
 }
 
+// Alpha factor from the camera distance: 1 at the light fading to 0 at `dist` (1 when dist == 0).
 f32 GetDistAlpha(EspgenWork* w)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
@@ -227,6 +247,8 @@ f32 GetDistAlpha(EspgenWork* w)
     return 1.0f;
 }
 
+// Alpha factor from the light direction: 1 when the camera is on the light axis, 0 outside the cone
+// of half-angle dir_ang (radians), linear in the cosine in between.
 f32 GetDirAlpha(EspgenWork* w, Vec* dir)
 {
     Espgen01Work* p = (Espgen01Work*) w->work;
@@ -254,6 +276,10 @@ f32 GetDirAlpha(EspgenWork* w, Vec* dir)
     return a;
 }
 
+// After-render Z test for the flare: peeks the Z buffer at 12 points on a circle of radius hide_r
+// around the screen position (off-screen points count as hidden; border 56 px in the widescreen
+// System_flg 0x800 mode) and eases hide_alpha towards 1 - hidden/10 (0 when all 12 are hidden).
+// A camera change forces hide_alpha to 0 for 2 frames.
 void HideCheck(cEsp* esp)
 {
     static f32 Zscale = 1.0f;
@@ -328,6 +354,9 @@ void HideCheck(cEsp* esp)
     }
 }
 
+// Fills the flare from the record: offset = Pos, est owner/id = Work8[0..1], parts = Parts_no;
+// Vec2 = (rot x deg, rot y deg, cone fov deg) enables the direction test; Vec0 = (size %, scale %,
+// fade distance); Vec1.x != 0 is the hide-check radius in pixels.
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {

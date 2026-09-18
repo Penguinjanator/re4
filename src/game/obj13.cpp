@@ -1,3 +1,9 @@
+// game/obj13: object id 0x13, the ladder (D:/Bio4/Prog/obj13.cpp). LadderWork status: 0 standing
+// (climbable), 1 knocked down, 2/3 falling, 4 in motion. The player climbs it (action button 8 ->
+// plobjLadderClimb, motions mot[0..3]), kicks it down (button 0xA -> plobjLadderDown, mot[5..10])
+// and puts it back up (button 0xB -> plobjLadderReset, mot[4]); the partner climbs with
+// subobjLadderClimb (mot[16..19]). R1 routines: 0 Set (standing), 1 Fall (with damage areas), 2
+// Down, 3 Reset. A paired ladder shares the collision flags; breakWindow smashes windows at the top.
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -86,6 +92,8 @@ void (*ObjLadder_R1_move_tbl[4])(cObjLadder*) = {
     objLadder_R1_Set, objLadder_R1_Fall, objLadder_R1_Down, objLadder_R1_Reset,
 };
 
+// Creates ladder etc `no` (skipped when its etc flag bit 0 says it is gone): model, box collision,
+// 6 rungs, standing at pos/rot with the ladder parts tilted -110 degrees.
 cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no)
 {
     cObj* obj;
@@ -144,6 +152,8 @@ cObj* SetLadder(void* bin, void* tpl, Vec* pos, Vec* rot, int no)
     return obj;
 }
 
+// Per-frame: timers, collision off while hidden (flags bit 1), the R1 routine, enemy-attack check
+// and collision update.
 void cObjLadder::move()
 {
     LadderWork* w = &ladder;
@@ -166,6 +176,8 @@ void cObjLadder::move()
     }
 }
 
+// Rno1 == 0: standing: resets pose to basePos/baseRotY, collision on (also the pair), offers the
+// climb and kick-down action buttons.
 void objLadder_R1_Set(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -190,6 +202,8 @@ void objLadder_R1_Set(cObjLadder* obj)
     }
 }
 
+// Rno1 == 1: falling: after downTimer plays the fall motion (crash sound on motEvent bit 0), on
+// its end status 1 and two damage areas (kind 3) along the fallen ladder, then Rno1 = 2.
 void objLadder_R1_Fall(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -239,6 +253,7 @@ void objLadder_R1_Fall(cObjLadder* obj)
     }
 }
 
+// Rno1 == 2: lying down: offers the reset action button; collision off.
 void objLadder_R1_Down(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -253,6 +268,8 @@ void objLadder_R1_Down(cObjLadder* obj)
     }
 }
 
+// Rno1 == 3: being put up: plays the reset motion (sound + breakWindow on motEvent bit 0), then
+// standing (Rno1 = 0).
 void objLadder_R1_Reset(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -285,16 +302,19 @@ void objLadder_R1_Reset(cObjLadder* obj)
     }
 }
 
+// LadderWork status (0 standing, 1 down, 2/3 falling, 4 moving).
 int cObjLadder::getStatus()
 {
     return ladder.status;
 }
 
+// Ladder type (1 = the top is 1000 lower: hatch variant).
 int cObjLadder::getType()
 {
     return type;
 }
 
+// 1 when the ladder can be climbed now (standing, not hidden, climbTimer expired).
 int cObjLadder::ckClimb()
 {
     LadderWork* w = &ladder;
@@ -309,22 +329,26 @@ int cObjLadder::ckClimb()
     return off == 0;
 }
 
+// Blocks further climbs for 90 frames (someone is on it).
 void cObjLadder::setClimb()
 {
     ladder.climbTimer = 90;
 }
 
+// Number of rungs (climb motion loops).
 int cObjLadder::getLadderNum()
 {
     return ladder.ladderNum;
 }
 
+// Sets the rung count and type.
 void cObjLadder::setLadderInfo(int num, u8 t)
 {
     ladder.ladderNum = num;
     type = t;
 }
 
+// Puts the ladder in the standing routine.
 void cObjLadder::setStand()
 {
     ladder.status = 0;
@@ -334,6 +358,7 @@ void cObjLadder::setStand()
     r_no_3 = 0;
 }
 
+// Puts the ladder down instantly (room load state).
 void cObjLadder::setDowned()
 {
     LadderWork* w = &ladder;
@@ -354,6 +379,7 @@ void cObjLadder::setDowned()
     r_no_3 = 0;
 }
 
+// Starts the kick-down fall with motion `mot` after 17 frames.
 void cObjLadder::setDown(void* mot, int a)
 {
     LadderWork* w = &ladder;
@@ -371,6 +397,8 @@ void cObjLadder::setDown(void* mot, int a)
     r_no_3 = 0;
 }
 
+// Starts the fall from the current tilt: picks the fall motion frame matching the parts angle
+// (enemy kicked it while the player climbs).
 void cObjLadder::setDown2()
 {
     LadderWork* w = &ladder;
@@ -418,6 +446,7 @@ void cObjLadder::setDown2()
     r_no_3 = 0;
 }
 
+// 1 when the ladder is down and the reset reserve timer expired.
 int cObjLadder::ckReset()
 {
     LadderWork* w = &ladder;
@@ -428,6 +457,7 @@ int cObjLadder::ckReset()
     return w->resetReserve == 0;
 }
 
+// Starts the reset motion (t 0/1 = the two variants mot[6]/mot[8]).
 void cObjLadder::setReset(int t)
 {
     LadderWork* w = &ladder;
@@ -448,6 +478,7 @@ void cObjLadder::setReset(int t)
     r_no_3 = 0;
 }
 
+// Remembers the hidden state before an event (flags bit 3).
 void cObjLadder::setTransOld()
 {
     if (ladder.flags & 2) {
@@ -457,6 +488,7 @@ void cObjLadder::setTransOld()
     }
 }
 
+// Restores the hidden state after an event.
 void cObjLadder::getTransOld()
 {
     if (ladder.flags & 8) {
@@ -466,23 +498,27 @@ void cObjLadder::getTransOld()
     }
 }
 
+// Hides the ladder (flags bit 1, not drawn, no collision).
 void cObjLadder::setOff()
 {
     ladder.flags |= 2;
     be_flag &= ~2;
 }
 
+// Shows the ladder again.
 void cObjLadder::setOn()
 {
     ladder.flags &= ~2;
     be_flag |= 2;
 }
 
+// Blocks the reset for 60 frames.
 void cObjLadder::setResetReserve()
 {
     ladder.resetReserve = 60;
 }
 
+// Collision flag 0x200 (blocking) on the ladder and its pair only while it is not standing.
 void objLadderSatSet(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -500,6 +536,8 @@ void objLadderSatSet(cObjLadder* obj)
     }
 }
 
+// Offers the climb action button (8) when the player stands in front of the standing ladder
+// (within the local box -500..1000 z, +-800 x, +-500 y) facing it.
 void objLadderClimbActEvtCk(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -543,12 +581,16 @@ void objLadderClimbActEvtCk(cObjLadder* obj)
     ActBtn.set(8, 5, (int) objLadderActClimb, (int) obj, 0, 1, 0, 0);
 }
 
+// Action button 8: blocks the ladder and puts the player into plobjLadderClimb.
 void objLadderActClimb(cObjLadder* obj)
 {
     obj->setClimb();
     SetPlDamage((int) obj, plobjLadderClimb);
 }
 
+// Player climb routine (via SetPlDamage): Rno2 0 snaps the player in front of the ladder and
+// starts the mount motion (camera cut w->camera), 1 loops the climb motion ladderNum times with
+// step sounds, 2 the dismount, then returns control (camera Comeback).
 void plobjLadderClimb(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -671,6 +713,7 @@ void plobjLadderClimb(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Partner: 1 (and starts subobjLadderClimb) when a climbable ladder is in front of the partner.
 int SubLadderClimbCk(cEm* em)
 {
     const f32 distLim = 1000000.0f;
@@ -710,6 +753,7 @@ int SubLadderClimbCk(cEm* em)
     return 0;
 }
 
+// Partner: 1 when a standing ladder is within reach (no action started).
 int SubLadderClimbCk2(cEm* em)
 {
     u32 i;
@@ -734,6 +778,7 @@ int SubLadderClimbCk2(cEm* em)
     return 0;
 }
 
+// Partner climb routine: mount (mot[16]), loop (mot[17]), dismount (mot[18/19]).
 void subobjLadderClimb(cEm* pl)
 {
     cEm* em = pSUB;
@@ -864,11 +909,13 @@ void subobjLadderClimb(cEm* pl)
     }
 }
 
+// Distance between two points.
 static inline f32 LadderCamDist(Vec* a, Vec* b)
 {
     return SQRTF((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z));
 }
 
+// Extra camera during the climb: follows the climber from behind/below.
 void objLadderClimbCamMove(cEm* em)
 {
     static Camera objLadderClimbCam = { 0 };
@@ -897,6 +944,8 @@ void objLadderClimbCamMove(cEm* em)
     CamCtrl.m_pExtraCamera = (s32) &objLadderClimbCam;
 }
 
+// Offers the kick-down action button (0xA) when the player is at the top of the standing ladder
+// (hatch type: flag 0x20 variant).
 void objLadderDownActEvtCk(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -951,6 +1000,7 @@ void objLadderDownActEvtCk(cObjLadder* obj)
     }
 }
 
+// Action button 0xA: puts the player into plobjLadderDown.
 void objLadderActDown(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -961,6 +1011,8 @@ void objLadderActDown(cObjLadder* obj)
     }
 }
 
+// Player kick-down routine: kick motion (mot[5] or the hatch variant mot[9]) and setDown of the
+// ladder, then back to control.
 void plobjLadderDown(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -1017,6 +1069,7 @@ void plobjLadderDown(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Extra camera for the kick-down.
 void objLadderDownCamMove(cEm* em)
 {
     static Camera objLadderDownCam = { 0 };
@@ -1043,6 +1096,7 @@ void objLadderDownCamMove(cEm* em)
     CamCtrl.m_pExtraCamera = (s32) &objLadderDownCam;
 }
 
+// Offers the reset action button (0xB) when the player stands at the foot of the fallen ladder.
 void objLadderResetActEvtCk(cObjLadder* obj)
 {
     LadderWork* w = &obj->ladder;
@@ -1065,12 +1119,14 @@ void objLadderResetActEvtCk(cObjLadder* obj)
     ActBtn.set(0xB, 5, (int) objLadderActReset, (int) obj, 0, 1, 0, 0);
 }
 
+// Action button 0xB: puts the player into plobjLadderReset.
 void objLadderActReset(cObjLadder* obj)
 {
     SetPlDamage((int) obj, plobjLadderReset);
     obj->setResetReserve();
 }
 
+// Player reset routine: the lift motion (mot[4]) and setReset of the ladder.
 void plobjLadderReset(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -1118,6 +1174,7 @@ void plobjLadderReset(cPlayer* pl)
     em->x378 = em->x37C;
 }
 
+// Extra camera for the reset.
 void objLadderResetCamMove(cEm* em)
 {
     static Camera objLadderResetCam = { 0 };
@@ -1144,6 +1201,7 @@ void objLadderResetCamMove(cEm* em)
     CamCtrl.m_pExtraCamera = (s32) &objLadderResetCam;
 }
 
+// Installs the 20 motion pointers (player/partner/ladder motions) from the room's table.
 void cObjLadder::setMotion(void** tbl)
 {
     LadderWork* w = &ladder;
@@ -1200,6 +1258,7 @@ int LadderNearCk(Vec* pos)
     return 1;
 }
 
+// Event start (0): hides every ladder remembering its state; end (1): restores it.
 void LadderEventTrans(int mode)
 {
     u32 i;
@@ -1249,6 +1308,7 @@ void cObjLadder::breakWindow()
     }
 }
 
+// Camera cut used while climbing (-1 = none).
 void cObjLadder::setCamera(int no)
 {
     ladder.camera = no;

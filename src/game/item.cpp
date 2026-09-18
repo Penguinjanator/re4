@@ -68,6 +68,7 @@ struct ItemSet {
 #define ATTR(p) ((p)->bullet >> 13)
 #define BULLET(p) ((p)->bullet & 0x1FFF)
 
+// Sets the loaded bullet count (low 13 bits of ItemWork::bullet), keeping the attribute bits.
 static inline void setBullet(ItemWork* p, u16 n)
 {
     p->bullet = (p->bullet & 0xE000) | (n & 0x1FFF);
@@ -76,6 +77,7 @@ static inline void setBullet(ItemWork* p, u16 n)
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 
+// 1 when the slot is in use and belongs to inventory set `type` (0 Leon, 1 Ashley/Ada).
 // slot in use and of inventory type `type`
 // (int parameter + cast: cItemMgr::num(int, u8) zero-extends its u8 argument before the loop in the
 // original build, which ours only does when the compare is written against a cast int)
@@ -87,6 +89,7 @@ static inline int itemUse(ItemWork* p, int type)
     return 0;
 }
 
+// 1 when the slot is free.
 static inline int itemEmpty(ItemWork* p)
 {
     int empty = !(p->flags & 1);
@@ -194,6 +197,8 @@ const CombInfo combination_info[] = {
 
 cItemMgr ItemMgr;
 
+// Heals the target selected by m_to_whom (0 = player, else the partner) by n (1/10 life units,
+// clamped to the max); 0 when the target was already full.
 int healing(u16 n)
 {
     if (ItemMgr.m_to_whom == 0) {
@@ -216,11 +221,14 @@ int healing(u16 n)
     return 0;
 }
 
+// Number of max-life upgrades already taken: (max - base) mapped onto `levels` steps.
 int lifeLevel(int levels, s16 max, int base)
 {
     return (int) ((f32) (levels * (max - base)) / (f32) base + 0.5f);
 }
 
+// Merchant display: firepower of weapon `id` at tune level `level` (1-based) relative to the
+// handgun's base (0x36 Mine Thrower: fixed 2/4/6); 0 for non-weapons.
 f32 getPowerRatio(u16 id, s8 level)
 {
     ItemInfo info;
@@ -249,6 +257,7 @@ f32 getPowerRatio(u16 id, s8 level)
     return WeaponLevelTbl[WeaponId2WeaponNo(id)][level - 1] / WeaponLevelTbl[2][0];
 }
 
+// Merchant display: firing speed of the weapon at the level in seconds (shot frames / 30).
 f32 getSpeedRatio(u16 id, s8 level)
 {
     ItemInfo info;
@@ -259,6 +268,7 @@ f32 getSpeedRatio(u16 id, s8 level)
     return PlShotFrameTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
 }
 
+// Merchant display: reload time of the weapon at the level in seconds.
 f32 getReloadRatio(u16 id, s8 level)
 {
     ItemInfo info;
@@ -269,6 +279,7 @@ f32 getReloadRatio(u16 id, s8 level)
     return PlReloadSpeedTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
 }
 
+// Merchant display: magazine capacity of the weapon at the level.
 f32 getBulletRatio(u16 id, s8 level)
 {
     ItemInfo info;
@@ -279,6 +290,7 @@ f32 getBulletRatio(u16 id, s8 level)
     return (f32) WeaponId2ChargeNum(id, level);
 }
 
+// Empties every slot and the availability flags (new game).
 void cItemMgr::clear()
 {
     ItemWork* p = pItems;
@@ -291,6 +303,8 @@ void cItemMgr::clear()
     used_id = 0xFFFF;
 }
 
+// New game inventory: the four key items/documents, handgun (0x23) at a fixed case position plus
+// the starting supplies (no != 0: debug 100 of each). Returns the case type 0.
 int cItemMgr::set_game(int no)
 {
     dump(0x7C);
@@ -393,6 +407,7 @@ int cItemMgr::set_game(int no)
     LV_SPEED_SET(p, sp)
 #define CHARGE(p) setBullet(p, WeaponId2ChargeNum((p)->id, LV_EX(p) + 1))
 
+// Separate Ways start set (no == 2): Punisher, TMP, Rifle with tuned levels, TMP stock, ammo, sprays.
 int cItemMgr::set_ada(int no)
 {
     if (no == 2) {
@@ -424,6 +439,8 @@ int cItemMgr::set_ada(int no)
     return 0;
 }
 
+// Start set by player type: 1 Ashley (nothing here), 2 Ada (Assignment Ada: Punisher/TMP/Rifle),
+// 3 Krauser (bow + grenades), 4 HUNK (TMP + rounds), 5 Wesker (handgun, Killer7, Rifle, grenades).
 int cItemMgr::set_char(int no)
 {
     ItemWork* p;   // one function-scope pointer for every case (case 3 gets r31)
@@ -533,6 +550,7 @@ int cItemMgr::set_char(int no)
     return 0;
 }
 
+// Debug / demo inventories for stage 1 rooms (weapons with levels, ammo, pesetas); returns the case type.
 int cItemMgr::set_stage1(int no)
 {
     int ret = 0;
@@ -594,6 +612,7 @@ int cItemMgr::set_stage1(int no)
     return ret;
 }
 
+// Debug / demo inventories for stage 2 rooms; returns the case type.
 int cItemMgr::set_stage2(int no)
 {
     int ret = 0;
@@ -706,6 +725,7 @@ int cItemMgr::set_stage2(int no)
     return ret;
 }
 
+// Debug / demo inventories for stage 3 rooms; returns the case type.
 int cItemMgr::set_stage3(int no)
 {
     int ret = 0;
@@ -791,6 +811,7 @@ int cItemMgr::set_stage3(int no)
     return ret;
 }
 
+// Shooting range loadouts (0: Red9 + Rifle, 1: handgun + shotgun).
 int cItemMgr::set_range(int no)
 {
     int ret = 0;
@@ -846,6 +867,7 @@ int cItemMgr::set_range(int no)
     return ret;
 }
 
+// Debug menu inventories (all weapons, all treasures, all keys, ...).
 int cItemMgr::set_debug(int no)
 {
     int ret = 0;
@@ -1038,6 +1060,8 @@ int cItemMgr::set_debug(int no)
     return ret;
 }
 
+// Debug inventory preset dispatcher (Debug_flg[3] set-ups): maps the preset number onto set_game /
+// set_stage1..3 / set_range / set_debug; returns the case type used.
 int cItemMgr::setUp(int no)
 {
     int ret = 0;
@@ -1126,6 +1150,8 @@ static inline u32 chkFlag(u32& f, u32 b)
     return f & b;
 }
 
+// Game start: clears the inventory and gives the start set (set_game for Leon, set_ada / set_char for
+// the extra modes; debug presets via Debug_flg[3]) with 0 pesetas.
 void cItemMgr::gameInit()
 {
     clear();
@@ -1186,6 +1212,7 @@ void cItemMgr::gameInit()
     }
 }
 
+// Room init: clears the availability flags and selects the inventory set by player type.
 void cItemMgr::roomInit()
 {
     flagclear();
@@ -1198,6 +1225,7 @@ void cItemMgr::roomInit()
 
 static inline void S32SetI(s32& d, s32 v) { d = v; }
 
+// Boot: allocates the 0x180 slots, the ordering table and the 256-bit availability mask.
 int cItemMgr::init()
 {
     ItemWork* p;
@@ -1233,6 +1261,8 @@ int cItemMgr::init()
     return 1;
 }
 
+// Static item table: type (1 weapon, 2 ammo, 3 knife-like, 5/12 treasure, 6 grenade, 7 map, 8 money,
+// 9 weapon part, 10 file, 11 key, 13 gem, 14 ...), default pick-up count and max per slot for every id.
 void itemInfo(u16 id, ItemInfo* info)
 {
     switch (id) {
@@ -1558,6 +1588,9 @@ void itemInfo(u16 id, ItemInfo* info)
     }
 }
 
+// Initialises a slot for item `id`: weapons get their level nibbles (special fixed ones: 0x21
+// Punisher upgrade from Scenario_flg, 0x3E, ...) and a full first magazine, parts start detached,
+// files record the count of files owned.
 void cItemMgr::construct(ItemWork* p, u16 id)
 {
     ItemInfo info;
@@ -1603,6 +1636,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
     }
 }
 
+// Slot by index (0 when out of range).
 ItemWork* cItemMgr::at(int no)
 {
     if (no < nItems) {
@@ -1611,6 +1645,7 @@ ItemWork* cItemMgr::at(int no)
     return 0;
 }
 
+// Index of a slot (-1 when not in the pool).
 int cItemMgr::searchAt(ItemWork* p)
 {
     int i;
@@ -1623,6 +1658,7 @@ int cItemMgr::searchAt(ItemWork* p)
     return -1;
 }
 
+// Sort key of a slot for the treasure list: its position in g_item_order (0xFF unknown).
 u8 gld_order(u8 idx)
 {
     int n = g_item_order_num;
@@ -1639,11 +1675,14 @@ u8 gld_order(u8 idx)
     return 0xFF;
 }
 
+// qsort comparator for the treasure list (by g_item_order).
 int gld_cmp(const void* a, const void* b)
 {
     return gld_order(*(u8*) a) - gld_order(*(u8*) b);
 }
 
+// Builds the sub-screen's slot list: all == 0 -> case items first (*pNum), then treasures (*pNum2)
+// sorted by gld_order; all != 0 -> every slot index (0xFF for the other set). Returns the count.
 int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
 {
     ItemInfo info;
@@ -1703,6 +1742,7 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
     return cnt;
 }
 
+// First slot holding item `id` in the current set.
 ItemWork* cItemMgr::search(u16 id)
 {
     ItemWork* p = pItems;
@@ -1716,6 +1756,7 @@ ItemWork* cItemMgr::search(u16 id)
     return 0;
 }
 
+// Slot holding item `id` with the smallest count (the ammo box to use up first).
 ItemWork* cItemMgr::minimumSearch(u16 id)
 {
     ItemWork* p = pItems;
@@ -1732,11 +1773,13 @@ ItemWork* cItemMgr::minimumSearch(u16 id)
     return best;
 }
 
+// qsort comparator: descending count.
 int order_cmp(const void* a, const void* b)
 {
     return ((ItemOrder*) b)->num - ((ItemOrder*) a)->num;
 }
 
+// Fills m_p_order_tbl with the slots of item `id` sorted by descending count (reload order).
 void cItemMgr::ordering(u16 id)
 {
     ItemWork* p = pItems;
@@ -1754,6 +1797,7 @@ void cItemMgr::ordering(u16 id)
     qsort(m_p_order_tbl, n, sizeof(ItemOrder), order_cmp);
 }
 
+// Adds n pesetas (capped at 99,999,999).
 int addMoney(int n)
 {
     U32Set(pG->peseta, pG->peseta + n);
@@ -1775,6 +1819,9 @@ static inline void itemInfoW(u16 id, ItemInfo* inf)
     itemInfo(id, inf);
 }
 
+// Picks up `num` of item `id` (0 = the item's default count): money ids 0x7C..0x7E become pesetas,
+// 0xF? bonus time/points go to the mercenaries timer, stackables top up an existing slot up to
+// maxNum (0 when full), otherwise a new slot is constructed (pLast). Returns 0 when nothing was taken.
 int cItemMgr::get(int id, int num)
 {
     ItemInfo info;
@@ -1873,6 +1920,7 @@ int cItemMgr::get(int id, int num)
     return 1;
 }
 
+// 1 when the item is used on the partner (m_to_whom) or the player type is Ashley.
 static inline int useSubChar(cItemMgr* m)
 {
     if (m->m_to_whom == 0) {
@@ -1881,6 +1929,10 @@ static inline int useSubChar(cItemMgr* m)
     return 1;
 }
 
+// Uses an item from the sub screen: herbs/eggs/sprays heal (fail when life is full), the yellow
+// herb mixes raise the max life (20 steps for the player, 5 for Ashley), keys/documents mark
+// used_id for the scenario check, and consumables are removed when their count hits 0. Returns 0
+// when the item could not be used.
 int cItemMgr::use(ItemWork* p)
 {
     ItemInfo info;
@@ -2045,6 +2097,7 @@ chk:
     return 1;
 }
 
+// Frees a slot; a weapon also detaches its parts and, if it was armed, re-arms the bare hand.
 void cItemMgr::erase(ItemWork* p)
 {
     ItemInfo info;
@@ -2075,11 +2128,13 @@ void cItemMgr::erase(ItemWork* p)
     }
 }
 
+// Discards the first slot of item `id`.
 int cItemMgr::dump(int id)
 {
     return dump(searchI(id));
 }
 
+// Discards a slot (erase); 0 when p is NULL.
 int cItemMgr::dump(ItemWork* p)
 {
     if (p == 0) {
@@ -2094,6 +2149,7 @@ int cItemMgr::dump(ItemWork* p)
     return 1;
 }
 
+// Discards a slot regardless of count.
 int cItemMgr::dumpAll(ItemWork* p)
 {
     if (p == 0) {
@@ -2104,6 +2160,7 @@ int cItemMgr::dumpAll(ItemWork* p)
     return 1;
 }
 
+// Discards every item of ItemInfo type t (e.g. type 7 maps at a new round).
 int cItemMgr::dumpType(int t)
 {
     ItemInfo info;
@@ -2120,6 +2177,7 @@ int cItemMgr::dumpType(int t)
     return 1;
 }
 
+// Total count of item `id` in inventory set t.
 int cItemMgr::num(int id, u8 t)
 {
     ItemWork* p = pItems;
@@ -2134,6 +2192,7 @@ int cItemMgr::num(int id, u8 t)
     return n;
 }
 
+// Total count of item `id` in the current set.
 int cItemMgr::num(int id)
 {
     ItemWork* p = pItems;
@@ -2148,6 +2207,7 @@ int cItemMgr::num(int id)
     return n;
 }
 
+// Count of a slot (0 for NULL).
 int cItemMgr::num(ItemWork* p)
 {
     if (p == 0) {
@@ -2156,6 +2216,7 @@ int cItemMgr::num(ItemWork* p)
     return p->num;
 }
 
+// 1 when the item appears in the combination table (can be combined with something).
 int itemCombineCheck(u16 id)
 {
     int i;
@@ -2168,6 +2229,7 @@ int itemCombineCheck(u16 id)
     return 0;
 }
 
+// Looks up the combination of two ids in either order; *result = the product. 0 when none.
 int itemCombine(u16 srcA, u16 srcB, u16* result)
 {
     int i;
@@ -2187,6 +2249,10 @@ int itemCombine(u16 srcA, u16 srcB, u16* result)
     return 0;
 }
 
+// Combines two slots: weapon + its ammo (flag != 0) reloads it or, for the other ammo attribute,
+// swaps the loaded ammo type (bullet_type follows when armed); weapon + part attaches the part;
+// same stackable ids merge up to maxNum; otherwise the combination table (herb mixes etc.)
+// replaces a with the product. Returns 1 when something happened.
 int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
 {
     ItemInfo info;
@@ -2331,6 +2397,9 @@ end:
     return ret;
 }
 
+// Attaches a weapon part (stock/scope) to a weapon: detaches it from its previous weapon and any
+// same-kind part already on the target, records the weapon slot in part->bullet; the armed weapon
+// id is recomputed.
 int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 {
     u16 newId;
@@ -2394,11 +2463,13 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     return ret;
 }
 
+// Marks item `id` usable here (the sub screen offers "Use"); the room/scenario sets these.
 int cItemMgr::available(u16 id)
 {
     m_pAvailable[id >> 5] |= 0x80000000 >> (id & 0x1F);
 }
 
+// Clears the usable-item mask.
 void cItemMgr::flagclear()
 {
     int i;
@@ -2408,6 +2479,7 @@ void cItemMgr::flagclear()
     }
 }
 
+// Scenario poll: 1 (once) when item `id` was just used from the sub screen.
 int cItemMgr::check(u16 id)
 {
     if (id == used_id) {
@@ -2417,11 +2489,14 @@ int cItemMgr::check(u16 id)
     return 0;
 }
 
+// The weapon id of empty hands (0x800).
 u16 bareHand()
 {
     return 0x800;
 }
 
+// Equips a weapon/knife/grenade slot (NULL = bare hands): sets pArm, m_wep_id (with parts) and
+// the pG weapon level values. 0 when the item is not equippable.
 int cItemMgr::arm(ItemWork* p)
 {
     ItemInfo info;
@@ -2452,11 +2527,14 @@ ok:
     return 1;
 }
 
+// 1 when the armed weapon can be reloaded.
 int cItemMgr::reloadable()
 {
     return reloadable(pArm, 0);
 }
 
+// 1 when the weapon is not full and ammo of its current (or, for flag, the other) attribute is
+// carried; the rocket launcher 0x52 counts loose rockets; debug infinite ammo always 1.
 int cItemMgr::reloadable(ItemWork* p, int flag)
 {
     int ret = 0;
@@ -2489,11 +2567,15 @@ int cItemMgr::reloadable(ItemWork* p, int flag)
     return ret;
 }
 
+// Reloads the armed weapon.
 int cItemMgr::reload()
 {
     return reload(pArm, 0);
 }
 
+// Reloads weapon p from the smallest ammo stacks until full; flag != 0 lets the mine thrower /
+// 0xAB switch to the other ammo attribute when the current one is out. Debug infinite ammo fills
+// it directly. Returns 1 when any rounds were loaded.
 int cItemMgr::reload(ItemWork* p, int flag)
 {
     ItemInfo info;
@@ -2534,6 +2616,7 @@ done:
     return ret;
 }
 
+// Moves rounds from the ammo stack into the weapon up to `max` loaded; returns 1 when any moved.
 int reload_main(ItemWork* wep, ItemWork* ammo, int max)
 {
     int have = BULLET(wep);
@@ -2559,6 +2642,8 @@ int reload_main(ItemWork* wep, ItemWork* ammo, int max)
     return 1;
 }
 
+// Fires the armed item: weapons consume a loaded round (trigger(pArm)); thrown items consume one
+// of the smallest stack of m_wep_id.
 int cItemMgr::trigger()
 {
     ItemInfo info;
@@ -2582,6 +2667,8 @@ int cItemMgr::trigger()
     return 0;
 }
 
+// Consumes one round of a weapon (rocket launcher: a loose rocket; disposable 0x35 is dropped and
+// unarmed) or one grenade; 0 when empty. Debug_flg[2] 0x00400000 = infinite.
 int cItemMgr::trigger(ItemWork* p)
 {
     ItemInfo info;
@@ -2623,6 +2710,8 @@ int cItemMgr::trigger(ItemWork* p)
     return 0;
 }
 
+// The effective weapon id of a slot: the base id combined with every attached part (stock/scope
+// variants); non-weapons return their own id.
 u16 cItemMgr::weaponId(ItemWork* p)
 {
     ItemInfo info;
@@ -2645,6 +2734,7 @@ u16 cItemMgr::weaponId(ItemWork* p)
     return id;
 }
 
+// The no-th part attached to weapon slot p (0 when none).
 ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
 {
     ItemInfo info;
@@ -2668,6 +2758,7 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
     return 0;
 }
 
+// Rounds of ammo type `bulletId` carried plus those loaded in every weapon that uses it.
 int cItemMgr::bulletNumTotal(int bulletId)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -2682,11 +2773,13 @@ int cItemMgr::bulletNumTotal(int bulletId)
     return total;
 }
 
+// Rounds available for the armed item (HUD counter).
 u16 cItemMgr::bulletNum()
 {
     return bulletNumCurrentS();
 }
 
+// Rounds of the armed item: loaded rounds for weapons, carried count for thrown items.
 u32 cItemMgr::bulletNumCurrent()
 {
     ItemInfo info;
@@ -2701,6 +2794,7 @@ u32 cItemMgr::bulletNumCurrent()
     return 0;
 }
 
+// Loaded rounds summed over every slot of weapon `id`.
 int cItemMgr::bulletNum(u16 id)
 {
     ItemWork* p = pItems;
@@ -2718,6 +2812,8 @@ int cItemMgr::bulletNum(u16 id)
     return total;
 }
 
+// Loaded rounds of a weapon slot (rocket launcher: loose rockets; grenades/knife: count); debug
+// infinite ammo returns 100.
 int cItemMgr::bulletNum(ItemWork* p)
 {
     ItemInfo info;
@@ -2754,11 +2850,14 @@ int cItemMgr::bulletNum(ItemWork* p)
     return n;
 }
 
+// Size of the item save block.
 int cItemMgr::saveDataSize()
 {
     return sizeof(ItemSaveData);
 }
 
+// Writes every slot to the save block (id with the set bit, levels/bullets for weapons and parts,
+// counts, case position) plus the armed slot index and weapon id.
 void cItemMgr::save(void* dst)
 {
     ItemInfo info;
@@ -2809,6 +2908,7 @@ void cItemMgr::save(void* dst)
     sd->wep_id = m_wep_id;
 }
 
+// Restores the slots from the save block and re-arms the saved slot.
 void cItemMgr::load(void* src)
 {
     ItemInfo info;
@@ -2864,6 +2964,8 @@ void cItemMgr::load(void* src)
     m_wep_id = sd->wep_id;
 }
 
+// Discards every case item left on the spare board (board == 0) except `keep` (closing the
+// attache case); unarms a discarded weapon.
 int cItemMgr::offboardDump(ItemWork* keep)
 {
     ItemInfo info;
@@ -2894,6 +2996,8 @@ int cItemMgr::offboardDump(ItemWork* keep)
     return 1;
 }
 
+// Ashley -> Leon hand-over: moves set-1 items into Leon's set (rotating their case position by 90
+// degrees onto the spare board, merging stackables up to the max).
 void cItemMgr::takeOver()
 {
     ItemInfo info;
@@ -2955,6 +3059,7 @@ void cItemMgr::takeOver()
     }
 }
 
+// Number of files (type 10) owned.
 int cItemMgr::countFiles()
 {
     ItemInfo info;
@@ -2973,6 +3078,7 @@ int cItemMgr::countFiles()
     return n;
 }
 
+// Weapon table: (weapon number, variant type) -> item id.
 u16 WeaponNo2WeaponId(u8 no, u8 type)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -2987,6 +3093,7 @@ u16 WeaponNo2WeaponId(u8 no, u8 type)
     return 0xFFFF;
 }
 
+// Weapon table: item id -> weapon number (index of the player tables).
 u8 WeaponId2WeaponNo(u16 id)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -3001,6 +3108,7 @@ u8 WeaponId2WeaponNo(u16 id)
     return 0xFF;
 }
 
+// Weapon table: item id -> variant type.
 u8 WeaponId2WeaponType(u16 id)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -3015,6 +3123,7 @@ u8 WeaponId2WeaponType(u16 id)
     return 0xFF;
 }
 
+// Weapon table: ammo item id for the weapon and ammo attribute (0 normal, 1 alternate).
 u16 WeaponId2BulletId(u16 id, int attr)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -3029,6 +3138,7 @@ u16 WeaponId2BulletId(u16 id, int attr)
     return 0xFFFF;
 }
 
+// Weapon table: magazine capacity at capacity level `level` (1-based).
 u8 WeaponId2ChargeNum(u16 id, int level)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
@@ -3043,6 +3153,7 @@ u8 WeaponId2ChargeNum(u16 id, int level)
     return 0xFF;
 }
 
+// Max tune level of the weapon for stat `type` (0 fire, 1 speed, 2 reload, 3 capacity); 0 = not tunable.
 int WeaponId2MaxLevel(u16 id, int type)
 {
     int i;
@@ -3055,6 +3166,7 @@ int WeaponId2MaxLevel(u16 id, int type)
     return 1;
 }
 
+// Debug list of every owned item id and count (debug_mode 0x10).
 void cItemMgr::debugNumDisp(int print_page)
 {
     static int sX = 48;
@@ -3128,6 +3240,7 @@ void cItemMgr::debugNumDisp(int print_page)
     }
 }
 
+// Debug: arms weapon `id`, picking one up first when it is not owned (levels untouched).
 void cItemMgr::debugWeapon(int id)
 {
     ItemWork* p = searchI(id);

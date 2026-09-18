@@ -21,12 +21,14 @@ void make_lf3(u32 tag);
 void make_lf4(u32 tag);
 }
 
+// Links a primitive at the head of an ordering-table entry (PS1 libgpu AddPrim).
 void AddPrim(u32* ot, u32* prim)
 {
     *prim = *ot;
     *ot = (u32) prim;
 }
 
+// Unlinks a primitive from an ordering table chain.
 void DelPrim(u32* ot, u32* prim)
 {
     if (*ot == 0xFFFFFFFF) {
@@ -42,6 +44,7 @@ void DelPrim(u32* ot, u32* prim)
     } while (*ot != 0xFFFFFFFF);
 }
 
+// Initialises a reverse ordering table of n entries (each pointing to the previous, the first terminated).
 void ClearOTagR(u32* ot, int n)
 {
     int i;
@@ -53,6 +56,8 @@ void ClearOTagR(u32* ot, int n)
     }
 }
 
+// Draws the chain: screen-space ortho projection (512x448), then each primitive by its code
+// (low 5 bits of word 1) through the make_* table. Used by the debug line/polygon drawing.
 void DrawOTag(u32* ot)
 {
     static void (*tbl[])(u32) = {
@@ -90,6 +95,7 @@ void DrawOTag(u32* ot)
     } while (*ot != 0xFFFFFFFF);
 }
 
+// GX state for one primitive: colour-only vertices, position + colour descriptors, GXBegin.
 static inline void gpuSetup(int prim, int nverts)
 {
     GXSetNumChans(1);
@@ -109,6 +115,7 @@ static inline void gpuSetup(int prim, int nverts)
     GXBegin(prim, 0, nverts);
 }
 
+// Gouraud triangle (POLY_G3) as a GX triangle with per-vertex colour.
 void make_g3(u32 tag)
 {
 #define p ((POLY_G3*) tag)
@@ -122,6 +129,7 @@ void make_g3(u32 tag)
 }
 #undef p
 
+// Gouraud quad (POLY_G4).
 void make_g4(u32 tag)
 {
 #define p ((POLY_G4*) tag)
@@ -137,6 +145,7 @@ void make_g4(u32 tag)
 }
 #undef p
 
+// Flat triangle (POLY_F3): expanded to a gouraud triangle with one colour.
 void make_f3(u32 tag)
 {
 #define p ((POLY_F3*) tag)
@@ -159,6 +168,7 @@ void make_f3(u32 tag)
 }
 #undef p
 
+// Flat quad (POLY_F4): expanded to a gouraud quad with one colour.
 void make_f4(u32 tag)
 {
 #define p ((POLY_F4*) tag)
@@ -184,6 +194,7 @@ void make_f4(u32 tag)
 }
 #undef p
 
+// Axis-aligned rectangle (TILE) at x0,y0 with w x h as a flat quad.
 void make_tile(u32 tag)
 {
 #define p ((TILE*) tag)
@@ -202,6 +213,7 @@ void make_tile(u32 tag)
 }
 #undef p
 
+// Gouraud line strip of 2 points (LINE_G2).
 void make_lg2(u32 tag)
 {
 #define p ((LINE_G2*) tag)
@@ -213,6 +225,7 @@ void make_lg2(u32 tag)
 }
 #undef p
 
+// Gouraud line strip of 3 points.
 void make_lg3(u32 tag)
 {
 #define p ((LINE_G3*) tag)
@@ -226,6 +239,7 @@ void make_lg3(u32 tag)
 }
 #undef p
 
+// Gouraud line strip of 4 points.
 void make_lg4(u32 tag)
 {
 #define p ((LINE_G4*) tag)
@@ -241,6 +255,7 @@ void make_lg4(u32 tag)
 }
 #undef p
 
+// Flat 2-point line, expanded to LINE_G2.
 void make_lf2(u32 tag)
 {
 #define p ((LINE_F2*) tag)
@@ -260,6 +275,7 @@ void make_lf2(u32 tag)
 }
 #undef p
 
+// Flat 3-point line strip, expanded to LINE_G3.
 void make_lf3(u32 tag)
 {
 #define p ((LINE_F3*) tag)
@@ -282,6 +298,7 @@ void make_lf3(u32 tag)
 }
 #undef p
 
+// Flat 4-point line strip, expanded to LINE_G4.
 void make_lf4(u32 tag)
 {
 #define p ((LINE_F4*) tag)

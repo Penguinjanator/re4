@@ -1,3 +1,9 @@
+// game/examine: the item examine screen (D:/Bio4/Prog/examine.cpp). ItemExamine takes the item
+// or weapon model out of the inventory/merchant screen, centres it, spins it (or lets the player
+// rotate/zoom it in the treasure viewer mode 2), draws it over a blurred copy of the frame buffer
+// (store/render through the OT) with its own lights and camera, and shows the weapon level bars
+// (idSet). exam_info[] holds per-item view rotation, scale, light set and spin axis flags; modes:
+// 0 inventory, 1 merchant (ext table), 2 treasure viewer.
 #include "types.h"
 #include "light.h"
 #include "atari.h"
@@ -282,6 +288,7 @@ ItemExamine itemExam;
 Camera itemCamera;
 static void* local_buff;
 
+// Copies the frame buffer (half size, RGBA8) into local_buff for the examine background.
 void getEFB()
 {
     GXRenderModeObj* rm = &Rmode;
@@ -296,6 +303,7 @@ void getEFB()
     GXInvalidateTexAll();
 }
 
+// Draws the stored screen texture as a full-screen quad at depth z with the given alpha.
 static void gxDraw(f32 x, f32 y, f32 z, f32 alpha, void* buf)
 {
     GXTexObj tex;
@@ -325,6 +333,7 @@ static void gxDraw(f32 x, f32 y, f32 z, f32 alpha, void* buf)
     GXTexCoord2f32(0.0f, 1.0f);
 }
 
+// Draws the stored frame back as the examine background (ortho, far Z, alpha blend, colour only).
 void drawBuffer()
 {
     Mtx44 proj;
@@ -365,6 +374,7 @@ void drawBuffer()
     GXSetAlphaUpdate(1);
 }
 
+// OT callback (type 0x12) queued by setup: grabs the frame into draw temp buffer 0x10.
 void store()
 {
     local_buff = GetDrawTmpBufAddr(0x10);
@@ -375,6 +385,8 @@ void store()
     }
 }
 
+// OT callback queued by move: draws the stored background (fog off), warning when the temp buffer
+// was taken by someone else.
 void render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -390,6 +402,8 @@ void render()
     LightMgr.setFog();
 }
 
+// View parameters for item `id`: the merchant ext table first when ext != 0, then the main table;
+// 0 when the item has no entry.
 ExamInfo* examInfo(int id, int ext)
 {
     ExamInfo* p;
@@ -414,6 +428,7 @@ ExamInfo* examInfo(int id, int ext)
     return 0;
 }
 
+// Queues the frame grab (store) for this frame when blur/render permission allows.
 void ItemExamine::setup()
 {
     static u16 ot_type = 0x12;
@@ -425,6 +440,9 @@ void ItemExamine::setup()
     }
 }
 
+// Builds the 2D overlay: for weapons in the merchant mode the four level bars (firepower, firing
+// speed, reload, capacity) as id units 0x27, with the current level, the max level and the
+// upgrade colours from IdSub; then the frame ids (0x26) from the exam/common archives.
 void ItemExamine::idSet()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -554,6 +572,10 @@ void ItemExamine::idSet()
     }
 }
 
+// Starts examining `model_` of item `id_` in mode `mode_`: saves the model's flags/pos/ang/ot and
+// its root parts, recentres the root on the model bound centre, applies the exam_info rotation
+// (degrees), builds the id overlay, sets the treasure camera (mode 2), creates the three lights of
+// the exam light set (pArc ofs_58..68 by ExamInfo::light) and starts the item's est (owner 0xD1).
 void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
 {
     static f32 c0 = -0.5f;
@@ -684,6 +706,7 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     }
 }
 
+// Sets the weapon levels shown by the bars (-1 = not upgradable).
 void ItemExamine::level(s8 pwr, s8 spd, s8 rld, s8 blt)
 {
     lv[0] = pwr;
@@ -692,6 +715,10 @@ void ItemExamine::level(s8 pwr, s8 spd, s8 rld, s8 blt)
     lv[3] = blt;
 }
 
+// Per-frame: spins the model pi/60 rad per frame about the axis chosen by ExamInfo rot0/rot1
+// (world y or model y; the treasure viewer lets the stick rotate and C up/down zoom between
+// cap_dist_min/max instead), fits the camera so the model bound spans the id frame, lights it and
+// queues the background render.
 void ItemExamine::move()
 {
     static Vec _campos = { 0.0f, 0.0f, 0.0f };
@@ -845,11 +872,14 @@ void ItemExamine::move()
     }
 }
 
+// Draws the examined model.
 void ItemExamine::trans()
 {
     ModelTrans(m_pModel);
 }
 
+// Leaves the screen: deletes the item's effects (Core_flg 0xA001 kind 0x3B), the id overlays and the
+// three lights, and re-enables the room light kinds.
 void ItemExamine::quit()
 {
     int i;
@@ -866,6 +896,7 @@ void ItemExamine::quit()
     LightMgr.onKind(0x7F);
 }
 
+// Restores the model's saved flags, position, angle, ot type and root parts.
 void ItemExamine::reset()
 {
     m_pModel->be_flag = m_be_flag_bak;

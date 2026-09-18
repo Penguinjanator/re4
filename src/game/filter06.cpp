@@ -1,3 +1,7 @@
+// game/filter06: dust / snow / rain particle filter (D:/Bio4/Prog/filter06.cpp). Up to 0x800 line
+// particles drift with a speed around the camera and are wrapped back into a box around it; drawn
+// as lines whose alpha fades with camera distance and eases to the requested colour. Rooms start it
+// through effect controller 44 (Filter06SetParam).
 #include "filter.h"
 #include "atari.h"
 #include "light.h"
@@ -57,6 +61,7 @@ void Filter06Render();
 Filter06Work flt06;
 static Vec cam_vec_LR;
 
+// Places particle `no` randomly around the camera within `spread` * 10 units (plus a per-particle offset).
 void cParticle06::init(u32 no)
 {
     FSet(m_Pos.x, pG->Cam.param.pos.x);
@@ -69,6 +74,9 @@ void cParticle06::init(u32 no)
     m_Alpha = 0;
 }
 
+// Advances the particle by its speed and wraps it back into the camera box (rangeLR left/right,
+// rangeUp, rangeDepth in front); alpha = base * 255/(depth/800), scaled by the current colour alpha,
+// not below alphaMin.
 void cParticle06::move()
 {
     Vec d;
@@ -144,11 +152,13 @@ void cParticle06::move()
     }
 }
 
+// Boot: same as the room init.
 void Filter06Init()
 {
     Filter06RoomInit();
 }
 
+// Room init: no particles, colour black, box 2500/2500/5000, spread 5000.
 void Filter06RoomInit()
 {
     memclr_asm(&flt06, sizeof(flt06));
@@ -171,6 +181,9 @@ void Filter06RoomInit()
     flt06.p = 0;
 }
 
+// Per-frame (when particles exist): computes the camera right vector, moves every particle unless
+// Stop_flg 0x08000000, eases the colour alpha towards the target by `rate`, and queues the render.
+// Skipped while the player is in a special effect area (Status_flg[1] 0x02000000, e.g. indoors).
 void Filter06Trans()
 {
     static int use_filter6 = 1;
@@ -207,6 +220,9 @@ void Filter06Trans()
     }
 }
 
+// Starts `level` particles (max 0x800; buffer allocated on first use) with speed spd +- spdRand per
+// particle, target colour r,g,b,a approached at `rate`, starting alpha, line length scale and
+// minimum alpha.
 void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd, f32 alpha, Vec* spdRand, f32 scale,
                       int alphaMin)
 {
@@ -246,6 +262,8 @@ void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd,
     flt06.alphaMin = alphaMin;
 }
 
+// OT callback: draws every particle as a line from its position along its speed * scale in the
+// current colour with the particle's alpha.
 void Filter06Render()
 {
     u32 i;

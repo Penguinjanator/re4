@@ -1,3 +1,8 @@
+// game/filter00: radial/motion blur and contrast filter (D:/Bio4/Prog/filter00.cpp). The frame is
+// copied into a persistent half-size buffer and blended back scaled around the centre (blur_type
+// 0/1 zoom, 2 tinted), plus an additive "spread" flash (Filter00SetAddSpread: hit/explosion glow
+// from a screen point) and a 3-level contrast pass (Filter00SetContrast). Damage / low health /
+// explosions set these through Filter00Set*.
 #include "filter.h"
 #include "gx.h"
 #include "global.h"
@@ -41,6 +46,7 @@ void Filter00CommonInit();
 void Filter00Render();
 void Filter00RenderContrast();
 
+// Resets every blur/spread/contrast parameter to off.
 void Filter00CommonInit()
 {
     blur_rate = 0;
@@ -54,6 +60,7 @@ void Filter00CommonInit()
     g_cont_bias = g_cont_pow = g_cont_level = 0;
 }
 
+// Boot: resets and allocates the 0x38000-byte blur buffer (memory group 13).
 void Filter00Init()
 {
     Filter00CommonInit();
@@ -67,11 +74,13 @@ void Filter00Init()
     DCInvalidateRange(filter00_buff, BLUR_BUFF_SIZE);
 }
 
+// Room init: parameters off (the buffer stays).
 void Filter00RoomInit()
 {
     Filter00CommonInit();
 }
 
+// Queues Filter00Render in the OT (type 0x12, kind 0x400) when blur is permitted.
 void Filter00Trans()
 {
     if (Render_checkBlurPermission()) {
@@ -79,6 +88,11 @@ void Filter00Trans()
     }
 }
 
+// OT callback: when blur/spread/contrast is active, blends the previous frame's buffer back over
+// the screen (zoom scaled by blur_power/1024 for type 1, tinted for type 2, alpha blur_rate),
+// draws the spread flashes expanding from (eff_spread_center_x/y) with eff_spread_pow, then the
+// contrast pass, and copies the new frame into the buffer for the next frame (Status_flg[0]
+// 0x80000 = buffer valid). Disp_flg 0x100000 disables it.
 void Filter00Render()
 {
     GXTexObj tex;
@@ -250,6 +264,7 @@ void Filter00Render()
     pG->Status_flg[0] |= 0x80000;
 }
 
+// Sets the contrast pass: level 0 off / 1..3 strength stages, pow = alpha, bias = colour bias.
 void Filter00SetContrast(u8 level, u8 pow, u8 bias)
 {
     g_cont_level = level;
@@ -257,16 +272,19 @@ void Filter00SetContrast(u8 level, u8 pow, u8 bias)
     g_cont_bias = bias;
 }
 
+// Sets the blur feedback alpha (0 = blur off).
 void Filter00SetAlpha(u8 rate)
 {
     blur_rate = rate;
 }
 
+// Sets the blur zoom amount (type 1) or tint (type 2).
 void Filter00SetPower(s8 power)
 {
     blur_power = power;
 }
 
+// Selects the blur type 0..2.
 void Filter00SetType(u32 type)
 {
     if (type > 2) {
@@ -276,6 +294,8 @@ void Filter00SetType(u32 type)
     }
 }
 
+// Requests a one-frame additive flash spreading from screen point (cx, cy) (-0.5..0.5) with colour
+// r,g,b, alpha rate, `num` passes and growth pow; only when pri is at most the pending priority.
 void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u32 num, f32 cx, f32 cy, f32 pow)
 {
     if (eff_spread_pri >= pri) {
@@ -293,6 +313,7 @@ void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u
     }
 }
 
+// Draws the contrast pass (level 1..3 = number of blend passes of the stored frame with bias/pow).
 void Filter00RenderContrast()
 {
     Mtx44 proj;

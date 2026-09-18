@@ -1,3 +1,7 @@
+// game/objPillar: object id 0x1F, the falling pillar of the Salazar / statue fights
+// (D:/Bio4/Prog/objPillar.cpp): stands (R0 0), topples onto the player (R0 1 Break) or is thrown
+// at him (R0 2 Throw); the player escapes with action button 0x25 (plemEscape / plemEscape2,
+// run as player damage routines) or is crushed (objPillarAtkCk); R0 4 Fall drops it as debris.
 #include "atari.h"
 #include "atari_init.h"
 #include "light.h"
@@ -73,6 +77,7 @@ EmAtkInfo ObjPillar_atk_info = { 1000.0f, 8, 1000, 0, 10, 0 };
 
 Camera Cam;   // escape sequence camera
 
+// Creates a pillar (id 0x1F) at pos/rot: capsule collision 400 x 5000, no suspend, no eat yet.
 cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -121,6 +126,7 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: releases the eat collision, runs the R0 routine.
 void cObjPillar::move()
 {
     if (pillar.pEat) {
@@ -129,6 +135,7 @@ void cObjPillar::move()
     ObjPillar_R0_move_tbl[r_no_0](this);
 }
 
+// Rno0 == 0: standing (Be_flg 1): matrices and the eat collision quad placed.
 void objPillar_R0_Set(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -140,6 +147,10 @@ void objPillar_R0_Set(cObjPillar* obj)
     objPillarEatSet(obj);
 }
 
+// Rno0 == 1 (setBreak): the pillar topples with motBreak towards the player: creak sound when he
+// is near, crushing hit tests on parts 1/2 (objPillarAtkCk), the escape action button (0x25)
+// offered while he stands in front, fade-out 10 frames before the end; removed when Scenario_flg[0]
+// 0x200 (the boss died).
 void objPillar_R0_Break(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -202,6 +213,9 @@ void objPillar_R0_Break(cObjPillar* obj)
     }
 }
 
+// Rno0 == 2 (setThrow): lifted (motThrow0 from frame 31, dust effect), then flies at 500 units/frame
+// towards the player (motThrow1, trail effect) for 90 frames with crushing hit tests along its
+// length; the escape button is offered once it is within 1000 units.
 void objPillar_R0_Throw(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -333,6 +347,8 @@ void objPillar_R0_Throw(cObjPillar* obj)
     }
 }
 
+// Rno0 == 3 (escape succeeded): the pillar plays Mot_escape from the player's position/heading
+// (it passes over him), then is removed.
 void objPillar_R0_Escape(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -362,6 +378,8 @@ void objPillar_R0_Escape(cObjPillar* obj)
     }
 }
 
+// Rno0 == 4 (setFall): drops from parts 0's position (gravity 15/frame), lands on the floor with
+// motFall1 and a sound, fades out after 30 frames.
 void objPillar_R0_Fall(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -414,11 +432,13 @@ void objPillar_R0_Fall(cObjPillar* obj)
     }
 }
 
+// Sets the break motion.
 void cObjPillar::setMotion(void* mot)
 {
     pillar.motBreak = mot;
 }
 
+// 1 while the pillar is still standing.
 int cObjPillar::ckSet()
 {
     if (pillar.Be_flg & 1) {
@@ -427,6 +447,8 @@ int cObjPillar::ckSet()
     return 0;
 }
 
+// Topples the pillar away from `pos` (towards the player when he is in front) with the player's
+// escape motion mot/a; collision off.
 void cObjPillar::setBreak(Vec* pos, void* mot, int a)
 {
     PillarWork* w = &pillar;
@@ -446,6 +468,8 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
     r_no_3 = 0;
 }
 
+// The boss throws the pillar: lift/throw motions, the pillar's escape motion and the player's
+// escape motion; aimed at the player when within 30 degrees.
 void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, int a)
 {
     PillarWork* w = &pillar;
@@ -466,6 +490,7 @@ void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, 
     r_no_3 = 0;
 }
 
+// Drops the pillar (fall / land motions).
 void cObjPillar::setFall(void* mot0, void* mot1)
 {
     PillarWork* w = &pillar;
@@ -481,6 +506,9 @@ void cObjPillar::setFall(void* mot0, void* mot1)
     r_no_3 = 0;
 }
 
+// Crushing hit test at pos with ObjPillar_atk_info (fatal flag 4 only when the player has more than
+// 500 life): on the player damage type 8, blood, death effects when killed, quake, sound,
+// vibration; on the partner quake + vibration.
 void objPillarAtkCk(cObjPillar* obj, Vec* pos)
 {
     PillarWork* w = &obj->pillar;
@@ -515,6 +543,7 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
     }
 }
 
+// Action button 0x25 during Break: the player dives out of the way (plemEscape), difficulty points.
 void EscapeAction(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -527,6 +556,9 @@ void EscapeAction(cObjPillar* obj)
     }
 }
 
+// Player escape routine: turns towards the fall point, plays the dive motion (mirrored when the
+// pillar comes from the left) with a custom camera (EscapeCamMove), dust and sounds, then
+// EndPlDamage.
 static void plemEscape(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -572,6 +604,7 @@ static void plemEscape(cPlayer* pl)
     }
 }
 
+// Extra camera for the dive: behind/above the player, pulled in when the scenery blocks it.
 void EscapeCamMove()
 {
     Vec p0;
@@ -615,6 +648,7 @@ void EscapeCamMove()
     }
 }
 
+// Action button 0x25 during Throw: the player ducks (plemEscape2) and the pillar goes to Escape.
 void EscapeAction2(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
@@ -629,6 +663,8 @@ void EscapeAction2(cObjPillar* obj)
     }
 }
 
+// Player duck routine: faces the pillar's start, plays the escape motion with effect and sounds,
+// then EndPlDamage.
 void plemEscape2(cPlayer* pl)
 {
     cEm* em = (cEm*) pl;
@@ -654,6 +690,7 @@ void plemEscape2(cPlayer* pl)
     }
 }
 
+// Places the pillar's eat collision quad (created on first use) at its base.
 void objPillarEatSet(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;

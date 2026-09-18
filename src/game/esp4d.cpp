@@ -1,3 +1,6 @@
+// game/esp4d: effect id 0x4D, water ripple source (D:/Bio4/Prog/esp4d.cpp). Has no sprite of its
+// own: every frame it feeds AddWaterPower into the water surface in five rings around m_Pos.
+// Entry points: Esp4d_Create (EffSetId table), cEsp4d::move / SetFreeWork.
 #include "atari.h"
 #include "light.h"
 #include "math_sub.h"
@@ -14,11 +17,15 @@ public:
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
+// Create entry of the EffSetId function table for effect id 0x4D.
 cEsp* Esp4d_Create()
 {
     return new cEsp4d;
 }
 
+// Per-frame move: after the common life/position update, pushes (type 0) or pulls (type 1) the water
+// surface on 5 rings of radius (i+1)/4 * m_Size_base_x*m_Size_mul, 3+i points per ring, the force
+// m_Col_a/1000 fading linearly outwards; m_Tool_flg bit 0x20000 multiplies the force by 4.
 void cEsp4d::move()
 {
     Vec p;
@@ -54,10 +61,13 @@ void cEsp4d::move()
     }
 }
 
+// Trans entry of the function table: nothing to draw (the ripple only moves water).
 void Esp4d_Trans()
 {
 }
 
+// Reads the effect-record parameter Work8[0] as the push (0) / pull (1) type; other values log an
+// error and fall back to 0. Always succeeds (returns 1).
 int cEsp4d::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     type = gen->Work8[0];

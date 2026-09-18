@@ -1,3 +1,6 @@
+// game/obj03: object id 3, path-following chain (D:/Bio4/Prog/obj03.cpp): a model whose parts are
+// laid 40 units apart along an effect path (PathGetMatEm) and slide along it at `speed` per
+// frame (conveyor / chain links); flags bit 0 draws the path for debugging.
 #include "obj.h"
 #include "global.h"
 #include "db_log.h"
@@ -17,6 +20,7 @@ public:
     int init();
 };
 
+// New chain: work cleared, small light volume.
 cObj03::cObj03()
 {
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
@@ -34,6 +38,7 @@ cObj03::cObj03()
     LightInfo.init2(1, 1, &p0, &p1, 1);
 }
 
+// Model-less init (parts only); resets the path parameter.
 // Nobody calls this: the original linker dead-stripped it from .text (unit in STRIP_UNUSED)
 // but left its message string and its 4-byte pool (one SF 0.0 at 0x8023F51C) behind, right
 // before move's pool; so it is defined out of line here, between the ctor and move.
@@ -47,6 +52,7 @@ int cObj03::init()
     return 1;
 }
 
+// Places each parts at t, t+40, ... along the path (wrapping at the path length), advances t by speed.
 void cObj03::move()
 {
     static Vec bp = { 0.0f, 0.0f, 0.0f };

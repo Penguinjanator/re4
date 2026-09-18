@@ -1,3 +1,7 @@
+// game/fade: full-screen colour fades (D:/Bio4/Prog/fade.cpp). Four fade slots (Fade[]: 0 system,
+// 1 scenario, 2 room, 3 error) each interpolate a start -> end colour over `time` frames and draw a
+// screen quad (inside the 56 px letterbox) at depth z; FadeControl runs and draws them every frame
+// in two groups (normal and "late", drawn after the HUD). FadeSetW (fade.h) wraps the black in/out.
 #include "types.h"
 #include "vec.h"
 #include "gx.h"
@@ -7,6 +11,9 @@
 
 FadeWork Fade[4];
 
+// Starts fade slot (no & 0x7FFFFFFF) from *start to *end over `time` frames at depth z; a negative
+// `no` means "one shot" (stop drawing when done), otherwise the end colour stays on screen until
+// FadeKill. late != 0 puts the fade in the late draw group.
 void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late)
 {
     FadeWork* f = &Fade[no & 0x7FFFFFFF];
@@ -30,6 +37,7 @@ void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late)
     f->cur = s;
 }
 
+// Stops and hides all four fades.
 void FadeKillAll()
 {
     u32 i;
@@ -39,11 +47,13 @@ void FadeKillAll()
     }
 }
 
+// Stops and hides fade slot no.
 void FadeKill(int no)
 {
     Fade[no].flags = 0;
 }
 
+// Boot init: clears the four slots.
 void FadeInit()
 {
     int i;
@@ -55,6 +65,9 @@ void FadeInit()
     }
 }
 
+// Per-frame update + draw of the normal (late == 0) or late group: advances the colour
+// interpolation by one frame, and when finished either keeps the end colour (flag bit 1) or clears
+// the slot; every active slot is drawn with fadeDraw.
 void FadeControl(int late)
 {
     int i;
@@ -95,6 +108,8 @@ void FadeControl(int late)
     }
 }
 
+// Draws the fade quad (screen-wide, between y 56 and height-56) in the slot's current colour at its
+// z with alpha blending.
 void fadeDraw(FadeWork* f)
 {
     GXRenderModeObj* rmode = &Rmode;

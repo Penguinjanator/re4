@@ -1,3 +1,7 @@
+// game/filter02: Z-masked depth-of-field filter (D:/Bio4/Prog/filter02.cpp). The frame is blurred by
+// repeated half/quarter-size feedback copies (Filter02DrawBuffer) and blended back through a C8 mask
+// derived from the Z buffer (Filter02DrawBuffer2: pixels beyond f02_start_no are progressively
+// blurred). Disabled in the retail build (use_filter2 == 0).
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -36,6 +40,7 @@ static f32 g_filter02_clip_dist;
 
 static const f32 level_tbl02[32] = { 0.002f, 0.004f, 0.002f, 0.004f, 0.008f, 0.016f, 0.008f, 0.016f };
 
+// Boot: forgets the three buffers.
 void Filter02Init()
 {
     filter02_buff = 0;
@@ -43,6 +48,7 @@ void Filter02Init()
     filter02_buff3 = 0;
 }
 
+// Room init: forgets the buffers and resets the near clip distance used by the Z copy (2000).
 void Filter02RoomInit()
 {
     filter02_buff = 0;
@@ -51,6 +57,7 @@ void Filter02RoomInit()
     g_filter02_clip_dist = 2000.0f;
 }
 
+// Queues Filter02Render when the filter is enabled (never in retail).
 void Filter02Trans()
 {
     static int use_filter2 = 0;
@@ -63,6 +70,7 @@ void Filter02Trans()
     }
 }
 
+// Copies the frame buffer at 1/div size into buf (mip = mipmap copy, scale = texture scale).
 void Filter02GetEFB(int div, void* buf, int mip, f32 scale)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -77,6 +85,8 @@ void Filter02GetEFB(int div, void* buf, int mip, f32 scale)
     GXInvalidateTexAll();
 }
 
+// OT callback: allocates the mask buffers on first use, copies the frame with the near clip pushed
+// out, runs the feedback blur and the Z-mask composite.
 void Filter02Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -121,6 +131,7 @@ void Filter02Render()
     SetScissorState();
 }
 
+// Draws buf as a screen quad at depth z with texture offset (u, v), scale s/s2 and alpha.
 void Filter02GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 s2, void* buf)
 {
     GXTexObj tex;
@@ -143,6 +154,8 @@ void Filter02GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 s, f32 s2,
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// Feedback blur: 1/2 (and 1/4 in the slow mode) copies drawn back with the level_tbl02 offsets,
+// nFeedLp times, FocusLevel taps per pass.
 void Filter02DrawBuffer()
 {
     Mtx44 proj;
@@ -339,6 +352,8 @@ void Filter02DrawBuffer()
     }
 }
 
+// Composite: builds the CLUT mapping Z (I8) to blur alpha (0 below f02_start_no, then +f02_add_num
+// per step) and draws the blurred copy through it over the frame.
 void Filter02DrawBuffer2()
 {
     Mtx44 proj;

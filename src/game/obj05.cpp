@@ -1,3 +1,7 @@
+// game/obj05: object id 5, the scattering effect model Efm05 (D:/Bio4/Prog/obj05.cpp): a
+// multi-parts model whose parts burst away from `center` one by one as the burst radius grows
+// (rangeStep per frame), each flying with its own speed/spin (stored in the parts), bouncing off
+// the scenario/floor (flags bit 1) and settling flat (flags bit 3); the body scales/fades like Efm04.
 #include "atari.h"
 #include "obj.h"
 #include "esp.h"
@@ -17,6 +21,9 @@ public:
     virtual void move();
 };
 
+// Per-frame Efm05 update: body scale/colour/life envelopes; parts within the growing radius start
+// flying (efmStat 1) with speed pow/range along the radial direction plus random spread; flying
+// parts move in parent space with damping/gravity, bounce, and stop (efmStat 2) below speed 15.
 void cObj05::move()
 {
     Efm05Work* w = &efm05;

@@ -1,3 +1,6 @@
+// game/obj20: object id 0x20, the obstacle model Oba (D:/Bio4/Prog/obj20.cpp): an invisible dummy
+// model carrying a collision sphere/cylinder (radius rad, height h) that follows a parts (type 0)
+// or the origin (type 1) of a parent object, so enemies collide with moving scenery.
 #include "atari.h"
 #include "light.h"
 #include "dmg.h"
@@ -14,6 +17,8 @@ public:
     virtual void move();
 };
 
+// Creates the obstacle on `parent` (parts partsNo + ofs for type 0, parent origin + ofs for type 1),
+// collision radius rad / height h, priority level 1, not drawn.
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, u8 type, f32 h)
 {
     cObj* obj;
@@ -46,6 +51,9 @@ extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, u8 ty
     return obj;
 }
 
+// Per-frame: dies with the parent; position from the parent parts (clamped to the parent height
+// for type 0) or origin; copies the parent's collision-through flag 0x200; enemy attack check and
+// collision update.
 void cObjObaModel::move()
 {
     ObaModelWork* w = &obaModel;

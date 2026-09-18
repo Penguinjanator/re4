@@ -52,6 +52,7 @@ static JIS_ACTION JIS_action_table[JIS_S_NUM][JIS_C_NUM] = {
 /* J2_ESC_BR*/{ ERROR,   ERROR,    ERROR,    ERROR,   COPY_J,  COPY_J,  ERROR,   ERROR,   ERROR },
 };
 
+/* Multibyte -> wide char for the current locale: Shift-JIS / EUC-JP two-byte codes, ISO-2022-JP with escape state, else one byte; returns the bytes consumed (-1 invalid). */
 int _mbtowc_r(struct _reent *r, wchar_t *pwc, const char *s, size_t n, int *state)
 {
   wchar_t dummy;

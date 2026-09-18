@@ -1,3 +1,7 @@
+// game/obj12: object id 0x12, throwable hanging object (D:/Bio4/Prog/obj12.cpp): an obj00 variant
+// (parent follow with slerp catch-up, three-point rope fall) that an enemy can also throw at the
+// player (throwMove: flies, hits with the obj12Atk attack record, then falls), with fall types
+// (bounce factors), a landing sound, a Lost_wait despawn timer and a burn tint.
 #include "atari.h"
 #include "obj.h"
 #include "emhit.h"
@@ -37,6 +41,8 @@ int MotionMove(cModel* m, int a);
 int EmAtkHitCk(void* atk, Vec* pos, Vec* oldPos, int flag);
 }
 
+// Per-frame: motion, parent follow (destroyed with the parent; catch-up blend on be_flag bit 3),
+// throw flight (bit 8), rope fall (bit 2), parts/collision update, Lost_wait countdown to removal.
 void cObj12::move()
 {
     Obj12Work* w = &o12;
@@ -168,6 +174,7 @@ void cObj12::move()
     }
 }
 
+// Creates the object (back of the pool) at pos/rot with a 500 light volume and no parent.
 cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -201,6 +208,7 @@ cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
     return 0;
 }
 
+// Attaches to parts partsNo of `oya`; noNormalize keeps the parent's scale (be_flag 0x80).
 void cObj12::setParent(cModel* oya, int partsNo, int noNormalize)
 {
     Obj12Work* w = &o12;
@@ -216,6 +224,7 @@ void cObj12::setParent(cModel* oya, int partsNo, int noNormalize)
     }
 }
 
+// Follows the parent parts matrix (axes normalised unless be_flag 0x80) with the catch-up slerp.
 void cObj12::chainMove()
 {
     Mtx m;
@@ -224,6 +233,7 @@ void cObj12::chainMove()
     Vec v2;
 }
 
+// Sets the catch-up speed when the blend is at 0 (percent per frame, min 1).
 // Never called (dead-stripped by the original linker, STRIP_UNUSED): its constant pool survives
 // (double 0.0, the u32 -> f32 magic, 1.0).
 static void obj12SetRate(cObj* obj, u32 rate)
@@ -239,6 +249,8 @@ static void obj12SetRate(cObj* obj, u32 rate)
     }
 }
 
+// Starts the rope fall (be_flag bit 2, parent dropped): node speeds from spd with random spread
+// (or a random upward toss when spd is NULL), fall_type selects the bounce factors.
 void cObj12::setFall(Vec* spd, u8 type)
 {
     Obj12Work* w = &o12;
@@ -279,6 +291,7 @@ void cObj12::setFall(Vec* spd, u8 type)
     w->fall_se_no = 0xFF;
 }
 
+// Sets the landing sound (block, number, enemy id; block 0xFF = none).
 void cObj12::setFallSe(u8 blk, u8 no, u8 id)
 {
     Obj12Work* w = &o12;
@@ -289,6 +302,8 @@ void cObj12::setFallSe(u8 blk, u8 no, u8 id)
     w->fall_se_ck = 0;
 }
 
+// Rope fall simulation (as obj00FallMove) with the floor from EatMgr + 50, per-type bounce
+// damping, the landing sound below -50 y speed, and the resulting orientation/centre.
 void cObj12::fallMove()
 {
     Obj12Work* w = &o12;
@@ -454,6 +469,7 @@ void cObj12::fallMove()
     }
 }
 
+// Sets the throw speed (x, y*7.5, z*35 in 1/10 units) and faces the object along it.
 // Never called (dead-stripped, STRIP_UNUSED): constant pool only (10, 75, 350, 0.0, pi/2).
 static void obj12ThrowSet(cObj* obj, Vec* spd)
 {
@@ -470,6 +486,9 @@ static void obj12ThrowSet(cObj* obj, Vec* spd)
     obj->ang.y = ang;
 }
 
+// Throw flight (be_flag bit 8): gravity 1.5/frame, hits the scenario (-> setFall) or the player
+// (EmAtkHitCk with obj12Atk: power 8, damage 400; -> setFall + vibration); orients the object
+// along its velocity.
 void cObj12::throwMove()
 {
     Obj12Work* w = &o12;
@@ -519,6 +538,7 @@ void cObj12::throwMove()
     TransMatrix(mat, &pos);
 }
 
+// Tints every model info dark (burnt look).
 void cObj12::setBurn()
 {
     cModelInfo* info;

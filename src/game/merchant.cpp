@@ -634,17 +634,20 @@ static int g_item_price_tbl_num = sizeof(g_item_price_tbl) / sizeof(g_item_price
 MerchantCharacter merchantChar;
 MerchantData merchantData[MERCHANT_NUM];
 
+// Debug_flg[3] bit test.
 // the tests below are kept apart (fold would merge two masks of one lvalue into a single andis.)
 static inline u32 chkFlag6C(u32 b)
 {
     return pG->Debug_flg[3] & b;
 }
 
+// Scenario_flg[0] bit test.
 static inline u32 chkFlag51C0(u32 b)
 {
     return pG->Scenario_flg[0] & b;
 }
 
+// Debug: adds every stage 1 stock and tune table at once.
 void merchant_stage1_full()
 {
     stockDataAdd(merchantData, stock_r104);
@@ -664,6 +667,7 @@ void merchant_stage1_full()
     levelDataAdd(merchantData, level_1st_night);
 }
 
+// Debug: adds every stage 2 stock and tune table.
 void merchant_stage2_full()
 {
     stockDataAdd(merchantData, stock_2st_first);
@@ -680,6 +684,7 @@ void merchant_stage2_full()
     levelDataAdd(merchantData, level_r22a);
 }
 
+// Debug: adds every stage 3 stock and tune table.
 void merchant_stage3_full()
 {
     stockDataAdd(merchantData, stock_r301);
@@ -692,6 +697,7 @@ void merchant_stage3_full()
     levelDataAdd(merchantData, level_r329);
 }
 
+// New game: favor 50, no discount, empty stock and tune tables.
 void MerchantGameInit()
 {
     int i;
@@ -716,6 +722,8 @@ void MerchantGameInit()
     }
 }
 
+// Second round (cleared game): adds the extra weapons/tunes (level_ext_normal / stock_ext_normal)
+// and the extra price tables.
 void Merchant2ndRoundInit()
 {
     levelDataAdd(merchantData, level_ext_normal);
@@ -723,6 +731,11 @@ void Merchant2ndRoundInit()
     merchantChar.setChar(&merchant_info_A, merchantData, sell_price_ext, exer_price_ext, level_price);
 }
 
+// Room entry: builds the merchant's stock for the current room. On a cleared game (game_cnt != 0)
+// only the unlock extras are added (Handcannon with unlock_flg 0x20000000, Chicago Typewriter with
+// 0x10000000). Otherwise the stage's tables are added room by room as the scenario progresses
+// (each stock/level table the first time its room is passed, RoomData.checkPassed), plus the
+// debug "everything" mode (Debug_flg[3] bit 4). Finally selects merchant_info_A and the price tables.
 void MerchantRoomInit()
 {
     if (pG->game_cnt != 0) {
@@ -929,11 +942,13 @@ void MerchantRoomInit()
     merchantChar.setChar(&merchant_info_A, merchantData, g_item_price_tbl, g_item_price_tbl, level_price);
 }
 
+// Size of the merchant save block.
 int MerchantDataSize()
 {
     return sizeof(MerchantData) * MERCHANT_NUM;
 }
 
+// Copies the merchant data (stock, tunes, favor, discount) into the save block.
 void MerchantDataSave(void* dst)
 {
     MerchantData* p = (MerchantData*) dst;
@@ -944,6 +959,7 @@ void MerchantDataSave(void* dst)
     }
 }
 
+// Restores the merchant data from the save block.
 void MerchantDataLoad(void* src)
 {
     MerchantData* p = (MerchantData*) src;
@@ -954,6 +970,7 @@ void MerchantDataLoad(void* src)
     }
 }
 
+// Empties the stock table (all ids 0xFFFF).
 void stockDataInit(MerchantData* p_data)
 {
     StockEntry* s = p_data->stock.e;
@@ -965,6 +982,8 @@ void stockDataInit(MerchantData* p_data)
     }
 }
 
+// Adds a table entry's count to a stock slot: weapons/parts are single (1), stackables add num;
+// the 0x35 (Rocket Launcher special) stays single outside Japan.
 void add_stock(StockEntry* dst, StockEntry* src)
 {
     ItemInfo info;
@@ -988,6 +1007,8 @@ void add_stock(StockEntry* dst, StockEntry* src)
     }
 }
 
+// Merges a stock table into the merchant's stock: clears the "new" marks, then adds to existing
+// slots or appends new ones (marked new). Logs when the 64-slot table is full.
 void stockDataAdd(MerchantData* d, StockEntry* tbl)
 {
     StockEntry* s;
@@ -1034,6 +1055,7 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
     }
 }
 
+// Empties the tune (level) table.
 void levelDataInit(MerchantData* p_data)
 {
     LevelEntry* l = p_data->level.e;
@@ -1045,6 +1067,8 @@ void levelDataInit(MerchantData* p_data)
     }
 }
 
+// Merges a tune table: raises the max level per type of existing weapons (marking them new when
+// something rose) or appends new weapons. Logs when the 32-slot table is full.
 void levelDataAdd(MerchantData* d, LevelEntry* tbl)
 {
     LevelEntry* l;
@@ -1099,6 +1123,8 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
     }
 }
 
+// Binds the merchant personality, data block, selling and buying (exercise) price tables and the
+// tune price table.
 void MerchantCharacter::setChar(MerchantInfo* info_, MerchantData* data_, PriceEntry* sell, PriceEntry* exer, LevelPrice* level)
 {
     m_p_info = info_;
@@ -1108,6 +1134,7 @@ void MerchantCharacter::setChar(MerchantInfo* info_, MerchantData* data_, PriceE
     m_p_lvup = level;
 }
 
+// Shop session object (sub screen): copies the character's tables and loads its data.
 Merchant::Merchant(MerchantCharacter* c)
 {
     m_p_info = c->m_p_info;
@@ -1119,6 +1146,7 @@ Merchant::Merchant(MerchantCharacter* c)
     load(c->m_p_data);
 }
 
+// Writes the session's stock/tune/favor/discount back into the merchant data.
 void Merchant::save(MerchantData* p_data)
 {
     p_data->stock = m_stock;
@@ -1129,6 +1157,7 @@ void Merchant::save(MerchantData* p_data)
     p_data->bonus_flag = m_bonus_flag;
 }
 
+// Loads the session from the merchant data.
 void Merchant::load(MerchantData* p_data)
 {
     if (p_data == 0) {
@@ -1143,6 +1172,7 @@ void Merchant::load(MerchantData* p_data)
     m_bonus_flag = p_data->bonus_flag;
 }
 
+// Stock slot of item `id` (0 when not stocked).
 StockEntry* Merchant::stockPtr(u16 id)
 {
     StockEntry* s;
@@ -1158,6 +1188,7 @@ StockEntry* Merchant::stockPtr(u16 id)
     return s;
 }
 
+// Adds num to the stock of `id` (not for unlimited/-1 or unavailable/-2 entries).
 void Merchant::stockAdd(u16 id, int num)
 {
     StockEntry* s = stockPtr(id);
@@ -1167,6 +1198,7 @@ void Merchant::stockAdd(u16 id, int num)
     }
 }
 
+// Removes num from the stock when enough is there.
 void Merchant::stockSub(u16 id, int num)
 {
     StockEntry* s = stockPtr(id);
@@ -1176,6 +1208,9 @@ void Merchant::stockSub(u16 id, int num)
     }
 }
 
+// Pieces for sale of `id`: weapons/parts and the special guns 0x38/0x35 are 1 while the player does
+// not own one, the attache cases 0x7D..0x7F/0xFE depend on the case already owned (and costume
+// for 0xFE), otherwise the stock count (-1 = 1000, -2/absent = 0).
 int Merchant::stockNum(u16 id)
 {
     ItemInfo info;
@@ -1220,6 +1255,7 @@ int Merchant::stockNum(u16 id)
     return s->num;
 }
 
+// 1 when item `id` was added to the stock since the last visit.
 int Merchant::stockNew(u16 id)
 {
     StockEntry* s = stockPtr(id);
@@ -1230,6 +1266,7 @@ int Merchant::stockNew(u16 id)
     return 0;
 }
 
+// 1 when any stock item is new (the "new" mark on the Buy menu).
 int Merchant::stockNew()
 {
     StockEntry* s;
@@ -1242,6 +1279,7 @@ int Merchant::stockNew()
     return 0;
 }
 
+// Tune entry of weapon `id`, only while the weapon (or for 0x21 the Punisher/0x40) is in stock.
 LevelEntry* Merchant::levelPtr(u16 id)
 {
     LevelEntry* l = level.e;
@@ -1266,6 +1304,7 @@ LevelEntry* Merchant::levelPtr(u16 id)
     return l;
 }
 
+// 1 when weapon `id` got a new tune level since the last visit.
 int Merchant::levelNew(u16 id)
 {
     LevelEntry* l = levelPtr(id);
@@ -1276,6 +1315,7 @@ int Merchant::levelNew(u16 id)
     return 0;
 }
 
+// 1 when any tune is new (the "new" mark on the Tune-up menu).
 int Merchant::levelNew()
 {
     LevelEntry* l;
@@ -1294,6 +1334,7 @@ int Merchant::levelNew()
     return 0;
 }
 
+// Max tune level currently offered for weapon `id` and stat `type` (1 when not offered).
 s8 Merchant::levelMax(u16 id, int type)
 {
     LevelEntry* l = levelPtr(id);
@@ -1304,6 +1345,7 @@ s8 Merchant::levelMax(u16 id, int type)
     return 1;
 }
 
+// 1 when the merchant offers the exclusive (special) upgrade: a level above the weapon's normal max.
 int Merchant::stockSpecial(u16 id)
 {
     if (levelMax(id, 0) > WeaponId2MaxLevel(id, 0) || levelMax(id, 1) > WeaponId2MaxLevel(id, 1) ||
@@ -1313,6 +1355,7 @@ int Merchant::stockSpecial(u16 id)
     return 0;
 }
 
+// 1 when the weapon is at every normal max level and the exclusive upgrade is offered.
 int Merchant::specialTunable(ItemWork* item)
 {
     if (stockSpecial(item->id) != 0 && LV_FIRE(item) + 1 == WeaponId2MaxLevel(item->id, 0) &&
@@ -1323,6 +1366,7 @@ int Merchant::specialTunable(ItemWork* item)
     return 0;
 }
 
+// 1 when the weapon already has its exclusive upgrade.
 int Merchant::specialTuned(ItemWork* item)
 {
     if (LV_FIRE(item) + 1 > WeaponId2MaxLevel(item->id, 0) || LV_MAG(item) + 1 > WeaponId2MaxLevel(item->id, 1) ||
@@ -1332,6 +1376,7 @@ int Merchant::specialTuned(ItemWork* item)
     return 0;
 }
 
+// 1 when the weapon can still be tuned here (below an offered max, or the exclusive is available).
 int Merchant::tunable(ItemWork* item)
 {
     if (item == 0) {
@@ -1350,12 +1395,15 @@ int Merchant::tunable(ItemWork* item)
     return 1;
 }
 
+// Rebuilds the Buy and Sell lists.
 void Merchant::makeList()
 {
     sellingNum = makeSellingList();
     exerciseNum = makeExerciseList();
 }
 
+// Special availability of Buy items: the Infinite Launcher 0x40 only after the game is cleared and
+// not yet bought (item_flags[0] 0x10000000); a few ids never.
 int checkSellingItem(u16 id)
 {
     int ret = 1;
@@ -1376,6 +1424,7 @@ int checkSellingItem(u16 id)
     return ret;
 }
 
+// Fills sellingList with the indices of price table entries that are stocked and allowed.
 int Merchant::makeSellingList()
 {
     PriceEntry* p = m_p_sell;
@@ -1395,16 +1444,19 @@ int Merchant::makeSellingList()
     return n;
 }
 
+// Number of items on the Buy list.
 u8 Merchant::sellingItemNum()
 {
     return sellingNum;
 }
 
+// Price entry of Buy list row `no`.
 PriceEntry* Merchant::sellingItemNo(int no)
 {
     return &m_p_sell[sellingList[no]];
 }
 
+// Selling price entry of item `id`.
 PriceEntry* Merchant::sellingItemId(u16 id)
 {
     PriceEntry* p = m_p_sell;
@@ -1420,6 +1472,7 @@ PriceEntry* Merchant::sellingItemId(u16 id)
     return 0;
 }
 
+// Special availability of Sell items (a few ids cannot be sold).
 int checkExerciseItem(u16 id)
 {
     int ret = 1;
@@ -1438,6 +1491,8 @@ int checkExerciseItem(u16 id)
     return ret;
 }
 
+// Fills exerciseList with the player's inventory slots that have a buying price (weapons listed
+// per slot by descending count); returns the count.
 int Merchant::makeExerciseList()
 {
     PriceEntry* p = m_p_exer;
@@ -1475,21 +1530,25 @@ int Merchant::makeExerciseList()
     return n;
 }
 
+// Number of items on the Sell list.
 u8 Merchant::exerciseItemNum()
 {
     return exerciseNum;
 }
 
+// Inventory slot of Sell list row `no`.
 ItemWork* Merchant::exerciseItemPtr(int no)
 {
     return ItemMgr.at(exerciseList[no]);
 }
 
+// Buying price entry of Sell list row `no`.
 PriceEntry* Merchant::exerciseItemNo(int no)
 {
     return exerciseItemId(ItemMgr.at(exerciseList[no])->id);
 }
 
+// Buying price entry of item `id`.
 PriceEntry* Merchant::exerciseItemId(u16 id)
 {
     PriceEntry* p = m_p_exer;
@@ -1505,6 +1564,8 @@ PriceEntry* Merchant::exerciseItemId(u16 id)
     return 0;
 }
 
+// What the merchant pays for num of `id`: table price x10 per piece, full for treasures, half for
+// weapons/ammo/grenades/the case, 90% otherwise.
 int Merchant::buyupPrice(u16 id, int num)
 {
     ItemInfo info;
@@ -1544,6 +1605,8 @@ int Merchant::buyupPrice(u16 id, int num)
     return (int) ((f32) price * nine);
 }
 
+// Buying price of an inventory slot: the item plus, for a weapon, its loaded ammo and half of every
+// tune level bought.
 int Merchant::buyupPrice(ItemWork* item, int num)
 {
     ItemInfo info;
@@ -1591,6 +1654,8 @@ int Merchant::buyupPrice(ItemWork* item, int num)
     return price;
 }
 
+// Sells a slot to the merchant: adds the price to *money, returns the item (and a weapon's ammo)
+// to the stock and raises favor by buyFavor.
 int Merchant::buyup(ItemWork* item, int num, int* money)
 {
     ItemInfo ii;
@@ -1606,6 +1671,8 @@ int Merchant::buyup(ItemWork* item, int num, int* money)
     return 1;
 }
 
+// Price the player pays for num of `id`: table price x10 per piece minus the discount; a weapon
+// includes one magazine of ammo; 0x40/0x37 cost 1,000,000.
 int Merchant::sellPrice(u16 id, int num)
 {
     ItemInfo info;
@@ -1641,6 +1708,7 @@ int Merchant::sellPrice(u16 id, int num)
     return (int) ((f32) price * rate);
 }
 
+// Pieces per purchase of `id`.
 int Merchant::sellUnit(u16 id)
 {
     PriceEntry* p = sellingItemId(id);
@@ -1652,6 +1720,9 @@ int Merchant::sellUnit(u16 id)
     return p->unit;
 }
 
+// Buys num of `id` when *money suffices: takes the price, decrements the stock (and a weapon's
+// magazine of ammo), marks the Infinite Launcher as bought, raises favor (sellFavorBig above the
+// threshold) and clears the discount. Returns 1 on success.
 int Merchant::sell(u16 id, int num, int* money)
 {
     ItemInfo ii;
@@ -1681,6 +1752,7 @@ int Merchant::sell(u16 id, int num, int* money)
     return 0;
 }
 
+// Percent -> fraction (unused helper).
 // Dead-stripped in the original (STRIP_UNUSED): only its constant pool (0.0f, 0.01f) survives after sell's.
 static f32 merchant_dead_rate(f32 rate)
 {
@@ -1690,6 +1762,7 @@ static f32 merchant_dead_rate(f32 rate)
     return rate;
 }
 
+// Number of rows of the Tune-up list (one per owned slot of each tunable weapon).
 int Merchant::levelupItemNum()
 {
     LevelEntry* l = level.e;
@@ -1711,6 +1784,7 @@ int Merchant::levelupItemNum()
     return n;
 }
 
+// Tune entry of Tune-up row `no`.
 LevelEntry* Merchant::levelupItemNo(int no)
 {
     LevelEntry* l = level.e;
@@ -1741,6 +1815,7 @@ LevelEntry* Merchant::levelupItemNo(int no)
     return 0;
 }
 
+// Inventory slot of Tune-up row `no` (0 when the weapon is offered but not owned).
 ItemWork* Merchant::levelupItemPtr(int no)
 {
     LevelEntry* l = level.e;
@@ -1771,6 +1846,7 @@ ItemWork* Merchant::levelupItemPtr(int no)
     return 0;
 }
 
+// Tune price table entry of weapon `id`.
 LevelPrice* Merchant::levelupItemPrice(u16 id)
 {
     LevelPrice* p = m_p_lvup;
@@ -1786,6 +1862,7 @@ LevelPrice* Merchant::levelupItemPrice(u16 id)
     return 0;
 }
 
+// Price of raising stat `type` of weapon `id` to level lv (2..): table value x10; 0 when not offered.
 int Merchant::levelupPrice(u16 id, int type, int lv)
 {
     LevelEntry* l = levelPtr(id);
@@ -1811,6 +1888,7 @@ int Merchant::levelupPrice(u16 id, int type, int lv)
     return price * 10;
 }
 
+// levelupPrice for an inventory slot.
 int Merchant::levelupPrice(ItemWork* item, int type, int lv)
 {
     return levelupPrice(item->id, type, lv);

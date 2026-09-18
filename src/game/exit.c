@@ -1,6 +1,7 @@
 /* newlib 1.8.2 libc/stdlib/exit.c */
 #include "newlib_stdio.h"
 
+/* Runs the atexit handlers and the stdio cleanup, then _exit. Only reached from the CRT; the game never returns. */
 void exit(int code)
 {
     register struct _atexit *p;

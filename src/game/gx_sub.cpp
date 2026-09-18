@@ -1,3 +1,7 @@
+// game/gx_sub: frame clear colour (D:/Bio4/Prog/gx_sub.cpp). The frame buffer is cleared to black
+// by the copy; bio4_AddBgColor draws the real background colour (the light environment's bgColor,
+// or a colour set by bio4_GXSetCopyClear) as a full-screen quad at the far plane at the start of
+// the frame.
 #include "types.h"
 #include "vec.h"
 #include "global.h"
@@ -13,6 +17,7 @@ GXColor clr_black = {0, 0, 0, 0};
 
 extern "C" void bio4_AddBgColor();
 
+// Overrides the background colour for the next frame (Status_flg[1] 0x40 = override active).
 // Copy-clear colour: the frame buffer is cleared to black, the background colour is drawn
 // by bio4_AddBgColor instead.
 void bio4_GXSetCopyClear(GXColor color, u32 z)
@@ -22,6 +27,9 @@ void bio4_GXSetCopyClear(GXColor color, u32 z)
     GXSetCopyClear(clr_black, z);
 }
 
+// Draws the background quad: the override colour when set, else the light environment's bgColor
+// (black when its x8 is 0); nothing when the colour is all zero. Debug_flg[0] sign bit clear
+// consumes the override each frame.
 // Draw the background colour as a full-screen quad at the far plane.
 void bio4_AddBgColor()
 {

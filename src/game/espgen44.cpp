@@ -1,3 +1,6 @@
+// game/espgen44: effect controller 44, screen filter parameter setter (D:/Bio4/Prog/espgen44.cpp).
+// The record programs Filter05 (Id 0) or Filter06 (Id != 0) from its colour/size fields when set
+// up, and resets the filter to zero when the controller is destroyed; it does nothing per frame.
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -8,10 +11,12 @@ struct Espgen44Work {
     u8 type;           // 0x14 0 = Filter05, 1 = Filter06
 };
 
+// EspgenMoveTbl entry for controller type 0x44: nothing per frame (the filter runs on its own).
 void Espgen44_Move(EspgenWork* w)
 {
 }
 
+// EspgenTransTbl entry: nothing to draw.
 void Espgen44_Trans(EspgenWork* w)
 {
 }
@@ -25,6 +30,8 @@ void Filter05SetParamF(f32 x, f32 y, f32 z, int a, int b, int c, int d, int e, i
 // `lbz r7`, `lbz r8` last) — a per-call-site interleaving (the only one of 7 tried that matches).
 void Filter05SetParamM(int a, int b, int c, int d, int e, f32 x, f32 y, f32 z, int f, int g) asm("Filter05SetParam__Fiiiiiiifff");
 
+// Destruct entry: turns the filter the record programmed back off (Filter05SetParam / Filter06SetParam
+// with all-zero parameters).
 void Espgen44_Destruct(EspgenWork* w)
 {
     Espgen44Work* p = (Espgen44Work*) w->work;
@@ -41,6 +48,9 @@ void Espgen44_Destruct(EspgenWork* w)
     }
 }
 
+// Programs the filter from the record: level = Work8[0]*100+100, colour Col_start_rgba, Col_d_a,
+// scale = Size_base_x*0.005; Filter05 (Id 0) takes Blend_type and kind Tex_id, Filter06 takes
+// Speed/R_speed as vectors and kind Work8[1].
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {

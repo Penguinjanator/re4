@@ -77,6 +77,7 @@ static inline u32 flagCk(u32* tbl, u32 no)
     return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
 }
 
+// Bit set in a big-endian bit table.
 static inline void flagOn(u32* tbl, u32 no)
 {
     tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
@@ -93,6 +94,7 @@ static inline SystemWork* SysRef(SystemWork*& p)
     return p;
 }
 
+// 1 while a fade slot is still fading.
 // Through a pointer parameter: `&Fade[2]` stays a loop-invariant pseudo (`addi rX, Fade+0x48@l`).
 static inline int fadeIsOn(FadeWork* f)
 {
@@ -148,6 +150,7 @@ const u32 addScoreTbl[10][10] = {
 // base points per enemy kind
 const u32 defaultScoreTbl[10] = {300, 300, 5000, 300, 300, 7000, 300, 300, 10000, 0};
 
+// Stage init of the Mercenaries: clears the whole MercSysWork.
 int MercSysInitStage()
 {
     MercSysWork* wk = &MercSysWk;
@@ -160,6 +163,7 @@ int MercSysInitStage()
     return 1;
 }
 
+// Starts BGM stream `no` and returns its request id.
 // The SndStrReq 0.0 pool load is issued below the table stores: the call was an inlined wrapper
 // (integrate.c drops RTX_UNCHANGING_P from the pool MEM, so the load depends on the stores).
 static inline u32 MercStrReq(int no)
@@ -167,6 +171,11 @@ static inline u32 MercStrReq(int no)
     return SndStrReq(0, no, 0x80000003, 0, 0, 0.0f);
 }
 
+// Room start of a Mercenaries map: clears the score part, difficulty preset 2, stage from room_id
+// (r400 0, r402 1, r403 2, r404 3), mode from pl_type (Leon 0, Ada 1, HUNK 2,
+// Krauser 3, Wesker 4), copies the room's message/motion parameters, creates the intro dummy model
+// (SetObjSmd) at the start position, puts the player there, starts the MercSysMoveMain scenario
+// task, the mode's BGM stream and the id graphics (id400.dat).
 int MercSysInitRoom(MercInit* pMInit)
 {
     MercSysWork* wk = &MercSysWk;
@@ -261,6 +270,9 @@ int MercSysInitRoom(MercInit* pMInit)
     return 1;
 }
 
+// The intro: an event with the countdown set to MercMin:MercSec, the dummy model's motion, the
+// mission start message (plus the "not yet unlocked" / rank hints), then the model is destroyed
+// and the player released.
 int MercSysMoveStart(MercSysWork* wk)
 {
     u8* st;
@@ -333,6 +345,10 @@ int MercSysMoveStart(MercSysWork* wk)
     return 1;
 }
 
+// Per-frame HUD/score bookkeeping: combo display start/timeout (comboTimer, flashing below
+// ComboTimerFlash, resets the combo), bonus time display/timeout (bonusTimer) and the bonus kill
+// score (500/1500/4000 by kills), the bonus score pop-up folded into the score when its animation
+// ends, added time (MF_ADD_TIME) pushed into the countdown, and the low-time warning under 0:30.
 int MercSysMoveScore(MercSysWork* wk)
 {
     int min;
@@ -485,6 +501,9 @@ int MercSysMoveScore(MercSysWork* wk)
     return 1;
 }
 
+// The Mercenaries scenario task: intro, then every frame the score update and the countdown check
+// (end at 0:00; the hurry-up sound in the last 15 s), the id move/trans; at the end clears the
+// combo/bonus displays and runs the result screen.
 int MercSysMoveMain(MercSysWork* wk)
 {
     u8* st;
@@ -539,6 +558,9 @@ int MercSysMoveMain(MercSysWork* wk)
     return 1;
 }
 
+// Computes the result: remaining time, max combo, kills, rank from RankTbl[stage] (0..5), updates
+// the saved high score / best rank per stage and mode, unlocks the stage's extra (rank >= 4 sets
+// the unlock_flg bit), and the all-5-stars unlock (20 ranks of 5 -> unlock_flg 0x20000000).
 int MercSysResultInit(MercSysWork* wk)
 {
     MercSaveWork save;
@@ -610,6 +632,9 @@ int MercSysResultInit(MercSysWork* wk)
     return 1;
 }
 
+// The result sequence: "time up", fade, MercSysResultInit, HUD off and game stopped, swaps the
+// room archive out to load the result id data (omk_r1.dat), runs the MercResult screen, restores,
+// saves the system file and requests the soft reset back to the title.
 int MercSysResultMove(MercSysWork* wk)
 {
     static u32 stop_bak;
@@ -706,6 +731,8 @@ int MercSysResultMove(MercSysWork* wk)
     return 1;
 }
 
+// Unpacks the Mercenaries records from the system save: per stage the high score (x10, 28 bits),
+// mode (3 bits) and new flag, and the 3-bit rank per (character, stage) from merc_rank.
 void MercSysGetSaveWork(MercSaveWork* save)
 {
     int i;
@@ -741,6 +768,7 @@ void MercSysGetSaveWork(MercSaveWork* save)
     }
 }
 
+// Packs the records back into the system save words.
 void MercSysSetSaveWork(MercSaveWork* save)
 {
     int i;
@@ -774,6 +802,10 @@ void MercSysSetSaveWork(MercSaveWork* save)
     }
 }
 
+// Score event from the game: kind 9 adds pt directly; otherwise a kill of enemy kind (0..8):
+// increments the combo (starting the combo display at 2), scores defaultScoreTbl[kind] plus the
+// combo bonus from addScoreTbl (banked into bonusScore, at least BonusTimeAdd during bonus time),
+// counts kills. Ignored outside the Mercenaries (System_flg 0x40000000).
 int MercSysSetPoint(int kind, int pt)
 {
     MercSysWork* wk = &MercSysWk;
@@ -820,6 +852,7 @@ int MercSysSetPoint(int kind, int pt)
     return 1;
 }
 
+// Time bonus pick-up: queues sec seconds to add to the countdown.
 int MercSysSetAddTime(int sec)
 {
     MercSysWork* wk = &MercSysWk;
@@ -836,6 +869,7 @@ int MercSysSetAddTime(int sec)
     // no return: the original falls off the end (r3 still holds `sec`)
 }
 
+// Bonus time pick-up: extends the bonus timer (starting the display when it was 0).
 int MercSysSetBonusTime(int frames)
 {
     MercSysWork* wk = &MercSysWk;
@@ -856,6 +890,7 @@ int MercSysSetBonusTime(int frames)
     return 1;
 }
 
+// Shows/hides id unit (no, type).
 void IdSetTrans(IDSystem* id, int no, u8 type, int on)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -871,6 +906,7 @@ void IdSetTrans(IDSystem* id, int no, u8 type, int on)
     }
 }
 
+// Restarts an id unit's animation forwards (on) or backwards.
 void IdSetAnmStart(IDSystem* id, int no, u8 type, int on)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -887,6 +923,7 @@ void IdSetAnmStart(IDSystem* id, int no, u8 type, int on)
     }
 }
 
+// Resets an id unit to opaque white with no colour curve.
 void IdSetColInit(IDSystem* id, int no, u8 type)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -902,6 +939,7 @@ void IdSetColInit(IDSystem* id, int no, u8 type)
     }
 }
 
+// Sets/clears the colour curve loop bit of an id unit (flashing).
 static void IdSetColLoop(IDSystem* id, int no, u8 type, int on)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -917,6 +955,7 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on)
     }
 }
 
+// Copies the colour curve and colours of unit src onto unit no and restarts it.
 void IdSetColStart(IDSystem* id, int no, int src, u8 type)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -972,6 +1011,7 @@ void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int m
     }
 }
 
+// Sets an id unit's texture frame (held).
 void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -984,6 +1024,7 @@ void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
     }
 }
 
+// 1 when the unit's position or size curve has ended.
 int IdIsAnimEnd(IDSystem* id, int no, u8 type)
 {
     IdUnit* u = id->unitPtr(no, type);
@@ -995,6 +1036,7 @@ int IdIsAnimEnd(IDSystem* id, int no, u8 type)
     return 1;
 }
 
+// Loads the Mercenaries HUD id data (SS/<lang>/id400.dat) and registers its textures.
 void MercID::init(int num)
 {
     static char data_name[] = "SS/___/id400.dat";
@@ -1020,12 +1062,14 @@ void MercID::init(int num)
     IdSetTrans(&_idSys, 0x40, ID_MERC, 0);
 }
 
+// Registers the HUD textures under the event id texture owner.
 void MercID::set()
 {
     IdTexRelease(TEX_OWNER_ID_EVENT);
     IdTexDataLoad(pTex, TEX_OWNER_ID_EVENT);
 }
 
+// Releases the HUD textures.
 void MercID::kill()
 {
     IdTexRelease(TEX_OWNER_ID_EVENT);
@@ -1033,18 +1077,21 @@ void MercID::kill()
     _idSys.kill(0xFF, ID_MERC_MES);
 }
 
+// Shows the "mission start" id animation with its sound.
 void MercID::dispMissionStart()
 {
     _idSys.set(pIdStart, 0xFF, ID_MERC_MES, 0x13, 4, 0);
     SndCall(6, 0x7C, 0, 0, 0, 0);
 }
 
+// Shows the "time up" id animation with its sound.
 void MercID::dispTimeUp()
 {
     _idSys.set(pIdTimeUp, 0xFF, ID_MERC_MES, 0x13, 4, 0);
     SndCall(6, 0x7E, 0, 0, 0, 0);
 }
 
+// Loads the result screen id data (omk_r1.dat: 5 rank layouts, extra unlock, end) and its textures.
 int MercResult::init(MercSysWork* wk)
 {
     static char data_name[] = "SS/___/omk_r1.dat";
@@ -1077,6 +1124,9 @@ int MercResult::init(MercSysWork* wk)
     return 1;
 }
 
+// Result screen state machine (_rno0): fade in and show the rank layout with score/time/combo/kills
+// digits, wait for A; then (0xA) the "new character unlocked" screen with its message, then
+// (0x14) the all-clear screen. Returns 0 when finished.
 int MercResult::move(MercSysWork* wk)
 {
     int mes[4];
@@ -1196,12 +1246,14 @@ int MercResult::move(MercSysWork* wk)
     return 1;
 }
 
+// Restores the cockpit after the result screen.
 void MercResult::quit()
 {
     Cckpt.roomInit();
     Cckpt.move();
 }
 
+// Loads the Assignment Ada result id data (omk_r0.dat).
 void AdaResult::init(int no)
 {
     static char data_name[] = "SS/___/omk_r0.dat";
@@ -1223,6 +1275,7 @@ void AdaResult::init(int no)
     _rno3 = 0;
 }
 
+// Assignment Ada result: fade in, show the layout and message mesNo, wait for A. Returns 0 when done.
 int AdaResult::move(int mesNo)
 {
     int i;
@@ -1259,12 +1312,14 @@ int AdaResult::move(int mesNo)
     return 1;
 }
 
+// Restores the cockpit.
 void AdaResult::quit()
 {
     Cckpt.roomInit();
     Cckpt.move();
 }
 
+// Countdown state bit test (bit 0 = running).
 int CountDown::checkState(u32 bit)
 {
     return (m_state & bit) ? 1 : 0;

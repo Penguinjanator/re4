@@ -1,3 +1,7 @@
+// game/obj10: object id 10, the player's thrown weapon item cWepItem (D:/Bio4/Prog/obj10.cpp):
+// grenades and the like thrown by the player, with the obj01 flight model (gravity, spin, bounce,
+// water) but its own landing sounds, a self-damage check on the explosion (hitCkPl) and no
+// underwater/flash variants; deleted when an event starts.
 #include "atari.h"
 #include "light.h"
 #include "dmg.h"
@@ -32,6 +36,7 @@ int effWaterCheck(cModel* obj);
 }
 int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
+// r_no_0 dispatch: 0 flying, 1 exploded.
 void cWepItem::move()
 {
     static void (cWepItem::*funcTbl[2])() = { &cWepItem::move00, &cWepItem::move01 };
@@ -39,6 +44,8 @@ void cWepItem::move()
     (this->*funcTbl[r_no_0])();
 }
 
+// Rno0 == 0: fuse countdown and detonation by eff_action (1 hand grenade + player self-damage, 2
+// flash, 3 incendiary), pending motion, hold-on-parts / release, flight (obj10AddSpeed) and spin.
 void cWepItem::move00()
 {
     WepItemWork* w = &wepItem;
@@ -172,6 +179,7 @@ void cWepItem::move00()
     partsWorldCalc();
 }
 
+// Rno0 == 1: after-explosion sound every 30 frames, destroyed after the 6th.
 void cWepItem::move01()
 {
     r_no_2++;
@@ -185,6 +193,7 @@ void cWepItem::move01()
     }
 }
 
+// Explosion damage volumes: 2/8 fire (3000 / 15000), 1 flash (1500, 180 frames).
 void cWepItem::dmgSet(int kind)
 {
     switch (kind) {
@@ -198,6 +207,7 @@ void cWepItem::dmgSet(int kind)
     }
 }
 
+// Hand grenade self-damage: the player within 2000 units takes damage type 7, 10000.
 void cWepItem::hitCkPl()
 {
     if (GetDistance(&pos, &pPL->pos) < 4000000.0f) {
@@ -205,11 +215,14 @@ void cWepItem::hitCkPl()
     }
 }
 
+// Event start: the thrown item is removed.
 void cWepItem::beginEvent()
 {
     ObjMgr.destroy(this);
 }
 
+// Physics step as obj01AddSpeed, with the water landing skipped for weapons 0xB/0xC and the
+// player's landing sounds; returns 1 when the object should be destroyed.
 int obj10AddSpeed(cWepItem* obj)
 {
     WepItemWork* w = &obj->wepItem;
@@ -303,6 +316,7 @@ int obj10AddSpeed(cWepItem* obj)
     return 0;
 }
 
+// 1 when the floor 500 units below the object is a water-type eat surface (effect type 2).
 int effWaterCheck(cModel* obj)
 {
     static const Vec spd = { 0.0f, -500.0f, 0.0f };
@@ -317,6 +331,8 @@ int effWaterCheck(cModel* obj)
     return 0;
 }
 
+// Creates the thrown item (back of the object pool) at pos/rot with speed, gravity, radius, fuse
+// and the obj01 tumble flags.
 cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags)
 {
     cObj* obj;
@@ -376,6 +392,7 @@ cObj* SetObj10(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
     return obj;
 }
 
+// Sets the detonation type and its four est pairs (as Obj01SetEst).
 void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3)
 {
     WepItemWork* w;

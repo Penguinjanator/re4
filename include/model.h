@@ -43,6 +43,7 @@ public:
         r_scale.z = 1.0f;
     }
     virtual ~cCoord() {}
+    // Rebuilds l_mat (and mat) from ang / pos / scale; cModel overrides it to update the parts too.
     virtual void matUpdate() {
         RotMatrix(l_mat, &ang);
         TransMatrix(l_mat, &pos);

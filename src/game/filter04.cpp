@@ -1,3 +1,6 @@
+// game/filter04: radial glow filter (D:/Bio4/Prog/filter04.cpp). Like filter03 (alpha glow) but the
+// blurred copy is spread radially from (spread_center_x, spread_center_y) with pow_x/pow_y and added
+// to the frame. Disabled in retail (use_filter4 == 0).
 #include "filter.h"
 #include "light.h"
 #include "gx.h"
@@ -41,11 +44,13 @@ void Filter04GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f
 void Filter04DrawBuffer();
 }
 
+// Boot: forgets the buffer.
 void Filter04Init()
 {
     filter04_buff = 0;
 }
 
+// Room init: default parameters (level 0, 20 passes, orange, alpha 0x7B).
 void Filter04RoomInit()
 {
     filter04_buff = 0;
@@ -59,6 +64,7 @@ void Filter04RoomInit()
     flt04.amb = 0xFF;
 }
 
+// Queues Filter04Render when enabled (never in retail).
 void Filter04Trans()
 {
     static int use_filter4 = 0;
@@ -71,6 +77,7 @@ void Filter04Trans()
     }
 }
 
+// Copies the frame alpha at 1/div x 1/div2 into buf.
 void Filter04GetEFB(int div, int div2, void* buf, int mipmap)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -85,6 +92,7 @@ void Filter04GetEFB(int div, int div2, void* buf, int mipmap)
     GXInvalidateTexAll();
 }
 
+// OT callback: takes temp buffer 9 (two halves) and runs the glow passes.
 void Filter04Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -102,6 +110,7 @@ void Filter04Render()
     LightMgr.setFog();
 }
 
+// Draws buf as a screen quad stretched away from the spread centre.
 void Filter04GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f32 s, int div, int fmt, void* buf)
 {
     GXTexObj tex;
@@ -148,6 +157,8 @@ void Filter04GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, u8 r, u8 g, u8 b, u8 a, f
     GXTexCoord2f32(pow_x * cx, 1.0f - pow_y * cy2);
 }
 
+// The glow passes: down-copies, `loop` feedback passes (Y held = average with the second buffer) and
+// the final additive draw in flt04 colour.
 void Filter04DrawBuffer()
 {
     Mtx44 proj;

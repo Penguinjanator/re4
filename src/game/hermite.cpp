@@ -1,7 +1,11 @@
+// game/hermite: 1-D Hermite curves (D:/Bio4/Prog/hermite.cpp). A Hermite1 is a list of keys
+// (t, v, in/out tangents); the event fog/focus curves and camera paths evaluate them with
+// Hermite_1CurveCalc, and the tool editors scale/translate/reverse them.
 #include "types.h"
 #include "hermite.h"
 #include "main_mem.h"
 
+// Empties the curve.
 void Hermite_1Clear(Hermite1* h)
 {
     int i;
@@ -12,6 +16,7 @@ void Hermite_1Clear(Hermite1* h)
     h->num = 0;
 }
 
+// 1 when t lies within the curve's key range.
 int Hermite_1CurveRight(Hermite1* h, f32 t)
 {
     if (h == NULL || h->num <= 0) {
@@ -26,6 +31,7 @@ int Hermite_1CurveRight(Hermite1* h, f32 t)
     return 1;
 }
 
+// Evaluates the curve at t into *out; 0 (no value) when t is outside the key range.
 int Hermite_1CurveCalc(Hermite1* h, f32 t, f32* out)
 {
     if (out == NULL) {
@@ -38,6 +44,7 @@ int Hermite_1CurveCalc(Hermite1* h, f32 t, f32* out)
     return 1;
 }
 
+// Evaluates the curve at t (0 when no segment contains t).
 f32 Hermite_1CurveCalc(Hermite1* h, f32 t)
 {
     int num = h->num;
@@ -63,6 +70,7 @@ f32 Hermite_1CurveCalc(Hermite1* h, f32 t)
     return result;
 }
 
+// Scales the curve in time (about the first key) by sx and in value by sy, adjusting tangents.
 void Hermite_1Scale(Hermite1* h, f32 sx, f32 sy)
 {
     int i;
@@ -82,6 +90,7 @@ void Hermite_1Scale(Hermite1* h, f32 sx, f32 sy)
     }
 }
 
+// Moves the curve so its first key is at (tx, ty).
 void Hermite_1Trans(Hermite1* h, f32 tx, f32 ty)
 {
     int i;
@@ -96,6 +105,7 @@ void Hermite_1Trans(Hermite1* h, f32 tx, f32 ty)
     }
 }
 
+// Reverses the curve in time (keys mirrored, tangents swapped and negated).
 void Hermite_1Reverse(Hermite1* h)
 {
     int num = h->num;
@@ -117,6 +127,7 @@ void Hermite_1Reverse(Hermite1* h)
     Debug_free(tmp);
 }
 
+// Cubic Hermite interpolation between two keys at time t.
 void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out)
 {
     f32 dt = pH1->t - pH0->t;
@@ -131,6 +142,7 @@ void Hermite_1(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out)
     *out = h00 * pH0->v + h01 * pH1->v + dt * (h10 * pH0->out + h11 * pH1->in);
 }
 
+// Derivative of the Hermite segment at time t.
 void Hermite_1_dt(HermiteKey* pH0, HermiteKey* pH1, f32 t, f32* out)
 {
     f32 dt = pH1->t - pH0->t;

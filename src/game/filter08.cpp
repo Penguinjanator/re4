@@ -1,3 +1,7 @@
+// game/filter08: aiming zoom blur (D:/Bio4/Prog/filter08.cpp). While Status_flg[3] 0x08000000 (the
+// weapon's scope/zoom view) is set, filter08_ratio eases to 1 and the frame is blurred outwards from
+// the weapon marker position (g_cx/g_cy, jittered) by feedback copies; the last pass blends a tinted
+// (sr/sg/sb) mono copy back. Eases out when the flag drops.
 #include "filter.h"
 #include "light.h"
 #include "atari.h"
@@ -37,11 +41,13 @@ f32 g_cy = 0.5f;
 static f32 g_cx2 = 0.5f;
 f32 g_cy2 = 0.5f;
 
+// Boot: same as the room init.
 void Filter08Init()
 {
     Filter08RoomInit();
 }
 
+// Room init: ratio 0, centre at the screen middle.
 void Filter08RoomInit()
 {
     filter08_buff = 0;
@@ -52,6 +58,8 @@ void Filter08RoomInit()
     g_cy2 = 0.5f;
 }
 
+// Per-frame: eases filter08_ratio towards 1 (zoom on) or 0 (off; skipped below 0.01), tracks the
+// weapon marker screen position with random jitter, and queues Filter08Render.
 void Filter08Trans()
 {
     static int use_filter8 = 1;
@@ -88,6 +96,7 @@ void Filter08Trans()
     }
 }
 
+// Copies the frame at 1/div x 1/div2 into the buffer (mode 1: I8 mono copy).
 void Filter08GetEFB(int div, int div2, int mip, int mode)
 {
     GXRenderModeObj* rm = &Rmode;
@@ -106,6 +115,7 @@ void Filter08GetEFB(int div, int div2, int mip, int mode)
     GXInvalidateTexAll();
 }
 
+// OT callback: runs the zoom blur passes without scissor and restores the fog.
 static void Filter08Render()
 {
     GXColor col = { 0, 0, 0, 0 };
@@ -123,6 +133,7 @@ static void Filter08Render()
     SetScissorState();
 }
 
+// Emits one texture coordinate scaled away from the blur centre by (su, sv).
 void setCoord(f32 s, f32 t, f32 su, f32 sv)
 {
     GXTexCoord2f32((g_cx - s) * su + s, (g_cy - t) * sv + t);
@@ -133,6 +144,8 @@ static u8 sr[5] = { 0xFF, 0xB9, 0, 0, 0 };
 static u8 sg[5] = { 0xEB, 0xE1, 0, 0, 0 };
 static u8 sb[5] = { 0xD7, 0xFF, 0, 0, 0 };
 
+// Draws the buffer as a fan of 5 quads around the blur centre with three alpha rings (alpha,
+// alpha2, alpha3); mode 1 tints with the sr/sg/sb palette entry.
 void Filter08GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 alpha2, f32 alpha3, f32 s, int div, int mode)
 {
     GXTexObj tex;
@@ -225,6 +238,8 @@ void Filter08GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 alpha2, f3
     setCoord(0.0f, 0.0f, u, v);
 }
 
+// The zoom passes: full copy, nFeedLp08 feedback passes with offsets px/py * ratio, then the mono
+// tinted blend with mono_alpha* scaled by filter08_ratio.
 void Filter08DrawBuffer()
 {
     Mtx44 proj;

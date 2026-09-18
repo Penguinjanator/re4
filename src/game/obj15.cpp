@@ -1,3 +1,9 @@
+// game/obj15: object id 0x15, the mounted gatling gun (D:/Bio4/Prog/obj15.cpp): a turret that an
+// enemy rides (setRide); it turns towards `target` (the player) limited by maxRot, spins up (30
+// frames) and fires every third frame (obj15GunHitck: line hit against the player with
+// Obj15_atk_info_tbl damage, or a wall spark), 40 rounds per reload; three cEmHit boxes take
+// weapon damage and break it (R1 1) unless breakMode says otherwise; an optional eat collision
+// follows it.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -44,6 +50,7 @@ void EspSetGatling(Vec pos, Vec dir);
 void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };
 EmAtkInfo Obj15_atk_info_tbl = { 100.0f, 8, 600, 0, 10, 0 };
 
+// Creates the gatling at pos/rot with its three hit bodies, 40 rounds and no rider.
 cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -121,6 +128,8 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Per-frame: forgets a dead/removed rider, damage check, R1 routine, moves the eat collision with
+// the gun, target timeout.
 void cObjGatling::move()
 {
     GatlingWork* w = &gatling;
@@ -153,6 +162,9 @@ void cObjGatling::move()
     }
 }
 
+// Rno1 == 0 (working): Rno2 0 idle until a rider fires, 1 turning towards the target (turn rate by
+// distance, faster during the first 14 frames) and firing when spun up, 2 a 30-frame pause when
+// out of ammo / rider gone / fire stopped, then back to 0. Fires only while the player is alive.
 void obj15_R1_Set(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -235,6 +247,7 @@ void obj15_R1_Set(cObjGatling* obj)
     }
 }
 
+// Shared break work: stops the spin sound, kills the hit bodies, hides the gun, releases the eat.
 static inline void obj15BreakCommon(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -253,6 +266,7 @@ static inline void obj15BreakCommon(cObjGatling* obj)
     }
 }
 
+// Rno1 == 1 (broken): once spawns the explosion (est 1/0xD) and does the break work.
 void obj15_R1_Break(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -275,6 +289,7 @@ void obj15_R1_Break(cObjGatling* obj)
     }
 }
 
+// Stops the spin-up loop and plays the spin-down sound.
 static inline void obj15SeStop(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -286,6 +301,8 @@ static inline void obj15SeStop(cObjGatling* obj)
     w->seOn = 0;
 }
 
+// Aims the barrel pitch at the target (+1400 y) with 10% easing and spins the barrel parts while
+// firing (with the spin sound); stops the sound when not firing.
 void obj15BarrelMove(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -332,6 +349,7 @@ void obj15BarrelMove(cObjGatling* obj)
     }
 }
 
+// Rebuilds the gun matrix and parts.
 void obj15MatCalc(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -349,6 +367,9 @@ void obj15MatCalc(cObjGatling* obj)
     obj->partsWorldCalc();
 }
 
+// One shot: muzzle effect and sound, a line from the muzzle 50000 units ahead with +-5000 random
+// spread: on the player it applies Obj15_atk_info_tbl damage, blood, vibration and quake and
+// returns 1; otherwise a spark/hit effect and tracer where it hits the scenario, returns 0.
 int obj15GunHitck(cObjGatling* obj)
 {
     Vec ofs;
@@ -410,6 +431,7 @@ int obj15GunHitck(cObjGatling* obj)
     return 1;
 }
 
+// Debug: straight shot line (dead-stripped).
 // Never called (dead-stripped by the original linker, STRIP_UNUSED): its constant pool survives
 // in .rodata (0.0, 150.0, 1000.0, 50000.0, 1.0).
 static void obj15GunHitckDbg(cObjGatling* obj)
@@ -430,31 +452,38 @@ static void obj15GunHitckDbg(cObjGatling* obj)
     PlWepHitCheck2(0, &ofs, &mzl, 0xC, 3, 1.0f);
 }
 
+// Sets the enemy operating the gun.
 void cObjGatling::setRide(cEm* em)
 {
     gatling.ride = em;
 }
 
+// Rider request: start firing.
 void cObjGatling::setFire()
 {
     gatling.fire = 1;
 }
 
+// Rider request: stop firing.
 void cObjGatling::stopFire()
 {
     gatling.firing = 0;
 }
 
+// 1 when the gun is empty.
 int cObjGatling::ckReload()
 {
     return gatling.ammo == 0;
 }
 
+// Refills 40 rounds.
 void cObjGatling::setReload()
 {
     gatling.ammo = 40;
 }
 
+// Weapon hits on the three hit bodies (only when breakable, stat 0x0101): spark effects; breakMode
+// 0 breaks the gun (R1 1) with a sound.
 void obj15DmCk(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
@@ -488,6 +517,7 @@ void obj15DmCk(cObjGatling* obj)
     }
 }
 
+// Creates the eat collision that follows the gun.
 void cObjGatling::setEat(void* data, int type)
 {
     GatlingWork* w = &gatling;
@@ -495,21 +525,25 @@ void cObjGatling::setEat(void* data, int type)
     w->eat = EatMgr.create(data, 0, &pos, &ang, type);
 }
 
+// Max yaw away from the rest angle (radians).
 void cObjGatling::setMaxRot(f32 r)
 {
     gatling.maxRot = r;
 }
 
+// 1 when the gun is flagged breakable/broken (stat high half 0x0101).
 int cObjGatling::ckBreak()
 {
     return (stat & 0xFFFF0000) == 0x01010000;
 }
 
+// 0 = weapon hits break it, else only setBreak does.
 void cObjGatling::setBreakMode(u8 mode)
 {
     gatling.breakMode = mode;
 }
 
+// Breaks the gun from the room script (break work, R1 1 without the explosion effect).
 void cObjGatling::setBreak()
 {
     GatlingWork* w = &gatling;

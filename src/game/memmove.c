@@ -13,6 +13,7 @@
 /* Threshhold for punting to the byte copier.  */
 #define TOO_SMALL(LEN) ((LEN) < BIGBLOCKSIZE)
 
+/* Overlap-safe copy: backwards byte copy when dst lies inside the source, otherwise the memcpy word loop. */
 void *memmove(void *dst_void, const void *src_void, size_t length)
 {
     char *dst = dst_void;

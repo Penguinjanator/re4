@@ -4,6 +4,7 @@
 #define UNALIGNED(X) ((long)X & (LBLOCKSIZE - 1))
 #define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
+/* Fills n bytes with c, 16 and 4 bytes at a time when aligned (the game mostly uses memset_asm / memclr_asm instead). */
 void *memset(void *m, int c, size_t n)
 {
     char *s = (char *)m;

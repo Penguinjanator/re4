@@ -1,3 +1,6 @@
+// game/lightInfo: per-model lighting info (D:/Bio4/Prog/lightInfo.cpp). cLightInfo (embedded in
+// cModel) holds the model's light bounding volume (Offset/Size relative to a parts, Flag = shape
+// type), the light enable/select masks and the up to 8 lights cLightMgr picked for it.
 #include "model.h"
 #include "db_log.h"
 #include "math_sub.h"
@@ -5,6 +8,7 @@
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
+// Empty info: no lights, no masks, zero volume.
 cLightInfo::cLightInfo()
 {
     int i;
@@ -21,6 +25,9 @@ cLightInfo::cLightInfo()
     Size.x = Size.y = Size.z = 0.0f;
 }
 
+// Sets the lighting volume: type (Flag & 3: 0 capsule-like Size.x+Size.y, 1 sphere Size.x, else box
+// diagonal) attached to parts partsNo (0 = the model origin), centre offset, size and the light
+// kind enable mask. Returns 0 on invalid pointers.
 int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask)
 {
     int i;
@@ -48,6 +55,7 @@ int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSiz
     return 1;
 }
 
+// Number of lights currently assigned to the model.
 u32 cLightInfo::getLightNum()
 {
     u8 n = 0;
@@ -61,6 +69,8 @@ u32 cLightInfo::getLightNum()
     return n;
 }
 
+// Rebuilds imat, the inverse of the volume's world matrix (offset scaled and rotated by the model,
+// at the model position or the parts' world position), for the lighting tests.
 void cLightInfo::updateMatrix(cModel* m)
 {
     Vec v;
@@ -83,6 +93,7 @@ void cLightInfo::updateMatrix(cModel* m)
     PSMTXInverse(tmp, imat);
 }
 
+// World-space offset of the volume centre (rotated by the parts' matrix); returns the parts used.
 cModel* cLightInfo::getPos(cModel* m, Vec* out)
 {
     cModel* c;

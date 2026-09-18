@@ -1,3 +1,6 @@
+// game/obj26: object id 0x26, parts-2 attachment (D:/Bio4/Prog/obj26.cpp): a dummy-model object
+// that follows parts 2 of its parent, grows to a target scale (R1 0) and then shrinks/fades away
+// (R1 1) before destroying itself. Its creator was dead-stripped; the class stays for ObjMgr.
 #include "atari.h"
 #include "light.h"
 #include "ctrl.h"
@@ -21,6 +24,7 @@ void obj26MatCalc(cObj26* obj);
 
 static void (*Obj26_R1_move_tbl[2])(cObj26*) = { obj26_R1_Set, obj26_R1_Die };
 
+// (Unused) creates the attachment on `parent` with target scale `scale`, starting at scale 0.
 // Never called: the original linker dropped the body but kept its string, statics and pool.
 static cObj* SetObj26(cObj* parent, Vec* scale)
 {
@@ -47,6 +51,7 @@ static cObj* SetObj26(cObj* parent, Vec* scale)
     return obj;
 }
 
+// Per-frame: dies with the parent, R1 routine, destroyed once fully faded.
 void cObj26::move()
 {
     if (obj26.parent) {
@@ -61,6 +66,7 @@ void cObj26::move()
     }
 }
 
+// Rno1 == 0: eases the scale to tgtScale (10% per frame) and plays the motion.
 void obj26_R1_Set(cObj26* obj)
 {
     Obj26Work* w = &obj->obj26;
@@ -80,6 +86,7 @@ void obj26_R1_Set(cObj26* obj)
     obj26MatCalc(obj);
 }
 
+// Rno1 == 1: shrinks by 10% and fades by 10% per frame until invisible.
 void obj26_R1_Die(cObj26* obj)
 {
     switch (obj->r_no_2) {
@@ -101,6 +108,7 @@ void obj26_R1_Die(cObj26* obj)
     obj26MatCalc(obj);
 }
 
+// Places the object under parts 2 of the parent (or free) and updates its parts.
 void obj26MatCalc(cObj26* obj)
 {
     if (obj->obj26.parent) {

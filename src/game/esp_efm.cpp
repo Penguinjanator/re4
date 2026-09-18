@@ -1,3 +1,9 @@
+// game/esp_efm: effect models (Efm) of the effect sequence system (D:/Bio4/Prog/esp_efm.cpp). An
+// effect record whose Id is 0xFC..0xFF creates a model object in ObjMgr instead of a sprite:
+// obj04 (particle model, Id 0xFF; 0xFC uses a scroll model), obj05 (scatter/debris model, 0xFE)
+// or obj09 (rigid body, 0xFD). EfmSeqSet is the entry point from the generator; EfmSetObj04/05/09
+// fill the object's work from the record; EfmDelete / EfmDeleteEvent / EfmArrayClear destroy them
+// by EfmCore owner, at event end and at room clear.
 #include "light.h"
 #include "atari.h"
 #include "obj.h"
@@ -56,11 +62,13 @@ u16 g_Core_flg;
 u8 g_Core_kind;
 cModel* g_Core_pEm;
 
+// Number of Efm move kinds (4: the entries of EfmIdTbl).
 u32 GetEfmMoveIdMax()
 {
     return 4;
 }
 
+// Maps the Efm move kind (0..3) to the ObjMgr object id (4, 5, 9, 4); out of range reads entry 0.
 u8 GetEfmMoveId(u32 no)
 {
     if (no >= GetEfmMoveIdMax()) {
@@ -69,6 +77,8 @@ u8 GetEfmMoveId(u32 no)
     return EfmIdTbl[no];
 }
 
+// Destroys every Efm object whose EfmCore matches: flg == a, kind == b, pEm == c (each test skipped
+// when the value is 0). Used to remove the effect models an enemy/effect owner spawned.
 void EfmDelete(int a, int b, int c)
 {
     cObjMgr* m = &ObjMgr;
@@ -83,6 +93,7 @@ void EfmDelete(int a, int b, int c)
     }
 }
 
+// Per-object test for EfmDelete: destroys obj04/05/09 works whose core matches the g_Core_* filter.
 void EfmDeleteSub(cObj* obj)
 {
     if (obj->id == 4) {
@@ -108,6 +119,8 @@ void EfmDeleteSub(cObj* obj)
     }
 }
 
+// Destroys every Efm object that is neither permanent (core.flg bit 0) nor event-owned (bit 0x800):
+// called when an event ends to drop the effect models it left behind.
 void EfmDeleteEvent()
 {
     cObjMgr* m = &ObjMgr;
@@ -119,6 +132,7 @@ void EfmDeleteEvent()
     }
 }
 
+// Per-object test for EfmDeleteEvent.
 void EfmDeleteEventSub(cObj* obj)
 {
     if (obj->id == 4) {
@@ -141,6 +155,7 @@ void EfmDeleteEventSub(cObj* obj)
     }
 }
 
+// Destroys every Efm object in ObjMgr's alive list (filter cleared): room change / effect reset.
 void EfmArrayClear()
 {
     void (*func)(cObj*);
@@ -159,6 +174,12 @@ void EfmArrayClear()
     }
 }
 
+// Generator entry for an effect model record: resolves the parent (gen->Parent_no is a scroll object
+// unless info->flg bit 0x1000), maps gen->Id 0xFF/0xFE/0xFD/0xFC to move kind 0/1/2/3, fetches the
+// model+tpl (Efm table by Tex_id, or the scroll object's model for kind 3), creates the obj04/05/09
+// in ObjMgr with the light set-up from Tool_flg (0x80 -> 4, 0x20000 -> 8, else 0x10), then calls the
+// kind's EfmSetObj. info->flg bit 0 makes the object survive suspends; an owner model with
+// be_flag 0x9 passes its AddAmb colour down. Returns the object or 0 on any failure (logged).
 cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs)
 {
     cObj* obj = 0;
@@ -314,6 +335,12 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
 const Vec efm_light_pos = {0.0f, 0.0f, 0.0f};
 const Vec efm_light_size = {1000.0f, 1000.0f, 0.0f};
 
+// Fills an obj04 (particle model) work from the record: position/speed/acceleration/angle/rotation
+// speed with the R_* random spreads (angles in degrees -> radians), scale (Size_base*0.005), colour
+// and fade timers, blend mode, draw order (ot_type 2 when Tool_flg 0x400000, 1 when translucent),
+// then attaches it: Parts_no 0xFF world with matrix m, 0xF8..0xFE world, otherwise parts Parts_no of
+// `parent` (Tool_flg 0x20: only the parent's rotation, no follow). Tool_flg bit 2 spawns an est
+// child effect, bit 3 starts motion WorkSp8[2]. Returns 0 (object destroyed) on a bad parts number.
 cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs)
 {
     Efm04Work* w = &obj->efm04;
@@ -503,6 +530,10 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     return obj;
 }
 
+// Fills an obj05 (scattering multi-parts model) work from the record: position/angle/rotation speed
+// with random spreads, scale, colours and fade timers, the scatter centre (Vec0 +- Vec2), bounce
+// (Vec1/10), pow/rangeStep/rnd/rotAmp from Work8, gravity (-xCC/10) and speed damping (1 - xD0/1000);
+// orientation from matrix m or the parent parts' matrix; each parts starts with efmStat 0.
 cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate)
 {
     Efm05Work* w = &obj->efm05;
@@ -656,6 +687,9 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     return obj;
 }
 
+// Fills an obj09 (rigid body) work: start position/velocity with spreads, box size = Vec0*100+250
+// (1/1000 units), mass = volume/1e9 * mass_mul, moments of inertia of the box * moment_mul, scale
+// from the size (Efm 0x7C and 0x21 use a smaller visual scale).
 cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate)
 {
     Efm09Work* w = &obj->efm09;
@@ -710,6 +744,8 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     return obj;
 }
 
+// Creates a permanent, world-parented obj04 for a plain model (bin/tpl) at pos/rot with white colour,
+// unit scale and no motion: used by room code for static effect models (embox declares it too).
 cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -767,6 +803,8 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Makes the object draw with texture-render buffer `no` (refraction shader: Shader_type 1,
+// Refract_pow 0xF, Refract_ratio 0xB4) when that buffer is in use.
 void setModTexRender(cObj* obj, int no)
 {
     static u8 buf[0x20];

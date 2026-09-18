@@ -1,3 +1,9 @@
+// game/espgen45: effect controller 45, the weather (open-air) water surface (D:/Bio4/Prog/espgen45.cpp).
+// A height-field grid (Espgen42Work: hA/hB height buffers, pos/nrm vertex arrays, a bump texture
+// and a display list) that follows the camera target, is stirred by the noise texture 0xFE and drawn
+// with a screen-copy refraction, an indirect bump stage, a specular texture and an optional mask.
+// Room code overrides position/height/size/colour/parameters through the Estgen45Set* entry points
+// (esp4c passes an Esp4cWork). Entry points: Espgen45_Move / _Trans / _SetFreeWork / _Destruct.
 #include "light.h"
 #include "atari.h"
 #include "global.h"
@@ -13,7 +19,7 @@
 
 // Effect controller 45: weather water surface (same height-field model as Espgen42, following the
 // camera). The Estgen45Set* entry points let the room script (esp4c) override its parameters.
-// TODO: Espgen45_Move00 and Espgen45_TransSub are not written yet.
+// Espgen42 owns the water init (EspWaterInit): it resets this unit's overrides and g_pWater45.
 
 // Parameter block handed over by esp4c (Esp4cWork, 0x20 bytes; the layout is esp4c.cpp's).
 struct Esp4cWork {
@@ -75,6 +81,8 @@ static inline int IGet(int& d) { return d; }
 static inline f32 FGet(f32& d) { return d; }
 static inline void U8Set(u8& d, u8 v) { d = v; }
 
+// Resets the room override state (camera-follow on, height-follow on, all overwrites off): called by
+// EspWaterInit (Espgen42.cpp) at effect system init.
 void Espgen45_static_init()
 {
     g_bTargetCamera = 1;
@@ -111,6 +119,12 @@ void Espgen45_static_init()
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
 
+// Step 0 (the only step) of Espgen45MoveTbl: recentres the surface on the camera target (or the
+// override target/height), rebuilds mat/inv with the size and wave_ratio scale, then simulates one
+// frame: mode != 1 is a damped two-buffer wave equation (damp/spread) plus noise-texture excitation;
+// mode 1 is the spring model (hA height, hB velocity). Both refresh the vertex heights, normals and
+// the bump texture, then flush the arrays to memory for the GP. Sets Status_flg[0] bit 0x200
+// (water present). Debug: L trigger with Debug_flg[1] 0x00800000 drops a wave in the middle.
 void Espgen45_Move00(EspgenWork* w)
 {
     static f32 g45_wave_mul = 0.001f;
@@ -390,6 +404,7 @@ void Espgen45_Move00(EspgenWork* w)
     }
 }
 
+// EspgenMoveTbl entry for controller type 0x45; frozen while Stop_flg bit 0x40000 is set.
 void Espgen45_Move(EspgenWork* w)
 {
     static void (*Espgen45MoveTbl[])(EspgenWork*) = {Espgen45_Move00};
@@ -400,6 +415,8 @@ void Espgen45_Move(EspgenWork* w)
     Espgen45MoveTbl[w->step](w);
 }
 
+// EspgenTransTbl entry: queues Espgen45_TransSub in OT layer 0x10 (drawn after the opaque scene) and
+// clears Status_flg[1] bit 0x20 (the "override parameters changed this frame" flag).
 void Espgen45_Trans(EspgenWork* w)
 {
     if ((w->flag & 1) && !(w->flag & 2)) {
@@ -408,6 +425,8 @@ void Espgen45_Trans(EspgenWork* w)
     pG->Status_flg[1] &= ~0x20;
 }
 
+// Loads indirect texture matrix 1 for the bump stage: S scale indS*0.001+0.01, T scale
+// indT*0.007+0.07 (or the Esp4cWork Shimmer_pow1/2 when the parameter override is on).
 void SetIndMtx_801291F4(Espgen42Work* p)
 {
     f32 m[2][3];
@@ -453,6 +472,11 @@ static inline void Vtx45(f32 nx, f32 ny, f32 nz, f32 x, f32 y, f32 z, f32 s, f32
     GXTexCoord2f32(s, t);
 }
 
+// Draws the water: lights a dummy model at the surface (5 cloth lights + ambient amb, colour overrides
+// applied), copies the screen (below the 56 px border) into draw temp buffer 0xE as the refraction
+// texture projected with the camera, adds the bump indirect stage (SetIndMtx), the environment
+// specular texture (p->texId, view-space normals) and the mask texture when flag bit 1; then, unless
+// flag bit 0, four far border quads (g45_mul cells out) and finally the grid display list.
 void Espgen45_TransSub(EspgenWork* w)
 {
     static f32 g45_mul = 15.0f;
@@ -749,6 +773,7 @@ void Espgen45_TransSub(EspgenWork* w)
     }
 }
 
+// Allocates a controller from the pool and builds a water surface on it (SetWaterWork45).
 // Dead-stripped from the DOL (string kept, no pool: STRIP_UNUSED): pulls a generator and sets the
 // surface up.
 static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
@@ -762,6 +787,10 @@ static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 ra
     return SetWaterWork45(w, pos, rot, size, nx, ny, rate);
 }
 
+// Builds the surface work: id 0x45, nx x ny cells of `size` units, matrix (with the rotation
+// override), allocates hA/hB/pos/nrm/bump and the strip display list (memory group 13), fills the
+// zig-zag triangle strip indices/UVs, the flat grid positions (random +-0.2 ripple), the sloped
+// normals and zero edge heights. Returns NULL (controller released) when an allocation fails.
 EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
@@ -960,6 +989,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     return w;
 }
 
+// Frees the six grid buffers and clears g_pWater45.
 void Espgen45_Destruct(EspgenWork* w)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
@@ -991,6 +1021,11 @@ void Espgen45_Destruct(EspgenWork* w)
     g_pWater45 = NULL;
 }
 
+// Builds the water from the effect record: grid WorkSp8[0..1] (default 64, max 184, rounded down to a
+// multiple of 8), wave ratio WorkSp8[2], Tool_flg bit 0 = no border quads, bit 0x4000 = mask texture
+// MaskTex_id; colour Col_start, ambient Col_d*255, mode Work8[0] (2: damp/spread from Work8[1..2]),
+// specular Tex_id, indirect strengths prm.h xCE/xD2, stages Work8[3]. Registers g_pWater45 and runs
+// the first move. Returns 0 when the noise texture 0xFE or memory is missing.
 int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
@@ -1071,36 +1106,43 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     return 0;
 }
 
+// Room override: 1 = the surface follows the camera target (default), 0 = uses Estgen45SetTargetPos.
 void Estgen45SetTargetCamera(int on)
 {
     g_bTargetCamera = on;
 }
 
+// Room override: 1 = surface height from Estgen45SetHeight, 0 = the record's Base_y.
 void Estgen45SetTargetHeight(int on)
 {
     g_bTargetHeight = on;
 }
 
+// Room override: use the Estgen45SetSize size instead of the record's.
 void Estgen45SetSizeOverWrite(int on)
 {
     g_bSizeOverWrite = on;
 }
 
+// Room override: replace the record colours by the Estgen45SetColor values.
 void Estgen45SetColorOverWrite(int on)
 {
     g_bColorOverWrite = on;
 }
 
+// Room override: multiply the record colours by the Estgen45SetColor values.
 void Estgen45SetColorMul(int on)
 {
     g_bColorMul = on;
 }
 
+// Room override: take Type/wave ratio/damp/spread/indirect/rotation/mask from the Esp4cWork block.
 void Estgen45SetParamOverWrite(int on)
 {
     g_bSetParam = on;
 }
 
+// Sets the override centre of the surface and flags Status_flg[1] bit 0x20.
 void Estgen45SetTargetPos(f32 x, f32 z)
 {
     FSet(g_Target_x, x);
@@ -1108,18 +1150,21 @@ void Estgen45SetTargetPos(f32 x, f32 z)
     pG->Status_flg[1] |= 0x20;
 }
 
+// Sets the override water height.
 void Estgen45SetHeight(f32 h)
 {
     FSet(g_Target_y, h);
     pG->Status_flg[1] |= 0x20;
 }
 
+// Sets the override cell size.
 void Estgen45SetSize(f32 size)
 {
     FSet(g_Size, size);
     pG->Status_flg[1] |= 0x20;
 }
 
+// Sets the override tev colour (r,g,b,a) and ambient/scale factors (rs..as, 0..1).
 void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
 {
     U8Set(g_r, r);
@@ -1133,6 +1178,7 @@ void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as)
     pG->Status_flg[1] |= 0x20;
 }
 
+// Copies the esp4c parameter block used when the parameter override is on.
 void Estgen45SetParam(Esp4cWork* w)
 {
     g_Free = *w;

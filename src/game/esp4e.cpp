@@ -1,3 +1,7 @@
+// game/esp4e: effect id 0x4E, cloth sheet (D:/Bio4/Prog/esp4e.cpp). A Cloth grid pulled from the
+// cloth pool follows the effect's position/angle and is disturbed by two sine fields (along x and
+// y) modulated by a global "wind" phase plus the effect's m_Speed. Entry points: Esp4e_Create,
+// cEsp4e::move / SetFreeWork / Destruct.
 #include "atari.h"
 #include "light.h"
 #include "math_sub.h"
@@ -39,11 +43,16 @@ cEsp* Esp4e_Create();
 void Esp4e_Trans();
 }
 
+// Create entry of the EffSetId function table for effect id 0x4E.
 cEsp* Esp4e_Create()
 {
     return new cEsp4e;
 }
 
+// Per-frame move: re-attaches the cloth to the parent coordinate when not in world space, copies the
+// colour bytes, steps the cloth simulation (damping 0.98) and then adds the sine disturbance
+// (pow/pow2 amplitudes, time/time2 phases advanced by time_plus/100 per frame, wind_range_pow
+// scaling) plus m_Speed/10 rotated into cloth space to every grid vertex.
 void cEsp4e::move()
 {
     Vec pos0 = m_Pos;
@@ -128,6 +137,7 @@ void cEsp4e::move()
     }
 }
 
+// Returns the Cloth to the pool when the effect dies.
 void cEsp4e::Destruct()
 {
     if (m_Free.pCl) {
@@ -135,10 +145,15 @@ void cEsp4e::Destruct()
     }
 }
 
+// Trans entry of the function table: the Cloth draws itself, nothing to do here.
 void Esp4e_Trans()
 {
 }
 
+// Builds the cloth from the effect record: texture from m_Tex_id, grid nx = size_x/200*36 (2..100)
+// by ny = size_y/200*24 (2..50), cell size from Vec0, Tool_flg bit 0 clears the cloth flag, and the
+// wave parameters from Work8[0..3] / prm xCC,xD0 / xD4 / WorkSp8[0..2]. Returns 0 (effect not
+// created) when the texture or a cloth slot is unavailable.
 int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4eWork* wk = &m_Free;

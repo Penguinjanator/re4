@@ -19,6 +19,11 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos);
 #define BIND_Y(p) (IK_PARTS(p)->bindMat[1][3])
 #define BIND_Z(p) (IK_PARTS(p)->bindMat[2][3])
 
+// Called by MotionSetCore for a new motion: clears the IK flags of every parts, then for each
+// joint of the motion's joint table flagged as an IK root (kind bits 0x30) marks the chain root
+// (flags bit 2), stores the bend axis (kind >> 8), the bone lengths from the bind pose and the
+// root->effector direction, and the options: 0x20 = also correct the toe angle (ikAng), 0x80 =
+// the chain has an extra joint (0x210). A degenerate bend plane disables the chain.
 void IKInit(cModel* m, MotionWork* w)
 {
     Vec axis;
@@ -155,6 +160,9 @@ void IKInit(cModel* m, MotionWork* w)
     }
 }
 
+// Two-bone solve: given the current root and effector world positions and the stored bone lengths
+// la/lb, computes the knee angles by the law of cosines (clamped when the target is out of reach),
+// re-orients the root and joint matrices in the bend plane and re-derives their world positions.
 // Bend the root/joint pair so that the effector reaches its current world position.
 void ikCalc(cModel* root, cModel* joint, cModel* eff)
 {
@@ -205,6 +213,8 @@ void ikCalc(cModel* root, cModel* joint, cModel* eff)
     TransMatrix(joint->mat, &joint->world);
 }
 
+// After the solve, recomputes the heel matrix at pos and its toe child's world position (marks both
+// with flag 0x10000000 so the motion code does not overwrite them).
 // Put the heel (p) so that its toe (the child) lands on `pos`.
 static void heel2toe(Mtx m, cModel* p, Vec* pos)
 {
@@ -288,6 +298,10 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
     PSMTXConcat(rm, (q)->mat, (q)->mat);                             \
     TransMatrix((q)->mat, &t)
 
+// Per-frame leg IK (from MotionMove): for each IK root chain not disabled, finds the floor under the
+// foot effector (SatMgr.getFloor; skipped when EM_STATUS_IK_OFF or chain flag 0x200), moves the
+// foot target onto the floor when it is within reach, solves the chain (ikCalc), then places the
+// heel/toe (heel2toe) and, with option 0x100, blends the toe angle.
 void InverseKinematics(cModel* m, int flag)
 {
     cEm* em = (cEm*) m;

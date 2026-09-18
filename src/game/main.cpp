@@ -152,6 +152,12 @@ s8 system_vcnt;
 
 static void systemScreenInit();
 
+// Program entry: systemStartInit (hardware/OS/GX/sound/memory), then per (soft) reset
+// systemRestartInit, restores the reset-keep block (pRK: system flags, language, unlock flags,
+// mercenaries records), starts the title task and runs the frame loop forever: pad read, debug,
+// render set-up, TaskScheduler (game logic), id sprites, Trans (3D draw), DVD/sound watchers,
+// fades, messages, cinescope, the 2D OT, log flush, interrupt tasks, render done, vsync wait
+// (GetSystemVcnt frames), buffer swap and systemResetCheck (soft reset -> RESTART).
 int main()
 {
     int i;
@@ -255,10 +261,13 @@ RESTART:
     return 0;
 }
 
+// Hook after the vsync wait; empty.
 void systemVSyncPost()
 {
 }
 
+// VI post-retrace callback: counts vsyncs, resumes the interrupt task scheduler once the frame's
+// vsync count is reached, and checks for a hang.
 void postVSyncCallback()
 {
     vsync_cnt++;
@@ -270,6 +279,8 @@ void postVSyncCallback()
     }
 }
 
+// Halts the game (write to 0x11111111) when no frame was presented for 3600 vsyncs and no
+// debugger is attached (hang detector).
 void haltExecCheck()
 {
     int dbg = DBIsDebuggerPresent();
@@ -279,6 +290,10 @@ void haltExecCheck()
     }
 }
 
+// Once at boot: clears the global work, OS/font/language, dev-mode host file system, exception
+// handler, VI (black), DVD, memory card, performance counters, heaps, task scheduler, screen
+// (Render_init), lights, RNG, OT, sound, Sofdec, id system (0x80 units), log, debug module, DVD
+// size table and messages.
 void systemStartInit()
 {
     memclr_asm(pG, sizeof(GlobalWork));
@@ -339,6 +354,10 @@ void systemStartInit()
     cMes.init();
 }
 
+// At boot and after every soft reset: pad, clears the game part of the global work, heap 1
+// (game), the OT/fade/cinescope/id/message/data cache/temp buffers, room inits of every manager,
+// filters, cloth, cockpit, room data, tex render, item/etc models, events, camera, view, sound,
+// background colour, config, brightness from the reset-keep block, debug/roomInfo.dat, log mode.
 void systemRestartInit()
 {
     int i;
@@ -400,6 +419,8 @@ void systemRestartInit()
     SelfScreenShotInit();
 }
 
+// Default projection constants (ZNEAR 100, ZFAR 1,000,000, 640x480 ortho), 2 vsyncs per frame,
+// Screen = the render mode size and default brightness.
 static void systemScreenInit()
 {
     GXRenderModeObj* rm = &Rmode;
@@ -420,6 +441,8 @@ static void systemScreenInit()
     OSReport("height = %d\n", rm->efbHeight);
 }
 
+// Default global state: debug mode, start room r120 (Part 0), Leon, game mode 5, costumes 0,
+// user name buffer and language 1.
 void systemWorkInit()
 {
     systemScreenInit();
@@ -438,6 +461,7 @@ void systemWorkInit()
     U8Set(pG->language, 1);
 }
 
+// Frames per game update in vsyncs (1 = 60 Hz, 2 = 30 Hz).
 void SetSystemVcnt(int vcnt)
 {
     if (vcnt > 0) {
@@ -447,11 +471,14 @@ void SetSystemVcnt(int vcnt)
     }
 }
 
+// Current vsyncs per frame.
 int GetSystemVcnt()
 {
     return system_vcnt;
 }
 
+// Reset button handling: on release sets System_flg 0x8000 and, when the game allows it (no 0x200
+// lock), performs the hard reset (systemHardReset + OSResetSystem). Returns 1 when resetting.
 int checkHardReset()
 {
     static u8 reset_check = 0;
@@ -477,6 +504,8 @@ int checkHardReset()
     return 0;
 }
 
+// End of frame: the soft-reset combo (B+X+START held 30 frames) sets 0x4000000; then hard reset
+// check, and a pending soft reset (unless locked by 0x200) runs systemSoftReset and returns 1.
 int systemResetCheck()
 {
     static u8 Soft_reset_cnt = 0;
@@ -505,6 +534,8 @@ int systemResetCheck()
     return 0;
 }
 
+// Shared reset work: closes the sub screen, clears tasks, releases enemy/player/weapon/room
+// modules, and saves system flags/language/unlock/mercenaries/card state into the reset-keep block.
 void systemResetCommon()
 {
     int i;
@@ -531,6 +562,7 @@ void systemResetCommon()
     U8Set(pRK->valid, 1);
 }
 
+// Blacks the screen and runs the common reset (the OS then reboots).
 void systemHardReset()
 {
     OSReport("--HARD_RESET START!!\n");
@@ -541,6 +573,8 @@ void systemHardReset()
     OSReport("--HARD_RESET END!!\n");
 }
 
+// Blacks the screen, cancels DVD/ARAM transfers, resets sound, debug allocations and all heaps,
+// runs the common reset and re-inits the ROM font (the frame loop then restarts).
 void systemSoftReset()
 {
     OSReport("--SOFT_RESET START!!\n");
@@ -561,6 +595,7 @@ void systemSoftReset()
     OSReport("--SOFT_RESET END!!\n");
 }
 
+// Fixed language 1 / region 1 for this build.
 void setLanguage()
 {
     U8Set(pSys->language, 1);

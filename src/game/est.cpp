@@ -1,3 +1,9 @@
+// game/est: the effect set ("EST") front end (D:/Bio4/Prog/est.cpp). EstSet(owner, id) is how
+// game code starts an effect: it looks the est table up in the loaded effect data
+// (EspGetEstAddr) and starts a controller 10 sequence player on it. Also the room "SST" effects
+// (per-room effect lists started by area / room key), the effect deletion front ends
+// (EffectEspDelete / EffectDeleteAll / EventCutEffDelete ...), the eat (hit) effects
+// (EspSetEatEffect) and a few water helpers. EspEvModList maps event model numbers to models.
 #include "atari.h"
 #include "light.h"
 #include "global.h"
@@ -18,6 +24,9 @@ cModel* EspEvModList[0x80];
 // Effect set table: starts effect controller 10 on the est data block `head`.
 void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h);
 
+// The common entry: starts est table (owner c, id d) with parts b (-1 = the table's default) on the
+// model a (0 = none), at pos/rot (NULL = the table's own), core flags e, kind f, Core_pEm g and an
+// optional EspSeqOpt h.
 void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h)
 {
     EspSeqData* head = EspGetEstAddr(c, d, 0);
@@ -25,6 +34,10 @@ void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g,
     EstSet((cModel*) a, b, pos, rot, head, e, f, g, c, h);
 }
 
+// Starts the sequence `head` on a front-pulled controller 10: stamps the owner info (Core_flg e, plus
+// 0x2000 during a movie / bit 0 in the no-suspend mode from Status_flg[2]), the call number, parts,
+// offset (pos != NULL sets Flg bit 1 = explicit position) and rotation (head->rot is in degrees),
+// and a random seed. Debug_flg[1] 0x01000000 disables all effects.
 void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, int f, u32 g, u32 owner, void* h)
 {
     EspgenWork* w;
@@ -86,6 +99,8 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
     }
 }
 
+// Starts the SST effects of type 1 with key 0xC + area for every effect area the player currently
+// stands in (used when a display flag `id` is switched on so its area effects appear at once).
 // Sets the room effects whose area the player stands in.
 void AreaSstSet(int id)
 {
@@ -115,6 +130,7 @@ void AreaSstSet(int id)
     }
 }
 
+// 1 when room effect display flag `id` (0..31, cEspSystem::SstSetFlag) is on.
 int GetSstDispFlag(u32 id)
 {
     cEspSystem* sys = g_pEspSys;
@@ -129,6 +145,8 @@ int GetSstDispFlag(u32 id)
     return 0;
 }
 
+// Turns room effect display flag `id` on/off; turning it on from off also starts the matching area
+// effects for the player's current areas (AreaSstSet).
 void SetSstDispFlag(u32 id, int on)
 {
     cEspSystem* sys = g_pEspSys;
@@ -149,11 +167,15 @@ void SetSstDispFlag(u32 id, int on)
     }
 }
 
+// Sets the extra effect-area bits that EffAreaUpdate ORs into the area state every frame.
 void SetSstAddAreaFlag(u32 flag)
 {
     g_pEspSys->Add_area_bit = flag;
 }
 
+// Starts every SST entry of `owner` (0xD2 = none) whose key is in [lo, hi], whose type matches and
+// whose display flag is on, as a permanent effect (Core_flg 0x4001, kind no, owner 0xD0). move != 0
+// pre-runs the generators 200 frames so steady-state effects (smoke, dust) are already full.
 // Starts every effect of owner `owner` whose room key lies in [lo, hi] and whose type is `type`.
 void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
 {
@@ -192,21 +214,25 @@ void SstSet(u32 owner, int type, int no, int lo, int hi, int move)
     }
 }
 
+// Deletes sprites by owner info (Core_flg a, kind b, Core_pEm c, attached model).
 void EffectEspDelete(int a, int b, u32 c, cModel* model)
 {
     EspDelete(a, b, c, model);
 }
 
+// Deletes controllers by owner info.
 void EffectEspgenDelete(int a, int b, int c)
 {
     EspgenDelete(a, b, c);
 }
 
+// Deletes effect models by owner info.
 void EffectEfmDelete(int a, int b, int c)
 {
     EfmDelete(a, b, c);
 }
 
+// Removes every sprite, controller and effect model (room change).
 void EffectDeleteAll()
 {
     pG->Status_flg[1] &= ~0x20;
@@ -215,6 +241,7 @@ void EffectDeleteAll()
     EfmArrayClear();
 }
 
+// Removes every non-permanent, non-event effect (event end).
 void EffectEventDelete()
 {
     EspDeleteEvent();
@@ -222,6 +249,8 @@ void EffectEventDelete()
     EfmDeleteEvent();
 }
 
+// Releases every live sprite whose owner info matches (a/b/c each skipped when 0) and, when a model is
+// given, that is attached to that model instance (pointer and serial).
 void EspDelete(int a, int b, u32 c, cModel* model)
 {
     cEspSystem* sys = g_pEspSys;
@@ -254,6 +283,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
     }
 }
 
+// Releases every live sprite that is neither permanent (Core_flg bit 0) nor event-owned (bit 0x800).
 void EspDeleteEvent()
 {
     cEspSystem* sys = g_pEspSys;
@@ -272,6 +302,7 @@ void EspDeleteEvent()
     }
 }
 
+// Water explosion splash: est 1/0x2F in the lake rooms (r10a/b, r11a/b), else the generic 0/0x15.
 void EspSetWaterBomb(Vec* pos)
 {
     if (pG->room_id == 0x10A || pG->room_id == 0x10B || pG->room_id == 0x11A || pG->room_id == 0x11B) {
@@ -281,6 +312,7 @@ void EspSetWaterBomb(Vec* pos)
     }
 }
 
+// Bullet-hits-water splash: est 1/0x20 in the lake rooms, else 0/0x14; none in stage 3-11 / 2-24.
 void EspSetWaterHitmark(Vec* pos)
 {
     if ((pG->room_id32 & 0xFFFF0000) == 0x03110000 || (pG->room_id32 & 0xFFFF0000) == 0x02240000) {
@@ -312,6 +344,7 @@ static inline void EspEatEffectMessage(int type)
     }
 }
 
+// 1 when the hit point lies on a near-horizontal floor whose FlrAt entry is marked as a puddle (x45).
 int EspChkInPuddle(Vec* pos, Vec* nrm)
 {
     if (nrm->y > 0.9f) {
@@ -324,6 +357,9 @@ int EspChkInPuddle(Vec* pos, Vec* nrm)
     return 0;
 }
 
+// Spawns the hit effect for an eat (environment collision) attribute: `type` is the EAT type (0 dirt
+// / puddle, 1 spark pair, 2 and 4..7 per-weapon effects from the AtEffInfo table, 3 unused), `nrm`
+// the surface normal (rotation for the decal, flipped for flag-bit-0 infos), `wep` the weapon id.
 // Hit effect for the eat (effect collision) attribute type.
 void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
 {
@@ -392,6 +428,8 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
     }
 }
 
+// Event script: starts est `no` (decimal digits -> BCD id) of `owner` as an event-cut effect
+// (Core_flg 0x1001), if the table exists.
 void EventCutEstSet(int owner, u32 no)
 {
     u8 id = (no / 10) * 16 + no % 10;
@@ -401,6 +439,7 @@ void EventCutEstSet(int owner, u32 no)
     }
 }
 
+// Deletes the effects started by the current event cut (Core_flg 0x3001).
 void EventCutEffDelete()
 {
     EffectEspDelete(0x3001, 0, 0, NULL);
@@ -408,6 +447,7 @@ void EventCutEffDelete()
     EffectEfmDelete(0x3001, 0, 0);
 }
 
+// Deletes the cut effects and the whole-event effects (Core_flg 0x2001).
 void EventAllEffDelete()
 {
     EventCutEffDelete();
@@ -416,6 +456,7 @@ void EventAllEffDelete()
     EffectEfmDelete(0x2001, 0, 0);
 }
 
+// 1 when water effects are on (Status_flg[1] 0x400) and the point is not in a flagged effect area.
 int ChkWaterEffectEnable(Vec* pos)
 {
     if (pG->Status_flg[1] & 0x400) {
@@ -426,6 +467,8 @@ int ChkWaterEffectEnable(Vec* pos)
     return 0;
 }
 
+// Ganado falling into water: est 1/0x32 when the room has it, else the generic 0x10/0x8D; the
+// position pointer doubles as the owner key.
 void EstSetEm10WaterFall(Vec* pos)
 {
     EspSeqData* head = EspGetEstAddr(1, 0x32, 1);

@@ -1,3 +1,7 @@
+// game/flr_at: floor attribute areas (D:/Bio4/Prog/flr_at.cpp). The room's "FSE" block lists
+// FlrAt areas (type, group, area polygon, per-type data) used for footstep sounds/effects (type 0/1),
+// sound situations (type 3) and puddles; FlrAtCheck finds the enabled area of a type containing a
+// point, FlrAtSetDefVal sets the default footstep SE / effect per group.
 #include "map_obj.h"
 #include "light.h"
 #include "widget.h"
@@ -17,6 +21,7 @@ FlrSys* pFlrSys;
 // above it and is reloaded (light.cpp PSet).
 static inline void PSet(void*& d, void* v) { d = v; }
 
+// Room init: binds the room archive's "FSE" block (version 0x103) as the floor attribute list.
 void FlrAtInit()
 {
     FlrAtHead* p;
@@ -38,6 +43,9 @@ void FlrAtInit()
     pFlrSys->pList = (FlrAt*) (p + 1);
 }
 
+// Returns the enabled floor attribute of `type` whose area contains pos (+300 y) and whose group
+// matches the current group (0xFF = any); NULL outside the main game step (Rno0 != 3), during
+// Status_flg[0] 0x10000000, or when none hits.
 FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
 {
     Vec p;
@@ -86,6 +94,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
     return 0;
 }
 
+// Enables floor attribute entry `no` (flag bit 0).
 // Dead-stripped by the original linker (only their strings survive in .rodata).
 static int FlrAtSetEnable(int no)
 {
@@ -97,6 +106,7 @@ static int FlrAtSetEnable(int no)
     return 1;
 }
 
+// Disables floor attribute entry `no`.
 static int FlrAtSetDisable(int no)
 {
     if (pFlrSys->pData == 0) {
@@ -107,6 +117,7 @@ static int FlrAtSetDisable(int no)
     return 1;
 }
 
+// Sets the default footstep SE set and effect number for group `no` (0..0x3F; 0xFF = the default slot 0x40).
 int FlrAtSetDefVal(u32 no, u8 foot_se_set, u8 eff_no)
 {
     if (no != 0xFF && no > 0x3F) {

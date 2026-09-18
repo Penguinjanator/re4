@@ -1,3 +1,7 @@
+// game/obj00: object id 0, the hanging object (D:/Bio4/Prog/obj00.cpp): lamps, signs and other
+// props that hang from a parts of a parent model (OyaSetObj00) with a slerp catch-up, fall as a
+// three-point rope simulation when cut (Obj00Work be_flag bit 2) and fade out when flagged
+// (bit 5). SetObj00 creates it from a bin/tpl; MotSetObj00 plays a motion on it.
 #include "atari.h"
 #include "atari_init.h"
 #include "obj.h"
@@ -31,6 +35,8 @@ void obj00SetOya(cObj00* obj);
 }
 int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
+// Per-frame: plays the motion when set; follows the parent (destroyed with it), runs the fall
+// simulation, updates the parts and collision unless flagged, fades out on be_flag 0x20.
 void cObj00::move()
 {
     Obj00Work* w = &o0;
@@ -68,6 +74,8 @@ void cObj00::move()
     }
 }
 
+// Creates an obj00 from the model files at pos/rot (defaults 0), collision pass-through, light
+// volume 3000, no parent.
 cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -109,6 +117,7 @@ cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Starts motion `mot` on the object with Mot_attr prm.
 void MotSetObj00(cObj* obj, void* mot, int prm, int a)
 {
     Obj00Work* w = &obj->o0;
@@ -122,6 +131,7 @@ void MotSetObj00(cObj* obj, void* mot, int prm, int a)
     MotionSetCore(obj, &obj->pMotion, mot, a, 0, (u16) w->mot_attr, 0);
 }
 
+// Attaches the object to parts partsNo of `oya` (motion cleared, no catch-up blend).
 void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
 {
     Obj00Work* w = &obj->o0;
@@ -135,6 +145,7 @@ void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
     w->be_flag &= ~8;
 }
 
+// Sets the parent catch-up speed (percent per frame, min 1).
 // Never called: the original linker dropped the body but kept its constant pool.
 static void obj00SetRate(cObj* obj, u32 rate)
 {
@@ -146,6 +157,10 @@ static void obj00SetRate(cObj* obj, u32 rate)
     obj->o0.rateSpd = r / 100.0f;
 }
 
+// Fall simulation (be_flag bit 2): three rope nodes 300 units around the object fall under gravity
+// (20/frame), keep their mutual distances (30 relaxation passes), bounce on y = 30 (playing the
+// fall sound once) and give the object its new orientation and centre. Node speeds persist in
+// Obj00Work::fallSpd (1/10 units).
 void obj00FallMove(cObj00* obj)
 {
     Obj00Work* w = &obj->o0;
@@ -269,6 +284,9 @@ void obj00FallMove(cObj00* obj)
     obj->pos = d;
 }
 
+// Parent follow: takes the parent parts' matrix (axes normalised), and while be_flag bit 3 (catch-up)
+// is set blends position/rotation from hokan_mat towards it by oya_hokan (advancing by rateSpd);
+// copies the parent's light class 2.
 void obj00SetOya(cObj00* obj)
 {
     Obj00Work* w = &obj->o0;
@@ -353,6 +371,7 @@ void obj00SetOya(cObj00* obj)
     }
 }
 
+// Gives the object a scenario collision sphere of radius r.
 void cObj00::setScrAtari(f32 r)
 {
     atariInitF(&sub2B4.atari, 0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r, 1, 0x2000, 10);

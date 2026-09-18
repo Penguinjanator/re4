@@ -1,3 +1,6 @@
+// game/map_obj: the cMap manager (D:/Bio4/Prog/map_obj.cpp). cMap units (kindid 2) are the room
+// map/scroll model holders managed by cMapMgr (MapMgr); the retail build leaves cMap::move as a
+// stub, the manager only ages them and shows the free count.
 #include "types.h"
 #include "cManager.h"
 #include "map_obj.h"
@@ -5,11 +8,13 @@
 
 cMapMgr MapMgr;
 
+// Manager of cMap units.
 cMapMgr::cMapMgr() : cManager<cMap>(sizeof(cMap), 0)
 {
     setName("cMapMgr");
 }
 
+// Unit construction: placement-news the cMap with `id` and index = number of alive maps sharing that id.
 int cMapMgr::construct(cMap* p, u32 id)
 {
     u8 n = 0;
@@ -30,6 +35,7 @@ int cMapMgr::construct(cMap* p, u32 id)
     return 1;
 }
 
+// Finds the alive map with id `id` and index `no`.
 cMap* cMapMgr::room(int id, int no)
 {
     u32 i;
@@ -46,6 +52,7 @@ cMap* cMapMgr::room(int id, int no)
     return 0;
 }
 
+// Per-frame: moves every alive, active (be_flag 0x20) map and records its old position; shows the free count.
 void cMapMgr::move()
 {
     u32 i;
@@ -66,6 +73,7 @@ void cMapMgr::move()
     dispInfo();
 }
 
+// Debug: prints the number of free map slots at (472, 42).
 int cMapMgr::dispInfo()
 {
     u32 i;
@@ -85,12 +93,14 @@ int cMapMgr::dispInfo()
     return 1;
 }
 
+// New map unit: kindid 2, alive/visible flags.
 cMap::cMap()
 {
     kindid = 2;
     be_flag |= 0x1023;
 }
 
+// Stub: only advances r_no_0 once.
 void cMap::move()
 {
     static int timer = 0;

@@ -1,3 +1,8 @@
+// game/math_sub: vector/matrix helpers shared by the game code (D:/Bio4/Prog/math_sub.cpp):
+// orientation matrices from axes, matrix -> Euler angles, the game's rotation matrix convention
+// (RotMatrix = Rz * Ry * Rx, X applied first), interpolation
+// (hermite, B-spline basis), small dense matrix inverse, the fast SQRTF / SINF / COSF /
+// LIMIT_ANGLE used everywhere (paired-single Taylor sin/cos, angles in radians).
 #include "types.h"
 #include "vec.h"
 #include "db_log.h"
@@ -23,6 +28,7 @@ extern ReentStd* _impure_ptr;
 
 #define PI2 6.2831855f
 
+// v * s into a static (unused).
 // Never called in this build: only their static results survive (.bss).
 static inline Vec* VecScaled(Vec* v, f32 s)
 {
@@ -31,6 +37,7 @@ static inline Vec* VecScaled(Vec* v, f32 s)
     return &ans;
 }
 
+// a + b into a static (unused).
 static inline Vec* VecSum(Vec* a, Vec* b)
 {
     static Vec ans;
@@ -66,6 +73,7 @@ void SetOrientationZX(Vec* z, Vec* x, Mtx m)
     m[2][2] = vz.z;
 }
 
+// Rotation matrix whose Z axis is z and Y axis is y (orthonormalised).
 void SetOrientationZY(Vec* z, Vec* y, Mtx m)
 {
     Vec vx;
@@ -98,6 +106,7 @@ void SetOrientationZY(Vec* z, Vec* y, Mtx m)
     (v).y = (m)[1][c];     \
     (v).z = (m)[2][c]
 
+// Column c of a matrix as a vector.
 static inline void MtxGetCol(Mtx m, int c, Vec* v)
 {
     v->x = m[0][c];
@@ -105,6 +114,8 @@ static inline void MtxGetCol(Mtx m, int c, Vec* v)
     v->z = m[2][c];
 }
 
+// Rotation matrix -> Euler angles (radians) in the RotMatrix convention: x and y from the Z column,
+// then z from the residual rotation.
 void Matrix2AxisAngle(Mtx m, Vec* rot)
 {
     Vec v0;
@@ -139,6 +150,7 @@ void Matrix2AxisAngle(Mtx m, Vec* rot)
     rot->z = atan2f(v3.y, v3.x);
 }
 
+// Wraps each component into [-PI, PI).
 void VecRadLimit(Vec* v)
 {
     f32* p = (f32*) v;
@@ -154,6 +166,7 @@ void VecRadLimit(Vec* v)
     }
 }
 
+// Angle between two vectors in radians (0 when either is zero length).
 f32 VecAngle(Vec* vec_a, Vec* vec_b)
 {
     f32 d = PSVECDotProduct(vec_a, vec_b);
@@ -164,11 +177,13 @@ f32 VecAngle(Vec* vec_a, Vec* vec_b)
     return acosf(d < -1.0f ? -1.0f : (d > 1.0f ? 1.0f : d));
 }
 
+// Elevation angle of v above the XZ plane (radians).
 f32 VecElevation(Vec* v)
 {
     return atan2f(v->y, SQRTF(v->x * v->x + v->z * v->z));
 }
 
+// Rotation of `rad` radians about `axis` through the point `pos`.
 void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad)
 {
     Vec p;
@@ -194,6 +209,7 @@ void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad)
     PSMTXConcat(t3, m, m);
 }
 
+// out = s * a + t * b.
 void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out)
 {
     Vec ta;
@@ -248,6 +264,7 @@ void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t)
     *t = l * k;
 }
 
+// Scales the three columns of m by s.
 void ScaleMatrix(Mtx m, Vec* s)
 {
     m[0][0] *= s->x;
@@ -261,6 +278,7 @@ void ScaleMatrix(Mtx m, Vec* s)
     m[2][2] *= s->z;
 }
 
+// Sets the translation column of m.
 void TransMatrix(Mtx m, Vec* pos)
 {
     m[0][3] = pos->x;
@@ -268,6 +286,8 @@ void TransMatrix(Mtx m, Vec* pos)
     m[2][3] = pos->z;
 }
 
+// The game's Euler rotation matrix (radians): m = Rz(rot.z) * Ry(rot.y) * Rx(rot.x), i.e. a
+// vector is rotated about X first, then Y, then Z; translation cleared. Used for every model angle.
 void RotMatrix(Mtx m, Vec* rot)
 {
     f32 sx;
@@ -306,6 +326,8 @@ void RotMatrix(Mtx m, Vec* rot)
     m[2][3] = 0.0f;
 }
 
+// RotMatrix using the game's fast SINF/COSF (zero angles short-cut); same matrix. Used by the
+// effect and parts code.
 void low_RotMatrix(Mtx m, Vec* rot)
 {
     f32 sx;
@@ -359,6 +381,8 @@ void low_RotMatrix(Mtx m, Vec* rot)
     m[2][3] = 0.0f;
 }
 
+// m = Ry * Rx * Rz through PSMTXRotRad: a vector is rotated about Z first, then X, then Y (the
+// effect speed spread uses it).
 void RotMatrixZXY(Mtx m, Vec* rot)
 {
     Mtx t;
@@ -383,6 +407,7 @@ f32 hermite(f32* p, f32* v, f32 t)
     return p[0] * h00 + p[1] * h01 + v[0] * h10 + v[1] * h11;
 }
 
+// n x m float matrix on the debug heap (rows allocated separately); NULL on failure.
 f32** malloc_2dim_array_f32(int n, int m)
 {
     f32** p;
@@ -409,6 +434,7 @@ f32** malloc_2dim_array_f32(int n, int m)
     return p;
 }
 
+// Frees a matrix from malloc_2dim_array_f32.
 void free_2dim_array_f32(int n, int m, f32** p)
 {
     int i;
@@ -499,6 +525,7 @@ int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out)
     return 1;
 }
 
+// Sign of the permutation (unused inline, only its constants survive).
 // Never called in this build. GCC 2.95 emits the string literal and the initializer templates of
 // the local aggregates of an unused inline function at parse time; the original object carries
 // exactly these bytes between de_Boor_Cox's and MtxNNLUDecomposition's constant pools (the
@@ -642,6 +669,7 @@ void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane
     PSVECAdd(p, out, out);
 }
 
+// x to the integer power n.
 f32 IPOW(f32 x, int n)
 {
     f32 r = 1.0f;
@@ -675,6 +703,7 @@ f32 SQRTF(f32 x)
     return r;
 }
 
+// Unused accuracy test of SINF/COSF (its strings survive in .rodata).
 // Never called in this build (see MtxNNPivotSign): the sin/cos accuracy and timing test whose
 // strings and local aggregate initializers sit between SQRTF's and COSF's constant pools.
 static inline void SinCosTest()
@@ -712,6 +741,7 @@ f32 Coeff[10] = {
 f32 powx[2] = {1.0f, 1.0f};
 f32 sum[2] = {0.0f, 0.0f};
 
+// sin(x) by a paired-single Taylor series after wrapping x into [-PI, PI).
 f32 SINF(f32 x)
 {
     f32 r;
@@ -748,6 +778,7 @@ f32 SINF(f32 x)
     return r;
 }
 
+// cos(x) by the same series.
 f32 COSF(f32 x)
 {
     f32 r;

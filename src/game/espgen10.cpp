@@ -1,3 +1,8 @@
+// game/espgen10: effect controller 10, the sequence player (D:/Bio4/Prog/espgen10.cpp). Plays an
+// effect sequence (EspSeqData: records sorted by Set_time) record by record: at each frame every
+// record whose Set_time equals the frame counter is spawned, either as an esp (Kind 0) or as a
+// nested controller (Kind 1). EstSet (est.cpp) creates these controllers. Also holds the shared
+// controller allocation helpers EspgenDataSet / SetEspCore / PullEspEspgen.
 #include "atari.h"
 #include "light.h"
 #include "esp.h"
@@ -11,6 +16,9 @@ void espgen10_Move00(EspgenWork* w);
 void espgen10_Move01(EspgenWork* w);
 }
 
+// Spawns record `no` of the sequence: Kind 0 -> one esp via EspSeqSet (pos is passed only when
+// flag != 0), Kind 1 -> a controller via EspgenSeqSet. In event mode (Core_flg 0x1000) the parent
+// model comes from EspEvModList[Parent_no]. Returns 0 when the spawn failed (pool full / bad kind).
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* p8, int flag)
 {
@@ -57,6 +65,8 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
     }
     return ret;
 }
+// Fills the controller's EspInfo owner block: Core_flg = a, Call_no = b, Core_kind = c, Core_pEm = d,
+// owner = e (the ids EfmDelete / EspDelete use to find effects by owner).
 void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e)
 {
     w->info.Core_flg = a;
@@ -66,6 +76,8 @@ void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e)
     w->info.owner = e;
 }
 
+// Takes a free controller from the pool (front == 1: from the front, drawn first) and stamps the
+// owner info on it. Returns 0 when the pool is empty.
 int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front)
 {
     int ret;
@@ -81,6 +93,10 @@ int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front
     return ret;
 }
 
+// One sequence frame: kills the controller when the model died or was reused; rebuilds Mat from the
+// parts (or Offset/Ang for 0xFE) unless Flg bit 0 says it is fixed; then spawns every record whose
+// Set_time == Time_cnt (records must be sorted, otherwise "no SORT" error) and ends the controller
+// after the last record.
 void espgen10_Update(EspgenWork* w)
 {
     Espgen10Work* p = (Espgen10Work*) w->work;
@@ -158,17 +174,20 @@ void espgen10_Update(EspgenWork* w)
     p->Time_cnt++;
 }
 
+// Step 0 of Espgen10MoveTbl: first frame, then step 1.
 void espgen10_Move00(EspgenWork* w)
 {
     espgen10_Update(w);
     w->step = 1;
 }
 
+// Step 1 of Espgen10MoveTbl: steady state.
 void espgen10_Move01(EspgenWork* w)
 {
     espgen10_Update(w);
 }
 
+// EspgenMoveTbl entry for controller type 0x10: dispatches on w->step.
 void Espgen10_Move(EspgenWork* w)
 {
     static void (*Espgen10MoveTbl[])(EspgenWork*) = {espgen10_Move00, espgen10_Move01};

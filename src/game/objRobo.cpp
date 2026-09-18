@@ -1,3 +1,8 @@
+// game/objRobo: object id 0x37, the giant Salazar statue of room r4-2 (D:/Bio4/Prog/objRobo.cpp).
+// R0 routines: waits on the gondola (its hands are switches the player shoots, TaskSwitchFront/
+// Back), walks the passage, smashes the door, then chases the player over the bridge whose plates
+// give way behind it (R0WalkBridge, Room_flg bits 0x12..0x1D); its feet carry whoever stands on
+// them (SatMove) and crush the player when they come down near him (WalkHitCk).
 #include "atari.h"
 #include "light.h"
 #include "dmg.h"
@@ -54,6 +59,7 @@ static inline GlobalWork* GRef(GlobalWork*& g) { return g; }
 // Reference read of a .sdata float: an unflagged MEM that stays below the preceding `w->fallX` store.
 static inline f32 FRef(f32& v) { return v; }
 
+// The room flag words (Room_flg) as a bit table for the bridge-plate flags.
 // Event flag words at pG->flags_174 (the sce_sys accessor): recomputed at every use, so the base
 // is reloaded after the hit counter store.
 static inline u32* eventFlags()
@@ -78,6 +84,7 @@ struct RoboHitTbl {
     f32 h;
 };
 
+// Creates the statue (id 0x37) at pos/rot with a 0x98-byte extra work, tall light volume; R0 0.
 cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -127,6 +134,8 @@ cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot)
     return obj;
 }
 
+// Dispatches RoboWork::r_no_0 through R0Tbl (0 Init, 1 WaitGondola, 2 WalkPassage, 3 WaitDoor,
+// 4 WalkBridge, 5 WaitBreak, 6 WaitDie, 7 Event).
 void cObjRobo::move()
 {
     static void (*R0Tbl[])(cObjRobo*) = {
@@ -137,6 +146,7 @@ void cObjRobo::move()
     R0Tbl[robo.r_no_0](this);
 }
 
+// Event start: the statue keeps moving during the event in the Event routine.
 void cObjRobo::SetBeginEvent()
 {
     RoboWork* w = &robo;
@@ -146,11 +156,16 @@ void cObjRobo::SetBeginEvent()
     w->step = 0;
 }
 
+// Event end: normal suspend behaviour again (the room sets the next routine).
 void cObjRobo::SetEndEvent()
 {
     setNoSuspend(0);
 }
 
+// R0 0: idle motion; creates the two foot SAT/EAT collisions and the body EAT (room archive
+// entries 5 / 0x12), two dummy scroll objects carrying the hand scenario areas 0x26/0x27, the hand
+// switch scenario callbacks (areas 3/4 -> TaskSwitchBack/Front), the 14 cEmHit damage boxes
+// (RoboHitTbl), and picks R0 1 (gondola wait) or 7 by room flag 9.
 void cObjRobo::R0Init(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -229,6 +244,9 @@ void cObjRobo::R0Init(cObjRobo* robo)
     }
 }
 
+// R0 1: the statue idles on the gondola (motion 0x62 with its sequence; foot stomp sounds on the
+// motion events), moves the player and the Ganados standing on its feet with them (SatMove), the
+// shot hand boxes (hit 12/13) start the hand switch tasks, and every hit box shows sparks when shot.
 void cObjRobo::R0WaitGondola(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -289,6 +307,8 @@ void cObjRobo::R0WaitGondola(cObjRobo* robo)
     }
 }
 
+// R0 2: walks the passage (walk motion 0x25) with the dust effect and step hit checks until x <=
+// -60000, where it is clamped.
 void cObjRobo::R0WalkPassage(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -313,6 +333,8 @@ void cObjRobo::R0WalkPassage(cObjRobo* robo)
     robo->partsWorldCalc();
 }
 
+// R0 3: walks up to the door (x -55598), then the door-smash motion 0x5C with its effect and sounds
+// (Room_flg[0] 0x10000 = door broken).
 void cObjRobo::R0WaitDoor(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -358,6 +380,10 @@ void cObjRobo::R0WaitDoor(cObjRobo* robo)
     robo->partsWorldCalc();
 }
 
+// R0 4: the bridge chase from BridgeStartX: walks with step hit checks until it reaches the first
+// bridge plate, then falls through (motion 0x63, sound at frames 10 and 90) while the fall point
+// advances 50/frame over the six plates: each plate's flag (0x12..0x17) is set, its effect swapped
+// (est 3..8 -> 0x17..0x1C) and 15 frames later the plate-gone flag (0x18..0x1D).
 void cObjRobo::R0WalkBridge(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -451,6 +477,7 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
     robo->partsWorldCalc();
 }
 
+// R0 5: broken: plays the idle motion 0x3C.
 void cObjRobo::R0WaitBreak(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -463,6 +490,7 @@ void cObjRobo::R0WaitBreak(cObjRobo* robo)
     robo->partsWorldCalc();
 }
 
+// R0 6: dying: plays the idle motion 0x3C.
 void cObjRobo::R0WaitDie(cObjRobo* robo)
 {
     RoboWork* w = &robo->robo;
@@ -475,12 +503,15 @@ void cObjRobo::R0WaitDie(cObjRobo* robo)
     robo->partsWorldCalc();
 }
 
+// R0 7: during an event: only advances the motion set by the event.
 void cObjRobo::R0Event(cObjRobo* robo)
 {
     MotionMove(robo, 0);
     robo->partsWorldCalc();
 }
 
+// One frame of walking: applies the motion's root movement, step sounds on motion events 4/8, and
+// on the foot-down events 1/2 the dust effect plus (hitCk) the crush check on the player.
 // One walk frame: keep the statue on its line, play the step SEs / effects of the motion events
 // and (hitCk) check whether a foot caught the player.
 void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
@@ -530,6 +561,9 @@ void cObjRobo::WalkSequence(cObjRobo* robo, int hitCk)
     }
 }
 
+// Scenario task (front hand switch shot / area 4): rotates the right hand parts (0x16) closed over
+// 15 frames, plays the hand motion 0x61, then opens it and returns to idle; Room_flg[0]
+// 0x80000000 while running, 0x8000 = hand closed.
 // Scenario task: the front arm swings down (or back up) over 15 frames.
 // Loop shapes (both tasks): the down arm sets `range = to` in the for-init (a preheader copy, LUID
 // between `j = 0` and gcse's `&robo->pMotion` insertion: `fmr` before `lfd`/`addi`), the up arm
@@ -584,6 +618,8 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     SceAtSetEnable(4, 1);
 }
 
+// Scenario task (back hand switch / area 3): the same for the left hand parts (0x15) with motion
+// 0x22; flags 0x40000000 / 0x4000.
 // Scenario task: the back arm.
 void cObjRobo::TaskSwitchBack(cObjRobo* robo)
 {
@@ -634,6 +670,7 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
     SceAtSetEnable(3, 1);
 }
 
+// (Unused) v * 100 + 10 degrees to radians.
 // Dead-stripped in the original: only their constant pool / string survive in .rodata.
 static f32 roboDegToRad(f32 v)
 {
@@ -643,11 +680,14 @@ static f32 roboDegToRad(f32 v)
     return x * (PI / 180.0f);
 }
 
+// (Unused) error message for a missing scenario area.
 static void roboSceAtCk()
 {
     pLog->err(0, 0, "move : SceAt no create");
 }
 
+// A foot came down: when the living player is within RoboHitRadius (6000) of the statue, raises
+// Room_flg[1] 0x80000000 (the room kills him) and returns 1.
 // The player is under a foot: flag the death.
 int cObjRobo::WalkHitCk(cObjRobo* robo)
 {
@@ -670,6 +710,7 @@ int cObjRobo::WalkHitCk(cObjRobo* robo)
     return 0;
 }
 
+// (Unused) helper: a * 1000, -3000 when zero.
 static f32 roboDead1(f32 a)
 {
     f32 r = a * 1000.0f;
@@ -680,6 +721,7 @@ static f32 roboDead1(f32 a)
     return r;
 }
 
+// (Unused) helper: a - 1000 when positive, else a * 1000.
 static f32 roboDead2(f32 a)
 {
     if (a > 0.0f) {
@@ -688,6 +730,9 @@ static f32 roboDead2(f32 a)
     return a * 1000.0f;
 }
 
+// Moves the foot collision `side` (0 right / 1 left) to the foot position (2000 in -x) and carries
+// the player (unless flags_420 0x100; the camera quake offset follows) and the Ganados standing
+// on it by the foot's displacement; also moves the hand-area dummy object.
 // Move the collision pieces of one side to the foot at `pos` and push the player / enemies
 // standing on it along.
 void cObjRobo::SatMove(cObjRobo* robo, Vec* pos, int side)
@@ -734,7 +779,7 @@ void cObjRobo::SatMove(cObjRobo* robo, Vec* pos, int side)
     }
 }
 
-// `em` stands within 100 of the foot at `pos`: move it by `d`. Returns 1 when it did.
+// `em` stands within 1000 of the foot at `pos`: move it by `d`. Returns 1 when it did.
 int cObjRobo::SatMoveSub(cModel* em, Vec* pos, Vec* pVecMov)
 {
     Vec t;
