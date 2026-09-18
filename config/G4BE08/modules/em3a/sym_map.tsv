@@ -47,8 +47,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000094	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_94	lbl_em3a_rodata_94
 .rodata	0x00000098	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_98	lbl_em3a_rodata_98
 .rodata	0x0000009C	0x1C	em3a/em3a.cpp	local	lbl_em3a_rodata_9C	lbl_em3a_rodata_9C
-.rodata	0x000000B8	0xC	em3a/em3a.cpp	local	lbl_em3a_rodata_B8	lbl_em3a_rodata_B8
-.rodata	0x000000C4	0xC	em3a/em3a.cpp	local	lbl_em3a_rodata_C4	lbl_em3a_rodata_C4
+.rodata	0x000000B8	0xC	em3a/em3a.cpp	local	ofs.432	ofs.432
+.rodata	0x000000C4	0xC	em3a/em3a.cpp	local	size.433	size.433
 .rodata	0x000000D0	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_D0	lbl_em3a_rodata_D0
 .rodata	0x000000D4	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_D4	lbl_em3a_rodata_D4
 .rodata	0x000000D8	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_D8	lbl_em3a_rodata_D8
@@ -182,9 +182,9 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000002D8	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_2D8	lbl_em3a_rodata_2D8
 .rodata	0x000002DC	0x4	em3a/em3a.cpp	local	lbl_em3a_rodata_2DC	lbl_em3a_rodata_2DC
 .rodata	0x000002E0	0xD0	em3a/em3a.cpp	local	lbl_em3a_rodata_2E0	lbl_em3a_rodata_2E0
-.rodata	0x000003B0	0x60	em3a/em3a.cpp	global	lbl_em3a_rodata_3B0	lbl_em3a_rodata_3B0
-.rodata	0x00000410	0x28	em3a/em3a.cpp	global	lbl_em3a_rodata_410	lbl_em3a_rodata_410
-.data	0x00000000	0x10	em3a/em3a.cpp	global	lbl_em3a_data_0	lbl_em3a_data_0
-.data	0x00000010	0x38	em3a/em3a.cpp	local	lbl_em3a_data_10	lbl_em3a_data_10
-.data	0x00000048	0xF0	em3a/em3a.cpp	local	lbl_em3a_data_48	lbl_em3a_data_48
-.data	0x00000138	0x10	em3a/em3a.cpp	local	lbl_em3a_data_138	lbl_em3a_data_138
+.rodata	0x000003B0	0x60	em3a/em3a.cpp	global	_vt.5cEm3a	_vt.5cEm3a
+.rodata	0x00000410	0x28	em3a/em3a.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x10	em3a/em3a.cpp	global	Em3a_R0_move_tbl	Em3a_R0_move_tbl
+.data	0x00000010	0x38	em3a/em3a.cpp	local	Em3a_R1_move_tbl	Em3a_R1_move_tbl
+.data	0x00000048	0xF0	em3a/em3a.cpp	local	em3a_flip_tbl	em3a_flip_tbl
+.data	0x00000138	0x10	em3a/em3a.cpp	local	em3a_atk_info	em3a_atk_info

@@ -36,8 +36,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000314C	0x4	em21/em21.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .rodata	0x00000050	0x4	em21/em21.cpp	local	lbl_em21_rodata_50	lbl_em21_rodata_50
 .rodata	0x00000054	0x1C	em21/em21.cpp	local	lbl_em21_rodata_54	lbl_em21_rodata_54
-.rodata	0x00000070	0xC	em21/em21.cpp	local	lbl_em21_rodata_70	lbl_em21_rodata_70
-.rodata	0x0000007C	0xC	em21/em21.cpp	local	lbl_em21_rodata_7C	lbl_em21_rodata_7C
+.rodata	0x00000070	0xC	em21/em21.cpp	local	ofs.333	ofs.333
+.rodata	0x0000007C	0xC	em21/em21.cpp	local	size.334	size.334
 .rodata	0x00000088	0x4	em21/em21.cpp	local	lbl_em21_rodata_88	lbl_em21_rodata_88
 .rodata	0x0000008C	0x4	em21/em21.cpp	local	lbl_em21_rodata_8C	lbl_em21_rodata_8C
 .rodata	0x00000090	0x4	em21/em21.cpp	local	lbl_em21_rodata_90	lbl_em21_rodata_90
@@ -139,12 +139,10 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000218	0x4	em21/em21.cpp	local	lbl_em21_rodata_218	lbl_em21_rodata_218
 .rodata	0x0000021C	0x4	em21/em21.cpp	local	lbl_em21_rodata_21C	lbl_em21_rodata_21C
 .rodata	0x00000220	0x8	em21/em21.cpp	local	lbl_em21_rodata_220	lbl_em21_rodata_220
-.rodata	0x00000228	0x58	em21/em21.cpp	global	lbl_em21_rodata_228	lbl_em21_rodata_228
-.rodata	0x00000280	0x28	em21/em21.cpp	global	lbl_em21_rodata_280	lbl_em21_rodata_280
-.data	0x00000000	0x14	em21/em21.cpp	global	lbl_em21_data_0	lbl_em21_data_0
-.data	0x00000014	0x24	em21/em21.cpp	local	lbl_em21_data_14	lbl_em21_data_14
-.data	0x00000038	0x64	em21/em21.cpp	local	lbl_em21_data_38	lbl_em21_data_38
-.data	0x0000009C	0xA4	em21/em21.cpp	local	lbl_em21_data_9C	lbl_em21_data_9C
-.data	0x00000140	0xC	em21/em21.cpp	local	lbl_em21_data_140	lbl_em21_data_140
-.data	0x0000014C	0x4C	em21/em21.cpp	local	lbl_em21_data_14C	lbl_em21_data_14C
+.rodata	0x00000228	0x58	em21/em21.cpp	global	_vt.5cEm21	_vt.5cEm21
+.rodata	0x00000280	0x28	em21/em21.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x14	em21/em21.cpp	global	Em21_R0_move_tbl	Em21_R0_move_tbl
+.data	0x00000014	0x24	em21/em21.cpp	local	Em21_R1_move_tbl	Em21_R1_move_tbl
+.data	0x00000038	0x64	em21/em21.cpp	local	em21_flip_tbl	em21_flip_tbl
+.data	0x0000009C	0xF8	em21/em21.cpp	local	em21_trap_cam	em21_trap_cam
 .bss	0x00000000	0x30	em21/em21.cpp	global	common_em21	common_em21

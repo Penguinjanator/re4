@@ -24,5 +24,5 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000080	0x1C	pl06/pl06.cpp	local	lbl_pl06_rodata_80	lbl_pl06_rodata_80
 .rodata	0x0000009C	0x34	pl06/pl06.cpp	local	lbl_pl06_rodata_9C	lbl_pl06_rodata_9C
 .rodata	0x000000D0	0xE8	pl06/pl06.cpp	local	lbl_pl06_rodata_D0	lbl_pl06_rodata_D0
-.rodata	0x000001B8	0xB8	pl06/pl06.cpp	global	lbl_pl06_rodata_1B8	lbl_pl06_rodata_1B8
-.rodata	0x00000270	0x28	pl06/pl06.cpp	global	lbl_pl06_rodata_270	lbl_pl06_rodata_270
+.rodata	0x000001B8	0xB8	pl06/pl06.cpp	global	_vt.7cPlHunk	_vt.7cPlHunk
+.rodata	0x00000270	0x28	pl06/pl06.cpp	global	_vt.5cUnit	_vt.5cUnit

@@ -25,8 +25,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x0000007C	0x4	em24/em24.cpp	local	lbl_em24_rodata_7C	lbl_em24_rodata_7C
 .rodata	0x00000080	0x4	em24/em24.cpp	local	lbl_em24_rodata_80	lbl_em24_rodata_80
 .rodata	0x00000084	0x1C	em24/em24.cpp	local	lbl_em24_rodata_84	lbl_em24_rodata_84
-.rodata	0x000000A0	0xC	em24/em24.cpp	local	lbl_em24_rodata_A0	lbl_em24_rodata_A0
-.rodata	0x000000AC	0xC	em24/em24.cpp	local	lbl_em24_rodata_AC	lbl_em24_rodata_AC
+.rodata	0x000000A0	0xC	em24/em24.cpp	local	ofs.393	ofs.393
+.rodata	0x000000AC	0xC	em24/em24.cpp	local	size.394	size.394
 .rodata	0x000000B8	0x8	em24/em24.cpp	local	lbl_em24_rodata_B8	lbl_em24_rodata_B8
 .rodata	0x000000C0	0x4	em24/em24.cpp	local	lbl_em24_rodata_C0	lbl_em24_rodata_C0
 .rodata	0x000000C4	0x4	em24/em24.cpp	local	lbl_em24_rodata_C4	lbl_em24_rodata_C4
@@ -66,8 +66,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x0000014C	0x4	em24/em24.cpp	local	lbl_em24_rodata_14C	lbl_em24_rodata_14C
 .rodata	0x00000150	0x4	em24/em24.cpp	local	lbl_em24_rodata_150	lbl_em24_rodata_150
 .rodata	0x00000154	0xD4	em24/em24.cpp	local	lbl_em24_rodata_154	lbl_em24_rodata_154
-.rodata	0x00000228	0x58	em24/em24.cpp	global	lbl_em24_rodata_228	lbl_em24_rodata_228
-.rodata	0x00000280	0x28	em24/em24.cpp	global	lbl_em24_rodata_280	lbl_em24_rodata_280
-.data	0x00000000	0x10	em24/em24.cpp	global	lbl_em24_data_0	lbl_em24_data_0
-.data	0x00000010	0x10	em24/em24.cpp	local	lbl_em24_data_10	lbl_em24_data_10
-.data	0x00000020	0x10	em24/em24.cpp	local	lbl_em24_data_20	lbl_em24_data_20
+.rodata	0x00000228	0x58	em24/em24.cpp	global	_vt.5cEm24	_vt.5cEm24
+.rodata	0x00000280	0x28	em24/em24.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x10	em24/em24.cpp	global	Em24_R0_move_tbl	Em24_R0_move_tbl
+.data	0x00000010	0x10	em24/em24.cpp	local	Em24_R1_move_tbl	Em24_R1_move_tbl
+.data	0x00000020	0x10	em24/em24.cpp	local	em24_atk_tbl	em24_atk_tbl

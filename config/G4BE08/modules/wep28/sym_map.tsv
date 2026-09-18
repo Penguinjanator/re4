@@ -73,8 +73,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000001E4	0x24	wep28/wep28.cpp	local	lbl_wep28_rodata_1E4	lbl_wep28_rodata_1E4
 .rodata	0x00000208	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_208	lbl_wep28_rodata_208
 .rodata	0x0000020C	0x18	wep28/wep28.cpp	local	lbl_wep28_rodata_20C	lbl_wep28_rodata_20C
-.rodata	0x00000224	0xC	wep28/wep28.cpp	local	lbl_wep28_rodata_224	lbl_wep28_rodata_224
-.rodata	0x00000230	0xC	wep28/wep28.cpp	local	lbl_wep28_rodata_230	lbl_wep28_rodata_230
+.rodata	0x00000224	0xC	wep28/wep28.cpp	local	p0.378	p0.378
+.rodata	0x00000230	0xC	wep28/wep28.cpp	local	p1.379	p1.379
 .rodata	0x0000023C	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_23C	lbl_wep28_rodata_23C
 .rodata	0x00000240	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_240	lbl_wep28_rodata_240
 .rodata	0x00000244	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_244	lbl_wep28_rodata_244
@@ -83,7 +83,7 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000250	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_250	lbl_wep28_rodata_250
 .rodata	0x00000254	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_254	lbl_wep28_rodata_254
 .rodata	0x00000258	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_258	lbl_wep28_rodata_258
-.rodata	0x0000025C	0xC	wep28/wep28.cpp	local	lbl_wep28_rodata_25C	lbl_wep28_rodata_25C
+.rodata	0x0000025C	0xC	wep28/wep28.cpp	local	dir.392	dir.392
 .rodata	0x00000268	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_268	lbl_wep28_rodata_268
 .rodata	0x0000026C	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_26C	lbl_wep28_rodata_26C
 .rodata	0x00000270	0x4	wep28/wep28.cpp	local	lbl_wep28_rodata_270	lbl_wep28_rodata_270
@@ -98,10 +98,10 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x0000032C	0x28	wep28/wep28.cpp	local	lbl_wep28_rodata_32C	lbl_wep28_rodata_32C
 .rodata	0x00000354	0x1C	wep28/wep28.cpp	local	lbl_wep28_rodata_354	lbl_wep28_rodata_354
 .rodata	0x00000370	0x20	wep28/wep28.cpp	local	lbl_wep28_rodata_370	lbl_wep28_rodata_370
-.rodata	0x00000390	0xB0	wep28/wep28.cpp	global	lbl_wep28_rodata_390	lbl_wep28_rodata_390
-.rodata	0x00000440	0xB0	wep28/wep28.cpp	global	lbl_wep28_rodata_440	lbl_wep28_rodata_440
-.rodata	0x000004F0	0x28	wep28/wep28.cpp	global	lbl_wep28_rodata_4F0	lbl_wep28_rodata_4F0
-.data	0x00000000	0x14	wep28/pl_bow.cpp	global	lbl_wep28_data_0	lbl_wep28_data_0
-.data	0x00000014	0xC	wep28/pl_bow.cpp	local	lbl_wep28_data_14	lbl_wep28_data_14
-.data	0x00000020	0x14	wep28/pl_bow.cpp	local	lbl_wep28_data_20	lbl_wep28_data_20
-.data	0x00000034	0xC	wep28/pl_bow.cpp	local	lbl_wep28_data_34	lbl_wep28_data_34
+.rodata	0x00000390	0xB0	wep28/wep28.cpp	global	_vt.7cObjBow	_vt.7cObjBow
+.rodata	0x00000440	0xB0	wep28/wep28.cpp	global	_vt.9cObjAllow	_vt.9cObjAllow
+.rodata	0x000004F0	0x28	wep28/wep28.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x14	wep28/pl_bow.cpp	global	func_tbl.366	func_tbl.366
+.data	0x00000014	0xC	wep28/pl_bow.cpp	local	func_tbl.370	func_tbl.370
+.data	0x00000020	0x14	wep28/pl_bow.cpp	local	func_tbl.383	func_tbl.383
+.data	0x00000034	0xC	wep28/pl_bow.cpp	local	func_tbl.402	func_tbl.402

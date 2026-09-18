@@ -65,8 +65,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00004410	0x48	em25/em25.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x00004458	0x4	em25/em25.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .rodata	0x000000AC	0x1C	em25/em25.cpp	local	lbl_em25_rodata_AC	lbl_em25_rodata_AC
-.rodata	0x000000C8	0xC	em25/em25.cpp	local	lbl_em25_rodata_C8	lbl_em25_rodata_C8
-.rodata	0x000000D4	0xC	em25/em25.cpp	local	lbl_em25_rodata_D4	lbl_em25_rodata_D4
+.rodata	0x000000C8	0xC	em25/em25.cpp	local	ofs.432	ofs.432
+.rodata	0x000000D4	0xC	em25/em25.cpp	local	size.433	size.433
 .rodata	0x000000E0	0x4	em25/em25.cpp	local	lbl_em25_rodata_E0	lbl_em25_rodata_E0
 .rodata	0x000000E4	0x4	em25/em25.cpp	local	lbl_em25_rodata_E4	lbl_em25_rodata_E4
 .rodata	0x000000E8	0x4	em25/em25.cpp	local	lbl_em25_rodata_E8	lbl_em25_rodata_E8
@@ -177,13 +177,14 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000002B4	0x4	em25/em25.cpp	local	lbl_em25_rodata_2B4	lbl_em25_rodata_2B4
 .rodata	0x000002B8	0x4	em25/em25.cpp	local	lbl_em25_rodata_2B8	lbl_em25_rodata_2B8
 .rodata	0x000002BC	0xD4	em25/em25.cpp	local	lbl_em25_rodata_2BC	lbl_em25_rodata_2BC
-.rodata	0x00000390	0xD8	em25/em25.cpp	global	lbl_em25_rodata_390	lbl_em25_rodata_390
-.rodata	0x00000468	0x28	em25/em25.cpp	global	lbl_em25_rodata_468	lbl_em25_rodata_468
-.data	0x00000000	0x14	em25/em25.cpp	global	lbl_em25_data_0	lbl_em25_data_0
-.data	0x00000014	0x60	em25/em25.cpp	local	lbl_em25_data_14	lbl_em25_data_14
-.data	0x00000074	0x14	em25/em25.cpp	local	lbl_em25_data_74	lbl_em25_data_74
-.data	0x00000088	0xC	em25/em25.cpp	local	lbl_em25_data_88	lbl_em25_data_88
-.data	0x00000094	0xA0	em25/em25.cpp	local	lbl_em25_data_94	lbl_em25_data_94
-.data	0x00000134	0x20	em25/em25.cpp	local	lbl_em25_data_134	lbl_em25_data_134
-.data	0x00000154	0x14	em25/em25.cpp	local	lbl_em25_data_154	lbl_em25_data_154
+.rodata	0x00000390	0xD8	em25/em25.cpp	global	_vt.5cEm25	_vt.5cEm25
+.rodata	0x00000468	0x28	em25/em25.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x14	em25/em25.cpp	global	Em25_R0_move_tbl	Em25_R0_move_tbl
+.data	0x00000014	0x60	em25/em25.cpp	local	Em25_R1_move_tbl	Em25_R1_move_tbl
+.data	0x00000074	0x14	em25/em25.cpp	local	Em25_R2_move_tbl	Em25_R2_move_tbl
+.data	0x00000088	0xC	em25/em25.cpp	local	Em25_R3_move_tbl	Em25_R3_move_tbl
+.data	0x00000094	0xA0	em25/em25.cpp	local	em25_flip_tbl	em25_flip_tbl
+.data	0x00000134	0x20	em25/em25.cpp	local	em25_atk_tbl	em25_atk_tbl
+.data	0x00000154	0x10	em25/em25.cpp	local	em25_poison_atk	em25_poison_atk
+.data	0x00000164	0x4	em25/em25.cpp	local	em25_atk_pad	em25_atk_pad
 .bss	0x00000000	0x34	em25/em25.cpp	global	common_em25	common_em25

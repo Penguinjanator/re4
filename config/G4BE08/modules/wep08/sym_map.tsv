@@ -89,8 +89,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000001B0	0x48	wep08/pl_shotgun.cpp	local	lbl_wep08_rodata_1B0	lbl_wep08_rodata_1B0
 .rodata	0x0000024C	0x24	wep08/wep08.cpp	local	lbl_wep08_rodata_24C	lbl_wep08_rodata_24C
 .rodata	0x00000270	0x1C	wep08/wep08.cpp	local	lbl_wep08_rodata_270	lbl_wep08_rodata_270
-.rodata	0x0000028C	0xC	wep08/wep08.cpp	local	lbl_wep08_rodata_28C	lbl_wep08_rodata_28C
-.rodata	0x00000298	0xC	wep08/wep08.cpp	local	lbl_wep08_rodata_298	lbl_wep08_rodata_298
+.rodata	0x0000028C	0xC	wep08/wep08.cpp	local	p0.372	p0.372
+.rodata	0x00000298	0xC	wep08/wep08.cpp	local	p1.373	p1.373
 .rodata	0x000002A4	0x4	wep08/wep08.cpp	local	lbl_wep08_rodata_2A4	lbl_wep08_rodata_2A4
 .rodata	0x000002A8	0x4	wep08/wep08.cpp	local	lbl_wep08_rodata_2A8	lbl_wep08_rodata_2A8
 .rodata	0x000002AC	0x4	wep08/wep08.cpp	local	lbl_wep08_rodata_2AC	lbl_wep08_rodata_2AC
@@ -115,9 +115,9 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000003A4	0x28	wep08/wep08.cpp	local	lbl_wep08_rodata_3A4	lbl_wep08_rodata_3A4
 .rodata	0x000003CC	0x1C	wep08/wep08.cpp	local	lbl_wep08_rodata_3CC	lbl_wep08_rodata_3CC
 .rodata	0x000003E8	0x20	wep08/wep08.cpp	local	lbl_wep08_rodata_3E8	lbl_wep08_rodata_3E8
-.rodata	0x00000408	0xB0	wep08/wep08.cpp	global	lbl_wep08_rodata_408	lbl_wep08_rodata_408
-.rodata	0x000004B8	0x28	wep08/wep08.cpp	global	lbl_wep08_rodata_4B8	lbl_wep08_rodata_4B8
-.data	0x00000000	0x14	wep08/pl_shotgun.cpp	global	lbl_wep08_data_0	lbl_wep08_data_0
-.data	0x00000014	0xC	wep08/pl_shotgun.cpp	local	lbl_wep08_data_14	lbl_wep08_data_14
-.data	0x00000020	0x14	wep08/pl_shotgun.cpp	local	lbl_wep08_data_20	lbl_wep08_data_20
-.data	0x00000034	0xC	wep08/pl_shotgun.cpp	local	lbl_wep08_data_34	lbl_wep08_data_34
+.rodata	0x00000408	0xB0	wep08/wep08.cpp	global	_vt.11cObjStriker	_vt.11cObjStriker
+.rodata	0x000004B8	0x28	wep08/wep08.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x14	wep08/pl_shotgun.cpp	global	func_tbl.345	func_tbl.345
+.data	0x00000014	0xC	wep08/pl_shotgun.cpp	local	func_tbl.349	func_tbl.349
+.data	0x00000020	0x14	wep08/pl_shotgun.cpp	local	func_tbl.362	func_tbl.362
+.data	0x00000034	0xC	wep08/pl_shotgun.cpp	local	func_tbl.381	func_tbl.381

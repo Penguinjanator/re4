@@ -25,5 +25,5 @@ lbl_pl06_rodata_70 = .rodata:0x00000070; // type:object size:0xD scope:local dat
 lbl_pl06_rodata_80 = .rodata:0x00000080; // type:object size:0x19 scope:local data:string
 lbl_pl06_rodata_9C = .rodata:0x0000009C; // type:object size:0x32 scope:local data:string
 lbl_pl06_rodata_D0 = .rodata:0x000000D0; // type:object size:0xE8 scope:local
-lbl_pl06_rodata_1B8 = .rodata:0x000001B8; // type:object size:0xB8 scope:global
-lbl_pl06_rodata_270 = .rodata:0x00000270; // type:object size:0x28 scope:global
+_vt.7cPlHunk = .rodata:0x000001B8; // type:object size:0xB8 scope:global
+_vt.5cUnit = .rodata:0x00000270; // type:object size:0x28 scope:global
