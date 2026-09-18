@@ -35,9 +35,9 @@ struct MerchantData {
     STOCK_INFO stock;  // 0x000
     LEVEL_INFO level;  // 0x200
     s8 favor;          // 0x300  0..100
-    u8 x301;
+    u8 study_num;
     s8 discount;       // 0x302  percent off the selling price
-    u8 x303;
+    u8 bonus_flag;
 };                     // 0x304
 
 // Price table entry (6 bytes: sell / exercise / item price tables); tables end with id 0xFFFF.
@@ -59,21 +59,21 @@ struct LevelPrice {
 
 // Merchant personality constants (merchant_info_A).
 struct MerchantInfo {
-    u32 x0;
-    s8 x4;
-    s8 x5;
-    s8 x6;
+    u32 id;
+    s8 shift_Discount;
+    s8 shift_Recommend;
+    s8 shift_Bonus;
     s8 buyFavor;   // 0x07  favor change per purchase
     s32 threshold;   // 0x08  sell points from which sellFavorBig applies
     u8 sellFavorBig;   // 0x0C
     u8 sellFavor;      // 0x0D
-    u8 xE;
-    u8 xF;
-    u8 x10;
-    u8 x11;
-    u8 x12;
-    u8 x13;
-    u8 x14;
+    u8 m_off_ratio_first;
+    u8 m_off_ratio_good;
+    u8 m_off_ratio_normal;
+    u8 m_off_ratio_bad;
+    u8 m_win_ratio_good;
+    u8 m_win_ratio_normal;
+    u8 m_win_ratio_bad;
 };
 
 // The merchant selected for the current room (merchantChar).
@@ -100,9 +100,9 @@ public:
     STOCK_INFO m_stock;        // 0x010
     LEVEL_INFO level;        // 0x210
     s8 favor;                // 0x310
-    u8 x311;
+    u8 m_study_num;
     s8 discount;             // 0x312
-    u8 x313;
+    u8 m_bonus_flag;
     u8 exerciseNum;          // 0x314
     u8 sellingNum;           // 0x315
     u8 exerciseList[0xFF];   // 0x316  cItemMgr slot indexes of the items the player can sell

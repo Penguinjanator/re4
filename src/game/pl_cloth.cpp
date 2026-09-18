@@ -380,7 +380,7 @@ void testHairSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x302;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -417,7 +417,7 @@ void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.5f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -456,7 +456,7 @@ void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -498,7 +498,7 @@ void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x302;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -538,7 +538,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -577,7 +577,7 @@ void testSweaterSetGirl(cModel* pl, PlCloth* c)
     c->Move_rate = 0.5f;
     c->pModel = 0;
     c->Flag = 0x100;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
@@ -611,7 +611,7 @@ void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -737,7 +737,7 @@ void testHairSetLuis(cModel* pl, PlCloth* pCloth)
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
     pCloth->Flag = 0x302;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -775,7 +775,7 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     c->pModel = 0;
     c->Rate = rate;
     c->Flag = 0;
-    c->x54 = 0;
+    c->pPtbl = 0;
     if (evt) {
         c->Move_rate = rate;
         c->Bundle_num = 2;
@@ -816,7 +816,7 @@ void testHairSetAda(cModel* pl, PlCloth* c)
     c->Move_rate = 0.5f;
     c->pModel = 0;
     c->Flag = 0x302;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
@@ -852,7 +852,7 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     zero = 0.0f;
     c->Move_rate = 0.5f;
     c->Stretchy = 1.0f;
-    c->x54 = 0;
+    c->pPtbl = 0;
     c->pWindSin = adaRibbonWindS;
     c->pWindRate = adaRibbonWindR;
     c->pAtset = adaRibbonAt;

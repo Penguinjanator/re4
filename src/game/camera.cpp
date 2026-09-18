@@ -93,7 +93,7 @@ void CameraMove()
     Camera* cam = &pG->Cam;
 
     CamCtrl.Check();
-    if (!(pG->flags_170 & 0x40000000)) {
+    if (!(pG->Stop_flg & 0x40000000)) {
         CamCtrl.Move();
         if ((pG->flags_500C & 0x100) && !(pG->flags_60 & 0x10000000)) {
             pG->Cam = CamCtrl.camera;
@@ -102,7 +102,7 @@ void CameraMove()
             }
         }
         CamCtrl.x250 = 0;
-        if (!(pG->flags_170 & 0x10000)) {
+        if (!(pG->Stop_flg & 0x10000)) {
             QuakeMove();
         }
     }

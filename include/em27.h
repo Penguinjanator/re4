@@ -14,7 +14,7 @@ struct Em27Work {
     int Timer;            // 0x004 (0x3E4)  frames left in the current routine
     int upDown;           // 0x008 (0x3E8)  die: 1 = surfaced (bob), else frames until the next splash
     u8 pad_C[0x24 - 0xC];
-    f32 x24;              // 0x024 (0x404)  read by R1_Walk (never written here)
+    f32 L_go;              // 0x024 (0x404)  read by R1_Walk (never written here)
     u8 pad_28[0x40 - 0x28];
     Vec target;           // 0x040 (0x420)  swim target (10000 past the player, home, or a random point)
     u8 pad_4C[4];

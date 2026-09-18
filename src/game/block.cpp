@@ -681,7 +681,7 @@ void cBlock::checkCondition()
         return;
     }
     if (stopFlagSet == 1) {
-        pG->flags_170 = stopFlag;
+        pG->Stop_flg = stopFlag;
     }
     stopFlagSet = 0;
     ok = 1;
@@ -725,8 +725,8 @@ void cBlock::checkCondition()
         }
     }
     if (stopFlagSet == 1) {
-        BitSet(stopFlag, pG->flags_170);
-        pG->flags_170 = 0xFFFFFFFF;
+        BitSet(stopFlag, pG->Stop_flg);
+        pG->Stop_flg = 0xFFFFFFFF;
     }
 }
 
@@ -800,7 +800,7 @@ void cBlock::dispDebugInfo()
     const char* dataCmdName[5] = {"NONE", "MRAM_LOAD", "ARAM_LOAD", "CLEAR_DATA", "DEL_DATA"};
     const char* dataCondName[9] = {"NO_DATA", "MRAM_LOAD", "MRAM_OK", "ARAM_LOAD", "ARAM_OK", "ARAM_TO_MRAM", "MRAM_TO_ARAM", "ARAM_TO_ARAM", "MRAM_TO_MRAM"};
 
-    eprintf(40, 30, 0, 18, "[BLOCK INFO]  (now area:%d) stop_flg %08X", pG->AreaNo, pG->flags_170);
+    eprintf(40, 30, 0, 18, "[BLOCK INFO]  (now area:%d) stop_flg %08X", pG->AreaNo, pG->Stop_flg);
     eprintf(228, 58, 0, 18, "ADDR     DEST     ARG      SIZE");
     y = 58;
     for (i = 0; i < nBlock; i++) {

@@ -162,8 +162,8 @@ public:
     s32 m_mode;        // 0x70
     s8 rno0;        // 0x74
     s8 rno1;         // 0x75
-    u8 x76;
-    u8 x77;
+    u8 rno2;
+    u8 rno3;
 
     void updateSaveInfo(cCard* c);
     void init(int type, CardArc* data);
@@ -350,7 +350,7 @@ void cCard::inSlotCheck()
     switch (m_Rno1) {
     case 0:
         setMsgWindow(1, 1);
-        if (pG->x8 & 0x80) {
+        if (pG->CardStatus & 0x80) {
             cardMesSet(0x2D, 0, 0);
         } else {
             cardMesSet(0x26, 0, 0);
@@ -382,7 +382,7 @@ void cCard::inSlotCheck()
         if (ret == 0) {
         } else if (ret > 0) {
             m_Rno1++;
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 m_Rno1++;
             }
         } else if (ret < 0) {
@@ -419,7 +419,7 @@ void cCard::inSlotCheck()
                 break;
             }
             if (ret == 0) {
-                if (pG->x8 & 0x80) {
+                if (pG->CardStatus & 0x80) {
                     m_Rno1++;
                 } else {
                                         m_Rno0 = 2;
@@ -431,7 +431,7 @@ void cCard::inSlotCheck()
                 errorSet(ret);
             }
         } else {
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 m_Rno0 = 8;
             } else {
                 m_Rno0 = 2;
@@ -759,7 +759,7 @@ void cCard::loadMain()
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
         GameSaveSave(&GameSave, pSaveData, pG->game_mode);
-        BitOn(pG->x8, 4);
+        BitOn(pG->CardStatus, 4);
         BitOff(pG->System_flg, 0x200);
         setMsgWindow(1, 0);
                 m_Rno0++;
@@ -801,12 +801,12 @@ void cCard::makeSaveData()
     src = (u8*) d->textureHeader->data;
     memcpy(buf + SAVE_BANNER, src, 0x1800);
     U16Inc(pG->save_cnt);
-    if (!(pG->x8 & 0x60)) {
+    if (!(pG->CardStatus & 0x60)) {
         SetGameTime();
     }
-    if (pG->x8 & 0x20) {
+    if (pG->CardStatus & 0x20) {
         *(u32*) (buf + SAVE_HDR_MODE) = 2;
-    } else if (pG->x8 & 0x40) {
+    } else if (pG->CardStatus & 0x40) {
         *(u32*) (buf + SAVE_HDR_MODE) = 3;
     } else {
         *(u32*) (buf + SAVE_HDR_MODE) = 1;
@@ -912,7 +912,7 @@ void cCard::saveMain()
                 m_Rno1 = 5;
             }
         } else {
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 cardMesSet(0x27, 0, 0);
             }
             m_Rno1++;
@@ -1013,7 +1013,7 @@ void cCard::saveMain()
                 no = 0;
                 m_Rno1 = no;
             } else {
-                if (pG->x8 & 0x80) {
+                if (pG->CardStatus & 0x80) {
                     m_Rno1 = 0xB;
                     m_Timer = 0xF;
                 } else {
@@ -1066,7 +1066,7 @@ void cCard::saveMain()
                 m_Rno2 = 0;
                 m_Rno3 = 0;
             } else {
-                if (pG->x8 & 0x80) {
+                if (pG->CardStatus & 0x80) {
                     m_Rno1 = 0xB;
                     m_Timer = 0xF;
                 } else {
@@ -1124,12 +1124,12 @@ void cCard::exit()
     case 1:
         deleteAllMes();
         if (type == 2) {
-            BitOn(pG->x8, 0x80000000);
+            BitOn(pG->CardStatus, 0x80000000);
             systemVISetBlack(1);
             workDestroy();
             exitFlag = 1;
         } else {
-            if (!(pG->x8 & 0x80)) {
+            if (!(pG->CardStatus & 0x80)) {
                 c0 = 0;
                 c1 = 0xFF;
                 FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
@@ -1142,18 +1142,18 @@ void cCard::exit()
             break;
         }
         BitSet((u32&) dispFlag, 0);
-        if (!(pG->x8 & 0x80)) {
+        if (!(pG->CardStatus & 0x80)) {
             g_id->quit();
         }
         workDestroy();
-        pG->flags_170 = m_SPFbak;
+        pG->Stop_flg = m_SPFbak;
         TaskSignal(0);
-        if (!(pG->x8 & 0x80)) {
+        if (!(pG->CardStatus & 0x80)) {
             pG->Disp_flg = m_DPFbak;
             SndStrReq(m_SndId, 4, 200, 0);
             ScreenReSizeI(m_Width_bak, 448);
-            if (type != 0 || !(pG->x8 & 4)) {
-                if (!(pG->x8 & 0x10)) {
+            if (type != 0 || !(pG->CardStatus & 4)) {
+                if (!(pG->CardStatus & 0x10)) {
                     c0 = 0xFF;
                     c1 = 0;
                     FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
@@ -1167,7 +1167,7 @@ void cCard::exit()
                 SndRoomBgmMuteAll(0, -1);
             }
         }
-        BitOff(pG->x8, 0x7FFFFFF8);
+        BitOff(pG->CardStatus, 0x7FFFFFF8);
         MesData.ptr[0] = (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc);
         exitFlag = 1;
         break;
@@ -1514,7 +1514,7 @@ void cCard::errorDisp()
             // `attr = 0` in each arm (as in -0x20A): the arms then share a tail, jump1 cannot hoist
             // `mesNo = 1` above the branch (jump2 does, after sched1), and `cardcheck = 0` after the join
             // gets its own zero.
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 mesNo = 0x29;
                 attr = 0;
             } else {
@@ -1546,7 +1546,7 @@ void cCard::errorDisp()
         case -0x20A:
             if (type == 2) {
                 mesNo = 0x23;
-            } else if (pG->x8 & 0x80) {
+            } else if (pG->CardStatus & 0x80) {
                 mesNo = 0x2A;
                 attr = 0;
             } else {
@@ -1580,7 +1580,7 @@ void cCard::errorDisp()
             mesNo = 0x11;
             break;
         case 1:
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 mesNo = 0x2B;
             } else {
                 setMsgWindow(0, 1);
@@ -1596,7 +1596,7 @@ void cCard::errorDisp()
             return;
         }
         cardMesSet(mesNo, 0, 0x800000);
-        if (pG->x8 & 0x80) {
+        if (pG->CardStatus & 0x80) {
             cMes.mes[0].m_cur = 0;
         } else {
             cMes.mes[0].m_cur = 1;
@@ -1609,7 +1609,7 @@ void cCard::errorDisp()
             if (type == 2) {
                 CoreSeCall(4, 0, 0, 0, 0);
                 m_Rno0 = 3;
-            } else if (pG->x8 & 0x80) {
+            } else if (pG->CardStatus & 0x80) {
                 CoreSeCall(4, 0, 0, 0, 0);
                 m_Rno0 = 0;
             } else {
@@ -1625,7 +1625,7 @@ void cCard::errorDisp()
             if (type == 2) {
                 CoreSeCall(5, 0, 0, 0, 0);
                 m_Rno0 = 0;
-            } else if (pG->x8 & 0x80) {
+            } else if (pG->CardStatus & 0x80) {
                 CoreSeCall(5, 0, 0, 0, 0);
                 m_Rno0 = 4;
             } else {
@@ -1733,15 +1733,15 @@ int cCard::initialize(int type)
         }
     } else {
         if (type == 0) {
-            BitOff(pG->x8, 4);
+            BitOff(pG->CardStatus, 4);
         }
         heap = MemGetCurrentHeap();
         TaskSuspend(0);
-        if (pG->x8 & 0x80) {
+        if (pG->CardStatus & 0x80) {
             addr = (u32) pG->pOption;
         } else {
             addr = MemGetHeapStartAddr(heap);
-            if (!(pG->x8 & 8)) {
+            if (!(pG->CardStatus & 8)) {
                 c0 = 0;
                 c1 = 0xFF;
                 FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
@@ -1757,14 +1757,14 @@ int cCard::initialize(int type)
         if (m_DataSwap.SwapOut(addr, m_NeedMemSize, 0) == 0) {
             return 0;
         }
-        BitSet(m_SPFbak, pG->flags_170);
-        BitSet(pG->flags_170, 0xFFFFFFFF);
-        BitOff(pG->flags_170, 0x80000000);
-        BitOff(pG->flags_170, 0x40);
+        BitSet(m_SPFbak, pG->Stop_flg);
+        BitSet(pG->Stop_flg, 0xFFFFFFFF);
+        BitOff(pG->Stop_flg, 0x80000000);
+        BitOff(pG->Stop_flg, 0x40);
         if (initSub() == 0) {
             return 0;
         }
-        if (!(pG->x8 & 0x80)) {
+        if (!(pG->CardStatus & 0x80)) {
             SndPlayWork* s;
             int i;
             g_id->init(this->type, (CardArc*) m_IdDataAddr);
@@ -1807,7 +1807,7 @@ int cCard::initSub()
     }
     pSubData = (CardArc*) SndMem.sub_adr;
     calcTplAddr((TEXPalette*) (pSubData->ofs[0] + (u32) pSubData));
-    if (!(pG->x8 & 0x80)) {
+    if (!(pG->CardStatus & 0x80)) {
         void* addr;
         int req;
 #line 2170 "D:/Bio4/Prog/card.cpp"
@@ -1837,7 +1837,7 @@ int cCard::workAlloc()
         OSReport("System Savedata workarea alloc error!!\n");
         return 0;
     }
-    if (!(pG->x8 & 0x80)) {
+    if (!(pG->CardStatus & 0x80)) {
 #line 2205 "D:/Bio4/Prog/card.cpp"
         pSaveBuf = (u8*) MEM_CALLOC((saveBufSize + 0x1FFF) & ~0x1FFF, 1, 13);
         if (pSaveBuf == 0) {
@@ -1864,7 +1864,7 @@ u32 cCard::getUseMemSize()
     sysBufSize = SYS_SIZE;
     m_SysSize = 1;
     size = 0;
-    if (!(pGS->x8 & 0x80)) {
+    if (!(pGS->CardStatus & 0x80)) {
         saveBufSize = SAVE_SIZE;
         m_SaveSize = 8;
         if (Dvd.FileExistCheck(idpath, &size) < 0) {
@@ -2042,7 +2042,7 @@ void cCard::firstCheck10()
         break;
     case 2:
         *pSys = *(SystemWork*) (buf + SYS_WORK);
-        BitOn(pGS->x8, 1);
+        BitOn(pGS->CardStatus, 1);
         SndSetOutputMode(pSys->sound_mode, 1);
         m_Rno1++;
         break;
@@ -2106,7 +2106,7 @@ void cCard::firstCheck30()
 
 int CardCheckDone()
 {
-    return (pG->x8 & 0x80000000) != 0;
+    return (pG->CardStatus & 0x80000000) != 0;
 }
 
 void cCard::MainLoop(int arg)
@@ -2180,7 +2180,7 @@ int CardLoad()
     systemVISetBlack(0);
     TaskExec(1, (TaskFunc) CardMainTask, 0);
     TaskSleep(1);
-    if (pG->x8 & 4) {
+    if (pG->CardStatus & 4) {
         SndAllFadeOut();
         ret = 1;
     }
@@ -2190,19 +2190,19 @@ int CardLoad()
 void CardSave(int no, int f)
 {
     if (f & 2) {
-        BitOn(pG->x8, 8);
+        BitOn(pG->CardStatus, 8);
     }
     if (f & 4) {
-        BitOn(pG->x8, 0x10);
+        BitOn(pG->CardStatus, 0x10);
     }
     if (f & 8) {
-        BitOn(pG->x8, 0x20);
+        BitOn(pG->CardStatus, 0x20);
     }
     if (f & 0x10) {
-        BitOn(pG->x8, 0x40);
+        BitOn(pG->CardStatus, 0x40);
     }
     if (f & 0x20) {
-        BitOn(pG->x8, 0x98);
+        BitOn(pG->CardStatus, 0x98);
     }
     pG->snd_tbl_no = no;
     TaskExec(1, (TaskFunc) CardMainTask, 1);
@@ -2211,7 +2211,7 @@ void CardSave(int no, int f)
 
 void CardSysSave()
 {
-    BitOn(pG->x8, 0x98);
+    BitOn(pG->CardStatus, 0x98);
     TaskExec(1, (TaskFunc) CardMainTask, 1);
     TaskSleep(1);
 }
@@ -2219,7 +2219,7 @@ void CardSysSave()
 void CardFirstCheck()
 {
     if (pRK->valid != 0 && pRK->x3C == 1) {
-        BitOn(pG->x8, 0x80000000);
+        BitOn(pG->CardStatus, 0x80000000);
         TaskExit();
     }
     TaskChain((TaskFunc) CardMainTask, 2);
@@ -2994,7 +2994,7 @@ void cCard::screenTrans()
         debugInfoDisp(m_SlotNo, type);
     }
     eprintf(24, 16, 0, 0, "%02d%02d%02d%02d", m_Rno0, m_Rno1, m_Rno2, m_Rno3);
-    if (type != 2 && !(pG->x8 & 0x80)) {
+    if (type != 2 && !(pG->CardStatus & 0x80)) {
         g_id->move(this);
         g_id->m_IdSave.move();
         g_id->m_IdSave.trans();
@@ -3034,7 +3034,7 @@ void cCard::calcTplAddr(TEXPalette* tpl)
 void cCard::setMsgWindow(int a, int sw)
 {
     if (type != 2) {
-        if (pG->x8 & 0x80) {
+        if (pG->CardStatus & 0x80) {
             Cckpt.msgWindow(sw);
         } else {
             setMsgBG(a, sw);
@@ -3378,8 +3378,8 @@ void CardID::init(int type, CardArc* data)
     }
     rno0 = 0;
     rno1 = 0;
-    x76 = 0;
-    x77 = 0;
+    rno2 = 0;
+    rno3 = 0;
 }
 
 void CardID::move(cCard* pCard)

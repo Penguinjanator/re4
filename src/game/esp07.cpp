@@ -70,7 +70,7 @@ void Esp07_ChkGnd(cEsp07* esp, f32 floorY)
             }
             p = esp->m_Pos;
             p.y = floorY + 65.0f;
-            EstSet(0, -1, &p, &rot, w->GndEstOwner, w->GndEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
+            EstSet(0, -1, &p, &rot, w->GndEstOwner, w->GndEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.Core_pEm, NULL);
             if (w->EstCall != 2) {
                 PushEsp(esp);
                 return;
@@ -136,9 +136,9 @@ void Esp07_HitWall(cEsp07* esp)
                 rot.y = atan2f(esp->m_Speed.x, esp->m_Speed.z);
             }
             if (nrm.y > 0.98f) {
-                EstSet(0, -1, &esp->m_Pos, &rot, w->GndEstOwner, w->GndEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
+                EstSet(0, -1, &esp->m_Pos, &rot, w->GndEstOwner, w->GndEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.Core_pEm, NULL);
             } else {
-                EstSet(0, -1, &esp->m_Pos, &rot, w->WallEstOwner, w->WallEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.x8, NULL);
+                EstSet(0, -1, &esp->m_Pos, &rot, w->WallEstOwner, w->WallEstNo, esp->info.Core_flg, esp->info.Core_kind, esp->info.Core_pEm, NULL);
             }
             if (w->EstCall != 2) {
                 PushEsp(esp);

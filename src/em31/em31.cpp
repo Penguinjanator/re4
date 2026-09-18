@@ -701,13 +701,13 @@ static void em31_R0_Init(cEm31* em)
     EspDataLoad((u32) ARC(9), 0x29, 0);
     zero = 0;
     w->EffKindId = EspPullCoreKind();
-    w->x69C = 0.0f;
+    w->Neck_dir_y = 0.0f;
     w->Berserk_wait = 450;
     w->Be_flg = zero;
     w->Atk_wait = zero;
     w->Berserk_timer = zero;
     w->pPillar = (cObjPillar*) zero;
-    w->x8F8 = zero;
+    w->Str_seid = zero;
     w->pBody = (cEm31*) zero;
     w->pTen = (cEm31*) zero;
     switch (em->type) {
@@ -3182,7 +3182,7 @@ static void Em31ClothSet(cEm31* em, PlCloth* c)
     c->Stretchy = 1.0f;
     c->Move_rate = 0.0f;
     c->Flag = 0x40;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(em, (PenCloth*) c, 1000.0f);
 }
 
@@ -3211,7 +3211,7 @@ void Em31ClothSet2(cEm31* em, PlCloth* c)
     c->Stretchy = 1.0f;
     c->Move_rate = 0.0f;
     c->Flag = 0x40;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(em, (PenCloth*) c, 100.0f);
 }
 
@@ -3259,7 +3259,7 @@ void Em31ClothSet3(cEm31* em, PlCloth* c)
     c->Stretchy = 1.0f;
     c->Move_rate = 0.0f;
     c->Flag = 0x40;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(em, (PenCloth*) c, 100.0f);
 }
 
@@ -4861,7 +4861,7 @@ void em31PlHeadLost()
     EstSet((int) pPL, -1, 0, 0, 0x29, 0x27, 0, 0, (u32) pPL, 0);
     pPL->setHead(0);
     p = pPL->getPartsPtr(3);
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         ofs.x = 0.0f;
         ofs.y = 84.0f;
         ofs.z = 0.0f;

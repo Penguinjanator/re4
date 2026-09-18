@@ -290,7 +290,7 @@ void hitCheck(cPlayer* pl, int no, u32 flag)
     f32 len;
     cModel* parts;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     default:
         len = 750.0f;

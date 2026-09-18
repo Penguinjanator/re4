@@ -48,8 +48,8 @@ class cDbgWindowBase {
 public:
     u32 x;        // 0x00  window column
     u32 y;        // 0x04  window row
-    int x8;
-    int xC;
+    int m_wx;
+    int m_wy;
     int m_max_cx;    // 0x10  cursor wraps past this column
     int m_max_cy;    // 0x14  cursor wraps past this row
     int x18;

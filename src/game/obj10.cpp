@@ -225,9 +225,9 @@ int obj10AddSpeed(cWepItem* obj)
     }
     if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && !(pG->weapon_no == 0xB || pG->weapon_no == 0xC)) {
         obj->pos.y = wh;
-        if (!(w->flags7C & 8)) {
+        if (!(w->flag & 8)) {
             EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, 0, 0, 0);
-            w->flags7C |= 8;
+            w->flag |= 8;
             AddWaterPower(&obj->pos, 0.5f);
             switch (obj->type) {
             default:

@@ -548,7 +548,7 @@ int dmMotCk()
 {
     int max;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 1:
         max = 600;
         break;
@@ -560,7 +560,7 @@ int dmMotCk()
         max = 1200;
         break;
     }
-    if (pG->x4FB8 == 0 && (G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+    if (pG->pl_type == 0 && (G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
         return 1;
     }
     return (s16) pG->pl_life >= max * 2 / 3;
@@ -910,7 +910,7 @@ void cPlayer::seqSeCtrl()
 int cPlayer::isKamae()
 {
     if ((Key.on & 0x10) && (Key.on & 0x800)) {
-        if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 0 || pG->pl_type == 4) {
             return 1;
         }
     }
@@ -1047,7 +1047,7 @@ int cPlayer::getLifeLevel()
     s16 low;
     int ret;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         max = 1200;
         break;
@@ -1067,7 +1067,7 @@ int cPlayer::getLifeLevel()
         max = 1200;
         break;
     default:
-        pLog->err(0, 0, "cPlayer::getLifeLevel() UNKNOWN PL TYPE %d", pG->x4FB8);
+        pLog->err(0, 0, "cPlayer::getLifeLevel() UNKNOWN PL TYPE %d", pG->pl_type);
         return 2;
     }
     if ((s16) pG->pl_life > max * 2 / 3) {
@@ -1144,7 +1144,7 @@ void cPlayer::interrupt()
         face->x70 = 0.0f;
         face->x5C = 0.0f;
     }
-    if (pG->x4FB8 == 4 && (pG->flags_5018 & 0x00800000)) {
+    if (pG->pl_type == 4 && (pG->flags_5018 & 0x00800000)) {
         pG->flags_5018 &= ~0x00800000;
         x890 = 0;
         if (x894 == -1) {
@@ -1184,7 +1184,7 @@ int cPlayer::endCamera()
             CameraMove();
         }
         BitOff(flags_420, 4);
-        pG->flags_170 &= ~0x80000000;
+        pG->Stop_flg &= ~0x80000000;
         ret = 1;
     }
     if (flags_420 & 8) {
@@ -1279,7 +1279,7 @@ void cPlayer::endAction(int routine)
 // Motion speed of the player and the weapon (Leon only).
 void cPlayer::setSlow(f32 rate)
 {
-    if (pG->x4FB8 != 0) {
+    if (pG->pl_type != 0) {
         return;
     }
     MOTION(this)->Seq_speed = rate;
@@ -1290,7 +1290,7 @@ void cPlayer::setSlow(f32 rate)
 
 void cPlayer::moveEye()
 {
-    if (pG->x4FB8 == 3) {
+    if (pG->pl_type == 3) {
         return;
     }
     if ((s16) pG->pl_life <= 0) {

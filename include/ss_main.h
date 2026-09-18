@@ -350,7 +350,7 @@ public:
         TermSeq* seq; // 0x3C
         void* mes;    // 0x40
         int x44;
-        int x48;
+        int _rno;
     };
     struct TermSub {
         u8 pad_0[0x14];

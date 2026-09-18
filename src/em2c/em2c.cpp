@@ -5487,7 +5487,7 @@ void em2cClothSet(cEm2c* em)
         w->cloth.Move_rate = z;
     }
     w->cloth.Flag = zero;
-    w->cloth.x54 = zero;
+    w->cloth.pPtbl = zero;
     PenClothSet(em, (PenCloth*) &w->cloth, 100.0f);
 }
 

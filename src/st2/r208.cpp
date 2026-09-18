@@ -792,7 +792,7 @@ static void asl_yubisasi()
     }
     RsfSet(G_ROOM_ID, 14);
     SceEventStart(1);
-    BitOn(pG->flags_170, 0x80000000);
+    BitOn(pG->Stop_flg, 0x80000000);
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);
     {
@@ -837,7 +837,7 @@ static void asl_yubisasi()
         SceSleep(1);
     }
     CamCtrl.Comeback(0);
-    pG->flags_170 &= ~0x80000000;
+    pG->Stop_flg &= ~0x80000000;
     SceEventEnd(0);
     pPL->setNoSuspend(0);
     pSUB->setNoSuspend(0);

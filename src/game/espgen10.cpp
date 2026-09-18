@@ -62,7 +62,7 @@ void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e)
     w->info.Core_flg = a;
     w->info.Core_kind = c;
     w->info.Call_no = b;
-    w->info.x8 = d;
+    w->info.Core_pEm = d;
     w->info.owner = e;
 }
 

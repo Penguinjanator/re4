@@ -370,11 +370,11 @@ static void gameResult()
     BitOff(pG->Disp_flg, 0x2000);
     BitOff(pG->Disp_flg, 0x800);
     BitOff(pG->Disp_flg, 0x10000);
-    stop_bak = pG->flags_170;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_170, 0x40);
+    stop_bak = pG->Stop_flg;
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x80000000);
+    BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     systemVISetBlack(1);
     FadeKill(2);
@@ -453,7 +453,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }

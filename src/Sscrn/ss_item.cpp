@@ -172,7 +172,7 @@ void SsItemInit::move(SUB_SCREEN* wk)
             break;
         }
         if (wk->menu_old == 2) {
-            wk->x44 = 1;
+            wk->wait_cnt = 1;
         }
         IdSubErase();
         IdNumErase();
@@ -212,7 +212,7 @@ void SsItemInit::move(SUB_SCREEN* wk)
         } else {
             sscrnModelClear(wk);
         }
-        wk->x44 = 0;
+        wk->wait_cnt = 0;
         state++;
     case 3: {
         int stat;
@@ -947,8 +947,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
             case 1:
                 // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
                 // and load stay below it (the store is on the critical path).
-                PSet((void*&) wk->x24C, MapMgr.getWork(2));
-                PSet((void*&) wk->x248, item_sel);
+                PSet((void*&) wk->p_exam_model, MapMgr.getWork(2));
+                PSet((void*&) wk->p_exam_item, item_sel);
                 if (item_sel->id == 0xA2) {
                     state = 2;
                     return;

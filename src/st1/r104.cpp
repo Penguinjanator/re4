@@ -831,7 +831,7 @@ static void Evt_R104S00_Func(Event* e)
             }
             break;
         case 0x1E:
-            BitOff(pG->flags_170, 0x100);
+            BitOff(pG->Stop_flg, 0x100);
             if (!(pG->flags_174 & 0x80000000)) {
                 BitOff(pG->Disp_flg, 0x800);
                 if (!(pG->flags_174 & 0x04000000)) {

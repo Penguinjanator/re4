@@ -885,7 +885,7 @@ void CameraControl::areaHitCheck()
     if (SubCharGetStatus() & 0x20000000) {
         attr = 2;
     } else {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
             break;
         case 1:

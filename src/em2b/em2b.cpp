@@ -464,11 +464,11 @@ cEm2b::~cEm2b()
     if (w->pObj4C4 && w->pObj4C4->isAlive()) {
         ObjMgr.destroy(w->pObj4C4);
     }
-    if (w->pObj4C8 && w->pObj4C8->isAlive()) {
-        ObjMgr.destroy(w->pObj4C8);
+    if (w->pChain2 && w->pChain2->isAlive()) {
+        ObjMgr.destroy(w->pChain2);
     }
-    if (w->pObj4CC && w->pObj4CC->isAlive()) {
-        ObjMgr.destroy(w->pObj4CC);
+    if (w->pChain3 && w->pChain3->isAlive()) {
+        ObjMgr.destroy(w->pChain3);
     }
 }
 
@@ -506,18 +506,18 @@ void cEm2b::setNoSuspend(int on)
             w->pObj4C4 = 0;
         }
     }
-    if (w->pObj4C8) {
-        if (w->pObj4C8->isAlive()) {
-            w->pObj4C8->setNoSuspend(on);
+    if (w->pChain2) {
+        if (w->pChain2->isAlive()) {
+            w->pChain2->setNoSuspend(on);
         } else {
-            w->pObj4C8 = 0;
+            w->pChain2 = 0;
         }
     }
-    if (w->pObj4CC) {
-        if (w->pObj4CC->isAlive()) {
-            w->pObj4CC->setNoSuspend(on);
+    if (w->pChain3) {
+        if (w->pChain3->isAlive()) {
+            w->pChain3->setNoSuspend(on);
         } else {
-            w->pObj4CC = 0;
+            w->pChain3 = 0;
         }
     }
 }
@@ -755,8 +755,8 @@ void cEm2b::move()
     }
     flags_3C8 &= ~0x10;
     w->Be_flg &= ~0x6D5B;
-    if (w->timer614) {
-        w->timer614--;
+    if (w->Rock_wait) {
+        w->Rock_wait--;
     }
     if (w->Atk_wait) {
         w->Atk_wait--;
@@ -990,11 +990,11 @@ static void em2b_R0_Init(cEm2b* em)
     w->pTree = 0;
     w->pTreeBrk = 0;
     w->No_go_sub_timer = zero;
-    w->pTarget508 = 0;
+    w->pTreeTarget = 0;
     w->pRock = 0;
     w->pGoto = 0;
     w->Total_damage = zero;
-    w->timer614 = zero;
+    w->Rock_wait = zero;
     w->Atk_wait = zero;
     w->pFriend = 0;
     w->Dash_wait = zero;
@@ -1018,8 +1018,8 @@ static void em2b_R0_Init(cEm2b* em)
         }
     }
     w->pObj4C4 = 0;
-    w->pObj4C8 = 0;
-    w->pObj4CC = 0;
+    w->pChain2 = 0;
+    w->pChain3 = 0;
     if (em->type == 0) {
         em2bShortRopeSet(em);
     }
@@ -2140,8 +2140,8 @@ static void em2b_R1_GetTree(cEm2b* em)
         cModel* p;
         f32 d;
 
-        w->pTree = (cEmTree*) w->pTarget508;
-        w->pTarget508 = 0;
+        w->pTree = (cEmTree*) w->pTreeTarget;
+        w->pTreeTarget = 0;
         tree = w->pTree;
         em->ang.y = GetXZAngle(&em->pos, &tree->pos);
         p = tree->getPartsPtr(1);
@@ -3889,11 +3889,11 @@ static void em2b_R1_Die_Lost(cEm2b* em)
         if (w->pObj4C4) {
             w->pObj4C4->invisible_factor = em->invisible_factor;
         }
-        if (w->pObj4C8) {
-            w->pObj4C8->invisible_factor = em->invisible_factor;
+        if (w->pChain2) {
+            w->pChain2->invisible_factor = em->invisible_factor;
         }
-        if (w->pObj4C8) {
-            w->pObj4CC->invisible_factor = em->invisible_factor;
+        if (w->pChain2) {
+            w->pChain3->invisible_factor = em->invisible_factor;
         }
         if (em->invisible_factor <= 0.0f) {
             em->invisible_factor = 0.0f;
@@ -3902,11 +3902,11 @@ static void em2b_R1_Die_Lost(cEm2b* em)
             if (w->pObj4C4) {
                 w->pObj4C4->be_flag &= ~2;
             }
-            if (w->pObj4C8) {
-                w->pObj4C8->be_flag &= ~2;
+            if (w->pChain2) {
+                w->pChain2->be_flag &= ~2;
             }
-            if (w->pObj4CC) {
-                w->pObj4CC->be_flag &= ~2;
+            if (w->pChain3) {
+                w->pChain3->be_flag &= ~2;
             }
             em->r_no_2++;
         }
@@ -4043,20 +4043,20 @@ void em2bRouteCk(cEm2b* em)
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
     w->pTarget = pPLS;
-    if (w->pTarget508) {
-        RouteCkToPos(em, &w->pTarget508->pos, &w->targetPos, 0, 0);
+    if (w->pTreeTarget) {
+        RouteCkToPos(em, &w->pTreeTarget->pos, &w->targetPos, 0, 0);
         w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, 3.14159274f);
         w->targetAngAbs = fabsf(w->targetAng);
-        w->targetDist = (em->pos.x - w->pTarget508->pos.x) * (em->pos.x - w->pTarget508->pos.x) +
-                        (em->pos.z - w->pTarget508->pos.z) * (em->pos.z - w->pTarget508->pos.z);
-        w->pTarget = w->pTarget508;
+        w->targetDist = (em->pos.x - w->pTreeTarget->pos.x) * (em->pos.x - w->pTreeTarget->pos.x) +
+                        (em->pos.z - w->pTreeTarget->pos.z) * (em->pos.z - w->pTreeTarget->pos.z);
+        w->pTarget = w->pTreeTarget;
     } else if (w->pGoto) {
         w->targetPos = w->pGoto->pos;
         w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, 3.14159274f);
         w->targetAngAbs = fabsf(w->targetAng);
         w->targetDist = (em->pos.x - w->pGoto->pos.x) * (em->pos.x - w->pGoto->pos.x) +
                         (em->pos.z - w->pGoto->pos.z) * (em->pos.z - w->pGoto->pos.z);
-        w->pTarget = w->pTarget508;
+        w->pTarget = w->pTreeTarget;
     } else if ((w->Be_flg & 0x80) && w->pFriend) {
         w->targetPos = w->pFriend->pos;
         w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, 3.14159274f);
@@ -4170,7 +4170,7 @@ void em2bClothSet(cEm2b* em)
         // block (the two "=m" keep-alives name fields the block does not store), else the dying stores
         // are issued first. The 0.0 is expanded after 0.8 for the pool order.
         zero = 0;
-        w->Cloth.x54 = (cModel**) zero;
+        w->Cloth.pPtbl = (cModel**) zero;
         num = 10;
         w->Cloth.Num = num;
         parts = em2b_cloth_parts;
@@ -4207,7 +4207,7 @@ void em2bClothSet(cEm2b* em)
         w->Cloth.pWindSin = (const f32*) zero;
         w->Cloth.pWindRate = (const f32*) zero;
         w->Cloth.pGravity = (const f32*) zero;
-        w->Cloth.x58 = em;
+        w->Cloth.pEm_at = em;
         w->Cloth.WindSin = zf;
         asm("" : "=m"(w->Dog_wait) : "r"(zero), "r"(num), "r"(parts), "r"(side), "r"(up), "r"(down), "r"(max), "r"(at)); // COMPILER-DIFF: #13
         asm("" : "=m"(w->Event_wait) : "r"(rate), "r"(two), "f"(g20), "f"(g08), "r"(four), "f"(g005), "f"(zf), "r"(flags)); // COMPILER-DIFF: #13
@@ -4577,7 +4577,7 @@ void em2bShortRopeSet(cEm2b* em)
     rot.z = zf;
     chain = SetChain(ARC(0x11), ARC(0x12), &pos, &rot);
     w->rope[1].Move_rate = zf;
-    w->rope[1].x58 = em;
+    w->rope[1].pEm_at = em;
     w->rope[1].WindSin = zf;
     parts = em2b_rope_parts;
     w->rope[1].pCloth = parts;
@@ -4600,7 +4600,7 @@ void em2bShortRopeSet(cEm2b* em)
     w->pObj4C4 = (cObj*) chain;
     w->rope[1].Num = five;
     zero = 0;
-    w->rope[1].x54 = (cModel**) zero;
+    w->rope[1].pPtbl = (cModel**) zero;
     w->rope[1].pLeft = (const u8*) zero;
     w->rope[1].pRight = (const u8*) zero;
     w->rope[1].pUpLeft = (const u8*) zero;
@@ -4612,7 +4612,7 @@ void em2bShortRopeSet(cEm2b* em)
     w->rope[1].pRate = (const f32*) zero;
     w->rope[1].Flag = zero;
     asm("" : "=m"(w->Dog_wait) : "r"(zero), "f"(zf), "m"(w->rope[1].Move_rate));                                              // COMPILER-DIFF: 13
-    asm("" : "=m"(*(u16*) &w->rope[1].x58) : "r"(chain), "r"(parts), "r"(parts), "r"(parts), "r"(up), "r"(up), "r"(down), "r"(down)); // COMPILER-DIFF: 13
+    asm("" : "=m"(*(u16*) &w->rope[1].pEm_at) : "r"(chain), "r"(parts), "r"(parts), "r"(parts), "r"(up), "r"(up), "r"(down), "r"(down)); // COMPILER-DIFF: 13
     asm("" : "=m"(*(u32*) &w->rope[1].WindSin) : "r"(at), "r"(at), "r"(k100), "r"(k100), "r"(five), "f"(g20), "f"(g08), "f"(g01)); // COMPILER-DIFF: 13
     chain->setChain(&w->rope[1]);
     pos.x = -290.0f;
@@ -4648,7 +4648,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[0].pGravity = 0;
     w->rope[0].pRate = 0;
     w->rope[0].At_num = 5;
-    w->rope[0].x58 = em;
+    w->rope[0].pEm_at = em;
     w->rope[0].Gravity = 30.0f;
     w->rope[0].Rate = 0.800000012f;
     w->rope[0].Bundle_num = 0;
@@ -4656,7 +4656,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[0].Move_rate = 0.0f;
     w->rope[0].Stretchy = 1.0f;
     w->rope[0].Flag = 0;
-    w->rope[0].x54 = 0;
+    w->rope[0].pPtbl = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -4686,7 +4686,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[1].pGravity = 0;
     w->rope[1].pRate = 0;
     w->rope[1].At_num = 0;
-    w->rope[1].x58 = em;
+    w->rope[1].pEm_at = em;
     w->rope[1].Gravity = 30.0f;
     w->rope[1].Rate = 0.800000012f;
     w->rope[1].Bundle_num = 0;
@@ -4694,7 +4694,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[1].Move_rate = 0.0f;
     w->rope[1].Stretchy = 1.0f;
     w->rope[1].Flag = 0;
-    w->rope[1].x54 = 0;
+    w->rope[1].pPtbl = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -4702,12 +4702,12 @@ void em2bChainSet(cEm2b* em)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(ARC(0x13), ARC(0x14), &pos, &rot);
-    w->pObj4C8 = (cObj*) chain;
+    w->pChain2 = (cObj*) chain;
     chain->setChain(c);
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
-    ((cObjChain*) w->pObj4C8)->setParent(em, 0x40, &pos, 0);
+    ((cObjChain*) w->pChain2)->setParent(em, 0x40, &pos, 0);
 
     w->rope[1].Num = 8;
     w->rope[1].pCloth = em2b_chain_parts;
@@ -4724,7 +4724,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[1].pGravity = 0;
     w->rope[1].pRate = 0;
     w->rope[1].At_num = 5;
-    w->rope[1].x58 = em;
+    w->rope[1].pEm_at = em;
     w->rope[1].Gravity = 30.0f;
     w->rope[1].Rate = 0.800000012f;
     w->rope[1].Bundle_num = 0;
@@ -4732,7 +4732,7 @@ void em2bChainSet(cEm2b* em)
     w->rope[1].Move_rate = 0.0f;
     w->rope[1].Stretchy = 1.0f;
     w->rope[1].Flag = 0;
-    w->rope[1].x54 = 0;
+    w->rope[1].pPtbl = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -4740,12 +4740,12 @@ void em2bChainSet(cEm2b* em)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(ARC(0x13), ARC(0x14), &pos, &rot);
-    w->pObj4CC = (cObj*) chain;
+    w->pChain3 = (cObj*) chain;
     chain->setChain(c);
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
-    ((cObjChain*) w->pObj4CC)->setParent(em, 0x41, &pos, 0);
+    ((cObjChain*) w->pChain3)->setParent(em, 0x41, &pos, 0);
 }
 
 // Room 119: is the player inside an intact house near enough to break?
@@ -4789,7 +4789,7 @@ int em2bSearchTree(cEm2b* em)
     Em2bWork* w = EM2B_WK(em);
     u32 i;
 
-    if (w->pTree || w->pTarget508 || w->pRock || w->pGoto || w->pHouse || w->timer614 || (w->Be_flg & 0x80)) {
+    if (w->pTree || w->pTreeTarget || w->pRock || w->pGoto || w->pHouse || w->Rock_wait || (w->Be_flg & 0x80)) {
         return 0;
     }
     if (w->Be_flg & 4) {
@@ -4818,12 +4818,12 @@ int em2bSearchTree(cEm2b* em)
         if (fabsf(Muku(&em->pos, &e->pos, em->ang.y, 3.14159274f)) > 0.785398185f) {
             continue;
         }
-        w->pTarget508 = e;
+        w->pTreeTarget = e;
         RouteCkToPos(em, &e->pos, &w->targetPos, 0, 0);
         w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, 3.14159274f);
         w->targetAngAbs = fabsf(w->targetAng);
-        w->targetDist = (em->pos.x - w->pTarget508->pos.x) * (em->pos.x - w->pTarget508->pos.x) +
-                        (em->pos.z - w->pTarget508->pos.z) * (em->pos.z - w->pTarget508->pos.z);
+        w->targetDist = (em->pos.x - w->pTreeTarget->pos.x) * (em->pos.x - w->pTreeTarget->pos.x) +
+                        (em->pos.z - w->pTreeTarget->pos.z) * (em->pos.z - w->pTreeTarget->pos.z);
         return 1;
     }
     return 0;
@@ -4833,7 +4833,7 @@ int em2bSearchTree(cEm2b* em)
 int em2bGetTreeCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
-    cEm* t = w->pTarget508;
+    cEm* t = w->pTreeTarget;
 
     if (t == 0) {
         return 0;
@@ -4860,7 +4860,7 @@ int em2bSearchRockCk(cEm2b* em)
     if (pG->pEmi == 0) {
         return 0;
     }
-    if (w->pTree || w->pTarget508 || w->pRock || w->pGoto || w->pHouse || w->Atk_wait || (w->Be_flg & 0x80)) {
+    if (w->pTree || w->pTreeTarget || w->pRock || w->pGoto || w->pHouse || w->Atk_wait || (w->Be_flg & 0x80)) {
         return 0;
     }
     if (w->Be_flg & 4) {
@@ -5542,7 +5542,7 @@ int em2bAtkRtnCk(cEm2b* em)
     if (w->Dash_wait) {
         return 0;
     }
-    if (w->pTarget508) {
+    if (w->pTreeTarget) {
         return 0;
     }
     if (w->pGoto) {

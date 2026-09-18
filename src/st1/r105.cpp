@@ -751,7 +751,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }
@@ -762,7 +762,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 &= ~0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon &= ~0x04000000;
                         w->child->be_flag |= 2;
                     }
                 }

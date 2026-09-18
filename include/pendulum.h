@@ -32,8 +32,8 @@ struct PenCloth {
     f32 WindSin;             // 0x48  wind phase
     f32 Stretchy;             // 0x4C  constraint stiffness (Move2 / Move3)
     f32 Move_rate;             // 0x50  parent speed rate
-    cModel** x54;        // 0x54  parts pointer table (NULL: cModel::getPartsPtr)
-    cModel* x58;         // 0x58  model the collision volumes hang on (NULL: the chain model)
+    cModel** pPtbl;        // 0x54  parts pointer table (NULL: cModel::getPartsPtr)
+    cModel* pEm_at;         // 0x58  model the collision volumes hang on (NULL: the chain model)
     u32 Flag;           // 0x5C  (0x100)
 };
 

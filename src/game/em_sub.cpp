@@ -2738,7 +2738,7 @@ void GetDropBullet(int* id, int* num)
         }
     } else if (pG->System_flg & 0x40000000) {
         r = Rnd() % 100;
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         default:
             if (r <= 0x36) {
@@ -3305,7 +3305,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     // The bullet thresholds go through the `lim` variable: a literal `< 30` is folded to `<= 29`
     // (`cmplwi 0x1d; bgt`), the variable keeps `cmplwi 0x1e; bge`.
     lim = 30;
-    if (pG->x4FB8 != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
+    if (pG->pl_type != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
         GetDropBullet(outId, outNum);
         return 1;
     }
@@ -3339,7 +3339,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             return 1;
         }
     }
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0;
     }
     lim = 0x96;

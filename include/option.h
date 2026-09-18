@@ -32,10 +32,10 @@ extern OptionScreen OptScrn;
 class GameResult {
 public:
     void* data;       // 0x00  result id archive
-    u8 x4;
-    u8 x5;
-    u8 x6;
-    u8 x7;
+    u8 _rno0;
+    u8 _rno1;
+    u8 _rno2;
+    u8 _rno3;
 
     void init(void* data);
     int move();

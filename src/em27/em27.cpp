@@ -440,7 +440,7 @@ static void em27_R1_Walk(cEm27* em)
         em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.1f);
         if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
-            if (w->x24 > 9000000.0f && (Rnd() & 3) == 0 && em27JumpCk(em)) {
+            if (w->L_go > 9000000.0f && (Rnd() & 3) == 0 && em27JumpCk(em)) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);

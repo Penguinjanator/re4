@@ -71,7 +71,7 @@ void testJacketSetWesker(cModel* pl, PlCloth* c)
     c->Rate = rate;
     c->Move_rate = rate;
     c->Flag = 0x100;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 

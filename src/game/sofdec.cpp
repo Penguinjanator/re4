@@ -467,7 +467,7 @@ void cSofdec::finishMovie()
         ScreenReSize(0x280, 0x1C0);
     }
     SetU32(pG->Disp_flg, m_disp_flg_bak);
-    SetU32(pG->flags_170, save170);
+    SetU32(pG->Stop_flg, save170);
     SetSystemVcnt(m_vcnt_save);
     BitOff(pG->flags_500C, 0x10000000);
     if (!(pG->flags_5014 & 0x8000)) {
@@ -492,8 +492,8 @@ int cSofdec::initWork(const char* fname)
             return 0;
         }
     }
-    SetU32(save170, pG->flags_170);
-    SetU32(pG->flags_170, 0xFFFFFFFF);
+    SetU32(save170, pG->Stop_flg);
+    SetU32(pG->Stop_flg, 0xFFFFFFFF);
     SetU32(m_disp_flg_bak, pG->Disp_flg);
     SetU32(pG->Disp_flg, 0xFFFFFFFF);
     if (!(pG->flags_5014 & 0x8000)) {

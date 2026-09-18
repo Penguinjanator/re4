@@ -45,7 +45,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
     u32 i;
     int hit = 0;
 
-    if (pG->x20 != 3) {
+    if (pG->Rno0 != 3) {
         return 0;
     }
     if (pG->flags_500C & 0x10000000) {

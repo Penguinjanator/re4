@@ -325,13 +325,13 @@ void ToolEspArea()
 
 void tEspAreaInit()
 {
-    BitOn(pG->flags_170, 0x20000000);
-    BitOn(pG->flags_170, 0x10000000);
-    BitOn(pG->flags_170, 0x08000000);
-    BitOn(pG->flags_170, 0x00800000);
-    BitOn(pG->flags_170, 0x00400000);
-    BitOn(pG->flags_170, 0x00010000);
-    BitOn(pG->flags_170, 0x00002000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x08000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Stop_flg, 0x00400000);
+    BitOn(pG->Stop_flg, 0x00010000);
+    BitOn(pG->Stop_flg, 0x00002000);
     BitOn(pG->Disp_flg, 0x20000000);
     BitOn(pG->Disp_flg, 0x40000000);
     BitOn(pG->Disp_flg, 0x04000000);
@@ -344,13 +344,13 @@ void tEspAreaInit()
 
 void tEspAreaExit()
 {
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x08000000);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x00400000);
-    BitOff(pG->flags_170, 0x00010000);
-    BitOff(pG->flags_170, 0x00002000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x08000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x00400000);
+    BitOff(pG->Stop_flg, 0x00010000);
+    BitOff(pG->Stop_flg, 0x00002000);
     BitOff(pG->Disp_flg, 0x20000000);
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x04000000);

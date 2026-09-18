@@ -30,11 +30,11 @@ struct SUB_SCREEN {
     s32 type;                 // 0x02C  open type: 1 inventory, 2, 0x10, 0x20 puzzle, 0x40, 0x80
     s32 flags;                // 0x030  bit0 event, bit1 (flags_5010 bit21 at open), bit3 no sound
     s32 x34;                  // 0x034
-    s32 x38;
+    s32 attr_flag;
     s32 wait;                 // 0x03C  frames left before SubScreenCall may open (SubScreenWait)
-    s32 x40;
-    s32 x44;
-    s32 x48;
+    s32 model_flag;
+    s32 wait_cnt;
+    s32 str_id;
     int (*scrn_out_func)(SUB_SCREEN*);  // 0x04C  screen exit routine (Sscrn ss_*: sscrn_*_out), run until it returns 1
     u32 stop_bak;              // 0x050  pG->flags_170 while open
     u32 disp_bak;               // 0x054  pG->flags_58 while open
@@ -48,7 +48,7 @@ struct SUB_SCREEN {
     u8 binocular_flag;                  // 0x1B5  the binocular was up
     u8 suspend_flag;                  // 0x1B6  flags_5010 bit 28 (always 0: the mask is stored as a byte)
     u8 noBullet;              // 0x1B7  the equipped weapon (type 3) was empty
-    u8 x1B8;                  // 0x1B8  item 0xFE owned
+    u8 jacket_flag;                  // 0x1B8  item 0xFE owned
     u8 pad_1B9[3];
     s32 healing;              // 0x1BC  SubCharCheckHealing()
     void* pBuf;               // 0x1C0  MRAM area swapped with the ARAM copy (pG->pStageFont)
@@ -71,15 +71,15 @@ struct SUB_SCREEN {
     SsArc* pShop;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
     void* pPartner;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
     void* pTplDat;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
-    void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
+    void* pWepDat;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
     class cLight* p_light[8];    // 0x21C  screen lights (Sscrn sscrnLightCreate / sscrnLightClear)
     void* pExamDat;               // 0x23C  0x3E800-byte buffer
     void* pItemBin;               // 0x240  item examine model data (Sscrn SsItemExamine: x23C)
     void* pItemTpl;               // 0x244  item examine texture data
-    ItemWork* x248;           // 0x248  selected item slot (Sscrn CapSelect)
-    cMap* x24C;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
+    ItemWork* p_exam_item;           // 0x248  selected item slot (Sscrn CapSelect)
+    cMap* p_exam_model;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
     u8 wep_rno;                  // 0x250  Sscrn weapon change task state (3 = done)
     s8 wep_idx;                  // 0x251  weapon change request slot
     s16 wep_cnt;                 // 0x252  weapon change fade counter (Sscrn weaponChangeTask)
@@ -108,10 +108,10 @@ struct SUB_SCREEN {
     class pzlPlayer* puzzlePlayer;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
     u8 back2;                  // 0x2B4  Sscrn ss_shop: the bought piece is in hand (case placement)
     u8 pad_2B5[0x2FA - 0x2B5];
-    u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
-    u16 x2FC;                 // 0x2FC  its count
+    u16 get_item_id;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
+    u16 get_item_num;                 // 0x2FC  its count
     u8 pad_2FE[2];
-    ItemWork* x300;           // 0x300  Sscrn ss_pzzl: the extra piece's slot (get() result)
+    ItemWork* p_get_item;           // 0x300  Sscrn ss_pzzl: the extra piece's slot (get() result)
     ItemScreenWork* pItemWk;  // 0x304  Sscrn ss_item cursor state (9 bytes)
     struct SsMapWork* pMapWk; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
@@ -130,7 +130,7 @@ struct SUB_SCREEN {
         struct {
             u8 x348;          // 0x348  (SubScreenGameInit clears it)
             u8 x349;
-            u8 x34A;
+            u8 map_mark;
             u8 x34B;
         };
     };

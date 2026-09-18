@@ -418,23 +418,23 @@ void ToolLightAreaMain()
                     BitOn(pG->flags_68, 8);
                 }
             }
-            if (!(pG->flags_170 & 0x10000000) && (Joy[0].trg & 0x10)) {
+            if (!(pG->Stop_flg & 0x10000000) && (Joy[0].trg & 0x10)) {
                 // back to the editor: the game's own light areas again
                 BitOn(pG->flags_60, 0x10000000);
-                BitOn(pG->flags_170, 0x10000000);
-                BitOn(pG->flags_170, 0x20000000);
+                BitOn(pG->Stop_flg, 0x10000000);
+                BitOn(pG->Stop_flg, 0x20000000);
                 TaskSleep(10);
                 if (plNoHit == 0) {
                     BitOff(pG->System_flg, 0x800);
                 }
                 preview ^= 1;
             } else if (!(Joy[0].on & 0x10)) {
-                BitOff(pG->flags_170, 0x10000000);
-                BitOff(pG->flags_170, 0x20000000);
+                BitOff(pG->Stop_flg, 0x10000000);
+                BitOff(pG->Stop_flg, 0x20000000);
             }
         } else {
-            BitOn(pG->flags_170, 0x10000000);
-            BitOn(pG->flags_170, 0x20000000);
+            BitOn(pG->Stop_flg, 0x10000000);
+            BitOn(pG->Stop_flg, 0x20000000);
             BitOn(pG->flags_68, 0x00800000);
             w = light_area_work;
             for (i = 0; i < LIGHT_AREA_MAX; i++, w++) {
@@ -500,13 +500,13 @@ void ToolLightAreaMain()
 
 void tLightAreaInit()
 {
-    BitOn(pG->flags_170, 0x20000000);
-    BitOn(pG->flags_170, 0x10000000);
-    BitOn(pG->flags_170, 0x08000000);
-    BitOn(pG->flags_170, 0x00800000);
-    BitOn(pG->flags_170, 0x00400000);
-    BitOn(pG->flags_170, 0x00010000);
-    BitOn(pG->flags_170, 0x00002000);
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x08000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Stop_flg, 0x00400000);
+    BitOn(pG->Stop_flg, 0x00010000);
+    BitOn(pG->Stop_flg, 0x00002000);
     BitOn(pG->flags_60, 0x10000000);
     CamDbg.m_target_type = 4;
     Block.dispAllBlock(1);
@@ -514,13 +514,13 @@ void tLightAreaInit()
 
 void tLightAreaExit()
 {
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x08000000);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x00400000);
-    BitOff(pG->flags_170, 0x00010000);
-    BitOff(pG->flags_170, 0x00002000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x08000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x00400000);
+    BitOff(pG->Stop_flg, 0x00010000);
+    BitOff(pG->Stop_flg, 0x00002000);
     BitOff(pG->flags_60, 0x10000000);
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)

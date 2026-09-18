@@ -38,7 +38,7 @@ struct EmWepWork {
     u16 effAlwaysTimer;   // 0x1B4 (0x594)
     u8 pad_1B6[2];
     f32 grav;             // 0x1B8 (0x598)  gravity per frame
-    f32 x1BC;             // 0x1BC (0x59C)
+    f32 Roll;             // 0x1BC (0x59C)
     f32 rocketSpd;        // 0x1C0 (0x5A0)  Rocket: speed gain (+3 per frame up to 30)
     Vec pt[3];            // 0x1C4 (0x5A4)  Fall: rope node speeds kept between frames (setFall randomises them)
     Vec spd;              // 0x1E8 (0x5C8)  throw / shot speed

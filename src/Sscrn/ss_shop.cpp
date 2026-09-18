@@ -346,12 +346,12 @@ void setShopMsgQueue(int on)
 
 void shopStrInit(SUB_SCREEN* wk)
 {
-    wk->x48 = 0;
+    wk->str_id = 0;
 }
 
 void shopStrStop(SUB_SCREEN* wk)
 {
-    u32 str = (u32) wk->x48;
+    u32 str = (u32) wk->str_id;
 
     if (str) {
         SndStrReq(str, 8, 0, 0);
@@ -362,7 +362,7 @@ void shopStrPlay(SUB_SCREEN* wk, int no)
 {
     shopStrStop(wk);
     if (no != 0xFF) {
-        wk->x48 = SndStrReq(1, no, 3, 0, 0, 0.0f);
+        wk->str_id = SndStrReq(1, no, 3, 0, 0, 0.0f);
     } else {
         shopStrInit(wk);
     }
@@ -373,7 +373,7 @@ void shopModelAlloc(SUB_SCREEN* wk)
     pzlPlayer* pl = wk->puzzlePlayer;
     int i;
 
-    wk->x38 |= 1;
+    wk->attr_flag |= 1;
     ssModInfoMgr.roomInit();
     ssModInfoMgr.arrayAlloc(pl->m_piece_max + 4);
     ssPartsMgr.roomInit();

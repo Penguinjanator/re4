@@ -611,10 +611,10 @@ void MessageControl::MesSet(int no, int x, int y, u32 attr, int slot, int col, i
     m->m_scale_w = (f32) m->m_font_w / (f32) font->m_char_w;
     m->m_scale_h = (f32) m->m_font_h / (f32) font->m_char_h;
     if (!(attr & 0x80)) {
-        BitSet(m->stop_bak, pG->flags_170);
+        BitSet(m->stop_bak, pG->Stop_flg);
         if (!(attr & 0x10)) {
-            BitSet(pG->flags_170, 0xFFFFFFFF);
-            BitOff(pG->flags_170, 0x40);
+            BitSet(pG->Stop_flg, 0xFFFFFFFF);
+            BitOff(pG->Stop_flg, 0x40);
             KeyStop(0xEFCF0000);
         }
     }
@@ -644,9 +644,9 @@ void Message::init(int no, int x, int y, u32 attr, int col, MessageFont* fnt)
     m_pFont = fnt;
     be_flag |= 3;
     flags2 = (flags2 & ~2) | 1;
-    xB = 0;
-    xA = 0;
-    x9 = 0;
+    r_no_3 = 0;
+    r_no_2 = 0;
+    r_no_1 = 0;
     r_no_0 = 0;
     m_cur = 0;
     m_sel = 0;
@@ -1152,7 +1152,7 @@ int Message::code01()
             flags2 &= ~1;
             be_flag &= ~1;
             if (!(m_attr & 0x10)) {
-                pG->flags_170 = stop_bak;
+                pG->Stop_flg = stop_bak;
             }
         }
         if (IdSys.setCk(0x21) && !(pG->flags_500C & 0x00040000)) {

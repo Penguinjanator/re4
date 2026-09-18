@@ -169,7 +169,7 @@ void generalModelAlloc(SUB_SCREEN* wk)
 {
     int i;
 
-    wk->x38 |= 1;
+    wk->attr_flag |= 1;
     ssModInfoMgr.roomInit();
     ssModInfoMgr.arrayAlloc(0xA0);
     ssPartsMgr.roomInit();
@@ -260,13 +260,13 @@ void SubScreenTask()
         capInit->connect(0, capMain);
         capMain->connect(0, itemInit);
         capMain->connect(1, exitInit);
-        wk->x210 = (u8*) wk->pBuf + 0x2E5E00;
-        if (pG->x4FB8 != 1) {
+        wk->pWepDat = (u8*) wk->pBuf + 0x2E5E00;
+        if (pG->pl_type != 1) {
             char name[0x40];
             int req;
             weaponFilename(name, WeaponId2WeaponNo(ItemMgr.m_wep_id));
 #line 412 "D:/Bio4/Prog/ss_main.cpp"
-            req = DVD_READ_N(name, wk->x210, 0, 0, 0, 0x11);
+            req = DVD_READ_N(name, wk->pWepDat, 0, 0, 0, 0x11);
             Dvd.ReadCheck(req, 0, 0, 0);
         }
         generalModelAlloc(wk);
@@ -331,7 +331,7 @@ void SubScreenTask()
             // before gcse and sched2 sees one block.
             {
                 int dmy;
-                if (pG->x4FB8 == 7) {
+                if (pG->pl_type == 7) {
                     dmy = 0;
                 }
             }
@@ -340,14 +340,14 @@ void SubScreenTask()
                 case 0x19:
                 case 0x1F:
                 case 0x20:
-                    if (pG->x4FB8 == 0) {
+                    if (pG->pl_type == 0) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
-                    if (pG->x4FB8 == 4) {
+                    if (pG->pl_type == 4) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
@@ -392,7 +392,7 @@ void SubScreenTask()
         EspGenLoopMove();
         IdSub.trans();
         IdNum.trans();
-        if (wk->x44 == 0) {
+        if (wk->wait_cnt == 0) {
             cModel* m;
             void (*func)(cModel*);
             // `m->next` read before the call (`lwz r30, 4(r30)` above the `blrl`).
@@ -487,20 +487,20 @@ void SsItemExamine::move(SUB_SCREEN* wk)
 
     switch (state) {
     case 0: {
-        ssItemInfo(wk->x248->id, &info);
+        ssItemInfo(wk->p_exam_item->id, &info);
         switch (info.type) {
         case 1:
-            exam_id = ItemMgr.weaponId(wk->x248);
+            exam_id = ItemMgr.weaponId(wk->p_exam_item);
             break;
         case 9:
-            if (wk->x248->x6 == 1) {
-                exam_id = ItemMgr.weaponId(ItemMgr.at(wk->x248->x8));
+            if (wk->p_exam_item->x6 == 1) {
+                exam_id = ItemMgr.weaponId(ItemMgr.at(wk->p_exam_item->x8));
             } else {
-                exam_id = wk->x248->id;
+                exam_id = wk->p_exam_item->id;
             }
             break;
         default:
-            exam_id = wk->x248->id;
+            exam_id = wk->p_exam_item->id;
             break;
         }
         PSet(wk->pItemBin, wk->pExamDat);
@@ -561,7 +561,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         // light info origin / size (emitted into .rodata here, before this function's pool)
         static const Vec exam_light_ofs = {0.0f, 0.0f, 0.0f};
         static const Vec exam_light_size = {10000.0f, 10000.0f, 0.0f};
-        cMap* m = wk->x24C;
+        cMap* m = wk->p_exam_model;
         m->modelInit(wk->pItemBin, wk->pItemTpl);
         m->be_flag |= 0x4000;
         m->LightInfo.init2(0, 1, &exam_light_ofs, &exam_light_size, 0x20);
@@ -570,13 +570,13 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         ssItemInfo(exam_id, &info);
         if (info.type == 1) {
             ItemWork* w = 0;
-            ssItemInfo(wk->x248->id, &info);
+            ssItemInfo(wk->p_exam_item->id, &info);
             switch (info.type) {
             case 1:
-                w = wk->x248;
+                w = wk->p_exam_item;
                 break;
             case 9:
-                w = ItemMgr.at(wk->x248->x8);
+                w = ItemMgr.at(wk->p_exam_item->x8);
                 break;
             }
             if (w) {
@@ -607,7 +607,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         if (Key.trg & 0xC0000000) {
             _itemExam.quit();
             LightMgr.offKind(0x7F);
-            wk->x24C->be_flag &= ~2;
+            wk->p_exam_model->be_flag &= ~2;
             transit(0, wk);
             SndCall(0, 5, 0, 0, 0, 0);
         }
@@ -787,7 +787,7 @@ void sscrnModelClear(SUB_SCREEN* wk)
 
 void sscrnModelFree(SUB_SCREEN* wk)
 {
-    int off = !(wk->x38 & 1);
+    int off = !(wk->attr_flag & 1);
 
     if (off) {
         return;
@@ -799,7 +799,7 @@ void sscrnModelFree(SUB_SCREEN* wk)
         ssModInfoMgr.arrayFree();
         ssPartsMgr.arrayFree();
         MapMgr.arrayFree();
-        wk->x38 &= ~1;
+        wk->attr_flag &= ~1;
     }
 }
 
@@ -887,10 +887,10 @@ void weaponChangeRequest(u16 no, u16 type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
 
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return;
     }
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     case 2:
     case 3:
@@ -972,7 +972,7 @@ static void weaponChangeTask()
             wep_type = wk->wepChange[wep_slot].type;
             weaponFilename(name, wep_no);
 #line 1439 "D:/Bio4/Prog/ss_main.cpp"
-            wep_read_req = DVD_READ_N(name, wk->x210, 0, 0, 0, 0x10);
+            wep_read_req = DVD_READ_N(name, wk->pWepDat, 0, 0, 0, 0x10);
             if (wep_read_req <= 0) {
                 break;
             }
@@ -984,7 +984,7 @@ static void weaponChangeTask()
             }
             wk->wep_rno++;
         case 5:
-            switch (pG->x4FB8) {
+            switch (pG->pl_type) {
             case 0:
                 leonModelInit(wep_no, wep_type);
                 break;

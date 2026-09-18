@@ -87,16 +87,16 @@ static void r22a_RopeMove(int side)
     Vec ang = r22a_ropeAng;
     Vec out;
     cPlayer* pl = pPL;
-    u32 flags = pGS->flags_170;
+    u32 flags = pGS->Stop_flg;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
-    U32Set(pG->flags_170, 0xFFFFFFFF);
-    pG->flags_170 &= ~0x00800000;
+    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg &= ~0x00800000;
     FadeSetW(2, 10, 0, 0);
     SceSleep(10);
     SmdSetTrans(0x2F, 0);
-    pG->flags_170 = flags;
+    pG->Stop_flg = flags;
     FadeSetW(0x80000002, 10, 0, 0);
     SceEventStart(0);
     pl->setRightHand(1);

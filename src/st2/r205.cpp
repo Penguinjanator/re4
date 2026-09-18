@@ -587,7 +587,7 @@ static void r205_EnemyAppear()
     zero = NULL;
     RsfSet(G_ROOM_ID, 9);
     SceEventStart(0);
-    BitOff(pG->flags_170, 0x10000000);
+    BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
     EstSet(0, -1, 0, 0, 1, 6, 1, 3, (u32) zero, zero);

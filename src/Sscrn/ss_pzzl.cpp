@@ -1232,7 +1232,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
     case 0:
         if (wk->scrn_out_func(wk) == 1) {
             if (wk->menu_old == 2) {
-                wk->x44 = 1;
+                wk->wait_cnt = 1;
             }
             IdSubErase();
             IdNumErase();
@@ -1271,7 +1271,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         } else {
             sscrnModelClear(wk);
         }
-        wk->x44 = 0;
+        wk->wait_cnt = 0;
         state++;
     case 3: {
         int result;
@@ -1412,13 +1412,13 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         int x;
         int y;
 
-        ItemMgr.get(wk->x2FA, wk->x2FC);
+        ItemMgr.get(wk->get_item_id, wk->get_item_num);
         ItemWork* last = ItemMgr.pLast;  // local: `mr r4,r0` for the argument instead of a re-read after the store
 
-        wk->x300 = last;
+        wk->p_get_item = last;
         wk->puzzlePlayer->appendExtraPiece(last);
         wk->puzzlePlayer->inHandExtraPiece();
-        wk->x2FC = wk->x300->num;
+        wk->get_item_num = wk->p_get_item->num;
         pl = wk->puzzlePlayer;
         p = pl->m_extra;
         h = pl->m_space->m_size_y;
@@ -1630,17 +1630,17 @@ void SsPzzlMain::quit(SUB_SCREEN* wk)
 
         if (pl->m_extra && pl->m_space->search(pl->m_extra)) {
             wk->puzzlePlayer->removeExtraPiece();
-            ItemMgr.dumpAll(wk->x300);
-            if (wk->x300 == ItemMgr.pArm) {
+            ItemMgr.dumpAll(wk->p_get_item);
+            if (wk->p_get_item == ItemMgr.pArm) {
                 ItemMgr.arm(0);
             }
             // x300 first: with x40 first the arm's tail is the else arm's `stw x40` insn, which our
             // jump2 cross-jumps as a single-insn tail (COMPILER-DIFF: 6)
-            wk->x300 = 0;
-            wk->x40 = 0;
+            wk->p_get_item = 0;
+            wk->model_flag = 0;
         } else {
             wk->puzzlePlayer->save();
-            wk->x40 = 1;
+            wk->model_flag = 1;
         }
     }
     pzzl_dbg.quit(wk);
@@ -1995,7 +1995,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
         if (r == 1) {
             if (wk->type & 4) {
                 if (wk->puzzlePlayer->m_extra) {
-                    ItemMgr.offboardDump(wk->x300);
+                    ItemMgr.offboardDump(wk->p_get_item);
                 } else {
                     ItemMgr.offboardDump(0);
                 }
@@ -2425,7 +2425,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
             }
             switch (command_id) {
             case 0:
-                if (pG->x4FB8 == 1) {
+                if (pG->pl_type == 1) {
                     break;
                 }
                 if (wk->flags & 2) {
@@ -2487,8 +2487,8 @@ void PieceCommand::move(SUB_SCREEN* wk)
                 }
                 break;
             case 5:
-                wk->x248 = pzzl_sel->item;
-                wk->x24C = MapMgr.getWork(2);
+                wk->p_exam_item = pzzl_sel->item;
+                wk->p_exam_model = MapMgr.getWork(2);
                 transit(2, wk);
                 SndCall(0, 0x1A, 0, 0, 0, 0);
                 return;

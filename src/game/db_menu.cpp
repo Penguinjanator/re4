@@ -143,8 +143,8 @@ void DbMenuExec()
 {
     struct test* t = &test;
     BitOn(pG->flags_60, 0x80000000);
-    t->stop_bak = pG->flags_170;
-    BitOn(pG->flags_170, ~0x4000);
+    t->stop_bak = pG->Stop_flg;
+    BitOn(pG->Stop_flg, ~0x4000);
     pG->debug_disp = pG->debug_mode;
     pG->debug_mode = 1;
     if (pG->System_flg & 0x10000) {
@@ -209,8 +209,8 @@ void DbMenuRestoreStopFlag()
 {
     struct test* t = &test;
     if (t->stop_saved == 1) {
-        BitSet(pG->flags_170, t->stop_bak);
-        BitOff(pG->flags_170, 0x80000000);
+        BitSet(pG->Stop_flg, t->stop_bak);
+        BitOff(pG->Stop_flg, 0x80000000);
         t->stop_saved = 0;
     }
 }
@@ -247,7 +247,7 @@ void init(struct test* t)
 
 static void exit(struct test* t)
 {
-    BitSet(pG->flags_170, t->stop_bak);
+    BitSet(pG->Stop_flg, t->stop_bak);
     BitOff(pG->flags_60, 0x80000000);
     TaskExit();
 }
@@ -305,7 +305,7 @@ void move(struct test* t)
     if ((joy->trg & 0x100) || t->exec_tool == 1) {
         t->stop_saved = 1;
         t->exec_tool = 0;
-        BitOff(pG->flags_170, 0x80000000);
+        BitOff(pG->Stop_flg, 0x80000000);
         if (menu[t->cursor].func == NULL && menu[t->cursor].rel_name == NULL) {
             exit(t);
         }

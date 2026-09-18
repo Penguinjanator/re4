@@ -80,7 +80,7 @@ void R406Init()
 #line 57 "D:/Bio4/Prog/r406.cpp"
     r406_work.p = (R406Work*) MEM_CALLOC(sizeof(R406Work), 1, 0xd);
     setTexRender();
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x2B),
                        ROOM_ARC_PTR(pG->pRoom, 0x2C), ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0,
                        ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29),

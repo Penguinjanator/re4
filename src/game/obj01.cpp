@@ -226,9 +226,9 @@ int obj01AddSpeed(cObj01* obj)
     }
     if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh) {
         obj->pos.y = wh;
-        if (!(w->flags7C & 8)) {
+        if (!(w->flag & 8)) {
             EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, 0, 0, 0);
-            w->flags7C |= 8;
+            w->flag |= 8;
             AddWaterPower(&obj->pos, 0.5f);
             if (obj->type != 1) {
                 SndCall(6, 0x64, &obj->pos, 0, 0, 0);

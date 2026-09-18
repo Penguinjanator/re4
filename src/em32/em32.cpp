@@ -3735,7 +3735,7 @@ void em32ClothSet(cEm32* em)
     w->cloth.Stretchy = 0.05f;
     w->cloth.Move_rate = 0.0f;
     w->cloth.Flag = zero;
-    w->cloth.x54 = zero;
+    w->cloth.pPtbl = zero;
     PenClothSet(em, (PenCloth*) &w->cloth, 100.0f);
 }
 

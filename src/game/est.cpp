@@ -227,7 +227,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
     cEspSystem* sys = g_pEspSys;
     u32 i;
 
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
         if ((esp->m_Be_flg & 1) == 0) {
@@ -239,7 +239,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
         if (b != 0 && esp->info.Core_kind != b) {
             continue;
         }
-        if (c != 0 && esp->info.x8 != c) {
+        if (c != 0 && esp->info.Core_pEm != c) {
             continue;
         }
         if (model != NULL) {
@@ -259,7 +259,7 @@ void EspDeleteEvent()
     cEspSystem* sys = g_pEspSys;
     u32 i;
 
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
         if (esp->m_Be_flg & 1) {

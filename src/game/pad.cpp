@@ -267,7 +267,7 @@ void PadRead()
         }
     }
 
-    if (!(pG->flags_170 & 0x80000000)) {
+    if (!(pG->Stop_flg & 0x80000000)) {
         Key.stickX = Joy[0].stickX;
         Key.stickY = Joy[0].stickY;
         Key.substickX = Joy[0].substickX;
@@ -280,7 +280,7 @@ void PadRead()
     Key.analogA = 0;
     Key.analogB = 0;
     Pad_test();
-    if (pG->flags_170 & 0x10000000) {
+    if (pG->Stop_flg & 0x10000000) {
         KeyStopFlagClear();
     }
     VibControl();
@@ -288,7 +288,7 @@ void PadRead()
 
 void KeyStop(u64 mask)
 {
-    BitOn(pG->flags_170, 0x80000000);
+    BitOn(pG->Stop_flg, 0x80000000);
     KeyClear(mask);
 }
 
@@ -343,7 +343,7 @@ void VibControl()
     } else {
         Joy[0].motor_state = 0;
     }
-    if ((pG->flags_170 & 0x8000) && old == 1) {
+    if ((pG->Stop_flg & 0x8000) && old == 1) {
         Joy[0].motor_state = 2;
         PADControlMotor(0, 2);
         Vib_level = 0;

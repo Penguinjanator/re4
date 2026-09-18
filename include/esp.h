@@ -204,7 +204,7 @@ struct EspInfo {
             u8 x7;     // 0x07
         } b;
     };
-    u32 x8;            // 0x08
+    u32 Core_pEm;            // 0x08
 };
 
 // One effect sprite (game/esp.cpp, game/esp_sub.cpp). sizeof 0xF8; the vptr sits at 0xF4.

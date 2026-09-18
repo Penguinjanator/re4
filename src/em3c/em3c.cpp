@@ -786,7 +786,7 @@ static void plemSurprised(cPlayer* pl)
         PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
         pl->ang.y = GetXZAngle(&pl->pos, &PL_EM(pl)->pos);
         pl->atari.throughOn();
-        if (pGS->x4FB8 == 1) {
+        if (pGS->pl_type == 1) {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x64), 0, 3, 1, 0);
         } else {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x63), 0, 3, 1, 0);
@@ -833,7 +833,7 @@ static void plemEscape(cPlayer* pl)
     pl->dmType = 2;
     switch (pl->r_no_2) {
     case 0:
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x65), 0, 3, 1, 0);
             EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
             SndCall(1, 5, &pl->pos, pl->id, 0, pl);
@@ -846,7 +846,7 @@ static void plemEscape(cPlayer* pl)
         pl->atari.throughOff();
         pl->r_no_2++;
     case 1:
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             if (pl->frame > 24.7f && pl->frame < 25.3f) {
                 SndCall(5, 5, &pl->pos, 0, 0, pl);
             }
@@ -1163,7 +1163,7 @@ static void em3c_R1_MoveAtk(cEm3c* em)
         if (ang < PI / 12.0f) {
             far = 0;
         }
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             far = 0;
         }
         if ((u8) (Rnd() % 10) > 4) {

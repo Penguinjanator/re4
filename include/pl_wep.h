@@ -100,13 +100,13 @@ public:
 class cPlWep {
 public:
     u8 pad_0[0x20];
-    u8 x20;              // 0x20  (ctor: 0)
-    u8 x21;              // 0x21  (wep07 pl_shotgun reload: 0)
+    u8 m_EmRankPtr;              // 0x20  (ctor: 0)
+    u8 m_ShotCancelCtr;              // 0x21  (wep07 pl_shotgun reload: 0)
     u8 pad_22;
-    u8 x23;              // 0x23  (wep07 ready00: 0)
+    u8 m_ShotTimer;              // 0x23  (wep07 ready00: 0)
     u8 knifeStance;      // 0x24  knife ready stance: 0 low, 1 middle, 2 high
     u8 pad_25;
-    u8 x26;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
+    u8 m_Flag;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
     u8 pad_27;
     f32 pitch;           // 0x28  aim pitch
     f32 m_CenterY;             // 0x2C

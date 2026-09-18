@@ -569,9 +569,9 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         r213_cloth.pGravity = 0;
         r213_cloth.pRate = 0;
         r213_cloth.At_num = 0;
-        r213_cloth.x58 = 0;
+        r213_cloth.pEm_at = 0;
         r213_cloth.Flag = 0;
-        r213_cloth.x54 = 0;
+        r213_cloth.pPtbl = 0;
         r213_cloth.Stretchy = 0.1f;
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
@@ -1077,7 +1077,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
                     EffectEspgenDelete(r213_work.p->tex->mask | 1, 2, 0);
                     EffectEfmDelete(r213_work.p->tex->mask | 1, 2, 0);
                 }
-                pG->flags_170 |= 0x20;
+                pG->Stop_flg |= 0x20;
             }
             SetNearClipDist(clip);
             break;
@@ -1099,7 +1099,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
                     EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
                 }
                 BitOn(pG->flags_500C, 0x1000);
-                BitOff(pG->flags_170, 0x20);
+                BitOff(pG->Stop_flg, 0x20);
             }
             break;
         }
@@ -1129,7 +1129,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
             EstSet(0, -1, 0, 0, 1, 0, r213_work.p->tex->mask | 1, 2, frame, (void*) frame);
         }
         BitOn(pG->flags_500C, 0x1000);
-        BitOff(pG->flags_170, 0x20);
+        BitOff(pG->Stop_flg, 0x20);
         SetSstAddAreaFlag(0x800);
         break;
     }

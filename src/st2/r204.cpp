@@ -472,8 +472,8 @@ static void r204_first_cut_exit()
 
     CamCtrl.Comeback(0);
     SceUpCutEnd();
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     for (i = 0; i <= 10; i++) {
         r204_work.p->em[i].setNoSuspend(0);
     }
@@ -488,7 +488,7 @@ static void r204_first_cut()
     }
     SceUpCutStart();
     BitOff(pG->flags_5010, 0x10000000);
-    BitOn(pG->flags_170, 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
     KeyStop(0xEFCF0000ULL);
     SceSetEventCancel(1, (TaskFunc) r204_first_cut_exit, 0, -1, 0);
     CamCtrl.CutCall(2);
@@ -530,7 +530,7 @@ static void r204_nige_check()
                     SceUpCutStart();
                     BitOff(pG->flags_5010, 0x10000000);
                     pPL->dmg.set(0, 0x80);
-                    BitOn(pG->flags_170, 0x10000000);
+                    BitOn(pG->Stop_flg, 0x10000000);
                     BitOn(pG->Disp_flg, 0x40000000);
                     PlEndCamera();
                     pl->Wep->m_pWep->setDisp(1, 1);
@@ -544,12 +544,12 @@ static void r204_nige_check()
                     Vec ang;
 
                     r204_work.p->em[7].setGoto(&p1, 8);
-                    if (!(pG->flags_170 & 0x10000000)) {
+                    if (!(pG->Stop_flg & 0x10000000)) {
                         BitOn(pG->flags_174, 0x08000000);
                         SceUpCutStart();
                         BitOff(pG->flags_5010, 0x10000000);
                         pPL->dmg.set(0, 0x80);
-                        BitOn(pG->flags_170, 0x10000000);
+                        BitOn(pG->Stop_flg, 0x10000000);
                         BitOn(pG->Disp_flg, 0x40000000);
                         PlEndCamera();
                     }
@@ -579,7 +579,7 @@ static void r204_nige_check()
                     }
                     CamCtrl.Comeback(0);
                     pPL->dmg.clear();
-                    BitOff(pG->flags_170, 0x10000000);
+                    BitOff(pG->Stop_flg, 0x10000000);
                     BitOff(pG->Disp_flg, 0x40000000);
                     SceUpCutEnd();
                 }
@@ -1059,7 +1059,7 @@ static void door_move()
     SceEventStart(1);
     pPL->setNoSuspend(1);
     r204_work.p->sw->setNoSuspend(1);
-    BitOn(pG->flags_170, 0x80000000);
+    BitOn(pG->Stop_flg, 0x80000000);
     BitOff(pG->Disp_flg, 0x40000000);
     CamCtrl.CutCall(0xD);
     SceSleep(0x28);
@@ -1069,7 +1069,7 @@ static void door_move()
     CamCtrl.CutCall(0xE);
     SceSleep(0x28);
     CamCtrl.Comeback(0);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     SceEventEnd(0);
     pPL->setNoSuspend(0);
 }

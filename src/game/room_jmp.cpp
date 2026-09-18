@@ -248,8 +248,8 @@ void RoomJump()
 void roomJumpInit(test* w)
 {
     w->state++;
-    U32Set(w->stop_bak, pG->flags_170);
-    BitOn(pG->flags_170, 0xFFFFBFFF);
+    U32Set(w->stop_bak, pG->Stop_flg);
+    BitOn(pG->Stop_flg, 0xFFFFBFFF);
     pRj = new cRoomJmp(roomInfoAddr);
     w->stage = pG->stage_no;
     w->room[w->stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
@@ -339,7 +339,7 @@ void roomJumpExec(test* w)
     int i;
 
     w->state++;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
     BitOn(pG->flags_68, 0x80000000);
     pRj->getRoomInfo(w->stage, w->room[w->stage] + w->point)->setNextPos();
     pG->x4F9F = w->point;
@@ -360,13 +360,13 @@ void roomJumpExit(test* w)
 {
     delete pRj;
     if (w->flag == 1) {
-        pG->x20 = 4;
-        pG->x21 = 0;
-        pG->x22 = 0;
-        pG->x23 = 0;
+        pG->Rno0 = 4;
+        pG->Rno1 = 0;
+        pG->Rno2 = 0;
+        pG->Rno3 = 0;
         pG->System_flg &= ~0x40;
     }
-    BitSet(pG->flags_170, w->stop_bak);
+    BitSet(pG->Stop_flg, w->stop_bak);
     BitOff(pG->flags_60, 0x80000000);
     TaskExit();
 }

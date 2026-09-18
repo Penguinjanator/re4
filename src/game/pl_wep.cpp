@@ -66,7 +66,7 @@ cPlWep::cPlWep()
 {
     m_pWep = 0;
     pObj2 = 0;
-    x20 = 0;
+    m_EmRankPtr = 0;
 }
 
 void cPlayer::weaponRelease()
@@ -98,7 +98,7 @@ void cPlayer::weaponRelease()
     }
     endCamera();
     if ((flags_420 & 1) == 0) {
-        switch (pG->x4F7C) {
+        switch (pG->weapon_no_old) {
         case 0:
             break;
         case 1:
@@ -203,7 +203,7 @@ void cPlayer::weaponInit()
 // constants, right before PlWepHitCheck2's.
 static f32 wepRate(cPlWep* w)
 {
-    if (w->x20) {
+    if (w->m_EmRankPtr) {
         return -1.0f;
     }
     if (w->pitch > 0.0f) {

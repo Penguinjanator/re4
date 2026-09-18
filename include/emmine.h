@@ -11,7 +11,7 @@ struct EmMineWork {
     int Timer;            // 0x004 (0x3E4)  frames until the next beep (R1_Set / R1_Parent), bomb wait
     int Timer2;            // 0x008 (0x3E8)  beep interval, shrinks from 17 to 5
     cEm* pEm_oya;         // 0x00C (0x3EC)  enemy the mine sticks to (setParent)
-    int x10;              // 0x010 (0x3F0)
+    int pEm_old;              // 0x010 (0x3F0)
     cEm* pEm_homing;         // 0x014 (0x3F4)  homing target (emMineSearchEm)
     int oya_parts;          // 0x018 (0x3F8)  parts of pParent the mine sticks to
     int Bomb_wait;             // 0x01C (0x3FC)  frames until the mine explodes / the arrow is lost

@@ -148,8 +148,8 @@ void SceEventStart(int mode)
     SceSys.dmg = pPL->dmg;
     pPL->dmg.set(0, 0x80);
     BitOn(pG->System_flg, 0x800);
-    BitOn(pG->flags_170, 0x100);
-    BitOn(pG->flags_170, 0x400000);
+    BitOn(pG->Stop_flg, 0x100);
+    BitOn(pG->Stop_flg, 0x400000);
     SndBlkStop(2);
 }
 
@@ -179,12 +179,12 @@ void SceEventEnd(int mode)
     BitOff(pG->flags_5018, 0x1000000);
     BitOff(pG->flags_500C, 0x1000);
     BitOff(pG->flags_5010, 0x10000000);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     BitOff(pG->System_flg, 0x400);
     Cckpt.lifeMeterDisp(1);
     IdSys.dispSw(0x21, 1);
-    BitOff(pG->flags_170, 0x100);
-    BitOff(pG->flags_170, 0x400000);
+    BitOff(pG->Stop_flg, 0x100);
+    BitOff(pG->Stop_flg, 0x400000);
     ShadowMemClear();
     if (SceSys.system_bak & 0x800) {
         BitOn(pG->System_flg, 0x800);
@@ -213,7 +213,7 @@ void SceUpCutStart()
         }
     }
     if (SceSys.stop_bak_flg == 0) {
-        SceSys.x60 = pG->flags_170;
+        SceSys.x60 = pG->Stop_flg;
         SceSys.stop_bak_flg = 1;
     }
     KeyStop(0xEFCF0000);
@@ -221,16 +221,16 @@ void SceUpCutStart()
     BitOn(pG->Disp_flg, 0x20000000);
     pPL->atari.clrFlag100();
     BitOn(pGS->flags_5010, 0x10000000);  // the pG load waits for the clrFlag100 store
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x40000000);
-    BitOff(pG->flags_170, 0x10000);
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_170, 0x08000000);
-    BitOff(pG->flags_170, 0x04000000);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x800);
-    BitOff(pG->flags_170, 0x01000000);
-    BitOff(pG->flags_170, 0x40);
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x40000000);
+    BitOff(pG->Stop_flg, 0x10000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Stop_flg, 0x08000000);
+    BitOff(pG->Stop_flg, 0x04000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x800);
+    BitOff(pG->Stop_flg, 0x01000000);
+    BitOff(pG->Stop_flg, 0x40);
     Cckpt.lifeMeterDisp(0);
     IdSys.dispSw(0x21, 0);
 }
@@ -239,13 +239,13 @@ void SceUpCutEnd()
 {
     cSceSys* s = &SceSys;
 
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     BitOff(pG->Disp_flg, 0x40000000);
     BitOff(pG->Disp_flg, 0x20000000);
     pPL->atari.setFlag100();
     BitOff(pGS->flags_5010, 0x10000000);  // the pG load waits for the setFlag100 store
     if (s->stop_bak_flg == 1) {
-        pG->flags_170 = s->x60;
+        pG->Stop_flg = s->x60;
         s->stop_bak_flg = 0;
     }
     if (s->checkCTaskRange() == 1) {
@@ -268,8 +268,8 @@ int SceCheckEventStart()
 
 void SceSetRoomExitFunc(int a, int b)
 {
-    SceSys.x8 = a;
-    SceSys.xC = b;
+    SceSys.pExitFunc = a;
+    SceSys.pExitParam = b;
 }
 
 void SetFree(int no, u32 v)
@@ -728,10 +728,10 @@ void SceChapterEnd()
     BitOff(pG->Disp_flg, 0x2000);
     BitOff(pG->Disp_flg, 0x800);
     BitOff(pG->Disp_flg, 0x10000);
-    stop_bak = pG->flags_170;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x800000);
-    BitOff(pG->flags_170, 0x40);
+    stop_bak = pG->Stop_flg;
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x800000);
+    BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     chap = 0;
     sec = 0;
@@ -807,7 +807,7 @@ void SceChapterEnd()
         SceSleep(1);
     }
     BitSet(pG->Disp_flg, disp_bak);
-    BitSet(pG->flags_170, stop_bak);
+    BitSet(pG->Stop_flg, stop_bak);
     FadeSetW(0, 0, 0, 0);
     FadeKill(2);
     if (SceSys.x78 >= 0) {
@@ -840,7 +840,7 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SndRoomBgmStop(1, 0);
     SndSeAbsFadeOutAll_sec(1);
     SceEventStart(0);
-    BitOff(pG->flags_170, 0x800000);
+    BitOff(pG->Stop_flg, 0x800000);
     SceSys.pause = 1;
     SceSys.x74 = chapter;
     SceSys.x78 = doorAt;

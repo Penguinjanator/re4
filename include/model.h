@@ -503,7 +503,7 @@ public:
     union {
         struct {
             cAtariInfo atari;          // 0x2B4 .. 0x300  (rect size at 0x2C0/0x2C4)
-            u32 x300;                  // 0x300  (cModel::cModel clears it)
+            u32 inscreen_pos;                  // 0x300  (cModel::cModel clears it)
             u32 pPath;                  // 0x304  (cModel::cModel clears it)
             void* pFootShadowTbl;      // 0x308  foot shadow table (pl_leon: pl_fs_tbl; trans FootShadow)
             EmLightArea litArea;       // 0x30C .. 0x31C  light_area: per-light colour scale (trans_lit lightSetColor)

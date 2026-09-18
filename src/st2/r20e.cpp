@@ -186,7 +186,7 @@ void R20eInit()
     r20e_work = (R20eWork*) MEM_CALLOC(sizeof(R20eWork), 1, 0xd);
     ShadowMngReAlloc(0x100);
     r20e_initPuzzle();
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         if (SceAtItemFlgCk(0x80) == 0) {
             cModel* m;
 
@@ -229,7 +229,7 @@ void R20eInit()
     if (getRoomEtcRack(8, &r20e_work->rack, 1)) {
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);
     }
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         EstSet((int) pPL, -1, 0, 0, 1, 2, 1, 0, 0, 0);
     }
     r20e_work->effKind = EspPullCoreKind();

@@ -227,7 +227,7 @@ void Em34ClothSet1(cModel* m, PlCloth* pCloth)
     pCloth->pChild = em34ClothDp2;
     pCloth->pMax = em34ClothMax2;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     pCloth->pAtset = em34ClothAt2_LongStride;
     pCloth->At_num = 16;
     pCloth->Gravity = 20.0f;
@@ -272,7 +272,7 @@ void Em34ClothSet2(cModel* m, PlCloth* pCloth)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -306,7 +306,7 @@ void Em18ClothSet(cModel* m, PlCloth* pCloth, int mode)
     pCloth->Stretchy = 0.05f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     if (mode) {
         // The x40/x44 stores repeat the defaults: they are real uses for flow/sched1/regalloc
         // (0.1 and 4 live across the branch: f11, callee-saved r28) and reload_cse_regs deletes
@@ -350,7 +350,7 @@ void Em37HairSet(cModel* m, PlCloth* pCloth)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -389,7 +389,7 @@ void Em37CoatSet(cModel* m, PlCloth* pCloth)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -427,7 +427,7 @@ void Em33ClothSet(cModel* m, PlCloth* pCloth, int small)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -465,7 +465,7 @@ void Em33ClothSet2(cModel* m, PlCloth* pCloth, int small)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -539,7 +539,7 @@ cObjChain* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl)
     c->Stretchy = 0.1f;
     c->Move_rate = 0.0f;
     c->Flag = 0;
-    c->x54 = 0;
+    c->pPtbl = 0;
     chain->setChain((PenCloth*) c);
     pos.x = -290.0f;
     pos.y = -162.95f;
@@ -576,7 +576,7 @@ void Em30ClothSet1(cModel* m, PlCloth* pCloth)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0x100;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 
@@ -610,7 +610,7 @@ void Em30ClothSet2(cModel* m, PlCloth* pCloth)
     pCloth->Stretchy = 0.05f;
     pCloth->Move_rate = 0.0f;
     pCloth->Flag = 0;
-    pCloth->x54 = 0;
+    pCloth->pPtbl = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
 

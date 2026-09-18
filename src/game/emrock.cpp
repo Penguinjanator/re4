@@ -177,7 +177,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->Be_flg = zero;
     w->x24 = zero;
     w->pEm_oya = (cEm*) zero;
-    w->x30 = zero;
+    w->pEm_old = zero;
     w->pAtk = (EmAtkInfo*) zero;
     w->xA1 = zero;
     w->se8C = zero;
@@ -1024,7 +1024,7 @@ void plemDropFind(cPlayer* pl)
             emRockDropCamMove(PL_ROCK(pl));
         }
         if (MotionMove(pl, 0)) {
-            pG->flags_170 &= ~0x80000000;
+            pG->Stop_flg &= ~0x80000000;
             EndPlDamage();
         }
         break;
@@ -1054,7 +1054,7 @@ void plemDropEscape(cPlayer* pl)
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
-            pG->flags_170 &= ~0x80000000;
+            pG->Stop_flg &= ~0x80000000;
             EndPlDamage();
         }
         break;
@@ -1125,7 +1125,7 @@ void cEmRock::setFall(EmAtkInfo* atk)
     TransMatrix(mat, &pos);
     pos_old = pos;
     if (w->pEm_oya) {
-        w->x30 = (u32) w->pEm_oya;
+        w->pEm_old = (u32) w->pEm_oya;
     }
     w->pEm_oya = 0;
     hp = 1;
@@ -1176,7 +1176,7 @@ void cEmRock::setThrow(Vec* spd, EmAtkInfo* atk)
     TransMatrix(mat, &pos);
     pos_old = pos;
     if (w->pEm_oya) {
-        w->x30 = (u32) w->pEm_oya;
+        w->pEm_old = (u32) w->pEm_oya;
     }
     w->pEm_oya = 0;
     hp = 1;
@@ -1227,7 +1227,7 @@ void cEmRock::setThrow2(Vec* spd, EmAtkInfo* atk)
     TransMatrix(mat, &pos);
     pos_old = pos;
     if (w->pEm_oya) {
-        w->x30 = (u32) w->pEm_oya;
+        w->pEm_old = (u32) w->pEm_oya;
     }
     w->pEm_oya = 0;
     hp = 1;
@@ -1688,7 +1688,7 @@ void plemRockEscape(cPlayer* pl)
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
         if (MotionMove(pl, 0)) {
-            pG->flags_170 &= ~0x80000000;
+            pG->Stop_flg &= ~0x80000000;
             Cckpt.lifeMeterDisp(1);
             pl->Wep->setTrans(1, 0);
             GameSaveSave(&GameSave, pSaveData, -1);

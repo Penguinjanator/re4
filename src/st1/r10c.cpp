@@ -236,16 +236,16 @@ static void r10c_TestPosMove(int side)
     // `pGS`: the struct-view pG load is not a fixed scalar, so sched1 keeps it behind the two
     // template copies and their word 4/8 loads and stores come out in source order (the plain
     // `pG` load is hoisted above them and the 8/4 pair flips).
-    u32 flags = pGS->flags_170;
+    u32 flags = pGS->Stop_flg;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
-    U32Set(pG->flags_170, 0xFFFFFFFF);
-    pG->flags_170 &= ~0x00800000;
+    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg &= ~0x00800000;
     FadeSetW(2, 10, 0, 0);
     SceSleep(10);
     SmdSetTrans(0x5C, 0);
-    pG->flags_170 = flags;
+    pG->Stop_flg = flags;
     FadeSetW(0x80000002, 10, 0, 0);
     SceEventStart(0);
     pl->setRightHand(1);

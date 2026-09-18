@@ -115,7 +115,7 @@ cModel::cModel()
     memclr_asm(&Motion, 0xD0);
     Motion.blend = 0;
     Motion.flip = 0;
-    x300 = 0;
+    inscreen_pos = 0;
     pPath = 0;
     pTexChg = 0;
 }

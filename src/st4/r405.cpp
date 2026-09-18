@@ -89,7 +89,7 @@ void R405Init()
         EvtMgr.EvtReadAram("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0, 0, 0);
     }
     EatMgr.registEffInfo(2, (AtEffInfo*) &r405_eff_info);
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
                        ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0,
                        zero, zero, zero, zero);
@@ -202,7 +202,7 @@ extern "C" void Evt_R405S00_Func(Event* e)
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }

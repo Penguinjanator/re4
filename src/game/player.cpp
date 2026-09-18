@@ -134,7 +134,7 @@ int PlFanceFlag;
 // Equipped weapon / life by the player character.
 void PlayerInit()
 {
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     case 1:
         U8Set(pG->weapon_no, 2);
@@ -189,7 +189,7 @@ void PlayerInit()
 // HUNK 1680, Krauser 2400, Wesker 1860); flags_6C bits: 1440 / 1920.
 void PlayerLifeReset()
 {
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         U16Set2(pG->pl_life, pG->pl_life_max, 1200);
         if (pG->System_flg & 0x40000000) {
@@ -297,7 +297,7 @@ void cPlayer::init1()
     m_pSatMask = 0;
     partsWorldCalc();
     initCloth();
-    if (pG->x4FB8 == 0) {
+    if (pG->pl_type == 0) {
         Body->makeSpaeData();
     }
     p2A4 = (EmWork2A4*) PL_MEM_ALLOC(0x98, 510);
@@ -722,7 +722,7 @@ void pl_R1_Turn180(cPlayer* pl)
             CamCtrlShoulderSetSearchFrame(0);
         }
         end = pl->motionMove();
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
             frame = dmMotCk() ? 0x10 : 0x13;
             break;
@@ -765,7 +765,7 @@ cMot3Rate m3rObj;
 // Weapon routine: WeaponMoveFunc (pl_wep.cpp registers it); Ashley has none.
 void pl_R1_Weapon(cPlayer* pl)
 {
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         PlRoutineSet(pl, 0, 0, 0, 0);
     } else if (WeaponMoveFunc == 0) {
         pLog->err(0, 0, "pl_R1_Weapon(): Function is no regist!");
@@ -1258,7 +1258,7 @@ void pl_R1_Fance(cPlayer* pl)
     case 0:
         pl->atari.clrFlag100();
         pl->atari.setPriority(2);
-        if (pG->x4FB8 == 1 || pG->x4FB8 == 2 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 1 || pG->pl_type == 2 || pG->pl_type == 4) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x53), (int) PL_ARC_PTR(pG->pPlayer, 0x54), 3, 5, 0);
         } else if (pl->r_no_3 & 4) {
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pG->pPlayer, 0x55), (int) PL_ARC_PTR(pG->pPlayer, 0x56), 3, 5, 0);
@@ -1297,7 +1297,7 @@ void pl_R1_Fance(cPlayer* pl)
     }
     end = pl->motionMove();
     if (Key.on & 0x10F) {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         default:
             if (pl->frame >= 30.0f) {
@@ -1418,7 +1418,7 @@ void pl_R1_Fall(cPlayer* pl)
     int lim;
     const f32 adjustFrame = 10.0f;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     default:
         lim = 30;
         break;

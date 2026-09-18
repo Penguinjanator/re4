@@ -51,7 +51,7 @@ static inline void PlSetRoutine(int a, int b, int c, int d)
 
 void PlSelect(int no)
 {
-    if (pG->x4FB8 != no) {
+    if (pG->pl_type != no) {
         s16 life = pG->pl_life_max;
         u32 tmp;
 
@@ -63,7 +63,7 @@ void PlSelect(int no)
         U32Set(pG->x4F98, pG->x832C);
         U32Set(pG->x832C, tmp);
     }
-    U8Set(pG->x4FB8, no);
+    U8Set(pG->pl_type, no);
     PlSetCostume();
     BitOn16(pG->pl_flag, 1);
 }
@@ -73,7 +73,7 @@ int PlSetCostume()
     if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
         return pG->pl_costume;
     }
-    if (pG->x4FB8 == 0) {
+    if (pG->pl_type == 0) {
         if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
                 U8Set(pG->pl_costume, 2);
@@ -101,7 +101,7 @@ void PlChangeData()
     EspDataRelease(3, 1, 1);
     pPL->push();
     BitOn16(pG->pl_flag, 1);
-    ReadPlayerData(pG->x4FB8, pG->pl_costume);
+    ReadPlayerData(pG->pl_type, pG->pl_costume);
     pl = pPL;
     pl->setModel();
     pl->setMotion();
@@ -750,7 +750,7 @@ int joyKamae()
     cPlWep* wep;
 
     if ((pSys->flags & 0x04000000) == 0) {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         case 4:
             if (joyLKamae() != 0) {
@@ -776,7 +776,7 @@ int joyKamae()
         }
         return 1;
     } else {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         case 2:
         case 3:
@@ -807,13 +807,13 @@ int joyLKamae()
     cPlayer* pl = pPL;
 
     if ((pSys->flags & 0x04000000) == 0) {
-        if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (Key.on & 0x800) {
                 return 1;
             }
         }
     } else {
-        if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (pl->flags_420 & 0x1000) {
                 if (Key.on & 0x10) {
                     return 1;
@@ -963,7 +963,7 @@ int PlIsArmor()
     if (pG->System_flg & 0x20) {
         return 0;
     }
-    if (pG->x4FB8 != 0) {
+    if (pG->pl_type != 0) {
         return 0;
     }
     return pG->pl_costume == 2 || pG->pl_costume == 3;

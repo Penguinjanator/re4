@@ -187,7 +187,7 @@ RESTART:
             pG->x4F9F = 0;
             pSys->language = 1;
             pG->debug_mode = 0;
-            pG->x4FB8 = 0;
+            pG->pl_type = 0;
             BitOff(pG->flags_6C, 0x2000);
         }
         TaskExec(0, Title_task, 0);
@@ -345,7 +345,7 @@ void systemRestartInit()
     int ret;
 
     PadInit();
-    memclr_asm(&pG->x20, sizeof(GlobalWork) - 0x20);
+    memclr_asm(&pG->Rno0, sizeof(GlobalWork) - 0x20);
     MemReplaceHeap(0, 1);
     MemSetCurrentHeap(1);
     systemWorkInit();
@@ -427,7 +427,7 @@ void systemWorkInit()
     S8Set(pG->debug_disp, -1);
     U16Set(pG->room_id, 0x120);
     U16Set(pG->next_room, pG->room_id);
-    U8Set(pG->x4FB8, 0);
+    U8Set(pG->pl_type, 0);
     U8Set(pG->x8354, 5);
     U8Set(pG->game_costume, 0);
     U8Set(pG->pl_costume, 0);
@@ -527,7 +527,7 @@ void systemResetCommon()
     for (i = 0; i < 2; i++) {
         U32SetOfs(pRK->sys_x20, i * 4, pSys->x20[i]);
     }
-    U32Set(pRK->x3C, pG->x8 >> 31);
+    U32Set(pRK->x3C, pG->CardStatus >> 31);
     U8Set(pRK->valid, 1);
 }
 

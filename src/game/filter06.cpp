@@ -189,7 +189,7 @@ void Filter06Trans()
     PSVECCrossProduct(&cam_vec_LR, &pG->Cam.up, &cam_vec_LR);
 #line 246
     VECNormalize(&cam_vec_LR, &cam_vec_LR);
-    if (!(pG->flags_170 & 0x08000000)) {
+    if (!(pG->Stop_flg & 0x08000000)) {
         for (i = 0; i < flt06.num; i++) {
             flt06.p[i].move();
         }

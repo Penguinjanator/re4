@@ -794,7 +794,7 @@ int pzlPlayer::init(int type)
     int extraGame;
     pzlPiece* p;
 
-    extraGame = pG->x4FB8 == 1;
+    extraGame = pG->pl_type == 1;
     switch ((u32) type) {
     case 3:
         w = 0xF;

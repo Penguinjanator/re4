@@ -519,7 +519,7 @@ void IDSystem::move()
     int lv;
     int i;
 
-    if (pG->flags_170 & 0x40) {
+    if (pG->Stop_flg & 0x40) {
         return;
     }
     Vec v = { 0.0f, 0.0f, 1.0f };

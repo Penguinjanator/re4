@@ -163,7 +163,7 @@ static void tcInit()
     }
     BitOn(pG->flags_60, 0x20000000);
     BitOn(pG->flags_60, 0x10000000);
-    BitOn(pG->flags_170, 0x400000);
+    BitOn(pG->Stop_flg, 0x400000);
     TaskSuspend(0);
     tcGameCameraStore();
     memclr_asm(pTc, sizeof(TcWork));
@@ -2912,7 +2912,7 @@ static void tcQuit()
     BitOff(pG->flags_60, 0x80000000);
     BitOff(pG->flags_60, 0x20000000);
     BitOff(pG->flags_60, 0x10000000);
-    BitOff(pG->flags_170, 0x400000);
+    BitOff(pG->Stop_flg, 0x400000);
     pSys->key_type = PTC->x637;
     CameraSetProjection(1);
     if (!(Joy[0].on & 0x400)) {

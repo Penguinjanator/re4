@@ -184,7 +184,7 @@ static void setLadderMotion(int no)
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 

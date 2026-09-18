@@ -1131,7 +1131,7 @@ void cItemMgr::gameInit()
     clear();
     roomInit();
     if (!flagNeg(pG->System_flg) && !chkFlag(pG->System_flg, 0x40000000)) {
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             type = 0;
         }
         set_game(0);
@@ -1174,14 +1174,14 @@ void cItemMgr::gameInit()
                 get(0xFD, 1);
             }
         }
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             type = 1;
         }
     } else {
         if ((s32) pG->System_flg < 0) {
             set_ada(2);
         } else if (pG->System_flg & 0x40000000) {
-            set_char(pG->x4FB8);
+            set_char(pG->pl_type);
         }
     }
 }
@@ -1189,7 +1189,7 @@ void cItemMgr::gameInit()
 void cItemMgr::roomInit()
 {
     flagclear();
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         type = 1;
     } else {
         type = 0;
@@ -1876,7 +1876,7 @@ int cItemMgr::get(int id, int num)
 static inline int useSubChar(cItemMgr* m)
 {
     if (m->m_to_whom == 0) {
-        return pG->x4FB8 == 1;
+        return pG->pl_type == 1;
     }
     return 1;
 }
@@ -1924,7 +1924,7 @@ int cItemMgr::use(ItemWork* p)
                 pG->pl_life_max += (int) ((f32) (level * 60) + 0.5f);
                 ok = 1;
             }
-        } else if (pG->x4FB8 == 1) {
+        } else if (pG->pl_type == 1) {
             int level = lifeLevel(5, pG->pl_life_max, 600);
 
             if (level <= 4) {

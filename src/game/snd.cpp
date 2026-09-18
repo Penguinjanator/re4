@@ -1327,7 +1327,7 @@ void SndWatcher()
     if (pG->flags_500C & 0x10000000) {
         return;
     }
-    if (!(pG->flags_170 & 0x800)) {
+    if (!(pG->Stop_flg & 0x800)) {
         sndSurroundCalc();
         SeAtCheck();
     }
@@ -2329,7 +2329,7 @@ void SndBgmTblSetDisable(int type, int save)
 
 void SndSubScreenInit()
 {
-    pG->flags_170 |= 0x800;
+    pG->Stop_flg |= 0x800;
     SndSetMasterVol(0x10002, 0x3F);
     SndSePauseAll(1);
 }
@@ -2338,7 +2338,7 @@ void SndSubScreenExit()
 {
     SndSetMasterVol(0x10002, 0x7F);
     SndSePauseAll(0);
-    pG->flags_170 &= ~0x800;
+    pG->Stop_flg &= ~0x800;
 }
 
 void SndEventStrStop(int time)
@@ -2359,7 +2359,7 @@ void SndEventStrStop(int time)
 
 void SndEventInit()
 {
-    pG->flags_170 |= 0x800;
+    pG->Stop_flg |= 0x800;
     Snd_se_fade_out_all(400);
     SndSePauseAll(1);
     SndRoomBgmMuteAll(1, 2);
@@ -2369,7 +2369,7 @@ void SndEventEnd()
 {
     int i;
 
-    pG->flags_170 &= ~0x800;
+    pG->Stop_flg &= ~0x800;
     SndSePauseAll(0);
     for (i = 0; i < 2; i++) {
         u8 no = i;

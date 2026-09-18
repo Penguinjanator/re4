@@ -906,7 +906,7 @@ static void Evt_R227S00_Func(Event* e)
             SmdSetTrans(0xA, 0);
             break;
         case 0xB:
-            BitOff(pG->flags_170, 0x100);
+            BitOff(pG->Stop_flg, 0x100);
             if (!(pG->flags_174 & 0x80000000)) {
                 if (e->NowFrame > 15) {
                     BitOff(pG->Disp_flg, 0x800);

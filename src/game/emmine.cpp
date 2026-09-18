@@ -1185,7 +1185,7 @@ void cEmMine::setFall()
         w->pts[i].z = fRand1_1() * 10.0f;
     }
     w->pEm_oya = 0;
-    w->x10 = 0;
+    w->pEm_old = 0;
     hp = 0;
     w->grav = 15.0f;
     w->Water_ck = 0;

@@ -89,7 +89,7 @@ static void wep11_r2_ready(cPlayer* pl)
             pl->r_no_3 = 0;
         }
     } else if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
-        pl->Wep->x26 |= 1;
+        pl->Wep->m_Flag |= 1;
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
@@ -208,7 +208,7 @@ static void wep11_r2_set(cPlayer* pl)
             PlWepLockRandInit();
         } else if (pl->Wep->m_pWep->reloadable()) {
 
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
         } else {
             SndCall(2, 0x17, &pl->getPartsPtr(4)->world, 0, 0, 0);
@@ -221,7 +221,7 @@ static void wep11_r2_set(cPlayer* pl)
     } else {
     reload:
         if ((Joy[0].trg & 0x200) && pl->Wep->m_pWep->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->x3E0 = 1;
         }

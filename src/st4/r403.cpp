@@ -130,7 +130,7 @@ void R403Init()
     {
         PSet(r403_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1));
     }
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
     } else {
         r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
@@ -636,7 +636,7 @@ static void slide_move()
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         cModel* m = pPL;
 
         v.x = 58241.0f;
@@ -718,7 +718,7 @@ static void setLadderMotion(int no)
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 

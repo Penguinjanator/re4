@@ -21,7 +21,7 @@ struct EmRockWork {
     u32 x24;              // 0x024 (0x404)
     int rollWait;         // 0x028 (0x408)  Roll: frames before the floor check starts
     cEm* pEm_oya;         // 0x02C (0x40C)  model the rock hangs on (setParent)
-    u32 x30;              // 0x030 (0x410)  pParent at the time of setFall / setThrow
+    u32 pEm_old;              // 0x030 (0x410)  pParent at the time of setFall / setThrow
     int oya_parts;          // 0x034 (0x414)  parts of pParent
     u32 seid_throw;            // 0x038 (0x418)  SndCall handle of the always sound
     int Roll_wait;           // 0x03C (0x41C)  Roll: start delay

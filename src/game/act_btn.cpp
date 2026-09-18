@@ -24,7 +24,7 @@ void cActionButton::init()
     BitOff(pG->flags_500C, 0x4000);
     BitOff(pG->flags_500C, 0x200000);
     stop = 1;
-    if (!(pG->flags_170 & 0x100)) {
+    if (!(pG->Stop_flg & 0x100)) {
         stop = 0;
     }
     this->m_stop_flag_old = stop;
@@ -37,7 +37,7 @@ void cActionButton::move()
 
     Cckpt.action.no = 0;
     m_active_flag = 0;
-    if ((pG->flags_170 & 0x100) || (pG->flags_500C & 0x100000) || m_stop_flag_old) {
+    if ((pG->Stop_flg & 0x100) || (pG->flags_500C & 0x100000) || m_stop_flag_old) {
         init();
         return;
     }

@@ -587,7 +587,7 @@ int controller_menu(OptionScreen* o)
             if (Key.trg & KEY_DOWN) {
                 o->_rno2++;
             }
-            if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && o->_rno2 == 2) {
+            if (pG->pl_type != 0 && pG->pl_type != 4 && o->_rno2 == 2) {
                 if (Key.trg & KEY_UP) {
                     o->_rno2 = 1;
                 }
@@ -630,7 +630,7 @@ int controller_menu(OptionScreen* o)
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
-        if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && i == 2) {
+        if (pG->pl_type != 0 && pG->pl_type != 4 && i == 2) {
             u->col0[0] = 0x40;
             u->col0[1] = 0x40;
             u->col0[2] = 0x40;
@@ -996,10 +996,10 @@ void GameResult::init(void* d)
     IdSys.roomInit();
     IdTexDataLoad(DATA_PTR(data, 0x10), 7);
     IdSys.set(DATA_PTR(data, 0x14), 0xFF, ID_RESULT, 0x13, 6, 0);
-    x4 = 0;
-    x5 = 0;
-    x6 = 0;
-    x7 = 0;
+    _rno0 = 0;
+    _rno1 = 0;
+    _rno2 = 0;
+    _rno3 = 0;
 }
 
 int GameResult::move()

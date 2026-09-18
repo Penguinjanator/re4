@@ -335,7 +335,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         } else {
             BitOff(pG->Disp_flg, 0x800);
             ActBtn.set(0x25, 5, (int) r11f_EventS00_Act, 0, 0x46, r11f_actNo, 1, 0);
-            pG->flags_170 &= ~0x100;
+            pG->Stop_flg &= ~0x100;
         }
     }
 }

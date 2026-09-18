@@ -287,13 +287,13 @@ void obj14ClothSet(cObjBell* obj)
     w->cloth.pRate = 0;
     w->cloth.pAtset = 0;
     w->cloth.At_num = 0;
-    w->cloth.x58 = 0;
+    w->cloth.pEm_at = 0;
     w->cloth.Bundle_num = 0;
     w->cloth.WindSin = 0.0f;
     w->cloth.Stretchy = 0.0f;
     w->cloth.Move_rate = 0.0f;
     w->cloth.Flag = 0x100;
-    w->cloth.x54 = 0;
+    w->cloth.pPtbl = 0;
     PenClothSet(obj, &w->cloth, 100.0f);
 }
 

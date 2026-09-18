@@ -136,7 +136,7 @@ void R404Init()
     {
         PSet(r404_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1));
     }
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     } else {
         r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
@@ -745,7 +745,7 @@ static void slide_move()
     pl->setRightHand(1);
     pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         cModel* m = pPL;
 
         v.x = 8271.77f;

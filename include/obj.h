@@ -292,7 +292,7 @@ struct Obj18Work {
     u32 type;             // 0x68  SetObj18 type (cloth set)
     u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
     cObj* child;          // 0x70  ribbon / rope object created by SetObj18
-    int x74;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags
+    int ObjChainFlagCommon;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags
     union {
         u8 pad_78[0xC];
         u32 evName[3];    // 0x78  event model name of the packet that created it (event ExePacket_SetOm)
@@ -329,7 +329,7 @@ struct Obj01Work {
     int release_timer;        // 0x74  frames until it leaves the holder's hand
     u8 seDone;            // 0x78  landing SE state
     u8 pad_79[3];
-    u32 flags7C;          // 0x7C  bit3: water splash done
+    u32 flag;          // 0x7C  bit3: water splash done
 };
 
 // Thrown weapon item work (game/obj10.cpp `cWepItem`): the grenade layout (Obj01Work) with the
@@ -361,7 +361,7 @@ struct WepItemWork {
     u8 Bound_se_ck;            // 0x78  bounce SEs left to play
     u8 se_count;             // 0x79  bounce SEs played
     u8 pad_7A[2];
-    u32 flags7C;          // 0x7C  bit3: water splash done
+    u32 flag;          // 0x7C  bit3: water splash done
 };
 
 // Gatling gun work (game/obj15.cpp `cObjGatling`): a mounted gun the player (or `ride`) fires

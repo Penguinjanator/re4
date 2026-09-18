@@ -311,7 +311,7 @@ static void wep14_r2_set(cPlayer* pl)
             pl->r_no_2 = 2;
             pl->r_no_3 = 0;
         } else if (WEP_OBJ(pl)->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;

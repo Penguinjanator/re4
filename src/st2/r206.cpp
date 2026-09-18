@@ -747,7 +747,7 @@ snipe_done:
     SetSubAux((int) funcAshley, 0);
     pSUB->setNoSuspend(1);
     SceEventStart(1);
-    pG->flags_170 &= ~0x20000000;
+    pG->Stop_flg &= ~0x20000000;
     CamCtrl.CutCall(3);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

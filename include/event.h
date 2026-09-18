@@ -141,7 +141,7 @@ struct EvtDebugModel {
 // Event work (game/event.cpp): a cUnit managed by EventMgr, 0x13C bytes.
 class Event : public cUnit {
 public:
-    u8 xC;                 // 0x0C
+    u8 EndRNo1;                 // 0x0C
     s8 EndRNo2;            // 0x0D  DelEvt: 0 run ExeEndEvt, 1 wait `endWait` frames
     s8 EndRNo3;            // 0x0E
     u8 Id;                 // 0x0F
@@ -292,7 +292,7 @@ public:
     };
     EvtReadEm readEm[8];   // 0x64  enemy modules loaded per read slot
     char NameTmp[0x20];    // 0x84  NameChange result
-    u32 xA4[0x20];         // 0xA4  cleared by myRoomInit
+    u32 pUnit[0x20];         // 0xA4  cleared by myRoomInit
     u8 pad_124[0x144 - 0x124];
     void* emWindowFcv[3];  // 0x144  window jump motions (emwindow ExeWindowEvent)
     DatTbl EvdTbl;         // 0x150  event data by name (0x20)

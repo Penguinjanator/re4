@@ -933,7 +933,7 @@ void titleSub(TitleWork* w)
                 if ((s32) pG->System_flg < 0) {
                     w->Rno0 = 7;
                     FadeSetW(0, 90, 0, 0);
-                    pG->x4FB8 = 2;
+                    pG->pl_type = 2;
                     pG->pl_costume = 1;
                     w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
@@ -1075,23 +1075,23 @@ void titleSub(TitleWork* w)
             }
             switch (w->omk_char_no) {
             case 0:
-                pG->x4FB8 = 0;
+                pG->pl_type = 0;
                 pG->pl_costume = 1;
                 break;
             case 1:
-                pG->x4FB8 = 2;
+                pG->pl_type = 2;
                 pG->pl_costume = 0;
                 break;
             case 2:
-                pG->x4FB8 = 4;
+                pG->pl_type = 4;
                 pG->pl_costume = 0;
                 break;
             case 3:
-                pG->x4FB8 = 3;
+                pG->pl_type = 3;
                 pG->pl_costume = 0;
                 break;
             case 4:
-                pG->x4FB8 = 5;
+                pG->pl_type = 5;
                 pG->pl_costume = 0;
                 break;
             }
@@ -1287,16 +1287,16 @@ int stageSelect(TitleWork* w)
     }
     {
         MercSysGetSaveWork(&save);
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             mode = 1;
         }
-        if (pG->x4FB8 == 4) {
+        if (pG->pl_type == 4) {
             mode = 2;
         }
-        if (pG->x4FB8 == 3) {
+        if (pG->pl_type == 3) {
             mode = 3;
         }
-        if (pG->x4FB8 == 5) {
+        if (pG->pl_type == 5) {
             mode = 4;
         }
         int i;
@@ -1340,7 +1340,7 @@ static cRoomJmp* pRj;
 void titleExit(TitleWork* w)
 {
     if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
-        pG->x4FB8 = 0;
+        pG->pl_type = 0;
         pG->game_costume = 0;
     }
     if (!(pG->System_flg & 0x100) && (s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
@@ -1376,7 +1376,7 @@ void titleExit(TitleWork* w)
         case 2:
             G_ROOM_ID = 0x120;
             pG->x4F9F = 0;
-            pG->x4FB8 = 0;
+            pG->pl_type = 0;
             break;
         case 0x12:
             BitOn(pSys->x4, 0x40000000);
@@ -1423,8 +1423,8 @@ void titleExit(TitleWork* w)
         }
         pRj->getRoomInfo(pG->stage_no, pG->x4F9F + pRj->getRoomIdx(pG->stage_no, pG->room_no))->setNextPos();
         delete pRj;
-        if (pG->x4FB8 == 6) {
-            pG->x4FB8 = 0;
+        if (pG->pl_type == 6) {
+            pG->pl_type = 0;
             BitOn(pG->flags_5018, 0x04000000);
         }
     }
@@ -1565,7 +1565,7 @@ void titleDebugMenu(TitleWork* w)
     }
     eprintf(x - 8, y + w->c_pos * 16, 0, 0, ">");
     y -= 16;
-    eprintf(x + 96, y += 16, 4, 0, "%s", pl_type_tbl[pG->x4FB8]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", pl_type_tbl[pG->pl_type]);
     eprintf(x + 96, y += 16, 4, 0, "");
     eprintf(x + 96, y += 16, 4, 0, "");
     eprintf(x + 96, y += 16, 4, 0, "%x", w->Stage);
@@ -1603,10 +1603,10 @@ void titleDebugMenu(TitleWork* w)
     switch (w->c_pos) {
     case 0:
         if (Joy[0].trg & 0x00020002) {
-            pG->x4FB8 = (pG->x4FB8 + 1) % 7;
+            pG->pl_type = (pG->pl_type + 1) % 7;
         }
         if (Joy[0].trg & 0x00010001) {
-            pG->x4FB8 = (pG->x4FB8 + 6) % 7;
+            pG->pl_type = (pG->pl_type + 6) % 7;
         }
         break;
     case 1:

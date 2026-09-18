@@ -1255,7 +1255,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 if ((s32) pG->flags_60 >= 0) {
                     CamDbg.m_cam_mode = 2;
                 }
-                BitOn(pG->flags_170, 0x10000000);
+                BitOn(pG->Stop_flg, 0x10000000);
             }
             break;
         case 1:
@@ -1298,14 +1298,14 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     case 1:
         if (joy->trg & JOY_B) {
             BitOff(pG->flags_64, 0x20000000);
-            BitOff(pG->flags_170, 0x10000000);
+            BitOff(pG->Stop_flg, 0x10000000);
             if (CamDbg.m_cam_mode != 2) {
                 CamDbg.m_cam_mode = 0;
             }
             menu_level = 0;
         } else if (joy->trg & JOY_A) {
             q->getAreaData(g_local_ready, g_local_trans);
-            BitOn(pG->flags_170, 0x40000000);
+            BitOn(pG->Stop_flg, 0x40000000);
             menu_level = 2;
         } else {
             int old_umd = site_UMD;
@@ -1407,7 +1407,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     case 2:
         MotionMove(pPL, 0);
         if (joy->trg & JOY_B) {
-            BitOff(pG->flags_170, 0x40000000);
+            BitOff(pG->Stop_flg, 0x40000000);
             menu_level = 1;
         } else if (joy->trg & JOY_A) {
             PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->Campos);
@@ -1440,7 +1440,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             q->setAreaData(g_local_ready, g_local_trans);
             ret = 3;
-            BitOff(pG->flags_170, 0x40000000);
+            BitOff(pG->Stop_flg, 0x40000000);
             menu_level = 1;
         } else {
             ret = 2;

@@ -62,7 +62,7 @@ static void testHairSetAda2(cModel* pl, PlCloth* c)
     c->Move_rate = 0.5f;
     c->pModel = 0;
     c->Flag = 0x302;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
@@ -96,7 +96,7 @@ void testHolsterSetAda2(cModel* pl, PlCloth* c)
     c->pModel = 0;
     c->Bundle_num = 0;
     c->Flag = 0x302;
-    c->x54 = 0;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 

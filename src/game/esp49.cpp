@@ -51,7 +51,7 @@ void cEsp49::move()
                 if (w->estOn & 1) {
                     r.x = r.y = r.z = 0.0f;
                     ep = m_Pos;
-                    EstSet(0, -1, &ep, &r, w->EstNo, w->estPrm, info.Core_flg, info.Core_kind, info.x8, 0);
+                    EstSet(0, -1, &ep, &r, w->EstNo, w->estPrm, info.Core_flg, info.Core_kind, info.Core_pEm, 0);
                 }
                 PushEsp(this);
             } else if (d < w->fade_height) {

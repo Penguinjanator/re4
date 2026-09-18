@@ -202,19 +202,19 @@ int MercSysInitRoom(MercInit* pMInit)
         }
     }
     wk->mode = 0;
-    if (pG->x4FB8 == 0) {
+    if (pG->pl_type == 0) {
         wk->mode = 0;
     }
-    if (pG->x4FB8 == 2) {
+    if (pG->pl_type == 2) {
         wk->mode = 1;
     }
-    if (pG->x4FB8 == 4) {
+    if (pG->pl_type == 4) {
         wk->mode = 2;
     }
-    if (pG->x4FB8 == 3) {
+    if (pG->pl_type == 3) {
         wk->mode = 3;
     }
-    if (pG->x4FB8 == 5) {
+    if (pG->pl_type == 5) {
         wk->mode = 4;
     }
     wk->x70 = pMInit->x18;
@@ -308,7 +308,7 @@ int MercSysMoveStart(MercSysWork* wk)
                     SceMesSet(wk->mesAC, 0x20, 1, 100, MES_Y(m));
                 }
             }
-            if (pG->x4FB8 == 4) {
+            if (pG->pl_type == 4) {
                 SceMesSet(wk->mes[4], 0, 1, 100, MES_Y(cMes.getWork()));
             }
             st[1]++;
@@ -652,10 +652,10 @@ int MercSysResultMove(MercSysWork* wk)
                     BitOff(pG->Disp_flg, 0x2000);
                     BitOff(pG->Disp_flg, 0x800);
                     BitOff(pG->Disp_flg, 0x10000);
-                    stop_bak = pG->flags_170;
-                    BitSet(pG->flags_170, 0xFFFFFFFF);
-                    BitOff(pG->flags_170, 0x00800000);
-                    BitOff(pG->flags_170, 0x40);
+                    stop_bak = pG->Stop_flg;
+                    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+                    BitOff(pG->Stop_flg, 0x00800000);
+                    BitOff(pG->Stop_flg, 0x40);
                     rs->cnt = 0;
                     rs->step++;
                 }
@@ -1072,8 +1072,8 @@ int MercResult::init(MercSysWork* wk)
     IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
-    x32 = 0;
-    x33 = 0;
+    _rno2 = 0;
+    _rno3 = 0;
     return 1;
 }
 
@@ -1219,8 +1219,8 @@ void AdaResult::init(int no)
     IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 6, 0);
     _rno0 = 0;
     _rno1 = 0;
-    x32 = 0;
-    x33 = 0;
+    _rno2 = 0;
+    _rno3 = 0;
 }
 
 int AdaResult::move(int mesNo)

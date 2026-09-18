@@ -538,7 +538,7 @@ int cLightTool::move()
         if (Mode == 1) {
             CameraMove();
         } else {
-            BitOff(pG->flags_170, 0x40000000);
+            BitOff(pG->Stop_flg, 0x40000000);
             pG->flags_60 &= ~0x10000000;
         }
     } else {

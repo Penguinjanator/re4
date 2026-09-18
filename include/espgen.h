@@ -131,7 +131,7 @@ struct cEspSystem {
     u32 xC548;         // 0xC548 number of esp slots in use
     u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
     u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
-    u32 xC554;         // 0xC554 number of esp slots
+    u32 nEsp;         // 0xC554 number of esp slots
     u32 nEspBack;       // 0xC558 slot count saved by EspArrayPush
     cEsp* pDmyEsp;        // 0xC55C dummy esp returned when the pool is full
     u8 CoreKindTop;       // 0xC560 next effect kind handed out by EspPullCoreKind (0x45..)

@@ -1323,7 +1323,7 @@ static void shootEnd()
     SndStrReq(r22c_work.p->strId, 4, 0xC8, 0);
     LightMgr.onKind(1);
     LightMgr.offKind(2);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     BitOff(pG->flags_174, 0x20000000);
     SceAtSetEnable(0, 1);
     SceExit();

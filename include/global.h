@@ -86,7 +86,7 @@ struct GlobalWork {
     u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
     u8 save_no;            // 0x05  save file number last loaded/saved (card dataSelect)
     u8 pad_6[2];
-    u32 x8;                // 0x08  card flags (card: 4 loaded, 8/0x10/0x20/0x40/0x80 CardSave modes, bit 31 first check done; main: bit 31 saved into pRK->x3C)
+    u32 CardStatus;                // 0x08  card flags (card: 4 loaded, 8/0x10/0x20/0x40/0x80 CardSave modes, bit 31 first check done; main: bit 31 saved into pRK->x3C)
     u8 pad_C[4];
     u64 card_serial;       // 0x10  serial of the card the save file came from (card)
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
@@ -94,10 +94,10 @@ struct GlobalWork {
     union {
         u32 mode32;        // 0x20  x20..x23 as one word (game: gameOption saves/restores it in Game.mode_bak)
         struct {
-            u8 x20;        // 0x20  game task step (game_func_tbl index; main_sub: 3/4/6 allow the blur filter)
-            u8 x21;        // 0x21  sub step (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
-            u8 x22;
-            u8 x23;
+            u8 Rno0;        // 0x20  game task step (game_func_tbl index; main_sub: 3/4/6 allow the blur filter)
+            u8 Rno1;        // 0x21  sub step (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
+            u8 Rno2;
+            u8 Rno3;
         };
     };
     u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
@@ -128,7 +128,7 @@ struct GlobalWork {
     f32 mot_speed;         // 0x70  motion frame step per game frame (MotionSequenceCtrl: speed * mot_speed)
     Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
     u8 pad_16C[4];
-    u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
+    u32 Stop_flg;          // 0x170  stop flags (debug tools save/restore it)
     u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
     u32 flags_178;         // 0x178  (objRobo WalkHitCk: bit31 = the statue caught the player)
     u32 sceat_x17C;        // 0x17C  (sce_at SceAtWorkLoopInit clears both every frame)
@@ -152,7 +152,7 @@ struct GlobalWork {
     u8 bell_stat;          // 0x4F48  2 = bell rung
     u8 pad_4F49[0x4F70 - 0x4F49];
     Vec quake_ofs;         // 0x4F70
-    u8 x4F7C;
+    u8 weapon_no_old;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
     u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
     u8 pad_4F80[4];        // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
@@ -202,7 +202,7 @@ struct GlobalWork {
     union {
         u32 x4FB8_32;      // 0x4FB8  the four bytes as one word (title: `& 0xFF0000FF` == 0 -> Leon with the default Ashley)
         struct {
-            u8 x4FB8;      // 0x4FB8  player character: 0 Leon, 1 Ashley, 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker, 6 Leon+Ashley
+            u8 pl_type;      // 0x4FB8  player character: 0 Leon, 1 Ashley, 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker, 6 Leon+Ashley
             u8 pl_costume;    // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
             u8 weapon_lv_reload;      // 0x4FBA
             u8 game_costume;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)

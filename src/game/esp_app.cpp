@@ -309,7 +309,7 @@ void EffAreaUpdate()
     } else {
         BitOff(pG->flags_5010, 0x02000000);
     }
-    if (pG->flags_170 & 0x20) {
+    if (pG->Stop_flg & 0x20) {
         return;
     }
     if (sys->pSstArea == NULL) {

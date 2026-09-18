@@ -122,8 +122,8 @@ public:
     void* pData;       // 0x2C
     s8 _rno0;           // 0x30
     s8 _rno1;            // 0x31
-    u8 x32;
-    u8 x33;
+    u8 _rno2;
+    u8 _rno3;
 
     int init(MercSysWork* wk);
     int move(MercSysWork* wk);
@@ -139,8 +139,8 @@ public:
     void* pData;       // 0x2C
     s8 _rno0;           // 0x30
     s8 _rno1;            // 0x31
-    u8 x32;
-    u8 x33;
+    u8 _rno2;
+    u8 _rno3;
 
     void init(int no);
     int move(int mesNo);

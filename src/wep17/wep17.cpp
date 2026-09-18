@@ -152,7 +152,7 @@ static void wep17_r2_ready(cPlayer* pl)
         }
     }
     if (pl->keyReload() && WEP_OBJ(pl)->reloadable()) {
-        pl->Wep->x26 |= 1;
+        pl->Wep->m_Flag |= 1;
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;
@@ -444,7 +444,7 @@ static void wep17_r2_set(cPlayer* pl)
             return;
         }
         if (WEP_OBJ(pl)->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 4;
@@ -461,7 +461,7 @@ static void wep17_r2_set(cPlayer* pl)
         return;
     }
     if (pl->keyReload() && WEP_OBJ(pl)->reloadable()) {
-        pl->Wep->x26 |= 1;
+        pl->Wep->m_Flag |= 1;
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 4;

@@ -4083,7 +4083,7 @@ void em35ClothSet(cEm35* em)
         w->cloth1.Stretchy = 0.05f;
         w->cloth1.Move_rate = 0.0f;
         w->cloth1.Flag = 0;
-        w->cloth1.x54 = 0;
+        w->cloth1.pPtbl = 0;
         PenClothSet(em, (PenCloth*) &w->cloth1, 100.0f);
     }
 }
@@ -4135,7 +4135,7 @@ void em35ClothSet2(cEm35* em)
         w->cloth2.Stretchy = 1.0f;
         w->cloth2.Move_rate = 0.0f;
         w->cloth2.Flag = 0x100;
-        w->cloth2.x54 = 0;
+        w->cloth2.pPtbl = 0;
         PenClothSet(em, (PenCloth*) &w->cloth2, 100.0f);
     }
 }
@@ -4175,7 +4175,7 @@ void em35ClothSet3(cEm35* em)
         w->cloth2.Stretchy = 1.0f;
         w->cloth2.Move_rate = 0.0f;
         w->cloth2.Flag = 0x100;
-        w->cloth2.x54 = 0;
+        w->cloth2.pPtbl = 0;
         PenClothSet(em, (PenCloth*) &w->cloth2, 100.0f);
     }
 }

@@ -128,7 +128,7 @@ int cEsp11::SetFreeWork(EspGenWork* gen, u32* seed)
         return 0;
     }
     if (pG->flags_64 & 0x00800000) {
-        pG->flags_170 &= ~0x01000000;
+        pG->Stop_flg &= ~0x01000000;
     }
     return 1;
 }

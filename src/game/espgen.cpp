@@ -441,7 +441,7 @@ void EspgenDelete(int a, int b, int c)
             if (b != 0 && w->info.Core_kind != b) {
                 continue;
             }
-            if (c != 0 && w->info.x8 != c) {
+            if (c != 0 && w->info.Core_pEm != c) {
                 continue;
             }
             PushEspgen(w);
@@ -544,7 +544,7 @@ int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 par
         EspGenSetMoveLoop(rec->x110);
         return 1;
     }
-    if (PullEspEspgen(&w, info->Core_flg, info->Core_kind, info->b.x7, info->x8, info->owner, 0)) {
+    if (PullEspEspgen(&w, info->Core_flg, info->Core_kind, info->b.x7, info->Core_pEm, info->owner, 0)) {
         w->id = rec->genId;
         w->xE = rec->x10A;
         if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, pSct, flag)) {

@@ -373,7 +373,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
     u32 newSize;
     u32 dataSize;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     case 1:
     default:
@@ -403,7 +403,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
         return 0;
     }
     mode = 1;
-    if (pG->x20 == 2) {
+    if (pG->Rno0 == 2) {
         mode = 0x100;
     }
     if (addr == NULL) {
@@ -475,7 +475,7 @@ void setEmModule(ReadModule* m, int id)
     ReadFile* e;
     void* bss;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     default:
         e = &EmFileTbl[id];
@@ -716,9 +716,9 @@ void ReleasePlData()
 
 void ReleaseWepData()
 {
-    if (pG->x4F7C != 0xFF) {
+    if (pG->weapon_no_old != 0xFF) {
         InitModule(&WepReadModule);
-        pG->x4F7C = 0xFF;
+        pG->weapon_no_old = 0xFF;
         oldWepId = 0xFF;
     }
 }
@@ -808,12 +808,12 @@ void ReadWepData(u32 no, u32 type)
     OSModuleHeader* pModule;
     void* bss;
 
-    if (pG->x4FB8 == 4) {
+    if (pG->pl_type == 4) {
         data = (u8*) Game.pWepBuf;
     } else {
         data = (u8*) WEP_DATA_ADDR;
     }
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     default:
         if (no == 0x19 || no == 0x1F || no == 0x20 || no == 0x16 || no == 0x17) {
@@ -911,7 +911,7 @@ void ReadWepData(u32 no, u32 type)
     }
     oldWepId = no;
     ReleaseWepData();
-    pG->x4F7C = pG->weapon_no;
+    pG->weapon_no_old = pG->weapon_no;
     if (e->dll != 0) {
         name = (char*) FileTbl[e->file].name;
         SET_DRS_NAME(name);
@@ -966,8 +966,8 @@ void ContinueWepData()
     u8 old;
     u8 wep;
 
-    if (pG->x4FB8 != 1) {
-        old = pG->x4F7C;
+    if (pG->pl_type != 1) {
+        old = pG->weapon_no_old;
         wep = pG->weapon_no;
         if (wep != old) {
             pG->weapon_no = old;

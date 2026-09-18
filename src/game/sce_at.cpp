@@ -417,7 +417,7 @@ void SceAtCheck()
         }
     }
     sceAtLink_check();
-    if (pG->flags_170 & 0x00400000) {
+    if (pG->Stop_flg & 0x00400000) {
         return;
     }
     checkReleaseModelTbl();
@@ -767,7 +767,7 @@ static void sceInLock(SceAtWork* w)
         break;
     }
     SceAtStopSemiautoCheck();
-    pG->flags_170 = pS->x94;
+    pG->Stop_flg = pS->x94;
     w->flag |= 1;
     TaskExit();
 }
@@ -805,9 +805,9 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         cMes.MesSet(0x67, 0x64, MES_Y, 1, 0, 0, 4);
         return 1;
     }
-    pS->x94 = pG->flags_170;
+    pS->x94 = pG->Stop_flg;
     KeyStop(0xEFCF0000);
-    BitSet(pG->flags_170, -1);
+    BitSet(pG->Stop_flg, -1);
     lt = w->lockType;
     if (lt != 0 && !(doorUnlock()[w->lockFlag >> 5] & (0x80000000 >> (w->lockFlag & 31)))) {
         switch (lt) {
@@ -819,8 +819,8 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         }
     }
     if (w->doorFunc != 0) {
-        SceSys.x10 = (int) w->doorFunc;
-        SceSys.x14 = w->doorArg;
+        SceSys.pDoorFunc = (int) w->doorFunc;
+        SceSys.pDoorParam = w->doorArg;
         w->doorFunc = 0;
     }
     SceSys.x75 = w->x77;
@@ -834,10 +834,10 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     pG->next_room_no = w->dstRoom;
     pG->next_point = w->dstX4F9E;
     pG->door_no = w->doorNo;
-    pG->x20 = 4;
-    pG->x21 = 0;
-    pG->x22 = 0;
-    pG->x23 = 0;
+    pG->Rno0 = 4;
+    pG->Rno1 = 0;
+    pG->Rno2 = 0;
+    pG->Rno3 = 0;
     U16Set(pG->x4F90, 0);
     BitOff(pG->System_flg, 0x40);
     return 1;
@@ -1020,7 +1020,7 @@ static void sceAtGetItem(SceAtWork* w_)
 
     SceUpCutStart();
     swep_flag = 0;
-    BitOn(pG->flags_170, 0x40000000);
+    BitOn(pG->Stop_flg, 0x40000000);
     itemInfo(it->id, &info);
     switch (info.type) {
     case 0:
@@ -1126,9 +1126,9 @@ static void sceAtGetItem(SceAtWork* w_)
         if (SubScreenOpen(0x40, 0) == 0) {
             SceSleep(1);
         }
-        SubScreenWk.x2FA = it->id;
+        SubScreenWk.get_item_id = it->id;
         sub_screen_open = put;
-        SubScreenWk.x2FC = put;
+        SubScreenWk.get_item_num = put;
         break;
     }
     itemExam.setup();
@@ -1178,8 +1178,8 @@ static void sceAtGetItem(SceAtWork* w_)
                     if (SubScreenOpen(4, 0) == 0) {
                         SceSleep(1);
                     }
-                    SubScreenWk.x2FA = it->id;
-                    SubScreenWk.x2FC = it->num;
+                    SubScreenWk.get_item_id = it->id;
+                    SubScreenWk.get_item_num = it->num;
                     sub_screen_open = sel;
                 }
             } else if (res == 2) {
@@ -1222,7 +1222,7 @@ static void sceAtGetItem(SceAtWork* w_)
         while (SubScreenWk.x34 == 0) {
             SceSleep(1);
         }
-        if (SubScreenWk.x40 == 0) {
+        if (SubScreenWk.model_flag == 0) {
             ITEM_CANCEL();
         }
     } else {
@@ -1386,9 +1386,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         if (SubScreenOpen(0x40, 0) == 0) {
             SceSleep(1);
         }
-        SubScreenWk.x2FA = it->id;
+        SubScreenWk.get_item_id = it->id;
         sub_screen_open = put;
-        SubScreenWk.x2FC = put;
+        SubScreenWk.get_item_num = put;
         break;
     }
     sub_screen_open = 0;
@@ -1419,8 +1419,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     if (SubScreenOpen(4, 0) == 0) {
                         SceSleep(1);
                     }
-                    SubScreenWk.x2FA = it->id;
-                    SubScreenWk.x2FC = it->num;
+                    SubScreenWk.get_item_id = it->id;
+                    SubScreenWk.get_item_num = it->num;
                     sub_screen_open = sel;
                 }
             } else if (res == 2) {
@@ -1449,7 +1449,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         while (SubScreenWk.x34 == 0) {
             SceSleep(1);
         }
-        if (SubScreenWk.x40 == 0) {
+        if (SubScreenWk.model_flag == 0) {
             ITEM_CANCEL_NOMODEL();
         }
     } else {
@@ -1760,9 +1760,9 @@ static int sceAtFunc_stoop(SceAtWork* w, cModel* m)
 
 static int sceAtFunc_skey(SceAtWork* w, cModel* m)
 {
-    pS->x94 = pG->flags_170;
+    pS->x94 = pG->Stop_flg;
     KeyStop(0xEFCF0000);
-    pG->flags_170 = -1;
+    pG->Stop_flg = -1;
     TaskExec(1, (TaskFunc) sceAtSkey, (int) w);
     return 0;
 }
@@ -1773,7 +1773,7 @@ static void sceAtSkey(SceAtWork* w)
     while (cMes.mes[0].flags2 & 1) {
         TaskSleep(1);
     }
-    pG->flags_170 = pS->x94;
+    pG->Stop_flg = pS->x94;
     TaskExit();
 }
 
@@ -1938,13 +1938,13 @@ FOUND:
                 SceKill(w->hide.func);
                 p = SceExec(0x12, (TaskFunc) w->hide.func, 1, 0, 2, 0);
             }
-            BitOff(pG->flags_170, 0x80000000);
+            BitOff(pG->Stop_flg, 0x80000000);
             SubCharCtrlHide(&pPL->pos, 0);
             if (w->hide.cut != 0) {
                 SceUpCutStart();
                 BitOff(pG->Disp_flg, 0x20000000);
                 pSUB->setNoSuspend(1);
-                BitOff(pG->flags_170, 0x1000);
+                BitOff(pG->Stop_flg, 0x1000);
                 if (p != 0) {
                     p->task->flag |= 2;
                 }
@@ -3734,7 +3734,7 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
     case 0x1003:
         // The switches run on the result variables (the case-5 `num = 5` of 0x1004 folds into the
         // switch register, 0x1005's arms load straight into `no`).
-        no = pG->x4FB8;
+        no = pG->pl_type;
         switch (no) {
         default:
         case 0:
@@ -3759,7 +3759,7 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         *outNum = num;
         break;
     case 0x1004:
-        num = pG->x4FB8;
+        num = pG->pl_type;
         switch (num) {
         default:
         case 0:
@@ -3787,7 +3787,7 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         *outNum = num;
         break;
     case 0x1005:
-        no = pG->x4FB8;
+        no = pG->pl_type;
         switch (no) {
         case 0:
             no = 4;
@@ -3851,7 +3851,7 @@ void sceAtSetItem(SceAtWork* w)
     int ok2;
     cObj* obj;
 
-    if (pG->x4FB8 == 0) {
+    if (pG->pl_type == 0) {
         mask = 1;
     }
     switch (w->linkType) {

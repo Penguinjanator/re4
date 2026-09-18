@@ -33,10 +33,10 @@ class cSceSys {
 public:
     int wait;             // 0x00  1 = GXDrawDone before the next task
     int pause;            // 0x04  nonzero: scenario stopped
-    int x8;               // 0x08
-    int xC;               // 0x0C
-    int x10;              // 0x10
-    int x14;              // 0x14
+    int pExitFunc;               // 0x08
+    int pExitParam;               // 0x0C
+    int pDoorFunc;              // 0x10
+    int pDoorParam;              // 0x14
     void (*pCancelFunc)(); // 0x18  task started by SceExecEventCancel
     int cancelArg;        // 0x1C
     u32 SceTaskOt[16];         // 0x20  ordering table, otag[15] is the list head

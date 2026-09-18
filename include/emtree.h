@@ -24,7 +24,7 @@ struct EmTreeWork {
     u8 pad_C[0x18 - 0xC];
     int fallTimer;        // 0x018 (0x3F8)  emTree_R1_Parent: frames until setFall (30 when the player survived)
     cModel* pParent;      // 0x01C (0x3FC)  model the tree follows (setParent)
-    int x20;              // 0x020 (0x400)
+    int pEm_old;              // 0x020 (0x400)
     int oya_parts;          // 0x024 (0x404)
     u32 sndId;            // 0x028 (0x408)  handle of the looping sound (seAlways)
     Vec pt[3];            // 0x02C (0x40C)  node speeds kept between frames (setFall randomises them)

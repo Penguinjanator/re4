@@ -1087,11 +1087,11 @@ void tSceAtDataInput_door_PosSet()
     }
     *(TOOL_PTR(0x8678)) = 7;
     TOOL_FLAG(0x68) |= 0x80000000;
-    pG->x20 = 4;
-    pG->x21 = 0;
-    pG->x22 = 0;
-    pG->x23 = 0;
-    while (pG->x20 != 3) TaskSleep(1);
+    pG->Rno0 = 4;
+    pG->Rno1 = 0;
+    pG->Rno2 = 0;
+    pG->Rno3 = 0;
+    while (pG->Rno0 != 3) TaskSleep(1);
     while (!(Joy[0].trg & JOY_START)) {
         if (Joy[0].on & JOY_X) {
             TOOL_FLAG(0x68) |= 8;
@@ -1128,11 +1128,11 @@ void tSceAtDataInput_door_PosSet()
     U8Set(pG->next_room_no, pW->saveRoom);
     U8Set(pG->next_point, pW->saveX4F9E);
     TOOL_FLAG(0x68) |= 0x80000000;
-    pG->x20 = 4;
-    pG->x21 = 0;
-    pG->x22 = 0;
-    pG->x23 = 0;
-    while (pG->x20 != 3) TaskSleep(1);
+    pG->Rno0 = 4;
+    pG->Rno1 = 0;
+    pG->Rno2 = 0;
+    pG->Rno3 = 0;
+    while (pG->Rno0 != 3) TaskSleep(1);
     tSceAtInit_base();
     TOOL_FLAG(0x6C) &= ~0x10000;
     TOOL_FLAG(0x68) &= ~0x4000000;

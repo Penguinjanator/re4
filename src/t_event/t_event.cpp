@@ -1002,7 +1002,7 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
         if (pJoy0->trg & 0x1000) {
             DebugCameraFlag = 0;
             if (!(pG->flags_60 & 0x10000000)) {
-                pG->flags_170 &= ~0x40000000;
+                pG->Stop_flg &= ~0x40000000;
             }
         } else {
             CamDbg.move(&pG->Cam, &Joy[0], 0);
@@ -1011,10 +1011,10 @@ int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
             }
             if (pJoy0->trg & 0x200) {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) |= 8;
-                pG->flags_170 &= ~0x40000000;
+                pG->Stop_flg &= ~0x40000000;
             } else {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) &= ~8;
-                pG->flags_170 |= 0x40000000;
+                pG->Stop_flg |= 0x40000000;
             }
             CameraMove();
         }
@@ -1037,7 +1037,7 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
         pG->flags_60 |= 0x20000000;
     } else {
         EvtDebug.FlagEtc &= ~0x20000000;
-        BitOff(pG->flags_170, 0x40000000);
+        BitOff(pG->Stop_flg, 0x40000000);
         pG->flags_60 &= ~0x20000000;
         TaskSleep(1);
     }

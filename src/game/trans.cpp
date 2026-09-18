@@ -689,7 +689,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
                 t->frame = 0;
             }
         }
-        if (!(pG->flags_170 & 0x08000000) && (t->flags & 1)) {
+        if (!(pG->Stop_flg & 0x08000000) && (t->flags & 1)) {
             f32 u = t->u + t->su;
             f32 v = t->v + t->sv;
             t->u = u;

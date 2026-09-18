@@ -345,7 +345,7 @@ static void em18_R1_Trade(cEm18* em)
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 10, 1, 0);
         SndCall(8, 0xA, &em->pos, em->id, 0, 0);
         w->sndId = SndCall(8, 7, &em->pos, em->id, 0, 0);
-        pGS->flags_170 &= 0x7FFFFFFF;
+        pGS->Stop_flg &= 0x7FFFFFFF;
         em->r_no_2++;
     case 4:
         if (em->motFrame > 33.7f && em->motFrame < 34.3f) {

@@ -163,7 +163,7 @@ void R20dInit()
 {
 #line 55 "D:/Bio4/Prog/r20d.cpp"
     r20d_work.p = (R20dWork*) MEM_CALLOC(sizeof(R20dWork), 1, 0xd);
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         r20d_work.p->lantern.initLantern(ROOM_ARC_PTR(pG->pRoom, 0xE), ROOM_ARC_PTR(pG->pRoom, 0x3D),
                                          ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x3E),
                                          ROOM_ARC_PTR(pG->pRoom, 0x3F), ROOM_ARC_PTR(pG->pRoom, 0x40));
@@ -865,7 +865,7 @@ void r20d_initRoundSwitch()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtSetEnable(0x85, 0);
     }
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtDataSet_exec(0xD, 0x12, 0, (TaskFunc) r20d_execRoundSwitch, 0, 1);
             SceExec(0x12, (TaskFunc) r20d_checkSalazarCrestUse, 0, 0, 2, 0);

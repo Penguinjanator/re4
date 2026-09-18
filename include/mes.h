@@ -65,9 +65,9 @@ public:
     u32 stop_bak;       // 0x00  pG->flags_170 saved while the message stops the game
     u32 be_flag;          // 0x04  bit 0 = active, bit 1 = first frame
     u8 r_no_0;              // 0x08  code01 step
-    u8 x9;
-    u8 xA;
-    u8 xB;
+    u8 r_no_1;
+    u8 r_no_2;
+    u8 r_no_3;
     u32 flags2;         // 0x0C  bit 0 = active, bit 1 = finished, bit 3 = width check pass
     f32 m_scale_w;         // 0x10
     f32 m_scale_h;         // 0x14
@@ -83,7 +83,7 @@ public:
     u16 m_pos0_y;          // 0x48
     u16 m_width[16];      // 0x4A
     s16 m_width_max;           // 0x6A
-    u16 x6C;
+    u16 m_height;
     u16 waitCnt;        // 0x6E
     u8 m_btn;             // 0x70  code08 started
     s8 m_evt_no;             // 0x71  code0d

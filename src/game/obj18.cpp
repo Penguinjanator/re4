@@ -89,25 +89,25 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     lightFlag = 4;
     if (type == 1) {
         lightFlag = 0x40;
-        if (pG->x4FB8 == 0) {
+        if (pG->pl_type == 0) {
             lightFlag = 1;
         }
     }
     if (type == 2) {
         lightFlag = 0x40;
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             lightFlag = 1;
         }
     }
     if (type == 3) {
         lightFlag = 0x40;
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             lightFlag = 1;
         }
     }
     if (type == 0x17) {
         lightFlag = 0x40;
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             lightFlag = 1;
         }
     }
@@ -201,10 +201,10 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     w->rateSpd = 0.0f;
     w->oya = 0;
     w->oya_parts = 0;
-    w->x74 = 0;
+    w->ObjChainFlagCommon = 0;
     switch (w->type) {
     case 1:
-        if (pG->x4FB8 == 0) {
+        if (pG->pl_type == 0) {
             PlClothSetLeon(obj, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
         }
         break;
@@ -322,7 +322,7 @@ void cObj18::move()
     if (!(w->be_flag & 0x40)) {
         switch (w->type) {
         case 1:
-            if (pG->x4FB8 == 0) {
+            if (pG->pl_type == 0) {
                 PlClothMoveLeon(this, &Evt_leonHair, &Evt_leonJacket, &Evt_leonHolster);
             }
             break;

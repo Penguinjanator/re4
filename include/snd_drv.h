@@ -64,10 +64,10 @@ typedef struct {
 // Stream header (SHD): ADPCM stream file description.
 typedef struct {
     u32 flag;       // 0x00  0x1 stereo, 0x2 ?, 0x4 no loop, 0x8 ?
-    u32 x4;
+    u32 samples;
     u32 len;        // 0x08  file length (bytes, both channels)
     u32 rate;       // 0x0C  sample rate
-    u32 x10;
+    u32 start_nbl;
     u32 loop_start; // 0x14  nibble offset
     u32 lpend_nbl;   // 0x18  nibble offset
     u32 offset;       // 0x1C  ARAM buffer address

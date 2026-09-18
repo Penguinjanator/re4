@@ -699,9 +699,9 @@ void MerchantGameInit()
     for (i = 0; i < MERCHANT_NUM; i++) {
         MerchantData* d = &merchantData[i];
         d->favor = 50;
-        d->x301 = 0;
+        d->study_num = 0;
         d->discount = 0;
-        d->x303 = 0;
+        d->bonus_flag = 0;
     }
     stockDataInit(merchantData);
     levelDataInit(merchantData);
@@ -1124,9 +1124,9 @@ void Merchant::save(MerchantData* p_data)
     p_data->stock = m_stock;
     p_data->level = level;
     p_data->favor = favor;
-    p_data->x301 = x311;
+    p_data->study_num = m_study_num;
     p_data->discount = discount;
-    p_data->x303 = x313;
+    p_data->bonus_flag = m_bonus_flag;
 }
 
 void Merchant::load(MerchantData* p_data)
@@ -1138,9 +1138,9 @@ void Merchant::load(MerchantData* p_data)
     m_stock = p_data->stock;
     level = p_data->level;
     favor = p_data->favor;
-    x311 = p_data->x301;
+    m_study_num = p_data->study_num;
     discount = p_data->discount;
-    x313 = p_data->x303;
+    m_bonus_flag = p_data->bonus_flag;
 }
 
 StockEntry* Merchant::stockPtr(u16 id)

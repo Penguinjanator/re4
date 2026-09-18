@@ -115,7 +115,7 @@ void LifeMeter::roomInit()
     IdSys.unitPtr(0x40, ID_LIFE)->be_flag &= ~8;
     IdSys.unitPtr(0x41, ID_LIFE)->be_flag &= ~8;
     IdSys.unitPtr(0x42, ID_LIFE)->be_flag &= ~8;
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         IdSys.unitPtr(0x40, ID_LIFE)->be_flag |= 8;
         break;
@@ -602,7 +602,7 @@ void BulletInfo::move()
 
 static int dispBulletDigit(u8 no)
 {
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0;
     }
     if ((pPL->stat & 0xFFFF0000) == 0x000F0000) {
@@ -641,7 +641,7 @@ static int dispBulletDigit(u8 no)
 
 u8 dispBulletIconMarkNo(u8 no)
 {
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0xFF;
     }
     if ((pPL->stat & 0xFFFF0000) == 0x000F0000) {
@@ -738,7 +738,7 @@ void CountDown::move()
         return;
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
-        ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000))) {
+        ((pG->flags_5010 & 0x10000000) || (pG->Stop_flg & 0x10000000))) {
         m_state |= 8;
     } else {
         m_state &= ~8;

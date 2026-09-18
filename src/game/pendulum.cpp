@@ -25,11 +25,11 @@ f32 GlobalWindAdd = 1.0471976f;
 // The parts of a chain: through the parts table when the chain owner filled one, else the model's
 // parts list. The macro re-reads `no` in each arm (the link loops load `*pp` twice); the inline
 // takes an index already in a register (neighbour lookups).
-#define PEN_PARTS(m, c, no) ((c)->x54 ? (c)->x54[no] : (m)->getPartsPtr(no))
+#define PEN_PARTS(m, c, no) ((c)->pPtbl ? (c)->pPtbl[no] : (m)->getPartsPtr(no))
 static inline cModel* penPartsNo(cModel* m, PenCloth* c, int no)
 {
-    if (c->x54) {
-        return c->x54[no];
+    if (c->pPtbl) {
+        return c->pPtbl[no];
     }
     return m->getPartsPtr(no);
 }
@@ -267,8 +267,8 @@ void PenClothMove(cModel* m, PenCloth* c)
     at = 0;
     if (!(c->Flag & 1)) {
         cModel* am = m;
-        if (c->x58) {
-            am = c->x58;
+        if (c->pEm_at) {
+            am = c->pEm_at;
         }
         at = penClothAtMake(am, c->pAtset, c->At_num);
     }
@@ -576,8 +576,8 @@ void PenClothMove2(cModel* m, PenCloth* c)
     at = 0;
     if (!(c->Flag & 1)) {
         cModel* am = m;
-        if (c->x58) {
-            am = c->x58;
+        if (c->pEm_at) {
+            am = c->pEm_at;
         }
         at = penClothAtMake(am, c->pAtset, c->At_num);
     }
@@ -863,8 +863,8 @@ void PenClothMove3(cModel* m, PenCloth* c)
     at = 0;
     if (!(c->Flag & 1)) {
         cModel* am = m;
-        if (c->x58) {
-            am = c->x58;
+        if (c->pEm_at) {
+            am = c->pEm_at;
         }
         at = penClothAtMake(am, c->pAtset, c->At_num);
     }

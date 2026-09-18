@@ -502,7 +502,7 @@ extern "C" void DB_RoomCamStart(int cut)
     BitOff(pG->flags_60, 0x10000000);
     CamCtrl.CutCall((s8) cut);
     CameraMove();
-    BitOff(pG->flags_170, 0x1000000);
+    BitOff(pG->Stop_flg, 0x1000000);
     db_roomCam = 1;
 }
 
@@ -733,9 +733,9 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     pG->debug_mode = 0xD;
     BitOff(pG->flags_500C, 0x1000000);
     BitOff(pG->flags_5010, 0x10000000);
-    BitOn(pG->flags_170, 0x1000000);
+    BitOn(pG->Stop_flg, 0x1000000);
     BitOff(pG->Disp_flg, 0x1000000);
-    BitOff(pG->flags_170, 0x40000);
+    BitOff(pG->Stop_flg, 0x40000);
     db_fcvData = 0;
     db_emArray = one;
     db_fog = one;
@@ -749,9 +749,9 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     DB_WorkPush(1, 1);
     BitOn(pG->flags_60, 0x40000);
     BitOn(pG->flags_60, 0x20000000);
-    BitOn(pG->flags_170, 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
     BitOn(pG->Disp_flg, 0x2000000);
-    BitOn(pG->flags_170, 0x800000);
+    BitOn(pG->Stop_flg, 0x800000);
     BitOn(pG->flags_60, 0x10000000);
     LightToolStart();
     LoadModelInit();
@@ -805,7 +805,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             db_litData = 0;
         }
         LightMgr.beginEvent();
-        BitOff(pG->flags_170, 0x1000000);
+        BitOff(pG->Stop_flg, 0x1000000);
         LightMgr.roomLitSet((cLit*) db_litData);
         LightMgr.update(0, -1);
         nLit = LightMgr.nArray;
@@ -1138,11 +1138,11 @@ extern "C" void EspToolExit()
     GXColor col;
 
     BitOff(pG->flags_60, 0x40000);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x20000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x20000000);
     BitOff(pG->Disp_flg, 0x2000000);
-    BitOff(pG->flags_170, 0x800000);
-    BitOff(pG->flags_170, 0x1000000);
+    BitOff(pG->Stop_flg, 0x800000);
+    BitOff(pG->Stop_flg, 0x1000000);
     BitOff(pG->flags_60, 0x10000000);
     *(u32*) &col = 0;
     dbg->m_target_type = 0;
@@ -1223,9 +1223,9 @@ extern "C" void DB_SetMotionCam(int on)
 
 extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
 {
-    BitOn(pG->flags_170, 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
     if (db_emArray == 0) {
-        BitOn(pG->flags_170, 0x20000000);
+        BitOn(pG->Stop_flg, 0x20000000);
     }
     if (db_fog) {
         pG->Disp_flg &= ~0x4000;

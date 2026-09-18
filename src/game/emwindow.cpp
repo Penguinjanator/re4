@@ -497,7 +497,7 @@ int cEmWindow::ExeWindowEvent()
     fcv[1] = GetEtcAddr(w->arc, "pl00538.fcv");
     fcv[2] = GetEtcAddr(w->arc, "pl00536.fcv");
     mot = fcv[0];
-    if (pG->stage_no == 4 && pG->x4FB8 == 2) {
+    if (pG->stage_no == 4 && pG->pl_type == 2) {
         EvtMgr.GetEmWindowFcv(&fcv[0], &fcv[1], &fcv[2]);
     }
     SceEventStart(0);

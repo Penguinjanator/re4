@@ -449,7 +449,7 @@ void ConfigSet()
             pG->debug_mode = num_get(&p);
             pG->debug_disp = -1;
         } else if (symbol_check(&p, "PLAYER")) {
-            pG->x4FB8 = num_get(&p);
+            pG->pl_type = num_get(&p);
         } else if (symbol_check(&p, "BGM")) {
             if (CFG_OFF3(p)) {
                 BitOn(pG->flags_68, 0x00100000);

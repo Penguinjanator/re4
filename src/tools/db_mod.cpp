@@ -112,15 +112,15 @@ public:
 class DB_EM {
 public:
     s8 m_load_model_rno;                    // model load step
-    s8 x1;                    // motion load step
+    s8 m_load_motion_rno;                    // motion load step
     u8 alive;                 // 0x002  model loaded
-    u8 x3;
+    u8 Be_flag;
     cEm* pEm;                 // 0x004
     Vec pos0;                  // 0x008
     Vec ang0;                  // 0x014
     s16 x20;                  // 0x020
     s16 x22;                  // 0x022
-    s8 x24;                   // 0x024
+    s8 type;                   // 0x024
     s8 lit_type;             // 0x025  0 pl / 1 em / 2 obj / 3 scr / 4 item / 5 none
     char label[0x22];          // 0x026  set name (dbModBinName)
     void* pBinBuff[FILE_NUM];      // 0x048
@@ -2985,7 +2985,7 @@ void dbModMotionMove()
                 }
             }
         }
-        if (noMotion == 0 && !(pG->flags_170 & 0x04000000)) {
+        if (noMotion == 0 && !(pG->Stop_flg & 0x04000000)) {
             model->Motion.Mot_attr = em->mot[0].flags;
             dbmodMotionMove(model, 0);
             if (model->Motion.blend == 0 && em->mot_num > 1 && model->Motion.Mot_state != 0) {
@@ -3630,7 +3630,7 @@ int DB_EM::loadMotionSet(DB_MODEL_FILES* mot)
         m_files[2].set(mot->m_num, mot->m_data);
         break;
     }
-    alive = x1 = 0;
+    alive = m_load_motion_rno = 0;
     return 0;
 }
 
@@ -3641,11 +3641,11 @@ int DB_EM::loadMotion()
 
     mot_num = 0;
     mot_cnt = 0;
-    switch (x1) {
+    switch (m_load_motion_rno) {
     case 0:
         switch (m_files[2].read(pMotBuff)) {
         case 0:
-            x1 = 1;
+            m_load_motion_rno = 1;
             break;
         case 1:
             return -1;

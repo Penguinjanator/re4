@@ -219,9 +219,9 @@ void CapSelect::move(SUB_SCREEN* wk)
         return;
     }
     if (Key.trg & 0x80000000) {
-        wk->x248 = ItemMgr.search(cap_id_tbl[sel[2]]);
-        if (wk->x248) {
-            wk->x24C = MapMgr.getWork(2);
+        wk->p_exam_item = ItemMgr.search(cap_id_tbl[sel[2]]);
+        if (wk->p_exam_item) {
+            wk->p_exam_model = MapMgr.getWork(2);
             transit(0, wk);
             SndCall(0, 0x1A, 0, 0, 0, 0);
         }

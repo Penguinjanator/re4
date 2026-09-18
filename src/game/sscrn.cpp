@@ -210,7 +210,7 @@ void SubScreenRoomInit()
         wk->board_size = 3;
     }
     wk->board_next = wk->board_size;
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         wk->board_next = 0;
         wk->board_size = 0;
     }
@@ -299,17 +299,17 @@ int SubScreenOpen(int type, int flags)
     wk->type = type;
     wk->flags = flags;
     wk->x34 = 0;
-    wk->x40 = 0;
+    wk->model_flag = 0;
     if (flags & 1) {
         SceEventStart(0);
     } else {
         if (pG->flags_5010 & 0x00200000) {
             wk->flags = flags | 2;
         }
-        wk->stop_bak = pG->flags_170;
-        pG->flags_170 = 0xFFFFFFFF;
+        wk->stop_bak = pG->Stop_flg;
+        pG->Stop_flg = 0xFFFFFFFF;
         KeyStop(0xEFCF0000);
-        pG->flags_170 &= ~0x40;
+        pG->Stop_flg &= ~0x40;
     }
     return 1;
 }
@@ -321,7 +321,7 @@ void SubScreenMiss()
     if (wk->flags & 1) {
         SceEventEnd(0);
     } else {
-        pG->flags_170 = wk->stop_bak;
+        pG->Stop_flg = wk->stop_bak;
     }
     wk->flags = 0;
     wk->type = 0;
@@ -338,7 +338,7 @@ void SubScreenExec()
         switch (step) {
         case 0:
             SndSubScreenInit();
-            wk->x48 = 0;
+            wk->str_id = 0;
             if (!(wk->type & 0x20)) {
                 SndCall(0, 2, 0, 0, 0, 0);
             }
@@ -351,8 +351,8 @@ void SubScreenExec()
             }
             BitOn(pG->flags_500C, 0x00040000);
             BitOff(pG->flags_500C, 0x100);
-            BitOn(pG->flags_170, 0x100);
-            BitOff(pG->flags_170, 0x08000000);
+            BitOn(pG->Stop_flg, 0x100);
+            BitOff(pG->Stop_flg, 0x08000000);
             MTX_COPY(pPL->mat, wk->pl_mat);
             if (pSUB) {
                 MTX_COPY(pSUB->mat, wk->sub_mat);
@@ -389,9 +389,9 @@ void SubScreenExec()
                 wk->binocular_flag = 0;
             }
             if (ItemMgr.num(0xFE)) {
-                wk->x1B8 = 1;
+                wk->jacket_flag = 1;
             } else {
-                wk->x1B8 = 0;
+                wk->jacket_flag = 0;
             }
             wk->noBullet = 0;
             {
@@ -532,7 +532,7 @@ void SubScreenExec()
                 wk->menu_no = 1;
             }
             wk->x28 = 1;
-            wk->x44 = 0;
+            wk->wait_cnt = 0;
             LightMgr.inSscrn();
             LightMgr.create(0, 9, -2, 0);
             {
@@ -563,7 +563,7 @@ void SubScreenExec()
             step++;
             pG->flags_68 &= ~0x40000000;
         case 5:
-            pG->flags_170 &= ~0x80000000;
+            pG->Stop_flg &= ~0x80000000;
             TaskChain(wk->p_module->prolog, 0);
             break;
         }
@@ -648,7 +648,7 @@ void SubScreenExit()
             }
             break;
         case 4:
-            if (pG->x4FB8 != 1 && (pG->weapon_no != wepNo || pG->weapon_type != wepType || pG->bullet_type != wepLv)) {
+            if (pG->pl_type != 1 && (pG->weapon_no != wepNo || pG->weapon_type != wepType || pG->bullet_type != wepLv)) {
                 cPlayer* pl;
                 if (wk->flags & 2) {
                     ItemMgr.arm(0);
@@ -667,10 +667,10 @@ void SubScreenExit()
             }
             {
                 int change = 0;
-                if (pG->x4FB8 == 0) {
+                if (pG->pl_type == 0) {
                     if (ItemMgr.num(0xFE)) {
-                        change = wk->x1B8 == 0;
-                    } else if (wk->x1B8 == 1) {
+                        change = wk->jacket_flag == 0;
+                    } else if (wk->jacket_flag == 1) {
                         change = 1;
                     }
                 }
@@ -686,7 +686,7 @@ void SubScreenExit()
             View.move();
             BitSet(pG->Disp_flg, wk->disp_bak);
             if (wk->binocular_flag == 0) {
-                pG->flags_170 &= ~0x80000000;
+                pG->Stop_flg &= ~0x80000000;
             }
             BitOff(pG->flags_5010, 2);
             if (wk->suspend_flag) {
@@ -745,7 +745,7 @@ void SubScreenExit()
             if (wk->flags & 1) {
                 SceEventEnd(0);
             } else {
-                pG->flags_170 = wk->stop_bak;
+                pG->Stop_flg = wk->stop_bak;
             }
             wk->type = 0;
             wk->flags = 0;

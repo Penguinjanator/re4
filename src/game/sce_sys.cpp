@@ -78,10 +78,10 @@ void ScenarioRoomInit()
     SceSys.event_cancel_enable = 0;
     SceSys.sndFlag = 1;
     SceSys.cancelFlagNo = -1;
-    SceSys.x8 = 0;
-    SceSys.xC = 0;
-    SceSys.x10 = 0;
-    SceSys.x14 = 0;
+    SceSys.pExitFunc = 0;
+    SceSys.pExitParam = 0;
+    SceSys.pDoorFunc = 0;
+    SceSys.pDoorParam = 0;
     SceSys.pCancelFunc = 0;
     SceSys.cancelArg = 0;
     SceSys.x134 = 0;
@@ -142,7 +142,7 @@ void ScenarioMove()
             scenarioCheckEventCancel();
             RoomData.execMainFunc(pG->room_id);
         }
-        if (!(pG->flags_170 & 0x400) || (pG->flags_6C & 0x80)) {
+        if (!(pG->Stop_flg & 0x400) || (pG->flags_6C & 0x80)) {
             EvtMgr.Run();
         }
     }
@@ -207,7 +207,7 @@ void cSceSys::scheduler()
     }
     p = (ScePrim*) scenarioSetOtStart();
     while ((p = (ScePrim*) scenarioGetOtAddr((u32*) p)) != 0) {
-        if (pG->flags_170 & 0x800000) {
+        if (pG->Stop_flg & 0x800000) {
             break;
         }
         running = p->running;
@@ -222,7 +222,7 @@ void cSceSys::scheduler()
             SceTaskDelete(pCTask);
             pCTask->Status = running;
         }
-        if (pG->x20 == 2) {
+        if (pG->Rno0 == 2) {
             waitRead = (x73 != 0) ? 1 : 0;
             if (waitRead) {
                 pParentThread = parent;
@@ -507,7 +507,7 @@ void SceExecEventCancel()
     u32 no;
     u32 slot;
 
-    pG->flags_170 = SceSys.cancel_stop_bak;
+    pG->Stop_flg = SceSys.cancel_stop_bak;
     for (i = 0; i <= 0xF; i++) {
         mes->Delete(i);
     }
@@ -571,8 +571,8 @@ int scenarioCheckEventCancel()
         *(u32*) &end = 0xFF;
         *(u32*) &start = 0;
         FadeSet(0, &start, &end, 0, 0, 0);
-        s->cancel_stop_bak = pG->flags_170;
-        pG->flags_170 = 0xFFFFFFFF;
+        s->cancel_stop_bak = pG->Stop_flg;
+        pG->Stop_flg = 0xFFFFFFFF;
         KeyStop(0xEFCF0000);
         SceExecEventCancel();
         s->event_cancel_enable = 0;

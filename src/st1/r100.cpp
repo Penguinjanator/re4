@@ -748,7 +748,7 @@ static void r100_HouseEvent()
     pos.y = 2.99f;
     pos.z = 0.0f;
     pPL->setAng(&pos);
-    BitOff(pG->flags_170, 0x10000000);
+    BitOff(pG->Stop_flg, 0x10000000);
     BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 10, 0, 1, 0);

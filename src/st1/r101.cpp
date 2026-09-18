@@ -1010,11 +1010,11 @@ static void r101_Event00()
         at.z = 2113.0f;
     }
     ang.y += 1750.0f;
-    pG->flags_170 |= 0x100;
+    pG->Stop_flg |= 0x100;
     SndCall(1, 2, 0, 0, 0, 0);
     CamCtrl.HoldBinocular(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &ang, &at);
     CamCtrl.SetBinocularRange(-0.05992f, 0.2645f, -0.2532f, 0.14943f);
-    pG->flags_170 |= 0x10000000;
+    pG->Stop_flg |= 0x10000000;
     for (;;) {
         if (Key.trg & 0x40000000) {
             break;
@@ -1026,8 +1026,8 @@ static void r101_Event00()
     }
     pPL->dmg.clear();
     CamCtrl.LowerBinocular();
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x100);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x100);
     pPL->cCoord::matUpdate();
     CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     CamCtrl.roomInit();

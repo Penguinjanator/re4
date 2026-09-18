@@ -64,7 +64,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     int hokan;
 
     pl->x3E4 = 0;
-    pl->Wep->x23 = 0;
+    pl->Wep->m_ShotTimer = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {

@@ -74,7 +74,7 @@ int cEmMgr::construct(cEm* p, u32 id)
 {
     switch (id) {
     case 0:
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
             p = new (p) cPlLeon;
             break;
@@ -217,7 +217,7 @@ void cEmMgr::move()
 
     dieCheck();
     RouteCk();
-    if (!(pG->flags_170 & 0x20000000)) {
+    if (!(pG->Stop_flg & 0x20000000)) {
         p = pAlive;
         func = emMove;
         while (p) {
@@ -226,7 +226,7 @@ void cEmMgr::move()
             p = (cEm*) p->pNext;
             func(cur);
         }
-    } else if (pSUB && !(pG->flags_170 & 0x1000)) {
+    } else if (pSUB && !(pG->Stop_flg & 0x1000)) {
         emMove(pSUB);
     }
 }
@@ -370,7 +370,7 @@ void emMove(cEm* em)
     if (em == pPL) {
         return;
     }
-    if (em == pSUB && (pG->flags_170 & 0x1000)) {
+    if (em == pSUB && (pG->Stop_flg & 0x1000)) {
         return;
     }
     dz = pPL->pos.z - em->pos.z;

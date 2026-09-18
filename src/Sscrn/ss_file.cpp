@@ -282,7 +282,7 @@ void SsFileInit::move(SUB_SCREEN* wk)
             break;
         }
         if (wk->menu_old == 2) {
-            wk->x44 = 1;
+            wk->wait_cnt = 1;
         }
         IdSubErase();
         IdNumErase();
@@ -319,7 +319,7 @@ void SsFileInit::move(SUB_SCREEN* wk)
         } else {
             sscrnModelClear(wk);
         }
-        wk->x44 = 0;
+        wk->wait_cnt = 0;
         state++;
     case 3: {
         int stat;
@@ -422,9 +422,9 @@ void SsFileMain::init(SUB_SCREEN* wk)
     wk->pTplDat = MEM_ALLOC(0x20000, 1, 13);
     cMes.setLayout(0, 2);
     if (wk->type == 0x40) {
-        int no = fileId2No(wk->x2FA);
-        ItemMgr.get(wk->x2FA, 0);
-        S32Set(wk->x40, 1);
+        int no = fileId2No(wk->get_item_id);
+        ItemMgr.get(wk->get_item_id, 0);
+        S32Set(wk->model_flag, 1);
         if (pSys->language == 0) {
             cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
         }

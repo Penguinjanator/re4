@@ -106,7 +106,7 @@ static void wep09_r2_ready(cPlayer* pl)
             CamCtrlShoulderSetAim(&hit);
         }
         if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->Wep->m_pWep->setDisp(1, 1);
             pl->x3E0 = 1;
@@ -185,7 +185,7 @@ static void wep09_r2_set(cPlayer* pl)
         PlRoutineSet(pl, 0, 6, 2, 0);
     } else if (joyFireTrg() && pl->Wep->m_pWep->bulletNum() == 0) {
         if (pl->Wep->m_pWep->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->Wep->m_pWep->setDisp(1, 1);
             pl->x3E0 = 0;
@@ -197,7 +197,7 @@ static void wep09_r2_set(cPlayer* pl)
     reload:
         if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
             pl->Wep->m_pWep->setDisp(1, 1);
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->x3E0 = 1;
         }

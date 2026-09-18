@@ -93,7 +93,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->be_flag &= ~0x10;
     w->fallTimer = 0;
     w->pParent = 0;
-    w->x20 = 0;
+    w->pEm_old = 0;
     w->pAtk = 0;
     w->caught = 0;
     w->seFall[0] = 0xFF;
@@ -598,7 +598,7 @@ void emTree_R1_Shot(cEmTree* em)
         }
         break;
     case 2:
-        w->x20 = 0;
+        w->pEm_old = 0;
         w->Timer = 60;
         em->hp = 0;
         em->r_no_2++;
@@ -705,7 +705,7 @@ void cEmTree::setFall()
         w->pt[i].z = fRand1_1() * 10.0f;
     }
     w->pParent = 0;
-    w->x20 = 0;
+    w->pEm_old = 0;
     hp = 0;
     pos.x = mat[0][3];
     pos.y = mat[1][3];

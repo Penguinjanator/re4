@@ -165,7 +165,7 @@ void espgen00_Update(EspgenWork* w)
                 p->waitCnt = p->waitCnt + r;
             }
         }
-        if (g_pEspSys->xC554 - g_pEspSys->xC548 < (u32) (p->num + 1)) {
+        if (g_pEspSys->nEsp - g_pEspSys->xC548 < (u32) (p->num + 1)) {
             return;
         }
         {

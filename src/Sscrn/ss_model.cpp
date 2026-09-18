@@ -59,11 +59,11 @@ void wep47Init(int no);
 
 // The player archive (pG->pPlArc) and the weapon data (SUB_SCREEN::x210): both are offset tables.
 #define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
-#define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->x210, no)
+#define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->pWepDat, no)
 
 void weaponFilename(char* name, int no)
 {
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         switch (no) {
         case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
@@ -212,7 +212,7 @@ void playerModelInit()
 
     ssPlModel = MapMgr.getWork(0);
     ssWepModel = MapMgr.getWork(1);
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         leonModelInitI(no, type);
         break;

@@ -248,7 +248,7 @@ int Event::init(char* nm, EvtHeader* data)
     for (i = 0; i < 0x80; i++) {
         EspEvModList[i] = 0;
     }
-    xC = 0;
+    EndRNo1 = 0;
     EndRNo2 = 0;
     EndRNo3 = 0;
     Id = 0;
@@ -614,7 +614,7 @@ int Event::RunEvtCancel()
             return 0;
         }
         if (NowCut >= MaxCut - 1) {
-            if (!(pG->flags_170 & 0x10000000) && (pPL->be_flag & 0x20)
+            if (!(pG->Stop_flg & 0x10000000) && (pPL->be_flag & 0x20)
                 && (!(pG->flags_5010 & 0x10000000) || (pPL->be_flag & 0x800))) {
                 pPL->move();
             }
@@ -707,7 +707,7 @@ void Event::ControlTransFlag()
             }
             if (m->kindid == 1 && m->id == 0x18) {
                 w = &((cObj*) m)->o18;
-                if (w->type == 3 && w->child != 0 && !(((cObj*) m)->o18.x74 & 0x04000000)) {
+                if (w->type == 3 && w->child != 0 && !(((cObj*) m)->o18.ObjChainFlagCommon & 0x04000000)) {
                     if ((m->be_flag & 0x20) == 0) {
                         w->child->be_flag &= ~0x20;
                     } else {
@@ -1501,7 +1501,7 @@ void Event::ExeBeginEvt(Event* evt, int mode)
     BitOff(pG->flags_5018, 0x01000000);
     cMes.loadEventFont();
     ExeFunc(0, 0);
-    if (pG->x4FB8 == 0) {
+    if (pG->pl_type == 0) {
         EvtMgr.SetBin("em/pl00/pl000a.bin", PL_ARC_PTR(pG->pPlayer, 4), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000a.tpl", PL_ARC_PTR(pG->pPlayer, 5), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000d.bin", PL_ARC_PTR(pG->pPlayer, 9), 0, 2);
@@ -1828,7 +1828,7 @@ void Event::ExecActBtn()
     }
     pG->Disp_flg &= ~0x800;
     ActBtn.set(actBtnNo, 5, 0, 0, 2, 2, 0, 0);
-    pG->flags_170 &= ~0x100;
+    pG->Stop_flg &= ~0x100;
     if (Key.trg & 0x80000) {
         actBtnCount++;
     }
@@ -2065,7 +2065,7 @@ int EventMgr::myRoomInit()
     }
     memclr_asm(&x34, sizeof(u32));
     for (i = 0; i < 0x20; i++) {
-        xA4[i] = 0;
+        pUnit[i] = 0;
     }
     ClearEmWindowFcv();
     return 1;
@@ -2465,7 +2465,7 @@ int EventMgr::SetEvt(void* data, u32* key)
     Event* evt;
     EvtHeader* hdr = (EvtHeader*) data;
 
-    if (pG->flags_170 & 0x400) {
+    if (pG->Stop_flg & 0x400) {
         return 0;
     }
     if (pG->flags_6C & 0x80) {
@@ -2501,7 +2501,7 @@ int EventMgr::SetEvt(char* nm, Event** out)
     void* evd;
     Event* evt;
 
-    if (pG->flags_170 & 0x400) {
+    if (pG->Stop_flg & 0x400) {
         return 0;
     }
     if (pG->flags_6C & 0x80) {

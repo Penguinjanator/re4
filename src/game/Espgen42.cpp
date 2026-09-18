@@ -686,7 +686,7 @@ void Espgen42_Move(EspgenWork* w)
 {
     static void (*Espgen42MoveTbl[])(EspgenWork*) = {Espgen42_Move00};
 
-    if (pG->flags_170 & 0x40000) {
+    if (pG->Stop_flg & 0x40000) {
         return;
     }
     Espgen42MoveTbl[w->step](w);

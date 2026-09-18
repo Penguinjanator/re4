@@ -258,16 +258,16 @@ int GetWepDmVal(cEm* em, u32 wep, int flag)
             break;
         }
     }
-    if (pG->x4FB8 == 4 && wep == 0x14) {
+    if (pG->pl_type == 4 && wep == 0x14) {
         val *= 10;
     }
-    if (pG->x4FB8 == 5 && wep == 0x14) {
+    if (pG->pl_type == 5 && wep == 0x14) {
         val *= 10;
     }
-    if (pG->x4FB8 == 3 && wep == 0x14) {
+    if (pG->pl_type == 3 && wep == 0x14) {
         val *= 5;
     }
-    if (pG->x4FB8 == 2 && wep == 0x14) {
+    if (pG->pl_type == 2 && wep == 0x14) {
         val *= 2;
     }
     return (int) ((f32) val * rate);

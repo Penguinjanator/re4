@@ -3289,7 +3289,7 @@ void pl0fLongRopeSet(cPl0f* em)
     if (w->pRope) {
         w->Cloth.Num = 30;
         w->Cloth.pCloth = pl0f_rope_parts;
-        w->Cloth.x58 = em;
+        w->Cloth.pEm_at = em;
         w->Cloth.WindSin = 0.0f;
         w->Cloth.Move_rate = 0.0f;
         w->Cloth.pParent = pl0f_rope_up;
@@ -3310,7 +3310,7 @@ void pl0fLongRopeSet(cPl0f* em)
         w->Cloth.pGravity = 0;
         w->Cloth.pRate = 0;
         w->Cloth.At_num = 0;
-        w->Cloth.x54 = 0;   // the last zero store (dying zero register) is issued first
+        w->Cloth.pPtbl = 0;   // the last zero store (dying zero register) is issued first
         w->pRope->setChain(&w->Cloth);
         pos.x = 0.0f;
         pos.y = 600.0f;

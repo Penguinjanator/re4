@@ -1152,7 +1152,7 @@ void emWep_R1_Rocket(cEmWep* em)
         w->Timer = 0;
         w->Timer2 = 500;
         w->Timer3 = 2;
-        w->x1BC = 0.0f;
+        w->Roll = 0.0f;
         w->rocketSpd = 0.0f;
         em->r_no_2++;
     case 1:
@@ -2610,14 +2610,14 @@ void cEmWep::setCloth(cModel* owner)
     w->Cloth.pChild = emWepClothDp;
     w->Cloth.pMax = emWepClothMax;
     w->Cloth.pAtset = emWepAt;
-    w->Cloth.x58 = owner;
+    w->Cloth.pEm_at = owner;
     w->Cloth.At_num = 3;
     w->Cloth.Gravity = 25.0f;
     w->Cloth.Rate = 0.6f;
     w->Cloth.WindSin = 0.0f;
     w->Cloth.Stretchy = 1.0f;
     w->Cloth.Move_rate = 0.0f;
-    w->Cloth.x54 = 0;
+    w->Cloth.pPtbl = 0;
     PenClothSet(this, &w->Cloth, 100.0f);
     w->Be_flg |= 4;
 }
@@ -2629,8 +2629,8 @@ void cEmWep::moveCloth()
     Mtx inv;
 
     if (w->Be_flg & 4) {
-        if (w->Cloth.x58 && (w->Cloth.x58->be_flag & 0x201) != 1) {
-            w->Cloth.x58 = 0;
+        if (w->Cloth.pEm_at && (w->Cloth.pEm_at->be_flag & 0x201) != 1) {
+            w->Cloth.pEm_at = 0;
         }
         PenClothMove2(this, &w->Cloth);
         for (p = getPartsPtr(1); p; p = p->pParts) {

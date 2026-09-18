@@ -27,14 +27,14 @@ struct Em10Work {
     int Timer5;              // 0x014 (0x3F4)
     f32 TmpF;              // 0x018 (0x3F8)
     f32 TmpF2;              // 0x01C (0x3FC)
-    int x20;              // 0x020 (0x400)
+    int TmpU32;              // 0x020 (0x400)
     Vec x24;              // 0x024 (0x404)
     void* mot[79];        // 0x030 (0x410)  motion data table (Em10Set / Em10WeaponSet fill it; [0x29..] weapons)
     cEmWep* pWep;         // 0x16C (0x54C)  weapon in hand
     cEmWep* pWeapon2;        // 0x170 (0x550)
     cEmShield* pShield;   // 0x174 (0x554)
-    cObj* x178;           // 0x178 (0x558)
-    cObj* x17C;           // 0x17C (0x55C)
+    cObj* pCap;           // 0x178 (0x558)
+    cObj* pGlasses;           // 0x17C (0x55C)
     cEm* pHead;           // 0x180 (0x560)  lost head enemy
     cModelInfo* pRHand;     // 0x184 (0x564)  hand parts info (setHand(1))
     cModelInfo* pLHand;     // 0x188 (0x568)  hand parts info (setHand(0))

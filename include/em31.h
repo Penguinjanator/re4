@@ -51,18 +51,18 @@ struct Em31Work {
     Vec Pl_pos;         // 0x654 (0xA34)  RouteCkPosToPos result towards the player
     Vec Sub_pos;             // 0x660 (0xA40)
     Vec Go_pos;        // 0x66C (0xA4C)
-    int x678;             // 0x678 (0xA58)
+    int pEm;             // 0x678 (0xA58)
     cEm31* pBody;         // 0x67C (0xA5C)  tentacle: the body (em31SearchBody)
     cEm31* pTen;          // 0x680 (0xA60)  body: the tentacle
     cObj16* pTail[4];     // 0x684 (0xA64)  the four small tentacle objects (em31SetTail)
     cObjPillar* pPillar;  // 0x694 (0xA74)  pillar being thrown (em31_R1_T_PillarThrow)
     cObj* pWeak;          // 0x698 (0xA78)  tentacle weak point object (em31WeakInit)
-    f32 x69C;             // 0x69C (0xA7C)
+    f32 Neck_dir_y;             // 0x69C (0xA7C)
     u8 pad_6A0[0x700 - 0x6A0];
     PlCloth Cloth2;       // 0x700 (0xAE0)  Em31ClothSet2 / Em31ClothMove2 (the hanging chains)
     PlCloth Cloth3;       // 0x760 (0xB40)  Em31ClothSet3 / Em31ClothMove3
     cModelInfo* pHead;    // 0x7C0 (0xBA0)  extra body model
-    int x7C4;             // 0x7C4 (0xBA4)
+    int pHair;             // 0x7C4 (0xBA4)
     Camera Cam;           // 0x7C8 (0xBA8)  event camera (em31EscapeCamMove / em31StampCamMove)
     Vec Target_pos;        // 0x8C0 (0xCA0)  jump target (em31JumpCk / em31BridgeJumpCk / em31_R1_BridgeVs)
     u8 EffKindId;           // 0x8CC (0xCAC)  EspPullCoreKind at creation
@@ -78,7 +78,7 @@ struct Em31Work {
     u32 Breath_seid;           // 0x8F0 (0xCD0)  breath handle (em31BreathSe)
     u16 breathTimer;      // 0x8F4 (0xCD4)  frames until the next breath
     u16 pad_8F6;
-    int x8F8;             // 0x8F8 (0xCD8)
+    int Str_seid;             // 0x8F8 (0xCD8)
     u16 tailSeTimer;      // 0x8FC (0xCDC)  em31TailAtkCk: frames until the next tail SE
     s16 Flash_timer;         // 0x8FE (0xCDE)  frames the eyelids stay shut after a weapon 0x17 hit
     EYELID_WK Eyelid[4];    // 0x900 (0xCE0)

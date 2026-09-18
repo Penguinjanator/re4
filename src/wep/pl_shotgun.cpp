@@ -59,8 +59,8 @@ void PlShotgunMove(cPlayer* pl)
 
     func_tbl[pl->r_no_2](pl);
     pl->Wep->lockMove();
-    if (pl->Wep->x23) {
-        pl->Wep->x23--;
+    if (pl->Wep->m_ShotTimer) {
+        pl->Wep->m_ShotTimer--;
     }
 }
 
@@ -88,7 +88,7 @@ static void wep07_r2_ready(cPlayer* pl)
         }
     } else if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
         pl->motSpeedRate = 1.0f;
-        pl->Wep->x26 |= 1;
+        pl->Wep->m_Flag |= 1;
         PlRoutineSet(pl, 0, 6, 4, 0);
         pl->x3E0 = 1;
     } else if (pl->pLockEm) {
@@ -110,7 +110,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     int hokan;
 
     pl->x3E4 = 0;
-    pl->Wep->x23 = 0;
+    pl->Wep->m_ShotTimer = 0;
     pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
@@ -212,7 +212,7 @@ static void wep07_r2_set(cPlayer* pl)
         if (pl->Wep->m_pWep->bulletNum()) {
             PlRoutineSet(pl, 0, 6, 2, 0);
         } else if (pl->Wep->m_pWep->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->x3E0 = 0;
         } else {
@@ -224,7 +224,7 @@ static void wep07_r2_set(cPlayer* pl)
     } else {
     reload:
         if (pl->keyReload() && pl->Wep->m_pWep->reloadable()) {
-            pl->Wep->x26 |= 1;
+            pl->Wep->m_Flag |= 1;
             PlRoutineSet(pl, 0, 6, 4, 0);
             pl->x3E0 = 1;
         }
@@ -494,7 +494,7 @@ static void wep07_r2_reload(cPlayer* pl)
         }
         MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
         pl->motionMove();
-        pl->Wep->x21 = 0;
+        pl->Wep->m_ShotCancelCtr = 0;
         pl->Wep->knifeStance = 1;
         pl->r_no_3 = 1;
         obj = pl->Wep->m_pWep;

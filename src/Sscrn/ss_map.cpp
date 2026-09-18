@@ -1871,7 +1871,7 @@ struct MgrPtr {
 
 void mapModelAlloc(SUB_SCREEN* wk)
 {
-    wk->x38 |= 1;
+    wk->attr_flag |= 1;
     ssModInfoMgr.roomInit();
     ssModInfoMgr.arrayAlloc(0x80);
     ssPartsMgr.roomInit();
@@ -2319,7 +2319,7 @@ void SsMapInit::move(SUB_SCREEN* wk)
     case 0:
         if (wk->scrn_out_func(wk) == 1) {
             if (wk->menu_old == 2) {
-                wk->x44 = 1;
+                wk->wait_cnt = 1;
             }
             IdSubErase();
             IdNumErase();
@@ -2356,7 +2356,7 @@ void SsMapInit::move(SUB_SCREEN* wk)
         ssPlMotion = 0;
         ssWepModel2 = 0;
         IdAllocBuffer();
-        wk->x44 = 0;
+        wk->wait_cnt = 0;
         state++;
     case 3: {
         int result;

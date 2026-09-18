@@ -42,7 +42,7 @@ struct PlCloth {
     f32 WindSin;             // 0x48
     f32 Stretchy;             // 0x4C
     f32 Move_rate;             // 0x50  gravity / stiffness rate (skirt: 0.9 under water, 0.5 otherwise)
-    u32 x54;             // 0x54
+    u32 pPtbl;             // 0x54
     cModel* pModel;      // 0x58  (AdaRibbonSet)
     u32 Flag;           // 0x5C  0x100 / 0x200 / 0x302
 };

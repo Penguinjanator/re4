@@ -50,7 +50,7 @@ struct Em39Work {
     u8 Hand_type;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
     u8 pad_671[3];
     cObj* pObj12;         // 0x674 (0xA54)  hanging object (SetObj12)
-    int x678;             // 0x678 (0xA58)
+    int Cap_hp;             // 0x678 (0xA58)
     u8 pad_67C[2];
     u16 dmgTotal;         // 0x67E (0xA5E)  damage taken
     int Atk_wait;             // 0x680 (0xA60)
@@ -84,7 +84,7 @@ struct Em39Work {
     int Back_atk_wait;             // 0x89C (0xC7C)
     int Fire_timer;             // 0x8A0 (0xC80)  DmgMgr hit guard timer
     int No_fire_timer;             // 0x8A4 (0xC84)
-    u16 x8A8;             // 0x8A8 (0xC88)
+    u16 Arm_se_wait;             // 0x8A8 (0xC88)
     u8 pad_8AA[2];
     u32 Se_id;          // 0x8AC (0xC8C)  em39SetVoice SndCall id
     u32 Str_seid;            // 0x8B0 (0xC90)  Die_Normal stream request id
@@ -97,7 +97,7 @@ struct Em39Work {
     u8 Arm_rno;              // 0x8BB (0xC9B)
     u8 Arm_type;              // 0x8BC (0xC9C)  em39ArmControl arm pose
     u8 pad_8BD[3];
-    int x8C0;             // 0x8C0 (0xCA0)  EMI appear point used last (-1 none)
+    int Old_no;             // 0x8C0 (0xCA0)  EMI appear point used last (-1 none)
     u8 Locate;              // 0x8C4 (0xCA4)  battle phase
     u8 Slant_type;         // 0x8C5 (0xCA5)
     u8 EffKindId;           // 0x8C6 (0xCA6)  EspPullCoreKind at creation

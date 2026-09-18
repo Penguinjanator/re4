@@ -247,7 +247,7 @@ void SetNearClipDist(f32 dist)
 
 int Render_checkBlurPermission()
 {
-    u8 mode = pG->x20;
+    u8 mode = pG->Rno0;
     if (mode == 3 || mode == 4 || mode == 6) {
         return 1;
     }
