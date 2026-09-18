@@ -2018,7 +2018,7 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     GXInitLightDistAttn(&lobj, 0.0f, 0.0f, 0);
     if (m != 0) {
         EmLightArea* la = &MODEL_EXT(m)->litArea;
-        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == mng->pLight->x140) {
+        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == mng->pLight->LitIndex) {
             k.r = k.r * (u8) la->scale;
             k.g = k.g * (u8) la->scale;
             k.b = k.b * (u8) la->scale;
@@ -2271,7 +2271,7 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     ISet(tex_coord, tex_coord + 1);
     ISet(tex_map, tex_map + 1);
     w = (ShadowLightWork*) mng->pLight->work;
-    for (i = 0; i < w->x9; i++) {
+    for (i = 0; i < w->selfShadow; i++) {
         st = TEV_STAGE_ID();
         GXSetTevOrder(st, 0xFF, 0xFF, 0xFF);
         GXSetTevColorIn(st, 0xF, 0, 0, 0xF);

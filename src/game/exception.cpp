@@ -294,7 +294,7 @@ void excepLoadSymbol()
     if (RoomData.pModule) {
         OSModuleHeader* mod = RoomData.pModule;
         if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->sectionInfo < 0) {
-            strcpy(buf, FileTbl[RoomData.x1C].name + 4);
+            strcpy(buf, FileTbl[RoomData.m_RelNo].name + 4);
             *strchr(buf, '.') = 0;
             sprintf(tmp_str, "Bio4.%s.sym", buf);
             symbol_err = excepLoadSymbolSub(tmp_str, RoomData.pModule);

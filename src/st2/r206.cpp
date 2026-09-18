@@ -247,7 +247,7 @@ SceAtWork* GetKeyItemAtari()
 
     p = sceAtSetOtStart();
     while ((p = sceAtGetOtAddr(p)) != NULL) {
-        if (p->x35 == 3 && p->item.id == 0xA3) {
+        if (p->type == 3 && p->item.id == 0xA3) {
             return p;
         }
     }

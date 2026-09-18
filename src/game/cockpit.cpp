@@ -541,7 +541,7 @@ void BulletInfo::move()
 
         itemInfo(im->m_wep_id, &info);
         if (info.type == 1) {
-            id = WeaponId2BulletId(im->pArm->id, im->pArm->x8 >> 13);
+            id = WeaponId2BulletId(im->pArm->id, im->pArm->bullet >> 13);
         } else {
             id = WeaponId2BulletId(im->m_wep_id, 0);
         }
