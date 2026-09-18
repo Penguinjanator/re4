@@ -980,8 +980,8 @@ void cEm2c::move()
     if (w->atkWait == 0 && em2cDeadCk(pPL)) {
         w->atkWait = 10;
     }
-    if (w->x570) {
-        w->x570--;
+    if (w->Dash_wait) {
+        w->Dash_wait--;
     }
     if (w->x574) {
         w->x574--;
@@ -1055,7 +1055,7 @@ void em2cInitRtnSet(cEm2c* em)
     w->flags = zero;
     w->atkWait = zero;
     w->jumpWait = zero;
-    w->x558 = 1.0f;
+    w->Compress_y = 1.0f;
     w->wallNrm.y = 1.0f;
     w->spd.x = 0.0f;
     w->spd.y = 0.0f;
@@ -1065,12 +1065,12 @@ void em2cInitRtnSet(cEm2c* em)
     w->humTimer = Rnd() % 90 + 90;
     w->x6BC = 5;
     w->breathTimer = 0x1D;
-    w->x584 = 0.0f;
+    w->Neck_dir_y = 0.0f;
     w->dmgTotal = zero;
     w->atkCnt = zero;
     w->x56C = zero;
     w->dmGuard = zero;
-    w->x570 = zero;
+    w->Dash_wait = zero;
     w->effTimer = zero;
     w->x574 = zero;
     w->pTail = (cEm*) zero;
@@ -1253,7 +1253,7 @@ static void em2c_R1_Wait(cEm2c* em)
         } else if (em->plDist2 > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
                    fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
             EmRoutineSet(em, 1, 0x12, 0, 0);
-        } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->x570 == 0) {
+        } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->Dash_wait == 0) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else {
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -1434,11 +1434,11 @@ static void em2c_R1_Walk(cEm2c* em)
         return;
     }
     if (w->plDist > 10000.0f) {
-        if (w->x570 == 0) {
+        if (w->Dash_wait == 0) {
             EmRoutineSet(em, 1, 2, 0, 0);
             return;
         }
-    } else if (w->x570 == 0 && (w->flags & 1) && w->plDist > 5000.0f) {
+    } else if (w->Dash_wait == 0 && (w->flags & 1) && w->plDist > 5000.0f) {
         EmRoutineSet(em, 1, 2, 0, 0);
         return;
     }
@@ -1459,7 +1459,7 @@ static inline void em2cNextWalkSet(cEm2c* em, Em2cWork* w, int r)
     } else if (em->plDist2 > 25000000.0f && Rnd() % 10 > 7 && pG->room_id == 0x221 &&
                fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
         EmRoutineSet(em, 1, 0x12, 0, 0);
-    } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->x570 == 0) {
+    } else if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f && w->Dash_wait == 0) {
         EmRoutineSet(em, 1, 2, 0, 0);
     } else {
         EmRoutineSet(em, 1, 1, 0, 0);
@@ -1493,7 +1493,7 @@ static void em2c_R1_Dash(cEm2c* em)
         }
         w->timer = 15;
         w->timer8 = 0;
-        w->x570 = 150;
+        w->Dash_wait = 150;
         em->r_no_2++;
     case 1:
         em2cTurnTo(em, &w->routePos, 0.0981747732f);
@@ -4683,7 +4683,7 @@ static void em2c_R1_Die_Lost(cEm2c* em)
         }
         w->timer = 30;
         w->timer8 = 150;
-        w->x558 = 1.0f;
+        w->Compress_y = 1.0f;
         em->r_no_2++;
     }
 }
@@ -5002,7 +5002,7 @@ void em2cScaleCompress(cEm2c* em)
     }
     PSMTXIdentity(m);
     scale.x = 1.0f;
-    scale.y = w->x558;
+    scale.y = w->Compress_y;
     scale.z = 1.0f;
     ScaleMatrix(m, &scale);
     for (p = em->pParts; p; p = p->pParts) {
@@ -5358,7 +5358,7 @@ void em2cDoorOpenCk(cEm2c* em)
                     e->hp = 1;
                 }
                 w->x574 = Rnd() % 15 + 15;
-                w->x570 = 150;
+                w->Dash_wait = 150;
                 if (EM_RTN(em, 1, 2)) {
                     em->r_no_0 = 1;
                     em->r_no_1 = 1;
@@ -5671,14 +5671,14 @@ void em2cNeckMove(cEm2c* em)
     v.z = 0.0f;
     PSMTXMultVec(pp->mat, &v, &v);
     if (w->flags & 0x80) {
-        w->x584 = w->x584 * 0.899999976f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.04719758f) * 0.100000001f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.899999976f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.04719758f) * 0.100000001f;
     } else {
-        w->x584 = w->x584 * 0.899999976f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.899999976f;
     }
     p = (cParts*) em->getPartsPtr(3);
     p->motParts.flags |= 0x40000000;
     p->addRot.x = 0.0f;
-    p->addRot.y = w->x584;
+    p->addRot.y = w->Neck_dir_y;
     p->addRot.z = 0.0f;
 }
 

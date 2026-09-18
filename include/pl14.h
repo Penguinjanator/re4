@@ -30,17 +30,17 @@ public:
             u8 dmType;    // 0x325
             u8 dmWep;     // 0x326
             u8 dm327;
-            Vec x328;     // 0x328  damage position
+            Vec dmPos;     // 0x328  damage position  damage position (cEm::dmPos)
         };
     };
     EmHitInfo hitInfo;    // 0x33C .. 0x370
     f32 plDist2;          // 0x370
-    f32 x374;             // 0x374
+    f32 l_sub;             // 0x374  (cEm::l_sub)
     PlArc* subArc;        // 0x378  motion archive the routines index
     PlArc* subArc2;       // 0x37C
     Vec lockOfs;          // 0x380
     u8 lockParts;         // 0x38C
-    u8 x38D;              // 0x38D  scenario floor: 1 = ground floor, 2 = upstairs (cAction::chasePlAreaCheck)
+    u8 set;              // 0x38D  scenario floor: 1 = ground floor, 2 = upstairs (cAction::chasePlAreaCheck)  cEm::set; Luis: scenario floor
     u8 pad_38E[2];
     void (*pScenario)(cEm*);  // 0x390
     u8 pad_394[4];
@@ -82,7 +82,7 @@ public:
     cSubLuis* owner;      // 0x000
     cMot3 mot3;           // 0x004 .. 0x0EC  three-way blend (aim up / level / down)
     f32 rate;             // 0x0EC  mot3 rate (aim elevation)
-    int xF0;              // 0x0F0
+    int type;              // 0x0F0  (PS2 cRoutine::type, unused on GC)
     int prio;             // 0x0F4  priority of the running routine
     u8 saved[3];          // 0x0F8  routine interrupted per priority (0xFF = none)
     u8 padFB;
@@ -90,9 +90,7 @@ public:
     cVoice voice;         // 0x100 .. 0x10C
     u8 shotCnt;           // 0x10C  shots of the current burst
     u8 pad10D[3];
-    int x110;             // 0x110  damage: motion variant / turn: direction
-    int x114;             // 0x114  damage: voice type / turn: frames
-    u8 pad118[8];
+    int work[4];          // 0x110  [0] damage: motion variant / turn: direction, [1] damage: voice type / turn: frames (PS2 work[4])
     f32 dist;             // 0x120  walk / run: arrival distance
     u8 pad124[0xC];
     Vec target;           // 0x130  walk / run target

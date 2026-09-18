@@ -345,9 +345,9 @@ void cEm38::move()
         }
     }
     if (type == 0) {
-        if (w->x62C && w->pUpper) {
-            w->x62C--;
-            if (w->x62C == 0) {
+        if (w->voiceWait && w->pUpper) {
+            w->voiceWait--;
+            if (w->voiceWait == 0) {
                 Ctrl11SetSeEm38(w->pCtrl11, w->pUpper, 0x2E);
                 w->seWait = 180;
             }
@@ -479,7 +479,7 @@ static void em38_R0_Init(cEm38* em)
     w->birthTimer = 240;
     w->atkWait = 270;
     w->mode = 6;
-    w->x62C = 10;
+    w->voiceWait = 10;
     em38WeakInit(em);
     em38RootInit(em);
     switch (em->type) {
@@ -2479,7 +2479,7 @@ void em38RootInit(cEm38* em)
     w->para[0].parts2 = 0x10;
     w->para[0].timer = 600;
     w->para[0].effTimer = 0;
-    w->para[0].x8 = 0;
+    w->para[0].swingAng = 0;
     w->para[0].phase = 0.0f;
     w->para[0].ang = 0.0f;
     w->para[0].pEm = 0;
@@ -2489,7 +2489,7 @@ void em38RootInit(cEm38* em)
     w->para[1].parts2 = 0x12;
     w->para[1].timer = 600;
     w->para[1].effTimer = 0;
-    w->para[1].x8 = 0;
+    w->para[1].swingAng = 0;
     w->para[1].phase = 0.0f;
     w->para[1].ang = 0.0f;
     w->para[1].pEm = 0;
@@ -2529,14 +2529,14 @@ void em38RootMove(cEm38* em)
             }
             break;
         case 2:
-            p->x6 = 120;
+            p->riseTimer = 120;
             p->hp = 200;
             p->state++;
         case 3:
             dir = 1;
-            if (p->x6) {
-                p->x6--;
-                if (p->x6 == 30) {
+            if (p->riseTimer) {
+                p->riseTimer--;
+                if (p->riseTimer == 30) {
                     p->pEm->setIn();
                 }
             } else {
@@ -2551,12 +2551,12 @@ void em38RootMove(cEm38* em)
             }
             break;
         case 6:
-            p->x6 = 120;
+            p->riseTimer = 120;
             p->state++;
         case 7:
             dir = 2;
-            if (p->x6) {
-                p->x6--;
+            if (p->riseTimer) {
+                p->riseTimer--;
             } else {
                 p->state = 0;
             }
@@ -2568,9 +2568,9 @@ void em38RootMove(cEm38* em)
             p->angSpd *= 0.95f;
             break;
         case 1:
-            p->x8++;
-            if (p->x8 > 359) {
-                p->x8 = 0;
+            p->swingAng++;
+            if (p->swingAng > 359) {
+                p->swingAng = 0;
             }
             p->angSpd += 0.0017453292f;
             if (p->angSpd > 0.08726646f) {
@@ -2578,9 +2578,9 @@ void em38RootMove(cEm38* em)
             }
             break;
         case 2:
-            p->x8--;
-            if (p->x8 < 0) {
-                p->x8 = 359;
+            p->swingAng--;
+            if (p->swingAng < 0) {
+                p->swingAng = 359;
             }
             p->angSpd -= 0.017453292f;
             if (p->angSpd < -0.08726646f) {
@@ -2603,8 +2603,8 @@ void em38RootMove(cEm38* em)
             }
         }
         {
-            s16 q = p->x8 / 30;
-            s16 rem = p->x8 % 30;
+            s16 q = p->swingAng / 30;
+            s16 rem = p->swingAng % 30;
             f32 base = (f32) q * 0.5235988f + p->ang;
             f32 a1;
             f32 a2;

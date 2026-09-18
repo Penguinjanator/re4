@@ -886,7 +886,7 @@ void em2dInitRtnSet(cEm2d* em)
     w->poisonWait = zero;
     // x4F8, spd, wallNrm x/y/z: the dying-store rule (1.0 dies at wallNrm.y, 0.0 at wallNrm.z) issues them y, z, x4F8,
     // spd, x like the target -- no keep-alive needed.
-    w->x4F8 = 1.0f;
+    w->Compress_y = 1.0f;
     w->spd.x = 0.0f;
     w->spd.y = 0.0f;
     w->spd.z = 0.0f;
@@ -904,7 +904,7 @@ void em2dInitRtnSet(cEm2d* em)
     w->dmGuard = zero;
     w->catchGuard = zero;
     w->x534 = zero;
-    w->x536 = zero;
+    w->Reset_enable = zero;
     w->homePos = em->pos;
     if (em->type != 4) {
         EstSet((int) em, -1, 0, 0, 0x25, 4, 0, w->espKind, (u32) em, 0);
@@ -4316,15 +4316,15 @@ static void em2d_R1_Die_Lost(cEm2d* em)
         }
         w->timer = 30;
         w->timer8 = 150;
-        w->x4F8 = 1.0f;
+        w->Compress_y = 1.0f;
         em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
         } else {
-            w->x4F8 -= 0.00999999978f;
-            if (w->x4F8 < 0.100000001f) {
-                w->x4F8 = 0.100000001f;
+            w->Compress_y -= 0.00999999978f;
+            if (w->Compress_y < 0.100000001f) {
+                w->Compress_y = 0.100000001f;
             }
             em->pos.y -= 3.0f;
         }
@@ -4336,7 +4336,7 @@ static void em2d_R1_Die_Lost(cEm2d* em)
             if (em->invisible_factor <= 0.0f) {
                 em->invisible_factor = 0.0f;
                 em->be_flag &= ~2;
-                w->x536 = 1;
+                w->Reset_enable = 1;
                 em->be_flag |= 0x4000;
                 em->r_no_2++;
             }
@@ -4752,7 +4752,7 @@ void em2dScaleCompress(cEm2d* em)
     }
     PSMTXIdentity(m);
     scale.x = 1.0f;
-    scale.y = w->x4F8;
+    scale.y = w->Compress_y;
     scale.z = 1.0f;
     ScaleMatrix(m, &scale);
     for (p = em->pParts; p; p = p->pParts) {
@@ -6206,7 +6206,7 @@ int em2dSomebodyFindCk(cEm2d* em)
 
 int cEm2d::ckReset()
 {
-    if (EM2D_WK(this)->x536 == 0) {
+    if (EM2D_WK(this)->Reset_enable == 0) {
         return 0;
     }
     return 1;

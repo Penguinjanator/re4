@@ -150,7 +150,7 @@ void cSubLuis::init()
     m_LeonHp = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
     voiceWait = 0;
     cnt = 0;
-    x38D = 0;
+    set = 0;
     EspDataLoad((u32) SUBARC(0x34 / 4), 7, 0);
     PlClothSetLuis(this, &luisHair);
     YarareInit(EM, 0.0f, -30.0f, 0.0f, 150.0f, 100.0f, 2, 1);
@@ -240,12 +240,12 @@ void cSubLuis::think()
             action.set(4);
         } else if (Chk8(analysis.flags, 2)) {
             action.set(8);
-        } else if (x38D == 2 && !Chk8(flags, 4)) {
+        } else if (set == 2 && !Chk8(flags, 4)) {
             action.set(3);
             if (GetDistance(*(Vec*) &upPos, pos) < 1000000.0f) flags |= 4;
-        } else if (x38D == 1 && (rackCheck() || Chk8(analysis.flags, 0x80))) {
+        } else if (set == 1 && (rackCheck() || Chk8(analysis.flags, 0x80))) {
             action.set(0xC);
-        } else if (x38D == 1 && !(action.flags & 2)) {
+        } else if (set == 1 && !(action.flags & 2)) {
             action.set(0xB);
         } else if (analysis.pTarget) {
             if (Chk8(analysis.flags, 8) && !stairCheck(pPL) && !stairCheck(this) && sameFloorCheck(this, pPL) &&
@@ -332,7 +332,7 @@ void cRoutine::moveDamage()
 
     switch (owner->r_no_1) {
     case 0:
-        switch (x110) {
+        switch (work[0]) {
         case 0: mot = OARC(0xB4 / 4); owner->r_no_1 = 1; break;
         case 1: mot = OARC(0xB8 / 4); owner->r_no_1 = 1; break;
         case 2: mot = OARC(0xBC / 4); owner->r_no_1 = 1; break;
@@ -347,14 +347,14 @@ void cRoutine::moveDamage()
         SndCall(8, 9, &owner->pParts->world, owner->id, 0, 0);
         owner->cnt = 0;
     case 1:
-        if (MotionCheckCrossFrame(&owner->Motion, 20.0f) && x114 && sameFloorCheck(owner, pPL)) {
-            switch (x114) {
+        if (MotionCheckCrossFrame(&owner->Motion, 20.0f) && work[1] && sameFloorCheck(owner, pPL)) {
+            switch (work[1]) {
             case 4: voice.set(0x5D, 3, 60); break;
             case 3: voice.set(0x5E, 4, 60); break;
             case 2: voice.set(0x5F, 5, 60); break;
             case 1: voice.set(0x60, 6, 60); break;
             }
-            x114 = 0;
+            work[1] = 0;
         }
         if (owner->motionMove()) {
             owner->dmg.clear();
@@ -658,15 +658,15 @@ void cRoutine::moveTurn()
     void* mot;
 
     if (owner->r_no_1 == 0) {
-        if (x110) mot = OARC(0x50 / 4);
+        if (work[0]) mot = OARC(0x50 / 4);
         else mot = OARC(0x48 / 4);
         owner->motionSet(mot, 5, 0, 5, 0);
         owner->r_no_1 = 1;
     }
     owner->motionMove();
-    if (x114) {
-        x114--;
-        if (x114 == 0) end();
+    if (work[1]) {
+        work[1]--;
+        if (work[1] == 0) end();
     }
 }
 
@@ -1005,8 +1005,8 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
     case 2:
         if (Rnd() & 7) {
             rt->set(7);
-            rt->x110 = Rnd() & 1;
-            rt->x114 = (u8) (Rnd() % 50) + 10;
+            rt->work[0] = Rnd() & 1;
+            rt->work[1] = (u8) (Rnd() % 50) + 10;
         } else {
             rt->set(8);
         }
@@ -1066,7 +1066,7 @@ void cAction::set(int m)
 int cAction::chasePlAreaCheck()
 {
     if ((pG->room_id32 & 0xFFFF0000) != 0x011C0000) return 1;
-    switch (owner->x38D) {
+    switch (owner->set) {
     default:
         return 1;
     case 1:
@@ -1282,7 +1282,7 @@ int cSubLuis::damageCheck()
     }
     dead = (dmg.flags & 0xFFFF0000) != 0;
     if (!dead && (s16) pG->pl_life > 0 && DmgMgr.hitCheck(&getPartsPtr(0)->world, 0) == 1) {
-        routine.x110 = 3;
+        routine.work[0] = 3;
         dmHit = dead;
         dmType = 0x80;
         flags |= 1;
@@ -1291,7 +1291,7 @@ int cSubLuis::damageCheck()
     if (dmHit == 0) return 0;
 
     analysis.flags &= ~0x40;
-    routine.x114 = 0;
+    routine.work[1] = 0;
     switch (dmWep) {
     default:
         m_PlAtack--;
@@ -1300,24 +1300,24 @@ int cSubLuis::damageCheck()
         } else {
             if (m_PlAtack == 1) setStatus(EM_STATUS_DONT_FIRE);
             analysis.flags |= 0x40;
-            routine.x114 = m_PlAtack;
+            routine.work[1] = m_PlAtack;
         }
         routine.pTarget = pPL;
         dmType = 1;
-        if (Front_check(this, &x328, PI / 2)) routine.x110 = 2;
-        else routine.x110 = 3;
+        if (Front_check(this, &dmPos, PI / 2)) routine.work[0] = 2;
+        else routine.work[0] = 3;
         SndCall(8, 0x13, &subSelf->pParts->world, subSelf->id, 0, 0);
         break;
     case 0x13:
         dmType = 1;
-        routine.x110 = 8;
+        routine.work[0] = 8;
         break;
     case 0x17:
         dmHit = 0;
         return 0;
     case 0x18:
         dmType = 1;
-        routine.x110 = 2;
+        routine.work[0] = 2;
         break;
     }
     flags |= 1;
