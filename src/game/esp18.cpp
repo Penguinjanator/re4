@@ -165,8 +165,8 @@ void Esp18_Trans(cEsp18* esp)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     if (esp->m_Tool_flg & 2) {
         if (ESP18_FLIP_T(esp)) {
             s0 = zero + z;

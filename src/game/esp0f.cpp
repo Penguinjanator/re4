@@ -123,8 +123,8 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);

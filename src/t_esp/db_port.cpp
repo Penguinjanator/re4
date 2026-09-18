@@ -1773,7 +1773,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
         if (pw->flags & 0x80) {
             PSMTXMultVec(pw->mtx, &pos, &pos);
         }
-        PSVECAdd(&pos, &gen->pos, &pos);
+        PSVECAdd(&pos, &gen->Pos, &pos);
         if (i != 0) {
             Draw_line3d(&pos, &old, 0xFFFFFFFF, 0);
         }
@@ -1839,7 +1839,7 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
         if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
             PSMTXMultVec(em->getPartsPtr(gen->Parts_no)->mat, &pos, &pos);
         }
-        PSVECAdd(&pos, &gen->pos, &pos);
+        PSVECAdd(&pos, &gen->Pos, &pos);
         if (i != 0) {
             Draw_line3d(&pos, &old, 0xFFFFFFFF, 0);
         }

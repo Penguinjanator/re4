@@ -1009,7 +1009,7 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     if (rec->Tool_flg & 0x4000) {
         p->flag |= 2;
-        p->xC5 = rec->xC5;
+        p->xC5 = rec->MaskTex_id;
         p->flag |= 1;
     }
     if (rec->WorkSp8[0] != 0) {

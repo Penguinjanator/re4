@@ -449,8 +449,8 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP_TEXCOORD_SET()
     GXTexObj tex;
     f32 indMtx[2][3];
@@ -732,8 +732,8 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP_TEXCOORD_SET()
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
@@ -1096,7 +1096,7 @@ int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend)
     }
     u32 seed = 0x12345678;
     rec = &head->rec[no];
-    type = rec->type;
+    type = rec->Kind;
     if (type != 0) {
         if (type == 1) {
             pLog->err(0, 0, "EspEstSetSelect : can't call Espgen.");

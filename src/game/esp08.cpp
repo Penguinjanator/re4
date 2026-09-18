@@ -513,8 +513,8 @@ void Esp08_Trans(cEsp08* esp)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP08_TEXCOORD_SET()
     ESP08_TILES()
     if (esp->m_Tool_flg & 0x4000) {
@@ -638,8 +638,8 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     if (oy == zero) {
         oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP08_TEXCOORD_SET()
     if (ESP_PARTS_SCREEN(esp)) {
         ofs = 56.0f;
