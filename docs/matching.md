@@ -2458,7 +2458,7 @@ like the DOL.
   pl0b/pl0c = pl02, pl15 = pl11, wep03/18 = wep02, wep20 = wep11, wep21/24 = wep09, wep25 = wep14,
   wep31/32 = wep10, wep46 = wep13; the module is configured once, under the first name), 11 (pl00, pl01,
   pl03..pl05, pl07..pl10, pl12, pl21) have none. Module ids are unique among the distinct RELs.
-  Not on disc 1 although a `Bio4.<mod>.sym` exists: em06, em09, emmark, st0, st3_0..st3_3, pl03/10/12.
+  Not on either disc although a `Bio4.<mod>.sym` exists: em06, em09, emmark, st0, pl03/10/12 (st3_0..st3_3 are on disc 2 and configured).
 - Originals: `orig/G4BE08/files/{Rel,em}/<mod>.rel` and `orig/G4BE08/files/Bio4.<mod>.sym` are
   untracked. `python3 tools/extract_orig.py config/G4BE08/config.yml <disc>` writes them (plus
   `sys/main.dol`, `sys/main_split.dol`, `files/Bio4.sym`) from a disc image (.iso/.gcm, read directly)
@@ -2581,7 +2581,7 @@ object (`build/G4BE08/<mod>/obj/<unit>.o`) must reference a `lbl_`/`fn_` placeho
 names it could not resolve; a name whose relocations do not line up (function order differs from the
 target) stays unresolved and `make_rel` then fails with "undefined symbol".
 
-### Adding a module (every REL of disc 1 is configured; this is for another disc/build)
+### Adding a module (every REL of both discs is configured; this is for another build)
 
 1. Append to `modules:` in `config/G4BE08/config.yml`: `object: files/<Rel|em>/<mod>.rel`, `name`,
    `splits`/`symbols` paths under `config/G4BE08/modules/<mod>/`. The object path says where the REL
@@ -2648,7 +2648,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   omake and stage cases; `switch (i - 11)` with `i - 11` in every call reduces the giv (`li r28, -0xb`)
   but cse folds the argument per case.
 
-### Stage (room script) modules st1_0..st1_3, st2_0..st2_4, st4_0
+### Stage (room script) modules st1_0..st1_3, st2_0..st2_4, st3_0..st3_3, st4_0
+
+(st3_0..st3_3 are the disc 2 island modules, added 2026-09-18: docs/research/disc2-st3.md.)
 
 - Layout of every stage REL (config/G4BE08/modules.py UNITS): `em_wrap.cpp` (src/st/em_wrap.cpp,
   include/em_wrap.h: cEmControl/cEmPatrol/cEmGuard + the cEmWrap enemy handle with ~50 members + free

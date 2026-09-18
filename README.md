@@ -2,13 +2,13 @@
 
 A complete, byte-identical decompilation of *Resident Evil 4* for the Nintendo GameCube: the
 `G4BE08` **debug build** (the "Nov 25 2004" prototype, both discs), whose `Bio4.sym` files name every
-function. Building the repository reproduces `main.dol` and all 110 REL overlays exactly
+function. Building the repository reproduces `main.dol` and all 114 REL overlays exactly
 (`config/G4BE08/build.sha1`, checked on every build).
 
 | | |
 |---|---|
-| Units | 992 (673 in the DOL, 319 across the RELs), all matching |
-| Source | ~523k lines of C/C++ (`src/`), ~33k lines of headers (`include/`) |
+| Objects | 1083 (675 in the DOL, 408 across the 114 RELs), all byte-identical; 15641 functions |
+| Source | ~555k lines of C/C++ (`src/`), ~33k lines of headers (`include/`); no assembly files |
 | Game code | SN Systems ProDG 3.9.3 — GCC 2.95.3 "SN BUILD v1.79", built natively from SN's GPL source drop |
 | CRI middleware (`src/lib/adx_*`, `sfd_*`, `mpv_*`, …) | Metrowerks CodeWarrior 2.4.7 (GC/2.7), the compiler CRI shipped the libraries with |
 | Nintendo SDK (`src/lib/OS*`, `GX*`, …) | Metrowerks CodeWarrior GC/1.2.5n, sources from [dolsdk2004](https://github.com/doldecomp/dolsdk2004) |
@@ -34,7 +34,7 @@ python3 configure.py && ninja
 ```
 
 `ninja` ends with the progress report (100% matched and linked for the DOL and the REL modules);
-`build/tools/dtk shasum -c config/G4BE08/build.sha1` prints 111 `OK` lines. To work on a unit, `python3 tools/bytecmp.py game/foo` compares its object with
+`build/tools/dtk shasum -c config/G4BE08/build.sha1` prints 115 `OK` lines. To work on a unit, `python3 tools/bytecmp.py game/foo` compares its object with
 the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows one function.
 
 ## Layout

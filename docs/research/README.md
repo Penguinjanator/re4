@@ -19,4 +19,5 @@ is in `tools/research/`.
 | `compiler.md` | the toolchain itself: COMPILER-DIFF #N research/closure passes, the tag audits and structural tag hunt, the adopted `shipped-build-temp-flags` compiler patch, the switch-tree model, the inline-vs-macro and dead-test lever sweeps, the GCC residue sweeps and the 2-word-tie passes |
 | `asm-removal.md` | 2026-09-17: replacing every asm-emitted instruction / hard-register `asm { }` pin with C — recipes by compiler pass (GCC) and by Chaitin-graph edit (MWCC), the codeless-pin correction, the remaining `dct_ac` block |
 | `asm-removal.md` | 2026-09-17: replacing every asm-emitted instruction / hard-register `asm { }` pin with C — recipes by compiler pass (GCC) and by Chaitin-graph edit (MWCC), the codeless-pin correction, the remaining `dct_ac` block |
+| `disc2-st3.md` | 2026-09-18: the disc 2 island stage modules st3_0..st3_3 (setup, layout, the cse1/cse2/loop.c levers found while matching the 37 rooms) |
 | `misc.md` | hazards found on the way (a stale `configure.py` copy, `/tmp` as tmpfs) and the identity audit of every unmatched unit |
