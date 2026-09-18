@@ -48,7 +48,7 @@ public:
     u8 Type;           // 0x02  -> cLight::type (per-type move handler, construct id)
     u8 xF;             // 0x03  -> cLight::xF (screen kind mask; 0x10 cloth, 0x40 set by versionUp)
     Vec Pos;           // 0x04
-    f32 x1C;           // 0x10
+    f32 Radius;        // 0x10  -> cLight::Radius
     GXColor Col;     // 0x14
     f32 Intensity;         // 0x18
     u8 ParentType;     // 0x1C
@@ -74,7 +74,7 @@ public:
     u8 Type;           // 0x0E  per-type move handler index
     u8 xF;             // 0x0F  screen kind mask
     Vec Pos;           // 0x10
-    f32 x1C;           // 0x1C (esp11: sizeX * scale * 10; hit check radius)
+    f32 Radius;        // 0x1C  attenuation range (trans_lit: intensity * (Radius - d) / Radius; esp11: sizeX * scale * 10)
     GXColor Col;     // 0x20 base color
     f32 Intensity;         // 0x24
     u8 ParentType;     // 0x28  0 none, 1 enemy, 2 scroll group, 3 room etc model, 4 object
@@ -100,10 +100,10 @@ public:
         LightSub sub;      // 0x78 .. 0xF8
     };
     LightPath path;    // 0xF8 .. 0x138
-    u8 x138;           // 0x138
+    u8 Rno0;           // 0x138  per-type routine step (light05/light07 path lights)
     u8 pad_139[3];
     GXColor DispCol;  // 0x13C color actually applied
-    u16 x140;          // 0x140  index in the cut (0xFFFF = none; trans_lit compares it zero-extended)
+    u16 LitIndex;      // 0x140  index in the cut (0xFFFF = none; trans_lit compares it zero-extended)
     u8 pad_142[2];
     Vec World;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
     cModel* pParent;   // 0x150

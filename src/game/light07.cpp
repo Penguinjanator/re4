@@ -12,10 +12,10 @@ void Light07_Move(cLight* l)
     Vec* ang = (Vec*)l->work;
     Vec* spd = (Vec*)(l->work + 0xC);
 
-    switch (l->x138) {
+    switch (l->Rno0) {
     case 0:
         l->DispCol = l->Col;
-        l->x138 = 1;
+        l->Rno0 = 1;
     case 1:
         PSVECAdd(ang, spd, ang);
         ang->x = LIMIT_ANGLE(ang->x);

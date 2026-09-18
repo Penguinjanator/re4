@@ -11,10 +11,10 @@ void Light06_Move(cLight* l)
 {
     Light06Work* w = (Light06Work*)l->work;
 
-    switch (l->x138) {
+    switch (l->Rno0) {
     case 0:
         w->rate = w->start;
-        l->x138 = 1;
+        l->Rno0 = 1;
     case 1:
         w->rate += w->speed;
         if (w->speed > 0.0f) {

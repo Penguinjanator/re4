@@ -569,7 +569,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
         if (pG->System_flg & 0x400) {
             pG->System_flg &= ~0x400;
         }
-        if (EvtMgr.GetEvt(&EvtMgr.x34, (void**) &ev) == 0) {
+        if (EvtMgr.GetEvt(&EvtMgr.NowExeEvtKey, (void**) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
             t->r_no_0 = 1;
             t->r_no_1 = 4;
@@ -658,7 +658,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             if (t->EtcFlag & 0x40000000) {
                 t->EvtTaskSuspend(0);
                 EventMgr* m = &EvtMgr;
-                u32* pp = &m->x34;
+                u32* pp = &m->NowExeEvtKey;
 
                 m->EvtSndStrStop(pp, 1, 0);
                 m->EvtSndStrStop(pp, 0, 0);
@@ -695,7 +695,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
         TaskSleep(2);
         t->EvtTaskSuspend(0);
         EventMgr* m = &EvtMgr;
-        u32* pp = &m->x34;
+        u32* pp = &m->NowExeEvtKey;
 
         m->EvtSndStrStop(pp, 1, 1);
         m->EvtSndStrStop(pp, 0, 1);

@@ -314,7 +314,7 @@ void SsItemMain::move(SUB_SCREEN* wk)
     wk->cursor_mode = 0;
     switch (state) {
     case 0:
-        if (wk->x367 == 0) {
+        if (wk->item_make_open == 0) {
             Widget<SUB_SCREEN>* w = cur;
             w->move(wk);
             next = w->cur;
@@ -322,17 +322,17 @@ void SsItemMain::move(SUB_SCREEN* wk)
                 switch (sel->state) {
                 case 2:
                     state = 1;
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     sscrnMainMenuInit(wk, 1);
                     break;
                 case 1:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(5, wk);
                     break;
                 default:
                     if (wk->type != 0x80 && next == cur) {
                         if (Key.trg & 0x00800000) {
-                            wk->x34 = 0;
+                            wk->close_flag = 0;
                             wk->menu_old = 0;
                             transit(0, wk);
                         }
@@ -343,11 +343,11 @@ void SsItemMain::move(SUB_SCREEN* wk)
             if (cur == cmd) {
                 switch (cmd->state) {
                 case 1:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(5, wk);
                     break;
                 case 2:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(4, wk);
                     SndCall(0, 0x1A, 0, 0, 0, 0);
                     break;
@@ -357,7 +357,7 @@ void SsItemMain::move(SUB_SCREEN* wk)
         cur = next;
         break;
     case 1:
-        if (wk->x367 == 0) {
+        if (wk->item_make_open == 0) {
             if (sscrnMainMenu(wk)) {
                 switch ((s8) wk->menu_no) {
                 case 1:
@@ -389,11 +389,11 @@ void SsItemMain::move(SUB_SCREEN* wk)
         }
         break;
     }
-    if (wk->x367) {
+    if (wk->item_make_open) {
         itemMakeMove(wk);
         if (Joy[0].trg & 0x200) {
-            wk->x367 = wk->x367 == 0;
-            if (wk->x367) {
+            wk->item_make_open = wk->item_make_open == 0;
+            if (wk->item_make_open) {
                 pG->debug_mode = 1;
             } else {
                 pG->debug_mode = wk->debugMode;
@@ -402,9 +402,9 @@ void SsItemMain::move(SUB_SCREEN* wk)
     }
     if (Joy[0].trg & 0x10) {
         if (!(pG->System_flg & 8) || PadCheckStatus(&Joy[1]) == 1) {
-            wk->x367 = wk->x367 == 0;
+            wk->item_make_open = wk->item_make_open == 0;
         }
-        if (wk->x367) {
+        if (wk->item_make_open) {
             pG->debug_mode = 1;
         } else {
             pG->debug_mode = wk->debugMode;
@@ -1203,7 +1203,7 @@ struct SsItemMakeWork {
     u8 pad_1D[3];
     int id[2];       // 0x20  SUB_SCREEN::x36C
 };
-#define ITEM_MAKE_WORK(wk) ((SsItemMakeWork*) &(wk)->x34C)
+#define ITEM_MAKE_WORK(wk) ((SsItemMakeWork*) &(wk)->debug_menu)
 
 static const char* item_make_name[3] = {"KEY ITEM", "TREASURE", "REMOVE  "};
 static int item_make_mes_x = 0;

@@ -712,7 +712,7 @@ void SceChapterEnd()
     u16 room;
     u8 x4F9E;
     EventMgr* ev = &EvtMgr;
-    u32* key = &ev->x34;
+    u32* key = &ev->NowExeEvtKey;
 
     pG->chapter = SceSys.m_chapter_no + 1;
     if (ev->IsAliveEvt(key, 0, 1)) {

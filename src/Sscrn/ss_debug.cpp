@@ -47,16 +47,16 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
     int y;
 
     if (joy->trg & 0x1000) {
-        if (wk->x34C & 1) {
-            wk->x34C &= ~1;
+        if (wk->debug_menu & 1) {
+            wk->debug_menu &= ~1;
             return;
         }
-        wk->x34C |= 1;
+        wk->debug_menu |= 1;
         dbg_cursor = 0;
     }
-    if (wk->x34C & 1) {
+    if (wk->debug_menu & 1) {
         if (joy->trg & 0x200) {
-            wk->x34C &= ~1;
+            wk->debug_menu &= ~1;
             return;
         }
         if (joy->trg & 0x80008) {
@@ -69,18 +69,18 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
         switch (dbg_cursor) {
         case 0:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x10;
+                wk->debug_menu |= 0x10;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x10;
+                wk->debug_menu &= ~0x10;
             }
             break;
         case 1:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x20;
+                wk->debug_menu |= 0x20;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x20;
+                wk->debug_menu &= ~0x20;
             }
             break;
         case 2:
@@ -94,10 +94,10 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
             break;
         case 3:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x40;
+                wk->debug_menu |= 0x40;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x40;
+                wk->debug_menu &= ~0x40;
             }
             break;
         }
@@ -108,14 +108,14 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
             eprintf(cx * 8, y, i == dbg_cursor ? 4 : 0, 0, "%s", menu[i]);
             switch (i) {
             case 0:
-                if (wk->x34C & 0x10) {
+                if (wk->debug_menu & 0x10) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
                 }
                 break;
             case 1:
-                if (wk->x34C & 0x20) {
+                if (wk->debug_menu & 0x20) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
@@ -125,7 +125,7 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
                 eprintf((cx + 13) * 8, y, 0, 0, "%02d", pG->debug_mode);
                 break;
             case 3:
-                if (wk->x34C & 0x40) {
+                if (wk->debug_menu & 0x40) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
@@ -138,7 +138,7 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
         eprintf(0x180, 0x70, 0, 0, "MI");
         ssModInfoMgr.dispWorkNum(0x1A0, 0x70, 0, 0);
     }
-    if (wk->x34C & 0x20) {
+    if (wk->debug_menu & 0x20) {
         pG->Debug_flg[2] |= 0x40000000;
     } else {
         pG->Debug_flg[2] &= ~0x40000000;

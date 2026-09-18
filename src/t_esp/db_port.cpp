@@ -960,7 +960,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 if ((u32) slot <= 0x7F) {
                     *(cModel**) (la + ((u32) slot << 2)) = p;
                 }
-                em->ot_type = M.x638;
+                em->ot_type = M.otType;
                 if (flagOn(M.flags, 0x80000000)) {
                     em->z_mode = 1;
                 }
@@ -969,7 +969,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 }
                 info = em->pModelInfo;
                 b = &info->bound;
-                lit = M.x639;
+                lit = M.lightMask;
                 size.x = b->size.x;
                 size.y = b->size.y;
                 size.z = b->size.z;

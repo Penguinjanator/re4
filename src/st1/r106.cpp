@@ -361,7 +361,7 @@ static void r106_Event()
             ev->StatusFlag |= 0x400;
         }
         evt = &EvtMgr;
-        while (evt->IsAliveEvt(&evt->x34, 0, 0) != 0) {
+        while (evt->IsAliveEvt(&evt->NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
     }

@@ -95,7 +95,7 @@ struct R11cSave {
     u32 x0;
     u32 flags;
 };
-static inline u32* r11c_evtKey(EventMgr* m) { return &m->x34; }
+static inline u32* r11c_evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
 
@@ -354,7 +354,7 @@ static void r11c_EventBesiegedStart()
         EvtMgr.SetEvt(mod->pArc, (u32*) 0);
         SceSleep(2);
         SceSleep(2);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
         MemorySwap(mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);

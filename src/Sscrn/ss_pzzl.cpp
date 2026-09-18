@@ -1514,7 +1514,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     msg_open = 0;
     switch (state) {
     case 0:
-        if (wk->x366 == 0) {
+        if (wk->pzzl_debug_open == 0) {
             Widget<SUB_SCREEN>* w = cur;
 
             w->move(wk);
@@ -1524,17 +1524,17 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
                 switch (select->mode) {
                 case 2:
                     state = 1;
-                    wk->x34 |= 1;
+                    wk->close_flag |= 1;
                     sscrnMainMenuInit(wk, 1);
                     break;
                 case 1:
-                    wk->x34 |= 1;
+                    wk->close_flag |= 1;
                     transit(4, wk);
                     break;
                 default:
                     if (wk->type != 4 && next == cur && wk->puzzlePlayer->m_space->getPieceNum() == 0 &&
                         (Key.trg & 0x00400000)) {
-                        wk->x34 = 0;
+                        wk->close_flag = 0;
                         wk->menu_old = 1;
                         transit(0, wk);
                     }
@@ -1545,7 +1545,7 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         cur = next;
         break;
     case 1:
-        if (wk->x366 == 0) {
+        if (wk->pzzl_debug_open == 0) {
             if (sscrnMainMenu(wk)) {
                 switch ((s8) wk->menu_no) {
                 case 1:
@@ -1595,11 +1595,11 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     if (old != state) {
         wk->cursor_flag |= 2;
     }
-    if (wk->x366) {
+    if (wk->pzzl_debug_open) {
         pzzl_dbg.move(wk);
         if (Joy[0].trg & 0x200) {
-            wk->x366 = wk->x366 == 0;
-            if (wk->x366) {
+            wk->pzzl_debug_open = wk->pzzl_debug_open == 0;
+            if (wk->pzzl_debug_open) {
                 pG->debug_mode = 1;
             } else {
                 pG->debug_mode = *((u8*) &wk->debugMode + 3);
@@ -1608,9 +1608,9 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     }
     if (wk->puzzlePlayer->m_inhand == 0 && (Joy[0].trg & 0x10)) {
         if (!(pG->System_flg & 8) || PadCheckStatus(&Joy[1]) == 1) {
-            wk->x366 = wk->x366 == 0;
+            wk->pzzl_debug_open = wk->pzzl_debug_open == 0;
         }
-        if (wk->x366) {
+        if (wk->pzzl_debug_open) {
             pG->debug_mode = 1;
         } else {
             pG->debug_mode = *((u8*) &wk->debugMode + 3);

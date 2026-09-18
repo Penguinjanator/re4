@@ -324,7 +324,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         }
         if (skip == 0) {
             EventMgr* em = &EvtMgr;
-            em->EvtSndStrPlay(&em->x34, 1, 0x50, 1, 0.0f);
+            em->EvtSndStrPlay(&em->NowExeEvtKey, 1, 0x50, 1, 0.0f);
         }
         break;
     }

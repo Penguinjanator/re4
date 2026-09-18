@@ -1299,7 +1299,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         VecLinearDecomposition(&d, &a, &b, &s, &t);
         s1 = s;
         t1 = t;
-        if (SubScreenWk.x34C & 0x10) {
+        if (SubScreenWk.debug_menu & 0x10) {
             poly = satA.poly_p;
             vtx = satA.vtx;
             for (i = 0; i < satA.floor_num + satA.slope_num; i++, poly++) {
@@ -1330,7 +1330,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         PSVECAdd(&pos, &vtx[poly->v[0]], &pos);
         VecLinearCombination(&a, &b, s1, t1, &pos2);
         PSVECAdd(&pos2, &vtx[poly->v[0]], &pos2);
-        if (SubScreenWk.x34C & 0x10) {
+        if (SubScreenWk.debug_menu & 0x10) {
             PSMTXMultVec(partsMat, &vtx[poly->v[0]], &hit2);
             PSMTXMultVec(partsMat, &pos, &d);
             Draw_line3d(&hit2, &d, 0xFF0000FF, 0);
@@ -2518,16 +2518,16 @@ void SsMapMain::move(SUB_SCREEN* wk)
         if (cur == read) {
             if (wk->type == 2) {
                 if (Key.trg & 0x40200000) {
-                    wk->x34 |= 4;
+                    wk->close_flag |= 4;
                     transit(4, wk);
                 }
             } else {
                 if (Key.trg & 0x00100000) {
-                    wk->x34 |= 4;
+                    wk->close_flag |= 4;
                     transit(4, wk);
                 } else if (Key.trg & 0x40000000) {
                     state = 1;
-                    wk->x34 |= 4;
+                    wk->close_flag |= 4;
                     sscrnMainMenuInit(wk, 1);
                     SndCall(0, 0xA, 0, 0, 0, 0);
                 }
@@ -2649,7 +2649,7 @@ void SsMapMain::quit(SUB_SCREEN* wk)
     markCoinQuit(wk);
     markSaveQuit(wk);
     Mem_free(wk->pMapWk);
-    wk->x34 |= 4;
+    wk->close_flag |= 4;
     sscrn_map_out_init(wk);
     wk->scrn_out_func = sscrn_map_out;
 }
@@ -2801,7 +2801,7 @@ int mapModeCheck(SUB_SCREEN* wk, s8 no)
 {
     u32 bit = 1 << no;
 
-    if (wk->x348 & bit) {
+    if (wk->map_mode & bit) {
         return 1;
     }
     return 0;
@@ -2811,10 +2811,10 @@ void mapModeChange(SUB_SCREEN* wk, s8 no)
 {
     u32 bit = 1 << no;
 
-    if (wk->x348 & bit) {
-        wk->x348 &= ~bit;
+    if (wk->map_mode & bit) {
+        wk->map_mode &= ~bit;
     } else {
-        wk->x348 |= bit;
+        wk->map_mode |= bit;
     }
 }
 

@@ -103,10 +103,10 @@ void SsCapMain::init(SUB_SCREEN* wk)
     sscrnMainMenuInit(wk, 0);
     state = 0;
 #line 191 "D:/Bio4/Prog/ss_cap.cpp"
-    wk->x310 = (s8*) MEM_ALLOC(3, 1, 13);
-    wk->x310[0] = 0;
-    wk->x310[1] = 0;
-    wk->x310[2] = 0;
+    wk->pCapCursor = (s8*) MEM_ALLOC(3, 1, 13);
+    wk->pCapCursor[0] = 0;
+    wk->pCapCursor[1] = 0;
+    wk->pCapCursor[2] = 0;
     if (wk->type == 0x100) {
         cur = exam;
     } else {
@@ -124,11 +124,11 @@ void SsCapMain::move(SUB_SCREEN* wk)
         if (cur == sel) {
             switch (sel->state) {
             case 1:
-                wk->x34 |= 0x80000;
+                wk->close_flag |= 0x80000;
                 transit(0, wk);
                 break;
             case 2:
-                wk->x34 |= 0x80000;
+                wk->close_flag |= 0x80000;
                 transit(1, wk);
                 break;
             }
@@ -144,7 +144,7 @@ void SsCapMain::quit(SUB_SCREEN* wk)
 {
     sscrnLightClear(wk);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    Mem_free(wk->x310);
+    Mem_free(wk->pCapCursor);
     if (sel) {
         delete sel;
     }
@@ -179,7 +179,7 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
 
 void dispCapList(SUB_SCREEN* wk)
 {
-    s8* sel = wk->x310;
+    s8* sel = wk->pCapCursor;
     IdUnit* u;
     IdUnit* c;
     int i;
@@ -205,7 +205,7 @@ void CapSelect::init(SUB_SCREEN* wk)
 
 void CapSelect::move(SUB_SCREEN* wk)
 {
-    s8* sel = wk->x310;
+    s8* sel = wk->pCapCursor;
 
     dispCapList(wk);
     state = 0;

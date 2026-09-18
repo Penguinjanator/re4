@@ -80,7 +80,7 @@ static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
 static inline void PSet(FocusAnimation*& d, FocusAnimation* v) { d = v; }
 
 // The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->x34; }
+static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Waits for the running event to end.
 static inline void r10b_waitEvt()
@@ -426,7 +426,7 @@ static void r10b_GakeEvent()
         SceSleep(2);
         if (readEvent(3, 1, &evt)) {
             EvtMgr.SetEvt(evt, 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(3);

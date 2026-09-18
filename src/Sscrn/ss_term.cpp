@@ -902,7 +902,7 @@ void SsTermMain::move(SUB_SCREEN* wk)
                 OpeSndStrStop();
                 MessageControl* m = &cMes;
                 int i = 0;
-                wk->x34 |= 8;
+                wk->close_flag |= 8;
                 for (; i < 16; i++) {
                     m->Delete(i);
                 }
@@ -918,5 +918,5 @@ void SsTermMain::quit(SUB_SCREEN* wk)
     if (pSys->language == 0) {
         cMes.releaseFont(3);
     }
-    wk->x34 |= 8;
+    wk->close_flag |= 8;
 }

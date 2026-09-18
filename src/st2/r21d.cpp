@@ -495,21 +495,21 @@ void r21d_onSwitch(int no, int init)
         LightMgr.onKind((u8) kind);
         if (init == 0) {
             cLight* l = LightMgr.getKindLight((u8) kind);
-            f32 target = l->x1C;
+            f32 target = l->Radius;
             f32 step = target / 30.0f;
 
-            l->x1C = 0.0f;
+            l->Radius = 0.0f;
             while (CamCtrl.IsMotionEnd() == 0) {
                 if (R21D_SKIP) {
                     R21D_SKIP_SET();
                     break;
                 }
-                if (l->x1C <= target) {
-                    l->x1C += step;
+                if (l->Radius <= target) {
+                    l->Radius += step;
                 }
                 SceSleep(1);
             }
-            l->x1C = target;
+            l->Radius = target;
         }
     }
 }

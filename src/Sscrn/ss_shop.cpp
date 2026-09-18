@@ -574,7 +574,7 @@ void SsShopMain::move(SUB_SCREEN* wk)
     MerchantCharacter* mc = &merchantChar;
 
     if (mc->m_p_data == 0) {
-        wk->x34 |= 0x10000;
+        wk->close_flag |= 0x10000;
         transit(0, wk);
         return;
     }
@@ -591,7 +591,7 @@ void SsShopMain::move(SUB_SCREEN* wk)
     wk->merchant->makeList();
     wk->merchant->save(mc->m_p_data);
     if (cur == topMenu && topMenu->result == 1) {
-        wk->x34 |= 0x10000;
+        wk->close_flag |= 0x10000;
         transit(0, wk);
     }
     cur = next;

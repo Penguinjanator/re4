@@ -223,6 +223,6 @@ void cDbWork::dispLit()
         eprintf(32, 280, 0, 0, "BE FLAG  %08X", l->be_flag);
         eprintf(32, 294, 0, 0, "POSITION %7.0f %7.0f %7.0f", l->Pos.x, l->Pos.y, l->Pos.z);
         eprintf(32, 308, 0, 0, "ATTR     %02x", l->Attribute);
-        Draw_sphere(l->World, l->x1C, -1, 1, 1);
+        Draw_sphere(l->World, l->Radius, -1, 1, 1);
     }
 }

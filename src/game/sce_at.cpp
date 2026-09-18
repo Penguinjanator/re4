@@ -1219,7 +1219,7 @@ static void sceAtGetItem(SceAtWork* w_)
     EffectEspgenDelete(1, 0x3B, (int) model);
     EffectEfmDelete(1, 0x3B, (int) model);
     if (sub_screen_open != 0) {
-        while (SubScreenWk.x34 == 0) {
+        while (SubScreenWk.close_flag == 0) {
             SceSleep(1);
         }
         if (SubScreenWk.model_flag == 0) {
@@ -1446,7 +1446,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         }
     }
     if (sub_screen_open != 0) {
-        while (SubScreenWk.x34 == 0) {
+        while (SubScreenWk.close_flag == 0) {
             SceSleep(1);
         }
         if (SubScreenWk.model_flag == 0) {

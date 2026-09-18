@@ -68,7 +68,7 @@ u32 r227_boxNo[4] = {6, 7, 8, 0};
 static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 // The rooms call Event::FlgOnStatus out of line (event.h has it in-class).
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
-static inline u32* evtKey(EventMgr* m) { return &m->x34; }
+static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 // The room build's cEmRack::setBreak prototype had a Vec* the DOL definition does not read.
 void cEmRackSetBreakV(cEmRack* r, Vec* pos) asm("setBreak__7cEmRack");
 
@@ -806,7 +806,7 @@ static inline void r227_waitEvt()
 {
     for (;;) {
         EventMgr* em = &EvtMgr;
-        u32* key = &em->x34;
+        u32* key = &em->NowExeEvtKey;
 
         if (em->IsAliveEvt(key, 0, 0) == 0) {
             break;

@@ -456,7 +456,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
             continue;
         }
         if (self) {
-            if (w->x9 == 0) {
+            if (w->selfShadow == 0) {
                 continue;
             }
         }
@@ -464,7 +464,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
             continue;
         }
         inRange = 1;
-        if (l->x1C != 0.0f) {
+        if (l->Radius != 0.0f) {
             Vec d;
             Vec lpos;
             Vec pos;
@@ -472,7 +472,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
             SHD_LIGHT_POS(m, pos, "Fit_ParallelShadowModelSet() cParts NO ERR %d");
             l->getPos(&lpos);
             PSVECSubtract(&lpos, &pos, &d);
-            if (PSVECMag(&d) > l->x1C) {
+            if (PSVECMag(&d) > l->Radius) {
                 inRange = 0;
             }
         }
@@ -672,7 +672,7 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
         break;
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
-    mng->fov -= (f32) (int) w->x18;
+    mng->fov -= (f32) (int) w->angleSub;
     {
         // COMPILER-DIFF: 13 (local-alloc qty order): r11 pinned after the 1.0 load and before the
         // conversion's lfd, so the fpmem loadaddr cannot take r11 and the 1.0 pool high gets it.
@@ -746,7 +746,7 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
         break;
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
-    mng->fov -= w->x18;
+    mng->fov -= w->angleSub;
     {
         // COMPILER-DIFF: 13 (local-alloc qty order): see make_comn_fit_light.
         register u32 k asm("r11");
@@ -1033,7 +1033,7 @@ void make_shadow_texture(ShadowMng* mng)
         u8 a;
 
         a = mng->pLight->Col.r * (256 - m->Shd_color) / 256;
-        if (mng->pLight->x1C != 0.0f) {
+        if (mng->pLight->Radius != 0.0f) {
             Vec d;
             Vec lpos;
             Vec pos;
@@ -1042,7 +1042,7 @@ void make_shadow_texture(ShadowMng* mng)
             mng->pLight->getPos(&lpos);
             SHD_LIGHT_POS(m, pos, "Fit_ParallelShadowModelSet() cParts NO ERR %d");
             PSVECSubtract(&lpos, &pos, &d);
-            rate = PSVECMag(&d) / mng->pLight->x1C;
+            rate = PSVECMag(&d) / mng->pLight->Radius;
             if (rate > 0.7f) {
                 rate = 1.0f - rate;
                 rate *= 10.0f / 3.0f;
@@ -1113,7 +1113,7 @@ void make_shadow_texture(ShadowMng* mng)
         GXCopyTex(mng->pTex, 1);
         GXPixModeSync();
     }
-    if (w->xB) {
+    if (w->setStatus) {
         pG->Status_flg[1] |= 0x4000;
     }
     GXSetAlphaUpdate(0);
@@ -1166,7 +1166,7 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
         return 1;
     }
     dot = PSVECDotProduct(&d, &mng->dir);
-    x1C = mng->pLight->x1C;
+    x1C = mng->pLight->Radius;
     if (x1C == 0.0f) {
         return 1;
     }
@@ -1531,7 +1531,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     if (pG->Debug_flg[2] & 0x800) {
         for (i = 0; i < num; i++) {
             ShadowMng* mng = tbl[i];
-            Draw_corn2(&mng->lightPos, &mng->dir, mng->pLight->x1C, mng->fov, 0xFFFFFFFF);
+            Draw_corn2(&mng->lightPos, &mng->dir, mng->pLight->Radius, mng->fov, 0xFFFFFFFF);
         }
     }
 }

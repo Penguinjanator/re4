@@ -293,7 +293,7 @@ void SubScreenTask()
     wk->wep_rno = 0;
     wk->wep_idx = 0;
     TaskExec(2, (TaskFunc) weaponChangeTask, 0);
-    while (wk->x28) {
+    while (wk->Loop) {
         // `&MapMgr` for the two model loops at the top of the body: loop.c hoists it (lis + addi
         // into r23) as one two-use invariant; declared inside the `if (wk->x44 == 0)` block below,
         // the set is `maybe_never` and used in two blocks, so it is not movable.
@@ -454,7 +454,7 @@ void SsExitInit::move(SUB_SCREEN* wk)
 
 void SsExitMain::move(SUB_SCREEN* wk)
 {
-    wk->x28 = 0;
+    wk->Loop = 0;
 }
 
 void SsItemExamine::init(SUB_SCREEN* wk)
@@ -654,7 +654,7 @@ int sscrnMainMenu(SUB_SCREEN* wk)
         wk->menu_no = wk->menu_next;
         ret = 1;
         if (old != 4) {
-            wk->x34 = 0;
+            wk->close_flag = 0;
             SndCall(0, 4, 0, 0, 0, 0);
         }
     }

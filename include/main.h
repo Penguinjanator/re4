@@ -15,14 +15,14 @@ struct RK {
     u8 brightness;    // 0x13  pSys->brightness (0x40 when unset)
     u8 language;      // 0x14  pSys->language
     u8 region;        // 0x15  pSys->region
-    u8 x16;           // 0x16  pG->x4F93
-    u8 x17;           // 0x17  1 once the title menu has been shown (title: skips the logos on the next visit)
+    u8 game_language; // 0x16  pG->language
+    u8 title_shown;   // 0x17  1 once the title menu has been shown (title: skips the logos on the next visit)
     u32 sys_flags;    // 0x18  pSys->flags
     u32 g_flags_54;   // 0x1C  pG->flags_54 (bits 31/30 restored)
     u32 sys_x4;       // 0x20  pSys->x4
     u32 sys_x10[4];   // 0x24  pSys->x10[]
     u32 sys_x20[2];   // 0x34  pSys->x20[]
-    u32 x3C;          // 0x3C  pG->x8 >> 31
+    u32 card_checked; // 0x3C  pG->CardStatus >> 31 (first card check done; card.cpp)
 };
 
 extern RK* pRK;

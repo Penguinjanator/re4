@@ -603,7 +603,7 @@ int lightHitCheckSphere(cModel* m, cLight* l)
 
     li->getPos(m, &pos);
     l->getPos(&lpos);
-    if (GetDistance3(&pos, &lpos) < li->Size.x + l->x1C || l->x1C == 0.0f) {
+    if (GetDistance3(&pos, &lpos) < li->Size.x + l->Radius || l->Radius == 0.0f) {
         return 1;
     }
     return 0;
@@ -621,7 +621,7 @@ int lightHitCheckCylinder(cModel* m, cLight* l)
 
     c = li->getPos(m, &pos);
     l->getPos(&lpos);
-    r = l->x1C;
+    r = l->Radius;
     if (r == 0.0f) {
         return 1;
     }
@@ -645,7 +645,7 @@ int lightHitCheckBBox(cModel* m, cLight* l)
     f32 sz;
     f32 sy;
 
-    if (l->x1C == 0.0f) {
+    if (l->Radius == 0.0f) {
         return 1;
     }
     p = l->World;
@@ -654,7 +654,7 @@ int lightHitCheckBBox(cModel* m, cLight* l)
     sx = size->x * m->scale.x;
     sy = size->y * m->scale.y;
     sz = size->z * m->scale.z;
-    if (p.x - l->x1C > sx || p.x + l->x1C < -sx || p.z - l->x1C > sz || p.z + l->x1C < -sz || p.y - l->x1C > sy || p.y + l->x1C < -sy) {
+    if (p.x - l->Radius > sx || p.x + l->Radius < -sx || p.z - l->Radius > sz || p.z + l->Radius < -sz || p.y - l->Radius > sy || p.y + l->Radius < -sy) {
         return 0;
     }
     return 1;
@@ -992,7 +992,7 @@ int cLightMgr::loadLit(cLightWork* w, u32 n)
             l->calcParent();
             l->calcPos(&l->Pos, &l->World);
         }
-        l->x140 = i;
+        l->LitIndex = i;
     }
     return 1;
 }
@@ -1054,7 +1054,7 @@ LightPathHeader* cLightMgr::getPathHeader()
 cLight::cLight()
 {
     be_flag = 3;
-    x140 = -1;
+    LitIndex = -1;
 }
 
 void cLight::move()
@@ -1069,7 +1069,7 @@ cLight& cLight::operator=(cLightWork& w)
     Type = w.Type;
     xF = w.xF;
     Pos = w.Pos;
-    x1C = w.x1C;
+    Radius = w.Radius;
     Col = w.Col;
     Intensity = w.Intensity;
     ParentType = w.ParentType;
@@ -1094,7 +1094,7 @@ cLightWork& cLightWork::operator=(cLight& l)
     Type = l.Type;
     xF = l.xF;
     Pos = l.Pos;
-    x1C = l.x1C;
+    Radius = l.Radius;
     Col = l.Col;
     Intensity = l.Intensity;
     ParentType = l.ParentType;

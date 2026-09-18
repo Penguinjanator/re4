@@ -461,12 +461,12 @@ void SsFileMain::move(SUB_SCREEN* wk)
             switch (sel->state) {
             case 2:
                 state = 1;
-                wk->x34 |= 0x10;
+                wk->close_flag |= 0x10;
                 sscrnMainMenuInit(wk, 1);
                 SndCall(0, 0xA, 0, 0, 0, 0);
                 break;
             case 1:
-                wk->x34 |= 0x10;
+                wk->close_flag |= 0x10;
                 transit(4, wk);
                 break;
             }

@@ -1072,7 +1072,7 @@ static void r201_execEvent00()
         MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
         EvtMgr.SetEvt(m->pArc, &key);
         ((Event*) key)->StatusFlag |= 0x800;
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
         MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);

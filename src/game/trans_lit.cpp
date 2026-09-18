@@ -292,10 +292,10 @@ void lightSetConstant(cLight* l, GXLightObj* obj)
 {
     Vec p = l->World;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->x1C + obj_size;
+    f32 range = l->Radius + obj_size;
     f32 br;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
+    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
         br = l->Intensity;
     } else if (d < range) {
         br = l->Intensity * (range - d) / l->normal.x;
@@ -310,10 +310,10 @@ void lightSetLinear(cLight* l, GXLightObj* obj)
     Vec p = l->World;
     f32 br;
 
-    if (l->x1C != 0.0f) {
+    if (l->Radius != 0.0f) {
         f32 d = GetDistance3(&obj_pos, &p);
 
-        br = l->Intensity * (l->x1C - d) / l->x1C;
+        br = l->Intensity * (l->Radius - d) / l->Radius;
     } else {
         br = l->Intensity;
     }
@@ -325,10 +325,10 @@ static void lightSetQuadratic(cLight* l, GXLightObj* obj)
     Vec p = l->World;
     f32 k2 = 0.1f;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->x1C + obj_size;
+    f32 range = l->Radius + obj_size;
     f32 br;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
+    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
         br = l->Intensity;
     } else if (d < range) {
         br = l->Intensity * (range - d) / l->normal.x;
@@ -337,8 +337,8 @@ static void lightSetQuadratic(cLight* l, GXLightObj* obj)
     }
     f32 zero = 0.0f;
     f32 one = 1.0f;
-    if (l->x1C != zero) {
-        k2 = (l->Intensity - 0.1f) / 0.1f / (l->x1C * l->x1C);
+    if (l->Radius != zero) {
+        k2 = (l->Intensity - 0.1f) / 0.1f / (l->Radius * l->Radius);
     } else {
         k2 = zero;
     }
@@ -361,8 +361,8 @@ void lightSetSpotlight(cLight* l, GXLightObj* obj)
     PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
-    range = l->x1C + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+    range = l->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
         br = l->Intensity;
     } else if (d < range) {
         br = l->Intensity * (range - d) / sp->A1;
@@ -407,8 +407,8 @@ void lightSetParallel(cLight* l, GXLightObj* obj)
     Vec q;
     l->getPos(&q);
     d = GetDistance3(&obj_pos, &q);
-    range = l->x1C + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+    range = l->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
         br = l->Intensity;
     } else if (d < range) {
         br = l->Intensity * (range - d) / sp->A1;
@@ -434,8 +434,8 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
     PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
-    range = l->x1C + obj_size;
-    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+    range = l->Radius + obj_size;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->Radius == 0.0f) {
         br = l->Intensity;
     } else if (d < range) {
         br = l->Intensity * (range - d) / sp->A1;
@@ -443,8 +443,8 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
         br = 0.001f;
     }
     GXInitLightSpot(obj, sp->A0, 2);
-    if (l->x1C != 0.0f) {
-        k2 = (l->Intensity - 0.1f) / 0.1f / (l->x1C * l->x1C) / br;
+    if (l->Radius != 0.0f) {
+        k2 = (l->Intensity - 0.1f) / 0.1f / (l->Radius * l->Radius) / br;
     } else {
         k2 = 0.0f;
     }
@@ -455,10 +455,10 @@ void lightSetLocalAmb(cLight* l, GXColor* amb)
 {
     Vec p = l->World;
     f32 d = GetDistance3(&obj_pos, &p);
-    f32 range = l->x1C + obj_size;
+    f32 range = l->Radius + obj_size;
     GXColor c;
 
-    if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
+    if (d < range - l->normal.x || !(obj_flag & 1) || l->Radius == 0.0f) {
         c = l->DispCol;
     } else if (d < range) {
         d = (range - d) / l->normal.x;
@@ -488,7 +488,7 @@ void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
     if (em != NULL) {
         EmLightArea* la = &em->litArea;
 
-        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == l->x140) {
+        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == l->LitIndex) {
             col[0] *= la->scale;
             col[1] *= la->scale;
             col[2] *= la->scale;

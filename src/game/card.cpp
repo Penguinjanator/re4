@@ -2218,7 +2218,7 @@ void CardSysSave()
 
 void CardFirstCheck()
 {
-    if (pRK->valid != 0 && pRK->x3C == 1) {
+    if (pRK->valid != 0 && pRK->card_checked == 1) {
         BitOn(pG->CardStatus, 0x80000000);
         TaskExit();
     }

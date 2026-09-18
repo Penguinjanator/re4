@@ -25,11 +25,11 @@ struct SsArc {
 // mangled names carry the tag); SubScreenWork is the DOL-side alias.
 struct SUB_SCREEN {
     char path[0x28];          // 0x000  "SS/<lang>/<file>" (sscrnSetLanguage / sscrnDataFilename)
-    u8 x28;                   // 0x028
+    u8 Loop;                  // 0x028  1 while the sub screen main loop runs (sscrn opens, SubScreenTask exit clears)
     u8 pad_29[3];
     s32 type;                 // 0x02C  open type: 1 inventory, 2, 0x10, 0x20 puzzle, 0x40, 0x80
     s32 flags;                // 0x030  bit0 event, bit1 (flags_5010 bit21 at open), bit3 no sound
-    s32 x34;                  // 0x034
+    s32 close_flag;           // 0x034  set by the screens as they close (2 item, 4 map, 8 term, 0x10 file, 0x10000 shop); cleared on menu change
     s32 attr_flag;
     s32 wait;                 // 0x03C  frames left before SubScreenCall may open (SubScreenWait)
     s32 model_flag;
@@ -115,7 +115,7 @@ struct SUB_SCREEN {
     ItemScreenWork* pItemWk;  // 0x304  Sscrn ss_item cursor state (9 bytes)
     struct SsMapWork* pMapWk; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
-    s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
+    s8* pCapCursor;           // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column} (MEM_ALLOC(3))
     struct ShopWork* pShopWk; // 0x314  Sscrn ss_shop list/cursor state (0x48 bytes)
     class Merchant* merchant;// 0x318  Sscrn ss_shop: the shop session (game/merchant.cpp Merchant)
     s32 opeMdtNo;                // 0x31C  OpeSetOpenTerm number
@@ -128,21 +128,21 @@ struct SUB_SCREEN {
     union {
         u32 save;             // 0x348  SscrnDataSave/Load word
         struct {
-            u8 x348;          // 0x348  (SubScreenGameInit clears it)
+            u8 map_mode;      // 0x348  one bit per map display mode (ss_map mapModeCheck/Change; SubScreenGameInit clears it)
             u8 x349;
             u8 map_mark;
             u8 x34B;
         };
     };
-    u32 x34C;                 // 0x34C  Sscrn debug menu: bit0 open, bit4 debug disp, bit5 memory disp, bit6 reveil
+    u32 debug_menu;           // 0x34C  Sscrn debug menu: bit0 open, bit4 debug disp, bit5 memory disp, bit6 reveil
     s32 debugMode;            // 0x350  pG->debug_mode while open
-    s32 x354;                 // 0x354  pG->flags_68 bit 30 while open
+    s32 debug_flg_bak;        // 0x354  pG->Debug_flg[2] bit 30 while open
     u8 pad_358[0x366 - 0x358];
-    u8 x366;                  // 0x366
-    u8 x367;                  // 0x367  Sscrn ss_item: debug item-make menu open
-    s8 x368;                  // 0x368  item-make menu cursor (0/1 = the two id slots, 2 = remove)
+    u8 pzzl_debug_open;       // 0x366  Sscrn ss_pzzl: debug menu open (toggled like item_make_open)
+    u8 item_make_open;        // 0x367  Sscrn ss_item: debug item-make menu open
+    s8 item_make_cursor;      // 0x368  item-make menu cursor (0/1 = the two id slots, 2 = remove)
     u8 pad_369[3];
-    int x36C[2];              // 0x36C  item-make menu item ids
+    int item_make_id[2];      // 0x36C  item-make menu item ids
 };
 typedef SUB_SCREEN SubScreenWork;
 

@@ -93,10 +93,10 @@ void DrawFootShadow(cEm* em)
             int col = l->Col.r;
             rate = (f32) col / 255.0f;
         }
-        if (l->x1C == 0.0f) {
+        if (l->Radius == 0.0f) {
             range = 1000000000.0f;
         } else {
-            range = l->x1C;
+            range = l->Radius;
         }
         l->getPos(&lpos);
         range *= range;

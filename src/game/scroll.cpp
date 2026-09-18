@@ -296,10 +296,10 @@ void smxInit(cObj* obj, SmxWork* w)
         return;
     }
     obj->type = w->type;
-    obj->LightInfo.SelectMask = w->x4;
+    obj->LightInfo.SelectMask = w->SelectMask;
     obj->ot_type = w->type2;
     SmxSetFlag(obj, w->flags);
-    obj->CullMode = w->x3;
+    obj->CullMode = w->CullMode;
     mi = obj->pModelInfo;
     if (mi != NULL) {
         col = w->color;

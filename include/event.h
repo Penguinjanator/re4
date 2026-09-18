@@ -131,8 +131,8 @@ struct EvtDebugModel {
     char tpl[16][0x30];    // 0x330
     s32 nBin;              // 0x630
     cModel* pModel;        // 0x634
-    u8 x638;               // 0x638  cModel::x12F
-    u8 x639;               // 0x639  cModel::lightInfo.x50
+    u8 otType;             // 0x638  cModel::ot_type
+    u8 lightMask;          // 0x639  cModel::LightInfo.EnableMask
     u8 pad_63A[2];
     u32 flags;             // 0x63C  bit31: scroll object, bit30: be_flag bit12
     cModel* pScr;          // 0x640  the model when its name starts with "scr"
@@ -287,7 +287,7 @@ struct EvtReadEm {
 class EventMgr : public cManager<Event> {
 public:
     union {
-        u32 x34;           // 0x34  running event key (sce_com SceChapterEnd: IsAliveEvt / GetEvt)
+        u32 NowExeEvtKey;  // 0x34  first word of the running event name as a key (sce_com SceChapterEnd: IsAliveEvt / GetEvt)
         char NowExeEvtName[0x30];  // 0x34  name of the running event ("" = none)
     };
     EvtReadEm readEm[8];   // 0x64  enemy modules loaded per read slot

@@ -949,7 +949,7 @@ static void edit_litmask()
             if (i == pWork->id && i <= 31) {
                 Vec pos = l->World;
 
-                Draw_sphere(&pos, l->x1C, -1, 1, 1);
+                Draw_sphere(&pos, l->Radius, -1, 1, 1);
                 Draw_pos(&pos, 1000);
             }
         }

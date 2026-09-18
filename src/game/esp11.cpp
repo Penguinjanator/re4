@@ -82,7 +82,7 @@ void Esp11_SetParam(cEsp11* esp)
     if (esp->parent != pEffParentWorldS) {
         PSMTXMultVec(esp->parent->mat, &w->pLi->Pos, &w->pLi->Pos);
     }
-    w->pLi->x1C = esp->m_Size_base_x * esp->m_Size_mul * 10.0f;
+    w->pLi->Radius = esp->m_Size_base_x * esp->m_Size_mul * 10.0f;
     alpha = esp->m_Col_a / 255.0f;
     w->pLi->Col.r = (u8)(w->Base_col.r * esp->m_Col_r / 255.0f);
     w->pLi->Col.g = (u8)(w->Base_col.g * esp->m_Col_g / 255.0f);

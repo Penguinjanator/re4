@@ -183,7 +183,7 @@ void SubScreenGameInit()
     SubScreenAramRead();
     wk->board_next = 0;
     wk->board_size = 0;
-    wk->x348 = 0;
+    wk->map_mode = 0;
     memset(&pG->ope_x82E8, 0, 0x44);
     pG->ope_mdt_no = 0x18;
     SubScreenRoomInit();
@@ -195,7 +195,7 @@ void SubScreenRoomInit()
 
     wk->type = 0;
     wk->flags = 0;
-    wk->x34 = 0;
+    wk->close_flag = 0;
     wk->wait = 0;
     if (ItemMgr.search(0x7C)) {
         wk->board_size = 0;
@@ -298,7 +298,7 @@ int SubScreenOpen(int type, int flags)
     BitOn(pG->Status_flg[2], 0x04000000);
     wk->type = type;
     wk->flags = flags;
-    wk->x34 = 0;
+    wk->close_flag = 0;
     wk->model_flag = 0;
     if (flags & 1) {
         SceEventStart(0);
@@ -531,7 +531,7 @@ void SubScreenExec()
                 wk->menu_next = 1;
                 wk->menu_no = 1;
             }
-            wk->x28 = 1;
+            wk->Loop = 1;
             wk->wait_cnt = 0;
             LightMgr.inSscrn();
             LightMgr.create(0, 9, -2, 0);
@@ -551,14 +551,14 @@ void SubScreenExec()
                 }
                 DLL_Link(wk->p_module, bss);
             }
-            wk->x366 = 0;
+            wk->pzzl_debug_open = 0;
             wk->debugMode = pG->debug_mode;
             {
                 int v = 1;
                 if ((pG->Debug_flg[2] & 0x40000000) == 0) {
                     v = 0;
                 }
-                wk->x354 = v;
+                wk->debug_flg_bak = v;
             }
             step++;
             pG->Debug_flg[2] &= ~0x40000000;
@@ -614,7 +614,7 @@ void SubScreenExit()
     for (;;) {
         switch (step) {
         case 0:
-            if (!(wk->x34 & 8)) {
+            if (!(wk->close_flag & 8)) {
                 SndCall(0, 3, 0, 0, 0, 0);
             }
             cMes.Delete(0);
@@ -750,7 +750,7 @@ void SubScreenExit()
             wk->type = 0;
             wk->flags = 0;
             pG->debug_mode = wk->debugMode;
-            if (wk->x354) {
+            if (wk->debug_flg_bak) {
                 pG->Debug_flg[2] |= 0x40000000;
             }
             step++;

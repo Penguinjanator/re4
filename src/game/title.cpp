@@ -204,7 +204,7 @@ void titleWait(TitleWork* w)
                 ISet(w->counter, 0);
                 ISet(w->dbg_mode, 0);
             }
-            if (pRK->x17 != 0) {
+            if (pRK->title_shown != 0) {
                 w->Rno0 = 5;
                 w->counter = 585;
                 titleSet(w, 585);
@@ -558,7 +558,7 @@ void titleMain(TitleWork* w)
     FadeColor c0;
     FadeColor c1;
 
-    pRK->x17 = 1;
+    pRK->title_shown = 1;
     if (!(pG->System_flg & 0x100) && (pSys->x4 & 0x40000000)) {
         titleLoop(w);
     }

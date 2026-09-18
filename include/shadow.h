@@ -35,11 +35,11 @@ struct ShadowLightWork {
     s16 rotX;     // 0x04  direction (degrees)
     s16 rotY;     // 0x06
     u8 angle;     // 0x08  fixed light perspective angle (0 = 90)
-    u8 x9;        // 0x09  nonzero: casts self shadows
+    u8 selfShadow;  // 0x09  nonzero: casts self shadows
     u8 soft;      // 0x0A  soft shadow passes (0 = hard)
-    u8 xB;        // 0x0B  nonzero: flags_5010 bit 0x4000 after the texture was rendered
+    u8 setStatus; // 0x0B  nonzero: Status_flg[1] bit 0x4000 set after the texture was rendered
     Vec pos;      // 0x0C  light position source when flags bit1 is set
-    u8 x18;       // 0x18  perspective angle reduction (degrees)
+    u8 angleSub;  // 0x18  perspective angle (fov) reduction in degrees
 };
 
 // Shadow object placement file (room "SHD" data): header then `num` entries.

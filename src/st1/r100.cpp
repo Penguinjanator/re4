@@ -544,7 +544,7 @@ static void r100_GakeEvent(int arg)
         W->carSub->setNoSuspend(1);
         if (readEvent(4, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(4, 1);
@@ -576,7 +576,7 @@ static void r100_StartEvent()
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
             FadeSetW(0x80000002, 30, 0, 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(9, 1);
@@ -868,7 +868,7 @@ static void r100_Sce_look()
     SceSleep(2);
     if (readEvent(0, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(0, 1);
@@ -928,7 +928,7 @@ static void r100_Sce_zombi_dead(cEm* em)
     if (readEvent(3, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) &ev);
         ev->StatusFlag |= 0x800;
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(3, 1);
@@ -1105,7 +1105,7 @@ static void r100_MesCar00()
     }
     if (readEvent(5, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(5, 1);
@@ -1134,7 +1134,7 @@ static void r100_MesCar01()
     }
     if (readEvent(7, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(7, 1);
@@ -1184,7 +1184,7 @@ static void r100_EventBrige()
     pG->Status_flg[1] |= 0x800;
     if (readEvent(8, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
     }

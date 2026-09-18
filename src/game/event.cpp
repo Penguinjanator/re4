@@ -348,7 +348,7 @@ int Event::Run()
         if (frm - (f32) n * EVT_STR_FRAME < 1.0f) {
             EventMgr* m = &EvtMgr;
             StatusFlag &= ~0x10000;
-            m->EvtSndStrPlay(&m->x34, 1, EvtDebug.NowStr[1], 1, frm / EVT_FRAME_RATE);
+            m->EvtSndStrPlay(&m->NowExeEvtKey, 1, EvtDebug.NowStr[1], 1, frm / EVT_FRAME_RATE);
         }
     }
 func:
@@ -466,8 +466,8 @@ void Event::EspToolSetMod(int no, char* nm)
     }
     if (GetModelPtrNo(&modNo, &mod, mname)) {
         EvtDebug.pModel[no].pModel = (cModel*) modNo;
-        EvtDebug.pModel[no].x638 = mod->ot_type;
-        EvtDebug.pModel[no].x639 = mod->LightInfo.EnableMask;
+        EvtDebug.pModel[no].otType = mod->ot_type;
+        EvtDebug.pModel[no].lightMask = mod->LightInfo.EnableMask;
         if (mod->z_mode == 1) {
             BitOn(EvtDebug.pModel[no].flags, 0x80000000);
         }
@@ -2063,7 +2063,7 @@ int EventMgr::myRoomInit()
         pLog->err(0, 0, "EventMgr::init : memory failed");
         return 0;
     }
-    memclr_asm(&x34, sizeof(u32));
+    memclr_asm(&NowExeEvtKey, sizeof(u32));
     for (i = 0; i < 0x20; i++) {
         pUnit[i] = 0;
     }
@@ -2399,7 +2399,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
         }
         {
             EventMgr* m = &EvtMgr;
-            while (IsAliveEvt(&m->x34, 0, 0) != 0) {
+            while (IsAliveEvt(&m->NowExeEvtKey, 0, 0) != 0) {
                 SceSleep(1);
             }
         }

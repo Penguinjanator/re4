@@ -530,7 +530,7 @@ int cLightTool::move()
         cursorCtr = 0;
     }
     for (u32 n = 0; n < LightMgr.nArray; n++) {
-        lightWorkNoChk(n)->x140 = n;
+        lightWorkNoChk(n)->LitIndex = n;
     }
     routine_tbl[rno0]();
     LightMgr.move();
@@ -1186,7 +1186,7 @@ static void edit_light_select_sub()
                 cur->Pos = pTool->LitTmp.Pos;
                 break;
             case 5:
-                cur->x1C = pTool->LitTmp.x1C;
+                cur->Radius = pTool->LitTmp.Radius;
                 break;
             case 6:
                 cur->Col = pTool->LitTmp.Col;
@@ -1236,7 +1236,7 @@ void lightCopyWork(cLight* dst, cLight* src)
     dst->Type = src->Type;
     dst->xF = src->xF;
     dst->Pos = src->Pos;
-    dst->x1C = src->x1C;
+    dst->Radius = src->Radius;
     dst->Col = src->Col;
     dst->Intensity = src->Intensity;
     dst->Kind = src->Kind;
@@ -1249,7 +1249,7 @@ void lightCopyWork(cLight* dst, cLight* src)
     dst->spot = src->spot;
     dst->sub = src->sub;
     dst->path = src->path;
-    dst->x138 = src->x138;
+    dst->Rno0 = src->Rno0;
     dst->pad_139[0] = src->pad_139[0];
     dst->pad_139[1] = src->pad_139[1];
     dst->pad_139[2] = src->pad_139[2];
@@ -1673,11 +1673,11 @@ static void edit_light_id_path()
     case 1:
         if (pTool->Pad1.rep & 0x20002) {
             w->pathNo++;
-            cur->x138 = 0;
+            cur->Rno0 = 0;
         }
         if (pTool->Pad1.rep & 0x10001) {
             w->pathNo--;
-            cur->x138 = 0;
+            cur->Rno0 = 0;
         }
         if (pTool->Pad1.rep & JOY_A) {
             cLightPathData* p = pTool->litPath.path[w->pathNo];
@@ -1761,7 +1761,7 @@ static void edit_light_id_fade()
         break;
     case 3:
         if (pTool->Pad1.rep & JOY_A) {
-            cur->x138 = 0;
+            cur->Rno0 = 0;
         }
         break;
     }
@@ -2029,7 +2029,7 @@ static void edit_light_parent()
     drawLightInfo(cur, 0xFFFFFFFF);
     m = cur->getCoord();
     if (m) {
-        f32 r = cur->x1C * (f32) (pG->Frame_cnt % 30) / 0.1f;
+        f32 r = cur->Radius * (f32) (pG->Frame_cnt % 30) / 0.1f;
         Draw_sphere(&m->world, r, 0xA0A0A0FF, 1, 1);
         Draw_pos(&m->world, (int) r);
     }
@@ -2111,16 +2111,16 @@ static void edit_light_radius()
         pTool->cursor = 0;
         pTool->rno3 = 1;
     case 1:
-        cur->x1C += (f32) pTool->Pad1.stickX * step * 0.5f;
-        cur->x1C += (f32) pTool->Pad1.stickY * step * 0.5f;
+        cur->Radius += (f32) pTool->Pad1.stickX * step * 0.5f;
+        cur->Radius += (f32) pTool->Pad1.stickY * step * 0.5f;
         if (pTool->Pad1.rep & JOY_RIGHT) {
-            cur->x1C += 100.0f;
+            cur->Radius += 100.0f;
         }
         if (pTool->Pad1.rep & JOY_LEFT) {
-            cur->x1C -= 100.0f;
+            cur->Radius -= 100.0f;
         }
-        if (cur->x1C < 0.0f) {
-            cur->x1C = 0.0f;
+        if (cur->Radius < 0.0f) {
+            cur->Radius = 0.0f;
         }
         drawLightInfo(cur, 0xFFFFFFFF);
         break;
@@ -2141,8 +2141,8 @@ static void edit_light_radius()
         pTool->rno3 = 2;
     }
     eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    if (cur->x1C != 0.0f) {
-        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS     %6.0f", cur->x1C);
+    if (cur->Radius != 0.0f) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS     %6.0f", cur->Radius);
     } else {
         eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS INFINITY");
     }
@@ -2795,10 +2795,10 @@ static void edit_light_type_spotlight()
         f32 r;
         cur->getPos(&pos);
         cur->getNormal(&sp->Normal, &dir);
-        if (cur->x1C == 0.0f) {
+        if (cur->Radius == 0.0f) {
             r = 3000.0f;
         } else {
-            r = cur->x1C;
+            r = cur->Radius;
         }
         PSVECScale(&dir, &dir, r);
         Draw_corn3(&pos, &dir, sp->A0, 0xFFFFFFFF);
@@ -2950,8 +2950,8 @@ void draw_light_graph(cLight* l)
     f32 v;
     u32 lcol;
 
-    if (l->x1C != 0.0f) {
-        scale = l->x1C / w0;
+    if (l->Radius != 0.0f) {
+        scale = l->Radius / w0;
     } else {
         scale = 10000000.0f / w0;
     }
@@ -2989,7 +2989,7 @@ void draw_light_graph(cLight* l)
     a = pPL->pos;
     a.y += 1200.0f;
     x = GetDistance3(&l->Pos, &a);
-    if (x < l->x1C || l->x1C == 0.0f) {
+    if (x < l->Radius || l->Radius == 0.0f) {
         t = x / scale;
         a.x = x0 + t;
         a.y = y0;
@@ -3009,7 +3009,7 @@ void draw_light_graph(cLight* l)
     }
     Draw_line(&a, &b, lcol);
     eprintf((int) x0 + 0x78, (int) y0 + 8, 0, pTool->color, "%3.6f", func_attn(l, x));
-    for (x = 1000.0f; x < l->x1C || l->x1C == 0.0f; x += 1000.0f) {
+    for (x = 1000.0f; x < l->Radius || l->Radius == 0.0f; x += 1000.0f) {
         a.x = x0 + x / scale;
         a.y = y0;
         a.z = 0.0f;
@@ -4755,8 +4755,8 @@ static const char* table_head[] = {
         eprintf(x * 8, (Y), c, pTool->color, "%4.0f %3.0f %4.0f", l->Pos.x / 1000.0f,               \
                 l->Pos.y / 1000.0f, l->Pos.z / 1000.0f);                                            \
         x += 14;                                                                                    \
-        if (l->x1C != 0.0f) {                                                                       \
-            eprintf(x * 8, (Y), c, pTool->color, "%3d", (int) (l->x1C / 1000.0f));                  \
+        if (l->Radius != 0.0f) {                                                                       \
+            eprintf(x * 8, (Y), c, pTool->color, "%3d", (int) (l->Radius / 1000.0f));                  \
         } else {                                                                                    \
             eprintf(x * 8, (Y), c, pTool->color, "INF");                                            \
         }                                                                                           \
@@ -5384,7 +5384,7 @@ void initLightWork(cLight* l)
     l->Pos.x = 0.0f;
     l->Pos.y = 0.0f;
     l->Pos.z = 0.0f;
-    l->x1C = 3000.0f;
+    l->Radius = 3000.0f;
     l->Intensity = 1.0f;
     l->setParent(0, 0);
     l->Kind = 0;
@@ -5393,7 +5393,7 @@ void initLightWork(cLight* l)
     memclr_asm(&l->spot, sizeof(LightSpot));
     memclr_asm(&l->sub, 0x40);
     memclr_asm(&l->path, sizeof(LightPath));
-    l->x138 = l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
+    l->Rno0 = l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
     l->DispCol.r = 0x80;
     l->DispCol.g = 0x80;
     l->DispCol.b = 0x80;
@@ -5464,7 +5464,7 @@ void drawLightInfo_SpotShadow(cLight* l, u32 color)
         Vec* pp = &pos;
         Vec* pn = &n;
         asm("" : "+r"(pp), "+r"(pn));
-        len = l->x1C;
+        len = l->Radius;
         if (len == 0.0f) {
             len = 2000.0f;
         }
@@ -5483,8 +5483,8 @@ void drawLightInfo(cLight* l, u32 color)
         return;
     }
     pos = l->World;
-    if (l->x1C != 0.0f) {
-        Draw_sphere(&pos, l->x1C, color, 1, 1);
+    if (l->Radius != 0.0f) {
+        Draw_sphere(&pos, l->Radius, color, 1, 1);
     }
     if ((f32) (int) l->HitRadius != 0.0f) {
         Draw_sphere(&pos, (f32) l->HitRadius, 0xFFFF0044, 1, 1);
