@@ -21,18 +21,7 @@ class cEmLuisBase : public cModel {
 public:
     s16 hp;               // 0x320
     s16 hpMax;            // 0x322
-    union {
-        struct {
-            cDmgInfo dmg; // 0x324
-        };
-        struct {
-            u8 dmHit;     // 0x324
-            u8 dmType;    // 0x325
-            u8 dmWep;     // 0x326
-            u8 dm327;
-            Vec dmPos;     // 0x328  damage position  damage position (cEm::dmPos)
-        };
-    };
+    cDmgInfo dmg; // 0x324
     YARARE_INFO hitInfo;    // 0x33C .. 0x370
     f32 plDist2;          // 0x370
     f32 l_sub;             // 0x374  (cEm::l_sub)
@@ -50,8 +39,6 @@ public:
     u8 pad_3BC[0x3C4 - 0x3BC];
     u32 status;           // 0x3C4
     u8 pad_3C8[0x3E0 - 0x3C8];
-    cSubLuis* subSelf;    // 0x3E0  the model the routines animate (itself)
-    u8 pad_3E4[0x3FC - 0x3E4];
 
     cEmLuisBase() asm("__3cEm");
     virtual ~cEmLuisBase() {}
@@ -176,6 +163,11 @@ class cObjLuisItem;
 
 class cSubLuis : public cEmLuisBase {
 public:
+    cSubLuis* subSelf;    // 0x3E0  the model the routines animate (itself)
+    float dist;           // 0x3E4
+    Vec distPos;          // 0x3E8
+    float distMargin;     // 0x3F4
+    int m_Work0;          // 0x3F8
     cRoutine routine;     // 0x3FC .. 0x540
     cAction action;       // 0x540 .. 0x564
     cAnalysis analysis;   // 0x564 .. 0x584
@@ -184,6 +176,8 @@ public:
     s8 flags;             // 0x58C  bit0 damaged, bit1 dead, bit2 upstairs, bit3 neck set this frame, bit6 damage from an enemy
     u8 pad58D[3];
     int cnt;              // 0x590  frames of the damage reaction voice
+
+private:
     YARARE_INFO hit[10];    // 0x594 .. 0x79C
     u8 pad79C[4];
     cModelInfo* pFace;    // 0x7A0
@@ -191,6 +185,8 @@ public:
     u8 m_PlAtack;            // 0x7A6  hits left before he goes down
     u8 voiceWait;         // 0x7A7
     cEm* rack[3];         // 0x7A8  the room's racks (getRoomEtcRack)
+
+public:
     f32 neckY;          // 0x7B4
 
     cSubLuis();
