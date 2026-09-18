@@ -47,6 +47,7 @@ the original word by word and `python3 tools/fdiff.py game/foo <symbol>` shows o
   scripts, per-module REL data (`modules/<mod>/`), `build.sha1`.
 - `tools/` — build generator (`project.py`), the ProDG driver (`ngccc.py`), REL rebuild (`make_rel.py`,
   `link_rel.py`), the compare tools, `sn-gcc/` (native compiler build), `research/` (compiler-analysis kit).
+- `docs/overview.md` — how the engine is put together: a reading guide to `src/` by subsystem.
 - `docs/matching.md` — how the matching was done: compiler provenance, the catalogue of compiler
   mechanisms and the source shapes that reproduce them, rules of thumb for both compilers.
   `docs/unit-notes.md` — per-unit notes. `docs/research/` — the pass-by-pass research log.
