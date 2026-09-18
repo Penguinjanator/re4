@@ -86,37 +86,37 @@ void R11bInit()
     cObj* obj = 0;   // the zero of the EstSet data arguments and the list entry's x3 (r27)
     int one = 1;     // COMPILER-DIFF: #13 (single use: update_equiv_regs moves the li next to the store)
 
-    BitOn(pG->flags_54, 0x800);
-    if (pG->x4F9F == 1) {
+    BitOn(pG->System_flg, 0x800);
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
-    SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, 2, 0);
-    BitOn(pG->flags_51BC, 8);
+    SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, SCE_PRIO_DEF_2, 0);
+    BitOn(pG->Item_find_flg, 8);
     // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
     // store (output dependence) and is issued in the idle cycle between it and the next pG reload,
     // so local-alloc's fake lifetimes of the two pG values no longer touch and both take r9 (the
     // original's `lwz r9; ... lwz r9`); without it the first load gets r11.
     asm("" : "=m"(rot2.x));
-    BitOn(pG->flags_51BC, 2);
-    BitOn(pG->flags_51C0, 0x01000000);
+    BitOn(pG->Item_find_flg, 2);
+    BitOn(pG->Scenario_flg[0], 0x01000000);
     BitOff(pG->door_flags_51CC, 0x8000);
     BitOff(pG->door_flags_51CC, 0x200);
     BitOff(pG->door_flags_51CC, 0x10);
 #line 106 "D:/Bio4/Prog/r11b.cpp"
     wp = (R11bWork*) MEM_CALLOC(sizeof(R11bWork), 1, 0xd);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r11b_eff_info);
-    SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r11b_eff_info);
+    SceExec(0x12, (TaskFunc) r11b_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EvtMgr.SetFunc("evt_r11bs00_func", (void*) Evt_R11BS00_Func);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, obj);
     EstSet((int) pPL, -1, 0, 0, 1, 2, 0x800, 0, 0, obj);
-    BitOn(pG->flags_5010, 0x400);
+    BitOn(pG->Status_flg[1], 0x400);
     if (RsfCheck(G_ROOM_ID, 0)) {
-        SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     l = EM_LIST(0x3C);
-    l->x3 = 0;
-    if (pG->room_id_prev == 0x10D && !(pG->flags_54 & 0x100)) {
+    l->set = 0;
+    if (pG->room_id_prev == 0x10D && !(pG->System_flg & 0x100)) {
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
         static const Vec r11b_boatRot0 = {0.0f, -0.68f, 0.0f};
 
@@ -125,14 +125,14 @@ void R11bInit()
         // r29/r30 (an assignment `pos = tbl` goes through the synthesized operator= and loses /u).
         new (&pos) Vec(r11b_boatPos0);
         new (&rot) Vec(r11b_boatRot0);
-        l->x3 = one;
+        l->set = one;
         PSet(r11b_work.p->boat, EmSetFromList2(0x3C, 0));
         pG->room_id_prev = 0x11B;
         r11b_work.p->boat->setPos(&pos);
         r11b_work.p->boat->setAng(&rot);
     } else {
         r11b_work.p->boat = EmSetFromList2(0x3C, 0);
-        l->x3 = 1;
+        l->set = 1;
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             static const Vec r11b_boatPos1 = {127560.0f, -1300.0f, 149100.0f};
             static const Vec r11b_boatRot1 = {0.0f, 3.0898211f, 0.0f};
@@ -143,7 +143,7 @@ void R11bInit()
             r11b_work.p->boat->setAng(&rot2);
             if (RsfCheck(G_ROOM_ID, 0) == 0) {
                 RsfSet(G_ROOM_ID, 0);
-                SceExec(0x12, (TaskFunc) R11b_Event, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R11b_Event, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -152,8 +152,8 @@ void R11bInit()
         EmSetChange();
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r11b_EmEvent, 0, 1);
-        SceExec(0x12, (TaskFunc) r11b_str_check, 0, 2, 2, 0);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r11b_EmEvent, 0, 1);
+        SceExec(0x12, (TaskFunc) r11b_str_check, 0, 2, SCE_PRIO_DEF_2, 0);
     }
     pos.x = 60782.0f;
     pos.y = -1300.0f;
@@ -162,12 +162,12 @@ void R11bInit()
     rot.y = 0.0f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.5f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 12708.0f;
@@ -177,12 +177,12 @@ void R11bInit()
     rot.y = 3.1415927f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 2.0f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 412.0f;
@@ -192,12 +192,12 @@ void R11bInit()
     rot.y = 1.5707964f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.7f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 53338.0f;
@@ -207,12 +207,12 @@ void R11bInit()
     rot.y = 0.7853982f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.5f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     TexRenderInit(&r11b_work.p->tex[0], 0xE0, 2);
@@ -232,16 +232,16 @@ static void R11b_bgm_ck()
 // Lightning on / off: the sky object's colour.
 static void r11b_ThunderFlagOn()
 {
-    SmdGetObjPtr(0x2B)->pInfo->color[0] = 0xDA;
-    SmdGetObjPtr(0x2B)->pInfo->color[1] = 0xF1;
-    SmdGetObjPtr(0x2B)->pInfo->color[2] = 0xFF;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[0] = 0xDA;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[1] = 0xF1;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[2] = 0xFF;
 }
 
 static void r11b_ThunderFlagOff()
 {
-    SmdGetObjPtr(0x2B)->pInfo->color[0] = 0x18;
-    SmdGetObjPtr(0x2B)->pInfo->color[1] = 0x19;
-    SmdGetObjPtr(0x2B)->pInfo->color[2] = 0x1A;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[0] = 0x18;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[1] = 0x19;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[2] = 0x1A;
 }
 
 // Thunder every 90..235 frames.
@@ -270,33 +270,33 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
-#define EM_LIST_S(no) ((EmListData*) &pGS->emlist[(no) * 0x20])
+#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
 extern "C" void EmSetChange()
 {
     EmListData* l;
 
     l = EM_LIST_S(0x40);
-    l->flags = 1;
-    l->flags4 |= 0x40000000;
+    l->be_flag = 1;
+    l->flag |= 0x40000000;
     l->pos[0] = -5972;
     l->pos[1] = 267;
     l->pos[2] = -1348;
-    l->x3 = 0;
+    l->set = 0;
     l = EM_LIST_S(0x41);
-    l->flags = 1;
-    l->x3 = 0;
+    l->be_flag = 1;
+    l->set = 0;
     l->pos[0] = -5582;
     l->pos[1] = 394;
     l->pos[2] = -1958;
     l = EM_LIST_S(0x3E);
-    l->flags = 1;
-    l->x3 = 0;
+    l->be_flag = 1;
+    l->set = 0;
     l->pos[0] = -6060;
     l->pos[1] = 386;
     l->pos[2] = -2616;
     l = EM_LIST_S(0x3F);
-    l->flags = 1;
-    l->x3 = 0;
+    l->be_flag = 1;
+    l->set = 0;
     l->pos[0] = -6440;
     l->pos[1] = 375;
     l->pos[2] = -2932;
@@ -386,22 +386,22 @@ static void R11b_Event()
 
     SceSleep(1);
     seen = 0;
-    BitOn(pG->flags_54, 0x400);
-    if (pG->flags_54 & 0x40) {
+    BitOn(pG->System_flg, 0x400);
+    if (pG->System_flg & 0x40) {
         seen = 1;
     }
-    BitOn(pG->flags_5010, 0x800);
-    if (!(pG->flags_54 & 0x40)) {
+    BitOn(pG->Status_flg[1], 0x800);
+    if (!(pG->System_flg & 0x40)) {
         EvtMgr.EvtReadExec("event/evd/r11bs00.evd", 0, 4);
     }
-    BitOff(pG->flags_54, 0x400);
-    BitOff(pG->flags_5010, 0x800);
+    BitOff(pG->System_flg, 0x400);
+    BitOff(pG->Status_flg[1], 0x800);
     SndBgmTblSet(0x11B, 1);
-    SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R11b_bgm_ck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (seen == 0) {
         OpeSetOpenTerm(8, 0.0f, 0.0f, 0.0f, 0.0f);
     }
-    if (pG->flags_54 & 0x40) {
+    if (pG->System_flg & 0x40) {
         SndRoomBgmStart(0, 30);
     }
 }
@@ -433,7 +433,7 @@ static void r11b_str_check()
             if (n == 0) {
                 break;
             }
-            if (pG->flags_5010 & 0x00200000) {
+            if (pG->Status_flg[1] & 0x00200000) {
                 break;
             }
             SceSleep(1);
@@ -447,7 +447,7 @@ static inline int r11b_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -488,9 +488,9 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(2);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -502,7 +502,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 2:
-            if (e->frame == 0x84) {
+            if (e->NowFrame == 0x84) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -511,7 +511,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 3:
-            if (e->frame == 0x55) {
+            if (e->NowFrame == 0x55) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -520,7 +520,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 4:
-            if (e->frame == 0x26) {
+            if (e->NowFrame == 0x26) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -529,7 +529,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 5:
-            if (e->frame == 0x5D) {
+            if (e->NowFrame == 0x5D) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -543,7 +543,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             if (skip == 0) {
                 SetNearClipDist(1.0f);
             }
-            if (e->frame == 0x68) {
+            if (e->NowFrame == 0x68) {
                 int skip2 = r11b_evtSkip(e);
 
                 if (skip2 == 0) {
@@ -553,23 +553,23 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 6:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 6, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
             }
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 0, 1);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 7, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
             }
             break;
         case 8:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 8, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
@@ -577,7 +577,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 6);
                     TexRenderModResP((cModel*) mod, 7);
@@ -587,7 +587,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         }
-        if (pG->costume2 == 1 && e->frame == 0) {
+        if (pG->game_costume == 1 && e->NowFrame == 0) {
             if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                 ModelInfoSetTrans((cModel*) mod, 7, 0);
                 ModelInfoSetTrans((cModel*) mod, 8, 0);
@@ -606,12 +606,12 @@ static void r11b_bort_pos_chk()
 {
     int riding = 0;
 
-    if (pG->flags_5010 & 0x00200000) {
+    if (pG->Status_flg[1] & 0x00200000) {
         riding = 1;
     }
     for (;;) {
         if (riding) {
-            if (!(pG->flags_5010 & 0x00200000)) {
+            if (!(pG->Status_flg[1] & 0x00200000)) {
                 Vec pos = r11b_work.p->boat->pos;
                 Vec pierA = {-49902.0f, -700.0f, 22743.0f};
                 Vec pierB = {126064.0f, -700.0f, 148628.0f};
@@ -627,7 +627,7 @@ static void r11b_bort_pos_chk()
                     RsfClear(G_ROOM_ID, 2);
                 }
             }
-        } else if (pG->flags_5010 & 0x00200000) {
+        } else if (pG->Status_flg[1] & 0x00200000) {
             riding = 1;
         }
         SceSleep(1);

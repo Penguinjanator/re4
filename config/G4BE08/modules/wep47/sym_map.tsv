@@ -58,8 +58,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000160	0x48	wep47/pl_rifle.cpp	local	lbl_wep47_rodata_160	lbl_wep47_rodata_160
 .rodata	0x000001FC	0x24	wep47/wep47.cpp	local	lbl_wep47_rodata_1FC	lbl_wep47_rodata_1FC
 .rodata	0x00000220	0x1C	wep47/wep47.cpp	local	lbl_wep47_rodata_220	lbl_wep47_rodata_220
-.rodata	0x0000023C	0xC	wep47/wep47.cpp	local	lbl_wep47_rodata_23C	lbl_wep47_rodata_23C
-.rodata	0x00000248	0xC	wep47/wep47.cpp	local	lbl_wep47_rodata_248	lbl_wep47_rodata_248
+.rodata	0x0000023C	0xC	wep47/wep47.cpp	local	p0.372	p0.372
+.rodata	0x00000248	0xC	wep47/wep47.cpp	local	p1.373	p1.373
 .rodata	0x00000254	0x4	wep47/wep47.cpp	local	lbl_wep47_rodata_254	lbl_wep47_rodata_254
 .rodata	0x00000258	0x4	wep47/wep47.cpp	local	lbl_wep47_rodata_258	lbl_wep47_rodata_258
 .rodata	0x0000025C	0x4	wep47/wep47.cpp	local	lbl_wep47_rodata_25C	lbl_wep47_rodata_25C
@@ -72,9 +72,9 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000318	0x28	wep47/wep47.cpp	local	lbl_wep47_rodata_318	lbl_wep47_rodata_318
 .rodata	0x00000340	0x1C	wep47/wep47.cpp	local	lbl_wep47_rodata_340	lbl_wep47_rodata_340
 .rodata	0x0000035C	0x24	wep47/wep47.cpp	local	lbl_wep47_rodata_35C	lbl_wep47_rodata_35C
-.rodata	0x00000380	0xB0	wep47/wep47.cpp	global	lbl_wep47_rodata_380	lbl_wep47_rodata_380
-.rodata	0x00000430	0x28	wep47/wep47.cpp	global	lbl_wep47_rodata_430	lbl_wep47_rodata_430
-.data	0x00000000	0x18	wep47/pl_rifle.cpp	global	lbl_wep47_data_0	lbl_wep47_data_0
-.data	0x00000018	0x8	wep47/pl_rifle.cpp	local	lbl_wep47_data_18	lbl_wep47_data_18
-.data	0x00000020	0xC	wep47/pl_rifle.cpp	local	lbl_wep47_data_20	lbl_wep47_data_20
-.data	0x0000002C	0x14	wep47/pl_rifle.cpp	local	lbl_wep47_data_2C	lbl_wep47_data_2C
+.rodata	0x00000380	0xB0	wep47/wep47.cpp	global	_vt.12cObjHkSniper	_vt.12cObjHkSniper
+.rodata	0x00000430	0x28	wep47/wep47.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x18	wep47/pl_rifle.cpp	global	func_tbl.351	func_tbl.351
+.data	0x00000018	0x8	wep47/pl_rifle.cpp	local	func_tbl.355	func_tbl.355
+.data	0x00000020	0xC	wep47/pl_rifle.cpp	local	func_tbl.365	func_tbl.365
+.data	0x0000002C	0x14	wep47/pl_rifle.cpp	local	func_tbl.378	func_tbl.378

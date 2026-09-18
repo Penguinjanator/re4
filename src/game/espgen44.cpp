@@ -42,10 +42,10 @@ void Espgen44_Destruct(EspgenWork* w)
 }
 
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen44Work* p = (Espgen44Work*) w->work;
-    if (rec->x1 == 0) {
+    if (rec->Id == 0) {
         p->type = 0;
     } else {
         p->type = 1;
@@ -53,17 +53,17 @@ int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
 
     switch (p->type) {
     case 0: {
-        int level = (s8) rec->xC8 * 100 + 100;
-        f32 scale = rec->x88 * 0.005f;
-        int kind = rec->x2;
-        Filter05SetParamM(level, rec->x9C, rec->x9D, rec->x9E, rec->x9F, rec->xAC, 0.0f, scale, rec->xC2, kind);
+        int level = (s8) rec->Work8[0] * 100 + 100;
+        f32 scale = rec->Size_base_x * 0.005f;
+        int kind = rec->Tex_id;
+        Filter05SetParamM(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, 0.0f, scale, rec->Blend_type, kind);
         break;
     }
     case 1: {
-        int level = (s8) rec->xC8 * 100 + 100;
-        f32 scale = rec->x88 * 0.005f;
-        int kind = rec->xC9;
-        Filter06SetParam(level, rec->x9C, rec->x9D, rec->x9E, rec->x9F, rec->xAC, &rec->x24, 0.0f, &rec->x34, scale,
+        int level = (s8) rec->Work8[0] * 100 + 100;
+        f32 scale = rec->Size_base_x * 0.005f;
+        int kind = rec->Work8[1];
+        Filter06SetParam(level, rec->Col_start_r, rec->Col_start_g, rec->Col_start_b, rec->Col_start_a, rec->Col_d_a, &rec->Speed, 0.0f, &rec->R_speed, scale,
                          kind);
         break;
     }

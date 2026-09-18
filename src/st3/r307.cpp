@@ -114,7 +114,7 @@ static const u8 r307_effPiece[4][4] = {
 // Death bit of entry `no` of the loaded enemy list (0 while no list is loaded).
 static inline u32 r307_emDead(int no)
 {
-    int list = pG->emlist_no;
+    int list = pG->em_list_no;
     u32 v;
 
     if (list >= 0) {
@@ -311,7 +311,7 @@ static void r307_checkPuzzleTerminal()
 
     MesWork* w = cMes.getWork();
 
-    SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 0:
@@ -327,13 +327,13 @@ static void r307_checkPuzzleTerminal()
         CamCtrl.CutCall(7);
         cur = 1;
         do {
-            SceMesSet(1, 0x230, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            SceMesSet(1, 0x230, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
             {
                 // The s8 copy keeps the `extsb` before the `-1` (an `(s8) cur - 1` expression loses it
                 // in the byte store).
                 s8 c = cur;
 
-                cMes.getWork()->cursor = c - 1;
+                cMes.getWork()->m_cur = c - 1;
             }
             SceMesWait();
             sel = SceMesGetSelection();
@@ -495,7 +495,7 @@ static void r307_appearEm()
     cObj* obj;
 
     RsfSet(G_ROOM_ID, 0);
-    pG->flags_51C0 |= 0x1000;
+    pG->Scenario_flg[0] |= 0x1000;
     SceAtSetEnable(7, 0);
     SceAtSetEnable(8, 0);
     Vec pos = {-4168.0f, 0.0f, -3932.0f};

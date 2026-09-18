@@ -24,8 +24,8 @@ static inline Vec* PlPos() { return (Vec*) ((u8*) pPL + 0x94); }
 
 struct ESP_AREA {
     u8 no;          // 0x00
-    u8 flags;       // 0x01  bit 0: in use
-    u8 areaNo;      // 0x02
+    u8 be_flag;       // 0x01  bit 0: in use
+    u8 area_no;      // 0x02
     u8 x3;
     AreaData area;  // 0x04
     u32 flags34;    // 0x34  bit 0: in room
@@ -38,7 +38,7 @@ static ESP_AREA esp_area_work[ESP_AREA_MAX];
 
 int IsWorkAlive(ESP_AREA* w)
 {
-    if (w->flags & 1) {
+    if (w->be_flag & 1) {
         return 1;
     }
     return 0;
@@ -47,9 +47,9 @@ int IsWorkAlive(ESP_AREA* w)
 void SetWorkAlive(ESP_AREA* w, int alive)
 {
     if (alive == 1) {
-        w->flags |= 1;
+        w->be_flag |= 1;
     } else {
-        w->flags &= ~1;
+        w->be_flag &= ~1;
     }
 }
 
@@ -92,7 +92,7 @@ void PosUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     if (IsWorkAlive(w)) {
         AreaGetCenterPos(&pos, &w->area);
         PSVECScale(&pos, &pos, 0.001f);
-        h = w->area.u.xz4.h / 1000.0f;
+        h = w->area.u.xz4.height / 1000.0f;
     }
     sprintf(buf, "%6.1f %6.1f %6.1f %6.1f", pos.x, pos.y, pos.z, h);
     DbgButtonSetName(b, buf);
@@ -105,14 +105,14 @@ int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
     u32 rep;
 
     eprintf(0xAA, 0xA0, 4, 0, "AREA NO : ");
-    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->areaNo);
+    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->area_no);
     eprintf(0xAA, 0xB0, 4, 0, "IN ROOM : ");
     if (w->flags34 & 1) {
         eprintf(0xAA, 0xB0, 0, 0, "          ON");
     } else {
         eprintf(0xAA, 0xB0, 0, 0, "          OFF");
     }
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     rep = Joy[0].rep;
@@ -139,9 +139,9 @@ int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
         if (Joy[0].on & 0x100) {
             step *= 10;
         }
-        w->areaNo += step;
+        w->area_no += step;
         if ((Joy[0].on & 0x800) && (Joy[0].trg & 0x100)) {
-            w->areaNo = 0;
+            w->area_no = 0;
         }
         break;
     case 1:
@@ -159,7 +159,7 @@ int AreaNoExec_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 void AreaNoUpdate_callback(int no, ESP_AREA* w, cDbgButtonTemplate<ESP_AREA>* b)
 {
     static char digits[] = "0123456789";
-    u32 n = w->areaNo;
+    u32 n = w->area_no;
     char buf[4];
 
     if (n <= 99) {
@@ -180,12 +180,12 @@ void OptionExec()
     u32 rep;
 
     eprintf(0xAA, 0xA0, 4, 0, "FOG : ");
-    if (pG->flags_58 & 0x4000) {
+    if (pG->Disp_flg & 0x4000) {
         eprintf(0xAA, 0xA0, 0, 0, "       ON");
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
     }
-    if (pG->flags_51E4 & 7) {
+    if (pG->Frame_cnt & 7) {
         eprintf(0x9A, (cursor + 10) * 16, 0, 0, cDbgStr::cursor());
     }
     rep = Joy[0].rep;
@@ -204,10 +204,10 @@ void OptionExec()
     switch (cursor) {
     case 0:
         if ((rep & 0x30003) || (Joy[0].trg & 0x100)) {
-            if (pG->flags_58 & 0x4000) {
-                pG->flags_58 &= ~0x4000;
+            if (pG->Disp_flg & 0x4000) {
+                pG->Disp_flg &= ~0x4000;
             } else {
-                pG->flags_58 |= 0x4000;
+                pG->Disp_flg |= 0x4000;
             }
         }
         break;
@@ -266,7 +266,7 @@ void ToolEspArea()
         for (i = 0; i < ESP_AREA_MAX; i++, w++) {
             if (IsWorkAlive(w)) {
                 AreaGetCenterPos(&pos, &w->area);
-                pos.y = (pos.y + w->area.u.xz4.h) * 0.5f;
+                pos.y = (pos.y + w->area.u.xz4.height) * 0.5f;
                 if (GetScreenPos(pos, &scr) == 1) {
                     u32 col1;
                     u32 col2;
@@ -280,10 +280,10 @@ void ToolEspArea()
                     }
                     if (i == tool.GetEdit()->GetCurrentNo()) {
                         AreaDataDisp(&w->area, col1, 1, 0);
-                        eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->areaNo);
+                        eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->area_no);
                     } else {
                         AreaDataDisp(&w->area, col2, 1, 0);
-                        eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->areaNo);
+                        eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->area_no);
                     }
                 }
             }
@@ -317,7 +317,7 @@ void ToolEspArea()
         }
         TaskSleep(1);
     }
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     tEspAreaExit();
     TutilQuitDefault();
     TaskExit();
@@ -325,43 +325,43 @@ void ToolEspArea()
 
 void tEspAreaInit()
 {
-    BitOn(pG->flags_170, 0x20000000);
-    BitOn(pG->flags_170, 0x10000000);
-    BitOn(pG->flags_170, 0x08000000);
-    BitOn(pG->flags_170, 0x00800000);
-    BitOn(pG->flags_170, 0x00400000);
-    BitOn(pG->flags_170, 0x00010000);
-    BitOn(pG->flags_170, 0x00002000);
-    BitOn(pG->flags_58, 0x20000000);
-    BitOn(pG->flags_58, 0x40000000);
-    BitOn(pG->flags_58, 0x04000000);
-    BitOn(pG->flags_58, 0x02000000);
-    BitOn(pG->flags_58, 0x00100000);
-    BitOn(pG->flags_60, 0x10000000);
-    CamDbg.target_type = 4;
+    BitOn(pG->Stop_flg, 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Stop_flg, 0x08000000);
+    BitOn(pG->Stop_flg, 0x00800000);
+    BitOn(pG->Stop_flg, 0x00400000);
+    BitOn(pG->Stop_flg, 0x00010000);
+    BitOn(pG->Stop_flg, 0x00002000);
+    BitOn(pG->Disp_flg, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x04000000);
+    BitOn(pG->Disp_flg, 0x02000000);
+    BitOn(pG->Disp_flg, 0x00100000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
+    CamDbg.m_target_type = 4;
     Block.dispAllBlock(1);
 }
 
 void tEspAreaExit()
 {
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x08000000);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x00400000);
-    BitOff(pG->flags_170, 0x00010000);
-    BitOff(pG->flags_170, 0x00002000);
-    BitOff(pG->flags_58, 0x20000000);
-    BitOff(pG->flags_58, 0x40000000);
-    BitOff(pG->flags_58, 0x04000000);
-    BitOff(pG->flags_58, 0x02000000);
-    BitOff(pG->flags_58, 0x00100000);
-    BitOff(pG->flags_58, 0x00004000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x08000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x00400000);
+    BitOff(pG->Stop_flg, 0x00010000);
+    BitOff(pG->Stop_flg, 0x00002000);
+    BitOff(pG->Disp_flg, 0x20000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x04000000);
+    BitOff(pG->Disp_flg, 0x02000000);
+    BitOff(pG->Disp_flg, 0x00100000);
+    BitOff(pG->Disp_flg, 0x00004000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)
         volatile debugCamera* c = &CamDbg;
-        c->target_type = 0;
+        c->m_target_type = 0;
     }
     Block.dispAllBlock(0);
 }

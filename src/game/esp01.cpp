@@ -8,7 +8,7 @@
 #define ESP_STRIP_PTS_MAX 16
 
 struct Esp01Work {
-    u16 nSeg;      // 0x00 number of strip segments (15 - gen->xC8, clamped)
+    u16 Wari_num;      // 0x00 number of strip segments (15 - gen->xC8, clamped)
     u16 interval;  // 0x02 frames between two trail points (gen->xC9)
     u32 x4;        // 0x04
     Vec pos0;      // 0x08 position at the time the sprite left its parent
@@ -18,7 +18,7 @@ struct Esp01Work {
 // draws them as a textured strip.
 class cEsp01 : public cEsp {
 public:
-    Esp01Work work;  // 0xF8
+    Esp01Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -36,33 +36,33 @@ cEsp* Esp01_Create()
 
 void cEsp01::move()
 {
-    Esp01Work* w = &work;
+    Esp01Work* w = &m_Free;
 
-    if (parent != pEffParentWorld && parentCnt != 0xFF && parentCnt <= cnt) {
+    if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
         ApplyMatrix(parent->mat);
-        w->pos0 = pos;
+        w->pos0 = m_Pos;
         parent = pEffParentWorldS;
     }
-    if (scaleCnt <= cnt) {
-        scale += scaleSpd;
-        scaleSpd *= scaleScale;
-        if (scale <= 0.0f) {
+    if (m_Size_start_cnt <= m_Life_time) {
+        m_Size_mul += m_Size_plus;
+        m_Size_plus *= m_D_size_plus;
+        if (m_Size_mul <= 0.0f) {
             PushEsp(this);
             return;
         }
     }
     if (ColorUpdate()) {
-        if (life != 0 && life <= cnt) {
+        if (m_Life_max != 0 && m_Life_max <= m_Life_time) {
             PushEsp(this);
             return;
         }
-        cnt++;
+        m_Life_time++;
         if (!AnmMove()) {
             PushEsp(this);
             return;
         }
-        xB8 = 100000000.0f;
-        dispFlag |= 2;
+        m_Radius = 100000000.0f;
+        m_Flg |= 2;
     }
 }
 
@@ -74,25 +74,25 @@ extern "C" void Esp01_Trans(cEsp01* esp)
 
 void EspStrip01_setup(cEsp01* esp)
 {
-    Esp01Work* w = &esp->work;
+    Esp01Work* w = &esp->m_Free;
     Mtx id;
     Mtx m;
 
     CameraCurrentProjection();
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
         pLog->err(0, 0, "ESP_STRIP : SCREEN MODE is invalid.");
         PushEsp(esp);
         return;
     }
-    PSMTXIdentity(esp->mat);
-    RotMatrix(esp->mat, &esp->rot);
-    TransMatrix(esp->mat, &w->pos0);
-    PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-    PSMTXConcat(m, esp->mat, esp->mat);
+    PSMTXIdentity(esp->m_Mat);
+    RotMatrix(esp->m_Mat, &esp->m_Ang);
+    TransMatrix(esp->m_Mat, &w->pos0);
+    PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+    PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -108,7 +108,7 @@ void esp01Trans_sub(cEsp01* esp)
 {
     static Vec tmp_poss[48];
     static int tmp_n[ESP_STRIP_PTS_MAX];
-    Esp01Work* w = &esp->work;
+    Esp01Work* w = &esp->m_Free;
     Vec spd;
     Vec acc;
     Vec org;
@@ -119,18 +119,18 @@ void esp01Trans_sub(cEsp01* esp)
     int i;
     int j;
 
-    PSMTXMultVecSR(esp->mat, &esp->spd, &spd);
-    PSMTXMultVecSR(esp->mat, &esp->acc, &acc);
+    PSMTXMultVecSR(esp->m_Mat, &esp->m_Speed, &spd);
+    PSMTXMultVecSR(esp->m_Mat, &esp->m_Speed_plus, &acc);
     org.x = 0.0f;
     org.y = 0.0f;
     org.z = 0.0f;
-    PSMTXMultVec(esp->mat, &org, &org);
+    PSMTXMultVec(esp->m_Mat, &org, &org);
     max = 0;
     min = 999999;
-    for (i = 0; i < w->nSeg + 1; i++) {
+    for (i = 0; i < w->Wari_num + 1; i++) {
         int n;
 
-        n = esp->cnt - i * (w->interval + 1);
+        n = esp->m_Life_time - i * (w->interval + 1);
         if (n < 0) {
             n = 0;
         }
@@ -158,18 +158,18 @@ void esp01Trans_sub(cEsp01* esp)
             s.x += acc.x;
             s.y += acc.y;
             s.z += acc.z;
-            PSVECScale(&s, &s, esp->spdScale);
+            PSVECScale(&s, &s, esp->m_D_speed);
         }
-        for (i = 0; i < w->nSeg + 1; i++) {
+        for (i = 0; i < w->Wari_num + 1; i++) {
             pts[i] = tmp_poss[tmp_n[i] - min];
         }
     } else {
-        for (i = 0; i < w->nSeg + 1; i++) {
+        for (i = 0; i < w->Wari_num + 1; i++) {
             Vec s2;
             int n;
 
             s2 = spd;
-            n = esp->cnt - i * (w->interval + 1);
+            n = esp->m_Life_time - i * (w->interval + 1);
             pts[i] = org;
             if (n < 0) {
                 n = 0;
@@ -181,11 +181,11 @@ void esp01Trans_sub(cEsp01* esp)
                 s2.x += acc.x;
                 s2.y += acc.y;
                 s2.z += acc.z;
-                PSVECScale(&s2, &s2, esp->spdScale);
+                PSVECScale(&s2, &s2, esp->m_D_speed);
             }
         }
     }
-    for (i = 0; i < w->nSeg; i++) {
+    for (i = 0; i < w->Wari_num; i++) {
         Vec d;
         Vec tmp;
         Vec cross;
@@ -202,8 +202,8 @@ void esp01Trans_sub(cEsp01* esp)
         }
 #line 379 "D:/Bio4/Prog/esp01.cpp"
         VECNormalize(&cross, &cross);
-        rate = (f32)i / (f32)(w->nSeg - 1);
-        half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * esp->scale;
+        rate = (f32)i / (f32)(w->Wari_num - 1);
+        half = (rate * esp->m_Size_base_y + (1.0f - rate) * esp->m_Size_base_x) * esp->m_Size_mul;
         PSVECScale(&cross, &q[0], half);
         PSVECScale(&cross, &q[1], -half);
         if (i == 0) {
@@ -215,7 +215,7 @@ void esp01Trans_sub(cEsp01* esp)
         }
         PSVECAdd(&pts[i + 1], &q[0], &v[2]);
         PSVECAdd(&pts[i + 1], &q[1], &v[3]);
-        EspStrip_draw_poly(esp, i, v, w->nSeg, 0);
+        EspStrip_draw_poly(esp, i, v, w->Wari_num, 0);
     }
 }
 
@@ -227,12 +227,12 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
     f32 sw;
     f32 tw;
 
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     if (flag) {
-        if (esp->flags & 4) {
+        if (esp->m_Tool_flg & 4) {
             sw = 1.0f / (f32)texRepeat;
             tw = 1.0f;
             s = 1.0f - 1.0f / texRepeat * no;
@@ -244,7 +244,7 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
             t = 0.0f;
         }
     } else {
-        if (esp->flags & 4) {
+        if (esp->m_Tool_flg & 4) {
             sw = 1.0f;
             tw = 1.0f / (f32)texRepeat;
             s = 0.0f;
@@ -258,8 +258,8 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
     }
     GXBegin(0x80, 0, 4);
     if (flag) {
-        if (esp->flags & 2) {
-            if (esp->flags & 4) {
+        if (esp->m_Tool_flg & 2) {
+            if (esp->m_Tool_flg & 4) {
                 GXMatrixIndex1u8(0);
                 GXPosition3f32(v[0].x, v[0].y, v[0].z);
                 GXTexCoord2f32(s + sw, t);
@@ -287,7 +287,7 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
                 GXTexCoord2f32(s, t + tw);
             }
         } else {
-            if (esp->flags & 4) {
+            if (esp->m_Tool_flg & 4) {
                 GXMatrixIndex1u8(0);
                 GXPosition3f32(v[0].x, v[0].y, v[0].z);
                 GXTexCoord2f32(s, t + tw);
@@ -316,8 +316,8 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
             }
         }
     } else {
-        if (esp->flags & 2) {
-            if (esp->flags & 4) {
+        if (esp->m_Tool_flg & 2) {
+            if (esp->m_Tool_flg & 4) {
                 GXMatrixIndex1u8(0);
                 GXPosition3f32(v[0].x, v[0].y, v[0].z);
                 GXTexCoord2f32(s + sw, t + tw);
@@ -345,7 +345,7 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
                 GXTexCoord2f32(s + sw, t + tw);
             }
         } else {
-            if (esp->flags & 4) {
+            if (esp->m_Tool_flg & 4) {
                 GXMatrixIndex1u8(0);
                 GXPosition3f32(v[0].x, v[0].y, v[0].z);
                 GXTexCoord2f32(s, t + tw);
@@ -378,18 +378,18 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
 
 int cEsp01::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp01Work* w = &work;
+    Esp01Work* w = &m_Free;
 
-    w->pos0 = pos;
-    w->nSeg = (s8)gen->xC8;
-    w->interval = (s8)gen->xC9;
-    if (w->nSeg > 12) {
-        w->nSeg = 2;
+    w->pos0 = m_Pos;
+    w->Wari_num = (s8)gen->Work8[0];
+    w->interval = (s8)gen->Work8[1];
+    if (w->Wari_num > 12) {
+        w->Wari_num = 2;
     } else {
-        w->nSeg = 15 - w->nSeg;
+        w->Wari_num = 15 - w->Wari_num;
     }
-    if (w->nSeg > 15) {
-        w->nSeg = 15;
+    if (w->Wari_num > 15) {
+        w->Wari_num = 15;
     }
     return 1;
 }

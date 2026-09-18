@@ -33,7 +33,7 @@ void cObjFn57::init(cModel* parent)
 {
     void* bin = 0;
 
-    switch (pG->wep_type) {
+    switch (pG->weapon_type) {
     case 0:
         U16Set(wep.x24, 0x21);
         bin = WEP_ARC_PTR(0x6);
@@ -54,7 +54,7 @@ void cObjFn57::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
@@ -78,13 +78,13 @@ void cObjFn57::moveFire()
         } else {
             m = WEP_ARC_PTR(0x37);
         }
-        MotionSetCore(this, &mot, m, 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         zero = 0;
-        BitOn(pG->flags_500C, 0x00800000);
+        BitOn(pG->Status_flg[0], 0x00800000);
         type = 1;
-        if (pG->wep_type == 0) {
+        if (pG->weapon_type == 0) {
             type = 0;
         }
         EstSet((int) this, -1, 0, 0, 0x35, type, 0, 0xA, zero, 0);
@@ -107,7 +107,7 @@ void cObjFn57::moveReload()
         u16 se;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x36);
                 break;
@@ -119,7 +119,7 @@ void cObjFn57::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x33);
                 break;
@@ -132,7 +132,7 @@ void cObjFn57::moveReload()
             }
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -143,10 +143,10 @@ void cObjFn57::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }
@@ -201,14 +201,14 @@ void cObjFn57::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x31));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x1B));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1C));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x1D));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x1E));
     PSet(pl->pMotTbl[0x5D], WEP_ARC_PTR(0x1F));
     PSet(pl->pMotTbl[0x5E], WEP_ARC_PTR(0x20));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xA));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xA));
     pl->setRightHand(1);
     pl->setLeftHand(4);
 }

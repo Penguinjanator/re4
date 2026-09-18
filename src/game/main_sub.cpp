@@ -202,7 +202,7 @@ void Render_done()
     }
     after_render_proc();
     Bg_brightness_set((f32) pSys->brightness);
-    if (pG->flags_68 & 0x08000000) {
+    if (pG->Debug_flg[2] & 0x08000000) {
         GXCopyDisp(pCurrent_buff, 0);
     } else {
         GXSetAlphaUpdate(1);
@@ -219,7 +219,7 @@ void Render_done()
 
 void Render_swap()
 {
-    if (!(pG->flags_54 & 0x400)) {
+    if (!(pG->System_flg & 0x400)) {
         VISetNextFrameBuffer(pCurrent_buff);
         if (pCurrent_buff == pFrame_buff[0]) {
             pCurrent_buff = pFrame_buff[1];
@@ -233,21 +233,21 @@ void Render_swap()
 void UpdateNearClipDist()
 {
     GlobalWork* g = pG;
-    if (!(g->flags_5010 & 0x1000)) {
+    if (!(g->Status_flg[1] & 0x1000)) {
         FSet(ZNEAR, 100.0f);
     }
-    g->flags_5010 &= ~0x1000;
+    g->Status_flg[1] &= ~0x1000;
 }
 
 void SetNearClipDist(f32 dist)
 {
     FSet(ZNEAR, dist);
-    pG->flags_5010 |= 0x1000;
+    pG->Status_flg[1] |= 0x1000;
 }
 
 int Render_checkBlurPermission()
 {
-    u8 mode = pG->x20;
+    u8 mode = pG->Rno0;
     if (mode == 3 || mode == 4 || mode == 6) {
         return 1;
     }
@@ -258,7 +258,7 @@ void Render_DrawSyncCallback(u16 token)
 {
     if (token == 0xADEB) {
         ProcessTickGet(1, "RENDER END");
-        pG->flags_54 |= 0x10000000;
+        pG->System_flg |= 0x10000000;
     }
 }
 
@@ -266,16 +266,16 @@ void systemVISetBlack(int black)
 {
     if (black == 1) {
         VISetBlack(1);
-        pG->flags_54 |= 0x40000;
+        pG->System_flg |= 0x40000;
     } else {
         VISetBlack(0);
-        pG->flags_54 &= ~0x40000;
+        pG->System_flg &= ~0x40000;
     }
 }
 
 void SetScissorState()
 {
-    if (pG->flags_5018 & 0x10000000) {
+    if (pG->Status_flg[3] & 0x10000000) {
         GXSetScissor(0, 56, (u32) Screen.width, (u32) Screen.height - 111);
     } else {
         SetNoScissor();
@@ -345,14 +345,14 @@ void SecToTime(u32 sec, u32* h, u32* m, u32* s)
 void InitGameTime()
 {
     OSTime t = OSGetTime();
-    pG->time_base = OSTicksToSeconds(t);
+    pG->game_start_time = OSTicksToSeconds(t);
 }
 
 u32 GetGameTime(u32* h, u32* m, u32* s)
 {
     u32 sec;
     OSTime t = OSGetTime();
-    sec = OSTicksToSeconds(t) - pG->time_base + pG->play_time;
+    sec = OSTicksToSeconds(t) - pG->game_start_time + pG->play_time;
     SecToTime(sec, h, m, s);
     return sec;
 }
@@ -360,9 +360,9 @@ u32 GetGameTime(u32* h, u32* m, u32* s)
 void SetGameTime()
 {
     OSTime t = OSGetTime();
-    pG->play_time += OSTicksToSeconds(t) - pG->time_base;
+    pG->play_time += OSTicksToSeconds(t) - pG->game_start_time;
     t = OSGetTime();
-    pG->time_base = OSTicksToSeconds(t);
+    pG->game_start_time = OSTicksToSeconds(t);
 }
 
 void ScreenShotStart(char* name, int frame, int flag)

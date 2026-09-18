@@ -154,12 +154,12 @@ void VecRadLimit(Vec* v)
     }
 }
 
-f32 VecAngle(Vec* a, Vec* b)
+f32 VecAngle(Vec* vec_a, Vec* vec_b)
 {
-    f32 d = PSVECDotProduct(a, b);
-    f32 l = PSVECMag(a);
+    f32 d = PSVECDotProduct(vec_a, vec_b);
+    f32 l = PSVECMag(vec_a);
 
-    l *= PSVECMag(b);
+    l *= PSVECMag(vec_b);
     d /= l;
     return acosf(d < -1.0f ? -1.0f : (d > 1.0f ? 1.0f : d));
 }
@@ -225,7 +225,7 @@ void VecInternalDivisionAngle(Vec* a, Vec* b, f32 s, Vec* out, f32 t)
 }
 
 // Decompose `v` on the plane spanned by `a` and `b`: v = s * a + t * b.
-void VecLinearDecomposition(Vec* v, Vec* a, Vec* b, f32* s, f32* t)
+void VecLinearDecomposition(Vec* v, Vec* vec1, Vec* vec2, f32* s, f32* t)
 {
     Vec n;
     Vec m;
@@ -234,14 +234,14 @@ void VecLinearDecomposition(Vec* v, Vec* a, Vec* b, f32* s, f32* t)
     f32 k;
     f32 l;
 
-    PSVECCrossProduct(a, b, &n);
+    PSVECCrossProduct(vec1, vec2, &n);
     PSVECCrossProduct(v, &n, &m);
-    PSVECSubtract(b, a, &ab);
-    PSVECSubtract(v, a, &va);
+    PSVECSubtract(vec2, vec1, &ab);
+    PSVECSubtract(v, vec1, &va);
     k = PSVECDotProduct(&m, &va);
     k /= PSVECDotProduct(&m, &ab);
     PSVECScale(&ab, &va, k);
-    PSVECAdd(a, &va, &va);
+    PSVECAdd(vec1, &va, &va);
     l = PSVECMag(v);
     l /= PSVECMag(&va);
     *s = l * (1.0f - k);
@@ -515,7 +515,7 @@ static inline f32 MtxNNPivotSign(int n, f32* a, int* ip)
 
 // LU decomposition with partial pivoting of the n x n matrix `a` (row permutation in `ip`).
 // Returns the determinant, 0 if singular.
-f32 MtxNNLUDecomposition(int n, f32* a, int* ip)
+f32 MtxNNLUDecomposition(int n, f32* A, int* ip)
 {
     int i;
     int j;
@@ -533,7 +533,7 @@ f32 MtxNNLUDecomposition(int n, f32* a, int* ip)
     for (k = 0; k < n; k++) {
         max = -1.0f;
         for (i = k; i < n; i++) {
-            v = a[ip[i] * n + k];
+            v = A[ip[i] * n + k];
             v = fabsf(v);
             if (v > max) {
                 max = v;
@@ -546,17 +546,17 @@ f32 MtxNNLUDecomposition(int n, f32* a, int* ip)
             ip[k] = j;
             det = -det;
         }
-        max = a[ip[k] * n + k];
+        max = A[ip[k] * n + k];
         det *= max;
         if (max == 0.0f) {
             fprintf(stderr, "Error: Can't calc Inverse Matrix !\n");
             return 0.0f;
         }
         for (i = k + 1; i < n; i++) {
-            t = a[ip[i] * n + k] / max;
-            a[ip[i] * n + k] = t;
+            t = A[ip[i] * n + k] / max;
+            A[ip[i] * n + k] = t;
             for (j = k + 1; j < n; j++) {
-                a[ip[i] * n + j] -= t * a[ip[k] * n + j];
+                A[ip[i] * n + j] -= t * A[ip[k] * n + j];
             }
         }
     }

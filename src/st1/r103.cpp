@@ -93,17 +93,17 @@ void R103Init()
     if (pSys->region == 0) {
         SceAtSetEnable(0xB, 0);
     } else {
-        r103_setCorpse(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x28));
+        r103_setCorpse(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
+                       ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
+                       ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27),
+                       ROOM_ARC_PTR(pG->pRoom, 0x28));
         EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
     }
-    pG->flags_51BC |= 0x1000;
-    SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r103_cesspit, 0, 2, 0);
+    pG->Item_find_flg |= 0x1000;
+    SceExec(0x12, (TaskFunc) r103_BgmStartCheck, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r103_cesspit, 0, SCE_PRIO_DEF_2, 0);
     r103_setSubMissionTarget(8);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r103_eff_info);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r103_eff_info);
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
     }
@@ -113,7 +113,7 @@ void R103Init()
     if (!(pG->item_flags[0] & 0x800)) {
         U32Set(r103_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r103_work->eff, 0, 0);
-        SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r103_getFile, 0, 1);
+        SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r103_getFile, 0, 1);
     }
     SceAtSetActColor(2, 1);
 }
@@ -156,19 +156,19 @@ extern "C" void r103_openShelf_main(R103Shelf* s, int opened)
             register cModel* pa2 asm("r10");
 
             pa2 = pa;
-            pa2->rot.y = ra;
+            pa2->ang.y = ra;
             asm("" : "=m"(a->be_flag) : "r"(pa2));
-            b->pParts->rot.y = rb;
+            b->pParts->ang.y = rb;
         } else {
             int i;
 
             SndCall(6, 0x1A, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (a != 0) {
-                    a->pParts->rot.y += -0.063995406f;
+                    a->pParts->ang.y += -0.063995406f;
                 }
                 if (b != 0) {
-                    b->pParts->rot.y += 0.063995406f;
+                    b->pParts->ang.y += 0.063995406f;
                 }
                 SceSleep(1);
             }
@@ -231,7 +231,7 @@ extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4,
                 obj->addModel(mi);
             }
             obj->motionSet(tbl[i][5], 0, 0, 1, 0);
-            for (mi = obj->pInfo; mi != 0; mi = mi->pNext) {
+            for (mi = obj->pModelInfo; mi != 0; mi = mi->pList) {
                 mi->color[0] = mi->color[0] * 2 / 3;
                 mi->color[1] = mi->color[1] * 2 / 3;
                 mi->color[2] = mi->color[2] * 2 / 3;
@@ -265,7 +265,7 @@ static void r103_execOpenCover(R103Cesspit* c)
 {
     cObj* lid;
 
-    pG->flags_51C0 |= 0x04000000;
+    pG->Scenario_flg[0] |= 0x04000000;
     lid = SmdGetObjPtr(c->lid);
     SndCall(6, 9, &lid->pos, 0, 0, 0);
     // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
@@ -273,9 +273,9 @@ static void r103_execOpenCover(R103Cesspit* c)
     f32 step = 0.06981317f;
 
     for (;;) {
-        lid->pParts->rot.x -= step;
-        if (lid->pParts->rot.x < -1.83f) {
-            lid->pParts->rot.x = -1.83f;
+        lid->pParts->ang.x -= step;
+        if (lid->pParts->ang.x < -1.83f) {
+            lid->pParts->ang.x = -1.83f;
             break;
         }
         SceSleep(1);
@@ -294,8 +294,8 @@ static void r103_checkCloseCover(R103Cesspit* c)
     lid = SmdGetObjPtr(c->lid);
     cover->be_flag |= 0x20;
     lid->be_flag |= 0x20;
-    FSet(cover->rot.x, -0.5235988f);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos, &cover->rot, 0);
+    FSet(cover->ang.x, -0.5235988f);
+    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos, &cover->ang, 0);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order
@@ -315,16 +315,16 @@ static void r103_checkCloseCover(R103Cesspit* c)
     SndCall(6, 7, &cover->pos, 0, 0, 0);
     cover->be_flag &= ~2;
     SceAtSetEnable(c->at10, 1);
-    pG->flags_51BC |= 0x20;
+    pG->Item_find_flg |= 0x20;
     {
         const f32 deg = 0.017453292f;
         f32 spd = 0.0f;
         f32 lim = 1.12f;
 
         do {
-            lid->pParts->rot.x += spd;
-            if (lid->pParts->rot.x > lim) {
-                lid->pParts->rot.x = 1.12f;
+            lid->pParts->ang.x += spd;
+            if (lid->pParts->ang.x > lim) {
+                lid->pParts->ang.x = 1.12f;
                 break;
             }
             spd += 0.017453292f;
@@ -333,14 +333,14 @@ static void r103_checkCloseCover(R103Cesspit* c)
     }
     SndCall(6, 8, &lid->pos, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0x11, 0, 0, 0, 0);
-    pG->flags_51BC |= 0x20;
-    lid->pParts->rot.x -= 0.06981317f;
+    pG->Item_find_flg |= 0x20;
+    lid->pParts->ang.x -= 0.06981317f;
     SceSleep(1);
-    lid->pParts->rot.x -= 0.02617994f;
+    lid->pParts->ang.x -= 0.02617994f;
     SceSleep(1);
-    lid->pParts->rot.x += 0.02617994f;
+    lid->pParts->ang.x += 0.02617994f;
     SceSleep(1);
-    lid->pParts->rot.x += 0.06981317f;
+    lid->pParts->ang.x += 0.06981317f;
     SceSleep(1);
 }
 
@@ -349,7 +349,7 @@ static inline void r103_moveItemModel(SceAtWork* at, SceAtWork* at2)
 {
     if (at2->item.pModel != 0 && at->item.pModel != 0) {
         at2->item.pModel->pos = at->item.pModel->pos;
-        at2->item.pModel->rot = at->item.pModel->rot;
+        at2->item.pModel->ang = at->item.pModel->ang;
         at->item.pModel->be_flag &= ~2;
         at->item.pModel = at2->item.pModel;
     }
@@ -362,10 +362,10 @@ extern "C" void r103_checkCesspit0(R103Cesspit* c)
 
     at = SceAtPtr(c->itemAt);
     while (1) {
-        if (!(pG->flags_51BC & 0x20)) {
-            if (!(pG->flags_51BC & 0x10)) {
+        if (!(pG->Item_find_flg & 0x20)) {
+            if (!(pG->Item_find_flg & 0x10)) {
                 if (SceAtItemFindFlgCk(c->itemAt) == 1) {
-                    pG->flags_51BC |= 0x10;
+                    pG->Item_find_flg |= 0x10;
                     at->item.id = 0x89;
                     r103_moveItemModel(at, SceAtPtr(c->itemAt2));
                 }
@@ -377,10 +377,10 @@ extern "C" void r103_checkCesspit0(R103Cesspit* c)
     }
     at->item.seFind = 5;
     SceAtSetEnable(c->at10, 1);
-    if (pG->flags_51BC & 0x10) {
+    if (pG->Item_find_flg & 0x10) {
         SceAtSetEnable(c->itemAt, 0);
     }
-    SceAtDataSet_exec(c->at18, 0x12, 0, (TaskFunc) r103_execOpenCover, c, 1);
+    SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);
     SceAtSetEnable(c->at14, 0);
     r103_checkCesspit1(c);
 }
@@ -392,17 +392,17 @@ extern "C" void r103_checkCesspit1(R103Cesspit* c)
 
     at = SceAtPtr(c->itemAt);
     while (1) {
-        if (!(pG->flags_51C0 & 0x04000000)) {
-            if (!(pG->flags_51BC & 0x10)) {
-                if (!(pG->flags_174 & 0x80000000)) {
+        if (!(pG->Scenario_flg[0] & 0x04000000)) {
+            if (!(pG->Item_find_flg & 0x10)) {
+                if (!(pG->Room_flg[0] & 0x80000000)) {
                     if (SceAtItemFindFlgCk(c->itemAt) == 1) {
                         SceAtSetEnable(c->at18, 0);
-                        pG->flags_174 |= 0x80000000;
+                        pG->Room_flg[0] |= 0x80000000;
                     }
-                } else if (!(pG->flags_174 & 0x40000000)) {
+                } else if (!(pG->Room_flg[0] & 0x40000000)) {
                     if (SceAtItemFlgCk(c->itemAt) == 1) {
                         SceAtSetEnable(c->at18, 1);
-                        pG->flags_174 |= 0x40000000;
+                        pG->Room_flg[0] |= 0x40000000;
                     }
                 }
             }
@@ -417,7 +417,7 @@ extern "C" void r103_checkCesspit1(R103Cesspit* c)
     if (SceAtItemFlgCk(c->itemAt) == 1) {
         SceExit();
     }
-    if (pG->flags_51BC & 0x10) {
+    if (pG->Item_find_flg & 0x10) {
         at->item.flag2 |= 0x10;
         at->item.pModel->pos.y += 10.0f;
         SceAtSetEnable(c->itemAt, 1);
@@ -432,8 +432,8 @@ extern "C" void r103_checkCesspit2(R103Cesspit* c)
 
     at = SceAtPtr(c->itemAt);
     while (1) {
-        if (!(pG->flags_51BC & 0x10) && SceAtItemFindFlgCk(c->itemAt) == 1) {
-            pG->flags_51BC |= 0x10;
+        if (!(pG->Item_find_flg & 0x10) && SceAtItemFindFlgCk(c->itemAt) == 1) {
+            pG->Item_find_flg |= 0x10;
             at->item.id = 0x89;
             r103_moveItemModel(at, SceAtPtr(c->itemAt2));
             break;
@@ -450,18 +450,18 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
     at = SceAtPtr(c->itemAt);
     SceAtSetEnable(c->itemAt2, 1);
     BitOn(SmdGetObjPtr(c->lid)->be_flag, 0x20);
-    if (!(pG->flags_51BC & 0x20)) {
-        SceExec(0x12, (TaskFunc) r103_checkCloseCover, (int) c, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r103_checkCesspit0, (int) c, 0, 2, 0);
+    if (!(pG->Item_find_flg & 0x20)) {
+        SceExec(0x12, (TaskFunc) r103_checkCloseCover, (int) c, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r103_checkCesspit0, (int) c, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(c->at10, 0);
         SceAtSetEnable(c->itemAt, 1);
     } else {
         BitOff(SmdGetObjPtr(c->cover)->be_flag, 2);
-        if (!(pG->flags_51C0 & 0x04000000)) {
-            SmdGetObjPtr(c->lid)->pParts->rot.x = 1.12f;
-            SceAtDataSet_exec(c->at18, 0x12, 0, (TaskFunc) r103_execOpenCover, c, 1);
+        if (!(pG->Scenario_flg[0] & 0x04000000)) {
+            SmdGetObjPtr(c->lid)->pParts->ang.x = 1.12f;
+            SceAtDataSet_exec(c->at18, SCE_LEVEL10, 0, (TaskFunc) r103_execOpenCover, c, 1);
             SceAtSetEnable(c->at14, 0);
-            if (pG->flags_51BC & 0x10) {
+            if (pG->Item_find_flg & 0x10) {
                 SceAtSetEnable(c->itemAt, 1);
                 SceAtSetEnable(c->itemAt, 0);
                 SceAtSetEnable(c->at10, 1);
@@ -471,17 +471,17 @@ extern "C" void r103_initCesspit(R103Cesspit* c)
             } else {
                 SceAtSetEnable(c->at10, 1);
             }
-            SceExec(0x12, (TaskFunc) r103_checkCesspit1, (int) c, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r103_checkCesspit1, (int) c, 0, SCE_PRIO_DEF_2, 0);
         } else {
-            SmdGetObjPtr(c->lid)->pParts->rot.x = -1.83f;
+            SmdGetObjPtr(c->lid)->pParts->ang.x = -1.83f;
             SceAtSetEnable(c->at10, 0);
             if (SceAtItemFlgCk(c->itemAt) == 0) {
-                SceExec(0x12, (TaskFunc) r103_checkCesspit2, (int) c, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r103_checkCesspit2, (int) c, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
     SceSleep(1);
-    if (pG->flags_51BC & 0x10) {
+    if (pG->Item_find_flg & 0x10) {
         at->item.id = 0x89;
         r103_moveItemModel(at, SceAtPtr(c->itemAt2));
     }

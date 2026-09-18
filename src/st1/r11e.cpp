@@ -96,18 +96,18 @@ void R11eInit()
 
     EmReadSearch(0x2B, 0, 0);
     if (!(pG->door_unlock[0] & 0x00080000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r11e_checkDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11e_checkDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
-    PSet(r11e_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
-    PSet(r11e_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
-    PSet(r11e_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
-    PSet(r11e_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
-    PSet(r11e_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
-    PSet(r11e_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
-    PSet(r11e_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
-    PSet(r11e_work->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
+    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
+    PSet(r11e_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
+    PSet(r11e_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
+    PSet(r11e_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
+    PSet(r11e_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
+    PSet(r11e_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
+    PSet(r11e_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
+    PSet(r11e_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
+    PSet(r11e_work->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
     getRoomEtcDoor(0xE, &door, 1);
     getRoomEtcDoor(0xF, &door, 1);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -122,49 +122,49 @@ void R11eInit()
     if (RsfCheck(G_ROOM_ID, 3)) {
         sakuB_delete();
     }
-    SceExec(0x12, (TaskFunc) r11e_move_sasaeki1, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11e_move_sasaeki1, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
         r11e_work->strId = SndStrReq(1, 0x4C, 0x80000001, 0, 0, 0.0f);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r11e_EmSet, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11e_EmSet, 0, 1);
     }
-    SceExec(0x12, (TaskFunc) r11e_str_check, 0, 2, 2, 0);
+    SceExec(0x12, (TaskFunc) r11e_str_check, 0, 2, SCE_PRIO_DEF_2, 0);
 }
 
 // Ashley's escape motions (SetSubAux routine): three motions in a row, turning towards the target.
 extern "C" void funcAshley(cModel* m)
 {
-    switch (m->xFE) {
+    switch (m->r_no_2) {
     case 0:
         SubCharSetHand(3);
-        m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0xA, 0, 1, 0);
-        m->xFE = 1;
+        m->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
+        m->r_no_2 = 1;
     case 1:
         if (m->motionMove()) {
-            m->xFE = 2;
+            m->r_no_2 = 2;
         }
         break;
     case 2:
-        m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0xA, 0, 1, 0);
-        m->xFE = 3;
+        m->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0xA, 0, 1, 0);
+        m->r_no_2 = 3;
     case 3:
         if (m->motionMove()) {
-            m->xFE = 4;
+            m->r_no_2 = 4;
         }
         break;
     case 4:
-        m->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0xA, 0, 1, 0);
-        m->xFE = 5;
+        m->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0xA, 0, 1, 0);
+        m->r_no_2 = 5;
     default:
         if (m->motionMove()) {
-            m->xFC = 0;
-            m->xFD = 0;
-            m->xFE = 0;
-            m->xFF = 0;
+            m->r_no_0 = 0;
+            m->r_no_1 = 0;
+            m->r_no_2 = 0;
+            m->r_no_3 = 0;
             SubCharSetHand(0);
         }
         break;
     }
-    m->rot.y += Muku(&m->pos, &r11e_ashleyTarget, m->rot.y, 0.62831855f);
+    m->ang.y += Muku(&m->pos, &r11e_ashleyTarget, m->ang.y, 0.62831855f);
 }
 
 void R11eMain()
@@ -178,19 +178,19 @@ void R11eMain()
 static void koya_destroy_check()
 {
     for (;;) {
-        if ((pG->flags_174 & 0x80000000) && RsfCheck(G_ROOM_ID, 0) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) && RsfCheck(G_ROOM_ID, 0) == 0) {
             RsfSet(G_ROOM_ID, 0);
             koyaA_destroy();
         }
-        if ((pG->flags_174 & 0x40000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
+        if ((pG->Room_flg[0] & 0x40000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 1);
             koyaB_destroy();
         }
-        if ((pG->flags_174 & 0x20000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+        if ((pG->Room_flg[0] & 0x20000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 2);
             sakuA_destroy();
         }
-        if ((pG->flags_174 & 0x10000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+        if ((pG->Room_flg[0] & 0x10000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 3);
             sakuB_destroy();
         }
@@ -305,13 +305,13 @@ static void r11e_move_sasaeki1()
 
     objA = SmdGetObjPtr(0x23);
     objB = SmdGetObjPtr(0x24);
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0xC8, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x22), 0xC8, 0);
     if (EspGetEfmTplAddr(0x20, &tpl) == 0) {
         pLog->err(0, 0, "IWA init: EFM[%02x] TPL not regist.", 0x20);
         return;
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        hitA = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objA->pos, &objA->rot, 0);
+        hitA = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objA->pos, &objA->ang, 0);
         objA->be_flag |= 0x20;
         {
             const f32 w = 2000.0f;    // const: pool order w, h before 0.0, uses stay literal (sched ties)
@@ -324,16 +324,16 @@ static void r11e_move_sasaeki1()
         rot.x = 0.0f;
         rot.y = 1.5707964f;
         rot.z = 0.0f;
-        PSet(r11e_work->rock[0], SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x23), tpl, &pos, &rot, 3));
+        PSet(r11e_work->rock[0], SetRock(ROOM_ARC_PTR(pG->pRoom, 0x23), tpl, &pos, &rot, 3));
         if (r11e_work->rock[0] != 0) {
-            r11e_work->rock[0]->setDropMot(ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+            r11e_work->rock[0]->setDropMot(ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
             r11e_work->rock[0]->setNoSuspend(1);
         }
     } else {
         objA->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        hitB = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objB->pos, &objB->rot, 0);
+        hitB = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objB->pos, &objB->ang, 0);
         objB->be_flag |= 0x20;
         {
             const f32 w = 2000.0f;
@@ -346,9 +346,9 @@ static void r11e_move_sasaeki1()
         rot.x = 0.0f;
         rot.y = 0.0f;
         rot.z = 0.0f;
-        PSet(r11e_work->rock[1], SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x23), tpl, &pos, &rot, 3));
+        PSet(r11e_work->rock[1], SetRock(ROOM_ARC_PTR(pG->pRoom, 0x23), tpl, &pos, &rot, 3));
         if (r11e_work->rock[1] != 0) {
-            r11e_work->rock[1]->setDropMot(ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+            r11e_work->rock[1]->setDropMot(ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
             r11e_work->rock[1]->setNoSuspend(1);
         }
     } else {
@@ -359,13 +359,13 @@ static void r11e_move_sasaeki1()
             RsfSet(G_ROOM_ID, 4);
             EstSet(0, -1, &r11e_rockAPos, &r11e_rockARot, 1, 0, 0, 0, 0, 0);
             BitOff(objA->be_flag, 2);
-            r11e_work->rock[0]->flags_3C8 |= 1;
+            r11e_work->rock[0]->flag |= 1;
         }
         if (RsfCheck(G_ROOM_ID, 5) == 0 && hitB->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 5);
             EstSet(0, -1, &r11e_rockBPos, &r11e_rockBRot, 1, 0, 0, 0, 0, 0);
             BitOff(objB->be_flag, 2);
-            r11e_work->rock[1]->flags_3C8 |= 1;
+            r11e_work->rock[1]->flag |= 1;
         }
         SceSleep(1);
     }
@@ -437,8 +437,8 @@ static void r11e_EmSet()
     e->pos[1] = 8;
     e->pos[2] = 0xC06;
     e->rot[1] = 0x3FA4;
-    e->flags |= 1;
-    e->x3 = 1;
+    e->be_flag |= 1;
+    e->set = 1;
     SceEventStart(0);
     SndStrReq(r11e_work->strId, 2, 0, 0);
     r11e_work->em.setNoSuspend(1);
@@ -469,7 +469,7 @@ static void r11e_str_check()
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-            if (em->id == 0x2B && em->checkStatus(5) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
+            if (em->id == 0x2B && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1) {
                 find = 1;
             }
         }
@@ -496,7 +496,7 @@ static void r11e_checkDoor102KeyUse()
     }
     ItemMgr.dump(0x8B);
     SndCall(6, 5, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x00080000;
     SceAtDataReset(1);
 }
@@ -505,6 +505,6 @@ static void r11e_checkDoor()
 {
     SceUpCut(0, -1, 4, 0);
     if (ItemMgr.num(0x8B) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }

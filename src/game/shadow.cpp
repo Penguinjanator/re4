@@ -56,25 +56,25 @@ static inline void PSet(cObj**& d, cObj** v) { d = v; }
 static inline void VSet(void*& d, void* v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
-// Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.x52 selects.
+// Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.
 // cLightInfo accessors: the address argument is a fresh `&m->lightInfo` computation at each
 // use, which gcse's PRE turns into the copies of the first one the original has.
-static inline int LightInfoParts(cLightInfo* li) { return li->x52; }
-static inline u8 LightInfoShape(cLightInfo* li) { return li->x51; }
+static inline int LightInfoParts(cLightInfo* li) { return li->PartsNo; }
+static inline u8 LightInfoShape(cLightInfo* li) { return li->Flag; }
 
 #define SHD_LIGHT_POS(m, pos, msg)                                                  \
     {                                                                               \
-        cLightInfo* li = &(m)->lightInfo;                                           \
-        if (li->x52 > 0) {                                                          \
-            cModel* p = (m)->getPartsPtr(li->x52 - 1);                              \
+        cLightInfo* li = &(m)->LightInfo;                                           \
+        if (li->PartsNo > 0) {                                                          \
+            cModel* p = (m)->getPartsPtr(li->PartsNo - 1);                              \
             if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {                     \
-                pLog->err(0, 0, msg, LightInfoParts(&(m)->lightInfo));              \
+                pLog->err(0, 0, msg, LightInfoParts(&(m)->LightInfo));              \
                 p = (m);                                                            \
             }                                                                       \
-            PSMTXMultVecSR(p->mat, &li->ofs, &(pos));                               \
-            PSVECAdd(&(pos), &p->worldPos, &(pos));                                 \
+            PSMTXMultVecSR(p->mat, &li->Offset, &(pos));                               \
+            PSVECAdd(&(pos), &p->world, &(pos));                                 \
         } else {                                                                    \
-            PSMTXMultVecSR((m)->mat, &(m)->lightInfo.ofs, &(pos));                  \
+            PSMTXMultVecSR((m)->mat, &(m)->LightInfo.Offset, &(pos));                  \
             PSVECAdd(&(pos), &(m)->pos, &(pos));                                    \
         }                                                                           \
     }
@@ -129,7 +129,7 @@ int ShdInit(ShdHeader* data)
         if (obj == 0) {
             continue;
         }
-        obj->x12E = 3;
+        obj->kindid = 3;
         if (data->version <= 0x1F) {
             if (e->shdCol == 0) {
                 e->shdCol = 0xFF;
@@ -142,19 +142,19 @@ int ShdInit(ShdHeader* data)
         obj->be_flag &= ~2;
         obj->be_flag |= 0x80;
         obj->pos = e->pos;
-        obj->rot = e->rot;
+        obj->ang = e->rot;
         obj->scale = e->scale;
         e++;
         {
-            ModelBound* bound = &obj->pInfo->bound;
+            ModelBound* bound = &obj->pModelInfo->bound;
             Vec size;
             size.x = bound->size.x;
             size.y = bound->size.y;
             size.z = bound->size.z;
-            obj->lightInfo.init2(2, 1, &bound->center, &size, 0x10);
+            obj->LightInfo.init2(2, 1, &bound->center, &size, 0x10);
         }
         obj->matUpdate();
-        obj->lightInfo.updateMatrix(obj);
+        obj->LightInfo.updateMatrix(obj);
         g_objTbl[i] = obj;
     }
     return data->num;
@@ -261,16 +261,16 @@ void ShadowTrans()
 
     g_Shd_num = 0;
     g_SelfShdNum = 0;
-    if (BitChk(pG->flags_58, 0x02000000)) {
+    if (BitChk(pG->Disp_flg, 0x02000000)) {
         return;
     }
-    if (pG->flags_58 & 0x8000) {
+    if (pG->Disp_flg & 0x8000) {
         isSelfUse = 0;
     } else {
         isSelfUse = 1;
     }
-    BitOff(pG->flags_5010, 0x4000);
-    BitOff(pG->flags_5014, 0x00100000);
+    BitOff(pG->Status_flg[1], 0x4000);
+    BitOff(pG->Status_flg[2], 0x00100000);
 
     found = 0;
     l = LightMgr.pAlive;
@@ -279,7 +279,7 @@ void ShadowTrans()
         ShadowLightWork* w;
 
         if (cnt != 0) {
-            l = (cLight*) l->next;
+            l = (cLight*) l->pNext;
             if (l == 0) {
                 break;
             }
@@ -289,11 +289,11 @@ void ShadowTrans()
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->type != 4) {
+        if (l->Type != 4) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
-            if (l->kind & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
+            if (l->Kind & 0x80) {
                 continue;
             }
         }
@@ -301,21 +301,21 @@ void ShadowTrans()
         if (w->mode == 5) {
             continue;
         }
-        pG->flags_5014 |= 0x00100000;
+        pG->Status_flg[2] |= 0x00100000;
         if (w->mode >= 1 && w->mode <= 4) {
             continue;
         }
         if (l->xD != 2) {
             continue;
         }
-        if (LightMgr.checkKind(l->kind) == 0) {
+        if (LightMgr.checkKind(l->Kind) == 0) {
             continue;
         }
         FixShadowLightSet(l);
         found = 1;
     }
 
-    if (!(pG->flags_5014 & 0x00100000)) {
+    if (!(pG->Status_flg[2] & 0x00100000)) {
         return;
     }
 
@@ -323,7 +323,7 @@ void ShadowTrans()
     cnt2 = 0;
     while (em) {
         if (cnt2 != 0) {
-            em = (cEm*) em->next;
+            em = (cEm*) em->pNext;
             if (em == 0) {
                 break;
             }
@@ -337,19 +337,19 @@ void ShadowTrans()
             continue;
         }
         if (em == pPL) {
-            if (pG->flags_58 & 0x40000000) {
+            if (pG->Disp_flg & 0x40000000) {
                 continue;
             }
         } else if (em == pSUB) {
-            if (pG->flags_58 & 0x20000000) {
+            if (pG->Disp_flg & 0x20000000) {
                 continue;
             }
         } else {
-            if (pG->flags_58 & 0x80000000) {
+            if (pG->Disp_flg & 0x80000000) {
                 continue;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
@@ -377,7 +377,7 @@ void ShadowTrans()
     cnt2 = 0;
     while (obj) {
         if (cnt2 != 0) {
-            obj = (cObj*) obj->next;
+            obj = (cObj*) obj->pNext;
             if (obj == 0) {
                 break;
             }
@@ -390,7 +390,7 @@ void ShadowTrans()
         if (!(obj->be_flag & 0x04000010)) {
             continue;
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -427,7 +427,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         int inRange;
 
         if (cnt != 0) {
-            l = (cLight*) l->next;
+            l = (cLight*) l->pNext;
             if (l == 0) {
                 break;
             }
@@ -437,11 +437,11 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->type != 4) {
+        if (l->Type != 4) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
-            if (l->kind & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
+            if (l->Kind & 0x80) {
                 continue;
             }
         }
@@ -452,19 +452,19 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         if (l->xD > 1) {
             continue;
         }
-        if (!(l->xF & m->lightInfo.x50)) {
+        if (!(l->xF & m->LightInfo.EnableMask)) {
             continue;
         }
         if (self) {
-            if (w->x9 == 0) {
+            if (w->selfShadow == 0) {
                 continue;
             }
         }
-        if (LightMgr.checkKind(l->kind) == 0) {
+        if (LightMgr.checkKind(l->Kind) == 0) {
             continue;
         }
         inRange = 1;
-        if (l->x1C != 0.0f) {
+        if (l->Radius != 0.0f) {
             Vec d;
             Vec lpos;
             Vec pos;
@@ -472,7 +472,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
             SHD_LIGHT_POS(m, pos, "Fit_ParallelShadowModelSet() cParts NO ERR %d");
             l->getPos(&lpos);
             PSVECSubtract(&lpos, &pos, &d);
-            if (PSVECMag(&d) > l->x1C) {
+            if (PSVECMag(&d) > l->Radius) {
                 inRange = 0;
             }
         }
@@ -527,7 +527,7 @@ void FixShadowLightSet(cLight* l)
     cnt = 0;
     while (em) {
         if (cnt != 0) {
-            em = (cEm*) em->next;
+            em = (cEm*) em->pNext;
             if (em == 0) {
                 break;
             }
@@ -538,24 +538,24 @@ void FixShadowLightSet(cLight* l)
             continue;
         }
         if (em == pPL) {
-            if (pG->flags_58 & 0x40000000) {
+            if (pG->Disp_flg & 0x40000000) {
                 continue;
             }
         } else if (em == pSUB) {
-            if (pG->flags_58 & 0x20000000) {
+            if (pG->Disp_flg & 0x20000000) {
                 continue;
             }
         } else {
-            if (pG->flags_58 & 0x80000000) {
+            if (pG->Disp_flg & 0x80000000) {
                 continue;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(em->be_flag & 0x800)) {
                 continue;
             }
         }
-        if (!(l->xF & em->lightInfo.x50)) {
+        if (!(l->xF & em->LightInfo.EnableMask)) {
             continue;
         }
         if (shadowChkInFrustum(&tmp, em) == 0) {
@@ -577,7 +577,7 @@ void FixShadowLightSet(cLight* l)
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
-            obj = (cObj*) obj->next;
+            obj = (cObj*) obj->pNext;
             if (obj == 0) {
                 break;
             }
@@ -587,16 +587,16 @@ void FixShadowLightSet(cLight* l)
         if ((obj->be_flag & 0x13) != 0x13) {
             continue;
         }
-        if (obj->x12E == 2) {
-            if (pG->flags_58 & 0x08000000) {
+        if (obj->kindid == 2) {
+            if (pG->Disp_flg & 0x08000000) {
                 return;
             }
         } else {
-            if (pG->flags_58 & 0x10000000) {
+            if (pG->Disp_flg & 0x10000000) {
                 return;
             }
         }
-        if (pG->flags_5010 & 0x10000000) {
+        if (pG->Status_flg[1] & 0x10000000) {
             if (!(obj->be_flag & 0x800)) {
                 continue;
             }
@@ -604,7 +604,7 @@ void FixShadowLightSet(cLight* l)
         if (shadowChkInFrustum(&tmp, obj) == 0) {
             continue;
         }
-        if (!(l->xF & obj->lightInfo.x50)) {
+        if (!(l->xF & obj->LightInfo.EnableMask)) {
             continue;
         }
         if (mng == 0) {
@@ -626,7 +626,7 @@ void FixShadowLightSet(cLight* l)
 
 void shadowModelRender(ShadowMng* mng)
 {
-    pG->flags_5010 |= 0x100;
+    pG->Status_flg[1] |= 0x100;
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
         VSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
@@ -637,7 +637,7 @@ void shadowModelRender(ShadowMng* mng)
         }
     }
     make_shadow_texture(mng);
-    pG->flags_5010 &= ~0x100;
+    pG->Status_flg[1] &= ~0x100;
 }
 
 void make_comn_fit_light(ShadowMng* mng, cModel* m)
@@ -660,19 +660,19 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
     dist = PSVECMag(&mng->dir);
 #line 916 "D:/Bio4/Prog/shadow.cpp"
     VECNormalize(&mng->dir, &mng->dir);
-    switch (LightInfoShape(&m->lightInfo) & 3) {
+    switch (LightInfoShape(&m->LightInfo) & 3) {
     case 1:
-        r = m->lightInfo.size.x + m->lightInfo.size.x * 0.1f + 200.0f;
+        r = m->LightInfo.Size.x + m->LightInfo.Size.x * 0.1f + 200.0f;
         break;
     case 0:
-        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.1f + 200.0f;
+        r = m->LightInfo.Size.y + m->LightInfo.Size.y * 0.1f + 200.0f;
         break;
     default:
-        r = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y) * 1.15f + 100.0f;
+        r = SQRTF(m->LightInfo.Size.x * m->LightInfo.Size.x + m->LightInfo.Size.y * m->LightInfo.Size.y) * 1.15f + 100.0f;
         break;
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
-    mng->fov -= (f32) (int) w->x18;
+    mng->fov -= (f32) (int) w->angleSub;
     {
         // COMPILER-DIFF: 13 (local-alloc qty order): r11 pinned after the 1.0 load and before the
         // conversion's lfd, so the fpmem loadaddr cannot take r11 and the 1.0 pool high gets it.
@@ -734,19 +734,19 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     dist = PSVECMag(&mng->dir);
 #line 1022 "D:/Bio4/Prog/shadow.cpp"
     VECNormalize(&mng->dir, &mng->dir);
-    switch (LightInfoShape(&m->lightInfo) & 3) {
+    switch (LightInfoShape(&m->LightInfo) & 3) {
     case 1:
-        r = m->lightInfo.size.x + m->lightInfo.size.x * 0.2f + 200.0f;
+        r = m->LightInfo.Size.x + m->LightInfo.Size.x * 0.2f + 200.0f;
         break;
     case 0:
-        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.2f + 200.0f;
+        r = m->LightInfo.Size.y + m->LightInfo.Size.y * 0.2f + 200.0f;
         break;
     default:
-        r = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y + m->lightInfo.size.z * m->lightInfo.size.z) * 1.2f + 200.0f;
+        r = SQRTF(m->LightInfo.Size.x * m->LightInfo.Size.x + m->LightInfo.Size.y * m->LightInfo.Size.y + m->LightInfo.Size.z * m->LightInfo.Size.z) * 1.2f + 200.0f;
         break;
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
-    mng->fov -= w->x18;
+    mng->fov -= w->angleSub;
     {
         // COMPILER-DIFF: 13 (local-alloc qty order): see make_comn_fit_light.
         register u32 k asm("r11");
@@ -966,7 +966,7 @@ void make_shadow_texture(ShadowMng* mng)
         GXSetChanCtrl(4, 0, 0, 0, 0, 2, 2);
         c.r = c.g = c.b = c.a = 0;
         GXSetChanAmbColor(4, c);
-        c.r = c.g = c.b = c.a = mng->pLight->color.r;
+        c.r = c.g = c.b = c.a = mng->pLight->Col.r;
         GXSetChanMatColor(4, c);
         GXSetNumTexGens(0);
         GXSetNumTevStages(1);
@@ -982,7 +982,7 @@ void make_shadow_texture(ShadowMng* mng)
 
         MSet(pSelfShadowMng[g_SelfShdNum], mng);
         g_SelfShdNum++;
-        BitOn(pG->flags_500C, 1);
+        BitOn(pG->Status_flg[0], 1);
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
         Vec up = {0.0f, 1.0f, 0.0f};
         sm[0][0] = 0.0f;
@@ -1032,8 +1032,8 @@ void make_shadow_texture(ShadowMng* mng)
         cModel* p;
         u8 a;
 
-        a = mng->pLight->color.r * (256 - m->shdCol) / 256;
-        if (mng->pLight->x1C != 0.0f) {
+        a = mng->pLight->Col.r * (256 - m->Shd_color) / 256;
+        if (mng->pLight->Radius != 0.0f) {
             Vec d;
             Vec lpos;
             Vec pos;
@@ -1042,7 +1042,7 @@ void make_shadow_texture(ShadowMng* mng)
             mng->pLight->getPos(&lpos);
             SHD_LIGHT_POS(m, pos, "Fit_ParallelShadowModelSet() cParts NO ERR %d");
             PSVECSubtract(&lpos, &pos, &d);
-            rate = PSVECMag(&d) / mng->pLight->x1C;
+            rate = PSVECMag(&d) / mng->pLight->Radius;
             if (rate > 0.7f) {
                 rate = 1.0f - rate;
                 rate *= 10.0f / 3.0f;
@@ -1057,10 +1057,10 @@ void make_shadow_texture(ShadowMng* mng)
         {
             cModelInfo* info;
             cModel* n;
-            if (p->pShMdInfo != 0) {
-                info = p->pShMdInfo;
+            if (p->pShadowModelInfo != 0) {
+                info = p->pShadowModelInfo;
             } else {
-                info = p->pInfo;
+                info = p->pModelInfo;
             }
             if (SHD_NO_SELF(mng)) {
                 commonModelTrans(p, info, mng->lookAt, 1);
@@ -1113,8 +1113,8 @@ void make_shadow_texture(ShadowMng* mng)
         GXCopyTex(mng->pTex, 1);
         GXPixModeSync();
     }
-    if (w->xB) {
-        pG->flags_5010 |= 0x4000;
+    if (w->setStatus) {
+        pG->Status_flg[1] |= 0x4000;
     }
     GXSetAlphaUpdate(0);
     GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
@@ -1129,7 +1129,7 @@ void make_shadow_texture(ShadowMng* mng)
 int shadowChkInFrustum(ShadowMng* mng, cModel* m)
 {
     int ret = 0;
-    cLightInfo* li = &m->lightInfo;
+    cLightInfo* li = &m->LightInfo;
     Vec d;
     Vec pos;
     f32 r;
@@ -1137,7 +1137,7 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
     f32 dot;
     f32 x1C;
 
-    r = PSVECMag(&m->lightInfo.size) * 0.99f;
+    r = PSVECMag(&m->LightInfo.Size) * 0.99f;
     if (m->scale.x != 1.0f || m->scale.y != 1.0f || m->scale.z != 1.0f) {
         f32 s = m->scale.x;
         if (s < m->scale.y) {
@@ -1148,16 +1148,16 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
         }
         r *= s;
     }
-    if (li->x52 > 0) {
-        cModel* p = m->getPartsPtr(li->x52 - 1);
+    if (li->PartsNo > 0) {
+        cModel* p = m->getPartsPtr(li->PartsNo - 1);
         if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {
-            pLog->err(0, 0, "shadowChkInFrustum() cCoord NO ERR %d", li->x52);
+            pLog->err(0, 0, "shadowChkInFrustum() cCoord NO ERR %d", li->PartsNo);
             p = m;
         }
-        PSMTXMultVecSR(p->mat, &li->ofs, &pos);
-        PSVECAdd(&pos, &p->worldPos, &pos);
+        PSMTXMultVecSR(p->mat, &li->Offset, &pos);
+        PSVECAdd(&pos, &p->world, &pos);
     } else {
-        PSMTXMultVecSR(m->mat, &li->ofs, &pos);
+        PSMTXMultVecSR(m->mat, &li->Offset, &pos);
         PSVECAdd(&pos, &m->pos, &pos);
     }
     PSVECSubtract(&pos, &mng->lightPos, &d);
@@ -1166,7 +1166,7 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
         return 1;
     }
     dot = PSVECDotProduct(&d, &mng->dir);
-    x1C = mng->pLight->x1C;
+    x1C = mng->pLight->Radius;
     if (x1C == 0.0f) {
         return 1;
     }
@@ -1184,7 +1184,7 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
             }
         }
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         if (ret == 1) {
             Draw_sphere(&pos, r, 0x80800080, 1, 1);
         } else {
@@ -1220,12 +1220,12 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
     if (num == 0) {
         return;
     }
-    if (m->x12E == 3) {
+    if (m->kindid == 3) {
         m->be_flag |= 2;
         commonScreenMat(m);
         m->be_flag &= ~2;
     }
-    GXSetProjection(pG->Cam.projMat, 0);
+    GXSetProjection(pG->Cam.ProjMat, 0);
     GXSetBlendMode(1, 4, 5, 0);
     GXSetAlphaCompare(4, 0, 1, 4, 0xFF);
     n = (num - 1) / 4 + 1;
@@ -1234,7 +1234,7 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
         if (cnt > 4) {
             cnt = 4;
         }
-        shadowModelTrans(m, m->pInfo, pG->Cam.viewMat, &tbl[i * 4], cnt);
+        shadowModelTrans(m, m->pModelInfo, pG->Cam.v_mat, &tbl[i * 4], cnt);
     }
 }
 
@@ -1252,7 +1252,7 @@ void shadowScrModelRender(ShadowMng* mngs)
     cnt = 0;
     while (obj) {
         if (cnt != 0) {
-            obj = (cObj*) obj->next;
+            obj = (cObj*) obj->pNext;
             if (obj == 0) {
                 break;
             }
@@ -1272,7 +1272,7 @@ void shadowScrModelRender(ShadowMng* mngs)
     cnt = 0;
     while (em) {
         if (cnt != 0) {
-            em = (cEm*) em->next;
+            em = (cEm*) em->pNext;
             if (em == 0) {
                 break;
             }
@@ -1298,15 +1298,15 @@ void shadowScrModelRender(ShadowMng* mngs)
             mng++;
             continue;
         }
-        if (pG->debug_mode == 0xE || ((pG->flags_64 & 0x04000000) && mng->pTex)) {
+        if (pG->debug_mode == 0xE || ((pG->Debug_flg[1] & 0x04000000) && mng->pTex)) {
             drawTexture2(&mng->texObj, 0x1A0, mng->no * 0x58 + 0x40, 1, 0x50, 0x50);
         }
-        if (pG->debug_mode == 0xE || (pG->flags_64 & 0x04000000)) {
+        if (pG->debug_mode == 0xE || (pG->Debug_flg[1] & 0x04000000)) {
             eprintf(0x180, mng->no * 0x58 + 0x90, 4, 0, "F:%f ", mng->fov);
         }
         mng++;
     }
-    pG->flags_64 &= ~0x04000000;
+    pG->Debug_flg[1] &= ~0x04000000;
 }
 
 // Dead-stripped in the DOL (STRIP_UNUSED): its colour table and constant pool remain in .rodata.
@@ -1319,9 +1319,9 @@ static void shadowShaderSetup(ShadowMng** tbl, u32 num)
         ShadowMng* mng = tbl[i];
         Vec p;
         Vec d;
-        PSMTXMultVec(pG->Cam.viewMat, &mng->lightPos, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &mng->lightPos, &p);
         GXInitLightPos(&light_obj[i], p.x, p.y, p.z);
-        PSMTXMultVecSR(pG->Cam.viewMat, &mng->dir, &d);
+        PSMTXMultVecSR(pG->Cam.v_mat, &mng->dir, &d);
         GXInitLightDir(&light_obj[i], d.x, d.y, d.z);
         GXInitLightAttn(&light_obj[i], 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
         GXInitLightSpot(&light_obj[i], mng->fov * 0.9f, 1);
@@ -1348,9 +1348,9 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         Vec p;
         mng = tbl[i];
         Vec d;
-        PSMTXMultVec(pG->Cam.viewMat, &mng->lightPos, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &mng->lightPos, &p);
         GXInitLightPos(&light_obj[i], p.x, p.y, p.z);
-        PSMTXMultVecSR(pG->Cam.viewMat, &mng->dir, &d);
+        PSMTXMultVecSR(pG->Cam.v_mat, &mng->dir, &d);
         GXInitLightDir(&light_obj[i], d.x, d.y, d.z);
         GXInitLightAttn(&light_obj[i], 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
         GXInitLightSpot(&light_obj[i], mng->fov * 0.9f, 1);
@@ -1385,14 +1385,14 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texMap++;
         gs->texCoord++;
     }
-    if (pG->flags_5010 & 0x4000) {
+    if (pG->Status_flg[1] & 0x4000) {
         cLight* l;
         GXColor k;
         u8 c;
         mng = tbl[0];
         l = mng->pLight;
-        k.a = l->color.r;
-        c = l->color.r;
+        k.a = l->Col.r;
+        c = l->Col.r;
         k.b = c;
         k.g = c;
         k.r = c;
@@ -1409,7 +1409,7 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texMap++;
         gs->texCoord++;
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         Mtx id;
         gs->tevStage = 0;
         gs->texMap = 0;
@@ -1477,7 +1477,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
     GXLoadNrmMtxImm(nrm, 0);
     GXSetCurrentMtx(0);
 
-    for (; info != 0; info = info->pNext) {
+    for (; info != 0; info = info->pList) {
         ModelData* d = info->pData;
         void* texArr = d->pTex;
         u16 nParts;
@@ -1509,7 +1509,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
         }
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) || (m->be_flag & 0x4000)) {
+        if ((d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) || (m->be_flag & 0x4000)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1518,7 +1518,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
             }
         }
         GXSetCullMode(1);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
             u8* p;
@@ -1528,10 +1528,10 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
             part = (ModelPart*) (p + part->size);
         }
     }
-    if (pG->flags_68 & 0x800) {
+    if (pG->Debug_flg[2] & 0x800) {
         for (i = 0; i < num; i++) {
             ShadowMng* mng = tbl[i];
-            Draw_corn2(&mng->lightPos, &mng->dir, mng->pLight->x1C, mng->fov, 0xFFFFFFFF);
+            Draw_corn2(&mng->lightPos, &mng->dir, mng->pLight->Radius, mng->fov, 0xFFFFFFFF);
         }
     }
 }
@@ -1550,7 +1550,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     GXLoadNrmMtxImm(nrm, 0);
     GXSetCurrentMtx(0);
 
-    for (; info != 0; info = info->pNext) {
+    for (; info != 0; info = info->pList) {
         ModelData* d = info->pData;
         void* texArr = d->pTex;
         u16 nParts;
@@ -1578,7 +1578,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) || (m->be_flag & 0x4000)) {
+        if ((d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) || (m->be_flag & 0x4000)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1587,7 +1587,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
             }
         }
         GXSetCullMode(1);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
             u8* p = (u8*) part + 0x20;
@@ -1728,18 +1728,18 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->type != 4) {
+        if (l->Type != 4) {
             continue;
         }
         w = (ShadowLightWork*) l->work;
         if (w->mode == 5) {
             continue;
         }
-        if (!(l->xF & m->lightInfo.x50)) {
+        if (!(l->xF & m->LightInfo.EnableMask)) {
             continue;
         }
         if (i <= 0x1F) {
-            if (!((1 << i) & m->lightInfo.x54)) {
+            if (!((1 << i) & m->LightInfo.SelectMask)) {
                 continue;
             }
         }
@@ -1749,7 +1749,7 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
         if (l->xD != 2) {
             continue;
         }
-        if (LightMgr.checkKind(l->kind) == 0) {
+        if (LightMgr.checkKind(l->Kind) == 0) {
             continue;
         }
         tmp.pLight = l;

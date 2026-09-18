@@ -117,13 +117,13 @@ void SubScreenAramRead()
     wk->aramSize = 0;
 #line 119 "D:/Bio4/Prog/sscrn.cpp"
     req = DVD_READ_N("rel/Sscrn.rel", 0, SS_ARAM, 0, 0, 9);
-    wk->relOfs = wk->aramSize;
-    Dvd.ReadCheck(req, &stat, &size, (void**) &wk->pModule);
+    wk->pPreplfOffs = wk->aramSize;
+    Dvd.ReadCheck(req, &stat, &size, (void**) &wk->p_module);
     wk->aramSize += size;
     sscrnDataFilename(wk, "ss_cmmn.dat");
 #line 130 "D:/Bio4/Prog/sscrn.cpp"
     req = DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9);
-    wk->cmmnOfs = wk->aramSize;
+    wk->pCommonOffs = wk->aramSize;
     Dvd.ReadCheck(req, &stat, &size, 0);
     wk->aramSize += size;
     sscrnDataFilename(wk, "ss_pzzl.dat");
@@ -181,9 +181,9 @@ void SubScreenGameInit()
     sscrnSetLanguage(wk, pSys->language);
     wk->relAddr = 0;
     SubScreenAramRead();
-    wk->x2AF = 0;
-    wk->x2AE = 0;
-    wk->x348 = 0;
+    wk->board_next = 0;
+    wk->board_size = 0;
+    wk->map_mode = 0;
     memset(&pG->ope_x82E8, 0, 0x44);
     pG->ope_mdt_no = 0x18;
     SubScreenRoomInit();
@@ -195,28 +195,28 @@ void SubScreenRoomInit()
 
     wk->type = 0;
     wk->flags = 0;
-    wk->x34 = 0;
+    wk->close_flag = 0;
     wk->wait = 0;
     if (ItemMgr.search(0x7C)) {
-        wk->x2AE = 0;
+        wk->board_size = 0;
     }
     if (ItemMgr.search(0x7D)) {
-        wk->x2AE = 1;
+        wk->board_size = 1;
     }
     if (ItemMgr.search(0x7E)) {
-        wk->x2AE = 2;
+        wk->board_size = 2;
     }
     if (ItemMgr.search(0x7F)) {
-        wk->x2AE = 3;
+        wk->board_size = 3;
     }
-    wk->x2AF = wk->x2AE;
-    if (pG->x4FB8 == 1) {
-        wk->x2AF = 0;
-        wk->x2AE = 0;
+    wk->board_next = wk->board_size;
+    if (pG->pl_type == 1) {
+        wk->board_next = 0;
+        wk->board_size = 0;
     }
-    BitOn(pG->flags_500C, 0x02000000);
-    BitOff(pG->flags_500C, 0x00040000);
-    BitOff(pG->flags_5014, 0x04000000);
+    BitOn(pG->Status_flg[0], 0x02000000);
+    BitOff(pG->Status_flg[0], 0x00040000);
+    BitOff(pG->Status_flg[2], 0x04000000);
     MapMgr.roomInit();
 }
 
@@ -232,10 +232,10 @@ void SubScreenCall()
     if ((s16) pG->pl_life <= 0) {
         return;
     }
-    if (pSUB && pSUB->id == 3 && (s16) pG->sub_life <= 0) {
+    if (pSUB && pSUB->id == 3 && (s16) pG->ashley_life <= 0) {
         return;
     }
-    if (!(pG->flags_500C & 0x02000000)) {
+    if (!(pG->Status_flg[0] & 0x02000000)) {
         return;
     }
     if (pPL->subScrCheck() == 1) {
@@ -245,29 +245,29 @@ void SubScreenCall()
         }
         wk->wait = 0;
         if (Key.trg & 0x100000) {
-            SubScreenOpen(1, 0);
+            SubScreenOpen(SS_OPEN_NORMAL, 0);
         } else if (Key.trg & 0x200000) {
-            if (!(pG->flags_5014 & 0x00200000)) {
-                SubScreenOpen(2, 0);
+            if (!(pG->Status_flg[2] & 0x00200000)) {
+                SubScreenOpen(SS_OPEN_MAP, 0);
             }
         }
     }
     if (wk->type) {
-        pG->flags_500C &= ~0x02000000;
+        pG->Status_flg[0] &= ~0x02000000;
         if (TaskExec(1, SubScreenExec, 0) == 0) {
             SubScreenMiss();
-            pG->flags_500C |= 0x02000000;
+            pG->Status_flg[0] |= 0x02000000;
         }
     }
 }
 
 int sscrnStageNo()
 {
-    if (pG->flags_51C0 & 0x00010000) {
+    if (pG->Scenario_flg[0] & 0x00010000) {
         return 3;
-    } else if (pG->flags_51C0 & 0x00800000) {
+    } else if (pG->Scenario_flg[0] & 0x00800000) {
         return 2;
-    } else if (pG->flags_51BC & 4) {
+    } else if (pG->Item_find_flg & 4) {
         return 1;
     }
     return 0;
@@ -292,24 +292,24 @@ int SubScreenOpen(int type, int flags)
 {
     SubScreenWork* wk = &SubScreenWk;
 
-    if (pG->flags_5014 & 0x04000000) {
+    if (pG->Status_flg[2] & 0x04000000) {
         return 0;
     }
-    BitOn(pG->flags_5014, 0x04000000);
+    BitOn(pG->Status_flg[2], 0x04000000);
     wk->type = type;
     wk->flags = flags;
-    wk->x34 = 0;
-    wk->x40 = 0;
+    wk->close_flag = 0;
+    wk->model_flag = 0;
     if (flags & 1) {
         SceEventStart(0);
     } else {
-        if (pG->flags_5010 & 0x00200000) {
+        if (pG->Status_flg[1] & 0x00200000) {
             wk->flags = flags | 2;
         }
-        wk->save170 = pG->flags_170;
-        pG->flags_170 = 0xFFFFFFFF;
+        wk->stop_bak = pG->Stop_flg;
+        pG->Stop_flg = 0xFFFFFFFF;
         KeyStop(0xEFCF0000);
-        pG->flags_170 &= ~0x40;
+        pG->Stop_flg &= ~0x40;
     }
     return 1;
 }
@@ -321,11 +321,11 @@ void SubScreenMiss()
     if (wk->flags & 1) {
         SceEventEnd(0);
     } else {
-        pG->flags_170 = wk->save170;
+        pG->Stop_flg = wk->stop_bak;
     }
     wk->flags = 0;
     wk->type = 0;
-    pG->flags_5014 &= ~0x04000000;
+    pG->Status_flg[2] &= ~0x04000000;
 }
 
 void SubScreenExec()
@@ -338,29 +338,29 @@ void SubScreenExec()
         switch (step) {
         case 0:
             SndSubScreenInit();
-            wk->x48 = 0;
+            wk->str_id = 0;
             if (!(wk->type & 0x20)) {
                 SndCall(0, 2, 0, 0, 0, 0);
             }
-            wk->x269 = 0;
-            wk->x26A = 0;
+            wk->alpha_flag = 0;
+            wk->alpha_cnt = 0;
             if (pSUB && pSUB->id == 3) {
                 wk->healing = SubCharCheckHealing();
             } else {
                 wk->healing = 0;
             }
-            BitOn(pG->flags_500C, 0x00040000);
-            BitOff(pG->flags_500C, 0x100);
-            BitOn(pG->flags_170, 0x100);
-            BitOff(pG->flags_170, 0x08000000);
-            MTX_COPY(pPL->mat, wk->plMat);
+            BitOn(pG->Status_flg[0], 0x00040000);
+            BitOff(pG->Status_flg[0], 0x100);
+            BitOn(pG->Stop_flg, 0x100);
+            BitOff(pG->Stop_flg, 0x08000000);
+            MTX_COPY(pPL->mat, wk->pl_mat);
             if (pSUB) {
-                MTX_COPY(pSUB->mat, wk->subMat);
+                MTX_COPY(pSUB->mat, wk->sub_mat);
             }
-            wk->cam = pG->Cam;
+            wk->camera_bak = pG->Cam;
             step++;
             wk->stage = sscrnStageNo();
-            wk->room = sscrnRoomNo(pG->room_id);
+            wk->room_no = sscrnRoomNo(pG->room_id);
             FadeSetW(0, 3, 0, 0);
         case 1:
             if (Fade[0].flags & 1) {
@@ -368,35 +368,35 @@ void SubScreenExec()
             }
             step++;
         case 2:
-            pG->wep_no = WeaponId2WeaponNo(ItemMgr.armId);
-            pG->wep_type = WeaponId2WeaponType(ItemMgr.armId);
-            if (pG->flags_500C & 0x40) {
+            pG->weapon_no = WeaponId2WeaponNo(ItemMgr.m_wep_id);
+            pG->weapon_type = WeaponId2WeaponType(ItemMgr.m_wep_id);
+            if (pG->Status_flg[0] & 0x40) {
                 CamCtrl.saveScopeParam();
                 CamCtrl.endScope();
-                wk->scope = 1;
-                if (pG->flags_5010 & 0x04000000) {
-                    wk->scope = 2;
-                    pG->flags_5010 &= ~0x04000000;
+                wk->scope_flag = 1;
+                if (pG->Status_flg[1] & 0x04000000) {
+                    wk->scope_flag = 2;
+                    pG->Status_flg[1] &= ~0x04000000;
                 }
             } else {
-                wk->scope = 0;
+                wk->scope_flag = 0;
             }
-            if (pG->flags_500C & 0x400) {
+            if (pG->Status_flg[0] & 0x400) {
                 CamCtrl.GetBinocularIDAddr(&wk->binoA, &wk->binoB);
                 CamCtrl.LowerBinocular();
-                wk->bino = 1;
+                wk->binocular_flag = 1;
             } else {
-                wk->bino = 0;
+                wk->binocular_flag = 0;
             }
             if (ItemMgr.num(0xFE)) {
-                wk->x1B8 = 1;
+                wk->jacket_flag = 1;
             } else {
-                wk->x1B8 = 0;
+                wk->jacket_flag = 0;
             }
             wk->noBullet = 0;
             {
                 ItemInfo info;
-                itemInfo(ItemMgr.armId, &info);
+                itemInfo(ItemMgr.m_wep_id, &info);
                 if (info.type == 3) {
                     if (ItemMgr.bulletNumCurrent() == 0) {
                         wk->noBullet = 1;
@@ -404,17 +404,17 @@ void SubScreenExec()
                 }
             }
             {
-                u32 t = pG->flags_5010 & 0x10000000;
-                wk->x1B6 = t;
+                u32 t = pG->Status_flg[1] & 0x10000000;
+                wk->suspend_flag = t;
             }
-            BitOff(pG->flags_5010, 0x10000000);
-            wk->save58 = pG->flags_58;
-            BitSet(pG->flags_58, 0xFFFFFFFF);
-            BitOff(pG->flags_58, 0x10000);
-            BitOff(pG->flags_58, 0x2000);
-            BitOff(pG->flags_58, 0x800);
-            BitOff(pG->flags_58, 0x04000000);
-            BitOn(pG->flags_5010, 2);
+            BitOff(pG->Status_flg[1], 0x10000000);
+            wk->disp_bak = pG->Disp_flg;
+            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            BitOff(pG->Disp_flg, 0x10000);
+            BitOff(pG->Disp_flg, 0x2000);
+            BitOff(pG->Disp_flg, 0x800);
+            BitOff(pG->Disp_flg, 0x04000000);
+            BitOn(pG->Status_flg[1], 2);
             cnt = 0;
             step++;
             break;
@@ -424,15 +424,15 @@ void SubScreenExec()
             }
             break;
         case 4:
-            if (pG->flags_54 & 0x40000000) {
-                IdTexRelease(6);
+            if (pG->System_flg & 0x40000000) {
+                IdTexRelease(TEX_OWNER_ID_EVENT);
             }
             Cckpt.getCountDown()->saveDisp();
             systemVISetBlack(1);
             ScreenReSize(640, 448);
             systemVISetBlack(0);
-            pG->flags_58 |= 0x400;
-            FadeKill(1);
+            pG->Disp_flg |= 0x400;
+            FadeKill(FADE_NO_SCENARIO);
             switch (wk->type) {
             case 2:
             case 0x10:
@@ -446,29 +446,29 @@ void SubScreenExec()
             }
             TaskSuspend(0);
             RoomData.stopRelData();
-            wk->pBuf = pG->pStageFont;
-            DC.xA08 = 0;
+            wk->pBuf = pG->pStFnt;
+            DC.m_data_ctrl_flag = 0;
             MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
             MemSuspendHeap(4);
             if (wk->type & 0x10) {
-                wk->heapOfs = wk->aramSize + 0x50000;
+                wk->pHeapOffs = wk->aramSize + 0x50000;
             } else if (wk->type & 0x20) {
-                wk->heapOfs = wk->pzzlOfs;
+                wk->pHeapOffs = wk->pzzlOfs;
             } else {
-                wk->heapOfs = wk->pzzlOfs + 0xE4000;
+                wk->pHeapOffs = wk->pzzlOfs + 0xE4000;
             }
             if (wk->type & 0x30) {
-                MemCreateHeap(12, (u32) wk->pBuf + wk->heapOfs, (u32) wk->pBuf + SS_ARAM_SIZE);
+                MemCreateHeap(12, (u32) wk->pBuf + wk->pHeapOffs, (u32) wk->pBuf + SS_ARAM_SIZE);
             } else {
-                MemCreateHeap(12, (u32) wk->pBuf + wk->heapOfs, (u32) wk->pBuf + 0x2E5E00);
+                MemCreateHeap(12, (u32) wk->pBuf + wk->pHeapOffs, (u32) wk->pBuf + 0x2E5E00);
             }
             MemSetCurrentHeap(12);
             if (wk->relAddr >= 0) {
-                wk->relAddr = wk->relOfs + (u32) wk->pBuf;
-                wk->pCmmn = (SsArc*) (wk->cmmnOfs + (u32) wk->pBuf);
+                wk->relAddr = wk->pPreplfOffs + (u32) wk->pBuf;
+                wk->pCmmn = (SsArc*) (wk->pCommonOffs + (u32) wk->pBuf);
                 wk->pPzzl = (SsArc*) (wk->pzzlOfs + (u32) wk->pBuf);
             }
-            wk->pModule = (OSModuleHeader*) wk->relAddr;
+            wk->p_module = (OSModuleHeader*) wk->relAddr;
             {
                 MessageControl* mes = &cMes;
                 int i;
@@ -479,14 +479,14 @@ void SubScreenExec()
             if (pSys->language == 0) {
                 cMes.setupFont(28, 28, (TEXPalette*) SS_ARC_PTR(wk->pCmmn, 4), 3);
             }
-            cMes.setLayout(1, 2);
-            cMes.setLayout(7, 2);
+            cMes.setLayout(1, LAYOUT_SUBSCRN);
+            cMes.setLayout(7, LAYOUT_SUBSCRN);
             if (wk->type == 0x20) {
                 IdSub.gameInit(0x80);
             } else {
                 IdSub.gameInit(0x200);
             }
-            IdTexDataLoad(SS_ARC_PTR(wk->pCmmn, 6), 8);
+            IdTexDataLoad(SS_ARC_PTR(wk->pCmmn, 6), TEX_OWNER_ID_SHARE);
             if (wk->type == 0x20) {
                 IdNum.gameInit(0);
             } else {
@@ -521,50 +521,50 @@ void SubScreenExec()
                 IdSub.dispSw(0, 1);
                 break;
             }
-            Cckpt.life.fix(0);
+            Cckpt.m_LifeMeter.fix(0);
 #line 808 "D:/Bio4/Prog/sscrn.cpp"
-            wk->x23C = MEM_ALLOC(0x3E800, 1, 13);
+            wk->pExamDat = MEM_ALLOC(0x3E800, 1, 13);
             if (wk->type == 2) {
-                wk->x265 = 2;
-                wk->x264 = 2;
+                wk->menu_next = 2;
+                wk->menu_no = 2;
             } else {
-                wk->x265 = 1;
-                wk->x264 = 1;
+                wk->menu_next = 1;
+                wk->menu_no = 1;
             }
-            wk->x28 = 1;
-            wk->x44 = 0;
+            wk->Loop = 1;
+            wk->wait_cnt = 0;
             LightMgr.inSscrn();
             LightMgr.create(0, 9, -2, 0);
             {
                 int i;
                 for (i = 0; i < 8; i++) {
-                    wk->x21C[i] = 0;
+                    wk->p_light[i] = 0;
                 }
             }
             {
                 void* bss;
-                if (wk->pModule->bssSize == 0) {
+                if (wk->p_module->bssSize == 0) {
                     bss = 0;
                 } else {
 #line 834 "D:/Bio4/Prog/sscrn.cpp"
-                    bss = MEM_ALLOC(wk->pModule->bssSize, 1, 13);
+                    bss = MEM_ALLOC(wk->p_module->bssSize, 1, 13);
                 }
-                DLL_Link(wk->pModule, bss);
+                DLL_Link(wk->p_module, bss);
             }
-            wk->x366 = 0;
+            wk->pzzl_debug_open = 0;
             wk->debugMode = pG->debug_mode;
             {
                 int v = 1;
-                if ((pG->flags_68 & 0x40000000) == 0) {
+                if ((pG->Debug_flg[2] & 0x40000000) == 0) {
                     v = 0;
                 }
-                wk->x354 = v;
+                wk->debug_flg_bak = v;
             }
             step++;
-            pG->flags_68 &= ~0x40000000;
+            pG->Debug_flg[2] &= ~0x40000000;
         case 5:
-            pG->flags_170 &= ~0x80000000;
-            TaskChain(wk->pModule->prolog, 0);
+            pG->Stop_flg &= ~0x80000000;
+            TaskChain(wk->p_module->prolog, 0);
             break;
         }
         TaskSleep(1);
@@ -573,19 +573,19 @@ void SubScreenExec()
 
 void SubScreenExitCore(SubScreenWork* wk)
 {
-    if (pG->flags_500C & 0x00040000) {
+    if (pG->Status_flg[0] & 0x00040000) {
         MapMgr.roomInit();
-        DLL_Unlink(wk->pModule);
+        DLL_Unlink(wk->p_module);
         wk->relAddr = 0;
         MemDestroyHeap(12);
         MemSignalHeap(4);
         MemSetCurrentHeap(4);
         MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
-        DC.xA08 = 1;
+        DC.m_data_ctrl_flag = 1;
         RoomData.restartRelData();
         MGR_PTR(cModel::mm) = &ModInfoMgr;
         MGR_PTR(cModel::pm) = &PartsMgr;
-        pG->flags_500C &= ~0x00040000;
+        pG->Status_flg[0] &= ~0x00040000;
     }
 }
 
@@ -614,14 +614,14 @@ void SubScreenExit()
     for (;;) {
         switch (step) {
         case 0:
-            if (!(wk->x34 & 8)) {
+            if (!(wk->close_flag & 8)) {
                 SndCall(0, 3, 0, 0, 0, 0);
             }
             cMes.Delete(0);
-            wepNo = WeaponId2WeaponNo(ItemMgr.armId);
-            wepType = WeaponId2WeaponType(ItemMgr.armId);
+            wepNo = WeaponId2WeaponNo(ItemMgr.m_wep_id);
+            wepType = WeaponId2WeaponType(ItemMgr.m_wep_id);
             if (ItemMgr.pArm) {
-                wepLv = ItemMgr.pArm->x8 >> 13;
+                wepLv = ItemMgr.pArm->bullet >> 13;
             } else {
                 wepLv = 0;
             }
@@ -640,7 +640,7 @@ void SubScreenExit()
             sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 979 "D:/Bio4/Prog/sscrn.cpp"
             Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->pzzlOfs, 0, 0, 9), 0, 0, 0);
-            pG->flags_58 &= ~0x400;
+            pG->Disp_flg &= ~0x400;
             break;
         case 3:
             if (cnt++ > 0) {
@@ -648,29 +648,29 @@ void SubScreenExit()
             }
             break;
         case 4:
-            if (pG->x4FB8 != 1 && (pG->wep_no != wepNo || pG->wep_type != wepType || pG->wep_x4FB2 != wepLv)) {
+            if (pG->pl_type != 1 && (pG->weapon_no != wepNo || pG->weapon_type != wepType || pG->bullet_type != wepLv)) {
                 cPlayer* pl;
                 if (wk->flags & 2) {
                     ItemMgr.arm(0);
                     wepLv = 0;
-                    wepNo = WeaponId2WeaponNo(ItemMgr.armId);
-                    wepType = WeaponId2WeaponType(ItemMgr.armId);
+                    wepNo = WeaponId2WeaponNo(ItemMgr.m_wep_id);
+                    wepType = WeaponId2WeaponType(ItemMgr.m_wep_id);
                 }
                 pl = pPL;
                 SndBlkStop(2);
                 pl->weaponRelease();
                 pl->weaponLoad(wepNo, wepType);
-                pG->wep_x4FB2 = wepLv;
+                pG->bullet_type = wepLv;
                 pl->weaponInit();
-                wk->scope = 0;
+                wk->scope_flag = 0;
                 wk->noBullet = 0;
             }
             {
                 int change = 0;
-                if (pG->x4FB8 == 0) {
+                if (pG->pl_type == 0) {
                     if (ItemMgr.num(0xFE)) {
-                        change = wk->x1B8 == 0;
-                    } else if (wk->x1B8 == 1) {
+                        change = wk->jacket_flag == 0;
+                    } else if (wk->jacket_flag == 1) {
                         change = 1;
                     }
                 }
@@ -682,31 +682,31 @@ void SubScreenExit()
             systemVISetBlack(1);
             ScreenReSize(512, 448);
             systemVISetBlack(0);
-            pG->Cam = wk->cam;
+            pG->Cam = wk->camera_bak;
             View.move();
-            BitSet(pG->flags_58, wk->save58);
-            if (wk->bino == 0) {
-                pG->flags_170 &= ~0x80000000;
+            BitSet(pG->Disp_flg, wk->disp_bak);
+            if (wk->binocular_flag == 0) {
+                pG->Stop_flg &= ~0x80000000;
             }
-            BitOff(pG->flags_5010, 2);
-            if (wk->x1B6) {
-                pG->flags_5010 |= 0x10000000;
+            BitOff(pG->Status_flg[1], 2);
+            if (wk->suspend_flag) {
+                pG->Status_flg[1] |= 0x10000000;
             }
             {
                 u32 i;
                 for (i = 0; i < 10; i++) {
-                    if (pPL->pWep->pObj) {
-                        pPL->pWep->pObj->move();
+                    if (pPL->Wep->m_pWep) {
+                        pPL->Wep->m_pWep->move();
                     }
                 }
             }
             IdSys.dispSw(0x21, 1);
-            Cckpt.life.fix(0);
-            if (wk->scope) {
+            Cckpt.m_LifeMeter.fix(0);
+            if (wk->scope_flag) {
                 CamCtrl.startScope(0, 0);
                 CamCtrl.loadScopeParam();
             }
-            if (wk->bino) {
+            if (wk->binocular_flag) {
                 CamCtrl.HoldBinocular(wk->binoA, wk->binoB, 0, 0);
             }
             if (wk->noBullet) {
@@ -717,7 +717,7 @@ void SubScreenExit()
             {
                 u32 clear = 0;
                 cMes.roomInit();
-                if (pG->flags_54 & 0x40000000) {
+                if (pG->System_flg & 0x40000000) {
                     mercId.set();
                 }
                 {
@@ -728,14 +728,14 @@ void SubScreenExit()
             }
             TaskSignal(0);
             SndSubScreenExit();
-            BitOn(pG->flags_500C, 0x02000000);
-            BitOn(pG->flags_500C, 0x100);
-            BitOff(pG->flags_5014, 0x04000000);
+            BitOn(pG->Status_flg[0], 0x02000000);
+            BitOn(pG->Status_flg[0], 0x100);
+            BitOff(pG->Status_flg[2], 0x04000000);
             {
                 u32 mode;
-                if (wk->scope == 2) {
+                if (wk->scope_flag == 2) {
                     mode = 2;
-                } else if (CamCtrl.area_no != -1) {
+                } else if (CamCtrl.areaNo != -1) {
                     mode = 1;
                 } else {
                     mode = 0;
@@ -745,13 +745,13 @@ void SubScreenExit()
             if (wk->flags & 1) {
                 SceEventEnd(0);
             } else {
-                pG->flags_170 = wk->save170;
+                pG->Stop_flg = wk->stop_bak;
             }
             wk->type = 0;
             wk->flags = 0;
             pG->debug_mode = wk->debugMode;
-            if (wk->x354) {
-                pG->flags_68 |= 0x40000000;
+            if (wk->debug_flg_bak) {
+                pG->Debug_flg[2] |= 0x40000000;
             }
             step++;
         case 5:
@@ -777,7 +777,7 @@ void OpeSetMdtNo(u32 no)
 
 int OpeMdtSetInit()
 {
-    int no = SubScreenWk.mdtNo;
+    int no = SubScreenWk.opeMdtNo;
 
     OpeSetMdtNo(no);
     return no;
@@ -812,8 +812,8 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         SceSleep(1);
     }
     if (x != 0.0f) {
-        wk->savePos = pPL->pos;
-        wk->saveRot = pPL->rot;
+        wk->posBak = pPL->pos;
+        wk->angBak = pPL->ang;
         pos.x = x;
         pos.y = y;
         pos.z = z;
@@ -827,17 +827,17 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
     }
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
-    wk->pObj = 0;
-    wk->mdtNo = no;
+    pG->System_flg |= 0x400;
+    wk->pObjWep = 0;
+    wk->opeMdtNo = no;
     OpeMdtSetInit();
     BEGIN_EVENT(pl, 0);
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
-    wk->strBlk = SndStrPlayBlock(1, strTbl[no], 0.0f);
-    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
+    wk->sndId = SndStrPlayBlock(1, strTbl[no], 0.0f);
+    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlayer, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     for (i = 0; i <= 20; i++) {
         if (Key.trg & 0x20000000) {
             OpeSetOpenTermCancel();
@@ -845,14 +845,14 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
         SceSleep(1);
     }
-    wk->pObj = (cObjWep*) ObjMgr.createBack(0xB);
-    if (wk->pObj == 0) {
+    wk->pObjWep = (cObjWep*) ObjMgr.createBack(0xB);
+    if (wk->pObjWep == 0) {
         pLog->err(0, 0, "OpeSetOpenTerm cObjWep CREATE FAILED");
         return;
     }
-    if (wk->pObj->modelInit(PL_ARC_PTR(pG->pPlArc, 0x77), PL_ARC_PTR(pG->pPlArc, 0x78)) == 0) {
+    if (wk->pObjWep->modelInit(PL_ARC_PTR(pG->pPlayer, 0x77), PL_ARC_PTR(pG->pPlayer, 0x78)) == 0) {
         pLog->err(0, 0, "OpeSetOpenTerm modelInit() failed.");
-        ObjMgr.destroy(wk->pObj);
+        ObjMgr.destroy(wk->pObjWep);
         return;
     }
     {
@@ -862,9 +862,9 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         rot.x = -0.48869219f;
         rot.y = 0.31415927f;
         rot.z = -0.73303829f;
-        wk->pObj->parentSet(pl, 0x10, &pos, &rot);
+        wk->pObjWep->parentSet(pl, 0x10, &pos, &rot);
     }
-    wk->pObj->setNoSuspend(1);
+    wk->pObjWep->setNoSuspend(1);
     pl->setLeftHand(2);
     while (MotionGetState(pl) == 0) {
         if (Key.trg & 0x20000000) {
@@ -873,7 +873,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         }
         SceSleep(1);
     }
-    SubScreenOpen(0x20, 0);
+    SubScreenOpen(SS_OPEN_TERM, 0);
     SubScreenWait(0);
     SceSleep(1);
 END:
@@ -883,10 +883,10 @@ END:
     // real insn inside x's range but past z's death makes it 217 -> 368.
     asm("" : "=m"(pos.x));
     if (x != 0.0f) {
-        pPL->setPos(&wk->savePos);
-        pPL->setAng(&wk->saveRot);
+        pPL->setPos(&wk->posBak);
+        pPL->setAng(&wk->angBak);
     }
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
 }
 
@@ -900,15 +900,15 @@ void OpeSetOpenTermEnd()
     SubScreenWork* wk = &SubScreenWk;
     cPlayer* pl = pPL;
 
-    SndStrStopBlock(wk->strBlk);
-    if (wk->pObj) {
-        ObjMgr.destroy(wk->pObj);
+    SndStrStopBlock(wk->sndId);
+    if (wk->pObjWep) {
+        ObjMgr.destroy(wk->pObjWep);
         pl->setLeftHand(0x63);
-        wk->pObj = 0;
+        wk->pObjWep = 0;
     }
     PlSetEyeMode(0);
     FadeSetW(0x80000000, 3, 0, 0);
-    FadeKill(2);
+    FadeKill(FADE_NO_ROOM);
     FadeSetW(0x80000001, 10, 0, 0);
 }
 

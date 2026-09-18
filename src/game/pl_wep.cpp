@@ -27,8 +27,8 @@ struct WepTarget {
 
 extern "C" {
 void EffectEspDelete(int a, int b, cModel* m, int c);     // game/est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 void ReadWepData(int no, int type);                       // game/read.cpp
 u32 GetWepTargetListBomb(Vec* pos, WepTarget* list, u32 prio, int type, int flag, f32 len);  // game/em_sub.cpp
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type,
@@ -36,7 +36,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec
 void EspSetEatEffect(Vec* pos, Vec* nrm, int type, u8 wep);  // game/est.cpp
 void EspSetWaterHitmark(Vec* pos);
 void GameAddPoint(int no);                                // game/game.cpp
-f32 GetXZAngleLocal(Vec* a, Vec* b, f32 ang);             // game/sub2.cpp
+f32 GetXZAngleLocal(Vec* v0, Vec* v1, f32 ang);             // game/sub2.cpp
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);       // game/Espgen42.cpp
 void AddWaterPower(Vec* pos, f32 power);
 f64 atan2(f64 y, f64 x);
@@ -64,9 +64,9 @@ static inline void Inc32(u32& d) { d++; }
 
 cPlWep::cPlWep()
 {
-    pObj = 0;
+    m_pWep = 0;
     pObj2 = 0;
-    x20 = 0;
+    m_EmRankPtr = 0;
 }
 
 void cPlayer::weaponRelease()
@@ -81,24 +81,24 @@ void cPlayer::weaponRelease()
     if (obj) {
         do {
             objCur = obj;
-            next = (cObj*) objCur->next;
+            next = (cObj*) objCur->pNext;
             obj = next;
             if (objCur->id == 0xA) {
                 ObjMgr.destroy(objCur);
             }
         } while (next);
     }
-    if (pWep->pObj) {
-        ObjMgr.destroyNow((cObj*) pWep->pObj);
-        pWep->pObj = 0;
+    if (Wep->m_pWep) {
+        ObjMgr.destroyNow((cObj*) Wep->m_pWep);
+        Wep->m_pWep = 0;
     }
-    if (pWep->pObj2) {
-        ObjMgr.destroyNow((cObj*) pWep->pObj2);
-        pWep->pObj2 = 0;
+    if (Wep->pObj2) {
+        ObjMgr.destroyNow((cObj*) Wep->pObj2);
+        Wep->pObj2 = 0;
     }
     endCamera();
     if ((flags_420 & 1) == 0) {
-        switch (pG->x4F7C) {
+        switch (pG->weapon_no_old) {
         case 0:
             break;
         case 1:
@@ -174,8 +174,8 @@ void cPlayer::weaponRelease()
 
 void cPlayer::weaponLoad(int no, int type)
 {
-    U8Set(pG->wep_no, no);
-    U8Set(pG->wep_type, type);
+    U8Set(pG->weapon_no, no);
+    U8Set(pG->weapon_type, type);
     ReadWepData(no, type);
 }
 
@@ -189,11 +189,11 @@ void cPlayer::weaponInit()
     if (WeaponInitFunc) {
         WeaponInitFunc(this);
     }
-    if (!(pG->flags_5010 & 0x200000) && !(flags_420 & 0x40)) {
-        xFC = 0;
-        xFD = 0;
-        xFE = 0;
-        xFF = 1;
+    if (!(pG->Status_flg[1] & 0x200000) && !(flags_420 & 0x40)) {
+        r_no_0 = 0;
+        r_no_1 = 0;
+        r_no_2 = 0;
+        r_no_3 = 1;
         x4FD = 0;
         x4FC = 0;
     }
@@ -203,7 +203,7 @@ void cPlayer::weaponInit()
 // constants, right before PlWepHitCheck2's.
 static f32 wepRate(cPlWep* w)
 {
-    if (w->x20) {
+    if (w->m_EmRankPtr) {
         return -1.0f;
     }
     if (w->pitch > 0.0f) {
@@ -212,7 +212,7 @@ static f32 wepRate(cPlWep* w)
     return w->pitch;
 }
 
-u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
+u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len)
 {
     cPlayer* pl = (cPlayer*) plm;
     WepTarget list[20];
@@ -235,7 +235,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     // the end of the left-root block instead of in every left-side leaf.
     switch (type) {
     case 1:
-        if (pG->wep_lv > 6) {
+        if (pG->weapon_lv_power > 6) {
             prio = 5;
         } else {
             prio = 2;
@@ -344,10 +344,10 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     case 0x17:
     case 0x29:
     case 0x2D:
-        n = GetWepTargetListBomb(p0, list, prio, type, f4, len);
+        n = GetWepTargetListBomb(pPos, list, prio, type, f4, len);
         break;
     default:
-        n = GetWepTargetList2(p0, p1, list, prio, &hit, &nrm, &attr, type, f4, len);
+        n = GetWepTargetList2(pPos, pPos2, list, prio, &hit, &nrm, &attr, type, f4, len);
         break;
     }
     for (i = 0; i < n; i++) {
@@ -369,7 +369,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
             break;
         }
         if (!(dmg->stat & 1)) {
-            dmg->set(0, 10, type, p0, part->rad, part);
+            dmg->set(0, 10, type, pPos, part->rad, part);
             if (part->flags & 0x20) {
                 dmg->stat |= 0x20;
             }
@@ -384,16 +384,16 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
                 // nested call: `&nrm` is evaluated into a pseudo before EatGetEffectType (`addi r30,r1,..`
                 // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
                 EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
-                BitOn(pG->flags_5010, 0x20000000);
+                BitOn(pG->Status_flg[1], 0x20000000);
                 memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &hit, sizeof(Vec));
                 pG->bell_stat = 0;
             }
         }
     }
     if (pl != 0 && !(flag & 1)) {
-        if (pl->pWep->pObj != 0) {
-            wepSetWaterShot(p0, p1, type);
-            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->pWep->pObj->wep.marker, sizeof(Vec));
+        if (pl->Wep->m_pWep != 0) {
+            wepSetWaterShot(pPos, pPos2, type);
+            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->Wep->m_pWep->wep.marker, sizeof(Vec));
             switch (type) {
             case 0xD:
             case 0x12:
@@ -407,7 +407,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
         }
     }
     if (!(flag & 2) && n == 0) {
-        pG->flags_5014 |= 0x01000000;
+        pG->Status_flg[2] |= 0x01000000;
         switch (type) {
         case 0:
         case 1:
@@ -471,11 +471,11 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
         default:
             if (!(flag & 2)) {
                 if (n != 0) {
-                    Inc32(pG->shotHit);
-                    Inc32(pG->shotHit2);
+                    Inc32(pG->c_hit_cnt);
+                    Inc32(pG->g_hit_cnt);
                 }
-                Inc32(pG->shotTotal);
-                Inc32(pG->shotTotal2);
+                Inc32(pG->c_shot_cnt);
+                Inc32(pG->g_shot_cnt);
             }
             break;
         }
@@ -523,13 +523,13 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
 // `mr r11,r9` copy every later block uses.
 f32 cPlWep::getAngle()
 {
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return 0.0f;
     }
-    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
+    if (pPL->r_no_1 != 6 && pPL->r_no_1 != 0xB) {
         return 0.0f;
     }
-    if (pPL->xFE == 3) {
+    if (pPL->r_no_2 == 3) {
         return 0.0f;
     }
     return pitch;
@@ -537,13 +537,13 @@ f32 cPlWep::getAngle()
 
 f32 cPlWep::getPitch()
 {
-    if (pPL->xFC != 0) {
+    if (pPL->r_no_0 != 0) {
         return 0.0f;
     }
-    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
+    if (pPL->r_no_1 != 6 && pPL->r_no_1 != 0xB) {
         return 0.0f;
     }
-    if (pPL->xFE == 3) {
+    if (pPL->r_no_2 == 3) {
         return 0.0f;
     }
     return m3r[0];
@@ -551,8 +551,8 @@ f32 cPlWep::getPitch()
 
 void cPlWep::move()
 {
-    if (pObj) {
-        pObj->matUpdate();
+    if (m_pWep) {
+        m_pWep->matUpdate();
     }
 }
 
@@ -560,21 +560,21 @@ int cPlWep::getMarkerPos(Vec* out)
 {
     cPlayer* pl = pPL;
 
-    if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->xFF == 0) {
+    if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->r_no_3 == 0) {
         return 0;
     }
-    *out = pObj->wep.marker;
+    *out = m_pWep->wep.marker;
     return 1;
 }
 
 void cPlWep::setTrans(int on, int type)
 {
-    if (pObj == 0) {
+    if (m_pWep == 0) {
         return;
     }
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     default:
-        pObj->setDisp(2, on);
+        m_pWep->setDisp(2, on);
         break;
     case 0xD:
         type = 1;
@@ -585,7 +585,7 @@ void cPlWep::setTrans(int on, int type)
     case 0x1F:
     case 0x20:
         if (type & 1) {
-            pObj->setDisp(2, on);
+            m_pWep->setDisp(2, on);
         }
         break;
     }
@@ -599,21 +599,21 @@ cModel* cPlWep::lockInit()
     cPlayer* pl = pPL;
     cEm* em;
 
-    em = (cEm*) SearchLockEm(&pl->getPartsPtr(3)->worldPos, 0);
+    em = (cEm*) SearchLockEm(&pl->getPartsPtr(3)->world, 0);
     pl->pLockEm = em;
     if (em) {
         Vec v;
         f32 ang;
 
         PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &((cEm*) pl->pLockEm)->lockOfs, &v);
-        ang = GetXZAngleLocal(&pl->pos, &v, pl->rot.y);
+        ang = GetXZAngleLocal(&pl->pos, &v, pl->ang.y);
         if (ang <= PI && ang >= -PI) {
-            x40 = 10;
+            m_LockTime = 10;
         } else {
-            x40 = 0;
+            m_LockTime = 0;
         }
     } else {
-        x40 = 0;
+        m_LockTime = 0;
     }
     return pl->pLockEm;
 }
@@ -641,7 +641,7 @@ static inline f32 rangeAdd(Vec* pos, Vec* v, f32 d, f32& range)
     }
     if (d > far) {
         d += add3;
-    } else if (fabsf(GetXZAngleLocal(pos, v, pPL->rot.y)) < angLim) {
+    } else if (fabsf(GetXZAngleLocal(pos, v, pPL->ang.y)) < angLim) {
         if (d > near) {
             d += add1;
         }
@@ -666,9 +666,9 @@ void cPlWep::lockMove()
     cPlayer* pl = pPL;
 
     if (Joy[0].on & 0xF0000) {
-        x40 = 0;
+        m_LockTime = 0;
     }
-    if (pl->pLockEm && x40 != 0 && (pSys->flags & 0x20000000)) {
+    if (pl->pLockEm && m_LockTime != 0 && (pSys->flags & 0x20000000)) {
         PlWepAutoTrack(pl, 0, 1.0f);
     }
 }
@@ -689,10 +689,10 @@ int lockEmCk(cEm* em, Vec* pos)
     if (em->hp <= 0) {
         return 0;
     }
-    if (em->checkStatus(1)) {
+    if (em->checkStatus(EM_STATUS_LOCKOFF)) {
         return 0;
     }
-    if (em->checkStatus(5) == 0) {
+    if (em->checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     if (em->pParts == 0) {
@@ -732,8 +732,8 @@ cModel* cPlWep::lockNext()
 {
     cPlayer* pl = pPL;
 
-    if ((pl->pLockEm = SearchLockEm(&pl->getPartsPtr(3)->worldPos, pl->pLockEm)) != 0) {
-        x40 = 10;
+    if ((pl->pLockEm = SearchLockEm(&pl->getPartsPtr(3)->world, pl->pLockEm)) != 0) {
+        m_LockTime = 10;
     }
     return pl->pLockEm;
 }
@@ -797,7 +797,7 @@ static int cornerCheckOld()
     Vec dir = {0.0f, 0.0f, 0.0f};
     Vec rot;
 
-    dir.y = pPL->rot.y;
+    dir.y = pPL->ang.y;
     RotVector(&vecz, &dir, &rot);
     PSVECAdd(&rot, &pPL->pos, &rot);
     return SatMgr.hitCheck(&pPL->pos, &rot, 0, 0, 0, 0);
@@ -806,7 +806,7 @@ static int cornerCheckOld()
 int PlCornerCheck()
 {
     static Vec vecz = {0.0f, 0.0f, 500.0f};
-    Vec* hand = &pPL->getPartsPtr(3)->worldPos;
+    Vec* hand = &pPL->getPartsPtr(3)->world;
     Vec dir;
     Vec rot = {0.0f, 0.0f, 0.0f};
     Vec hit;
@@ -814,7 +814,7 @@ int PlCornerCheck()
     Vec a;
     Vec b;
 
-    rot.y = pPL->rot.y;
+    rot.y = pPL->ang.y;
     dir = rot;
     if ((pPL->stat & 0xFFFF0000) == 0x000D0000) {
         dir.y += PI;
@@ -877,7 +877,7 @@ void PlWepLockCtrl(cModel* plm)
     int moved;
     f32 tmp;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     default:
         lim = 0.20943952f;
         spd = 1.0f;
@@ -914,7 +914,7 @@ void PlWepLockCtrl(cModel* plm)
         break;
     case 0xE:
     case 0x13:
-        if (pG->wep_type == 0) {
+        if (pG->weapon_type == 0) {
             lim = 0.20943952f;
             spd = 1.0f;
             spd2 = spd;
@@ -939,7 +939,7 @@ void PlWepLockCtrl(cModel* plm)
         spd2 = spd;
         break;
     }
-    if (*(u32*) &Joy[0].sx & 0xFFFF0000) {  // main stick (sx, sy) deflected
+    if (*(u32*) &Joy[0].stickX & 0xFFFF0000) {  // main stick (sx, sy) deflected
         if (repCtr < 7.0f) {
             repCtr = repCtr + 1.0f;
         }
@@ -948,7 +948,7 @@ void PlWepLockCtrl(cModel* plm)
     }
     moved = 0;
     if (joyKamae() || joyLKamae()) {
-        if (pl->pLockEm && lockCtr != 0 && (pG->flags_68 & 0x40000)) {
+        if (pl->pLockEm && lockCtr != 0 && (pG->Debug_flg[2] & 0x40000)) {
             goto rand;
         }
         d = 0.0f;
@@ -959,7 +959,7 @@ void PlWepLockCtrl(cModel* plm)
             if (Joy[0].on & 4) {
                 d += 0.035f;
             }
-            d -= spd2 * (f32) Joy[0].sy * repCtr * 0.15f / 200.0f / 10.0f;
+            d -= spd2 * (f32) Joy[0].stickY * repCtr * 0.15f / 200.0f / 10.0f;
         } else {
             if (Joy[0].on & 8) {
                 d = 0.035f;
@@ -967,7 +967,7 @@ void PlWepLockCtrl(cModel* plm)
             if (Joy[0].on & 4) {
                 d -= 0.035f;
             }
-            d += spd2 * (f32) Joy[0].sy * repCtr * 0.15f / 200.0f / 10.0f;
+            d += spd2 * (f32) Joy[0].stickY * repCtr * 0.15f / 200.0f / 10.0f;
         }
         if (m3r[0] > 0.0f) {
             d *= 0.8f;
@@ -987,34 +987,34 @@ void PlWepLockCtrl(cModel* plm)
         if (Joy[0].on & 1) {
             d += 0.05f;
         }
-        d -= (f32) Joy[0].sx * repCtr * PI / 10.0f / 200.0f / 20.0f;
+        d -= (f32) Joy[0].stickX * repCtr * PI / 10.0f / 200.0f / 20.0f;
         if (d != 0.0f) {
             moved = 1;
         }
-        pl->x400 += d;
-        if (pl->x400 > lim) {
+        pl->m_Fwork0 += d;
+        if (pl->m_Fwork0 > lim) {
             // COMPILER-DIFF: candidate (alias): the target reloads repCtr in the shared `rot.y -=`
             // else-arm below (`lfs f12,repCtr`), ours kept the value loaded for the yaw stick step.
             asm("" : "=m"(repCtr));
-            pl->x400 = lim;
+            pl->m_Fwork0 = lim;
             if (Joy[0].on & 1) {
-                pl->rot.y += 0.039269908f;
+                pl->ang.y += 0.039269908f;
             } else {
-                pl->rot.y -= spd * (f32) Joy[0].sx * repCtr * PI / 10.0f / 200.0f / 20.0f;
+                pl->ang.y -= spd * (f32) Joy[0].stickX * repCtr * PI / 10.0f / 200.0f / 20.0f;
             }
         }
-        if (pl->x400 < -lim * 0.8f) {
-            pl->x400 = -lim * 0.8f;
+        if (pl->m_Fwork0 < -lim * 0.8f) {
+            pl->m_Fwork0 = -lim * 0.8f;
             if (Joy[0].on & 2) {
-                pl->rot.y -= 0.039269908f;
+                pl->ang.y -= 0.039269908f;
             } else {
-                pl->rot.y -= spd * (f32) Joy[0].sx * repCtr * PI / 10.0f / 200.0f / 20.0f;
+                pl->ang.y -= spd * (f32) Joy[0].stickX * repCtr * PI / 10.0f / 200.0f / 20.0f;
             }
         }
     }
 rand:
     tmp = m3r[0];
-    PlWepLockRand(pl, moved, &tmp, &pl->x400);
+    PlWepLockRand(pl, moved, &tmp, &pl->m_Fwork0);
     {
         // COMPILER-DIFF: candidate (sched LUID): the target issues the 0.0 pool load before the m3r[2]
         // load (both prio 4, weight 0, so RTL order decides); a laundered local puts the constant's
@@ -1026,12 +1026,12 @@ rand:
             m3r[0] = tmp;
         }
     }
-    if ((pG->flags_68 & 0x40000) && lockCtr != 0) {
+    if ((pG->Debug_flg[2] & 0x40000) && lockCtr != 0) {
         PlWepAutoTrack(pl, 1, 0.03f);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
 }
 
 void PlWepLockRandInit()
@@ -1042,23 +1042,23 @@ void PlWepLockRandInit()
 void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
 {
     cPlayer* pl = (cPlayer*) plm;
-    cPlWep* wep = pl->pWep;
+    cPlWep* wep = pl->Wep;
     f32 rP;
     f32 rY;
     f32 sP;
     f32 sY;
 
     *pitch *= PI / 2.0f;
-    rP = wep->pObj->wep.lockRandPitch;
-    rY = wep->pObj->wep.lockRandYaw;
-    sP = wep->pObj->wep.lockRandPitchStep;
-    sY = wep->pObj->wep.lockRandYawStep;
+    rP = wep->m_pWep->wep.lockRandPitch;
+    rY = wep->m_pWep->wep.lockRandYaw;
+    sP = wep->m_pWep->wep.lockRandPitchStep;
+    sY = wep->m_pWep->wep.lockRandYawStep;
     if (flag & 1) {
         wep->pitch = *pitch;
-        wep->x2C = *yaw;
+        wep->m_CenterY = *yaw;
     } else if (flag & 2) {
         *pitch = fRand1_1() * rP * lockRandCtr + wep->pitch;
-        *yaw = fRand1_1() * rY * lockRandCtr + wep->x2C;
+        *yaw = fRand1_1() * rY * lockRandCtr + wep->m_CenterY;
     } else {
         *pitch = sP * fRand1_1() + *pitch;
         *yaw = sY * fRand1_1() + *yaw;
@@ -1067,10 +1067,10 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
         } else if (*pitch < wep->pitch - rP) {
             *pitch = wep->pitch - rP;
         }
-        if (*yaw > wep->x2C + rP) {
-            *yaw = wep->x2C + rP;
-        } else if (*yaw < wep->x2C - rP) {
-            *yaw = wep->x2C - rP;
+        if (*yaw > wep->m_CenterY + rP) {
+            *yaw = wep->m_CenterY + rP;
+        } else if (*yaw < wep->m_CenterY - rP) {
+            *yaw = wep->m_CenterY - rP;
         }
     }
     *pitch *= 2.0f / PI;
@@ -1090,16 +1090,16 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     // COMPILER-DIFF: #8 -- the original ranks `mr r29,r4` (mode) after `fmr f31,f1`, i.e. as if r4
     // did not die at the copy; the HImode read of r4 keeps it live past the copy (regmove only moves
     // the death when the dying mode matches the copy's), see docs/matching.md #8.
-    asm("" : "=m"(pl->x400) : "r"(hm));
+    asm("" : "=m"(pl->m_Fwork0) : "r"(hm));
     if (pl->pLockEm == 0) {
         return;
     }
-    hand = &pl->getPartsPtr(10)->worldPos;
+    hand = &pl->getPartsPtr(10)->world;
     PSMTXMultVec(pl->pLockEm->getPartsPtr(((cEm*) pl->pLockEm)->lockParts & 7)->mat, &((cEm*) pl->pLockEm)->lockOfs,
                  &tgt);
     dist = GetDistance3(hand, &tgt);
     if (dist > 400.0f) {
-        d = Muku(hand, &tgt, pl->rot.y + pl->x400, rate * PI);
+        d = Muku(hand, &tgt, pl->ang.y + pl->m_Fwork0, rate * PI);
         if (d > 0.52359879f) {
             d = 0.52359879f;
         }
@@ -1107,17 +1107,17 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
             d = -0.52359879f;
         }
         if (mode != 0) {
-            na = pl->x400 + d;
+            na = pl->m_Fwork0 + d;
             if (na <= 0.20943952f && na >= -0.20943952f) {
-                pl->x400 = na;
-            } else if (pl->x400 + d > 0.20943952f) {
-                pl->rot.y += 0.052359879f;
+                pl->m_Fwork0 = na;
+            } else if (pl->m_Fwork0 + d > 0.20943952f) {
+                pl->ang.y += 0.052359879f;
             } else {
-                pl->rot.y -= 0.052359879f;
+                pl->ang.y -= 0.052359879f;
             }
         } else {
-            pl->rot.y += d;
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += d;
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
     }
     e = atan2(tgt.y - hand->y, dist) / (PI / 4.0f) - m3r[0];
@@ -1178,7 +1178,7 @@ void PlSetLockPitch(cModel* plm)
         if (pl->pLockEm) {
             Vec d;
 
-            PSVECSubtract(&pl->pLockEm->getPartsPtr(((cEm*) pl->pLockEm)->lockParts)->worldPos, &pl->pParts->worldPos,
+            PSVECSubtract(&pl->pLockEm->getPartsPtr(((cEm*) pl->pLockEm)->lockParts)->world, &pl->pParts->world,
                           &d);
             p = VecElevation(&d);
         } else {
@@ -1194,7 +1194,7 @@ void PlSetLockPitch(cModel* plm)
         // COMPILER-DIFF: 13 (value pin): the target's 2/PI high sits in r11 and pWep in r9 -- the
         // original rematerialises the pool constant's high with a reload register that avoids the
         // live pWep; local-alloc here hands the shorter-lived high r9 first.
-        register cPlWep* w asm("r9") = pl->pWep;
+        register cPlWep* w asm("r9") = pl->Wep;
         w->pitch = p;
     }
     p *= 2.0f / PI;

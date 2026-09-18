@@ -24,7 +24,7 @@ extern "C" {
 
 void PSMTXIdentity(Mtx m);
 void PSMTXCopy(const Mtx src, Mtx dst);
-void PSMTXConcat(const Mtx a, const Mtx b, Mtx ab);
+void PSMTXConcat(const Mtx lhs, const Mtx rhs, Mtx ab);
 void PSMTXTranspose(const Mtx src, Mtx xPose);
 u32 PSMTXInverse(const Mtx src, Mtx inv);
 void PSMTXRotRad(Mtx m, char axis, f32 rad);

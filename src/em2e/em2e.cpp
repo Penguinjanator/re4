@@ -38,15 +38,15 @@ static void em2e_R1_Die_Normal(cEm2e* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 extern "C" void _prolog()
@@ -71,7 +71,7 @@ void em2eDmCk(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
 
-    if (em->hp > 0 && (int) pG->flags_5010 < 0 && !(w->flags & 2)) {
+    if (em->hp > 0 && (int) pG->Status_flg[1] < 0 && !(w->flags & 2)) {
         if ((pPL->pos.x - em->pos.x) * (pPL->pos.x - em->pos.x) + (pPL->pos.y - em->pos.y) * (pPL->pos.y - em->pos.y)
             + (pPL->pos.z - em->pos.z) * (pPL->pos.z - em->pos.z) < 160000.0f) {
             em->hp = 0;
@@ -126,8 +126,8 @@ void cEm2e::move()
     Em2eWork* w = EM2E_WK(this);
 
     em2eDmCk(this);
-    Em2e_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em2e_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -151,30 +151,30 @@ static void em2e_R0_Init(cEm2e* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em2e 00() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(4), ARC(6)) == 0) {
             pLog->err(0, 0, "em2e 01() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     zero = 0;
     at = &em->atari;
     em->be_flag &= ~0x01000000;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     EspDataLoad((u32) ARC(7), 0x26, 0);
     em->hp = 1;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 500.0f, 500.0f, 500.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -189,7 +189,7 @@ static void em2e_R0_Init(cEm2e* em)
     w->nrm.y = 1.0f;
     w->nrm.x = 0.0f;
     w->nrm.z = 0.0f;
-    switch (em->x38D) {
+    switch (em->set) {
     case 0:
     default:
         EmRoutineSet(em, 1, zero, zero, zero);
@@ -201,7 +201,7 @@ static void em2e_R0_Init(cEm2e* em)
         Vec hit;
         Vec nrm;
 
-        PSMTXRotRad(m, 'y', em->rot.y);
+        PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
         a.x = 0.0f;
         a.y = 0.0f;
@@ -225,17 +225,17 @@ static void em2e_R0_Init(cEm2e* em)
 
 static void em2e_R0_Move(cEm2e* em)
 {
-    Em2e_R1_move_tbl[em->xFD](em);
+    Em2e_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em2e_R1_Wait(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 90 + 60;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -246,7 +246,7 @@ static void em2e_R1_Wait(cEm2e* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -257,10 +257,10 @@ static void em2e_R1_Walk(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 60 + 30;
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         Vec spd;
 
@@ -280,7 +280,7 @@ static void em2e_R1_Walk(cEm2e* em)
         break;
     }
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -291,16 +291,16 @@ static void em2e_R1_Turn(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 45 + 15;
         w->turnDir = Rnd() & 1;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->turnDir) {
-            em->rot.y += PI / 64.0f;
+            em->ang.y += PI / 64.0f;
         } else {
-            em->rot.y -= PI / 64.0f;
+            em->ang.y -= PI / 64.0f;
         }
         em2eFootMove(em);
         if (w->timer) {
@@ -312,7 +312,7 @@ static void em2e_R1_Turn(cEm2e* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -324,10 +324,10 @@ static void em2e_R1_W_Wait(cEm2e* em)
     Em2eWork* w = EM2E_WK(em);
 
     w->flags |= 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 90 + 60;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -346,10 +346,10 @@ static void em2e_R1_W_Walk(cEm2e* em)
     Em2eWork* w = EM2E_WK(em);
 
     w->flags |= 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = 15;
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         Vec spd;
 
@@ -379,11 +379,11 @@ static void em2e_R1_W_Turn(cEm2e* em)
     Em2eWork* w = EM2E_WK(em);
 
     w->flags |= 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = 15;
-        w->turnDir = em->emsetNo & 1;
-        em->xFE++;
+        w->turnDir = em->emset_no & 1;
+        em->r_no_2++;
     case 1: {
         Mtx m;
 
@@ -406,20 +406,20 @@ static void em2e_R1_W_Turn(cEm2e* em)
 
 static void em2e_R0_Damage(cEm2e* em)
 {
-    Em2e_R3_move_tbl[em->xFD](em);
+    Em2e_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em2e_R0_Die(cEm2e* em)
 {
-    Em2e_R3_move_tbl[em->xFD](em);
+    Em2e_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em2e_R1_Die_Normal(cEm2e* em)
 {
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         AtariOff(&em->atari, 0xFCFF);
         em->be_flag &= ~2;
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -429,8 +429,8 @@ void em2eFootMove(cEm2e* em)
     cModel* p2 = em->getPartsPtr(2);
     cModel* p3 = em->getPartsPtr(3);
 
-    p2->rot.y = w->footAng;
-    p3->rot.y = -w->footAng;
+    p2->ang.y = w->footAng;
+    p3->ang.y = -w->footAng;
     if (w->flags & 1) {
         w->footAng += PI / 64.0f;
         if (w->footAng >= PI / 16.0f) {

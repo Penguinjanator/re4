@@ -118,7 +118,7 @@ void R119Init()
     EvtMgr.SetFunc("evt_r119s10_func", (void*) Evt_R119S10_Func);
     EvtMgr.SetFunc("evt_r119s20_func", (void*) Evt_R119S20_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r119_EventGolemAppear, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r119_EventGolemAppear, 0, 1);
         SmdSetTrans(0x2C, 0);
         SceAtSetEnable(5, 0);
     } else {
@@ -129,13 +129,13 @@ void R119Init()
     SmdGetObjPtr(0x2C)->be_flag |= 0x20;
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     SmdGetObjPtr(0x24)->be_flag |= 0x20;
-    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
-    PSetSat(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSetSat(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSetSat(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
-    PSetSat(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
-    PSetSat(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
-    PSetSat(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, SCE_PRIO_DEF_2, 0);
+    PSetSat(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSetSat(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSetSat(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    PSetSat(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSetSat(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSetSat(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
     koya_init();
     if (RsfCheck(G_ROOM_ID, 4)) {
         YaneA_delete();
@@ -155,7 +155,7 @@ void R119Init()
     if (RsfCheck(G_ROOM_ID, 3)) {
         koyaC_delete();
     }
-    SceExec(0x12, (TaskFunc) r119_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r119_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetEnable(3, 0);
     SceAtSetEnable(4, 0);
     pos.x = 108540.0f;
@@ -164,24 +164,24 @@ void R119Init()
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x10000;
+    tree = SetTree(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
+    tree->LightInfo.SelectMask &= ~0x10000;
     pos.x = 109167.0f;
     pos.y = 2350.0f;
     pos.z = 18073.0f;
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x10000;
+    tree = SetTree(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
+    tree->LightInfo.SelectMask &= ~0x10000;
     pos.x = 123623.0f;
     pos.y = 2350.0f;
     pos.z = 8190.0f;
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    tree = SetTree(ROOM_ARC_PTR(pGS->pRoomArc, 0x22), ROOM_ARC_PTR(pGS->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x10000;
+    tree = SetTree(ROOM_ARC_PTR(pGS->pRoom, 0x22), ROOM_ARC_PTR(pGS->pRoom, 0x23), &pos, &rot);
+    tree->LightInfo.SelectMask &= ~0x10000;
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
 
@@ -206,14 +206,14 @@ static void r119_ThunderFlagOn()
 
     if (EffGetToolState() == 1) {
         l = LightMgr.getWorkPtr(2);
-        l->power = r119_lightPow2B;
+        l->Intensity = r119_lightPow2B;
         l = LightMgr.getWorkPtr(6);
-        l->power = r119_lightPow6B;
+        l->Intensity = r119_lightPow6B;
     } else if (EffGetToolState() == 2) {
         l = LightMgr.getWorkPtr(2);
-        l->power = r119_lightPow2A;
+        l->Intensity = r119_lightPow2A;
         l = LightMgr.getWorkPtr(6);
-        l->power = r119_lightPow6A;
+        l->Intensity = r119_lightPow6A;
     }
 }
 
@@ -222,9 +222,9 @@ static void r119_ThunderFlagOff()
     cLight* l;
 
     l = LightMgr.getWorkPtr(2);
-    l->power = 0.509f;
+    l->Intensity = 0.509f;
     l = LightMgr.getWorkPtr(6);
-    l->power = 0.897f;
+    l->Intensity = 0.897f;
 }
 
 // Thunder every 240..385 frames.
@@ -258,15 +258,15 @@ static void r119_EventGolemAppear()
     cObj* obj;
 
     RsfSet(G_ROOM_ID, 0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s00.evd", 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s10.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s20.evd", 0, 0, 0, 0);
     EvtMgr.EvtReadAram("event/evd/r119s30.evd", 0, 0, 0, 0);
     r119_work->golem = EmSetFromList2(0x28, 0);
     GamePointBossReset();
-    Cckpt.life.flags = (u32) r119_work->golem;
-    BitOff(pG->flags_5010, 0x800);
+    Cckpt.m_LifeMeter.flags = (u32) r119_work->golem;
+    BitOff(pG->Status_flg[1], 0x800);
     {
         Vec v;
 
@@ -297,15 +297,15 @@ static void r119_EventGolemAppear()
         int stat;
         cPlayer* pl;
 
-        stat = r119_work->golem->checkStatus(5);
+        stat = r119_work->golem->checkStatus(EM_STATUS_ACTIVE);
         if (stat == 0) {
             RsfSet(G_ROOM_ID, 7);
             SndRoomStrStop(3);
-            pG->flags_5010 |= 0x800;
+            pG->Status_flg[1] |= 0x800;
             EvtMgr.EvtReadExec("event/evd/r119s20.evd", 0x2B, 0);
             SceAtSetEnable(3, 0);
             SceAtSetEnable(4, 0);
-            BitOff(pG->flags_5010, 0x800);
+            BitOff(pG->Status_flg[1], 0x800);
             ((cEmGolem*) r119_work->golem)->setDie();
             EstSet((int) r119_work->golem, -1, 0, 0, 1, 0xF, 0, 0, (u32) r119_work->golem, (void*) stat);
             if (r119_work->dog != 0) {
@@ -329,14 +329,14 @@ static void r119_EventGolemAppear()
         }
         cnt++;
         pl = pPL;
-        if ((pG->flags_51BC & 0x00080000) && !(pG->flags_174 & 0x02000000)) {
+        if ((pG->Item_find_flg & 0x00080000) && !(pG->Room_flg[0] & 0x02000000)) {
             SceDebugDisp("CNT[%d/%d]", cnt, 900);
             if (pl->checkEvent() == 1) {
                 SceDebugDisp("PL[OK]");
             } else {
                 SceDebugDisp("PL[NO]");
             }
-            if (!(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+            if (!(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
                 SceDebugDisp("EM[OK]");
             } else {
                 SceDebugDisp("EM[NO]");
@@ -344,20 +344,20 @@ static void r119_EventGolemAppear()
             if (cnt > 899) {
                 cObj* o;
 
-                for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->next) {
+                for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
                     if (o->id == 0x1A || o->id == 0x29 || o->id == 0x2A || (*(u32*) &o->id & 0xFFFF0000) == 0x22010000) {
                         cnt = 600;
                     }
                 }
             }
-            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flags_3C8 & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
-                pG->flags_174 |= 0x02000000;
-                SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, 2, 0);
+            if (cnt > 900 && pl->checkEvent() == 1 && !(r119_work->golem->flag & 0x10) && ((cEmGolem*) r119_work->golem)->ckBusy() == 0) {
+                pG->Room_flg[0] |= 0x02000000;
+                SceExec(0x12, (TaskFunc) r119_EventDogAppear, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
-        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->flags_174 & 0x01000000)) || DebugTrg(0) != 0) {
-            pG->flags_174 |= 0x01000000;
-            SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, 2, 0);
+        if ((((cEmGolem*) r119_work->golem)->ckEvent() != 0 && !(pG->Room_flg[0] & 0x01000000)) || DebugTrg(0) != 0) {
+            pG->Room_flg[0] |= 0x01000000;
+            SceExec(0x12, (TaskFunc) r119_EventParasiet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         SceSleep(1);
     }
@@ -365,9 +365,9 @@ static void r119_EventGolemAppear()
 
 static void r119_EventParasiet()
 {
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s30.evd", 0x2B, 0xA0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // The dog comes to help: its event, then Leon and the dog are placed.
@@ -376,9 +376,9 @@ static void r119_EventDogAppear()
     Vec pos;
     Vec ang;
 
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     EvtMgr.EvtReadExec("event/evd/r119s10.evd", 0x2B, 0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
     PSet(r119_work->dog, EmSetFromList2(0x29, 0));
     pos.x = 116292.0f;
     pos.y = 2298.0f;
@@ -400,24 +400,24 @@ static void koya_destroy_check()
     static const Vec r119_up = {0.0f, 1.0f, 3.1415927f};
 
     for (;;) {
-        if ((pG->flags_174 & 0x80000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 1);
             koyaA_destroy();
-        } else if ((pG->flags_174 & 0x10000000) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
+        } else if ((pG->Room_flg[0] & 0x10000000) && RsfCheck(G_ROOM_ID, 4) == 0 && RsfCheck(G_ROOM_ID, 1) == 0) {
             RsfSet(G_ROOM_ID, 4);
             YaneA_destroy();
         }
-        if ((pG->flags_174 & 0x40000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
+        if ((pG->Room_flg[0] & 0x40000000) && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 2);
             koyaB_destroy();
-        } else if ((pG->flags_174 & 0x08000000) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+        } else if ((pG->Room_flg[0] & 0x08000000) && RsfCheck(G_ROOM_ID, 5) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
             RsfSet(G_ROOM_ID, 5);
             YaneB_destroy();
         }
-        if ((pG->flags_174 & 0x20000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+        if ((pG->Room_flg[0] & 0x20000000) && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 3);
             koyaC_destroy();
-        } else if ((pG->flags_174 & 0x04000000) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
+        } else if ((pG->Room_flg[0] & 0x04000000) && RsfCheck(G_ROOM_ID, 6) == 0 && RsfCheck(G_ROOM_ID, 3) == 0) {
             RsfSet(G_ROOM_ID, 6);
             YaneC_destroy();
         }
@@ -556,7 +556,7 @@ extern "C" void koyaC_delete()
 extern "C" void YaneA_delete()
 {
     EatMgr.destroy(r119_work->eat[0]);
-    r119_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
+    r119_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
     SmdSetTrans(4, 0);
     SmdSetTrans(5, 0);
     SmdSetTrans(0x27, 1);
@@ -566,7 +566,7 @@ extern "C" void YaneA_delete()
 extern "C" void YaneB_smd_delete()
 {
     EatMgr.destroy(r119_work->eat[1]);
-    r119_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
+    r119_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
     SmdSetTrans(6, 0);
     SmdSetTrans(7, 0);
     SmdSetTrans(0x29, 1);
@@ -581,7 +581,7 @@ extern "C" void YaneB_delete()
 extern "C" void YaneC_delete()
 {
     EatMgr.destroy(r119_work->eat[2]);
-    r119_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
+    r119_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
     SmdSetTrans(8, 0);
     SmdSetTrans(9, 0);
     SmdSetTrans(0x2B, 1);
@@ -653,9 +653,9 @@ extern "C" void Evt_R119S00_Func(Event* e)
         }
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if ((obj = SmdGetObjPtr(0x21)) != 0) {
                     e->SetMod("scr0000", obj, 5, 0, 2, 0);
                     obj->setPos(&pos);
@@ -697,7 +697,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
             SmdSetTrans(0x24, 0);
             SmdSetTrans(0x25, 0);
         case 0x10:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(6, 0);
                 SmdSetTrans(7, 0);
                 SmdSetTrans(0xC, 0);
@@ -709,12 +709,12 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         case 0xE:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x1D, 0);
             }
             break;
         case 0x13:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0, 0);
                 SmdSetTrans(0x1C, 0);
                 SmdSetTrans(0x1B, 0);
@@ -723,13 +723,13 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         case 0x14:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x1B, 0);
                 SmdSetTrans(0x2D, 0);
             }
             break;
         case 0x17:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(6, 0);
                 SmdSetTrans(7, 0);
                 SmdSetTrans(8, 0);
@@ -737,7 +737,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         default:
-            if ((int) pG->flags_60 >= 0 && e->frame == 0) {
+            if ((int) pG->Debug_flg[0] >= 0 && e->NowFrame == 0) {
                 r119_evtBridgeOn();
             }
             break;
@@ -747,7 +747,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
         SmdSetTrans(0x2C, 1);
         SmdSetTrans(0x24, 0);
         SmdSetTrans(0x25, 0);
-        if ((int) pG->flags_60 >= 0) {
+        if ((int) pG->Debug_flg[0] >= 0) {
             r119_evtBridgeOn();
         }
         w = SmdGetWorkPtr(0x21);
@@ -776,7 +776,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
 
 extern "C" void Evt_R119S10_Func(Event* e)
 {
-    if (e->funcMode == 1 && e->cut == 0 && e->frame == 0) {
+    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         r119_evtSetGiant(e, "em2b00");
     }
 }
@@ -792,7 +792,7 @@ extern "C" void Evt_R119S20_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             if ((obj = SmdGetObjPtr(0x21)) != 0) {
                 e->SetMod("scr0000", obj, 5, 0, 2, 0);
                 obj->setPos(&pos);

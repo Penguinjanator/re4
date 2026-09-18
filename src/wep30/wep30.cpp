@@ -29,7 +29,7 @@ void Wep30_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep30_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4D, 1);
     }
@@ -42,14 +42,14 @@ cObjWep* equipWeapon(cPlayer* pl)
     Vec pos;
     Vec rot;
 
-    pl->pWep->pObj = 0;
-    pl->pWep->pObj2 = 0;
+    pl->Wep->m_pWep = 0;
+    pl->Wep->pObj2 = 0;
     obj = (cObjWep*) ObjMgr.createBack(0x3C);
     if (obj == 0) {
         goto fail;
     }
     obj->init(pl);
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     pos.x = -170.0f;
     pos.y = -60.0f;
     pos.z = -40.0f;
@@ -57,7 +57,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     rot.y = 2.4958208f;
     rot.z = -0.2268928f;
     obj->parentSet(pl, 0x11, &pos, &rot);
-    if (pG->wep_no == 0x19 || pG->wep_no == 0x1F || pG->wep_no == 0x20) {
+    if (pG->weapon_no == 0x19 || pG->weapon_no == 0x1F || pG->weapon_no == 0x20) {
         obj->pParts->scale.x = 0.5f;
         obj->pParts->scale.y = 0.5f;
         obj->pParts->scale.z = 0.5f;
@@ -79,16 +79,16 @@ cObjWep* equipWeapon(cPlayer* pl)
     rot.y = 0.0f;
     rot.z = 0.0f;
     obj->parentSet(pl, 0xA, &pos, &rot);
-    if (pG->wep_no == 0x19 || pG->wep_no == 0x1F || pG->wep_no == 0x20) {
+    if (pG->weapon_no == 0x19 || pG->weapon_no == 0x1F || pG->weapon_no == 0x20) {
         obj->pParts->scale.x = 0.5f;
         obj->pParts->scale.y = 0.5f;
         obj->pParts->scale.z = 0.5f;
     }
-    pl->pWep->pObj2 = obj;
+    pl->Wep->pObj2 = obj;
     if (ItemMgr.bulletNum() == 0) {
         obj->setDisp(0, 0);
     }
-    return pl->pWep->pObj;
+    return pl->Wep->m_pWep;
 }
 
 void ObjHandGre_init(cObj* obj)
@@ -98,7 +98,7 @@ void ObjHandGre_init(cObj* obj)
 
 void cObjHandGre::init(cModel* parent)
 {
-    if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x6A), PL_ARC_PTR(pG->pPlArc, 0x6B)) == 0) {
+    if (modelInit(PL_ARC_PTR(pG->pPlayer, 0x6A), PL_ARC_PTR(pG->pPlayer, 0x6B)) == 0) {
         pLog->err(0, 0, "cObjHandGre::init() failed.");
     }
 }
@@ -121,7 +121,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x0E], WEP_ARC_PTR(0x1E));
     PSet(pl->pMotTbl[0x0F], WEP_ARC_PTR(0x0E));
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x1F));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x20));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x21));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x22));
@@ -135,16 +135,16 @@ void cObjHandGre::setMotion(cPlayer* pl)
         setDisp(0, 0);
     }
     if (num) {
-        pl->pWep->pObj2->setDisp(0, 1);
+        pl->Wep->pObj2->setDisp(0, 1);
     } else {
-        pl->pWep->pObj2->setDisp(0, 0);
+        pl->Wep->pObj2->setDisp(0, 0);
     }
     if (bulletNum()) {
         hand = WEP_ARC_PTR(0x7);
     } else {
-        hand = PL_ARC_PTR(pG->pPlArc, 0x11);
+        hand = PL_ARC_PTR(pG->pPlayer, 0x11);
     }
-    pl->pBody->initWepHand((u32) hand);
+    pl->Body->initWepHand((u32) hand);
     pl->setRightHand(1);
     pl->setLeftHand(0);
 }

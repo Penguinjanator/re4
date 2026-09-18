@@ -14,7 +14,7 @@
 
 extern "C" {
 u8 EspPullCoreKind();
-void EffectEspgenDelete(int a, int kind, cModel* obj);
+void EffectEspgenDelete(int Core_flg, int kind, cModel* obj);
 }
 
 cCtrl* GetCtrlDragon(u32 type)
@@ -69,13 +69,13 @@ create:
     w->type = type;
     w->espKind = EspPullCoreKind();
     pos = w->obj[1]->pos;
-    rot = w->obj[1]->rot;
+    rot = w->obj[1]->ang;
     if (obj[0]) {
-        w->sat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
+        w->sat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
     }
-    w->sat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2);
+    w->sat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
     // pGS: the original loads pG after the sat[1] store; a plain pG here is hoisted above the argument setup
-    w->sat[2] = EatMgr.create(ROOM_ARC_PTR(pGS->pRoomArc, 5), 0, &pos, &rot, 3);
+    w->sat[2] = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 5), 0, &pos, &rot, 3);
     return c;
 }
 
@@ -101,8 +101,8 @@ void cCtrl14::move()
             EstSet((int) w->obj[1], -1, NULL, NULL, 1, 4, 1, 0, (u32) w->obj[1], NULL);
         }
     }
-    pos = w->obj[1]->getPartsPtr(0)->worldPos;
-    rot = w->obj[1]->rot;
+    pos = w->obj[1]->getPartsPtr(0)->world;
+    rot = w->obj[1]->ang;
     if (w->obj[0]) {
         w->sat[0]->setCoord(&pos, &rot);
     }
@@ -171,7 +171,7 @@ f32 cCtrl14::getDir()
     if (o == NULL) {
         return 0.0f;
     }
-    return o->rot.y;
+    return o->ang.y;
 }
 
 f32 cCtrl14::getDir2()
@@ -180,7 +180,7 @@ f32 cCtrl14::getDir2()
     f32 ret = 0.0f;
 
     if (w->obj[1] && w->obj[0]) {
-        ret = Muku2(w->obj[0]->rot.y, w->obj[1]->rot.y, PI);
+        ret = Muku2(w->obj[0]->ang.y, w->obj[1]->ang.y, PI);
     } else {
         ret = 0.0f;
     }
@@ -268,27 +268,27 @@ void cCtrl14::addHeight(f32 y)
     }
 }
 
-void cCtrl14::addDir(f32 d)
+void cCtrl14::addDir(f32 add)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
     cModel* o = w->obj[1];
 
     if (o) {
-        o->rot.y += d;
+        o->ang.y += add;
         if (w->obj[0]) {
-            w->obj[1]->rot.y = w->obj[0]->rot.y + Muku2(w->obj[0]->rot.y, w->obj[1]->rot.y, PI / 4.0f);
-            w->obj[1]->rot.y = LIMIT_ANGLE(w->obj[1]->rot.y);
+            w->obj[1]->ang.y = w->obj[0]->ang.y + Muku2(w->obj[0]->ang.y, w->obj[1]->ang.y, PI / 4.0f);
+            w->obj[1]->ang.y = LIMIT_ANGLE(w->obj[1]->ang.y);
         }
     }
 }
 
-void cCtrl14::setDir(f32 d)
+void cCtrl14::setDir(f32 dir)
 {
     Ctrl14Work* w = (Ctrl14Work*) work;
 
     if (w->obj[1] && w->obj[0]) {
-        w->obj[1]->rot.y = w->obj[0]->rot.y + d;
-        w->obj[1]->rot.y = LIMIT_ANGLE(w->obj[1]->rot.y);
+        w->obj[1]->ang.y = w->obj[0]->ang.y + dir;
+        w->obj[1]->ang.y = LIMIT_ANGLE(w->obj[1]->ang.y);
     }
 }
 
@@ -297,8 +297,8 @@ void cCtrl14::resetDir()
     Ctrl14Work* w = (Ctrl14Work*) work;
 
     if (w->obj[1]) {
-        w->obj[1]->rot.y += Muku2(w->obj[1]->rot.y, w->obj[0]->rot.y, 0.0061359233f);
-        w->obj[1]->rot.y = LIMIT_ANGLE(w->obj[1]->rot.y);
+        w->obj[1]->ang.y += Muku2(w->obj[1]->ang.y, w->obj[0]->ang.y, 0.0061359233f);
+        w->obj[1]->ang.y = LIMIT_ANGLE(w->obj[1]->ang.y);
     }
 }
 

@@ -7,7 +7,7 @@
 // Floor attribute record returned by FlrAtCheck (game/flr_at.cpp), 0x84 bytes. The layout
 // depends on the attribute type; only the bytes game/snd.cpp reads are named.
 struct FlrAt {
-    u8 x0;           // 0x00  bit0: active
+    u8 flag;         // 0x00  bit0: active (FlrAtOn / FlrAtOff)
     u8 type;         // 0x01  attribute type asked for in FlrAtCheck
     u8 x2;           // 0x02  (type 2) BGM control id
     u8 group;        // 0x03  group (FlrSys::group 0xFF = any)
@@ -46,7 +46,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag);
 
 extern "C" {
 void FlrAtInit();
-int FlrAtSetDefVal(u32 no, u8 a, u8 b);
+int FlrAtSetDefVal(u32 no, u8 foot_se_set, u8 eff_no);
 }
 
 #endif

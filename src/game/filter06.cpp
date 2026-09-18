@@ -21,11 +21,11 @@
 
 class cParticle06 {
 public:
-    Vec pos;       // 0x00
-    Vec spd;       // 0x0C
+    Vec m_Pos;       // 0x00
+    Vec m_Spd;       // 0x0C
     u8 pad_18[4];
-    u8 alphaBase;  // 0x1C
-    u8 alpha;      // 0x1D
+    u8 m_Base_alpha;  // 0x1C
+    u8 m_Alpha;      // 0x1D
     u8 pad_1E[2];
 
     void init(u32 no);
@@ -59,14 +59,14 @@ static Vec cam_vec_LR;
 
 void cParticle06::init(u32 no)
 {
-    FSet(pos.x, pG->Cam.param.pos.x);
-    FSet(pos.y, pG->Cam.param.pos.y);
-    FSet(pos.z, pG->Cam.param.pos.z);
-    pos.x += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
-    pos.y += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
-    pos.z += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
-    alphaBase = 0x80;
-    alpha = 0;
+    FSet(m_Pos.x, pG->Cam.param.pos.x);
+    FSet(m_Pos.y, pG->Cam.param.pos.y);
+    FSet(m_Pos.z, pG->Cam.param.pos.z);
+    m_Pos.x += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
+    m_Pos.y += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
+    m_Pos.z += flt06.spread * 10.0f * fRand1_1() + (f32) no * 500.0f;
+    m_Base_alpha = 0x80;
+    m_Alpha = 0;
 }
 
 void cParticle06::move()
@@ -80,8 +80,8 @@ void cParticle06::move()
     int n;
     int v;
 
-    PSVECAdd(&pos, &spd, &pos);
-    PSVECSubtract(&pos, &pG->Cam.param.pos, &d);
+    PSVECAdd(&m_Pos, &m_Spd, &m_Pos);
+    PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &d);
     dot = PSVECDotProduct(&d, &cam_vec_LR);
     if (dot >= 0.0f) {
         n = (int) ((dot + flt06.rangeLR) / (flt06.rangeLR + flt06.rangeLR));
@@ -90,11 +90,11 @@ void cParticle06::move()
     }
     if (n != 0) {
         PSVECScale(&cam_vec_LR, &dir, -(flt06.rangeLR * (f32) n + flt06.rangeLR * (f32) n));
-        PSVECAdd(&pos, &dir, &pos);
+        PSVECAdd(&m_Pos, &dir, &m_Pos);
     }
 #line 133 "D:/Bio4/Prog/filter06.cpp"
     VECNormalize(&pG->Cam.up, &up);
-    PSVECSubtract(&pos, &pG->Cam.param.pos, &d);
+    PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &d);
     dot = PSVECDotProduct(&d, &up);
     if (dot >= 0.0f) {
         n = (int) ((dot + flt06.rangeUp) / (flt06.rangeUp + flt06.rangeUp));
@@ -103,12 +103,12 @@ void cParticle06::move()
     }
     if (n != 0) {
         PSVECScale(&up, &tmp, -(flt06.rangeUp * (f32) n + flt06.rangeUp * (f32) n));
-        PSVECAdd(&pos, &tmp, &pos);
+        PSVECAdd(&m_Pos, &tmp, &m_Pos);
     }
     PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &dir);
 #line 154
     VECNormalize(&dir, &dir);
-    PSVECSubtract(&pos, &pG->Cam.param.pos, &d);
+    PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &d);
     dot = PSVECDotProduct(&d, &dir);
     if (dot >= 0.0f) {
         n = (int) (dot / flt06.rangeDepth);
@@ -117,8 +117,8 @@ void cParticle06::move()
     }
     if (n != 0) {
         PSVECScale(&dir, &up, -(flt06.rangeDepth * (f32) n));
-        PSVECAdd(&pos, &up, &pos);
-        PSVECSubtract(&pos, &pG->Cam.param.pos, &d);
+        PSVECAdd(&m_Pos, &up, &m_Pos);
+        PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &d);
         dot = PSVECDotProduct(&d, &dir);
     }
     a = 255.0f / (dot / 800.0f);
@@ -129,18 +129,18 @@ void cParticle06::move()
         // COMPILER-DIFF: #17. The alphaBase load/product live in r11 in the original (the fast-cast
         // address pseudo of `(u8) a` took r9 first); ours gives them r9. Pinned, no code emitted.
         register int ab asm("r11");
-        ab = alphaBase;
+        ab = m_Base_alpha;
         v = (ab * (u8) a) >> 8;
     }
     // the original re-reads `alpha` masked (`clrlwi rX, rStore, 24`) with the `&flt06` pair issued
     // after the store; ours knows the product fits in 8 bits and folds the mask -- the volatile asm
     // hides the range from combine and keeps the address pair below the product (emobj setYarare)
     asm volatile("" : "+r"(v));
-    alpha = v;
-    v = ((u32) alpha * flt06.cur[3]) >> 8;
-    alpha = v;
-    if (alpha < flt06.alphaMin) {
-        alpha = flt06.alphaMin;
+    m_Alpha = v;
+    v = ((u32) m_Alpha * flt06.cur[3]) >> 8;
+    m_Alpha = v;
+    if (m_Alpha < flt06.alphaMin) {
+        m_Alpha = flt06.alphaMin;
     }
 }
 
@@ -182,14 +182,14 @@ void Filter06Trans()
     if (flt06.num == 0) {
         return;
     }
-    if (pG->flags_5010 & 0x02000000) {
+    if (pG->Status_flg[1] & 0x02000000) {
         return;
     }
     PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &cam_vec_LR);
     PSVECCrossProduct(&cam_vec_LR, &pG->Cam.up, &cam_vec_LR);
 #line 246
     VECNormalize(&cam_vec_LR, &cam_vec_LR);
-    if (!(pG->flags_170 & 0x08000000)) {
+    if (!(pG->Stop_flg & 0x08000000)) {
         for (i = 0; i < flt06.num; i++) {
             flt06.p[i].move();
         }
@@ -230,10 +230,10 @@ void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd,
     }
     for (i = 0; i < flt06.num; i++) {
         flt06.p[i].init(i);
-        flt06.p[i].spd = *spd;
-        flt06.p[i].spd.x += spdRand->x * fRand1_1();
-        flt06.p[i].spd.y += spdRand->y * fRand1_1();
-        flt06.p[i].spd.z += spdRand->z * fRand1_1();
+        flt06.p[i].m_Spd = *spd;
+        flt06.p[i].m_Spd.x += spdRand->x * fRand1_1();
+        flt06.p[i].m_Spd.y += spdRand->y * fRand1_1();
+        flt06.p[i].m_Spd.z += spdRand->z * fRand1_1();
     }
     flt06.col[0] = r;
     flt06.col[1] = g;
@@ -254,7 +254,7 @@ void Filter06Render()
 
     GXSetBlendMode(1, 4, 5, 0);
     CameraCurrentProjection();
-    GXLoadPosMtxImm(pG->Cam.viewMat, 0);
+    GXLoadPosMtxImm(pG->Cam.v_mat, 0);
     GXSetCurrentMtx(0);
     GXSetCullMode(0);
     GXSetZMode(1, 3, 0);
@@ -277,10 +277,10 @@ void Filter06Render()
     scale = flt06.scale;
     for (i = 0; i < flt06.num; i++, p++) {
         GXBegin(0xA8, 0, 2);
-        GXPosition3f32(p->pos.x, p->pos.y, p->pos.z);
-        GXColor4u8(flt06.cur[0] >> 2, flt06.cur[1] >> 2, flt06.cur[2] >> 2, p->alpha >> 2);
-        GXPosition3f32(p->spd.x * scale + p->pos.x, p->spd.y * scale + p->pos.y, p->spd.z * scale + p->pos.z);
-        GXColor4u8(flt06.cur[0], flt06.cur[1], flt06.cur[2], p->alpha);
+        GXPosition3f32(p->m_Pos.x, p->m_Pos.y, p->m_Pos.z);
+        GXColor4u8(flt06.cur[0] >> 2, flt06.cur[1] >> 2, flt06.cur[2] >> 2, p->m_Alpha >> 2);
+        GXPosition3f32(p->m_Spd.x * scale + p->m_Pos.x, p->m_Spd.y * scale + p->m_Pos.y, p->m_Spd.z * scale + p->m_Pos.z);
+        GXColor4u8(flt06.cur[0], flt06.cur[1], flt06.cur[2], p->m_Alpha);
     }
     GXEnableTexOffsets(0, 0, 0);
 }

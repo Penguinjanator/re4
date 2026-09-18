@@ -42,10 +42,10 @@ static inline void U16And(u16& d, u16 mask) { d &= mask; }
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 
 static f32 r210_daiZ = -32012.0f;
@@ -72,14 +72,14 @@ static void plemRide(cPlayer* pl);
 // Ashley waits at the cart (area 9) / follows again (area 0xA).
 static void asl_wait()
 {
-    SubCharCtrl(7, 0);
+    SubCharCtrl(SCC_STOP, 0);
     SceAtSetEnable(0xA, 1);
     SceAtSetEnable(9, 0);
 }
 
 static void asl_chase()
 {
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     SceAtSetEnable(0xA, 0);
     SceAtSetEnable(9, 1);
 }
@@ -89,23 +89,23 @@ void R210Init()
 #line 53 "D:/Bio4/Prog/r210.cpp"
     r210_work = (R210Work*) MEM_CALLOC(sizeof(R210Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if ((pG->flags_5018 & 0x04000000) == 0) {
-            pG->flags_5018 |= 0x04000000;
+        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+            pG->Status_flg[3] |= 0x04000000;
         }
     }
     {
-        u32 flags = pG->flags_5018;
+        u32 flags = pG->Status_flg[3];
 
         if (flags & 0x04000000) {
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
-            SubCharCtrl(1, 0);
-            pG->flags_51BC &= ~0x80;
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
+            SubCharCtrl(SCC_CHASE, 0);
+            pG->Item_find_flg &= ~0x80;
         }
     }
-    if ((pG->flags_54 & 0x100) == 0 && pG->room_id_prev == 0x222) {
-        if ((pG->flags_51C0 & 0x40) == 0) {
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
-            BitOn(pG->flags_5018, 0x04000000);
+    if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
+        if ((pG->Scenario_flg[0] & 0x40) == 0) {
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
+            BitOn(pG->Status_flg[3], 0x04000000);
             if (pSUB) {
                 Vec v;
 
@@ -121,42 +121,42 @@ void R210Init()
                     v.z = 0.0f;
                     sub->setAng(&v);
                 }
-                SubCharCtrl(7, 0);
+                SubCharCtrl(SCC_STOP, 0);
             }
-            pG->flags_51BC |= 0x80;
+            pG->Item_find_flg |= 0x80;
         }
         SmdGetObjPtr(0x20)->be_flag |= 0x20;
         SmdGetObjPtr(0x21)->be_flag |= 0x20;
         SmdGetObjPtr(0x21)->pos.z = r210_daiZ;
         SmdGetObjPtr(0x20)->pos.z = r210_daiZ;
     }
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r222_DummyDoorProc, 0, 1);
-    SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) asl_wait, 0, 1);
-    SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) asl_chase, 0, 1);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) toroko_go, 0, 1);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) toroko_go, (void*) 1, 1);
-    if ((pG->flags_54 & 0x100) == 0 && pG->room_id_prev == 0x210) {
-        if (pG->x4F9E == 1) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, 2, 0);
-        } else if (pG->x4F9E == 2) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, 2, 0);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r222_DummyDoorProc, 0, 1);
+    SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) asl_wait, 0, 1);
+    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) asl_chase, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) toroko_go, 0, 1);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) toroko_go, (void*) 1, 1);
+    if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x210) {
+        if (pG->Part == 1) {
+            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, SCE_PRIO_DEF_2, 0);
+        } else if (pG->Part == 2) {
+            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if (pSUB) {
-        U16And(pSUB->atari.flags, 0xEFFF);
-        BitOn16(pSUB->atari.flags, 0x2000);
+        U16And(pSUB->atari.m_flag, 0xEFFF);
+        BitOn16(pSUB->atari.m_flag, 0x2000);
     }
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r222_dai_go, 0, 1);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r222_dai_ret, 0, 1);
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r222_dai_set, 0, 1);
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r222_dai_set, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r222_dai_go, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r222_dai_ret, 0, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r222_dai_set, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r222_dai_set, 0, 1);
 }
 
 void R210Main()
 {
     if (pPL->pos.z < -20000.0f) {
-        SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        SubCharCtrl(SCC_STOP, 0);
+        pG->Item_find_flg |= 0x80;
     }
 }
 
@@ -165,7 +165,7 @@ static void r222_DummyDoorProc()
 {
     if (pSUB) {
         EmMgr.destroy(pSUB);
-        pG->flags_5018 &= ~0x04000000;
+        pG->Status_flg[3] &= ~0x04000000;
     }
     SceAtDataReset(0);
     SceAtExecute(0);
@@ -175,21 +175,21 @@ static void r222_dai_set()
 {
     SceAtSetEnable(5, 1);
     SceAtSetEnable(6, 1);
-    if ((int) pG->flags_174 < 0) {
-        BitOff(pG->flags_174, 0x80000000);
-        pG->flags_51BC &= ~0x80;
+    if ((int) pG->Room_flg[0] < 0) {
+        BitOff(pG->Room_flg[0], 0x80000000);
+        pG->Item_find_flg &= ~0x80;
     }
 }
 
 // Ashley's jump onto the lift (SetSubAux routine).
 static void funcAshley2(cEm* p)
 {
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         cAtariInfo* at = &pSUB->atari;
 
         at->throughOn();
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x27), 0x2D, 0x2D, 1, 0);
-        p->xFE = 1;
+        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x2D, 0x2D, 1, 0);
+        p->r_no_2 = 1;
         p->motSpeedRate = 0.2f;
     }
     if (p->motionMove()) {
@@ -201,7 +201,7 @@ static void funcAshley2(cEm* p)
         EmRoutineSet(p, 0, 0, 0, 0);
         at = &pSUB->atari;
         at->throughOff();
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
 }
 
@@ -220,10 +220,10 @@ static void r222_dai_go()
         pSUB->setNoSuspend(1);
         at = &pSUB->atari;
         at->throughOff();
-        SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        SubCharCtrl(SCC_STOP, 0);
+        pG->Item_find_flg |= 0x80;
     }
-    if ((pG->flags_51C0 & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
+    if ((pG->Scenario_flg[0] & 0x40) == 0 && CheckDoorJumpWithAshley() == 1) {
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);
@@ -292,7 +292,7 @@ static void r222_dai_go()
 
         spd += (r210_daiRotGo - spd) * 0.1f;
         dz = spd * dist;
-        SmdGetObjPtr(0x20)->rot.x += spd;
+        SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
         FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
         pPL->pos.z += dz;
@@ -319,7 +319,7 @@ static void r222_dai_ret()
     f32 spd = 0.0f;
     Vec v;
 
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     SceEventStart(0);
     pPL->setNoSuspend(1);
     if (pSUB) {
@@ -328,8 +328,8 @@ static void r222_dai_ret()
         pSUB->setNoSuspend(1);
         at = &pSUB->atari;
         at->throughOff();
-        SubCharCtrl(7, 0);
-        pG->flags_51BC |= 0x80;
+        SubCharCtrl(SCC_STOP, 0);
+        pG->Item_find_flg |= 0x80;
     }
     SceAtSetEnable(5, 0);
     SceAtSetEnable(6, 0);
@@ -346,7 +346,7 @@ static void r222_dai_ret()
 
         spd += (r210_daiRotRet - spd) * 0.1f;
         dz = spd * dist;
-        SmdGetObjPtr(0x20)->rot.x += spd;
+        SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
         FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
         pPL->pos.z += dz;
@@ -370,10 +370,10 @@ static void toroko_go(int dir)
     Vec pos;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     SmdGetObjPtr(0x1E)->be_flag &= ~2;
     SmdGetObjPtr(0x1F)->be_flag &= ~2;
     if (dir == 0) {
@@ -389,9 +389,9 @@ static void toroko_go(int dir)
     }
     SceEventStart(0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     {
         cPlayer* p = pPL;
         Vec* pp = &pos;
@@ -414,11 +414,11 @@ static void toroko_go(int dir)
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
-    MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
     if (pSUB) {
-        MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 1, 0);
+        MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 1, 0);
     }
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
     SceSleep(115);
     SndCall(6, 3, &pPL->pos, 0, 0, 0);
     SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -432,7 +432,7 @@ static void toroko_go(int dir)
     SceEventEnd(0);
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     if (dir == 0) {
         SceAtDataReset(3);
         SceAtExecute(3);
@@ -458,10 +458,10 @@ static void toroko_ret(int dir)
     Vec pos;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     Vec ang = {0.0f, -0.07f, 0.0f};
     SmdGetObjPtr(0x1E)->be_flag &= ~2;
     SmdGetObjPtr(0x1F)->be_flag &= ~2;
@@ -474,10 +474,10 @@ static void toroko_ret(int dir)
     SceEventStart(0);
     SndStrReq(1, 0xE5, 0x80000003, 0, 0, 0.0f);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     SceSleep(1);
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     {
         cPlayer* p = pPL;
         Vec* pp = &pos;
@@ -499,11 +499,11 @@ static void toroko_ret(int dir)
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
-    MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+    MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     if (pSUB) {
-        MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x25), 0, 0, 1, 0);
+        MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
     }
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 10, 0, 1, 0);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 1, 0);
     SceSleep(20);
     SndCall(6, 3, &pPL->pos, 0, 0, 0);
     SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -512,14 +512,14 @@ static void toroko_ret(int dir)
     if (pSUB) {
         pSUB->setNoSuspend(0);
     }
-    SubCharCtrl(1, 1);
+    SubCharCtrl(SCC_CHASE, 1);
     ObjMgr.destroy(obj);
     SmdGetObjPtr(0x1E)->be_flag |= 2;
     SmdGetObjPtr(0x1F)->be_flag |= 2;
     SceEventEnd(0);
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     if (dir == 0) {
         Vec p;
         Vec* pp = &p;
@@ -598,14 +598,14 @@ static void toroko_ret(int dir)
 // Leon's ride motion on the lift (SetPlDamage routine).
 static void plemRide(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pPL->setNoSuspend(1);
-        MotionSetCore(pPL, &pPL->mot, pl->pMotTbl[11], 0, 0, 0x201, 0);
-        pl->xFE++;
-        pl->xFF = 0;
+        MotionSetCore(pPL, &pPL->Motion, pl->pMotTbl[11], 0, 0, 0x201, 0);
+        pl->r_no_2++;
+        pl->r_no_3 = 0;
     case 1:
-        pl->xFF++;
+        pl->r_no_3++;
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
         }

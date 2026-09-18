@@ -94,30 +94,30 @@ void R11dInit()
 
     EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, (u32) zero, zero);
-    BitOn(pG->flags_5010, 0x400);
+    BitOn(pG->Status_flg[1], 0x400);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
     } else {
-        SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->door_unlock[0] & 0x00010000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r11d_checkDoor, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r11d_checkDoor, 0, 1);
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
     }
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xCA, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
     SceAtDataSet_hide(3, r11d_execHide0);
     SceAtDataSet_hide(4, r11d_execHide1);
     SceAtDataSet_hide(5, r11d_execHide2);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceExec(0x12, (TaskFunc) r11d_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
-        SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SmdGetObjPtr(0x1A)->be_flag &= ~2;
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r11d_execEmAppear, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r11d_execEmAppear, 0, 1);
     } else {
         r11d_setEmSister();
     }
@@ -125,10 +125,10 @@ void R11dInit()
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
             ((cEmDoor*) r11d_work->door)->setKey(0xB);
         }
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
-        SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, 2, 0);
-    } else if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
-        ((u8*) pG->pRoomEmi)[0xD08] = 0;
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
+        SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
+    } else if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
+        ((u8*) pG->pEmi)[0xD08] = 0;
     }
     AreaGetCenterPos(&pos[0], &SceAtPtr(0xA)->area);
     AreaGetCenterPos(&pos[1], &SceAtPtr(0xB)->area);
@@ -165,8 +165,8 @@ static void r11d_checkIronDoorKeyUse()
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
     GameSaveSave(&GameSave, pSaveData, -1);
-    if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
-        ((u8*) pG->pRoomEmi)[0xD08] = 0;
+    if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
+        ((u8*) pG->pEmi)[0xD08] = 0;
     }
 }
 
@@ -174,11 +174,11 @@ static void r11d_checkIronDoorKeyUse()
 static void r11d_checkIronDoor()
 {
     if (ItemMgr.num(0x8C) == 0) {
-        SceUpCut(1, -1, 3, 4);
+        SceUpCut(1, -1, 3, UP_CUT_ATTR_CUT_FIX);
         CamCtrl.Comeback(0);
     } else {
         SndCall(6, 3, 0, 0, 0, 0);
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -201,7 +201,7 @@ extern "C" void r11d_appearBigSister()
     void* zero = 0;
 
     r11d_work->em0.setEm(0xE6, -1, 0, 1, 1);
-    BitOn(pG->flags_174, 0x80000000);
+    BitOn(pG->Room_flg[0], 0x80000000);
     if (r11d_work->em0.isAlive() == 1) {
         Vec pos = {0.0f, -2.0f, 180.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
@@ -210,13 +210,13 @@ extern "C" void r11d_appearBigSister()
         obj = SetObj00((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, &rot);
         OyaSetObj00(obj, r11d_work->em0.getPtr(), 2);
         obj->setNoSuspend(1);
-        PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22)));
+        PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22)));
         if (r11d_work->mi != 0) {
             r11d_work->em0.addModel(r11d_work->mi);
         }
         r11d_work->eff0 = EspPullCoreKind();
         EstSet((int) obj, -1, 0, 0, 0, 0x2D, 0x801, r11d_work->eff0, (u32) zero, zero);
-        SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -227,12 +227,12 @@ extern "C" void r11d_appearLittleSister()
         cEm* em = r11d_work->em1.getPtr();
 
         if (em != 0) {
-            ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+            ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoom, 0x23));
         }
     }
     // The two EstSet stack zeros come from one callee-saved `li r31,0` set here (after the join).
     int zero = 0;
-    pG->flags_174 |= 0x40000000;
+    pG->Room_flg[0] |= 0x40000000;
     BitOff(SmdGetObjPtr(0x32)->be_flag, 2);
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
@@ -258,8 +258,8 @@ static void r11d_execEmAppear_end()
     r11d_work->em1.setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
-    BitOff(pG->flags_174, 0x20000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
+    BitOff(pG->Room_flg[0], 0x20000000);
     int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
     int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
     cEm* ladder;
@@ -286,7 +286,7 @@ static void r11d_execEmAppear_end()
 static void r11d_execEmAppear()
 {
     RsfSet(G_ROOM_ID, 3);
-    pG->flags_174 |= 0x20000000;
+    pG->Room_flg[0] |= 0x20000000;
     while (PlGetStatus() & 0x80000) {
         SceSleep(1);
     }
@@ -294,7 +294,7 @@ static void r11d_execEmAppear()
     KeyStop(0xEFCF0000ULL);
     SceSleep(15);
     SceEventStart(0);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     pPL->setNoSuspend(1);
     r11d_work->eff1 = 0;
     SceSetEventCancel(1, (TaskFunc) r11d_execEmAppear_end, 0, -1, 1);
@@ -339,10 +339,10 @@ static void r11d_execEmAppear()
 // The sisters already met: set them again from the saved flags.
 extern "C" void r11d_setEmSister()
 {
-    if (RsfCheck(G_ROOM_ID, 4) == 0 && !(pG->flags_174 & 0x80000000)) {
+    if (RsfCheck(G_ROOM_ID, 4) == 0 && !(pG->Room_flg[0] & 0x80000000)) {
         r11d_appearBigSister();
     }
-    if (!(pG->flags_174 & 0x40000000)) {
+    if (!(pG->Room_flg[0] & 0x40000000)) {
         r11d_appearLittleSister();
     }
 }
@@ -355,8 +355,8 @@ static void r11d_execShowView_end()
     SndStrReq(r11d_work->strId, 4, 50, 0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     GameSaveSave(&GameSave, pSaveData, -1);
 }
 
@@ -374,7 +374,7 @@ static void r11d_execShowView()
     r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r11d_execShowView_end, 0, -1, 1);
     SceEventStart(1);
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     r11d_work->eff2 = EspPullCoreKind();
     EstSet(0, -1, 0, 0, 1, 3, 1, r11d_work->eff2, (u32) zero, zero);
     CamCtrl.CutCall(2);
@@ -405,26 +405,26 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
         // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         for (;;) {
-            door->pParts->rot.x -= spd;
+            door->pParts->ang.x -= spd;
             asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
             spd += add;
-            if (door->pParts->rot.x < lim) {
+            if (door->pParts->ang.x < lim) {
                 break;
             }
             SceSleep(1);
         }
-        door->pParts->rot.x = lim;
+        door->pParts->ang.x = lim;
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
         goto close;
     wait_close:
         SceSleep(1);
     close:
-        door->pParts->rot.x += 0.2f;
-        if (!(door->pParts->rot.x > 0.0f)) {
+        door->pParts->ang.x += 0.2f;
+        if (!(door->pParts->ang.x > 0.0f)) {
             goto wait_close;
         }
-        door->pParts->rot.x = 0.0f;
+        door->pParts->ang.x = 0.0f;
     }
 }
 
@@ -466,7 +466,7 @@ static void r11d_checkDoor()
     SmdSetTrans(0x20, 0);
     pG->door_unlock[0] |= 0x00010000;
     SndCall(6, 0xB, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceAtDataReset(1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -515,11 +515,11 @@ static void r11d_ThunderMove()
         cnt = r * 5 + 90;
     }
     for (;;) {
-        while (pG->flags_174 & 0x20000000) {
+        while (pG->Room_flg[0] & 0x20000000) {
             SceSleep(1);
         }
         if (cnt == 0) {
-            if (!(pG->flags_5010 & 0x02000000)) {
+            if (!(pG->Status_flg[1] & 0x02000000)) {
                 EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
             }
             {

@@ -10,9 +10,9 @@
 // stands in it for `timer` frames.
 class cDmg : public cUnit {
 public:
-    u32 id;      // 0x0C  construct id: 0 cylinder, 1 quad
+    u32 m_Id;      // 0x0C  construct id: 0 cylinder, 1 quad
     int kind;    // 0x10  damage kind, returned by hitCheck (1/4/5/7 break the item enemies)
-    int timer;   // 0x14  frames left
+    int m_Time;   // 0x14  frames left
 
     virtual ~cDmg() {}
     virtual void beginEvent();
@@ -21,16 +21,16 @@ public:
 
 class cDmgCyl : public cDmg {
 public:
-    Vec pos;  // 0x18
-    f32 r;    // 0x24
-    f32 h;    // 0x28  half height
+    Vec m_Pos;  // 0x18
+    f32 m_Radius;    // 0x24
+    f32 m_Height;    // 0x28  half height
 
     virtual int hitCheck(Vec* pos, Vec* out);
 };
 
 class cDmgP4 : public cDmg {
 public:
-    Vec pt[4];  // 0x18
+    Vec m_Pos[4];  // 0x18
     f32 h;      // 0x48
 
     virtual int hitCheck(Vec* pos, Vec* out);

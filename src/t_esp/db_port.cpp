@@ -179,7 +179,7 @@ int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("
 static inline int evtToolOn()
 {
     int on = 1;
-    if ((EvtDebug.flags & 0x40000000) == 0) {
+    if ((EvtDebug.FlagEtc & 0x40000000) == 0) {
         on = 0;
     }
     return on;
@@ -223,7 +223,7 @@ extern "C" cModel* GetActiveModel(EspGenWork* gen)
     cModel* m;
 
     if (evtToolOn()) {
-        return dbModGetEmPtr(gen->x6);
+        return dbModGetEmPtr(gen->Parent_no);
     }
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
@@ -356,13 +356,13 @@ extern "C" void DB_GetKeybordData(DB_KEYBORD* k)
     if (joy->on & 0x1000) {
         k->on[12] = 1;
     }
-    k->stickX = (f32) joy->sx / 72.0f;
-    k->stickY = (f32) joy->sy / 72.0f;
+    k->stickX = (f32) joy->stickX / 72.0f;
+    k->stickY = (f32) joy->stickY / 72.0f;
     if (joy->on & 0x40) {
-        k->xC = (f32) -(int) joy->trigL / 144.0f;
+        k->xC = (f32) -(int) joy->triggerLeft / 144.0f;
     }
     if (joy->on & 0x20) {
-        k->xC = (f32) (int) (u8) joy->trigR / 144.0f;
+        k->xC = (f32) (int) (u8) joy->triggerRight / 144.0f;
     }
     k->Update();
 }
@@ -490,7 +490,7 @@ extern "C" void DB_EventCamLoad()
 extern "C" void DB_EventCamStart()
 {
     if (db_camMotion) {
-        BitOff(pG->flags_60, 0x10000000);
+        BitOff(pG->Debug_flg[0], 0x10000000);
         CamCtrl.MotionSet(db_camMotion, 0, 0.0f);
         CameraMove();
     }
@@ -499,10 +499,10 @@ extern "C" void DB_EventCamStart()
 extern "C" void DB_RoomCamStart(int cut)
 {
     db_camCut = cut;
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     CamCtrl.CutCall((s8) cut);
     CameraMove();
-    BitOff(pG->flags_170, 0x1000000);
+    BitOff(pG->Stop_flg, 0x1000000);
     db_roomCam = 1;
 }
 
@@ -607,15 +607,15 @@ extern "C" void DB_WorkPush(int flags, int emArray)
     db_emArray = emArray != 0;
     db_workPushed = 1;
     EffectDeleteAll();
-    BitOff(pG->flags_60, 0x10000);
+    BitOff(pG->Debug_flg[0], 0x10000);
     ToolArrayPush(flags);
     ToolEmArraySet(emArray);
     if (emArray) {
-        pG->flags_60 |= 0x40;
+        pG->Debug_flg[0] |= 0x40;
     } else {
-        pG->flags_60 &= ~0x40;
+        pG->Debug_flg[0] &= ~0x40;
     }
-    CamDbg.target_type = 0;
+    CamDbg.m_target_type = 0;
 }
 
 extern "C" void DB_WorkPop(int flags, int emArray)
@@ -625,16 +625,16 @@ extern "C" void DB_WorkPop(int flags, int emArray)
     }
     db_emArray = emArray != 0;
     db_workPushed = 0;
-    CamDbg.target_type = 4;
+    CamDbg.m_target_type = 4;
     EffectDeleteAll();
-    BitOn(pG->flags_60, 0x10000);
+    BitOn(pG->Debug_flg[0], 0x10000);
     ToolWorkPop(flags);
     Block.dispAllBlock(1);
     ToolEmArraySet(emArray);
     if (emArray) {
-        pG->flags_60 |= 0x40;
+        pG->Debug_flg[0] |= 0x40;
     } else {
-        pG->flags_60 &= ~0x40;
+        pG->Debug_flg[0] &= ~0x40;
     }
 }
 
@@ -648,7 +648,7 @@ static inline void carPartsClear(cModel* m, int no)
 
 extern "C" void DbModCarSet(cModel* m)
 {
-    m->x12F = 4;
+    m->ot_type = 4;
     m->be_flag |= 0x10;
     m->be_flag |= 0x2000000;
     carPartsClear(m, 0x12);
@@ -680,16 +680,16 @@ static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
     tbl[5] = t->texId;
 }
 
-#define INFO0(m) ((m)->pInfo)
-#define INFO1(m) (INFO0(m)->pNext)
-#define INFO2(m) (INFO1(m)->pNext)
-#define INFO3(m) (INFO2(m)->pNext)
-#define INFO4(m) (INFO3(m)->pNext)
-#define INFO5(m) (INFO4(m)->pNext)
-#define INFO6(m) (INFO5(m)->pNext)
-#define INFO7(m) (INFO6(m)->pNext)
-#define INFO8(m) (INFO7(m)->pNext)
-#define INFO9(m) (INFO8(m)->pNext)
+#define INFO0(m) ((m)->pModelInfo)
+#define INFO1(m) (INFO0(m)->pList)
+#define INFO2(m) (INFO1(m)->pList)
+#define INFO3(m) (INFO2(m)->pList)
+#define INFO4(m) (INFO3(m)->pList)
+#define INFO5(m) (INFO4(m)->pList)
+#define INFO6(m) (INFO5(m)->pList)
+#define INFO7(m) (INFO6(m)->pList)
+#define INFO8(m) (INFO7(m)->pList)
+#define INFO9(m) (INFO8(m)->pList)
 
 // the name copies: an inline wrapper gives strcpy's destination as a fresh `addi r3,r1,0x110` per call (integrate
 // substitutes `&name` into the hard-register argument set) while strcat's `name` stays the PRE'd pseudo; the source
@@ -725,17 +725,17 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     db_effLoaded = 0;
     db_nearClip = 0;
     db_workPushed = 0;
-    BitOn(pG->flags_64, 0x800000);
+    BitOn(pG->Debug_flg[1], 0x800000);
     pLog->clear();
     pLog->modeSet(0x68, 0xE, 0x3C, 8);
     TaskSleep(1);
     TutilInitDefault();
     pG->debug_mode = 0xD;
-    BitOff(pG->flags_500C, 0x1000000);
-    BitOff(pG->flags_5010, 0x10000000);
-    BitOn(pG->flags_170, 0x1000000);
-    BitOff(pG->flags_58, 0x1000000);
-    BitOff(pG->flags_170, 0x40000);
+    BitOff(pG->Status_flg[0], 0x1000000);
+    BitOff(pG->Status_flg[1], 0x10000000);
+    BitOn(pG->Stop_flg, 0x1000000);
+    BitOff(pG->Disp_flg, 0x1000000);
+    BitOff(pG->Stop_flg, 0x40000);
     db_fcvData = 0;
     db_emArray = one;
     db_fog = one;
@@ -747,12 +747,12 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     db_cinesco = 0;
     db_workPushed = 0;
     DB_WorkPush(1, 1);
-    BitOn(pG->flags_60, 0x40000);
-    BitOn(pG->flags_60, 0x20000000);
-    BitOn(pG->flags_170, 0x10000000);
-    BitOn(pG->flags_58, 0x2000000);
-    BitOn(pG->flags_170, 0x800000);
-    BitOn(pG->flags_60, 0x10000000);
+    BitOn(pG->Debug_flg[0], 0x40000);
+    BitOn(pG->Debug_flg[0], 0x20000000);
+    BitOn(pG->Stop_flg, 0x10000000);
+    BitOn(pG->Disp_flg, 0x2000000);
+    BitOn(pG->Stop_flg, 0x800000);
+    BitOn(pG->Debug_flg[0], 0x10000000);
     LightToolStart();
     LoadModelInit();
     SetLoopFlag(0, 0);
@@ -760,7 +760,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     SetLoopFlag(0, 2);
     SetLoopFlag(0, 3);
     SetLoopFlag(0, 4);
-    if (flagOn(EvtDebug.flags, 0x80000000)) {
+    if (flagOn(EvtDebug.FlagEtc, 0x80000000)) {
         int n;
         u8 c;
         u8 hi;
@@ -768,10 +768,10 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         int k;
         cModel** list;
 
-        EvtDebug.flags = (EvtDebug.flags & 0x7FFFFFFF) | 0x40000000;
-        BitOn(pG->flags_5010, 0x10000000);
-        BitOn(pG->flags_5014, 0x80000);
-        BitOn(pG->flags_5014, 0x10000);
+        EvtDebug.FlagEtc = (EvtDebug.FlagEtc & 0x7FFFFFFF) | 0x40000000;
+        BitOn(pG->Status_flg[1], 0x10000000);
+        BitOn(pG->Status_flg[2], 0x80000);
+        BitOn(pG->Status_flg[2], 0x10000);
         list = EspEvModList;
         for (room = 0; room < 0x80; room++) {
             list[room] = 0;
@@ -805,17 +805,17 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             db_litData = 0;
         }
         LightMgr.beginEvent();
-        BitOff(pG->flags_170, 0x1000000);
+        BitOff(pG->Stop_flg, 0x1000000);
         LightMgr.roomLitSet((cLit*) db_litData);
         LightMgr.update(0, -1);
         nLit = LightMgr.nArray;
         for (k = 0; k < nLit; k++) {
             cLight* l = LightMgr.getWorkPtr(k);
-            if ((l->be_flag & 3) == 3 && l->parentType == 1) {
+            if ((l->be_flag & 3) == 3 && l->ParentType == 1) {
                 l->be_flag &= 2; // sic: the original masks with 2, not ~2 (`rlwinm 0,30,30`)
             }
         }
-        nModel = EvtDebug.nModel;
+        nModel = EvtDebug.NumMod;
         for (i = 0; i < nModel; i++) {
             // set before the static guards: a set after their `bne`s is `maybe_never` for loop.c and stays in the body
             int* pParent = &parent;
@@ -866,8 +866,8 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             ed0 = &EvtDebug;
             s = M0->pScr;
             if (s) {
-                bin.append(s->pInfo->pData);
-                tpl.append(s->pInfo->pTpl);
+                bin.append(s->pModelInfo->pData);
+                tpl.append(s->pModelInfo->tpl_addr);
             } else {
                 nBin = M0->nBin;
                 for (j = 0; j < nBin; j++) {
@@ -960,21 +960,21 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 if ((u32) slot <= 0x7F) {
                     *(cModel**) (la + ((u32) slot << 2)) = p;
                 }
-                em->x12F = M.x638;
+                em->ot_type = M.otType;
                 if (flagOn(M.flags, 0x80000000)) {
-                    em->x12C = 1;
+                    em->z_mode = 1;
                 }
                 if (flagOn(M.flags, 0x40000000)) {
                     em->be_flag |= 0x1000;
                 }
-                info = em->pInfo;
+                info = em->pModelInfo;
                 b = &info->bound;
-                lit = M.x639;
+                lit = M.lightMask;
                 size.x = b->size.x;
                 size.y = b->size.y;
                 size.z = b->size.z;
                 PSVECSubtract(&b->center, &em->pParts->pos, &center);
-                em->lightInfo.init2(2, 1, &center, &size, lit);
+                em->LightInfo.init2(2, 1, &center, &size, lit);
             }
             NAME_SET(MA->name);
             if (nameIs4(name, 'o', 'b', 'm', '1') && name[0x13] == 'a') {
@@ -999,18 +999,18 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     INFO3(em)->be_flag |= 4;
                     INFO4(em)->be_flag |= 4;
                     INFO5(em)->be_flag |= 4;
-                    em->x136 = 2;
-                    em->x137 = 0x10;
-                    em->x138 = 0x90;
+                    em->Shader_type = 2;
+                    em->Refract_pow = 0x10;
+                    em->Refract_ratio = 0x90;
                 }
                 t = GetTexRenderMgrAddr(1);
                 if (t->used) {
                     texBlendTbl(tbl1, t);
                     texBlendSet(INFO7(em), tbl1);
                     texBlendSet(INFO8(em), tbl1);
-                    em->x136 = 2;
-                    em->x137 = 0x10;
-                    em->x138 = 0x90;
+                    em->Shader_type = 2;
+                    em->Refract_pow = 0x10;
+                    em->Refract_ratio = 0x90;
                 }
                 if (db_cutNo == 6) {
                     BitOn(INFO7(em)->be_flag, 8);
@@ -1056,7 +1056,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 t = GetTexRenderMgrAddr(0);
                 if (t->used) {
                     texBlendTbl(tbl4, t);
-                    texBlendSet(em->pInfo, tbl4);
+                    texBlendSet(em->pModelInfo, tbl4);
                 }
             }
             if (G_ROOM_ID == 0x228 && nameIs4(name, 'e', 'm', '3', '8') && name[0x13] == '0' &&
@@ -1066,7 +1066,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 t = GetTexRenderMgrAddr(2);
                 if (t->used) {
                     texBlendTbl(tbl5, t);
-                    texBlendSet(em->pInfo->pNext, tbl5);
+                    texBlendSet(em->pModelInfo->pList, tbl5);
                 }
             }
             if (G_ROOM_ID == 0x317 && *pStage == 3 && (u32) db_cutNo > 0x10 && nameIs4(name, 'e', 'm', '3', '9') &&
@@ -1100,8 +1100,8 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     t = GetTexRenderMgrAddr(2);
                     if (t->used) {
                         texBlendTbl(tbl8, t);
-                        texBlendSet(em->pInfo, tbl8);
-                        em->pInfo->xD6 = 1;
+                        texBlendSet(em->pModelInfo, tbl8);
+                        em->pModelInfo->blend_mode = 1;
                     }
                     db_nearClip = 1;
                 }
@@ -1137,24 +1137,24 @@ extern "C" void EspToolExit()
     volatile debugCamera* dbg = &CamDbg;
     GXColor col;
 
-    BitOff(pG->flags_60, 0x40000);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_58, 0x2000000);
-    BitOff(pG->flags_170, 0x800000);
-    BitOff(pG->flags_170, 0x1000000);
-    BitOff(pG->flags_60, 0x10000000);
+    BitOff(pG->Debug_flg[0], 0x40000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Disp_flg, 0x2000000);
+    BitOff(pG->Stop_flg, 0x800000);
+    BitOff(pG->Stop_flg, 0x1000000);
+    BitOff(pG->Debug_flg[0], 0x10000000);
     *(u32*) &col = 0;
-    dbg->target_type = 0;
+    dbg->m_target_type = 0;
     bio4_GXSetCopyClear(col, 0xFFFFFF);
     LightMgr.setFog();
     LightToolEnd();
     Block.dispAllBlock(0);
     if (evtToolOn()) {
         DbMenuSetExecTool("EVENT TOOL");
-        BitOff(pG->flags_5010, 0x10000000);
-        BitOff(pG->flags_5014, 0x80000);
-        BitOff(pG->flags_5014, 0x10000);
+        BitOff(pG->Status_flg[1], 0x10000000);
+        BitOff(pG->Status_flg[2], 0x80000);
+        BitOff(pG->Status_flg[2], 0x10000);
         LightMgr.endEvent();
         LightMgr.roomLitSet(0);
         LightMgr.update(0, -1);
@@ -1163,7 +1163,7 @@ extern "C" void EspToolExit()
         EspDataRelease(db_effOwner, 1, 1);
     }
     CamCtrl.Comeback(0);
-    BitOff(pG->flags_64, 0x800000);
+    BitOff(pG->Debug_flg[1], 0x800000);
     TutilQuitDefault();
     TaskExit();
 }
@@ -1190,9 +1190,9 @@ extern "C" void DB_SetBgColor(u8 r, u8 g, u8 b, u8 a)
 extern "C" void DB_DrawGrid(int on)
 {
     if (on) {
-        pG->flags_60 |= 0x40000;
+        pG->Debug_flg[0] |= 0x40000;
     } else {
-        pG->flags_60 &= ~0x40000;
+        pG->Debug_flg[0] &= ~0x40000;
     }
 }
 
@@ -1223,19 +1223,19 @@ extern "C" void DB_SetMotionCam(int on)
 
 extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
 {
-    BitOn(pG->flags_170, 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
     if (db_emArray == 0) {
-        BitOn(pG->flags_170, 0x20000000);
+        BitOn(pG->Stop_flg, 0x20000000);
     }
     if (db_fog) {
-        pG->flags_58 &= ~0x4000;
+        pG->Disp_flg &= ~0x4000;
     } else {
-        pG->flags_58 |= 0x4000;
+        pG->Disp_flg |= 0x4000;
     }
     if (db_cinesco) {
-        pG->flags_500C |= 0x1000000;
+        pG->Status_flg[0] |= 0x1000000;
     } else {
-        pG->flags_500C &= ~0x1000000;
+        pG->Status_flg[0] &= ~0x1000000;
     }
     LightMgr.setFog();
     if (db_motionOn) {
@@ -1244,10 +1244,10 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
     }
     if (DB_isGetComeEventTool() == 0 && db_roomCam == 0) {
         if (db_motionCam) {
-            BitOff(pG->flags_60, 0x10000000);
+            BitOff(pG->Debug_flg[0], 0x10000000);
             CameraMove();
         } else {
-            BitOn(pG->flags_60, 0x10000000);
+            BitOn(pG->Debug_flg[0], 0x10000000);
         }
     }
     if (wk->motionReq) {
@@ -1269,7 +1269,7 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
     if (texNo) {
         TexRenderMng* t = GetTexRenderMgrAddr(texNo - 1);
         if (t->used) {
-            drawTexture2(&t->texObj, 0x14C, 0x36, 0, 0xA0, 0xA0);
+            drawTexture2(&t->m_Tex_obj, 0x14C, 0x36, 0, 0xA0, 0xA0);
         }
     }
     if (db_nearClip == 1) {
@@ -1296,18 +1296,18 @@ extern "C" void DB_DrawCursor2D(Vec* pos)
 
 extern "C" void DB_GetCursorPos(EspSeqData* head, EspGenWork* gen, int flag, Vec* out, Mtx* m)
 {
-    int parts = gen->x7;
+    int parts = gen->Parts_no;
 
     if (parts == 0xFF || flag != 0) {
-        DB_VecNullPartsPos(head, &gen->pos, out, m);
+        DB_VecNullPartsPos(head, &gen->Pos, out, m);
     } else if (parts == 0xFE) {
-        *out = gen->pos;
+        *out = gen->Pos;
         PSMTXIdentity(*m);
         (*m)[0][3] = out->x;
         (*m)[1][3] = out->y;
         (*m)[2][3] = out->z;
     } else {
-        DB_VecMulEmPartsMat(parts, &gen->pos, out, m, gen);
+        DB_VecMulEmPartsMat(parts, &gen->Pos, out, m, gen);
     }
 }
 
@@ -1444,7 +1444,7 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
         // r9 (not r0, not tied to `no`); the index lives while `la` does, which prunes `la`'s r9 preference and
         // leaves r9 to `p` (`la` r11). The `li r9,0` before the `bgt` is jump2's post-reload
         // "if (c) { x = a; goto l; } x = b" hoist: the else arm's first insn `slwi r9,r0,2` sets `p`'s register.
-        u32 no = gen->x6;
+        u32 no = gen->Parent_no;
         u32 la = (u32) EspEvModList;
         cModel* p;
         if (no > 0x7F) {
@@ -1457,8 +1457,8 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
             NONE_BODY;
             return;
         }
-    } else if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    } else if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             NONE_BODY;
             return;
@@ -1472,10 +1472,10 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     if (parts >= em->nParts) {
         goto none;
     }
-    if (gen->flags & 0x20) {
+    if (gen->Tool_flg & 0x20) {
         cModel* p = em->getPartsPtr(parts);
         PSMTXIdentity(*m);
-        RotMatrix(*m, &em->rot);
+        RotMatrix(*m, &em->ang);
         PSMTXMultVecSR(*m, in, &v);
         (*m)[0][3] = p->mat[0][3] + v.x;
         (*m)[1][3] = p->mat[1][3] + v.y;
@@ -1604,28 +1604,28 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
     f32 half;
     u32 i;
 
-    if (gen->xF8 == 0.0f) {
+    if (gen->Vec2.z == 0.0f) {
         return;
     }
     PSMTXIdentity(base);
-    if (em && (em->be_flag & 1) && gen->x7 != 0xFE && gen->x7 != 0xFD && gen->x7 != 0xFF) {
-        if (gen->x7 >= em->nParts) {
+    if (em && (em->be_flag & 1) && gen->Parts_no != 0xFE && gen->Parts_no != 0xFD && gen->Parts_no != 0xFF) {
+        if (gen->Parts_no >= em->nParts) {
             return;
         }
         onModel = 1;
-        PSMTXCopy(em->getPartsPtr(gen->x7)->mat, base);
+        PSMTXCopy(em->getPartsPtr(gen->Parts_no)->mat, base);
     } else {
         onModel = 0;
-        base[0][3] = gen->x0C;
-        base[1][3] = gen->x10;
-        base[2][3] = gen->x14;
+        base[0][3] = gen->Pos.x;
+        base[1][3] = gen->Pos.y;
+        base[2][3] = gen->Pos.z;
     }
     dir.x = 0.0f;
     dir.y = 0.0f;
     dir.z = 1500.0f;
-    half = gen->xF8 * 6.2831855f / 360.0f * 0.5f;
-    ay = gen->xF0 * 6.2831855f / 360.0f;
-    ax = gen->xF4 * 6.2831855f / 360.0f;
+    half = gen->Vec2.z * 6.2831855f / 360.0f * 0.5f;
+    ay = gen->Vec2.x * 6.2831855f / 360.0f;
+    ax = gen->Vec2.y * 6.2831855f / 360.0f;
     ay = LIMIT_ANGLE(ay);
     ax = LIMIT_ANGLE(ax);
     half = LIMIT_ANGLE(half);
@@ -1634,10 +1634,10 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
     PSMTXConcat(ry, rx, ry);
     PSMTXConcat(base, ry, ry);
     if (onModel) {
-        PSMTXMultVec(ry, &gen->pos, &p);
-        PSVECAdd(&gen->pos, &dir, &dir);
+        PSMTXMultVec(ry, &gen->Pos, &p);
+        PSVECAdd(&gen->Pos, &dir, &dir);
     } else {
-        p = gen->pos;
+        p = gen->Pos;
     }
     PSMTXMultVec(ry, &dir, &dir);
     Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
@@ -1656,7 +1656,7 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
         PSMTXConcat(ry, rx, ry);
         PSMTXConcat(base, ry, ry);
         if (onModel) {
-            PSVECAdd(&gen->pos, &dir, &dir);
+            PSVECAdd(&gen->Pos, &dir, &dir);
         }
         PSMTXMultVec(ry, &dir, &dir);
         Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
@@ -1669,7 +1669,7 @@ extern "C" void sp_sphere(EspSeqData* head, EspGenWork* gen)
     Mtx m;
 
     DB_GetCursorPos(head, gen, 0, &pos, &m);
-    Draw_sphere(&pos, gen->xE0, 0xFFFFFFFF, 1, 1);
+    Draw_sphere(&pos, gen->Vec0.z, 0xFFFFFFFF, 1, 1);
 }
 
 extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
@@ -1687,22 +1687,22 @@ extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
     f32 sx;
     f32 sy;
 
-    if (EspGetAnmAddr(gen->x2, &anm) == 0) {
+    if (EspGetAnmAddr(gen->Tex_id, &anm) == 0) {
         return;
     }
     DB_GetCursorPos(head, gen, 0, &pos, &m);
-    gw = gen->x88;
-    gh = gen->x8C;
-    w = (f32) -anm->x4;
-    h = (f32) anm->x6;
+    gw = gen->Size_base_x;
+    gh = gen->Size_base_y;
+    w = (f32) -anm->Cx;
+    h = (f32) anm->Cy;
     if (w == 0.0f) {
-        w = (f32) -(int) anm->x0 * 0.5f;
+        w = (f32) -(int) anm->Width * 0.5f;
     }
     if (h == 0.0f) {
-        h = (f32) (int) anm->x2 * 0.5f;
+        h = (f32) (int) anm->Height * 0.5f;
     }
-    sx = w * gw / (f32) (int) anm->x0;
-    sy = h * gh / (f32) (int) anm->x2;
+    sx = w * gw / (f32) (int) anm->Width;
+    sy = h * gh / (f32) (int) anm->Height;
     v[0].x = sx;
     v[0].y = sy;
     v[0].z = 1.0f;
@@ -1715,7 +1715,7 @@ extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
     v[3].x = sx;
     v[3].y = sy - gh;
     v[3].z = 1.0f;
-    PSVECScale(&gen->x58, &rot, 0.017453289f);
+    PSVECScale(&gen->Ang, &rot, 0.017453289f);
     RotMatrix(rm, &rot);
     PSMTXConcat(m, rm, m);
     PSMTXMultVecSR(m, &v[0], &v[0]);
@@ -1745,8 +1745,8 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     f32 t;
     u32 i;
 
-    if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             return;
         }
@@ -1765,7 +1765,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     EspGetPathAddr(pw->id, pw->owner);
     t = 0.0f;
     for (i = 0; i < 256; i++) {
-        if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
+        if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
             PathGetPosEmM(pw->path, em, t, &pw->seg, &pos);
         } else {
             PathGetPos(pw->path, t, &pw->seg, &pos);
@@ -1773,7 +1773,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
         if (pw->flags & 0x80) {
             PSMTXMultVec(pw->mtx, &pos, &pos);
         }
-        PSVECAdd(&pos, &gen->pos, &pos);
+        PSVECAdd(&pos, &gen->Pos, &pos);
         if (i != 0) {
             Draw_line3d(&pos, &old, 0xFFFFFFFF, 0);
         }
@@ -1803,8 +1803,8 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
 
     memclr_asm(pw, sizeof(EspgenWork));
     seg = 0;
-    if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             return;
         }
@@ -1836,10 +1836,10 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
         rot.z = 0.0f;
         RotMatrix(rm, &rot);
         PSMTXMultVec(rm, &pos, &pos);
-        if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
-            PSMTXMultVec(em->getPartsPtr(gen->x7)->mat, &pos, &pos);
+        if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
+            PSMTXMultVec(em->getPartsPtr(gen->Parts_no)->mat, &pos, &pos);
         }
-        PSVECAdd(&pos, &gen->pos, &pos);
+        PSVECAdd(&pos, &gen->Pos, &pos);
         if (i != 0) {
             Draw_line3d(&pos, &old, 0xFFFFFFFF, 0);
         }
@@ -1856,22 +1856,22 @@ extern "C" void sp_nobigenkai_trans(EspSeqData* head, EspGenWork* gen)
     Vec v2;
     Vec v3;
 
-    if (gen->xD8 == 0.0f && gen->xE0 == 0.0f) {
+    if (gen->Vec0.x == 0.0f && gen->Vec0.z == 0.0f) {
         return;
     }
-    PSVECAdd(&gen->pos, &gen->vE4, &c);
+    PSVECAdd(&gen->Pos, &gen->Vec1, &c);
     v0 = c;
-    v0.x += gen->xD8;
-    v0.z += gen->xE0;
+    v0.x += gen->Vec0.x;
+    v0.z += gen->Vec0.z;
     v1 = c;
-    v1.x -= gen->xD8;
-    v1.z += gen->xE0;
+    v1.x -= gen->Vec0.x;
+    v1.z += gen->Vec0.z;
     v2 = c;
-    v2.x -= gen->xD8;
-    v2.z -= gen->xE0;
+    v2.x -= gen->Vec0.x;
+    v2.z -= gen->Vec0.z;
     v3 = c;
-    v3.x += gen->xD8;
-    v3.z -= gen->xE0;
+    v3.x += gen->Vec0.x;
+    v3.z -= gen->Vec0.z;
     Draw_line3d(&v0, &v1, 0xFFFFFFFF, 0);
     Draw_line3d(&v1, &v2, 0xFFFFFFFF, 0);
     Draw_line3d(&v2, &v3, 0xFFFFFFFF, 0);
@@ -1891,24 +1891,24 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
     if (em == 0 || !(em->be_flag & 1)) {
         return;
     }
-    if (gen->x7 >= em->nParts) {
+    if (gen->Parts_no >= em->nParts) {
         return;
     }
-    p0 = em->getPartsPtr(gen->x7);
-    if ((s8) gen->xC8 >= em->nParts) {
+    p0 = em->getPartsPtr(gen->Parts_no);
+    if ((s8) gen->Work8[0] >= em->nParts) {
         return;
     }
-    p1 = em->getPartsPtr((s8) gen->xC8);
-    ofs = gen->pos;
+    p1 = em->getPartsPtr((s8) gen->Work8[0]);
+    ofs = gen->Pos;
     PSMTXMultVec(p0->mat, &ofs, &a);
     Vec v = {0.0f, 0.01f, 0.0f};
     Mtx inv;
     PSMTXMultVec(p1->mat, &v, &v);
     PSMTXInverse(p0->mat, inv);
     PSMTXMultVec(inv, &v, &v);
-    PSVECAdd(&v, &gen->pos, &v);
+    PSVECAdd(&v, &gen->Pos, &v);
     PSMTXMultVec(p0->mat, &v, &b);
-    r = gen->x20;
+    r = gen->R_pos.z;
     if (r == 0.0f) {
         r = 100.0f;
     }
@@ -1919,14 +1919,14 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
 
 extern "C" void sp_PosRand_trans(EspSeqData* head, EspGenWork* gen)
 {
-    f32 rx = gen->x18;
-    f32 ry = gen->x1C;
-    f32 rz = gen->x20;
+    f32 rx = gen->R_pos.x;
+    f32 ry = gen->R_pos.y;
+    f32 rz = gen->R_pos.z;
     Mtx m;  // the first local: its address is the frame pointer itself, so every `m` use is a fresh `addi r3,r1,8`
     Vec pos;
     Vec v[8];
 
-    if (gen->x1 == 0x1A) {
+    if (gen->Id == 0x1A) {
         sp_PosRand_trans_1a(head, gen);
         return;
     }

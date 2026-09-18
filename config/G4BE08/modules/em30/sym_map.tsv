@@ -24,8 +24,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x0000007C	0x10	em30/em30.cpp	local	lbl_em30_rodata_7C	lbl_em30_rodata_7C
 .rodata	0x0000008C	0x4	em30/em30.cpp	local	lbl_em30_rodata_8C	lbl_em30_rodata_8C
 .rodata	0x00000090	0x1C	em30/em30.cpp	local	lbl_em30_rodata_90	lbl_em30_rodata_90
-.rodata	0x000000AC	0xC	em30/em30.cpp	local	lbl_em30_rodata_AC	lbl_em30_rodata_AC
-.rodata	0x000000B8	0xC	em30/em30.cpp	local	lbl_em30_rodata_B8	lbl_em30_rodata_B8
+.rodata	0x000000AC	0xC	em30/em30.cpp	local	ofs.399	ofs.399
+.rodata	0x000000B8	0xC	em30/em30.cpp	local	size.400	size.400
 .rodata	0x000000C4	0x4	em30/em30.cpp	local	lbl_em30_rodata_C4	lbl_em30_rodata_C4
 .rodata	0x000000C8	0x4	em30/em30.cpp	local	lbl_em30_rodata_C8	lbl_em30_rodata_C8
 .rodata	0x000000CC	0x4	em30/em30.cpp	local	lbl_em30_rodata_CC	lbl_em30_rodata_CC
@@ -54,9 +54,9 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000128	0x4	em30/em30.cpp	local	lbl_em30_rodata_128	lbl_em30_rodata_128
 .rodata	0x0000012C	0x4	em30/em30.cpp	local	lbl_em30_rodata_12C	lbl_em30_rodata_12C
 .rodata	0x00000130	0xD0	em30/em30.cpp	local	lbl_em30_rodata_130	lbl_em30_rodata_130
-.rodata	0x00000200	0x58	em30/em30.cpp	global	lbl_em30_rodata_200	lbl_em30_rodata_200
-.rodata	0x00000258	0x28	em30/em30.cpp	global	lbl_em30_rodata_258	lbl_em30_rodata_258
-.data	0x00000000	0x10	em30/em30.cpp	global	lbl_em30_data_0	lbl_em30_data_0
-.data	0x00000010	0x8	em30/em30.cpp	local	lbl_em30_data_10	lbl_em30_data_10
-.data	0x00000018	0x4	em30/em30.cpp	local	lbl_em30_data_18	lbl_em30_data_18
-.data	0x0000001C	0x4	em30/em30.cpp	local	lbl_em30_data_1C	lbl_em30_data_1C
+.rodata	0x00000200	0x58	em30/em30.cpp	global	_vt.5cEm30	_vt.5cEm30
+.rodata	0x00000258	0x28	em30/em30.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x10	em30/em30.cpp	global	Em30_R0_move_tbl	Em30_R0_move_tbl
+.data	0x00000010	0x8	em30/em30.cpp	local	Em30_R1_move_tbl	Em30_R1_move_tbl
+.data	0x00000018	0x4	em30/em30.cpp	local	Em30_R2_move_tbl	Em30_R2_move_tbl
+.data	0x0000001C	0x4	em30/em30.cpp	local	Em30_R3_move_tbl	Em30_R3_move_tbl

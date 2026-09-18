@@ -38,10 +38,10 @@ void EspGenSetMoveLoop(int loop);
 void Espgen01_Move(EspgenWork* w);
 void Espgen01_Trans(EspgenWork* w);
 int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 void Espgen02_Move(EspgenWork* w);
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag);
 }
 // game/espgen40.cpp (declared with the record type in the original)
 void Espgen40_Move(EspGenWork* gen);
@@ -101,10 +101,10 @@ static inline int EspgenIsActive(EspgenWork* w)
     } else {
         // the flag load before `on = 1` keeps jump.c from hoisting `on = 0` above the first
         // test (the else arm must not start with a set of `on`)
-        u32 f = pG->flags_5010;
+        u32 f = pG->Status_flg[1];
         on = 1;
         if (f & 0x10000000) {
-            on = w->info.x0 & 1;
+            on = w->info.Core_flg & 1;
         }
     }
     return on;
@@ -365,7 +365,7 @@ int EspgenMove()
     u32 i;
     u32 max;
 
-    if (pG->flags_5010 & 2) {
+    if (pG->Status_flg[1] & 2) {
         pause = 1;
     }
     cnt = 0;
@@ -375,7 +375,7 @@ int EspgenMove()
         } else if (EspgenIsActive(w)) {
             max = GetEspgenIdMax();
             if (w->id < max) {
-                if (pause && !(w->info.x0 & 0x8000)) {
+                if (pause && !(w->info.Core_flg & 0x8000)) {
                     continue;
                 }
                 if (w->id < ESPGEN_APP_ID) {
@@ -391,7 +391,7 @@ int EspgenMove()
             }
         }
     }
-    if (pG->flags_6C & 0x8000) {
+    if (pG->Debug_flg[3] & 0x8000) {
         eprintf(472, 216, 0, 0, "%d", cnt);
     } else {
         eprintf(472, 216, 0, 14, "%d", cnt);
@@ -435,13 +435,13 @@ void EspgenDelete(int a, int b, int c)
 
     for (i = 0, w = EspgenArray; i < nEspgen; i++, w++) {
         if ((w->flag & 1) && !(w->flag & 2)) {
-            if (a != 0 && w->info.x0 != a) {
+            if (a != 0 && w->info.Core_flg != a) {
                 continue;
             }
-            if (b != 0 && w->info.x2 != b) {
+            if (b != 0 && w->info.Core_kind != b) {
                 continue;
             }
-            if (c != 0 && w->info.x8 != c) {
+            if (c != 0 && w->info.Core_pEm != c) {
                 continue;
             }
             PushEspgen(w);
@@ -456,7 +456,7 @@ void EspgenDeleteEvent()
 
     for (i = 0, w = EspgenArray; i < nEspgen; i++, w++) {
         if ((w->flag & 1) && !(w->flag & 2)) {
-            if (!(w->info.x0 & 1) && !(w->info.x0 & 0x800)) {
+            if (!(w->info.Core_flg & 1) && !(w->info.Core_flg & 0x800)) {
                 PushEspgen(w);
             }
         }
@@ -510,7 +510,7 @@ int EspgenApplyFunc(void (*func)(EspgenWork* w))
 }
 
 int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                      Vec* pos, Vec* rot, EspSeqOpt* p8, int flag)
+                      Vec* pos, Vec* rot, EspSeqOpt* pSct, int flag)
 {
     int ret = 1;
     u32 max = GetEspgenIdMax();
@@ -518,11 +518,11 @@ int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* 
     if (w->id < max) {
         if (w->id < ESPGEN_APP_ID) {
             if (EspgenSetFreeWorkTbl[w->id] != NULL) {
-                ret = EspgenSetFreeWorkTbl[w->id](w, rec, head, model, parts, mtx, pos, rot, p8, flag);
+                ret = EspgenSetFreeWorkTbl[w->id](w, rec, head, model, parts, mtx, pos, rot, pSct, flag);
             }
         } else {
             if (EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID] != NULL) {
-                ret = EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID](w, rec, head, model, parts, mtx, pos, rot, p8);
+                ret = EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID](w, rec, head, model, parts, mtx, pos, rot, pSct);
             }
         }
     }
@@ -530,24 +530,24 @@ int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* 
 }
 
 int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 parts, Mtx* mtx, Vec* pos, Vec* rot,
-                 EspSeqOpt* p8, int flag)
+                 EspSeqOpt* pSct, int flag)
 {
     EspGenWork* rec = &head->rec[no];
     EspgenWork* w;
     u32 max = GetEspgenIdMax();
 
-    if (rec->genId >= max && rec->genId != 0xFF) {
-        pLog->err(0, 0, "ESP_CTRL : CTRL_ID[%x] is invalid.", rec->x1);
+    if (rec->Espgen_id >= max && rec->Espgen_id != 0xFF) {
+        pLog->err(0, 0, "ESP_CTRL : CTRL_ID[%x] is invalid.", rec->Id);
         return 0;
     }
-    if (rec->genId == 0xFF) {
-        EspGenSetMoveLoop(rec->x110);
+    if (rec->Espgen_id == 0xFF) {
+        EspGenSetMoveLoop(rec->Espgen_work16[0]);
         return 1;
     }
-    if (PullEspEspgen(&w, info->x0, info->x2, info->b.x7, info->x8, info->x3, 0)) {
-        w->id = rec->genId;
-        w->xE = rec->x10A;
-        if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, p8, flag)) {
+    if (PullEspEspgen(&w, info->Core_flg, info->Core_kind, info->b.x7, info->Core_pEm, info->owner, 0)) {
+        w->id = rec->Espgen_id;
+        w->Type = rec->Espgen_type;
+        if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, pSct, flag)) {
             PushEspgen(w);
             return 0;
         }

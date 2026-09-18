@@ -13,7 +13,7 @@ struct EmModule {
 
 EmModule* SearchEmModule(int id);              // game/read.cpp (C++ linkage: SearchEmModule__Fi)
 extern "C" {
-void EspDataRelease(int a, int b, int c);      // game/eff_sys.cpp
+void EspDataRelease(int owner, int bCountCheck, int bErrDisp);      // game/eff_sys.cpp
 void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 }
 void* GetDataExt(void* arc, const char* tag, int no);   // game/read.cpp

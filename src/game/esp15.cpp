@@ -5,19 +5,19 @@
 #include "esp.h"
 
 struct Esp15Work {
-    f32 range;     // 0x00 half size of the box around the camera
-    f32 fadeRate;  // 0x04 1 - (distance ratio where the alpha starts fading)
-    f32 alpha;     // 0x08 base alpha
-    f32 floorY;    // 0x0C the sprite may not fall below this height (0 = none)
-    u8 cntMax;     // 0x10 fade in frames
-    u8 cnt;        // 0x11
+    f32 Range;     // 0x00 half size of the box around the camera
+    f32 Del_ratio;  // 0x04 1 - (distance ratio where the alpha starts fading)
+    f32 Base_alpha;     // 0x08 base alpha
+    f32 Min_y;    // 0x0C the sprite may not fall below this height (0 = none)
+    u8 Room_del_frame;     // 0x10 fade in frames
+    u8 Room_del_cnt;        // 0x11
 };
 
 // Camera-relative particle (rain / snow / dust): the position is wrapped so that it always
 // stays inside a box around the camera.
 class cEsp15 : public cEsp {
 public:
-    Esp15Work work;  // 0xF8
+    Esp15Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -30,7 +30,7 @@ cEsp* Esp15_Create()
 
 void cEsp15::move()
 {
-    Esp15Work* w = &work;
+    Esp15Work* w = &m_Free;
     Vec tmp;
     Vec dir;
     Vec sc;
@@ -43,39 +43,39 @@ void cEsp15::move()
     int flag1;
     int flag2;
 
-    colA = w->alpha;
+    m_Col_a = w->Base_alpha;
     if (CommonMove()) {
         if (!AnmMove()) {
             PushEsp(this);
         } else {
             flag1 = 1;
             flag2 = 1;
-            oldY = pos.y;
-            if (w->floorY != 0.0f && pos.y < w->floorY) {
+            oldY = m_Pos.y;
+            if (w->Min_y != 0.0f && m_Pos.y < w->Min_y) {
                 flag1 = 0;
             }
-            w->alpha = colA;
-            if (w->cntMax != 0) {
-                if (pG->flags_5010 & 0x02000000) {
-                    w->cnt++;
-                } else if (w->cnt != 0) {
-                    w->cnt--;
+            w->Base_alpha = m_Col_a;
+            if (w->Room_del_frame != 0) {
+                if (pG->Status_flg[1] & 0x02000000) {
+                    w->Room_del_cnt++;
+                } else if (w->Room_del_cnt != 0) {
+                    w->Room_del_cnt--;
                 }
-                if (w->cnt != 0) {
-                    if (w->cnt >= w->cntMax) {
-                        w->cnt = w->cntMax;
+                if (w->Room_del_cnt != 0) {
+                    if (w->Room_del_cnt >= w->Room_del_frame) {
+                        w->Room_del_cnt = w->Room_del_frame;
                     }
-                    colA = colA * (1.0f - (f32)w->cnt / w->cntMax);
+                    m_Col_a = m_Col_a * (1.0f - (f32)w->Room_del_cnt / w->Room_del_frame);
                 }
             }
-            range = w->range;
+            range = w->Range;
             half = range * 0.6f;
 
             PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &dir);
             PSVECCrossProduct(&dir, &pG->Cam.up, &dir);
 #line 111 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&dir, &dir);
-            PSVECSubtract(&pos, &pG->Cam.param.pos, &tmp);
+            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)((d + half) / (half * 2.0f));
@@ -84,12 +84,12 @@ void cEsp15::move()
             }
             if (n != 0) {
                 PSVECScale(&dir, &sc, -(half * 2.0f * (f32)n));
-                PSVECAdd(&pos, &sc, &pos);
+                PSVECAdd(&m_Pos, &sc, &m_Pos);
             }
 
 #line 130 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&pG->Cam.up, &dir);
-            PSVECSubtract(&pos, &pG->Cam.param.pos, &tmp);
+            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)((d + half) / (half * 2.0f));
@@ -98,13 +98,13 @@ void cEsp15::move()
             }
             if (n != 0) {
                 PSVECScale(&dir, &sc2, -(half * 2.0f * (f32)n));
-                PSVECAdd(&pos, &sc2, &pos);
+                PSVECAdd(&m_Pos, &sc2, &m_Pos);
             }
 
             PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &dir);
 #line 152 "D:/Bio4/Prog/esp15.cpp"
             VECNormalize(&dir, &dir);
-            PSVECSubtract(&pos, &pG->Cam.param.pos, &tmp);
+            PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
             d = PSVECDotProduct(&tmp, &dir);
             if (d >= 0.0f) {
                 n = (int)(d / range);
@@ -113,19 +113,19 @@ void cEsp15::move()
             }
             if (n != 0) {
                 PSVECScale(&dir, &sc, -(range * (f32)n));
-                PSVECAdd(&pos, &sc, &pos);
-                PSVECSubtract(&pos, &pG->Cam.param.pos, &tmp);
+                PSVECAdd(&m_Pos, &sc, &m_Pos);
+                PSVECSubtract(&m_Pos, &pG->Cam.param.pos, &tmp);
                 d = PSVECDotProduct(&tmp, &dir);
             }
-            if (d > range * w->fadeRate) {
-                colA = colA * (1.0f - (d - range * w->fadeRate) / (range * (1.0f - w->fadeRate)));
+            if (d > range * w->Del_ratio) {
+                m_Col_a = m_Col_a * (1.0f - (d - range * w->Del_ratio) / (range * (1.0f - w->Del_ratio)));
             }
-            if (w->floorY != 0.0f) {
-                if (pos.y < w->floorY) {
+            if (w->Min_y != 0.0f) {
+                if (m_Pos.y < w->Min_y) {
                     flag2 = 0;
                 }
                 if (flag1 == 1 && flag2 == 0) {
-                    pos.y = oldY;
+                    m_Pos.y = oldY;
                 }
             }
         }
@@ -134,25 +134,25 @@ void cEsp15::move()
 
 int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp15Work* w = &work;
+    Esp15Work* w = &m_Free;
 
-    x16 = (s8)gen->xC8 * 10;
-    x14 = (s8)gen->xC9 * 10;
-    w->fadeRate = (f32)(s8)gen->xCA / 100.0f;
-    if (w->fadeRate > 1.0f) {
-        w->fadeRate = 1.0f;
+    m_Del_far = (s8)gen->Work8[0] * 10;
+    m_Del_near = (s8)gen->Work8[1] * 10;
+    w->Del_ratio = (f32)(s8)gen->Work8[2] / 100.0f;
+    if (w->Del_ratio > 1.0f) {
+        w->Del_ratio = 1.0f;
     }
-    w->fadeRate = 1.0f - w->fadeRate;
-    w->cntMax = gen->xCB;
-    w->range = gen->x20;
-    pos.x += w->range * fRandSeed1_1(seed);
-    pos.y += w->range * fRandSeed1_1(seed);
-    pos.z += w->range * fRandSeed1_1(seed);
-    w->alpha = colA;
-    w->floorY = gen->xD8;
-    if (pGS->flags_5010 & 0x02000000) {
-        colA = 0.0f;
-        w->cnt = w->cntMax;
+    w->Del_ratio = 1.0f - w->Del_ratio;
+    w->Room_del_frame = gen->Work8[3];
+    w->Range = gen->R_pos.z;
+    m_Pos.x += w->Range * fRandSeed1_1(seed);
+    m_Pos.y += w->Range * fRandSeed1_1(seed);
+    m_Pos.z += w->Range * fRandSeed1_1(seed);
+    w->Base_alpha = m_Col_a;
+    w->Min_y = gen->Vec0.x;
+    if (pGS->Status_flg[1] & 0x02000000) {
+        m_Col_a = 0.0f;
+        w->Room_del_cnt = w->Room_del_frame;
     }
     return 1;
 }

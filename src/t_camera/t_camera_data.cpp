@@ -97,7 +97,7 @@ int tcDataExport(u8* buf)
                 da->attr = tcTypeTbl[a->area_no][0];
                 da->dir = a->dir;
                 da->attr2 = a->attr2;
-                da->x9 = a->x9;
+                da->attr3 = a->attr3;
                 da->height = a->height;
                 da->base_y = a->base_y;
                 num = a->num;
@@ -283,10 +283,10 @@ int tcDataImport(u8* buf)
             a->dir = s->dir;
             if (ver <= 3) {
                 a->attr2 = 1;
-                a->x9 = 0xFF;
+                a->attr3 = 0xFF;
             } else {
                 a->attr2 = s->attr2;
-                a->x9 = s->x9;
+                a->attr3 = s->attr3;
             }
             {
                 Vec* pt = s->points;
@@ -349,8 +349,8 @@ int tcDataImport(u8* buf)
     if (hdr->numArea != 0) {
         pTc->cdatNo = rec->area->area_no;
         pTc->adatNo = pTc->cdatNo;
-        pTc->x5E1 = 0;
-        pTc->pAdat = tcAdatPtr(pTc->adatNo, pTc->x5E1);
+        pTc->adatSuffix = 0;
+        pTc->pAdat = tcAdatPtr(pTc->adatNo, pTc->adatSuffix);
     }
     return 0;
 }
@@ -373,8 +373,8 @@ void tcPlayerMove()
     }
     tcPreview.blink++;
     if (tcPreview.blink > 31) tcPreview.blink = 0;
-    eprintf(0xD8, 0x10A, 0, 0, "C:%02d", pTc->x634);
-    eprintf(0x100, 0x10A, 0, 0, "A:%02d-%1d", pTc->x635, pTc->x636);
+    eprintf(0xD8, 0x10A, 0, 0, "C:%02d", pTc->cameraNo);
+    eprintf(0x100, 0x10A, 0, 0, "A:%02d-%1d", pTc->areaNo, pTc->areaSuffix);
     pPL->move();
 }
 
@@ -441,10 +441,10 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 3; j++) {
             o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
-            c->pos[n] = o->campos;
+            c->pos[n] = o->Campos;
             c->at[n] = o->target;
-            c->roll[n] = o->x24;
-            c->fovy[n] = o->fovy;
+            c->roll[n] = o->Roll;
+            c->fovy[n] = o->Fovy;
             n++;
         }
     }
@@ -465,8 +465,8 @@ void tcSetBesideCamera()
     int j;
     int n = 0;
 
-    CamCtrl.qfps.setAreaData(g_readyOfs[0], g_transOfs[0]);
-    CamCtrl.qfps.getAreaData(ready, trans);
+    CamCtrl.m_QuasiFPS.setAreaData(g_readyOfs[0], g_transOfs[0]);
+    CamCtrl.m_QuasiFPS.getAreaData(ready, trans);
     if (c->num == 24) {
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 3; j++, n++) {
@@ -476,10 +476,10 @@ void tcSetBesideCamera()
                 } else if (!(c->flags & 0x10)) {
                     if (i <= 1) continue;
                 }
-                o->campos = c->pos[n];
+                o->Campos = c->pos[n];
                 o->target = c->at[n];
-                o->x24 = c->roll[n];
-                o->fovy = c->fovy[n];
+                o->Roll = c->roll[n];
+                o->Fovy = c->fovy[n];
             }
         }
         for (i = 0; i < 4; i++) {
@@ -499,8 +499,8 @@ void tcSetBesideCamera()
     } else {
         c->num = n;
     }
-    CamCtrl.qfps.setAreaData(ready, trans);
-    CamCtrl.qfps.setFloorRatio(c->u44.floor);
+    CamCtrl.m_QuasiFPS.setAreaData(ready, trans);
+    CamCtrl.m_QuasiFPS.setFloorRatio(c->u44.floor);
 }
 
 // the split object ends .rodata with a 4-byte pad to 8 (the linker does not re-create it)

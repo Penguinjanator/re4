@@ -56,7 +56,7 @@ static R108Symbol r108_symbol[8] = {
 // store: it is not a struct access, so pG is reloaded after every store and per loop iteration).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline u32 EvtFlagChk(u32 base, int no)
 {
@@ -101,21 +101,21 @@ static void r108_str_check();
 
 void R108Init()
 {
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 44 "D:/Bio4/Prog/r108.cpp"
     r108_work = (R108Work*) MEM_CALLOC(sizeof(R108Work), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) r108_str_check, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r108_checkBgm, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r108_str_check, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r108_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
     r108_initPuzzle(0x31, 0x32, 0x33, 2);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r108_checkDoor, 0, 1);
-    SceExec(0x12, (TaskFunc) r108_initChurchBell, 0, 0, 2, 0);
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r108_checkDoor, 0, 1);
+    SceExec(0x12, (TaskFunc) r108_initChurchBell, 0, 0, SCE_PRIO_DEF_2, 0);
     EmReadSearch(0x17, 0, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r108_operator, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r108_operator, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) r108_execShowView, 0, 1);
+        SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r108_execShowView, 0, 1);
     }
     SceAtSetActColor(4, 1);
 }
@@ -155,7 +155,7 @@ static void r108_execShowView()
 // The dial operator area: opens the sub screen puzzle terminal once.
 static void r108_operator()
 {
-    if (!(pG->flags_51C0 & 0x00080000)) {
+    if (!(pG->Scenario_flg[0] & 0x00080000)) {
         RsfSet(G_ROOM_ID, 0);
         OpeSetOpenTerm(6, 0.0f, 0.0f, 0.0f, 0.0f);
     }
@@ -196,7 +196,7 @@ static void r108_initChurchBell()
     cEmHit* hit;
 
     bell = SmdGetObjPtr(0x1C);
-    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &bell->pos, &bell->rot, 1);
+    hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &bell->pos, &bell->ang, 1);
     {
         // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
         // argument order (the r103 checkCloseCover lever)
@@ -229,9 +229,9 @@ static void r108_initChurchBell()
 static void r108_checkDoor()
 {
     SndCall(6, 7, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-    if (!(pG->flags_51C0 & 0x00080000)) {
-        BitOn(pG->flags_51C0, 0x00080000);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+    if (!(pG->Scenario_flg[0] & 0x00080000)) {
+        BitOn(pG->Scenario_flg[0], 0x00080000);
         OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
     }
 }
@@ -292,14 +292,14 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     if ((m = SceAtItemModelPtr(0x82)) != 0) {
         m->setNoSuspend(1);
     }
-    if (!(pG->flags_51BC & 0x8000)) {
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_execPuzzle, 0, 1);
+    if (!(pG->Item_find_flg & 0x8000)) {
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_execPuzzle, 0, 1);
     } else {
         FAdd(r108_coverL->pos.x, 220.0f);
         FSub(r108_coverR->pos.x, 220.0f);
         if (!(pG->item_flags[0] & 0x40000000)) {
-            SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_getItem, 0, 1);
-            SceAtPtr(0xA)->x4A = 0x28;
+            SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_getItem, 0, 1);
+            SceAtPtr(0xA)->actBtnKind = 0x28;
         }
     }
 }
@@ -325,7 +325,7 @@ extern "C" void r108_switchSymbol(int n)
         }
     turn:
         rot = -LIMIT_ANGLE(ang);
-        r108_dial->pParts->rot.y = rot;
+        r108_dial->pParts->ang.y = rot;
         ang += 0.10471976f;
         if (ang >= next) {
             goto done;
@@ -333,7 +333,7 @@ extern "C" void r108_switchSymbol(int n)
         SceSleep(1);
         goto turn;
     done:
-        r108_dial->pParts->rot.y = -LIMIT_ANGLE(next);
+        r108_dial->pParts->ang.y = -LIMIT_ANGLE(next);
         SceSleep(2);
     }
     EvtFlagXor(evtFlagBase(), r108_symbol[r108_symIdx %= 7].flagNo);
@@ -391,10 +391,10 @@ static void r108_execPuzzle()
     CamCtrl.CutCall(5);
     quit = 0;
     SceSleep(1);
-    SceMesSet(r108_mesNo, 0x30, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(r108_mesNo, 0x30, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceMesWait();
     do {
-        SceMesSet(r108_mesNo + 1, 0x230, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(r108_mesNo + 1, 0x230, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SceMesWait();
         switch (SceMesGetSelection()) {
         case 1:
@@ -417,14 +417,14 @@ static void r108_execPuzzle()
         }
         if (ok == 1) {
             r108_openCover();
-            pG->flags_51BC |= 0x8000;
-            SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_getItem, 0, 1);
-            SceAtPtr(0xA)->x4A = 0x28;
+            pG->Item_find_flg |= 0x8000;
+            SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r108_getItem, 0, 1);
+            SceAtPtr(0xA)->actBtnKind = 0x28;
             break;
         }
         SceSleep(1);
     } while (quit == 0);
-    r108_dial->pParts->rot.y = 0.0f;
+    r108_dial->pParts->ang.y = 0.0f;
     r108_symIdx = 0;
     for (j = 0; j <= 6; j++) {
         EffectEspDelete(0, r108_symbol[j].eff, 0, 0);
@@ -448,7 +448,7 @@ static void r108_str_check()
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-            if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(5) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
+            if (em->id >= 0x10 && em->id <= 0x20 && em->checkStatus(EM_STATUS_ACTIVE) != 0 && em->hp > 0 && (em->be_flag & 0x201) == 1
                 && ((cEmGanado*) em)->ckFindPL() == 1 && em->plDist2 < near) {
                 found = 1;
             }

@@ -7,10 +7,10 @@
 
 // Work of the hit-only enemy (game/emhit.cpp), overlaid on cEm from 0x3E0.
 struct EmHitWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int timer;            // 0x004 (0x3E4)  beetle: frames before it fades out
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;            // 0x004 (0x3E4)  beetle: frames before it fades out
     u8 pad_8[4];
-    int status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
+    int Status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
     cModel* pParent;      // 0x010 (0x3F0)  model the hit follows (setParent)
     int partsNo;          // 0x014 (0x3F4)
     int noNormalize;      // 0x018 (0x3F8)  setParent 3rd argument: keep the parent's scale
@@ -51,11 +51,11 @@ void emHitYarareInit(cEmHit* em);
 // The parts number / flags come last: the callers' `li` argument loads are scheduled after the
 // float moves (emhit, obj14, obj15 ...).
 void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
-void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
+void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
 void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
-void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
+void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 extent, s16 no, u16 flags);
 int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
-void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
+void EmDmBloodSet2(cEm* em, int est_id, int type, int mode, int esp_core_flg, int core_kind);               // em_sub.cpp
 int VehicleAdjust(Vec* pos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
 }
 
@@ -64,16 +64,16 @@ struct EmAtkInfo {
     f32 range;   // 0x00
     int type;    // 0x04
     u16 dmg;     // 0x08
-    u16 x0A;     // 0x0A
-    u16 x0C;     // 0x0C
+    u16 flag;     // 0x0A  bit2: LifeDownSet2 keep, bit3: pl_life = 0 (PS2 ATK_INFO.flag)
+    u16 dm_cnt;     // 0x0C  (PS2 ATK_INFO.dm_cnt)
     u16 x0E;     // 0x0E
 };
 
 extern "C" {
-void EmPlBloodSet2(cModel* m, Vec* pos, int a, int b, int type);                 // em_sub.cpp
+void EmPlBloodSet2(cModel* m, Vec* pos, int a, int eff_id, int type);                 // em_sub.cpp
 // Line `a`-`b` against the enemies: the hit enemy or NULL; hit point / normal and the scenario attribute out.
-cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
-void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* a, Vec* b);                 // em_sub.cpp
+cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
+void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                 // em_sub.cpp
 }
 
 void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage; obj10 hitCkPl)

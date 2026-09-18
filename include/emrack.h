@@ -14,8 +14,8 @@ struct EmRackHit {
 
 // Work of the rack enemy (game/emrack.cpp), overlaid on cEm from 0x3E0.
 struct EmRackWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int shockTimer;       // 0x004 (0x3E4)  frames the rack shakes (emRack_R1_Shock)
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;       // 0x004 (0x3E4)  frames the rack shakes (emRack_R1_Shock)
     f32 downSpd;          // 0x008 (0x3E8)  fall rotation speed (emRack_R1_Down)
     Vec size;             // 0x00C (0x3EC)  yarare box size
     EmRackHit hit[4];     // 0x018 (0x3F8)  extra yarare cubes of type 1
@@ -23,7 +23,7 @@ struct EmRackWork {
     u32 xEC;              // 0x0EC (0x4CC)
     cSat* sat[3];         // 0x0F0 (0x4D0)  runtime collision pieces (emRackSatSet)
     u8 eff;               // 0x0FC (0x4DC)  setEff: effect owner id, 0xFF = none
-    u8 etcNo;             // 0x0FD (0x4DD)  etc flag index (broken flag)
+    u8 Etc_no;             // 0x0FD (0x4DD)  etc flag index (broken flag)
 };
 // The push range (matrix, inverse, 4 limits, flags) sits at cEm+0xD60 .. 0xDD0 and is addressed
 // through `this`: cEm::rackMat / rackInvMat / rackRange / rackFlags.

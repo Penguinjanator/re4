@@ -25,23 +25,23 @@ void VIEW::init()
 {
     initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, ZFAR);
     orientation();
-    fovyOld = pCam->param.fovy;
-    zfarOld = zfar;
+    _old_fovy = pCam->param.fovy;
+    _old_zfar = _zfar;
 }
 
 void VIEW::move()
 {
-    if (fovyOld != pCam->param.fovy || zfarOld != zfar) {
-        initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, zfar);
+    if (_old_fovy != pCam->param.fovy || _old_zfar != _zfar) {
+        initPerspective(pCam->param.fovy, VIEW_ASPECT, ZNEAR, _zfar);
     }
     orientation();
-    fovyOld = pCam->param.fovy;
-    zfarOld = zfar;
+    _old_fovy = pCam->param.fovy;
+    _old_zfar = _zfar;
 }
 
 void VIEW::setFarPlane(f32 z)
 {
-    zfar = z;
+    _zfar = z;
 }
 
 // initPerspective: the original's algorithm -- three Vec temporaries (the second normal block uses
@@ -94,13 +94,13 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     f32 d2;
     int i;
 
-    fovy = fovy_;
-    aspect = aspect_;
-    zfar = zfar_;
-    znear = znear_;
-    t = sinf(fovy * 0.5f * 3.1415927f / 180.0f) / cosf(fovy * 0.5f * 3.1415927f / 180.0f);
+    _fovy = fovy_;
+    _aspect = aspect_;
+    _zfar = zfar_;
+    _znear = znear_;
+    t = sinf(_fovy * 0.5f * 3.1415927f / 180.0f) / cosf(_fovy * 0.5f * 3.1415927f / 180.0f);
     b = &localFull;
-    zn = znear;
+    zn = _znear;
     z = -zn;
     h = zn * t;
     w = h * aspect_;
@@ -116,7 +116,7 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     b->point[3].z = z;
     b->point[3].x = w;
     b->point[3].y = -h;
-    zf = zfar;
+    zf = _zfar;
     h2 = zf * t;
     z = -zf;
     w = h2 * aspect_;

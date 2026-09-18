@@ -465,12 +465,13 @@ cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-
 # SN Systems libsn (ProDG runtime: stdio stubs, debugger stub, fp/64-bit helpers): GCC 2.95 -O2 with
 # no small data (`first.183` of dummy.c sits in .data) and no common symbols (FSasync's uninitialised
 # globals sit in the unit's own .bss in declaration order).
-LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0", "crtbegin", "builtin-delete"]}
+LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "FSasync", "sndvd", "crt0", "crtbegin", "builtin-delete"]}
 cflags_libsn = [*cflags_game, "-G 0", "-fno-common"]
-# libsn/crt units that were hand-written assembly in the original (no C form exists): the split
-# name stays lib/<name>.c, the source is src/lib/<name>.s, assembled by the template's `as` rule
-# (binutils powerpc-eabi-as with config.asflags, then `dtk elf fixup`).
-ASM_UNITS = {f"lib/{name}.c": f"lib/{name}.s" for name in ["proview", "ppcdown", "fileserver", "eabi", "__start", "tealeaf"]}
+# libsn/crt units that were hand-written assembly in the original (no C form exists): C files whose
+# functions are whole-function top-level asm() bodies (register names from include/asm_regs.h),
+# compiled by ngccc like the rest of libsn but without strip_unused (it would drop eabi's gap
+# function, which is not in sym_map.tsv, and rejects ppcdown's data-to-label relocations).
+ASM_BODY_UNITS = {f"lib/{name}.c" for name in ["proview", "ppcdown", "fileserver", "eabi", "__start", "tealeaf"]}
 
 # gcc 2.95.3 libgcc2.c, one L_* section per unit (src/lib/libgcc2/ holds the verbatim sources plus
 # a tconfig.h shim). __clz_tab (256 bytes) sits in .sdata2, so -G is large here as well; functions
@@ -528,8 +529,8 @@ for unit in UNITS:
         alt = str(Path(unit).with_suffix(".cpp"))
         if alt in split_units:
             name = alt
-    if unit in ASM_UNITS:
-        lib_objects.append(Object(status, name, source=ASM_UNITS[unit]))
+    if unit in ASM_BODY_UNITS:
+        lib_objects.append(Object(status, name, source=unit, cflags=cflags_libsn))
     elif unit.startswith("game/"):
         # GCC 2.95 linkonce sections (vtables, template instantiations, out-of-line inlines) are
         # folded into .rodata / dropped the way the original link laid them out (see the tool).

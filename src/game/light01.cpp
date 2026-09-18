@@ -22,26 +22,26 @@ void Light01_Move(cLight* l)
     } else {
         r = 0;
     }
-    c = l->color.r + r;
+    c = l->Col.r + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->curColor.r = c;
-    c = l->color.g + r;
+    l->DispCol.r = c;
+    c = l->Col.g + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->curColor.g = c;
-    c = l->color.b + r;
+    l->DispCol.g = c;
+    c = l->Col.b + r;
     if (c < 0) {
         c = 0;
     } else if (c > 255) {
         c = 255;
     }
-    l->curColor.b = c;
-    l->curColor.a = l->color.a;
+    l->DispCol.b = c;
+    l->DispCol.a = l->Col.a;
 }

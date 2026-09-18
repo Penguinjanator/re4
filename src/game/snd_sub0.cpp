@@ -188,7 +188,7 @@ s16 Snd_get_rnd_pitch(SND_SIT* sit)
     s16 r;
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
 
-    lo = sit->pitch_lo;
+    lo = sit->pitch_l;
     hi = sit->pitch_hi;
     if (lo == hi) {
         ctrl->rnd_pitch = lo;
@@ -217,19 +217,19 @@ void Snd_test_work_clear(void)
         *p++ = 0;
     }
     test = &Snd_test_work;
-    test->x1 = 0;
-    test->x3 = 0;
-    test->xC = 1;
-    test->xE = 7;
-    test->x18 = 0xE;
-    test->x1A = 2;
+    test->tbl = 0;
+    test->aux = 0;
+    test->menu = 1;
+    test->dispFlag = 7;
+    test->blkMax[0] = 0xE;
+    test->blkMax[1] = 2;
     strcpy(test->path0, "/");
     strcpy(test->path1, "/");
     for (i = 0; i < 14; i++) {
-        test->x51C[i] = 0;
+        test->sitData[i] = 0;
     }
     for (i = 0; i < 2; i++) {
-        test->x554[i] = 0;
+        test->ritData[i] = 0;
     }
     test->aram_base = Snd_ctrl_work.aram_base;
 }

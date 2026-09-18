@@ -34,7 +34,7 @@ struct Em32Work {
     int timer;            // 0x004 (0x3E4)
     int timer2;           // 0x008 (0x3E8)  attack: frames the action button prompt stays
     int timer3;           // 0x00C (0x3EC)  attack: frames before the action button shows
-    int x10;              // 0x010 (0x3F0)  TunnelAtk: Rnd() & 1 (prompt variant); CatchHit: bite SE handle
+    int TmpU32;              // 0x010 (0x3F0)  TunnelAtk: Rnd() & 1 (prompt variant); CatchHit: bite SE handle  scratch (SE handle in CatchHit, Rnd variant in TunnelAtk / Ground) (vendor name as em39)
     u32 sndId2;           // 0x014 (0x3F4)  CatchHit: catch SE handle
     Vec spd;              // 0x018 (0x3F8)  movement left to the step / jump target (a tenth per motion frame)
     f32 turnAng;          // 0x024 (0x404)  AmbushAtk: yaw the swipe turns towards
@@ -99,7 +99,7 @@ struct Em32Work {
     u32 sndId;            // 0x988 (0xD68)  SndCall handle (SndStop)
     u16 voiceTimer;       // 0x98C (0xD6C)
     u8 espKind[3];        // 0x98E (0xD6E)  EspPullCoreKind results
-    u8 x991;              // 0x991 (0xD71)  the attack already hit the player
+    u8 Atk_ck;              // 0x991 (0xD71)  the attack already hit the player  the attack already hit the player (em32AtkHitSet) (vendor name as em10)
     u8 actionSet;         // 0x992 (0xD72)  player action callback set (em32BackjumpAction)
     u8 mode;              // 0x993 (0xD73)  form: 0, 1 (parasite shown), 2 (last form)
 };

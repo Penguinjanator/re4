@@ -60,7 +60,7 @@ void cObjScr::move()
     if (callBack) {
         callBack(this);
     }
-    lightInfo.updateMatrix(this);
+    LightInfo.updateMatrix(this);
 }
 
 void cObjScr::moveNormal()
@@ -72,9 +72,9 @@ void cObjScr::moveRotate()
     ObjScrRotWork* w = (ObjScrRotWork*)work;
 
     if (w->flag & 1) {
-        PSVECAdd(&pParts->rot, &w->rotSpd, &pParts->rot);
+        PSVECAdd(&pParts->ang, &w->rotSpd, &pParts->ang);
     } else {
-        PSVECAdd(&rot, &w->rotSpd, &rot);
+        PSVECAdd(&ang, &w->rotSpd, &ang);
     }
 }
 
@@ -82,16 +82,16 @@ void cObjScr::moveSwingRot()
 {
     ObjScrSwingWork* w = (ObjScrSwingWork*)work;
 
-    if (xFC == 0) {
-        w->baseRot.x = rot.x;
-        w->baseRot.y = rot.y;
-        w->baseRot.z = rot.z;
-        xFC = 1;
+    if (r_no_0 == 0) {
+        w->baseRot.x = ang.x;
+        w->baseRot.y = ang.y;
+        w->baseRot.z = ang.z;
+        r_no_0 = 1;
     }
     w->time += 1.0f;
-    rot.x = w->baseRot.x + w->ampX * sinf(w->freqX * w->time + w->phaseX);
-    rot.y = w->baseRot.y + w->ampY * sinf(w->freqY * w->time + w->phaseY);
-    rot.z = w->baseRot.z + w->ampZ * sinf(w->freqZ * w->time + w->phaseZ);
+    ang.x = w->baseRot.x + w->ampX * sinf(w->freqX * w->time + w->phaseX);
+    ang.y = w->baseRot.y + w->ampY * sinf(w->freqY * w->time + w->phaseY);
+    ang.z = w->baseRot.z + w->ampZ * sinf(w->freqZ * w->time + w->phaseZ);
 }
 
 // Never called: the original linker dead-stripped the body (unit in STRIP_UNUSED) and kept its

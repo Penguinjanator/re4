@@ -62,7 +62,7 @@ void Filter08Trans()
     if (use_filter8 == 0) {
         return;
     }
-    if (!(pG->flags_5018 & 0x08000000)) {
+    if (!(pG->Status_flg[3] & 0x08000000)) {
         filter08_ratio -= filter08_ratio * 0.6f;
         if (filter08_ratio < 0.01f) {
             return;
@@ -70,9 +70,9 @@ void Filter08Trans()
     } else {
         filter08_ratio += (1.0f - filter08_ratio) * 0.25f;
     }
-    if (pl->pWep->getMarkerPos(&pos)) {
-        PSMTXMultVec(pG->Cam.viewMat, &pos, &pos);
-        PSMTX44MultVec(pG->Cam.projMat, &pos, &pos);
+    if (pl->Wep->getMarkerPos(&pos)) {
+        PSMTXMultVec(pG->Cam.v_mat, &pos, &pos);
+        PSMTX44MultVec(pG->Cam.ProjMat, &pos, &pos);
         g_cx2 = pos.x * 0.5f * 1.2f + 0.5f;
         g_cy2 = -pos.y * 0.5f * 0.9f + 0.5f;
     } else {

@@ -13,10 +13,10 @@ extern "C" {
 void init_dbmodule();
 void Render_tile(void* data);
 void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color);
-void Draw_line(Vec* a, Vec* b, u32 color);
+void Draw_line(Vec* p0, Vec* b, u32 color);
 void Draw_quad(Vec* pos, Vec* size, u32 color);
-void Draw_line3d(Vec* a, Vec* b, u32 color, int blend);
-void Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, int blend);
+void Draw_line3d(Vec* p0, Vec* p1, u32 color, int blend);
+void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend);
 void Draw_line3d_init();
 void Draw_line3d_end();
 void Draw_poly(Vec* p, u32 color, int zupd);

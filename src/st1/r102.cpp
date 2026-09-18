@@ -47,18 +47,18 @@ void R102Init()
 
     Espgen42SetNoWater(1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r102_openCover, 0, 2);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r102_openCover, 0, 2);
     } else {
-        SmdGetObjPtr(0x25)->pParts->rot.z = -2.46091f;
+        SmdGetObjPtr(0x25)->pParts->ang.z = -2.46091f;
         SmdGetObjPtr(0x25)->be_flag |= 0x20;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r102_execEvent00, 0, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r102_execEvent00, 0, 1);
         EmReadSearch(0x18, 0, 0);
         PSet(r102_work->evd, DC.setData(EvtMgr.NameChange("evd/r102s00.evd")));
-        r102_work->evd->setCommand(1, 0, 0);
+        r102_work->evd->setCommand(CMND_MRAM_LOAD, 0, 0);
     }
-    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R102Main()
@@ -71,8 +71,8 @@ static void r102_execEvent00()
     RsfSet(G_ROOM_ID, 1);
     SceEventStart(0);
     if (r102_work->evd->waitUseOk() == 1) {
-        EvtMgr.SetEvt(r102_work->evd->addr, 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
+        EvtMgr.SetEvt(r102_work->evd->m_addr, 0);
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0) != 0) {
             SceSleep(1);
         }
     }
@@ -91,8 +91,8 @@ static void r102_execEvent00()
         ang.z = 0.0f;
         pl->setAng(&ang);
     }
-    r102_work->evd->setCommand(4, 0, 0);
-    SubScreenOpen(0x10, 0);
+    r102_work->evd->setCommand(CMND_DEL_DATA, 0, 0);
+    SubScreenOpen(SS_OPEN_SHOP, 0);
     setEm(0x4C, -1, 1, 1, 1);
 }
 
@@ -139,18 +139,18 @@ static void r102_openCover()
     SndCall(6, 3, 0, 0, 0, 0);
     obj = SmdGetObjPtr(0x25);
     obj->be_flag |= 0x20;
-    obj->pParts->rot.z += -0.05235988f;
+    obj->pParts->ang.z += -0.05235988f;
     SceSleep(1);
-    obj->pParts->rot.z += -0.05235988f;
+    obj->pParts->ang.z += -0.05235988f;
     SceSleep(1);
     SceSleep(1);
     do {
-        obj->pParts->rot.z += step;
+        obj->pParts->ang.z += step;
         SceSleep(1);
     } while (--i != 0);
-    obj->pParts->rot.z -= -0.02094395f;
+    obj->pParts->ang.z -= -0.02094395f;
     SceSleep(1);
-    obj->pParts->rot.z += -0.02094395f;
+    obj->pParts->ang.z += -0.02094395f;
     SceSleep(10);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

@@ -18,11 +18,11 @@
 // Attache case editor (ss_pzzl's SsPzzlMain owns one).
 class ssDbgPzzl {
 public:
-    void* pSave;    // 0x00  ItemMgr save image taken at init (restored by item set 0x17)
-    u8 caseSize;    // 0x04  wk->x2AE at init
-    s8 cursor;      // 0x05  menu row
-    s8 itemSet;     // 0x06  cItemMgr::setUp number, 0x17 = the saved inventory
-    s8 bullet;      // 0x07  0 normal, 1 infinite, 2 infinite + no reload
+    void* m_p_save_bak;    // 0x00  ItemMgr save image taken at init (restored by item set 0x17)
+    u8 m_size_bak;    // 0x04  wk->x2AE at init
+    s8 m_menu_no;      // 0x05  menu row
+    s8 m_set_no;     // 0x06  cItemMgr::setUp number, 0x17 = the saved inventory
+    s8 m_bllt_no;      // 0x07  0 normal, 1 infinite, 2 infinite + no reload
 
     void init(SUB_SCREEN* wk);
     void quit();
@@ -47,16 +47,16 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
     int y;
 
     if (joy->trg & 0x1000) {
-        if (wk->x34C & 1) {
-            wk->x34C &= ~1;
+        if (wk->debug_menu & 1) {
+            wk->debug_menu &= ~1;
             return;
         }
-        wk->x34C |= 1;
+        wk->debug_menu |= 1;
         dbg_cursor = 0;
     }
-    if (wk->x34C & 1) {
+    if (wk->debug_menu & 1) {
         if (joy->trg & 0x200) {
-            wk->x34C &= ~1;
+            wk->debug_menu &= ~1;
             return;
         }
         if (joy->trg & 0x80008) {
@@ -69,18 +69,18 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
         switch (dbg_cursor) {
         case 0:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x10;
+                wk->debug_menu |= 0x10;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x10;
+                wk->debug_menu &= ~0x10;
             }
             break;
         case 1:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x20;
+                wk->debug_menu |= 0x20;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x20;
+                wk->debug_menu &= ~0x20;
             }
             break;
         case 2:
@@ -94,10 +94,10 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
             break;
         case 3:
             if (joy->trg & 0x10001) {
-                wk->x34C |= 0x40;
+                wk->debug_menu |= 0x40;
             }
             if (joy->trg & 0x20002) {
-                wk->x34C &= ~0x40;
+                wk->debug_menu &= ~0x40;
             }
             break;
         }
@@ -108,14 +108,14 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
             eprintf(cx * 8, y, i == dbg_cursor ? 4 : 0, 0, "%s", menu[i]);
             switch (i) {
             case 0:
-                if (wk->x34C & 0x10) {
+                if (wk->debug_menu & 0x10) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
                 }
                 break;
             case 1:
-                if (wk->x34C & 0x20) {
+                if (wk->debug_menu & 0x20) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
@@ -125,7 +125,7 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
                 eprintf((cx + 13) * 8, y, 0, 0, "%02d", pG->debug_mode);
                 break;
             case 3:
-                if (wk->x34C & 0x40) {
+                if (wk->debug_menu & 0x40) {
                     eprintf((cx + 13) * 8, y, 0, 0, "ON-/---");
                 } else {
                     eprintf((cx + 13) * 8, y, 0, 0, "---/OFF");
@@ -138,29 +138,29 @@ void SscrnDebugMenu(SUB_SCREEN* wk)
         eprintf(0x180, 0x70, 0, 0, "MI");
         ssModInfoMgr.dispWorkNum(0x1A0, 0x70, 0, 0);
     }
-    if (wk->x34C & 0x20) {
-        pG->flags_68 |= 0x40000000;
+    if (wk->debug_menu & 0x20) {
+        pG->Debug_flg[2] |= 0x40000000;
     } else {
-        pG->flags_68 &= ~0x40000000;
+        pG->Debug_flg[2] &= ~0x40000000;
     }
 }
 
 void ssDbgPzzl::init(SUB_SCREEN* wk)
 {
-    cursor = 0;
-    itemSet = 0x17;
+    m_menu_no = 0;
+    m_set_no = 0x17;
 #line 179 "D:/Bio4/Prog/ss_debug.cpp"
-    pSave = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 13);
-    if (pSave) {
-        ItemMgr.save(pSave);
-        caseSize = wk->x2AE;
+    m_p_save_bak = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 13);
+    if (m_p_save_bak) {
+        ItemMgr.save(m_p_save_bak);
+        m_size_bak = wk->board_size;
     }
 }
 
 void ssDbgPzzl::quit()
 {
-    if (pSave) {
-        Mem_free(pSave);
+    if (m_p_save_bak) {
+        Mem_free(m_p_save_bak);
     }
 }
 
@@ -172,35 +172,35 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
     int x;
     int y;
 
-    if ((s32) pG->flags_6C < 0) {
-        bullet = 2;
-    } else if (pG->flags_68 & 0x00400000) {
-        bullet = 1;
+    if ((s32) pG->Debug_flg[3] < 0) {
+        m_bllt_no = 2;
+    } else if (pG->Debug_flg[2] & 0x00400000) {
+        m_bllt_no = 1;
     } else {
-        bullet = 0;
+        m_bllt_no = 0;
     }
     dbg_blink++;
     if (joy->trg & 0x80008) {
-        cursor--;
+        m_menu_no--;
     }
     if (joy->trg & 0x40004) {
-        cursor++;
+        m_menu_no++;
     }
     if (joy->trg & 0xC000C) {
         dbg_blink = 0x18;
     }
-    cursor = cursor < 0 ? 0 : (cursor > 5 ? 5 : cursor);
-    switch (cursor) {
+    m_menu_no = m_menu_no < 0 ? 0 : (m_menu_no > 5 ? 5 : m_menu_no);
+    switch (m_menu_no) {
     case 0: {
-        s8 old = itemSet;
+        s8 old = m_set_no;
         if (joy->trg & 0x10001) {
-            itemSet--;
+            m_set_no--;
         }
         if (joy->trg & 0x20002) {
-            itemSet++;
+            m_set_no++;
         }
-        itemSet = itemSet < 0 ? 0x17 : (itemSet > 0x17 ? 0 : itemSet);
-        if (old != itemSet) {
+        m_set_no = m_set_no < 0 ? 0x17 : (m_set_no > 0x17 ? 0 : m_set_no);
+        if (old != m_set_no) {
             ItemMgr.dumpType(1);
             ItemMgr.dumpType(2);
             ItemMgr.dumpType(3);
@@ -208,16 +208,16 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             ItemMgr.dumpType(6);
             ItemMgr.dumpType(9);
             ItemMgr.dumpType(0xE);
-            if (itemSet == 0x17) {
-                if (pSave) {
-                    ItemMgr.load(pSave);
-                    wk->x2AF = caseSize;
+            if (m_set_no == 0x17) {
+                if (m_p_save_bak) {
+                    ItemMgr.load(m_p_save_bak);
+                    wk->board_next = m_size_bak;
                 } else {
-                    itemSet = 0;
-                    wk->x2AF = ItemMgr.setUp(itemSet);
+                    m_set_no = 0;
+                    wk->board_next = ItemMgr.setUp(m_set_no);
                 }
             } else {
-                wk->x2AF = ItemMgr.setUp(itemSet);
+                wk->board_next = ItemMgr.setUp(m_set_no);
             }
             changed = 1;
         }
@@ -225,38 +225,38 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
     }
     case 1:
         if (joy->trg & 0x10001) {
-            bullet--;
+            m_bllt_no--;
         }
         if (joy->trg & 0x20002) {
-            bullet++;
+            m_bllt_no++;
         }
-        bullet = bullet < 0 ? 2 : (bullet > 2 ? 0 : bullet);
-        BitOff(pG->flags_68, 0x00400000);
-        BitOff(pG->flags_6C, 0x80000000);
-        switch (bullet) {
+        m_bllt_no = m_bllt_no < 0 ? 2 : (m_bllt_no > 2 ? 0 : m_bllt_no);
+        BitOff(pG->Debug_flg[2], 0x00400000);
+        BitOff(pG->Debug_flg[3], 0x80000000);
+        switch (m_bllt_no) {
         case 2:
-            BitOn(pG->flags_6C, 0x80000000);
+            BitOn(pG->Debug_flg[3], 0x80000000);
             break;
         case 1:
-            BitOn(pG->flags_68, 0x00400000);
+            BitOn(pG->Debug_flg[2], 0x00400000);
             break;
         }
         break;
     case 2: {
-        s8 old = wk->x2AF;
+        s8 old = wk->board_next;
         if (joy->trg & 0x10001) {
-            wk->x2AF--;
+            wk->board_next--;
         }
         if (joy->trg & 0x20002) {
-            wk->x2AF++;
+            wk->board_next++;
         }
-        wk->x2AF = (s8) wk->x2AF < 0 ? 3 : ((s8) wk->x2AF > 3 ? 0 : wk->x2AF);
-        if (old != (s8) wk->x2AF) {
+        wk->board_next = (s8) wk->board_next < 0 ? 3 : ((s8) wk->board_next > 3 ? 0 : wk->board_next);
+        if (old != (s8) wk->board_next) {
             ItemMgr.dump(0x7C);
             ItemMgr.dump(0x7D);
             ItemMgr.dump(0x7E);
             ItemMgr.dump(0x7F);
-            switch ((s8) wk->x2AF) {
+            switch ((s8) wk->board_next) {
             case 0:
                 ItemMgr.get(0x7C, 0);
                 break;
@@ -280,14 +280,14 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             step = 10000;
         }
         if (joy->rep2 & 0x10001) {
-            pG->x4F98 -= step;
+            pG->peseta -= step;
         }
         if (joy->rep2 & 0x20002) {
-            pG->x4F98 += step;
+            pG->peseta += step;
         }
         {
             GlobalWork* g = pG;
-            int p = g->x4F98;
+            int p = g->peseta;
             if (p >= 0) {
                 if (p > 100000000) {
                     p = 100000000;
@@ -295,7 +295,7 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             } else {
                 p = 0;
             }
-            g->x4F98 = p;
+            g->peseta = p;
         }
         break;
     }
@@ -310,12 +310,12 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
             step2 *= 10.0f;
         }
         if (joy->rep2 & 0x20) {
-            m->rot.x -= step;
+            m->ang.x -= step;
         }
         if (joy->rep2 & 0x40) {
-            m->rot.x += step;
+            m->ang.x += step;
         }
-        m->rot.x = m->rot.x < -1.5707964f ? 1.5707964f : (m->rot.x > 1.5707964f ? -1.5707964f : m->rot.x);
+        m->ang.x = m->ang.x < -1.5707964f ? 1.5707964f : (m->ang.x > 1.5707964f ? -1.5707964f : m->ang.x);
         if (joy->rep2 & 0x00800000) {
             pzzlDbgNo += step3;
         }
@@ -341,15 +341,15 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
         break;
     }
     if (changed) {
-        wk->x2AE = wk->x2AF;
-        wk->x2B0->quit();
-        delete wk->x2B0;
-        wk->x2B0 = new pzlPlayer;
-        if (wk->x2B0->init((s8) wk->x2AE) == 0) {
-            delete wk->x2B0;
+        wk->board_size = wk->board_next;
+        wk->puzzlePlayer->quit();
+        delete wk->puzzlePlayer;
+        wk->puzzlePlayer = new pzlPlayer;
+        if (wk->puzzlePlayer->init((s8) wk->board_size) == 0) {
+            delete wk->puzzlePlayer;
         }
         pieceModelInit(wk);
-        wk->x2B0->save();
+        wk->puzzlePlayer->save();
     }
     {
         const char* items[6] = {"Item Set :", "Bullet   :", "Case Size:", "Peseta   :", "Case Rot :", "Boss Bar :"};
@@ -358,10 +358,10 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
         eprintf(x * 8, y * 14, 5, 0, "----- CASE MAKE -----");
         y++;
         if (dbg_blink & 0x18) {
-            eprintf((x - 1) * 8, (y + cursor) * 14, 0x16, 0, ">");
+            eprintf((x - 1) * 8, (y + m_menu_no) * 14, 0x16, 0, ">");
         }
         for (i = 0; i < 6; i++) {
-            int col = i == cursor ? 4 : 0;
+            int col = i == m_menu_no ? 4 : 0;
             eprintf(x * 8, (y + i) * 14, col, 0, "%s", items[i]);
             switch (i) {
             case 0: {
@@ -371,27 +371,27 @@ void ssDbgPzzl::move(SUB_SCREEN* wk)
                     "STAGE 2DX", "HANDGUN  ", "XXXXGUN",   "MINE RPG",  "NETA 1",    "NETA 2",
                     "NETA 3",    "NETA 4",    "NETA 5",    "KLAUSER",   "WESKER",    "---------",
                 };
-                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[itemSet]);
+                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[m_set_no]);
                 break;
             }
             case 1: {
                 const char* tbl[3] = {"-----", "INF", "INF+RELOAD"};
-                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[bullet]);
+                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[m_bllt_no]);
                 break;
             }
             case 2: {
                 const char* tbl[4] = {"SMALL", "MEDIUM", "LARGE", "HUGE"};
-                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[(s8) wk->x2AF]);
+                eprintf((x + 11) * 8, (y + i) * 14, 0, 0, "%s", tbl[(s8) wk->board_next]);
                 break;
             }
             case 3: {
-                int c = i == cursor ? 0x16 : 0;
-                eprintf((x + 11) * 8, (y + i) * 14, c, 0, "%d", pG->x4F98);
+                int c = i == m_menu_no ? 0x16 : 0;
+                eprintf((x + 11) * 8, (y + i) * 14, c, 0, "%d", pG->peseta);
                 break;
             }
             case 4: {
                 cMap* m = MapMgr.getWork(3);
-                eprintf((x + 11) * 8, (y + i) * 14, col, 0, "%.3f", m->rot.x);
+                eprintf((x + 11) * 8, (y + i) * 14, col, 0, "%.3f", m->ang.x);
                 break;
             }
             case 5: {

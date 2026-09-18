@@ -154,7 +154,7 @@ void EfmArrayClear()
     p = ObjMgr.pAlive;
     while (p) {
         n = p;
-        p = (cObj*) p->next;
+        p = (cObj*) p->pNext;
         func(n);
     }
 }
@@ -168,14 +168,14 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
     void* tpl;
     u32 moveId;
 
-    if (!(info->flg & 0x1000) && gen->x6 != 0) {
-        parent = SmdGetObjPtr(gen->x6 - 1);
+    if (!(info->flg & 0x1000) && gen->Parent_no != 0) {
+        parent = SmdGetObjPtr(gen->Parent_no - 1);
         if (parent == 0) {
-            pLog->err(0, 0, "ESP_EFM : PARENT_NO[%d] Invalid.", gen->x6);
+            pLog->err(0, 0, "ESP_EFM : PARENT_NO[%d] Invalid.", gen->Parent_no);
             return 0;
         }
     }
-    switch (gen->x1) {
+    switch (gen->Id) {
     case 0xFF:
         moveId = 0;
         break;
@@ -189,7 +189,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         moveId = 3;
         break;
     default:
-        pLog->err(0, 0, "ESP_EFM : EFM_MOVE_ID[%x] is invalid.", gen->x1);
+        pLog->err(0, 0, "ESP_EFM : EFM_MOVE_ID[%x] is invalid.", gen->Id);
         return 0;
     }
     if (moveId >= GetEfmMoveIdMax()) {
@@ -197,16 +197,16 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         return 0;
     }
     if (moveId == 3) {
-        cObj* scr = SmdGetGroupObjPtr(gen->x2);
+        cObj* scr = SmdGetGroupObjPtr(gen->Tex_id);
         if (scr == 0) {
-            pLog->err(0, 0, "ESP_EFM : SCR_MODEL_NO[%x] is invalid.", gen->x2);
+            pLog->err(0, 0, "ESP_EFM : SCR_MODEL_NO[%x] is invalid.", gen->Tex_id);
             return 0;
         }
-        model = PRef(scr->pInfo)->pData;
-        tpl = PRef(scr->pInfo)->pTpl;
+        model = PRef(scr->pModelInfo)->pData;
+        tpl = PRef(scr->pModelInfo)->tpl_addr;
     } else {
-        if (EspGetEfmAddr(gen->x2, &model, &tpl) == 0) {
-            pLog->err(0, 0, "ESP_EFM : EFM_ID[%x] is invalid.", gen->x2);
+        if (EspGetEfmAddr(gen->Tex_id, &model, &tpl) == 0) {
+            pLog->err(0, 0, "ESP_EFM : EFM_ID[%x] is invalid.", gen->Tex_id);
             return 0;
         }
     }
@@ -225,22 +225,22 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         }
         obj->sub2B4.clrFlags(0xFCFF);
         light = 0x10;
-        if (gen->flags & 0x80) {
+        if (gen->Tool_flg & 0x80) {
             light = 4;
         }
-        if (gen->flags & 0x20000) {
+        if (gen->Tool_flg & 0x20000) {
             light = 8;
         }
         if (moveId == 3) {
-            ModelBound* bound = &obj->pInfo->bound;
+            ModelBound* bound = &obj->pModelInfo->bound;
             size.x = bound->size.x;
             size.y = bound->size.y;
             size.z = bound->size.z;
             PSVECSubtract(&bound->center, &obj->pParts->pos, &center);
-            obj->lightInfo.init2(2, 1, &center, &size, light);
-            obj->x103 = 0x80;
+            obj->LightInfo.init2(2, 1, &center, &size, light);
+            obj->alpha_omit = 0x80;
         } else {
-            obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
+            obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         }
         obj->id = GetEfmMoveId(moveId);
         obj = EfmSetObj04(obj, gen, info, seed, parent, m, x, rate, ofs);
@@ -262,13 +262,13 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         }
         obj->sub2B4.clrFlags(0xFCFF);
         light = 0x10;
-        if (gen->flags & 0x80) {
+        if (gen->Tool_flg & 0x80) {
             light = 4;
         }
-        if (gen->flags & 0x20000) {
+        if (gen->Tool_flg & 0x20000) {
             light = 8;
         }
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         obj->id = GetEfmMoveId(1);
         obj = EfmSetObj05(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
@@ -287,7 +287,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             return 0;
         }
         obj->sub2B4.clrFlags(0xFCFF);
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
         obj->id = GetEfmMoveId(2);
         obj = EfmSetObj09(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
@@ -296,17 +296,17 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         break;
     }
     if (info->pEm != 0 && obj != 0 && (info->pEm->be_flag & 9) == 9) {
-        u8 r = info->pEm->x139;
-        u8 g = info->pEm->x13A;
-        u8 b = info->pEm->x13B;
+        u8 r = info->pEm->AddAmb_r;
+        u8 g = info->pEm->AddAmb_g;
+        u8 b = info->pEm->AddAmb_b;
         if (r == 0 && ((g == 0) & (b == 0))) {
             obj->be_flag &= ~8;
         } else {
             obj->be_flag |= 8;
         }
-        obj->x139 = r;
-        obj->x13A = g;
-        obj->x13B = b;
+        obj->AddAmb_r = r;
+        obj->AddAmb_g = g;
+        obj->AddAmb_b = b;
     }
     return obj;
 }
@@ -325,75 +325,75 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
 
     obj->be_flag |= 0x4000;
     w->core = *info;
-    w->x79 = gen->x7;
-    w->flags = gen->flags;
-    obj->pos = gen->pos;
-    obj->pos.x += gen->x18 * fRandSeed1_1(seed);
-    obj->pos.y += gen->x1C * fRandSeed1_1(seed);
-    obj->pos.z += gen->x20 * fRandSeed1_1(seed);
-    obj->speed = gen->x24;
-    obj->speed.x += gen->x34.x * fRandSeed1_1(seed);
-    obj->speed.y += gen->x34.y * fRandSeed1_1(seed);
-    obj->speed.z += gen->x34.z * fRandSeed1_1(seed);
-    w->spdDamp = gen->x30;
-    w->acc = gen->x40;
-    w->acc.x += gen->x4C.x * fRandSeed1_1(seed);
-    w->acc.y += gen->x4C.y * fRandSeed1_1(seed);
-    w->acc.z += gen->x4C.z * fRandSeed1_1(seed);
-    obj->rot = gen->x58;
-    obj->rot.x += gen->x64.x * fRandSeed1_1(seed);
-    obj->rot.y += gen->x64.y * fRandSeed1_1(seed);
-    obj->rot.z += gen->x64.z * fRandSeed1_1(seed);
-    PSVECScale(&obj->rot, &obj->rot, DEG2RAD);
-    w->rotSpd = gen->x70;
-    w->rotSpd.x += gen->x7C.x * fRandSeed1_1(seed);
-    w->rotSpd.y += gen->x7C.y * fRandSeed1_1(seed);
-    w->rotSpd.z += gen->x7C.z * fRandSeed1_1(seed);
+    w->x79 = gen->Parts_no;
+    w->flags = gen->Tool_flg;
+    obj->pos = gen->Pos;
+    obj->pos.x += gen->R_pos.x * fRandSeed1_1(seed);
+    obj->pos.y += gen->R_pos.y * fRandSeed1_1(seed);
+    obj->pos.z += gen->R_pos.z * fRandSeed1_1(seed);
+    obj->speed = gen->Speed;
+    obj->speed.x += gen->R_speed.x * fRandSeed1_1(seed);
+    obj->speed.y += gen->R_speed.y * fRandSeed1_1(seed);
+    obj->speed.z += gen->R_speed.z * fRandSeed1_1(seed);
+    w->spdDamp = gen->D_speed;
+    w->acc = gen->Speed_plus;
+    w->acc.x += gen->R_speed_plus.x * fRandSeed1_1(seed);
+    w->acc.y += gen->R_speed_plus.y * fRandSeed1_1(seed);
+    w->acc.z += gen->R_speed_plus.z * fRandSeed1_1(seed);
+    obj->ang = gen->Ang;
+    obj->ang.x += gen->R_ang.x * fRandSeed1_1(seed);
+    obj->ang.y += gen->R_ang.y * fRandSeed1_1(seed);
+    obj->ang.z += gen->R_ang.z * fRandSeed1_1(seed);
+    PSVECScale(&obj->ang, &obj->ang, DEG2RAD);
+    w->rotSpd = gen->Ang_plus;
+    w->rotSpd.x += gen->R_ang_plus.x * fRandSeed1_1(seed);
+    w->rotSpd.y += gen->R_ang_plus.y * fRandSeed1_1(seed);
+    w->rotSpd.z += gen->R_ang_plus.z * fRandSeed1_1(seed);
     PSVECScale(&w->rotSpd, &w->rotSpd, DEG2RAD);
-    w->scaleXZ = gen->x88 * 0.005f;
-    w->scaleY = gen->x8C * 0.005f;
+    w->scaleXZ = gen->Size_base_x * 0.005f;
+    w->scaleY = gen->Size_base_y * 0.005f;
     w->scale = 1.0f;
-    rnd = gen->x90 * fRandSeed1_1(seed) * 0.005f;
+    rnd = gen->R_size_base * fRandSeed1_1(seed) * 0.005f;
     w->scaleXZ += rnd;
     w->scaleY += rnd;
-    w->scaleSpd = gen->x94;
-    w->scaleDamp = gen->x98;
-    w->r0 = gen->x9C;
-    w->g0 = gen->x9D;
-    w->b0 = gen->x9E;
-    w->a0 = gen->x9F;
-    w->r = (f32) gen->x9C;
-    w->g = (f32) gen->x9D;
-    w->b = (f32) gen->x9E;
-    w->a = (f32) gen->x9F;
-    w->rMul = gen->xA0;
-    w->gMul = gen->xA4;
-    w->bMul = gen->xA8;
-    w->aMul = gen->xAC;
-    if (gen->flags & 0x400000) {
-        obj->x12F = 2;
+    w->scaleSpd = gen->Size_plus;
+    w->scaleDamp = gen->D_size_plus;
+    w->r0 = gen->Col_start_r;
+    w->g0 = gen->Col_start_g;
+    w->b0 = gen->Col_start_b;
+    w->a0 = gen->Col_start_a;
+    w->r = (f32) gen->Col_start_r;
+    w->g = (f32) gen->Col_start_g;
+    w->b = (f32) gen->Col_start_b;
+    w->a = (f32) gen->Col_start_a;
+    w->rMul = gen->Col_d_r;
+    w->gMul = gen->Col_d_g;
+    w->bMul = gen->Col_d_b;
+    w->aMul = gen->Col_d_a;
+    if (gen->Tool_flg & 0x400000) {
+        obj->ot_type = 2;
     } else if (w->a < 250.0f) {
-        obj->x12F = 1;
+        obj->ot_type = 1;
     } else {
-        obj->x12F = 0;
+        obj->ot_type = 0;
     }
-    w->fadeStart = gen->xB0;
-    w->fadeLen = gen->xB2;
-    w->moveStart = gen->xB4;
-    w->scaleStart = gen->xB6;
-    w->life = gen->xB8;
-    w->frame = gen->xBA;
-    w->rotFrame = gen->xC0;
-    obj->pInfo->color[0] = (u8) w->r;
-    obj->pInfo->color[1] = (u8) w->g;
-    obj->pInfo->color[2] = (u8) w->b;
-    obj->pInfo->color[3] = 0xFF;
+    w->fadeStart = gen->Col_max_cnt;
+    w->fadeLen = gen->Col_start_cnt;
+    w->moveStart = gen->Pos_start_cnt;
+    w->scaleStart = gen->Size_start_cnt;
+    w->life = gen->Life_max;
+    w->frame = gen->Life_time;
+    w->rotFrame = gen->Release_time;
+    obj->pModelInfo->color[0] = (u8) w->r;
+    obj->pModelInfo->color[1] = (u8) w->g;
+    obj->pModelInfo->color[2] = (u8) w->b;
+    obj->pModelInfo->color[3] = 0xFF;
     if (w->fadeStart == 0) {
-        obj->alpha = w->a * (1.0f / 255.0f);
+        obj->invisible_factor = w->a * (1.0f / 255.0f);
     } else {
-        obj->alpha = 0.0f;
+        obj->invisible_factor = 0.0f;
     }
-    obj->pInfo->xD6 = gen->xC2;
+    obj->pModelInfo->blend_mode = gen->Blend_type;
     obj->scale.y = w->scaleY * w->scale;
     obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
     w->groundOfs = (f32) (int) gen->xD4;
@@ -404,21 +404,21 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         } else {
             obj->be_flag |= 8;
         }
-        obj->x139 = c;
-        obj->x13A = c;
-        obj->x13B = c;
+        obj->AddAmb_r = c;
+        obj->AddAmb_g = c;
+        obj->AddAmb_b = c;
     }
     if (gen->prm.w.xD0 != 0) {
         setModTexRender(obj, gen->prm.w.xD0 - 1);
     }
-    w->bounce = gen->vE4;
+    w->bounce = gen->Vec1;
     PSVECScale(&w->bounce, &w->bounce, 0.1f);
     if (!(w->flags & 0x40)) {
-        obj->lightInfo.x54 = 0;
+        obj->LightInfo.SelectMask = 0;
         obj->be_flag |= 0x20000;
     }
     if (w->flags & 0x200000) {
-        obj->x12C = 1;
+        obj->z_mode = 1;
     }
     switch (w->x79) {
     case 0xFF:
@@ -435,7 +435,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         break;
     case 0xFE:
         w->parentWorld = pEffParentWorld;
-        if (gen->xC0 != 0) {
+        if (gen->Release_time != 0) {
             pLog->warn(0, 0, "ESP_EFM : ReleaseTime not 0 but no parent.");
         }
         break;
@@ -449,7 +449,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
             if (w->flags & 0x20) {
                 parts = parent->getPartsPtr(w->x79);
                 PSMTXIdentity(mtx);
-                RotMatrix(mtx, &parent->rot);
+                RotMatrix(mtx, &parent->ang);
                 PSMTXMultVecSR(mtx, &obj->pos, &v);
                 mtx[0][3] = parts->mat[0][3] + v.x;
                 mtx[1][3] = parts->mat[1][3] + v.y;
@@ -478,12 +478,12 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         break;
     }
     if (w->flags & 4) {
-        EstSet((int) obj, -1, 0, 0, gen->xFC, gen->xFD, 0, 0, (u32) obj, 0);
+        EstSet((int) obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, (u32) obj, 0);
     }
     if (w->flags & 8) {
-        w->x7B = gen->xFE;
-        if (EspGetEfmMotAddr(gen->x2, w->x7B, &mot)) {
-            switch (gen->xFF) {
+        w->x7B = gen->WorkSp8[2];
+        if (EspGetEfmMotAddr(gen->Tex_id, w->x7B, &mot)) {
+            switch (gen->WorkSp8[3]) {
             case 0:
                 MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 0, 0);
                 break;
@@ -491,7 +491,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
                 MotionSetCore(obj, &obj->pMotion, mot, 0, 0, 4, 0);
                 break;
             default:
-                pLog->err(0, 0, "ESP_EFM04 : MotionType[%d] is invalid.", gen->xFF);
+                pLog->err(0, 0, "ESP_EFM04 : MotionType[%d] is invalid.", gen->WorkSp8[3]);
                 break;
             }
         } else {
@@ -514,90 +514,90 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     u32 i;
 
     w->core = *info;
-    w->flags = gen->flags;
+    w->flags = gen->Tool_flg;
     w->seed = *seed;
-    obj->pos = gen->pos;
-    obj->pos.x += gen->x18 * fRandSeed1_1(seed);
-    obj->pos.y += gen->x1C * fRandSeed1_1(seed);
-    obj->pos.z += gen->x20 * fRandSeed1_1(seed);
-    obj->rot = gen->x58;
-    obj->rot.x += gen->x64.x * fRandSeed1_1(seed);
-    obj->rot.y += gen->x64.y * fRandSeed1_1(seed);
-    obj->rot.z += gen->x64.z * fRandSeed1_1(seed);
-    PSVECScale(&obj->rot, &obj->rot, DEG2RAD);
+    obj->pos = gen->Pos;
+    obj->pos.x += gen->R_pos.x * fRandSeed1_1(seed);
+    obj->pos.y += gen->R_pos.y * fRandSeed1_1(seed);
+    obj->pos.z += gen->R_pos.z * fRandSeed1_1(seed);
+    obj->ang = gen->Ang;
+    obj->ang.x += gen->R_ang.x * fRandSeed1_1(seed);
+    obj->ang.y += gen->R_ang.y * fRandSeed1_1(seed);
+    obj->ang.z += gen->R_ang.z * fRandSeed1_1(seed);
+    PSVECScale(&obj->ang, &obj->ang, DEG2RAD);
     if ((w->flags & 0x10) && parent) {
         Matrix2AxisAngle(parent->pParts->mat, &v);
-        PSVECAdd(&obj->rot, &v, &obj->rot);
+        PSVECAdd(&obj->ang, &v, &obj->ang);
     }
     if (w->flags & 0x200000) {
-        obj->x12C = 1;
+        obj->z_mode = 1;
     }
-    w->rotSpd = gen->x70;
-    w->rotSpd.x += gen->x7C.x * fRandSeed1_1(seed);
-    w->rotSpd.y += gen->x7C.y * fRandSeed1_1(seed);
-    w->rotSpd.z += gen->x7C.z * fRandSeed1_1(seed);
+    w->rotSpd = gen->Ang_plus;
+    w->rotSpd.x += gen->R_ang_plus.x * fRandSeed1_1(seed);
+    w->rotSpd.y += gen->R_ang_plus.y * fRandSeed1_1(seed);
+    w->rotSpd.z += gen->R_ang_plus.z * fRandSeed1_1(seed);
     PSVECScale(&w->rotSpd, &w->rotSpd, DEG2RAD);
-    w->scaleXZ = gen->x88 * 0.005f;
-    w->scaleY = gen->x8C * 0.005f;
+    w->scaleXZ = gen->Size_base_x * 0.005f;
+    w->scaleY = gen->Size_base_y * 0.005f;
     w->scale = 1.0f;
-    rnd = gen->x90 * fRandSeed1_1(seed);
+    rnd = gen->R_size_base * fRandSeed1_1(seed);
     w->scaleXZ += rnd;
     w->scaleY += rnd;
-    w->scaleSpd = gen->x94;
-    w->scaleDamp = gen->x98;
-    w->r0 = gen->x9C;
-    w->g0 = gen->x9D;
-    w->b0 = gen->x9E;
-    w->a0 = gen->x9F;
-    w->r = (f32) gen->x9C;
-    w->g = (f32) gen->x9D;
-    w->b = (f32) gen->x9E;
-    w->a = (f32) gen->x9F;
-    w->rMul = gen->xA0;
-    w->gMul = gen->xA4;
-    w->bMul = gen->xA8;
-    w->aMul = gen->xAC;
-    if (gen->flags & 0x400000) {
-        obj->x12F = 2;
+    w->scaleSpd = gen->Size_plus;
+    w->scaleDamp = gen->D_size_plus;
+    w->r0 = gen->Col_start_r;
+    w->g0 = gen->Col_start_g;
+    w->b0 = gen->Col_start_b;
+    w->a0 = gen->Col_start_a;
+    w->r = (f32) gen->Col_start_r;
+    w->g = (f32) gen->Col_start_g;
+    w->b = (f32) gen->Col_start_b;
+    w->a = (f32) gen->Col_start_a;
+    w->rMul = gen->Col_d_r;
+    w->gMul = gen->Col_d_g;
+    w->bMul = gen->Col_d_b;
+    w->aMul = gen->Col_d_a;
+    if (gen->Tool_flg & 0x400000) {
+        obj->ot_type = 2;
     } else if (w->a < 250.0f) {
-        obj->x12F = 1;
+        obj->ot_type = 1;
     } else {
-        obj->x12F = 0;
+        obj->ot_type = 0;
     }
-    w->fadeStart = gen->xB0;
-    w->fadeLen = gen->xB2;
-    w->x54 = gen->xB4;
-    w->scaleStart = gen->xB6;
-    w->life = gen->xB8;
-    w->frame = gen->xBA;
-    obj->pInfo->color[0] = (u8) w->r;
-    obj->pInfo->color[1] = (u8) w->g;
-    obj->pInfo->color[2] = (u8) w->b;
-    obj->pInfo->color[3] = 0xFF;
+    w->fadeStart = gen->Col_max_cnt;
+    w->fadeLen = gen->Col_start_cnt;
+    w->x54 = gen->Pos_start_cnt;
+    w->scaleStart = gen->Size_start_cnt;
+    w->life = gen->Life_max;
+    w->frame = gen->Life_time;
+    obj->pModelInfo->color[0] = (u8) w->r;
+    obj->pModelInfo->color[1] = (u8) w->g;
+    obj->pModelInfo->color[2] = (u8) w->b;
+    obj->pModelInfo->color[3] = 0xFF;
     if (w->fadeStart == 0) {
-        obj->alpha = w->a * (1.0f / 255.0f);
+        obj->invisible_factor = w->a * (1.0f / 255.0f);
     } else {
-        obj->alpha = 0.0f;
+        obj->invisible_factor = 0.0f;
     }
-    obj->pInfo->xD6 = gen->xC2;
+    obj->pModelInfo->blend_mode = gen->Blend_type;
     if (!(w->flags & 0x40)) {
-        obj->lightInfo.x54 = 0;
+        obj->LightInfo.SelectMask = 0;
         obj->be_flag |= 0x20000;
     }
-    w->center = gen->vD8;
-    w->center.x += gen->vF0.x * fRandSeed1_1(seed);
-    w->center.y += gen->vF0.y * fRandSeed1_1(seed);
-    w->center.z += gen->vF0.z * fRandSeed1_1(seed);
-    w->bounce = gen->vE4;
+    w->center = gen->Vec0;
+    w->center.x += gen->Vec2.x * fRandSeed1_1(seed);
+    w->center.y += gen->Vec2.y * fRandSeed1_1(seed);
+    w->center.z += gen->Vec2.z * fRandSeed1_1(seed);
+    w->bounce = gen->Vec1;
     PSVECScale(&w->bounce, &w->bounce, 0.1f);
-    w->pow = gen->xC8;
-    w->rangeStep = gen->xC9;
-    w->rnd = gen->xCA;
-    w->rotAmp = gen->xCB;
+    w->pow = gen->Work8[0];
+    w->rangeStep = gen->Work8[1];
+    w->rnd = gen->Work8[2];
+    w->rotAmp = gen->Work8[3];
     w->grav = (f32) (int) gen->prm.w.xCC * -0.1f;
     w->spdDamp = 1.0f - (f32) (int) gen->prm.w.xD0 * 0.001f;
     w->groundOfs = gen->xD4;
-    switch (gen->x7) {
+    switch (gen->Parts_no) {
     case 0xFF:
         Efm05RotMatrix(obj, m);
         break;
@@ -610,32 +610,32 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         Efm05RotMatrix(obj, m);
         break;
     case 0xFE:
-        if (gen->xC0 != 0) {
+        if (gen->Release_time != 0) {
             pLog->warn(0, 0, "ESP_EFM : ReleaseTime not 0 but no parent.");
         }
         break;
     default:
         if (parent == 0) {
-            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] but Not on parts.", gen->x7);
+            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] but Not on parts.", gen->Parts_no);
             ObjMgr.destroy(obj);
             return 0;
         }
-        if (gen->x7 < parent->nParts) {
+        if (gen->Parts_no < parent->nParts) {
             if (w->flags & 0x20) {
-                parts = parent->getPartsPtr(gen->x7);
+                parts = parent->getPartsPtr(gen->Parts_no);
                 PSMTXIdentity(mtx);
-                RotMatrix(mtx, &parent->rot);
+                RotMatrix(mtx, &parent->ang);
                 PSMTXMultVecSR(mtx, &obj->pos, &v);
                 mtx[0][3] = parts->mat[0][3];
                 mtx[1][3] = parts->mat[1][3];
                 mtx[2][3] = parts->mat[2][3];
                 Efm05RotMatrix(obj, mtx);
             } else {
-                parts = parent->getPartsPtr(gen->x7);
+                parts = parent->getPartsPtr(gen->Parts_no);
                 Efm05RotMatrix(obj, parts->mat);
             }
         } else {
-            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] is invalid(MAX:%d).", gen->x7, parent->nParts);
+            pLog->err(0, 0, "ESP_EFM : PARTS_NO[%d] is invalid(MAX:%d).", gen->Parts_no, parent->nParts);
             ObjMgr.destroy(obj);
             return 0;
         }
@@ -646,10 +646,10 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     }
     obj->matUpdate();
     if (w->flags & 4) {
-        EstSet((int) obj, -1, 0, 0, gen->xFC, gen->xFD, 0, 0, (u32) obj, 0);
+        EstSet((int) obj, -1, 0, 0, gen->WorkSp8[0], gen->WorkSp8[1], 0, 0, (u32) obj, 0);
     }
-    if (gen->xFE != 0) {
-        setModTexRender(obj, gen->xFE - 1);
+    if (gen->WorkSp8[2] != 0) {
+        setModTexRender(obj, gen->WorkSp8[2] - 1);
     }
     obj->be_flag |= 0x1000;
     obj->move();
@@ -663,31 +663,31 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     static f32 moment_mul = 2.0f;
 
     BitOn(obj->be_flag, 0x10);
-    if (pG->flags_64 & 0x00800000) {
-        pG->flags_58 &= ~0x02000000;
+    if (pG->Debug_flg[1] & 0x00800000) {
+        pG->Disp_flg &= ~0x02000000;
     }
     w->core = *info;
-    w->basePos = gen->pos;
-    w->basePos.x += gen->x18 * fRandSeed1_1(seed);
-    w->basePos.y += gen->x1C * fRandSeed1_1(seed);
-    w->basePos.z += gen->x20 * fRandSeed1_1(seed);
+    w->basePos = gen->Pos;
+    w->basePos.x += gen->R_pos.x * fRandSeed1_1(seed);
+    w->basePos.y += gen->R_pos.y * fRandSeed1_1(seed);
+    w->basePos.z += gen->R_pos.z * fRandSeed1_1(seed);
     w->basePos.y += 0.0001f;
     w->pos = w->basePos;
-    w->spd = gen->x24;
-    w->spd.x += gen->x34.x * fRandSeed1_1(seed);
-    w->spd.y += gen->x34.y * fRandSeed1_1(seed);
-    w->spd.z += gen->x34.z * fRandSeed1_1(seed);
+    w->spd = gen->Speed;
+    w->spd.x += gen->R_speed.x * fRandSeed1_1(seed);
+    w->spd.y += gen->R_speed.y * fRandSeed1_1(seed);
+    w->spd.z += gen->R_speed.z * fRandSeed1_1(seed);
     PSMTXIdentity(w->mat);
     w->x74.x = 0.0f;
     w->x74.y = 0.0f;
     w->x74.z = 0.0f;
-    w->rotSpd = gen->x70;
-    w->rotSpd.x += gen->x7C.x * fRandSeed1_1(seed);
-    w->rotSpd.y += gen->x7C.y * fRandSeed1_1(seed);
-    w->rotSpd.z += gen->x7C.z * fRandSeed1_1(seed);
-    w->size.x = gen->xD8 * 100.0f + 250.0f;
-    w->size.y = gen->xDC * 100.0f + 250.0f;
-    w->size.z = gen->xE0 * 100.0f + 250.0f;
+    w->rotSpd = gen->Ang_plus;
+    w->rotSpd.x += gen->R_ang_plus.x * fRandSeed1_1(seed);
+    w->rotSpd.y += gen->R_ang_plus.y * fRandSeed1_1(seed);
+    w->rotSpd.z += gen->R_ang_plus.z * fRandSeed1_1(seed);
+    w->size.x = gen->Vec0.x * 100.0f + 250.0f;
+    w->size.y = gen->Vec0.y * 100.0f + 250.0f;
+    w->size.z = gen->Vec0.z * 100.0f + 250.0f;
     w->mass = w->size.x * w->size.y * w->size.z / 1000000000.0f;
     w->mass *= FRef(mass_mul);
     PSVECScale(&w->spd, &w->spd, w->mass * 100.0f);
@@ -696,12 +696,12 @@ cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->momentZ = FRef(moment_mul) * w->mass * (w->size.x * w->size.x + w->size.y * w->size.y) / 12.0f;
     obj->scale = w->size;
     PSVECScale(&obj->scale, &obj->scale, 0.01f);
-    if (gen->x2 == 0x7C) {
+    if (gen->Tex_id == 0x7C) {
         obj->scale.x *= 0.05f;
         obj->scale.y *= 0.05f;
         obj->scale.z *= 0.05f;
     }
-    if (gen->x2 == 0x21) {
+    if (gen->Tex_id == 0x21) {
         obj->scale.x *= 0.5f;
         obj->scale.y *= 0.5f;
         obj->scale.z *= 0.5f;
@@ -723,7 +723,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
             return 0;
         }
         obj->sub2B4.clrFlags(0xFCFF);
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
         obj->id = 4;
         obj->setNoSuspend(1);
         w = &obj->efm04;
@@ -733,7 +733,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->flags = 0;
         obj->pos = *pos;
         w->spdDamp = 0.0f;
-        obj->rot = *rot;
+        obj->ang = *rot;
         w->scaleXZ = 1.0f;
         w->scaleY = 1.0f;
         w->scale = 1.0f;
@@ -749,15 +749,15 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->a = (f32) w->a0;
         w->bMul = 1.0f;
         w->aMul = 1.0f;
-        obj->x12F = 1;
-        obj->pInfo->color[0] = (u8) w->r;
-        obj->pInfo->color[1] = (u8) w->g;
-        obj->pInfo->color[2] = (u8) w->b;
-        obj->pInfo->color[3] = 0xFF;
+        obj->ot_type = 1;
+        obj->pModelInfo->color[0] = (u8) w->r;
+        obj->pModelInfo->color[1] = (u8) w->g;
+        obj->pModelInfo->color[2] = (u8) w->b;
+        obj->pModelInfo->color[3] = 0xFF;
         if (w->fadeStart == 0) {
-            obj->alpha = w->a * (1.0f / 255.0f);
+            obj->invisible_factor = w->a * (1.0f / 255.0f);
         } else {
-            obj->alpha = 0.0f;
+            obj->invisible_factor = 0.0f;
         }
         obj->scale.y = w->scaleY * w->scale;
         obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
@@ -780,11 +780,11 @@ void setModTexRender(cObj* obj, int no)
     tbl[1] = 0;
     tbl[4] = 0xF7;
     tbl[5] = mgr->texId;
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->x136 = 1;
-    obj->x137 = 0xF;
-    obj->x138 = 0xB4;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->Shader_type = 1;
+    obj->Refract_pow = 0xF;
+    obj->Refract_ratio = 0xB4;
 }
 
 // .sdata alignment padding of the split object

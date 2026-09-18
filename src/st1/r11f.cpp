@@ -93,7 +93,7 @@ void R11fInit()
     r11f_work = (R11fWork*) MEM_CALLOC(sizeof(R11fWork), 1, 0xD);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r11fs00.evd", 0, 0, 0, 0);
-        SceAtDataSet_exec(0x18, 0x12, 0, r11f_EventS00, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, r11f_EventS00, 0, 1);
         EvtMgr.SetFunc("evt_r11fs00_func", (void*) Evt_R11FS00_Func);
         EvtMgr.SetFunc("evt_r11fs01_func", (void*) Evt_R11FS01_Func);
         EvtMgr.SetFunc("evt_r11fs02_func", (void*) Evt_R11FS02_Func);
@@ -102,10 +102,10 @@ void R11fInit()
         SmdSetTrans(0x14, 1);
         SmdSetTrans(0x15, 0);
         SmdSetTrans(0x16, 0);
-        if (!(pG->flags_5018 & 0x04000000)) {
-            pG->flags_5018 |= 0x04000000;
-            SubCharInit(1, &pPLS->pos, pPLS->rot.y);
-            SubCharCtrl(1, 0);
+        if (!(pG->Status_flg[3] & 0x04000000)) {
+            pG->Status_flg[3] |= 0x04000000;
+            SubCharInit(1, &pPLS->pos, pPLS->ang.y);
+            SubCharCtrl(SCC_CHASE, 0);
         }
         SceAtSetEnable(8, 0);
     } else {
@@ -132,9 +132,9 @@ void R11fInit()
     rot.x = 0.0f;
     rot.y = -0.49f;
     rot.z = 0.0f;
-    hit = SetEmHit(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), ROOM_ARC_PTR(pG->pRoomArc, 0x2C), &pos, &rot, 2);
+    hit = SetEmHit(ROOM_ARC_PTR(pG->pRoom, 0x2B), ROOM_ARC_PTR(pG->pRoom, 0x2C), &pos, &rot, 2);
     if (hit) {
-        hit->setBeetle(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x2E));
+        hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x2E));
     }
 }
 
@@ -146,17 +146,17 @@ extern "C" void r11f_DoorReplace()
 
     SmdSetTrans(1, 0);
     SmdSetTrans(2, 0);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &zero, &zero, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &zero, &zero, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);
     BitOn(obj->be_flag, 0x1000);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &zero, &zero, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 3, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &zero, &zero, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 3, 0, 1, 0);
     BitOn(obj->be_flag, 0x1000);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), &zero, &zero, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x27), 3, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), &zero, &zero, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 3, 0, 1, 0);
     BitOn(obj->be_flag, 0x1000);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x28), ROOM_ARC_PTR(pG->pRoomArc, 0x29), &zero, &zero, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29), &zero, &zero, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 1, 0);
     BitOn(obj->be_flag, 0x1000);
 }
 
@@ -179,15 +179,15 @@ static void r11f_EventS00()
     SndRoomBgmVolSet(0, 1, 600);
     SndRoomBgmVolSet(1, 1, 600);
     SceEventStart(0);
-    SubCharCtrl(2, 0);
+    SubCharCtrl(SCC_KILL, 0);
     EvtMgr.EvtReadExec("event/evd/r11fs00.evd", 0, 0);
     r11f_DoorReplace();
-    if (!(pG->flags_174 & 0x80000000)) {
+    if (!(pG->Room_flg[0] & 0x80000000)) {
         EvtMgr.EvtReadExec("event/evd/r11fs01.evd", 0, 2);
     } else {
         EvtMgr.EvtReadExec("event/evd/r11fs02.evd", 0, 0);
         if (r11f_work->em0.setEm(0xF8, -1, 1, 1, 1)) {
-            Cckpt.life.flags = (u32) r11f_work->em0.getPtr();
+            Cckpt.m_LifeMeter.flags = (u32) r11f_work->em0.getPtr();
         }
         GamePointBossReset();
         {
@@ -204,10 +204,10 @@ static void r11f_EventS00()
             pl->setAng(&ang);
         }
         SceEventEnd(0);
-        pG->flags_5010 |= 1;
+        pG->Status_flg[1] |= 1;
         EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
         EstSet(0, -1, 0, 0, 1, 4, 0x801, 2, 0, 0);
-        SceExec(0x12, r11f_EventS10, 0, 0, 2, 0);
+        SceExec(0x12, r11f_EventS10, 0, 0, SCE_PRIO_DEF_2, 0);
         SeAtSetOnOff(0, 1);
         SeAtSetOnOff(1, 1);
     }
@@ -215,7 +215,7 @@ static void r11f_EventS00()
 
 static void r11f_EventS00_Act()
 {
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 extern "C" void Evt_R11FS00_Func(Event* e)
@@ -225,20 +225,20 @@ extern "C" void Evt_R11FS00_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         r11f_actNo = (Rnd() & 1) ? 3 : 4;
         {
             int cut = 0x10;
 
             EvtFlgOnStatus(e, 3);
-            e->cancelCut = cut;
+            e->EvtCancelCut = cut;
         }
         SmdSetTrans(1, 0);
         SmdSetTrans(2, 0);
         break;
     case 1:
-        if (e->cut > 4) {
-            if (e->frame == 0) {
+        if (e->NowCut > 4) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm7000", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -249,7 +249,7 @@ extern "C" void Evt_R11FS00_Func(Event* e)
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm7000", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -260,9 +260,9 @@ extern "C" void Evt_R11FS00_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm7000", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
                 }
@@ -284,14 +284,14 @@ extern "C" void Evt_R11FS00_Func(Event* e)
             }
             break;
         case 0x11:
-            if (e->frame == 20) {
+            if (e->NowFrame == 20) {
                 r11f_actOn = 1;
             }
             break;
         case 3:
-            if (e->frame == 160) {
+            if (e->NowFrame == 160) {
                 skip = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -300,9 +300,9 @@ extern "C" void Evt_R11FS00_Func(Event* e)
             }
             break;
         case 4:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 skip = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -319,23 +319,23 @@ extern "C" void Evt_R11FS00_Func(Event* e)
         break;
     case 3:
         skip = 1;
-        if (!(e->status & 0x4000)) {
+        if (!(e->StatusFlag & 0x4000)) {
             skip = 0;
         }
         if (skip == 0) {
             EventMgr* em = &EvtMgr;
-            em->EvtSndStrPlay(&em->x34, 1, 0x50, 1, 0.0f);
+            em->EvtSndStrPlay(&em->NowExeEvtKey, 1, 0x50, 1, 0.0f);
         }
         break;
     }
     if (r11f_actOn == 1) {
-        if (pG->flags_174 & 0x80000000) {
+        if (pG->Room_flg[0] & 0x80000000) {
             r11f_actOn = 0;
             e->CancelSet();
         } else {
-            BitOff(pG->flags_58, 0x800);
+            BitOff(pG->Disp_flg, 0x800);
             ActBtn.set(0x25, 5, (int) r11f_EventS00_Act, 0, 0x46, r11f_actNo, 1, 0);
-            pG->flags_170 &= ~0x100;
+            pG->Stop_flg &= ~0x100;
         }
     }
 }
@@ -343,9 +343,9 @@ extern "C" void Evt_R11FS00_Func(Event* e)
 extern "C" void Evt_R11FS01_Func(Event* e)
 {
     if (e->funcMode == 1) {
-        if (e->frame == 0) {
-            if (e->cut <= 5) {
-                if (e->cut == 2 || e->cut == 4 || e->cut == 5) {
+        if (e->NowFrame == 0) {
+            if (e->NowCut <= 5) {
+                if (e->NowCut == 2 || e->NowCut == 4 || e->NowCut == 5) {
                     SmdSetTrans(0xE, 0);
                     SmdSetTrans(0xD, 0);
                     SmdSetTrans(0xD, 0);
@@ -366,16 +366,16 @@ extern "C" void Evt_R11FS02_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "et1200", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
                 }
             }
             break;
         case 0xB:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 EffectEspDelete(0x2001, 3, 0, 0);
                 EffectEspgenDelete(0x2001, 3, 0);
                 EffectEfmDelete(0x2001, 3, 0);
@@ -384,7 +384,7 @@ extern "C" void Evt_R11FS02_Func(Event* e)
             }
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -392,7 +392,7 @@ extern "C" void Evt_R11FS02_Func(Event* e)
             }
             break;
         case 8:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -408,10 +408,10 @@ extern "C" void Evt_R11FS10_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm3500", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 2;
+                    ((cModel*) mod)->LightInfo.EnableMask = 2;
                 }
                 if (e->GetMod(&mod, "evm0600", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
@@ -427,8 +427,8 @@ extern "C" void Evt_R11FS11_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->frame == 0) {
-            if (e->cut == 2) {
+        if (e->NowFrame == 0) {
+            if (e->NowCut == 2) {
                 SmdSetTrans(0xE, 0);
                 SmdSetTrans(0xD, 0);
                 SmdSetTrans(0xD, 0);
@@ -443,8 +443,8 @@ extern "C" void Evt_R11FS11_Func(Event* e)
                 SmdSetTrans(0x12, 1);
             }
         }
-        if (e->cut == 2) {
-            if (e->frame == 0) {
+        if (e->NowCut == 2) {
+            if (e->NowFrame == 0) {
                 EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
             }
         }
@@ -485,7 +485,7 @@ static void r11f_EventS10()
     CamCtrl.SetAreaAttr(8, 0, 3);
     CamCtrl.CutCall(5);
     U32Set(r11f_work->strId, SndStrReq(1, 0x2C, 0x80000003, 0, 0, 0.0f));
-    pG->flags_174 &= ~0x20000000;
+    pG->Room_flg[0] &= ~0x20000000;
     SceSetEventCancel(1, r11f_EventS10CancelEndProc, 0, 2, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -509,7 +509,7 @@ static void r11f_EventS10EndProc()
     Vec pos = {36459.0f, -8000.0f, -63991.0f};
 
     // struct-member view: the pG load stays below the three template-copy stores of `pos`
-    if (pGS->flags_174 & 0x20000000) {
+    if (pGS->Room_flg[0] & 0x20000000) {
         SndStrReq(r11f_work->strId, 8, 0, 0);
     }
     CamCtrl.Comeback(0);
@@ -529,9 +529,9 @@ static void r11f_EventS10EndProc()
     }
     SceEventEnd(0);
     if (r11f_work->em0.isActive()) {
-        Cckpt.life.flags = (u32) r11f_work->em0.getPtr();
+        Cckpt.m_LifeMeter.flags = (u32) r11f_work->em0.getPtr();
     }
-    SceExec(0x12, r11f_Eventxxx, 0, 0, 2, 0);
+    SceExec(0x12, r11f_Eventxxx, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // After the fight: the s10 event once the boss is gone.
@@ -546,7 +546,7 @@ static void r11f_Eventxxx()
     ((cEm2b*) r11f_work->em0.getPtr())->v50();
     SndRoomStrStop(2);
     EvtMgr.EvtReadExec("event/evd/r11fs10.evd", 0, 0);
-    SceAtDataSet_exec(0x80, 0x12, 0, r11f_EventS11, 0, 1);
+    SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, r11f_EventS11, 0, 1);
     SceEventEnd(0);
 }
 
@@ -576,7 +576,7 @@ static void r11f_EventS11()
         pl->setAng(&ang);
     }
     {
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         Vec subPos = {44154.0f, -8000.0f, -48080.0f};
         SubCharInit(1, &subPos, 2.987f);
     }
@@ -594,15 +594,15 @@ static void r11f_EventS11()
     EffectEspgenDelete(0x801, 2, 0);
     EffectEfmDelete(0x801, 2, 0);
     EstSet(0, -1, 0, 0, 1, 5, 1, 0, 0, 0);
-    pG->flags_5010 &= ~1;
-    SceExec(0x12, r11f_AshleyRunUp, 0, 0, 2, 0);
+    pG->Status_flg[1] &= ~1;
+    SceExec(0x12, r11f_AshleyRunUp, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void r11f_AshleyRunUp()
 {
     SceSleep(30);
     if (!(SubCharGetStatus() & 0x20000000)) {
-        SubCharCtrl(1, 0);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     RoomSeCall(0, &pSubEm->pos, 0, 0, pSubEm);
 }

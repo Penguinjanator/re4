@@ -59,7 +59,7 @@ static u32 battleCheckFlag;
 cEmMgr::cEmMgr() : cManager<cEm>(sizeof(cEm), 2)
 {
     setName("cEmMgr");
-    x34 = 0;
+    Guid = 0;
 }
 
 void cEmMgr::log(const char* fmt, ...)
@@ -74,7 +74,7 @@ int cEmMgr::construct(cEm* p, u32 id)
 {
     switch (id) {
     case 0:
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
             p = new (p) cPlLeon;
             break;
@@ -192,9 +192,9 @@ int cEmMgr::construct(cEm* p, u32 id)
         p->id = 0x10;
         break;
     }
-    p->serial = x34;
-    x34++;
-    p->emsetNo = 0xFF;
+    p->serial = Guid;
+    Guid++;
+    p->emset_no = 0xFF;
     p->be_flag |= 0x40;
     p->id = id;
     p->be_flag |= 0x02000000;
@@ -217,16 +217,16 @@ void cEmMgr::move()
 
     dieCheck();
     RouteCk();
-    if (!(pG->flags_170 & 0x20000000)) {
+    if (!(pG->Stop_flg & 0x20000000)) {
         p = pAlive;
         func = emMove;
         while (p) {
             cEm* cur = p;
 
-            p = (cEm*) p->next;
+            p = (cEm*) p->pNext;
             func(cur);
         }
-    } else if (pSUB && !(pG->flags_170 & 0x1000)) {
+    } else if (pSUB && !(pG->Stop_flg & 0x1000)) {
         emMove(pSUB);
     }
 }
@@ -253,7 +253,7 @@ int cEmMgr::isBattle()
     while (p) {
         cEm* cur = p;
 
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
         func(cur);
     }
     return battleCheckFlag;
@@ -283,7 +283,7 @@ void cEmMgr::destroyAll()
     while (p) {
         cEm* cur = p;
 
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
         func(cur);
     }
 }
@@ -294,7 +294,7 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
 
     p = start;
     if (p) {
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
     } else {
         p = pAlive;
     }
@@ -302,7 +302,7 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
         if (p->id == id) {
             return p;
         }
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
     }
     return 0;
 }
@@ -336,21 +336,21 @@ int cEm::checkThrow()
     return 0;
 }
 
-void cEm::setItem(u16 a, u16 b, u16 c, u16 d, u8 e)
+void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff)
 {
-    itemNo = a;
-    itemNum = b;
-    item3DA = c;
-    item3DC = d;
-    itemFlag = e;
+    Item_id = item_id;
+    Item_num = num;
+    Item_flg = item_flg;
+    Auto_item_flg = auto_item_flg;
+    itemFlag = item_eff;
 }
 
 void cEm::setNoItem()
 {
-    itemNo = 0xFFFF;
-    itemNum = 0;
-    item3DA = 0;
-    item3DC = 0;
+    Item_id = 0xFFFF;
+    Item_num = 0;
+    Item_flg = 0;
+    Auto_item_flg = 0;
     itemFlag = 0;
 }
 
@@ -364,42 +364,42 @@ void emMove(cEm* em)
         EmMgr.destroy(em);
         return;
     }
-    if ((pG->flags_5010 & 0x10000000) && !(em->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(em->be_flag & 0x800)) {
         return;
     }
     if (em == pPL) {
         return;
     }
-    if (em == pSUB && (pG->flags_170 & 0x1000)) {
+    if (em == pSUB && (pG->Stop_flg & 0x1000)) {
         return;
     }
     dz = pPL->pos.z - em->pos.z;
     dx = pPL->pos.x - em->pos.x;
     em->plDist2 = dx * dx + dz * dz;
-    em->x374 = 1e16f;
+    em->l_sub = 1e16f;
     em->dmg.move();
     em->move();
     if ((em->be_flag & 0x201) != 1) {
         return;
     }
     em->be_flag &= ~0x20000000;
-    ShapeMove(em->pInfo);
+    ShapeMove(em->pModelInfo);
     if (em->seNo) {
         int no = em->seNo - 1;
         cModel* parts = em->getPartsPtr(0);
 
-        SndCall(8, no, &parts->worldPos, em->id, 0, em);
+        SndCall(8, no, &parts->world, em->id, 0, em);
         em->seNo = 0;
     }
     em->updateOldPos();
     EmYarareDisp(em);
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(em);
     }
     if (em->be_flag & 0x80000000) {
-        em->drawAllBoundingBox(em->pInfo);
+        em->drawAllBoundingBox(em->pModelInfo);
     }
-    em->x158 = 1.0f;
+    em->invisible_factor2 = 1.0f;
 }
 
 void cEm::move()
@@ -409,7 +409,7 @@ void cEm::move()
 int cEm::initWork()
 {
     be_flag = 0x21;
-    x12E = 0;
+    kindid = 0;
     return 1;
 }
 
@@ -418,38 +418,38 @@ cDmgInfo::cDmgInfo()
     clear();
 }
 
-void cDmgInfo::set(int a, int b, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
+void cDmgInfo::set(int flag, int timer, u8 kind, Vec* p, f32 r, EmHitInfo* prt)
 {
-    stat = a | 1;
-    x1 = b;
+    stat = flag | 1;
+    m_Timer = timer;
     this->kind = kind;
     pos = *p;
     rad = r;
     part = prt;
 }
 
-void cDmgInfo::set(int a, int b)
+void cDmgInfo::set(int flag, int timer)
 {
-    stat = a;
-    x1 = b;
+    stat = flag;
+    m_Timer = timer;
 }
 
 void cDmgInfo::clear()
 {
     stat = 0;
-    x1 = 0;
+    m_Timer = 0;
 }
 
 void cDmgInfo::move()
 {
-    if (x1 & 0x80) {
+    if (m_Timer & 0x80) {
         return;
     }
-    if ((x1 & 0x7F) == 0) {
+    if ((m_Timer & 0x7F) == 0) {
         return;
     }
-    x1--;
-    if (x1 == 0) {
+    m_Timer--;
+    if (m_Timer == 0) {
         stat = 0;
     }
 }

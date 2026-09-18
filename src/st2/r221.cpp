@@ -79,7 +79,7 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
-#define R221_MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+#define R221_MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 void r221_setShutterEff(int on);
 static void r221_checkShutterOpen_end();
@@ -135,8 +135,8 @@ static void r221_appearBoss2nd()
 
     em.setPtr(0x8C, -1, 0);
     em.setFlag(1);
-    pG->flags_174 |= 0x00200000;
-    SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, 2, 0);
+    pG->Room_flg[0] |= 0x00200000;
+    SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void r221_setShutterEff(int on)
@@ -169,12 +169,12 @@ void r221_checkShutterOpen()
     u32 i;
 
     em.setPtr(0x8C, -1, 1);
-    if (!((pG->flags_174 & 0x00800000) && em.checkStatus(5) == 0)) {
+    if (!((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0)) {
         i = 0;
         do {
             SceDebugDisp("SHT[%d]", 1800 - i);
             em.setPtr(0x8C, -1, 1);
-            if ((pG->flags_174 & 0x00800000) && em.checkStatus(5) == 0) {
+            if ((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
                 SceSleep(30);
                 break;
             }
@@ -197,9 +197,9 @@ static void r221_checkShutter_end()
 {
     int i;
 
-    if ((pG->flags_174 & 0x00400000) && RsfCheck(G_ROOM_ID, 3) == 0) {
+    if ((pG->Room_flg[0] & 0x00400000) && RsfCheck(G_ROOM_ID, 3) == 0) {
         RsfSet(G_ROOM_ID, 3);
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         SceEventStart(0);
         r221_checkBossAppear_end();
     }
@@ -237,7 +237,7 @@ static void r221_checkShutter()
     r221_setShutterEff(1);
     SceSleep(10);
     em.setPtr(0x8C, -1, 1);
-    if (em.checkStatus(5) == 1) {
+    if (em.checkStatus(EM_STATUS_ACTIVE) == 1) {
         SceMesSet(0xA, 0x30, 1, 0x64, R221_MES_Y);
         SceMesWait();
     }
@@ -257,7 +257,7 @@ void r221_moveShutter(int a, int b)
     } else {
         SceAtSetEnable(0x17, 1);
         SceAtSetEnable(0x18, 1);
-        SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r221_checkShutter, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r221_checkShutter, 0, 1);
     }
     if (b == 1) {
         if (a == 1) {
@@ -336,7 +336,7 @@ static void r221_breakDoor229()
     Vec pos = {-23572.0f, 3000.0f, -5848.0f};
     SndCall(6, 0x10, &pos, 0, 0, 0);
     if (pSys->language == 0) {
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r221_checkDoor229, 0, 1);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r221_checkDoor229, 0, 1);
     } else {
         SceAtSetEnable(0, 0);
     }
@@ -416,8 +416,8 @@ static void r221_moveWire(int mode)
     if (w0 == 0 || w1 == 0) {
         return;
     }
-    w0->pInfo->flagsDC |= 1;
-    w1->pInfo->flagsDC |= 1;
+    w0->pModelInfo->flagsDC |= 1;
+    w1->pModelInfo->flagsDC |= 1;
     switch (mode) {
     case 0:
         SceSleep(3);
@@ -427,14 +427,14 @@ static void r221_moveWire(int mode)
         SceSleep(1);
     up:
         s += step0;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         if (!(s > lim)) {
             goto wait0;
         }
         s = lim;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         break;
     case 1:
         s = lim;
@@ -443,14 +443,14 @@ static void r221_moveWire(int mode)
         SceSleep(1);
     down:
         s -= 0.002f;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         if (!(s <= 0.0f)) {
             goto wait1;
         }
         s = 0.0f;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         break;
     }
     r221_work.p->wireTask = 0;
@@ -511,7 +511,7 @@ static void r221_moveElevator(int dir)
             elv.setReverse(1);
         }
         if (evt == 1) {
-            SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, 2, 0);
+            SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
         }
         if (down == 0 && evt == 1) {
             r221_work.p->elvSe1 = SndCall(6, 0xF, &o->pos, 0, 0, 0);
@@ -533,7 +533,7 @@ static void r221_moveElevator(int dir)
                 SceAtExecute(0xF);
             }
         } else {
-            r221_work.p->wireTask = SceExec(0x12, (TaskFunc) r221_moveWire, 1, 2, 2, 0);
+            r221_work.p->wireTask = SceExec(0x12, (TaskFunc) r221_moveWire, 1, 2, SCE_PRIO_DEF_2, 0);
             SndCall(6, 1, 0, 0, 0, 0);
             r221_work.p->elvSe0 = 0;
             r221_work.p->elvSe1 = 0;
@@ -584,8 +584,8 @@ static void r221_checkElevatorArrive_end()
 {
     int i;
 
-    if (pG->flags_174 & 0x20000000) {
-        if (!(pG->flags_174 & 0x02000000)) {
+    if (pG->Room_flg[0] & 0x20000000) {
+        if (!(pG->Room_flg[0] & 0x02000000)) {
             r221_setElevatorEff(8);
         }
         cObj* o = SmdGetObjPtr(0x41);
@@ -609,10 +609,10 @@ static void r221_checkElevatorArrive_end()
         cObj* w0 = SmdGetObjPtr(0x42);
         cObj* w1 = SmdGetObjPtr(0x43);
         if (w0 && w1) {
-            w0->pInfo->flagsDC |= 1;
-            w1->pInfo->flagsDC |= 1;
-            w0->pInfo->uvScrollV = 0.0f;
-            w1->pInfo->uvScrollV = 0.0f;
+            w0->pModelInfo->flagsDC |= 1;
+            w1->pModelInfo->flagsDC |= 1;
+            w0->pModelInfo->uvScrollV = 0.0f;
+            w1->pModelInfo->uvScrollV = 0.0f;
         }
         r221_moveElevatoDoor(1, 1);
         if (r221_work.p->doorSe) {
@@ -644,7 +644,7 @@ static void r221_checkElevatorArrive()
         }
         cEmWrap em;
         em.setPtr(0x8C, -1, 1);
-        if ((pG->flags_174 & 0x00800000) && em.checkStatus(5) == 0) {
+        if ((pG->Room_flg[0] & 0x00800000) && em.checkStatus(EM_STATUS_ACTIVE) == 0) {
             u32 n = k + 1;
             u32 j;
             u32 m;
@@ -687,13 +687,13 @@ static void r221_checkElevatorArrive()
     PSetPrim(r221_work.p->wireTask, 0);
     U32Set(r221_work.p->doorSe, 0);
     U32Set(r221_work.p->elvSe1, 0);
-    pG->flags_174 &= ~0x02000000;
+    pG->Room_flg[0] &= ~0x02000000;
     SceSetEventCancel(1, (TaskFunc) r221_checkElevatorArrive_end, 0, 2, 1);
     SceEventStart(1);
     CamCtrl.CutCall(4);
     SceSleep(15);
     SndCall(6, 0xC, 0, 0, 0, 0);
-    pG->flags_174 |= 0x02000000;
+    pG->Room_flg[0] |= 0x02000000;
     r221_setElevatorEff(8);
     SceSleep(15);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -711,11 +711,11 @@ static void r221_checkElevatorArrive()
 // Task: the elevator switch.
 static void r221_operateElevator()
 {
-    if (!(pG->em_dead[5][4] & 0x00080000) && (pG->flags_174 & 0x00200000)) {
+    if (!(pG->em_dead[5][4] & 0x00080000) && (pG->Room_flg[0] & 0x00200000)) {
         cEmWrap em;
 
         em.setPtr(0x8C, -1, 1);
-        EM_LIST(0x8C)->x3 = 2;
+        EM_LIST(0x8C)->set = 2;
         U16Set(EM_LIST(0x8C)->hp, em.getHp());
         S16Set(EM_LIST(0x8C)->pos[0], -1458);
         S16Set(EM_LIST(0x8C)->pos[1], 0x32);
@@ -755,27 +755,27 @@ static void r221_checkBossAppear_end()
     em.setPtr(0x8C, -1, 1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     GamePointBossReset();
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         em.destroy();
         {
-            int list = pG->emlist_no;
+            int list = pG->em_list_no;
 
             if (list >= 0) {
                 emDeadWords(list)[0x8C >> 5] &= ~(0x80000000 >> (0x8C & 31));
             }
         }
-        EM_LIST(0x8C)->x3 = zero;
-        EM_LIST(0x8C)->flags = zero;
+        EM_LIST(0x8C)->set = zero;
+        EM_LIST(0x8C)->be_flag = zero;
         S16Set(EM_LIST(0x8C)->pos[0], -0x4F8);
         S16Set(EM_LIST(0x8C)->pos[1], 0x58);
         S16Set(EM_LIST(0x8C)->pos[2], -0x1FA1);
         S16Set(EM_LIST(0x8C)->rot[1], -0xBBB);
         em.setEm(0x8C, -1, 1, 1, 1);
         SceAtSetEmItem(em.getPtr(), 0x85);
-        if (!(pG->flags_174 & 0x01000000)) {
-            SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, 2, 0);
+        if (!(pG->Room_flg[0] & 0x01000000)) {
+            SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     if (em.getPtr()) {
@@ -783,17 +783,17 @@ static void r221_checkBossAppear_end()
         EffectEspgenDelete(1, 2, (int) em.getPtr());
         EffectEfmDelete(1, 2, (int) em.getPtr());
     }
-    SceAtPtr(1)->x4A = 0x35;
-    SceAtPtr(2)->x4A = 0x35;
-    SceAtPtr(3)->x4A = 0x35;
-    SceAtPtr(0x10)->x4A = 0x35;
-    SceAtPtr(1)->x38 |= 0x80;
-    SceAtPtr(2)->x38 |= 0x80;
-    SceAtPtr(3)->x38 |= 0x80;
-    SceAtPtr(0x10)->x38 |= 0x80;
+    SceAtPtr(1)->actBtnKind = 0x35;
+    SceAtPtr(2)->actBtnKind = 0x35;
+    SceAtPtr(3)->actBtnKind = 0x35;
+    SceAtPtr(0x10)->actBtnKind = 0x35;
+    SceAtPtr(1)->trigger |= 0x80;
+    SceAtPtr(2)->trigger |= 0x80;
+    SceAtPtr(3)->trigger |= 0x80;
+    SceAtPtr(0x10)->trigger |= 0x80;
     em.setNoSuspend(0);
-    BitOn(pG->flags_174, 0x00800000);
-    BitOn(pG->flags_174, 0x00200000);
+    BitOn(pG->Room_flg[0], 0x00800000);
+    BitOn(pG->Room_flg[0], 0x00200000);
 }
 
 // Task: the boss appears.
@@ -816,16 +816,16 @@ static void r221_checkBossAppear()
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         RsfSet(G_ROOM_ID, 3);
-        pG->flags_174 &= ~0x01000000;
+        pG->Room_flg[0] &= ~0x01000000;
         SceSetEventCancel(1, (TaskFunc) r221_checkBossAppear_end, 0, 2, 1);
         SceEventStart(1);
-        pG->flags_5014 |= 0x02000000;
+        pG->Status_flg[2] |= 0x02000000;
         EstSet((int) em1.getPtr(), -1, 0, 0, 0x24, 1, 1, 2, (u32) em1.getPtr(), 0);
-        pG->flags_174 |= 0x01000000;
+        pG->Room_flg[0] |= 0x01000000;
         CamCtrl.clearAttachCamera();
         em1.setFlag(1);
         em1.setNoSuspend(1);
-        SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r221_playBossBgm, 0, 0, SCE_PRIO_DEF_2, 0);
         while (em1.ckFlag(8) == 0) {
             SceSleep(1);
         }
@@ -865,15 +865,15 @@ static void r221_checkSwitchboard_end()
 {
     int i;
 
-    if (pG->flags_174 & 0x20000000) {
+    if (pG->Room_flg[0] & 0x20000000) {
         r221_moveSwitchboardLever(1);
         r221_moveShutter(0, 1);
         r221_setShutterEff(0);
         if (r221_work.p->shutterSe) {
             SndStop(r221_work.p->shutterSe, 0);
         }
-        if (!(pG->flags_174 & 0x10000000)) {
-            r221_work.p->wireTask2 = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, 2, 0);
+        if (!(pG->Room_flg[0] & 0x10000000)) {
+            r221_work.p->wireTask2 = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
         }
         if (r221_work.p->elvSe0 == 0) {
             cObj* o = SmdGetObjPtr(0x41);
@@ -882,10 +882,10 @@ static void r221_checkSwitchboard_end()
                 r221_work.p->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
             }
         }
-        if (!(pG->flags_174 & 0x08000000)) {
+        if (!(pG->Room_flg[0] & 0x08000000)) {
             r221_setElevatorEff(0);
         }
-        if (!(pG->flags_174 & 0x04000000)) {
+        if (!(pG->Room_flg[0] & 0x04000000)) {
             r221_setElevatorEff(1);
         }
     }
@@ -895,8 +895,8 @@ static void r221_checkSwitchboard_end()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    SceExec(0x12, (TaskFunc) r221_checkBossAppear, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r221_checkElevatorArrive, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r221_checkBossAppear, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r221_checkElevatorArrive, 0, 0, SCE_PRIO_DEF_2, 0);
     SceAtSetEnable(0xD, 0);
 }
 
@@ -943,18 +943,18 @@ static void r221_checkSwitchboard()
             r221_work.p->elvSe0 = SndCall(6, 0, &o->pos, 0, 0, 0);
         }
     }
-    ScePrim* wire = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, 2, 0);
+    ScePrim* wire = SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, SCE_PRIO_DEF_2, 0);
     PSetPrim(r221_work.p->wireTask2, wire);
-    pG->flags_174 |= 0x10000000;
+    pG->Room_flg[0] |= 0x10000000;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
     CamCtrl.CutCall(4);
     r221_setElevatorEff(0);
-    pG->flags_174 |= 0x08000000;
+    pG->Room_flg[0] |= 0x08000000;
     SceSleep(15);
     r221_setElevatorEff(1);
-    pG->flags_174 |= 0x04000000;
+    pG->Room_flg[0] |= 0x04000000;
     SceMesSet(4, 0x30, 1, 0x64, R221_MES_Y);
     SceMesWait();
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -980,7 +980,7 @@ static void r221_appearBosstail()
         if (RsfCheck(G_ROOM_ID, 3)) {
             SceExit();
         }
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             break;
         }
         SceSleep(1);
@@ -993,7 +993,7 @@ static void r221_checkElevator()
 {
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         if (RsfCheck(G_ROOM_ID, 4) == 0) {
-            SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r221_appearBosstail, 0, 1);
+            SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r221_appearBosstail, 0, 1);
         }
         SceEventStart(0);
         SceMesSet(0, 0, 1, 0x64, R221_MES_Y);
@@ -1009,7 +1009,7 @@ static void r221_checkElevator()
 static void r221_appearBosstail1_sub()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r221_appearBosstail, 0, 1);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r221_appearBosstail, 0, 1);
     }
 }
 
@@ -1019,17 +1019,17 @@ void r221_initInsectboss()
 
     r221_initSwitchboardLever();
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        SceAtDataSet_exec(0xD, 0x12, 0, (TaskFunc) r221_checkSwitchboard, 0, 1);
+        SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r221_checkSwitchboard, 0, 1);
     } else {
         r221_moveSwitchboardLever(1);
     }
     r221_initShutter();
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(0x1A, 0x12, 0, (TaskFunc) r221_breakDoor229, 0, 1);
+        SceAtDataSet_exec(0x1A, SCE_LEVEL10, 0, (TaskFunc) r221_breakDoor229, 0, 1);
         id = 0x45;
     } else {
         if (pSys->language == 0) {
-            SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r221_checkDoor229, 0, 1);
+            SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r221_checkDoor229, 0, 1);
         } else {
             SceAtSetEnable(0, 0);
         }
@@ -1067,15 +1067,15 @@ void r221_initInsectboss()
             e->be_flag &= ~2;
             r221_work.p->elvY = e->pos.y;
         }
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r221_checkElevator, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r221_checkElevator, 0, 1);
         if (RsfCheck(G_ROOM_ID, 5)) {
-            SceExec(0x12, (TaskFunc) r221_checkElevatorArrive, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r221_checkElevatorArrive, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         r221_moveElevatoDoor(0, 1);
     } else {
-        if (pG->room_id_prev == 0x220 && flagBit(pG->flags_54, 0x100) == 0 && flagBit(pG->flags_54, 0x00080000) == 0) {
+        if (pG->room_id_prev == 0x220 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x00080000) == 0) {
             r221_moveElevatoDoor(0, 1);
-            SceExec(0x12, (TaskFunc) r221_moveElevator, 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r221_moveElevator, 1, 0, SCE_PRIO_DEF_2, 0);
         } else {
             r221_moveElevatoDoor(1, 1);
         }
@@ -1089,11 +1089,11 @@ void r221_initInsectboss()
         r221_setElevatorEff(7);
         r221_setElevatorEff(8);
     }
-    SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) r221_operateElevator, 0, 1);
+    SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r221_operateElevator, 0, 1);
     SceAtSetActColor(0x16, 1);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r221_appearBosstail, 0, 1);
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r221_appearBosstail1_sub, 0, 1);
+        SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r221_appearBosstail, 0, 1);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r221_appearBosstail1_sub, 0, 1);
     } else {
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
             setEm(0x8D, -1, 1, 1, 1);
@@ -1103,7 +1103,7 @@ void r221_initInsectboss()
             em.setEm(0x8C, -1, 0, 1, 1);
         }
         if (!(pG->em_dead[5][4] & 0x00080000)) {
-            SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r221_appearBoss2nd, 0, 1);
+            SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r221_appearBoss2nd, 0, 1);
         }
     }
     EmReadSearch(0x2C, 0, 0);
@@ -1118,7 +1118,7 @@ cObj* r201_setBonbe(int id, f32 ang)
         o->be_flag &= ~2;
         Vec rot = {0.0f, 0.0f, 0.0f};
         rot.y = LIMIT_ANGLE(ang);
-        cObj* s = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), &o->pos, &rot, 0x10, 1);
+        cObj* s = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &o->pos, &rot, 0x10, 1);
         s->be_flag |= 0x1000;
         return s;
     }
@@ -1136,40 +1136,40 @@ void r201_initBonbe()
     SceAtSetEnable(6, 0);
     SceAtSetEnable(0x11, 0);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtPtr(1)->x4A = 1;
-        SceAtPtr(2)->x4A = 1;
-        SceAtPtr(3)->x4A = 1;
-        SceAtPtr(0x10)->x4A = 1;
+        SceAtPtr(1)->actBtnKind = 1;
+        SceAtPtr(2)->actBtnKind = 1;
+        SceAtPtr(3)->actBtnKind = 1;
+        SceAtPtr(0x10)->actBtnKind = 1;
     } else {
-        SceAtPtr(1)->x4A = 0x35;
-        SceAtPtr(2)->x4A = 0x35;
-        SceAtPtr(3)->x4A = 0x35;
-        SceAtPtr(0x10)->x4A = 0x35;
-        SceAtPtr(1)->x38 |= 0x80;
-        SceAtPtr(2)->x38 |= 0x80;
-        SceAtPtr(3)->x38 |= 0x80;
-        SceAtPtr(0x10)->x38 |= 0x80;
+        SceAtPtr(1)->actBtnKind = 0x35;
+        SceAtPtr(2)->actBtnKind = 0x35;
+        SceAtPtr(3)->actBtnKind = 0x35;
+        SceAtPtr(0x10)->actBtnKind = 0x35;
+        SceAtPtr(1)->trigger |= 0x80;
+        SceAtPtr(2)->trigger |= 0x80;
+        SceAtPtr(3)->trigger |= 0x80;
+        SceAtPtr(0x10)->trigger |= 0x80;
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r201_throwBonbe, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, 0, 1);
     } else {
         SceAtSetEnable(0x12, 0);
         r221_work.p->bonbe[0]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r201_throwBonbe, (void*) 1, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 1, 1);
     } else {
         SceAtSetEnable(0x13, 0);
         r221_work.p->bonbe[1]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r201_throwBonbe, (void*) 2, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 2, 1);
     } else {
         SceAtSetEnable(0x14, 0);
         r221_work.p->bonbe[2]->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) r201_throwBonbe, (void*) 3, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) r201_throwBonbe, (void*) 3, 1);
     } else {
         SceAtSetEnable(0x15, 0);
         r221_work.p->bonbe[3]->be_flag &= ~2;
@@ -1207,10 +1207,10 @@ static void r221_fadeoutBonbe(cObj* o)
 
     SceSleep(60);
     for (i = 0; i < 90; i++) {
-        o->alpha = (f32) (90 - i) / 90.0f;
+        o->invisible_factor = (f32) (90 - i) / 90.0f;
         SceSleep(1);
     }
-    o->alpha = 0.0f;
+    o->invisible_factor = 0.0f;
 }
 
 // Task: the player throws bomb `no` down the shaft.
@@ -1258,13 +1258,13 @@ static void r201_throwBonbe(int no)
         eff3 = 9;
         t2 = 0;
         t1 = 0;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x25);
         pos.x = -17.89f;
         pos.y = 0.0f;
         pos.z = -1793.51f;
         SceAtSetEnable(0x12, 0);
-        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 1:
         bonbe = r221_work.p->bonbe[1];
@@ -1276,14 +1276,14 @@ static void r201_throwBonbe(int no)
         eff3 = 0xA;
         t1 = 0x32;
         t2 = 0x5A;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x23);
         pos.x = -1410.2101f;
         pos.y = 0.0f;
         pos.z = -1350.1799f;
         SceAtSetEnable(0x13, 0);
-        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 1, 2, 2, 0);
-        SceExec(0x12, (TaskFunc) r221_callFootSe, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 1, 2, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r221_callFootSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 2:
         bonbe = r221_work.p->bonbe[2];
@@ -1295,13 +1295,13 @@ static void r201_throwBonbe(int no)
         eff3 = 9;
         t2 = 0;
         t1 = 0;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x25);
         pos.x = -17.89f;
         pos.y = 0.0f;
         pos.z = -1793.51f;
         SceAtSetEnable(0x14, 0);
-        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     case 3:
         bonbe = r221_work.p->bonbe[3];
@@ -1313,14 +1313,14 @@ static void r201_throwBonbe(int no)
         eff3 = 0xA;
         t1 = 0x32;
         t2 = 0x5A;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x23);
         pos.x = -1410.2101f;
         pos.y = 0.0f;
         pos.z = -1350.1799f;
         SceAtSetEnable(0x15, 0);
-        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 1, 2, 2, 0);
-        SceExec(0x12, (TaskFunc) r221_callFootSe, 0, 2, 2, 0);
+        SceExec(0x12, (TaskFunc) r221_callBonbeSe, 1, 2, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r221_callFootSe, 0, 2, SCE_PRIO_DEF_2, 0);
         break;
     }
     k0 = EspPullCoreKind();
@@ -1330,15 +1330,15 @@ static void r201_throwBonbe(int no)
     pPL->setNoSuspend(1);
     bonbe->setNoSuspend(1);
     PlSetHand(1, 0);
-    bonbe->rot.y = LIMIT_ANGLE(bonbe->rot.y);
-    low_RotMatrix(m, &bonbe->rot);
+    bonbe->ang.y = LIMIT_ANGLE(bonbe->ang.y);
+    low_RotMatrix(m, &bonbe->ang);
     TransMatrix(m, &bonbe->pos);
     PSMTXMultVec(m, &pos, &pPL->pos);
     {
         cPlayer* pl = pPL;
 
         pl->setPos(&pl->pos);
-        pl->setAng(&bonbe->rot);
+        pl->setAng(&bonbe->ang);
     }
     if (mot0 != 0) {
         pPL->motionSet(mot0, 10, 0, 1, 0);
@@ -1366,12 +1366,12 @@ static void r201_throwBonbe(int no)
     pPL->setNoSuspend(0);
     bonbe->setNoSuspend(0);
     SceEventEnd(0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     for (u32 j = 0; j < 300; j++) {
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             SceAtSetEnable(atNo, 0);
         }
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         SceSleep(1);
     }
     SceAtSetEnable(atNo, 0);
@@ -1380,7 +1380,7 @@ static void r201_throwBonbe(int no)
     EffectEfmDelete(0, (u8) k0, 0);
     EffectEspgenDelete(0, (u8) k1, 0);
     EstSet(0, -1, 0, 0, 1, (u8) eff2, 0, 0, 0, 0);
-    SceExec(0x12, (TaskFunc) r221_fadeoutBonbe, (int) bonbe, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r221_fadeoutBonbe, (int) bonbe, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void setTexRender()
@@ -1393,16 +1393,16 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r221_work.p->tex->texId;
-        r221_work.p->tex->repType = 1;
+        r221_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0x1F, r221_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x28);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 0x10;
-    obj->x138 = 0x30;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->color[3] = 0xF0;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 0x10;
+    obj->Refract_ratio = 0x30;
 }

@@ -7,9 +7,9 @@
 
 // Work of the item enemy (game/emitem.cpp), overlaid on cEm from 0x3E0.
 struct EmItemWork {
-    u32 flags;            // 0x000 (0x3E0)
+    u32 Be_flg;            // 0x000 (0x3E0)
     u8 pad_4[8];
-    int status;           // 0x00C (0x3EC)  1 = landed (drop), 2 = broken, 3 = damaged (ckStatus)
+    int Status;           // 0x00C (0x3EC)  1 = landed (drop), 2 = broken, 3 = damaged (ckStatus)
     cModel* pParent;      // 0x010 (0x3F0)  model the item follows (setParent)
     int partsNo;          // 0x014 (0x3F4)
     int noNormalize;      // 0x018 (0x3F8)
@@ -20,8 +20,8 @@ struct EmItemWork {
     Vec rotSpd;           // 0x248 (0x628)  swing speeds
     Vec rotAmp;           // 0x254 (0x634)  swing amplitudes
     u8 rotType;           // 0x260 (0x640)  setRotType: 1 = swing, 2 = follow the model rotation
-    u8 eff;               // 0x261 (0x641)  setEff: effect number of the break (0xFF = none)
-    u8 etcNo;             // 0x262 (0x642)  etc flag index (type 1: taken flag)
+    u8 Eff_id;               // 0x261 (0x641)  setEff: effect number of the break (0xFF = none)
+    u8 Etc_no;             // 0x262 (0x642)  etc flag index (type 1: taken flag)
 };
 
 #define EMITEM_WK(em) ((EmItemWork*) &(em)->x3E0)

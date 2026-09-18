@@ -117,7 +117,7 @@ void R217Init()
     for (u32 i = 0; i < 5; i++) {
         if (RsfCheck(G_ROOM_ID, i + 2) == 0) {
             r217_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                         &SmdGetObjPtr(0x83 + i)->pos, &SmdGetObjPtr(0x83 + i)->rot, 0);
+                                         &SmdGetObjPtr(0x83 + i)->pos, &SmdGetObjPtr(0x83 + i)->ang, 0);
             YarareInitCube(r217_work.p->hit[i], 0.0f, r217_cubeY[0], r217_cubeZ[0], r217_cubeW[0], r217_cubeH[0], r217_cubeD[0], 0, 1);
         } else {
             SmdGetObjPtr(0x83 + i)->be_flag &= ~2;
@@ -126,25 +126,25 @@ void R217Init()
     for (u32 j = 0; j < 76; j++) {
         PSVECScale(R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[j])), &r217_work.p->pos[j], 1.0f);
     }
-    if (!(pG->flags_51C0 & 0x40000000)) {
+    if (!(pG->Scenario_flg[0] & 0x40000000)) {
         for (u32 k = 0; k < 76; k++) {
             SmdGetObjPtr(r217_objTbl[k])->be_flag &= ~0x20;
         }
         SeAtSetOnOff(0, 0);
         SeAtSetOnOff(1, 0);
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r217_Puzzle, 0, 1);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r217_Puzzle, 0, 1);
         EmReadSearch(0x11, 0, 0);
     } else {
         SmdGetObjPtr(0x88)->be_flag |= 0x20;
-        SmdGetObjPtr(0x88)->pParts->rot.x = 1.6f;
+        SmdGetObjPtr(0x88)->pParts->ang.x = 1.6f;
         SceAtSetEnable(5, 0);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r217_3rd_set, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         for (u32 n = 0; n < 3; n++) {
             cEmWrapSetEmI(&r217_work.p->em[n], r217_emTbl[n], -1, 0, 1, 1);
         }
     }
-    if (!(pG->flags_51C0 & 0x40000000)) {
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r217_close_door, 0, 1);
+    if (!(pG->Scenario_flg[0] & 0x40000000)) {
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r217_close_door, 0, 1);
     } else {
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->pos.y = 6790.0f;
@@ -156,11 +156,11 @@ void R217Main()
     u32 i;
     u32 done;
 
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 RsfSet(G_ROOM_ID, 1);
-                SceExec(0x12, (TaskFunc) r217_2nd_set, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r217_2nd_set, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -171,7 +171,7 @@ void R217Main()
                 Vec v;
 
                 RsfSet(G_ROOM_ID, i + 2);
-                v = r217_work.p->hit[i]->rot;
+                v = r217_work.p->hit[i]->ang;
                 v.y += 1.5707964f;
                 SndCall(6, 4, &r217_work.p->hit[i]->pos, 0, 0, 0);
                 EstSet(0, -1, &r217_work.p->hit[i]->pos, &v, 1, 0, 0, 0, 0, 0);
@@ -184,11 +184,11 @@ void R217Main()
     if (done == 5) {
         RsfSet(G_ROOM_ID, 8);
     }
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         int hit;
         cEm* e;
 
-        if ((int) pG->flags_174 >= 0) {
+        if ((int) pG->Room_flg[0] >= 0) {
             if (r217_work.p->em[0].ckFindPL()) {
                 r217_work.p->em[0].setFlag(1);
             }
@@ -268,8 +268,8 @@ void R217Main()
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
         if ((u32) SceCountEmAlive(0x10, 0x20) <= 4) {
-            if (!(pG->flags_174 & 0x02000000)) {
-                pG->flags_174 |= 0x02000000;
+            if (!(pG->Room_flg[0] & 0x02000000)) {
+                pG->Room_flg[0] |= 0x02000000;
                 Vec p = {-5674.0f, 0.0f, -8930.0f};
                 r217_work.p->em[8].setGoto(&p, 1);
                 r217_work.p->em[9].setGoto(&pPL->pos, 1);
@@ -317,7 +317,7 @@ static void r217_2nd_set()
         e->setAng(pa);
         SceSleep(1);
     }
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     pPLS->dmg.set(0, 0x80);
     for (u32 i = 8; i < 10; i++) {
         r217_work.p->em[i].setFlag(1);
@@ -358,7 +358,7 @@ static void r217_3rd_set()
 
 static void r217_close_door()
 {
-    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // The door rises (cut 10).
@@ -399,7 +399,7 @@ static void r217_Puzzle_exit()
 
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    if (pG->flags_51C0 & 0x40000000) {
+    if (pG->Scenario_flg[0] & 0x40000000) {
         pG->door_flags_51C8 |= 0x40;
         SmdGetObjPtr(0x26)->be_flag |= 0x20;
         SmdGetObjPtr(0x26)->pos.y = 6790.0f;
@@ -413,8 +413,8 @@ static void r217_Puzzle_exit()
             PSVECScale(&r217_work.p->pos[i], v, 1.0f);
             SmdGetObjPtr(r217_objTbl[i])->be_flag |= 0x20;
         }
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r217_1st_set, 0, 1);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r217_3rd_set, 0, 1);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r217_1st_set, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r217_3rd_set, 0, 1);
         SceAtSetEnable(5, 0);
         GameSaveSave(&GameSave, pSaveData, -1);
         SceSleep(90);
@@ -445,32 +445,32 @@ static void r217_Puzzle()
     if (RsfCheck(G_ROOM_ID, 8) == 0) {
         CamCtrl.CutCall(6);
         SndCall(6, 3, 0, 0, 0, 0);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(9);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(4);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(5);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(6);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(3);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(9);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(4);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(6);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         SceSleep(5);
-        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r217_hikkakari_move, 0, 0, SCE_PRIO_DEF_2, 0);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-        SmdGetObjPtr(0x88)->pParts->rot.x = 0.0f;
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+        SmdGetObjPtr(0x88)->pParts->ang.x = 0.0f;
     } else {
-        pG->flags_51C0 |= 0x40000000;
+        pG->Scenario_flg[0] |= 0x40000000;
         SceSetEventCancel(1, (TaskFunc) r217_Puzzle_exit, 0, -1, 1);
         CamCtrl.CutCall(7);
         SceSleep(5);
@@ -560,18 +560,18 @@ extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur)
     int dir;
 
     if (lim > cur) {
-        obj->pParts->rot.x += *spd;
+        obj->pParts->ang.x += *spd;
         dir = 1;
     } else {
-        obj->pParts->rot.x -= *spd;
+        obj->pParts->ang.x -= *spd;
         dir = 0;
     }
     if (*spd >= 0.0f) {
-        if (dir ? (obj->pParts->rot.x < lim) : (obj->pParts->rot.x > lim)) {
+        if (dir ? (obj->pParts->ang.x < lim) : (obj->pParts->ang.x > lim)) {
             *spd += r217_switchAcc * 1.85f;
         } else {
             *spd = -r217_switchAcc;
-            obj->pParts->rot.x = lim;
+            obj->pParts->ang.x = lim;
             return 1;
         }
     }

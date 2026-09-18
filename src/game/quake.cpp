@@ -23,12 +23,12 @@ void QuakeInit()
     QuakeEntry* e = Quake.ent;
 
     for (i = 0; i < 16; i++, e++) {
-        e->active = 0;
-        e->id = 0;
-        e->delay = 0;
-        e->time = 0;
-        e->power = 0.0f;
-        e->axis = 0;
+        e->Be_flg = 0;
+        e->No = 0;
+        e->Delay = 0;
+        e->Time = 0;
+        e->Scale = 0.0f;
+        e->Axis = 0;
     }
     Quake.rnd_idx = 0;
 }
@@ -39,13 +39,13 @@ void QuakeExec(u8 id, u16 delay, s16 time, f32 power, u8 axis)
     QuakeEntry* e = Quake.ent;
 
     for (i = 0; i < 16; i++, e++) {
-        if (!(e->active & 1)) {
-            e->active = 1;
-            e->id = id;
-            e->delay = delay;
-            e->time = time;
-            e->power = power;
-            e->axis = axis;
+        if (!(e->Be_flg & 1)) {
+            e->Be_flg = 1;
+            e->No = id;
+            e->Delay = delay;
+            e->Time = time;
+            e->Scale = power;
+            e->Axis = axis;
             break;
         }
     }
@@ -57,12 +57,12 @@ static void QuakeKill(u8 id)
     QuakeEntry* e = Quake.ent;
 
     for (i = 0; i < 16; i++, e++) {
-        if ((e->active & 1) && e->id == id) {
-            e->active = 0;
-            e->id = 0;
-            e->delay = 0;
-            e->time = 0;
-            e->power = 0.0f;
+        if ((e->Be_flg & 1) && e->No == id) {
+            e->Be_flg = 0;
+            e->No = 0;
+            e->Delay = 0;
+            e->Time = 0;
+            e->Scale = 0.0f;
         }
     }
 }
@@ -77,23 +77,23 @@ void QuakeScheduler()
     Quake.power = 0.0f;
     e = Quake.ent;
     for (i = 0; i < 16; i++, e++) {
-        if (e->active & 1) {
-            if (e->delay != 0) {
-                e->delay--;
-            } else if (e->time == 0) {
-                e->active = 0;
-                e->id = 0;
-                e->delay = 0;
-                e->time = 0;
-                e->power = 0.0f;
-                e->axis = 0;
+        if (e->Be_flg & 1) {
+            if (e->Delay != 0) {
+                e->Delay--;
+            } else if (e->Time == 0) {
+                e->Be_flg = 0;
+                e->No = 0;
+                e->Delay = 0;
+                e->Time = 0;
+                e->Scale = 0.0f;
+                e->Axis = 0;
             } else {
                 Quake.active = 1;
-                if (Quake.power < e->power) {
-                    Quake.power = e->power;
-                    Quake.axis |= e->axis;
+                if (Quake.power < e->Scale) {
+                    Quake.power = e->Scale;
+                    Quake.axis |= e->Axis;
                 }
-                e->time--;
+                e->Time--;
             }
         }
     }

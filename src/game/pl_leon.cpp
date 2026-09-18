@@ -12,7 +12,7 @@ extern "C" {
 void OSReport(const char* fmt, ...);
 void EspDataLoad(void* data, int a, int b);     // game/eff_sys.cpp
 int SubCharCheckCtrl();                         // game/pl_sub.cpp
-void SubCharCtrl(int a, int b);                 // game/pl_sub.cpp
+void SubCharCtrl(int mode, int sccf);                 // game/pl_sub.cpp
 }
 u32 SubCharGetStatus();                         // game/pl_npc.cpp
 void ShapeSet(void* info, int a, void* data, int b);  // game/shape.cpp
@@ -42,11 +42,11 @@ cPlLeon::cPlLeon()
     init0();
     setModel();
     weaponRelease();
-    weaponLoad(pG->wep_no, pG->wep_type);
+    weaponLoad(pG->weapon_no, pG->weapon_type);
     weaponInit();
     init1();
     setMotion();
-    arc = pG->pPlArc;
+    arc = pG->pPlayer;
     EspDataLoad(PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
@@ -54,20 +54,20 @@ cPlLeon::cPlLeon()
 
 void cPlLeon::setMotion()
 {
-    PSet(pMotTbl[0x5F], PL_ARC_PTR(pG->pPlArc, 0x32));
-    PSet(pMotTbl[0x60], PL_ARC_PTR(pG->pPlArc, 0x33));
-    PSet(pMotTbl[0x61], PL_ARC_PTR(pG->pPlArc, 0x34));
-    PSet(pMotTbl[0x62], PL_ARC_PTR(pG->pPlArc, 0x35));
-    PSet(pMotTbl[0x63], PL_ARC_PTR(pG->pPlArc, 0x36));
-    PSet(pMotTbl[0x64], PL_ARC_PTR(pG->pPlArc, 0x37));
-    PSet(pMotTbl[0x65], PL_ARC_PTR(pG->pPlArc, 0x38));
-    PSet(pMotTbl[0x66], PL_ARC_PTR(pG->pPlArc, 0x39));
-    PSet(pMotTbl[0x6B], PL_ARC_PTR(pG->pPlArc, 0x3A));
-    PSet(pMotTbl[0x6C], PL_ARC_PTR(pG->pPlArc, 0x3B));
-    PSet(pMotTbl[0x67], PL_ARC_PTR(pG->pPlArc, 0x3C));
-    PSet(pMotTbl[0x68], PL_ARC_PTR(pG->pPlArc, 0x3D));
-    PSet(pMotTbl[0x69], PL_ARC_PTR(pG->pPlArc, 0x3E));
-    PSet(pMotTbl[0x6A], PL_ARC_PTR(pG->pPlArc, 0x3F));
+    PSet(pMotTbl[0x5F], PL_ARC_PTR(pG->pPlayer, 0x32));
+    PSet(pMotTbl[0x60], PL_ARC_PTR(pG->pPlayer, 0x33));
+    PSet(pMotTbl[0x61], PL_ARC_PTR(pG->pPlayer, 0x34));
+    PSet(pMotTbl[0x62], PL_ARC_PTR(pG->pPlayer, 0x35));
+    PSet(pMotTbl[0x63], PL_ARC_PTR(pG->pPlayer, 0x36));
+    PSet(pMotTbl[0x64], PL_ARC_PTR(pG->pPlayer, 0x37));
+    PSet(pMotTbl[0x65], PL_ARC_PTR(pG->pPlayer, 0x38));
+    PSet(pMotTbl[0x66], PL_ARC_PTR(pG->pPlayer, 0x39));
+    PSet(pMotTbl[0x6B], PL_ARC_PTR(pG->pPlayer, 0x3A));
+    PSet(pMotTbl[0x6C], PL_ARC_PTR(pG->pPlayer, 0x3B));
+    PSet(pMotTbl[0x67], PL_ARC_PTR(pG->pPlayer, 0x3C));
+    PSet(pMotTbl[0x68], PL_ARC_PTR(pG->pPlayer, 0x3D));
+    PSet(pMotTbl[0x69], PL_ARC_PTR(pG->pPlayer, 0x3E));
+    PSet(pMotTbl[0x6A], PL_ARC_PTR(pG->pPlayer, 0x3F));
 }
 
 void cPlLeon::move()
@@ -80,17 +80,17 @@ void cPlLeon::setModel()
     cModelInfo* info;
     cModelInfo* face;
 
-    info = (cModelInfo*) modelInit(PL_ARC_PTR(pG->pPlArc, 4), PL_ARC_PTR(pG->pPlArc, 5));
+    info = (cModelInfo*) modelInit(PL_ARC_PTR(pG->pPlayer, 4), PL_ARC_PTR(pG->pPlayer, 5));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
-    switch (pG->costume) {
+    switch (pG->pl_costume) {
     case 0:
     case 1:
     case 2:
     case 3:
-        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xA), PL_ARC_PTR(pG->pPlArc, 5));
+        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xA), PL_ARC_PTR(pG->pPlayer, 5));
         if (!VALID_PTR(info)) {
             pLog->err(0, 0, "cPlLeon::setModel() failed.");
             return;
@@ -98,54 +98,54 @@ void cPlLeon::setModel()
         addModel(info);
         break;
     }
-    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xD), PL_ARC_PTR(pG->pPlArc, 5));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xD), PL_ARC_PTR(pG->pPlayer, 5));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    pBody->pFace = info;
-    face = pBody->pFace;
+    Body->pFace = info;
+    face = Body->pFace;
     if (VALID_PTR(face)) {
         face->x84 = 0.0f;
         face->x70 = 0.0f;
         face->x5C = 0.0f;
     }
-    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 8), PL_ARC_PTR(pG->pPlArc, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 8), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(pBody->pShape, info);
-    PSet(pBody->pHeadData, PL_ARC_PTR(pG->pPlArc, 8));
-    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 6), PL_ARC_PTR(pG->pPlArc, 7));
+    PSet(Body->pShape, info);
+    PSet(Body->pHeadData, PL_ARC_PTR(pG->pPlayer, 8));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 6), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(pBody->pHair, info);
-    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 9), PL_ARC_PTR(pG->pPlArc, 7));
+    PSet(Body->pHair, info);
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 9), PL_ARC_PTR(pG->pPlayer, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
     info->be_flag |= 0x40;
-    PSet(pBody->pEye, info);
-    if (pG->costume >= 1 && pG->costume <= 3) {
-        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0x10), PL_ARC_PTR(pG->pPlArc, 5));
+    PSet(Body->pEye, info);
+    if (pG->pl_costume >= 1 && pG->pl_costume <= 3) {
+        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0x10), PL_ARC_PTR(pG->pPlayer, 5));
         if (!VALID_PTR(info)) {
             pLog->err(0, 0, "cPlLeon::setModel() failed.");
             return;
         }
         addModel(info);
     }
-    if (pG->flags_51C0 & 0x20) {
+    if (pG->Scenario_flg[0] & 0x20) {
         setWound();
     }
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(1);
@@ -155,7 +155,7 @@ void cPlLeon::setWound()
 {
     cModelInfo* info;
 
-    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xE), PL_ARC_PTR(pG->pPlArc, 0xF));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlayer, 0xE), PL_ARC_PTR(pG->pPlayer, 0xF));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
     } else {
@@ -168,26 +168,26 @@ void cPlLeon::setRightHand(int no)
     void* data;
     cModelInfo* info;
 
-    if (pBody->pRight) {
-        deleteModelInfo(pBody->pRight);
-        pBody->pRight = 0;
-        pBody->pRightData = 0;
+    if (Body->pRight) {
+        deleteModelInfo(Body->pRight);
+        Body->pRight = 0;
+        Body->pRightData = 0;
     }
     switch (no) {
     case 0:
-        data = PL_ARC_PTR(pG->pPlArc, 0x12);
+        data = PL_ARC_PTR(pG->pPlayer, 0x12);
         break;
     case 1:
-        data = pBody->pWepHand;
+        data = Body->pWepHand;
         break;
     default:
         data = (void*) no;
         break;
     }
-    if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlArc, 0x11))) != 0) {
+    if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlayer, 0x11))) != 0) {
         addModel(info);
-        pBody->pRight = info;
-        pBody->pRightData = (void*) data;
+        Body->pRight = info;
+        Body->pRightData = (void*) data;
     }
     if (!info) {
 #line 353 "D:/Bio4/Prog/pl_leon.cpp"
@@ -200,53 +200,53 @@ void cPlLeon::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pLeft) {
-        deleteModelInfo(pBody->pLeft);
-        pBody->pLeft = 0;
-        pBody->pLeftData = 0;
+    if (Body->pLeft) {
+        deleteModelInfo(Body->pLeft);
+        Body->pLeft = 0;
+        Body->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pBody->leftNoPrev;
+        no = Body->oldLhandNo;
     }
     switch (no) {
     case 0:
-        data = PL_ARC_PTR(pG->pPlArc, 0x14);
+        data = PL_ARC_PTR(pG->pPlayer, 0x14);
         break;
     case 1:
-        data = PL_ARC_PTR(pG->pPlArc, 0x15);
+        data = PL_ARC_PTR(pG->pPlayer, 0x15);
         break;
     case 2:
-        data = PL_ARC_PTR(pG->pPlArc, 0x16);
+        data = PL_ARC_PTR(pG->pPlayer, 0x16);
         break;
     case 3:
-        data = PL_ARC_PTR(pG->pPlArc, 0x17);
+        data = PL_ARC_PTR(pG->pPlayer, 0x17);
         break;
     case 4:
-        data = PL_ARC_PTR(pG->pPlArc, 0x18);
+        data = PL_ARC_PTR(pG->pPlayer, 0x18);
         break;
     case 5:
-        data = PL_ARC_PTR(pG->pPlArc, 0x19);
+        data = PL_ARC_PTR(pG->pPlayer, 0x19);
         break;
     default:
         data = (void*) no;
         break;
     }
-    pBody->leftNoPrev = pBody->leftNo;
-    pBody->leftNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
+    Body->oldLhandNo = Body->nowLhandNo;
+    Body->nowLhandNo = no;
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pBody->pLeft = info;
-        pBody->pLeftData = data;
+        Body->pLeft = info;
+        Body->pLeftData = data;
     }
 }
 
 void cPlLeon::setFace(int no)
 {
     void* data = 0;
-    void* shape = pBody->pShape;
+    void* shape = Body->pShape;
 
     if (shape == 0) {
         return;
@@ -257,14 +257,14 @@ void cPlLeon::setFace(int no)
         ShapeEnd(shape);
         break;
     case 1:
-        data = PL_ARC_PTR(pG->pPlArc, 0x62);
+        data = PL_ARC_PTR(pG->pPlayer, 0x62);
         break;
     case 2:
-        data = PL_ARC_PTR(pG->pPlArc, 0x63);
+        data = PL_ARC_PTR(pG->pPlayer, 0x63);
         break;
     }
     if (no != 0) {
-        ShapeSet(pBody->pShape, 0, data, 2);
+        ShapeSet(Body->pShape, 0, data, 2);
     }
 }
 
@@ -275,16 +275,16 @@ void cPlLeon::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    deleteModelInfo(pBody->pEye);
-    pBody->pEye = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    deleteModelInfo(Body->pEye);
+    Body->pEye = 0;
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -294,15 +294,15 @@ void cPlLeon::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    deleteModelInfo(pBody->pEye);
-    pBody->pEye = 0;
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    deleteModelInfo(Body->pEye);
+    Body->pEye = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);
@@ -311,8 +311,8 @@ void cPlLeon::setHead(void* bin, void* tpl)
 
 int cPlLeon::checkXbutton()
 {
-    if (xButtonWait) {
-        xButtonWait--;
+    if (m_CmdTimer) {
+        m_CmdTimer--;
     }
     if (pSUB == 0) {
         return 0;
@@ -320,8 +320,8 @@ int cPlLeon::checkXbutton()
     if (pSUB->id != 3) {
         return 0;
     }
-    pG->flags_5010 |= 4;
-    if (xButtonWait != 0) {
+    pG->Status_flg[1] |= 4;
+    if (m_CmdTimer != 0) {
         return 0;
     }
     if (SubCharCheckCtrl() == 0) {
@@ -331,13 +331,13 @@ int cPlLeon::checkXbutton()
         return 0;
     }
     if (SubCharGetStatus() & 0x40000000) {
-        SndCall(1, 0x37, &pParts->worldPos, 0, 0, 0);
+        SndCall(1, 0x37, &pParts->world, 0, 0, 0);
         SubCharCtrl(1, 0);
     } else {
-        SndCall(1, 0x36, &pParts->worldPos, 0, 0, 0);
+        SndCall(1, 0x36, &pParts->world, 0, 0, 0);
         SubCharCtrl(0, 0);
     }
-    xButtonWait = 8;
-    pG->flags_500C |= 0x800000;
+    m_CmdTimer = 8;
+    pG->Status_flg[0] |= 0x800000;
     return 1;
 }

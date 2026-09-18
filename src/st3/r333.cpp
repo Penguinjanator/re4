@@ -107,7 +107,7 @@ static inline int r333_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -121,18 +121,18 @@ void R333Init()
     r333_work = (R333Work*) MEM_CALLOC(sizeof(R333Work), 1, 0xd);
     read_id_data();
     if (pG->room_id_prev == 0xFFF) {
-        if ((pG->flags_5018 & 0x04000000) == 0) {
-            BitOn(pG->flags_5018, 0x04000000);
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
+        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+            BitOn(pG->Status_flg[3], 0x04000000);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);
         }
         ItemMgr.get(0x88, 0);
     }
-    if (pG->x4F9F == 2) {
+    if (pG->JumpPoint == 2) {
         SceExec(0x12, (TaskFunc) R333EventS10, 0, 0, 2, 0);
     }
     zero = 0;
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     EstSet(0, -1, 0, 0, 1, 0xB, 1, 2, (u32) zero, (void*) zero);
     EvtMgr.SetFunc("evt_r333s00_func", (void*) Evt_R333S00_Func);
     EvtMgr.SetFunc("evt_r333s10_func", (void*) Evt_R333S10_Func);
@@ -175,11 +175,11 @@ void R333Init()
         ang.z = 0.0f;
         r333_work->em.setAng(&ang);
     }
-    ((cPl0e*) r333_work->em.getPtr())->setRail(ROOM_ARC_PTR(pG->pRoomArc, 0x1F));
+    ((cPl0e*) r333_work->em.getPtr())->setRail(ROOM_ARC_PTR(pG->pRoom, 0x1F));
     setTexRender();
     EstSet(0, -1, 0, 0, 1, 0x10, 0x801, 3, (u32) zero, (void*) zero);
-    BitOn(pG->flags_170, 0x00040000);
-    pG->flags_58 |= 0x01000000;
+    BitOn(pG->Stop_flg, 0x00040000);
+    pG->Disp_flg |= 0x01000000;
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) fall_eff, 0, 1);
     SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) fall_eff2, 0, 1);
     SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) fall_a, 0, 1);
@@ -200,7 +200,7 @@ void R333Init()
         st3_setCountDownTimer(3600);
     }
     st3_startCountDown();
-    if (pG->flags_54 & 0x00080000) {
+    if (pG->System_flg & 0x00080000) {
         if (st3_getCountDownTimer() <= 2699) {
             st3_setCountDownTimer(2700);
         }
@@ -239,8 +239,8 @@ void R333EventS00()
             EvtMgr.EvtReadExec("event/evd/r333s00.evd", 0, 0);
             SndRoomStrVolReset(200);
             boat->set2ndRail();
-            BitOn(pG->flags_170, 0x00040000);
-            pG->flags_58 |= 0x01000000;
+            BitOn(pG->Stop_flg, 0x00040000);
+            pG->Disp_flg |= 0x01000000;
             SceSleep(15);
             i = 0;
             do {
@@ -285,21 +285,21 @@ extern "C" void Evt_R333S00_Func(Event* e)
         r333_work->timer = st3_getCountDownTimer();
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
-            BitOn(pG->flags_5010, 0x800);
-            BitOff(pG->flags_170, 0x00040000);
-            BitOff(pG->flags_58, 0x01000000);
+            BitOn(pG->Status_flg[1], 0x800);
+            BitOff(pG->Stop_flg, 0x00040000);
+            BitOff(pG->Disp_flg, 0x01000000);
             break;
         default:
-            BitOn(pG->flags_170, 0x00040000);
-            BitOn(pG->flags_58, 0x01000000);
-            BitOff(pG->flags_5010, 0x800);
+            BitOn(pG->Stop_flg, 0x00040000);
+            BitOn(pG->Disp_flg, 0x01000000);
+            BitOff(pG->Status_flg[1], 0x800);
             break;
         }
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x00100000;
                 }
@@ -311,7 +311,7 @@ extern "C" void Evt_R333S00_Func(Event* e)
         break;
     case 2:
         SmdSetTrans(3, 1);
-        st3_setCountDownTimer(r333_work->timer - e->maxTotalFrame);
+        st3_setCountDownTimer(r333_work->timer - e->MaxTotalFrame);
         st3_startCountDown();
         break;
     }
@@ -337,51 +337,51 @@ extern "C" void Evt_R333S10_Func(Event* e)
         EffectEspDelete(0x4001, 0, 0, 0);
         EffectEspgenDelete(0x4001, 0, 0);
         EffectEfmDelete(0x4001, 0, 0);
-        pG->flags_170 &= ~0x00040000;
+        pG->Stop_flg &= ~0x00040000;
         Filter0bAllocBuf();
         SmdSetTrans(3, 0);
         st3_endCountDown();
         break;
     }
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
-            BitOn(pG->flags_5010, 0x800);
-            BitOn(pG->flags_58, 0x01000000);
+            BitOn(pG->Status_flg[1], 0x800);
+            BitOn(pG->Disp_flg, 0x01000000);
             SmdSetTrans(0xCE, 0);
             break;
         case 2:
-            BitOn(pG->flags_5010, 0x800);
-            BitOn(pG->flags_58, 0x01000000);
+            BitOn(pG->Status_flg[1], 0x800);
+            BitOn(pG->Disp_flg, 0x01000000);
             SmdSetTrans(0xCE, 1);
             break;
         default:
-            BitOn(pG->flags_5010, 0x800);
-            BitOff(pG->flags_58, 0x01000000);
+            BitOn(pG->Status_flg[1], 0x800);
+            BitOff(pG->Disp_flg, 0x01000000);
             SmdSetTrans(0xCE, 1);
             break;
         }
-        if (e->cut == 0x10 || e->cut == 0x12) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0x10 || e->NowCut == 0x12) {
+            if (e->NowFrame == 0) {
                 void* m;
 
                 if (e->GetMod(&m, "pl0100", 0, 0) == 1) {
-                    ((cObj*) m)->o18.flags |= 0x40;
+                    ((cObj*) m)->o18.be_flag |= 0x40;
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* m;
 
                 if (e->GetMod(&m, "pl0100", 0, 0) == 1) {
-                    ((cObj*) m)->o18.flags &= ~0x40;
+                    ((cObj*) m)->o18.be_flag &= ~0x40;
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x00100000;
                 }
@@ -394,21 +394,21 @@ extern "C" void Evt_R333S10_Func(Event* e)
             }
             break;
         case 0xD:
-            if (e->frame == e->maxFrame - 1) {
+            if (e->NowFrame == e->MaxFrame - 1) {
                 Filter0bCapture();
             }
             break;
         case 0xE:
-            if (e->frame <= alphaTime) {
-                Filter0bSetAlpha((u8) alpha - e->frame * alpha / alphaTime);
+            if (e->NowFrame <= alphaTime) {
+                Filter0bSetAlpha((u8) alpha - e->NowFrame * alpha / alphaTime);
             }
             break;
         case 0x13:
-            if (e->frame == 380) {
+            if (e->NowFrame == 380) {
                 int skip = r333_evtSkip(e);
 
                 if (skip == 0) {
-                    FadeSetW(2, e->maxFrame - 380, 0, 0);
+                    FadeSetW(2, e->MaxFrame - 380, 0, 0);
                 }
             }
             break;
@@ -433,18 +433,18 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r333_work->tex->texId;
-        IntSet(r333_work->tex->repType, 1);
+        IntSet(r333_work->tex->m_Rep_type, 1);
         EstSet(0, -1, 0, 0, 1, 0, r333_work->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(7);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 0x1E;
-    obj->x138 = 0x80;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->color[3] = 0xF0;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 0x1E;
+    obj->Refract_ratio = 0x80;
 }
 
 static void exec_no_ret_exit()
@@ -533,22 +533,22 @@ static void r333_useMes()
             SubScreenOpen(0x80, 1);
         }
     } else {
-        cMes.MesSet(0x67, 100, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 100, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
     }
 }
 
 // Leon gets on the jet ski.
 void ride()
 {
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-    pG->flags_174 |= 0x80000000;
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+    pG->Room_flg[0] |= 0x80000000;
     EffectEspDelete(1, 5, 0, 0);
     EffectEspgenDelete(1, 5, 0);
     EffectEfmDelete(1, 5, 0);
     SndStrReq(1, 0x74, 0x80000003, 0, 0, 0.0f);
     ((cPl0e*) r333_work->em.getPtr())->setRide();
     SndStop(r333_work->se, 0);
-    if (pG->x4F9F == 2) {
+    if (pG->JumpPoint == 2) {
         SceExec(0x12, (TaskFunc) R333EventS00, 0, 0, 2, 0);
     }
 }
@@ -584,16 +584,16 @@ static void gameResult()
     GameResult* res;
 
     SceEventStart(0);
-    disp_bak = pG->flags_58;
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x2000);
-    BitOff(pG->flags_58, 0x800);
-    BitOff(pG->flags_58, 0x10000);
-    stop_bak = pG->flags_170;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_170, 0x40);
+    disp_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x2000);
+    BitOff(pG->Disp_flg, 0x800);
+    BitOff(pG->Disp_flg, 0x10000);
+    stop_bak = pG->Stop_flg;
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x80000000);
+    BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     systemVISetBlack(1);
     FadeKill(2);
@@ -627,17 +627,17 @@ static void gameResult()
     SceEventEnd(0);
     disp_bak2 = disp_bak;
     stop_bak2 = stop_bak;
-    U32Set(pG->flags_58, disp_bak);
-    pG->flags_170 = stop_bak;
+    U32Set(pG->Disp_flg, disp_bak);
+    pG->Stop_flg = stop_bak;
     OpeSetOpenTerm(0x17, -675462.0f, -26062.0f, -552700.0f, 0.665f);
-    U32Set(pG->flags_58, disp_bak2);
-    pG->flags_170 = stop_bak2;
+    U32Set(pG->Disp_flg, disp_bak2);
+    pG->Stop_flg = stop_bak2;
     SceEventStart(0);
     setLangExt3(data_name + 3);
     Dvd.FileExistCheck(data_name, &size);
     size += 8;
     size += MARGIN;
-    swap.SwapOut((u32) pG->pRoomArc, size, 0);
+    swap.SwapOut((u32) pG->pRoom, size, 0);
     res = new GameResult;
 #line 958 "D:/Bio4/Prog/r333.cpp"
     Dvd.ReadCheck(DvdReadN(data_name, 0, 0, 0, 0, 5, __FILE__, __LINE__), 0, 0, &data);
@@ -652,7 +652,7 @@ static void gameResult()
     SndStrReq(0, 0x3A, 4, 800, 0, 0.0f);
     FadeSetW(2, FADE_TIME, 0, 0);
     r333_fadeWait(2);
-    if ((pSys->x4 & 0x40000000) == 0) {
+    if ((pSys->unlock_flg & 0x40000000) == 0) {
         res->omake_init(data);
         FadeSetW(0x80000002, FADE_TIME, 0, 0);
         r333_fadeWait(2);
@@ -666,30 +666,30 @@ static void gameResult()
     // ahead of SceMesSet (r30), where `sel = f()` legitimises the address after the call (`li r9`).
     int* pSel = &sel;
 
-    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     *pSel = SceMesGetSelection();
     res->quit();
     delete res;
     swap.SwapIn();
-    U16Set(pG->x4F8E, pG->x4F8E + 1);
-    if (pG->x4F8E > 99) {
-        pG->x4F8E = 99;
+    U16Set(pG->game_cnt, pG->game_cnt + 1);
+    if (pG->game_cnt > 99) {
+        pG->game_cnt = 99;
     }
-    BitOn(pSys->x4, 0x80000000);
-    BitOn(pSys->x4, 0x40000000);
-    BitOn(pSys->x4, 0x00800000);
-    if ((pSys->x4 & 0x00400000) == 0) {
+    BitOn(pSys->unlock_flg, 0x80000000);
+    BitOn(pSys->unlock_flg, 0x40000000);
+    BitOn(pSys->unlock_flg, 0x00800000);
+    if ((pSys->unlock_flg & 0x00400000) == 0) {
         MercSaveWork save;
         int i;
 
-        pSys->x4 |= 0x00400000;
+        pSys->unlock_flg |= 0x00400000;
         // Struct-member view of pSys (pGS): the element store is not disjoint from the pointer load,
         // so pSys is reloaded per iteration and the address stays `(pSys + 0x10) + i*4` (`stwx`).
         for (i = 0; i < 4; i++) {
-            pSysS->x10[i] = 0;
+            pSysS->merc_stage[i] = 0;
         }
         for (i = 0; i < 2; i++) {
-            pSysS->x20[i] = 0;
+            pSysS->merc_rank[i] = 0;
         }
         MercSysGetSaveWork(&save);
         for (i = 0; i < 4; i++) {
@@ -702,9 +702,9 @@ static void gameResult()
         CardSave(0, 0x12);
         SceSleep(1);
     }
-    U32Set(pG->flags_58, disp_bak);
-    U32Set(pG->flags_170, stop_bak);
-    pG->flags_54 |= 0x04000000;
+    U32Set(pG->Disp_flg, disp_bak);
+    U32Set(pG->Stop_flg, stop_bak);
+    pG->System_flg |= 0x04000000;
 }
 
 static void exec_continue()
@@ -719,9 +719,9 @@ static void exec_die()
     int zero = 0;
 
     SceEventStart(1);
-    BitOn(pG->flags_5010, 0x800);
-    BitOff(pG->flags_170, 0x00040000);
-    BitOff(pG->flags_58, 0x01000000);
+    BitOn(pG->Status_flg[1], 0x800);
+    BitOff(pG->Stop_flg, 0x00040000);
+    BitOff(pG->Disp_flg, 0x01000000);
     SmdSetTrans(3, 0);
     EstSet(0, -1, 0, 0, 1, 0x14, 1, 4, (u32) zero, (void*) zero);
     CamCtrl.CutCall(0xD);
@@ -731,9 +731,9 @@ static void exec_die()
     SceSleep(200);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5010, 0x800);
-    BitOn(pG->flags_170, 0x00040000);
-    BitOn(pG->flags_58, 0x01000000);
+    BitOff(pG->Status_flg[1], 0x800);
+    BitOn(pG->Stop_flg, 0x00040000);
+    BitOn(pG->Disp_flg, 0x01000000);
     SmdSetTrans(3, 1);
     EffectEspDelete(1, 4, 0, 0);
     EffectEspgenDelete(1, 4, 0);
@@ -748,7 +748,7 @@ static void yure_task()
 static void kazekiri_task()
 {
     for (;;) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             SndCall(6, 3, 0, 0, 0, 0);
             SceSleep(30);
         }

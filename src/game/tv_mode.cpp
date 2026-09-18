@@ -68,7 +68,7 @@ void tvModeCheckTask()
 void tvModeTrigger(TvModeWork* tv)
 {
     if (VIGetDTVStatus() != 0 && pRK->tv_mode_done == 0) {
-        if (Joy[0].x8 == -3 || Joy[0].x8 == -2) {
+        if (Joy[0].err == -3 || Joy[0].err == -2) {
             tv_mode_cnt++;
             if (tv_mode_cnt <= 29) {
                 return;
@@ -98,22 +98,22 @@ void tvModeMenu_progressive(TvModeWork* tv)
     switch (tv->sub) {
     case 0:
         MesData.ptr[tv->sub] = (u8*) (pG->pArc->ofs_70 + (u32) pG->pArc);
-        cMes.setLayout(0, 5);
+        cMes.setLayout(0, LAYOUT_SYSTEM);
         cMes.MesSet(0, 100, 220, 0x1000051, 0, 0, 1);
         timer = 0;
         w = cMes.getWork();
-        if ((sel = w->result) == 0) {
+        if ((sel = w->m_sel) == 0) {
             do {
                 timer++;
                 if (Joy[0].trg & 0x30003) {
                     timer = 0;
                 }
                 if (timer > 300) {
-                    sel = cMes.mes[0].cursor + 1;
+                    sel = cMes.mes[0].m_cur + 1;
                     break;
                 }
                 TaskSleep(1);
-            } while ((sel = w->result) == 0);
+            } while ((sel = w->m_sel) == 0);
         }
         old = pRK->progressive;
         if (sel == 1) {

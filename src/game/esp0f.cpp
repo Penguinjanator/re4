@@ -10,14 +10,14 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 struct Esp0fWork {
-    u8 power;  // 0x00 TEV colour scale of the copied frame (0..2)
+    u8 Pow;  // 0x00 TEV colour scale of the copied frame (0..2)
 };
 
 // Screen distortion sprite: copies the frame buffer into a texture and draws the sprite with
 // that texture projected onto it, modulated by the sprite's own texture.
 class cEsp0f : public cEsp {
 public:
-    Esp0fWork work;  // 0xF8
+    Esp0fWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -44,7 +44,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
         { 0.0f, 0.0029762f, -0.167f, 0.0f },
         { 0.0f, 0.0f, 1.0f, 0.0f },
     };
-    Esp0fWork* w = &esp->work;
+    Esp0fWork* w = &esp->m_Free;
     Mtx44 proj;
     Mtx inv;
     EspAnmData* anm;
@@ -63,44 +63,44 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     f32 t0;
     f32 t1;
 
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
-        PSMTXIdentity(esp->mat);
-        RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
+        PSMTXIdentity(esp->m_Mat);
+        RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
         C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
         GXSetProjection(proj, 1);
-    } else if (!(esp->flags & 1)) {
+    } else if (!(esp->m_Tool_flg & 1)) {
         Vec p;
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        PSMTXRotRad(esp->mat, 'z', esp->rot.z);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXMultVec(m, &esp->pos, &p);
-        esp->mat[0][3] = p.x;
-        esp->mat[1][3] = p.y;
-        esp->mat[2][3] = p.z;
+        PSMTXIdentity(esp->m_Mat);
+        PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXMultVec(m, &esp->m_Pos, &p);
+        esp->m_Mat[0][3] = p.x;
+        esp->m_Mat[1][3] = p.y;
+        esp->m_Mat[2][3] = p.z;
     } else {
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXConcat(m, esp->mat, esp->mat);
+        PSMTXIdentity(esp->m_Mat);
+        RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     GXTexObj tex;
-    PSMTXInverse(esp->mat, inv);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -111,20 +111,20 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    sx = esp->sizeX * esp->scale;
-    sy = esp->sizeY * esp->scale;
-    ox = -anm->x4;
-    oy = (f32)anm->x6;
+    sx = esp->m_Size_base_x * esp->m_Size_mul;
+    sy = esp->m_Size_base_y * esp->m_Size_mul;
+    ox = -anm->Cx;
+    oy = (f32)anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
     ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
@@ -141,10 +141,10 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     GXInitTexObj(&tex, buf, (u32)Screen.width / 2, (u32)Screen.height / 2, 6, 0, 0, 0);
     GXInitTexObjLOD(&tex, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
     GXLoadTexObj(&tex, 1);
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
         Mtx tm;
 
-        PSMTXConcat(Matrix, esp->mat, tm);
+        PSMTXConcat(Matrix, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
@@ -152,13 +152,13 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
         Mtx pm;
 
         C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
-        PSMTXConcat(pm, esp->mat, tm);
+        PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(0, 0, 0, 0x1E);
     }
     GXSetTevOrder(0, 0, 1, 4);
     GXSetTevColorIn(0, 0xF, 0xF, 0xF, 8);
-    switch (w->power) {
+    switch (w->Pow) {
     case 0:
         GXSetTevColorOp(0, 0, 0, 0, 1, 0);
         break;
@@ -209,9 +209,9 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
 
 int cEsp0f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    work.power = gen->xC8;
-    if (work.power > 2) {
-        pLog->err(0, 0, "ESP_0F : Power[%d] invalid", work.power);
+    m_Free.Pow = gen->Work8[0];
+    if (m_Free.Pow > 2) {
+        pLog->err(0, 0, "ESP_0F : Power[%d] invalid", m_Free.Pow);
         return 0;
     }
     return 1;

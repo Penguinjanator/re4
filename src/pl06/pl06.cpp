@@ -26,11 +26,11 @@ cPlHunk::cPlHunk()
     init0();
     setModel();
     weaponRelease();
-    weaponLoad(pG->wep_no, pG->wep_type);
+    weaponLoad(pG->weapon_no, pG->weapon_type);
     weaponInit();
     init1();
     setMotion();
-    arc = pG->pPlArc;
+    arc = pG->pPlayer;
     EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
@@ -68,17 +68,17 @@ void cPlHunk::setModel()
     }
     if ((info = ModInfoMgr.create(PL_ARC(6), PL_ARC(7))) != 0) {
         addModel(info);
-        pBody->pHair = info;
+        Body->pHair = info;
     }
     if ((info = ModInfoMgr.create(PL_ARC(0x12), PL_ARC(0x11))) != 0) {
         addModel(info);
-        pBody->pRight = info;
+        Body->pRight = info;
     }
     if ((info = ModInfoMgr.create(PL_ARC(0x14), PL_ARC(0x11))) != 0) {
         addModel(info);
-        pBody->pLeft = info;
+        Body->pLeft = info;
     }
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(1);
@@ -89,17 +89,17 @@ void cPlHunk::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pRight) {
-        deleteModelInfo(pBody->pRight);
-        pBody->pRight = 0;
-        pBody->pRightData = 0;
+    if (Body->pRight) {
+        deleteModelInfo(Body->pRight);
+        Body->pRight = 0;
+        Body->pRightData = 0;
     }
     switch (no) {
     case 0:
         data = PL_ARC(0x12);
         break;
     case 1:
-        data = pBody->pWepHand;
+        data = Body->pWepHand;
         break;
     default:
         data = (void*) no;
@@ -107,8 +107,8 @@ void cPlHunk::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(0x11))) != 0) {
         addModel(info);
-        pBody->pRight = info;
-        pBody->pRightData = data;
+        Body->pRight = info;
+        Body->pRightData = data;
     }
     if (!info) {
 #line 253 "D:/Bio4/Prog/pl_hunk.cpp"
@@ -121,13 +121,13 @@ void cPlHunk::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pLeft) {
-        deleteModelInfo(pBody->pLeft);
-        pBody->pLeft = 0;
-        pBody->pLeftData = 0;
+    if (Body->pLeft) {
+        deleteModelInfo(Body->pLeft);
+        Body->pLeft = 0;
+        Body->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pBody->leftNoPrev;
+        no = Body->oldLhandNo;
     }
     switch (no) {
     case 0:
@@ -141,15 +141,15 @@ void cPlHunk::setLeftHand(u32 no)
         data = (void*) no;
         break;
     }
-    pBody->leftNoPrev = pBody->leftNo;
-    pBody->leftNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
+    Body->oldLhandNo = Body->nowLhandNo;
+    Body->nowLhandNo = no;
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlHunk::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pBody->pLeft = info;
-        pBody->pLeftData = data;
+        Body->pLeft = info;
+        Body->pLeftData = data;
     }
 }
 
@@ -164,12 +164,12 @@ void cPlHunk::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pBody->pHair == 0) {
+    if (Body->pHair == 0) {
         return;
     }
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -179,11 +179,11 @@ void cPlHunk::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);

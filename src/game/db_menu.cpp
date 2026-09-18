@@ -35,7 +35,7 @@ struct DllModule {
 // One debug menu line (0x10 bytes)
 struct DB_MENU {
     const char* name;  // 0x00
-    const char* rel;   // 0x04  tool module to load (NULL = built-in tool)
+    const char* rel_name;   // 0x04  tool module to load (NULL = built-in tool)
     void (*func)();    // 0x08  built-in tool entry
     int id;            // 0x0C  DebugMenuSelected
 };
@@ -142,14 +142,14 @@ void MenuTask()
 void DbMenuExec()
 {
     struct test* t = &test;
-    BitOn(pG->flags_60, 0x80000000);
-    t->stop_bak = pG->flags_170;
-    BitOn(pG->flags_170, ~0x4000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
+    t->stop_bak = pG->Stop_flg;
+    BitOn(pG->Stop_flg, ~0x4000);
     pG->debug_disp = pG->debug_mode;
     pG->debug_mode = 1;
-    if (pG->flags_54 & 0x10000) {
-        if (!(pG->flags_54 & 0x20000)) {
-            pG->flags_54 |= 0x20000;
+    if (pG->System_flg & 0x10000) {
+        if (!(pG->System_flg & 0x20000)) {
+            pG->System_flg |= 0x20000;
             t->flag = 1;
         } else {
             t->flag = 0;
@@ -162,29 +162,29 @@ void DbMenuExec()
 void DbMenuExitAfterCheck()
 {
     struct test* t = &test;
-    if (!(pG->flags_68 & 0x200)) {
-        if ((s32) pG->flags_60 < 0) {
-            pG->flags_68 |= 0x200;
+    if (!(pG->Debug_flg[2] & 0x200)) {
+        if ((s32) pG->Debug_flg[0] < 0) {
+            pG->Debug_flg[2] |= 0x200;
         }
         if (t->exit_wait > 0) {
             t->exit_wait--;
         }
         return;
     }
-    if ((s32) pG->flags_60 < 0) {
+    if ((s32) pG->Debug_flg[0] < 0) {
         return;
     }
     if (!(pG->debug_disp & 0x80)) {
         pG->debug_mode = pG->debug_disp;
         pG->debug_disp = -1;
     }
-    if ((pG->flags_54 & 0x10000) && t->flag == 1) {
-        pG->flags_54 &= ~0x20000;
+    if ((pG->System_flg & 0x10000) && t->flag == 1) {
+        pG->System_flg &= ~0x20000;
     }
     DbmenuModuleInit();
     ResetDebugAlloc();
     t->exit_wait = 30;
-    pG->flags_68 &= ~0x200;
+    pG->Debug_flg[2] &= ~0x200;
     if (t->exec_tool == 1) {
         DbMenuExec();
     }
@@ -209,8 +209,8 @@ void DbMenuRestoreStopFlag()
 {
     struct test* t = &test;
     if (t->stop_saved == 1) {
-        BitSet(pG->flags_170, t->stop_bak);
-        BitOff(pG->flags_170, 0x80000000);
+        BitSet(pG->Stop_flg, t->stop_bak);
+        BitOff(pG->Stop_flg, 0x80000000);
         t->stop_saved = 0;
     }
 }
@@ -225,7 +225,7 @@ void init(struct test* t)
 {
     int no;
     FadeKill(0);
-    FadeKill(1);
+    FadeKill(FADE_NO_SCENARIO);
     t->x = 176;
     t->y = 30;
     t->x3 = 0;
@@ -247,8 +247,8 @@ void init(struct test* t)
 
 static void exit(struct test* t)
 {
-    BitSet(pG->flags_170, t->stop_bak);
-    BitOff(pG->flags_60, 0x80000000);
+    BitSet(pG->Stop_flg, t->stop_bak);
+    BitOff(pG->Debug_flg[0], 0x80000000);
     TaskExit();
 }
 
@@ -261,8 +261,8 @@ void move(struct test* t)
     int h, m, s;
 
     joy = GetBugCheckController();
-    t->x += joy->ssx / 16;
-    t->y -= joy->ssy / 16;
+    t->x += joy->substickX / 16;
+    t->y -= joy->substickY / 16;
     GetGameTime(&h, &m, &s);
     eprintf(t->x, t->y, 0, 0, "WELCOME TO TOOL MENU");
     eprintf(t->x + 160, t->y + 405, 0, 0, "MOVE BY SUB-STICK");
@@ -305,15 +305,15 @@ void move(struct test* t)
     if ((joy->trg & 0x100) || t->exec_tool == 1) {
         t->stop_saved = 1;
         t->exec_tool = 0;
-        BitOff(pG->flags_170, 0x80000000);
-        if (menu[t->cursor].func == NULL && menu[t->cursor].rel == NULL) {
+        BitOff(pG->Stop_flg, 0x80000000);
+        if (menu[t->cursor].func == NULL && menu[t->cursor].rel_name == NULL) {
             exit(t);
         }
         DebugMenuSelected = menu[t->cursor].id;
-        if (menu[t->cursor].rel != NULL) {
+        if (menu[t->cursor].rel_name != NULL) {
             char buf[32] = "rel/";
             int req;
-            strcat(buf, menu[t->cursor].rel);
+            strcat(buf, menu[t->cursor].rel_name);
 #line 397 "D:/Bio4/Prog/db_menu.cpp"
             req = DvdReadN(buf, NULL, 0, 0, 0, 3, __FILE__, __LINE__);
             if (Dvd.ReadCheck(req, NULL, NULL, (void**) &pModule) >= 0) {
@@ -325,7 +325,7 @@ void move(struct test* t)
                 DLL_Link(pModule, pModule_bss);
                 TaskChain(pModule->prolog, 0);
             } else {
-                pLog->err(0, 0, "%s FILE NOT FOUND", menu[t->cursor].rel);
+                pLog->err(0, 0, "%s FILE NOT FOUND", menu[t->cursor].rel_name);
                 exit(t);
             }
         } else {

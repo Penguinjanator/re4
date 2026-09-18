@@ -100,10 +100,10 @@ void cEmControl::EndControl()
         em.setCharacter(0);
         p = em.getPtr();
         if (p != 0) {
-            p->xFC = 1;
-            p->xFD = 0;
-            p->xFE = 0;
-            p->xFF = 0;
+            p->r_no_0 = 1;
+            p->r_no_1 = 0;
+            p->r_no_2 = 0;
+            p->r_no_3 = 0;
         }
     }
 }
@@ -113,7 +113,7 @@ int cEmPatrol::SetPatrol(s16 no, Vec* tbl, int n, u8 prio, int errOn)
     if (SetControl(no, tbl, n, errOn) == 0) {
         return 0;
     }
-    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, SCE_PRIO_DEF_2, 0);
     return 1;
 }
 
@@ -214,7 +214,7 @@ int cEmGuard::SetGuard(s16 no, Vec* tbl, int n, int (*check)(cEmWrap*), f32 ang,
     if (SetControl(no, tbl, n, errOn) == 0) {
         return 0;
     }
-    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, 2, 0);
+    SceExec(0x12, (TaskFunc) TaskMove, (int) this, prio, SCE_PRIO_DEF_2, 0);
     this->ang = ang;
     guard_r = em.getGuard_r();
     this->check = check;
@@ -294,7 +294,7 @@ void cEmWrap::initWork()
 
 void cEmWrap::err(const char* msg, int no)
 {
-    if (errOn == 1 && !(pG->flags_64 & 0x20000)) {
+    if (errOn == 1 && !(pG->Debug_flg[1] & 0x20000)) {
         pLog->err(0, 0, msg, no);
     }
 }
@@ -304,12 +304,12 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
     this->errOn = errOn;
     this->no = no;
     this->list = list;
-    if (list >= 0 && pG->emlist_no != list) {
+    if (list >= 0 && pG->em_list_no != list) {
         pEm = 0;
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", this->no);
         return 0;
     }
-    if (((EmListView*) pG)->emlist[no].flags & 2) {
+    if (((EmListView*) pG)->emlist[no].be_flag & 2) {
         pEm = GetEmPtrFromList(no);
     } else {
         pEm = EmSetFromList2(no, chkDead == 1);
@@ -339,7 +339,7 @@ int cEmWrap::setPtr(s16 no, s8 list, int errOn)
 {
     cEm* p;
 
-    if (list >= 0 && pG->emlist_no != list) {
+    if (list >= 0 && pG->em_list_no != list) {
         pEm = 0;
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", no);
         return 0;
@@ -391,7 +391,7 @@ int cEmWrap::isAlive()
 
 int cEmWrap::isActive()
 {
-    if (isAlive() == 1 && pEm->checkStatus(5) == 1) {
+    if (isAlive() == 1 && pEm->checkStatus(EM_STATUS_ACTIVE) == 1) {
         return 1;
     }
     return 0;
@@ -403,7 +403,7 @@ void cEmWrap::destroy()
         EmListData* d = GetListPtrFromEm(pEm);
 
         if (d != 0) {
-            d->flags &= ~1;
+            d->be_flag &= ~1;
         }
         EmMgr.destroy(pEm);
     } else {
@@ -485,7 +485,7 @@ int cEmWrap::isBeFlag(u32 bit)
 int cEmWrap::isDamage()
 {
     if (isAlive() == 1) {
-        return pEm->checkStatus(1);
+        return pEm->checkStatus(EM_STATUS_LOCKOFF);
     }
     err("EM_SET_NO(%d) cEmWrap::isDamage error", no);
     return 0;
@@ -512,8 +512,8 @@ int cEmWrap::isNoSuspend()
 void cEmWrap::setRno(u8 r0, u8 r1)
 {
     if (isAlive() == 1) {
-        pEm->xFC = r0;
-        pEm->xFD = r1;
+        pEm->r_no_0 = r0;
+        pEm->r_no_1 = r1;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setRno error", no);
     }
@@ -524,7 +524,7 @@ int cEmWrap::ckRno01(int r0, int r1)
     if (isAlive() == 1) {
         cEm* p = pEm;
 
-        if (p->xFC == r0 && p->xFD == r1) {
+        if (p->r_no_0 == r0 && p->r_no_1 == r1) {
             return 1;
         }
     } else {
@@ -554,7 +554,7 @@ s16 cEmWrap::getHp()
 s16 cEmWrap::getHpMax()
 {
     if (isAlive() == 1) {
-        return pEm->hpMax;
+        return pEm->hp_max;
     }
     err("EM_SET_NO(%d) cEmWrap::getHpMax error", no);
     return 0;
@@ -563,7 +563,7 @@ s16 cEmWrap::getHpMax()
 u8 cEmWrap::Character()
 {
     if (isAlive() == 1) {
-        return pEm->x3D0;
+        return pEm->Character;
     }
     err("EM_SET_NO(%d) cEmWrap::Character error", no);
     return 0;
@@ -572,7 +572,7 @@ u8 cEmWrap::Character()
 void cEmWrap::setCharacter(u8 c)
 {
     if (isAlive() == 1) {
-        pEm->x3D0 = c;
+        pEm->Character = c;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setCharacter error", no);
     }
@@ -581,7 +581,7 @@ void cEmWrap::setCharacter(u8 c)
 f32 cEmWrap::getGuard_r()
 {
     if (isAlive() == 1) {
-        return pEm->x3CC;
+        return pEm->Guard_r;
     }
     err("EM_SET_NO(%d) cEmWrap::Guard_r error", no);
     return 0.0f;
@@ -590,7 +590,7 @@ f32 cEmWrap::getGuard_r()
 void cEmWrap::setGuard_r(f32 r)
 {
     if (isAlive() == 1) {
-        pEm->x3CC = r;
+        pEm->Guard_r = r;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setGuard_r error", no);
     }
@@ -635,7 +635,7 @@ void cEmWrap::setSca(Vec* sca)
 void cEmWrap::setFlag(u32 bit)
 {
     if (isAlive() == 1) {
-        pEm->flags_3C8 |= bit;
+        pEm->flag |= bit;
     } else {
         err("EM_SET_NO(%d) cEmWrap::setFlag error", no);
     }
@@ -645,7 +645,7 @@ int cEmWrap::ckFlag(u32 bit)
 {
     if (isAlive() != 1) {
         err("EM_SET_NO(%d) cEmWrap::setFlag error", no);
-    } else if (pEm->flags_3C8 & bit) {
+    } else if (pEm->flag & bit) {
         return 1;
     }
     return 0;
@@ -693,7 +693,7 @@ f32 cEmWrap::getPosZ()
 void cEmWrap::getAng(Vec* ang)
 {
     if (isAlive() == 1) {
-        *ang = pEm->rot;
+        *ang = pEm->ang;
     } else {
         err("EM_SET_NO(%d) cEmWrap::getAng error", no);
         ang->x = 0.0f;
@@ -705,7 +705,7 @@ void cEmWrap::getAng(Vec* ang)
 f32 cEmWrap::getAngX()
 {
     if (isAlive() == 1) {
-        return pEm->rot.x;
+        return pEm->ang.x;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngX error", no);
     return 0.0f;
@@ -714,7 +714,7 @@ f32 cEmWrap::getAngX()
 f32 cEmWrap::getAngY()
 {
     if (isAlive() == 1) {
-        return pEm->rot.y;
+        return pEm->ang.y;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngY error", no);
     return 0.0f;
@@ -723,7 +723,7 @@ f32 cEmWrap::getAngY()
 f32 cEmWrap::getAngZ()
 {
     if (isAlive() == 1) {
-        return pEm->rot.z;
+        return pEm->ang.z;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngZ error", no);
     return 0.0f;
@@ -955,7 +955,7 @@ f32 cEmWrap::get_l_pl()
 {
     if (isAlive() == 1) {
         if (isNormalGanade() == 1) {
-            return pEm->x3CC;   // dead in every module: the field is a guess (only the strings and the -1.0 pool survive)
+            return pEm->Guard_r;   // dead in every module: the field is a guess (only the strings and the -1.0 pool survive)
         }
         err("EM_SET_NO(%d) id[%2x] invalid.[get_l_pl]", pEm->id);
     } else {

@@ -125,20 +125,20 @@ void R205Init()
     R205Work** wp;
     u32 i;
 
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     wp = &r205_work.p;
 #line 103 "D:/Bio4/Prog/r205.cpp"
     *wp = (R205Work*) MEM_CALLOC(sizeof(R205Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 12) == 0) {
-        SceAtDataSet_exec(0x1C, 0x12, 0, (TaskFunc) r205_ContinuePointSet, 0, 1);
+        SceAtDataSet_exec(0x1C, SCE_LEVEL10, 0, (TaskFunc) r205_ContinuePointSet, 0, 1);
     }
     setTexRender();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r205_DrainEvent, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r205_DrainEvent, 0, 1);
         SetSstDispFlag(0xC, 1);
         SetSstDispFlag(0xD, 0);
         SceAtSetEnable(0x11, 0);
-        EatMgr.registEffInfo(2, (AtEffInfo*) &r205_effInfo);
+        EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r205_effInfo);
     } else {
         SceAtSetEnable(8, 0);
         SceAtSetEnable(7, 0);
@@ -147,7 +147,7 @@ void R205Init()
         SceAtSetEnable(0x15, 0);
     }
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r205_EnemyAppear, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r205_EnemyAppear, 0, 1);
     }
     r205_work.p->pend[0].obj = SmdGetObjPtr(5);
     r205_work.p->pend[1].obj = SmdGetObjPtr(6);
@@ -157,11 +157,11 @@ void R205Init()
     r205_work.p->pole[1] = NULL;
     r205_work.p->pole[2] = SmdGetObjPtr(0x6C);
     r205_work.p->pole[3] = SmdGetObjPtr(0x6D);
-    SceExec(0x12, (TaskFunc) r205_PendulumMove, 0, 0, 2, 0);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[0], 1);
-    SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[1], 1);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[2], 1);
-    SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[3], 1);
+    SceExec(0x12, (TaskFunc) r205_PendulumMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[0], 1);
+    SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[1], 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[2], 1);
+    SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r205_ExecDieDemo, &r205_work.p->pend[3], 1);
     if (r205_work.p->ems[6].em.setEm(0x6C, -1, 0, 1, 1) == 0) {
         r205_work.p->ems[6].dead = 1;
     }
@@ -187,7 +187,7 @@ void R205Init()
             cEmDoorSetCloseLock(r205_work.p->door1);
         }
     }
-    SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r205_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     {
         Vec pos = {0.0f, -425.0f, 0.0f};
 
@@ -206,7 +206,7 @@ void R205Main()
 {
     u32 i;
 
-    pPL->x12F = 5;
+    pPL->ot_type = 5;
     for (i = 0; i < 8; i++) {
         R205Em* e = &r205_work.p->ems[i];
 
@@ -217,13 +217,13 @@ void R205Main()
         }
     }
     if (SceAtHitCheck(0xC) == 1) {
-        pG->sceat_x17C |= 0x20000000;
+        pG->Room_flg[2] |= 0x20000000;
     } else if (SceAtHitCheck(0xD) == 1) {
-        pG->sceat_x17C |= 0x40000000;
+        pG->Room_flg[2] |= 0x40000000;
     } else if (SceAtHitCheck(0xE) == 1) {
-        pG->sceat_x17C |= 0x40000000;
+        pG->Room_flg[2] |= 0x40000000;
     } else if (SceAtHitCheck(0xF) == 1 || SceAtHitCheck(0x10) == 1) {
-        pG->sceat_x17C |= 0x80000000;
+        pG->Room_flg[2] |= 0x80000000;
     }
     r205_Em105AppearCheck();
     r205_Em106AppearCheck();
@@ -263,7 +263,7 @@ void r205_Em105AppearCheck()
 void r205_Em106AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             if (r205_work.p->ems[0].dead == 1 && r205_work.p->ems[7].dead == 1) {
                 RsfSet(G_ROOM_ID, 3);
                 r205_work.p->ems[2].em.setEm(0x6A, -1, 1, 1, 1);
@@ -275,7 +275,7 @@ void r205_Em106AppearCheck()
 void r205_Em107AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if (pG->sceat_x17C & 0x40000000) {
+        if (pG->Room_flg[2] & 0x40000000) {
             if (RsfCheck(G_ROOM_ID, 2) && RsfCheck(G_ROOM_ID, 7)) {
                 if ((u32) r205_AtHitCheckEmNum(0xD, 0xE) <= 1) {
                     RsfSet(G_ROOM_ID, 4);
@@ -289,7 +289,7 @@ void r205_Em107AppearCheck()
 void r205_Em110AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        if (pG->sceat_x17C & 0x20000000) {
+        if (pG->Room_flg[2] & 0x20000000) {
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if ((u32) r205_AtHitCheckEmNum(0xC, -1) <= 1) {
                     RsfSet(G_ROOM_ID, 6);
@@ -304,7 +304,7 @@ void r205_Em111AppearCheck()
 {
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         SceAtSetEnable(0x21, 1);
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             if (RsfCheck(G_ROOM_ID, 0)) {
                 if (r205_work.p->ems[6].dead == 1) {
                     Vec pos;
@@ -387,12 +387,12 @@ static void r205_PendulumMove()
             }
             pd = &r205_work.p->pend[i];
             pd->rotPrev = pd->rot;
-            rot = pd->obj->rot.z;
+            rot = pd->obj->ang.z;
             pd->rot = rot;
             if (fabsf(rot) <= 0.8f) {
                 if (se[i] == 0) {
                     se[i] = 1;
-                    RoomSeCall((u16) (12 + i), &r205_work.p->hit[i]->pParts->worldPos, 0, 0, 0);
+                    RoomSeCall((u16) (12 + i), &r205_work.p->hit[i]->pParts->world, 0, 0, 0);
                 }
             } else {
                 se[i] = 0;
@@ -425,58 +425,58 @@ static void r205_ExecDieDemo(R205Pend* p)
     int mot = 1;
     int i;
 
-    if (pG->flags_68 & 0x00800000) {
+    if (pG->Debug_flg[2] & 0x00800000) {
         SceExit();
     }
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         SceExit();
     }
-    BitOn(pG->flags_174, 0x40000000);
-    BitOn(pG->flags_54, 0x40);
+    BitOn(pG->Room_flg[0], 0x40000000);
+    BitOn(pG->System_flg, 0x40);
     BEGIN_EVENT(pPL, 0);
     d = p->rot - p->rotPrev;
-    if (pPL->rot.y >= -1.5707964f && pPL->rot.y <= 1.5707964f) {
-        pPL->rot.y = 0.0f;
+    if (pPL->ang.y >= -1.5707964f && pPL->ang.y <= 1.5707964f) {
+        pPL->ang.y = 0.0f;
         if (d > 0.0f) {
             mot = 0x41;
         }
     } else {
-        pPL->rot.y = 3.1415927f;
+        pPL->ang.y = 3.1415927f;
         if (d < 0.0f) {
             mot |= 0x40;
         }
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 3, 0, (u16) mot, 0);
-    wp = &pPL->getPartsPtr(2)->worldPos;
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 3, 0, (u16) mot, 0);
+    wp = &pPL->getPartsPtr(2)->world;
     RoomSeCall(0, wp, 0, 0, 0);
     PlSeCall(9, wp, 0, 0, 0);
     cam = pG->Cam;
     i = 0;
     parts = pPL->getPartsPtr(r205_camParts);
     while (!(MotionGetState(pPL) & 4)) {
-        if (!(pG->flags_174 & 0x20000000)) {
+        if (!(pG->Room_flg[0] & 0x20000000)) {
             if (i == 2) {
-                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->worldPos, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
+                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
             }
-            cam.param.at = parts->worldPos;
+            cam.param.at = parts->world;
             i++;
             CameraSetOrientationUp(&cam);
-            CamCtrl.x250 = (s32) &cam;
+            CamCtrl.m_pExtraCamera = (s32) &cam;
             SceSleep(1);
         } else {
             break;
         }
     }
-    RoomSeCall(1, &pPL->getPartsPtr(2)->worldPos, 0, 0, 0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, (u16) mot, 0);
+    RoomSeCall(1, &pPL->getPartsPtr(2)->world, 0, 0, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, (u16) mot, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 0x11, 0, 0, (u32) pPL, 0);
     DiedemoExec(0x19, 0);
     CamCtrl.Disable();
     CamCtrl.camera = cam;
     CamCtrl.cur = cam.param;
-    CamSmth.ratio = 0.0f;
+    CamSmth.m_ratio = 0.0f;
     CamCtrl.interp.frame = 0;
-    CamCtrl.flags_28 |= 4;
+    CamCtrl.be_flag |= 4;
 }
 
 static void r205_DrainEvent()
@@ -484,7 +484,7 @@ static void r205_DrainEvent()
     SceEventStart(0);
     CamCtrl.CutCall(2);
     SceSleep(1);
-    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 1) {
         void* zero;
 
@@ -525,7 +525,7 @@ static void r205_DrainEventEnd()
     SceAtSetEnable(0x11, 1);
     SndRoomStrVolReset(0x15E);
     SceAtSetEnable(0x15, 0);
-    SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r205_Em88Appear, 0, 1);
+    SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r205_Em88Appear, 0, 1);
 }
 
 // Room stream: on while the player is found by an enemy.
@@ -537,7 +537,7 @@ static void r205_StrCheck()
     for (;;) {
         int find = SceCkFindPL(NULL);
 
-        if (pG->sceat_x17C & 0x02000000) {
+        if (pG->Room_flg[2] & 0x02000000) {
             find = 0;
         }
         if (find == 1) {
@@ -563,18 +563,18 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r205_work.p->tex->texId;
-        r205_work.p->tex->repType = 1;
+        r205_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 1, r205_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R205Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->x136 = 2;
-    obj->x137 = 5;
-    obj->x138 = 0x40;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->Shader_type = 2;
+    obj->Refract_pow = 5;
+    obj->Refract_ratio = 0x40;
 }
 
 static void r205_EnemyAppear()
@@ -587,8 +587,8 @@ static void r205_EnemyAppear()
     zero = NULL;
     RsfSet(G_ROOM_ID, 9);
     SceEventStart(0);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
     EstSet(0, -1, 0, 0, 1, 6, 1, 3, (u32) zero, zero);
     CamCtrl.CutCall(9);
@@ -618,12 +618,12 @@ static void r205_RoomExitFunc()
 
 static void r205_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(4, 0, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpXM, 0, 0x5B, id, -1, -1);
 }
 
 static void r205_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(4, 1, 0x5B, id, -1, -1);
+    OpenBoxMain(OpenBoxUpXM, 1, 0x5B, id, -1, -1);
 }
 
 static void r205_ContinuePointSet()

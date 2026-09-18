@@ -115,7 +115,7 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
@@ -125,27 +125,27 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     for (i = 0; i < 5; i++) {
-        w->sat[i] = 0;
-        w->sat2[i] = 0;
+        w->pSat[i] = 0;
+        w->pEat[i] = 0;
     }
-    w->ride = 0;
+    w->Ride_pl = 0;
     p = w->mot;
     for (i = 0; i < 9; i++) {
         *p++ = 0;
     }
-    obj->xFC = 0;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     objTrolleySatSet((cObjTrolley*) obj);
     return obj;
 }
@@ -153,7 +153,7 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
 void cObjTrolley::move()
 {
     objTrolleySatClear(this);
-    ObjTrolley_R0_move_tbl[xFC](this);
+    ObjTrolley_R0_move_tbl[r_no_0](this);
 }
 
 void objTrolley_R0_Set(cObjTrolley* obj)
@@ -169,13 +169,13 @@ void objTrolley_R0_Set(cObjTrolley* obj)
     obj->partsWorldCalc();
     objTrolleyPushMtx(obj);
     objTrolleySatSet(obj);
-    if (w->flags & 1) {
-        pG->flags_500C |= 0x20;
-        w->ride = 1;
-        obj->xFC = 1;
-        obj->xFD = 0;
-        obj->xFE = 0;
-        obj->xFF = 0;
+    if (w->Be_flg & 1) {
+        pG->Status_flg[0] |= 0x20;
+        w->Ride_pl = 1;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 0;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
 }
 
@@ -184,52 +184,52 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     TrolleyWork* w = &obj->trolley;
 
     objTrolleyPushMtx(obj);
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             SndCall(6, 2, 0, 0, 0, 0);
             SndCall(6, 3, 0, 0, 0, 0);
-            w->flags |= 4;
-            obj->xFE++;
+            w->Be_flg |= 4;
+            obj->r_no_2++;
         }
         break;
     case 2:
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         MotionMove(obj, 0);
-        if (w->flags & 2) {
-            obj->xFE++;
+        if (w->Be_flg & 2) {
+            obj->r_no_2++;
         }
         break;
     case 4:
         MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 0, 0x8001, 0);
         SndCall(6, 0, 0, 0, 0, 0);
         SndCall(6, 1, 0, 0, 0, 0);
-        w->timer = 20;
-        obj->xFF = Rnd() & 1;
-        obj->xFE++;
+        w->Timer = 20;
+        obj->r_no_3 = Rnd() & 1;
+        obj->r_no_2++;
     case 5:
-        if (MotionMove(obj, 0) && w->ride) {
-            w->ride = 0;
+        if (MotionMove(obj, 0) && w->Ride_pl) {
+            w->Ride_pl = 0;
             SetPlDamage((int) obj, plobjTrolleyDie);
-            obj->xFC = 2;
-            obj->xFD = 0;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 2;
+            obj->r_no_1 = 0;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         } else {
             if (obj->motFrame > 2250.0f) {
-                pG->flags_5014 |= 0x08000000;
+                pG->Status_flg[2] |= 0x08000000;
             }
             if (obj->motFrame > 2300.0f) {
                 EstSet((int) obj, -1, 0, 0, 1, 0x13, 0, 0, (u32) obj, 0);
             }
             if (obj->motFrame > 2865.0f) {
-                if (obj->xFF) {
+                if (obj->r_no_3) {
                     ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 3, 0, 0);
                 } else {
                     ActBtn.set(4, 0xB, (int) objTrolleyEscapeAction, (int) obj, 1, 4, 0, 0);
@@ -240,7 +240,7 @@ void objTrolley_R0_Move(cObjTrolley* obj)
     }
     obj->partsWorldCalc();
     objTrolleyGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objTrolleyMoveAdjustPL(obj);
     }
     objTrolleyMoveAdjustEM(obj);
@@ -253,13 +253,13 @@ void objTrolley_R0_Break(cObjTrolley* obj)
     TrolleyWork* w = &obj->trolley;
 
     objTrolleyPushMtx(obj);
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         obj->pos.x = -201000.0f;
         obj->pos.y = -52400.0f;
         obj->pos.z = 78000.0f;
-        obj->rot.y = 0.0f;
-        if (obj->xFF) {
+        obj->ang.y = 0.0f;
+        if (obj->r_no_3) {
             MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
         } else {
             MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, 0);
@@ -267,7 +267,7 @@ void objTrolley_R0_Break(cObjTrolley* obj)
         SndCall(6, 2, 0, 0, 0, 0);
         SndCall(6, 3, 0, 0, 0, 0);
         objTrolleyFallEM(obj);
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             objTrolleyLostEM(obj);
@@ -284,11 +284,11 @@ static void objTrolleySatClear(cObjTrolley* obj)
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (w->sat[i]) {
-            w->sat[i]->flags &= ~4;
+        if (w->pSat[i]) {
+            w->pSat[i]->m_Flag &= ~4;
         }
-        if (w->sat2[i]) {
-            w->sat2[i]->flags &= ~4;
+        if (w->pEat[i]) {
+            w->pEat[i]->m_Flag &= ~4;
         }
     }
 }
@@ -300,7 +300,7 @@ void objTrolleySatSet(cObjTrolley* obj)
     Vec rot;
     Vec v;
     cModel* parts;
-    cSat** sat = w->sat;
+    cSat** sat = w->pSat;
     u32 i;
 
     for (i = 0; i < 3; i++) {
@@ -312,40 +312,40 @@ void objTrolleySatSet(cObjTrolley* obj)
         rot.x = 0.0f;
         rot.y = atan2f(v.x, v.z);
         rot.z = 0.0f;
-        pos = parts->worldPos;
+        pos = parts->world;
         pos.y += 500.0f;
-        if (w->sat[i]) {
-            w->sat[i]->flags |= 4;
-            w->sat[i]->setCoord(&pos, &rot);
+        if (w->pSat[i]) {
+            w->pSat[i]->m_Flag |= 4;
+            w->pSat[i]->setCoord(&pos, &rot);
         } else {
             switch (i) {
             case 0:
             default:
-                w->sat[i] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3);
+                w->pSat[i] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
                 break;
             case 1:
-                sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2);
+                sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
                 break;
             case 2:
-                sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
+                sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
                 break;
             }
         }
-        cSat** sat2 = w->sat2;
-        if (w->sat2[i]) {
-            w->sat2[i]->flags |= 4;
-            w->sat2[i]->setCoord(&pos, &rot);
+        cSat** sat2 = w->pEat;
+        if (w->pEat[i]) {
+            w->pEat[i]->m_Flag |= 4;
+            w->pEat[i]->setCoord(&pos, &rot);
         } else {
             switch (i) {
             case 0:
             default:
-                w->sat2[i] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 6);
+                w->pEat[i] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 6);
                 break;
             case 1:
-                sat2[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 5);
+                sat2[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 5);
                 break;
             case 2:
-                sat2[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4);
+                sat2[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
                 break;
             }
         }
@@ -354,12 +354,12 @@ void objTrolleySatSet(cObjTrolley* obj)
 
 void objTrolleyEscapeAction(cObjTrolley* obj)
 {
-    obj->trolley.ride = 0;
+    obj->trolley.Ride_pl = 0;
     SetPlDamage((int) obj, plobjTrolleyEscape);
-    obj->xFC = 2;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 1;
+    obj->r_no_0 = 2;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 1;
 }
 
 void plobjTrolleyEscape(cPlayer* pl)
@@ -371,28 +371,28 @@ void plobjTrolleyEscape(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->pos.x = -201027.56f;
         em->pos.y = -51832.78f;
         em->pos.z = 73991.43f;
-        em->rot.y = 0.0f;
+        em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[4], 0, 0, 0x201, 0);
         em->atari.throughOn();
         em->be_flag &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         } else {
             if (em->frame > 15.7f && em->frame < 16.3f) {
-                SndCall(1, 0x10, &parts->worldPos, 0, 0, em);
+                SndCall(1, 0x10, &parts->world, 0, 0, em);
             }
             if (em->frame > 23.7f && em->frame < 24.3f) {
-                SndCall(1, 0x34, &parts->worldPos, 0, 0, em);
+                SndCall(1, 0x34, &parts->world, 0, 0, em);
             }
             if (em->frame > 29.7f && em->frame < 30.3f) {
-                SndCall(1, 0x4F, &parts->worldPos, 0, 0, em);
+                SndCall(1, 0x4F, &parts->world, 0, 0, em);
             }
         }
         break;
@@ -400,41 +400,41 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.x = -201073.98f;
         em->pos.y = -52360.74f;
         em->pos.z = 95802.8f;
-        em->rot.y = 0.0f;
+        em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[6], 0, 0, 0x201, 0);
         PlGachaInit();
-        em->x3E0 = 90;
-        em->x3E4 = 10;
-        if (pG->x4F88 <= 2) {
-            em->x3E4 = 5;
+        em->m_Work0 = 90;
+        em->m_Work1 = 10;
+        if (pG->Game_level <= 2) {
+            em->m_Work1 = 5;
         }
-        if (pG->x4F88 > 7) {
-            em->x3E4 = 15;
+        if (pG->Game_level > 7) {
+            em->m_Work1 = 15;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         ActBtn.set(0x19, 5, 0, 0, 2, 2, 0, 0);
         if (Key.trg & 0x80000000) {
-            if (em->x3E4) {
-                em->x3E4--;
+            if (em->m_Work1) {
+                em->m_Work1--;
             }
         }
         MotionMove(em, 0);
-        if (em->x3E0) {
-            em->x3E0--;
-        } else if (em->x3E4) {
-            em->xFE = 6;
+        if (em->m_Work0) {
+            em->m_Work0--;
+        } else if (em->m_Work1) {
+            em->r_no_2 = 6;
         } else {
-            em->xFE = 4;
+            em->r_no_2 = 4;
         }
         break;
     case 4:
         em->pos.x = -201078.39f;
         em->pos.y = -52361.7f;
         em->pos.z = 95773.43f;
-        em->rot.y = 0.0f;
+        em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[7], 0, 0, 0x201, 0);
-        em->xFE++;
+        em->r_no_2++;
         SndRoomStrStop(2);
         SndStrReq(1, 0x2F, 0x80000003, 0, 0, 0.0f);
     case 5:
@@ -455,11 +455,11 @@ void plobjTrolleyEscape(cPlayer* pl)
         em->pos.x = -201078.39f;
         em->pos.y = -52361.7f;
         em->pos.z = 95773.43f;
-        em->rot.y = 0.0f;
+        em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[8], 0, 0, 0x201, 0);
-        SndCall(1, 0x4A, &pPL->getPartsPtr(4)->worldPos, 0, 0, em);
+        SndCall(1, 0x4A, &pPL->getPartsPtr(4)->world, 0, 0, em);
         pG->pl_life = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         MotionMove(em, 0);
         break;
@@ -476,18 +476,18 @@ void plobjTrolleyDie(cPlayer* pl)
 
     em->x378 = ((cEm*) pPL->dmgType)->x378;
     em->dmg.set(0, 0xF);
-    step = em->xFE;
+    step = em->r_no_2;
     switch (step) {
     case 0:
         em->pos.x = -201000.0f;
         em->pos.y = -52400.0f;
         em->pos.z = 87300.0f;
-        em->rot.y = 0.0f;
+        em->ang.y = 0.0f;
         MotionSetCore(em, &em->pMotion, w->mot[5], 0, 0, 1, 0);
         em->atari.throughOn();
         pGS->pl_life = step;
         em->be_flag &= ~0x10;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMove(em, 0);
         break;
@@ -603,13 +603,13 @@ void objTrolleySetAdjust(cObjTrolley* obj, cEm* em)
     PSMTXMultVec(parts->mat, &v, &v);
     PSVECSubtract(&v, &em->pos, &d);
     PSVECAdd(&em->x3A8, &d, &em->x3A8);
-    em->rot.y += Trolley_dir[no];
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    em->ang.y += Trolley_dir[no];
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
     em->setPos(&v);
     if (em->id == 0) {
-        if (CamCtrl.x250) {
-            PSVECAdd(&((Camera*) CamCtrl.x250)->param.at, &d, &((Camera*) CamCtrl.x250)->param.at);
-            PSVECAdd(&((Camera*) CamCtrl.x250)->param.pos, &d, &((Camera*) CamCtrl.x250)->param.pos);
+        if (CamCtrl.m_pExtraCamera) {
+            PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.at, &d, &((Camera*) CamCtrl.m_pExtraCamera)->param.at);
+            PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.pos, &d, &((Camera*) CamCtrl.m_pExtraCamera)->param.pos);
         }
         pG->quake_ofs = d;
     }
@@ -677,18 +677,18 @@ int cObjTrolley::ckTrolleyRideAdjust(Vec* pos, Vec* out)
 
 void cObjTrolley::setStart()
 {
-    trolley.flags |= 1;
+    trolley.Be_flg |= 1;
 }
 
 void cObjTrolley::set2ndStart()
 {
-    trolley.flags |= 2;
-    trolley.flags &= ~4;
+    trolley.Be_flg |= 2;
+    trolley.Be_flg &= ~4;
 }
 
 int cObjTrolley::ckStop()
 {
-    if (trolley.flags & 4) {
+    if (trolley.Be_flg & 4) {
         return 1;
     }
     return 0;
@@ -700,9 +700,9 @@ void objTrolleyHitCk(cObjTrolley* obj)
     cModel* parts;
 
     parts = obj->getPartsPtr(0);
-    if ((parts->worldPos.x - parts->x88.x) * (parts->worldPos.x - parts->x88.x) +
-        (parts->worldPos.y - parts->x88.y) * (parts->worldPos.y - parts->x88.y) +
-        (parts->worldPos.z - parts->x88.z) * (parts->worldPos.z - parts->x88.z) < 2500.0f) {
+    if ((parts->world.x - parts->world_old2.x) * (parts->world.x - parts->world_old2.x) +
+        (parts->world.y - parts->world_old2.y) * (parts->world.y - parts->world_old2.y) +
+        (parts->world.z - parts->world_old2.z) * (parts->world.z - parts->world_old2.z) < 2500.0f) {
         return;
     }
     v.x = 0.0f;
@@ -731,12 +731,12 @@ void objTrolleyFallEM(cObjTrolley* obj)
 
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20 && em->hp > 0) {
             em->hp = 0;
-            em->x9BC = em->rot.y;
+            em->x9BC = em->ang.y;
             em->be_flag |= 0x10000;
-            em->xFC = 2;
-            em->xFD = 7;
-            em->xFE = 0;
-            em->xFF = 1;
+            em->r_no_0 = 2;
+            em->r_no_1 = 7;
+            em->r_no_2 = 0;
+            em->r_no_3 = 1;
         }
     }
 }

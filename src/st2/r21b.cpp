@@ -79,19 +79,19 @@ void R21bInit()
 
 #line 46 "D:/Bio4/Prog/r21b.cpp"
     wp = (R21bWork*) MEM_CALLOC(sizeof(R21bWork), 1, 0xd);
-    wp->trolley = (cObjTrolley*) SetTrolley(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+    wp->trolley = (cObjTrolley*) SetTrolley(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
     if (wp->trolley) {
         void* mot[9];
 
-        mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-        mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-        mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-        mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-        mot[6] = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-        mot[7] = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-        mot[8] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
+        mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x21);
+        mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x23);
+        mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x25);
+        mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x26);
+        mot[6] = ROOM_ARC_PTR(pG->pRoom, 0x27);
+        mot[7] = ROOM_ARC_PTR(pG->pRoom, 0x28);
+        mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x29);
         wp->trolley->setMotion(mot);
     }
     r21b_work.p->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, 0, 1);
@@ -103,16 +103,16 @@ void R21bInit()
         SmdGetObjPtr(0xAF)->be_flag &= ~2;
         SceAtSetEnable(3, 0);
     } else {
-        SceAtDataSet_exec(0x80, 0x12, 0, (TaskFunc) r21b_GetDragonBall, 0, 1);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r21b_DoorOpen, 0, 1);
-        SceExec(0x12, (TaskFunc) r21b_StrPlay, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r21b_HalfWaySwitchMove, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 1, 0, 2, 0);
+        SceAtDataSet_exec(0x80, SCE_LEVEL10, 0, (TaskFunc) r21b_GetDragonBall, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r21b_DoorOpen, 0, 1);
+        SceExec(0x12, (TaskFunc) r21b_StrPlay, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r21b_HalfWaySwitchMove, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 1, 0, SCE_PRIO_DEF_2, 0);
     }
-    PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B),
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x2C), ROOM_ARC_PTR(pG->pRoomArc, 0x2D));
-    r21b_work.p->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &pos, 7);
+    PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B),
+                   ROOM_ARC_PTR(pG->pRoom, 0x2C), ROOM_ARC_PTR(pG->pRoom, 0x2D));
+    r21b_work.p->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &pos, 7);
 }
 
 void R21bMain()
@@ -125,7 +125,7 @@ void R21bMain()
         case 0x13:
             break;
         default:
-            SceExec(0x12, (TaskFunc) r21b_SwitchMove, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r21b_SwitchMove, 0, 0, SCE_PRIO_DEF_2, 0);
             break;
         }
     }
@@ -138,7 +138,7 @@ void R21bMain()
             case 0x13:
                 break;
             default:
-                SceExec(0x12, (TaskFunc) r21b_SwitchMove, 1, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r21b_SwitchMove, 1, 0, SCE_PRIO_DEF_2, 0);
                 break;
             }
         }
@@ -172,9 +172,9 @@ static void r21b_GanadoJumpDownCheck(int no)
     } while (wait);
     if (no >= 1 && no <= 5) {
         if (no == 3) {
-            SceExec(0x12, (TaskFunc) r21b_HalfWayGanadoSet, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r21b_HalfWayGanadoSet, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
-            SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, no + 1, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, no + 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
 }
@@ -214,7 +214,7 @@ static void r21b_HalfWayGanadoSet()
         }
         SceSleep(1);
     }
-    SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 4, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r21b_GanadoJumpDownCheck, 4, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // The switch lever (no 0: the first stop, 1: the half-way stop) starts the cart.
@@ -224,30 +224,30 @@ static void r21b_SwitchMove(int no)
     cObj* obj;
 
     if (no == 0) {
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             SceExit();
         }
-        pG->flags_174 |= 0x40000000;
+        pG->Room_flg[0] |= 0x40000000;
         obj = SmdGetObjPtr(0xC8);
         if (r21b_work.p->sat) {
-            r21b_work.p->sat->flags &= ~4;
+            r21b_work.p->sat->m_Flag &= ~4;
         }
     } else {
-        if (pG->flags_174 & 0x20000000) {
+        if (pG->Room_flg[0] & 0x20000000) {
             SceExit();
         }
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         obj = SmdGetObjPtr(0xC9);
     }
     EstSet(0, -1, &obj->pos, 0, 1, 0x12, 0, 0, 0, 0);
     if (obj) {
         obj->be_flag |= 0x20;
         RoomSeCall(4, &obj->pos, 0, 0, 0);
-        while (obj->rot.x <= 1.5707964f) {
-            obj->rot.x += step;
+        while (obj->ang.x <= 1.5707964f) {
+            obj->ang.x += step;
             SceSleep(1);
         }
-        obj->rot.x = 1.5707964f;
+        obj->ang.x = 1.5707964f;
         SceSleep(2);
         obj->be_flag &= ~0x20;
     }
@@ -333,7 +333,7 @@ static void r21b_HalfWaySwitchMove()
     cObj* obj = SmdGetObjPtr(0xC9);
     cEmWrap em;
 
-    obj->rot.x = 1.5707964f;
+    obj->ang.x = 1.5707964f;
     obj->be_flag |= 0x20;
     while (r21b_work.p->trolley->motFrame != 1878.0f) {
         SceSleep(1);
@@ -344,15 +344,15 @@ static void r21b_HalfWaySwitchMove()
         em.setNoSuspend(1);
     }
     CamCtrl.CutCall(2);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r21b_HalfWaySwitchMoveEndProc, 0, 0, 1);
     SceSleep(5);
     r21b_work.p->se = RoomSeCall(4, &obj->pos, 0, 0, 0);
-    while (obj->rot.x > 0.0f) {
-        obj->rot.x -= step;
+    while (obj->ang.x > 0.0f) {
+        obj->ang.x -= step;
         SceSleep(1);
     }
-    obj->rot.x = 0.0f;
+    obj->ang.x = 0.0f;
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -364,12 +364,12 @@ static void r21b_HalfWaySwitchMoveEndProc()
 {
     cObj* obj = SmdGetObjPtr(0xC9);
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         if (r21b_work.p->se) {
             SndStop(r21b_work.p->se, 0);
         }
     }
-    obj->rot.x = 0.0f;
+    obj->ang.x = 0.0f;
     CamCtrl.Comeback(0);
     SndSePause(0, -1);
     SceEventEnd(0);

@@ -54,7 +54,7 @@ void debugInfoDisp(int slot, int type);
 void CRCInit();
 u32 CRCCalc(u8* data, u32 len);
 int CRCVerify(u8* data, u32 len, u32 saved);
-void setMsgBG(int a, int b);
+void setMsgBG(int a, int flag);
 }
 
 // cGameSave::save reads a mode in r5 (see emrock.cpp).
@@ -158,12 +158,12 @@ public:
     void* pLoadDat;  // 0x14  load frame
     void* pBg;       // 0x18  message background
     s32 action;      // 0x1C  1 up, 2 down, 4 decided, 8 moving
-    IDSystem idsys;  // 0x20
-    s32 type;        // 0x70
-    s8 state;        // 0x74
-    s8 step;         // 0x75
-    u8 x76;
-    u8 x77;
+    IDSystem m_IdSave;  // 0x20
+    s32 m_mode;        // 0x70
+    s8 rno0;        // 0x74
+    s8 rno1;         // 0x75
+    u8 rno2;
+    u8 rno3;
 
     void updateSaveInfo(cCard* c);
     void init(int type, CardArc* data);
@@ -300,40 +300,40 @@ void cCard::slotSelect()
 {
     int i;
 
-    flag = 0;
-    switch (step) {
+    m_Status = 0;
+    switch (m_Rno1) {
     case 0:
         if (unmount(0) == 1) {
             for (i = 0; i < 20; i++) {
                 slotw[0].fileFlag[i] = 0;
                 slotw[2].fileFlag[i] = 0;
             }
-            step++;
+            m_Rno1++;
         }
         break;
     case 1:
         if (pG->dev_mode == 1) {
             if (Key.trg & KEY_DOWN) {
-                slot = 2;
+                m_SlotNo = 2;
             } else if (Key.trg & KEY_UP) {
-                slot = 0;
+                m_SlotNo = 0;
             } else if (Key.trg & KEY_A) {
-                mode = 1;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 1;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
                 formatted = 0;
             } else if (Key.trg & KEY_B) {
-                mode = 4;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 4;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             }
         } else {
-            mode = 1;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 1;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         }
         break;
     }
@@ -347,117 +347,117 @@ void cCard::inSlotCheck()
     int ret;
     CardSlot* s;
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         setMsgWindow(1, 1);
-        if (pG->x8 & 0x80) {
+        if (pG->CardStatus & 0x80) {
             cardMesSet(0x2D, 0, 0);
         } else {
             cardMesSet(0x26, 0, 0);
         }
         if (unmount(0) == 1) {
-            step++;
+            m_Rno1++;
         }
         break;
     case 1:
-        ret = existCheck(slot, &slotw[slot]);
+        ret = existCheck(m_SlotNo, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            errorSet(result);
+            errorSet(m_ResultCode);
         }
         break;
     case 2:
-        ret = mount(&sub, &slotw[slot]);
+        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            errorSet(result);
+            errorSet(m_ResultCode);
         }
         break;
     case 3:
-        ret = verifyCheck(&sub, &slotw[slot]);
+        ret = verifyCheck(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
-            if (pG->x8 & 0x80) {
-                step++;
+            m_Rno1++;
+            if (pG->CardStatus & 0x80) {
+                m_Rno1++;
             }
         } else if (ret < 0) {
-            errorSet(result);
+            errorSet(m_ResultCode);
         }
         break;
     case 4:
-        if (saveFileCheck(&sub, &slotw[slot]) == 1) {
-            step++;
+        if (saveFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+            m_Rno1++;
         }
         break;
     case 5:
-        if (systemFileCheck(&sub, &slotw[slot]) == 1) {
-            step++;
+        if (systemFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+            m_Rno1++;
         }
         break;
     case 6:
-        ret = freeCheck(&sub, &slotw[slot]);
+        ret = freeCheck(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
             if (type == 2) {
-                errorSet(result);
+                errorSet(m_ResultCode);
             } else {
-                step++;
+                m_Rno1++;
             }
         }
         break;
     case 7:
-        if (slot != 2) {
-            ret = CARDGetSerialNo(slot, &slotw[slot].serial);
+        if (m_SlotNo != 2) {
+            ret = CARDGetSerialNo(m_SlotNo, &slotw[m_SlotNo].serial);
             if (ret == -1) {
                 break;
             }
             if (ret == 0) {
-                if (pG->x8 & 0x80) {
-                    step++;
+                if (pG->CardStatus & 0x80) {
+                    m_Rno1++;
                 } else {
-                                        mode = 2;
-                    step = 0;
-                    sub = 0;
-                    sub2 = 0;
+                                        m_Rno0 = 2;
+                    m_Rno1 = 0;
+                    m_Rno2 = 0;
+                    m_Rno3 = 0;
                 }
             } else {
                 errorSet(ret);
             }
         } else {
-            if (pG->x8 & 0x80) {
-                mode = 8;
+            if (pG->CardStatus & 0x80) {
+                m_Rno0 = 8;
             } else {
-                mode = 2;
+                m_Rno0 = 2;
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         }
         break;
     case 8:
-        s = &slotw[slot];
+        s = &slotw[m_SlotNo];
         if (s->flags & 0x200) {
-                        mode = 8;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+                        m_Rno0 = 8;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
 /*/BF*/
         } else {
             int blocks = FREE_BLOCKS(*s);
             if (blocks == 0 || s->freeFiles == 0) {
                 errorSet(-0x20A);
             } else {
-                                mode = 8;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                                m_Rno0 = 8;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             }
         }
         break;
@@ -471,22 +471,22 @@ void cCard::dataSelect()
     int sel;
     SaveInfo* info;
 
-    if (slot != 2) {
-        if (CARDProbeEx(slot, 0, 0) == -3) {
+    if (m_SlotNo != 2) {
+        if (CARDProbeEx(m_SlotNo, 0, 0) == -3) {
             errorSet(-3);
             return;
         }
-        eprintf(32, 300, 0, 0, "Card    : %2dMbit", slotw[slot].memSize);
-        eprintf(32, 320, 0, 0, "Sector  : 0x%x", slotw[slot].sectorSize);
-        eprintf(32, 340, 0, 0, "F size  : %d", slotw[slot].freeBytes);
-        eprintf(32, 360, 0, 0, "F entry : %d", slotw[slot].freeFiles);
-        eprintf(32, 380, 0, 0, "F block : %d", FREE_BLOCKS(slotw[slot]));
+        eprintf(32, 300, 0, 0, "Card    : %2dMbit", slotw[m_SlotNo].memSize);
+        eprintf(32, 320, 0, 0, "Sector  : 0x%x", slotw[m_SlotNo].sectorSize);
+        eprintf(32, 340, 0, 0, "F size  : %d", slotw[m_SlotNo].freeBytes);
+        eprintf(32, 360, 0, 0, "F entry : %d", slotw[m_SlotNo].freeFiles);
+        eprintf(32, 380, 0, 0, "F block : %d", FREE_BLOCKS(slotw[m_SlotNo]));
     }
-    if (slotw[slot].fileFlag[fileNo] & 1) {
-        info = (SaveInfo*) pInfo[fileNo];
+    if (slotw[m_SlotNo].fileFlag[m_SaveNo] & 1) {
+        info = (SaveInfo*) pInfo[m_SaveNo];
         if (info->magic != 0x116) {
             eprintf2(12, 16, 220, 380, 0, 0, "DATA IS CORRUPTED");
-            slotw[slot].fileFlag[fileNo] |= 2;
+            slotw[m_SlotNo].fileFlag[m_SaveNo] |= 2;
         } else {
             eprintf2(12, 16, 220, 380, 0, 0, "R%03X", info->room);
             eprintf2(12, 16, 220, 400, 0, 0, "%02d/%02d/%02d %02d:%02d:%02d", info->time.year % 100, info->time.mon + 1,
@@ -496,30 +496,30 @@ void cCard::dataSelect()
         eprintf2(12, 16, 220, 380, 0, 0, "NO DATA");
     }
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0: {
-        if (pG->card_serial == slotw[slot].serial) {
-            fileNo = pG->save_no;
+        if (pG->card_serial == slotw[m_SlotNo].serial) {
+            m_SaveNo = pG->save_no;
         } else {
             int found = 0;
             u32 n;
             for (n = 0; n < 20; n++) {
-                if (slotw[slot].fileFlag[n] & 1) {
-                    fileNo = n;
+                if (slotw[m_SlotNo].fileFlag[n] & 1) {
+                    m_SaveNo = n;
                     found = 1;
                     break;
                 }
             }
             if (!found) {
-                fileNo = 0;
+                m_SaveNo = 0;
             } else {
-                n = fileNo + 1;
+                n = m_SaveNo + 1;
                 while (n <= 19) {
-                    if (slotw[slot].fileFlag[n] & 1) {
-                        info = (SaveInfo*) pInfo[fileNo];
+                    if (slotw[m_SlotNo].fileFlag[n] & 1) {
+                        info = (SaveInfo*) pInfo[m_SaveNo];
                         if (OSCalendarTimeToTicks(&((SaveInfo*) pInfo[n])->time) > OSCalendarTimeToTicks(&info->time)) {
-                            fileNo = n;
-                            n = fileNo + 1;
+                            m_SaveNo = n;
+                            n = m_SaveNo + 1;
                             continue;
                         }
                     }
@@ -527,8 +527,8 @@ void cCard::dataSelect()
                 }
             }
         }
-        step++;
-        flag |= 2;
+        m_Rno1++;
+        m_Status |= 2;
         setMsgWindow(1, 0);
         deleteAllMes();
     }
@@ -539,39 +539,39 @@ void cCard::dataSelect()
         }
         if (Key.rep & (KEY_UP | KEY_DOWN)) {
             if (Key.rep & KEY_UP) {
-                fileNo--;
+                m_SaveNo--;
                 g_id->setAction(1);
                 SndCall(0, 0x2F, 0, 0, 0, 0);
             } else if (Key.rep & KEY_DOWN) {
-                fileNo++;
+                m_SaveNo++;
                 g_id->setAction(2);
                 SndCall(0, 0x2C, 0, 0, 0, 0);
             }
-            fileNo = fileNo < 0 ? 19 : (fileNo > 19 ? 0 : fileNo);
+            m_SaveNo = m_SaveNo < 0 ? 19 : (m_SaveNo > 19 ? 0 : m_SaveNo);
             break;
         } else if (Key.trg & KEY_B) {
             /*BF:ds1b*/
-            mode = 5;
-            step = 2;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 5;
+            m_Rno1 = 2;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
 /*/BF*/
         } else if (Key.trg & KEY_A) {
             /*BF:ds1a*/
-            step++;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1++;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
 /*/BF*/
         }
         break;
     case 2: {
         int blocks;
-        s = &slotw[slot];
+        s = &slotw[m_SlotNo];
         blocks = FREE_BLOCKS(*s);
-        if (s->fileFlag[fileNo] != 0) {
+        if (s->fileFlag[m_SaveNo] != 0) {
             if (type == 1) {
-                step = 3;
-                if (slot == 2) {
+                m_Rno1 = 3;
+                if (m_SlotNo == 2) {
                     break;
                 }
                 if (s->flags & 0x200) {
@@ -582,30 +582,30 @@ void cCard::dataSelect()
                 }
                 errorSet(-0x20A);
             } else {
-                if (s->fileFlag[fileNo] & 2) {
+                if (s->fileFlag[m_SaveNo] & 2) {
                     errorSet(-0x202);
                 } else {
-                    step = 5;
+                    m_Rno1 = 5;
                 }
             }
         } else {
             if (type == 1) {
-                if (slot == 2) {
-                    step = 4;
+                if (m_SlotNo == 2) {
+                    m_Rno1 = 4;
                     break;
                 }
-                step = 4;
+                m_Rno1 = 4;
                 if (!(s->flags & 0x200)) {
-                    if ((u32) blocks < saveBlocks + sysBlocks || s->freeFiles < 2) {
+                    if ((u32) blocks < m_SaveSize + m_SysSize || s->freeFiles < 2) {
                         errorSet(-0x201);
                     }
                 } else {
-                    if ((u32) blocks < saveBlocks || s->freeFiles < 1) {
+                    if ((u32) blocks < m_SaveSize || s->freeFiles < 1) {
                         errorSet(-0x201);
                     }
                 }
             } else {
-                step = 1;
+                m_Rno1 = 1;
             }
         }
         break;
@@ -613,26 +613,26 @@ void cCard::dataSelect()
     case 3:
         setMsgWindow(1, 1);
         cardMesSet(0x13, 0, 0);
-        cMes.mes[0].cursor = 1;
-        step = 6;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1 = 6;
         break;
     case 4:
         setMsgWindow(1, 1);
         cardMesSet(0x10, 0, 0);
-        cMes.mes[0].cursor = 1;
-        step = 6;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1 = 6;
         break;
     case 5:
         setMsgWindow(1, 1);
         cardMesSet(0x12, 0, 0);
-        cMes.mes[0].cursor = 1;
-        step = 6;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1 = 6;
         break;
     case 6:
         if (Key.trg & KEY_B) {
             sel = 2;
         } else {
-            sel = cMes.mes[0].result;
+            sel = cMes.mes[0].m_sel;
         }
         switch (sel) {
         case 1:
@@ -642,25 +642,25 @@ void cCard::dataSelect()
                 CoreSeCall(4, 0, 0, 0, 0);
             }
             /*BF:ds6*/
-            mode = 3;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 3;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
 /*/BF*/
-            pG->save_no = fileNo;
-            pG->card_serial = slotw[slot].serial;
+            pG->save_no = m_SaveNo;
+            pG->card_serial = slotw[m_SlotNo].serial;
             deleteAllMes();
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            step = 1;
+            m_Rno1 = 1;
             deleteAllMes();
             setMsgWindow(1, 0);
             break;
         }
         break;
     }
-    fileNo = fileNo < 0 ? 0 : (fileNo > 19 ? 19 : fileNo);
+    m_SaveNo = m_SaveNo < 0 ? 0 : (m_SaveNo > 19 ? 19 : m_SaveNo);
 }
 
 void cCard::loadMain()
@@ -669,56 +669,56 @@ void cCard::loadMain()
     char* name;
     int ret;
 
-    if (slot == 2) {
-        sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", fileNo);
+    if (m_SlotNo == 2) {
+        sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
     } else {
-        sprintf(fileName, "bh4_data%02d", fileNo);
+        sprintf(fileName, "bh4_data%02d", m_SaveNo);
     }
     name = fileName;
-    if (slotw[slot].fileFlag[fileNo] & 4) {
+    if (slotw[m_SlotNo].fileFlag[m_SaveNo] & 4) {
         errorSet(-0x202);
         return;
     }
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         setMsgWindow(1, 1);
-        BitOn(pG->flags_54, 0x200);
+        BitOn(pG->System_flg, 0x200);
         cardMesSet(0xD, 0, 0);
-        if (slot == 2) {
-            step = 2;
+        if (m_SlotNo == 2) {
+            m_Rno1 = 2;
             break;
         }
-        retry = 0;
-        step++;
+        m_RetryCtr = 0;
+        m_Rno1++;
         // fallthrough
     case 1:
-        ret = fileOpen(&slotw[slot]);
+        ret = fileOpen(&slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
             errorSet(-0x204);
         }
         break;
     case 2:
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             HDRead(name, pSaveBuf);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
-            step++;
+            m_Rno1++;
         } else {
-            ret = fileRead(&sub, pSaveBuf, saveBlocks << 13, 0, &slotw[slot]);
+            ret = fileRead(&m_Rno2, pSaveBuf, m_SaveSize << 13, 0, &slotw[m_SlotNo]);
             if (ret == 0) {
             } else if (ret > 0) {
-                step++;
+                m_Rno1++;
             } else {
                 errorSet(-0x204);
             }
@@ -726,26 +726,26 @@ void cCard::loadMain()
         break;
     case 3:
         if (CRCVerify(pSaveBuf, SAVE_CRC, *(u32*) (pSaveBuf + SAVE_CRC)) == 0) {
-            if (retry == 3) {
-                slotw[slot].fileFlag[fileNo] |= 2;
+            if (m_RetryCtr == 3) {
+                slotw[m_SlotNo].fileFlag[m_SaveNo] |= 2;
                 errorSet(-0x202);
             } else {
-                step = 2;
-                retry++;
+                m_Rno1 = 2;
+                m_RetryCtr++;
             }
         } else {
-            if (slot == 2) {
-                step = 5;
+            if (m_SlotNo == 2) {
+                m_Rno1 = 5;
             } else {
-                step++;
+                m_Rno1++;
             }
         }
         break;
     case 4:
-        ret = fileClose(&slotw[slot]);
+        ret = fileClose(&slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
             errorSet(-0x204);
         }
@@ -758,14 +758,14 @@ void cCard::loadMain()
         memcpy(SD->p14, buf + SAVE_SSCRN, SscrnDataSize());
         memcpy(SD->p18, buf + SAVE_MERCHANT, MerchantDataSize());
         GameSave.load(pSaveData);
-        GameSaveSave(&GameSave, pSaveData, pG->game_mode);
-        BitOn(pG->x8, 4);
-        BitOff(pG->flags_54, 0x200);
+        GameSaveSave(&GameSave, pSaveData, pG->SaveKind);
+        BitOn(pG->CardStatus, 4);
+        BitOff(pG->System_flg, 0x200);
         setMsgWindow(1, 0);
-                mode++;
-        step = 0;
-        sub = 0;
-        sub2 = 0;
+                m_Rno0++;
+        m_Rno1 = 0;
+        m_Rno2 = 0;
+        m_Rno3 = 0;
         break;
     }
 }
@@ -788,25 +788,25 @@ void cCard::makeSaveData()
     src = (u8*) d->CLUTHeader->data;
     memcpy(buf + SAVE_CLUT, src, 0x200);
     if (pSys->region == 0) {
-        sprintf((char*) buf, "biohazard4 FILE%02d", fileNo + 1);
+        sprintf((char*) buf, "biohazard4 FILE%02d", m_SaveNo + 1);
         sprintf((char*) buf + SAVE_COMMENT2, "%04d/%02d/%02d %02d:%02d:%02d \x8dX\x90V", cal.year, cal.mon + 1, cal.mday,
                 cal.hour, cal.min, cal.sec);
         i = 0;
     } else {
         sprintf((char*) buf, "resident evil 4");
-        sprintf((char*) buf + SAVE_COMMENT2, "FILE %02d", fileNo + 1);
+        sprintf((char*) buf + SAVE_COMMENT2, "FILE %02d", m_SaveNo + 1);
         i = 1;
     }
     d = TEXGet(tpl, i);
     src = (u8*) d->textureHeader->data;
     memcpy(buf + SAVE_BANNER, src, 0x1800);
     U16Inc(pG->save_cnt);
-    if (!(pG->x8 & 0x60)) {
+    if (!(pG->CardStatus & 0x60)) {
         SetGameTime();
     }
-    if (pG->x8 & 0x20) {
+    if (pG->CardStatus & 0x20) {
         *(u32*) (buf + SAVE_HDR_MODE) = 2;
-    } else if (pG->x8 & 0x40) {
+    } else if (pG->CardStatus & 0x40) {
         *(u32*) (buf + SAVE_HDR_MODE) = 3;
     } else {
         *(u32*) (buf + SAVE_HDR_MODE) = 1;
@@ -870,58 +870,58 @@ void cCard::saveMain()
     int nextMode;
     int ret;
 
-    if (mode == 3) {
+    if (m_Rno0 == 3) {
         isSystem = 0;
     } else {
         isSystem = 1;
     }
     if (isSystem == 0) {
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             name = fileName;
-            sprintf(name, "d:\\bio4/room/savedata%02d.dat", fileNo);
+            sprintf(name, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
         } else {
             name = fileName;
-            sprintf(name, "bh4_data%02d", fileNo);
+            sprintf(name, "bh4_data%02d", m_SaveNo);
         }
-        blocks = saveBlocks;
+        blocks = m_SaveSize;
         buf = pSaveBuf;
         makeFunc = &cCard::makeSaveData;
         nextMode = 8;
     } else {
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             name = fileName;
             sprintf(name, "d:\\bio4/room/sysdata.dat");
         } else {
             name = fileName;
             sprintf(name, "bh4_system");
         }
-        blocks = sysBlocks;
+        blocks = m_SysSize;
         buf = pSysBuf;
         makeFunc = &cCard::makeSystemSaveData;
         nextMode = 4;
     }
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         setMsgWindow(1, 1);
-        BitOn(pG->flags_54, 0x200);
+        BitOn(pG->System_flg, 0x200);
         if (isSystem == 0) {
             cardMesSet(0xB, 0, 0);
-            step = 2;
-            if (slot == 2) {
-                step = 5;
+            m_Rno1 = 2;
+            if (m_SlotNo == 2) {
+                m_Rno1 = 5;
             }
         } else {
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 cardMesSet(0x27, 0, 0);
             }
-            step++;
+            m_Rno1++;
         }
-        sub = 0;
-        sub2 = 0;
+        m_Rno2 = 0;
+        m_Rno3 = 0;
         break;
     case 1:
-        ret = sysfileRead(&sub, &sub2, 0);
+        ret = sysfileRead(&m_Rno2, &m_Rno3, 0);
         switch (ret) {
         case 0:
             break;
@@ -929,39 +929,39 @@ void cCard::saveMain()
             sysFlags = *(u32*) (pSysBuf + SYS_WORK + 4);
             // fallthrough
         case -1:
-            step++;
-            if (slot == 2) {
-                step = 5;
+            m_Rno1++;
+            if (m_SlotNo == 2) {
+                m_Rno1 = 5;
             }
-            sub = 0;
-            sub2 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             break;
         }
         break;
     case 2:
-        ret = fileOpen(&slotw[slot]);
+        ret = fileOpen(&slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            if (result == 0) {
-                step = 4;
+            if (m_ResultCode == 0) {
+                m_Rno1 = 4;
             } else {
-                step++;
+                m_Rno1++;
             }
-            sub = 0;
-            sub2 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         } else if (ret < 0) {
             errorSet(-0x203);
         }
         break;
     case 3:
-        ret = fileCreate(&sub, blocks, &slotw[slot]);
+        ret = fileCreate(&m_Rno2, blocks, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            sub = 0;
-            sub2 = 0;
-            step++;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
+            m_Rno1++;
         } else if (ret < 0) {
-            if (result == -5) {
+            if (m_ResultCode == -5) {
                 errorSet(-5);
             } else {
                 errorSet(-0x203);
@@ -969,12 +969,12 @@ void cCard::saveMain()
         }
         break;
     case 4:
-        ret = CARDGetStatus(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat);
+        ret = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
         if (ret == -1) {
             break;
         }
         if (ret == 0) {
-            step++;
+            m_Rno1++;
         } else {
             errorSet(-0x203);
         }
@@ -982,53 +982,53 @@ void cCard::saveMain()
     case 5:
         (this->*makeFunc)();
         if (isSystem == 0) {
-            slotw[slot].fileFlag[fileNo] = 1;
-            memcpy(pInfo[fileNo], pSaveBuf + 0x2000, 0x200);
+            slotw[m_SlotNo].fileFlag[m_SaveNo] = 1;
+            memcpy(pInfo[m_SaveNo], pSaveBuf + 0x2000, 0x200);
             g_id->setAction(4);
-            flag &= ~1;
+            m_Status &= ~1;
         }
-        step++;
+        m_Rno1++;
         // fallthrough
     case 6:
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             HDWrite_only(name, buf, blocks << 13);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
-            if (mode == 3) {
+            if (m_Rno0 == 3) {
                 // The zero stored into step shares `no`'s pseudo with the shift count: its `li` then
                 // trails the rotlw (sched1 anti-dependence), takes r0, and jump2 cross-jumps this
                 // arm's `stb step` (and case 2's `step = 4`, the `step = 0xA` arm) into case 1's copy.
                 // A fresh zero is hoisted above the extsb, lands in r10 and keeps its own stb.
-                int no = fileNo;
+                int no = m_SaveNo;
                 isDbgInfoCached &= ~(1 << no);
-                mode = nextMode;
+                m_Rno0 = nextMode;
                 no = 0;
-                step = no;
+                m_Rno1 = no;
             } else {
-                if (pG->x8 & 0x80) {
-                    step = 0xB;
-                    timer = 0xF;
+                if (pG->CardStatus & 0x80) {
+                    m_Rno1 = 0xB;
+                    m_Timer = 0xF;
                 } else {
-                    step = 0xA;
+                    m_Rno1 = 0xA;
                 }
             }
-            sub = 0;
-            sub2 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         } else {
-            ret = fileWrite(&sub, buf, blocks, &slotw[slot]);
+            ret = fileWrite(&m_Rno2, buf, blocks, &slotw[m_SlotNo]);
             if (ret == 0) {
             } else if (ret > 0) {
-                step++;
+                m_Rno1++;
             } else if (ret < 0) {
-                if (result == -5) {
+                if (m_ResultCode == -5) {
                     errorSet(-5);
                 } else {
                     errorSet(-0x203);
@@ -1037,16 +1037,16 @@ void cCard::saveMain()
         }
         break;
     case 7:
-        makeCardStatus(&slotw[slot]);
-        CARDSetStatusAsync(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat, 0);
-        step++;
+        makeCardStatus(&slotw[m_SlotNo]);
+        CARDSetStatusAsync(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat, 0);
+        m_Rno1++;
         // fallthrough
     case 8:
-        switch (CARDGetResultCode(slot)) {
+        switch (CARDGetResultCode(m_SlotNo)) {
         case -1:
             break;
         case 0:
-            step++;
+            m_Rno1++;
             break;
         case -5:
             errorSet(-5);
@@ -1057,53 +1057,53 @@ void cCard::saveMain()
         }
         break;
     case 9:
-        ret = fileClose(&slotw[slot]);
+        ret = fileClose(&slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            if (mode == 3) {
-                mode = nextMode;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+            if (m_Rno0 == 3) {
+                m_Rno0 = nextMode;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             } else {
-                if (pG->x8 & 0x80) {
-                    step = 0xB;
-                    timer = 0xF;
+                if (pG->CardStatus & 0x80) {
+                    m_Rno1 = 0xB;
+                    m_Timer = 0xF;
                 } else {
-                    step++;
+                    m_Rno1++;
                 }
-                sub = 0;
-                sub2 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             }
         } else if (ret < 0) {
             errorSet(-0x203);
         }
         break;
     case 10:
-        BitOn(flag, 1);
-        BitOff(pG->flags_54, 0x200);
+        BitOn(m_Status, 1);
+        BitOff(pG->System_flg, 0x200);
         cardMesSet(0xC, 0, 0);
         if (Key.trg & (KEY_START | KEY_Z)) {
             deleteAllMes();
             setMsgWindow(1, 0);
-            mode = nextMode;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = nextMode;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         }
         break;
     case 11:
         cardMesSet(0x28, 0, 0);
-        if (timer == 0) {
+        if (m_Timer == 0) {
             deleteAllMes();
             setMsgWindow(1, 0);
-            BitOff(pG->flags_54, 0x200);
-            mode = 4;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            BitOff(pG->System_flg, 0x200);
+            m_Rno0 = 4;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         } else {
-            timer--;
+            m_Timer--;
         }
         break;
     }
@@ -1115,26 +1115,26 @@ void cCard::exit()
     u32 c0;
     u32 c1;
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         if (unmount(0) == 1) {
-            step++;
+            m_Rno1++;
         }
         break;
     case 1:
         deleteAllMes();
         if (type == 2) {
-            BitOn(pG->x8, 0x80000000);
+            BitOn(pG->CardStatus, 0x80000000);
             systemVISetBlack(1);
             workDestroy();
             exitFlag = 1;
         } else {
-            if (!(pG->x8 & 0x80)) {
+            if (!(pG->CardStatus & 0x80)) {
                 c0 = 0;
                 c1 = 0xFF;
                 FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
             }
-            step++;
+            m_Rno1++;
         }
         break;
     case 2:
@@ -1142,18 +1142,18 @@ void cCard::exit()
             break;
         }
         BitSet((u32&) dispFlag, 0);
-        if (!(pG->x8 & 0x80)) {
+        if (!(pG->CardStatus & 0x80)) {
             g_id->quit();
         }
         workDestroy();
-        pG->flags_170 = saveFlags170;
+        pG->Stop_flg = m_SPFbak;
         TaskSignal(0);
-        if (!(pG->x8 & 0x80)) {
-            pG->flags_58 = saveFlags58;
-            SndStrReq(bgmStrId, 4, 200, 0);
-            ScreenReSizeI(scrWidth, 448);
-            if (type != 0 || !(pG->x8 & 4)) {
-                if (!(pG->x8 & 0x10)) {
+        if (!(pG->CardStatus & 0x80)) {
+            pG->Disp_flg = m_DPFbak;
+            SndStrReq(m_SndId, 4, 200, 0);
+            ScreenReSizeI(m_Width_bak, 448);
+            if (type != 0 || !(pG->CardStatus & 4)) {
+                if (!(pG->CardStatus & 0x10)) {
                     c0 = 0xFF;
                     c1 = 0;
                     FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
@@ -1167,7 +1167,7 @@ void cCard::exit()
                 SndRoomBgmMuteAll(0, -1);
             }
         }
-        BitOff(pG->x8, 0x7FFFFFF8);
+        BitOff(pG->CardStatus, 0x7FFFFFF8);
         MesData.ptr[0] = (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc);
         exitFlag = 1;
         break;
@@ -1185,13 +1185,13 @@ void cCard::workDestroy()
     if (pSysBuf) {
         Mem_free(pSysBuf);
     }
-    if (pIdData) {
-        Mem_free(pIdData);
+    if (m_IdDataAddr) {
+        Mem_free(m_IdDataAddr);
     }
-    if (pInfoBuf) {
-        Mem_free(pInfoBuf);
+    if (m_pInfoAddr) {
+        Mem_free(m_pInfoAddr);
     }
-    swap.SwapIn();
+    m_DataSwap.SwapIn();
 }
 
 void cCard::format()
@@ -1200,97 +1200,97 @@ void cCard::format()
     int ret;
     int sel;
 
-    ret = CARDProbeEx(slot, 0, 0);
-    switch (step) {
+    ret = CARDProbeEx(m_SlotNo, 0, 0);
+    switch (m_Rno1) {
     case 0:
-        ret = mount(&sub, &slotw[slot]);
+        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
             if (type == 2) {
-                step = 3;
+                m_Rno1 = 3;
             } else {
-                step++;
+                m_Rno1++;
             }
         } else if (ret < 0) {
             if (type == 2) {
-                mode = 0;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             } else {
-                errorSet(result);
+                errorSet(m_ResultCode);
             }
         }
         break;
     case 1:
         setMsgWindow(0, 1);
         cardMesSet(5, 0, 0x800000);
-        cMes.mes[0].cursor = 1;
-        step++;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1++;
         // fallthrough
     case 2:
         if (ret == -3) {
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].result;
+        sel = cMes.mes[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
-            step++;
+            m_Rno1++;
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            mode = 0;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             break;
         }
         break;
     case 3:
         cardMesSet(7, 0, 0x800000);
-        cMes.mes[0].cursor = 1;
-        step++;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1++;
         // fallthrough
     case 4:
         if (ret == -3) {
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].result;
+        sel = cMes.mes[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
-            timer = 0;
-            step++;
-            CARDFormatAsync(slot, 0);
+            m_Timer = 0;
+            m_Rno1++;
+            CARDFormatAsync(m_SlotNo, 0);
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            errCode = -0x209;
-            mode = 5;
-            step = sel;
-            sub = 0;
-            sub2 = 0;
+            m_ErrCode = -0x209;
+            m_Rno0 = 5;
+            m_Rno1 = sel;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             deleteAllMes();
             break;
         }
         break;
     case 5:
         cardMesSet(9, 0, 0);
-        ret = CARDGetResultCode(slot);
+        ret = CARDGetResultCode(m_SlotNo);
         switch (ret) {
         case 0:
             formatted = 1;
-            step++;
+            m_Rno1++;
             break;
         case -3:
             if (type == 2) {
-                mode = 0;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             } else {
                 errorSet(-3);
             }
@@ -1312,23 +1312,23 @@ void cCard::format()
         if (Key.trg & KEY_A) {
             deleteAllMes();
             if (type == 2) {
-                mode = 0;
+                m_Rno0 = 0;
             } else {
-                mode = 0;
+                m_Rno0 = 0;
                 setMsgWindow(0, 0);
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         }
         break;
     }
     if (noCard == 1) {
         if (type == 2) {
-            mode = 0;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         } else {
             errorSet(ret);
         }
@@ -1340,7 +1340,7 @@ void cCard::fileDelete()
     int ret;
     int sel;
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         if (type == 2) {
             cardMesSet(0x1D, 0, 0x800000);
@@ -1348,56 +1348,56 @@ void cCard::fileDelete()
         } else {
             setMsgWindow(0, 1);
             cardMesSet(0x16, 0, 0x800000);
-            sprintf(fileName, "bh4_data%02d", fileNo);
+            sprintf(fileName, "bh4_data%02d", m_SaveNo);
         }
-        cMes.mes[0].cursor = 1;
-        step++;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1++;
         // fallthrough
     case 1:
-        if (CARDProbeEx(slot, 0, 0) == -3) {
+        if (CARDProbeEx(m_SlotNo, 0, 0) == -3) {
             if (type == 2) {
-                mode = 0;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             } else {
                 errorSet(-3);
             }
             break;
         }
-        sel = cMes.mes[0].result;
+        sel = cMes.mes[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
-            timer = 0;
-            step++;
-            CARDDeleteAsync(slot, fileName, 0);
+            m_Timer = 0;
+            m_Rno1++;
+            CARDDeleteAsync(m_SlotNo, fileName, 0);
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            sub = 0;
-            errCode = -0x208;
-            mode = 5;
-            step = sel;
-            sub2 = 0;
+            m_Rno2 = 0;
+            m_ErrCode = -0x208;
+            m_Rno0 = 5;
+            m_Rno1 = sel;
+            m_Rno3 = 0;
             break;
         }
         break;
     case 2:
         cardMesSet(0x1E, 0, 0);
-        ret = CARDGetResultCode(slot);
+        ret = CARDGetResultCode(m_SlotNo);
         switch (ret) {
         case -1:
             break;
         case 0:
-            step++;
+            m_Rno1++;
             break;
         case -3:
             if (type == 2) {
-                mode = 0;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
             } else {
                 errorSet(-3);
             }
@@ -1409,20 +1409,20 @@ void cCard::fileDelete()
         break;
     case 3:
         if (type != 2) {
-            slotw[slot].fileFlag[fileNo] &= ~1;
+            slotw[m_SlotNo].fileFlag[m_SaveNo] &= ~1;
         }
         cardMesSet(0x1F, 0, 0);
         if (Key.trg & KEY_A) {
             deleteAllMes();
             if (type == 2) {
-                mode = 0;
+                m_Rno0 = 0;
             } else {
-                mode = 0;
+                m_Rno0 = 0;
                 setMsgWindow(0, 0);
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         }
         break;
     }
@@ -1435,15 +1435,15 @@ void cCard::errorDisp()
     int mesNo = 0;
     int probe = 0;
 
-    if (slot != 2) {
-        probe = CARDProbeEx(slot, 0, 0);
+    if (m_SlotNo != 2) {
+        probe = CARDProbeEx(m_SlotNo, 0, 0);
     }
-    BitOff(pG->flags_54, 0x200);
-    switch (step) {
+    BitOff(pG->System_flg, 0x200);
+    switch (m_Rno1) {
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
         cardcheck = 1;
-        switch (IRef(errCode)) {
+        switch (IRef(m_ErrCode)) {
         case -3:
             if (type == 2) {
                 mesNo = 0x18;
@@ -1484,18 +1484,18 @@ void cCard::errorDisp()
             if (type == 2) {
                 mesNo = 0x1B;
             } else {
-                mode = 6;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 6;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
                 return;
             }
             break;
         case -0x200:
-            eprintf2(10, 16, 80, 170, 0, 0, "The Memory Card in Slot %c is not supported.", slot + 'A');
+            eprintf2(10, 16, 80, 170, 0, 0, "The Memory Card in Slot %c is not supported.", m_SlotNo + 'A');
             break;
         case -0x201:
-            cMes.getWork()->setNumber(saveBlocks + sysBlocks, 2);
+            cMes.getWork()->setNumber(m_SaveSize + m_SysSize, 2);
             if (type == 2) {
                 mesNo = 0x17;
             } else {
@@ -1514,7 +1514,7 @@ void cCard::errorDisp()
             // `attr = 0` in each arm (as in -0x20A): the arms then share a tail, jump1 cannot hoist
             // `mesNo = 1` above the branch (jump2 does, after sched1), and `cardcheck = 0` after the join
             // gets its own zero.
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 mesNo = 0x29;
                 attr = 0;
             } else {
@@ -1531,10 +1531,10 @@ void cCard::errorDisp()
             attr = 0;
             break;
         case -0x202:
-            mode = 7;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 7;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             return;
         case -0x206:
             mesNo = 0x25;
@@ -1546,7 +1546,7 @@ void cCard::errorDisp()
         case -0x20A:
             if (type == 2) {
                 mesNo = 0x23;
-            } else if (pG->x8 & 0x80) {
+            } else if (pG->CardStatus & 0x80) {
                 mesNo = 0x2A;
                 attr = 0;
             } else {
@@ -1560,17 +1560,17 @@ void cCard::errorDisp()
         }
         cardMesSet(mesNo, 0, attr);
         if (attr == 0) {
-            step = 1;
+            m_Rno1 = 1;
         } else {
-            step = 3;
-            cMes.mes[0].cursor = 1;
+            m_Rno1 = 3;
+            cMes.mes[0].m_cur = 1;
         }
-        sub = 0;
-        sub2 = 0;
+        m_Rno2 = 0;
+        m_Rno3 = 0;
         break;
     case 1:
         if (Key.trg & (KEY_START | KEY_Z)) {
-            step++;
+            m_Rno1++;
         }
         break;
     case 2:
@@ -1580,7 +1580,7 @@ void cCard::errorDisp()
             mesNo = 0x11;
             break;
         case 1:
-            if (pG->x8 & 0x80) {
+            if (pG->CardStatus & 0x80) {
                 mesNo = 0x2B;
             } else {
                 setMsgWindow(0, 1);
@@ -1588,59 +1588,59 @@ void cCard::errorDisp()
             }
             break;
         case 2:
-            mode = 3;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno0 = 3;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             deleteAllMes();
             return;
         }
         cardMesSet(mesNo, 0, 0x800000);
-        if (pG->x8 & 0x80) {
-            cMes.mes[0].cursor = 0;
+        if (pG->CardStatus & 0x80) {
+            cMes.mes[0].m_cur = 0;
         } else {
-            cMes.mes[0].cursor = 1;
+            cMes.mes[0].m_cur = 1;
         }
-        step++;
+        m_Rno1++;
         break;
     case 3:
-        switch (cMes.mes[0].result) {
+        switch (cMes.mes[0].m_sel) {
         case 1:
             if (type == 2) {
                 CoreSeCall(4, 0, 0, 0, 0);
-                mode = 3;
-            } else if (pG->x8 & 0x80) {
+                m_Rno0 = 3;
+            } else if (pG->CardStatus & 0x80) {
                 CoreSeCall(4, 0, 0, 0, 0);
-                mode = 0;
+                m_Rno0 = 0;
             } else {
                 CoreSeCall(5, 0, 0, 0, 0);
-                mode = 4;
+                m_Rno0 = 4;
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             deleteAllMes();
             break;
         case 2:
             if (type == 2) {
                 CoreSeCall(5, 0, 0, 0, 0);
-                mode = 0;
-            } else if (pG->x8 & 0x80) {
+                m_Rno0 = 0;
+            } else if (pG->CardStatus & 0x80) {
                 CoreSeCall(5, 0, 0, 0, 0);
-                mode = 4;
+                m_Rno0 = 4;
             } else {
                 CoreSeCall(4, 0, 0, 0, 0);
-                mode = 0;
+                m_Rno0 = 0;
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             deleteAllMes();
             break;
         case 3:
             CoreSeCall(4, 0, 0, 0, 0);
             deleteAllMes();
-            switch (errCode) {
+            switch (m_ErrCode) {
             case -0x201:
             case -0x20A:
             case -0x20B:
@@ -1648,10 +1648,10 @@ void cCard::errorDisp()
                 break;
             case -0xD:
             case -6:
-                mode = 6;
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno0 = 6;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
                 break;
             }
             break;
@@ -1659,51 +1659,51 @@ void cCard::errorDisp()
         break;
     }
 
-    if (slot != 2 && cardcheck == 1 && probe != -1) {
+    if (m_SlotNo != 2 && cardcheck == 1 && probe != -1) {
         switch (probe) {
         case -3:
-            if (!(slotw[slot].flags & 2)) {
+            if (!(slotw[m_SlotNo].flags & 2)) {
                 deleteAllMes();
                 if (type == 2) {
-                    mode = 0;
+                    m_Rno0 = 0;
                 } else {
-                    mode = 1;
+                    m_Rno0 = 1;
                 }
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
                 formatted = 0;
             }
             break;
         case -0x80:
         case -2:
         case 0:
-            if (slotw[slot].flags & 2) {
+            if (slotw[m_SlotNo].flags & 2) {
                 deleteAllMes();
                 if (type == 2) {
-                    mode = 0;
+                    m_Rno0 = 0;
                 } else {
-                    mode = 1;
+                    m_Rno0 = 1;
                 }
-                step = 0;
-                sub = 0;
-                sub2 = 0;
+                m_Rno1 = 0;
+                m_Rno2 = 0;
+                m_Rno3 = 0;
                 formatted = 0;
             }
             break;
         }
     }
-    if (type != 2 && mode != 5) {
+    if (type != 2 && m_Rno0 != 5) {
         setMsgWindow(0, 0);
     }
-    eprintf(470, 10, 0, 0, "%d", errCode);
+    eprintf(470, 10, 0, 0, "%d", m_ErrCode);
 }
 
 void cCard::errorSet(int code)
 {
-    errCode = code;
-    mode = 5;
-    step = 0;
+    m_ErrCode = code;
+    m_Rno0 = 5;
+    m_Rno1 = 0;
 }
 
 int cCard::initialize(int type)
@@ -1723,8 +1723,8 @@ int cCard::initialize(int type)
     } else {
         idpath[12] = fileext[7];
     }
-    useMemSize = getUseMemSize();
-    if (useMemSize == 0) {
+    m_NeedMemSize = getUseMemSize();
+    if (m_NeedMemSize == 0) {
         return 0;
     }
     if (type == 2) {
@@ -1733,15 +1733,15 @@ int cCard::initialize(int type)
         }
     } else {
         if (type == 0) {
-            BitOff(pG->x8, 4);
+            BitOff(pG->CardStatus, 4);
         }
         heap = MemGetCurrentHeap();
         TaskSuspend(0);
-        if (pG->x8 & 0x80) {
-            addr = (u32) pG->pOptionData;
+        if (pG->CardStatus & 0x80) {
+            addr = (u32) pG->pOption;
         } else {
             addr = MemGetHeapStartAddr(heap);
-            if (!(pG->x8 & 8)) {
+            if (!(pG->CardStatus & 8)) {
                 c0 = 0;
                 c1 = 0xFF;
                 FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
@@ -1749,32 +1749,32 @@ int cCard::initialize(int type)
             while (Fade[0].flags & 1) {
                 TaskSleep(1);
             }
-            BitSet(saveFlags58, pG->flags_58);
-            BitSet(pG->flags_58, 0xFFFFFFFF);
-            BitOff(pG->flags_58, 0x800);
-            BitOff(pG->flags_58, 0x2000);
+            BitSet(m_DPFbak, pG->Disp_flg);
+            BitSet(pG->Disp_flg, 0xFFFFFFFF);
+            BitOff(pG->Disp_flg, 0x800);
+            BitOff(pG->Disp_flg, 0x2000);
         }
-        if (swap.SwapOut(addr, useMemSize, 0) == 0) {
+        if (m_DataSwap.SwapOut(addr, m_NeedMemSize, 0) == 0) {
             return 0;
         }
-        BitSet(saveFlags170, pG->flags_170);
-        BitSet(pG->flags_170, 0xFFFFFFFF);
-        BitOff(pG->flags_170, 0x80000000);
-        BitOff(pG->flags_170, 0x40);
+        BitSet(m_SPFbak, pG->Stop_flg);
+        BitSet(pG->Stop_flg, 0xFFFFFFFF);
+        BitOff(pG->Stop_flg, 0x80000000);
+        BitOff(pG->Stop_flg, 0x40);
         if (initSub() == 0) {
             return 0;
         }
-        if (!(pG->x8 & 0x80)) {
+        if (!(pG->CardStatus & 0x80)) {
             SndPlayWork* s;
             int i;
-            g_id->init(this->type, (CardArc*) pIdData);
-            scrWidth = (int) Screen.width;
+            g_id->init(this->type, (CardArc*) m_IdDataAddr);
+            m_Width_bak = (int) Screen.width;
             ScreenReSize(640, 448);
             c0 = 0xFF;
             c1 = 0;
             FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
-            FadeKill(2);
-            FadeKill(1);
+            FadeKill(FADE_NO_ROOM);
+            FadeKill(FADE_NO_SCENARIO);
             s = Snd.str_work;
             i = 0;
             do {
@@ -1807,7 +1807,7 @@ int cCard::initSub()
     }
     pSubData = (CardArc*) SndMem.sub_adr;
     calcTplAddr((TEXPalette*) (pSubData->ofs[0] + (u32) pSubData));
-    if (!(pG->x8 & 0x80)) {
+    if (!(pG->CardStatus & 0x80)) {
         void* addr;
         int req;
 #line 2170 "D:/Bio4/Prog/card.cpp"
@@ -1815,7 +1815,7 @@ int cCard::initSub()
         while (Dvd.ReadCheck(req, 0, 0, &addr) != 1) {
             TaskSleep(1);
         }
-        pIdData = addr;
+        m_IdDataAddr = addr;
     }
     MesData.ptr[0] = (u8*) (pSubData->ofs[1] + (u32) pSubData);
     return 1;
@@ -1837,7 +1837,7 @@ int cCard::workAlloc()
         OSReport("System Savedata workarea alloc error!!\n");
         return 0;
     }
-    if (!(pG->x8 & 0x80)) {
+    if (!(pG->CardStatus & 0x80)) {
 #line 2205 "D:/Bio4/Prog/card.cpp"
         pSaveBuf = (u8*) MEM_CALLOC((saveBufSize + 0x1FFF) & ~0x1FFF, 1, 13);
         if (pSaveBuf == 0) {
@@ -1845,13 +1845,13 @@ int cCard::workAlloc()
             return 0;
         }
 #line 2211 "D:/Bio4/Prog/card.cpp"
-        pInfoBuf = (u8*) MEM_CALLOC(0x2800, 1, 13);
-        if (pInfoBuf == 0) {
+        m_pInfoAddr = (u8*) MEM_CALLOC(0x2800, 1, 13);
+        if (m_pInfoAddr == 0) {
             OSReport("Savedata Infomation workarea alloc error!!\n");
             return 0;
         }
         for (i = 0; i < 20; i++) {
-            pInfo[i] = pInfoBuf + i * 0x200;
+            pInfo[i] = m_pInfoAddr + i * 0x200;
         }
     }
     return 1;
@@ -1862,11 +1862,11 @@ u32 cCard::getUseMemSize()
     u32 size;
 
     sysBufSize = SYS_SIZE;
-    sysBlocks = 1;
+    m_SysSize = 1;
     size = 0;
-    if (!(pGS->x8 & 0x80)) {
+    if (!(pGS->CardStatus & 0x80)) {
         saveBufSize = SAVE_SIZE;
-        saveBlocks = 8;
+        m_SaveSize = 8;
         if (Dvd.FileExistCheck(idpath, &size) < 0) {
             return 0;
         }
@@ -1890,11 +1890,11 @@ int cCard::fileCreate(u8* sub, int blocks, CardSlot* s)
         (*sub)++;
         // fallthrough
     case 1:
-        result = CARDGetResultCode(s->chan);
-        if (result == -1) {
+        m_ResultCode = CARDGetResultCode(s->chan);
+        if (m_ResultCode == -1) {
             break;
         }
-        if (result == 0) {
+        if (m_ResultCode == 0) {
             ret = 1;
         } else {
             ret = -1;
@@ -1944,75 +1944,75 @@ void cCard::firstCheck00()
 {
     int ret;
 
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
-        slot = 0;
-        step++;
+        m_SlotNo = 0;
+        m_Rno1++;
         // fallthrough
     case 1:
-        if (unmount(slot) == 1) {
-            step++;
+        if (unmount(m_SlotNo) == 1) {
+            m_Rno1++;
         }
         break;
     case 2:
-        ret = existCheck(slot, &slotw[slot]);
+        ret = existCheck(m_SlotNo, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            step = 2;
-            slot++;
+            m_Rno1 = 2;
+            m_SlotNo++;
         }
         break;
     case 3:
-        ret = mount(&sub, &slotw[slot]);
+        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            step = 2;
-            slot++;
+            m_Rno1 = 2;
+            m_SlotNo++;
         }
         break;
     case 4:
-        ret = verifyCheck(&sub, &slotw[slot]);
+        ret = verifyCheck(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            step = 2;
-            slot++;
+            m_Rno1 = 2;
+            m_SlotNo++;
         }
         break;
     case 5:
-        if (systemFileCheck(&sub, &slotw[slot]) == 1) {
-            step++;
+        if (systemFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+            m_Rno1++;
         }
         break;
     case 6:
-        if (saveFileCheck(&sub, &slotw[slot]) == 1) {
-            step++;
+        if (saveFileCheck(&m_Rno2, &slotw[m_SlotNo]) == 1) {
+            m_Rno1++;
         }
         break;
     case 7:
-        if (freeCheck(&sub, &slotw[slot]) != 0) {
-            step = 2;
-            slot++;
+        if (freeCheck(&m_Rno2, &slotw[m_SlotNo]) != 0) {
+            m_Rno1 = 2;
+            m_SlotNo++;
         }
         break;
     }
-    if (slot == 1) {
-        slot = 0;
+    if (m_SlotNo == 1) {
+        m_SlotNo = 0;
         if (slotw[0].flags & 0x200) {
-            mode++;
+            m_Rno0++;
         } else if (pG->dev_mode == 1) {
-            slot = 2;
-            mode++;
+            m_SlotNo = 2;
+            m_Rno0++;
         } else {
-            mode = 2;
+            m_Rno0 = 2;
         }
-        step = 0;
-        sub = 0;
+        m_Rno1 = 0;
+        m_Rno2 = 0;
         systemVISetBlack(0);
     }
 }
@@ -2023,48 +2023,48 @@ void cCard::firstCheck10()
     int ret;
 
     sprintf(fileName, "%s", "bh4_system");
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
-        timer = 30;
-        if (slot != 2) {
+        m_Timer = 30;
+        if (m_SlotNo != 2) {
             cardMesSet(8, 0, 0);
         }
-        retry = 0;
-        step++;
+        m_RetryCtr = 0;
+        m_Rno1++;
         break;
     case 1:
-        ret = sysfileRead(&sub, &sub2, 1);
+        ret = sysfileRead(&m_Rno2, &m_Rno3, 1);
         if (ret == 1) {
-            step++;
+            m_Rno1++;
         } else if (ret == -1) {
-            step = 3;
+            m_Rno1 = 3;
         }
         break;
     case 2:
         *pSys = *(SystemWork*) (buf + SYS_WORK);
-        BitOn(pGS->x8, 1);
+        BitOn(pGS->CardStatus, 1);
         SndSetOutputMode(pSys->sound_mode, 1);
-        step++;
+        m_Rno1++;
         break;
     case 3:
-        if (timer == 0) {
+        if (m_Timer == 0) {
             deleteAllMes();
-            if (slot == 2) {
-                mode = 3;
+            if (m_SlotNo == 2) {
+                m_Rno0 = 3;
             } else {
-                mode++;
+                m_Rno0++;
             }
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             if (pG->dev_mode == 1) {
                 pSys->language = 1;
             }
         }
         break;
     }
-    if (timer != 0) {
-        timer--;
+    if (m_Timer != 0) {
+        m_Timer--;
     }
 }
 
@@ -2089,24 +2089,24 @@ void cCard::firstCheck20()
     } else if (bitChk(f, 0x20) || bitChk(f, 0x80)) {
         errorSet(-2);
     } else if (!(f & 0x200)) {
-        mode = 8;
-        step = 0;
-        sub = 0;
-        sub2 = 0;
+        m_Rno0 = 8;
+        m_Rno1 = 0;
+        m_Rno2 = 0;
+        m_Rno3 = 0;
     } else {
-        step = 0;
-        mode++;
+        m_Rno1 = 0;
+        m_Rno0++;
     }
 }
 
 void cCard::firstCheck30()
 {
-    mode = 4;
+    m_Rno0 = 4;
 }
 
 int CardCheckDone()
 {
-    return (pG->x8 & 0x80000000) != 0;
+    return (pG->CardStatus & 0x80000000) != 0;
 }
 
 void cCard::MainLoop(int arg)
@@ -2124,30 +2124,30 @@ void cCard::MainLoop(int arg)
     };
 
     if (pCard->initialize(arg) == 0) {
-        mode = 4;
-        step = 2;
+        m_Rno0 = 4;
+        m_Rno1 = 2;
     }
     while (exitFlag == 0) {
         if (type != 2) {
-            if (bgmTimer == 0) {
-                bgmStrId = SndStrReq(0, 0x1D, 0x80000003, 0, 0, 0.0f);
-                bgmTimer = 0xA8C;
+            if (m_StrTimer == 0) {
+                m_SndId = SndStrReq(0, 0x1D, 0x80000003, 0, 0, 0.0f);
+                m_StrTimer = 0xA8C;
             } else {
-                bgmTimer--;
+                m_StrTimer--;
             }
-            eprintf(24, 32, 0, 0, "%d", bgmTimer);
+            eprintf(24, 32, 0, 0, "%d", m_StrTimer);
         }
         TaskSleep(1);
-        (this->*tbl[mode][arg])();
+        (this->*tbl[m_Rno0][arg])();
         if (dispFlag == 1) {
             screenTrans();
         }
     }
 }
 
-void CardMainTask(int arg)
+void CardMainTask(int mode)
 {
-    BitOn(pG->flags_54, 0x1000);
+    BitOn(pG->System_flg, 0x1000);
     pCard = new cCard;
     g_id = new CardID;
     if (pSys->language == 0) {
@@ -2156,10 +2156,10 @@ void CardMainTask(int arg)
         cMes.loadFont(32, 32, "Font/common_p.fnt", 0);
     }
     cMes.setLanguage(pSys->language);
-    cMes.setLayout(0, 3);
-    cMes.setLayout(1, 3);
-    cMes.setLayout(2, 3);
-    pCard->MainLoop(arg);
+    cMes.setLayout(0, LAYOUT_MEMCARD);
+    cMes.setLayout(1, LAYOUT_MEMCARD);
+    cMes.setLayout(2, LAYOUT_MEMCARD);
+    pCard->MainLoop(mode);
     if (pCard) {
         delete pCard;
     }
@@ -2169,7 +2169,7 @@ void CardMainTask(int arg)
     cMes.setLayout(0, 0);
     cMes.setLayout(1, 0);
     cMes.setLayout(2, 0);
-    BitOff(pG->flags_54, 0x1000);
+    BitOff(pG->System_flg, 0x1000);
     TaskExit();
 }
 
@@ -2180,7 +2180,7 @@ int CardLoad()
     systemVISetBlack(0);
     TaskExec(1, (TaskFunc) CardMainTask, 0);
     TaskSleep(1);
-    if (pG->x8 & 4) {
+    if (pG->CardStatus & 4) {
         SndAllFadeOut();
         ret = 1;
     }
@@ -2190,19 +2190,19 @@ int CardLoad()
 void CardSave(int no, int f)
 {
     if (f & 2) {
-        BitOn(pG->x8, 8);
+        BitOn(pG->CardStatus, 8);
     }
     if (f & 4) {
-        BitOn(pG->x8, 0x10);
+        BitOn(pG->CardStatus, 0x10);
     }
     if (f & 8) {
-        BitOn(pG->x8, 0x20);
+        BitOn(pG->CardStatus, 0x20);
     }
     if (f & 0x10) {
-        BitOn(pG->x8, 0x40);
+        BitOn(pG->CardStatus, 0x40);
     }
     if (f & 0x20) {
-        BitOn(pG->x8, 0x98);
+        BitOn(pG->CardStatus, 0x98);
     }
     pG->snd_tbl_no = no;
     TaskExec(1, (TaskFunc) CardMainTask, 1);
@@ -2211,15 +2211,15 @@ void CardSave(int no, int f)
 
 void CardSysSave()
 {
-    BitOn(pG->x8, 0x98);
+    BitOn(pG->CardStatus, 0x98);
     TaskExec(1, (TaskFunc) CardMainTask, 1);
     TaskSleep(1);
 }
 
 void CardFirstCheck()
 {
-    if (pRK->valid != 0 && pRK->x3C == 1) {
-        BitOn(pG->x8, 0x80000000);
+    if (pRK->valid != 0 && pRK->card_checked == 1) {
+        BitOn(pG->CardStatus, 0x80000000);
         TaskExit();
     }
     TaskChain((TaskFunc) CardMainTask, 2);
@@ -2232,14 +2232,14 @@ int cCard::existCheck(int chan, CardSlot* s)
     if (chan == 2) {
         return 1;
     }
-    result = CARDProbeEx(chan, &s->memSize, &s->sectorSize);
-    switch (result) {
+    m_ResultCode = CARDProbeEx(chan, &s->memSize, &s->sectorSize);
+    switch (m_ResultCode) {
     case 0:
         ret = 1;
         if (s->sectorSize != 0x2000) {
             s->flags |= 0x80;
             ret = -1;
-            result = -0x200;
+            m_ResultCode = -0x200;
         }
         break;
     case -3:
@@ -2273,8 +2273,8 @@ int cCard::mount(u8* sub, CardSlot* s)
         (*sub)++;
         // fallthrough
     case 1:
-        result = CARDGetResultCode(s->chan);
-        switch (result) {
+        m_ResultCode = CARDGetResultCode(s->chan);
+        switch (m_ResultCode) {
         case 0:
         case -6:
         case -0xD:
@@ -2309,8 +2309,8 @@ int cCard::unmount(int chan)
 {
     int ret = 0;
 
-    result = CARDUnmount(chan);
-    switch (result) {
+    m_ResultCode = CARDUnmount(chan);
+    switch (m_ResultCode) {
     case -3:
         ret = 1;
         break;
@@ -2343,8 +2343,8 @@ int cCard::verifyCheck(u8* sub, CardSlot* s)
         (*sub)++;
         // fallthrough
     case 1:
-        result = CARDGetResultCode(s->chan);
-        switch (result) {
+        m_ResultCode = CARDGetResultCode(s->chan);
+        switch (m_ResultCode) {
         case 0:
             *sub = 0;
             ret = 1;
@@ -2406,27 +2406,27 @@ int cCard::freeCheck(u8* sub, CardSlot* s)
     case 1: {
         u32 f = s->flags & 0x300;
         if (f == 0x200) {
-            if (s->freeFiles > 0 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= saveBlocks) {
+            if (s->freeFiles > 0 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= m_SaveSize) {
                 ret = 1;
             } else {
                 ret = -1;
-                result = -0x201;
+                m_ResultCode = -0x201;
                 s->flags |= 0x804;
             }
         } else if (f == 0x100) {
-            if (s->freeFiles > 0 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= sysBlocks) {
+            if (s->freeFiles > 0 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= m_SysSize) {
                 ret = 1;
             } else {
                 ret = -1;
-                result = -0x201;
+                m_ResultCode = -0x201;
                 s->flags |= 0x404;
             }
         } else if (f == 0) {
-            if (s->freeFiles > 1 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= saveBlocks + sysBlocks) {
+            if (s->freeFiles > 1 && (u32) (s->freeBytes + 0x1FFF) / 0x2000 >= m_SaveSize + m_SysSize) {
                 ret = 1;
             } else {
                 ret = -1;
-                result = -0x201;
+                m_ResultCode = -0x201;
                 s->flags |= 4;
             }
         } else {
@@ -2445,8 +2445,8 @@ int cCard::fileOpen(CardSlot* s)
 {
     int ret = 0;
 
-    result = CARDOpen(s->chan, fileName, &s->fileInfo);
-    switch (result) {
+    m_ResultCode = CARDOpen(s->chan, fileName, &s->fileInfo);
+    switch (m_ResultCode) {
     case 0:
     case -4:
         ret = 1;
@@ -2473,8 +2473,8 @@ int cCard::fileClose(CardSlot* s)
 {
     int ret = 0;
 
-    result = CARDClose(&s->fileInfo);
-    switch (result) {
+    m_ResultCode = CARDClose(&s->fileInfo);
+    switch (m_ResultCode) {
     case 0:
         ret = 1;
         break;
@@ -2501,58 +2501,58 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
     switch (*sub) {
     case 0:
         BitOff(pSys->flags, 0x02000000);
-        fileNo = 0;
+        m_SaveNo = 0;
         memclr_asm(s->fileFlag, sizeof(s->fileFlag));
-        retry = 0;
+        m_RetryCtr = 0;
         (*sub)++;
         // fallthrough
     case 1:
-        if (fileNo == 20) {
-            fileNo = 0;
+        if (m_SaveNo == 20) {
+            m_SaveNo = 0;
             ret = 1;
             *sub = 0;
             break;
         }
         if (s->chan == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
-            sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", fileNo);
+            sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", m_SaveNo);
             if (file_exist(fileName)) {
                 BitOn(pSys->flags, 0x02000000);
-                s->fileFlag[fileNo] |= 1;
-                bit = 1 << fileNo;
+                s->fileFlag[m_SaveNo] |= 1;
+                bit = 1 << m_SaveNo;
                 if (DBG_CACHED & bit) {
-                    memcpy(pInfo[fileNo], pDbgSaveInfo[fileNo], 0x200);
-                    OSReport("save Info data%d from cache.\n", fileNo);
+                    memcpy(pInfo[m_SaveNo], pDbgSaveInfo[m_SaveNo], 0x200);
+                    OSReport("save Info data%d from cache.\n", m_SaveNo);
                 } else {
-                    HDReadSeekLen(fileName, pInfo[fileNo], 0x2000, 0x200);
-                    memcpy(pDbgSaveInfo[fileNo], pInfo[fileNo], 0x200);
-                    isDbgInfoCached |= 1 << fileNo;
-                    OSReport("save Info data%d cached.\n", fileNo);
+                    HDReadSeekLen(fileName, pInfo[m_SaveNo], 0x2000, 0x200);
+                    memcpy(pDbgSaveInfo[m_SaveNo], pInfo[m_SaveNo], 0x200);
+                    isDbgInfoCached |= 1 << m_SaveNo;
+                    OSReport("save Info data%d cached.\n", m_SaveNo);
                 }
-                if (((SaveInfo*) pInfo[fileNo])->magic != 0x116) {
-                    s->fileFlag[fileNo] |= 4;
+                if (((SaveInfo*) pInfo[m_SaveNo])->magic != 0x116) {
+                    s->fileFlag[m_SaveNo] |= 4;
                 }
             } else {
-                memclr_asm(pDbgSaveInfo[fileNo], 0x200);
+                memclr_asm(pDbgSaveInfo[m_SaveNo], 0x200);
             }
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
-            fileNo++;
+            m_SaveNo++;
         } else {
-            sprintf(fileName, "bh4_data%02d", fileNo);
+            sprintf(fileName, "bh4_data%02d", m_SaveNo);
             r = fileOpen(s);
             if (r == 0) {
             } else if (r > 0) {
-                if (result == 0) {
+                if (m_ResultCode == 0) {
                     BitOn(pSys->flags, 0x02000000);
-                    s->fileFlag[fileNo] |= 1;
+                    s->fileFlag[m_SaveNo] |= 1;
                     s->flags |= 0x100;
                     if (type == 2) {
                         *sub = 3;
@@ -2560,27 +2560,27 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
                         (*sub)++;
                     }
                 } else {
-                    retry = 0;
-                    fileNo++;
+                    m_RetryCtr = 0;
+                    m_SaveNo++;
                 }
             } else if (r < 0) {
                 if (type == 2) {
-                    mode = 0;
-                    step = 0;
+                    m_Rno0 = 0;
+                    m_Rno1 = 0;
                 } else {
-                    errorSet(result);
+                    errorSet(m_ResultCode);
                 }
             }
         }
         break;
     case 2:
-        r = CARDGetStatus(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat);
+        r = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
         if (r == -1) {
             break;
         }
         if (r == 0) {
             if (s->stat.commentAddr == 0xFFFFFFFF) {
-                s->fileFlag[fileNo] |= 2;
+                s->fileFlag[m_SaveNo] |= 2;
                 *sub = 4;
             } else {
                 (*sub)++;
@@ -2590,36 +2590,36 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
         }
         break;
     case 3:
-        r = fileRead(&sub2, pInfo[fileNo], 0x200, 0x2000, s);
+        r = fileRead(&m_Rno3, pInfo[m_SaveNo], 0x200, 0x2000, s);
         if (r == 0) {
         } else if (r > 0) {
-            if (CRCVerify(pInfo[fileNo] + 4, 0x1FC, ((SaveInfo*) pInfo[fileNo])->crc) == 0) {
-                if (retry == 3) {
-                    s->fileFlag[fileNo] |= 2;
+            if (CRCVerify(pInfo[m_SaveNo] + 4, 0x1FC, ((SaveInfo*) pInfo[m_SaveNo])->crc) == 0) {
+                if (m_RetryCtr == 3) {
+                    s->fileFlag[m_SaveNo] |= 2;
                     (*sub)++;
                 } else {
-                    retry++;
+                    m_RetryCtr++;
                 }
             } else {
                 (*sub)++;
-                if (((SaveInfo*) pInfo[fileNo])->magic != 0x116) {
-                    s->fileFlag[fileNo] |= 6;
+                if (((SaveInfo*) pInfo[m_SaveNo])->magic != 0x116) {
+                    s->fileFlag[m_SaveNo] |= 6;
                 }
             }
         } else {
-            if (retry == 3) {
-                s->fileFlag[fileNo] |= 2;
+            if (m_RetryCtr == 3) {
+                s->fileFlag[m_SaveNo] |= 2;
                 (*sub)++;
             } else {
-                retry++;
+                m_RetryCtr++;
             }
         }
         break;
     case 4:
         if (fileClose(s) != 0) {
             *sub = 1;
-            retry = 0;
-            fileNo++;
+            m_RetryCtr = 0;
+            m_SaveNo++;
         }
         break;
     }
@@ -2636,7 +2636,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
     }
     switch (*sub) {
     case 0:
-        fileNo = 0;
+        m_SaveNo = 0;
         sprintf(fileName, "bh4_system");
         (*sub)++;
         // fallthrough
@@ -2644,7 +2644,7 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
         r = fileOpen(s);
         if (r == 0) {
         } else if (r > 0) {
-            if (result == 0) {
+            if (m_ResultCode == 0) {
                 (*sub)++;
                 s->flags |= 0x200;
             } else {
@@ -2653,10 +2653,10 @@ int cCard::systemFileCheck(u8* sub, CardSlot* s)
             }
         } else if (r < 0) {
             if (type == 2) {
-                mode = 0;
-                step = 0;
+                m_Rno0 = 0;
+                m_Rno1 = 0;
             } else {
-                errorSet(result);
+                errorSet(m_ResultCode);
             }
         }
         break;
@@ -2680,11 +2680,11 @@ int cCard::fileRead(u8* sub, void* buf, s32 len, s32 ofs, CardSlot* s)
         (*sub)++;
         // fallthrough
     case 1:
-        result = CARDGetResultCode(s->chan);
-        if (result == -1) {
+        m_ResultCode = CARDGetResultCode(s->chan);
+        if (m_ResultCode == -1) {
             break;
         }
-        if (result == 0) {
+        if (m_ResultCode == 0) {
             ret = 1;
         } else {
             ret = -1;
@@ -2708,11 +2708,11 @@ int cCard::fileWrite(u8* sub, void* buf, int blocks, CardSlot* s)
         (*sub)++;
         // fallthrough
     case 1:
-        result = CARDGetResultCode(s->chan);
-        if (result == -1) {
+        m_ResultCode = CARDGetResultCode(s->chan);
+        if (m_ResultCode == -1) {
             break;
         }
-        if (result == 0) {
+        if (m_ResultCode == 0) {
             ret = 1;
         } else {
             ret = -1;
@@ -2732,11 +2732,11 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
 
     switch (*sub) {
     case 0:
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             *sub = 2;
             break;
         }
-        r = fileOpen(&slotw[slot]);
+        r = fileOpen(&slotw[m_SlotNo]);
         if (r == 0) {
         } else if (r > 0) {
             (*sub)++;
@@ -2749,7 +2749,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         }
         break;
     case 1:
-        r = CARDGetStatus(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat);
+        r = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
         if (r == -1) {
             break;
         }
@@ -2761,7 +2761,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
             ret = -1;
             break;
         }
-        if (slotw[slot].stat.commentAddr != 0xFFFFFFFF) {
+        if (slotw[m_SlotNo].stat.commentAddr != 0xFFFFFFFF) {
             (*sub)++;
         } else {
             if (errMode != 0) {
@@ -2772,18 +2772,18 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         }
         break;
     case 2:
-        if (slot == 2) {
+        if (m_SlotNo == 2) {
             int dbg = 1;
-            if (!(pG->flags_54 & 0x20000)) {
+            if (!(pG->System_flg & 0x20000)) {
                 dbg = 0;
             }
             if (DBIsDebuggerPresent()) {
-                BitOn(pG->flags_54, 0x20000);
+                BitOn(pG->System_flg, 0x20000);
             }
             sprintf(fileName, "d:\\bio4/room/sysdata.dat");
             r = HDRead(fileName, pSysBuf);
             if (dbg == 0) {
-                BitOff(pG->flags_54, 0x20000);
+                BitOff(pG->System_flg, 0x20000);
             }
             if (r == 0) {
                 ret = -1;
@@ -2791,7 +2791,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
                 *sub = 3;
             }
         } else {
-            r = fileRead(sub2, pSysBuf, sysBlocks << 13, 0, &slotw[slot]);
+            r = fileRead(sub2, pSysBuf, m_SysSize << 13, 0, &slotw[m_SlotNo]);
             if (r == 0) {
             } else if (r > 0) {
                 (*sub)++;
@@ -2806,7 +2806,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         break;
     case 3:
         if (CRCVerify(pSysBuf, SYS_CRC, *(u32*) (pSysBuf + SYS_CRC)) == 0) {
-            if (retry == 3) {
+            if (m_RetryCtr == 3) {
                 if (errMode != 0) {
                     errorSet(-0x202);
                     return 0;
@@ -2814,10 +2814,10 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
                 ret = -1;
             } else {
                 *sub2 = 1;
-                retry++;
+                m_RetryCtr++;
             }
         } else {
-            if (slot == 2) {
+            if (m_SlotNo == 2) {
                 ret = 1;
             } else {
                 (*sub)++;
@@ -2825,7 +2825,7 @@ int cCard::sysfileRead(u8* sub, u8* sub2, int errMode)
         }
         break;
     case 4:
-        r = fileClose(&slotw[slot]);
+        r = fileClose(&slotw[m_SlotNo]);
         if (r == 0) {
         } else if (r > 0) {
             ret = 1;
@@ -2851,56 +2851,56 @@ void cCard::createSysfile()
     int ret;
     int sel;
 
-    ret = CARDProbeEx(slot, 0, 0);
+    ret = CARDProbeEx(m_SlotNo, 0, 0);
     sprintf(fileName, "bh4_system");
-    switch (step) {
+    switch (m_Rno1) {
     case 0:
         cardMesSet(0x2C, 0, 0x800000);
-        cMes.mes[0].cursor = 1;
-        step++;
+        cMes.mes[0].m_cur = 1;
+        m_Rno1++;
         // fallthrough
     case 1:
         if (ret == -3) {
             noCard = 1;
             break;
         }
-        sel = cMes.mes[0].result;
+        sel = cMes.mes[0].m_sel;
         switch (sel) {
         case 1:
             CoreSeCall(4, 0, 0, 0, 0);
             cardMesSet(0x27, 0, 0);
-            BitOn(pG->flags_54, 0x200);
-            step++;
+            BitOn(pG->System_flg, 0x200);
+            m_Rno1++;
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            errCode = -0x208;
-            mode = 5;
-            step = sel;
-            sub = 0;
-            sub2 = 0;
+            m_ErrCode = -0x208;
+            m_Rno0 = 5;
+            m_Rno1 = sel;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
             deleteAllMes();
             break;
         }
         break;
     case 2:
-        ret = mount(&sub, &slotw[slot]);
+        ret = mount(&m_Rno2, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            errorSet(result);
+            errorSet(m_ResultCode);
         }
         break;
     case 3:
-        ret = fileCreate(&sub, sysBlocks, &slotw[slot]);
+        ret = fileCreate(&m_Rno2, m_SysSize, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            sub = 0;
-            sub2 = 0;
-            step++;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
+            m_Rno1++;
         } else if (ret < 0) {
-            if (result == -5) {
+            if (m_ResultCode == -5) {
                 errorSet(-5);
             } else {
                 errorSet(-0x205);
@@ -2908,27 +2908,27 @@ void cCard::createSysfile()
         }
         break;
     case 4:
-        ret = CARDGetStatus(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat);
+        ret = CARDGetStatus(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat);
         if (ret == -1) {
             break;
         }
         if (ret == 0) {
-            step++;
+            m_Rno1++;
         } else {
             errorSet(-0x205);
         }
         break;
     case 5:
         makeSystemSaveData();
-        step++;
+        m_Rno1++;
         // fallthrough
     case 6:
-        ret = fileWrite(&sub, pSysBuf, sysBlocks, &slotw[slot]);
+        ret = fileWrite(&m_Rno2, pSysBuf, m_SysSize, &slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            step++;
+            m_Rno1++;
         } else if (ret < 0) {
-            if (result == -5) {
+            if (m_ResultCode == -5) {
                 errorSet(-5);
             } else {
                 errorSet(-0x205);
@@ -2936,17 +2936,17 @@ void cCard::createSysfile()
         }
         break;
     case 7:
-        makeCardStatus(&slotw[slot]);
-        CARDSetStatusAsync(slot, slotw[slot].fileInfo.fileNo, &slotw[slot].stat, 0);
-        step++;
+        makeCardStatus(&slotw[m_SlotNo]);
+        CARDSetStatusAsync(m_SlotNo, slotw[m_SlotNo].fileInfo.fileNo, &slotw[m_SlotNo].stat, 0);
+        m_Rno1++;
         // fallthrough
     case 8:
-        ret = CARDGetResultCode(slot);
+        ret = CARDGetResultCode(m_SlotNo);
         switch (ret) {
         case -1:
             break;
         case 0:
-            step++;
+            m_Rno1++;
             break;
         case -5:
             errorSet(-5);
@@ -2957,47 +2957,47 @@ void cCard::createSysfile()
         }
         break;
     case 9:
-        ret = fileClose(&slotw[slot]);
+        ret = fileClose(&slotw[m_SlotNo]);
         if (ret == 0) {
         } else if (ret > 0) {
-            timer = 0xF;
-            step++;
+            m_Timer = 0xF;
+            m_Rno1++;
             cardMesSet(0x28, 0, 0);
         } else if (ret < 0) {
             errorSet(-0x205);
         }
         break;
     case 10:
-        if (timer == 0) {
+        if (m_Timer == 0) {
             deleteAllMes();
-            BitOff(pG->flags_54, 0x200);
-            mode = 4;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
+            BitOff(pG->System_flg, 0x200);
+            m_Rno0 = 4;
+            m_Rno1 = 0;
+            m_Rno2 = 0;
+            m_Rno3 = 0;
         } else {
-            timer--;
+            m_Timer--;
         }
         break;
     }
     if (noCard == 1) {
-        mode = 0;
-        step = 0;
-        sub = 0;
-        sub2 = 0;
+        m_Rno0 = 0;
+        m_Rno1 = 0;
+        m_Rno2 = 0;
+        m_Rno3 = 0;
     }
 }
 
 void cCard::screenTrans()
 {
     if (type != 2) {
-        debugInfoDisp(slot, type);
+        debugInfoDisp(m_SlotNo, type);
     }
-    eprintf(24, 16, 0, 0, "%02d%02d%02d%02d", mode, step, sub, sub2);
-    if (type != 2 && !(pG->x8 & 0x80)) {
+    eprintf(24, 16, 0, 0, "%02d%02d%02d%02d", m_Rno0, m_Rno1, m_Rno2, m_Rno3);
+    if (type != 2 && !(pG->CardStatus & 0x80)) {
         g_id->move(this);
-        g_id->idsys.move();
-        g_id->idsys.trans();
+        g_id->m_IdSave.move();
+        g_id->m_IdSave.trans();
     }
 }
 
@@ -3031,13 +3031,13 @@ void cCard::calcTplAddr(TEXPalette* tpl)
     }
 }
 
-void cCard::setMsgWindow(int a, int b)
+void cCard::setMsgWindow(int a, int sw)
 {
     if (type != 2) {
-        if (pG->x8 & 0x80) {
-            Cckpt.msgWindow(b);
+        if (pG->CardStatus & 0x80) {
+            Cckpt.msgWindow(sw);
         } else {
-            setMsgBG(a, b);
+            setMsgBG(a, sw);
         }
     }
 }
@@ -3109,14 +3109,14 @@ void CardDbgCacheSet()
             d[i] = num % 10;                              \
             num /= 10;                                    \
             u = (id)->unitPtr((idNo_) - i, type);         \
-            u->flags_7F |= 2;                             \
-            u->no = d[i];                                 \
+            u->tex_flag |= 2;                             \
+            u->texNo = d[i];                                 \
         }                                                 \
     }
 
 void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 {
-    IDSystem* id = &g_id->idsys;
+    IDSystem* id = &g_id->m_IdSave;
     IdUnit* u;
     int chapter;
     int special;
@@ -3130,17 +3130,17 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
     putNumber(id, no + 1, 2, 2, type);
     u = id->unitPtr(0x16, type);
     if (info == 0) {
-        u->flags &= ~8;
+        u->be_flag &= ~8;
         return;
     }
-    u->flags |= 8;
+    u->be_flag |= 8;
     special = 0;
     chapter = info->chapter;
-    id->unitPtr(0x20, type)->flags &= ~8;
-    id->unitPtr(7, type)->flags &= ~8;
-    id->unitPtr(6, type)->flags &= ~8;
-    id->unitPtr(0x21, type)->flags &= ~8;
-    id->unitPtr(0x19, type)->flags &= ~8;
+    id->unitPtr(0x20, type)->be_flag &= ~8;
+    id->unitPtr(7, type)->be_flag &= ~8;
+    id->unitPtr(6, type)->be_flag &= ~8;
+    id->unitPtr(0x21, type)->be_flag &= ~8;
+    id->unitPtr(0x19, type)->be_flag &= ~8;
     if (broken) {
         u = id->unitPtr(0x20, type);
     } else {
@@ -3165,62 +3165,62 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
             goto skip;
         }
     }
-    u->flags |= 8;
+    u->be_flag |= 8;
 skip:
     getChapterSection(chapter, &chap, &sec);
     u = id->unitPtr(5, type);
-    u->flags_7F |= 2;
-    u->no = sec;
+    u->tex_flag |= 2;
+    u->texNo = sec;
     u = id->unitPtr(3, type);
-    u->flags_7F |= 2;
-    u->no = chap;
+    u->tex_flag |= 2;
+    u->texNo = chap;
     if (broken || special) {
-        id->unitPtr(3, type)->flags &= ~8;
-        id->unitPtr(4, type)->flags &= ~8;
-        id->unitPtr(5, type)->flags &= ~8;
+        id->unitPtr(3, type)->be_flag &= ~8;
+        id->unitPtr(4, type)->be_flag &= ~8;
+        id->unitPtr(5, type)->be_flag &= ~8;
     } else {
-        id->unitPtr(3, type)->flags |= 8;
-        id->unitPtr(4, type)->flags |= 8;
-        id->unitPtr(5, type)->flags |= 8;
+        id->unitPtr(3, type)->be_flag |= 8;
+        id->unitPtr(4, type)->be_flag |= 8;
+        id->unitPtr(5, type)->be_flag |= 8;
     }
     putNumber(id, info->x40, 0xA, 3, type);
     if (broken) {
-        id->unitPtr(8, type)->flags &= ~8;
-        id->unitPtr(9, type)->flags &= ~8;
-        id->unitPtr(0xA, type)->flags &= ~8;
+        id->unitPtr(8, type)->be_flag &= ~8;
+        id->unitPtr(9, type)->be_flag &= ~8;
+        id->unitPtr(0xA, type)->be_flag &= ~8;
     } else {
-        id->unitPtr(8, type)->flags |= 8;
-        id->unitPtr(9, type)->flags |= 8;
-        id->unitPtr(0xA, type)->flags |= 8;
+        id->unitPtr(8, type)->be_flag |= 8;
+        id->unitPtr(9, type)->be_flag |= 8;
+        id->unitPtr(0xA, type)->be_flag |= 8;
     }
     SecToTime(info->playTime, &h, &m, &s);
     putNumber(id, h, 0xC, 2, type);
     u = id->unitPtr(0xD, type);
-    u->no = 0xB;
-    u->flags_7F |= 2;
+    u->texNo = 0xB;
+    u->tex_flag |= 2;
     putNumber(id, m, 0xF, 2, type);
     u = id->unitPtr(0x10, type);
-    u->no = 0xB;
-    u->flags_7F |= 2;
+    u->texNo = 0xB;
+    u->tex_flag |= 2;
     putNumber(id, s, 0x12, 2, type);
     if (broken) {
-        id->unitPtr(0xB, type)->flags &= ~8;
-        id->unitPtr(0xC, type)->flags &= ~8;
-        id->unitPtr(0xD, type)->flags &= ~8;
-        id->unitPtr(0xE, type)->flags &= ~8;
-        id->unitPtr(0xF, type)->flags &= ~8;
-        id->unitPtr(0x10, type)->flags &= ~8;
-        id->unitPtr(0x11, type)->flags &= ~8;
-        id->unitPtr(0x12, type)->flags &= ~8;
+        id->unitPtr(0xB, type)->be_flag &= ~8;
+        id->unitPtr(0xC, type)->be_flag &= ~8;
+        id->unitPtr(0xD, type)->be_flag &= ~8;
+        id->unitPtr(0xE, type)->be_flag &= ~8;
+        id->unitPtr(0xF, type)->be_flag &= ~8;
+        id->unitPtr(0x10, type)->be_flag &= ~8;
+        id->unitPtr(0x11, type)->be_flag &= ~8;
+        id->unitPtr(0x12, type)->be_flag &= ~8;
     } else {
-        id->unitPtr(0xB, type)->flags |= 8;
-        id->unitPtr(0xC, type)->flags |= 8;
-        id->unitPtr(0xD, type)->flags |= 8;
-        id->unitPtr(0xE, type)->flags |= 8;
-        id->unitPtr(0xF, type)->flags |= 8;
-        id->unitPtr(0x10, type)->flags |= 8;
-        id->unitPtr(0x11, type)->flags |= 8;
-        id->unitPtr(0x12, type)->flags |= 8;
+        id->unitPtr(0xB, type)->be_flag |= 8;
+        id->unitPtr(0xC, type)->be_flag |= 8;
+        id->unitPtr(0xD, type)->be_flag |= 8;
+        id->unitPtr(0xE, type)->be_flag |= 8;
+        id->unitPtr(0xF, type)->be_flag |= 8;
+        id->unitPtr(0x10, type)->be_flag |= 8;
+        id->unitPtr(0x11, type)->be_flag |= 8;
+        id->unitPtr(0x12, type)->be_flag |= 8;
     }
     num = info->count + 1;
     if (info->mode == 3) {
@@ -3228,62 +3228,62 @@ skip:
     }
     putNumber(id, num, 0x14, 2, type);
     if (broken) {
-        id->unitPtr(0x13, type)->flags &= ~8;
-        id->unitPtr(0x14, type)->flags &= ~8;
+        id->unitPtr(0x13, type)->be_flag &= ~8;
+        id->unitPtr(0x14, type)->be_flag &= ~8;
     } else {
-        id->unitPtr(0x13, type)->flags |= 8;
-        id->unitPtr(0x14, type)->flags |= 8;
+        id->unitPtr(0x13, type)->be_flag |= 8;
+        id->unitPtr(0x14, type)->be_flag |= 8;
     }
-    id->unitPtr(0x22, type)->flags &= ~8;
-    id->unitPtr(0x17, type)->flags &= ~8;
-    id->unitPtr(0x18, type)->flags &= ~8;
+    id->unitPtr(0x22, type)->be_flag &= ~8;
+    id->unitPtr(0x17, type)->be_flag &= ~8;
+    id->unitPtr(0x18, type)->be_flag &= ~8;
     if (pSys->language == 0) {
         switch (info->x3D) {
         case 1:
-            id->unitPtr(0x22, type)->flags |= 8;
+            id->unitPtr(0x22, type)->be_flag |= 8;
             break;
         case 3:
         default:
-            id->unitPtr(0x17, type)->flags |= 8;
+            id->unitPtr(0x17, type)->be_flag |= 8;
             break;
         case 5:
-            id->unitPtr(0x18, type)->flags |= 8;
+            id->unitPtr(0x18, type)->be_flag |= 8;
             break;
         }
     } else if (pSys->language == 1) {
         switch (info->x3D) {
         case 5:
         default:
-            id->unitPtr(0x17, type)->flags |= 8;
+            id->unitPtr(0x17, type)->be_flag |= 8;
             break;
         case 6:
-            id->unitPtr(0x18, type)->flags |= 8;
+            id->unitPtr(0x18, type)->be_flag |= 8;
             break;
         }
     } else {
         switch (info->x3D) {
         case 3:
-            id->unitPtr(0x22, type)->flags |= 8;
+            id->unitPtr(0x22, type)->be_flag |= 8;
             break;
         case 5:
         default:
-            id->unitPtr(0x17, type)->flags |= 8;
+            id->unitPtr(0x17, type)->be_flag |= 8;
             break;
         case 6:
-            id->unitPtr(0x18, type)->flags |= 8;
+            id->unitPtr(0x18, type)->be_flag |= 8;
             break;
         }
     }
 }
 
-void CardID::updateSaveInfo(cCard* c)
+void CardID::updateSaveInfo(cCard* pCard)
 {
     int i;
 
     for (i = 0; i < 7; i++) {
         int type = 0x40 + i;
-        s8 sl = c->slot;
-        int base = c->fileNo - 3;
+        s8 sl = pCard->m_SlotNo;
+        int base = pCard->m_SaveNo - 3;
         int no = base + i;
         u32 f;
         // The original loop body spans more than 100 insn slots (notes included), so haifa never
@@ -3295,13 +3295,13 @@ void CardID::updateSaveInfo(cCard* c)
         if (no > 19) {
             no -= 20;
         }
-        g_id->idsys.unitPtrI(0x15, type)->flags |= 8;
-        f = (&c->slotw[sl])->fileFlag[no];
+        g_id->m_IdSave.unitPtrI(0x15, type)->be_flag |= 8;
+        f = (&pCard->slotw[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 1);
+                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 0);
+                dispSaveInfoI(no, (SaveInfo*) pCard->pInfo[(s8) no], type, 0);
             }
         } else {
             dispSaveInfoI(no, 0, type, 0);
@@ -3316,16 +3316,16 @@ void CardID::init(int type, CardArc* data)
     IdUnit* v;
     f32 zero;
 
-    this->type = type;
+    this->m_mode = type;
     pTex = (u8*) (data->ofs[0] + (u32) data);
     pSaveDat = (u8*) (data->ofs[1] + (u32) data);
     pFile = (u8*) (data->ofs[2] + (u32) data);
     pFrame = (u8*) (data->ofs[3] + (u32) data);
     pLoadDat = (u8*) (data->ofs[4] + (u32) data);
     pBg = (u8*) (data->ofs[5] + (u32) data);
-    idsys.gameInit(0x100);
+    m_IdSave.gameInit(0x100);
     IdTexRoomInit();
-    IdTexDataLoad(pTex, 6);
+    IdTexDataLoad(pTex, TEX_OWNER_ID_EVENT);
     IdSys.kill(0xFF, 0x28);
     IdSys.kill(0xFF, 0x29);
     IdSys.kill(0xFF, 0x21);
@@ -3334,55 +3334,55 @@ void CardID::init(int type, CardArc* data)
     IdSys.kill(0xFF, 0x30);
     IdSys.kill(0xFF, 0x2B);
     IdSys.kill(0xFF, 0x2A);
-    idsys.set(pFrame, 0xFF, 0x18, 9, 3, 0);
+    m_IdSave.set(pFrame, 0xFF, 0x18, 9, 3, 0);
     for (i = 0; i < 7; i++) {
-        idsys.setI(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
+        m_IdSave.setI(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
     }
-    if (this->type == 1) {
+    if (this->m_mode == 1) {
         IdSys.set(pSaveDat, 0xFF, 0x10, 0xF, 2, 0);
-        IdSys.unitPtr(1, 0x10)->dir |= 0xF;
-    } else if (this->type == 0) {
+        IdSys.unitPtr(1, 0x10)->rev_flag |= 0xF;
+    } else if (this->m_mode == 0) {
         IdSys.set(pLoadDat, 0xFF, 0x10, 0xF, 2, 0);
     }
     IdSys.set(pBg, 0xFF, 0x11, 0xF, 1, 0);
-    IdSys.unitPtr(0, 0x11)->flags &= ~8;
-    IdSys.unitPtr(0, 0x11)->dir |= 0xF;
-    IdSys.unitPtr(1, 0x11)->flags &= ~8;
-    IdSys.unitPtr(1, 0x11)->dir |= 0xF;
+    IdSys.unitPtr(0, 0x11)->be_flag &= ~8;
+    IdSys.unitPtr(0, 0x11)->rev_flag |= 0xF;
+    IdSys.unitPtr(1, 0x11)->be_flag &= ~8;
+    IdSys.unitPtr(1, 0x11)->rev_flag |= 0xF;
     zero = 0.0f;
     for (int j = 0; j < 7; j++) {
-        IdUnit* p = g_id->idsys.unitPtrI(0x15, 0x40 + j);
-        IdUnit* q = g_id->idsys.unitPtr((u8) (j + 0x10), 0x18);
-        q->kind = 1;
+        IdUnit* p = g_id->m_IdSave.unitPtrI(0x15, 0x40 + j);
+        IdUnit* q = g_id->m_IdSave.unitPtr((u8) (j + 0x10), 0x18);
+        q->type = 1;
         FSet(p->scr.z, zero);
         FSet(p->scr.y, zero);
         FSet(p->scr.x, zero);
-        g_id->idsys.unitParent(q, p);
+        g_id->m_IdSave.unitParent(q, p);
     }
-    u = g_id->idsys.unitPtr(0, 0x18);
+    u = g_id->m_IdSave.unitPtr(0, 0x18);
     g_p_path_org[0] = u->path0;
     g_p_hrmt_org[0] = u->curve[0];
     g_p_spln_org[0] = u->path1;
     g_pos0_org = u->scr;
-    v = g_id->idsys.unitPtr(0xA, 0x18);
+    v = g_id->m_IdSave.unitPtr(0xA, 0x18);
     u->path0 = 0;
     u->curve[0] = 0;
     u->path1 = 0;
     u->scr = v->scr;
-    u->dir |= 0xF;
-    IdSys.unitPtr(5, 0x10)->dir |= 0xF;
+    u->rev_flag |= 0xF;
+    IdSys.unitPtr(5, 0x10)->rev_flag |= 0xF;
     {
         IdUnit* w = IdSys.unitPtr(2, 0x10);
-        w->no = 0;
-        w->flags_7F |= 2;
+        w->texNo = 0;
+        w->tex_flag |= 2;
     }
-    state = 0;
-    step = 0;
-    x76 = 0;
-    x77 = 0;
+    rno0 = 0;
+    rno1 = 0;
+    rno2 = 0;
+    rno3 = 0;
 }
 
-void CardID::move(cCard* c)
+void CardID::move(cCard* pCard)
 {
     static void (CardID::*tbl[6])(cCard*) = {
         &CardID::wait, &CardID::start, &CardID::normal, &CardID::up_down, &CardID::up_down, &CardID::save,
@@ -3390,107 +3390,107 @@ void CardID::move(cCard* c)
     IdUnit* a;
     IdUnit* b;
 
-    (this->*tbl[state])(c);
-    if (state == 3) {
-        idsys.unitPtr(1, 0x18)->flags &= ~8;
-        idsys.unitPtr(0x15, 0x40)->flags &= ~8;
+    (this->*tbl[rno0])(pCard);
+    if (rno0 == 3) {
+        m_IdSave.unitPtr(1, 0x18)->be_flag &= ~8;
+        m_IdSave.unitPtr(0x15, 0x40)->be_flag &= ~8;
     } else {
-        idsys.unitPtr(1, 0x18)->flags |= 8;
-        idsys.unitPtr(0x15, 0x40)->flags |= 8;
+        m_IdSave.unitPtr(1, 0x18)->be_flag |= 8;
+        m_IdSave.unitPtr(0x15, 0x40)->be_flag |= 8;
     }
-    if (c->mode == 5) {
-        a = idsys.unitPtr(0, 0x18);
-        b = idsys.unitPtr(0xA, 0x18);
-        if ((a->dir & 0xF) == 0) {
+    if (pCard->m_Rno0 == 5) {
+        a = m_IdSave.unitPtr(0, 0x18);
+        b = m_IdSave.unitPtr(0xA, 0x18);
+        if ((a->rev_flag & 0xF) == 0) {
             SndCall(0, 0x2A, 0, 0, 0, 0);
             a->path0 = b->path0;
             a->curve[0] = b->curve[0];
             a->path1 = b->path1;
             a->scr = b->scr;
             FuncPathParametrize(a->path0, a->path1);
-            idsys.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
-            a->dir |= 0xF;
+            m_IdSave.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
+            a->rev_flag |= 0xF;
             setAction(0);
-            IdSys.unitPtr(5, 0x10)->dir |= 0xF;
-            state = 0;
+            IdSys.unitPtr(5, 0x10)->rev_flag |= 0xF;
+            rno0 = 0;
         }
     }
 }
 
-void CardID::wait(cCard* c)
+void CardID::wait(cCard* pCard)
 {
     IdUnit* a;
     IdUnit* b;
     int v = 1;
 
-    if (!(c->flag & 2)) {
+    if (!(pCard->m_Status & 2)) {
         v = 0;
     }
     if (v) {
-        BitOff(c->flag, 2);
-        a = g_id->idsys.unitPtr(0, 0x18);
-        b = g_id->idsys.unitPtr(0xA, 0x18);
+        BitOff(pCard->m_Status, 2);
+        a = g_id->m_IdSave.unitPtr(0, 0x18);
+        b = g_id->m_IdSave.unitPtr(0xA, 0x18);
         a->path0 = b->path0;
         a->curve[0] = b->curve[0];
         a->path1 = b->path1;
         a->scr = b->scr;
         FuncPathParametrize(a->path0, a->path1);
         IdSys.setTime(a, 0);
-        a->dir &= ~0xF;
-        IdSys.unitPtr(5, 0x10)->dir &= ~0xF;
-        updateSaveInfo(c);
-        state = 1;
+        a->rev_flag &= ~0xF;
+        IdSys.unitPtr(5, 0x10)->rev_flag &= ~0xF;
+        updateSaveInfo(pCard);
+        rno0 = 1;
         SndCall(0, 0x2D, 0, 0, 0, 0);
     }
 }
 
-void CardID::start(cCard* c)
+void CardID::start(cCard* pCard)
 {
-    state = 2;
-    if (idsys.unitPtr(0, 0x18)->end & 1) {
-        state = 2;
+    rno0 = 2;
+    if (m_IdSave.unitPtr(0, 0x18)->end & 1) {
+        rno0 = 2;
     }
 }
 
-void CardID::normal(cCard* c)
+void CardID::normal(cCard* pCard)
 {
     IdUnit* u;
 
     if (action & 4) {
         u = IdSys.unitPtr(1, 0x10);
-        u->dir &= ~0xF;
+        u->rev_flag &= ~0xF;
         IdSys.setTime(u, 0);
-        state = 5;
+        rno0 = 5;
         SndCall(0, 0x2D, 0, 0, 0, 0);
     } else if (action & 1) {
-        state = 3;
-        updateSaveInfo(c);
-        up_down(c);
+        rno0 = 3;
+        updateSaveInfo(pCard);
+        up_down(pCard);
     } else if (action & 2) {
-        state = 4;
-        updateSaveInfo(c);
-        up_down(c);
+        rno0 = 4;
+        updateSaveInfo(pCard);
+        up_down(pCard);
     } else {
         u = IdSys.unitPtr(2, 0x10);
-        u->flags_7F |= 2;
+        u->tex_flag |= 2;
     }
 }
 
-void CardID::up_down(cCard* c)
+void CardID::up_down(cCard* pCard)
 {
     IdUnit* a;
     IdUnit* b;
     IdUnit* w;
 
-    switch (step) {
+    switch (rno1) {
     case 0:
-        a = idsys.unitPtr(0, 0x18);
+        a = m_IdSave.unitPtr(0, 0x18);
         setAction(8);
-        if (state == 4) {
+        if (rno0 == 4) {
             u8 ids[2];
             int i;
-            b = idsys.unitPtr(8, 0x18);
-            if (type == 1) {
+            b = m_IdSave.unitPtr(8, 0x18);
+            if (m_mode == 1) {
                 ids[0] = 3;
                 ids[1] = 4;
             } else {
@@ -3502,13 +3502,13 @@ void CardID::up_down(cCard* c)
                 IdSys.setTime(IdSys.unitPtr(ids[1], 0x10), 0);
             }
             w = IdSys.unitPtr(2, 0x10);
-            w->texCnt = 0;
-            w->flags_7F |= 2;
+            w->tex_ptn_no = 0;
+            w->tex_flag |= 2;
         } else {
-            b = idsys.unitPtr(9, 0x18);
+            b = m_IdSave.unitPtr(9, 0x18);
             w = IdSys.unitPtr(2, 0x10);
-            w->texCnt = 0;
-            w->flags_7F &= ~2;
+            w->tex_ptn_no = 0;
+            w->tex_flag &= ~2;
         }
         a->path0 = b->path0;
         a->curve[0] = b->curve[0];
@@ -3516,11 +3516,11 @@ void CardID::up_down(cCard* c)
         a->scr = b->scr;
         FuncPathParametrize(a->path0, a->path1);
         IdSys.setTime(a, 0);
-        step++;
+        rno1++;
         break;
     case 1:
-        if (idsys.unitPtr(0, 0x18)->end & 1) {
-            IdUnit* u = idsys.unitPtr(0, 0x18);
+        if (m_IdSave.unitPtr(0, 0x18)->end & 1) {
+            IdUnit* u = m_IdSave.unitPtr(0, 0x18);
             u->path0 = g_p_path_org[0];
             u->curve[0] = (Hermite1*) g_p_hrmt_org[0];
             u->path1 = g_p_spln_org[0];
@@ -3528,37 +3528,37 @@ void CardID::up_down(cCard* c)
             FuncPathParametrize(u->path0, u->path1);
             IdSys.setTime(u, 0);
             setAction(0);
-            state = 2;
-            step = 0;
+            rno0 = 2;
+            rno1 = 0;
         } else {
             if (action & 1) {
-                state = 3;
-                step = 0;
+                rno0 = 3;
+                rno1 = 0;
             } else if (action & 2) {
-                state = 4;
-                step = 0;
+                rno0 = 4;
+                rno1 = 0;
             }
         }
-        if (state == 3) {
+        if (rno0 == 3) {
             w = IdSys.unitPtr(2, 0x10);
-            if (w->texCnt > 4) {
-                w->texCnt = 0;
-                w->flags_7F |= 2;
+            if (w->tex_ptn_no > 4) {
+                w->tex_ptn_no = 0;
+                w->tex_flag |= 2;
             }
         }
         break;
     }
 }
 
-void CardID::save(cCard* c)
+void CardID::save(cCard* pCard)
 {
     IdUnit* u = IdSys.unitPtr(1, 0x10);
     Hermite1* h = u->curve[0];
     int n = ((s8*) h)[3];
     int i;
 
-    if (c->mode == 5) {
-        u->dir |= 0xF;
+    if (pCard->m_Rno0 == 5) {
+        u->rev_flag |= 0xF;
         return;
     }
     if (u->end & 1) {
@@ -3571,7 +3571,7 @@ void CardID::save(cCard* c)
             case 0:
                 break;
             case 1:
-                updateSaveInfo(c);
+                updateSaveInfo(pCard);
                 break;
             case 2:
             case 3:
@@ -3587,8 +3587,8 @@ void CardID::save(cCard* c)
 
 void CardID::quit()
 {
-    idsys.free();
-    if (!(pG->flags_5014 & 0x8000)) {
+    m_IdSave.free();
+    if (!(pG->Status_flg[2] & 0x8000)) {
         Cckpt.roomInit();
     }
 }
@@ -3598,7 +3598,7 @@ void CardID::setAction(int a)
     action = a;
 }
 
-void setMsgBG(int a, int b)
+void setMsgBG(int a, int flag)
 {
     IdUnit* u;
 
@@ -3607,13 +3607,13 @@ void setMsgBG(int a, int b)
     } else {
         u = IdSys.unitPtr(1, 0x11);
     }
-    switch (b) {
+    switch (flag) {
     case 1:
-        u->flags |= 8;
-        u->dir &= ~0xF;
+        u->be_flag |= 8;
+        u->rev_flag &= ~0xF;
         break;
     case 0:
-        u->dir |= 0xF;
+        u->rev_flag |= 0xF;
         break;
     }
 }

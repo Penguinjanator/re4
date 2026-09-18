@@ -46,7 +46,7 @@ void cObj05::move()
             return;
         }
     }
-    PSVECAdd(&rot, &w->rotSpd, &rot);
+    PSVECAdd(&ang, &w->rotSpd, &ang);
     if (w->fadeStart < w->frame) {
         if (w->fadeStart + w->fadeLen <= w->frame) {
             w->r *= w->rMul;
@@ -74,11 +74,11 @@ void cObj05::move()
         f32 ratio = (f32) w->frame / (f32) w->fadeStart;
         w->a = (f32) w->alpha0 * ratio;
     }
-    if (x12F != 2) {
+    if (ot_type != 2) {
         if (w->a < 250.0f) {
-            x12F = 1;
+            ot_type = 1;
         } else {
-            x12F = 0;
+            ot_type = 0;
         }
     }
     if (w->life != 0 && w->life <= w->frame) {
@@ -86,11 +86,11 @@ void cObj05::move()
         return;
     }
     w->frame++;
-    pInfo->color[0] = (u8) w->r;
-    pInfo->color[1] = (u8) w->g;
-    pInfo->color[2] = (u8) w->b;
-    pInfo->color[3] = 0xFF;
-    alpha = w->a * (1.0f / 255.0f);
+    pModelInfo->color[0] = (u8) w->r;
+    pModelInfo->color[1] = (u8) w->g;
+    pModelInfo->color[2] = (u8) w->b;
+    pModelInfo->color[3] = 0xFF;
+    invisible_factor = w->a * (1.0f / 255.0f);
     scale.y = w->scaleY * w->scale;
     scale.z = scale.x = w->scaleXZ * w->scale;
 
@@ -102,7 +102,7 @@ void cObj05::move()
     for (i = 0, p = pParts; i < nParts; i++, p = p->pParts) {
         if (p->efmStat == 0) {
             PSVECAdd(&pos, &w->center, &d);
-            PSVECSubtract(&p->worldPos, &d, &d);
+            PSVECSubtract(&p->world, &d, &d);
             if (PSVECMag(&d) < range || w->rangeStep == 0xFF) {
                 p->efmStat = 1;
                 if (d.x == 0.0f && d.y == 0.0f && d.z == 0.0f) {
@@ -126,18 +126,18 @@ void cObj05::move()
             PSVECAdd(&p->pos, &v, &p->pos);
             PSVECScale(&p->efmSpd, &p->efmSpd, w->spdDamp);
             p->efmSpd.y += w->grav;
-            PSVECAdd(&p->rot, &p->efmRotSpd, &p->rot);
-            p->rot.x = LIMIT_ANGLE(p->rot.x);
-            p->rot.y = LIMIT_ANGLE(p->rot.y);
-            p->rot.z = LIMIT_ANGLE(p->rot.z);
-            old = p->worldPos;
-            PSMTXMultVec(p->pParent->mat, &p->pos, &p->worldPos);
+            PSVECAdd(&p->ang, &p->efmRotSpd, &p->ang);
+            p->ang.x = LIMIT_ANGLE(p->ang.x);
+            p->ang.y = LIMIT_ANGLE(p->ang.y);
+            p->ang.z = LIMIT_ANGLE(p->ang.z);
+            old = p->world;
+            PSMTXMultVec(p->pParent->mat, &p->pos, &p->world);
             hit = 0;
             if (w->flags & 2) {
-                if (SatMgr.hitCheck(&old, &p->worldPos, &hitPos, &nrm, 0, 0)) {
-                    p->worldPos = hitPos;
+                if (SatMgr.hitCheck(&old, &p->world, &hitPos, &nrm, 0, 0)) {
+                    p->world = hitPos;
                     hit = 1;
-                    PSVECAdd(&nrm, &p->worldPos, &p->worldPos);
+                    PSVECAdd(&nrm, &p->world, &p->world);
                     len = RootSumSquare3(&p->efmSpd);
                     nrm.x = -nrm.x;
                     nrm.y = -nrm.y;
@@ -147,49 +147,49 @@ void cObj05::move()
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, -0.8f);
                 }
             } else if (w->flags & 1) {
-                f32 floor = EatMgr.getFloor(&p->worldPos, 600.0f, 100000.0f, &attr, 0);
+                f32 floor = EatMgr.getFloor(&p->world, 600.0f, 100000.0f, &attr, 0);
                 f32 ofs = (f32) w->groundOfs;
 
-                if ((pG->flags_64 & 0x800000) && !(pG->flags_60 & 0x10000)) {
+                if ((pG->Debug_flg[1] & 0x800000) && !(pG->Debug_flg[0] & 0x10000)) {
                     floor = 0.0f;
                 }
-                if (p->worldPos.y - ofs < floor) {
+                if (p->world.y - ofs < floor) {
                     FSet(p->efmSpd.x, p->efmSpd.x * w->bounceXZ);
                     FSet(p->efmSpd.y, p->efmSpd.y * -w->bounceY);
                     FSet(p->efmSpd.z, p->efmSpd.z * w->bounceXZ);
-                    FSet(p->worldPos.y, floor + ofs);
+                    FSet(p->world.y, floor + ofs);
                     hit = 1;
                     PSVECScale(&p->efmRotSpd, &p->efmRotSpd, 0.8f);
                     if (w->flags & 8) {
                         f32 ry;
 
-                        p->rot.x = LIMIT_ANGLE(p->rot.x);
-                        p->rot.y = LIMIT_ANGLE(p->rot.y);
-                        p->rot.z = LIMIT_ANGLE(p->rot.z);
-                        p->rot.x += PI / 2;
+                        p->ang.x = LIMIT_ANGLE(p->ang.x);
+                        p->ang.y = LIMIT_ANGLE(p->ang.y);
+                        p->ang.z = LIMIT_ANGLE(p->ang.z);
+                        p->ang.x += PI / 2;
                         PSVECScale(&p->efmRotSpd, &p->efmRotSpd, -0.9f);
-                        ry = p->rot.y;
-                        PSVECScale(&p->rot, &p->rot, 0.55f);
-                        p->rot.y = ry;
-                        p->rot.x -= PI / 2;
+                        ry = p->ang.y;
+                        PSVECScale(&p->ang, &p->ang, 0.55f);
+                        p->ang.y = ry;
+                        p->ang.x -= PI / 2;
                     }
                 }
             }
             if (hit) {
-                PSMTXMultVec(inv, &p->worldPos, &p->pos);
+                PSMTXMultVec(inv, &p->world, &p->pos);
                 if (PSVECMag(&p->efmSpd) < 15.0f) {
-                    if ((w->flags & 8) && fabsf(p->rot.x + PI / 2) > 0.4f) {
+                    if ((w->flags & 8) && fabsf(p->ang.x + PI / 2) > 0.4f) {
                         f32 ry;
 
-                        p->rot.x = LIMIT_ANGLE(p->rot.x);
-                        p->rot.y = LIMIT_ANGLE(p->rot.y);
-                        p->rot.z = LIMIT_ANGLE(p->rot.z);
-                        p->rot.x += PI / 2;
+                        p->ang.x = LIMIT_ANGLE(p->ang.x);
+                        p->ang.y = LIMIT_ANGLE(p->ang.y);
+                        p->ang.z = LIMIT_ANGLE(p->ang.z);
+                        p->ang.x += PI / 2;
                         PSVECScale(&p->efmRotSpd, &p->efmRotSpd, -0.7f);
-                        ry = p->rot.y;
-                        PSVECScale(&p->rot, &p->rot, 0.8f);
-                        p->rot.y = ry;
-                        p->rot.x -= PI / 2;
+                        ry = p->ang.y;
+                        PSVECScale(&p->ang, &p->ang, 0.8f);
+                        p->ang.y = ry;
+                        p->ang.x -= PI / 2;
                     } else {
                         p->efmStat = 2;
                     }
@@ -207,9 +207,9 @@ void Efm05RotMatrix(cObj* obj, Mtx m)
     Mtx tmp;
 
     PSMTXMultVec(m, &obj->pos, &obj->pos);
-    RotMatrix(tmp, &obj->rot);
+    RotMatrix(tmp, &obj->ang);
     PSMTXConcat(m, tmp, tmp);
-    Matrix2AxisAngle(tmp, &obj->rot);
+    Matrix2AxisAngle(tmp, &obj->ang);
     tmp[0][3] = 0.0f;
     tmp[1][3] = 0.0f;
     tmp[2][3] = 0.0f;

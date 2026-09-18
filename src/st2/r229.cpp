@@ -55,19 +55,19 @@ void R229Init()
 {
     R229Work*& wp = r229_work.p;   // the store's `lis` sits before the mem_calloc call (r30)
 
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
 #line 56 "D:/Bio4/Prog/r229.cpp"
     wp = (R229Work*) MEM_CALLOC(sizeof(R229Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r221_execEmCamera1, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r221_execEmCamera1, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceExec(0x12, (TaskFunc) r229_openTerm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r229_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     setTexRender();
     PlRegistRoomEff((PlRoomEff*) r229_roomEff);
-    pPL->x12F = 5;
-    pG->flags_51C4 |= 0x02000000;
+    pPL->ot_type = 5;
+    pG->Scenario_flg[1] |= 0x02000000;
 }
 
 void R229Main()
@@ -137,12 +137,12 @@ static void r221_execEmCamera1()
 // TexRender blend setup of one water object.
 #define R229_TEX_OBJ(id, tbl, col, v138, v136, v137) \
     obj = SmdGetObjPtr(id);                          \
-    obj->pInfo->setTexBlendTbl(tbl);                 \
-    obj->pInfo->setBlendRatio(0xFF);                 \
-    obj->pInfo->color[3] = col;                      \
-    obj->x136 = v136;                                \
-    obj->x137 = v137;                                \
-    obj->x138 = v138;
+    obj->pModelInfo->setTexBlendTbl(tbl);                 \
+    obj->pModelInfo->setBlendRatio(0xFF);                 \
+    obj->pModelInfo->color[3] = col;                      \
+    obj->Shader_type = v136;                                \
+    obj->Refract_pow = v137;                                \
+    obj->Refract_ratio = v138;
 
 // The water surface: two render targets blended into the water objects.
 static void setTexRender()
@@ -156,7 +156,7 @@ static void setTexRender()
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
         tbl0[5] = r229_work.p->tex[0]->texId;
-        r229_work.p->tex[0]->repType = 1;
+        r229_work.p->tex[0]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r229_work.p->tex[0]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
@@ -170,17 +170,17 @@ static void setTexRender()
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
         tbl1[5] = r229_work.p->tex[1]->texId;
-        r229_work.p->tex[1]->repType = 1;
+        r229_work.p->tex[1]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 3, r229_work.p->tex[1]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xF);
-    obj->pInfo->setTexBlendTbl(tbl1);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
-    obj->x136 = 2;
-    obj->x137 = 8;
-    obj->x138 = 0x30;
+    obj->pModelInfo->setTexBlendTbl(tbl1);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
+    obj->Shader_type = 2;
+    obj->Refract_pow = 8;
+    obj->Refract_ratio = 0x30;
 }

@@ -18,7 +18,7 @@ void Wep01_init(cModel* m)
     if (obj == 0) {
         pLog->err(0, 0, "Wep01_init() cObjFn57 CREATE FAILED");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x35, 1);

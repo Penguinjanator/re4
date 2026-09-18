@@ -11,10 +11,10 @@ void Light06_Move(cLight* l)
 {
     Light06Work* w = (Light06Work*)l->work;
 
-    switch (l->x138) {
+    switch (l->Rno0) {
     case 0:
         w->rate = w->start;
-        l->x138 = 1;
+        l->Rno0 = 1;
     case 1:
         w->rate += w->speed;
         if (w->speed > 0.0f) {
@@ -26,9 +26,9 @@ void Light06_Move(cLight* l)
                 w->rate = 0.0f;
             }
         }
-        l->curColor.r = (u8)(w->rate * l->color.r);
-        l->curColor.g = (u8)(w->rate * l->color.g);
-        l->curColor.b = (u8)(w->rate * l->color.b);
+        l->DispCol.r = (u8)(w->rate * l->Col.r);
+        l->DispCol.g = (u8)(w->rate * l->Col.g);
+        l->DispCol.b = (u8)(w->rate * l->Col.b);
         break;
     }
 }

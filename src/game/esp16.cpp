@@ -7,15 +7,15 @@
 #include "esp.h"
 
 struct Esp16Work {
-    u32 nPt;        // 0x00 number of chain points (gen->xC8 + 2)
+    u32 Num;        // 0x00 number of chain points (gen->xC8 + 2)
     cEsp3f* pos;    // 0x04 point positions
     cEsp3f* spd;    // 0x08 point speeds
     Vec grav;       // 0x0C acceleration added every frame (gen->xE4..)
-    Vec rnd;        // 0x18 random jitter amplitude (gen->xF0..)
-    f32 spdRate;    // 0x24 how much of the constraint correction feeds back into the speed (gen->xE0 / 100)
-    f32 damp;       // 0x28 speed damping (gen->xDC / 100)
-    f32 len;        // 0x2C segment length (gen->xD8)
-    cModel* parts;  // 0x30 model part the far end is attached to
+    Vec rand_plus;        // 0x18 random jitter amplitude (gen->xF0..)
+    f32 nen;    // 0x24 how much of the constraint correction feeds back into the speed (gen->xE0 / 100)
+    f32 del;       // 0x28 speed damping (gen->xDC / 100)
+    f32 max_len;        // 0x2C segment length (gen->xD8)
+    cModel* pParts;  // 0x30 model part the far end is attached to
 };
 
 // Rope / chain: a string of points held together by distance constraints, drawn as a textured
@@ -23,7 +23,7 @@ struct Esp16Work {
 // a model part.
 class cEsp16 : public cEsp {
 public:
-    Esp16Work work;  // 0xF8
+    Esp16Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -37,7 +37,7 @@ cEsp* Esp16_Create()
 
 void cEsp16::move()
 {
-    Esp16Work* w = &work;
+    Esp16Work* w = &m_Free;
     Vec pos0;
     Vec d;
     Vec nrm;
@@ -52,23 +52,23 @@ void cEsp16::move()
         PushEsp(this);
         return;
     }
-    FSet(xB8, 100000000.0f);
+    FSet(m_Radius, 100000000.0f);
     if (parent == pEffParentWorld) {
-        pos0 = pos;
+        pos0 = m_Pos;
     } else {
-        PSMTXMultVec(parent->mat, &pos, &pos0);
+        PSMTXMultVec(parent->mat, &m_Pos, &pos0);
     }
-    for (i = 1; i < w->nPt; i++) {
+    for (i = 1; i < w->Num; i++) {
         p = Esp3f_GetVecPtr(w->pos, i);
         s = Esp3f_GetVecPtr(w->spd, i);
         PSVECAdd(p, s, Esp3f_GetVecPtr(w->pos, i));
         PSVECSubtract(Esp3f_GetVecPtr(w->pos, i - 1), Esp3f_GetVecPtr(w->pos, i), &d);
-        if (PSVECMag(&d) > w->len) {
+        if (PSVECMag(&d) > w->max_len) {
             static f32 nen_mul = 1.0f;
 
 #line 63 "D:/Bio4/Prog/esp16.cpp"
             VECNormalize(&d, &nrm);
-            PSVECScale(&nrm, &d, -w->len);
+            PSVECScale(&nrm, &d, -w->max_len);
             PSVECAdd(Esp3f_GetVecPtr(w->pos, i - 1), &d, Esp3f_GetVecPtr(w->pos, i));
             PSVECScale(&nrm, &d, -PSVECDotProduct(&nrm, Esp3f_GetVecPtr(w->spd, i)) * nen_mul);
             PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &d, Esp3f_GetVecPtr(w->spd, i));
@@ -76,34 +76,34 @@ void cEsp16::move()
         {
             Vec jit;
 
-            jit.x = w->rnd.x * fRand1_1();
-            jit.y = w->rnd.y * fRand1_1();
-            jit.z = w->rnd.z * fRand1_1();
+            jit.x = w->rand_plus.x * fRand1_1();
+            jit.y = w->rand_plus.y * fRand1_1();
+            jit.z = w->rand_plus.z * fRand1_1();
             PSVECAdd(Esp3f_GetVecPtr(w->pos, i), &jit, Esp3f_GetVecPtr(w->pos, i));
         }
-        PSVECScale(&d, &d, w->spdRate);
+        PSVECScale(&d, &d, w->nen);
         PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &d, Esp3f_GetVecPtr(w->spd, i));
         PSVECSubtract(Esp3f_GetVecPtr(w->spd, i - 1), &d, Esp3f_GetVecPtr(w->spd, i - 1));
         PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &w->grav, Esp3f_GetVecPtr(w->spd, i));
-        PSVECScale(Esp3f_GetVecPtr(w->spd, i), Esp3f_GetVecPtr(w->spd, i), w->damp);
+        PSVECScale(Esp3f_GetVecPtr(w->spd, i), Esp3f_GetVecPtr(w->spd, i), w->del);
     }
     *Esp3f_GetVecPtr(w->pos, 0) = pos0;
-    if (w->parts != NULL) {
+    if (w->pParts != NULL) {
         Vec v = { 0.0f, 0.01f, 0.0f };
 
-        PSMTXMultVec(w->parts->mat, &v, &v);
-        *Esp3f_GetVecPtr(w->pos, w->nPt - 1) = v;
-        for (i = w->nPt - 2; i > 1; i--) {
+        PSMTXMultVec(w->pParts->mat, &v, &v);
+        *Esp3f_GetVecPtr(w->pos, w->Num - 1) = v;
+        for (i = w->Num - 2; i > 1; i--) {
             static f32 nen_mul = 1.0f;
 
             p = Esp3f_GetVecPtr(w->pos, i);
             s = Esp3f_GetVecPtr(w->spd, i);
             PSVECAdd(p, s, Esp3f_GetVecPtr(w->pos, i));
             PSVECSubtract(Esp3f_GetVecPtr(w->pos, i + 1), Esp3f_GetVecPtr(w->pos, i), &d);
-            if (PSVECMag(&d) > w->len) {
+            if (PSVECMag(&d) > w->max_len) {
 #line 109 "D:/Bio4/Prog/esp16.cpp"
                 VECNormalize(&d, &nrm);
-                PSVECScale(&nrm, &d, -w->len);
+                PSVECScale(&nrm, &d, -w->max_len);
                 PSVECAdd(Esp3f_GetVecPtr(w->pos, i + 1), &d, Esp3f_GetVecPtr(w->pos, i));
                 PSVECScale(&nrm, &d, -PSVECDotProduct(&nrm, Esp3f_GetVecPtr(w->spd, i)) * nen_mul);
                 PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &d, Esp3f_GetVecPtr(w->spd, i));
@@ -111,23 +111,23 @@ void cEsp16::move()
             {
                 Vec jit;
 
-                jit.x = w->rnd.x * fRand1_1();
-                jit.y = w->rnd.y * fRand1_1();
-                jit.z = w->rnd.z * fRand1_1();
+                jit.x = w->rand_plus.x * fRand1_1();
+                jit.y = w->rand_plus.y * fRand1_1();
+                jit.z = w->rand_plus.z * fRand1_1();
                 PSVECAdd(Esp3f_GetVecPtr(w->pos, i), &jit, Esp3f_GetVecPtr(w->pos, i));
             }
-            PSVECScale(&d, &d, w->spdRate);
+            PSVECScale(&d, &d, w->nen);
             PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &d, Esp3f_GetVecPtr(w->spd, i));
             PSVECSubtract(Esp3f_GetVecPtr(w->spd, i + 1), &d, Esp3f_GetVecPtr(w->spd, i + 1));
             PSVECAdd(Esp3f_GetVecPtr(w->spd, i), &w->grav, Esp3f_GetVecPtr(w->spd, i));
-            PSVECScale(Esp3f_GetVecPtr(w->spd, i), Esp3f_GetVecPtr(w->spd, i), w->damp);
+            PSVECScale(Esp3f_GetVecPtr(w->spd, i), Esp3f_GetVecPtr(w->spd, i), w->del);
         }
     }
 }
 
 extern "C" void Esp16_Trans(cEsp16* esp)
 {
-    Esp16Work* w = &esp->work;
+    Esp16Work* w = &esp->m_Free;
     Mtx inv;
     Vec cam;
     Vec q0;
@@ -149,17 +149,17 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     f32 half;
     register f32 z asm("fr12"); // COMPILER-DIFF: #13
 
-    if (esp->cnt < w->nPt) {
-        n = esp->cnt + 1;
+    if (esp->m_Life_time < w->Num) {
+        n = esp->m_Life_time + 1;
     } else {
-        n = w->nPt;
+        n = w->Num;
     }
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -179,22 +179,22 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     // their unsigned magic double separately. Which expression it was is unknown. It must stay
     // in the first block so its constant is hoisted to the top.
     rate = (f32)(int)n;
-    if (esp->cnt + w->nPt + esp->anmNo == 99) { // COMPILER-DIFF: candidate (sched block split)
+    if (esp->m_Life_time + w->Num + esp->m_Tex_id == 99) { // COMPILER-DIFF: candidate (sched block split)
         t = z;
     }
     t = z;
     tw = 1.0f;
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
         pLog->err(0, 0, "ESP_16 : Parent is screen.");
         return;
     }
-    PSMTXIdentity(esp->mat);
-    RotMatrix(esp->mat, &esp->rot);
-    PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);
-    PSMTXInverse(esp->mat, inv);
+    PSMTXIdentity(esp->m_Mat);
+    RotMatrix(esp->m_Mat, &esp->m_Ang);
+    PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -205,13 +205,13 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     p1 = NULL;
     cam = pG->Cam.param.pos;
-    if (esp->flags & 4) {
+    if (esp->m_Tool_flg & 4) {
         t = tw;
-        tw = -1.0f / (f32)w->nPt;
+        tw = -1.0f / (f32)w->Num;
     } else {
-        tw = tw / (f32)w->nPt;
+        tw = tw / (f32)w->Num;
     }
-    if (esp->flags & 2) {
+    if (esp->m_Tool_flg & 2) {
         s0 = 1.0f;
         s1 = 0.0f;
     } else {
@@ -236,7 +236,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
             VECNormalize(&cross, &nrm);
         }
         rate = (f32)i / (f32)(n - 1);
-        half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * esp->scale;
+        half = (rate * esp->m_Size_base_y + (1.0f - rate) * esp->m_Size_base_x) * esp->m_Size_mul;
         PSVECScale(&nrm, &q0, half);
         PSVECScale(&nrm, &q1, -half);
         PSVECAdd(&q0, p0, &q0);
@@ -254,58 +254,58 @@ extern "C" void Esp16_Trans(cEsp16* esp)
 
 void cEsp16::Destruct()
 {
-    Esp16Work* w = &work;
+    Esp16Work* w = &m_Free;
     cEsp* b;
 
     b = (cEsp*)w->pos;
-    if (b != NULL && (b->flag & 1)) {
+    if (b != NULL && (b->m_Be_flg & 1)) {
         PushEsp(b);
     }
     b = (cEsp*)w->spd;
-    if (b != NULL && (b->flag & 1)) {
+    if (b != NULL && (b->m_Be_flg & 1)) {
         PushEsp(b);
     }
 }
 
 int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp16Work* w = &work;
+    Esp16Work* w = &m_Free;
     Vec p;
     Vec z;
     int i;
 
-    BitSet(w->nPt, (u8)(gen->xC8 + 2));
-    if (parent != pEffParentWorld && (parentCnt == 0xFF || parentCnt <= cnt)) {
-        s8 no = gen->xC9;
+    BitSet(w->Num, (u8)(gen->Work8[0] + 2));
+    if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
+        s8 no = gen->Work8[1];
 
         if (no != 0) {
-            if ((u32)(no - 1) >= pModel->nParts) {
-                pLog->err(0, 0, "ESP16 : Wk1 PartsNo > %d ", pModel->nParts);
+            if ((u32)(no - 1) >= m_pMod->nParts) {
+                pLog->err(0, 0, "ESP16 : Wk1 PartsNo > %d ", m_pMod->nParts);
                 return 0;
             }
-            w->parts = pModel->getPartsPtr(no - 1);
+            w->pParts = m_pMod->getPartsPtr(no - 1);
         }
     }
-    w->grav = *(Vec*)&gen->xE4;
-    w->len = gen->xD8;
-    w->damp = gen->xDC * 0.01f;
-    w->spdRate = gen->xE0 * 0.01f;
-    w->rnd = *(Vec*)&gen->xF0;
-    if (!Esp3f_Alloc(sizeof(Vec), w->nPt, &w->pos, &info) || !Esp3f_Alloc(sizeof(Vec), w->nPt, &w->spd, &info)) {
+    w->grav = *(Vec*)&gen->Vec1.x;
+    w->max_len = gen->Vec0.x;
+    w->del = gen->Vec0.y * 0.01f;
+    w->nen = gen->Vec0.z * 0.01f;
+    w->rand_plus = *(Vec*)&gen->Vec2.x;
+    if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pos, &info) || !Esp3f_Alloc(sizeof(Vec), w->Num, &w->spd, &info)) {
         pLog->warn(0, 0, "ESP_16 : Buf alloc failed.");
         return 0;
     }
-    FSet(xB8, 100000000.0f);
-    BitOn16(dispFlag, 2);
+    FSet(m_Radius, 100000000.0f);
+    BitOn16(m_Flg, 2);
     z.z = 0.0f;
     z.y = 0.0f;
     z.x = 0.0f;
     if (parent == pEffParentWorld) {
-        p = pos;
+        p = m_Pos;
     } else {
-        PSMTXMultVec(parent->mat, &pos, &p);
+        PSMTXMultVec(parent->mat, &m_Pos, &p);
     }
-    for (i = w->nPt - 1; i >= 0; i--) {
+    for (i = w->Num - 1; i >= 0; i--) {
         *Esp3f_GetVecPtr(w->pos, i) = p;
         *Esp3f_GetVecPtr(w->spd, i) = z;
     }

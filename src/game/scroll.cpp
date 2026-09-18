@@ -17,7 +17,7 @@ void slideTplAddr(void* tpl, int ofs);
 // Scroll object id -> name table (unused in this build; keeps the strings and the table).
 struct ScrIdRef {
     u8 type;
-    const char* name;
+    const char* Name;
 };
 
 static u32 DmyZeroTpl[3] = {0x0020AF30, 0, 0x0000000C};
@@ -40,7 +40,7 @@ static const u8 ScrObjIdNum = 16;
 static inline const char* scrIdName(u32 no)
 {
     if (no < ScrObjIdNum) {
-        return ScrIdRefTbl[no].name;
+        return ScrIdRefTbl[no].Name;
     }
     return NULL;
 }
@@ -96,9 +96,9 @@ void SmdClear(int mode)
 void workInit(cObj* obj)
 {
     obj->setNoSuspend(1);
-    obj->x12E = 2;
+    obj->kindid = 2;
     obj->type = 0;
-    obj->x12F = 3;
+    obj->ot_type = 3;
     obj->blk = -2;
 }
 
@@ -107,8 +107,8 @@ void SmdSetup(int blk)
     if (pSmd == NULL) {
         return;
     }
-    if (pSmd->version == 0) {
-        pLog->err(0, 0, "ERROR! SmdSet() OLD version %02x.", pSmd->version);
+    if (pSmd->Version == 0) {
+        pLog->err(0, 0, "ERROR! SmdSet() OLD version %02x.", pSmd->Version);
     }
     setObj(blk);
 }
@@ -119,7 +119,7 @@ int setObj(int blk)
     cObj* obj;
     int i;
 
-    for (i = 0; i < pSmd->nWork; i++, w++) {
+    for (i = 0; i < pSmd->nModel; i++, w++) {
         if (w->id == 0xFF) {
             continue;
         }
@@ -163,7 +163,7 @@ int SmdSetParam(cObj* obj, SmdWork* w)
     obj->be_flag |= 4;
     obj->be_flag &= ~0x20;
     obj->x3D0 = w->b.x47;
-    if (pSmd->version <= 0x1F && w->motNo == 0) {
+    if (pSmd->Version <= 0x1F && w->motNo == 0) {
         w->motNo = 0xFF;
     }
     if (w->binNo == 0xFF) {
@@ -191,8 +191,8 @@ int SmdSetParam(cObj* obj, SmdWork* w)
         return 0;
     }
     if (pSmdComn != NULL) {
-        u8* tbl = (u8*) pSmdComn + pSmdComn->ofsTpl;
-        obj->pInfo->addTplAddr(tbl + *(u32*) tbl);
+        u8* tbl = (u8*) pSmdComn + pSmdComn->TplTblOfs;
+        obj->pModelInfo->addTplAddr(tbl + *(u32*) tbl);
     }
     if (w->motNo != 0xFF) {
         if (w->flags & 0x40) {
@@ -205,18 +205,18 @@ int SmdSetParam(cObj* obj, SmdWork* w)
         }
     }
     obj->pos = w->pos;
-    obj->rot = w->rot;
+    obj->ang = w->rot;
     obj->scale = w->scale;
     if (obj->scale.x == 0.0f || obj->scale.y == 0.0f || obj->scale.z == 0.0f) {
         pLog->warn(0, 0, "SmdInit() cObj SCALE SET 0.0");
     }
-    b = &obj->pInfo->bound;
+    b = &obj->pModelInfo->bound;
     size.x = b->size.x;
     size.y = b->size.y;
     size.z = b->size.z;
-    obj->lightInfo.init2(2, 1, &obj->pInfo->bound.center, &size, 0x10);
+    obj->LightInfo.init2(2, 1, &obj->pModelInfo->bound.center, &size, 0x10);
     obj->matUpdate();
-    obj->lightInfo.updateMatrix(obj);
+    obj->LightInfo.updateMatrix(obj);
     return 1;
 }
 
@@ -231,7 +231,7 @@ void SmxSetFlag(cObj* obj, u32 flags)
         obj->be_flag &= ~0x2000000;
     }
     if (flags & 8) {
-        obj->x103 = 0x80;
+        obj->alpha_omit = 0x80;
     }
     if (flags & 0x10) {
         obj->be_flag |= 0x8000;
@@ -249,13 +249,13 @@ int SmxGetFlag(cObj* obj)
     if (be & 0x10) {
         flags = 1;
     }
-    if (obj->pInfo->pData->flags & 0x40000000) {
+    if (obj->pModelInfo->pData->flags & 0x40000000) {
         flags |= 2;
     }
     if (be & 0x2000000) {
         flags |= 4;
     }
-    if (obj->x103 != 0xFF) {
+    if (obj->alpha_omit != 0xFF) {
         flags |= 8;
     }
     if (be & 0x8000) {
@@ -296,11 +296,11 @@ void smxInit(cObj* obj, SmxWork* w)
         return;
     }
     obj->type = w->type;
-    obj->lightInfo.x54 = w->x4;
-    obj->x12F = w->type2;
+    obj->LightInfo.SelectMask = w->SelectMask;
+    obj->ot_type = w->type2;
     SmxSetFlag(obj, w->flags);
-    obj->x135 = w->x3;
-    mi = obj->pInfo;
+    obj->CullMode = w->CullMode;
+    mi = obj->pModelInfo;
     if (mi != NULL) {
         col = w->color;
         *(u32*) mi->color = col;
@@ -316,7 +316,7 @@ void smxInit(cObj* obj, SmxWork* w)
         } else {
             mi->color2[3] = 0xFF;
         }
-        mi->xD6 = mi->color[3];
+        mi->blend_mode = mi->color[3];
         mi->color[3] = 0xFF;
         mi->uvScrollU = w->uvScrollU;
         mi->uvScrollV = w->uvScrollV;
@@ -335,7 +335,7 @@ void smxInit(cObj* obj, SmxWork* w)
 
 void* SmdGetTplPtr(int no)
 {
-    u8* tbl = (u8*) pSmd + pSmd->ofsTpl;
+    u8* tbl = (u8*) pSmd + pSmd->TplTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
@@ -344,8 +344,8 @@ cObj* SmdGetObjPtr(u32 id)
     cObj* obj;
 
     if (id > 0xF9) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 return NULL;
             }
         }
@@ -360,8 +360,8 @@ cObj* SmdGetObjPtr(u32 id)
     }
     obj = scrObjTbl[id];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 return NULL;
             }
         }
@@ -413,9 +413,9 @@ void BlockDestroy(int blk)
     if (p != NULL) {
         do {
             cur = p;
-            next = (cObj*) cur->next;
+            next = (cObj*) cur->pNext;
             p = next;
-            if (cur->x12E == 2 && cur->blk == blk) {
+            if (cur->kindid == 2 && cur->blk == blk) {
                 ObjMgr.destroy(cur);
             }
         } while (next != NULL);
@@ -435,7 +435,7 @@ void cSmd::slide(int ofs)
         pLog->err(0, 0, "cSmd::slide(%d) PTR ERROR", ofs);
         return;
     }
-    for (i = 0; i < nWork; i++, w++) {
+    for (i = 0; i < nModel; i++, w++) {
         if (w->id != 0xFF && !(w->flags & 0x10) && w->binNo + 1 > nBin) {
             nBin = w->binNo + 1;
         }
@@ -443,7 +443,7 @@ void cSmd::slide(int ofs)
     {
         // An integer base (not a pointer) ranks below the hoisted 0x02FFFFFF constant in the
         // callee-saved allocation (base r28, constant r29).
-        u32 base = (u32) this + ofsBin;
+        u32 base = (u32) this + BinTblOfs;
         for (i = 0; i < nBin; i++) {
             addr = base + ((u32*) base)[i];
             if (addr < 0x80000000 || addr > 0x82FFFFFF) {
@@ -455,12 +455,12 @@ void cSmd::slide(int ofs)
     }
     nTpl = 0;   // set before the call: the pseudo crosses it and takes a callee-saved register
     w = getWorkPtr(0);
-    for (i = 0; i < nWork; i++, w++) {
+    for (i = 0; i < nModel; i++, w++) {
         if (w->id != 0xFF && !(w->flags & 0x10) && w->tplNo + 1 > nTpl) {
             nTpl = w->tplNo + 1;
         }
     }
-    tbl = (u32*) ((u8*) this + ofsTpl);
+    tbl = (u32*) ((u8*) this + TplTblOfs);
     for (i = 0; i < nTpl; i++) {
         slideTplAddr((u8*) tbl + tbl[i], ofs);
     }
@@ -468,33 +468,33 @@ void cSmd::slide(int ofs)
 
 SmdWork* cSmd::getWorkPtr(int no)
 {
-    return (flags & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[no];
+    return (Flag & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[no];
 }
 
 void* cSmd::getBinPtr(int no)
 {
-    u8* tbl = (u8*) this + ofsBin;
+    u8* tbl = (u8*) this + BinTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
 void* cSmd::getTplPtr(int no)
 {
-    u8* tbl = (u8*) this + ofsTpl;
+    u8* tbl = (u8*) this + TplTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
 void* cSmd::getMotPtr(int no)
 {
-    u8* tbl = (u8*) this + ofsMot;
+    u8* tbl = (u8*) this + MotTblOfs;
     return tbl + ((u32*) tbl)[no];
 }
 
 int cSmd::getWorkNum()
 {
-    int n = nWork;
+    int n = nModel;
     u32 i;
 
-    if (flags & 1) {
+    if (Flag & 1) {
         // guarded do-while + indexing: the loop test's second `grp.nGroup` read becomes the
         // `mr r10,r0` PRE copy, and `grp.num[i]` gives the `addi r3,r3,0x14` after the compare
         i = 0;
@@ -527,8 +527,8 @@ cObj* SmdGetGroupObjPtr(u32 id)
     cObj* obj;
 
     if (id > 0xF9) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 goto ng;
             }
         }
@@ -540,8 +540,8 @@ cObj* SmdGetGroupObjPtr(u32 id)
     }
     obj = scrObjTbl[id];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
-        if (pG->flags_60 & 0x80000000) {
-            if (!(pG->flags_60 & 0x2000000)) {
+        if (pG->Debug_flg[0] & 0x80000000) {
+            if (!(pG->Debug_flg[0] & 0x2000000)) {
                 goto ng;
             }
         }
@@ -614,16 +614,16 @@ cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int fro
         return NULL;
     }
     obj->pos = *pos;
-    obj->rot = *rot;
+    obj->ang = *rot;
     obj->setNoSuspend(1);
     obj->be_flag |= 0x20;
     obj->blk = -1;
-    mi = obj->pInfo;
+    mi = obj->pModelInfo;
     b = &mi->bound;
     size.x = b->size.x;
     size.y = b->size.y;
     size.z = b->size.z;
     PSVECSubtract(&mi->bound.center, &obj->pParts->pos, &d);
-    obj->lightInfo.init2(2, 1, &d, &size, lightFlag);
+    obj->LightInfo.init2(2, 1, &d, &size, lightFlag);
     return obj;
 }

@@ -54,13 +54,13 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetObj14() failed.");
@@ -72,7 +72,7 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
 
     obj14ClothSet((cObjBell*) obj);
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &l0, &l1, 0x10);
+    obj->LightInfo.init2(0, 1, &l0, &l1, 0x10);
     w->ringTimer = 0;
     p0.x = 0.0f;
     p0.y = 0.0f;
@@ -86,17 +86,17 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->pEmHit->setParent(obj, 1, 0);
         YarareInit(w->pEmHit, 0.0f, -650.0f, 0.0f, 300.0f, 50.0f, 1, 1);
     }
-    obj->xFD = 0;
-    obj->xFC = 1;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_1 = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     return obj;
 }
 
 void cObjBell::move()
 {
     obj14DmCk(this);
-    Obj14_R1_move_tbl[xFD](this);
+    Obj14_R1_move_tbl[r_no_1](this);
     obj14ClothMove(this);
 }
 
@@ -114,7 +114,7 @@ void obj14_R1_Set(cObjBell* obj)
         p.z = 250.0f;
         PSMTXMultVec(obj->mat, &p, &p);
         p.y = SatMgr.getFloor(&p, 600.0f, 100000.0f, 0, 0);
-        BitOn(pG->flags_5010, 0x20000000);
+        BitOn(pG->Status_flg[1], 0x20000000);
         // A byte-pointer destination: the copy is then a plain (non-struct) store and the
         // original reloads pG for the following store, as the target shows.
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
@@ -126,23 +126,23 @@ void obj14_R1_Break(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
 
-    if (obj->xFE == 0) {
+    if (obj->r_no_2 == 0) {
         obj->be_flag &= ~2;
         if (w->pEmHit) {
             w->pEmHit->hp = 0;
         }
-        EstSet(0, -1, &obj->pos, &obj->rot, 1, 7, 0, 0, 0, 0);
-        obj->xFE++;
+        EstSet(0, -1, &obj->pos, &obj->ang, 1, 7, 0, 0, 0, 0);
+        obj->r_no_2++;
     }
     obj14MatCalc(obj);
 }
 
 void obj14MatCalc(cObjBell* obj)
 {
-    RotMatrix(obj->worldMat, &obj->rot);
-    TransMatrix(obj->worldMat, &obj->pos);
-    ScaleMatrix(obj->worldMat, &obj->scale);
-    PSMTXCopy(obj->worldMat, obj->mat);
+    RotMatrix(obj->l_mat, &obj->ang);
+    TransMatrix(obj->l_mat, &obj->pos);
+    ScaleMatrix(obj->l_mat, &obj->scale);
+    PSMTXCopy(obj->l_mat, obj->mat);
     if (obj->pMotion == 0) {
         obj->partsMatCalc();
     }
@@ -231,7 +231,7 @@ void obj14DmCk(cObjBell* obj)
         break;
     }
     if (EmGetDmPos(w->pEmHit, &dm, &dm2) == 0) {
-        dm = w->pEmHit->x328;
+        dm = w->pEmHit->dmPos;
     }
     PSVECSubtract(&obj->pos, &dm, &dir);
     dir.y = 0.0f;
@@ -250,10 +250,10 @@ void obj14DmCk(cObjBell* obj)
 
 void cObjBell::setBreak()
 {
-    xFC = 1;
-    xFE = 0;
-    xFD = 1;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_2 = 0;
+    r_no_1 = 1;
+    r_no_3 = 0;
 }
 
 int cObjBell::ckBreakEnable()
@@ -270,30 +270,30 @@ void obj14ClothSet(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
 
-    w->cloth.num = 2;
-    w->cloth.pParts = obj14ClothP;
-    w->cloth.pUp = obj14ClothUp;
-    w->cloth.pDown = obj14ClothDp;
+    w->cloth.Num = 2;
+    w->cloth.pCloth = obj14ClothP;
+    w->cloth.pParent = obj14ClothUp;
+    w->cloth.pChild = obj14ClothDp;
     w->cloth.pMax = obj14ClothMax;
-    w->cloth.x3C = 15.0f;
-    w->cloth.x40 = 1.0f;
-    w->cloth.x08 = 0;
-    w->cloth.x0C = 0;
-    w->cloth.x10 = 0;
-    w->cloth.x14 = 0;
-    w->cloth.x2C = 0;
-    w->cloth.x30 = 0;
-    w->cloth.x20 = 0;
-    w->cloth.x24 = 0;
-    w->cloth.x34 = 0;
-    w->cloth.x38 = 0;
-    w->cloth.x58 = 0;
-    w->cloth.x44 = 0;
-    w->cloth.x48 = 0.0f;
-    w->cloth.x4C = 0.0f;
-    w->cloth.x50 = 0.0f;
-    w->cloth.flags = 0x100;
-    w->cloth.x54 = 0;
+    w->cloth.Gravity = 15.0f;
+    w->cloth.Rate = 1.0f;
+    w->cloth.pLeft = 0;
+    w->cloth.pRight = 0;
+    w->cloth.pUpLeft = 0;
+    w->cloth.pUpRight = 0;
+    w->cloth.pWindSin = 0;
+    w->cloth.pWindRate = 0;
+    w->cloth.pGravity = 0;
+    w->cloth.pRate = 0;
+    w->cloth.pAtset = 0;
+    w->cloth.At_num = 0;
+    w->cloth.pEm_at = 0;
+    w->cloth.Bundle_num = 0;
+    w->cloth.WindSin = 0.0f;
+    w->cloth.Stretchy = 0.0f;
+    w->cloth.Move_rate = 0.0f;
+    w->cloth.Flag = 0x100;
+    w->cloth.pPtbl = 0;
     PenClothSet(obj, &w->cloth, 100.0f);
 }
 

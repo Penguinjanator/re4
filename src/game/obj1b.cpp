@@ -58,7 +58,7 @@ void obj1b_R1_Parent(cObjSpear* obj);
 void obj1b_R1_Fall(cObjSpear* obj);
 void obj1b_R1_Throw(cObjSpear* obj);
 int obj1bHitCk(cObjSpear* obj);
-int GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, int max, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
+int GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, int max, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
 }
 
 void (*Obj1b_R1_move_tbl[6])(cObjSpear*) = { obj1b_R1_Set, obj1b_R1_LostWait, obj1b_R1_Lost, obj1b_R1_Parent, obj1b_R1_Fall, obj1b_R1_Throw };
@@ -77,7 +77,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos = *pos;
     }
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetObj1b() modelInit() failed.");
@@ -88,7 +88,7 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 3000.0f, 3000.0f, 0.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 4);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 4);
     w->flags = 0;
     w->parentTimer = 0;
     w->estTimer = 0;
@@ -118,11 +118,11 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->x6C = 0xFF;
     w->x6D = 0xFF;
     w->espId = 0x32;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
-    RotMatrix(obj->mat, &obj->rot);
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     obj->partsMatCalc();
@@ -145,21 +145,21 @@ void cObjSpear::move()
         ObjMgr.destroy(this);
         return;
     }
-    Obj1b_R1_move_tbl[xFD](this);
+    Obj1b_R1_move_tbl[r_no_1](this);
     if ((be_flag & 0x201) != 1) {
         return;
     }
     if (w->parent == 0) {
         return;
     }
-    if (w->parent->lightInfo.x50 & 2) {
-        lightInfo.x50 = (lightInfo.x50 & ~0x10) | 2;
+    if (w->parent->LightInfo.EnableMask & 2) {
+        LightInfo.EnableMask = (LightInfo.EnableMask & ~0x10) | 2;
     }
     if (w->parent == 0) {
         return;
     }
-    alpha = w->parent->alpha;
-    x158 = w->parent->x158;
+    invisible_factor = w->parent->invisible_factor;
+    invisible_factor2 = w->parent->invisible_factor2;
     if (w->parent->be_flag & 2) {
         be_flag |= 2;
     } else {
@@ -168,7 +168,7 @@ void cObjSpear::move()
     if (w->parent == 0) {
         return;
     }
-    if (w->parent->id == 0 && (pG->flags_500C & 0x400)) {
+    if (w->parent->id == 0 && (pG->Status_flg[0] & 0x400)) {
         be_flag &= ~2;
     }
 }
@@ -178,7 +178,7 @@ void obj1b_R1_Set(cObjSpear* obj)
     if (obj->pMotion) {
         MotionMove(obj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();
@@ -192,19 +192,19 @@ void obj1b_R1_LostWait(cObjSpear* obj)
     Vec scr;
     Vec p;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 120;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer == 0) {
-            obj->alpha -= 0.1f;
-            if (obj->alpha <= 0.0f) {
-                obj->alpha = 0.0f;
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+            obj->invisible_factor -= 0.1f;
+            if (obj->invisible_factor <= 0.0f) {
+                obj->invisible_factor = 0.0f;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
                 break;
             }
         } else {
@@ -213,14 +213,14 @@ void obj1b_R1_LostWait(cObjSpear* obj)
         p = obj->pos;
         GetScreenPos(&p, &scr);
         if (scr.z > 1.0f) {
-            obj->xFC = 1;
-            obj->xFD = 2;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 2;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     obj->partsMatCalc();
@@ -229,11 +229,11 @@ void obj1b_R1_LostWait(cObjSpear* obj)
 
 void obj1b_R1_Lost(cObjSpear* obj)
 {
-    if (obj->xFE == 0) {
+    if (obj->r_no_2 == 0) {
         obj->be_flag &= ~2;
         obj->be_flag &= ~0x20;
         ObjMgr.destroy(obj);
-        obj->xFE++;
+        obj->r_no_2++;
     }
 }
 
@@ -242,7 +242,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
     SpearWork* w = &obj->spear;
     cModel* parent = w->parent;
 
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
@@ -292,7 +292,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
         ScaleMatrix(obj->mat, &obj->scale);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
@@ -303,7 +303,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
     } else if (parent && parent->id == 0x2F && w->estTimer) {
         w->estTimer--;
         if ((w->estTimer & 1) == 0) {
-            if (pG->flags_5010 & 0x00100000) {
+            if (pG->Status_flg[1] & 0x00100000) {
                 Vec p;
 
                 p.x = 0.0f;
@@ -475,11 +475,11 @@ void obj1b_R1_Fall(cObjSpear* obj)
         obj->pos.x = obj->mat[0][3];
         obj->pos.y = obj->mat[1][3];
         obj->pos.z = obj->mat[2][3];
-        Matrix2AxisAngle(obj->mat, &obj->rot);
-        obj->xFC = 1;
-        obj->xFD = 1;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        Matrix2AxisAngle(obj->mat, &obj->ang);
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 1;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
     }
     obj->partsWorldCalc();
 }
@@ -493,11 +493,11 @@ void obj1b_R1_Throw(cObjSpear* obj)
     f32 wh;
     f32 len;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
         w->timer2 = 60;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -508,10 +508,10 @@ void obj1b_R1_Throw(cObjSpear* obj)
             }
         }
         if (w->timer2 == 0) {
-            obj->xFC = 1;
-            obj->xFD = 2;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->r_no_0 = 1;
+            obj->r_no_1 = 2;
+            obj->r_no_2 = 0;
+            obj->r_no_3 = 0;
             return;
         }
         w->timer2--;
@@ -519,21 +519,21 @@ void obj1b_R1_Throw(cObjSpear* obj)
     }
     w->throwSpd.y -= 15.0f;
     PSVECAdd(&obj->pos, &w->throwSpd, &obj->pos);
-    if (EatMgr.hitCheck(&obj->oldPos, &obj->pos, &hit, 0, 0, 0)) {
+    if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, 0, 0, 0)) {
         obj->pos = hit;
         SndCall(6, 1, &obj->pos, 0, 0, 0);
-        obj->xFC = 1;
-        obj->xFD = 1;
-        obj->xFE = 0;
-        obj->xFF = 0;
+        obj->r_no_0 = 1;
+        obj->r_no_1 = 1;
+        obj->r_no_2 = 0;
+        obj->r_no_3 = 0;
         return;
     }
-    PSVECSubtract(&obj->pos, &obj->oldPos, &d);
+    PSVECSubtract(&obj->pos, &obj->pos_old, &d);
     len = SQRTF(d.x * d.x + d.z * d.z);
-    obj->rot.x = -atan2f(d.y, len);
-    obj->rot.y = atan2f(d.x, d.z);
-    obj->rot.z = 0.0f;
-    RotMatrix(obj->mat, &obj->rot);
+    obj->ang.x = -atan2f(d.y, len);
+    obj->ang.y = atan2f(d.x, d.z);
+    obj->ang.z = 0.0f;
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     obj->partsWorldCalc();
     if (GetWaterHeight(&obj->pos, &wh)) {
@@ -542,7 +542,7 @@ void obj1b_R1_Throw(cObjSpear* obj)
                 return;
             }
         }
-        if (wh < obj->oldPos.y && wh > obj->pos.y) {
+        if (wh < obj->pos_old.y && wh > obj->pos.y) {
             p = obj->pos;
             p.y = wh;
             EstSet(0, -1, &p, 0, 0xF, 0x13, 0, 0, 0, 0);
@@ -565,10 +565,10 @@ int obj1bHitCk(cObjSpear* obj)
     int no;
     f32 len;
 
-    if (GetWepTargetList2(&obj->oldPos, &obj->pos, &target, 1, &hit, &nrm, &attr, 0x15, 0)) {
+    if (GetWepTargetList2(&obj->pos_old, &obj->pos, &target, 1, &hit, &nrm, &attr, 0x15, 0)) {
         part = target.part;
         em = target.em;
-        em->dmg.set(0, 10, 0x15, &em->oldPos, part->rad, part);
+        em->dmg.set(0, 10, 0x15, &em->pos_old, part->rad, part);
         if (part->flags & 0x4000) {
             Mtx inv;
             Vec v;
@@ -583,17 +583,17 @@ int obj1bHitCk(cObjSpear* obj)
             PSVECScale(&v, &v, -50.0f);
             PSVECAdd(&obj->pos, &v, &obj->pos);
             len = SQRTF(obj->pos.x * obj->pos.x + obj->pos.z * obj->pos.z);
-            obj->rot.x = -atan2f(-obj->pos.y, len);
-            obj->rot.y = atan2f(-obj->pos.x, -obj->pos.z);
-            obj->rot.z = 0.0f;
+            obj->ang.x = -atan2f(-obj->pos.y, len);
+            obj->ang.y = atan2f(-obj->pos.x, -obj->pos.z);
+            obj->ang.z = 0.0f;
         } else {
             no = 0;
             obj->pos.x = 0.0f;
             obj->pos.y = 0.0f;
             obj->pos.z = 0.0f;
-            obj->rot.x = 0.0f;
-            obj->rot.y = 0.0f;
-            obj->rot.z = 0.0f;
+            obj->ang.x = 0.0f;
+            obj->ang.y = 0.0f;
+            obj->ang.z = 0.0f;
         }
         obj->scale.x = 1.5f;
         obj->scale.y = 1.5f;
@@ -604,13 +604,13 @@ int obj1bHitCk(cObjSpear* obj)
             SpearEstOpt opt;
             Vec d;
 
-            PSVECSubtract(&em->pos, &em->oldPos, &d);
+            PSVECSubtract(&em->pos, &em->pos_old, &d);
             memclr_asm(&opt, sizeof(SpearEstOpt));
             opt.flag = 1;
             opt.spd = d;
             EstSet((int) obj, -1, 0, 0, 0x27, 0, 0, 0, (u32) obj, &opt);
             EstSet((int) obj, -1, 0, 0, 0x27, 5, 0, 0, (u32) obj, 0);
-            SndCall(8, 4, &obj->oldPos, em->id, 0, 0);
+            SndCall(8, 4, &obj->pos_old, em->id, 0, 0);
             w->estTimer = 600;
         }
         w->parentTimer = 1800;
@@ -630,10 +630,10 @@ void cObjSpear::setParent(cModel* parent, int partsNo, int noNormalize)
     } else {
         w->flags &= ~1;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setFall(u8 type, Vec* dir)
@@ -691,11 +691,11 @@ void cObjSpear::setFall(u8 type, Vec* dir)
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    Matrix2AxisAngle(mat, &this->ang);
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setThrow(Vec* dir)
@@ -715,26 +715,26 @@ void cObjSpear::setThrow(Vec* dir)
         PSMTXMultVecSR(mat, &d, &w->throwSpd);
     }
     len = SQRTF(d.x * d.x + d.z * d.z);
-    rot.x = -atan2f(d.y, len);
-    rot.y = atan2f(w->throwSpd.x, w->throwSpd.z);
-    rot.z = 0.0f;
+    ang.x = -atan2f(d.y, len);
+    ang.y = atan2f(w->throwSpd.x, w->throwSpd.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    oldPos = pos;
-    RotMatrix(mat, &rot);
+    pos_old = pos;
+    RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     w->parent = 0;
-    xFC = 1;
-    xFD = 5;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 5;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjSpear::setLost()
 {
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }

@@ -6,7 +6,7 @@
 // Per-weapon hit effect ids (game/at_sub2.cpp). Layout partially known.
 class AtEffInfo {
 public:
-    u32 flags;      // 0x00 bit0: registered (est.cpp EspSetEatEffect)
+    u32 flag;      // 0x00 bit0: registered (est.cpp EspSetEatEffect)
     u32 eff0[2];    // 0x04  (cEatMgr::initEffInfo presets every pair's first id to 0xD2)
     u32 eff13[2];   // 0x0C weapon 0x13
     u32 eff16[2];   // 0x14 weapon 0x16

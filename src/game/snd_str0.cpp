@@ -8,7 +8,7 @@ u32 Snd_str_prepare(u16 blk_no, u16 req_no, char* name, s8 no)
 
     rit = Snd_get_rit_adrs(blk_no, req_no);
     shd = Snd_get_shd_adrs(blk_no, req_no);
-    ret = Snd_str_init(shd, rit, shd->aram, name, no);
+    ret = Snd_str_init(shd, rit, shd->offset, name, no);
     return ret;
 }
 
@@ -21,7 +21,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     if (no >= 0) {
         idx = no;
     } else {
-        idx = rit->str_no;
+        idx = rit->pl_id;
     }
     str = &Snd_str_work[idx];
     if (str->status != 0) {
@@ -52,9 +52,9 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     str->pan = rit->pan;
     str->span = str_init_get_span(rit);
     str->vol = str_init_get_vol(rit);
-    str->x2B = 0;
-    str->auxA = rit->auxA;
-    str->auxB = rit->auxB;
+    str->svol = 0;
+    str->auxA = rit->aux_a;
+    str->auxB = rit->aux_b;
     str->rate = (f32) shd->rate;
     str->req_vol = 0;
     str->calc_vol = 0;
@@ -83,9 +83,9 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     str->blk_size = str->blk_half * 2;
     str->play_nbl = 0;
     str->play_pos = 0;
-    str->x84 = str->blk_size;
+    str->blk_end = str->blk_size;
     str->loop_start = shd->loop_start;
-    str->loop_end = shd->loop_end;
+    str->loop_end = shd->lpend_nbl;
     str->play_blk = -1;
     str->prev_blk = -1;
     str->blk_cnt = 0;
@@ -108,7 +108,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
             str->shortflag |= 0x4;
         }
     }
-    if (Snd_str_ax_voice_init(str, rit->voice_start, rit->voice_num) == 1) {
+    if (Snd_str_ax_voice_init(str, rit->ch, rit->poly) == 1) {
         return 0;
     }
     str->state = 0;

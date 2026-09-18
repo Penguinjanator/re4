@@ -15,10 +15,10 @@ void Wep10_init(cModel* m)
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep10_init() cObjWep CREATE FAILED");
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x8), 0x44, 1);

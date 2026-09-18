@@ -6,7 +6,7 @@
 // game/cString.cpp: minimal heap string. `str` points at the shared "" literal when empty.
 class cString {
 public:
-    char* str;  // 0x00
+    char* m_str;  // 0x00
 
     cString();
     cString(const char* s);

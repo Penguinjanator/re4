@@ -5,14 +5,14 @@
 #include "esp.h"
 
 struct Esp1aWork {
-    Vec ofs;  // 0x00 camera-relative jitter applied this frame
-    Vec prm;  // 0x0C x: sideways jitter, y: vertical jitter, z: distance toward the camera
+    Vec Move_vec;  // 0x00 camera-relative jitter applied this frame
+    Vec Dist;  // 0x0C x: sideways jitter, y: vertical jitter, z: distance toward the camera
 };
 
 // Jittering sprite spawned in a random cone around a model part (esp0b-style camera jitter).
 class cEsp1a : public cEsp {
 public:
-    Esp1aWork work;  // 0xF8
+    Esp1aWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -27,7 +27,7 @@ cEsp* Esp1a_Create()
 
 void cEsp1a::move()
 {
-    Esp1aWork* w = &work;
+    Esp1aWork* w = &m_Free;
     Vec look;
     Vec up;
     Vec side;
@@ -36,32 +36,32 @@ void cEsp1a::move()
     Mtx inv;
     Camera* cam;
 
-    PSVECSubtract(&pos, &w->ofs, &pos);
+    PSVECSubtract(&m_Pos, &w->Move_vec, &m_Pos);
     if (CommonMove()) {
         if (!AnmMove()) {
             PushEsp(this);
         } else {
             cam = &pG->Cam;
             if (parent != pEffParentWorld) {
-                PSMTXMultVec(parent->mat, &pos, &wpos);
+                PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             } else {
-                wpos = pos;
+                wpos = m_Pos;
             }
             PSVECSubtract(&wpos, &cam->param.pos, &look);
 #line 84 "D:/Bio4/Prog/esp1a.cpp"
             VECNormalize(&look, &look);
             CameraGetUpVec(cam, &up);
             PSVECCrossProduct(&look, &up, &side);
-            PSVECScale(&look, &w->ofs, -w->prm.z);
-            PSVECScale(&side, &tmp, w->prm.x * fRand1_1());
-            PSVECAdd(&w->ofs, &tmp, &w->ofs);
-            PSVECScale(&up, &tmp, w->prm.y * fRand1_1());
-            PSVECAdd(&w->ofs, &tmp, &w->ofs);
+            PSVECScale(&look, &w->Move_vec, -w->Dist.z);
+            PSVECScale(&side, &tmp, w->Dist.x * fRand1_1());
+            PSVECAdd(&w->Move_vec, &tmp, &w->Move_vec);
+            PSVECScale(&up, &tmp, w->Dist.y * fRand1_1());
+            PSVECAdd(&w->Move_vec, &tmp, &w->Move_vec);
             if (parent != pEffParentWorld) {
                 PSMTXInverse(parent->mat, inv);
-                PSMTXMultVecSR(inv, &w->ofs, &w->ofs);
+                PSMTXMultVecSR(inv, &w->Move_vec, &w->Move_vec);
             }
-            PSVECAdd(&pos, &w->ofs, &pos);
+            PSVECAdd(&m_Pos, &w->Move_vec, &m_Pos);
         }
     }
 }
@@ -88,17 +88,17 @@ void get_angle(Vec* v, f32* rx, f32* ry)
 
 int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp1aWork* w = &work;
+    Esp1aWork* w = &m_Free;
 
-    if (parent != pEffParentWorld && (parentCnt == 0xFF || parentCnt <= cnt)) {
+    if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
         cModel* parts;
 
-        if ((s8)gen->xC8 >= pModel->nParts) {
-            pLog->err(0, 0, "ESP1a : Wk0 PartsNo > %d ", pModel->nParts);
+        if ((s8)gen->Work8[0] >= m_pMod->nParts) {
+            pLog->err(0, 0, "ESP1a : Wk0 PartsNo > %d ", m_pMod->nParts);
             return 0;
         }
-        parts = pModel->getPartsPtr((s8)gen->xC8);
-        pos = *(Vec*)&gen->x0C;
+        parts = m_pMod->getPartsPtr((s8)gen->Work8[0]);
+        m_Pos = *(Vec*)&gen->Pos.x;
         {
             Vec dir = { 0.0f, 0.01f, 0.0f };
             Vec sc;
@@ -120,30 +120,30 @@ int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
             rot.z = 0.0f;
             RotMatrix(rm, &rot);
             a = fRandSeed0_1(seed) * 2.0f * PI;
-            off.x = SINF(a) * gen->x20 * fRandSeed0_1(seed);
-            off.y = COSF(a) * gen->x20 * fRandSeed0_1(seed);
+            off.x = SINF(a) * gen->R_pos.z * fRandSeed0_1(seed);
+            off.y = COSF(a) * gen->R_pos.z * fRandSeed0_1(seed);
             off.z = 0.0f;
             PSMTXMultVec(rm, &off, &off);
-            PSVECAdd(&pos, &off, &pos);
+            PSVECAdd(&m_Pos, &off, &m_Pos);
             len = PSVECMag(&dir);
-            lo = gen->x18 / len;
-            hi = gen->x1C / len;
+            lo = gen->R_pos.x / len;
+            hi = gen->R_pos.y / len;
             t = 1.0f - lo + hi;
             PSVECScale(&dir, &sc, fRandSeed0_1(seed) * t + lo);
-            PSVECAdd(&pos, &sc, &pos);
-            PSMTXMultVec(parent->mat, &pos, &pos);
-            parts = pModel->getPartsPtr(partsNo);
+            PSVECAdd(&m_Pos, &sc, &m_Pos);
+            PSMTXMultVec(parent->mat, &m_Pos, &m_Pos);
+            parts = m_pMod->getPartsPtr(m_Parts_no);
             PSMTXIdentity(m2);
-            low_RotMatrix(m2, &pModel->rot);
-            PSMTXMultVecSR(m2, &spd, &spd);
-            PSMTXMultVecSR(m2, &acc, &acc);
-            pModel = NULL;
+            low_RotMatrix(m2, &m_pMod->ang);
+            PSMTXMultVecSR(m2, &m_Speed, &m_Speed);
+            PSMTXMultVecSR(m2, &m_Speed_plus, &m_Speed_plus);
+            m_pMod = NULL;
             parent = pEffParentWorld;
         }
     } else {
         pLog->err(0, 0, "ESP1a : no parent!!");
         return 0;
     }
-    w->prm = *(Vec*)&gen->xD8;
+    w->Dist = *(Vec*)&gen->Vec0.x;
     return 1;
 }

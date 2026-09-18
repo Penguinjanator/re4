@@ -48,15 +48,15 @@ static void em27_R1_Die_Normal(cEm27* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member: the inline
@@ -171,7 +171,7 @@ void em27DmCk(cEm27* em)
             EstSet((int) em, -1, 0, 0, 0x1F, 8, 0, 0, (u32) em, (void*) zero);
         }
     }
-    em->alpha = 1.0f;
+    em->invisible_factor = 1.0f;
     if (em->hp <= 0) {
         EmSetDie(em);
         if (em->pos.y > w->waterHeight) {
@@ -239,47 +239,47 @@ void cEm27::move()
     Vec v;
     f32 wh;
 
-    if (pG->room_id == 0x10B && (pG->flags_5010 & 0x00200000) && hp > 0) {
+    if (pG->room_id == 0x10B && (pG->Status_flg[1] & 0x00200000) && hp > 0) {
         be_flag &= ~2;
         be_flag &= ~0x20;
         return;
     }
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         em27DmCk(this);
     }
-    if (w->dashTimer) {
-        w->dashTimer--;
+    if (w->Dash_wait) {
+        w->Dash_wait--;
     }
-    if (w->chaseTimer) {
-        w->chaseTimer--;
+    if (w->Esc_timer) {
+        w->Esc_timer--;
     }
-    w->flags &= ~0xD8;
-    if (!(w->flags & 0x100)) {
+    w->Be_flg &= ~0xD8;
+    if (!(w->Be_flg & 0x100)) {
         if (GetWaterHeight(&pos, &wh)) {
             w->waterHeight = wh - 300.0f;
         }
     }
     if (plDist2 < 250000.0f) {
-        w->chaseTimer = Rnd() % 60 + 60;
+        w->Esc_timer = Rnd() % 60 + 60;
     }
-    if (pG->flags_500C & 0x00800000) {
-        w->chaseTimer = Rnd() % 60 + 60;
+    if (pG->Status_flg[0] & 0x00800000) {
+        w->Esc_timer = Rnd() % 60 + 60;
     }
-    if ((u8) pG->flags_51E4 == emsetNo % 0x100) {
+    if ((u8) pG->Frame_cnt == emset_no % 0x100) {
         if (Rnd() & 1) {
-            w->chaseTimer = Rnd() % 60 + 60;
+            w->Esc_timer = Rnd() % 60 + 60;
         }
     }
-    if (w->chaseTimer) {
+    if (w->Esc_timer) {
         PSVECSubtract(&pos, &pPL->pos, &v);
 #line 379 "D:/Bio4/Prog/em27.cpp"
         VECNormalize(&v, &v);
         PSVECScale(&v, &v, 10000.0f);
         PSVECAdd(&pPL->pos, &v, &w->target);
-    } else if (w->retarget) {
-        w->retarget = 0;
+    } else if (w->Go_timer) {
+        w->Go_timer = 0;
     } else {
-        w->retarget = Rnd() % 120 + 120;
+        w->Go_timer = Rnd() % 120 + 120;
         if (Rnd() & 1) {
             w->target = w->home;
         } else {
@@ -289,8 +289,8 @@ void cEm27::move()
             PSMTXMultVec(mat, &v, &w->target);
         }
     }
-    Em27_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em27_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -312,20 +312,20 @@ static void em27_R0_Init(cEm27* em)
     f32 wh;
     int zero;
 
-    em->x12F = 0;
+    em->ot_type = 0;
     if (em->modelInit(ARC(4), ARC(5)) == 0) {
         pLog->err(0, 0, "em27() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     em->be_flag &= ~0x10;
-    em->motFlip = em27_flip_tbl;
+    em->pXFlip = em27_flip_tbl;
     em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 300.0f, 300.0f, 300.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     zero = 0;
     em->lockParts = zero;
@@ -342,20 +342,20 @@ static void em27_R0_Init(cEm27* em)
     em->scale.y = scale;
     em->scale.z = scale;
     at->init(1, 0x2800, 10, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f);
-    em->atari.flags &= 0xFDFF;
-    em->setStatus(0xB);
+    em->atari.m_flag &= 0xFDFF;
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);
     EspDataLoad((u32) ARC(6), 0x1F, 0);
-    w->flags = zero;
-    w->dashTimer = Rnd() % 150 + 210;
-    w->chaseTimer = zero;
-    w->spd.x = 0.0f;
-    w->spd.y = 0.0f;
-    w->spd.z = 0.0f;
-    w->spdTarget.x = 0.0f;
-    w->spdTarget.y = 0.0f;
-    w->spdTarget.z = 0.0f;
-    w->retarget = zero;
+    w->Be_flg = zero;
+    w->Dash_wait = Rnd() % 150 + 210;
+    w->Esc_timer = zero;
+    w->Spd.x = 0.0f;
+    w->Spd.y = 0.0f;
+    w->Spd.z = 0.0f;
+    w->Spd_t.x = 0.0f;
+    w->Spd_t.y = 0.0f;
+    w->Spd_t.z = 0.0f;
+    w->Go_timer = zero;
     w->home = *pos;
     w->waterHeight = 400.0f;
     if (GetWaterHeight(pos, &wh)) {
@@ -364,14 +364,14 @@ static void em27_R0_Init(cEm27* em)
     if (em->pos.y > w->waterHeight) {
         em->pos.y = w->waterHeight;
     }
-    w->initPos = *pos;
-    w->initRot = em->rot;
-    w->pCtrl11 = GetCtrlCtrl11();
+    w->Start_pos = *pos;
+    w->Start_ang = em->ang;
+    w->pCtrlPlAvoid = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     AtariOff(at, 0xFDFF);
     EmRoutineSet(em, 1, zero, zero, zero);
-    em->rot.y = fRand1_1() * PI;
+    em->ang.y = fRand1_1() * PI;
     MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
     MotionMoveF(em, 0);
     em27_R0_Move(em);
@@ -379,35 +379,35 @@ static void em27_R0_Init(cEm27* em)
 
 static void em27_R0_Move(cEm27* em)
 {
-    Em27_R1_move_tbl[em->xFD](em);
+    Em27_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Wait(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    w->flags |= 0x10;
-    switch (em->xFE) {
+    w->Be_flg |= 0x10;
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 5, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0xE), 0, 0, 5, 0);
         }
-        w->timer = (Rnd() & 0x3C) + 60;
-        w->spdTarget.x = 0.0f;
-        w->spdTarget.y = 0.0f;
-        w->spdTarget.z = 0.0f;
-        w->spdTarget.z = fRand1_1() * 10.0f + 10.0f;
-        em->xFE++;
+        w->Timer = (Rnd() & 0x3C) + 60;
+        w->Spd_t.x = 0.0f;
+        w->Spd_t.y = 0.0f;
+        w->Spd_t.z = 0.0f;
+        w->Spd_t.z = fRand1_1() * 10.0f + 10.0f;
+        em->r_no_2++;
     case 1:
         em27SetSPeed(em, 0.1f);
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else if ((Rnd() & 7) == 0 && em27JumpCk(em)) {
             EmRoutineSet(em, 1, 5, 0, 0);
-        } else if (w->dashTimer == 0) {
+        } else if (w->Dash_wait == 0) {
             EmRoutineSet(em, 1, 2, 0, 0);
         } else if (Rnd() & 3) {
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -422,33 +422,33 @@ static void em27_R1_Walk(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 5, 5, 0);
-            w->spdTarget.z = fRand1_1() * 25.0f + 30.0f;
+            w->Spd_t.z = fRand1_1() * 25.0f + 30.0f;
         } else {
             MotionSetCore(em, MOTION(em), ARC(9), 0, 5, 5, 0);
-            w->spdTarget.z = fRand1_1() * 25.0f + 60.0f;
+            w->Spd_t.z = fRand1_1() * 25.0f + 60.0f;
         }
-        w->spdTarget.x = 0.0f;
-        w->spdTarget.y = fRand1_1() * 10.0f;
-        w->timer = (Rnd() & 0x3C) + 60;
-        em->xFE++;
+        w->Spd_t.x = 0.0f;
+        w->Spd_t.y = fRand1_1() * 10.0f;
+        w->Timer = (Rnd() & 0x3C) + 60;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 32.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 32.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.1f);
         if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
-            if (w->x24 > 9000000.0f && (Rnd() & 3) == 0 && em27JumpCk(em)) {
+            if (w->L_go > 9000000.0f && (Rnd() & 3) == 0 && em27JumpCk(em)) {
                 EmRoutineSet(em, 1, 5, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 3, 0, 0);
             }
-        } else if (w->dashTimer == 0) {
+        } else if (w->Dash_wait == 0) {
             EmRoutineSet(em, 1, 2, 0, 0);
-        } else if (w->timer) {
-            w->timer--;
+        } else if (w->Timer) {
+            w->Timer--;
         } else {
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -460,25 +460,25 @@ static void em27_R1_Dash(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 5, 5, 0);
-        w->timer = Rnd() % 6 + 7;
-        w->dashTimer = Rnd() % 60 + 210;
-        w->spdTarget.x = 0.0f;
-        w->spdTarget.y = fRand1_1() * 15.0f;
-        w->spdTarget.z = 130.0f;
-        em->xFE++;
+        w->Timer = Rnd() % 6 + 7;
+        w->Dash_wait = Rnd() % 60 + 210;
+        w->Spd_t.x = 0.0f;
+        w->Spd_t.y = fRand1_1() * 15.0f;
+        w->Spd_t.z = 130.0f;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 16.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 16.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.5f);
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             EmRoutineSet(em, 1, 1, 0, 0);
-            w->dashTimer = Rnd() % 150 + 210;
+            w->Dash_wait = Rnd() % 150 + 210;
         }
         break;
     }
@@ -488,23 +488,23 @@ static void em27_R1_Bank(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         Vec v;
 
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 5, 5, 0);
-        w->spdTarget.z = fRand1_1() * 25.0f + 100.0f;
-        w->spdTarget.x = 0.0f;
-        w->spdTarget.y = fRand1_1() * 10.0f;
+        w->Spd_t.z = fRand1_1() * 25.0f + 100.0f;
+        w->Spd_t.x = 0.0f;
+        w->Spd_t.y = fRand1_1() * 10.0f;
         v = em->pos;
         v.y = w->waterHeight + 300.0f;
-        EstSet(0, -1, &v, &em->rot, 0x1F, 0xF, 0, 0, 0, 0);
+        EstSet(0, -1, &v, &em->ang, 0x1F, 0xF, 0, 0, 0, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
-        em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 32.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->target, em->ang.y, PI / 32.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em27SetSPeed(em, 0.1f);
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 0);
@@ -517,7 +517,7 @@ static void em27_R1_Turn180(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* m;
         int flag;
@@ -533,11 +533,11 @@ static void em27_R1_Turn180(cEm27* em)
             flag = 0x41;
         }
         MotionSetCore(em, MOTION(em), m, 0, 5, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (MotionMoveF(em, 0)) {
-            if (w->dashTimer == 0) {
+            if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -551,7 +551,7 @@ static void em27_R1_Jump(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* m0;
         void* m1;
@@ -574,11 +574,11 @@ static void em27_R1_Jump(cEm27* em)
             flag = 0x40;
         }
         MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
-            if (w->dashTimer == 0) {
+            if (w->Dash_wait == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 1, 0, 0);
@@ -592,35 +592,35 @@ static void em27_R0_Damage(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    w->flags |= 8;
-    Em27_R2_move_tbl[em->xFD](em);
+    w->Be_flg |= 8;
+    Em27_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Dm_Normal(cEm27* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         int flag;
 
-        em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
         if (Rnd() & 1) {
             flag = 0;
-            em->xFF = flag;
+            em->r_no_3 = flag;
         } else {
-            em->xFF = 1;
+            em->r_no_3 = 1;
             flag = 0x40;
         }
         MotionSetCore(em, MOTION(em), ARC(0x11), (int) ARC(0x1F), 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
         if ((em->seFlags28B & 4) && em->hp <= 0) {
-            em->xFC = 3;
-            em->xFD = 0;
-            em->xFE = 0;
+            em->r_no_0 = 3;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -628,25 +628,25 @@ static void em27_R1_Dm_Normal(cEm27* em)
 
 static void em27_R1_Dm_Big(cEm27* em)
 {
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         int flag;
 
-        em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
-        em->xFF = Rnd() & 1;
-        if (em->xFF) {
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        em->r_no_3 = Rnd() & 1;
+        if (em->r_no_3) {
             flag = 0x40;
         } else {
             flag = 0;
         }
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em27MotionMoveScale(em)) {
-            em->xFC = 3;
-            em->xFD = 0;
-            em->xFE = 0;
+            em->r_no_0 = 3;
+            em->r_no_1 = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -659,73 +659,73 @@ static void em27_R1_Dm_Air(cEm27* em)
     Vec v;
     int flag;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
-        em->xFF = Rnd() & 1;
-        if (em->xFF) {
+        em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        em->r_no_3 = Rnd() & 1;
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
         }
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
         }
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 3, flag, 0);
-        w->spd.x = 0.0f;
-        w->spd.y = -100.0f;
-        w->spd.z = 0.0f;
-        em->xFE++;
+        w->Spd.x = 0.0f;
+        w->Spd.y = -100.0f;
+        w->Spd.z = 0.0f;
+        em->r_no_2++;
     case 3:
-        w->spd.y -= 5.0f;
-        PSMTXRotRad(m, 'y', em->rot.y);
-        PSMTXMultVecSR(m, &w->spd, &v);
+        w->Spd.y -= 5.0f;
+        PSMTXRotRad(m, 'y', em->ang.y);
+        PSMTXMultVecSR(m, &w->Spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
         MotionMoveF(em, 0);
         if (em->pos.y < w->waterHeight) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
-        em->xFE++;
+        em->r_no_2++;
     case 5:
-        w->spd.y += 20.0f;
-        PSMTXRotRad(m, 'y', em->rot.y);
-        PSMTXMultVecSR(m, &w->spd, &v);
+        w->Spd.y += 20.0f;
+        PSMTXRotRad(m, 'y', em->ang.y);
+        PSMTXMultVecSR(m, &w->Spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
         if (em->pos.y < w->waterHeight - 300.0f) {
             em->pos.y = w->waterHeight - 300.0f;
-            w->spd.y = 0.0f;
+            w->Spd.y = 0.0f;
         }
         MotionMoveF(em, 0);
-        if (w->spd.y > 0.0f) {
+        if (w->Spd.y > 0.0f) {
             if (em->hp <= 0) {
-                em->xFC = 3;
-                em->xFD = 0;
-                em->xFE = 0;
+                em->r_no_0 = 3;
+                em->r_no_1 = 0;
+                em->r_no_2 = 0;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 6:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
         }
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, flag, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -738,8 +738,8 @@ static void em27_R0_Die(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
 
-    w->flags |= 8;
-    Em27_R3_move_tbl[em->xFD](em);
+    w->Be_flg |= 8;
+    Em27_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em27_R1_Die_Normal(cEm27* em)
@@ -748,10 +748,10 @@ static void em27_R1_Die_Normal(cEm27* em)
     int flag;
     int no;
 
-    w->flags |= 0x80;
-    switch (em->xFE) {
+    w->Be_flg |= 0x80;
+    switch (em->r_no_2) {
     case 0:
-        if (em->xFF) {
+        if (em->r_no_3) {
             flag = 0x41;
         } else {
             flag = 1;
@@ -762,10 +762,10 @@ static void em27_R1_Die_Normal(cEm27* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1C), 0, 15, flag, 0);
         }
-        Ctrl12CntAdd(w->pCtrl12, 1, 1);
-        em->atari.flags &= 0xFCFF;
-        w->timer = 120;
-        w->spd.y = fRand1_1() * PI;
+        Ctrl12CntAdd(w->pCtrl12, CTRL12_ID_CNT_EM27_DIE, 1);
+        em->atari.m_flag &= 0xFCFF;
+        w->Timer = 120;
+        w->Spd.y = fRand1_1() * PI;
         w->upDown = 0;
         switch (em->type) {
         case 0:
@@ -777,12 +777,12 @@ static void em27_R1_Die_Normal(cEm27* em)
             break;
         }
         SceAtSetItemModel(no, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        w->spd.y += PI / 32.0f;
-        w->spd.y = LIMIT_ANGLE(w->spd.y);
+        w->Spd.y += PI / 32.0f;
+        w->Spd.y = LIMIT_ANGLE(w->Spd.y);
         if (w->upDown) {
-            em->pos.y += sinf(w->spd.y) * 3.0f;
+            em->pos.y += sinf(w->Spd.y) * 3.0f;
         } else {
             em->pos.y += 5.0f;
             if (em->pos.y > w->waterHeight + 150.0f) {
@@ -791,21 +791,21 @@ static void em27_R1_Die_Normal(cEm27* em)
             }
         }
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
-        w->timer = Rnd() % 60 + 60;
+        w->Timer = Rnd() % 60 + 60;
         w->upDown = 0;
-        w->spd.y = fRand1_1() * PI;
-        em->xFE++;
+        w->Spd.y = fRand1_1() * PI;
+        em->r_no_2++;
     case 3:
-        w->spd.y += PI / 32.0f;
-        w->spd.y = LIMIT_ANGLE(w->spd.y);
-        em->pos.y = SINF(w->spd.y) * 3.0f + em->pos.y;
+        w->Spd.y += PI / 32.0f;
+        w->Spd.y = LIMIT_ANGLE(w->Spd.y);
+        em->pos.y = SINF(w->Spd.y) * 3.0f + em->pos.y;
         if (em->pos.y > w->waterHeight + 150.0f) {
             em->pos.y = em->pos.y * 0.9f + (w->waterHeight + 150.0f) * 0.1f;
         }
@@ -816,12 +816,12 @@ static void em27_R1_Die_Normal(cEm27* em)
             Vec v;
 
             flag = 1;
-            v.x = p->worldPos.x;
+            v.x = p->world.x;
             v.y = w->waterHeight + 300.0f;
-            v.z = p->worldPos.z;
-            EstSet(0, -1, &v, &em->rot, 0x1F, 5, 0, 0, 0, 0);
+            v.z = p->world.z;
+            EstSet(0, -1, &v, &em->ang, 0x1F, 5, 0, 0, 0, 0);
             w->upDown = Rnd() % 60 + 5;
-            if (em->xFF) {
+            if (em->r_no_3) {
                 flag = 0x41;
             }
             if (w->dieVariant) {
@@ -841,11 +841,11 @@ void em27SetSPeed(cEm27* em, f32 rate)
     Mtx m;
     Vec v;
 
-    w->spd.x = w->spd.x * (1.0f - rate) + w->spdTarget.x * rate;
-    w->spd.y = w->spd.y * (1.0f - rate) + w->spdTarget.y * rate;
-    w->spd.z = w->spd.z * (1.0f - rate) + w->spdTarget.z * rate;
-    PSMTXRotRad(m, 'y', em->rot.y);
-    PSMTXMultVecSR(m, &w->spd, &v);
+    w->Spd.x = w->Spd.x * (1.0f - rate) + w->Spd_t.x * rate;
+    w->Spd.y = w->Spd.y * (1.0f - rate) + w->Spd_t.y * rate;
+    w->Spd.z = w->Spd.z * (1.0f - rate) + w->Spd_t.z * rate;
+    PSMTXRotRad(m, 'y', em->ang.y);
+    PSMTXMultVecSR(m, &w->Spd, &v);
     PSVECAdd(&em->pos, &v, &em->pos);
     if (em->pos.y < w->waterHeight - 300.0f) {
         em->pos.y = w->waterHeight - 300.0f;
@@ -860,7 +860,7 @@ void em27ScaleReset(cEm27* em)
     Em27Work* w = EM27_WK(em);
     cModel* p;
 
-    if (w->flags & 0x10) {
+    if (w->Be_flg & 0x10) {
         return;
     }
     p = em->getPartsPtr(1);
@@ -881,7 +881,7 @@ void em27ObaHitCk(cEm27* em)
     f32 r;
     u32 i;
 
-    if (w->flags & 0x40) {
+    if (w->Be_flg & 0x40) {
         return;
     }
     if (!(em->be_flag & 2)) {
@@ -926,7 +926,7 @@ void em27ObaHitCk(cEm27* em)
     PSVECSubtract(&em->pos, &pPL->pos, &d);
     d.y = 0.0f;
     dist = d.x * d.x + d.z * d.z;
-    r = pPL->atari.rectZ + 100.0f;
+    r = pPL->atari.m_radius2 + 100.0f;
     if (dist > r * r) {
         return;
     }
@@ -960,7 +960,7 @@ int em27MotionMoveScale(cEm27* em)
     ret = MotionMoveF(em, 0);
     p = em->getPartsPtr(0);
     p->pos.y *= inv.y;
-    p->worldMat[1][3] *= inv.y;
+    p->l_mat[1][3] *= inv.y;
     return ret;
 }
 
@@ -971,7 +971,7 @@ void em27WaterEffSet(cEm27* em)
     f32 h;
     cModel* p;
 
-    if (w->flags & 0x80) {
+    if (w->Be_flg & 0x80) {
         return;
     }
     if (!(em->be_flag & 2)) {
@@ -981,15 +981,15 @@ void em27WaterEffSet(cEm27* em)
     v = em->pos;
     v.y = h;
     p = em->getPartsPtr(0);
-    if (p->worldPos.y > h && p->oldWorldPos.y < h) {
+    if (p->world.y > h && p->world_old.y < h) {
         AddWaterPower(&em->pos, -0.5f);
-        EstSet(0, -1, &v, &em->rot, 0x1F, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &v, &em->ang, 0x1F, 0, 0, 0, 0, 0);
         EstSet((int) em, -1, 0, 0, 0x1F, 4, 0, 0, (u32) em, 0);
         SndCall(8, (Rnd() & 3) | 4, &em->pos, em->id, 0, em);
     }
-    if (p->worldPos.y < h && p->oldWorldPos.y > h) {
+    if (p->world.y < h && p->world_old.y > h) {
         AddWaterPower(&em->pos, 0.5f);
-        EstSet(0, -1, &v, &em->rot, 0x1F, 1, 0, 0, 0, 0);
+        EstSet(0, -1, &v, &em->ang, 0x1F, 1, 0, 0, 0, 0);
         SndCall(8, (Rnd() & 1) + 7, &em->pos, em->id, 0, em);
     }
 }
@@ -1016,5 +1016,5 @@ void cEm27::setWaterHeight(f32 h)
     Em27Work* w = EM27_WK(this);
 
     w->waterHeight = h;
-    w->flags |= 0x100;
+    w->Be_flg |= 0x100;
 }

@@ -37,7 +37,7 @@ void Wep38_init(cModel* m)
     if (obj == 0) {
         pLog->err(0, 0, "Wep38_init() cObjWep CREATE FAILED");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x35, 1);
@@ -63,7 +63,7 @@ void cObjRuger::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x36));
@@ -86,26 +86,26 @@ void cObjRuger::moveFire()
         } else {
             m = WEP_ARC_PTR(0x39);
         }
-        MotionSetCore(this, &mot, m, 0, 0, 0, 0);
-        if (pG->wep_type != 1) {
-            SndCall(2, 2, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 4, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 1, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 3, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 5, &pParts->worldPos, 0, 0, 0);
-            pG->flags_500C |= 0x00800000;
+        MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
+        if (pG->weapon_type != 1) {
+            SndCall(2, 2, &pParts->world, 0, 0, 0);
+            SndCall(2, 4, &pParts->world, 0, 0, 0);
+            SndCall(2, 1, &pParts->world, 0, 0, 0);
+            SndCall(2, 3, &pParts->world, 0, 0, 0);
+            SndCall(2, 5, &pParts->world, 0, 0, 0);
+            pG->Status_flg[0] |= 0x00800000;
             se = 0;
         } else {
-            SndCall(2, 0x15, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 0x1A, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 0x1C, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 0x19, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 0x1B, &pParts->worldPos, 0, 0, 0);
-            SndCall(2, 0x1D, &pParts->worldPos, 0, 0, 0);
+            SndCall(2, 0x15, &pParts->world, 0, 0, 0);
+            SndCall(2, 0x1A, &pParts->world, 0, 0, 0);
+            SndCall(2, 0x1C, &pParts->world, 0, 0, 0);
+            SndCall(2, 0x19, &pParts->world, 0, 0, 0);
+            SndCall(2, 0x1B, &pParts->world, 0, 0, 0);
+            SndCall(2, 0x1D, &pParts->world, 0, 0, 0);
             se = 0x18;
         }
-        SndCall(2, se, &pParts->worldPos, 0, 0, 0);
-        switch (pG->wep_type) {
+        SndCall(2, se, &pParts->world, 0, 0, 0);
+        switch (pG->weapon_type) {
         case 0:
             EstSet((int) this, -1, 0, 0, 0x35, 0, 0, 0xA, 0, 0);
             break;
@@ -132,16 +132,16 @@ void cObjRuger::moveReload()
         u16 se;
 
         if (ItemMgr.bulletNum()) {
-            if (pG->x4FBA == 1) {
+            if (pG->weapon_lv_reload == 1) {
                 m = WEP_ARC_PTR(0x3D);
             }
         } else {
-            if (pG->x4FBA == 1) {
+            if (pG->weapon_lv_reload == 1) {
                 m = WEP_ARC_PTR(0x3C);
             }
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -152,9 +152,9 @@ void cObjRuger::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    } else if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }
@@ -210,8 +210,8 @@ void cObjRuger::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1E));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5E));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xA));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5E));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xA));
     pl->setRightHand(1);
     pl->setLeftHand(0);
 }

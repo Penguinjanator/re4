@@ -137,7 +137,7 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
         }
         if (k < (u32) (p->nx * p->ny)) {
             f32* h;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 h = p->hB + k;
             } else {
                 h = p->hA + k;
@@ -213,7 +213,7 @@ static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
         }
         if (k < (u32) (p->nx * p->ny)) {
             f32* h;
-            if (pG->flags_51E4 & 1) {
+            if (pG->Frame_cnt & 1) {
                 h = p->hB + k;
             } else {
                 h = p->hA + k;
@@ -234,7 +234,7 @@ void AddWaterPowerSub(EspgenWork* w)
 
 void AddWaterPower(Vec* pos, f32 power)
 {
-    if (pG->flags_500C & 0x200) {
+    if (pG->Status_flg[0] & 0x200) {
         Height_find = 0;
         FSet(Add_power, power * 5.0f);
         Chk_pos = *pos;
@@ -291,7 +291,7 @@ void Espgen42SetNoWater(int on)
 
 int GetWaterHeight(Vec* pos, f32* height)
 {
-    if (!(pG->flags_500C & 0x200)) {
+    if (!(pG->Status_flg[0] & 0x200)) {
         return 0;
     }
     if (g_bNoWater == 1) {
@@ -399,7 +399,7 @@ void GetWaterCrossPosSub(EspgenWork* w)
 
 int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 {
-    if (!(pG->flags_500C & 0x200)) {
+    if (!(pG->Status_flg[0] & 0x200)) {
         return 0;
     }
     if (dir->x == 0.0f && dir->y == 0.0f && dir->z == 0.0f) {
@@ -494,8 +494,8 @@ void Espgen42_Move00(EspgenWork* w)
     d2.z = 0.0f;
     d3.x = 0.0f;
     d3.z = -1.0f;
-    frame = pG->flags_51E4 % 60;
-    BitOn(pG->flags_500C, 0x200);
+    frame = pG->Frame_cnt % 60;
+    BitOn(pG->Status_flg[0], 0x200);
     PPCMtpmc1(0);
     PPCMtpmc2(0);
     PPCMtpmc3(0);
@@ -514,7 +514,7 @@ void Espgen42_Move00(EspgenWork* w)
     f32 inx = 1.0f / (f32) (int) nx;
     f32 iny = 1.0f / (f32) (int) ny;
     if (p->mode != 1) {
-        if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
+        if ((pG->Debug_flg[1] & 0x00800000) && (Joy[0].on & 0x100)) {
             // The index is the loop variable `k` (target `lwz r28` = k's register, base+index `lfsx f0,hB,k4`).
             k = (int) ((f32) (int) (nx * ny) * 0.5f);
             // Byte offset in a variable: inside an address `p->hB[k]` expands to `(plus (mult k 4) hB)` (expr.c
@@ -527,7 +527,7 @@ void Espgen42_Move00(EspgenWork* w)
         f32 spread = p->spread;
         f32* cur;
         f32* next;
-        if (pG->flags_51E4 & 1) {
+        if (pG->Frame_cnt & 1) {
             cur = p->hA;
             next = p->hB;
         } else {
@@ -686,7 +686,7 @@ void Espgen42_Move(EspgenWork* w)
 {
     static void (*Espgen42MoveTbl[])(EspgenWork*) = {Espgen42_Move00};
 
-    if (pG->flags_170 & 0x40000) {
+    if (pG->Stop_flg & 0x40000) {
         return;
     }
     Espgen42MoveTbl[w->step](w);
@@ -736,13 +736,13 @@ void Espgen42_TransSub(EspgenWork* w)
     {
         static const Vec p0 = {0.0f, 0.0f, 0.0f};
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
-        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+        model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
     LightMgr.setClothN(&model, 5);
-    commonWaterLightSet(model.lightInfo.pLight, 5, p->amb.a);
+    commonWaterLightSet(model.LightInfo.pLight, 5, p->amb.a);
     GXColor white;
     white.r = white.g = white.b = white.a = 0xFF;
     GXSetChanMatColor(4, white);
@@ -750,10 +750,10 @@ void Espgen42_TransSub(EspgenWork* w)
     Mtx nrm;
     Mtx mv;
     Mtx tmp;
-    PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
+    PSMTXConcat(pG->Cam.v_mat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
     tmp[1][1] = p->size * 0.05f + 100.0f;
-    PSMTXConcat(pG->Cam.viewMat, tmp, tmp);
+    PSMTXConcat(pG->Cam.v_mat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
     GXLoadNrmMtxImm(nrm, 0);
@@ -839,7 +839,7 @@ void Espgen42_TransSub(EspgenWork* w)
             Mtx ms;
             Mtx mt;
             Mtx m3;
-            PSMTXCopy(pG->Cam.viewMat, m3);
+            PSMTXCopy(pG->Cam.v_mat, m3);
             PSMTXInverse(m3, m3);
             PSMTXTranspose(m3, m3);
             PSMTXScale(ms, 1.0f, -0.5f, 0.0f);
@@ -1119,7 +1119,7 @@ void Espgen42_Destruct(EspgenWork* w)
 }
 
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
     Vec r;
@@ -1131,15 +1131,15 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->err(0, 0, "Espgen42 : WaterTex(0xfe) not found!");
         return 0;
     }
-    if (rec->xFC != 0) {
-        nx = rec->xFC;
+    if (rec->WorkSp8[0] != 0) {
+        nx = rec->WorkSp8[0];
         if (nx > 0xB8) {
             nx = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : width > 184");
         }
     }
-    if (rec->xFD != 0) {
-        ny = rec->xFD;
+    if (rec->WorkSp8[1] != 0) {
+        ny = rec->WorkSp8[1];
         if (ny > 0xB8) {
             ny = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : height > 184");
@@ -1155,32 +1155,32 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->warn(0, 0, "ESP_WATER : height (%d -> %d)", ny, n);
         ny = n;
     }
-    rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
-    PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) != NULL) {
-        p->col.r = rec->x9C;
-        p->col.g = rec->x9D;
-        p->col.b = rec->x9E;
-        p->col.a = rec->x9F;
-        p->amb.r = rec->xA0 * 255.0f;
-        p->amb.g = rec->xA4 * 255.0f;
-        p->amb.b = rec->xA8 * 255.0f;
-        p->amb.a = rec->xAC * 255.0f;
-        p->mode = rec->xC8;
+    rate = 1.0f - (f32) (int) rec->WorkSp8[2] / 255.0f;
+    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
+    if (SetWaterWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, nx, ny, rate) != NULL) {
+        p->col.r = rec->Col_start_r;
+        p->col.g = rec->Col_start_g;
+        p->col.b = rec->Col_start_b;
+        p->col.a = rec->Col_start_a;
+        p->amb.r = rec->Col_d_r * 255.0f;
+        p->amb.g = rec->Col_d_g * 255.0f;
+        p->amb.b = rec->Col_d_b * 255.0f;
+        p->amb.a = rec->Col_d_a * 255.0f;
+        p->mode = rec->Work8[0];
         if (p->mode == 2) {
-            p->damp = 0.5f - (f32) (s8) rec->xC9 * 0.005f;
+            p->damp = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
             if (p->damp > 0.5f) {
                 p->damp = 0.5f;
             }
             if (p->damp < 0.0f) {
                 p->damp = 0.0f;
             }
-            p->spread = 0.99f - (f32) (int) rec->xCA * 0.001f;
+            p->spread = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
         }
-        p->texId = rec->x2;
+        p->texId = rec->Tex_id;
         p->indS = rec->prm.h.xCE;
         p->indT = rec->prm.h.xD2;
-        p->stages = rec->xCB;
+        p->stages = rec->Work8[3];
         g_pWater = w;
         Espgen42_Move(w);
         return 1;

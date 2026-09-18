@@ -78,7 +78,7 @@ void R301Init()
     cObj* obj;
     R301Work*& wp = r301_work.p;   // the address is computed before the call
 
-    pG->flags_64 |= 0x40000;
+    pG->Debug_flg[1] |= 0x40000;
 #line 63 "D:/Bio4/Prog/r301.cpp"
     wp = (R301Work*) MEM_CALLOC(sizeof(R301Work), 1, 0xd);
     EatMgr.registEffInfo(2, (AtEffInfo*) &r301_eff_info);
@@ -90,9 +90,9 @@ void R301Init()
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r301_setRocketLauncher, 0, 1);
     }
     setTexRender();
-    PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0,
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24),
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x25));
+    PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0,
+                   ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
+                   ROOM_ARC_PTR(pG->pRoom, 0x25));
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceExec(0x12, (TaskFunc) r301_checkRockWall, 0, 0, 2, 0);
     } else {
@@ -103,7 +103,7 @@ void R301Init()
         }
     }
     SceSetItemEvent(0xA, 0x80, 4, 5, r301_openShelf, (void (*)()) r301_openedShelf, 0, 0);
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0xCA, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x21), 0xCA, 0);
     r301_initContinuePoint();
     SceExec(0x12, (TaskFunc) r301_checkBgm, 0, 0, 2, 0);
 }
@@ -131,7 +131,7 @@ static void r301_checkBgm()
 // End of the continue point event (also the event cancel handler).
 static void r301_execContinuePoint_end()
 {
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         EffectEspDelete(0, (u8) r301_work.p->espKind, 0, 0);
         EffectEspgenDelete(0, (u8) r301_work.p->espKind, 0);
         EffectEfmDelete(0, (u8) r301_work.p->espKind, 0);
@@ -150,7 +150,7 @@ static void r301_execContinuePoint_end()
 // The continue point: ask, then slide the rock away with a dust effect and save.
 static void r301_execContinuePoint()
 {
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 0:
@@ -383,7 +383,7 @@ static void r301_checkEmReset1()
             }
             SceSleep(1);
         }
-        pG->flags_174 |= 0x80000000;
+        pG->Room_flg[0] |= 0x80000000;
         {
             cEmWrap em3;
 
@@ -424,7 +424,7 @@ static void r301_checkEmReset1()
 
 static void r301_checkEmReset2()
 {
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     {
@@ -474,7 +474,7 @@ static void r301_checkEmReset2()
 
 static void r301_checkEmReset3()
 {
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     {
@@ -660,12 +660,12 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r301_work.p->tex->texId;
-        r301_work.p->tex->repType = 1;
+        r301_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 3, r301_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x15);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
 }

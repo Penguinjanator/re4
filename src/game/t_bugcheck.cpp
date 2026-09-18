@@ -23,10 +23,10 @@ extern cModel* pSUB;
 // Bug-check (cheat) menu tool.
 class cToolBugcheck {
 public:
-    u32 stop_bak;  // 0x00  saved pG stop flags
-    u16 x;         // 0x04  menu position
-    u16 y;         // 0x06
-    u16 mx;        // 0x08  position used for this frame's drawing
+    u32 m_stop_flag_bak;  // 0x00  saved pG stop flags
+    u16 m_base_dx;         // 0x04  menu position
+    u16 m_base_dy;         // 0x06
+    u16 m_dx;        // 0x08  position used for this frame's drawing
     u16 my;        // 0x0A
     s8 cursor;     // 0x0C
     u8 pad_D[3];
@@ -50,10 +50,10 @@ void ToolBugcheck()
 
 void cToolBugcheck::init()
 {
-    BitSet(stop_bak, TOOL_FLAG(OFS_STOP_FLG));
+    BitSet(m_stop_flag_bak, TOOL_FLAG(OFS_STOP_FLG));
     BitOn(TOOL_FLAG(OFS_STOP_FLG), ~0x4000);
-    x = 80;
-    y = 60;
+    m_base_dx = 80;
+    m_base_dy = 60;
     cursor = 0;
 }
 
@@ -62,19 +62,19 @@ void cToolBugcheck::main()
     init();
     while (!(Joy[0].trg & JOY_B)) {
         if (Joy[0].on & 0x200000) {
-            x += 8;
+            m_base_dx += 8;
         }
         if (Joy[0].on & 0x100000) {
-            x -= 8;
+            m_base_dx -= 8;
         }
         if (Joy[0].on & 0x400000) {
-            y += 8;
+            m_base_dy += 8;
         }
         if (Joy[0].on & 0x800000) {
-            y -= 8;
+            m_base_dy -= 8;
         }
-        mx = x;
-        my = y;
+        m_dx = m_base_dx;
+        my = m_base_dy;
         menu();
         TaskSleep(1);
     }
@@ -84,7 +84,7 @@ void cToolBugcheck::main()
 void cToolBugcheck::exit()
 {
     TOOL_FLAG(OFS_DEBUG_FLG) &= 0x7FFFFFFF;
-    TOOL_FLAG(OFS_STOP_FLG) = stop_bak;
+    TOOL_FLAG(OFS_STOP_FLG) = m_stop_flag_bak;
     TaskExit();
 }
 
@@ -105,19 +105,19 @@ void cToolBugcheck::menuPosMove()
         speed = (Joy[0].on & JOY_A) ? 8.0f : 2.0f;
         Vec v = {0.0f, 0.0f, 0.0f};
         JOY joy = Joy[0];
-        joy.sx = 0;
+        joy.stickX = 0;
         CamStick2World(&pG->Cam, &joy, &v);
         PSVECScale(&v, &v, speed);
         v.y = 0.0f;
         if (Joy[0].on & 0x10000) {
-            pPL->rot.y += 0.13962634f;
+            pPL->ang.y += 0.13962634f;
         }
         if (Joy[0].on & 0x20000) {
-            pPL->rot.y -= 0.13962634f;
+            pPL->ang.y -= 0.13962634f;
         }
         floor = SatMgr.getFloor(&pPL->pos, 600.0f, 100000.0f, 0, 0);
         if (pPL->pos.y > floor + 500.0f || (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 8)) {
-            v.y = v.y + speed * (f32) (int) Joy[0].trigR - speed * (f32) (int) Joy[0].trigL;
+            v.y = v.y + speed * (f32) (int) Joy[0].triggerRight - speed * (f32) (int) Joy[0].triggerLeft;
         }
         PSVECAdd(&pPL->pos, &v, &pPL->pos);
         pl = pPL;
@@ -128,7 +128,7 @@ void cToolBugcheck::menuPosMove()
             // `pl` is a second use that blocks combine, is issued before the r4 move (so P is tied to
             // r4) and leaves sched2's dependent counts of the setPos arg moves equal; it is also the
             // extra loop insn at global-alloc time that orders the 14 hoisted highs r14-r25.
-            Vec* pr = &pl->rot;
+            Vec* pr = &pl->ang;
             asm("" : "+r"(pl) : "r"(pr));
             pl->setAng(pr);
         }
@@ -140,7 +140,7 @@ void cToolBugcheck::menuPosMove()
         eprintf(32, 56, 0, 0, "X:%.0f", pPL->pos.x);
         eprintf(32, 70, 0, 0, "Y:%.0f", pPL->pos.y);
         eprintf(32, 84, 0, 0, "Z:%.0f", pPL->pos.z);
-        eprintf(32, 98, 0, 0, "R:%.2f", pPL->rot.y);
+        eprintf(32, 98, 0, 0, "R:%.2f", pPL->ang.y);
         eprintf(32, 126, (TOOL_FLAG(OFS_DEBUG_FLG + 8) & 8) ? 0 : 0x14, 0, "[X]:SCR_NO_HIT");
         eprintf(32, 140, 0, 0, "[A]:SPPED_UP");
         eprintf(32, 154, 0, 0, "[L]:POS_UP");
@@ -205,7 +205,7 @@ void cToolBugcheck::menuLife()
         cur = n;
         switch (n) {
         case 0:
-            TOOL_HALF(OFS_PL_LIFE) += (s16) (Joy[0].sx * 0.4f);
+            TOOL_HALF(OFS_PL_LIFE) += (s16) (Joy[0].stickX * 0.4f);
             if (Joy[0].on & JOY_RIGHT) {
                 TOOL_HALF(OFS_PL_LIFE) += 25;
             }
@@ -234,7 +234,7 @@ void cToolBugcheck::menuLife()
             }
             break;
         case 1:
-            TOOL_HALF(OFS_SUB_LIFE) += (s16) (Joy[0].sx * 0.4f);
+            TOOL_HALF(OFS_SUB_LIFE) += (s16) (Joy[0].stickX * 0.4f);
             if (Joy[0].on & JOY_RIGHT) {
                 TOOL_HALF(OFS_SUB_LIFE) += 25;
             }
@@ -321,7 +321,7 @@ void cToolBugcheck::menu()
     };
     static const char* wep_mugen_str[3] = {"OFF", "MUGEN", "MUGEN+RELOAD"};
     static const char* pl_speed_str[5] = {"OFF", "x2", "x3", "x4", "x5"};
-    s16 px = mx;
+    s16 px = m_dx;
     s16 py = my;
     int i;
 

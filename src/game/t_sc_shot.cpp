@@ -19,9 +19,9 @@ void ToolScreenShot()
     int type;
     int n;
 
-    stop_bak = pG->flags_170;
-    BitOn(pG->flags_170, ~0x4000);
-    BitOn(pG->flags_60, 0x80000000);
+    stop_bak = pG->Stop_flg;
+    BitOn(pG->Stop_flg, ~0x4000);
+    BitOn(pG->Debug_flg[0], 0x80000000);
     cursor = 0;
     while (1) {
         ToolMenuDisp_cur(60, 80, 0, &cursor, menu, sizeof(menu), Joy);
@@ -61,7 +61,7 @@ void ToolScreenShot()
         }
         TaskSleep(1);
     }
-    BitSet(pG->flags_170, stop_bak);
-    BitOff(pG->flags_60, 0x80000000);
+    BitSet(pG->Stop_flg, stop_bak);
+    BitOff(pG->Debug_flg[0], 0x80000000);
     TaskExit();
 }

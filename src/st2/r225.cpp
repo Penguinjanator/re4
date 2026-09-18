@@ -119,7 +119,7 @@ void R225Init()
 #line 81 "D:/Bio4/Prog/r225.cpp"
     r225_work = (R225Work*) MEM_CALLOC(sizeof(R225Work), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r225_operateCrank, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r225_operateCrank, 0, 1);
         SceAtSetEnable(5, 0);
         SceAtSetEnable(6, 0);
         SceAtSetEnable(0xA, 1);
@@ -131,8 +131,8 @@ void R225Init()
         SmdGetObjPtr(0x27)->pos.x = 1393.0f;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r225_DoorMes, 0, 1);
-        SceExec(0x12, (TaskFunc) r225_DoorMes_exec, 0, 0, 2, 0);
+        SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r225_DoorMes, 0, 1);
+        SceExec(0x12, (TaskFunc) r225_DoorMes_exec, 0, 0, SCE_PRIO_DEF_2, 0);
         SceAtSetEnable(0xD, 1);
     } else {
         SmdGetObjPtr(0x25)->be_flag |= 0x20;
@@ -153,24 +153,24 @@ void R225Init()
         SceAtSetEnable(8, 0);
         SceAtSetEnable(0xB, 1);
     }
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) SceElevator_r225, &r225_elvLeave, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) SceElevator_r225, &r225_elvLeave, 1);
     if (pG->room_id_prev == 0x226) {
-        if (!(pG->flags_54 & 0x80000)) {
-            if (!(pG->flags_54 & 0x100)) {
-                SceExec(0x12, (TaskFunc) SceElevator_r225, (int) &r225_elvArrive, 0, 2, 0);
+        if (!(pG->System_flg & 0x80000)) {
+            if (!(pG->System_flg & 0x100)) {
+                SceExec(0x12, (TaskFunc) SceElevator_r225, (int) &r225_elvArrive, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
-    SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r225_checkGrave, 0, 1);
+    SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r225_checkGrave, 0, 1);
     if (pG->room_id_prev == 0x21D) {
-        if (!(pG->flags_54 & 0x80000)) {
-            if (!(pG->flags_54 & 0x100)) {
-                SceExec(0x12, (TaskFunc) r225_moveGrave, 0, 0, 2, 0);
+        if (!(pG->System_flg & 0x80000)) {
+            if (!(pG->System_flg & 0x100)) {
+                SceExec(0x12, (TaskFunc) r225_moveGrave, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) first_cut, 0, 1);
+        SceAtDataSet_exec(0x10, SCE_LEVEL10, 0, (TaskFunc) first_cut, 0, 1);
     }
     {
         Vec pos;
@@ -183,12 +183,12 @@ void R225Init()
         rot.x = 0.0f;
         rot.y = -1.08f;
         rot.z = 0.0f;
-        hit = SetEmHit(ROOM_ARC_PTR(pG->pRoomArc, 0x35), ROOM_ARC_PTR(pG->pRoomArc, 0x36), &pos, &rot, 2);
+        hit = SetEmHit(ROOM_ARC_PTR(pG->pRoom, 0x35), ROOM_ARC_PTR(pG->pRoom, 0x36), &pos, &rot, 2);
         if (hit) {
-            hit->setBeetle(ROOM_ARC_PTR(pG->pRoomArc, 0x37), ROOM_ARC_PTR(pG->pRoomArc, 0x39), ROOM_ARC_PTR(pG->pRoomArc, 0x38));
+            hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x39), ROOM_ARC_PTR(pG->pRoom, 0x38));
         }
     }
-    pG->flags_51C4 |= 0x01000000;
+    pG->Scenario_flg[1] |= 0x01000000;
 }
 
 void R225Main()
@@ -223,7 +223,7 @@ static void r225_operateCrank()
     int acc = 0;
     KeyWork* key;
 
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     {
         // COMPILER-DIFF: candidate (sched2 issue-slot filler). The target's block 0 leaves the second
         // slot of cycle 3 empty (only `lis pPL@ha`) although the free `li 0` inits and the hoisted
@@ -239,8 +239,8 @@ static void r225_operateCrank()
     PlSetHand(1, 0);
     ((cUnitEventView*) r225_work->crank)->beginEvent(0);
     CamCtrl.CutCall(5);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x20));
-    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x2B));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
+    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
     {
         Vec pos = {82071.0f, 1500.0f, -18900.0f};
         cPlayer* pl;
@@ -249,9 +249,9 @@ static void r225_operateCrank()
         // pPLS: the scalar `pPL` load would not depend on the template stores above it and its chain
         // through the in-struct `stfs pos.y` -> crank loads (unknown base) outranks the `r225_work` load.
         pos.y = pPLS->pos.y;
-        FSetP(pPL->rot.y, r225_work->crank->rot.y - 1.5707964f);
+        FSetP(pPL->ang.y, r225_work->crank->ang.y - 1.5707964f);
         pl = pPL;
-        rot = &pl->rot;
+        rot = &pl->ang;
         pl->setPos(&pos);
         pl->setAng(rot);
     }
@@ -260,8 +260,8 @@ static void r225_operateCrank()
     // fall-through body is the in-line path (the target's gnd_open arm sits at the loop's end).
     while (1) {
         CamCtrl.CutCall(5);
-        if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1 || MotionCheckCrossFrame(&pPL->mot, 50.0f) == 1 ||
-            MotionCheckCrossFrame(&pPL->mot, 100.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1 || MotionCheckCrossFrame(&pPL->Motion, 50.0f) == 1 ||
+            MotionCheckCrossFrame(&pPL->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, &pPL->pos, 0, 0, 0);
             SndCall(6, 4, &pPL->pos, 0, 0, 0);
         }
@@ -299,36 +299,36 @@ static void r225_operateCrank()
                 switch (lvl) {
                 default:
                 case 0:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x20);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x20);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2B);
                     break;
                 case 1:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x21);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2C);
                     break;
                 case 2:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x22);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2D);
                     break;
                 case 3:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2E);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x23);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2E);
                     break;
                 case 4:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x24);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2F);
                     break;
                 case 5:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x25);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x30);
                     break;
                 case 6:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x26);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x31);
                     break;
                 case 7:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x32);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x32);
                     break;
                 }
                 // COMPILER-DIFF: candidate (loop.c pass-2 threshold). The 2^52 conversion magic must
@@ -344,8 +344,8 @@ static void r225_operateCrank()
                 if (frame >= max) {
                     frame = 0;
                 }
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 3, (u16) frame, 5, (int) mot);
-                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, (u16) frame, 5, (int) mot2);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) mot);
+                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) mot2);
             }
             SmdGetObjPtr(0x27)->be_flag |= 0x20;
             if (!(SmdGetObjPtr(0x27)->pos.x < 800.0f)) {
@@ -376,7 +376,7 @@ static void r225_operateCrank()
         SceAtSetEnable(4, 0);
     }
     CamCtrl.Comeback(0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
 }
 
 // The key door slides open (with a dummy copy of the door model riding along).
@@ -392,7 +392,7 @@ void r225_open_door()
     {
         Vec pos = {78329.0f, 3145.0f, -22522.0f};
         Vec rot = {1.5707964f, 1.5707964f, 0.0f};
-        r225_work->door = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x33), ROOM_ARC_PTR(pG->pRoomArc, 0x34), &pos, &rot, 0x10, 1);
+        r225_work->door = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x33), ROOM_ARC_PTR(pG->pRoom, 0x34), &pos, &rot, 0x10, 1);
     }
     EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
     SndCall(6, 3, 0, 0, 0, 0);
@@ -435,7 +435,7 @@ static void r225_DoorMes()
 {
     SceUpCut(0, -1, 6, 0);
     if (ItemMgr.num(0x82) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -466,7 +466,7 @@ static void r225_moveGrave(int dir)
             }
         }
         SceEventStart(0);
-        pG->flags_58 |= 0x02000000;
+        pG->Disp_flg |= 0x02000000;
         if (dir == 1) {
             CamCtrl.CutCall(6);
             SndCall(6, 7, 0, 0, 0, 0);
@@ -489,7 +489,7 @@ static void r225_moveGrave(int dir)
             SceSleep(15);
             CamCtrl.Comeback(0);
         }
-        pG->flags_58 &= ~0x02000000;
+        pG->Disp_flg &= ~0x02000000;
         SceEventEnd(0);
     }
 }
@@ -504,7 +504,7 @@ static void r225_checkGrave()
 static void first_cut_exit()
 {
     SceEventEnd(0);
-    if (pG->flags_174 & 0x40000000) {
+    if (pG->Room_flg[0] & 0x40000000) {
         SndRoomStrStop(0);
     }
 }
@@ -625,7 +625,7 @@ void SceElevator_r225(SceElevatorData* d)
                     asm volatile("" : : "r"(d));
                     RsfSet(G_ROOM_ID, 4);
                     SceEventEnd(0);
-                    SceSetChapterEnd(0xC, 1);
+                    SceSetChapterEnd(CHAPTER_4_3, 1);
                     for (;;) {
                         SceSleep(1);
                     }
@@ -636,7 +636,7 @@ void SceElevator_r225(SceElevatorData* d)
         }
     }
     if (d->dir == 0 || d->dir == 2) {
-        BitOff(pG->flags_5010, 0x10000000);
+        BitOff(pG->Status_flg[1], 0x10000000);
         spd = maxSpd;
         move = stopDist2;
         if (d->dir == 0) {

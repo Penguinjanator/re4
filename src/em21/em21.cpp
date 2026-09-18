@@ -78,10 +78,10 @@ static inline cEm* em21EmWork(u32 no)
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -120,7 +120,7 @@ void em21DmCk(cEm21* em)
         case 4:
         case 5:
         case 7:
-            mode = em->x38D;
+            mode = em->set;
             {
                 register int c asm("r9"); // COMPILER-DIFF: #13
                 c = 0x1E;
@@ -128,15 +128,15 @@ void em21DmCk(cEm21* em)
             }
             if (mode != 2) {
                 if ((em->stat & 0xFFFF0000) == 0x01050000 && w->pTrap) {
-                    w->pTrap->xFC = 1;
-                    w->pTrap->xFD = 4;
-                    w->pTrap->xFE = 0;
-                    w->pTrap->xFF = 0;
-                    em->xFC = 1;
+                    w->pTrap->r_no_0 = 1;
+                    w->pTrap->r_no_1 = 4;
+                    w->pTrap->r_no_2 = 0;
+                    w->pTrap->r_no_3 = 0;
+                    em->r_no_0 = 1;
                     em->dmType = 0x3C;
-                    em->xFD = 7;
-                    em->xFE = 0;
-                    em->xFF = 1;
+                    em->r_no_1 = 7;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 1;
                 } else {
                     EmRoutineSet(em, 1, 3, 0, 0);
                 }
@@ -148,19 +148,19 @@ void em21DmCk(cEm21* em)
         return;
     }
     em->dmHit = 0;
-    if (em->x38D == 2) {
+    if (em->set == 2) {
         return;
     }
     if ((em->stat & 0xFFFF0000) == 0x01050000 && w->pTrap) {
-        w->pTrap->xFC = 1;
-        w->pTrap->xFD = 4;
-        w->pTrap->xFE = 0;
-        w->pTrap->xFF = 0;
-        em->xFC = 1;
+        w->pTrap->r_no_0 = 1;
+        w->pTrap->r_no_1 = 4;
+        w->pTrap->r_no_2 = 0;
+        w->pTrap->r_no_3 = 0;
+        em->r_no_0 = 1;
         em->dmType = 0x3C;
-        em->xFD = 7;
-        em->xFE = 0;
-        em->xFF = 1;
+        em->r_no_1 = 7;
+        em->r_no_2 = 0;
+        em->r_no_3 = 1;
     } else {
         em->dmType = 0x3C;
         EmRoutineSet(em, 1, 3, 0, 0);
@@ -222,18 +222,18 @@ void cEm21::move()
     }
     motFlags2 &= ~0x40000000;
     Em21RouteCk(this);
-    Em21_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em21_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
     em21NeckMove(this);
     partsWorldCalc();
-    d = SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z));
+    d = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    if (SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z)) < d * 0.5f) {
+    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < d * 0.5f) {
         w->stuckTimer = 3;
     }
 }
@@ -249,29 +249,29 @@ static void em21_R0_Init(cEm21* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em21() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(4), ARC(6)) == 0) {
             pLog->err(0, 0, "em21() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     zero = 0;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     at = &em->atari;
     em->hp = 1000;
-    em->motFlip = em21_flip_tbl;
+    em->pXFlip = em21_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 0.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -286,12 +286,12 @@ static void em21_R0_Init(cEm21* em)
     w->neckY = 0.0f;
     w->pTrap = (cEm*) zero;
     w->sndId = zero;
-    switch (em->x38D) {
+    switch (em->set) {
     default:
         EmRoutineSet(em, 1, 0, 0, 0);
         break;
     case 1:
-        at->setPriority(1);
+        at->setPriority(PRI_LV1);
         EmRoutineSet(em, 1, 5, 0, 0);
         break;
     case 2:
@@ -305,37 +305,37 @@ static void em21_R0_Init(cEm21* em)
 
 static void em21_R0_Move(cEm21* em)
 {
-    Em21_R1_move_tbl[em->xFD](em);
+    Em21_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em21_R1_Wait(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xB), 0, 30, 5, 0);
         w->timer = Rnd() % 3;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             if (w->timer) {
                 w->timer--;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xC), (int) ARC(0x17), 30, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             if (Rnd() & 1) {
                 em21SetWanderPos(em);
                 EmRoutineSet(em, 1, 1, 0, 0);
             } else {
-                em->xFE = 0;
+                em->r_no_2 = 0;
             }
         }
         break;
@@ -351,14 +351,14 @@ static void em21_R1_Wander(cEm21* em)
     Em21Work* w = EM21_WK(em);
 
     w->flags |= 4;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), (int) ARC(0xD), 30, 5, 0);
         w->timer = Rnd() % 5;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 128.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 128.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em21DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
         if ((em->pos.x - w->wanderPos.x) * (em->pos.x - w->wanderPos.x) + (em->pos.z - w->wanderPos.z) * (em->pos.z - w->wanderPos.z)
@@ -378,13 +378,13 @@ static void em21_R1_Turn(cEm21* em)
     Em21Work* w = EM21_WK(em);
 
     w->flags |= 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), (int) ARC(0xD), 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em21DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
         break;
@@ -405,22 +405,22 @@ static void em21_R1_Escape(cEm21* em)
     if (em->plDist2 < 25000000.0f) {
         w->flags |= 2;
     }
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         RouteCkEscEm(em, pPL, &w->targetPos);
-        t = fabsf(Muku(&em->pos, &w->targetPos, em->rot.y, PI));
+        t = fabsf(Muku(&em->pos, &w->targetPos, em->ang.y, PI));
         if (t > 2.0943952f) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
-        if (!(pGS->flags_5010 & 0x20000000)) {
-            BitOn(pG->flags_5010, 0x20000000);
+        if (!(pGS->Status_flg[1] & 0x20000000)) {
+            BitOn(pG->Status_flg[1], 0x20000000);
             memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
             pG->bell_stat = 0;
         }
     }
     w->escTimer = 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (Rnd() & 3) {
         case 0:
@@ -443,8 +443,8 @@ static void em21_R1_Escape(cEm21* em)
         w->escAng = LIMIT_ANGLE(w->escAng);
         w->timer = Rnd() % 3 + 3;
         w->timer2 = Rnd() % 30 + 30;
-        em->xFF = Rnd() & 1;
-        em->xFE++;
+        em->r_no_3 = Rnd() & 1;
+        em->r_no_2++;
     case 1:
         if (w->timer2) {
             w->timer2--;
@@ -453,12 +453,12 @@ static void em21_R1_Escape(cEm21* em)
             w->escAng += fRand1_1() * (PI / 4.0f);
             w->escAng = LIMIT_ANGLE(w->escAng);
         }
-        t = Muku2(em->rot.y, w->escAng, PI / 40.0f);
-        em->rot.y += t;
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        t = Muku2(em->ang.y, w->escAng, PI / 40.0f);
+        em->ang.y += t;
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em21DirMatrix(em, t);
         if (w->stuckTimer > 3) {
-            if (em->xFF) {
+            if (em->r_no_3) {
                 w->escAng += PI / 5.0f;
             } else {
                 w->escAng -= PI / 5.0f;
@@ -476,7 +476,7 @@ static void em21_R1_Escape(cEm21* em)
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x16), 3, 1, 0);
         em21EscapeWithYou(em);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         w->timer = Rnd() % 30 + 30;
         if (em->seFlags28B & 2) {
@@ -485,14 +485,14 @@ static void em21_R1_Escape(cEm21* em)
             } else {
                 t = PI / 40.0f;
             }
-            em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, t);
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
-            em21DirMatrix(em, Muku(&em->pos, &w->targetPos, em->rot.y, PI));
+            em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, t);
+            em->ang.y = LIMIT_ANGLE(em->ang.y);
+            em21DirMatrix(em, Muku(&em->pos, &w->targetPos, em->ang.y, PI));
         } else {
             em21DirMatrix(em, 0.0f);
         }
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -504,24 +504,24 @@ static void em21_R1_Bark(cEm21* em)
     f32 ang;
 
     w->flags |= 2;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xB), 0, 30, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em21DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
             int zero = 0;
 
-            em->xFE = zero;
+            em->r_no_2 = zero;
             if (w->routeAngAbs > PI / 4.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
             }
         }
-        ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI));
+        ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
         if (ang < PI / 4.0f && em->plDist2 < 100000000.0f) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -540,19 +540,19 @@ static void em21_R1_Bark(cEm21* em)
             MotionSetCore(em, MOTION(em), ARC(8), (int) ARC(0x11), 30, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em21DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
             int zero = 0;
 
-            em->xFE = zero;
+            em->r_no_2 = zero;
             if (w->routeAngAbs > PI / 4.0f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
             } else {
-                ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI));
+                ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI));
                 if (ang > 1.0471976f || em->plDist2 > 144000000.0f) {
-                    em->xFE = zero;
+                    em->r_no_2 = zero;
                 }
             }
         }
@@ -568,12 +568,12 @@ static void em21_R1_R100TrapWait(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x18), 0, 0, 5, 0);
         w->pTrap = 0;
         w->timer = Rnd() % 30 + 75;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (w->timer) {
             w->timer--;
@@ -600,17 +600,17 @@ static void em21_R1_R100TrapCancel(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x19), (int) ARC(0x1C), 3, 5, 0);
         if (w->pTrap) {
-            w->pTrap->flags_3C8 |= 1;
+            w->pTrap->flag |= 1;
         }
         SndStrReq(1, 0xE, 0x80000003, 0, 0, 0.0f);
-        pG->flags_51BC |= 0x80000;
+        pG->Item_find_flg |= 0x80000;
         em->hp = 0;
-        em->atari.flags &= ~0x200;
-        em->xFE++;
+        em->atari.m_flag &= ~0x200;
+        em->r_no_2++;
     case 1:
         em->dmType = 2;
         if (MotionMoveF(em, 0)) {
@@ -625,19 +625,19 @@ static void em21_R1_R100Escape(cEm21* em)
     Em21Work* w = EM21_WK(em);
     Vec target = { -24950.0f, -400.0f, -26740.0f };
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EmSetDie(em);
-        if (em->xFF) {
+        if (em->r_no_3) {
             MotionSetCore(em, MOTION(em), ARC(9), (int) ARC(0x12), 3, 5, 0);
             SndStop(w->sndId, 0);
             w->sndId = SndCall(8, 0xB, &em->pos, em->id, 0, em);
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x1D), 3, 5, 0);
         }
-        em->atari.flags |= 0x100;
+        em->atari.m_flag |= 0x100;
         MotionMoveF(em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1: {
         f32 lim;
 
@@ -646,47 +646,47 @@ static void em21_R1_R100Escape(cEm21* em)
         } else {
             lim = PI / 40.0f;
         }
-        em->rot.y += Muku(&em->pos, &target, em->rot.y, lim);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
-        em21DirMatrix(em, Muku(&em->pos, &target, em->rot.y, PI));
+        em->ang.y += Muku(&em->pos, &target, em->ang.y, lim);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
+        em21DirMatrix(em, Muku(&em->pos, &target, em->ang.y, PI));
         MotionMoveF(em, 0);
         if ((em->pos.x - target.x) * (em->pos.x - target.x) + (em->pos.z - target.z) * (em->pos.z - target.z) < 36000000.0f) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     }
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x1E), 0, 3, 1, 0);
-        em->atari.flags &= ~0x100;
+        em->atari.m_flag &= ~0x100;
         MotionMoveF(em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (em->motFrame > 2.7f && em->motFrame < 3.3f) {
             SndCall(8, 7, &em->pos, em->id, 0, em);
         }
         em21DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x1D), 3, 5, 0);
         MotionMoveF(em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em21DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 6:
         MotionMoveF(em, 0);
-        em->atari.flags &= ~0x300;
-        em->alpha -= 0.1f;
-        if (em->alpha <= 0.0f) {
+        em->atari.m_flag &= ~0x300;
+        em->invisible_factor -= 0.1f;
+        if (em->invisible_factor <= 0.0f) {
             em->be_flag &= ~2;
-            em->alpha = 0.0f;
-            em->xFE++;
+            em->invisible_factor = 0.0f;
+            em->r_no_2++;
         }
         break;
     }
@@ -700,20 +700,20 @@ static void em21_R1_VsElgigante(cEm21* em)
     f32 d;
 
     w->flags |= 8;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x24), 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em21SearchElgigante(em)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x20), 0, 5, 5, 0);
         w->timer = Rnd() % 60 + 60;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         w->flags |= 2;
         if (w->timer) {
@@ -723,24 +723,24 @@ static void em21_R1_VsElgigante(cEm21* em)
             w->sndId = SndCall(8, 5, &em->pos, em->id, 0, em);
         }
         if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
         if (g->hp <= 0) {
-            em->xFE = 0x10;
+            em->r_no_2 = 0x10;
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 25000000.0f
-            && (g->flags_3C8 & 4)) {
-            em->xFE = 6;
+            && (g->flag & 4)) {
+            em->r_no_2 = 6;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         } else {
-            ang = fabsf(Muku(&em->pos, &g->pos, em->rot.y, PI));
+            ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
             if (ang > 0.87266463f) {
-                em->xFE = 0xE;
+                em->r_no_2 = 0xE;
             }
         }
         break;
@@ -760,24 +760,24 @@ static void em21_R1_VsElgigante(cEm21* em)
             MotionSetCore(em, MOTION(em), ARC(8), (int) ARC(0x11), 30, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         w->flags |= 2;
         if (MotionMoveF(em, 0)) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 25000000.0f
-            && (g->flags_3C8 & 4)) {
-            em->xFE = 6;
+            && (g->flag & 4)) {
+            em->r_no_2 = 6;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         } else {
-            ang = fabsf(Muku(&em->pos, &g->pos, em->rot.y, PI));
+            ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
             if (ang > 0.87266463f) {
-                em->xFE = 0xE;
+                em->r_no_2 = 0xE;
             }
         }
         break;
@@ -787,24 +787,24 @@ static void em21_R1_VsElgigante(cEm21* em)
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x1F), (int) ARC(0x22), 3, 1, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
             if (em21GetBarkPos(em) == 0) {
-                em->xFE = 2;
+                em->r_no_2 = 2;
                 break;
             }
-            if (fabsf(Muku(&em->pos, &w->barkPos, em->rot.y, PI)) < 2.0943952f) {
-                em->xFE = 8;
+            if (fabsf(Muku(&em->pos, &w->barkPos, em->ang.y, PI)) < 2.0943952f) {
+                em->r_no_2 = 8;
                 break;
             }
-            em->xFE = 0xA;
+            em->r_no_2 = 0xA;
         }
         break;
     case 8:
         MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x1D), 3, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 9:
         w->flags |= 2;
         // the Muku limit shares the `ang` variable: its f2 argument copy gives the pseudo an f2
@@ -814,9 +814,9 @@ static void em21_R1_VsElgigante(cEm21* em)
         } else {
             ang = PI / 40.0f;
         }
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, ang);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
-        em21DirMatrix(em, Muku(&em->pos, &w->targetPos, em->rot.y, PI));
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, ang);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
+        em21DirMatrix(em, Muku(&em->pos, &w->targetPos, em->ang.y, PI));
         MotionMoveF(em, 0);
         {
             // temp computed BEFORE d: combine then substitutes t (the later LOG_LINK is tried
@@ -826,67 +826,67 @@ static void em21_R1_VsElgigante(cEm21* em)
             d += t;
         }
         if (d < 4000000.0f) {
-            ang = fabsf(Muku(&em->pos, &g->pos, em->rot.y, PI));
+            ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
             if (ang < 1.7453293f) {
-                em->xFE = 2;
+                em->r_no_2 = 2;
                 break;
             }
-            em->xFE = 0xC;
+            em->r_no_2 = 0xC;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         }
         break;
     case 0xA:
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x16), 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 0xB:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 8;
+            em->r_no_2 = 8;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         }
         break;
     case 0xC:
         MotionSetCore(em, MOTION(em), ARC(0x21), (int) ARC(0x23), 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 0xD:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         }
         break;
     case 0xE:
         MotionSetCore(em, MOTION(em), ARC(0x26), (int) ARC(0x27), 3, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 0xF:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em21DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
-        ang = fabsf(Muku(&em->pos, &g->pos, em->rot.y, PI));
+        ang = fabsf(Muku(&em->pos, &g->pos, em->ang.y, PI));
         if (ang < 0.34906585f) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
             break;
         }
         if ((em->pos.x - g->pos.x) * (em->pos.x - g->pos.x) + (em->pos.z - g->pos.z) * (em->pos.z - g->pos.z) < 9000000.0f
-            && (g->flags_3C8 & 4)) {
-            em->xFE = 6;
+            && (g->flag & 4)) {
+            em->r_no_2 = 6;
             break;
         }
         if (em21DeadCk(em)) {
-            em->xFE = 6;
+            em->r_no_2 = 6;
         }
         break;
     case 0x10:
         MotionSetCore(em, MOTION(em), ARC(0x25), 0, 10, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 0x11:
         w->flags |= 2;
         MotionMoveF(em, 0);
@@ -914,7 +914,7 @@ int em21SearchElgigante(cEm21* em)
         if (e == em) {
             continue;
         }
-        if (e->checkStatus(5) == 0) {
+        if (e->checkStatus(EM_STATUS_ACTIVE) == 0) {
             continue;
         }
         w->pGigante = e;
@@ -937,15 +937,15 @@ static void plemTrapCancel(cPlayer* pl)
     Vec v;
 
     pl->subArc = PL_EM(pPL)->subArc;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         v.x = 431.86002f;
         v.y = 0.0f;
         v.z = -989.88f;
-        pl->rot.y = em->rot.y;
+        pl->ang.y = em->ang.y;
         PSMTXMultVec(em->mat, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x1B), 0, 0, 1, 0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         pl->dmType = 2;
         if (MotionMoveF(pl, 0)) {
@@ -991,7 +991,7 @@ void plem21TrapCamMove(cModel* m)
     }
     cam->param.fovy = 55.0f;
     CameraSetOrientationUp(cam);
-    CamCtrl.x250 = (s32) cam;
+    CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
 void Em21RouteCk(cEm21* em)
@@ -1001,18 +1001,18 @@ void Em21RouteCk(cEm21* em)
     if (em->hp <= 0) {
         return;
     }
-    if ((pG->flags_51E4 & 7) != (em->emsetNo & 7)) {
+    if ((pG->Frame_cnt & 7) != (em->emset_no & 7)) {
         return;
     }
     w->flags &= ~1;
     if (RouteCkToPos(em, &pPLS->pos, &w->routePos, 0, 0)) {
         w->flags |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
     if (w->flags & 8) {
         RouteCkToPos(em, &w->barkPos, &w->targetPos, 0, 0);
-        w->targetAng = Muku(&em->pos, &w->targetPos, em->rot.y, PI);
+        w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
         w->targetDist2 = (em->pos.x - w->barkPos.x) * (em->pos.x - w->barkPos.x)
                          + (em->pos.z - w->barkPos.z) * (em->pos.z - w->barkPos.z);
@@ -1021,7 +1021,7 @@ void Em21RouteCk(cEm21* em)
     }
     if (w->flags & 4) {
         RouteCkToPos(em, &w->wanderPos, &w->targetPos, 0, 0);
-        w->targetAng = Muku(&em->pos, &w->targetPos, em->rot.y, PI);
+        w->targetAng = Muku(&em->pos, &w->targetPos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
         w->targetDist2 = (em->pos.x - w->wanderPos.x) * (em->pos.x - w->wanderPos.x)
                          + (em->pos.z - w->wanderPos.z) * (em->pos.z - w->wanderPos.z);
@@ -1045,7 +1045,7 @@ void em21DirMatrix(cEm21* em, f32 dir)
     Em21Work* w = EM21_WK(em);
     f32 t;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->motFlags2 |= 0x40000000;
@@ -1096,9 +1096,9 @@ void em21NeckMove(cEm21* em)
         // do{}while(0) (COMPILER-DIFF-tagged tie lever): the refs inside count twice, so tp
         // outranks em in global-alloc (tp r29, em r28); the notes sit at block edges (no barrier)
         do {
-            f = Muku(&em->pos, &p->worldPos, em->rot.y, 1.0471976f);
+            f = Muku(&em->pos, &p->world, em->ang.y, 1.0471976f);
             w->neckY += Muku2(w->neckY, f, 0.098174773f);
-            PSVECSubtract(&tp->worldPos, &p->worldPos, &d);
+            PSVECSubtract(&tp->world, &p->world, &d);
             len = SQRTF(d.x * d.x + d.z * d.z);
         } while (0);
         f = -atan2f(d.y, len);
@@ -1134,13 +1134,13 @@ void em21NeckMove(cEm21* em)
         f = w->neckX * 0.33333334f;
         p = (cParts*) em->getPartsPtr(3);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
         p = (cParts*) em->getPartsPtr(4);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
         p = (cParts*) em->getPartsPtr(5);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
     }
 }
 
@@ -1154,15 +1154,15 @@ int em21WakeCk(cEm21* em)
     if (em->plDist2 < 16000000.0f && w->routeAngAbs < PI / 4.0f) {
         return 1;
     }
-    if ((int) pG->flags_5010 < 0 && em->plDist2 < 16000000.0f) {
+    if ((int) pG->Status_flg[1] < 0 && em->plDist2 < 16000000.0f) {
         return 1;
     }
-    if ((pG->flags_5010 & 0x40000000) || (pG->flags_500C & 0x00800000)) {
+    if ((pG->Status_flg[1] & 0x40000000) || (pG->Status_flg[0] & 0x00800000)) {
         if (w->plDist < 15000.0f) {
             return 1;
         }
     }
-    if (pG->flags_5010 & 0x20000000) {
+    if (pG->Status_flg[1] & 0x20000000) {
         f32 r;
 
         // three identical arms + the override after the switch: the arm sets are dead (the
@@ -1222,10 +1222,10 @@ void em21EscapeWithYou(cEm21* em)
         if (e == em) {
             continue;
         }
-        if (e->xFC != 1) {
+        if (e->r_no_0 != 1) {
             continue;
         }
-        if (e->xFD == 4 || e->xFD == 0 || e->xFD == 2) {
+        if (e->r_no_1 == 4 || e->r_no_1 == 0 || e->r_no_1 == 2) {
             if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z) > 9000000.0f) {
                 continue;
             }
@@ -1243,7 +1243,7 @@ void em21SetWanderPos(cEm21* em)
     Vec hit;
     f32 ang;
 
-    ang = LIMIT_ANGLE(em->rot.y + fRand1_1() * (PI / 2.0f));
+    ang = LIMIT_ANGLE(em->ang.y + fRand1_1() * (PI / 2.0f));
     a = em->pos;
     a.y += 500.0f;
     b.x = 0.0f;
@@ -1285,11 +1285,11 @@ int em21TrapSearch(cEm21* em)
         if (e->type != 0) {
             continue;
         }
-        if (e->x38D == 1) {
+        if (e->set == 1) {
             Vec v;
 
             w->pTrap = e;
-            e->rot.y = em->rot.y;
+            e->ang.y = em->ang.y;
             v.x = 256.48f;
             v.y = 0.0f;
             v.z = -304.75f;
@@ -1303,7 +1303,7 @@ int em21TrapSearch(cEm21* em)
 int em21GetBarkPos(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
-    EmiData* emi = (EmiData*) pG->pRoomEmi;
+    EmiData* emi = (EmiData*) pG->pEmi;
     EmiEntry* e;
     f32 best = 0.0f;
     int idx;
@@ -1333,7 +1333,7 @@ int em21GetBarkPos(cEm21* em)
     if (idx == -1) {
         return 0;
     }
-    e = &((EmiData*) pG->pRoomEmi)->entry[idx];
+    e = &((EmiData*) pG->pEmi)->entry[idx];
     w->barkPos = e->pos;
     return 1;
 }

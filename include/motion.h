@@ -8,7 +8,7 @@
 #include "model.h"
 #include "cam_ctrl.h"
 
-// MotionSeqKey / MotionData / MotionWork are defined in model.h (cModel::mot at 0x1D8).
+// MotionSeqKey / MotionData / MotionWork are defined in model.h (cModel::Motion at 0x1D8).
 
 // The motion-driven model view (cMotBase::set(cMotModel*), MOTION(m)): cModel carries the work
 // itself now, so this adds nothing.
@@ -27,7 +27,7 @@ struct IkParts {
     Vec dir;         // 0x168 bind pose direction from the effector to the root
 };
 
-#define MOTION(m) (&((cMotModel*)(m))->mot)
+#define MOTION(m) (&((cMotModel*)(m))->Motion)
 #define MOTION_PARTS(p) ((MotionParts*)((u8*)(p) + 0x174))
 #define IK_PARTS(p) ((IkParts*)((u8*)(p) + 0xF8))
 #define PARTS_BIND_MAT(p) (*(Mtx*)((u8*)(p) + 0xF8))

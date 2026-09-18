@@ -13,7 +13,7 @@ void* memset(void* dst, int c, unsigned int n);
 
 CameraMotion::CameraMotion(void* data, int hokan, int flags, f32 frame)
 {
-    CameraMotionWork* w = &info;
+    CameraMotionWork* w = &m_info;
     u32* tbl;
     int i;
 
@@ -57,7 +57,7 @@ void CameraMotion::move()
     Vec roll = {0.0f, 0.0f, 0.0f};
     Vec fov;
     HermitePrm* pp = &prm;
-    CameraMotionWork* w = &info;
+    CameraMotionWork* w = &m_info;
     int i;
 
     pp->frame = w->frame;
@@ -93,7 +93,7 @@ void CameraMotion::move()
         CameraSetOrientationUp(this);
     }
     end = 0;
-    if (CameraSequenceCtrl(&info) == 4) {
+    if (CameraSequenceCtrl(&m_info) == 4) {
         end = 1;
     }
 }

@@ -33,11 +33,11 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int EmAtkHitCk(void* info, Vec* a, Vec* b, int flag);                                        // em_sub.cpp
-EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm);                            // em_sub.cpp
-void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* a, Vec* b);                     // em_sub.cpp
-EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag);                           // em_sub.cpp
-int CheckInWater(cModel* m, int a);                                                          // em_sub.cpp
+int EmAtkHitCk(void* info, Vec* pPos, Vec* pPosOld, int flag);                                        // em_sub.cpp
+EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm);                            // em_sub.cpp
+void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2);                     // em_sub.cpp
+EmHitInfo* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag);                           // em_sub.cpp
+int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 void GameAddPoint(int no);                                                                   // game.cpp
 static void emWep_R1_Parent(cEmWep* em);
 // The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
@@ -107,7 +107,7 @@ u8 emWepClothP[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 u8 emWepClothUp[10] = { 0xFF, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 static u8 emWepClothDp[10] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 0xFF };
 f32 emWepClothMax[10] = { 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f };
-PlClothAt emWepAt[3] = {
+CLOTH_AT_SET emWepAt[3] = {
     { 0, 4, 4, 1.0f, 200.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 3, 3, 0.5f, 250.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 2, 2, 1.0f, 250.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
@@ -127,7 +127,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetWeapon() ModelInit failed.");
@@ -137,27 +137,27 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->type = type;
     atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f, 1, 0x2000, 10);
     em->hp = 0;
-    em->hpMax = 1000;
+    em->hp_max = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
         if (em->type == 1) {
-            em->lightInfo.init2(0, 1, &ofs, &size, 0x20);
+            em->LightInfo.init2(0, 1, &ofs, &size, 0x20);
         } else {
-            em->lightInfo.init2(0, 1, &ofs, &size, 2);
+            em->LightInfo.init2(0, 1, &ofs, &size, 2);
         }
     }
     LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     em->be_flag &= ~0x10;
-    w->sceAtNo = -1;
+    w->At_no = -1;
     w->seThrow[3] = 4;
     w->grav = 20.0f;
     w->seFall[0] = 0xFF;
@@ -170,13 +170,13 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->seDamage[1] = 0xFF;
     w->seThrow[0] = 0xFF;
     w->seThrow[1] = 0xFF;
-    w->flags = 0;
+    w->Be_flg = 0;
     w->timer4 = 0;
-    w->inWater = 0;
-    w->pParent = 0;
-    w->pOwner = 0;
+    w->Water_ck = 0;
+    w->pEm_oya = 0;
+    w->pEm_old = 0;
     w->pAtk = 0;
-    w->fallType = 0;
+    w->fall_type = 0;
     w->seFall[2] = 0;
     w->seFall[3] = 0;
     w->seHit[2] = 0;
@@ -184,7 +184,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->seDamage[2] = 0;
     w->seThrow[2] = 0;
     w->alwaysTimer = 0;
-    w->sndId = 0;
+    w->seid_throw = 0;
     w->effFall[0] = 0xFF;
     w->espKind = 50;
     w->effFall[1] = 0xFF;
@@ -192,25 +192,25 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->effDamage[1] = 0xFF;
     w->effHit[0] = 0xFF;
     w->effHit[1] = 0xFF;
-    w->effWater[0] = 0xFF;
-    w->effWater[1] = 0xFF;
+    w->eff_id_always2[0] = 0xFF;
+    w->eff_id_always2[1] = 0xFF;
     w->effAlways[0] = 0xFF;
     w->effAlways[1] = 0xFF;
-    w->effAlwaysParts = 0xFF;
+    w->always2_parts = 0xFF;
     w->effAlwaysWait = 0;
     w->effAlwaysTimer = 0;
-    w->effAlwaysOfs.x = 0.0f;
-    w->effAlwaysOfs.y = 0.0f;
-    w->motEscape = 0;
+    w->always2_offset.x = 0.0f;
+    w->always2_offset.y = 0.0f;
+    w->Mot_escape = 0;
     w->motBackjump = 0;
     w->motFront = 0;
     w->motEscape2 = 0;
-    w->effAlwaysOfs.z = 0.0f;
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
-    RotMatrix(em->mat, &em->rot);
+    w->always2_offset.z = 0.0f;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -221,7 +221,7 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 
 void cEmWep::beginEvent()
 {
-    if (EMWEP_WK(this)->pParent == 0 && type == 0) {
+    if (EMWEP_WK(this)->pEm_oya == 0 && type == 0) {
         EmMgr.destroy(this);
     }
 }
@@ -257,13 +257,13 @@ void emWepDmCk(cEmWep* em)
     if (wep == 0xE) {
         return;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->hp = 0;
-    switch (em->xFD) {
+    switch (em->r_no_1) {
     case 3:
     case 0xA:
     default:
-        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->x328));
+        PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &em->dmPos));
         v.x = fRand1_1() * 200.0f;
         v.y = fRand0_1() * 50.0f + 50.0f;
         v.z = fRand0_1() * 100.0f + -250.0f;
@@ -273,53 +273,53 @@ void emWepDmCk(cEmWep* em)
             SndCall(w->seDamage[0], w->seDamage[1], &em->pos, w->seDamage[2], 0, em);
         }
         if (w->effDamage[0] != 0xFF && w->effDamage[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, &em->rot, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
         }
-        BitOn(pG->flags_5010, 0x20000);
+        BitOn(pG->Status_flg[1], 0x20000);
         GameAddPoint(9);
         break;
     case 7:
-        BitOn(pG->flags_5010, 0x20000);
+        BitOn(pG->Status_flg[1], 0x20000);
         GameAddPoint(9);
         emWepArrowBomb(em);
         break;
     case 8:
-        BitOn(pG->flags_5010, 0x20000);
+        BitOn(pG->Status_flg[1], 0x20000);
         GameAddPoint(9);
         emWepRocketBobm(em);
         break;
     case 9:
         stat = 1;
-        BitOn(pG->flags_5010, 0x20000);
+        BitOn(pG->Status_flg[1], 0x20000);
         GameAddPoint(9);
         r.x = 0.0f;
         r.y = GetXZAngle(&em->pos, &pG->Cam.param.pos);
         r.z = 0.0f;
         EstSet(0, -1, &em->pos, &r, 0x10, 0x42, 0, 0, 0, 0);
-        if (w->pOwner) {
-            SndCall(8, 0x96, &em->pos, w->pOwner->id, 0, em);
+        if (w->pEm_old) {
+            SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
         }
-        BitOn(pG->flags_500C, 0x800000);
+        BitOn(pG->Status_flg[0], 0x800000);
         p = em->pos;
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
-        BitOn(pG->flags_5010, 0x20000000);
+        BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = stat;
         em->setLost();
         break;
     case 0xC:
-        BitOn(pG->flags_5010, 0x20000);
+        BitOn(pG->Status_flg[1], 0x20000);
         GameAddPoint(9);
         EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
         EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
         one = 1;
         SndCall(one, 0x14, &em->pos, 0, 0, em);
-        BitOn(pG->flags_500C, 0x800000);
+        BitOn(pG->Status_flg[0], 0x800000);
         p = em->pos;
         p.y += 800.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
-        BitOn(pG->flags_5010, 0x20000000);
+        BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = one;
         em->setLost();
@@ -327,18 +327,18 @@ void emWepDmCk(cEmWep* em)
     case 0:
     case 2:
         if (w->effDamage[0] != 0xFF && w->effDamage[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, &em->rot, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->effDamage[0], w->effDamage[1], 0, 0, 0, 0);
         }
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         if (w->seDamage[0] != 0xFF) {
             SndCall(w->seDamage[0], w->seDamage[1], &em->pos, w->seDamage[2], 0, em);
         }
-        if (w->sceAtNo != -1) {
-            SceAtDestroy(w->sceAtNo);
-            w->sceAtNo = -1;
+        if (w->At_no != -1) {
+            SceAtDestroy(w->At_no);
+            w->At_no = -1;
         }
         break;
     }
@@ -350,28 +350,28 @@ void cEmWep::move()
     Vec v;
 
     emWepDmCk(this);
-    EmWep_R0_move_tbl[xFC](this);
+    EmWep_R0_move_tbl[r_no_0](this);
     if ((be_flag & 0x201) != 1) {
         return;
     }
     moveCloth();
-    if (w->pParent) {
-        alpha = w->pParent->alpha;
-        x158 = w->pParent->x158;
-        if (w->pParent->be_flag & 2) {
+    if (w->pEm_oya) {
+        invisible_factor = w->pEm_oya->invisible_factor;
+        invisible_factor2 = w->pEm_oya->invisible_factor2;
+        if (w->pEm_oya->be_flag & 2) {
             be_flag |= 2;
         } else {
             be_flag &= ~2;
         }
     }
-    if (w->flags & 2) {
+    if (w->Be_flg & 2) {
         be_flag &= ~2;
     }
     if (be_flag & 2) {
         if (w->effAlways[0] != 0xFF && w->effAlways[1] != 0xFF && w->effAlwaysTimer != 0) {
             w->effAlwaysTimer--;
             if ((s16) w->effAlwaysTimer == 0) {
-                PSMTXMultVec(getPartsPtr(w->effAlwaysParts)->mat, &w->effAlwaysOfs, &v);
+                PSMTXMultVec(getPartsPtr(w->always2_parts)->mat, &w->always2_offset, &v);
                 EstSet(0, -1, &v, 0, w->effAlways[0], w->effAlways[1], 0, 0, 0, 0);
                 w->effAlwaysTimer = w->effAlwaysWait;
             }
@@ -382,45 +382,45 @@ void cEmWep::move()
                 cModel* p = getPartsPtr(0);
 
                 w->alwaysTimer = w->alwaysWait;
-                SndCall(w->seAlways[0], w->seAlways[1], &p->worldPos, w->seAlways[2], 0, this);
+                SndCall(w->seAlways[0], w->seAlways[1], &p->world, w->seAlways[2], 0, this);
             }
         }
     }
-    if (w->pParent && (w->pParent->be_flag & 0x201) != 1) {
+    if (w->pEm_oya && (w->pEm_oya->be_flag & 0x201) != 1) {
         EmMgr.destroy(this);
     }
 }
 
 void emWep_R0_Init(cEmWep* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emWep_R0_Move(cEmWep* em)
 {
-    EmWep_R1_move_tbl[em->xFD](em);
+    EmWep_R1_move_tbl[em->r_no_1](em);
 }
 
 void emWep_R1_Set(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->timer = 3;
-        em->xFE++;
+        w->Timer = 3;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         }
         if (em->pMotion) {
             MotionMove(em, 0);
         } else {
-            if (em->type != 1 || w->timer != 0) {
-                RotMatrix(em->mat, &em->rot);
+            if (em->type != 1 || w->Timer != 0) {
+                RotMatrix(em->mat, &em->ang);
                 TransMatrix(em->mat, &em->pos);
                 ScaleMatrix(em->mat, &em->scale);
             }
@@ -431,10 +431,10 @@ void emWep_R1_Set(cEmWep* em)
     em->partsWorldCalc();
     if (em->type == 1 && !(em->be_flag & 2)) {
         em->hp = 0;
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
@@ -444,40 +444,40 @@ void emWep_R1_LostWait(cEmWep* em)
     Vec scr;
     Vec pos;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         if (pG->room_id == 0x30F) {
-            w->timer = 1;
+            w->Timer = 1;
         } else {
-            w->timer = 90;
+            w->Timer = 90;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        if (w->timer == 0) {
-            em->alpha -= 0.1f;
-            if (em->alpha <= 0.0f) {
-                em->alpha = 0.0f;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+        if (w->Timer == 0) {
+            em->invisible_factor -= 0.1f;
+            if (em->invisible_factor <= 0.0f) {
+                em->invisible_factor = 0.0f;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 break;
             }
         } else {
-            w->timer--;
+            w->Timer--;
         }
         pos = em->pos;
         GetScreenPos(&pos, &scr);
         if (scr.z > 1.0f) {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -488,16 +488,16 @@ void emWep_R1_Lost(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x20;
-        em->setStatus(1);
+        em->setStatus(EM_STATUS_LOCKOFF);
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
-        em->xFE++;
+        em->r_no_2++;
         EmMgr.destroy(em);
         break;
     }
@@ -542,7 +542,7 @@ void emWep_R1_Fall(cEmWep* em)
     f32 d;
 
     em->hp = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
         n = &node[i];
@@ -552,7 +552,7 @@ void emWep_R1_Fall(cEmWep* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
-        PSMTXMultVec(em->mat, &ofs[w->fallType][i], &n->pos);
+        PSMTXMultVec(em->mat, &ofs[w->fall_type][i], &n->pos);
         n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
@@ -606,7 +606,7 @@ void emWep_R1_Fall(cEmWep* em)
         if (n->onFloor) {
             if (w->seFall[3] == 0 && n->spd.y < -50.0f) {
                 w->seFall[3] = 1;
-                if (w->seFall[0] != 0xFF && w->inWater == 0) {
+                if (w->seFall[0] != 0xFF && w->Water_ck == 0) {
                     SndCall(w->seFall[0], w->seFall[1], &em->pos, w->seFall[2], 0, em);
                 }
                 if (w->effFall[0] != 0xFF && w->effFall[1] != 0xFF) {
@@ -616,7 +616,7 @@ void emWep_R1_Fall(cEmWep* em)
             EffectEspDelete(0, w->espKind, (u32) em, 0);
             EffectEspgenDelete(0, w->espKind, (int) em);
             EffectEfmDelete(0, w->espKind, (int) em);
-            switch (w->fallType) {
+            switch (w->fall_type) {
             default:
                 n->spd.x *= fRand0_1() * 0.2f + 0.5f;
                 n->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
@@ -664,7 +664,7 @@ void emWep_R1_Fall(cEmWep* em)
     em->mat[0][2] = a.x;
     em->mat[1][2] = a.y;
     em->mat[2][2] = a.z;
-    PSVECScale(&ofs[w->fallType][0], &tmp, -1.0f);
+    PSVECScale(&ofs[w->fall_type][0], &tmp, -1.0f);
     TransMatrix(em->mat, &node[0].pos);
     PSMTXMultVec(em->mat, &tmp, &tmp);
     TransMatrix(em->mat, &tmp);
@@ -676,19 +676,19 @@ void emWep_R1_Fall(cEmWep* em)
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        Matrix2AxisAngle(em->mat, &em->ang);
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
     }
 }
 
@@ -702,36 +702,36 @@ void emWep_R1_Throw(cEmWep* em)
     f32 ang;
     cCtrl* c;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        em->xFE++;
+        w->Timer = 0;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seThrow[3];
-            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->inWater == 0) {
-                w->sndId = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
+            w->Timer = w->seThrow[3];
+            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->Water_ck == 0) {
+                w->seid_throw = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
             }
         }
         break;
     }
     w->spd.y -= w->grav;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->oldPos, &em->pos, 0, 0, 0, 0)) {
+    if (EatMgr.hitCheck(&em->pos_old, &em->pos, 0, 0, 0, 0)) {
         em->setFall(0, 0, 20.0f);
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
-        if (EmAtkHitCk(w->pAtk, &em->pos, &em->oldPos, 0)) {
+        if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
@@ -740,11 +740,11 @@ void emWep_R1_Throw(cEmWep* em)
             }
             em->setFall(0, 0, 20.0f);
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
         }
     }
-    PSVECSubtract(&em->pos, &em->oldPos, &d);
+    PSVECSubtract(&em->pos, &em->pos_old, &d);
     PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     up.x = 0.0f;
     up.y = 1.0f;
@@ -766,12 +766,12 @@ void emWep_R1_Throw(cEmWep* em)
     }
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
     }
 }
 
@@ -782,57 +782,57 @@ void emWep_R1_ThrowScythe(cEmWep* em)
     Mtx m;
     cCtrl* c;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        em->xFE++;
+        w->Timer = 0;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seThrow[3];
-            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->inWater == 0) {
-                w->sndId = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
+            w->Timer = w->seThrow[3];
+            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->Water_ck == 0) {
+                w->seid_throw = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
             }
         }
         break;
     }
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->oldPos, &em->pos, 0, 0, 0, 0)) {
+    if (EatMgr.hitCheck(&em->pos_old, &em->pos, 0, 0, 0, 0)) {
         em->setFall(0, 0, 20.0f);
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     } else if (w->pAtk) {
-        if (EmAtkHitCk(w->pAtk, &em->pos, &em->oldPos, 0)) {
+        if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 0)) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             EmPlBloodSet2(em, &em->pos, 1, 0x10, 7);
             if ((s16) pG->pl_life <= 0) {
                 emWepPlHeadLost();
             }
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
         }
     }
-    PSVECSubtract(&em->pos, &em->oldPos, &d);
+    PSVECSubtract(&em->pos, &em->pos_old, &d);
     PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     PSMTXRotRad(m, 'y', -0.62831855f);
     PSMTXConcat(em->mat, m, em->mat);
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
     }
 }
 
@@ -848,83 +848,83 @@ void emWep_R1_Shot(cEmWep* em)
     f32 len;
     cCtrl* c;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        PSVECSubtract(&em->pos, &w->spd, &em->oldPos);
-        w->timer = 0;
-        w->timer2 = 90;
-        em->xFE++;
+        PSVECSubtract(&em->pos, &w->spd, &em->pos_old);
+        w->Timer = 0;
+        w->Timer2 = 90;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seThrow[3];
-            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->inWater == 0) {
-                w->sndId = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
+            w->Timer = w->seThrow[3];
+            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->Water_ck == 0) {
+                w->seid_throw = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
             }
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
         break;
     case 2:
-        w->pOwner = 0;
+        w->pEm_old = 0;
         w->timer4 = 60;
         em->hp = 0;
-        em->setStatus(1);
-        em->xFE++;
+        em->setStatus(EM_STATUS_LOCKOFF);
+        em->r_no_2++;
     case 3:
         em->partsWorldCalc();
         if (w->timer4) {
             w->timer4--;
         } else {
             em->setFall(0, 0, 20.0f);
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
         }
         return;
     }
     w->spd.y -= 0.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (emWepShotHitVaseCk(&em->oldPos, &em->pos) || emWepShotHitWindowCk(&em->oldPos, &em->pos)) {
+    if (emWepShotHitVaseCk(&em->pos_old, &em->pos) || emWepShotHitWindowCk(&em->pos_old, &em->pos)) {
         em->setFall(0, 0, 20.0f);
         return;
     }
-    if (EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, 0, 0, 0x404000)) {
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+    if (EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, 0, 0, 0x404000)) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
         em->hp = 0;
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
         em->pos = hit;
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
-        em->xFE = 2;
+        em->r_no_2 = 2;
         return;
     }
     if (w->pAtk) {
-        part = (EmHitInfo*) EmAtkLineHitCk(&em->oldPos, &em->pos, &hitPos, &nrm, 0);
+        part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0);
         if (part) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
-            EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->oldPos, &em->pos);
+            EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
             if ((part->flags & 0x4000) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
@@ -936,9 +936,9 @@ void emWep_R1_Shot(cEmWep* em)
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
             PSMTXMultVec(inv, &part->pos, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
-            em->rot.x = -atan2f(-em->pos.y, len);
-            em->rot.y = atan2f(-em->pos.x, -em->pos.z);
-            em->rot.z = 0.0f;
+            em->ang.x = -atan2f(-em->pos.y, len);
+            em->ang.y = atan2f(-em->pos.x, -em->pos.z);
+            em->ang.z = 0.0f;
             if ((s16) pGS->pl_life <= 0) {
                 w->timer4 = 0;
             } else {
@@ -951,24 +951,24 @@ void emWep_R1_Shot(cEmWep* em)
             EffectEspgenDelete(0, w->espKind, (int) em);
             EffectEfmDelete(0, w->espKind, (int) em);
             c = GetCtrlCtrl12();
-            Ctrl12Set(c, 6, 0x1E);
-            Ctrl12Set(c, 8, 0x78);
+            Ctrl12Set(c, CTRL12_ID_EM10_ATK, 0x1E);
+            Ctrl12Set(c, CTRL12_ID_EM10_THROW, 0x78);
             return;
         }
-        part = EmAtkLineHitCkSub(&em->oldPos, &em->pos, &hitPos, &nrm);
+        part = EmAtkLineHitCkSub(&em->pos_old, &em->pos, &hitPos, &nrm);
         if (part) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
-            EmAtkSetDamageSub(part, w->pAtk, &em->oldPos, &em->pos);
+            EmAtkSetDamageSub(part, w->pAtk, &em->pos_old, &em->pos);
             if ((part->flags & 0x4000) == 0) {
                 em->setFall(0, 0, 20.0f);
                 return;
@@ -980,10 +980,10 @@ void emWep_R1_Shot(cEmWep* em)
             PSMTXInverse(pSUB->getPartsPtr(no)->mat, inv);
             PSMTXMultVec(inv, &part->pos, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
-            em->rot.x = -atan2f(-em->pos.y, len);
-            em->rot.y = atan2f(-em->pos.x, -em->pos.z);
-            em->rot.z = 0.0f;
-            if ((s16) pGS->sub_life <= 0) {
+            em->ang.x = -atan2f(-em->pos.y, len);
+            em->ang.y = atan2f(-em->pos.x, -em->pos.z);
+            em->ang.z = 0.0f;
+            if ((s16) pGS->ashley_life <= 0) {
                 w->timer4 = 0;
             } else {
                 w->timer4 = 30;
@@ -999,12 +999,12 @@ void emWep_R1_Shot(cEmWep* em)
     }
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
     }
 }
 
@@ -1015,53 +1015,53 @@ void emWep_R1_ShotArrow(cEmWep* em)
     Vec nrm;
     EmHitInfo* part;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EstSet((int) em, -1, 0, 0, 0x2F, 7, 0x800, w->espKind, (u32) em, 0);
-        w->timer = 0;
-        w->timer2 = 90;
-        w->timer3 = 3;
-        em->xFE++;
+        w->Timer = 0;
+        w->Timer2 = 90;
+        w->Timer3 = 3;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seThrow[3];
-            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->inWater == 0) {
-                w->sndId = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
+            w->Timer = w->seThrow[3];
+            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->Water_ck == 0) {
+                w->seid_throw = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
             }
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
         break;
     case 2:
-        w->pOwner = 0;
-        em->setStatus(1);
-        w->fuse = 63;
-        w->timer2 = 15;
-        w->timer = 0;
+        w->pEm_old = 0;
+        em->setStatus(EM_STATUS_LOCKOFF);
+        w->Bomb_wait = 63;
+        w->Timer2 = 15;
+        w->Timer = 0;
         EstSet((int) em, -1, 0, 0, 0x2F, 8, 0x800, w->espKind, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em->partsWorldCalc();
-        if (w->fuse == 0) {
+        if (w->Bomb_wait == 0) {
             emWepArrowBomb(em);
             return;
         }
-        w->fuse--;
-        if (w->timer) {
-            w->timer--;
+        w->Bomb_wait--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->timer2;
-            if (w->timer2 > 3) {
-                w->timer2 -= 2;
+            w->Timer = w->Timer2;
+            if (w->Timer2 > 3) {
+                w->Timer2 -= 2;
             }
             SndCall(8, 0x14, &em->pos, 0x39, 0, em);
         }
@@ -1069,41 +1069,41 @@ void emWep_R1_ShotArrow(cEmWep* em)
     }
     w->spd.y -= 0.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (w->timer3) {
-        w->timer3--;
-    } else if (EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, 0, 0, 0x404000)) {
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+    if (w->Timer3) {
+        w->Timer3--;
+    } else if (EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, 0, 0, 0x404000)) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
         em->pos = hit;
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
-        em->xFE = 2;
+        em->r_no_2 = 2;
         EffectEspDelete(0, w->espKind, (u32) em, 0);
         EffectEspgenDelete(0, w->espKind, (int) em);
         EffectEfmDelete(0, w->espKind, (int) em);
         return;
     }
     if (w->pAtk) {
-        part = (EmHitInfo*) EmAtkLineHitCk(&em->oldPos, &em->pos, &hit, &nrm, 0);
+        part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hit, &nrm, 0);
         if (part) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
-            EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->oldPos, &em->pos);
+            EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
             // `mr r3,part` is the LAST argument move in the original (part does not die there).
             asm("" : "=m"(hit) : "r"(part));  // COMPILER-DIFF: #13 (keep-alive)
         } else {
-            part = EmAtkLineHitCkSub(&em->oldPos, &em->pos, &hit, &nrm);
+            part = EmAtkLineHitCkSub(&em->pos_old, &em->pos, &hit, &nrm);
             if (part == 0) {
                 goto fly;
             }
@@ -1111,14 +1111,14 @@ void emWep_R1_ShotArrow(cEmWep* em)
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (w->effHit[0] != 0xFF && w->effHit[1] != 0xFF) {
                 EmPlBloodSet2(em, &em->pos, 1, w->effHit[0], w->effHit[1]);
             } else {
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
-            EmAtkSetDamageSub(part, w->pAtk, &em->oldPos, &em->pos);
+            EmAtkSetDamageSub(part, w->pAtk, &em->pos_old, &em->pos);
             asm("" : "=m"(hit) : "r"(part));  // COMPILER-DIFF: #13 (keep-alive)
         }
         emWepArrowBomb(em);
@@ -1130,12 +1130,12 @@ void emWep_R1_ShotArrow(cEmWep* em)
 fly:
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
     }
 }
 
@@ -1147,58 +1147,58 @@ void emWep_R1_Rocket(cEmWep* em)
     Vec hit;
     cModel* p;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        w->timer2 = 500;
-        w->timer3 = 2;
-        w->x1BC = 0.0f;
+        w->Timer = 0;
+        w->Timer2 = 500;
+        w->Timer3 = 2;
+        w->Roll = 0.0f;
         w->rocketSpd = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seThrow[3];
-            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->inWater == 0) {
-                w->sndId = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
+            w->Timer = w->seThrow[3];
+            if (w->seThrow[0] != 0xFF && w->seThrow[1] != 0xFF && w->Water_ck == 0) {
+                w->seid_throw = SndCall(w->seThrow[0], w->seThrow[1], &em->pos, w->seThrow[2], 0, em);
             }
         }
         w->rocketSpd += 3.0f;
         if (w->rocketSpd > 30.0f) {
             w->rocketSpd = 30.0f;
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
         break;
     }
     w->spd.y -= 0.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (w->timer3 == 0) {
-        if (EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, 0, 0, 0x4000)) {
+    if (w->Timer3 == 0) {
+        if (EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, 0, 0, 0x4000)) {
             emWepRocketBobm(em);
             return;
         }
     } else {
-        w->timer3--;
+        w->Timer3--;
     }
     p = pPL->getPartsPtr(2);
-    if ((em->pos.x - p->worldPos.x) * (em->pos.x - p->worldPos.x) + (em->pos.y - p->worldPos.y) * (em->pos.y - p->worldPos.y)
-            + (em->pos.z - p->worldPos.z) * (em->pos.z - p->worldPos.z) < 250000.0f) {
+    if ((em->pos.x - p->world.x) * (em->pos.x - p->world.x) + (em->pos.y - p->world.y) * (em->pos.y - p->world.y)
+            + (em->pos.z - p->world.z) * (em->pos.z - p->world.z) < 250000.0f) {
         emWepRocketBobm(em);
         return;
     }
     if (pSUB) {
         p = pSUB->getPartsPtr(2);
-        if ((em->pos.x - p->worldPos.x) * (em->pos.x - p->worldPos.x) + (em->pos.y - p->worldPos.y) * (em->pos.y - p->worldPos.y)
-                + (em->pos.z - p->worldPos.z) * (em->pos.z - p->worldPos.z) < 250000.0f) {
+        if ((em->pos.x - p->world.x) * (em->pos.x - p->world.x) + (em->pos.y - p->world.y) * (em->pos.y - p->world.y)
+                + (em->pos.z - p->world.z) * (em->pos.z - p->world.z) < 250000.0f) {
             emWepRocketBobm(em);
             return;
         }
@@ -1216,16 +1216,16 @@ void emWepRocketBobm(cEmWep* em)
     Vec pos;
     f32 len;
 
-    SndStop(w->sndId, 0);
+    SndStop(w->seid_throw, 0);
     EffectEspDelete(0, w->espKind, (u32) em, 0);
     EffectEspgenDelete(0, w->espKind, (int) em);
     EffectEfmDelete(0, w->espKind, (int) em);
     p = em->getPartsPtr(0);
-    len = (cam->param.pos.x - p->worldPos.x) * (cam->param.pos.x - p->worldPos.x)
-        + (cam->param.pos.y - p->worldPos.y) * (cam->param.pos.y - p->worldPos.y)
-        + (cam->param.pos.z - p->worldPos.z) * (cam->param.pos.z - p->worldPos.z);
+    len = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
+        + (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y)
+        + (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z);
     r.x = 0.0f;
-    r.y = GetXZAngle(&p->worldPos, &cam->param.pos);
+    r.y = GetXZAngle(&p->world, &cam->param.pos);
     r.z = 0.0f;
     if (len < 16000000.0f) {
         EstSet(0, -1, &em->pos, &r, 0x10, 0x48, 0, 0, 0, 0);
@@ -1233,15 +1233,15 @@ void emWepRocketBobm(cEmWep* em)
         EstSet(0, -1, &em->pos, &r, 0x10, 0x41, 0, 0, 0, 0);
     }
     em->hp = 0;
-    if (w->pOwner) {
-        SndCall(8, 0x96, &em->pos, w->pOwner->id, 0, em);
+    if (w->pEm_old) {
+        SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
     }
-    BitOn(pG->flags_500C, 0x800000);
-    pos = em->oldPos;
+    BitOn(pG->Status_flg[0], 0x800000);
+    pos = em->pos_old;
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-    BitOn(pG->flags_5010, 0x20000000);
-    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->oldPos, sizeof(Vec));
+    BitOn(pG->Status_flg[1], 0x20000000);
+    memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos_old, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
 }
@@ -1251,7 +1251,7 @@ void emWepArrowBomb(cEmWep* em)
     EmWepWork* w = EMWEP_WK(em);
     Vec pos;
 
-    SndStop(w->sndId, 0);
+    SndStop(w->seid_throw, 0);
     EffectEspDelete(0, w->espKind, (u32) em, 0);
     EffectEspgenDelete(0, w->espKind, (int) em);
     EffectEfmDelete(0, w->espKind, (int) em);
@@ -1259,11 +1259,11 @@ void emWepArrowBomb(cEmWep* em)
     EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
     em->hp = 0;
     SndCall(8, 0x15, &em->pos, 0x39, 0, em);
-    BitOn(pG->flags_500C, 0x800000);
+    BitOn(pG->Status_flg[0], 0x800000);
     pos = em->pos;
     pos.y += 1200.0f;
     PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
     pG->bell_stat = 1;
     em->setLost();
@@ -1279,23 +1279,23 @@ void emWep_R1_BombThrow(cEmWep* em)
     f32 len;
     f32 rad;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->bounce = 1;
-        w->timer = 0;
-        w->timer2 = 0;
-        em->xFE++;
+        w->Timer = 0;
+        w->Timer2 = 0;
+        em->r_no_2++;
     case 1:
-        if (w->timer2 % 6 == 0 && w->pOwner) {
-            SndCall(8, 0x95, &em->pos, w->pOwner->id, 0, em);
+        if (w->Timer2 % 6 == 0 && w->pEm_old) {
+            SndCall(8, 0x95, &em->pos, w->pEm_old->id, 0, em);
         }
-        w->timer2++;
+        w->Timer2++;
         break;
     }
-    if (w->fuse) {
-        w->fuse--;
+    if (w->Bomb_wait) {
+        w->Bomb_wait--;
     }
-    if (w->fuse == 0) {
+    if (w->Bomb_wait == 0) {
         GlobalWork* g = pG;
         Camera* cam = &g->Cam;
         cModel* p;
@@ -1304,11 +1304,11 @@ void emWep_R1_BombThrow(cEmWep* em)
         f32 dist;
 
         p = em->getPartsPtr(0);
-        dist = (cam->param.pos.x - p->worldPos.x) * (cam->param.pos.x - p->worldPos.x)
-            + (cam->param.pos.y - p->worldPos.y) * (cam->param.pos.y - p->worldPos.y)
-            + (cam->param.pos.z - p->worldPos.z) * (cam->param.pos.z - p->worldPos.z);
+        dist = (cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
+            + (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y)
+            + (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z);
         r.x = 0.0f;
-        r.y = GetXZAngle(&p->worldPos, &cam->param.pos);
+        r.y = GetXZAngle(&p->world, &cam->param.pos);
         r.z = 0.0f;
         if (dist < 16000000.0f) {
             EstSet(0, -1, &em->pos, &r, 0x10, 0x48, 0, 0, 0, 0);
@@ -1316,14 +1316,14 @@ void emWep_R1_BombThrow(cEmWep* em)
             EstSet(0, -1, &em->pos, &r, 0x10, 0x41, 0, 0, 0, 0);
         }
         em->hp = 0;
-        if (w->pOwner) {
-            SndCall(8, 0x96, &em->pos, w->pOwner->id, 0, em);
+        if (w->pEm_old) {
+            SndCall(8, 0x96, &em->pos, w->pEm_old->id, 0, em);
         }
-        BitOn(pG->flags_500C, 0x800000);
+        BitOn(pG->Status_flg[0], 0x800000);
         pos = em->pos;
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-        BitOn(pG->flags_5010, 0x20000000);
+        BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();
@@ -1334,7 +1334,7 @@ void emWep_R1_BombThrow(cEmWep* em)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, 100.0f, 0x2001, 0x4000);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, 100.0f, 0x2001, 0x4000);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         spd = RootSumSquare3(&w->spd);
         C_VECReflect(&w->spd, &nrm, &d);
@@ -1343,17 +1343,17 @@ void emWep_R1_BombThrow(cEmWep* em)
             w->bounce = 0;
             SndCall(5, 6, &em->pos, 0, 0, em);
         }
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     }
     {
         Vec up;
         Mtx m;
         Vec fwd;
 
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
         up.x = 0.0f;
         up.y = 1.0f;
@@ -1381,12 +1381,12 @@ void emWep_R1_BombThrow(cEmWep* em)
     }
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
-    if (w->inWater == 0 && CheckInWater(em, 0)) {
-        if (w->effWater[0] != 0xFF && w->effWater[1] != 0xFF) {
-            EstSet(0, -1, &em->pos, 0, w->effWater[0], w->effWater[1], 0, 0, 0, 0);
+    if (w->Water_ck == 0 && CheckInWater(em, 0)) {
+        if (w->eff_id_always2[0] != 0xFF && w->eff_id_always2[1] != 0xFF) {
+            EstSet(0, -1, &em->pos, 0, w->eff_id_always2[0], w->eff_id_always2[1], 0, 0, 0, 0);
         }
         SndCall(6, 0x17, &em->pos, 0, 0, em);
-        w->inWater = 1;
+        w->Water_ck = 1;
         em->setFall(0, 0, 20.0f);
     }
 }
@@ -1405,21 +1405,21 @@ void emWep_R1_FlashThrow(cEmWep* em)
     f32 rad;
     int dead;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->hp = 0;
-        w->timer = 0;
-        w->timer2 = 0;
+        w->Timer = 0;
+        w->Timer2 = 0;
         w->bounce = 1;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        w->timer2++;
+        w->Timer2++;
         break;
     }
-    if (w->fuse) {
-        w->fuse--;
+    if (w->Bomb_wait) {
+        w->Bomb_wait--;
     }
-    if (w->fuse == 0) {
+    if (w->Bomb_wait == 0) {
         EstSet(0, -1, &em->pos, 0, 0x2F, 5, 0, 0, 0, 0);
         EstSet(0, -1, 0, 0, 0x2F, 6, 0, 0, 0, 0);
         SndCall(1, 0x13, &em->pos, 0, 0, 0);
@@ -1440,7 +1440,7 @@ void emWep_R1_FlashThrow(cEmWep* em)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, 100.0f, 0x2001, 0x4000);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, 100.0f, 0x2001, 0x4000);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         spd = RootSumSquare3(&w->spd);
         C_VECReflect(&w->spd, &nrm, &d);
@@ -1449,12 +1449,12 @@ void emWep_R1_FlashThrow(cEmWep* em)
             w->bounce = 0;
             SndCall(5, 6, &em->pos, 0, 0, em);
         }
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     }
-    PSVECSubtract(&em->pos, &em->oldPos, &d);
+    PSVECSubtract(&em->pos, &em->pos_old, &d);
     PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     up.x = 0.0f;
     up.y = 1.0f;
@@ -1493,38 +1493,38 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
     f32 len;
     f32 rad;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->bounce = 1;
-        w->timer = 0;
-        w->timer2 = 0;
-        w->escaped = 0;
-        em->xFE++;
+        w->Timer = 0;
+        w->Timer2 = 0;
+        w->Act_ck = 0;
+        em->r_no_2++;
     case 1:
-        w->timer2++;
+        w->Timer2++;
         break;
     }
-    if (w->fuse) {
-        w->fuse--;
+    if (w->Bomb_wait) {
+        w->Bomb_wait--;
     }
-    if (w->fuse == 0) {
+    if (w->Bomb_wait == 0) {
         Vec pos;
 
         EstSet(0, -1, &em->pos, 0, 0, 0xD, 0, 0, 0, 0);
         EstSet(0, -1, &em->pos, 0, 0, 0x1A, 0, 0, 0, 0);
         em->hp = 0;
         SndCall(1, 0x14, &em->pos, 0, 0, em);
-        BitOn(pG->flags_500C, 0x800000);
+        BitOn(pG->Status_flg[0], 0x800000);
         pos = em->pos;
         pos.y += 1200.0f;
         PlWepHitCheck2(0, &pos, &pos, 0x13, 3, 5000.0f);
-        BitOn(pG->flags_5010, 0x20000000);
+        BitOn(pG->Status_flg[1], 0x20000000);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
         pG->bell_stat = 1;
         em->setLost();
         return;
     }
-    if (w->fuse <= 0x18 && em->plDist2 < 36000000.0f && w->escaped == 0) {
+    if (w->Bomb_wait <= 0x18 && em->plDist2 < 36000000.0f && w->Act_ck == 0) {
         ActBtn.set(0x25, 0xB, (int) emWepEscapeAction, (int) em, 1, 3, 0, 0);
     }
     w->spd.y -= 15.0f;
@@ -1532,7 +1532,7 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, 100.0f, 0x2001, 0x4000);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, 100.0f, 0x2001, 0x4000);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         spd = RootSumSquare3(&w->spd);
         C_VECReflect(&w->spd, &nrm, &d);
@@ -1541,17 +1541,17 @@ void emWep_R1_GrenadeThrow(cEmWep* em)
             w->bounce = 0;
             SndCall(5, 6, &em->pos, 0, 0, em);
         }
-        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->inWater == 0) {
+        if (w->seHitWall[0] != 0xFF && w->seHitWall[1] != 0xFF && w->Water_ck == 0) {
             SndCall(w->seHitWall[0], w->seHitWall[1], &em->pos, w->seHitWall[2], 0, em);
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->seid_throw, 0);
     }
     {
         Mtx m;
         Vec up;
         Vec fwd;
 
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
         up.x = 0.0f;
         up.y = 1.0f;
@@ -1587,8 +1587,8 @@ void emWepEscapeAction(cEmWep* em)
     f32 ang;
     f32 a;
 
-    EMWEP_WK(em)->escaped = 1;
-    ang = Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f);
+    EMWEP_WK(em)->Act_ck = 1;
+    ang = Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f);
     a = fabsf(ang);
     if (a < 0.7853982f) {
         SetPlDamage((int) em, plemBackjump);
@@ -1598,7 +1598,7 @@ void emWepEscapeAction(cEmWep* em)
         SetPlDamage((int) em, plemEscape);
     } else {
         SetPlDamage((int) em, plemEscape);
-        pPL->xFF = 1;
+        pPL->r_no_3 = 1;
         GameAddPoint(9);
     }
 }
@@ -1610,31 +1610,31 @@ static void plemEscape(cPlayer* pl)
 
     pl->x378 = PL_WEP(pl)->x378;
     pl->st.x325 = 2;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
-        if (pl->xFF) {
-            MotionSetCore(pl, &pl->pMotion, w->motEscape, (int) w->motEscape2, 3, 0x41, 0);
+        if (pl->r_no_3) {
+            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, (int) w->motEscape2, 3, 0x41, 0);
         } else {
-            MotionSetCore(pl, &pl->pMotion, w->motEscape, (int) w->motEscape2, 3, 1, 0);
+            MotionSetCore(pl, &pl->pMotion, w->Mot_escape, (int) w->motEscape2, 3, 1, 0);
         }
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
-        SndCall(1, 0x11, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        pl->x3E0 = 50;
-        pl->x3E4 = 15;
-        pl->xFE++;
+        SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        pl->m_Work0 = 50;
+        pl->m_Work1 = 15;
+        pl->r_no_2++;
     case 1:
         emWepEscapeCamMove(PL_WEP(pl));
-        if (pl->x3E4 && w->pOwner) {
-            pl->rot.y += Muku(&pl->pos, &w->pOwner->pos, pl->rot.y, 0.19634955f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+        if (pl->m_Work1 && w->pEm_old) {
+            pl->ang.y += Muku(&pl->pos, &w->pEm_old->pos, pl->ang.y, 0.19634955f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionMove(pl, 0);
         if (pl->frame > 11.7f && pl->frame < 12.3f) {
             EstSet(0, -1, &pl->pos, 0, 3, 0x13, 0, 0, 0, 0);
             SndCall(5, 5, &pl->pos, 0, 0, pl);
         }
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else {
             EndPlDamage();
         }
@@ -1650,21 +1650,21 @@ void plemBackjump(cPlayer* pl)
 
     pl->x378 = PL_WEP(pl)->x378;
     pl->st.x325 = 0x1E;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motBackjump, 0, 3, 1, 5);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        GameAddPoint(0xB);
-        pl->x3E0 = 35;
-        pl->x3E4 = 0;
-        pl->xFE++;
+        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        GameAddPoint(11);
+        pl->m_Work0 = 35;
+        pl->m_Work1 = 0;
+        pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         }
         if (pl->frame > 10.7f && pl->frame < 11.3f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
@@ -1678,7 +1678,7 @@ void plemBackjump(cPlayer* pl)
         if ((pl->frame > 37.7f && pl->frame < 38.3f) || (pl->frame > 50.7f && pl->frame < 51.3f)) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMove(pl, 0) || pl->x3E4) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -1693,21 +1693,21 @@ void plemFrontEscape(cPlayer* pl)
 
     pl->x378 = PL_WEP(pl)->x378;
     pl->st.x325 = 0x1E;
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->motFront, 0, 3, 1, 5);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        GameAddPoint(0xB);
-        pl->x3E0 = 35;
-        pl->x3E4 = 0;
-        pl->xFE++;
+        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        GameAddPoint(11);
+        pl->m_Work0 = 35;
+        pl->m_Work1 = 0;
+        pl->r_no_2++;
     case 1:
-        if (pl->x3E0) {
-            pl->x3E0--;
+        if (pl->m_Work0) {
+            pl->m_Work0--;
         } else if (Key.on & 0x1F) {
-            pl->x3E4 = 1;
+            pl->m_Work1 = 1;
         }
         if (pl->frame > 21.7f && pl->frame < 22.3f) {
             SndCall(5, 2, &pl->pos, 0, 0, pl);
@@ -1715,7 +1715,7 @@ void plemFrontEscape(cPlayer* pl)
         if (pl->frame > 34.7f && pl->frame < 35.3f) {
             SndCall(5, 3, &pl->pos, 0, 0, pl);
         }
-        if (MotionMove(pl, 0) || pl->x3E4) {
+        if (MotionMove(pl, 0) || pl->m_Work1) {
             EndPlDamage();
         }
         break;
@@ -1736,7 +1736,7 @@ void emWepEscapeCamMove(cEmWep* em)
 
     // Store through a cast pointer (no MEM_IN_STRUCT_P): the store may alias the `pPL` load below,
     // which keeps `lwz pPL` after it and ranks the `w` chain above the constant-pool `lis`es.
-    *(f32*) (u8*) &w->cam.param.fovy = g->Cam.param.fovy;
+    *(f32*) (u8*) &w->Cam.param.fovy = g->Cam.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -1745,42 +1745,42 @@ void emWepEscapeCamMove(cEmWep* em)
     p1.z = 52.6f;
     PSMTXMultVec(pPL->mat, &p0, &p0);
     PSMTXMultVec(pPL->mat, &p1, &p1);
-    PosToPos(&g->Cam.param.at, &p1, &w->cam.param.at, 1.0f);
-    PosToPos(&g->Cam.param.pos, &p0, &w->cam.param.pos, 1.0f);
-    if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &hit, 0, 0x8000, 0)) {
-        PSVECSubtract(&hit, &w->cam.param.at, &d);
+    PosToPos(&g->Cam.param.at, &p1, &w->Cam.param.at, 1.0f);
+    PosToPos(&g->Cam.param.pos, &p0, &w->Cam.param.pos, 1.0f);
+    if (EatMgr.hitCheck(&w->Cam.param.at, &w->Cam.param.pos, &hit, 0, 0x8000, 0)) {
+        PSVECSubtract(&hit, &w->Cam.param.at, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;
 #line 2682 "D:/Bio4/Prog/emwep.cpp"
         VECNormalize(&d, &d);
         PSVECScale(&d, &d, len);
-        PSVECAdd(&w->cam.param.at, &d, &w->cam.param.pos);
+        PSVECAdd(&w->Cam.param.at, &d, &w->Cam.param.pos);
     }
-    len = (w->cam.param.pos.x - w->cam.param.at.x) * (w->cam.param.pos.x - w->cam.param.at.x)
-        + (w->cam.param.pos.y - w->cam.param.at.y) * (w->cam.param.pos.y - w->cam.param.at.y)
-        + (w->cam.param.pos.z - w->cam.param.at.z) * (w->cam.param.pos.z - w->cam.param.at.z);
-    w->cam.up.x = 0.0f;
-    w->cam.up.y = 1.0f;
-    w->cam.up.z = 0.0f;
-    w->cam.dist = SQRTF(len);
-    CameraSetOrientationUp(&w->cam);
-    CamCtrl.x250 = (s32) &w->cam;
+    len = (w->Cam.param.pos.x - w->Cam.param.at.x) * (w->Cam.param.pos.x - w->Cam.param.at.x)
+        + (w->Cam.param.pos.y - w->Cam.param.at.y) * (w->Cam.param.pos.y - w->Cam.param.at.y)
+        + (w->Cam.param.pos.z - w->Cam.param.at.z) * (w->Cam.param.pos.z - w->Cam.param.at.z);
+    w->Cam.up.x = 0.0f;
+    w->Cam.up.y = 1.0f;
+    w->Cam.up.z = 0.0f;
+    w->Cam.dist = SQRTF(len);
+    CameraSetOrientationUp(&w->Cam);
+    CamCtrl.m_pExtraCamera = (s32) &w->Cam;
 }
 
 void cEmWep::setParent(cEm* parent, int partsNo_, int flag)
 {
     EmWepWork* w = EMWEP_WK(this);
 
-    w->pParent = parent;
-    w->partsNo = partsNo_;
+    w->pEm_oya = parent;
+    w->oya_parts = partsNo_;
     if (flag) {
-        w->flags |= 1;
+        w->Be_flg |= 1;
     } else {
-        w->flags &= ~1;
+        w->Be_flg &= ~1;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Drops the weapon: it falls as a three-node rope (emWep_R1_Fall) with `spd` as the initial
@@ -1834,19 +1834,19 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
             w->pt[i].z = fRand1_1() * 10.0f;
         }
     }
-    w->fallType = type_;
-    w->pParent = 0;
-    w->pOwner = 0;
+    w->fall_type = type_;
+    w->pEm_oya = 0;
+    w->pEm_old = 0;
     hp = 0;
     w->grav = grav;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    Matrix2AxisAngle(mat, &this->ang);
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Throws the weapon with speed `spd` (a random forward throw in the parent's frame when NULL).
@@ -1867,8 +1867,8 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -1877,21 +1877,21 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
     w->spd.y = v.y;
     w->spd.z = v.z;
     w->grav = grav;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
@@ -1899,10 +1899,10 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
     } else {
         w->pAtk = &emWepAtk;
     }
-    xFC = 1;
-    xFD = 5;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 5;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Scythe throw: flies straight (no gravity) spinning about its axis (emWep_R1_ThrowScythe).
@@ -1917,8 +1917,8 @@ void cEmWep::setThrowScythe(Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -1927,17 +1927,17 @@ void cEmWep::setThrowScythe(Vec* spd, EmAtkInfo* atk)
     w->spd.y = v.y;
     w->spd.z = v.z;
     w->grav = 15.0f;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 1500.0f, 1500.0f, 1500.0f, 0);
     if (atk) {
@@ -1945,10 +1945,10 @@ void cEmWep::setThrowScythe(Vec* spd, EmAtkInfo* atk)
     } else {
         w->pAtk = &emWepAtk;
     }
-    xFC = 1;
-    xFD = 0xA;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0xA;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Shoots the weapon along `spd` (emWep_R1_Shot): it sticks into the player on a hit.
@@ -1965,8 +1965,8 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -1975,20 +1975,20 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
     w->spd.y = v.y;
     w->spd.z = v.z;
     len = SQRTF(v.x * v.x + v.z * v.z);
-    rot.x = -atan2f(v.y, len);
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = -atan2f(v.y, len);
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     w->grav = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
@@ -1997,10 +1997,10 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
     } else {
         w->pAtk = &emWepAtk;
     }
-    xFC = 1;
-    xFD = 6;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 6;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Shoots an (explosive) arrow (emWep_R1_ShotArrow).
@@ -2017,8 +2017,8 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -2027,20 +2027,20 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
     w->spd.y = v.y;
     w->spd.z = v.z;
     len = SQRTF(v.x * v.x + v.z * v.z);
-    rot.x = -atan2f(v.y, len);
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = -atan2f(v.y, len);
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     w->grav = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    w->pOwner = w->pParent;
-    w->pParent = 0;
+    pos_old = pos;
+    w->pEm_old = w->pEm_oya;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
@@ -2048,10 +2048,10 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
     } else {
         w->pAtk = &emWepAtk;
     }
-    xFC = 1;
-    xFD = 7;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 7;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Fires the weapon as a rocket (emWep_R1_Rocket) for `owner`.
@@ -2068,8 +2068,8 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -2078,19 +2078,19 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
     w->spd.y = v.y;
     w->spd.z = v.z;
     len = SQRTF(v.x * v.x + v.z * v.z);
-    rot.x = -atan2f(v.y, len);
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = -atan2f(v.y, len);
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     w->grav = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    w->pOwner = owner;
+    pos_old = pos;
+    w->pEm_old = owner;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
@@ -2098,10 +2098,10 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
     } else {
         w->pAtk = &emWepAtk;
     }
-    xFC = 1;
-    xFD = 8;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 8;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Throws the weapon as dynamite with a `fuse` frame fuse (emWep_R1_BombThrow).
@@ -2117,8 +2117,8 @@ void cEmWep::setBombThrow(Vec* spd, int fuse)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -2127,29 +2127,29 @@ void cEmWep::setBombThrow(Vec* spd, int fuse)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
-    w->fuse = fuse;
+    w->Bomb_wait = fuse;
     w->pAtk = 0;
-    xFC = 1;
-    xFD = 9;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 9;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Throws the weapon as a flash grenade (emWep_R1_FlashThrow).
@@ -2165,8 +2165,8 @@ void cEmWep::setFlashThrow(Vec* spd, int fuse)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -2175,28 +2175,28 @@ void cEmWep::setFlashThrow(Vec* spd, int fuse)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 0;
-    w->fuse = fuse;
+    w->Bomb_wait = fuse;
     w->pAtk = 0;
-    xFC = 1;
-    xFD = 0xB;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0xB;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 // Throws the weapon as a hand grenade (emWep_R1_GrenadeThrow) with the player's escape motions.
@@ -2212,8 +2212,8 @@ void cEmWep::setGrenadeThrow(Vec* spd, int fuse, void* motEscape, void* motEscap
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -2222,33 +2222,33 @@ void cEmWep::setGrenadeThrow(Vec* spd, int fuse, void* motEscape, void* motEscap
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->pOwner = w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->pEm_old = w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     w->motFront = motFront;
-    w->fuse = fuse;
-    w->motEscape = motEscape;
+    w->Bomb_wait = fuse;
+    w->Mot_escape = motEscape;
     w->motEscape2 = motEscape2;
     w->motBackjump = motBackjump;
     w->pAtk = 0;
-    xFC = 1;
-    xFD = 0xC;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0xC;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmWep::setSeFall(u8 blk, u8 no, u8 vol)
@@ -2337,8 +2337,8 @@ void cEmWep::setEffWater(u8 id, u8 type_)
 {
     EmWepWork* w = EMWEP_WK(this);
 
-    w->effWater[0] = id;
-    w->effWater[1] = type_;
+    w->eff_id_always2[0] = id;
+    w->eff_id_always2[1] = type_;
 }
 
 void cEmWep::setEffAlways(int id, int type_)
@@ -2352,10 +2352,10 @@ void cEmWep::setEffAlways2(u8 id, u8 type_, u8 parts, Vec* ofs, u16 wait)
 
     w->effAlways[0] = id;
     w->effAlways[1] = type_;
-    w->effAlwaysParts = parts;
+    w->always2_parts = parts;
     w->effAlwaysWait = wait;
     w->effAlwaysTimer = 1;
-    w->effAlwaysOfs = *ofs;
+    w->always2_offset = *ofs;
 }
 
 void cEmWep::setYarare(Vec* size, f32 w, f32 h)
@@ -2383,26 +2383,26 @@ void cEmWep::setTransMode(int on)
     EmWepWork* w = EMWEP_WK(this);
 
     if (on) {
-        w->flags &= ~2;
+        w->Be_flg &= ~2;
         be_flag |= 2;
     } else {
-        w->flags |= 2;
+        w->Be_flg |= 2;
     }
 }
 
 void cEmWep::setAtNo(int no)
 {
-    EMWEP_WK(this)->sceAtNo = no;
+    EMWEP_WK(this)->At_no = no;
 }
 
 void cEmWep::setLost()
 {
-    xFC = 1;
+    r_no_0 = 1;
     be_flag &= ~2;
-    xFD = 2;
+    r_no_1 = 2;
     hp = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmWep::setWaitDrop()
@@ -2435,9 +2435,9 @@ void emWepPlHeadLost()
     p1.z = -25.0f;
     PSMTXMultVec(p->mat, &p0, &p0);
     PSMTXMultVecSR(pPL->mat, &p1, &p1);
-    obj = SetObj01(PL_ARC_PTR(pG->pPlArc, 0xC), PL_ARC_PTR(pG->pPlArc, 7), &p0, &pPL->rot, &p1, 10.0f, 150.0f, 1000, 0x11);
+    obj = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &p0, &pPL->ang, &p1, 10.0f, 150.0f, 1000, 0x11);
     if (obj) {
-        obj->lightInfo.x50 = 1;
+        obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
     EstSet((int) obj, -1, 0, 0, 0x10, 0x46, 0, 0, (u32) obj, 0);
@@ -2447,7 +2447,7 @@ void emWepPlHeadLost()
 
 // The shot weapon (a-b) against the vase enemies (id 0x43, types 6/7) in front of the player:
 // registers the damage on the hit one. 1 on a hit.
-int emWepShotHitVaseCk(Vec* a, Vec* b)
+int emWepShotHitVaseCk(Vec* pPos, Vec* pPos2)
 {
     Mtx m;
     Vec hit;
@@ -2459,20 +2459,20 @@ int emWepShotHitVaseCk(Vec* a, Vec* b)
     u32 i;
     int r;
 
-    r = EatMgr.hitCheck(a, b, &hit, 0, 0, 0x404000);
+    r = EatMgr.hitCheck(pPos, pPos2, &hit, 0, 0, 0x404000);
     hitEm = 0;
     hitPart = 0;
     if (r == 0) {
-        hit = *b;
+        hit = *pPos2;
     }
-    len = (a->x - hit.x) * (a->x - hit.x) + (a->y - hit.y) * (a->y - hit.y) + (a->z - hit.z) * (a->z - hit.z);
-    PSVECSubtract(b, a, &d);
+    len = (pPos->x - hit.x) * (pPos->x - hit.x) + (pPos->y - hit.y) * (pPos->y - hit.y) + (pPos->z - hit.z) * (pPos->z - hit.z);
+    PSVECSubtract(pPos2, pPos, &d);
     if (d.x == d.z) {
         PSMTXIdentity(m);
     } else {
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     }
-    TransMatrix(m, a);
+    TransMatrix(m, pPos);
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
@@ -2494,7 +2494,7 @@ int emWepShotHitVaseCk(Vec* a, Vec* b)
         default:
             continue;
         }
-        PSMTXMultVec(m, &e->getPartsPtr(0)->worldPos, &d);
+        PSMTXMultVec(m, &e->getPartsPtr(0)->world, &d);
         if (d.z < -10000.0f) {
             continue;
         }
@@ -2507,7 +2507,7 @@ int emWepShotHitVaseCk(Vec* a, Vec* b)
         if (Front_check(pPL, e, 1.5707964f) == 0) {
             continue;
         }
-        part = emLineAtCk(e, a, b, len, 0);
+        part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
             part->flags |= 0x4000;
             hitEm = e;
@@ -2516,13 +2516,13 @@ int emWepShotHitVaseCk(Vec* a, Vec* b)
         }
     }
     if (hitEm) {
-        hitEm->dmg.set(0, 10, 0x18, a, hitPart->rad, hitPart);
+        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->rad, hitPart);
     }
     return hitEm != 0;
 }
 
 // Same for the window enemies (id 0x46).
-int emWepShotHitWindowCk(Vec* a, Vec* b)
+int emWepShotHitWindowCk(Vec* pPos, Vec* pPos2)
 {
     Mtx m;
     Vec hit;
@@ -2534,20 +2534,20 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
     u32 i;
     int r;
 
-    r = EatMgr.hitCheck(a, b, &hit, 0, 0, 0x404000);
+    r = EatMgr.hitCheck(pPos, pPos2, &hit, 0, 0, 0x404000);
     hitEm = 0;
     hitPart = 0;
     if (r == 0) {
-        hit = *b;
+        hit = *pPos2;
     }
-    len = (a->x - hit.x) * (a->x - hit.x) + (a->y - hit.y) * (a->y - hit.y) + (a->z - hit.z) * (a->z - hit.z);
-    PSVECSubtract(b, a, &d);
+    len = (pPos->x - hit.x) * (pPos->x - hit.x) + (pPos->y - hit.y) * (pPos->y - hit.y) + (pPos->z - hit.z) * (pPos->z - hit.z);
+    PSVECSubtract(pPos2, pPos, &d);
     if (d.x == d.z) {
         PSMTXIdentity(m);
     } else {
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     }
-    TransMatrix(m, a);
+    TransMatrix(m, pPos);
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
@@ -2562,7 +2562,7 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
         if (e->id != 0x46) {
             continue;
         }
-        PSMTXMultVec(m, &e->getPartsPtr(0)->worldPos, &d);
+        PSMTXMultVec(m, &e->getPartsPtr(0)->world, &d);
         if (d.z < -10000.0f) {
             continue;
         }
@@ -2575,7 +2575,7 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
         if (Front_check(pPL, e, 1.5707964f) == 0) {
             continue;
         }
-        part = emLineAtCk(e, a, b, len, 0);
+        part = emLineAtCk(e, pPos, pPos2, len, 0);
         if (part) {
             part->flags |= 0x4000;
             hitEm = e;
@@ -2584,7 +2584,7 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
         }
     }
     if (hitEm) {
-        hitEm->dmg.set(0, 10, 0x18, a, hitPart->rad, hitPart);
+        hitEm->dmg.set(0, 10, 0x18, pPos, hitPart->rad, hitPart);
     }
     return hitEm != 0;
 }
@@ -2594,32 +2594,32 @@ void cEmWep::setCloth(cModel* owner)
 {
     EmWepWork* w = EMWEP_WK(this);
 
-    w->cloth.num = 10;
-    w->cloth.x08 = 0;
-    w->cloth.x0C = 0;
-    w->cloth.x10 = 0;
-    w->cloth.x14 = 0;
-    w->cloth.x2C = 0;
-    w->cloth.x30 = 0;
-    w->cloth.x20 = 0;
-    w->cloth.x24 = 0;
-    w->cloth.x44 = 0;
-    w->cloth.flags = 0;
-    w->cloth.pParts = emWepClothP;
-    w->cloth.pUp = emWepClothUp;
-    w->cloth.pDown = emWepClothDp;
-    w->cloth.pMax = emWepClothMax;
-    w->cloth.x34 = emWepAt;
-    w->cloth.x58 = owner;
-    w->cloth.x38 = 3;
-    w->cloth.x3C = 25.0f;
-    w->cloth.x40 = 0.6f;
-    w->cloth.x48 = 0.0f;
-    w->cloth.x4C = 1.0f;
-    w->cloth.x50 = 0.0f;
-    w->cloth.x54 = 0;
-    PenClothSet(this, &w->cloth, 100.0f);
-    w->flags |= 4;
+    w->Cloth.Num = 10;
+    w->Cloth.pLeft = 0;
+    w->Cloth.pRight = 0;
+    w->Cloth.pUpLeft = 0;
+    w->Cloth.pUpRight = 0;
+    w->Cloth.pWindSin = 0;
+    w->Cloth.pWindRate = 0;
+    w->Cloth.pGravity = 0;
+    w->Cloth.pRate = 0;
+    w->Cloth.Bundle_num = 0;
+    w->Cloth.Flag = 0;
+    w->Cloth.pCloth = emWepClothP;
+    w->Cloth.pParent = emWepClothUp;
+    w->Cloth.pChild = emWepClothDp;
+    w->Cloth.pMax = emWepClothMax;
+    w->Cloth.pAtset = emWepAt;
+    w->Cloth.pEm_at = owner;
+    w->Cloth.At_num = 3;
+    w->Cloth.Gravity = 25.0f;
+    w->Cloth.Rate = 0.6f;
+    w->Cloth.WindSin = 0.0f;
+    w->Cloth.Stretchy = 1.0f;
+    w->Cloth.Move_rate = 0.0f;
+    w->Cloth.pPtbl = 0;
+    PenClothSet(this, &w->Cloth, 100.0f);
+    w->Be_flg |= 4;
 }
 
 void cEmWep::moveCloth()
@@ -2628,14 +2628,14 @@ void cEmWep::moveCloth()
     cModel* p;
     Mtx inv;
 
-    if (w->flags & 4) {
-        if (w->cloth.x58 && (w->cloth.x58->be_flag & 0x201) != 1) {
-            w->cloth.x58 = 0;
+    if (w->Be_flg & 4) {
+        if (w->Cloth.pEm_at && (w->Cloth.pEm_at->be_flag & 0x201) != 1) {
+            w->Cloth.pEm_at = 0;
         }
-        PenClothMove2(this, &w->cloth);
+        PenClothMove2(this, &w->Cloth);
         for (p = getPartsPtr(1); p; p = p->pParts) {
             PSMTXInverse(p->pParent->mat, inv);
-            PSMTXConcat(inv, p->mat, p->worldMat);
+            PSMTXConcat(inv, p->mat, p->l_mat);
         }
     }
 }
@@ -2649,17 +2649,17 @@ void cEmWep::setParentMatCalc(int noMotion)
     Vec v1;
     Vec v2;
     EmWepWork* w = EMWEP_WK(this);
-    cEm* parent = w->pParent;
+    cEm* parent = w->pEm_oya;
 
     if (parent == 0) {
         return;
     }
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     ScaleMatrix(mat, &scale);
     if (parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, mat, m);
-        if (!(w->flags & 1)) {
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, mat, m);
+        if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];

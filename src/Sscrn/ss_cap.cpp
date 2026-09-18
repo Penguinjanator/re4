@@ -71,8 +71,8 @@ void SsCapInit::move(SUB_SCREEN* wk)
         IdFreeBuffer();
         sscrnModelClear(wk);
         sscrnLightClear(wk);
-        wk->x269 = 1;
-        wk->x26A = 0;
+        wk->alpha_flag = 1;
+        wk->alpha_cnt = 0;
         state++;
     case 3: {
         int stat;
@@ -96,17 +96,17 @@ void SsCapMain::init(SUB_SCREEN* wk)
     exam = new SsItemExamine;
     sel->connect(0, exam);
     exam->connect(0, sel);
-    IdTexDataLoad(SS_ARC_PTR(wk->pExam, 5), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pExam, 5), TEX_OWNER_ID_SSCRN);
     IdSub.set(SS_ARC_PTR(wk->pExam, 6), 0xFF, 0x14, 0xC, 6, 0);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x14));
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pExam, 4));
     sscrnMainMenuInit(wk, 0);
     state = 0;
 #line 191 "D:/Bio4/Prog/ss_cap.cpp"
-    wk->x310 = (s8*) MEM_ALLOC(3, 1, 13);
-    wk->x310[0] = 0;
-    wk->x310[1] = 0;
-    wk->x310[2] = 0;
+    wk->pCapCursor = (s8*) MEM_ALLOC(3, 1, 13);
+    wk->pCapCursor[0] = 0;
+    wk->pCapCursor[1] = 0;
+    wk->pCapCursor[2] = 0;
     if (wk->type == 0x100) {
         cur = exam;
     } else {
@@ -116,7 +116,7 @@ void SsCapMain::init(SUB_SCREEN* wk)
 
 void SsCapMain::move(SUB_SCREEN* wk)
 {
-    cMes.setLayout(0, 2);
+    cMes.setLayout(0, LAYOUT_SUBSCRN);
     if (state == 0) {
         Widget<SUB_SCREEN>* w = cur;
         w->move(wk);
@@ -124,11 +124,11 @@ void SsCapMain::move(SUB_SCREEN* wk)
         if (cur == sel) {
             switch (sel->state) {
             case 1:
-                wk->x34 |= 0x80000;
+                wk->close_flag |= 0x80000;
                 transit(0, wk);
                 break;
             case 2:
-                wk->x34 |= 0x80000;
+                wk->close_flag |= 0x80000;
                 transit(1, wk);
                 break;
             }
@@ -144,7 +144,7 @@ void SsCapMain::quit(SUB_SCREEN* wk)
 {
     sscrnLightClear(wk);
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    Mem_free(wk->x310);
+    Mem_free(wk->pCapCursor);
     if (sel) {
         delete sel;
     }
@@ -152,7 +152,7 @@ void SsCapMain::quit(SUB_SCREEN* wk)
         delete exam;
     }
     sscrn_cap_out_init(wk);
-    wk->x4C = sscrn_cap_out;
+    wk->scrn_out_func = sscrn_cap_out;
 }
 
 static void sscrn_cap_out_init(SUB_SCREEN* wk)
@@ -168,9 +168,9 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
         ret = 0;
     } else {
         IdSub.dispSw(0, 1);
-        wk->x269 = 0;
-        wk->x26A = 0;
-        Cckpt.life.fix(0);
+        wk->alpha_flag = 0;
+        wk->alpha_cnt = 0;
+        Cckpt.m_LifeMeter.fix(0);
         FadeSetW(0x80000000, 7, 0, 0);
         ret = 1;
     }
@@ -179,7 +179,7 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
 
 void dispCapList(SUB_SCREEN* wk)
 {
-    s8* sel = wk->x310;
+    s8* sel = wk->pCapCursor;
     IdUnit* u;
     IdUnit* c;
     int i;
@@ -187,11 +187,11 @@ void dispCapList(SUB_SCREEN* wk)
     for (i = 0; i < 24; i++) {
         u = IdSub.unitPtr(i + 1, 0x14);
         if (ItemMgr.search(cap_id_tbl[i])) {
-            u->flags |= 8;
-            u->flags_7F |= 2;
-            u->no = cap_id_tbl[i] + 0x25;
+            u->be_flag |= 8;
+            u->tex_flag |= 2;
+            u->texNo = cap_id_tbl[i] + 0x25;
         } else {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     }
     u = IdSub.unitPtr(0xFE, 0x14);
@@ -205,7 +205,7 @@ void CapSelect::init(SUB_SCREEN* wk)
 
 void CapSelect::move(SUB_SCREEN* wk)
 {
-    s8* sel = wk->x310;
+    s8* sel = wk->pCapCursor;
 
     dispCapList(wk);
     state = 0;
@@ -219,9 +219,9 @@ void CapSelect::move(SUB_SCREEN* wk)
         return;
     }
     if (Key.trg & 0x80000000) {
-        wk->x248 = ItemMgr.search(cap_id_tbl[sel[2]]);
-        if (wk->x248) {
-            wk->x24C = MapMgr.getWork(2);
+        wk->p_exam_item = ItemMgr.search(cap_id_tbl[sel[2]]);
+        if (wk->p_exam_item) {
+            wk->p_exam_model = MapMgr.getWork(2);
             transit(0, wk);
             SndCall(0, 0x1A, 0, 0, 0, 0);
         }

@@ -5,9 +5,9 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 
 struct Esp1bWork {
     int n;   // 0x00 number of points
-    Vec v0;  // 0x04
-    Vec v1;  // 0x10
-    Vec v2;  // 0x1C
+    Vec Vec0;  // 0x04
+    Vec Vec1;  // 0x10
+    Vec Vec2;  // 0x1C
 };
 
 static f32 esp1b_scale = 0.005f;
@@ -15,7 +15,7 @@ static f32 esp1b_scale = 0.005f;
 // Spline sprite (drawn by Esp1b_SpTrans in esp_sub.cpp).
 class cEsp1b : public cEsp {
 public:
-    Esp1bWork work;  // 0xF8
+    Esp1bWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -37,26 +37,26 @@ void cEsp1b::move()
 
 int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp1bWork* w = &work;
+    Esp1bWork* w = &m_Free;
     int n;
 
-    n = (s8)gen->xC8 + 4;
+    n = (s8)gen->Work8[0] + 4;
     if (n <= 1) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->xC8);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
         n = 2;
     }
     if (n > 0x40) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->xC8);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
         n = 0x40;
     }
-    dispFlag |= 0x10;
+    m_Flg |= 0x10;
     w->n = n;
-    memcpy((u8*)w + 4, &gen->xD8, sizeof(Vec));
-    memcpy((u8*)w + 0x10, &gen->xE4, sizeof(Vec));
-    memcpy((u8*)w + 0x1C, &gen->xF0, sizeof(Vec));
-    PSVECScale(&w->v0, &w->v0, esp1b_scale);
-    PSVECScale(&w->v1, &w->v1, esp1b_scale);
-    PSVECScale(&w->v2, &w->v2, esp1b_scale);
+    memcpy((u8*)w + 4, &gen->Vec0.x, sizeof(Vec));
+    memcpy((u8*)w + 0x10, &gen->Vec1.x, sizeof(Vec));
+    memcpy((u8*)w + 0x1C, &gen->Vec2.x, sizeof(Vec));
+    PSVECScale(&w->Vec0, &w->Vec0, esp1b_scale);
+    PSVECScale(&w->Vec1, &w->Vec1, esp1b_scale);
+    PSVECScale(&w->Vec2, &w->Vec2, esp1b_scale);
     return 1;
 }
 

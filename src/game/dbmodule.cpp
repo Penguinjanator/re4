@@ -129,7 +129,7 @@ void Draw_tile(s16 x, s16 y, s16 w, s16 h, GXColor* color)
     }
 }
 
-void Draw_line(Vec* a, Vec* b, u32 color)
+void Draw_line(Vec* p0, Vec* b, u32 color)
 {
     Mtx44 proj;
     Mtx m;
@@ -161,8 +161,8 @@ void Draw_line(Vec* a, Vec* b, u32 color)
     GXSetVtxAttrFmt(0, 9, 1, 3, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
 
-    x0 = (s16) a->x;
-    y0 = (s16) a->y;
+    x0 = (s16) p0->x;
+    y0 = (s16) p0->y;
     x1 = (s16) b->x;
     y1 = (s16) b->y;
     GXBegin(0xB0, 0, 2);
@@ -219,12 +219,12 @@ void Draw_quad(Vec* pos, Vec* size, u32 color)
     GXColor4u8(cg, cb, ca, cr);
 }
 
-void Draw_line3d(Vec* a, Vec* b, u32 color, int blend)
+void Draw_line3d(Vec* p0, Vec* b, u32 color, int blend)
 {
-    Draw_line3d_local(a, b, pG->Cam.viewMat, color, blend);
+    Draw_line3d_local(p0, b, pG->Cam.v_mat, color, blend);
 }
 
-void Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, int blend)
+void Draw_line3d_local(Vec* p0, Vec* b, Mtx mtx, u32 color, int blend)
 {
     u8 cr, cg, cb;
 
@@ -257,7 +257,7 @@ void Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, int blend)
     GXLoadPosMtxImm(mtx, 0);
     GXSetCurrentMtx(0);
     GXBegin(0xB0, 0, 2);
-    GXPosition3f32(a->x, a->y, a->z);
+    GXPosition3f32(p0->x, p0->y, p0->z);
     GXColor4u8(cr, cg, cb, 0xFF);
     GXPosition3f32(b->x, b->y, b->z);
     GXColor4u8(cr, cg, cb, 0xFF);
@@ -289,7 +289,7 @@ void Draw_line3d_init()
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    GXLoadPosMtxImm(pG->Cam.viewMat, 0);
+    GXLoadPosMtxImm(pG->Cam.v_mat, 0);
 }
 
 void Draw_line3d_end()
@@ -299,7 +299,7 @@ void Draw_line3d_end()
 
 void Draw_poly(Vec* p, u32 color, int zupd)
 {
-    Draw_poly_local(p, pG->Cam.viewMat, color, zupd);
+    Draw_poly_local(p, pG->Cam.v_mat, color, zupd);
 }
 
 void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
@@ -378,7 +378,7 @@ void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
     GXSetBlendMode(0, 4, 5, 0);
     PSMTXScale(m, r, r, r);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.viewMat, m, m);
+    PSMTXConcat(pG->Cam.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(sphere_buff, 0x3040);
@@ -405,7 +405,7 @@ void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     PSMTXScale(m, r, h, r);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.viewMat, m, m);
+    PSMTXConcat(pG->Cam.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(cylinder_buff, 0x4C0);
@@ -436,7 +436,7 @@ void Draw_cylinderMtx(Mtx mtx, Vec* pos, f32 r, f32 h, u32 color)
     PSMTXScale(m, r, h, r);
     PSMTXConcat(mtx, m, m);
     TransMatrix(m, &p);
-    PSMTXConcat(pG->Cam.viewMat, m, m);
+    PSMTXConcat(pG->Cam.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(cylinder_buff, 4);
@@ -486,7 +486,7 @@ void Draw_corn(Vec* pos, Vec* rot, f32 len, f32 r, u32 color)
     PSMTXScale(s, w, w, len);
     PSMTXConcat(m, s, m);
     TransMatrix(m, pos);
-    PSMTXConcat(pG->Cam.viewMat, m, m);
+    PSMTXConcat(pG->Cam.v_mat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(corn_buff, 0x3040);
@@ -600,7 +600,7 @@ void Draw_box(Vec* v, u32 color, int flag)
 
 void Draw_pos(Vec* pos, int size)
 {
-    Draw_local_pos(pos, size, pG->Cam.viewMat);
+    Draw_local_pos(pos, size, pG->Cam.v_mat);
 }
 
 void Draw_local_pos(Vec* pos, int size, Mtx mtx)
@@ -880,11 +880,11 @@ void DrawObjWireframe(cObj* obj, int color)
         return;
     }
     Draw_line3d_init();
-    md = obj->pInfo->pData;
+    md = obj->pModelInfo->pData;
     scale = 1.0f / (f32) (1 << md->shift);
     vtx = (s16*) md->vtxOrig;
     part = md->pParts;
-    for (np = 0; np < md->nParts; np++) {
+    for (np = 0; np < md->displist_num; np++) {
         ISet(DB_poly_num, DB_poly_num + part->nPoly);
         cmd = (u8*) part + 0x20;
         part = (ModelPart*) ((u8*) part + part->size + 0x20);
@@ -1072,7 +1072,7 @@ void DrawRoomWireframe()
     DB_quads_num = 0;
     DB_tri_num = 0;
     DB_strip_num = 0;
-    for (obj = ObjMgr.pAlive; obj; obj = (cObj*) obj->next) {
+    for (obj = ObjMgr.pAlive; obj; obj = (cObj*) obj->pNext) {
         if ((obj->be_flag & 2) && obj->id == 2) {
             DrawObjWireframe(obj, -1);
         }

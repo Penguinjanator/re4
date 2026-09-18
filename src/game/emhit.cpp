@@ -13,7 +13,7 @@ extern cEm* pPL;   // game/em.cpp
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
 void MotionSetCore(cModel* m, void* mot, void* data, int a, int b, int c, int d);
 
@@ -47,7 +47,7 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetEmHit() failed.");
@@ -62,33 +62,33 @@ cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
     w->size.y = 200.0f;
     w->size.z = 200.0f;
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     emHitYarareInit(em);
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 0.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
-    w->flags = 0;
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
+    w->Be_flg = 0;
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->status = 0;
+    w->Status = 0;
     w->pParent = parent;
     w->partsNo = 0;
     w->noNormalize = 0;
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
     return em;
 }
 
@@ -97,7 +97,7 @@ void emHitDmCk(cEmHit* em)
     EmHitWork* w = EMHIT_WK(em);
     u8 wep;
 
-    w->status = 0;
+    w->Status = 0;
     if (em->dmHit == 0) {
         em->dmWep = 0;
         return;
@@ -127,14 +127,14 @@ void emHitDmCk(cEmHit* em)
     case 0:
     default:
         em->hp = 0;
-        w->status = 1;
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        w->Status = 1;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 1:
-        w->status = 1;
+        w->Status = 1;
         break;
     case 2:
         em->hp = 0;
@@ -146,34 +146,34 @@ void cEmHit::move()
 {
     EmHitWork* w = EMHIT_WK(this);
 
-    w->status = 0;
+    w->Status = 0;
     emHitDmCk(this);
     be_flag &= ~0x4000;
-    EmHit_R0_move_tbl[xFC](this);
+    EmHit_R0_move_tbl[r_no_0](this);
 }
 
 void emHit_R0_Init(cEmHit* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emHit_R0_Move(cEmHit* em)
 {
-    EmHit_R1_move_tbl[em->xFD](em);
+    EmHit_R1_move_tbl[em->r_no_1](em);
 }
 
 void emHit_R1_Set(cEmHit* em)
 {
-    if (em->xFE == 0) {
-        RotMatrix(em->mat, &em->rot);
+    if (em->r_no_2 == 0) {
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -187,7 +187,7 @@ void emHit_R1_Parent(cEmHit* em)
     EmHitWork* w = EMHIT_WK(em);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
@@ -242,12 +242,12 @@ void emHit_R1_Break(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->hp = 0;
         em->be_flag &= ~2;
-        w->status = 1;
-        em->xFE++;
+        w->Status = 1;
+        em->r_no_2++;
     case 1:
         em->be_flag |= 0x4000;
         break;
@@ -258,27 +258,27 @@ void emHit_R1_Beetle(cEmHit* em)
 {
     EmHitWork* w = EMHIT_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->pMotion, w->mot0, 0, 0, 5, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMove(em, 0);
         if (em->hp <= 0) {
-            em->xFE++;
-        } else if (fabsf(Muku(&pPL->pos, &em->pos, em->rot.y, 3.1415927f)) < 0.5235988f) {
+            em->r_no_2++;
+        } else if (fabsf(Muku(&pPL->pos, &em->pos, em->ang.y, 3.1415927f)) < 0.5235988f) {
             if (em->plDist2 < 2250000.0f) {
                 em->hp = 0;
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 2:
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0x1F);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMove(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 4:
@@ -287,21 +287,21 @@ void emHit_R1_Beetle(cEmHit* em)
         w->spd.y = 10.0f;
         w->spd.z = 10.0f;
         PSMTXMultVecSR(em->mat, &w->spd, &w->spd);
-        w->timer = 300;
-        em->xFE++;
+        w->Timer = 300;
+        em->r_no_2++;
     case 5:
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y = w->spd.y * 0.9f + 4.0f;
         w->spd.z = w->spd.z * 0.9f + 4.0f;
         MotionMove(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            em->alpha -= 0.1f;
-            if (em->alpha <= 0.0f) {
+            em->invisible_factor -= 0.1f;
+            if (em->invisible_factor <= 0.0f) {
                 em->be_flag &= ~2;
-                em->alpha = 0.0f;
-                em->xFE++;
+                em->invisible_factor = 0.0f;
+                em->r_no_2++;
             }
         }
         break;
@@ -318,12 +318,12 @@ void emHitYarareInit(cEmHit* em)
 
 int cEmHit::ckStatus()
 {
-    return EMHIT_WK(this)->status;
+    return EMHIT_WK(this)->Status;
 }
 
 int cEmHit::ckDmgWeapon()
 {
-    if (EMHIT_WK(this)->status == 0) {
+    if (EMHIT_WK(this)->Status == 0) {
         return 0;
     }
     return dmWep;
@@ -336,11 +336,11 @@ void cEmHit::setParent(cModel* parent, int partsNo, int noNormalize)
     w->pParent = parent;
     w->partsNo = partsNo;
     w->noNormalize = noNormalize;
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = 0;
-    ((cEm*) parent)->atari.flags &= ~0x200;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = 0;
+    ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
 void cEmHit::setBeetle(void* mot0, void* mot1, void* mot2)
@@ -353,9 +353,9 @@ void cEmHit::setBeetle(void* mot0, void* mot1, void* mot2)
     if (mot0 && mot1 && mot2) {
         YarareInitCube(this, 0.0f, 0.0f, 0.0f, 50.0f, 100.0f, 100.0f, 1, 1);
         hp = 1;
-        xFC = 1;
-        xFD = 3;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 3;
+        r_no_2 = 0;
+        r_no_3 = 0;
     }
 }

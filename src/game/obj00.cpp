@@ -37,11 +37,11 @@ void cObj00::move()
 
     if (pMotion) {
         MotionMove(this, 0);
-    } else if (!(w->flags & 0x16)) {
-        RotMatrix(worldMat, &rot);
-        TransMatrix(worldMat, &pos);
-        ScaleMatrix(worldMat, &scale);
-        PSMTXCopy(worldMat, mat);
+    } else if (!(w->be_flag & 0x16)) {
+        RotMatrix(l_mat, &ang);
+        TransMatrix(l_mat, &pos);
+        ScaleMatrix(l_mat, &scale);
+        PSMTXCopy(l_mat, mat);
     }
     if (w->oya) {
         if ((w->oya->be_flag & 0x201) != 1) {
@@ -52,17 +52,17 @@ void cObj00::move()
     obj00SetOya(this);
     obj00FallMove(this);
     if (pMotion == 0) {
-        if (!(w->flags & 0x16)) {
+        if (!(w->be_flag & 0x16)) {
             partsMatCalc();
         }
     }
     partsWorldCalc();
     sub2B4.atari.move();
     SatMgr.check(this, 0);
-    if (w->flags & 0x20) {
-        alpha -= 0.1f;
-        if (alpha < 0.0f) {
-            alpha = 0.0f;
+    if (w->be_flag & 0x20) {
+        invisible_factor -= 0.1f;
+        if (invisible_factor < 0.0f) {
+            invisible_factor = 0.0f;
             be_flag &= ~2;
         }
     }
@@ -86,7 +86,7 @@ cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 3000.0f, 3000.0f, 0.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     if (pos) {
         obj->pos = *pos;
     } else {
@@ -94,17 +94,17 @@ cObj* SetObj00(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     w->oya = 0;
-    w->partsNo = 0;
-    w->rate = 1.0f;
+    w->oya_parts = 0;
+    w->oya_hokan = 1.0f;
     w->rateSpd = 0.0f;
     return obj;
 }
@@ -117,9 +117,9 @@ void MotSetObj00(cObj* obj, void* mot, int prm, int a)
         return;
     }
     w->pMot = mot;
-    w->motPrm = prm;
+    w->mot_attr = prm;
     w->motA = a;
-    MotionSetCore(obj, &obj->pMotion, mot, a, 0, (u16) w->motPrm, 0);
+    MotionSetCore(obj, &obj->pMotion, mot, a, 0, (u16) w->mot_attr, 0);
 }
 
 void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
@@ -130,9 +130,9 @@ void OyaSetObj00(cObj* obj, cModel* oya, int partsNo)
         return;
     }
     w->oya = oya;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     obj->pMotion = 0;
-    w->flags &= ~8;
+    w->be_flag &= ~8;
 }
 
 // Never called: the original linker dropped the body but kept its constant pool.
@@ -162,7 +162,7 @@ void obj00FallMove(cObj00* obj)
     f32 mag;
     f32 diff;
 
-    if (!(w->flags & 4)) {
+    if (!(w->be_flag & 4)) {
         return;
     }
     for (i = 0; i < 3; i++) {
@@ -229,9 +229,9 @@ void obj00FallMove(cObj00* obj)
             p->spd.x *= 0.8f;
             p->spd.y *= -0.8f;
             p->spd.z *= 0.8f;
-            if (w->sePlayed == 0) {
-                w->sePlayed = 1;
-                SndCall(w->seBlk, w->seNo, &obj->pos, w->seId, 0, 0);
+            if (w->fall_se_ck == 0) {
+                w->fall_se_ck = 1;
+                SndCall(w->fall_se_id, w->fall_se_no, &obj->pos, w->fall_em_id, 0, 0);
             }
         } else {
             PSVECSubtract(&p->pos, &p->old, &p->spd);
@@ -287,7 +287,7 @@ void obj00SetOya(cObj00* obj)
     if (w->oya->pParts == 0) {
         return;
     }
-    PSMTXCopy(w->oya->getPartsPtr(w->partsNo)->mat, m);
+    PSMTXCopy(w->oya->getPartsPtr(w->oya_parts)->mat, m);
     v0.x = m[0][0];
     v0.y = m[1][0];
     v0.z = m[2][0];
@@ -322,33 +322,33 @@ void obj00SetOya(cObj00* obj)
     m[1][2] = v2.y;
     m[2][2] = v2.z;
     PSMTXConcat(m, obj->mat, m);
-    if (w->rate < 1.0f) {
-        w->rate += w->rateSpd;
-        if (w->rate >= 1.0f) {
-            w->rate = 1.0f;
-            w->flags &= ~8;
+    if (w->oya_hokan < 1.0f) {
+        w->oya_hokan += w->rateSpd;
+        if (w->oya_hokan >= 1.0f) {
+            w->oya_hokan = 1.0f;
+            w->be_flag &= ~8;
         }
     }
-    if (w->flags & 8) {
-        f32 rate = w->rate;
+    if (w->be_flag & 8) {
+        f32 rate = w->oya_hokan;
         f32 inv = 1.0f - rate;
 
-        p.x = m[0][3] * rate + w->mat[0][3] * inv;
-        p.y = m[1][3] * rate + w->mat[1][3] * inv;
-        p.z = m[2][3] * rate + w->mat[2][3] * inv;
+        p.x = m[0][3] * rate + w->hokan_mat[0][3] * inv;
+        p.y = m[1][3] * rate + w->hokan_mat[1][3] * inv;
+        p.z = m[2][3] * rate + w->hokan_mat[2][3] * inv;
         C_QUATMtx(&q0, m);
-        C_QUATMtx(&q1, w->mat);
-        C_QUATSlerp(&q0, &q1, &q, w->rate);
+        C_QUATMtx(&q1, w->hokan_mat);
+        C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
         PSMTXQuat(obj->mat, &q);
         TransMatrix(obj->mat, &p);
-        PSMTXCopy(obj->mat, w->mat);
+        PSMTXCopy(obj->mat, w->hokan_mat);
     } else {
         PSMTXCopy(m, obj->mat);
     }
     if (w->oya) {
-        if (w->oya->lightInfo.x50 & 2) {
-            obj->lightInfo.x50 &= ~0x10;
-            obj->lightInfo.x50 |= 2;
+        if (w->oya->LightInfo.EnableMask & 2) {
+            obj->LightInfo.EnableMask &= ~0x10;
+            obj->LightInfo.EnableMask |= 2;
         }
     }
 }

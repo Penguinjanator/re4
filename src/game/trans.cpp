@@ -93,9 +93,9 @@ struct WeightExt {
     u8 weight[4]; // 0x08  percent
 };
 struct Weight {
-    u8 idx[3];    // 0x00
+    u8 id[3];    // 0x00
     u8 num;       // 0x03
-    u8 weight[4]; // 0x04  percent
+    u8 wht[4]; // 0x04  percent
 };
 
 #define PTR_INVALID(p) ((s32) (p) >= 0 || (u32) (p) > 0x82FFFFFF)
@@ -339,7 +339,7 @@ void org_LoadTexObj(u32 id, int map)
     if (id <= 0xF7) {
         GXLoadTexObj(&gx->texObj[id], map);
     } else {
-        GXLoadTexObj(&GetTexRenderMgrAddr(id - 0xF8)->texObj, map);
+        GXLoadTexObj(&GetTexRenderMgrAddr(id - 0xF8)->m_Tex_obj, map);
     }
 }
 
@@ -349,41 +349,41 @@ void Trans()
     void (*func)(cModel*);
     cUnit* u;
 
-    if (!(pG->flags_58 & 0x04000000)) {
+    if (!(pG->Disp_flg & 0x04000000)) {
         EspTrans();
     }
-    if (!(pG->flags_58 & 0x01000000)) {
+    if (!(pG->Disp_flg & 0x01000000)) {
         EspgenTrans();
     }
-    if (!(pG->flags_58 & 0x00400000)) {
+    if (!(pG->Disp_flg & 0x00400000)) {
         CtrlMgr.trans();
     }
     ProcessTickGet(5, "EspTrans");
     ShadowTrans();
     ProcessTickGet(5, "ShadowTrans");
     ProcessTickGet(5, "MirrorTrans");
-    if (!(pG->flags_58 & 0x00020000)) {
+    if (!(pG->Disp_flg & 0x00020000)) {
         ClothDraw();
     }
     ProcessTickGet(5, "ClothTrans");
-    if (!(pG->flags_58 & 0x00100000)) {
+    if (!(pG->Disp_flg & 0x00100000)) {
         FilterTrans();
     }
-    if (!(pG->flags_58 & 0x04000000)) {
-        if (!(pG->flags_58 & 0x400)) {
+    if (!(pG->Disp_flg & 0x04000000)) {
+        if (!(pG->Disp_flg & 0x400)) {
             TransTexRenderMgr();
         }
     }
     func = objTrans;
     for (u = ObjMgr.pAlive; u != 0;) {
         cUnit* cur = u;
-        u = u->next;
+        u = u->pNext;
         func((cModel*) cur);
     }
     func = emTrans;
     for (u = EmMgr.pAlive; u != 0;) {
         cUnit* cur = u;
-        u = u->next;
+        u = u->pNext;
         func((cModel*) cur);
     }
     ProcessTickGet(5, "objTrans");
@@ -396,15 +396,15 @@ void lightSetEm(cModel* m)
         return;
     }
     if (m == pPL) {
-        if (pG->flags_58 & 0x40000000) {
+        if (pG->Disp_flg & 0x40000000) {
             return;
         }
     } else if (m == pSUB) {
-        if (pG->flags_58 & 0x20000000) {
+        if (pG->Disp_flg & 0x20000000) {
             return;
         }
     } else {
-        if ((s32) pG->flags_58 < 0) {
+        if ((s32) pG->Disp_flg < 0) {
             return;
         }
     }
@@ -416,12 +416,12 @@ void lightSetObj(cModel* m)
     if ((m->be_flag & 3) != 3) {
         return;
     }
-    if (m->x12E == 2) {
-        if (pG->flags_58 & 0x08000000) {
+    if (m->kindid == 2) {
+        if (pG->Disp_flg & 0x08000000) {
             return;
         }
     } else {
-        if (pG->flags_58 & 0x10000000) {
+        if (pG->Disp_flg & 0x10000000) {
             return;
         }
     }
@@ -431,15 +431,15 @@ void lightSetObj(cModel* m)
 void emTrans(cModel* m)
 {
     if (m == pPL) {
-        if (pG->flags_58 & 0x40000000) {
+        if (pG->Disp_flg & 0x40000000) {
             return;
         }
     } else if (m == pSUB) {
-        if (pG->flags_58 & 0x20000000) {
+        if (pG->Disp_flg & 0x20000000) {
             return;
         }
     } else {
-        if ((s32) pG->flags_58 < 0) {
+        if ((s32) pG->Disp_flg < 0) {
             return;
         }
     }
@@ -448,12 +448,12 @@ void emTrans(cModel* m)
 
 void objTrans(cModel* m)
 {
-    if (m->x12E == 2) {
-        if (pG->flags_58 & 0x08000000) {
+    if (m->kindid == 2) {
+        if (pG->Disp_flg & 0x08000000) {
             return;
         }
     } else {
-        if (pG->flags_58 & 0x10000000) {
+        if (pG->Disp_flg & 0x10000000) {
             return;
         }
     }
@@ -465,9 +465,9 @@ void objTrans(cModel* m)
 // local-allocated and cannot take r31).
 #define LIGHT_POS(m, li, pos)                                           \
     {                                                                   \
-        p = (m)->getPartsPtr((li)->x52 - 1);                            \
-        PSMTXMultVecSR(p->mat, &(li)->ofs, &(pos));                     \
-        PSVECAdd(&(pos), &p->worldPos, &(pos));                         \
+        p = (m)->getPartsPtr((li)->PartsNo - 1);                            \
+        PSMTXMultVecSR(p->mat, &(li)->Offset, &(pos));                     \
+        PSVECAdd(&(pos), &p->world, &(pos));                         \
     }
 
 void ModelTrans(cModel* m)
@@ -481,7 +481,7 @@ void ModelTrans(cModel* m)
     f32 radius;
     cModel* p;
 
-    if ((pG->flags_5010 & 0x10000000) && !(m->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(m->be_flag & 0x800)) {
         return;
     }
     if (!(m->be_flag & 2)) {
@@ -490,11 +490,11 @@ void ModelTrans(cModel* m)
     if (!(m->be_flag & 4)) {
         return;
     }
-    li = &m->lightInfo;
+    li = &m->LightInfo;
     if (isBit(m->be_flag, 0x1000)) {
         radius = 999999.0f;
     } else {
-        radius = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y + m->lightInfo.size.z * m->lightInfo.size.z);
+        radius = SQRTF(m->LightInfo.Size.x * m->LightInfo.Size.x + m->LightInfo.Size.y * m->LightInfo.Size.y + m->LightInfo.Size.z * m->LightInfo.Size.z);
         if (m->scale.x == m->scale.y && m->scale.x == m->scale.z) {
             radius *= m->scale.x;
         } else {
@@ -515,7 +515,7 @@ void ModelTrans(cModel* m)
     }
     ot = OT_MAX;
     ot2 = OT_MAX;
-    switch (m->x12F) {
+    switch (m->ot_type) {
     case 7:
         m->be_flag &= ~0x08000000;
         if (m->pParts == 0) {
@@ -543,7 +543,7 @@ void ModelTrans(cModel* m)
         } else {
             cModel* p = m->getPartsPtr(0);
             ot = 0xD;
-            ret = AddOtModelPosRadius(m, (void (*)(void*)) ModelRender, &p->worldPos, radius, 1, 1.0f);
+            ret = AddOtModelPosRadius(m, (void (*)(void*)) ModelRender, &p->world, radius, 1, 1.0f);
         }
         break;
     case 1:
@@ -587,7 +587,7 @@ void ModelTrans(cModel* m)
         }
         break;
     default:
-        pLog->err(0, 0, "ModelTrans() : OT_TYPE[%d] invalid.", m->x12F);
+        pLog->err(0, 0, "ModelTrans() : OT_TYPE[%d] invalid.", m->ot_type);
         ret = 0;
         ret |= 0xFFFF;
         break;
@@ -600,18 +600,18 @@ void ModelTrans(cModel* m)
     if (ret != 0xFFFF) {
         if (commonScreenMat(m) == 0) {
             DeleteOtData(ot, (u16) ret);
-            if (m->x12F == 7) {
+            if (m->ot_type == 7) {
                 DeleteOtData(ot2, (u16) ret2);
             }
         }
-        if (m->x12E == 0) {
+        if (m->kindid == 0) {
             lightSetEm(m);
         } else {
             lightSetObj(m);
         }
     } else {
-        if (pG->flags_60 & 0x10) {
-            if (m->x12E == 0) {
+        if (pG->Debug_flg[0] & 0x10) {
+            if (m->kindid == 0) {
                 lightSetEm(m);
             } else {
                 lightSetObj(m);
@@ -633,11 +633,11 @@ int commonScreenMat(cModel* m)
     if (!(m->be_flag & 4)) {
         return 0;
     }
-    if (commonScreenMatSub(m, m->pInfo) == 0) {
+    if (commonScreenMatSub(m, m->pModelInfo) == 0) {
         return 0;
     }
-    if (m->pShMdInfo != 0) {
-        if (commonScreenMatSub(m, m->pShMdInfo) == 0) {
+    if (m->pShadowModelInfo != 0) {
+        if (commonScreenMatSub(m, m->pShadowModelInfo) == 0) {
             return 0;
         }
     }
@@ -672,7 +672,7 @@ int commonScreenMat(cModel* m)
 int commonScreenMatSub(cModel* m, cModelInfo* info)
 {
     calcWeightMat(m);
-    for (; info != 0; info = info->pNext) {
+    for (; info != 0; info = info->pList) {
         ModelData* d = info->pData;
         ModelTexInfo* t = MODEL_TEX(info);
         void* src;
@@ -689,7 +689,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
                 t->frame = 0;
             }
         }
-        if (!(pG->flags_170 & 0x08000000) && (t->flags & 1)) {
+        if (!(pG->Stop_flg & 0x08000000) && (t->flags & 1)) {
             f32 u = t->u + t->su;
             f32 v = t->v + t->sv;
             t->u = u;
@@ -708,7 +708,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             pLog->err(0, 0, "commonScreenMatSub() : pHeader ptr err.");
             return 0;
         }
-        if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
+        if (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
             continue;
         }
         if (m->be_flag & 0x4000) {
@@ -743,10 +743,10 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             return 0;
         }
         info->pNrmBuf[pG->vtx_buf_no] = buf;
-        if (d->x2A > 0xFF) {
-            MakeWeightPaletteExt((WeightExt*) d->pWeight, d->x2A);
+        if (d->weight_ext_num > 0xFF) {
+            MakeWeightPaletteExt((WeightExt*) d->pWeight, d->weight_ext_num);
         } else {
-            MakeWeightPalette((Weight*) d->pWeight, d->x18);
+            MakeWeightPalette((Weight*) d->pWeight, d->weight_palette_num);
         }
         setupGQR6(((d->shift << 24) | (d->shift << 8)) | 0x00070007);
         src = d->vtxOrig;
@@ -871,13 +871,13 @@ static int MakeWeightPalette(Weight* w0, int n)
         for (j = 0; j < w->num; j++) {
             f32 rate;
             f32* s;
-            PSQ_L_U8_TO(rate, &w->weight[j]);
+            PSQ_L_U8_TO(rate, &w->wht[j]);
             rate *= 0.01f;
             if (j == w->num - 1) {
                 rate = 1.0f - total;
             }
             total += rate;
-            s = (f32*) gx->mtx[w->idx[j]];
+            s = (f32*) gx->mtx[w->id[j]];
             m[0][0] += *s++ * rate;
             m[0][1] += *s++ * rate;
             m[0][2] += *s++ * rate;
@@ -907,44 +907,44 @@ void Render()
     g_prev_tpl_addr = (void*) -1;
     g_prev_add_tpl_addr = (void*) -1;
     GXSetCurrentGXThread();
-    if (pG->flags_54 & 0x800) {
-        pG->flags_5018 |= 0x10000000;
+    if (pG->System_flg & 0x800) {
+        pG->Status_flg[3] |= 0x10000000;
         SetScissorState();
     }
     LightMgr.setFog();
     ExecOt(0);
     SetDrawTmpBufType(0);
-    ExecOt(1);
+    ExecOt(OT_TYPE_TEX_RENDER1);
     SetDrawTmpBufType(0);
-    ExecOt(2);
+    ExecOt(OT_TYPE_SHADOW_SETUP);
     SetDrawTmpBufType(0);
-    ExecOt(3);
+    ExecOt(OT_TYPE_SUBSCRN_FAR);
     SetDrawTmpBufType(0);
-    ExecOt(4);
+    ExecOt(OT_TYPE_SCROLL);
     SetDrawTmpBufType(0);
-    ExecOt(5);
+    ExecOt(OT_TYPE_SUBSCRN);
     SetDrawTmpBufType(0);
-    ExecOt(6);
+    ExecOt(OT_TYPE_MODEL);
     SetDrawTmpBufType(0);
-    ExecOt(7);
+    ExecOt(OT_TYPE_SHADOW_DRAW);
     SetDrawTmpBufType(0);
     bio4_AddBgColor();
-    if (pG->flags_60 & 0x00040000) {
+    if (pG->Debug_flg[0] & 0x00040000) {
         drawGround(0);
     }
-    ExecOt(8);
+    ExecOt(OT_TYPE_SUBSCRN_NEAR);
     ClearZbuf();
-    ExecOt(9);
-    ExecOt(0xA);
-    ExecOt(0xB);
-    ExecOt(0xC);
-    ExecOt(0xD);
-    ExecOt(0xE);
-    ExecOt(0xF);
-    ExecOt(0x10);
-    ExecOt(0x11);
-    ExecOt(0x12);
-    pG->flags_5018 &= ~0x10000000;
+    ExecOt(OT_TYPE_EFFECT);
+    ExecOt(OT_TYPE_WORLD);
+    ExecOt(OT_TYPE_EFFECT_VU1);
+    ExecOt(OT_TYPE_SCREEN);
+    ExecOt(OT_TYPE_COCKPIT);
+    ExecOt(OT_TYPE_ID_MODEL);
+    ExecOt(OT_TYPE_MESSAGE);
+    ExecOt(OT_TYPE_AFTER_RENDER);
+    ExecOt(OT_TYPE_DEBUG);
+    ExecOt(OT_TYPE_MAX);
+    pG->Status_flg[3] &= ~0x10000000;
     SetScissorState();
     ExecOt(0x13);
     save = pG->Cam;
@@ -959,7 +959,7 @@ void Render()
     }
     GXSetDrawSync(0xADEB);
     GXSetDrawSyncCallback(Render_DrawSyncCallback);
-    pG->flags_54 &= ~0x10000000;
+    pG->System_flg &= ~0x10000000;
 }
 
 static const GXColor col64 = {0x40, 0x40, 0x40, 0x40};
@@ -968,15 +968,15 @@ void ModelRender(cModel* m)
 {
     static int modeltransalphaupdate = 1;
 
-    if (m->alpha * m->x158 == 0.0f) {
+    if (m->invisible_factor * m->invisible_factor2 == 0.0f) {
         return;
     }
     GXSetAlphaCompare(7, 0, 1, 7, 0);
-    if (m->x12C == 0) {
+    if (m->z_mode == 0) {
         GXSetZMode(1, 3, 1);
-    } else if (m->x12C == 1) {
+    } else if (m->z_mode == 1) {
         GXSetZMode(1, 3, 0);
-    } else if (m->x12C == 2) {
+    } else if (m->z_mode == 2) {
         GXSetZMode(1, 7, 0);
     }
     CameraCurrentProjection();
@@ -985,7 +985,7 @@ void ModelRender(cModel* m)
         GXSetChanCtrl(0, 0, 0, 0, 0, 2, 2);
         GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
         GXSetChanAmbColor(4, col64);
-        GXSetChanMatColor(4, *(GXColor*) m->pInfo->color);
+        GXSetChanMatColor(4, *(GXColor*) m->pModelInfo->color);
     } else {
         LightSetModel(m);
     }
@@ -993,14 +993,14 @@ void ModelRender(cModel* m)
         GXSetAlphaUpdate(1);
         GXSetDstAlpha(1, 0);
     }
-    commonModelTrans(m, m->pInfo, pG->Cam.viewMat, 0);
+    commonModelTrans(m, m->pModelInfo, pG->Cam.v_mat, 0);
     if (modeltransalphaupdate) {
         GXSetAlphaUpdate(0);
         GXSetDstAlpha(0, 0);
     }
     shaderReset();
-    if (pG->flags_64 & 0x40000000) {
-        m->drawAllBoundingBox(m->pInfo);
+    if (pG->Debug_flg[1] & 0x40000000) {
+        m->drawAllBoundingBox(m->pModelInfo);
     }
 }
 
@@ -1019,9 +1019,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int matSet;
 
     PSet(g_pShdMng, 0);
-    if ((pG->flags_5014 & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->flags_58 & 0x00040000) &&
-        (pG->flags_5010 & 0x200)) {
-        if (!(pG->flags_5010 & 0x100)) {
+    if ((pG->Status_flg[2] & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->Disp_flg & 0x00040000) &&
+        (pG->Status_flg[1] & 0x200)) {
+        if (!(pG->Status_flg[1] & 0x100)) {
         g_pShdMng = GetCastShadowMngPtr(m);
         if (g_pShdMng != 0) {
             ShadowLightWork* w = (ShadowLightWork*) g_pShdMng->pLight->work;
@@ -1030,9 +1030,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 pLog->err(0, 0, "SHADOW_CAST : TEX_ID[%x] no data", w->texId);
                 g_pShdMng = 0;
             }
-            u32 n = m->lightInfo.getLightNum();
+            u32 n = m->LightInfo.getLightNum();
             if (n > 7) {
-                if (!(pG->flags_64 & 0x00040000)) {
+                if (!(pG->Debug_flg[1] & 0x00040000)) {
                     pLog->err(0, 0, "CAST LIGHT NUM OVER %d", n);
                 }
                 g_pShdMng = 0;
@@ -1050,15 +1050,15 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         ModelPart* part;
         u32 i;
 
-        if (!(pG->flags_5010 & 0x100) && m->x12F == 7) {
+        if (!(pG->Status_flg[1] & 0x100) && m->ot_type == 7) {
             if (m->be_flag & 0x08000000) {
                 if (!(info->be_flag & 0x40)) {
-                    info = info->pNext;
+                    info = info->pList;
                     continue;
                 }
             } else {
                 if (info->be_flag & 0x40) {
-                    info = info->pNext;
+                    info = info->pList;
                     continue;
                 }
             }
@@ -1067,17 +1067,17 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             GXSetChanMatColor(4, *(GXColor*) info->color);
             matSet = 1;
         } else if (matSet == 1) {
-            GXSetChanMatColor(4, *(GXColor*) m->pInfo->color);
+            GXSetChanMatColor(4, *(GXColor*) m->pModelInfo->color);
         }
         if (PTR_INVALID(info)) {
             pLog->err(0, 0, "commonModelTrans() pModelInfo INVALID PTR %08X", info);
             break;
         }
         if (!(info->be_flag & 8)) {
-            info = info->pNext;
+            info = info->pList;
             continue;
         }
-        if (efbDone == 0 && (m->x136 == 1 || m->x136 == 2) && !(info->be_flag & 4)) {
+        if (efbDone == 0 && (m->Shader_type == 1 || m->Shader_type == 2) && !(info->be_flag & 4)) {
             efbDone = 1;
             GetEfbTex(m);
         }
@@ -1095,7 +1095,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         Mtx pm;
         if (m->be_flag & 0x4000) {
             PSMTXConcat(m->mat, (f32(*)[4]) &info->x5C, pm);
-        } else if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
+        } else if (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
             PSMTXConcat(m->getPartsPtr(d->pHead->partsNo)->mat, (f32(*)[4]) &info->x5C, pm);
         } else {
             PSMTXConcat(m->pParts->mat, (f32(*)[4]) &info->x5C, pm);
@@ -1128,7 +1128,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         GXSetArray(13, tex, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((m->be_flag & 0x4000) || (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1)) {
+        if ((m->be_flag & 0x4000) || (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1143,7 +1143,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
             }
         }
-        switch (m->x135) {
+        switch (m->CullMode) {
         case 0:
             GXSetCullMode(1);
             break;
@@ -1154,13 +1154,13 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             GXSetCullMode(0);
             break;
         }
-        if (pG->flags_60 & 0x20000000) {
+        if (pG->Debug_flg[0] & 0x20000000) {
             GXSetCullMode(1);
         }
-        if (g_prev_tpl_addr != info->pTpl || g_prev_add_tpl_addr != info->pAddTpl) {
+        if (g_prev_tpl_addr != info->tpl_addr || g_prev_add_tpl_addr != info->pAddTpl) {
             u32 n;
-            for (i = 0; i < ((TEXPalette*) info->pTpl)->numDescriptors + info->nAddTex; i++) {
-                TEXPalette* tpl = (TEXPalette*) info->pTpl;
+            for (i = 0; i < ((TEXPalette*) info->tpl_addr)->numDescriptors + info->nAddTex; i++) {
+                TEXPalette* tpl = (TEXPalette*) info->tpl_addr;
                 TEXDescriptor* td;
                 u8 mip;
                 int filt;
@@ -1199,9 +1199,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 MODEL_EXT(m)->pTexChg->move(gx->texObj);
             }
         }
-        PSet(g_prev_tpl_addr, info->pTpl);
+        PSet(g_prev_tpl_addr, info->tpl_addr);
         PSet(g_prev_add_tpl_addr, info->pAddTpl);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {
             updateMatrices(mat0, specular_mat, m);
@@ -1213,12 +1213,12 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         for (i = 0; i < nParts; i++) {
             u8* p;
             shaderSetup(m, info, part, mv);
-            GXSetBlendMode(bl[info->xD6][0], bl[info->xD6][1], bl[info->xD6][2], bl[info->xD6][3]);
+            GXSetBlendMode(bl[info->blend_mode][0], bl[info->blend_mode][1], bl[info->blend_mode][2], bl[info->blend_mode][3]);
             if (flag & 1) {
                 GXSetAlphaCompare(7, 0, 1, 7, 0);
             }
             if (!(flag & 1)) {
-                f32 a = m->alpha * m->x158 * info->xD8;
+                f32 a = m->invisible_factor * m->invisible_factor2 * info->invisible_factor;
                 if (a < 1.0f) {
                     GXColor c = *(GXColor*) info->color;
                     c.a = (u8) ((f32) (int) c.a * a);
@@ -1245,15 +1245,15 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 GXSetTevDirect(8);
             }
         }
-        info = info->pNext;
+        info = info->pList;
     }
-    if (!(pG->flags_5010 & 0x100)) {
+    if (!(pG->Status_flg[1] & 0x100)) {
         if (MODEL_EXT(m)->pFootShadowTbl != 0 && (m->be_flag & 0x10)) {
             DrawFootShadow((cEm*) m);
         }
     }
-    if (!(pG->flags_5010 & 0x100)) {
-        if (m->x12F == 7) {
+    if (!(pG->Status_flg[1] & 0x100)) {
+        if (m->ot_type == 7) {
             m->be_flag |= 0x08000000;
         }
     }
@@ -1307,11 +1307,11 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     int st;
     int scale;
 
-    if (pG->flags_5010 & 0x04000000) {
+    if (pG->Status_flg[1] & 0x04000000) {
         ThermoShaderSetup(m, info, part);
         return;
     }
-    if ((m->x136 == 1 || m->x136 == 2) && m->x138 != 0xFF && !(info->be_flag & 4)) {
+    if ((m->Shader_type == 1 || m->Shader_type == 2) && m->Refract_ratio != 0xFF && !(info->be_flag & 4)) {
         RefractShaderSetup(m, info, part, mv);
         return;
     }
@@ -1322,7 +1322,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     ISET0(tex_coord);
     ISET0(ind_stage);
     selfDone = 0;
-    if ((pGS->flags_500C & 1) && isSelfUse) {
+    if ((pGS->Status_flg[0] & 1) && isSelfUse) {
         u32 i;
         for (i = 0; i < g_SelfShdNum; i++) {
             if (GetSelfShadowMng(i)->pModel[0] == m) {
@@ -1364,10 +1364,10 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     st = TEV_STAGE_ID();
     GXSetTevOrder(st, 0xFF, 0xFF, 4);
     GXSetTevColorIn(st, 0xF, 0xF, 0xF, 0);
-    switch (m->x12D) {
+    switch (m->TevScaleGroup) {
     case 0:
     case 1:
-        switch (gxCsScale[m->x12D]) {
+        switch (gxCsScale[m->TevScaleGroup]) {
         case 0:
             scale = 0;
             break;
@@ -1379,7 +1379,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
             break;
         default:
             scale = 0;
-            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
+            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->TevScaleGroup]);
             break;
         }
         break;
@@ -1394,7 +1394,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         break;
     default:
         scale = 0;
-        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
+        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->TevScaleGroup);
         break;
     }
     GXSetTevColorOp(st, 0, 0, scale, 1, 0);
@@ -1964,7 +1964,7 @@ static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
     int coord;
     u32 mtx;
 
-    if (pG->flags_58 & 0x00080000) {
+    if (pG->Disp_flg & 0x00080000) {
         return;
     }
     {
@@ -2010,15 +2010,15 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     u32 mask;
 
     k.a = k.b = k.g = 0xFF;
-    PSMTXMultVec(pG->Cam.viewMat, pos, &p);
+    PSMTXMultVec(pG->Cam.v_mat, pos, &p);
     GXInitLightPos(&lobj, p.x, p.y, p.z);
-    PSMTXMultVecSR(pG->Cam.viewMat, dir, &d);
+    PSMTXMultVecSR(pG->Cam.v_mat, dir, &d);
     GXInitLightDir(&lobj, d.x, d.y, d.z);
     GXInitLightSpot(&lobj, 89.0f, 4);
     GXInitLightDistAttn(&lobj, 0.0f, 0.0f, 0);
     if (m != 0) {
         EmLightArea* la = &MODEL_EXT(m)->litArea;
-        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == mng->pLight->x140) {
+        if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == mng->pLight->LitIndex) {
             k.r = k.r * (u8) la->scale;
             k.g = k.g * (u8) la->scale;
             k.b = k.b * (u8) la->scale;
@@ -2026,7 +2026,7 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     }
     c = k;
     GXInitLightColor(&lobj, c);
-    n = m->lightInfo.getLightNum();
+    n = m->LightInfo.getLightNum();
     if (n > 7) {
         pLog->err(4, 0, "CastLight: light num over!!");
         return;
@@ -2075,10 +2075,10 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
     if (w->mode == 3 || w->mode == 4) {
         SetCastShadowLight(m, &mng->lightPos, &mng->dir, mng);
     }
-    k.r = mng->pLight->color.r;
-    k.g = mng->pLight->color.g;
-    k.b = mng->pLight->color.b;
-    k.a = mng->pLight->color.a;
+    k.r = mng->pLight->Col.r;
+    k.g = mng->pLight->Col.g;
+    k.b = mng->pLight->Col.b;
+    k.a = mng->pLight->Col.a;
     kc = k;
     GXSetTevKColor(getKColor(), kc);
     switch (w->mode) {
@@ -2271,7 +2271,7 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     ISet(tex_coord, tex_coord + 1);
     ISet(tex_map, tex_map + 1);
     w = (ShadowLightWork*) mng->pLight->work;
-    for (i = 0; i < w->x9; i++) {
+    for (i = 0; i < w->selfShadow; i++) {
         st = TEV_STAGE_ID();
         GXSetTevOrder(st, 0xFF, 0xFF, 0xFF);
         GXSetTevColorIn(st, 0xF, 0, 0, 0xF);
@@ -2335,7 +2335,7 @@ static void alphaSetup(cModel* m, ModelPart* part, cModelInfo* info, int thermo)
     u8 ref;
 
     GXSetZCompLoc(0);
-    ref = m->x103;
+    ref = m->alpha_omit;
     if (ref == 0xFF) {
         GXSetAlphaCompare(4, part->alphaRef, 1, 4, 0xFF);
     } else {
@@ -2368,7 +2368,7 @@ void SetPrimBuffPtr()
         return;
     }
     U32Set(pG->vtx_buf_no, pG->vtx_buf_no ^ 1);
-    gx->prim = (u8*) pG->prim_cnt + pG->prim_max * pG->vtx_buf_no;
+    gx->prim = (u8*) pG->prim_cnt + pG->nPrim * pG->vtx_buf_no;
 }
 
 void* GetPrimBuff(int size)
@@ -2383,7 +2383,7 @@ void* GetPrimBuff(int size)
         pLog->err(0, 0, "GetPrimBuff() PTR ERR %08X", base);
         return 0;
     }
-    limit = base + pG->prim_max * (pG->vtx_buf_no + 1);
+    limit = base + pG->nPrim * (pG->vtx_buf_no + 1);
     size = (size + 0x1F) / 32 * 32;
     p = gx->prim;
     next = p + size;
@@ -2592,7 +2592,7 @@ static void updateMatrices(Mtx m, Mtx dst, cModel* model)
     f32 ind[2][3];
     Mtx inv2;
 
-    PSMTXConcat(pG->Cam.viewMat, m, mv);
+    PSMTXConcat(pG->Cam.v_mat, m, mv);
     PSMTXInverse(mv, inv);
     PSMTXTranspose(inv, t);
     PSMTXInverse(mv, inv2);
@@ -2642,7 +2642,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     GXSetTexCoordGen2(coord, 0, 0, mtx, 0, 0x7D);
     GXSetTevOrder(st, coord, map, 4);
     kv = 0xFF;
-    switch (gxCsScale[m->x12D]) {
+    switch (gxCsScale[m->TevScaleGroup]) {
     case 0:
         break;
     case 1:
@@ -2659,7 +2659,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     GXSetTevKColorSel(st, getKColorSel());
     GXSetTevKAlphaSel(st, getKAlphaSel());
     tev_kcolor++;
-    if (m->x138 == 0) {
+    if (m->Refract_ratio == 0) {
         GXSetTevColorIn(st, 0xF, 8, 0xE, 0xF);
         GXSetTevColorOp(st, 0, 0, 0, 1, 0);
         GXSetTevAlphaIn(st, 7, 7, 7, 5);
@@ -2674,13 +2674,13 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     }
     tex_map++;
     tex_coord++;
-    if (m->x136 == 1) {
+    if (m->Shader_type == 1) {
         f32 indMtx[2][3];
         f32 s;
         int map;
         int coord;
         __GXSetIndirectMask(0);
-        s = (f32) m->x137 * 0.001953125f;
+        s = (f32) m->Refract_pow * 0.001953125f;
         indMtx[0][0] = 0.0f;
         indMtx[0][1] = s * mul_x;
         indMtx[0][2] = 0.0f;
@@ -2709,7 +2709,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         int coord;
         ModelTexInfo* t = MODEL_TEX(info);
         __GXSetIndirectMask(0);
-        s = (f32) m->x137 * 0.001953125f;
+        s = (f32) m->Refract_pow * 0.001953125f;
         indMtx[0][0] = 0.0f;
         indMtx[1][0] = s;
         indMtx[0][2] = -s;
@@ -2736,7 +2736,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         tev_stage++;
         ind_stage++;
     }
-    if (m->x138 == 0) {
+    if (m->Refract_ratio == 0) {
         specularSetup(part, info, 0);
         bumpSetup(part, info);
     } else {
@@ -2752,7 +2752,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXColor k;
         int st;
         st = TEV_STAGE_ID();
-        k.a = k.b = k.g = k.r = m->x138;
+        k.a = k.b = k.g = k.r = m->Refract_ratio;
         GXSetTevKColor(getKColor(), k);
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
@@ -2774,10 +2774,10 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         st = TEV_STAGE_ID();
         GXSetTevOrder(st, 0xFF, 0xFF, 4);
         GXSetTevColorIn(st, 0xF, 0xF, 0xF, 0);
-        switch (m->x12D) {
+        switch (m->TevScaleGroup) {
         case 0:
         case 1:
-            switch (gxCsScale[m->x12D]) {
+            switch (gxCsScale[m->TevScaleGroup]) {
             case 0:
                 scale = 0;
                 break;
@@ -2789,7 +2789,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
                 break;
             default:
                 scale = 0;
-                pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
+                pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->TevScaleGroup]);
                 break;
             }
             break;
@@ -2804,7 +2804,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
             break;
         default:
             scale = 0;
-            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
+            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->TevScaleGroup);
             break;
         }
         GXSetTevColorOp(st, 0, 0, scale, 1, 0);

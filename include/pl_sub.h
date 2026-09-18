@@ -25,6 +25,17 @@ void SetSubBulldozer(int a, int b);
 void SetSubDamage(int type, void* mot);
 void EndSubDamage();
 void SubCharInit(int type, Vec* pos, f32 ang);
+enum SCC_MODE {
+    SCC_STAY = 0,
+    SCC_CHASE = 1,
+    SCC_KILL = 2,
+    SCC_SLEEP = 3,
+    SCC_BEHIND = 4,
+    SCC_AUX_MOT = 5,
+    SCC_RESET = 6,
+    SCC_STOP = 7
+};
+
 void SubCharCtrl(int mode, int flag);
 int SubCharCheckCtrl();
 void SubCharCtrlHide(Vec* pos, int mode);

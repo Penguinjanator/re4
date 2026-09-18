@@ -18,31 +18,31 @@ void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a);
 
 class cDbgButtonBase {
 public:
-    u32 x;          // 0x00  column inside the window
-    u32 y;          // 0x04  row inside the window
-    int cx;         // 0x08  cursor column
-    int cy;         // 0x0C  cursor row
-    char* pName;    // 0x10  own copy of the label
+    u32 m_px;          // 0x00  column inside the window
+    u32 m_py;          // 0x04  row inside the window
+    int m_cx;         // 0x08  cursor column
+    int m_cy;         // 0x0C  cursor row
+    char* m_pStr;    // 0x10  own copy of the label
     u32 nameLen;    // 0x14  strlen + 1
     // 0x18 vptr
 
-    virtual ~cDbgButtonBase() { delete pName; }
+    virtual ~cDbgButtonBase() { delete m_pStr; }
 
     int Init(int x_, int y_, const char* name, int cx_, int cy_) {
         int len;
 
-        x = x_;
-        y = y_;
-        cx = cx_;
-        cy = cy_;
+        m_px = x_;
+        m_py = y_;
+        m_cx = cx_;
+        m_cy = cy_;
         len = strlen(name) + 1;
         nameLen = len;
-        pName = new char[len];
-        if (pName == 0) {
+        m_pStr = new char[len];
+        if (m_pStr == 0) {
             pLog->err(0, 0, "cDbgButtonBase::Init(): new failed.");
             return 0;
         }
-        strcpy(pName, name);
+        strcpy(m_pStr, name);
         return 1;
     }
 };
@@ -57,12 +57,12 @@ struct cDbgStr {
 
 class cDbgWindowBase {
 public:
-    u32 x;              // 0x00  window column (8 px units; unsigned: the frame conversions use the 2^52 trick without xoris)
-    u32 y;              // 0x04  window row (14 px units)
-    u32 w;              // 0x08  width in columns
-    u32 h;              // 0x0C  height in rows
-    int cxMax;          // 0x10  largest button cursor column
-    int cyMax;          // 0x14  largest button cursor row
+    u32 m_px;              // 0x00  window column (8 px units; unsigned: the frame conversions use the 2^52 trick without xoris)
+    u32 m_py;              // 0x04  window row (14 px units)
+    u32 m_wx;              // 0x08  width in columns
+    u32 m_wy;              // 0x0C  height in rows
+    int m_max_cx;          // 0x10  largest button cursor column
+    int m_max_cy;          // 0x14  largest button cursor row
     const char* pName;  // 0x18  title
     int x1C;
     int x20;
@@ -79,8 +79,8 @@ public:
 
 class cDbgButton : public cDbgButtonBase {
 public:
-    void (*pFunc)(cDbgButton*);    // 0x1C  pushed
-    void (*pUpdate)(cDbgButton*);  // 0x20  called every frame by ButtonAllUpdate
+    void (*m_pFuncExec)(cDbgButton*);    // 0x1C  pushed
+    void (*m_pFuncUpdate)(cDbgButton*);  // 0x20  called every frame by ButtonAllUpdate
 
     // inlined into cDbgWindow::AddButton; the tool modules are compiled with -fno-implement-inlines,
     // so no out-of-line body exists although cDbgButton's vtable is emitted there
@@ -90,10 +90,10 @@ public:
 
 class cDbgWindow : public cDbgWindowBase {
 public:
-    u32 num;                   // 0x28
-    cDbgButton* pButton[128];  // 0x2C
-    cDbgButton* pCur;          // 0x22C
-    cDbgButton* pTop;          // 0x230
+    u32 m_nBut;                   // 0x28
+    cDbgButton* m_pButList[128];  // 0x2C
+    cDbgButton* m_pCurrentBut;          // 0x22C
+    cDbgButton* m_pStartBut;          // 0x230
     cDbgButton* pBottom;       // 0x234
 
     // Init: declared here for every user (both t_esp_area/t_lightarea and t_event call it out of
@@ -105,12 +105,12 @@ public:
 #else
     void Init(int wx, int wy, const char* name)
     {
-        x = wx;
-        y = wy;
-        w = strlen(name);
-        h = 1;
-        cxMax = 1;
-        cyMax = 1;
+        m_px = wx;
+        m_py = wy;
+        m_wx = strlen(name);
+        m_wy = 1;
+        m_max_cx = 1;
+        m_max_cy = 1;
         pName = name;
         x1C = 0;
         x20 = 0;
@@ -120,12 +120,12 @@ public:
         // `li 0` (3 vs 2 dependents) and the last store stays last (13 -> 0 words).
         do {
         } while (0);
-        num = 0;
-        pCur = 0;
+        m_nBut = 0;
+        m_pCurrentBut = 0;
         pBottom = 0;
         do {
         } while (0);
-        pTop = 0;
+        m_pStartBut = 0;
     }
 #endif
     // the virtuals with bodies here are what the derived windows of dbg_tool.h inline (their
@@ -134,37 +134,37 @@ public:
     {
         u32 i;
 
-        for (i = 0; i < num; i++) {
-            if (pButton[i]) {
-                delete pButton[i];
+        for (i = 0; i < m_nBut; i++) {
+            if (m_pButList[i]) {
+                delete m_pButList[i];
             }
         }
     }
     virtual int GetCx()
     {
-        if (pCur == 0) {
+        if (m_pCurrentBut == 0) {
             return 0;
         }
-        return pCur->cx;
+        return m_pCurrentBut->m_cx;
     }
     virtual int GetCy()
     {
-        if (pCur == 0) {
+        if (m_pCurrentBut == 0) {
             return 0;
         }
-        return pCur->cy;
+        return m_pCurrentBut->m_cy;
     }
-    virtual void SetCurrentTopButton() { pCur = pTop; }
-    virtual void SetCurrentBottomButton() { pCur = pBottom; }
+    virtual void SetCurrentTopButton() { m_pCurrentBut = m_pStartBut; }
+    virtual void SetCurrentBottomButton() { m_pCurrentBut = pBottom; }
     virtual void ButtonAllUpdate()
     {
         u32 i;
 
-        for (i = 0; i < num; i++) {
-            cDbgButton* b = pButton[i];
+        for (i = 0; i < m_nBut; i++) {
+            cDbgButton* b = m_pButList[i];
 
-            if (b && b->pUpdate) {
-                b->pUpdate(b);
+            if (b && b->m_pFuncUpdate) {
+                b->m_pFuncUpdate(b);
             }
         }
     }

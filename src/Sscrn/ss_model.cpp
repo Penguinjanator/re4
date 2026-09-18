@@ -58,12 +58,12 @@ void wep47Init(int no);
 }
 
 // The player archive (pG->pPlArc) and the weapon data (SUB_SCREEN::x210): both are offset tables.
-#define PL_ARC(no) PL_ARC_PTR(pG->pPlArc, no)
-#define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->x210, no)
+#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
+#define WEP_ARC(wk, no) SS_ARC_PTR((SsArc*) (wk)->pWepDat, no)
 
 void weaponFilename(char* name, int no)
 {
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         switch (no) {
         case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
@@ -154,7 +154,7 @@ static inline void ssModelLight(cModel* m)
 {
     static const Vec light_ofs = {0.0f, 0.0f, 0.0f};
     static const Vec light_size = {1000.0f, 1000.0f, 0.0f};
-    m->lightInfo.init2(0, 1, &light_ofs, &light_size, 1);
+    m->LightInfo.init2(0, 1, &light_ofs, &light_size, 1);
 }
 
 static inline void ssModelAdd(cModel* m, void* bin, void* tpl)
@@ -207,12 +207,12 @@ void weskerModelInitI(int no, int type) asm("weskerModelInit");
 void playerModelInit()
 {
     cItemMgr* im = &ItemMgr;
-    u8 no = WeaponId2WeaponNo(im->armId);
-    u8 type = WeaponId2WeaponType(im->armId);
+    u8 no = WeaponId2WeaponNo(im->m_wep_id);
+    u8 type = WeaponId2WeaponType(im->m_wep_id);
 
     ssPlModel = MapMgr.getWork(0);
     ssWepModel = MapMgr.getWork(1);
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
         leonModelInitI(no, type);
         break;
@@ -240,7 +240,7 @@ void playerModelInit()
 // `lis` goes early into a callee-saved register, as in the target.
 #define SS_MODEL_PLACE(m, p, r, s) \
     (m)->pos = p;                  \
-    (m)->rot = r;                  \
+    (m)->ang = r;                  \
     {                              \
         f32 sc_ = (s)[0];          \
         (m)->scale.z = sc_;        \
@@ -278,7 +278,7 @@ void ashleyModelInit()
     ssModelAdd(m, PL_ARC(20), PL_ARC(5));
     ssModelLight(m);
     SS_MODEL_PLACE(m, ashley_pos, ashley_rot, ashley_scale);
-    MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(wk->pCmmn, 22), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(wk->pCmmn, 22), 0, 0, 4, 0);
     ssPlMotion = (cModel*) 1;
 }
 
@@ -354,7 +354,7 @@ void wep34Init(int no)
     ssModelAdd(m, PL_ARC(17), PL_ARC(5));
     ssModelAdd(m, PL_ARC(18), PL_ARC(5));
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 4), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
 }
 
@@ -379,7 +379,7 @@ void wep38Init(int no)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HANG(m, wep, 10, 22.0f, 0.0f, -5.0f, 1.0f);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep39Init(int no)
@@ -393,7 +393,7 @@ void wep39Init(int no)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HANG(m, wep, 10, 35.0f, -25.0f, 4.0f, 1.0f);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep40Init(int no)
@@ -410,7 +410,7 @@ void wep40Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 
@@ -456,9 +456,9 @@ void wep30Init(int no, int type)
     wep->pParts->pos.x = -70.0f;
     wep->pParts->pos.y = -6.0f;
     wep->pParts->pos.z = 0.0f;
-    wep->pParts->rot.x = 1.5707964f;
-    wep->pParts->rot.y = 0.0f;
-    wep->pParts->rot.z = 0.0f;
+    wep->pParts->ang.x = 1.5707964f;
+    wep->pParts->ang.y = 0.0f;
+    wep->pParts->ang.z = 0.0f;
     switch (no) {
     case 0x13:
     case 0x16:
@@ -476,20 +476,20 @@ void wep30Init(int no, int type)
     }
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
         switch (no) {
         case 0x13:
         case 0x16:
         case 0x17:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
             break;
         case 0x19:
         case 0x1F:
         case 0x20:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
-            MotionSetCore(wep, &((cMotModel*) wep)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
+            MotionSetCore(wep, &((cMotModel*) wep)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
             break;
         }
         wep->be_flag |= 2;
@@ -562,7 +562,7 @@ void wep36Init(int no)
     ssModelAdd(m, PL_ARC(14), PL_ARC(9));
     ssModelAdd(m, PL_ARC(18), PL_ARC(17));
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 4), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
 }
 
@@ -579,8 +579,8 @@ void wep28Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
-    MotionSetCore(wep, &((cMotModel*) wep)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(wep, &((cMotModel*) wep)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep42Init(int no, int type)
@@ -624,9 +624,9 @@ void wep42Init(int no, int type)
     wep->pParts->pos.x = -95.0f;
     wep->pParts->pos.y = -30.0f;
     wep->pParts->pos.z = -5.0f;
-    wep->pParts->rot.x = 1.5707964f;
-    wep->pParts->rot.y = 0.0f;
-    wep->pParts->rot.z = 0.0f;
+    wep->pParts->ang.x = 1.5707964f;
+    wep->pParts->ang.y = 0.0f;
+    wep->pParts->ang.z = 0.0f;
     switch (no) {
     case 0x13:
     case 0x16:
@@ -644,19 +644,19 @@ void wep42Init(int no, int type)
     }
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
         switch (no) {
         case 0x13:
         case 0x16:
         case 0x17:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
             break;
         case 0x19:
         case 0x1F:
         case 0x20:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
             break;
         }
         wep->be_flag |= 2;
@@ -725,7 +725,7 @@ void wep35Init(int no)
 
     ssModelAdd(m, PL_ARC(18), PL_ARC(17));
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 4), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
 }
 
@@ -742,7 +742,7 @@ void wep29Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep41Init(int no, int type)
@@ -786,9 +786,9 @@ void wep41Init(int no, int type)
     wep->pParts->pos.x = -95.0f;
     wep->pParts->pos.y = -30.0f;
     wep->pParts->pos.z = -5.0f;
-    wep->pParts->rot.x = 1.5707964f;
-    wep->pParts->rot.y = 0.0f;
-    wep->pParts->rot.z = 0.0f;
+    wep->pParts->ang.x = 1.5707964f;
+    wep->pParts->ang.y = 0.0f;
+    wep->pParts->ang.z = 0.0f;
     switch (no) {
     case 0x13:
     case 0x16:
@@ -806,19 +806,19 @@ void wep41Init(int no, int type)
     }
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
         switch (no) {
         case 0x13:
         case 0x16:
         case 0x17:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
             break;
         case 0x19:
         case 0x1F:
         case 0x20:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
             break;
         }
         wep->be_flag |= 2;
@@ -895,7 +895,7 @@ void wep37Init(int no)
     ssModelAdd(m, PL_ARC(18), PL_ARC(17));
     ssModelAdd(m, PL_ARC(20), PL_ARC(17));
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 4), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 4), 0, 0, 4, 0);
     wep->be_flag &= ~2;
 }
 
@@ -917,7 +917,7 @@ void wep43Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep44Init(int no)
@@ -934,7 +934,7 @@ void wep44Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep45Init(int no, int type)
@@ -979,9 +979,9 @@ void wep45Init(int no, int type)
     wep->pParts->pos.x = -95.0f;
     wep->pParts->pos.y = -30.0f;
     wep->pParts->pos.z = -5.0f;
-    wep->pParts->rot.x = 1.5707964f;
-    wep->pParts->rot.y = 0.0f;
-    wep->pParts->rot.z = 0.0f;
+    wep->pParts->ang.x = 1.5707964f;
+    wep->pParts->ang.y = 0.0f;
+    wep->pParts->ang.z = 0.0f;
     switch (no) {
     case 0x13:
     case 0x16:
@@ -999,19 +999,19 @@ void wep45Init(int no, int type)
     }
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
         switch (no) {
         case 0x13:
         case 0x16:
         case 0x17:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
             break;
         case 0x19:
         case 0x1F:
         case 0x20:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
             break;
         }
         wep->be_flag |= 2;
@@ -1032,7 +1032,7 @@ void wep47Init(int no)
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 // Leon's weapons take the weapon *type* (tune / costume variant), his rifles the number too.
@@ -1166,7 +1166,7 @@ void wep00Init(int type)
     wep->scale.y = 0.0f;
     wep->scale.x = 0.0f;
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
     wep->be_flag &= ~2;
 }
 
@@ -1185,7 +1185,7 @@ void wep01Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep02Init(int type)
@@ -1203,7 +1203,7 @@ void wep02Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep03Init(int type)
@@ -1222,9 +1222,9 @@ void wep03Init(int type)
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
     if (type == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
     } else if (type == 2) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 9), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
     }
 }
 
@@ -1243,7 +1243,7 @@ void wep04Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep05Init(int type)
@@ -1257,7 +1257,7 @@ void wep05Init(int type)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep06Init(int type)
@@ -1275,7 +1275,7 @@ void wep06Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 9), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
 void wep07Init(int type)
@@ -1289,7 +1289,7 @@ void wep07Init(int type)
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep08Init(int type)
@@ -1303,7 +1303,7 @@ void wep08Init(int type)
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep09Init(int type)
@@ -1323,7 +1323,7 @@ void wep09Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 9), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
 void wep10Init(int type)
@@ -1343,7 +1343,7 @@ void wep10Init(int type)
     }
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 9), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
 }
 
 void wep11Init(int type)
@@ -1374,11 +1374,11 @@ void wep11Init(int type)
     switch (type) {
     case 0:
     case 1:
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 11), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 11), 0, 0, 4, 0);
         break;
     case 2:
     case 3:
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 12), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 12), 0, 0, 4, 0);
         break;
     }
 }
@@ -1394,7 +1394,7 @@ void wep12Init(int type)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 // The Mine Thrower: the sight (a second model info) is rotated onto the weapon; the tuned variant
@@ -1441,10 +1441,10 @@ void wep13Init(int type)
     wep->scale.x = 1.0f;
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(0xD, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
         wep->be_flag |= 2;
     }
 }
@@ -1468,17 +1468,17 @@ void wep14Init(int type)
     p->pos.x = 0.0f;
     p->pos.y = 0.0f;
     p->pos.z = 0.0f;
-    p->rot.x = 0.0f;
-    p->rot.y = 0.0f;
-    p->rot.z = 0.0f;
+    p->ang.x = 0.0f;
+    p->ang.y = 0.0f;
+    p->ang.z = 0.0f;
     wep->scale.z = 1.0f;
     wep->scale.y = 1.0f;
     wep->scale.x = 1.0f;
     ssModelLight(wep);
     if (type == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
     } else {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 9), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 9), 0, 0, 4, 0);
     }
 }
 
@@ -1493,7 +1493,7 @@ void wep15Init(int type)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
 }
 
 void wep16Init(int type)
@@ -1507,7 +1507,7 @@ void wep16Init(int type)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep17Init(int type)
@@ -1521,7 +1521,7 @@ void wep17Init(int type)
     wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep33Init(int type)
@@ -1535,7 +1535,7 @@ void wep33Init(int type)
     wep->modelInit(WEP_ARC(wk, 4), WEP_ARC(wk, 5));
     SS_WEP_HAND(m, wep);
     ssModelLight(wep);
-    MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
 }
 
 void wep19Init(int no, int type)
@@ -1591,9 +1591,9 @@ void wep19Init(int no, int type)
     wep->pParts->pos.x = -95.0f;
     wep->pParts->pos.y = -30.0f;
     wep->pParts->pos.z = -5.0f;
-    wep->pParts->rot.x = 1.5707964f;
-    wep->pParts->rot.y = 0.0f;
-    wep->pParts->rot.z = 0.0f;
+    wep->pParts->ang.x = 1.5707964f;
+    wep->pParts->ang.y = 0.0f;
+    wep->pParts->ang.z = 0.0f;
     switch (no) {
     case 0x13:
     case 0x16:
@@ -1611,20 +1611,20 @@ void wep19Init(int no, int type)
     }
     ssModelLight(wep);
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) == 0) {
-        MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 8), 0, 0, 4, 0);
+        MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 8), 0, 0, 4, 0);
         wep->be_flag &= ~2;
     } else {
         switch (no) {
         case 0x13:
         case 0x16:
         case 0x17:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 5), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 5), 0, 0, 4, 0);
             break;
         case 0x19:
         case 0x1F:
         case 0x20:
-            MotionSetCore(m, &((cMotModel*) m)->mot, WEP_ARC(wk, 6), 0, 0, 4, 0);
-            MotionSetCore(wep, &((cMotModel*) wep)->mot, WEP_ARC(wk, 7), 0, 0, 4, 0);
+            MotionSetCore(m, &((cMotModel*) m)->Motion, WEP_ARC(wk, 6), 0, 0, 4, 0);
+            MotionSetCore(wep, &((cMotModel*) wep)->Motion, WEP_ARC(wk, 7), 0, 0, 4, 0);
             break;
         }
         wep->be_flag |= 2;

@@ -35,8 +35,8 @@
 struct R21aRoof {
     int slot;    // 0x00  hit[] slot
     f32 x;       // 0x04  YarareInit box
-    f32 y;       // 0x08
-    f32 z;       // 0x0C
+    f32 Y;       // 0x08
+    f32 Z;       // 0x0C
     f32 w;       // 0x10
     f32 h;       // 0x14
     int est;     // 0x18  EstSet number of the burning support
@@ -127,8 +127,8 @@ void R21aInit()
         win->be_flag &= ~2;
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) R21aDoorCheck, 0, 1);
-        SceExec(0x12, (TaskFunc) R21aDoorMain, 0, 0, 2, 0);
+        SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) R21aDoorCheck, 0, 1);
+        SceExec(0x12, (TaskFunc) R21aDoorMain, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(3, 0);
         SmdSetTrans(0x19, 0);
@@ -136,7 +136,7 @@ void R21aInit()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         cObj* obj;
 
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) R21aFallRoofStartMain, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) R21aFallRoofStartMain, 0, 1);
         SceAtSetEnable(8, 0);
         SmdSetTrans(0x41, 0);
         obj = SmdGetObjPtr(0x3F);
@@ -147,7 +147,7 @@ void R21aInit()
 
                 if (hit) {
                     hit->setParent(obj, 0, 0);
-                    YarareInit(hit, r->x, r->y, r->z, r->w, r->h, 0, 1);
+                    YarareInit(hit, r->x, r->Y, r->Z, r->w, r->h, 0, 1);
                     r21a_work.p->hit[r->slot] = hit;
                 }
             }
@@ -169,8 +169,8 @@ void R21aInit()
         r21a_work.p->em[15].destroy();
         r21a_work.p->em[16].destroy();
     }
-    SceExec(0x12, (TaskFunc) R21aEmSetMain, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R21aEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     r21a_work.p->x248 = 0;
     for (i = 0; i < 23; i++) {
         r21a_work.p->cnt[i] = 0;
@@ -184,16 +184,16 @@ void R21aMain()
 static void r21a_movedShelf(int no)
 {
     if (no == 0x84) {
-        OpenBoxMain(0xF, 1, 0xB, 0x27, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x27, -1, -1);
     }
     if (no == 0x85) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
     if (no == 0x88) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
     if (no == 0x89) {
-        OpenBoxMain(0xF, 1, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 1, 0xB, 0x42, -1, -1);
     }
 }
 
@@ -205,16 +205,16 @@ static void r21a_moveShelf(int no)
         EstSet(0, -1, 0, 0, 1, 0x11, 1, 0, 0, 0);
     }
     if (no == 0x84) {
-        OpenBoxMain(0xF, 0, 0xB, 0x27, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x27, -1, -1);
     }
     if (no == 0x85) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
     if (no == 0x88) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
     if (no == 0x89) {
-        OpenBoxMain(0xF, 0, 0xB, 0x42, -1, -1);
+        OpenBoxMain(OpenBoxPosXP500, 0, 0xB, 0x42, -1, -1);
     }
 }
 
@@ -287,7 +287,7 @@ static void R21aEmSetMain()
                 }
             }
         }
-        if (pG->flags_174 & 0x01000000) {
+        if (pG->Room_flg[0] & 0x01000000) {
             if (RsfCheck(G_ROOM_ID, 3) == 0) {
                 RsfSet(G_ROOM_ID, 3);
                 r21a_work.p->em[17].setPtr(0x69, -1, 0);
@@ -305,11 +305,11 @@ static void R21aEmSetMain()
 static void R21aDoorCheck()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceUpCut(1, -1, 8, 4);
+        SceUpCut(1, -1, 8, UP_CUT_ATTR_CUT_FIX);
         if (ItemMgr.num(0x7B) == 0) {
             CamCtrl.Comeback(0);
         } else {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         }
     }
 }
@@ -335,7 +335,7 @@ static void R21aDoorMain()
         if (obj) {
             SndCall(6, 7, &obj->pos, 0, 0, 0);
         }
-        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SceSetEventCancel(1, (TaskFunc) R21aDoorEnd, 0, -1, 1);
         CamCtrl.CutCall(3);
         obj = SmdGetObjPtr(0x19);
@@ -375,10 +375,10 @@ static void R21aFallRoofStartMain()
 {
     cObj* obj = SmdGetObjPtr(0x41);
 
-    if (pG->flags_174 & 0x80000000) {
+    if (pG->Room_flg[0] & 0x80000000) {
         return;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     SceAtSetEnable(7, 0);
     r21a_work.p->se = 0;
     r21a_work.p->str = 0;
@@ -389,7 +389,7 @@ static void R21aFallRoofStartMain()
     }
     SceEventStart(0);
     SceDestroyEm(0x10, 0x20);
-    pG->flags_174 |= 0x00800000;
+    pG->Room_flg[0] |= 0x00800000;
     SceSleep(2);
     SndRoomStrStop(6);
     r21a_work.p->str = SndStrReq(0, 0x20, 0x80000003, 0, 0, 0.0f);
@@ -472,7 +472,7 @@ static void R21aFallRoofStartEnd()
         r21a_work.p->em[14].setEm(0x65, -1, 0, 1, 1);
         r21a_work.p->em[14].setNoSuspend(0);
     }
-    SceExec(0x12, (TaskFunc) R21aFallRoofMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) R21aFallRoofMove, 0, 0, SCE_PRIO_DEF_2, 0);
     SceEventEnd(0);
     SceExit();
 }
@@ -538,7 +538,7 @@ static inline void S16Set(s16& d, s16 v) { d = v; }
 // store: it is not a struct access, so pG is reloaded after every store).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline void EvtFlagOn(u32 base, u32 no)
 {
@@ -629,7 +629,7 @@ static void R21aFallRoofMove()
             EffectEfmDelete(1, 6, 0);
             SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
             if (obj->pos.y <= 0.0f) {
-                SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) R21aFallRoofDie, (int) spd, 0, SCE_PRIO_DEF_2, 0);
                 return;
             }
             break;
@@ -639,7 +639,7 @@ static void R21aFallRoofMove()
 
             if (hit && hit->ckStatus() == 1) {
                 hit->hp = 0;
-                EvtFlagOn((u32) &pGS->flags_174, i + 1);
+                EvtFlagOn((u32) &pGS->Room_flg[0], i + 1);
                 EffectEspDelete(1, (u8) r21a_roofTbl[i].eff, 0, 0);
                 EffectEspgenDelete(1, (u8) r21a_roofTbl[i].eff, 0);
                 EffectEfmDelete(1, (u8) r21a_roofTbl[i].eff, 0);
@@ -649,29 +649,29 @@ static void R21aFallRoofMove()
                 }
             }
         }
-        if (flagBit(pG->flags_174, 0x40000000) && flagBit(pG->flags_174, 0x20000000) && flagBit(pG->flags_174, 0x10000000) &&
-            flagBit(pG->flags_174, 0x08000000)) {
+        if (flagBit(pG->Room_flg[0], 0x40000000) && flagBit(pG->Room_flg[0], 0x20000000) && flagBit(pG->Room_flg[0], 0x10000000) &&
+            flagBit(pG->Room_flg[0], 0x08000000)) {
             EffectEspDelete(1, 6, 0, 0);
             EffectEspgenDelete(1, 6, 0);
             EffectEfmDelete(1, 6, 0);
-            SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R21aFallRoofEndMain, 0, 0, SCE_PRIO_DEF_2, 0);
             return;
         }
         if (r21a_work.p->em[13].isActive() == 0) {
-            if ((pG->flags_174 & 0x04000000) == 0) {
+            if ((pG->Room_flg[0] & 0x04000000) == 0) {
                 IntSet(r21a_work.p->cnt[13], r21a_work.p->cnt[13] + 1);
                 if (r21a_work.p->cnt[13] > 0x1C1) {
-                    BitOn(pG->flags_174, 0x04000000);
+                    BitOn(pG->Room_flg[0], 0x04000000);
                     r21a_work.p->em[15].setEm(0x66, -1, 0, 1, 1);
                     r21a_work.p->em[15].setNoSuspend(0);
                 }
             }
         }
         if (r21a_work.p->em[14].isActive() == 0) {
-            if ((pG->flags_174 & 0x02000000) == 0) {
+            if ((pG->Room_flg[0] & 0x02000000) == 0) {
                 IntSet(r21a_work.p->cnt[14], r21a_work.p->cnt[14] + 1);
                 if (r21a_work.p->cnt[14] > 0x1C1) {
-                    BitOn(pG->flags_174, 0x02000000);
+                    BitOn(pG->Room_flg[0], 0x02000000);
                     r21a_work.p->em[16].setEm(0x67, -1, 0, 1, 1);
                     r21a_work.p->em[16].setNoSuspend(0);
                 }
@@ -764,7 +764,7 @@ static void SceBgmCheck()
     int playing = 0;
 
     for (;;) {
-        if ((pG->flags_174 & 0x00800000) == 0) {
+        if ((pG->Room_flg[0] & 0x00800000) == 0) {
             if (SceCkFindPL(NULL) == 1) {
                 if (playing == 0) {
                     SndRoomStrStart(1, 0, 1);

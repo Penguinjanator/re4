@@ -81,15 +81,15 @@ void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, int f, u32 g,
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 // `p->atari.flags &= 0xFCFF` through a pointer to the collision info; the volatile halfword store keeps the
 // following pG load below it (r207).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
 // COMPILER-DIFF: 1 (argument move order at a mixed int/float call): the first SubCharMoveTo of the
 // front shutter has the `fmr f4, f2` (the shared 0.0) before `li r3, 0`; declaring the float parameters
@@ -98,7 +98,7 @@ void SubCharMoveToF(f32 x, f32 y, f32 z, f32 w, int flag) asm("SubCharMoveTo");
 
 // Area flag test through a helper: fold would merge two tests of the same word in one `&&`/`||` into a
 // single masked compare; the original keeps one `andis.` per bit.
-static inline int sceAtFlag(u32 bit) { return pG->sceat_x17C & bit; }
+static inline int sceAtFlag(u32 bit) { return pG->Room_flg[2] & bit; }
 
 int r30d_digit[4] = {4, 3, 2, 1};
 
@@ -128,7 +128,7 @@ void R30dInit()
     R30dWork*& wp = r30d_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
 #line 57 "D:/Bio4/Prog/r30d.cpp"
     wp = (R30dWork*) MEM_CALLOC(sizeof(R30dWork), 1, 0xd);
-    pG->flags_51C0 |= 0x400;
+    pG->Scenario_flg[0] |= 0x400;
     getRoomEtcSwitch(8, (cEm**) &sw0, 1);
     getRoomEtcSwitch(9, (cEm**) &sw1, 1);
     getRoomEtcBarred(0xC, (cEm**) &bar, 1);
@@ -201,9 +201,9 @@ void R30dInit()
         int k;
 
         for (k = 0; k < 2; k++) {
-            r30d_work.p->obj[k] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), &pos[k], &ang[k], 0x10, 1);
+            r30d_work.p->obj[k] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &pos[k], &ang[k], 0x10, 1);
             if (r30d_work.p->obj[k]) {
-                MotionSetCore(r30d_work.p->obj[k], &r30d_work.p->obj[k]->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, 0, 1, 0);
+                MotionSetCore(r30d_work.p->obj[k], &r30d_work.p->obj[k]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
             }
         }
     }
@@ -245,7 +245,7 @@ void R30dMain()
         if (sw[n]) {
             if (sw[n]->ckOpen() == 0) {
                 if (r30d_work.p->cnt[n] <= 0 && n == 0) {
-                    if (((int) pG->sceat_x17C >= 0 && sceAtFlag(0x10000000)) ||
+                    if (((int) pG->Room_flg[2] >= 0 && sceAtFlag(0x10000000)) ||
                         (!sceAtFlag(0x40000000) && sceAtFlag(0x08000000))) {
                         sw[n]->setOpen();
                     }
@@ -377,18 +377,18 @@ static void R30dShutterFrontEvent()
         SceUpCut(9, -1, -1, 0);
         return;
     }
-    if (!(pG->flags_174 & 0x20000000)) {
+    if (!(pG->Room_flg[0] & 0x20000000)) {
         SceAtWork* at;
 
         SceUpCut(0xA, -1, -1, 0);
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
         at = SceAtPtr(0x18);
         if (at) {
-            at->x4A = 0x33;
+            at->actBtnKind = 0x33;
         }
         return;
     }
-    if (!(pG->sceat_x17C & 0x00100000)) {
+    if (!(pG->Room_flg[2] & 0x00100000)) {
         SceUpCut(0xB, -1, -1, 0);
         return;
     }
@@ -401,7 +401,7 @@ static void R30dShutterFrontEvent()
         SceSleep(1);
     }
     SetSubAux((int) funcAshleyShutter, 0);
-    while ((pG->flags_174 & 0x40000000) == 0) {
+    while ((pG->Room_flg[0] & 0x40000000) == 0) {
         SceSleep(1);
     }
     SubCharMoveTo(0, 3944.0f, 0.0f, 17837.0f, 193.0f);
@@ -568,20 +568,20 @@ static void R30dCoopSwitch()
             case 0:
                 switch (COOP_STEP(c)) {
                 case 0:
-                    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);
-                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 3, 0, 1, 0);
+                    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);
+                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 3, 0, 1, 0);
                     for (int k = 0; k < 2; k++) {
                         cObj* o = r30d_work.p->obj[k];
                         if (o) {
-                            MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, 0, 1, 0);
+                            MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 1, 0);
                         }
                     }
                     COOP_STEP(c)++;
                     break;
                 case 1:
                     while (MotionGetState(pPL) != 0) {
-                        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 5, 0, 5, 0);
-                        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 5, 0, 5, 0);
+                        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 5, 0, 5, 0);
+                        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 5, 0, 5, 0);
                         r30d_work.p->timer = SceExec(0x12, (TaskFunc) R30dTimerDisp, 0, 0, 2, 0);
                         COOP_STEP(c)++;
                         break;
@@ -594,12 +594,12 @@ static void R30dCoopSwitch()
                     } else {
                         ActBtn.set(0x14, 5, 0, 0, 2, 1, 0, 0);
                         if (Key.trg & 0x00080000) {
-                            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 5, 0, 1, 0);
-                            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 5, 0, 1, 0);
+                            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 5, 0, 1, 0);
+                            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 5, 0, 1, 0);
                             for (int k = 0; k < 2; k++) {
                                 cObj* o = r30d_work.p->obj[k];
                                 if (o) {
-                                    MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, 0, 1, 0);
+                                    MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2A), 0, 0, 1, 0);
                                 }
                             }
                             SndCall(6, 3, &pPL->pos, 0, 0, 0);
@@ -641,7 +641,7 @@ static void R30dCoopSwitch()
                         // on the `bne` fall-through (record_jump_equiv). A literal 0 at the store is a same-block
                         // movable and merges.
                         int zero = 0;
-                        if (!(pG->flags_174 & 0x10000000)) {
+                        if (!(pG->Room_flg[0] & 0x10000000)) {
                             SndCall(6, 9, 0, 0, 0, 0);
                         }
                         BitOn(pG->door_unlock[0], 0x400);
@@ -667,7 +667,7 @@ static void R30dCoopSwitch()
                         for (int k = 0; k < 2; k++) {
                             cObj* o = r30d_work.p->obj[k];
                             if (o) {
-                                MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 1, 0);
+                                MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
                             }
                         }
                         break;
@@ -691,7 +691,7 @@ static void R30dTimerDisp()
 
     COOP_TIMER(c) = 0;
     COOP_NUM(c) = 4;
-    pG->flags_174 &= ~0x10000000;
+    pG->Room_flg[0] &= ~0x10000000;
     for (;;) {
         COOP_TIMER(c)--;
         if (COOP_TIMER(c) <= 0) {
@@ -706,7 +706,7 @@ static void R30dTimerDisp()
             if (COOP_NUM(c) != 0) {
                 SndCall(6, 7, 0, 0, 0, 0);
             } else {
-                pG->flags_174 |= 0x10000000;
+                pG->Room_flg[0] |= 0x10000000;
                 SndCall(6, 8, 0, 0, 0, 0);
             }
         }
@@ -729,34 +729,34 @@ static void funcAshleyShutter(cEm* p)
     if (pSUB == NULL) {
         return;
     }
-    switch (p->xFE) {
+    switch (p->r_no_2) {
     case 0:
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
         p->setAng(&v);
         AtariFlagsAnd(&p->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 3, 0, 0x101, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 3, 0, 0x101, 0);
         SndCall(6, 6, &p->pos, 0, 0, 0);
-        p->xFE++;
+        p->r_no_2++;
         break;
     case 1:
         if (p->motionMove() != 0) {
-            p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 3, 0, 0x101, 0);
-            p->xFE++;
+            p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 3, 0, 0x101, 0);
+            p->r_no_2++;
         }
         break;
     case 2:
         if (p->motionMove() != 0) {
-            p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2F), 3, 0, 0x101, 0);
-            p->xFE++;
+            p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2F), 3, 0, 0x101, 0);
+            p->r_no_2++;
         }
         break;
     case 3:
         if (p->motionMove() != 0) {
-            pG->flags_174 |= 0x40000000;
+            pG->Room_flg[0] |= 0x40000000;
             AtariFlagsOr(&p->atari, 0x300);
-            p->xFE++;
+            p->r_no_2++;
         }
         break;
     }

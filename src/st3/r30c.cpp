@@ -58,8 +58,8 @@ int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 // Halfword read-modify-write of the collision flags through a volatile access: the pSUB load that
 // follows stays below the store (r311 idiom).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
 // Pointer store through a reference: the loads that follow stay below it (r102 idiom).
 static inline void PSetPtr(void*& d, void* v) { d = v; }
 
@@ -97,7 +97,7 @@ void R30cInit()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R30cEventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r30cs00.evd", (u8) GetEmIdFromListI(0x40), 0, 0, 0);
-        SubCharInit(1, &pPL->pos, pPL->rot.y);
+        SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(5, 0);
         if (ItemMgr.num(0x83) != 0 || (pG->door_unlock[0] & 0x1000)) {
             Vec pos = {0.0f, 0.0f, 0.0f};
@@ -112,7 +112,7 @@ void R30cInit()
             ang.z = 0.0f;
             sub->setAng(pa);
             AtariFlagsAnd(&pSUB->atari, ~0x100);
-            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 9, 0);
+            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 9, 0);
             pSUB->st.x325 = 0x80;
         } else {
             Vec pos = {5250.0f, 0.0f, -7150.0f};
@@ -128,7 +128,7 @@ void R30cInit()
             sub->setAng(pa);
             AtariFlagsAnd(&pSUB->atari, ~0x100);
             AtariFlagsAnd(&pSUB->atari, ~0x200);
-            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 4, 0);
+            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 4, 0);
             r30c_work.p->shout = SceExec(0x12, (TaskFunc) r30c_AshleyShout, 0, 0, 2, 0);
             if (RsfCheck(*(u16*) &pGS->stage_no, 1) == 0) {
                 SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r30c_EventCut, 0, 1);
@@ -150,8 +150,8 @@ void R30cInit()
         SceAtSetEnable(0x82, 0);
     } else {
         Vec pos = {0.0f, 0.0f, 0.0f};
-        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &pos, &pos, 0x10, 1);
-        void* mot = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &pos, 0x10, 1);
+        void* mot = ROOM_ARC_PTR(pG->pRoom, 0x23);
 
         obj->motionSet(mot, 0, FcvGetMaxFrame((u16*) mot), 1, 0);
         r30c_LinkObjItemAt(0x82, obj);
@@ -205,7 +205,7 @@ static void R30cEventS00()
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        pG->flags_5018 |= 0x04000000;
+        pG->Status_flg[3] |= 0x04000000;
         pSUB = r30c_work.p->ashley;
         AtariFlagsOr(&pSUB->atari, 0x100);
         MotionClear(pSUB, 1);
@@ -223,16 +223,16 @@ static void R30cEventS00()
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r30c_PlaneMove, 0, 1);
         r30c_work.p->strId = SndStrReq(1, 0xEF, 0x80000001, 0, 0, 0.0f);
         SndBgmTblSet(0x30C, 1);
-        pG->flags_51C4 |= 0x00020000;
+        pG->Scenario_flg[1] |= 0x00020000;
     }
 }
 
 void Evt_R30CS00_Func(Event* e)
 {
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
@@ -241,7 +241,7 @@ void Evt_R30CS00_Func(Event* e)
             }
             break;
         case 1:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
@@ -283,7 +283,7 @@ static void r30c_EventCutEndProc()
     r30c_work.p->em[1].setNoSuspend(0);
     SceEventEnd(0);
     r30c_work.p->shout->task->flag &= ~2;
-    pG->flags_51C4 |= 0x00080000;
+    pG->Scenario_flg[1] |= 0x00080000;
 }
 
 // Ashley's shouting in the cell: the sound effects on the motion frames, and the wave once the
@@ -297,7 +297,7 @@ static void r30c_AshleyShout()
     for (;;) {
         switch ((u32) r30c_work.p->ashley->motFrame) {
         case 0x46:
-            RoomSeCall(2, &r30c_work.p->ashley->getPartsPtr(4)->worldPos, 0, 0, 0);
+            RoomSeCall(2, &r30c_work.p->ashley->getPartsPtr(4)->world, 0, 0, 0);
             break;
         case 0x9:
         case 0x12:
@@ -311,15 +311,15 @@ static void r30c_AshleyShout()
         case 0x77:
         case 0x85:
         case 0x92:
-            RoomSeCall(5, &r30c_work.p->ashley->getPartsPtr(0xA)->worldPos, 0, 0, 0);
+            RoomSeCall(5, &r30c_work.p->ashley->getPartsPtr(0xA)->world, 0, 0, 0);
             break;
         }
         if (SceAtHitCheck(9)) {
-            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 0, 0);
+            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 0, 0);
             while (!(MotionGetState(r30c_work.p->ashley) & 4)) {
                 SceSleep(1);
             }
-            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 0, 0);
+            r30c_work.p->ashley->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 0, 0);
             break;
         }
         SceSleep(1);
@@ -336,10 +336,10 @@ static void r31c_AshleyDieCheck()
         stat = SubCharGetStatus();
         pSUB = 0;
         if (!(stat & 1)) {
-            pG->sub_life = 0;
+            pG->ashley_life = 0;
             r30c_work.p->ashley->stat = 0x02000000;
         }
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SceSleep(1);
         } else {
             break;
@@ -356,13 +356,13 @@ static void r30c_PlaneMove()
 
     RsfSet(G_ROOM_ID, 3);
     SceEventStart(0);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &pos, &pos, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &pos, 0x10, 1);
     obj->setNoSuspend(1);
 #line 494 "D:/Bio4/Prog/r30c.cpp"
     PSetPtr(obj->p2A4, MEM_ALLOC(0x98, 1, 0xd));
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 0x201, 0);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 0x201, 0);
     SndStrReq(r30c_work.p->strId, 2, 0, 0);
-    pG->flags_174 &= 0x7FFFFFFF;
+    pG->Room_flg[0] &= 0x7FFFFFFF;
     SceSetEventCancel(1, (TaskFunc) r30c_PlaneMoveEndProc, (int) obj, 0, 1);
     while (!(MotionGetState(obj) & 4)) {
         SceSleep(1);
@@ -373,8 +373,8 @@ static void r30c_PlaneMove()
 
 static void r30c_PlaneMoveEndProc(cObj* obj)
 {
-    if ((int) pG->flags_174 < 0) {
-        void* mot = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+    if ((int) pG->Room_flg[0] < 0) {
+        void* mot = ROOM_ARC_PTR(pG->pRoom, 0x23);
 
         obj->motionSet(mot, 0, FcvGetMaxFrame((u16*) mot), 1, 0);
     }
@@ -397,7 +397,7 @@ void r30c_LinkObjItemAt(int no, cObj* obj)
 
     if (at && obj) {
         at->item.pModel = obj;
-        obj->lightInfo.x50 = (obj->lightInfo.x50 | 0x20) & ~0x10;
+        obj->LightInfo.EnableMask = (obj->LightInfo.EnableMask | 0x20) & ~0x10;
     }
 }
 

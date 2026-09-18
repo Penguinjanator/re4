@@ -109,18 +109,18 @@ void R204Init()
     u32 i;
     u32 no;
 
-    BitOn(pG->flags_64, 0x20000);
-    if (pG->x4F9F == 1) {
+    BitOn(pG->Debug_flg[1], 0x20000);
+    if (pG->JumpPoint == 1) {
         U16Set(pG->room_id_prev, 0x205);
-        pG->x4F9E = 1;
+        pG->Part = 1;
     }
     wp = &r204_work.p;
 #line 98 "D:/Bio4/Prog/r204.cpp"
     *wp = (R204Work*) MEM_CALLOC(sizeof(R204Work), 1, 0xd);
     EvtMgr.SetFunc("evt_r204s00_func", (void*) Evt_R204S00_Func);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r204_EventExec, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r204_EventExec, 0, 1);
     if (RsfCheck(G_ROOM_ID, 0) && RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceExec(0x12, (TaskFunc) r204_openTerm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r204_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     getRoomEtcSwitch(8, &r204_work.p->sw, 1);
     getRoomEtcBarred(0xB, &r204_work.p->barred[0], 1);
@@ -139,37 +139,37 @@ void R204Init()
         low_RotMatrix(m, (Vec*) &r204_chandRot0);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos0, &pos, &pos);
-        r204_work.p->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos,
+        r204_work.p->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot0, 0x10, 1);
         r204_work.p->chand[0]->be_flag |= 0x1000;
         low_RotMatrix(m, (Vec*) &r204_chandRot1);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos1, &pos, &pos);
-        r204_work.p->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos,
+        r204_work.p->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot1, 0x10, 1);
         r204_work.p->chand[1]->be_flag |= 0x1000;
     }
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
-    SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
-    if ((pG->room_id_prev == 0x205 && pG->x4F9E == 1) || DebugTrg(1)) {
-        BitOn(pG->flags_51C0, 0x40000);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier1, 0, 1);
+    SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r204_EventChandelier2, 0, 1);
+    if ((pG->room_id_prev == 0x205 && pG->Part == 1) || DebugTrg(1)) {
+        BitOn(pG->Scenario_flg[0], 0x40000);
         readEmList(1);
         if (!RsfCheck(G_ROOM_ID, 1)) {
-            SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r204_first_cut, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         RsfSet(G_ROOM_ID, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (pG->room_id_prev == 0x205 && pG->x4F9E == 0) {
+        if (pG->room_id_prev == 0x205 && pG->Part == 0) {
             RsfSet(G_ROOM_ID, 2);
             for (no = 0x4A; no < 0x55; no++) {
                 u8* g = (u8*) pG + no * 0x20;
-                ((EmListData*) (g + 0x52E8))->flags &= ~1;
+                ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
             }
         }
         if (!RsfCheck(G_ROOM_ID, 2)) {
             r204_work.p->str = SndStrReq(1, 0x32, 0x80000003, 0, 0, 0.0f);
-            SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r204_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
             for (i = 0; i <= 10; i++) {
                 cEmWrapSetEmI(&r204_work.p->em[i], 0x4A + i, 3, 0, 1, 1);
                 if (r204_work.p->em[i].isAlive() == 1) {
@@ -177,7 +177,7 @@ void R204Init()
                     Vec rot = {-0.17453292f, 0.0f, 0.0f};
 
                     if (i == 7) {
-                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), &ofs, &rot);
+                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), &ofs, &rot);
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[7].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
@@ -191,9 +191,9 @@ void R204Init()
                     }
                 }
                 if (0x4A + i == 0x51) {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0, 0, 5, 0);
+                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 5, 0);
                 } else {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 5, 0);
+                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 5, 0);
                 }
             }
         }
@@ -212,7 +212,7 @@ void R204Init()
         SceAtSetEnable(0x12, 0);
         SceAtSetEnable(0x13, 0);
         SmdGetObjPtr(0x1C)->be_flag |= 0x20;
-        SmdGetObjPtr(0x1C)->rot.y = -2.72f;
+        SmdGetObjPtr(0x1C)->ang.y = -2.72f;
         SceAtSetEnable(0xD, 0);
         EstSet(0, -1, 0, 0, 1, 1, 1, 0, (u32) zero, zero);
         SmdSetTrans(0x3C, 0);
@@ -238,7 +238,7 @@ void R204Init()
         SmdSetTrans(0x3D, 0);
         EstSet(0, -1, 0, 0, 1, 3, 1, 0, (u32) zero, zero);
     }
-    if (pG->emlist_no == 3) {
+    if (pG->em_list_no == 3) {
         cEm* em0;
         cEm* em1;
 
@@ -250,7 +250,7 @@ void R204Init()
             EmMgr.destroy(em1);
         }
     }
-    if (pG->flags_51C0 & 0x10000000) {
+    if (pG->Scenario_flg[0] & 0x10000000) {
         SceAtSetEnable(0x11, 0);
     }
     setTexRender();
@@ -258,7 +258,7 @@ void R204Init()
         EvtMgr.EvtReadAram("event/evd/r204s00.evd", 0, 0, 0, 0);
         EmReadSearch(0x14, 0, 0);
     }
-    if ((pG->flags_54 & 0x100) && RsfCheck(G_ROOM_ID, 8)) {
+    if ((pG->System_flg & 0x100) && RsfCheck(G_ROOM_ID, 8)) {
         SceAtSetEnable(0xF, 1);
         SmdGetObjPtr(0x39)->be_flag |= 0x20;
         SmdGetObjPtr(0x39)->pos.y = 0.0f;
@@ -268,7 +268,7 @@ void R204Init()
         SceAtSetEnable(0xF, 0);
     }
     SceSetRoomExitFunc((int) door_rsf_off, 0);
-    SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r204_nige_check, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 static void door_rsf_off()
@@ -286,15 +286,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r204_work.p->tex->texId;
-        r204_work.p->tex->repType = 1;
+        r204_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r204_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x18);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(2);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(2);
     SceAtLinkEtcDead(8, 0x2B, 1);
     SceAtLinkEtcDead(0x16, 2, 1);
     SceSetItemEvent(8, 0x88, 3, 5, r204_openBox, (void (*)()) r204_openedBox, 0, 0);
@@ -308,8 +308,8 @@ void R204Main()
     u32 no;
 
     if (RsfCheck(G_ROOM_ID, 1)) {
-        if (!(pG->flags_174 & 0x80000000) && ((cEmBarred*) r204_work.p->barred[1])->ckOpen() == 1) {
-            BitOn(pG->flags_174, 0x80000000);
+        if (!(pG->Room_flg[0] & 0x80000000) && ((cEmBarred*) r204_work.p->barred[1])->ckOpen() == 1) {
+            BitOn(pG->Room_flg[0], 0x80000000);
             for (i = 0; i <= 10; i++) {
                 r204_work.p->em[i].setFindPL();
             }
@@ -321,24 +321,24 @@ void R204Main()
             r204_work.p->em[8].setGoto(&pos, 0xC);
             r204_work.p->em[9].setGoto(&pos, 0xC);
         }
-        if (!(pG->flags_174 & 0x40000000) && !RsfCheck(G_ROOM_ID, 2)) {
-            if (pG->sceat_x17C & 0x40000000) {
+        if (!(pG->Room_flg[0] & 0x40000000) && !RsfCheck(G_ROOM_ID, 2)) {
+            if (pG->Room_flg[2] & 0x40000000) {
                 SceDebugDisp("CNT[%d/%d]", r204_work.p->cnt2, 0x10E);
                 r204_work.p->cnt2++;
                 if (r204_work.p->cnt2 == 0x10E) {
-                    BitOn(pG->sceat_x17C, 0x80000000);
+                    BitOn(pG->Room_flg[2], 0x80000000);
                 }
             } else {
                 r204_work.p->cnt2 = 0;
             }
-            if (SceCkFindPL(0) == 1 || (pG->sceat_x17C & 0x80000000) || (pG->flags_500C & 0x800000)) {
-                BitOn(pG->flags_174, 0x40000000);
+            if (SceCkFindPL(0) == 1 || (pG->Room_flg[2] & 0x80000000) || (pG->Status_flg[0] & 0x800000)) {
+                BitOn(pG->Room_flg[0], 0x40000000);
                 RsfSet(G_ROOM_ID, 2);
                 r204_work.p->cnt = 1;
                 SndStrReq(r204_work.p->str, 4, 200, 0);
                 for (no = 0x4A; no < 0x55; no++) {
                     u8* g = (u8*) pG + no * 0x20;
-                    ((EmListData*) (g + 0x52E8))->flags &= ~1;
+                    ((EmListData*) (g + 0x52E8))->be_flag &= ~1;
                 }
             }
         }
@@ -346,7 +346,7 @@ void R204Main()
     if (!RsfCheck(G_ROOM_ID, 6)) {
         if (((cEmSwitch*) r204_work.p->sw)->ckSwitch() == 1 || DebugTrg(0)) {
             RsfSet(G_ROOM_ID, 6);
-            SceExec(0x12, (TaskFunc) door_move, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) door_move, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
 }
@@ -391,7 +391,7 @@ void r204_BoxMove(cObj* obj, int opened)
     obj->be_flag |= 0x20;
     const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.z = lim;
+        obj->ang.z = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
@@ -399,9 +399,9 @@ void r204_BoxMove(cObj* obj, int opened)
         while (1) {
             const f32 spd = -0.05f;
 
-            obj->rot.z += spd;
-            if (obj->rot.z < lim) {
-                obj->rot.z = lim;
+            obj->ang.z += spd;
+            if (obj->ang.z < lim) {
+                obj->ang.z = lim;
                 break;
             }
             SceSleep(1);
@@ -417,7 +417,7 @@ void r204_BoxMove2(cObj* obj, int opened)
     obj->be_flag |= 0x20;
     const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.x = lim;
+        obj->ang.x = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
@@ -425,9 +425,9 @@ void r204_BoxMove2(cObj* obj, int opened)
         while (1) {
             const f32 spd = -0.05f;
 
-            obj->rot.x += spd;
-            if (obj->rot.x < lim) {
-                obj->rot.x = lim;
+            obj->ang.x += spd;
+            if (obj->ang.x < lim) {
+                obj->ang.x = lim;
                 break;
             }
             SceSleep(1);
@@ -450,15 +450,15 @@ void r204_TanaMove(int opened)
     const f32 lim = -2.83f;
     const f32 spd = -0.09f;
     if (opened == 1) {
-        a->rot.z = lim;
-        b->rot.z = -lim;
+        a->ang.z = lim;
+        b->ang.z = -lim;
     } else {
         while (1) {
-            a->rot.y += spd;
-            b->rot.y -= spd;
-            if (a->rot.y < lim) {
-                a->rot.y = lim;
-                b->rot.y = -lim;
+            a->ang.y += spd;
+            b->ang.y -= spd;
+            if (a->ang.y < lim) {
+                a->ang.y = lim;
+                b->ang.y = -lim;
                 break;
             }
             SceSleep(1);
@@ -472,8 +472,8 @@ static void r204_first_cut_exit()
 
     CamCtrl.Comeback(0);
     SceUpCutEnd();
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     for (i = 0; i <= 10; i++) {
         r204_work.p->em[i].setNoSuspend(0);
     }
@@ -487,8 +487,8 @@ static void r204_first_cut()
         r204_work.p->em[i].setNoSuspend(1);
     }
     SceUpCutStart();
-    BitOff(pG->flags_5010, 0x10000000);
-    BitOn(pG->flags_170, 0x10000000);
+    BitOff(pG->Status_flg[1], 0x10000000);
+    BitOn(pG->Stop_flg, 0x10000000);
     KeyStop(0xEFCF0000ULL);
     SceSetEventCancel(1, (TaskFunc) r204_first_cut_exit, 0, -1, 0);
     CamCtrl.CutCall(2);
@@ -523,17 +523,17 @@ static void r204_nige_check()
                 }
             }
             pl = pPL;
-            if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->flags_174 & 0x08000000))) {
+            if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->Room_flg[0] & 0x08000000))) {
                 if (r204_work.p->cnt == 1) {
-                    BitOn(pG->flags_174, 0x08000000);
+                    BitOn(pG->Room_flg[0], 0x08000000);
                     SndStrReq(r204_work.p->str, 4, 200, 0);
                     SceUpCutStart();
-                    BitOff(pG->flags_5010, 0x10000000);
+                    BitOff(pG->Status_flg[1], 0x10000000);
                     pPL->dmg.set(0, 0x80);
-                    BitOn(pG->flags_170, 0x10000000);
-                    BitOn(pG->flags_58, 0x40000000);
+                    BitOn(pG->Stop_flg, 0x10000000);
+                    BitOn(pG->Disp_flg, 0x40000000);
                     PlEndCamera();
-                    pl->pWep->pObj->setDisp(1, 1);
+                    pl->Wep->m_pWep->setDisp(1, 1);
                     CamCtrl.CutCall(0xF);
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(1);
@@ -544,13 +544,13 @@ static void r204_nige_check()
                     Vec ang;
 
                     r204_work.p->em[7].setGoto(&p1, 8);
-                    if (!(pG->flags_170 & 0x10000000)) {
-                        BitOn(pG->flags_174, 0x08000000);
+                    if (!(pG->Stop_flg & 0x10000000)) {
+                        BitOn(pG->Room_flg[0], 0x08000000);
                         SceUpCutStart();
-                        BitOff(pG->flags_5010, 0x10000000);
+                        BitOff(pG->Status_flg[1], 0x10000000);
                         pPL->dmg.set(0, 0x80);
-                        BitOn(pG->flags_170, 0x10000000);
-                        BitOn(pG->flags_58, 0x40000000);
+                        BitOn(pG->Stop_flg, 0x10000000);
+                        BitOn(pG->Disp_flg, 0x40000000);
                         PlEndCamera();
                     }
                     CamCtrl.CutCall(0x10);
@@ -570,21 +570,21 @@ static void r204_nige_check()
                         r204_work.p->em[7].setAng(pa);
                     }
                 }
-                if (r204_work.p->cnt == 0x87 && !(pG->flags_174 & 0x20000000)) {
+                if (r204_work.p->cnt == 0x87 && !(pG->Room_flg[0] & 0x20000000)) {
                     r204_work.p->em[7].setGoto(&p1, 1);
                 }
-                if (r204_work.p->cnt == 0x8C && (pG->flags_174 & 0x08000000)) {
+                if (r204_work.p->cnt == 0x8C && (pG->Room_flg[0] & 0x08000000)) {
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(0);
                     }
                     CamCtrl.Comeback(0);
                     pPL->dmg.clear();
-                    BitOff(pG->flags_170, 0x10000000);
-                    BitOff(pG->flags_58, 0x40000000);
+                    BitOff(pG->Stop_flg, 0x10000000);
+                    BitOff(pG->Disp_flg, 0x40000000);
                     SceUpCutEnd();
                 }
             }
-            if (!(pG->flags_174 & 0x20000000)) {
+            if (!(pG->Room_flg[0] & 0x20000000)) {
                 // The switch index is `cnt - 30` (19 nodes, root 0x52 = cnt 0x70): the tree compares
                 // the biased value and combine folds the root's EQ test back onto cnt.
                 switch (r204_work.p->cnt - 30) {
@@ -645,7 +645,7 @@ static void r204_nige_check()
                 }
             }
             if (alive != 0) {
-                if (!(pG->flags_174 & 0x20000000)) {
+                if (!(pG->Room_flg[0] & 0x20000000)) {
                     int far = 0;
 
                     for (u32 i = 0; i <= 10; i++) {
@@ -654,21 +654,21 @@ static void r204_nige_check()
                         }
                     }
                     if (r204_work.p->cnt > 0x1C1 && far == 1) {
-                        SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                        SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                     }
                     if (r204_work.p->cnt > 0x12C) {
                         FSub(SmdGetObjPtr(0x39)->pos.y, 7.0666666f);
-                        if (!(pG->flags_174 & 0x20000000)) {
+                        if (!(pG->Room_flg[0] & 0x20000000)) {
                             if (SmdGetObjPtr(0x39)->pos.y < 1800.0f) {
-                                SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                                SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
                             }
                         }
                     }
                 }
             } else {
-                if (!(pG->flags_174 & 0x10000000)) {
-                    BitOn(pG->flags_174, 0x10000000);
-                    BitOn(pG->flags_174, 0x20000000);
+                if (!(pG->Room_flg[0] & 0x10000000)) {
+                    BitOn(pG->Room_flg[0], 0x10000000);
+                    BitOn(pG->Room_flg[0], 0x20000000);
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setGoto(&pPL->pos, 0xC);
                     }
@@ -676,9 +676,9 @@ static void r204_nige_check()
             }
             r204_work.p->cnt++;
         }
-        if (alive != 0 && !(pG->flags_174 & 0x20000000)) {
+        if (alive != 0 && !(pG->Room_flg[0] & 0x20000000)) {
             if (pPL->pos.y < 3000.0f && pPL->pos.z < -25000.0f) {
-                SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) door5_close, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
         SceSleep(1);
@@ -691,7 +691,7 @@ static void door5_close()
     u32 k;
     int cnt;
 
-    BitOn(pG->flags_174, 0x20000000);
+    BitOn(pG->Room_flg[0], 0x20000000);
     for (i = 0; i <= 10; i++) {
         if (r204_work.p->em[i].getPosZ() < -26000.0f) {
             r204_work.p->em[i].setNoSuspend(1);
@@ -803,21 +803,21 @@ struct PlPtr {
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
         register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
-        Vec* rot;                                                                                                  \
+        Vec* ang;                                                                                                  \
                                                                                                                    \
         ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
         ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
         low_RotMatrix(m, (Vec*) &crot0);                                                                           \
-        rot = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
+        ang = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
         FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
         FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
-        mdl->setAng(rot);                                                                                          \
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 1, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);                          \
+        mdl->setAng(ang);                                                                                          \
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 1, 0);                                             \
+        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);                          \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \
         pl->dmg.set(0, 0x80);                                                                                      \
         pl->be_flag &= ~0x10;                                                                                      \
@@ -832,8 +832,8 @@ struct PlPtr {
             SceSleep(1);                                                                                           \
         } while (1);                                                                                               \
         do { } while (0);                                                                                          \
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 5, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 3, 0, 5, 0);                          \
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 5, 0);                                             \
+        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 3, 0, 5, 0);                          \
         RoomSeCall(0x13, &pPL->pos, 0, 0, 0);                                                                      \
         while (1) {                                                                                                \
             if (MotionGetState(pPL) & 1) {                                                                         \
@@ -853,14 +853,14 @@ struct PlPtr {
                     far = 1;                                                                                       \
                     nz = cpos.z + (dz1);                                                                           \
                     nx = cpos.x - (dx1);                                                                           \
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x27);                                                      \
-                    motCh = ROOM_ARC_PTR(pG->pRoomArc, 0x23);                                                      \
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x27);                                                      \
+                    motCh = ROOM_ARC_PTR(pG->pRoom, 0x23);                                                      \
                 } else {                                                                                           \
                     far = 0;                                                                                       \
                     nz = cpos.z + (dz2);                                                                           \
                     nx = cpos.x - (dx2);                                                                           \
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x29);                                                      \
-                    motCh = ROOM_ARC_PTR(pG->pRoomArc, 0x24);                                                      \
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x29);                                                      \
+                    motCh = ROOM_ARC_PTR(pG->pRoom, 0x24);                                                      \
                 }                                                                                                  \
                 break;                                                                                             \
             }                                                                                                      \
@@ -872,7 +872,7 @@ struct PlPtr {
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         {                                                                                                          \
-            Vec* rp = &mdl->rot;                                                                                   \
+            Vec* rp = &mdl->ang;                                                                                   \
             asm("" : "+r"(rp) : : "cc"); /* COMPILER-DIFF: 12 (codeless, see above) */                            \
             mdl->setAng(rp);                                                                                       \
         }                                                                                                          \
@@ -945,15 +945,15 @@ static void r204_EventExec()
 {
     if (!RsfCheck(G_ROOM_ID, 0)) {
         RsfSet(G_ROOM_ID, 0);
-        BitOn(pG->flags_51C0, 0x40000);
+        BitOn(pG->Scenario_flg[0], 0x40000);
         SndRoomStrVolSet(1, 200);
         EvtMgr.EvtReadExec("event/evd/r204s00.evd", 0x14, 0x10);
         SndRoomStrVolReset(500);
         if (pSubEm != 0) {
             EmMgr.destroy(pSubEm);
-            BitOff(pG->flags_5018, 0x04000000);
+            BitOff(pG->Status_flg[3], 0x04000000);
         }
-        SceSetChapterEnd(6, -1);
+        SceSetChapterEnd(CHAPTER_3_1, -1);
         r204_openTerm();
     }
 }
@@ -975,11 +975,11 @@ void Evt_R204S00_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0xC, 0);
             obj = SmdGetObjPtr(0xC);
             if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x40;
             }
             if (e->GetMod(&mod, "evm6500", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x10;
@@ -1001,29 +1001,29 @@ void Evt_R204S00_Func(Event* e)
             }
             if (e->GetMod(&mod, "evm0300", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x80;
-                ((cModel*) mod)->lightInfo.x50 = 0x10;
-                ((cModel*) mod)->pInfo->color[0] = 0xA5;
-                ((cModel*) mod)->pInfo->color[1] = 0xA5;
-                ((cModel*) mod)->pInfo->color[2] = 0xA5;
-                ((cModel*) mod)->lightInfo.x54 = obj->lightInfo.x54;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x10;
+                ((cModel*) mod)->pModelInfo->color[0] = 0xA5;
+                ((cModel*) mod)->pModelInfo->color[1] = 0xA5;
+                ((cModel*) mod)->pModelInfo->color[2] = 0xA5;
+                ((cModel*) mod)->LightInfo.SelectMask = obj->LightInfo.SelectMask;
             }
         }
-        if (e->cut <= 2) {
-            if (e->cut >= 0) {
-                if (e->frame == 0) {
+        if (e->NowCut <= 2) {
+            if (e->NowCut >= 0) {
+                if (e->NowFrame == 0) {
                     if (e->GetMod(&mod2, "pl0100", 0, 0) == 1) {
                         ModelInfoSetTrans((cModel*) mod2, 6, 0);
                     }
                 }
             } else {
-                if (e->frame == 0) {
+                if (e->NowFrame == 0) {
                     if (e->GetMod(&mod3, "pl0100", 0, 0) == 1) {
                         ModelInfoSetTrans((cModel*) mod3, 6, 1);
                     }
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod3, "pl0100", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod3, 6, 1);
                 }
@@ -1059,8 +1059,8 @@ static void door_move()
     SceEventStart(1);
     pPL->setNoSuspend(1);
     r204_work.p->sw->setNoSuspend(1);
-    BitOn(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOn(pG->Stop_flg, 0x80000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     CamCtrl.CutCall(0xD);
     SceSleep(0x28);
     ((cEmBarred*) r204_work.p->barred[1])->setClosed();
@@ -1069,7 +1069,7 @@ static void door_move()
     CamCtrl.CutCall(0xE);
     SceSleep(0x28);
     CamCtrl.Comeback(0);
-    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->Stop_flg, 0x80000000);
     SceEventEnd(0);
     pPL->setNoSuspend(0);
 }

@@ -38,24 +38,24 @@ void Cockpit::roomInit()
 {
     IdSys.roomInit();
     IdTexRoomInit();
-    IdTexDataLoad(ARC_PTR(ofs_74), 4);
+    IdTexDataLoad(ARC_PTR(ofs_74), TEX_OWNER_ID_COCKPIT);
     IdSys.set(ARC_PTR(ofs_88), 0xFF, ID_FRAME, 0x13, 0, 0);
     IdSys.kill(0xFF, ID_MSG);
     action.roomInit();
-    life.roomInit();
+    m_LifeMeter.roomInit();
     bullet.roomInit();
     countDown.roomInit();
 }
 
 void Cockpit::move()
 {
-    if ((s32) pG->flags_60 < 0 && !(pG->flags_60 & 0x02000000)) {
-        pG->flags_64 |= 0x80000000;
+    if ((s32) pG->Debug_flg[0] < 0 && !(pG->Debug_flg[0] & 0x02000000)) {
+        pG->Debug_flg[1] |= 0x80000000;
     } else {
-        pG->flags_64 &= ~0x80000000;
+        pG->Debug_flg[1] &= ~0x80000000;
     }
     if (IdSys.setCk(ID_LIFE)) {
-        life.move();
+        m_LifeMeter.move();
         bullet.move();
         action.move();
         countDown.move();
@@ -81,14 +81,14 @@ void Cockpit::lifeMeterDisp(int sw)
     switch (sw) {
     case 1:
         if (IdSys.setCk(ID_LIFE)) {
-            life.disp(1);
+            m_LifeMeter.disp(1);
         } else {
             roomInit();
         }
         break;
     case 0:
         if (IdSys.setCk(ID_LIFE)) {
-            life.disp(0);
+            m_LifeMeter.disp(0);
         }
         break;
     }
@@ -112,50 +112,50 @@ void LifeMeter::roomInit()
     IdUnit* u;
 
     IdSys.set(ARC_PTR(ofs_7C), 0xFF, ID_LIFE, 0x13, 5, 0);
-    IdSys.unitPtr(0x40, ID_LIFE)->flags &= ~8;
-    IdSys.unitPtr(0x41, ID_LIFE)->flags &= ~8;
-    IdSys.unitPtr(0x42, ID_LIFE)->flags &= ~8;
-    switch (pG->x4FB8) {
+    IdSys.unitPtr(0x40, ID_LIFE)->be_flag &= ~8;
+    IdSys.unitPtr(0x41, ID_LIFE)->be_flag &= ~8;
+    IdSys.unitPtr(0x42, ID_LIFE)->be_flag &= ~8;
+    switch (pG->pl_type) {
     case 0:
-        IdSys.unitPtr(0x40, ID_LIFE)->flags |= 8;
+        IdSys.unitPtr(0x40, ID_LIFE)->be_flag |= 8;
         break;
     case 1:
-        IdSys.unitPtr(0x41, ID_LIFE)->flags |= 8;
+        IdSys.unitPtr(0x41, ID_LIFE)->be_flag |= 8;
         break;
     case 2:
-        IdSys.unitPtr(0x42, ID_LIFE)->flags |= 8;
+        IdSys.unitPtr(0x42, ID_LIFE)->be_flag |= 8;
         break;
     }
     disp(1);
     FSet(life, (f32) (s16) pG->pl_life);
-    FSet(subLife, (f32) (s16) pG->sub_life);
+    FSet(m_life_sub, (f32) (s16) pG->ashley_life);
     u = IdSys.unitPtr(0x11, ID_LIFE);
-    c0[0][0] = u->col0[0];
-    c0[0][1] = u->col0[1];
-    c0[0][2] = u->col0[2];
-    c0[0][3] = u->col0[3];
-    c1[0][0] = u->col1[0];
-    c1[0][1] = u->col1[1];
-    c1[0][2] = u->col1[2];
-    c1[0][3] = u->col1[3];
+    m_state_color0[0][0] = u->col0[0];
+    m_state_color0[0][1] = u->col0[1];
+    m_state_color0[0][2] = u->col0[2];
+    m_state_color0[0][3] = u->col0[3];
+    m_state_color1[0][0] = u->col1[0];
+    m_state_color1[0][1] = u->col1[1];
+    m_state_color1[0][2] = u->col1[2];
+    m_state_color1[0][3] = u->col1[3];
     u = IdSys.unitPtr(0x10, ID_LIFE);
-    c0[1][0] = u->col0[0];
-    c0[1][1] = u->col0[1];
-    c0[1][2] = u->col0[2];
-    c0[1][3] = u->col0[3];
-    c1[1][0] = u->col1[0];
-    c1[1][1] = u->col1[1];
-    c1[1][2] = u->col1[2];
-    c1[1][3] = u->col1[3];
+    m_state_color0[1][0] = u->col0[0];
+    m_state_color0[1][1] = u->col0[1];
+    m_state_color0[1][2] = u->col0[2];
+    m_state_color0[1][3] = u->col0[3];
+    m_state_color1[1][0] = u->col1[0];
+    m_state_color1[1][1] = u->col1[1];
+    m_state_color1[1][2] = u->col1[2];
+    m_state_color1[1][3] = u->col1[3];
     u = IdSys.unitPtr(0x0F, ID_LIFE);
-    c0[2][0] = u->col0[0];
-    c0[2][1] = u->col0[1];
-    c0[2][2] = u->col0[2];
-    c0[2][3] = u->col0[3];
-    c1[2][0] = u->col1[0];
-    c1[2][1] = u->col1[1];
-    c1[2][2] = u->col1[2];
-    c1[2][3] = u->col1[3];
+    m_state_color0[2][0] = u->col0[0];
+    m_state_color0[2][1] = u->col0[1];
+    m_state_color0[2][2] = u->col0[2];
+    m_state_color0[2][3] = u->col0[3];
+    m_state_color1[2][0] = u->col1[0];
+    m_state_color1[2][1] = u->col1[1];
+    m_state_color1[2][2] = u->col1[2];
+    m_state_color1[2][3] = u->col1[3];
     flags = 0;
     move();
 }
@@ -182,108 +182,108 @@ void LifeMeter::move()
 
     if (pSUB && pSUB->id == 3) {
         IdUnit* p = IdSys.unitPtr(1, ID_LIFE);
-        p->flags |= 8;
+        p->be_flag |= 8;
         p = IdSys.unitPtr(3, ID_LIFE);
-        p->flags |= 8;
+        p->be_flag |= 8;
     } else {
         IdUnit* p = IdSys.unitPtr(1, ID_LIFE);
-        p->flags &= ~8;
+        p->be_flag &= ~8;
         p = IdSys.unitPtr(3, ID_LIFE);
-        p->flags &= ~8;
+        p->be_flag &= ~8;
     }
-    level = lifeLevel(20, pG->pl_life_max, 1200);
-    subLevel = lifeLevel(5, pG->sub_life_max, 600);
-    ang = METER_ANGLE(level, 20.0f, -135.0f, -45.0f);
-    FSet(IdSys.unitPtr(0xFE, ID_LIFE)->rot.z, ang);
-    ang = METER_ANGLE(subLevel, 5.0f, 90.0f, 0.0f);
-    FSet(IdSys.unitPtr(2, ID_LIFE)->rot.z, ang);
+    m_life_level = lifeLevel(20, pG->pl_life_max, 1200);
+    m_life_level_sub = lifeLevel(5, pG->ashley_life_max, 600);
+    ang = METER_ANGLE(m_life_level, 20.0f, -135.0f, -45.0f);
+    FSet(IdSys.unitPtr(0xFE, ID_LIFE)->rot0.z, ang);
+    ang = METER_ANGLE(m_life_level_sub, 5.0f, 90.0f, 0.0f);
+    FSet(IdSys.unitPtr(2, ID_LIFE)->rot0.z, ang);
 
     FSet(life, a_ratio * life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life);
-    FSet(subLife, a_ratio * subLife + (1.0f - a_ratio) * (f32) (s16) pG->sub_life);
+    FSet(m_life_sub, a_ratio * m_life_sub + (1.0f - a_ratio) * (f32) (s16) pG->ashley_life);
 
     u = IdSys.unitPtr(7, ID_LIFE);
     u2 = IdSys.unitPtr(8, ID_LIFE);
     u3 = IdSys.unitPtr(9, ID_LIFE);
-    u->flags &= ~8;
-    u2->flags &= ~8;
-    u3->flags &= ~8;
+    u->be_flag &= ~8;
+    u2->be_flag &= ~8;
+    u3->be_flag &= ~8;
     rate = life / 400.0f;
     if (rate > 4.0f) {
-        u->flags |= 8;
-        u2->flags |= 8;
-        u3->flags |= 8;
-        u->rot.z = 90.0f;
-        u2->rot.z = 0.0f;
-        u3->rot.z = METER_ROT(0.0f, rate, 4.0f);
+        u->be_flag |= 8;
+        u2->be_flag |= 8;
+        u3->be_flag |= 8;
+        u->rot0.z = 90.0f;
+        u2->rot0.z = 0.0f;
+        u3->rot0.z = METER_ROT(0.0f, rate, 4.0f);
     } else if (rate > 2.0f) {
-        u->flags |= 8;
-        u2->flags |= 8;
-        u->rot.z = 90.0f;
-        u2->rot.z = METER_ROT(90.0f, rate, 2.0f);
+        u->be_flag |= 8;
+        u2->be_flag |= 8;
+        u->rot0.z = 90.0f;
+        u2->rot0.z = METER_ROT(90.0f, rate, 2.0f);
     } else if (rate >= 0.0f) {
-        u->flags |= 8;
-        u->rot.z = METER_ROT(180.0f, rate, 0.0f);
+        u->be_flag |= 8;
+        u->rot0.z = METER_ROT(180.0f, rate, 0.0f);
     }
 
     u = IdSys.unitPtr(4, ID_LIFE);
     u2 = IdSys.unitPtr(5, ID_LIFE);
-    u->flags &= ~8;
-    u2->flags &= ~8;
-    rate = subLife / 200.0f;
+    u->be_flag &= ~8;
+    u2->be_flag &= ~8;
+    rate = m_life_sub / 200.0f;
     if (rate > 3.0f) {
-        u->flags |= 8;
-        u2->flags |= 8;
-        u->rot.z = 180.0f;
-        u2->rot.z = (rate - 3.0f) * 30.0f - 180.0f;
+        u->be_flag |= 8;
+        u2->be_flag |= 8;
+        u->rot0.z = 180.0f;
+        u2->rot0.z = (rate - 3.0f) * 30.0f - 180.0f;
     } else if (rate >= 0.0f) {
-        u->flags |= 8;
-        u->rot.z = (rate - 0.0f) * 30.0f + 88.0f;
+        u->be_flag |= 8;
+        u->rot0.z = (rate - 0.0f) * 30.0f + 88.0f;
     }
 
     switch (pl->getLifeLevel()) {
     case 0:
         for (i = 0; i < 4; i++) {
-            a[i] = (f32) c0[0][i];
-            b[i] = (f32) c1[0][i];
+            a[i] = (f32) m_state_color0[0][i];
+            b[i] = (f32) m_state_color1[0][i];
         }
         break;
     case 1:
         for (i = 0; i < 4; i++) {
-            a[i] = (f32) c0[1][i];
-            b[i] = (f32) c1[1][i];
+            a[i] = (f32) m_state_color0[1][i];
+            b[i] = (f32) m_state_color1[1][i];
         }
         break;
     case 2:
         for (i = 0; i < 4; i++) {
-            a[i] = (f32) c0[2][i];
-            b[i] = (f32) c1[2][i];
+            a[i] = (f32) m_state_color0[2][i];
+            b[i] = (f32) m_state_color1[2][i];
         }
         break;
     }
     for (i = 0; i < 4; i++) {
-        approachIdx(col0, a, i);
-        approachIdx(col1, b, i);
+        approachIdx(m_color0, a, i);
+        approachIdx(m_color1, b, i);
     }
 
-    if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
+    if ((s16) pG->ashley_life > (s16) pG->ashley_life_max * 3 / 4) {
         for (i = 0; i < 4; i++) {
-            c[i] = (f32) c0[0][i];
-            d[i] = (f32) c1[0][i];
+            c[i] = (f32) m_state_color0[0][i];
+            d[i] = (f32) m_state_color1[0][i];
         }
-    } else if ((s16) pG->sub_life > (s16) pG->sub_life_max / 4) {
+    } else if ((s16) pG->ashley_life > (s16) pG->ashley_life_max / 4) {
         for (i = 0; i < 4; i++) {
-            c[i] = (f32) c0[1][i];
-            d[i] = (f32) c1[1][i];
+            c[i] = (f32) m_state_color0[1][i];
+            d[i] = (f32) m_state_color1[1][i];
         }
     } else {
         for (i = 0; i < 4; i++) {
-            c[i] = (f32) c0[2][i];
-            d[i] = (f32) c1[2][i];
+            c[i] = (f32) m_state_color0[2][i];
+            d[i] = (f32) m_state_color1[2][i];
         }
     }
     for (i = 0; i < 4; i++) {
-        approachIdx(subCol0, c, i);
-        approachIdx(subCol1, d, i);
+        approachIdx(m_color0_sub, c, i);
+        approachIdx(m_color1_sub, d, i);
     }
 
     switch (pl->getLifeLevel()) {
@@ -300,21 +300,21 @@ void LifeMeter::move()
     {
         IdUnit* p = IdSys.unitPtr(0x12, ID_LIFE);
 
-        p->col0[0] = (u8) col0[0];
-        p->col0[1] = (u8) col0[1];
-        p->col0[2] = (u8) col0[2];
+        p->col0[0] = (u8) m_color0[0];
+        p->col0[1] = (u8) m_color0[1];
+        p->col0[2] = (u8) m_color0[2];
         p->col0[3] = 0xFF;
-        p->col1[0] = (u8) col1[0];
-        p->col1[1] = (u8) col1[1];
-        p->col1[2] = (u8) col1[2];
+        p->col1[0] = (u8) m_color1[0];
+        p->col1[1] = (u8) m_color1[1];
+        p->col1[2] = (u8) m_color1[2];
         p->col1[3] = 0xFF;
         p->curve[2] = src->curve[2];
-        p->loop |= 4;
+        p->loop_flag |= 4;
     }
 
-    if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
+    if ((s16) pG->ashley_life > (s16) pG->ashley_life_max * 3 / 4) {
         src2 = IdSys.unitPtr(0x11, ID_LIFE);
-    } else if ((s16) pG->sub_life > (s16) pG->sub_life_max / 4) {
+    } else if ((s16) pG->ashley_life > (s16) pG->ashley_life_max / 4) {
         src2 = IdSys.unitPtr(0x10, ID_LIFE);
     } else {
         src2 = IdSys.unitPtr(0x0F, ID_LIFE);
@@ -322,69 +322,69 @@ void LifeMeter::move()
     {
         IdUnit* p = IdSys.unitPtr(3, ID_LIFE);
 
-        p->col0[0] = (u8) subCol0[0];
-        p->col0[1] = (u8) subCol0[1];
-        p->col0[2] = (u8) subCol0[2];
+        p->col0[0] = (u8) m_color0_sub[0];
+        p->col0[1] = (u8) m_color0_sub[1];
+        p->col0[2] = (u8) m_color0_sub[2];
         p->col0[3] = 0xFF;
-        p->col1[0] = (u8) subCol1[0];
-        p->col1[1] = (u8) subCol1[1];
-        p->col1[2] = (u8) subCol1[2];
+        p->col1[0] = (u8) m_color1_sub[0];
+        p->col1[1] = (u8) m_color1_sub[1];
+        p->col1[2] = (u8) m_color1_sub[2];
         p->col1[3] = 0xFF;
         p->curve[2] = src2->curve[2];
-        p->loop |= 4;
+        p->loop_flag |= 4;
     }
 
     u = IdSys.unitPtr(0x13, ID_LIFE);
     u4 = IdSys.unitPtr(0x14, ID_LIFE);
     switch (pl->getLifeLevel()) {
     case 0:
-        u->flags &= ~8;
-        u4->flags &= ~8;
+        u->be_flag &= ~8;
+        u4->be_flag &= ~8;
         break;
     case 1:
-        u->flags |= 8;
-        u4->flags &= ~8;
+        u->be_flag |= 8;
+        u4->be_flag &= ~8;
         break;
     case 2:
-        u->flags &= ~8;
-        u4->flags |= 8;
+        u->be_flag &= ~8;
+        u4->be_flag |= 8;
         break;
     }
 
     u = IdSys.unitPtr(0x18, ID_LIFE);
     u4 = IdSys.unitPtr(0x19, ID_LIFE);
-    if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
-        u->flags &= ~8;
-        u4->flags &= ~8;
-    } else if ((s16) pG->sub_life > (s16) pG->sub_life_max / 4) {
-        u->flags |= 8;
-        u4->flags &= ~8;
+    if ((s16) pG->ashley_life > (s16) pG->ashley_life_max * 3 / 4) {
+        u->be_flag &= ~8;
+        u4->be_flag &= ~8;
+    } else if ((s16) pG->ashley_life > (s16) pG->ashley_life_max / 4) {
+        u->be_flag |= 8;
+        u4->be_flag &= ~8;
     } else {
-        u->flags &= ~8;
-        u4->flags |= 8;
+        u->be_flag &= ~8;
+        u4->be_flag |= 8;
     }
 
     if (pSUB) {
-        IdSys.unitPtr(0x1A, ID_LIFE)->flags &= ~8;
-        IdSys.unitPtr(0x1B, ID_LIFE)->flags &= ~8;
-        IdSys.unitPtr(0x1C, ID_LIFE)->flags &= ~8;
-        IdSys.unitPtr(0x1D, ID_LIFE)->flags &= ~8;
-        IdSys.unitPtr(0x1E, ID_LIFE)->flags &= ~8;
+        IdSys.unitPtr(0x1A, ID_LIFE)->be_flag &= ~8;
+        IdSys.unitPtr(0x1B, ID_LIFE)->be_flag &= ~8;
+        IdSys.unitPtr(0x1C, ID_LIFE)->be_flag &= ~8;
+        IdSys.unitPtr(0x1D, ID_LIFE)->be_flag &= ~8;
+        IdSys.unitPtr(0x1E, ID_LIFE)->be_flag &= ~8;
         if (pSUB->id == 3) {
             u32 cond = SubCharGetCondition();
             if (cond & 8) {
-                IdSys.unitPtr(0x1C, ID_LIFE)->flags |= 8;
+                IdSys.unitPtr(0x1C, ID_LIFE)->be_flag |= 8;
             } else {
                 if (cond & 1) {
-                    IdSys.unitPtr(0x1E, ID_LIFE)->flags |= 8;
+                    IdSys.unitPtr(0x1E, ID_LIFE)->be_flag |= 8;
                 } else if (cond & 2) {
-                    IdSys.unitPtr(0x1A, ID_LIFE)->flags |= 8;
+                    IdSys.unitPtr(0x1A, ID_LIFE)->be_flag |= 8;
                 }
                 if (cond & 0x10) {
-                    IdSys.unitPtr(0x1D, ID_LIFE)->flags |= 8;
+                    IdSys.unitPtr(0x1D, ID_LIFE)->be_flag |= 8;
                 }
                 if (cond & 0x24) {
-                    IdSys.unitPtr(0x1B, ID_LIFE)->flags |= 8;
+                    IdSys.unitPtr(0x1B, ID_LIFE)->be_flag |= 8;
                 }
             }
         }
@@ -395,15 +395,15 @@ void LifeMeter::fix(int sw)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
 
-    u->flags |= 8;
+    u->be_flag |= 8;
     if (sw == 0) {
-        u->dir |= 0xF;
+        u->rev_flag |= 0xF;
         IdSys.setTime(u, 0);
     } else {
         Hermite1* h = u->curve[0];
         u8 t = (u8) h->key[h->num - 1].t;
 
-        u->dir &= ~0xF;
+        u->rev_flag &= ~0xF;
         IdSys.setTime(u, t);
     }
 }
@@ -415,13 +415,13 @@ void LifeMeter::disp(int sw)
     switch (sw) {
     case 1:
         u = IdSys.unitPtr(0, ID_LIFE);
-        u->dir |= 0xF;
-        u->flags |= 8;
+        u->rev_flag |= 0xF;
+        u->be_flag |= 8;
         break;
     case 0:
         u = IdSys.unitPtr(0, ID_LIFE);
-        u->dir &= ~0xF;
-        u->flags &= ~8;
+        u->rev_flag &= ~0xF;
+        u->be_flag &= ~8;
         break;
     }
 }
@@ -430,16 +430,16 @@ void LifeMeter::frameOut()
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
 
-    u->dir &= ~0xF;
-    u->flags |= 8;
+    u->rev_flag &= ~0xF;
+    u->be_flag |= 8;
 }
 
 void LifeMeter::frameIn()
 {
     IdUnit* u = IdSys.unitPtr(0, ID_LIFE);
 
-    u->dir |= 0xF;
-    u->flags |= 8;
+    u->rev_flag |= 0xF;
+    u->be_flag |= 8;
 }
 
 // ---------------------------------------------------------------- ActionButton
@@ -448,13 +448,13 @@ void ActionButton::roomInit()
 {
     IdSys.set(ARC_PTR(ofs_80), 1, ID_ACT, 0x13, 5, 0);
     IdSys.set(ARC_PTR(ofs_80), 0xF0, ID_ACT, 0x13, 5, 0);
-    old = 0;
+    m_disp_flag_old = 0;
     no = 0;
 }
 
 void ActionButton::move()
 {
-    if (no != old) {
+    if (no != m_disp_flag_old) {
         u8 id;
 
         switch (no) {
@@ -511,7 +511,7 @@ void ActionButton::move()
             IdSys.set(ARC_PTR(ofs_80), id, ID_ACT, 0x13, 5, 0);
         }
     }
-    old = no;
+    m_disp_flag_old = no;
 }
 
 // ---------------------------------------------------------------- BulletInfo
@@ -534,16 +534,16 @@ void BulletInfo::move()
     u8 mark;
     int i;
 
-    wepNo = WeaponId2WeaponNo(im->armId);
+    wepNo = WeaponId2WeaponNo(im->m_wep_id);
     num = im->bulletNum();
     if (num == 0) {
         u16 id;
 
-        itemInfo(im->armId, &info);
+        itemInfo(im->m_wep_id, &info);
         if (info.type == 1) {
-            id = WeaponId2BulletId(im->pArm->id, im->pArm->x8 >> 13);
+            id = WeaponId2BulletId(im->pArm->id, im->pArm->bullet >> 13);
         } else {
-            id = WeaponId2BulletId(im->armId, 0);
+            id = WeaponId2BulletId(im->m_wep_id, 0);
         }
         noBullet = ItemMgr.search(id) == 0;
     }
@@ -552,16 +552,16 @@ void BulletInfo::move()
         num /= 10;
     }
     empty = IdSys.unitPtr(0x3F, ID_LIFE);
-    empty->flags &= ~8;
+    empty->be_flag &= ~8;
     u[0] = IdSys.unitPtr(0xB, ID_LIFE);
-    u[0]->flags_7F |= 2;
-    u[0]->no = digit[0];
+    u[0]->tex_flag |= 2;
+    u[0]->texNo = digit[0];
     u[1] = IdSys.unitPtr(0xA, ID_LIFE);
-    u[1]->flags_7F |= 2;
-    u[1]->no = digit[1];
+    u[1]->tex_flag |= 2;
+    u[1]->texNo = digit[1];
     u[2] = IdSys.unitPtr(0x17, ID_LIFE);
-    u[2]->flags_7F |= 2;
-    u[2]->no = digit[2];
+    u[2]->tex_flag |= 2;
+    u[2]->texNo = digit[2];
 
     mark = dispBulletIconMarkNo(wepNo);
     if (mark == 0xFF) {
@@ -581,28 +581,28 @@ void BulletInfo::move()
 
     if (dispBulletDigit(wepNo) == 1) {
         if (noBullet == 0) {
-            u[0]->flags |= 8;
-            u[1]->flags |= 8;
-            u[2]->flags |= 8;
+            u[0]->be_flag |= 8;
+            u[1]->be_flag |= 8;
+            u[2]->be_flag |= 8;
         } else {
-            u[0]->flags &= ~8;
-            u[1]->flags &= ~8;
-            u[2]->flags &= ~8;
-            empty->flags |= 8;
+            u[0]->be_flag &= ~8;
+            u[1]->be_flag &= ~8;
+            u[2]->be_flag &= ~8;
+            empty->be_flag |= 8;
         }
     } else {
-        u[0]->flags &= ~8;
-        u[1]->flags &= ~8;
-        u[2]->flags &= ~8;
+        u[0]->be_flag &= ~8;
+        u[1]->be_flag &= ~8;
+        u[2]->be_flag &= ~8;
     }
     if (digit[2] == 0) {
-        u[2]->flags &= ~8;
+        u[2]->be_flag &= ~8;
     }
 }
 
 static int dispBulletDigit(u8 no)
 {
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0;
     }
     if ((pPL->stat & 0xFFFF0000) == 0x000F0000) {
@@ -641,7 +641,7 @@ static int dispBulletDigit(u8 no)
 
 u8 dispBulletIconMarkNo(u8 no)
 {
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0xFF;
     }
     if ((pPL->stat & 0xFFFF0000) == 0x000F0000) {
@@ -695,10 +695,10 @@ u8 dispBulletIconMarkNo(u8 no)
 void CountDown::roomInit()
 {
     IdSys.set(ARC_PTR(ofs_84), 0xFF, ID_CDOWN, 0x13, 5, 0);
-    IdSys.unitPtr(0x10, ID_CDOWN)->flags &= ~8;
-    IdSys.unitPtr(0x10, ID_CDOWN)->dir &= ~0xF;
-    flags &= ~1;
-    flags &= ~0x10;
+    IdSys.unitPtr(0x10, ID_CDOWN)->be_flag &= ~8;
+    IdSys.unitPtr(0x10, ID_CDOWN)->rev_flag &= ~0xF;
+    m_state &= ~1;
+    m_state &= ~0x10;
     initTime(0, 0, 0);
     warnTime(0, 0, 0);
 }
@@ -716,7 +716,7 @@ static inline void U32Add(u32& d, u32 v)
 // the inline keeps the two tests apart (fold would merge them into one `andis. 0xa`)
 static inline u32 chkFlag5014(u32 b)
 {
-    return pG->flags_5014 & b;
+    return pG->Status_flg[2] & b;
 }
 
 void CountDown::move()
@@ -731,30 +731,30 @@ void CountDown::move()
     s8 newTens;
     f32 ft;
 
-    if ((flags & 1) == 0) {
+    if ((m_state & 1) == 0) {
         run = 0;
     }
     if (run == 0) {
         return;
     }
     if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
-        ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000))) {
-        flags |= 8;
+        ((pG->Status_flg[1] & 0x10000000) || (pG->Stop_flg & 0x10000000))) {
+        m_state |= 8;
     } else {
-        flags &= ~8;
+        m_state &= ~8;
     }
     if (pG->cdown_add_sec != 0) {
-        U32Add(frame, pG->cdown_add_sec * 30);
+        U32Add(m_frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
-    if (!(pG->flags_64 & 0x00010000) && !(pG->flags_500C & 0x00040000) && !(flags & 8)) {
-        if (frame != 0) {
-            frame = frame - 1;
+    if (!(pG->Debug_flg[1] & 0x00010000) && !(pG->Status_flg[0] & 0x00040000) && !(m_state & 8)) {
+        if (m_frame != 0) {
+            m_frame = m_frame - 1;
         } else {
-            frame = 0;
+            m_frame = 0;
         }
     }
-    if (frame < warnFrame) {
+    if (m_frame < m_warn_frame) {
         IdUnit* s;
 
         u = IdSys.unitPtr(0x10, ID_CDOWN);
@@ -765,57 +765,57 @@ void CountDown::move()
         u->col0[3] = (u8) s->col[3];
     }
     oldTens = cs / 10;
-    ft = (f32) frame * 10.0f / 3.0f + 0.5f;
+    ft = (f32) m_frame * 10.0f / 3.0f + 0.5f;
     t = (u32) ft;
     cs = t % 100;
     t /= 100;
-    min = t / 60;
-    sec = t % 60;
+    m_minute = t / 60;
+    m_second = t % 60;
     newTens = cs / 10;
     if (oldTens != newTens) {
-        counter = (counter + 1) % 6;
+        m_counter = (m_counter + 1) % 6;
     }
 
     p = IdSys.unitPtr(6, ID_CDOWN);
-    p->no = 0xB;
-    p->flags_7F |= 2;
+    p->texNo = 0xB;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(7, ID_CDOWN);
-    p->no = 0xC;
-    p->flags_7F |= 2;
+    p->texNo = 0xC;
+    p->tex_flag |= 2;
 
-    d.hi = min / 10;
-    d.lo = min % 10;
+    d.hi = m_minute / 10;
+    d.lo = m_minute % 10;
     p = IdSys.unitPtr(0, ID_CDOWN);
-    p->no = d.hi;
-    p->flags_7F |= 2;
+    p->texNo = d.hi;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(1, ID_CDOWN);
-    p->no = d.lo;
-    p->flags_7F |= 2;
+    p->texNo = d.lo;
+    p->tex_flag |= 2;
 
-    d.hi = sec / 10;
-    d.lo = sec % 10;
+    d.hi = m_second / 10;
+    d.lo = m_second % 10;
     p = IdSys.unitPtr(2, ID_CDOWN);
-    p->no = d.hi;
-    p->flags_7F |= 2;
+    p->texNo = d.hi;
+    p->tex_flag |= 2;
     p = IdSys.unitPtr(3, ID_CDOWN);
-    p->no = d.lo;
-    p->flags_7F |= 2;
+    p->texNo = d.lo;
+    p->tex_flag |= 2;
 
     d.hi = cs / 10;
     d.lo = cs % 10;
     p = IdSys.unitPtr(4, ID_CDOWN);
-    p->no = d.hi;
-    p->flags_7F |= 2;
+    p->texNo = d.hi;
+    p->tex_flag |= 2;
     if (ft != 0.0f) {
         t = (u32) ft;
         t = t / 10 * 10;
         ft -= (f32) t;
-        d.lo = (u8) (ft + tbl[counter]);
+        d.lo = (u8) (ft + tbl[m_counter]);
         d.lo = d.lo % 10;
     }
     p = IdSys.unitPtr(5, ID_CDOWN);
-    p->no = d.lo;
-    p->flags_7F |= 2;
+    p->texNo = d.lo;
+    p->tex_flag |= 2;
 }
 
 void CountDown::disp(int sw)
@@ -825,15 +825,15 @@ void CountDown::disp(int sw)
     switch (sw) {
     case 1:
         u = IdSys.unitPtr(0x10, ID_CDOWN);
-        u->dir |= 0xF;
-        u->flags |= 8;
-        flags &= ~0x10;
+        u->rev_flag |= 0xF;
+        u->be_flag |= 8;
+        m_state &= ~0x10;
         break;
     case 0:
         u = IdSys.unitPtr(0x10, ID_CDOWN);
-        u->dir &= ~0xF;
-        u->flags &= ~8;
-        flags |= 0x10;
+        u->rev_flag &= ~0xF;
+        u->be_flag &= ~8;
+        m_state |= 0x10;
         break;
     }
 }
@@ -842,14 +842,14 @@ void CountDown::frameIn()
 {
     IdUnit* u = IdSys.unitPtr(0x10, ID_CDOWN);
 
-    u->flags |= 8;
-    u->dir &= ~0xF;
+    u->be_flag |= 8;
+    u->rev_flag &= ~0xF;
     IdSys.setTime(u, 0x1E);
 }
 
 void CountDown::frameOut()
 {
-    IdSys.unitPtr(0x10, ID_CDOWN)->dir |= 0xF;
+    IdSys.unitPtr(0x10, ID_CDOWN)->rev_flag |= 0xF;
 }
 
 #define TIME_FRAME(m, s, c) ((u32) ((((f32) (m) * 60.0f + (f32) (s)) * 100.0f + (f32) (c)) * 3.0f / 10.0f + 0.5f))
@@ -858,11 +858,11 @@ void CountDown::initTime(int m, int s, int c)
 {
     IdUnit* u;
 
-    frame = TIME_FRAME(m, s, c);
-    min = m;
-    sec = s;
+    m_frame = TIME_FRAME(m, s, c);
+    m_minute = m;
+    m_second = s;
     cs = c;
-    counter = 0;
+    m_counter = 0;
     u = IdSys.unitPtr(0x10, ID_CDOWN);
     u->col0[0] = 0xFF;
     u->col0[1] = 0xFF;
@@ -872,12 +872,12 @@ void CountDown::initTime(int m, int s, int c)
 
 void CountDown::initTimeFrame(u32 f)
 {
-    frame = f;
+    m_frame = f;
 }
 
 void CountDown::warnTime(int m, int s, int c)
 {
-    warnFrame = TIME_FRAME(m, s, c);
+    m_warn_frame = TIME_FRAME(m, s, c);
 }
 
 // Dead-stripped in the original (STRIP_UNUSED): only its constant pool survives after warnTime's.
@@ -888,23 +888,23 @@ static u32 cockpit_dead_time(int m, int s, int c)
 
 void CountDown::getTime(int* m, int* s, int* c)
 {
-    *m = min;
-    *s = sec;
+    *m = m_minute;
+    *s = m_second;
     *c = cs;
 }
 
 u32 CountDown::getFrame()
 {
-    return frame;
+    return m_frame;
 }
 
 void CountDown::saveDisp()
 {
     int run;
 
-    savedFlags = flags;
+    savedFlags = m_state;
     run = 1;
-    if ((flags & 1) == 0) {
+    if ((m_state & 1) == 0) {
         run = 0;
     }
     if (run) {
@@ -916,12 +916,12 @@ void CountDown::loadDisp()
 {
     int run = 1;
 
-    if ((flags & 1) == 0) {
+    if ((m_state & 1) == 0) {
         run = 0;
     }
     if (run) {
         if (!(savedFlags & 0x10)) {
-            flags = savedFlags;
+            m_state = savedFlags;
             disp(1);
             frameIn();
         }

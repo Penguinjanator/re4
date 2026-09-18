@@ -5,17 +5,17 @@
 
 cPlBody::cPlBody(cModel* model)
 {
-    pModel = model;
+    m_pMod = model;
     pHeadData = 0;
     pRightData = 0;
     pLeftData = 0;
     pWepHand = 0;
     pShape = 0;
-    x14 = 0;
-    x18 = 0;
+    m_pArmR = 0;
+    m_pArmL = 0;
     pRight = 0;
     pLeft = 0;
-    waist = 0.0f;
+    m_WaistY = 0.0f;
 }
 
 void cPlBody::move()
@@ -25,30 +25,30 @@ void cPlBody::move()
 
 void cPlBody::waistSet(f32 angle)
 {
-    waist = angle;
+    m_WaistY = angle;
 }
 
 void cPlBody::waistMove()
 {
     PlBodyParts* p;
-    f32 half = waist * 0.5f;
+    f32 half = m_WaistY * 0.5f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(1);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(1);
     p->flags |= 0x40000000;
     p->rot.y = half;
     p->rot.x = 0.0f;
     p->rot.z = 0.0f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(2);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(2);
     p->flags |= 0x40000000;
     p->rot.y = half;
     p->rot.x = 0.0f;
     p->rot.z = 0.0f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(3);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(3);
     p->flags |= 0x40000000;
     p->rot.x = 0.0f;
-    p->rot.y = -waist;
+    p->rot.y = -m_WaistY;
     p->rot.z = 0.0f;
 }
 
@@ -58,30 +58,30 @@ void cPlBody::makeSpaeData()
     u32 i;
 
     for (i = 0; i < 2; i++) {
-        d->id = 0x101;
-        d->type = 2;
-        d->x08 = 0x18;
-        d->x0C = 0;
-        d->x0E = 2;
-        d->x10 = 0x38;
-        d->x14 = 1;
-        d->x16 = 2;
-        d->x18 = 0;
-        d->scale.x = 1.0f;
-        d->scale.y = 0.0f;
-        d->scale.z = 0.0f;
-        d->x28 = 0x100;
-        d->x2C.x = 0.0f;
-        d->x2C.y = 0.0f;
-        d->x2C.z = 0.0f;
-        d->x38 = 0;
-        d->x3C.x = 0.0f;
-        d->x3C.y = 0.0f;
-        d->x3C.z = 0.0f;
-        d->x48 = 0x100;
-        d->x4C.x = 1.0f;
-        d->x4C.y = 0.0f;
-        d->x4C.z = 0.0f;
+        d->head.max_frame = 0x101;
+        d->head.tbl_num = 2;
+        d->tbl[0].offset = 0x18;
+        d->tbl[0].shape_id = 0;
+        d->tbl[0].key_num = 2;
+        d->tbl[1].offset = 0x38;
+        d->tbl[1].shape_id = 1;
+        d->tbl[1].key_num = 2;
+        d->mot[0].frame = 0;
+        d->mot[0].value = 1.0f;
+        d->mot[0].r_value = 0.0f;
+        d->mot[0].l_value = 0.0f;
+        d->mot[1].frame = 0x100;
+        d->mot[1].value = 0.0f;
+        d->mot[1].r_value = 0.0f;
+        d->mot[1].l_value = 0.0f;
+        d->mot[2].frame = 0;
+        d->mot[2].value = 0.0f;
+        d->mot[2].r_value = 0.0f;
+        d->mot[2].l_value = 0.0f;
+        d->mot[3].frame = 0x100;
+        d->mot[3].value = 1.0f;
+        d->mot[3].r_value = 0.0f;
+        d->mot[3].l_value = 0.0f;
         d++;
     }
 }

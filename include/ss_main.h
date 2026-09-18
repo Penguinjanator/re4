@@ -45,7 +45,7 @@ static inline void ssWidgetDelete(Widget<SUB_SCREEN>* w)
 // ss_main.cpp
 class SsExitInit : public Widget<SUB_SCREEN> {
 public:
-    int state;  // 0x10
+    int _rno;  // 0x10
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
@@ -62,7 +62,7 @@ class SsItemExamine : public Widget<SUB_SCREEN> {
 public:
     u8 state;          // 0x10
     u8 pad_11[3];
-    ItemExamine exam;  // 0x14
+    ItemExamine _itemExam;  // 0x14
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
@@ -310,7 +310,7 @@ public:
 // op/opNN.das message sequences)
 class SsTermInit : public Widget<SUB_SCREEN> {
 public:
-    int x10;
+    int _counter;
     int state;  // 0x14  starts at 2
 
     virtual void init(SUB_SCREEN* wk);
@@ -350,7 +350,7 @@ public:
         TermSeq* seq; // 0x3C
         void* mes;    // 0x40
         int x44;
-        int x48;
+        int _rno;
     };
     struct TermSub {
         u8 pad_0[0x14];

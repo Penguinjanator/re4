@@ -20,10 +20,10 @@ struct ActBtnWork {
 // Action button prompt manager (game/act_btn.cpp `ActBtn`, 0x104 bytes).
 class cActionButton {
 public:
-    u32 ot[16];          // 0x00
-    u8 num;              // 0x40  works pulled this frame
-    u8 stop;             // 0x41  pG->flags_170 bit8 at init: prompts disabled
-    u8 active;           // 0x42  a prompt was shown this frame
+    u32 m_ot[16];          // 0x00
+    u8 m_num;              // 0x40  works pulled this frame
+    u8 m_stop_flag_old;             // 0x41  pG->flags_170 bit8 at init: prompts disabled
+    u8 m_active_flag;           // 0x42  a prompt was shown this frame
     u8 pad_43;
     ActBtnWork work[8];  // 0x44
 

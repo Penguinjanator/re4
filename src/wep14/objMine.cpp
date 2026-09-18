@@ -32,7 +32,7 @@ public:
 void wep14changeRightHand(cPlayer* pl, void* hand);   // wep14/wep14.cpp
 void partsSet(cObjMine* obj);
 
-#define PLA_ARC_PTR(no) PL_ARC_PTR(pG->pPlArc, no)
+#define PLA_ARC_PTR(no) PL_ARC_PTR(pG->pPlayer, no)
 
 void ObjMine_init(cObj* obj)
 {
@@ -56,7 +56,7 @@ void cObjMine::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x21));
@@ -74,16 +74,16 @@ void partsSet(cObjMine* obj)
     p->pos.x = 0.0f;
     p->pos.y = 0.0f;
     p->pos.z = 0.0f;
-    p->rot.x = 0.0f;
-    p->rot.y = 0.0f;
-    p->rot.z = 0.0f;
+    p->ang.x = 0.0f;
+    p->ang.y = 0.0f;
+    p->ang.z = 0.0f;
 }
 
 void cObjMine::moveReady()
 {
     switch (wep.step) {
     case 0:
-        MotionSetCore(this, &mot, WEP_ARC_PTR(0x22), 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, WEP_ARC_PTR(0x22), 0, 0, 0, 0);
         getPartsPtr(1)->pParent = pParts;
         wep.step = 1;
     case 1:
@@ -93,7 +93,7 @@ void cObjMine::moveReady()
         break;
     case 2:
         partsSet(this);
-        MotionSetCore(this, &mot, WEP_ARC_PTR(0x20), 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, WEP_ARC_PTR(0x20), 0, 0, 0, 0);
         wep.step = 3;
         break;
     }
@@ -104,17 +104,17 @@ void cObjMine::moveFire()
     if (wep.step == 0) {
         partsSet(this);
         setBullet();
-        MotionSetCore(this, &mot, WEP_ARC_PTR(0x1E), 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, WEP_ARC_PTR(0x1E), 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
-        BitOn(pG->flags_500C, 0x00800000);
-        if (pG->wep_type == 0) {
+        BitOn(pG->Status_flg[0], 0x00800000);
+        if (pG->weapon_type == 0) {
             EstSet((int) this, -1, 0, 0, 0x48, 0, 0, 0xA, 0, 0);
         }
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, 24.0f)) {
-        if (pG->wep_type == 0) {
+    if (MotionCheckCrossFrame(&Motion, 24.0f)) {
+        if (pG->weapon_type == 0) {
             setCartridge();
         }
     }
@@ -138,12 +138,12 @@ void cObjMine::setBullet()
     Vec* pos;
     int normal;
 
-    normal = !(pG->wep_type & 1);
+    normal = !(pG->weapon_type & 1);
     if (normal) {
         cModel* parts = pPL->getPartsPtr(0xA);
 
-        PSMTXMultVecSR(parts->mat, &mineSpd[pG->wep_x4FB2], &spd);
-        pos = &parts->worldPos;
+        PSMTXMultVecSR(parts->mat, &mineSpd[pG->bullet_type], &spd);
+        pos = &parts->world;
     } else {
         static const Vec mineOfs = { -100.0f, -100.0f, -300.0f };
 
@@ -156,21 +156,21 @@ void cObjMine::setBullet()
         PSVECSubtract(&mineAt, &minePos, &mineDir);
 #line 212 "D:/Bio4/Prog/objMine.cpp"
         VECNormalize(&mineDir, &mineDir);
-        PSVECScale(&mineDir, &spd, -mineSpd[pG->wep_x4FB2].x);
+        PSVECScale(&mineDir, &spd, -mineSpd[pG->bullet_type].x);
     }
-    if (EatMgr.hitCheck(&pPL->getPartsPtr(0)->worldPos, pos, &hit, &nrm, 0, 0)) {
+    if (EatMgr.hitCheck(&pPL->getPartsPtr(0)->world, pos, &hit, &nrm, 0, 0)) {
         PSVECScale(&nrm, &nrm, 500.0f);
         PSVECAdd(&hit, &nrm, pos);
         setPos(pos);
     }
-    SetMine(PLA_ARC_PTR(0x72), PLA_ARC_PTR(0x73), pos, &spd, pG->wep_lv == 3);
+    SetMine(PLA_ARC_PTR(0x72), PLA_ARC_PTR(0x73), pos, &spd, pG->weapon_lv_power == 3);
 }
 
 void cObjMine::moveDown()
 {
     switch (wep.step) {
     case 0:
-        MotionSetCore(this, &mot, WEP_ARC_PTR(0x23), 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, WEP_ARC_PTR(0x23), 0, 0, 0, 0);
         getPartsPtr(1)->pParent = pParts;
         wep.step = 1;
         break;
@@ -190,7 +190,7 @@ void cObjMine::moveReload()
         int se;
 
         partsSet(this);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x1F);
             break;
@@ -200,7 +200,7 @@ void cObjMine::moveReload()
         }
         motionSet(m, 0, 0, 1, 0);
         EstSet((int) this, -1, 0, 0, 0x48, 1, 0, 0xA, 0, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -208,13 +208,13 @@ void cObjMine::moveReload()
             se = 0x20;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else {
         // reload frame (the mine change) by reload tune level
         static const f32 reloadFrame[2] = { 74.0f, 58.0f };
 
-        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->x4FBA])) {
+        if (MotionCheckCrossFrame(&Motion, reloadFrame[pG->weapon_lv_reload])) {
             ItemMgr.reload();
         }
         if (MotionGetState(this)) {

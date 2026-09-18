@@ -421,7 +421,7 @@ static inline void tDrPlayerDisp()
     eprintf(DR->x, DR->y + 16, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(DR->x, DR->y + 32, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(DR->x, DR->y + 48, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(DR->x, DR->y + 64, 0, 0, "ANG:%f", pPL->rot.y);
+    eprintf(DR->x, DR->y + 64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
 char* tDr_getFilename(u8 no, int flag)

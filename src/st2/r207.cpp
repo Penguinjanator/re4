@@ -86,8 +86,8 @@ static Vec r207_wallRot = {0.0f, -1.5707964f, 0.0f};
 // `pSUB->atari.flags &= 0xFDFF` through a pointer to the collision info: `addi r9,pSUB,0x2B4` is
 // kept (two uses); the volatile halfword store makes the following `work->sub = pSUB` reload pSUB
 // (EnemySet: `lwz r0,pSUB` after the `sth`, and pSUB@ha stays in a callee-saved register).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // pPL read as a struct member: the load stays below the preceding store into the work (R207Main).
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
@@ -147,13 +147,13 @@ void R207Init()
             SceSleep(1);
         }
     } else {
-        SceExec(0x12, (TaskFunc) r207_CheckUseSword, 0, 0, 2, 0);
-        SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) r207_CheckSwordYard, (void*) 2, 1);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r207_CheckSwordYard, (void*) 3, 1);
+        SceExec(0x12, (TaskFunc) r207_CheckUseSword, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceAtDataSet_exec(0xF, SCE_LEVEL10, 0, (TaskFunc) r207_CheckSwordYard, (void*) 2, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r207_CheckSwordYard, (void*) 3, 1);
         SceAtSetEnable(0xF, 0);
         SceAtSetEnable(2, 0);
-        SceAtDataSet_exec(0xD, 0x12, 0, (TaskFunc) r207_GetSword, (void*) 2, 1);
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r207_GetSword, (void*) 3, 1);
+        SceAtDataSet_exec(0xD, SCE_LEVEL10, 0, (TaskFunc) r207_GetSword, (void*) 2, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r207_GetSword, (void*) 3, 1);
         SceAtSetEnable(0xD, 0);
         SceAtSetEnable(0xE, 0);
         if (ItemMgr.num(0x80) == 0) {
@@ -196,7 +196,7 @@ void R207Init()
         }
         SceAtSetEnable(1, 0);
         if (RsfCheck(G_ROOM_ID, 11) == 0) {
-            SceExec(0x12, (TaskFunc) r207_EnemySet, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r207_EnemySet, 0, 0, SCE_PRIO_DEF_2, 0);
         }
     }
     r207_work.p->em[7].em.setEm(0xD8, -1, 0, 1, 1);
@@ -204,9 +204,9 @@ void R207Init()
     r207_work.p->em[9].em.setEm(0xDA, -1, 0, 1, 1);
     SceSetItemEvent(3, 0x83, 2, 5, r207_ShelfOpen, (void (*)()) r207_ShelfOpened, 0, 0);
     SceSetItemEvent(4, 0x84, 3, 6, r207_ShelfOpen, (void (*)()) r207_ShelfOpened, 1, 0);
-    SceExec(0x12, (TaskFunc) r207_StrCheck, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r207_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
-        SceExec(0x12, (TaskFunc) r207_openTerm, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r207_openTerm, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -323,7 +323,7 @@ void r207_EmMoveCk()
     } else {
         return;
     }
-    SceExec(0x12, (TaskFunc) r207_GotoPos, (int) e, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r207_GotoPos, (int) e, 0, SCE_PRIO_DEF_2, 0);
     r207_work.p->timer = 150;
 }
 
@@ -509,7 +509,7 @@ static void r207_EnemySetEndProc()
     int loop = 1;
     int wave = 0;
 
-    if (pGS->flags_174 & 0x40000000) {
+    if (pGS->Room_flg[0] & 0x40000000) {
         r207_work.p->em[3].em.setGoto(&gotoPos, 0xD);
         r207_work.p->em[4].em.setGoto(&gotoPos, 0xD);
     }
@@ -590,7 +590,7 @@ static void r207_GetSword(int no)
         }
         break;
     }
-    SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 2) {
         SceExit();
     }
@@ -638,10 +638,10 @@ static void r207_CheckSwordYard(int no)
         break;
     }
     if (pSys->language == 0) {
-        SceUpCut(cut, -1, -1, 4);
+        SceUpCut(cut, -1, -1, UP_CUT_ATTR_CUT_FIX);
     }
     if (ItemMgr.num(0x80) != 0 || ItemMgr.num(0xC4) != 0) {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     } else {
         CamCtrl.Comeback(0);
     }
@@ -730,10 +730,10 @@ void r207_SetSword(int which, int mode)
     r207_ItemModelSet(SceAtItemModelPtr(at), mode);
     RoomSeCall(3, &obj->pos, 0, 0, 0);
     if (pSys->language == 0) {
-        SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
     if (RsfCheck(G_ROOM_ID, 4) && RsfCheck(G_ROOM_ID, 7)) {
-        SceExec(0x12, (TaskFunc) r207_WallMove, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r207_WallMove, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -795,16 +795,16 @@ void r207_ItemModelSet(cModel* m, int mode)
 {
     int at = 0;
 
-    m->x12F = 0;
+    m->ot_type = 0;
     switch (mode) {
     case 2:
         m->pos = r207_swordPos;
-        m->rot = r207_swordRot;
+        m->ang = r207_swordRot;
         at = 0xD;
         break;
     case 3:
         m->pos = r207_wallPos;
-        m->rot = r207_wallRot;
+        m->ang = r207_wallRot;
         at = 0xE;
         break;
     }

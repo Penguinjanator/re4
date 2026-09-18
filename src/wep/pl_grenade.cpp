@@ -23,7 +23,7 @@ f64 atan2(f64 y, f64 x);
 int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWepArc, no)
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
 // game/objSubWep.cpp: the thrown grenade / egg objects (init only, the module never touches the rest)
 class cSubWep : public cObj {
@@ -65,12 +65,12 @@ void PlGrenadeMove(cPlayer* pl)
         wep19_r2_next,
     };
 
-    pl->pWep->lockMove();
-    if (pl->xFE == 4) {
+    pl->Wep->lockMove();
+    if (pl->r_no_2 == 4) {
         pLog->err(0, 0, "ERROR:grenade cant reload action!!!!!");
-        pl->xFE = 0;
+        pl->r_no_2 = 0;
     }
-    func_tbl[pl->xFE](pl);
+    func_tbl[pl->r_no_2](pl);
 }
 
 static void wep19_r2_ready(cPlayer* pl)
@@ -82,36 +82,36 @@ static void wep19_r2_ready(cPlayer* pl)
         wep19_r3_ready30,
     };
 
-    pl->x3E0 = 0;
-    if (pl->xFF == 100) {
-        pl->xFF = 0;
-        pl->x3E0 = 1;
+    pl->m_Work0 = 0;
+    if (pl->r_no_3 == 100) {
+        pl->r_no_3 = 0;
+        pl->m_Work0 = 1;
     }
     if (Key.on & 1) {
-        if (pl->pWep->knifeStance != 0) {
-            pl->pWep->knifeStance = 0;
+        if (pl->Wep->knifeStance != 0) {
+            pl->Wep->knifeStance = 0;
         }
     } else if (Key.on & 2) {
-        if (pl->pWep->knifeStance != 2) {
-            pl->pWep->knifeStance = 2;
+        if (pl->Wep->knifeStance != 2) {
+            pl->Wep->knifeStance = 2;
         }
     } else {
-        if (pl->pWep->knifeStance != 1) {
-            pl->pWep->knifeStance = 1;
+        if (pl->Wep->knifeStance != 1) {
+            pl->Wep->knifeStance = 1;
         }
     }
-    func_tbl[pl->xFF](pl);
-    if (joyKamae() == 0 && pl->xFF != 3) {
+    func_tbl[pl->r_no_3](pl);
+    if (joyKamae() == 0 && pl->r_no_3 != 3) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
     }
     if (pl->pLockEm) {
@@ -121,7 +121,7 @@ static void wep19_r2_ready(cPlayer* pl)
         Vec hit;
 
         PSMTXMultVec(pl->mat, &aim, &aim);
-        SatMgr.hitCheck(&pl->getPartsPtr(0)->worldPos, &aim, &hit, 0, 0, 0);
+        SatMgr.hitCheck(&pl->getPartsPtr(0)->world, &aim, &hit, 0, 0, 0);
         CamCtrlShoulderSetAim(&hit);
     }
 }
@@ -131,64 +131,64 @@ static void wep19_r3_ready00(cPlayer* pl)
     f32 pitch;
     void* mot;
 
-    pl->x3E4 = 0;
-    pl->pWep->x2C = 0.0f;
-    pl->pWep->x30 = CamCtrl.getCameraDirection();
+    pl->m_Work1 = 0;
+    pl->Wep->m_CenterY = 0.0f;
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
     }
-    pl->pWep->pitch = pitch;
+    pl->Wep->pitch = pitch;
     m3r[2] = 0.0f;
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = 0.0f;
-    pl->pNeck->init(0, 0, 0);
-    pl->pWep->lockInit();
+    pl->m_Fwork0 = 0.0f;
+    pl->Neck->init(0, 0, 0);
+    pl->Wep->lockInit();
     mot = WEP_ARC_PTR(0xF);
     mot3.set(pl, mot, mot, mot, 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     m3r[0] = 0.0f;
     m3r[1] = 0.0f;
     m3r[2] = 0.0f;
-    SndCall(1, 0x28, &pl->pParts->worldPos, 0, 0, 0);
+    SndCall(1, 0x28, &pl->pParts->world, 0, 0, 0);
     lockCtr = 0;
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep19_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
-        f32 d = pl->pWep->x30 / (4.0f - pl->frame);
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
 
-        pl->rot.y += d;
-        pl->pWep->x30 -= d;
+        pl->ang.y += d;
+        pl->Wep->m_CamAdjY -= d;
     }
     pl->motionMove();
     if (pl->frame >= 4.0f) {
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 1;
-        pl->xFF = 4;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 4;
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep19_r3_ready20(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
     if (pl->frame >= 4.0f) {
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 1;
-        pl->xFF = 4;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 4;
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 // ready30: turn / step towards the aim target while the motion plays (the pl_handgun form: `t` is
@@ -203,13 +203,13 @@ static void wep19_r3_ready30(cPlayer* pl)
     Vec* t;
 
     if (MotionMoveI(pl, 0)) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 1;
-        pl->xFF = 0;
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 0;
     }
-    pl->rot.y += Muku(&pl->pos, &tgt, pl->rot.y, PI / 8.0f);
+    pl->ang.y += Muku(&pl->pos, &tgt, pl->ang.y, PI / 8.0f);
     pl->pos.x = pl->pos.x * 0.6f + pos.x * 0.4f;
     pl->pos.z = pl->pos.z * 0.6f + pos.z * 0.4f;
     t = &tgt;
@@ -242,7 +242,7 @@ static void wep19_r3_ready30(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep19_r2_set(cPlayer* pl)
@@ -255,41 +255,41 @@ static void wep19_r2_set(cPlayer* pl)
         wep19_r3_set40,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     PlWepLockCtrl(pl);
     if (lockCtr != 0) {
         lockCtr--;
     }
     if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 3;
 
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = md;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = md;
+            pl->r_no_3 = 0;
         }
     } else if ((joyFireTrg() || joyFireOn()) && ItemMgr.bulletNum()) {
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 2;
-        pl->xFF = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 2;
+        pl->r_no_3 = 0;
     }
 }
 
 static void wep19_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWepArc;
+    PlArc* arc = (PlArc*) pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x11), PL_ARC_PTR(arc, 0x14), PL_ARC_PTR(arc, 0x17), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep19_r3_set10(cPlayer* pl)
@@ -330,35 +330,35 @@ static void wep19_r3_set60(cPlayer* pl)
 static void wep19_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
 static void wep19_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
 static void wep19_r3_set40(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0)) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -369,7 +369,7 @@ static void wep19_r2_fire(cPlayer* pl)
         wep19_r3_fire10,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
     if (joyKamae()) {
         PlWepLockCtrl(pl);
     }
@@ -378,23 +378,23 @@ static void wep19_r2_fire(cPlayer* pl)
 static void wep19_r3_fire00(cPlayer* pl)
 {
     if (ItemMgr.bulletNum() > 1) {
-        PlArc* arc = (PlArc*) pG->pWepArc;
+        PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x15), PL_ARC_PTR(arc, 0x18), 0, 3, 0, 4, 0);
-        pl->x3F0 = 0;
+        pl->m_Work4 = 0;
     } else {
-        PlArc* arc = (PlArc*) pG->pWepArc;
+        PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
-        pl->x3F0 = 1;
+        pl->m_Work4 = 1;
     }
     mot3.move(m3r[0]);
     MotionMoveI(pl, 0);
-    SndCall(1, 1, &pl->pParts->worldPos, 0, 0, 0);
+    SndCall(1, 1, &pl->pParts->world, 0, 0, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(pl->x400, 0.4f);
-    pl->xFF = 1;
+    pl->Waist->set(pl->m_Fwork0, 0.4f);
+    pl->r_no_3 = 1;
 }
 
 static void wep19_r3_fire10(cPlayer* pl)
@@ -402,38 +402,38 @@ static void wep19_r3_fire10(cPlayer* pl)
     const f32 throwFrame = 5.0f;
 
     pl->motionMove();
-    if (MotionCheckCrossFrame(&pl->mot, throwFrame)) {
+    if (MotionCheckCrossFrame(&pl->Motion, throwFrame)) {
         itemThrow(pl);
         if (ItemMgr.bulletNum()) {
-            pl->pWep->pObj2->setDisp(1, 0);
+            pl->Wep->pObj2->setDisp(1, 0);
         } else {
-            pl->pWep->pObj2->setDisp(0, 0);
+            pl->Wep->pObj2->setDisp(0, 0);
         }
     }
-    if (pl->x3F0 == 0) {
+    if (pl->m_Work4 == 0) {
         if (pl->frame > 24.7f && pl->frame < 25.3f) {
             readyWeapon(pl);
-            SndCall(1, 0, &pl->pParts->worldPos, 0, 0, 0);
+            SndCall(1, 0, &pl->pParts->world, 0, 0, 0);
         }
         if (pl->frame >= 30.0f) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 4;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 4;
         }
     } else {
         if (pl->frame >= 15.0f) {
             pl->setRightHand(1);
             if (pl->flags_420 & 0x40) {
-                pl->xFC = 0;
-                pl->xFE = 0;
-                pl->xFD = 0x11;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_2 = 0;
+                pl->r_no_1 = 0x11;
+                pl->r_no_3 = 0;
             } else {
-                pl->xFC = 0;
-                pl->xFD = 0;
-                pl->xFE = 2;
-                pl->xFF = 0;
+                pl->r_no_0 = 0;
+                pl->r_no_1 = 0;
+                pl->r_no_2 = 2;
+                pl->r_no_3 = 0;
             }
         }
     }
@@ -442,21 +442,21 @@ static void wep19_r3_fire10(cPlayer* pl)
 static void wepDown(cPlayer* pl)
 {
     if (dmMotCk()) {
-        MotionSetCore(pl, &pl->mot, WEP_ARC_PTR(0x10), 0, 3, 5, 0);
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 2;
-        pl->xFF = 0;
+        MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x10), 0, 3, 5, 0);
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 2;
+        pl->r_no_3 = 0;
     } else {
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         pl->x4FD = 0xF;
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 0;
         pl->x4FC = 0;
     }
     pl->motionMove();
-    FSet(pl->rot.y, pl->rot.y - pl->pWaist->set(0.0f, 0.4f));
+    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
 static void wep19_r2_next(cPlayer* pl)
@@ -464,54 +464,54 @@ static void wep19_r2_next(cPlayer* pl)
     cModel* em = pl->pLockEm;
     int n;
 
-    switch (pl->xFF) {
+    switch (pl->r_no_3) {
     case 0:
-        pl->x3E0 = 0;
-        pl->xFF = 1;
-        pl->x3E4 = 0;
+        pl->m_Work0 = 0;
+        pl->r_no_3 = 1;
+        pl->m_Work1 = 0;
     case 1:
         if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
-            pl->rot.y += Muku(&pl->pos, &em->pos, pl->rot.y, PI / 10.0f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, PI / 10.0f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        pl->x400 = 0.0f;
-        pl->pWaist->set(0.0f, 0.4f);
-        pl->pBody->waistMove();
+        pl->m_Fwork0 = 0.0f;
+        pl->Waist->set(0.0f, 0.4f);
+        pl->Body->waistMove();
         pl->motionMove();
-        n = pl->x3E0++;
+        n = pl->m_Work0++;
         if (n > 9) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 0;
         }
         break;
     }
     if (Key.trg & 0x20) {
-        if (pl->pWep->lockNext()) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 5;
-            pl->xFF = 0;
+        if (pl->Wep->lockNext()) {
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 5;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 0;
         }
     } else if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 1;
 
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = md;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = md;
+            pl->r_no_3 = 0;
         }
     }
 }
@@ -519,9 +519,9 @@ static void wep19_r2_next(cPlayer* pl)
 // Shows the grenade in the hand again after a throw (the next one, while any is left).
 void readyWeapon(cPlayer* pl)
 {
-    pl->pWep->pObj2->setDisp(1, 1);
-    if (!(pG->flags_68 & 0x00400000) && ItemMgr.bulletNum() == 1) {
-        pl->pWep->pObj->setDisp(0, 0);
+    pl->Wep->pObj2->setDisp(1, 1);
+    if (!(pG->Debug_flg[2] & 0x00400000) && ItemMgr.bulletNum() == 1) {
+        pl->Wep->m_pWep->setDisp(0, 0);
     }
 }
 
@@ -532,7 +532,7 @@ void itemThrow(cPlayer* pl)
     cObj* obj;
     int id;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
     case 0x1E:
     case 0x29:
@@ -557,7 +557,7 @@ void itemThrow(cPlayer* pl)
         pLog->err(0, 0, "itemThrow() grenade work alloc failed.");
         return;
     }
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
         obj->type = 0;
         break;
@@ -577,7 +577,7 @@ void itemThrow(cPlayer* pl)
         obj->type = 5;
         break;
     }
-    if (((cSubWep*) obj)->init(&pl->rot, m3r[0]) == 0) {
+    if (((cSubWep*) obj)->init(&pl->ang, m3r[0]) == 0) {
         pLog->err(0, 0, "itemThrow() init failed.");
     }
     ItemMgr.trigger();

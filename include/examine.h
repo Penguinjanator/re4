@@ -23,27 +23,27 @@ struct ExamInfo {
 
 class ItemExamine {
 public:
-    IDSystem* pIdSys;    // 0x00  IdSys (mode 0) / IdSub (mode 1, 2)
-    u32 saveFlag;        // 0x04  model->be_flag at init
-    Vec savePos;         // 0x08
-    Vec saveRot;         // 0x14
-    u8 saveX12F;         // 0x20
-    u8 mode;             // 0x21  0 in game, 1 sub screen, 2 puzzle
+    IDSystem* m_pIdSys;    // 0x00  IdSys (mode 0) / IdSub (mode 1, 2)
+    u32 m_be_flag_bak;        // 0x04  model->be_flag at init
+    Vec m_pos_bak;         // 0x08
+    Vec m_ang_bak;         // 0x14
+    u8 m_ot_type_bak;         // 0x20
+    u8 m_scrn_flag;             // 0x21  0 in game, 1 sub screen, 2 puzzle
     s8 lv[4];            // 0x22  weapon tune levels (power, speed, reload, bullet)
     u8 pad_26[2];
-    cCoord* saveParent;  // 0x28  model->pParts->pParent at init
-    Vec savePartsPos;    // 0x2C
-    Vec savePartsRot;    // 0x38
-    u16 id;              // 0x44  item id
+    cCoord* m_pList_pParent_bak;  // 0x28  model->pParts->pParent at init
+    Vec m_pList_pos_bak;    // 0x2C
+    Vec m_pList_ang_bak;    // 0x38
+    u16 m_item_id;              // 0x44  item id
     u8 pad_46[2];
-    cModel* model;       // 0x48
-    ExamInfo* info;      // 0x4C
-    cLight* light[3];    // 0x50
+    cModel* m_pModel;       // 0x48
+    ExamInfo* m_pInfo;      // 0x4C
+    cLight* m_pLight[3];    // 0x50
 
     void setup();
     void idSet();
     void init(u16 id, cModel* model, u8 mode);
-    void level(s8 a, s8 b, s8 c, s8 d);
+    void level(s8 pwr, s8 spd, s8 rld, s8 blt);
     void move();
     void trans();
     void quit();

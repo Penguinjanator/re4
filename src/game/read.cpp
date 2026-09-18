@@ -151,25 +151,25 @@ static void decodeData()
 
     out_data_size = Yz2DecodeSet((char*) in_data_addr, (void*) (MemGetHeapEndAddr(MemGetCurrentHeap()) - READ_BUFF_OFS));
 #line 59 "D:/Bio4/Prog/read.cpp"
-    PSet(pG->pRoomArc, MEM_ALLOC(ROOM_ARC_SIZE, 1, 0xD));
-    used = (u32) pG->pRoomArc - (u32) pG->pStageFont;
-    Mem_free(pG->pRoomArc);
+    PSet(pG->pRoom, MEM_ALLOC(ROOM_ARC_SIZE, 1, 0xD));
+    used = (u32) pG->pRoom - (u32) pG->pStFnt;
+    Mem_free(pG->pRoom);
     if (out_data_size < ROOM_ARC_SIZE - used) {
         out_data_size = ROOM_ARC_SIZE - used;
     }
 #line 71 "D:/Bio4/Prog/read.cpp"
-    PSet(pG->pRoomArc, MEM_ALLOC(out_data_size, 1, 0xD));
-    if (pG->pRoomArc == NULL || (u32) pG->pRoomArc + out_data_size >= (u32) in_data_addr) {
+    PSet(pG->pRoom, MEM_ALLOC(out_data_size, 1, 0xD));
+    if (pG->pRoom == NULL || (u32) pG->pRoom + out_data_size >= (u32) in_data_addr) {
         sprintf(buf, "r%03x.dat", pG->room_id);
         OSReport("-- %s DATA ENCODE ERROR!\n", buf);
         OSReport("-- %s DATA TOO LARGE!\n", buf);
-        OSReport("--  pG->pRoom      = %x\n", pG->pRoomArc);
+        OSReport("--  pG->pRoom      = %x\n", pG->pRoom);
         OSReport("--  out_data_size  = %x\n", out_data_size);
         OSReport("--  read data addr = %x\n", in_data_addr);
 #line 82 "D:/Bio4/Prog/read.cpp"
         HALT();
     }
-    Yz2DecodeExec(pG->pRoomArc);
+    Yz2DecodeExec(pG->pRoom);
     iTaskExit();
 }
 
@@ -181,8 +181,8 @@ void ReadAreaData()
     u32 decodeTime;
 
     sprintf(name, "st%x/r%03x.das", pG->stage_no, pG->room_id);
-    if (pG->flags_54 & 0x02000000) {
-        pG->flags_54 &= ~0x02000000;
+    if (pG->System_flg & 0x02000000) {
+        pG->System_flg &= ~0x02000000;
     } else {
         StopwatchStart();
 #line 147 "D:/Bio4/Prog/read.cpp"
@@ -206,10 +206,10 @@ void ReadAreaData()
             return;
         }
     }
-    PSet(pG->pRoomRtp, GetDataExt(pG->pRoomArc, "RTP", 0));
-    PSet(pG->pRoomMes, GetDataExt(pG->pRoomArc, "MDT", 0));
-    PSet(pG->pRoomOsd, GetDataExt(pG->pRoomArc, "OSD", 0));
-    PSet(pG->pRoomEmi, GetDataExt(pG->pRoomArc, "EMI", 0));
+    PSet(pG->Rtp, GetDataExt(pG->pRoom, "RTP", 0));
+    PSet(pG->RoomMes, GetDataExt(pG->pRoom, "MDT", 0));
+    PSet(pG->pOsd, GetDataExt(pG->pRoom, "OSD", 0));
+    PSet(pG->pEmi, GetDataExt(pG->pRoom, "EMI", 0));
 }
 
 void CoreDataRead()
@@ -237,7 +237,7 @@ void OptionDataRead()
     int req;
 
     sprintf(name, "SS/%3s/option.dat", lang[pSys->language]);
-    pG->pOptionData = OPTION_DATA_ADDR;
+    pG->pOption = OPTION_DATA_ADDR;
 #line 262 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ_N(name, OPTION_DATA_ADDR, 0, 0, 0, 0x11);
     Dvd.ReadCheckInfo(req, &info);
@@ -267,21 +267,21 @@ void InitModule(ReadModule* m)
 
 static void* readEm(int id, void* addr, u32 size)
 {
-    u32 flags = pG->flags_58;
+    u32 flags = pG->Disp_flg;
     ReadModule* m;
 
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x800);
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x800);
     m = pullEmModule();
     if (m == NULL) {
         return NULL;
     }
     if (readEmData(m, id, addr, size) == 0) {
-        pG->flags_58 = flags;
+        pG->Disp_flg = flags;
         return NULL;
     }
     setEmModule(m, id);
-    pG->flags_58 = flags;
+    pG->Disp_flg = flags;
     return m->pArc;
 }
 
@@ -373,7 +373,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
     u32 newSize;
     u32 dataSize;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     case 1:
     default:
@@ -403,7 +403,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
         return 0;
     }
     mode = 1;
-    if (pG->x20 == 2) {
+    if (pG->Rno0 == 2) {
         mode = 0x100;
     }
     if (addr == NULL) {
@@ -475,7 +475,7 @@ void setEmModule(ReadModule* m, int id)
     ReadFile* e;
     void* bss;
 
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     default:
         e = &EmFileTbl[id];
@@ -528,7 +528,7 @@ void EmReadInit()
 static int checkAshleyId(int id)
 {
     if (id == 3 || id == 5) {
-        if (pG->costume2 == 0) {
+        if (pG->game_costume == 0) {
             id = 3;
         } else {
             id = 5;
@@ -594,12 +594,12 @@ void ReadPlayerData(int type, int costume)
     OSModuleHeader* pModule;
     void* bss;
 
-    if (!(pG->flags_4FBE & 1)) {
+    if (!(pG->pl_flag & 1)) {
         return;
     }
-    pG->flags_4FBE &= ~1;
+    pG->pl_flag &= ~1;
     ReleasePlData();
-    pG->pPlArc = (PlArc*) PL_DATA_ADDR;
+    pG->pPlayer = (PlArc*) PL_DATA_ADDR;
     data = (u8*) PL_DATA_ADDR;
     dll = 0;
     switch (type) {
@@ -716,9 +716,9 @@ void ReleasePlData()
 
 void ReleaseWepData()
 {
-    if (pG->x4F7C != 0xFF) {
+    if (pG->weapon_no_old != 0xFF) {
         InitModule(&WepReadModule);
-        pG->x4F7C = 0xFF;
+        pG->weapon_no_old = 0xFF;
         oldWepId = 0xFF;
     }
 }
@@ -808,12 +808,12 @@ void ReadWepData(u32 no, u32 type)
     OSModuleHeader* pModule;
     void* bss;
 
-    if (pG->x4FB8 == 4) {
+    if (pG->pl_type == 4) {
         data = (u8*) Game.pWepBuf;
     } else {
         data = (u8*) WEP_DATA_ADDR;
     }
-    switch (pG->x4FB8) {
+    switch (pG->pl_type) {
     case 0:
     default:
         if (no == 0x19 || no == 0x1F || no == 0x20 || no == 0x16 || no == 0x17) {
@@ -911,7 +911,7 @@ void ReadWepData(u32 no, u32 type)
     }
     oldWepId = no;
     ReleaseWepData();
-    pG->x4F7C = pG->wep_no;
+    pG->weapon_no_old = pG->weapon_no;
     if (e->dll != 0) {
         name = (char*) FileTbl[e->file].name;
         SET_DRS_NAME(name);
@@ -932,7 +932,7 @@ void ReadWepData(u32 no, u32 type)
 #line 1560 "D:/Bio4/Prog/read.cpp"
         HALT();
     }
-    pG->pWepArc = (void*) info.addr[0][0];
+    pG->pWep = (void*) info.addr[0][0];
     pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
     size = (u32) pModule - (u32) data;
     bssSize = total - size;
@@ -958,7 +958,7 @@ void ReadWepData(u32 no, u32 type)
     WepReadModule.size = size;
     WepReadModule.pModule = pModule;
     WepReadModule.pArc = data;
-    pG->pWepArc = data;
+    pG->pWep = data;
 }
 
 void ContinueWepData()
@@ -966,13 +966,13 @@ void ContinueWepData()
     u8 old;
     u8 wep;
 
-    if (pG->x4FB8 != 1) {
-        old = pG->x4F7C;
-        wep = pG->wep_no;
+    if (pG->pl_type != 1) {
+        old = pG->weapon_no_old;
+        wep = pG->weapon_no;
         if (wep != old) {
-            pG->wep_no = old;
+            pG->weapon_no = old;
             pPL->weaponRelease();
-            pPL->weaponLoad(wep, pG->wep_type);
+            pPL->weaponLoad(wep, pG->weapon_type);
             pPL->weaponInit();
         }
     }

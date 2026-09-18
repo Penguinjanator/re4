@@ -13,7 +13,7 @@ void SeAtInit()
 {
     SndWork* s = &Snd;
 
-    s->se_at = (SeAtHead*) GetDataExt(pG->pRoomArc, "ESE", 0);
+    s->se_at = (SeAtHead*) GetDataExt(pG->pRoom, "ESE", 0);
     if (s->se_at == 0) {
         return;
     }
@@ -33,13 +33,13 @@ void SeAtCheck()
     Vec* pos;
     int i;
 
-    if (pG->flags_170 & 0x800) {
+    if (pG->Stop_flg & 0x800) {
         return;
     }
-    if ((s32) pG->flags_60 < 0 && DebugMenuSelected != 0x18) {
+    if ((s32) pG->Debug_flg[0] < 0 && DebugMenuSelected != 0x18) {
         return;
     }
-    if (pG->x20 != 3) {
+    if (pG->Rno0 != 3) {
         return;
     }
     if (s->se_at == 0) {

@@ -46,19 +46,19 @@ cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 10000.0f, 10000.0f, 100000.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 2);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 2);
     obj->pos = *pos;
-    obj->oldPos = *pos;
-    obj->rot = *rot;
+    obj->pos_old = *pos;
+    obj->ang = *rot;
     w->parent = 0;
     w->parts1 = 0;
     w->parts2 = 0;
     w->cloth = 0;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
-    Obj1d_R1_move_tbl[obj->xFD]((cObjChain*) obj);
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
+    Obj1d_R1_move_tbl[obj->r_no_1]((cObjChain*) obj);
     return obj;
 }
 
@@ -75,7 +75,7 @@ void cObjChain::move()
     if (pMotion) {
         MotionMove(this, 0);
     }
-    Obj1d_R1_move_tbl[xFD](this);
+    Obj1d_R1_move_tbl[r_no_1](this);
     if ((be_flag & 0x201) == 1) {
         chainMove();
     }
@@ -86,7 +86,7 @@ void obj1d_R1_Set(cObjChain* obj)
     if (obj->pMotion) {
         MotionMove(obj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();
@@ -98,19 +98,19 @@ void obj1d_R1_LostWait(cObjChain* obj)
 {
     ChainWork* w = &obj->chain;
 
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->timer = 90;
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         if (w->timer == 0) {
-            obj->alpha -= 0.1f;
-            if (obj->alpha <= 0.0f) {
-                obj->alpha = 0.0f;
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+            obj->invisible_factor -= 0.1f;
+            if (obj->invisible_factor <= 0.0f) {
+                obj->invisible_factor = 0.0f;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
                 break;
             }
         } else {
@@ -123,15 +123,15 @@ void obj1d_R1_LostWait(cObjChain* obj)
             p = obj->pos;
             GetScreenPos(&p, &scr);
             if (scr.z > 1.0f) {
-                obj->xFC = 1;
-                obj->xFD = 2;
-                obj->xFE = 0;
-                obj->xFF = 0;
+                obj->r_no_0 = 1;
+                obj->r_no_1 = 2;
+                obj->r_no_2 = 0;
+                obj->r_no_3 = 0;
             }
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     obj->partsMatCalc();
@@ -140,8 +140,8 @@ void obj1d_R1_LostWait(cObjChain* obj)
 
 void obj1d_R1_Lost(cObjChain* obj)
 {
-    if (obj->xFE == 0) {
-        obj->xFE++;
+    if (obj->r_no_2 == 0) {
+        obj->r_no_2++;
         obj->be_flag &= ~2;
         obj->be_flag &= ~0x20;
         ObjMgr.destroy(obj);
@@ -166,7 +166,7 @@ void obj1d_R1_Parent(cObjChain* obj)
     cModel* partsA;
     cModel* partsB;
 
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
@@ -252,7 +252,7 @@ void obj1d_R1_Parent(cObjChain* obj)
         TransMatrix(obj->mat, &p);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
@@ -274,10 +274,10 @@ void cObjChain::setParent(cModel* parent, int parts, Vec* ofs, int flag)
     } else {
         w->flags &= ~2;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag)
@@ -294,10 +294,10 @@ void cObjChain::setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Ve
     } else {
         w->flags &= ~2;
     }
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cObjChain::setChain(PenCloth* cloth)

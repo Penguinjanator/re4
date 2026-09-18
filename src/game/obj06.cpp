@@ -14,7 +14,7 @@ cObjBox::cObjBox()
 
 void cObjBox::move()
 {
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     ScaleMatrix(mat, &scale);
     partsMatCalc();

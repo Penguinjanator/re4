@@ -187,7 +187,7 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out);
 int Et63_init(void* arc, EtcSetData* d, cModel** out);
 int Et66_init(void* arc, EtcSetData* d, cModel** out);
 int Et67_init(void* arc, EtcSetData* d, cModel** out);
-int EtcModelSet(EtcSetData* d);
+int EtcModelSet(EtcSetData* pDat);
 int EtcGetDasAddr(int id, void** out);
 int getRoomEtcBreak(int no, cEm** out, int flag);
 int setRoomEtcDisp(int no, int on, int flag);
@@ -361,7 +361,7 @@ void EtcModelRoomInit()
 
 int EtcModelDataLoad(void* addr)
 {
-    if (pG->flags_6C & 0x800) {
+    if (pG->Debug_flg[3] & 0x800) {
         return 0;
     }
     g_addr = addr;
@@ -378,7 +378,7 @@ int EtcModelListSet(EtcList* list)
     EtcSetData* d;
     u32 i;
 
-    if (pG->flags_6C & 0x800) {
+    if (pG->Debug_flg[3] & 0x800) {
         return 0;
     }
     d = list->data;
@@ -404,7 +404,7 @@ int Et01_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET01:EFM[%02x] TPL err", 0x04);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(6, 0, "ET01:Mod err");
         return 0;
@@ -427,7 +427,7 @@ int Et02_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET02:EFM[%02x] TPL err", 0x04);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET02:Mod err");
         return 0;
@@ -451,7 +451,7 @@ int Et03_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET03:EFM[%02x] TPL err", 0x0A);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET03:Mod err");
         return 0;
@@ -475,7 +475,7 @@ static int Et04_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET04:EFM[%02x] TPL err", 0x00);
         return 0;
     }
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET04:Mod err");
         return 0;
@@ -498,7 +498,7 @@ int Et05_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET05:EFM[%02x] TPL err", 0x03);
         return 0;
     }
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET05:Mod err");
         return 0;
@@ -518,7 +518,7 @@ int Et15_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et15.eff"), 0x69, 0);
     bin = GetEtcAddr(arc, "et1500.bin");
     tpl = GetEtcAddr(arc, "et1500.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET05:Mod err");
         return 0;
@@ -538,7 +538,7 @@ int Et06_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0600.bin");
     tpl = GetEtcAddr(arc, "et0600.tpl");
-    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->rot, d->type);
+    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET06:Mod err");
         return 0;
@@ -580,7 +580,7 @@ int Et08_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0800.bin");
     tpl = GetEtcAddr(arc, "et0800.tpl");
-    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->rot, d->type);
+    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET08:Mod err");
         return 0;
@@ -623,7 +623,7 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
     bin = GetEtcAddr(arc, "et0900.bin");
     tpl = GetEtcAddr(arc, "et0900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET09:Mod err");
         return 0;
@@ -649,7 +649,7 @@ int Et0a_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0a:EFM[%02x] TPL err", 0x4B);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0a:Mod err");
         return 0;
@@ -672,7 +672,7 @@ int Et0b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0b:EFM[%02x] TPL err", 0x0D);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0B:Mod err");
         return 0;
@@ -691,7 +691,7 @@ int Et0c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0c00.bin");
     tpl = GetEtcAddr(arc, "et0c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0C:Mod err");
         return 0;
@@ -711,7 +711,7 @@ int Et0d_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0d00.bin");
     tpl = GetEtcAddr(arc, "et0d00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0D:Mod err");
         return 0;
@@ -736,7 +736,7 @@ int Et10_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET10:EFM[%02x] TPL err", 0x0F);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET10:Mod err");
         return 0;
@@ -755,7 +755,7 @@ int Et0e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0e00.bin");
     tpl = GetEtcAddr(arc, "et0e00.tpl");
-    em = SetEmSwitch(bin, tpl, &d->pos, &d->rot, d->type);
+    em = SetEmSwitch(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0E:Mod err");
         return 0;
@@ -773,7 +773,7 @@ int Et0f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0f00.bin");
     tpl = GetEtcAddr(arc, "et0f00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 1);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 1);
     if (em == 0) {
         pLog->err(0, 0, "ET0F:Mod err");
         return 0;
@@ -796,7 +796,7 @@ int Et11_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET11:EFM[%02x] TPL err", 0x09);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET11:Mod err");
         return 0;
@@ -819,7 +819,7 @@ int Et12_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET12:EFM[%02x] TPL err", 0x0B);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET12:Mod err");
         return 0;
@@ -843,7 +843,7 @@ int Et13_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET13:EFM[%02x] TPL err", 0x0C);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET13:Mod err");
         return 0;
@@ -863,7 +863,7 @@ int Et14_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1400.bin");
     tpl = GetEtcAddr(arc, "et1400.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET14:Mod err");
         return 0;
@@ -883,7 +883,7 @@ static int Et16_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1600.bin");
     tpl = GetEtcAddr(arc, "et1600.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET16:Mod err");
         return 0;
@@ -904,7 +904,7 @@ int Et17_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1700.bin");
     tpl = GetEtcAddr(arc, "et1700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET17:Mod err");
         return 0;
@@ -930,7 +930,7 @@ int Et18_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET18:EFM[%02x] TPL err", 0x1E);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET18:Mod err");
         return 0;
@@ -950,7 +950,7 @@ int Et19_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1400.bin");
     tpl = GetEtcAddr(arc, "et1400.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET19:Mod err");
         return 0;
@@ -970,7 +970,7 @@ int Et1a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1a00.bin");
     tpl = GetEtcAddr(arc, "et1a00.tpl");
-    em = SetEmItem(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetEmItem(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1a:Mod err");
         return 0;
@@ -990,7 +990,7 @@ int Et1b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1b00.bin");
     tpl = GetEtcAddr(arc, "et1b00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 0);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 0);
     if (em == 0) {
         pLog->err(0, 0, "ET1b:Mod err");
         return 0;
@@ -1009,7 +1009,7 @@ int Et1c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1c00.bin");
     tpl = GetEtcAddr(arc, "et1c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1C:Mod err");
         return 0;
@@ -1033,7 +1033,7 @@ int Et1e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET1e:EFM[%02x] TPL err", 0x09);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1e:Mod err");
         return 0;
@@ -1053,7 +1053,7 @@ int Et1f_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et1f.eff"), 0x73, 0);
     bin = GetEtcAddr(arc, "et1f00.bin");
     tpl = GetEtcAddr(arc, "et1f00.tpl");
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1f:Mod err");
         return 0;
@@ -1077,7 +1077,7 @@ int Et20_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET20:EFM[%02x] TPL err", 0x27);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET20:Mod err");
         return 0;
@@ -1097,7 +1097,7 @@ int Et21_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2100.bin");
     tpl = GetEtcAddr(arc, "et2100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
@@ -1123,7 +1123,7 @@ int Et22_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET22:EFM[%02x] TPL err", 0x2C);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET22:Mod err");
         return 0;
@@ -1143,7 +1143,7 @@ int Et23_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2300.bin");
     tpl = GetEtcAddr(arc, "et2300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET23:Mod err");
         return 0;
@@ -1164,7 +1164,7 @@ int Et24_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2400.bin");
     tpl = GetEtcAddr(arc, "et2400.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET24:Mod err");
         return 0;
@@ -1185,7 +1185,7 @@ int Et26_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2600.bin");
     tpl = GetEtcAddr(arc, "et2600.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 2);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 2);
     if (em == 0) {
         pLog->err(0, 0, "ET26:Mod err");
         return 0;
@@ -1204,7 +1204,7 @@ int Et27_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2700.bin");
     tpl = GetEtcAddr(arc, "et2700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 6, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 6, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
@@ -1225,7 +1225,7 @@ int Et28_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2800.bin");
     tpl = GetEtcAddr(arc, "et2800.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 3);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 3);
     if (em == 0) {
         pLog->err(0, 0, "ET28:Mod err");
         return 0;
@@ -1244,7 +1244,7 @@ int Et2a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2a00.bin");
     tpl = GetEtcAddr(arc, "et2a00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2a:Mod err");
         return 0;
@@ -1265,7 +1265,7 @@ int Et2b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2b00.bin");
     tpl = GetEtcAddr(arc, "et2b00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2b:Mod err");
         return 0;
@@ -1290,7 +1290,7 @@ int Et2d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2d:EFM[%02x] TPL err", 0x44);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2D:Mod err");
         return 0;
@@ -1310,7 +1310,7 @@ int Et30_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et30.eff"), 0x84, 0);
     bin = GetEtcAddr(arc, "et3000.bin");
     tpl = GetEtcAddr(arc, "et3000.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET30:Mod err");
         return 0;
@@ -1333,7 +1333,7 @@ static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2e:EFM[%02x] TPL err", 0x45);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 6, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 6, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2e:Mod err");
         return 0;
@@ -1358,7 +1358,7 @@ int Et2f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2f:EFM[%02x] TPL err", 0x46);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2f:Mod err");
         return 0;
@@ -1379,7 +1379,7 @@ int Et31_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3100.bin");
     tpl = GetEtcAddr(arc, "et3100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET31:Mod err");
         return 0;
@@ -1400,7 +1400,7 @@ int Et32_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3200.bin");
     tpl = GetEtcAddr(arc, "et3200.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET32:Mod err");
         return 0;
@@ -1422,7 +1422,7 @@ int Et33_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3300.bin");
     tpl = GetEtcAddr(arc, "et3300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET33:Mod err");
         return 0;
@@ -1444,7 +1444,7 @@ int Et34_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3400.bin");
     tpl = GetEtcAddr(arc, "et3400.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET34:Mod err");
         return 0;
@@ -1465,7 +1465,7 @@ int Et37_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3700.bin");
     tpl = GetEtcAddr(arc, "et3700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET37:Mod err");
         return 0;
@@ -1485,7 +1485,7 @@ int Et38_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0c00.bin");
     tpl = GetEtcAddr(arc, "et0c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET38:Mod err");
         return 0;
@@ -1505,7 +1505,7 @@ int Et39_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3900.bin");
     tpl = GetEtcAddr(arc, "et3900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET39:Mod err");
         return 0;
@@ -1526,7 +1526,7 @@ int Et3a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3a00.bin");
     tpl = GetEtcAddr(arc, "et3a00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 4);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 4);
     if (em == 0) {
         pLog->err(0, 0, "ET3a:Mod err");
         return 0;
@@ -1545,7 +1545,7 @@ int Et3b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3b00.bin");
     tpl = GetEtcAddr(arc, "et3b00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3b:Mod err");
         return 0;
@@ -1570,7 +1570,7 @@ int Et3c_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3c:EFM[%02x] TPL err", 0x51);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3c:Mod err");
         return 0;
@@ -1594,7 +1594,7 @@ int Et3d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3d:EFM[%02x] TPL err", 0x55);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3d:Mod err");
         return 0;
@@ -1614,7 +1614,7 @@ int Et3e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3e00.bin");
     tpl = GetEtcAddr(arc, "et3e00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3e:Mod err");
         return 0;
@@ -1635,7 +1635,7 @@ int Et3f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3f00.bin");
     tpl = GetEtcAddr(arc, "et3f00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3f:Mod err");
         return 0;
@@ -1661,7 +1661,7 @@ int Et40_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET40:EFM[%02x] TPL err", 0x83);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET40:Mod err");
         return 0;
@@ -1681,7 +1681,7 @@ int Et41_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4100.bin");
     tpl = GetEtcAddr(arc, "et4100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET41:Mod err");
         return 0;
@@ -1706,7 +1706,7 @@ int Et42_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET42:EFM[%02x] TPL err", 0x5D);
         return 0;
     }
-    em = SetBar(bin, tpl, &d->pos, &d->rot, d->type);
+    em = SetBar(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(6, 0, "ET42:Mod err");
         return 0;
@@ -1726,7 +1726,7 @@ int Et43_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4300.bin");
     tpl = GetEtcAddr(arc, "et4300.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 5);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 5);
     if (em == 0) {
         pLog->err(0, 0, "ET43:Mod err");
         return 0;
@@ -1745,7 +1745,7 @@ int Et45_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4500.bin");
     tpl = GetEtcAddr(arc, "et4500.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET45:Mod err");
         return 0;
@@ -1766,7 +1766,7 @@ int Et46_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4600.bin");
     tpl = GetEtcAddr(arc, "et4600.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET46:Mod err");
         return 0;
@@ -1788,7 +1788,7 @@ int Et47_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4700.bin");
     tpl = GetEtcAddr(arc, "et4700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET47:Mod err");
         return 0;
@@ -1809,7 +1809,7 @@ int Et49_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4900.bin");
     tpl = GetEtcAddr(arc, "et4900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET49:Mod err");
         return 0;
@@ -1830,7 +1830,7 @@ int Et4b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4b00.bin");
     tpl = GetEtcAddr(arc, "et4b00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 6);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 6);
     if (em == 0) {
         pLog->err(0, 0, "ET4b:Mod err");
         return 0;
@@ -1849,7 +1849,7 @@ int Et4c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4c00.bin");
     tpl = GetEtcAddr(arc, "et4c00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 7);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 7);
     if (em == 0) {
         pLog->err(0, 0, "ET4c:Mod err");
         return 0;
@@ -1868,7 +1868,7 @@ static int Et4d_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4d00.bin");
     tpl = GetEtcAddr(arc, "et4d00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET4d:Mod err");
         return 0;
@@ -1889,7 +1889,7 @@ int Et4e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4e00.bin");
     tpl = GetEtcAddr(arc, "et4e00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET4e:Mod err");
         return 0;
@@ -1910,7 +1910,7 @@ int Et4f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4f00.bin");
     tpl = GetEtcAddr(arc, "et4f00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 6);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 6);
     if (em == 0) {
         pLog->err(0, 0, "ET4f:Mod err");
         return 0;
@@ -1929,7 +1929,7 @@ int Et59_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et5900.bin");
     tpl = GetEtcAddr(arc, "et5900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET59:Mod err");
         return 0;
@@ -1950,7 +1950,7 @@ int Et61_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6100.bin");
     tpl = GetEtcAddr(arc, "et6100.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 8);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 8);
     if (em == 0) {
         pLog->err(0, 0, "ET61:Mod err");
         return 0;
@@ -1969,7 +1969,7 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6200.bin");
     tpl = GetEtcAddr(arc, "et6200.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET62:Mod err");
         return 0;
@@ -1990,7 +1990,7 @@ int Et63_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6300.bin");
     tpl = GetEtcAddr(arc, "et6300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET63:Mod err");
         return 0;
@@ -2012,7 +2012,7 @@ int Et66_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et66.eff"), 0xBA, 0);
     bin = GetEtcAddr(arc, "et6600.bin");
     tpl = GetEtcAddr(arc, "et6600.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET66:Mod err");
         return 0;
@@ -2031,7 +2031,7 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6700.bin");
     tpl = GetEtcAddr(arc, "et6700.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 8);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 8);
     if (em == 0) {
         pLog->err(0, 0, "ET67:Mod err");
         return 0;
@@ -2043,337 +2043,337 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 }
 
 
-int EtcModelSet(EtcSetData* d)
+int EtcModelSet(EtcSetData* pDat)
 {
     void* arc;
     int ret = 0;
     cModel* model = 0;
 
-    if (d->no > 0x3F) {
-        pLog->err(0, 0, "EtcModelSet() : Invalid EtcModel No[%d](MAX:%d)", d->no, 0x40);
+    if (pDat->no > 0x3F) {
+        pLog->err(0, 0, "EtcModelSet() : Invalid EtcModel No[%d](MAX:%d)", pDat->no, 0x40);
         return 0;
     }
-    if (EtcGetDasAddr(d->id, &arc)) {
-        switch (d->id) {
+    if (EtcGetDasAddr(pDat->id, &arc)) {
+        switch (pDat->id) {
     case 0x00:
-        ret = Et00_init(arc, d, &model, 0);
+        ret = Et00_init(arc, pDat, &model, 0);
         break;
     case 0x01:
-        ret = Et01_init(arc, d, &model);
+        ret = Et01_init(arc, pDat, &model);
         break;
     case 0x02:
-        ret = Et02_init(arc, d, &model);
+        ret = Et02_init(arc, pDat, &model);
         break;
     case 0x03:
-        ret = Et03_init(arc, d, &model);
+        ret = Et03_init(arc, pDat, &model);
         break;
     case 0x04:
-        ret = Et04_init(arc, d, &model);
+        ret = Et04_init(arc, pDat, &model);
         break;
     case 0x05:
-        ret = Et05_init(arc, d, &model);
+        ret = Et05_init(arc, pDat, &model);
         break;
     case 0x06:
-        ret = Et06_init(arc, d, &model);
+        ret = Et06_init(arc, pDat, &model);
         break;
     case 0x07:
-        ret = Et07_init(arc, d, &model, 1);
+        ret = Et07_init(arc, pDat, &model, 1);
         break;
     case 0x08:
-        ret = Et08_init(arc, d, &model);
+        ret = Et08_init(arc, pDat, &model);
         break;
     case 0x09:
-        ret = Et09_init(arc, d, &model);
+        ret = Et09_init(arc, pDat, &model);
         break;
     case 0x0A:
-        ret = Et0a_init(arc, d, &model);
+        ret = Et0a_init(arc, pDat, &model);
         break;
     case 0x0B:
-        ret = Et0b_init(arc, d, &model);
+        ret = Et0b_init(arc, pDat, &model);
         break;
     case 0x0C:
-        ret = Et0c_init(arc, d, &model);
+        ret = Et0c_init(arc, pDat, &model);
         break;
     case 0x0D:
-        ret = Et0d_init(arc, d, &model);
+        ret = Et0d_init(arc, pDat, &model);
         break;
     case 0x0E:
-        ret = Et0e_init(arc, d, &model);
+        ret = Et0e_init(arc, pDat, &model);
         break;
     case 0x0F:
-        ret = Et0f_init(arc, d, &model);
+        ret = Et0f_init(arc, pDat, &model);
         break;
     case 0x10:
-        ret = Et10_init(arc, d, &model);
+        ret = Et10_init(arc, pDat, &model);
         break;
     case 0x11:
-        ret = Et11_init(arc, d, &model);
+        ret = Et11_init(arc, pDat, &model);
         break;
     case 0x12:
-        ret = Et12_init(arc, d, &model);
+        ret = Et12_init(arc, pDat, &model);
         break;
     case 0x13:
-        ret = Et13_init(arc, d, &model);
+        ret = Et13_init(arc, pDat, &model);
         break;
     case 0x14:
-        ret = Et14_init(arc, d, &model);
+        ret = Et14_init(arc, pDat, &model);
         break;
     case 0x15:
-        ret = Et15_init(arc, d, &model);
+        ret = Et15_init(arc, pDat, &model);
         break;
     case 0x16:
-        ret = Et16_init(arc, d, &model);
+        ret = Et16_init(arc, pDat, &model);
         break;
     case 0x17:
-        ret = Et17_init(arc, d, &model);
+        ret = Et17_init(arc, pDat, &model);
         break;
     case 0x18:
-        ret = Et18_init(arc, d, &model);
+        ret = Et18_init(arc, pDat, &model);
         break;
     case 0x19:
-        ret = Et19_init(arc, d, &model);
+        ret = Et19_init(arc, pDat, &model);
         break;
     case 0x1A:
-        ret = Et1a_init(arc, d, &model);
+        ret = Et1a_init(arc, pDat, &model);
         break;
     case 0x1B:
-        ret = Et1b_init(arc, d, &model);
+        ret = Et1b_init(arc, pDat, &model);
         break;
     case 0x1C:
-        ret = Et1c_init(arc, d, &model);
+        ret = Et1c_init(arc, pDat, &model);
         break;
     case 0x1D:
-        ret = Et1d_init(arc, d, &model, 2);
+        ret = Et1d_init(arc, pDat, &model, 2);
         break;
     case 0x1E:
-        ret = Et1e_init(arc, d, &model);
+        ret = Et1e_init(arc, pDat, &model);
         break;
     case 0x1F:
-        ret = Et1f_init(arc, d, &model);
+        ret = Et1f_init(arc, pDat, &model);
         break;
     case 0x20:
-        ret = Et20_init(arc, d, &model);
+        ret = Et20_init(arc, pDat, &model);
         break;
     case 0x21:
-        ret = Et21_init(arc, d, &model);
+        ret = Et21_init(arc, pDat, &model);
         break;
     case 0x22:
-        ret = Et22_init(arc, d, &model);
+        ret = Et22_init(arc, pDat, &model);
         break;
     case 0x23:
-        ret = Et23_init(arc, d, &model);
+        ret = Et23_init(arc, pDat, &model);
         break;
     case 0x24:
-        ret = Et24_init(arc, d, &model);
+        ret = Et24_init(arc, pDat, &model);
         break;
     case 0x25:
-        ret = Et25_init(arc, d, &model, 3);
+        ret = Et25_init(arc, pDat, &model, 3);
         break;
     case 0x26:
-        ret = Et26_init(arc, d, &model);
+        ret = Et26_init(arc, pDat, &model);
         break;
     case 0x27:
-        ret = Et27_init(arc, d, &model);
+        ret = Et27_init(arc, pDat, &model);
         break;
     case 0x28:
-        ret = Et28_init(arc, d, &model);
+        ret = Et28_init(arc, pDat, &model);
         break;
     case 0x29:
-        ret = Et29_init(arc, d, &model, 4);
+        ret = Et29_init(arc, pDat, &model, 4);
         break;
     case 0x2A:
-        ret = Et2a_init(arc, d, &model);
+        ret = Et2a_init(arc, pDat, &model);
         break;
     case 0x2B:
-        ret = Et2b_init(arc, d, &model);
+        ret = Et2b_init(arc, pDat, &model);
         break;
     case 0x2C:
-        ret = Et2c_init(arc, d, &model, 5);
+        ret = Et2c_init(arc, pDat, &model, 5);
         break;
     case 0x2D:
-        ret = Et2d_init(arc, d, &model);
+        ret = Et2d_init(arc, pDat, &model);
         break;
     case 0x2E:
-        ret = Et2e_init(arc, d, &model);
+        ret = Et2e_init(arc, pDat, &model);
         break;
     case 0x2F:
-        ret = Et2f_init(arc, d, &model);
+        ret = Et2f_init(arc, pDat, &model);
         break;
     case 0x30:
-        ret = Et30_init(arc, d, &model);
+        ret = Et30_init(arc, pDat, &model);
         break;
     case 0x31:
-        ret = Et31_init(arc, d, &model);
+        ret = Et31_init(arc, pDat, &model);
         break;
     case 0x32:
-        ret = Et32_init(arc, d, &model);
+        ret = Et32_init(arc, pDat, &model);
         break;
     case 0x33:
-        ret = Et33_init(arc, d, &model);
+        ret = Et33_init(arc, pDat, &model);
         break;
     case 0x34:
-        ret = Et34_init(arc, d, &model);
+        ret = Et34_init(arc, pDat, &model);
         break;
     case 0x35:
-        ret = Et35_init(arc, d, &model, 6);
+        ret = Et35_init(arc, pDat, &model, 6);
         break;
     case 0x36:
-        ret = Et36_init(arc, d, &model, 7);
+        ret = Et36_init(arc, pDat, &model, 7);
         break;
     case 0x37:
-        ret = Et37_init(arc, d, &model);
+        ret = Et37_init(arc, pDat, &model);
         break;
     case 0x38:
-        ret = Et38_init(arc, d, &model);
+        ret = Et38_init(arc, pDat, &model);
         break;
     case 0x39:
-        ret = Et39_init(arc, d, &model);
+        ret = Et39_init(arc, pDat, &model);
         break;
     case 0x3A:
-        ret = Et3a_init(arc, d, &model);
+        ret = Et3a_init(arc, pDat, &model);
         break;
     case 0x3B:
-        ret = Et3b_init(arc, d, &model);
+        ret = Et3b_init(arc, pDat, &model);
         break;
     case 0x3C:
-        ret = Et3c_init(arc, d, &model);
+        ret = Et3c_init(arc, pDat, &model);
         break;
     case 0x3D:
-        ret = Et3d_init(arc, d, &model);
+        ret = Et3d_init(arc, pDat, &model);
         break;
     case 0x3E:
-        ret = Et3e_init(arc, d, &model);
+        ret = Et3e_init(arc, pDat, &model);
         break;
     case 0x3F:
-        ret = Et3f_init(arc, d, &model);
+        ret = Et3f_init(arc, pDat, &model);
         break;
     case 0x40:
-        ret = Et40_init(arc, d, &model);
+        ret = Et40_init(arc, pDat, &model);
         break;
     case 0x41:
-        ret = Et41_init(arc, d, &model);
+        ret = Et41_init(arc, pDat, &model);
         break;
     case 0x42:
-        ret = Et42_init(arc, d, &model);
+        ret = Et42_init(arc, pDat, &model);
         break;
     case 0x43:
-        ret = Et43_init(arc, d, &model);
+        ret = Et43_init(arc, pDat, &model);
         break;
     case 0x44:
-        ret = Et44_init(arc, d, &model, 8);
+        ret = Et44_init(arc, pDat, &model, 8);
         break;
     case 0x45:
-        ret = Et45_init(arc, d, &model);
+        ret = Et45_init(arc, pDat, &model);
         break;
     case 0x46:
-        ret = Et46_init(arc, d, &model);
+        ret = Et46_init(arc, pDat, &model);
         break;
     case 0x47:
-        ret = Et47_init(arc, d, &model);
+        ret = Et47_init(arc, pDat, &model);
         break;
     case 0x48:
-        ret = Et48_init(arc, d, &model, 9);
+        ret = Et48_init(arc, pDat, &model, 9);
         break;
     case 0x49:
-        ret = Et49_init(arc, d, &model);
+        ret = Et49_init(arc, pDat, &model);
         break;
     case 0x4A:
-        ret = Et4a_init(arc, d, &model, 10);
+        ret = Et4a_init(arc, pDat, &model, 10);
         break;
     case 0x4B:
-        ret = Et4b_init(arc, d, &model);
+        ret = Et4b_init(arc, pDat, &model);
         break;
     case 0x4C:
-        ret = Et4c_init(arc, d, &model);
+        ret = Et4c_init(arc, pDat, &model);
         break;
     case 0x4D:
-        ret = Et4d_init(arc, d, &model);
+        ret = Et4d_init(arc, pDat, &model);
         break;
     case 0x4E:
-        ret = Et4e_init(arc, d, &model);
+        ret = Et4e_init(arc, pDat, &model);
         break;
     case 0x4F:
-        ret = Et4f_init(arc, d, &model);
+        ret = Et4f_init(arc, pDat, &model);
         break;
     case 0x50:
-        ret = Et50_init(arc, d, &model, 11);
+        ret = Et50_init(arc, pDat, &model, 11);
         break;
     case 0x51:
-        ret = Et51_init(arc, d, &model, 12);
+        ret = Et51_init(arc, pDat, &model, 12);
         break;
     case 0x52:
-        ret = Et52_init(arc, d, &model, 13);
+        ret = Et52_init(arc, pDat, &model, 13);
         break;
     case 0x53:
-        ret = Et53_init(arc, d, &model, 14);
+        ret = Et53_init(arc, pDat, &model, 14);
         break;
     case 0x54:
-        ret = Et54_init(arc, d, &model, 15);
+        ret = Et54_init(arc, pDat, &model, 15);
         break;
     case 0x55:
-        ret = Et55_init(arc, d, &model, 16);
+        ret = Et55_init(arc, pDat, &model, 16);
         break;
     case 0x56:
-        ret = Et56_init(arc, d, &model, 17);
+        ret = Et56_init(arc, pDat, &model, 17);
         break;
     case 0x57:
-        ret = Et57_init(arc, d, &model, 18);
+        ret = Et57_init(arc, pDat, &model, 18);
         break;
     case 0x58:
-        ret = Et58_init(arc, d, &model, 19);
+        ret = Et58_init(arc, pDat, &model, 19);
         break;
     case 0x5A:
-        ret = Et5a_init(arc, d, &model, 20);
+        ret = Et5a_init(arc, pDat, &model, 20);
         break;
     case 0x5B:
-        ret = Et5b_init(arc, d, &model, 21);
+        ret = Et5b_init(arc, pDat, &model, 21);
         break;
     case 0x5C:
-        ret = Et5c_init(arc, d, &model, 22);
+        ret = Et5c_init(arc, pDat, &model, 22);
         break;
     case 0x5D:
-        ret = Et5d_init(arc, d, &model, 23);
+        ret = Et5d_init(arc, pDat, &model, 23);
         break;
     case 0x5E:
-        ret = Et5e_init(arc, d, &model, 24);
+        ret = Et5e_init(arc, pDat, &model, 24);
         break;
     case 0x5F:
-        ret = Et5f_init(arc, d, &model, 25);
+        ret = Et5f_init(arc, pDat, &model, 25);
         break;
     case 0x60:
-        ret = Et60_init(arc, d, &model, 26);
+        ret = Et60_init(arc, pDat, &model, 26);
         break;
     case 0x64:
-        ret = Et64_init(arc, d, &model, 27);
+        ret = Et64_init(arc, pDat, &model, 27);
         break;
     case 0x65:
-        ret = Et65_init(arc, d, &model, 28);
+        ret = Et65_init(arc, pDat, &model, 28);
         break;
     case 0x59:
-        ret = Et59_init(arc, d, &model);
+        ret = Et59_init(arc, pDat, &model);
         break;
     case 0x61:
-        ret = Et61_init(arc, d, &model);
+        ret = Et61_init(arc, pDat, &model);
         break;
     case 0x62:
-        ret = Et62_init(arc, d, &model);
+        ret = Et62_init(arc, pDat, &model);
         break;
     case 0x63:
-        ret = Et63_init(arc, d, &model);
+        ret = Et63_init(arc, pDat, &model);
         break;
     case 0x66:
-        ret = Et66_init(arc, d, &model);
+        ret = Et66_init(arc, pDat, &model);
         break;
     case 0x67:
-        ret = Et67_init(arc, d, &model);
+        ret = Et67_init(arc, pDat, &model);
         break;
         default:
-            pLog->err(0, 0, "EtcModelSet() : Invalid EtcModelID[%02x]", d->id);
+            pLog->err(0, 0, "EtcModelSet() : Invalid EtcModelID[%02x]", pDat->id);
             return 0;
         }
     }
     if (ret == 1) {
-        g_EtcTbl[d->no].RegistData(d, model);
+        g_EtcTbl[pDat->no].RegistData(pDat, model);
     } else {
         pLog->err(0, 0, "EtcModelSet() : Init failed.");
         return 0;
@@ -3020,7 +3020,7 @@ void EtcSetAddAmb(cModel* m, int no)
     } else {
         m->be_flag |= 8;
     }
-    m->x139 = r;
-    m->x13A = g;
-    m->x13B = b;
+    m->AddAmb_r = r;
+    m->AddAmb_g = g;
+    m->AddAmb_b = b;
 }

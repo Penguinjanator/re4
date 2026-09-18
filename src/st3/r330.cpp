@@ -123,7 +123,7 @@ void R330EventS00Main()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         if (CheckDoorJumpWithAshley() == 0) {
-            cMes.MesSet(0x67, 100, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+            cMes.MesSet(0x67, 100, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         } else {
             cEm* a;
             cEm* b;
@@ -207,7 +207,7 @@ void R330EventS00End()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_51C4 |= 0x800;
+    pG->Scenario_flg[1] |= 0x800;
     SceSetChapterEnd(0x11, -1);
     SeAtSndCall(0);
 }
@@ -225,7 +225,7 @@ extern "C" void Evt_R330S00_Func(Event* e)
         SmdSetTrans(0x1D, 0);
         SmdSetTrans(0x1E, 0);
         EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, 0);
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         SmdSetTrans(0x28, 1);
         SmdSetTrans(0x29, 1);
         setRoomEtcDisp(0xA, 0, 1);
@@ -246,37 +246,37 @@ extern "C" void Evt_R330S00_Func(Event* e)
         }
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x18:
         case 0x1A:
         case 0x1B:
         case 0x1D:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0100a", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0100a", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags &= ~0x40;
+                    ((cObj*) mod)->o18.be_flag &= ~0x40;
                 }
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 9:
         case 0x14:
         case 0x19:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 u32 no;
 
-                switch (e->cut) {
+                switch (e->NowCut) {
                 default:
                 case 9:
                     no = 0;
@@ -289,16 +289,16 @@ extern "C" void Evt_R330S00_Func(Event* e)
                     break;
                 }
                 IdR330.init(no);
-                pG->flags_174 |= 0x80000000;
+                pG->Room_flg[0] |= 0x80000000;
             }
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 IdR330.move();
             }
             break;
         default:
-            if (e->frame == 0) {
-                if ((int) pG->flags_174 < 0) {
-                    pG->flags_174 &= ~0x80000000;
+            if (e->NowFrame == 0) {
+                if ((int) pG->Room_flg[0] < 0) {
+                    pG->Room_flg[0] &= ~0x80000000;
                     IdR330.quit();
                 }
             }
@@ -307,14 +307,14 @@ extern "C" void Evt_R330S00_Func(Event* e)
         {
             void* mod;
 
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm9900", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
                 if (e->GetMod(&mod, "evm9700", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
-                    ((cModel*) mod)->lightInfo.x50 = 2;
+                    ((cModel*) mod)->ot_type = 1;
+                    ((cModel*) mod)->LightInfo.EnableMask = 2;
                 }
                 if ((obj = SmdGetObjPtr(0x28)) != 0) {
                     e->SetMod("scr0000", obj, 5, 0, 2, 0);
@@ -332,13 +332,13 @@ extern "C" void Evt_R330S00_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 6:
         case 8:
         case 0xB:
         case 0xF:
         case 0x17:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if ((mod = SmdGetObjPtr(0x22)) != 0) {
                     TexRenderModSet((cModel*) mod, 0, r330_work->texTbl0, r330_work->tex[0], 1, 1, 1, 1, 1.0f);
                 }
@@ -346,24 +346,24 @@ extern "C" void Evt_R330S00_Func(Event* e)
                     TexRenderModSet((cModel*) mod, 0, r330_work->texTbl1, r330_work->tex[1], 1, 1, 1, 1, 1.0f);
                 }
             }
-            if (e->cut == 6) {
+            if (e->NowCut == 6) {
                 EvtTexRenderCamTrans(e, 6);
             }
-            if (e->cut == 8) {
+            if (e->NowCut == 8) {
                 EvtTexRenderCamTrans(e, 8);
             }
-            if (e->cut == 0xB) {
+            if (e->NowCut == 0xB) {
                 EvtTexRenderCamTrans(e, 0xB);
             }
-            if (e->cut == 0xF) {
+            if (e->NowCut == 0xF) {
                 EvtTexRenderCamTrans(e, 0xF);
             }
-            if (e->cut == 0x17) {
+            if (e->NowCut == 0x17) {
                 EvtTexRenderCamTrans(e, 0x17);
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if ((mod = SmdGetObjPtr(0x22)) != 0) {
                     TexRenderModResP((cModel*) mod, 0);
                     ModelInfoSetTrans((cModel*) mod, 0, 1);
@@ -410,7 +410,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     if (skip == 0) {
@@ -466,16 +466,16 @@ void idR330::init(u32 no)
     mode = no;
     IdTexRelease(4);
     IdSys.roomInit();
-    IdTexDataLoad(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 7);
+    IdTexDataLoad(ROOM_ARC_PTR(pG->pRoom, 0x1F), 7);
     switch (mode) {
     case 0:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x22), 0xFF, 0x2C, 0xC, 6, 0);
         break;
     case 1:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x20), 0xFF, 0x2C, 0xC, 6, 0);
         break;
     case 2:
-        IdSys.set(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0xFF, 0x2C, 0xC, 6, 0);
+        IdSys.set(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xFF, 0x2C, 0xC, 6, 0);
         break;
     }
     cnt = 0;
@@ -498,17 +498,17 @@ void idR330::init(u32 no)
         for (i = 2; i >= 0; i--) {                                  \
             u = IdSys.unitPtr((id) + (2 - i), 0x2C);                \
             if (on == 0 && digit[i] == 0 && i != 0) {               \
-                u->flags &= ~8;                                     \
+                u->be_flag &= ~8;                                   \
             } else {                                                \
                 on = 1;                                             \
-                u->flags |= 8;                                      \
-                u->flags_7F |= 2;                                   \
-                u->no = digit[i];                                   \
+                u->be_flag |= 8;                                    \
+                u->tex_flag |= 2;                                   \
+                u->texNo = digit[i];                                \
             }                                                       \
         }                                                           \
         u = IdSys.unitPtr((id) + 3, 0x2C);                          \
-        u->no = 10;                                                 \
-        u->flags_7F |= 2;                                           \
+        u->texNo = 10;                                              \
+        u->tex_flag |= 2;                                           \
     }
 
 void idR330::move()

@@ -31,7 +31,7 @@ struct CameraMotionWork {
 class CameraMotion : public cCamera {
 public:
     s32 end;                       // 0xFC  1 when the motion has finished
-    CameraMotionWork info;         // 0x100 motion work (getMotionInfoPtr)
+    CameraMotionWork m_info;         // 0x100 motion work (getMotionInfoPtr)
     Mtx* base_mat;                 // 0x1D0
 
     CameraMotion(void* data, int hokan, int flags, f32 frame);

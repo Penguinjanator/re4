@@ -32,11 +32,11 @@ int ShapeSet(void* work, int frame, void* data, int flags)
     cModelInfo* info = (cModelInfo*) work;
     ShapeData* sd = (ShapeData*) data;
 
-    info->shapeFrame = frame;
+    info->shape_frame = frame;
     info->pShape = sd;
     info->shapeFlags = flags;
     if (flags & 4) {
-        info->shapeFrame = sd->nFrame - 1;
+        info->shape_frame = sd->nFrame - 1;
     }
     if (sd->nFrame == 0) {
         pLog->err(0, 0, "ShapeSet : frame 0 data");
@@ -54,34 +54,34 @@ int ShapeMove(cModelInfo* info)
     if (info == NULL) {
         return 0;
     }
-    for (p = info; p != NULL; p = p->pNext) {
+    for (p = info; p != NULL; p = p->pList) {
         if (p->pShape != NULL) {
             u32 flags;
             ShapeData* sd;
 
             SetOriginalShape(p);
-            SetShape(p, p->pShape, (f32) p->shapeFrame);
+            SetShape(p, p->pShape, (f32) p->shape_frame);
             flags = p->shapeFlags;
             sd = p->pShape;
             if (flags & 4) {
-                p->shapeFrame--;
-                if (p->shapeFrame < 0) {
+                p->shape_frame--;
+                if (p->shape_frame < 0) {
                     if (flags & 1) {
-                        p->shapeFrame = 0;
-                        p->shapeFrame = sd->nFrame - 1;
+                        p->shape_frame = 0;
+                        p->shape_frame = sd->nFrame - 1;
                     } else if (flags & 2) {
-                        p->shapeFrame++;
+                        p->shape_frame++;
                     } else {
                         ShapeEnd(p);
                     }
                 }
             } else {
-                p->shapeFrame++;
-                if (p->shapeFrame >= sd->nFrame - 1) {
+                p->shape_frame++;
+                if (p->shape_frame >= sd->nFrame - 1) {
                     if (flags & 1) {
-                        p->shapeFrame = 0;
+                        p->shape_frame = 0;
                     } else if (flags & 2) {
-                        p->shapeFrame--;
+                        p->shape_frame--;
                     } else {
                         ShapeEnd(p);
                     }
@@ -96,7 +96,7 @@ void ShapeEnd(void* work)
 {
     cModelInfo* info = (cModelInfo*) work;
 
-    info->shapeFrame = 0;
+    info->shape_frame = 0;
     info->pShape = NULL;
     SetOriginalShape(info);
 }
@@ -115,9 +115,9 @@ void ClrShape(cModel* m)
 {
     cModelInfo* info;
 
-    for (info = m->pInfo; info != NULL; info = info->pNext) {
+    for (info = m->pModelInfo; info != NULL; info = info->pList) {
         if (info->be_flag & 2) {
-            info->shapeFrame = 0;
+            info->shape_frame = 0;
             info->pShape = NULL;
             info->shapeFlags = 0;
             SetOriginalShape(info);

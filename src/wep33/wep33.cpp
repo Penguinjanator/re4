@@ -32,7 +32,7 @@ void Wep33_init(cModel* m)
         pLog->err(0, 0, "Wep33_init() cObjWep CREATE FAILED");
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x3B, 1);
@@ -58,7 +58,7 @@ void cObjShotgun::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     U16Set(wep.x24, 0x2C);
@@ -80,17 +80,17 @@ void cObjShotgun::moveFire()
         } else {
             m = WEP_ARC_PTR(0x32);
         }
-        MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         // the EstSet stack zeros come from an SImode pseudo set after the SndCall (wep44)
         int type = 0;
-        pG->flags_500C |= 0x00800000;
+        pG->Status_flg[0] |= 0x00800000;
         EstSet((int) this, -1, 0, 0, 0x3B, type, 0, 0xA, 0, 0);
         wep.step = 1;
     } else {
-        if (MotionCheckCrossFrame(&mot, 20.0f)) {
+        if (MotionCheckCrossFrame(&Motion, 20.0f)) {
             setCartridge();
-            SndCall(2, 2, &getPartsPtr(0)->worldPos, 0, 0, 0);
+            SndCall(2, 2, &getPartsPtr(0)->world, 0, 0, 0);
         }
         if (MotionGetState(this)) {
             wep.mode = 0;
@@ -103,7 +103,7 @@ void cObjShotgun::moveReload()
 {
     static const f32 reloadEnd[3] = { 30.0f, 26.0f, 17.0f };
     static const f32 reloadSe[3] = { 66.0f, 60.0f, 40.0f };
-    int lv = pG->x4FBA;
+    int lv = pG->weapon_lv_reload;
 
     if (wep.step == 0) {
         void* m;
@@ -120,14 +120,14 @@ void cObjShotgun::moveReload()
             break;
         }
         motionSet(m, 0, 0, 0, 0);
-        wep.seHandle = SndCall(2, 7, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, 7, &pParts->world, 0, 0, 0);
         wep.step = 1;
     } else {
-        if (MotionCheckCrossFrame(&mot, reloadEnd[lv])) {
+        if (MotionCheckCrossFrame(&Motion, reloadEnd[lv])) {
             ItemMgr.reload();
         }
-        if (MotionCheckCrossFrame(&mot, reloadSe[lv])) {
-            wep.seHandle = SndCall(2, 2, &getPartsPtr(0)->worldPos, 0, 0, 0);
+        if (MotionCheckCrossFrame(&Motion, reloadSe[lv])) {
+            wep.seHandle = SndCall(2, 2, &getPartsPtr(0)->world, 0, 0, 0);
         }
         if (MotionGetState(this)) {
             wep.mode = 0;
@@ -190,7 +190,7 @@ void cObjShotgun::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x27));
     PSet(pl->pMotTbl[0x3B], 0);
     PSet(pl->pMotTbl[0x3C], 0);
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x28));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x29));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x24));
@@ -199,7 +199,7 @@ void cObjShotgun::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x5E], WEP_ARC_PTR(0x1D));
     PSet(pl->pMotTbl[0x5B], WEP_ARC_PTR(0x40));
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x41));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x7));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
     pl->setLeftHand(2);
     pl->setRightHand(1);
 }

@@ -55,30 +55,30 @@ void R118Init()
     cModel* m;
     int zero = 0;
 
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 47 "D:/Bio4/Prog/r118.cpp"
     r118_work = (R118Work*) MEM_CALLOC(sizeof(R118Work), 1, 0xd);
 
     SmdGetObjPtr(0)->be_flag &= ~2;
-    SmdGetObjPtr(0)->lightInfo.x50 = zero;
-    SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, 2, 0);
+    SmdGetObjPtr(0)->LightInfo.EnableMask = zero;
+    SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
-    pG->flags_5010 |= 0x400;
+    pG->Status_flg[1] |= 0x400;
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
-        m->lightInfo.x50 = (m->lightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x10000000)) {
         SceAtSetEnable(0x80, 0);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r118_checkDoor117, 0, 1);
-        SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r118_checkDoor117, 0, 1);
+        SceExec(0x12, (TaskFunc) r118_checkDoor117KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (pG->flags_51BC & 0x00100000) {
-        EM_LIST(0x82)->flags &= ~1;
-        EM_LIST(0x83)->flags &= ~1;
-        EM_LIST(0x84)->flags &= ~1;
+    if (pG->Item_find_flg & 0x00100000) {
+        EM_LIST(0x82)->be_flag &= ~1;
+        EM_LIST(0x83)->be_flag &= ~1;
+        EM_LIST(0x84)->be_flag &= ~1;
         EmSetFromList2(0x79, 1);
         EmSetFromList2(0x7A, 1);
         EmSetFromList2(0x7B, 1);
@@ -88,11 +88,11 @@ void R118Init()
         EmSetFromList2(0x7F, 1);
         SndRoomStrStart(1, 5, 1);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            SceExec(0x12, (TaskFunc) r118_execShowView, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r118_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
         }
-        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xCA, 0);
+        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
         r118_work->em.setEm(0x78, -1, 0, 1, 1);
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r118_execAshleyVoice, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r118_execAshleyVoice, 0, 1);
         SceAtSetEnable(1, 0);
         SmdSetTrans(0x26, 0);
     } else {
@@ -100,7 +100,7 @@ void R118Init()
         SceAtSetEnable(8, 0);
         SceAtSetEnable(2, 0);
     }
-    SceExec(0x12, (TaskFunc) r118_checkBgm, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r118_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
     r108_initPuzzle(0x31, 0x32, 0x33, 2);
     FlrAtSetDefVal(0, 0, 3);
 }
@@ -130,7 +130,7 @@ static void r118_execShowView()
     r118_work->strId = SndStrReq(1, 0xE0, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r118_execShowView_end, 0, -1, 1);
     SceEventStart(0);
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     CamCtrl.CutCall(0xA);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -153,7 +153,7 @@ static void r118_execAshleyVoice()
             i = 0;
             SndCall(6, 0, 0, 0, 0, 0);
             mes = &cMes;
-            SceMesSet(8, 0xB0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->fontH - 1);
+            SceMesSet(8, 0xB0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->m_font_h - 1);
             SceSleep(90);
             for (; i < 16; i++) {
                 mes->Delete(i);
@@ -204,7 +204,7 @@ static void r118_checkDoor117KeyUse()
     SceSleep(20);
     SceAtSetEnable(0x80, 1);
     SndCall(6, 8, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x10000000;
     SceAtDataReset(4);
     CamCtrl.Comeback(0);
@@ -214,15 +214,15 @@ static void r118_checkDoor117KeyUse()
 // The locked door: the up-cut message, then the sub screen terminal / the key use.
 static void r118_checkDoor117()
 {
-    SceUpCut(0, 9, 7, 4);
+    SceUpCut(0, 9, 7, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0x3C) == 0) {
         CamCtrl.Comeback(0);
-        if (!(pG->flags_51C0 & 0x00080000)) {
-            pG->flags_51C0 |= 0x00080000;
+        if (!(pG->Scenario_flg[0] & 0x00080000)) {
+            pG->Scenario_flg[0] |= 0x00080000;
             OpeSetOpenTerm(7, 22600.0f, 11775.0f, -26200.0f, 1.6f);
         }
     } else {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -230,17 +230,17 @@ static void r118_checkDoor117()
 static void r118_ThunderFlagOn()
 {
     SmdGetObjPtr(0)->be_flag |= 2;
-    SmdGetObjPtr(0x64)->pInfo->color[0] = 0xEB;
-    SmdGetObjPtr(0x64)->pInfo->color[1] = 0xF9;
-    SmdGetObjPtr(0x64)->pInfo->color[2] = 0xFF;
+    SmdGetObjPtr(0x64)->pModelInfo->color[0] = 0xEB;
+    SmdGetObjPtr(0x64)->pModelInfo->color[1] = 0xF9;
+    SmdGetObjPtr(0x64)->pModelInfo->color[2] = 0xFF;
 }
 
 static void r118_ThunderFlagOff()
 {
     SmdGetObjPtr(0)->be_flag &= ~2;
-    SmdGetObjPtr(0x64)->pInfo->color[0] = 0x5F;
-    SmdGetObjPtr(0x64)->pInfo->color[1] = 0x61;
-    SmdGetObjPtr(0x64)->pInfo->color[2] = 0x67;
+    SmdGetObjPtr(0x64)->pModelInfo->color[0] = 0x5F;
+    SmdGetObjPtr(0x64)->pModelInfo->color[1] = 0x61;
+    SmdGetObjPtr(0x64)->pModelInfo->color[2] = 0x67;
 }
 
 // Thunder every 90..235 frames (30..117 while the player is in area 4); no flash while the dog

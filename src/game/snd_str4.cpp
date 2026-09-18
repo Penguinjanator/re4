@@ -203,7 +203,7 @@ int Snd_str_init_pos(u32 snd_id, u32 pos)
     }
     str->read_ofs = str->read_size * pos;
     str->play_pos = str->blk_size * pos;
-    str->x84 = str->play_pos + str->blk_size;
+    str->blk_end = str->play_pos + str->blk_size;
     str->blk_cnt = str->play_pos / str->blk_size;
     return 0;
 }

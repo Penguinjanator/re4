@@ -6,15 +6,15 @@
 
 // game/fade.cpp: up to 4 full-screen colour fades (C linkage).
 struct FadeWork {
-    GXColor start;  // 0x00
-    GXColor end;    // 0x04
+    GXColor s_col;  // 0x00
+    GXColor e_col;    // 0x04
     GXColor cur;    // 0x08
     u8 pad_C[8];
     f32 z;          // 0x14
     u16 flags;      // 0x18  bit 0 = fading, bit 1 = keep drawing when done, bit 2 = late group (FadeControl(1))
-    u16 x1A;        // 0x1A
+    u16 state;        // 0x1A
     u32 time;       // 0x1C  frames
-    u32 count;      // 0x20
+    u32 cnt;      // 0x20
 };
 
 extern FadeWork Fade[4];
@@ -22,6 +22,14 @@ extern FadeWork Fade[4];
 extern "C" {
 void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late);
 void FadeKillAll();
+enum FADE_NO {
+    FADE_NO_SYSTEM = 0,
+    FADE_NO_SCENARIO = 1,
+    FADE_NO_ROOM = 2,
+    FADE_NO_ERROR = 3,
+    FADE_NUM = 4
+};
+
 void FadeKill(int no);
 void FadeInit();
 void FadeControl(int late);

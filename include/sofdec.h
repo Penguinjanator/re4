@@ -57,18 +57,18 @@ struct SofdecApp {
 // emits the file-name string into the .rodata of every unit that includes it.
 class cSofdec {
 public:
-    u32 flag;         // 0x00  bit0: a movie is playing, bit2: paused, bit5: skipped, bit8: keep black
+    u32 m_be_flag;         // 0x00  bit0: a movie is playing, bit2: paused, bit5: skipped, bit8: keep black
     u32 x04;          // 0x04
     SofdecApp app;    // 0x08
     SofdecDraw drw;   // 0x138
     s16 width;        // 0x200
-    s16 height;       // 0x202
+    s16 m_height;       // 0x202
     int fadeIn;       // 0x204
     u32 save170;      // 0x208
-    u32 save58;       // 0x20C
+    u32 m_disp_flg_bak;       // 0x20C
     u32 heapStart;    // 0x210
-    u8 heapNo;        // 0x214
-    s8 vcnt;          // 0x215
+    u8 m_save_cur_heap;        // 0x214
+    s8 m_vcnt_save;          // 0x215
     u16 fno;          // 0x216
     int resized;      // 0x218
     int mode;         // 0x21C
@@ -76,19 +76,19 @@ public:
 
     // playing check: `if (Sofdec.flag & 1) return 1; return 0;` form (li 0 / li 1)
     int isPlay() {
-        if (flag & 1) {
+        if (m_be_flag & 1) {
             return 1;
         }
         return 0;
     }
     u8* getData(u32 no) {
-        if (no >= flag) {
+        if (no >= m_be_flag) {
             dbgAssert(__FILE__, __LINE__);
         }
         return (u8*) &x04 + no;
     }
     int chkFlag(u32 bit) {
-        return (flag & bit) ? 1 : 0;
+        return (m_be_flag & bit) ? 1 : 0;
     }
 
     void drawTex();

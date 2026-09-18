@@ -60,16 +60,16 @@ static void em3a_R1_B_Bomb(cEm3a* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
-static inline void AtariOn(cAtariInfo* at, u16 bits) { at->flags |= bits; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
+static inline void AtariOn(cAtariInfo* at, u16 bits) { at->m_flag |= bits; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Struct-member view of the player pointer: a load through it is not hoisted above the preceding
@@ -130,8 +130,8 @@ static inline void em3aFixMove(cEm3a* em, Em3aWork* w)
 // Turn towards the player by at most `lim`.
 static inline void em3aTurnToPL(cEm3a* em, f32 lim)
 {
-    em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, lim);
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, lim);
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
 }
 
 // Attack found: drop the search effects, start the alert effect and sound.
@@ -141,7 +141,7 @@ static inline void em3aFoundSet(cEm3a* em, Em3aWork* w, int est, int parts)
     EffectEspgenDelete(1, w->espKind, (int) em);
     EffectEfmDelete(1, w->espKind, (int) em);
     EstSet((int) em, -1, 0, 0, 2, est, 1, w->espKind, (u32) em, 0);
-    SndCall(8, 0xA, &em->getPartsPtr(parts)->worldPos, em->id, 0, em);
+    SndCall(8, 0xA, &em->getPartsPtr(parts)->world, em->id, 0, em);
 }
 
 extern "C" void _prolog()
@@ -270,7 +270,7 @@ void cEm3a::move()
 {
     Em3aWork* w = EM3A_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em3aDmCk(this);
     }
     if (w->atkWait) {
@@ -279,8 +279,8 @@ void cEm3a::move()
     if (em3aDeadCk(pPL)) {
         w->atkWait = 90;
     }
-    Em3a_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em3a_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -320,26 +320,26 @@ static void em3a_R0_Init(cEm3a* em)
     default:
         if (em->modelInit(ARC(5), ARC(6)) == 0) {
             pLog->err(0, 0, "em3a() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 2:
         if (em->modelInit(ARC(0xB), ARC(0xC)) == 0) {
             pLog->err(0, 0, "em3a() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     }
     if (em->type == 2) {
-        em->motFlip = em3a_flip_tbl;
+        em->pXFlip = em3a_flip_tbl;
     }
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 400.0f, 350.0f, 350.0f, 300.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
     em->be_flag &= ~0x01000000;
@@ -402,20 +402,20 @@ static void em3a_R0_Init(cEm3a* em)
     case 0:
     case 1:
     default:
-        em->getPartsPtr(4)->rot.z = 0.61086524f;
-        em->getPartsPtr(6)->rot.z = -0.61086524f;
+        em->getPartsPtr(4)->ang.z = 0.61086524f;
+        em->getPartsPtr(6)->ang.z = -0.61086524f;
         EstSet((int) em, -1, 0, 0, 2, 0, 1, w->espKind, (u32) em, 0);
         break;
     case 2:
         EstSet((int) em, -1, 0, 0, 2, 0xA, 1, w->espKind, (u32) em, 0);
         break;
     }
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     switch (em->type) {
     case 0:
     case 1:
     default:
-        switch (em->x38D) {
+        switch (em->set) {
         case 0:
         default:
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -438,7 +438,7 @@ static void em3a_R0_Init(cEm3a* em)
         }
         break;
     case 2:
-        switch (em->x38D) {
+        switch (em->set) {
         case 5:
         default:
             EmRoutineSet(em, 1, 6, 0, 0);
@@ -450,10 +450,10 @@ static void em3a_R0_Init(cEm3a* em)
             break;
         case 7:
             // Plain byte stores: the QImode zero keeps MotionSetCore's `li r9, 0` (em30_R0_Init).
-            em->xFC = 1;
-            em->xFD = 6;
-            em->xFE = 0;
-            em->xFF = 1;
+            em->r_no_0 = 1;
+            em->r_no_1 = 6;
+            em->r_no_2 = 0;
+            em->r_no_3 = 1;
             MotionSetCore(em, MOTION(em), ARC(0x12), 0, 0, 1, 0);
             break;
         }
@@ -465,7 +465,7 @@ static void em3a_R0_Init(cEm3a* em)
 
 static void em3a_R0_Move(cEm3a* em)
 {
-    Em3a_R1_move_tbl[em->xFD](em);
+    Em3a_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em3a_R1_Patrol(cEm3a* em)
@@ -477,22 +477,22 @@ static void em3a_R1_Patrol(cEm3a* em)
     f32 fl;
 
     fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->timer = Rnd() % 90 + 90;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em3aHoverMove(em, w, fl);
-        em->rot.y += 0.008726646f;
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += 0.008726646f;
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (w->timer) {
             w->timer--;
         } else if (w->pRoute) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
-        em->xFE++;
+        em->r_no_2++;
     case 3: {
         EmiEntry* r = w->pRoute;
 
@@ -502,9 +502,9 @@ static void em3a_R1_Patrol(cEm3a* em)
             b = r->pos;
             b.y += 500.0f;
             RouteCkPosToPos(&a, &b, &w->routePos);
-            w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+            w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
             w->routeAngAbs = fabsf(w->routeAng);
-            em->rot.y += Muku(&em->pos, &w->routePos, em->rot.y, 0.017453292f);
+            em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.017453292f);
             if (w->routeAngAbs < 0.08726646f) {
                 v.x = 0.0f;
                 v.y = 0.0f;
@@ -515,12 +515,12 @@ static void em3a_R1_Patrol(cEm3a* em)
         }
         em3aHoverMove(em, w, fl);
         if (em3aPatrolUpdate(em)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -537,16 +537,16 @@ static void em3a_R1_Patrol(cEm3a* em)
 static inline void em3aSetAtkTimer(Em3aWork* w)
 {
     IntSet(w->timer, 46);
-    if (pG->x4F88 <= 1) {
+    if (pG->Game_level <= 1) {
         IntSet(w->timer, 76);
     }
-    if (pG->x4F88 <= 3) {
+    if (pG->Game_level <= 3) {
         IntSet(w->timer, 61);
     }
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         IntSet(w->timer, 31);
     }
-    if (pG->x4F88 > 9) {
+    if (pG->Game_level > 9) {
         IntSet(w->timer, 16);
     }
 }
@@ -557,14 +557,14 @@ static void em3a_R1_Atk(cEm3a* em)
     f32 fl;
     f32 ang;
 
-    if (em->xFE == 0 && (w->flags & 2)) {
-        em->xFE = 2;
+    if (em->r_no_2 == 0 && (w->flags & 2)) {
+        em->r_no_2 = 2;
     }
     fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em3aHoverMove(em, w, fl);
         if (w->flags & 1) {
@@ -572,17 +572,17 @@ static void em3a_R1_Atk(cEm3a* em)
         }
         if (MotionMoveF(em, 0)) {
             w->flags |= 2;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         em3aSetAtkTimer(w);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em3aHoverMove(em, w, fl);
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, 0.034906585f);
-        FSet(em->rot.y, LIMIT_ANGLE(em->rot.y));
-        ang = fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI));
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.034906585f);
+        FSet(em->ang.y, LIMIT_ANGLE(em->ang.y));
+        ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
         if (em3aLookPLCk(em) == 0 || em->plDist2 > 100000000.0f) {
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
@@ -608,15 +608,15 @@ static void em3a_R1_Atk(cEm3a* em)
             }
         } else if (em3aBossCk(em) == 0) {
             if (em->type == 1) {
-                em->xFE = 6;
+                em->r_no_2 = 6;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 4:
         w->timer = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em3aHoverMove(em, w, fl);
         em3aTurnToPL(em, 0.017453292f);
@@ -634,12 +634,12 @@ static void em3a_R1_Atk(cEm3a* em)
             }
         } else {
             w->atkWait = 30;
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         break;
     case 6:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         em3aHoverMove(em, w, fl);
         em3aTurnToPL(em, 0.017453292f);
@@ -647,13 +647,13 @@ static void em3a_R1_Atk(cEm3a* em)
             w->timer--;
         } else {
             em3aRocketFire(em);
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 8:
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 1, 0);
         w->flags &= ~2;
-        em->xFE++;
+        em->r_no_2++;
     case 9:
         em3aHoverMove(em, w, fl);
         if (w->flags & 1) {
@@ -661,11 +661,11 @@ static void em3a_R1_Atk(cEm3a* em)
         }
         if (MotionMoveF(em, 0)) {
             w->atkWait = 60;
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -680,18 +680,18 @@ static void em3a_R1_Chase(cEm3a* em)
     f32 fl;
 
     fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         a = em->pos;
         a.y = fl + 500.0f;
         b = pPLS->pos;
         b.y += 500.0f;
         RouteCkPosToPos(&a, &b, &w->routePos);
-        w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+        w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->routeAngAbs = fabsf(w->routeAng);
-        em->rot.y += Muku(&em->pos, &w->routePos, em->rot.y, 0.034906585f);
+        em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.034906585f);
         if (w->routeAngAbs < 0.08726646f) {
             v.x = 0.0f;
             v.y = 0.0f;
@@ -705,7 +705,7 @@ static void em3a_R1_Chase(cEm3a* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -726,9 +726,9 @@ static void em3a_R1_Fix(cEm3a* em)
     } else {
         t = 0;
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        switch (em->xFF) {
+        switch (em->r_no_3) {
         case 0:
         default:
             w->spd.x = 0.0f;
@@ -758,7 +758,7 @@ static void em3a_R1_Fix(cEm3a* em)
         }
         t = 20;
         w->timer = t;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         PSMTXMultVecSR(em->mat, &w->spd, &v);
         PSVECAdd(&em->pos, &v, &em->pos);
@@ -774,7 +774,7 @@ static void em3a_R1_Fix(cEm3a* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -785,14 +785,14 @@ static void em3a_R1_FixAtk(cEm3a* em)
     Em3aWork* w = EM3A_WK(em);
     f32 ang;
 
-    if (em->xFE == 0 && (w->flags & 2)) {
-        em->xFE = 2;
+    if (em->r_no_2 == 0 && (w->flags & 2)) {
+        em->r_no_2 = 2;
     }
     SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(7), 0, 0, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em3aFixMove(em, w);
         if (w->flags & 1) {
@@ -800,17 +800,17 @@ static void em3a_R1_FixAtk(cEm3a* em)
         }
         if (MotionMoveF(em, 0)) {
             w->flags |= 2;
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
         em3aSetAtkTimer(w);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         em3aFixMove(em, w);
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, 0.034906585f);
-        FSet(em->rot.y, LIMIT_ANGLE(em->rot.y));
-        ang = fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI));
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.034906585f);
+        FSet(em->ang.y, LIMIT_ANGLE(em->ang.y));
+        ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
         if (fabsf(em->pos.y - pPL->pos.y) > 5000.0f) {
             break;
         }
@@ -833,15 +833,15 @@ static void em3a_R1_FixAtk(cEm3a* em)
             }
         } else if (em3aBossCk(em) == 0) {
             if (em->type == 1) {
-                em->xFE = 6;
+                em->r_no_2 = 6;
             } else {
-                em->xFE++;
+                em->r_no_2++;
             }
         }
         break;
     case 4:
         w->timer = 90;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         em3aFixMove(em, w);
         em3aTurnToPL(em, 0.034906585f);
@@ -863,12 +863,12 @@ static void em3a_R1_FixAtk(cEm3a* em)
             }
         } else {
             w->atkWait = 60;
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         break;
     case 6:
         w->timer = 30;
-        em->xFE++;
+        em->r_no_2++;
     case 7:
         em3aFixMove(em, w);
         em3aTurnToPL(em, 0.034906585f);
@@ -877,13 +877,13 @@ static void em3a_R1_FixAtk(cEm3a* em)
         } else {
             em3aRocketFire(em);
             w->atkWait = 60;
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         break;
     case 8:
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 1, 0);
         w->flags &= ~2;
-        em->xFE++;
+        em->r_no_2++;
     case 9:
         em3aFixMove(em, w);
         if (w->flags & 1) {
@@ -891,11 +891,11 @@ static void em3a_R1_FixAtk(cEm3a* em)
         }
         if (MotionMoveF(em, 0)) {
             w->atkWait = 60;
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -905,7 +905,7 @@ static void em3a_R1_Die(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         EmSetDie(em);
         EmSetDieCntE(em);
@@ -918,10 +918,10 @@ static void em3a_R1_Die(cEm3a* em)
         if (em->type == 2) {
             PlWepHitCheck2(0, &em->pos, &em->pos, 0x13, 3, 4000.0f);
         }
-        em->setStatus(5);
+        em->setStatus(EM_STATUS_ACTIVE);
         em->be_flag &= ~2;
         AtariOff(&em->atari, 0xFCFF);
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -930,16 +930,16 @@ static void em3a_R1_B_HideWait(cEm3a* em)
     Em3aWork* w = EM3A_WK(em);
 
     w->flags |= 8;
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         AtariOff(&em->atari, 0xFCFF);
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 3, 5, 0);
         w->flags &= ~1;
         w->timer = 30;
         w->turnDir = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        if (em->xFF) {
+        if (em->r_no_3) {
             MotionMoveF(em, 0);
             break;
         }
@@ -947,11 +947,11 @@ static void em3a_R1_B_HideWait(cEm3a* em)
             // LIMIT_ANGLE written in both arms: the tails are cross-jumped after reload, while
             // a shared statement makes `ry` a global pseudo and swaps the f0/f13 temps.
             if (w->turnDir & 1) {
-                em->rot.y += 0.02617994f;
-                em->rot.y = LIMIT_ANGLE(em->rot.y);
+                em->ang.y += 0.02617994f;
+                em->ang.y = LIMIT_ANGLE(em->ang.y);
             } else {
-                em->rot.y -= 0.02617994f;
-                em->rot.y = LIMIT_ANGLE(em->rot.y);
+                em->ang.y -= 0.02617994f;
+                em->ang.y = LIMIT_ANGLE(em->ang.y);
             }
         }
         if (w->timer) {
@@ -970,8 +970,8 @@ static void em3a_R1_B_HideWait(cEm3a* em)
         MotionMoveF(em, 0);
         break;
     }
-    if (em->xFF) {
-        if (em->flags_3C8 & 1) {
+    if (em->r_no_3) {
+        if (em->flag & 1) {
             w->flags |= 1;
         }
     } else if (em3aFindPLCk(em)) {
@@ -989,17 +989,17 @@ static void em3a_R1_B_Hide(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         AtariOff(&em->atari, 0xFCFF);
         MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
-        SndCall(8, 5, &em->getPartsPtr(0xA)->worldPos, em->id, 0, em);
+        SndCall(8, 5, &em->getPartsPtr(0xA)->world, em->id, 0, em);
         EffectEspDelete(1, w->espKind, (u32) em, 0);
         EffectEspgenDelete(1, w->espKind, (int) em);
         EffectEfmDelete(1, w->espKind, (int) em);
         EstSet((int) em, -1, 0, 0, 2, 0xA, 1, w->espKind, (u32) em, 0);
         EstSet((int) em, -1, 0, 0, 2, 0xC, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 6, 0, 0);
@@ -1012,13 +1012,13 @@ static void em3a_R1_B_Appear(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         AtariOn(&em->atari, 0x300);
         MotionSetCore(em, MOTION(em), ARC(0x13), 0, 3, 1, 0);
-        SndCall(8, 5, &em->getPartsPtr(0xA)->worldPos, em->id, 0, em);
+        SndCall(8, 5, &em->getPartsPtr(0xA)->world, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 2, 0xD, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             w->lostCnt = 0;
@@ -1032,16 +1032,16 @@ static void em3a_R1_B_Wait(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         AtariOn(&em->atari, 0x300);
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 3, 5, 0);
         w->flags &= ~1;
         w->turnDir = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -1051,10 +1051,10 @@ static void em3a_R1_B_Wait(cEm3a* em)
             MotionSetCore(em, MOTION(em), ARC(0x10), 0, 3, 1, 0);
         }
         w->timer = Rnd() % 3 + 2;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -1075,19 +1075,19 @@ static void em3a_R1_B_Move(cEm3a* em)
     int lim;
 
     RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0);
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0xF), 5, 5, 0);
         w->timer = Rnd() % 3 + 2;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->routePos, em->rot.y, 0.05235988f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.05235988f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
             if (w->timer == 0) {
-                em->xFE = 4;
+                em->r_no_2 = 4;
                 break;
             }
             w->timer--;
@@ -1097,7 +1097,7 @@ static void em3a_R1_B_Move(cEm3a* em)
             break;
         }
         if (w->routeAngAbs > 0.5235988f) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
         }
         break;
     case 2:
@@ -1107,29 +1107,29 @@ static void em3a_R1_B_Move(cEm3a* em)
             MotionSetCore(em, MOTION(em), ARC(0x10), 0, 5, 1, 0);
         }
         w->timer = Rnd() % 3 + 2;
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
             if (w->routeAngAbs < 0.5235988f) {
-                em->xFE = 0;
+                em->r_no_2 = 0;
             } else {
-                em->xFE = 2;
+                em->r_no_2 = 2;
             }
         }
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0xA, 5, 0);
         w->timer = Rnd() % 60 + 60;
-        em->xFE++;
+        em->r_no_2++;
     case 5:
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
             break;
         }
         w->timer--;
         if (w->routeAngAbs > 1.0471976f) {
-            em->xFE = 2;
+            em->r_no_2 = 2;
             break;
         }
         if (w->lostCnt > 89) {
@@ -1147,7 +1147,7 @@ static void em3a_R1_B_Move(cEm3a* em)
             SndCall(8, 3, &em->pos, em->id, 0, em);
             EstSet((int) em, -1, 0, 0, 2, 0x12, 0, 0, (u32) em, 0);
         }
-        rank = pG->x4F88;
+        rank = pG->Game_level;
         lim = 76;
         if (rank <= 3) {
             lim = 91;
@@ -1182,14 +1182,14 @@ static void em3a_R1_B_Die(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
         EstSet((int) em, -1, 0, 0, 2, 0xF, 0, 0, (u32) em, 0);
-        SndCall(8, 7, &em->getPartsPtr(0xA)->worldPos, em->id, 0, em);
+        SndCall(8, 7, &em->getPartsPtr(0xA)->world, em->id, 0, em);
         em->hp = 0;
         w->timer = 50;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (w->timer) {
@@ -1205,18 +1205,18 @@ static void em3a_R1_B_AppearDie(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         Vec* wp;
 
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 3, 1, 0);
         EstSet((int) em, -1, 0, 0, 2, 0xE, 0, 0, (u32) em, 0);
-        wp = &em->getPartsPtr(0xA)->worldPos;
+        wp = &em->getPartsPtr(0xA)->world;
         SndCall(8, 5, wp, em->id, 0, em);
         SndCall(8, 7, wp, em->id, 0, em);
         em->hp = 0;
         w->timer = 50;
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         MotionMoveF(em, 0);
@@ -1233,7 +1233,7 @@ static void em3a_R1_B_Bomb(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         Vec p;
 
         em->hp = 0;
@@ -1245,15 +1245,15 @@ static void em3a_R1_B_Bomb(cEm3a* em)
         EstSet((int) em, -1, 0, 0, 2, 0x10, 0, 0, (u32) em, 0);
         SndStop(w->sndId, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         p = em->pos;
         p.y += 250.0f;
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 3000.0f);
         em->be_flag &= ~2;
         AtariOff(&em->atari, 0xFCFF);
-        em->xFE++;
+        em->r_no_2++;
     }
 }
 
@@ -1284,7 +1284,7 @@ void em3aGunMove(cEm3a* em)
         t.y += 1300.0f;
         em->getPartsPtr(0);
         p = em->getPartsPtr(9);
-        PSVECSubtract(&t, &p->worldPos, &d);
+        PSVECSubtract(&t, &p->world, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
         ang = -atan2f(d.y, len);
         if (ang < -0.2617994f) {
@@ -1293,8 +1293,8 @@ void em3aGunMove(cEm3a* em)
         if (ang > 0.7853982f) {
             ang = 0.7853982f;
         }
-        p->rot.x += Muku2(p->rot.x, ang + 1.5707964f, 0.024543693f);
-        p->rot.x = LIMIT_ANGLE(p->rot.x);
+        p->ang.x += Muku2(p->ang.x, ang + 1.5707964f, 0.024543693f);
+        p->ang.x = LIMIT_ANGLE(p->ang.x);
     }
 }
 
@@ -1320,14 +1320,14 @@ void em3aPatrolInit(cEm3a* em)
     u32 i;
 
     w->pRoute = 0;
-    if (GRef(pG)->pRoomEmi == 0) {
+    if (GRef(pG)->pEmi == 0) {
         return;
     }
-    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
         u32 o = i * 0x40 + 8;
-        EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == 0) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
             EmiSet(w->pRoute, e);
             return;
         }
@@ -1340,7 +1340,7 @@ int em3aPatrolUpdate(cEm3a* em)
     EmiData* emi;
     u32 i;
 
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (EmiData*) pG->pEmi;
     if (emi == 0) {
         return 0;
     }
@@ -1355,15 +1355,15 @@ int em3aPatrolUpdate(cEm3a* em)
     for (i = 0; i < emi->n; i++) {
         EmiEntry* e = &emi->entry[i];
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == w->pRoute->pad_3 + 1) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == w->pRoute->pad_3 + 1) {
             w->pRoute = e;
             return 1;
         }
     }
-    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[i];
+    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+        EmiEntry* e = &((EmiData*) pG->pEmi)->entry[i];
 
-        if (e->type == 0x13 && e->state != 0 && e->state == em->x3D0 && e->pad_3 == 0) {
+        if (e->type == 0x13 && e->state != 0 && e->state == em->Character && e->pad_3 == 0) {
             w->pRoute = e;
             return 1;
         }
@@ -1377,11 +1377,11 @@ void em3aFanMove(cEm3a* em)
         cModel* p;
 
         p = em->getPartsPtr(5);
-        p->rot.y += 0.5235988f;
-        p->rot.y = LIMIT_ANGLE(p->rot.y);
+        p->ang.y += 0.5235988f;
+        p->ang.y = LIMIT_ANGLE(p->ang.y);
         p = em->getPartsPtr(7);
-        p->rot.y += 0.5235988f;
-        p->rot.y = LIMIT_ANGLE(p->rot.y);
+        p->ang.y += 0.5235988f;
+        p->ang.y = LIMIT_ANGLE(p->ang.y);
     }
 }
 
@@ -1402,7 +1402,7 @@ int em3aFindPLCk(cEm3a* em)
     } else {
         range = 15000.0f;
     }
-    ang = fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI));
+    ang = fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI));
     if (ang < 0.5235988f && em->plDist2 < range * range) {
         cModel* p;
         Vec a;
@@ -1413,7 +1413,7 @@ int em3aFindPLCk(cEm3a* em)
         } else {
             p = em->getPartsPtr(0);
         }
-        a = p->worldPos;
+        a = p->world;
         b = pPLS->pos;
         b.y += 1000.0f;
         if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
@@ -1426,10 +1426,10 @@ int em3aFindPLCk(cEm3a* em)
     if (em3aDeadCk(em)) {
         return 1;
     }
-    if ((pG->flags_500C & 0x00800000) && em->plDist2 < 225000000.0f) {
+    if ((pG->Status_flg[0] & 0x00800000) && em->plDist2 < 225000000.0f) {
         return 1;
     }
-    if ((pG->flags_5010 & 0x20000000) && pG->bell_stat == 2) {
+    if ((pG->Status_flg[1] & 0x20000000) && pG->bell_stat == 2) {
         if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x)
                 + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
                 + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
@@ -1543,7 +1543,7 @@ int em3aBossCk(cEm3a* em)
             if (lp.x > -4000.0f && lp.x < 4000.0f && lp.z > 0.0f && lp.z < 30000.0f) {
                 return 1;
             }
-            if (fabsf(Muku(&em->pos, &e->pos, em->rot.y, PI)) < 0.7853982f && lp.z > 0.0f && lp.z < 15000.0f) {
+            if (fabsf(Muku(&em->pos, &e->pos, em->ang.y, PI)) < 0.7853982f && lp.z > 0.0f && lp.z < 15000.0f) {
                 return 1;
             }
         }

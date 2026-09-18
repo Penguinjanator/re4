@@ -82,7 +82,7 @@ void R305Init()
     } else {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        PSet(r305_work->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zero, &zero, 2));
+        PSet(r305_work->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 2));
         if (r305_work->em[0].setEm(0x2A, 6, 0, 1, 0)) {
             r305_work->em[0].getPos(&r305_work->pos[0]);
             r305_work->em[0].getAng(&r305_work->ang[0]);
@@ -275,8 +275,8 @@ void cR305Shutter::init()
         BitOn(obj->be_flag, 0x20);
         basePos = obj->pos;
         height = 2700.0f;
-        sat = SatMgr.create(ROOM_ARC_PTR(pGS->pRoomArc, 5), 0, &zero, &zero, 1);
-        eat = EatMgr.create(ROOM_ARC_PTR(pGS->pRoomArc, 0x12), 0, &zero, &zero, 1);
+        sat = SatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 5), 0, &zero, &zero, 1);
+        eat = EatMgr.create(ROOM_ARC_PTR(pGS->pRoom, 0x12), 0, &zero, &zero, 1);
         SceAtSetEnable(4, 1);
         enable = on;
     }
@@ -304,8 +304,8 @@ void cR305Shutter::open()
         obj->pos.y += 200.0f;
         if (obj->pos.y > basePos.y + height) {
             obj->pos.y = basePos.y + height;
-            sat->flags &= ~4;
-            eat->flags &= ~4;
+            sat->m_Flag &= ~4;
+            eat->m_Flag &= ~4;
             SceAtSetEnable(4, 0);
             shakeCnt = 5;
             step++;
@@ -332,8 +332,8 @@ void cR305Shutter::close()
 {
     switch (step) {
     case 0:
-        sat->flags |= 4;
-        eat->flags |= 4;
+        sat->m_Flag |= 4;
+        eat->m_Flag |= 4;
         SceAtSetEnable(4, 1);
         spd = -40.0f;
         SndStop(se, 0);
@@ -429,8 +429,8 @@ void cR305Shutter::setOpened()
     if (enable) {
         status = 1;
         obj->pos.y = basePos.y + height;
-        sat->flags &= ~4;
-        eat->flags &= ~4;
+        sat->m_Flag &= ~4;
+        eat->m_Flag &= ~4;
         SceAtSetEnable(4, 0);
         mode = 0;
         step = 0;

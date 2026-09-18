@@ -155,7 +155,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (p->flags & 0x4000) {
         *pos = p->pos;
         dir->x = 0.0f;
-        dir->y = GetXZAngle(pos, &em->x328);
+        dir->y = GetXZAngle(pos, &em->dmPos);
         dir->z = 0.0f;
         return 1;
     }
@@ -193,7 +193,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
     if (PSMTXInverse(m, inv) == 0) {
         PSMTXIdentity(inv);
     }
-    PSMTXMultVec(inv, &em->x328, &v);
+    PSMTXMultVec(inv, &em->dmPos, &v);
     switch (type) {
     case 0:
         d.x = 0.0f;
@@ -255,7 +255,7 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
         break;
     }
     dir->x = 0.0f;
-    dir->y = GetXZAngle(&c, &em->x328);
+    dir->y = GetXZAngle(&c, &em->dmPos);
     dir->z = 0.0f;
     return 1;
 }
@@ -326,7 +326,7 @@ void EmDmBloodSet(cEm* em)
 }
 
 // Effect `no` at the damage position (scattered by 50 when `rnd` is set), owned by `em`.
-void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int e, int f)
+void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
 {
     Vec pos;
     Vec dir;
@@ -339,11 +339,11 @@ void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int e, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &dir, no, prm, e, f, (u32) em, 0);
+    EstSetB(0, -1, &pos, &dir, no, prm, esp_core_flg, f, (u32) em, 0);
 }
 
 // EmDmBloodSet2 with the effect aligned to the enemy's rotation instead of the damage direction.
-void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int e, int f)
+void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
 {
     Vec pos;
     Vec dir;
@@ -356,11 +356,11 @@ void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int e, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &em->rot, no, prm, e, f, (u32) em, 0);
+    EstSetB(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, (u32) em, 0);
 }
 
 // Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
-void EmPlBloodSet(cEm* em, Vec* pos, int type, int a, int b)
+void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 {
     cPlayer* pl = pPL;
     EmHitInfo* hit = &pl->hitInfo;
@@ -374,7 +374,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int a, int b)
     f32 mag;
 
     parts = pl->getPartsPtr(0);
-    p = parts->worldPos;
+    p = parts->world;
     h = pos->y - p.y;
     if (h > hit->height * 0.5f) {
         h = hit->height * 0.5f;
@@ -398,7 +398,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int a, int b)
     q.y = fRand1_1() * 50.0f + q.y;
     q.x = fRand1_1() * 50.0f + q.x;
     PSMTXMultVec(m, &q, &q);
-    if (a == 0xFF || b == 0xFF) {
+    if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
             EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
         } else {
@@ -406,12 +406,12 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int a, int b)
             EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
         }
     } else {
-        EstSet(0, -1, &q, &rot, a, b, 0, 0, 0, 0);
+        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, 0, 0, 0);
     }
 }
 
 // Blood at the player's registered damage position.
-void EmPlBloodSet2(cModel* m, Vec* p, int type, int a, int b)
+void EmPlBloodSet2(cModel* m, Vec* p, int type, int eff_id, int est_id)
 {
     Vec pos;
     Vec dir;
@@ -419,7 +419,7 @@ void EmPlBloodSet2(cModel* m, Vec* p, int type, int a, int b)
     if (EmGetDmPos(pPL, &pos, &dir) == 0) {
         return;
     }
-    if (a == 0xFF || b == 0xFF) {
+    if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
             EstSet(0, -1, &pos, &dir, 0, 0, 0, 0, 0, 0);
         } else {
@@ -427,12 +427,12 @@ void EmPlBloodSet2(cModel* m, Vec* p, int type, int a, int b)
             EstSet(0, -1, &pos, &dir, 0, 2, 0, 0, 0, 0);
         }
     } else {
-        EstSet(0, -1, &pos, &dir, a, b, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &dir, eff_id, est_id, 0, 0, 0, 0);
     }
 }
 
 // EmPlBloodSet for the partner.
-void EmSubBloodSet(cEm* em, Vec* pos, int type, int a, int b)
+void EmSubBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
 {
     cSubChar* sub = pSUB;
     EmHitInfo* hit;
@@ -465,7 +465,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, int type, int a, int b)
     q.y = h;
     q.z = hit->width * 0.5f;
     PSMTXMultVec(m, &q, &q);
-    if (a == 0xFF || b == 0xFF) {
+    if (eff_id == 0xFF || est_id == 0xFF) {
         if (type != 1) {
             EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
         } else {
@@ -473,7 +473,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, int type, int a, int b)
             EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
         }
     } else {
-        EstSet(0, -1, &q, &rot, a, b, 0, 0, 0, 0);
+        EstSet(0, -1, &q, &rot, eff_id, est_id, 0, 0, 0, 0);
     }
 }
 
@@ -581,7 +581,7 @@ EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
 
 // Hit boxes of `em` crossed by the line a-b (within `len` squared of `a`): the nearest one, with
 // pos = hit point, rad = squared distance a -> hit, dist = squared distance hit -> a.
-EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
+EmHitInfo* emLineAtCk(cEm* em, Vec* pPos, Vec* pPos2, f32 len, int flag)
 {
     Vec top;
     Vec bottom;
@@ -604,7 +604,7 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(a, b, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
                 continue;
             }
         } else {
@@ -628,16 +628,16 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(a, b, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
                 continue;
             }
         }
-        PSVECSubtract(a, &hit, &s);
+        PSVECSubtract(pPos, &hit, &s);
         d2 = s.x * s.x + s.y * s.y + s.z * s.z;
         if (d2 > best) {
             continue;
         }
-        PSVECSubtract(&hit, a, &s);
+        PSVECSubtract(&hit, pPos, &s);
         p->rad = s.x * s.x + s.y * s.y + s.z * s.z;
         p->dist = d2;
         p->pos = hit;
@@ -648,7 +648,7 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
 }
 
 // emLineAtCk sorted by the XZ distance only, hit point returned in `out`.
-EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, f32 len, Vec* out, int flag)
+EmHitInfo* emLineAtCk2(cEm* em, Vec* pPos, Vec* pPos2, f32 len, Vec* out, int flag)
 {
     Vec top;
     Vec bottom;
@@ -671,7 +671,7 @@ EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, f32 len, Vec* out, int flag)
         }
         parts = HitParts(em, p);
         if (p->flags & 8) {
-            if (emLineCubeCrossCk(a, b, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+            if (emLineCubeCrossCk(pPos, pPos2, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
                 continue;
             }
         } else {
@@ -695,11 +695,11 @@ EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, f32 len, Vec* out, int flag)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             r = PSVECMag(&s);
-            if (emLineCapsuleCrossCk(a, b, &top, &bottom, r, &hit) == 0) {
+            if (emLineCapsuleCrossCk(pPos, pPos2, &top, &bottom, r, &hit) == 0) {
                 continue;
             }
         }
-        PSVECSubtract(a, &hit, &s);
+        PSVECSubtract(pPos, &hit, &s);
         d2 = s.x * s.x + s.z * s.z;
         if (d2 > best) {
             continue;
@@ -930,7 +930,7 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, V
 }
 
 // Segment a-b (a on the front side) against the quad poly[4]: 1 with the crossing point in `hit`.
-int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
+int emLinePolyCrossCk(Vec* pPos, Vec* pPos2, Vec* poly, Vec* hit)
 {
     Vec e1;
     Vec e2;
@@ -949,19 +949,19 @@ int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
     }
 #line 1552
     VECNormalize(&n, &n);
-    da = PSVECDotProduct(&n, a) - PSVECDotProduct(&n, &poly[0]);
+    da = PSVECDotProduct(&n, pPos) - PSVECDotProduct(&n, &poly[0]);
     if (da <= 0.0f) {
         return 0;
     }
-    db = PSVECDotProduct(&n, b) - PSVECDotProduct(&n, &poly[0]);
+    db = PSVECDotProduct(&n, pPos2) - PSVECDotProduct(&n, &poly[0]);
     if (db >= 0.0f) {
         return 0;
     }
     db = fabsf(db);
     t = db / (da + db);
-    PSVECSubtract(a, b, &p);
+    PSVECSubtract(pPos, pPos2, &p);
     PSVECScale(&p, &p, t);
-    PSVECAdd(&p, b, &p);
+    PSVECAdd(&p, pPos2, &p);
     PSVECSubtract(&p, &poly[1], &e1);
     PSVECSubtract(&poly[0], &poly[1], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
@@ -1262,7 +1262,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         nrm->y = 0.0f;
         nrm->z = 0.0f;
     }
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_line3d(p0, hit, 0xFFFFFFFF, 0);
     }
     PSVECSubtract(p1, p0, &d);
@@ -1303,7 +1303,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -1387,7 +1387,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -1484,7 +1484,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
         PlBombHitCk(pos, r);
         break;
     }
-    if (pG->flags_60 & 0x1000) {
+    if (pG->Debug_flg[0] & 0x1000) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
     cnt = 0;
@@ -1643,9 +1643,9 @@ int PlBombHitCk(Vec* pos, f32 r)
         return 0;
     }
     parts = pPL->getPartsPtr(0);
-    d2 = (pos->x - parts->worldPos.x) * (pos->x - parts->worldPos.x) +
-         (pos->y - parts->worldPos.y) * (pos->y - parts->worldPos.y) +
-         (pos->z - parts->worldPos.z) * (pos->z - parts->worldPos.z);
+    d2 = (pos->x - parts->world.x) * (pos->x - parts->world.x) +
+         (pos->y - parts->world.y) * (pos->y - parts->world.y) +
+         (pos->z - parts->world.z) * (pos->z - parts->world.z);
     if (d2 > 36000000.0f) {
         return 0;
     }
@@ -1661,7 +1661,7 @@ int PlBombHitCk(Vec* pos, f32 r)
         PlSetDamage(9, 0, 0);
         return 1;
     }
-    if (EatMgr.hitCheck(pos, &parts->worldPos, 0, 0, 0, 0x400000) != 0) {
+    if (EatMgr.hitCheck(pos, &parts->world, 0, 0, 0, 0x400000) != 0) {
         return 0;
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
@@ -1672,7 +1672,7 @@ int PlBombHitCk(Vec* pos, f32 r)
 
 // Point the weapon line p0-p1 hits: the scenario (1), an enemy (2, 3 with flag 0x40) or nothing (0);
 // p1 is moved to the hit point.
-int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* outAttr)
+int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, int* outAttr)
 {
     Mtx m;
     Vec hit;
@@ -1692,24 +1692,24 @@ int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* 
     if (outEm) {
         *outEm = 0;
     }
-    attr = EatMgr.hitCheck(p0, p1, &hit, 0, 0, 0x400000);
+    attr = EatMgr.hitCheck(pPos, pPos2, &hit, 0, 0, 0x400000);
     if (attr) {
         ret = 1;
         if (outAttr) {
             *outAttr = attr;
         }
     } else {
-        hit = *p1;
+        hit = *pPos2;
     }
-    dist = (p0->x - hit.x) * (p0->x - hit.x) + (p0->y - hit.y) * (p0->y - hit.y) + (p0->z - hit.z) * (p0->z - hit.z);
+    dist = (pPos->x - hit.x) * (pPos->x - hit.x) + (pPos->y - hit.y) * (pPos->y - hit.y) + (pPos->z - hit.z) * (pPos->z - hit.z);
     len = dist;
-    PSVECSubtract(p1, p0, &d);
+    PSVECSubtract(pPos2, pPos, &d);
     if (d.x == d.z) {
         PSMTXIdentity(m);
     } else {
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     }
-    TransMatrix(m, p0);
+    TransMatrix(m, pPos);
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
@@ -1747,7 +1747,7 @@ int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* 
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -1762,11 +1762,11 @@ int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* 
             }
             break;
         }
-        part = emLineAtCk2(em, p0, p1, len, &h2, 0);
+        part = emLineAtCk2(em, pPos, pPos2, len, &h2, 0);
         if (part == 0) {
             continue;
         }
-        e2 = (p0->x - h2.x) * (p0->x - h2.x) + (p0->y - h2.y) * (p0->y - h2.y) + (p0->z - h2.z) * (p0->z - h2.z);
+        e2 = (pPos->x - h2.x) * (pPos->x - h2.x) + (pPos->y - h2.y) * (pPos->y - h2.y) + (pPos->z - h2.z) * (pPos->z - h2.z);
         if (e2 > dist) {
             continue;
         }
@@ -1780,7 +1780,7 @@ int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* 
             ret = 3;
         }
     }
-    *p1 = hit;
+    *pPos2 = hit;
     return ret;
 }
 
@@ -1883,7 +1883,7 @@ void EmYarareDisp(cEm* em)
     cModel* parts;
     u32 color;
 
-    if (!(pG->flags_60 & 0x1000)) {
+    if (!(pG->Debug_flg[0] & 0x1000)) {
         return;
     }
     for (p = &em->hitInfo; p != 0; p = p->next) {
@@ -1966,19 +1966,19 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life <= 0) {
             return 0;
         }
-        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        rate = (f32) pG->Game_level * 0.1f + 0.5f;
         if (PlIsArmor()) {
             rate *= 0.7f;
         }
         dmg = (int) ((f32) dmg * rate);
         if (dmg > 100) {
             if (dmg > 500) {
-                GameAddPoint(3);
+                GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
-                GameAddPoint(2);
+                GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
-        if (pG->x4F88 <= 2 && (s16) pG->pl_life > 300) {
+        if (pG->Game_level <= 2 && (s16) pG->pl_life > 300) {
             flag |= 1;
         }
         if ((s16) pG->pl_life > 300 && (Rnd() & 3) == 0) {
@@ -1996,47 +1996,47 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 HSet(pG->pl_life, 0);
             }
         }
-        if (pG->flags_68 & 0x800000) {
+        if (pG->Debug_flg[2] & 0x800000) {
             HSet(pG->pl_life, pG->pl_life_max);
         }
-        if ((pG->flags_6C & 0x400) && (s16) pG->pl_life <= 1) {
+        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->pl_life <= 1) {
             HSet(pG->pl_life, 2);
         }
         ret = (s16) pG->pl_life;
     } else if (em->id <= 0xD) {
-        if ((s16) pG->sub_life <= 0) {
+        if ((s16) pG->ashley_life <= 0) {
             return 0;
         }
-        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        rate = (f32) pG->Game_level * 0.1f + 0.5f;
         dmg = (int) ((f32) dmg * rate);
         if (dmg > 100) {
             if (dmg > 500) {
-                GameAddPoint(3);
+                GameAddPoint(LVADD_PL_BIG_DAMAGE);
             } else {
-                GameAddPoint(2);
+                GameAddPoint(LVADD_PL_DAMAGE);
             }
         }
-        if ((s16) pG->sub_life < dmg) {
-            dmg = (s16) pG->sub_life;
+        if ((s16) pG->ashley_life < dmg) {
+            dmg = (s16) pG->ashley_life;
         }
-        HSet(pG->sub_life, pG->sub_life - dmg);
-        if ((s16) pG->sub_life <= 0) {
+        HSet(pG->ashley_life, pG->ashley_life - dmg);
+        if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
-                HSet(pG->sub_life, 1);
+                HSet(pG->ashley_life, 1);
             }
-            if ((s16) pG->sub_life < 0) {
-                HSet(pG->sub_life, 0);
+            if ((s16) pG->ashley_life < 0) {
+                HSet(pG->ashley_life, 0);
             }
         }
-        if (pG->flags_68 & 0x800000) {
-            HSet(pG->sub_life, pG->sub_life_max);
+        if (pG->Debug_flg[2] & 0x800000) {
+            HSet(pG->ashley_life, pG->ashley_life_max);
         }
-        if ((pG->flags_6C & 0x400) && (s16) pG->sub_life <= 1) {
-            HSet(pG->sub_life, 2);
+        if ((pG->Debug_flg[3] & 0x400) && (s16) pG->ashley_life <= 1) {
+            HSet(pG->ashley_life, 2);
         }
-        ret = (s16) pG->sub_life;
+        ret = (s16) pG->ashley_life;
     } else {
-        if (pG->flags_68 & 0x20000) {
+        if (pG->Debug_flg[2] & 0x20000) {
             return em->hp;
         }
         if (em->hp <= 0) {
@@ -2051,18 +2051,18 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         case 0x34: case 0x35:
         case 0x37: case 0x38: case 0x39: case 0x3A:
         case 0x3C:
-            if (pG->x4F88 > 5) {
-                rate = 1.0f - (f32) (int) (pG->x4F88 - 5) * 0.03f;
+            if (pG->Game_level > 5) {
+                rate = 1.0f - (f32) (int) (pG->Game_level - 5) * 0.03f;
             } else {
-                rate = 2.0f - (f32) pG->x4F88 * 0.2f;
+                rate = 2.0f - (f32) pG->Game_level * 0.2f;
             }
             dmg = (int) ((f32) dmg * rate);
             if (em->id >= 0x10 && em->id <= 0x3F && dmg > 100) {
-                GameAddPoint(0xC);
+                GameAddPoint(LVADD_EM_DAMAGE);
             }
             break;
         }
-        if (pG->flags_68 & 0x2000) {
+        if (pG->Debug_flg[2] & 0x2000) {
             dmg = em->hp;
         }
         if (em->hp < dmg) {
@@ -2074,7 +2074,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         }
         ret = em->hp;
         if (ret <= 0 && (u32) (em->id - 0x10) <= 0x2F) {
-            GameAddPoint(0xD);
+            GameAddPoint(LVADD_EM_DIE);
         }
     }
     return ret;
@@ -2093,7 +2093,7 @@ void PlSetDamage(int type, int dmg, int flag)
         if (type == 8) {
             type = 7;
         }
-        if (pG->flags_68 & 0x800000) {
+        if (pG->Debug_flg[2] & 0x800000) {
             HSet(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
@@ -2103,7 +2103,7 @@ void PlSetDamage(int type, int dmg, int flag)
             }
         }
     }
-    if ((s16) pG->pl_life <= 1 && (pG->flags_6C & 0x400)) {
+    if ((s16) pG->pl_life <= 1 && (pG->Debug_flg[3] & 0x400)) {
         HSet(pG->pl_life, 2);
         if (type == 6) {
             type = 2;
@@ -2118,10 +2118,10 @@ void PlSetDamage(int type, int dmg, int flag)
         pG->pl_life = 0;
         pPLS->st.x325 = 0x80;
         p = pPL;
-        p->xFC = 2;
-        p->xFD = 0;
-        p->xFE = 0;
-        p->xFF = 0;
+        p->r_no_0 = 2;
+        p->r_no_1 = 0;
+        p->r_no_2 = 0;
+        p->r_no_3 = 0;
     } else {
         pPL->setDamage((u8) type, 0, 123.0f, 0, 0xFF);
     }
@@ -2135,21 +2135,21 @@ static void EmSubDead0(f32* p)
 
 // Attack sphere of `info` at a (from b) against the player (and the partner unless noSub):
 // bit0 player hit, bit1 partner hit.
-int EmAtkHitCk(EmAtkInfo* info, Vec* a, Vec* b, int noSub)
+int EmAtkHitCk(EmAtkInfo* info, Vec* pPos, Vec* pPosOld, int noSub)
 {
     int ret = 0;
     int hit;
     int keep;
     EmHitInfo* part;
 
-    hit = EmAtkHitCk2(info, a, b);
+    hit = EmAtkHitCk2(info, pPos, pPosOld);
     if (hit) {
         keep = 0;
-        if (info->x0A & 4) {
+        if (info->flag & 4) {
             keep = 1;
         }
         LifeDownSet2(pPL, info->dmg, 0, keep);
-        if (info->x0A & 8) {
+        if (info->flag & 8) {
             pG->pl_life = 0;
         }
         PlSetDamage(hit - 1, 0, 0);
@@ -2158,9 +2158,9 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* a, Vec* b, int noSub)
     if (noSub) {
         return ret;
     }
-    part = EmAtkHitSubCk2(info, a, b);
+    part = EmAtkHitSubCk2(info, pPos, pPosOld);
     if (part) {
-        pSUB->dmg.set(0, 10, 0x18, b, part->rad, part);
+        pSUB->dmg.set(0, 10, 0x18, pPosOld, part->rad, part);
         ret |= 2;
     }
     return ret;
@@ -2168,7 +2168,7 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* a, Vec* b, int noSub)
 
 // Attack sphere against the player: 0 = miss, else the damage motion type + 1 (front/back, and the
 // height: 4 low, 2 middle).
-int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
+int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
 {
     Vec d;
     Vec fwd;
@@ -2177,8 +2177,8 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
     int ret;
     f32 dy;
 
-    if (pG->flags_60 & 0x1000) {
-        Draw_sphere(a, info->range, 0xFFFF00FF, 1, 1);
+    if (pG->Debug_flg[0] & 0x1000) {
+        Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if ((s16) pG->pl_life <= 0) {
         return 0;
@@ -2187,26 +2187,26 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
         return 0;
     }
     parts = pPL->getPartsPtr(0);
-    if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
+    if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pPL, a, b, info->range, 0x18, info->range);
+    part = emSphereAtCk(pPL, pPos, pPosOld, info->range, 0x18, info->range);
     if (part == 0) {
         return 0;
     }
     MaskAnd16(part->flags, 0xBFFF);
     PSet(pPL->dmPart, part);
-    if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
-        PSVECSubtract(&pPL->pos, a, &d);
+    if ((pPos->x - pPosOld->x) * (pPos->x - pPosOld->x) + (pPos->z - pPosOld->z) * (pPos->z - pPosOld->z) < 10000.0f) {
+        PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
-        PSVECSubtract(a, b, &d);
+        PSVECSubtract(pPos, pPosOld, &d);
     }
     fwd.x = 0.0f;
     fwd.y = 0.0f;
     fwd.z = 1.0f;
-    RotVector(&fwd, &pPL->rot, &fwd);
+    RotVector(&fwd, &pPL->ang, &fwd);
     ret = PSVECDotProduct(&fwd, &d) >= 0.0f;
-    dy = a->y - pPL->pos.y;
+    dy = pPos->y - pPL->pos.y;
     if (dy < 800.0f) {
         ret += 4;
     } else if (dy < 1300.0f) {
@@ -2217,7 +2217,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
 
 // Line a-b against the scenario and the player's hit boxes: the hit box (as the emhit.h cEm* view),
 // with the scenario hit in `hit` / `nrm` / `attr`.
-cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
+cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
 {
     Mtx m;
     Vec d;
@@ -2227,11 +2227,11 @@ cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
     int at;
     f32 len;
 
-    at = EatMgr.hitCheck(a, b, hit, nrm, 0, 0x400000);
+    at = EatMgr.hitCheck(pPos, pPos2, hit, nrm, 0, 0x400000);
     if (at) {
-        len = (a->x - hit->x) * (a->x - hit->x) + (a->y - hit->y) * (a->y - hit->y) + (a->z - hit->z) * (a->z - hit->z);
+        len = (pPos->x - hit->x) * (pPos->x - hit->x) + (pPos->y - hit->y) * (pPos->y - hit->y) + (pPos->z - hit->z) * (pPos->z - hit->z);
     } else {
-        *hit = *b;
+        *hit = *pPos2;
         len = 1e16f;
         nrm->x = 0.0f;
         nrm->y = 0.0f;
@@ -2253,18 +2253,18 @@ cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
     if (EmIsDead(pl)) {
         return 0;
     }
-    PSVECSubtract(b, a, &d);
+    PSVECSubtract(pPos2, pPos, &d);
     if (d.x == d.z) {
         PSMTXIdentity(m);
     } else {
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     }
-    TransMatrix(m, a);
+    TransMatrix(m, pPos);
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
     parts = pl->getPartsPtr(0);
-    PSMTXMultVec(m, &parts->worldPos, &d);
+    PSMTXMultVec(m, &parts->world, &d);
     if (d.z < -10000.0f) {
         return 0;
     }
@@ -2274,7 +2274,7 @@ cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
     if (d.x < -10000.0f) {
         return 0;
     }
-    part = emLineAtCk(pl, a, b, len, 0x18);
+    part = emLineAtCk(pl, pPos, pPos2, len, 0x18);
     if (part == 0) {
         return 0;
     }
@@ -2283,7 +2283,7 @@ cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
 }
 
 // EmAtkLineHitCk for the partner.
-EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
+EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
 {
     Mtx m;
     Vec d;
@@ -2295,10 +2295,10 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
     if (pSUB == 0) {
         return 0;
     }
-    if (EatMgr.hitCheck(a, b, hit, nrm, 0, 0x400000)) {
-        len = (a->x - hit->x) * (a->x - hit->x) + (a->y - hit->y) * (a->y - hit->y) + (a->z - hit->z) * (a->z - hit->z);
+    if (EatMgr.hitCheck(pPos, pPos2, hit, nrm, 0, 0x400000)) {
+        len = (pPos->x - hit->x) * (pPos->x - hit->x) + (pPos->y - hit->y) * (pPos->y - hit->y) + (pPos->z - hit->z) * (pPos->z - hit->z);
     } else {
-        *hit = *b;
+        *hit = *pPos2;
         len = 1e16f;
         nrm->x = 0.0f;
         nrm->y = 0.0f;
@@ -2311,24 +2311,24 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
     if (!(sub->be_flag & 0x20)) {
         return 0;
     }
-    if ((s16) pG->sub_life <= 0) {
+    if ((s16) pG->ashley_life <= 0) {
         return 0;
     }
     if (EmIsDead(sub)) {
         return 0;
     }
-    PSVECSubtract(b, a, &d);
+    PSVECSubtract(pPos2, pPos, &d);
     if (d.x == d.z) {
         PSMTXIdentity(m);
     } else {
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     }
-    TransMatrix(m, a);
+    TransMatrix(m, pPos);
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
     parts = sub->getPartsPtr(0);
-    PSMTXMultVec(m, &parts->worldPos, &d);
+    PSMTXMultVec(m, &parts->world, &d);
     if (d.z < -10000.0f) {
         return 0;
     }
@@ -2338,7 +2338,7 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
     if (d.x < -10000.0f) {
         return 0;
     }
-    part = emLineAtCk(sub, a, b, len, 0x18);
+    part = emLineAtCk(sub, pPos, pPos2, len, 0x18);
     if (part == 0) {
         return 0;
     }
@@ -2347,7 +2347,7 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
 }
 
 // Damage from a line attack that hit the player's box `part`: life loss and the damage motion.
-void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* a, Vec* b)
+void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 {
     Vec d;
     Vec fwd;
@@ -2356,49 +2356,49 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* a, Vec* b)
     f32 dy;
 
     PSet(pPL->dmPart, (EmHitInfo*) part);
-    if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
-        PSVECSubtract(&pPL->pos, a, &d);
+    if ((pPos->x - pPos2->x) * (pPos->x - pPos2->x) + (pPos->z - pPos2->z) * (pPos->z - pPos2->z) < 10000.0f) {
+        PSVECSubtract(&pPL->pos, pPos, &d);
     } else {
-        PSVECSubtract(b, a, &d);
+        PSVECSubtract(pPos2, pPos, &d);
     }
     fwd.x = 0.0f;
     fwd.y = 0.0f;
     fwd.z = 1.0f;
-    RotVector(&fwd, &pPL->rot, &fwd);
+    RotVector(&fwd, &pPL->ang, &fwd);
     type = PSVECDotProduct(&fwd, &d) >= 0.0f;
-    dy = a->y - pPL->pos.y;
+    dy = pPos->y - pPL->pos.y;
     if (dy < 800.0f) {
         type += 4;
     } else if (dy < 1300.0f) {
         type += 2;
     }
     keep = 0;
-    if (info->x0A & 4) {
+    if (info->flag & 4) {
         keep = 1;
     }
     LifeDownSet2(pPL, info->dmg, 0, keep);
-    if (info->x0A & 8) {
+    if (info->flag & 8) {
         pG->pl_life = 0;
     }
     PlSetDamage(type, 0, 0);
 }
 
 // Damage from a line attack that hit the partner's box `part`.
-void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* a, Vec* b)
+void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
 {
     if (pSUB) {
-        pSUB->dmg.set(0, 10, 0x18, a, part->rad, part);
+        pSUB->dmg.set(0, 10, 0x18, pPos, part->rad, part);
     }
 }
 
 // Attack sphere against the partner: the hit box or NULL.
-EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* a, Vec* b)
+EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
 {
     cModel* parts;
     EmHitInfo* part;
 
-    if (pG->flags_60 & 0x1000) {
-        Draw_sphere(a, info->range, 0xFFFF00FF, 1, 1);
+    if (pG->Debug_flg[0] & 0x1000) {
+        Draw_sphere(pPos, info->range, 0xFFFF00FF, 1, 1);
     }
     if (pSUB == 0) {
         return 0;
@@ -2410,10 +2410,10 @@ EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* a, Vec* b)
         return 0;
     }
     parts = pSUB->getPartsPtr(0);
-    if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
+    if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pSUB, a, b, info->range, 0x18, info->range);
+    part = emSphereAtCk(pSUB, pPos, pPosOld, info->range, 0x18, info->range);
     if (part == 0) {
         return 0;
     }
@@ -2430,22 +2430,22 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     Vec d;
     f32 r;
 
-    r = em->rot.y;
+    r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
-    FSet(em->catchTurn, Muku2(em->rot.y, r, PI));
-    r = pPL->rot.y;
+    FSet(em->catchTurn, Muku2(em->ang.y, r, PI));
+    r = pPL->ang.y;
     r += Muku(&pPL->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    FSet(pPL->catchTurn, Muku2(pPL->rot.y, r, PI));
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->rot.y + pPL->catchTurn));
+    FSet(pPL->catchTurn, Muku2(pPL->ang.y, r, PI));
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->ang.y + pPL->catchTurn));
     TransMatrix(m, &pPL->pos);
     p.x = x;
     p.y = y;
     p.z = z;
     PSMTXMultVec(m, &p, &p);
     PSVECSubtract(&p, &em->pos, &d);
-    pPL->atari.setPriority(1);
-    em->atari.setPriority(1);
+    pPL->atari.setPriority(PRI_LV1);
+    em->atari.setPriority(PRI_LV1);
     switch (type) {
     case 0:
     default:
@@ -2488,14 +2488,14 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     Vec d;
     f32 r;
 
-    r = em->rot.y;
+    r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &sub->pos, r, PI));
-    em->catchTurn = Muku2(em->rot.y, r, PI);
-    r = sub->rot.y;
+    em->catchTurn = Muku2(em->ang.y, r, PI);
+    r = sub->ang.y;
     r += Muku(&sub->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    sub->catchTurn = Muku2(sub->rot.y, r, PI);
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->rot.y + em->catchTurn));
+    sub->catchTurn = Muku2(sub->ang.y, r, PI);
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->ang.y + em->catchTurn));
     TransMatrix(m, &em->pos);
     p.x = x;
     p.y = y;
@@ -2503,8 +2503,8 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     PSMTXMultVec(m, &p, &p);
     PSVECSubtract(&p, &sub->pos, &d);
     PSVECScale(&d, &d, -1.0f);
-    sub->atari.setPriority(1);
-    em->atari.setPriority(1);
+    sub->atari.setPriority(PRI_LV1);
+    em->atari.setPriority(PRI_LV1);
     switch (type) {
     case 0:
     default:
@@ -2553,17 +2553,17 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
     PSVECSubtract(&em->catchOfs, &d, &em->catchOfs);
-    tmp = em->rot.y;
+    tmp = em->ang.y;
     ry = tmp;
-    em->rot.y = ry + em->catchTurn;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    em->ang.y = ry + em->catchTurn;
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
     ret = MotionMove(em, 0);
     tmp = em->catchTurn * rate;
     ry += tmp;
     em->catchTurn -= tmp;
-    em->rot.y = ry;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
-    RotMatrix(em->mat, &em->rot);
+    em->ang.y = ry;
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->x3A8 = em->pos;
@@ -2700,7 +2700,7 @@ void GetDropBullet(int* id, int* num)
 
     // The bit test as a variable: the `andis.` result stays (cse later reuses it as the zero stored
     // for `*num = 0` on the other path); a plain `flags & 0x80000000` folds to a signed compare.
-    f = pG->flags_54 & 0x80000000;
+    f = pG->System_flg & 0x80000000;
     if (f) {
         r = Rnd() % 100;
         if (r <= 0x27) {
@@ -2736,9 +2736,9 @@ void GetDropBullet(int* id, int* num)
             *num = n;
             return;
         }
-    } else if (pG->flags_54 & 0x40000000) {
+    } else if (pG->System_flg & 0x40000000) {
         r = Rnd() % 100;
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         default:
             if (r <= 0x36) {
@@ -2873,7 +2873,7 @@ void GetDropBullet(int* id, int* num)
         n = ItemMgr.bulletNumTotal(4);
         r = Rnd() % 100;
         if (r > 0x28) {
-            if (pG->x8354 == 1) {
+            if (pG->game_mode == 1) {
                 if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
                     if (Rnd() % 10 > 4) {
                         i = 0x18;
@@ -3107,36 +3107,36 @@ void EmSetDropItem(cEm* em)
     int id;
     int num;
 
-    if (em->itemNo == 0xFFFF) {
+    if (em->Item_id == 0xFFFF) {
         return;
     }
     if (em->be_flag & 0x10000) {
         return;
     }
     em->be_flag |= 0x10000;
-    if (em->itemNo != 0) {
-        if (SceAtItemFlgCk(em->item3DA, em->item3DC)) {
+    if (em->Item_id != 0) {
+        if (SceAtItemFlgCk(em->Item_flg, em->Auto_item_flg)) {
             return;
         }
-        SceAtItemFlgOn(em->item3DA, em->item3DC);
+        SceAtItemFlgOn(em->Item_flg, em->Auto_item_flg);
         rot.x = 0.0f;
-        rot.y = em->rot.y;
+        rot.y = em->ang.y;
         rot.z = 1.0f;
-        if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, &em->pos, &rot) != 1) {
+        if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, &em->pos, &rot) != 1) {
             return;
         }
-        if (em->itemNo != id) {
-            em->itemNo = id;
-            em->itemNum = num;
+        if (em->Item_id != id) {
+            em->Item_id = id;
+            em->Item_num = num;
         }
-        if (TrolleyItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        if (TrolleyItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
-        if (BullItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        if (BullItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
         SceAtCancelItemAt((int) em);
-        SceAtCreateItemAt(&em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1, 0, -1);
+        SceAtCreateItemAt(&em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1, 0, -1);
     } else {
         RandomItemSet(em);
     }
@@ -3148,23 +3148,23 @@ void EmReserveDropItem(cEm* em)
     int id;
     int num;
 
-    if (em->itemNo == 0xFFFF) {
+    if (em->Item_id == 0xFFFF) {
         return;
     }
     if (em->be_flag & 0x10000) {
         return;
     }
-    if (em->itemNo == 0) {
+    if (em->Item_id == 0) {
         return;
     }
-    if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
+    if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
         return;
     }
-    if (em->itemNo != id) {
-        em->itemNo = id;
-        em->itemNum = num;
+    if (em->Item_id != id) {
+        em->Item_id = id;
+        em->Item_num = num;
     }
-    SceAtReserveItemAt((int) em, &em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1);
+    SceAtReserveItemAt((int) em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
 }
 
 // Random drop for the enemy type (RandomItemCk) placed at the enemy.
@@ -3229,10 +3229,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     case 0x22:
     case 0x36:
         if (r <= 0x13) {
-            if ((s32) pG->flags_54 < 0) {
+            if ((s32) pG->System_flg < 0) {
                 return 0;
             }
-            if (pG->flags_54 & 0x40000000) {
+            if (pG->System_flg & 0x40000000) {
                 return 0;
             }
             switch (id) {
@@ -3305,15 +3305,15 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     // The bullet thresholds go through the `lim` variable: a literal `< 30` is folded to `<= 29`
     // (`cmplwi 0x1d; bgt`), the variable keeps `cmplwi 0x1e; bge`.
     lim = 30;
-    if (pG->x4FB8 != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
+    if (pG->pl_type != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
         GetDropBullet(outId, outNum);
         return 1;
     }
     lim = 1;
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         lim = 3;
     }
-    if (pG->x4F88 > 7) {
+    if (pG->Game_level > 7) {
         lim = 0;
     }
     if ((u32) recov <= lim) {
@@ -3339,7 +3339,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             return 1;
         }
     }
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         return 0;
     }
     lim = 0x96;
@@ -3381,7 +3381,7 @@ int CheckInWater(cModel* m, int parts)
         return 0;
     }
     if (parts != 0) {
-        if (m->getPartsPtr(parts)->worldPos.y + 300.0f < h) {
+        if (m->getPartsPtr(parts)->world.y + 300.0f < h) {
             return 0;
         }
     }
@@ -3419,7 +3419,7 @@ void GetPlPos(Vec* out, cEm* em, f32 t)
         em = pPL;
     }
     parts = em->getPartsPtr(0);
-    PSVECSubtract(&parts->worldPos, &parts->x88, &d);
+    PSVECSubtract(&parts->world, &parts->world_old2, &d);
     PSVECScale(&d, &d, t);
     PSVECAdd(&em->pos, &d, out);
 }
@@ -3491,7 +3491,7 @@ int VehicleAdjust(Vec* pos)
     cObj* obj;
 
     if (pG->room_id == 0x21B) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
             if (obj->id != 0x3B) {
                 continue;
             }
@@ -3502,7 +3502,7 @@ int VehicleAdjust(Vec* pos)
         }
     }
     if (pG->room_id == 0x30F) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
             if (obj->id != 0x3E) {
                 continue;
             }

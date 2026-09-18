@@ -10,12 +10,12 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void PenClothMove(cModel* m, PenCloth* c);   // game/pendulum.cpp
+void PenClothMove(cModel* m, PenCloth* pInfo);   // game/pendulum.cpp
 }
 extern f32 adaHairMax[14];   // game/pl_cloth.cpp
 extern f32 adaHairWindS[14];
 extern f32 adaHairWindR[14];
-extern PlClothAt adaHairAt[6];
+extern CLOTH_AT_SET adaHairAt[6];
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
@@ -33,36 +33,36 @@ static u8 adaHolsterP[5] = {26, 31, 78, 79, 80};
 static u8 adaHolsterUp[5] = {0xFF, 0xFF, 0xFF, 78, 79};
 static u8 adaHolsterDp[5] = {0xFF, 0xFF, 79, 80, 0xFF};
 static f32 adaHolsterMax[5] = {0.2f, 0.2f, 1.0f, 1.0f, 1.0f};
-PlClothAt adaHolsterAt[1] = {
+CLOTH_AT_SET adaHolsterAt[1] = {
     {0x0000, 0x11, 0x11, 1.0f, 170.0f, {50.0f, -120.0f, 30.0f}, {0.0f, 0.0f, 0.0f}},
 };
 
 static void testHairSetAda2(cModel* pl, PlCloth* c)
 {
-    c->num = 14;
-    c->pParts = adaHair2P;
+    c->Num = 14;
+    c->pCloth = adaHair2P;
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = adaHair2Up;
-    c->pDown = adaHair2Dp;
-    c->x20 = 0;
+    c->pUpRight = 0;
+    c->pParent = adaHair2Up;
+    c->pChild = adaHair2Dp;
+    c->pGravity = 0;
     c->pRate = 0;
-    c->pWindS = adaHairWindS;
-    c->pWindR = adaHairWindR;
+    c->pWindSin = adaHairWindS;
+    c->pWindRate = adaHairWindR;
     c->pMax = adaHairMax;
-    c->pAt = adaHairAt;
-    c->nAt = 6;
-    c->x3C = 15.0f;
-    c->x40 = 0.75f;
-    c->x44 = 4;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.5f;
+    c->pAtset = adaHairAt;
+    c->At_num = 6;
+    c->Gravity = 15.0f;
+    c->Rate = 0.75f;
+    c->Bundle_num = 4;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
+    c->Move_rate = 0.5f;
     c->pModel = 0;
-    c->flags = 0x302;
-    c->x54 = 0;
+    c->Flag = 0x302;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
@@ -73,30 +73,30 @@ void testHairMoveAda2(cModel* pl, PlCloth* c)
 
 void testHolsterSetAda2(cModel* pl, PlCloth* c)
 {
-    c->num = 5;
-    c->pParts = adaHolsterP;
+    c->Num = 5;
+    c->pCloth = adaHolsterP;
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
-    c->x14 = 0;
-    c->pUp = adaHolsterUp;
-    c->pDown = adaHolsterDp;
-    c->pWindS = 0;
-    c->pWindR = 0;
-    c->x20 = 0;
+    c->pUpRight = 0;
+    c->pParent = adaHolsterUp;
+    c->pChild = adaHolsterDp;
+    c->pWindSin = 0;
+    c->pWindRate = 0;
+    c->pGravity = 0;
     c->pRate = 0;
     c->pMax = adaHolsterMax;
-    c->pAt = adaHolsterAt;
-    c->nAt = 1;
-    c->x3C = 15.0f;
-    c->x40 = 0.7f;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.3f;
+    c->pAtset = adaHolsterAt;
+    c->At_num = 1;
+    c->Gravity = 15.0f;
+    c->Rate = 0.7f;
+    c->WindSin = 0.0f;
+    c->Stretchy = 1.0f;
+    c->Move_rate = 0.3f;
     c->pModel = 0;
-    c->x44 = 0;
-    c->flags = 0x302;
-    c->x54 = 0;
+    c->Bundle_num = 0;
+    c->Flag = 0x302;
+    c->pPtbl = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
@@ -133,14 +133,14 @@ cPlAda::cPlAda()
     init0();
     setModel();
     weaponRelease();
-    weaponLoad(pG->wep_no, pG->wep_type);
+    weaponLoad(pG->weapon_no, pG->weapon_type);
     weaponInit();
     init1();
     setMotion();
-    arc = pG->pPlArc;
+    arc = pG->pPlayer;
     EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
-    if (pG->costume == 1) {
+    if (pG->pl_costume == 1) {
         EstSet((int) this, -1, 0, 0, 0, 0x59, 0x800, 0, 0, 0);
     }
     pFootShadowTbl = pl_fs_tbl;
@@ -184,15 +184,15 @@ void cPlAda::setModel()
         return;
     }
     addModel(info);
-    PSet(pBody->pHair, info);
+    PSet(Body->pHair, info);
     info = ModInfoMgr.create(PL_ARC(8), PL_ARC(7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(pBody->pShape, info);
-    PSet(pBody->pHeadData, PL_ARC(8));
+    PSet(Body->pShape, info);
+    PSet(Body->pHeadData, PL_ARC(8));
     info = ModInfoMgr.create(PL_ARC(9), PL_ARC(0xA));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlAshley::setModel() failed.");
@@ -200,7 +200,7 @@ void cPlAda::setModel()
     }
     info->be_flag |= 0x40;
     addModel(info);
-    x12D = 1;
+    TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
     setLeftHand(0);
@@ -211,10 +211,10 @@ void cPlAda::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pRight) {
-        deleteModelInfo(pBody->pRight);
-        pBody->pRight = 0;
-        pBody->pRightData = 0;
+    if (Body->pRight) {
+        deleteModelInfo(Body->pRight);
+        Body->pRight = 0;
+        Body->pRightData = 0;
     }
     switch ((u32) no) {
     case 0:
@@ -229,7 +229,7 @@ void cPlAda::setRightHand(int no)
         data = PL_ARC(0x11);
         break;
     case 1:
-        data = pBody->pWepHand;
+        data = Body->pWepHand;
         break;
     default:
         data = (void*) no;
@@ -237,8 +237,8 @@ void cPlAda::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(5))) != 0) {
         addModel(info);
-        pBody->pRight = info;
-        pBody->pRightData = data;
+        Body->pRight = info;
+        Body->pRightData = data;
     }
 }
 
@@ -247,13 +247,13 @@ void cPlAda::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pLeft) {
-        deleteModelInfo(pBody->pLeft);
-        pBody->pLeft = 0;
-        pBody->pLeftData = 0;
+    if (Body->pLeft) {
+        deleteModelInfo(Body->pLeft);
+        Body->pLeft = 0;
+        Body->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pBody->leftNoPrev;
+        no = Body->oldLhandNo;
     }
     switch (no) {
     case 0:
@@ -272,22 +272,22 @@ void cPlAda::setLeftHand(u32 no)
         data = (void*) no;
         break;
     }
-    pBody->leftNoPrev = pBody->leftNo;
-    pBody->leftNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 5));
+    Body->oldLhandNo = Body->nowLhandNo;
+    Body->nowLhandNo = no;
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 5));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pBody->pLeft = info;
-        pBody->pLeftData = data;
+        Body->pLeft = info;
+        Body->pLeftData = data;
     }
 }
 
 void cPlAda::setFace(int no)
 {
     void* data = 0;
-    void* shape = pBody->pShape;
+    void* shape = Body->pShape;
 
     if (shape == 0) {
         return;
@@ -305,7 +305,7 @@ void cPlAda::setFace(int no)
         break;
     }
     if (no != 0) {
-        ShapeSet(pBody->pShape, 0, data, 2);
+        ShapeSet(Body->pShape, 0, data, 2);
     }
 }
 
@@ -316,12 +316,12 @@ void cPlAda::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pBody->pHair == 0) {
+    if (Body->pHair == 0) {
         return;
     }
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -331,11 +331,11 @@ void cPlAda::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pBody->pHair == 0) {
+    if (Body->pHair == 0) {
         return;
     }
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);
@@ -344,7 +344,7 @@ void cPlAda::setHead(void* bin, void* tpl)
 
 void cPlAda::initCloth()
 {
-    if (pG->costume != 1) {
+    if (pG->pl_costume != 1) {
         PlClothSetAda2(this, &adaRibbon, &adaDress, &adaHair, 0);
     } else {
         PlClothSetAda3(this, &adaRibbon, &adaDress, &adaHair, 0);
@@ -353,7 +353,7 @@ void cPlAda::initCloth()
 
 void cPlAda::moveCloth()
 {
-    if (pG->costume != 1) {
+    if (pG->pl_costume != 1) {
         PlClothMoveAda2(this, &adaRibbon, &adaDress, &adaHair);
     } else {
         PlClothMoveAda3(this, &adaRibbon, &adaDress, &adaHair);

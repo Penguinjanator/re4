@@ -5,15 +5,15 @@
 #include "esp.h"
 
 struct Esp19Work {
-    Vec target;  // 0x00 end point of the line
-    f32 len;     // 0x0C maximum length
+    Vec Vec0;  // 0x00 end point of the line
+    f32 max_laser_dist;     // 0x0C maximum length
 };
 
 // 3D line effect (laser sight / tracer): draws a line from the effect toward a target point,
 // fading the far end.
 class cEsp19 : public cEsp {
 public:
-    Esp19Work work;  // 0xF8
+    Esp19Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -27,20 +27,20 @@ cEsp* Esp19_Create()
 void cEsp19::move()
 {
     if (CommonMove()) {
-        xB8 = 100000000.0f;
-        dispFlag |= 2;
+        m_Radius = 100000000.0f;
+        m_Flg |= 2;
     }
 }
 
 int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp19Work* w = &work;
+    Esp19Work* w = &m_Free;
 
-    w->target = *(Vec*)&gen->xD8;
-    if (gen->xE4 == 0.0f) {
-        w->len = 12000.0f;
+    w->Vec0 = *(Vec*)&gen->Vec0.x;
+    if (gen->Vec1.x == 0.0f) {
+        w->max_laser_dist = 12000.0f;
     } else {
-        w->len = gen->xE4;
+        w->max_laser_dist = gen->Vec1.x;
     }
     return 1;
 }
@@ -100,11 +100,11 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
 
 extern "C" void Esp19_Trans(cEsp19* esp)
 {
-    Esp19Work* w = &esp->work;
+    Esp19Work* w = &esp->m_Free;
     Vec p;
     u32 color;
 
-    color = ((u32)esp->colR << 16) + ((u32)esp->colG << 8) + (u32)esp->colB + ((u32)esp->colA << 24);
-    PSVECAdd(&esp->pos, &pG->quake_ofs, &p);
-    Draw_line3d_local_222(&p, &w->target, pG->Cam.viewMat, color, esp, w->len);
+    color = ((u32)esp->m_Col_r << 16) + ((u32)esp->m_Col_g << 8) + (u32)esp->m_Col_b + ((u32)esp->m_Col_a << 24);
+    PSVECAdd(&esp->m_Pos, &pG->quake_ofs, &p);
+    Draw_line3d_local_222(&p, &w->Vec0, pG->Cam.v_mat, color, esp, w->max_laser_dist);
 }

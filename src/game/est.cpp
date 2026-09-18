@@ -30,7 +30,7 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
     EspgenWork* w;
     Espgen10Work* p;
 
-    if (pG->flags_64 & 0x01000000) {
+    if (pG->Debug_flg[1] & 0x01000000) {
         return;
     }
     if (head == NULL) {
@@ -40,10 +40,10 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
         pLog->warn(0, 0, "EstSet():EST is enpty.");
         return;
     }
-    if (pG->flags_5014 & 0x00080000) {
+    if (pG->Status_flg[2] & 0x00080000) {
         e |= 0x2000;
     }
-    if (pG->flags_5014 & 0x02000000) {
+    if (pG->Status_flg[2] & 0x02000000) {
         e |= 1;
     }
     if (!PullEspEspgen(&w, e, f, (u8) EspgenGetCallNo(), g, owner, 1)) {
@@ -53,31 +53,31 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
     w->id = 0x10;
     p = (Espgen10Work*) w->work;
     p->head = head;
-    p->model = model;
+    p->pMod = model;
     if (model != NULL) {
-        p->serial = model->serial;
+        p->Guid_pMod = model->serial;
     } else {
-        p->serial = (u32) model;
+        p->Guid_pMod = (u32) model;
     }
-    p->no = p->cnt = 0;
+    p->no = p->Time_cnt = 0;
     if (no == -1) {
-        p->parts = head->parts;
+        p->Null_parts_no = head->parts;
     } else {
-        p->parts = no;
+        p->Null_parts_no = no;
     }
     if (pos == NULL) {
-        p->pos = head->pos;
+        p->Offset = head->pos;
     } else {
-        p->flags |= 2;
-        p->pos = *pos;
+        p->Flg |= 2;
+        p->Offset = *pos;
     }
     if (rot == NULL) {
-        p->rot = head->rot;
-        PSVECScale(&p->rot, &p->rot, 3.14f / 180.0f);
+        p->Ang = head->rot;
+        PSVECScale(&p->Ang, &p->Ang, 3.14f / 180.0f);
     } else {
-        p->rot = *rot;
+        p->Ang = *rot;
     }
-    p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
+    p->Rand_seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     if (h != NULL) {
         p->p8 = &p->opt;
         p->opt = *(EspSeqOpt*) h;
@@ -105,7 +105,7 @@ void AreaSstSet(int id)
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
-            flag |= 1 << ent->bit;
+            flag |= 1 << ent->area_no;
         }
     }
     for (j = 0; j < 32; j++) {
@@ -123,7 +123,7 @@ int GetSstDispFlag(u32 id)
         pLog->err(0, 0, "GetSstDispFlag() : id[%02x] invalid .", id);
         return 0;
     }
-    if (sys->sstDispFlag & (1 << id)) {
+    if (sys->SstSetFlag & (1 << id)) {
         return 1;
     }
     return 0;
@@ -139,19 +139,19 @@ void SetSstDispFlag(u32 id, int on)
     }
     if (on == 1) {
         if (GetSstDispFlag(id) == 0) {
-            sys->sstDispFlag |= on << id;
+            sys->SstSetFlag |= on << id;
             AreaSstSet(id);
         } else {
-            sys->sstDispFlag |= on << id;
+            sys->SstSetFlag |= on << id;
         }
     } else {
-        sys->sstDispFlag &= ~(1 << id);
+        sys->SstSetFlag &= ~(1 << id);
     }
 }
 
 void SetSstAddAreaFlag(u32 flag)
 {
-    g_pEspSys->sstAddAreaFlag = flag;
+    g_pEspSys->Add_area_bit = flag;
 }
 
 // Starts every effect of owner `owner` whose room key lies in [lo, hi] and whose type is `type`.
@@ -209,7 +209,7 @@ void EffectEfmDelete(int a, int b, int c)
 
 void EffectDeleteAll()
 {
-    pG->flags_5010 &= ~0x20;
+    pG->Status_flg[1] &= ~0x20;
     EspArrayClear();
     EspgenArrayClear();
     EfmArrayClear();
@@ -227,26 +227,26 @@ void EspDelete(int a, int b, u32 c, cModel* model)
     cEspSystem* sys = g_pEspSys;
     u32 i;
 
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
-        if ((esp->flag & 1) == 0) {
+        if ((esp->m_Be_flg & 1) == 0) {
             continue;
         }
-        if (a != 0 && esp->info.x0 != a) {
+        if (a != 0 && esp->info.Core_flg != a) {
             continue;
         }
-        if (b != 0 && esp->info.x2 != b) {
+        if (b != 0 && esp->info.Core_kind != b) {
             continue;
         }
-        if (c != 0 && esp->info.x8 != c) {
+        if (c != 0 && esp->info.Core_pEm != c) {
             continue;
         }
         if (model != NULL) {
-            if (esp->pModel != model) {
+            if (esp->m_pMod != model) {
                 continue;
             }
-            if (esp->x20 != model->serial) {
+            if (esp->m_Guid_pMod != model->serial) {
                 continue;
             }
         }
@@ -259,13 +259,13 @@ void EspDeleteEvent()
     cEspSystem* sys = g_pEspSys;
     u32 i;
 
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
-        if (esp->flag & 1) {
-            int ev = !(esp->info.x0 & 1);
+        if (esp->m_Be_flg & 1) {
+            int ev = !(esp->info.Core_flg & 1);
 
-            if (ev && !(esp->info.x0 & 0x800)) {
+            if (ev && !(esp->info.Core_flg & 0x800)) {
                 PushEsp(esp);
             }
         }
@@ -333,7 +333,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
     u32 eff2;
     f32 len;
 
-    if (info != NULL && (info->flags & 1)) {
+    if (info != NULL && (info->flag & 1)) {
         rot.x = atan2f(SQRTF(nrm->x * nrm->x + nrm->z * nrm->z), nrm->y);
         rot.y = atan2f(nrm->x, nrm->z);
         rot.z = 0.0f;
@@ -350,7 +350,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
             SndCall(2, 0xC, pos, 0, 0, NULL);
         } else {
             EstSet(0, -1, pos, &rot, 0, 0x1F, 0, 0, type, (void*) type);
-            if (pG->flags_6C & 0x4000) {
+            if (pG->Debug_flg[3] & 0x4000) {
                 EstSet(0, -1, pos, &rot, 0, 0x87, 0, 0, type, (void*) type);
             }
         }
@@ -385,7 +385,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
         if (eff1 != 0xD2 && eff2 != 1) {
             EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, 0, 0, NULL);
         }
-        if (info != NULL && (info->flags & 1)) {
+        if (info != NULL && (info->flag & 1)) {
             SndCall(2, 0xB, pos, 0, 0, NULL);
         }
         break;
@@ -418,7 +418,7 @@ void EventAllEffDelete()
 
 int ChkWaterEffectEnable(Vec* pos)
 {
-    if (pG->flags_5010 & 0x400) {
+    if (pG->Status_flg[1] & 0x400) {
         if (EffAreaCheckInRoom(pos) == 0) {
             return 1;
         }

@@ -155,10 +155,10 @@ extern "C" void Evt_R304S00_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        pG->flags_5010 |= 0x800;
+        pG->Status_flg[1] |= 0x800;
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             obj = SmdGetObjPtr(0x10);
             if (obj) {
                 e->SetMod("scr0000", obj, 5, 0, 2, 0);
@@ -184,8 +184,8 @@ extern "C" void Evt_R304S00_Func(Event* e)
                 e->EspSetModelPtr(obj);
             }
         }
-        if (e->cut == 1) {
-            if (e->frame == 0) {
+        if (e->NowCut == 1) {
+            if (e->NowFrame == 0) {
                 obj = SmdGetObjPtr(0xA);
                 if (obj) {
                     TexRenderModSet(obj, 0, r304_work->texTbl, r304_work->tex, 1, 1, 1, 1, 1.0f);
@@ -197,7 +197,7 @@ extern "C" void Evt_R304S00_Func(Event* e)
             }
             EvtTexRenderCamTrans(e, 1);
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 obj = SmdGetObjPtr(0xA);
                 if (obj) {
                     TexRenderModResP(obj, 0);
@@ -212,7 +212,7 @@ extern "C" void Evt_R304S00_Func(Event* e)
         }
         break;
     case 2:
-        pG->flags_5010 &= ~0x800;
+        pG->Status_flg[1] &= ~0x800;
         w = SmdGetWorkPtr(0x10);
         obj = SmdGetObjPtr(0x10);
         if (obj && w) {
@@ -242,7 +242,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     if (skip == 0) {

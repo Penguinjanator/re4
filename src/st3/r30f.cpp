@@ -49,11 +49,11 @@ void adjust_add_setV(Vec v) asm("adjust_add_set");
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // `pPL->atari.flags &= ~0x100` through a pointer to the collision info; the volatile halfword store keeps
 // the following pPL load below it (r30d).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->flags &= mask; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
 struct SubCharPtr {
     cSubChar* p;
 };
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->flags |= bit; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { *(volatile u16*) &a->m_flag |= bit; }
 
 struct R30fWork {
     cObj* lift;           // 0x000  the lift platform (room arc 0xC0/0xC4)
@@ -167,8 +167,8 @@ void R30fInit()
     SceAtSetEnable(0x11, 0);
     SceAtSetEnable(0x12, 0);
     SceAtDataSet_exec(0xF, 0x12, 0, (TaskFunc) em_set2, 0, 1);
-    if (pG->x4F9F != 0) {
-        lv = pG->x4F9F;
+    if (pG->JumpPoint != 0) {
+        lv = pG->JumpPoint;
         if (lv > 4) {
             lv = 4;
         }
@@ -210,23 +210,23 @@ void R30fInit()
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
 
-    r30f_work->bull = (cObjBull*) SetBull(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, lv);
+    r30f_work->bull = (cObjBull*) SetBull(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, lv);
     if (r30f_work->bull) {
         {
             void* mot[12];
 
-            mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-            mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-            mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-            mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-            mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-            mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-            mot[6] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-            mot[7] = ROOM_ARC_PTR(pG->pRoomArc, 0x2A);
-            mot[8] = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
-            mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
-            mot[10] = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
-            mot[11] = ROOM_ARC_PTR(pG->pRoomArc, 0x36);
+            mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x21);
+            mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x22);
+            mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x23);
+            mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x24);
+            mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x25);
+            mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x26);
+            mot[6] = ROOM_ARC_PTR(pG->pRoom, 0x29);
+            mot[7] = ROOM_ARC_PTR(pG->pRoom, 0x2A);
+            mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x2B);
+            mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x2C);
+            mot[10] = ROOM_ARC_PTR(pG->pRoom, 0x2D);
+            mot[11] = ROOM_ARC_PTR(pG->pRoom, 0x36);
             r30f_work->bull->setMotion(mot);
             r30f_work->bull->setNoSuspend(0);
             if (r30f_work->bull->p2A4 == 0) {
@@ -236,9 +236,9 @@ void R30fInit()
         }
     }
     EstSet((int) r30f_work->bull, -1, 0, 0, 1, 0x11, 0x801, 0, 0, 0);
-    if (pG->room_id_prev == 0xFFF && !(pG->flags_5018 & 0x04000000)) {
-        BitOn(pG->flags_5018, 0x04000000);
-        SubCharInit(1, &pPL->pos, pPL->rot.y);
+    if (pG->room_id_prev == 0xFFF && !(pG->Status_flg[3] & 0x04000000)) {
+        BitOn(pG->Status_flg[3], 0x04000000);
+        SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);
     }
     SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R30f_ride, 0, 1);
@@ -246,13 +246,13 @@ void R30fInit()
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        r30f_work->lift = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x30), ROOM_ARC_PTR(pG->pRoomArc, 0x31), &zero, &zero, 0x10, 1);
+        r30f_work->lift = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x30), ROOM_ARC_PTR(pG->pRoom, 0x31), &zero, &zero, 0x10, 1);
         if (r30f_work->lift) {
 #line 195 "D:/Bio4/Prog/r30f.cpp"
             r30f_work->lift->p2A4 = MEM_ALLOC(0x98, 1, 0xd);
         }
     }
-    r30f_work->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 2);
+    r30f_work->sat1 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 2);
 }
 
 // Enemy `no` of the list (entry 0x78 + no); a full room (more than 9 alive) only takes the forced ones.
@@ -268,12 +268,12 @@ void R30fMain()
 {
     cPlayer* pl;
 
-    SceDebugDisp("R0[%d]", r30f_work->bull->xFC);
+    SceDebugDisp("R0[%d]", r30f_work->bull->r_no_0);
     SceDebugDisp("FM[%d]", r30f_work->bull->getMoveFrameRtn());
     if (r30f_work->bull->ckGoal() == 1) {
         SceAtExecute(0);
     }
-    if (r30f_work->bull->xFC != 5 && (u32) r30f_work->bull->getMoveFrameRtn() % 30 == 0) {
+    if (r30f_work->bull->r_no_0 != 5 && (u32) r30f_work->bull->getMoveFrameRtn() % 30 == 0) {
         u32 i;
         u32 j;
 
@@ -300,98 +300,98 @@ void R30fMain()
     if (r30f_work->bull->getMoveFrameRtn() == 1) {
         SndRoomStrStart(1, 0, 1);
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x1E0) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x1E0) {
         SndStrReq(1, 0xE9, 0x80000003, 0, 0, 0.0f);
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x1FE) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x1FE) {
         SceExec(0x12, (TaskFunc) em_set, 0, 0, 2, 0);
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x26C) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x26C) {
         setem(0x52, 1);
         setem(0x53, 1);
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x2D0) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x2D0) {
         setem(0x14, 1);
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x370) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x370) {
         em_destroy();
     }
-    if (r30f_work->bull->xFC == 2 && r30f_work->bull->getMoveFrameRtn() == 0x384) {
+    if (r30f_work->bull->r_no_0 == 2 && r30f_work->bull->getMoveFrameRtn() == 0x384) {
         setem(6, 1);
         setem(0x16, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 1) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 1) {
         setem(0x3B, 1);
         setem(0x3C, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x63) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x63) {
         setem(0xB, 1);
         setem(0xC, 1);
         setem(0xD, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x6E) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x6E) {
         setem(0xE, 1);
         setem(0x3F, 1);
         setem(0x3D, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0xEF) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0xEF) {
         setem(0x15, 0);
         r30f_work->em[0x15].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0xF8) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0xF8) {
         setem(0xF, 0);
         r30f_work->em[0xF].setFlag(1);
         AreaSet(2);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x1FE) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x1FE) {
         setem(0x38, 1);
         setem(0x39, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x230) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x230) {
         setem(0x4D, 1);
         setem(0x40, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x33E) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x33E) {
         em_destroy_area(3);
         em_destroy();
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x438) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x438) {
         setem(0x49, 1);
         setem(0x4A, 1);
         setem(0x4B, 1);
         setem(0x4C, 1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x47E) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x47E) {
         setem(7, 1);
         r30f_work->em[7].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x4B0) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x4B0) {
         setem(8, 1);
         r30f_work->em[8].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x4B0) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x4B0) {
         setem(0x2F, 1);
         setem(0x3E, 1);
         setem(0x3A, 1);
         AreaSet(2);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x708) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x708) {
         AreaSet(3);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameRtn() == 0x726) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameRtn() == 0x726) {
         SceExec(0x12, (TaskFunc) lift_start_task, 0, 0, 2, 0);
     }
-    if (r30f_work->bull->xFC == 5) {
+    if (r30f_work->bull->r_no_0 == 5) {
         if (r30f_work->liftFrame == 0) {
             em_destroy_area(4);
             em_destroy();
             SceExec(0x12, (TaskFunc) lift_stop_task, 0, 0, 2, 0);
             r30f_work->liftFrame++;
         }
-        if (pG->flags_174 & 0x01000000) {
+        if (pG->Room_flg[0] & 0x01000000) {
             r30f_work->liftFrame++;
         }
-        if (((int) R30F_SAVE_FLAGS < 0 && (int) pG->sceat_x17C < 0) || DebugTrg(0) != 0) {
+        if (((int) R30F_SAVE_FLAGS < 0 && (int) pG->Room_flg[2] < 0) || DebugTrg(0) != 0) {
             if (r30f_work->liftReset == 0) {
                 r30f_work->liftReset = 0x5A;
                 em_destroy_area(0x15);
@@ -404,7 +404,7 @@ void R30fMain()
             r30f_work->em[0x1D].setFlag(1);
             r30f_work->em[0x1D].setFindPL();
             if (r30f_work->em[0x1D].isActive() != 0) {
-                r30f_work->em[0x1D].getPtr()->flags_3C8 |= 0x40;
+                r30f_work->em[0x1D].getPtr()->flag |= 0x40;
             }
         }
         if (r30f_work->liftFrame == 0x69A) {
@@ -412,7 +412,7 @@ void R30fMain()
             r30f_work->em[0x24].setFlag(1);
             r30f_work->em[0x24].setFindPL();
             if (r30f_work->em[0x24].isActive() != 0) {
-                r30f_work->em[0x24].getPtr()->flags_3C8 |= 0x40;
+                r30f_work->em[0x24].getPtr()->flag |= 0x40;
             }
         }
         if (r30f_work->liftReset != 0) {
@@ -420,7 +420,7 @@ void R30fMain()
             if (r30f_work->liftReset == 0) {
                 SndCall(6, 0xC, 0, 0, 0, 0);
                 SndCall(6, 0xD, 0, 0, 0, 0);
-                pG->flags_174 |= 0x08000000;
+                pG->Room_flg[0] |= 0x08000000;
                 AreaSet(4);
             }
             if (r30f_work->liftReset == 0 || r30f_work->liftReset == 0x1E || r30f_work->liftReset == 0x3C ||
@@ -430,16 +430,16 @@ void R30fMain()
         }
     }
     if (r30f_work->bull->ckLiftWait() != 0) {
-        if (!(pG->flags_174 & 0x00080000)) {
-            pG->flags_174 |= 0x00080000;
+        if (!(pG->Room_flg[0] & 0x00080000)) {
+            pG->Room_flg[0] |= 0x00080000;
             SndCall(6, 0xE, 0, 0, 0, 0);
             SndCall(6, 0xF, 0, 0, 0, 0);
         }
         pl = pPL;
-        if (pG->flags_174 & 0x02000000) {
+        if (pG->Room_flg[0] & 0x02000000) {
             // Two `andis.`: a folded `(f & A) && !(f & B)` would be one masked compare.
-            if (!(pG->flags_174 & 0x00100000) && pl->checkEvent() == 1 && pPL->pos.y > -8800.0f) {
-                pG->flags_174 |= 0x00100000;
+            if (!(pG->Room_flg[0] & 0x00100000) && pl->checkEvent() == 1 && pPL->pos.y > -8800.0f) {
+                pG->Room_flg[0] |= 0x00100000;
                 SceExec(0x12, (TaskFunc) gate_open, 0, 0, 2, 0);
                 SceAtSetEnable(6, 0);
                 SceAtSetEnable(0xC, 0);
@@ -448,17 +448,17 @@ void R30fMain()
                 SceAtSetEnable(0x12, 0);
             }
         }
-        if (pG->flags_174 & 0x00200000) {
-            pG->flags_174 |= 0x00400000;
+        if (pG->Room_flg[0] & 0x00200000) {
+            pG->Room_flg[0] |= 0x00400000;
         }
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 1) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 1) {
         AreaSet(5);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x96) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x96) {
         AreaSet(6);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 1) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 1) {
         setem(9, 1);
         setem(0xA, 1);
         setem(0x28, 1);
@@ -466,73 +466,73 @@ void R30fMain()
         em_destroy_area(5);
         em_destroy();
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x140) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x140) {
         r30f_work->em[0xA].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x1C2) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x1C2) {
         r30f_work->em[9].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x258) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x258) {
         setem(0x10, 1);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x26C) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x26C) {
         setem(0x11, 1);
         setem(0x17, 1);
     }
-    if (r30f_work->bull->xFC == 7 && r30f_work->bull->getMoveFrameToLift() == 0x294) {
+    if (r30f_work->bull->r_no_0 == 7 && r30f_work->bull->getMoveFrameToLift() == 0x294) {
         setem(0x27, 1);
-        if (pG->x4F88 > 5) {
+        if (pG->Game_level > 5) {
             setem(0x20, 1);
         }
     }
-    if (r30f_work->bull->xFC == 8 && r30f_work->bull->getMoveFrameToLift() == 1) {
+    if (r30f_work->bull->r_no_0 == 8 && r30f_work->bull->getMoveFrameToLift() == 1) {
         r30f_work->em[0x28].setFlag(1);
         r30f_work->em[0x2A].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 1) {
-        if (pG->x4F88 > 8) {
+    if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 1) {
+        if (pG->Game_level > 8) {
             setem(0x2B, 1);
         }
         setem(0x2C, 1);
-        if (pG->x4F88 > 6) {
+        if (pG->Game_level > 6) {
             setem(0x34, 1);
         }
-        if (pG->x4F88 > 4) {
+        if (pG->Game_level > 4) {
             setem(0x33, 1);
         }
     }
-    if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0xC8) {
+    if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0xC8) {
         AreaSet(7);
     }
-    if (pG->x4F88 > 8) {
-        if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0x46) {
+    if (pG->Game_level > 8) {
+        if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0x46) {
             r30f_work->em[0x2B].setFlag(1);
         }
     }
-    if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0xAA) {
+    if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0xAA) {
         r30f_work->em[0x2C].setFlag(1);
     }
-    if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0x6E && pG->x4F88 > 6) {
+    if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0x6E && pG->Game_level > 6) {
         r30f_work->em[0x34].setFlag(1);
     }
-    if (pG->x4F88 > 4) {
-        if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0xD2) {
+    if (pG->Game_level > 4) {
+        if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0xD2) {
             r30f_work->em[0x33].setFlag(1);
         }
     }
-    if (r30f_work->bull->xFC == 9) {
+    if (r30f_work->bull->r_no_0 == 9) {
         r30f_work->bull->getMoveFrameToLift();
     }
-    if (r30f_work->bull->xFC == 9 && r30f_work->bull->getMoveFrameToLift() == 0x1F4 && pG->x4F88 > 2) {
+    if (r30f_work->bull->r_no_0 == 9 && r30f_work->bull->getMoveFrameToLift() == 0x1F4 && pG->Game_level > 2) {
         setem(0x36, 1);
     }
-    if (r30f_work->bull->xFC == 4) {
+    if (r30f_work->bull->r_no_0 == 4) {
         r30f_work->bull->getMoveFrameToLift();
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameToLift() == 0x301) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameToLift() == 0x301) {
         SceExec(0x12, (TaskFunc) track_move, 0, 0, 2, 0);
     }
-    if (r30f_work->bull->xFC == 4 && r30f_work->bull->getMoveFrameToLift() == 0x5B3) {
+    if (r30f_work->bull->r_no_0 == 4 && r30f_work->bull->getMoveFrameToLift() == 0x5B3) {
         SceExec(0x12, (TaskFunc) track_move, 0, 0, 2, 0);
     }
 }
@@ -546,7 +546,7 @@ void reva_common_move(cObj* obj, f32 lo, f32 hi)
 
     obj->be_flag |= 0x20;
     SndCall(6, 0x1E, &obj->pos, 0, 0, 0);
-    p = &obj->pParts->rot.z;
+    p = &obj->pParts->ang.z;
     acc = reva_rate;
     for (;;) {
         int up;
@@ -572,7 +572,7 @@ void reva_common_move(cObj* obj, f32 lo, f32 hi)
 
 void EmHitUpdate(cModel* m)
 {
-    RotMatrix(m->mat, &m->rot);
+    RotMatrix(m->mat, &m->ang);
     TransMatrix(m->mat, &m->pos);
     ScaleMatrix(m->mat, &m->scale);
     m->partsMatCalc();
@@ -588,7 +588,7 @@ void last_bomb()
     pSUB->dmg.set(0, 0x80);
     r30f_work->hit[0]->hp = 0;
     r30f_work->hit[1]->hp = 0;
-    p = r30f_work->lift->pParts->pParts->worldPos;
+    p = r30f_work->lift->pParts->pParts->world;
     p.y += 1000.0f;
     PlWepHitCheck2(0, &p, &p, 0x13, 2, 15500.0f);
     p.y += 2000.0f;
@@ -627,7 +627,7 @@ static void track_destroy()
     r30f_work->lift->setNoSuspend(1);
     r30f_work->bull->setNoSuspend(1);
     EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xC, 0x801, 0, 0, 0);
-    SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->mot));
+    SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
     if (pSUB) {
         pSUB->setNoSuspend(0);
     }
@@ -656,11 +656,11 @@ static void track_move()
     r30f_work->lift->be_flag |= 2;
     if (r30f_work->truckNo == 1) {
         SceEventStart(1);
-        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x41), 0, 0, 0x200, 0);
+        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x41), 0, 0, 0x200, 0);
         r30f_work->lift->setNoSuspend(1);
         EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x15, 1, 6, 0, 0);
-        SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
-        SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->mot));
+        SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
+        SceSleep((u32) MotionGetMaxFrame(&r30f_work->lift->Motion));
         EffectEspDelete(1, 6, 0, 0);
         EffectEspgenDelete(1, 6, 0);
         EffectEfmDelete(1, 6, 0);
@@ -669,26 +669,26 @@ static void track_move()
     r30f_work->lift->setNoSuspend(0);
     r30f_work->lift->motSpeedRate = 1.0f;
     if (r30f_work->truckNo == 0) {
-        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3B), 0, 0, 0x200, 0);
+        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3B), 0, 0, 0x200, 0);
     }
     if (r30f_work->truckNo == 1) {
-        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3E), 0, 0, 0x200, 0);
+        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0, 0, 0x200, 0);
     }
     if (r30f_work->truckNo == 2) {
-        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0, 0, 0x200, 0);
+        r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0x200, 0);
     }
     EstSet((int) r30f_work->lift, -1, 0, 0, 1, 5, 0, 2, 0, 0);
-    SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->worldPos, 0, 0, 0);
+    SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
     if (r30f_work->truckNo != 1) {
-        SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
+        SndCall(6, 0x12, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
     }
-    frames = (u32) MotionGetMaxFrame(&r30f_work->lift->mot);
-    r30f_work->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->rot, 1);
+    frames = (u32) MotionGetMaxFrame(&r30f_work->lift->Motion);
+    r30f_work->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
     YarareInitCube(r30f_work->hit[0], hit0_x, hit0_y, hit0_z, hit0_w, hit0_h, hit0_d, 0, 1);
-    r30f_work->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->rot, 1);
+    r30f_work->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &r30f_work->lift->pos, &r30f_work->lift->ang, 1);
     YarareInitCube(r30f_work->hit[1], hit1_x, hit1_y, hit1_z, hit1_w, hit1_h, hit1_d, 0, 1);
     IntSet(r30f_work->truckLife, 0x1F4);
-    if (pG->x4F88 > 8) {
+    if (pG->Game_level > 8) {
         r30f_work->truckLife += r30f_work->truckLife;
     }
     t = 0;
@@ -698,7 +698,7 @@ static void track_move()
         if (r30f_work->truckNo != 2 && t < frames) {
             r30f_work->hit[0]->hp = 0;
             r30f_work->hit[1]->hp = 0;
-            wp = r30f_work->lift->pParts->pParts->worldPos;
+            wp = r30f_work->lift->pParts->pParts->world;
             wp.y += 1000.0f;
             PlWepHitCheck2(0, &wp, &wp, 0x13, 2, 5500.0f);
             wp.y += 2000.0f;
@@ -707,12 +707,12 @@ static void track_move()
             r30f_work->hit[1]->hp = 1;
         }
         if (t == 0x5A) {
-            SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->worldPos, 0, 0, 0);
+            SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
         }
         if (t == 0xB4) {
-            SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->worldPos, 0, 0, 0);
+            SndCall(6, 0x16, &r30f_work->lift->pParts->pParts->world, 0, 0, 0);
         }
-        wp = r30f_work->lift->pParts->pParts->worldPos;
+        wp = r30f_work->lift->pParts->pParts->world;
         {
             Vec p = {0.0f, 0.0f, 0.0f};
             Vec fwd = {0.0f, 0.0f, 1.0f};
@@ -724,10 +724,10 @@ static void track_move()
             ang.y = GetXZAngle(&p, &fwd);
         }
         r30f_work->hit[0]->pos = wp;
-        r30f_work->hit[0]->rot = ang;
+        r30f_work->hit[0]->ang = ang;
         EmHitUpdate(r30f_work->hit[0]);
         r30f_work->hit[1]->pos = wp;
-        r30f_work->hit[1]->rot = ang;
+        r30f_work->hit[1]->ang = ang;
         EmHitUpdate(r30f_work->hit[1]);
         life = r30f_work->truckLife;
         if (t < frames) {
@@ -743,7 +743,7 @@ static void track_move()
             } else {
                 EstSet((int) r30f_work->lift, -1, 0, 0, 1, 7, 1, 4, 0, 0);
             }
-            SndCall(6, 0x13, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
+            SndCall(6, 0x13, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
         }
         if (t == frames) {
             EffectEspDelete(0, 2, 0, 0);
@@ -753,23 +753,23 @@ static void track_move()
                 int no = r30f_work->truckNo;
 
                 if (no == 0) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3C), 0, 0, 1, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0, 0, 1, 0);
                     EstSet(0, -1, 0, 0, 1, 0x18, 0, 0, no, (void*) no);
                 }
                 if (r30f_work->truckNo == 1) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3F), 0, 0, 1, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3F), 0, 0, 1, 0);
                     SceExec(0x12, (TaskFunc) track_destroy, 0, 0, 2, 0);
                 }
                 if (r30f_work->truckNo == 2) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2F), 0, 0, 0x200, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 0, 0x200, 0);
                     EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0x14, 0, 0, (u32) r30f_work->lift, 0);
                     last_bomb();
                     SceExec(0x12, (TaskFunc) pl_gurd, 0, 0, 2, 0);
                 }
                 if (r30f_work->truckNo == 0) {
-                    SndCall(6, 0x14, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
+                    SndCall(6, 0x14, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
                 } else {
-                    SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
+                    SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
                 }
             } else {
                 KeyStop(0xEFCF0000);
@@ -783,29 +783,29 @@ static void track_move()
                     CamCtrl.CutCall(0xA);
                 }
                 hitT = 0;
-                BitOn(pG->flags_174, 0x00800000);
+                BitOn(pG->Room_flg[0], 0x00800000);
                 if (r30f_work->truckNo == 0) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3D), 0, 0, 1, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0, 0, 1, 0);
                     EstSet(0, -1, 0, 0, 1, 8, 0, 0, hitT, (void*) hitT);
                     EstSet((int) r30f_work->lift, -1, 0, 0, 1, 9, 0, 0, (u32) r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 1) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x40), 0, 0, 1, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x40), 0, 0, 1, 0);
                     EstSet(0, -1, 0, 0, 1, 0xA, 0, 0, hitT, (void*) hitT);
                     EstSet((int) r30f_work->lift, -1, 0, 0, 1, 0xB, 0, 0, (u32) r30f_work->lift, (void*) hitT);
                 }
                 if (r30f_work->truckNo == 2) {
-                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x37), 0, 0, 1, 0);
+                    r30f_work->lift->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x37), 0, 0, 1, 0);
                     EstSet(0, -1, 0, 0, 1, 0x10, 0, 0, hitT, (void*) hitT);
                 }
-                SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->worldPos, 0, 0x80000000, 0);
+                SndCall(6, 0x15, &r30f_work->lift->pParts->pParts->world, 0, 0x80000000, 0);
             }
             r30f_work->truckNo++;
         }
         t++;
         hitT++;
         life = 0;   // the zero register of the pl_life store and the EstSet arguments below
-        if ((pG->flags_174 & 0x00800000) && hitT == 0x1E) {
+        if ((pG->Room_flg[0] & 0x00800000) && hitT == 0x1E) {
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x12, 2, 6000.0f);
             pG->pl_life = 0;
             PlSetDamage(7, 0, 0);
@@ -822,7 +822,7 @@ static void adjust_func(cObj* obj)
     Vec zero = {0.0f, 0.0f, 0.0f};
 
     adjust_add_setV(zero);
-    if (!(pG->flags_174 & 0x00400000)) {
+    if (!(pG->Room_flg[0] & 0x00400000)) {
         SmdGetObjPtr(0x1E)->be_flag |= 0x20;
         PSVECSubtract(&r30f_work->bull->pParts->pos, &r30f_work->bullPos, &r30f_work->liftAdd);
         setLiftMoveAdd(&r30f_work->liftAdd);
@@ -839,13 +839,13 @@ static void R30f_ride()
     int truck;
     int adjust;
 
-    BitOn(pG->flags_51BC, 0x80);
+    BitOn(pG->Item_find_flg, 0x80);
     if (!(R30F_SAVE_FLAGS & 0x40000000)) {
         SceEventStart(0);
         SndStrReq(1, 0xE6, 0x80000003, 0, 0, 0.0f);
         r30f_work->bull->setNoSuspend(1);
         pl->setRightHand(1);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         PlSetHand(1, 0);
         SubCharCtrl(5, 0);
         {
@@ -874,11 +874,11 @@ static void R30f_ride()
         if (pSUB) {
             pSUB->setNoSuspend(1);
         }
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x27), 0, 0, 0x201, 0);
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x27), 0, 0, 0x201, 0);
         if (pSUB) {
-            MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, 0, 0x201, 0);
+            MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
         }
-        SceSleep((u32) MotionGetMaxFrame(&pPL->mot));
+        SceSleep((u32) MotionGetMaxFrame(&pPL->Motion));
         pPL->setNoSuspend(0);
         if (pSUB) {
             pSUB->setNoSuspend(0);
@@ -887,14 +887,14 @@ static void R30f_ride()
         SceEventEnd(0);
         PlSetHand(0, 0);
         pl->setRightHand(1);
-        pl->pWep->setTrans(1, 0);
+        pl->Wep->setTrans(1, 0);
     } else {
         SceEventStart(0);
         SceSleep(1);
         CamCtrl.Comeback(0x40);
         SceEventEnd(0);
     }
-    pG->flags_174 |= 0x02000000;
+    pG->Room_flg[0] |= 0x02000000;
     r30f_work->bull->setRide();
     r30f_work->bull->setSubBullDrive();
     SceAtSetEnable(0x18, 0);
@@ -905,13 +905,13 @@ static void R30f_ride()
     truck = 0;
     adjust = 0;
     for (;;) {
-        if (r30f_work->bull->xFC == 1 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
+        if (r30f_work->bull->r_no_0 == 1 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
             SndCall(6, 0x1F, &pSUB->pos, 0, 0, 0);
         }
-        if (r30f_work->bull->xFC == 3 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
+        if (r30f_work->bull->r_no_0 == 3 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
             SndCall(6, 0x1F, &pSUB->pos, 0, 0, 0);
         }
-        if (r30f_work->bull->xFC == 3 && r30f_work->bull->getMoveFrameToLift() == 0x35) {
+        if (r30f_work->bull->r_no_0 == 3 && r30f_work->bull->getMoveFrameToLift() == 0x35) {
             if (r30f_work->shake1 <= 1) {
                 EstSet(0, -1, 0, 0, 1, 3, 0, 0, 0, 0);
                 if (pSUB) {
@@ -920,13 +920,13 @@ static void R30f_ride()
             }
             r30f_work->shake1++;
         }
-        if (r30f_work->bull->xFC == 8 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
+        if (r30f_work->bull->r_no_0 == 8 && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
             SndCall(6, 0x1F, &pSUB->pos, 0, 0, 0);
         }
-        if (r30f_work->bull->xFC == 0xA && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
+        if (r30f_work->bull->r_no_0 == 0xA && r30f_work->bull->getMoveFrameToLift() == 1 && pSUB) {
             SndCall(6, 0x1F, &pSUB->pos, 0, 0, 0);
         }
-        if (r30f_work->bull->xFC == 0xA && r30f_work->bull->getMoveFrameToLift() == 0x35) {
+        if (r30f_work->bull->r_no_0 == 0xA && r30f_work->bull->getMoveFrameToLift() == 0x35) {
             if (r30f_work->shake2 <= 1) {
                 EstSet(0, -1, 0, 0, 1, 0x12, 0, 0, 0, 0);
                 if (pSUB) {
@@ -936,30 +936,30 @@ static void R30f_ride()
             r30f_work->shake2++;
         }
         if (r30f_work->truckLife <= 0) {
-            if (r30f_work->bull->xFC == 0xB && r30f_work->bull->getMoveFrameToLift() == 0xDC && pSUB) {
+            if (r30f_work->bull->r_no_0 == 0xB && r30f_work->bull->getMoveFrameToLift() == 0xDC && pSUB) {
                 SndCall(6, 0x1F, &pSUB->pos, 0, 0, 0);
             }
-            if (r30f_work->bull->xFC == 0xB && r30f_work->bull->getMoveFrameToLift() == 0xF5) {
+            if (r30f_work->bull->r_no_0 == 0xB && r30f_work->bull->getMoveFrameToLift() == 0xF5) {
                 SndStrReq(1, 0xEE, 0x80000003, 0, 0, 0.0f);
             }
         }
-        if (r30f_work->bull->xFC == 0xB && r30f_work->bull->getMoveFrameToLift() == 0x140) {
+        if (r30f_work->bull->r_no_0 == 0xB && r30f_work->bull->getMoveFrameToLift() == 0x140) {
             SceAtExecute(0);
         }
-        if (r30f_work->bull->ckBreak1st() != 0 && (int) pG->flags_174 >= 0) {
-            pG->flags_174 |= 0x80000000;
+        if (r30f_work->bull->ckBreak1st() != 0 && (int) pG->Room_flg[0] >= 0) {
+            pG->Room_flg[0] |= 0x80000000;
             SceExec(0x12, (TaskFunc) door1_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak2nd() != 0 && !(pG->flags_174 & 0x40000000)) {
-            pG->flags_174 |= 0x40000000;
+        if (r30f_work->bull->ckBreak2nd() != 0 && !(pG->Room_flg[0] & 0x40000000)) {
+            pG->Room_flg[0] |= 0x40000000;
             SceExec(0x12, (TaskFunc) door2_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak3rd() != 0 && !(pG->flags_174 & 0x20000000)) {
-            pG->flags_174 |= 0x20000000;
+        if (r30f_work->bull->ckBreak3rd() != 0 && !(pG->Room_flg[0] & 0x20000000)) {
+            pG->Room_flg[0] |= 0x20000000;
             SceExec(0x12, (TaskFunc) door3_break, 0, 0, 2, 0);
         }
-        if (r30f_work->bull->ckBreak4th() != 0 && !(pG->flags_174 & 0x10000000)) {
-            pG->flags_174 |= 0x10000000;
+        if (r30f_work->bull->ckBreak4th() != 0 && !(pG->Room_flg[0] & 0x10000000)) {
+            pG->Room_flg[0] |= 0x10000000;
             SceExec(0x12, (TaskFunc) door4_break, 0, 0, 2, 0);
         }
         if (r30f_work->bull->ckLift() != 0) {
@@ -991,23 +991,23 @@ static void R30f_ride()
 // The player's ride motion as a damage routine (R30f_ride2: back on the bulldozer after the lift).
 static void plemRide(cPlayer* p)
 {
-    switch (p->xFE) {
+    switch (p->r_no_2) {
     case 0:
         pPL->dmg.set(0, 0x80);
         AtariFlagsAnd(&pPL->atari, 0xFEFF);
         pPL->atari.setPriority(2);
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x27), 0, 0, 0x201, 0);
-        p->xFF = 0;
-        p->xFE++;
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x27), 0, 0, 0x201, 0);
+        p->r_no_3 = 0;
+        p->r_no_2++;
     case 1:
-        p->xFF++;
-        if (MotionMoveF(p, 0) != 0 || p->xFF == 0x3C) {
+        p->r_no_3++;
+        if (MotionMoveF(p, 0) != 0 || p->r_no_3 == 0x3C) {
             pPL->dmg.clear();
             AtariFlagsOr(&pPL->atari, 0x100);
             pPL->atari.setPriority(0);
             EndPlDamage();
             p->dmg.set(0, 0x1E);
-            pG->flags_174 |= 0x02000000;
+            pG->Room_flg[0] |= 0x02000000;
         }
         break;
     }
@@ -1058,9 +1058,9 @@ static void door1_break()
         for (i = 0; i < 12; i++) {
             PSVECAdd(&o->pos, &add, &o->pos);
             add.y -= 43.0f;
-            o->rot.z -= spd;
-            if (o->rot.z < -1.657f) {
-                o->rot.z = -1.657f;
+            o->ang.z -= spd;
+            if (o->ang.z < -1.657f) {
+                o->ang.z = -1.657f;
             }
             spd += 0.03f;
             SceSleep(1);
@@ -1081,9 +1081,9 @@ static void door2_break()
     o->pos.x = -10455.8f;
     o->pos.y = -38089.5f;
     o->pos.z = 76813.7f;
-    o->rot.x = 1.5707964f;
-    o->rot.y = 1.5707964f;
-    o->rot.z = 1.5707964f;
+    o->ang.x = 1.5707964f;
+    o->ang.y = 1.5707964f;
+    o->ang.z = 1.5707964f;
     SndCall(6, 0x20, &o->pos, 0, 0, 0);
     SceAtSetEnable(0x1B, 0);
     {
@@ -1093,9 +1093,9 @@ static void door2_break()
         for (i = 0; i < 12; i++) {
             PSVECAdd(&o->pos, &add, &o->pos);
             add.y -= 40.0f;
-            o->rot.y += spd;
-            if (o->rot.y > 3.1415927f) {
-                o->rot.y = 3.1415927f;
+            o->ang.y += spd;
+            if (o->ang.y > 3.1415927f) {
+                o->ang.y = 3.1415927f;
             }
             spd += 0.03f;
             SceSleep(1);
@@ -1132,9 +1132,9 @@ static void door4_break()
     o->pos.x = 3744.86f;
     o->pos.y = -6478.23f;
     o->pos.z = -56759.2f;
-    o->rot.x = 1.5707964f;
-    o->rot.y = 1.5707964f;
-    o->rot.z = 1.5707964f;
+    o->ang.x = 1.5707964f;
+    o->ang.y = 1.5707964f;
+    o->ang.z = 1.5707964f;
     SceAtSetEnable(0x1D, 0);
     SndCall(6, 0x20, &o->pos, 0, 0, 0);
     {
@@ -1144,9 +1144,9 @@ static void door4_break()
         for (i = 0; i < 12; i++) {
             PSVECAdd(&o->pos, &add, &o->pos);
             add.y -= 40.0f;
-            o->rot.y += spd;
-            if (o->rot.y > 3.1415927f) {
-                o->rot.y = 3.1415927f;
+            o->ang.y += spd;
+            if (o->ang.y > 3.1415927f) {
+                o->ang.y = 3.1415927f;
             }
             SceSleep(1);
             spd += 0.03f;
@@ -1156,7 +1156,7 @@ static void door4_break()
         SndCall(6, 4, &pSUB->pos, 0, 0, 0);
     }
     r30f_work->bull->setSubBullFinger();
-    cMes.MesSet(6, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x02000052, 0, 0, 4);
+    cMes.MesSet(6, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x02000052, 0, 0, 4);
     SceSleep(0xF);
     SndCall(6, 0x16, &pSUB->pos, 0, 0, 0);
 }
@@ -1217,7 +1217,7 @@ void AreaSet(u32 no)
     switch (no) {
     case 1:
         setArea1();
-        r30f_work->sat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 3);
+        r30f_work->sat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 3);
         break;
     case 2:
         setArea2();
@@ -1227,11 +1227,11 @@ void AreaSet(u32 no)
         break;
     case 4:
         setArea3();
-        r30f_work->sat3 = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 4);
+        r30f_work->sat3 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 4);
         break;
     case 5:
         SatMgr.destroy(r30f_work->sat2);
-        r30f_work->sat4 = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 5);
+        r30f_work->sat4 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x5), 0, (Vec*) &vecZero, (Vec*) &vecZero, 5);
         break;
     case 6:
         setArea4();
@@ -1281,7 +1281,7 @@ void lift_stop_event()
     }
     r30f_work->bull->setNoSuspend(1);
     r30f_work->bull->setSubBullFinger();
-    cMes.MesSet(3, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x02000052, 0, 0, 4);
+    cMes.MesSet(3, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x02000052, 0, 0, 4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -1306,7 +1306,7 @@ static void lift_stop_task()
 
     if (R30F_SAVE_FLAGS & 0x40000000) {
         SceDestroyEm(0x10, 0x20);
-        pPL->rot.y -= 1.57f;
+        pPL->ang.y -= 1.57f;
         CamCtrl.Comeback(0);
     }
     cnt = 0;
@@ -1314,7 +1314,7 @@ static void lift_stop_task()
     R30F_SAVE_FLAGS |= 0x40000000;
     GameSaveSave(&GameSave, pSaveData, -1);
     SmdGetObjPtr(0x12)->be_flag |= 0x20;
-    SmdGetObjPtr(0x12)->pParts->rot.z = 1.38f;
+    SmdGetObjPtr(0x12)->pParts->ang.z = 1.38f;
     o = SmdGetObjPtr(0xD);
     o->be_flag |= 0x20;
     SndCall(6, 0x1C, &o->pos, 0, 0, 0);
@@ -1323,7 +1323,7 @@ static void lift_stop_task()
     SceAtSetEnable(0x11, 1);
     SceAtSetEnable(0x12, 1);
     SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) R30f_ride2, 0, 1);
-    while (!(pG->flags_174 & 0x00100000)) {
+    while (!(pG->Room_flg[0] & 0x00100000)) {
         if (cnt++ == 0x3B) {
             lift_stop_event();
         }
@@ -1344,11 +1344,11 @@ static void lift_stop_task()
             o->pos.y = -36243.0f;
             SceAtSetEnable(0xD, 1);
         }
-        if (r30f_work->bull->xFC == 6 && (u32) r30f_work->bull->getMoveFrameToLift() > 0x226) {
+        if (r30f_work->bull->r_no_0 == 6 && (u32) r30f_work->bull->getMoveFrameToLift() > 0x226) {
             SceAtSetEnable(6, 0);
             SceAtSetEnable(0xC, 1);
-        } else if ((int) pG->sceat_x17C < 0) {
-            pG->flags_174 &= ~0x02000000;
+        } else if ((int) pG->Room_flg[2] < 0) {
+            pG->Room_flg[0] &= ~0x02000000;
             SceAtSetEnable(6, 0);
             SceAtSetEnable(0xC, 1);
         } else {
@@ -1400,7 +1400,7 @@ static void em_set()
         SndCall(6, 3, &pSUB->pos, 0, 0, 0);
     }
     r30f_work->bull->setSubBullLookBack();
-    cMes.MesSet(5, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x02000052, 0, 0, 4);
+    cMes.MesSet(5, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x02000052, 0, 0, 4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -1487,7 +1487,7 @@ static void r30f_switch()
     SceEventStart(1);
     CamCtrl.CutCall(0x11);
     SceSleep(1);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 1) {
         reva_common_move(SmdGetObjPtr(0x12), 1.38f, 0.0f);
         EffectEspDelete(0x801, 3, 0, 0);
@@ -1496,7 +1496,7 @@ static void r30f_switch()
         EstSet(0, -1, 0, 0, 1, 0, 0x801, 3, 0, 0);
         SndCall(6, 0x22, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
         SceSleep(0xF);
-        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         R30F_SAVE_FLAGS |= 0x80000000;
         SceAtSetEnable(0xA, 0);
     }
@@ -1524,7 +1524,7 @@ void addPos_sca(Vec* add, SceAtWork* at)
     at->area.u.xz4.p[2].z += add->z;
     at->area.u.xz4.p[3].x += add->x;
     at->area.u.xz4.p[3].z += add->z;
-    at->area.u.xz4.y += add->y;
+    at->area.u.xz4.floor += add->y;
 }
 
 // Everything on the lift moves with it: the riders, the camera, the enemies, the scenario pieces and
@@ -1542,9 +1542,9 @@ void setLiftMoveAdd(Vec* add)
 
     addPos(add, pPL);
     v = *add;
-    if (CamCtrl.x250 != 0) {
-        PSVECAdd(&((Camera*) CamCtrl.x250)->param.at, &v, &((Camera*) CamCtrl.x250)->param.at);
-        PSVECAdd(&((Camera*) CamCtrl.x250)->param.pos, &v, &((Camera*) CamCtrl.x250)->param.pos);
+    if (CamCtrl.m_pExtraCamera != 0) {
+        PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.at, &v, &((Camera*) CamCtrl.m_pExtraCamera)->param.at);
+        PSVECAdd(&((Camera*) CamCtrl.m_pExtraCamera)->param.pos, &v, &((Camera*) CamCtrl.m_pExtraCamera)->param.pos);
     }
     pG->quake_ofs = v;
     // Struct-member view of pSUB: its load is not hoisted above the quake_ofs copy (the pGS trick).
@@ -1641,10 +1641,10 @@ void setLiftMoveAdd(Vec* add)
 // Area 0xF: the Ganados of the lift yard.
 static void em_set2()
 {
-    if (pG->x4F88 > 5) {
+    if (pG->Game_level > 5) {
         setem(0x1A, 1);
     }
-    if (pG->x4F88 > 4) {
+    if (pG->Game_level > 4) {
         setem(0x1B, 1);
     }
     SceSleep(1);
@@ -1658,11 +1658,11 @@ static void em_set2()
     setem(0x31, 1);
     SceSleep(1);
     setem(0x32, 1);
-    if (pG->x4F88 > 6) {
+    if (pG->Game_level > 6) {
         setem(0x45, 1);
     }
     r30f_work->em[0x32].setGoto(&pPL->pos, 6);
-    pG->flags_174 |= 0x01000000;
+    pG->Room_flg[0] |= 0x01000000;
 }
 
 // The exit gate (0x17 / 0x18) slides open.
@@ -1679,7 +1679,7 @@ static void gate_open()
         SmdGetObjPtr(0x18)->pos.z -= 100.0f;
         SceSleep(1);
     }
-    pG->flags_174 |= 0x00200000;
+    pG->Room_flg[0] |= 0x00200000;
     EffectEspDelete(1, 5, 0, 0);
     EffectEspgenDelete(1, 5, 0);
     EffectEfmDelete(1, 5, 0);

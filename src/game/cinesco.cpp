@@ -23,15 +23,15 @@ void CinescoMove(void)
         cine_off_move,
     };
 
-    pG->flags_500C |= 0x1000000;
-    cine_tbl[cine_work.mode](&cine_work);
+    pG->Status_flg[0] |= 0x1000000;
+    cine_tbl[cine_work.rno0](&cine_work);
 }
 
 void cine_polling(CineWork* w)
 {
     int on;
 
-    if (!(pG->flags_500C & 0x1000000)) {
+    if (!(pG->Status_flg[0] & 0x1000000)) {
         on = 0;
     } else {
         on = 1;
@@ -39,31 +39,31 @@ void cine_polling(CineWork* w)
     if (w->on != on) {
         w->on = on;
         if (on) {
-            w->mode = 1;
-            w->timer = 15.0f;
+            w->rno0 = 1;
+            w->timer0 = 15.0f;
         } else {
-            w->mode = 2;
-            w->timer = 15.0f;
+            w->rno0 = 2;
+            w->timer0 = 15.0f;
         }
     }
 }
 
 void cine_on_move(CineWork* w)
 {
-    w->timer -= 1.0f;
-    w->alpha = (u8) ((15.0f - w->timer) / 15.0f * 255.0f);
-    if (w->timer <= 0.0f) {
-        w->mode = 0;
+    w->timer0 -= 1.0f;
+    w->alpha = (u8) ((15.0f - w->timer0) / 15.0f * 255.0f);
+    if (w->timer0 <= 0.0f) {
+        w->rno0 = 0;
         w->alpha = 255;
     }
 }
 
 void cine_off_move(CineWork* w)
 {
-    w->timer -= 1.0f;
-    w->alpha = (u8) (w->timer / 15.0f * 255.0f);
-    if (w->timer <= 0.0f) {
-        w->mode = 0;
+    w->timer0 -= 1.0f;
+    w->alpha = (u8) (w->timer0 / 15.0f * 255.0f);
+    if (w->timer0 <= 0.0f) {
+        w->rno0 = 0;
         w->alpha = 0;
     }
 }

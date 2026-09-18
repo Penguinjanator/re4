@@ -39,8 +39,8 @@ void cObj04::move()
             return;
         }
     }
-    li = &lightInfo;
-    if ((li->x51 & 3) == 2) {
+    li = &LightInfo;
+    if ((li->Flag & 3) == 2) {
         li->updateMatrix(this);
     }
     if (w->flags & 8) {
@@ -60,7 +60,7 @@ void cObj04::move()
         }
     }
     if (w->moveStart <= w->frame) {
-        oldPos = pos;
+        pos_old = pos;
         PSVECAdd(&pos, &speed, &pos);
         PSVECAdd(&speed, &w->acc, &speed);
         PSVECScale(&speed, &speed, w->spdDamp);
@@ -73,7 +73,7 @@ void cObj04::move()
             return;
         }
     }
-    PSVECAdd(&rot, &w->rotSpd, &rot);
+    PSVECAdd(&ang, &w->rotSpd, &ang);
     if (w->fadeStart < w->frame) {
         if (w->fadeStart + w->fadeLen <= w->frame) {
             w->r *= w->rMul;
@@ -101,11 +101,11 @@ void cObj04::move()
         f32 ratio = (f32) w->frame / (f32) w->fadeStart;
         w->a = (f32) w->alpha0 * ratio;
     }
-    if (x12F != 2) {
+    if (ot_type != 2) {
         if (w->a < 250.0f) {
-            x12F = 1;
+            ot_type = 1;
         } else {
-            x12F = 0;
+            ot_type = 0;
         }
     }
     if (w->life != 0 && w->life <= w->frame) {
@@ -113,17 +113,17 @@ void cObj04::move()
         return;
     }
     w->frame++;
-    pInfo->color[0] = (u8) w->r;
-    pInfo->color[1] = (u8) w->g;
-    pInfo->color[2] = (u8) w->b;
-    pInfo->color[3] = 0xFF;
-    alpha = w->a * (1.0f / 255.0f);
+    pModelInfo->color[0] = (u8) w->r;
+    pModelInfo->color[1] = (u8) w->g;
+    pModelInfo->color[2] = (u8) w->b;
+    pModelInfo->color[3] = 0xFF;
+    invisible_factor = w->a * (1.0f / 255.0f);
     scale.y = w->scaleY * w->scale;
     scale.z = scale.x = w->scaleXZ * w->scale;
     if (!(w->stopped & 1)) {
         hit = 0;
         if (w->flags & 2) {
-            if (SatMgr.hitCheck(&oldPos, &pos, &hitPos, &nrm, 0, 0)) {
+            if (SatMgr.hitCheck(&pos_old, &pos, &hitPos, &nrm, 0, 0)) {
                 pos = hitPos;
                 hit = 1;
                 PSVECAdd(&nrm, &pos, &pos);
@@ -139,7 +139,7 @@ void cObj04::move()
             f32 floor = EatMgr.getFloor(&pos, 600.0f, 100000.0f, &attr, 0);
             f32 ofs = w->groundOfs;
 
-            if ((s32) pG->flags_60 < 0 && !(pG->flags_60 & 0x10000)) {
+            if ((s32) pG->Debug_flg[0] < 0 && !(pG->Debug_flg[0] & 0x10000)) {
                 floor = 0.0f;
             }
             if (pos.y - ofs < floor) {
@@ -159,7 +159,7 @@ void cObj04::move()
             }
         }
     }
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     ScaleMatrix(mat, &scale);
     if (w->parentWorld != pEffParentWorld) {
@@ -177,9 +177,9 @@ void Efm04RotMatrix(cObj* obj, Mtx m)
     PSMTXMultVec(m, &obj->pos, &obj->pos);
     PSMTXMultVecSR(m, &obj->speed, &obj->speed);
     PSMTXMultVecSR(m, &obj->efm04.acc, &obj->efm04.acc);
-    RotMatrix(tmp, &obj->rot);
+    RotMatrix(tmp, &obj->ang);
     PSMTXConcat(m, tmp, tmp);
-    Matrix2AxisAngle(tmp, &obj->rot);
+    Matrix2AxisAngle(tmp, &obj->ang);
 }
 
 // The next unit's .sdata starts 8-byte aligned in the original link.

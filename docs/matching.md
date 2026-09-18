@@ -487,7 +487,11 @@ python3 tools/sync_symbols.py build/G4BE08/src/game/foo.o   # renames placeholde
 ninja                                          # rebuild, refresh report (must still say main.dol OK); ninja reruns configure itself
 python3 tools/fdiff.py game/foo <mangled_symbol>   # side-by-side diff of one function (only differing lines; --all for everything)
 python3 tools/bytecmp.py game/foo                  # THE judge: every section byte-compared with relocs resolved by address;
-                                                   # `... game/foo FUNC` = word diff of one function. objdiff %s are reloc-NAME artefacts.
+                                                   # `... game/foo FUNC` = word diff of one function.
+python3 tools/sync_data_symbols.py                 # once a unit is IDENTICAL and marked complete: the split's data/.bss symbols
+                                                   # (lbl_ placeholders, sizes, padding labels) follow the compiled object, so the
+                                                   # report's data % is real and the asm reads the source names. All units at once,
+                                                   # idempotent, needs a complete build (refuses to run while ninja runs).
 ```
 
 Repeat until `tools/bytecmp.py` says IDENTICAL (unit_info's 100% is neither necessary nor sufficient). Then
@@ -683,6 +687,12 @@ original: fix the source, do not link it.
   declaring the callee `void` when the original ignores its result changes the order.
 - objdiff scores 100% even when constant-pool *values* differ (relocs compared symbolically): always
   cmp .rodata bytes against the split object before flipping a flag.
+- objdiff.json's `base_path` is `build/G4BE08/objdiff/<unit>.o`, not the linked object: tools/objdiff_base.py
+  copies the compiled object with the bytes under data relocations zeroed (NgcAs/MWCC store the
+  `.section+off` addend in place, dtk's split holds 0) and the split's symbols over our anonymous strings
+  and pools (objdiff compares a data section only up to its last symbol). The report's data % counts
+  a section only at exactly 100%; .bss is scored by the (offset, size) layout of the visible symbols,
+  which tools/sync_data_symbols.py makes agree for every complete unit.
 - In-class inline members of the class whose vtable the unit owns are emitted after the destructor at
   the end of `.text`.
 - Interblock scheduling is on: an independent `i++` in a loop's join block is hoisted into the loop
@@ -2050,25 +2060,37 @@ MWCC idioms seen so far (2.4.7, -O4,p):
 (`__cvt_fp2unsigned`, the MWCC-ABI `__va_arg`, `__div2i`-style aliases that `b` to libgcc) is
 hand-written assembly (its libsn.a member carries a `tea151.tmp` FILE symbol like proview/ppcdown,
 the C members carry `<name>.c`; `addi r7,r3,0`, `subi/nor` for `~(n-1)`, two zero registers) and is
-an `ASM_UNITS` entry. The v393 `libsn.a` in re4-orig/prodg has every libsn member with full symbol
+an `ASM_BODY_UNITS` entry. The v393 `libsn.a` in re4-orig/prodg has every libsn member with full symbol
 names (sndvd's `NotDvdDsi` label, its `g_hDVD` etc.) (`stwu -8; mflr; stw r0,0xc`, `stmw`,
 `first.183` statics, r9/r11 temporaries) but with **no small data** and **no common symbols**
 (`LIBSN_UNITS` in configure.py: `cflags_game + -G 0 -fno-common`, `strip_unused.py --gcc`; without
 `-fno-common` FSasync's uninitialised globals become COMMON and leave the unit's `.bss`). `proview`,
 `ppcdown`, `fileserver` (`addi r31,r4,0` copies, `lis rX,sym@h; ori rX,rX,sym@l`), `eabi`
-(`_savefpr_14/_restfpr_14`) and `__start` (`.init`) are hand-written assembly and are built from
-**`src/lib/<name>.s`** (configure.py `ASM_UNITS`: the split name stays `lib/<name>.c`, the Object's
-`source` is the `.s`, so tools/project.py's `asm_build` uses the template's `as` rule =
-`build/binutils/powerpc-eabi-as -mgekko --strip-local-absolute -I include -I build/G4BE08/include
---defsym BUILD_VERSION=0` + `dtk elf fixup`; `macros.inc` provides `.fn/.endfn/.obj`). The sources
-are the dtk disassembly with the address comments stripped, `bl`/`b` to global function starts made
-symbolic (relocations resolve to the same displacement), `_stack_addr/_SDA_BASE_/_SDA2_BASE_` for the
-`.init` register setup, and one fix: dtk prints `ori r0,r0,imm` as `nop`, so proview's
-`lis r0,sym@h; nop` was really `ori r0,r0,sym@l` (the DOL check catches it: 2 bytes). `__start` is an
-absolute symbol of ldscript.ld, the `.init` code carries the local label `__start_entry`. Branches
-into data (`proviewtty`) or into the middle of other units' functions stay raw displacements with a
-`# -> 0x8... (sym+off)` comment; objdiff shows ARG_MISMATCH on assembler-resolved local branches, the
-linked bytes are identical. `crt0` is only the data half of that assembly (two 32-byte message
+(`_savefpr_14/_restfpr_14`) and `__start` (`.init`) are hand-written assembly and are
+**asm-bodied C units** `src/lib/<name>.c` (configure.py `ASM_BODY_UNITS`: `cflags_libsn`, no
+`strip_unused` — it would drop eabi's gap function, which is not in sym_map.tsv, and rejects
+ppcdown's data-to-label relocations): every function is one top-level `asm("...")` block in GAS
+syntax (`.globl name` / `.type name,@function` / `name:` / body / `.size name,.-name`, `.obj`
+likewise with `@object`), compiled by tools/ngccc.py like every other ProDG unit (cc1 copies the
+templates verbatim, NgcAs assembles them). `include/asm_regs.h` is the `.set` half of `macros.inc`
+(`r0..r31`, `f0..f31`, `qr0..7`, `cr0..7`, `lt/gt/eq/so/un`, the SPR names): NgcAs takes bare
+register numbers only, the `.set` constants never reach the symbol table. NgcAs differences from
+binutils that the sources had to absorb: no `.hidden` (eabi's `gap_01_8021C94C_text` is a local
+symbol instead of a hidden global), no `mfibatu/mfibatl/mfdbatu/mfdbatl` mnemonics (`mfspr rX,
+IBAT0U` etc.), and a bare-number branch target (`bl 0x6fd54`, GAS: the displacement literal) is
+written `bl .+0x6fd54` (NgcAs emits a REL24 against `.init`/`.text` that the linker resolves to the
+same displacement; it also emits such relocations for every local branch, as it does for compiler
+output, so `bytecmp` compares the resolved targets). The bodies are the dtk disassembly with the
+address comments stripped, `bl`/`b` to global function starts made symbolic (relocations resolve to
+the same displacement), `_stack_addr/_SDA_BASE_/_SDA2_BASE_` for the `.init` register setup, and one
+fix: dtk prints `ori r0,r0,imm` as `nop`, so proview's `lis r0,sym@h; nop` was really
+`ori r0,r0,sym@l` (the DOL check catches it: 2 bytes). `__start` is an absolute symbol of
+ldscript.ld, the `.init` code carries the local label `__start_entry`. Branches into data
+(`proviewtty`) or into the middle of other units' functions stay raw displacements with a
+`/* -> 0x8... (sym+off) */` comment; objdiff shows ARG_MISMATCH on assembler-resolved local branches,
+the linked bytes are identical. Capcom's `game/memset_2.cpp` and `game/yz2asm.cpp` are the same form
+under the game flags (`fold_linkonce` is a no-op on them). `tools/asmcheck.py` reports the eight as
+`asm-bodied` and keeps them out of its TOTAL. `crt0` is only the data half of that assembly (two 32-byte message
 buffers, the libsn version words, `LinkFiddle = {__mod2i, 0}`); `crtbegin` is `.ctor/.dtor` `-1`
 sentinels; `builtin-delete` is SN's libstdc++ `operator new/delete` warning unit (C++, everything
 stripped but the `bad_alloc` type-info name and the four warning strings). The split object's `.data`

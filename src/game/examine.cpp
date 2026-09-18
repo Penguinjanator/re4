@@ -438,19 +438,19 @@ void ItemExamine::idSet()
     int base2;
     int started;
 
-    switch (mode) {
+    switch (m_scrn_flag) {
     case 0:
-        pIdSys = &IdSys;
+        m_pIdSys = &IdSys;
         break;
     case 1:
     case 2:
-        pIdSys = &IdSub;
+        m_pIdSys = &IdSub;
         break;
     }
-    switch (mode) {
+    switch (m_scrn_flag) {
     case 1:
-        pIdSys->set(SS_ARC_PTR(wk->pCmmn, 15), 0xFF, 0x27, 0x15, 2, 0);
-        itemInfo(id, &inf);
+        m_pIdSys->set(SS_ARC_PTR(wk->pCmmn, 15), 0xFF, 0x27, 0x15, 2, 0);
+        itemInfo(m_item_id, &inf);
         if (inf.type == 1) {
             val = 0;
             base = 0;
@@ -458,22 +458,22 @@ void ItemExamine::idSet()
             for (kind = 0; kind <= 3; kind++) {
                 switch (kind) {
                 case 0:
-                    val = (int) (getPowerRatio(id, lv[0]) * 10.0f + 0.5f);
+                    val = (int) (getPowerRatio(m_item_id, lv[0]) * 10.0f + 0.5f);
                     base = 0x11;
                     base2 = 0xF1;
                     break;
                 case 1:
-                    val = (int) (getSpeedRatio(id, lv[1]) * 100.0f + 0.5f);
+                    val = (int) (getSpeedRatio(m_item_id, lv[1]) * 100.0f + 0.5f);
                     base = 0x21;
                     base2 = 0xE1;
                     break;
                 case 2:
-                    val = (int) (getReloadRatio(id, lv[2]) * 100.0f + 0.5f);
+                    val = (int) (getReloadRatio(m_item_id, lv[2]) * 100.0f + 0.5f);
                     base = 0x31;
                     base2 = 0xD1;
                     break;
                 case 3:
-                    val = (int) getBulletRatio(id, lv[3]);
+                    val = (int) getBulletRatio(m_item_id, lv[3]);
                     base = 0x41;
                     base2 = 0xC1;
                     break;
@@ -484,21 +484,21 @@ void ItemExamine::idSet()
                 }
                 started = 0;
                 for (j = 2; j >= 0; j--) {
-                    IdUnit* u = pIdSys->unitPtr(base2 + j, 0x27);
-                    u->flags_7F |= 2;
-                    u->no = d[j];
+                    IdUnit* u = m_pIdSys->unitPtr(base2 + j, 0x27);
+                    u->tex_flag |= 2;
+                    u->texNo = d[j];
                     if (kind == 3) {
                         if (started == 0 && d[j] == 0) {
-                            u->flags &= ~8;
+                            u->be_flag &= ~8;
                         } else {
                             started = 1;
-                            u->flags |= 8;
+                            u->be_flag |= 8;
                         }
                     } else {
                         if (kind == 0 && j == 2 && d[j] == 0) {
-                            u->flags &= ~8;
+                            u->be_flag &= ~8;
                         } else {
-                            u->flags |= 8;
+                            u->be_flag |= 8;
                         }
                     }
                 }
@@ -509,18 +509,18 @@ void ItemExamine::idSet()
                     IdUnit* u;
                     int l;
 
-                    u = pIdSys->unitPtr(base + n, 0x27);
-                    if (n < WeaponId2MaxLevel(id, kind)) {
-                        u->flags |= 8;
+                    u = m_pIdSys->unitPtr(base + n, 0x27);
+                    if (n < WeaponId2MaxLevel(m_item_id, kind)) {
+                        u->be_flag |= 8;
                     } else {
-                        u->flags &= ~8;
+                        u->be_flag &= ~8;
                     }
                     a = IdSub.unitPtr(1, 0x27);
                     b = IdSub.unitPtr(2, 0x27);
                     c = IdSub.unitPtr(3, 0x27);
                     l = lv[kind];
                     if (n < l) {
-                        if (l > WeaponId2MaxLevel(id, kind)) {
+                        if (l > WeaponId2MaxLevel(m_item_id, kind)) {
                             c = a;
                         } else {
                             c = b;
@@ -533,23 +533,23 @@ void ItemExamine::idSet()
                 }
             }
         } else {
-            IdUnit* u = pIdSys->unitPtr(0, 0x27);
-            u->flags &= ~8;
-            u->dir |= 0xF;
+            IdUnit* u = m_pIdSys->unitPtr(0, 0x27);
+            u->be_flag &= ~8;
+            u->rev_flag |= 0xF;
         }
         break;
     case 2:
-        pIdSys->set(SS_ARC_PTR(wk->pExam, 8), 0xFF, 0x27, 0x15, 2, 0);
-        pIdSys->set(SS_ARC_PTR(wk->pExam, 9), 0xFF, 0x27, 0x15, 2, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 8), 0xFF, 0x27, 0x15, 2, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 9), 0xFF, 0x27, 0x15, 2, 0);
         break;
     }
-    switch (mode) {
+    switch (m_scrn_flag) {
     case 0:
     case 1:
-        pIdSys->set((void*) (pG->pArc->ofs_78 + (u32) pG->pArc), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set((void*) (pG->pArc->ofs_78 + (u32) pG->pArc), 0xFF, 0x26, 0x13, 0, 0);
         break;
     case 2:
-        pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
+        m_pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
         break;
     }
 }
@@ -564,60 +564,60 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     int i;
     u16 no;
 
-    model = model_;
-    id = id_;
-    saveFlag = model_->be_flag;
-    savePos = model_->pos;
-    saveRot = model->rot;
-    saveX12F = model->x12F;
-    model->be_flag |= 0x4000;
-    saveParent = model->pParts->pParent;
-    model->pParts->pParent = model;
-    h = model->pInfo->pData->pHead;
-    savePartsPos = model->pParts->pos;
-    model->pParts->pos.x = h->center.x;
-    model->pParts->pos.y = h->center.y;
-    model->pParts->pos.z = h->center.z;
-    savePartsRot = model->pParts->rot;
-    model->pParts->rot.x = model->pParts->rot.y = model->pParts->rot.z = 0.0f;
-    mode = mode_;
+    m_pModel = model_;
+    m_item_id = id_;
+    m_be_flag_bak = model_->be_flag;
+    m_pos_bak = model_->pos;
+    m_ang_bak = m_pModel->ang;
+    m_ot_type_bak = m_pModel->ot_type;
+    m_pModel->be_flag |= 0x4000;
+    m_pList_pParent_bak = m_pModel->pParts->pParent;
+    m_pModel->pParts->pParent = m_pModel;
+    h = m_pModel->pModelInfo->pData->pHead;
+    m_pList_pos_bak = m_pModel->pParts->pos;
+    m_pModel->pParts->pos.x = h->center.x;
+    m_pModel->pParts->pos.y = h->center.y;
+    m_pModel->pParts->pos.z = h->center.z;
+    m_pList_ang_bak = m_pModel->pParts->ang;
+    m_pModel->pParts->ang.x = m_pModel->pParts->ang.y = m_pModel->pParts->ang.z = 0.0f;
+    m_scrn_flag = mode_;
     idSet();
-    switch (mode) {
+    switch (m_scrn_flag) {
     case 1:
-        info = examInfo(id, 1);
+        m_pInfo = examInfo(m_item_id, 1);
         break;
     case 0:
-        info = examInfo(id, 0);
+        m_pInfo = examInfo(m_item_id, 0);
         break;
     case 2:
-        info = 0;
+        m_pInfo = 0;
         break;
     }
-    model->x12F = 6;
-    if (info) {
-        model->rot.x = info->rot.x * 3.1415927f / 180.0f;
-        model->rot.y = info->rot.y * 3.1415927f / 180.0f;
-        model->rot.z = info->rot.z * 3.1415927f / 180.0f;
+    m_pModel->ot_type = 6;
+    if (m_pInfo) {
+        m_pModel->ang.x = m_pInfo->rot.x * 3.1415927f / 180.0f;
+        m_pModel->ang.y = m_pInfo->rot.y * 3.1415927f / 180.0f;
+        m_pModel->ang.z = m_pInfo->rot.z * 3.1415927f / 180.0f;
     } else {
-        model->rot.x = 0.0f;
-        model->rot.y = 0.0f;
-        model->rot.z = 0.0f;
+        m_pModel->ang.x = 0.0f;
+        m_pModel->ang.y = 0.0f;
+        m_pModel->ang.z = 0.0f;
     }
-    model->pos.x = 0.0f;
-    model->pos.y = 0.0f;
-    model->pos.z = 0.0f;
-    model->matUpdate();
-    model->be_flag &= ~0x20;
-    parts = model->getPartsPtr(0);
+    m_pModel->pos.x = 0.0f;
+    m_pModel->pos.y = 0.0f;
+    m_pModel->pos.z = 0.0f;
+    m_pModel->matUpdate();
+    m_pModel->be_flag &= ~0x20;
+    parts = m_pModel->getPartsPtr(0);
     if (parts) {
-        PSVECScale(&parts->worldPos, &model->pos, -1.0f);
+        PSVECScale(&parts->world, &m_pModel->pos, -1.0f);
     } else {
         pLog->err(0, 0, "ItemExamine(): Parts 0 not found.");
     }
-    model->matUpdate();
-    model->partsMatCalc();
-    model->partsWorldCalc();
-    if (mode == 2) {
+    m_pModel->matUpdate();
+    m_pModel->partsMatCalc();
+    m_pModel->partsWorldCalc();
+    if (m_scrn_flag == 2) {
         Vec p = { 0.0f, 0.0f, 0.0f };
         Vec mid;
         Vec at;
@@ -625,9 +625,9 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         f32 c;
 
         p.z = cap_dist_max;
-        p0 = &model->getPartsPtr(0)->worldPos;
+        p0 = &m_pModel->getPartsPtr(0)->world;
         c = c0;
-        VecLinearCombination(p0, &model->getPartsPtr(1)->worldPos, c, 1.0f - c0, &mid);
+        VecLinearCombination(p0, &m_pModel->getPartsPtr(1)->world, c, 1.0f - c0, &mid);
         PSVECScale(&mid, &mid, 0.5f);
         PSVECAdd(&mid, &p, &at);
         itemCamera.param.at = mid;
@@ -637,8 +637,8 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     } else {
         arc = pG->pArc;
         lit = (cLit*) (arc->ofs_58 + (u32) arc);
-        if (info) {
-            switch (info->light) {
+        if (m_pInfo) {
+            switch (m_pInfo->light) {
             case 0:
                 lit = (cLit*) (arc->ofs_58 + (u32) arc);
                 break;
@@ -660,11 +660,11 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
             }
         }
         for (i = 0; i <= 2; i++) {
-            light[i] = LightMgr.create(lit, 0, i, 0);
+            m_pLight[i] = LightMgr.create(lit, 0, i, 0);
         }
         LightMgr.offKind(0x7F);
-        no = id;
-        if (mode == 1) {
+        no = m_item_id;
+        if (m_scrn_flag == 1) {
             switch (no) {
             case 0xA:
                 no = 0x1B;
@@ -679,17 +679,17 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
             }
         }
         if (EspGetEstAddr(0xD1, (u8) no, 1)) {
-            EstSet((int) model, -1, 0, 0, 0xD1, (u8) no, 0xA001, 0x3B, (u32) model, 0);
+            EstSet((int) m_pModel, -1, 0, 0, 0xD1, (u8) no, 0xA001, 0x3B, (u32) m_pModel, 0);
         }
     }
 }
 
-void ItemExamine::level(s8 a, s8 b, s8 c, s8 d)
+void ItemExamine::level(s8 pwr, s8 spd, s8 rld, s8 blt)
 {
-    lv[0] = a;
-    lv[1] = b;
-    lv[2] = c;
-    lv[3] = d;
+    lv[0] = pwr;
+    lv[1] = spd;
+    lv[2] = rld;
+    lv[3] = blt;
 }
 
 void ItemExamine::move()
@@ -710,15 +710,15 @@ void ItemExamine::move()
     int rotMode;
 
     rotMode = 0;
-    if (id == 0x93) {
+    if (m_item_id == 0x93) {
         step = ROT_Y_STEP * 2.0f;
     } else {
         step = ROT_Y_STEP;
     }
-    if (info) {
-        switch (mode) {
+    if (m_pInfo) {
+        switch (m_scrn_flag) {
         case 1:
-            switch (info->rot1) {
+            switch (m_pInfo->rot1) {
             case 0:
                 rotMode = 0;
                 break;
@@ -728,7 +728,7 @@ void ItemExamine::move()
             }
             break;
         case 0:
-            switch (info->rot0) {
+            switch (m_pInfo->rot0) {
             case 0:
                 rotMode = 0;
                 break;
@@ -747,26 +747,26 @@ void ItemExamine::move()
             MtxRotAxisPosRad(m, &axis, &zero, 3.1415927f / step);
             break;
         case 1:
-            axis.x = model->mat[0][1];
-            axis.y = model->mat[1][1];
-            axis.z = model->mat[2][1];
+            axis.x = m_pModel->mat[0][1];
+            axis.y = m_pModel->mat[1][1];
+            axis.z = m_pModel->mat[2][1];
             PSMTXIdentity(m);
             MtxRotAxisPosRad(m, &axis, &zero, 3.1415927f / step);
             break;
         }
     } else {
         PSMTXIdentity(m);
-        if (mode != 2) {
+        if (m_scrn_flag != 2) {
             axis.x = 0.0f;
             axis.y = 1.0f;
             axis.z = 0.0f;
             MtxRotAxisPosRad(m, &axis, &zero, 3.1415927f / step);
         }
     }
-    PSMTXConcat(m, model->mat, model->mat);
-    model->partsMatCalc();
-    model->partsWorldCalc();
-    if (mode == 2) {
+    PSMTXConcat(m, m_pModel->mat, m_pModel->mat);
+    m_pModel->partsMatCalc();
+    m_pModel->partsWorldCalc();
+    if (m_scrn_flag == 2) {
         if (Key.on & 0xC00000) {
             f32 d = itemCamera.dist;
             if (Key.on & 0x400000) {
@@ -777,11 +777,11 @@ void ItemExamine::move()
             }
             CameraCamposDistance(&itemCamera, d < cap_dist_min ? cap_dist_min : (d > cap_dist_max ? cap_dist_max : d));
         }
-        if (Key.sx != 0) {
-            CameraCamposRot(&itemCamera, 'Y', (f32) Key.sx * -0.06666667f * 0.017453292f);
+        if (Key.stickX != 0) {
+            CameraCamposRot(&itemCamera, 'Y', (f32) Key.stickX * -0.06666667f * 0.017453292f);
         }
-        if (Key.sy != 0) {
-            f32 r = (f32) Key.sy * 0.05f * 0.017453292f;
+        if (Key.stickY != 0) {
+            f32 r = (f32) Key.stickY * 0.05f * 0.017453292f;
             if (g_rad_x + r <= cap_xrad_min) {
                 r = cap_xrad_min - g_rad_x;
                 g_rad_x = cap_xrad_min;
@@ -797,7 +797,7 @@ void ItemExamine::move()
         itemCamera.param.fovy = _fovy;
         CameraSetOrientationRoll(&itemCamera);
     } else {
-        ModelBound* b = &model->pInfo->bound;
+        ModelBound* b = &m_pModel->pModelInfo->bound;
         Vec a;
         Vec c;
         Vec e;
@@ -813,11 +813,11 @@ void ItemExamine::move()
         f32 z;
 
         len = SQRTF(b->size.x * b->size.x + b->size.y * b->size.y + b->size.z * b->size.z);
-        if (info) {
-            len /= info->scale;
+        if (m_pInfo) {
+            len /= m_pInfo->scale;
         }
-        a = pIdSys->unitPtr(0xF2, 0x26)->scr;
-        c = pIdSys->unitPtr(0xF3, 0x26)->scr;
+        a = m_pIdSys->unitPtr(0xF2, 0x26)->scr;
+        c = m_pIdSys->unitPtr(0xF3, 0x26)->scr;
         PSVECAdd(&a, &c, &e);
         PSVECScale(&e, &e, 0.5f);
         h = 0.5f;
@@ -837,45 +837,45 @@ void ItemExamine::move()
         itemCamera.up = _up;
         itemCamera.param.fovy = _fovy;
     }
-    C_MTXPerspective(itemCamera.projMat, itemCamera.param.fovy, 1.3333334f, ZNEAR, ZFAR);
-    C_MTXLookAt(itemCamera.viewMat, &itemCamera.param.pos, &itemCamera.up, &itemCamera.param.at);
-    LightMgr.setModel2(model);
-    if (!(pG->flags_500C & 0x40000)) {
+    C_MTXPerspective(itemCamera.ProjMat, itemCamera.param.fovy, 1.3333334f, ZNEAR, ZFAR);
+    C_MTXLookAt(itemCamera.v_mat, &itemCamera.param.pos, &itemCamera.up, &itemCamera.param.at);
+    LightMgr.setModel2(m_pModel);
+    if (!(pG->Status_flg[0] & 0x40000)) {
         AddOtDirect(ot_type, (void*) 0xCDCDCDCD, render, ot_no, ot_kind, 0, 0.0f);
     }
 }
 
 void ItemExamine::trans()
 {
-    ModelTrans(model);
+    ModelTrans(m_pModel);
 }
 
 void ItemExamine::quit()
 {
     int i;
 
-    model->x12F = saveX12F;
-    EffectEspDelete(0xA001, 0x3B, (u32) model, 0);
-    EffectEspgenDelete(0xA001, 0x3B, (int) model);
-    EffectEfmDelete(0xA001, 0x3B, (int) model);
-    pIdSys->kill(0xFF, 0x26);
-    pIdSys->kill(0xFF, 0x27);
+    m_pModel->ot_type = m_ot_type_bak;
+    EffectEspDelete(0xA001, 0x3B, (u32) m_pModel, 0);
+    EffectEspgenDelete(0xA001, 0x3B, (int) m_pModel);
+    EffectEfmDelete(0xA001, 0x3B, (int) m_pModel);
+    m_pIdSys->kill(0xFF, 0x26);
+    m_pIdSys->kill(0xFF, 0x27);
     for (i = 0; i <= 2; i++) {
-        LightMgr.destroy(light[i]);
+        LightMgr.destroy(m_pLight[i]);
     }
     LightMgr.onKind(0x7F);
 }
 
 void ItemExamine::reset()
 {
-    model->be_flag = saveFlag;
-    model->pos = savePos;
-    model->rot = saveRot;
-    model->x12F = saveX12F;
-    model->pParts->pParent = saveParent;
-    model->pParts->pos = savePartsPos;
-    model->pParts->rot = savePartsRot;
-    model->matUpdate();
+    m_pModel->be_flag = m_be_flag_bak;
+    m_pModel->pos = m_pos_bak;
+    m_pModel->ang = m_ang_bak;
+    m_pModel->ot_type = m_ot_type_bak;
+    m_pModel->pParts->pParent = m_pList_pParent_bak;
+    m_pModel->pParts->pos = m_pList_pos_bak;
+    m_pModel->pParts->ang = m_pList_ang_bak;
+    m_pModel->matUpdate();
 }
 
 asm(".section .sdata,\"aw\"\n\t.balign 32\n\t.text");

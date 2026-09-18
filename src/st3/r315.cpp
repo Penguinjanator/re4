@@ -40,10 +40,10 @@ static inline void AtariOffRaw(cAtariInfo* at, u16 mask) { *(u16*) ((u8*) at + 0
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
-    p->xFC = fc;
-    p->xFD = fd;
-    p->xFE = fe;
-    p->xFF = ff;
+    p->r_no_0 = fc;
+    p->r_no_1 = fd;
+    p->r_no_2 = fe;
+    p->r_no_3 = ff;
 }
 
 static inline void setPosXYZ(cModel* m, f32 x, f32 y, f32 z)
@@ -82,9 +82,9 @@ void R315Init()
 #line 45 "D:/Bio4/Prog/r315.cpp"
     r315_work = (R315Work*) MEM_CALLOC(sizeof(R315Work), 1, 0xd);
     if (PREV_ROOM_ID == 0xFFF) {
-        if ((pG->flags_5018 & 0x04000000) == 0) {
-            BitOn(pG->flags_5018, 0x04000000);
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
+        if ((pG->Status_flg[3] & 0x04000000) == 0) {
+            BitOn(pG->Status_flg[3], 0x04000000);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);
         }
     }
@@ -96,7 +96,7 @@ void R315Init()
     SceSetItemEvent(3, 0x82, 3, 3, r315_TanaOpen, (void (*)()) r315_TanaOpened, 0x1F, 0);
     SceSetItemEvent(2, 0x84, 2, 2, r315_TanaOpen, (void (*)()) r315_TanaOpened, 0x22, 0);
     if (getRoomEtcDoor(6, &door, 1)) {
-        door->lightInfo.x54 &= ~4;
+        door->LightInfo.SelectMask &= ~4;
     }
 }
 
@@ -107,14 +107,14 @@ void R315Main()
 // Leon's ride motion (SetPlDamage routine).
 static void plemRide(cPlayer* pl)
 {
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         pPL->setNoSuspend(1);
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0x201, 0);
-        pl->xFE++;
-        pl->xFF = 0;
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0x201, 0);
+        pl->r_no_2++;
+        pl->r_no_3 = 0;
     case 1:
-        pl->xFF++;
+        pl->r_no_3++;
         if (MotionMoveF(pl, 0)) {
             EndPlDamage();
         }
@@ -125,12 +125,12 @@ static void plemRide(cPlayer* pl)
 // Ashley's motion during the cut (SetSubAux routine).
 static void funcAshley(cEm* p)
 {
-    if (p->xFE == 0) {
+    if (p->r_no_2 == 0) {
         cAtariInfo* at = &pSUB->atari;
 
         AtariOffRaw(at, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
-        p->xFE = 1;
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
+        p->r_no_2 = 1;
     }
     if (p->motionMove()) {
         cAtariInfo* at;

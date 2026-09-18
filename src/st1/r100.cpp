@@ -136,8 +136,8 @@ void R100Init()
     cModelInfo* info;
     u32 flag;
 
-    BitOff(pG->flags_54, 0x400);
-    if (pG->x4F9F == 1 || DebugTrg(1)) {
+    BitOff(pG->System_flg, 0x400);
+    if (pG->JumpPoint == 1 || DebugTrg(1)) {
         RsfSet(G_ROOM_ID, 10);
         RsfSet(G_ROOM_ID, 3);
         RsfSet(G_ROOM_ID, 13);
@@ -158,9 +158,9 @@ void R100Init()
             R100Em* pe = &em;
 
             em.subArc = (PlArc*) m->pArc;
-            W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x31), ROOM_ARC_PTR(pG->pRoomArc, 0x32), &pos, &rot, 0x10, 1);
+            W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x31), ROOM_ARC_PTR(pG->pRoom, 0x32), &pos, &rot, 0x10, 1);
             BitOn(W->smd->be_flag, 0x1000);
-            SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x33), PL_ARC_PTR(pe->subArc, 0x255), &pos, &rot, 0x10, 1)->be_flag |= 0x1000;
+            SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x33), PL_ARC_PTR(pe->subArc, 0x255), &pos, &rot, 0x10, 1)->be_flag |= 0x1000;
             SetSstDispFlag(0x12, 1);
         }
     }
@@ -182,8 +182,8 @@ void R100Init()
 
         d.id = 0x12;
         d.type = 0;
-        d.x3 = 0x13;
-        d.flags4 = 0x21000020;
+        d.set = 0x13;
+        d.flag = 0x21000020;
         d.pos[0] = -7763;
         d.pos[1] = 86;
         d.pos[2] = -3650;
@@ -191,8 +191,8 @@ void R100Init()
         d.rot[1] = 0x2000;
         d.rot[2] = 0;
         d.hp = 500;
-        d.x1A = 10;
-        d.xB = 0;
+        d.Guard_r = 10;
+        d.Character = 0;
         em = EmSetEvent(&d);
         W->em = em;
         if (em == 0 || em == errEm) {
@@ -206,11 +206,11 @@ void R100Init()
             // hoisted above it, and the address stays `0x378(pe)`): a member store is a struct store
             // and a reference setter folds the address into the frame.
             *(PlArc**) ((u8*) pe + 0x378) = (PlArc*) EmReadSearch(0x12, 0, 0);
-            EvtMgr.SetBin("em/pl07/pl0700a.bin", ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 2);
-            EvtMgr.SetBin("em/pl07/pl0700.bin", ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 2);
-            EvtMgr.SetBin("em/pl07/pl0700.tpl", ROOM_ARC_PTR(pG->pRoomArc, 0x25), 0, 2);
-            EvtMgr.SetBin("obj/objmodel/obm2a00.bin", ROOM_ARC_PTR(pG->pRoomArc, 0x1D), 0, 2);
-            EvtMgr.SetBin("obj/objmodel/obm2a00.tpl", ROOM_ARC_PTR(pG->pRoomArc, 0x1E), 0, 2);
+            EvtMgr.SetBin("em/pl07/pl0700a.bin", ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 2);
+            EvtMgr.SetBin("em/pl07/pl0700.bin", ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 2);
+            EvtMgr.SetBin("em/pl07/pl0700.tpl", ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 2);
+            EvtMgr.SetBin("obj/objmodel/obm2a00.bin", ROOM_ARC_PTR(pG->pRoom, 0x1D), 0, 2);
+            EvtMgr.SetBin("obj/objmodel/obm2a00.tpl", ROOM_ARC_PTR(pG->pRoom, 0x1E), 0, 2);
         }
     }
     EvtMgr.SetFunc("evt_r100s03_func", (void*) Evt_R100S03_Func);
@@ -226,23 +226,23 @@ void R100Init()
         rot.x = 0.0f;
         rot.y = 0.812328577f;
         rot.z = 0.0f;
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1D), ROOM_ARC_PTR(pG->pRoomArc, 0x1E), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1D), ROOM_ARC_PTR(pG->pRoom, 0x1E), &pos, &rot, 0x10, 1);
         W->car = o;
         if (o == 0) {
             pLog->err(0, 0, "R100Init : set failed");
             return;
         }
         W->car->be_flag |= 0x10;
-        W->car->pPartsHead[10].rot.x = 0.436332315f;
-        W->car->pPartsHead[11].scale.x = 0.0f;
-        W->car->pPartsHead[11].scale.y = 0.0f;
-        W->car->pPartsHead[11].scale.z = 0.0f;
-        W->car->pPartsHead[13].scale.x = 0.0f;
-        W->car->pPartsHead[13].scale.y = 0.0f;
-        W->car->pPartsHead[13].scale.z = 0.0f;
-        W->car->pPartsHead[15].scale.x = 0.0f;
-        W->car->pPartsHead[15].scale.y = 0.0f;
-        W->car->pPartsHead[15].scale.z = 0.0f;
+        W->car->pList[10].ang.x = 0.436332315f;
+        W->car->pList[11].scale.x = 0.0f;
+        W->car->pList[11].scale.y = 0.0f;
+        W->car->pList[11].scale.z = 0.0f;
+        W->car->pList[13].scale.x = 0.0f;
+        W->car->pList[13].scale.y = 0.0f;
+        W->car->pList[13].scale.z = 0.0f;
+        W->car->pList[15].scale.x = 0.0f;
+        W->car->pList[15].scale.y = 0.0f;
+        W->car->pList[15].scale.z = 0.0f;
         W->car->partsMatCalc();
         o->setNoSuspend(0);
     }
@@ -256,7 +256,7 @@ void R100Init()
         rot.x = 0.0f;
         rot.y = -1.50098312f;
         rot.z = 0.0f;
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         W->carSub = o;
         if (o == 0) {
             pLog->err(0, 0, "R100Init : set failed");
@@ -269,7 +269,7 @@ void R100Init()
         r100_Car_pos_move();
         r100_trap_set();
         SceAtSetEnable(1, 1);
-        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r100_GakeEvent, 0, 1);
+        SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r100_GakeEvent, 0, 1);
         readEvent(4, 0, 0);
     } else {
         Vec pos;
@@ -282,31 +282,31 @@ void R100Init()
         rot.x = 0.0f;
         rot.y = 0.812328577f;
         rot.z = 0.0f;
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), &pos, &rot, 0x10, 1);
         W->cop[0] = o;
         if (o == 0) {
             pLog->err(0, 0, "R100Init : set failed");
             return;
         }
-        info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28));
+        info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28));
         if (info) {
             o->addModel(info);
         }
-        W->cop[0]->x12F = 4;
-        MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0, 0, 5, 0);
+        W->cop[0]->ot_type = 4;
+        MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 5, 0);
         o->setNoSuspend(0);
-        o2 = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x25), &pos, &rot, 0x10, 1);
+        o2 = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x25), &pos, &rot, 0x10, 1);
         W->cop[1] = o2;
         if (o2 == 0) {
             pLog->err(0, 0, "R100Init : set failed");
             return;
         }
-        info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A));
+        info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A));
         if (info) {
             o2->addModel(info);
         }
-        W->cop[1]->x12F = 4;
-        MotionSetCore(o2, &o2->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 5, 0);
+        W->cop[1]->ot_type = 4;
+        MotionSetCore(o2, &o2->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 5, 0);
         o2->setNoSuspend(0);
     }
     SceAtSetEnable(0xA, 0);
@@ -320,33 +320,33 @@ void R100Init()
     flag = RsfCheck(G_ROOM_ID, 3);
     if (flag == 0) {
         SceAtSetEnable(0xA, 1);
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r100_Sce_look, 0, 2);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r100_Sce_look, 0, 2);
     } else {
         cEm* em = W->em;
 
         if (em != 0 && em != errEm) {
-            em->xFC = 1;
-            em->xFD = 0x10;
-            em->xFE = 0;
-            em->xFF = 0;
-            em->flags_3C8 |= 1;
+            em->r_no_0 = 1;
+            em->r_no_1 = 0x10;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
+            em->flag |= 1;
         }
     }
-    SceExec(0x12, (TaskFunc) r100_WindowBreakCk, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r100_DoorCk, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r100_StreanChk, 0, 0, 2, 0);
-    SceAtDataSet_exec(0x15, 0x12, 0, (TaskFunc) r100_HouseEvent, 0, 1);
-    SceAtDataSet_exec(0xC, 0x12, 0, (TaskFunc) r100_MesTruck, 0, 1);
-    SceAtDataSet_exec(0x19, 0x12, 0, (TaskFunc) r100_MesCar00, 0, 1);
-    SceAtDataSet_exec(0x1A, 0x12, 0, (TaskFunc) r100_MesCar01, 0, 1);
-    SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) r100_MesDoor, 0, 1);
+    SceExec(0x12, (TaskFunc) r100_WindowBreakCk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r100_DoorCk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r100_StreanChk, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceAtDataSet_exec(0x15, SCE_LEVEL10, 0, (TaskFunc) r100_HouseEvent, 0, 1);
+    SceAtDataSet_exec(0xC, SCE_LEVEL10, 0, (TaskFunc) r100_MesTruck, 0, 1);
+    SceAtDataSet_exec(0x19, SCE_LEVEL10, 0, (TaskFunc) r100_MesCar00, 0, 1);
+    SceAtDataSet_exec(0x1A, SCE_LEVEL10, 0, (TaskFunc) r100_MesCar01, 0, 1);
+    SceAtDataSet_exec(0xB, SCE_LEVEL10, 0, (TaskFunc) r100_MesDoor, 0, 1);
     SceAtSetEnable(0xB, 0);
-    SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) r100_EventBrige, 0, 1);
+    SceAtDataSet_exec(0x1B, SCE_LEVEL10, 0, (TaskFunc) r100_EventBrige, 0, 1);
     if (RsfCheck(G_ROOM_ID, 10)) {
         SceAtSetEnable(0xC, 0);
         SceAtSetEnable(0x19, 0);
         SceAtSetEnable(0x1A, 0);
-        SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r100_MesBrige, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r100_MesBrige, 0, 1);
         SceAtSetEnable(0x1C, 1);
         SceAtSetEnable(0x1E, 0);
     } else {
@@ -356,14 +356,14 @@ void R100Init()
     if (RsfCheck(G_ROOM_ID, 13) == 0) {
         RsfSet(G_ROOM_ID, 13);
         SeAtSetOnOff(2, 0);
-        SceExec(0x12, (TaskFunc) r100_StartEvent, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r100_StartEvent, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r100_eff_info2);
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r100_eff_info4);
-    EatMgr.registEffInfo(5, (AtEffInfo*) &r100_eff_info5);
-    SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) r100_mes_gaikotu, 0, 1);
-    SceAtDataSet_exec(0x22, 0x12, 0, (TaskFunc) r100_mes_gaikotu_bgm_down, 0, 1);
-    SceAtDataSet_exec(0x23, 0x12, 0, (TaskFunc) r100_mes_gaikotu_bgm_up, 0, 1);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r100_eff_info2);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r100_eff_info4);
+    EatMgr.registEffInfo(EAT_ET_ROOM1, (AtEffInfo*) &r100_eff_info5);
+    SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu, 0, 1);
+    SceAtDataSet_exec(0x22, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu_bgm_down, 0, 1);
+    SceAtDataSet_exec(0x23, SCE_LEVEL10, 0, (TaskFunc) r100_mes_gaikotu_bgm_up, 0, 1);
 }
 
 static inline f32 FCRef(const f32& v) { return v; }
@@ -383,7 +383,7 @@ void R100Main()
         }
     }
     if (RsfCheck(G_ROOM_ID, 12) == 0 && RsfCheck(G_ROOM_ID, 3) && !SceAtHitCheck(0xD) &&
-        !(pG->flags_500C & 0x1000)) {
+        !(pG->Status_flg[0] & 0x1000)) {
         RsfSet(G_ROOM_ID, 12);
         SndStrReq(1, 4, 4, 400, 0, FCRef(vol));
         SndStrReq(1, 5, 4, 400, 0, FCRef(vol));
@@ -393,21 +393,21 @@ void R100Main()
         if (W->cnt != 0) {
             W->cnt--;
             if (W->cnt == 0) {
-                MotionSetCore(W->cop[0], &W->cop[0]->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0, 10, 5, 0);
-                MotionSetCore(W->cop[1], &W->cop[1]->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 10, 5, 0);
+                MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 10, 5, 0);
+                MotionSetCore(W->cop[1], &W->cop[1]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 10, 5, 0);
             }
-        } else if ((int) pG->flags_5014 < 0 && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
-            if (pG->sceat_x17C & 0x40000000) {
-                MotionSetCore(W->cop[0], &W->cop[0]->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x35), 0, 10, 5, 0);
+        } else if ((int) pG->Status_flg[2] < 0 && (Key.trg & 0x80) && W->cop[0] && W->cop[1]) {
+            if (pG->Room_flg[2] & 0x40000000) {
+                MotionSetCore(W->cop[0], &W->cop[0]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x35), 0, 10, 5, 0);
                 W->se = SndCall(6, 6, &W->cop[0]->pos, 0, 0, 0);
             } else {
-                MotionSetCore(W->cop[1], &W->cop[1]->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x36), 0, 10, 5, 0);
+                MotionSetCore(W->cop[1], &W->cop[1]->Motion, ROOM_ARC_PTR(pG->pRoom, 0x36), 0, 10, 5, 0);
                 W->se = SndCall(6, 5, &W->cop[0]->pos, 0, 0, 0);
             }
-            W->cnt = (u32) MotionGetMaxFrame(&W->cop[0]->mot);
+            W->cnt = (u32) MotionGetMaxFrame(&W->cop[0]->Motion);
             {
                 int ls = cMes.getWork()->lineSpace;
-                int fh = cMes.getWork()->fontH;
+                int fh = cMes.getWork()->m_font_h;
 
                 cMes.MesSet(0x33, 0x64, 0x147 - fh - ls, 0x52, 0, 0, 4);
             }
@@ -441,16 +441,16 @@ extern "C" int readEvent(int no, int wait, void** out)
 
             EspEmDataSwapPush(0x12);
             m = SearchEmModule(0x12);
-            if (W->evt[no]->size > m->size) {
-                pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", W->evt[no]->size, m->size);
+            if (W->evt[no]->m_size > m->size) {
+                pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", W->evt[no]->m_size, m->size);
                 goto fail;
             }
             if (W->evt[no]->waitLoadOk() == 0) {
-                W->evt[no]->setCommand(3, 0, 0);
+                W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
                 pLog->err(0, 0, "r100::readEvent() : out of memory");
                 goto fail;
             }
-            MemorySwap(m->pArc, (u32) W->evt[no]->addr, W->evt[no]->size);
+            MemorySwap(m->pArc, (u32) W->evt[no]->m_addr, W->evt[no]->m_size);
             {
                 void* arc = m->pArc;
 
@@ -459,15 +459,15 @@ extern "C" int readEvent(int no, int wait, void** out)
                 }
             }
         } else {
-            W->evt[no]->setCommand(1, 0, 1);
+            W->evt[no]->setCommand(CMND_MRAM_LOAD, 0, 1);
             if (W->evt[no]->waitUseOk() == 0) {
-                W->evt[no]->setCommand(3, 0, 0);
+                W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
                 pLog->err(0, 0, "readEvent() : out of memory.", no, r100_evtName[no]);
-                pLog->err(0, 0, "readEvent() : size(0x%x)[%d:%s]", W->evt[no]->size, no, r100_evtName[no]);
+                pLog->err(0, 0, "readEvent() : size(0x%x)[%d:%s]", W->evt[no]->m_size, no, r100_evtName[no]);
                 return 0;
             }
             {
-                void* addr = W->evt[no]->addr;
+                void* addr = W->evt[no]->m_addr;
 
                 if (out != 0) {
                     *out = addr;
@@ -476,9 +476,9 @@ extern "C" int readEvent(int no, int wait, void** out)
         }
     } else {
         if (no == 9) {
-            W->evt[no]->setCommand(2, 0, 1);
+            W->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 1);
         } else {
-            W->evt[no]->setCommand(2, 0, 0);
+            W->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
         }
     }
     return 1;
@@ -493,10 +493,10 @@ extern "C" void freeEvent(int no, int swap)
             ReadModule* m;
 
             m = SearchEmModule(0x12);
-            MemorySwap(m->pArc, (u32) W->evt[no]->addr, W->evt[no]->size);
+            MemorySwap(m->pArc, (u32) W->evt[no]->m_addr, W->evt[no]->m_size);
             EspEmDataSwapPop(0x12);
         }
-        W->evt[no]->setCommand(3, 0, 0);
+        W->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
     }
 }
 
@@ -523,7 +523,7 @@ static void r100_GakeEvent(int arg)
         W->carSub->setNoSuspend(1);
         SceEventStart(0);
         CamCtrl.CutCall(9);
-        SceMesSet(0x28, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0x28, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
@@ -544,7 +544,7 @@ static void r100_GakeEvent(int arg)
         W->carSub->setNoSuspend(1);
         if (readEvent(4, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(4, 1);
@@ -562,31 +562,31 @@ static void r100_StartEvent()
     u32 flag;
 
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(1);
     BitOff(SmdGetObjPtr(0x44)->be_flag, 2);
-    BitOn(pG->flags_5010, 0x800);
-    BitOn(pG->flags_58, 0x20000);
-    flag = pG->flags_54;
+    BitOn(pG->Status_flg[1], 0x800);
+    BitOn(pG->Disp_flg, 0x20000);
+    flag = pG->System_flg;
     if (flag & 0x40) {
         skip = 1;
     }
-    if (!(pG->flags_54 & 0x40) && !(pG->flags_51C0 & 0x10)) {
+    if (!(pG->System_flg & 0x40) && !(pG->Scenario_flg[0] & 0x10)) {
         if (readEvent(9, 1, &evt)) {
             EvtMgr.SetEvt(evt, (u32*) 0);
             SceSleep(1);
             FadeSetW(0x80000002, 30, 0, 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(9, 1);
         }
     } else {
-        pG->flags_54 &= ~0x400;
+        pG->System_flg &= ~0x400;
         freeEvent(9, 0);
     }
     BitOn(SmdGetObjPtr(0x44)->be_flag, 2);
-    BitOff(pG->flags_5010, 0x800);
+    BitOff(pG->Status_flg[1], 0x800);
     {
         Vec pos;
         Vec* pp = &pos;
@@ -606,8 +606,8 @@ static void r100_StartEvent()
         p->setAng(&ang);
     }
     SceEventEnd(0);
-    BitOff(pG->flags_58, 0x20000);
-    if (skip == 0 && !(pG->flags_51C0 & 0x10)) {
+    BitOff(pG->Disp_flg, 0x20000);
+    if (skip == 0 && !(pG->Scenario_flg[0] & 0x10)) {
         OpeSetOpenTerm(0, 0.0f, 0.0f, 0.0f, 0.0f);
     }
     OpeSetMdtNo(0);
@@ -632,14 +632,14 @@ static void r100_DoorCk()
         ((cEmDoor*) door)->setOpenLock(0);
         SceSleep(1);
     }
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     found = 0;
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if ((int) pG->flags_174 < 0) {
+        if ((int) pG->Room_flg[0] < 0) {
             found = 1;
         }
         if (found == 1) {
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 SndCall(6, 0x28, &door->pos, 0, 0, 0);
             }
             break;
@@ -694,16 +694,16 @@ static void r100_WindowBreakCk()
     ((cEmWindow*) win0)->SetEnableFence(1, 0);
     ((cEmWindow*) win1)->SetEnableFence(1, 0);
     while (RsfCheck(G_ROOM_ID, 4) == 0) {
-        if (!(pG->sceat_x17C & 0x80000000)) {
+        if (!(pG->Room_flg[2] & 0x80000000)) {
             RsfSet(G_ROOM_ID, 4);
             if (W->ems[0] != errEm) {
-                W->ems[0]->flags_3C8 |= 0x80;
+                W->ems[0]->flag |= 0x80;
             }
             if (W->ems[1] != errEm) {
-                W->ems[1]->flags_3C8 |= 0x80;
+                W->ems[1]->flag |= 0x80;
             }
             if (W->ems[2] != errEm) {
-                W->ems[2]->flags_3C8 |= 0x80;
+                W->ems[2]->flag |= 0x80;
             }
             break;
         }
@@ -715,7 +715,7 @@ static void r100_HouseEvent_exit()
 {
     pPL->setNoSuspend(0);
     EmMgr.destroy(W->emHouse);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -731,7 +731,7 @@ static void r100_HouseEvent()
     }
     RsfSet(G_ROOM_ID, 15);
     SceEventStart(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     W->emHouse = EmSetFromList2(0x25, 1);
     W->emHouse->setNoSuspend(1);
     W->emHouse->be_flag |= 0x1000;
@@ -748,15 +748,15 @@ static void r100_HouseEvent()
     pos.y = 2.99f;
     pos.z = 0.0f;
     pPL->setAng(&pos);
-    BitOff(pG->flags_170, 0x10000000);
-    BitOff(pG->flags_58, 0x40000000);
+    BitOff(pG->Stop_flg, 0x10000000);
+    BitOff(pG->Disp_flg, 0x40000000);
     pPL->setNoSuspend(1);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x34), 10, 0, 1, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 10, 0, 1, 0);
     SndStrReq(1, 0x22, 0x80000003, 0, 0, 0.0f);
     CamCtrl.CutCall(0xA);
     SceSetEventCancel(1, (TaskFunc) r100_HouseEvent_exit, 0, -1, 1);
     while (CamCtrl.IsMotionEnd() == 0) {
-        pG->flags_5010 |= 0x02000000;
+        pG->Status_flg[1] |= 0x02000000;
         SceSleep(1);
     }
     SceSetEventCancel(0, 0, 0, -1, 1);
@@ -783,7 +783,7 @@ static void r100_StreanChk()
         cnt = r + 60;
     }
     while (RsfCheck(G_ROOM_ID, 3) == 0) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             cnt--;
             if (cnt <= 0) {
                 u8 r = Rnd() % 30;
@@ -864,20 +864,20 @@ static void r100_Sce_look()
     SceEventStart(0);
     SceAtSetEnable(0xA, 0);
     RsfSet(G_ROOM_ID, 3);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(2);
     if (readEvent(0, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(0, 1);
     }
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     SceSleep(2);
     em = W->em;
     if (em != 0 && em != errEm) {
-        em->flags_3C8 |= 1;
+        em->flag |= 1;
         pos.x = -79116.0f;
         pos.y = 860.0f;
         pos.z = -38890.0f;
@@ -897,7 +897,7 @@ static void r100_Sce_look()
     }
     pPL->cCoord::matUpdate();
     SceSleep(1);
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
     SceEventEnd(0);
 }
 
@@ -915,7 +915,7 @@ static void r100_Sce_zombi_dead(cEm* em)
     } else {
         em->setNoSuspend(0);
     }
-    while (em->checkStatus(5) != 0) {
+    while (em->checkStatus(EM_STATUS_ACTIVE) != 0) {
         SceSleep(1);
     }
     while (SceCheckEventStart() == 0) {
@@ -927,23 +927,23 @@ static void r100_Sce_zombi_dead(cEm* em)
     r100_em_set();
     if (readEvent(3, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) &ev);
-        ev->status |= 0x800;
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        ev->StatusFlag |= 0x800;
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(3, 1);
     }
     zero = 0;
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     W->ems[0]->setNoSuspend(0);
     W->ems[1]->setNoSuspend(0);
     W->ems[2]->setNoSuspend(0);
-    BitOn(W->ems[1]->flags_3C8, 1);
-    BitOn(W->ems[2]->flags_3C8, 1);
+    BitOn(W->ems[1]->flag, 1);
+    BitOn(W->ems[2]->flag, 1);
     l = EM_LIST(4);
-    l->x3 = zero;
+    l->set = zero;
     l = EM_LIST(5);
-    l->x3 = zero;
+    l->set = zero;
     r100_Car_pos_move();
     SceSleep(1);
     r100_trap_set();
@@ -959,22 +959,22 @@ static void r100_Sce_zombi_dead(cEm* em)
     at[3].x = -750.0f;
     at[3].y = 0.0f;
     at[3].z = -750.0f;
-    if (SceAtCreateExecAt(em, at, 1, 8, 1, 1000.0f, 1, 0.0f, 0.0f, 1, 0x12, (TaskFunc) r100_MesGanado, zero, 2) == -1) {
+    if (SceAtCreateExecAt(em, at, 1, 8, 1, 1000.0f, 1, 0.0f, 0.0f, 1, SCE_LEVEL10, (TaskFunc) r100_MesGanado, zero, 2) == -1) {
         pLog->err(0, 0, "move : SceAt no create");
     }
     SceAtSetEnable(1, 1);
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r100_GakeEvent, 0, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r100_GakeEvent, 0, 1);
     readEvent(4, 0, 0);
     SetSstDispFlag(0x11, 1);
     SceAtSetEnable(0xC, 0);
     SceAtSetEnable(0x19, 0);
     SceAtSetEnable(0x1A, 0);
-    SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r100_MesBrige, 0, 1);
+    SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r100_MesBrige, 0, 1);
     SceAtSetEnable(0x1C, 1);
     SceAtSetEnable(0x1E, 0);
     RsfSet(G_ROOM_ID, 10);
-    BitOn(pG->flags_51BC, 0x4000);
-    BitOff(pG->flags_54, 0x400);
+    BitOn(pG->Item_find_flg, 0x4000);
+    BitOff(pG->System_flg, 0x400);
     DC.setAramSort(1);
     SceEventEnd(0);
     OpeSetOpenTerm(1, -81500.0f, 860.0f, -38900.0f, 1.6f);
@@ -994,24 +994,24 @@ extern "C" void r100_Car_pos_move()
     rot.z = 3.46660805f;
     W->car->setPos(&pos);
     W->car->setAng(&rot);
-    W->car->pPartsHead[11].scale.x = 0.0f;
-    W->car->pPartsHead[11].scale.y = 0.0f;
-    W->car->pPartsHead[11].scale.z = 0.0f;
-    W->car->pPartsHead[12].scale.x = 0.0f;
-    W->car->pPartsHead[12].scale.y = 0.0f;
-    W->car->pPartsHead[12].scale.z = 0.0f;
-    W->car->pPartsHead[13].scale.x = 0.0f;
-    W->car->pPartsHead[13].scale.y = 0.0f;
-    W->car->pPartsHead[13].scale.z = 0.0f;
-    W->car->pPartsHead[14].scale.x = 0.0f;
-    W->car->pPartsHead[14].scale.y = 0.0f;
-    W->car->pPartsHead[14].scale.z = 0.0f;
-    W->car->pPartsHead[16].scale.x = 0.0f;
-    W->car->pPartsHead[16].scale.y = 0.0f;
-    W->car->pPartsHead[16].scale.z = 0.0f;
-    W->car->pPartsHead[15].scale.x = 1.0f;
-    W->car->pPartsHead[15].scale.y = 1.0f;
-    W->car->pPartsHead[15].scale.z = 1.0f;
+    W->car->pList[11].scale.x = 0.0f;
+    W->car->pList[11].scale.y = 0.0f;
+    W->car->pList[11].scale.z = 0.0f;
+    W->car->pList[12].scale.x = 0.0f;
+    W->car->pList[12].scale.y = 0.0f;
+    W->car->pList[12].scale.z = 0.0f;
+    W->car->pList[13].scale.x = 0.0f;
+    W->car->pList[13].scale.y = 0.0f;
+    W->car->pList[13].scale.z = 0.0f;
+    W->car->pList[14].scale.x = 0.0f;
+    W->car->pList[14].scale.y = 0.0f;
+    W->car->pList[14].scale.z = 0.0f;
+    W->car->pList[16].scale.x = 0.0f;
+    W->car->pList[16].scale.y = 0.0f;
+    W->car->pList[16].scale.z = 0.0f;
+    W->car->pList[15].scale.x = 1.0f;
+    W->car->pList[15].scale.y = 1.0f;
+    W->car->pList[15].scale.z = 1.0f;
     W->car->partsMatCalc();
     pos.x = -120022.0f;
     pos.y = -14319.2725f;
@@ -1051,18 +1051,18 @@ extern "C" void r100_trap_set()
     EmSetFromList2(0xE, 1);
     EmSetFromList2(0x1D, 1);
     EmSetFromList2(0x7A, 1);
-    if (pG->x4F8E == 0) {
+    if (pG->game_cnt == 0) {
         em = EmSetFromList2(6, 1);
         if (em != errEm) {
-            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0, 0, 0);
+            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 0);
         }
         em = EmSetFromList2(7, 1);
         if (em != errEm) {
-            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x2F), 0, 0, 0);
+            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 0, 0);
         }
         em = EmSetFromList2(8, 1);
         if (em != errEm) {
-            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x30), 0, 0, 0);
+            ((cEmGanado*) em)->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 0);
         }
     }
 }
@@ -1070,12 +1070,12 @@ extern "C" void r100_trap_set()
 static void r100_MesDoor()
 {
     SndCall(6, 0x29, 0, 0, 0, 0);
-    SceMesSet(0xB, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0xB, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 static void r100_MesTruck()
 {
-    SceMesSet(0xC, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0xC, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 static void r100_MesGanado()
@@ -1083,7 +1083,7 @@ static void r100_MesGanado()
     CamCtrl.StartLookDownEm(W->em);
     SceEventStart(1);
     W->em->setNoSuspend(1);
-    SceMesSet(0xD, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0xD, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceEventEnd(0);
     CamCtrl.EndLookDownEm();
 }
@@ -1099,13 +1099,13 @@ static void r100_MesCar00()
     W->car->setNoSuspend(1);
     W->cop[0]->setNoSuspend(1);
     W->cop[1]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (W->se) {
         SndStop(W->se, 0);
     }
     if (readEvent(5, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(5, 1);
@@ -1114,7 +1114,7 @@ static void r100_MesCar00()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // The other officer talks (s42).
@@ -1128,13 +1128,13 @@ static void r100_MesCar01()
     W->car->setNoSuspend(1);
     W->cop[1]->setNoSuspend(1);
     W->cop[0]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (W->se) {
         SndStop(W->se, 0);
     }
     if (readEvent(7, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
         freeEvent(7, 1);
@@ -1143,19 +1143,19 @@ static void r100_MesCar01()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 static void r100_MesBrige()
 {
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
-        SceMesSet(0xF, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0xF, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     } else if (RsfCheck(G_ROOM_ID, 14) == 0) {
         r100_GakeEvent(0);
     } else {
         SceEventStart(0);
         CamCtrl.CutCall(8);
-        SceMesSet(0xE, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0xE, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
@@ -1178,13 +1178,13 @@ static void r100_EventBrige()
     pos.z = -4420.0f;
     pPL->setPos(&pos);
     W->car->setNoSuspend(1);
-    W->car->x12F = 1;
+    W->car->ot_type = 1;
     W->cop[0]->setNoSuspend(0);
     W->cop[1]->setNoSuspend(0);
-    pG->flags_5010 |= 0x800;
+    pG->Status_flg[1] |= 0x800;
     if (readEvent(8, 1, &evt)) {
         EvtMgr.SetEvt(evt, (u32*) 0);
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+        while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
             SceSleep(1);
         }
     }
@@ -1193,18 +1193,18 @@ static void r100_EventBrige()
     W->cop[0]->setNoSuspend(0);
     W->car->setNoSuspend(0);
     W->carSub->setNoSuspend(0);
-    pG->flags_5010 &= ~0x800;
+    pG->Status_flg[1] &= ~0x800;
 }
 
 // TexRender blend setup of one water object.
 #define R100_TEX_OBJ(id, col, v138, v136, v137) \
     obj = SmdGetObjPtr(id);                     \
-    obj->pInfo->setTexBlendTbl(tbl);            \
-    obj->pInfo->setBlendRatio(0xFF);            \
-    obj->pInfo->color[3] = col;                 \
-    obj->x136 = v136;                           \
-    obj->x137 = v137;                           \
-    obj->x138 = v138;
+    obj->pModelInfo->setTexBlendTbl(tbl);            \
+    obj->pModelInfo->setBlendRatio(0xFF);            \
+    obj->pModelInfo->color[3] = col;                 \
+    obj->Shader_type = v136;                           \
+    obj->Refract_pow = v137;                           \
+    obj->Refract_ratio = v138;
 
 // The pond surface: a render target blended into the water objects.
 extern "C" void setTexRender()
@@ -1217,9 +1217,9 @@ extern "C" void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = W->tex->texId;
-        W->tex->repType = 1;
+        W->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, W->tex->mask | 1, 0, 0, 0);
-        W->tex->sy = W->tex->sx = 0x40;
+        W->tex->m_H_size = W->tex->m_W_size = 0x40;
     } else {
         pLog->err(0, 0, "R100Init() : Manager alloc failed!!");
     }
@@ -1233,15 +1233,15 @@ extern "C" void Evt_R100S40_Func(Event* e)
     case 0:
         break;
     case 1:
-        pG->flags_5010 |= 0x02000000;
-        if (e->cut == 0 && e->frame == 0) {
+        pG->Status_flg[1] |= 0x02000000;
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             EventCarInit(e);
         }
         break;
     case 2:
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }
@@ -1251,17 +1251,17 @@ extern "C" void Evt_R100S20_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm2d00", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
                 }
             }
             break;
         case 2:
-            if (e->frame == 0) {
-                if (!(pG->flags_60 & 0x02000000)) {
+            if (e->NowFrame == 0) {
+                if (!(pG->Debug_flg[0] & 0x02000000)) {
                     W->ems[1]->setNoSuspend(1);
                     W->ems[2]->setNoSuspend(1);
                 }
@@ -1276,7 +1276,7 @@ extern "C" void Evt_R100S03_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
         case 2:
@@ -1290,7 +1290,7 @@ extern "C" void Evt_R100S03_Func(Event* e)
         case 18:
         case 19:
         case 20:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -1298,7 +1298,7 @@ extern "C" void Evt_R100S03_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -1317,7 +1317,7 @@ static void r100_mes_gaikotu_bgm()
     SndRoomStrVolSet(1, 200);
     id = SndStrReq(0, 0x12, 3, 0, 0, 0.0f);
     SceSleep(1);
-    while (SndStrStatusCk(id, 0x16) != 0 && !(pG->flags_174 & 0x20000000)) {
+    while (SndStrStatusCk(id, 0x16) != 0 && !(pG->Room_flg[0] & 0x20000000)) {
         SceSleep(1);
     }
     SndStrReq(id, 8, 0, 0);
@@ -1326,10 +1326,10 @@ static void r100_mes_gaikotu_bgm()
 
 static void r100_mes_gaikotu()
 {
-    pG->flags_174 &= ~0x20000000;
-    SceExec(0x12, (TaskFunc) r100_mes_gaikotu_bgm, 0, 2, 2, 0);
+    pG->Room_flg[0] &= ~0x20000000;
+    SceExec(0x12, (TaskFunc) r100_mes_gaikotu_bgm, 0, 2, SCE_PRIO_DEF_2, 0);
     SceUpCut(0x2F, 0xB, -1, 0);
-    pG->flags_174 |= 0x20000000;
+    pG->Room_flg[0] |= 0x20000000;
 }
 
 static void r100_mes_gaikotu_bgm_down()

@@ -39,7 +39,7 @@ void TutilInitDefault()
     view.rect.h = Screen.height;
     view.nearz = 0.0f;
     view.farz = 1.0f;
-    TprimInitEnv2D3D(&view, pG->Cam.projMat, pG->Cam.viewMat);
+    TprimInitEnv2D3D(&view, pG->Cam.ProjMat, pG->Cam.v_mat);
     globalCamera = pG->Cam;
     system_flg_bak = TOOL_FLAG(OFS_SYSTEM_FLG);
     stop_flg_bak = TOOL_FLAG(OFS_STOP_FLG);
@@ -71,8 +71,8 @@ void TutilQuitDefault()
 // Moves a 2D cursor with the analog stick (scaled by `speed`) and the digital pad (by `step`).
 void TutilMoveCursor(Vec* pos, f32 speed, f32 step)
 {
-    pos->x += (f32) Joy[0].sx * speed * 0.0078125f;
-    pos->y -= (f32) Joy[0].sy * speed * 0.0078125f;
+    pos->x += (f32) Joy[0].stickX * speed * 0.0078125f;
+    pos->y -= (f32) Joy[0].stickY * speed * 0.0078125f;
     pos->x += (Joy[0].on & JOY_RIGHT) ? step : ((Joy[0].on & JOY_LEFT) ? -step : 0.0f);
     pos->y += (Joy[0].on & JOY_DOWN) ? step : ((Joy[0].on & JOY_UP) ? -step : 0.0f);
 }
@@ -88,7 +88,7 @@ int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup)
     }
     GXGetProjectionv(proj);
     GXGetViewportv(viewport);
-    GXProject(pos->x, pos->y, pos->z, pG->Cam.viewMat, proj, viewport, &scr[0], &scr[1], &scr[2]);
+    GXProject(pos->x, pos->y, pos->z, pG->Cam.v_mat, proj, viewport, &scr[0], &scr[1], &scr[2]);
     return 1;
 }
 
@@ -317,10 +317,10 @@ static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU*
     }
     for (i = 0; i < num; i++) {
         color = 0x14;
-        if (p->enable) {
+        if (p->Be_flg) {
             color = 0;
         }
-        eprintf(x, y + i * 16, color, 0, "%s", p->name);
+        eprintf(x, y + i * 16, color, 0, "%s", p->pName);
         p++;
     }
     if (flicker & 0x18) {
@@ -331,9 +331,9 @@ static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU*
         *cursor = cursor_s;
     }
     p = &menu[cursor_s];
-    if ((joy->trg & JOY_A) && p->enable) {
-        if (p->func != NULL) {
-            p->func();
+    if ((joy->trg & JOY_A) && p->Be_flg) {
+        if (p->pFunc != NULL) {
+            p->pFunc();
         }
         ret = cursor_s;
         cursor_s = 0;

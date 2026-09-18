@@ -105,14 +105,14 @@ void R20bInit()
     r20b_work.p = (R20bWork*) MEM_CALLOC(sizeof(R20bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r20bs00_func", (void*) Evt_R20BS00_Func);
     EvtMgr.SetFunc("evt_r20bs99_func", (void*) Evt_R20BS00_Func);
-    pG->flags_174 &= 0x7FFFFFFF;
+    pG->Room_flg[0] &= 0x7FFFFFFF;
     R20bScrTrans(1);
     if (getRoomEtcDoor(3, &door0, 1) != 0 && getRoomEtcDoor(8, &door1, 1) != 0) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0, 0, 0);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R20bEventS00, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) R20bEventS00, 0, 1);
         SmdSetTrans(0x51, 1);
         SmdSetTrans(0x52, 0);
         SmdSetTrans(0x53, 0);
@@ -121,28 +121,28 @@ void R20bInit()
         SmdSetTrans(0x52, 1);
         SmdSetTrans(0x53, 1);
         SceAtSetEnable(0x1B, 0);
-        if (!(pG->flags_5018 & 0x04000000)) {
+        if (!(pG->Status_flg[3] & 0x04000000)) {
             EmReadSearch((u8) GetEmIdFromListI(0x11), 0, 0);
         }
     }
     getRoomEtcDoor(6, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     getRoomEtcDoor(7, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     SceAtSetEnable(0x8C, 1);
     item = SceAtItemModelPtr(0x8C);
     if (item) {
-        item->lightInfo.x50 = (item->lightInfo.x50 & ~0x20) | 0x10;
+        item->LightInfo.EnableMask = (item->LightInfo.EnableMask & ~0x20) | 0x10;
         item->setNoSuspend(1);
     }
     SceAtSetEnable(0x8C, 0);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R20bDoorCheck, 0, 1);
-        SceExec(0x12, (TaskFunc) R20bDoorEventMain, 0, 0, 2, 0);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) R20bDoorCheck, 0, 1);
+        SceExec(0x12, (TaskFunc) R20bDoorEventMain, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
         SceAtSetEnable(5, 0);
         SmdSetTrans(0x8F, 0);
@@ -154,15 +154,15 @@ void R20bInit()
     SceSetItemEvent(0x15, 0x87, 0x10, 7, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x87, 0);
     SceSetItemEvent(0x18, 0x8D, 0x13, 0xB, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x8D, 0);
     if (RsfCheck(G_ROOM_ID, 17) == 0) {
-        SceAtDataSet_exec(0x16, 0x12, 0, (TaskFunc) R20bOpenTerm, 0, 1);
+        SceAtDataSet_exec(0x16, SCE_LEVEL10, 0, (TaskFunc) R20bOpenTerm, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
-        SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R20bStartCameraMain, 0, 0, SCE_PRIO_DEF_2, 0);
     }
-    if (!(pG->flags_5018 & 0x04000000)) {
+    if (!(pG->Status_flg[3] & 0x04000000)) {
         r20b_work.p->cnt = zero;
-        SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R20bEmSetMain, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) SceBgmCheck, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     setTexRender();
     TexRenderInit(&r20b_work.p->tex1, 0, 1);
@@ -174,14 +174,14 @@ void R20bInit()
 
 void R20bMain()
 {
-    if ((pG->sceat_x17C & 0x00080000) || pPL->pos.y <= 100.0f) {
-        if (!((int) pG->flags_174 < 0)) {
-            pG->flags_174 |= 0x80000000;
+    if ((pG->Room_flg[2] & 0x00080000) || pPL->pos.y <= 100.0f) {
+        if (!((int) pG->Room_flg[0] < 0)) {
+            pG->Room_flg[0] |= 0x80000000;
             R20bScrTrans(0);
         }
     } else {
-        if ((int) pG->flags_174 < 0) {
-            pG->flags_174 &= 0x7FFFFFFF;
+        if ((int) pG->Room_flg[0] < 0) {
+            pG->Room_flg[0] &= 0x7FFFFFFF;
             R20bScrTrans(1);
         }
     }
@@ -272,38 +272,38 @@ static void R20bOpenTerm()
 static void OpenedBoxTreasure(int id)
 {
     if (id == 0x86) {
-        OpenBoxMain(3, 1, 0x5B, 0x87, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x87, -1, -1);
     }
     if (id == 0x89) {
-        OpenBoxMain(3, 1, 0x5B, 0x88, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x88, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(6, 1, 0x5B, 0x89, -1, -1);
+        OpenBoxMain(OpenBoxUpZM, 1, 0x5B, 0x89, -1, -1);
     }
     if (id == 0x87) {
-        OpenBoxMain(3, 1, 0x5B, 0x8A, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 1, 0x5B, 0x8A, -1, -1);
     }
     if (id == 0x8D) {
-        OpenBoxMain(0x17, 1, 0x19, 0x9E, 0x9F, -1);
+        OpenBoxMain(OpenBoxLR2, 1, 0x19, 0x9E, 0x9F, -1);
     }
 }
 
 static void OpenBoxTreasure(int id)
 {
     if (id == 0x86) {
-        OpenBoxMain(3, 0, 0x5B, 0x87, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x87, -1, -1);
     }
     if (id == 0x89) {
-        OpenBoxMain(3, 0, 0x5B, 0x88, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x88, -1, -1);
     }
     if (id == 0x84) {
-        OpenBoxMain(6, 0, 0x5B, 0x89, -1, -1);
+        OpenBoxMain(OpenBoxUpZM, 0, 0x5B, 0x89, -1, -1);
     }
     if (id == 0x87) {
-        OpenBoxMain(3, 0, 0x5B, 0x8A, -1, -1);
+        OpenBoxMain(OpenBoxUpXP, 0, 0x5B, 0x8A, -1, -1);
     }
     if (id == 0x8D) {
-        OpenBoxMain(0x17, 0, 0x19, 0x9E, 0x9F, -1);
+        OpenBoxMain(OpenBoxLR2, 0, 0x19, 0x9E, 0x9F, -1);
     }
 }
 
@@ -330,7 +330,7 @@ static void R20bEmSetMain()
         r20b_work.p->em[4].setFlag(1);
     }
     for (;;) {
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             if (RsfCheck(G_ROOM_ID, 2) == 0) {
                 RsfSet(G_ROOM_ID, 2);
                 r20b_work.p->em[0].setEm(0x11, -1, 0, 1, 1);
@@ -341,7 +341,7 @@ static void R20bEmSetMain()
                 r20b_work.p->em[3].setEm(5, -1, 0, 1, 1);
             }
         }
-        if (BitCk(pG->sceat_x17C, 0x40000000) || BitCk(pG->sceat_x17C, 0x20000000)) {
+        if (BitCk(pG->Room_flg[2], 0x40000000) || BitCk(pG->Room_flg[2], 0x20000000)) {
             if (RsfCheck(G_ROOM_ID, 3) == 0) {
                 RsfSet(G_ROOM_ID, 3);
                 r20b_work.p->em[1].setEm(3, -1, 0, 1, 1);
@@ -366,7 +366,7 @@ static void R20bEmSetMain()
                 hurt = 1;
             }
         }
-        if ((pG->sceat_x17C & 0x00400000) || hurt == 1) {
+        if ((pG->Room_flg[2] & 0x00400000) || hurt == 1) {
             if (RsfCheck(G_ROOM_ID, 9) == 0) {
                 RsfSet(G_ROOM_ID, 9);
                 if (r20b_work.p->em[1].isActive() || r20b_work.p->em[2].isActive() || r20b_work.p->em[3].isActive()) {
@@ -381,14 +381,14 @@ static void R20bEmSetMain()
                 }
             }
         }
-        if (BitCk(pG->sceat_x17C, 0x10000000) || BitCk(pG->sceat_x17C, 0x08000000)) {
+        if (BitCk(pG->Room_flg[2], 0x10000000) || BitCk(pG->Room_flg[2], 0x08000000)) {
             if (RsfCheck(G_ROOM_ID, 4) == 0) {
                 RsfSet(G_ROOM_ID, 4);
                 r20b_work.p->em[4].setEm(6, -1, 0, 1, 1);
                 r20b_work.p->em[4].setFlag(1);
             }
         }
-        if (pG->sceat_x17C & 0x00100000) {
+        if (pG->Room_flg[2] & 0x00100000) {
             if (RsfCheck(G_ROOM_ID, 11) == 0) {
                 RsfSet(G_ROOM_ID, 11);
                 if (r20b_work.p->em[4].isActive()) {
@@ -404,7 +404,7 @@ static void R20bEmSetMain()
             }
         }
         if (R20bCalcActiveEmWarp() <= 4) {
-            if (pG->sceat_x17C & 0x02000000) {
+            if (pG->Room_flg[2] & 0x02000000) {
                 if (RsfCheck(G_ROOM_ID, 6) == 0) {
                     RsfSet(G_ROOM_ID, 6);
                     r20b_work.p->em[8].setEm(0x17, -1, 0, 1, 1);
@@ -413,7 +413,7 @@ static void R20bEmSetMain()
             }
         }
         if (R20bCalcActiveEmWarp() <= 3) {
-            if (pG->sceat_x17C & 0x04000000) {
+            if (pG->Room_flg[2] & 0x04000000) {
                 if (RsfCheck(G_ROOM_ID, 5) == 0) {
                     u8 r;
 
@@ -449,7 +449,7 @@ static void R20bEmSetMain()
             }
         }
         if (SceAtItemFlgCk(0x81) == 1) {
-            if (pG->sceat_x17C & 0x01000000) {
+            if (pG->Room_flg[2] & 0x01000000) {
                 if (RsfCheck(G_ROOM_ID, 7) == 0) {
                     if (R20bCalcActiveEmWarp() <= 3) {
                         RsfSet(G_ROOM_ID, 7);
@@ -462,7 +462,7 @@ static void R20bEmSetMain()
             }
         }
         if (SceAtItemFlgCk(0x81) == 1) {
-            if (pG->sceat_x17C & 0x01000000) {
+            if (pG->Room_flg[2] & 0x01000000) {
                 if (RsfCheck(G_ROOM_ID, 20) == 0) {
                     if (R20bCalcActiveEmWarp() <= 3) {
                         u8 r;
@@ -523,7 +523,7 @@ static void R20bEmSetMain()
         }
         if (R20bCalcActiveEmWarp() <= 3) {
             if (open == 1) {
-                if (pG->sceat_x17C & 0x00800000) {
+                if (pG->Room_flg[2] & 0x00800000) {
                     if (RsfCheck(G_ROOM_ID, 8) == 0) {
                         RsfSet(G_ROOM_ID, 8);
                         r20b_work.p->em[13].setEm(0xA, -1, 0, 1, 1);
@@ -574,9 +574,9 @@ static void SceBgmCheck()
 static void R20bDoorCheck()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceUpCut(1, 4, 2, 4);
+        SceUpCut(1, 4, 2, UP_CUT_ATTR_CUT_FIX);
         if (ItemMgr.num(0x7A) != 0 || (ItemMgr.num(0x3A) != 0 && ItemMgr.num(0x69) != 0)) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         } else {
             CamCtrl.Comeback(0);
         }
@@ -604,7 +604,7 @@ static void R20bDoorEventMain()
     SceAtSetEnable(0x8C, 1);
     SndCall(6, 0, 0, 0, 0, 0);
     CamCtrl.CutCall(4);
-    SceMesSet(2, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceSetEventCancel(1, (TaskFunc) R20bDoorEventEnd, 0, -1, 1);
     CamCtrl.CutCall(5);
     obj = SmdGetObjPtr(0x8F);
@@ -640,14 +640,14 @@ static void R20bDoorEventEnd()
 // TexRender blend setup of one floor object.
 #define R20B_TEX_OBJ(id)                    \
     obj = SmdGetObjPtr(id);                 \
-    obj->pInfo->setTexBlendTbl(tbl);        \
-    obj->pInfo->setBlendRatio(0xFF);        \
-    obj->pInfo->setBlendType(1);            \
-    obj->pInfo->color[3] = 0xF0;            \
-    obj->x136 = 2;                          \
-    obj->x137 = 4;                          \
-    obj->x138 = 0x20;                       \
-    obj->alpha = 0.7f;
+    obj->pModelInfo->setTexBlendTbl(tbl);        \
+    obj->pModelInfo->setBlendRatio(0xFF);        \
+    obj->pModelInfo->setBlendType(1);            \
+    obj->pModelInfo->color[3] = 0xF0;            \
+    obj->Shader_type = 2;                          \
+    obj->Refract_pow = 4;                          \
+    obj->Refract_ratio = 0x20;                       \
+    obj->invisible_factor = 0.7f;
 
 // The hall floor: a render target blended into the two floor objects.
 static void setTexRender()
@@ -662,12 +662,12 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r20b_work.p->tex0->texId;
-        r20b_work.p->tex0->repType = 1;
+        r20b_work.p->tex0->m_Rep_type = 1;
         {
             TexRenderMng* t = r20b_work.p->tex0;
 
-            t->sx = 0x40;
-            t->sy = 0x40;
+            t->m_W_size = 0x40;
+            t->m_H_size = 0x40;
         }
         EstSet(0, -1, 0, 0, 1, 0, r20b_work.p->tex0->mask | 1, 0, 0, 0);
         R20B_TEX_OBJ(0x28);
@@ -683,7 +683,7 @@ static void R20bEventS00()
         SceDestroyEm(0x22, 0x22);
         SceSleep(1);
         EvtMgr.EvtReadExec("event/evd/r20bs00.evd", (u8) GetEmIdFromListI(0x11), 0);
-        SceSetChapterEnd(7, -1);
+        SceSetChapterEnd(CHAPTER_3_2, -1);
     }
 }
 
@@ -700,14 +700,14 @@ extern "C" void Evt_R20BS00_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (!(pG->flags_174 & 0x40000000)) {
-            pG->flags_174 |= 0x40000000;
+        if (!(pG->Room_flg[0] & 0x40000000)) {
+            pG->Room_flg[0] |= 0x40000000;
             if (e->GetMod(&mod, "ev0202", 0, 0) == 1) {
-                r20b_work.p->tpl0202 = ((cModelInfo*) mod)->pTpl;
+                r20b_work.p->tpl0202 = ((cModelInfo*) mod)->tpl_addr;
             }
         }
-        if (e->cut > 0x21) {
-            if (e->frame == 0) {
+        if (e->NowCut > 0x21) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "ev0202", 0, 0) == 1) {
                     if (EvtMgr.GetBin(&bin, "event/model/ev0200/ev0202_r20b.tpl", 0) == 1) {
                         ((cModelInfo*) mod)->setTplAddr(bin);
@@ -715,15 +715,15 @@ extern "C" void Evt_R20BS00_Func(Event* e)
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "ev0202", 0, 0) == 1) {
                     ((cModelInfo*) mod)->setTplAddr(r20b_work.p->tpl0202);
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x21:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work.p->tbl0, r20b_work.p->tex1, 1, 0, 0, 0, 0.2f);
                 }
@@ -731,7 +731,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             EvtTexRenderCamTrans(e, 0x21);
             break;
         case 0x24:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work.p->tbl0, r20b_work.p->tex1, 1, 0, 0, 0, 0.2f);
                 }
@@ -739,17 +739,17 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             EvtTexRenderCamTrans(e, 0x24);
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod2, 0);
                 }
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             if (e->GetMod(&mod, "evm9300", 0, 0) == 1) {
-                r20b_work.p->tpl9300 = ((cModelInfo*) mod)->pTpl;
+                r20b_work.p->tpl9300 = ((cModelInfo*) mod)->tpl_addr;
             }
             break;
         case 5:
@@ -758,7 +758,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         case 0x1C:
         case 0x21:
         case 0x24:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm9300", 0, 0) == 1) {
                     if (EvtMgr.GetBin(&bin2, "event/model/evm9300/evm9300_usu.tpl", 0) == 1) {
                         ((cModelInfo*) mod)->setTplAddr(bin2);
@@ -767,16 +767,16 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm9300", 0, 0) == 1) {
                     ((cModelInfo*) mod)->setTplAddr(r20b_work.p->tpl9300);
                 }
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x21:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work.p->tbl1, r20b_work.p->tex2, 1, 0, 0, 1, 0.35f);
                 }
@@ -787,7 +787,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         case 0x24:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod2, 0, r20b_work.p->tbl1, r20b_work.p->tex2, 1, 0, 0, 1, 0.35f);
                 }
@@ -798,7 +798,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod2, 0);
                 }
@@ -808,10 +808,10 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0xD:
         case 0xE:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod3, "pl0000", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod3, 2, 0);
                     ModelInfoSetTrans((cModel*) mod3, 6, 0);
@@ -819,7 +819,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod4, "pl0000", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod4, 2, 1);
                     ModelInfoSetTrans((cModel*) mod4, 6, 1);
@@ -827,78 +827,78 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 0xB:
         case 0xF:
         case 0x10:
         case 0x11:
         case 0x13:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod2, 1, 0);
                 }
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod2, 1, 1);
                 }
             }
             break;
         }
-        if (e->cut == 0x2A) {
-            if (e->frame <= 0x10) {
+        if (e->NowCut == 0x2A) {
+            if (e->NowFrame <= 0x10) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod2)->o18.flags |= 0x40;
+                    ((cObj*) mod2)->o18.be_flag |= 0x40;
                 }
             } else {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod2)->o18.flags &= ~0x40;
+                    ((cObj*) mod2)->o18.be_flag &= ~0x40;
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod2)->o18.flags &= ~0x40;
+                    ((cObj*) mod2)->o18.be_flag &= ~0x40;
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0xB:
         case 0x11:
         case 0x13:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod2)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod2)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod2)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod2)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod2)->o18.x74 &= ~0x04000000;
+                        ((cObj*) mod2)->o18.ObjChainFlagCommon &= ~0x04000000;
                         w->child->be_flag |= 2;
                     }
                 }
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x16:
         case 0x1C:
         case 0x25:
         case 0x29:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x27, 0);
                 SmdSetTrans(0x30, 0);
                 SmdSetTrans(0x37, 0);
@@ -909,7 +909,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x27, 1);
                 SmdSetTrans(0x30, 1);
                 SmdSetTrans(0x37, 1);
@@ -920,34 +920,34 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             }
             break;
         }
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod2, 5, 0);
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod2, 5, 1);
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evm8200", 0, 0) == 1) {
-                    ((cModel*) mod2)->lightInfo.x50 = 0x40;
+                    ((cModel*) mod2)->LightInfo.EnableMask = 0x40;
                 }
                 if (e->GetMod(&mod2, "evm9300", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                     ((cModel*) mod2)->be_flag |= 0x10;
                 }
                 if (e->GetMod(&mod2, "evma100", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
                 if (e->GetMod(&mod2, "evma100a", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
             }
             break;
@@ -975,15 +975,15 @@ extern "C" void Evt_R20BS00_Func(Event* e)
             SmdSetTrans(0x53, 1);
             break;
         }
-        if (e->cut == 0x25) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0x25) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x5E, 0);
             }
         } else {
             SmdSetTrans(0x5E, 1);
         }
-        if (e->cut == 0x15) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0x15) {
+            if (e->NowFrame == 0) {
                 SetSstAddAreaFlag(0);
             }
         } else {
@@ -1017,7 +1017,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     if (skip == 0) {

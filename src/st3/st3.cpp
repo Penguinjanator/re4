@@ -206,7 +206,7 @@ void st3_setCountDownTimer(int frame)
         frame = 0;
     }
     cd = Cckpt.getCountDown();
-    cd->flags |= 1;
+    cd->m_state |= 1;
     cd->initTimeFrame(frame);
     SetFree(2, cd->getFrame());
 }
@@ -222,16 +222,16 @@ static inline void st3_resumeCountDown()
     u32 frame = GetFree(2);
     CountDown* cd = Cckpt.getCountDown();
 
-    cd->flags |= 1;
+    cd->m_state |= 1;
     cd->initTimeFrame(frame);
     cd->frameIn();
 }
 
 void st3_startCountDown()
 {
-    BitOff(pG->flags_51C4, 0x200);
-    if ((pG->flags_51C0 & 0x80) == 0) {
-        pG->flags_51C0 |= 0x80;
+    BitOff(pG->Scenario_flg[1], 0x200);
+    if ((pG->Scenario_flg[0] & 0x80) == 0) {
+        pG->Scenario_flg[0] |= 0x80;
         st3_resumeCountDown();
     } else {
         st3_resumeCountDown();
@@ -241,17 +241,17 @@ void st3_startCountDown()
 // Every island room's Main: when the running count-down reaches zero, the death demo event.
 void st3_checkCountDown()
 {
-    if (pG->flags_51C0 & 0x80) {
+    if (pG->Scenario_flg[0] & 0x80) {
         int over = 0;
         CountDown* cd = Cckpt.getCountDown();
 
         SetFree(2, cd->getFrame());
         if (cd->checkState(1)) {
-            over = (cd->frame == 0);
+            over = (cd->m_frame == 0);
         }
         if (over == 1) {
-            if ((pG->flags_51C4 & 0x200) == 0) {
-                pG->flags_51C4 |= 0x200;
+            if ((pG->Scenario_flg[1] & 0x200) == 0) {
+                pG->Scenario_flg[1] |= 0x200;
                 ScenarioTaskAllOff();
                 SceExec(0x12, (TaskFunc) st3_dieDemoEvent, 0, 2, 2, 0);
             }
@@ -280,7 +280,7 @@ void st3_dieDemoEvent()
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     S16Set(pPL->hp, 0);
-    pG->flags_5018 |= 0x01000000;
+    pG->Status_flg[3] |= 0x01000000;
     DiedemoExec(0, 1);
     SceSleep(1);
     SceEventEnd(0);
@@ -290,9 +290,9 @@ void st3_endCountDown()
 {
     CountDown* cd = Cckpt.getCountDown();
 
-    pG->flags_51C0 &= ~0x80;
+    pG->Scenario_flg[0] &= ~0x80;
     cd->disp(0);
-    cd->flags &= ~1;
+    cd->m_state &= ~1;
     cd->frameOut();
 }
 
@@ -300,5 +300,5 @@ void st3_endCountDown()
 // follows the code; the DOL's is game/mercenaries.cpp's).
 inline int CountDown::checkState(u32 bit)
 {
-    return (flags & bit) ? 1 : 0;
+    return (m_state & bit) ? 1 : 0;
 }

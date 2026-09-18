@@ -21,17 +21,17 @@ int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define WEP_OBJ(pl) ((pl)->pWep->pObj)
+#define WEP_OBJ(pl) ((pl)->Wep->m_pWep)
 // The weapon object's own cAtariInfo (the object's collision with enemies while it is held).
 #define WEP_ATARI(pl) (&WEP_OBJ(pl)->sub2B4.atari)
 
 // Routine bytes through int parameters (player.cpp PlRoutineSet).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
-    pl->xFC = r0;
-    pl->xFD = r1;
-    pl->xFE = r2;
-    pl->xFF = r3;
+    pl->r_no_0 = r0;
+    pl->r_no_1 = r1;
+    pl->r_no_2 = r2;
+    pl->r_no_3 = r3;
 }
 
 // Scalar-reference stores (the following pG load stays below them).
@@ -75,7 +75,7 @@ void Wep14_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep14_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x6), 0x48, 1);
         wep14changeRightHand(pl, WEP_ARC_PTR(0x9));
@@ -97,8 +97,8 @@ void Wep14_move(cPlayer* pl)
         wep14_r2_next,
     };
 
-    func_tbl[pl->xFE](pl);
-    pl->pWep->lockMove();
+    func_tbl[pl->r_no_2](pl);
+    pl->Wep->lockMove();
 }
 
 static void wep14_r2_ready(cPlayer* pl)
@@ -110,20 +110,20 @@ static void wep14_r2_ready(cPlayer* pl)
         wep14_r3_ready30,
     };
 
-    func_tbl[pl->xFF](pl);
-    if (joyKamae() == 0 && pl->xFF != 3) {
+    func_tbl[pl->r_no_3](pl);
+    if (joyKamae() == 0 && pl->r_no_3 != 3) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             cObjWep* obj;
 
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
             obj = WEP_OBJ(pl);
             obj->wep.mode = 3;
             obj->wep.step = 0;
@@ -132,11 +132,11 @@ static void wep14_r2_ready(cPlayer* pl)
     }
     if (pl->keyReload() && WEP_OBJ(pl)->reloadable()) {
         wep14changeRightHand(pl, WEP_ARC_PTR(0x9));
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 4;
-        pl->xFF = 0;
-        pl->x3E0 = 1;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 4;
+        pl->r_no_3 = 0;
+        pl->m_Work0 = 1;
     } else if (pl->pLockEm) {
         CamCtrlShoulderSetAim(&pl->pLockEm->pos);
     } else {
@@ -144,7 +144,7 @@ static void wep14_r2_ready(cPlayer* pl)
         Vec hit;
 
         PSMTXMultVec(pl->mat, &aim, &aim);
-        SatMgr.hitCheck(&pl->getPartsPtr(0)->worldPos, &aim, &hit, 0, 0, 0);
+        SatMgr.hitCheck(&pl->getPartsPtr(0)->world, &aim, &hit, 0, 0, 0);
         CamCtrlShoulderSetAim(&hit);
     }
 }
@@ -158,24 +158,24 @@ static void wep14_r3_ready00(cPlayer* pl)
     int normal;
     int hokan;
 
-    pl->x3E4 = 0;
-    pl->pWep->x2C = zero;
+    pl->m_Work1 = 0;
+    pl->Wep->m_CenterY = zero;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > zero) {
         pitch += pitch;
     }
-    pl->pWep->pitch = pitch;
+    pl->Wep->pitch = pitch;
     m3r[2] = zero;
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
-    pl->x400 = zero;
-    FSet(pl->pWep->x30, CamCtrl.getCameraDirection());
+    pl->m_Fwork0 = zero;
+    FSet(pl->Wep->m_CamAdjY, CamCtrl.getCameraDirection());
     wep14changeRightHand(pl, WEP_ARC_PTR(0xA));
-    pl->pNeck->init(0, 0, 0);
-    pl->pWep->lockInit();
+    pl->Neck->init(0, 0, 0);
+    pl->Wep->lockInit();
     hokan = 4;
-    normal = !(pG->wep_type & 1);
+    normal = !(pG->weapon_type & 1);
     if (normal) {
         hokan = 0x104;
     }
@@ -190,38 +190,38 @@ static void wep14_r3_ready00(cPlayer* pl)
     obj = WEP_OBJ(pl);
     obj->wep.step = 0;
     obj->wep.mode = 1;
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep14_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
-        f32 d = pl->pWep->x30 / (4.0f - pl->frame);
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
 
-        pl->rot.y += d;
-        pl->pWep->x30 -= d;
+        pl->ang.y += d;
+        pl->Wep->m_CamAdjY -= d;
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
     if (pl->motionMove()) {
-        SndCall(2, 9, &pl->getPartsPtr(0xA)->worldPos, 0, 0, 0);
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 1;
-        pl->xFF = 0;
+        SndCall(2, 9, &pl->getPartsPtr(0xA)->world, 0, 0, 0);
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 0;
     }
 }
 
 static void wep14_r3_ready20(cPlayer* pl)
 {
     if (pl->motionMove()) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         PlRoutineSet(pl, 0, 6, 1, 0);
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 // ready30: turn / step towards the aim target while the motion plays (wep/pl_handgun.cpp).
@@ -234,10 +234,10 @@ static void wep14_r3_ready30(cPlayer* pl)
     Vec* t;
 
     if (pl->motionMove()) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         PlRoutineSet(pl, 0, 6, 1, 0);
     }
-    pl->rot.y += Muku(&pl->pos, &tgt, pl->rot.y, PI / 8.0f);
+    pl->ang.y += Muku(&pl->pos, &tgt, pl->ang.y, PI / 8.0f);
     pl->pos.x = pl->pos.x * 0.6f + pos.x * 0.4f;
     pl->pos.z = pl->pos.z * 0.6f + pos.z * 0.4f;
     t = &tgt;
@@ -270,7 +270,7 @@ static void wep14_r3_ready30(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep14_r2_set(cPlayer* pl)
@@ -285,8 +285,8 @@ static void wep14_r2_set(cPlayer* pl)
     int fire;
     int normal;
 
-    func_tbl[pl->xFF](pl);
-    normal = !(pG->wep_type & 1);
+    func_tbl[pl->r_no_3](pl);
+    normal = !(pG->weapon_type & 1);
     if (normal) {
         pl->setLaserSight(1, 0);
     } else {
@@ -294,10 +294,10 @@ static void wep14_r2_set(cPlayer* pl)
     }
     if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 3;
 
@@ -306,34 +306,34 @@ static void wep14_r2_set(cPlayer* pl)
     } else if ((fire = joyFireTrg())) {
         fire = WEP_OBJ(pl)->bulletNum();
         if (fire) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 2;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 2;
+            pl->r_no_3 = 0;
         } else if (WEP_OBJ(pl)->reloadable()) {
-            pl->pWep->x26 |= 1;
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 4;
-            pl->xFF = 0;
-            pl->x3E0 = fire;
+            pl->Wep->m_Flag |= 1;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 4;
+            pl->r_no_3 = 0;
+            pl->m_Work0 = fire;
         } else {
-            SndCall(2, 3, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
+            SndCall(2, 3, &pl->getPartsPtr(4)->world, 0, 0, 0);
             goto reload;
         }
     } else if (joyFireOn() && WEP_OBJ(pl)->bulletNum()) {
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 2;
-        pl->xFF = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 2;
+        pl->r_no_3 = 0;
     } else {
     reload:
         if (pl->keyReload() && WEP_OBJ(pl)->reloadable()) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 4;
-            pl->xFF = 0;
-            pl->x3E0 = 1;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 4;
+            pl->r_no_3 = 0;
+            pl->m_Work0 = 1;
         }
     }
 }
@@ -342,16 +342,16 @@ static void wep14_r3_set00(cPlayer* pl)
 {
     PlArc* arc;
 
-    if (pG->wep_type & 1) {
+    if (pG->weapon_type & 1) {
         CamCtrl.startScope(0, 0);
         CameraMove();
         pl->flags_420 |= 0x10;
     }
-    arc = (PlArc*) pG->pWepArc;
+    arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x17), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
 }
 
 static void wep14_r3_set10(cPlayer* pl)
@@ -363,7 +363,7 @@ static void wep14_r3_set10(cPlayer* pl)
 static void wep14_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     MotionMoveI(pl, 0);
 }
@@ -371,7 +371,7 @@ static void wep14_r3_set20(cPlayer* pl)
 static void wep14_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
     pl->motionMove();
 }
@@ -379,7 +379,7 @@ static void wep14_r3_set30(cPlayer* pl)
 static void wep14_r3_set40(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0) || (Key.on & 0x10F)) {
-        pl->xFF = 0;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -390,7 +390,7 @@ static void wep14_r2_fire(cPlayer* pl)
         wep14_r3_fire10,
     };
 
-    func_tbl[pl->xFF](pl);
+    func_tbl[pl->r_no_3](pl);
 }
 
 static void wep14_r3_fire00(cPlayer* pl)
@@ -400,7 +400,7 @@ static void wep14_r3_fire00(cPlayer* pl)
     f32 pitch;
 
     WEP_OBJ(pl)->trigger();
-    arc = (PlArc*) pG->pWepArc;
+    arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x14), PL_ARC_PTR(arc, 0x18), PL_ARC_PTR(arc, 0x1A), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     pl->motionMove();
@@ -408,32 +408,32 @@ static void wep14_r3_fire00(cPlayer* pl)
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pitch = m3r[0];
-    PlWepLockRand(pl, 2, &pitch, &pl->x400);
+    PlWepLockRand(pl, 2, &pitch, &pl->m_Fwork0);
     m3r[1] = pitch;
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
     }
-    pl->xFF = 1;
+    pl->r_no_3 = 1;
     pl->flags_420 &= ~0x20;
 }
 
 // fire10: the hand model is swapped for the throw frames (setRightHand 5 / 4).
 static void wep14_r3_fire10(cPlayer* pl)
 {
-    if (MotionCheckCrossFrame(&pl->mot, 23.0f)) {
-        SndCall(2, 4, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
+    if (MotionCheckCrossFrame(&pl->Motion, 23.0f)) {
+        SndCall(2, 4, &pl->getPartsPtr(4)->world, 0, 0, 0);
         pl->flags_420 |= 0x20;
         pl->setLeftHand(5);
     }
-    if (MotionCheckCrossFrame(&pl->mot, 30.0f)) {
+    if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {
         pl->flags_420 &= ~0x20;
         pl->setLeftHand(4);
     }
     if (pl->motionMove()) {
-        pl->xFC = 0;
-        pl->xFD = 6;
-        pl->xFE = 1;
-        pl->xFF = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 6;
+        pl->r_no_2 = 1;
+        pl->r_no_3 = 0;
     }
 }
 
@@ -441,7 +441,7 @@ static void wep14_r2_down(cPlayer* pl)
 {
     cObjWep* obj;
 
-    if (pG->wep_type & 1) {
+    if (pG->weapon_type & 1) {
         CamCtrl.endScope();
         CameraMove();
         pl->flags_420 &= ~0x10;
@@ -450,11 +450,11 @@ static void wep14_r2_down(cPlayer* pl)
         pl->motionSet(WEP_ARC_PTR(0x15), 7, 0, 1, 0);
         PlRoutineSet(pl, 0, 0, 2, 0);
     } else {
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         pl->x4FD = 0xF;
-        pl->xFC = 0;
-        pl->xFD = 0;
-        pl->xFE = 0;
+        pl->r_no_0 = 0;
+        pl->r_no_1 = 0;
+        pl->r_no_2 = 0;
         pl->x4FC = 0;
     }
     pl->motionMove();
@@ -467,21 +467,21 @@ static void wep14_r2_down(cPlayer* pl)
     }
     AtariFlagsAndV(WEP_ATARI(pl), 0xFDFF);
     wep14changeRightHand(pl, WEP_ARC_PTR(0x9));
-    FSet(pl->rot.y, pl->rot.y - pl->pWaist->set(0.0f, 0.4f));
+    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
 static void wep14_r2_reload(cPlayer* pl)
 {
-    u8 step = pl->xFF;
+    u8 step = pl->r_no_3;
     cObjWep* obj;
     void* mot;
 
     switch (step) {
     case 0:
-        if (pG->wep_type & 1) {
+        if (pG->weapon_type & 1) {
             pl->endCamera();
         }
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             mot = WEP_ARC_PTR(0x16);
             break;
@@ -489,23 +489,23 @@ static void wep14_r2_reload(cPlayer* pl)
             mot = WEP_ARC_PTR(0x1B);
             break;
         }
-        MotionSetCore(pl, &pl->mot, mot, 0, 3, 5, 0);
+        MotionSetCore(pl, &pl->Motion, mot, 0, 3, 5, 0);
         wep14changeRightHand(pl, WEP_ARC_PTR(0xA));
-        pl->xFF = 1;
+        pl->r_no_3 = 1;
         obj = WEP_OBJ(pl);
         obj->wep.mode = 4;
         obj->wep.step = 0;
     case 1:
         if (pl->motionMove()) {
-            if (pG->wep_type & 1) {
+            if (pG->weapon_type & 1) {
                 CamCtrl.startScope(0, 0);
                 CameraMove();
                 pl->flags_420 |= 0x10;
             }
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 0;
         }
         break;
     }
@@ -514,47 +514,47 @@ static void wep14_r2_reload(cPlayer* pl)
 // next: turn to the lock target (pLockEm) with the turn motion.
 static void wep14_r2_next(cPlayer* pl)
 {
-    u8 step = pl->xFF;
+    u8 step = pl->r_no_3;
     cModel* em = pl->pLockEm;
 
     switch (step) {
     case 0:
-        U32Set(pl->x3E0, 0);
-        IntSet(pl->x3E4, 0);
-        MotionSetCore(pl, &pl->mot, WEP_ARC_PTR(0x12), 0, 0xA, 1, 0);
-        pl->xFF = 1;
+        U32Set(pl->m_Work0, 0);
+        IntSet(pl->m_Work1, 0);
+        MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x12), 0, 0xA, 1, 0);
+        pl->r_no_3 = 1;
     case 1:
         if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
-            pl->rot.y += Muku(&pl->pos, &em->pos, pl->rot.y, 0.31415927f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, 0.31415927f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
-        pl->x400 = 0.0f;
-        pl->pWaist->set(0.0f, 0.4f);
-        pl->pBody->waistMove();
+        pl->m_Fwork0 = 0.0f;
+        pl->Waist->set(0.0f, 0.4f);
+        pl->Body->waistMove();
         pl->motionMove();
-        if ((int) pl->x3E0++ > 9) {
+        if ((int) pl->m_Work0++ > 9) {
             PlRoutineSet(pl, 0, 6, 1, 0);
         }
         break;
     }
     if (Key.trg & 0x20) {
-        if (pl->pWep->lockNext()) {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 5;
-            pl->xFF = 0;
+        if (pl->Wep->lockNext()) {
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 5;
+            pl->r_no_3 = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 6;
+            pl->r_no_2 = 1;
+            pl->r_no_3 = 0;
         }
     } else if (joyKamae() == 0) {
         if (pl->flags_420 & 0x40) {
-            pl->xFC = 0;
-            pl->xFE = 0;
-            pl->xFD = 0x11;
-            pl->xFF = 0;
+            pl->r_no_0 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_1 = 0x11;
+            pl->r_no_3 = 0;
         } else {
             int md = 1;
 
@@ -580,7 +580,7 @@ cObjWep* equipWeapon(cPlayer* pl)
 void wep14changeRightHand(cPlayer* pl, void* hand)
 {
     pl->setRightHand(0);
-    pl->pBody->initWepHand((u32) hand);
+    pl->Body->initWepHand((u32) hand);
     pl->setRightHand(1);
 }
 

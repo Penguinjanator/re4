@@ -341,7 +341,7 @@ static void tBlockExit()
             if (pW->link[i].flags & 1) {
                 cBlockUnit* u = Block.getUnitPtr(i);
 
-                total += u->pData->size;
+                total += u->pData->m_size;
                 u->setBlockDelete();
             }
         }
@@ -1060,7 +1060,7 @@ void tBlockArea_disp()
     eprintf(0x1AE, 0x34, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(0x1AE, 0x44, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(0x1AE, 0x54, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->rot.y);
+    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
 static inline cObj* objWorkNoChk(u32 no)
@@ -1139,11 +1139,11 @@ void tBlockArea_dispBlockBox(u8 no, u32 col)
         if ((obj->be_flag & 0x201) != 1) continue;
         if (obj->blk != no) continue;
         if (obj->id != 2) continue;
-        info = obj->pInfo;
+        info = obj->pModelInfo;
         PSMTXScale(m, obj->scale.x, obj->scale.y, obj->scale.z);
-        RotMatrix(r, &obj->rot);
+        RotMatrix(r, &obj->ang);
         PSMTXConcat(m, r, m);
-        for (; info; info = info->pNext) {
+        for (; info; info = info->pList) {
             f32 hx = info->bound.size.x;
             f32 hy = info->bound.size.y;
             f32 hz = info->bound.size.z;

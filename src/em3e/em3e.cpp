@@ -38,12 +38,12 @@ void em3eInit(cEm* em)
 
 cEmMark::cEmMark()
 {
-    setStatus(1);
+    setStatus(EM_STATUS_LOCKOFF);
 }
 
 void cEmMark::init(EmMarkData* d)
 {
-    init(d->type, d->inst, (f32) d->x, (f32) d->y, (f32) d->z);
+    init(d->type, d->inst, (f32) d->X, (f32) d->Y, (f32) d->Z);
 }
 
 void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
@@ -87,28 +87,28 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         tpl = ARC(0x10);
         break;
     case 0xA:
-        bin = SmdGetObjPtr(5)->pInfo->pData;
-        tpl = SmdGetObjPtr(5)->pInfo->pTpl;
+        bin = SmdGetObjPtr(5)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(5)->pModelInfo->tpl_addr;
         break;
     case 0xB:
-        bin = SmdGetObjPtr(6)->pInfo->pData;
-        tpl = SmdGetObjPtr(6)->pInfo->pTpl;
+        bin = SmdGetObjPtr(6)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(6)->pModelInfo->tpl_addr;
         break;
     case 0xC:
-        bin = SmdGetObjPtr(0x33)->pInfo->pData;
-        tpl = SmdGetObjPtr(0x33)->pInfo->pTpl;
+        bin = SmdGetObjPtr(0x33)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(0x33)->pModelInfo->tpl_addr;
         break;
     case 0xD:
-        bin = SmdGetObjPtr(0x34)->pInfo->pData;
-        tpl = SmdGetObjPtr(0x34)->pInfo->pTpl;
+        bin = SmdGetObjPtr(0x34)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(0x34)->pModelInfo->tpl_addr;
         break;
     case 0xE:
-        bin = SmdGetObjPtr(0x35)->pInfo->pData;
-        tpl = SmdGetObjPtr(0x35)->pInfo->pTpl;
+        bin = SmdGetObjPtr(0x35)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(0x35)->pModelInfo->tpl_addr;
         break;
     case 0xF:
-        bin = SmdGetObjPtr(0x36)->pInfo->pData;
-        tpl = SmdGetObjPtr(0x36)->pInfo->pTpl;
+        bin = SmdGetObjPtr(0x36)->pModelInfo->pData;
+        tpl = SmdGetObjPtr(0x36)->pModelInfo->tpl_addr;
         break;
     }
     modelInit(bin, tpl);
@@ -117,9 +117,9 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         scale.y = 6.0f;
         scale.z = 6.0f;
         pos.y -= 1000.0f;
-        pParts->rot.x = PI;
-        pParts->rot.y = 0.0f;
-        pParts->rot.z = 0.0f;
+        pParts->ang.x = PI;
+        pParts->ang.y = 0.0f;
+        pParts->ang.z = 0.0f;
     }
     {
         Vec size;
@@ -136,7 +136,7 @@ void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
         size.x = r;
         size.y = r;
         size.z = 0.0f;
-        lightInfo.init2(0, 1, &ofs, &size, lv);
+        LightInfo.init2(0, 1, &ofs, &size, lv);
     }
     switch (this->type) {
     case 0:
@@ -229,11 +229,11 @@ void cEmMark::move()
 {
 
     damageCheck();
-    if (xFC > 1) {
+    if (r_no_0 > 1) {
         downCheck();
     }
-    emmark_tbl[xFC](this);
-    switch (xFC) {
+    emmark_tbl[r_no_0](this);
+    switch (r_no_0) {
     case 2:
     case 3:
         EMMARK(this)->age++;
@@ -247,7 +247,7 @@ int countOldMark(cEmMark* self, int age)
     int n = 0;
     cEm* em;
 
-    for (em = (cEm*) EmMgr.pAlive; em; em = (cEm*) em->next) {
+    for (em = (cEm*) EmMgr.pAlive; em; em = (cEm*) em->pNext) {
         if (em == self) {
             continue;
         }
@@ -291,22 +291,22 @@ void cEmMark::downCheck()
 
 static void emmark_begin(cEmMark* em)
 {
-    int st = em->xFD;
+    int st = em->r_no_1;
 
     switch (st) {
     case 0:
         if (em->type <= 9) {
             SndCall(6, 0, &em->pos, 0, 0, 0);
         }
-        em->xFD = 1;
-        em->xFE = 0;
-        em->rot.x = PI / 2.0f;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->ang.x = PI / 2.0f;
         break;
     case 1:
-        em->xFE++;
-        em->rot.x -= PI / 20.0f;
-        if (em->xFE > 9) {
-            em->rot.x = 0.0f;
+        em->r_no_2++;
+        em->ang.x -= PI / 20.0f;
+        if (em->r_no_2 > 9) {
+            em->ang.x = 0.0f;
             em->setNextInstruction();
         }
         break;
@@ -315,37 +315,37 @@ static void emmark_begin(cEmMark* em)
 
 static void emmark_end(cEmMark* em)
 {
-    switch (em->xFD) {
+    switch (em->r_no_1) {
     case 0:
         if (em->hp > 0) {
-            em->xFE = 10;
-            em->xFD = 1;
+            em->r_no_2 = 10;
+            em->r_no_1 = 1;
         } else {
-            em->xFD = 10;
+            em->r_no_1 = 10;
         }
         em->hp = 0;
         break;
     case 1:
-        em->xFE--;
-        if (em->xFE == 0) {
-            em->xFD = 10;
+        em->r_no_2--;
+        if (em->r_no_2 == 0) {
+            em->r_no_1 = 10;
         }
         break;
     case 0xA:
         SndCall(6, 0, &em->pos, 0, 0, 0);
-        em->xFE = 0;
-        em->xFD = 0xB;
+        em->r_no_2 = 0;
+        em->r_no_1 = 0xB;
         break;
     case 0xB:
-        em->xFE++;
-        em->rot.x += PI / 20.0f;
-        if (em->xFE > 9) {
-            em->xFD = 0xC;
+        em->r_no_2++;
+        em->ang.x += PI / 20.0f;
+        if (em->r_no_2 > 9) {
+            em->r_no_1 = 0xC;
         }
         break;
     case 0xC:
         EmMgr.destroy(em);
-        em->xFD = 0xD;
+        em->r_no_1 = 0xD;
         break;
     case 0xD:
         break;
@@ -356,10 +356,10 @@ static void emmark_stay(cEmMark* em)
 {
     EmMarkInst* inst = EMMARK(em)->pInst;
 
-    switch (em->xFD) {
+    switch (em->r_no_1) {
     case 0:
         EMMARK(em)->timer = inst->count;
-        em->xFD = 1;
+        em->r_no_1 = 1;
         break;
     case 1:
         EMMARK(em)->timer--;
@@ -377,13 +377,13 @@ static void emmark_move(cEmMark* em)
     Vec target;
     Vec dir;
 
-    switch (em->xFD) {
+    switch (em->r_no_1) {
     case 0:
-        em->xFD = 1;
+        em->r_no_1 = 1;
     case 1:
         target.x = (f32) inst->x;
-        target.y = (f32) inst->y;
-        target.z = (f32) inst->z;
+        target.y = (f32) inst->Y;
+        target.z = (f32) inst->Z;
         if (GetDistance(target, em->pos) > (f32) (inst->spd * inst->spd)) {
             PSVECSubtract(&target, &em->pos, &dir);
 #line 533 "D:/Bio4/Prog/emmark.cpp"
@@ -424,14 +424,14 @@ void cEmMark::damageCheck()
         if (hp <= 0) {
             setEff(1, eff);
             R22cHitMark(type, eff != 0, &dmPart->pos, 1, EMMARK(this)->age);
-            xFC = 1;
-            xFD = 0;
-            xFE = 0;
-            xFF = 0;
+            r_no_0 = 1;
+            r_no_1 = 0;
+            r_no_2 = 0;
+            r_no_3 = 0;
         } else {
             setEff(0, eff);
             R22cHitMark(type, eff != 0 ? 3 : 2, &dmPart->pos, 0, EMMARK(this)->age);
-            rot.x -= PI / 7.0f;
+            ang.x -= PI / 7.0f;
             dmg.clear();
         }
     }
@@ -662,21 +662,21 @@ void cEmMark::setNextInstruction()
         return;
     }
     EMMARK(this)->pInst = (EmMarkInst*) ((u8*) EMMARK(this)->pInst + size);
-    xFC = ((u8*) EMMARK(this)->pInst)[3];
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = ((u8*) EMMARK(this)->pInst)[3];
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmMark::standSpring()
 {
     const f32 step = PI / 20.0f;
 
-    if (rot.x < 0.0f) {
-        if (rot.x < -step) {
-            rot.x += step;
+    if (ang.x < 0.0f) {
+        if (ang.x < -step) {
+            ang.x += step;
         } else {
-            rot.x = 0.0f;
+            ang.x = 0.0f;
         }
     }
 }
@@ -689,10 +689,10 @@ void cEmMark::setDown()
     if (dmHit != 0) {
         return;
     }
-    xFC = 1;
-    xFD = 0;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 extern "C" void _prolog()

@@ -31,7 +31,7 @@ void cObj01::move()
 {
     static void (cObj01::*funcTbl[2])() = { &cObj01::move00, &cObj01::move01 };
 
-    (this->*funcTbl[xFC])();
+    (this->*funcTbl[r_no_0])();
 }
 
 void cObj01::move00()
@@ -41,60 +41,60 @@ void cObj01::move00()
     f32 wh;
 
     if (life) {
-        if (w->type != 2) {
+        if (w->eff_action != 2) {
             w->life = life - 1;
         }
     } else {
-        if (w->estNo0 != -1 && w->estPrm0 != -1) {
-            switch (w->type) {
+        if (w->estNo0 != -1 && w->est != -1) {
+            switch (w->eff_action) {
             case 1:
-                BitOn(pG->flags_500C, 0x800000);
+                BitOn(pG->Status_flg[0], 0x800000);
                 if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
-                    EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->estPrm3, 0, 0, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->estNo3, (u8) w->est4, 0, 0, 0, 0);
                     AddWaterPower(&pos, 1.0f);
                     SndCall(1, 0x17, &pos, 0, 0, 0);
                 } else {
-                    EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->estPrm0, 0, 0, 0, 0);
+                    EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
                     SndCall(1, 0x14, &pos, 0, 0, 0);
                 }
                 PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
-                BitOn(pG->flags_5010, 0x20000000);
+                BitOn(pG->Status_flg[1], 0x20000000);
                 memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
                 pG->bell_stat = 1;
                 ObjMgr.destroy(this);
                 return;
             case 2:
-                BitOn(pG->flags_500C, 0x800000);
-                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->estPrm0, 0, 0, 0, 0);
-                EstSet(0, -1, &pos, 0, w->estNo1, (u8) w->estPrm1, 0, 0, 0, 0);
+                BitOn(pG->Status_flg[0], 0x800000);
+                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
+                EstSet(0, -1, &pos, 0, w->estNo1, (u8) w->est2, 0, 0, 0, 0);
                 SndCall(1, 0x15, &pos, 0, 0, 0);
                 SndCall(1, 0x16, &pos, 0, 0, 0);
-                if (w->type == 2) {
+                if (w->eff_action == 2) {
                     dmgSet(4);
                 } else {
                     dmgSet(5);
                 }
-                xFC = 1;
+                r_no_0 = 1;
                 return;
             case 3:
-                BitOn(pG->flags_500C, 0x800000);
-                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->estPrm0, 0, 0, 0, 0);
-                EstSet((int) this, -1, 0, 0, w->estNo1, (u8) w->estPrm1, 0, 0, (u32) this, 0);
+                BitOn(pG->Status_flg[0], 0x800000);
+                EstSet(0, -1, &pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
+                EstSet((int) this, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, (u32) this, 0);
                 SndCall(6, 0, &pos, 0, 0, 0);
-                if (w->type == 2) {
+                if (w->eff_action == 2) {
                     dmgSet(4);
                 } else {
                     dmgSet(5);
                 }
-                xFC = 1;
+                r_no_0 = 1;
                 return;
             case 0:
             default:
                 break;
             }
         } else {
-            alpha -= 0.2f;
-            if (alpha <= 0.0f) {
+            invisible_factor -= 0.2f;
+            if (invisible_factor <= 0.0f) {
                 ObjMgr.destroy(this);
             }
             return;
@@ -102,32 +102,32 @@ void cObj01::move00()
         ObjMgr.destroy(this);
         return;
     }
-    if (w->flags & 1) {
+    if (w->be_flag & 1) {
         MotionSetCore(this, &pMotion, w->pMot, 0, 0, w->motPrm, 0);
-        w->flags = (w->flags & ~1) | 2;
+        w->be_flag = (w->be_flag & ~1) | 2;
     }
-    if (w->flags & 2) {
+    if (w->be_flag & 2) {
         MotionMove(this, 0);
     }
     if (w->hold) {
-        if (w->holdTimer) {
-            w->holdTimer--;
-            if (w->holdTimer == 0) {
+        if (w->release_timer) {
+            w->release_timer--;
+            if (w->release_timer == 0) {
                 cModel* parts;
                 Vec hit;
                 Vec dir;
 
                 parts = GetPartsAddr(w->hold->pParts, 0);
-                if (SatMgr.hitCheck(&parts->worldPos, &pos, &hit, 0, 0, 0)) {
-                    PSVECSubtract(&parts->worldPos, &hit, &dir);
+                if (SatMgr.hitCheck(&parts->world, &pos, &hit, 0, 0, 0)) {
+                    PSVECSubtract(&parts->world, &hit, &dir);
 #line 172 "D:/Bio4/Prog/obj01.cpp"
                     VECNormalize(&dir, &dir);
-                    PSVECScale(&dir, &dir, w->rad);
+                    PSVECScale(&dir, &dir, w->r);
                     PSVECAdd(&hit, &dir, &dir);
                     pos = dir;
                     TransMatrix(mat, &pos);
                 }
-                oldPos = pos;
+                pos_old = pos;
                 w->hold = 0;
             }
         }
@@ -141,17 +141,17 @@ void cObj01::move00()
         ObjMgr.destroy(this);
         return;
     }
-    if (w->flags & 8) {
+    if (w->be_flag & 8) {
         if (w->hold == 0) {
             cModel* parts = GetPartsAddr(pParts, 0);
             if (parts) {
-                PSVECAdd(&parts->rot, &w->rotSpd, &parts->rot);
-                parts->rot.x = LIMIT_ANGLE(parts->rot.x);
-                parts->rot.y = LIMIT_ANGLE(parts->rot.y);
-                parts->rot.z = LIMIT_ANGLE(parts->rot.z);
-                RotMatrix(parts->worldMat, &parts->rot);
-                TransMatrix(parts->worldMat, &parts->pos);
-                ScaleMatrix(parts->worldMat, &parts->scale);
+                PSVECAdd(&parts->ang, &w->rot_spd, &parts->ang);
+                parts->ang.x = LIMIT_ANGLE(parts->ang.x);
+                parts->ang.y = LIMIT_ANGLE(parts->ang.y);
+                parts->ang.z = LIMIT_ANGLE(parts->ang.z);
+                RotMatrix(parts->l_mat, &parts->ang);
+                TransMatrix(parts->l_mat, &parts->pos);
+                ScaleMatrix(parts->l_mat, &parts->scale);
             }
         }
     }
@@ -162,21 +162,21 @@ void cObj01::move00()
     }
     if (w->hold) {
         cModel* parts = w->hold->getPartsPtr(w->holdParts);
-        RotMatrix(mat, &w->holdRot);
-        TransMatrix(mat, &w->holdOfs);
+        RotMatrix(mat, &w->ang);
+        TransMatrix(mat, &w->offset);
         ScaleMatrix(mat, &scale);
-        PSMTXMultVec(parts->mat, &w->holdOfs, &pos);
+        PSMTXMultVec(parts->mat, &w->offset, &pos);
         PSMTXConcat(parts->mat, mat, mat);
         TransMatrix(mat, &pos);
-        alpha = w->hold->alpha;
-        x158 = w->hold->x158;
+        invisible_factor = w->hold->invisible_factor;
+        invisible_factor2 = w->hold->invisible_factor2;
     } else {
-        RotMatrix(worldMat, &rot);
-        TransMatrix(worldMat, &pos);
-        ScaleMatrix(worldMat, &scale);
-        PSMTXCopy(worldMat, mat);
-        alpha = 1.0f;
-        x158 = 1.0f;
+        RotMatrix(l_mat, &ang);
+        TransMatrix(l_mat, &pos);
+        ScaleMatrix(l_mat, &scale);
+        PSMTXCopy(l_mat, mat);
+        invisible_factor = 1.0f;
+        invisible_factor2 = 1.0f;
     }
     partsMatCalc();
     partsWorldCalc();
@@ -184,12 +184,12 @@ void cObj01::move00()
 
 void cObj01::move01()
 {
-    xFE++;
-    if (xFE > 30) {
-        xFE = 0;
+    r_no_2++;
+    if (r_no_2 > 30) {
+        r_no_2 = 0;
         SndCall(1, 0x16, &pos, 0, 0, 0);
-        xFF++;
-        if (xFF > 5) {
+        r_no_3++;
+        if (r_no_3 > 5) {
             ObjMgr.destroy(this);
         }
     }
@@ -219,16 +219,16 @@ int obj01AddSpeed(cObj01* obj)
     Vec nrm;
     f32 len;
 
-    w->spd.y -= w->grav;
+    w->spd.y -= w->gravity;
     PSVECAdd(&obj->pos, &w->spd, &obj->pos);
-    if (!(w->flags & 4)) {
+    if (!(w->be_flag & 4)) {
         return 0;
     }
     if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh) {
         obj->pos.y = wh;
-        if (!(w->flags7C & 8)) {
-            EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->estPrm2, 0, 0, 0, 0);
-            w->flags7C |= 8;
+        if (!(w->flag & 8)) {
+            EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->est3, 0, 0, 0, 0);
+            w->flag |= 8;
             AddWaterPower(&obj->pos, 0.5f);
             if (obj->type != 1) {
                 SndCall(6, 0x64, &obj->pos, 0, 0, 0);
@@ -237,7 +237,7 @@ int obj01AddSpeed(cObj01* obj)
             }
         }
         w->life = 0;
-        switch (w->type) {
+        switch (w->eff_action) {
         case 2:
         case 3:
             break;
@@ -249,16 +249,16 @@ int obj01AddSpeed(cObj01* obj)
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &obj->oldPos, &obj->pos, w->rad * 0.5f, 0x2001, 0);
+    EatMgr.adjust(&nrm, &obj->pos_old, &obj->pos, w->r * 0.5f, 0x2001, 0);
     if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
         return 0;
     }
     len = RootSumSquare3(&w->spd);
     C_VECReflect(&w->spd, &nrm, &ref);
     PSVECScale(&ref, &w->spd, len * 0.2f);
-    PSVECScale(&w->rotSpd, &w->rotSpd, -0.8f);
+    PSVECScale(&w->rot_spd, &w->rot_spd, -0.8f);
     if (nrm.y > 0.9f) {
-        switch (w->type) {
+        switch (w->eff_action) {
         case 0:
             break;
         case 1:
@@ -271,28 +271,28 @@ int obj01AddSpeed(cObj01* obj)
             break;
         case 2:
             obj->dmgSet(4);
-            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->estPrm0, 0, 0, 0, 0);
-            EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->estPrm1, 0, 0, 0, 0);
-            if (w->type == 3) {
+            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
+            EstSet(0, -1, &obj->pos, 0, w->estNo1, (u8) w->est2, 0, 0, 0, 0);
+            if (w->eff_action == 3) {
                 SndCall(6, 0, &obj->pos, 0, 0, 0);
             } else {
                 SndCall(1, 0x15, &obj->pos, 0, 0, 0);
                 SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             }
-            obj->xFC = 1;
+            obj->r_no_0 = 1;
             obj->be_flag &= ~2;
             return 0;
         case 3:
             obj->dmgSet(4);
-            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->estPrm0, 0, 0, 0, 0);
-            EstSet((int) obj, -1, 0, 0, w->estNo1, (u8) w->estPrm1, 0, 0, (u32) obj, 0);
-            if (w->type == 3) {
+            EstSet(0, -1, &obj->pos, 0, w->estNo0, (u8) w->est, 0, 0, 0, 0);
+            EstSet((int) obj, -1, 0, 0, w->estNo1, (u8) w->est2, 0, 0, (u32) obj, 0);
+            if (w->eff_action == 3) {
                 SndCall(6, 0, &obj->pos, 0, 0, 0);
             } else {
                 SndCall(1, 0x15, &obj->pos, 0, 0, 0);
                 SndCall(1, 0x16, &obj->pos, 0, 0, 0);
             }
-            obj->xFC = 1;
+            obj->r_no_0 = 1;
             obj->be_flag &= ~2;
             return 0;
         case 4:
@@ -323,49 +323,49 @@ cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 4);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 4);
     w = &obj->o1;
     obj->pos = *pos;
-    obj->oldPos = *pos;
-    obj->rot = *rot;
+    obj->pos_old = *pos;
+    obj->ang = *rot;
     w->spd = *spd;
-    w->grav = grav;
-    w->rad = rad;
+    w->gravity = grav;
+    w->r = rad;
     w->life = life;
     w->hold = 0;
     w->estNo0 = -1;
-    w->estPrm0 = -1;
+    w->est = -1;
     w->estNo1 = -1;
-    w->estPrm1 = -1;
-    w->type = 0;
-    w->holdTimer = 0;
+    w->est2 = -1;
+    w->eff_action = 0;
+    w->release_timer = 0;
     w->seDone = 0;
     if (flags & 1) {
-        w->flags |= 4;
+        w->be_flag |= 4;
     }
     if (flags & 2) {
-        w->flags |= 8;
-        w->rotSpd.x = fRand0_1() * 0.19634955f + 0.09817477f;
-        w->rotSpd.y = 0.0f;
-        w->rotSpd.z = fRand0_1() * 0.09817477f + 0.09817477f;
+        w->be_flag |= 8;
+        w->rot_spd.x = fRand0_1() * 0.19634955f + 0.09817477f;
+        w->rot_spd.y = 0.0f;
+        w->rot_spd.z = fRand0_1() * 0.09817477f + 0.09817477f;
         if (Rnd() & 1) {
-            w->rotSpd.x = -w->rotSpd.x;
+            w->rot_spd.x = -w->rot_spd.x;
         }
         if (Rnd() & 1) {
-            w->rotSpd.z = -w->rotSpd.z;
+            w->rot_spd.z = -w->rot_spd.z;
         }
     }
     if (flags & 4) {
-        w->flags |= 8;
-        w->rotSpd.x = -(fRand0_1() * 0.049087387f + 0.19634955f);
-        w->rotSpd.y = 0.0f;
-        w->rotSpd.z = 0.0f;
+        w->be_flag |= 8;
+        w->rot_spd.x = -(fRand0_1() * 0.049087387f + 0.19634955f);
+        w->rot_spd.y = 0.0f;
+        w->rot_spd.z = 0.0f;
     }
     if (flags & 0x10) {
-        w->flags |= 8;
-        w->rotSpd.x = -0.2617994f;
-        w->rotSpd.y = 0.0f;
-        w->rotSpd.z = 0.0f;
+        w->be_flag |= 8;
+        w->rot_spd.x = -0.2617994f;
+        w->rot_spd.y = 0.0f;
+        w->rot_spd.z = 0.0f;
     }
     return obj;
 }
@@ -379,12 +379,12 @@ void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int 
     }
     w = &obj->o1;
     w->estNo0 = no0;
-    w->estPrm0 = prm0;
+    w->est = prm0;
     w->estNo1 = no1;
-    w->estPrm1 = prm1;
-    w->estPrm2 = prm2;
+    w->est2 = prm1;
+    w->est3 = prm2;
     w->estNo2 = no2;
     w->estNo3 = no3;
-    w->estPrm3 = prm3;
-    w->type = type;
+    w->est4 = prm3;
+    w->eff_action = type;
 }

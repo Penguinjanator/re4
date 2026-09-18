@@ -172,7 +172,7 @@ void (*ObjInitFunc[0x40])(cObj*);
 cObjMgr::cObjMgr() : cManager<cObj>(sizeof(cObj), 2)
 {
     setName("cObjMgr");
-    x34 = 0;
+    Guid = 0;
 }
 
 void cObjMgr::log(const char* fmt, ...)
@@ -303,8 +303,8 @@ int cObjMgr::construct(cObj* p, int id)
         ObjInitFunc[id](p);
         break;
     }
-    p->serial = x34;
-    x34++;
+    p->serial = Guid;
+    Guid++;
     p->id = id;
     return 1;
 }
@@ -325,7 +325,7 @@ void cObjMgr::move()
     p = pAlive;
     while (p) {
         n = p;
-        p = (cObj*) p->next;
+        p = (cObj*) p->pNext;
         func(n);
     }
 }
@@ -335,20 +335,20 @@ void objMove(cObj* p)
     if (!(p->be_flag & 0x20)) {
         return;
     }
-    if ((pG->flags_5010 & 0x10000000) && !(p->be_flag & 0x800)) {
+    if ((pG->Status_flg[1] & 0x10000000) && !(p->be_flag & 0x800)) {
         return;
     }
     p->move();
-    ShapeMove(p->pInfo);
+    ShapeMove(p->pModelInfo);
     p->updateOldPos();
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(p);
     }
-    if (pG->flags_64 & 0x08000000) {
+    if (pG->Debug_flg[1] & 0x08000000) {
         p->debugSkeletonDisp();
     }
     if ((int) p->be_flag < 0) {
-        p->drawAllBoundingBox(p->pInfo);
+        p->drawAllBoundingBox(p->pModelInfo);
     }
 }
 
@@ -364,7 +364,7 @@ void cObjMgr::destroy(cObj* p)
 cObj::cObj()
 {
     be_flag |= 0x21;
-    x12E = 1;
+    kindid = 1;
 }
 
 cObjMgr ObjMgr;

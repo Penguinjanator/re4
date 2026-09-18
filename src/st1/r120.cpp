@@ -46,7 +46,7 @@ void R120Init()
     EvtMgr.SetFunc("evt_r120s00_func", (void*) Evt_R120S00_Func);
     EvtMgr.SetFunc("evt_r120s01_func", (void*) Evt_R120S01_Func);
     if (DebugTrg(1) == 0) {
-        SceExec(0x12, R120Event, 0, 0, 2, 0);
+        SceExec(0x12, R120Event, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     TexRenderInit(&r120_work->mgr, 0x100, 1);
 }
@@ -59,20 +59,20 @@ void R120Main()
 extern "C" void R120Event()
 {
     SceSleep(1);
-    if (pG->x4F8E != 0) {
+    if (pG->game_cnt != 0) {
         FadeSetW(1, 0, 0, 0);
-        SubScreenOpen(0x10, 0);
+        SubScreenOpen(SS_OPEN_SHOP, 0);
         SceSleep(1);
         FadeSetW(0, 0, 0, 0);
     }
-    pG->flags_51C0 &= ~0x10;
+    pG->Scenario_flg[0] &= ~0x10;
     systemVISetBlack(1);
     Sofdec.Initialize("movie/opening.sfd", 0);
     SceSleep(1);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
-    if (Sofdec.flag & 0x20) {
-        pG->flags_51C0 |= 0x10;
+    if (Sofdec.m_be_flag & 0x20) {
+        pG->Scenario_flg[0] |= 0x10;
     }
     SceEventStart(0);
     // Two sequential `if`s whose first test masks with a variable: the mask register keeps
@@ -82,15 +82,15 @@ extern "C" void R120Event()
     // first `bne` past the s01 block, which merges the second test into the call block (its
     // tail jump gives the `li r7/r8` an extra dependent, so sched puts `addi r3,r30` last).
     u32 mask = 0x10;
-    if (!(pG->flags_51C0 & mask)) {
+    if (!(pG->Scenario_flg[0] & mask)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
     }
-    if (!(pG->flags_51C0 & 0x10)) {
+    if (!(pG->Scenario_flg[0] & 0x10)) {
         EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     {
         Vec pos = {-109450.0f, -515.0f, 820.0f};
         Vec rot = {0, 0, 0};
@@ -136,8 +136,8 @@ extern "C" void Evt_R120S00_Func(Event* e)
         IdSys.dispSw(0x21, 0);
         break;
     case 1:
-        if (e->cut == 1 || e->cut == 8) {
-            if (e->frame == 0) {
+        if (e->NowCut == 1 || e->NowCut == 8) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&lmod, "obm3000c", 0, 0) == 1) {
                     cLight* l = LightMgr.getKindLight(1);
 
@@ -147,14 +147,14 @@ extern "C" void Evt_R120S00_Func(Event* e)
                 }
             }
         }
-        if (e->cut == 0) {
+        if (e->NowCut == 0) {
             EvtTexRenderCamTrans(e, 0);
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 skip = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -162,13 +162,13 @@ extern "C" void Evt_R120S00_Func(Event* e)
                 }
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x100000;
-                    ((cModel*) mod)->x12F = 4;
+                    ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
-                    ((cModel*) mod)->lightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
-                    ((cModel*) mod)->x12C = 1;
+                    ((cModel*) mod)->ot_type = 1;
+                    ((cModel*) mod)->z_mode = 1;
                     Obj18CmfOn((cObj*) mod, 5);
                 }
                 EventCarInit(e);
@@ -183,9 +183,9 @@ extern "C" void Evt_R120S00_Func(Event* e)
                     ((cModel*) mod)->be_flag |= 0x80;
                 }
             }
-            if (e->frame == 120) {
+            if (e->NowFrame == 120) {
                 skip = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -194,7 +194,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
             }
             break;
         case 1:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag &= ~0x20;
                     ((cModel*) mod)->be_flag &= ~2;
@@ -206,15 +206,15 @@ extern "C" void Evt_R120S00_Func(Event* e)
             }
             break;
         case 8:
-            if (e->frame == 50) {
+            if (e->NowFrame == 50) {
                 FadeSetW(2, 60, 0, 0);
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
-                pG->flags_58 |= 0x08000000;
+            if (e->NowFrame == 0) {
+                pG->Disp_flg |= 0x08000000;
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -223,7 +223,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
             break;
         case 2:
         case 6:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -231,7 +231,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -241,17 +241,17 @@ extern "C" void Evt_R120S00_Func(Event* e)
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
                 }
-                pG->flags_58 &= ~0x08000000;
+                pG->Disp_flg &= ~0x08000000;
             }
             break;
         }
         break;
     case 2:
         r120_setTrans(1);
-        pG->flags_58 &= ~0x08000000;
+        pG->Disp_flg &= ~0x08000000;
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }
@@ -270,9 +270,9 @@ extern "C" void Evt_R120S01_Func(Event* e)
         }
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -284,7 +284,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 5:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -292,7 +292,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 0xE:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -312,7 +312,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -332,18 +332,18 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x100000;
-                    ((cModel*) mod)->x12F = 4;
+                    ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
-                    ((cModel*) mod)->lightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
-                    ((cModel*) mod)->x12C = 1;
+                    ((cModel*) mod)->ot_type = 1;
+                    ((cModel*) mod)->z_mode = 1;
                     Obj18CmfOn((cObj*) mod, 5);
                 }
                 EventCarInit(e);
@@ -356,10 +356,10 @@ extern "C" void Evt_R120S01_Func(Event* e)
                     ((cModel*) mod)->be_flag &= ~2;
                 }
                 if (e->GetMod(&mod, "evm0000", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 skip = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -368,7 +368,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 2:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -384,7 +384,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -400,7 +400,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 6:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -408,7 +408,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
-                    ((cModel*) mod)->pInfo->color[3] = 0xC0;
+                    ((cModel*) mod)->pModelInfo->color[3] = 0xC0;
                 }
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
@@ -417,7 +417,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0010", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -425,7 +425,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
-                    ((cModel*) mod)->pInfo->color[3] = 0xFF;
+                    ((cModel*) mod)->pModelInfo->color[3] = 0xFF;
                 }
                 if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
@@ -434,12 +434,12 @@ extern "C" void Evt_R120S01_Func(Event* e)
             }
             break;
         case 0xE:
-            if (e->frame == 370) {
+            if (e->NowFrame == 370) {
                 FadeSetW(2, 215, 0, 0);
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 2:
             EvtTexRenderCamTrans(e, 2);
             break;
@@ -450,11 +450,11 @@ extern "C" void Evt_R120S01_Func(Event* e)
         break;
     case 2:
         r120_setTrans(1);
-        BitOff(pG->flags_58, 0x08000000);
-        pG->flags_54 |= 0x400;
+        BitOff(pG->Disp_flg, 0x08000000);
+        pG->System_flg |= 0x400;
         break;
     case 3:
-        pG->flags_51C0 |= 0x10;
+        pG->Scenario_flg[0] |= 0x10;
         break;
     }
 }
@@ -467,7 +467,7 @@ extern "C" void EventCarInit(Event* e)
 
     if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x100000;
-        ((cModel*) mod)->x12F = 1;
+        ((cModel*) mod)->ot_type = 1;
     }
     if (e->GetMod(&mod, "pl0700", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x10;
@@ -481,7 +481,7 @@ extern "C" void EventCarInit(Event* e)
     }
     if (e->GetMod(&mod, "obm1a00", 0, 0) == 1) {
         ((cModel*) mod)->be_flag |= 0x10;
-        ((cModel*) mod)->x12F = 4;
+        ((cModel*) mod)->ot_type = 4;
         p = ((cModel*) mod)->getPartsPtr(0x12);
         if (p) {
             p->scale.x = 0.0f;
@@ -526,34 +526,34 @@ extern "C" void EventCarInit(Event* e)
         }
     }
     if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000b", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000c", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000d", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000e", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
-        ((cModel*) mod)->x12F = 1;
-        ((cModel*) mod)->x12C = 1;
-        ((cModel*) mod)->lightInfo.x50 = 2;
+        ((cModel*) mod)->ot_type = 1;
+        ((cModel*) mod)->z_mode = 1;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
 }
 
@@ -564,7 +564,7 @@ extern "C" void EvtTexRenderCamTrans(Event* e, int cut)
     int skip;
 
     skip = 1;
-    if (!(e->status & 0x40000000)) {
+    if (!(e->StatusFlag & 0x40000000)) {
         skip = 0;
     }
     if (skip == 0) {

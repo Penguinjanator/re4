@@ -22,22 +22,22 @@
 #define TASK_SUSPEND 0x80
 
 struct TASK {
-    u8* stack;                // 0x00  stack top
-    u8 status;                // 0x04
-    u8 level;                 // 0x05  > 0xF: waits on the scheduler semaphore
-    u8 no;                    // 0x06
+    u8* pStack;                // 0x00  stack top
+    u8 Status;                // 0x04
+    u8 Priority;                 // 0x05  > 0xF: waits on the scheduler semaphore
+    u8 Task_no;                    // 0x06
     u8 flag;                  // 0x07  2: skip while flags_5010 bit 28, 4: skip while flags_500C bit 20
     u16 suspend_cnt;          // 0x08
-    u16 sleep;                // 0x0A
-    u16 stack_size;           // 0x0C
+    u16 SleepCtr;                // 0x0A
+    u16 StackSize;           // 0x0C
     u16 pad_E;
     int arg;                  // 0x10
     u8 pad_14[4];
-    OSThread thread;          // 0x18
-    OSThreadQueue queue;      // 0x330
+    OSThread Thread;          // 0x18
+    OSThreadQueue Queue;      // 0x330
     void* (*hook)(void*);     // 0x338
-    void (*func)(int);        // 0x33C
-    void* model;              // 0x340
+    void (*pFunc)(int);        // 0x33C
+    void* pModel;              // 0x340
     u8 pad_344[4];
 };                            // 0x348
 
@@ -77,7 +77,7 @@ void TaskScheduler();
 void TaskSchedulerMain(TASK* t);
 void stackUsedCheck();
 void StackOverflowCheck(TASK* t);
-void* TaskExec_hook(void* arg);
+void* TaskExec_hook(void* value);
 TASK* TaskExec(int prio, TaskFunc func, int arg);
 void TaskChain(TaskFunc func, int arg);
 void TaskKill(int prio);

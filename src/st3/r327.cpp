@@ -129,12 +129,12 @@ void R327Init()
     r327_work.p = (R327Work*) MEM_CALLOC(sizeof(R327Work), 1, 0xd);
     // Reference-view store: the flags test's `pG` load is issued after it (alias.c keeps them ordered).
     IntSet(r327_work.p->first, 1);
-    if (pG->flags_51C4 & 0x40000000) {
+    if (pG->Scenario_flg[1] & 0x40000000) {
         for (i = 0; i < 0x100; i++) {
             EmListData* e = (EmListData*) ((u8*) pG + (0x52E8 + i * 0x20));
 
             if (e->room == 0x327 && e->id == 0x1D) {
-                e->flags &= ~1;
+                e->be_flag &= ~1;
             }
         }
         r327_work.p->first = 0;
@@ -379,7 +379,7 @@ static void r327_GatlingGanadoSet()
     }
     r327_work.p->em[idx].em.setNoSuspend(1);
     r327_work.p->em[idx].em.setFindPL();
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_GatlingGanadoSetEndProc, idx, 0, 1);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
@@ -404,7 +404,7 @@ static void r327_SwitchOperate(int no)
         SceExec(0x12, (TaskFunc) r327_SetSwitchDisable, 0, 0, 2, 0);
     } else {
         SceEventStart(1);
-        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         if (SceMesGetSelection() == 1) {
             RoomSeCall(0, 0, 0, 0, 0);
             SceSleep(5);
@@ -431,7 +431,7 @@ static void r327_LampSet(int no)
     int zero = 0;
     SceEventStart(1);
     CamCtrl.CutCall(4);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSleep(10);
     RoomSeCall(0x1F, 0, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, lamp, 1, 0, (u32) zero, (void*) zero);
@@ -477,7 +477,7 @@ static void r327_GanadoAppearCut()
         r327_work.p->em[t->idx].em.setNoSuspend(1);
     }
     CamCtrl.CutCall(side == 0 ? 0x10 : 8);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_GanadoAppearCutEndProc, side, 0, 1);
     while (!CamCtrl.IsMotionEnd()) {
         SceSleep(1);
@@ -557,7 +557,7 @@ static void r327_DoorOpen()
     SceEventStart(1);
     CamCtrl.CutCall(3);
     se = RoomSeCall(1, &obj->pos, 0, 0, 0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_DoorOpenEndProc, se, 0, 1);
     obj->be_flag |= 0x20;
     while (obj->pos.y < 9400.0f) {
@@ -574,7 +574,7 @@ static void r327_DoorOpen()
 
 static void r327_DoorOpenEndProc(int se)
 {
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         SmdGetObjPtr(0x52)->pos.y = 9400.0f;
         SndStop(se, 0);
     }
@@ -663,7 +663,7 @@ static void r327_SetSwitchEnable()
 
     RsfClear(G_ROOM_ID, 12);
     SceEventStart(1);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_SetSwitchEnableEndProc, 0, 0, 1);
     CamCtrl.CutCall(0xD);
     SceSleep(10);
@@ -693,7 +693,7 @@ static void r327_SetSwitchEnableEndProc()
 {
     int zero = 0;
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         EffectEspDelete(1, 2, 0, 0);
         EffectEspgenDelete(1, 2, 0);
         EffectEfmDelete(1, 2, 0);
@@ -726,7 +726,7 @@ static void r327_SetSwitchDisable()
     RsfSet(G_ROOM_ID, 12);
     RsfSet(G_ROOM_ID, 13);
     SceEventStart(1);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     SceSetEventCancel(1, (TaskFunc) r327_SetSwitchDisableEndProc, 0, 0, 1);
     r327_work.p->em2.setEm(0x9E, -1, 0, 0, 0);
     r327_work.p->em2.setNoSuspend(1);
@@ -788,7 +788,7 @@ static void r327_SetSwitchDisableEndProc()
 {
     int zero = 0;
 
-    if ((int) pG->flags_174 < 0) {
+    if ((int) pG->Room_flg[0] < 0) {
         EffectEspDelete(1, 2, 0, 0);
         EffectEspgenDelete(1, 2, 0);
         EffectEfmDelete(1, 2, 0);
@@ -818,7 +818,7 @@ static void r327_EnemySet2nd()
 
         getRoomEtcDoor(1, &door, 1);
         if (door != 0) {
-            while ((door->flags_3C8 & 0x10000000) == 0) {
+            while ((door->flag & 0x10000000) == 0) {
                 SceSleep(1);
             }
             RsfSet(G_ROOM_ID, 16);

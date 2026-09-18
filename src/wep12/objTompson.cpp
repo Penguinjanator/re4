@@ -26,7 +26,7 @@ void cObjTompson::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     U16Set(wep.x24, 0x34);
@@ -45,11 +45,11 @@ void cObjTompson::moveFire()
         } else {
             mot = WEP_ARC_PTR(0x2A);
         }
-        MotionSetCore(this, &this->mot, mot, 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, mot, 0, 0, 0, 0);
         EstSet((int) this, -1, 0, 0, 0x46, 0, 0, 0, (u32) this, 0);
-        SndCall(2, 0, &pParts->worldPos, 0, 0, 0);
+        SndCall(2, 0, &pParts->world, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        pG->Status_flg[0] |= 0x00800000;
         setCartridge();
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
         wep.step = 1;
@@ -64,7 +64,7 @@ void cObjTompson::moveReload()
         void* mot;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             mot = WEP_ARC_PTR(0x28);
             break;
@@ -76,7 +76,7 @@ void cObjTompson::moveReload()
             break;
         }
         motionSet(mot, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -87,9 +87,9 @@ void cObjTompson::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    } else if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }
@@ -146,12 +146,12 @@ void cObjTompson::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x52], WEP_ARC_PTR(0x29));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x36));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x37));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x38));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x39));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x34));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x35));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xC));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xC));
     pl->setRightHand(1);
     pl->setLeftHand(2);
 }

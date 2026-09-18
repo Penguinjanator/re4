@@ -483,7 +483,7 @@ struct EmListEnt {
     u8 pad_1C[4];
 };
 
-#define EMLIST_ENT(no) ((EmListEnt*) &pG->emlist[(no) * 0x20])
+#define EMLIST_ENT(no) ((EmListEnt*) &pG->Em_list[(no) * 0x20])
 // The insert/paste searches address the entries tool-style (pG first in the add, shift index).
 #define EMLIST_ENT_I(no) ((EmListEnt*) ((u32) pG + ((no) << 5) + 0x52E8))
 // Entry-to-entry copies are byte-pointer memcpys: the stores then alias pG, which is reloaded per iteration.
@@ -633,9 +633,9 @@ void ToolEmList()
         emlist_routine[EmList.wk->routine]();
         emlist_EmDir_disp();
         LightMgr.move();
-        if (pG->flags_60 & 0x40000000) {
-            if ((int) pG->flags_500C >= 0) {
-                pG->flags_500C |= 0x80000000;
+        if (pG->Debug_flg[0] & 0x40000000) {
+            if ((int) pG->Status_flg[0] >= 0) {
+                pG->Status_flg[0] |= 0x80000000;
             }
             SatMgr.disp(0);
         }
@@ -1828,7 +1828,7 @@ static void emlist_r0_clear()
     }
     if (EmList.wk->joy.trg & JOY_A) {
         if (EmList.wk->x24 != 0) {
-            memclr_asm(pG->emlist, 0x1FE0);
+            memclr_asm(pG->Em_list, 0x1FE0);
         }
         EmList.wk->routine = 13;
         EmList.wk->step = 0;
@@ -1887,7 +1887,7 @@ static void emlist_r0_set_exit()
     u32 i;
 
     for (i = 0; i < 255; i++) {
-        int no = pG->emlist_no;
+        int no = pG->em_list_no;
         if (no >= 0) {
             u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[no], tool style
             BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
@@ -2183,7 +2183,7 @@ void emlist_file_menu_disp()
                 eprintf(x, y, col, 0, "emlist%02d.esl", i - 1);
             }
             if (EmList.wk->fileNo == i) {
-                eprintf(x + 0x60 + pG->flags_51E4 % 10, y, 4, 0, "<- old");
+                eprintf(x + 0x60 + pG->Frame_cnt % 10, y, 4, 0, "<- old");
             }
         }
         if (EmList.wk->x1C == i) {
@@ -2487,9 +2487,9 @@ void emlist_file_save(int no)
 
     EmList.wk->fileNo = no + 1;
     emlist_set_fname(name, no, 0);
-    HDWrite(name, pG->emlist, 0x1FE0);
+    HDWrite(name, pG->Em_list, 0x1FE0);
     emlist_set_fname(name, no, 1);
-    HDWrite(name, pG->emlist, 0x1FE0);
+    HDWrite(name, pG->Em_list, 0x1FE0);
 }
 
 int emlist_file_load(int no)
@@ -2499,9 +2499,9 @@ int emlist_file_load(int no)
 
     EmList.wk->fileNo = no + 1;
     emlist_set_fname(name, no, 0);
-    ret = HDRead(name, pG->emlist);
+    ret = HDRead(name, pG->Em_list);
     if (ret == 0) {
-        memclr_asm(pG->emlist, 0x1FE0);
+        memclr_asm(pG->Em_list, 0x1FE0);
         return 0;
     }
     return ret;
@@ -2537,8 +2537,8 @@ void emlist_EmDir_disp()
     int i;
     u8 blink;
 
-    blink = pG->flags_51E4 & 0xF;
-    if (pG->flags_51E4 & 0x10) {
+    blink = pG->Frame_cnt & 0xF;
+    if (pG->Frame_cnt & 0x10) {
         blink = 15 - blink;
     }
     blink *= 3;
@@ -2609,8 +2609,8 @@ void emlist_EmDir_disp()
         TprimDraw3D(1);
         TprimDrawMtxDirection(m, (GXColor*) fill, (GXColor*) line);
         if (i == EmList.wk->listNo) {
-            blink = pG->flags_51E4 & 0xF;
-            if (pG->flags_51E4 & 0x10) {
+            blink = pG->Frame_cnt & 0xF;
+            if (pG->Frame_cnt & 0x10) {
                 blink = 15 - blink;
             }
             blink <<= 3;
@@ -2722,8 +2722,8 @@ void emlistCameraMove()
         BitSet(EmList.wk->joy.on, 0);
         BitSet(EmList.wk->joy.rep, 0);
         BitSet(EmList.wk->joy.rep2, 0);
-        BitOn(pG->flags_60, 0x10000000);
-        if (pG->flags_51E4 & 0x10) {
+        BitOn(pG->Debug_flg[0], 0x10000000);
+        if (pG->Frame_cnt & 0x10) {
             eprintf(0x140, 0x18, 4, 0, "1P CAMERA MODE");
         }
         EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;
@@ -2761,7 +2761,7 @@ void emlistCamToPoin()
                   (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z) * (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z));
         EmList.wk->cam.param.fovy = cam->param.fovy;
         CameraSetOrientationUp(&EmList.wk->cam);
-        CamCtrl.x250 = (s32) &EmList.wk->cam;
+        CamCtrl.m_pExtraCamera = (s32) &EmList.wk->cam;
         cam->param.at = EmList.wk->cam.param.at;
         cam->param.pos = EmList.wk->cam.param.pos;
         EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;

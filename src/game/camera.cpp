@@ -54,10 +54,10 @@ void CameraSetProjection(int type)
     ProjType = type;
     switch (type) {
     case 1:
-        GXSetProjection(pG->Cam.projMat, 0);
+        GXSetProjection(pG->Cam.ProjMat, 0);
         break;
     case 2:
-        GXSetProjection(pG->Cam.projMat, 1);
+        GXSetProjection(pG->Cam.ProjMat, 1);
         break;
     }
 }
@@ -85,7 +85,7 @@ void CameraGameInit()
 
 void CameraRoomInit()
 {
-    CamDbg.gain = 1.0f;
+    CamDbg.m_move_gain = 1.0f;
 }
 
 void CameraMove()
@@ -93,16 +93,16 @@ void CameraMove()
     Camera* cam = &pG->Cam;
 
     CamCtrl.Check();
-    if (!(pG->flags_170 & 0x40000000)) {
+    if (!(pG->Stop_flg & 0x40000000)) {
         CamCtrl.Move();
-        if ((pG->flags_500C & 0x100) && !(pG->flags_60 & 0x10000000)) {
+        if ((pG->Status_flg[0] & 0x100) && !(pG->Debug_flg[0] & 0x10000000)) {
             pG->Cam = CamCtrl.camera;
-            if (CamCtrl.x250 != 0) {
-                pG->Cam = *(Camera*) CamCtrl.x250;
+            if (CamCtrl.m_pExtraCamera != 0) {
+                pG->Cam = *(Camera*) CamCtrl.m_pExtraCamera;
             }
         }
-        CamCtrl.x250 = 0;
-        if (!(pG->flags_170 & 0x10000)) {
+        CamCtrl.m_pExtraCamera = 0;
+        if (!(pG->Stop_flg & 0x10000)) {
             QuakeMove();
         }
     }
@@ -113,14 +113,14 @@ void CameraMove()
     }
     switch (ProjType) {
     case 1:
-        C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
+        C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
         break;
     case 2:
-        C_MTXOrtho(cam->projMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
+        C_MTXOrtho(cam->ProjMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
         break;
     }
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
     View.move();
     CameraDebugInformation();
 }
@@ -131,9 +131,9 @@ void CamStick2World(Camera* cam, JOY* joy, Vec* out)
     static int carry_on_flag = 0;
     Vec v;
 
-    v.x = (f32) joy->sx;
+    v.x = (f32) joy->stickX;
     v.y = 0.0f;
-    v.z = (f32) -joy->sy;
+    v.z = (f32) -joy->stickY;
     if (CamCtrl.IsChangeCamera()) {
         if (v.x != 0.0f || v.y != 0.0f || v.z != 0.0f) {
             MTX_COPY(CamCtrl.prev_mat, mat_prev);
@@ -162,14 +162,14 @@ void CameraGetUpVec(Camera* cam, Vec* up)
 
 void CameraGetLookVec(Camera* cam, Vec* look)
 {
-    *look = cam->dir;
+    *look = cam->Look;
 }
 
 void CameraGetLookVecInverse(Camera* cam, Vec* look)
 {
-    look->x = -cam->dir.x;
-    look->y = -cam->dir.y;
-    look->z = -cam->dir.z;
+    look->x = -cam->Look.x;
+    look->y = -cam->Look.y;
+    look->z = -cam->Look.z;
 }
 
 // Never called; dead-stripped from the DOL. Its constant pool (0.0f, the int->float magic

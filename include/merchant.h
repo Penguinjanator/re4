@@ -22,22 +22,22 @@ struct LevelEntry {
     u8 pad_7;
 };
 
-struct StockTable {
+struct STOCK_INFO {
     StockEntry e[64];  // 0x200
 };
 
-struct LevelTable {
+struct LEVEL_INFO {
     LevelEntry e[32];  // 0x100
 };
 
 // Per-merchant persistent data (saved with the game).
 struct MerchantData {
-    StockTable stock;  // 0x000
-    LevelTable level;  // 0x200
+    STOCK_INFO stock;  // 0x000
+    LEVEL_INFO level;  // 0x200
     s8 favor;          // 0x300  0..100
-    u8 x301;
+    u8 study_num;
     s8 discount;       // 0x302  percent off the selling price
-    u8 x303;
+    u8 bonus_flag;
 };                     // 0x304
 
 // Price table entry (6 bytes: sell / exercise / item price tables); tables end with id 0xFFFF.
@@ -59,31 +59,31 @@ struct LevelPrice {
 
 // Merchant personality constants (merchant_info_A).
 struct MerchantInfo {
-    u32 x0;
-    s8 x4;
-    s8 x5;
-    s8 x6;
+    u32 id;
+    s8 shift_Discount;
+    s8 shift_Recommend;
+    s8 shift_Bonus;
     s8 buyFavor;   // 0x07  favor change per purchase
-    s32 sellBig;   // 0x08  sell points from which sellFavorBig applies
+    s32 threshold;   // 0x08  sell points from which sellFavorBig applies
     u8 sellFavorBig;   // 0x0C
     u8 sellFavor;      // 0x0D
-    u8 xE;
-    u8 xF;
-    u8 x10;
-    u8 x11;
-    u8 x12;
-    u8 x13;
-    u8 x14;
+    u8 m_off_ratio_first;
+    u8 m_off_ratio_good;
+    u8 m_off_ratio_normal;
+    u8 m_off_ratio_bad;
+    u8 m_win_ratio_good;
+    u8 m_win_ratio_normal;
+    u8 m_win_ratio_bad;
 };
 
 // The merchant selected for the current room (merchantChar).
 class MerchantCharacter {
 public:
-    MerchantInfo* info;      // 0x00
-    MerchantData* data;      // 0x04
-    PriceEntry* pSell;       // 0x08
-    PriceEntry* pExer;       // 0x0C
-    LevelPrice* pLevel;      // 0x10
+    MerchantInfo* m_p_info;      // 0x00
+    MerchantData* m_p_data;      // 0x04
+    PriceEntry* m_p_sell;       // 0x08
+    PriceEntry* m_p_exer;       // 0x0C
+    LevelPrice* m_p_lvup;      // 0x10
 
     MerchantCharacter() {}
     ~MerchantCharacter() {}
@@ -93,24 +93,24 @@ public:
 // Shop session: a working copy of the merchant data plus the item lists shown in the shop.
 class Merchant {
 public:
-    MerchantInfo* info;      // 0x000
-    PriceEntry* pSell;       // 0x004  selling price table
-    PriceEntry* pExer;       // 0x008  exercise (buy-up) price table
-    LevelPrice* pLevel;      // 0x00C  weapon tune price table
-    StockTable stock;        // 0x010
-    LevelTable level;        // 0x210
+    MerchantInfo* m_p_info;      // 0x000
+    PriceEntry* m_p_sell;       // 0x004  selling price table
+    PriceEntry* m_p_exer;       // 0x008  exercise (buy-up) price table
+    LevelPrice* m_p_lvup;      // 0x00C  weapon tune price table
+    STOCK_INFO m_stock;        // 0x010
+    LEVEL_INFO level;        // 0x210
     s8 favor;                // 0x310
-    u8 x311;
+    u8 m_study_num;
     s8 discount;             // 0x312
-    u8 x313;
+    u8 m_bonus_flag;
     u8 exerciseNum;          // 0x314
     u8 sellingNum;           // 0x315
     u8 exerciseList[0xFF];   // 0x316  cItemMgr slot indexes of the items the player can sell
     u8 sellingList[0xFF];    // 0x415  sellPrice indexes of the items for sale
 
     Merchant(MerchantCharacter* c);
-    void save(MerchantData* d);
-    void load(MerchantData* d);
+    void save(MerchantData* p_data);
+    void load(MerchantData* p_data);
     StockEntry* stockPtr(u16 id);
     void stockAdd(u16 id, int num);
     void stockSub(u16 id, int num);
@@ -165,10 +165,10 @@ void MerchantRoomInit();
 int MerchantDataSize();
 void MerchantDataSave(void* dst);
 void MerchantDataLoad(void* src);
-void stockDataInit(MerchantData* d);
+void stockDataInit(MerchantData* p_data);
 void add_stock(StockEntry* dst, StockEntry* src);
 void stockDataAdd(MerchantData* d, StockEntry* tbl);
-void levelDataInit(MerchantData* d);
+void levelDataInit(MerchantData* p_data);
 void levelDataAdd(MerchantData* d, LevelEntry* tbl);
 int checkSellingItem(u16 id);
 int checkExerciseItem(u16 id);

@@ -80,7 +80,7 @@ static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
 static inline void PSet(FocusAnimation*& d, FocusAnimation* v) { d = v; }
 
 // The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->x34; }
+static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 // Waits for the running event to end.
 static inline void r10b_waitEvt()
@@ -119,14 +119,14 @@ void R10bInit()
     Vec rot;
     cObj* obj;
 
-    pG->flags_54 |= 0x800;
+    pG->System_flg |= 0x800;
 #line 95 "D:/Bio4/Prog/r10b.cpp"
     r10b_work = (R10bWork*) MEM_CALLOC(sizeof(R10bWork), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) R10b_chkWater, 0, 2, 2, 0);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r10b_eff_info);
+    SceExec(0x12, (TaskFunc) R10b_chkWater, 0, 2, SCE_PRIO_DEF_2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r10b_eff_info);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r10b_GakeEvent, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r10b_GakeEvent, 0, 1);
     }
     readEvent(1, 0, 0);
     readEvent(2, 0, 0);
@@ -143,14 +143,14 @@ void R10bInit()
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1E), ROOM_ARC_PTR(pG->pRoomArc, 0x1F), &pos, &rot);
+    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[0] = obj;
     if (obj != 0) {
         FSet(obj->scale.x, 1.5f);
         FSet(obj->scale.y, 1.5f);
         FSet(obj->scale.z, 1.5f);
-        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
     pos.x = 12708.0f;
     pos.y = -1300.0f;
@@ -158,14 +158,14 @@ void R10bInit()
     rot.x = 0.0f;
     rot.y = 3.1415927f;
     rot.z = 0.0f;
-    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1E), ROOM_ARC_PTR(pG->pRoomArc, 0x1F), &pos, &rot);
+    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[1] = obj;
     if (obj != 0) {
         FSet(obj->scale.x, 2.0f);
         FSet(obj->scale.y, 2.0f);
         FSet(obj->scale.z, 2.0f);
-        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
     pos.x = 412.0f;
     pos.y = -1300.0f;
@@ -173,14 +173,14 @@ void R10bInit()
     rot.x = 0.0f;
     rot.y = 1.5707964f;
     rot.z = 0.0f;
-    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1E), ROOM_ARC_PTR(pG->pRoomArc, 0x1F), &pos, &rot);
+    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[2] = obj;
     if (obj != 0) {
         FSet(obj->scale.x, 1.7f);
         FSet(obj->scale.y, 1.7f);
         FSet(obj->scale.z, 1.7f);
-        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
     pos.x = 55820.0f;
     pos.y = -1300.0f;
@@ -188,14 +188,14 @@ void R10bInit()
     rot.x = 0.0f;
     rot.y = 0.7853982f;
     rot.z = 0.0f;
-    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1E), ROOM_ARC_PTR(pG->pRoomArc, 0x1F), &pos, &rot);
+    obj = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), &pos, &rot);
     r10b_work->island[3] = obj;
     if (obj != 0) {
         FSet(obj->scale.x, 1.5f);
         FSet(obj->scale.y, 1.5f);
         FSet(obj->scale.z, 1.5f);
-        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+        ((cObj1c*) obj)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23));
     }
     EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
@@ -232,24 +232,24 @@ extern "C" int readEvent(int no, int wait, void** out)
         u32 max;
 
         if (R10B_WORK->evt[no]->waitLoadOk() == 0) {
-            R10B_WORK->evt[no]->setCommand(3, 0, 0);
-            pLog->err(0, 0, "readEvent() : out of memory (0x%x)", R10B_WORK->evt[no]->size);
+            R10B_WORK->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
+            pLog->err(0, 0, "readEvent() : out of memory (0x%x)", R10B_WORK->evt[no]->m_size);
             return 0;
         }
         EspEmDataSwapPush(0x2F);
         m = SearchEmModule(0x2F);
         max = m->size;
-        if (R10B_WORK->evt[no]->size > max) {
+        if (R10B_WORK->evt[no]->m_size > max) {
             // `return 0` (not `goto fail`): at sched2 the block continues past the err call with
             // `li r3,0`, whose output dependence on the pLog load and the block-end jump rank the
             // `mr r7,size` and `lwz r3` above the string `lis`; jump2 then cross-jumps the tail.
-            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->size, max);
+            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->m_size, max);
             return 0;
         }
-        MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->addr, R10B_WORK->evt[no]->size);
+        MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->m_addr, R10B_WORK->evt[no]->m_size);
         *out = m->pArc;
     } else {
-        R10B_WORK->evt[no]->setCommand(2, 0, 0);
+        R10B_WORK->evt[no]->setCommand(CMND_ARAM_LOAD, 0, 0);
     }
     return 1;
 fail:
@@ -262,9 +262,9 @@ extern "C" void freeEvent(int no)
         ReadModule* m;
 
         m = SearchEmModule(0x2F);
-        MemorySwap(m->pArc, (u32) r10b_work->evt[no]->addr, r10b_work->evt[no]->size);
+        MemorySwap(m->pArc, (u32) r10b_work->evt[no]->m_addr, r10b_work->evt[no]->m_size);
         EspEmDataSwapPop(0x2F);
-        r10b_work->evt[no]->setCommand(3, 0, 0);
+        r10b_work->evt[no]->setCommand(CMND_CLEAR_DATA, 0, 0);
     }
 }
 
@@ -279,17 +279,17 @@ static void R10b_chkEmDie()
     SceSleep(1);
     PSet(r10b_work->em0, GetEmPtrFromList(0xA0));
     boss = r10b_work->boss;
-    Cckpt.life.flags = (u32) boss;
+    Cckpt.m_LifeMeter.flags = (u32) boss;
     for (;;) {
         if (DebugTrg(1)) {
             boss->hp = 1;
         }
-        if (boss != 0 && boss->checkStatus(5) == 0) {
+        if (boss != 0 && boss->checkStatus(EM_STATUS_ACTIVE) == 0) {
             SndRoomStrStop(0);
             SndEventStrStop(0);
             ((cEm2f*) GetEmPtrFromList(0xA0))->setDie();
             SceEventStart(0);
-            BitOn(pG->flags_54, 0x400);
+            BitOn(pG->System_flg, 0x400);
             EmMgr.destroy(r10b_work->boss);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -304,7 +304,7 @@ static void R10b_chkEmDie()
             if (r10b_work->count > 14) {
                 if (readEvent(2, 1, &evt)) {
                     if (EvtMgr.SetEvt(evt, &key) != 0) {
-                        ((Event*) key)->status |= 0x400;
+                        ((Event*) key)->StatusFlag |= 0x400;
                     }
                     r10b_waitEvt();
                     freeEvent(2);
@@ -312,15 +312,15 @@ static void R10b_chkEmDie()
             } else {
                 if (readEvent(1, 1, &evt)) {
                     if (EvtMgr.SetEvt(evt, &key2) != 0) {
-                        ((Event*) key2)->status |= 0x100000;
-                        ((Event*) key2)->status |= 0x200;
+                        ((Event*) key2)->StatusFlag |= 0x100000;
+                        ((Event*) key2)->StatusFlag |= 0x200;
                     }
                     r10b_waitEvt();
                     return;
                 }
             }
             SceEventStart(0);
-            SceSetChapterEnd(2, 6);
+            SceSetChapterEnd(CHAPTER_1_3, 6);
         }
         SceSleep(1);
     }
@@ -340,12 +340,12 @@ static void R10b_chkWater()
     void* zero;
 
     for (;;) {
-        if (!(pG->flags_174 & 0x40000000) && (pG->sceat_x17C & 0x20000000)) {
+        if (!(pG->Room_flg[0] & 0x40000000) && (pG->Room_flg[2] & 0x20000000)) {
             void* evt;
             cEm* em;
             Vec pos;
 
-            BitOn(pG->flags_174, 0x40000000);    // reference RMW: the r10b_work load waits for the store
+            BitOn(pG->Room_flg[0], 0x40000000);    // reference RMW: the r10b_work load waits for the store
             EmMgr.destroy(r10b_work->boat);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -360,44 +360,44 @@ static void R10b_chkWater()
             readEvent(0, 0, 0);
             GamePointBossReset();
             r10b_work->boss = EmSetFromList2(0xA1, 1);
-            SceExec(0x12, (TaskFunc) R10b_chkEmDie, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) R10b_chkEmDie, 0, 0, SCE_PRIO_DEF_2, 0);
             CamCtrl.Comeback(0);
             em = GetEmPtrFromList(0xA0);
             pos.x = 67713.0f;
             pos.y = em->pos.y;
             pos.z = -31975.0f;
             ((cEm2f*) em)->setCamPos(&pos, -1.12f);
-            pPL->x12F = 0;
+            pPL->ot_type = 0;
         }
         zero = 0;
-        if (pG->flags_174 & 0x80000000) {
-            if (pG->sceat_x17C & 0x40000000) {
-                pG->flags_174 &= ~0x80000000;
+        if (pG->Room_flg[0] & 0x80000000) {
+            if (pG->Room_flg[2] & 0x40000000) {
+                pG->Room_flg[0] &= ~0x80000000;
                 r10b_effDelete(2);
                 r10b_effDelete(3);
                 SceSleep(1);
                 EstSet(0, -1, 0, 0, 1, 5, 1, 3, (u32) zero, zero);
                 EstSet(0, -1, 0, 0, 1, 2, 1, 2, (u32) zero, zero);
             }
-        } else if ((int) pG->sceat_x17C < 0) {
-            pG->flags_174 |= 0x80000000;
+        } else if ((int) pG->Room_flg[2] < 0) {
+            pG->Room_flg[0] |= 0x80000000;
             r10b_effDelete(2);
             r10b_effDelete(3);
             SceSleep(1);
             EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
         }
-        if (pG->flags_5010 & 0x200000) {
-            if (!(pG->flags_174 & 0x20000000)) {
-                pG->flags_174 |= 0x20000000;
+        if (pG->Status_flg[1] & 0x200000) {
+            if (!(pG->Room_flg[0] & 0x20000000)) {
+                pG->Room_flg[0] |= 0x20000000;
                 r10b_effDelete(3);
             }
-        } else if (pG->flags_174 & 0x20000000) {
-            pG->flags_174 &= ~0x20000000;
+        } else if (pG->Room_flg[0] & 0x20000000) {
+            pG->Room_flg[0] &= ~0x20000000;
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 5, 1, 3, 0, 0);
         }
-        if (pG->flags_5010 & 0x200000) {
+        if (pG->Status_flg[1] & 0x200000) {
             Estgen45SetTargetCamera(1);
         } else {
             Estgen45SetTargetCamera(0);
@@ -415,7 +415,7 @@ static void r10b_GakeEvent()
         SceAtSetEnable(4, 0);
         RsfSet(G_ROOM_ID, 0);
         SceEventStart(0);
-        BitOn(pG->flags_54, 0x400);
+        BitOn(pG->System_flg, 0x400);
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
@@ -426,22 +426,22 @@ static void r10b_GakeEvent()
         SceSleep(2);
         if (readEvent(3, 1, &evt)) {
             EvtMgr.SetEvt(evt, 0);
-            while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
+            while (EvtMgr.IsAliveEvt(&EvtMgr.NowExeEvtKey, 0, 0)) {
                 SceSleep(1);
             }
             freeEvent(3);
         }
         PSet(r10b_work->boat, EmSetFromList2(0xA3, 0));    // reference store: the pG load waits for it
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         SceSleep(4);
         SceEventEnd(0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         r10b_effDelete(2);
         r10b_effDelete(3);
         SceSleep(1);
         EstSet(0, -1, 0, 0, 1, 4, 1, 3, 0, 0);
         EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
-        pG->flags_54 &= ~0x400;
+        pG->System_flg &= ~0x400;
     }
 }
 
@@ -456,25 +456,25 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(0);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 Evt_R10BSXX_Func_Pl0f(e);
                 Evt_R10BSXX_Func_Em2f(e);
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag &= ~0x01000000;
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
             }
             break;
         case 1:
         case 3:
         case 7:
-            if (e->frame == 0 && !(pG->flags_500C & 0x400)) {
-                BitOn(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && !(pG->Status_flg[0] & 0x400)) {
+                BitOn(pG->Status_flg[0], 0x400);
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
-                r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
-                if (e->cut != 1) {
+                r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
+                if (e->NowCut != 1) {
                     IdBinocularCutinI(r10b_work->bino, 0);
                 }
                 PSet(r10b_work->focus, &r10b_work->focusObj);
@@ -483,8 +483,8 @@ extern "C" void Evt_R10BS00_Func(Event* e)
             r10b_work->bino->move(&pG->Cam);
             break;
         default:
-            if (e->frame == 0 && (pG->flags_500C & 0x400)) {
-                BitOff(pG->flags_500C, 0x400);
+            if (e->NowFrame == 0 && (pG->Status_flg[0] & 0x400)) {
+                BitOff(pG->Status_flg[0], 0x400);
                 r10b_work->bino->quit(&pG->Cam);
                 r10b_work->bino->~IdBinocular();
                 r10b_work->focus->quit();
@@ -493,8 +493,8 @@ extern "C" void Evt_R10BS00_Func(Event* e)
         }
         break;
     case 2:
-        if (pG->flags_500C & 0x400) {
-            BitOff(pG->flags_500C, 0x400);
+        if (pG->Status_flg[0] & 0x400) {
+            BitOff(pG->Status_flg[0], 0x400);
             r10b_work->bino->quit(&pG->Cam);
             r10b_work->bino->~IdBinocular();
         }
@@ -519,10 +519,10 @@ extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode)
         void* fcv;
         u16 step;
 
-        if ((pG->flags_60 & 0x02000000) && (pG->flags_174 & 0x8000)) {
+        if ((pG->Debug_flg[0] & 0x02000000) && (pG->Room_flg[0] & 0x8000)) {
             return;
         }
-        pG->flags_174 |= 0x8000;
+        pG->Room_flg[0] |= 0x8000;
         if (EvtMgr.GetBin(&bin, "obj/objmodel/obm3100.bin", 0) == 0) {
             return;
         }
@@ -588,7 +588,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
@@ -596,16 +596,16 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         {
             // A user variable: jump.c's thread_jumps never equivalences a REG_USERVAR_P pseudo, so
             // the re-test survives (the original re-reads the flag after the effect calls).
-            u32 f = pG->flags_60;
+            u32 f = pG->Debug_flg[0];
 
             if (f & 0x02000000) {
-                pG->flags_174 &= ~0x8000;
+                pG->Room_flg[0] &= ~0x8000;
             }
         }
         break;
     case 1:
         SetSstAddAreaFlag(0);
-        if (e->cut == 3 && e->frame == 0) {
+        if (e->NowCut == 3 && e->NowFrame == 0) {
             if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                 cLight* l = LightMgr.getKindLight(1);
 
@@ -614,15 +614,15 @@ extern "C" void Evt_R10BS10_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod0;
 
                 Evt_R10BSXX_Func_Pl0f(e);
                 Evt_R10BSXX_Func_Em2f(e);
                 if (e->GetMod(&mod0, "obm1300", 0, 0) == 1) {
-                    ((cModel*) mod0)->lightInfo.x50 = 8;
+                    ((cModel*) mod0)->LightInfo.EnableMask = 8;
                 }
                 if (e->GetMod(&mod0, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod0)->be_flag |= 0x100000;
@@ -630,14 +630,14 @@ extern "C" void Evt_R10BS10_Func(Event* e)
             }
             break;
         case 4:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* em;
 
                 if (e->GetMod(&em, "em2f00", 0, 0) == 1) {
                     em2fTentacleMove((cEm*) em, e, 0);
                 }
             }
-            if (e->frame == 40) {
+            if (e->NowFrame == 40) {
                 void* em;
 
                 if (e->GetMod(&em, "em2f00", 0, 0) == 1) {
@@ -647,7 +647,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
             break;
         case 3:
         case 5:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* em;
 
                 if (e->GetMod(&em, "em2f00", 0, 0) == 1) {
@@ -659,7 +659,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -676,19 +676,19 @@ extern "C" void Evt_R10BS20_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
         }
         EvtFlgOnStatus(e, 3);
-        e->cancelCut = 9;
+        e->EvtCancelCut = 9;
         break;
     case 1:
         SetSstAddAreaFlag(0);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 Evt_R10BSXX_Func_Pl0f(e);
                 Evt_R10BSXX_Func_Em2f(e);
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
@@ -698,7 +698,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
             }
             break;
         case 9:
-            if (e->frame == 100) {
+            if (e->NowFrame == 100) {
                 e->BeginActBtn(0x29);
             }
             break;
@@ -708,7 +708,7 @@ extern "C" void Evt_R10BS20_Func(Event* e)
         e->EndActBtn();
         r10b_work->count = e->GetActBtnCount();
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -725,7 +725,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
 
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -733,7 +733,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(0);
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             Evt_R10BSXX_Func_Pl0f(e);
             if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                 ModelInfoSetTrans((cModel*) mod, 2, 0);
@@ -743,7 +743,7 @@ extern "C" void Evt_R10BS21_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -755,7 +755,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
 {
     switch (e->funcMode) {
     case 0:
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 2, 1, 2, 0, 0);
@@ -764,9 +764,9 @@ extern "C" void Evt_R10BS22_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(0);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 Evt_R10BSXX_Func_Pl0f(e);
@@ -777,7 +777,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
             }
             break;
         case 1:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
@@ -792,7 +792,7 @@ extern "C" void Evt_R10BS22_Func(Event* e)
         break;
     case 2:
         SetSstAddAreaFlag(0x800);
-        if (pG->flags_60 & 0x02000000) {
+        if (pG->Debug_flg[0] & 0x02000000) {
             r10b_effDelete(2);
             r10b_effDelete(3);
         }
@@ -810,7 +810,7 @@ extern "C" void Evt_R10BSXX_Func_Pl0f(Event* e)
         cModel* p;
 
         ((cModel*) mod)->be_flag |= 0x80;
-        ((cModel*) mod)->lightInfo.x50 = 4;
+        ((cModel*) mod)->LightInfo.EnableMask = 4;
         p = ((cModel*) mod)->getPartsPtr(3);
         p->scale.x = 0.0f;
         p->scale.y = 0.0f;
@@ -838,11 +838,11 @@ static void r10b_setEm()
     d.pos[2] = 0x81C;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.set = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -851,11 +851,11 @@ static void r10b_setEm()
     d.pos[2] = 0xA14;
     d.rot[1] = -0x19F4;
     d.type = 0;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.set = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -864,11 +864,11 @@ static void r10b_setEm()
     d.pos[2] = 0x766;
     d.rot[1] = -0x19F4;
     d.type = 0;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.set = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -877,11 +877,11 @@ static void r10b_setEm()
     d.pos[2] = 0x8F5;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.set = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 
     d.id = 0x27;
@@ -890,11 +890,11 @@ static void r10b_setEm()
     d.pos[2] = 0x93A;
     d.rot[1] = -0xBBB;
     d.type = 0;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.xB = 0;
+    d.set = 0;
+    d.flag = 0;
+    d.Character = 0;
     d.hp = 1000;
-    d.x1A = 0;
+    d.Guard_r = 0;
     EmSetEvent(&d);
 }
 

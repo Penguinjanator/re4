@@ -10,9 +10,9 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 struct Esp45Work {
-    Vec wpos;       // 0x00 world position
-    f32 sx;         // 0x0C screen position x
-    f32 sy;         // 0x10 screen position y
+    Vec wld_pos;       // 0x00 world position
+    f32 pos_x;         // 0x0C screen position x
+    f32 pos_y;         // 0x10 screen position y
     u8 type;        // 0x14 gen->xC8: Filter00 spread type
     u8 alpha;       // 0x15 colour alpha as a byte
     u8 rate;        // 0x16 gen->xC2
@@ -20,19 +20,19 @@ struct Esp45Work {
     f32 power;      // 0x18 scaleSpd: spread power
     f32 sz;         // 0x1C view depth
     Vec scrOld;     // 0x20 previous screen position (z: view depth)
-    f32 hideAlpha;  // 0x2C alpha from the Z-buffer visibility test
-    f32 hideR;      // 0x30 radius of the visibility test (gen->xE4)
+    f32 hide_alpha;  // 0x2C alpha from the Z-buffer visibility test
+    f32 hide_r;      // 0x30 radius of the visibility test (gen->xE4)
     u8 pad_34[4];
-    u16 flags;      // 0x38 bit1: visibility test
-    u16 hideCnt;    // 0x3A
-    f32 dist;       // 0x3C camera distance where the glow is gone (gen->xE0)
+    u16 flg;      // 0x38 bit1: visibility test
+    u16 delay_cnt;    // 0x3A
+    f32 del_dist;       // 0x3C camera distance where the glow is gone (gen->xE0)
 };
 
 // Additive radial blur (Filter00 spread) at the projected position, faded by camera distance and
 // a Z-buffer visibility test.
 class cEsp45 : public cEsp {
 public:
-    Esp45Work work;  // 0xF8
+    Esp45Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -52,18 +52,18 @@ cEsp* Esp45_Create()
 
 void cEsp45::move()
 {
-    Esp45Work* w = &work;
+    Esp45Work* w = &m_Free;
 
-    scale = 1.0e22f;
+    m_Size_mul = 1.0e22f;
     if (!CommonMove()) {
         return;
     }
-    w->alpha = (u8) colA;
-    w->power = scaleSpd;
-    if (flag & 1) {
+    w->alpha = (u8) m_Col_a;
+    w->power = m_Size_plus;
+    if (m_Be_flg & 1) {
         Vec v;
 
-        PSMTXMultVec(pG->Cam.viewMat, &w->wpos, &v);
+        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &v);
         w->sz = v.z;
         EspAddOtAfterRender(this, Esp45_HideCheck);
     }
@@ -72,12 +72,12 @@ void cEsp45::move()
 void Esp45_Trans(cEsp* esp0)
 {
     cEsp45* esp = (cEsp45*) esp0;
-    Esp45Work* w = &esp->work;
+    Esp45Work* w = &esp->m_Free;
 
-    if (esp->partsNo >= 0xF8 && esp->partsNo <= 0xFD) {
-        f32 cx = esp->pos.x * 0.001953125f - 0.5f;
-        f32 cy = esp->pos.y * 0.001953125f - 0.5f;
-        Filter00SetAddSpread(w->type, 1, (u8) esp->colR, (u8) esp->colG, (u8) esp->colB, w->alpha, w->rate, 1,
+    if (esp->m_Parts_no >= 0xF8 && esp->m_Parts_no <= 0xFD) {
+        f32 cx = esp->m_Pos.x * 0.001953125f - 0.5f;
+        f32 cy = esp->m_Pos.y * 0.001953125f - 0.5f;
+        Filter00SetAddSpread(w->type, 1, (u8) esp->m_Col_r, (u8) esp->m_Col_g, (u8) esp->m_Col_b, w->alpha, w->rate, 1,
                              cx, cy, w->power);
     } else {
         Vec view;
@@ -89,55 +89,55 @@ void Esp45_Trans(cEsp* esp0)
         f32 sy;
 
         if (esp->parent == pEffParentWorld) {
-            w->wpos = esp->pos;
+            w->wld_pos = esp->m_Pos;
         } else {
-            if (esp->partsNo >= esp->pModel->nParts) {
-                pLog->err(0, 0, "ESP45 :PARTS_NO[%d] is invalid(MAX:%d).", esp->partsNo, esp->pModel->nParts);
+            if (esp->m_Parts_no >= esp->m_pMod->nParts) {
+                pLog->err(0, 0, "ESP45 :PARTS_NO[%d] is invalid(MAX:%d).", esp->m_Parts_no, esp->m_pMod->nParts);
                 PushEsp(esp);
                 return;
             }
-            PSMTXMultVec(esp->pModel->getPartsPtr(esp->partsNo)->mat, &esp->pos, &w->wpos);
+            PSMTXMultVec(esp->m_pMod->getPartsPtr(esp->m_Parts_no)->mat, &esp->m_Pos, &w->wld_pos);
         }
-        PSMTXMultVec(pG->Cam.viewMat, &w->wpos, &view);
-        PSMTX44MultVec(pG->Cam.projMat, &view, &scr);
+        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &view);
+        PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
         scr.z = 0.0f;
         cx = scr.x * 0.5f;
         cy = scr.y * -0.5f;
         a = w->alpha;
-        if (w->flags & 2) {
-            a = (u8) ((f32) a * w->hideAlpha);
+        if (w->flg & 2) {
+            a = (u8) ((f32) a * w->hide_alpha);
         }
         a = (u8) ((f32) a * GetDistAlpha(esp));
-        Filter00SetAddSpread(w->type, 1, (u8) esp->colR, (u8) esp->colG, (u8) esp->colB, a, w->rate, 1, cx, cy,
+        Filter00SetAddSpread(w->type, 1, (u8) esp->m_Col_r, (u8) esp->m_Col_g, (u8) esp->m_Col_b, a, w->rate, 1, cx, cy,
                              w->power);
-        PSMTX44MultVec(pG->Cam.projMat, &view, &scr);
+        PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
         sx = (scr.x * 0.5f + 0.5f) * Screen.width;
         sy = (-scr.y * 0.5f + 0.5f) * Screen.height;
         scr.z = 0.0f;
-        w->scrOld.x = w->sx;
-        w->scrOld.y = w->sy;
+        w->scrOld.x = w->pos_x;
+        w->scrOld.y = w->pos_y;
         w->scrOld.z = w->sz;
         scr.x = sx;
         scr.y = sy;
-        w->sx = sx;
-        w->sy = sy;
+        w->pos_x = sx;
+        w->pos_y = sy;
     }
 }
 
 // Alpha from the distance to the camera: 1 at the camera, 0 at `dist`.
 static f32 GetDistAlpha(cEsp45* esp)
 {
-    Esp45Work* w = &esp->work;
+    Esp45Work* w = &esp->m_Free;
     Vec d;
     f32 a;
 
-    if (w->dist != 0.0f) {
+    if (w->del_dist != 0.0f) {
         Camera* cam = &pG->Cam;
 
-        d.x = w->wpos.x - cam->param.pos.x;
-        d.y = w->wpos.y - cam->param.pos.y;
-        d.z = w->wpos.z - cam->param.pos.z;
-        a = PSVECMag(&d) / w->dist;
+        d.x = w->wld_pos.x - cam->param.pos.x;
+        d.y = w->wld_pos.y - cam->param.pos.y;
+        d.z = w->wld_pos.z - cam->param.pos.z;
+        a = PSVECMag(&d) / w->del_dist;
         if (a > 1.0f) {
             a = 1.0f;
         }
@@ -159,7 +159,7 @@ void Esp45_HideCheck(cEsp* esp0)
     static const f32 hide_y_tbl[12] = { 1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f, 0.0f, 0.5f, 0.86f };
     static s32 Zs_bias45_2 = 0;  // unreferenced 4-byte .sdata word after Zs_bias45 (name unknown)
     cEsp45* esp = (cEsp45*) esp0;
-    Esp45Work* w = &esp->work;
+    Esp45Work* w = &esp->m_Free;
     Vec p;
     u32 z;
     s32 zi;
@@ -174,7 +174,7 @@ void Esp45_HideCheck(cEsp* esp0)
     u32 hidden;
     u32 i;
 
-    if (!(w->flags & 2)) {
+    if (!(w->flg & 2)) {
         return;
     }
     nz = w->scrOld.z + 150.0f;
@@ -184,7 +184,7 @@ void Esp45_HideCheck(cEsp* esp0)
     m23 = -(ZFAR * ZNEAR) * inv;
     zv = (m23 + m22 * nz) * Zscale;
     zi = (u32) ((inv2 * zv + Zoffset) * 16777215.0f);
-    if (pG->flags_54 & 0x800) {
+    if (pG->System_flg & 0x800) {
         margin = 56.0f;
     } else {
         margin = 0.0f;
@@ -197,8 +197,8 @@ void Esp45_HideCheck(cEsp* esp0)
         f32 ox;
         f32 oy;
 
-        ox = hide_x_tbl[i] * w->hideR;
-        oy = hide_y_tbl[i] * w->hideR;
+        ox = hide_x_tbl[i] * w->hide_r;
+        oy = hide_y_tbl[i] * w->hide_r;
         if (scale < 1.0f) {
             ox *= scale;
             ox *= scale;
@@ -217,12 +217,12 @@ void Esp45_HideCheck(cEsp* esp0)
         // goes at flow, compare/branch at jump2): the original's loop had >= 60 real insns at loop
         // pass 1, so `high(Screen)` (savings 1, life 1, threshold 71 - 3 per moved movable = 59)
         // was not hoisted until pass 2 and its `lis` lands AFTER pass 1's giv init `li i4,0`.
-        if (w->flags == 99) {
+        if (w->flg == 99) {
             ox = oy;
         }
     }
     if (hidden == 24) {
-        w->hideAlpha = 0.0f;
+        w->hide_alpha = 0.0f;
     } else {
         f32 a;
 
@@ -233,29 +233,29 @@ void Esp45_HideCheck(cEsp* esp0)
         if (a > 1.0f) {
             a = 1.0f;
         }
-        w->hideAlpha = w->hideAlpha + (a - w->hideAlpha) * 0.6f;
+        w->hide_alpha = w->hide_alpha + (a - w->hide_alpha) * 0.6f;
     }
     if (CamCtrl.IsChangeCamera()) {
-        w->hideCnt = 2;
+        w->delay_cnt = 2;
     }
-    if (w->hideCnt != 0) {
-        w->hideCnt--;
-        w->hideAlpha = 0.0f;
+    if (w->delay_cnt != 0) {
+        w->delay_cnt--;
+        w->hide_alpha = 0.0f;
     }
 }
 
 int cEsp45::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp45Work* w = &work;
+    Esp45Work* w = &m_Free;
 
-    w->type = gen->xC8;
-    w->rate = gen->xC2;
-    w->alpha = (u8) colA;
-    w->power = scaleSpd;
-    w->dist = gen->xE0;
-    if (gen->xE4 != 0.0f) {
-        w->hideR = gen->xE4;
-        w->flags |= 2;
+    w->type = gen->Work8[0];
+    w->rate = gen->Blend_type;
+    w->alpha = (u8) m_Col_a;
+    w->power = m_Size_plus;
+    w->del_dist = gen->Vec0.z;
+    if (gen->Vec1.x != 0.0f) {
+        w->hide_r = gen->Vec1.x;
+        w->flg |= 2;
     }
     return 1;
 }

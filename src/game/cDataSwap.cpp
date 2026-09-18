@@ -16,10 +16,10 @@ void SubScreenAramRead();
 
 cDataSwap::cDataSwap()
 {
-    flag = 0;
-    addr = 0;
-    aram = 0;
-    size = 0;
+    m_be_flag = 0;
+    m_SwapMaddr = 0;
+    m_SwapAaddr = 0;
+    m_SwapSize = 0;
 }
 
 cDataSwap::~cDataSwap()
@@ -30,38 +30,38 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
 {
     int ret = 0;
 
-    if (flag != 0) {
+    if (m_be_flag != 0) {
         return 0;
     }
-    heap = MemGetCurrentHeap();
-    this->size = size;
+    m_CurHeapNo = MemGetCurrentHeap();
+    this->m_SwapSize = size;
 #line 64 "D:/Bio4/Prog/cDataSwap.cpp"
     mram = MEM_ALLOC(size, 0, 13);
     if (mram == NULL) {
-        this->aram = DC.getAramFree(size);
-        if (this->aram != 0) {
-            flag |= 2;
+        this->m_SwapAaddr = DC.getAramFree(size);
+        if (this->m_SwapAaddr != 0) {
+            m_be_flag |= 2;
         } else if (aram != 0) {
-            this->aram = aram;
-            flag |= 2;
+            this->m_SwapAaddr = aram;
+            m_be_flag |= 2;
         } else if (size > 0x2FFFFF) {
             return 0;
         } else {
-            this->aram = 0xD00000;
-            flag |= 2;
+            this->m_SwapAaddr = 0xD00000;
+            m_be_flag |= 2;
         }
-        if (flag & 2) {
-            this->addr = addr;
-            Aram.DmaTransReq(0, addr, this->aram, this->size, 1);
+        if (m_be_flag & 2) {
+            this->m_SwapMaddr = addr;
+            Aram.DmaTransReq(0, addr, this->m_SwapAaddr, this->m_SwapSize, 1);
         }
     } else {
-        this->addr = (u32) mram;
-        flag |= 1;
+        this->m_SwapMaddr = (u32) mram;
+        m_be_flag |= 1;
     }
-    if (flag & 3) {
-        MemSuspendHeap(heap);
+    if (m_be_flag & 3) {
+        MemSuspendHeap(m_CurHeapNo);
         ret = 1;
-        MemCreateHeap(11, this->addr, this->addr + this->size);
+        MemCreateHeap(11, this->m_SwapMaddr, this->m_SwapMaddr + this->m_SwapSize);
         MemSetCurrentHeap(11);
     }
     return ret;
@@ -69,19 +69,19 @@ int cDataSwap::SwapOut(u32 addr, u32 size, u32 aram)
 
 void cDataSwap::SwapIn()
 {
-    if (flag != 0) {
+    if (m_be_flag != 0) {
         MemDestroyHeap(11);
-        if (flag & 2) {
-            Aram.DmaTransReq(1, aram, addr, size, 1);
-            if (aram == 0xD00000) {
+        if (m_be_flag & 2) {
+            Aram.DmaTransReq(1, m_SwapAaddr, m_SwapMaddr, m_SwapSize, 1);
+            if (m_SwapAaddr == 0xD00000) {
                 SubScreenAramRead();
             }
         }
-        MemSignalHeap(heap);
-        MemSetCurrentHeap(heap);
+        MemSignalHeap(m_CurHeapNo);
+        MemSetCurrentHeap(m_CurHeapNo);
         if (mram != NULL) {
             Mem_free(mram);
         }
-        flag = 0;
+        m_be_flag = 0;
     }
 }

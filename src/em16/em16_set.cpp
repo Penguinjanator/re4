@@ -226,7 +226,7 @@ void Em16Set(cEm10* em)
         Em10SetSeTbl(em, 3);
         break;
     }
-    w->x6C5 = 0;
+    w->Ganado = 0;
     Em16WeaponSet(em);
 }
 

@@ -91,14 +91,14 @@ void R10fInit()
     register GlobalWork* g asm("r10");
     g = pG;
     if (!(g->door_unlock[0] & 0x00800000)) {
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r10f_DoorClose, 0, 1);
-        SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, 0, 1);
+        SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (!(pG->door_unlock[0] & 0x00010000)) {
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11D, 1);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11D, 1);
     }
     if (!(pG->door_unlock[0] & 0x00080000)) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11E, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r10f_DoorClose, (void*) 0x11E, 1);
     }
     {
         R10fMotWork* m;
@@ -113,28 +113,28 @@ void R10fInit()
 #line 93 "D:/Bio4/Prog/r10f.cpp"
         m = (R10fMotWork*) MEM_CALLOC(sizeof(R10fMotWork) * 10, 1, 0xd);
         for (i = 0; i < 10; i++) {
-            r10f_work.p->gondola[i] = (cObjGondola*) SetGondola(ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24), &pos, &rot);
+            r10f_work.p->gondola[i] = (cObjGondola*) SetGondola(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &pos, &rot);
             if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) (i * 0x1C2));
+                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
                 if (m != 0) {
                     register GlobalWork* g2 asm("r10");    // COMPILER-DIFF: candidate #17 (see above)
                     g2 = pG;
-                    r10f_work.p->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoomArc, 0x30), ROOM_ARC_PTR(g2->pRoomArc, 0x31));
+                    r10f_work.p->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoom, 0x30), ROOM_ARC_PTR(g2->pRoom, 0x31));
                 }
             }
         }
     }
-    SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r10f_GondolaGetOn, 0, 1);
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r10f_GondolaGetOn, (void*) 1, 1);
+    SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOn, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOn, (void*) 1, 1);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         cEm* em;
 
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r10f_GondolaGetOff, (void*) 1, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) r10f_GondolaGetOff, (void*) 1, 1);
         if ((em = EmSetFromList2(0x32, 1)) != 0) {
-            ((cEmGanado*) em)->setGondolaMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x32));
+            ((cEmGanado*) em)->setGondolaMotion(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x32));
         }
         if ((em = EmSetFromList2(0x35, 1)) != 0) {
-            ((cEmGanado*) em)->setGondolaMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x32));
+            ((cEmGanado*) em)->setGondolaMotion(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x32));
         }
     }
     if (getRoomEtcWindow(0xC, &win, 1)) {
@@ -175,8 +175,8 @@ static inline void r10f_setPosB(cModel* m, R10fGondolaTbl* t, int side) { r10f_s
 static void r10f_GondolaGetOn(int side)
 {
     void* mot[2][3] = {
-        {ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), ROOM_ARC_PTR(pG->pRoomArc, 0x29)},
-        {ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), ROOM_ARC_PTR(pG->pRoomArc, 0x2C)},
+        {ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29)},
+        {ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x2C)},
     };
     Vec posA[2] = {{22905.39f, 10254.28f, -36713.24f}, {22905.39f, -18215.59f, -151632.31f}};
     Vec posB[2] = {{22633.78f, 10254.28f, -36313.7f}, {22633.78f, -18215.59f, -151232.8f}};
@@ -186,7 +186,7 @@ static void r10f_GondolaGetOn(int side)
     cSubChar* sub = pSUB;
 
     if (sub != 0 && RouteCkPosToPosDis(&pPL->pos, &sub->pos) > 10000.0f) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         SceExit();
     }
     SceEventStart(0);
@@ -206,9 +206,9 @@ static void r10f_GondolaGetOn(int side)
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x27), 3, 0, 0x201, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 3, 0, 0x201, 0);
         if (pSUB != 0) {
-            SubCharCtrl(5, 0);
+            SubCharCtrl(SCC_AUX_MOT, 0);
             pSUB->setNoSuspend(1);
             {
                 cSubChar* s = pSUB;
@@ -219,7 +219,7 @@ static void r10f_GondolaGetOn(int side)
                 ang.z = 0.0f;
                 s->setAng(&ang);
             }
-            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 3, 0, 1, 0);
+            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 3, 0, 1, 0);
         }
     }
     zero.x = 0.0f;
@@ -228,7 +228,7 @@ static void r10f_GondolaGetOn(int side)
     p.x = 0.0f;
     p.y = 0.0f;
     p.z = 0.0f;
-    obj = SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24), &zero, &p);
+    obj = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &zero, &p);
     obj->setNoSuspend(1);
     MotSetObj00(obj, mot[side][2], 1, 0);
     while (!(MotionGetState(pPL) & 4)) {
@@ -250,9 +250,9 @@ static void r10f_GondolaGetOn(int side)
                     f = (400 + i * 450) % 4500;
                 }
                 if (i == 0) {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), (u16) f);
+                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), (u16) f);
                 } else {
-                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) f);
+                    r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) f);
                 }
                 r10f_work.p->gondola[i]->setNoSuspend(1);
             }
@@ -294,12 +294,12 @@ static void r10f_GondolaGetOn(int side)
     } else {
         for (u32 i = 0; i < 10; i++) {
             if (r10f_work.p->gondola[i] != 0) {
-                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) (i * 0x1C2));
+                r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoom, 0x26), (u16) (i * 0x1C2));
             }
         }
         r10f_work.p->idx = 0;
         r10f_work.p->gondola[0]->setRidePL();
-        SceExec(0x12, (TaskFunc) r10f_GondolaEmSet, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r10f_GondolaEmSet, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     obj->setNoSuspend(0);
     ObjMgr.destroy(obj);
@@ -307,15 +307,15 @@ static void r10f_GondolaGetOn(int side)
     if (RsfCheck(G_ROOM_ID, 0)) {
         r10f_GondolaGetOff(side == 0);
     }
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
 }
 
 // Get off at `side`.
 static void r10f_GondolaGetOff(int side)
 {
     void* mot[2][3] = {
-        {ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), ROOM_ARC_PTR(pG->pRoomArc, 0x29)},
-        {ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), ROOM_ARC_PTR(pG->pRoomArc, 0x2C)},
+        {ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), ROOM_ARC_PTR(pG->pRoom, 0x29)},
+        {ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), ROOM_ARC_PTR(pG->pRoom, 0x2C)},
     };
     Vec posA[2] = {{24039.85f, 10254.28f, -35429.5f}, {24182.15f, -18215.59f, -150270.25f}};
     Vec posB[2] = {{24323.65f, 10254.28f, -34651.58f}, {24465.95f, -18215.59f, -149492.94f}};
@@ -341,9 +341,9 @@ static void r10f_GondolaGetOff(int side)
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, 0, 0x201, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 0x201, 0);
         if (pSUB != 0) {
-            SubCharCtrl(5, 0);
+            SubCharCtrl(SCC_AUX_MOT, 0);
             pSUB->setNoSuspend(1);
             {
                 cSubChar* s = pSUB;
@@ -354,7 +354,7 @@ static void r10f_GondolaGetOff(int side)
                 ang.z = 0.0f;
                 s->setAng(&ang);
             }
-            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 3, 0, 1, 0);
+            pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 3, 0, 1, 0);
         }
     }
     zero.x = 0.0f;
@@ -363,7 +363,7 @@ static void r10f_GondolaGetOff(int side)
     p.x = 0.0f;
     p.y = 0.0f;
     p.z = 0.0f;
-    obj = SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24), &zero, &p);
+    obj = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24), &zero, &p);
     obj->setNoSuspend(1);
     MotSetObj00(obj, mot[side][2], 1, 0);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -375,7 +375,7 @@ static void r10f_GondolaGetOff(int side)
     obj->setNoSuspend(0);
     ObjMgr.destroy(obj);
     SceEventEnd(0);
-    SubCharCtrl(1, 0);
+    SubCharCtrl(SCC_CHASE, 0);
     r10f_work.p->gondola[r10f_work.p->idx]->setGetOffPL();
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
@@ -433,7 +433,7 @@ extern "C" cObj* r10f_setFalseEye()
     Vec rot = {-0.34927526f, -2.473737f, 1.6477758f};
     cObj* obj;
 
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     BitOn(obj->be_flag, 0x20);
     obj->setParent(pPL, 0xA, &pos, &rot);
     return obj;
@@ -451,9 +451,9 @@ extern "C" void r10f_DoorOpen()
     eye = r10f_setFalseEye();
     pl = pPL;
     pl->setNoSuspend(1);
-    pl->pWep->setTrans(0, 0);
-    pl->setRightHand((int) ROOM_ARC_PTR(pG->pRoomArc, 0x22));
-    pl->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 5, 0, 1, 0);
+    pl->Wep->setTrans(0, 0);
+    pl->setRightHand((int) ROOM_ARC_PTR(pG->pRoom, 0x22));
+    pl->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 5, 0, 1, 0);
     eff = EspPullCoreKind();
     EstSet((int) eye, -1, 0, 0, 1, 0, 1, (u8) eff, 0, 0);
     Vec pos = {13293.0f, 4000.0f, 14581.0f};
@@ -473,7 +473,7 @@ extern "C" void r10f_DoorOpen()
     ang.z = 0.0f;
     pl->setAng(&ang);
     SndStrReq(1, 0xE3, 0x80000003, 0, 0, 0.0f);
-    cam = SceExec(0x12, (TaskFunc) r10f_DoorOpenCamera, 0, 0, 2, 0);
+    cam = SceExec(0x12, (TaskFunc) r10f_DoorOpenCamera, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(30);
     while (MotionGetState(pl) != 4) {
         SceSleep(1);
@@ -485,7 +485,7 @@ extern "C" void r10f_DoorOpen()
     EffectEspDelete(0, (u8) eff, 0, 0);
     EffectEspgenDelete(0, (u8) eff, 0);
     EffectEfmDelete(0, (u8) eff, 0);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     pl->setRightHand(1);
     pl->setNoSuspend(0);
     eye->be_flag &= ~2;
@@ -526,20 +526,20 @@ static void r10f_checkFalseEyeUse()
 static void r10f_DoorClose(u32 no)
 {
     if (no == 0 && ItemMgr.num(0x3D) != 0) {
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-        SubScreenOpen(0x80, 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         SceExit();
     }
     SndCall(6, 7, 0, 0, 0, 0);
     switch (no) {
     case 0:
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     case 0x11D:
-        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     case 0x11E:
-        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     }
 }
@@ -556,10 +556,10 @@ static void r10f_LockerOpened(int id)
 
 static void r10f_TreasureBoxOpen(int id)
 {
-    OpenBoxMain(3, 0, 0x5B, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxUpXP, 0, 0x5B, id, 0xFFFFFFFF, -1);
 }
 
 static void r10f_TreasureBoxOpened(int id)
 {
-    OpenBoxMain(3, 1, 0x5B, id, 0xFFFFFFFF, -1);
+    OpenBoxMain(OpenBoxUpXP, 1, 0x5B, id, 0xFFFFFFFF, -1);
 }

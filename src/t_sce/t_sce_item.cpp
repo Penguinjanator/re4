@@ -364,9 +364,9 @@ static void tSceItemMainMenu()
     s8 sel;
 
     if (pW->loaded == 1) {
-        tSceItemMainMenuTbl[3].enable = 1;
+        tSceItemMainMenuTbl[3].Be_flg = 1;
     } else {
-        tSceItemMainMenuTbl[3].enable = 0;
+        tSceItemMainMenuTbl[3].Be_flg = 0;
     }
     sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, tSceItemMainMenuTbl, sizeof(tSceItemMainMenuTbl), &Joy[0]);
     if (sel >= 0) {
@@ -501,8 +501,8 @@ static void tSceItemAreaEdit_EditMenu()
     s8 sel;
     u8 valid = pW->copyValid;
 
-    tSceItemCreateMenu[1].enable = tSceItemCreateMenu[2].enable = tSceItemEditMenu[3].enable =
-        tSceItemEditMenu[4].enable = valid;
+    tSceItemCreateMenu[1].Be_flg = tSceItemCreateMenu[2].Be_flg = tSceItemEditMenu[3].Be_flg =
+        tSceItemEditMenu[4].Be_flg = valid;
     if (pCur->flag & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, tSceItemEditMenu, sizeof(tSceItemEditMenu), &Joy[0]);
         switch (sel) {
@@ -563,14 +563,14 @@ static void tSceItemAreaEdit_AreaCreate()
                     break;
                 }
             }
-            pCur->x35 = 3;
+            pCur->type = 3;
             pCur->flag |= 3;
-            pCur->x38 = 2;
-            pCur->x39 = 1;
-            pCur->x37 |= 1;
+            pCur->trigger = 2;
+            pCur->checkType = 1;
+            pCur->checkFlag |= 1;
             pCur->angle = 0;
             pCur->angleRange = 0x2D;
-            pCur->x44 = 8;
+            pCur->otNo = 8;
             pW->editCursor = 0;
             pW->sub = 1;
             pW->step = 0;
@@ -708,7 +708,7 @@ void tSceItemAreaEdit_disp()
         }
         if (pW->area[i].item.flag2 & 2) {
             AreaDataDisp(&pW->area[i].area, colA, 1, NULL);
-            if (pW->area[i].x37 & 2) angle_arrow_disp(&pW->area[i]);
+            if (pW->area[i].checkFlag & 2) angle_arrow_disp(&pW->area[i]);
         } else {
             if (obj != NULL) {
                 SceAtItemAutoArea(&ad, &obj->pos, pW->area[i].item.size);
@@ -717,7 +717,7 @@ void tSceItemAreaEdit_disp()
                 SceAtItemAutoArea(&ad, &pW->area[i].item.pos, pW->area[i].item.size);
                 AreaDataDisp(&ad, colA, 1, NULL);
             }
-            if (pW->area[i].x37 & 2) {
+            if (pW->area[i].checkFlag & 2) {
                 save = pW->area[i].area;
                 pW->area[i].area = ad;
                 angle_arrow_disp(&pW->area[i]);
@@ -730,7 +730,7 @@ void tSceItemAreaEdit_disp()
     eprintf(0x1AE, 0x34, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(0x1AE, 0x44, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(0x1AE, 0x54, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->rot.y);
+    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
 static void tSceItemAreaEdit_AreaMove()
@@ -778,10 +778,10 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     int m;
     u8 on;
 
-    on = pCur->x37 & 2;
+    on = pCur->checkFlag & 2;
     if (on) on = 1;
-    menu[1].enable = on;
-    menu[2].enable = on;
+    menu[1].Be_flg = on;
+    menu[2].Be_flg = on;
     // dead test (n is re-set before every read): its branch splits the sched1 region so the
     // pW `lis` is not issued with the first menu store; deleted at flow2, emits nothing
     if (menu == 0) n = 0; // COMPILER-DIFF: #13 (region split, dead test)
@@ -789,15 +789,15 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     y = pW->y;
     switch (sel) {
     case 0:
-        n = PC(c0)->x37;
+        n = PC(c0)->checkFlag;
         if (Joy[0].rep & REP_RIGHT) n--;
         if (Joy[0].rep & REP_LEFT) n++;
         m = WRAP(n, 3);
-        pCur->x37 = m;
+        pCur->checkFlag = m;
         break;
     case 1: {
         SceAtWork* a = PC(c1);
-        if (a->x37 & 2) {
+        if (a->checkFlag & 2) {
             n = a->angle;
             if (Joy[0].rep & 0x20000) n += 0x2D;
             if (Joy[0].rep & 0x10000) n -= 0x2D;
@@ -810,7 +810,7 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     }
     case 2:
-        if (PC(c2)->x37 & 2) {
+        if (PC(c2)->checkFlag & 2) {
             n = PC(c2)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
@@ -819,19 +819,19 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
         }
         break;
     case 3:
-        n = PC(c3)->x44;
+        n = PC(c3)->otNo;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
-        pCur->x44 = m;
+        pCur->otNo = m;
         break;
     default:
         eprintf(x + 0x40, y, 5, 0, "(push Y:data init.)");
         if (Joy[0].trg & JOY_Y) memclr_asm(pCur->data, sizeof(pCur->data));
         break;
     }
-    eprintf(x, y, 0, 0, "%s", tSceItemHitTypeName[pCur->x37]);
+    eprintf(x, y, 0, 0, "%s", tSceItemHitTypeName[pCur->checkFlag]);
     y += 0x10;
-    if (pCur->x37 & 2) {
+    if (pCur->checkFlag & 2) {
         eprintf(x, y, 0, 0, "%d", pCur->angle * 2);
         y += 0x10;
         eprintf(x, y, 0, 0, "%d", pCur->angleRange * 2);
@@ -839,10 +839,10 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     } else {
         y += 0x20;
     }
-    if (pCur->x44 == 8) {
+    if (pCur->otNo == 8) {
         eprintf(x, y, 0, 0, "default");
     } else {
-        eprintf(x, y, 0, 0, "%d", pCur->x44);
+        eprintf(x, y, 0, 0, "%d", pCur->otNo);
     }
     eprintf(x, y, 6, 0, "        [0:low - 15:high]");
     y += 0x10;
@@ -896,16 +896,16 @@ static void tSceItemDataInput_item_main()
     u16 id;
 
     if (LINKED(pCur)) {
-        tSceItemMenu[8].enable = 1;
-        tSceItemMenu[9].enable = 1;
+        tSceItemMenu[8].Be_flg = 1;
+        tSceItemMenu[9].Be_flg = 1;
     } else {
-        tSceItemMenu[8].enable = 0;
-        tSceItemMenu[9].enable = 0;
+        tSceItemMenu[8].Be_flg = 0;
+        tSceItemMenu[9].Be_flg = 0;
     }
     if (LINKED(pCur) && !(pCur->item.flag2 & 1)) {
-        tSceItemMenu[10].enable = 0;
+        tSceItemMenu[10].Be_flg = 0;
     } else {
-        tSceItemMenu[10].enable = 1;
+        tSceItemMenu[10].Be_flg = 1;
     }
     ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->inputCursor, tSceItemMenu, sizeof(tSceItemMenu), &Joy[0]);
     tSceItemDataInput_basic_menu(pW->inputCursor, tSceItemMenu);
@@ -1056,10 +1056,10 @@ static void tSceItemDataInput_item_main()
         break;
     case 0x14: {
         int m;
-        n = pCur->x52;
+        n = pCur->langDisable;
         STEP(rep2, n);
         CLAMP(n, m, 2);
-        pCur->x52 = m;
+        pCur->langDisable = m;
         break;
     }
     }
@@ -1112,7 +1112,7 @@ static void tSceItemDataInput_item_main()
     {
         // defined here: its strings follow the ones above in .rodata
         static const char* countryName[3] = {"JPN USA", "JPN", "    USA"};
-        eprintf(x, y, 0, 0, "%s", NAME(countryName, pCur->x52, 2));
+        eprintf(x, y, 0, 0, "%s", NAME(countryName, pCur->langDisable, 2));
     }
     y += 0x10;
     pW->y = y;
@@ -1143,16 +1143,16 @@ static void tSceItemDataInput_item_ETedit()
         }
         AreaDataInfoDisp(&pW->editArea, pW->x, pW->y);
         AreaDataHelpDisp(&pW->editArea, (s16) (pW->x + 0xE0), (s16) (pW->y - 0x20));
-        it->pos.x = pW->editArea.u.eye.x;
-        it->pos.y = pW->editArea.u.eye.y;
+        it->pos.x = pW->editArea.u.eye.xz;
+        it->pos.y = pW->editArea.u.eye.floor;
         it->pos.z = pW->editArea.u.eye.z;
         it->rot.z = pW->editArea.u.eye.open;
         it->rot.x = pW->editArea.u.eye.ang_x;
         it->rot.y = pW->editArea.u.eye.ang_y;
         if (!((u32) it->pModel < 0x80000000 || (u32) it->pModel > 0x82FFFFFF)) {
             if (it->rot.z > 0.0f) {
-                it->pModel->rot.x = it->rot.x;
-                it->pModel->rot.y = it->rot.y;
+                it->pModel->ang.x = it->rot.x;
+                it->pModel->ang.y = it->rot.y;
             }
         }
         if (Joy[0].trg & JOY_B) {
@@ -1549,7 +1549,7 @@ void tSceItemSetItemFlgAutoDataCreate()
     for (i = 0; i < AREA_NUM; i++) {
         it = &tbl[i].item;
         if ((tbl[i].flag & 1) == 0) continue;
-        if (tbl[i].x35 != 3) continue;
+        if (tbl[i].type != 3) continue;
         if (it->flagNo == 0) {
             if (tSceItemSetItemFlgAuto_ck(it->findFlagNo)) {
                 it->findFlagNo = tSceItemSetItemFlgAuto_on();

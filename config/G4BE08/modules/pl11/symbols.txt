@@ -12,4 +12,4 @@ moveCloth__10cSubAshley = .text:0x000004F0; // type:function size:0x38 scope:glo
 _ctors = .ctors:0x00000000; // type:label scope:global
 _dtors = .dtors:0x00000000; // type:label scope:global
 lbl_pl11_rodata_54 = .rodata:0x00000054; // type:object size:0xEC scope:local
-lbl_pl11_rodata_140 = .rodata:0x00000140; // type:object size:0x88 scope:global
+_vt.10cSubAshley = .rodata:0x00000140; // type:object size:0x88 scope:global

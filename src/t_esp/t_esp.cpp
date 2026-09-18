@@ -5238,8 +5238,8 @@ int InitTool()
         g_editRowNo[i] = i;
     }
     InitSeqTbl();
-    if (!(pG->flags_60 & 0x100)) {
-        BitOn(pG->flags_60, 0x100);
+    if (!(pG->Debug_flg[0] & 0x100)) {
+        BitOn(pG->Debug_flg[0], 0x100);
         g_pSeqHead = (EspSeqData*) Debug_alloc(0x12C30, 0);
         g_EspToolSeqHedAddr = g_pSeqHead;
     } else {
@@ -6121,7 +6121,7 @@ void ToolEspMain()
                 }
             }
         }
-        if (pG->flags_5010 & 0x8000000) {
+        if (pG->Status_flg[1] & 0x8000000) {
             if (g_pTexRender == NULL) GetTexRenderMgr(&g_pTexRender);
         }
         DB_DispProc();

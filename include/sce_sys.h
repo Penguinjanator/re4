@@ -33,34 +33,34 @@ class cSceSys {
 public:
     int wait;             // 0x00  1 = GXDrawDone before the next task
     int pause;            // 0x04  nonzero: scenario stopped
-    int x8;               // 0x08
-    int xC;               // 0x0C
-    int x10;              // 0x10
-    int x14;              // 0x14
-    void (*cancelFunc)(); // 0x18  task started by SceExecEventCancel
+    int pExitFunc;               // 0x08
+    int pExitParam;               // 0x0C
+    int pDoorFunc;              // 0x10
+    int pDoorParam;              // 0x14
+    void (*pCancelFunc)(); // 0x18  task started by SceExecEventCancel
     int cancelArg;        // 0x1C
-    u32 otag[16];         // 0x20  ordering table, otag[15] is the list head
-    u32 x60;              // 0x60  pG->flags_170 saved by SceUpCutStart
-    u32 x64;              // 0x64  pG->flags_54 saved by SceEventStart
-    u32 stop_bak;         // 0x68  pG->flags_170 before the event cancel
-    u8 x6C;               // 0x6C  1 = an up-cut is running (flags_170 saved in x60)
-    u8 x6D;               // 0x6D  1 = SceEventStart(0) told the managers
-    u8 x6E;               // 0x6E  SceEventStart nesting count
-    u8 x6F;               // 0x6F
-    u8 x70;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
-    u8 eventCancel;       // 0x71  1 = the running event may be cancelled
+    u32 SceTaskOt[16];         // 0x20  ordering table, otag[15] is the list head
+    u32 stop_bak;         // 0x60  pG->Stop_flg saved by SceUpCutStart
+    u32 system_bak;              // 0x64  pG->flags_54 saved by SceEventStart
+    u32 cancel_stop_bak;         // 0x68  pG->flags_170 before the event cancel
+    u8 stop_bak_flg;               // 0x6C  1 = an up-cut is running (flags_170 saved in x60)
+    u8 event_no_cut_back;               // 0x6D  1 = SceEventStart(0) told the managers
+    u8 event_start_cnt;               // 0x6E  SceEventStart nesting count
+    u8 up_cut_start_cnt;               // 0x6F
+    u8 task_kind_back;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
+    u8 event_cancel_enable;       // 0x71  1 = the running event may be cancelled
     s8 cancelFlagNo;      // 0x72  flags_174 bit set when the event is cancelled (-1 = none)
-    u8 x73;               // 0x73  set while readEmData waits inside a scenario task
-    u8 x74;               // 0x74  chapter number (SceSetChapterEnd)
-    u8 x75;               // 0x75
-    u8 x76;               // 0x76
+    u8 m_init_loop_flag;  // 0x73  set while readEmData waits inside a scenario task
+    u8 m_chapter_no;      // 0x74  chapter number (SceSetChapterEnd)
+    u8 m_door_fade_eff;   // 0x75  fade effect at the door jump (SceAtDoor doorFadeEff; game: 0 filter fade, 1 quick fade)
+    u8 m_item_get;        // 0x76  set while the sceAtGetItem task runs (SceSys move skips while set)
     u8 x77;               // 0x77
-    s16 x78;              // 0x78  door area the chapter end returns through (-1 = none; sce_com)
-    u16 x7A;              // 0x7A  0x3C, 0x5A with a sub character
+    s16 m_chapter_door;   // 0x78  door area the chapter end returns through (-1 = none; sce_com)
+    u16 m_debug_disp_y;   // 0x7A  debug print y (0x3C, 0x5A with a sub character; sce_com +0xF per line)
     int sndFlag;          // 0x7C  1 = SndEventStrStop on event cancel
     cDmgInfo dmg;         // 0x80
     ScePrim prim[13];     // 0x98  slots 5..17
-    ScePrim* x134;        // 0x134  task SceEventStart(!0) kills
+    ScePrim* pLadderTask; // 0x134  sceAtLadder task (SceEventStart(!0) kills it)
 
     void scheduler();
     int checkCTaskRange();
@@ -78,12 +78,40 @@ void ScenarioMove();
 u32* scenarioSetOtStart();
 u32* scenarioGetOtAddr(u32* p);
 void SceTaskDelete(TASK* t);
+enum SCE_PRIORITY {
+    SCE_PRIO_0 = 0,
+    SCE_PRIO_1 = 1,
+    SCE_PRIO_2 = 2,
+    SCE_PRIO_3 = 3,
+    SCE_PRIO_4 = 4,
+    SCE_PRIO_5 = 5,
+    SCE_PRIO_6 = 6,
+    SCE_PRIO_7 = 7,
+    SCE_PRIO_8 = 8,
+    SCE_PRIO_9 = 9,
+    SCE_PRIO_10 = 10,
+    SCE_PRIO_11 = 11,
+    SCE_PRIO_12 = 12,
+    SCE_PRIO_13 = 13,
+    SCE_PRIO_14 = 14,
+    SCE_PRIO_15 = 15,
+    SCE_PRIO_DEF_0 = 0,
+    SCE_PRIO_DEF_1 = 1,
+    SCE_PRIO_DEF_2 = 2,
+    SCE_PRIO_ACT = 5,
+    SCE_PRIO_ACT_2 = 6,
+    SCE_PRIO_ACT_3 = 7,
+    SCE_PRIO_GET = 8,
+    SCE_PRIO_ATTACK = 11,
+    SCE_PRIO_ATTACK_2 = 12
+};
+
 ScePrim* SceExec(int prio, TaskFunc func, int arg, u8 flag, int otPrio, void* model);
 void SceSleep(int frames);
 void SceExit();
 ScePrim* SceCTask();
 void SceExecInitCondition();
-int SceExecCheckCondition_sub(SceCond* c);
+int SceExecCheckCondition_sub(SceCond* pP);
 void SceExecCheckCondition();
 void SceExecLinkCondition(int type, void* param, u8 prio, TaskFunc func, int arg, u8 flag);
 void SceExecLinkEmDead(void* param, u8 prio, TaskFunc func, int arg, u8 flag);

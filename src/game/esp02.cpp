@@ -9,14 +9,14 @@
 #define ESP_STRIP_PTS_MAX 16
 
 struct Esp02Work {
-    Mtx mat;   // 0x00 parent matrix at the time the sprite left its parent
-    Vec pos0;  // 0x30 local position
+    Mtx ParMat;   // 0x00 parent matrix at the time the sprite left its parent
+    Vec BasePos;  // 0x30 local position
 };
 
 // Single-segment camera-facing strip (a stretched sprite from pos along -x).
 class cEsp02 : public cEsp {
 public:
-    Esp02Work work;  // 0xF8
+    Esp02Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -34,35 +34,35 @@ cEsp* Esp02_Create()
 
 void cEsp02::move()
 {
-    Esp02Work* w = &work;
+    Esp02Work* w = &m_Free;
 
-    if (parent != pEffParentWorld && parentCnt != 0xFF && parentCnt <= cnt) {
-        PSMTXCopy(parent->mat, w->mat);
+    if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
+        PSMTXCopy(parent->mat, w->ParMat);
         parent = pEffParentWorld;
     }
-    if (scaleCnt <= cnt) {
-        scale += scaleSpd;
-        scaleSpd *= scaleScale;
-        if (scale <= 0.0f) {
+    if (m_Size_start_cnt <= m_Life_time) {
+        m_Size_mul += m_Size_plus;
+        m_Size_plus *= m_D_size_plus;
+        if (m_Size_mul <= 0.0f) {
             PushEsp(this);
             return;
         }
     }
     if (ColorUpdate()) {
-        if (life != 0 && life <= cnt) {
+        if (m_Life_max != 0 && m_Life_max <= m_Life_time) {
             PushEsp(this);
             return;
         }
-        cnt++;
+        m_Life_time++;
         if (!AnmMove()) {
             PushEsp(this);
             return;
         }
-        PSMTXIdentity(mat);
-        RotMatrix(mat, &rot);
-        TransMatrix(mat, &w->pos0);
-        PSMTXConcat(w->mat, mat, mat);
-        PSMTXMultVec(mat, &w->pos0, &pos);
+        PSMTXIdentity(m_Mat);
+        RotMatrix(m_Mat, &m_Ang);
+        TransMatrix(m_Mat, &w->BasePos);
+        PSMTXConcat(w->ParMat, m_Mat, m_Mat);
+        PSMTXMultVec(m_Mat, &w->BasePos, &m_Pos);
     }
 }
 
@@ -74,26 +74,26 @@ extern "C" void Esp02_Trans(cEsp02* esp)
 
 void EspStrip02_setup(cEsp02* esp)
 {
-    Esp02Work* w = &esp->work;
+    Esp02Work* w = &esp->m_Free;
     Mtx id;
     Mtx m;
 
     CameraCurrentProjection();
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
         pLog->err(0, 0, "EspStrip_Trans():SCREEN MODE is invalid.");
         PushEsp(esp);
         return;
     }
-    PSMTXIdentity(esp->mat);
-    RotMatrix(esp->mat, &esp->rot);
-    TransMatrix(esp->mat, &w->pos0);
-    PSMTXConcat(w->mat, esp->mat, esp->mat);
-    PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-    PSMTXConcat(m, esp->mat, esp->mat);
+    PSMTXIdentity(esp->m_Mat);
+    RotMatrix(esp->m_Mat, &esp->m_Ang);
+    TransMatrix(esp->m_Mat, &w->BasePos);
+    PSMTXConcat(w->ParMat, esp->m_Mat, esp->m_Mat);
+    PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+    PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -120,14 +120,14 @@ void esp02Trans_sub(cEsp02* esp)
     f32 nz;
     u32 i;
 
-    dir.x = -esp->sizeX;
+    dir.x = -esp->m_Size_base_x;
     dir.y = 0.0f;
     dir.z = 0.0f;
-    PSMTXMultVecSR(esp->mat, &dir, &dir);
+    PSMTXMultVecSR(esp->m_Mat, &dir, &dir);
     org.x = 0.0f;
     org.y = 0.0f;
     org.z = 0.0f;
-    PSMTXMultVec(esp->mat, &org, &org);
+    PSMTXMultVec(esp->m_Mat, &org, &org);
     pts[0] = org;
     pts[0].x += dir.x;
     pts[0].y += dir.y;
@@ -142,7 +142,7 @@ void esp02Trans_sub(cEsp02* esp)
         }
 #line 243 "D:/Bio4/Prog/esp02.cpp"
         VECNormalize(&cross, &cross);
-        half = esp->sizeY * 0.5f;
+        half = esp->m_Size_base_y * 0.5f;
         PSVECScale(&cross, &q[0], half);
         PSVECScale(&cross, &q[1], -half);
         if (i == 0) {
@@ -167,10 +167,10 @@ void esp02Trans_sub(cEsp02* esp)
         {
             GXColor c;
 
-            c.r = (u8)esp->colR;
-            c.g = (u8)esp->colG;
-            c.b = (u8)esp->colB;
-            c.a = (u8)(esp->colA * nz);
+            c.r = (u8)esp->m_Col_r;
+            c.g = (u8)esp->m_Col_g;
+            c.b = (u8)esp->m_Col_b;
+            c.a = (u8)(esp->m_Col_a * nz);
             GXSetChanMatColor(4, c);
         }
         EspStrip_draw_poly(esp, i, v, 1, 1);
@@ -179,11 +179,11 @@ void esp02Trans_sub(cEsp02* esp)
 
 int cEsp02::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp02Work* w = &work;
+    Esp02Work* w = &m_Free;
 
-    w->pos0 = pos;
-    PSMTXIdentity(w->mat);
-    if ((s8)partsNo >= -8 && (s8)partsNo <= -3) {
+    w->BasePos = m_Pos;
+    PSMTXIdentity(w->ParMat);
+    if ((s8)m_Parts_no >= -8 && (s8)m_Parts_no <= -3) {
         pLog->err(0, 0, "EspStrip_Trans():SCREEN MODE is invalid.");
         return 0;
     }

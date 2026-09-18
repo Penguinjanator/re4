@@ -20,10 +20,10 @@ void Wep47_init(cModel* m)
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep47_init() cObjWep CREATE FAILED");
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x8), 0x44, 1);
@@ -50,7 +50,7 @@ void cObjHkSniper::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x22));
@@ -62,9 +62,9 @@ void cObjHkSniper::moveFire()
 {
     if (wep.step == 0) {
         pMotion = 0;
-        SndCall(2, 0, &pParts->worldPos, 0, 0, 0);
-        SndCall(2, 4, &pParts->worldPos, 0, 0, 0);
-        BitOn(pG->flags_500C, 0x00800000);
+        SndCall(2, 0, &pParts->world, 0, 0, 0);
+        SndCall(2, 4, &pParts->world, 0, 0, 0);
+        BitOn(pG->Status_flg[0], 0x00800000);
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0, 1);
         wep.step = 1;
     }
@@ -76,7 +76,7 @@ void cObjHkSniper::moveReload()
         void* m;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x21);
             break;
@@ -87,8 +87,8 @@ void cObjHkSniper::moveReload()
             m = WEP_ARC_PTR(0x26);
             break;
         }
-        MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
-        switch (pG->x4FBA) {
+        MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -99,10 +99,10 @@ void cObjHkSniper::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, 34.0f)) {
+    if (MotionCheckCrossFrame(&Motion, 34.0f)) {
         ItemMgr.reload();
     }
 }
@@ -127,12 +127,12 @@ void cObjHkSniper::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x20));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x3A));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x3B));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x3C));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x3D));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x38));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x39));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xD));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xD));
     pl->setRightHand(1);
     pl->setLeftHand(2);
 }

@@ -134,7 +134,7 @@ void itemNameDisp(SUB_SCREEN* wk)
     MessageControl* pm = &cMes;
     Message* m = pm->getMes(0);
 
-    y -= m->fontH / 2;
+    y -= m->m_font_h / 2;
     if (!(item->flags & 1)) {
         del = 1;
     }
@@ -142,7 +142,7 @@ void itemNameDisp(SUB_SCREEN* wk)
         pm->Delete(0);
     } else {
         cMesS.setFontSizeS(0, item_name_w[1], item_name_h[1]);
-        m->lineH = 0;
+        m->m_line_gap = 0;
         m->charSpace = item_name_space[3];
         pm->MesSet(item->id, x, y, 0x20088, 0, 0, 4);
     }
@@ -168,11 +168,11 @@ void SsItemInit::move(SUB_SCREEN* wk)
 
     switch (st) {
     case 0:
-        if (wk->x4C(wk) != 1) {
+        if (wk->scrn_out_func(wk) != 1) {
             break;
         }
-        if (wk->x266 == 2) {
-            wk->x44 = 1;
+        if (wk->menu_old == 2) {
+            wk->wait_cnt = 1;
         }
         IdSubErase();
         IdNumErase();
@@ -199,20 +199,20 @@ void SsItemInit::move(SUB_SCREEN* wk)
         if (item_read_req <= 0) {
             break;
         }
-        if (wk->x266 == 2 && wk->type != 0x80) {
+        if (wk->menu_old == 2 && wk->type != 0x80) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
             sscrnLightClear(wk);
             {
                 Cockpit* ck = &Cckpt;
-                ck->life.fix(1);
-                ck->life.frameIn();
+                ck->m_LifeMeter.fix(1);
+                ck->m_LifeMeter.frameIn();
             }
         } else {
             sscrnModelClear(wk);
         }
-        wk->x44 = 0;
+        wk->wait_cnt = 0;
         state++;
     case 3: {
         int stat;
@@ -247,7 +247,7 @@ void SsItemMain::init(SUB_SCREEN* wk)
     exam->connect(0, sel);
     cur = sel;
     itemCameraInit(wk, &pGS->Cam);
-    IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), 9);
+    IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), TEX_OWNER_ID_SSCRN);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
     }
@@ -272,21 +272,21 @@ void SsItemMain::init(SUB_SCREEN* wk)
         int j;
         setCommandId(i, tbl, &num);
         for (j = 0; j < num * 2 + 4; j++) {
-            tbl[j]->dir |= 0xF;
+            tbl[j]->rev_flag |= 0xF;
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, 0x1E, 0x13, 1, 0);
-    IdSub.unitPtr(0, 0x1E)->flags &= ~8;
-    IdSub.unitPtr(0x60, 0x16)->dir |= 0xF;
-    IdSub.unitPtr(0x61, 0x16)->flags &= ~8;
-    IdSub.unitPtr(0x62, 0x16)->flags &= ~8;
-    IdSub.unitPtr(0x70, 0x16)->dir |= 0xF;
-    IdSub.unitPtr(0x71, 0x16)->flags &= ~8;
-    IdSub.unitPtr(0x72, 0x16)->flags &= ~8;
+    IdSub.unitPtr(0, 0x1E)->be_flag &= ~8;
+    IdSub.unitPtr(0x60, 0x16)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x61, 0x16)->be_flag &= ~8;
+    IdSub.unitPtr(0x62, 0x16)->be_flag &= ~8;
+    IdSub.unitPtr(0x70, 0x16)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x71, 0x16)->be_flag &= ~8;
+    IdSub.unitPtr(0x72, 0x16)->be_flag &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
-    if (wk->x266 == 2 && wk->type != 0x80) {
-        wk->x269 = 0;
-        wk->x26A = 10;
+    if (wk->menu_old == 2 && wk->type != 0x80) {
+        wk->alpha_flag = 0;
+        wk->alpha_cnt = 10;
     }
     MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->pItem, 4));
     {
@@ -311,10 +311,10 @@ void SsItemMain::move(SUB_SCREEN* wk)
     if (cur != exam && state == 0) {
         itemNameDisp(wk);
     }
-    wk->x267 = 0;
+    wk->cursor_mode = 0;
     switch (state) {
     case 0:
-        if (wk->x367 == 0) {
+        if (wk->item_make_open == 0) {
             Widget<SUB_SCREEN>* w = cur;
             w->move(wk);
             next = w->cur;
@@ -322,18 +322,18 @@ void SsItemMain::move(SUB_SCREEN* wk)
                 switch (sel->state) {
                 case 2:
                     state = 1;
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     sscrnMainMenuInit(wk, 1);
                     break;
                 case 1:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(5, wk);
                     break;
                 default:
                     if (wk->type != 0x80 && next == cur) {
                         if (Key.trg & 0x00800000) {
-                            wk->x34 = 0;
-                            wk->x266 = 0;
+                            wk->close_flag = 0;
+                            wk->menu_old = 0;
                             transit(0, wk);
                         }
                     }
@@ -343,11 +343,11 @@ void SsItemMain::move(SUB_SCREEN* wk)
             if (cur == cmd) {
                 switch (cmd->state) {
                 case 1:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(5, wk);
                     break;
                 case 2:
-                    wk->x34 |= 2;
+                    wk->close_flag |= 2;
                     transit(4, wk);
                     SndCall(0, 0x1A, 0, 0, 0, 0);
                     break;
@@ -357,9 +357,9 @@ void SsItemMain::move(SUB_SCREEN* wk)
         cur = next;
         break;
     case 1:
-        if (wk->x367 == 0) {
+        if (wk->item_make_open == 0) {
             if (sscrnMainMenu(wk)) {
-                switch ((s8) wk->x264) {
+                switch ((s8) wk->menu_no) {
                 case 1:
                     transit(0, wk);
                     break;
@@ -389,11 +389,11 @@ void SsItemMain::move(SUB_SCREEN* wk)
         }
         break;
     }
-    if (wk->x367) {
+    if (wk->item_make_open) {
         itemMakeMove(wk);
         if (Joy[0].trg & 0x200) {
-            wk->x367 = wk->x367 == 0;
-            if (wk->x367) {
+            wk->item_make_open = wk->item_make_open == 0;
+            if (wk->item_make_open) {
                 pG->debug_mode = 1;
             } else {
                 pG->debug_mode = wk->debugMode;
@@ -401,10 +401,10 @@ void SsItemMain::move(SUB_SCREEN* wk)
         }
     }
     if (Joy[0].trg & 0x10) {
-        if (!(pG->flags_54 & 8) || PadCheckStatus(&Joy[1]) == 1) {
-            wk->x367 = wk->x367 == 0;
+        if (!(pG->System_flg & 8) || PadCheckStatus(&Joy[1]) == 1) {
+            wk->item_make_open = wk->item_make_open == 0;
         }
-        if (wk->x367) {
+        if (wk->item_make_open) {
             pG->debug_mode = 1;
         } else {
             pG->debug_mode = wk->debugMode;
@@ -428,7 +428,7 @@ void SsItemMain::quit(SUB_SCREEN* wk)
     }
     Mem_free(wk->pItemWk);
     sscrn_item_out_init(wk);
-    wk->x4C = sscrn_item_out;
+    wk->scrn_out_func = sscrn_item_out;
 }
 
 void sscrn_item_out_init(SUB_SCREEN* wk)
@@ -436,42 +436,42 @@ void sscrn_item_out_init(SUB_SCREEN* wk)
     IdUnit* u;
 
     u = IdSub.unitPtr(0, 0x16);
-    u->dir |= 1;
+    u->rev_flag |= 1;
     u = IdSub.unitPtr(5, 0x16);
-    u->dir |= 4;
+    u->rev_flag |= 4;
     u = IdNum.unitPtr(0x40, 0x15);
     u->path0 = item_path0[0];
     u->curve[0] = item_curve[0];
     u->path1 = item_path1[0];
     FuncPathParametrize(u->path0, u->path1);
     if (item_frame_on) {
-        u->dir &= ~1;
+        u->rev_flag &= ~1;
         u->scr = item_scr[0];
         IdSub.setTime(u, 0);
         IdSub.movePos(u);
         IdSub.setTime(u, 15);
         IdSub.movePos(u);
     }
-    u->dir |= 1;
+    u->rev_flag |= 1;
     u = IdNum.unitPtr(0x50, 0x15);
     u->path0 = item_path0[1];
     u->curve[0] = item_curve[1];
     u->path1 = item_path1[1];
     FuncPathParametrize(u->path0, u->path1);
     if (item_frame_on) {
-        u->dir &= ~1;
+        u->rev_flag &= ~1;
         u->scr = item_scr[1];
         IdSub.setTime(u, 0);
         IdSub.movePos(u);
         IdSub.setTime(u, 15);
         IdSub.movePos(u);
     }
-    u->dir |= 1;
+    u->rev_flag |= 1;
     u = IdSub.unitPtr(1, 0x1E);
-    u->dir |= 1;
-    if (wk->x265 == 2) {
-        Cckpt.life.frameOut();
-        wk->x269 = 1;
+    u->rev_flag |= 1;
+    if (wk->menu_next == 2) {
+        Cckpt.m_LifeMeter.frameOut();
+        wk->alpha_flag = 1;
     }
 }
 
@@ -615,19 +615,19 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
         }
         if (off) {
         HIDE:
-            m->flags &= ~8;
+            m->be_flag &= ~8;
             numDispI(no, 0, 0, 0);
         } else {
             ItemInfo info;
-            m->flags |= 8;
-            m->flags_7F |= 2;
+            m->be_flag |= 8;
+            m->tex_flag |= 2;
             // do {} while (0): the loop notes weight `item`'s refs one depth deeper, so global-alloc
             // ranks it above `col` (item r30, col r29).
             do {
-                m->no = itemTexNo(item->id);
+                m->texNo = itemTexNo(item->id);
                 itemInfo(item->id, &info);
             } while (0);
-            if (info.x4 != 1) {
+            if (info.maxNum != 1) {
                 Vec pos;
                 pos.x = (f32) item_num_x;
                 pos.y = (f32) item_num_y;
@@ -779,7 +779,7 @@ int itemSelect(SUB_SCREEN* wk, int mode)
             } else {
                 item_frame_state[iw->col] = 2;
             }
-            wk->x268 = 1;
+            wk->cursor_flag = 1;
             SndCall(0, 6, 0, 0, 0, 0);
         }
     }
@@ -797,9 +797,9 @@ END:
         no = i + 1;
         IdUnit* u = IdSub.unitPtr(no, 0x16);
         if (i == iw->col) {
-            u->flags |= 8;
+            u->be_flag |= 8;
         } else {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
         i = no;
     }
@@ -828,7 +828,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
     int i;
 
     state = 0;
-    wk->x267 = 1;
+    wk->cursor_mode = 1;
     if (sscrnKey2Game(wk)) {
         state = 1;
         return;
@@ -837,7 +837,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
         state = 2;
         SndCall(0, 0xA, 0, 0, 0, 0);
         for (i = 0; i < 2; i++) {
-            IdSub.unitPtr(i + 1, 0x16)->flags |= 8;
+            IdSub.unitPtr(i + 1, 0x16)->be_flag |= 8;
         }
         return;
     }
@@ -858,7 +858,7 @@ void ItemSelect::move(SUB_SCREEN* wk)
         state = 2;
         SndCall(0, 0xA, 0, 0, 0, 0);
         for (i = 0; i < 2; i++) {
-            IdSub.unitPtr(i + 1, 0x16)->flags |= 8;
+            IdSub.unitPtr(i + 1, 0x16)->be_flag |= 8;
         }
     }
 }
@@ -870,13 +870,13 @@ void ItemCommand::init(SUB_SCREEN* wk)
 
     setCommandId(iw->col != 0, id, &num);
     for (i = 0; i < num * 2 + 4; i++) {
-        id[i]->dir &= 0xF0;
-        id[i]->flags |= 8;
+        id[i]->rev_flag &= 0xF0;
+        id[i]->be_flag |= 8;
     }
     cursorOld = 1;
     mode = 0;
     state = 0;
-    wk->x26C = 0;
+    wk->cmd_menu_no = 0;
     SndCall(0, 4, 0, 0, 0, 0);
 }
 
@@ -884,14 +884,14 @@ void ItemCommand::move(SUB_SCREEN* wk)
 {
     ItemScreenWork* iw = wk->pItemWk;
 
-    wk->x267 = 1;
+    wk->cursor_mode = 1;
     switch (mode) {
     case 0:
         if (Key.trg & 0x40000000) {
             {
                 int j;
                 for (j = 0; j < num * 2 + 4; j++) {
-                    id[j]->dir |= 0xF;
+                    id[j]->rev_flag |= 0xF;
                 }
             }
             transit(0, wk);
@@ -902,7 +902,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
             int used = 0;
             switch (iw->col) {
             case 0:
-                switch (wk->x26C) {
+                switch (wk->cmd_menu_no) {
                 case 0:
                     item_cmd_mode = used;
                     break;
@@ -915,7 +915,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 }
                 break;
             case 1:
-                switch (wk->x26C) {
+                switch (wk->cmd_menu_no) {
                 case 0:
                     item_cmd_mode = iw->col;
                     break;
@@ -931,7 +931,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 {
                     int j;
                     for (j = 0; j < num * 2 + 4; j++) {
-                        id[j]->dir |= 0xF;
+                        id[j]->rev_flag |= 0xF;
                     }
                 }
                 }
@@ -947,8 +947,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
             case 1:
                 // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
                 // and load stay below it (the store is on the critical path).
-                PSet((void*&) wk->x24C, MapMgr.getWork(2));
-                PSet((void*&) wk->x248, item_sel);
+                PSet((void*&) wk->p_exam_model, MapMgr.getWork(2));
+                PSet((void*&) wk->p_exam_item, item_sel);
                 if (item_sel->id == 0xA2) {
                     state = 2;
                     return;
@@ -966,7 +966,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 {
                     int j;
                     for (j = 0; j < num * 2 + 4; j++) {
-                        id[j]->dir |= 0xF;
+                        id[j]->rev_flag |= 0xF;
                     }
                 }
                 state = 1;
@@ -976,24 +976,24 @@ void ItemCommand::move(SUB_SCREEN* wk)
             SndCall(0, 7, 0, 0, 0, 0);
         }
         if (Key.rep & 0x01000000) {
-            wk->x26C--;
+            wk->cmd_menu_no--;
         } else if (Key.rep & 0x02000000) {
-            wk->x26C++;
+            wk->cmd_menu_no++;
         }
-        wk->x26C = wk->x26C < 0 ? num - 1 : (wk->x26C > num - 1 ? 0 : wk->x26C);
+        wk->cmd_menu_no = wk->cmd_menu_no < 0 ? num - 1 : (wk->cmd_menu_no > num - 1 ? 0 : wk->cmd_menu_no);
         if (Key.rep & 0x03000000) {
             SndCall(0, 0xA, 0, 0, 0, 0);
         }
-        if (cursorOld != wk->x26C) {
+        if (cursorOld != wk->cmd_menu_no) {
             int j;
             for (j = 0; j < num; j++) {
-                if (j == wk->x26C) {
-                    id[j * 2 + 4]->flags |= 8;
+                if (j == wk->cmd_menu_no) {
+                    id[j * 2 + 4]->be_flag |= 8;
                 } else {
-                    id[j * 2 + 4]->flags &= ~8;
+                    id[j * 2 + 4]->be_flag &= ~8;
                 }
             }
-            cursorOld = wk->x26C;
+            cursorOld = wk->cmd_menu_no;
         }
         break;
     case 1: {
@@ -1009,10 +1009,10 @@ void ItemCommand::move(SUB_SCREEN* wk)
         int j;
         for (j = 0; j < 11; j++) {
             sub[j] = IdSub.unitPtr(base + j, 0x1C);
-            sub[j]->flags |= 8;
-            sub[j]->dir &= 0xF0;
+            sub[j]->be_flag |= 8;
+            sub[j]->rev_flag &= 0xF0;
         }
-        PSVECAdd(&id[wk->x26C * 2 + 4]->scr, &id[wk->x26C * 2 + 4]->parent->scr, &sub[0]->scr);
+        PSVECAdd(&id[wk->cmd_menu_no * 2 + 4]->scr, &id[wk->cmd_menu_no * 2 + 4]->pParent->scr, &sub[0]->scr);
         mode = 2;
     }
         // fall through: the sub menu is processed in the frame that opens it
@@ -1021,7 +1021,7 @@ void ItemCommand::move(SUB_SCREEN* wk)
             {
                 int j;
                 for (j = 0; j < 11; j++) {
-                    sub[j]->dir |= 0xF;
+                    sub[j]->rev_flag |= 0xF;
                 }
             }
             mode = 0;
@@ -1040,13 +1040,13 @@ void ItemCommand::move(SUB_SCREEN* wk)
             {
                 int j;
                 for (j = 0; j < num * 2 + 4; j++) {
-                    id[j]->dir |= 0xF;
+                    id[j]->rev_flag |= 0xF;
                 }
             }
             {
                 int j;
                 for (j = 0; j < 11; j++) {
-                    sub[j]->dir |= 0xF;
+                    sub[j]->rev_flag |= 0xF;
                 }
             }
             transit(0, wk);
@@ -1064,12 +1064,12 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 SndCall(0, 0xA, 0, 0, 0, 0);
             }
         }
-        sub[5]->flags &= ~8;
-        sub[7]->flags &= ~8;
+        sub[5]->be_flag &= ~8;
+        sub[7]->be_flag &= ~8;
         if (subSel == 0) {
-            sub[5]->flags |= 8;
+            sub[5]->be_flag |= 8;
         } else {
-            sub[7]->flags |= 8;
+            sub[7]->be_flag |= 8;
         }
         break;
     }
@@ -1097,13 +1097,13 @@ void ItemCombine::init(SUB_SCREEN* wk)
         base = 0x70;
         break;
     }
-    IdSub.unitPtr(base, 0x16)->dir &= 0xF0;
-    IdSub.unitPtr(base | 1, 0x16)->flags |= 8;
-    IdSub.unitPtr(base | 2, 0x16)->flags |= 8;
+    IdSub.unitPtr(base, 0x16)->rev_flag &= 0xF0;
+    IdSub.unitPtr(base | 1, 0x16)->be_flag |= 8;
+    IdSub.unitPtr(base | 2, 0x16)->be_flag |= 8;
     item = ITEM_PTR(iw->sel[col], col);
     u = IdSub.unitPtr(base | 1, 0x16);
-    u->flags_7F |= 2;
-    u->no = itemTexNo(item->id);
+    u->tex_flag |= 2;
+    u->texNo = itemTexNo(item->id);
     iw->comb[col] = iw->sel[col];
     itemFrameSet(wk, col);
 }
@@ -1122,9 +1122,9 @@ void ItemCombine::quit(SUB_SCREEN* wk)
         base = 0x70;
         break;
     }
-    IdSub.unitPtr(base, 0x16)->dir |= 0xF;
-    IdSub.unitPtr(base | 1, 0x16)->flags &= ~8;
-    IdSub.unitPtr(base | 2, 0x16)->flags &= ~8;
+    IdSub.unitPtr(base, 0x16)->rev_flag |= 0xF;
+    IdSub.unitPtr(base | 1, 0x16)->be_flag &= ~8;
+    IdSub.unitPtr(base | 2, 0x16)->be_flag &= ~8;
     iw->comb[col] = -1;
 }
 
@@ -1133,7 +1133,7 @@ void ItemCombine::move(SUB_SCREEN* wk)
     ItemScreenWork* iw = wk->pItemWk;
     s8 col = iw->col;
 
-    wk->x267 = 2;
+    wk->cursor_mode = 2;
     if (Key.trg & 0x40000000) {
         s8 old = iw->idx[col];
         int d;
@@ -1203,7 +1203,7 @@ struct SsItemMakeWork {
     u8 pad_1D[3];
     int id[2];       // 0x20  SUB_SCREEN::x36C
 };
-#define ITEM_MAKE_WORK(wk) ((SsItemMakeWork*) &(wk)->x34C)
+#define ITEM_MAKE_WORK(wk) ((SsItemMakeWork*) &(wk)->debug_menu)
 
 static const char* item_make_name[3] = {"KEY ITEM", "TREASURE", "REMOVE  "};
 static int item_make_mes_x = 0;

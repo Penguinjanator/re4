@@ -28,7 +28,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001914	0x48	em3e/em3e.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x0000195C	0x4	em3e/em3e.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .rodata	0x00000068	0x8	em3e/em3e.cpp	local	lbl_em3e_rodata_68	lbl_em3e_rodata_68
-.rodata	0x00000070	0xC	em3e/em3e.cpp	local	lbl_em3e_rodata_70	lbl_em3e_rodata_70
+.rodata	0x00000070	0xC	em3e/em3e.cpp	local	ofs.351	ofs.351
 .rodata	0x0000007C	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_7C	lbl_em3e_rodata_7C
 .rodata	0x00000080	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_80	lbl_em3e_rodata_80
 .rodata	0x00000084	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_84	lbl_em3e_rodata_84
@@ -80,8 +80,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000168	0x8	em3e/em3e.cpp	local	lbl_em3e_rodata_168	lbl_em3e_rodata_168
 .rodata	0x00000170	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_170	lbl_em3e_rodata_170
 .rodata	0x00000174	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_174	lbl_em3e_rodata_174
-.rodata	0x00000178	0xC	em3e/em3e.cpp	local	lbl_em3e_rodata_178	lbl_em3e_rodata_178
-.rodata	0x00000184	0xC	em3e/em3e.cpp	local	lbl_em3e_rodata_184	lbl_em3e_rodata_184
+.rodata	0x00000178	0xC	em3e/em3e.cpp	local	up.382	up.382
+.rodata	0x00000184	0xC	em3e/em3e.cpp	local	down.383	down.383
 .rodata	0x00000190	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_190	lbl_em3e_rodata_190
 .rodata	0x00000194	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_194	lbl_em3e_rodata_194
 .rodata	0x00000198	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_198	lbl_em3e_rodata_198
@@ -91,6 +91,6 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000001C4	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_1C4	lbl_em3e_rodata_1C4
 .rodata	0x000001C8	0x4	em3e/em3e.cpp	local	lbl_em3e_rodata_1C8	lbl_em3e_rodata_1C8
 .rodata	0x000001CC	0xE4	em3e/em3e.cpp	local	lbl_em3e_rodata_1CC	lbl_em3e_rodata_1CC
-.rodata	0x000002B0	0x58	em3e/em3e.cpp	global	lbl_em3e_rodata_2B0	lbl_em3e_rodata_2B0
-.rodata	0x00000308	0x28	em3e/em3e.cpp	global	lbl_em3e_rodata_308	lbl_em3e_rodata_308
-.data	0x00000000	0x18	em3e/em3e.cpp	global	lbl_em3e_data_0	lbl_em3e_data_0
+.rodata	0x000002B0	0x58	em3e/em3e.cpp	global	_vt.7cEmMark	_vt.7cEmMark
+.rodata	0x00000308	0x28	em3e/em3e.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x18	em3e/em3e.cpp	global	emmark_tbl	emmark_tbl

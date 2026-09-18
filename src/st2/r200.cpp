@@ -68,28 +68,28 @@ void R200Init()
 #line 51 "D:/Bio4/Prog/r200.cpp"
     R200Work*& wp = r200_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
     wp = (R200Work*) MEM_CALLOC(sizeof(R200Work), 1, 0xd);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 4);
         RsfSet(G_ROOM_ID, 2);
     }
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
-        SceExec(0x12, (TaskFunc) r200_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r200_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r200_execEvent00, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r200_execEvent00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r200s00.evd", 0, 0, 0, 0);
         EmReadSearch(3, 0, 0);
         EmReadSearch(0x12, 0, 0);
         EmReadSearch(0x3B, 0, 0);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
-            SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r200_execTruckEvent, 0, 1);
+            SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r200_execTruckEvent, 0, 1);
             SceAtSetEnable(0x8A, 0);
         }
     } else {
         SmdGetObjPtr(8)->be_flag |= 0x20;
-        SmdGetObjPtr(8)->pParts->rot.x = -0.87266463f;
+        SmdGetObjPtr(8)->pParts->ang.x = -0.87266463f;
         SmdGetObjPtr(9)->be_flag |= 0x20;
-        SmdGetObjPtr(9)->pParts->rot.x = 0.87266463f;
+        SmdGetObjPtr(9)->pParts->ang.x = 0.87266463f;
     }
     EvtMgr.SetFunc("evt_r200s00_func", (void*) Evt_R200S00_Func);
     SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, (void (*)()) r200_openedBox, 0, 0);
@@ -129,7 +129,7 @@ void r200_openBox_main(int id, int mode)
     if (obj) {
         obj->be_flag |= 0x20;
         if (mode == 1) {
-            obj->pParts->rot.x = spd;
+            obj->pParts->ang.x = spd;
         } else {
             int i;
 
@@ -137,7 +137,7 @@ void r200_openBox_main(int id, int mode)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 0; i < 30; i++) {
                 if (obj) {
-                    obj->pParts->rot.x += spd;
+                    obj->pParts->ang.x += spd;
                 }
                 SceSleep(1);
             }
@@ -175,8 +175,8 @@ static void r200_execShowView()
     static const f32 vol = 0.0f;
 
     RsfSet(G_ROOM_ID, 4);
-    if ((pG->flags_54 & 0x40) == 0) {
-        BitOn(pG->flags_54, 0x40);
+    if ((pG->System_flg & 0x40) == 0) {
+        BitOn(pG->System_flg, 0x40);
         r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, FCRef(vol));
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
@@ -196,17 +196,17 @@ static void r200_execEvent00()
     RsfSet(G_ROOM_ID, 2);
     SndRoomStrStop(3);
     SceEventStart(0);
-    pG->flags_54 |= 0x400;
+    pG->System_flg |= 0x400;
     EmMgr.destroyAll();
     SceSleep(2);
     EmReadInit();
     EvtMgr.EvtReadExec("event/evd/r200s00.evd", 0, 0x50);
     SceEventEnd(0);
-    pG->flags_51C0 |= 0x00800000;
+    pG->Scenario_flg[0] |= 0x00800000;
     SceAtInitSaveItem();
     levelDataAdd(merchantData, level_r200);
     stockDataAdd(merchantData, stock_2st_first);
-    SceSetChapterEnd(5, 9);
+    SceSetChapterEnd(CHAPTER_2_3, 9);
 }
 
 static void r200_checkDoor()
@@ -216,8 +216,8 @@ static void r200_checkDoor()
 
 void r200_lockDoor()
 {
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r200_checkDoor, 0, 1);
-    memclr_asm(pG->save_item, 0x1000);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r200_checkDoor, 0, 1);
+    memclr_asm(pG->item_save, 0x1000);
 }
 
 // The Ganado wave once the player has turned away from the truck (or reached area 0xB).
@@ -226,7 +226,7 @@ static void r200_checkEmSetEvent()
     int cnt = 0;
 
     for (;;) {
-        if (SceAtHitCheck(3) == 0 && pPL->rot.y >= 0.0f && pPL->rot.y <= 3.14f) {
+        if (SceAtHitCheck(3) == 0 && pPL->ang.y >= 0.0f && pPL->ang.y <= 3.14f) {
             cnt++;
             if (cnt > 15) {
                 goto found;
@@ -282,7 +282,7 @@ static void r200_execTruckEvent_end()
         EffectEspgenDelete(0, (u8) r200_work.p->eff0C, 0);
         EffectEfmDelete(0, (u8) r200_work.p->eff0C, 0);
         SceEventEnd(0);
-        if ((pG->flags_174 & 0x80000000) == 0) {
+        if ((pG->Room_flg[0] & 0x80000000) == 0) {
             cEm* em = r200_work.p->em0.getPtr();
 
             EstSet((int) em, -1, 0, 0, 1, 0x20, 0, 0, (u32) r200_work.p->em0.getPtr(), 0);
@@ -299,10 +299,10 @@ static void r200_execTruckEvent_end()
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
-        EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1);
+        SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     }
-    SceExec(0x12, (TaskFunc) r200_checkEmSetEvent, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r200_checkEmSetEvent, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Area 0: the truck drives in.
@@ -324,9 +324,9 @@ static void r200_execTruckEvent()
     r200_work.p->eff0C = 0;
     r200_work.p->eff0C = EspPullCoreKind();
     SceSleep(10);
-    SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->worldPos, 0, 0, 0);
+    SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->world, 0, 0, 0);
     SceSleep(10);
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     {
         cEm* em = r200_work.p->em0.getPtr();
 
@@ -361,16 +361,16 @@ extern "C" void Evt_R200S00_Func(Event* e)
         setRoomEtcBreakDisp(6, 0, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cModel*) mod)->x12F = 1;
+                    ((cModel*) mod)->ot_type = 1;
                 }
                 if (e->GetMod(&mod, "evm0900", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
@@ -420,12 +420,12 @@ extern "C" void Evt_R200S00_Func(Event* e)
         case 0xA:
         case 0x10:
         case 0x13:
-            if (e->frame == 0) {
-                EventCutEstSet(1, e->cut);
+            if (e->NowFrame == 0) {
+                EventCutEstSet(1, e->NowCut);
             }
             break;
         case 0x14:
-            if (e->frame == 2) {
+            if (e->NowFrame == 2) {
                 SndRoomStrStop(3);
             }
             break;
@@ -433,9 +433,9 @@ extern "C" void Evt_R200S00_Func(Event* e)
         break;
     case 2:
         SmdGetObjPtr(8)->be_flag |= 0x20;
-        SmdGetObjPtr(8)->pParts->rot.x = -0.87266463f;
+        SmdGetObjPtr(8)->pParts->ang.x = -0.87266463f;
         SmdGetObjPtr(9)->be_flag |= 0x20;
-        SmdGetObjPtr(9)->pParts->rot.x = 0.87266463f;
+        SmdGetObjPtr(9)->pParts->ang.x = 0.87266463f;
         SmdGetObjPtr(0x18)->setNoSuspend(1);
         SmdGetObjPtr(0x33)->setNoSuspend(1);
         SmdGetObjPtr(0x34)->setNoSuspend(1);
@@ -444,7 +444,7 @@ extern "C" void Evt_R200S00_Func(Event* e)
 
             if (sub) {
                 cPlayer* pl = pPL;
-                Vec* rot = &pl->rot;
+                Vec* rot = &pl->ang;
 
                 sub->setPos(&pl->pos);
                 sub->setAng(rot);

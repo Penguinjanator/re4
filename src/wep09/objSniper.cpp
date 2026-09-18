@@ -42,7 +42,7 @@ void cObjSniper::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x23));
@@ -56,13 +56,13 @@ void cObjSniper::init(cModel* parent)
 void cObjSniper::moveFire()
 {
     if (wep.step == 0) {
-        MotionSetCore(this, &this->mot, WEP_ARC_PTR(0x21), 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x21), 0, 0, 0, 0);
         motSpeedRate = 1.0f;
-        SndCall(2, 4, &getPartsPtr(0)->worldPos, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        SndCall(2, 4, &getPartsPtr(0)->world, 0, 0, 0);
+        pG->Status_flg[0] |= 0x00800000;
         wep.step = 1;
     } else {
-        if (MotionCheckCrossFrame(&mot, 14.0f)) {
+        if (MotionCheckCrossFrame(&Motion, 14.0f)) {
             setCartridge();
         }
         if (MotionGetState(this)) {
@@ -107,7 +107,7 @@ void cObjSniper::moveReload()
         void* m;
         u16 se;
 
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             m = WEP_ARC_PTR(0x22);
             break;
@@ -118,8 +118,8 @@ void cObjSniper::moveReload()
             m = WEP_ARC_PTR(0x26);
             break;
         }
-        MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
-        switch (pG->x4FBA) {
+        MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
+        switch (pG->weapon_lv_reload) {
         default:
             se = 2;
             break;
@@ -130,10 +130,10 @@ void cObjSniper::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, 10.0f)) {
+    if (MotionCheckCrossFrame(&Motion, 10.0f)) {
         EstSet((int) this, -1, 0, 0, 0x3D, 0, 0, 0xA, 0, 0);
         ItemMgr.reload();
     }
@@ -158,12 +158,12 @@ void cObjSniper::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x20));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x3A));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x3B));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x3C));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x3D));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x38));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x39));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xD));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xD));
     pl->setRightHand(1);
     pl->setLeftHand(2);
 }

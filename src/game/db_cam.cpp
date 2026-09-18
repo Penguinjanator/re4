@@ -105,24 +105,24 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     static int numEm = 0;
     static int numObj = 0;
 
-    timer--;
-    if (timer & 0x80) {
-        timer = 0;
+    m_timer--;
+    if (m_timer & 0x80) {
+        m_timer = 0;
         if (joy->trg & JOY_Z) {
-            if (mode == 0) {
-                timer = 5;
-                mode = 1;
+            if (m_menu_sw == 0) {
+                m_timer = 5;
+                m_menu_sw = 1;
                 save_mode = pG->debug_mode;
                 pGS->debug_mode = 1;
-                play = 0;
+                m_cam_play = 0;
                 adjust_qFPS(NULL, 0, 0, 1, NULL);
             } else {
-                mode = 0;
+                m_menu_sw = 0;
                 pG->debug_mode = save_mode;
             }
         }
     }
-    switch (mode) {
+    switch (m_menu_sw) {
     case 0:
         break;
     case 1:
@@ -130,29 +130,29 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
         return;
     }
     if (joy->on & ~0x1A00) {
-        if ((s32) pG->flags_60 < 0) {
-            draw_timer = 5;
+        if ((s32) pG->Debug_flg[0] < 0) {
+            m_draw_timer = 5;
         } else {
-            draw_timer = 30;
+            m_draw_timer = 30;
         }
     }
-    if (draw_timer) {
-        draw_timer--;
+    if (m_draw_timer) {
+        m_draw_timer--;
         CameraDrawTarget(cam, 0);
     }
-    if (!(pG->flags_60 & 0x10000000)) {
+    if (!(pG->Debug_flg[0] & 0x10000000)) {
         if (joy->on & ~0x1A00) {
-            pG->flags_60 |= 0x10000000;
+            pG->Debug_flg[0] |= 0x10000000;
         }
     } else {
-        if ((s32) pG->flags_60 >= 0 && (pG->flags_51E4 & 0x10)) {
-            eprintf(160, 406, 4, 0, "DEBUG CAMERA --- [%s]", key_str[key_type]);
+        if ((s32) pG->Debug_flg[0] >= 0 && (pG->Frame_cnt & 0x10)) {
+            eprintf(160, 406, 4, 0, "DEBUG CAMERA --- [%s]", key_str[m_key_type]);
         }
-        if (mode == 0 && !(flag & 1) && (joy->on & JOY_B)) {
-            pG->flags_60 &= ~0x10000000;
+        if (m_menu_sw == 0 && !(flag & 1) && (joy->on & JOY_B)) {
+            pG->Debug_flg[0] &= ~0x10000000;
         }
     }
-    switch (target_type) {
+    switch (m_target_type) {
     case 0: {
         cEm* em;
         if (joy->trg & JOY_A) {
@@ -181,7 +181,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 if (parts == NULL) {
                     cam->param.at = EmMgrWork(numEm)->pos;
                 } else {
-                    cam->param.at = parts->worldPos;
+                    cam->param.at = parts->world;
                 }
             } else {
                 cam->param.at.x = 0.0f;
@@ -199,18 +199,18 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                     col = 2;
                 }
                 eprintf2(8, 14, 32, 358, col, 7, "Id=%02x, be=%08x, type=%02x, set=%02x, List=%02d", em->id,
-                         em->be_flag, em->type, em->x38D, em->emsetNo);
+                         em->be_flag, em->type, em->set, em->emset_no);
                 eprintf2(8, 14, 32, 372, col, 7, "POS[%.2f, %.2f, %.2f], Dir[%.2f]", em->pos.x, em->pos.y,
-                         em->pos.z, em->rot.y);
-                eprintf2(8, 14, 32, 386, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[ %d], FRAME[%d/%d] ", em->xFC,
-                         em->xFD, em->xFE, em->xFF, em->hp, (u32) em->frame, em->frameMax);
-                eprintf2(8, 14, 32, 344, col, 7, "Flag=[%08x], L_pl[%.2f]", em->flags_3C8, SQRTF(em->plDist2));
-                if (em->checkStatus(1)) {
+                         em->pos.z, em->ang.y);
+                eprintf2(8, 14, 32, 386, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[ %d], FRAME[%d/%d] ", em->r_no_0,
+                         em->r_no_1, em->r_no_2, em->r_no_3, em->hp, (u32) em->frame, em->frameMax);
+                eprintf2(8, 14, 32, 344, col, 7, "Flag=[%08x], L_pl[%.2f]", em->flag, SQRTF(em->plDist2));
+                if (em->checkStatus(EM_STATUS_LOCKOFF)) {
                     eprintf2(10, 16, 400, 344, col, 7, "LOCKOFF");
                 }
             }
         }
-        if (em != NULL && (em->be_flag & 1) && (pG->flags_60 & 0x20000)) {
+        if (em != NULL && (em->be_flag & 1) && (pG->Debug_flg[0] & 0x20000)) {
             em->debugSkeletonDisp();
         }
         break;
@@ -246,7 +246,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 if (parts == NULL) {
                     cam->param.at = ObjMgrWork(numObj)->pos;
                 } else {
-                    cam->param.at = parts->worldPos;
+                    cam->param.at = parts->world;
                 }
             } else {
                 cam->param.at.x = 0.0f;
@@ -264,7 +264,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 if (parts == NULL) {
                     cam->param.at = pPL->pos;
                 } else {
-                    cam->param.at = parts->worldPos;
+                    cam->param.at = parts->world;
                 }
             } else {
                 cam->param.at.x = 0.0f;
@@ -285,13 +285,13 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
     case 4:
         break;
     }
-    if (cam_mode == 5) {
+    if (m_cam_mode == 5) {
         (this->*camera_type_tbl[1])(cam, joy);
     } else {
         cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-        (this->*camera_type_tbl[key_type])(cam, joy);
+        (this->*camera_type_tbl[m_key_type])(cam, joy);
     }
-    if ((pG->flags_60 & 0x10000000) && info_disp) {
+    if ((pG->Debug_flg[0] & 0x10000000) && info_disp) {
         Mtx inv;
         Vec pos;
         Vec at;
@@ -312,14 +312,14 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
     if (joy->on & (JOY_R | JOY_L)) {
         f32 t;
         if (joy->on & JOY_R) {
-            f32 r = joy->trigR / 150.0f;
+            f32 r = joy->triggerRight / 150.0f;
             t = r * -1000.0f * r * r;
         } else {
-            f32 r = joy->trigL / 150.0f;
+            f32 r = joy->triggerLeft / 150.0f;
             t = r * 1000.0f * r * r;
         }
         t *= (d / 10.0f + 1.0f) * 0.5f;
-        t *= gain;
+        t *= m_move_gain;
         switch (ProjType) {
         case 1: {
             f32 dist = cam->dist + t;
@@ -336,12 +336,12 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
             break;
         }
     }
-    if (joy->sx) {
+    if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, gain * (f32) joy->sx * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, m_move_gain * (f32) joy->stickX * 0.05f * DEG);
     }
-    if (joy->sy) {
-        CameraCamposRot(cam, 'x', gain * (f32) joy->sy * -0.05f * DEG);
+    if (joy->stickY) {
+        CameraCamposRot(cam, 'x', m_move_gain * (f32) joy->stickY * -0.05f * DEG);
     }
     if (joy->on & JOY_LEFT) {
         mv.x = -100.0f;
@@ -362,7 +362,7 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
         mv.z = 100.0f;
     }
     PSVECScale(&mv, &mv, (d / 10.0f + 1.0f) * 2.0f);
-    PSVECScale(&mv, &mv, gain);
+    PSVECScale(&mv, &mv, m_move_gain);
     if (mv.x != 0.0f || mv.y != 0.0f || mv.z != 0.0f) {
         Vec axis;
         Mtx m;
@@ -389,12 +389,12 @@ void debugCamera::camera_type_00(Camera* cam, JOY* joy)
         PSMTXMultVecSR(m, &mv, &mv);
         CameraDolly(cam, &mv);
     }
-    if (joy->ssx) {
+    if (joy->substickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, gain * (f32) -joy->ssx * 0.05f * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.pos, m_move_gain * (f32) -joy->substickX * 0.05f * DEG);
     }
-    if (joy->ssy) {
-        CameraTargetRot(cam, 'x', gain * (f32) -joy->ssy * -0.05f * DEG);
+    if (joy->substickY) {
+        CameraTargetRot(cam, 'x', m_move_gain * (f32) -joy->substickY * -0.05f * DEG);
     }
 }
 
@@ -407,14 +407,14 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
     if (joy->on & (JOY_R | JOY_L)) {
         f32 t;
         if (joy->on & JOY_R) {
-            f32 r = joy->trigR / 150.0f;
+            f32 r = joy->triggerRight / 150.0f;
             t = r * -1000.0f * r * r;
         } else {
-            f32 r = joy->trigL / 150.0f;
+            f32 r = joy->triggerLeft / 150.0f;
             t = r * 1000.0f * r * r;
         }
         t *= (d / 10.0f + 1.0f) * 0.5f;
-        t *= gain;
+        t *= m_move_gain;
         switch (ProjType) {
         case 1: {
             f32 dist = cam->dist + t;
@@ -434,24 +434,24 @@ void debugCamera::camera_type_01(Camera* cam, JOY* joy)
             break;
         }
     }
-    if (joy->ssx) {
-        mv.x = (f32) joy->ssx * 2.0f;
+    if (joy->substickX) {
+        mv.x = (f32) joy->substickX * 2.0f;
     }
-    if (joy->ssy) {
-        mv.y = (f32) joy->ssy * 2.0f;
+    if (joy->substickY) {
+        mv.y = (f32) joy->substickY * 2.0f;
     }
     PSVECScale(&mv, &mv, (d / 10.0f + 1.0f) * 2.0f);
-    PSVECScale(&mv, &mv, gain);
+    PSVECScale(&mv, &mv, m_move_gain);
     if (mv.x != 0.0f || mv.y != 0.0f || mv.z != 0.0f) {
         PSMTXMultVecSR(cam->mat, &mv, &mv);
         CameraDolly(cam, &mv);
     }
-    if (joy->sx) {
+    if (joy->stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->sx * 0.05f * gain * DEG);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->stickX * 0.05f * m_move_gain * DEG);
     }
-    if (joy->sy) {
-        CameraCamposRot(cam, 'x', -(f32) joy->sy * 0.05f * gain * DEG);
+    if (joy->stickY) {
+        CameraCamposRot(cam, 'x', -(f32) joy->stickY * 0.05f * m_move_gain * DEG);
     }
 }
 
@@ -471,51 +471,51 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     static Vec up = {0.0f, 0.0f, -1.0f};
     int ret;
 
-    if (mode == 0) {
+    if (m_menu_sw == 0) {
         return;
     }
-    ret = (this->*sel0_menu_tbl[sel])(joy);
+    ret = (this->*sel0_menu_tbl[m_sel0])(joy);
     if (ret == 0) {
         if (joy->trg & JOY_L) {
-            sel--;
+            m_sel0--;
         }
         if (joy->trg & JOY_R) {
-            sel++;
+            m_sel0++;
         }
-        if (sel < 0) {
-            sel = 3;
-        } else if (sel > 3) {
-            sel = 0;
+        if (m_sel0 < 0) {
+            m_sel0 = 3;
+        } else if (m_sel0 > 3) {
+            m_sel0 = 0;
         }
     }
     if (ret == -1) {
-        mode = 0;
-        timer = 5;
+        m_menu_sw = 0;
+        m_timer = 5;
         pG->debug_mode = save_mode;
     }
     // The split `lbz r0,24(r31); clrlwi r11,r0,24` head and the `beq` landing on the tail's `stw`
     // are gcse PRE of the cam_mode byte into `old_cam_mode = cam_mode` below; it needs the empty
     // join block after the inner if/else, kept alive by the `do {} while (0)` at the end of this body.
-    if (old_cam_mode != cam_mode) {
-        switch (cam_mode) {
+    if (old_cam_mode != m_cam_mode) {
+        switch (m_cam_mode) {
         case 0:
-            CamCtrl.flags_2C = (CamCtrl.flags_2C & ~8) | 0x10;
+            CamCtrl.m_system_flag = (CamCtrl.m_system_flag & ~8) | 0x10;
             break;
         case 2:
-            CamCtrl.state = 10;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.r0 = 10;
+            CamCtrl.m_system_flag |= 8;
             break;
         case 3:
-            CamCtrl.state = 7;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.r0 = 7;
+            CamCtrl.m_system_flag |= 8;
             break;
         case 4:
-            CamCtrl.state = 8;
-            CamCtrl.flags_2C |= 8;
+            CamCtrl.r0 = 8;
+            CamCtrl.m_system_flag |= 8;
             break;
         }
-        CamCtrl.sub_state = 0;
-        if (cam_mode != 5) {
+        CamCtrl.r1 = 0;
+        if (m_cam_mode != 5) {
             if (old_cam_mode == 5) {
                 pG->Cam.param = cameraBak;
                 ProjType = 1;
@@ -563,11 +563,11 @@ void debugCamera::menu(Camera* cam, JOY* joy)
             // COMPILER-DIFF: candidate (sched2 tie, second half; see the campos copy above).
             asm("" : "=m"(ProjType) : "r"(t));
             CameraSetOrientationUp(&pG->Cam);
-            pG->flags_60 |= 0x10000000;
+            pG->Debug_flg[0] |= 0x10000000;
         }
         do { } while (0);
     }
-    old_cam_mode = cam_mode;
+    old_cam_mode = m_cam_mode;
 }
 
 int debugCamera::menuCamera(JOY* joy)
@@ -582,15 +582,15 @@ int debugCamera::menuCamera(JOY* joy)
         return -1;
     }
     if (joy->rep & 0x80008) {
-        cursor--;
+        m_sel1--;
     }
     if (joy->rep & 0x40004) {
-        cursor++;
+        m_sel1++;
     }
-    if (cursor < 0) {
-        cursor = 3;
-    } else if (cursor > 3) {
-        cursor = 0;
+    if (m_sel1 < 0) {
+        m_sel1 = 3;
+    } else if (m_sel1 > 3) {
+        m_sel1 = 0;
     }
     d = 0;
     if (joy->rep & 0x1) {
@@ -606,7 +606,7 @@ int debugCamera::menuCamera(JOY* joy)
         d = 10;
     }
     if (d) {
-        switch (cursor) {
+        switch (m_sel1) {
         case 0:
             cam->param.roll += (f32) d * DEG;
             if (cam->param.roll < -PI) {
@@ -628,8 +628,8 @@ int debugCamera::menuCamera(JOY* joy)
             CamCtrl.camera.param.fovy = cam->param.fovy;
             break;
         case 2:
-            gain += (f32) d * 0.1f;
-            gain = gain < 0.1f ? 0.1f : (gain > 10.0f ? 10.0f : gain);
+            m_move_gain += (f32) d * 0.1f;
+            m_move_gain = m_move_gain < 0.1f ? 0.1f : (m_move_gain > 10.0f ? 10.0f : m_move_gain);
             break;
         case 3: {
             int max = -1;
@@ -643,38 +643,38 @@ int debugCamera::menuCamera(JOY* joy)
                     max = cut->camera_no;
                 }
             }
-            cam_no += d;
-            cam_no = cam_no < 0 ? max : (cam_no > max ? 0 : cam_no);
+            m_cam_no += d;
+            m_cam_no = m_cam_no < 0 ? max : (m_cam_no > max ? 0 : m_cam_no);
             break;
         }
         }
     }
-    if (cursor == 3) {
-        switch (play) {
+    if (m_sel1 == 3) {
+        switch (m_cam_play) {
         case 0:
             if (joy->trg & JOY_A) {
-                if (CamCtrl.DataSearch(cam_no)->type == 6) {
-                    CamCtrl.CutCall(cam_no);
+                if (CamCtrl.DataSearch(m_cam_no)->type == 6) {
+                    CamCtrl.CutCall(m_cam_no);
                     pG->debug_mode = save_mode;
-                    play++;
+                    m_cam_play++;
                 }
             }
             break;
         case 1:
             if (CamCtrl.IsMotionEnd()) {
-                play++;
+                m_cam_play++;
             }
             break;
         case 2:
             CamCtrl.Comeback(0);
             pG->debug_mode = 1;
-            play = 0;
+            m_cam_play = 0;
             break;
         }
     }
     eprintf(240, 280, 5, 0, "----- CAMERA -----");
     for (i = 0; i < 4; i++) {
-        int col = (i == cursor) ? 4 : 0;
+        int col = (i == m_sel1) ? 4 : 0;
         eprintf(pos[0], pos[1] + i * 14, col, 0, "%s", str[i]);
         switch (i) {
         case 0:
@@ -684,10 +684,10 @@ int debugCamera::menuCamera(JOY* joy)
             eprintf(pos[0] + 40, pos[1] + 14, col, 0, "%f", cam->param.fovy);
             break;
         case 2:
-            eprintf(pos[0] + 40, pos[1] + 28, col, 0, "%f", gain);
+            eprintf(pos[0] + 40, pos[1] + 28, col, 0, "%f", m_move_gain);
             break;
         case 3:
-            eprintf(pos[0] + 40, pos[1] + 42, col, 0, "%02d", cam_no);
+            eprintf(pos[0] + 40, pos[1] + 42, col, 0, "%02d", m_cam_no);
             break;
         }
     }
@@ -712,48 +712,48 @@ int debugCamera::menuFlag(JOY* joy)
         return -1;
     }
     if (joy->rep & 0x80008) {
-        cursor--;
+        m_sel1--;
     }
     if (joy->rep & 0x40004) {
-        cursor++;
+        m_sel1++;
     }
-    if (cursor < 0) {
-        cursor = 6;
-    } else if (cursor > 6) {
-        cursor = 0;
+    if (m_sel1 < 0) {
+        m_sel1 = 6;
+    } else if (m_sel1 > 6) {
+        m_sel1 = 0;
     }
-    old = lr;
+    old = m_sel2;
     if (joy->trg & 0x10001) {
-        lr--;
+        m_sel2--;
     }
     if (joy->trg & 0x20002) {
-        lr++;
+        m_sel2++;
     }
-    d = lr - old;
+    d = m_sel2 - old;
     if (d != 0) {
-        switch (cursor) {
+        switch (m_sel1) {
         case 0:
-            if (pG->flags_60 & 0x10000000) {
-                pG->flags_60 &= ~0x10000000;
+            if (pG->Debug_flg[0] & 0x10000000) {
+                pG->Debug_flg[0] &= ~0x10000000;
             } else {
-                pG->flags_60 |= 0x10000000;
+                pG->Debug_flg[0] |= 0x10000000;
             }
             break;
         case 1:
             if (d > 0) {
-                key_type++;
+                m_key_type++;
             } else {
-                key_type--;
+                m_key_type--;
             }
-            key_type = key_type < 0 ? 1 : (key_type > 1 ? 0 : key_type);
+            m_key_type = m_key_type < 0 ? 1 : (m_key_type > 1 ? 0 : m_key_type);
             break;
         case 2:
             if (d > 0) {
-                target_type++;
+                m_target_type++;
             } else {
-                target_type--;
+                m_target_type--;
             }
-            target_type = target_type < 0 ? 4 : (target_type > 4 ? 0 : target_type);
+            m_target_type = m_target_type < 0 ? 4 : (m_target_type > 4 ? 0 : m_target_type);
             break;
         case 3:
             if (d > 0) {
@@ -770,14 +770,14 @@ int debugCamera::menuFlag(JOY* joy)
             }
             break;
         case 5:
-            if (pG->flags_60 & 0x20000000) {
-                pG->flags_60 &= ~0x20000000;
+            if (pG->Debug_flg[0] & 0x20000000) {
+                pG->Debug_flg[0] &= ~0x20000000;
             } else {
-                pG->flags_60 |= 0x20000000;
+                pG->Debug_flg[0] |= 0x20000000;
             }
             break;
         case 6:
-            cam_mode = lr = lr < 0 ? 5 : (lr > 5 ? 0 : lr);
+            m_cam_mode = m_sel2 = m_sel2 < 0 ? 5 : (m_sel2 > 5 ? 0 : m_sel2);
             break;
         }
     }
@@ -799,7 +799,7 @@ int debugCamera::menuFlag(JOY* joy)
     // head's `addi` (REG_N_CALLS_CROSSED != 0 -> no anti-dependence on the head call), so the head's
     // own `y + i` dies at its mult and gets r4 (`mulli r4,r4,14`).
     for (i = 0; i < 7; i++) {
-        int col = (i == cursor) ? 4 : 0;
+        int col = (i == m_sel1) ? 4 : 0;
         u8 c = col;
         eprintf(x * 8, (y + i) * 14, c, 0, "%s", menu_str[i]);
         switch (i) {
@@ -811,10 +811,10 @@ int debugCamera::menuFlag(JOY* joy)
             int c_off;
             switch (i) {
             case 0:
-                on = pG->flags_60 & 0x10000000;
+                on = pG->Debug_flg[0] & 0x10000000;
                 break;
             case 5:
-                on = pG->flags_60 & 0x20000000;
+                on = pG->Debug_flg[0] & 0x20000000;
                 break;
             case 3:
                 on = info_disp;
@@ -840,18 +840,18 @@ int debugCamera::menuFlag(JOY* joy)
         }
         case 1:
             for (j = 0; j < 2; j++) {
-                int cj = (j == key_type) ? col : 7;
+                int cj = (j == m_key_type) ? col : 7;
                 eprintf((x + 15 + j * 5) * 8, (y + i) * 14, cj, 0, "%s", key_str[j]);
             }
             break;
         case 2:
             for (j = 0; j < 5; j++) {
-                int cj = (j == target_type) ? col : 7;
+                int cj = (j == m_target_type) ? col : 7;
                 eprintf((x + 15 + j * 4) * 8, (y + i) * 14, cj, 0, "%s", target_str[j]);
             }
             break;
         case 6:
-            eprintf((x + 15) * 8, (y + i) * 14, c, 0, "%02d: %s", cam_mode, mode_str[cam_mode]);
+            eprintf((x + 15) * 8, (y + i) * 14, c, 0, "%02d: %s", m_cam_mode, mode_str[m_cam_mode]);
             break;
         }
     }
@@ -886,46 +886,46 @@ int debugCamera::menuHitDisp(JOY* joy)
         switch (view_mode) {
         case 0:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
-            BitOff(pG->flags_60, 0x800000);
-            BitOff(pG->flags_500C, 0x80000000);
-            BitOff(pG->flags_60, 0x80000);
+            BitOff(pG->Debug_flg[0], 0x800000);
+            BitOff(pG->Status_flg[0], 0x80000000);
+            BitOff(pG->Debug_flg[0], 0x80000);
             break;
         case 1:
-            BitOn(pG->flags_60, 0x40000000);
+            BitOn(pG->Debug_flg[0], 0x40000000);
             break;
         case 3:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
-            BitOff(pG->flags_500C, 0x80000000);
-            BitOff(pG->flags_60, 0x40000000);
-            BitOn(pG->flags_60, 0x200000);
+            BitOff(pG->Status_flg[0], 0x80000000);
+            BitOff(pG->Debug_flg[0], 0x40000000);
+            BitOn(pG->Debug_flg[0], 0x200000);
             break;
         case 5:
             if (!shadow_flag) {
-                BitOff(pG->flags_58, 0x2000000);
+                BitOff(pG->Disp_flg, 0x2000000);
             }
-            BitOff(pG->flags_500C, 0x80000000);
-            BitOff(pG->flags_60, 0x200000);
-            BitOn(pG->flags_60, 0x800000);
+            BitOff(pG->Status_flg[0], 0x80000000);
+            BitOff(pG->Debug_flg[0], 0x200000);
+            BitOn(pG->Debug_flg[0], 0x800000);
             break;
         case 2:
         case 4:
         case 6:
-            shadow_flag = pG->flags_58 & 0x2000000;
-            BitOn(pG->flags_500C, 0x80000000);
-            BitOn(pG->flags_58, 0x2000000);
+            shadow_flag = pG->Disp_flg & 0x2000000;
+            BitOn(pG->Status_flg[0], 0x80000000);
+            BitOn(pG->Disp_flg, 0x2000000);
             break;
         case 7:
-            BitOff(pG->flags_500C, 0x80000000);
-            BitOn(pG->flags_60, 0x80000);
-            BitOff(pG->flags_60, 0x800000);
+            BitOff(pG->Status_flg[0], 0x80000000);
+            BitOn(pG->Debug_flg[0], 0x80000);
+            BitOff(pG->Debug_flg[0], 0x800000);
             break;
         case 8:
-            BitOn(pG->flags_500C, 0x80000000);
-            BitOn(pG->flags_60, 0x80000);
+            BitOn(pG->Status_flg[0], 0x80000000);
+            BitOn(pG->Debug_flg[0], 0x80000);
             break;
         }
     }
@@ -950,9 +950,9 @@ int debugCamera::menuAdjust(JOY* joy)
     ret = adjust_qFPS(joy, 240, 294, 0, NULL);
     if (ret == 6) {
         if (old_ret != 6) {
-            CamCtrl.sub_state = 0;
+            CamCtrl.r1 = 0;
         }
-        CamCtrl.state = 10;
+        CamCtrl.r0 = 10;
         CamCtrl.Move();
         pG->Cam = CamCtrl.camera;
     }
@@ -962,11 +962,11 @@ int debugCamera::menuAdjust(JOY* joy)
     case -1:
         return -1;
     case 1:
-        (this->*camera_type_tbl[key_type])(cam, &Joy[1]);
+        (this->*camera_type_tbl[m_key_type])(cam, &Joy[1]);
         target_bak = cam->param.at;
         break;
     case 2:
-        (this->*camera_type_tbl[key_type])(cam, &Joy[1]);
+        (this->*camera_type_tbl[m_key_type])(cam, &Joy[1]);
         cam->param.at = target_bak;
         break;
     }
@@ -983,7 +983,7 @@ void CameraDrawTarget(Camera* cam, int flag)
     if (pG->debug_mode == 0) {
         return;
     }
-    if ((s32) pG->flags_60 < 0) {
+    if ((s32) pG->Debug_flg[0] < 0) {
         if (flag & 1) {
             flag |= 1;
         } else {
@@ -1195,7 +1195,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     static int near_far = 0;
     GlobalWork* g = pG;
     Camera* cam = &g->Cam;
-    CameraQuasiFPS* q = &CamCtrl.qfps;
+    CameraQuasiFPS* q = &CamCtrl.m_QuasiFPS;
     Mtx inv;
     Vec target;
     Vec campos;
@@ -1251,11 +1251,11 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 0:
             if (joy->trg & JOY_A) {
                 menu_level = 1;
-                BitOn(pG->flags_64, 0x20000000);
-                if ((s32) pG->flags_60 >= 0) {
-                    CamDbg.cam_mode = 2;
+                BitOn(pG->Debug_flg[1], 0x20000000);
+                if ((s32) pG->Debug_flg[0] >= 0) {
+                    CamDbg.m_cam_mode = 2;
                 }
-                BitOn(pG->flags_170, 0x10000000);
+                BitOn(pG->Stop_flg, 0x10000000);
             }
             break;
         case 1:
@@ -1282,8 +1282,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         case 3:
             if (joy->trg & JOY_A) {
                 q->getAreaData(g_local_ready, g_local_trans);
-                g_local_fovy[0] = g_local_ready[0][1].fovy;
-                g_local_fovy[1] = g_local_trans[0][1].fovy;
+                g_local_fovy[0] = g_local_ready[0][1].Fovy;
+                g_local_fovy[1] = g_local_trans[0][1].Fovy;
                 menu_level = 5;
             }
             break;
@@ -1297,15 +1297,15 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         break;
     case 1:
         if (joy->trg & JOY_B) {
-            BitOff(pG->flags_64, 0x20000000);
-            BitOff(pG->flags_170, 0x10000000);
-            if (CamDbg.cam_mode != 2) {
-                CamDbg.cam_mode = 0;
+            BitOff(pG->Debug_flg[1], 0x20000000);
+            BitOff(pG->Stop_flg, 0x10000000);
+            if (CamDbg.m_cam_mode != 2) {
+                CamDbg.m_cam_mode = 0;
             }
             menu_level = 0;
         } else if (joy->trg & JOY_A) {
             q->getAreaData(g_local_ready, g_local_trans);
-            BitOn(pG->flags_170, 0x40000000);
+            BitOn(pG->Stop_flg, 0x40000000);
             menu_level = 2;
         } else {
             int old_umd = site_UMD;
@@ -1341,18 +1341,18 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             if (site_NF) {
                 if (site_LR) {
-                    q->site = 2;
+                    q->m_site = 2;
                 } else {
-                    q->site = 3;
+                    q->m_site = 3;
                 }
             } else {
                 if (site_LR) {
-                    q->site = 0;
+                    q->m_site = 0;
                 } else {
-                    q->site = 1;
+                    q->m_site = 1;
                 }
             }
-            switch (q->site) {
+            switch (q->m_site) {
             case 0:
                 p_offset = (u8*) &g_local_ready[0][site_UMD];
                 p_counter = (u8*) &g_local_ready[1][site_UMD];
@@ -1407,14 +1407,14 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     case 2:
         MotionMove(pPL, 0);
         if (joy->trg & JOY_B) {
-            BitOff(pG->flags_170, 0x40000000);
+            BitOff(pG->Stop_flg, 0x40000000);
             menu_level = 1;
         } else if (joy->trg & JOY_A) {
-            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->campos);
+            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->Campos);
             PSMTXMultVec(inv, &g->Cam.param.at, &QOFS(p_offset)->target);
             if (symmetry_flag) {
                 memcpy(p_counter, p_offset, sizeof(QfpsOfs));
-                FSet(QOFS(p_counter)->campos.x, -QOFS(p_counter)->campos.x);
+                FSet(QOFS(p_counter)->Campos.x, -QOFS(p_counter)->Campos.x);
                 FSet(QOFS(p_counter)->target.x, -QOFS(p_counter)->target.x);
             }
             q->setAreaData(g_local_ready, g_local_trans);
@@ -1429,7 +1429,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     case 3:
         MotionMove(pPL, 0);
         if (joy->trg & JOY_B) {
-            PSMTXMultVec(pPL->mat, &QOFS(p_offset)->campos, &CamCtrl.camera.param.pos);
+            PSMTXMultVec(pPL->mat, &QOFS(p_offset)->Campos, &CamCtrl.camera.param.pos);
             CameraSetOrientationRoll(&CamCtrl.camera);
             menu_level = 2;
         } else if (joy->trg & JOY_A) {
@@ -1440,7 +1440,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             q->setAreaData(g_local_ready, g_local_trans);
             ret = 3;
-            BitOff(pG->flags_170, 0x40000000);
+            BitOff(pG->Stop_flg, 0x40000000);
             menu_level = 1;
         } else {
             ret = 2;
@@ -1503,8 +1503,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
         for (i = 0; i < 2; i++) {
             for (j = 0; j < 3; j++) {
-                g_local_ready[i][j].fovy = g_local_fovy[0];
-                g_local_trans[i][j].fovy = g_local_fovy[1];
+                g_local_ready[i][j].Fovy = g_local_fovy[0];
+                g_local_trans[i][j].Fovy = g_local_fovy[1];
             }
         }
         q->setAreaData(g_local_ready, g_local_trans);
@@ -1568,7 +1568,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     if (menu_level == 2) {
         PSMTXMultVec(inv, &cam->param.at, &target);
         PSMTXMultVec(inv, &cam->param.pos, &campos);
-        if (pG->flags_51E4 & 0x18) {
+        if (pG->Frame_cnt & 0x18) {
             eprintf(120, 14, 5, 0, "--- CAMERA OFFSET ---");
         }
         eprintf(120, 28, 4, 0, "Target: (%f, %f, %f)", target.x, target.y, target.z);
@@ -1577,7 +1577,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     if (menu_level == 3) {
         PSMTXMultVec(inv, &cam->param.at, &target);
         PSMTXMultVec(inv, &cam->param.pos, &close);
-        if (pG->flags_51E4 & 0x18) {
+        if (pG->Frame_cnt & 0x18) {
             eprintf(120, 14, 5, 0, "---- CLOSE POINT ----");
         }
         eprintf(120, 28, 0, 0, "Target: (%f, %f, %f)", target.x, target.y, target.z);

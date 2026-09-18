@@ -11,47 +11,47 @@ cAtariInfo::cAtariInfo()
     memclr_asm(this, sizeof(cAtariInfo));
 }
 
-void cAtariInfo::init0(int parts, int cnt, int flag, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
+void cAtariInfo::init0(int parts, int hokan, int flag, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
 {
-    pos.x = x;
-    pos.y = y;
-    pos.z = z;
-    rectX2 = rx;
-    rectZ2 = rz;
-    rectX = rx;
-    rectZ = rz;
-    x2C = w;
-    h = hh;
-    partsNo = parts;
-    this->cnt = cnt;
-    flags = flag | 0x300;
+    m_offset.x = x;
+    m_offset.y = y;
+    m_offset.z = z;
+    m_radius_n = rx;
+    m_radius2_n = rz;
+    m_radius = rx;
+    m_radius2 = rz;
+    m_radius3 = w;
+    m_height = hh;
+    m_parts_no = parts;
+    this->m_hokan = hokan;
+    m_flag = flag | 0x300;
     x48 = 0;
-    x26 = 1;
+    m_stat = 1;
 }
 
-void cAtariInfo::init(int parts, int flag, int cnt, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
+void cAtariInfo::init(int parts, int flag, int hokan, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 hh)
 {
-    init0(parts, cnt, flag, x, y, z, rx, rz, w, hh);
-    flags |= 1;
+    init0(parts, hokan, flag, x, y, z, rx, rz, w, hh);
+    m_flag |= 1;
 }
 
 void cAtariInfo::set(int mode, f32 a, f32 b)
 {
     if (mode < 0) {
-        rectX2 = a;
-        rectZ2 = b;
-        rectZ = 100.0f;
-        rectX = 100.0f;
+        m_radius_n = a;
+        m_radius2_n = b;
+        m_radius2 = 100.0f;
+        m_radius = 100.0f;
         mode = -mode;
     } else {
         if (mode == 0) {
-            rectX = a;
-            rectZ = b;
+            m_radius = a;
+            m_radius2 = b;
         }
-        rectX2 = a;
-        rectZ2 = b;
+        m_radius_n = a;
+        m_radius2_n = b;
     }
-    cnt = mode;
+    m_hokan = mode;
 }
 
 // Dead-stripped by the original linker (only its constant pool survives in .rodata).
@@ -67,33 +67,33 @@ void cAtariInfo::getSpeedVector(cModel* m, Vec* oldPos, Vec* newPos)
 {
     Vec v;
 
-    if (partsNo != 0) {
-        cModel* p = m->getPartsPtr(partsNo - 1);
-        v.x = pos.x;
-        v.y = pos.y;
-        v.z = pos.z;
-        RotVector(&v, &m->rot, &v);
-        PSVECAdd(&p->worldPos, &v, newPos);
-        PSVECAdd(&p->oldWorldPos, &v, oldPos);
-        newPos->y = m->pos.y + rectX;
-        oldPos->y = m->oldPos.y + rectX;
+    if (m_parts_no != 0) {
+        cModel* p = m->getPartsPtr(m_parts_no - 1);
+        v.x = m_offset.x;
+        v.y = m_offset.y;
+        v.z = m_offset.z;
+        RotVector(&v, &m->ang, &v);
+        PSVECAdd(&p->world, &v, newPos);
+        PSVECAdd(&p->world_old, &v, oldPos);
+        newPos->y = m->pos.y + m_radius;
+        oldPos->y = m->pos_old.y + m_radius;
     } else {
-        v.x = pos.x;
-        v.y = pos.y + rectX;
-        v.z = pos.z;
-        RotVector(&v, &m->rot, &v);
+        v.x = m_offset.x;
+        v.y = m_offset.y + m_radius;
+        v.z = m_offset.z;
+        RotVector(&v, &m->ang, &v);
         PSVECAdd(&m->pos, &v, newPos);
-        PSVECAdd(&m->oldPos, &v, oldPos);
+        PSVECAdd(&m->pos_old, &v, oldPos);
     }
 }
 
 void cAtariInfo::move()
 {
-    if (cnt != 0) {
-        f32 c = (f32) cnt;
-        cnt--;
-        rectX += (rectX2 - rectX) / c;
-        rectZ += (rectZ2 - rectZ) / c;
+    if (m_hokan != 0) {
+        f32 c = (f32) m_hokan;
+        m_hokan--;
+        m_radius += (m_radius_n - m_radius) / c;
+        m_radius2 += (m_radius2_n - m_radius2) / c;
     }
 }
 
@@ -101,9 +101,9 @@ void cAtariInfo::getPos(cModel* m, Vec* out)
 {
     Vec v;
 
-    RotVector(&pos, &m->rot, &v);
-    if (partsNo != 0) {
-        PSVECAdd(&m->getPartsPtr(partsNo - 1)->worldPos, &v, out);
+    RotVector(&m_offset, &m->ang, &v);
+    if (m_parts_no != 0) {
+        PSVECAdd(&m->getPartsPtr(m_parts_no - 1)->world, &v, out);
     } else {
         PSVECAdd(&m->pos, &v, out);
     }
@@ -111,31 +111,31 @@ void cAtariInfo::getPos(cModel* m, Vec* out)
 
 void cAtariInfo::setPriority(int prio)
 {
-    flags &= ~0x18;
+    m_flag &= ~0x18;
     switch (prio) {
     case 0:
         break;
     case 1:
-        flags |= 0x8;
+        m_flag |= 0x8;
         break;
     case 2:
-        flags |= 0x10;
+        m_flag |= 0x10;
         break;
     case 3:
-        flags |= 0x18;
+        m_flag |= 0x18;
         break;
     }
 }
 
 void cAtariInfo::disp(cModel* m)
 {
-    if (flags & 2) {
+    if (m_flag & 2) {
         dispRect(m);
     } else {
         Vec p;
         getPos(m, &p);
-        p.y -= h;
-        Draw_cylinder(&p, rectZ, h * 2.0f, 0xFFFFFFFF);
+        p.y -= m_height;
+        Draw_cylinder(&p, m_radius2, m_height * 2.0f, 0xFFFFFFFF);
     }
 }
 
@@ -151,9 +151,9 @@ void cAtariInfo::dispRect(cModel* m)
     Mtx mat;
     int i;
 
-    size.x = rectX;
-    size.y = h;
-    size.z = rectZ;
+    size.x = m_radius;
+    size.y = m_height;
+    size.z = m_radius2;
     v[0].x = -size.x;
     v[0].y = -size.y;
     v[0].z = -size.z;
@@ -179,17 +179,17 @@ void cAtariInfo::dispRect(cModel* m)
     v[7].y = size.y;
     v[7].z = size.z;
     for (i = 0; i < 8; i++) {
-        PSVECAdd(&v[i], &pos, &v[i]);
+        PSVECAdd(&v[i], &m_offset, &v[i]);
     }
-    if (partsNo != 0) {
-        cModel* p = m->getPartsPtr(partsNo - 1);
-        PSMTXRotRad(mat, 'y', p->rot.y);
-        TransMatrix(mat, &p->worldPos);
-        PSMTXConcat(pG->Cam.viewMat, mat, mat);
+    if (m_parts_no != 0) {
+        cModel* p = m->getPartsPtr(m_parts_no - 1);
+        PSMTXRotRad(mat, 'y', p->ang.y);
+        TransMatrix(mat, &p->world);
+        PSMTXConcat(pG->Cam.v_mat, mat, mat);
     } else {
-        PSMTXRotRad(mat, 'y', m->rot.y);
+        PSMTXRotRad(mat, 'y', m->ang.y);
         TransMatrix(mat, &m->pos);
-        PSMTXConcat(pG->Cam.viewMat, mat, mat);
+        PSMTXConcat(pG->Cam.v_mat, mat, mat);
     }
     for (i = 0; i < 12; i++) {
         u8* t = &ptbl[i * 3];

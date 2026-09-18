@@ -42,28 +42,28 @@ static void r219_openedShelf(int no);
 
 void R219Init()
 {
-    pG->flags_54 &= ~0x800;
+    pG->System_flg &= ~0x800;
 #line 48 "D:/Bio4/Prog/r219.cpp"
     r219_work = (R219Work*) MEM_CALLOC(sizeof(R219Work), 1, 0xd);
     if (pG->room_id_prev == 0xFFF) {
-        if (!(pG->flags_5018 & 0x04000000)) {
-            pG->flags_5018 |= 0x04000000;
+        if (!(pG->Status_flg[3] & 0x04000000)) {
+            pG->Status_flg[3] |= 0x04000000;
         }
     }
-    SmdGetObjPtr(0x27)->x136 = 2;
-    SmdGetObjPtr(0x27)->x137 = 0x10;
-    SmdGetObjPtr(0x27)->x138 = 0x40;
-    pPL->x12F = 1;
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) toroko_go, 0, 1);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) toroko_go, (void*) 1, 1);
+    SmdGetObjPtr(0x27)->Shader_type = 2;
+    SmdGetObjPtr(0x27)->Refract_pow = 0x10;
+    SmdGetObjPtr(0x27)->Refract_ratio = 0x40;
+    pPL->ot_type = 1;
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) toroko_go, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) toroko_go, (void*) 1, 1);
     if (pG->room_id_prev == 0x219) {
-        if (pG->x4F9E == 1) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, 2, 0);
-        } else if (pG->x4F9E == 2) {
-            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, 2, 0);
+        if (pG->Part == 1) {
+            SceExec(0x12, (TaskFunc) toroko_ret, 0, 0, SCE_PRIO_DEF_2, 0);
+        } else if (pG->Part == 2) {
+            SceExec(0x12, (TaskFunc) toroko_ret, 1, 0, SCE_PRIO_DEF_2, 0);
         }
     }
-    if ((pG->room_id_prev == 0x219 && pG->x4F9E == 2) || pG->room_id_prev == 0x201) {
+    if ((pG->room_id_prev == 0x219 && pG->Part == 2) || pG->room_id_prev == 0x201) {
         SndRoomBgmStart(0, 0);
     }
     SceSetItemEvent(4, 0x84, 1, 3, r219_openShelf, (void (*)()) r219_openedShelf, 0, 0);
@@ -98,12 +98,12 @@ static void toroko_go(int dir)
     cPlayer* pl = pPL;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
     {
         Vec pos;
-        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
         Vec ang0 = {0.0f, 0.0f, 0.0f};
         Vec ang1 = {0.0f, 1.5707964f, 0.0f};
         Vec ang;
@@ -121,9 +121,9 @@ static void toroko_go(int dir)
         SceEventStart(0);
         SndStrReq(1, 0xE4, 0x80000003, 0, 0, 0.0f);
         pl->setRightHand(1);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         PlSetHand(1, 0);
-        SubCharCtrl(5, 0);
+        SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
             ((cUnitEventView*) pSUB)->beginEvent(0);
         }
@@ -136,11 +136,11 @@ static void toroko_go(int dir)
         if (pSUB) {
             pSUB->setNoSuspend(1);
         }
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
         if (pSUB) {
-            MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 1, 0);
+            MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 1, 0);
         }
-        obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
+        obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
         SceSleep(115);
         SndCall(6, 3, &pPL->pos, 0, 0, 0);
         SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -154,7 +154,7 @@ static void toroko_go(int dir)
         SceEventEnd(0);
         PlSetHand(0, 0);
         pl->setRightHand(1);
-        pl->pWep->setTrans(1, 0);
+        pl->Wep->setTrans(1, 0);
         if (dir == 0) {
             SceAtDataReset(2);
             SceAtExecute(2);
@@ -171,12 +171,12 @@ static void toroko_ret(int dir)
     cPlayer* pl = pPL;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
     {
         Vec pos;
-        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+        cObj* obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
         Vec ang0 = {0.0f, 1.5007963f, 0.0f};
         Vec ang1 = {0.0f, -0.07f, 0.0f};
         Vec ang;
@@ -194,10 +194,10 @@ static void toroko_ret(int dir)
         SceEventStart(0);
         SndStrReq(1, 0xE5, 0x80000003, 0, 0, 0.0f);
         pl->setRightHand(1);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         PlSetHand(1, 0);
         SceSleep(1);
-        SubCharCtrl(5, 0);
+        SubCharCtrl(SCC_AUX_MOT, 0);
         if (pSUB) {
             ((cUnitEventView*) pSUB)->beginEvent(0);
         }
@@ -210,11 +210,11 @@ static void toroko_ret(int dir)
         if (pSUB) {
             pSUB->setNoSuspend(1);
         }
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
         if (pSUB) {
-            MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x25), 0, 0, 1, 0);
+            MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
         }
-        obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 10, 0, 1, 0);
+        obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 1, 0);
         SceSleep(20);
         SndCall(6, 3, &pPL->pos, 0, 0, 0);
         SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -224,14 +224,14 @@ static void toroko_ret(int dir)
             pSUB->setNoSuspend(0);
             ((cUnitEventView*) pSUB)->endEvent(0);
         }
-        SubCharCtrl(1, 1);
+        SubCharCtrl(SCC_CHASE, 1);
         ObjMgr.destroy(obj);
         SmdGetObjPtr(0x18)->be_flag |= 2;
         SmdGetObjPtr(0x19)->be_flag |= 2;
         SceEventEnd(0);
         PlSetHand(0, 0);
         pl->setRightHand(1);
-        pl->pWep->setTrans(1, 0);
+        pl->Wep->setTrans(1, 0);
         if (dir == 0) {
             Vec v;
 
@@ -262,21 +262,21 @@ void r219_openShelf_main(int no, int mode)
 {
     cObj* obj;
 
-    OpenBoxMain(0x15, mode, 0x15, 0x17, -1, -1);
+    OpenBoxMain(OpenBoxFall, mode, 0x15, 0x17, -1, -1);
     obj = SmdGetObjPtr(0x17);
     if (obj) {
         Vec* pos = &obj->pos;
-        Vec* rot = &obj->rot;
+        Vec* rot = &obj->ang;
 
         obj->pos.x = -85522.0f;
         obj->pos.y = 45.0f;
         obj->pos.z = -353737.0f;
-        obj->rot.x = 1.28598f;
-        obj->rot.y = -0.072f;
-        obj->rot.z = 1.57173f;
-        obj->pParts->rot.x = 0.0f;
-        obj->pParts->rot.y = 0.0f;
-        obj->pParts->rot.z = 0.0f;
+        obj->ang.x = 1.28598f;
+        obj->ang.y = -0.072f;
+        obj->ang.z = 1.57173f;
+        obj->pParts->ang.x = 0.0f;
+        obj->pParts->ang.y = 0.0f;
+        obj->pParts->ang.z = 0.0f;
         obj->setPos(pos);
         obj->setAng(rot);
     }

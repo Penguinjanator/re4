@@ -111,45 +111,45 @@ void SceEventStart(int mode)
 
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 == 0) {
-            s->x70 = SceCTask()->task->flag;
+        if (s->task_kind_back == 0) {
+            s->task_kind_back = SceCTask()->task->flag;
             SceCTask()->task->flag |= 2;
         }
     }
-    if (SceSys.x6E != 0) {
-        SceSys.x6E++;
+    if (SceSys.event_start_cnt != 0) {
+        SceSys.event_start_cnt++;
         return;
     }
-    SceSys.x6E++;
+    SceSys.event_start_cnt++;
     s = &SceSys;
-    s->x64 = pG->flags_54;
+    s->system_bak = pG->System_flg;
     if (mode == 0) {
         EmMgr.beginEvent(0);
         ObjMgr.beginEvent(0);
-        s->x6D = 1;
+        s->event_no_cut_back = 1;
         EffectEventDelete();
         DmgMgr.beginEvent(0);
         SceKill(5);
     } else {
-        if (s->x134) {
-            SceKill(s->x134);
+        if (s->pLadderTask) {
+            SceKill(s->pLadderTask);
         }
     }
     PlEndCamera();
     LightMgr.beginEvent();
-    BitOn(pG->flags_500C, 0x1000);
-    BitOn(pG->flags_5010, 0x10000000);
+    BitOn(pG->Status_flg[0], 0x1000);
+    BitOn(pG->Status_flg[1], 0x10000000);
     KeyStop(0xEFCF0000);
-    if (pG->flags_500C & 0x400) {
+    if (pG->Status_flg[0] & 0x400) {
         CamCtrl.LowerBinocular();
     }
     Cckpt.lifeMeterDisp(0);
     IdSys.dispSw(0x21, 0);
     SceSys.dmg = pPL->dmg;
     pPL->dmg.set(0, 0x80);
-    BitOn(pG->flags_54, 0x800);
-    BitOn(pG->flags_170, 0x100);
-    BitOn(pG->flags_170, 0x400000);
+    BitOn(pG->System_flg, 0x800);
+    BitOn(pG->Stop_flg, 0x100);
+    BitOn(pG->Stop_flg, 0x400000);
     SndBlkStop(2);
 }
 
@@ -160,14 +160,14 @@ void SceEventEnd(int mode)
 {
     cSceSys* s = &SceSys;
 
-    if (s->x6E == 0) {
+    if (s->event_start_cnt == 0) {
         pLog->err(0, 0, "SceEventEnd: CALLS TO MACH");
     }
-    if (--s->x6E != 0) {
+    if (--s->event_start_cnt != 0) {
         return;
     }
-    if (s->x6D == 1) {
-        s->x6D = 0;
+    if (s->event_no_cut_back == 1) {
+        s->event_no_cut_back = 0;
         EmMgr.endEvent(mode);
         ObjMgr.endEvent(0);
         CamCtrl.Comeback(0);
@@ -176,28 +176,28 @@ void SceEventEnd(int mode)
         pPL->dmg = s->dmg;
     }
     LightMgr.endEvent();
-    BitOff(pG->flags_5018, 0x1000000);
-    BitOff(pG->flags_500C, 0x1000);
-    BitOff(pG->flags_5010, 0x10000000);
-    BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->Status_flg[3], 0x1000000);
+    BitOff(pG->Status_flg[0], 0x1000);
+    BitOff(pG->Status_flg[1], 0x10000000);
+    BitOff(pG->Stop_flg, 0x80000000);
+    BitOff(pG->System_flg, 0x400);
     Cckpt.lifeMeterDisp(1);
     IdSys.dispSw(0x21, 1);
-    BitOff(pG->flags_170, 0x100);
-    BitOff(pG->flags_170, 0x400000);
+    BitOff(pG->Stop_flg, 0x100);
+    BitOff(pG->Stop_flg, 0x400000);
     ShadowMemClear();
-    if (SceSys.x64 & 0x800) {
-        BitOn(pG->flags_54, 0x800);
+    if (SceSys.system_bak & 0x800) {
+        BitOn(pG->System_flg, 0x800);
     } else {
-        BitOff(pG->flags_54, 0x800);
+        BitOff(pG->System_flg, 0x800);
     }
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 != 0) {
-            SceTaskFlagSet(SceCTask(), s->x70);
+        if (s->task_kind_back != 0) {
+            SceTaskFlagSet(SceCTask(), s->task_kind_back);
         }
     }
-    SceSys.x70 = 0;
+    SceSys.task_kind_back = 0;
     SubScreenWait(10);
 }
 
@@ -207,30 +207,30 @@ void SceUpCutStart()
 
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
-        if (s->x70 == 0) {
-            s->x70 = SceCTask()->task->flag;
+        if (s->task_kind_back == 0) {
+            s->task_kind_back = SceCTask()->task->flag;
             SceCTask()->task->flag |= 2;
         }
     }
-    if (SceSys.x6C == 0) {
-        SceSys.x60 = pG->flags_170;
-        SceSys.x6C = 1;
+    if (SceSys.stop_bak_flg == 0) {
+        SceSys.stop_bak = pG->Stop_flg;
+        SceSys.stop_bak_flg = 1;
     }
     KeyStop(0xEFCF0000);
-    BitOn(pG->flags_58, 0x40000000);
-    BitOn(pG->flags_58, 0x20000000);
+    BitOn(pG->Disp_flg, 0x40000000);
+    BitOn(pG->Disp_flg, 0x20000000);
     pPL->atari.clrFlag100();
-    BitOn(pGS->flags_5010, 0x10000000);  // the pG load waits for the clrFlag100 store
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x40000000);
-    BitOff(pG->flags_170, 0x10000);
-    BitOff(pG->flags_170, 0x20000000);
-    BitOff(pG->flags_170, 0x08000000);
-    BitOff(pG->flags_170, 0x04000000);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x800);
-    BitOff(pG->flags_170, 0x01000000);
-    BitOff(pG->flags_170, 0x40);
+    BitOn(pGS->Status_flg[1], 0x10000000);  // the pG load waits for the clrFlag100 store
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x40000000);
+    BitOff(pG->Stop_flg, 0x10000);
+    BitOff(pG->Stop_flg, 0x20000000);
+    BitOff(pG->Stop_flg, 0x08000000);
+    BitOff(pG->Stop_flg, 0x04000000);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x800);
+    BitOff(pG->Stop_flg, 0x01000000);
+    BitOff(pG->Stop_flg, 0x40);
     Cckpt.lifeMeterDisp(0);
     IdSys.dispSw(0x21, 0);
 }
@@ -239,23 +239,23 @@ void SceUpCutEnd()
 {
     cSceSys* s = &SceSys;
 
-    BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_58, 0x40000000);
-    BitOff(pG->flags_58, 0x20000000);
+    BitOff(pG->Stop_flg, 0x80000000);
+    BitOff(pG->Disp_flg, 0x40000000);
+    BitOff(pG->Disp_flg, 0x20000000);
     pPL->atari.setFlag100();
-    BitOff(pGS->flags_5010, 0x10000000);  // the pG load waits for the setFlag100 store
-    if (s->x6C == 1) {
-        pG->flags_170 = s->x60;
-        s->x6C = 0;
+    BitOff(pGS->Status_flg[1], 0x10000000);  // the pG load waits for the setFlag100 store
+    if (s->stop_bak_flg == 1) {
+        pG->Stop_flg = s->stop_bak;
+        s->stop_bak_flg = 0;
     }
     if (s->checkCTaskRange() == 1) {
-        if (s->x70 != 0) {
+        if (s->task_kind_back != 0) {
             ScePrim* p = SceCTask();
-            u8 v = s->x70;  // read before the task pointer (both loads after the call)
+            u8 v = s->task_kind_back;  // read before the task pointer (both loads after the call)
             p->task->flag = v;
         }
     }
-    SceSys.x70 = 0;
+    SceSys.task_kind_back = 0;
     Cckpt.lifeMeterDisp(1);
     IdSys.dispSw(0x21, 1);
     SubScreenWait(10);
@@ -268,8 +268,8 @@ int SceCheckEventStart()
 
 void SceSetRoomExitFunc(int a, int b)
 {
-    SceSys.x8 = a;
-    SceSys.xC = b;
+    SceSys.pExitFunc = a;
+    SceSys.pExitParam = b;
 }
 
 void SetFree(int no, u32 v)
@@ -279,7 +279,7 @@ void SetFree(int no, u32 v)
     if (no > 0x3F) {
         return;
     }
-    tbl = pG->sce_free;
+    tbl = pG->save_free_work;
     tbl[no] = v;
 }
 
@@ -288,7 +288,7 @@ u32 GetFree(int no)
     u32* tbl;
 
     if (no <= 0x3F) {
-        tbl = pG->sce_free;
+        tbl = pG->save_free_work;
         return tbl[no];
     }
     return 0;
@@ -321,7 +321,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
         attr |= 0x2000000;
     }
     cMes.MesSet(no, x, y, attr, 0, 0, 4);
-    cMes.mes[0].cursor = sel - 1;
+    cMes.mes[0].m_cur = sel - 1;
     Cckpt.lifeMeterDisp(0);
     if (!(flags & 0x10)) {
         SceMesWait();
@@ -336,7 +336,7 @@ void SceMesCamSndSet(int no, int cut, int se)
     if (se != -1) {
         SndCall(6, se, 0, 0, 0, 0);
     }
-    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 void SceUpCut(int a, int b, int c, int flags)
@@ -351,14 +351,14 @@ void SceUpCut(int a, int b, int c, int flags)
         m.type = 0;
     }
     if (flags & 2) {
-        m.x5 = 1;
+        m.seBlk = 1;
     } else {
-        m.x5 = 0;
+        m.seBlk = 0;
     }
     m.no = a;
-    m.x4 = b + 1;
-    m.x6 = c + 1;
-    m.x8 = flags;
+    m.camCut = b + 1;
+    m.se = c + 1;
+    m.flag = flags;
     SceAtSetMes(&m);
     SceMesWait();
 }
@@ -367,10 +367,10 @@ int SceMesGetSelection()
 {
     int r;
 
-    if ((r = cMes.getWork()->result) == 0) {
+    if ((r = cMes.getWork()->m_sel) == 0) {
         do {
             SceSleep(1);
-        } while ((r = cMes.getWork()->result) == 0);
+        } while ((r = cMes.getWork()->m_sel) == 0);
     }
     return r;
 }
@@ -395,7 +395,7 @@ int SceCheckEmAlive(cEm* em)
     if (!em->isAlive()) {
         return 0;
     }
-    if (em->checkStatus(5) == 0) {
+    if (em->checkStatus(EM_STATUS_ACTIVE) == 0) {
         return 0;
     }
     return 1;
@@ -433,7 +433,7 @@ void SceDestroyEm(int lo, int hi)
             if (em->isAlive()) {
                 EmListData* l = GetListPtrFromEm(em);
                 if (l) {
-                    l->flags &= ~1;
+                    l->be_flag &= ~1;
                 }
                 EmMgr.destroy(em);
             }
@@ -467,46 +467,46 @@ void SceInitItemEvent()
 
 extern "C" void SceExecItemEvent(SceItemEvent* e);
 
-void SceExecItemEvent(SceItemEvent* e)
+void SceExecItemEvent(SceItemEvent* data)
 {
     u32 i;
     int flag;  // `lbz` straight into the callee-saved register (a u8 local adds an `mr` copy)
     u16 room;
 
-    SceAtSetEnable(e->atNo, 0);
+    SceAtSetEnable(data->atNo, 0);
     for (i = 0; i <= 7; i++) {
-        if (e->item[i] >= 0) {
+        if (data->item[i] >= 0) {
             cModel* m;
-            SceAtSetEnable(e->item[i], 1);
-            m = SceAtItemModelPtr(e->item[i]);
+            SceAtSetEnable(data->item[i], 1);
+            m = SceAtItemModelPtr(data->item[i]);
             if (m) {
                 m->setNoSuspend(1);
             }
         }
     }
-    flag = e->flag;
+    flag = data->flag;
     room = pG->room_id;
     RsfSet(room, flag);
     SceUpCutStart();
-    if (e->cut >= 0) {
-        CamCtrl.CutCall((s8) e->cut);
-        e->func(e->arg);
+    if (data->cut >= 0) {
+        CamCtrl.CutCall((s8) data->cut);
+        data->func(data->arg);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
         SceSleep(0xF);
         CamCtrl.Comeback(0);
     } else {
-        e->func(e->arg);
+        data->func(data->arg);
     }
     SceUpCutEnd();
     for (i = 0; i < 16; i++) {
         SceItemEvent* p = (SceItemEvent*) ItemEventTbl[i];
-        if (p && p->atNo == e->atNo) {
+        if (p && p->atNo == data->atNo) {
             ItemEventTbl[i] = 0;
         }
     }
-    __builtin_delete(e);
+    __builtin_delete(data);
 }
 
 void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), TaskFunc doneFunc, int arg, int enable)
@@ -526,7 +526,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
                 SceAtSetEnable(itemNo, 1);
             }
         }
-        SceExec(0x12, doneFunc, arg, 0, 2, 0);
+        SceExec(0x12, doneFunc, arg, 0, SCE_PRIO_DEF_2, 0);
         return;
     }
     if (itemNo >= 0) {
@@ -584,9 +584,9 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
         return;
     }
     if (SceAtPtr(atNo)) {
-        SceAtPtr(atNo)->x38 = 8;
-        SceAtPtr(atNo)->x4A = 0x10;
-        SceAtPtr(atNo)->x44 = 5;
+        SceAtPtr(atNo)->trigger = 8;
+        SceAtPtr(atNo)->actBtnKind = 0x10;
+        SceAtPtr(atNo)->otNo = 5;
     }
     ne = (SceItemEvent*) __builtin_new(sizeof(SceItemEvent));
     for (k = 0; k < 8; k++) {
@@ -599,7 +599,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     ne->arg = arg;
     ne->flag = flagNo;
     ne->atNo = atNo;
-    SceAtDataSet_exec(atNo, 0x12, 0, (TaskFunc) SceExecItemEvent, ne, 1);
+    SceAtDataSet_exec(atNo, SCE_LEVEL10, 0, (TaskFunc) SceExecItemEvent, ne, 1);
 }
 
 void getChapterSection(int chapter, int* chap, int* sec)
@@ -712,9 +712,9 @@ void SceChapterEnd()
     u16 room;
     u8 x4F9E;
     EventMgr* ev = &EvtMgr;
-    u32* key = &ev->x34;
+    u32* key = &ev->NowExeEvtKey;
 
-    pG->x4F8A = SceSys.x74 + 1;
+    pG->chapter = SceSys.m_chapter_no + 1;
     if (ev->IsAliveEvt(key, 0, 1)) {
         ev->GetEvt(key, &evt);
         ev->DelEvt(evt, 0);
@@ -723,22 +723,22 @@ void SceChapterEnd()
         SceSleep(1);
     }
     sel = 0;
-    disp_bak = pG->flags_58;
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x2000);
-    BitOff(pG->flags_58, 0x800);
-    BitOff(pG->flags_58, 0x10000);
-    stop_bak = pG->flags_170;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x800000);
-    BitOff(pG->flags_170, 0x40);
+    disp_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x2000);
+    BitOff(pG->Disp_flg, 0x800);
+    BitOff(pG->Disp_flg, 0x10000);
+    stop_bak = pG->Stop_flg;
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x800000);
+    BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     chap = 0;
     sec = 0;
-    getChapterSection(SceSys.x74, &chap, &sec);
-    if (SceSys.x74 == 0x11) {
+    getChapterSection(SceSys.m_chapter_no, &chap, &sec);
+    if (SceSys.m_chapter_no == 0x11) {
         sprintf(chap_data_name, "SS/___/chap06.dat");
-    } else if (SceSys.x74 == 0xD) {
+    } else if (SceSys.m_chapter_no == 0xD) {
         sprintf(chap_data_name, "SS/___/chap07.dat");
     } else {
         sprintf(chap_data_name, "SS/___/chap%02ld.dat", chap);
@@ -747,17 +747,17 @@ void SceChapterEnd()
     Dvd.FileExistCheck(chap_data_name, &len);
     len = len + 0xC;
     len = len + MARGIN;
-    swap.SwapOut((u32) pG->pRoomArc, len, 0);
+    swap.SwapOut((u32) pG->pRoom, len, 0);
     ce = (ChapterEnd*) __builtin_new(sizeof(ChapterEnd));
 #line 994 "D:/Bio4/Prog/sce_com.cpp"
     req = DVD_READ_N(chap_data_name, 0, 0, 0, 0, 5);
     Dvd.ReadCheck(req, 0, 0, &data);
-    ce->init(data, SceSys.x74);
+    ce->init(data, SceSys.m_chapter_no);
     ce->move();
     FadeKillAll();
     FadeSetW(0x80000000, 10, 0, 0);
     SceSleep(0xF);
-    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     Vec plPos;
     Vec plRot;
     // The two zeros are assigned after the FadeSetW so its `col.end = 0` keeps its own zero pseudo (the
@@ -765,31 +765,31 @@ void SceChapterEnd()
     // room declared first (the global-alloc tie for r25/r24).
     room = 0;
     x4F9E = 0;
-    if (SceSys.x78 >= 0) {
+    if (SceSys.m_chapter_door >= 0) {
         plPos = pPL->pos;
-        plRot = pPL->rot;
+        plRot = pPL->ang;
         room = pG->room_id;
-        x4F9E = pG->x4F9E;
-        if (SceAtPtr(SceSys.x78)->x35 == 1) {
-            pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
-            pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
-            pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
-            FSet(pPL->rot.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
+        x4F9E = pG->Part;
+        if (SceAtPtr(SceSys.m_chapter_door)->type == 1) {
+            pPL->pos.x = SceAtPtr(SceSys.m_chapter_door)->dstPos.x;
+            pPL->pos.y = SceAtPtr(SceSys.m_chapter_door)->dstPos.y;
+            pPL->pos.z = SceAtPtr(SceSys.m_chapter_door)->dstPos.z;
+            FSet(pPL->ang.y, SceAtPtr(SceSys.m_chapter_door)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
-            U8Set(pG->x4FA2, pG->x4F9E);
-            U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
-            U8Set(pG->room_no, SceAtPtr(SceSys.x78)->dstRoom);
-            U8Set(pG->x4F9E, SceAtPtr(SceSys.x78)->dstX4F9E);
-            U8Set(pG->x4F9F, 0);
-            U16Set(pG->x4F90, 0);
+            U8Set(pG->Part_old, pG->Part);
+            U8Set(pG->stage_no, SceAtPtr(SceSys.m_chapter_door)->dstStage);
+            U8Set(pG->room_no, SceAtPtr(SceSys.m_chapter_door)->dstRoom);
+            U8Set(pG->Part, SceAtPtr(SceSys.m_chapter_door)->dstPart);
+            U8Set(pG->JumpPoint, 0);
+            U16Set(pG->r_continue_cnt, 0);
         } else {
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
     }
-    U16Zero(pG->x8338);
-    U32Set(pG->em_die_cnt, 0);
-    U32Set(pG->shotHit, 0);
-    U32Set(pG->shotTotal, 0);
+    U16Zero(pG->c_continue_cnt);
+    U32Set(pG->c_kill_cnt, 0);
+    U32Set(pG->c_hit_cnt, 0);
+    U32Set(pG->c_shot_cnt, 0);
     GameSaveSave(&GameSave, pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
@@ -806,18 +806,18 @@ void SceChapterEnd()
         CardSave(0, 10);
         SceSleep(1);
     }
-    BitSet(pG->flags_58, disp_bak);
-    BitSet(pG->flags_170, stop_bak);
+    BitSet(pG->Disp_flg, disp_bak);
+    BitSet(pG->Stop_flg, stop_bak);
     FadeSetW(0, 0, 0, 0);
-    FadeKill(2);
-    if (SceSys.x78 >= 0) {
+    FadeKill(FADE_NO_ROOM);
+    if (SceSys.m_chapter_door >= 0) {
         memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
         memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
         U16Set(pG->room_id, room);
-        U8Set(pG->x4F9E, x4F9E);
-        if (SceAtPtr(SceSys.x78)) {
-            SceAtPtr(SceSys.x78)->x77 = 2;
-            SceAtExecute(SceSys.x78);
+        U8Set(pG->Part, x4F9E);
+        if (SceAtPtr(SceSys.m_chapter_door)) {
+            SceAtPtr(SceSys.m_chapter_door)->doorFadeEff = 2;
+            SceAtExecute(SceSys.m_chapter_door);
         }
     } else {
         SndRoomBgmStartCheck(1);
@@ -840,12 +840,12 @@ void SceSetChapterEnd(int chapter, int doorAt)
     SndRoomBgmStop(1, 0);
     SndSeAbsFadeOutAll_sec(1);
     SceEventStart(0);
-    BitOff(pG->flags_170, 0x800000);
+    BitOff(pG->Stop_flg, 0x800000);
     SceSys.pause = 1;
-    SceSys.x74 = chapter;
-    SceSys.x78 = doorAt;
+    SceSys.m_chapter_no = chapter;
+    SceSys.m_chapter_door = doorAt;
     SetGameTime();
-    SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, 2, 0);
+    SceExec(5, (TaskFunc) SceChapterEnd, 0, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(1);
     SceEventEnd(0);
 }
@@ -865,7 +865,7 @@ void SceCamMove(Vec* pos, Vec* at, f32 fovy)
     SceCam.up.z = 0.0f;
     SceCam.dist = vecDist(&SceCam.param.pos, &SceCam.param.at);
     CameraSetOrientationUp(&SceCam);
-    CamCtrl.x250 = (s32) &SceCam;
+    CamCtrl.m_pExtraCamera = (s32) &SceCam;
 }
 
 void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
@@ -911,7 +911,7 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             }
             for (int i = 0; i < 2; i++) {
                 if (o1) {
-                    o1->pParts->rot.z += -0.034906585f;
+                    o1->pParts->ang.z += -0.034906585f;
                 }
                 SceSleep(1);
             }
@@ -932,100 +932,100 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             switch (type) {
             case 0:
                 if (o1) {
-                    o1->rot.y += (-1.9198622f / 30.0f);
+                    o1->ang.y += (-1.9198622f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += (1.9198622f / 30.0f);
+                    o2->ang.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 0x17:
                 if (o1) {
-                    o1->rot.y += (-2.7925267f / 30.0f);
+                    o1->ang.y += (-2.7925267f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += (2.7925267f / 30.0f);
+                    o2->ang.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 1:
             case 0x13:
                 if (o1) {
-                    o1->rot.y += (-1.9198622f / 30.0f);
+                    o1->ang.y += (-1.9198622f / 30.0f);
                 }
                 break;
             case 2:
             case 0x14:
                 if (o1) {
-                    o1->rot.y += (1.9198622f / 30.0f);
+                    o1->ang.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 0x18:
                 if (o1) {
-                    o1->rot.y += (-2.7925267f / 30.0f);
+                    o1->ang.y += (-2.7925267f / 30.0f);
                 }
                 break;
             case 0x19:
                 if (o1) {
-                    o1->rot.y += (2.7925267f / 30.0f);
+                    o1->ang.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 3:
                 if (o1) {
-                    o1->rot.x += (1.7f / 30.0f);
+                    o1->ang.x += (1.7f / 30.0f);
                 }
                 break;
             case 4:
                 if (o1) {
-                    o1->rot.x += (-1.7f / 30.0f);
+                    o1->ang.x += (-1.7f / 30.0f);
                 }
                 break;
             case 5:
                 if (o1) {
-                    o1->rot.z += (1.7f / 30.0f);
+                    o1->ang.z += (1.7f / 30.0f);
                 }
                 break;
             case 6:
                 if (o1) {
-                    o1->rot.z += (-1.7f / 30.0f);
+                    o1->ang.z += (-1.7f / 30.0f);
                 }
                 break;
             case 7:
                 if (o1) {
-                    o1->pParts->rot.x += (1.7f / 30.0f);
+                    o1->pParts->ang.x += (1.7f / 30.0f);
                 }
                 break;
             case 8:
                 if (o1) {
-                    o1->pParts->rot.x += (-1.7f / 30.0f);
+                    o1->pParts->ang.x += (-1.7f / 30.0f);
                 }
                 break;
             case 9:
                 if (o1) {
-                    o1->pParts->rot.z += (1.7f / 30.0f);
+                    o1->pParts->ang.z += (1.7f / 30.0f);
                 }
                 break;
             case 0xA:
                 if (o1) {
-                    o1->pParts->rot.z += (-1.7f / 30.0f);
+                    o1->pParts->ang.z += (-1.7f / 30.0f);
                 }
                 break;
             case 0xB:
                 if (o1) {
-                    o1->rot.x += (1.5707964f / 30.0f);
+                    o1->ang.x += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xC:
                 if (o1) {
-                    o1->rot.x += (-1.5707964f / 30.0f);
+                    o1->ang.x += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xD:
                 if (o1) {
-                    o1->rot.z += (1.5707964f / 30.0f);
+                    o1->ang.z += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xE:
                 if (o1) {
-                    o1->rot.z += (-1.5707964f / 30.0f);
+                    o1->ang.z += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xF:
@@ -1064,7 +1064,7 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
                 dy -= 10.0f;
                 if (o1) {
                     o1->pos.y += dy;
-                    o1->pParts->rot.z += -0.017453292f;
+                    o1->pParts->ang.z += -0.017453292f;
                 }
                 break;
             case 0x16:
@@ -1080,100 +1080,100 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
         switch (type) {
         case 0:
             if (o1) {
-                o1->rot.y += -1.9198622f;
+                o1->ang.y += -1.9198622f;
             }
             if (o2) {
-                o2->rot.y += 1.9198622f;
+                o2->ang.y += 1.9198622f;
             }
             break;
         case 0x17:
             if (o1) {
-                o1->rot.y += -2.7925267f;
+                o1->ang.y += -2.7925267f;
             }
             if (o2) {
-                o2->rot.y += 2.7925267f;
+                o2->ang.y += 2.7925267f;
             }
             break;
         case 1:
         case 0x13:
             if (o1) {
-                o1->rot.y += -1.9198622f;
+                o1->ang.y += -1.9198622f;
             }
             break;
         case 2:
         case 0x14:
             if (o1) {
-                o1->rot.y += 1.9198622f;
+                o1->ang.y += 1.9198622f;
             }
             break;
         case 0x18:
             if (o1) {
-                o1->rot.y += -2.7925267f;
+                o1->ang.y += -2.7925267f;
             }
             break;
         case 0x19:
             if (o1) {
-                o1->rot.y += 2.7925267f;
+                o1->ang.y += 2.7925267f;
             }
             break;
         case 3:
             if (o1) {
-                o1->rot.x += 1.7f;
+                o1->ang.x += 1.7f;
             }
             break;
         case 4:
             if (o1) {
-                o1->rot.x += -1.7f;
+                o1->ang.x += -1.7f;
             }
             break;
         case 5:
             if (o1) {
-                o1->rot.z += 1.7f;
+                o1->ang.z += 1.7f;
             }
             break;
         case 6:
             if (o1) {
-                o1->rot.z += -1.7f;
+                o1->ang.z += -1.7f;
             }
             break;
         case 7:
             if (o1) {
-                o1->pParts->rot.x += 1.7f;
+                o1->pParts->ang.x += 1.7f;
             }
             break;
         case 8:
             if (o1) {
-                o1->pParts->rot.x += -1.7f;
+                o1->pParts->ang.x += -1.7f;
             }
             break;
         case 9:
             if (o1) {
-                o1->pParts->rot.z += 1.7f;
+                o1->pParts->ang.z += 1.7f;
             }
             break;
         case 0xA:
             if (o1) {
-                o1->pParts->rot.z += -1.7f;
+                o1->pParts->ang.z += -1.7f;
             }
             break;
         case 0xB:
             if (o1) {
-                o1->rot.x += 1.5707964f;
+                o1->ang.x += 1.5707964f;
             }
             break;
         case 0xC:
             if (o1) {
-                o1->rot.x += -1.5707964f;
+                o1->ang.x += -1.5707964f;
             }
             break;
         case 0xD:
             if (o1) {
-                o1->rot.z += 1.5707964f;
+                o1->ang.z += 1.5707964f;
             }
             break;
         case 0xE:
             if (o1) {
-                o1->rot.z += -1.5707964f;
+                o1->ang.z += -1.5707964f;
             }
             break;
         case 0xF:
@@ -1289,7 +1289,7 @@ void SceElevator(SceElevatorData* d)
     SceEventStart(0);
     faded = 0;
     done = 0;
-    BitOn(pG->flags_5014, 0x20000);
+    BitOn(pG->Status_flg[2], 0x20000);
     obj->setNoSuspend(1);
     obj->setPos(&d->pos);
     pPL->setNoSuspend(1);
@@ -1341,14 +1341,14 @@ void SceElevator(SceElevatorData* d)
                     faded = 1;
                 }
             } else if ((fade->flags & 1) == 0) {
-                BitOff(pG->flags_5014, 0x20000);
+                BitOff(pG->Status_flg[2], 0x20000);
                 SceAtExecRoomJump(d->room, jp, &d->jumpRot, 0);
                 break;
             }
         }
     }
     if (d->dir == 0 || d->dir == 2) {
-        BitOff(pG->flags_5010, 0x10000000);
+        BitOff(pG->Status_flg[1], 0x10000000);
         spd = maxSpd;
         move = stopDist2;
         if (d->dir == 0) {
@@ -1414,7 +1414,7 @@ void SceElevator(SceElevatorData* d)
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
     }
-    BitOff(pG->flags_5014, 0x20000);
+    BitOff(pG->Status_flg[2], 0x20000);
     pPL->be_flag |= 0x10;
     SceEventEnd(0);
     SceExit();
@@ -1427,8 +1427,8 @@ void SceDebugDisp(const char* fmt, ...)
     va_start(ap, fmt);
     char buf[0x100];  // declared after va_start: the register save area and ap get their slots first
     vsprintf(buf, fmt, ap);
-    eprintf(0x14, (s16) SceSys.x7A, 0, 1, "%s", buf);
-    SceSys.x7A += 0xF;
+    eprintf(0x14, (s16) SceSys.m_debug_disp_y, 0, 1, "%s", buf);
+    SceSys.m_debug_disp_y += 0xF;
 }
 
 // Called from title.cpp with an argument (`DebugTrg(1)`): the parameter exists, the body ignores it.

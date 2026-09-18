@@ -48,14 +48,14 @@ void R107Init()
     if (getRoomEtcDoor(0, &door0, 1) && getRoomEtcDoor(0x15, &door1, 1)) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
     }
-    SceExec(0x12, (TaskFunc) r107_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r107_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
     }
     SceSetItemEvent(3, 0x92, 1, 0xB, r104_openKiln, (void (*)()) r104_openedKiln, 0, 0);
     SceSetItemEvent(5, 0x93, 2, 0xC, r104_openKiln, (void (*)()) r104_openedKiln, 1, 0);
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r107_eff_info);
-    SceExec(0x12, (TaskFunc) r107_setFish, 0, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r107_eff_info);
+    SceExec(0x12, (TaskFunc) r107_setFish, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R107Main()
@@ -104,16 +104,16 @@ void r104_openKiln_main(int type, int opened)
         a->be_flag |= 0x20;
         b->be_flag |= 0x20;
         if (opened == 1) {
-            a->pParts->rot.y -= step;
-            b->pParts->rot.y += step;
+            a->pParts->ang.y -= step;
+            b->pParts->ang.y += step;
         } else {
             int i;
 
             step /= 30.0f;
             SndCall(6, 0x1C, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
-                a->pParts->rot.y -= step;
-                b->pParts->rot.y += step;
+                a->pParts->ang.y -= step;
+                b->pParts->ang.y += step;
                 SceSleep(1);
             }
         }

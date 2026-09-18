@@ -141,8 +141,8 @@ void Snd_iss_new_seq_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
     seq->seq_pos = seq->seq_top;
     seq->seq_loop = seq->seq_top;
     seq->delta = Snd_seq_get_delta(seq);
-    if (req->x1D >= 0) {
-        seq->vol2 = req->x1D << 8;
+    if (req->vol >= 0) {
+        seq->vol2 = req->vol << 8;
     } else {
         seq->vol2 = sit->vol << 8;
     }
@@ -180,7 +180,7 @@ void seq_work_init_track(SND_SEQ_WORK* seq)
     seq->fade_step = 0;
     seq->fade_target = 0;
     seq->tempo = 1000;
-    seq->x3180 = 480;
+    seq->division = 480;
     seq->delta = 0;
     seq->tpr_num = 0;
     for (i = 0; i < 16; i++) {

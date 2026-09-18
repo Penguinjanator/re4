@@ -56,10 +56,10 @@ static inline void U16Set(u16& d, int v)
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -154,7 +154,7 @@ void em3bDmCkTruck(cEm3b* em)
     LifeDownSet2(em, dmg, 0, 1);
     // the parts pointer crosses LifeDownSet2 (callee-saved copy right after getPartsPtr) and the
     // worldPos address is formed here; sched1 hoists the addi above the call
-    pos = &p->worldPos;
+    pos = &p->world;
     EmDmBloodSet2(em, 1, 0x21, 0, 0, 0);
     SndCall(6, 4, pos, 0, 0, em);
     if (em->hp <= 1 && w->dmgWait == 0) {
@@ -353,7 +353,7 @@ void cEm3b::move()
 {
     Em3bWork* w = EM3B_WK(this);
 
-    if (xFC != 0) {
+    if (r_no_0 != 0) {
         switch (type) {
         case 0:
         default:
@@ -371,8 +371,8 @@ void cEm3b::move()
     if (w->dmgWait) {
         w->dmgWait--;
     }
-    Em3b_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em3b_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -394,7 +394,7 @@ static void em3b_R0_Init(cEm3b* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em3b() Turck:ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
@@ -402,7 +402,7 @@ static void em3b_R0_Init(cEm3b* em)
     case 2:
         if (em->modelInit(ARC(0xB), ARC(0xC)) == 0) {
             pLog->err(0, 0, "em3b() Cart:ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
@@ -411,7 +411,7 @@ static void em3b_R0_Init(cEm3b* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     switch (em->type) {
     case 0:
@@ -424,19 +424,19 @@ static void em3b_R0_Init(cEm3b* em)
         break;
     }
     at = &em->atari;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     switch (em->type) {
     case 0:
     default:
-        at->setPriority(3);
-        at->flags &= ~0x100;
+        at->setPriority(PRI_LV3);
+        at->m_flag &= ~0x100;
         YarareInitCube(em, 0.0f, -500.0f, 0.0f, 500.0f, 1500.0f, 3305.0f, 1, 1);
         YarareAddCube(em, &w->hit, 0.0f, 1000.0f, -1500.0f, 850.0f, 1500.0f, 1850.0f, 1, 1);
         break;
     case 1:
     case 2:
-        at->setPriority(3);
-        at->flags &= ~0x100;
+        at->setPriority(PRI_LV3);
+        at->m_flag &= ~0x100;
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 700.0f, 1000.0f, 1300.0f, 1, 1);
         break;
     }
@@ -445,7 +445,7 @@ static void em3b_R0_Init(cEm3b* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     EspDataLoad((u32) ARC(6), 0x30, 0);
     w->espKind = EspPullCoreKind();
     w->flags = zero;
@@ -467,7 +467,7 @@ static void em3b_R0_Init(cEm3b* em)
 
 static void em3b_R0_Move(cEm3b* em)
 {
-    Em3b_R1_move_tbl[em->xFD](em);
+    Em3b_R1_move_tbl[em->r_no_1](em);
 }
 
 // Park the vehicle at the origin (the room moves it with its matrix).
@@ -476,15 +476,15 @@ static inline void em3bPosReset(cEm3b* em)
     em->pos.x = 0.0f;
     em->pos.y = 0.0f;
     em->pos.z = 0.0f;
-    em->rot.x = 0.0f;
-    em->rot.y = 0.0f;
-    em->rot.z = 0.0f;
+    em->ang.x = 0.0f;
+    em->ang.y = 0.0f;
+    em->ang.z = 0.0f;
 }
 
 static void em3b_R1_Truck_Wait(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
-    int st = em->xFE;
+    int st = em->r_no_2;
 
     switch (st) {
     case 0:
@@ -492,7 +492,7 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
         MotionMoveF(em, 0);
         w->timer = 10;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
         em3bPosReset(em);
@@ -500,7 +500,7 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
         MotionMoveF(em, 0);
         if (w->timer) {
             w->timer--;
-        } else if (em->flags_3C8 & 1) {
+        } else if (em->flag & 1) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
         break;
@@ -513,14 +513,14 @@ static void em3b_R1_Truck_Run(cEm3b* em)
     cModel* p = em->getPartsPtr(0);
     f32 f;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em3bPosReset(em);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 3, 1, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
@@ -529,12 +529,12 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         w->timer = 450;
         w->seTimer = 30;
         EstSet((int) em, -1, 0, 0, 1, 0, 1, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     case 3: {
         int end = MotionMoveF(em, 0);
 
         if (end) {
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
         em3bRunDownCkTruck(em);
@@ -561,7 +561,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         }
         f = em->frame;
         if (f > 469.7f && f < 470.3f) {
-            SndCall(6, 9, &p->worldPos, 0, 0, em);
+            SndCall(6, 9, &p->world, 0, 0, em);
         }
         if (w->timer) {
             w->timer--;
@@ -569,15 +569,15 @@ static void em3b_R1_Truck_Run(cEm3b* em)
                 w->seTimer--;
             } else {
                 w->seTimer = (u8) (Rnd() % 60) + 30;
-                SndCall(6, 7, &p->worldPos, 0, 0, em);
+                SndCall(6, 7, &p->world, 0, 0, em);
             }
         }
         f = em->frame;
         if (f > 464.7f && f < 465.3f) {
             EstSet((int) em, -1, 0, 0, 1, 0x24, 0, 0, (u32) em, 0);
-            em->flags_3C8 |= 2;
+            em->flag |= 2;
             em->hp = 0;
-            em->clearStatus(5);
+            em->clearStatus(EM_STATUS_ACTIVE);
             SndStop(w->sndId, 0);
         }
         break;
@@ -591,12 +591,12 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
     cModel* p = em->getPartsPtr(0);
-    int st = em->xFE;
+    int st = em->r_no_2;
     f32 f;
 
     switch (st) {
     case 0: {
-        int dir = em->xFF;
+        int dir = em->r_no_3;
 
         if (dir) {
             MotionSetCore(em, MOTION(em), ARC(9), 0, 3, 1, 0);
@@ -607,45 +607,45 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
             EstSet((int) em, -1, 0, 0, 1, 0x25, 0, 0, (u32) em, 0);
             w->timer = 120;
         }
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (MotionMoveF(em, 0)) {
-            em->clearStatus(5);
-            em->xFE++;
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->r_no_2++;
             break;
         }
         if (w->timer) {
             w->timer--;
             em3bRunDownCkTruck(em);
             if (w->timer == 0) {
-                em->atari.pos.x = -150.0f;
-                em->atari.pos.y = 0.0f;
-                em->atari.pos.z = -200.0f;
-                em->atari.rectX = 1500.0f;
+                em->atari.m_offset.x = -150.0f;
+                em->atari.m_offset.y = 0.0f;
+                em->atari.m_offset.z = -200.0f;
+                em->atari.m_radius = 1500.0f;
             }
         }
-        if (em->xFF) {
+        if (em->r_no_3) {
             f = em->frame;
             if (f > 19.7f && f < 20.3f) {
-                SndCall(6, 0xA, &p->worldPos, 0, 0, em);
+                SndCall(6, 0xA, &p->world, 0, 0, em);
             }
             f = em->frame;
             if (f > 42.7f && f < 43.3f) {
-                SndCall(6, 8, &p->worldPos, 0, 0, em);
-                em->flags_3C8 |= 2;
+                SndCall(6, 8, &p->world, 0, 0, em);
+                em->flag |= 2;
                 em->hp = 0;
                 SndStop(w->sndId, 0);
             }
         } else {
             f = em->frame;
             if (f > 12.7f && f < 13.3f) {
-                SndCall(6, 0xB, &p->worldPos, 0, 0, em);
+                SndCall(6, 0xB, &p->world, 0, 0, em);
             }
             f = em->frame;
             if (f > 110.7f && f < 111.3f) {
-                SndCall(6, 8, &p->worldPos, 0, 0, em);
-                em->flags_3C8 |= 2;
+                SndCall(6, 8, &p->world, 0, 0, em);
+                em->flag |= 2;
                 em->hp = 0;
                 SndStop(w->sndId, 0);
             }
@@ -667,11 +667,11 @@ static void em3b_R1_Cart_Run(cEm3b* em)
     Em3bWork* w = EM3B_WK(em);
     int t;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xD), 0, 3, 5, 0);
         w->timer = 80;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         t = w->timer;
@@ -686,7 +686,7 @@ static void em3b_R1_Cart_Run(cEm3b* em)
             v.y += 1000.0f;
             zero = 0;
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
             EffectEspDelete(0, w->espKind, (u32) em, 0);
             EffectEspgenDelete(0, w->espKind, (int) em);
             EffectEfmDelete(0, w->espKind, (int) em);
@@ -705,13 +705,13 @@ static void em3b_R1_Cart_Damage(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 1, 0);
         w->sndId2 = SndCall(6, 9, &em->pos, 0, 0, em);
         EmSetDie(em);
-        em->clearStatus(5);
-        em->xFE++;
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 4, 0, 0);
@@ -725,14 +725,14 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
     Em3bWork* w = EM3B_WK(em);
     int t;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         EstSet((int) em, -1, 0, 0, 0xCA, 3, 0, w->espKind, (u32) em, 0);
         w->dmgWait = 150;
         MotionSetCore(em, MOTION(em), ARC(0xE), 0, 3, 1, 0);
         w->timer = 1;
         EmSetDie(em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         t = w->timer;
@@ -746,7 +746,7 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
             v.y += 3000.0f;
             PlWepHitCheck2(0, &v, &v, 0x13, 2, 6000.0f);
-            pG->flags_500C |= 0x00800000;
+            pG->Status_flg[0] |= 0x00800000;
             SndStop(w->sndId2, 0);
             SndCall(6, 0xA, &em->pos, 0, 0, em);
             EmRoutineSet(em, 1, 6, t, t);
@@ -757,15 +757,15 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
 
 static void em3b_R1_Cart_Lost(cEm3b* em)
 {
-    int st = em->xFE;
+    int st = em->r_no_2;
 
     if (st == 0) {
         em->be_flag &= ~2;
-        em->atari.flags &= ~0x300;
+        em->atari.m_flag &= ~0x300;
         EmSetDie(em);
         em->hp = st;
-        em->clearStatus(5);
-        em->xFE++;
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->r_no_2++;
     }
 }
 
@@ -777,8 +777,8 @@ static inline f32 em3bDistXZ(cModel* p, Vec* q)
     f32 t;
     f32 d;
 
-    t = (p->worldPos.x - q->x) * (p->worldPos.x - q->x);
-    d = (p->worldPos.z - q->z) * (p->worldPos.z - q->z);
+    t = (p->world.x - q->x) * (p->world.x - q->x);
+    d = (p->world.z - q->z) * (p->world.z - q->z);
     d += t;
     return d;
 }
@@ -797,24 +797,24 @@ void em3bRunDownCkTruck(cEm3b* em)
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pPL->pos) < 6250000.0f) {
                 U16Set(pG->pl_life, zero);
-                pPL->rot.y += Muku(&pPL->pos, &p->worldPos, pPL->rot.y, PI);
-                pPL->rot.y = LIMIT_ANGLE(em->rot.y);
+                pPL->ang.y += Muku(&pPL->pos, &p->world, pPL->ang.y, PI);
+                pPL->ang.y = LIMIT_ANGLE(em->ang.y);
                 PlSetDamage(8, 0, 0);
                 SndCall(1, 0x4B, &pPL->pos, 0, 0, 0);
                 break;
             }
         }
     }
-    if (pSUB && (s16) pG->sub_life > 0) {
+    if (pSUB && (s16) pG->ashley_life > 0) {
         for (i = 0; i < 3; i++) {
             int zero = 0;
 
             p = em->getPartsPtr(parts[i]);
             if (em3bDistXZ(p, &pSUB->pos) < 6250000.0f) {
-                U16Set(pG->sub_life, zero);
+                U16Set(pG->ashley_life, zero);
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
-                FSet(pSUB->rot.y, pSUB->rot.y + Muku(&pSUB->pos, &p->worldPos, pSUB->rot.y, PI));
-                pSUB->rot.y = LIMIT_ANGLE(pSUB->rot.y);
+                FSet(pSUB->ang.y, pSUB->ang.y + Muku(&pSUB->pos, &p->world, pSUB->ang.y, PI));
+                pSUB->ang.y = LIMIT_ANGLE(pSUB->ang.y);
                 SetSubDamage((int) em, (void*) subem3bRunDown);
                 SndCall(1, 0x4B, &pSUB->pos, 0, 0, 0);
                 break;
@@ -863,8 +863,8 @@ void em3bRunDownCkCart(cEm3b* em)
             p = em->getPartsPtr(1);
             if (em3bDistXZ(p, &pPL->pos) < 2250000.0f) {
                 LifeDownSet(pPL, 500, 0);
-                pPL->rot.y = em->rot.y + PI;
-                pPL->rot.y = LIMIT_ANGLE(em->rot.y);
+                pPL->ang.y = em->ang.y + PI;
+                pPL->ang.y = LIMIT_ANGLE(em->ang.y);
                 PlSetDamage(8, 0, 0);
                 break;
             }
@@ -890,8 +890,8 @@ void em3bRunDownCkCart(cEm3b* em)
         if (e == em) {
             continue;
         }
-        if ((p->worldPos.x - e->pos.x) * (p->worldPos.x - e->pos.x) + (p->worldPos.y - e->pos.y) * (p->worldPos.y - e->pos.y)
-            + (p->worldPos.z - e->pos.z) * (p->worldPos.z - e->pos.z) < 2890000.0f) {
+        if ((p->world.x - e->pos.x) * (p->world.x - e->pos.x) + (p->world.y - e->pos.y) * (p->world.y - e->pos.y)
+            + (p->world.z - e->pos.z) * (p->world.z - e->pos.z) < 2890000.0f) {
             e->hp = zero;
             EmRoutineSet(e, 3, 4, zero, zero);   // the ff store is the zero's last use: issued first
         }
@@ -902,15 +902,15 @@ void em3bRunDownCkCart(cEm3b* em)
 static void subem3bRunDown()
 {
     cSubChar* sub = pSUB;
-    int st = sub->xFE;
+    int st = sub->r_no_2;
     PlArc* arc = ((cEm*) sub->dmgType)->subArc;
 
     sub->subArc = arc;
     switch (st) {
     case 0:
         MotionSetCore(sub, MOTION(sub), PL_ARC_PTR(arc, 0xF), 0, 3, 1, 0);
-        pG->sub_life = st;
-        sub->xFE++;
+        pG->ashley_life = st;
+        sub->r_no_2++;
     case 1:
         MotionMoveF(sub, 0);
         break;

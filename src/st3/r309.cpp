@@ -37,7 +37,7 @@ static R309Work* r309_work;
 // Death bit of entry `no` of the loaded enemy list (0 while no list is loaded).
 static inline u32 r309_emDead(int no)
 {
-    int list = pG->emlist_no;
+    int list = pG->em_list_no;
     u32 v;
 
     if (list >= 0) {
@@ -86,8 +86,8 @@ void R309Init()
 
 void R309Main()
 {
-    if (!(pG->flags_51C4 & 0x00040000) && (pG->item_flags[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
-        pG->flags_51C4 |= 0x00040000;
+    if (!(pG->Scenario_flg[1] & 0x00040000) && (pG->item_flags[0] & 0x40) && SceAtCheckSaveItemId(0x83) == 0) {
+        pG->Scenario_flg[1] |= 0x00040000;
     }
 }
 

@@ -44,15 +44,15 @@ static void em3d_R1_WarpMove(cEm3d* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // math_sub.h's VECNormalize with the log pointer read as a plain struct member (em27.cpp).
@@ -66,22 +66,22 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Radio message `no` at the bottom of the screen, held for 90 frames.
 static inline void em3dMesSet(Em3dWork* w, int no)
 {
-    SceMesSet(no, 0xB2, 1, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-    w->mesTimer = 90;
+    SceMesSet(no, 0xB2, 1, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+    w->Se_wait = 90;
 }
 
 // Pilot voice `no`: stop the running one first.
 static inline void em3dVoice(cEm3d* em, Em3dWork* w, u16 no)
 {
-    SndStop(w->sndId, 0);
-    w->sndId = SndCall(6, no, &em->pos, 0, 0, em);
+    SndStop(w->Se_id, 0);
+    w->Se_id = SndCall(6, no, &em->pos, 0, 0, em);
 }
 
 // Hover: apply and damp the speed, vibrate (a macro for the same reason as EM3D_TURN_TO: the damp
 // constant is loaded right before PSVECScale, not held across PSVECAdd).
 #define EM3D_HOVER_MOVE(em, w, damp)                                                    \
-    PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                        \
-    PSVECScale(&(w)->spd, &(w)->spd, damp);                                             \
+    PSVECAdd(&(em)->pos, &(w)->Spd, &(em)->pos);                                        \
+    PSVECScale(&(w)->Spd, &(w)->Spd, damp);                                             \
     em3dVibMove(em)
 
 // Turn towards `target` by `rate` of the remaining angle, at most `lim` per frame. A macro: an
@@ -89,7 +89,7 @@ static inline void em3dVoice(cEm3d* em, Em3dWork* w, u16 no)
 // original reloads every constant from the pool.
 #define EM3D_TURN_TO(em, target, rate, lim, nlim)                                        \
     {                                                                                   \
-        f32 a = Muku(&(em)->pos, target, (em)->rot.y, PI) * (rate);                     \
+        f32 a = Muku(&(em)->pos, target, (em)->ang.y, PI) * (rate);                     \
                                                                                         \
         if (a > (lim)) {                                                                \
             a = (lim);                                                                  \
@@ -97,14 +97,14 @@ static inline void em3dVoice(cEm3d* em, Em3dWork* w, u16 no)
         if (a < (nlim)) {                                                               \
             a = (nlim);                                                                 \
         }                                                                               \
-        (em)->rot.y += a;                                                               \
-        (em)->rot.y = LIMIT_ANGLE((em)->rot.y);                                         \
+        (em)->ang.y += a;                                                               \
+        (em)->ang.y = LIMIT_ANGLE((em)->ang.y);                                         \
     }
 
 // World matrix from the coordinates, then the parts.
 static inline void em3dMatCalc(cEm3d* em)
 {
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -156,12 +156,12 @@ void em3dDmCk(cEm3d* em)
         return;
     }
     em->dmHit = 0;
-    if (w->mesTimer) {
+    if (w->Se_wait) {
         return;
     }
     near = 0;
-    if ((em->x328.x - pPL->pos.x) * (em->x328.x - pPL->pos.x) + (em->x328.y - pPL->pos.y) * (em->x328.y - pPL->pos.y)
-            + (em->x328.z - pPL->pos.z) * (em->x328.z - pPL->pos.z)
+    if ((em->dmPos.x - pPL->pos.x) * (em->dmPos.x - pPL->pos.x) + (em->dmPos.y - pPL->pos.y) * (em->dmPos.y - pPL->pos.y)
+            + (em->dmPos.z - pPL->pos.z) * (em->dmPos.z - pPL->pos.z)
         < 9000000.0f) {
         near = 1;
     }
@@ -230,15 +230,15 @@ void cEm3d::move()
 {
     Em3dWork* w = EM3D_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em3dDmCk(this);
     }
-    w->flags &= ~0x47;
-    if (w->mesTimer) {
-        w->mesTimer--;
+    w->Be_flg &= ~0x47;
+    if (w->Se_wait) {
+        w->Se_wait--;
     }
-    Em3d_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em3d_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -253,14 +253,14 @@ void cEm3d::move()
     atari.move();
     SatMgr.check(this, 0);
     {
-        Vec target = Em3d_target_tbl[w->targetNo];
+        Vec target = Em3d_target_tbl[w->Target_area];
 
-        if (w->flags & 8) {
+        if (w->Be_flg & 8) {
             em3dVoice(this, w, 0x6C);
             em3dMesSet(w, 2);
         }
     }
-    w->flags &= ~0x8;
+    w->Be_flg &= ~0x8;
 }
 
 static void em3d_R0_Init(cEm3d* em)
@@ -272,30 +272,30 @@ static void em3d_R0_Init(cEm3d* em)
 
     if (em->modelInit(ARC(5), ARC(6)) == 0) {
         pLog->err(0, 0, "em3d() ModelInit failed.");
-        em->xFC = 0xFF;
+        em->r_no_0 = 0xFF;
         return;
     }
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     at = &em->atari;
     at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f);
     zero = 0;
     AtariOff(at, 0xFCFF);
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     YarareInit(em, 0.0f, 750.0f, -3000.0f, 1500.0f, 6000.0f, 1, 0x45);
     em->lockParts = 2;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(4), 0x32, 0);
-    w->flags = zero;
+    w->Be_flg = zero;
     w->gunTimer = zero;
     w->vibAng.x = fRand1_1() * PI;
     w->vibAng.y = fRand1_1() * PI;
@@ -303,13 +303,13 @@ static void em3d_R0_Init(cEm3d* em)
     w->vibSpd.x = fRand0_1() * 0.17453292f + 0.17453292f;
     w->vibSpd.y = fRand0_1() * 0.05235988f + 0.13962634f;
     w->vibSpd.z = fRand0_1() * 0.05235988f + 0.2443461f;
-    w->range = 12000.0f;
-    w->spd.x = 0.0f;
-    w->spd.y = 0.0f;
-    w->spd.z = 0.0f;
-    w->targetNo = 0;
+    w->Search_len = 12000.0f;
+    w->Spd.x = 0.0f;
+    w->Spd.y = 0.0f;
+    w->Spd.z = 0.0f;
+    w->Target_area = 0;
     w->pTargetEm = 0;
-    w->x2BC = 150;
+    w->Target_chg = 150;
     for (i = 0; i < 4; i++) {
         Vec pos;
         Vec rot;
@@ -325,7 +325,7 @@ static void em3d_R0_Init(cEm3d* em)
             ((cObjMissile*) w->pMissile[i])->setParent(em, em3d_missile_parts[i], 0);
         }
     }
-    w->patrolPos = Em3d_pos_tbl[0];
+    w->Patrol_pos = Em3d_pos_tbl[0];
     EstSet((int) em, -1, 0, 0, 0x32, 0, 1, 0, (u32) em, 0);
     EstSet((int) em, -1, 0, 0, 0x32, 3, 1, 0, (u32) em, 0);
     EmRoutineSet(em, 1, 0, 0, 0);
@@ -335,7 +335,7 @@ static void em3d_R0_Init(cEm3d* em)
 
 static void em3d_R0_Move(cEm3d* em)
 {
-    Em3d_R1_move_tbl[em->xFD](em);
+    Em3d_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em3d_R1_Patrol(cEm3d* em)
@@ -343,41 +343,41 @@ static void em3d_R1_Patrol(cEm3d* em)
     Em3dWork* w = EM3D_WK(em);
     Vec target;
 
-    w->flags |= 0x40;
-    target = w->patrolPos;
-    switch (em->xFE) {
+    w->Be_flg |= 0x40;
+    target = w->Patrol_pos;
+    switch (em->r_no_2) {
     case 0:
-        if (em->xFF) {
-            w->timer = 30;
+        if (em->r_no_3) {
+            w->Timer = 30;
         } else {
-            w->timer = 0;
+            w->Timer = 0;
         }
-        em->xFF = 0;
-        w->flags &= ~0x10;
+        em->r_no_3 = 0;
+        w->Be_flg &= ~0x10;
         w->count = Rnd() % 90 + 90;
         w->pTargetEm = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->flags |= 2;
+            w->Be_flg |= 2;
         }
         EM3D_HOVER_MOVE(em, w, 0.95f);
         EM3D_TURN_TO(em, &target, 0.05f, 0.034906585f, -0.034906585f);
         if (w->count) {
             w->count--;
         } else {
-            em->xFE++;
+            em->r_no_2++;
         }
         break;
     case 2:
-        w->timer = Rnd() % 30 + 120;
-        em->xFE++;
+        w->Timer = Rnd() % 30 + 120;
+        em->r_no_2++;
     case 3: {
         Vec v;
 
-        w->flags |= 2;
+        w->Be_flg |= 2;
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 30.0f;
@@ -385,35 +385,35 @@ static void em3d_R1_Patrol(cEm3d* em)
             v.y = 15.0f;
         }
         PSMTXMultVecSR(em->mat, &v, &v);
-        PSVECAdd(&w->spd, &v, &w->spd);
-        em->rot.y += 0.012271847f;
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        PSVECAdd(&w->Spd, &v, &w->Spd);
+        em->ang.y += 0.012271847f;
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         EM3D_HOVER_MOVE(em, w, 0.95f);
-        if (w->flags & 0x20) {
-            if ((w->patrolPos.x - pPL->pos.x) * (w->patrolPos.x - pPL->pos.x)
-                    + (w->patrolPos.y - pPL->pos.y) * (w->patrolPos.y - pPL->pos.y)
-                    + (w->patrolPos.z - pPL->pos.z) * (w->patrolPos.z - pPL->pos.z)
+        if (w->Be_flg & 0x20) {
+            if ((w->Patrol_pos.x - pPL->pos.x) * (w->Patrol_pos.x - pPL->pos.x)
+                    + (w->Patrol_pos.y - pPL->pos.y) * (w->Patrol_pos.y - pPL->pos.y)
+                    + (w->Patrol_pos.z - pPL->pos.z) * (w->Patrol_pos.z - pPL->pos.z)
                 > 25000000.0f) {
-                w->flags |= 1;
+                w->Be_flg |= 1;
             }
         }
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
     }
     em3dMatCalc(em);
-    if (w->targetSet) {
+    if (w->Target_ck) {
         // Plain byte stores: one QI zero serves targetSet and the routine bytes (the int inline's SI zero
         // would be a second `li`).
-        w->targetSet = 0;
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        w->Target_ck = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
@@ -421,25 +421,25 @@ static void em3d_R1_TargetMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
     Vec v;
-    Vec target = Em3d_target_tbl[w->targetNo];
-    Vec pos = Em3d_pos_tbl[w->targetNo];
+    Vec target = Em3d_target_tbl[w->Target_area];
+    Vec pos = Em3d_pos_tbl[w->Target_area];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em3dVoice(em, w, 0x69);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         EM3D_TURN_TO(em, &pos, 0.1f, 0.034906585f, -0.034906585f);
         EM3D_HOVER_MOVE(em, w, 0.95f);
-        if (fabsf(Muku(&em->pos, &pos, em->rot.y, PI)) < 0.034906585f) {
-            em->xFE++;
+        if (fabsf(Muku(&em->pos, &pos, em->ang.y, PI)) < 0.034906585f) {
+            em->r_no_2++;
         }
         break;
     case 2:
-        w->spd.x = 0.0f;
-        w->spd.y = 0.0f;
-        w->spd.z = 0.0f;
-        em->xFE++;
+        w->Spd.x = 0.0f;
+        w->Spd.y = 0.0f;
+        w->Spd.z = 0.0f;
+        em->r_no_2++;
     case 3:
         v.x = 0.0f;
         v.y = 0.0f;
@@ -451,7 +451,7 @@ static void em3d_R1_TargetMove(cEm3d* em)
             v.y = 15.0f;
         }
         PSMTXMultVecSR(em->mat, &v, &v);
-        PSVECAdd(&w->spd, &v, &w->spd);
+        PSVECAdd(&w->Spd, &v, &w->Spd);
         EM3D_TURN_TO(em, &pos, 0.05f, 0.034906585f, -0.034906585f);
         EM3D_HOVER_MOVE(em, w, 0.95f);
         if ((em->pos.x - pos.x) * (em->pos.x - pos.x) + (em->pos.z - pos.z) * (em->pos.z - pos.z) < 9000000.0f) {
@@ -470,21 +470,21 @@ static void em3d_R1_TargetMove(cEm3d* em)
 static void em3d_R1_Atk(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
-    Vec target = Em3d_target_tbl[w->targetNo];
-    Vec pos = Em3d_pos_tbl[w->targetNo];
+    Vec target = Em3d_target_tbl[w->Target_area];
+    Vec pos = Em3d_pos_tbl[w->Target_area];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         w->count = 0;
-        w->timer = 240;
+        w->Timer = 240;
         w->mesDone = 0;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (em->pos.y > pos.y + 500.0f) {
-            w->spd.y = -15.0f;
+            w->Spd.y = -15.0f;
         }
         if (em->pos.y < pos.y - 500.0f) {
-            w->spd.y = 15.0f;
+            w->Spd.y = 15.0f;
         }
         EM3D_HOVER_MOVE(em, w, 0.93f);
         EM3D_TURN_TO(em, &target, 0.05f, 0.034906585f, -0.034906585f);
@@ -494,55 +494,55 @@ static void em3d_R1_Atk(cEm3d* em)
                 w->count++;
             }
         }
-        if (w->timer == 0) {
+        if (w->Timer == 0) {
             em3dRocketFire(em);
-            em->xFE++;
+            em->r_no_2++;
             break;
         }
-        w->timer--;
-        if (w->mesTimer == 0
+        w->Timer--;
+        if (w->Se_wait == 0
             && (pPL->pos.x - target.x) * (pPL->pos.x - target.x) + (pPL->pos.y - target.y) * (pPL->pos.y - target.y)
                     + (pPL->pos.z - target.z) * (pPL->pos.z - target.z)
                 < 64000000.0f) {
-            w->sndId = SndCall(6, 0x6E, &em->pos, 0, 0, em);
+            w->Se_id = SndCall(6, 0x6E, &em->pos, 0, 0, em);
             em3dMesSet(w, 4);
             if (w->mesDone == 0) {
                 w->mesDone = 1;
-                if (w->timer > 30 && w->timer < 240) {
-                    w->timer = 240;
+                if (w->Timer > 30 && w->Timer < 240) {
+                    w->Timer = 240;
                 }
             }
         }
-        if (w->timer < 30) {
-            w->flags |= 4;
+        if (w->Timer < 30) {
+            w->Be_flg |= 4;
         }
         break;
     case 2:
-        w->timer = 45;
-        em->xFE++;
+        w->Timer = 45;
+        em->r_no_2++;
     case 3:
         if (em->pos.y > pos.y + 500.0f) {
-            w->spd.y = -30.0f;
+            w->Spd.y = -30.0f;
         }
         if (em->pos.y < pos.y - 500.0f) {
-            w->spd.y = 30.0f;
+            w->Spd.y = 30.0f;
         }
         EM3D_HOVER_MOVE(em, w, 0.95f);
         EM3D_TURN_TO(em, &target, 0.1f, 0.20943952f, -0.20943952f);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             break;
         }
-        w->targetNo++;
-        if (w->targetNo > 7) {
-            w->targetNo = 0;
+        w->Target_area++;
+        if (w->Target_area > 7) {
+            w->Target_area = 0;
         }
-        if ((s16) pG->pl_life > 0 && w->mesTimer == 0) {
+        if ((s16) pG->pl_life > 0 && w->Se_wait == 0) {
             if (w->count > 2) {
-                w->sndId = SndCall(6, 0x72, &em->pos, 0, 0, em);
+                w->Se_id = SndCall(6, 0x72, &em->pos, 0, 0, em);
                 em3dMesSet(w, 6);
             } else {
-                w->sndId = SndCall(6, 0x71, &em->pos, 0, 0, em);
+                w->Se_id = SndCall(6, 0x71, &em->pos, 0, 0, em);
                 em3dMesSet(w, 5);
             }
         }
@@ -550,8 +550,8 @@ static void em3d_R1_Atk(cEm3d* em)
         break;
     }
     em3dMatCalc(em);
-    if (fabsf(Muku(&em->pos, &target, em->rot.y, PI)) < 0.5235988f) {
-        w->flags |= 1;
+    if (fabsf(Muku(&em->pos, &target, em->ang.y, PI)) < 0.5235988f) {
+        w->Be_flg |= 1;
     }
 }
 
@@ -559,24 +559,24 @@ static void em3d_R1_WarpMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
     Mtx m;
-    Vec target = Em3d_target_tbl[w->targetNo];
-    Vec pos = Em3d_pos_tbl[w->targetNo];
+    Vec target = Em3d_target_tbl[w->Target_area];
+    Vec pos = Em3d_pos_tbl[w->Target_area];
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        PSMTXRotRad(m, 'y', em->rot.y);
-        w->spd.x = 1000.0f;
-        w->spd.y = 0.0f;
-        w->spd.z = 0.0f;
-        PSMTXMultVecSR(m, &w->spd, &w->spd);
-        w->timer = 45;
-        em->xFE++;
+        PSMTXRotRad(m, 'y', em->ang.y);
+        w->Spd.x = 1000.0f;
+        w->Spd.y = 0.0f;
+        w->Spd.z = 0.0f;
+        PSMTXMultVecSR(m, &w->Spd, &w->Spd);
+        w->Timer = 45;
+        em->r_no_2++;
     case 1:
         EM3D_TURN_TO(em, &pos, 0.1f, 0.034906585f, -0.034906585f);
-        Muku(&em->pos, &pos, em->rot.y, PI);
+        Muku(&em->pos, &pos, em->ang.y, PI);
         EM3D_HOVER_MOVE(em, w, 0.95f);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
@@ -594,11 +594,11 @@ void em3dRoterMove(cEm3d* em)
     cModel* p;
 
     p = em->getPartsPtr(0xA);
-    p->rot.y += 0.61086524f;
-    p->rot.y = LIMIT_ANGLE(p->rot.y);
+    p->ang.y += 0.61086524f;
+    p->ang.y = LIMIT_ANGLE(p->ang.y);
     p = em->getPartsPtr(0xB);
-    p->rot.x -= 0.61086524f;
-    p->rot.y = LIMIT_ANGLE(p->rot.y);
+    p->ang.x -= 0.61086524f;
+    p->ang.y = LIMIT_ANGLE(p->ang.y);
 }
 
 // Aim one gun mount at `aim`: the mount (parts `gun`) pitches, the barrel (parts `gun` + 1) yaws,
@@ -611,30 +611,30 @@ void em3dRoterMove(cEm3d* em)
 #define EM3D_GUN_AIM(em, aim, d, mount, gun, rotX, rotY, limX, nlimX, limY, nlimY)     \
     {                                                                                   \
         p = (em)->getPartsPtr(mount);                                                   \
-        PSVECSubtract(aim, &p->worldPos, &(d));                                         \
+        PSVECSubtract(aim, &p->world, &(d));                                         \
         len = SQRTF((d).x * (d).x + (d).z * (d).z);                                     \
         angX = -atan2f((d).y, len);                                                     \
         angY = atan2f((d).x, (d).z);                                                    \
         p = (em)->getPartsPtr(gun);                                                     \
         m = Muku2(rotX, angX, limX);                                                    \
-        p->rot.x += Muku2(p->rot.x, m, 0.024543693f);                                   \
-        if (p->rot.x > (limX)) {                                                        \
-            p->rot.x = (limX);                                                          \
+        p->ang.x += Muku2(p->ang.x, m, 0.024543693f);                                   \
+        if (p->ang.x > (limX)) {                                                        \
+            p->ang.x = (limX);                                                          \
         }                                                                               \
-        if (p->rot.x < (nlimX)) {                                                       \
-            p->rot.x = (nlimX);                                                         \
+        if (p->ang.x < (nlimX)) {                                                       \
+            p->ang.x = (nlimX);                                                         \
         }                                                                               \
-        p->rot.x = LIMIT_ANGLE(p->rot.x);                                               \
+        p->ang.x = LIMIT_ANGLE(p->ang.x);                                               \
         p = (em)->getPartsPtr((gun) + 1);                                               \
         m = Muku2(rotY, angY, limY);                                                    \
-        p->rot.y += Muku2(p->rot.y, m, 0.024543693f);                                   \
-        if (p->rot.y > (limY)) {                                                        \
-            p->rot.y = (limY);                                                          \
+        p->ang.y += Muku2(p->ang.y, m, 0.024543693f);                                   \
+        if (p->ang.y > (limY)) {                                                        \
+            p->ang.y = (limY);                                                          \
         }                                                                               \
-        if (p->rot.y < (nlimY)) {                                                       \
-            p->rot.y = (nlimY);                                                         \
+        if (p->ang.y < (nlimY)) {                                                       \
+            p->ang.y = (nlimY);                                                         \
         }                                                                               \
-        p->rot.y = LIMIT_ANGLE(p->rot.y);                                               \
+        p->ang.y = LIMIT_ANGLE(p->ang.y);                                               \
     }
 
 // One chain gun shot from parts `mount`: a random line ahead, the weapon hit check, then the wall
@@ -690,28 +690,28 @@ void em3dChainGunMove(cEm3d* em)
     int noAim;
     int t;
 
-    if (w->flags & 0x40) {
-        target = w->patrolPos;
+    if (w->Be_flg & 0x40) {
+        target = w->Patrol_pos;
         aim = target;
     } else {
-        target = Em3d_target_tbl[w->targetNo];
-        if ((w->flags & 1) && w->pTargetEm) {
+        target = Em3d_target_tbl[w->Target_area];
+        if ((w->Be_flg & 1) && w->pTargetEm) {
             aim = w->pTargetEm->pos;
             aim.y += 1000.0f;
         }
     }
-    rotX = em->getPartsPtr(0)->rot.x;
-    rotY = em->rot.y;
+    rotX = em->getPartsPtr(0)->ang.x;
+    rotY = em->ang.y;
     EM3D_GUN_AIM(em, &aim, d, 4, 2, rotX, rotY, 0.5235988f, -0.5235988f, 0.34906584f, -0.34906584f);
     EM3D_GUN_AIM(em, &aim, d, 7, 5, rotX, rotY, 0.5235988f, -0.5235988f, 0.34906584f, -0.34906584f);
     p = em->getPartsPtr(4);
-    p->rot.z += 0.34906584f;
-    p->rot.z = LIMIT_ANGLE(p->rot.z);
+    p->ang.z += 0.34906584f;
+    p->ang.z = LIMIT_ANGLE(p->ang.z);
     p = em->getPartsPtr(7);
-    p->rot.z += 0.34906584f;
-    p->rot.z = LIMIT_ANGLE(p->rot.z);
+    p->ang.z += 0.34906584f;
+    p->ang.z = LIMIT_ANGLE(p->ang.z);
     EM3D_GUN_AIM(em, &target, d, 9, 8, rotX, rotY, 0.7853982f, -0.7853982f, 0.7853982f, -0.7853982f);
-    noAim = !(w->flags & 1);
+    noAim = !(w->Be_flg & 1);
     if (noAim) {
         return;
     }
@@ -736,12 +736,12 @@ void em3dHeliPitchMove(cEm3d* em)
     f32 ang;
 
     p = em->getPartsPtr(0);
-    v = SQRTF(w->spd.x * w->spd.x + w->spd.z * w->spd.z) * 0.01f;
+    v = SQRTF(w->Spd.x * w->Spd.x + w->Spd.z * w->Spd.z) * 0.01f;
     if (v > 1.0f) {
         v = 1.0f;
     }
     ang = v * 0.34906584f + 0.2617994f;
-    p->rot.x = p->rot.x * 0.9f + ang * 0.1f;
+    p->ang.x = p->ang.x * 0.9f + ang * 0.1f;
 }
 
 void em3dVibMove(cEm3d* em)
@@ -759,7 +759,7 @@ void em3dVibMove(cEm3d* em)
 int em3dGetTargetEm(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
-    Vec target = Em3d_target_tbl[w->targetNo];
+    Vec target = Em3d_target_tbl[w->Target_area];
     Vec a;
     Vec b;
     Vec dir;
@@ -795,7 +795,7 @@ int em3dGetTargetEm(cEm3d* em)
         }
         if ((target.x - e->pos.x) * (target.x - e->pos.x) + (target.y - e->pos.y) * (target.y - e->pos.y)
                 + (target.z - e->pos.z) * (target.z - e->pos.z)
-            > w->range * w->range) {
+            > w->Search_len * w->Search_len) {
             continue;
         }
         PSVECSubtract(&e->pos, &em->pos, &d);
@@ -836,7 +836,7 @@ void em3dTargetEmUpdate(cEm3d* em)
 void em3dRocketFire(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
-    Vec target = Em3d_target_tbl[w->targetNo];
+    Vec target = Em3d_target_tbl[w->Target_area];
     int no;
 
     // A loop left at its first iteration: the index stays a register (`lwzx`/`stwx` with the zero)
@@ -870,7 +870,7 @@ int cEm3d::ckSelectEnable()
 {
     int ret = 0;
 
-    if (EM3D_WK(this)->flags & 2) {
+    if (EM3D_WK(this)->Be_flg & 2) {
         ret = 1;
     }
     return ret;
@@ -880,40 +880,40 @@ void cEm3d::setTarget(u32 no, f32 range)
 {
     Em3dWork* w = EM3D_WK(this);
 
-    w->targetSet = 1;
-    w->flags |= 0x10;
-    w->targetNo = no;
+    w->Target_ck = 1;
+    w->Be_flg |= 0x10;
+    w->Target_area = no;
     if (no > 7) {
-        w->targetNo = 7;
+        w->Target_area = 7;
     }
-    w->range = range;
+    w->Search_len = range;
 }
 
 void cEm3d::setTargetPos(u32 no, Vec* pos, f32 rotY, f32 range)
 {
     Em3dWork* w = EM3D_WK(this);
 
-    w->targetSet = 1;
-    w->targetNo = no;
+    w->Target_ck = 1;
+    w->Target_area = no;
     if (no > 7) {
-        w->targetNo = 7;
+        w->Target_area = 7;
     }
-    w->flags |= 0x10;
-    w->range = range;
-    rot.y = rotY;
+    w->Be_flg |= 0x10;
+    w->Search_len = range;
+    ang.y = rotY;
     setPos(pos);
     // Plain byte stores: the QI one of targetSet is reused for xFC (an int inline's SI one is a second `li`).
-    xFC = 1;
-    xFD = 3;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 3;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int cEm3d::ckMissileFire()
 {
     int ret = 0;
 
-    if (EM3D_WK(this)->flags & 4) {
+    if (EM3D_WK(this)->Be_flg & 4) {
         ret = 1;
     }
     return ret;
@@ -921,17 +921,17 @@ int cEm3d::ckMissileFire()
 
 void cEm3d::setEmLocked()
 {
-    EM3D_WK(this)->flags |= 8;
+    EM3D_WK(this)->Be_flg |= 8;
 }
 
 void cEm3d::setPatrolPos(Vec* pos)
 {
     if (pos) {
-        EM3D_WK(this)->patrolPos = *pos;
+        EM3D_WK(this)->Patrol_pos = *pos;
     }
 }
 
 void cEm3d::setFreeFire()
 {
-    EM3D_WK(this)->flags |= 0x20;
+    EM3D_WK(this)->Be_flg |= 0x20;
 }

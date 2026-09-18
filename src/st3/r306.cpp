@@ -85,7 +85,7 @@ void R306Init()
     } else {
         EstSet(0, -1, 0, 0, 1, 0, 1, 0, (u32) zero, zero);
     }
-    if (pG->flags_51C0 & 0x1000) {
+    if (pG->Scenario_flg[0] & 0x1000) {
         r306_work->em[0].setEm(0x30, 6, 0, 1, 1);
         r306_work->em[1].setEm(0x31, 6, 0, 1, 1);
         if (pG->room_id_prev == 0x30B) {
@@ -170,14 +170,14 @@ static void r306_checkDoor308KeyUse()
         while (ItemMgr.check(0x84) != 1) {
             SceSleep(1);
         }
-        if ((int) pG->sceat_x17C < 0) {
+        if ((int) pG->Room_flg[2] < 0) {
             SndCall(6, 4, 0, 0, 0, 0);
-            SceMesSet(4, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+            SceMesSet(4, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
             pG->door_unlock[0] |= 0x2000;
             SceAtDataReset(4);
             SceAtSetEnable(6, 0);
         } else {
-            SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         }
     }
 }
@@ -200,7 +200,7 @@ static void r306_checkDoor30bKeyUse()
     }
     ItemMgr.dump(0x92);
     SndCall(6, 4, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x100;
     SceAtDataReset(5);
 }

@@ -4,15 +4,15 @@
 
 // Est generator 45 parameter block filled from this effect (game/espgen45.cpp).
 struct Esp4cWork {
-    u8 type;      // 0x00
-    u8 x1;        // 0x01
-    u8 x2;        // 0x02
-    u8 x3;        // 0x03
-    u16 x4;       // 0x04
-    u16 x6;       // 0x06
+    u8 Type;      // 0x00
+    u8 Refrect_type;        // 0x01
+    u8 Spec_Tex;        // 0x02
+    u8 wave_ratio_base;        // 0x03
+    u16 Shimmer_pow1;       // 0x04
+    u16 Shimmer_pow2;       // 0x06
     f32 spread;   // 0x08
     f32 damp;     // 0x0C
-    Vec dir;      // 0x10
+    Vec ang;      // 0x10
     u8 flag;      // 0x1C
     u8 x1D;       // 0x1D
 };
@@ -34,7 +34,7 @@ void Estgen45SetParam(Esp4cWork* w);
 // Weather (est generator 45) controller: pushes its color/size into the generator every frame.
 class cEsp4c : public cEsp {
 public:
-    Esp4cWork work;  // 0xF8
+    Esp4cWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -48,30 +48,30 @@ cEsp* Esp4c_Create()
 
 void cEsp4c::move()
 {
-    Esp4cWork* w = &work;
-    f32 r = colR;
-    f32 g = colG;
-    f32 b = colB;
-    f32 a = colA;
+    Esp4cWork* w = &m_Free;
+    f32 r = m_Col_r;
+    f32 g = m_Col_g;
+    f32 b = m_Col_b;
+    f32 a = m_Col_a;
 
     if (CommonMove()) {
-        colR = r;
-        colG = g;
-        colB = b;
-        colA = a;
+        m_Col_r = r;
+        m_Col_g = g;
+        m_Col_b = b;
+        m_Col_a = a;
         Estgen45SetTargetCamera(0);
-        Estgen45SetTargetPos(pos.x, pos.z);
-        if (flags & 2) {
+        Estgen45SetTargetPos(m_Pos.x, m_Pos.z);
+        if (m_Tool_flg & 2) {
             Estgen45SetTargetHeight(1);
-            Estgen45SetHeight(pos.y);
+            Estgen45SetHeight(m_Pos.y);
         } else {
             Estgen45SetTargetHeight(0);
         }
         Estgen45SetSizeOverWrite(1);
-        Estgen45SetSize(sizeX * scale);
+        Estgen45SetSize(m_Size_base_x * m_Size_mul);
         Estgen45SetColorMul(1);
-        Estgen45SetColor((u8)colR, (u8)colG, (u8)colB, (u8)colA, colRSpd, colGSpd, colBSpd, colASpd);
-        if (flags & 1) {
+        Estgen45SetColor((u8)m_Col_r, (u8)m_Col_g, (u8)m_Col_b, (u8)m_Col_a, m_Col_d_r, m_Col_d_g, m_Col_d_b, m_Col_d_a);
+        if (m_Tool_flg & 1) {
             Estgen45SetColorOverWrite(1);
             Estgen45SetParamOverWrite(1);
             Estgen45SetParam(w);
@@ -92,29 +92,29 @@ void Esp4c_Trans()
 
 int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp4cWork* w = &work;
+    Esp4cWork* w = &m_Free;
 
-    w->x3 = gen->xFE;
-    w->type = gen->xC8;
-    if (w->type == 2) {
-        w->spread = 0.5f - (f32)(s8)gen->xC9 * 0.005f;
+    w->wave_ratio_base = gen->WorkSp8[2];
+    w->Type = gen->Work8[0];
+    if (w->Type == 2) {
+        w->spread = 0.5f - (f32)(s8)gen->Work8[1] * 0.005f;
         if (w->spread > 0.5f) {
             w->spread = 0.5f;
         }
         if (w->spread < 0.0f) {
             w->spread = 0.0f;
         }
-        w->damp = 0.99f - gen->xCA * 0.001f;
+        w->damp = 0.99f - gen->Work8[2] * 0.001f;
     }
-    w->x2 = gen->x2;
-    w->x4 = gen->prm.h.xCE;
-    w->x6 = gen->prm.h.xD2;
-    w->x1 = gen->xCB;
-    w->dir = gen->x58;
-    PSVECScale(&w->dir, &w->dir, 3.14 / 180);
-    if (gen->flags & 0x4000) {
+    w->Spec_Tex = gen->Tex_id;
+    w->Shimmer_pow1 = gen->prm.h.xCE;
+    w->Shimmer_pow2 = gen->prm.h.xD2;
+    w->Refrect_type = gen->Work8[3];
+    w->ang = gen->Ang;
+    PSVECScale(&w->ang, &w->ang, 3.14 / 180);
+    if (gen->Tool_flg & 0x4000) {
         w->flag |= 2;
-        w->x1D = gen->xC5;
+        w->x1D = gen->MaskTex_id;
         w->flag |= 1;
     }
     move();

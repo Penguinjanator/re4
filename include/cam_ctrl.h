@@ -26,7 +26,7 @@ struct CameraAreaInfo {  // hit area
     u8 attr;      // 0x03  bit 4 = ?, bit 8 = ?, 0x20 set from 8 by calcAddr, 0x40 = check dir, 0x80 = no light update
     f32 dir;      // 0x04  facing angle the player must have (attr & 0x40)
     u8 attr2;     // 0x08  matched against battle/state attribute
-    u8 x9;        // 0x09
+    u8 attr3;     // 0x09  third attribute byte (t_camera TcAdat::attr3; 0xFF = none)
     u8 pad_A[0x20 - 0x0A];
     f32 height;   // 0x20
     f32 base_y;   // 0x24
@@ -123,8 +123,8 @@ public:
 class CameraSmooth {
 public:
     u8 pad_0[0xF8];
-    u32 flags;         // 0xF8  bit 0 = reinit on next move
-    f32 ratio;         // 0xFC
+    u32 m_flag;         // 0xF8  bit 0 = reinit on next move
+    f32 m_ratio;         // 0xFC
     CameraParam param; // 0x100
     u8 pad_120[0x12C - 0x120];
 
@@ -135,22 +135,22 @@ public:
 
 class CameraControl {
 public:
-    u8 x0;                        // 0x00
-    u8 x1;                        // 0x01
-    u8 attach_num;                // 0x02
+    u8 m_attached_cam_flag_old;                        // 0x00
+    u8 m_attach_cam_flag;                        // 0x01
+    u8 m_attach_num;                // 0x02
     u8 x3;                        // 0x03
-    AttachCamera* attach_cam[3];  // 0x04
-    cModel* attach_model[3];      // 0x10
-    cModel* attach_cur;           // 0x1C
-    f32 scope_param0;             // 0x20
-    f32 scope_param1;             // 0x24
-    u8 flags_28;                  // 0x28  bit 0 = data valid, bit 2 = disabled
+    AttachCamera* m_p_attach[3];  // 0x04
+    cModel* m_p_model[3];      // 0x10
+    cModel* m_p_attach_model_old;           // 0x1C
+    f32 m_scope_zoom;             // 0x20
+    f32 m_scope_ang_x;             // 0x24
+    u8 be_flag;                  // 0x28  bit 0 = data valid, bit 2 = disabled
     u8 pad_29[3];
-    u32 flags_2C;                 // 0x2C
-    u32 flags_30;                 // 0x30
-    u8 state;                     // 0x34
-    u8 sub_state;                 // 0x35
-    u8 x36;                       // 0x36
+    u32 m_system_flag;                 // 0x2C
+    u32 m_state_flag;                 // 0x30
+    u8 r0;                     // 0x34
+    u8 r1;                 // 0x35
+    u8 r2;                       // 0x36
     u8 prev_state;                // 0x37
     CameraParam cur;              // 0x38
     u32 counter_58;               // 0x58
@@ -158,31 +158,31 @@ public:
     Camera camera;                // 0x60
     Mtx prev_mat;                 // 0x158  camera matrix CamStick2World keeps while the cut changes
     u8 pad_188[0x250 - 0x188];
-    s32 x250;                     // 0x250  nonzero blocks the fall-check in Check()
+    s32 m_pExtraCamera;           // 0x250  Camera* of a boss/event camera (em2a/em2b/em2c/em2d); nonzero blocks the fall-check in Check()
     CameraInterpolation interp;   // 0x254
-    CameraQuasiFPS qfps;          // 0x278
-    u8 extra_buf[0x200];          // 0x48C  placement storage for cCamera subclasses
+    CameraQuasiFPS m_QuasiFPS;          // 0x278
+    u8 m_Free[0x200];          // 0x48C  placement storage for cCamera subclasses
     cCamera* extra;               // 0x68C
-    s8 area_no;                   // 0x690
-    s8 x691;                      // 0x691
-    s8 camera_no;                 // 0x692
-    u8 area_attr;                 // 0x693
+    s8 areaNo;                   // 0x690
+    s8 areaSuffix;                      // 0x691
+    s8 cameraNo;                 // 0x692
+    u8 m_cut_attr;                 // 0x693
     CameraAreaRec* area_rec;      // 0x694
-    s32 battle_timer;             // 0x698
-    Vec aim;                      // 0x69C
-    Vec up_pos;                   // 0x6A8
-    Vec up_at;                    // 0x6B4
-    Vec up_vec;                   // 0x6C0
-    f32 x6CC;                     // 0x6CC
-    f32 x6D0;                     // 0x6D0
-    f32 x6D4;                     // 0x6D4
-    f32 x6D8;                     // 0x6D8
-    f32 x6DC;                     // 0x6DC
-    s32 x6E0;                     // 0x6E0
-    f32 x6E4;                     // 0x6E4
-    f32 x6E8;                     // 0x6E8
-    Vec dbg_pos;                  // 0x6EC
-    Vec dbg_at;                   // 0x6F8
+    s32 Battle_delay;             // 0x698
+    Vec Aim;                      // 0x69C
+    Vec upcut_pos;                   // 0x6A8
+    Vec upcut_ang;                    // 0x6B4
+    Vec upcut_scale;                   // 0x6C0
+    f32 m_behind_fovy;                     // 0x6CC
+    f32 m_side_play;                     // 0x6D0
+    f32 m_back_play;                     // 0x6D4
+    f32 m_ang_h_limit;                     // 0x6D8
+    f32 m_ang_v_limit;                     // 0x6DC
+    s32 m_quick_cnt;                     // 0x6E0
+    f32 m_key_speed;                     // 0x6E4
+    f32 m_behind_A_ratio;                     // 0x6E8
+    Vec campos_ofs;                  // 0x6EC
+    Vec target_ofs;                   // 0x6F8
 
     int HermiteExport(CameraCut* cut, u8* buf);
     int IsChangeCamera();
@@ -230,10 +230,10 @@ public:
     void getTrajectory(Vec* pos, Vec* at);
     void saveScopeParam();
     void loadScopeParam();
-    void SetBinocularRange(f32 a, f32 b, f32 c, f32 d);
+    void SetBinocularRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     void HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at);
     void LowerBinocular();
-    void GetBinocularIDAddr(void** a, void** b);
+    void GetBinocularIDAddr(void** eff_addr, void** uwf_addr);
     void MotionSet(void* motion, int frame, f32 speed);
     int IsMotionSet();
     int IsMotionEnd();

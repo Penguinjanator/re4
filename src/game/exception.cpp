@@ -58,7 +58,7 @@ struct SymHeader {
 
 // A loaded symbol file and the load address of the module it describes.
 struct SymbolInfo {
-    SymHeader* sym;  // 0x00
+    SymHeader* symbol_ptr;  // 0x00
     u32 base;        // 0x04
 };
 
@@ -217,7 +217,7 @@ int excepLoadSymbolSub(char* name, OSModuleHeader* module)
         }
     } else {
         SymbolInfo* p = &symbolInfo[nSymbolInfo];
-        p->sym = (SymHeader*) addr;
+        p->symbol_ptr = (SymHeader*) addr;
         nSymbolInfo++;
         if (module) {
             p->base = module->sectionInfo[1].offset - 1;
@@ -285,8 +285,8 @@ void excepLoadSymbol()
         sprintf(tmp_str, "Bio4.wep%02x.sym", (u8) WepReadModule.id);
         symbol_err = excepLoadSymbolSub(tmp_str, WepReadModule.pModule);
     }
-    if (SubScreenWk.pModule) {
-        OSModuleHeader* mod = SubScreenWk.pModule;
+    if (SubScreenWk.p_module) {
+        OSModuleHeader* mod = SubScreenWk.p_module;
         if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->sectionInfo < 0) {
             symbol_err = excepLoadSymbolSub("Bio4.Sscrn.sym", mod);
         }
@@ -294,7 +294,7 @@ void excepLoadSymbol()
     if (RoomData.pModule) {
         OSModuleHeader* mod = RoomData.pModule;
         if ((s32) mod < 0 && (u32) mod <= 0x82FFFFFF && (s32) mod->sectionInfo < 0) {
-            strcpy(buf, FileTbl[RoomData.x1C].name + 4);
+            strcpy(buf, FileTbl[RoomData.m_RelNo].name + 4);
             *strchr(buf, '.') = 0;
             sprintf(tmp_str, "Bio4.%s.sym", buf);
             symbol_err = excepLoadSymbolSub(tmp_str, RoomData.pModule);
@@ -321,7 +321,7 @@ char* excepGetSymbolName(u32 addr)
 
 char* excepGetSymbolNameSub(u32 addr, SymbolInfo* info)
 {
-    SymHeader* h = info->sym;
+    SymHeader* h = info->symbol_ptr;
     int n = h->num;
     u32* fo = h->fileOfs;
     SymEntry* e = (SymEntry*) ((u8*) h + h->ofsEntry);
@@ -523,8 +523,8 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     dar = va_arg(ap, u32);
     PPCMtmsr(0xB032);
     OSEnableScheduler();
-    BitOn(pG->flags_54, 0x20000000);
-    BitOff(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x20000000);
+    BitOff(pG->System_flg, 0x400);
     w = &test;
     n = 0;
     memclr_asm(w, sizeof(MemDump));
@@ -553,12 +553,12 @@ void ErrorHandler(OSError error, OSContext* context, ...)
         }
         Render_before();
         PadRead();
-        if (Joy[0].ssx != 0) {
-            x -= Joy[0].ssx;
+        if (Joy[0].substickX != 0) {
+            x -= Joy[0].substickX;
             x = x < -200 ? -200 : (x > 0 ? 0 : x);
         }
-        if (Joy[0].ssy != 0) {
-            y += Joy[0].ssy;
+        if (Joy[0].substickY != 0) {
+            y += Joy[0].substickY;
             y = y < -256 ? -256 : (y > 0 ? 0 : y);
         }
         if ((u32) (timer & 3) > 1) {

@@ -74,7 +74,7 @@ void cBlock::roomInit(void* data)
     pArea = 0;
     pConnect = 0;
     stopFlagSet = 0;
-    if (!(pG->flags_60 & 0x80000000)) {
+    if (!(pG->Debug_flg[0] & 0x80000000)) {
         debugData = 0;
         debugMem = 0;
         allDisp = 0;
@@ -136,7 +136,7 @@ void cBlock::roomInit(void* data)
         pData = 0;
         return;
     }
-    pG->area_no = -1;
+    pG->AreaNo = -1;
     check(1);
 }
 
@@ -154,7 +154,7 @@ int cBlock::checkBlockMemory()
             checkBlockConnect(c, pLink, &mramSet, &aramSet);
             for (j = 0; j < nBlock; j++) {
                 if (bitChk(&mramSet, j)) {
-                    size += getUnitPtr(j)->pData->size;
+                    size += getUnitPtr(j)->pData->m_size;
                 }
             }
         }
@@ -210,7 +210,7 @@ void cBlock::dispAllBlock(int on)
         for (i = 0; i < nBlock; i++) {
             cBlockUnit* u = getUnitPtr(i);
             if (u->flags & 1) {
-                size += u->pData->size;
+                size += u->pData->m_size;
                 u->setBlockDelete();
                 u->checkBlockDelete();
             }
@@ -242,7 +242,7 @@ void cBlock::dispAllBlock(int on)
         }
         useDebugMemory(0, 0);
         allDisp = 0;
-        pGS->area_no = -1;
+        pGS->AreaNo = -1;
     }
 }
 
@@ -253,27 +253,27 @@ void cBlock::check(int arg)
     u32 i;
 
     if (pData == 0) {
-        pG->area_no = 0;
+        pG->AreaNo = 0;
         return;
     }
     if (allDisp == 1) {
         return;
     }
     if (pG->debug_mode == 0x12 && pG->room_id == 5) {
-        area = pG->area_no;
+        area = pG->AreaNo;
         if (Joy[0].trg & 0x10) {
             area = Rnd() % nBlock;
-            if (pG->area_no == area) {
+            if (pG->AreaNo == area) {
                 area++;
             }
             area = area % nBlock;
         }
     } else {
-        area = checkBlockArea(&pPL->pos, pG->area_no);
+        area = checkBlockArea(&pPL->pos, pG->AreaNo);
     }
-    if (pG->area_no != area) {
-        prevArea = pG->area_no;
-        pG->area_no = area;
+    if (pG->AreaNo != area) {
+        prevArea = pG->AreaNo;
+        pG->AreaNo = area;
         checkBlockConnect(&pConnect[area], pLink, &mramSet, &aramSet);
         for (i = 0; i < nBlock; i++) {
             if (isFree(pLink[i].flags)) {
@@ -489,13 +489,13 @@ int cBlockUnit::checkBlockLoadToMramSet()
         Block.stopFlagSet = 1;
     case 4:
         if (Block.noMemCtrl == 1) {
-            pData->setCommand(1, 0, arg);
+            pData->setCommand(CMND_MRAM_LOAD, 0, arg);
         } else {
-            p = Block.getBlockMemFree(pData->size);
+            p = Block.getBlockMemFree(pData->m_size);
             if (p == 0) {
                 return 1;
             }
-            pData->setCommand(1, (u32) p, arg);
+            pData->setCommand(CMND_MRAM_LOAD, (u32) p, arg);
         }
     case 2:
     case 5:
@@ -519,7 +519,7 @@ int cBlockUnit::checkBlockLoadToMram()
         Block.stopFlagSet = 1;
         break;
     case 2:
-        BlockCreate(no, (cSmd*) GetDataExt(pData->addr, "SMD", 0));
+        BlockCreate(no, (cSmd*) GetDataExt(pData->m_addr, "SMD", 0));
         setTrans(1);
         state = BLOCK_CREATE;
         if (Block.allDisp == 1) {
@@ -542,7 +542,7 @@ int cBlockUnit::checkBlockLoadToAramSet()
     case 0:
         ret = 1;
     case 2:
-        pData->setCommand(2, 0, arg);
+        pData->setCommand(CMND_ARAM_LOAD, 0, arg);
     case 6:
         state = BLOCK_ARAM_LOAD;
         break;
@@ -596,7 +596,7 @@ void cBlockUnit::recalcModelAddr(int ofs)
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->next) {
+    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
         if (o->id == 2 && o->blk == no) {
             o->moveDataAddr(ofs);
         }
@@ -607,10 +607,10 @@ void cBlockUnit::moveBlockData(void* dst)
 {
     int ofs;
 
-    memcpy(dst, pData->addr, pData->size);
-    ofs = (int) dst - (int) pData->addr;
-    pData->addr = dst;
-    DCFlushRange(dst, pData->size);
+    memcpy(dst, pData->m_addr, pData->m_size);
+    ofs = (int) dst - (int) pData->m_addr;
+    pData->m_addr = dst;
+    DCFlushRange(dst, pData->m_size);
     recalcModelAddr(ofs);
     ((cSmd*) GetDataExt(dst, "SMD", 0))->slide(ofs);
 }
@@ -681,7 +681,7 @@ void cBlock::checkCondition()
         return;
     }
     if (stopFlagSet == 1) {
-        pG->flags_170 = stopFlag;
+        pG->Stop_flg = stopFlag;
     }
     stopFlagSet = 0;
     ok = 1;
@@ -725,8 +725,8 @@ void cBlock::checkCondition()
         }
     }
     if (stopFlagSet == 1) {
-        BitSet(stopFlag, pG->flags_170);
-        pG->flags_170 = 0xFFFFFFFF;
+        BitSet(stopFlag, pG->Stop_flg);
+        pG->Stop_flg = 0xFFFFFFFF;
     }
 }
 
@@ -753,7 +753,7 @@ void cBlock::checkBlockMemSort()
     if (cnt != 0) {
         for (i = 0; i < cnt - 1; i++) {
             for (j = i; j < cnt; j++) {
-                if ((u32) tbl[i]->pData->addr > (u32) tbl[j]->pData->addr) {
+                if ((u32) tbl[i]->pData->m_addr > (u32) tbl[j]->pData->m_addr) {
                     u = tbl[j];
                     tbl[j] = tbl[i];
                     tbl[i] = u;
@@ -763,10 +763,10 @@ void cBlock::checkBlockMemSort()
         addr = (u8*) memTop;
         for (i = 0; i < cnt; i++) {
             u = tbl[i];
-            if ((u32) addr < (u32) u->pData->addr) {
+            if ((u32) addr < (u32) u->pData->m_addr) {
                 u->moveBlockData(addr);
             }
-            addr += tbl[i]->pData->size;
+            addr += tbl[i]->pData->m_size;
         }
         memCur = addr;
     } else {
@@ -800,7 +800,7 @@ void cBlock::dispDebugInfo()
     const char* dataCmdName[5] = {"NONE", "MRAM_LOAD", "ARAM_LOAD", "CLEAR_DATA", "DEL_DATA"};
     const char* dataCondName[9] = {"NO_DATA", "MRAM_LOAD", "MRAM_OK", "ARAM_LOAD", "ARAM_OK", "ARAM_TO_MRAM", "MRAM_TO_ARAM", "ARAM_TO_ARAM", "MRAM_TO_MRAM"};
 
-    eprintf(40, 30, 0, 18, "[BLOCK INFO]  (now area:%d) stop_flg %08X", pG->area_no, pG->flags_170);
+    eprintf(40, 30, 0, 18, "[BLOCK INFO]  (now area:%d) stop_flg %08X", pG->AreaNo, pG->Stop_flg);
     eprintf(228, 58, 0, 18, "ADDR     DEST     ARG      SIZE");
     y = 58;
     for (i = 0; i < nBlock; i++) {

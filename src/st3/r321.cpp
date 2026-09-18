@@ -58,7 +58,7 @@ void break_heri_set();
 
 void R321Init()
 {
-    pG->flags_64 |= 0x00200000;
+    pG->Debug_flg[1] |= 0x00200000;
 #line 45 "D:/Bio4/Prog/r321.cpp"
     r321_work = (R321Work*) MEM_CALLOC(sizeof(R321Work), 1, 0xd);
     setTexRender();
@@ -79,7 +79,7 @@ void R321Main()
 static void r321_heri_down()
 {
     RsfSet(G_ROOM_ID, 0);
-    pG->flags_51C4 |= 0x80000000;
+    pG->Scenario_flg[1] |= 0x80000000;
     EvtMgr.EvtReadExec("event/evd/r321s00.evd", 0, 0);
     setPosXYZ(pPL, 38020.0f, 13688.0f, -39718.0f);
     setAngY(pPL, 1.663f);
@@ -109,8 +109,8 @@ extern "C" void Evt_R321S00_Func(Event* e)
         SmdSetTrans(0x17, 0);
         break;
     case 1:
-        if (e->cut == 1) {
-            if (e->frame == 0) {
+        if (e->NowCut == 1) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     cLight* light = LightMgr.getKindLight(1);
 
@@ -120,11 +120,11 @@ extern "C" void Evt_R321S00_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evm3200", 0, 0) == 1) {
-                    ((cModel*) mod2)->lightInfo.x50 = 0x40;
+                    ((cModel*) mod2)->LightInfo.EnableMask = 0x40;
                 }
                 if (e->GetMod(&mod2, "evmc400", 0, 0) == 1) {
                     ((cModel*) mod2)->be_flag |= 0x10;
@@ -141,18 +141,18 @@ extern "C" void Evt_R321S00_Func(Event* e)
             }
             break;
         case 0x1C:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0xA, 0);
                 SmdSetTrans(0xB, 0);
             }
             break;
         }
-        if (e->cut > 0x10) {
-            if (e->frame == 0) {
+        if (e->NowCut > 0x10) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0xF, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0xF, 1);
             }
         }
@@ -177,16 +177,16 @@ void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r321_work->tex->texId;
-        IntSet(r321_work->tex->repType, 1);
+        IntSet(r321_work->tex->m_Rep_type, 1);
         EstSet(0, -1, 0, 0, 1, 0, r321_work->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
 }
 
 // The crashed helicopter model and its smoke.
@@ -196,8 +196,8 @@ void break_heri_set()
     Vec rot = {0.0f, 0.0f, 0.0f};
     cObj* obj;
 
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0xA, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
     obj->motSpeedRate = 0.0f;
     obj->setNoSuspend(1);

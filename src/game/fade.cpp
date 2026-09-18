@@ -21,11 +21,11 @@ void FadeSet(int no, GXColor* start, GXColor* end, u32 time, u32 z, int late)
     if (late) {
         f->flags |= 4;
     }
-    f->start = s;
-    f->x1A = 0;
-    f->end = e;
+    f->s_col = s;
+    f->state = 0;
+    f->e_col = e;
     f->time = time;
-    f->count = 0;
+    f->cnt = 0;
     f->z = (f32) z;
     f->cur = s;
 }
@@ -72,16 +72,16 @@ void FadeControl(int late)
             }
         }
         if (f->flags & 1) {
-            if (f->count < f->time) {
-                u32 rem = f->time - f->count;
+            if (f->cnt < f->time) {
+                u32 rem = f->time - f->cnt;
 
-                f->cur.r = (f->start.r * rem + f->end.r * f->count) / f->time;
-                f->cur.g = (f->start.g * rem + f->end.g * f->count) / f->time;
-                f->cur.b = (f->start.b * rem + f->end.b * f->count) / f->time;
-                f->cur.a = (f->start.a * rem + f->end.a * f->count) / f->time;
-                f->count++;
+                f->cur.r = (f->s_col.r * rem + f->e_col.r * f->cnt) / f->time;
+                f->cur.g = (f->s_col.g * rem + f->e_col.g * f->cnt) / f->time;
+                f->cur.b = (f->s_col.b * rem + f->e_col.b * f->cnt) / f->time;
+                f->cur.a = (f->s_col.a * rem + f->e_col.a * f->cnt) / f->time;
+                f->cnt++;
             } else {
-                f->cur = f->end;
+                f->cur = f->e_col;
                 if (f->flags & 2) {
                     f->flags &= ~1;
                 } else {

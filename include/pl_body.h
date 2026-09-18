@@ -6,24 +6,27 @@
 #include "model.h"
 #include "math_sub.h"
 
-// One SPAE (spline attack effect) record built by cPlBody::makeSpaeData (0x58 bytes).
+// Face shape motion data built by cPlBody::makeSpaeData (PS2 PL_SHAPE_DATA, 0x58 bytes): a header,
+// two key tables and four keys.
+struct SHAPE_MOT_HEADER {
+    u32 max_frame;  // 0x00  0x101
+    u32 tbl_num;    // 0x04  2
+};
+struct SHAPE_MOT_TBL {
+    u32 offset;     // 0x00  byte offset of the table's keys (0x18 / 0x38)
+    u16 shape_id;   // 0x04
+    u16 key_num;    // 0x06  2
+};
+struct SHAPE_MOT {
+    s32 frame;      // 0x00  0 / 0x100
+    f32 value;      // 0x04
+    f32 r_value;    // 0x08
+    f32 l_value;    // 0x0C
+};
 struct SpaeData {
-    u32 id;         // 0x00  0x101
-    u32 type;       // 0x04  2
-    u32 x08;        // 0x08  0x18
-    u16 x0C;        // 0x0C  0
-    u16 x0E;        // 0x0E  2
-    u32 x10;        // 0x10  0x38
-    u16 x14;        // 0x14  1
-    u16 x16;        // 0x16  2
-    u32 x18;        // 0x18  0
-    Vec scale;      // 0x1C  (1, 0, 0)
-    u32 x28;        // 0x28  0x100
-    Vec x2C;        // 0x2C  (0, 0, 0)
-    u32 x38;        // 0x38  0
-    Vec x3C;        // 0x3C  (0, 0, 0)
-    u32 x48;        // 0x48  0x100
-    Vec x4C;        // 0x4C  (1, 0, 0)
+    SHAPE_MOT_HEADER head;  // 0x00
+    SHAPE_MOT_TBL tbl[2];   // 0x08
+    SHAPE_MOT mot[4];       // 0x18
 };
 
 // Model part as seen by pl_body (cModel::getPartsPtr result): the waist twist writes its rotation.
@@ -44,17 +47,17 @@ public:
     void* pHeadData;             // 0x08  head model data
     void* pWepHand;              // 0x0C  weapon hand model data (initWepHand; setRightHand(1) uses it)
     cModelInfo* pShape;          // 0x10  head model info (face shape animation target of ShapeSet/ShapeEnd)
-    u32 x14;                     // 0x14
-    u32 x18;                     // 0x18
+    cModelInfo* m_pArmR;         // 0x14  (PS2 m_pArmR; only cleared on GC)
+    cModelInfo* m_pArmL;         // 0x18  (PS2 m_pArmL; only cleared on GC)
     cModelInfo* pRight;          // 0x1C  right hand model info
     cModelInfo* pLeft;           // 0x20  left hand model info
     cModelInfo* pHair;           // 0x24
     cModelInfo* pEye;            // 0x28  (flags |= 0x40)
     cModelInfo* pFace;           // 0x2C  face model info (pl_knife zeroes/ones its 0x5C/0x70/0x84)
-    u32 leftNo;                  // 0x30  current left hand item no
-    u32 leftNoPrev;              // 0x34  previous one (setLeftHand(0x63) restores it)
-    cModel* pModel;              // 0x38
-    f32 waist;                   // 0x3C  waist twist angle (waistSet)
+    u32 nowLhandNo;                  // 0x30  current left hand item no
+    u32 oldLhandNo;              // 0x34  previous one (setLeftHand(0x63) restores it)
+    cModel* m_pMod;              // 0x38
+    f32 m_WaistY;                   // 0x3C  waist twist angle (waistSet)
     SpaeData spae[2];            // 0x40
 
     cPlBody(cModel* model);

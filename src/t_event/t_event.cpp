@@ -57,16 +57,16 @@ struct EvtDebugView {
 
 // cFlag-style bit numbering (from the MSB of flags) over the tool's flag word
 static inline u32 FlagBit(u32 f, u32 bit) { return f & bit; }
-static inline void TE_FLG_ON(ToolEvt* t, int bit) { u32* p = (u32*) &t->flags; p[(u32) bit >> 5] |= 0x80000000 >> (bit & 0x1F); }
-static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->flags; p[(u32) bit >> 5] &= ~(0x80000000 >> (bit & 0x1F)); }
+static inline void TE_FLG_ON(ToolEvt* t, int bit) { u32* p = (u32*) &t->EtcFlag; p[(u32) bit >> 5] |= 0x80000000 >> (bit & 0x1F); }
+static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->EtcFlag; p[(u32) bit >> 5] &= ~(0x80000000 >> (bit & 0x1F)); }
 
 #define CAM_MOTION_FLAGS(p) (*(u16*) ((u8*) (p) + 0x40))
 
-#define EVT_MES_Y (336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+#define EVT_MES_Y (336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 static inline int EvtStatusChk(Event* ev, u32 bit)
 {
-    return (ev->status & bit) ? 1 : 0;
+    return (ev->StatusFlag & bit) ? 1 : 0;
 }
 
 // One "Node" record of the message xml: the eleven text elements in file order.
@@ -215,19 +215,19 @@ static inline void EvtMessRead(EventMessageData* m, const char* path)
         int on = XmlStrToBool(d.node[i].s[XN_SETFLG]);
 
         if (on == 1) {
-            m->elem[i].flag = on;
-            m->elem[i].no = i;
-            m->elem[i].cutNo = XmlStrToLong(d.node[i].s[XN_CUTNO]);
-            m->elem[i].frame = XmlStrToLong(d.node[i].s[XN_FRAME]);
-            m->elem[i].messNo = XmlStrToLong(d.node[i].s[XN_DAT0]);
-            m->elem[i].timer = XmlStrToLong(d.node[i].s[XN_DAT1]);
+            m->elem[i].be_flag = on;
+            m->elem[i].No = i;
+            m->elem[i].CutNo = XmlStrToLong(d.node[i].s[XN_CUTNO]);
+            m->elem[i].Frame = XmlStrToLong(d.node[i].s[XN_FRAME]);
+            m->elem[i].MessNo = XmlStrToLong(d.node[i].s[XN_DAT0]);
+            m->elem[i].Timer = XmlStrToLong(d.node[i].s[XN_DAT1]);
         } else {
-            m->elem[i].flag = 0;
-            m->elem[i].no = 0;
-            m->elem[i].cutNo = 0;
-            m->elem[i].frame = 0;
-            m->elem[i].messNo = 0;
-            m->elem[i].timer = 0;
+            m->elem[i].be_flag = 0;
+            m->elem[i].No = 0;
+            m->elem[i].CutNo = 0;
+            m->elem[i].Frame = 0;
+            m->elem[i].MessNo = 0;
+            m->elem[i].Timer = 0;
         }
     }
 }
@@ -295,17 +295,17 @@ void ToolEvent()
 
 void ToolEvt::EvtTaskSuspend(int task)
 {
-    if (!(flags & 0x4000)) {
+    if (!(EtcFlag & 0x4000)) {
         TaskSuspend(task);
-        flags |= 0x4000;
+        EtcFlag |= 0x4000;
     }
 }
 
 void ToolEvt::EvtTaskSignal(int task)
 {
-    if (flags & 0x4000) {
+    if (EtcFlag & 0x4000) {
         TaskSignal(task);
-        flags &= ~0x4000;
+        EtcFlag &= ~0x4000;
     }
 }
 
@@ -313,31 +313,31 @@ ToolEvt::ToolEvt()
 {
     char path[0x100];
 
-    mode = 0;
-    step = 0;
-    x04 = 0;
-    x06 = 0;
-    subMode = 0;
-    x0A = 0;
-    x0C = 0;
-    x0E = 0;
-    stopWait = 0;
-    startWait = 0;
-    curveNo = 0;
-    menuCur = 0;
-    subCur = 0;
-    fogCur = 0;
-    focusCur = 0;
-    camMode = 0;
-    camCnt = 0;
-    flags = 0;
-    x18 = 0;
-    x1C = 0;
-    capCnt = 0;
+    r_no_0 = 0;
+    r_no_1 = 0;
+    r_no_2 = 0;
+    r_no_3 = 0;
+    r_no_0_sub = 0;
+    r_no_1_sub = 0;
+    r_no_2_sub = 0;
+    r_no_3_sub = 0;
+    FFTimer = 0;
+    StopTimer = 0;
+    CurveNo = 0;
+    CursolMain = 0;
+    CursolSub = 0;
+    CursolFog = 0;
+    CursolFocus = 0;
+    DebugCameraFlag = 0;
+    DebugCameraTimer = 0;
+    EtcFlag = 0;
+    ListCur = 0;
+    ListBase = 0;
+    CaptureTimer = 0;
     pEvd = 0;
     pLightTool = 0;
     pJoy0 = 0;
-    pJoy1 = 0;
+    pJoy2 = 0;
     x10C0[0] = 0;
     x10C0[1] = 0;
     x10C0[2] = 0;
@@ -360,22 +360,22 @@ ToolEvt::ToolEvt()
     EvtMgr.ToolCoreEvdDel();
     sprintf(path, "%sr%x%02xs??.evd", "x:\\soft\\room\\event\\evd\\", pG->stage_no, pG->room_no);
     if (FileListInit(&DbgFileList, path, "x:\\soft\\room\\event\\evd\\") == 0) {
-        flags |= 0x80000000;
+        EtcFlag |= 0x80000000;
     }
-    pG->flags_60 |= 0x02000000;
+    pG->Debug_flg[0] |= 0x02000000;
     pEvd = Debug_alloc(8000000, 1);
     memclr_asm(pEvd, 4);
     pSctrl = (DbSctrlWork*) Debug_alloc(1000000, 1);
     memclr_asm(pSctrl, 1000000);
-    pMess = (EventMessageData*) Debug_alloc(1000000, 1);
-    memclr_asm(pMess, 1000000);
-    menuCur = 0;
+    PMesDat = (EventMessageData*) Debug_alloc(1000000, 1);
+    memclr_asm(PMesDat, 1000000);
+    CursolMain = 0;
     pJoy0 = &Joy[0];
-    pJoy1 = &Joy[1];
-    subCur = 0;
-    fogCur = 0;
-    focusCur = 0;
-    Cckpt.countDown.flags &= ~1;
+    pJoy2 = &Joy[1];
+    CursolSub = 0;
+    CursolFog = 0;
+    CursolFocus = 0;
+    Cckpt.countDown.m_state &= ~1;
     {
         CountDown* cd = &Cckpt.countDown;
         cd->frameOut();
@@ -389,7 +389,7 @@ ToolEvt::ToolEvt()
 ToolEvt::~ToolEvt()
 {
     delete pLightTool;
-    BitOff(pG->flags_60, 0x02000000);
+    BitOff(pG->Debug_flg[0], 0x02000000);
     ((cUnitEventView*) pPL)->endEvent(0);
     EvtTaskSignal(0);
     TutilQuitDefault();
@@ -400,8 +400,8 @@ static void (*runTbl[3])(ToolEvt*) = {ToolEvt::MainMenu, ToolEvt::MainPreview, T
 
 void ToolEvt::Run()
 {
-    while ((int) flags >= 0) {
-        runTbl[mode](this);
+    while ((int) EtcFlag >= 0) {
+        runTbl[r_no_0](this);
         TaskSleep(1);
     }
 }
@@ -420,7 +420,7 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
 {
     int i;
 
-    ev->status |= 0x80000000;
+    ev->StatusFlag |= 0x80000000;
     EvtTaskSuspend(0);
     if ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xC00)) {
         int flg;
@@ -430,11 +430,11 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
             // literal 0 here is related by cse (record_jump_equiv on the not-taken `bne`) to the `andi.`
             // result and that register is stored instead (t_mv mvInit). `(t & 8) >> 4` is a zero cse cannot
             // fold; combine folds it (nonzero_bits) to a fresh constant after cse2.
-            t->stopWait = ((u32) t & 0x8) >> 4;
+            t->FFTimer = ((u32) t & 0x8) >> 4;
         }
         flg = 0;
-        if (--t->stopWait <= 0) {
-            t->stopWait = 10;
+        if (--t->FFTimer <= 0) {
+            t->FFTimer = 10;
             flg = 1;
         }
         if (flg == 0 && !(t->pJoy0->trg & 0xC00)) {
@@ -450,13 +450,13 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
             MessDeleteAll();
             ev->RunTool(1, 0);
         } else if (t->pJoy0->on & 0x10000) {
-            pG->flags_64 |= 0x01000000;
+            pG->Debug_flg[1] |= 0x01000000;
             ev->RunTool(0, 2);
         } else if (ev->Run() == 0) {
             pLog->err(0, 0, "EventMgr::Run : failed");
         }
     } else {
-        t->stopWait = 0;
+        t->FFTimer = 0;
     }
 }
 
@@ -471,13 +471,13 @@ void ToolEvt::MainMenu(ToolEvt* t)
     int zero = 0;
 
     eprintf(0x38, 0x30, 5, 0, "MENU");
-    t->flags &= ~0x40000000;
-    sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->menuCur, mainMenu, sizeof(mainMenu), t->pJoy0);
+    t->EtcFlag &= ~0x40000000;
+    sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolMain, mainMenu, sizeof(mainMenu), t->pJoy0);
     if (sel != -1) {
-        t->mode = sel + 1;
-        t->step = zero;
-        t->x04 = zero;
-        t->x06 = zero;
+        t->r_no_0 = sel + 1;
+        t->r_no_1 = zero;
+        t->r_no_2 = zero;
+        t->r_no_3 = zero;
     }
 }
 
@@ -493,46 +493,46 @@ void ToolEvt::MainPreview(ToolEvt* t)
 {
     char path[0x140];
 
-    switch (t->step) {
+    switch (t->r_no_1) {
     case 0:
-        strcpy(t->fileName, DbgFileList.disp(0x40, 0x30, 0x14));
+        strcpy(t->ToolFileName, DbgFileList.disp(0x40, 0x30, 0x14));
         if (t->pJoy0->trg & 0x100) {
-            strcpy(EVTDBG->name, t->fileName);
-            t->step++;
+            strcpy(EVTDBG->name, t->ToolFileName);
+            t->r_no_1++;
         }
         if (t->pJoy0->trg & 0x200) {
-            t->mode = 0;
-            t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_0 = 0;
+            t->r_no_1 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
         }
         break;
     case 1:
-        memclr_asm(t->room, 0x10);
-        memclr_asm(t->no, 0x10);
-        sscanf(t->fileName, "%c%c%c%c%c%c%c.evd", &t->room[0], &t->room[1], &t->room[2], &t->room[3], &t->no[0],
-               &t->no[1], &t->no[2]);
+        memclr_asm(t->roomNo, 0x10);
+        memclr_asm(t->eventNo, 0x10);
+        sscanf(t->ToolFileName, "%c%c%c%c%c%c%c.evd", &t->roomNo[0], &t->roomNo[1], &t->roomNo[2], &t->roomNo[3], &t->eventNo[0],
+               &t->eventNo[1], &t->eventNo[2]);
         eprintf(0x38, 0x30, 5, 0, "DATA LOAD OK?");
         switch (ToolMenuDisp(0x40, 0x40, 1, previewMenu, sizeof(previewMenu), t->pJoy0)) {
         case 0:
-            sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->fileName));
+            sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->ToolFileName));
             HDRead(path, t->pEvd);
-            t->step++;
+            t->r_no_1++;
             break;
         case 2:
-            sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->fileName));
+            sprintf(path, "%s/%s", "x:/soft/room/event/evd", EvtMgr.NameChange(t->ToolFileName));
             HDRead(path, t->pEvd);
-            t->step++;
+            t->r_no_1++;
             break;
         default:
             if (!(t->pJoy0->trg & 0x200)) {
                 break;
             }
         case 1:
-            t->mode = 0;
-            t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_0 = 0;
+            t->r_no_1 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
         break;
@@ -549,79 +549,79 @@ void ToolEvt::MainPreview(ToolEvt* t)
         d->hdr = *h;
         if (EvtMgr.SetEvt(t->pEvd, (u32*) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
-            t->mode = 1;
-            t->step = 4;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_0 = 1;
+            t->r_no_1 = 4;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
-        t->flags &= ~0x02000000;
+        t->EtcFlag &= ~0x02000000;
         t->SubToolFogWkInit(t, ev);
         t->SubToolFocusWkInit(t, ev);
-        t->startWait = 1;
-        ev->status |= 0x8000;
-        t->step++;
+        t->StopTimer = 1;
+        ev->StatusFlag |= 0x8000;
+        t->r_no_1++;
         break;
     }
     case 3: {
         Event* ev;
 
-        if (pG->flags_54 & 0x400) {
-            pG->flags_54 &= ~0x400;
+        if (pG->System_flg & 0x400) {
+            pG->System_flg &= ~0x400;
         }
-        if (EvtMgr.GetEvt(&EvtMgr.x34, (void**) &ev) == 0) {
+        if (EvtMgr.GetEvt(&EvtMgr.NowExeEvtKey, (void**) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
-            t->mode = 1;
-            t->step = 4;
-            t->x04 = 0;
-            t->x06 = 0;
+            t->r_no_0 = 1;
+            t->r_no_1 = 4;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
             break;
         }
-        if (t->flags & 0x00040000) {
+        if (t->EtcFlag & 0x00040000) {
             t->SubToolLightMove(t);
         } else if (t->SubToolCameraMove(t) != 0) {
             break;
         }
-        if (t->flags & 0x00020000) {
+        if (t->EtcFlag & 0x00020000) {
             t->SubToolFogMove(t, ev);
         }
-        if (t->flags & 0x00010000) {
+        if (t->EtcFlag & 0x00010000) {
             t->SubToolFocusMove(t, ev);
         }
-        if (t->pJoy1->trg & 0x400) {
+        if (t->pJoy2->trg & 0x400) {
             pG->debug_mode = 0;
         }
-        if (t->pJoy1->trg & 0x800) {
+        if (t->pJoy2->trg & 0x800) {
             pG->debug_mode = 1;
         }
-        if (t->flags & 0x40000000) {
+        if (t->EtcFlag & 0x40000000) {
             eprintf(0x1D0, 0x10, 0x16, 0, "STOP");
         }
-        if (t->flags & 0x02000000) {
-            subRunTbl[t->subMode](t, ev);
+        if (t->EtcFlag & 0x02000000) {
+            subRunTbl[t->r_no_0_sub](t, ev);
             break;
         }
         if (t->pJoy0->trg & 0x200) {
-            t->flags |= 0x02000000;
+            t->EtcFlag |= 0x02000000;
         }
-        if (t->flags & 0x01000000) {
-            if (++t->capCnt > 1) {
-                t->flags &= ~0x01000000;
-                t->flags |= 0x00400000;
-                if (t->flags & 0x00800000) {
+        if (t->EtcFlag & 0x01000000) {
+            if (++t->CaptureTimer > 1) {
+                t->EtcFlag &= ~0x01000000;
+                t->EtcFlag |= 0x00400000;
+                if (t->EtcFlag & 0x00800000) {
                     ScreenShotStart("D:/bio4/Room/Sc_shot/r100", 0, 0);
                 } else {
                     ScreenShotStart("D:/bio4/Room/Sc_shot/r100", 0, 1);
                 }
             }
         }
-        if (t->flags & 0x00400000) {
-            if (t->flags & 0x00200000) {
-                if (++t->capCnt > 1) {
-                    t->flags &= ~0x00200000;
-                    t->flags |= 0x02000000;
-                    if (t->flags & 0x00400000) {
-                        u32* fp = &t->flags;
+        if (t->EtcFlag & 0x00400000) {
+            if (t->EtcFlag & 0x00200000) {
+                if (++t->CaptureTimer > 1) {
+                    t->EtcFlag &= ~0x00200000;
+                    t->EtcFlag |= 0x02000000;
+                    if (t->EtcFlag & 0x00400000) {
+                        u32* fp = &t->EtcFlag;
 
                         *fp &= ~0x00400000;
                         pG->debug_mode = 1;
@@ -629,63 +629,63 @@ void ToolEvt::MainPreview(ToolEvt* t)
                     }
                 }
             }
-            if ((ev->cut >= ev->maxCut && (t->flags & 0x00400000)) || (t->pJoy0->trg & 0x200)) {
-                if (!(t->flags & 0x00200000)) {
-                    t->flags |= 0x00200000;
-                    t->capCnt = 0;
+            if ((ev->NowCut >= ev->MaxCut && (t->EtcFlag & 0x00400000)) || (t->pJoy0->trg & 0x200)) {
+                if (!(t->EtcFlag & 0x00200000)) {
+                    t->EtcFlag |= 0x00200000;
+                    t->CaptureTimer = 0;
                 }
             }
         }
         ev->DebugDispTool();
-        if (t->startWait != 0) {
-            if (--t->startWait <= 0) {
-                t->startWait = 0;
-                t->flags |= 0x40000000;
-                ev->status |= 0x20000000;
+        if (t->StopTimer != 0) {
+            if (--t->StopTimer <= 0) {
+                t->StopTimer = 0;
+                t->EtcFlag |= 0x40000000;
+                ev->StatusFlag |= 0x20000000;
             }
         }
-        if ((!(t->flags & 0x40000000) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
-            FlagBit(t->flags, 0x20000000) || FlagBit(t->flags, 0x10000000) || (t->pJoy0->trg & 0x100)) {
-            t->flags ^= 0x40000000;
-            if (t->flags & 0x20000000) {
-                t->flags |= 0x40000000;
+        if ((!(t->EtcFlag & 0x40000000) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
+            FlagBit(t->EtcFlag, 0x20000000) || FlagBit(t->EtcFlag, 0x10000000) || (t->pJoy0->trg & 0x100)) {
+            t->EtcFlag ^= 0x40000000;
+            if (t->EtcFlag & 0x20000000) {
+                t->EtcFlag |= 0x40000000;
             }
-            if (t->flags & 0x10000000) {
-                t->flags &= ~0x40000000;
+            if (t->EtcFlag & 0x10000000) {
+                t->EtcFlag &= ~0x40000000;
             }
-            t->stopWait = 0;
-            t->flags &= ~0x30000000;
-            if (t->flags & 0x40000000) {
+            t->FFTimer = 0;
+            t->EtcFlag &= ~0x30000000;
+            if (t->EtcFlag & 0x40000000) {
                 t->EvtTaskSuspend(0);
                 EventMgr* m = &EvtMgr;
-                u32* pp = &m->x34;
+                u32* pp = &m->NowExeEvtKey;
 
                 m->EvtSndStrStop(pp, 1, 0);
                 m->EvtSndStrStop(pp, 0, 0);
             } else {
                 t->EvtTaskSignal(0);
-                if (!FlagBit(t->flags, 0x00400000) && !FlagBit(t->flags, 0x01000000)) {
+                if (!FlagBit(t->EtcFlag, 0x00400000) && !FlagBit(t->EtcFlag, 0x01000000)) {
                     if (EvtStatusChk(ev, 0x8000) == 0) {
-                        ev->status |= 0x10000;
-                        EvtDebug.strWait = 60;
+                        ev->StatusFlag |= 0x10000;
+                        EvtDebug.StfStrTimer = 60;
                         SndAllStop();
                     }
                 }
             }
-            ev->status &= ~0x8000;
+            ev->StatusFlag &= ~0x8000;
         }
         {
-            u32* sp = &ev->status;
+            u32* sp = &ev->StatusFlag;
 
             *sp &= ~0x80000000;
-            sp = &ev->status;
+            sp = &ev->StatusFlag;
             *sp &= ~0x40000000;
         }
-        pG->flags_64 &= ~0x01000000;
-        if (t->flags & 0x40000000) {
+        pG->Debug_flg[1] &= ~0x01000000;
+        if (t->EtcFlag & 0x40000000) {
             t->RunStop(t, ev);
         }
-        if (t->flags & 0x8000) {
+        if (t->EtcFlag & 0x8000) {
             t->SubToolMessMove(t, ev);
         }
         break;
@@ -695,18 +695,18 @@ void ToolEvt::MainPreview(ToolEvt* t)
         TaskSleep(2);
         t->EvtTaskSuspend(0);
         EventMgr* m = &EvtMgr;
-        u32* pp = &m->x34;
+        u32* pp = &m->NowExeEvtKey;
 
         m->EvtSndStrStop(pp, 1, 1);
         m->EvtSndStrStop(pp, 0, 1);
         SceEventEnd(0);
-        if (!(t->flags & 0x00080000)) {
-            t->mode = 0;
-            t->step = 0;
-            t->x04 = 0;
-            t->x06 = 0;
+        if (!(t->EtcFlag & 0x00080000)) {
+            t->r_no_0 = 0;
+            t->r_no_1 = 0;
+            t->r_no_2 = 0;
+            t->r_no_3 = 0;
         } else {
-            t->flags |= 0x80000000;
+            t->EtcFlag |= 0x80000000;
         }
         break;
     }
@@ -722,16 +722,16 @@ void ToolEvt::MainExit(ToolEvt* t)
     eprintf(0x38, 0x30, 5, 0, "EXIT OK?");
     switch (ToolMenuDisp(0x40, 0x40, 3, yesNoMenu, sizeof(yesNoMenu), t->pJoy0)) {
     case 0:
-        t->flags |= 0x80000000;
+        t->EtcFlag |= 0x80000000;
     default:
         if (!(t->pJoy0->trg & 0x200)) {
             break;
         }
     case 1:
-        t->mode = 0;
-        t->step = 0;
-        t->x04 = 0;
-        t->x06 = 0;
+        t->r_no_0 = 0;
+        t->r_no_1 = 0;
+        t->r_no_2 = 0;
+        t->r_no_3 = 0;
         break;
     }
 }
@@ -739,11 +739,11 @@ void ToolEvt::MainExit(ToolEvt* t)
 void ToolEvt::EventDel(Event* ev)
 {
     EvtTaskSignal(0);
-    ev->status &= ~0x20000000;
-    ev->status |= 0x00020000;
+    ev->StatusFlag &= ~0x20000000;
+    ev->StatusFlag |= 0x00020000;
     ev->RunEvtCancel();
     EvtMgr.DelEvt(ev, 0);
-    ev->status &= ~0x00020000;
+    ev->StatusFlag &= ~0x00020000;
 }
 
 static TOOL_MENU subMainMenu[8] = {
@@ -760,12 +760,12 @@ static TOOL_MENU subMainMenu[8] = {
 void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
 {
     eprintf(0x38, 0x30, 5, 0, "PREVIEW MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->subCur, subMainMenu, sizeof(subMainMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolSub, subMainMenu, sizeof(subMainMenu), t->pJoy0)) {
     case 0:
-        t->flags &= ~0x02000000;
+        t->EtcFlag &= ~0x02000000;
         break;
     case 1:
-        if (!(t->flags & 0x00040000)) {
+        if (!(t->EtcFlag & 0x00040000)) {
             t->SubToolLightInit(t, 1);
         } else {
             t->SubToolLightInit(t, 0);
@@ -773,47 +773,47 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         break;
     case 2:
         ev->EspToolSetDat();
-        t->flags |= 0x00080000;
-        EvtDebug.flags |= 0x80000000;
+        t->EtcFlag |= 0x00080000;
+        EvtDebug.FlagEtc |= 0x80000000;
         DbMenuSetExecTool("ESP TOOL");
         t->EventDel(ev);
-        t->step = 4;
+        t->r_no_1 = 4;
         break;
     case 3:
-        t->subMode = 1;
-        t->x0A = 0;
-        t->x0C = 0;
-        t->x0E = 0;
-        t->fogCur = 0;
+        t->r_no_0_sub = 1;
+        t->r_no_1_sub = 0;
+        t->r_no_2_sub = 0;
+        t->r_no_3_sub = 0;
+        t->CursolFog = 0;
         break;
     case 4:
-        t->subMode = 2;
-        t->x0A = 0;
-        t->x0C = 0;
-        t->x0E = 0;
-        t->focusCur = 0;
+        t->r_no_0_sub = 2;
+        t->r_no_1_sub = 0;
+        t->r_no_2_sub = 0;
+        t->r_no_3_sub = 0;
+        t->CursolFocus = 0;
         break;
     case 5:
-        if (!(t->flags & 0x8000)) {
+        if (!(t->EtcFlag & 0x8000)) {
             t->SubToolMessInit(t, 1);
         } else {
             t->SubToolMessInit(t, 0);
         }
         break;
     case 6:
-        t->capCnt = 0;
-        t->flags |= 0x11000000;
-        t->flags &= ~0x02000000;
-        t->flags &= ~0x00800000;
+        t->CaptureTimer = 0;
+        t->EtcFlag |= 0x11000000;
+        t->EtcFlag &= ~0x02000000;
+        t->EtcFlag &= ~0x00800000;
         if (t->pJoy0->on & 0x10) {
-            t->flags |= 0x00800000;
+            t->EtcFlag |= 0x00800000;
         } else {
             pG->debug_mode = 0;
         }
         break;
     case 7:
         t->EventDel(ev);
-        t->step = 4;
+        t->r_no_1 = 4;
         break;
     }
 }
@@ -834,20 +834,20 @@ void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
     char name[0x100];
 
     strcpy(dir, "x:/soft/room/event");
-    sprintf(path, "%s/%s/%s/etc/%s_%03d.fog", dir, t->room, t->no, t->no, ev->cut);
-    sprintf(name, "[%s_%03d.fog]", t->no, ev->cut);
+    sprintf(path, "%s/%s/%s/etc/%s_%03d.fog", dir, t->roomNo, t->eventNo, t->eventNo, ev->NowCut);
+    sprintf(name, "[%s_%03d.fog]", t->eventNo, ev->NowCut);
     ev->FogMove(ev, &t->fog);
     eprintf(0x38, 0x30, 5, 0, "FOG TOOL MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->fogCur, fogMenu, sizeof(fogMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFog, fogMenu, sizeof(fogMenu), t->pJoy0)) {
     case 0:
-        if (!(t->flags & 0x00020000)) {
+        if (!(t->EtcFlag & 0x00020000)) {
             t->SubToolFogInit(t, 1, ev, 0);
         } else {
             t->SubToolFogInit(t, 0, 0, 0);
         }
         break;
     case 1:
-        if (!(t->flags & 0x00020000)) {
+        if (!(t->EtcFlag & 0x00020000)) {
             t->SubToolFogInit(t, 1, ev, 1);
         } else {
             t->SubToolFogInit(t, 0, 0, 0);
@@ -871,7 +871,7 @@ void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
         break;
     case 5:
         if (t->SubMenuSelectYesNo(t, "EXIT", "")) {
-            t->subMode = 0;
+            t->r_no_0_sub = 0;
         }
         break;
     }
@@ -895,20 +895,20 @@ void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
     char name[0x100];
 
     strcpy(dir, "x:/soft/room/event");
-    sprintf(path, "%s/%s/%s/etc/%s_%03d.fcs", dir, t->room, t->no, t->no, ev->cut);
-    sprintf(name, "[%s_%03d.fcs]", t->no, ev->cut);
+    sprintf(path, "%s/%s/%s/etc/%s_%03d.fcs", dir, t->roomNo, t->eventNo, t->eventNo, ev->NowCut);
+    sprintf(name, "[%s_%03d.fcs]", t->eventNo, ev->NowCut);
     ev->FocusMove(ev, &t->focus);
     eprintf(0x38, 0x30, 5, 0, "FOCUS TOOL MENU");
-    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->focusCur, focusMenu, sizeof(focusMenu), t->pJoy0)) {
+    switch (ToolMenuDisp_cur(0x40, 0x40, 1, &t->CursolFocus, focusMenu, sizeof(focusMenu), t->pJoy0)) {
     case 0:
-        if (!(t->flags & 0x00010000)) {
+        if (!(t->EtcFlag & 0x00010000)) {
             t->SubToolFocusInit(t, 1, ev, 0);
         } else {
             t->SubToolFocusInit(t, 0, 0, 0);
         }
         break;
     case 1:
-        if (!(t->flags & 0x00010000)) {
+        if (!(t->EtcFlag & 0x00010000)) {
             t->SubToolFocusInit(t, 1, ev, 1);
         } else {
             t->SubToolFocusInit(t, 0, 0, 0);
@@ -938,7 +938,7 @@ void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
         break;
     case 7:
         if (t->SubMenuSelectYesNo(t, "EXIT", "")) {
-            t->subMode = 0;
+            t->r_no_0_sub = 0;
         }
         break;
     }
@@ -998,31 +998,31 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
 
 int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
 {
-    if (camMode != 0) {
+    if (DebugCameraFlag != 0) {
         if (pJoy0->trg & 0x1000) {
-            camMode = 0;
-            if (!(pG->flags_60 & 0x10000000)) {
-                pG->flags_170 &= ~0x40000000;
+            DebugCameraFlag = 0;
+            if (!(pG->Debug_flg[0] & 0x10000000)) {
+                pG->Stop_flg &= ~0x40000000;
             }
         } else {
             CamDbg.move(&pG->Cam, &Joy[0], 0);
-            if (camCnt++ & 8) {
+            if (DebugCameraTimer++ & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");
             }
             if (pJoy0->trg & 0x200) {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) |= 8;
-                pG->flags_170 &= ~0x40000000;
+                pG->Stop_flg &= ~0x40000000;
             } else {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) &= ~8;
-                pG->flags_170 |= 0x40000000;
+                pG->Stop_flg |= 0x40000000;
             }
             CameraMove();
         }
         return 1;
     }
     if (pJoy0->trg & 0x1000) {
-        camMode = 1;
-        flags |= 0x20000000;
+        DebugCameraFlag = 1;
+        EtcFlag |= 0x20000000;
     }
     return 0;
 }
@@ -1033,12 +1033,12 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
 
     if (sw == 1) {
         MessDeleteAll();
-        EvtDebug.flags |= 0x20000000;
-        pG->flags_60 |= 0x20000000;
+        EvtDebug.FlagEtc |= 0x20000000;
+        pG->Debug_flg[0] |= 0x20000000;
     } else {
-        EvtDebug.flags &= ~0x20000000;
-        BitOff(pG->flags_170, 0x40000000);
-        pG->flags_60 &= ~0x20000000;
+        EvtDebug.FlagEtc &= ~0x20000000;
+        BitOff(pG->Stop_flg, 0x40000000);
+        pG->Debug_flg[0] &= ~0x20000000;
         TaskSleep(1);
     }
     SubToolIn(t, sw, 13);
@@ -1063,7 +1063,7 @@ int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
     t->fog.start.key[0].v = LightMgr.getFogStart();
     t->fog.start.key[0].out = 0.0f;
     t->fog.start.key[0].in = 0.0f;
-    t->fog.start.key[1].t = (f32) ev->maxFrame;
+    t->fog.start.key[1].t = (f32) ev->MaxFrame;
     t->fog.start.key[1].v = LightMgr.getFogStart();
     t->fog.start.key[1].out = 0.0f;
     t->fog.start.key[1].in = 0.0f;
@@ -1072,7 +1072,7 @@ int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
     t->fog.end.key[0].v = LightMgr.getFogEnd();
     t->fog.end.key[0].out = 0.0f;
     t->fog.end.key[0].in = 0.0f;
-    t->fog.end.key[1].t = (f32) ev->maxFrame;
+    t->fog.end.key[1].t = (f32) ev->MaxFrame;
     t->fog.end.key[1].v = LightMgr.getFogEnd();
     t->fog.end.key[1].out = 0.0f;
     t->fog.end.key[1].in = 0.0f;
@@ -1082,18 +1082,18 @@ int ToolEvt::SubToolFogWkInit(ToolEvt* t, Event* ev)
 void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
 {
     if (sw == 1) {
-        EvtDebug.flags |= 0x10000000;
-        if (ev->cut > 99) {
+        EvtDebug.FlagEtc |= 0x10000000;
+        if (ev->NowCut > 99) {
             return;
         }
         if (which == 0) {
-            t->SctrlToolInit(t, (Hermite1*) &t->fog.start, (f32) ev->maxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->fog.start, (f32) ev->MaxFrame, 100000.0f);
         } else {
-            t->SctrlToolInit(t, (Hermite1*) &t->fog.end, (f32) ev->maxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->fog.end, (f32) ev->MaxFrame, 100000.0f);
         }
-        t->curveNo = which;
+        t->CurveNo = which;
     } else {
-        EvtDebug.flags &= ~0x10000000;
+        EvtDebug.FlagEtc &= ~0x10000000;
         TaskSleep(1);
     }
     SubToolIn(t, sw, 14);
@@ -1104,7 +1104,7 @@ void ToolEvt::SubToolFogMove(ToolEvt* t, Event* ev)
     if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
         SubToolFogInit(t, 0, 0, 0);
     }
-    if (t->curveNo == 0) {
+    if (t->CurveNo == 0) {
         eprintf(0x38, 0x30, 0x16, 0, "FOG START");
     } else {
         eprintf(0x38, 0x30, 0x16, 0, "FOG END");
@@ -1119,7 +1119,7 @@ void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
     t->focus.near_.key[0].v = 0.0f;
     t->focus.near_.key[0].out = 0.0f;
     t->focus.near_.key[0].in = 0.0f;
-    t->focus.near_.key[1].t = (f32) ev->maxFrame;
+    t->focus.near_.key[1].t = (f32) ev->MaxFrame;
     t->focus.near_.key[1].v = 0.0f;
     t->focus.near_.key[1].out = 0.0f;
     t->focus.near_.key[1].in = 0.0f;
@@ -1128,7 +1128,7 @@ void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
     t->focus.far_.key[0].v = 10000.0f;
     t->focus.far_.key[0].out = 0.0f;
     t->focus.far_.key[0].in = 0.0f;
-    t->focus.far_.key[1].t = (f32) ev->maxFrame;
+    t->focus.far_.key[1].t = (f32) ev->MaxFrame;
     t->focus.far_.key[1].v = 10000.0f;
     t->focus.far_.key[1].out = 0.0f;
     t->focus.far_.key[1].in = 0.0f;
@@ -1139,18 +1139,18 @@ void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
 void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
 {
     if (sw == 1) {
-        EvtDebug.flags |= 0x08000000;
-        if (ev->cut > 99) {
+        EvtDebug.FlagEtc |= 0x08000000;
+        if (ev->NowCut > 99) {
             return;
         }
         if (which == 0) {
-            t->SctrlToolInit(t, (Hermite1*) &t->focus.near_, (f32) ev->maxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->focus.near_, (f32) ev->MaxFrame, 10000.0f);
         } else {
-            t->SctrlToolInit(t, (Hermite1*) &t->focus.far_, (f32) ev->maxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->focus.far_, (f32) ev->MaxFrame, 10000.0f);
         }
-        t->curveNo = which;
+        t->CurveNo = which;
     } else {
-        EvtDebug.flags &= ~0x08000000;
+        EvtDebug.FlagEtc &= ~0x08000000;
         TaskSleep(1);
     }
     SubToolIn(t, sw, 15);
@@ -1161,7 +1161,7 @@ void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
     if (DbSctrl(t->pSctrl, 0x20, 0x20) == 0) {
         SubToolFocusInit(t, 0, 0, 0);
     }
-    if (t->curveNo == 0) {
+    if (t->CurveNo == 0) {
         eprintf(0x38, 0x30, 0x16, 0, "FOCUS NEAR");
     } else {
         eprintf(0x38, 0x30, 0x16, 0, "FOCUS FAR");
@@ -1171,15 +1171,15 @@ void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
 
 void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
 {
-    EventMessageData* m = t->pMess;
+    EventMessageData* m = t->PMesDat;
     int i;
 
     if (sw == 1) {
         char path[0x80];
 
-        EvtDebug.flags |= 0x04000000;
+        EvtDebug.FlagEtc |= 0x04000000;
         MessDeleteAll();
-        sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
+        sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->roomNo, t->eventNo);
         // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 35 dead pseudos before the inlined
         // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
         int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12, dead13, dead14, dead15, dead16, dead17, dead18, dead19, dead20, dead21, dead22, dead23, dead24, dead25, dead26, dead27, dead28, dead29, dead30, dead31, dead32, dead33, dead34;
@@ -1219,7 +1219,7 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         MessTool.p->InitAllWork();
         CallbackLoad(t);
     } else {
-        EvtDebug.flags &= ~0x04000000;
+        EvtDebug.FlagEtc &= ~0x04000000;
         MessDeleteAll();
         if (MessTool.p) {
             delete MessTool.p;
@@ -1239,7 +1239,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
         return;
     }
     MessTool.p->Disp();
-    if (t->flags & 0x40000000) {
+    if (t->EtcFlag & 0x40000000) {
         // the message column (cx 3) of the cursor row shows its message
         int cx = MessTool.p->pEdit->GetCx();
         int no = MessTool.p->pEdit->GetCurrentNo();
@@ -1248,11 +1248,11 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
             EventMessageData* m;
             EventMessageData::MessElem* e;
 
-            m = t->pMess;
+            m = t->PMesDat;
             e = &m->elem[no];
 
             if (IsWorkAlive(e)) {
-                if (e->messNo == -1) {
+                if (e->MessNo == -1) {
                     EventMessageData::MessElem* p = 0;
                     int cnt = 1;
                     int j;
@@ -1267,7 +1267,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
                     // expression until combine makes it `add T,m,A`, which reload_cse then rewrites
                     // to the target's `mr T,e`); a plain `(u8*) m + ofs` is cse'd to `subi T,e,8`.
                     k = no - 1;
-                    if (k >= 0 && (p = &m->elem[k])->messNo == -1) {
+                    if (k >= 0 && (p = &m->elem[k])->MessNo == -1) {
                         EventMessageData::MessElem* q = e - 1;
                         u32 ofs = no * sizeof(EventMessageData::MessElem);
                         s32 nofs = -(s32) ofs;
@@ -1283,14 +1283,14 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
                             p = q;
                         } while (*mp == -1);
                     }
-                    ev->MesSet(p->messNo, 0, 100, EVT_MES_Y);
+                    ev->MesSet(p->MessNo, 0, 100, EVT_MES_Y);
                     for (j = 0; j < cnt; j++) {
                         cMes.Move();
                         ev->MesSet(-1, 0, 100, EVT_MES_Y);
                     }
                     cMes.Move();
                 } else {
-                    ev->MesSet(e->messNo, 0, 100, EVT_MES_Y);
+                    ev->MesSet(e->MessNo, 0, 100, EVT_MES_Y);
                 }
             }
         }
@@ -1314,22 +1314,22 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
 
         i = 0;
         eprintf(0x50, 0x90, 0, 0, "%3d", m->v[1]);
-        eprintf(0xA0, 0x90, 0, 0, "%3d", ev->cut);
-        eprintf(0xF0, 0x90, 0, 0, "%3d", ev->frame);
+        eprintf(0xA0, 0x90, 0, 0, "%3d", ev->NowCut);
+        eprintf(0xF0, 0x90, 0, 0, "%3d", ev->NowFrame);
         eprintf(0x140, 0x90, 0, 0, "%3d", m->v[i]);
         x = (MesCntView*) &d->mesCnt[0];
         eprintf(0x190, 0x90, 0, 0, "%3d", x->v[i]);
-        e = t->pMess->elem;
+        e = t->PMesDat->elem;
         for (i = 0; i < XML_NODE_MAX; i++, e++) {
-            if (IsWorkAlive(e) && ev->cut == e->cutNo && ev->frame == e->frame) {
+            if (IsWorkAlive(e) && ev->NowCut == e->CutNo && ev->NowFrame == e->Frame) {
                 int no = 0;
                 int mes;
                 MesCntView* y = (MesCntView*) &d->mesCnt[1];
 
-                ev->MesSet(e->messNo, e->timer, 100, EVT_MES_Y);
+                ev->MesSet(e->MessNo, e->Timer, 100, EVT_MES_Y);
                 // the record's message number is re-read into a local before the three stores
                 // (sched1: the load ahead of `stwx no`, then the stores in statement order)
-                mes = e->messNo;
+                mes = e->MessNo;
                 x->v[no] = no;
                 y->v[no] = mes;
                 y->v[1] = i;
@@ -1341,15 +1341,15 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
 void ToolEvt::SubToolIn(ToolEvt* t, int sw, int bit)
 {
     if (sw == 1) {
-        t->flags &= ~0x02000000;
+        t->EtcFlag &= ~0x02000000;
         TE_FLG_ON(t, bit);
         t->pJoy0 = &Joy[2];
-        t->pJoy1 = &Joy[3];
+        t->pJoy2 = &Joy[3];
     } else {
-        t->flags |= 0x02000000;
+        t->EtcFlag |= 0x02000000;
         TE_FLG_OFF(t, bit);
         t->pJoy0 = &Joy[0];
-        t->pJoy1 = &Joy[1];
+        t->pJoy2 = &Joy[1];
     }
 }
 
@@ -1373,7 +1373,7 @@ void ToolEvt::SctrlToolInit(ToolEvt* t, Hermite1* curve, f32 xMax, f32 yMax)
 
 int IsWorkAlive(EventMessageData::MessElem* w)
 {
-    if (w->flag & 1) {
+    if (w->be_flag & 1) {
         return 1;
     }
     return 0;
@@ -1382,26 +1382,26 @@ int IsWorkAlive(EventMessageData::MessElem* w)
 void SetWorkAlive(EventMessageData::MessElem* w, int alive)
 {
     if (alive == 1) {
-        w->flag |= 1;
+        w->be_flag |= 1;
     } else {
-        w->flag &= ~1;
+        w->be_flag &= ~1;
     }
 }
 
 int GetWorkNo(EventMessageData::MessElem* w)
 {
-    return w->no;
+    return w->No;
 }
 
 void SetWorkNo(EventMessageData::MessElem* w, int no)
 {
-    w->no = no;
+    w->No = no;
 }
 
 void InitWork(EventMessageData::MessElem* w, int no)
 {
     memclr_asm(w, sizeof(EventMessageData::MessElem));
-    w->no = no;
+    w->No = no;
 }
 
 // pad step of the value editors: -1 / +1 (x10 with A held)
@@ -1430,9 +1430,9 @@ static inline int EvtEditDone()
 
 int CallbackCutNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
-    w->cutNo += EvtEditStep();
+    w->CutNo += EvtEditStep();
     eprintf(0xAA, 0xA0, 4, 0, "CutNo   : ");
-    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->cutNo);
+    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->CutNo);
     return EvtEditDone();
 }
 
@@ -1440,15 +1440,15 @@ void CallbackCutNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
 {
     char buf[0x40];
 
-    sprintf(buf, "%9ld", w->cutNo);
+    sprintf(buf, "%9ld", w->CutNo);
     DbgButtonSetName(b, buf);
 }
 
 int CallbackFrameExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
-    w->frame += EvtEditStep();
+    w->Frame += EvtEditStep();
     eprintf(0xAA, 0xA0, 4, 0, "Frame   : ");
-    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->frame);
+    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->Frame);
     return EvtEditDone();
 }
 
@@ -1456,18 +1456,18 @@ void CallbackFrameUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
 {
     char buf[0x40];
 
-    sprintf(buf, "%9ld", w->frame);
+    sprintf(buf, "%9ld", w->Frame);
     DbgButtonSetName(b, buf);
 }
 
 int CallbackMessNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
-    w->messNo += EvtEditStep();
-    if (w->messNo < -1) {
-        w->messNo = -1;
+    w->MessNo += EvtEditStep();
+    if (w->MessNo < -1) {
+        w->MessNo = -1;
     }
     eprintf(0xAA, 0xA0, 4, 0, "MessNo  : ");
-    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->messNo);
+    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->MessNo);
     return EvtEditDone();
 }
 
@@ -1475,15 +1475,15 @@ void CallbackMessNoUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempl
 {
     char buf[0x40];
 
-    sprintf(buf, "%9ld", w->messNo);
+    sprintf(buf, "%9ld", w->MessNo);
     DbgButtonSetName(b, buf);
 }
 
 int CallbackTimerExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
 {
-    w->timer += EvtEditStep();
+    w->Timer += EvtEditStep();
     eprintf(0xAA, 0xA0, 4, 0, "Timer   : ");
-    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->timer);
+    eprintf(0xAA, 0xA0, 0, 0, "          %d", w->Timer);
     return EvtEditDone();
 }
 
@@ -1491,7 +1491,7 @@ void CallbackTimerUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
 {
     char buf[0x40];
 
-    sprintf(buf, "%9ld", w->timer);
+    sprintf(buf, "%9ld", w->Timer);
     DbgButtonSetName(b, buf);
 }
 
@@ -1553,15 +1553,15 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
     d.num = 0;
     for (i = 0; i < XML_NODE_MAX; i++) {
         e = &m->elem[i];
-        if (e->flag & 1) {
+        if (e->be_flag & 1) {
             // integer arithmetic keeps the written order (`mulli; add rMul, rBase; addi off`);
             // `d.node[d.num]` puts the base first.
 #define CUR_NODE ((XmlNode*) (d.num * sizeof(XmlNode) + (u32) d.node))
             sprintf(CUR_NODE->s[XN_SETFLG], "true");
-            sprintf(CUR_NODE->s[XN_CUTNO], "%ld", e->cutNo);
-            sprintf(CUR_NODE->s[XN_FRAME], "%ld", e->frame);
-            sprintf(CUR_NODE->s[XN_DAT0], "%ld", e->messNo);
-            sprintf(CUR_NODE->s[XN_DAT1], "%ld", e->timer);
+            sprintf(CUR_NODE->s[XN_CUTNO], "%ld", e->CutNo);
+            sprintf(CUR_NODE->s[XN_FRAME], "%ld", e->Frame);
+            sprintf(CUR_NODE->s[XN_DAT0], "%ld", e->MessNo);
+            sprintf(CUR_NODE->s[XN_DAT1], "%ld", e->Timer);
 #undef CUR_NODE
             d.num++;
         }
@@ -1573,13 +1573,13 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
 int CallbackSave(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;
-    EventMessageData* m = t->pMess;
+    EventMessageData* m = t->PMesDat;
     // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 13 dead pseudos before the inlined
     // clear loop put its `i - 1` PRE pseudo in a lower hash bucket than `n + 1` (allocated first -> higher register).
     int dead0, dead1, dead2, dead3, dead4, dead5, dead6, dead7, dead8, dead9, dead10, dead11, dead12;
     char path[0x100];
 
-    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
+    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->roomNo, t->eventNo);
     EvtMessWrite(m, path);
     return 0;
 }
@@ -1587,10 +1587,10 @@ int CallbackSave(void* arg)
 int CallbackLoad(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;
-    EventMessageData* m = t->pMess;
+    EventMessageData* m = t->PMesDat;
     char path[0x100];
 
-    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
+    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->roomNo, t->eventNo);
     EvtMessRead(m, path);
     return 0;
 }

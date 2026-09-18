@@ -78,23 +78,23 @@ void R405Init()
     EvtMgr.SetFunc("evt_r405s00_func", (void*) Evt_R405S00_Func);
     EvtMgr.SetFunc("evt_r405s99_func", (void*) Evt_R405S00_Func);
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) em_set, 0, 1);
-        SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) em_set, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) em_set, 0, 1);
+        SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) em_set, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) em_set3, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) em_set3, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceExec(0x12, (TaskFunc) R405ExecEventS00, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) R405ExecEventS00, 0, 0, SCE_PRIO_DEF_2, 0);
         EvtMgr.EvtReadAram("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0, 0, 0);
     }
-    EatMgr.registEffInfo(2, (AtEffInfo*) &r405_eff_info);
-    if (pG->x4FB8 == 2) {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 0,
+    EatMgr.registEffInfo(EAT_ET_WATER, (AtEffInfo*) &r405_eff_info);
+    if (pG->pl_type == 2) {
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
+                       ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0,
                        zero, zero, zero, zero);
     } else {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0, zero, zero, zero, zero);
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, zero, zero, zero, zero);
     }
     setTexRender();
     SceSetRoomExitFunc((int) snd_tbl_set, 0);
@@ -110,17 +110,17 @@ void R405Main()
         if (r405_work.p->cnt <= 4) {
             if (r405_work.p->timer <= 0) {
                 if ((u32) SceCountEmAlive(0x10, 0x20) <= 8) {
-                    if (pG->sceat_x17C & 0x20000000) {
+                    if (pG->Room_flg[2] & 0x20000000) {
                         R405_EmSetEvent(EM_LIST(0x10));
                         R405_EmSetEvent(EM_LIST(0x11));
                         r405_work.p->cnt++;
                         r405_work.p->timer = 240;
-                    } else if (pG->sceat_x17C & 0x10000000) {
+                    } else if (pG->Room_flg[2] & 0x10000000) {
                         R405_EmSetEvent(EM_LIST(0x13));
                         R405_EmSetEvent(EM_LIST(0x14));
                         r405_work.p->cnt++;
                         r405_work.p->timer = 240;
-                    } else if (pG->sceat_x17C & 0x40000000) {
+                    } else if (pG->Room_flg[2] & 0x40000000) {
                         R405_EmSetEvent(EM_LIST(0x25));
                         R405_EmSetEvent(EM_LIST(0x26));
                         r405_work.p->cnt++;
@@ -146,28 +146,28 @@ void setTexRender()
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
         tbl0[5] = r405_work.p->tex[0]->texId;
-        r405_work.p->tex[0]->repType = 1;
+        r405_work.p->tex[0]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r405_work.p->tex[0]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC);
-    obj->pInfo->setTexBlendTbl(tbl0);
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl0);
+    obj->pModelInfo->setBlendRatio(0xFF);
     if (GetTexRenderMgr(&r405_work.p->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
         tbl1[5] = r405_work.p->tex[1]->texId;
-        r405_work.p->tex[1]->repType = 1;
+        r405_work.p->tex[1]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 4, r405_work.p->tex[1]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xE);
-    obj->pInfo->setTexBlendTbl(tbl1);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
+    obj->pModelInfo->setTexBlendTbl(tbl1);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
 }
 
 static void R405ExecEventS00()
@@ -175,7 +175,7 @@ static void R405ExecEventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
         SceEventStart(0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         SceSleep(1);
         EvtMgr.EvtReadExec("event/evd/r405s00.evd", (u8) GetEmIdFromListI(0), 0);
         SceEventEnd(0);
@@ -184,7 +184,7 @@ static void R405ExecEventS00()
         SndRoomBgmStart(0, 0);
         SndRoomBgmStart(1, 0);
         SceSleep(2);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
 }
 
@@ -193,16 +193,16 @@ extern "C" void Evt_R405S00_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 1;
+                    ((cModel*) mod)->LightInfo.EnableMask = 1;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }
@@ -221,7 +221,7 @@ static void em_set()
         SndRoomStrStop(3);
         SndBgmTblSet(0x405, 1);
         SndRoomStrStart(1, 0, 1);
-        SceExec(0x12, (TaskFunc) r405_StrCheck, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r405_StrCheck, 0, 0, SCE_PRIO_DEF_2, 0);
         cEmWrap em0;
         cEmWrap em1;
         cEmWrap em2;

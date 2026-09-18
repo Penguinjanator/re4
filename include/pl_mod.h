@@ -23,7 +23,7 @@ void ShapeEnd(void* info);
 // Motion / model data `no` of the partner's archive (cSubChar::subArc, read through subSelf).
 #define SUB_ARC(pl, no) PL_ARC_PTR((pl)->subSelf->subArc, no)
 // Model data `no` of the player archive.
-#define PL_ARC(no) PL_ARC_PTR(pG->pPlArc, no)
+#define PL_ARC(no) PL_ARC_PTR(pG->pPlayer, no)
 
 // pl11 (pl15): Ashley in the knight armour, a cSubChar with its own model set (no cPlayer).
 class cSubAshley : public cSubChar {

@@ -31,8 +31,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x0000008C	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_8C	lbl_em3b_rodata_8C
 .rodata	0x00000090	0x20	em3b/em3b.cpp	local	lbl_em3b_rodata_90	lbl_em3b_rodata_90
 .rodata	0x000000B0	0x20	em3b/em3b.cpp	local	lbl_em3b_rodata_B0	lbl_em3b_rodata_B0
-.rodata	0x000000D0	0xC	em3b/em3b.cpp	local	lbl_em3b_rodata_D0	lbl_em3b_rodata_D0
-.rodata	0x000000DC	0xC	em3b/em3b.cpp	local	lbl_em3b_rodata_DC	lbl_em3b_rodata_DC
+.rodata	0x000000D0	0xC	em3b/em3b.cpp	local	ofs.411	ofs.411
+.rodata	0x000000DC	0xC	em3b/em3b.cpp	local	size.412	size.412
 .rodata	0x000000E8	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_E8	lbl_em3b_rodata_E8
 .rodata	0x000000EC	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_EC	lbl_em3b_rodata_EC
 .rodata	0x000000F0	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_F0	lbl_em3b_rodata_F0
@@ -90,7 +90,7 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x000001C8	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_1C8	lbl_em3b_rodata_1C8
 .rodata	0x000001CC	0x4	em3b/em3b.cpp	local	lbl_em3b_rodata_1CC	lbl_em3b_rodata_1CC
 .rodata	0x000001D0	0xD0	em3b/em3b.cpp	local	lbl_em3b_rodata_1D0	lbl_em3b_rodata_1D0
-.rodata	0x000002A0	0x60	em3b/em3b.cpp	global	lbl_em3b_rodata_2A0	lbl_em3b_rodata_2A0
-.rodata	0x00000300	0x28	em3b/em3b.cpp	global	lbl_em3b_rodata_300	lbl_em3b_rodata_300
-.data	0x00000000	0x14	em3b/em3b.cpp	global	lbl_em3b_data_0	lbl_em3b_data_0
-.data	0x00000014	0x24	em3b/em3b.cpp	local	lbl_em3b_data_14	lbl_em3b_data_14
+.rodata	0x000002A0	0x60	em3b/em3b.cpp	global	_vt.5cEm3b	_vt.5cEm3b
+.rodata	0x00000300	0x28	em3b/em3b.cpp	global	_vt.5cUnit	_vt.5cUnit
+.data	0x00000000	0x14	em3b/em3b.cpp	global	Em3b_R0_move_tbl	Em3b_R0_move_tbl
+.data	0x00000014	0x24	em3b/em3b.cpp	local	Em3b_R1_move_tbl	Em3b_R1_move_tbl

@@ -10,11 +10,11 @@ struct ItemWork {
     u8 flags;      // 0x04  bit0 in use
     u8 type;       // 0x05  inventory type (cItemMgr::type selects the visible set)
     union {
-        u16 x6;    // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
-                   //       weapon parts (type 9): 1 = attached; files (type 0xA): x6b[0] = countFiles()
-        u8 x6b[2];
+        u16 lv;    // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
+                   //       weapon parts (type 9): 1 = attached; files (type 0xA): lv8[0] = countFiles()
+        u8 lv8[2]; // 0x06  the same two bytes
     };
-    u16 x8;        // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->wep_x4FB2), low 13: bullets loaded
+    u16 bullet;    // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->bullet_type), low 13: bullets loaded
                    //       weapon parts (type 9): slot index of the weapon it is attached to (0xFFFF = none)
     s8 x;          // 0x0A  case position (cells * 2) and orientation (puzzle pzlPlayer::save)
     s8 y;          // 0x0B
@@ -24,25 +24,24 @@ struct ItemWork {
 
 // cItemMgr::ordering() output (cItemMgr::pOrder[], 8 bytes): the in-use slots holding one item id.
 struct ItemOrder {
-    ItemWork* item;  // 0x00
+    ItemWork* p_item;  // 0x00
     u16 num;         // 0x04  copy of item->num
     u8 pad_6[2];
 };
 
 // itemInfo() result (game/item.cpp).
 struct ItemInfo {
-    u8 x0;
-    u8 x1;
+    u16 id;        // 0x00  item id (PS2 ITEM_INFO id)
     u8 type;       // 0x02  1 weapon, 2 ammo, 3 = weapon with a magazine (sscrn: empty check), 5/0xC treasure, 9 weapon part, 0xA file ...
-    u8 x3;         // 0x03  default count when get(id, 0)
-    u16 x4;        // 0x04  max count per slot
+    u8 defNum;         // 0x03  default count when get(id, 0)
+    u16 maxNum;        // 0x04  max count per slot
 };
 
 // One saved slot (cItemMgr::save/load, 12 bytes; 0x180 of them after the 4-byte header).
 struct ItemSaveWork {
     u16 id;        // 0x00  item id, bit 15 = ItemWork::type 1; 0xFFFF = empty
-    u16 x2;        // 0x02  num (weapons/parts: x6)
-    u16 x4;        // 0x04  weapons/parts: x8; files: x6b[0]
+    u16 num;       // 0x02  num (weapons/parts: lv)
+    u16 bullet;    // 0x04  weapons/parts: bullet; files: lv8[0]
     u8 pad_6[2];
     s8 x;          // 0x08
     s8 y;          // 0x09
@@ -51,29 +50,29 @@ struct ItemSaveWork {
 };
 
 struct ItemSaveData {
-    u16 armId;               // 0x00
-    u16 armIdx;              // 0x02  slot index of the equipped weapon, 0xFFFF = none
-    ItemSaveWork item[0x180];// 0x04
+    u16 wep_id;               // 0x00
+    u16 arm_no;              // 0x02  slot index of the equipped weapon, 0xFFFF = none
+    ItemSaveWork item_list[0x180];// 0x04
 };                           // 0x1204 = cItemMgr::saveDataSize()
 
 // Inventory manager (game/item.cpp, 0x30 bytes).
 class cItemMgr {
 public:
-    u32* pFlags;                // 0x00  one bit per item id (available()/use(): items usable this frame)
-    s32 nFlags;                 // 0x04  words in pFlags (8)
-    u16 checkId;                // 0x08  item id use() handed to check(), 0xFFFF = none
+    u32* m_pAvailable;                // 0x00  one bit per item id (available()/use(): items usable this frame)
+    s32 m_flag_num;                 // 0x04  words in pFlags (8)
+    u16 used_id;                // 0x08  item id use() handed to check(), 0xFFFF = none
     u8 pad_A[2];
     ItemWork* pArm;             // 0x0C  equipped weapon slot (NULL = bare hands)
-    u16 armId;                  // 0x10  equipped weapon item id
-    s8 x12;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
+    u16 m_wep_id;                  // 0x10  equipped weapon item id
+    s8 m_to_whom;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
     u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
     ItemWork* pItems;           // 0x14
     ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
     s32 nItems;                 // 0x1C
-    ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
-    s32 nOrder;                 // 0x24  entries in pOrder
-    u32 x28;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)
-    u32 x2C;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
+    ItemOrder* m_p_order_tbl;          // 0x20  ordering() result (merchant: sorted slots of one item id)
+    s32 m_order_tbl_num;                 // 0x24  entries in pOrder
+    u32 m_bonus_time;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)
+    u32 m_bonus_point;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
 
     void clear();
     int set_game(int no);
@@ -141,7 +140,7 @@ public:
     int offboardDump(ItemWork* keep);
     void takeOver();
     int countFiles();
-    void debugNumDisp(int a);
+    void debugNumDisp(int print_page);
     void debugWeapon(int id);
 };
 
@@ -177,7 +176,7 @@ u16 bareHand();
 int itemCombineCheck(u16 id);
 // COMPILER-DIFF: 4 (int view: the original passes a u16 local without the zero-extension, ss_pzzl itemCommandType)
 int itemCombineCheckI(int id) asm("itemCombineCheck");
-int itemCombine(u16 a, u16 b, u16* result);
+int itemCombine(u16 srcA, u16 srcB, u16* result);
 int reload_main(ItemWork* wep, ItemWork* ammo, int max);
 u8 gld_order(u8 idx);
 int gld_cmp(const void* a, const void* b);

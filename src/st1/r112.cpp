@@ -27,8 +27,8 @@ void R112Init()
     r112_work = (R112Work*) MEM_CALLOC(sizeof(R112Work), 1, 0xd);
 
     Espgen42SetNoWater(1);
-    SceExec(0x12, (TaskFunc) r112_ThunderMove, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r112_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r102_checkBgm, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R112Main()
@@ -47,7 +47,7 @@ static void r112_ThunderMove()
     }
     for (;;) {
         if (cnt == 0) {
-            if (pG->flags_5010 & 0x02000000) {
+            if (pG->Status_flg[1] & 0x02000000) {
                 EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
                 SceSndCallThunder();
             }

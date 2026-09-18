@@ -99,17 +99,17 @@ void R113Init()
 #line 73 "D:/Bio4/Prog/r113.cpp"
     r113_work = (R113Work*) MEM_CALLOC(sizeof(R113Work), 1, 0xd);
 
-    SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r113_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 4, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, (u32) zero, zero);
-    pG->flags_5010 |= 0x400;
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r113_DoorCheck, 0, 1);
-    if (!(pG->door_unlock[0] & 0x08000000) && (pG->flags_5018 & 0x04000000)) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
+    pG->Status_flg[1] |= 0x400;
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r113_DoorCheck, 0, 1);
+    if (!(pG->door_unlock[0] & 0x08000000) && (pG->Status_flg[3] & 0x04000000)) {
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r113_checkAshleyPos, 0, 1);
     }
-    EatMgr.registEffInfo(4, (AtEffInfo*) &r113_eff_info);
-    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r113_cesspit, 0, 2, 0);
+    EatMgr.registEffInfo(EAT_ET_ROOM0, (AtEffInfo*) &r113_eff_info);
+    SceExec(0x12, (TaskFunc) r103_initCesspit, (int) &r113_cesspit, 0, SCE_PRIO_DEF_2, 0);
     r103_setSubMissionTarget(8);
     if (getRoomEtcRack(6, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 3000.0f, 0.0f, 3000.0f);
@@ -122,7 +122,7 @@ void R113Init()
     if (!(pG->item_flags[0] & 0x800)) {
         U32Set(r113_work->eff, EspPullCoreKind());
         EstSet(0, -1, 0, 0, 1, 6, 1, (u8) r113_work->eff, 0, 0);
-        SceAtDataSet_exec(0x82, 0x12, 0, (TaskFunc) r113_getFile, 0, 1);
+        SceAtDataSet_exec(0x82, SCE_LEVEL10, 0, (TaskFunc) r113_getFile, 0, 1);
     }
 }
 
@@ -156,26 +156,26 @@ static void r113_execHide(int mode)
         // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         for (;;) {
-            door->pParts->rot.z += spd;
+            door->pParts->ang.z += spd;
             asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
             spd += add;
-            if (door->pParts->rot.z > lim) {
+            if (door->pParts->ang.z > lim) {
                 break;
             }
             SceSleep(1);
         }
-        door->pParts->rot.z = lim;
+        door->pParts->ang.z = lim;
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
         goto close;
     wait_close:
         SceSleep(1);
     close:
-        door->pParts->rot.z -= 0.2f;
-        if (!(door->pParts->rot.z < 0.0f)) {
+        door->pParts->ang.z -= 0.2f;
+        if (!(door->pParts->ang.z < 0.0f)) {
             goto wait_close;
         }
-        door->pParts->rot.z = 0.0f;
+        door->pParts->ang.z = 0.0f;
     }
 }
 
@@ -200,7 +200,7 @@ static void r113_EventRideShoulder()
     r113_work->strId = 0;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
-    SubCharCtrl(5, 0);
+    SubCharCtrl(SCC_AUX_MOT, 0);
     U32Set(r113_work->strId, SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f));
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);
@@ -233,18 +233,18 @@ static void r113_EventRideShoulder()
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        low_RotMatrix(m, &pPL->rot);
+        low_RotMatrix(m, &pPL->ang);
         TransMatrix(m, &pos);
         PSMTXMultVec(m, &pos2, &pos3);
         {
             cSubChar* sub = pSUB;
-            Vec* prot = &pPL->rot;
+            Vec* prot = &pPL->ang;
 
             sub->setPos(&pos3);
             sub->setAng(prot);
         }
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xA, 0, 1, 0);
-        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0xA, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xA, 0, 1, 0);
+        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0xA, 0, 1, 0);
     }
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
@@ -261,7 +261,7 @@ static void r113_EventRideShoulder()
     {
         MessageControl* mes = &cMes;
 
-        SceMesSet(5, 0xF0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->fontH - 1);
+        SceMesSet(5, 0xF0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->m_font_h - 1);
         SceSleep(75);
         for (i = 0; i < 16; i++) {
             mes->Delete(i);
@@ -304,7 +304,7 @@ static void r113_ThunderMove()
         if (cnt == 0) {
             if (EffGetAreaState(7)) {
                 EstSet(0, -1, 0, 0, 1, 3, 1, 0, 0, 0);
-            } else if (!(pG->flags_5010 & 0x02000000)) {
+            } else if (!(pG->Status_flg[1] & 0x02000000)) {
                 EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
             }
             {

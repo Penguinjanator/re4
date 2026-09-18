@@ -100,7 +100,7 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 // Event flag words at pG+0x174 addressed as an integer base plus the word offset (r108).
 static inline u32 evtFlagBase()
 {
-    return (u32) &pG->flags_174;
+    return (u32) &pG->Room_flg[0];
 }
 static inline u32 EvtFlagChk(u32 base, u32 no)
 {
@@ -115,7 +115,7 @@ static inline void EvtFlagOn(u32 base, u32 no)
 void EvtFlgOnStatus(Event* e, u32 no) asm("FlgOnStatus__5EventUl");
 
 // The running event's key (&EvtMgr.x34 as an accessor result: the address is formed last).
-static inline u32* evtKey(EventMgr* m) { return &m->x34; }
+static inline u32* evtKey(EventMgr* m) { return &m->NowExeEvtKey; }
 
 static void r104_checkBgmPlay();
 static void r104_execEmDash();
@@ -160,13 +160,13 @@ void R104Init()
             cEmDoor* d = r104_work->door0;
 
             BitOn(d->be_flag, 8);
-            d->x13B = d->x13A = d->x139 = 0x28;
+            d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
         {
             cEmDoor* d = r104_work->door1;
 
             BitOn(d->be_flag, 8);
-            d->x13B = d->x13A = d->x139 = 0x28;
+            d->AddAmb_b = d->AddAmb_g = d->AddAmb_r = 0x28;
         }
     }
     EvtMgr.SetFunc("evt_r104s00_func", (void*) Evt_R104S00_Func);
@@ -175,43 +175,43 @@ void R104Init()
         RsfSet(G_ROOM_ID, 1);
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        SceExec(0x12, (TaskFunc) r104_execEvent00, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r104_execEvent00, 0, 0, SCE_PRIO_DEF_2, 0);
     } else {
-        SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, 2, 0);
-        SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
+        SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 21) == 0) {
-        SceAtDataSet_exec(0x11, 0x12, 0, (TaskFunc) r104_execEvent10, 0, 1);
+        SceAtDataSet_exec(0x11, SCE_LEVEL10, 0, (TaskFunc) r104_execEvent10, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 22) == 0) {
         if (RsfCheck(G_ROOM_ID, 1)) {
             EvtMgr.EvtReadAram("event/evd/r104s20.evd", 0, 0, 0, 0);
         }
-        SceAtDataSet_exec(0x12, 0x12, 0, (TaskFunc) r104_execEvent20, 0, 1);
+        SceAtDataSet_exec(0x12, SCE_LEVEL10, 0, (TaskFunc) r104_execEvent20, 0, 1);
     }
     SceAtSetEnable(0x97, 1);
     m = SceAtItemModelPtr(0x97);
     if (m != 0) {
-        m->lightInfo.x50 = (m->lightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x00400000)) {
         SceAtSetEnable(0x97, 0);
-        SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r104_checkDoor107, 0, 1);
-        SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, 2, 0);
+        SceAtDataSet_exec(0, SCE_LEVEL10, 0, (TaskFunc) r104_checkDoor107, 0, 1);
+        SceExec(0x12, (TaskFunc) r104_checkDoor107KeyUse, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
-        SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r104_execShowView, 0, 1);
+        SceAtDataSet_exec(0xA, SCE_LEVEL10, 0, (TaskFunc) r104_execShowView, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) r104_execEmDash, 0, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) r104_execEmDash, 0, 1);
     }
     SceSetItemEvent(0xB, 0x84, 0x10, 7, r104_openShelf, r104_openedShelf, 0, 0);
     SceSetItemEvent(0xC, 0x8E, 0x11, 8, r104_openShelf, r104_openedShelf, 1, 0);
     SceSetItemEvent(0xD, 0x89, 0x12, 9, r104_openShelf, r104_openedShelf, 2, 0);
     SceSetItemEvent(0xF, 0x8F, 0x13, 0xA, r104_openBox, r104_openedBox, 0, 0);
     SceSetItemEvent(0x10, 0x90, 0x14, 0xB, r104_openBox, r104_openedBox, 1, 0);
-    SceExec(0x12, (TaskFunc) r104_checkBgmPlay, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r104_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void R104Main()
@@ -238,9 +238,9 @@ static void r104_checkBgmPlay()
 static void r104_execEmDash()
 {
     RsfSet(G_ROOM_ID, 15);
-    EM_LIST(0xF2)->flags |= 1;
-    EM_LIST(0xFC)->flags |= 1;
-    EM_LIST(0xFD)->flags |= 1;
+    EM_LIST(0xF2)->be_flag |= 1;
+    EM_LIST(0xFC)->be_flag |= 1;
+    EM_LIST(0xFD)->be_flag |= 1;
     setEm(0xF2, -1, 0, 1, 1);
     setEm(0xFC, -1, 0, 1, 1);
     setEm(0xFD, -1, 0, 1, 1);
@@ -269,7 +269,7 @@ extern "C" void r104_openBox_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot.z = ang;
+            obj->pParts->ang.z = ang;
         } else {
             int i;
 
@@ -277,7 +277,7 @@ extern "C" void r104_openBox_main(int no, int opened)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    obj->pParts->rot.z += ang;
+                    obj->pParts->ang.z += ang;
                 }
                 SceSleep(1);
             }
@@ -323,7 +323,7 @@ extern "C" void r104_openShelf_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot.y = ang;
+            obj->pParts->ang.y = ang;
         } else {
             int i;
 
@@ -331,7 +331,7 @@ extern "C" void r104_openShelf_main(int no, int opened)
             SndCall(6, 0x1C, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    obj->pParts->rot.y += ang;
+                    obj->pParts->ang.y += ang;
                 }
                 SceSleep(1);
             }
@@ -430,7 +430,7 @@ static void r104_execShowView()
     r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r104_execShowView_end, 0, -1, 1);
     SceEventStart(1);
-    pG->flags_5010 &= ~0x10000000;
+    pG->Status_flg[1] &= ~0x10000000;
     CamCtrl.CutCall(4);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -449,7 +449,7 @@ static void r104_checkDoor107KeyUse()
     SceSleep(20);
     SceAtSetEnable(0x97, 1);
     SndCall(6, 3, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x00400000;
     SceAtDataReset(0);
     CamCtrl.Comeback(0);
@@ -459,15 +459,15 @@ static void r104_checkDoor107KeyUse()
 // The locked door: the sub screen when the key or both halves are held.
 static void r104_checkDoor107()
 {
-    SceUpCut(0, 0xC, 2, 4);
+    SceUpCut(0, 0xC, 2, UP_CUT_ATTR_CUT_FIX);
     if (ItemMgr.num(0xA6) == 0) {
         if (ItemMgr.num(0xA4) == 1 && ItemMgr.num(0xA5) == 1) {
-            SubScreenOpen(0x80, 1);
+            SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
         } else {
             CamCtrl.Comeback(0);
         }
     } else {
-        SubScreenOpen(0x80, 1);
+        SubScreenOpen(SS_OPEN_ITEM, SS_ATTR_EVENT);
     }
 }
 
@@ -686,12 +686,12 @@ static void r104_execEvent20()
     pos.z = 0.0f;
     pl->setAng(&pos);
     FadeSetW(1, 0, 0, 0);
-    SubScreenOpen(0x10, 0);
+    SubScreenOpen(SS_OPEN_SHOP, 0);
 }
 
 static void r104_execEvent10()
 {
-    BitOn(pG->flags_51C0, 0x20000000);
+    BitOn(pG->Scenario_flg[0], 0x20000000);
     RsfSet(G_ROOM_ID, 21);
     EvtMgr.EvtReadExec("event/evd/r104s10.evd", 0x13, 0);
 }
@@ -701,22 +701,22 @@ static void r104_execEvent00()
 {
     RsfSet(G_ROOM_ID, 1);
     if (Rnd() & 0x80) {
-        pG->flags_174 |= 0x04000000;
+        pG->Room_flg[0] |= 0x04000000;
     } else {
-        pG->flags_174 &= ~0x04000000;
+        pG->Room_flg[0] &= ~0x04000000;
     }
     int skip = 0;
     DC.setAramSort(0);
     // The user variable on one side of the two tests keeps the pre-cse1 thread_jumps from threading the
     // first `beq` past the second test (rtx_equal_for_thread_p rejects REG_USERVAR_P pseudos): the second
     // compare is cse-deleted but its `bne` survives, as in the original (docs/research/, st1_1 pass 2).
-    u32 f = pG->flags_54;
+    u32 f = pG->System_flg;
     if (f & 0x40) {
         skip = 1;
     }
-    if (!(pG->flags_54 & 0x40)) {
+    if (!(pG->System_flg & 0x40)) {
         SceEventStart(0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadAram("event/evd/r104s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s02.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadAram("event/evd/r104s10.evd", 0, 0, 0, 0);
@@ -728,11 +728,11 @@ static void r104_execEvent00()
             r104_work->door1->setOpenLock(0);
         }
         if (EvtMgr.EvtReadExec("event/evd/r104s00.evd", 0, 0x20)) {
-            BitOn(pG->flags_54, 0x400);
-            if ((int) pG->flags_174 < 0) {
+            BitOn(pG->System_flg, 0x400);
+            if ((int) pG->Room_flg[0] < 0) {
                 EvtMgr.EvtReadExec("event/evd/r104s01.evd", 0, 0x20);
             } else {
-                pG->flags_54 &= ~0x40;
+                pG->System_flg &= ~0x40;
                 EvtMgr.EvtReadExec("event/evd/r104s02.evd", 0, 2);
                 for (;;) {
                     SceSleep(1);
@@ -759,8 +759,8 @@ static void r104_execEvent00()
     setEm(0xFA, -1, 0, 1, 1);
     setEm(0xFB, -1, 0, 1, 1);
     setEm(0xFE, -1, 0, 1, 1);
-    SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r104_initEmPatrol, 0, 0, SCE_PRIO_DEF_2, 0);
+    SceExec(0x12, (TaskFunc) r104_checkEmReset, 0, 0, SCE_PRIO_DEF_2, 0);
     SndBgmTblSet(0x104, 1);
     if (skip == 0) {
         OpeSetOpenTerm(4, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -770,7 +770,7 @@ static void r104_execEvent00()
 
 static void r104_succeedAction()
 {
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 static void Evt_R104S00_Func(Event* e)
@@ -782,14 +782,14 @@ static void Evt_R104S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         EvtFlgOnStatus(e, 3);
-        e->cancelCut = 0x1E;
+        e->EvtCancelCut = 0x1E;
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm4200", 0, 0) == 1) {
                     cLight* l = LightMgr.getKindLight(1);
 
@@ -800,11 +800,11 @@ static void Evt_R104S00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 fadeOn = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -817,12 +817,12 @@ static void Evt_R104S00_Func(Event* e)
                     ((cModel*) mod2)->be_flag |= 0x10;
                 }
                 if (e->GetMod(&mod2, "evm3700", 0, 0) == 1) {
-                    ((cModel*) mod2)->x12F = 1;
+                    ((cModel*) mod2)->ot_type = 1;
                 }
             }
-            if (e->frame == 120) {
+            if (e->NowFrame == 120) {
                 fadeOn = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -831,10 +831,10 @@ static void Evt_R104S00_Func(Event* e)
             }
             break;
         case 0x1E:
-            BitOff(pG->flags_170, 0x100);
-            if (!(pG->flags_174 & 0x80000000)) {
-                BitOff(pG->flags_58, 0x800);
-                if (!(pG->flags_174 & 0x04000000)) {
+            BitOff(pG->Stop_flg, 0x100);
+            if (!(pG->Room_flg[0] & 0x80000000)) {
+                BitOff(pG->Disp_flg, 0x800);
+                if (!(pG->Room_flg[0] & 0x04000000)) {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 4, 0, 0);
                 } else {
                     ActBtn.set(0x25, 5, (int) r104_succeedAction, 0, 0x42, 3, 0, 0);
@@ -849,7 +849,7 @@ static void Evt_R104S00_Func(Event* e)
         break;
     case 3:
         fadeOn = 1;
-        if (!(e->status & 0x4000)) {
+        if (!(e->StatusFlag & 0x4000)) {
             fadeOn = 0;
         }
         if (fadeOn == 0) {
@@ -863,7 +863,7 @@ static void Evt_R104S01_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1 && e->cut == 0 && e->frame == 0) {
+    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         if (e->GetMod(&mod, "evm4500", 0, 0) == 1) {
             ((cModel*) mod)->be_flag |= 0x10;
         }

@@ -222,7 +222,7 @@ static void R308EnemySetMain()
         RsfSet(G_ROOM_ID, 2);
         SndRoomStrStart(1, 0, 1);
         SceEventStart(0);
-        BitOn(pG->flags_5014, 0x02000000);
+        BitOn(pG->Status_flg[2], 0x02000000);
         r308_work->timer = 0;
         SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) R308DoorCheck, 0, 1);
         SceUpCut(5, 4, 6, 0);
@@ -240,7 +240,7 @@ static void R308EnemySetMain()
             SceSleep(1);
         }
         SceSetEventCancel(0, 0, 0, -1, 1);
-        pG->flags_5014 &= ~0x02000000;
+        pG->Status_flg[2] &= ~0x02000000;
         R308EnemySetEnd();
     }
 }
@@ -250,11 +250,11 @@ static void R308EnemySetEnd()
     r308_work->em.setEm(0x58, -1, 0, 1, 1);
     r308_work->em.setFlag(1);
     r308_work->em.setNoSuspend(0);
-    EM_LIST(0x58)->x3 = 0;
+    EM_LIST(0x58)->set = 0;
     SceExec(0x12, (TaskFunc) R308EnemyDieCheck, 0, 0, 2, 0);
     R308HandOpen();
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     SceExit();
 }
 
@@ -266,8 +266,8 @@ void R308HandOpen()
 
     obj = SmdGetObjPtr(0xA);
     if (obj) {
-        f32 rx = obj->rot.x;
-        f32 ry = obj->rot.y;
+        f32 rx = obj->ang.x;
+        f32 ry = obj->ang.y;
 
         ang.x = rx;
         ang.y = ry;
@@ -276,8 +276,8 @@ void R308HandOpen()
     }
     obj = SmdGetObjPtr(0xB);
     if (obj) {
-        f32 rx = obj->rot.x;
-        f32 ry = obj->rot.y;
+        f32 rx = obj->ang.x;
+        f32 ry = obj->ang.y;
 
         ang.x = rx;
         ang.y = ry;
@@ -354,7 +354,7 @@ static void R308SwitchMain()
     EstSet(0, -1, 0, 0, 1, 2, 0x2001, 4, (u32) zero, zero);
     CamCtrl.CutCall(2);
     w = cMes.getWork();
-    SceMesSet(0, 0x20, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+    SceMesSet(0, 0x20, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
     if (SceMesGetSelection() != 1) {
         R308_EFF_DELETE(3);
         R308_EFF_DELETE(4);

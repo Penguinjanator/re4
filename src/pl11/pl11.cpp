@@ -15,12 +15,12 @@ static void Pl11Init(cEm* em)
 
     sub->modelSet();
     sub->init();
-    pG->flags_5010 &= ~0x00020000;
+    pG->Status_flg[1] &= ~0x00020000;
 }
 
 cSubAshley::cSubAshley()
 {
-    hp = pGS->sub_life;
+    hp = pGS->ashley_life;
     litArea.on(1);
     pFootShadowTbl = pl_fs_tbl;
     EspDataLoad((u32) ARC(0x11), 4, 0);

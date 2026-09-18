@@ -152,7 +152,7 @@ static inline int r320_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -161,13 +161,13 @@ static inline int r320_evtSkip(Event* e)
 // The helicopter into the work; it fires freely below rank 9.
 static inline void r320_heriSet()
 {
-    if ((int) pG->flags_51C4 >= 0) {
+    if ((int) pG->Scenario_flg[1] >= 0) {
         cEm3d* em;
 
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
         em = (cEm3d*) r320_work->heri.getPtr();
         if (em) {
-            if (pG->x4F88 <= 8) {
+            if (pG->Game_level <= 8) {
                 em->setFreeFire();
             }
         }
@@ -235,8 +235,8 @@ void emset(int idx, int no)
 {
     int list;
 
-    EM_LIST_V(no).flags &= ~2;
-    list = pG->emlist_no;
+    EM_LIST_V(no).be_flag &= ~2;
+    list = pG->em_list_no;
     if (list >= 0) {
         u32* tbl = (u32*) ((list << 5) + (u32) pG + 0x501C);
 
@@ -304,16 +304,16 @@ void R320Init()
     SceAtSetEnable(0x94, 0);
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
-    BitOn(pG->flags_64, 0x00200000);
-    if ((pG->flags_51C4 & 0x10000000) == 0) {
+    BitOn(pG->Debug_flg[1], 0x00200000);
+    if ((pG->Scenario_flg[1] & 0x10000000) == 0) {
         if ((R320_SAVE_FLAGS & 0x100) == 0) {
             R320_SAVE_FLAGS |= 0x100;
-            BitOn(pG->flags_51C4, 0x10000000);
+            BitOn(pG->Scenario_flg[1], 0x10000000);
             SceExec(0x12, (TaskFunc) tower_explode, 0, 0, 2, 0);
         }
     }
     PartsMgr.warnDiv = 100;
-    BitOn(pG->flags_64, 0x00020000);
+    BitOn(pG->Debug_flg[1], 0x00020000);
     if (getRoomEtcWindow(0x1E, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
         win->be_flag &= ~2;
@@ -321,7 +321,7 @@ void R320Init()
     ShadowMngReAlloc(0x100);
     EvtMgr.SetFunc("evt_r320s00_func", (void*) Evt_R320S00_Func);
     EvtMgr.SetFunc("evt_r320s01_func", (void*) Evt_R320S01_Func);
-    if (pG->x4F9F == 1 || pG->x4F9F == 2) {
+    if (pG->JumpPoint == 1 || pG->JumpPoint == 2) {
         R320_SAVE_FLAGS |= 0x80000000;
         setMisileUseNum(0);
         r320_heriSet();
@@ -334,9 +334,9 @@ void R320Init()
         R320_SAVE_FLAGS |= 0x00200000;
         R320_SAVE_FLAGS |= 0x00100000;
     }
-    if ((int) pG->flags_51C4 < 0) {
-        if (pG->emlist_no >= 0) {
-            u32* tbl = (u32*) (pG->emlist_no * 0x20 + (u32) pG + 0x501C);
+    if ((int) pG->Scenario_flg[1] < 0) {
+        if (pG->em_list_no >= 0) {
+            u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
 
             tbl[3] |= 0x08000000;
         }
@@ -344,60 +344,60 @@ void R320Init()
     Vec zeroVec = {0.0f, 0.0f, 0.0f};
     Vec pos;
     Vec rot;
-    PSet((void*&) r320_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zeroVec, &zeroVec, 1));
+    PSet((void*&) r320_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 1));
     pos.x = 70135.0f;
     pos.y = 12213.0f;
     pos.z = 27432.0f;
     rot.x = 0.0f;
     rot.y = 4.3228312f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
+    PSet((void*&) r320_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
     pos.x = 43415.0f;
     pos.y = 9404.0f;
     pos.z = -14004.0f;
     rot.x = 0.0f;
     rot.y = -0.21746802f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
+    PSet((void*&) r320_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
     pos.x = 33202.0f;
     pos.y = 10325.0f;
     pos.z = 1747.0f;
     rot.x = 0.0f;
     rot.y = 2.2174408f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
-    PSet((void*&) r320_work->sat[4], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zeroVec, &zeroVec, 3));
-    PSet((void*&) r320_work->sat[8], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zeroVec, &zeroVec, 5));
-    PSet((void*&) r320_work->sat[9], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zeroVec, &zeroVec, 6));
-    PSet((void*&) r320_work->sat[10], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zeroVec, &zeroVec, 7));
+    PSet((void*&) r320_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
+    PSet((void*&) r320_work->sat[4], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 3));
+    PSet((void*&) r320_work->sat[8], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 5));
+    PSet((void*&) r320_work->sat[9], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 6));
+    PSet((void*&) r320_work->sat[10], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zeroVec, &zeroVec, 7));
     pos.x = 43072.0f;
     pos.y = 8728.0f;
     pos.z = -12694.0f;
     rot.x = 0.0f;
     rot.y = -3.3182199f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[5], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4));
+    PSet((void*&) r320_work->sat[5], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
     pos.x = 27594.0f;
     pos.y = 12609.0f;
     pos.z = -13892.0f;
     rot.x = 0.0f;
     rot.y = 4.166799f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[6], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4));
+    PSet((void*&) r320_work->sat[6], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
     pos.x = 34259.0f;
     pos.y = 9660.0f;
     pos.z = 820.0f;
     rot.x = 0.0f;
     rot.y = -0.8840093f;
     rot.z = 0.0f;
-    PSet((void*&) r320_work->sat[7], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4));
+    PSet((void*&) r320_work->sat[7], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4));
     getRoomEtcDoor(2, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 1);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
     }
     getRoomEtcDoor(0x18, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 1);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 1);
     }
     if ((R320_SAVE_FLAGS & 0x40000000) == 0) {
         pos.x = 60203.0f;
@@ -406,9 +406,9 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = -0.76f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[0], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+        PSet((void*&) r320_work->gatling[0], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
         if (r320_work->gatling[0]) {
-            r320_work->gatling[0]->setEat(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 1);
+            r320_work->gatling[0]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
             r320_work->gatling[0]->setNoSuspend(1);
             if (R320_SAVE_FLAGS & 0x00800000) {
                 cEmGanado* em;
@@ -416,9 +416,9 @@ void R320Init()
                 emset(0, 0x53);
                 em = (cEmGanado*) r320_work->em[0].getPtr();
                 if (em) {
-                    BitOn(em->flags_3C8, 1);
-                    em->setGatling(r320_work->gatling[0], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                    BitOn(em->flag, 1);
+                    em->setGatling(r320_work->gatling[0], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 }
             }
         }
@@ -430,9 +430,9 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = -1.28f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[1], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+        PSet((void*&) r320_work->gatling[1], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
         if (r320_work->gatling[1]) {
-            r320_work->gatling[1]->setEat(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 1);
+            r320_work->gatling[1]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
             r320_work->gatling[1]->setNoSuspend(1);
             GatlingSetMaxRot(r320_work->gatling[1], 1.9634955f);
             if (R320_SAVE_FLAGS & 0x00100000) {
@@ -441,9 +441,9 @@ void R320Init()
                 emset(0x12, 0x4A);
                 em = (cEmGanado*) r320_work->em[0x12].getPtr();
                 if (em) {
-                    BitOn(em->flags_3C8, 1);
-                    em->setGatling(r320_work->gatling[1], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                                   ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                    BitOn(em->flag, 1);
+                    em->setGatling(r320_work->gatling[1], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                                   ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                 }
             }
         }
@@ -459,7 +459,7 @@ void R320Init()
         rot.x = 0.0f;
         rot.y = 5.72468f;
         rot.z = 0.0f;
-        PSet((void*&) r320_work->gatling[5], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+        PSet((void*&) r320_work->gatling[5], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
         GatlingSetBreakMode(r320_work->gatling[5], 1);
         r320_work->gatling[5]->setNoSuspend(1);
         EvtMgr.EvtReadAram("event/evd/r320s00.evd", 0, 0, 0, 0);
@@ -554,7 +554,7 @@ void R320Init()
         SceAtDataSet_exec(0x1B, 0x12, 0, (TaskFunc) switch1_move, 0, 1);
         EstSet(0, -1, 0, 0, 1, 7, 1, 3, (u32) zero, (void*) zero);
     } else {
-        SmdGetObjPtr(0x2E)->pParts->rot.z = -1.24f;
+        SmdGetObjPtr(0x2E)->pParts->ang.z = -1.24f;
         EstSet(0, -1, 0, 0, 1, 8, 1, 3, (u32) zero, (void*) zero);
         gate1_open(1);
     }
@@ -588,7 +588,7 @@ void R320Init()
     if (R320_SAVE_FLAGS & 0x00020000) {
         Gatling2_set();
     }
-    if ((R320_SAVE_FLAGS & 0x2000) && (pG->flags_54 & 0x00080000)) {
+    if ((R320_SAVE_FLAGS & 0x2000) && (pG->System_flg & 0x00080000)) {
         SceExec(0x12, (TaskFunc) em_all_destroy_task, 0, 0, 2, 0);
         r320_heriSet();
         SceAtDataSet_exec(0x2B, 0x12, 0, (TaskFunc) em_lastset, 0, 1);
@@ -599,15 +599,15 @@ void R320Init()
         Vec smdRot = {0.0f, 0.0f, 0.0f};
         cEm* dram;
 
-        PSet((void*&) r320_work->smd, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &smdPos, &smdRot, 0x10, 1));
-        r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0xA, 0, 1, 0);
+        PSet((void*&) r320_work->smd, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x29), ROOM_ARC_PTR(pG->pRoom, 0x2A), &smdPos, &smdRot, 0x10, 1));
+        r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
         FSet(r320_work->smd->motSpeedRate, 0.0f);
         r320_work->smd->be_flag |= 0x1000;
         EstSet(0, -1, 0, 0, 1, 0xE, 0x2001, 6, 0, 0);
         SmdSetTrans(0x22, 0);
         for (i = 0; i < 0x40; i++) {
             if (getRoomEtcDram(i, &dram, 0)) {
-                dram->atari.flags &= ~0x200;
+                dram->atari.m_flag &= ~0x200;
             }
         }
     }
@@ -640,7 +640,7 @@ static void r320_heri_event()
     R320_SAVE_FLAGS |= 0x80000000;
     SceSleep(1);
     EvtMgr.EvtReadExec("event/evd/r320s00.evd", 0, 0);
-    if ((pG->flags_174 & 0x20000000) == 0) {
+    if ((pG->Room_flg[0] & 0x20000000) == 0) {
         EvtMgr.EvtReadExec("event/evd/r320s01.evd", 0, 0);
     } else {
         SndRoomStrStart(1, 0, 1);
@@ -654,7 +654,7 @@ static void r320_heri_event()
     SmdSetTrans(0x27, 0);
     setMisileUseNum(0);
     GatlingSetBreak(r320_work->gatling[5]);
-    if ((int) pG->flags_51C4 >= 0) {
+    if ((int) pG->Scenario_flg[1] >= 0) {
         r320_work->heri.setEm(0x64, -1, 1, 1, 1);
     }
     scr_delete();
@@ -692,31 +692,31 @@ u32 getHeriTimeWait(int no)
 {
     u32 t = r320_heriTime[no];
 
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         t = (u32) ((f32) t * 0.4f);
     }
-    if (pG->x4F88 == 3) {
+    if (pG->Game_level == 3) {
         t = (u32) ((f32) t * 0.5f);
     }
-    if (pG->x4F88 == 4) {
+    if (pG->Game_level == 4) {
         t = (u32) ((f32) t * 0.6f);
     }
-    if (pG->x4F88 == 5) {
+    if (pG->Game_level == 5) {
         t = (u32) ((f32) t * 0.7f);
     }
-    if (pG->x4F88 == 6) {
+    if (pG->Game_level == 6) {
         t = (u32) ((f32) t * 1.0f);
     }
-    if (pG->x4F88 == 7) {
+    if (pG->Game_level == 7) {
         t = (u32) ((f32) t * 1.7f);
     }
-    if (pG->x4F88 == 8) {
+    if (pG->Game_level == 8) {
         t = (u32) ((f32) t * 2.8f);
     }
-    if (pG->x4F88 == 9) {
+    if (pG->Game_level == 9) {
         t = (u32) ((f32) t * 4.5f);
     }
-    if (pG->x4F88 == 10) {
+    if (pG->Game_level == 10) {
         t = (u32) ((f32) t * 5.5f);
     }
     return t;
@@ -743,19 +743,19 @@ void R320Main()
                 if (r320_work->heriTimer <= 0x12B || r320_work->emAlive == 0) {
                     cEm3d* em = (cEm3d*) r320_work->heri.getPtr();
 
-                    if ((int) pG->sceat_x17C < 0) {
+                    if ((int) pG->Room_flg[2] < 0) {
                         em->setPatrolPos(&r320_posB[4]);
                     }
-                    if (pG->sceat_x17C & 0x40000000) {
+                    if (pG->Room_flg[2] & 0x40000000) {
                         em->setPatrolPos(&r320_posB[4]);
                     }
-                    if (pG->sceat_x17C & 0x20000000) {
+                    if (pG->Room_flg[2] & 0x20000000) {
                         em->setPatrolPos(&r320_posB[5]);
                     }
-                    if (pG->sceat_x17C & 0x08000000) {
+                    if (pG->Room_flg[2] & 0x08000000) {
                         em->setPatrolPos(&r320_posB[6]);
                     }
-                    if (pG->sceat_x17C & 0x04000000) {
+                    if (pG->Room_flg[2] & 0x04000000) {
                         if ((R320_SAVE_FLAGS & 0x04000000) == 0) {
                             em->setPatrolPos(&r320_posB[9]);
                         } else if ((R320_SAVE_FLAGS & 0x02000000) == 0) {
@@ -771,35 +771,35 @@ void R320Main()
                     SetHeriTargetEm();
                 }
                 cnt = r320_work->atkCnt;
-            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && (int) pG->sceat_x17C < 0 && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
+            if ((R320_SAVE_FLAGS & 0x40000000) == 0 && (int) pG->Room_flg[2] < 0 && (R320_SAVE_FLAGS & 0x00800000) && r320_work->em[0].isActive()) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri0, 0, 0, 2, 0);
                     IntSet(r320_work->atkCnt, 0);
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x20000000) == 0 && (pG->sceat_x17C & 0x40000000) && (R320_SAVE_FLAGS & 0x00200000)) {
+            if ((R320_SAVE_FLAGS & 0x20000000) == 0 && (pG->Room_flg[2] & 0x40000000) && (R320_SAVE_FLAGS & 0x00200000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri1, 0, 0, 2, 0);
                     IntSet(r320_work->atkCnt, 0);
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x10000000) == 0 && (pG->sceat_x17C & 0x20000000) && (R320_SAVE_FLAGS & 0x00400000)) {
+            if ((R320_SAVE_FLAGS & 0x10000000) == 0 && (pG->Room_flg[2] & 0x20000000) && (R320_SAVE_FLAGS & 0x00400000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri2, 0, 0, 2, 0);
                     IntSet(r320_work->atkCnt, 0);
                 }
             }
-            if ((R320_SAVE_FLAGS & 0x08000000) == 0 && (pG->sceat_x17C & 0x08000000) && (R320_SAVE_FLAGS & 0x00100000)) {
+            if ((R320_SAVE_FLAGS & 0x08000000) == 0 && (pG->Room_flg[2] & 0x08000000) && (R320_SAVE_FLAGS & 0x00100000)) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri3, 0, 0, 2, 0);
                     IntSet(r320_work->atkCnt, 0);
                 }
             }
-            if ((pG->sceat_x17C & 0x04000000) && (R320_SAVE_FLAGS & 0x01000000) == 0) {
+            if ((pG->Room_flg[2] & 0x04000000) && (R320_SAVE_FLAGS & 0x01000000) == 0) {
                 IntSet(r320_work->atkCnt, r320_work->atkCnt + 1);
                 if (r320_work->atkCnt > getHeriTimeWait(getMisileUseNum())) {
                     SceExec(0x12, (TaskFunc) attack_heri4, 0, 0, 2, 0);
@@ -839,7 +839,7 @@ void R320Main()
         }
     }
     if (((R320_SAVE_FLAGS & 0x00400000) || (R320_SAVE_FLAGS & 0x00200000)) && (R320_SAVE_FLAGS & 0x20000000) == 0
-        && (pG->flags_174 & 0x40000000) == 0 && (R320_SAVE_FLAGS & 0x08000000) == 0) {
+        && (pG->Room_flg[0] & 0x40000000) == 0 && (R320_SAVE_FLAGS & 0x08000000) == 0) {
         if (r320_work->chgWaitC > 0) {
             IntSet(r320_work->chgWaitC, r320_work->chgWaitC - 1);
         } else {
@@ -863,7 +863,7 @@ void R320Main()
         }
     }
     if ((R320_SAVE_FLAGS & 0x00200000) && (R320_SAVE_FLAGS & 0x00100000) == 0) {
-        if (pG->sceat_x17C & 0x10000000) {
+        if (pG->Room_flg[2] & 0x10000000) {
             if (r320_work->chgCntD == 0) {
                 r320_work->chgCntD = 1;
                 emset(0xE, 0x46);
@@ -900,7 +900,7 @@ void R320Main()
         Vec pos = {53523.0f, 12868.0f, 7344.0f};
 
         if (r320_work->chgCntF <= 5) {
-            if (pG->sceat_x17C & 0x08000000) {
+            if (pG->Room_flg[2] & 0x08000000) {
                 if (r320_work->em[0x2D].ckResetEnable()) {
                     if (setChange(0x2D, 0x42, 0x11, 0x4D) || setChange(0x11, 0x4D, 0x11, 0x4D)) {
                         r320_work->em[0x11].setGoto(&pos, 0xC);
@@ -981,7 +981,7 @@ void R320Main()
                 GatlingSetFire(r320_work->gatling[4]);
             }
         }
-        if (((pG->sceat_x17C & 0x02000000) && r320_work->em[0x1B].isActive()) || ((pG->sceat_x17C & 0x01000000) && r320_work->em[0x1B].isActive())) {
+        if (((pG->Room_flg[2] & 0x02000000) && r320_work->em[0x1B].isActive()) || ((pG->Room_flg[2] & 0x01000000) && r320_work->em[0x1B].isActive())) {
             if (r320_work->gatling[4]) {
                 GatlingStopFire(r320_work->gatling[4]);
             }
@@ -989,7 +989,7 @@ void R320Main()
         {
             // A named copy of the flag word: jump.c thread_jumps does not thread a user variable, so
             // the 0x01000000 test is not folded into the previous condition's failure path.
-            u32 f = pG->sceat_x17C;
+            u32 f = pG->Room_flg[2];
 
             if ((f & 0x01000000) && r320_work->em[0x1B].isActive()) {
                 if (r320_work->gatling[2]) {
@@ -997,28 +997,28 @@ void R320Main()
                 }
             }
         }
-        if ((pG->sceat_x17C & 0x00800000) && r320_work->em[0x1B].isActive()) {
+        if ((pG->Room_flg[2] & 0x00800000) && r320_work->em[0x1B].isActive()) {
             if (r320_work->gatling[4]) {
                 GatlingStopFire(r320_work->gatling[4]);
             }
         }
-        if ((pG->sceat_x17C & 0x00400000) && r320_work->em[0x25].isActive()) {
+        if ((pG->Room_flg[2] & 0x00400000) && r320_work->em[0x25].isActive()) {
             if (r320_work->gatling[3]) {
                 GatlingStopFire(r320_work->gatling[3]);
             }
         }
-        if (pG->sceat_x17C & 0x00200000) {
+        if (pG->Room_flg[2] & 0x00200000) {
             if (r320_work->gatling[2]) {
                 GatlingStopFire(r320_work->gatling[2]);
             }
         }
-        if ((pG->flags_174 & 0x10000000) == 0 && r320_work->em[0x25].isAlive() && r320_work->em[0x25].isActive() == 0) {
+        if ((pG->Room_flg[0] & 0x10000000) == 0 && r320_work->em[0x25].isAlive() && r320_work->em[0x25].isActive() == 0) {
             SceAtSetEnable(0x95, 1);
         }
-        if ((pG->flags_174 & 0x08000000) == 0 && r320_work->em[0x1B].isAlive() && r320_work->em[0x1B].isActive() == 0) {
+        if ((pG->Room_flg[0] & 0x08000000) == 0 && r320_work->em[0x1B].isAlive() && r320_work->em[0x1B].isActive() == 0) {
             SceAtSetEnable(0x94, 1);
         }
-        if ((pG->flags_174 & 0x04000000) == 0 && r320_work->em[0x20].isAlive() && r320_work->em[0x20].isActive() == 0) {
+        if ((pG->Room_flg[0] & 0x04000000) == 0 && r320_work->em[0x20].isAlive() && r320_work->em[0x20].isActive() == 0) {
             SceAtSetEnable(0x96, 1);
         }
     }
@@ -1038,7 +1038,7 @@ void SetHeriTargetEm()
             cEm3d* heri = (cEm3d*) r320_work->heri.getPtr();
 
             if (heri) {
-                if (pG->x4F88 <= 6) {
+                if (pG->Game_level <= 6) {
                     heri->setPatrolPos(&r320_work->em[r320_work->target].getPtr()->pos);
                 }
             }
@@ -1078,7 +1078,7 @@ int setChange(int idx, int no, int idx2, int no2)
     if (r320_work->emAlive > 9) {
         goto fail;
     }
-    if ((EM_LIST_V(no).flags & 2) == 0) {
+    if ((EM_LIST_V(no).be_flag & 2) == 0) {
         goto fail;
     }
     if (idx == idx2) {
@@ -1094,13 +1094,13 @@ int setChange(int idx, int no, int idx2, int no2)
     } else {
         int list;
 
-        if (EM_LIST_V(no2).flags & 2) {
+        if (EM_LIST_V(no2).be_flag & 2) {
             goto fail;
         }
         if (r320_work->em[idx].isActive()) {
             goto fail;
         }
-        list = pG->emlist_no;
+        list = pG->em_list_no;
         if (list >= 0) {
             u32* tbl = (u32*) ((list << 5) + (u32) pG + 0x501C);
 
@@ -1124,13 +1124,13 @@ static void appear_a()
     emset(0, 0x53);
     em = (cEmGanado*) r320_work->em[0].getPtr();
     if (em) {
-        BitOn(em->flags_3C8, 1);
-        em->setGatling(r320_work->gatling[0], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+        BitOn(em->flag, 1);
+        em->setGatling(r320_work->gatling[0], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                       ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
     }
     r320_work->em[0].setNoSuspend(1);
     r320_work->em[1].setNoSuspend(1);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     CamCtrl.CutCall(0xC);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1138,11 +1138,11 @@ static void appear_a()
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->em[0].setNoSuspend(0);
     r320_work->em[1].setNoSuspend(0);
-    FSet(r320_work->gatling[0]->rot.y, -0.91607f);
-    FSet(r320_work->gatling[0]->pParts->pParts->pParts->rot.x, 0.35561f);
+    FSet(r320_work->gatling[0]->ang.y, -0.91607f);
+    FSet(r320_work->gatling[0]->pParts->pParts->pParts->ang.x, 0.35561f);
 }
 
 static void appear_b_exit()
@@ -1194,7 +1194,7 @@ static void appear_c_exit()
 {
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->em[9].setNoSuspend(0);
     r320_work->em[0xA].setNoSuspend(0);
     r320_work->em[0xC].setNoSuspend(0);
@@ -1215,7 +1215,7 @@ static void appear_c()
         r320_work->em[0xA].setNoSuspend(1);
         r320_work->em[0xC].setNoSuspend(1);
         r320_work->em[0xD].setNoSuspend(1);
-        BitOn(pG->flags_5014, 0x02000000);
+        BitOn(pG->Status_flg[2], 0x02000000);
         SceEventStart(1);
         CamCtrl.CutCall(0xE);
         SceSetEventCancel(1, (TaskFunc) appear_c_exit, 0, -1, 1);
@@ -1249,9 +1249,9 @@ static void appear_d()
         emset(0x12, 0x4A);
         em = (cEmGanado*) r320_work->em[0x12].getPtr();
         if (em) {
-            BitOn(em->flags_3C8, 1);
-            em->setGatling(r320_work->gatling[1], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                           ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+            BitOn(em->flag, 1);
+            em->setGatling(r320_work->gatling[1], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                           ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
         }
         emset(0x13, 0x51);
         emset(0x14, 0x56);
@@ -1270,11 +1270,11 @@ static void appear_d()
         r320_work->em[0x14].setNoSuspend(1);
         r320_work->em[0x15].setNoSuspend(1);
         r320_work->em[0x16].setNoSuspend(1);
-        BitOn(pG->flags_5014, 0x02000000);
+        BitOn(pG->Status_flg[2], 0x02000000);
         SceEventStart(1);
         pPL->setNoSuspend(1);
-        FSet(r320_work->gatling[1]->rot.y, -1.68495f);
-        FSet(r320_work->gatling[1]->pParts->pParts->pParts->rot.x, 1.08596f);
+        FSet(r320_work->gatling[1]->ang.y, -1.68495f);
+        FSet(r320_work->gatling[1]->pParts->pParts->pParts->ang.x, 1.08596f);
         CamCtrl.CutCall(0xF);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -1282,13 +1282,13 @@ static void appear_d()
         CamCtrl.Comeback(0);
         SceEventEnd(0);
         pPL->setNoSuspend(0);
-        BitOff(pG->flags_5014, 0x02000000);
+        BitOff(pG->Status_flg[2], 0x02000000);
         r320_work->em[0x12].setNoSuspend(0);
         r320_work->em[0x14].setNoSuspend(0);
         r320_work->em[0x15].setNoSuspend(0);
         r320_work->em[0x16].setNoSuspend(0);
-        FSet(r320_work->gatling[1]->rot.y, -1.68495f);
-        FSet(r320_work->gatling[1]->pParts->pParts->pParts->rot.x, 1.08596f);
+        FSet(r320_work->gatling[1]->ang.y, -1.68495f);
+        FSet(r320_work->gatling[1]->pParts->pParts->pParts->ang.x, 1.08596f);
     }
 }
 
@@ -1314,7 +1314,7 @@ static void appear_f_exit()
 {
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->em[0x1A].setNoSuspend(0);
 }
 
@@ -1359,7 +1359,7 @@ static void appear_f()
     emset(0x2C, 0x41);
     emset(0x2D, 0x42);
     r320_work->em[0x2B].setGoto(&r320_posB[14], 0xC);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     r320_work->em[0x1A].setNoSuspend(1);
     SceSetEventCancel(1, (TaskFunc) appear_f_exit, 0, -1, 1);
@@ -1394,28 +1394,28 @@ static void appear_g()
         emset(0x25, 0x30);
         em = (cEmGanado*) r320_work->em[0x25].getPtr();
         if (em) {
-            BitOn(em->flags_3C8, 1);
+            BitOn(em->flag, 1);
             if (r320_work->gatling[2]) {
-                em->setGatling(r320_work->gatling[2], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                               ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                em->setGatling(r320_work->gatling[2], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                               ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
             }
         }
         emset(0x1B, 0x2F);
         em = (cEmGanado*) r320_work->em[0x1B].getPtr();
         if (em) {
-            BitOn(em->flags_3C8, 1);
+            BitOn(em->flag, 1);
             if (r320_work->gatling[3]) {
-                em->setGatling(r320_work->gatling[3], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                               ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                em->setGatling(r320_work->gatling[3], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                               ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
             }
         }
         emset(0x20, 0x2E);
         em = (cEmGanado*) r320_work->em[0x20].getPtr();
         if (em) {
-            BitOn(em->flags_3C8, 1);
+            BitOn(em->flag, 1);
             if (r320_work->gatling[4]) {
-                em->setGatling(r320_work->gatling[4], ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25),
-                               ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                em->setGatling(r320_work->gatling[4], ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25),
+                               ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
             }
         }
         emset(0x1C, 0x38);
@@ -1431,7 +1431,7 @@ static void appear_g()
         r320_work->em[0x21].setNoSuspend(1);
         r320_work->em[0x22].setNoSuspend(1);
         SceEventStart(1);
-        BitOn(pG->flags_5014, 0x02000000);
+        BitOn(pG->Status_flg[2], 0x02000000);
         CamCtrl.CutCall(0x1B);
         SceSleep(0xF);
         if (r320_work->gatling[2]) {
@@ -1450,15 +1450,15 @@ static void appear_g()
         }
         CamCtrl.Comeback(0);
         SceEventEnd(0);
-        BitOff(pG->flags_5014, 0x02000000);
+        BitOff(pG->Status_flg[2], 0x02000000);
         if (r320_work->gatling[2]) {
-            FSet(r320_work->gatling[2]->rot.y, 0.0157f);
+            FSet(r320_work->gatling[2]->ang.y, 0.0157f);
         }
         if (r320_work->gatling[3]) {
-            FSet(r320_work->gatling[3]->rot.y, 1.2666f);
+            FSet(r320_work->gatling[3]->ang.y, 1.2666f);
         }
         if (r320_work->gatling[4]) {
-            FSet(r320_work->gatling[4]->rot.y, 0.7414f);
+            FSet(r320_work->gatling[4]->ang.y, 0.7414f);
         }
         r320_work->em[0x20].setNoSuspend(0);
         r320_work->em[0x1B].setNoSuspend(0);
@@ -1492,7 +1492,7 @@ void reva_common_move(cObj* obj, f32 from, f32 to)
 
     obj->be_flag |= 0x20;
     SndCall(6, 0xF, &obj->pos, 0, 0, 0);
-    rz = &obj->pParts->rot.z;
+    rz = &obj->pParts->ang.z;
     accel = r320_revaAccel;
     while (1) {
         if (to > from) {
@@ -1538,9 +1538,9 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 0.21f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[2], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+            PSet((void*&) r320_work->gatling[2], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
             if (r320_work->gatling[2]) {
-                r320_work->gatling[2]->setEat(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 1);
+                r320_work->gatling[2]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[2]->setNoSuspend(1);
                 GatlingSetMaxRot(r320_work->gatling[2], 1.5707964f);
             }
@@ -1552,9 +1552,9 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 1.72f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[3], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+            PSet((void*&) r320_work->gatling[3], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
             if (r320_work->gatling[3]) {
-                r320_work->gatling[3]->setEat(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 1);
+                r320_work->gatling[3]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[3]->setNoSuspend(1);
                 GatlingSetMaxRot(r320_work->gatling[3], 1.5707964f);
             }
@@ -1566,9 +1566,9 @@ void Gatling2_set()
             rot.x = 0.0f;
             rot.y = 1.15f;
             rot.z = 0.0f;
-            PSet((void*&) r320_work->gatling[4], SetObjGatling(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot));
+            PSet((void*&) r320_work->gatling[4], SetObjGatling(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot));
             if (r320_work->gatling[4]) {
-                r320_work->gatling[4]->setEat(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 1);
+                r320_work->gatling[4]->setEat(ROOM_ARC_PTR(pG->pRoom, 0x12), 1);
                 r320_work->gatling[4]->setNoSuspend(1);
             }
         }
@@ -1660,15 +1660,15 @@ static void slide_move()
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     setPosXYZ(pPL, 58200.0f, 16588.34f, -11855.78f);
     setAngXYZ(pPL, 0.0f, 0.0f, 0.0f);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, 0, 0x201, 0);
-    r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0xA, 0, 1, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
+    r320_work->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0xA, 0, 1, 0);
     r320_work->smd->motSpeedRate = 1.0f;
     SndCall(6, 0x18, 0, 0, 0, 0);
-    frames = (u32) MotionGetMaxFrame(&pPL->mot);
+    frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < frames; i++) {
         if (i > 0x3C && i < frames - 0x1E) {
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x13, 2, 1500.0f);
@@ -1680,7 +1680,7 @@ static void slide_move()
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     pl->endAction(5);
     pPL->dmg.clear();
     AtariOnRaw(&pPL->atari, 0x100);
@@ -1743,7 +1743,7 @@ void gate2_open()
     cObj* o;
 
     BitOn(pG->door_unlock[1], 0x00200000);
-    BitOn(pG->flags_178, 0x08000000);
+    BitOn(pG->Room_flg[1], 0x08000000);
     SceEventStart(1);
     CamCtrl.CutCall(0x16);
     o = SmdGetObjPtr(0x2B);
@@ -1766,7 +1766,7 @@ static void gate2_close()
 {
     cObj* o;
 
-    BitOn(pG->flags_178, 0x10000000);
+    BitOn(pG->Room_flg[1], 0x10000000);
     if (r320_work->gatling[2]) {
         r320_work->gatling[2]->be_flag &= ~0x20;
     }
@@ -1836,7 +1836,7 @@ static void attack_heri1()
         if (heri) {
             heri->setTarget(1, 24000.0f);
         }
-        BitOn(pG->flags_174, 0x40000000);
+        BitOn(pG->Room_flg[0], 0x40000000);
         SceExec(0x12, (TaskFunc) destroy_1, 0, 0, 2, 0);
         addMisileUseNum();
     }
@@ -1908,14 +1908,14 @@ static void destroy_0()
             SceSleep(1);
         }
         r320_work->heri.setNoSuspend(1);
-        BitOn(pG->flags_5014, 0x02000000);
+        BitOn(pG->Status_flg[2], 0x02000000);
         SceEventStart(1);
         CamCtrl.CutCall(8);
-        while ((int) pG->flags_174 >= 0) {
+        while ((int) pG->Room_flg[0] >= 0) {
             SceSleep(1);
         }
         int zero = 0;
-        BitOff(pG->flags_174, 0x80000000);
+        BitOff(pG->Room_flg[0], 0x80000000);
         R320_SAVE_FLAGS |= 0x40000000;
         EatMgr.destroy(r320_work->sat[10]);
         PlWepHitCheck2(0, &r320_posA[0], &r320_posA[0], 0x12, 3, 7000.0f);
@@ -1930,7 +1930,7 @@ static void destroy_0()
         CamCtrl.Comeback(0);
         SceEventEnd(0);
         r320_work->heri.setNoSuspend(0);
-        BitOff(pG->flags_5014, 0x02000000);
+        BitOff(pG->Status_flg[2], 0x02000000);
         GatlingSetBreak(r320_work->gatling[0]);
         r320_work->em[0].destroy();
         r320_work->heriWait = 0x96;
@@ -1939,10 +1939,10 @@ static void destroy_0()
 
 static void destroy_1()
 {
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x20000000;
     EatMgr.destroy(r320_work->sat[8]);
     SatMgr.destroy(r320_work->sat[1]);
@@ -1950,7 +1950,7 @@ static void destroy_1()
     PlWepHitCheck2(0, &r320_posA[2], &r320_posA[2], 0x12, 3, 7000.0f);
     SceSleep(0xF);
     r320_work->heri.setNoSuspend(1);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     CamCtrl.CutCall(0xA);
     Vec pos = {70721.0f, 12357.0f, 27023.0f};
@@ -1967,7 +1967,7 @@ static void destroy_1()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r320_work->heri.setNoSuspend(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->heriWait = 0x96;
     SceAtDataSet_exec(0x30, 0x12, 0, (TaskFunc) appear_b, 0, 1);
 }
@@ -1977,18 +1977,18 @@ static void destroy_2()
     SceAtWork* at;
     SceAtWork* w;
 
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x10000000;
     EatMgr.destroy(r320_work->sat[9]);
     PlWepHitCheck2(0, &r320_posA[3], &r320_posA[3], 0x12, 3, 7000.0f);
     PlWepHitCheck2(0, &r320_posA[4], &r320_posA[4], 0x12, 3, 7000.0f);
     SceSleep(0xF);
     r320_work->heri.setNoSuspend(1);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     CamCtrl.CutCall(9);
     Vec pos = {59514.0f, 11200.0f, 16319.0f};
@@ -2011,14 +2011,14 @@ static void destroy_2()
     }
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (w->x35 == 3) {
+        if (w->type == 3) {
             if (AreaHitCheck(&at->area, &w->dstPos)) {
                 SceAtSetEnable(w->no, 0);
             }
         }
     }
     r320_work->heri.setNoSuspend(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->heriWait = 0x96;
 }
 
@@ -2026,11 +2026,11 @@ static void destroy_3()
 {
     cEm* door;
 
-    while ((int) pG->flags_174 >= 0) {
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x08000000;
     EatMgr.destroy(r320_work->sat[4]);
     EffectEspDelete(1, 2, 0, 0);
@@ -2044,7 +2044,7 @@ static void destroy_3()
         ((cEmDoor*) door)->setBreak(&pPL->pos);
     }
     r320_work->heri.setNoSuspend(1);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     CamCtrl.CutCall(0xB);
     Vec pos = {79324.0f, 15600.0f, 4458.0f};
@@ -2059,23 +2059,23 @@ static void destroy_3()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r320_work->heri.setNoSuspend(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     r320_work->heriWait = 0x96;
 }
 
 static void destroy_4()
 {
-    BitOn(pG->flags_174, 0x10000000);
-    while ((int) pG->flags_174 >= 0) {
+    BitOn(pG->Room_flg[0], 0x10000000);
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x04000000;
     EatMgr.destroy(r320_work->sat[5]);
     SceSleep(0xF);
     r320_work->heri.setNoSuspend(1);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(1);
     CamCtrl.CutCall(0x1A);
     Vec pos = {42666.0f, 9445.0f, -14165.0f};
@@ -2090,7 +2090,7 @@ static void destroy_4()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r320_work->heri.setNoSuspend(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     SatMgr.destroy(r320_work->sat[2]);
     SceAtSetEnable(0x28, 1);
     r320_work->heriWait = 0x96;
@@ -2098,19 +2098,19 @@ static void destroy_4()
         setPosXYZ(pPL, 45469.0f, 9538.0f, -12354.0f);
         CamCtrl.Comeback(0);
     }
-    if (pG->sceat_x17C & 0x00800000) {
+    if (pG->Room_flg[2] & 0x00800000) {
         emset(0xB, 0x5B);
     }
 }
 
 static void destroy_5()
 {
-    BitOn(pG->flags_174, 0x08000000);
-    while ((int) pG->flags_174 >= 0) {
+    BitOn(pG->Room_flg[0], 0x08000000);
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x02000000;
     EatMgr.destroy(r320_work->sat[7]);
     SceSleep(0xF);
@@ -2138,12 +2138,12 @@ static void destroy_5()
 
 static void destroy_6()
 {
-    BitOn(pG->flags_174, 0x04000000);
-    while ((int) pG->flags_174 >= 0) {
+    BitOn(pG->Room_flg[0], 0x04000000);
+    while ((int) pG->Room_flg[0] >= 0) {
         SceSleep(1);
     }
     int zero = 0;
-    BitOff(pG->flags_174, 0x80000000);
+    BitOff(pG->Room_flg[0], 0x80000000);
     R320_SAVE_FLAGS |= 0x01000000;
     EatMgr.destroy(r320_work->sat[6]);
     SceSleep(0xF);
@@ -2181,23 +2181,23 @@ static void Evt_R320S00_Func(Event* e)
     case 1: {
         void* mod;
 
-        if (e->cut == 0 && e->frame == 1) {
+        if (e->NowCut == 0 && e->NowFrame == 1) {
             EvtMgr.EvtReadAram("event/evd/r320s01.evd", 0, 0, 0, 0);
-            BitOn(pG->flags_178, 0x8000);
+            BitOn(pG->Room_flg[1], 0x8000);
         }
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0x27, 0);
             if (e->GetMod(&mod, "evm7900", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evm8000", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evma000", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evm3200", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x40;
             }
             obj = SmdGetObjPtr(0x22);
             if (obj) {
@@ -2210,7 +2210,7 @@ static void Evt_R320S00_Func(Event* e)
             }
             SmdSetTrans(0x28, 0);
         }
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(3, 0);
             SmdSetTrans(0x15, 0);
             SmdSetTrans(0x16, 0);
@@ -2221,11 +2221,11 @@ static void Evt_R320S00_Func(Event* e)
             SmdSetTrans(0x17, 0);
             SmdSetTrans(0x18, 0);
         }
-        if (e->cut == 7 && e->frame == 0x78) {
+        if (e->NowCut == 7 && e->NowFrame == 0x78) {
             int skip = r320_evtSkip(e);
 
             if (skip == 0) {
-                FadeSetW(2, e->maxFrame - 0x78, 0, 0);
+                FadeSetW(2, e->MaxFrame - 0x78, 0, 0);
             }
         }
         break;
@@ -2255,8 +2255,8 @@ static void Evt_R320S00_Func(Event* e)
         break;
     }
     case 3:
-        BitOn(pG->flags_174, 0x20000000);
-        if (pG->flags_178 & 0x8000) {
+        BitOn(pG->Room_flg[0], 0x20000000);
+        if (pG->Room_flg[1] & 0x8000) {
             EvtMgr.EvtFree("event/evd/r320s01.evd");
         }
         break;
@@ -2280,19 +2280,19 @@ static void Evt_R320S01_Func(Event* e)
     case 1: {
         void* mod;
 
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0x27, 0);
             if (e->GetMod(&mod, "evm7900", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evm8000", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evma000", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 1;
+                ((cModel*) mod)->LightInfo.EnableMask = 1;
             }
             if (e->GetMod(&mod, "evm3200", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x40;
             }
             obj = SmdGetObjPtr(0x22);
             if (obj) {
@@ -2311,34 +2311,34 @@ static void Evt_R320S01_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 5:
         case 6:
         case 7:
         case 8:
         case 0xF:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x28, 0);
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x28, 1);
             }
             break;
         }
-        if (e->cut == 0xF) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0xF) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x34, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x34, 1);
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(3, 0);
                 SmdSetTrans(0x15, 0);
                 SmdSetTrans(0x16, 0);
@@ -2352,12 +2352,12 @@ static void Evt_R320S01_Func(Event* e)
             }
             break;
         case 0xF:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 0);
                 SmdSetTrans(2, 0);
                 SmdSetTrans(0x25, 1);
             }
-            if (e->frame > 5) {
+            if (e->NowFrame > 5) {
                 if (e->GetMod(&mod, "evm7900", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -2384,12 +2384,12 @@ static void Evt_R320S01_Func(Event* e)
                     ((cModel*) mod)->be_flag |= 2;
                 }
             }
-            if (e->frame == 0x1E) {
+            if (e->NowFrame == 0x1E) {
                 SmdSetTrans(0x25, 0);
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 1);
                 SmdSetTrans(2, 1);
             }

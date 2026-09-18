@@ -47,6 +47,28 @@ int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u
 int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit);
 // Queue `func` in ordering table `ot`; `no` is the slot (clamped), `pos`/`radius` do a frustum cull when given.
 int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag, Vec* pos, f32 radius);
+enum OT_TYPE {
+    OT_TYPE_TEX_RENDER0 = 0,
+    OT_TYPE_TEX_RENDER1 = 1,
+    OT_TYPE_SHADOW_SETUP = 2,
+    OT_TYPE_SUBSCRN_FAR = 3,
+    OT_TYPE_SCROLL = 4,
+    OT_TYPE_SUBSCRN = 5,
+    OT_TYPE_MODEL = 6,
+    OT_TYPE_SHADOW_DRAW = 7,
+    OT_TYPE_SUBSCRN_NEAR = 8,
+    OT_TYPE_EFFECT = 9,
+    OT_TYPE_WORLD = 10,
+    OT_TYPE_EFFECT_VU1 = 11,
+    OT_TYPE_SCREEN = 12,
+    OT_TYPE_COCKPIT = 13,
+    OT_TYPE_ID_MODEL = 14,
+    OT_TYPE_MESSAGE = 15,
+    OT_TYPE_AFTER_RENDER = 16,
+    OT_TYPE_DEBUG = 17,
+    OT_TYPE_MAX = 18
+};
+
 int ExecOt(int type);
 u16 OtGetPrevKind();
 void CrearOtMirrorWork();

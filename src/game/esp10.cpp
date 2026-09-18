@@ -35,7 +35,7 @@ f32 getFloor_attr(Vec* pos, u32* attr, int x, f32 up, f32 down)
     Vec hit;
     int r;
 
-    if (pG->flags_64 & 0x10000000) {
+    if (pG->Debug_flg[1] & 0x10000000) {
         return 0.0f;
     }
     top.x = pos->x;
@@ -60,27 +60,27 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    FSet(pos.y, getFloor_attr(&pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->xDC);
-    if ((pG->flags_64 & 0x00800000) && !(pG->flags_60 & 0x00010000)) {
-        pos.y = 0.0f;
+    FSet(m_Pos.y, getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->Vec0.y);
+    if ((pG->Debug_flg[1] & 0x00800000) && !(pG->Debug_flg[0] & 0x00010000)) {
+        m_Pos.y = 0.0f;
     }
-    switch ((s8)gen->xCB) {
+    switch ((s8)gen->Work8[3]) {
     case 0:
         break;
     case 1:
-        if (EffAreaCheckInRoom(&pos) == 1) {
+        if (EffAreaCheckInRoom(&m_Pos) == 1) {
             PushEsp(this);
         }
         break;
     case 2:
-        if (GetWaterHeight(&pos, &h)) {
-            if (pos.y < h + gen->xDC) {
-                pos.y = h + gen->xDC;
+        if (GetWaterHeight(&m_Pos, &h)) {
+            if (m_Pos.y < h + gen->Vec0.y) {
+                m_Pos.y = h + gen->Vec0.y;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)gen->xCB);
+        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
         return 0;
     }
     return 1;

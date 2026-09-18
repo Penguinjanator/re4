@@ -14,10 +14,10 @@ void Light05_Move(cLight* l)
     int v;
     f32 rate;
 
-    switch (l->x138) {
+    switch (l->Rno0) {
     case 0:
         path->setPath(LightMgr.getPathPtr(w->pathNo), w->pathIdx);
-        l->x138 = 1;
+        l->Rno0 = 1;
     case 1:
         v = path->movePath();
         if (v == 0xff) {
@@ -25,10 +25,10 @@ void Light05_Move(cLight* l)
             return;
         }
         rate = (f32)v * 0.005f;
-        l->curColor.r = (u8)(rate * l->color.r);
-        l->curColor.g = (u8)(rate * l->color.g);
-        l->curColor.b = (u8)(rate * l->color.b);
-        l->curColor.a = (u8)(rate * l->color.a);
+        l->DispCol.r = (u8)(rate * l->Col.r);
+        l->DispCol.g = (u8)(rate * l->Col.g);
+        l->DispCol.b = (u8)(rate * l->Col.b);
+        l->DispCol.a = (u8)(rate * l->Col.a);
         break;
     }
 }

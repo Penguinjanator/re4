@@ -46,9 +46,9 @@ struct R400WorkPtr {
 // index shift and the table offset stays in the displacement (EM_LIST's byte form shifts first).
 struct EmListView {
     u8 pad[0x52E8];
-    EmListData emlist[0x100];
+    EmListData Em_list[0x100];
 };
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
+#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static R400WorkPtr r400_work;
 
@@ -92,7 +92,7 @@ void R400Init()
     setLadderMotion(6);
     setLadderMotion(7);
     setLadderMotion(0x24);
-    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x30));
+    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30));
     if (getRoomEtcWindow(0, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
     }
@@ -104,7 +104,7 @@ void R400Init()
         init.m.pos = r400_pos[n];
         init.m.rot = r400_rot[n];
         init.m.x18 = 0;
-        init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+        init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x31);
         init.m.x20 = 30000;
         init.m.mesStart = 1;
         init.m.mesA8 = 0xC;
@@ -129,12 +129,12 @@ void R400Init()
 
 static void r400_TreasureBoxOpen(int no)
 {
-    OpenBoxMain(3, 0, 0x5B, no, -1, -1);
+    OpenBoxMain(OpenBoxUpXP, 0, 0x5B, no, -1, -1);
 }
 
 static void r400_TreasureBoxOpened(int no)
 {
-    OpenBoxMain(3, 1, 0x5B, no, -1, -1);
+    OpenBoxMain(OpenBoxUpXP, 1, 0x5B, no, -1, -1);
 }
 
 void reset_40()
@@ -299,43 +299,43 @@ void R400Main()
     SceDebugDisp("");
     SceDebugDisp("");
     SceDebugDisp("");
-    if (!(pG->flags_500C & 0x1000)) {
+    if (!(pG->Status_flg[0] & 0x1000)) {
         r400_work.p->cnt = SceCountEmAlive(0x10, 0x20);
-        if (r400_work.p->timer == 1 && (int) pG->flags_174 >= 0) {
+        if (r400_work.p->timer == 1 && (int) pG->Room_flg[0] >= 0) {
             U32Set(r400_work.p->base, r400_work.p->cnt);
-            pG->flags_174 |= 0x80000000;
+            pG->Room_flg[0] |= 0x80000000;
         }
         r400_work.p->timer++;
         if (r400_work.p->timer > 300) {
             r400_work.p->timer = 1;
             em_destroy();
         }
-        GameAddPoint(0xE);
+        GameAddPoint(LVADD_TIMECOUNT);
         r400_work.p->point++;
         if (r400_work.p->point > 450) {
-            pG->flags_174 |= 0x40000000;
+            pG->Room_flg[0] |= 0x40000000;
         }
-        if (pG->flags_174 & 0x40000000) {
+        if (pG->Room_flg[0] & 0x40000000) {
             SceDebugDisp("EM_NUM[%d/%d]", r400_work.p->cnt, r400_work.p->base);
-            if ((int) pG->sceat_x17C < 0) {
+            if ((int) pG->Room_flg[2] < 0) {
                 reset_40();
             }
-            if (pG->sceat_x17C & 0x40000000) {
+            if (pG->Room_flg[2] & 0x40000000) {
                 reset_41();
             }
-            if (pG->sceat_x17C & 0x20000000) {
+            if (pG->Room_flg[2] & 0x20000000) {
                 reset_42();
             }
-            if (pG->sceat_x17C & 0x10000000) {
+            if (pG->Room_flg[2] & 0x10000000) {
                 reset_43();
             }
-            if (pG->sceat_x17C & 0x08000000) {
+            if (pG->Room_flg[2] & 0x08000000) {
                 reset_44();
             }
-            if (pG->sceat_x17C & 0x04000000) {
+            if (pG->Room_flg[2] & 0x04000000) {
                 reset_45();
             }
-            if (pG->sceat_x17C & 0x02000000) {
+            if (pG->Room_flg[2] & 0x02000000) {
                 reset_46();
             }
             if (SceAtItemFlgCk(0x80) == 1) {
@@ -357,22 +357,22 @@ void R400Main()
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 9) {
-                if (!(pG->flags_174 & 0x10000000)) {
-                    pG->flags_174 |= 0x10000000;
+                if (!(pG->Room_flg[0] & 0x10000000)) {
+                    pG->Room_flg[0] |= 0x10000000;
                     emset_boss(0x11, 0);
                     emset_boss(0x12, 1);
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 24) {
-                if (!(pG->flags_174 & 0x08000000)) {
-                    pG->flags_174 |= 0x08000000;
+                if (!(pG->Room_flg[0] & 0x08000000)) {
+                    pG->Room_flg[0] |= 0x08000000;
                     emset_boss(0x61, 0);
                     emset_boss(0x62, 1);
                 }
             }
             if (r400_work.p->base != 0 && r400_work.p->base - r400_work.p->cnt > 34) {
-                if (!(pG->flags_174 & 0x04000000)) {
-                    pG->flags_174 |= 0x04000000;
+                if (!(pG->Room_flg[0] & 0x04000000)) {
+                    pG->Room_flg[0] |= 0x04000000;
                     emset_boss(0x76, 0);
                     emset_boss(0x77, 1);
                 }
@@ -388,22 +388,22 @@ void setLadderMotion(int no)
     void* das;
 
     if (getRoomEtcLadder(no, &ladder, 1)) {
-        if (pG->x4FB8 == 2) {
+        if (pG->pl_type == 2) {
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 
-                mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-                mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-                mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x2A);
-                mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
-                mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
+                mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x28);
+                mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x29);
+                mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x2A);
+                mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x2B);
+                mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x2C);
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x2D);
+                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x2D);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -426,8 +426,8 @@ void emset_boss(int no, int dir)
 {
     int list;
 
-    EM_LIST_V(no).flags &= ~2;
-    list = pG->emlist_no;
+    EM_LIST_V(no).be_flag &= ~2;
+    list = pG->em_list_no;
     if (list >= 0) {
         u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[list], em_set.cpp style
 
@@ -443,13 +443,13 @@ void emset_boss(int no, int dir)
     if (em.isActive()) {
         em.setFindPL();
     }
-    if (pG->sceat_x17C & 0x20000000) {
+    if (pG->Room_flg[2] & 0x20000000) {
         if (dir == 0) {
             l = EM_LIST(0x11);
         } else {
             l = EM_LIST(0x12);
         }
-    } else if ((int) pG->sceat_x180 < 0) {
+    } else if ((int) pG->Room_flg[3] < 0) {
         if (dir == 0) {
             l = EM_LIST(0x61);
         } else {
@@ -479,7 +479,7 @@ int em_reset(int no, int chk)
     if (chk == 1 && r400_work.p->cnt > 9) {
         return 0;
     }
-    if (EM_LIST_V(no).flags & 2) {
+    if (EM_LIST_V(no).be_flag & 2) {
         return 0;
     }
     cEmWrap em;

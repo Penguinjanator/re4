@@ -8,43 +8,43 @@ class cModel;
 
 // Collision volume a cloth chain avoids (pl_cloth.cpp `*At` tables), 0x24 bytes: attached to a
 // model part, sphere (p1 zero) or capsule between p0 and p1.
-struct PlClothAt {
-    u16 x0;          // 0x00
-    u8 parts0;       // 0x02
-    u8 parts1;       // 0x03
-    f32 rate;        // 0x04
-    f32 r;           // 0x08  radius
-    Vec p0;          // 0x0C
-    Vec p1;          // 0x18
+struct CLOTH_AT_SET {
+    u16 Type;          // 0x00
+    u8 P1;       // 0x02
+    u8 P2;       // 0x03
+    f32 Weight;        // 0x04
+    f32 R;           // 0x08  radius
+    Vec Ofs1;          // 0x0C
+    Vec Ofs2;          // 0x18
 };
 
 // Cloth / pendulum chain work of one accessory (game/pl_cloth.cpp, game/pendulum.cpp), 0x60 bytes.
 // pendulum.h's PenCloth is the same object with the obj units' field names.
 struct PlCloth {
-    int num;             // 0x00  number of chain links
-    u8* pParts;          // 0x04  model parts index per link
+    int Num;             // 0x00  number of chain links
+    u8* pCloth;          // 0x04  model parts index per link
     u8* pLeft;           // 0x08  left neighbour per link (0xFF = none)
     u8* pRight;          // 0x0C  right neighbour
     u8* pUpLeft;         // 0x10  (Ada dress)
-    u32 x14;             // 0x14
-    u8* pUp;             // 0x18  upper neighbour per link
-    u8* pDown;           // 0x1C  lower neighbour per link
-    u32 x20;             // 0x20
+    u32 pUpRight;             // 0x14
+    u8* pParent;             // 0x18  upper neighbour per link
+    u8* pChild;           // 0x1C  lower neighbour per link
+    u32 pGravity;             // 0x20
     f32* pRate;          // 0x24  per-link rate (em_cloth: em18ClothRate, em37HairRate, ...)
     f32* pMax;           // 0x28  max swing per link
-    f32* pWindS;         // 0x2C  wind phase per link
-    f32* pWindR;         // 0x30  wind rate per link
-    PlClothAt* pAt;      // 0x34  collision volumes
-    int nAt;             // 0x38
-    f32 x3C;             // 0x3C  link length
-    f32 x40;             // 0x40
-    int x44;             // 0x44
-    f32 x48;             // 0x48
-    f32 x4C;             // 0x4C
-    f32 x50;             // 0x50  gravity / stiffness rate (skirt: 0.9 under water, 0.5 otherwise)
-    u32 x54;             // 0x54
+    f32* pWindSin;         // 0x2C  wind phase per link
+    f32* pWindRate;         // 0x30  wind rate per link
+    CLOTH_AT_SET* pAtset;      // 0x34  collision volumes
+    int At_num;             // 0x38
+    f32 Gravity;             // 0x3C  link length
+    f32 Rate;             // 0x40
+    int Bundle_num;             // 0x44
+    f32 WindSin;             // 0x48
+    f32 Stretchy;             // 0x4C
+    f32 Move_rate;             // 0x50  gravity / stiffness rate (skirt: 0.9 under water, 0.5 otherwise)
+    u32 pPtbl;             // 0x54
     cModel* pModel;      // 0x58  (AdaRibbonSet)
-    u32 flags;           // 0x5C  0x100 / 0x200 / 0x302
+    u32 Flag;           // 0x5C  0x100 / 0x200 / 0x302
 };
 
 // The player units pass these in this order; PlClothSet*/Move* use them as (jacket, holster, hair)

@@ -38,7 +38,7 @@ static void collision_cone_axis(GeoCone* cone, Vec* axis)
 {
     Vec up = {0.0f, 1.0f, 0.0f};
 
-    PSVECCrossProduct(&up, &cone->dir, axis);
+    PSVECCrossProduct(&up, &cone->direction, axis);
     VECNormalize(axis, axis);
 }
 #line 220
@@ -55,11 +55,11 @@ int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
     f32 r;
     f32 t;
 
-    if (VecAngle(&cone->dir, &up) != 0.0f) {
-        PSVECCrossProduct(&up, &cone->dir, &axis);
+    if (VecAngle(&cone->direction, &up) != 0.0f) {
+        PSVECCrossProduct(&up, &cone->direction, &axis);
 #line 245
         VECNormalize(&axis, &axis);
-        VECNormalize(&cone->dir, &up);
+        VECNormalize(&cone->direction, &up);
         PSVECCrossProduct(&axis, &up, &c);
 #line 248
         VECNormalize(&c, &c);
@@ -87,7 +87,7 @@ int collision_point_cone_rev_play_face(Vec* p, GeoCone* cone, Vec* face, f32 mar
 
     if (ret) {
         PSVECScale(face, &v, -1.0f);
-        if (VecAngle(&cone->dir, &v) < angle) {
+        if (VecAngle(&cone->direction, &v) < angle) {
             ret = 1;
         } else {
             ret = 0;
@@ -127,7 +127,7 @@ static inline int collision_fanpole_check(GeoCone* cone)
 {
     Vec a = {1.0f, 0.0f, 0.5f};
     f32 b[4] = {0.0f, 0.5f, -0.5f, 0.0f};
-    if (cone->dir.x != a.y || cone->dir.z != b[3]) {
+    if (cone->direction.x != a.y || cone->direction.z != b[3]) {
         pLog->err(0, 0, "Fanpole is not vertical to the ground!\n");
         return 0;
     }
@@ -136,7 +136,7 @@ static inline int collision_fanpole_check(GeoCone* cone)
 
 static inline int collision_cylinder_check(GeoCone* cone)
 {
-    if (cone->dir.x != 0.0f || cone->dir.z != 0.0f) {
+    if (cone->direction.x != 0.0f || cone->direction.z != 0.0f) {
         pLog->err(0, 0, "Cylinder is not vertical to the ground!\n");
         return 0;
     }

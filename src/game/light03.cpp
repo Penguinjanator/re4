@@ -17,5 +17,5 @@ void Light03_Move(cLight* l)
     PSMTXMultVec(m, n, n);
 #line 48 "D:/Bio4/Prog/light03.cpp"
     VECNormalize(n, n);
-    l->curColor = l->color;
+    l->DispCol = l->Col;
 }

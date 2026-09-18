@@ -53,9 +53,9 @@ void R40fInit()
 #line 32 "D:/Bio4/Prog/r40f.cpp"
     r40f_work = (R40fWork*) MEM_CALLOC(sizeof(R40fWork), 1, 0xd);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) R40fDoorEvent00Main, 0, 1);
+        SceAtDataSet_exec(9, SCE_LEVEL10, 0, (TaskFunc) R40fDoorEvent00Main, 0, 1);
     }
-    SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) R40fDoorSwitchMain, 0, 1);
+    SceAtDataSet_exec(8, SCE_LEVEL10, 0, (TaskFunc) R40fDoorSwitchMain, 0, 1);
     if (RsfCheck(G_ROOM_ID, 5)) {
         EstSet(0, -1, 0, 0, 1, 0, 0x2001, 2, 0, model);
         R40fDoorOpened(1);
@@ -64,7 +64,7 @@ void R40fInit()
         R40fDoorOpened(0);
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0xE, 0x12, 0, (TaskFunc) R40fBombSet, 0, 1);
+        SceAtDataSet_exec(0xE, SCE_LEVEL10, 0, (TaskFunc) R40fBombSet, 0, 1);
     }
     SmdSetTrans(0x15, 0);
 }
@@ -151,7 +151,7 @@ static void R40fDoorSwitchMain()
     int i;
 
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
-        SceUpCut(6, -1, -1, 4);
+        SceUpCut(6, -1, -1, UP_CUT_ATTR_CUT_FIX);
     } else {
         SceEventStart(1);
         SceMesCamSndSet4(5, -1, -1, 4);

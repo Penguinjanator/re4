@@ -29,7 +29,7 @@ int EspArrayPop();
 
 void EspDummyTrans(cEsp* esp)
 {
-    pLog->err(0, 0, "ESP_TRANS : ESP_ID[%x] invalid.", esp->id);
+    pLog->err(0, 0, "ESP_TRANS : ESP_ID[%x] invalid.", esp->m_Id);
     PushEsp(esp);
 }
 
@@ -51,15 +51,15 @@ void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans)
 
 int ESP_IsActive(cEsp* esp)
 {
-    if (!(esp->flag & 1)) {
+    if (!(esp->m_Be_flg & 1)) {
         return 0;
     }
-    if (pG->flags_5010 & 0x10000000) {
-        if (!(esp->info.x0 & 1)) {
+    if (pG->Status_flg[1] & 0x10000000) {
+        if (!(esp->info.Core_flg & 1)) {
             return 0;
         }
         if (esp->parent != pEffParentWorld) {
-            cModel* m = esp->pModel;
+            cModel* m = esp->m_pMod;
             if (m != NULL) {
                 int off = !(m->be_flag & 0x800);
                 if (off) {
@@ -80,16 +80,16 @@ int PullEsp(cEsp** out, int id)
 
     if (create == NULL) {
         pLog->err(0, 0, "ESP : EspID[%x] is invalid.", id);
-        *out = sys->pDmy;
+        *out = sys->pDmyEsp;
         return 0;
     }
     esp = create();
     *out = esp;
-    if (esp != sys->pDmy) {
-        esp->flag |= 1;
+    if (esp != sys->pDmyEsp) {
+        esp->m_Be_flg |= 1;
         ret = 1;
-        sys->xC548++;
-        (*out)->id = id;
+        sys->ActiveEspNum++;
+        (*out)->m_Id = id;
     } else {
         pLog->warn(6, 0, "ESP : ESP work full!!");
     }
@@ -116,22 +116,22 @@ void* cEsp::operator new(unsigned int size)
     u32 start;
     u32 ofs;
 
-    if (old_hit >= sys->xC554) {
+    if (old_hit >= sys->nEsp) {
         BitSet(old_hit, 0);
     }
     i = old_hit;
     start = i;
-    ret = sys->pDmy;
-    if (i < sys->xC554) {
+    ret = sys->pDmyEsp;
+    if (i < sys->nEsp) {
         ofs = i * 0x150;
 loop1:
         esp = (cEsp*) (sys->pEspBuf + ofs);
-        if (!(esp->flag & 1)) {
+        if (!(esp->m_Be_flg & 1)) {
             goto found;
         }
         i++;
         ofs += 0x150;
-        if (i < sys->xC554) {
+        if (i < sys->nEsp) {
             goto loop1;
         }
     }
@@ -140,7 +140,7 @@ loop1:
         ofs = 0;
 loop2:
         esp = (cEsp*) (sys->pEspBuf + ofs);
-        if (!(esp->flag & 1)) {
+        if (!(esp->m_Be_flg & 1)) {
             goto found;
         }
         i++;
@@ -149,10 +149,10 @@ loop2:
             goto loop2;
         }
     }
-    if (ret == sys->pDmy) {
-        for (i = start; i < sys->xC554; i++) {
+    if (ret == sys->pDmyEsp) {
+        for (i = start; i < sys->nEsp; i++) {
             esp = (cEsp*) (sys->pEspBuf + i * 0x150);
-            if ((esp->flag & 1) && (esp->flags & 0x40000)) {
+            if ((esp->m_Be_flg & 1) && (esp->m_Tool_flg & 0x40000)) {
                 do { // keeps loop.c from moving this block out of the loop (see above)
                     PushEsp(esp);
                     goto found;
@@ -164,7 +164,7 @@ loop2:
             ofs = 0;
 loop4:
             esp = (cEsp*) (sys->pEspBuf + ofs);
-            if ((esp->flag & 1) && (esp->flags & 0x40000)) {
+            if ((esp->m_Be_flg & 1) && (esp->m_Tool_flg & 0x40000)) {
 found:
                 memclr_asm(esp, 0x150);
                 old_hit = i + 1;
@@ -184,9 +184,9 @@ u32 tubo_amb = 0;
 
 void PushEsp(cEsp* esp)
 {
-    if (esp->flag & 1) {
-        esp->flag &= ~3;
-        g_pEspSys->xC548--;
+    if (esp->m_Be_flg & 1) {
+        esp->m_Be_flg &= ~3;
+        g_pEspSys->ActiveEspNum--;
         esp->Destruct();
     } else {
         pLog->warn(0, 0, "PushEsp() : No alive work is pushed.");
@@ -207,50 +207,50 @@ int EspMove()
         esp_num_list[i] = 0;
     }
     pause = 0;
-    if (pG->flags_5010 & 2) {
+    if (pG->Status_flg[1] & 2) {
         pause = 1;
     }
     cnt = 0;
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         esp = (cEsp*) (sys->pEspBuf + i * 0x150);
         if (!ESP_IsActive(esp)) {
             continue;
         }
         if (esp->parent != pEffParentWorld) {
-            cModel* m = esp->pModel;
+            cModel* m = esp->m_pMod;
             if (m != NULL) {
-                if ((m->be_flag & 0x201) != 1 || m->serial != esp->x20) {
+                if ((m->be_flag & 0x201) != 1 || m->serial != esp->m_Guid_pMod) {
                     PushEsp(esp);
                     continue;
                 }
             }
         }
         if (pause) {
-            if (!(esp->info.x0 & 0x8000)) {
+            if (!(esp->info.Core_flg & 0x8000)) {
                 continue;
             }
         }
         esp->move();
-        if (esp->flag & 1) {
+        if (esp->m_Be_flg & 1) {
             cnt++;
             if (pG->debug_mode == 0xE) {
-                esp_num_list[esp->info.x3]++;
+                esp_num_list[esp->info.owner]++;
             }
         }
     }
     color = 0;
-    if ((f32) cnt > (f32) sys->xC554 * 0.7f) {
+    if ((f32) cnt > (f32) sys->nEsp * 0.7f) {
         color = 0x16;
     }
-    if ((f32) cnt > (f32) sys->xC554 * 0.9f) {
+    if ((f32) cnt > (f32) sys->nEsp * 0.9f) {
         color = 2;
     }
-    if (pG->flags_6C & 0x8000) {
-        eprintf(0x1B0, 0xC8, color, 0, "%d/%d", sys->xC548, cnt);
+    if (pG->Debug_flg[3] & 0x8000) {
+        eprintf(0x1B0, 0xC8, color, 0, "%d/%d", sys->ActiveEspNum, cnt);
     } else {
         eprintf(0x1D8, 0xC8, color, 0xE, "%d", cnt);
     }
-    if ((s32) pG->flags_60 >= 0 && pG->debug_mode == 0xE) {
+    if ((s32) pG->Debug_flg[0] >= 0 && pG->debug_mode == 0xE) {
         eprintf(0x20, 0x60, 0, 0xE, "TOTAL:%d", cnt);
         // y counts printed rows; `0x70 + y * 0x10` is a strength-reduced giv whose `li 0x70` init
         // is emitted by loop.c after the hoisted `lis`/`addi`s (a plain `y = 0x70; y += 0x10`
@@ -268,12 +268,12 @@ int EspMove()
 
 f32 EspGetCameraPan()
 {
-    return g_pEspSys->camPan;
+    return g_pEspSys->CameraPan;
 }
 
 f32 EspGetCameraPan2()
 {
-    return g_pEspSys->camPan2;
+    return g_pEspSys->CameraPan2;
 }
 
 int EspTrans()
@@ -304,74 +304,74 @@ int EspTrans()
 #line 584 "D:/Bio4/Prog/esp.cpp"
     VECNormalize(&dir, &dir);
     if (dir.x == 0.0f && dir.z == 0.0f) {
-        sys->camPan = 0.0f;
+        sys->CameraPan = 0.0f;
     } else {
-        sys->camPan = atan2f(dir.x, dir.z) * 57.295776f;
+        sys->CameraPan = atan2f(dir.x, dir.z) * 57.295776f;
     }
     if (dir.y == 0.0f) {
-        sys->camPan2 = 0.0f;
+        sys->CameraPan2 = 0.0f;
     } else {
-        sys->camPan2 = -atan2f(dir.y, SQRTF(dir.x * dir.x + dir.z * dir.z)) * 57.295776f;
+        sys->CameraPan2 = -atan2f(dir.y, SQRTF(dir.x * dir.x + dir.z * dir.z)) * 57.295776f;
     }
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         esp = (cEsp*) (sys->pEspBuf + i * 0x150);
         if (!ESP_IsActive(esp)) {
             continue;
         }
-        if (esp->pModel != NULL && !(esp->pModel->be_flag & 2) && esp->parentCnt == 0xFF) {
+        if (esp->m_pMod != NULL && !(esp->m_pMod->be_flag & 2) && esp->m_Release_time == 0xFF) {
             continue;
         }
-        trans = EspTransTbl[esp->id];
+        trans = EspTransTbl[esp->m_Id];
         if (trans == NULL) {
             continue;
         }
-        if (esp->info.x0 & 0x400) {
-            if (pG->flags_5010 & 0x04000000) {
+        if (esp->info.Core_flg & 0x400) {
+            if (pG->Status_flg[1] & 0x04000000) {
                 continue;
             }
         }
-        if (pG->flags_500C & 0x8000) {
-            if (esp->flags & 0x100) {
+        if (pG->Status_flg[0] & 0x8000) {
+            if (esp->m_Tool_flg & 0x100) {
                 continue;
             }
         } else {
-            if (esp->flags & 0x200) {
+            if (esp->m_Tool_flg & 0x200) {
                 continue;
             }
         }
         prio = 0x10;
-        if (trans == EspCommonTrans && esp->pad_EC[0] == 0 && !(esp->flags & 0x6000)) {
+        if (trans == EspCommonTrans && esp->pad_EC[0] == 0 && !(esp->m_Tool_flg & 0x6000)) {
             prio = 8;
         }
-        if (pG->flags_5010 & 2) {
-            if (!(esp->info.x0 & 0x8000)) {
+        if (pG->Status_flg[1] & 2) {
+            if (!(esp->info.Core_flg & 0x8000)) {
                 continue;
             }
             AddOtDirect(0x14, esp, (void (*)()) trans, 0, prio, NULL, 0.0f);
             continue;
         }
-        if (esp->flags & 0x10000) {
-            BitOn(pG->flags_5010, 0x08000000);
+        if (esp->m_Tool_flg & 0x10000) {
+            BitOn(pG->Status_flg[1], 0x08000000);
             ot = 0;
-            if (!(esp->info.x0 & 8)) {
-                if (esp->info.x0 & 0x10) {
+            if (!(esp->info.Core_flg & 8)) {
+                if (esp->info.Core_flg & 0x10) {
                     ot = 1;
-                } else if (esp->info.x0 & 0x20) {
+                } else if (esp->info.Core_flg & 0x20) {
                     ot = 2;
-                } else if (esp->info.x0 & 0x40) {
+                } else if (esp->info.Core_flg & 0x40) {
                     ot = 3;
-                } else if (esp->info.x0 & 0x80) {
+                } else if (esp->info.Core_flg & 0x80) {
                     ot = 4;
-                } else if (esp->info.x0 & 0x100) {
+                } else if (esp->info.Core_flg & 0x100) {
                     ot = 5;
-                } else if (esp->info.x0 & 0x200) {
+                } else if (esp->info.Core_flg & 0x200) {
                     ot = 6;
-                } else if ((s32) pG->flags_60 >= 0) {
+                } else if ((s32) pG->Debug_flg[0] >= 0) {
                     pLog->err(6, 0, "ESP : FLG_TEX_RENDER but no set tex_no");
                 }
             }
-            if ((u8) (esp->partsNo + 8) <= 5) {
-                switch (esp->partsNo) {
+            if ((u8) (esp->m_Parts_no + 8) <= 5) {
+                switch (esp->m_Parts_no) {
                 case 0xFD:
                     AddOtDirect(ot, esp, (void (*)()) trans, 3, prio, NULL, 0.0f);
                     break;
@@ -399,40 +399,40 @@ int EspTrans()
             }
             continue;
         }
-        if (esp->flags & 0x1000) {
-            if ((u8) (esp->partsNo + 8) <= 5) {
+        if (esp->m_Tool_flg & 0x1000) {
+            if ((u8) (esp->m_Parts_no + 8) <= 5) {
                 AddOtDirect(0x12, esp, (void (*)()) trans, 8, prio, NULL, 0.0f);
             } else {
                 AddOtDirect(0x12, esp, (void (*)()) trans, 9, prio, NULL, 0.0f);
             }
             continue;
         }
-        if (esp->dispFlag & 8) {
+        if (esp->m_Flg & 8) {
             AddOtDirect(0x12, esp, (void (*)()) trans, 6, prio, NULL, 0.0f);
             continue;
         }
-        if (esp->flags & 0x400000) {
-            if ((esp->flags & 0xC00) == 0xC00) {
+        if (esp->m_Tool_flg & 0x400000) {
+            if ((esp->m_Tool_flg & 0xC00) == 0xC00) {
                 AddOtDirect(0xB, esp, (void (*)()) trans, 3, prio, NULL, 0.0f);
             } else {
                 AddOtDirect(0x10, esp, (void (*)()) trans, 4, prio, NULL, 0.0f);
             }
             continue;
         }
-        if (esp->flags & 0x400) {
-            if (esp->flags & 0x800) {
+        if (esp->m_Tool_flg & 0x400) {
+            if (esp->m_Tool_flg & 0x800) {
                 AddOtDirect(0x10, esp, (void (*)()) trans, 3, prio, NULL, 0.0f);
             } else {
                 AddOtDirect(0x10, esp, (void (*)()) trans, 2, prio, NULL, 0.0f);
             }
             continue;
         }
-        if (esp->flags & 0x800) {
+        if (esp->m_Tool_flg & 0x800) {
             AddOtDirect(0x10, esp, (void (*)()) trans, 0, prio, NULL, 0.0f);
             continue;
         }
-        if ((u8) (esp->partsNo + 8) <= 5) {
-            switch (esp->partsNo) {
+        if ((u8) (esp->m_Parts_no + 8) <= 5) {
+            switch (esp->m_Parts_no) {
             case 0xFD:
                 AddOtDirect(0x12, esp, (void (*)()) trans, 3, prio, NULL, 0.0f);
                 break;
@@ -455,20 +455,20 @@ int EspTrans()
             continue;
         }
         if (esp->parent != pEffParentWorld) {
-            PSMTXMultVec(esp->parent->mat, &esp->pos, &wpos);
+            PSMTXMultVec(esp->parent->mat, &esp->m_Pos, &wpos);
         } else {
             wp = &wpos;
-            *wp = esp->pos;
+            *wp = esp->m_Pos;
         }
         wp = &wpos;
         zlimit = 0.0f;
-        if (esp->xB8 == zlimit) {
+        if (esp->m_Radius == zlimit) {
             AddOtWorldPos(esp, (void (*)(void*)) trans, wp, prio, 200.0f);
         } else {
-            if ((esp->dispFlag & 2) == 0 && (esp->flags & 1) == 0) {
+            if ((esp->m_Flg & 2) == 0 && (esp->m_Tool_flg & 1) == 0) {
                 zlimit = 200.0f;
             }
-            AddOtWorldPosRadius(esp, (void (*)(void*)) trans, wp, esp->xB8, prio, zlimit);
+            AddOtWorldPosRadius(esp, (void (*)(void*)) trans, wp, esp->m_Radius, prio, zlimit);
         }
     }
     return 1;
@@ -486,12 +486,12 @@ int EspDispInfo()
         return 0;
     }
     cnt = 0;
-    for (i = 0; i < sys->xC554; i++) {
-        if (((cEsp*) (p + i * 0x150))->flag & 1) {
+    for (i = 0; i < sys->nEsp; i++) {
+        if (((cEsp*) (p + i * 0x150))->m_Be_flg & 1) {
             cnt++;
         }
     }
-    eprintf(0x1A0, 0x38, 0, 0xC, "%3d/%3d/%4d", cnt, max, sys->xC554);
+    eprintf(0x1A0, 0x38, 0, 0xC, "%3d/%3d/%4d", cnt, max, sys->nEsp);
     if (cnt > max) {
         max = cnt;
     }
@@ -517,7 +517,7 @@ int EspArrayAlloc(u32 n)
     if (p == NULL) {
         return 0;
     }
-    sys->xC554 = n;
+    sys->nEsp = n;
     memclr_asm(p, size);
     return 1;
 }
@@ -543,8 +543,8 @@ int EspArrayPush(u32 n)
     }
     sys->pEspBufSave = sys->pEspBuf;
     sys->pEspBuf = (u8*) Debug_alloc(n * 0x150, 1);
-    sys->numSave = sys->xC554;
-    sys->xC554 = n;
+    sys->nEspBack = sys->nEsp;
+    sys->nEsp = n;
     return 1;
 }
 
@@ -558,7 +558,7 @@ int EspArrayPop()
     Debug_free(sys->pEspBuf);
     sys->pEspBuf = sys->pEspBufSave;
     sys->pEspBufSave = NULL;
-    sys->xC554 = sys->numSave;
+    sys->nEsp = sys->nEspBack;
     return 1;
 }
 
@@ -568,9 +568,9 @@ void EspArrayClear()
     cEsp* esp;
     u32 i;
 
-    for (i = 0; i < sys->xC554; i++) {
+    for (i = 0; i < sys->nEsp; i++) {
         esp = (cEsp*) (sys->pEspBuf + i * 0x150);
-        if (esp->flag & 1) {
+        if (esp->m_Be_flg & 1) {
             PushEsp(esp);
         }
     }
@@ -578,7 +578,7 @@ void EspArrayClear()
 
 cEsp* EspGetDmyPtr()
 {
-    return g_pEspSys->pDmy;
+    return g_pEspSys->pDmyEsp;
 }
 
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*))

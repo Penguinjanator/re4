@@ -16,7 +16,7 @@ void Snd_voice_work_clear(void)
         voice->no = i;
         voice->out_mode = 0;
         voice->type = 0;
-        voice->x8 = 0;
+        voice->srd_type = 0;
         voice->seq_no = -1;
         voice->seq_ch = -1;
         voice->seq_note = -1;
@@ -52,7 +52,7 @@ SND_VOICE_WORK* Snd_open_voice_work_str(SND_STR_WORK* str, s8 no)
         voice->out_mode = 1;
     }
     voice->type = 3;
-    voice->x8 = 0;
+    voice->srd_type = 0;
     voice->count = 0;
     voice->axv = NULL;
     voice->blk_no = -1;
@@ -77,7 +77,7 @@ SND_VOICE_WORK* Snd_open_voice_work_seq(SND_SEQ_WORK* seq, s8 prio)
         voice->out_mode = 1;
     }
     voice->type = 2;
-    voice->x8 = 0;
+    voice->srd_type = 0;
     voice->count = 0;
     voice->axv = NULL;
     voice->blk_no = -1;

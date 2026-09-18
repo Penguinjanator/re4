@@ -23,7 +23,7 @@ extern void (*WeaponMoveFunc)(cPlayer*);   // game/player.cpp: the equipped weap
 // WeaponInitFunc (cModel*) is declared in pl_wep.h.
 
 // Weapon archive (read: ReadWepData) at pG->pWepArc, indexed like the player archive.
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWepArc, no)
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
 // Hand weapon (wep00 and the wep34..wep37 modules): the weapon object of the empty hand /
 // event hand poses. keyKamae is the DOL's cObjHand::keyKamae (game/objWep.cpp), setMotion fills the
@@ -44,12 +44,12 @@ static inline void PSet(cModel*& d, cModel* v) { d = v; }
 static inline void PSet(cObjWep*& d, cObjWep* v) { d = v; }
 static inline void U16Set(u16& d, int v) { d = v; }
 // Collision flag bits changed through the info's address (`addi rX, obj, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariFlagsAnd(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariFlagsAnd(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 // wep17 ready00: the following pG load stays below the store and the info address is kept in a
 // register (`addi rX, obj, 0x2b4; lhz/sth 0x1a(rX)`): only the volatile scalar access gives both.
-static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags |= mask; }
+static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag |= mask; }
 // wep14 r2_down: the same for a cleared bit followed by a pG load (`addi 0x2b4; lhz/andi./sth; lwz pG`).
-static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags &= mask; }
+static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->m_flag &= mask; }
 
 // Machine gun (wep11 = TMP, wep29; wep/objMachinegun.cpp shared object; wep12 Thompson, wep27
 // Klauser MG and wep39 carry their own copies of the class in the module object).

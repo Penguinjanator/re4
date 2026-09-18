@@ -15,7 +15,7 @@ static void Wep36_init(cModel* m)
     if (obj == 0) {
         pLog->err(0, 0, "Wep13_init() failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
     }
 }
@@ -33,7 +33,7 @@ cObjWep* equipWeapon(cPlayer* pl)
         return 0;
     }
     obj->init(pl);
-    pl->pBody->initWepHand((u32) PL_ARC_PTR(pG->pPlArc, 0x12));
+    pl->Body->initWepHand((u32) PL_ARC_PTR(pG->pPlayer, 0x12));
     pl->setRightHand(1);
     pl->setLeftHand(0);
     return obj;
@@ -61,12 +61,12 @@ void cObjHand::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x10));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x13));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x14));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x15));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x16));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x11));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x12));
-    pl->pBody->initWepHand((u32) PL_ARC_PTR(pG->pPlArc, 0x12));
+    pl->Body->initWepHand((u32) PL_ARC_PTR(pG->pPlayer, 0x12));
     pl->setRightHand(0);
     pl->setLeftHand(0);
 }

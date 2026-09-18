@@ -92,7 +92,7 @@ public:
     int ckBoss();
     void launch();
     void drop(int se);
-    void grip(int a);
+    void grip(int onoff);
     void gripBack();
 };
 
@@ -100,21 +100,21 @@ public:
 class cPlWep {
 public:
     u8 pad_0[0x20];
-    u8 x20;              // 0x20  (ctor: 0)
-    u8 x21;              // 0x21  (wep07 pl_shotgun reload: 0)
+    u8 m_EmRankPtr;              // 0x20  (ctor: 0)
+    u8 m_ShotCancelCtr;              // 0x21  (wep07 pl_shotgun reload: 0)
     u8 pad_22;
-    u8 x23;              // 0x23  (wep07 ready00: 0)
+    u8 m_ShotTimer;              // 0x23  (wep07 ready00: 0)
     u8 knifeStance;      // 0x24  knife ready stance: 0 low, 1 middle, 2 high
     u8 pad_25;
-    u8 x26;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
+    u8 m_Flag;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
     u8 pad_27;
     f32 pitch;           // 0x28  aim pitch
-    f32 x2C;             // 0x2C
-    f32 x30;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
-    cObjWep* pObj;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
+    f32 m_CenterY;             // 0x2C
+    f32 m_CamAdjY;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
+    cObjWep* m_pWep;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];
-    u8 x40;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)
+    u8 m_LockTime;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)  (PS2 m_LockTime)
     u8 pad_41[3];
 
     cPlWep();
@@ -129,7 +129,7 @@ public:
 };
 
 // knife/weapon collision (pl, top, bottom, type, flags, length)
-u32 PlWepHitCheck2(cModel* pl, Vec* p0, Vec* p1, int type, u32 flag, f32 len);
+u32 PlWepHitCheck2(cModel* pl, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 len);
 void PlWepLockCtrl(cModel* pl);
 
 extern "C" {

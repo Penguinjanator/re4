@@ -40,51 +40,51 @@ void cLog::init()
     clear();
 }
 
-void cLog::mes(int a, int b, const char* fmt, ...)
+void cLog::mes(int flag, int col, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vmes(a, b, fmt, ap);
+    vmes(flag, col, fmt, ap);
     va_end(ap);
 }
 
-void cLog::err(int a, int b, const char* fmt, ...)
+void cLog::err(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    verr(a, b, fmt, ap);
+    verr(flag, errId, fmt, ap);
     va_end(ap);
 }
 
-void cLog::warn(int a, int b, const char* fmt, ...)
+void cLog::warn(int flag, int errId, const char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vwarn(a, b, fmt, ap);
+    vwarn(flag, errId, fmt, ap);
     va_end(ap);
 }
 
-void cLog::vmes(int a, int b, const char* fmt, va_list ap)
+void cLog::vmes(int flag, int col, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, 0, fmt, ap);
-        w->color = b;
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
+        cLogWork* w = add(flag, 0, fmt, ap);
+        w->m_Col = col;
     }
 }
 
-void cLog::verr(int a, int b, const char* fmt, va_list ap)
+void cLog::verr(int flag, int errId, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, b, fmt, ap);
-        w->color = 0x16;
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
+        cLogWork* w = add(flag, errId, fmt, ap);
+        w->m_Col = 0x16;
     }
 }
 
-void cLog::vwarn(int a, int b, const char* fmt, va_list ap)
+void cLog::vwarn(int flag, int errId, const char* fmt, va_list ap)
 {
-    if (!(pG->flags_6C & 0x04000000)) {
-        cLogWork* w = add(a, b, fmt, ap);
-        w->color = 0x10;
+    if (!(pG->Debug_flg[3] & 0x04000000)) {
+        cLogWork* w = add(flag, errId, fmt, ap);
+        w->m_Col = 0x10;
     }
 }
 
@@ -92,7 +92,7 @@ void cLog::clear()
 {
     cLogWork* w;
     timer = 0;
-    cur = 0;
+    m_BuffIdx = 0;
     for (w = work; w < &work[100]; w++) {
         w->clear();
     }
@@ -102,17 +102,17 @@ int cLog::modeReset()
 {
     modeSet(160, 378, 90, 5);
     timer = 0;
-    scr = 0;
+    m_ScrOfs = 0;
     return 1;
 }
 
 int cLog::modeSet(int x, int y, int time, int lines)
 {
     cLog* l = pLog.p;
-    l->x = x;
-    l->y = y;
-    this->time = time;
-    this->lines = lines;
+    l->m_Bx = x;
+    l->m_By = y;
+    this->m_DispTime = time;
+    this->m_DispNum = lines;
     return 1;
 }
 
@@ -125,42 +125,42 @@ void cLog::disp()
     s16 yy;
 
     if ((Joy[0].on & JOY_START) && (Joy[0].trg & JOY_Z)) {
-        timer = time;
+        timer = m_DispTime;
     }
     if (timer == 0) {
         return;
     }
-    xx = x;
-    yy = y;
-    idx = (cur + 100 - lines - scr + 1) % 100;
-    for (i = 0; i < lines; i++) {
+    xx = m_Bx;
+    yy = m_By;
+    idx = (m_BuffIdx + 100 - m_DispNum - m_ScrOfs + 1) % 100;
+    for (i = 0; i < m_DispNum; i++) {
         work[idx].print(xx, yy);
         yy += 14;
         idx = (idx + 1) % 100;
     }
-    if (flags & 2) {
+    if (m_Flag & 2) {
         disp_rep_cnt++;
         if (disp_rep_cnt & 1) {
-            eprintf(x + blink - 16, y + (lines - 1) * 14, 0, 0, "+");
+            eprintf(m_Bx + m_RepeatCtr - 16, m_By + (m_DispNum - 1) * 14, 0, 0, "+");
         } else {
-            eprintf(x + blink - 16, y + (lines - 1) * 14, 0, 0, "*");
+            eprintf(m_Bx + m_RepeatCtr - 16, m_By + (m_DispNum - 1) * 14, 0, 0, "*");
         }
-    } else if (flags & 1) {
-        eprintf(x + blink - 16, y + (lines - 1) * 14, 0, 0, ">");
-        flags &= ~1;
-        blink = (blink + 1) % 8;
+    } else if (m_Flag & 1) {
+        eprintf(m_Bx + m_RepeatCtr - 16, m_By + (m_DispNum - 1) * 14, 0, 0, ">");
+        m_Flag &= ~1;
+        m_RepeatCtr = (m_RepeatCtr + 1) % 8;
     }
     if (timer != 0xFF) {
         timer--;
     }
-    flags &= ~2;
+    m_Flag &= ~2;
 }
 
 int cLog::dispLineNum(int x, int y)
 {
     int i;
-    for (i = 0; i < lines; i++) {
-        eprintf(x, y, 0, 0, "%02d", i - (lines - 100) - scr);
+    for (i = 0; i < m_DispNum; i++) {
+        eprintf(x, y, 0, 0, "%02d", i - (m_DispNum - 100) - m_ScrOfs);
         y = (s16) (y + 14);
     }
     return 1;
@@ -174,14 +174,14 @@ int cLog::on(int flag)
 
 int cLog::scrSet(s8 n)
 {
-    int s = scr + n;
+    int s = m_ScrOfs + n;
     if (s < 0) {
         s = 0;
     }
-    if (s > 100 - lines) {
-        s = 100 - lines;
+    if (s > 100 - m_DispNum) {
+        s = 100 - m_DispNum;
     }
-    scr = s;
+    m_ScrOfs = s;
     return 1;
 }
 
@@ -189,33 +189,33 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
 {
     char buf[256];
     int dup = 0;
-    cLogWork* w = &work[cur];
+    cLogWork* w = &work[m_BuffIdx];
 
     vsprintf(buf, fmt, ap);
-    flags |= 2;
+    m_Flag |= 2;
     if (key != 0) {
-        if (strcmp(w->str, buf) == 0 || w->key == key) {
+        if (strcmp(w->m_Str, buf) == 0 || w->key == key) {
             dup = 1;
         }
     }
     if (dup) {
-        flags |= 1;
+        m_Flag |= 1;
         if (!(flag & LOG_DUP_QUIET)) {
             if (!(flag & LOG_NO_SHOW)) {
-                timer = time;
+                timer = m_DispTime;
             }
         }
     } else {
-        cur = (cur + 1) % 100;
-        w = &work[cur];
-        strncpy(w->str, buf, 63);
-        w->str[63] = 0;
+        m_BuffIdx = (m_BuffIdx + 1) % 100;
+        w = &work[m_BuffIdx];
+        strncpy(w->m_Str, buf, 63);
+        w->m_Str[63] = 0;
         if (!(flag & LOG_NO_PRINTF)) {
             printf("%s\n", buf);
         }
         w->key = key;
         if (!(flag & LOG_NO_SHOW)) {
-            timer = time;
+            timer = m_DispTime;
         }
     }
     return w;
@@ -223,14 +223,14 @@ cLogWork* cLog::add(int flag, int key, const char* fmt, va_list ap)
 
 void cLogWork::print(int x, int y)
 {
-    eprintf(x, y, color, 0, str);
+    eprintf(x, y, m_Col, 0, m_Str);
 }
 
 void cLogWork::clear()
 {
-    color = 0;
+    m_Col = 0;
     key = 0;
-    str[0] = 0;
+    m_Str[0] = 0;
 }
 
 asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");

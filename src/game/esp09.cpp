@@ -10,19 +10,19 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 struct Esp09Work {
-    s8 n;         // 0x00 number of trail points (2..6)
-    u8 flags;     // 0x01 bit0: screen space, bit1: record a point every other frame (gen->xC9)
+    s8 maxPoints;         // 0x00 number of trail points (2..6)
+    u8 flg;     // 0x01 bit0: screen space, bit1: record a point every other frame (gen->xC9)
     u8 pad_2[10];
     u8 hidden;    // 0x0C set by the Z-buffer test (screen space trail)
-    u8 idx;       // 0x0D ring buffer index of the newest point
-    s16 width;    // 0x0E line width
-    Vec pts[6];   // 0x10 position history (screen space: z = distance to the camera)
+    u8 nPos;       // 0x0D ring buffer index of the newest point
+    s16 Width;    // 0x0E line width
+    Vec Pos[6];   // 0x10 position history (screen space: z = distance to the camera)
 };
 
 // Position trail drawn as a line strip (or, with a texture, as a strip of quads).
 class cEsp09 : public cEsp {
 public:
-    Esp09Work work;  // 0xF8
+    Esp09Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -48,25 +48,25 @@ cEsp* Esp09_Create()
 // Fill the whole history with the current position.
 void Esp09_ClearPrevPos(cEsp09* esp)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     Camera* cam = &pG->Cam;
-    Vec* p = &w->pts[0];
+    Vec* p = &w->Pos[0];
     Vec tmp;
     f32 len;
     int i;
 
-    if (esp->id != 9 || w->n <= 1 || w->n > 6) {
-        pLog->err(0, 0, "Esp09:ERROR![ID:%d / nPnt:%d]", esp->id, w->n);
+    if (esp->m_Id != 9 || w->maxPoints <= 1 || w->maxPoints > 6) {
+        pLog->err(0, 0, "Esp09:ERROR![ID:%d / nPnt:%d]", esp->m_Id, w->maxPoints);
         return;
     }
-    for (i = 0; i < w->n; i++) {
+    for (i = 0; i < w->maxPoints; i++) {
         if (esp->parent == pEffParentWorld) {
-            *p = esp->pos;
+            *p = esp->m_Pos;
         } else {
-            PSMTXMultVec(esp->parent->mat, &esp->pos, p);
+            PSMTXMultVec(esp->parent->mat, &esp->m_Pos, p);
         }
         len = GetVecLen(p, &cam->param.pos);
-        if (w->flags & 1) {
+        if (w->flg & 1) {
             tmp = *p;
             GetScreenPos(&tmp, p);
             p->z = len;
@@ -77,7 +77,7 @@ void Esp09_ClearPrevPos(cEsp09* esp)
 
 void cEsp09::move()
 {
-    Esp09Work* w = &work;
+    Esp09Work* w = &m_Free;
     Camera* cam = &pG->Cam;
     Vec* p;
     Vec tmp;
@@ -86,69 +86,69 @@ void cEsp09::move()
     if (!CommonMove()) {
         return;
     }
-    switch (x10) {
+    switch (m_Rno0) {
     case 0:
         w->hidden = 1;
         Esp09_ClearPrevPos(this);
-        x10++;
+        m_Rno0++;
         break;
     case 1:
-        if (w->flags & 2) {
-            x11++;
-            if (x11 & 1) {
-                w->idx++;
+        if (w->flg & 2) {
+            m_Rno1++;
+            if (m_Rno1 & 1) {
+                w->nPos++;
             }
         } else {
-            w->idx++;
+            w->nPos++;
         }
-        if (xF != 0) {
-            if (w->idx > 2) {
-                w->idx = 0;
+        if (m_Type != 0) {
+            if (w->nPos > 2) {
+                w->nPos = 0;
             }
         } else {
-            if (w->idx > w->n - 1) {
-                w->idx = 0;
+            if (w->nPos > w->maxPoints - 1) {
+                w->nPos = 0;
             }
         }
-        p = &w->pts[w->idx];
-        if (partsNo > 0xFD) {
-            *p = pos;
+        p = &w->Pos[w->nPos];
+        if (m_Parts_no > 0xFD) {
+            *p = m_Pos;
         } else {
-            PSMTXMultVec(parent->mat, &pos, p);
+            PSMTXMultVec(parent->mat, &m_Pos, p);
         }
         len = GetVecLen(p, &cam->param.pos);
-        if (w->flags & 1) {
+        if (w->flg & 1) {
             tmp = *p;
             GetScreenPos(&tmp, p);
             p->z = len;
         }
         break;
     }
-    if (anmNo == 0xFF) {
-        w->width = (u16)(sizeX * scale * (0.3f * 0.1f));
+    if (m_Tex_id == 0xFF) {
+        w->Width = (u16)(m_Size_base_x * m_Size_mul * (0.3f * 0.1f));
         len /= 5000.0f;
         if (len > 1.0f) {
-            w->width = (f32)w->width / len;
+            w->Width = (f32)w->Width / len;
         }
     }
-    if (flag & 1) {
+    if (m_Be_flg & 1) {
         EspAddOtAfterRender(this, Esp09_HideCheck);
     }
 }
 
 extern "C" void Esp09_Trans(cEsp09* esp)
 {
-    Esp09Work* w = &esp->work;
-    u8 r = (u8)esp->colR;
-    u8 g = (u8)esp->colG;
-    u8 b = (u8)esp->colB;
-    u8 a = (u8)esp->colA;
+    Esp09Work* w = &esp->m_Free;
+    u8 r = (u8)esp->m_Col_r;
+    u8 g = (u8)esp->m_Col_g;
+    u8 b = (u8)esp->m_Col_b;
+    u8 a = (u8)esp->m_Col_a;
 
     Esp09_Trans_Setup(esp);
-    GXSetLineWidth(w->width, 0);
-    if (esp->anmNo != 0xFF) {
+    GXSetLineWidth(w->Width, 0);
+    if (esp->m_Tex_id != 0xFF) {
         Esp09_PolyTrans(esp, r, g, b, a);
-    } else if (w->flags & 1) {
+    } else if (w->flg & 1) {
         Esp09_2DTrans(esp, r, g, b, a);
     } else {
         Esp09_3DTrans(esp, r, g, b, a);
@@ -159,7 +159,7 @@ extern "C" void Esp09_Trans(cEsp09* esp)
 void EspChannelSet09(cEsp09* esp)
 {
     GXSetTevOp(0, 0);
-    if (esp->flags & 0x80) {
+    if (esp->m_Tool_flg & 0x80) {
         GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
         GXSetTevColorOp(0, 0, 0, 2, 1, 0);
     }
@@ -169,14 +169,14 @@ void EspChannelSet09(cEsp09* esp)
 
 void Esp09_Trans_Setup(cEsp09* esp)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
 
     GXSetZMode(1, 3, 0);
     GXSetCullMode(0);
     GXSetNumTexGens(0);
     GXSetNumTevStages(1);
     GXSetTevOrder(0, 0xFF, 0xFF, 4);
-    if (w->flags & 1) {
+    if (w->flg & 1) {
         Mtx44 proj;
         Mtx m;
 
@@ -187,7 +187,7 @@ void Esp09_Trans_Setup(cEsp09* esp)
         GXSetCurrentMtx(0);
     } else {
         CameraCurrentProjection();
-        GXLoadPosMtxImm(pG->Cam.viewMat, 0);
+        GXLoadPosMtxImm(pG->Cam.v_mat, 0);
         GXSetCurrentMtx(0);
     }
     EspChannelSet09(esp);
@@ -199,8 +199,8 @@ void Esp09_Trans_Setup(cEsp09* esp)
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    if (esp->anmNo != 0xFF) {
-        EspTexSet(esp->anmNo, esp->anmPtn);
+    if (esp->m_Tex_id != 0xFF) {
+        EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
         GXSetVtxDesc(0xD, 1);
         GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     }
@@ -208,19 +208,19 @@ void Esp09_Trans_Setup(cEsp09* esp)
 
 void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     Vec p;
-    s8 n1 = w->n - 1;
-    u8 step = (u8)(esp->colA / (f32)n1);
-    int idx = w->idx;
+    s8 n1 = w->maxPoints - 1;
+    u8 step = (u8)(esp->m_Col_a / (f32)n1);
+    int idx = w->nPos;
     int i;
 
     if (w->hidden != 0) {
         return;
     }
-    GXBegin(0xB0, 0, (u16)w->n);
-    for (i = 0; i < w->n; i++) {
-        p = w->pts[idx];
+    GXBegin(0xB0, 0, (u16)w->maxPoints);
+    for (i = 0; i < w->maxPoints; i++) {
+        p = w->Pos[idx];
         p.z = 0.0f;
         GXPosition3f32(p.x, p.y, p.z);
         GXColor4u8(r, g, b, a);
@@ -234,16 +234,16 @@ void Esp09_2DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 
 void Esp09_3DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     Vec* p;
-    s8 n1 = w->n - 1;
-    u8 step = (u8)(esp->colA / (f32)n1);
-    int idx = w->idx;
+    s8 n1 = w->maxPoints - 1;
+    u8 step = (u8)(esp->m_Col_a / (f32)n1);
+    int idx = w->nPos;
     int i;
 
-    GXBegin(0xB0, 0, (u16)w->n);
-    for (i = 0; i < w->n; i++) {
-        p = &w->pts[idx];
+    GXBegin(0xB0, 0, (u16)w->maxPoints);
+    for (i = 0; i < w->maxPoints; i++) {
+        p = &w->Pos[idx];
         GXPosition3f32(p->x, p->y, p->z);
         GXColor4u8(r, g, b, a);
         a -= step;
@@ -256,7 +256,7 @@ void Esp09_3DTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 
 void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     Vec d;
     Vec up;
     Vec q[2];
@@ -266,16 +266,16 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     Vec* pp;
     Vec* s;
     Vec* pn;
-    int idx = w->idx;
-    s8 n1 = w->n - 1;
+    int idx = w->nPos;
+    s8 n1 = w->maxPoints - 1;
     int i = 0;
     int first = 0;
     f32 spd;
     f32 rate;
     f32 half;
 
-    esp->scale = 1.0f;
-    spd = esp->scaleSpd;
+    esp->m_Size_mul = 1.0f;
+    spd = esp->m_Size_plus;
     // The next point pn is recomputed from idx: loop.c strength-reduces it as a giv of the biv idx
     // (`addi -12` after idx--, `add r25,r14,r20` after the wrap) and its preheader init folds to
     // the block-0 temporary `s` (kept as cse's head by the dead trailing `p = s`). The Subtract
@@ -290,7 +290,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     // the target's global-alloc order p r29 > pp r28 > esp r27 (ours ranked esp first); the pp asm
     // sits after the second PSVECAdd with a memory input written by that call so it takes no issue
     // slot before the `bl`. The wrap-arm asm also keeps `pp = p` reading p (regmove).
-    s = &w->pts[idx];
+    s = &w->Pos[idx];
     p = s;
     for (i = 0; i < n1; i++) {
         asm("" : "=m"(d));  // COMPILER-DIFF: candidate (global-alloc priority): +1 insn in esp's range only
@@ -301,12 +301,12 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
             idx = n1;
             asm("" : "=m"(d) : "r"(p), "r"(p));  // COMPILER-DIFF: candidate (global-alloc priority)
         }
-        pn = &w->pts[idx];
+        pn = &w->Pos[idx];
         asm("" : "=r"(p) : "0"(pn));  // COMPILER-DIFF: candidate (cse canonical register): tied copy, regmove emits the mr
         rate = (f32)i / (f32)n1;
-        half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
+        half = (rate * esp->m_Size_base_y + (1.0f - rate) * esp->m_Size_base_x) * 0.1f;
         PSVECSubtract(pn, p0, &d);
-        if (w->flags & 1) {
+        if (w->flg & 1) {
             up.x = 0.0f;
             up.y = 0.0f;
             up.z = 1.0f;
@@ -320,10 +320,10 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
         }
 #line 463 "D:/Bio4/Prog/esp09.cpp"
         VECNormalize(&up, &up);
-        half *= esp->scale;
-        esp->scale += spd;
-        spd *= esp->scaleScale;
-        if (esp->scale < 0.0f) {
+        half *= esp->m_Size_mul;
+        esp->m_Size_mul += spd;
+        spd *= esp->m_D_size_plus;
+        if (esp->m_Size_mul < 0.0f) {
             i = n1;
         }
         PSVECScale(&up, &q[0], half);
@@ -346,20 +346,20 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 
 void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
 {
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     EspAnmData* anm;
-    int step = (u8)(esp->colA / (w->n - 1));
+    int step = (u8)(esp->m_Col_a / (w->maxPoints - 1));
     f32 s;
     f32 s2;
     f32 sw;
     f32 t0;
     f32 t1;
 
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
-    sw = 1.0f / (f32)w->n;
+    sw = 1.0f / (f32)w->maxPoints;
     t1 = 1.0f;
     t0 = 0.0f;
     s = sw * no + t0;
@@ -399,7 +399,7 @@ void Esp09_HideCheck(cEsp* esp0)
     static s32 Zs_bias = -5000;
     static s32 Zs_bias_2 = 0;  // unreferenced 4-byte .sdata word after Zs_bias (name unknown)
     cEsp09* esp = (cEsp09*)esp0;
-    Esp09Work* w = &esp->work;
+    Esp09Work* w = &esp->m_Free;
     Vec v;
     Vec s;
     Mtx m;
@@ -412,9 +412,9 @@ void Esp09_HideCheck(cEsp* esp0)
     f32 zv;
     u8 old = w->hidden;
 
-    PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-    PSMTXMultVec(m, &esp->pos, &v);
-    PSMTX44MultVec(pG->Cam.projMat, &v, &s);
+    PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+    PSMTXMultVec(m, &esp->m_Pos, &v);
+    PSMTX44MultVec(pG->Cam.ProjMat, &v, &s);
     s.x = (s.x * 0.5f + 0.5f) * Screen.width;
     s.y = (-s.y * 0.5f + 0.5f) * Screen.height;
     nz = v.z + 150.0f;
@@ -443,14 +443,14 @@ void Esp09_HideCheck(cEsp* esp0)
 
 int cEsp09::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp09Work* w = &work;
+    Esp09Work* w = &m_Free;
 
-    w->n = 4 - gen->xC8;
-    w->flags = gen->xC9;
-    if (w->n <= 1) {
-        w->n = 2;
-    } else if (w->n > 6) {
-        w->n = 6;
+    w->maxPoints = 4 - gen->Work8[0];
+    w->flg = gen->Work8[1];
+    if (w->maxPoints <= 1) {
+        w->maxPoints = 2;
+    } else if (w->maxPoints > 6) {
+        w->maxPoints = 6;
     }
     return 1;
 }

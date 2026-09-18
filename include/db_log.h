@@ -7,9 +7,9 @@
 // One debug log line (0x4C bytes).
 struct cLogWork {
     int key;        // 0x00  duplicate-suppression key (0 = none)
-    u8 color;       // 0x04  eprintf color
+    u8 m_Col;       // 0x04  eprintf color
     u8 pad_5[3];
-    char str[64];   // 0x08
+    char m_Str[64];   // 0x08
     u8 pad_48[4];
 
     void print(int x, int y);
@@ -24,16 +24,16 @@ struct cLogWork {
 // Debug log (src/game/db_log.cpp), 0x1DC0 bytes, allocated from the debug heap by LogInit.
 class cLog {
 public:
-    u8 flags;             // 0x00  bit1 = a line was added this frame, bit0 = it was a duplicate
-    u8 blink;             // 0x01  duplicate marker animation counter (0..7)
+    u8 m_Flag;             // 0x00  bit1 = a line was added this frame, bit0 = it was a duplicate
+    u8 m_RepeatCtr;             // 0x01  duplicate marker animation counter (0..7)
     u8 pad_2[4];
     u8 timer;             // 0x06  frames left to display (0xFF = always)
-    u8 cur;               // 0x07  index of the newest line
-    u8 time;              // 0x08  display duration set by modeSet
-    u8 lines;             // 0x09  visible lines
-    s16 x;                // 0x0A
-    s16 y;                // 0x0C
-    u8 scr;               // 0x0E  scroll offset
+    u8 m_BuffIdx;               // 0x07  index of the newest line
+    u8 m_DispTime;              // 0x08  display duration set by modeSet
+    u8 m_DispNum;             // 0x09  visible lines
+    s16 m_Bx;                // 0x0A
+    s16 m_By;                // 0x0C
+    u8 m_ScrOfs;               // 0x0E  scroll offset
     u8 pad_F;
     cLogWork work[100];   // 0x10
 
@@ -41,9 +41,9 @@ public:
     void mes(int a, int b, const char* fmt, ...);
     void err(int a, int b, const char* fmt, ...);
     void warn(int a, int b, const char* fmt, ...);
-    void vmes(int a, int b, const char* fmt, va_list ap);
-    void verr(int a, int b, const char* fmt, va_list ap);
-    void vwarn(int a, int b, const char* fmt, va_list ap);
+    void vmes(int flag, int col, const char* fmt, va_list ap);
+    void verr(int flag, int errId, const char* fmt, va_list ap);
+    void vwarn(int flag, int errId, const char* fmt, va_list ap);
     void clear();
     int modeReset();
     int modeSet(int x, int y, int time, int lines);   // window position/duration/size (t_log: 0x30, 0x2A, 0xFF, 0x19)

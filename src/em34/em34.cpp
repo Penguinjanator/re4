@@ -62,10 +62,10 @@ struct SubCharPtr {
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -179,13 +179,13 @@ void cEm34::move()
 {
     Em34Work* w = EM34_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em34DmCk(this);
     }
-    w->flags &= ~0x1F;
+    w->Be_flg &= ~0x1F;
     em34RouteCk(this);
-    Em34_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em34_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -197,17 +197,17 @@ void cEm34::move()
     switch (type) {
     case 0:
     default:
-        Em34ClothMove2(this, &w->cloth2);
-        Em34ClothMove1(this, &w->cloth1);
+        Em34ClothMove2(this, &w->Cloth2);
+        Em34ClothMove1(this, &w->Cloth1);
         break;
     case 1:
-        Em37HairMove(this, &w->cloth1);
-        Em37CoatMove(this, &w->cloth2);
+        Em37HairMove(this, &w->Cloth1);
+        Em37CoatMove(this, &w->Cloth2);
         break;
     case 2:
     case 3:
-        Em33ClothMove(this, &w->cloth1);
-        Em33ClothMove2(this, &w->cloth2);
+        Em33ClothMove(this, &w->Cloth1);
+        Em33ClothMove2(this, &w->Cloth2);
         break;
     }
 }
@@ -223,29 +223,29 @@ static void em34_R0_Init(cEm34* em)
     default:
         if (em->modelInit(ARC(4), ARC(8)) == 0) {
             pLog->err(0, 0, "em34() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(5), ARC(8));
         if (info) {
             em->addModel(info);
-            w->pInfo0 = info;
+            w->pShoulder = info;
         }
         info = ModInfoMgr.create(ARC(6), ARC(8));
         if (info) {
             em->addModel(info);
-            w->pInfo1 = info;
+            w->pHead = info;
         }
         info = ModInfoMgr.create(ARC(7), ARC(8));
         if (info) {
             em->addModel(info);
-            w->pInfo2 = info;
+            w->pHand = info;
         }
         break;
     case 1:
         if (em->modelInit(ARC(9), ARC(0xB)) == 0) {
             pLog->err(0, 0, "em37() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xA), ARC(0xB));
@@ -256,7 +256,7 @@ static void em34_R0_Init(cEm34* em)
     case 2:
         if (em->modelInit(ARC(0xC), ARC(0xE)) == 0) {
             pLog->err(0, 0, "em33() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xD), ARC(0xE));
@@ -268,7 +268,7 @@ static void em34_R0_Init(cEm34* em)
     case 3:
         if (em->modelInit(ARC(0xC), ARC(0xF)) == 0) {
             pLog->err(0, 0, "em33() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         info = ModInfoMgr.create(ARC(0xD), ARC(0xF));
@@ -282,24 +282,24 @@ static void em34_R0_Init(cEm34* em)
     switch (em->type) {
     case 0:
     default:
-        Em34ClothSet2(em, &w->cloth2);
-        Em34ClothSet1(em, &w->cloth1);
+        Em34ClothSet2(em, &w->Cloth2);
+        Em34ClothSet1(em, &w->Cloth1);
         break;
     case 1:
-        Em37HairSet(em, &w->cloth1);
-        Em37CoatSet(em, &w->cloth2);
+        Em37HairSet(em, &w->Cloth1);
+        Em37CoatSet(em, &w->Cloth2);
         break;
     case 2:
     case 3:
-        Em33ClothSet(em, &w->cloth1, 0);
-        Em33ClothSet2(em, &w->cloth2, 0);
+        Em33ClothSet(em, &w->Cloth1, 0);
+        Em33ClothSet2(em, &w->Cloth2, 0);
         break;
     }
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     switch (em->type) {
     case 0:
@@ -325,8 +325,8 @@ static void em34_R0_Init(cEm34* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(0x10), 0x2B, 0);
-    w->neckAng = 0.0f;
-    w->flags = 0;
+    w->Neck_dir_y = 0.0f;
+    w->Be_flg = 0;
     EmRoutineSet(em, one, 0, 0, 0);
     switch (em->type) {
     case 0:
@@ -347,15 +347,15 @@ static void em34_R0_Init(cEm34* em)
 
 static void em34_R0_Move(cEm34* em)
 {
-    Em34_R1_move_tbl[em->xFD](em);
+    Em34_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Wait(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 0x10;
-    switch (em->xFE) {
+    w->Be_flg |= 0x10;
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -370,7 +370,7 @@ static void em34_R1_Wait(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 30, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         MotionMoveF(em, 0);
         if (em34DeadCk(em)) {
@@ -384,8 +384,8 @@ static void em34_R1_Walk(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 0x10;
-    switch (em->xFE) {
+    w->Be_flg |= 0x10;
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -400,10 +400,10 @@ static void em34_R1_Walk(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x18), 0, 10, 5, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMoveF(em, 0);
         if (em->type == 1 && em->hp < 500) {
             if (em->plDist2 < 1000000.0f) {
@@ -422,8 +422,8 @@ static void em34_R1_Atk(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 0x10;
-    switch (em->xFE) {
+    w->Be_flg |= 0x10;
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -438,11 +438,11 @@ static void em34_R1_Atk(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x15), (int) ARC(0x16), 10, 1, 0);
             break;
         }
-        w->atkHit = 0;
-        em->xFE++;
+        w->Atk_ck = 0;
+        em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 32.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->Go_pos, em->ang.y, PI / 32.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 0, 0, 0);
         } else if (em->seFlags28B & 1) {
@@ -456,16 +456,16 @@ static void em34_R0_Damage(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 8;
-    Em34_R2_move_tbl[em->xFD](em);
+    w->Be_flg |= 8;
+    Em34_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Dm_Normal(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 0x10;
-    switch (em->xFE) {
+    w->Be_flg |= 0x10;
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -480,7 +480,7 @@ static void em34_R1_Dm_Normal(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 1, 0, 10);
@@ -493,15 +493,15 @@ static void em34_R0_Die(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    w->flags |= 8;
-    Em34_R3_move_tbl[em->xFD](em);
+    w->Be_flg |= 8;
+    Em34_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em34_R1_Die_Normal(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         switch (em->type) {
         case 0:
@@ -516,27 +516,27 @@ static void em34_R1_Die_Normal(cEm34* em)
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(0);
-            em->clearStatus(5);
-            em->clearStatus(6);
-            em->clearStatus(7);
-            em->atari.flags &= ~0x300;
-            em->xFE++;
+            em->clearStatus(EM_STATUS_ACTIVE);
+            em->clearStatus(EM_STATUS_DOGCK);
+            em->clearStatus(EM_STATUS_DOGATK);
+            em->atari.m_flag &= ~0x300;
+            em->r_no_2++;
         }
         break;
     case 2:
-        w->timer = 30;
-        em->xFE++;
+        w->Timer = 30;
+        em->r_no_2++;
     case 3:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            em->alpha -= 0.02f;
-            if (em->alpha < 0.0f) {
-                em->alpha = 0.0f;
+            em->invisible_factor -= 0.02f;
+            if (em->invisible_factor < 0.0f) {
+                em->invisible_factor = 0.0f;
                 em->be_flag &= ~2;
             }
         }
@@ -551,30 +551,30 @@ void em34RouteCk(cEm34* em)
     if (em->hp <= 0) {
         return;
     }
-    if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {
-        w->flags |= 1;
+    if (RouteCkToPos(em, &pPL->pos, &w->Pl_pos, 0, 0)) {
+        w->Be_flg |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
-    w->routeAngAbs = fabsf(w->routeAng);
-    if (em->xFC == 0) {
+    w->routeAng = Muku(&em->pos, &w->Pl_pos, em->ang.y, PI);
+    w->Pl_rot = fabsf(w->routeAng);
+    if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
-        w->routeAngAbs = 0.0f;
+        w->Pl_rot = 0.0f;
         em->plDist2 = 100000000.0f;
     }
-    w->targetPos = w->routePos;
-    w->targetAng = w->routeAng;
-    w->targetAngAbs = w->routeAngAbs;
-    w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
-    w->flags &= ~4;
-    if (w->flags & 2) {
-        if (!(w->flags & 1) || em->plDist2 > em->x374) {
-            w->targetPos = w->subRoutePos;
-            w->targetAng = w->subAng;
-            w->targetAngAbs = w->subAngAbs;
-            w->targetDist = em->x374;
-            w->pTarget = pSUBS;
-            w->flags |= 4;
+    w->Go_pos = w->Pl_pos;
+    w->Go_dir = w->routeAng;
+    w->Go_rot = w->Pl_rot;
+    w->L_go = em->plDist2;
+    w->pEm = pPLS;
+    w->Be_flg &= ~4;
+    if (w->Be_flg & 2) {
+        if (!(w->Be_flg & 1) || em->plDist2 > em->l_sub) {
+            w->Go_pos = w->Sub_pos;
+            w->Go_dir = w->Sub_dir;
+            w->Go_rot = w->Sub_rot;
+            w->L_go = em->l_sub;
+            w->pEm = pSUBS;
+            w->Be_flg |= 4;
         }
     }
 }
@@ -594,15 +594,15 @@ void em34NeckMove(cEm34* em)
         v.z = 0.0f;
         PSMTXMultVec(h->mat, &v, &v);
     }
-    if (w->flags & 0x10) {
-        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->rot.y, 1.0471976f) * 0.1f;
+    if (w->Be_flg & 0x10) {
+        w->Neck_dir_y = w->Neck_dir_y * 0.9f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f) * 0.1f;
     } else {
-        w->neckAng = w->neckAng * 0.9f;
+        w->Neck_dir_y = w->Neck_dir_y * 0.9f;
     }
     p = em->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
     ((cParts*) p)->addRot.x = 0.0f;
-    ((cParts*) p)->addRot.y = w->neckAng;
+    ((cParts*) p)->addRot.y = w->Neck_dir_y;
     ((cParts*) p)->addRot.z = 0.0f;
 }
 
@@ -610,22 +610,22 @@ int em34AtkCk(cEm34* em, int no, int parts)
 {
     Em34Work* w = EM34_WK(em);
 
-    if (w->atkHit) {
+    if (w->Atk_ck) {
         return 0;
     }
     {
         EmAtkInfo* atk = &em34_atk_tbl[no];
         cModel* p = em->getPartsPtr(parts);
-        int hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+        int hit = EmAtkHitCk(atk, &p->world, &p->world_old, 0);
 
         if (hit) {
             if (hit & 1) {
-                EmPlBloodSet(em, &p->worldPos, 1, 0xFF, 0xFF);
-                w->atkHit = 1;
+                EmPlBloodSet(em, &p->world, 1, 0xFF, 0xFF);
+                w->Atk_ck = 1;
             }
             if (hit & 2) {
-                EmSubBloodSet(em, &p->worldPos, 1, 0xFF, 0xFF);
-                w->atkHit = 1;
+                EmSubBloodSet(em, &p->world, 1, 0xFF, 0xFF);
+                w->Atk_ck = 1;
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);

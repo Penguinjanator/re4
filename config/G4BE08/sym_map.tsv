@@ -7456,10 +7456,16 @@ address	size	section	unit	scope	name	demangled
 0x8021D888	0x1B8	.rodata	game/ctrl14.cpp	global	lbl_8021D888	.
 0x8021DA40	0x98	.rodata	game/ctrl14.cpp	global	_vt.7cCtrl14	cCtrl14 virtual table
 0x8021DAD8	0x28	.rodata	game/ctrl14.cpp	local	cUnit_virtual_table_8021DAD8	cUnit virtual table
-0x8021DB00	0x1A8	.rodata	game/emBar.cpp	global	lbl_8021DB00	.
+0x8021DB00	0x7C	.rodata	game/emBar.cpp	global	lbl_8021DB00	.
+0x8021DB7C	0xC	.rodata	game/emBar.cpp	local	ofs.300	ofs.300
+0x8021DB88	0xC	.rodata	game/emBar.cpp	local	size.301	size.301
+0x8021DB94	0x114	.rodata	game/emBar.cpp	local	lbl_8021DB94	lbl_8021DB94
 0x8021DCA8	0x58	.rodata	game/emBar.cpp	global	_vt.6cEmBar	cEmBar virtual table
 0x8021DD00	0x28	.rodata	game/emBar.cpp	local	cUnit_virtual_table_8021DD00	cUnit virtual table
-0x8021DD28	0x5F0	.rodata	game/emwep.cpp	global	lbl_8021DD28	.
+0x8021DD28	0xCC	.rodata	game/emwep.cpp	global	lbl_8021DD28	.
+0x8021DDF4	0xC	.rodata	game/emwep.cpp	local	ofs.411	ofs.411
+0x8021DE00	0xC	.rodata	game/emwep.cpp	local	size.412	size.412
+0x8021DE0C	0x50C	.rodata	game/emwep.cpp	local	lbl_8021DE0C	lbl_8021DE0C
 0x8021E318	0x58	.rodata	game/emwep.cpp	global	_vt.6cEmWep	cEmWep virtual table
 0x8021E370	0x28	.rodata	game/emwep.cpp	local	cUnit_virtual_table_8021E370	cUnit virtual table
 0x8021E398	0x8B0	.rodata	game/item.cpp	global	lbl_8021E398	.
@@ -7484,56 +7490,106 @@ address	size	section	unit	scope	name	demangled
 0x8021FE3A	0xCE	.rodata	game/mes.cpp	global	lbl_8021FE3A	.
 0x8021FF08	0x18	.rodata	game/mes.cpp	global	_vt.14MessageControl	MessageControl virtual table
 0x8021FF20	0x18	.rodata	game/mes.cpp	global	_vt.7Message	Message virtual table
-0x8021FF38	0x3B0	.rodata	game/obj13.cpp	global	lbl_8021FF38	.
+0x8021FF38	0x7C	.rodata	game/obj13.cpp	global	lbl_8021FF38	.
+0x8021FFB4	0xC	.rodata	game/obj13.cpp	local	p0.366	p0.366
+0x8021FFC0	0xC	.rodata	game/obj13.cpp	local	p1.367	p1.367
+0x8021FFCC	0x31C	.rodata	game/obj13.cpp	local	lbl_8021FFCC	lbl_8021FFCC
 0x802202E8	0x40	.rodata	game/obj13.cpp	global	_vt.10cObjLadder	cObjLadder virtual table
 0x80220328	0x28	.rodata	game/obj13.cpp	local	cUnit_virtual_table_80220328	cUnit virtual table
-0x80220350	0x1C8	.rodata	game/obj14.cpp	global	lbl_80220350	.
+0x80220350	0x68	.rodata	game/obj14.cpp	global	lbl_80220350	.
+0x802203B8	0xC	.rodata	game/obj14.cpp	local	l0.234	l0.234
+0x802203C4	0xC	.rodata	game/obj14.cpp	local	l1.235	l1.235
+0x802203D0	0x148	.rodata	game/obj14.cpp	local	lbl_802203D0	lbl_802203D0
 0x80220518	0x40	.rodata	game/obj14.cpp	global	_vt.8cObjBell	cObjBell virtual table
 0x80220558	0x28	.rodata	game/obj14.cpp	local	cUnit_virtual_table_80220558	cUnit virtual table
-0x80220580	0x1C8	.rodata	game/obj15.cpp	local	lbl_80220580	.
+0x80220580	0x68	.rodata	game/obj15.cpp	local	lbl_80220580	.
+0x802205E8	0xC	.rodata	game/obj15.cpp	local	p0.333	p0.333
+0x802205F4	0xC	.rodata	game/obj15.cpp	local	p1.334	p1.334
+0x80220600	0x148	.rodata	game/obj15.cpp	local	lbl_80220600	lbl_80220600
 0x80220748	0x40	.rodata	game/obj15.cpp	global	_vt.11cObjGatling	cObjGatling virtual table
 0x80220788	0x28	.rodata	game/obj15.cpp	local	cUnit_virtual_table_80220788	cUnit virtual table
-0x802207B0	0x248	.rodata	game/obj16.cpp	global	lbl_802207B0	.
+0x802207B0	0x7C	.rodata	game/obj16.cpp	global	lbl_802207B0	.
+0x8022082C	0xC	.rodata	game/obj16.cpp	local	p0.351	p0.351
+0x80220838	0xC	.rodata	game/obj16.cpp	local	p1.352	p1.352
+0x80220844	0x1B4	.rodata	game/obj16.cpp	local	lbl_80220844	lbl_80220844
 0x802209F8	0x40	.rodata	game/obj16.cpp	global	_vt.6cObj16	cObj16 virtual table
 0x80220A38	0x28	.rodata	game/obj16.cpp	local	cUnit_virtual_table_80220A38	cUnit virtual table
-0x80220A60	0xD8	.rodata	game/obj19.cpp	global	lbl_80220A60	.
+0x80220A60	0xC	.rodata	game/obj19.cpp	global	_8cItemObj.zero	_8cItemObj.zero
+0x80220A6C	0xC	.rodata	game/obj19.cpp	local	p1.108	p1.108
+0x80220A78	0xC	.rodata	game/obj19.cpp	local	p1.115	p1.115
 0x80220B38	0x40	.rodata	game/obj19.cpp	global	_vt.8cItemObj	cItemObj virtual table
 0x80220B78	0x28	.rodata	game/obj19.cpp	local	cUnit_virtual_table_80220B78	cUnit virtual table
-0x80220BA0	0x298	.rodata	game/obj1b.cpp	global	lbl_80220BA0	.
+0x80220BA0	0x74	.rodata	game/obj1b.cpp	global	lbl_80220BA0	.
+0x80220C14	0xC	.rodata	game/obj1b.cpp	local	p0.237	p0.237
+0x80220C20	0xC	.rodata	game/obj1b.cpp	local	p1.238	p1.238
+0x80220C2C	0x20C	.rodata	game/obj1b.cpp	local	lbl_80220C2C	lbl_80220C2C
 0x80220E38	0x40	.rodata	game/obj1b.cpp	global	_vt.9cObjSpear	cObjSpear virtual table
 0x80220E78	0x28	.rodata	game/obj1b.cpp	local	cUnit_virtual_table_80220E78	cUnit virtual table
-0x80220EA0	0x1C0	.rodata	game/obj1c.cpp	global	lbl_80220EA0	.
+0x80220EA0	0x74	.rodata	game/obj1c.cpp	global	lbl_80220EA0	.
+0x80220F14	0xC	.rodata	game/obj1c.cpp	local	p0.216	p0.216
+0x80220F20	0xC	.rodata	game/obj1c.cpp	local	p1.217	p1.217
+0x80220F2C	0x134	.rodata	game/obj1c.cpp	local	lbl_80220F2C	lbl_80220F2C
 0x80221060	0x40	.rodata	game/obj1c.cpp	global	_vt.6cObj1c	cObj1c virtual table
 0x802210A0	0x28	.rodata	game/obj1c.cpp	local	cUnit_virtual_table_802210A0	cUnit virtual table
-0x802210C8	0x168	.rodata	game/obj1d.cpp	global	lbl_802210C8	.
+0x802210C8	0x5C	.rodata	game/obj1d.cpp	global	lbl_802210C8	.
+0x80221124	0xC	.rodata	game/obj1d.cpp	local	p0.159	p0.159
+0x80221130	0xC	.rodata	game/obj1d.cpp	local	p1.160	p1.160
+0x8022113C	0xF4	.rodata	game/obj1d.cpp	local	lbl_8022113C	lbl_8022113C
 0x80221230	0x40	.rodata	game/obj1d.cpp	global	_vt.9cObjChain	cObjChain virtual table
 0x80221270	0x28	.rodata	game/obj1d.cpp	local	cUnit_virtual_table_80221270	cUnit virtual table
-0x80221298	0x170	.rodata	game/obj20.cpp	global	lbl_80221298	.
+0x80221298	0x80	.rodata	game/obj20.cpp	global	lbl_80221298	.
+0x80221318	0xC	.rodata	game/obj20.cpp	local	p0.228	p0.228
+0x80221324	0xC	.rodata	game/obj20.cpp	local	p1.229	p1.229
+0x80221330	0xD8	.rodata	game/obj20.cpp	local	lbl_80221330	lbl_80221330
 0x80221408	0x40	.rodata	game/obj20.cpp	global	_vt.12cObjObaModel	cObjObaModel virtual table
 0x80221448	0x28	.rodata	game/obj20.cpp	local	cUnit_virtual_table_80221448	cUnit virtual table
-0x80221470	0x180	.rodata	game/obj26.cpp	global	lbl_80221470	.
+0x80221470	0x7C	.rodata	game/obj26.cpp	global	lbl_80221470	.
+0x802214EC	0xC	.rodata	game/obj26.cpp	local	p0.234	p0.234
+0x802214F8	0xC	.rodata	game/obj26.cpp	local	p1.235	p1.235
+0x80221504	0xEC	.rodata	game/obj26.cpp	local	lbl_80221504	lbl_80221504
 0x802215F0	0x40	.rodata	game/obj26.cpp	global	_vt.6cObj26	cObj26 virtual table
 0x80221630	0x28	.rodata	game/obj26.cpp	local	cUnit_virtual_table_80221630	cUnit virtual table
-0x80221658	0x280	.rodata	game/objBull.cpp	global	lbl_80221658	.
+0x80221658	0xAC	.rodata	game/objBull.cpp	global	lbl_80221658	.
+0x80221704	0xC	.rodata	game/objBull.cpp	local	p0.381	p0.381
+0x80221710	0xC	.rodata	game/objBull.cpp	local	p1.382	p1.382
+0x8022171C	0x1BC	.rodata	game/objBull.cpp	local	lbl_8022171C	lbl_8022171C
 0x802218D8	0x40	.rodata	game/objBull.cpp	global	_vt.8cObjBull	cObjBull virtual table
 0x80221918	0x28	.rodata	game/objBull.cpp	local	cUnit_virtual_table_80221918	cUnit virtual table
-0x80221940	0x298	.rodata	game/objGondola.cpp	global	lbl_80221940	.
+0x80221940	0xAC	.rodata	game/objGondola.cpp	global	lbl_80221940	.
+0x802219EC	0xC	.rodata	game/objGondola.cpp	local	p0.378	p0.378
+0x802219F8	0xC	.rodata	game/objGondola.cpp	local	p1.379	p1.379
+0x80221A04	0x1D4	.rodata	game/objGondola.cpp	local	lbl_80221A04	lbl_80221A04
 0x80221BD8	0x40	.rodata	game/objGondola.cpp	global	_vt.11cObjGondola	cObjGondola virtual table
 0x80221C18	0x28	.rodata	game/objGondola.cpp	local	cUnit_virtual_table_80221C18	cUnit virtual table
-0x80221C40	0x210	.rodata	game/objMissile.cpp	global	lbl_80221C40	.
+0x80221C40	0xAC	.rodata	game/objMissile.cpp	global	lbl_80221C40	.
+0x80221CEC	0xC	.rodata	game/objMissile.cpp	local	p0.321	p0.321
+0x80221CF8	0xC	.rodata	game/objMissile.cpp	local	p1.322	p1.322
+0x80221D04	0x14C	.rodata	game/objMissile.cpp	local	lbl_80221D04	lbl_80221D04
 0x80221E50	0x40	.rodata	game/objMissile.cpp	global	_vt.11cObjMissile	cObjMissile virtual table
 0x80221E90	0x28	.rodata	game/objMissile.cpp	local	cUnit_virtual_table_80221E90	cUnit virtual table
-0x80221EB8	0x288	.rodata	game/objPillar.cpp	global	lbl_80221EB8	.
+0x80221EB8	0xAC	.rodata	game/objPillar.cpp	global	lbl_80221EB8	.
+0x80221F64	0xC	.rodata	game/objPillar.cpp	local	p0.387	p0.387
+0x80221F70	0xC	.rodata	game/objPillar.cpp	local	p1.388	p1.388
+0x80221F7C	0x1C4	.rodata	game/objPillar.cpp	local	lbl_80221F7C	lbl_80221F7C
 0x80222140	0x40	.rodata	game/objPillar.cpp	global	_vt.10cObjPillar	cObjPillar virtual table
 0x80222180	0x28	.rodata	game/objPillar.cpp	local	cUnit_virtual_table_80222180	cUnit virtual table
-0x802221A8	0x400	.rodata	game/objRobo.cpp	global	lbl_802221A8	.
+0x802221A8	0xC0	.rodata	game/objRobo.cpp	global	lbl_802221A8	.
+0x80222268	0xC	.rodata	game/objRobo.cpp	local	p0.381	p0.381
+0x80222274	0xC	.rodata	game/objRobo.cpp	local	p1.382	p1.382
+0x80222280	0x328	.rodata	game/objRobo.cpp	local	lbl_80222280	lbl_80222280
 0x802225A8	0x40	.rodata	game/objRobo.cpp	global	_vt.8cObjRobo	cObjRobo virtual table
 0x802225E8	0x28	.rodata	game/objRobo.cpp	local	cUnit_virtual_table_802225E8	cUnit virtual table
-0x80222610	0x318	.rodata	game/objRocket.cpp	global	lbl_80222610	.
+0x80222610	0x70	.rodata	game/objRocket.cpp	global	lbl_80222610	.
+0x80222680	0xC	.rodata	game/objRocket.cpp	global	_10cObjRocket.lightPos	_10cObjRocket.lightPos
+0x8022268C	0xC	.rodata	game/objRocket.cpp	global	_10cObjRocket.lightSize	_10cObjRocket.lightSize
+0x80222698	0x290	.rodata	game/objRocket.cpp	local	lbl_80222698	lbl_80222698
 0x80222928	0xB0	.rodata	game/objRocket.cpp	global	_vt.12cObjLauncher	cObjLauncher virtual table
 0x802229D8	0x40	.rodata	game/objRocket.cpp	global	_vt.10cObjRocket	cObjRocket virtual table
 0x80222A18	0x28	.rodata	game/objRocket.cpp	local	cUnit_virtual_table_80222A18	cUnit virtual table
-0x80222A40	0x170	.rodata	game/objSubWep.cpp	global	lbl_80222A40	.
+0x80222A40	0x13C	.rodata	game/objSubWep.cpp	global	lbl_80222A40	.
+0x80222B7C	0xC	.rodata	game/objSubWep.cpp	local	p0.382	p0.382
+0x80222B88	0xC	.rodata	game/objSubWep.cpp	local	p1.383	p1.383
+0x80222B94	0x1C	.rodata	game/objSubWep.cpp	local	lbl_80222B94	lbl_80222B94
 0x80222BB0	0xC	.rodata	game/objSubWep.cpp	global	speedGre.958	speedGre.958
 0x80222BBC	0xC	.rodata	game/objSubWep.cpp	global	speedEgg.959	speedEgg.959
 0x80222BC8	0x130	.rodata	game/objSubWep.cpp	global	lbl_80222BC8	.
@@ -7543,16 +7599,25 @@ address	size	section	unit	scope	name	demangled
 0x80222DE8	0x50	.rodata	game/objSubWep.cpp	global	_vt.11cObjGrenade	cObjGrenade virtual table
 0x80222E38	0x50	.rodata	game/objSubWep.cpp	global	_vt.7cSubWep	cSubWep virtual table
 0x80222E88	0x28	.rodata	game/objSubWep.cpp	local	cUnit_virtual_table_80222E88	cUnit virtual table
-0x80222EB0	0x280	.rodata	game/objTrolley.cpp	global	lbl_80222EB0	.
+0x80222EB0	0xAC	.rodata	game/objTrolley.cpp	global	lbl_80222EB0	.
+0x80222F5C	0xC	.rodata	game/objTrolley.cpp	local	p0.387	p0.387
+0x80222F68	0xC	.rodata	game/objTrolley.cpp	local	p1.388	p1.388
+0x80222F74	0x1BC	.rodata	game/objTrolley.cpp	local	lbl_80222F74	lbl_80222F74
 0x80223130	0x40	.rodata	game/objTrolley.cpp	global	_vt.11cObjTrolley	cObjTrolley virtual table
 0x80223170	0x28	.rodata	game/objTrolley.cpp	local	cUnit_virtual_table_80223170	cUnit virtual table
-0x80223198	0xB0	.rodata	game/objWep.cpp	global	lbl_80223198	.
+0x80223198	0x3C	.rodata	game/objWep.cpp	global	lbl_80223198	.
+0x802231D4	0xC	.rodata	game/objWep.cpp	local	p0.321	p0.321
+0x802231E0	0xC	.rodata	game/objWep.cpp	local	p1.322	p1.322
+0x802231EC	0x5C	.rodata	game/objWep.cpp	local	lbl_802231EC	lbl_802231EC
 0x80223248	0x228	.rodata	game/objWep.cpp	global	ofs.1065	ofs.1065
 0x80223470	0x1A8	.rodata	game/objWep.cpp	global	lbl_80223470	.
 0x80223618	0xB0	.rodata	game/objWep.cpp	global	_vt.7cObjWep	cObjWep virtual table
 0x802236C8	0x10	.rodata	game/objWep.cpp	local	lbl_802236C8	.
 0x802236D8	0x28	.rodata	game/objWep.cpp	local	cUnit_virtual_table_802236D8	cUnit virtual table
-0x80223700	0x1A8	.rodata	game/objYagura.cpp	global	lbl_80223700	.
+0x80223700	0xAC	.rodata	game/objYagura.cpp	global	lbl_80223700	.
+0x802237AC	0xC	.rodata	game/objYagura.cpp	local	p0.249	p0.249
+0x802237B8	0xC	.rodata	game/objYagura.cpp	local	p1.250	p1.250
+0x802237C4	0xE4	.rodata	game/objYagura.cpp	local	lbl_802237C4	lbl_802237C4
 0x802238A8	0x40	.rodata	game/objYagura.cpp	global	_vt.10cObjYagura	cObjYagura virtual table
 0x802238E8	0x28	.rodata	game/objYagura.cpp	local	cUnit_virtual_table_802238E8	cUnit virtual table
 0x80223910	0x160	.rodata	game/option.cpp	global	lbl_80223910	.
@@ -7561,7 +7626,7 @@ address	size	section	unit	scope	name	demangled
 0x80223DA0	0x28	.rodata	game/pl_ashley.cpp	local	cUnit_virtual_table_80223DA0	cUnit virtual table
 0x80223DC8	0x178	.rodata	game/pl_debug.cpp	global	lbl_80223DC8	.
 0x80223F40	0x1D8	.rodata	game/pl_dmg.cpp	global	lbl_80223F40	.
-0x80224118	0x50	.rodata	game/pl_event.cpp	global	lbl_80224118	.
+0x80224118	0x4C	.rodata	game/pl_event.cpp	global	lbl_80224118	.
 0x80224168	0x1D8	.rodata	game/pl_knife.cpp	global	lbl_80224168	.
 0x80224340	0x1A0	.rodata	game/pl_leon.cpp	global	lbl_80224340	.
 0x802244E0	0xB8	.rodata	game/pl_leon.cpp	global	_vt.7cPlLeon	cPlLeon virtual table
@@ -7569,19 +7634,27 @@ address	size	section	unit	scope	name	demangled
 0x802245C0	0x68	.rodata	game/pl_npc.cpp	local	lbl_802245C0	.
 0x80224628	0xC	.rodata	game/pl_npc.cpp	global	_8cSubChar.atckPos	cSubChar::atckPos
 0x80224634	0xC	.rodata	game/pl_npc.cpp	global	_8cSubChar.atckPos2	cSubChar::atckPos2
-0x80224640	0x220	.rodata	game/pl_npc.cpp	global	lbl_80224640	.
+0x80224640	0xC8	.rodata	game/pl_npc.cpp	global	lbl_80224640	.
+0x80224708	0xC	.rodata	game/pl_npc.cpp	local	lightOfs.405	lightOfs.405
+0x80224714	0xC	.rodata	game/pl_npc.cpp	local	lightSize.406	lightSize.406
+0x80224720	0x140	.rodata	game/pl_npc.cpp	local	lbl_80224720	lbl_80224720
 0x80224860	0xC	.rodata	game/pl_npc.cpp	global	v_ok.1308	v_ok.1308
 0x8022486C	0x1E8	.rodata	game/pl_npc.cpp	global	lbl_8022486C	.
 0x80224A54	0xC	.rodata	game/pl_npc.cpp	global	chasePosFwd.1454	chasePosFwd.1454
 0x80224A60	0xC	.rodata	game/pl_npc.cpp	global	chasePosBck.1455	chasePosBck.1455
-0x80224A6C	0x214	.rodata	game/pl_npc.cpp	global	lbl_80224A6C	.
+0x80224A6C	0x58	.rodata	game/pl_npc.cpp	global	lbl_80224A6C	.
+0x80224AC4	0xC	.rodata	game/pl_npc.cpp	local	chk.618	chk.618
+0x80224AD0	0x1B0	.rodata	game/pl_npc.cpp	local	lbl_80224AD0	lbl_80224AD0
 0x80224C80	0x88	.rodata	game/pl_npc.cpp	global	_vt.8cSubChar	cSubChar virtual table
 0x80224D08	0x28	.rodata	game/pl_npc.cpp	local	cUnit_virtual_table_80224D08	cUnit virtual table
 0x80224D30	0x8	.rodata	game/pl_npc.cpp	global	lbl_80224D30	.
 0x80224D38	0x3C	.rodata	game/pl_push.cpp	global	lbl_80224D38	.
 0x80224D74	0xC	.rodata	game/pl_push.cpp	global	sp.609	sp.609
 0x80224D80	0x98	.rodata	game/pl_push.cpp	global	lbl_80224D80	.
-0x80224E18	0x3B0	.rodata	game/player.cpp	local	lbl_80224E18	.
+0x80224E18	0x88	.rodata	game/player.cpp	local	lbl_80224E18	.
+0x80224EA0	0xC	.rodata	game/player.cpp	local	lightOfs.375	lightOfs.375
+0x80224EAC	0xC	.rodata	game/player.cpp	local	lightSize.376	lightSize.376
+0x80224EB8	0x310	.rodata	game/player.cpp	local	lbl_80224EB8	lbl_80224EB8
 0x802251C8	0x718	.rodata	game/snd.cpp	global	lbl_802251C8	.
 0x802258E0	0x380	.rodata	game/sscrn.cpp	global	lbl_802258E0	.
 0x80225C60	0x8	.rodata	lib/tealeaf.c	local	lbl_80225C60	.
@@ -7610,7 +7683,6 @@ address	size	section	unit	scope	name	demangled
 0x802260C4	0x168	.rodata	lib/builtin-delete.c	global	lbl_802260C4	.
 0x8022622C	0x8C	.rodata	lib/_eh.c	global	lbl_8022622C	.
 0x802262B8	0xC	.rodata	lib/quat.c	global	@207_802262B8	@207
-0x802262C4	0x4	.rodata	lib/quat.c	global	lbl_802262C4	.
 0x802262C8	0x90	.rodata	game/snd_efx.cpp	global	lbl_802262C8	.
 0x80226358	0xA8	.rodata	game/snd_iss0.cpp	global	lbl_80226358	.
 0x80226400	0x54	.rodata	game/snd_iss1.cpp	global	lbl_80226400	.
@@ -7619,7 +7691,7 @@ address	size	section	unit	scope	name	demangled
 0x80226514	0x54	.rodata	game/snd_seq0.cpp	global	lbl_80226514	.
 0x80226568	0x54	.rodata	game/snd_seq1.cpp	global	lbl_80226568	.
 0x802265BC	0xE4	.rodata	game/snd_seq2.cpp	global	lbl_802265BC	.
-0x802266A0	0x70	.rodata	game/snd_seq3.cpp	global	lbl_802266A0	.
+0x802266A0	0x6C	.rodata	game/snd_seq3.cpp	global	lbl_802266A0	.
 0x80226710	0x60	.rodata	game/snd_str0.cpp	global	lbl_80226710	.
 0x80226770	0x54	.rodata	game/snd_str1.cpp	global	lbl_80226770	.
 0x802267C4	0x54	.rodata	game/snd_str2.cpp	global	lbl_802267C4	.
@@ -7629,7 +7701,7 @@ address	size	section	unit	scope	name	demangled
 0x80226AAC	0x54	.rodata	game/snd_sub1.cpp	global	lbl_80226AAC	.
 0x80226B00	0x54	.rodata	game/snd_sub2.cpp	global	lbl_80226B00	.
 0x80226B54	0x54	.rodata	game/snd_sub3.cpp	global	lbl_80226B54	.
-0x80226BA8	0x90	.rodata	game/snd_iss2.cpp	global	lbl_80226BA8	.
+0x80226BA8	0x8C	.rodata	game/snd_iss2.cpp	global	lbl_80226BA8	.
 0x80226C38	0x108	.rodata	game/snd_iss3.cpp	global	lbl_80226C38	.
 0x80226D40	0xB8	.rodata	game/snd_iss4.cpp	global	lbl_80226D40	.
 0x80226DF8	0x2D	.rodata	lib/adx_tlk.c	global	...rodata.0	...rodata.0
@@ -7712,15 +7784,12 @@ address	size	section	unit	scope	name	demangled
 0x802274D4	0x27	.rodata	lib/adx_tlk.c	global	@1219	@1219
 0x802274FB	0x1	.rodata	lib/adx_tlk.c	local	lbl_802274FB	.
 0x802274FC	0x2A	.rodata	lib/adx_tlk.c	global	@1220	@1220
-0x80227526	0x2	.rodata	lib/adx_tlk.c	global	lbl_80227526	.
 0x80227528	0x29	.rodata	lib/adx_tsvr.c	global	@328_80227528	@328
 0x80227551	0x3	.rodata	lib/adx_tsvr.c	global	lbl_80227551	.
 0x80227554	0x3F	.rodata	lib/adx_tsvr.c	global	@506_80227554	@506
 0x80227593	0x1	.rodata	lib/adx_tsvr.c	global	lbl_80227593	.
 0x80227594	0x2A	.rodata	lib/adx_tsvr.c	local	@541	@541
-0x802275BE	0x2	.rodata	lib/adx_tsvr.c	global	lbl_802275BE	.
 0x802275C0	0x21	.rodata	lib/adx_rnaa.c	global	@438	@438
-0x802275E1	0x7	.rodata	lib/adx_rnaa.c	global	lbl_802275E1	.
 0x802275E8	0x23	.rodata	lib/lsc.c	global	@191_802275E8	@191
 0x8022760B	0x1	.rodata	lib/lsc.c	global	lbl_8022760B	.
 0x8022760C	0x25	.rodata	lib/lsc.c	global	@204	@204
@@ -7733,11 +7802,9 @@ address	size	section	unit	scope	name	demangled
 0x8022769C	0x2A	.rodata	lib/lsc.c	global	@333_8022769C	@333
 0x802276C6	0x2	.rodata	lib/lsc.c	global	lbl_802276C6	.
 0x802276C8	0x29	.rodata	lib/lsc.c	local	@334_802276C8	@334
-0x802276F1	0x7	.rodata	lib/lsc.c	global	lbl_802276F1	.
 0x802276F8	0x2D	.rodata	lib/lsc_ini.c	global	@1_802276F8	@1
 0x80227725	0x3	.rodata	lib/lsc_ini.c	global	lbl_80227725	.
 0x80227728	0x4	.rodata	lib/lsc_ini.c	global	lsc_build	lsc_build
-0x8022772C	0x4	.rodata	lib/lsc_ini.c	local	lbl_8022772C	.
 0x80227730	0x15	.rodata	lib/lsc_svr.c	global	@99_80227730	@99
 0x80227745	0x3	.rodata	lib/lsc_svr.c	global	lbl_80227745	.
 0x80227748	0x40	.rodata	lib/lsc_svr.c	global	@100_80227748	@100
@@ -7823,14 +7890,12 @@ address	size	section	unit	scope	name	demangled
 0x80227E5C	0x2E	.rodata	lib/svm.c	global	@496_80227E5C	@496
 0x80227E8A	0x2	.rodata	lib/svm.c	global	lbl_80227E8A	.
 0x80227E8C	0x2	.rodata	lib/svm.c	local	@544	@544
-0x80227E8E	0x2	.rodata	lib/svm.c	global	lbl_80227E8E	.
 0x80227E90	0x29	.rodata	lib/pl2link.c	local	@54_80227E90	@54
 0x80227EB9	0x3	.rodata	lib/pl2link.c	global	lbl_80227EB9	.
 0x80227EBC	0x38	.rodata	lib/pl2link.c	global	@55_80227EBC	@55
 0x80227EF4	0x3D	.rodata	lib/pl2link.c	local	@65_80227EF4	@65
 0x80227F31	0x3	.rodata	lib/pl2link.c	global	lbl_80227F31	.
 0x80227F34	0x31	.rodata	lib/pl2link.c	global	@66_80227F34	@66
-0x80227F65	0x3	.rodata	lib/pl2link.c	global	lbl_80227F65	.
 0x80227F68	0x2D	.rodata	lib/pl2enc.c	global	pl2enc_build	pl2enc_build
 0x80227F95	0x3	.rodata	lib/pl2enc.c	global	lbl_80227F95	.
 0x80227F98	0x400	.rodata	lib/pl2enc.c	global	pl2enc_gain_tbl	pl2enc_gain_tbl
@@ -7868,7 +7933,6 @@ address	size	section	unit	scope	name	demangled
 0x80228664	0x1B	.rodata	lib/ax_rna.c	local	@1483	@1483
 0x8022867F	0x1	.rodata	lib/ax_rna.c	global	lbl_8022867F	.
 0x80228680	0x23	.rodata	lib/ax_rna.c	local	@1484_80228680	@1484
-0x802286A3	0x5	.rodata	lib/ax_rna.c	global	lbl_802286A3	.
 0x802286A8	0x24	.rodata	lib/rna_res.c	local	...rodata.0_802286A8	...rodata.0
 0x802286CC	0x2B	.rodata	lib/rna_res.c	global	@319	@319
 0x802286F7	0x1	.rodata	lib/rna_res.c	local	lbl_802286F7	.
@@ -7880,8 +7944,7 @@ address	size	section	unit	scope	name	demangled
 0x802287C0	0x1E	.rodata	lib/adx_sjd.c	global	@727_802287C0	@727
 0x802287DE	0x2	.rodata	lib/adx_sjd.c	global	lbl_802287DE	.
 0x802287E0	0x21	.rodata	lib/adx_sjd.c	global	@728	@728
-0x80228801	0x7	.rodata	lib/adx_sjd.c	global	lbl_80228801	.
-0x80228808	0x2D	.rodata	lib/adx_bsc.c	global	...rodata.0_80228808	...rodata.0
+0x80228808	0x2D	.rodata	lib/adx_bsc.c	global	skg_version	...rodata.0
 0x80228835	0x3	.rodata	lib/adx_bsc.c	global	lbl_80228835	.
 0x80228838	0x800	.rodata	lib/adx_bsc.c	global	skg_prim_tbl	skg_prim_tbl
 0x80229038	0x5	.rodata	lib/adx_bsc.c	global	@684_80229038	@684
@@ -7890,12 +7953,9 @@ address	size	section	unit	scope	name	demangled
 0x80229060	0x23	.rodata	lib/adx_bsc.c	global	@1039	@1039
 0x80229083	0x1	.rodata	lib/adx_bsc.c	local	lbl_80229083	.
 0x80229084	0x7	.rodata	lib/adx_bsc.c	global	@1118	@1118
-0x8022908B	0x5	.rodata	lib/adx_bsc.c	global	lbl_8022908B	.
 0x80229090	0x5	.rodata	lib/adx_bsps.c	local	@50_80229090	@50
-0x80229095	0x3	.rodata	lib/adx_bsps.c	global	lbl_80229095	.
 0x80229098	0x8	.rodata	lib/adx_amp.c	local	@197	@197
 0x802290A0	0x4	.rodata	lib/adx_amp.c	global	@240_802290A0	@240
-0x802290A4	0x4	.rodata	lib/adx_amp.c	global	lbl_802290A4	.
 0x802290A8	0x7	.rodata	lib/adx_dcd.c	global	@168	@168
 0x802290AF	0x1	.rodata	lib/adx_dcd.c	global	lbl_802290AF	.
 0x802290B0	0x4	.rodata	lib/adx_dcd.c	global	@325	@325
@@ -7910,18 +7970,14 @@ address	size	section	unit	scope	name	demangled
 0x802290E4	0x4	.rodata	lib/adx_dcd.c	global	@333_802290E4	@333
 0x802290E8	0x8	.rodata	lib/adx_dcd.c	local	@335	@335
 0x802290F0	0x2	.rodata	lib/adx_errs.c	global	@86_802290F0	@86
-0x802290F2	0x6	.rodata	lib/adx_errs.c	global	lbl_802290F2	.
 0x802290F8	0x29	.rodata	lib/adx_stmc.c	global	@409_802290F8	@409
-0x80229121	0x7	.rodata	lib/adx_stmc.c	global	lbl_80229121	.
 0x80229128	0x2C	.rodata	lib/adx_mgc.c	global	@229_80229128	@229
 0x80229154	0x4	.rodata	lib/adx_mgc.c	global	lbl_80229154	.
 0x80229158	0x31	.rodata	lib/adx_mgc.c	global	@448	@448
-0x80229189	0x7	.rodata	lib/adx_mgc.c	global	lbl_80229189	.
 0x80229190	0x40	.rodata	lib/adx_dcd5.c	global	AdxQtbl	AdxQtbl
 0x802291D0	0x2E	.rodata	lib/adx_fini.c	global	@1_802291D0	@1
 0x802291FE	0x2	.rodata	lib/adx_fini.c	global	lbl_802291FE	.
 0x80229200	0x4	.rodata	lib/adx_fini.c	global	adxf_build	adxf_build
-0x80229204	0x4	.rodata	lib/adx_fini.c	global	lbl_80229204	.
 0x80229208	0x2C	.rodata	lib/adx_fs.c	global	...rodata.0_80229208	...rodata.0
 0x80229234	0x22	.rodata	lib/adx_fs.c	local	@496_80229234	@496
 0x80229256	0x2	.rodata	lib/adx_fs.c	global	lbl_80229256	.
@@ -7981,7 +8037,6 @@ address	size	section	unit	scope	name	demangled
 0x80229810	0x2F	.rodata	lib/adx_fs.c	local	@1055	@1055
 0x8022983F	0x1	.rodata	lib/adx_fs.c	local	lbl_8022983F	.
 0x80229840	0x2A	.rodata	lib/adx_fs.c	local	@1056	@1056
-0x8022986A	0x6	.rodata	lib/adx_fs.c	local	lbl_8022986A	.
 0x80229870	0x2E	.rodata	lib/cri_cvfs.c	local	...rodata.0_80229870	...rodata.0
 0x8022989E	0x2	.rodata	lib/cri_cvfs.c	local	lbl_8022989E	.
 0x802298A0	0x4	.rodata	lib/cri_cvfs.c	local	cvfs_build	cvfs_build
@@ -8182,7 +8237,6 @@ address	size	section	unit	scope	name	demangled
 0x8022A7DC	0x2B	.rodata	lib/sj_mem.c	local	@420_8022A7DC	@420
 0x8022A807	0x1	.rodata	lib/sj_mem.c	local	lbl_8022A807	.
 0x8022A808	0xC	.rodata	lib/sj_mem.c	local	@462_8022A808	@462
-0x8022A814	0x4	.rodata	lib/sj_mem.c	local	lbl_8022A814	.
 0x8022A818	0x10	.rodata	lib/sj_uni.c	local	sjuni_uuid	sjuni_uuid
 0x8022A828	0x29	.rodata	lib/sj_uni.c	global	@256_8022A828	@256
 0x8022A851	0x3	.rodata	lib/sj_uni.c	global	lbl_8022A851	.
@@ -8229,7 +8283,6 @@ address	size	section	unit	scope	name	demangled
 0x8022ABC4	0x2B	.rodata	lib/sj_uni.c	global	@495_8022ABC4	@495
 0x8022ABEF	0x1	.rodata	lib/sj_uni.c	global	lbl_8022ABEF	.
 0x8022ABF0	0xC	.rodata	lib/sj_uni.c	global	@565_8022ABF0	@565
-0x8022ABFC	0x4	.rodata	lib/sj_uni.c	global	lbl_8022ABFC	.
 0x8022AC00	0x5	.rodata	lib/adx_bwav.c	global	@5_8022AC00	@5
 0x8022AC05	0x3	.rodata	lib/adx_bwav.c	local	lbl_8022AC05	.
 0x8022AC08	0x5	.rodata	lib/adx_bwav.c	global	@7_8022AC08	@7
@@ -8237,15 +8290,12 @@ address	size	section	unit	scope	name	demangled
 0x8022AC10	0x5	.rodata	lib/adx_bwav.c	global	@157	@157
 0x8022AC15	0x3	.rodata	lib/adx_bwav.c	local	lbl_8022AC15	.
 0x8022AC18	0x5	.rodata	lib/adx_bwav.c	global	@158	@158
-0x8022AC1D	0x3	.rodata	lib/adx_bwav.c	local	lbl_8022AC1D	.
 0x8022AC20	0x5	.rodata	lib/adx_baif.c	global	@284	@284
 0x8022AC25	0x3	.rodata	lib/adx_baif.c	global	lbl_8022AC25	.
 0x8022AC28	0x5	.rodata	lib/adx_baif.c	global	@285_8022AC28	@285
-0x8022AC2D	0x3	.rodata	lib/adx_baif.c	global	lbl_8022AC2D	.
 0x8022AC30	0x5	.rodata	lib/adx_bau.c	global	@357_8022AC30	@357
 0x8022AC35	0x3	.rodata	lib/adx_bau.c	global	lbl_8022AC35	.
 0x8022AC38	0x4	.rodata	lib/adx_bau.c	global	@358_8022AC38	@358
-0x8022AC3C	0x4	.rodata	lib/adx_bau.c	local	lbl_8022AC3C	.
 0x8022AC40	0x4	.rodata	lib/adx_dcd3.c	global	@130_8022AC40	@130
 0x8022AC44	0x4	.rodata	lib/adx_dcd3.c	global	@131_8022AC44	@131
 0x8022AC48	0x8	.rodata	lib/adx_dcd3.c	local	@133_8022AC48	@133
@@ -8297,7 +8347,7 @@ address	size	section	unit	scope	name	demangled
 0x8022C640	0x10	.rodata	game/cMotBase.cpp	global	lbl_8022C640	.
 0x8022C650	0x250	.rodata	game/cockpit.cpp	global	lbl_8022C650	.
 0x8022C8A0	0x20	.rodata	game/cons.cpp	global	lbl_8022C8A0	.
-0x8022C8C0	0x8	.rodata	game/cString.cpp	global	lbl_8022C8C0	.
+0x8022C8C0	0x4	.rodata	game/cString.cpp	global	lbl_8022C8C0	.
 0x8022C8C8	0x108	.rodata	game/ctrl.cpp	global	lbl_8022C8C8	.
 0x8022C9D0	0x38	.rodata	game/ctrl.cpp	local	_vt.7cCtrl10	cCtrl10 virtual table
 0x8022CA08	0x38	.rodata	game/ctrl.cpp	global	_vt.7cCtrl01	cCtrl01 virtual table
@@ -8311,7 +8361,9 @@ address	size	section	unit	scope	name	demangled
 0x8022CF38	0x5F8	.rodata	game/db_cam.cpp	global	lbl_8022CF38	.
 0x8022D530	0x40	.rodata	game/db_log.cpp	global	lbl_8022D530	.
 0x8022D570	0x3D8	.rodata	game/db_menu.cpp	global	lbl_8022D570	.
-0x8022D948	0x2E8	.rodata	game/dbmodule.cpp	global	lbl_8022D948	.
+0x8022D948	0x104	.rodata	game/dbmodule.cpp	global	lbl_8022D948	.
+0x8022DA4C	0x3C	.rodata	game/dbmodule.cpp	local	tbl.283	tbl.283
+0x8022DA88	0x1A8	.rodata	game/dbmodule.cpp	local	lbl_8022DA88	lbl_8022DA88
 0x8022DC30	0x448	.rodata	game/debug.cpp	global	lbl_8022DC30	.
 0x8022E078	0x198	.rodata	game/dmg.cpp	global	lbl_8022E078	.
 0x8022E210	0x48	.rodata	game/dmg.cpp	global	_vt.7cDmgMgr	cDmgMgr virtual table
@@ -8332,55 +8384,102 @@ address	size	section	unit	scope	name	demangled
 0x80231480	0x28	.rodata	game/em.cpp	local	cUnit_virtual_table_80231480	cUnit virtual table
 0x802314A8	0xE0	.rodata	game/em_cloth.cpp	global	lbl_802314A8	.
 0x80231588	0x48	.rodata	game/em_dm_val.cpp	global	lbl_80231588	.
-0x802315D0	0x1E8	.rodata	game/em_set.cpp	global	lbl_802315D0	.
+0x802315D0	0x1E4	.rodata	game/em_set.cpp	global	lbl_802315D0	.
 0x802317B8	0x3D8	.rodata	game/em_sub.cpp	local	lbl_802317B8	.
-0x80231B90	0x2E8	.rodata	game/emBarred.cpp	global	lbl_80231B90	.
+0x80231B90	0x80	.rodata	game/emBarred.cpp	global	lbl_80231B90	.
+0x80231C10	0xC	.rodata	game/emBarred.cpp	local	ofs.348	ofs.348
+0x80231C1C	0xC	.rodata	game/emBarred.cpp	local	size.349	size.349
+0x80231C28	0x250	.rodata	game/emBarred.cpp	local	lbl_80231C28	lbl_80231C28
 0x80231E78	0x58	.rodata	game/emBarred.cpp	global	_vt.9cEmBarred	cEmBarred virtual table
 0x80231ED0	0x28	.rodata	game/emBarred.cpp	local	cUnit_virtual_table_80231ED0	cUnit virtual table
-0x80231EF8	0x2A0	.rodata	game/embarrel.cpp	global	lbl_80231EF8	.
+0x80231EF8	0x7C	.rodata	game/embarrel.cpp	global	lbl_80231EF8	.
+0x80231F74	0xC	.rodata	game/embarrel.cpp	local	ofs.348	ofs.348
+0x80231F80	0xC	.rodata	game/embarrel.cpp	local	size.352	size.352
+0x80231F8C	0x18	.rodata	game/embarrel.cpp	local	lbl_80231F8C	lbl_80231F8C
+0x80231FA4	0xC	.rodata	game/embarrel.cpp	local	size.356	size.356
+0x80231FB0	0x1E8	.rodata	game/embarrel.cpp	local	lbl_80231FB0	lbl_80231FB0
 0x80232198	0x58	.rodata	game/embarrel.cpp	global	_vt.9cEmBarrel	cEmBarrel virtual table
 0x802321F0	0x28	.rodata	game/embarrel.cpp	local	cUnit_virtual_table_802321F0	cUnit virtual table
-0x80232218	0x1F8	.rodata	game/embox.cpp	local	lbl_80232218	.
+0x80232218	0x7C	.rodata	game/embox.cpp	local	lbl_80232218	.
+0x80232294	0xC	.rodata	game/embox.cpp	local	ofs.264	ofs.264
+0x802322A0	0xC	.rodata	game/embox.cpp	local	size.265	size.265
+0x802322AC	0x164	.rodata	game/embox.cpp	local	lbl_802322AC	lbl_802322AC
 0x80232410	0x58	.rodata	game/embox.cpp	global	_vt.6cEmBox	cEmBox virtual table
 0x80232468	0x28	.rodata	game/embox.cpp	local	cUnit_virtual_table_80232468	cUnit virtual table
 0x80232490	0x1C0	.rodata	game/emdata.cpp	global	lbl_80232490	.
-0x80232650	0x480	.rodata	game/emdoor.cpp	global	lbl_80232650	.
+0x80232650	0x7C	.rodata	game/emdoor.cpp	global	lbl_80232650	.
+0x802326CC	0xC	.rodata	game/emdoor.cpp	local	ofs.360	ofs.360
+0x802326D8	0xC	.rodata	game/emdoor.cpp	local	size.361	size.361
+0x802326E4	0x3EC	.rodata	game/emdoor.cpp	local	lbl_802326E4	lbl_802326E4
 0x80232AD0	0x58	.rodata	game/emdoor.cpp	global	_vt.7cEmDoor	cEmDoor virtual table
 0x80232B28	0x28	.rodata	game/emdoor.cpp	local	cUnit_virtual_table_80232B28	cUnit virtual table
-0x80232B50	0x1E8	.rodata	game/emhit.cpp	global	lbl_80232B50	.
+0x80232B50	0x7C	.rodata	game/emhit.cpp	global	lbl_80232B50	.
+0x80232BCC	0xC	.rodata	game/emhit.cpp	local	ofs.228	ofs.228
+0x80232BD8	0xC	.rodata	game/emhit.cpp	local	size.229	size.229
+0x80232BE4	0x154	.rodata	game/emhit.cpp	local	lbl_80232BE4	lbl_80232BE4
 0x80232D38	0x58	.rodata	game/emhit.cpp	global	_vt.6cEmHit	cEmHit virtual table
 0x80232D90	0x28	.rodata	game/emhit.cpp	local	cUnit_virtual_table_80232D90	cUnit virtual table
-0x80232DB8	0x1F8	.rodata	game/emitem.cpp	global	lbl_80232DB8	.
+0x80232DB8	0x7C	.rodata	game/emitem.cpp	global	lbl_80232DB8	.
+0x80232E34	0xC	.rodata	game/emitem.cpp	local	ofs.231	ofs.231
+0x80232E40	0xC	.rodata	game/emitem.cpp	local	size.232	size.232
+0x80232E4C	0x164	.rodata	game/emitem.cpp	local	lbl_80232E4C	lbl_80232E4C
 0x80232FB0	0x58	.rodata	game/emitem.cpp	global	_vt.7cEmItem	cEmItem virtual table
 0x80233008	0x28	.rodata	game/emitem.cpp	local	cUnit_virtual_table_80233008	cUnit virtual table
-0x80233030	0x308	.rodata	game/emmine.cpp	local	lbl_80233030	.
+0x80233030	0xCC	.rodata	game/emmine.cpp	local	lbl_80233030	.
+0x802330FC	0xC	.rodata	game/emmine.cpp	local	ofs.384	ofs.384
+0x80233108	0xC	.rodata	game/emmine.cpp	local	size.385	size.385
+0x80233114	0x224	.rodata	game/emmine.cpp	local	lbl_80233114	lbl_80233114
 0x80233338	0x58	.rodata	game/emmine.cpp	global	_vt.7cEmMine	cEmMine virtual table
 0x80233390	0x28	.rodata	game/emmine.cpp	local	cUnit_virtual_table_80233390	cUnit virtual table
-0x802333B8	0x228	.rodata	game/emrack.cpp	global	lbl_802333B8	.
+0x802333B8	0x7C	.rodata	game/emrack.cpp	global	lbl_802333B8	.
+0x80233434	0xC	.rodata	game/emrack.cpp	local	ofs.243	ofs.243
+0x80233440	0xC	.rodata	game/emrack.cpp	local	size.244	size.244
+0x8023344C	0x194	.rodata	game/emrack.cpp	local	lbl_8023344C	lbl_8023344C
 0x802335E0	0x58	.rodata	game/emrack.cpp	global	_vt.7cEmRack	cEmRack virtual table
 0x80233638	0x28	.rodata	game/emrack.cpp	local	cUnit_virtual_table_80233638	cUnit virtual table
-0x80233660	0x4F0	.rodata	game/emrock.cpp	global	lbl_80233660	.
+0x80233660	0xB4	.rodata	game/emrock.cpp	global	lbl_80233660	.
+0x80233714	0xC	.rodata	game/emrock.cpp	local	ofs.390	ofs.390
+0x80233720	0xC	.rodata	game/emrock.cpp	local	size.391	size.391
+0x8023372C	0x424	.rodata	game/emrock.cpp	local	lbl_8023372C	lbl_8023372C
 0x80233B50	0x58	.rodata	game/emrock.cpp	global	_vt.7cEmRock	cEmRock virtual table
 0x80233BA8	0x28	.rodata	game/emrock.cpp	local	cUnit_virtual_table_80233BA8	cUnit virtual table
-0x80233BD0	0x2B8	.rodata	game/emshield.cpp	global	lbl_80233BD0	.
+0x80233BD0	0xCC	.rodata	game/emshield.cpp	global	lbl_80233BD0	.
+0x80233C9C	0xC	.rodata	game/emshield.cpp	local	ofs.381	ofs.381
+0x80233CA8	0xC	.rodata	game/emshield.cpp	local	size.382	size.382
+0x80233CB4	0x1D4	.rodata	game/emshield.cpp	local	lbl_80233CB4	lbl_80233CB4
 0x80233E88	0x58	.rodata	game/emshield.cpp	global	_vt.9cEmShield	cEmShield virtual table
 0x80233EE0	0x28	.rodata	game/emshield.cpp	local	cUnit_virtual_table_80233EE0	cUnit virtual table
-0x80233F08	0x1F0	.rodata	game/emswitch.cpp	global	lbl_80233F08	.
+0x80233F08	0x80	.rodata	game/emswitch.cpp	global	lbl_80233F08	.
+0x80233F88	0xC	.rodata	game/emswitch.cpp	local	ofs.243	ofs.243
+0x80233F94	0xC	.rodata	game/emswitch.cpp	local	size.244	size.244
+0x80233FA0	0x158	.rodata	game/emswitch.cpp	local	lbl_80233FA0	lbl_80233FA0
 0x802340F8	0x58	.rodata	game/emswitch.cpp	global	_vt.9cEmSwitch	cEmSwitch virtual table
 0x80234150	0x28	.rodata	game/emswitch.cpp	local	cUnit_virtual_table_80234150	cUnit virtual table
-0x80234178	0x1E8	.rodata	game/emtorch.cpp	global	lbl_80234178	.
+0x80234178	0x7C	.rodata	game/emtorch.cpp	global	lbl_80234178	.
+0x802341F4	0xC	.rodata	game/emtorch.cpp	local	ofs.231	ofs.231
+0x80234200	0xC	.rodata	game/emtorch.cpp	local	size.232	size.232
+0x8023420C	0x154	.rodata	game/emtorch.cpp	local	lbl_8023420C	lbl_8023420C
 0x80234360	0x58	.rodata	game/emtorch.cpp	global	_vt.8cEmTorch	cEmTorch virtual table
 0x802343B8	0x28	.rodata	game/emtorch.cpp	local	cUnit_virtual_table_802343B8	cUnit virtual table
-0x802343E0	0x298	.rodata	game/emtree.cpp	global	lbl_802343E0	.
+0x802343E0	0x84	.rodata	game/emtree.cpp	global	lbl_802343E0	.
+0x80234464	0xC	.rodata	game/emtree.cpp	local	ofs.342	ofs.342
+0x80234470	0xC	.rodata	game/emtree.cpp	local	size.343	size.343
+0x8023447C	0x1FC	.rodata	game/emtree.cpp	local	lbl_8023447C	lbl_8023447C
 0x80234678	0x58	.rodata	game/emtree.cpp	global	_vt.7cEmTree	cEmTree virtual table
 0x802346D0	0x28	.rodata	game/emtree.cpp	local	cUnit_virtual_table_802346D0	cUnit virtual table
-0x802346F8	0x350	.rodata	game/emwindow.cpp	local	lbl_802346F8	.
+0x802346F8	0x100	.rodata	game/emwindow.cpp	local	lbl_802346F8	.
+0x802347F8	0xC	.rodata	game/emwindow.cpp	local	zero.381	zero.381
+0x80234804	0xC	.rodata	game/emwindow.cpp	local	lsize.382	lsize.382
+0x80234810	0x238	.rodata	game/emwindow.cpp	local	lbl_80234810	lbl_80234810
 0x80234A48	0x58	.rodata	game/emwindow.cpp	global	_vt.9cEmWindow	cEmWindow virtual table
 0x80234AA0	0x28	.rodata	game/emwindow.cpp	local	cUnit_virtual_table_80234AA0	cUnit virtual table
 0x80234AC8	0x68	.rodata	game/eprintf.cpp	local	lbl_80234AC8	.
 0x80234B30	0x268	.rodata	game/esp.cpp	global	lbl_80234B30	.
 0x80234D98	0x2A0	.rodata	game/esp_app.cpp	local	lbl_80234D98	.
-0x80235038	0x368	.rodata	game/esp_efm.cpp	global	lbl_80235038	.
+0x80235038	0x10C	.rodata	game/esp_efm.cpp	global	lbl_80235038	.
+0x80235144	0xC	.rodata	game/esp_efm.cpp	global	efm_light_pos	efm_light_pos
+0x80235150	0xC	.rodata	game/esp_efm.cpp	global	efm_light_size	efm_light_size
+0x8023515C	0x244	.rodata	game/esp_efm.cpp	local	lbl_8023515C	lbl_8023515C
 0x802353A0	0x4C8	.rodata	game/esp_sub.cpp	global	lbl_802353A0	.
 0x80235868	0x30	.rodata	game/esp_sub.cpp	local	_vt.4cEsp	cEsp virtual table
 0x80235898	0x308	.rodata	game/espgen.cpp	global	lbl_80235898	.
@@ -8389,12 +8488,21 @@ address	size	section	unit	scope	name	demangled
 0x80235F88	0x280	.rodata	game/espgen02.cpp	global	lbl_80235F88	.
 0x80236208	0x1E8	.rodata	game/espgen10.cpp	global	lbl_80236208	.
 0x802363F0	0x120	.rodata	game/espgen40.cpp	global	lbl_802363F0	.
-0x80236510	0x390	.rodata	game/Espgen42.cpp	global	lbl_80236510	.
+0x80236510	0xF8	.rodata	game/Espgen42.cpp	global	lbl_80236510	.
+0x80236608	0xC	.rodata	game/Espgen42.cpp	local	p0.257	p0.257
+0x80236614	0xC	.rodata	game/Espgen42.cpp	local	p1.258	p1.258
+0x80236620	0x280	.rodata	game/Espgen42.cpp	local	lbl_80236620	lbl_80236620
 0x802368A0	0x28	.rodata	game/Espgen42.cpp	local	cUnit_virtual_table_802368A0	cUnit virtual table
-0x802368C8	0x218	.rodata	game/Espgen43.cpp	global	lbl_802368C8	.
+0x802368C8	0xCC	.rodata	game/Espgen43.cpp	global	lbl_802368C8	.
+0x80236994	0xC	.rodata	game/Espgen43.cpp	local	p0.229	p0.229
+0x802369A0	0xC	.rodata	game/Espgen43.cpp	local	p1.230	p1.230
+0x802369AC	0x134	.rodata	game/Espgen43.cpp	local	lbl_802369AC	lbl_802369AC
 0x80236AE0	0x28	.rodata	game/Espgen43.cpp	local	cUnit_virtual_table_80236AE0	cUnit virtual table
 0x80236B08	0x130	.rodata	game/espgen44.cpp	global	lbl_80236B08	.
-0x80236C38	0x3A0	.rodata	game/espgen45.cpp	global	lbl_80236C38	.
+0x80236C38	0xC8	.rodata	game/espgen45.cpp	global	lbl_80236C38	.
+0x80236D00	0xC	.rodata	game/espgen45.cpp	local	p0.236	p0.236
+0x80236D0C	0xC	.rodata	game/espgen45.cpp	local	p1.237	p1.237
+0x80236D18	0x2C0	.rodata	game/espgen45.cpp	local	lbl_80236D18	lbl_80236D18
 0x80236FD8	0x28	.rodata	game/espgen45.cpp	local	cUnit_virtual_table_80236FD8	cUnit virtual table
 0x80237000	0x238	.rodata	game/est.cpp	global	lbl_80237000	.
 0x80237238	0x15A0	.rodata	game/EtcModel.cpp	global	lbl_80237238	.
@@ -8422,7 +8530,7 @@ address	size	section	unit	scope	name	demangled
 0x8023BC54	0x4	.rodata	game/game.cpp	global	lbl_8023BC54	.
 0x8023BC58	0xE4	.rodata	game/geometry.cpp	global	lbl_8023BC58	.
 0x8023BD3C	0xF4	.rodata	game/gx_sub.cpp	local	lbl_8023BD3C	.
-0x8023BE30	0x18	.rodata	game/hermite.cpp	global	lbl_8023BE30	.
+0x8023BE30	0x14	.rodata	game/hermite.cpp	global	lbl_8023BE30	.
 0x8023BE48	0x478	.rodata	game/id_sys.cpp	global	lbl_8023BE48	.
 0x8023C2C0	0x184	.rodata	game/id_tex.cpp	global	lbl_8023C2C0	.
 0x8023C444	0x1C	.rodata	game/item_model.cpp	global	lbl_8023C444	.
@@ -8437,7 +8545,7 @@ address	size	section	unit	scope	name	demangled
 0x8023CE58	0x28	.rodata	game/light.cpp	global	_vt.6cLight	cLight virtual table
 0x8023CE80	0x28	.rodata	game/light.cpp	local	cUnit_virtual_table_8023CE80	cUnit virtual table
 0x8023CEA8	0xE8	.rodata	game/light01.cpp	global	lbl_8023CEA8	.
-0x8023CF90	0x28	.rodata	game/light01.cpp	global	cLight01_virtual_table	cLight01 virtual table
+0x8023CF90	0x28	.rodata	game/light01.cpp	global	_vt.8cLight01	cLight01 virtual table
 0x8023CFB8	0x28	.rodata	game/light01.cpp	global	cUnit_virtual_table_8023CFB8	cUnit virtual table
 0x8023CFE0	0x100	.rodata	game/light02.cpp	global	lbl_8023CFE0	.
 0x8023D0E0	0x124	.rodata	game/light03.cpp	global	lbl_8023D0E0	.
@@ -8445,7 +8553,7 @@ address	size	section	unit	scope	name	demangled
 0x8023D2E8	0x1B0	.rodata	game/light05.cpp	global	lbl_8023D2E8	.
 0x8023D498	0xF8	.rodata	game/light06.cpp	global	lbl_8023D498	.
 0x8023D590	0xE8	.rodata	game/light07.cpp	global	lbl_8023D590	.
-0x8023D678	0x28	.rodata	game/light07.cpp	global	cLight07_virtual_table	cLight07 virtual table
+0x8023D678	0x28	.rodata	game/light07.cpp	global	_vt.8cLight07	cLight07 virtual table
 0x8023D6A0	0x28	.rodata	game/light07.cpp	global	cUnit_virtual_table_8023D6A0	cUnit virtual table
 0x8023D6C8	0xE8	.rodata	game/light08.cpp	global	lbl_8023D6C8	.
 0x8023D7B0	0x28	.rodata	game/light08.cpp	global	_vt.8cLight08	cLight08 virtual table
@@ -8466,7 +8574,7 @@ address	size	section	unit	scope	name	demangled
 0x8023EA68	0x48	.rodata	game/model.cpp	global	_vt.t8cManager1Z10cModelInfo	cManager<cModelInfo> virtual table
 0x8023EAB0	0x28	.rodata	game/model.cpp	global	_vt.10cModelInfo	cModelInfo virtual table
 0x8023EAD8	0x30	.rodata	game/model.cpp	local	cCoord_virtual_table_8023EAD8	cCoord virtual table
-0x8023EB08	0x10	.rodata	game/model.cpp	global	lbl_8023EB08	.
+0x8023EB08	0x10	.rodata	game/model.cpp	global	ShadowPtNum	ShadowPtNum
 0x8023EB18	0x28	.rodata	game/model.cpp	local	cUnit_virtual_table_8023EB18	cUnit virtual table
 0x8023EB40	0x248	.rodata	game/motion.cpp	global	lbl_8023EB40	.
 0x8023ED88	0x150	.rodata	game/obj.cpp	global	lbl_8023ED88	.
@@ -8474,17 +8582,25 @@ address	size	section	unit	scope	name	demangled
 0x8023EF20	0x48	.rodata	game/obj.cpp	global	_vt.t8cManager1Z4cObj	cManager<cObj> virtual table
 0x8023EF68	0x40	.rodata	game/obj.cpp	global	_vt.4cObj	cObj virtual table
 0x8023EFA8	0x28	.rodata	game/obj.cpp	local	cUnit_virtual_table_8023EFA8	cUnit virtual table
-0x8023EFD0	0x1B8	.rodata	game/obj00.cpp	global	lbl_8023EFD0	.
+0x8023EFD0	0x44	.rodata	game/obj00.cpp	global	lbl_8023EFD0	.
+0x8023F014	0xC	.rodata	game/obj00.cpp	local	p0.168	p0.168
+0x8023F020	0xC	.rodata	game/obj00.cpp	local	p1.169	p1.169
+0x8023F02C	0x15C	.rodata	game/obj00.cpp	local	lbl_8023F02C	lbl_8023F02C
 0x8023F188	0x40	.rodata	game/obj00.cpp	global	_vt.6cObj00	cObj00 virtual table
 0x8023F1C8	0x28	.rodata	game/obj00.cpp	local	cUnit_virtual_table_8023F1C8	cUnit virtual table
-0x8023F1F0	0x1C8	.rodata	game/obj01.cpp	global	lbl_8023F1F0	.
+0x8023F1F0	0xCC	.rodata	game/obj01.cpp	global	lbl_8023F1F0	.
+0x8023F2BC	0xC	.rodata	game/obj01.cpp	local	p0.298	p0.298
+0x8023F2C8	0xC	.rodata	game/obj01.cpp	local	p1.299	p1.299
+0x8023F2D4	0xE4	.rodata	game/obj01.cpp	local	lbl_8023F2D4	lbl_8023F2D4
 0x8023F3B8	0x40	.rodata	game/obj01.cpp	global	_vt.6cObj01	cObj01 virtual table
 0x8023F3F8	0x28	.rodata	game/obj01.cpp	local	cUnit_virtual_table_8023F3F8	cUnit virtual table
 0x8023F420	0x50	.rodata	game/obj02.cpp	global	lbl_8023F420	.
-0x8023F470	0x40	.rodata	game/obj02.cpp	global	cObjScr_virtual_table	cObjScr virtual table
+0x8023F470	0x40	.rodata	game/obj02.cpp	global	_vt.7cObjScr	cObjScr virtual table
 0x8023F4B0	0x28	.rodata	game/obj02.cpp	global	cUnit_virtual_table_8023F4B0	cUnit virtual table
-0x8023F4D8	0x60	.rodata	game/obj03.cpp	global	lbl_8023F4D8	.
-0x8023F538	0x40	.rodata	game/obj03.cpp	global	cObj03_virtual_table	cObj03 virtual table
+0x8023F4D8	0xC	.rodata	game/obj03.cpp	global	p0.129	p0.129
+0x8023F4E4	0xC	.rodata	game/obj03.cpp	local	p1.130	p1.130
+0x8023F4F0	0x48	.rodata	game/obj03.cpp	local	lbl_8023F4F0	lbl_8023F4F0
+0x8023F538	0x40	.rodata	game/obj03.cpp	global	_vt.6cObj03	cObj03 virtual table
 0x8023F578	0x28	.rodata	game/obj03.cpp	global	cUnit_virtual_table_8023F578	cUnit virtual table
 0x8023F5A0	0x60	.rodata	game/obj04.cpp	global	lbl_8023F5A0	.
 0x8023F600	0x40	.rodata	game/obj04.cpp	global	_vt.6cObj04	cObj04 virtual table
@@ -8494,7 +8610,10 @@ address	size	section	unit	scope	name	demangled
 0x8023F778	0x28	.rodata	game/obj05.cpp	local	cUnit_virtual_table_8023F778	cUnit virtual table
 0x8023F7A0	0x40	.rodata	game/obj06.cpp	global	_vt.7cObjBox	cObjBox virtual table
 0x8023F7E0	0x28	.rodata	game/obj06.cpp	global	cUnit_virtual_table_8023F7E0	cUnit virtual table
-0x8023F808	0x168	.rodata	game/obj08.cpp	global	lbl_8023F808	.
+0x8023F808	0x54	.rodata	game/obj08.cpp	global	lbl_8023F808	.
+0x8023F85C	0xC	.rodata	game/obj08.cpp	local	p0.330	p0.330
+0x8023F868	0xC	.rodata	game/obj08.cpp	local	p1.331	p1.331
+0x8023F874	0xFC	.rodata	game/obj08.cpp	local	lbl_8023F874	lbl_8023F874
 0x8023F970	0x40	.rodata	game/obj08.cpp	global	_vt.6cObj08	cObj08 virtual table
 0x8023F9B0	0x28	.rodata	game/obj08.cpp	local	cUnit_virtual_table_8023F9B0	cUnit virtual table
 0x8023F9D8	0x1C8	.rodata	game/obj09.cpp	global	lbl_8023F9D8	.
@@ -8502,10 +8621,15 @@ address	size	section	unit	scope	name	demangled
 0x8023FBE0	0x28	.rodata	game/obj09.cpp	local	cUnit_virtual_table_8023FBE0	cUnit virtual table
 0x8023FC08	0xCC	.rodata	game/obj10.cpp	global	lbl_8023FC08	.
 0x8023FCD4	0xC	.rodata	game/obj10.cpp	global	spd.940	spd.940
-0x8023FCE0	0x118	.rodata	game/obj10.cpp	global	lbl_8023FCE0	.
+0x8023FCE0	0xC	.rodata	game/obj10.cpp	global	p0.371	p0.371
+0x8023FCEC	0xC	.rodata	game/obj10.cpp	local	p1.372	p1.372
+0x8023FCF8	0x100	.rodata	game/obj10.cpp	local	lbl_8023FCF8	lbl_8023FCF8
 0x8023FDF8	0x40	.rodata	game/obj10.cpp	global	_vt.8cWepItem	cWepItem virtual table
 0x8023FE38	0x28	.rodata	game/obj10.cpp	local	cUnit_virtual_table_8023FE38	cUnit virtual table
-0x8023FE60	0x2A0	.rodata	game/obj12.cpp	global	lbl_8023FE60	.
+0x8023FE60	0x98	.rodata	game/obj12.cpp	global	lbl_8023FE60	.
+0x8023FEF8	0xC	.rodata	game/obj12.cpp	local	p0.180	p0.180
+0x8023FF04	0xC	.rodata	game/obj12.cpp	local	p1.181	p1.181
+0x8023FF10	0x1F0	.rodata	game/obj12.cpp	local	lbl_8023FF10	lbl_8023FF10
 0x80240100	0x40	.rodata	game/obj12.cpp	global	_vt.6cObj12	cObj12 virtual table
 0x80240140	0x28	.rodata	game/obj12.cpp	local	cUnit_virtual_table_80240140	cUnit virtual table
 0x80240168	0x228	.rodata	game/obj18.cpp	global	lbl_80240168	.
@@ -8516,7 +8640,8 @@ address	size	section	unit	scope	name	demangled
 0x802407B0	0x17C	.rodata	game/pendulum.cpp	global	lbl_802407B0	.
 0x8024092C	0xC	.rodata	game/pendulum.cpp	global	vec0.672	vec0.672
 0x80240938	0xC	.rodata	game/pendulum.cpp	global	lbl_80240938	.
-0x80240944	0x5C	.rodata	game/pl_body.cpp	global	lbl_80240944	.
+0x80240944	0x50	.rodata	game/pl_body.cpp	global	lbl_80240944	.
+0x80240994	0xC	.rodata	game/pl_body.cpp	local	hand_tbl.138	hand_tbl.138
 0x802409A0	0x68	.rodata	game/pl_class.cpp	global	lbl_802409A0	.
 0x80240A08	0x21C	.rodata	game/pl_class.cpp	global	PlReloadSpeedTbl	PlReloadSpeedTbl
 0x80240C24	0x21C	.rodata	game/pl_class.cpp	global	PlReloadEndTbl	PlReloadEndTbl
@@ -8525,10 +8650,10 @@ address	size	section	unit	scope	name	demangled
 0x80241440	0xB8	.rodata	game/pl_class.cpp	global	_vt.7cPlayer	cPlayer virtual table
 0x802414F8	0x28	.rodata	game/pl_class.cpp	local	cUnit_virtual_table_802414F8	cUnit virtual table
 0x80241520	0x168	.rodata	game/pl_cloth.cpp	global	lbl_80241520	.
-0x80241688	0x278	.rodata	game/pl_sub.cpp	global	lbl_80241688	.
+0x80241688	0x274	.rodata	game/pl_sub.cpp	global	lbl_80241688	.
 0x80241900	0x350	.rodata	game/pl_wep.cpp	global	lbl_80241900	.
 0x80241C50	0x280	.rodata	game/puzzle.cpp	global	lbl_80241C50	.
-0x80241ED0	0x10	.rodata	game/quake.cpp	global	lbl_80241ED0	.
+0x80241ED0	0xC	.rodata	game/quake.cpp	global	lbl_80241ED0	.
 0x80241EE0	0x438	.rodata	game/read.cpp	global	lbl_80241EE0	.
 0x80242318	0x14	.rodata	game/rnd.cpp	global	lbl_80242318	.
 0x8024232C	0x168	.rodata	game/room_jmp.cpp	global	lbl_8024232C	.
@@ -8565,30 +8690,33 @@ address	size	section	unit	scope	name	demangled
 0x80246EE8	0x650	.rodata	game/trans.cpp	global	lbl_80246EE8	.
 0x80247538	0x1B0	.rodata	game/trans_lit.cpp	global	lbl_80247538	.
 0x802476E8	0xFC	.rodata	game/trans_ot.cpp	local	lbl_802476E8	.
-0x802477E4	0x15C	.rodata	game/tv_mode.cpp	global	lbl_802477E4	.
+0x802477E4	0x158	.rodata	game/tv_mode.cpp	global	lbl_802477E4	.
 0x80247940	0x80	.rodata	game/view.cpp	global	lbl_80247940	.
 0x802479C0	0x194	.rodata	game/xml.cpp	global	lbl_802479C0	.
 0x80247B54	0x60	.rodata	game/at_sub2.cpp	global	lbl_80247B54	.
 0x80247BB4	0x34	.rodata	game/cinesco.cpp	local	lbl_80247BB4	.
-0x80247BE8	0x1A0	.rodata	game/cloth.cpp	global	lbl_80247BE8	.
+0x80247BE8	0xAC	.rodata	game/cloth.cpp	global	lbl_80247BE8	.
+0x80247C94	0xC	.rodata	game/cloth.cpp	local	p0.219	p0.219
+0x80247CA0	0xC	.rodata	game/cloth.cpp	local	p1.220	p1.220
+0x80247CAC	0xDC	.rodata	game/cloth.cpp	local	lbl_80247CAC	lbl_80247CAC
 0x80247D88	0x28	.rodata	game/cloth.cpp	local	cUnit_virtual_table_80247D88	cUnit virtual table
 0x80247DB0	0x334	.rodata	game/db_work.cpp	local	lbl_80247DB0	.
 0x802480E4	0x44	.rodata	game/emobj.cpp	global	lbl_802480E4	.
 0x80248128	0x30	.rodata	game/esp00.cpp	global	_vt.6cEsp00	cEsp00 virtual table
 0x80248158	0x1B8	.rodata	game/esp01.cpp	local	lbl_80248158	.
-0x80248310	0x30	.rodata	game/esp01.cpp	global	cEsp01_virtual_table	cEsp01 virtual table
+0x80248310	0x30	.rodata	game/esp01.cpp	global	_vt.6cEsp01	cEsp01 virtual table
 0x80248340	0x190	.rodata	game/esp02.cpp	global	lbl_80248340	.
 0x802484D0	0x30	.rodata	game/esp02.cpp	global	_vt.6cEsp02	cEsp02 virtual table
 0x80248500	0xC0	.rodata	game/esp03.cpp	local	lbl_80248500	.
-0x802485C0	0x30	.rodata	game/esp03.cpp	local	cEsp03_virtual_table	cEsp03 virtual table
+0x802485C0	0x30	.rodata	game/esp03.cpp	local	_vt.6cEsp03	cEsp03 virtual table
 0x802485F0	0x188	.rodata	game/esp04.cpp	local	lbl_802485F0	.
 0x80248778	0x30	.rodata	game/esp04.cpp	local	_vt.6cEsp04	cEsp04 virtual table
 0x802487A8	0x140	.rodata	game/esp05.cpp	local	lbl_802487A8	.
-0x802488E8	0x30	.rodata	game/esp05.cpp	local	cEsp05_virtual_table	cEsp05 virtual table
+0x802488E8	0x30	.rodata	game/esp05.cpp	local	_vt.6cEsp05	cEsp05 virtual table
 0x80248918	0x160	.rodata	game/esp06.cpp	global	lbl_80248918	.
-0x80248A78	0x30	.rodata	game/esp06.cpp	global	cEsp06_virtual_table	cEsp06 virtual table
+0x80248A78	0x30	.rodata	game/esp06.cpp	global	_vt.6cEsp06	cEsp06 virtual table
 0x80248AA8	0xD8	.rodata	game/esp07.cpp	global	lbl_80248AA8	.
-0x80248B80	0x30	.rodata	game/esp07.cpp	global	cEsp07_virtual_table	cEsp07 virtual table
+0x80248B80	0x30	.rodata	game/esp07.cpp	global	_vt.6cEsp07	cEsp07 virtual table
 0x80248BB0	0x258	.rodata	game/esp08.cpp	global	lbl_80248BB0	.
 0x80248E08	0x30	.rodata	game/esp08.cpp	global	_vt.6cEsp08	cEsp08 virtual table
 0x80248E38	0x200	.rodata	game/esp09.cpp	global	lbl_80248E38	.
@@ -8596,51 +8724,51 @@ address	size	section	unit	scope	name	demangled
 0x80249068	0x98	.rodata	game/esp0a.cpp	global	lbl_80249068	.
 0x80249100	0x30	.rodata	game/esp0a.cpp	global	_vt.6cEsp0a	cEsp0a virtual table
 0x80249130	0xC8	.rodata	game/esp0b.cpp	global	lbl_80249130	.
-0x802491F8	0x30	.rodata	game/esp0b.cpp	global	cEsp0b_virtual_table	cEsp0b virtual table
+0x802491F8	0x30	.rodata	game/esp0b.cpp	global	_vt.6cEsp0b	cEsp0b virtual table
 0x80249228	0x168	.rodata	game/esp0c.cpp	global	lbl_80249228	.
-0x80249390	0x30	.rodata	game/esp0c.cpp	global	cEsp0c_virtual_table	cEsp0c virtual table
+0x80249390	0x30	.rodata	game/esp0c.cpp	global	_vt.6cEsp0c	cEsp0c virtual table
 0x802493C0	0x98	.rodata	game/esp0d.cpp	local	lbl_802493C0	.
-0x80249458	0x30	.rodata	game/esp0d.cpp	local	cEsp0d_virtual_table	cEsp0d virtual table
+0x80249458	0x30	.rodata	game/esp0d.cpp	local	_vt.6cEsp0d	cEsp0d virtual table
 0x80249488	0xC0	.rodata	game/esp0e.cpp	local	lbl_80249488	.
 0x80249548	0x30	.rodata	game/esp0e.cpp	global	hide_x_tbl.816	hide_x_tbl.816
 0x80249578	0x30	.rodata	game/esp0e.cpp	global	hide_y_tbl.817	hide_y_tbl.817
 0x802495A8	0x50	.rodata	game/esp0e.cpp	global	lbl_802495A8	.
 0x802495F8	0x30	.rodata	game/esp0e.cpp	global	_vt.6cEsp0e	cEsp0e virtual table
 0x80249628	0x1A0	.rodata	game/esp0f.cpp	global	lbl_80249628	.
-0x802497C8	0x30	.rodata	game/esp0f.cpp	global	cEsp0f_virtual_table	cEsp0f virtual table
+0x802497C8	0x30	.rodata	game/esp0f.cpp	global	_vt.6cEsp0f	cEsp0f virtual table
 0x802497F8	0x158	.rodata	game/esp10.cpp	global	lbl_802497F8	.
-0x80249950	0x30	.rodata	game/esp10.cpp	global	cEsp10_virtual_table	cEsp10 virtual table
+0x80249950	0x30	.rodata	game/esp10.cpp	global	_vt.6cEsp10	cEsp10 virtual table
 0x80249980	0x268	.rodata	game/esp11.cpp	global	lbl_80249980	.
-0x80249BE8	0x30	.rodata	game/esp11.cpp	global	cEsp11_virtual_table	cEsp11 virtual table
+0x80249BE8	0x30	.rodata	game/esp11.cpp	global	_vt.6cEsp11	cEsp11 virtual table
 0x80249C18	0x1D0	.rodata	game/esp12.cpp	local	lbl_80249C18	.
 0x80249DE8	0x30	.rodata	game/esp12.cpp	global	_vt.6cEsp12	cEsp12 virtual table
 0x80249E18	0x58	.rodata	game/esp13.cpp	global	lbl_80249E18	.
 0x80249E70	0x30	.rodata	game/esp13.cpp	local	_vt.6cEsp13	cEsp13 virtual table
 0x80249EA0	0x80	.rodata	game/esp14.cpp	local	lbl_80249EA0	.
-0x80249F20	0x30	.rodata	game/esp14.cpp	local	cEsp14_virtual_table	cEsp14 virtual table
+0x80249F20	0x30	.rodata	game/esp14.cpp	local	_vt.6cEsp14	cEsp14 virtual table
 0x80249F50	0x90	.rodata	game/esp15.cpp	local	lbl_80249F50	.
-0x80249FE0	0x30	.rodata	game/esp15.cpp	local	cEsp15_virtual_table	cEsp15 virtual table
+0x80249FE0	0x30	.rodata	game/esp15.cpp	local	_vt.6cEsp15	cEsp15 virtual table
 0x8024A010	0x1F8	.rodata	game/esp16.cpp	local	lbl_8024A010	.
 0x8024A208	0x30	.rodata	game/esp16.cpp	local	_vt.6cEsp16	cEsp16 virtual table
-0x8024A238	0x30	.rodata	game/esp17.cpp	local	cEsp17_virtual_table	cEsp17 virtual table
+0x8024A238	0x30	.rodata	game/esp17.cpp	local	_vt.6cEsp17	cEsp17 virtual table
 0x8024A268	0x250	.rodata	game/esp18.cpp	local	lbl_8024A268	.
 0x8024A4B8	0x30	.rodata	game/esp18.cpp	global	_vt.6cEsp18	cEsp18 virtual table
 0x8024A4E8	0x90	.rodata	game/esp19.cpp	global	lbl_8024A4E8	.
-0x8024A578	0x30	.rodata	game/esp19.cpp	global	cEsp19_virtual_table	cEsp19 virtual table
+0x8024A578	0x30	.rodata	game/esp19.cpp	global	_vt.6cEsp19	cEsp19 virtual table
 0x8024A5A8	0xC0	.rodata	game/esp1a.cpp	global	lbl_8024A5A8	.
-0x8024A668	0x30	.rodata	game/esp1a.cpp	global	cEsp1a_virtual_table	cEsp1a virtual table
+0x8024A668	0x30	.rodata	game/esp1a.cpp	global	_vt.6cEsp1a	cEsp1a virtual table
 0x8024A698	0x58	.rodata	game/esp1b.cpp	global	lbl_8024A698	.
-0x8024A6F0	0x30	.rodata	game/esp1b.cpp	global	cEsp1b_virtual_table	cEsp1b virtual table
+0x8024A6F0	0x30	.rodata	game/esp1b.cpp	global	_vt.6cEsp1b	cEsp1b virtual table
 0x8024A720	0x168	.rodata	game/esp3f.cpp	local	lbl_8024A720	.
-0x8024A888	0x30	.rodata	game/esp3f.cpp	local	cEsp3f_virtual_table	cEsp3f virtual table
+0x8024A888	0x30	.rodata	game/esp3f.cpp	local	_vt.6cEsp3f	cEsp3f virtual table
 0x8024A8B8	0x120	.rodata	game/esp40.cpp	local	lbl_8024A8B8	.
-0x8024A9D8	0x30	.rodata	game/esp40.cpp	local	cEsp40_virtual_table	cEsp40 virtual table
+0x8024A9D8	0x30	.rodata	game/esp40.cpp	local	_vt.6cEsp40	cEsp40 virtual table
 0x8024AA08	0x98	.rodata	game/esp41.cpp	local	lbl_8024AA08	.
-0x8024AAA0	0x30	.rodata	game/esp41.cpp	local	cEsp41_virtual_table	cEsp41 virtual table
+0x8024AAA0	0x30	.rodata	game/esp41.cpp	local	_vt.6cEsp41	cEsp41 virtual table
 0x8024AAD0	0x70	.rodata	game/esp42.cpp	local	lbl_8024AAD0	.
-0x8024AB40	0x30	.rodata	game/esp42.cpp	global	cEsp42_virtual_table	cEsp42 virtual table
+0x8024AB40	0x30	.rodata	game/esp42.cpp	global	_vt.6cEsp42	cEsp42 virtual table
 0x8024AB70	0x128	.rodata	game/esp43.cpp	global	lbl_8024AB70	.
-0x8024AC98	0x30	.rodata	game/esp43.cpp	global	cEsp43_virtual_table	cEsp43 virtual table
+0x8024AC98	0x30	.rodata	game/esp43.cpp	global	_vt.6cEsp43	cEsp43 virtual table
 0x8024ACC8	0x120	.rodata	game/esp44.cpp	global	lbl_8024ACC8	.
 0x8024ADE8	0x30	.rodata	game/esp44.cpp	global	_vt.6cEsp44	cEsp44 virtual table
 0x8024AE18	0x88	.rodata	game/esp45.cpp	global	lbl_8024AE18	.
@@ -8649,21 +8777,21 @@ address	size	section	unit	scope	name	demangled
 0x8024AF00	0x40	.rodata	game/esp45.cpp	global	lbl_8024AF00	.
 0x8024AF40	0x30	.rodata	game/esp45.cpp	global	_vt.6cEsp45	cEsp45 virtual table
 0x8024AF70	0x60	.rodata	game/esp46.cpp	local	lbl_8024AF70	.
-0x8024AFD0	0x30	.rodata	game/esp46.cpp	global	cEsp46_virtual_table	cEsp46 virtual table
+0x8024AFD0	0x30	.rodata	game/esp46.cpp	global	_vt.6cEsp46	cEsp46 virtual table
 0x8024B000	0x160	.rodata	game/esp47.cpp	global	lbl_8024B000	.
-0x8024B160	0x30	.rodata	game/esp47.cpp	global	cEsp47_virtual_table	cEsp47 virtual table
+0x8024B160	0x30	.rodata	game/esp47.cpp	global	_vt.6cEsp47	cEsp47 virtual table
 0x8024B190	0x48	.rodata	game/esp48.cpp	global	lbl_8024B190	.
-0x8024B1D8	0x30	.rodata	game/esp48.cpp	global	cEsp48_virtual_table	cEsp48 virtual table
+0x8024B1D8	0x30	.rodata	game/esp48.cpp	global	_vt.6cEsp48	cEsp48 virtual table
 0x8024B208	0x140	.rodata	game/esp49.cpp	local	lbl_8024B208	.
-0x8024B348	0x30	.rodata	game/esp49.cpp	local	cEsp49_virtual_table	cEsp49 virtual table
+0x8024B348	0x30	.rodata	game/esp49.cpp	local	_vt.6cEsp49	cEsp49 virtual table
 0x8024B378	0x140	.rodata	game/esp4a.cpp	local	lbl_8024B378	.
-0x8024B4B8	0x30	.rodata	game/esp4a.cpp	local	cEsp4a_virtual_table	cEsp4a virtual table
+0x8024B4B8	0x30	.rodata	game/esp4a.cpp	local	_vt.6cEsp4a	cEsp4a virtual table
 0x8024B4E8	0x158	.rodata	game/esp4b.cpp	local	lbl_8024B4E8	.
-0x8024B640	0x30	.rodata	game/esp4b.cpp	global	cEsp4b_virtual_table	cEsp4b virtual table
+0x8024B640	0x30	.rodata	game/esp4b.cpp	global	_vt.6cEsp4b	cEsp4b virtual table
 0x8024B670	0x140	.rodata	game/esp4c.cpp	global	lbl_8024B670	.
-0x8024B7B0	0x30	.rodata	game/esp4c.cpp	local	cEsp4c_virtual_table	cEsp4c virtual table
+0x8024B7B0	0x30	.rodata	game/esp4c.cpp	local	_vt.6cEsp4c	cEsp4c virtual table
 0x8024B7E0	0x168	.rodata	game/esp4d.cpp	global	lbl_8024B7E0	.
-0x8024B948	0x30	.rodata	game/esp4d.cpp	global	cEsp4d_virtual_table	cEsp4d virtual table
+0x8024B948	0x30	.rodata	game/esp4d.cpp	global	_vt.6cEsp4d	cEsp4d virtual table
 0x8024B978	0x1B8	.rodata	game/esp4e.cpp	local	lbl_8024B978	.
 0x8024BB30	0x30	.rodata	game/esp4e.cpp	global	_vt.6cEsp4e	cEsp4e virtual table
 0x8024BB60	0x40	.rodata	game/esp4f.cpp	global	lbl_8024BB60	.
@@ -8673,7 +8801,7 @@ address	size	section	unit	scope	name	demangled
 0x8024C7A8	0x14	.rodata	game/exception.cpp	global	symbol_err_tbl	symbol_err_tbl
 0x8024C7BC	0x17C	.rodata	game/exception.cpp	local	lbl_8024C7BC	.
 0x8024C938	0x44	.rodata	game/exception.cpp	global	e_str	e_str
-0x8024C97C	0xC	.rodata	game/filter.cpp	global	lbl_8024C97C	.
+0x8024C97C	0x8	.rodata	game/filter.cpp	global	lbl_8024C97C	.
 0x8024C988	0xC8	.rodata	game/filter00.cpp	local	lbl_8024C988	.
 0x8024CA50	0x1D0	.rodata	game/filter02.cpp	global	lbl_8024CA50	.
 0x8024CC20	0x80	.rodata	game/filter02.cpp	global	level_tbl02	level_tbl02
@@ -8691,9 +8819,8 @@ address	size	section	unit	scope	name	demangled
 0x8024D8E8	0x140	.rodata	game/mirror.cpp	global	lbl_8024D8E8	.
 0x8024DA28	0x4	.rodata	game/yz2asm.cpp	local	.float_one_data	.float_one_data
 0x8024DA2C	0x4	.rodata	game/yz2asm.cpp	global	.float_zero_data	.float_zero_data
-0x8024DA30	0x200	.rodata	game/sn_malloc.cpp	global	lbl_8024DA30	.
+0x8024DA30	0x1FC	.rodata	game/sn_malloc.cpp	global	lbl_8024DA30	.
 0x8024DC30	0xA	.rodata	lib/Padclamp.c	local	ClampRegion	ClampRegion
-0x8024DC3A	0x6	.rodata	lib/Padclamp.c	global	lbl_8024DC3A	.
 0x8024DC40	0x32	.rodata	lib/mwsfdfrm.c	global	...rodata.0_8024DC40	...rodata.0
 0x8024DC72	0x2	.rodata	lib/mwsfdfrm.c	global	lbl_8024DC72	.
 0x8024DC74	0x31	.rodata	lib/mwsfdfrm.c	global	@717	@717
@@ -8717,7 +8844,6 @@ address	size	section	unit	scope	name	demangled
 0x8024DE10	0x2E	.rodata	lib/mwsfdfrm.c	local	@970	@970
 0x8024DE3E	0x2	.rodata	lib/mwsfdfrm.c	global	lbl_8024DE3E	.
 0x8024DE40	0x2E	.rodata	lib/mwsfdfrm.c	local	@973	@973
-0x8024DE6E	0x2	.rodata	lib/mwsfdfrm.c	local	lbl_8024DE6E	.
 0x8024DE70	0x31	.rodata	lib/mwsfdsfx.c	local	...rodata.0_8024DE70	...rodata.0
 0x8024DEA1	0x3	.rodata	lib/mwsfdsfx.c	global	lbl_8024DEA1	.
 0x8024DEA4	0x31	.rodata	lib/mwsfdsfx.c	global	@649_8024DEA4	@649
@@ -8730,9 +8856,9 @@ address	size	section	unit	scope	name	demangled
 0x8024DF66	0x2	.rodata	lib/mwsfdsfx.c	global	lbl_8024DF66	.
 0x8024DF68	0x2D	.rodata	lib/mwsfdsfx.c	local	@696	@696
 0x8024DF95	0x3	.rodata	lib/mwsfdsfx.c	local	lbl_8024DF95	.
-0x8024DF98	0x8	.rodata	lib/mwsfdsfx.c	local	@742_8024DF98	@742
-0x8024DFA0	0x8	.rodata	lib/mwsfdsfx.c	global	@743	@743
-0x8024DFA8	0x35	.rodata	lib/mwsfdsfx.c	local	@746_8024DFA8	@746
+0x8024DF98	0x8	.rodata	lib/mwsfdsfx.c	local	mwsftag_sfxinfs	@742
+0x8024DFA0	0x8	.rodata	lib/mwsfdsfx.c	global	mwsftag_sfxinfe	mwsftag_sfxinfe
+0x8024DFA8	0x35	.rodata	lib/mwsfdsfx.c	local	mwsftag_msg_bufsize	@746
 0x8024DFDD	0x3	.rodata	lib/mwsfdsfx.c	local	lbl_8024DFDD	.
 0x8024DFE0	0x8	.rodata	lib/mwsfdsfx.c	local	@773	@773
 0x8024DFE8	0x8	.rodata	lib/mwsfdsfx.c	local	@774_8024DFE8	@774
@@ -8766,11 +8892,10 @@ address	size	section	unit	scope	name	demangled
 0x8024E2E7	0x1	.rodata	lib/mwsfdsfx.c	global	lbl_8024E2E7	.
 0x8024E2E8	0x2E	.rodata	lib/mwsfdsfx.c	global	@947	@947
 0x8024E316	0x2	.rodata	lib/mwsfdsfx.c	local	lbl_8024E316	.
-0x8024E318	0x20	.rodata	lib/mwsfdsfx.c	global	@955_8024E318	@955
-0x8024E338	0x24	.rodata	lib/mwsfdsfx.c	global	@962	@962
-0x8024E35C	0x28	.rodata	lib/mwsfdsfx.c	local	@969	@969
-0x8024E384	0x28	.rodata	lib/mwsfdsfx.c	local	@1023	@1023
-0x8024E3AC	0x4	.rodata	lib/mwsfdsfx.c	global	lbl_8024E3AC	.
+0x8024E318	0x20	.rodata	lib/mwsfdsfx.c	global	mwsfsfx_msg_chromapos	@955
+0x8024E338	0x24	.rodata	lib/mwsfdsfx.c	global	mwsfsfx_msg_chroma_format	mwsfsfx_msg_chroma_format
+0x8024E35C	0x28	.rodata	lib/mwsfdsfx.c	local	mwsfsfx_msg_pic_struct	mwsfsfx_msg_pic_struct
+0x8024E384	0x28	.rodata	lib/mwsfdsfx.c	local	mwsfsfx_msg_buffmt	mwsfsfx_msg_buffmt
 0x8024E3B0	0x24	.rodata	lib/mwsfdcre.c	local	mwsfd_mps_trsetup	mwsfd_mps_trsetup
 0x8024E3D4	0x24	.rodata	lib/mwsfdcre.c	local	mwsfd_mpv_trsetup	mwsfd_mpv_trsetup
 0x8024E3F8	0x24	.rodata	lib/mwsfdcre.c	global	mwsfd_vonlysfd_trsetup	mwsfd_vonlysfd_trsetup
@@ -8825,7 +8950,6 @@ address	size	section	unit	scope	name	demangled
 0x8024E880	0x21	.rodata	lib/mwsfdcre.c	local	@1850	@1850
 0x8024E8A1	0x3	.rodata	lib/mwsfdcre.c	global	lbl_8024E8A1	.
 0x8024E8A4	0x2D	.rodata	lib/mwsfdcre.c	global	@1874	@1874
-0x8024E8D1	0x7	.rodata	lib/mwsfdcre.c	local	lbl_8024E8D1	.
 0x8024E8D8	0x51	.rodata	lib/mwsfdlib.c	local	mwsfd_ver_str	mwsfd_ver_str
 0x8024E929	0x3	.rodata	lib/mwsfdlib.c	global	lbl_8024E929	.
 0x8024E92C	0x3C	.rodata	lib/mwsfdlib.c	local	mwsfd_trentry	mwsfd_trentry
@@ -8854,7 +8978,6 @@ address	size	section	unit	scope	name	demangled
 0x8024EBD0	0x4	.rodata	lib/mwsfdlib.c	local	@487_8024EBD0	@487
 0x8024EBD4	0x4	.rodata	lib/mwsfdlib.c	local	@488_8024EBD4	@488
 0x8024EBD8	0x1E	.rodata	lib/mwsfdlib.c	global	@489_8024EBD8	@489
-0x8024EBF6	0x2	.rodata	lib/mwsfdlib.c	global	lbl_8024EBF6	.
 0x8024EBF8	0x32	.rodata	lib/mwsfdply.c	local	...rodata.0_8024EBF8	...rodata.0
 0x8024EC2A	0x2	.rodata	lib/mwsfdply.c	local	lbl_8024EC2A	.
 0x8024EC2C	0x2E	.rodata	lib/mwsfdply.c	local	@383	@383
@@ -8894,7 +9017,6 @@ address	size	section	unit	scope	name	demangled
 0x8024EEB4	0x2E	.rodata	lib/mwsfdply.c	local	@615_8024EEB4	@615
 0x8024EEE2	0x2	.rodata	lib/mwsfdply.c	global	lbl_8024EEE2	.
 0x8024EEE4	0x1B	.rodata	lib/mwsfdply.c	local	@621_8024EEE4	@621
-0x8024EEFF	0x1	.rodata	lib/mwsfdply.c	global	lbl_8024EEFF	.
 0x8024EF00	0x30	.rodata	lib/mwsfdset.c	local	...rodata.0_8024EF00	...rodata.0
 0x8024EF30	0x2C	.rodata	lib/mwsfdset.c	local	@647	@647
 0x8024EF5C	0x4	.rodata	lib/mwsfdset.c	global	@648_8024EF5C	@648
@@ -8948,7 +9070,6 @@ address	size	section	unit	scope	name	demangled
 0x8024F4B4	0x2D	.rodata	lib/mwsfdset.c	global	@1140	@1140
 0x8024F4E1	0x3	.rodata	lib/mwsfdset.c	local	lbl_8024F4E1	.
 0x8024F4E4	0x2D	.rodata	lib/mwsfdset.c	global	@1156_8024F4E4	@1156
-0x8024F511	0x7	.rodata	lib/mwsfdset.c	local	lbl_8024F511	.
 0x8024F518	0x33	.rodata	lib/mwsfdsvr.c	global	...rodata.0_8024F518	...rodata.0
 0x8024F54B	0x1	.rodata	lib/mwsfdsvr.c	global	lbl_8024F54B	.
 0x8024F54C	0x28	.rodata	lib/mwsfdsvr.c	local	@594	@594
@@ -8957,7 +9078,6 @@ address	size	section	unit	scope	name	demangled
 0x8024F5A0	0x2A	.rodata	lib/mwsfdsvr.c	global	@747_8024F5A0	@747
 0x8024F5CA	0x2	.rodata	lib/mwsfdsvr.c	local	lbl_8024F5CA	.
 0x8024F5CC	0x2E	.rodata	lib/mwsfdsvr.c	global	@748_8024F5CC	@748
-0x8024F5FA	0x6	.rodata	lib/mwsfdsvr.c	local	lbl_8024F5FA	.
 0x8024F600	0x2A	.rodata	lib/mwsfdsst.c	global	...rodata.0_8024F600	...rodata.0
 0x8024F62A	0x2	.rodata	lib/mwsfdsst.c	global	lbl_8024F62A	.
 0x8024F62C	0x28	.rodata	lib/mwsfdsst.c	local	@567_8024F62C	@567
@@ -8969,11 +9089,9 @@ address	size	section	unit	scope	name	demangled
 0x8024F6F0	0x33	.rodata	lib/mwsfx_ARGB8888PLN.c	local	@298_8024F6F0	@298
 0x8024F723	0x1	.rodata	lib/mwsfx_ARGB8888PLN.c	global	lbl_8024F723	.
 0x8024F724	0x32	.rodata	lib/mwsfx_ARGB8888PLN.c	local	@299	@299
-0x8024F756	0x2	.rodata	lib/mwsfx_ARGB8888PLN.c	global	lbl_8024F756	.
 0x8024F758	0x31	.rodata	lib/mwsfx_Y84C44.c	local	@255	@255
 0x8024F789	0x3	.rodata	lib/mwsfx_Y84C44.c	global	lbl_8024F789	.
 0x8024F78C	0x31	.rodata	lib/mwsfx_Y84C44.c	local	@256_8024F78C	@256
-0x8024F7BD	0x3	.rodata	lib/mwsfx_Y84C44.c	global	lbl_8024F7BD	.
 0x8024F7C0	0x31	.rodata	lib/sud_lib.c	local	sud_ver_str	sud_ver_str
 0x8024F7F1	0x3	.rodata	lib/sud_lib.c	global	lbl_8024F7F1	.
 0x8024F7F4	0x2	.rodata	lib/sud_lib.c	global	@22_8024F7F4	@22
@@ -9000,7 +9118,6 @@ address	size	section	unit	scope	name	demangled
 0x8024F83C	0x3	.rodata	lib/sud_lib.c	global	@327_8024F83C	@327
 0x8024F83F	0x1	.rodata	lib/sud_lib.c	global	lbl_8024F83F	.
 0x8024F840	0x2	.rodata	lib/sud_lib.c	local	@328_8024F840	@328
-0x8024F842	0x6	.rodata	lib/sud_lib.c	global	lbl_8024F842	.
 0x8024F848	0x5	.rodata	lib/sfx_set.c	global	@188	@188
 0x8024F84D	0x3	.rodata	lib/sfx_set.c	global	lbl_8024F84D	.
 0x8024F850	0x8	.rodata	lib/sfx_set.c	global	@189_8024F850	@189
@@ -9012,7 +9129,6 @@ address	size	section	unit	scope	name	demangled
 0x8024F8C0	0x32	.rodata	lib/sfx_cnv.c	global	@367	@367
 0x8024F8F2	0x2	.rodata	lib/sfx_cnv.c	global	lbl_8024F8F2	.
 0x8024F8F4	0x30	.rodata	lib/sfx_cnv.c	global	@504_8024F8F4	@504
-0x8024F924	0x4	.rodata	lib/sfx_cnv.c	global	lbl_8024F924	.
 0x8024F928	0x31	.rodata	lib/sfx_lib.c	global	sfx_ver_str	sfx_ver_str
 0x8024F959	0x3	.rodata	lib/sfx_lib.c	global	lbl_8024F959	.
 0x8024F95C	0x29	.rodata	lib/sfx_lib.c	global	@150	@150
@@ -9020,7 +9136,6 @@ address	size	section	unit	scope	name	demangled
 0x8024F988	0x1F	.rodata	lib/sfx_lib.c	global	@151	@151
 0x8024F9A7	0x1	.rodata	lib/sfx_lib.c	global	lbl_8024F9A7	.
 0x8024F9A8	0x1F	.rodata	lib/sfx_lib.c	global	@152_8024F9A8	@152
-0x8024F9C7	0x1	.rodata	lib/sfx_lib.c	global	lbl_8024F9C7	.
 0x8024F9C8	0x30	.rodata	lib/sfx_zmv.c	global	...rodata.0_8024F9C8	...rodata.0
 0x8024F9F8	0x6	.rodata	lib/sfx_zmv.c	global	@417_8024F9F8	@417
 0x8024F9FE	0x2	.rodata	lib/sfx_zmv.c	global	lbl_8024F9FE	.
@@ -9048,19 +9163,14 @@ address	size	section	unit	scope	name	demangled
 0x8024FAF8	0x6	.rodata	lib/sfx_zmv.c	global	@1025	@1025
 0x8024FAFE	0x2	.rodata	lib/sfx_zmv.c	global	lbl_8024FAFE	.
 0x8024FB00	0x7	.rodata	lib/sfx_zmv.c	global	@1026	@1026
-0x8024FB07	0x1	.rodata	lib/sfx_zmv.c	global	lbl_8024FB07	.
 0x8024FB08	0x6	.rodata	lib/sfx_cnv_to_ARGB8888PLN.c	global	@28_8024FB08	@28
 0x8024FB0E	0x2	.rodata	lib/sfx_cnv_to_ARGB8888PLN.c	global	lbl_8024FB0E	.
 0x8024FB10	0x35	.rodata	lib/sfx_cnv_to_ARGB8888PLN.c	global	@29_8024FB10	@29
-0x8024FB45	0x3	.rodata	lib/sfx_cnv_to_ARGB8888PLN.c	global	lbl_8024FB45	.
 0x8024FB48	0x6	.rodata	lib/sfx_cnv_to_Y84C44.c	global	@23_8024FB48	@23
 0x8024FB4E	0x2	.rodata	lib/sfx_cnv_to_Y84C44.c	global	lbl_8024FB4E	.
 0x8024FB50	0x33	.rodata	lib/sfx_cnv_to_Y84C44.c	global	@24_8024FB50	@24
-0x8024FB83	0x5	.rodata	lib/sfx_cnv_to_Y84C44.c	global	lbl_8024FB83	.
 0x8024FB88	0x2F	.rodata	lib/sfx_YCC420PLN_to_ARGB8888PLN.c	global	@342	@342
-0x8024FBB7	0x1	.rodata	lib/sfx_YCC420PLN_to_ARGB8888PLN.c	global	lbl_8024FBB7	.
 0x8024FBB8	0x2D	.rodata	lib/sfx_YCC420PLN_to_Y84C44.c	global	@65_8024FBB8	@65
-0x8024FBE5	0x3	.rodata	lib/sfx_YCC420PLN_to_Y84C44.c	global	lbl_8024FBE5	.
 0x8024FBE8	0x38	.rodata	lib/sfd_adxt.c	global	SFD_tr_ad_adxt	SFD_tr_ad_adxt
 0x8024FC20	0x12	.rodata	lib/sfd_adxt.c	global	sfadxt_silence	sfadxt_silence
 0x8024FC32	0x2	.rodata	lib/sfd_adxt.c	global	lbl_8024FC32	.
@@ -9069,16 +9179,13 @@ address	size	section	unit	scope	name	demangled
 0x8024FC3C	0x4	.rodata	lib/sfd_adxt.c	global	@937	@937
 0x8024FC40	0x8	.rodata	lib/sfd_adxt.c	global	@939_8024FC40	@939
 0x8024FC48	0x7	.rodata	lib/sfd_adxt.c	global	@955_8024FC48	@955
-0x8024FC4F	0x1	.rodata	lib/sfd_adxt.c	global	lbl_8024FC4F	.
 0x8024FC50	0x38	.rodata	lib/sfd_aoap.c	global	SFD_tr_ao_auto_p	SFD_tr_ao_auto_p
 0x8024FC88	0x24	.rodata	lib/sfd_cre.c	global	sfcre_mpv_picrate	sfcre_mpv_picrate
 0x8024FCAC	0x10	.rodata	lib/sfd_cre.c	global	sfcre_aau_ch	sfcre_aau_ch
 0x8024FCBC	0x10	.rodata	lib/sfd_cre.c	global	sfcre_aau_freq	sfcre_aau_freq
 0x8024FCCC	0x100	.rodata	lib/sfd_cre.c	global	sfcre_aau_bitrate	sfcre_aau_bitrate
 0x8024FDCC	0x10	.rodata	lib/sfd_cre.c	global	sfcre_aau_const_siz	sfcre_aau_const_siz
-0x8024FDDC	0x4	.rodata	lib/sfd_cre.c	global	lbl_8024FDDC	.
 0x8024FDE0	0x54	.rodata	lib/sfd_lib.c	global	SFLIB_version_str	SFLIB_version_str
-0x8024FE34	0x4	.rodata	lib/sfd_lib.c	local	lbl_8024FE34	.
 0x8024FE38	0x38	.rodata	lib/sfd_mem.c	global	SFD_tr_in_mem	SFD_tr_in_mem
 0x8024FE70	0x38	.rodata	lib/sfd_mps.c	global	SFD_tr_sd_mps	SFD_tr_sd_mps
 0x8024FEA8	0x10	.rodata	lib/sfd_mps.c	global	sfmps_CopyPketFn	sfmps_CopyPketFn
@@ -9086,9 +9193,7 @@ address	size	section	unit	scope	name	demangled
 0x8024FEF0	0x24	.rodata	lib/sfd_mpv.c	global	sfmpv_fps_round	sfmpv_fps_round
 0x8024FF14	0x20	.rodata	lib/sfd_mpv.c	global	sfmpv_conv_29_97	sfmpv_conv_29_97
 0x8024FF34	0x20	.rodata	lib/sfd_mpv.c	global	sfmpv_conv_59_94	sfmpv_conv_59_94
-0x8024FF54	0x4	.rodata	lib/sfd_mpv.c	global	lbl_8024FF54	.
 0x8024FF58	0x194	.rodata	lib/sfd_ply.c	global	SFPLY_cond_dfl	SFPLY_cond_dfl
-0x802500EC	0x4	.rodata	lib/sfd_ply.c	global	lbl_802500EC	.
 0x802500F0	0x24	.rodata	lib/sfd_tim.c	global	SFTIM_prate	SFTIM_prate
 0x80250114	0x48	.rodata	lib/sfd_tim.c	global	sftim_tc2time	sftim_tc2time
 0x8025015C	0x4	.rodata	lib/sfd_tim.c	global	lbl_8025015C	.
@@ -9097,10 +9202,9 @@ address	size	section	unit	scope	name	demangled
 0x8025016C	0x4	.rodata	lib/sfd_tim.c	global	@1142_8025016C	@1142
 0x80250170	0x38	.rodata	lib/sfd_uo.c	global	SFD_tr_uo	SFD_tr_uo
 0x802501A8	0x38	.rodata	lib/sfd_vom.c	global	SFD_tr_vo_manu	SFD_tr_vo_manu
-0x802501E0	0x112	.rodata	lib/sfd_tst.c	global	@148	@148
+0x802501E0	0x112	.rodata	lib/sfd_tst.c	global	sftst_msg_hdr	sftst_msg_hdr
 0x802502F2	0x2	.rodata	lib/sfd_tst.c	local	lbl_802502F2	.
-0x802502F4	0x8B	.rodata	lib/sfd_tst.c	global	@165	@165
-0x8025037F	0x1	.rodata	lib/sfd_tst.c	global	lbl_8025037F	.
+0x802502F4	0x8B	.rodata	lib/sfd_tst.c	global	sftst_msg_fmt	sftst_msg_fmt
 0x80250380	0x1E	.rodata	lib/sfh_main.c	global	ver_str	ver_str
 0x8025039E	0x2	.rodata	lib/sfh_main.c	global	lbl_8025039E	.
 0x802503A0	0x1F	.rodata	lib/sfh_main.c	global	cpy_str	cpy_str
@@ -9110,11 +9214,10 @@ address	size	section	unit	scope	name	demangled
 0x802503F4	0x5	.rodata	lib/sfh_main.c	global	@1484_802503F4	@1484
 0x802503F9	0x3	.rodata	lib/sfh_main.c	global	lbl_802503F9	.
 0x802503FC	0x19	.rodata	lib/sfh_main.c	global	@1855_802503FC	@1855
-0x80250415	0x3	.rodata	lib/sfh_main.c	global	lbl_80250415	.
 0x80250418	0x8	.rodata	lib/uty_tmr.c	global	@346_80250418	@346
 0x80250420	0x4	.rodata	lib/uty_tmr.c	global	@349_80250420	@349
 0x80250424	0x4	.rodata	lib/uty_tmr.c	global	@353_80250424	@353
-0x80250428	0xA	.rodata	lib/mwsfdsl.c	global	...rodata.0_80250428	...rodata.0
+0x80250428	0xA	.rodata	lib/mwsfdsl.c	global	mwsfdsl_fname_fmt	...rodata.0
 0x80250432	0x2	.rodata	lib/mwsfdsl.c	global	lbl_80250432	.
 0x80250434	0x30	.rodata	lib/mwsfdsl.c	global	@388_80250434	@388
 0x80250464	0x2B	.rodata	lib/mwsfdsl.c	global	@389_80250464	@389
@@ -9147,8 +9250,7 @@ address	size	section	unit	scope	name	demangled
 0x80250724	0x33	.rodata	lib/mwsfdsl.c	global	@504_80250724	@504
 0x80250757	0x1	.rodata	lib/mwsfdsl.c	global	lbl_80250757	.
 0x80250758	0x2D	.rodata	lib/mwsfdsl.c	global	@520_80250758	@520
-0x80250785	0x3	.rodata	lib/mwsfdsl.c	global	lbl_80250785	.
-0x80250788	0x31	.rodata	lib/cftyp422_ppc.c	global	...rodata.0_80250788	...rodata.0
+0x80250788	0x31	.rodata	lib/cftyp422_ppc.c	global	cft_version_str	...rodata.0
 0x802507B9	0x3	.rodata	lib/cftyp422_ppc.c	global	lbl_802507B9	.
 0x802507BC	0x4	.rodata	lib/cftyp422_ppc.c	global	@487_802507BC	@487
 0x802507C0	0x4	.rodata	lib/cftyp422_ppc.c	global	@488_802507C0	@488
@@ -9175,17 +9277,13 @@ address	size	section	unit	scope	name	demangled
 0x80250820	0x4	.rodata	lib/cftfx.c	global	@486_80250820	@486
 0x80250824	0x4	.rodata	lib/cftfx.c	global	@487_80250824	@487
 0x80250828	0x4	.rodata	lib/cftfx.c	local	@488_80250828	@488
-0x8025082C	0x4	.rodata	lib/cftfx.c	global	lbl_8025082C	.
 0x80250830	0x4	.rodata	lib/cftcoladj.c	global	@298_80250830	@298
-0x80250834	0x4	.rodata	lib/cftcoladj.c	local	lbl_80250834	.
 0x80250838	0x3F	.rodata	lib/cft_common.c	global	@2	@2
-0x80250877	0x1	.rodata	lib/cft_common.c	global	lbl_80250877	.
 0x80250878	0x54	.rodata	lib/mps_lib.c	global	MPSLIB_version_str	MPSLIB_version_str
 0x802508CC	0x4	.rodata	lib/mps_lib.c	global	test_wrok$235	test_wrok$235
 0x802508D0	0x14	.rodata	lib/mpv_hdec.c	global	dec_mbs_func	dec_mbs_func
 0x802508E4	0x8	.rodata	lib/mpv_hdec.c	global	@536	@536
 0x802508EC	0x8	.rodata	lib/mpv_hdec.c	global	@537_802508EC	@537
-0x802508F4	0x4	.rodata	lib/mpv_hdec.c	global	lbl_802508F4	.
 0x802508F8	0x54	.rodata	lib/mpv_lib.c	global	MPVLIB_version_str	MPVLIB_version_str
 0x8025094C	0x44	.rodata	lib/mpv_lib.c	global	mpvlib_cond_dfl	mpvlib_cond_dfl
 0x80250990	0x4	.rodata	lib/mpv_lib.c	global	mpvlib_siz_mpvwork	mpvlib_siz_mpvwork
@@ -9193,20 +9291,17 @@ address	size	section	unit	scope	name	demangled
 0x80250998	0x4	.rodata	lib/mpv_lib.c	global	mpvlib_siz_mpvixa	mpvlib_siz_mpvixa
 0x8025099C	0x4	.rodata	lib/mpv_lib.c	global	test_wrok$270	test_wrok$270
 0x802509A0	0x6	.rodata	lib/mpv_lib.c	global	@615_802509A0	@615
-0x802509A6	0x2	.rodata	lib/mpv_lib.c	local	lbl_802509A6	.
 0x802509A8	0x20	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_0c	mpvvlt_run_level_0c
 0x802509C8	0x20	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_0b	mpvvlt_run_level_0b
 0x802509E8	0x20	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_0a	mpvvlt_run_level_0a
 0x80250A08	0x20	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_1	mpvvlt_run_level_1
 0x80250A28	0x20	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_2	mpvvlt_run_level_2
 0x80250A48	0x10	.rodata	lib/mpv_vlc.c	global	mpvvlt_run_level_4	mpvvlt_run_level_4
-0x80250A58	0x4	.rodata	lib/mpv_umc.c	global	const_mem$89	const_mem$89
-0x80250A5C	0x4	.rodata	lib/mpv_umc.c	local	lbl_80250A5C	.
+0x80250A58	0x4	.rodata	lib/mpv_umc.c	global	mpvumc_ps_one	mpvumc_ps_one
 0x80250A60	0x10	.rodata	lib/mpv_mcy.c	global	mpvmc16_oneref1p_func_table	mpvmc16_oneref1p_func_table
 0x80250A70	0x8	.rodata	lib/mpvabdec.c	global	@2732	@2732
 0x80250A78	0x8	.rodata	lib/mpvabdec.c	global	@2734	@2734
 0x80250A80	0x4	.rodata	lib/mpvabdec.c	global	@3748	@3748
-0x80250A84	0x4	.rodata	lib/mpvabdec.c	global	lbl_80250A84	.
 0x80250A88	0x40	.rodata	lib/dct_fsri.c	local	scale8	scale8
 0x80250AC8	0x4	.rodata	lib/dct_fsri.c	global	@174	@174
 0x80250ACC	0x4	.rodata	lib/dct_fsri.c	global	lbl_80250ACC	.
@@ -9218,7 +9313,6 @@ address	size	section	unit	scope	name	demangled
 0x80250B80	0x20	.rodata	lib/mpv_bdec.c	global	group_tbl	group_tbl
 0x80250BA0	0x8	.rodata	lib/mpv_cdec.c	global	@31_80250BA0	@31
 0x80250BA8	0x6	.rodata	lib/mpv_dec.c	global	@731	@731
-0x80250BAE	0x2	.rodata	lib/mpv_dec.c	global	lbl_80250BAE	.
 0x80250BB0	0x10	.rodata	lib/mpv_mc.c	global	mpvmc_oneref1p_func_table	mpvmc_oneref1p_func_table
 0x80250BC0	0x8	.rodata	lib/dct_ac.c	global	@196	@196
 0x80250BC8	0x8	.rodata	lib/dct_ac.c	global	@228	@228
@@ -9234,7 +9328,6 @@ address	size	section	unit	scope	name	demangled
 0x80250C80	0x8	.rodata	lib/adx_sje.c	local	@1550	@1550
 0x80250C88	0x20	.rodata	lib/adx_sje.c	global	@1712	@1712
 0x80250CA8	0x7	.rodata	lib/adx_sje.c	global	@1771	@1771
-0x80250CAF	0x1	.rodata	lib/adx_sje.c	local	lbl_80250CAF	.
 0x80250CB0	0x3A	.rodata	lib/adx_sugc.c	global	...rodata.0_80250CB0	...rodata.0
 0x80250CEA	0x2	.rodata	lib/adx_sugc.c	global	lbl_80250CEA	.
 0x80250CEC	0x4	.rodata	lib/adx_sugc.c	local	adxgcsdk_build	adxgcsdk_build
@@ -9270,7 +9363,6 @@ address	size	section	unit	scope	name	demangled
 0x80250F38	0x23	.rodata	lib/mfci.c	local	@389_80250F38	@389
 0x80250F5B	0x1	.rodata	lib/mfci.c	local	lbl_80250F5B	.
 0x80250F5C	0x30	.rodata	lib/mfci.c	local	@390_80250F5C	@390
-0x80250F8C	0x4	.rodata	lib/mfci.c	global	lbl_80250F8C	.
 0x80250F90	0x2B	.rodata	lib/gcci.c	local	gcg_ci_build_str	gcg_ci_build_str
 0x80250FBB	0x1	.rodata	lib/gcci.c	local	lbl_80250FBB	.
 0x80250FBC	0x18	.rodata	lib/gcci.c	local	@507_80250FBC	@507
@@ -9299,7 +9391,8 @@ address	size	section	unit	scope	name	demangled
 0x80251168	0x2D	.rodata	lib/gcci.c	local	@811_80251168	@811
 0x80251195	0x3	.rodata	lib/gcci.c	local	lbl_80251195	.
 0x80251198	0x2E	.rodata	lib/gcci.c	local	@812_80251198	@812
-0x802511C6	0x1A	.rodata	lib/gcci.c	global	lbl_802511C6	.
+0x802511C6	0x2	.rodata	lib/gcci.c	global	lbl_802511C6	.
+0x802511C8	0x18	.rodata	lib/gcci.c	local	gcg_ci_rsv	gcg_ci_rsv
 0x802511E0	0xC	.data	game/cam_ctrl.cpp	global	offset0.1168	offset0.1168
 0x802511EC	0xC	.data	game/cam_ctrl.cpp	global	campos_ofs0.1210	campos_ofs0.1210
 0x802511F8	0xC	.data	game/cam_ctrl.cpp	local	target_ofs0.1211	target_ofs0.1211
@@ -9403,7 +9496,7 @@ address	size	section	unit	scope	name	demangled
 0x80252EBC	0x306	.data	game/merchant.cpp	global	g_item_price_tbl	g_item_price_tbl
 0x802531C2	0x2	.data	game/merchant.cpp	local	lbl_802531C2	.
 0x802531C4	0x28	.data	game/mes.cpp	global	mes_col_tbl	mes_col_tbl
-0x802531EC	0x6C	.data	game/mes.cpp	local	layout.1047	layout.1047
+0x802531EC	0x6C	.data	game/mes.cpp	local	layout_tbl.198	layout_tbl.198
 0x80253258	0x10	.data	game/obj13.cpp	global	ObjLadder_R1_move_tbl	ObjLadder_R1_move_tbl
 0x80253268	0xF8	.data	game/obj13.cpp	local	objLadderClimbCam.1299	objLadderClimbCam.1299
 0x80253360	0xF8	.data	game/obj13.cpp	global	objLadderDownCam.1312	objLadderDownCam.1312
@@ -9503,7 +9596,6 @@ address	size	section	unit	scope	name	demangled
 0x802545AC	0x2F	.data	lib/OS.c	global	@154	@154
 0x802545DB	0x1	.data	lib/OS.c	local	lbl_802545DB	.
 0x802545DC	0x1B	.data	lib/OS.c	global	@155	@155
-0x802545F7	0x1	.data	lib/OS.c	global	lbl_802545F7	.
 0x802545F8	0x10	.data	lib/OSAlarm.c	local	ResetFunctionInfo	ResetFunctionInfo
 0x80254608	0x89	.data	lib/OSAlarm.c	global	@50_80254608	@50
 0x80254691	0x3	.data	lib/OSAlarm.c	global	lbl_80254691	.
@@ -9539,7 +9631,6 @@ address	size	section	unit	scope	name	demangled
 0x80254A54	0x16	.data	lib/OSCache.c	global	@106_80254A54	@106
 0x80254A6A	0x2	.data	lib/OSCache.c	global	lbl_80254A6A	.
 0x80254A6C	0x2E	.data	lib/OSCache.c	global	@107_80254A6C	@107
-0x80254A9A	0x6	.data	lib/OSCache.c	global	lbl_80254A9A	.
 0x80254AA0	0x44	.data	lib/OSContext.c	global	...data.0_80254AA0	...data.0
 0x80254AE4	0x30	.data	lib/OSContext.c	global	@62_80254AE4	@62
 0x80254B14	0x2F	.data	lib/OSContext.c	global	@63_80254B14	@63
@@ -9562,7 +9653,6 @@ address	size	section	unit	scope	name	demangled
 0x80254C36	0x2	.data	lib/OSContext.c	global	lbl_80254C36	.
 0x80254C38	0x1C	.data	lib/OSContext.c	local	@72_80254C38	@72
 0x80254C54	0x23	.data	lib/OSContext.c	global	@76_80254C54	@76
-0x80254C77	0x1	.data	lib/OSContext.c	global	lbl_80254C77	.
 0x80254C78	0x16	.data	lib/OSError.c	local	...data.0_80254C78	...data.0
 0x80254C8E	0x2	.data	lib/OSError.c	global	lbl_80254C8E	.
 0x80254C90	0x26	.data	lib/OSError.c	global	@14	@14
@@ -9589,18 +9679,13 @@ address	size	section	unit	scope	name	demangled
 0x80254F1C	0x35	.data	lib/OSError.c	local	@86_80254F1C	@86
 0x80254F51	0x3	.data	lib/OSError.c	global	lbl_80254F51	.
 0x80254F54	0x40	.data	lib/OSError.c	local	@87_80254F54	@87
-0x80254F94	0x4	.data	lib/OSError.c	global	lbl_80254F94	.
 0x80254F98	0xB	.data	lib/OSExec.c	global	@115_80254F98	@115
-0x80254FA3	0x5	.data	lib/OSExec.c	local	lbl_80254FA3	.
 0x80254FA8	0x2C	.data	lib/OSInterrupt.c	local	InterruptPrioTable	InterruptPrioTable
-0x80254FD4	0x4	.data	lib/OSInterrupt.c	local	lbl_80254FD4	.
 0x80254FD8	0x25	.data	lib/OSLink.c	global	@62_80254FD8	@62
 0x80254FFD	0x3	.data	lib/OSLink.c	global	lbl_80254FFD	.
 0x80255000	0x27	.data	lib/OSLink.c	local	@189_80255000	@189
-0x80255027	0x1	.data	lib/OSLink.c	global	lbl_80255027	.
 0x80255028	0x10	.data	lib/OSMemory.c	local	ResetFunctionInfo	ResetFunctionInfo
 0x80255038	0x4E	.data	lib/OSReset.c	local	@153_80255038	@153
-0x80255086	0x2	.data	lib/OSReset.c	global	lbl_80255086	.
 0x80255088	0x5F	.data	lib/OSThread.c	local	...data.0_80255088	...data.0
 0x802550E7	0x1	.data	lib/OSThread.c	local	lbl_802550E7	.
 0x802550E8	0xB	.data	lib/OSThread.c	local	@832_802550E8	@832
@@ -9648,7 +9733,6 @@ address	size	section	unit	scope	name	demangled
 0x80255810	0x45	.data	lib/OSThread.c	local	@855	@855
 0x80255855	0x3	.data	lib/OSThread.c	global	lbl_80255855	.
 0x80255858	0x3D	.data	lib/OSThread.c	global	@856	@856
-0x80255895	0x3	.data	lib/OSThread.c	global	lbl_80255895	.
 0x80255898	0x30	.data	lib/OSTime.c	local	YearDays	YearDays
 0x802558C8	0x30	.data	lib/OSTime.c	local	LeapYearDays	LeapYearDays
 0x802558F8	0x45	.data	lib/EXIBios.c	global	...data.0_802558F8	...data.0
@@ -9672,7 +9756,6 @@ address	size	section	unit	scope	name	demangled
 0x802559E4	0xE	.data	lib/EXIBios.c	global	@489_802559E4	@489
 0x802559F2	0x2	.data	lib/EXIBios.c	global	lbl_802559F2	.
 0x802559F4	0xE	.data	lib/EXIBios.c	global	@490_802559F4	@490
-0x80255A02	0x6	.data	lib/EXIBios.c	global	lbl_80255A02	.
 0x80255A08	0x44	.data	lib/SIBios.c	global	...data.0_80255A08	...data.0
 0x80255A4C	0x14	.data	lib/SIBios.c	local	Si	Si
 0x80255A60	0x10	.data	lib/SIBios.c	local	Type	Type
@@ -9693,11 +9776,9 @@ address	size	section	unit	scope	name	demangled
 0x80255B04	0x9	.data	lib/SIBios.c	global	@467_80255B04	@467
 0x80255B0D	0x3	.data	lib/SIBios.c	global	lbl_80255B0D	.
 0x80255B10	0x9	.data	lib/SIBios.c	global	@468	@468
-0x80255B19	0x7	.data	lib/SIBios.c	local	lbl_80255B19	.
 0x80255B20	0x30	.data	lib/SISamplingRate.c	local	XYNTSC	XYNTSC
 0x80255B50	0x30	.data	lib/SISamplingRate.c	local	XYPAL	XYPAL
 0x80255B80	0x33	.data	lib/SISamplingRate.c	global	@16	@16
-0x80255BB3	0x5	.data	lib/SISamplingRate.c	global	lbl_80255BB3	.
 0x80255BB8	0x18	.data	lib/db.c	global	@9_80255BB8	@9
 0x80255BD0	0x10	.data	lib/mtx44.c	local	mtxUnit	mtxUnit
 0x80255BE0	0xC8	.data	lib/dvdfs.c	global	...data.0_80255BE0	...data.0
@@ -9719,7 +9800,6 @@ address	size	section	unit	scope	name	demangled
 0x80255F25	0x3	.data	lib/dvdfs.c	global	lbl_80255F25	.
 0x80255F28	0x50	.data	lib/dvdfs.c	global	@377	@377
 0x80255F78	0x57	.data	lib/dvdfs.c	global	@378	@378
-0x80255FCF	0x1	.data	lib/dvdfs.c	global	lbl_80255FCF	.
 0x80255FD0	0x45	.data	lib/dvd.c	global	...data.0_80255FD0	...data.0
 0x80256015	0x3	.data	lib/dvd.c	global	lbl_80256015	.
 0x80256018	0xA	.data	lib/dvd.c	global	@18	@18
@@ -9731,7 +9811,6 @@ address	size	section	unit	scope	name	demangled
 0x802560E9	0x3	.data	lib/dvd.c	global	lbl_802560E9	.
 0x802560EC	0x34	.data	lib/dvd.c	global	@956	@956
 0x80256120	0x34	.data	lib/dvd.c	global	@1060	@1060
-0x80256154	0x4	.data	lib/dvd.c	global	lbl_80256154	.
 0x80256158	0xC	.data	lib/dvdqueue.c	global	...data.0_80256158	...data.0
 0x80256164	0xB	.data	lib/dvdqueue.c	global	@69_80256164	@69
 0x8025616F	0x1	.data	lib/dvdqueue.c	global	lbl_8025616F	.
@@ -9756,7 +9835,6 @@ address	size	section	unit	scope	name	demangled
 0x80256278	0x15	.data	lib/dvdqueue.c	global	@101_80256278	@101
 0x8025628D	0x3	.data	lib/dvdqueue.c	global	lbl_8025628D	.
 0x80256290	0x2B	.data	lib/dvdqueue.c	global	@102_80256290	@102
-0x802562BB	0x5	.data	lib/dvdqueue.c	global	lbl_802562BB	.
 0x802562C0	0x48	.data	lib/dvderror.c	local	ErrorTable	ErrorTable
 0x80256308	0x6E	.data	lib/dvdFatal.c	global	...data.0_80256308	...data.0
 0x80256376	0x2	.data	lib/dvdFatal.c	global	lbl_80256376	.
@@ -9770,7 +9848,6 @@ address	size	section	unit	scope	name	demangled
 0x802565AB	0x1	.data	lib/dvdFatal.c	global	lbl_802565AB	.
 0x802565AC	0x80	.data	lib/dvdFatal.c	global	@9_802565AC	@9
 0x8025662C	0x89	.data	lib/dvdFatal.c	global	@10	@10
-0x802566B5	0x3	.data	lib/dvdFatal.c	global	lbl_802566B5	.
 0x802566B8	0x1A	.data	lib/fstload.c	global	...data.0_802566B8	...data.0
 0x802566D2	0x2	.data	lib/fstload.c	global	lbl_802566D2	.
 0x802566D4	0x16	.data	lib/fstload.c	global	@39	@39
@@ -9798,22 +9875,16 @@ address	size	section	unit	scope	name	demangled
 0x80256AA0	0x4B	.data	lib/vi.c	global	@538	@538
 0x80256AEB	0x1	.data	lib/vi.c	global	lbl_80256AEB	.
 0x80256AEC	0x20	.data	lib/vi.c	global	@740_80256AEC	@740
-0x80256B0C	0x4	.data	lib/vi.c	global	lbl_80256B0C	.
 0x80256B10	0x45	.data	lib/Pad.c	global	...data.0_80256B10	...data.0
 0x80256B55	0x3	.data	lib/Pad.c	global	lbl_80256B55	.
 0x80256B58	0x10	.data	lib/Pad.c	local	ResetFunctionInfo	ResetFunctionInfo
 0x80256B68	0x44	.data	lib/ai.c	global	...data.0_80256B68	...data.0
-0x80256BAC	0x4	.data	lib/ai.c	global	lbl_80256BAC	.
 0x80256BB0	0x44	.data	lib/ar.c	global	...data.0_80256BB0	...data.0
-0x80256BF4	0x4	.data	lib/ar.c	global	lbl_80256BF4	.
 0x80256BF8	0x45	.data	lib/arq.c	local	...data.0_80256BF8	...data.0
-0x80256C3D	0x3	.data	lib/arq.c	global	lbl_80256C3D	.
 0x80256C40	0x44	.data	lib/AX.c	global	...data.0_80256C40	...data.0
-0x80256C84	0x4	.data	lib/AX.c	local	lbl_80256C84	.
 0x80256C88	0x14	.data	lib/AXVPB.c	local	__AXSrcCycles	__AXSrcCycles
 0x80256C9C	0x40	.data	lib/AXVPB.c	local	__AXMainMixCycles	__AXMainMixCycles
 0x80256CDC	0x80	.data	lib/AXVPB.c	local	__AXAuxMixCycles	__AXAuxMixCycles
-0x80256D5C	0x4	.data	lib/AXVPB.c	global	lbl_80256D5C	.
 0x80256D60	0x1A40	.data	lib/AXComp.c	global	__AXCompressorTable	__AXCompressorTable
 0x802587A0	0x1F00	.data	lib/DSPCode.c	global	axDspSlave	axDspSlave
 0x8025A6A0	0x78A	.data	lib/mix.c	global	__MIXVolumeTable	__MIXVolumeTable
@@ -9822,7 +9893,6 @@ address	size	section	unit	scope	name	demangled
 0x8025B02C	0x100	.data	lib/mix.c	global	__MIX_DPL2_front	__MIX_DPL2_front
 0x8025B12C	0x100	.data	lib/mix.c	global	__MIX_DPL2_rear	__MIX_DPL2_rear
 0x8025B22C	0x32	.data	lib/mix.c	global	__MIXAIVolumeTable	__MIXAIVolumeTable
-0x8025B25E	0x2	.data	lib/mix.c	global	lbl_8025B25E	.
 0x8025B260	0x48	.data	lib/axart.c	global	@49	@49
 0x8025B2A8	0x48	.data	lib/axartsound.c	global	@29_8025B2A8	@29
 0x8025B2F0	0x190	.data	lib/axartcents.c	local	__AXLFOCentsTable	__AXLFOCentsTable
@@ -9835,11 +9905,9 @@ address	size	section	unit	scope	name	demangled
 0x8025BB18	0x168	.data	lib/axart3d.c	local	__AXART3DItdL	__AXART3DItdL
 0x8025BC80	0x168	.data	lib/axart3d.c	local	__AXART3DItdR	__AXART3DItdR
 0x8025BDE8	0x169	.data	lib/axart3d.c	local	__AXART3DSrc	__AXART3DSrc
-0x8025BF51	0x7	.data	lib/axart3d.c	global	lbl_8025BF51	.
 0x8025BF58	0x60	.data	lib/axartlpf.c	local	__coefs	__coefs
 0x8025BFB8	0x200	.data	lib/synctrl.c	global	__SYNn128	__SYNn128
 0x8025C1B8	0x1C	.data	lib/synctrl.c	global	@328_8025C1B8	@328
-0x8025C1D4	0x4	.data	lib/synctrl.c	global	lbl_8025C1D4	.
 0x8025C1D8	0x100	.data	lib/synlfo.c	local	__SYNLfo	__SYNLfo
 0x8025C2D8	0x200	.data	lib/synmix.c	global	__SYNVolumeAttenuation	__SYNVolumeAttenuation
 0x8025C4D8	0x190	.data	lib/synmix.c	global	__SYNAttackAttnTable	__SYNAttackAttnTable
@@ -9854,7 +9922,6 @@ address	size	section	unit	scope	name	demangled
 0x8025CB3E	0x2	.data	lib/dsp.c	global	lbl_8025CB3E	.
 0x8025CB40	0xC	.data	lib/dsp.c	global	@20_8025CB40	@20
 0x8025CB4C	0x9	.data	lib/dsp.c	global	@21_8025CB4C	@21
-0x8025CB55	0x3	.data	lib/dsp.c	global	lbl_8025CB55	.
 0x8025CB58	0x1D	.data	lib/dsp_task.c	global	...data.0_8025CB58	...data.0
 0x8025CB75	0x3	.data	lib/dsp_task.c	global	lbl_8025CB75	.
 0x8025CB78	0x2D	.data	lib/dsp_task.c	global	@267_8025CB78	@267
@@ -9868,13 +9935,11 @@ address	size	section	unit	scope	name	demangled
 0x8025CC38	0x2D	.data	lib/dsp_task.c	local	@271_8025CC38	@271
 0x8025CC65	0x3	.data	lib/dsp_task.c	global	lbl_8025CC65	.
 0x8025CC68	0x2B	.data	lib/dsp_task.c	global	@294	@294
-0x8025CC93	0x5	.data	lib/dsp_task.c	global	lbl_8025CC93	.
 0x8025CC98	0x46	.data	lib/CARDBios.c	global	...data.0_8025CC98	...data.0
 0x8025CCDE	0x2	.data	lib/CARDBios.c	global	lbl_8025CCDE	.
 0x8025CCE0	0x10	.data	lib/CARDBios.c	local	ResetFunctionInfo	ResetFunctionInfo
 0x8025CCF0	0x20	.data	lib/CARDMount.c	local	SectorSizeTable	SectorSizeTable
 0x8025CD10	0x20	.data	lib/CARDMount.c	local	LatencyTable	LatencyTable
-0x8025CD30	0x10	.data	lib/CARDMount.c	global	lbl_8025CD30	.
 0x8025CD40	0x160	.data	lib/CARDUnlock.c	local	CardData	CardData
 0x8025CEA0	0x68	.data	lib/GXAttr.c	global	@176	@176
 0x8025CF08	0x68	.data	lib/GXAttr.c	global	@223	@223
@@ -9884,9 +9949,7 @@ address	size	section	unit	scope	name	demangled
 0x8025D060	0x44	.data	lib/GXAttr.c	global	@545	@545
 0x8025D0A4	0x1C	.data	lib/GXAttr.c	local	@740_8025D0A4	@740
 0x8025D0C0	0x54	.data	lib/GXAttr.c	global	@739_8025D0C0	@739
-0x8025D114	0x4	.data	lib/GXAttr.c	global	lbl_8025D114	.
 0x8025D118	0x1C	.data	lib/GXLight.c	local	@145_8025D118	@145
-0x8025D134	0x4	.data	lib/GXLight.c	global	lbl_8025D134	.
 0x8025D138	0xF4	.data	lib/GXTexture.c	global	@46	@46
 0x8025D22C	0xF4	.data	lib/GXTexture.c	local	@104_8025D22C	@104
 0x8025D320	0xF4	.data	lib/GXTexture.c	global	@145_8025D320	@145
@@ -9896,9 +9959,7 @@ address	size	section	unit	scope	name	demangled
 0x8025D478	0x14	.data	lib/GXTev.c	local	TEVAOpTableST0	TEVAOpTableST0
 0x8025D48C	0x14	.data	lib/GXTev.c	local	TEVAOpTableST1	TEVAOpTableST1
 0x8025D4A0	0x24	.data	lib/GXTev.c	global	c2r$334	c2r$334
-0x8025D4C4	0x4	.data	lib/GXTev.c	global	lbl_8025D4C4	.
 0x8025D4C8	0x20	.data	lib/GXPixel.c	global	p2f$358	p2f$358
-0x8025D4E8	0x18	.data	lib/GXPixel.c	local	lbl_8025D4E8	.
 0x8025D500	0x44	.data	lib/GXInit.c	global	...data.0_8025D500	...data.0
 0x8025D544	0x1C	.data	lib/GXInit.c	global	lbl_8025D544	.
 0x8025D560	0x20	.data	lib/GXInit.c	local	DefaultTexData	DefaultTexData
@@ -9906,13 +9967,11 @@ address	size	section	unit	scope	name	demangled
 0x8025D650	0x1C	.data	lib/GXInit.c	local	GXDefaultProjData	GXDefaultProjData
 0x8025D66C	0xC0	.data	lib/GXInit.c	local	GXTexRegionAddrTable	GXTexRegionAddrTable
 0x8025D72C	0x10	.data	lib/GXInit.c	local	GXResetFuncInfo	GXResetFuncInfo
-0x8025D73C	0x4	.data	lib/GXInit.c	global	lbl_8025D73C	.
 0x8025D740	0x9	.data	lib/GXMisc.c	global	@431_8025D740	@431
 0x8025D749	0x3	.data	lib/GXMisc.c	local	lbl_8025D749	.
 0x8025D74C	0x21	.data	lib/GXMisc.c	global	@432_8025D74C	@432
 0x8025D76D	0x3	.data	lib/GXMisc.c	local	lbl_8025D76D	.
 0x8025D770	0x23	.data	lib/GXMisc.c	global	@451	@451
-0x8025D793	0x5	.data	lib/GXMisc.c	local	lbl_8025D793	.
 0x8025D798	0x10	.data	lib/GXFrameBuf.c	global	lbl_8025D798	.
 0x8025D7A8	0x3C	.data	lib/GXFrameBuf.c	global	GXNtsc480IntDf	GXNtsc480IntDf
 0x8025D7E4	0x24	.data	lib/GXFrameBuf.c	global	lbl_8025D7E4	.
@@ -9928,7 +9987,6 @@ address	size	section	unit	scope	name	demangled
 0x8025DA40	0xD	.data	lib/texPalette.c	global	@37_8025DA40	@37
 0x8025DA4D	0x3	.data	lib/texPalette.c	global	lbl_8025DA4D	.
 0x8025DA50	0x2B	.data	lib/texPalette.c	local	@38	@38
-0x8025DA7B	0x1	.data	lib/texPalette.c	global	lbl_8025DA7B	.
 0x8025DA7C	0x24	.data	game/snd_str1.cpp	local	str_player_tbl.36	str_player_tbl.36
 0x8025DAA0	0x200	.data	game/snd_sub0.cpp	global	Snd_dls_vol_tbl	Snd_dls_vol_tbl
 0x8025DCA0	0xC0	.data	game/snd_sub0.cpp	global	Snd_lpf_tbl	Snd_lpf_tbl
@@ -9939,16 +9997,13 @@ address	size	section	unit	scope	name	demangled
 0x8025DDA0	0x30	.data	lib/sj_rbf.c	global	sjrbf_vtbl	sjrbf_vtbl
 0x8025DDD0	0x4	.data	lib/sj_utl.c	local	lbl_8025DDD0	.
 0x8025DDD4	0x1C0	.data	lib/sj_utl.c	global	sj_hexstr_to_val_tbl	sj_hexstr_to_val_tbl
-0x8025DF94	0x4	.data	lib/sj_utl.c	global	lbl_8025DF94	.
 0x8025DF98	0x4	.data	lib/ax_rna.c	global	axrna_def_src_type	axrna_def_src_type
 0x8025DF9C	0x7C	.data	lib/ax_rna.c	global	axrna_pan_tbl	axrna_pan_tbl
 0x8025E018	0x4	.data	lib/adx_inis.c	global	adxt_vsync_svr_flag	adxt_vsync_svr_flag
-0x8025E01C	0x4	.data	lib/adx_inis.c	local	lbl_8025E01C	.
-0x8025E020	0x8	.data	lib/adx_bsc.c	global	lbl_8025E020	.
+0x8025E020	0x8	.data	lib/adx_bsc.c	global	skg_dmy	skg_dmy
 0x8025E028	0x4	.data	lib/adx_stmc.c	global	adxstmf_rtim_num	adxstmf_rtim_num
 0x8025E02C	0x4	.data	lib/adx_stmc.c	global	adxstmf_nrml_ofst	adxstmf_nrml_ofst
 0x8025E030	0x4	.data	lib/adx_stmc.c	global	adxstmf_nrml_num	adxstmf_nrml_num
-0x8025E034	0x4	.data	lib/adx_stmc.c	global	lbl_8025E034	.
 0x8025E038	0x18	.data	lib/adx_mgc.c	global	adxm_save_tprm	adxm_save_tprm
 0x8025E050	0x30	.data	lib/sj_mem.c	local	sjmem_vtbl	sjmem_vtbl
 0x8025E080	0x4	.data	lib/adx_bwav.c	global	fmt_id$4	fmt_id$4
@@ -10145,12 +10200,12 @@ address	size	section	unit	scope	name	demangled
 0x802668D8	0x18	.data	game/model.cpp	global	ptbl.1039	ptbl.1039
 0x802668F0	0x14	.data	game/motion.cpp	global	kind_str.658	kind_str.658
 0x80266904	0x40	.data	game/motion.cpp	global	Fcc_get_data_tbl.707	Fcc_get_data_tbl.707
-0x80266944	0x10	.data	game/obj01.cpp	global	funcTbl.918_80266944	funcTbl.918
+0x80266944	0x10	.data	game/obj01.cpp	global	funcTbl.282	funcTbl.918
 0x80266954	0x80	.data	game/obj02.cpp	global	funcTbl.615	funcTbl.615
 0x802669D4	0xC	.data	game/obj03.cpp	global	bp.582	bp.582
 0x802669E0	0x60	.data	game/obj08.cpp	global	obj08HitBox	obj08HitBox
 0x80266A40	0x60	.data	game/obj09.cpp	global	pos_tbl	pos_tbl
-0x80266AA0	0x10	.data	game/obj10.cpp	global	funcTbl.918_80266AA0	funcTbl.918
+0x80266AA0	0x10	.data	game/obj10.cpp	global	funcTbl.345	funcTbl.918
 0x80266AB0	0x10	.data	game/obj12.cpp	global	obj12Atk.702	obj12Atk.702
 0x80266AC0	0x200	.data	game/pad.cpp	global	Key_type_tbl	Key_type_tbl
 0x80266CC0	0xC	.data	game/pendulum.cpp	global	GlobalWind	GlobalWind
@@ -10336,7 +10391,7 @@ address	size	section	unit	scope	name	demangled
 0x8026D9CC	0x4	.data	game/mirror.cpp	local	lbl_8026D9CC	.
 0x8026D9D0	0x4	.data	lib/dummy.c	global	first.183	first.183
 0x8026D9D4	0x4	.data	lib/dummy.c	local	lbl_8026D9D4	.
-0x8026D9D8	0x8	.data	lib/tors.c	global	_ctors_data	_ctors_data
+0x8026D9D8	0x4	.data	lib/tors.c	global	_ctors_data	_ctors_data
 0x8026D9E0	0x24	.data	lib/OSAlloc.c	global	...data.0_8026D9E0	...data.0
 0x8026DA04	0x37	.data	lib/OSAlloc.c	local	@355_8026DA04	@355
 0x8026DA3B	0x1	.data	lib/OSAlloc.c	local	lbl_8026DA3B	.
@@ -10370,10 +10425,8 @@ address	size	section	unit	scope	name	demangled
 0x8026DD53	0x1	.data	lib/OSAlloc.c	global	lbl_8026DD53	.
 0x8026DD54	0x10	.data	lib/OSAlloc.c	global	@389_8026DD54	@389
 0x8026DD64	0xE	.data	lib/OSAlloc.c	global	@390_8026DD64	@390
-0x8026DD72	0x6	.data	lib/OSAlloc.c	global	lbl_8026DD72	.
 0x8026DD78	0x180	.data	lib/OSFont.c	local	HankakuToCode	HankakuToCode
 0x8026DEF8	0x98A	.data	lib/OSFont.c	local	Zenkaku2Code	Zenkaku2Code
-0x8026E882	0x6	.data	lib/OSFont.c	global	lbl_8026E882	.
 0x8026E888	0x12	.data	lib/OSStopwatch.c	global	...data.0_8026E888	...data.0
 0x8026E89A	0x2	.data	lib/OSStopwatch.c	global	lbl_8026E89A	.
 0x8026E89C	0x11	.data	lib/OSStopwatch.c	global	@20_8026E89C	@20
@@ -10385,23 +10438,19 @@ address	size	section	unit	scope	name	demangled
 0x8026E8D4	0x11	.data	lib/OSStopwatch.c	global	@23_8026E8D4	@23
 0x8026E8E5	0x3	.data	lib/OSStopwatch.c	global	lbl_8026E8E5	.
 0x8026E8E8	0x11	.data	lib/OSStopwatch.c	global	@24_8026E8E8	@24
-0x8026E8F9	0x7	.data	lib/OSStopwatch.c	global	lbl_8026E8F9	.
 0x8026E900	0x20	.data	lib/reverb_hi.c	global	lens$111	lens$111
-0x8026E920	0x10	.data	lib/reverb_std.c	global	lens$111_8026E920	lens$111
+0x8026E920	0x10	.data	lib/reverb_std.c	global	lens$36	lens$111
 0x8026E930	0x800	.data	lib/chorus.c	local	rsmpTab12khz	rsmpTab12khz
 0x8026F130	0x24	.data	lib/reverb_hi_4ch.c	global	lens$111_8026F130	lens$111
-0x8026F154	0x4	.data	lib/reverb_hi_4ch.c	global	lbl_8026F154	.
 0x8026F158	0xF0	.data	lib/GXDraw.c	local	polygons	polygons
 0x8026F248	0xF0	.data	lib/GXDraw.c	local	verts	verts
 0x8026F338	0x48	.data	lib/GXDraw.c	local	odata	odata
 0x8026F380	0x18	.data	lib/GXDraw.c	local	ondex	ondex
 0x8026F398	0x90	.data	lib/GXDraw.c	local	idata	idata
 0x8026F428	0x3C	.data	lib/GXDraw.c	local	index	index
-0x8026F464	0x4	.data	lib/GXDraw.c	global	lbl_8026F464	.
 0x8026F468	0x24	.data	lib/mwsfdfrm.c	global	@620	@620
 0x8026F48C	0x24	.data	lib/mwsfdfrm.c	global	@648_8026F48C	@648
 0x8026F4B0	0x24	.data	lib/mwsfdfrm.c	global	@703	@703
-0x8026F4D4	0x4	.data	lib/mwsfdfrm.c	global	lbl_8026F4D4	.
 0x8026F4D8	0x44	.data	lib/mwsfdcre.c	global	mwsfd_if	mwsfd_if
 0x8026F51C	0x44	.data	lib/mwsfdcre.c	global	mwsfd_sfdmps_crepara	mwsfd_sfdmps_crepara
 0x8026F560	0x44	.data	lib/mwsfdcre.c	global	mwsfd_sfdmpv_crepara	mwsfd_sfdmpv_crepara
@@ -10409,19 +10458,16 @@ address	size	section	unit	scope	name	demangled
 0x8026F5E8	0x24	.data	lib/mwsfdcre.c	global	mwsfd_mpvpara	mwsfd_mpvpara
 0x8026F60C	0x1C	.data	lib/mwsfdcre.c	global	mwsfd_adxtpara	mwsfd_adxtpara
 0x8026F628	0x4	.data	lib/mwsfdcre.c	global	mwsfd_packsize	mwsfd_packsize
-0x8026F62C	0x4	.data	lib/mwsfdcre.c	global	lbl_8026F62C	.
 0x8026F630	0x8	.data	lib/mwsfdsst.c	global	mwsstmng	mwsstmng
 0x8026F638	0x1C	.data	lib/sfd_ply.c	global	@1419	@1419
-0x8026F654	0x4	.data	lib/sfd_ply.c	global	lbl_8026F654	.
 0x8026F658	0x24	.data	lib/sfh_main.c	global	@467_8026F658	@467
 0x8026F67C	0x24	.data	lib/sfh_main.c	global	@920_8026F67C	@920
 0x8026F6A0	0x4	.data	lib/cftyp422_ppc.c	global	CFT_version	CFT_version
-0x8026F6A4	0x4	.data	lib/cftyp422_ppc.c	global	lbl_8026F6A4	.
 0x8026F6A8	0x24	.data	lib/cftfx.c	global	cft_rgb_yuv_coeff	cft_rgb_yuv_coeff
 0x8026F6CC	0x24	.data	lib/cftfx.c	global	cft_rgb_yuv_ccir601	cft_rgb_yuv_ccir601
 0x8026F6F0	0x4	.data	lib/cft_common.c	global	cftcom_function_name	cftcom_function_name
 0x8026F6F4	0x4	.data	lib/cft_common.c	global	lbl_8026F6F4	.
-0x8026F6F8	0x8	.data	lib/mps_dec.c	global	lbl_8026F6F8	.
+0x8026F6F8	0x8	.data	lib/mps_dec.c	global	mpsdec_rsv	mpsdec_rsv
 0x8026F700	0x48	.data	lib/mpv_emp.c	global	mpvemp_mbai	mpvemp_mbai
 0x8026F748	0x20	.data	lib/mpv_mcy.c	global	@517_8026F748	@517
 0x8026F768	0x400	.data	lib/mpvabdec.c	global	@2735	@2735
@@ -10474,7 +10520,6 @@ address	size	section	unit	scope	name	demangled
 0x802767D4	0xC	.bss	game/pl_debug.cpp	local	vpos.938	vpos.938
 0x802767E0	0xC	.bss	game/pl_debug.cpp	local	tang.961	tang.961
 0x802767EC	0x19	.bss	game/pl_debug.cpp	global	PlCapNum	PlCapNum
-0x80276805	0x3	.bss	game/pl_debug.cpp	local	lbl_80276805	.
 0x80276808	0xC	.bss	game/pl_knife.cpp	global	ohpos.1102	ohpos.1102
 0x80276814	0xC	.bss	game/pl_npc.cpp	global	norm.1330	norm.1330
 0x80276820	0xC	.bss	game/pl_npc.cpp	local	m_PosOldWater.1505	m_PosOldWater.1505
@@ -10488,14 +10533,13 @@ address	size	section	unit	scope	name	demangled
 0x80277438	0xA0	.bss	game/snd.cpp	global	SndMem	SndMem
 0x802774D8	0x38	.bss	game/snd.cpp	global	UseAramSize	UseAramSize
 0x80277510	0xB2	.bss	game/snd.cpp	global	History	History
-0x802775C2	0x2	.bss	game/snd.cpp	global	lbl_802775C2	.
 0x802775C4	0x240	.bss	game/snd.cpp	global	DefEffTbl	DefEffTbl
 0x80277804	0x700	.bss	game/snd.cpp	local	callErr	callErr
 0x80277F04	0xC	.bss	game/snd.cpp	global	aram_buf	aram_buf
 0x80277F10	0x374	.bss	game/sscrn.cpp	global	SubScreenWk	SubScreenWk
 0x80278284	0x50	.bss	game/sscrn.cpp	global	IdSub	IdSub
 0x802782D4	0x50	.bss	game/sscrn.cpp	global	IdNum	IdNum
-0x80278324	0x1C	.bss	game/sscrn.cpp	global	lbl_80278324	.
+0x80278324	0x1C	.bss	game/sscrn.cpp	global	sscrn_pad	sscrn_pad
 0x80278340	0x9728	.bss	lib/ppcdown.c	global	lbl_80278340	.
 0x80281A68	0x138	.bss	lib/ppcdown.c	global	NOA_ProgramExc	NOA_ProgramExc
 0x80281BA0	0x20	.bss	lib/proview.c	global	lbl_80281BA0	.
@@ -10506,11 +10550,8 @@ address	size	section	unit	scope	name	demangled
 0x80281BD0	0x4	.bss	lib/FSasync.c	global	g_nTotalBytesRemaining	g_nTotalBytesRemaining
 0x80281BD4	0x4	.bss	lib/FSasync.c	global	g_bDoFSACK	g_bDoFSACK
 0x80281BD8	0x4	.bss	lib/FSasync.c	global	g_nFSLastError	g_nFSLastError
-0x80281BDC	0x4	.bss	lib/FSasync.c	global	lbl_80281BDC	.
-0x80281BE0	0xC	.bss	lib/FSasync.c	global	g_FsResult	g_FsResult
-0x80281BEC	0x14	.bss	lib/FSasync.c	global	lbl_80281BEC	.
+0x80281BE0	0x20	.bss	lib/FSasync.c	global	g_FsResult	g_FsResult
 0x80281C00	0x4	.bss	lib/sndvd.c	global	g_nDvdAudioCfg	g_nDvdAudioCfg
-0x80281C04	0x1C	.bss	lib/sndvd.c	global	lbl_80281C04	.
 0x80281C20	0x20	.bss	lib/sndvd.c	global	g_aBuffer	g_aBuffer
 0x80281C40	0x4	.bss	lib/sndvd.c	local	g_nDvdError	g_nDvdError
 0x80281C44	0x4	.bss	lib/sndvd.c	local	g_nDvdCurrOffset	g_nDvdCurrOffset
@@ -10518,22 +10559,17 @@ address	size	section	unit	scope	name	demangled
 0x80281C4C	0x4	.bss	lib/sndvd.c	global	g_nBaseOffset	g_nBaseOffset
 0x80281C50	0x1	.bss	lib/sndvd.c	local	g_nEmuState	g_nEmuState
 0x80281C51	0x1	.bss	lib/sndvd.c	global	g_nLidState	g_nLidState
-0x80281C52	0x2	.bss	lib/sndvd.c	local	lbl_80281C52	.
 0x80281C54	0x4	.bss	lib/sndvd.c	local	g_OldDsiExcHandler	g_OldDsiExcHandler
-0x80281C58	0x8	.bss	lib/sndvd.c	local	lbl_80281C58	.
 0x80281C60	0xA4	.bss	game/vfprintf.cpp	local	str.13	str.13
 0x80281D04	0x80	.bss	game/vfprintf.cpp	global	pch.20	pch.20
 0x80281D84	0x80	.bss	game/vfiprintf.cpp	global	pch.3	pch.3
 0x80281E04	0x3C0	.bss	game/fopen.cpp	global	_sn_iobf	_sn_iobf
 0x802821C4	0xC	.bss	game/fopen.cpp	global	_sn_stat_g	_sn_stat_g
-0x802821D0	0x10	.bss	lib/_eh.c	global	lbl_802821D0	.
 0x802821E0	0x20	.bss	lib/OS.c	local	DriveInfo	DriveInfo
 0x80282200	0x30	.bss	lib/OS.c	local	DriveBlock	DriveBlock
 0x80282230	0x1C	.bss	lib/OS.c	global	__OSRebootParams	__OSRebootParams
-0x8028224C	0x4	.bss	lib/OS.c	local	lbl_8028224C	.
 0x80282250	0x44	.bss	lib/OSError.c	global	__OSErrorTable	__OSErrorTable
-0x80282294	0xC	.bss	lib/OSError.c	global	lbl_80282294	.
-0x802822A0	0x58	.bss	lib/OSRtc.c	local	Scb	Scb
+0x802822A0	0x54	.bss	lib/OSRtc.c	local	Scb	Scb
 0x802822F8	0x100	.bss	lib/OSThread.c	local	RunQueue	RunQueue
 0x802823F8	0x318	.bss	lib/OSThread.c	local	IdleThread	IdleThread
 0x80282710	0x318	.bss	lib/OSThread.c	local	DefaultThread	DefaultThread
@@ -10549,31 +10585,27 @@ address	size	section	unit	scope	name	demangled
 0x80282F70	0x20	.bss	lib/SIBios.c	local	InputBuffer	InputBuffer
 0x80282F90	0x10	.bss	lib/SIBios.c	local	InputBufferVcount	InputBufferVcount
 0x80282FA0	0x10	.bss	lib/SIBios.c	local	cmdFixDevice$327	cmdFixDevice$327
-0x80282FB0	0x10	.bss	lib/db.c	local	lbl_80282FB0	.
 0x80282FC0	0x20	.bss	lib/dvd.c	local	BB2	BB2
 0x80282FE0	0x20	.bss	lib/dvd.c	local	CurrDiskID	CurrDiskID
 0x80283000	0x30	.bss	lib/dvd.c	local	DummyCommandBlock	DummyCommandBlock
 0x80283030	0x28	.bss	lib/dvd.c	local	ResetAlarm	ResetAlarm
 0x80283058	0x20	.bss	lib/dvdqueue.c	local	WaitingQueue	WaitingQueue
 0x80283078	0x3F	.bss	lib/fstload.c	local	bb2Buf	bb2Buf
-0x802830B7	0x1	.bss	lib/fstload.c	local	lbl_802830B7	.
 0x802830B8	0x30	.bss	lib/fstload.c	local	block$18	block$18
-0x802830E8	0x40	.bss	lib/dvdlow.c	local	CommandList	CommandList
+0x802830E8	0x3C	.bss	lib/dvdlow.c	local	CommandList	CommandList
 0x80283128	0x28	.bss	lib/dvdlow.c	local	AlarmForWA	AlarmForWA
 0x80283150	0x28	.bss	lib/dvdlow.c	local	AlarmForTimeout	AlarmForTimeout
 0x80283178	0x28	.bss	lib/dvdlow.c	local	AlarmForBreak	AlarmForBreak
 0x802831A0	0xC	.bss	lib/dvdlow.c	local	Prev	Prev
 0x802831AC	0xC	.bss	lib/dvdlow.c	local	Curr	Curr
-0x802831B8	0x78	.bss	lib/vi.c	local	regs	regs
+0x802831B8	0x76	.bss	lib/vi.c	local	regs	regs
 0x80283230	0x76	.bss	lib/vi.c	local	shdwRegs	shdwRegs
-0x802832A6	0x2	.bss	lib/vi.c	local	lbl_802832A6	.
 0x802832A8	0x58	.bss	lib/vi.c	local	HorVer	HorVer
 0x80283300	0x10	.bss	lib/Pad.c	local	Type	Type
 0x80283310	0x30	.bss	lib/Pad.c	local	Origin	Origin
 0x80283340	0x10	.bss	lib/Pad.c	local	CmdProbeDevice	CmdProbeDevice
 0x80283350	0x80	.bss	lib/AXAlloc.c	local	__AXStackHead	__AXStackHead
 0x802833D0	0x80	.bss	lib/AXAlloc.c	local	__AXStackTail	__AXStackTail
-0x80283450	0x10	.bss	lib/AXAlloc.c	local	lbl_80283450	.
 0x80283460	0x1680	.bss	lib/AXAux.c	local	__AXBufferAuxA	__AXBufferAuxA
 0x80284AE0	0x1680	.bss	lib/AXAux.c	local	__AXBufferAuxB	__AXBufferAuxB
 0x80286160	0x600	.bss	lib/AXCL.c	local	__AXCommandList	__AXCommandList
@@ -10582,8 +10614,7 @@ address	size	section	unit	scope	name	demangled
 0x80287160	0x4000	.bss	lib/AXOut.c	local	__AXDramImage	__AXDramImage
 0x8028B160	0x50	.bss	lib/AXOut.c	local	__AXDSPTask	__AXDSPTask
 0x8028B1B0	0x38	.bss	lib/AXOut.c	global	__AXLocalProfile	__AXLocalProfile
-0x8028B1E8	0x18	.bss	lib/AXOut.c	local	lbl_8028B1E8	.
-0x8028B200	0x40	.bss	lib/AXSPB.c	local	__AXStudio	__AXStudio
+0x8028B200	0x36	.bss	lib/AXSPB.c	local	__AXStudio	__AXStudio
 0x8028B240	0x3D00	.bss	lib/AXVPB.c	local	__AXPB	__AXPB
 0x8028EF40	0x1000	.bss	lib/AXVPB.c	local	__AXITD	__AXITD
 0x8028FF40	0x4000	.bss	lib/AXVPB.c	local	__AXUpdates	__AXUpdates
@@ -10606,7 +10637,6 @@ address	size	section	unit	scope	name	demangled
 0x802A5644	0x19460	.bss	game/snd_ram.cpp	global	Snd_seq_work	Snd_seq_work
 0x802BEAA4	0x530	.bss	game/snd_ram.cpp	global	Snd_str_work	Snd_str_work
 0x802BEFD4	0x10	.bss	game/snd_ram.cpp	global	Snd_str_buff	Snd_str_buff
-0x802BEFE4	0x1C	.bss	game/snd_ram.cpp	global	lbl_802BEFE4	.
 0x802BF000	0x7C0	.bss	game/snd_ram.cpp	global	Snd_test_work	Snd_test_work
 0x802BF7C0	0x4	.bss	lib/adx_tlk.c	global	adxt_time_mode	adxt_time_mode
 0x802BF7C4	0x4	.bss	lib/adx_tlk.c	global	adxt_tsvr_enter_cnt	adxt_tsvr_enter_cnt
@@ -10634,13 +10664,10 @@ address	size	section	unit	scope	name	demangled
 0x802BF828	0x4	.bss	lib/lsc.c	global	lsc_stat_func	lsc_stat_func
 0x802BF82C	0x4	.bss	lib/lsc.c	global	lsc_stat_obj1	lsc_stat_obj1
 0x802BF830	0x4	.bss	lib/lsc.c	global	lsc_stat_obj2	lsc_stat_obj2
-0x802BF834	0x4	.bss	lib/lsc.c	global	lbl_802BF834	.
 0x802BF838	0x4	.bss	lib/lsc_ini.c	local	lsc_init_cnt	lsc_init_cnt
 0x802BF83C	0x4700	.bss	lib/lsc_ini.c	global	lsc_obj	lsc_obj
-0x802C3F3C	0x4	.bss	lib/lsc_ini.c	global	lbl_802C3F3C	.
 0x802C3F40	0x4	.bss	lib/sj_rbf.c	global	sjrbf_init_cnt	sjrbf_init_cnt
 0x802C3F44	0x4000	.bss	lib/sj_rbf.c	local	sjrbf_obj	sjrbf_obj
-0x802C7F44	0x4	.bss	lib/sj_rbf.c	global	lbl_802C7F44	.
 0x802C7F48	0x4	.bss	lib/svm.c	global	svm_init_level	svm_init_level
 0x802C7F4C	0x4	.bss	lib/svm.c	global	svm_lock_level	svm_lock_level
 0x802C7F50	0x4	.bss	lib/svm.c	global	svm_locking_type	svm_locking_type
@@ -10659,24 +10686,21 @@ address	size	section	unit	scope	name	demangled
 0x802C8220	0x4	.bss	lib/pl2enc.c	local	pl2enc_init_count	pl2enc_init_count
 0x802C8224	0x4	.bss	lib/pl2enc.c	global	pl2enc_err_func	pl2enc_err_func
 0x802C8228	0x4	.bss	lib/pl2enc.c	global	pl2enc_err_obj	pl2enc_err_obj
-0x802C822C	0x4	.bss	lib/pl2enc.c	local	lbl_802C822C	.
+0x802C822C	0x4	.bss	lib/pl2enc.c	local	pl2enc_work	pl2enc_work
 0x802C8230	0x4	.bss	lib/ax_rna.c	local	axrna_init_cnt	axrna_init_cnt
 0x802C8234	0x4	.bss	lib/ax_rna.c	local	axrna_zero_dat	axrna_zero_dat
 0x802C8238	0x4	.bss	lib/ax_rna.c	global	axrna_def_adjsfreq_fg	axrna_def_adjsfreq_fg
 0x802C823C	0x4	.bss	lib/ax_rna.c	local	axrna_foo_cnt	axrna_foo_cnt
 0x802C8240	0x4	.bss	lib/ax_rna.c	global	axrna_update_pos	axrna_update_pos
 0x802C8244	0x80	.bss	lib/ax_rna.c	local	axrna_update_hist	axrna_update_hist
-0x802C82C4	0x103E	.bss	lib/ax_rna.c	global	axrna_zero_dat_real	axrna_zero_dat_real
-0x802C9302	0x2	.bss	lib/ax_rna.c	global	lbl_802C9302	.
+0x802C82C4	0x1040	.bss	lib/ax_rna.c	global	axrna_zero_dat_real	axrna_zero_dat_real
 0x802C9304	0xE80	.bss	lib/ax_rna.c	global	axrna_obj	axrna_obj
-0x802CA184	0x4	.bss	lib/ax_rna.c	local	lbl_802CA184	.
 0x802CA188	0x4	.bss	lib/rna_res.c	local	rnares_init_cnt	rnares_init_cnt
 0x802CA18C	0x4	.bss	lib/rna_res.c	global	rnares_setup_fg	rnares_setup_fg
 0x802CA190	0x4	.bss	lib/rna_res.c	local	rnares_nbuf	rnares_nbuf
 0x802CA194	0x4	.bss	lib/rna_res.c	global	rnares_aram_size	rnares_aram_size
 0x802CA198	0x4	.bss	lib/rna_res.c	global	rnares_aram_ptr	rnares_aram_ptr
 0x802CA19C	0x180	.bss	lib/rna_res.c	local	rnares_obj	rnares_obj
-0x802CA31C	0x4	.bss	lib/rna_res.c	global	lbl_802CA31C	.
 0x802CA320	0x4	.bss	lib/adx_inis.c	global	adxt_init_cnt	adxt_init_cnt
 0x802CA324	0x4	.bss	lib/adx_inis.c	local	adxt_svr_id	adxt_svr_id
 0x802CA328	0x4	.bss	lib/adx_inis.c	global	adxt_svr_main_id	adxt_svr_main_id
@@ -10685,10 +10709,8 @@ address	size	section	unit	scope	name	demangled
 0x802CA334	0x4	.bss	lib/adx_inis.c	global	adxt_vsync_cnt	adxt_vsync_cnt
 0x802CA338	0xC00	.bss	lib/adx_inis.c	global	adxt_obj	adxt_obj
 0x802CAF38	0x4	.bss	lib/adx_inis.c	global	cri_verstr_ptr	cri_verstr_ptr
-0x802CAF3C	0x4	.bss	lib/adx_inis.c	global	lbl_802CAF3C	.
 0x802CAF40	0x4	.bss	lib/adx_sjd.c	global	pl2setsfreqfunc	pl2setsfreqfunc
 0x802CAF44	0xA80	.bss	lib/adx_sjd.c	global	adxsjd_obj	adxsjd_obj
-0x802CB9C4	0x4	.bss	lib/adx_sjd.c	global	lbl_802CB9C4	.
 0x802CB9C8	0x4	.bss	lib/adx_bahx.c	global	ahxsetsjifunc	ahxsetsjifunc
 0x802CB9CC	0x4	.bss	lib/adx_bahx.c	global	ahxsetdecsmplfunc	ahxsetdecsmplfunc
 0x802CB9D0	0x4	.bss	lib/adx_bahx.c	global	ahxtermsupplyfunc	ahxtermsupplyfunc
@@ -10702,17 +10724,15 @@ address	size	section	unit	scope	name	demangled
 0x802CB9F0	0x2	.bss	lib/adx_bsc.c	local	adxb_def_k0	adxb_def_k0
 0x802CB9F2	0x2	.bss	lib/adx_bsc.c	local	adxb_def_km	adxb_def_km
 0x802CB9F4	0x2	.bss	lib/adx_bsc.c	local	adxb_def_ka	adxb_def_ka
-0x802CB9F6	0x2	.bss	lib/adx_bsc.c	local	lbl_802CB9F6	.
 0x802CB9F8	0xF80	.bss	lib/adx_bsc.c	local	adxb_obj	adxb_obj
-0x802CC978	0x8	.bss	lib/adx_amp.c	local	lbl_802CC978	.
+0x802CC978	0x4	.bss	lib/adx_amp.c	local	adxamp_cur	adxamp_cur
+0x802CC97C	0x4	.bss	lib/adx_amp.c	local	adxamp_cnt	adxamp_cnt
 0x802CC980	0x4	.bss	lib/adx_crs.c	global	adxcrs_lvl	adxcrs_lvl
-0x802CC984	0x4	.bss	lib/adx_crs.c	local	lbl_802CC984	.
 0x802CC988	0x4	.bss	lib/adx_errs.c	local	adxerr_func	adxerr_func
 0x802CC98C	0x4	.bss	lib/adx_errs.c	local	adxerr_obj	adxerr_obj
 0x802CC990	0x20	.bss	lib/adx_errs.c	global	buf$23	buf$23
 0x802CC9B0	0x100	.bss	lib/adx_errs.c	local	adxerr_msg	adxerr_msg
 0x802CCAB0	0x4	.bss	lib/adx_fsvr.c	global	adxt_fssvr_enter_cnt	adxt_fssvr_enter_cnt
-0x802CCAB4	0x4	.bss	lib/adx_fsvr.c	global	lbl_802CCAB4	.
 0x802CCAB8	0x4	.bss	lib/adx_stmc.c	local	adxstmf_rtim_ofst	adxstmf_rtim_ofst
 0x802CCABC	0x4	.bss	lib/adx_stmc.c	global	adxstmf_execsvr_flg	adxstmf_execsvr_flg
 0x802CCAC0	0x4	.bss	lib/adx_stmc.c	global	adxstmf_num_rtry	adxstmf_num_rtry
@@ -10720,7 +10740,6 @@ address	size	section	unit	scope	name	demangled
 0x802CCAC8	0xF00	.bss	lib/adx_stmc.c	global	adxstmf_obj	adxstmf_obj
 0x802CD9C8	0x4	.bss	lib/adx_xpnd.c	global	adxpd_internal_error	adxpd_internal_error
 0x802CD9CC	0x3C0	.bss	lib/adx_xpnd.c	global	adxpd_obj	adxpd_obj
-0x802CDD8C	0x4	.bss	lib/adx_xpnd.c	global	lbl_802CDD8C	.
 0x802CDD90	0x4	.bss	lib/adx_mgc.c	global	adxgc_exec_svr	adxgc_exec_svr
 0x802CDD94	0x4	.bss	lib/adx_mgc.c	local	adxm_init_level	adxm_init_level
 0x802CDD98	0x4	.bss	lib/adx_mgc.c	local	adxm_lock_level	adxm_lock_level
@@ -10760,18 +10779,15 @@ address	size	section	unit	scope	name	demangled
 0x802D5B78	0x4	.bss	lib/adx_fini.c	global	adxf_ocbi_fg	adxf_ocbi_fg
 0x802D5B7C	0x400	.bss	lib/adx_fini.c	global	adxf_ptinfo	adxf_ptinfo
 0x802D5F7C	0x440	.bss	lib/adx_fini.c	global	adxf_obj	adxf_obj
-0x802D63BC	0x4	.bss	lib/adx_fini.c	local	lbl_802D63BC	.
-0x802D63C0	0x8	.bss	lib/adx_fs.c	global	lbl_802D63C0	.
+0x802D63C0	0x4	.bss	lib/adx_fs.c	global	adxf_ldpt_tbsize	adxf_ldpt_tbsize
+0x802D63C4	0x4	.bss	lib/adx_fs.c	local	adxf_ldpt_tmpbuf	adxf_ldpt_tmpbuf
 0x802D63C8	0x4	.bss	lib/cri_cvfs.c	global	cvfs_errfn	cvfs_errfn
 0x802D63CC	0x4	.bss	lib/cri_cvfs.c	local	cvfs_errobj	cvfs_errobj
 0x802D63D0	0x4	.bss	lib/cri_cvfs.c	global	cvfs_init_cnt	cvfs_init_cnt
 0x802D63D4	0x129	.bss	lib/cri_cvfs.c	global	add_dev_tmp	add_dev_tmp
-0x802D64FD	0x3	.bss	lib/cri_cvfs.c	global	lbl_802D64FD	.
 0x802D6500	0x9	.bss	lib/cri_cvfs.c	global	cvfs_defdev	cvfs_defdev
-0x802D6509	0x3	.bss	lib/cri_cvfs.c	global	lbl_802D6509	.
 0x802D650C	0x200	.bss	lib/cri_cvfs.c	local	cvfs_tbl	cvfs_tbl
 0x802D670C	0x140	.bss	lib/cri_cvfs.c	global	cvfs_obj	cvfs_obj
-0x802D684C	0x4	.bss	lib/cri_cvfs.c	global	lbl_802D684C	.
 0x802D6850	0x4	.bss	lib/lsc_err.c	global	lsc_err_func	lsc_err_func
 0x802D6854	0x4	.bss	lib/lsc_err.c	global	lsc_err_obj	lsc_err_obj
 0x802D6858	0x100	.bss	lib/lsc_err.c	global	lsc_err_msg	lsc_err_msg
@@ -10779,14 +10795,11 @@ address	size	section	unit	scope	name	demangled
 0x802D695C	0x4	.bss	lib/sj_crs.c	local	sjcrs_msk	sjcrs_msk
 0x802D6960	0x4	.bss	lib/sj_mem.c	global	sjmem_init_cnt	sjmem_init_cnt
 0x802D6964	0x480	.bss	lib/sj_mem.c	global	sjmem_obj	sjmem_obj
-0x802D6DE4	0x4	.bss	lib/sj_mem.c	global	lbl_802D6DE4	.
 0x802D6DE8	0x4	.bss	lib/sj_uni.c	local	sjuni_init_cnt	sjuni_init_cnt
 0x802D6DEC	0xC00	.bss	lib/sj_uni.c	global	sjuni_obj	sjuni_obj
-0x802D79EC	0x4	.bss	lib/sj_uni.c	local	lbl_802D79EC	.
 0x802D79F0	0x4	.bss	lib/rna_err.c	global	rnaerr_func	rnaerr_func
 0x802D79F4	0x4	.bss	lib/rna_err.c	global	rnaerr_obj	rnaerr_obj
 0x802D79F8	0x100	.bss	lib/rna_err.c	global	rnaerr_msg	rnaerr_msg
-0x802D7AF8	0x8	.bss	lib/rna_crs.c	global	lbl_802D7AF8	.
 0x802D7B00	0x4	.bss	lib/adx_dcd3.c	global	adx_decode_output_mono_flag	adx_decode_output_mono_flag
 0x802D7B04	0x104	.bss	game/act_btn.cpp	global	ActBtn	ActBtn
 0x802D7C08	0xC0	.bss	game/at_sub.cpp	global	BoxTmp	BoxTmp
@@ -10813,23 +10826,20 @@ address	size	section	unit	scope	name	demangled
 0x802DA01C	0x80	.bss	game/debug.cpp	local	proc_tick	proc_tick
 0x802DA09C	0x80	.bss	game/debug.cpp	global	proc_name	proc_name
 0x802DA11C	0x34	.bss	game/dmg.cpp	global	DmgMgr	DmgMgr
-0x802DA150	0x10	.bss	game/dmg.cpp	global	lbl_802DA150	.
+0x802DA150	0x10	.bss	game/dmg.cpp	global	dmg_pad	dmg_pad
 0x802DA160	0x6C	.bss	game/dvd.cpp	global	DvdReqWork	DvdReqWork
 0x802DA1CC	0x311C	.bss	game/dvd.cpp	global	Dvd	Dvd
 0x802DD2E8	0x1A8	.bss	game/dvd.cpp	global	Aram	Aram
-0x802DD490	0x10	.bss	game/dvd.cpp	global	lbl_802DD490	.
 0x802DD4A0	0x800	.bss	game/dvd.cpp	local	header_buff	header_buff
 0x802DDCA0	0x800	.bss	game/dvd.cpp	global	header_save	header_save
 0x802DE4A0	0xF8	.bss	game/eff_sys.cpp	global	g_DmyEsp	g_DmyEsp
 0x802DE598	0xF4	.bss	game/eff_sys.cpp	local	g_EffParentWorld	g_EffParentWorld
-0x802DE68C	0x14	.bss	game/eff_sys.cpp	global	lbl_802DE68C	.
 0x802DE6A0	0x60	.bss	game/eff_sys.cpp	global	g_EspCommonDisplayList	g_EspCommonDisplayList
 0x802DE700	0x38	.bss	game/em.cpp	global	EmMgr	EmMgr
 0x802DE738	0x10	.bss	game/eprintf.cpp	global	Moji	Moji
 0x802DE748	0x20	.bss	game/eprintf.cpp	global	fontTexObj	fontTexObj
 0x802DE768	0x30	.bss	game/eprintf.cpp	local	fontTMtx	fontTMtx
 0x802DE798	0x1A6	.bss	game/esp.cpp	global	esp_num_list	esp_num_list
-0x802DE93E	0x2	.bss	game/esp.cpp	local	lbl_802DE93E	.
 0x802DE940	0x3FC	.bss	game/esp.cpp	global	EspTransTbl	EspTransTbl
 0x802DED3C	0x3FC	.bss	game/esp.cpp	global	EspCreateTbl	EspCreateTbl
 0x802DF138	0x80	.bss	game/esp_app.cpp	global	buf.1191	buf.1191
@@ -10880,14 +10890,11 @@ address	size	section	unit	scope	name	demangled
 0x802E94D0	0xB8	.bss	game/main.cpp	global	Key	Key
 0x802E9588	0x14	.bss	game/main.cpp	global	MainOt	MainOt
 0x802E959C	0x18	.bss	game/main.cpp	global	Screen	Screen
-0x802E95B4	0x4	.bss	game/main.cpp	global	lbl_802E95B4	.
 0x802E95B8	0x40	.bss	game/main_mem.cpp	local	tile.579	tile.579
 0x802E95F8	0xD0	.bss	game/main_mem.cpp	global	Heap	Heap
 0x802E96C8	0x38	.bss	game/main_mem.cpp	local	SysMem	SysMem
 0x802E9700	0x9C	.bss	game/main_mem.cpp	global	heap_backup	heap_backup
-0x802E979C	0x4	.bss	game/main_mem.cpp	global	lbl_802E979C	.
 0x802E97A0	0xB	.bss	game/main_sub.cpp	global	ScreenShotFilename	ScreenShotFilename
-0x802E97AB	0x5	.bss	game/main_sub.cpp	global	lbl_802E97AB	.
 0x802E97B0	0x30	.bss	game/main_sub.cpp	global	SW	SW
 0x802E97E0	0xC	.bss	game/math_sub.cpp	global	ans.369	ans.369
 0x802E97EC	0xC	.bss	game/math_sub.cpp	local	ans.376	ans.376
@@ -10927,13 +10934,11 @@ address	size	section	unit	scope	name	demangled
 0x802EA34C	0x60	.bss	game/pl_cloth.cpp	global	adaRibbon	adaRibbon
 0x802EA3AC	0xC	.bss	game/pl_sub.cpp	global	m_PosOldWater.1682	m_PosOldWater.1682
 0x802EA3B8	0x110	.bss	game/quake.cpp	global	Quake	Quake
-0x802EA4C8	0x18	.bss	game/quake.cpp	global	lbl_802EA4C8	.
+0x802EA4C8	0x18	.bss	game/quake.cpp	global	QuakeOfsOld	QuakeOfsOld
 0x802EA4E0	0x260	.bss	game/read.cpp	global	EmReadModule	EmReadModule
 0x802EA740	0x98	.bss	game/read.cpp	global	PlReadModule	PlReadModule
-0x802EA7D8	0x8	.bss	game/read.cpp	local	lbl_802EA7D8	.
 0x802EA7E0	0x98	.bss	game/read.cpp	global	WepReadModule	WepReadModule
-0x802EA878	0x8	.bss	game/read.cpp	local	lbl_802EA878	.
-0x802EA880	0x38	.bss	game/room_jmp.cpp	local	test_802EA880	test
+0x802EA880	0x38	.bss	game/room_jmp.cpp	local	test.273	test
 0x802EA8B8	0x20	.bss	game/roomdata.cpp	global	RoomData	RoomData
 0x802EA8D8	0x1C	.bss	game/sce_at.cpp	local	auto_work.2289	auto_work.2289
 0x802EA8F4	0x124	.bss	game/sce_at.cpp	local	SceAtSys	SceAtSys
@@ -10944,9 +10949,7 @@ address	size	section	unit	scope	name	demangled
 0x802EABD0	0x138	.bss	game/sce_sys.cpp	global	SceSys	SceSys
 0x802EAD08	0x3B10	.bss	game/scheduler.cpp	global	Task	Task
 0x802EE818	0xC	.bss	game/scheduler.cpp	local	Sema	Sema
-0x802EE824	0x4	.bss	game/scheduler.cpp	local	lbl_802EE824	.
 0x802EE828	0x2C	.bss	game/sofdec.cpp	local	info.819	info.819
-0x802EE854	0x4	.bss	game/sofdec.cpp	global	lbl_802EE854	.
 0x802EE858	0x240	.bss	game/sofdec.cpp	global	Sofdec	Sofdec
 0x802EEA98	0x10	.bss	game/t_bugcheck.cpp	global	BC	BC
 0x802EEAA8	0xC	.bss	game/t_flag.cpp	global	Test	Test
@@ -10954,7 +10957,6 @@ address	size	section	unit	scope	name	demangled
 0x802EEFD4	0x4DC	.bss	game/t_option.cpp	global	dbPl	dbPl
 0x802EF4B0	0x10	.bss	game/t_page.cpp	global	lbl_802EF4B0	.
 0x802EF4C0	0x10	.bss	game/t_prim.cpp	global	Orect	Orect
-0x802EF4D0	0x10	.bss	game/t_prim.cpp	global	lbl_802EF4D0	.
 0x802EF4E0	0x100	.bss	game/t_prim.cpp	global	ToolBuffer	ToolBuffer
 0x802EF5E0	0xF8	.bss	game/t_util.cpp	global	globalCamera	globalCamera
 0x802EF6D8	0x10	.bss	game/t_util.cpp	global	debug_flg_bak	debug_flg_bak
@@ -10988,14 +10990,12 @@ address	size	section	unit	scope	name	demangled
 0x802F19C0	0x14	.bss	game/filter03.cpp	global	flt03	flt03
 0x802F19D4	0x14	.bss	game/filter04.cpp	global	flt04	flt04
 0x802F19E8	0x4	.bss	lib/__main.c	global	initialized.10	initialized.10
-0x802F19EC	0x4	.bss	lib/__main.c	global	lbl_802F19EC	.
-0x802F19F0	0x10	.bss	lib/OSFatal.c	local	FatalParam	FatalParam
+0x802F19F0	0xC	.bss	lib/OSFatal.c	local	FatalParam	FatalParam
 0x802F1A00	0x2C8	.bss	lib/OSFatal.c	local	FatalContext	FatalContext
 0x802F1CC8	0xD8	.bss	lib/GXDraw.c	local	vcd	vcd
 0x802F1DA0	0x1B0	.bss	lib/GXDraw.c	local	vat	vat
 0x802F1F50	0x24	.bss	lib/GXDisplayList.c	local	DisplayListFifo	DisplayListFifo
 0x802F1F74	0x5B0	.bss	lib/GXDisplayList.c	local	__savedGXdata	__savedGXdata
-0x802F2524	0x4	.bss	lib/GXDisplayList.c	global	lbl_802F2524	.
 0x802F2528	0x100	.bss	lib/mwsfdsvm.c	global	errstr$317	errstr$317
 0x802F2628	0x4	.bss	lib/mwsfdsvm.c	global	mwg_main_fid	mwg_main_fid
 0x802F262C	0x4	.bss	lib/mwsfdsvm.c	global	mwg_idle_fid	mwg_idle_fid
@@ -11013,7 +11013,6 @@ address	size	section	unit	scope	name	demangled
 0x802F2698	0x4	.bss	lib/mwsfdcre.c	global	sib	sib
 0x802F269C	0x4	.bss	lib/mwsfdcre.c	global	sjb	sjb
 0x802F26A0	0x4	.bss	lib/mwsfdcre.c	local	mwsfd_sisjadr	mwsfd_sisjadr
-0x802F26A4	0x4	.bss	lib/mwsfdcre.c	global	lbl_802F26A4	.
 0x802F26A8	0x4	.bss	lib/mwsfdlib.c	global	mwsfd_init_cnt	mwsfd_init_cnt
 0x802F26AC	0x4	.bss	lib/mwsfdlib.c	global	mwsfd_init_flag	mwsfd_init_flag
 0x802F26B0	0x4	.bss	lib/mwsfdlib.c	global	mwsfd_err_sfdhn	mwsfd_err_sfdhn
@@ -11023,42 +11022,34 @@ address	size	section	unit	scope	name	demangled
 0x802F27BC	0x40	.bss	lib/mwsfdlib.c	global	mwg_sfd_errcode	mwg_sfd_errcode
 0x802F27FC	0x162C	.bss	lib/mwsfdlib.c	global	mwsfd_libwork	mwsfd_libwork
 0x802F3E28	0x4	.bss	lib/mwsfdlib.c	local	cri_verstr_ptr_802F3E28	cri_verstr_ptr
-0x802F3E2C	0x4	.bss	lib/mwsfdlib.c	global	lbl_802F3E2C	.
 0x802F3E30	0x4	.bss	lib/mwsfdsvr.c	local	mwg_field_no	mwg_field_no
 0x802F3E34	0x4	.bss	lib/mwsfdsvr.c	global	mwg_vcnt	mwg_vcnt
 0x802F3E38	0x4	.bss	lib/mwsfdsvr.c	global	mwsfd_hn_last	mwsfd_hn_last
-0x802F3E3C	0x4	.bss	lib/mwsfdsvr.c	global	lbl_802F3E3C	.
+0x802F3E3C	0x4	.bss	lib/mwsfdsvr.c	global	mwsfd_svr_bdr_cnt	mwsfd_svr_bdr_cnt
 0x802F3E40	0x4	.bss	lib/sud_lib.c	global	sud_init_cnt	sud_init_cnt
 0x802F3E44	0x4	.bss	lib/sud_lib.c	local	sud_dummy	sud_dummy
 0x802F3E48	0x4	.bss	lib/sfx_lib.c	global	sfx_init_cnt	sfx_init_cnt
 0x802F3E4C	0x4	.bss	lib/sfx_lib.c	global	sfxcnv_forcesplit	sfxcnv_forcesplit
 0x802F3E50	0x3E8	.bss	lib/sfx_lib.c	global	sfx_libwork	sfx_libwork
 0x802F4238	0x4	.bss	lib/sfx_lib.c	global	sfx_dummy	sfx_dummy
-0x802F423C	0x4	.bss	lib/sfx_lib.c	global	lbl_802F423C	.
 0x802F4240	0xC8	.bss	lib/sfx_alp.c	global	sfxa_work	sfxa_work
 0x802F4308	0x26C	.bss	lib/sfx_zmv.c	global	sfxz_work	sfxz_work
-0x802F4574	0x4	.bss	lib/sfx_zmv.c	global	lbl_802F4574	.
 0x802F4578	0x4	.bss	lib/sfd_adxt.c	global	sfadxt_stat	sfadxt_stat
 0x802F457C	0x4	.bss	lib/sfd_adxt.c	global	sfadxt_adxterr	sfadxt_adxterr
 0x802F4580	0x1C	.bss	lib/sfd_adxt.c	local	sfadxt_para	sfadxt_para
-0x802F459C	0x4	.bss	lib/sfd_adxt.c	local	lbl_802F459C	.
 0x802F45A0	0x4	.bss	lib/sfd_buf.c	global	sfbuf_sjmem_uuid	sfbuf_sjmem_uuid
 0x802F45A4	0x4	.bss	lib/sfd_buf.c	local	sfbuf_sjrbf_uuid	sfbuf_sjrbf_uuid
 0x802F45A8	0xB	.bss	lib/sfd_cre.c	global	sfcre_aauhdr	sfcre_aauhdr
-0x802F45B3	0x1	.bss	lib/sfd_cre.c	global	lbl_802F45B3	.
 0x802F45B4	0x894	.bss	lib/sfd_cre.c	global	sfcre_fhd	sfcre_fhd
 0x802F4E48	0x800	.bss	lib/sfd_cre.c	global	sfcre_tmpbuf	sfcre_tmpbuf
 0x802F5648	0x204	.bss	lib/sfd_hds.c	global	sfhds_sfhlib_work	sfhds_sfhlib_work
-0x802F584C	0x4	.bss	lib/sfd_hds.c	local	lbl_802F584C	.
 0x802F5850	0x4	.bss	lib/sfd_lib.c	local	sflib_sizeof_sfdhn	sflib_sizeof_sfdhn
 0x802F5854	0x4	.bss	lib/sfd_lib.c	global	SFD_pts_error_msg	SFD_pts_error_msg
 0x802F5858	0x4	.bss	lib/sfd_lib.c	global	sfd_hn_last	sfd_hn_last
 0x802F585C	0x4	.bss	lib/sfd_lib.c	local	cri_verstr_ptr_802F585C	cri_verstr_ptr
-0x802F5860	0x224	.bss	lib/sfd_lib.c	global	SFLIB_libwork	SFLIB_libwork
-0x802F5A84	0x4	.bss	lib/sfd_lib.c	global	lbl_802F5A84	.
+0x802F5860	0x228	.bss	lib/sfd_lib.c	global	SFLIB_libwork	SFLIB_libwork
 0x802F5A88	0x4	.bss	lib/sfd_mps.c	local	copy_sj_error	copy_sj_error
 0x802F5A8C	0x810	.bss	lib/sfd_mps.c	global	sfmps_libwork	sfmps_libwork
-0x802F629C	0x4	.bss	lib/sfd_mps.c	global	lbl_802F629C	.
 0x802F62A0	0x4	.bss	lib/sfd_mpv.c	global	sfmpv_discard_wsiz	sfmpv_discard_wsiz
 0x802F62A4	0x4	.bss	lib/sfd_mpv.c	global	sfmpv_picusr_buf1siz	sfmpv_picusr_buf1siz
 0x802F62A8	0x4	.bss	lib/sfd_mpv.c	global	sfmpv_picusr_bufnum	sfmpv_picusr_bufnum
@@ -11067,7 +11058,6 @@ address	size	section	unit	scope	name	demangled
 0x802F62F0	0x8	.bss	lib/sfd_mpv.c	global	sfmpv_rfb_adr_tbl	sfmpv_rfb_adr_tbl
 0x802F62F8	0x24	.bss	lib/sfd_mpv.c	global	sfmpv_para	sfmpv_para
 0x802F631C	0x12020	.bss	lib/sfd_mpv.c	global	sfmpv_work	sfmpv_work
-0x8030833C	0x4	.bss	lib/sfd_mpv.c	global	lbl_8030833C	.
 0x80308340	0x4	.bss	lib/sfd_ply.c	global	SFPLY_recordgetfrm	SFPLY_recordgetfrm
 0x80308344	0x4	.bss	lib/sfd_ply.c	global	sfply_last_hnctrl_wksiz	sfply_last_hnctrl_wksiz
 0x80308348	0x4	.bss	lib/sfd_ply.c	global	SFPLY_SetPtsInfo	SFPLY_SetPtsInfo
@@ -11075,31 +11065,26 @@ address	size	section	unit	scope	name	demangled
 0x80308350	0x4	.bss	lib/sfd_tim.c	global	sftim_v_sample	sftim_v_sample
 0x80308354	0x4	.bss	lib/sfd_tim.c	global	sftim_v_time	sftim_v_time
 0x80308358	0x4	.bss	lib/sfd_tim.c	global	sftim_a_sample	sftim_a_sample
-0x8030835C	0x4	.bss	lib/sfd_tim.c	global	lbl_8030835C	.
 0x80308360	0x8	.bss	lib/sfd_tim.c	global	sftim_as_pts	sftim_as_pts
 0x80308368	0x4	.bss	lib/sfd_tst.c	global	sftst_debout_siz	sftst_debout_siz
 0x8030836C	0x4	.bss	lib/sfd_tst.c	global	sftst_debout_buf	sftst_debout_buf
 0x80308370	0x4	.bss	lib/sfd_tst.c	global	sftst_debout_round	sftst_debout_round
 0x80308374	0x4	.bss	lib/sfd_tst.c	global	sftst_debout_write	sftst_debout_write
 0x80308378	0x4	.bss	lib/sfd_tst.c	global	sftst_last	sftst_last
-0x8030837C	0x4	.bss	lib/sfd_tst.c	global	lbl_8030837C	.
 0x80308380	0x4	.bss	lib/sfh_main.c	global	sfh_init_cont	sfh_init_cont
 0x80308384	0xC	.bss	lib/sfh_main.c	global	sfh_objinf	sfh_objinf
 0x80308390	0x4	.bss	lib/sfh_main.c	local	sfhlib_version_dummy	sfhlib_version_dummy
-0x80308394	0x4	.bss	lib/sfh_main.c	global	lbl_80308394	.
 0x80308398	0x4	.bss	lib/uty_tmr.c	global	utytmr_ch	utytmr_ch
 0x8030839C	0x4	.bss	lib/uty_tmr.c	global	utytmr_init_cnt	utytmr_init_cnt
 0x803083A0	0x8	.bss	lib/uty_tmr.c	global	utytmr_unit	utytmr_unit
-0x803083A8	0x18	.bss	lib/uty_tmr.c	global	lbl_803083A8	.
+0x803083A8	0x18	.bss	lib/uty_tmr.c	global	utytmr_work	utytmr_work
 0x803083C0	0x4	.bss	lib/cftyp422_ppc.c	global	gqr_save	gqr_save
 0x803083C4	0x400	.bss	lib/cftyp422_ppc.c	global	cr_r	cr_r
 0x803087C4	0x400	.bss	lib/cftyp422_ppc.c	global	cr_g	cr_g
 0x80308BC4	0x400	.bss	lib/cftyp422_ppc.c	global	cb_b	cb_b
 0x80308FC4	0x400	.bss	lib/cftyp422_ppc.c	local	cb_g	cb_g
-0x803093C4	0x1C	.bss	lib/cftyp422_ppc.c	local	lbl_803093C4	.
 0x803093E0	0x400	.bss	lib/cftyp422_ppc.c	global	y	y
 0x803097E0	0x4	.bss	lib/cftyp422_ppc.c	global	CFT_dummy	CFT_dummy
-0x803097E4	0x4	.bss	lib/cftyp422_ppc.c	global	lbl_803097E4	.
 0x803097E8	0x24	.bss	lib/cftfx.c	global	cft_basic_ccir601	cft_basic_ccir601
 0x8030980C	0x24	.bss	lib/cftfx.c	global	cft_yuv_rgb_coeff	cft_yuv_rgb_coeff
 0x80309830	0x4	.bss	lib/cftfx.c	global	cft_ptr_cr_rgb	cft_ptr_cr_rgb
@@ -11108,15 +11093,11 @@ address	size	section	unit	scope	name	demangled
 0x8030983C	0x100	.bss	lib/cftfx.c	global	cft_conv_v_itbl	cft_conv_v_itbl
 0x8030993C	0x100	.bss	lib/cftfx.c	global	cft_conv_u_itbl	cft_conv_u_itbl
 0x80309A3C	0x100	.bss	lib/cftfx.c	global	cft_conv_y_itbl	cft_conv_y_itbl
-0x80309B3C	0x4	.bss	lib/cftfx.c	local	lbl_80309B3C	.
 0x80309B40	0x4	.bss	lib/cft_common.c	global	cftcom_optimize_speed	cftcom_optimize_speed
-0x80309B44	0x4	.bss	lib/cft_common.c	global	lbl_80309B44	.
 0x80309B48	0x4	.bss	lib/mps_lib.c	local	mpslib_hn_last	mpslib_hn_last
 0x80309B4C	0x4	.bss	lib/mps_lib.c	local	cri_verstr_ptr_80309B4C	cri_verstr_ptr
 0x80309B50	0x4	.bss	lib/mps_lib.c	global	MPSLIB_libwork	MPSLIB_libwork
-0x80309B54	0x4	.bss	lib/mps_lib.c	local	lbl_80309B54	.
 0x80309B58	0x14	.bss	lib/mpv_err.c	global	mpverrinf	mpverrinf
-0x80309B6C	0x4	.bss	lib/mpv_err.c	global	lbl_80309B6C	.
 0x80309B70	0x28	.bss	lib/mpv_hdec.c	local	mc_bidirect_func	mc_bidirect_func
 0x80309B98	0x28	.bss	lib/mpv_hdec.c	global	mc_backward_func	mc_backward_func
 0x80309BC0	0x28	.bss	lib/mpv_hdec.c	global	mc_forward_func	mc_forward_func
@@ -11130,7 +11111,6 @@ address	size	section	unit	scope	name	demangled
 0x8030A070	0x4	.bss	lib/mpv_lib.c	global	mpvlib_iix	mpvlib_iix
 0x8030A074	0x5C	.bss	lib/mpv_lib.c	local	mpvlib_libwork	mpvlib_libwork
 0x8030A0D0	0x4	.bss	lib/mpv_lib.c	local	cri_verstr_ptr_8030A0D0	cri_verstr_ptr
-0x8030A0D4	0x4	.bss	lib/mpv_lib.c	global	lbl_8030A0D4	.
 0x8030A0D8	0x200	.bss	lib/mpv_vlc.c	global	mpvvlt_run_level_8	mpvvlt_run_level_8
 0x8030A2D8	0x400	.bss	lib/mpv_vlc.c	global	mpvvlt2_c_dcsiz	mpvvlt2_c_dcsiz
 0x8030A6D8	0x400	.bss	lib/mpv_vlc.c	local	mpvvlt2_y_dcsiz	mpvvlt2_y_dcsiz
@@ -11174,24 +11154,19 @@ address	size	section	unit	scope	name	demangled
 0x8030B770	0x4000	.bss	lib/dct_fsri.c	global	PreIDCT	PreIDCT
 0x8030F770	0x200	.bss	lib/dct_fsri.c	global	sfsd_scale_tbl	sfsd_scale_tbl
 0x8030F970	0x4	.bss	lib/dct_fsri.c	global	dctfsri_version_dummy	dctfsri_version_dummy
-0x8030F974	0x4	.bss	lib/dct_fsri.c	global	lbl_8030F974	.
 0x8030F978	0x40	.bss	lib/mpv_bdec.c	global	mpvbdec_dfl_iqm	mpvbdec_dfl_iqm
 0x8030F9B8	0x40	.bss	lib/mpv_bdec.c	global	mpvbdec_zigzag	mpvbdec_zigzag
 0x8030F9F8	0x20	.bss	lib/mpv_cmc.c	global	mpvcmc_oneref	mpvcmc_oneref
 0x8030FA18	0x200	.bss	lib/dct_ac.c	global	dctac_i_const	dctac_i_const
 0x8030FC18	0x200	.bss	lib/dct_ac.c	global	dctac_f_const	dctac_f_const
 0x8030FE18	0x4	.bss	lib/dct_ac.c	local	dctac_version_dummy	dctac_version_dummy
-0x8030FE1C	0x4	.bss	lib/dct_ac.c	local	lbl_8030FE1C	.
 0x8030FE20	0x4	.bss	lib/dct_ver.c	local	cri_verstr_ptr_8030FE20	cri_verstr_ptr
-0x8030FE24	0x4	.bss	lib/dct_ver.c	local	lbl_8030FE24	.
 0x8030FE28	0x40	.bss	lib/adx_insh.c	local	adxt_dmybuf	adxt_dmybuf
 0x8030FE68	0x400	.bss	lib/adx_insh.c	local	adxt_hdbuf	adxt_hdbuf
 0x80310268	0x4	.bss	lib/adx_sfa.c	local	sfa_init_cnt	sfa_init_cnt
-0x8031026C	0x4	.bss	lib/adx_sfa.c	local	lbl_8031026C	.
 0x80310270	0x4	.bss	lib/adx_sje.c	local	skg_init_count_80310270	skg_init_count
 0x80310274	0x4	.bss	lib/adx_sje.c	local	skg_err_func_80310274	skg_err_func
 0x80310278	0x4	.bss	lib/adx_sje.c	local	skg_err_obj_80310278	skg_err_obj
-0x8031027C	0x4	.bss	lib/adx_sje.c	local	lbl_8031027C	.
 0x80310280	0x900	.bss	lib/adx_sje.c	local	adxsje_prdflt_obj	adxsje_prdflt_obj
 0x80310B80	0xC0	.bss	lib/adx_sje.c	local	adxsje_iirflt_obj	adxsje_iirflt_obj
 0x80310C40	0x17C0	.bss	lib/adx_sje.c	local	adxsje_obj	adxsje_obj
@@ -11199,7 +11174,7 @@ address	size	section	unit	scope	name	demangled
 0x80312404	0x4	.bss	lib/mfci.c	local	mfci_err_obj	mfci_err_obj
 0x80312408	0x12C	.bss	lib/mfci.c	global	mfci_err_str	mfci_err_str
 0x80312534	0x8C0	.bss	lib/mfci.c	global	mfci_obj	mfci_obj
-0x80312DF4	0x4	.bss	lib/mfci.c	global	lbl_80312DF4	.
+0x80312DF4	0x4	.bss	lib/mfci.c	global	mfci_init_flag	mfci_init_flag
 0x80312DF8	0xC	.bss	lib/gcci.c	global	gcg_ci_debug	gcg_ci_debug
 0x80312E04	0x4	.bss	lib/gcci.c	global	gcg_ci_err_obj	gcg_ci_err_obj
 0x80312E08	0x4	.bss	lib/gcci.c	global	gcg_ci_err_func	gcg_ci_err_func
@@ -11269,7 +11244,7 @@ address	size	section	unit	scope	name	demangled
 0x80313FE0	0x4	.sdata	game/objRobo.cpp	local	RoboHitRadius	RoboHitRadius
 0x80313FE4	0x4	.sdata	game/objRobo.cpp	local	posysub	posysub
 0x80313FE8	0x4	.sdata	game/objRocket.cpp	local	blastDmWidth.1047	blastDmWidth.1047
-0x80313FEC	0x4	.sdata	game/objRocket.cpp	local	lbl_80313FEC	.
+0x80313FEC	0x4	.sdata	game/objRocket.cpp	local	blastDbg.343	blastDbg.343
 0x80313FF0	0x3	.sdata	game/objTrolley.cpp	global	Trolley_parts_tbl	Trolley_parts_tbl
 0x80313FF3	0x5	.sdata	game/objTrolley.cpp	global	lbl_80313FF3	.
 0x80313FF8	0x4	.sdata	game/objWep.cpp	local	laset_max_dist.1059	laset_max_dist.1059
@@ -11379,15 +11354,11 @@ address	size	section	unit	scope	name	demangled
 0x8031451A	0x2	.sdata	lib/OS.c	local	lbl_8031451A	.
 0x8031451C	0x4	.sdata	lib/OS.c	local	@163_8031451C	@163
 0x80314520	0x4	.sdata	lib/OSArena.c	local	__OSArenaLo	__OSArenaLo
-0x80314524	0x4	.sdata	lib/OSArena.c	global	lbl_80314524	.
 0x80314528	0x4	.sdata	lib/OSError.c	global	__OSFpscrEnableBits	__OSFpscrEnableBits
 0x8031452C	0x2	.sdata	lib/OSError.c	local	@76_8031452C	@76
-0x8031452E	0x2	.sdata	lib/OSError.c	global	lbl_8031452E	.
 0x80314530	0x3	.sdata	lib/OSExec.c	global	@213_80314530	@213
-0x80314533	0x5	.sdata	lib/OSExec.c	global	lbl_80314533	.
 0x80314538	0x4	.sdata	lib/OSThread.c	local	SwitchThreadCallback	SwitchThreadCallback
 0x8031453C	0x1	.sdata	lib/OSThread.c	global	@833	@833
-0x8031453D	0x3	.sdata	lib/OSThread.c	local	lbl_8031453D	.
 0x80314540	0x4	.sdata	lib/EXIBios.c	global	__EXIVersion	__EXIVersion
 0x80314544	0x5	.sdata	lib/EXIBios.c	global	@480_80314544	@480
 0x80314549	0x3	.sdata	lib/EXIBios.c	local	lbl_80314549	.
@@ -11405,8 +11376,7 @@ address	size	section	unit	scope	name	demangled
 0x8031457C	0x5	.sdata	lib/SIBios.c	global	@458	@458
 0x80314581	0x3	.sdata	lib/SIBios.c	local	lbl_80314581	.
 0x80314584	0x8	.sdata	lib/SIBios.c	global	@469_80314584	@469
-0x8031458C	0x4	.sdata	lib/SIBios.c	local	lbl_8031458C	.
-0x80314590	0x8	.sdata	lib/db.c	global	lbl_80314590	.
+0x80314590	0x4	.sdata	lib/db.c	global	lbl_80314590	.
 0x80314598	0x8	.sdata	lib/mtx.c	local	Unit01	Unit01
 0x803145A0	0x8	.sdata	lib/dvdfs.c	local	@118_803145A0	@118
 0x803145A8	0x4	.sdata	lib/dvd.c	global	__DVDVersion	__DVDVersion
@@ -11416,7 +11386,6 @@ address	size	section	unit	scope	name	demangled
 0x803145BA	0x2	.sdata	lib/dvd.c	global	lbl_803145BA	.
 0x803145BC	0x4	.sdata	lib/dvd.c	local	DmaCommand	DmaCommand
 0x803145C0	0x1	.sdata	lib/dvd.c	global	@790	@790
-0x803145C1	0x7	.sdata	lib/dvd.c	local	lbl_803145C1	.
 0x803145C8	0x1	.sdata	lib/dvdqueue.c	global	@63_803145C8	@63
 0x803145C9	0x3	.sdata	lib/dvdqueue.c	local	lbl_803145C9	.
 0x803145CC	0x5	.sdata	lib/dvdqueue.c	local	@64_803145CC	@64
@@ -11431,18 +11400,14 @@ address	size	section	unit	scope	name	demangled
 0x803145F4	0x6	.sdata	lib/dvdqueue.c	local	@99_803145F4	@99
 0x803145FA	0x2	.sdata	lib/dvdqueue.c	global	lbl_803145FA	.
 0x803145FC	0x2	.sdata	lib/dvdqueue.c	global	@100_803145FC	@100
-0x803145FE	0x2	.sdata	lib/dvdqueue.c	local	lbl_803145FE	.
 0x80314600	0x8	.sdata	lib/dvdFatal.c	global	lbl_80314600	.
 0x80314608	0x2	.sdata	lib/fstload.c	global	@37_80314608	@37
 0x8031460A	0x2	.sdata	lib/fstload.c	local	lbl_8031460A	.
 0x8031460C	0x4	.sdata	lib/fstload.c	local	@42	@42
 0x80314610	0x3	.sdata	lib/fstload.c	global	@43_80314610	@43
-0x80314613	0x5	.sdata	lib/fstload.c	global	lbl_80314613	.
 0x80314618	0x4	.sdata	lib/dvdlow.c	local	FirstRead	FirstRead
-0x8031461C	0x4	.sdata	lib/dvdlow.c	local	lbl_8031461C	.
 0x80314620	0x4	.sdata	lib/vi.c	global	__VIVersion	__VIVersion
 0x80314624	0x5	.sdata	lib/vi.c	local	@537_80314624	@537
-0x80314629	0x7	.sdata	lib/vi.c	local	lbl_80314629	.
 0x80314630	0x4	.sdata	lib/Pad.c	global	__PADVersion	__PADVersion
 0x80314634	0x4	.sdata	lib/Pad.c	local	ResettingChan	ResettingChan
 0x80314638	0x4	.sdata	lib/Pad.c	local	XPatchBits	XPatchBits
@@ -11452,30 +11417,21 @@ address	size	section	unit	scope	name	demangled
 0x80314648	0x4	.sdata	lib/Pad.c	local	CmdReadOrigin	CmdReadOrigin
 0x8031464C	0x4	.sdata	lib/Pad.c	local	CmdCalibrate	CmdCalibrate
 0x80314650	0x4	.sdata	lib/ai.c	global	__AIVersion	__AIVersion
-0x80314654	0x4	.sdata	lib/ai.c	local	lbl_80314654	.
 0x80314658	0x4	.sdata	lib/ar.c	global	__ARVersion	__ARVersion
-0x8031465C	0x4	.sdata	lib/ar.c	local	lbl_8031465C	.
 0x80314660	0x4	.sdata	lib/arq.c	global	__ARQVersion	__ARQVersion
-0x80314664	0x4	.sdata	lib/arq.c	local	lbl_80314664	.
 0x80314668	0x4	.sdata	lib/AX.c	global	__AXVersion	__AXVersion
-0x8031466C	0x4	.sdata	lib/AX.c	local	lbl_8031466C	.
 0x80314670	0x2	.sdata	lib/DSPCode.c	global	axDspSlaveLength	axDspSlaveLength
-0x80314672	0x6	.sdata	lib/DSPCode.c	local	lbl_80314672	.
 0x80314678	0x4	.sdata	lib/axfx.c	global	__AXFXAlloc	__AXFXAlloc
 0x8031467C	0x4	.sdata	lib/axfx.c	global	__AXFXFree	__AXFXFree
 0x80314680	0x4	.sdata	lib/dsp.c	global	__DSPVersion	__DSPVersion
-0x80314684	0x4	.sdata	lib/dsp.c	local	lbl_80314684	.
 0x80314688	0x4	.sdata	lib/CARDBios.c	global	__CARDVersion	__CARDVersion
 0x8031468C	0x4	.sdata	lib/CARDBios.c	local	lbl_8031468C	.
 0x80314690	0x2	.sdata	lib/CARDNet.c	local	__CARDVendorID	__CARDVendorID
 0x80314692	0x1	.sdata	lib/CARDNet.c	local	__CARDPermMask	__CARDPermMask
-0x80314693	0x5	.sdata	lib/CARDNet.c	local	lbl_80314693	.
 0x80314698	0x4	.sdata	lib/CARDUnlock.c	local	next	next
-0x8031469C	0x4	.sdata	lib/CARDUnlock.c	local	lbl_8031469C	.
 0x803146A0	0x4	.sdata	lib/GXAttr.c	local	tbl1$241	tbl1$241
 0x803146A4	0x4	.sdata	lib/GXAttr.c	local	tbl2$242	tbl2$242
 0x803146A8	0x4	.sdata	lib/GXAttr.c	local	tbl3$243	tbl3$243
-0x803146AC	0x4	.sdata	lib/GXAttr.c	local	lbl_803146AC	.
 0x803146B0	0x8	.sdata	lib/GXTexture.c	global	GXTexMode0Ids	GXTexMode0Ids
 0x803146B8	0x8	.sdata	lib/GXTexture.c	global	GXTexMode1Ids	GXTexMode1Ids
 0x803146C0	0x8	.sdata	lib/GXTexture.c	global	GXTexImage0Ids	GXTexImage0Ids
@@ -11487,9 +11443,7 @@ address	size	section	unit	scope	name	demangled
 0x803146EE	0x2	.sdata	lib/GXTexture.c	local	lbl_803146EE	.
 0x803146F0	0x8	.sdata	lib/GXTexture.c	local	HW2GXFiltConv	HW2GXFiltConv
 0x803146F8	0x4	.sdata	lib/GXInit.c	global	__GXVersion	__GXVersion
-0x803146FC	0x4	.sdata	lib/GXInit.c	local	lbl_803146FC	.
 0x80314700	0x1	.sdata	lib/DebuggerDriver.c	local	SendCount	SendCount
-0x80314701	0x7	.sdata	lib/DebuggerDriver.c	local	lbl_80314701	.
 0x80314708	0x4	.sdata	game/area.cpp	local	sel.609	sel.609
 0x8031470C	0x4	.sdata	game/area.cpp	local	Rcnt.610	Rcnt.610
 0x80314710	0x4	.sdata	game/atari.cpp	local	new_line_check.879	new_line_check.879
@@ -11594,7 +11548,7 @@ address	size	section	unit	scope	name	demangled
 0x803148A4	0x5	.sdata	game/em_cloth.cpp	global	em2bShortRopeDp	em2bShortRopeDp
 0x803148A9	0x7	.sdata	game/em_cloth.cpp	local	lbl_803148A9	.
 0x803148B0	0x4	.sdata	game/em_set.cpp	global	errEm	errEm
-0x803148B4	0x4	.sdata	game/em_set.cpp	global	lbl_803148B4	.
+0x803148B4	0x4	.sdata	game/em_set.cpp	global	emSetDummy	emSetDummy
 0x803148B8	0x4	.sdata	game/em_sub.cpp	global	No_drop_cnt	No_drop_cnt
 0x803148BC	0x4	.sdata	game/em_sub.cpp	global	No_drop_cnt2	No_drop_cnt2
 0x803148C0	0x8	.sdata	game/embox.cpp	global	EmBox_R1_move_tbl	EmBox_R1_move_tbl
@@ -11603,7 +11557,7 @@ address	size	section	unit	scope	name	demangled
 0x803148D0	0x4	.sdata	game/esp.cpp	global	old_hit.798	old_hit.798
 0x803148D4	0x4	.sdata	game/esp.cpp	global	tubo_amb	tubo_amb
 0x803148D8	0x4	.sdata	game/esp.cpp	local	max.1111	max.1111
-0x803148DC	0x4	.sdata	game/esp.cpp	global	lbl_803148DC	.
+0x803148DC	0x4	.sdata	game/esp.cpp	global	esp_dmy_amb	esp_dmy_amb
 0x803148E0	0x4	.sdata	game/esp_efm.cpp	global	EfmIdTbl	EfmIdTbl
 0x803148E4	0x4	.sdata	game/esp_efm.cpp	global	mass_mul.963	mass_mul.963
 0x803148E8	0x4	.sdata	game/esp_efm.cpp	global	moment_mul.964	moment_mul.964
@@ -11661,14 +11615,19 @@ address	size	section	unit	scope	name	demangled
 0x803149BC	0x4	.sdata	game/espgen45.cpp	local	g45_init_y.860	g45_init_y.860
 0x803149C0	0x4	.sdata	game/espgen45.cpp	global	g45_init_y2.861	g45_init_y2.861
 0x803149C4	0x4	.sdata	game/espgen45.cpp	local	lbl_803149C4	.
-0x803149C8	0x18	.sdata	game/event.cpp	global	lbl_803149C8	.
+0x803149C8	0x4	.sdata	game/event.cpp	global	lbl_803149C8	.
+0x803149CC	0x4	.sdata	game/event.cpp	global	lbl_803149CC	lbl_803149CC
+0x803149D0	0x4	.sdata	game/event.cpp	global	lbl_803149D0	lbl_803149D0
+0x803149D4	0x4	.sdata	game/event.cpp	global	lbl_803149D4	lbl_803149D4
+0x803149D8	0x4	.sdata	game/event.cpp	global	lbl_803149D8	lbl_803149D8
+0x803149DC	0x4	.sdata	game/event.cpp	global	lbl_803149DC	lbl_803149DC
 0x803149E0	0x4	.sdata	game/examine.cpp	global	cap_dist_min	cap_dist_min
 0x803149E4	0x4	.sdata	game/examine.cpp	global	cap_dist_max	cap_dist_max
 0x803149E8	0x4	.sdata	game/examine.cpp	local	g_rad_x	g_rad_x
 0x803149EC	0x4	.sdata	game/examine.cpp	global	cap_xrad_max	cap_xrad_max
 0x803149F0	0x4	.sdata	game/examine.cpp	local	cap_xrad_min	cap_xrad_min
 0x803149F4	0xC	.sdata	game/examine.cpp	global	lbl_803149F4	.
-0x80314A00	0x8	.sdata	game/examine.cpp	global	vfilter.1020	vfilter.1020
+0x80314A00	0x7	.sdata	game/examine.cpp	global	vfilter.1020	vfilter.1020
 0x80314A08	0x4	.sdata	game/examine.cpp	global	operation_flag.1027	operation_flag.1027
 0x80314A0C	0x4	.sdata	game/examine.cpp	global	z.1028	z.1028
 0x80314A10	0x1	.sdata	game/examine.cpp	global	alpha.1029	alpha.1029
@@ -11686,16 +11645,23 @@ address	size	section	unit	scope	name	demangled
 0x80314A2B	0x1	.sdata	game/examine.cpp	local	lbl_80314A2B	.
 0x80314A2C	0x2	.sdata	game/examine.cpp	global	ot_kind.1066	ot_kind.1066
 0x80314A2E	0x12	.sdata	game/examine.cpp	global	lbl_80314A2E	.
-0x80314A40	0x10	.sdata	game/file.cpp	global	lbl_80314A40	.
-0x80314A50	0x10	.sdata	game/file_app.cpp	global	lbl_80314A50	.
+0x80314A40	0x4	.sdata	game/file.cpp	global	usb_fd	usb_fd
+0x80314A44	0x4	.sdata	game/file.cpp	local	usb_buf	usb_buf
+0x80314A48	0x4	.sdata	game/file.cpp	local	usb_size	usb_size
+0x80314A4C	0x4	.sdata	game/file.cpp	local	usb_pos	usb_pos
+0x80314A50	0x4	.sdata	game/file_app.cpp	global	hd_stat0	hd_stat0
+0x80314A54	0x4	.sdata	game/file_app.cpp	local	hd_stat1	hd_stat1
+0x80314A58	0x4	.sdata	game/file_app.cpp	local	hd_stat2	hd_stat2
+0x80314A5C	0x4	.sdata	game/file_app.cpp	local	hd_stat3	hd_stat3
 0x80314A60	0x4	.sdata	game/filter01.cpp	global	filter01_buff	filter01_buff
 0x80314A64	0x1C	.sdata	game/filter01.cpp	global	lbl_80314A64	.
-0x80314A80	0x8	.sdata	game/filter01.cpp	global	vfilter.603	vfilter.603
+0x80314A80	0x7	.sdata	game/filter01.cpp	global	vfilter.603	vfilter.603
 0x80314A88	0x4	.sdata	game/filter01.cpp	global	fc_z_plus.604	fc_z_plus.604
 0x80314A8C	0x4	.sdata	game/filter01.cpp	global	fc_z_plus.605	fc_z_plus.605
 0x80314A90	0x10	.sdata	game/filter01.cpp	global	lbl_80314A90	.
-0x80314AA0	0x8	.sdata	game/filter01.cpp	global	vfilter.606	vfilter.606
-0x80314AA8	0x8	.sdata	game/filter01.cpp	global	lbl_80314AA8	.
+0x80314AA0	0x7	.sdata	game/filter01.cpp	global	vfilter.606	vfilter.606
+0x80314AA8	0x4	.sdata	game/filter01.cpp	global	Zscale.112	Zscale.112
+0x80314AAC	0x4	.sdata	game/filter01.cpp	local	Zoffset.113	Zoffset.113
 0x80314AB0	0x4	.sdata	game/filter01.cpp	global	Zscale.615	Zscale.615
 0x80314AB4	0x4	.sdata	game/filter01.cpp	global	Zoffset.616	Zoffset.616
 0x80314AB8	0x8	.sdata	game/filter01.cpp	global	lbl_80314AB8	.
@@ -11707,7 +11673,7 @@ address	size	section	unit	scope	name	demangled
 0x80314AE3	0x1	.sdata	game/filter0a.cpp	global	filter0a_mask_alpha	filter0a_mask_alpha
 0x80314AE4	0x4	.sdata	game/filter0a.cpp	global	filter0a_buff	filter0a_buff
 0x80314AE8	0x18	.sdata	game/filter0a.cpp	global	lbl_80314AE8	.
-0x80314B00	0x8	.sdata	game/filter0a.cpp	global	vfilter.738	vfilter.738
+0x80314B00	0x7	.sdata	game/filter0a.cpp	global	vfilter.738	vfilter.738
 0x80314B08	0x4	.sdata	game/filter0a.cpp	global	FocusLevel.748	FocusLevel.748
 0x80314B0C	0x4	.sdata	game/filter0a.cpp	global	x_old.749	x_old.749
 0x80314B10	0x4	.sdata	game/filter0a.cpp	global	y_old.750	y_old.750
@@ -11717,7 +11683,7 @@ address	size	section	unit	scope	name	demangled
 0x80314B20	0x4	.sdata	game/filter0b.cpp	global	filter0b_buff	filter0b_buff
 0x80314B24	0x1	.sdata	game/filter0b.cpp	global	filter0b_alpha	filter0b_alpha
 0x80314B25	0x1B	.sdata	game/filter0b.cpp	global	lbl_80314B25	.
-0x80314B40	0x8	.sdata	game/filter0b.cpp	global	vfilter.420	vfilter.420
+0x80314B40	0x7	.sdata	game/filter0b.cpp	global	vfilter.420	vfilter.420
 0x80314B48	0x18	.sdata	game/filter0b.cpp	global	lbl_80314B48	.
 0x80314B60	0x8	.sdata	game/foot_shadow_tbl.cpp	global	pl_fs_tbl	pl_fs_tbl
 0x80314B68	0x8	.sdata	game/foot_shadow_tbl.cpp	global	Em10_fs_tbl	Em10_fs_tbl
@@ -11734,8 +11700,8 @@ address	size	section	unit	scope	name	demangled
 0x80314BA8	0x4	.sdata	game/gx_sub.cpp	global	g_sysBgColor	g_sysBgColor
 0x80314BAC	0x4	.sdata	game/gx_sub.cpp	global	clr_black	clr_black
 0x80314BB0	0x4	.sdata	game/gx_sub.cpp	local	TEST_Z.546	TEST_Z.546
-0x80314BB4	0x4	.sdata	game/gx_sub.cpp	global	lbl_80314BB4	.
-0x80314BB8	0xC	.sdata	game/id_sys.cpp	local	lbl_80314BB8	.
+0x80314BB8	0xC	.sdata	game/id_sys.cpp	local	unknown.238	unknown.238
+0x80314BBC	0x8	.sdata	game/id_sys.cpp	local	name.239	name.239
 0x80314BC4	0x4	.sdata	game/id_sys.cpp	global	g_pIdBuff	g_pIdBuff
 0x80314BC8	0x4	.sdata	game/main.cpp	global	pG	pG
 0x80314BCC	0x4	.sdata	game/main.cpp	global	pSys	pSys
@@ -11755,7 +11721,7 @@ address	size	section	unit	scope	name	demangled
 0x80314BF8	0x4	.sdata	game/main_sub.cpp	global	flag_render_after	flag_render_after
 0x80314BFC	0x4	.sdata	game/main_sub.cpp	global	lbl_80314BFC	.
 0x80314C00	0x4	.sdata	game/main_sub.cpp	global	AutoScreenShotExec	AutoScreenShotExec
-0x80314C04	0x4	.sdata	game/main_sub.cpp	local	AutoScreenShotExecFlag336	AutoScreenShotExecFlag336
+0x80314C04	0x4	.sdata	game/main_sub.cpp	local	AutoScreenShotExecFlag.261	AutoScreenShotExecFlag.261
 0x80314C08	0x4	.sdata	game/main_sub.cpp	global	ScreenShotExec	ScreenShotExec
 0x80314C0C	0x4	.sdata	game/main_sub.cpp	global	lbl_80314C0C	.
 0x80314C10	0x8	.sdata	game/math_sub.cpp	global	powx	powx
@@ -11824,7 +11790,7 @@ address	size	section	unit	scope	name	demangled
 0x80314D24	0x8	.sdata	game/pl_cloth.cpp	global	girlSweaterDp	girlSweaterDp
 0x80314D2C	0x4	.sdata	game/pl_cloth.cpp	local	lapel_rr.1704	lapel_rr.1704
 0x80314D30	0x4	.sdata	game/pl_cloth.cpp	global	lapel_rl.1705	lapel_rl.1705
-0x80314D34	0x4	.sdata	game/pl_cloth.cpp	global	lbl_80314D34	.
+0x80314D34	0x4	.sdata	game/pl_cloth.cpp	global	lapel_name.233	lapel_name.233
 0x80314D38	0x4	.sdata	game/pl_cloth.cpp	global	lapel_rate_x.1707	lapel_rate_x.1707
 0x80314D3C	0x4	.sdata	game/pl_cloth.cpp	local	lapel_rate_y.1708	lapel_rate_y.1708
 0x80314D40	0x4	.sdata	game/pl_cloth.cpp	local	lapel_rate_z.1709	lapel_rate_z.1709
@@ -11863,7 +11829,7 @@ address	size	section	unit	scope	name	demangled
 0x80314DB9	0x3	.sdata	game/shadow.cpp	local	lbl_80314DB9	.
 0x80314DBC	0x4	.sdata	game/shadow.cpp	global	use_shd_cammove.948	use_shd_cammove.948
 0x80314DC0	0x4	.sdata	game/sofdec.cpp	global	__float_nan	__float_nan
-0x80314DC4	0x4	.sdata	game/sofdec.cpp	global	lbl_80314DC4	.
+0x80314DC4	0x4	.sdata	game/sofdec.cpp	global	__float_huge	__float_huge
 0x80314DC8	0x4	.sdata	game/stage.cpp	global	pCoin.1401	pCoin.1401
 0x80314DCC	0x2	.sdata	game/stage.cpp	global	timer.1402	timer.1402
 0x80314DCE	0x2	.sdata	game/stage.cpp	local	lbl_80314DCE	.
@@ -11875,18 +11841,17 @@ address	size	section	unit	scope	name	demangled
 0x80314DEC	0x8	.sdata	game/t_option.cpp	global	menuStr.1223	menuStr.1223
 0x80314DF4	0x4	.sdata	game/t_option.cpp	global	lbl_80314DF4	.
 0x80314DF8	0x4	.sdata	game/t_prim.cpp	global	FlipMode	FlipMode
-0x80314DFC	0x4	.sdata	game/t_prim.cpp	global	lbl_80314DFC	.
 0x80314E00	0x4	.sdata	game/t_util.cpp	global	old_menu	old_menu
-0x80314E04	0x1	.sdata	game/t_util.cpp	global	cursor.1017	cursor.1017
+0x80314E04	0x1	.sdata	game/t_util.cpp	global	cursor_s.204	cursor_s.204
 0x80314E05	0x1	.sdata	game/t_util.cpp	global	flicker.1018	flicker.1018
 0x80314E06	0x1A	.sdata	game/t_util.cpp	global	lbl_80314E06	.
 0x80314E20	0x4	.sdata	game/TexRender.cpp	global	g_draw	g_draw
 0x80314E24	0x4	.sdata	game/TexRender.cpp	global	g_TexUse	g_TexUse
 0x80314E28	0x18	.sdata	game/TexRender.cpp	global	lbl_80314E28	.
-0x80314E40	0x8	.sdata	game/TexRender.cpp	global	vfilter.1623	vfilter.1623
+0x80314E40	0x7	.sdata	game/TexRender.cpp	global	vfilter.1623	vfilter.1623
 0x80314E48	0x18	.sdata	game/TexRender.cpp	global	lbl_80314E48	.
 0x80314E60	0x4	.sdata	game/texture.cpp	global	lod_enable	lod_enable
-0x80314E64	0x4	.sdata	game/texture.cpp	global	lbl_80314E64	.
+0x80314E64	0x4	.sdata	game/texture.cpp	global	tex_dummy	tex_dummy
 0x80314E68	0x4	.sdata	game/title.cpp	global	TTL_CANCEL_WARNING	TTL_CANCEL_WARNING
 0x80314E6C	0x4	.sdata	game/title.cpp	global	TTL_CANCEL_CAPCOM	TTL_CANCEL_CAPCOM
 0x80314E70	0x4	.sdata	game/title.cpp	global	TTL_CANCEL_CRI	TTL_CANCEL_CRI
@@ -11931,7 +11896,7 @@ address	size	section	unit	scope	name	demangled
 0x80314F10	0x4	.sdata	game/esp09.cpp	global	Zscale.756	Zscale.756
 0x80314F14	0x4	.sdata	game/esp09.cpp	local	Zoffset.757	Zoffset.757
 0x80314F18	0x4	.sdata	game/esp09.cpp	global	Zs_bias.758	Zs_bias.758
-0x80314F1C	0x4	.sdata	game/esp09.cpp	global	lbl_80314F1C	.
+0x80314F1C	0x4	.sdata	game/esp09.cpp	global	Zs_bias_2.240	Zs_bias_2.240
 0x80314F20	0x4	.sdata	game/esp0a.cpp	global	RIMIT1.762	RIMIT1.762
 0x80314F24	0x4	.sdata	game/esp0a.cpp	global	RIMIT2.763	RIMIT2.763
 0x80314F28	0x4	.sdata	game/esp0a.cpp	local	RIMIT3.764	RIMIT3.764
@@ -11939,12 +11904,12 @@ address	size	section	unit	scope	name	demangled
 0x80314F30	0x4	.sdata	game/esp0e.cpp	local	Zscale.813	Zscale.813
 0x80314F34	0x4	.sdata	game/esp0e.cpp	local	Zoffset.814	Zoffset.814
 0x80314F38	0x4	.sdata	game/esp0e.cpp	local	Zs_bias0e.815	Zs_bias0e.815
-0x80314F3C	0x4	.sdata	game/esp0e.cpp	local	lbl_80314F3C	.
+0x80314F3C	0x4	.sdata	game/esp0e.cpp	local	Zs_bias0e_2.191	Zs_bias0e_2.191
 0x80314F40	0x4	.sdata	game/esp16.cpp	local	nen_mul.675	nen_mul.675
 0x80314F44	0x4	.sdata	game/esp16.cpp	local	nen_mul.676	nen_mul.676
 0x80314F48	0x4	.sdata	game/esp18.cpp	local	esp18_lp.810	esp18_lp.810
-0x80314F4C	0x4	.sdata	game/esp18.cpp	local	prm2.813_80314F4C	prm2.813
-0x80314F50	0x4	.sdata	game/esp18.cpp	local	prm3.814_80314F50	prm3.814
+0x80314F4C	0x4	.sdata	game/esp18.cpp	local	prm2.216	prm2.813
+0x80314F50	0x4	.sdata	game/esp18.cpp	local	prm3.217	prm3.814
 0x80314F54	0x4	.sdata	game/esp18.cpp	local	esp18_mul_rate.815	esp18_mul_rate.815
 0x80314F58	0x4	.sdata	game/esp18.cpp	local	e18mx.816	e18mx.816
 0x80314F5C	0x4	.sdata	game/esp18.cpp	local	e18my.817	e18my.817
@@ -11953,7 +11918,7 @@ address	size	section	unit	scope	name	demangled
 0x80314F68	0x4	.sdata	game/esp45.cpp	local	Zscale.783	Zscale.783
 0x80314F6C	0x4	.sdata	game/esp45.cpp	local	Zoffset.784	Zoffset.784
 0x80314F70	0x4	.sdata	game/esp45.cpp	local	Zs_bias45.785	Zs_bias45.785
-0x80314F74	0x4	.sdata	game/esp45.cpp	local	lbl_80314F74	.
+0x80314F74	0x4	.sdata	game/esp45.cpp	local	Zs_bias45_2.197	Zs_bias45_2.197
 0x80314F78	0x4	.sdata	game/esp4e.cpp	local	DAMPING.663	DAMPING.663
 0x80314F7C	0x4	.sdata	game/esp4e.cpp	local	lbl_80314F7C	.
 0x80314F80	0x4	.sdata	game/exception.cpp	local	x	x
@@ -12012,7 +11977,7 @@ address	size	section	unit	scope	name	demangled
 0x80315060	0x4	.sdata	game/filter03.cpp	global	filter03_buff	filter03_buff
 0x80315064	0x4	.sdata	game/filter03.cpp	global	use_filter3.735	use_filter3.735
 0x80315068	0x18	.sdata	game/filter03.cpp	global	lbl_80315068	.
-0x80315080	0x8	.sdata	game/filter03.cpp	local	vfilter.739	vfilter.739
+0x80315080	0x7	.sdata	game/filter03.cpp	local	vfilter.739	vfilter.739
 0x80315088	0x4	.sdata	game/filter03.cpp	global	ppx.749	ppx.749
 0x8031508C	0x4	.sdata	game/filter03.cpp	global	ppy.750	ppy.750
 0x80315090	0x10	.sdata	game/filter03.cpp	global	lbl_80315090	.
@@ -12020,7 +11985,7 @@ address	size	section	unit	scope	name	demangled
 0x803150A4	0x4	.sdata	game/filter04.cpp	global	filter04_buff2	filter04_buff2
 0x803150A8	0x4	.sdata	game/filter04.cpp	global	use_filter4.600	use_filter4.600
 0x803150AC	0x14	.sdata	game/filter04.cpp	global	lbl_803150AC	.
-0x803150C0	0x8	.sdata	game/filter04.cpp	global	vfilter.607	vfilter.607
+0x803150C0	0x7	.sdata	game/filter04.cpp	global	vfilter.607	vfilter.607
 0x803150C8	0x4	.sdata	game/filter04.cpp	local	pow_x.614	pow_x.614
 0x803150CC	0x4	.sdata	game/filter04.cpp	local	pow_y.615	pow_y.615
 0x803150D0	0x4	.sdata	game/filter04.cpp	global	spread_center_x.616	spread_center_x.616
@@ -12035,7 +12000,7 @@ address	size	section	unit	scope	name	demangled
 0x80315108	0x4	.sdata	game/filter07.cpp	global	filter07_pLit	filter07_pLit
 0x8031510C	0x4	.sdata	game/filter07.cpp	global	use_filter7.627	use_filter7.627
 0x80315110	0x10	.sdata	game/filter07.cpp	global	lbl_80315110	.
-0x80315120	0x8	.sdata	game/filter07.cpp	global	vfilter.631	vfilter.631
+0x80315120	0x7	.sdata	game/filter07.cpp	global	vfilter.631	vfilter.631
 0x80315128	0x4	.sdata	game/filter07.cpp	global	FocusLevel07.641	FocusLevel07.641
 0x8031512C	0x4	.sdata	game/filter07.cpp	global	x_old.642	x_old.642
 0x80315130	0x4	.sdata	game/filter07.cpp	global	y_old.643	y_old.643
@@ -12076,7 +12041,7 @@ address	size	section	unit	scope	name	demangled
 0x803151A3	0x1D	.sdata	game/filter08.cpp	global	lbl_803151A3	.
 0x803151C0	0x4	.sdata	game/filter09.cpp	global	filter09_buff	filter09_buff
 0x803151C4	0x1C	.sdata	game/filter09.cpp	global	lbl_803151C4	.
-0x803151E0	0x8	.sdata	game/filter09.cpp	local	vfilter.408	vfilter.408
+0x803151E0	0x7	.sdata	game/filter09.cpp	local	vfilter.408	vfilter.408
 0x803151E8	0x4	.sdata	game/filter09.cpp	global	fade_alpha.418	fade_alpha.418
 0x803151EC	0x4	.sdata	game/filter09.cpp	local	fade_scale.419	fade_scale.419
 0x803151F0	0x10	.sdata	game/filter09.cpp	global	lbl_803151F0	.
@@ -12087,11 +12052,8 @@ address	size	section	unit	scope	name	demangled
 0x803153F0	0x38	.sdata	lib/k_sin.c	local	lbl_803153F0	.
 0x80315428	0x8	.sdata	game/sn_malloc.cpp	local	lbl_80315428	.
 0x80315430	0x4	.sdata	lib/OSAlloc.c	global	__OSCurrHeap	__OSCurrHeap
-0x80315434	0x4	.sdata	lib/OSAlloc.c	local	lbl_80315434	.
 0x80315438	0x4	.sdata	lib/OSFatal.c	local	@252_80315438	@252
-0x8031543C	0x4	.sdata	lib/OSFatal.c	local	lbl_8031543C	.
 0x80315440	0x2	.sdata	lib/OSFont.c	local	FontEncode	FontEncode
-0x80315442	0x1E	.sdata	lib/OSFont.c	local	lbl_80315442	.
 0x80315460	0x4	.sbss	game/cam_ctrl.cpp	local	move_z.1209	move_z.1209
 0x80315464	0x4	.sbss	game/cam_ctrl.cpp	local	init_flg.1213	init_flg.1213
 0x80315468	0x4	.sbss	game/cam_ctrl.cpp	local	edge_camera.1214	edge_camera.1214
@@ -12110,13 +12072,10 @@ address	size	section	unit	scope	name	demangled
 0x8031549C	0x4	.sbss	game/objWep.cpp	local	donfire.1055	donfire.1055
 0x803154A0	0x1	.sbss	game/pl_npc.cpp	global	hamonTimer.1503	hamonTimer.1503
 0x803154A1	0x1	.sbss	game/pl_npc.cpp	local	sibukiTimer.1504	sibukiTimer.1504
-0x803154A2	0x2	.sbss	game/pl_npc.cpp	local	lbl_803154A2	.
 0x803154A4	0x4	.sbss	game/pl_npc.cpp	local	timer.1514	timer.1514
 0x803154A8	0x1	.sbss	game/player.cpp	global	breath_ctr.1215	breath_ctr.1215
-0x803154A9	0x3	.sbss	game/player.cpp	global	lbl_803154A9	.
 0x803154AC	0x4	.sbss	game/player.cpp	global	pMaho	pMaho
 0x803154B0	0x1	.sbss	game/player.cpp	global	PlKaiou	PlKaiou
-0x803154B1	0x3	.sbss	game/player.cpp	global	lbl_803154B1	.
 0x803154B4	0x4	.sbss	game/player.cpp	global	PlFanceFlag	PlFanceFlag
 0x803154B8	0x4	.sbss	game/snd.cpp	global	ARAM_FREE_BASE	ARAM_FREE_BASE
 0x803154BC	0x4	.sbss	game/snd.cpp	global	pSnd	pSnd
@@ -12129,35 +12088,28 @@ address	size	section	unit	scope	name	demangled
 0x803154E0	0x4	.sbss	lib/OS.c	global	AreWeInitialized	AreWeInitialized
 0x803154E4	0x4	.sbss	lib/OS.c	global	OSExceptionTable	OSExceptionTable
 0x803154E8	0x4	.sbss	lib/OS.c	global	__OSInIPL	__OSInIPL
-0x803154EC	0x4	.sbss	lib/OS.c	global	lbl_803154EC	.
 0x803154F0	0x8	.sbss	lib/OS.c	global	__OSStartTime	__OSStartTime
 0x803154F8	0x8	.sbss	lib/OSAlarm.c	local	AlarmQueue	AlarmQueue
 0x80315500	0x4	.sbss	lib/OSArena.c	local	__OSArenaHi	__OSArenaHi
-0x80315504	0x4	.sbss	lib/OSArena.c	global	lbl_80315504	.
 0x80315508	0x4	.sbss	lib/OSExec.c	local	Prepared	Prepared
 0x8031550C	0x4	.sbss	lib/OSExec.c	global	apploaderPosition$69	apploaderPosition$69
 0x80315510	0x4	.sbss	lib/OSInterrupt.c	local	InterruptHandlerTable	InterruptHandlerTable
 0x80315514	0x4	.sbss	lib/OSInterrupt.c	global	__OSLastInterruptSrr0	__OSLastInterruptSrr0
 0x80315518	0x2	.sbss	lib/OSInterrupt.c	global	__OSLastInterrupt	__OSLastInterrupt
-0x8031551A	0x6	.sbss	lib/OSInterrupt.c	global	lbl_8031551A	.
 0x80315520	0x8	.sbss	lib/OSInterrupt.c	global	__OSLastInterruptTime	__OSLastInterruptTime
 0x80315528	0x4	.sbss	lib/OSReboot.c	local	SaveStart	SaveStart
 0x8031552C	0x4	.sbss	lib/OSReboot.c	local	SaveEnd	SaveEnd
 0x80315530	0x8	.sbss	lib/OSReset.c	local	ResetFunctionQueue	ResetFunctionQueue
 0x80315538	0x4	.sbss	lib/OSReset.c	local	bootThisDol	bootThisDol
-0x8031553C	0x4	.sbss	lib/OSReset.c	global	lbl_8031553C	.
 0x80315540	0x4	.sbss	lib/OSResetSW.c	local	ResetCallback	ResetCallback
 0x80315544	0x4	.sbss	lib/OSResetSW.c	local	Down	Down
 0x80315548	0x4	.sbss	lib/OSResetSW.c	local	LastState	LastState
-0x8031554C	0x4	.sbss	lib/OSResetSW.c	global	lbl_8031554C	.
 0x80315550	0x8	.sbss	lib/OSResetSW.c	local	HoldUp	HoldUp
 0x80315558	0x8	.sbss	lib/OSResetSW.c	local	HoldDown	HoldDown
 0x80315560	0x4	.sbss	lib/OSThread.c	local	RunQueueBits	RunQueueBits
 0x80315564	0x4	.sbss	lib/OSThread.c	local	RunQueueHint	RunQueueHint
 0x80315568	0x4	.sbss	lib/OSThread.c	local	Reschedule	Reschedule
-0x8031556C	0x4	.sbss	lib/OSThread.c	local	lbl_8031556C	.
 0x80315570	0x4	.sbss	lib/EXIBios.c	local	IDSerialPort1	IDSerialPort1
-0x80315574	0x4	.sbss	lib/EXIBios.c	global	lbl_80315574	.
 0x80315578	0x4	.sbss	lib/EXIUart.c	local	Chan	Chan
 0x8031557C	0x4	.sbss	lib/EXIUart.c	local	Dev	Dev
 0x80315580	0x4	.sbss	lib/EXIUart.c	local	Enabled	Enabled
@@ -12165,9 +12117,7 @@ address	size	section	unit	scope	name	demangled
 0x80315588	0x4	.sbss	lib/SIBios.c	global	cmdTypeAndStatus$78	cmdTypeAndStatus$78
 0x8031558C	0x4	.sbss	lib/SIBios.c	global	cmdTypeAndStatus$372	cmdTypeAndStatus$372
 0x80315590	0x4	.sbss	lib/SIBios.c	global	__PADFixBits	__PADFixBits
-0x80315594	0x4	.sbss	lib/SIBios.c	local	lbl_80315594	.
 0x80315598	0x4	.sbss	lib/SISamplingRate.c	local	SamplingRate	SamplingRate
-0x8031559C	0x4	.sbss	lib/SISamplingRate.c	local	lbl_8031559C	.
 0x803155A0	0x4	.sbss	lib/db.c	global	__DBInterface	__DBInterface
 0x803155A4	0x4	.sbss	lib/db.c	global	DBVerbose	DBVerbose
 0x803155A8	0x4	.sbss	lib/dvdfs.c	local	BootInfo	BootInfo
@@ -12200,13 +12150,10 @@ address	size	section	unit	scope	name	demangled
 0x80315618	0x4	.sbss	lib/dvd.c	global	immCount$360	immCount$360
 0x8031561C	0x4	.sbss	lib/dvd.c	local	dmaCount$362	dmaCount$362
 0x80315620	0x4	.sbss	lib/dvd.c	global	LastState	LastState
-0x80315624	0x4	.sbss	lib/dvd.c	local	lbl_80315624	.
 0x80315628	0x4	.sbss	lib/dvdFatal.c	local	FatalFunc	FatalFunc
-0x8031562C	0x4	.sbss	lib/dvdFatal.c	local	lbl_8031562C	.
 0x80315630	0x4	.sbss	lib/fstload.c	local	status	status
 0x80315634	0x4	.sbss	lib/fstload.c	local	bb2	bb2
 0x80315638	0x4	.sbss	lib/fstload.c	local	idTmp	idTmp
-0x8031563C	0x4	.sbss	lib/fstload.c	global	lbl_8031563C	.
 0x80315640	0x4	.sbss	lib/dvdlow.c	local	StopAtNextInt	StopAtNextInt
 0x80315644	0x4	.sbss	lib/dvdlow.c	local	LastLength	LastLength
 0x80315648	0x4	.sbss	lib/dvdlow.c	local	Callback	Callback
@@ -12217,7 +12164,6 @@ address	size	section	unit	scope	name	demangled
 0x80315660	0x4	.sbss	lib/dvdlow.c	local	Breaking	Breaking
 0x80315664	0x4	.sbss	lib/dvdlow.c	local	WorkAroundType	WorkAroundType
 0x80315668	0x4	.sbss	lib/dvdlow.c	local	WorkAroundSeekLocation	WorkAroundSeekLocation
-0x8031566C	0x4	.sbss	lib/dvdlow.c	global	lbl_8031566C	.
 0x80315670	0x8	.sbss	lib/dvdlow.c	local	LastReadFinished	LastReadFinished
 0x80315678	0x8	.sbss	lib/dvdlow.c	local	LastReadIssued	LastReadIssued
 0x80315680	0x4	.sbss	lib/dvdlow.c	local	LastCommandWasRead	LastCommandWasRead
@@ -12233,10 +12179,8 @@ address	size	section	unit	scope	name	demangled
 0x803156AC	0x2	.sbss	lib/vi.c	local	displayOffsetH	displayOffsetH
 0x803156AE	0x2	.sbss	lib/vi.c	local	displayOffsetV	displayOffsetV
 0x803156B0	0x4	.sbss	lib/vi.c	local	changeMode	changeMode
-0x803156B4	0x4	.sbss	lib/vi.c	local	lbl_803156B4	.
 0x803156B8	0x8	.sbss	lib/vi.c	local	changed	changed
 0x803156C0	0x4	.sbss	lib/vi.c	local	shdwChangeMode	shdwChangeMode
-0x803156C4	0x4	.sbss	lib/vi.c	local	lbl_803156C4	.
 0x803156C8	0x8	.sbss	lib/vi.c	local	shdwChanged	shdwChanged
 0x803156D0	0x4	.sbss	lib/vi.c	local	CurrTiming	CurrTiming
 0x803156D4	0x4	.sbss	lib/vi.c	local	CurrTvMode	CurrTvMode
@@ -12245,7 +12189,6 @@ address	size	section	unit	scope	name	demangled
 0x803156E0	0x4	.sbss	lib/vi.c	local	FBSet	FBSet
 0x803156E4	0x4	.sbss	lib/vi.c	local	timingExtra	timingExtra
 0x803156E8	0x4	.sbss	lib/vi.c	local	message$351	message$351
-0x803156EC	0x4	.sbss	lib/vi.c	global	lbl_803156EC	.
 0x803156F0	0x4	.sbss	lib/Pad.c	local	Initialized	Initialized
 0x803156F4	0x4	.sbss	lib/Pad.c	local	EnabledBits	EnabledBits
 0x803156F8	0x4	.sbss	lib/Pad.c	local	ResettingBits	ResettingBits
@@ -12290,7 +12233,6 @@ address	size	section	unit	scope	name	demangled
 0x803157A8	0x4	.sbss	lib/arq.c	local	__ARQChunkSize	__ARQChunkSize
 0x803157AC	0x4	.sbss	lib/arq.c	local	__ARQ_init_flag	__ARQ_init_flag
 0x803157B0	0x4	.sbss	lib/AXAlloc.c	local	__AXCallbackStack	__AXCallbackStack
-0x803157B4	0x4	.sbss	lib/AXAlloc.c	global	lbl_803157B4	.
 0x803157B8	0x4	.sbss	lib/AXAux.c	local	__AXCallbackAuxA	__AXCallbackAuxA
 0x803157BC	0x4	.sbss	lib/AXAux.c	local	__AXCallbackAuxB	__AXCallbackAuxB
 0x803157C0	0x4	.sbss	lib/AXAux.c	local	__AXContextAuxA	__AXContextAuxA
@@ -12304,17 +12246,14 @@ address	size	section	unit	scope	name	demangled
 0x803157E0	0x4	.sbss	lib/AXAux.c	local	__AXAuxDspWritePositionDpl2	__AXAuxDspWritePositionDpl2
 0x803157E4	0x4	.sbss	lib/AXAux.c	local	__AXAuxDspReadPositionDpl2	__AXAuxDspReadPositionDpl2
 0x803157E8	0x4	.sbss	lib/AXAux.c	local	__AXAuxCpuReadWritePosition	__AXAuxCpuReadWritePosition
-0x803157EC	0x4	.sbss	lib/AXAux.c	global	lbl_803157EC	.
 0x803157F0	0x4	.sbss	lib/AXCL.c	local	__AXCommandListPosition	__AXCommandListPosition
 0x803157F4	0x4	.sbss	lib/AXCL.c	local	__AXClWrite	__AXClWrite
 0x803157F8	0x4	.sbss	lib/AXCL.c	local	__AXCommandListCycles	__AXCommandListCycles
 0x803157FC	0x4	.sbss	lib/AXCL.c	local	__AXCompressor	__AXCompressor
 0x80315800	0x4	.sbss	lib/AXCL.c	global	__AXClMode	__AXClMode
-0x80315804	0x4	.sbss	lib/AXCL.c	local	lbl_80315804	.
 0x80315808	0x4	.sbss	lib/AXOut.c	local	__AXOutFrame	__AXOutFrame
 0x8031580C	0x4	.sbss	lib/AXOut.c	local	__AXAiDmaFrame	__AXAiDmaFrame
 0x80315810	0x4	.sbss	lib/AXOut.c	local	__AXOutDspReady	__AXOutDspReady
-0x80315814	0x4	.sbss	lib/AXOut.c	global	lbl_80315814	.
 0x80315818	0x8	.sbss	lib/AXOut.c	local	__AXOsTime	__AXOsTime
 0x80315820	0x4	.sbss	lib/AXOut.c	local	__AXUserFrameCallback	__AXUserFrameCallback
 0x80315824	0x4	.sbss	lib/AXOut.c	local	__AXDSPInitFlag	__AXDSPInitFlag
@@ -12322,7 +12261,6 @@ address	size	section	unit	scope	name	demangled
 0x8031582C	0x4	.sbss	lib/AXOut.c	local	__AXDebugSteppingMode	__AXDebugSteppingMode
 0x80315830	0x8	.sbss	lib/AXOut.c	local	__AXOutThreadQueue	__AXOutThreadQueue
 0x80315838	0x4	.sbss	lib/AXOut.c	local	__AXOutputBufferMode	__AXOutputBufferMode
-0x8031583C	0x4	.sbss	lib/AXOut.c	global	lbl_8031583C	.
 0x80315840	0x4	.sbss	lib/AXSPB.c	local	__AXSpbAL	__AXSpbAL
 0x80315844	0x4	.sbss	lib/AXSPB.c	local	__AXSpbAR	__AXSpbAR
 0x80315848	0x4	.sbss	lib/AXSPB.c	local	__AXSpbAS	__AXSpbAS
@@ -12332,11 +12270,9 @@ address	size	section	unit	scope	name	demangled
 0x80315858	0x4	.sbss	lib/AXSPB.c	local	__AXSpbABL	__AXSpbABL
 0x8031585C	0x4	.sbss	lib/AXSPB.c	local	__AXSpbABR	__AXSpbABR
 0x80315860	0x4	.sbss	lib/AXSPB.c	local	__AXSpbABS	__AXSpbABS
-0x80315864	0x4	.sbss	lib/AXSPB.c	local	lbl_80315864	.
 0x80315868	0x4	.sbss	lib/AXVPB.c	local	__AXMaxDspCycles	__AXMaxDspCycles
 0x8031586C	0x4	.sbss	lib/AXVPB.c	local	__AXRecDspCycles	__AXRecDspCycles
 0x80315870	0x4	.sbss	lib/AXVPB.c	local	__AXNumVoices	__AXNumVoices
-0x80315874	0x4	.sbss	lib/AXVPB.c	global	lbl_80315874	.
 0x80315878	0x4	.sbss	lib/AXProf.c	local	__AXProfile	__AXProfile
 0x8031587C	0x4	.sbss	lib/AXProf.c	local	__AXMaxProfiles	__AXMaxProfiles
 0x80315880	0x4	.sbss	lib/AXProf.c	local	__AXCurrentProfile	__AXCurrentProfile
@@ -12344,17 +12280,12 @@ address	size	section	unit	scope	name	demangled
 0x80315888	0x4	.sbss	lib/mix.c	local	__MIXDvdStreamAttenCurrent	__MIXDvdStreamAttenCurrent
 0x8031588C	0x4	.sbss	lib/mix.c	local	__MIXDvdStreamAttenUser	__MIXDvdStreamAttenUser
 0x80315890	0x4	.sbss	lib/mix.c	local	__MIXSoundMode	__MIXSoundMode
-0x80315894	0x4	.sbss	lib/mix.c	local	lbl_80315894	.
 0x80315898	0x4	.sbss	lib/axart.c	local	__AXARTSoundList	__AXARTSoundList
-0x8031589C	0x4	.sbss	lib/axart.c	global	lbl_8031589C	.
 0x803158A0	0x4	.sbss	lib/axart3d.c	local	__AXART3DDopplerScale	__AXART3DDopplerScale
 0x803158A4	0x4	.sbss	lib/axart3d.c	local	__AXART3DDistanceScale	__AXART3DDistanceScale
 0x803158A8	0x4	.sbss	lib/syn.c	global	__SYNSynthList	__SYNSynthList
-0x803158AC	0x4	.sbss	lib/syn.c	global	lbl_803158AC	.
 0x803158B0	0x4	.sbss	lib/seq.c	local	__SEQSequenceList	__SEQSequenceList
-0x803158B4	0x4	.sbss	lib/seq.c	global	lbl_803158B4	.
 0x803158B8	0x4	.sbss	lib/dsp.c	local	__DSP_init_flag	__DSP_init_flag
-0x803158BC	0x4	.sbss	lib/dsp.c	global	lbl_803158BC	.
 0x803158C0	0x4	.sbss	lib/dsp_task.c	local	t0	t0
 0x803158C4	0x4	.sbss	lib/dsp_task.c	local	t1	t1
 0x803158C8	0x4	.sbss	lib/dsp_task.c	local	t2	t2
@@ -12364,16 +12295,13 @@ address	size	section	unit	scope	name	demangled
 0x803158D8	0x4	.sbss	lib/dsp_task.c	global	__DSP_last_task	__DSP_last_task
 0x803158DC	0x4	.sbss	lib/dsp_task.c	global	__DSP_first_task	__DSP_first_task
 0x803158E0	0x4	.sbss	lib/dsp_task.c	global	__DSP_curr_task	__DSP_curr_task
-0x803158E4	0x4	.sbss	lib/dsp_task.c	global	lbl_803158E4	.
 0x803158E8	0x2	.sbss	lib/CARDBios.c	local	__CARDEncode	__CARDEncode
 0x803158EA	0x2	.sbss	lib/CARDBios.c	local	__CARDFastMode	__CARDFastMode
-0x803158EC	0x4	.sbss	lib/CARDBios.c	global	lbl_803158EC	.
 0x803158F0	0x4	.sbss	lib/GXInit.c	global	__piReg	__piReg
 0x803158F4	0x4	.sbss	lib/GXInit.c	global	__cpReg	__cpReg
 0x803158F8	0x4	.sbss	lib/GXInit.c	global	__peReg	__peReg
 0x803158FC	0x4	.sbss	lib/GXInit.c	global	__memReg	__memReg
 0x80315900	0x4	.sbss	lib/GXInit.c	global	peCount$35	peCount$35
-0x80315904	0x4	.sbss	lib/GXInit.c	global	lbl_80315904	.
 0x80315908	0x8	.sbss	lib/GXInit.c	local	time$36	time$36
 0x80315910	0x4	.sbss	lib/GXInit.c	local	calledOnce$37	calledOnce$37
 0x80315914	0x4	.sbss	lib/GXInit.c	global	resetFuncRegistered$145	resetFuncRegistered$145
@@ -12381,17 +12309,13 @@ address	size	section	unit	scope	name	demangled
 0x8031591C	0x4	.sbss	lib/GXFifo.c	global	GPFifo	GPFifo
 0x80315920	0x4	.sbss	lib/GXFifo.c	local	__GXCurrentThread	__GXCurrentThread
 0x80315924	0x1	.sbss	lib/GXFifo.c	local	CPGPLinked	CPGPLinked
-0x80315925	0x3	.sbss	lib/GXFifo.c	global	lbl_80315925	.
 0x80315928	0x4	.sbss	lib/GXFifo.c	local	GXOverflowSuspendInProgress	GXOverflowSuspendInProgress
 0x8031592C	0x4	.sbss	lib/GXFifo.c	local	BreakPointCB	BreakPointCB
 0x80315930	0x4	.sbss	lib/GXFifo.c	local	__GXOverflowCount	__GXOverflowCount
-0x80315934	0x4	.sbss	lib/GXFifo.c	local	lbl_80315934	.
 0x80315938	0x4	.sbss	lib/GXMisc.c	local	TokenCB	TokenCB
 0x8031593C	0x4	.sbss	lib/GXMisc.c	local	DrawDoneCB	DrawDoneCB
 0x80315940	0x1	.sbss	lib/GXMisc.c	local	DrawDone	DrawDone
-0x80315941	0x3	.sbss	lib/GXMisc.c	local	lbl_80315941	.
 0x80315944	0x8	.sbss	lib/GXMisc.c	local	FinishQueue	FinishQueue
-0x8031594C	0x4	.sbss	lib/GXMisc.c	local	lbl_8031594C	.
 0x80315950	0x8	.sbss	lib/fileCache.c	local	lbl_80315950	.
 0x80315958	0x4	.sbss	lib/DebuggerDriver.c	local	MTRCallback	MTRCallback
 0x8031595C	0x4	.sbss	lib/DebuggerDriver.c	local	DBGCallback	DBGCallback
@@ -12399,7 +12323,6 @@ address	size	section	unit	scope	name	demangled
 0x80315964	0x4	.sbss	lib/DebuggerDriver.c	local	RecvDataLeng	RecvDataLeng
 0x80315968	0x4	.sbss	lib/DebuggerDriver.c	local	pEXIInputFlag	pEXIInputFlag
 0x8031596C	0x1	.sbss	lib/DebuggerDriver.c	local	EXIInputFlag	EXIInputFlag
-0x8031596D	0x3	.sbss	lib/DebuggerDriver.c	global	lbl_8031596D	.
 0x80315970	0x4	.sbss	game/atari.cpp	global	SEck	SEck
 0x80315974	0x4	.sbss	game/atari.cpp	local	pBypassAt	pBypassAt
 0x80315978	0x4	.sbss	game/cam_extra.cpp	global	x_yure_spd.1310	x_yure_spd.1310
@@ -12421,7 +12344,6 @@ address	size	section	unit	scope	name	demangled
 0x803159BC	0x4	.sbss	game/dbmodule.cpp	global	cylinder_buff	cylinder_buff
 0x803159C0	0x4	.sbss	game/dbmodule.cpp	global	corn_buff	corn_buff
 0x803159C4	0x1	.sbss	game/debug.cpp	global	cnt.1261	cnt.1261
-0x803159C5	0x3	.sbss	game/debug.cpp	local	lbl_803159C5	.
 0x803159C8	0x4	.sbss	game/debug.cpp	global	zero_tick	zero_tick
 0x803159CC	0x4	.sbss	game/debug.cpp	global	proc_tick_idx	proc_tick_idx
 0x803159D0	0x4	.sbss	game/debug.cpp	global	proc_tick_idx_bak	proc_tick_idx_bak
@@ -12442,7 +12364,6 @@ address	size	section	unit	scope	name	demangled
 0x80315A14	0x4	.sbss	game/esp_app.cpp	global	g_pMgr	g_pMgr
 0x80315A18	0x2	.sbss	game/esp_efm.cpp	global	g_Core_flg	g_Core_flg
 0x80315A1A	0x1	.sbss	game/esp_efm.cpp	global	g_Core_kind	g_Core_kind
-0x80315A1B	0x1	.sbss	game/esp_efm.cpp	global	lbl_80315A1B	.
 0x80315A1C	0x4	.sbss	game/esp_efm.cpp	global	g_Core_pEm	g_Core_pEm
 0x80315A20	0x4	.sbss	game/esp_sub.cpp	global	s_proj_type.804	s_proj_type.804
 0x80315A24	0x4	.sbss	game/esp_sub.cpp	global	s_tex_no.805	s_tex_no.805
@@ -12467,7 +12388,6 @@ address	size	section	unit	scope	name	demangled
 0x80315A70	0x4	.sbss	game/game.cpp	local	stop_bak.2309	stop_bak.2309
 0x80315A74	0x4	.sbss	game/game.cpp	global	pSaveData	pSaveData
 0x80315A78	0x1	.sbss	game/game.cpp	global	GameSave	GameSave
-0x80315A79	0x3	.sbss	game/game.cpp	local	lbl_80315A79	.
 0x80315A7C	0x4	.sbss	game/game.cpp	global	DbWork	DbWork
 0x80315A80	0x4	.sbss	game/game.cpp	local	g_at_total	g_at_total
 0x80315A84	0x4	.sbss	game/game.cpp	local	g_at_total_cyc	g_at_total_cyc
@@ -12492,13 +12412,11 @@ address	size	section	unit	scope	name	demangled
 0x80315AD8	0x4	.sbss	game/main.cpp	global	pUser_name	pUser_name
 0x80315ADC	0x4	.sbss	game/main.cpp	global	roomInfoAddr	roomInfoAddr
 0x80315AE0	0x1	.sbss	game/main.cpp	global	system_vcnt	system_vcnt
-0x80315AE1	0x3	.sbss	game/main.cpp	global	lbl_80315AE1	.
 0x80315AE4	0x4	.sbss	game/main_mem.cpp	local	HeapHead	HeapHead
 0x80315AE8	0x4	.sbss	game/main_mem.cpp	global	arenaLo	arenaLo
 0x80315AEC	0x4	.sbss	game/main_mem.cpp	global	arenaHi	arenaHi
 0x80315AF0	0x1	.sbss	game/main_mem.cpp	global	CurrentHeap	CurrentHeap
 0x80315AF1	0x1	.sbss	game/main_mem.cpp	local	CurrentDbgHeap	CurrentDbgHeap
-0x80315AF2	0x2	.sbss	game/main_mem.cpp	global	lbl_80315AF2	.
 0x80315AF4	0x4	.sbss	game/main_mem.cpp	global	pMemTile	pMemTile
 0x80315AF8	0x4	.sbss	game/main_mem.cpp	local	_epy	_epy
 0x80315AFC	0x4	.sbss	game/main_sub.cpp	global	DefaultFifoObj	DefaultFifoObj
@@ -12508,7 +12426,6 @@ address	size	section	unit	scope	name	demangled
 0x80315B0C	0x4	.sbss	game/main_sub.cpp	local	AutoScreenShotFilename	AutoScreenShotFilename
 0x80315B10	0x4	.sbss	game/main_sub.cpp	local	ScreenShotFrame	ScreenShotFrame
 0x80315B14	0x1	.sbss	game/main_sub.cpp	local	Line	Line
-0x80315B15	0x3	.sbss	game/main_sub.cpp	local	lbl_80315B15	.
 0x80315B18	0x4	.sbss	game/obj09.cpp	local	pObj_ck	pObj_ck
 0x80315B1C	0x4	.sbss	game/pad.cpp	local	ResetBits	ResetBits
 0x80315B20	0x4	.sbss	game/pad.cpp	global	ConnectedBits	ConnectedBits
@@ -12516,16 +12433,12 @@ address	size	section	unit	scope	name	demangled
 0x80315B28	0x4	.sbss	game/pl_class.cpp	global	timer.1499	timer.1499
 0x80315B2C	0x1	.sbss	game/pl_sub.cpp	local	hamonTimer.1680	hamonTimer.1680
 0x80315B2D	0x1	.sbss	game/pl_sub.cpp	local	sibukiTimer.1681	sibukiTimer.1681
-0x80315B2E	0x2	.sbss	game/pl_sub.cpp	global	lbl_80315B2E	.
 0x80315B30	0x1	.sbss	game/pl_wep.cpp	global	lockCtr	lockCtr
-0x80315B31	0x3	.sbss	game/pl_wep.cpp	local	lbl_80315B31	.
 0x80315B34	0x4	.sbss	game/pl_wep.cpp	local	lockRandCtr	lockRandCtr
 0x80315B38	0x4	.sbss	game/read.cpp	local	in_data_addr	in_data_addr
 0x80315B3C	0x4	.sbss	game/read.cpp	global	out_data_size	out_data_size
 0x80315B40	0x1	.sbss	game/read.cpp	global	oldWepId	oldWepId
-0x80315B41	0x3	.sbss	game/read.cpp	global	lbl_80315B41	.
 0x80315B44	0x2	.sbss	game/rnd.cpp	global	Random	Random
-0x80315B46	0x2	.sbss	game/rnd.cpp	global	lbl_80315B46	.
 0x80315B48	0x4	.sbss	game/room_jmp.cpp	global	pRj	pRj
 0x80315B4C	0x4	.sbss	game/room_tex.cpp	global	g_pRoomTexSys	g_pRoomTexSys
 0x80315B50	0x4	.sbss	game/sce_at.cpp	global	disp_flag_bak.2097	disp_flag_bak.2097
@@ -12560,7 +12473,6 @@ address	size	section	unit	scope	name	demangled
 0x80315BC4	0x4	.sbss	game/t_option.cpp	local	pT	pT
 0x80315BC8	0x1	.sbss	game/t_page.cpp	global	tp_exit_flg	tp_exit_flg
 0x80315BC9	0x1	.sbss	game/t_page.cpp	global	tp_page_bak	tp_page_bak
-0x80315BCA	0x2	.sbss	game/t_page.cpp	global	lbl_80315BCA	.
 0x80315BCC	0x4	.sbss	game/t_prim.cpp	local	ProjMtx	ProjMtx
 0x80315BD0	0x4	.sbss	game/t_prim.cpp	global	ViewMtx	ViewMtx
 0x80315BD4	0x4	.sbss	game/t_util.cpp	global	stop_flg_bak	stop_flg_bak
@@ -12575,7 +12487,6 @@ address	size	section	unit	scope	name	demangled
 0x80315BF8	0x4	.sbss	game/TmpBuf.cpp	global	g_Type	g_Type
 0x80315BFC	0x1	.sbss	game/trans.cpp	global	min_lod	min_lod
 0x80315BFD	0x1	.sbss	game/trans.cpp	global	max_lod	max_lod
-0x80315BFE	0x2	.sbss	game/trans.cpp	global	lbl_80315BFE	.
 0x80315C00	0x4	.sbss	game/trans.cpp	global	lod_bias	lod_bias
 0x80315C04	0x4	.sbss	game/trans.cpp	global	g_pShdMng	g_pShdMng
 0x80315C08	0x4	.sbss	game/trans.cpp	global	tev_stage	tev_stage
@@ -12593,7 +12504,6 @@ address	size	section	unit	scope	name	demangled
 0x80315C38	0x4	.sbss	game/trans_ot.cpp	global	g_NowExecOtType	g_NowExecOtType
 0x80315C3C	0x4	.sbss	game/tv_mode.cpp	global	pTv	pTv
 0x80315C40	0x1	.sbss	game/tv_mode.cpp	global	tv_mode_cnt	tv_mode_cnt
-0x80315C41	0x3	.sbss	game/tv_mode.cpp	global	lbl_80315C41	.
 0x80315C44	0x8	.sbss	game/cinesco.cpp	global	cine_work	cine_work
 0x80315C4C	0x4	.sbss	game/esp08.cpp	local	prm4.815	prm4.815
 0x80315C50	0x4	.sbss	game/esp08.cpp	local	_.tmp_0.816	_.tmp_0.816
@@ -12607,7 +12517,6 @@ address	size	section	unit	scope	name	demangled
 0x80315C70	0x4	.sbss	game/filter09.cpp	local	g_bUse	g_bUse
 0x80315C74	0x4	.sbss	game/filter09.cpp	global	g_bSpred	g_bSpred
 0x80315C78	0x4	.sbss	game/filter09.cpp	global	g_bGet	g_bGet
-0x80315C7C	0x4	.sbss	game/filter09.cpp	global	lbl_80315C7C	.
 0x80315C80	0x4	.sbss	lib/OSAlloc.c	local	HeapArray	HeapArray
 0x80315C84	0x4	.sbss	lib/OSAlloc.c	local	NumHeaps	NumHeaps
 0x80315C88	0x4	.sbss	lib/OSAlloc.c	local	ArenaStart	ArenaStart
@@ -12634,7 +12543,6 @@ address	size	section	unit	scope	name	demangled
 0x80315FA0	0x34	.sdata2	lib/kf_tan.c	global	T	T
 0x80315FD4	0x318	.sdata2	lib/ef_rem_pio2.c	local	two_over_pi	two_over_pi
 0x803162EC	0x80	.sdata2	lib/ef_rem_pio2.c	local	npio2_hw	npio2_hw
-0x8031636C	0x4	.sdata2	lib/ef_rem_pio2.c	local	lbl_8031636C	.
 0x80316370	0x10	.sdata2	lib/k_rem_pio2.c	local	init_jk	init_jk
 0x80316380	0x40	.sdata2	lib/k_rem_pio2.c	global	PIo2	PIo2
 0x803163C0	0xC	.sdata2	lib/kf_rem_pio2.c	global	init_jk	init_jk
@@ -12658,7 +12566,6 @@ address	size	section	unit	scope	name	demangled
 0x80316828	0x4	.sdata2	lib/mtx44.c	global	@105_80316828	@105
 0x8031682C	0x4	.sdata2	lib/mtx44.c	global	@106_8031682C	@106
 0x80316830	0x4	.sdata2	lib/mtx44.c	local	@205	@205
-0x80316834	0x4	.sdata2	lib/mtx44.c	local	lbl_80316834	.
 0x80316838	0x4	.sdata2	lib/vec.c	local	@113_80316838	@113
 0x8031683C	0x4	.sdata2	lib/vec.c	global	lbl_8031683C	.
 0x80316840	0x8	.sdata2	lib/vec.c	local	@114_80316840	@114
@@ -12702,9 +12609,7 @@ address	size	section	unit	scope	name	demangled
 0x803168FC	0x4	.sdata2	lib/axartsound.c	global	lbl_803168FC	.
 0x80316900	0x8	.sdata2	lib/axartsound.c	global	@31_80316900	@31
 0x80316908	0x4	.sdata2	lib/axartcents.c	global	@13	@13
-0x8031690C	0x4	.sdata2	lib/axartcents.c	global	lbl_8031690C	.
 0x80316910	0x4	.sdata2	lib/axartlfo.c	global	@9_80316910	@9
-0x80316914	0x4	.sdata2	lib/axartlfo.c	global	lbl_80316914	.
 0x80316918	0x4	.sdata2	lib/axart3d.c	global	@26_80316918	@26
 0x8031691C	0x4	.sdata2	lib/axart3d.c	global	@27_8031691C	@27
 0x80316920	0x4	.sdata2	lib/axart3d.c	global	@28_80316920	@28
@@ -12748,7 +12653,6 @@ address	size	section	unit	scope	name	demangled
 0x803169D0	0x8	.sdata2	lib/GXLight.c	global	@177	@177
 0x803169D8	0x8	.sdata2	lib/GXLight.c	global	@178	@178
 0x803169E0	0x4	.sdata2	lib/GXLight.c	global	@179_803169E0	@179
-0x803169E4	0x4	.sdata2	lib/GXLight.c	global	lbl_803169E4	.
 0x803169E8	0x4	.sdata2	lib/GXTexture.c	global	@220_803169E8	@220
 0x803169EC	0x4	.sdata2	lib/GXTexture.c	global	lbl_803169EC	.
 0x803169F0	0x8	.sdata2	lib/GXTexture.c	global	@222_803169F0	@222
@@ -12789,7 +12693,6 @@ address	size	section	unit	scope	name	demangled
 0x80316AA0	0x4	.sdata2	lib/GXTransform.c	global	@28_80316AA0	@28
 0x80316AA4	0x4	.sdata2	lib/GXTransform.c	global	@201	@201
 0x80316AA8	0x4	.sdata2	lib/GXTransform.c	global	@219_80316AA8	@219
-0x80316AAC	0x4	.sdata2	lib/GXTransform.c	global	lbl_80316AAC	.
 0x80316AB0	0x4	.sdata2	lib/GXInit.c	global	__GXData	__GXData
 0x80316AB4	0x4	.sdata2	lib/GXInit.c	local	@267_80316AB4	@267
 0x80316AB8	0x4	.sdata2	lib/GXInit.c	global	@268_80316AB8	@268
@@ -12813,7 +12716,6 @@ address	size	section	unit	scope	name	demangled
 0x80316B08	0x4	.sdata2	game/shadow.cpp	global	col255.944	col255.944
 0x80316B0C	0x4	.sdata2	game/trans.cpp	local	col64	col64
 0x80316B10	0x4	.sdata2	game/trans_lit.cpp	global	colZero	colZero
-0x80316B14	0x4	.sdata2	game/trans_lit.cpp	global	lbl_80316B14	.
 0x80316B18	0x10	.sdata2	lib/e_pow.c	global	bp	bp
 0x80316B28	0x10	.sdata2	lib/e_pow.c	global	dp_h	dp_h
 0x80316B38	0x10	.sdata2	lib/e_pow.c	global	dp_l	dp_l
@@ -12837,7 +12739,6 @@ address	size	section	unit	scope	name	demangled
 0x80316B98	0x8	.sdata2	lib/OSFatal.c	global	@135_80316B98	@135
 0x80316BA0	0x8	.sdata2	lib/OSFont.c	local	@130_80316BA0	@130
 0x80316BA8	0x4	.sdata2	lib/mtx44vec.c	global	@103_80316BA8	@103
-0x80316BAC	0x4	.sdata2	lib/mtx44vec.c	global	lbl_80316BAC	.
 0x80316BB0	0x4	.sdata2	lib/Padclamp.c	global	@160_80316BB0	@160
 0x80316BB4	0x4	.sdata2	lib/Padclamp.c	local	lbl_80316BB4	.
 0x80316BB8	0x8	.sdata2	lib/Padclamp.c	global	@161_80316BB8	@161

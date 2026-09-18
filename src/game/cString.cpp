@@ -9,12 +9,12 @@ char* strcat(char* dst, const char* src);
 
 cString::cString()
 {
-    str = "";
+    m_str = "";
 }
 
 cString::cString(const char* s)
 {
-    str = "";
+    m_str = "";
     if (s != NULL) {
         if (strlen(s) != 0) {
             copy(s);
@@ -60,19 +60,19 @@ cString& cString::operator+=(const char* s)
 
 char* cString::c_str()
 {
-    return str;
+    return m_str;
 }
 
 u32 cString::size()
 {
-    return strlen(str);
+    return strlen(m_str);
 }
 
 void cString::clear()
 {
-    if (str != "") {
-        delete[] str;
-        str = "";
+    if (m_str != "") {
+        delete[] m_str;
+        m_str = "";
     }
 }
 
@@ -81,5 +81,5 @@ void cString::copy(const char* s)
     char* p = new char[strlen(s) + 1];
 
     strcpy(p, s);
-    str = p;
+    m_str = p;
 }

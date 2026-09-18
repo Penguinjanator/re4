@@ -68,24 +68,24 @@ extern "C" void Evt_R325S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         setRoomEtcDisp(0, 0, 1);
-        pG->flags_174 &= ~0x80000000;
+        pG->Room_flg[0] &= ~0x80000000;
         break;
     case 1:
-        if (e->cut == 7) {
-            if (e->frame == 0) {
+        if (e->NowCut == 7) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags &= ~0x40;
+                    ((cObj*) mod)->o18.be_flag &= ~0x40;
                 }
             }
         }
-        if (e->cut == 4) {
-            if (e->frame == 0) {
+        if (e->NowCut == 4) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 6, r325_work->texTbl0, r325_work->tex[0], 0, 0, 1, 1, 1.0f);
                 }
@@ -95,7 +95,7 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 EstSet(0, -1, 0, 0, 1, 0, r325_work->tex[0]->mask | 0x3001, 0, 0, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 6);
                 }
@@ -104,15 +104,15 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 EffectEfmDelete(r325_work->tex[0]->mask | 0x3001, 0, 0);
             }
         }
-        if (pG->costume2 == 1) {
-            if (e->frame == 0) {
+        if (pG->game_costume == 1) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod, 6, 0);
                 }
             }
         }
-        if (e->cut == 7) {
-            if (e->frame == 0) {
+        if (e->NowCut == 7) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 7, r325_work->texTbl1, r325_work->tex[1], 0, 0, 1, 1, 1.0f);
                 }
@@ -122,7 +122,7 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 EstSet(0, -1, 0, 0, 1, 1, r325_work->tex[1]->mask | 0x3001, 0, 0, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 7);
                 }
@@ -131,19 +131,19 @@ extern "C" void Evt_R325S00_Func(Event* e)
                 EffectEfmDelete(r325_work->tex[1]->mask | 0x3001, 0, 0);
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&info, "ev0002", 0, 0) == 1) {
-                    if ((int) pG->flags_174 >= 0) {
-                        BitOn(pG->flags_174, 0x80000000);
-                        r325_work->tpl = ((cModelInfo*) info)->pTpl;
+                    if ((int) pG->Room_flg[0] >= 0) {
+                        BitOn(pG->Room_flg[0], 0x80000000);
+                        r325_work->tpl = ((cModelInfo*) info)->tpl_addr;
                     }
                 }
             }
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&info, "ev0002", 0, 0) == 1) {
                     if (EvtMgr.GetBin(&bin, "event/model/ev0000/ev0002_red_eye.tpl", 0) == 1) {
                         ((cModelInfo*) info)->setTplAddr(bin);
@@ -152,31 +152,31 @@ extern "C" void Evt_R325S00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&info, "ev0002", 0, 0) == 1) {
                     ((cModelInfo*) info)->setTplAddr(r325_work->tpl);
                 }
             }
             break;
         }
-        if (e->cut == 8) {
-            if (e->frame == 0) {
+        if (e->NowCut == 8) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 &= ~0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon &= ~0x04000000;
                         w->child->be_flag |= 2;
                     }
                 }

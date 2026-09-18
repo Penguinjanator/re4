@@ -19,8 +19,8 @@ struct Em38Para {
     u8 parts;             // 0x02  root parts (its hit parts are parts + 1 / parts + 2)
     u8 parts2;            // 0x03
     u16 timer;            // 0x04  frames until the next rise
-    s16 x6;               // 0x06  rise / sink frames
-    s16 x8;               // 0x08  swing step (0..359)
+    s16 riseTimer;               // 0x06  rise / sink frames
+    s16 swingAng;               // 0x08  swing step (0..359)  swing angle in degrees (0..359, 30-degree segments)
     s16 hp;               // 0x0A  damage left before the tentacle is killed (em38DmCk)
     s16 effTimer;         // 0x0C  frames until the next splash effect
     u8 pad_E[2];
@@ -70,7 +70,7 @@ struct Em38Work {
     u8 pad_622[2];
     int seWait;           // 0x624 (0xA04)  frames the ctrl11 SEs are held off
     u8 pad_628[4];
-    s16 x62C;             // 0x62C (0xA0C)  frames until the body's first voice
+    s16 voiceWait;             // 0x62C (0xA0C)  frames until the body's first voice
     u8 pad_62E[2];
     int shellTimer;       // 0x630 (0xA10)  frames the shell stays open
     int waitCnt;          // 0x634 (0xA14)  em38_R1_Wait loops before the head goes up

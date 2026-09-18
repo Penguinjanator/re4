@@ -46,17 +46,17 @@ public:
 // block tables back to back (cSat::operator= computes the table pointers).
 class cSatFile {
 public:
-    u8 id;           // 0x00  0xFF for a file (a cSatHeader has bit7 set instead)
+    u8 m_Version;           // 0x00  0xFF for a file (a cSatHeader has bit7 set instead)
     u8 x1;
-    u16 nVertex;     // 0x02
-    u16 nNormal;     // 0x04
-    u16 nEdge;       // 0x06
+    u16 m_nVertex;     // 0x02
+    u16 m_nNormal;     // 0x04
+    u16 m_nEdge;       // 0x06
     u16 x8;
-    u16 nPoly;       // 0x0A  polygon total (< 0x2000)
-    u16 nA;          // 0x0C  polygon groups: [0, nA), [nA, nA + nB), the last nC (cSatMgr::disp)
-    u16 nB;          // 0x0E
-    u16 nC;          // 0x10
-    u16 x12;         // 0x12
+    u16 m_nPolygon;       // 0x0A  polygon total (< 0x2000)
+    u16 m_nFloor;          // 0x0C  polygon groups: [0, nA), [nA, nA + nB), the last nC (cSatMgr::disp)
+    u16 m_nSlope;          // 0x0E
+    u16 m_nWall;          // 0x10
+    u16 m_nBlock;         // 0x12
     // 0x14: Vec vtx[nVertex]; Vec nrm[nNormal]; Vec edge[nEdge]; AtPoly poly[nPoly]; cSatBlock blocks
 
     Vec* getVertexPtr();
@@ -66,7 +66,7 @@ public:
 // Table of SAT files (room collision archive): offsets from the header.
 class cSatHeader {
 public:
-    u8 id;           // 0x00  bit7 set
+    u8 m_Version;           // 0x00  bit7 set
     u8 pad_1[3];
     u32 ofs[0];      // 0x04
 
@@ -79,16 +79,16 @@ public:
 class cSatBlock {
 public:
     Vec min;         // 0x00  box minimum (y unused)
-    Vec size;        // 0x0C  box size
-    u16 n0;          // 0x18  indices of group A (floors: flag 0x40 checks [0, n0 + n1))
-    u16 n1;          // 0x1A  group B
-    u16 n2;          // 0x1C  group C (walls: flag 0x80 checks [n0 + n1, n0 + n1 + n2))
-    u16 flag;        // 0x1E  bit0: `idx` holds a child cSatBlock
+    Vec m_Size;        // 0x0C  box size
+    u16 m_nFloor;          // 0x18  indices of group A (floors: flag 0x40 checks [0, n0 + n1))
+    u16 m_nSlope;          // 0x1A  group B
+    u16 m_nWall;          // 0x1C  group C (walls: flag 0x80 checks [n0 + n1, n0 + n1 + n2))
+    u16 m_Flag;        // 0x1E  bit0: `idx` holds a child cSatBlock
     cSatBlock* next; // 0x20
     u16 idx[0];      // 0x24  polygon indices
 
     int lineOverlap(Vec* p, Vec* dir, Vec* absDir);
-    int hitCheckSphere(Vec* a, Vec* b, f32 r);
+    int hitCheckSphere(Vec* pos0, Vec* pos1, f32 r);
 };
 
 // One scenario collision piece (game/atari.cpp), returned by cSatMgr::create. Owners toggle
@@ -96,26 +96,26 @@ public:
 class cSat : public cUnit {
 public:
     Vec* vtx;        // 0x0C  (the three table pointers double as the AtPolyData the at_sub checks take)
-    Vec* nrm;        // 0x10
-    Vec* edge;       // 0x14
-    AtPoly* poly;    // 0x18
-    u16 nVertex;     // 0x1C
-    u16 nPoly;       // 0x1E
-    u16 nA;          // 0x20
-    u16 nB;          // 0x22
-    u16 nC;          // 0x24
-    u16 x26;         // 0x26
-    u16 nNormal;     // 0x28
-    s8 flags;        // 0x2A  bit1: pFile was allocated by cSatMgr::create (freed by destroy), bit2: piece takes part in the collision checks (signed: `&= ~4` is a word rlwinm)
+    Vec* norm_p;        // 0x10
+    Vec* edge_p;       // 0x14
+    AtPoly* poly_p;    // 0x18
+    u16 vertex_num;     // 0x1C
+    u16 polygon_num;       // 0x1E
+    u16 floor_num;          // 0x20
+    u16 slope_num;          // 0x22
+    u16 wall_num;          // 0x24
+    u16 bb_num;         // 0x26
+    u16 normal_num;     // 0x28
+    s8 m_Flag;        // 0x2A  bit1: pFile was allocated by cSatMgr::create (freed by destroy), bit2: piece takes part in the collision checks (signed: `&= ~4` is a word rlwinm)
     u8 pad_2B;
     u16 nEdge;       // 0x2C
     u8 pad_2E[2];
-    cSatBlock* block;  // 0x30  root block
+    cSatBlock* block_p;  // 0x30  root block
     u8 pad_34[0x58 - 0x34];
     cSatFile* pFile; // 0x58
     u32 x5C;         // 0x5C
     Mtx mat;         // 0x60  piece -> world
-    Mtx inv;         // 0x90  world -> piece
+    Mtx imat;         // 0x90  world -> piece
 
     // Tools t_atari's static cSat arrays (stw 1; stw vptr; stb 0 per element in the static init loop) and
     // ss_map's cSat locals show the real constructor: alive flag through the base, active flags cleared.
@@ -124,7 +124,7 @@ public:
     // prefers the more expensive equivalent), so the `stb` is frame-relative while the vptr stores keep
     // `this` (ss_map mapPositionCheck); a plain member store stays `(plus this 0x2A)` (PLUS path cost
     // tie). No new header-level declaration: esp's static `max.<DECL_UID>` name is gcse-hash sensitive.
-    cSat() : cUnit(1) { s8& f = flags; f = 0; }
+    cSat() : cUnit(1) { s8& f = m_Flag; f = 0; }
     void init(cSatFile* f, Vec* pos, Vec* rot);
     void setCoord(Vec* pos, Vec* rot);
     void setMatrix(Mtx m);
@@ -137,7 +137,7 @@ public:
 
 inline int cSat::isAlive()
 {
-    if ((be_flag & 0x201) == 1 && (flags & 4)) {
+    if ((be_flag & 0x201) == 1 && (m_Flag & 4)) {
         return 1;
     }
     return 0;
@@ -166,7 +166,7 @@ public:
     // receives the address of the hit polygon's normal (in the piece's space).
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int mask);
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
-    int hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int flag, int mask);
+    int hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask);
     // Floor height under `pos`, searching `up` above and `down` below it.
     f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
     // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the
@@ -187,6 +187,17 @@ public:
 };
 
 extern cSatMgr SatMgr;
+
+enum EAT_EFFECT_TYPE {
+    EAT_ET_NORMAL = 0,
+    EAT_ET_BULLET = 1,
+    EAT_ET_WATER = 2,
+    EAT_ET_PAD = 3,
+    EAT_ET_ROOM0 = 4,
+    EAT_ET_ROOM1 = 5,
+    EAT_ET_ROOM2 = 6,
+    EAT_ET_ROOM3 = 7
+};
 
 // Effect collision manager (game/atari.cpp `EatMgr`, 0x260 bytes).
 class cEatMgr : public cSatMgr {

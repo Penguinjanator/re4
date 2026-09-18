@@ -5,36 +5,36 @@
 #include "vec.h"
 
 class cModel;
-struct PlClothAt;
+struct CLOTH_AT_SET;
 
 // Pendulum / cloth chain work (game/pendulum.cpp), 0x60 bytes (same object as pl_cloth.h's
 // PlCloth). Field meanings from obj14ClothSet; the rest is zeroed there. Every link is one
 // model parts; the u8 tables give the parts index per link and its neighbours (0xFF = none).
 struct PenCloth {
-    int num;             // 0x00  number of chain links
-    const u8* pParts;    // 0x04  parts index per link
-    const u8* x08;       // 0x08  left neighbour per link
-    const u8* x0C;       // 0x0C  right neighbour per link
-    const u8* x10;       // 0x10  third neighbour per link (Ada dress)
-    const u8* x14;       // 0x14  fourth neighbour per link
-    const u8* pUp;       // 0x18  upper neighbour per link (0xFF = none)
-    const u8* pDown;     // 0x1C  lower neighbour per link (0xFF = none)
-    const f32* x20;      // 0x20  gravity per link (NULL: x3C)
-    const f32* x24;      // 0x24  damping rate per link (NULL: x40)
+    int Num;             // 0x00  number of chain links
+    const u8* pCloth;    // 0x04  parts index per link
+    const u8* pLeft;       // 0x08  left neighbour per link
+    const u8* pRight;       // 0x0C  right neighbour per link
+    const u8* pUpLeft;       // 0x10  third neighbour per link (Ada dress)
+    const u8* pUpRight;       // 0x14  fourth neighbour per link
+    const u8* pParent;       // 0x18  upper neighbour per link (0xFF = none)
+    const u8* pChild;     // 0x1C  lower neighbour per link (0xFF = none)
+    const f32* pGravity;      // 0x20  gravity per link (NULL: x3C)
+    const f32* pRate;      // 0x24  damping rate per link (NULL: x40)
     const f32* pMax;     // 0x28  max swing angle per link
-    const f32* x2C;      // 0x2C  wind phase per link
-    const f32* x30;      // 0x30  wind rate per link
-    PlClothAt* x34;      // 0x34  collision volumes
-    int x38;             // 0x38  number of collision volumes
-    f32 x3C;             // 0x3C  gravity (15.0 for the bell)
-    f32 x40;             // 0x40  damping rate (1.0)
-    u32 x44;             // 0x44  constraint iterations
-    f32 x48;             // 0x48  wind phase
-    f32 x4C;             // 0x4C  constraint stiffness (Move2 / Move3)
-    f32 x50;             // 0x50  parent speed rate
-    cModel** x54;        // 0x54  parts pointer table (NULL: cModel::getPartsPtr)
-    cModel* x58;         // 0x58  model the collision volumes hang on (NULL: the chain model)
-    u32 flags;           // 0x5C  (0x100)
+    const f32* pWindSin;      // 0x2C  wind phase per link
+    const f32* pWindRate;      // 0x30  wind rate per link
+    CLOTH_AT_SET* pAtset;      // 0x34  collision volumes
+    int At_num;             // 0x38  number of collision volumes
+    f32 Gravity;             // 0x3C  gravity (15.0 for the bell)
+    f32 Rate;             // 0x40  damping rate (1.0)
+    u32 Bundle_num;             // 0x44  constraint iterations
+    f32 WindSin;             // 0x48  wind phase
+    f32 Stretchy;             // 0x4C  constraint stiffness (Move2 / Move3)
+    f32 Move_rate;             // 0x50  parent speed rate
+    cModel** pPtbl;        // 0x54  parts pointer table (NULL: cModel::getPartsPtr)
+    cModel* pEm_at;         // 0x58  model the collision volumes hang on (NULL: the chain model)
+    u32 Flag;           // 0x5C  (0x100)
 };
 
 // Per-link work the pendulum keeps in the parts' cModel from 0x128 on.
@@ -80,13 +80,13 @@ extern Vec GlobalWind;
 extern f32 GlobalWindAdd;
 
 extern "C" {
-void PenClothSet(cModel* m, PenCloth* c, f32 len);
-void PenClothFixSet(cModel* m, PenCloth* c, int no, Vec* pos);
-void PenClothFixClear(cModel* m, PenCloth* c, int no);
-void PenClothMove(cModel* m, PenCloth* c);
-void PenClothMove2(cModel* m, PenCloth* c);
+void PenClothSet(cModel* m, PenCloth* pInfo, f32 len);
+void PenClothFixSet(cModel* m, PenCloth* pInfo, int no, Vec* pos);
+void PenClothFixClear(cModel* m, PenCloth* pInfo, int no);
+void PenClothMove(cModel* m, PenCloth* pInfo);
+void PenClothMove2(cModel* m, PenCloth* pInfo);
 void PenClothMove3(cModel* m, PenCloth* c);
-PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n);
+PenAtWork* penClothAtMake(cModel* m, CLOTH_AT_SET* at, int n);
 int penClothAtCk(Vec* pos, Vec* up, PenAtWork* wk);
 int penClothAtCkBorder(Vec* pos, Vec* up, PenAtWork* wk);
 void penClothAtCkParallel(Vec* pos, Vec* up, PenAtWork* wk);

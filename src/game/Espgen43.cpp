@@ -15,19 +15,19 @@
 // through a prebuilt display list; AddSandPower pushes the grid down around a world position
 // and GetSandHeight samples it (obj09).
 struct Espgen43Work {
-    Mtx mat;           // 0x14 grid -> world
-    Mtx inv;           // 0x44 world -> grid
-    u16 nx;            // 0x74 grid cells along x
+    Mtx Wld_mat;           // 0x14 grid -> world
+    Mtx Inv_mat;           // 0x44 world -> grid
+    u16 Width;            // 0x74 grid cells along x
     u16 ny;            // 0x76 grid cells along z
     u8 pad_78[4];
-    f32 size;          // 0x7C cell size
-    Vec* nrm;          // 0x80
-    Vec* pos;          // 0x84
-    u8* dl;            // 0x88 display list
-    u32 dlSize;        // 0x8C
-    GXColor color;     // 0x90
-    GXColor color2;    // 0x94
-    u8 texId;          // 0x98
+    f32 Size;          // 0x7C cell size
+    Vec* pNorBuf;          // 0x80
+    Vec* pHeightBuf;          // 0x84
+    u8* pDisplayList;            // 0x88 display list
+    u32 Dpl_size;        // 0x8C
+    GXColor Color;     // 0x90
+    GXColor Amb;    // 0x94
+    u8 TexNo;          // 0x98
     u8 texRep;         // 0x99 texture repeats across the grid
 };
 
@@ -69,56 +69,56 @@ void AddSandPowerSub(EspgenWork* w)
     }
     p = (Espgen43Work*) w->work;
     v = Chk_pos;
-    PSMTXMultVec(p->inv, &v, &v);
-    if (v.x < (f32) (-p->nx / 2)) {
+    PSMTXMultVec(p->Inv_mat, &v, &v);
+    if (v.x < (f32) (-p->Width / 2)) {
         return;
     }
     if (v.z < (f32) (-p->ny / 2)) {
         return;
     }
-    if (v.x > (f32) (p->nx / 2)) {
+    if (v.x > (f32) (p->Width / 2)) {
         return;
     }
     if (v.z > (f32) (p->ny / 2)) {
         return;
     }
     z = (u32) (v.z + (f32) (p->ny / 2));
-    x = (u32) (v.x + (f32) (p->nx / 2));
-    idx = z * (p->nx + 1) + x;
-    p->pos[idx].y += FGet(Add_power);
-    total = (p->ny + 1) * (p->nx + 1);
-    stride = p->nx + 1;
+    x = (u32) (v.x + (f32) (p->Width / 2));
+    idx = z * (p->Width + 1) + x;
+    p->pHeightBuf[idx].y += FGet(Add_power);
+    total = (p->ny + 1) * (p->Width + 1);
+    stride = p->Width + 1;
     for (i = -3; i <= 3; i++) {
         for (j = -3; j <= 3; j++) {
-            k = idx + i + j * (p->nx + 1);
+            k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pos[k].y -= FGet(Add_power) * 0.02f;
+                p->pHeightBuf[k].y -= FGet(Add_power) * 0.02f;
             }
         }
     }
     for (i = -2; i <= 2; i++) {
         for (j = -2; j <= 2; j++) {
-            k = idx + i + j * (p->nx + 1);
+            k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pos[k].y -= FGet(Add_power) * 0.1f;
+                p->pHeightBuf[k].y -= FGet(Add_power) * 0.1f;
             }
         }
     }
     for (i = -1; i <= 1; i++) {
         for (j = -1; j <= 1; j++) {
-            k = idx + i + j * (p->nx + 1);
+            k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= 0) {
-                p->pos[k].y += FGet(Add_power) * 0.35f;
+                p->pHeightBuf[k].y += FGet(Add_power) * 0.35f;
             }
         }
     }
     for (i = -3; i <= 3; i++) {
         for (j = -3; j <= 3; j++) {
-            k = idx + i + j * (p->nx + 1);
+            k = idx + i + j * (p->Width + 1);
             if (k <= total && k >= stride) {
-                p->pos[k].y = p->pos[k].y * 2.5f + p->pos[k + 1].y * 0.5f + p->pos[p->ny + k + 1].y * 0.5f +
-                              p->pos[p->ny + k + 2].y * 0.5f;
-                p->pos[k].y *= 0.25f;
+                p->pHeightBuf[k].y = p->pHeightBuf[k].y * 2.5f + p->pHeightBuf[k + 1].y * 0.5f + p->pHeightBuf[p->ny + k + 1].y * 0.5f +
+                              p->pHeightBuf[p->ny + k + 2].y * 0.5f;
+                p->pHeightBuf[k].y *= 0.25f;
             }
         }
     }
@@ -126,7 +126,7 @@ void AddSandPowerSub(EspgenWork* w)
 
 void AddSandPower(Vec* pos, f32 power)
 {
-    if (pG->flags_500C & 2) {
+    if (pG->Status_flg[0] & 2) {
         // COMPILER-DIFF: word copy with the .z word pinned to r11 (the original issues `stfs Add_power`
         // in the first cycle in both schedulers). Scalar `u32` loads are not MEM_IN_STRUCT_P, so the
         // plain `Add_power` store gates them (priority 7) and takes the first cycle in sched1 too;
@@ -160,21 +160,21 @@ void GetSandHeightSub(EspgenWork* w)
     }
     p = (Espgen43Work*) w->work;
     v = Chk_pos;
-    PSMTXMultVec(p->inv, &v, &v);
-    if (v.x < (f32) (-p->nx / 2)) {
+    PSMTXMultVec(p->Inv_mat, &v, &v);
+    if (v.x < (f32) (-p->Width / 2)) {
         return;
     }
     if (v.z < (f32) (-p->ny / 2)) {
         return;
     }
-    if (v.x > (f32) (p->nx / 2)) {
+    if (v.x > (f32) (p->Width / 2)) {
         return;
     }
     if (v.z > (f32) (p->ny / 2)) {
         return;
     }
     v.y = 0.0f;
-    PSMTXMultVec(p->mat, &v, &v);
+    PSMTXMultVec(p->Wld_mat, &v, &v);
     if (v.y > Height_ret) {
         Height_ret = v.y;
     }
@@ -183,7 +183,7 @@ void GetSandHeightSub(EspgenWork* w)
 
 int GetSandHeight(Vec* pos, f32* height)
 {
-    if (!(pG->flags_500C & 2)) {
+    if (!(pG->Status_flg[0] & 2)) {
         return 0;
     }
     ISet(Height_find, 0);
@@ -204,22 +204,22 @@ void Espgen43_Move00(EspgenWork* w)
     int k;
     u32 n;
 
-    pG->flags_500C |= 2;
+    pG->Status_flg[0] |= 2;
     for (i = 1; i < p->ny; i++) {
-        k = i * (p->nx + 1);
-        for (j = 1; j < p->nx; j++) {
-            Vec* n = &p->nrm[k];
-            Vec* q = &p->pos[k];
+        k = i * (p->Width + 1);
+        for (j = 1; j < p->Width; j++) {
+            Vec* n = &p->pNorBuf[k];
+            Vec* q = &p->pHeightBuf[k];
             v.x = q[-1].y - q[1].y;
             v.y = 2.0f;
-            v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
+            v.z = p->pHeightBuf[k - p->Width].y - p->pHeightBuf[k + p->Width].y;
             VECNormalize(&v, n);
             k++;
         }
     }
-    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->pos, n);
-    DCStoreRange(p->nrm, n);
+    n = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
+    DCStoreRange(p->pHeightBuf, n);
+    DCStoreRange(p->pNorBuf, n);
 }
 
 void Espgen43_Move(EspgenWork* w)
@@ -264,36 +264,36 @@ void Espgen43_TransSub(EspgenWork* w)
     {
         static const Vec p0 = {0.0f, 0.0f, 0.0f};
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
-        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+        model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
-    model.pos.x = p->mat[0][3];
-    model.pos.y = p->mat[1][3];
-    model.pos.z = p->mat[2][3];
+    model.pos.x = p->Wld_mat[0][3];
+    model.pos.y = p->Wld_mat[1][3];
+    model.pos.z = p->Wld_mat[2][3];
     LightMgr.setClothN(&model, 5);
-    if (model.lightInfo.size.x > model.lightInfo.size.y) {
-        r = model.lightInfo.size.x;
+    if (model.LightInfo.Size.x > model.LightInfo.Size.y) {
+        r = model.LightInfo.Size.x;
     } else {
-        r = model.lightInfo.size.y;
+        r = model.LightInfo.Size.y;
     }
-    commonClothLightSet(model.lightInfo.pLight, 5, model.pos, r);
-    GXSetChanMatColor(4, p->color);
+    commonClothLightSet(model.LightInfo.pLight, 5, model.pos, r);
+    GXSetChanMatColor(4, p->Color);
     {
         Mtx nrm;
         Mtx mv;
-        PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
+        PSMTXConcat(pG->Cam.v_mat, p->Wld_mat, mv);
         PSMTXInverse(mv, nrm);
         PSMTXTranspose(nrm, nrm);
         GXLoadNrmMtxImm(nrm, 0);
         GXLoadPosMtxImm(mv, 0);
     }
     GXSetBlendMode(1, 4, 5, 0);
-    tex = EspGetTexObj(p->texId, 0);
+    tex = EspGetTexObj(p->TexNo, 0);
     if (tex == NULL) {
         tex = &Specular;
     }
     GXLoadTexObj(tex, st->texMap);
     GXSetTexCoordGen2(st->texCoord, 1, 4, 0x3C, 0, 0x7D);
-    tlut = EspGetTlutObj(p->texId);
+    tlut = EspGetTlutObj(p->TexNo);
     if (tlut != NULL) {
         GXLoadTlut(tlut, 0);
     }
@@ -314,9 +314,9 @@ void Espgen43_TransSub(EspgenWork* w)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 10, 0, 4, 0);
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
-    GXSetArray(9, p->pos, sizeof(Vec));
-    GXSetArray(10, p->nrm, sizeof(Vec));
-    GXCallDisplayList(p->dl, p->dlSize);
+    GXSetArray(9, p->pHeightBuf, sizeof(Vec));
+    GXSetArray(10, p->pNorBuf, sizeof(Vec));
+    GXCallDisplayList(p->pDisplayList, p->Dpl_size);
 }
 
 // Dead-stripped from the DOL (pool and string kept): pulls a generator and sets the grid up.
@@ -354,40 +354,40 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
     f32 fy;
 
     w->id = 0x43;
-    p->nx = nx;
+    p->Width = nx;
     p->ny = ny;
-    p->size = size;
-    RotMatrix(p->mat, rot);
-    PSMTXScale(m, p->size, p->size * sizeRate, p->size);
-    PSMTXConcat(p->mat, m, p->mat);
-    PSMTXTransApply(p->mat, p->mat, pos->x, pos->y, pos->z);
-    PSMTXInverse(p->mat, p->inv);
-    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+    p->Size = size;
+    RotMatrix(p->Wld_mat, rot);
+    PSMTXScale(m, p->Size, p->Size * sizeRate, p->Size);
+    PSMTXConcat(p->Wld_mat, m, p->Wld_mat);
+    PSMTXTransApply(p->Wld_mat, p->Wld_mat, pos->x, pos->y, pos->z);
+    PSMTXInverse(p->Wld_mat, p->Inv_mat);
+    n = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
 #line 445 "D:/Bio4/Prog/Espgen43.cpp"
-    p->pos = (Vec*) MEM_ALLOC(n, 1, 13);
-    if (p->pos == NULL) {
+    p->pHeightBuf = (Vec*) MEM_ALLOC(n, 1, 13);
+    if (p->pHeightBuf == NULL) {
         pLog->err(0, 0, "Espgen43 : not enough memory");
         PushEspgen(w);
         return 0;
     }
-    memclr_asm(p->pos, n);
+    memclr_asm(p->pHeightBuf, n);
 #line 452 "D:/Bio4/Prog/Espgen43.cpp"
-    p->nrm = (Vec*) MEM_ALLOC(n, 1, 13);
-    if (p->nrm == NULL) {
+    p->pNorBuf = (Vec*) MEM_ALLOC(n, 1, 13);
+    if (p->pNorBuf == NULL) {
         pLog->err(0, 0, "Espgen43 : not enough memory");
         PushEspgen(w);
         return 0;
     }
-    memclr_asm(p->nrm, n);
-    p->dlSize = ((p->nx + 1) * (p->ny + p->ny) * 12 + 0x61) & ~0x1F;
+    memclr_asm(p->pNorBuf, n);
+    p->Dpl_size = ((p->Width + 1) * (p->ny + p->ny) * 12 + 0x61) & ~0x1F;
 #line 466 "D:/Bio4/Prog/Espgen43.cpp"
-    p->dl = (u8*) MEM_ALLOC(p->dlSize, 1, 13);
-    if (p->dl == NULL) {
+    p->pDisplayList = (u8*) MEM_ALLOC(p->Dpl_size, 1, 13);
+    if (p->pDisplayList == NULL) {
         pLog->err(0, 0, "Espgen43 : not enough memory");
         PushEspgen(w);
         return 0;
     }
-    memclr_asm(p->dl, p->dlSize);
+    memclr_asm(p->pDisplayList, p->Dpl_size);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 3);
     GXSetVtxDesc(10, 3);
@@ -395,18 +395,18 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 10, 0, 4, 0);
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
-    d = p->dl;
+    d = p->pDisplayList;
     *d = 0;
     d++;
     *d = 0x98;
     d++;
-    *(u16*) d = (p->nx + 1) * (p->ny + p->ny);
+    *(u16*) d = (p->Width + 1) * (p->ny + p->ny);
     d++;
     d++;
     rep = p->texRep;
     for (i = 0; i < p->ny; i++) {
-        k = i * (p->nx + 1);
-        for (j = 0; j < p->nx + 1; j++) {
+        k = i * (p->Width + 1);
+        for (j = 0; j < p->Width + 1; j++) {
             *(u16*) d = k;
             d++;
             d++;
@@ -414,7 +414,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             k++;
-            *(f32*) d = (f32) j / p->nx * rep;
+            *(f32*) d = (f32) j / p->Width * rep;
             TEX_WRAP(*(f32*) d);
             d++;
             d++;
@@ -426,13 +426,13 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->Width + k;
             d++;
             d++;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->Width + k;
             d++;
             d++;
-            *(f32*) d = (f32) j / p->nx * rep;
+            *(f32*) d = (f32) j / p->Width * rep;
             TEX_WRAP(*(f32*) d);
             d++;
             d++;
@@ -447,15 +447,15 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         }
         i++;
         if (i < p->ny) {
-            for (j = p->nx; j >= 0; j--) {
-                k = i * (p->nx + 1) + j;
+            for (j = p->Width; j >= 0; j--) {
+                k = i * (p->Width + 1) + j;
                 *(u16*) d = k;
                 d++;
             d++;
                 *(u16*) d = k;
                 d++;
             d++;
-                *(f32*) d = (f32) j / p->nx * rep;
+                *(f32*) d = (f32) j / p->Width * rep;
                 TEX_WRAP(*(f32*) d);
                 d++;
             d++;
@@ -468,13 +468,13 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->Width + k;
                 d++;
             d++;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->Width + k;
                 d++;
             d++;
-                *(f32*) d = (f32) j / p->nx * rep;
+                *(f32*) d = (f32) j / p->Width * rep;
                 TEX_WRAP(*(f32*) d);
                 d++;
             d++;
@@ -496,14 +496,14 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         int idx;
         for (y = 0; y < p->ny + 1; y++) {
             fx = 0.0f;
-            idx = y * (p->nx + 1);
-            for (x = 0; x < p->nx + 1; x++) {
-                p->pos[idx].x = fx - (f32) (p->nx / 2);
-                p->pos[idx].y = fRand1_1() * 0.15f;
-                p->pos[idx].z = fy - (f32) (p->ny / 2);
-                p->nrm[idx].x = 0.0f;
-                p->nrm[idx].y = 1.0f;
-                p->nrm[idx].z = 0.0f;
+            idx = y * (p->Width + 1);
+            for (x = 0; x < p->Width + 1; x++) {
+                p->pHeightBuf[idx].x = fx - (f32) (p->Width / 2);
+                p->pHeightBuf[idx].y = fRand1_1() * 0.15f;
+                p->pHeightBuf[idx].z = fy - (f32) (p->ny / 2);
+                p->pNorBuf[idx].x = 0.0f;
+                p->pNorBuf[idx].y = 1.0f;
+                p->pNorBuf[idx].z = 0.0f;
                 fx += 1.0f;
                 idx++;
             }
@@ -511,11 +511,11 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
         }
     }
     {
-        u32 n2 = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
-        DCStoreRange(p->pos, n2);
-        DCStoreRange(p->nrm, n2);
+        u32 n2 = sizeof(Vec) * (p->Width + 1) * (p->ny + 1);
+        DCStoreRange(p->pHeightBuf, n2);
+        DCStoreRange(p->pNorBuf, n2);
     }
-    DCStoreRange(p->dl, p->dlSize);
+    DCStoreRange(p->pDisplayList, p->Dpl_size);
     return w;
 }
 
@@ -523,22 +523,22 @@ void Espgen43_Destruct(EspgenWork* w)
 {
     Espgen43Work* p = (Espgen43Work*) w->work;
 
-    if (p->pos != NULL) {
-        Mem_free(p->pos);
-        p->pos = NULL;
+    if (p->pHeightBuf != NULL) {
+        Mem_free(p->pHeightBuf);
+        p->pHeightBuf = NULL;
     }
-    if (p->nrm != NULL) {
-        Mem_free(p->nrm);
-        p->nrm = NULL;
+    if (p->pNorBuf != NULL) {
+        Mem_free(p->pNorBuf);
+        p->pNorBuf = NULL;
     }
-    if (p->dl != NULL) {
-        Mem_free(p->dl);
-        p->dl = NULL;
+    if (p->pDisplayList != NULL) {
+        Mem_free(p->pDisplayList);
+        p->pDisplayList = NULL;
     }
 }
 
 int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8)
+                         Vec* pos, Vec* rot, EspSeqOpt* pSct)
 {
     Espgen43Work* p = (Espgen43Work*) w->work;
     Vec r;
@@ -557,18 +557,18 @@ int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
             ny = 0x100;
         }
     }
-    p->color.r = rec->x9C;
-    p->color.g = rec->x9D;
-    p->color.b = rec->x9E;
-    p->color.a = rec->x9F;
-    p->color2.r = rec->xA0 * 255.0f;
-    p->color2.g = rec->xA4 * 255.0f;
-    p->color2.b = rec->xA8 * 255.0f;
-    p->color2.a = rec->xAC * 255.0f;
-    p->texId = rec->x2;
-    p->texRep = 1 << (s8) rec->xC8;
-    PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetSandWork(w, (Vec*) &rec->x0C, &r, rec->x88, rec->x94 + 1.0f, nx, ny) == NULL) {
+    p->Color.r = rec->Col_start_r;
+    p->Color.g = rec->Col_start_g;
+    p->Color.b = rec->Col_start_b;
+    p->Color.a = rec->Col_start_a;
+    p->Amb.r = rec->Col_d_r * 255.0f;
+    p->Amb.g = rec->Col_d_g * 255.0f;
+    p->Amb.b = rec->Col_d_b * 255.0f;
+    p->Amb.a = rec->Col_d_a * 255.0f;
+    p->TexNo = rec->Tex_id;
+    p->texRep = 1 << (s8) rec->Work8[0];
+    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
+    if (SetSandWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, rec->Size_plus + 1.0f, nx, ny) == NULL) {
         return 0;
     }
     Espgen43_Move(w);

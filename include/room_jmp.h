@@ -10,9 +10,9 @@
 // cRoomJmp's constructor turns them into pointers.
 
 struct CRoomInfo {
-    u16 flags;      // 0x00  bit 0: pos/angle valid
+    u16 flag;      // 0x00  bit 0: pos/angle valid
     union {
-        u16 room_id;  // 0x02  stage << 8 | room
+        u16 roomNo;  // 0x02  stage << 8 | room
         struct {
             u8 stage;  // 0x02
             u8 room;   // 0x03

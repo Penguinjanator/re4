@@ -75,9 +75,9 @@ void R40eInit()
     r40e_initElevator();
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r40e_execEmAppear, 0, 1);
+            SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r40e_execEmAppear, 0, 1);
         } else {
-            SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, 2, 0);
+            SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
         }
         r40e_work->elv.setReverse(1);
         SceAtSetEnable(5, 1);
@@ -87,12 +87,12 @@ void R40eInit()
     EvtMgr.SetFunc("evt_r40es00_func", (void*) Evt_R40ES00_Func);
     EvtMgr.SetFunc("evt_r40es99_func", (void*) Evt_R40ES00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R40EExecEventS00, 0, 1);
+        SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) R40EExecEventS00, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0, 0, 0);
     }
     TexRenderInit(&r40e_work->tex, 0, 1);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
-        SceExec(0x12, (TaskFunc) r40e_execShowView, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r40e_execShowView, 0, 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -130,7 +130,7 @@ static void r40e_execShowView()
 // Camera cuts of the elevator ride (mode = the ride direction).
 static void r40e_setElvCamera(u32 mode)
 {
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     switch (mode) {
     case 0:
         CamCtrl.CutCall(4);
@@ -155,7 +155,7 @@ static void r40e_setElvCamera(u32 mode)
         }
         break;
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 // The ride: 0 up from the entrance, 1 down, 2 the return after the enemy fight.
@@ -169,21 +169,21 @@ static void r40e_moveElevator(u32 dir)
     } else {
         SceEventStart(1);
     }
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     if (dir == 0) {
         r40e_work->elv.setReverse(0);
     } else if (dir <= 2) {
         r40e_work->elv.setReverse(1);
     }
     if (obj) {
-        obj->pInfo->flagsDC |= 1;
+        obj->pModelInfo->flagsDC |= 1;
         if (dir == 0) {
-            obj->pInfo->uvScrollU = 0.05f;
+            obj->pModelInfo->uvScrollU = 0.05f;
         } else {
-            obj->pInfo->uvScrollU = -0.05f;
+            obj->pModelInfo->uvScrollU = -0.05f;
         }
     }
-    SceExec(0x12, (TaskFunc) r40e_setElvCamera, dir, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r40e_setElvCamera, dir, 0, SCE_PRIO_DEF_2, 0);
     if (dir <= 1) {
         cPlayer* pl = pPL;
         cSceObj* elv = &r40e_work->elv;
@@ -204,7 +204,7 @@ static void r40e_moveElevator(u32 dir)
     case 1:
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->flags_174 < 0) {
+                if ((int) pG->Room_flg[0] < 0) {
                     break;
                 }
             }
@@ -217,7 +217,7 @@ static void r40e_moveElevator(u32 dir)
         r40e_work->elv.cnt = 90;
         do {
             if (r40e_work->elv.move() == 0) {
-                if ((int) pG->flags_174 < 0) {
+                if ((int) pG->Room_flg[0] < 0) {
                     break;
                 }
             }
@@ -227,7 +227,7 @@ static void r40e_moveElevator(u32 dir)
     }
     SndCall(6, 1, 0, 0, 0, 0);
     if (obj) {
-        obj->pInfo->uvScrollU = 0.0f;
+        obj->pModelInfo->uvScrollU = 0.0f;
     }
     pPL->setNoSuspend(0);
     {
@@ -249,8 +249,8 @@ static void r40e_moveElevator(u32 dir)
 
 void r40e_initElevator()
 {
-    SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r40e_moveElevator, 0, 1);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r40e_moveElevator, (void*) 1, 1);
+    SceAtDataSet_exec(1, SCE_LEVEL10, 0, (TaskFunc) r40e_moveElevator, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40e_moveElevator, (void*) 1, 1);
     cObj* obj = SmdGetObjPtr(9);
     Vec d = {0.0f, 11656.0f, 0.0f};
     r40e_work->elv.initMove1_pos(obj, 210, &d, 20.0f, 20.0f);
@@ -260,7 +260,7 @@ void r40e_initElevator()
 static void r40e_execEmAppear_end()
 {
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
+    pG->Status_flg[2] &= ~0x02000000;
     CamCtrl.Comeback(0);
     cEmWrap em;
     em.setPtr(0xDD, -1, 1);
@@ -268,7 +268,7 @@ static void r40e_execEmAppear_end()
     pPL->setNoSuspend(0);
     *EM_LIST(0xDD) = *EM_LIST(0xDE);
     EmListSetAlive(0xDD, 1);
-    SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r40e_checkEmDead, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Area 4: the enemy drops in (cut 9).
@@ -280,7 +280,7 @@ static void r40e_execEmAppear()
     }
     SceSetEventCancel(1, (TaskFunc) r40e_execEmAppear_end, 0, -1, 1);
     SceEventStart(0);
-    pG->flags_5014 |= 0x02000000;
+    pG->Status_flg[2] |= 0x02000000;
     cEmWrap em;
     Vec p;
     Vec* pp = &p;
@@ -329,14 +329,14 @@ static void R40EExecEventS00()
         // `cMes.getWork()` pseudo gives `addi r9,..; addi r31,r9,4`).
         MesWork* w = (MesWork*) &cMes;
         w = (MesWork*) ((u8*) w + 4);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);
         } else {
             SndCall(6, 2, 0, 0, 0, 0);
             if ((u32) ItemMgr.num(0xC) <= 4) {
-                SceMesSet(2, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+                SceMesSet(2, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
                 CamCtrl.Comeback(0);
                 SceEventEnd(0);
             } else {
@@ -346,7 +346,7 @@ static void R40EExecEventS00()
                 EvtMgr.EvtReadExec("event/evd/r40es00.evd", (u8) GetEmIdFromListI(0xDD), 0);
                 FadeSetW(0, 0, 0, 0);
                 SceSleep(1);
-                SceExec(0x12, (TaskFunc) gameResult, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) gameResult, 0, 0, SCE_PRIO_DEF_2, 0);
                 SceEventEnd(0);
             }
         }
@@ -365,25 +365,25 @@ static void gameResult()
     u32 size;
     AdaResult* res;
 
-    disp_bak = pG->flags_58;
-    BitSet(pG->flags_58, 0xFFFFFFFF);
-    BitOff(pG->flags_58, 0x2000);
-    BitOff(pG->flags_58, 0x800);
-    BitOff(pG->flags_58, 0x10000);
-    stop_bak = pG->flags_170;
-    BitSet(pG->flags_170, 0xFFFFFFFF);
-    BitOff(pG->flags_170, 0x00800000);
-    BitOff(pG->flags_170, 0x80000000);
-    BitOff(pG->flags_170, 0x40);
+    disp_bak = pG->Disp_flg;
+    BitSet(pG->Disp_flg, 0xFFFFFFFF);
+    BitOff(pG->Disp_flg, 0x2000);
+    BitOff(pG->Disp_flg, 0x800);
+    BitOff(pG->Disp_flg, 0x10000);
+    stop_bak = pG->Stop_flg;
+    BitSet(pG->Stop_flg, 0xFFFFFFFF);
+    BitOff(pG->Stop_flg, 0x00800000);
+    BitOff(pG->Stop_flg, 0x80000000);
+    BitOff(pG->Stop_flg, 0x40);
     SceSleep(2);
     systemVISetBlack(1);
-    FadeKill(2);
+    FadeKill(FADE_NO_ROOM);
     ScreenReSize(0x200, 0x1C0);
-    if (!(pSys->x4 & 0x00200000)) {
-        pSys->x4 |= 0x00200000;
+    if (!(pSys->unlock_flg & 0x00200000)) {
+        pSys->unlock_flg |= 0x00200000;
         Sofdec.Initialize("movie/adaend_m.sfd", 0);
     } else {
-        pSys->x4 &= ~0x00200000;
+        pSys->unlock_flg &= ~0x00200000;
         Sofdec.Initialize("movie/adaend_c.sfd", 0);
     }
     SceSleep(1);
@@ -399,14 +399,14 @@ static void gameResult()
     } while (0);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
-    if (!(pSys->x4 & 0x20000000)) {
-        pSys->x4 |= 0x20000000;
+    if (!(pSys->unlock_flg & 0x20000000)) {
+        pSys->unlock_flg |= 0x20000000;
         SceEventStart(0);
         setLangExt3(data_name + 3);
         Dvd.FileExistCheck(data_name, &size);
         size += 0x34;
         size += MARGIN;
-        swap.SwapOut((u32) pG->pRoomArc, size, 0);
+        swap.SwapOut((u32) pG->pRoom, size, 0);
         res = new AdaResult;
         AdaResultInit(res);
         FadeKillAll();
@@ -425,7 +425,7 @@ static void gameResult()
         delete res;
         swap.SwapIn();
     }
-    pG->flags_54 |= 0x04000000;
+    pG->System_flg |= 0x04000000;
 }
 
 extern "C" void Evt_R40ES00_Func(Event* e)
@@ -435,33 +435,33 @@ extern "C" void Evt_R40ES00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         ZFAR = 100000000.0f;
-        BitOn(pG->flags_5010, 0x800);
+        BitOn(pG->Status_flg[1], 0x800);
         break;
     case 1:
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0d00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 0x40;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x40;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 1;
+                    ((cModel*) mod)->LightInfo.EnableMask = 1;
                 }
                 if (e->GetMod(&mod, "evmb900", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 2;
+                    ((cModel*) mod)->LightInfo.EnableMask = 2;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
                     if (w && w->child) {
-                        ((cObj*) mod)->o18.x74 |= 0x04000000;
+                        ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;
                         w->child->be_flag &= ~2;
                     }
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -469,7 +469,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 3);
             break;
         case 5:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -477,7 +477,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 5);
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -485,7 +485,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 7);
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 0);
                 }
@@ -494,7 +494,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         }
         break;
     case 2:
-        pG->flags_5010 &= ~0x800;
+        pG->Status_flg[1] &= ~0x800;
         break;
     }
 }
@@ -506,7 +506,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     if (skip == 0) {

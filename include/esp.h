@@ -27,134 +27,83 @@ union EspGenPrm {
     EspGenPrmB b;
 };
 
-// Effect generator work (game/eff_sys.cpp, game/espgen*.cpp). Layout known only partially.
+// Effect generator record (game/eff_sys.cpp, game/espgen*.cpp): one 0x12C byte entry of an
+// EspSeqData (PS2 cEspSeqTbl, 1:1). GC types kept where the PS2 byte is signed.
 struct EspGenWork {
-    u8 x0;             // 0x00
-    u8 x1;             // 0x01 esp id / generator sub type
-    u8 x2;             // 0x02
-    u8 x3;             // 0x03
-    u16 x4;            // 0x04 sequence time (espgen10 compares it with the frame counter)
-    u8 x6;             // 0x06 event model index (EspEvModList)
-    u8 x7;             // 0x07
-    u32 flags;         // 0x08
-    union {
-        struct {
-            f32 x0C;   // 0x0C generator position (x0C, x10, x14 form a Vec)
-            f32 x10;   // 0x10
-            f32 x14;   // 0x14
-        };
-        Vec pos;       // 0x0C (esp_efm: copied as a Vec)
-    };
-    f32 x18;           // 0x18 (esp1a: min distance factor)
-    f32 x1C;           // 0x1C (esp1a: max distance factor)
-    f32 x20;           // 0x20
-    Vec x24;           // 0x24
-    f32 x30;           // 0x30
-    Vec x34;           // 0x34
-    union {
-        u8 pad_40[0x58 - 0x40];
-        struct {
-            Vec x40;   // 0x40 (esp_efm: acceleration)
-            Vec x4C;   // 0x4C (esp_efm: acceleration random range)
-        };
-    };
-    Vec x58;           // 0x58
-    union {
-        u8 pad_64[0x88 - 0x64];
-        struct {
-            Vec x64;   // 0x64 (esp_efm: rotation random range)
-            Vec x70;   // 0x70 (esp_efm: rotation speed)
-            Vec x7C;   // 0x7C (esp_efm: rotation speed random range)
-        };
-    };
-    f32 x88;           // 0x88
-    f32 x8C;           // 0x8C
-    f32 x90;           // 0x90
-    f32 x94;           // 0x94 (Espgen43: extra z scale, +1)
-    f32 x98;           // 0x98
-    u8 x9C;            // 0x9C colour r
-    u8 x9D;            // 0x9D colour g
-    u8 x9E;            // 0x9E colour b
-    u8 x9F;            // 0x9F colour a
-    f32 xA0;           // 0xA0 (Espgen43: second colour r/g/b/a as 0..1 floats)
-    f32 xA4;           // 0xA4
-    f32 xA8;           // 0xA8
-    f32 xAC;           // 0xAC
-    union {
-        u8 pad_B0[0xC2 - 0xB0];
-        struct {
-            u16 xB0;   // 0xB0 (esp_efm: fade start frame)
-            u16 xB2;   // 0xB2 (esp_efm: fade length)
-            u16 xB4;   // 0xB4 (esp_efm: move start frame)
-            u16 xB6;   // 0xB6 (esp_efm: scale start frame)
-            u16 xB8;   // 0xB8 (esp_efm: life)
-            u16 xBA;   // 0xBA (esp_efm: start frame)
-            u8 xBC;    // 0xBC (esp_sub: start animation pattern)
-            u8 xBD;    // 0xBD (esp_sub: animation speed - 0x20)
-            u16 xBE;   // 0xBE (esp_sub: animation counter)
-            u8 xC0;    // 0xC0 (esp_efm: parent release frame)
-            u8 xC1;    // 0xC1
-        };
-    };
-    u8 xC2;            // 0xC2 (esp_sub: blend type, bl[] index)
-    u8 xC3;            // 0xC3 (esp_sub: cEsp xEC)
-    u8 xC4;            // 0xC4 (esp_sub: cEsp xED)
-    u8 xC5;            // 0xC5 (esp_sub: mask texture id)
-    u8 xC6;            // 0xC6 (esp_sub: cEsp x16 / 10)
-    u8 xC7;            // 0xC7 (esp_sub: cEsp x14 / 10)
-    u8 xC8;            // 0xC8 per-effect parameters (SE number, area number, type, ...)
-    u8 xC9;            // 0xC9
-    u8 xCA;            // 0xCA
-    u8 xCB;            // 0xCB
-    EspGenPrm prm;     // 0xCC .. 0xD4: per-effect integer parameters (word or halfword view)
-    u32 xD4;           // 0xD4
-    union {
-        struct {
-            f32 xD8;   // 0xD8 per-effect float parameters
-            f32 xDC;   // 0xDC
-            f32 xE0;   // 0xE0
-            f32 xE4;   // 0xE4
-            f32 xE8;   // 0xE8
-            f32 xEC;   // 0xEC
-            f32 xF0;   // 0xF0
-            f32 xF4;   // 0xF4
-            f32 xF8;   // 0xF8 (esp0e: visible cone angle in degrees)
-        };
-        struct {
-            Vec vD8;   // 0xD8 (esp_efm: obj05 burst centre / obj09 size)
-            Vec vE4;   // 0xE4 (esp_efm: bounce)
-            Vec vF0;   // 0xF0 (esp_efm: burst centre random range)
-        };
-    };
-    u8 xFC;            // 0xFC
-    u8 xFD;            // 0xFD
-    u8 xFE;            // 0xFE
-    u8 xFF;            // 0xFF (esp_efm: obj04 motion type)
+    u8 Be_flg;         // 0x00 (PS2 Be_flg)
+    u8 Id;             // 0x01 esp id / generator sub type (PS2 Id)
+    u8 Tex_id;         // 0x02 (PS2 Tex_id)
+    u8 Type;           // 0x03 (PS2 Type) -> cEsp::m_Type
+    u16 Set_time;      // 0x04 sequence time (espgen10 compares it with the frame counter) (PS2 Set_time)
+    u8 Parent_no;      // 0x06 event model index (EspEvModList) (PS2 Parent_no)
+    u8 Parts_no;       // 0x07 (PS2 Parts_no)
+    u32 Tool_flg;      // 0x08 (PS2 Tool_flg)
+    Vec Pos;           // 0x0C generator position (PS2 Pos)
+    Vec R_pos;         // 0x18 position random range (esp1a: .x/.y min / max distance factor) (PS2 R_pos)
+    Vec Speed;         // 0x24 (PS2 Speed)
+    f32 D_speed;       // 0x30 (PS2 D_speed)
+    Vec R_speed;       // 0x34 (PS2 R_speed)
+    Vec Speed_plus;    // 0x40 acceleration (PS2 Speed_plus)
+    Vec R_speed_plus;  // 0x4C acceleration random range (PS2 R_speed_plus)
+    Vec Ang;           // 0x58 (PS2 Ang)
+    Vec R_ang;         // 0x64 rotation random range (PS2 R_ang)
+    Vec Ang_plus;      // 0x70 rotation speed (PS2 Ang_plus)
+    Vec R_ang_plus;    // 0x7C rotation speed random range (PS2 R_ang_plus)
+    f32 Size_base_x;   // 0x88 (PS2 Size_base_x)
+    f32 Size_base_y;   // 0x8C (PS2 Size_base_y)
+    f32 R_size_base;   // 0x90 (PS2 R_size_base)
+    f32 Size_plus;     // 0x94 (Espgen43: extra z scale, +1) (PS2 Size_plus)
+    f32 D_size_plus;   // 0x98 (PS2 D_size_plus)
+    u8 Col_start_r;    // 0x9C colour r (PS2 Col_start_r)
+    u8 Col_start_g;    // 0x9D colour g
+    u8 Col_start_b;    // 0x9E colour b
+    u8 Col_start_a;    // 0x9F colour a
+    f32 Col_d_r;       // 0xA0 colour step per frame as 0..1 floats (PS2 Col_d_r)
+    f32 Col_d_g;       // 0xA4
+    f32 Col_d_b;       // 0xA8
+    f32 Col_d_a;       // 0xAC
+    u16 Col_max_cnt;   // 0xB0 (esp_efm: fade start frame) (PS2 Col_max_cnt)
+    u16 Col_start_cnt; // 0xB2 (esp_efm: fade length) (PS2 Col_start_cnt)
+    u16 Pos_start_cnt; // 0xB4 (esp_efm: move start frame) (PS2 Pos_start_cnt)
+    u16 Size_start_cnt; // 0xB6 (esp_efm: scale start frame) (PS2 Size_start_cnt)
+    u16 Life_max;      // 0xB8 (esp_efm: life) (PS2 Life_max)
+    u16 Life_time;     // 0xBA (esp_efm: start frame) (PS2 Life_time)
+    u8 Ptn_no;         // 0xBC (esp_sub: start animation pattern) (PS2 Ptn_no)
+    u8 Anm_rate;       // 0xBD (esp_sub: animation speed - 0x20) (PS2 sint8 Anm_rate)
+    u16 Anm_cnt;       // 0xBE (esp_sub: animation counter) (PS2 Anm_cnt)
+    u8 Release_time;   // 0xC0 (esp_efm: parent release frame) (PS2 Release_time)
+    u8 Groupe_no;      // 0xC1 (PS2 Groupe_no)
+    u8 Blend_type;     // 0xC2 (esp_sub: blend type, bl[] index) (PS2 Blend_type)
+    u8 Shimmer_type;   // 0xC3 (esp_sub: cEsp m_Shimmer_type) (PS2 Shimmer_type)
+    u8 Shimmer_pow;    // 0xC4 (esp_sub: cEsp m_Shimmer_pow) (PS2 Shimmer_pow)
+    u8 MaskTex_id;     // 0xC5 (esp_sub: mask texture id) (PS2 MaskTex_id)
+    u8 Del_far;        // 0xC6 (esp_sub: cEsp m_Del_far / 10) (PS2 Del_far)
+    u8 Del_near;       // 0xC7 (esp_sub: cEsp m_Del_near / 10) (PS2 Del_near)
+    u8 Work8[4];       // 0xC8 per-effect byte parameters (SE number, area number, type, ...) (PS2 signed char Work8[4])
+    EspGenPrm prm;     // 0xCC .. 0xD4: per-effect integer parameters (word or halfword view) (PS2 int Work32[0..1])
+    u32 xD4;           // 0xD4 (PS2 Work32[2])
+    Vec Vec0;          // 0xD8 per-effect float parameters (esp_efm: obj05 burst centre / obj09 size) (PS2 Vec0)
+    Vec Vec1;          // 0xE4 (esp_efm: bounce) (PS2 Vec1)
+    Vec Vec2;          // 0xF0 (esp_efm: burst centre random range; esp0e .z: visible cone angle in degrees) (PS2 Vec2)
+    u8 WorkSp8[4];     // 0xFC ([3]: esp_efm obj04 motion type) (PS2 WorkSp8[4])
     // 0x100..0x12C: sequence record tail (records of an EspSeqData are 0x12C bytes)
     u8 pad_100[0x104 - 0x100];
-    u8 x104;           // 0x104 (espgen02: path id)
-    u8 x105;           // 0x105 (espgen02: path number)
-    u8 x106;           // 0x106 (espgen02: path position offset)
-    u8 x107;           // 0x107 (espgen02: path position random range)
-    u8 type;           // 0x108 0 = esp, 1 = espgen
-    u8 genId;          // 0x109 generator id (0xFF = loop marker)
-    u8 x10A;           // 0x10A
-    u8 x10B;           // 0x10B
-    u8 x10C;           // 0x10C
-    u8 x10D;           // 0x10D
-    s8 x10E;           // 0x10E
-    u8 x10F;           // 0x10F
-    s16 x110;          // 0x110
-    u8 pad_112[0x118 - 0x112];
-    Vec x118;          // 0x118 (espgen02: scale - 1 in 10ths)
-    u8 x124;           // 0x124
-    u8 x125;           // 0x125
-    u8 x126;           // 0x126
-    u8 x127;           // 0x127
-    u8 x128;           // 0x128
-    u8 x129;           // 0x129 (espgen02: rotation x in 1/256 turns)
-    u8 x12A;           // 0x12A (espgen02: rotation y)
-    u8 x12B;           // 0x12B (espgen02: path orientation mode bits)
+    u8 Espgen_work8_4[4]; // 0x104 (espgen02: path id, path number, path position offset, its random range) (PS2 Espgen_work8_4)
+    u8 Kind;           // 0x108 0 = esp, 1 = espgen (PS2 Kind)
+    u8 Espgen_id;      // 0x109 generator id (0xFF = loop marker) (PS2 Espgen_id)
+    u8 Espgen_type;    // 0x10A (PS2 Espgen_type)
+    u8 Espgen_flg;     // 0x10B (PS2 Espgen_flg)
+    u8 x10C;           // 0x10C (PS2 signed char Espgen_work8[0])
+    u8 x10D;           // 0x10D (PS2 Espgen_work8[1])
+    s8 x10E;           // 0x10E (PS2 Espgen_work8[2])
+    u8 x10F;           // 0x10F (PS2 Espgen_work8[3])
+    s16 Espgen_work16[4]; // 0x110 (PS2 Espgen_work16[4])
+    Vec Espgen_vec0;   // 0x118 (espgen02: scale - 1 in 10ths) (PS2 Espgen_vec0)
+    u8 x124;           // 0x124 (PS2 signed char Espgen_work8_2[0])
+    u8 x125;           // 0x125 (PS2 Espgen_work8_2[1])
+    u8 x126;           // 0x126 (PS2 Espgen_work8_2[2])
+    u8 x127;           // 0x127 (PS2 Espgen_work8_2[3])
+    u8 Espgen_work8_3[4]; // 0x128 ([1]: espgen02 rotation x in 1/256 turns, [2]: rotation y, [3]: path orientation mode bits) (PS2 Espgen_work8_3)
 };
 
 // Effect sequence data block: 0x30 byte header followed by 0x12C byte records.
@@ -172,31 +121,31 @@ struct EspSeqData {
 
 // Texture animation data returned by EspGetAnmAddr (eff_sys.cpp). Partial layout.
 struct EspAnmData {
-    u16 x0;            // 0x00 texture width
-    u16 x2;            // 0x02 texture height
-    s16 x4;            // 0x04 sprite width
-    s16 x6;            // 0x06 sprite height
+    u16 Width;         // 0x00 texture width (PS2 cAnm::Width)
+    u16 Height;        // 0x02 texture height (PS2 cAnm::Height)
+    s16 Cx;            // 0x04 sprite width / centre x (PS2 cAnm::Cx)
+    s16 Cy;            // 0x06 sprite height / centre y (PS2 cAnm::Cy)
     union {
-        u16 nPtn;      // 0x08 number of patterns
+        u16 Frames;    // 0x08 number of patterns (PS2 cAnm::Frames)
         struct {
             u8 x8;
-            u8 x9;     // 0x09 low byte of nPtn
+            u8 x9;     // 0x09 low byte of Frames
         };
     };
-    u8 xA;             // 0x0A
-    u8 xB;             // 0x0B bits 0-1: loop mode
-    u8 xC;             // 0x0C 0 = fixed pattern time
+    u8 Xn;             // 0x0A (PS2 cAnm::Xn)
+    u8 Loop;           // 0x0B bits 0-1: loop mode (PS2 cAnm::Loop)
+    u8 Data_num;       // 0x0C 0 = fixed pattern time (PS2 cAnm::Data_num)
     u8 pad_0D[3];
-    u8 ptnTime[1];     // 0x10 pattern table: nPtn entries, then the per-pattern display times
+    u8 Frame_cnt[1];   // 0x10 pattern table: Frames entries, then the per-pattern display times (PS2 cAnm::Frame_cnt)
 };
 
 // Effect owner info at the head of every cEsp (copied as a block by esp3f).
 struct EspInfo {
-    u16 x0;            // 0x00
-    u8 x2;             // 0x02
-    u8 x3;             // 0x03
+    u16 Core_flg;            // 0x00
+    u8 Core_kind;             // 0x02
+    u8 owner;             // 0x03
     union {
-        u32 x4;        // 0x04
+        u32 Call_no;        // 0x04
         struct {
             u8 x4;     // 0x04
             u8 x5;     // 0x05
@@ -204,76 +153,77 @@ struct EspInfo {
             u8 x7;     // 0x07
         } b;
     };
-    u32 x8;            // 0x08
+    u32 Core_pEm;            // 0x08
 };
 
 // One effect sprite (game/esp.cpp, game/esp_sub.cpp). sizeof 0xF8; the vptr sits at 0xF4.
 class cEsp {
 public:
     EspInfo info;      // 0x00
-    u8 flag;           // 0x0C bit0: in use
-    u8 id;             // 0x0D effect id
-    u8 anmNo;          // 0x0E texture animation id
-    u8 xF;             // 0x0F
-    u8 x10;            // 0x10
-    u8 x11;            // 0x11
-    u16 x12;           // 0x12
-    u16 x14;           // 0x14
-    u16 x16;           // 0x16
-    u32 flags;         // 0x18 effect option bits
-    cModel* pModel;    // 0x1C model the effect is attached to
-    u32 x20;           // 0x20
+    u8 m_Be_flg;           // 0x0C bit0: in use
+    u8 m_Id;             // 0x0D effect id
+    u8 m_Tex_id;       // 0x0E texture animation id (EspGetAnmAddr; EspGenWork Tex_id) (PS2 m_Tex_id)
+    u8 m_Type;         // 0x0F EspGenWork Type (PS2 m_Type)
+    u8 m_Rno0;         // 0x10 routine numbers (PS2 m_Rno0..3)
+    u8 m_Rno1;         // 0x11
+    u8 m_Rno2;         // 0x12 (PS2 m_Rno2)
+    u8 m_Rno3;         // 0x13 (PS2 m_Rno3)
+    u16 m_Del_near;    // 0x14 near delete distance (EspGenWork Del_near * 10) (PS2 m_Del_near)
+    u16 m_Del_far;           // 0x16
+    u32 m_Tool_flg;         // 0x18 effect option bits
+    cModel* m_pMod;    // 0x1C model the effect is attached to
+    u32 m_Guid_pMod;           // 0x20
     cCoord* parent;    // 0x24 parent coordinate (pEffParentWorld = world)
-    u8 partsNo;        // 0x28 parts of pModel the effect follows
-    u8 parentCnt;      // 0x29 frames to stay attached to parent (0xFF = forever)
-    u16 dispFlag;      // 0x2A bit1: sizeY is a world-space length (beam sprites)
-    Vec pos;           // 0x2C
-    Vec spd;           // 0x38
-    f32 spdScale;      // 0x44
-    Vec acc;           // 0x48
-    Vec rot;           // 0x54
-    Vec rotSpd;        // 0x60
-    f32 sizeX;         // 0x6C
-    f32 sizeY;         // 0x70
-    f32 scale;         // 0x74
-    f32 scaleSpd;      // 0x78
-    f32 scaleScale;    // 0x7C
-    u8 x80;            // 0x80 (esp0c: copied into the est work colour bytes)
-    u8 x81;            // 0x81
-    u8 x82;            // 0x82
-    u8 x83;            // 0x83
-    f32 colR;          // 0x84
-    f32 colG;          // 0x88
-    f32 colB;          // 0x8C
-    f32 colA;          // 0x90
-    f32 colRSpd;       // 0x94
-    f32 colGSpd;       // 0x98
-    f32 colBSpd;       // 0x9C
-    f32 colASpd;       // 0xA0
-    u8 xA4;            // 0xA4
+    u8 m_Parts_no;        // 0x28 parts of pModel the effect follows
+    u8 m_Release_time;      // 0x29 frames to stay attached to parent (0xFF = forever)
+    u16 m_Flg;      // 0x2A bit1: sizeY is a world-space length (beam sprites)
+    Vec m_Pos;           // 0x2C
+    Vec m_Speed;           // 0x38
+    f32 m_D_speed;      // 0x44
+    Vec m_Speed_plus;           // 0x48
+    Vec m_Ang;           // 0x54
+    Vec m_Ang_plus;        // 0x60
+    f32 m_Size_base_x;         // 0x6C
+    f32 m_Size_base_y;         // 0x70
+    f32 m_Size_mul;         // 0x74
+    f32 m_Size_plus;      // 0x78
+    f32 m_D_size_plus;    // 0x7C
+    u8 m_Col_start_r;            // 0x80 (esp0c: copied into the est work colour bytes)
+    u8 m_Col_start_g;            // 0x81
+    u8 m_Col_start_b;            // 0x82
+    u8 m_Col_start_a;            // 0x83
+    f32 m_Col_r;          // 0x84
+    f32 m_Col_g;          // 0x88
+    f32 m_Col_b;          // 0x8C
+    f32 m_Col_a;          // 0x90
+    f32 m_Col_d_r;       // 0x94
+    f32 m_Col_d_g;       // 0x98
+    f32 m_Col_d_b;       // 0x9C
+    f32 m_Col_d_a;       // 0xA0
+    u8 xA4;            // 0xA4 GXSetBlendMode type (xA5 src factor, xA6 dst factor, xA7 logic op)
     u8 xA5;            // 0xA5
     u8 xA6;            // 0xA6
     u8 xA7;            // 0xA7
-    u16 xA8;           // 0xA8
-    u16 xAA;           // 0xAA
-    u16 spdCnt;        // 0xAC frames the speed is applied (0 = always)
-    u16 scaleCnt;      // 0xAE frames the scale speed is applied (0 = always)
-    u16 life;          // 0xB0 life time in frames (0 = infinite)
-    u16 cnt;           // 0xB2 frame counter
-    u8 anmPtn;         // 0xB4 current animation pattern
-    u8 anmSpd;         // 0xB5
-    u16 anmCnt;        // 0xB6
-    f32 xB8;           // 0xB8
-    Mtx mat;           // 0xBC model matrix built by the Trans functions
+    u16 m_Col_max_cnt;           // 0xA8
+    u16 m_Col_start_cnt;           // 0xAA
+    u16 m_Pos_start_cnt;        // 0xAC frames the speed is applied (0 = always)
+    u16 m_Size_start_cnt;      // 0xAE frames the scale speed is applied (0 = always)
+    u16 m_Life_max;          // 0xB0 life time in frames (0 = infinite)
+    u16 m_Life_time;           // 0xB2 frame counter
+    u8 m_Ptn_no;         // 0xB4 current animation pattern
+    u8 m_Anm_rate;         // 0xB5
+    u16 m_Anm_cnt;        // 0xB6
+    f32 m_Radius;           // 0xB8
+    Mtx m_Mat;           // 0xBC model matrix built by the Trans functions
     union {
         u8 pad_EC[0xF4 - 0xEC];
         struct {
-            u8 xEC;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
-            u8 xED;        // 0xED  (EspGenWork xC4)
-            u16 anmCnt2;   // 0xEE  mask texture animation counter
-            u8 anmPtn2;    // 0xF0  mask texture animation pattern
-            u8 anmNo2;     // 0xF1  mask texture animation id (EspGenWork xC5)
-            u8 blendType;  // 0xF2  EspGenWork xC2 (3: colour bytes scaled by the fade)
+            u8 m_Shimmer_type;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
+            u8 m_Shimmer_pow;        // 0xED  (EspGenWork xC4)
+            u16 m_MaskAnm_cnt;   // 0xEE  mask texture animation counter
+            u8 m_MaskPtn_no;    // 0xF0  mask texture animation pattern
+            u8 m_MaskTex_id;     // 0xF1  mask texture animation id (EspGenWork xC5)
+            u8 m_Blend_type;  // 0xF2  EspGenWork xC2 (3: colour bytes scaled by the fade)
             u8 xF3;
         };
     };
@@ -331,7 +281,7 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
 // game/trans_ot.cpp: AddOtWorldPos & co. are declared in trans_ot.h (void* data / u16 kind).
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
-int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
+int EspEstSetSelect(int owner, int id, int no, cEsp** out, int bNoSuspend);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
 // game/esp_app.cpp: laser sight line (objWep drawLaserSight), Vec by value
 void EspDrawLaserLine(Vec from, Vec to, f32 width);
 // game/eff_sys.cpp
@@ -384,7 +334,7 @@ int GetSandHeight(Vec* pos, f32* height);
 void AddSandPower(Vec* pos, f32 power);
 // game/eff_sys.cpp
 int EspChkTexId(int no);   // 1 when texture `no` has an object
-GXTexObj* EspGetTexObj(int no, int a);
+GXTexObj* EspGetTexObj(int no, int ptn_no);
 GXTlutObj* EspGetTlutObj(int no);
 struct EspTexWk* EspGetTexWk(int id, int quiet);   // NULL (and an error unless quiet) when the id has no texture
 int EspGetTexOwner(int id, u32* out);
@@ -415,11 +365,11 @@ extern GXTexObj Specular;
 // shapes): flags bit1 flips s, bit2 flips t, screen sprites are drawn upside down. One combined
 // condition and corners built from a `zero` variable: each leaf is a jump target where cse knows
 // neither operand of `zero + z`, which keeps the `fadds` (nested ifs with literals fold 0 + z).
-#define ESP_SPRITE_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+#define ESP_SPRITE_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 #define ESP_SPRITE_FLIP_T(esp)                                                                    \
-    ((ESP_SPRITE_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_SPRITE_SCREEN(esp) && ((esp)->flags & 4)))
+    ((ESP_SPRITE_SCREEN(esp) && !((esp)->m_Tool_flg & 4)) || (!ESP_SPRITE_SCREEN(esp) && ((esp)->m_Tool_flg & 4)))
 #define ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)                                          \
-    if ((esp)->flags & 2) {                                                                       \
+    if ((esp)->m_Tool_flg & 2) {                                                                  \
         if (ESP_SPRITE_FLIP_T(esp)) {                                                             \
             s0 = zero + z;                                                                        \
             s1 = zero;                                                                            \

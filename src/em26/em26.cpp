@@ -45,10 +45,10 @@ static void em26_R1_Die_Normal(cEm26* em);
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
-    em->xFC = r0;
-    em->xFD = r1;
-    em->xFE = r2;
-    em->xFF = r3;
+    em->r_no_0 = r0;
+    em->r_no_1 = r1;
+    em->r_no_2 = r2;
+    em->r_no_3 = r3;
 }
 
 extern "C" void _prolog()
@@ -151,9 +151,9 @@ void em26DmCk(cEm26* em)
             Camera* cam = &pG->Cam;
             cModel* p = em->getPartsPtr(0);
 
-            if ((cam->param.pos.x - p->worldPos.x) * (cam->param.pos.x - p->worldPos.x)
-                    + (cam->param.pos.y - p->worldPos.y) * (cam->param.pos.y - p->worldPos.y)
-                    + (cam->param.pos.z - p->worldPos.z) * (cam->param.pos.z - p->worldPos.z) < 4000000.0f) {
+            if ((cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
+                    + (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y)
+                    + (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z) < 4000000.0f) {
                 EmDmBloodSet2(em, 0x1E, 7, 0, 0, 0);
             } else {
                 EmDmBloodSet2(em, 0x1E, 1, 0, 0, 0);
@@ -231,16 +231,16 @@ void cEm26::move()
 {
     Em26Work* w = EM26_WK(this);
 
-    if (xFC) {
+    if (r_no_0) {
         em26DmCk(this);
     }
     w->flags &= ~0xF;
-    if (xFC) {
+    if (r_no_0) {
         getPartsPtr(1)->scale.x = 1.0f;
         getPartsPtr(2)->scale.x = 1.0f;
     }
-    Em26_R0_move_tbl[xFC](this);
-    if (xFC == 0xFF) {
+    Em26_R0_move_tbl[r_no_0](this);
+    if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
         return;
     }
@@ -260,20 +260,20 @@ static void em26_R0_Init(cEm26* em)
     default:
         if (em->modelInit(ARC(4), ARC(5)) == 0) {
             pLog->err(0, 0, "em26() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     case 1:
         if (em->modelInit(ARC(4), ARC(6)) == 0) {
             pLog->err(0, 0, "em26() ModelInit failed.");
-            em->xFC = 0xFF;
+            em->r_no_0 = 0xFF;
             return;
         }
         break;
     }
-    em->setStatus(0xB);
-    em->motFlip = em26_flip_tbl;
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
+    em->pXFlip = em26_flip_tbl;
     if (Rnd() & 1) {
         w->flags |= 0x10;
     } else {
@@ -283,7 +283,7 @@ static void em26_R0_Init(cEm26* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 3, &ofs, &size, 2);
+        em->LightInfo.init2(0, 3, &ofs, &size, 2);
     }
     em->lockParts = 5;
     em->lockOfs.x = 0.0f;
@@ -296,10 +296,10 @@ static void em26_R0_Init(cEm26* em)
     }
     AtariInit(&em->atari, 0.0f, 750.0f, 650.0f, 350.0f, 1250.0f, 1250.0f, 750.0f, 0, 2, 0);   // COMPILER-DIFF: #1
     zero = 0;
-    em->setStatus(3);
-    em->setStatus(1);
-    em->atari.flags &= ~0x100;
-    em->atari.flags |= 0x10;
+    em->setStatus(EM_STATUS_IK_OFF);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->atari.m_flag &= ~0x100;
+    em->atari.m_flag |= 0x10;
     YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, 5);
     YarareAdd(em, &w->hit[0], 0.0f, -50.0f, -100.0f, 300.0f, 350.0f, 5, 5);
     YarareAdd(em, &w->hit[1], 0.0f, 0.0f, -200.0f, 100.0f, 200.0f, 0x18, 5);
@@ -311,7 +311,7 @@ static void em26_R0_Init(cEm26* em)
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();
     w->x194 = zero;
-    em->setStatus(5);
+    em->setStatus(EM_STATUS_ACTIVE);
     EmRoutineSet(em, 1, zero, zero, zero);
     if (w->flags & 0x10) {
         MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 0x41, 0);
@@ -324,24 +324,24 @@ static void em26_R0_Init(cEm26* em)
 
 static void em26_R0_Move(cEm26* em)
 {
-    Em26_R1_move_tbl[em->xFD](em);
+    Em26_R1_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Wait(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (w->flags & 0x10) {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 0x45, 0);
         } else {
             MotionSetCore(em, MOTION(em), ARC(8), 0, 0, 5, 0);
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {
-            em->xFE++;
+            em->r_no_2++;
         } else {
             em26BreathSe(em);
         }
@@ -354,10 +354,10 @@ static void em26_R1_Wait(cEm26* em)
         }
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 4, &em->pos, em->id, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
-            em->xFE = 0;
+            em->r_no_2 = 0;
         }
         break;
     }
@@ -370,8 +370,8 @@ static void em26_R1_Wait(cEm26* em)
     if (w->dmgTotal > 500) {
         cModel* p = em->getPartsPtr(4);
 
-        if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x)
-                + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z) < 1000000.0f
+        if ((p->world.x - pPL->pos.x) * (p->world.x - pPL->pos.x)
+                + (p->world.z - pPL->pos.z) * (p->world.z - pPL->pos.z) < 1000000.0f
             && fabsf(em->pos.y - pPL->pos.y) < 500.0f) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -382,9 +382,9 @@ static void em26_R1_Atk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
-        f32 ang = Muku(&em->pos, &pPL->pos, em->rot.y, PI);
+        f32 ang = Muku(&em->pos, &pPL->pos, em->ang.y, PI);
         int mode = 1;
 
         if (w->flags & 0x10) {
@@ -396,7 +396,7 @@ static void em26_R1_Atk(cEm26* em)
             MotionSetCore(em, MOTION(em), ARC(0xF), (int) ARC(0x17), 0, mode, 0);
         }
         w->atkHit = 0;
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (em->seFlags28B & 1) {
@@ -420,14 +420,14 @@ static void em26_R0_Damage(cEm26* em)
     Em26Work* w = EM26_WK(em);
 
     w->flags |= 8;
-    Em26_R2_move_tbl[em->xFD](em);
+    Em26_R2_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Dm_Small(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         EmHitInfo* part = em->dmPart;
         int mode = 1;
@@ -458,7 +458,7 @@ static void em26_R1_Dm_Small(cEm26* em)
             MotionSetCore(em, MOTION(em), ARC(0xC), 0, 0, mode, 0);
             break;
         }
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -473,23 +473,23 @@ static void em26_R0_Die(cEm26* em)
     Em26Work* w = EM26_WK(em);
 
     w->flags |= 8;
-    Em26_R3_move_tbl[em->xFD](em);
+    Em26_R3_move_tbl[em->r_no_1](em);
 }
 
 static void em26_R1_Die_Normal(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0: {
         void* seq;
         int mode;
 
-        em->clearStatus(5);
-        em->setStatus(8);
+        em->clearStatus(EM_STATUS_ACTIVE);
+        em->setStatus(EM_STATUS_ITEMSET);
         EmSetDropItem(em);
         EmSetDie(em);
-        switch (em->emsetNo % 5) {
+        switch (em->emset_no % 5) {
         case 0:
         default:
             seq = ARC(0x11);
@@ -512,17 +512,17 @@ static void em26_R1_Die_Normal(cEm26* em)
             mode = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) seq, 0, mode, 0);
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 0x1E, 2, 0, 0, (u32) em, 0);
-        em->xFE++;
+        em->r_no_2++;
     }
     case 1:
         if (w->flags & 0x20) {
             cModelInfo* info;
 
-            for (info = em->pInfo; info; info = info->pNext) {
+            for (info = em->pModelInfo; info; info = info->pList) {
                 if (info->color[0] > 0x20) {
                     info->color[0] -= 0x20;
                 }
@@ -532,8 +532,8 @@ static void em26_R1_Die_Normal(cEm26* em)
         if (MotionMoveF(em, 0)) {
             cModel* p = em->getPartsPtr(2);
 
-            EstSet(0, -1, &p->worldPos, &em->rot, 0x1E, 4, 0, 0, 0, 0);
-            em->xFE++;
+            EstSet(0, -1, &p->world, &em->ang, 0x1E, 4, 0, 0, 0, 0);
+            em->r_no_2++;
         }
         break;
     }
@@ -564,11 +564,11 @@ int em26AtkCk(cEm26* em)
     {
         EmAtkInfo* atk = &em26_atk_info;
         cModel* p = em->getPartsPtr(4);
-        int hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+        int hit = EmAtkHitCk(atk, &p->world, &p->world_old, 0);
 
         if (hit) {
             if (hit & 1) {
-                EmPlBloodSet2(em, &p->oldWorldPos, 1, 0x1E, 8);
+                EmPlBloodSet2(em, &p->world_old, 1, 0x1E, 8);
                 w->atkHit = 1;
             }
             QuakeExec(0, 0, 5, 22.0f, 2);

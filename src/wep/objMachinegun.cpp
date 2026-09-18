@@ -18,7 +18,7 @@ void cObjMachinegun::init(cModel* parent)
 {
     void* bin;
 
-    switch (pG->wep_type) {
+    switch (pG->weapon_type) {
     default:
         bin = WEP_ARC_PTR(0x6);
         break;
@@ -43,10 +43,10 @@ void cObjMachinegun::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
-    switch (pG->wep_type) {
+    switch (pG->weapon_type) {
     case 0:
     default:
         PSet(wep.pMotNormal, WEP_ARC_PTR(0x2A));
@@ -89,14 +89,14 @@ void cObjMachinegun::moveFire()
         } else {
             mot = WEP_ARC_PTR(0x2D);
         }
-        MotionSetCore(this, &this->mot, mot, 0, 0, 0, 0);
-        pG->flags_500C |= 0x00800000;
+        MotionSetCore(this, &this->Motion, mot, 0, 0, 0, 0);
+        pG->Status_flg[0] |= 0x00800000;
         SndCall(2, 0x18, &pos, 0, 0, 0);
         SndCall(2, 0x15, &pos, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xA, 1);
         setCartridge();
-        switch (pG->wep_type) {
+        switch (pG->weapon_type) {
         case 0:
         case 2:
             type = 0;
@@ -152,7 +152,7 @@ void cObjMachinegun::moveReload()
         void* mot;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x29);
                 break;
@@ -164,7 +164,7 @@ void cObjMachinegun::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 mot = WEP_ARC_PTR(0x28);
                 break;
@@ -177,11 +177,11 @@ void cObjMachinegun::moveReload()
             }
         }
         motionSet(mot, 0, 0, 1, 0);
-        wep.seHandle = SndCall(2, 2, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, 2, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, (f32) reloadEnd[pG->x4FBA])) {
-        SndCall(2, 4, &pParts->worldPos, 0, 0, 0);
+    if (MotionCheckCrossFrame(&Motion, (f32) reloadEnd[pG->weapon_lv_reload])) {
+        SndCall(2, 4, &pParts->world, 0, 0, 0);
         ItemMgr.reload();
     }
 }
@@ -207,10 +207,10 @@ void cObjMachinegun::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x35));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x36));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x37));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x38));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x39));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xC));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xC));
     pl->setRightHand(1);
     pl->setLeftHand(3);
 }

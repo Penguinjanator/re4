@@ -28,17 +28,17 @@ struct WepTarget {
 
 extern "C" {
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 // em_sub.cpp: enemies on the line p0-p1 (at most `prio` of them) into `list`; hit point / normal / attribute out.
-u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
-int CheckInWater(cModel* m, int a);                                                          // em_sub.cpp
+u32 GetWepTargetList2(Vec* pPos, Vec* pPos2, WepTarget* list, u32 prio, Vec* hit, Vec* nrm, u32* attr, int type, int flag);
+int CheckInWater(cModel* m, int parts_no);                                                          // em_sub.cpp
 }
 
 // Rope node of the falling arrow (emMine_R1_Fall).
 struct MineNode {
     Vec pos;          // 0x00
-    Vec oldPos;       // 0x0C
+    Vec old;       // 0x0C
     Vec spd;          // 0x18
     f32 len;          // 0x24  rest distance to the next node
     int onFloor;      // 0x28
@@ -88,51 +88,51 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     if (pos) {
         em->pos = *pos;
     }
-    em->oldPos = em->pos;
+    em->pos_old = em->pos;
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetWeapon() ModelInit failed.");
         EmMgr.destroy(em);
         return 0;
     }
-    w->wepLv = pG->wep_lv;
+    w->Lv = pG->weapon_lv_power;
     em->type = type;
-    if (w->wepLv > 2) {
+    if (w->Lv > 2) {
         em->type = 1;
     }
     YarareInit(em, 0.0f, 0.0f, -100.0f, 300.0f, 10.0f, 1, 1);
     at = &em->atari;
     at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f);
     em->hp = 1;
-    em->hpMax = 1000;
+    em->hp_max = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 4);
+        em->LightInfo.init2(0, 1, &ofs, &size, 4);
     }
     LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->be_flag &= ~0x01000000;
-    at->setPriority(3);
-    at->flags &= ~0x300;
+    at->setPriority(PRI_LV3);
+    at->m_flag &= ~0x300;
     em->be_flag &= ~0x10;
-    em->setStatus(1);
-    em->setStatus(0xB);
-    w->flags = 0;
-    w->hitNrm.x = 0.0f;
-    w->hitNrm.y = 1.0f;
-    w->hitNrm.z = 0.0f;
-    w->hitFlag = 0;
-    w->pParent = 0;
-    w->pTarget = 0;
-    w->searchWait = 3;
-    w->espKind = EspPullCoreKind();
-    w->effKind = 0;
-    w->effNo = 0x36;
-    w->snd0 = 1;
-    w->snd1 = 0x14;
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
+    w->Be_flg = 0;
+    w->Norm.x = 0.0f;
+    w->Norm.y = 1.0f;
+    w->Norm.z = 0.0f;
+    w->Norm_ck = 0;
+    w->pEm_oya = 0;
+    w->pEm_homing = 0;
+    w->Homing_wait = 3;
+    w->EffKindId = EspPullCoreKind();
+    w->Bomb_eff = 0;
+    w->Bomb_est = 0x36;
+    w->Bomb_seid = 1;
+    w->Bomb_seno = 0x14;
     if (spd) {
         v = *spd;
         if (em->type == 1) {
@@ -143,36 +143,36 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
     }
-    w->spd.x = v.x;
-    w->spd.y = v.y;
-    w->spd.z = v.z;
+    w->Spd.x = v.x;
+    w->Spd.y = v.y;
+    w->Spd.z = v.z;
     len = SQRTF(v.x * v.x + v.z * v.z);
-    em->rot.x = -atan2f(v.y, len);
-    em->rot.y = atan2f(v.x, v.z);
-    em->rot.z = 0.0f;
-    RotMatrix(em->mat, &em->rot);
+    em->ang.x = -atan2f(v.y, len);
+    em->ang.y = atan2f(v.x, v.z);
+    em->ang.z = 0.0f;
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     em->partsWorldCalc();
     if (em->type == 1) {
-        cEm* target = pPL->pWep->pObj->wep.target;
+        cEm* target = pPL->Wep->m_pWep->wep.target;
 
         if (target) {
-            w->pTarget = target;
+            w->pEm_homing = target;
         } else {
             emMineSearchEm(em, 1);
         }
     }
     if (type == 2) {
         em->hp = 0;
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     emMine_R0_Move(em);
     return em;
@@ -204,7 +204,7 @@ void emMineDmCk(cEmMine* em)
     if (wep == 0x2A) {
         return;
     }
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->hp = 0;
     em->setBomb();
 }
@@ -212,20 +212,20 @@ void emMineDmCk(cEmMine* em)
 void cEmMine::move()
 {
     emMineDmCk(this);
-    EmMine_R0_move_tbl[xFC](this);
+    EmMine_R0_move_tbl[r_no_0](this);
 }
 
 void emMine_R0_Init(cEmMine* em)
 {
-    em->xFC = 1;
-    em->xFD = 8;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 8;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emMine_R0_Move(cEmMine* em)
 {
-    EmMine_R1_move_tbl[em->xFD](em);
+    EmMine_R1_move_tbl[em->r_no_1](em);
 }
 
 void emMine_R1_Shot(cEmMine* em)
@@ -240,160 +240,160 @@ void emMine_R1_Shot(cEmMine* em)
     AtEffInfo* info;
     AtEffInfo* wi;  // the water blocks' own pointer: its zero (not the HitCk result's) feeds their EstSet stack zeros
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0, 0x38, 0, w->espKind, (u32) em, 0);
-        w->life = 210;
-        em->xFE++;
+        EstSet((int) em, -1, 0, 0, 0, 0x38, 0, w->EffKindId, (u32) em, 0);
+        w->Bomb_wait = 210;
+        em->r_no_2++;
     case 1:
-        if (w->life == 0) {
+        if (w->Bomb_wait == 0) {
             em->setBomb();
             return;
         }
-        w->life--;
+        w->Bomb_wait--;
         break;
     }
     if (em->type == 1) {
-        if (w->searchWait != 0) {
-            w->searchWait--;
+        if (w->Homing_wait != 0) {
+            w->Homing_wait--;
         } else {
             emMineSearchEm(em, 0);
             emMineHomingEm(em);
         }
     }
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
+    PSVECAdd(&em->pos, &w->Spd, &em->pos);
     if (emMineHitCk(em) != 0) {
         goto DELETE_EFFECT;
     }
     {
-        w->hitFlag = 0;
-        attr = EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, &w->hitNrm, 0, 0x404000);
+        w->Norm_ck = 0;
+        attr = EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, &w->Norm, 0, 0x404000);
         if (attr) {
             if (attr & 0x40) {
                 em->setBomb();
                 return;
             }
-            w->hitFlag = 1;
+            w->Norm_ck = 1;
             em->pos = hit;
             info = EatMgr.getEffInfo(EatGetEffectType(attr));
             if (info) {
-                if (info->flags & 1) {
+                if (info->flag & 1) {
                     if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
                         EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
                     }
                 }
-                w->effKind = (u8) info->eff6[0];
-                w->effNo = (u8) info->eff6[1];
-                if (info->flags & 1) {
-                    w->snd0 = 1;
-                    w->hitFlag = 0;
-                    w->snd1 = 0x17;
+                w->Bomb_eff = (u8) info->eff6[0];
+                w->Bomb_est = (u8) info->eff6[1];
+                if (info->flag & 1) {
+                    w->Bomb_seid = 1;
+                    w->Norm_ck = 0;
+                    w->Bomb_seno = 0x17;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    em->xFC = 1;
-                    em->xFD = 3;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 3;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                 } else {
-                    w->snd0 = 1;
-                    w->snd1 = 0x14;
+                    w->Bomb_seid = 1;
+                    w->Bomb_seno = 0x14;
                     SndCall(2, 0x14, &em->pos, 0, 0, em);
-                    em->xFC = 1;
-                    em->xFD = 2;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 2;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                 }
             } else {
                 if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
                     em->pos.y = wh;
-                    wi = EatMgr.getEffInfo(2);
+                    wi = EatMgr.getEffInfo(EAT_ET_WATER);
                     if (wi) {
                         if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
                             EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                         }
-                        w->effKind = (u8) wi->eff6[0];
-                        w->effNo = (u8) wi->eff6[1];
+                        w->Bomb_eff = (u8) wi->eff6[0];
+                        w->Bomb_est = (u8) wi->eff6[1];
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
                         AddWaterPower(&em->pos, 0.5f);
                     } else {
                         EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                        w->effKind = 0;
-                        w->effNo = 0x39;
+                        w->Bomb_eff = 0;
+                        w->Bomb_est = 0x39;
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
                         AddWaterPower(&em->pos, 0.5f);
-                        w->effKind = 0;
-                        w->effNo = 0x39;
+                        w->Bomb_eff = 0;
+                        w->Bomb_est = 0x39;
                     }
-                    w->snd0 = 1;
-                    w->snd1 = 0x17;
-                    EffectEspDelete(0, w->espKind, em, 0);
-                    EffectEspgenDelete(0, w->espKind, em);
-                    EffectEfmDelete(0, w->espKind, em);
-                    em->xFC = 1;
-                    em->xFD = 3;
-                    em->xFE = 0;
-                    em->xFF = 0;
+                    w->Bomb_seid = 1;
+                    w->Bomb_seno = 0x17;
+                    EffectEspDelete(0, w->EffKindId, em, 0);
+                    EffectEspgenDelete(0, w->EffKindId, em);
+                    EffectEfmDelete(0, w->EffKindId, em);
+                    em->r_no_0 = 1;
+                    em->r_no_1 = 3;
+                    em->r_no_2 = 0;
+                    em->r_no_3 = 0;
                     return;
                 }
-                w->effNo = 0x36;
-                w->snd1 = 0x14;
-                w->effKind = 0;
-                w->snd0 = 1;
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                w->Bomb_est = 0x36;
+                w->Bomb_seno = 0x14;
+                w->Bomb_eff = 0;
+                w->Bomb_seid = 1;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 SndCall(2, 0x14, &em->pos, 0, 0, em);
                 // Tail written out (jump2 cross-jumps it into DELETE_EFFECT): the SndCall block then
                 // runs through the three Effect*Delete calls, so its r7/r8 argument moves collect an
                 // anti-dependence from every later call and issue first (r7, r8, r5, r4, r6, r3).
-                EffectEspDelete(0, w->espKind, em, 0);
-                EffectEspgenDelete(0, w->espKind, em);
-                EffectEfmDelete(0, w->espKind, em);
+                EffectEspDelete(0, w->EffKindId, em, 0);
+                EffectEspgenDelete(0, w->EffKindId, em);
+                EffectEfmDelete(0, w->EffKindId, em);
                 return;
             }
         DELETE_EFFECT:
-            EffectEspDelete(0, w->espKind, em, 0);
-            EffectEspgenDelete(0, w->espKind, em);
-            EffectEfmDelete(0, w->espKind, em);
+            EffectEspDelete(0, w->EffKindId, em, 0);
+            EffectEspgenDelete(0, w->EffKindId, em);
+            EffectEfmDelete(0, w->EffKindId, em);
             return;
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            wi = EatMgr.getEffInfo(2);
+            wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
                 if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
                     EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                 }
-                w->effKind = (u8) wi->eff6[0];
-                w->effNo = (u8) wi->eff6[1];
+                w->Bomb_eff = (u8) wi->eff6[0];
+                w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
                 EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                w->effKind = 0;
-                w->effNo = 0x39;
+                w->Bomb_eff = 0;
+                w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
-                w->effKind = 0;
-                w->effNo = 0x39;
+                w->Bomb_eff = 0;
+                w->Bomb_est = 0x39;
             }
-            w->snd0 = 1;
-            w->snd1 = 0x17;
-            EffectEspDelete(0, w->espKind, em, 0);
-            EffectEspgenDelete(0, w->espKind, em);
-            EffectEfmDelete(0, w->espKind, em);
-            em->xFC = 1;
-            em->xFD = 3;
-            em->xFE = 0;
-            em->xFF = 0;
+            w->Bomb_seid = 1;
+            w->Bomb_seno = 0x17;
+            EffectEspDelete(0, w->EffKindId, em, 0);
+            EffectEspgenDelete(0, w->EffKindId, em);
+            EffectEfmDelete(0, w->EffKindId, em);
+            em->r_no_0 = 1;
+            em->r_no_1 = 3;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             return;
         }
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
-        em->rot.x = -atan2f(d.y, len);
-        em->rot.y = atan2f(d.x, d.z);
-        em->rot.z = 0.0f;
-        RotMatrix(em->mat, &em->rot);
+        em->ang.x = -atan2f(d.y, len);
+        em->ang.y = atan2f(d.x, d.z);
+        em->ang.z = 0.0f;
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
     }
@@ -410,139 +410,139 @@ void emMine_R1_ShotArrow(cEmMine* em)
     int attr;
     AtEffInfo* info;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        EstSet((int) em, -1, 0, 0, 0, 0x4C, 0, w->espKind, (u32) em, 0);
-        w->life = 210;
-        em->xFE++;
+        EstSet((int) em, -1, 0, 0, 0, 0x4C, 0, w->EffKindId, (u32) em, 0);
+        w->Bomb_wait = 210;
+        em->r_no_2++;
     case 1:
-        if (w->life == 0) {
+        if (w->Bomb_wait == 0) {
             em->setLost();
             return;
         }
-        w->life--;
+        w->Bomb_wait--;
         break;
     }
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
+    PSVECAdd(&em->pos, &w->Spd, &em->pos);
     if (emMineHitCk(em) != 0) {
         goto DELETE_EFFECT;
     }
     {
-        w->hitFlag = 0;
-        attr = EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, &w->hitNrm, 0, 0x404000);
+        w->Norm_ck = 0;
+        attr = EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, &w->Norm, 0, 0x404000);
         if (attr) {
             if (attr & 0x40) {
                 em->setFall();
                 return;
             }
-            w->hitFlag = 1;
+            w->Norm_ck = 1;
             em->pos = hit;
             info = EatMgr.getEffInfo(EatGetEffectType(attr));
             if (info) {
-                if (info->flags & 1) {
+                if (info->flag & 1) {
                     EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
                 }
-                w->effKind = (u8) info->eff6[0];
-                w->effNo = (u8) info->eff6[1];
-                if (info->flags & 1) {
-                    w->snd0 = 1;
-                    w->hitFlag = 0;
-                    w->snd1 = 0x17;
+                w->Bomb_eff = (u8) info->eff6[0];
+                w->Bomb_est = (u8) info->eff6[1];
+                if (info->flag & 1) {
+                    w->Bomb_seid = 1;
+                    w->Norm_ck = 0;
+                    w->Bomb_seno = 0x17;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    EffectEspDelete(0, w->espKind, em, 0);
-                    EffectEspgenDelete(0, w->espKind, em);
-                    EffectEfmDelete(0, w->espKind, em);
+                    EffectEspDelete(0, w->EffKindId, em, 0);
+                    EffectEspgenDelete(0, w->EffKindId, em);
+                    EffectEfmDelete(0, w->EffKindId, em);
                     em->setLost();
                     return;
                 }
-                w->snd0 = 1;
-                w->snd1 = 0x14;
+                w->Bomb_seid = 1;
+                w->Bomb_seno = 0x14;
                 SndCall(1, 0x50, &em->pos, 0, 0, em);
-                em->xFC = 1;
-                em->xFD = 2;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_0 = 1;
+                em->r_no_1 = 2;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 return;
             }
             if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
                 em->pos.y = wh;
                 // Block-scoped water pointers (one single-set pseudo per block: each ranks below `em`
                 // in global-alloc, so em keeps r29 and both take r28; one two-set `wi` outranks em).
-                AtEffInfo* wi = EatMgr.getEffInfo(2);
+                AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
                 if (wi) {
                     EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
-                    w->effKind = (u8) wi->eff6[0];
-                    w->effNo = (u8) wi->eff6[1];
+                    w->Bomb_eff = (u8) wi->eff6[0];
+                    w->Bomb_est = (u8) wi->eff6[1];
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
                     AddWaterPower(&em->pos, 0.5f);
                 } else {
                     EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
+                    w->Bomb_eff = 0;
+                    w->Bomb_est = 0x39;
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
                     AddWaterPower(&em->pos, 0.5f);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
+                    w->Bomb_eff = 0;
+                    w->Bomb_est = 0x39;
                 }
-                w->snd0 = 1;
-                w->snd1 = 0x17;
-                EffectEspDelete(0, w->espKind, em, 0);
-                EffectEspgenDelete(0, w->espKind, em);
-                EffectEfmDelete(0, w->espKind, em);
+                w->Bomb_seid = 1;
+                w->Bomb_seno = 0x17;
+                EffectEspDelete(0, w->EffKindId, em, 0);
+                EffectEspgenDelete(0, w->EffKindId, em);
+                EffectEfmDelete(0, w->EffKindId, em);
                 em->setLost();
                 return;
             }
-            w->effNo = 0x36;
-            w->snd1 = 0x14;
-            w->effKind = 0;
-            w->snd0 = 1;
-            em->xFC = 1;
-            em->xFD = 2;
-            em->xFE = 0;
-            em->xFF = 0;
+            w->Bomb_est = 0x36;
+            w->Bomb_seno = 0x14;
+            w->Bomb_eff = 0;
+            w->Bomb_seid = 1;
+            em->r_no_0 = 1;
+            em->r_no_1 = 2;
+            em->r_no_2 = 0;
+            em->r_no_3 = 0;
             SndCall(1, 0x50, &em->pos, 0, 0, em);
-            EffectEspDelete(0, w->espKind, em, 0); // tail written out, see emMine_R1_Shot
-            EffectEspgenDelete(0, w->espKind, em);
-            EffectEfmDelete(0, w->espKind, em);
+            EffectEspDelete(0, w->EffKindId, em, 0); // tail written out, see emMine_R1_Shot
+            EffectEspgenDelete(0, w->EffKindId, em);
+            EffectEfmDelete(0, w->EffKindId, em);
             return;
         DELETE_EFFECT:
-            EffectEspDelete(0, w->espKind, em, 0);
-            EffectEspgenDelete(0, w->espKind, em);
-            EffectEfmDelete(0, w->espKind, em);
+            EffectEspDelete(0, w->EffKindId, em, 0);
+            EffectEspgenDelete(0, w->EffKindId, em);
+            EffectEfmDelete(0, w->EffKindId, em);
             return;
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            AtEffInfo* wi = EatMgr.getEffInfo(2);
+            AtEffInfo* wi = EatMgr.getEffInfo(EAT_ET_WATER);
             if (wi) {
                 EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
-                w->effKind = (u8) wi->eff6[0];
-                w->effNo = (u8) wi->eff6[1];
+                w->Bomb_eff = (u8) wi->eff6[0];
+                w->Bomb_est = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
                 EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                w->effKind = 0;
-                w->effNo = 0x39;
+                w->Bomb_eff = 0;
+                w->Bomb_est = 0x39;
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
-                w->effKind = 0;
-                w->effNo = 0x39;
+                w->Bomb_eff = 0;
+                w->Bomb_est = 0x39;
             }
-            w->snd0 = 1;
-            w->snd1 = 0x17;
-            EffectEspDelete(0, w->espKind, em, 0);
-            EffectEspgenDelete(0, w->espKind, em);
-            EffectEfmDelete(0, w->espKind, em);
+            w->Bomb_seid = 1;
+            w->Bomb_seno = 0x17;
+            EffectEspDelete(0, w->EffKindId, em, 0);
+            EffectEspgenDelete(0, w->EffKindId, em);
+            EffectEfmDelete(0, w->EffKindId, em);
             em->setLost();
             return;
         }
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
-        em->rot.x = -atan2f(d.y, len);
-        em->rot.y = atan2f(d.x, d.z);
-        em->rot.z = 0.0f;
-        RotMatrix(em->mat, &em->rot);
+        em->ang.x = -atan2f(d.y, len);
+        em->ang.y = atan2f(d.x, d.z);
+        em->ang.z = 0.0f;
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
     }
@@ -557,14 +557,14 @@ void emMineSearchEm(cEmMine* em, int mode)
     f32 dot;
     u32 i;
 
-    if (w->pTarget) {
-        if (w->pTarget->hp > 0) {
+    if (w->pEm_homing) {
+        if (w->pEm_homing->hp > 0) {
             return;
         }
-        w->pTarget = 0;
+        w->pEm_homing = 0;
     }
 #line 829 "D:/Bio4/Prog/emmine.cpp"
-    VECNormalize(&w->spd, &dir);
+    VECNormalize(&w->Spd, &dir);
     if (mode) {
         best = -0.7f;
     } else {
@@ -610,9 +610,9 @@ void emMineSearchEm(cEmMine* em, int mode)
             }
         }
         parts = e->getPartsPtr(0);
-        PSVECSubtract(&parts->worldPos, &em->pos, &v);
+        PSVECSubtract(&parts->world, &em->pos, &v);
         if (v.x == 0.0f && v.y == 0.0f && v.z == 0.0f) {
-            w->pTarget = e;
+            w->pEm_homing = e;
             return;
         }
 #line 877 "D:/Bio4/Prog/emmine.cpp"
@@ -624,10 +624,10 @@ void emMineSearchEm(cEmMine* em, int mode)
         if (dot < best) {
             continue;
         }
-        if (EatMgr.hitCheck(&em->pos, &parts->worldPos, 0, 0, 0, 0x404000) != 0) {
+        if (EatMgr.hitCheck(&em->pos, &parts->world, 0, 0, 0, 0x404000) != 0) {
             continue;
         }
-        w->pTarget = e;
+        w->pEm_homing = e;
         best = dot;
     }
 }
@@ -642,27 +642,27 @@ void emMineHomingEm(cEmMine* em)
     cModel* parts;
     f32 ang;
 
-    if (w->pTarget == 0) {
+    if (w->pEm_homing == 0) {
         return;
     }
-    parts = w->pTarget->getPartsPtr(0);
-    if (EatMgr.hitCheck(&em->pos, &parts->worldPos, 0, 0, 0, 0x404000)) {
-        w->pTarget = 0;
+    parts = w->pEm_homing->getPartsPtr(0);
+    if (EatMgr.hitCheck(&em->pos, &parts->world, 0, 0, 0, 0x404000)) {
+        w->pEm_homing = 0;
         return;
     }
-    if (!(w->pTarget->be_flag & 2)) {
-        w->pTarget = 0;
+    if (!(w->pEm_homing->be_flag & 2)) {
+        w->pEm_homing = 0;
         return;
     }
-    if ((parts->worldPos.x - em->pos.x) * (parts->worldPos.x - em->pos.x) +
-            (parts->worldPos.y - em->pos.y) * (parts->worldPos.y - em->pos.y) +
-            (parts->worldPos.z - em->pos.z) * (parts->worldPos.z - em->pos.z) <
+    if ((parts->world.x - em->pos.x) * (parts->world.x - em->pos.x) +
+            (parts->world.y - em->pos.y) * (parts->world.y - em->pos.y) +
+            (parts->world.z - em->pos.z) * (parts->world.z - em->pos.z) <
         10000.0f) {
         return;
     }
 #line 932 "D:/Bio4/Prog/emmine.cpp"
-    VECNormalize(&w->spd, &dir);
-    PSVECSubtract(&parts->worldPos, &em->pos, &to);
+    VECNormalize(&w->Spd, &dir);
+    PSVECSubtract(&parts->world, &em->pos, &to);
 #line 936 "D:/Bio4/Prog/emmine.cpp"
     VECNormalize(&to, &to);
     ang = acosf(PSVECDotProduct(&dir, &to));
@@ -675,9 +675,9 @@ void emMineHomingEm(cEmMine* em)
     ang = Muku2(0.0f, ang, PI / 16.0f);
     PSVECCrossProduct(&dir, &to, &axis);
     PSMTXRotAxisRad(m, &axis, ang);
-    PSMTXMultVecSR(m, &w->spd, &w->spd);
+    PSMTXMultVecSR(m, &w->Spd, &w->Spd);
     if (pG->debug_mode == 8) {
-        Draw_line3d(&em->pos, &parts->worldPos, 0xFFFFFFFF, 0);
+        Draw_line3d(&em->pos, &parts->world, 0xFFFFFFFF, 0);
     }
 }
 
@@ -685,28 +685,28 @@ void emMine_R1_Set(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
         } else {
             em->hp = 1;
         }
-        w->life = 150;
-        w->timer = 1;
-        w->count = 17;
-        em->xFE++;
+        w->Bomb_wait = 150;
+        w->Timer = 1;
+        w->Timer2 = 17;
+        em->r_no_2++;
         break;
     case 1:
-        if (em->type != 2 && w->timer != 0) {
-            w->timer--;
-            if (w->timer == 0) {
+        if (em->type != 2 && w->Timer != 0) {
+            w->Timer--;
+            if (w->Timer == 0) {
                 Vec p;
 
-                w->timer = w->count;
-                w->count--;
-                if (w->count <= 4) {
-                    w->count = 5;
+                w->Timer = w->Timer2;
+                w->Timer2--;
+                if (w->Timer2 <= 4) {
+                    w->Timer2 = 5;
                 }
                 EstSet((int) em, -1, 0, 0, 0, 0x37, 0, 0, (u32) em, 0);
                 p.x = 0.0f;
@@ -716,8 +716,8 @@ void emMine_R1_Set(cEmMine* em)
                 SndCall(1, 5, &p, 0, 0, em);
             }
         }
-        if (w->life != 0) {
-            w->life--;
+        if (w->Bomb_wait != 0) {
+            w->Bomb_wait--;
         } else {
             if (em->type == 2) {
                 em->setFall();
@@ -728,7 +728,7 @@ void emMine_R1_Set(cEmMine* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -739,26 +739,26 @@ void emMine_R1_SetWater(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
         } else {
             em->hp = 1;
         }
-        w->life = 150;
+        w->Bomb_wait = 150;
         em->be_flag &= ~2;
-        em->xFE++;
+        em->r_no_2++;
         break;
     case 1:
-        if (w->life == 0) {
+        if (w->Bomb_wait == 0) {
             em->setBomb();
             return;
         }
-        w->life--;
+        w->Bomb_wait--;
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -768,37 +768,37 @@ void emMine_R1_SetWater(cEmMine* em)
 void emMine_R1_Parent(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
-    cEm* parent = w->pParent;
+    cEm* parent = w->pEm_oya;
 
     if ((parent->be_flag & 0x201) != 1) {
-        w->pParent = 0;
+        w->pEm_oya = 0;
         parent = 0;
     }
     if (parent == 0) {
         em->setLost();
     }
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         if (em->type == 2) {
             em->hp = 0;
         } else {
             em->hp = 1;
         }
-        w->life = 150;
-        w->timer = 1;
-        w->count = 17;
-        em->xFE++;
+        w->Bomb_wait = 150;
+        w->Timer = 1;
+        w->Timer2 = 17;
+        em->r_no_2++;
         break;
     case 1:
-        if (w->timer != 0 && em->type != 2) {
-            w->timer--;
-            if (w->timer == 0) {
+        if (w->Timer != 0 && em->type != 2) {
+            w->Timer--;
+            if (w->Timer == 0) {
                 Vec p;
 
-                w->timer = w->count;
-                w->count--;
-                if (w->count <= 4) {
-                    w->count = 5;
+                w->Timer = w->Timer2;
+                w->Timer2--;
+                if (w->Timer2 <= 4) {
+                    w->Timer2 = 5;
                 }
                 EstSet((int) em, -1, 0, 0, 0, 0x37, 0, 0, (u32) em, 0);
                 p.x = 0.0f;
@@ -809,9 +809,9 @@ void emMine_R1_Parent(cEmMine* em)
             }
         }
         if (!(parent->be_flag & 2)) {
-            w->life = 0;
+            w->Bomb_wait = 0;
         }
-        if (w->life == 0) {
+        if (w->Bomb_wait == 0) {
             if (em->type != 2) {
                 em->setBomb();
                 return;
@@ -819,10 +819,10 @@ void emMine_R1_Parent(cEmMine* em)
             em->setFall();
             return;
         }
-        w->life--;
+        w->Bomb_wait--;
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent) {
@@ -831,8 +831,8 @@ void emMine_R1_Parent(cEmMine* em)
                 em->setBomb();
                 return;
             }
-            if (w->life > 30) {
-                w->life = 30;
+            if (w->Bomb_wait > 30) {
+                w->Bomb_wait = 30;
             }
         }
         if (parent->pParts) {
@@ -841,7 +841,7 @@ void emMine_R1_Parent(cEmMine* em)
             Vec v1;
             Vec v2;
 
-            PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
+            PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -887,25 +887,25 @@ void emMine_R1_BombWait(cEmMine* em)
     EmMineWork* w = EMMINE_WK(em);
     Vec v;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->timer = 4;
-        em->xFE++;
+        w->Timer = 4;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             break;
         }
         em->hp = 0;
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        if (w->hitFlag) {
-            PSVECScale(&w->hitNrm, &v, 1000.0f);
+        if (w->Norm_ck) {
+            PSVECScale(&w->Norm, &v, 1000.0f);
             PSVECAdd(&em->pos, &v, &em->pos);
             TransMatrix(em->mat, &em->pos);
         }
-        w->hitFlag = 0;
+        w->Norm_ck = 0;
         em->setBomb();
         break;
     }
@@ -917,15 +917,15 @@ void emMine_R1_BombWait2(cEmMine* em)
     Vec p;
     f32 r;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->hp = 0;
         em->be_flag &= ~2;
-        w->timer = 2;
-        em->xFE++;
+        w->Timer = 2;
+        em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             break;
         }
         em->hp = 0;
@@ -933,7 +933,7 @@ void emMine_R1_BombWait2(cEmMine* em)
         p.y = 0.0f;
         p.z = -250.0f;
         PSMTXMultVec(em->mat, &p, &p);
-        switch (w->wepLv) {
+        switch (w->Lv) {
         case 0:
             r = 2000.0f;
             break;
@@ -968,7 +968,7 @@ void emMine_R1_Fall(cEmMine* em)
     f32 dd;
 
     em->hp = 0;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): two dead sets (deleted by flow) take the
     // expression table from 235 to 237 buckets, so `w+48`/`fp+100` (13389) hash below `fp+144` (13433)
@@ -983,7 +983,7 @@ void emMine_R1_Fall(cEmMine* em)
     for (i = 0; i < 3; i++) {
         n = &node[i];
         PSMTXMultVec(em->mat, &ofs[i], &n->pos);
-        n->oldPos = n->pos;
+        n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
@@ -1038,7 +1038,7 @@ void emMine_R1_Fall(cEmMine* em)
                 }
             }
         } else {
-            PSVECSubtract(&n->pos, &n->oldPos, &n->spd);
+            PSVECSubtract(&n->pos, &n->old, &n->spd);
         }
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
@@ -1079,14 +1079,14 @@ void emMine_R1_Fall(cEmMine* em)
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->setLost();
     }
     em->partsWorldCalc();
-    if (w->waterSnd == 0) {
+    if (w->Water_ck == 0) {
         if (CheckInWater(em, 0)) {
             SndCall(6, 0x17, &em->pos, 0, 0, em);
-            w->waterSnd = 1;
+            w->Water_ck = 1;
         }
     }
 }
@@ -1095,13 +1095,13 @@ void emMine_R1_Lost(cEmMine* em)
 {
     EmMineWork* w = EMMINE_WK(em);
 
-    if (em->xFE == 0) {
+    if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        EffectEspDelete(0, w->espKind, em, 0);
-        EffectEspgenDelete(0, w->espKind, em);
-        EffectEfmDelete(0, w->espKind, em);
-        em->xFE++;
+        EffectEspDelete(0, w->EffKindId, em, 0);
+        EffectEspgenDelete(0, w->EffKindId, em);
+        EffectEfmDelete(0, w->EffKindId, em);
+        em->r_no_2++;
         EmMgr.destroy(em);
     }
 }
@@ -1110,22 +1110,22 @@ void cEmMine::setParent(cEm* parent, int partsNo_)
 {
     EmMineWork* w = EMMINE_WK(this);
 
-    w->pParent = parent;
-    w->partsNo = partsNo_;
-    xFC = 1;
-    xFD = 4;
-    xFE = 0;
-    xFF = 0;
+    w->pEm_oya = parent;
+    w->oya_parts = partsNo_;
+    r_no_0 = 1;
+    r_no_1 = 4;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmMine::setLost()
 {
     hp = 0;
     be_flag &= ~2;
-    xFC = 1;
-    xFD = 8;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 8;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmMine::setBomb()
@@ -1135,12 +1135,12 @@ void cEmMine::setBomb()
     int hit;
 
     hp = 0;
-    hit = w->hitFlag;
+    hit = w->Norm_ck;
     if (hit) {
-        xFC = 1;
-        xFD = 5;
-        xFE = 0;
-        xFF = 0;
+        r_no_0 = 1;
+        r_no_1 = 5;
+        r_no_2 = 0;
+        r_no_3 = 0;
         return;
     }
     p.x = 0.0f;
@@ -1150,14 +1150,14 @@ void cEmMine::setBomb()
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    EstSet(0, -1, &pos, 0, w->effKind, w->effNo, 0, 0, 0, 0);
-    SndCall(w->snd0, w->snd1, &p, 0, 0, this);
+    EstSet(0, -1, &pos, 0, w->Bomb_eff, w->Bomb_est, 0, 0, 0, 0);
+    SndCall(w->Bomb_seid, w->Bomb_seno, &p, 0, 0, this);
     AddWaterPower(&pos, 1.0f);
-    EffectEspDelete(0, w->espKind, this, 0);
-    EffectEspgenDelete(0, w->espKind, this);
-    EffectEfmDelete(0, w->espKind, this);
-    BitOn(pG->flags_500C, 0x800000);
-    BitOn(pG->flags_5010, 0x20000000);
+    EffectEspDelete(0, w->EffKindId, this, 0);
+    EffectEspgenDelete(0, w->EffKindId, this);
+    EffectEfmDelete(0, w->EffKindId, this);
+    BitOn(pG->Status_flg[0], 0x800000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
     pG->bell_stat = 1;
     setLost();
@@ -1166,10 +1166,10 @@ void cEmMine::setBomb()
     // the store source, the codeless keep-alive after the stores keeps `hit`/`this` from dying at
     // the xFE store (weight -1 would issue it first; the target has it last, source order).
     asm("" : "+r"(hit));
-    xFF = 0;
-    xFC = 1;
-    xFD = 6;
-    xFE = hit;
+    r_no_3 = 0;
+    r_no_0 = 1;
+    r_no_1 = 6;
+    r_no_2 = hit;
     asm("" : "=m"(hp) : "r"(hit));
 }
 
@@ -1184,19 +1184,19 @@ void cEmMine::setFall()
         w->pts[i].y = fRand1_1() * 10.0f + 50.0f;
         w->pts[i].z = fRand1_1() * 10.0f;
     }
-    w->pParent = 0;
-    w->x10 = 0;
+    w->pEm_oya = 0;
+    w->pEm_old = 0;
     hp = 0;
     w->grav = 15.0f;
-    w->waterSnd = 0;
+    w->Water_ck = 0;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    Matrix2AxisAngle(mat, &rot);
-    xFC = 1;
-    xFD = 7;
-    xFE = 0;
-    xFF = 0;
+    Matrix2AxisAngle(mat, &ang);
+    r_no_0 = 1;
+    r_no_1 = 7;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 int emMineHitCk(cEmMine* em)
@@ -1219,10 +1219,10 @@ int emMineHitCk(cEmMine* em)
     if (em->type == 2) {
         type = 0x1C;
     }
-    if (GetWepTargetList2(&em->oldPos, &em->pos, &list, 1, &hit, &nrm, &attr, type, 0) != 0) {
+    if (GetWepTargetList2(&em->pos_old, &em->pos, &list, 1, &hit, &nrm, &attr, type, 0) != 0) {
         hitEm = list.em;
         part = list.part;
-        hitEm->dmg.set(0, 2, type, &em->oldPos, part->rad, part);
+        hitEm->dmg.set(0, 2, type, &em->pos_old, part->rad, part);
         if (part->flags & 0x4000) {
             partsNo = 0;
             if (part->partsNo != 0) {
@@ -1237,9 +1237,9 @@ int emMineHitCk(cEmMine* em)
             switch (hitEm->id) {
             default:
                 len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
-                em->rot.x = -atan2f(-em->pos.y, len);
-                em->rot.y = atan2f(-em->pos.x, -em->pos.z);
-                em->rot.z = 0.0f;
+                em->ang.x = -atan2f(-em->pos.y, len);
+                em->ang.y = atan2f(-em->pos.x, -em->pos.z);
+                em->ang.z = 0.0f;
                 break;
             case 0x40:
             case 0x41:
@@ -1269,9 +1269,9 @@ int emMineHitCk(cEmMine* em)
                 PSMTXMultVec(inv, &b, &b);
                 PSVECSubtract(&b, &a, &dir);
                 len = SQRTF(dir.x * dir.x + dir.z * dir.z);
-                em->rot.x = -atan2f(dir.y, len);
-                em->rot.y = atan2f(dir.x, dir.z);
-                em->rot.z = 0.0f;
+                em->ang.x = -atan2f(dir.y, len);
+                em->ang.y = atan2f(dir.x, dir.z);
+                em->ang.z = 0.0f;
                 break;
             }
         } else {
@@ -1279,9 +1279,9 @@ int emMineHitCk(cEmMine* em)
             em->pos.x = 0.0f;
             em->pos.y = 0.0f;
             em->pos.z = 0.0f;
-            em->rot.x = 0.0f;
-            em->rot.y = 0.0f;
-            em->rot.z = 0.0f;
+            em->ang.x = 0.0f;
+            em->ang.y = 0.0f;
+            em->ang.z = 0.0f;
         }
         em->scale.x = 2.0f;
         em->scale.y = 2.0f;

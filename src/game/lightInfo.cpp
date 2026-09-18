@@ -12,38 +12,38 @@ cLightInfo::cLightInfo()
     for (i = 0; i < 8; i++) {
         pLight[i] = 0;
     }
-    x50 = 0;
-    x51 = 0;
-    x52 = 0;
+    EnableMask = 0;
+    Flag = 0;
+    PartsNo = 0;
     x53 = 0;
-    x54 = 0;
-    ofs.x = ofs.y = ofs.z = 0.0f;
-    size.x = size.y = size.z = 0.0f;
+    SelectMask = 0;
+    Offset.x = Offset.y = Offset.z = 0.0f;
+    Size.x = Size.y = Size.z = 0.0f;
 }
 
-int cLightInfo::init2(int a, int b, const Vec* p0, const Vec* p1, int c)
+int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask)
 {
     int i;
 
-    if (!VALID_PTR(p0) || !VALID_PTR(p1)) {
-        pLog->err(0, 0, "cLightInfo::init2() PTR ERROR %08X %08X", p0, p1);
+    if (!VALID_PTR(pOffset) || !VALID_PTR(pSize)) {
+        pLog->err(0, 0, "cLightInfo::init2() PTR ERROR %08X %08X", pOffset, pSize);
         return 0;
     }
     for (i = 0; i < 8; i++) {
         pLight[i] = 0;
     }
-    x51 = a;
-    x50 = c;
-    x52 = b;
-    x54 = 0xFFFFFFFF;
-    ofs = *p0;
-    size = *p1;
-    if ((x51 & 3) == 0) {
-        radius = size.x + size.y;
-    } else if ((x51 & 3) != 2) {
-        radius = size.x;
+    Flag = type;
+    EnableMask = mask;
+    PartsNo = partsNo;
+    SelectMask = 0xFFFFFFFF;
+    Offset = *pOffset;
+    Size = *pSize;
+    if ((Flag & 3) == 0) {
+        Radius = Size.x + Size.y;
+    } else if ((Flag & 3) != 2) {
+        Radius = Size.x;
     } else {
-        radius = SQRTF(size.x * size.x + size.y * size.y + size.z * size.z);
+        Radius = SQRTF(Size.x * Size.x + Size.y * Size.y + Size.z * Size.z);
     }
     return 1;
 }
@@ -66,38 +66,38 @@ void cLightInfo::updateMatrix(cModel* m)
     Vec v;
     Mtx tmp;
 
-    v.x = ofs.x * m->scale.x;
-    v.y = ofs.y * m->scale.y;
-    v.z = ofs.z * m->scale.z;
-    RotVector(&v, &m->rot, &v);
-    if (x52 == 0) {
+    v.x = Offset.x * m->scale.x;
+    v.y = Offset.y * m->scale.y;
+    v.z = Offset.z * m->scale.z;
+    RotVector(&v, &m->ang, &v);
+    if (PartsNo == 0) {
         PSVECAdd(&v, &m->pos, &v);
     } else {
         if (m->pParts == 0) {
             return;
         }
-        PSVECAdd(&v, &m->getPartsPtr(x52 - 1)->worldPos, &v);
+        PSVECAdd(&v, &m->getPartsPtr(PartsNo - 1)->world, &v);
     }
-    RotMatrix(tmp, &m->rot);
+    RotMatrix(tmp, &m->ang);
     TransMatrix(tmp, &v);
-    PSMTXInverse(tmp, mat);
+    PSMTXInverse(tmp, imat);
 }
 
 cModel* cLightInfo::getPos(cModel* m, Vec* out)
 {
     cModel* c;
 
-    if (x52 > 0) {
-        c = m->getPartsPtr(x52 - 1);
+    if (PartsNo > 0) {
+        c = m->getPartsPtr(PartsNo - 1);
         if (!VALID_PTR(c)) {
-            pLog->err(0, 0, "litHitCk PNo%d %d %d %x %x", x52 - 1, m->x12E, m->id, x51, x50);
+            pLog->err(0, 0, "litHitCk PNo%d %d %d %x %x", PartsNo - 1, m->kindid, m->id, Flag, EnableMask);
             c = m;
         }
-        PSMTXMultVecSR(c->mat, &ofs, out);
-        PSVECAdd(out, &c->worldPos, out);
+        PSMTXMultVecSR(c->mat, &Offset, out);
+        PSVECAdd(out, &c->world, out);
     } else {
         c = m;
-        PSMTXMultVecSR(c->mat, &ofs, out);
+        PSMTXMultVecSR(c->mat, &Offset, out);
         PSVECAdd(out, &c->pos, out);
     }
     return c;

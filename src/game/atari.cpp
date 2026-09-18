@@ -42,31 +42,31 @@ u8 polyBit[0x400];
 // the piece the last hitCheck2 hit (hitCheck transforms the normal with its matrix)
 static cSat* pBypassAt;
 
-int atck(Vec* a, Vec* b, cAtariInfo* info, cModel* m, int flag);
-int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask);
-int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask);
-int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask, Vec* hit, u32* pn);
-int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask, Vec* hit, u32* pn);
+int atck(Vec* vec0, Vec* vec1, cAtariInfo* info, cModel* m, int flag);
+int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask);
+int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask);
+int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn);
+int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn);
 void polyBitSet(u32 no);
 int polyBitCk(u32 no);
 cSatFile* createSat(Vec* v, u32 attr, f32 h);
 cSatFile* createBoxSat(Vec* v, u32 attr, f32 h);
 static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h);
-void at_pos_calc(cModel* m, Vec* d);
+void at_pos_calc(cModel* m, Vec* vec);
 
 int cSatMgr::check(cModel* m, int flag)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
     int ret = 0;
 
-    if (!(info->flags & 0x100)) {
+    if (!(info->m_flag & 0x100)) {
         return 0;
     }
-    if (info->flags & 2) {
+    if (info->m_flag & 2) {
         ret = checkRect(m);
     } else {
-        while (info->next) {
-            info = info->next;
+        while (info->m_pList) {
+            info = info->m_pList;
             if (scrAtCheckSphere(m, info, flag) != 0.0f) {
                 ret = 1;
             }
@@ -87,87 +87,87 @@ int cSatMgr::checkRect(cModel* m)
 
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = info->rectZ * 0.9f;
-    b.x = info->rectX;
+    a.z = info->m_radius2 * 0.9f;
+    b.x = info->m_radius;
     b.y = 0.0f;
-    b.z = info->rectZ * 0.9f;
+    b.z = info->m_radius2 * 0.9f;
     ret = atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = info->rectX;
+    b.x = info->m_radius;
     b.y = 0.0f;
     b.z = 0.0f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = -info->rectZ * 0.9f;
-    b.x = info->rectX;
+    a.z = -info->m_radius2 * 0.9f;
+    b.x = info->m_radius;
     b.y = 0.0f;
-    b.z = -info->rectZ * 0.9f;
+    b.z = -info->m_radius2 * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = info->rectZ * 0.9f;
-    b.x = -info->rectX;
+    a.z = info->m_radius2 * 0.9f;
+    b.x = -info->m_radius;
     b.y = 0.0f;
-    b.z = info->rectZ * 0.9f;
+    b.z = info->m_radius2 * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -info->rectX;
+    b.x = -info->m_radius;
     b.y = 0.0f;
     b.z = 0.0f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = -info->rectZ * 0.9f;
-    b.x = -info->rectX;
+    a.z = -info->m_radius2 * 0.9f;
+    b.x = -info->m_radius;
     b.y = 0.0f;
-    b.z = -info->rectZ * 0.9f;
+    b.z = -info->m_radius2 * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = info->rectX * 0.9f;
+    a.x = info->m_radius * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = info->rectX * 0.9f;
+    b.x = info->m_radius * 0.9f;
     b.y = 0.0f;
-    b.z = info->rectZ;
+    b.z = info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
     b.x = 0.0f;
     b.y = 0.0f;
-    b.z = info->rectZ;
+    b.z = info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = -info->rectX * 0.9f;
+    a.x = -info->m_radius * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -info->rectX * 0.9f;
+    b.x = -info->m_radius * 0.9f;
     b.y = 0.0f;
-    b.z = info->rectZ;
+    b.z = info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = info->rectX * 0.9f;
+    a.x = info->m_radius * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = info->rectX * 0.9f;
+    b.x = info->m_radius * 0.9f;
     b.y = 0.0f;
-    b.z = -info->rectZ;
+    b.z = -info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
     b.x = 0.0f;
     b.y = 0.0f;
-    b.z = -info->rectZ;
+    b.z = -info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = -info->rectX * 0.9f;
+    a.x = -info->m_radius * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -info->rectX * 0.9f;
+    b.x = -info->m_radius * 0.9f;
     b.y = 0.0f;
-    b.z = -info->rectZ;
+    b.z = -info->m_radius2;
     ret |= atck(&a, &b, info, m, 0);
     return ret;
 }
@@ -177,9 +177,9 @@ int cSatMgr::checkAir(cModel* m, int flag)
     cAtariInfo* info = &((cEm*) m)->atari;
     int ret = 0;
 
-    if (info->flags & 0x100) {
-        while (info->next) {
-            info = info->next;
+    if (info->m_flag & 0x100) {
+        while (info->m_pList) {
+            info = info->m_pList;
             if (scrAtCheckSphereAir(m, info, flag) != 0.0f) {
                 ret = 1;
             }
@@ -193,7 +193,7 @@ int cSatMgr::checkAir(cModel* m, int flag)
 
 // Segment a-b (model local, offset by the info position) against the scenario; the model is
 // pushed back to the hit point. Returns 1 when it moved by a metre or more.
-int atck(Vec* a, Vec* b, cAtariInfo* info, cModel* m, int flag)
+int atck(Vec* vec0, Vec* vec1, cAtariInfo* info, cModel* m, int flag)
 {
     Vec v0;
     Vec v1;
@@ -201,10 +201,10 @@ int atck(Vec* a, Vec* b, cAtariInfo* info, cModel* m, int flag)
     Vec nrm;
     Vec old;
 
-    PSVECAdd(a, &info->pos, &v0);
-    PSVECAdd(b, &info->pos, &v1);
-    RotVector(&v0, &m->rot, &v0);
-    RotVector(&v1, &m->rot, &v1);
+    PSVECAdd(vec0, &info->m_offset, &v0);
+    PSVECAdd(vec1, &info->m_offset, &v1);
+    RotVector(&v0, &m->ang, &v0);
+    RotVector(&v1, &m->ang, &v1);
     PSVECAdd(&v0, &m->pos, &v0);
     PSVECAdd(&v1, &m->pos, &v1);
     v0.y = v1.y = m->pos.y + 300.0f;
@@ -234,19 +234,19 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
     u32 c;
 
     info->getSpeedVector(m, &oldPos, &pos);
-    m->wallNrm.x = 0.0f;
-    m->wallNrm.y = 0.0f;
-    m->wallNrm.z = 0.0f;
+    m->Wall_norm.x = 0.0f;
+    m->Wall_norm.y = 0.0f;
+    m->Wall_norm.z = 0.0f;
     newPos = pos;
-    wallAdjust(&m->wallNrm, &oldPos, &newPos, info->rectX, info->flags, flag);
+    wallAdjust(&m->Wall_norm, &oldPos, &newPos, info->m_radius, info->m_flag, flag);
     PSVECSubtract(&newPos, &pos, &pos);
     mag = PSVECMag(&pos);
     at_pos_calc(m, &pos);
-    if (!(info->flags & 4)) {
-        floor = getFloor(&m->pos, 600.0f, 100000.0f, (u32*) &m->pFloorNrm, flag);
+    if (!(info->m_flag & 4)) {
+        floor = getFloor(&m->pos, 600.0f, 100000.0f, (u32*) &m->pFloor_norm, flag);
         if (fabsf(floor - m->pos.y) < 1000.0f) {
             m->pos.y = floor;
-        } else if (pG->x4 == 0) {
+        } else if (pG->shooting_mode == 0) {
             f32 x = (f32) ((int) m->pos.x / 100) * 100.0f;
             f32 y = (f32) ((int) m->pos.y / 100) * 100.0f;
             f32 z = (f32) ((int) m->pos.z / 100) * 100.0f;
@@ -257,25 +257,25 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
             }
             up = m->pos;
             up.y += 50000.0f;
-            c = pG->flags_51E4 & 0x3F;
+            c = pG->Frame_cnt & 0x3F;
             c <<= 2;
             if (pG->debug_mode != 0) {
                 Draw_line3d(&m->pos, &up, 0xFFFF0000 | (c << 8) | c, 0);
             }
         }
     }
-    link = info->pLink;
+    link = info->m_pMod;
     if (link) {
         at_pos_calc(link, &pos);
-        if (!(((cEm*) link)->atari.flags & 4)) {
-            floor = getFloor(&link->pos, 600.0f, 100000.0f, (u32*) &link->pFloorNrm, flag);
+        if (!(((cEm*) link)->atari.m_flag & 4)) {
+            floor = getFloor(&link->pos, 600.0f, 100000.0f, (u32*) &link->pFloor_norm, flag);
             if (fabsf(floor - link->pos.y) < 1000.0f) {
                 link->pos.y = floor;
             }
         }
     }
-    if (pG->flags_68 & 0x20000000) {
-        Draw_sphere(&newPos, info->rectX, 0xA0A0A0A0, 1, 1);
+    if (pG->Debug_flg[2] & 0x20000000) {
+        Draw_sphere(&newPos, info->m_radius, 0xA0A0A0A0, 1, 1);
     }
     return mag;
 }
@@ -291,30 +291,30 @@ f32 cSatMgr::scrAtCheckSphereAir(cModel* m, cAtariInfo* info, int flag)
     f32 y;
     cModel* link;
 
-    if (!(info->flags & 0x100)) {
+    if (!(info->m_flag & 0x100)) {
         return 0.0f;
     }
     {
         mpos = m->pos;
         info->getSpeedVector(m, &oldPos, &pos);
-        m->wallNrm.x = 0.0f;
-        m->wallNrm.y = 0.0f;
-        m->wallNrm.z = 0.0f;
+        m->Wall_norm.x = 0.0f;
+        m->Wall_norm.y = 0.0f;
+        m->Wall_norm.z = 0.0f;
         newPos = pos;
-        wallAdjust(&m->wallNrm, &oldPos, &newPos, info->rectX, ((cEm*) m)->atari.flags, flag);
+        wallAdjust(&m->Wall_norm, &oldPos, &newPos, info->m_radius, ((cEm*) m)->atari.m_flag, flag);
         PSVECSubtract(&newPos, &pos, &pos);
         mag = PSVECMag(&pos);
         at_pos_calc(m, &pos);
         y = m->pos.y;
         PSVECAdd(&m->pos, &pos, &m->pos);
         m->pos.y = y;
-        link = info->pLink;
+        link = info->m_pMod;
         if (link) {
             PSVECSubtract(&m->pos, &mpos, &mpos);
             PSVECAdd(&link->pos, &mpos, &link->pos);
         }
-        if (pG->flags_68 & 0x20000000) {
-            Draw_sphere(&newPos, info->rectX, 0xA0A0A0A0, 1, 1);
+        if (pG->Debug_flg[2] & 0x20000000) {
+            Draw_sphere(&newPos, info->m_radius, 0xA0A0A0A0, 1, 1);
         }
     }
     return mag;
@@ -393,7 +393,7 @@ f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
     Vec bottom;
     Vec hit;
 
-    if (pG->flags_64 & 0x10000000) {
+    if (pG->Debug_flg[1] & 0x10000000) {
         return 0.0f;
     }
     top.x = pos->x;
@@ -432,17 +432,17 @@ int cSatBlock::lineOverlap(Vec* p, Vec* dir, Vec* absDir)
     Vec d;
     Vec ad;
 
-    d.x = (p->x - min.x) - size.x * 0.5f;
-    d.z = (p->z - min.z) - size.z * 0.5f;
+    d.x = (p->x - min.x) - m_Size.x * 0.5f;
+    d.z = (p->z - min.z) - m_Size.z * 0.5f;
     ad.x = fabsf(d.x);
     ad.z = fabsf(d.z);
-    if (ad.x > absDir->x + size.x * 0.5f) {
+    if (ad.x > absDir->x + m_Size.x * 0.5f) {
         return 0;
     }
-    if (ad.z > absDir->z + size.z * 0.5f) {
+    if (ad.z > absDir->z + m_Size.z * 0.5f) {
         return 0;
     }
-    if (fabsf(d.x * dir->z - d.z * dir->x) > (size.x * absDir->z + size.z * absDir->x) * 0.5f) {
+    if (fabsf(d.x * dir->z - d.z * dir->x) > (m_Size.x * absDir->z + m_Size.z * absDir->x) * 0.5f) {
         return 0;
     }
     return 1;
@@ -498,59 +498,59 @@ static inline int lineCross(Vec* a, Vec* b, Vec* c, Vec* d)
 }
 
 // Sphere of radius r sweeping from a to b against the block's XZ box (expanded by r).
-int cSatBlock::hitCheckSphere(Vec* a, Vec* b, f32 r)
+int cSatBlock::hitCheckSphere(Vec* pos0, Vec* pos1, f32 r)
 {
     Vec c0;
     Vec c1;
     f32 x0 = min.x;
     f32 z0 = min.z;
-    f32 cx = (a->x + b->x) * 0.5f;
-    f32 cz = (a->z + b->z) * 0.5f;
-    f32 hx = fabsf(a->x - b->x) * 0.5f + r;
-    f32 hz = fabsf(a->z - b->z) * 0.5f + r;
+    f32 cx = (pos0->x + pos1->x) * 0.5f;
+    f32 cz = (pos0->z + pos1->z) * 0.5f;
+    f32 hx = fabsf(pos0->x - pos1->x) * 0.5f + r;
+    f32 hz = fabsf(pos0->z - pos1->z) * 0.5f + r;
     f32 x1;
     f32 z1;
 
-    if (x0 + size.x < cx - hx) {
+    if (x0 + m_Size.x < cx - hx) {
         return 0;
     }
-    if (x0 - size.x > cx + hx) {
+    if (x0 - m_Size.x > cx + hx) {
         return 0;
     }
-    if (z0 + size.z < cz - hz) {
+    if (z0 + m_Size.z < cz - hz) {
         return 0;
     }
-    if (z0 - size.z > cz + hz) {
+    if (z0 - m_Size.z > cz + hz) {
         return 0;
     }
-    if (!(a->x < x0 - r || a->x > x0 + size.x + r || a->z < z0 - r || a->z > z0 + size.z + r)) {
+    if (!(pos0->x < x0 - r || pos0->x > x0 + m_Size.x + r || pos0->z < z0 - r || pos0->z > z0 + m_Size.z + r)) {
         return 1;
     }
-    if (!(b->x < x0 - r || b->x > x0 + size.x + r || b->z < z0 - r || b->z > z0 + size.z + r)) {
+    if (!(pos1->x < x0 - r || pos1->x > x0 + m_Size.x + r || pos1->z < z0 - r || pos1->z > z0 + m_Size.z + r)) {
         return 1;
     }
-    x1 = x0 + size.x + r;
-    z1 = z0 + size.z + r;
+    x1 = x0 + m_Size.x + r;
+    z1 = z0 + m_Size.z + r;
     c0.x = x0;
     c0.y = 0.0f;
     c0.z = z0;
     c1.x = x1;
     c1.y = 0.0f;
     c1.z = z0;
-    if (lineCross(a, b, &c0, &c1)) {
+    if (lineCross(pos0, pos1, &c0, &c1)) {
         return 1;
     }
     c0.z = c1.z = z1;
-    if (lineCross(a, b, &c0, &c1)) {
+    if (lineCross(pos0, pos1, &c0, &c1)) {
         return 1;
     }
     c0.z = z0;
     c1.x = x0;
-    if (lineCross(a, b, &c0, &c1)) {
+    if (lineCross(pos0, pos1, &c0, &c1)) {
         return 1;
     }
     c1.x = c0.x = x1;
-    if (lineCross(a, b, &c0, &c1)) {
+    if (lineCross(pos0, pos1, &c0, &c1)) {
         return 1;
     }
     return 0;
@@ -588,7 +588,7 @@ void cEatMgr::initEffInfo()
 void cEatMgr::registEffInfo(int type, AtEffInfo* src)
 {
     effOn[type] = 1;
-    effInfo[type].flags = src->flags;
+    effInfo[type].flag = src->flag;
     if (src->eff0[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff0[0] = src->eff0[0];
         effInfo[type].eff0[1] = src->eff0[1];
@@ -648,7 +648,7 @@ cSat* cSatMgr::create(void* data, int flag, Vec* pos, Vec* rot, u8 type)
         return 0;
     }
     sat->x5C = 0;
-    if (hdr->id != 0xFF && (hdr->id & 0x80)) {
+    if (hdr->m_Version != 0xFF && (hdr->m_Version & 0x80)) {
         data = hdr->getSat(type);
     }
     sat->init((cSatFile*) data, pos ? pos : (Vec*) &vecZero, rot ? rot : (Vec*) &vecZero);
@@ -672,7 +672,7 @@ cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h)
     }
     sat = create(f, flag, pos, rot, 0);
     if (sat) {
-        sat->flags |= 2;
+        sat->m_Flag |= 2;
     } else {
         Mem_free(f);
     }
@@ -709,10 +709,10 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
         if (sat->isAlive()) {
             Vec lo;
             Vec lp;
-            cSatBlock* blk = sat->block;
-            memclr_asm(polyBit, (sat->nPoly + 7) / 8);
-            PSMTXMultVec(sat->inv, oldPos, &lo);
-            PSMTXMultVec(sat->inv, pos, &lp);
+            cSatBlock* blk = sat->block_p;
+            memclr_asm(polyBit, (sat->polygon_num + 7) / 8);
+            PSMTXMultVec(sat->imat, oldPos, &lo);
+            PSMTXMultVec(sat->imat, pos, &lp);
             if (blkPolySphereCk(sat, blk, &lo, &lp, r, flag, nrm, mask)) {
                 PSMTXMultVec(sat->mat, &lp, pos);
                 if (nrm) {
@@ -731,17 +731,17 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
     return ret;
 }
 
-int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask)
+int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask)
 {
     int ret = 0;
     int hit;
 
     while (blk) {
-        if (blk->hitCheckSphere(a, b, r)) {
-            if (blk->flag & 1) {
-                hit = blkPolySphereCk(sat, (cSatBlock*) blk->idx, a, b, r, flag, nrm, mask);
+        if (blk->hitCheckSphere(pos0, pos1, r)) {
+            if (blk->m_Flag & 1) {
+                hit = blkPolySphereCk(sat, (cSatBlock*) blk->idx, pos0, pos1, r, flag, nrm, mask);
             } else {
-                hit = blkPolySphereCkCore(sat, blk, a, b, r, flag, nrm, mask);
+                hit = blkPolySphereCkCore(sat, blk, pos0, pos1, r, flag, nrm, mask);
             }
             if (hit) {
                 ret = 1;
@@ -752,7 +752,7 @@ int blkPolySphereCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int flag, 
     return ret;
 }
 
-int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int flag, Vec* nrm, int mask)
+int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, f32 r, int flag, Vec* nrm, int mask)
 {
     int ret = 0;
     int start;
@@ -762,27 +762,27 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int fl
 
     if (flag & 0x40) {
         start = 0;
-        end = blk->n0 + blk->n1;
+        end = blk->m_nFloor + blk->m_nSlope;
     } else if (flag & 0x80) {
-        start = blk->n0 + blk->n1;
-        end = start + blk->n2;
+        start = blk->m_nFloor + blk->m_nSlope;
+        end = start + blk->m_nWall;
     } else {
         start = 0;
-        end = blk->n0 + blk->n1 + blk->n2;
+        end = blk->m_nFloor + blk->m_nSlope + blk->m_nWall;
     }
     idx = &blk->idx[start];
     for (i = start; i < end; i++, idx++) {
-        AtPoly* poly = &sat->poly[*idx];
+        AtPoly* poly = &sat->poly_p[*idx];
         if (polyBitCk(*idx)) {
             continue;
         }
         polyBitSet(*idx);
-        if (At_poly_sphere_ck((AtPolyData*) sat, poly, a, b, r, flag, mask)) {
+        if (At_poly_sphere_ck((AtPolyData*) sat, poly, pos0, pos1, r, flag, mask)) {
             ret = 1;
             if (nrm) {
-                *nrm = sat->nrm[sat->poly[*idx].n];
+                *nrm = sat->norm_p[sat->poly_p[*idx].n];
             }
-            if (pG->flags_60 & 0x08000000) {
+            if (pG->Debug_flg[0] & 0x08000000) {
                 sat->disp(*idx, 0x40FF0000, 1);
             }
         }
@@ -790,12 +790,12 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int fl
     return ret;
 }
 
-int cSatMgr::hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int flag, int mask)
+int cSatMgr::hitCheck(Vec* pos0, Vec* pos1, Vec* hit, Vec* nrm, int flag, int mask)
 {
     u32 pn;
     int ret;
 
-    ret = hitCheck2(a, b, hit, &pn, flag, mask);
+    ret = hitCheck2(pos0, pos1, hit, &pn, flag, mask);
     if (nrm && ret) {
         PSMTXMultVecSR(pBypassAt->mat, (Vec*) pn, nrm);
     }
@@ -805,7 +805,7 @@ int cSatMgr::hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int flag, int mask)
 // Segment a-b against every active piece. The nearest hit goes to hit (world) and `attr`
 // receives the address of the hit polygon's normal in the piece's space; b is moved onto the
 // piece's grid (mat * inv * b). Returns the attribute word of the hit polygon or 0.
-int cSatMgr::hitCheck2(Vec* a, Vec* b, Vec* hit, u32* attr, int flag, int mask)
+int cSatMgr::hitCheck2(Vec* pos0, Vec* pos1, Vec* hit, u32* attr, int flag, int mask)
 {
     Vec cur;
     Vec la;
@@ -818,21 +818,21 @@ int cSatMgr::hitCheck2(Vec* a, Vec* b, Vec* hit, u32* attr, int flag, int mask)
 
     // stored through a struct view: keeps the `cur = *b` loads below the store like the original
     ((SEckView*) &SEck)->v = seCk;
-    cur = *b;
+    cur = *pos1;
     for (i = 0; i < nArray; i++) {
         cSat* sat = (cSat*) ((u8*) pArray + size * i);
         if (sat->isAlive()) {
-            cSatBlock* blk = sat->block;
+            cSatBlock* blk = sat->block_p;
             int r;
-            memclr_asm(polyBit, (sat->nPoly >> 3) + 1);
-            PSMTXMultVec(sat->inv, a, &la);
-            PSMTXMultVec(sat->inv, b, &lb);
-            PSMTXMultVec(sat->inv, &cur, &lcur);
+            memclr_asm(polyBit, (sat->polygon_num >> 3) + 1);
+            PSMTXMultVec(sat->imat, pos0, &la);
+            PSMTXMultVec(sat->imat, pos1, &lb);
+            PSMTXMultVec(sat->imat, &cur, &lcur);
             r = blkPolyLineCk(sat, blk, &la, &lb, flag, mask, &lcur, &pn);
             if (r) {
-                PSMTXMultVec(sat->inv, &cur, &tmp);
+                PSMTXMultVec(sat->imat, &cur, &tmp);
                 if (GetDistance(&la, &lcur) < GetDistance(&la, &tmp)) {
-                    PSMTXMultVec(sat->mat, &lb, b);
+                    PSMTXMultVec(sat->mat, &lb, pos1);
                     ret = r;
                     PSMTXMultVec(sat->mat, &lcur, &cur);
                     pBypassAt = sat;
@@ -849,7 +849,7 @@ int cSatMgr::hitCheck2(Vec* a, Vec* b, Vec* hit, u32* attr, int flag, int mask)
     return ret;
 }
 
-int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask, Vec* hit, u32* pn)
+int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn)
 {
     static int new_line_check = 1;
     Vec mid;
@@ -858,9 +858,9 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask,
     int ret = 0;
     int r;
 
-    PSVECAdd(a, b, &mid);
+    PSVECAdd(pos0, pos1, &mid);
     PSVECScale(&mid, &mid, 0.5f);
-    PSVECSubtract(a, &mid, &dir);
+    PSVECSubtract(pos0, &mid, &dir);
     adir.x = fabsf(dir.x);
     adir.y = fabsf(dir.y);
     adir.z = fabsf(dir.z);
@@ -869,14 +869,14 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask,
     mid.y = 0.0f;
     while (blk) {
         if (new_line_check == 0) {
-            if (blk->hitCheckSphere(a, b, 0.0f)) {
-                if (blk->flag & 1) {
-                    r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, a, b, flag, mask, hit, pn);
+            if (blk->hitCheckSphere(pos0, pos1, 0.0f)) {
+                if (blk->m_Flag & 1) {
+                    r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, pos0, pos1, flag, mask, hit, pn);
                     if (r) {
                         ret = r;
                     }
                 } else {
-                    r = blkPolyLineCkCore(sat, blk, a, b, flag, mask, hit, pn);
+                    r = blkPolyLineCkCore(sat, blk, pos0, pos1, flag, mask, hit, pn);
                     if (r) {
                         ret = r;
                     }
@@ -884,13 +884,13 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask,
             }
         } else {
             if (blk->lineOverlap(&mid, &dir, &adir)) {
-                if (blk->flag & 1) {
-                    r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, a, b, flag, mask, hit, pn);
+                if (blk->m_Flag & 1) {
+                    r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, pos0, pos1, flag, mask, hit, pn);
                     if (r) {
                         ret = r;
                     }
                 } else {
-                    r = blkPolyLineCkCore(sat, blk, a, b, flag, mask, hit, pn);
+                    r = blkPolyLineCkCore(sat, blk, pos0, pos1, flag, mask, hit, pn);
                     if (r) {
                         ret = r;
                     }
@@ -902,7 +902,7 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask,
     return ret;
 }
 
-int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask, Vec* hit, u32* pn)
+int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* pos0, Vec* pos1, int flag, int mask, Vec* hit, u32* pn)
 {
     Vec h;
     int ret = 0;
@@ -913,13 +913,13 @@ int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int m
 
     if (flag & 0x40) {
         start = 0;
-        end = blk->n0 + blk->n1;
+        end = blk->m_nFloor + blk->m_nSlope;
     } else if (flag & 0x80) {
-        start = blk->n0 + blk->n1;
-        end = start + blk->n2;
+        start = blk->m_nFloor + blk->m_nSlope;
+        end = start + blk->m_nWall;
     } else {
         start = 0;
-        end = blk->n0 + blk->n1 + blk->n2;
+        end = blk->m_nFloor + blk->m_nSlope + blk->m_nWall;
     }
     n = end - start;
     idx = &blk->idx[start];
@@ -931,19 +931,19 @@ int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int m
         u32 attr;
         idx++;
         no = *idx;
-        poly = &sat->poly[no];
+        poly = &sat->poly_p[no];
         bit = 1 << (no & 7);
         if (polyBit[no >> 3] & bit) {
             continue;
         }
         polyBit[no >> 3] |= bit;
-        attr = At_poly_line_ck((AtPolyData*) sat, &h, poly, a, b, flag, mask);
+        attr = At_poly_line_ck((AtPolyData*) sat, &h, poly, pos0, pos1, flag, mask);
         if (attr) {
-            if (GetDistance(a, &h) < GetDistance(a, hit)) {
+            if (GetDistance(pos0, &h) < GetDistance(pos0, hit)) {
                 *hit = h;
                 ret = attr;
                 if (pn) {
-                    *pn = (u32) &sat->nrm[sat->poly[*idx].n];
+                    *pn = (u32) &sat->norm_p[sat->poly_p[*idx].n];
                 }
             }
         }
@@ -957,7 +957,7 @@ void cSatMgr::destroy(cSat* p)
         pLog->err(0, 0, "cSatMgr::destroy() PTR ERR 0x%08x", p);
         return;
     }
-    if (p->flags & 2) {
+    if (p->m_Flag & 2) {
         Mem_free(p->pFile);
     }
     cManager<cSat>::destroy(p);
@@ -968,7 +968,7 @@ int cSatMgr::construct(cSat* p, u32 id)
     // the alive flag before, the active flag after the constructor: keeps the vptr store last
     p->be_flag = 1;
     new (p) cSat();
-    p->flags = 0;
+    p->m_Flag = 0;
     return 1;
 }
 
@@ -996,23 +996,23 @@ void cSatMgr::disp(int flag)
         switch ((u32) flag & 0xF) {
         case 0:
             s = 0;
-            e = sat->nPoly;
+            e = sat->polygon_num;
             break;
         case 1:
             s = 0;
-            e = sat->nA;
+            e = sat->floor_num;
             break;
         case 2:
-            s = sat->nA;
-            e = s + sat->nB;
+            s = sat->floor_num;
+            e = s + sat->slope_num;
             break;
         case 3:
-            s = sat->nPoly - sat->nC;
-            e = sat->nPoly;
+            s = sat->polygon_num - sat->wall_num;
+            e = sat->polygon_num;
             break;
         }
         for (j = s; j < e; j++) {
-            AtPoly* poly = (AtPoly*) (j * sizeof(AtPoly) + (u32) sat->poly);
+            AtPoly* poly = (AtPoly*) (j * sizeof(AtPoly) + (u32) sat->poly_p);
             u32 attr = (poly->attrHi & 0xFF) << 16;
             attr |= poly->attrLo;
             u32 color;
@@ -1047,45 +1047,45 @@ void cSat::init(cSatFile* f, Vec* pos, Vec* rot)
     if (!f->dataCheck()) {
         pLog->err(0, 0, "ATARI DATA ERROR 0x%08x", f);
     }
-    flags = 4;
+    m_Flag = 4;
     *this = f;
     setCoord(pos, rot);
-    blockInit(block);
+    blockInit(block_p);
 }
 
 void cSat::setCoord(Vec* pos, Vec* rot)
 {
     RotMatrix(mat, rot);
     TransMatrix(mat, pos);
-    PSMTXInverse(mat, inv);
+    PSMTXInverse(mat, imat);
 }
 
 void cSat::setMatrix(Mtx m)
 {
     memcpy(mat, m, sizeof(Mtx));
-    PSMTXInverse(mat, inv);
+    PSMTXInverse(mat, imat);
 }
 
 cSat& cSat::operator=(cSatFile* f)
 {
     Vec* v;
 
-    nVertex = f->nVertex;
-    nPoly = f->nPoly;
-    nNormal = f->nNormal;
-    nEdge = f->nEdge;
-    nA = f->nA;
-    nB = f->nB;
-    nC = f->nC;
-    x26 = f->x12;
+    vertex_num = f->m_nVertex;
+    polygon_num = f->m_nPolygon;
+    normal_num = f->m_nNormal;
+    nEdge = f->m_nEdge;
+    floor_num = f->m_nFloor;
+    slope_num = f->m_nSlope;
+    wall_num = f->m_nWall;
+    bb_num = f->m_nBlock;
     v = f->getVertexPtr();
     pFile = f;
     x5C = 0;
     vtx = v;
-    nrm = v + nVertex;
-    edge = nrm + nNormal;
-    poly = (AtPoly*) (edge + nEdge);
-    block = (cSatBlock*) (poly + nPoly);
+    norm_p = v + vertex_num;
+    edge_p = norm_p + normal_num;
+    poly_p = (AtPoly*) (edge_p + nEdge);
+    block_p = (cSatBlock*) (poly_p + polygon_num);
     return *this;
 }
 
@@ -1100,7 +1100,7 @@ void cSat::blockInit(cSatBlock* blk)
         return;
     }
     do {
-        if (blk->flag & 1) {
+        if (blk->m_Flag & 1) {
             blockInit((cSatBlock*) blk->idx);
         }
         {
@@ -1126,11 +1126,11 @@ void cSat::disp(int no, u32 color, int zupd)
     Mtx m;
     Vec n;
     Vec w;
-    AtPoly* pt = poly;
+    AtPoly* pt = poly_p;
     Vec* vt = vtx;
     u16 i;
 
-    PSMTXConcat(pG->Cam.viewMat, mat, m);
+    PSMTXConcat(pG->Cam.v_mat, mat, m);
     for (i = 0; i < 3; i++) {
         AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) pt);
         Vec* v = (Vec*) (*(u16*) (i * 2 + (u32) pl) * sizeof(Vec) + (u32) vt);
@@ -1155,10 +1155,10 @@ void cSat::disp(int no, u32 color, int zupd)
     PSVECAdd(&p[0], &p[2], &p[0]);
     PSVECScale(&p[0], &p[0], 1.0f / 3.0f);
     {
-        AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) poly);
-        n.x = nrm[pl->n].x;
-        n.y = nrm[pl->n].y;
-        n.z = nrm[pl->n].z;
+        AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) poly_p);
+        n.x = norm_p[pl->n].x;
+        n.y = norm_p[pl->n].y;
+        n.z = norm_p[pl->n].z;
     }
     PSVECScale(&n, &p[1], 100.0f);
     PSVECAdd(&p[0], &p[1], &p[1]);
@@ -1178,7 +1178,7 @@ Vec* cSatFile::getVertexPtr()
 
 int cSatFile::dataCheck()
 {
-    return nPoly <= 0x1FFF;
+    return m_nPolygon <= 0x1FFF;
 }
 
 cSatFile* cSatHeader::getSat(int no)
@@ -1336,15 +1336,15 @@ cSatFile* createSat(Vec* v, u32 attr, f32 h)
         pLog->err(0, 0, "createSat() memory alloc failed.");
         return 0;
     }
-    f->id = 0xFF;
-    f->nVertex = 8;
-    f->nNormal = 4;
-    f->nEdge = 24;
-    f->nPoly = 8;
-    f->nA = 0;
-    f->nB = 0;
-    f->nC = 8;
-    f->x12 = 1;
+    f->m_Version = 0xFF;
+    f->m_nVertex = 8;
+    f->m_nNormal = 4;
+    f->m_nEdge = 24;
+    f->m_nPolygon = 8;
+    f->m_nFloor = 0;
+    f->m_nSlope = 0;
+    f->m_nWall = 8;
+    f->m_nBlock = 1;
     vtx = (Vec*) (f + 1);
     vtx[0] = v[0];
     vtx[1] = v[1];
@@ -1396,7 +1396,7 @@ cSatFile* createSat(Vec* v, u32 attr, f32 h)
     }
     blk = (cSatBlock*) (poly + 8);
     blk->min = vtx[0];
-    blk->size = vtx[0];
+    blk->m_Size = vtx[0];
     for (i = 1; i < 4; i++) {
         if (vtx[i].x < blk->min.x) {
             blk->min.x = vtx[i].x - 10.0f;
@@ -1404,19 +1404,19 @@ cSatFile* createSat(Vec* v, u32 attr, f32 h)
         if (vtx[i].z < blk->min.z) {
             blk->min.z = vtx[i].z - 10.0f;
         }
-        if (vtx[i].x > blk->size.x) {
-            blk->size.x = vtx[i].x + 10.0f;
+        if (vtx[i].x > blk->m_Size.x) {
+            blk->m_Size.x = vtx[i].x + 10.0f;
         }
-        if (vtx[i].z > blk->size.z) {
-            blk->size.z = vtx[i].z + 10.0f;
+        if (vtx[i].z > blk->m_Size.z) {
+            blk->m_Size.z = vtx[i].z + 10.0f;
         }
     }
-    blk->size.x -= blk->min.x;
-    blk->size.z -= blk->min.z;
-    blk->n0 = 0;
-    blk->n1 = 0;
-    blk->n2 = 8;
-    blk->flag = 0;
+    blk->m_Size.x -= blk->min.x;
+    blk->m_Size.z -= blk->min.z;
+    blk->m_nFloor = 0;
+    blk->m_nSlope = 0;
+    blk->m_nWall = 8;
+    blk->m_Flag = 0;
     blk->next = 0;
     for (i = 0; i < 8; i++) {
         blk->idx[i] = i;
@@ -1456,15 +1456,15 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h)
         pLog->err(0, 0, "createSat() memory alloc failed.");
         return 0;
     }
-    f->id = 0xFF;
-    f->nVertex = 8;
-    f->nNormal = 6;
-    f->nEdge = 36;
-    f->nPoly = 12;
-    f->nA = 0;
-    f->nB = 4;
-    f->nC = 8;
-    f->x12 = 1;
+    f->m_Version = 0xFF;
+    f->m_nVertex = 8;
+    f->m_nNormal = 6;
+    f->m_nEdge = 36;
+    f->m_nPolygon = 12;
+    f->m_nFloor = 0;
+    f->m_nSlope = 4;
+    f->m_nWall = 8;
+    f->m_nBlock = 1;
     vtx = (Vec*) (f + 1);
     vtx[0] = v[0];
     vtx[1] = v[1];
@@ -1516,7 +1516,7 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h)
     }
     blk = (cSatBlock*) (poly + 12);
     blk->min = vtx[0];
-    blk->size = vtx[0];
+    blk->m_Size = vtx[0];
     for (i = 1; i < 4; i++) {
         if (vtx[i].x < blk->min.x) {
             blk->min.x = vtx[i].x - 10.0f;
@@ -1524,19 +1524,19 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h)
         if (vtx[i].z < blk->min.z) {
             blk->min.z = vtx[i].z - 10.0f;
         }
-        if (vtx[i].x > blk->size.x) {
-            blk->size.x = vtx[i].x + 10.0f;
+        if (vtx[i].x > blk->m_Size.x) {
+            blk->m_Size.x = vtx[i].x + 10.0f;
         }
-        if (vtx[i].z > blk->size.z) {
-            blk->size.z = vtx[i].z + 10.0f;
+        if (vtx[i].z > blk->m_Size.z) {
+            blk->m_Size.z = vtx[i].z + 10.0f;
         }
     }
-    blk->size.x -= blk->min.x;
-    blk->size.z -= blk->min.z;
-    blk->n0 = 0;
-    blk->n1 = 4;
-    blk->n2 = 8;
-    blk->flag = 0;
+    blk->m_Size.x -= blk->min.x;
+    blk->m_Size.z -= blk->min.z;
+    blk->m_nFloor = 0;
+    blk->m_nSlope = 4;
+    blk->m_nWall = 8;
+    blk->m_Flag = 0;
     blk->next = 0;
     for (i = 0; i < 12; i++) {
         blk->idx[i] = i;
@@ -1566,15 +1566,15 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
         pLog->err(0, 0, "createSat() memory alloc failed.");
         return 0;
     }
-    f->id = 0xFF;
-    f->nVertex = 4;
-    f->nNormal = 1;
-    f->nEdge = 6;
-    f->nPoly = 2;
-    f->nA = 2;
-    f->nB = 0;
-    f->nC = 0;
-    f->x12 = 1;
+    f->m_Version = 0xFF;
+    f->m_nVertex = 4;
+    f->m_nNormal = 1;
+    f->m_nEdge = 6;
+    f->m_nPolygon = 2;
+    f->m_nFloor = 2;
+    f->m_nSlope = 0;
+    f->m_nWall = 0;
+    f->m_nBlock = 1;
     vtx = (Vec*) (f + 1);
     vtx[0] = v[0];
     vtx[1] = v[1];
@@ -1618,7 +1618,7 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
     }
     blk = (cSatBlock*) (poly + 2);
     blk->min = vtx[0];
-    blk->size = vtx[0];
+    blk->m_Size = vtx[0];
     for (i = 1; i < 4; i++) {
         if (vtx[i].x < blk->min.x) {
             blk->min.x = vtx[i].x - 10.0f;
@@ -1626,19 +1626,19 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
         if (vtx[i].z < blk->min.z) {
             blk->min.z = vtx[i].z - 10.0f;
         }
-        if (vtx[i].x > blk->size.x) {
-            blk->size.x = vtx[i].x + 10.0f;
+        if (vtx[i].x > blk->m_Size.x) {
+            blk->m_Size.x = vtx[i].x + 10.0f;
         }
-        if (vtx[i].z > blk->size.z) {
-            blk->size.z = vtx[i].z + 10.0f;
+        if (vtx[i].z > blk->m_Size.z) {
+            blk->m_Size.z = vtx[i].z + 10.0f;
         }
     }
-    blk->size.x -= blk->min.x;
-    blk->size.z -= blk->min.z;
-    blk->n0 = 2;
-    blk->n1 = 0;
-    blk->n2 = 0;
-    blk->flag = 0;
+    blk->m_Size.x -= blk->min.x;
+    blk->m_Size.z -= blk->min.z;
+    blk->m_nFloor = 2;
+    blk->m_nSlope = 0;
+    blk->m_nWall = 0;
+    blk->m_Flag = 0;
     blk->next = 0;
     for (i = 0; i < 2; i++) {
         blk->idx[i] = i;
@@ -1647,17 +1647,17 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
 }
 
 // Move the model (and its parts' world matrices) by d after a collision push.
-void at_pos_calc(cModel* m, Vec* d)
+void at_pos_calc(cModel* m, Vec* vec)
 {
     cModel* c = m->pParts;
 
-    if (PSVECMag(d) != 0.0f) {
-        PSVECAdd(&m->pos, d, &m->pos);
+    if (PSVECMag(vec) != 0.0f) {
+        PSVECAdd(&m->pos, vec, &m->pos);
         while (c) {
-            PSVECAdd(&c->worldPos, d, &c->worldPos);
-            c->mat[0][3] += d->x;
-            c->mat[1][3] += d->y;
-            c->mat[2][3] += d->z;
+            PSVECAdd(&c->world, vec, &c->world);
+            c->mat[0][3] += vec->x;
+            c->mat[1][3] += vec->y;
+            c->mat[2][3] += vec->z;
             c = c->pParts;
         }
         m->mat[0][3] = m->pos.x;

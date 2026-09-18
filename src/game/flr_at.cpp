@@ -23,7 +23,7 @@ void FlrAtInit()
 
     pFlrSys = &FlrAt_sys;
     memclr_asm(&FlrAt_sys, sizeof(FlrAt_sys));
-    p = (FlrAtHead*) GetDataExt(pG->pRoomArc, "FSE", 0);
+    p = (FlrAtHead*) GetDataExt(pG->pRoom, "FSE", 0);
     if (p == 0) {
         return;
     }
@@ -45,10 +45,10 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
     u32 i;
     int hit = 0;
 
-    if (pG->x20 != 3) {
+    if (pG->Rno0 != 3) {
         return 0;
     }
-    if (pG->flags_500C & 0x10000000) {
+    if (pG->Status_flg[0] & 0x10000000) {
         return 0;
     }
     if (pFlrSys == 0) {
@@ -62,7 +62,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
     p.z = pos->z;
     for (i = 0; i < ((FlrAtHead*) pFlrSys->pData)->num; i++) {
         at = &pFlrSys->pList[i];
-        if ((at->x0 & 1) == 0) {
+        if ((at->flag & 1) == 0) {
             continue;
         }
         if (at->group != pFlrSys->group && pFlrSys->group != 0xFF) {
@@ -93,7 +93,7 @@ static int FlrAtSetEnable(int no)
         pLog->err(0, 0, "FlrAtSetEnable() : AT DATA NOT FOUND");
         return 0;
     }
-    pFlrSys->pList[no].x0 |= 1;
+    pFlrSys->pList[no].flag |= 1;
     return 1;
 }
 
@@ -103,18 +103,18 @@ static int FlrAtSetDisable(int no)
         pLog->err(0, 0, "FlrAtSetDisable() : AT DATA NOT FOUND");
         return 0;
     }
-    pFlrSys->pList[no].x0 &= ~1;
+    pFlrSys->pList[no].flag &= ~1;
     return 1;
 }
 
-int FlrAtSetDefVal(u32 no, u8 a, u8 b)
+int FlrAtSetDefVal(u32 no, u8 foot_se_set, u8 eff_no)
 {
     if (no != 0xFF && no > 0x3F) {
         pLog->err(0, 0, "FlrAt : group %d Illegal No.", no);
         return 0;
     }
     no = no == 0xFF ? 0x40 : no;
-    pFlrSys->foot_se[no] = a;
-    pFlrSys->foot_esp[no] = b;
+    pFlrSys->foot_se[no] = foot_se_set;
+    pFlrSys->foot_esp[no] = eff_no;
     return 1;
 }

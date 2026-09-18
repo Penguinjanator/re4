@@ -12,12 +12,12 @@
 
 // laser line: cEsp19 (game/esp19.cpp) work
 struct Esp19Work {
-    Vec target;  // 0x00 end point of the line
-    f32 len;     // 0x0C maximum length
+    Vec Vec0;  // 0x00 end point of the line
+    f32 max_laser_dist;     // 0x0C maximum length
 };
 class cEsp19 : public cEsp {
 public:
-    Esp19Work w;  // 0xF8
+    Esp19Work m_Free;  // 0xF8
 };
 
 class cEsp46;
@@ -207,7 +207,7 @@ void EspFootCall(int type, int no, Vec* pos)
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;
-            EstSet(0, -1, &fpos, NULL, pl->pRoomEff[4].id, pl->pRoomEff[4].type, 0, 0, 0, NULL);
+            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[4].id, pl->m_pEffRoom[4].type, 0, 0, 0, NULL);
             break;
         default:
             pLog->err(0, 0, "EspFootCall() : FootSeNo[%d] invalid.", no);
@@ -232,7 +232,7 @@ void EspFootCall(int type, int no, Vec* pos)
             fpos.x = pl->pos.x;
             fpos.y = h;
             fpos.z = pl->pos.z;
-            EstSet(0, -1, &fpos, NULL, pl->pRoomEff[5].id, pl->pRoomEff[5].type, 0, 0, 0, NULL);
+            EstSet(0, -1, &fpos, NULL, pl->m_pEffRoom[5].id, pl->m_pEffRoom[5].type, 0, 0, 0, NULL);
             break;
         default:
             pLog->err(0, 0, "EspFootCall() : FootSeNo[%d] invalid.", no);
@@ -304,18 +304,18 @@ void EffAreaUpdate()
     int y;
     SstAreaEnt* ent;
 
-    if (pG->flags_5010 & 0x800) {
-        BitOn(pG->flags_5010, 0x02000000);
+    if (pG->Status_flg[1] & 0x800) {
+        BitOn(pG->Status_flg[1], 0x02000000);
     } else {
-        BitOff(pG->flags_5010, 0x02000000);
+        BitOff(pG->Status_flg[1], 0x02000000);
     }
-    if (pG->flags_170 & 0x20) {
+    if (pG->Stop_flg & 0x20) {
         return;
     }
     if (sys->pSstArea == NULL) {
         return;
     }
-    if ((pG->flags_5014 & 0x10000) == 0) {
+    if ((pG->Status_flg[2] & 0x10000) == 0) {
         pos = pPL->pos;
         pos.y += 100.0f;
     } else {
@@ -325,13 +325,13 @@ void EffAreaUpdate()
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
-            flag |= 1 << ent->bit;
-            if (ent->flags & 1) {
-                pG->flags_5010 |= 0x02000000;
+            flag |= 1 << ent->area_no;
+            if (ent->flag & 1) {
+                pG->Status_flg[1] |= 0x02000000;
             }
         }
     }
-    flag |= sys->sstAddAreaFlag;
+    flag |= sys->Add_area_bit;
     asm("" : "=m"(*(u32*) &pos)); // COMPILER-DIFF: candidate (sched2 issue-slot filler)
     y = 0;
     // y is the hit count; the row `0xE8 + y * 0x10` is a strength-reduced giv (its `li 0xE8` is
@@ -342,7 +342,7 @@ void EffAreaUpdate()
     // load; `pos.x` (in-struct) would delay the lwz.
     for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
-            if (pG->flags_6C & 0x8000) {
+            if (pG->Debug_flg[3] & 0x8000) {
                 eprintf(0x1D8, 0xE8 + y * 0x10, 0x16, 0, "%d", j);
                 y++;
             }
@@ -362,7 +362,7 @@ int EffAreaCheckInRoom(Vec* pos)
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, pos) == 1) {
-            if (ent->flags & 1) {
+            if (ent->flag & 1) {
                 return 1;
             }
         }
@@ -378,7 +378,7 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
 
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
-        if (areaNo == ent->bit) {
+        if (areaNo == ent->area_no) {
             if (AreaHitCheck(ent->area, pos) == 1) {
                 return 1;
             }
@@ -393,7 +393,7 @@ void EffEm2d_setTexRender(cModel* m)
     u8* tbl = buf;
     int repType = 1;
 
-    if ((pG->flags_5010 & 0x10) == 0) {
+    if ((pG->Status_flg[1] & 0x10) == 0) {
         TexRenderMng* mgr;
         TexRenderMng* mgr2;
 
@@ -401,10 +401,10 @@ void EffEm2d_setTexRender(cModel* m)
             pLog->err(0, 0, "EffEm2d_setTexRender() : Manager alloc failed!!");
             return;
         }
-        BitOn(pG->flags_5010, 0x10);
+        BitOn(pG->Status_flg[1], 0x10);
         mgr = pMgr;
-        BitSet(mgr->sx, 0x40);
-        BitSet(mgr->sy, 0x40);
+        BitSet(mgr->m_W_size, 0x40);
+        BitSet(mgr->m_H_size, 0x40);
         pMgr->ReAllocBuf();
         tbl[0] = 4;
         tbl[1] = 0;
@@ -417,11 +417,11 @@ void EffEm2d_setTexRender(cModel* m)
         tbl[9] = mgr2->texId;
         tbl[0xA] = 6;
         tbl[0xB] = mgr2->texId;
-        ISet(mgr2->repType, repType);
+        ISet(mgr2->m_Rep_type, repType);
         EstSet(0, -1, NULL, NULL, 0x25, 0x1F, pMgr->mask | 0x801, 0, 0, NULL);
     }
-    m->pInfo->setTexBlendTbl(tbl);
-    m->pInfo->setBlendRatio(0);
+    m->pModelInfo->setTexBlendTbl(tbl);
+    m->pModelInfo->setBlendRatio(0);
 }
 
 // The five `esp` reloads and the 0.8f pool high are local-alloc qtys allocated by priority
@@ -438,25 +438,25 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     cEsp19* e;
     Esp19Work* w;
 
-    if (pG->flags_6C & 0x40) {
+    if (pG->Debug_flg[3] & 0x40) {
         return;
     }
     if (!EspEstSetSelect(0, 3, 0, &esp, 0)) {
         return;
     }
     e = (cEsp19*) esp;
-    w = &e->w;
-    e->pos = from;
-    w->target = to;
-    w->len *= width;
-    if (pGS->flags_5010 & 1) {
+    w = &e->m_Free;
+    e->m_Pos = from;
+    w->Vec0 = to;
+    w->max_laser_dist *= width;
+    if (pGS->Status_flg[1] & 1) {
         cEsp* e1 = esp;
         e1->xA4 = 1;
         asm("" : "=m"(esp) : "r"(e1), "r"(e1)); // COMPILER-DIFF: candidate (local-alloc qty order)
         esp->xA5 = 4;
         esp->xA6 = 5;
         esp->xA7 = 0;
-        esp->colA *= 0.8f;
+        esp->m_Col_a *= 0.8f;
     }
 }
 
@@ -466,21 +466,21 @@ void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
 
     if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
         cEsp19* e = (cEsp19*) esp;
-        e->pos = *from;
-        e->w.target = *to;
-        esp->colR = (f32) r;
-        esp->colG = (f32) g;
-        esp->colB = (f32) b;
-        esp->colA = (f32) a;
+        e->m_Pos = *from;
+        e->m_Free.Vec0 = *to;
+        esp->m_Col_r = (f32) r;
+        esp->m_Col_g = (f32) g;
+        esp->m_Col_b = (f32) b;
+        esp->m_Col_a = (f32) a;
     }
     if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
         cEsp19* e = (cEsp19*) esp;
-        e->pos = *to;
-        e->w.target = *from;
-        esp->colR = (f32) r;
-        esp->colG = (f32) g;
-        esp->colB = (f32) b;
-        esp->colA = (f32) a;
+        e->m_Pos = *to;
+        e->m_Free.Vec0 = *from;
+        esp->m_Col_r = (f32) r;
+        esp->m_Col_g = (f32) g;
+        esp->m_Col_b = (f32) b;
+        esp->m_Col_a = (f32) a;
     }
 }
 
@@ -491,25 +491,25 @@ void EspSetGatling(Vec pos, Vec dir)
     if (!EspEstSetSelect(0, 0x52, 0, &esp, 0)) {
         return;
     }
-    esp->pos = pos;
-    esp->spd = dir;
+    esp->m_Pos = pos;
+    esp->m_Speed = dir;
 #line 689 "D:/Bio4/Prog/esp_app.cpp"
-    VECNormalize(&esp->spd, &esp->spd);
-    PSVECScale(&esp->spd, &esp->spd, 3000.0f);
-    if (pG->flags_5014 & 0x02000000) {
-        esp->info.x0 |= 1;
+    VECNormalize(&esp->m_Speed, &esp->m_Speed);
+    PSVECScale(&esp->m_Speed, &esp->m_Speed, 3000.0f);
+    if (pG->Status_flg[2] & 0x02000000) {
+        esp->info.Core_flg |= 1;
     }
 }
 
 void setPlWaterOtType()
 {
-    Vec* wp = &pPL->getPartsPtr(3)->worldPos;
+    Vec* wp = &pPL->getPartsPtr(3)->world;
     f32 h;
 
     if (GetWaterHeight(&pPL->pos, &h) && wp->y < h) {
-        pPL->x12F = 0;
+        pPL->ot_type = 0;
     } else {
-        pPL->x12F = 7;
+        pPL->ot_type = 7;
     }
 }
 

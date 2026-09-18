@@ -50,21 +50,21 @@ void R22aInit()
 {
 #line 50 "D:/Bio4/Prog/r22a.cpp"
     r22a_work = (R22aWork*) MEM_CALLOC(sizeof(R22aWork), 1, 0xd);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r22a_RopeMove, 0, 1);
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r22a_RopeMove, (void*) 1, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r22a_RopeMove, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r22a_RopeMove, (void*) 1, 1);
     EvtMgr.SetFunc("evt_r22as00_func", (void*) Evt_R22AS00_Func);
     EvtMgr.SetFunc("evt_r22as99_func", (void*) Evt_R22AS00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtSetEnable(6, 1);
-        SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) R22A_Event, 0, 1);
+        SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) R22A_Event, 0, 1);
         EvtMgr.EvtReadAram("event/evd/r22as00.evd", 0, 0, 0, 0);
     } else {
         SceAtSetEnable(6, 0);
     }
     SmdSetTrans(0x50, 0);
-    SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r22a_EleDown, 0, 1);
-    SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r22a_EleUp, 0, 1);
-    if (pG->flags_54 & 0x100) {
+    SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r22a_EleDown, 0, 1);
+    SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r22a_EleUp, 0, 1);
+    if (pG->System_flg & 0x100) {
         SmdGetObjPtr(0x4F)->be_flag |= 0x20;
         SmdGetObjPtr(0x4F)->pos.y = -8500.0f;
     }
@@ -87,20 +87,20 @@ static void r22a_RopeMove(int side)
     Vec ang = r22a_ropeAng;
     Vec out;
     cPlayer* pl = pPL;
-    u32 flags = pGS->flags_170;
+    u32 flags = pGS->Stop_flg;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
-    U32Set(pG->flags_170, 0xFFFFFFFF);
-    pG->flags_170 &= ~0x00800000;
+    U32Set(pG->Stop_flg, 0xFFFFFFFF);
+    pG->Stop_flg &= ~0x00800000;
     FadeSetW(2, 10, 0, 0);
     SceSleep(10);
     SmdSetTrans(0x2F, 0);
-    pG->flags_170 = flags;
+    pG->Stop_flg = flags;
     FadeSetW(0x80000002, 10, 0, 0);
     SceEventStart(0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (side == 0) {
         SndStrReq(1, 0x25, 0x80000003, 0, 0, 0.0f);
@@ -114,15 +114,15 @@ static void r22a_RopeMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 10, 0, 0x201, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -154,15 +154,15 @@ static void r22a_RopeMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 10, 0, 1, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 10, 0, 1, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -185,9 +185,9 @@ static void r22a_RopeMove(int side)
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     SceEventEnd(0);
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     FadeSetW(0x80000002, 30, 0, 0);
     SmdSetTrans(0x2F, 1);
 }
@@ -202,9 +202,9 @@ extern "C" void R22A_Event()
         EvtMgr.EvtReadExec("event/evd/r22as00.evd", 0, 0x50);
         SceSleep(1);
         SceEventEnd(0);
-        pG->flags_51C0 |= 0x10000;
+        pG->Scenario_flg[0] |= 0x10000;
         SceAtInitSaveItem();
-        SceSetChapterEnd(0xD, 1);
+        SceSetChapterEnd(CHAPTER_4_4, 1);
     }
 }
 
@@ -213,7 +213,7 @@ extern "C" void Evt_R22AS00_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                 Obj18CmfOn((cObj*) mod, 5);
@@ -239,7 +239,7 @@ static void r22a_EleDown()
     pPL->setNoSuspend(1);
     SceEventStart(0);
     ((cUnitEventView*) pPL)->beginEvent(0);
-    pG->flags_58 |= 0x02000000;
+    pG->Disp_flg |= 0x02000000;
     CamCtrl.CutCall(2);
     obj = SmdGetObjPtr(0x4F);
     BitOn(obj->be_flag, 0x20);
@@ -272,7 +272,7 @@ static void r22a_EleDown()
     pPL->pos.y = -8500.0f;
     SmdGetObjPtr(0x4F)->pos.y = -8500.0f;
     SceSleep(15);
-    pG->flags_58 &= ~0x02000000;
+    pG->Disp_flg &= ~0x02000000;
     SceEventEnd(0);
     ((cUnitEventView*) pPL)->endEvent(0);
     pPL->setNoSuspend(0);
@@ -287,7 +287,7 @@ static void r22a_EleUp()
     pPL->setNoSuspend(1);
     SceEventStart(0);
     ((cUnitEventView*) pPL)->beginEvent(0);
-    pG->flags_58 |= 0x02000000;
+    pG->Disp_flg |= 0x02000000;
     CamCtrl.CutCall(4);
     obj = SmdGetObjPtr(0x4F);
     BitOn(obj->be_flag, 0x20);
@@ -320,7 +320,7 @@ static void r22a_EleUp()
     pPL->pos.y = 26500.0f;
     SmdGetObjPtr(0x4F)->pos.y = 26500.0f;
     SceSleep(15);
-    pG->flags_58 &= ~0x02000000;
+    pG->Disp_flg &= ~0x02000000;
     SceEventEnd(0);
     ((cUnitEventView*) pPL)->endEvent(0);
     pPL->setNoSuspend(0);

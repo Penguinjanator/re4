@@ -23,7 +23,7 @@ int cDmgMgr::construct(cDmg* p, int id)
         p->be_flag = 1;
         break;
     }
-    p->id = id;
+    p->m_Id = id;
     return 1;
 }
 
@@ -40,7 +40,7 @@ void cDmgMgr::move()
         cDmg* p = (cDmg*) ((u8*) pArray + size * i);
         dieCheck();
         if ((p->be_flag & 0x201) == 1) {
-            if (--p->timer == 0) {
+            if (--p->m_Time == 0) {
                 destroy(p);
             }
         }
@@ -55,10 +55,10 @@ int cDmgMgr::set(int kind, int time, Vec* pos, f32 r, f32 h)
         return 0;
     }
     p->kind = kind;
-    p->timer = time;
-    p->pos = *pos;
-    p->r = r;
-    p->h = h;
+    p->m_Time = time;
+    p->m_Pos = *pos;
+    p->m_Radius = r;
+    p->m_Height = h;
     return 1;
 }
 
@@ -70,11 +70,11 @@ int cDmgMgr::set(int kind, int time, Vec* pt, f32 h)
         return 0;
     }
     p->kind = kind;
-    p->timer = time;
-    p->pt[0] = pt[0];
-    p->pt[1] = pt[1];
-    p->pt[2] = pt[2];
-    p->pt[3] = pt[3];
+    p->m_Time = time;
+    p->m_Pos[0] = pt[0];
+    p->m_Pos[1] = pt[1];
+    p->m_Pos[2] = pt[2];
+    p->m_Pos[3] = pt[3];
     p->h = h;
     return 1;
 }
@@ -96,20 +96,20 @@ int cDmgMgr::hitCheck(Vec* pos, Vec* out)
 
 int cDmgCyl::hitCheck(Vec* p, Vec* out)
 {
-    if (pG->flags_68 & 0x10000000) {
-        Draw_cylinder(&pos, r, h, 0xFFFFFFFF);
+    if (pG->Debug_flg[2] & 0x10000000) {
+        Draw_cylinder(&m_Pos, m_Radius, m_Height, 0xFFFFFFFF);
     }
-    if (p->y > pos.y + h) {
+    if (p->y > m_Pos.y + m_Height) {
         return 0;
     }
-    if (p->y < pos.y - h) {
+    if (p->y < m_Pos.y - m_Height) {
         return 0;
     }
-    if ((p->x - pos.x) * (p->x - pos.x) + (p->z - pos.z) * (p->z - pos.z) > r * r) {
+    if ((p->x - m_Pos.x) * (p->x - m_Pos.x) + (p->z - m_Pos.z) * (p->z - m_Pos.z) > m_Radius * m_Radius) {
         return 0;
     }
     if (out) {
-        *out = pos;
+        *out = m_Pos;
     }
     return kind;
 }
@@ -118,13 +118,13 @@ int cDmgP4::hitCheck(Vec* p, Vec* out)
 {
     u32 i;
 
-    if (HitCheckPoint4(p, pt)) {
+    if (HitCheckPoint4(p, m_Pos)) {
         if (out) {
             out->x = 0.0f;
             out->y = 0.0f;
             out->z = 0.0f;
             for (i = 0; i < 4; i++) {
-                PSVECAdd(out, &pt[i], out);
+                PSVECAdd(out, &m_Pos[i], out);
             }
             PSVECScale(out, out, 0.25f);
         }

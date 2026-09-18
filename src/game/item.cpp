@@ -27,11 +27,11 @@ extern f32 WeaponLevelTbl[0x2E][7];     // em_dm_val
 extern f32 PlShotFrameTbl[][5];         // pl_class
 extern f32 PlReloadSpeedTbl[][3];       // pl_class
 
-// One weapon (22 bytes): item id, x8 attribute, weapon number/type, bullet item id, magazine size per
+// One weapon (22 bytes): item id, bullet attribute, weapon number/type, bullet item id, magazine size per
 // exclusive tune level (1..7).
 struct WepInfo {
     u16 id;         // 0x00
-    u8 attr;        // 0x02  ItemWork::x8 >> 13 this row applies to
+    u8 attr;        // 0x02  ItemWork::bullet >> 13 this row applies to
     u8 no;          // 0x03  weapon number (pG->wep_no)
     u8 type;        // 0x04  weapon type (pG->wep_type)
     u8 x5;
@@ -58,19 +58,19 @@ struct ItemSet {
     u16 num;
 };
 
-// ItemWork::x6 tune level nibbles
-#define LV_EX(p) ((u8) (p)->x6 & 0xF)
-#define LV_FIRE_SET(p, v) ((p)->x6 = ((p)->x6 & 0x0FFF) | ((v) << 12))
-#define LV_MAG_SET(p, v) ((p)->x6 = ((p)->x6 & 0xF0FF) | ((v) << 8))
-#define LV_SPEED_SET(p, v) ((p)->x6 = ((p)->x6 & 0xFF0F) | ((v) << 4))
-#define LV_EX_SET(p, v) ((p)->x6 = ((p)->x6 & 0xFFF0) | (v))
-// ItemWork::x8: 3-bit attribute and 13-bit bullet count
-#define ATTR(p) ((p)->x8 >> 13)
-#define BULLET(p) ((p)->x8 & 0x1FFF)
+// ItemWork::lv tune level nibbles
+#define LV_EX(p) ((u8) (p)->lv & 0xF)
+#define LV_FIRE_SET(p, v) ((p)->lv = ((p)->lv & 0x0FFF) | ((v) << 12))
+#define LV_MAG_SET(p, v) ((p)->lv = ((p)->lv & 0xF0FF) | ((v) << 8))
+#define LV_SPEED_SET(p, v) ((p)->lv = ((p)->lv & 0xFF0F) | ((v) << 4))
+#define LV_EX_SET(p, v) ((p)->lv = ((p)->lv & 0xFFF0) | (v))
+// ItemWork::bullet: 3-bit attribute and 13-bit bullet count
+#define ATTR(p) ((p)->bullet >> 13)
+#define BULLET(p) ((p)->bullet & 0x1FFF)
 
 static inline void setBullet(ItemWork* p, u16 n)
 {
-    p->x8 = (p->x8 & 0xE000) | (n & 0x1FFF);
+    p->bullet = (p->bullet & 0xE000) | (n & 0x1FFF);
 }
 
 static inline void U16Set(u16& d, u16 v) { d = v; }
@@ -99,7 +99,7 @@ static inline int itemEmpty(ItemWork* p)
 
 #define ITEM_TYPE(id) (itemInfo((id), &info), info.type)
 #define ITEM_UNIT(id) (itemInfo((id), &info), info.x3)
-#define ITEM_MAX(id) (itemInfo((id), &info), info.x4)
+#define ITEM_MAX(id) (itemInfo((id), &info), info.maxNum)
 
 // display order of the item ids (gld_order)
 u16 g_item_order[] = {
@@ -196,7 +196,7 @@ cItemMgr ItemMgr;
 
 int healing(u16 n)
 {
-    if (ItemMgr.x12 == 0) {
+    if (ItemMgr.m_to_whom == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
             U16Set(pG->pl_life, n + pG->pl_life);
             if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
@@ -204,11 +204,11 @@ int healing(u16 n)
             }
             return 1;
         }
-    } else if (ItemMgr.x12 == 1) {
-        if ((s16) pG->sub_life < (s16) pG->sub_life_max) {
-            U16Set(pG->sub_life, n + pG->sub_life);
-            if ((s16) pG->sub_life > (s16) pG->sub_life_max) {
-                pG->sub_life = pG->sub_life_max;
+    } else if (ItemMgr.m_to_whom == 1) {
+        if ((s16) pG->ashley_life < (s16) pG->ashley_life_max) {
+            U16Set(pG->ashley_life, n + pG->ashley_life);
+            if ((s16) pG->ashley_life > (s16) pG->ashley_life_max) {
+                pG->ashley_life = pG->ashley_life_max;
             }
             return 1;
         }
@@ -288,7 +288,7 @@ void cItemMgr::clear()
         p->flags = 0;
     }
     flagclear();
-    checkId = 0xFFFF;
+    used_id = 0xFFFF;
 }
 
 int cItemMgr::set_game(int no)
@@ -417,8 +417,8 @@ int cItemMgr::set_ada(int no)
         p = search(0x2F);
         LV_SET(p, 5, 0, 1, 1);
         CHARGE(p);
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(search(0x21));
     }
     return 0;
@@ -470,8 +470,8 @@ int cItemMgr::set_char(int no)
         p = search(0x2F);
         LV_SET(p, 5, 1, 1, 1);
         CHARGE(p);
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(search(0x21));
         break;
     }
@@ -518,8 +518,8 @@ int cItemMgr::set_char(int no)
         p = search(0x23);
         LV_SET(p, 6, 2, 2, 5);
         CHARGE(p);
-        search(0x3F)->x8 = searchAt(p);
-        search(0x3F)->x6 = 1;
+        search(0x3F)->bullet = searchAt(p);
+        search(0x3F)->lv = 1;
         p = search(0x2A);
         LV_SET(p, 1, 0, 1, 1);
         CHARGE(p);
@@ -554,7 +554,7 @@ int cItemMgr::set_stage1(int no)
         search(0x02)->num = 5;
         search(0x0E)->num = 5;
         arm(ItemMgr.search(0x23));
-        pG->x4F98 = 0;
+        pG->peseta = 0;
         break;
     }
     case 1: {
@@ -579,15 +579,15 @@ int cItemMgr::set_stage1(int no)
         p = search(0x2E);
         LV_EX_SET(p, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        search(0x44)->x8 = searchAt(p);
-        search(0x44)->x6 = on;
+        search(0x44)->bullet = searchAt(p);
+        search(0x44)->lv = on;
         search(0x30);
         search(0x25);
         search(0x01)->num = 5;
         search(0x02)->num = 5;
         search(0x0E)->num = 5;
         arm(ItemMgr.search(0x25));
-        pG->x4F98 = 10000;
+        pG->peseta = 10000;
         break;
     }
     }
@@ -620,18 +620,18 @@ int cItemMgr::set_stage2(int no)
         p = search(0x30);
         LV_SET(p, 2, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x30, 3));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2C);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2C, 3));
         p = search(0x2E);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        search(0x44)->x8 = searchAt(p);
-        search(0x44)->x6 = on;
+        search(0x44)->bullet = searchAt(p);
+        search(0x44)->lv = on;
         arm(ItemMgr.search(0x25));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     case 1: {
@@ -663,7 +663,7 @@ int cItemMgr::set_stage2(int no)
         search(0x02)->num = 2;
         search(0x0E)->num = 2;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 20000;
+        pG->peseta = 20000;
         break;
     }
     case 2: {
@@ -732,8 +732,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -743,10 +743,10 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        search(0x45)->x8 = searchAt(p);
-        search(0x45)->x6 = on;
+        search(0x45)->bullet = searchAt(p);
+        search(0x45)->lv = on;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     case 1: {
@@ -770,8 +770,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        search(0x43)->x8 = searchAt(p);
-        search(0x43)->x6 = on;
+        search(0x43)->bullet = searchAt(p);
+        search(0x43)->lv = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -781,10 +781,10 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        search(0xC5)->x8 = searchAt(p);
-        search(0xC5)->x6 = on;
+        search(0xC5)->bullet = searchAt(p);
+        search(0xC5)->lv = on;
         arm(ItemMgr.search(0x27));
-        pG->x4F98 = 40000;
+        pG->peseta = 40000;
         break;
     }
     }
@@ -947,8 +947,8 @@ int cItemMgr::set_debug(int no)
         on = 1;
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x36, LV_EX(p) + 1));
-        search(0xAA)->x8 = searchAt(p);
-        search(0xAA)->x6 = on;
+        search(0xAA)->bullet = searchAt(p);
+        search(0xAA)->lv = on;
         arm(ItemMgr.search(0x36));
         break;
     }
@@ -1130,16 +1130,16 @@ void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if (!flagNeg(pG->flags_54) && !chkFlag(pG->flags_54, 0x40000000)) {
-        if (pG->x4FB8 == 1) {
+    if (!flagNeg(pG->System_flg) && !chkFlag(pG->System_flg, 0x40000000)) {
+        if (pG->pl_type == 1) {
             type = 0;
         }
         set_game(0);
-        pG->x832C = 0;
-        pG->x4F98 = 0;
+        pG->peseta_bak = 0;
+        pG->peseta = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if (chkFlag(pG->flags_6C, 0x00800000) || chkFlag(pG->flags_6C, 0x00040000)) {
+        if (chkFlag(pG->Debug_flg[3], 0x00800000) || chkFlag(pG->Debug_flg[3], 0x00040000)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);
@@ -1151,7 +1151,7 @@ void cItemMgr::gameInit()
             get(0xB6, 1);
             get(0xB7, 1);
         }
-        if (pG->flags_6C & 0x00040000) {
+        if (pG->Debug_flg[3] & 0x00040000) {
             get(0x48, 1);
             get(0x49, 1);
             get(0x4A, 1);
@@ -1162,7 +1162,7 @@ void cItemMgr::gameInit()
             get(0x4F, 1);
             get(0x50, 1);
             get(0xF4, 1);
-            if (pG->flags_6C & 0x00020000) {
+            if (pG->Debug_flg[3] & 0x00020000) {
                 get(0xF5, 1);
                 get(0xF6, 1);
                 get(0xF7, 1);
@@ -1174,14 +1174,14 @@ void cItemMgr::gameInit()
                 get(0xFD, 1);
             }
         }
-        if (pG->x4FB8 == 1) {
+        if (pG->pl_type == 1) {
             type = 1;
         }
     } else {
-        if ((s32) pG->flags_54 < 0) {
+        if ((s32) pG->System_flg < 0) {
             set_ada(2);
-        } else if (pG->flags_54 & 0x40000000) {
-            set_char(pG->x4FB8);
+        } else if (pG->System_flg & 0x40000000) {
+            set_char(pG->pl_type);
         }
     }
 }
@@ -1189,7 +1189,7 @@ void cItemMgr::gameInit()
 void cItemMgr::roomInit()
 {
     flagclear();
-    if (pG->x4FB8 == 1) {
+    if (pG->pl_type == 1) {
         type = 1;
     } else {
         type = 0;
@@ -1207,7 +1207,7 @@ int cItemMgr::init()
     nItems = 0x180;
 #line 2508 "D:/Bio4/Prog/item.cpp"
     pItems = (ItemWork*) MEM_ALLOC(0x180 * sizeof(ItemWork), 1, 13);
-    pOrder = (ItemOrder*) MEM_ALLOC(nItems * sizeof(ItemOrder), 1, 13);
+    m_p_order_tbl = (ItemOrder*) MEM_ALLOC(nItems * sizeof(ItemOrder), 1, 13);
     if (pItems == 0) {
         return 0;
     }
@@ -1220,16 +1220,16 @@ int cItemMgr::init()
         // update_equiv_regs substitutes the constant afterwards.
         sz = 8 * sizeof(u32);
     }
-    nFlags = 8;
+    m_flag_num = 8;
 #line 2522 "D:/Bio4/Prog/item.cpp"
-    pFlags = (u32*) MEM_ALLOC(sz, 1, 13);
-    if (pFlags == 0) {
+    m_pAvailable = (u32*) MEM_ALLOC(sz, 1, 13);
+    if (m_pAvailable == 0) {
         Mem_free(pItems);
-        Mem_free(pOrder);
+        Mem_free(m_p_order_tbl);
         return 0;
     }
     flagclear();
-    checkId = 0xFFFF;
+    used_id = 0xFFFF;
     return 1;
 }
 
@@ -1269,8 +1269,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x99:
     case 0xAB:
         info->type = 1;
-        info->x3 = 0;
-        info->x4 = 0;
+        info->defNum = 0;
+        info->maxNum = 0;
         break;
     case 0x01:
     case 0x02:
@@ -1280,58 +1280,58 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x38:
     case 0x6D:
         info->type = 3;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x04:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 50;
+        info->defNum = 10;
+        info->maxNum = 50;
         break;
     case 0x00:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x18:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 15;
+        info->defNum = 10;
+        info->maxNum = 15;
         break;
     case 0x07:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x6A:
         info->type = 2;
-        info->x3 = 50;
-        info->x4 = 100;
+        info->defNum = 50;
+        info->maxNum = 100;
         break;
     case 0x20:
         info->type = 2;
-        info->x3 = 50;
-        info->x4 = 100;
+        info->defNum = 50;
+        info->maxNum = 100;
         break;
     case 0x1A:
         info->type = 2;
-        info->x3 = 10;
-        info->x4 = 10;
+        info->defNum = 10;
+        info->maxNum = 10;
         break;
     case 0x46:
         info->type = 2;
-        info->x3 = 1;
-        info->x4 = 5;
+        info->defNum = 1;
+        info->maxNum = 5;
         break;
     case 0xA0:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 10;
+        info->defNum = 5;
+        info->maxNum = 10;
         break;
     case 0x72:
         info->type = 2;
-        info->x3 = 5;
-        info->x4 = 20;
+        info->defNum = 5;
+        info->maxNum = 20;
         break;
     case 0x3F:
     case 0x42:
@@ -1341,16 +1341,16 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xAA:
     case 0xC5:
         info->type = 9;
-        info->x3 = 0;
-        info->x4 = 0;
+        info->defNum = 0;
+        info->maxNum = 0;
         break;
     case 0x05:
     case 0x08:
     case 0x09:
     case 0x0A:
         info->type = 6;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x06:
     case 0x12:
@@ -1364,8 +1364,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0x97:
     case 0xA8:
         info->type = 6;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x56:
     case 0x57:
@@ -1384,8 +1384,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xD3:
     case 0xD4:
         info->type = 12;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x1B:
     case 0x58:
@@ -1443,32 +1443,32 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xDA:
     case 0xDB:
         info->type = 5;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x78:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x79:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
     case 0x71:
         info->type = 8;
-        info->x3 = 5;
-        info->x4 = 999;
+        info->defNum = 5;
+        info->maxNum = 999;
         break;
     case 0x73:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x75:
         info->type = 8;
-        info->x3 = 30;
-        info->x4 = 999;
+        info->defNum = 30;
+        info->maxNum = 999;
         break;
     case 0x48:
     case 0x49:
@@ -1502,8 +1502,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xFC:
     case 0xFD:
         info->type = 10;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0x54:
     case 0x55:
@@ -1514,8 +1514,8 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xA9:
     case 0xFE:
         info->type = 11;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     case 0xDC:
     case 0xDD:
@@ -1542,18 +1542,18 @@ void itemInfo(u16 id, ItemInfo* info)
     case 0xF2:
     case 0xF3:
         info->type = 13;
-        info->x3 = 1;
-        info->x4 = 999;
+        info->defNum = 1;
+        info->maxNum = 999;
         break;
     case 0x0C:
         info->type = 14;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     default:
         info->type = 7;
-        info->x3 = 1;
-        info->x4 = 1;
+        info->defNum = 1;
+        info->maxNum = 1;
         break;
     }
 }
@@ -1574,7 +1574,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (pGS->flags_51C0 & 0x8000) {
+            if (pGS->Scenario_flg[0] & 0x8000) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);
@@ -1591,15 +1591,15 @@ void cItemMgr::construct(ItemWork* p, u16 id)
             asm volatile("");
             break;
         }
-        p->x8 = BULLET(p);
+        p->bullet = BULLET(p);
         setBullet(p, WeaponId2ChargeNum(id, 1));
     }
     if (ITEM_TYPE(id) == 9) {
-        p->x6 = 0;
-        p->x8 = 0xFFFF;
+        p->lv = 0;
+        p->bullet = 0xFFFF;
     }
     if (ITEM_TYPE(id) == 10) {
-        p->x6b[0] = countFiles();
+        p->lv8[0] = countFiles();
     }
 }
 
@@ -1745,20 +1745,20 @@ void cItemMgr::ordering(u16 id)
 
     for (i = 0; i < nItems; i++, p++) {
         if (itemUse(p, type) && id == p->id) {
-            pOrder[n].item = p;
-            pOrder[n].num = p->num;
+            m_p_order_tbl[n].p_item = p;
+            m_p_order_tbl[n].num = p->num;
             n++;
         }
     }
-    nOrder = n;
-    qsort(pOrder, n, sizeof(ItemOrder), order_cmp);
+    m_order_tbl_num = n;
+    qsort(m_p_order_tbl, n, sizeof(ItemOrder), order_cmp);
 }
 
 int addMoney(int n)
 {
-    U32Set(pG->x4F98, pG->x4F98 + n);
-    if ((s32) pG->x4F98 > 99999998) {
-        pG->x4F98 = 99999999;
+    U32Set(pG->peseta, pG->peseta + n);
+    if ((s32) pG->peseta > 99999998) {
+        pG->peseta = 99999999;
     }
     return 1;
 }
@@ -1801,15 +1801,15 @@ int cItemMgr::get(int id, int num)
         }
         return addMoney(5000);
     case 0x73:
-        x28 = num;
+        m_bonus_time = num;
         MercSysSetAddTime(num);
-        pG->cdown_add_sec = x28;
+        pG->cdown_add_sec = m_bonus_time;
         return 1;
     case 0x75:
         if (num == 0) {
             num = 30;
         }
-        x2C = num * 30;
+        m_bonus_point = num * 30;
         MercSysSetBonusTime(num * 30);
         return 1;
     }
@@ -1825,11 +1825,11 @@ int cItemMgr::get(int id, int num)
 
                 if (num == 0) {
                     itemInfoIW(id, &inf);
-                    num = inf.x3;
+                    num = inf.defNum;
                 }
                 total = p->num + num;
                 itemInfoW(p->id, &inf);
-                if (total <= inf.x4) {
+                if (total <= inf.maxNum) {
                     {
                         int t = num + p->num;
 
@@ -1848,9 +1848,9 @@ int cItemMgr::get(int id, int num)
         max = 1;
     } else {
         if (num == 0) {
-            num = pInfo->x3;
+            num = pInfo->defNum;
         }
-        max = pInfo->x4;
+        max = pInfo->maxNum;
     }
     if (num > max) {
         num = (u16) max;
@@ -1875,8 +1875,8 @@ int cItemMgr::get(int id, int num)
 
 static inline int useSubChar(cItemMgr* m)
 {
-    if (m->x12 == 0) {
-        return pG->x4FB8 == 1;
+    if (m->m_to_whom == 0) {
+        return pG->pl_type == 1;
     }
     return 1;
 }
@@ -1902,7 +1902,7 @@ int cItemMgr::use(ItemWork* p)
     case 0x17:
     case 0x35:
         p->num--;
-        if ((s32) pGS->flags_6C < 0) {
+        if ((s32) pGS->Debug_flg[3] < 0) {
             if (p->num != 0) {
                 return 1;
             }
@@ -1924,7 +1924,7 @@ int cItemMgr::use(ItemWork* p)
                 pG->pl_life_max += (int) ((f32) (level * 60) + 0.5f);
                 ok = 1;
             }
-        } else if (pG->x4FB8 == 1) {
+        } else if (pG->pl_type == 1) {
             int level = lifeLevel(5, pG->pl_life_max, 600);
 
             if (level <= 4) {
@@ -1934,12 +1934,12 @@ int cItemMgr::use(ItemWork* p)
                 ok = 1;
             }
         } else {
-            int level = lifeLevel(5, pG->sub_life_max, 600);
+            int level = lifeLevel(5, pG->ashley_life_max, 600);
 
             if (level <= 4) {
                 level++;
-                U16Set(pG->sub_life_max, 600);
-                pG->sub_life_max += (int) ((f32) (level * 120) + 0.5f);
+                U16Set(pG->ashley_life_max, 600);
+                pG->ashley_life_max += (int) ((f32) (level * 120) + 0.5f);
                 ok = 1;
             }
         }
@@ -2026,12 +2026,12 @@ int cItemMgr::use(ItemWork* p)
         {
             int no = p->id;
 
-            if (!(pFlags[no >> 5] & (0x80000000 >> (no & 0x1F)))) {
+            if (!(m_pAvailable[no >> 5] & (0x80000000 >> (no & 0x1F)))) {
                 return 0;
             }
         }
         flagclear();
-        checkId = p->id;
+        used_id = p->id;
         if (p->id == 0x84 || p->id == 0x92) {
             goto chk;
         }
@@ -2057,9 +2057,9 @@ void cItemMgr::erase(ItemWork* p)
 
         for (i = 0; i < nItems; i++, q++) {
             if (itemUse(q, type)) {
-                if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
-                    q->x6 = 0;
-                    q->x8 = 0xFFFF;
+                if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
+                    q->lv = 0;
+                    q->bullet = 0xFFFF;
                 }
             }
         }
@@ -2069,7 +2069,7 @@ void cItemMgr::erase(ItemWork* p)
     } else {
         cItemMgr* m = &ItemMgr;
 
-        if (ITEM_TYPE(m->armId) == 1) {
+        if (ITEM_TYPE(m->m_wep_id) == 1) {
             m->arm(m->pArm);
         }
     }
@@ -2168,18 +2168,18 @@ int itemCombineCheck(u16 id)
     return 0;
 }
 
-int itemCombine(u16 a, u16 b, u16* result)
+int itemCombine(u16 srcA, u16 srcB, u16* result)
 {
     int i;
 
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
-        if (a == combination_info[i].a && b == combination_info[i].b) {
+        if (srcA == combination_info[i].a && srcB == combination_info[i].b) {
             *result = combination_info[i].result;
             return 1;
         }
     }
     for (i = 0; i < (int) (sizeof(combination_info) / sizeof(combination_info[0])); i++) {
-        if (b == combination_info[i].a && a == combination_info[i].b) {
+        if (srcB == combination_info[i].a && srcA == combination_info[i].b) {
             *result = combination_info[i].result;
             return 1;
         }
@@ -2233,13 +2233,13 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (b->num == 0) {
                         erase(b);
                     }
-                    a->x8 = (inv << 13) | (n & 0x1FFF);
+                    a->bullet = (inv << 13) | (n & 0x1FFF);
                     {
                         register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
 
                         arm = pArm;
                         if (a == arm) {
-                            pG->wep_x4FB2 = ATTR(a);
+                            pG->bullet_type = ATTR(a);
                         }
                     }
                     ret = 1;
@@ -2273,13 +2273,13 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (a->num == 0) {
                         erase(a);
                     }
-                    b->x8 = (inv << 13) | (n & 0x1FFF);
+                    b->bullet = (inv << 13) | (n & 0x1FFF);
                     {
                         register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
 
                         arm = pArm;
                         if (b == arm) {
-                            pG->wep_x4FB2 = ATTR(b);
+                            pG->bullet_type = ATTR(b);
                         }
                     }
                     ret = 1;
@@ -2293,7 +2293,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             int room;
 
             itemInfo(a->id, &info);
-            room = info.x4 - a->num;
+            room = info.maxNum - a->num;
             if (room == 0) {
                 ret = 0;
             } else {
@@ -2346,12 +2346,12 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     if (ret != 0) {
         ItemInfo info;
 
-        if (part->x6 != 0) {
-        part->x6 = 0;
-        if (pArm != 0 && pArm == at(part->x8)) {
-            armId = weaponId(pArm);
+        if (part->lv != 0) {
+        part->lv = 0;
+        if (pArm != 0 && pArm == at(part->bullet)) {
+            m_wep_id = weaponId(pArm);
         }
-        part->x8 = 0xFFFF;
+        part->bullet = 0xFFFF;
     }
     p = pItems;
     idx = searchAt(wep);
@@ -2363,7 +2363,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         lp = list;
         do {
             if (itemUse(p, type)) {
-                if (ITEM_TYPE(p->id) == 9 && p->x6 == 1 && idx == p->x8) {
+                if (ITEM_TYPE(p->id) == 9 && p->lv == 1 && idx == p->bullet) {
                     *lp++ = p;
                     n++;
                 }
@@ -2373,22 +2373,22 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     }
     for (int j = 0; j < n; j++) {
         if (list[j]->id == part->id) {
-            list[j]->x6 = 0;
-            list[j]->x8 = 0xFFFF;
+            list[j]->lv = 0;
+            list[j]->bullet = 0xFFFF;
             list[j] = 0;
         }
     }
     if (n == 1) {
         if (list[0] != 0) {
-            list[0]->x6 = 0;
-            list[0]->x8 = 0xFFFF;
+            list[0]->lv = 0;
+            list[0]->bullet = 0xFFFF;
             list[0] = 0;
         }
     }
-        part->x8 = searchAt(wep);
-        part->x6 = 1;
+        part->bullet = searchAt(wep);
+        part->lv = 1;
         if (pArm != 0 && pArm == wep) {
-            armId = weaponId(wep);
+            m_wep_id = weaponId(wep);
         }
     }
     return ret;
@@ -2396,22 +2396,22 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 
 int cItemMgr::available(u16 id)
 {
-    pFlags[id >> 5] |= 0x80000000 >> (id & 0x1F);
+    m_pAvailable[id >> 5] |= 0x80000000 >> (id & 0x1F);
 }
 
 void cItemMgr::flagclear()
 {
     int i;
 
-    for (i = 0; i < nFlags; i++) {
-        pFlags[i] = 0;
+    for (i = 0; i < m_flag_num; i++) {
+        m_pAvailable[i] = 0;
     }
 }
 
 int cItemMgr::check(u16 id)
 {
-    if (id == checkId) {
-        checkId = 0xFFFF;
+    if (id == used_id) {
+        used_id = 0xFFFF;
         return 1;
     }
     return 0;
@@ -2428,7 +2428,7 @@ int cItemMgr::arm(ItemWork* p)
 
     if (p == 0) {
         pArm = p;
-        armId = bareHand();
+        m_wep_id = bareHand();
         goto ok;
     }
     if (p->num == 0) {
@@ -2436,13 +2436,13 @@ int cItemMgr::arm(ItemWork* p)
     }
     if (ITEM_TYPE(p->id) == 1 || ITEM_TYPE(p->id) == 3 || ITEM_TYPE(p->id) == 6) {
         pArm = p;
-        armId = weaponId(p);
-        pArm->x8 = BULLET(pArm);
+        m_wep_id = weaponId(p);
+        pArm->bullet = BULLET(pArm);
         if (ITEM_TYPE(p->id) == 1) {
-            pG->wep_lv = p->x6 >> 12;
-            pG->wep_lv_mag = (p->x6 >> 8) & 0xF;
-            pG->x4FBA = (p->x6 >> 4) & 0xF;
-            pG->wep_lv_ex = LV_EX(p);
+            pG->weapon_lv_power = p->lv >> 12;
+            pG->weapon_lv_speed = (p->lv >> 8) & 0xF;
+            pG->weapon_lv_reload = (p->lv >> 4) & 0xF;
+            pG->weapon_lv_blt = LV_EX(p);
         }
         goto ok;
     }
@@ -2482,7 +2482,7 @@ int cItemMgr::reloadable(ItemWork* p, int flag)
                 ret = 1;
             }
         }
-        if ((s32) pG->flags_6C < 0) {
+        if ((s32) pG->Debug_flg[3] < 0) {
             ret = 1;
         }
     }
@@ -2508,7 +2508,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
     if (ITEM_TYPE(id) != 1) {
         goto done;
     }
-    if ((s32) pG->flags_6C < 0) {
+    if ((s32) pG->Debug_flg[3] < 0) {
         setBullet(p, WeaponId2ChargeNum(id, LV_EX(p) + 1));
         return 0;
     }
@@ -2517,11 +2517,11 @@ int cItemMgr::reload(ItemWork* p, int flag)
         if (ItemMgr.bulletNum() == 0 && ItemMgr.num(bid) == 0) {
             {
                 int z = ATTR(p) == 0;
-                p->x8 = BULLET(p) | (z << 13);
+                p->bullet = BULLET(p) | (z << 13);
             }
             bid = WeaponId2BulletId(p->id, ATTR(p));
             if (p == pArm) {
-                pG->wep_x4FB2 = ATTR(p);
+                pG->bullet_type = ATTR(p);
             }
         }
     }
@@ -2554,7 +2554,7 @@ int reload_main(ItemWork* wep, ItemWork* ammo, int max)
     } else {
         m = n;
     }
-    wep->x8 = (wep->x8 & 0xE000) | ((have + m) & 0x1FFF);
+    wep->bullet = (wep->bullet & 0xE000) | ((have + m) & 0x1FFF);
     ammo->num -= m;
     return 1;
 }
@@ -2563,14 +2563,14 @@ int cItemMgr::trigger()
 {
     ItemInfo info;
 
-    switch (ITEM_TYPE(armId)) {
+    switch (ITEM_TYPE(m_wep_id)) {
     case 1:
         return trigger(pArm);
     case 3:
     case 6: {
         ItemWork* p = pArm;
         register int id asm("r9"); // COMPILER-DIFF: #2 (the original masks the u16 member before the call)
-        id = armId;
+        id = m_wep_id;
         asm("" : "+r"(id));
 
         if (p->flags == 0 || id != p->id) {
@@ -2586,7 +2586,7 @@ int cItemMgr::trigger(ItemWork* p)
 {
     ItemInfo info;
 
-    if (pG->flags_68 & 0x00400000) {
+    if (pG->Debug_flg[2] & 0x00400000) {
         return 1;
     }
     if (p == 0) {
@@ -2612,7 +2612,7 @@ int cItemMgr::trigger(ItemWork* p)
     }
     case 3:
     case 6:
-        if ((s32) pG->flags_6C < 0) {
+        if ((s32) pG->Debug_flg[3] < 0) {
             return 1;
         }
         if (p->id == 0x35) {
@@ -2637,7 +2637,7 @@ u16 cItemMgr::weaponId(ItemWork* p)
     }
     for (i = 0; i < nItems; i++, q++) {
         if (itemUse(q, type)) {
-            if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
+            if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 itemCombine(id, q->id, &id);
             }
         }
@@ -2658,7 +2658,7 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
     }
     for (i = 0; i < nItems; i++, q++) {
         if (itemUse(q, type)) {
-            if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
+            if (ITEM_TYPE(q->id) == 9 && q->lv == 1 && idx == q->bullet) {
                 if (cnt++ == no) {
                     return q;
                 }
@@ -2691,12 +2691,12 @@ u32 cItemMgr::bulletNumCurrent()
 {
     ItemInfo info;
 
-    switch (ITEM_TYPE(armId)) {
+    switch (ITEM_TYPE(m_wep_id)) {
     case 1:
         return bulletNum(pArm);
     case 3:
     case 6:
-        return bulletNum(armId);
+        return bulletNum(m_wep_id);
     }
     return 0;
 }
@@ -2723,7 +2723,7 @@ int cItemMgr::bulletNum(ItemWork* p)
     ItemInfo info;
     int n;
 
-    if ((s32) pG->flags_6C >= 0 && (pG->flags_68 & 0x00400000)) {
+    if ((s32) pG->Debug_flg[3] >= 0 && (pG->Debug_flg[2] & 0x00400000)) {
         return 100;
     }
     if (p == 0) {
@@ -2763,11 +2763,11 @@ void cItemMgr::save(void* dst)
 {
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) dst;
-    ItemSaveWork* s = sd->item;
+    ItemSaveWork* s = sd->item_list;
     ItemWork* p = pItems;
     int i;
 
-    sd->armIdx = 0xFFFF;
+    sd->arm_no = 0xFFFF;
     for (i = 0; i < 0x180; i++) {
         memclr_asm(&s[i], sizeof(ItemSaveWork));
         s[i].id = 0xFFFF;
@@ -2786,15 +2786,15 @@ void cItemMgr::save(void* dst)
             switch (ITEM_TYPE(p->id)) {
             case 1:
             case 9:
-                s[i].x2 = p->x6;
-                s[i].x4 = p->x8;
+                s[i].num = p->lv;
+                s[i].bullet = p->bullet;
                 break;
             case 10:
-                s[i].x2 = p->num;
-                s[i].x4 = p->x6b[0];
+                s[i].num = p->num;
+                s[i].bullet = p->lv8[0];
                 break;
             default:
-                s[i].x2 = p->num;
+                s[i].num = p->num;
                 break;
             }
             s[i].x = p->x;
@@ -2803,17 +2803,17 @@ void cItemMgr::save(void* dst)
             s[i].board = p->board;
         }
         if (p == pArm) {
-            sd->armIdx = i;
+            sd->arm_no = i;
         }
     }
-    sd->armId = armId;
+    sd->wep_id = m_wep_id;
 }
 
 void cItemMgr::load(void* src)
 {
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) src;
-    ItemSaveWork* s = sd->item;
+    ItemSaveWork* s = sd->item_list;
     ItemWork* p = pItems;
     int i;
 
@@ -2833,21 +2833,21 @@ void cItemMgr::load(void* src)
             }
             switch (ITEM_TYPE(p->id)) {
             case 1:
-                p->x6 = s[i].x2;
-                p->x8 = s[i].x4;
+                p->lv = s[i].num;
+                p->bullet = s[i].bullet;
                 p->num = 1;
                 break;
             case 9:
-                p->x6 = s[i].x2;
-                p->x8 = s[i].x4;
+                p->lv = s[i].num;
+                p->bullet = s[i].bullet;
                 p->num = 1;
                 break;
             case 10:
-                p->num = s[i].x2;
-                p->x6b[0] = s[i].x4;
+                p->num = s[i].num;
+                p->lv8[0] = s[i].bullet;
                 break;
             default:
-                p->num = s[i].x2;
+                p->num = s[i].num;
                 break;
             }
             p->x = s[i].x;
@@ -2857,11 +2857,11 @@ void cItemMgr::load(void* src)
         } else {
             p->flags = 0;
         }
-        if (sd->armIdx != 0xFFFF && i == sd->armIdx) {
+        if (sd->arm_no != 0xFFFF && i == sd->arm_no) {
             pArm = p;
         }
     }
-    armId = sd->armId;
+    m_wep_id = sd->wep_id;
 }
 
 int cItemMgr::offboardDump(ItemWork* keep)
@@ -2884,7 +2884,7 @@ int cItemMgr::offboardDump(ItemWork* keep)
                     }
                     if (pArm == p) {
                         pArm = 0;
-                        armId = bareHand();
+                        m_wep_id = bareHand();
                     }
                 }
                 break;
@@ -3055,7 +3055,7 @@ int WeaponId2MaxLevel(u16 id, int type)
     return 1;
 }
 
-void cItemMgr::debugNumDisp(int a)
+void cItemMgr::debugNumDisp(int print_page)
 {
     static int sX = 48;
     static int sY = 5;
@@ -3119,7 +3119,7 @@ void cItemMgr::debugNumDisp(int a)
                 color = 5;
                 break;
             }
-            eprintf((sX - col) * 8, (sY + row++) * 14, color, a, "Item%02x : %03d", id, n);
+            eprintf((sX - col) * 8, (sY + row++) * 14, color, print_page, "Item%02x : %03d", id, n);
         }
         if (row > 21) {
             row = 0;
@@ -3138,7 +3138,7 @@ void cItemMgr::debugWeapon(int id)
         get(id, 0);
         pArm = pLast;
     }
-    armId = id;
+    m_wep_id = id;
 }
 
 // the split object pads .sdata to 8 bytes (lbl_80313F4C)

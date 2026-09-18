@@ -64,7 +64,7 @@ void R303Init()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) oneshot_bgm, 0, 1);
     }
-    pG->flags_51C4 |= 0x00200000;
+    pG->Scenario_flg[1] |= 0x00200000;
 }
 
 // The shelf swings open (mode 1: already open).
@@ -77,15 +77,15 @@ void r303_TanaMove(int mode)
     // and the loop entry in a callee-saved register), the step inside the loop body.
     const f32 lim = 2.83f;
     if (mode == 1) {
-        obj->rot.z = lim;
+        obj->ang.z = lim;
     } else {
         SndCall(6, 0x1C, &obj->pos, 0, 0, 0);
         while (1) {
             const f32 spd = 0.09f;
 
-            obj->rot.y += spd;
-            if (obj->rot.y > lim) {
-                obj->rot.y = lim;
+            obj->ang.y += spd;
+            if (obj->ang.y > lim) {
+                obj->ang.y = lim;
                 break;
             }
             SceSleep(1);
@@ -153,7 +153,7 @@ static void door_down()
     RsfSet(G_ROOM_ID, 0);
     SmdGetObjPtr(0xB)->type = zero;
     em = setEm(0x24, -1, 1, 1, 1);
-    em->flags_3C8 |= 1;
+    em->flag |= 1;
     EstSet((int) em, -1, 0, 0, 1, 0x10, 0, 0, (u32) em, (void*) zero);
     EstSet(0, -1, 0, 0, 1, 2, 0, 0, zero, (void*) zero);
     t = 0.01f;
@@ -166,7 +166,7 @@ static void door_down()
             cnt++;
         }
         pos = SmdGetObjPtr(0xB)->pos;
-        ang = SmdGetObjPtr(0xB)->rot;
+        ang = SmdGetObjPtr(0xB)->ang;
         pos.x += (r303_doorPos.x - pos.x) * 0.4f;
         pos.y += (r303_doorPos.y - pos.y) * 0.4f;
         pos.z += (r303_doorPos.z - pos.z) * 0.4f;
@@ -194,17 +194,17 @@ void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r303_work.p->tex->texId;
-        r303_work.p->tex->repType = 1;
+        r303_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r303_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexrender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(2);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(2);
     obj = SmdGetObjPtr(0x10);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(2);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(2);
 }

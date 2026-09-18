@@ -67,32 +67,32 @@ void cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy, v
 {
     cDbgButton* b;
 
-    pButton[num] = b = new cDbgButton(bx, by, name, bcx, bcy);
-    b->pUpdate = update;
-    b->pFunc = func;
-    if (pButton[num] == 0) {
+    m_pButList[m_nBut] = b = new cDbgButton(bx, by, name, bcx, bcy);
+    b->m_pFuncUpdate = update;
+    b->m_pFuncExec = func;
+    if (m_pButList[m_nBut] == 0) {
         pLog->err(0, 0, "AddButton(): new failed.");
         return;
     }
-    if (w < bx + strlen(name)) {
-        w = bx + strlen(name);
+    if (m_wx < bx + strlen(name)) {
+        m_wx = bx + strlen(name);
     }
-    if (h < by) {
-        h = by;
+    if (m_wy < by) {
+        m_wy = by;
     }
     if (bcx < 0xFFFF && bcy < 0xFFFF) {
-        if (pCur == 0) {
-            pTop = pCur = pButton[num];
+        if (m_pCurrentBut == 0) {
+            m_pStartBut = m_pCurrentBut = m_pButList[m_nBut];
         }
-        pBottom = pButton[num];
-        if (cxMax < bcx) {
-            cxMax = bcx;
+        pBottom = m_pButList[m_nBut];
+        if (m_max_cx < bcx) {
+            m_max_cx = bcx;
         }
-        if (cyMax < bcy) {
-            cyMax = bcy;
+        if (m_max_cy < bcy) {
+            m_max_cy = bcy;
         }
     }
-    num++;
+    m_nBut++;
 }
 
 int cDbgWindow::FindButton(int bcx, int bcy, cDbgButton** out)
@@ -100,9 +100,9 @@ int cDbgWindow::FindButton(int bcx, int bcy, cDbgButton** out)
     u32 i;
 
     *out = 0;
-    for (i = 0; i < num; i++) {
-        if (pButton[i]->cx == bcx && pButton[i]->cy == bcy) {
-            *out = pButton[i];
+    for (i = 0; i < m_nBut; i++) {
+        if (m_pButList[i]->m_cx == bcx && m_pButList[i]->m_cy == bcy) {
+            *out = m_pButList[i];
             return 1;
         }
     }
@@ -132,22 +132,22 @@ int cDbgWindow::LocalUpdate()
         bcy++;
     }
     if (bcx < 0) {
-        bcx = cxMax;
+        bcx = m_max_cx;
     }
     if (bcy < 0) {
-        bcy = cyMax;
+        bcy = m_max_cy;
     }
-    if (bcx > cxMax) {
+    if (bcx > m_max_cx) {
         bcx = 0;
     }
-    if (bcy > cyMax) {
+    if (bcy > m_max_cy) {
         bcy = 0;
     }
     if (bcx != GetCx() || bcy != GetCy()) {
         cDbgButton* b;
 
         if (FindButton(bcx, bcy, &b)) {
-            pCur = b;
+            m_pCurrentBut = b;
         }
     }
     ButtonAllUpdate();
@@ -162,28 +162,28 @@ void cDbgWindow::LocalDisp()
     u32 i;
     cDbgButton* cur;
 
-    for (i = 0; i < num; i++) {
-        cDbgButton* b = pButton[i];
-        int by = y + 1;
+    for (i = 0; i < m_nBut; i++) {
+        cDbgButton* b = m_pButList[i];
+        int by = m_py + 1;
 
-        eprintf2(8, 12, (x + b->x) * 8, (by + b->y) * 14, 0x10, 0, b->pName);
+        eprintf2(8, 12, (m_px + b->m_px) * 8, (by + b->m_py) * 14, 0x10, 0, b->m_pStr);
     }
-    cur = pCur;
+    cur = m_pCurrentBut;
     if (cur) {
-        int bx = x;
-        int by = y + 1;
+        int bx = m_px;
+        int by = m_py + 1;
 
-        if (pG->flags_51E4 & 4) {
-            eprintf2(8, 12, (bx + cur->x - 1) * 8, (by + cur->y) * 14, 0, 0, cDbgStr::cursor());
+        if (pG->Frame_cnt & 4) {
+            eprintf2(8, 12, (bx + cur->m_px - 1) * 8, (by + cur->m_py) * 14, 0, 0, cDbgStr::cursor());
         }
-        eprintf2(8, 12, (bx + cur->x) * 8, (by + cur->y) * 14, 0, 0, cur->pName);
+        eprintf2(8, 12, (bx + cur->m_px) * 8, (by + cur->m_py) * 14, 0, 0, cur->m_pStr);
         {
-            f32 fx = (f32) ((bx + cur->x) * 8);
+            f32 fx = (f32) ((bx + cur->m_px) * 8);
             f32 fh = 14.0f;
             f32 mgn = 2.0f;
             f32 zero = 0.0f;
 
-            DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->y) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
+            DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
                            fh + mgn, 0.7f, 0.7f, zero, 0.3f);
         }
     }

@@ -56,7 +56,7 @@ void Filter07Trans()
     if (use_filter7 == 0) {
         return;
     }
-    if (!(pG->flags_5010 & 0x04000000)) {
+    if (!(pG->Status_flg[1] & 0x04000000)) {
         if (filter07_noize != 1) {
             return;
         }

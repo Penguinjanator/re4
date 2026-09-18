@@ -11,4 +11,4 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000004B4	0x3C	pl11/pl11.cpp	global	initCloth__10cSubAshley	cSubAshley::initCloth
 .text	0x000004F0	0x38	pl11/pl11.cpp	global	moveCloth__10cSubAshley	cSubAshley::moveCloth
 .rodata	0x00000054	0xEC	pl11/pl11.cpp	local	lbl_pl11_rodata_54	lbl_pl11_rodata_54
-.rodata	0x00000140	0x88	pl11/pl11.cpp	global	lbl_pl11_rodata_140	lbl_pl11_rodata_140
+.rodata	0x00000140	0x88	pl11/pl11.cpp	global	_vt.10cSubAshley	_vt.10cSubAshley

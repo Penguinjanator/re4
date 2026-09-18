@@ -38,7 +38,7 @@ void obj15BarrelMove(cObjGatling* obj);
 void obj15MatCalc(cObjGatling* obj);
 int obj15GunHitck(cObjGatling* obj);
 void obj15DmCk(cObjGatling* obj);
-void EspSetGatling(Vec a, Vec b);
+void EspSetGatling(Vec pos, Vec dir);
 }
 
 void (*Obj15_R1_move_tbl[2])(cObjGatling*) = { obj15_R1_Set, obj15_R1_Break };
@@ -63,7 +63,7 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
 
     w = &obj->gatling;
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     w->ride = 0;
     w->breakMode = 0;
     w->target = 0;
@@ -77,15 +77,15 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
-    FSet(w->rotY, obj->rot.y);
+    FSet(w->rotY, obj->ang.y);
     FSet(w->maxRot, 3.1415927f);
     {
         Vec hpos;
@@ -114,10 +114,10 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         }
     }
     w->eat = 0;
-    obj->xFC = 1;
-    obj->xFD = 0;
-    obj->xFE = 0;
-    obj->xFF = 0;
+    obj->r_no_0 = 1;
+    obj->r_no_1 = 0;
+    obj->r_no_2 = 0;
+    obj->r_no_3 = 0;
     return obj;
 }
 
@@ -136,13 +136,13 @@ void cObjGatling::move()
         }
     }
     obj15DmCk(this);
-    Obj15_R1_move_tbl[xFD](this);
+    Obj15_R1_move_tbl[r_no_1](this);
     if (w->eat) {
         if (be_flag & 2) {
-            w->eat->flags |= 4;
-            w->eat->setCoord(&pos, &rot);
+            w->eat->m_Flag |= 4;
+            w->eat->setCoord(&pos, &ang);
         } else {
-            w->eat->flags &= ~4;
+            w->eat->m_Flag &= ~4;
         }
     }
     if (w->targetTimer) {
@@ -163,7 +163,7 @@ void obj15_R1_Set(cObjGatling* obj)
     if (w->target == 0) {
         w->target = pPL;
     }
-    switch (obj->xFE) {
+    switch (obj->r_no_2) {
     case 0:
         w->cnt = 0;
         w->firing = 0;
@@ -183,7 +183,7 @@ void obj15_R1_Set(cObjGatling* obj)
             w->cnt = 0;
             tpos.y += 2000.0f;
         }
-        obj->xFE++;
+        obj->r_no_2++;
     case 1:
         dist = SQRTF((obj->pos.x - w->target->pos.x) * (obj->pos.x - w->target->pos.x) +
                      (obj->pos.z - w->target->pos.z) * (obj->pos.z - w->target->pos.z));
@@ -196,22 +196,22 @@ void obj15_R1_Set(cObjGatling* obj)
         } else {
             lim = 1.0f / dist * 0.019634955f;
         }
-        ang = LIMIT_ANGLE(Muku(&obj->pos, &w->target->pos, obj->rot.y, lim) + obj->rot.y);
-        obj->rot.y = w->rotY + Muku2(w->rotY, ang, w->maxRot);
-        obj->rot.y = LIMIT_ANGLE(obj->rot.y);
+        ang = LIMIT_ANGLE(Muku(&obj->pos, &w->target->pos, obj->ang.y, lim) + obj->ang.y);
+        obj->ang.y = w->rotY + Muku2(w->rotY, ang, w->maxRot);
+        obj->ang.y = LIMIT_ANGLE(obj->ang.y);
         obj15BarrelMove(obj);
         if (w->ammo == 0 || w->ride == 0 || w->firing == 0) {
-            obj->xFE++;
+            obj->r_no_2++;
         }
         break;
     case 2:
         w->breakTimer = 30;
-        obj->xFE++;
+        obj->r_no_2++;
     case 3:
         if (w->breakTimer) {
             w->breakTimer--;
             obj15BarrelMove(obj);
-            obj->xFE = 0;
+            obj->r_no_2 = 0;
         }
         break;
     }
@@ -249,7 +249,7 @@ static inline void obj15BreakCommon(cObjGatling* obj)
     }
     obj->be_flag &= ~2;
     if (w->eat) {
-        w->eat->flags &= ~4;
+        w->eat->m_Flag &= ~4;
     }
 }
 
@@ -258,8 +258,8 @@ void obj15_R1_Break(cObjGatling* obj)
     GatlingWork* w = &obj->gatling;
     u32 i;
 
-    if (obj->xFE == 0) {
-        EstSet(0, -1, &obj->pos, &obj->rot, 1, 0xD, 0, 0, 0, 0);
+    if (obj->r_no_2 == 0) {
+        EstSet(0, -1, &obj->pos, &obj->ang, 1, 0xD, 0, 0, 0, 0);
         SndStop(w->seHandle, 0);
         for (i = 0; i < 3; i++) {
                 if (w->hit[i]) {
@@ -269,9 +269,9 @@ void obj15_R1_Break(cObjGatling* obj)
         }
         obj->be_flag &= ~2;
         if (w->eat) {
-                w->eat->flags &= ~4;
+                w->eat->m_Flag &= ~4;
         }
-        obj->xFE++;
+        obj->r_no_2++;
     }
 }
 
@@ -304,14 +304,14 @@ void obj15BarrelMove(cObjGatling* obj)
         f32 ang;
 
         parts = obj->getPartsPtr(2);
-        PSVECSubtract(&tpos, &parts->worldPos, &d);
+        PSVECSubtract(&tpos, &parts->world, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
         ang = -atan2f(d.y, len);
-        parts->rot.x = parts->rot.x * 0.9f + ang * 0.1f;
+        parts->ang.x = parts->ang.x * 0.9f + ang * 0.1f;
         if (w->firing && (s16) pG->pl_life > 0) {
             parts = obj->getPartsPtr(3);
-            parts->rot.z += 0.20943952f;
-            parts->rot.z = LIMIT_ANGLE(parts->rot.z);
+            parts->ang.z += 0.20943952f;
+            parts->ang.z = LIMIT_ANGLE(parts->ang.z);
             if (w->seOn == 0) {
                 w->seOn = 1;
                 w->seHandle = SndCall(6, 0x24, &obj->pos, 0, 0, 0);
@@ -339,10 +339,10 @@ void obj15MatCalc(cObjGatling* obj)
     if (w->target == 0) {
         w->target = pPL;
     }
-    RotMatrix(obj->worldMat, &obj->rot);
-    TransMatrix(obj->worldMat, &obj->pos);
-    ScaleMatrix(obj->worldMat, &obj->scale);
-    PSMTXCopy(obj->worldMat, obj->mat);
+    RotMatrix(obj->l_mat, &obj->ang);
+    TransMatrix(obj->l_mat, &obj->pos);
+    ScaleMatrix(obj->l_mat, &obj->scale);
+    PSMTXCopy(obj->l_mat, obj->mat);
     if (obj->pMotion == 0) {
         obj->partsMatCalc();
     }
@@ -474,10 +474,10 @@ void obj15DmCk(cObjGatling* obj)
             case 0xD:
             case 0x12:
                 if (w->breakMode == 0) {
-                    obj->xFC = 1;
-                    obj->xFD = 1;
-                    obj->xFE = 0;
-                    obj->xFF = 0;
+                    obj->r_no_0 = 1;
+                    obj->r_no_1 = 1;
+                    obj->r_no_2 = 0;
+                    obj->r_no_3 = 0;
                     return;
                 }
                 SndCall(6, 0x16, &obj->pos, 0, 0, 0);
@@ -492,7 +492,7 @@ void cObjGatling::setEat(void* data, int type)
 {
     GatlingWork* w = &gatling;
 
-    w->eat = EatMgr.create(data, 0, &pos, &rot, type);
+    w->eat = EatMgr.create(data, 0, &pos, &ang, type);
 }
 
 void cObjGatling::setMaxRot(f32 r)
@@ -527,10 +527,10 @@ void cObjGatling::setBreak()
     }
     be_flag &= ~2;
     if (w->eat) {
-        w->eat->flags &= ~4;
+        w->eat->m_Flag &= ~4;
     }
-    xFC = 1;
-    xFD = 1;
-    xFE = 1;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 1;
+    r_no_3 = 0;
 }

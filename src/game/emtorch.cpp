@@ -15,11 +15,11 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
-void LifeDownSet(cEm* em, int dmg, int a);                                                  // em_sub.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
+void LifeDownSet(cEm* em, int dmg, int rnd);                                                  // em_sub.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);                                        // est.cpp
-void EffectEspgenDelete(int a, int b, cModel* m);
-void EffectEfmDelete(int a, int b, cModel* m);
+void EffectEspgenDelete(int Core_flg, int Core_kind, cModel* m);
+void EffectEfmDelete(int Core_flg, int Core_kind, cModel* m);
 }
 
 typedef void (*EmTorchFunc)(cEmTorch*);
@@ -53,7 +53,7 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetTorch() failed.");
@@ -66,7 +66,7 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     } else {
         EtcSetAddAmb(em, 12);
     }
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     switch (em->type) {
     case 0:
     default:
@@ -101,22 +101,22 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         break;
     }
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
-    em->atari.setPriority(3);
+    em->atari.setPriority(PRI_LV3);
     em->atari.throughOn();
     emTorchYarareInit(em);
-    em->hpMax = em->hp;
+    em->hp_max = em->hp;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 1000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
-    em->setStatus(0xB);
+    em->setStatus(EM_STATUS_LOCKOFF);
+    em->setStatus(EM_STATUS_ASHLEY_NO_HELP);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     switch (em->type) {
@@ -140,23 +140,23 @@ cEmTorch* SetTorch(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         em->hp = 1;
         break;
     }
-    w->estNo = 50;
-    w->flags = 0;
-    w->etcNo = etcNo;
+    w->EffKindId = 50;
+    w->Be_flg = 0;
+    w->Etc_no = etcNo;
     flg = GetEtcFlgPtr(etcNo, pGS->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     return em;
 }
@@ -244,7 +244,7 @@ void emTorchDmCk(cEmTorch* em)
     }
     LifeDownSet(em, dmg, 0);
     if (em->type == 5) {
-        EstSet(0, -1, &em->pos, &em->rot, w->eff, 1, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 1, 0, 0, 0, 0);
     }
     if (em->hp <= 0) {
         switch (em->dmWep) {
@@ -297,8 +297,8 @@ void emTorchDmCk(cEmTorch* em)
         if (em->type == 0) {
             SndCall(1, 0x3F, &em->pos, 0, 0, em);
         }
-        if (w->eff != 0xFF) {
-            EstSet((int) em, -1, 0, 0, w->eff, 1, 0, 0, (u32) em, 0);
+        if (w->Eff_id != 0xFF) {
+            EstSet((int) em, -1, 0, 0, w->Eff_id, 1, 0, 0, (u32) em, 0);
         }
     }
 }
@@ -308,22 +308,22 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     EmTorchWork* w = EMTORCH_WK(em);
 
     em->hp = 0;
-    if (w->eff != 0xFF && em->type != 5) {
-        EffectEspDelete(1, w->estNo, em, 0);
-        EffectEspgenDelete(1, w->estNo, em);
-        EffectEfmDelete(1, w->estNo, em);
+    if (w->Eff_id != 0xFF && em->type != 5) {
+        EffectEspDelete(1, w->EffKindId, em, 0);
+        EffectEspgenDelete(1, w->EffKindId, em);
+        EffectEfmDelete(1, w->EffKindId, em);
         switch (kind) {
         default:
-            EstSet((int) em, -1, 0, 0, w->eff, 2, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
             break;
         case 0:
-            EstSet((int) em, -1, 0, 0, w->eff, 2, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
             break;
         case 1:
-            EstSet((int) em, -1, 0, 0, w->eff, 2, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
             break;
         case 2:
-            EstSet((int) em, -1, 0, 0, w->eff, 3, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, w->Eff_id, 3, 0, 0, (u32) em, 0);
             break;
         }
     }
@@ -331,10 +331,10 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     case 0:
         em->be_flag &= ~2;
         SndCall(1, 0x40, &em->pos, 0, 0, em);
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 2:
     case 3:
@@ -344,16 +344,16 @@ void emTorchSetBreak(cEmTorch* em, u32 kind)
     case 4:
         em->be_flag &= ~2;
         SndCall(6, 0x2A, &em->pos, 0, 0, em);
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 2;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 5:
-        em->xFC = 1;
-        em->xFD = 3;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 3;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     }
 }
@@ -362,34 +362,34 @@ void cEmTorch::move()
 {
     emTorchDmCk(this);
     be_flag &= ~0x4000;
-    EmTorch_R0_move_tbl[xFC](this);
+    EmTorch_R0_move_tbl[r_no_0](this);
 }
 
 void emTorch_R0_Init(cEmTorch* em)
 {
-    em->xFC = 1;
-    em->xFD = 0;
-    em->xFE = 0;
-    em->xFF = 0;
+    em->r_no_0 = 1;
+    em->r_no_1 = 0;
+    em->r_no_2 = 0;
+    em->r_no_3 = 0;
 }
 
 void emTorch_R0_Move(cEmTorch* em)
 {
-    EmTorch_R1_move_tbl[em->xFD](em);
+    EmTorch_R1_move_tbl[em->r_no_1](em);
 }
 
 void emTorch_R1_Set(cEmTorch* em)
 {
     EmTorchWork* w = EMTORCH_WK(em);
 
-    if (em->xFE == 0) {
-        RotMatrix(em->mat, &em->rot);
+    if (em->r_no_2 == 0) {
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        w->timer = 30;
-        em->xFE++;
+        w->Timer = 30;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -403,12 +403,12 @@ void emTorch_R1_Parent(cEmTorch* em)
     EmTorchWork* w = EMTORCH_WK(em);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
         PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
-        if (!(w->flags & 1)) {
+        if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -459,15 +459,15 @@ void emTorch_R1_Break(cEmTorch* em)
     EmTorchWork* w = EMTORCH_WK(em);
     u16* flg;
 
-    if (em->xFE == 0) {
-        flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
+    if (em->r_no_2 == 0) {
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
         em->hp = 0;
         em->be_flag &= ~2;
-        w->x60 = 150;
-        em->xFE++;
+        w->Lost_wait = 150;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
@@ -478,9 +478,9 @@ void emTorch_R1_Fall(cEmTorch* em)
     u16* flg;
     f32 floor;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
@@ -490,23 +490,23 @@ void emTorch_R1_Fall(cEmTorch* em)
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
         SndCall(6, 0x2D, &em->pos, 0, 0, em);
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         w->spd.y -= 20.0f;
         floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y < floor) {
             em->pos.y = floor;
-            EffectEspDelete(1, w->estNo, em, 0);
-            EffectEspgenDelete(1, w->estNo, em);
-            EffectEfmDelete(1, w->estNo, em);
-            EstSet(0, -1, &em->pos, 0, w->eff, 2, 0, 0, 0, 0);
+            EffectEspDelete(1, w->EffKindId, em, 0);
+            EffectEspgenDelete(1, w->EffKindId, em);
+            EffectEfmDelete(1, w->EffKindId, em);
+            EstSet(0, -1, &em->pos, 0, w->Eff_id, 2, 0, 0, 0, 0);
             SndCall(6, 0x58, &em->pos, 0, 0, em);
             DmgMgr.set(5, 0x4B, &em->pos, 2500.0f, 1500.0f);
             em->be_flag &= ~2;
-            em->xFE++;
+            em->r_no_2++;
         } else {
-            RotMatrix(em->mat, &em->rot);
+            RotMatrix(em->mat, &em->ang);
             TransMatrix(em->mat, &em->pos);
             ScaleMatrix(em->mat, &em->scale);
             if (em->pMotion) {
@@ -556,19 +556,19 @@ void cEmTorch::setBreak()
 
 void cEmTorch::setDelete()
 {
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }
 
 void cEmTorch::setEff(u8 eff)
 {
     EmTorchWork* w = EMTORCH_WK(this);
 
-    w->eff = eff;
+    w->Eff_id = eff;
     if (hp > 0) {
-        EstSet((int) this, -1, 0, 0, w->eff, 0, 1, w->estNo, (u32) this, 0);
+        EstSet((int) this, -1, 0, 0, w->Eff_id, 0, 1, w->EffKindId, (u32) this, 0);
     }
 }
 
@@ -579,12 +579,12 @@ void cEmTorch::setParent(cModel* parent, int partsNo, int flag)
     w->pParent = parent;
     w->partsNo = partsNo;
     if (flag) {
-        w->flags |= 1;
+        w->Be_flg |= 1;
     } else {
-        w->flags &= ~1;
+        w->Be_flg &= ~1;
     }
-    xFC = 1;
-    xFD = 1;
-    xFE = 0;
-    xFF = 0;
+    r_no_0 = 1;
+    r_no_1 = 1;
+    r_no_2 = 0;
+    r_no_3 = 0;
 }

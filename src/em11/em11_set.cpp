@@ -89,7 +89,7 @@ void Em11Set(cEm10* em)
         w->mot[37] = ARC(0x216);
         w->mot[38] = ARC(0x217);
         w->mot[39] = ARC(0x218);
-        if (em->emsetNo & 1) {
+        if (em->emset_no & 1) {
             Em10SetSeTbl(em, 0);
         } else {
             Em10SetSeTbl(em, 2);
@@ -182,14 +182,14 @@ void Em11Set(cEm10* em)
         w->mot[38] = ARC(0x217);
         w->mot[39] = ARC(0x218);
         w->mot[40] = ARC(0x219);
-        if (em->emsetNo & 1) {
+        if (em->emset_no & 1) {
             Em10SetSeTbl(em, 0);
         } else {
             Em10SetSeTbl(em, 2);
         }
         break;
     }
-    w->x6C5 = 1;
+    w->Ganado = 1;
     Em11WeaponSet(em);
 }
 

@@ -185,10 +185,10 @@ static inline void r332_flgOnRef(u32* f, int no)
 // Through the manager pointer (an inline `this`): `&CamCtrl` in a register, the field at 0x250 off it.
 static inline void CamCtrlSetCam(CameraControl* cc, Camera* cam)
 {
-    cc->x250 = (s32) cam;
+    cc->m_pExtraCamera = (s32) cam;
 }
 
-#define R332_FLAGS ((u32*) &pG->flags_174)
+#define R332_FLAGS ((u32*) &pG->Room_flg[0])
 
 // The bridge state is stored by byte offset from the first bridge's field (a cast-then-deref
 // store: it kills the cached pG / r332_work like the other work stores).
@@ -257,7 +257,7 @@ static inline int r332_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -270,7 +270,7 @@ void R332Init()
 
 #line 143 "D:/Bio4/Prog/r332.cpp"
     r332_work = (R332Work*) MEM_CALLOC(sizeof(R332Work), 1, 0xd);
-    BitOn(pG->flags_5018, 0x80000000);
+    BitOn(pG->Status_flg[3], 0x80000000);
     PSet((void*&) r332_work->rocket, 0);
     IntSet(r332_work->x68, 0);
     PSet((void*&) r332_work->task[0], 0);
@@ -283,7 +283,7 @@ void R332Init()
     EvtMgr.SetFunc("evt_r332s97_func", (void*) Evt_R332S00_Func);
     EvtMgr.SetFunc("evt_r332s98_func", (void*) Evt_R332S10_Func);
     EvtMgr.SetFunc("evt_r332s99_func", (void*) Evt_R332S20_Func);
-    if ((pG->flags_51C0 & 0x200) == 0) {
+    if ((pG->Scenario_flg[0] & 0x200) == 0) {
         u32 size0;
         u32 size1;
         u32 size;
@@ -328,33 +328,33 @@ void R332Init()
     EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
     EstSet(0, -1, 0, 0, 1, 6, 1, 3, 0, 0);
     Vec zero = {0.0f, 0.0f, 0.0f};
-    PSet((void*&) r332_work->sat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r332_satPos[0], &zero, 2));
-    PSet((void*&) r332_work->sat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r332_satPos[1], &zero, 4));
-    PSet((void*&) r332_work->sat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r332_satPos[2], &zero, 3));
-    PSet((void*&) r332_work->sat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r332_satPos[3], &zero, 1));
-    PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    PSet((void*&) r332_work->sat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[0], &zero, 2));
+    PSet((void*&) r332_work->sat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[1], &zero, 4));
+    PSet((void*&) r332_work->sat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[2], &zero, 3));
+    PSet((void*&) r332_work->sat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r332_satPos[3], &zero, 1));
+    PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     Vec cranePos[2] = {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
     Vec craneRot[2] = {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
-    void* craneMot[2] = {ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22)};
-    void* chainMot[5] = {ROOM_ARC_PTR(pG->pRoomArc, 0x3A), ROOM_ARC_PTR(pG->pRoomArc, 0x3B), ROOM_ARC_PTR(pG->pRoomArc, 0x3C),
-                         ROOM_ARC_PTR(pG->pRoomArc, 0x3D), ROOM_ARC_PTR(pG->pRoomArc, 0x3E)};
+    void* craneMot[2] = {ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22)};
+    void* chainMot[5] = {ROOM_ARC_PTR(pG->pRoom, 0x3A), ROOM_ARC_PTR(pG->pRoom, 0x3B), ROOM_ARC_PTR(pG->pRoom, 0x3C),
+                         ROOM_ARC_PTR(pG->pRoom, 0x3D), ROOM_ARC_PTR(pG->pRoom, 0x3E)};
     int flagNo[2] = {6, 7};
     int smdNo[2] = {0x21, 0x20};
 
     for (i = 0; i < 2; i++) {
         cObj* crane;
 
-        R332_ARR_SET(crane[0], i * 4, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &cranePos[i], &craneRot[i], 0x10, 0));
+        R332_ARR_SET(crane[0], i * 4, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &cranePos[i], &craneRot[i], 0x10, 0));
         crane = r332_work->crane[i];
         if (crane) {
             cModelInfo* info;
 
-            info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x3F), ROOM_ARC_PTR(pG->pRoomArc, 0x20));
+            info = ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x3F), ROOM_ARC_PTR(pG->pRoom, 0x20));
             if (info) {
                 crane->addModel(info);
             }
             crane->be_flag |= 0x1000;
-            MotionSetCore(crane, &crane->mot, craneMot[i], 0, 0, 5, 0);
+            MotionSetCore(crane, &crane->Motion, craneMot[i], 0, 0, 5, 0);
             // The reference-view store keeps the following `pG` load below it (r30c PSetPtr).
 #line 372 "D:/Bio4/Prog/r332.cpp"
             PSet(crane->p2A4, MEM_ALLOC(0x98, 1, 0xd));
@@ -371,11 +371,11 @@ void R332Init()
                     Vec rot = {0.0f, 0.0f, 0.0f};
                     cObj* chain;
 
-                    R332_ARR_SET(chain[0][0], i * 0x14 + j * 4, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x38), ROOM_ARC_PTR(pG->pRoomArc, 0x39), &pos, &rot, 0x10, 0));
+                    R332_ARR_SET(chain[0][0], i * 0x14 + j * 4, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x38), ROOM_ARC_PTR(pG->pRoom, 0x39), &pos, &rot, 0x10, 0));
                     chain = r332_work->chain[i][j];
                     if (chain) {
                         chain->be_flag |= 0x1000;
-                        MotionSetCore(chain, &chain->mot, chainMot[j], 0, 0, 4, 0);
+                        MotionSetCore(chain, &chain->Motion, chainMot[j], 0, 0, 4, 0);
                         chain->setParent(crane, 4, &pos, &rot);
                     }
                 }
@@ -393,16 +393,16 @@ void R332Init()
             }
         }
     }
-    if ((pG->flags_51C0 & 0x200) == 0) {
+    if ((pG->Scenario_flg[0] & 0x200) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) R332ExecCrane, 0, 1);
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) R332ExecCrane, (void*) 1, 1);
     }
     Vec pillarPos[3] = {{-32800.0f, 15811.0f, 63600.0f}, {-32900.0f, 15811.0f, 73500.0f}, {-55000.0f, 17311.0f, 72000.0f}};
     Vec pillarRot[3] = {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
     for (i = 0; i < 3; i++) {
-        R332_ARR_SET(pillar[0], i * 4, SetPillar(ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), &pillarPos[i], &pillarRot[i]));
+        R332_ARR_SET(pillar[0], i * 4, SetPillar(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &pillarPos[i], &pillarRot[i]));
         if (r332_work->pillar[i]) {
-            r332_work->pillar[i]->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x29));
+            r332_work->pillar[i]->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x29));
         }
     }
     setTexRender();
@@ -414,7 +414,7 @@ void R332Main()
         cEm31* em = (cEm31*) r332_work->em[0].getPtr();
 
         if (em) {
-            if (RsfCheck(G_ROOM_ID, 3) == 0 && (pG->flags_174 & 0x08000000)) {
+            if (RsfCheck(G_ROOM_ID, 3) == 0 && (pG->Room_flg[0] & 0x08000000)) {
                 RsfSet(G_ROOM_ID, 3);
                 SceExec(0x12, (TaskFunc) R332RocketShootMain, 0, 0, 2, 0);
                 return;
@@ -436,8 +436,8 @@ void R332Main()
             SceExec(0x12, (TaskFunc) R332BossDown, 0, 0, 2, 0);
             return;
         }
-        if ((pG->flags_51C0 & 0x200) == 0 && (pG->item_flags[1] & 0x08000000) && (pG->flags_174 & 0x01000000) == 0) {
-            BitOn(pG->flags_174, 0x01000000);
+        if ((pG->Scenario_flg[0] & 0x200) == 0 && (pG->item_flags[1] & 0x08000000) && (pG->Room_flg[0] & 0x01000000) == 0) {
+            BitOn(pG->Room_flg[0], 0x01000000);
             if (r332_work->task[0]) {
                 SceKill(r332_work->task[0]);
             }
@@ -470,36 +470,36 @@ static void playerDieBridge(cPlayer* pl)
     f32 start = 100.0f;
     f32 step = 10.0f;
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2F), 0, 3, 0x201, 0);
+        MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 3, 0x201, 0);
         AtariOffRaw(&pl->atari, 0xFCFF);
         pl->be_flag &= ~0x10;
         PlSetDamageSe(0xA);
         FSet(r332_work->dieY, start);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         if (pl->frame > 22.7f && pl->frame < 23.3f) {
             PlSetDamageSe(0xD);
-            pl->xFE++;
-            pl->xFF = 0;
+            pl->r_no_2++;
+            pl->r_no_3 = 0;
         }
         MotionMoveF(pl, 0);
         break;
     case 2:
-        pl->xFF++;
-        if (pl->xFF > 29) {
+        pl->r_no_3++;
+        if (pl->r_no_3 > 29) {
             FadeSetW(2, 60, 0, 0);
-            pl->xFF = 0;
-            pl->xFE++;
+            pl->r_no_3 = 0;
+            pl->r_no_2++;
         }
         break;
     case 3:
-        pl->xFF++;
-        if (pl->xFF > 59) {
-            BitOn(pG->flags_5018, 0x01000000);
+        pl->r_no_3++;
+        if (pl->r_no_3 > 59) {
+            BitOn(pG->Status_flg[3], 0x01000000);
             DiedemoExec(0, 1);
-            pl->xFE++;
+            pl->r_no_2++;
         }
         break;
     }
@@ -530,22 +530,22 @@ static void playerBridge(cPlayer* pl)
     Vec pos2[4] = {{-39098.9f, 15861.0f, 81898.6f}, {-48904.4f, 17360.9f, 82048.9f}, {-39098.9f, 15861.0f, 58076.5f}, {-48904.4f, 17360.9f, 58224.8f}};
     Vec rot[4] = {{0.0f, 1.5707964f, 0.0f}, {0.0f, -1.5707964f, 0.0f}, {0.0f, 1.5707964f, 0.0f}, {0.0f, -1.5707964f, 0.0f}};
 
-    switch (pl->xFE) {
+    switch (pl->r_no_2) {
     case 0:
         Cckpt.lifeMeterDisp(0);
         AtariOffRaw(&pl->atari, 0xFCFF);
-        BitOn(pG->flags_174, 0x10000000);
+        BitOn(pG->Room_flg[0], 0x10000000);
         FSet(pPL->pos.x, pos0[no].x);
         FSet(pPL->pos.y, pos0[no].y);
         FSet(pPL->pos.z, pos0[no].z);
-        FSet(pPL->rot.x, rot[no].x);
-        FSet(pPL->rot.y, rot[no].y);
-        FSet(pPL->rot.z, rot[no].z);
+        FSet(pPL->ang.x, rot[no].x);
+        FSet(pPL->ang.y, rot[no].y);
+        FSet(pPL->ang.z, rot[no].z);
         BitOff(pPL->be_flag, 0x10);
-        MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0xA, 0x201, 0);
+        MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0xA, 0x201, 0);
         IntSet(r332_work->btnCnt, 0);
         IntSet(r332_work->timer, 0);
-        pl->xFE++;
+        pl->r_no_2++;
     case 1:
         pl->st.x325 = 0x78;
         if (pl->frame >= (f32) r332_btnFrame) {
@@ -568,12 +568,12 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->pos.x, pos1[no].x);
             FSet(pPL->pos.y, pos1[no].y);
             FSet(pPL->pos.z, pos1[no].z);
-            FSet(pPL->rot.x, rot[no].x);
-            FSet(pPL->rot.y, rot[no].y);
-            FSet(pPL->rot.z, rot[no].z);
-            MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0, 0xA, 0x205, 0);
+            FSet(pPL->ang.x, rot[no].x);
+            FSet(pPL->ang.y, rot[no].y);
+            FSet(pPL->ang.z, rot[no].z);
+            MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0xA, 0x205, 0);
             MotionMoveF(pl, 0);
-            pl->xFE++;
+            pl->r_no_2++;
         }
         break;
     case 2:
@@ -590,21 +590,21 @@ static void playerBridge(cPlayer* pl)
             FSet(pPL->pos.x, pos2[no].x);
             FSet(pPL->pos.y, pos2[no].y);
             FSet(pPL->pos.z, pos2[no].z);
-            FSet(pPL->rot.x, rot[no].x);
-            FSet(pPL->rot.y, rot[no].y);
-            FSet(pPL->rot.z, rot[no].z);
+            FSet(pPL->ang.x, rot[no].x);
+            FSet(pPL->ang.y, rot[no].y);
+            FSet(pPL->ang.z, rot[no].z);
             if (r332_work->btnCnt > 0xA) {
-                MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0, 3, 0x201, 0);
+                MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 3, 0x201, 0);
                 MotionMoveF(pl, 0);
                 IntSet(r332_work->strBlk, SndStrPlayBlock(1, 0x2F, 0.0f));
-                pl->xFE++;
+                pl->r_no_2++;
             } else {
                 pG->pl_life = 0;
                 AtariOffRaw(&pl->atari, 0xFCFF);
                 SndCall(1, 0x4A, &pPL->pos, 0, 0, 0);
-                MotionSetCore(pl, &pl->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x2F), 0, 3, 0x201, 0);
+                MotionSetCore(pl, &pl->Motion, ROOM_ARC_PTR(pG->pRoom, 0x2F), 0, 3, 0x201, 0);
                 MotionMoveF(pl, 0);
-                pl->xFE = 0xA;
+                pl->r_no_2 = 0xA;
             }
         }
         break;
@@ -612,7 +612,7 @@ static void playerBridge(cPlayer* pl)
         pl->st.x325 = 0x78;
         if (MotionMoveF(pl, 0)) {
             BitOn(pPL->be_flag, 0x10);
-            BitOff(pG->flags_174, 0x10000000);
+            BitOff(pG->Room_flg[0], 0x10000000);
             AtariOnRaw(&pl->atari, 0x300);
             SceEventStart(0);
             SceEventEnd(0);
@@ -630,15 +630,15 @@ int R332ChkNearBridge()
 {
     int ret = 4;
 
-    if (pG->sceat_x17C & 0x80000000) {
+    if (pG->Room_flg[2] & 0x80000000) {
         ret = 3;
-        if (pPL->rot.y > 0.0f) {
+        if (pPL->ang.y > 0.0f) {
             ret = 2;
         }
     }
-    if (pG->sceat_x17C & 0x40000000) {
+    if (pG->Room_flg[2] & 0x40000000) {
         ret = 1;
-        if (pPL->rot.y > 0.0f) {
+        if (pPL->ang.y > 0.0f) {
             ret = 0;
         }
     }
@@ -706,22 +706,22 @@ void R332BridgeOpened(int no, int open)
         EffectEfmDelete(1, (u8) estNo, 0);
         EstSet(0, -1, 0, 0, 1, estPrm, 1, (u8) estNo, 0, 0);
         SceAtSetEnable(atNo, 1);
-        setAngXYZ(a, a->rot.x, a->rot.y, -r332_bridgeAng[0]);
-        setAngXYZ(b, b->rot.x, b->rot.y, r332_bridgeAng[1]);
+        setAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0]);
+        setAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1]);
         if (r332_work->sat[satA]) {
-            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
         if (r332_work->sat[satB]) {
-            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
     } else {
-        setAngXYZ(a, a->rot.x, a->rot.y, -R332_FLAT);
-        setAngXYZ(b, b->rot.x, b->rot.y, R332_FLAT);
+        setAngXYZ(a, a->ang.x, a->ang.y, -R332_FLAT);
+        setAngXYZ(b, b->ang.x, b->ang.y, R332_FLAT);
         if (r332_work->sat[satA]) {
-            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
         if (r332_work->sat[satB]) {
-            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
         SceAtSetEnable(atNo, 0);
         EffectEspDelete(1, (u8) estNo, 0, 0);
@@ -796,27 +796,27 @@ void R332BridgeOpen(int no, int open)
             f32 za = (r332_bridgeAng[0] - R332_FLAT) * (f32) i / 10.0f + R332_FLAT;
             f32 zb = (r332_bridgeAng[1] - R332_FLAT) * (f32) i / 10.0f + R332_FLAT;
 
-            setAngXYZ(a, a->rot.x, a->rot.y, -za);
-            setAngXYZ(b, b->rot.x, b->rot.y, zb);
+            setAngXYZ(a, a->ang.x, a->ang.y, -za);
+            setAngXYZ(b, b->ang.x, b->ang.y, zb);
             if (r332_work->sat[satA]) {
-                r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+                r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
             }
             if (r332_work->sat[satB]) {
-                r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+                r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
             }
             SceSleep(1);
         }
-        setAngXYZ(a, a->rot.x, a->rot.y, -r332_bridgeAng[0]);
-        setAngXYZ(b, b->rot.x, b->rot.y, r332_bridgeAng[1]);
+        setAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0]);
+        setAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1]);
         if (r332_work->sat[satA]) {
-            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
         if (r332_work->sat[satB]) {
-            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
         for (int i = 0; i < 5; i++) {
-            setAngXYZ(a, a->rot.x, a->rot.y, -r332_bridgeAng[0] + fRand1_1() * PI / 180.0f * 2.0f);
-            setAngXYZ(b, b->rot.x, b->rot.y, r332_bridgeAng[1] + fRand1_1() * PI / 180.0f * 2.0f);
+            setAngXYZ(a, a->ang.x, a->ang.y, -r332_bridgeAng[0] + fRand1_1() * PI / 180.0f * 2.0f);
+            setAngXYZ(b, b->ang.x, b->ang.y, r332_bridgeAng[1] + fRand1_1() * PI / 180.0f * 2.0f);
             SceSleep(1);
         }
     } else {
@@ -825,23 +825,23 @@ void R332BridgeOpen(int no, int open)
             f32 za = (R332_FLAT - r332_bridgeAng[0]) * (f32) i / 50.0f + r332_bridgeAng[0];
             f32 zb = (R332_FLAT - r332_bridgeAng[1]) * (f32) i / 50.0f + r332_bridgeAng[1];
 
-            setAngXYZ(a, a->rot.x, a->rot.y, -za);
-            setAngXYZ(b, b->rot.x, b->rot.y, zb);
+            setAngXYZ(a, a->ang.x, a->ang.y, -za);
+            setAngXYZ(b, b->ang.x, b->ang.y, zb);
             if (r332_work->sat[satA]) {
-                r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+                r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
             }
             if (r332_work->sat[satB]) {
-                r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+                r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
             }
             SceSleep(1);
         }
-        setAngXYZ(a, a->rot.x, a->rot.y, -R332_FLAT);
-        setAngXYZ(b, b->rot.x, b->rot.y, R332_FLAT);
+        setAngXYZ(a, a->ang.x, a->ang.y, -R332_FLAT);
+        setAngXYZ(b, b->ang.x, b->ang.y, R332_FLAT);
         if (r332_work->sat[satA]) {
-            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->rot);
+            r332_work->sat[satA]->setCoord(&r332_satPos[satA], &a->ang);
         }
         if (r332_work->sat[satB]) {
-            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->rot);
+            r332_work->sat[satB]->setCoord(&r332_satPos[satB], &b->ang);
         }
         SceAtSetEnable(atNo, 0);
         EffectEspDelete(1, (u8) estNo, 0, 0);
@@ -891,7 +891,7 @@ static void R332BridgeTask(int no)
                     ActBtn.set(0xC, 0xC, 0, 0, 0x42, 3, 1, 0);
                     if ((Key.trg & 0x00400000 && Key.on & 0x00800000) || (Key.on & 0x00400000 && Key.trg & 0x00800000)) {
                         SetPlDamage(0, playerBridge);
-                        BitOn(pG->flags_174, 0x10000000);
+                        BitOn(pG->Room_flg[0], 0x10000000);
                         break;
                     }
                     if (r332_work->bridge[no].cnt > 0x95 && r332_flgCk(R332_FLAGS, flgOpen) == 0) {
@@ -911,7 +911,7 @@ static void R332BridgeTask(int no)
         {
             u32* f = R332_FLAGS;
 
-            if ((pG->flags_174 & 0x10000000) == 0 && r332_flgCk(f, flgArea)) {
+            if ((pG->Room_flg[0] & 0x10000000) == 0 && r332_flgCk(f, flgArea)) {
                 SetPlDamage(0, playerDieBridge);
             }
         }
@@ -923,7 +923,7 @@ static void R332BridgeTask(int no)
         }
     }
     R332BridgeOpen(no, r332_work->bridge[no].open);
-    while (pG->flags_174 & 0x10000000) {
+    while (pG->Room_flg[0] & 0x10000000) {
         SceSleep(1);
     }
     if (r332_work->bridge[no].open == 0) {
@@ -931,7 +931,7 @@ static void R332BridgeTask(int no)
     } else {
         R332BridgeInit(no, 0);
     }
-    if ((pG->flags_60 & 0x02000000) == 0) {
+    if ((pG->Debug_flg[0] & 0x02000000) == 0) {
         R332_TASK_SET(no, SceExec(0x12, (TaskFunc) R332BridgeTask, no, 0, 2, 0));
     }
 }
@@ -942,7 +942,7 @@ static void R332BossDown()
     cEm31* em;
 
     SceEventStart(1);
-    BitOff(pG->flags_5010, 0x10000000);
+    BitOff(pG->Status_flg[1], 0x10000000);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
         CamCtrl.deleteAttachCamera((AttachCamera*) em->p2A4, em);
@@ -1000,10 +1000,10 @@ static void R332RocketShootMain(int type)
         EvtMgr.EvtFree("event/evd/r332s20.evd");
     }
     EvtMgr.EvtReadAram("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
-    BitOn(pG->flags_5014, 0x02000000);
+    BitOn(pG->Status_flg[2], 0x02000000);
     SceEventStart(0);
-    BitOn(pG->flags_54, 0x400);
-    BitOn(pG->flags_51C0, 0x200);
+    BitOn(pG->System_flg, 0x400);
+    BitOn(pG->Scenario_flg[0], 0x200);
     if (r332_work->task[0]) {
         SceKill(r332_work->task[0]);
     }
@@ -1016,7 +1016,7 @@ static void R332RocketShootMain(int type)
     R332BridgeOpened(1, 1);
     IntSet(r332_work->strBlk, 0);
     VecCopy((u32*) &r332_work->plPos, (u32*) &pPL->pos);
-    VecCopy((u32*) &r332_work->plRot, (u32*) &pPL->rot);
+    VecCopy((u32*) &r332_work->plRot, (u32*) &pPL->ang);
     AtariOffRaw(&pPL->atari, 0xFCFF);
     ((cUnitEventView*) pPL)->beginEvent(0);
     pPL->setNoSuspend(1);
@@ -1045,9 +1045,9 @@ static void R332RocketShootMain(int type)
     } else {
         IntSet(r332_work->strBlk, SndStrPlayBlock(1, 0xED, 0.0f));
     }
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     SceSetEventCancel(1, (TaskFunc) R332RocketShootEnd, type, -1, 1);
-    BitOn(pG->flags_174, 0x02000000);
+    BitOn(pG->Room_flg[0], 0x02000000);
     if (type == 0) {
         cObjLauncher* lau;
         cObj* obj;
@@ -1055,55 +1055,55 @@ static void R332RocketShootMain(int type)
         FSet(pPL->pos.x, -53000.0f);
         FSet(pPL->pos.y, 17500.0f);
         FSet(pPL->pos.z, 82500.0f);
-        FSet(pPL->rot.x, 0.0f);
-        FSet(pPL->rot.y, 0.0f);
-        FSet(pPL->rot.z, 0.0f);
-        MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x30), 0, 0, 0x200, 0);
+        FSet(pPL->ang.x, 0.0f);
+        FSet(pPL->ang.y, 0.0f);
+        FSet(pPL->ang.z, 0.0f);
+        MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x30), 0, 0, 0x200, 0);
         EstSet((int) pPL, -1, 0, 0, 0x29, 0x2C, 0x2001, 7, 0, 0);
-        pPL->pWep->pObj->setDisp(0, 1);
-        pPL->pWep->pObj->setDisp(1, 1);
-        pPL->pWep->pObj->setDisp(2, 1);
-        lau = (cObjLauncher*) pPL->pWep->pObj;
+        pPL->Wep->m_pWep->setDisp(0, 1);
+        pPL->Wep->m_pWep->setDisp(1, 1);
+        pPL->Wep->m_pWep->setDisp(2, 1);
+        lau = (cObjLauncher*) pPL->Wep->m_pWep;
         if (lau) {
-            if (lau->pInfo) {
-                lau->pInfo->color[0] = 0xA0;
-                lau->pInfo->color[1] = 0xD0;
-                lau->pInfo->color[2] = 0xE0;
-                lau->pInfo->color[3] = 0xFF;
+            if (lau->pModelInfo) {
+                lau->pModelInfo->color[0] = 0xA0;
+                lau->pModelInfo->color[1] = 0xD0;
+                lau->pModelInfo->color[2] = 0xE0;
+                lau->pModelInfo->color[3] = 0xFF;
             }
-            lau->lightInfo.x50 |= 1;
-            lau->lightInfo.x50 &= ~0x10;
+            lau->LightInfo.EnableMask |= 1;
+            lau->LightInfo.EnableMask &= ~0x10;
             lau->grip(1);
             ObjMgr.destroy(lau->launcher.rocket);
             lau->launcher.rocket = 0;
         }
-        pPL->pWep->pObj->setNoSuspend(1);
+        pPL->Wep->m_pWep->setNoSuspend(1);
         {
             Vec pos = {-53000.0f, 17500.0f, 82500.0f};
             Vec rot = {0.0f, 0.0f, 0.0f};
 
-            PSet((void*&) r332_work->rocket, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x31), ROOM_ARC_PTR(pG->pRoomArc, 0x32), &pos, &rot, 0x10, 1));
+            PSet((void*&) r332_work->rocket, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x31), ROOM_ARC_PTR(pG->pRoom, 0x32), &pos, &rot, 0x10, 1));
             obj = r332_work->rocket;
             if (obj) {
-                if (obj->pInfo) {
-                    obj->pInfo->color[0] = 0xFF;
-                    obj->pInfo->color[1] = 0x78;
-                    obj->pInfo->color[2] = 0x80;
-                    obj->pInfo->color[3] = 0xFF;
+                if (obj->pModelInfo) {
+                    obj->pModelInfo->color[0] = 0xFF;
+                    obj->pModelInfo->color[1] = 0x78;
+                    obj->pModelInfo->color[2] = 0x80;
+                    obj->pModelInfo->color[3] = 0xFF;
                 }
-                obj->lightInfo.x50 |= 1;
-                obj->lightInfo.x50 &= ~0x10;
+                obj->LightInfo.EnableMask |= 1;
+                obj->LightInfo.EnableMask &= ~0x10;
 #line 1648 "D:/Bio4/Prog/r332.cpp"
                 obj->p2A4 = MEM_ALLOC(0x98, 1, 0xd);
                 obj->be_flag |= 0x1000;
                 obj->setNoSuspend(1);
-                MotionSetCore(obj, &obj->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x33), 0, 0, 0x200, 0);
+                MotionSetCore(obj, &obj->Motion, ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0, 0x200, 0);
                 EstSet((int) obj, -1, 0, 0, 0x29, 0x2B, 0x2001, 7, 0, 0);
             }
         }
         while (MotionGetState(pPL) == 0) {
             SceSleep(1);
-            BitOff(pG->flags_54, 0x400);
+            BitOff(pG->System_flg, 0x400);
         }
         pPL->setNoSuspend(1);
         BitOff(pPL->be_flag, 2);
@@ -1124,7 +1124,7 @@ static void R332RocketShootMain(int type)
         EffectEspgenDelete(0x2001, 7, 0);
         EffectEfmDelete(0x2001, 7, 0);
     }
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     pPL->setNoSuspend(1);
     BitOff(pPL->be_flag, 2);
     em = (cEm31*) r332_work->em[1].getPtr();
@@ -1133,7 +1133,7 @@ static void R332RocketShootMain(int type)
             SceSleep(1);
         }
     }
-    BitOff(pG->flags_174, 0x02000000);
+    BitOff(pG->Room_flg[0], 0x02000000);
     SceSetEventCancel(0, 0, 0, -1, 1);
     R332RocketShootEnd(type);
 }
@@ -1142,7 +1142,7 @@ static void R332RocketShootEnd(int type)
 {
     cEm31* em;
 
-    BitOn(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x400);
     em = (cEm31*) r332_work->em[1].getPtr();
     if (em) {
         em->setNoSuspend(0);
@@ -1162,17 +1162,17 @@ static void R332RocketShootEnd(int type)
     FSet(pPL->pos.x, -53000.0f);
     FSet(pPL->pos.y, 17500.0f);
     FSet(pPL->pos.z, 82500.0f);
-    FSet(pPL->rot.x, 0.0f);
-    FSet(pPL->rot.y, 3.14f);
-    FSet(pPL->rot.z, 0.0f);
+    FSet(pPL->ang.x, 0.0f);
+    FSet(pPL->ang.y, 3.14f);
+    FSet(pPL->ang.z, 0.0f);
     AtariOnRaw(&pPL->atari, 0x300);
     if (type == 0) {
         cObjLauncher* lau;
 
-        pPL->pWep->pObj->setDisp(0, 0);
-        pPL->pWep->pObj->setDisp(1, 0);
-        pPL->pWep->pObj->setDisp(2, 0);
-        lau = (cObjLauncher*) pPL->pWep->pObj;
+        pPL->Wep->m_pWep->setDisp(0, 0);
+        pPL->Wep->m_pWep->setDisp(1, 0);
+        pPL->Wep->m_pWep->setDisp(2, 0);
+        lau = (cObjLauncher*) pPL->Wep->m_pWep;
         if (lau) {
             lau->grip(0);
             lau->drop(0);
@@ -1180,15 +1180,15 @@ static void R332RocketShootEnd(int type)
             FSet(lau->pos.y, pPL->pos.y + 200.0f);
             FSet(lau->pos.z, pPL->pos.z);
         }
-        pPL->pWep->pObj->setNoSuspend(0);
+        pPL->Wep->m_pWep->setNoSuspend(0);
     }
     EffectEspDelete(0x2001, 7, 0, 0);
     EffectEspgenDelete(0x2001, 7, 0);
     EffectEfmDelete(0x2001, 7, 0);
     SceExec(0x12, (TaskFunc) R332EventS10, 0, 0, 2, 0);
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     SceEventEnd(0);
-    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->Status_flg[2], 0x02000000);
     SceExit();
 }
 
@@ -1275,7 +1275,7 @@ static void R332ExecCrane(int no)
     if (no == 0) {
         atNo = 1;
         flgNo = 1;
-        mot = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        mot = ROOM_ARC_PTR(pG->pRoom, 0x23);
         rsfNo = 6;
         estNo = 0x13;
         plPos.x = -51330.0f;
@@ -1289,7 +1289,7 @@ static void R332ExecCrane(int no)
     } else {
         atNo = 2;
         flgNo = 2;
-        mot = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
+        mot = ROOM_ARC_PTR(pG->pRoom, 0x24);
         rsfNo = 7;
         estNo = 0x12;
         plPos.x = -36800.0f;
@@ -1341,12 +1341,12 @@ static void R332ExecCrane(int no)
         switch (step) {
         case 0:
             AtariOffRaw(&pPL->atari, 0xFCFF);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x34), 3, 0, 0x200, 0);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x34), 3, 0, 0x200, 0);
             step = 1;
             break;
         case 1:
             if (MotionGetState(pPL)) {
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x35), 5, 0, 0x204, 0);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x35), 5, 0, 0x204, 0);
                 r332_work->cam = pG->Cam;
                 step++; // `li r8,2` before the block copy, `mr r28,r8` after it (cse folds step == 1 in the case arm)
             }
@@ -1389,7 +1389,7 @@ static void R332ExecCrane(int no)
                 pPL->dmg.set(0, 0x80);
                 loopOn = 0;
                 step++;
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x36), 5, 0, 0x200, 0);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x36), 5, 0, 0x200, 0);
                 SceExec(0x12, (TaskFunc) R332RevaCommonMoveDw, no, 0, 2, 0);
             }
             break;
@@ -1400,22 +1400,22 @@ static void R332ExecCrane(int no)
     while (MotionGetState(pPL) == 0) {
         SceSleep(1);
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x37), 5, 0, 0x200, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x37), 5, 0, 0x200, 0);
     {
-        f32 reach = SQRTF(GetDistanceXZ(&parts0->worldPos, &parts4->worldPos));
-        f32 d = SQRTF(GetDistance(&parts0->worldPos, &em->pos));
+        f32 reach = SQRTF(GetDistanceXZ(&parts0->world, &parts4->world));
+        f32 d = SQRTF(GetDistance(&parts0->world, &em->pos));
 
         if (d < r332_craneRange + reach && em->hp > 0) {
             hitDone = 1;
             em->setCranePos((u8) no);
             CamCtrl.deleteAttachCamera((AttachCamera*) pPL->p2A4, pPL);
-            MotionSetCore(crane, &crane->mot, mot, 0, 3, 0x201, 0);
+            MotionSetCore(crane, &crane->Motion, mot, 0, 3, 0x201, 0);
             while (MotionGetState(pPL) == 0) {
                 SceSleep(1);
             }
             pPL->motionSet(pPL->pMotTbl[0], pPL->pMotTbl[1], pPL->pMotTbl[0x5F], pPL->pMotTbl[0x60], 0xC, 0);
         } else {
-            MotionSetCore(crane, &crane->mot, mot, 0, 3, 0x301, 0);
+            MotionSetCore(crane, &crane->Motion, mot, 0, 3, 0x301, 0);
             while (MotionGetState(pPL) == 0) {
                 SceSleep(1);
             }
@@ -1429,12 +1429,12 @@ static void R332ExecCrane(int no)
             cEmHit* hit = r332_work->hit[no];
 
             if (hit && em) {
-                f32 d = SQRTF(GetDistance(&hit->pParts->worldPos, &em->pos));
+                f32 d = SQRTF(GetDistance(&hit->pParts->world, &em->pos));
 
                 if (d < r332_craneRange) {
                     int k;
 
-                    em->setHitCrane(&hit->pParts->worldPos);
+                    em->setHitCrane(&hit->pParts->world);
                     r332_flgOnRef(R332_FLAGS, flgNo);
                     RsfSet(G_ROOM_ID, rsfNo);
                     for (k = 0; k < 5; k++) {
@@ -1478,7 +1478,7 @@ static void R332EventS00()
         return;
     }
     RsfSet(G_ROOM_ID, 0);
-    BitOn(pG->flags_54, 0x400);
+    BitOn(pG->System_flg, 0x400);
     SceSleep(1);
     EvtMgr.EvtReadExec("event/evd/r332s00.evd", (u8) GetEmIdFromListI(0xA9), 0);
     GamePointBossReset();
@@ -1496,7 +1496,7 @@ static void R332EventS00()
     pPL->setNoSuspend(1);
     setPosXYZ(pPL, -29161.0f, 15811.0f, 61102.0f);
     setAngXYZ(pPL, 0.0f, 3.14f, 0.0f);
-    if (pG->flags_174 & 0x04000000) {
+    if (pG->Room_flg[0] & 0x04000000) {
         SceSetEventCancel(0, 0, 0, -1, 1);
         R332EventS00End();
     } else {
@@ -1542,7 +1542,7 @@ void R332EventS00End()
     EvtMgr.EvtReadAram("event/evd/r332s20.evd", (u8) GetEmIdFromListI(0xA9), 0, 0, 0);
     em = (cEm31*) r332_work->em[0].getPtr();
     if (em) {
-        Cckpt.life.flags = (u32) em;
+        Cckpt.m_LifeMeter.flags = (u32) em;
     }
     SndRoomBgmStart(0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 9, 1, 4, 0, 0);
@@ -1572,14 +1572,14 @@ static void R332EventS10()
     PSet((void*&) r332_work->task[1], 0);
     R332BridgeOpened(0, 1);
     R332BridgeOpened(1, 1);
-    BitOn(pG->flags_54, 0x400);
-    if ((pG->flags_174 & 0x02000000) == 0) {
+    BitOn(pG->System_flg, 0x400);
+    if ((pG->Room_flg[0] & 0x02000000) == 0) {
         EvtMgr.EvtReadExec("event/evd/r332s10.evd", (u8) GetEmIdFromListI(0xA9), 0);
     }
-    BitOff(pG->flags_54, 0x400);
+    BitOff(pG->System_flg, 0x400);
     st3_setCountDownTimer(0x127D);
     st3_startCountDown();
-    BitOn(pG->flags_51C0, 0x200);
+    BitOn(pG->Scenario_flg[0], 0x200);
     SceAtSetEnable(0, 1);
     SceAtSetEnable(9, 0);
     BitOn(pG->door_unlock[1], 0x00010000);
@@ -1587,7 +1587,7 @@ static void R332EventS10()
     SceAtSetEnable(2, 0);
     SceSleep(1);
     SceAtExecute(0x85);
-    BitOn(pG->flags_51C4, 0x400);
+    BitOn(pG->Scenario_flg[1], 0x400);
     while (SceAtItemFlgCk(0x85) == 0) {
         SceSleep(1);
     }
@@ -1616,7 +1616,7 @@ void R332Em32RocketDie(cObj* obj)
     if (obj == 0) {
         return;
     }
-    for (info = obj->pInfo; info != 0; info = info->pNext) {
+    for (info = obj->pModelInfo; info != 0; info = info->pList) {
         info->color[0] = 0x30;
         info->color[1] = 0x30;
         info->color[2] = 0x30;
@@ -1679,16 +1679,16 @@ void R332ScrTrans(int on)
 
 // Ashley's skirt / ribbon model (pl0200): hide (`on` 0) or show its cloth child (uses the caller's `mod`).
 #define R332_PL_CHILD_TRANS(e, on)                                    \
-    if ((e)->frame == 0) {                                            \
+    if ((e)->NowFrame == 0) {                                            \
         if ((e)->GetMod(&mod, "pl0200", 0, 0) == 1) {                 \
             Obj18Work* w = &((cObj*) mod)->o18;                       \
                                                                       \
             if (w && w->child) {                                      \
                 if ((on) == 0) {                                      \
-                    ((cObj*) mod)->o18.x74 |= 0x04000000;             \
+                    ((cObj*) mod)->o18.ObjChainFlagCommon |= 0x04000000;\
                     w->child->be_flag &= ~2;                          \
                 } else {                                              \
-                    ((cObj*) mod)->o18.x74 &= ~0x04000000;            \
+                    ((cObj*) mod)->o18.ObjChainFlagCommon &= ~0x04000000;\
                     w->child->be_flag |= 2;                           \
                 }                                                     \
             }                                                         \
@@ -1708,14 +1708,14 @@ void Evt_R332S00_Func(Event* e)
     case 1: {
         void* mod;
 
-        if (e->cut == 0xB) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0xB) {
+            if (e->NowFrame == 0) {
                 SetShadowCamMoveSize(0.0f);
             }
-        } else if (e->frame == 0) {
+        } else if (e->NowFrame == 0) {
             ResetShadowCamMoveSize();
         }
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             int skip = r332_evtSkip(e);
 
             if (skip == 0) {
@@ -1730,11 +1730,11 @@ void Evt_R332S00_Func(Event* e)
                 e->EspSetModelPtr(obj);
             }
             if (e->GetMod(&mod, "evmc200", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 0x10;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x10;
                 ((cModel*) mod)->be_flag |= 0x80;
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 2:
         case 0xC:
         case 0x11:
@@ -1744,7 +1744,7 @@ void Evt_R332S00_Func(Event* e)
             R332_PL_CHILD_TRANS(e, 1)
             break;
         }
-        if (pG->costume2 == 1 && e->frame == 0) {
+        if (pG->game_costume == 1 && e->NowFrame == 0) {
             if (e->GetMod(&mod, "pl8200", 0, 0) == 1) {
                 Obj18CmfOn((cObj*) mod, 5);
                 ((cModel*) mod)->be_flag &= ~2;
@@ -1754,21 +1754,21 @@ void Evt_R332S00_Func(Event* e)
                 ((cModel*) mod)->be_flag &= ~2;
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0xB:
         case 0xC:
         case 0xD:
         case 0x15:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags &= ~0x40;
+                    ((cObj*) mod)->o18.be_flag &= ~0x40;
                 }
             }
             break;
@@ -1788,7 +1788,7 @@ void Evt_R332S00_Func(Event* e)
     case 3:
         SndBgmTblSet(0x332, 0);
         SndRoomStrStart(1, 0, 1);
-        BitOn(pG->flags_174, 0x04000000);
+        BitOn(pG->Room_flg[0], 0x04000000);
         break;
     }
 }
@@ -1799,14 +1799,14 @@ void Evt_R332S10_Func(Event* e)
     case 0:
         setRoomEtcDisp(1, 0, 1);
         if (r332_work->pillar[2]->isTrans() == 1) {
-            BitOn(pG->flags_174, 0x00200000);
+            BitOn(pG->Room_flg[0], 0x00200000);
             r332_work->pillar[2]->be_flag &= ~2;
         }
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x11:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
                 cLight* light;
 
@@ -1826,7 +1826,7 @@ void Evt_R332S10_Func(Event* e)
             break;
         case 0x12:
         case 0x13:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
                 cLight* light;
 
@@ -1840,14 +1840,14 @@ void Evt_R332S10_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 R332ScrTrans(0);
             }
             break;
         case 1:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 R332ScrTrans(1);
             }
             break;
@@ -1855,14 +1855,14 @@ void Evt_R332S10_Func(Event* e)
         {
             void* mod;
 
-            switch (e->cut) {
+            switch (e->NowCut) {
             case 0:
-                if (e->frame == 0) {
+                if (e->NowFrame == 0) {
                     if (e->GetMod(&mod, "evmb500", 0, 0) == 1) {
-                        ((cModel*) mod)->lightInfo.x50 = 0x20;
+                        ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                     }
                     if (e->GetMod(&mod, "evm9500", 0, 0) == 1) {
-                        ((cModel*) mod)->lightInfo.x50 = 0x20;
+                        ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                         ((cModel*) mod)->be_flag |= 0x10;
                     }
                     if (e->GetMod(&mod, "obm3d00", 0, 0) == 1) {
@@ -1886,13 +1886,13 @@ void Evt_R332S10_Func(Event* e)
                 }
                 break;
             case 0xD:
-                if (e->frame == 0x18 && (pG->flags_60 & 0x02000000) == 0) {
+                if (e->NowFrame == 0x18 && (pG->Debug_flg[0] & 0x02000000) == 0) {
                     st3_setCountDownTimer(0x1518);
                     st3_startCountDown();
                 }
                 break;
             }
-            switch (e->cut) {
+            switch (e->NowCut) {
             case 9:
             case 0xA:
             case 0xC:
@@ -1906,7 +1906,7 @@ void Evt_R332S10_Func(Event* e)
         }
         break;
     case 2:
-        if (pG->flags_174 & 0x00200000) {
+        if (pG->Room_flg[0] & 0x00200000) {
             r332_work->pillar[2]->be_flag |= 2;
         }
         setRoomEtcDisp(1, 1, 1);
@@ -1915,7 +1915,7 @@ void Evt_R332S10_Func(Event* e)
         st3_startCountDown();
         break;
     case 3:
-        BitOn(pG->flags_174, 0x02000000);
+        BitOn(pG->Room_flg[0], 0x02000000);
         break;
     }
 }
@@ -1927,28 +1927,28 @@ void Evt_R332S20_Func(Event* e)
     if (e->funcMode != 1) {
         return;
     }
-    if (e->cut == 0 && e->frame == 0) {
+    if (e->NowCut == 0 && e->NowFrame == 0) {
         if (e->GetMod(&mod, "evm8900", 0, 0) == 1) {
-            ((cModel*) mod)->pInfo->color[0] = 0xA0;
-            ((cModel*) mod)->pInfo->color[1] = 0xD0;
-            ((cModel*) mod)->pInfo->color[2] = 0xE0;
-            ((cModel*) mod)->pInfo->color[3] = 0xFF;
+            ((cModel*) mod)->pModelInfo->color[0] = 0xA0;
+            ((cModel*) mod)->pModelInfo->color[1] = 0xD0;
+            ((cModel*) mod)->pModelInfo->color[2] = 0xE0;
+            ((cModel*) mod)->pModelInfo->color[3] = 0xFF;
             ((cModel*) mod)->be_flag |= 0x10;
         }
         if (e->GetMod(&mod, "evm9200", 0, 0) == 1) {
-            ((cModel*) mod)->pInfo->color[0] = 0xFF;
-            ((cModel*) mod)->pInfo->color[1] = 0x78;
-            ((cModel*) mod)->pInfo->color[2] = 0x80;
-            ((cModel*) mod)->pInfo->color[3] = 0xFF;
+            ((cModel*) mod)->pModelInfo->color[0] = 0xFF;
+            ((cModel*) mod)->pModelInfo->color[1] = 0x78;
+            ((cModel*) mod)->pModelInfo->color[2] = 0x80;
+            ((cModel*) mod)->pModelInfo->color[3] = 0xFF;
             ((cModel*) mod)->be_flag |= 0x10;
         }
     }
-    if (e->cut == 1) {
+    if (e->NowCut == 1) {
         R332_PL_CHILD_TRANS(e, 0)
     } else {
         R332_PL_CHILD_TRANS(e, 1)
     }
-    if (pG->costume2 == 1 && e->frame == 0) {
+    if (pG->game_costume == 1 && e->NowFrame == 0) {
         if (e->GetMod(&mod, "pl8200", 0, 0) == 1) {
             Obj18CmfOn((cObj*) mod, 5);
             ((cModel*) mod)->be_flag &= ~2;
@@ -1966,15 +1966,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r332_work->tex->texId;
-        IntSet(r332_work->tex->repType, 1);
+        IntSet(r332_work->tex->m_Rep_type, 1);
         EstSet(0, -1, 0, 0, 1, 0, r332_work->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
-    r332_work->tex->sy = r332_work->tex->sx = 0x40;
+    r332_work->tex->m_H_size = r332_work->tex->m_W_size = 0x40;
     obj = SmdGetObjPtr(0x77);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
 }

@@ -10,11 +10,11 @@ class cModel;
 
 // Piece shape data (piece_info entry + 4).
 struct PieceData {
-    s8 w;             // 0x00
+    s8 size_x;             // 0x00
     s8 h;             // 0x01
     u8 pad_2[2];
     f32 cx;           // 0x04  centre offset in cells
-    f32 cy;           // 0x08
+    f32 center_y;           // 0x08
     char shape[0x40]; // 0x0C  row-major, '1' = filled
 };
 
@@ -28,16 +28,16 @@ struct PieceInfo {
 
 class pzlPiece {
 public:
-    u8 flags;         // 0x00  bit0 in use
+    u8 be_flag;         // 0x00  bit0 in use
     u8 pad_1[3];
-    PieceData* data;  // 0x04
+    PieceData* m_p_data;  // 0x04
     u32 x8;           // 0x08
     f32 cx;           // 0x0C  rotated centre offset
-    f32 cy;           // 0x10
-    f32 x;            // 0x14  centre position on the board (cells)
-    f32 y;            // 0x18
+    f32 m_center_y;           // 0x10
+    f32 m_pos_x;            // 0x14  centre position on the board (cells)
+    f32 m_pos_y;            // 0x18
     u32 x1C;
-    s8 orient;        // 0x20  0..3 rotations, 4..7 mirrored
+    s8 m_orientation;        // 0x20  0..3 rotations, 4..7 mirrored
     u8 state;         // 0x21  1 = on a board, 2 = in hand
     u8 pad_22[2];
     ItemWork* item;   // 0x24
@@ -46,7 +46,7 @@ public:
     void orientation(int o);
     void rotate(int dir);
     void mirror(int axis);
-    void init(PieceData* d);
+    void init(PieceData* p_data);
     f32 ver0_x();
     f32 ver0_y();
     int size_x();
@@ -57,17 +57,17 @@ public:
 
 class pzlBoard {
 public:
-    u8* cells;        // 0x00  w * h state bytes (bit0 occupied, bit1 inside, bit6 wall)
-    s8 w;             // 0x04
-    s8 h;             // 0x05
-    u8 pieceMax;      // 0x06
+    u8* m_cell;        // 0x00  w * h state bytes (bit0 occupied, bit1 inside, bit6 wall)
+    s8 m_size_x;             // 0x04
+    s8 m_size_y;             // 0x05
+    u8 m_piece_max;      // 0x06
     u8 pad_7;
-    pzlPiece** pieces;// 0x08
-    Mtx mat;          // 0x0C  board -> world matrix (Sscrn ss_pzzl caseModelMove)
-    s8 curX;          // 0x3C  cursor
-    s8 curY;          // 0x3D
-    s8 wallDir;       // 0x3E  ckInsideWall result side (1 left, 2 right, 3 up, 4 down)
-    s8 outDir;        // 0x3F  outPiece result side
+    pzlPiece** m_p_piece;// 0x08
+    Mtx m_mat;          // 0x0C  board -> world matrix (Sscrn ss_pzzl caseModelMove)
+    s8 m_cur_x;          // 0x3C  cursor
+    s8 m_cur_y;          // 0x3D
+    s8 m_wall_miss_flag;       // 0x3E  ckInsideWall result side (1 left, 2 right, 3 up, 4 down)
+    s8 m_out_miss_flag;        // 0x3F  outPiece result side
 
     int init(int w, int h, int pieceMax);
     void quit();
@@ -87,21 +87,21 @@ public:
 
 class pzlPlayer {
 public:
-    pzlBoard* caseBoard;   // 0x00
-    pzlBoard* spaceBoard;  // 0x04
+    pzlBoard* m_board;   // 0x00
+    pzlBoard* m_space;  // 0x04
     pzlPiece* pieces;      // 0x08
-    u8 pieceNum_;          // 0x0C
+    u8 m_piece_max;          // 0x0C
     u8 pad_D[3];
-    pzlPiece* hand;        // 0x10
-    pzlPiece* extra;       // 0x14
-    f32 handX;             // 0x18
-    f32 handY;             // 0x1C
+    pzlPiece* m_inhand;        // 0x10
+    pzlPiece* m_extra;       // 0x14
+    f32 m_piece_bak_pos_x;             // 0x18
+    f32 m_piece_bak_pos_y;             // 0x1C
     s8 handOrient;         // 0x20
     u8 pad_21[3];
-    pzlBoard* handBoard;   // 0x24
-    pzlBoard* saveBoard;   // 0x28
-    s8 saveX;              // 0x2C
-    s8 saveY;              // 0x2D
+    pzlBoard* m_piece_bak_board;   // 0x24
+    pzlBoard* m_board_sav;   // 0x28
+    s8 m_cur_x_sav;              // 0x2C
+    s8 m_cur_y_sav;              // 0x2D
     u8 pad_2E[2];
     pzlBoard* cur;         // 0x30
 

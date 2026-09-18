@@ -25,7 +25,7 @@ void ReadPlayerData(int type, int costume);    // game/read.cpp
 void AddWaterPower(Vec* pos, f32 power);       // game/Espgen42.cpp
 void* memset(void* dst, int c, unsigned int n);
 }
-f32 GetDistance(Vec& a, Vec& b);               // game/sub2.cpp (second overload)
+f32 GetDistance(Vec& v0, Vec& v1);               // game/sub2.cpp (second overload)
 
 extern void (*Pl_func_tbl[7])(cPlayer*);       // game/player.cpp
 
@@ -43,53 +43,53 @@ static inline void PlSetRoutine(int a, int b, int c, int d)
 {
     cPlayer* p = pPL;
 
-    p->xFC = a;
-    p->xFD = b;
-    p->xFE = c;
-    p->xFF = d;
+    p->r_no_0 = a;
+    p->r_no_1 = b;
+    p->r_no_2 = c;
+    p->r_no_3 = d;
 }
 
 void PlSelect(int no)
 {
-    if (pG->x4FB8 != no) {
+    if (pG->pl_type != no) {
         s16 life = pG->pl_life_max;
         u32 tmp;
 
-        U16Set(pG->pl_life_max, pG->sub_life_max);
-        U16Set(pG->sub_life_max, life);
+        U16Set(pG->pl_life_max, pG->ashley_life_max);
+        U16Set(pG->ashley_life_max, life);
         pG->pl_life = pG->pl_life_max;
         ReleaseWepData();
-        tmp = pG->x4F98;
-        U32Set(pG->x4F98, pG->x832C);
-        U32Set(pG->x832C, tmp);
+        tmp = pG->peseta;
+        U32Set(pG->peseta, pG->peseta_bak);
+        U32Set(pG->peseta_bak, tmp);
     }
-    U8Set(pG->x4FB8, no);
+    U8Set(pG->pl_type, no);
     PlSetCostume();
-    BitOn16(pG->flags_4FBE, 1);
+    BitOn16(pG->pl_flag, 1);
 }
 
 int PlSetCostume()
 {
-    if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
-        return pG->costume;
+    if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+        return pG->pl_costume;
     }
-    if (pG->x4FB8 == 0) {
-        if (pG->costume2 != 1) {
+    if (pG->pl_type == 0) {
+        if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
-                U8Set(pG->costume, 2);
-            } else if (pG->flags_51BC & 0x200000) {
-                U8Set(pG->costume, 1);
+                U8Set(pG->pl_costume, 2);
+            } else if (pG->Item_find_flg & 0x200000) {
+                U8Set(pG->pl_costume, 1);
             } else {
-                U8Set(pG->costume, 0);
+                U8Set(pG->pl_costume, 0);
             }
         } else {
-            U8Set(pG->costume, 3);
+            U8Set(pG->pl_costume, 3);
         }
     } else {
-        U8Set(pG->costume, pG->costume2);
+        U8Set(pG->pl_costume, pG->game_costume);
     }
-    BitOn16(pG->flags_4FBE, 1);
-    return pG->costume;
+    BitOn16(pG->pl_flag, 1);
+    return pG->pl_costume;
 }
 
 void PlChangeData()
@@ -100,18 +100,18 @@ void PlChangeData()
     PlDataRelease();
     EspDataRelease(3, 1, 1);
     pPL->push();
-    BitOn16(pG->flags_4FBE, 1);
-    ReadPlayerData(pG->x4FB8, pG->costume);
+    BitOn16(pG->pl_flag, 1);
+    ReadPlayerData(pG->pl_type, pG->pl_costume);
     pl = pPL;
     pl->setModel();
     pl->setMotion();
-    EspDataLoad((u32) PL_ARC_PTR(pG->pPlArc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
     pPL->weaponInit();
     pl->be_flag |= 0x20;
-    pl->xFC = 0;
-    pl->xFD = 0;
-    pl->xFE = 0;
-    pl->xFF = 1;
+    pl->r_no_0 = 0;
+    pl->r_no_1 = 0;
+    pl->r_no_2 = 0;
+    pl->r_no_3 = 1;
     pl->x4FD = 0;
     pl->x4FC = 0;
     pl->initCloth();
@@ -142,7 +142,7 @@ int PlGachaGet()
 {
     int n = pPL->gachaCnt;
 
-    if (pG->x4F88 <= 2) {
+    if (pG->Game_level <= 2) {
         n += n / 2;
     }
     return n;
@@ -157,7 +157,7 @@ void PlSetDamageSe(int no)
 
         no = r + 9;
     }
-    SndCall(1, no, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
+    SndCall(1, no, &pl->getPartsPtr(4)->world, 0, 0, 0);
 }
 
 u32 PlGetStatus()
@@ -165,9 +165,9 @@ u32 PlGetStatus()
     cPlayer* pl = pPL;
     u32 st = 0;
 
-    switch (pl->xFC) {
+    switch (pl->r_no_0) {
     case 0:
-        switch (pl->xFD) {
+        switch (pl->r_no_1) {
         case 0:
             st = 1;
             break;
@@ -184,10 +184,10 @@ u32 PlGetStatus()
             break;
         case 6:
         case 0xB:
-            if (pl->xFE != 0) {
+            if (pl->r_no_2 != 0) {
                 st |= 0x10;
             }
-            switch (pl->xFE) {
+            switch (pl->r_no_2) {
             case 1:
                 st |= 0x20;
                 break;
@@ -252,10 +252,10 @@ void PlSetCrouch()
 {
     cPlayer* pl = pPL;
 
-    pl->xFC = 0;
-    pl->xFE = 0;
-    pl->xFD = 0x11;
-    pl->xFF = 0;
+    pl->r_no_0 = 0;
+    pl->r_no_2 = 0;
+    pl->r_no_1 = 0x11;
+    pl->r_no_3 = 0;
 }
 
 void PlSetHand(int type, int on)
@@ -265,7 +265,7 @@ void PlSetHand(int type, int on)
     if (type == 1) {
         t = 0;
     }
-    pPL->pWep->setTrans(t, on);
+    pPL->Wep->setTrans(t, on);
 }
 
 void SubCharSetHand(int no)
@@ -308,12 +308,12 @@ void SetSubAux(int a, int b)
         pLog->err(0, 0, "ERROR: SetSubAux() ASHLEY NOT FOUND.");
         return;
     }
-    sub->xFC = 0;
-    sub->xFE = 0;
+    sub->r_no_0 = 0;
+    sub->r_no_2 = 0;
     sub->subAux0 = a;
     sub->subAux1 = b;
-    sub->xFD = 0xF;
-    sub->xFF = 0;
+    sub->r_no_1 = 0xF;
+    sub->r_no_3 = 0;
 }
 
 void SetSubBulldozer(int a, int b)
@@ -324,12 +324,12 @@ void SetSubBulldozer(int a, int b)
         pLog->err(0, 0, "ERROR: SetSubAux() ASHLEY NOT FOUND.");
         return;
     }
-    sub->xFD = 0;
-    sub->xFE = 0;
+    sub->r_no_1 = 0;
+    sub->r_no_2 = 0;
     sub->subAux0 = a;
     sub->subAux1 = b;
-    sub->xFC = 3;
-    sub->xFF = 0;
+    sub->r_no_0 = 3;
+    sub->r_no_3 = 0;
 }
 
 void SetSubDamage(int type, void* mot)
@@ -341,19 +341,19 @@ void SetSubDamage(int type, void* mot)
     }
     if (sub->id == 3) {
         sub->setEmFunc();
-        sub->xFC = 4;
-        sub->xFD = 0;
-        sub->xFE = 0;
-        sub->xFF = 0;
+        sub->r_no_0 = 4;
+        sub->r_no_1 = 0;
+        sub->r_no_2 = 0;
+        sub->r_no_3 = 0;
         sub->dmg.set(0, 10);
         sub->dmgType = type;
     } else {
         sub->subMot0 = mot;
         sub->subFlags58C |= 0x40;
-        sub->xFC = 4;
-        sub->xFD = 0;
-        sub->xFE = 0;
-        sub->xFF = 0;
+        sub->r_no_0 = 4;
+        sub->r_no_1 = 0;
+        sub->r_no_2 = 0;
+        sub->r_no_3 = 0;
         sub->dmg.set(0, 10);
         sub->dmgType = type;
     }
@@ -374,10 +374,10 @@ void EndSubDamage()
         sub->endDamage();
     }
     sub->x378 = sub->x37C;
-    sub->xFC = 0;
-    sub->xFD = 0;
-    sub->xFE = 0;
-    sub->xFF = 0;
+    sub->r_no_0 = 0;
+    sub->r_no_1 = 0;
+    sub->r_no_2 = 0;
+    sub->r_no_3 = 0;
     at = &sub->atari;
     at->throughOff();
     at->setPriority(0);
@@ -397,7 +397,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
         sub = (cSubChar*) EmMgr.createBack(2);
         break;
     case 1:
-        if (pG->costume2 != 1) {
+        if (pG->game_costume != 1) {
             sub = (cSubChar*) EmMgr.createBack(3);
         } else {
             sub = (cSubChar*) EmMgr.createBack(5);
@@ -428,7 +428,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
         sub->pos.x += 1.0f;
         sub->pos.z += 2.0f;
     }
-    sub->flags_3C8 |= 1;
+    sub->flag |= 1;
     pSUB = sub;
 }
 
@@ -446,20 +446,20 @@ void SubCharCtrl(int mode, int flag)
     case 0:
         sub->control(1);
         if (flag & 1) {
-            sub->xFC = 0;
-            sub->xFD = 0;
-            sub->xFE = 0;
-            sub->xFF = 1;
+            sub->r_no_0 = 0;
+            sub->r_no_1 = 0;
+            sub->r_no_2 = 0;
+            sub->r_no_3 = 1;
             sub->move();
         }
         break;
     case 1:
         sub->control(2);
         if (flag & 1) {
-            sub->xFC = 0;
-            sub->xFD = 0;
-            sub->xFE = 0;
-            sub->xFF = 1;
+            sub->r_no_0 = 0;
+            sub->r_no_1 = 0;
+            sub->r_no_2 = 0;
+            sub->r_no_3 = 1;
             sub->move();
         }
         break;
@@ -474,10 +474,10 @@ void SubCharCtrl(int mode, int flag)
         sub->control(3);
         break;
     case 5:
-        sub->xFC = 5;
-        sub->xFD = 0;
-        sub->xFE = 0;
-        sub->xFF = 0;
+        sub->r_no_0 = 5;
+        sub->r_no_1 = 0;
+        sub->r_no_2 = 0;
+        sub->r_no_3 = 0;
         break;
     case 6:
         sub->control(5);
@@ -513,10 +513,10 @@ int SubCharCheckCtrl()
     if (sub->subFlags & 8) {
         return 0;
     }
-    if (sub->xFC != 0) {
+    if (sub->r_no_0 != 0) {
         return 0;
     }
-    switch (sub->xFD) {
+    switch (sub->r_no_1) {
     case 0:
     case 1:
     case 2:
@@ -553,10 +553,10 @@ void SubCharCtrlHide(Vec* pos, int mode)
         sub->dmg.set(0, 0x80);
         sub->subHidePos = *pos;
         sub->subHideMode = 1;
-        sub->xFC = 0;
-        sub->xFD = 0x10;
-        sub->xFE = 0;
-        sub->xFF = 0;
+        sub->r_no_0 = 0;
+        sub->r_no_1 = 0x10;
+        sub->r_no_2 = 0;
+        sub->r_no_3 = 0;
         break;
     }
 }
@@ -603,21 +603,21 @@ void PlSetLadder(Vec* pos, int level, f32 ang)
     rot.z = 0.0f;
     rot.y = ang;
     pl->setAng(&rot);
-    pl->xFD = 0x10;
-    pl->xFE = 0;
-    pl->xFF = 0;
-    pl->xFC = 0;
+    pl->r_no_1 = 0x10;
+    pl->r_no_2 = 0;
+    pl->r_no_3 = 0;
+    pl->r_no_0 = 0;
     if (level > 0) {
-        pl->x3E0 = level - 2;
+        pl->m_Work0 = level - 2;
     } else {
-        pl->xFE = 0xA;
-        pl->x3E0 = -2 - level;
+        pl->r_no_2 = 0xA;
+        pl->m_Work0 = -2 - level;
     }
 }
 
 void PlSetNeck(int mode)
 {
-    pPL->pNeck->setMode(mode);
+    pPL->Neck->setMode(mode);
 }
 
 void PlEndCamera()
@@ -626,11 +626,11 @@ void PlEndCamera()
 
     if (pl->endCamera()) {
         if (PlGetStatus() & 0x10) {
-            pl->pWep->pObj->setDisp(1, 1);
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            pl->Wep->m_pWep->setDisp(1, 1);
+            pl->r_no_0 = 0;
+            pl->r_no_1 = 0;
+            pl->r_no_2 = 0;
+            pl->r_no_3 = 0;
         }
     }
 }
@@ -700,19 +700,19 @@ void SubCharRegistMotion(void* m0, void* m1)
 
 void PlRegistRoomEff(PlRoomEff* eff)
 {
-    pPL->pRoomEff = eff;
+    pPL->m_pEffRoom = eff;
 }
 
 void PlReloadBullet()
 {
     cPlayer* pl = pPL;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0xD:
     case 0x13:
     case 0x16:
     case 0x17:
-        pl->pWep->pObj->setMotion(pl);
+        pl->Wep->m_pWep->setMotion(pl);
         break;
     }
 }
@@ -720,10 +720,10 @@ void PlReloadBullet()
 int joyFireOn()
 {
     if (Key.on & 0x80) {
-        if ((pG->flags_500C & 0x200000) || (pG->flags_5014 & 0x80000000)) {
-            BitOn(pG->flags_500C, 0x4000);
-            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x011C0000 && (pG->flags_5014 & 0x80000000)) {
-                BitOn(pG->flags_174, 0x20000000);
+        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+            BitOn(pG->Status_flg[0], 0x4000);
+            if ((G_ROOM_ID32 & 0xFFFF0000) == 0x011C0000 && (pG->Status_flg[2] & 0x80000000)) {
+                BitOn(pG->Room_flg[0], 0x20000000);
             }
             return 0;
         }
@@ -735,8 +735,8 @@ int joyFireOn()
 int joyFireTrg()
 {
     if (Key.trg & 0x80) {
-        if ((pG->flags_500C & 0x200000) || (pG->flags_5014 & 0x80000000)) {
-            pG->flags_500C |= 0x4000;
+        if ((pG->Status_flg[0] & 0x200000) || (pG->Status_flg[2] & 0x80000000)) {
+            pG->Status_flg[0] |= 0x4000;
             return 0;
         }
         return 1;
@@ -750,7 +750,7 @@ int joyKamae()
     cPlWep* wep;
 
     if ((pSys->flags & 0x04000000) == 0) {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         case 4:
             if (joyLKamae() != 0) {
@@ -763,20 +763,20 @@ int joyKamae()
         default:
             return 0;
         }
-        wep = pPL->pWep;
-        if (wep == 0 || wep->pObj == 0) {
+        wep = pPL->Wep;
+        if (wep == 0 || wep->m_pWep == 0) {
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
         // `goto` to the shared `return 0`: with a plain `return 0` jump.c hoists a set over the
         // branch (`li 1; bne end; li 0`) because the following `li 1` sets the same register; the
         // jump to the label gives the target's `beq ret0; li 1; b end`.
-        if (wep->pObj->keyKamae() == 0) {
+        if (wep->m_pWep->keyKamae() == 0) {
             goto ng;
         }
         return 1;
     } else {
-        switch (pG->x4FB8) {
+        switch (pG->pl_type) {
         case 0:
         case 2:
         case 3:
@@ -786,15 +786,15 @@ int joyKamae()
         default:
             return 0;
         }
-        wep = pl->pWep;
-        if (wep == 0 || wep->pObj == 0) {
+        wep = pl->Wep;
+        if (wep == 0 || wep->m_pWep == 0) {
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
         if (pl->flags_420 & 0x1000) {
             return 0;
         }
-        if (wep->pObj->keyKamae()) {
+        if (wep->m_pWep->keyKamae()) {
             return 1;
         }
     }
@@ -807,13 +807,13 @@ int joyLKamae()
     cPlayer* pl = pPL;
 
     if ((pSys->flags & 0x04000000) == 0) {
-        if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (Key.on & 0x800) {
                 return 1;
             }
         }
     } else {
-        if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
+        if (pG->pl_type == 0 || pG->pl_type == 4) {
             if (pl->flags_420 & 0x1000) {
                 if (Key.on & 0x10) {
                     return 1;
@@ -836,10 +836,10 @@ void PlWaterProc(cPlayer* pl)
     static Vec m_PosOldWater;
     f32 dist;
 
-    if (pG->flags_5010 & 0x200000) {
+    if (pG->Status_flg[1] & 0x200000) {
         return;
     }
-    if (pl->pRoomEff == 0) {
+    if (pl->m_pEffRoom == 0) {
         pLog->err(2, 0, "PL WATER EFF NOT REGIST");
         return;
     }
@@ -848,17 +848,17 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet((int) pl, -1, 0, 0, pl->pRoomEff[0].id, pl->pRoomEff[0].type, 0, 0, (u32) pl, (void*) t);
+            EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, (u32) pl, (void*) t);
         }
     }
     dist = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet((int) pl, -1, 0, 0, pl->pRoomEff[2].id, pl->pRoomEff[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet((int) pl, -1, 0, 0, pl->pRoomEff[1].id, pl->pRoomEff[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {
@@ -871,21 +871,21 @@ void PlMotionReset()
 {
     cPlayer* pl = pPL;
 
-    if (pl->xFC != 0) {
+    if (pl->r_no_0 != 0) {
         return;
     }
-    if (pl->xFD == 0xF) {
+    if (pl->r_no_1 == 0xF) {
         return;
     }
-    if (pl->xFD == 0x11) {
+    if (pl->r_no_1 == 0x11) {
         return;
     }
     pl->x4FC = 0;
     pl->x4FD = 0;
-    pl->xFC = 0;
-    pl->xFD = 0;
-    pl->xFF = 1;
-    pl->xFE = 0;
+    pl->r_no_0 = 0;
+    pl->r_no_1 = 0;
+    pl->r_no_3 = 1;
+    pl->r_no_2 = 0;
 }
 
 int SubCharCheckHealing()
@@ -899,10 +899,10 @@ int SubCharCheckHealing()
         return 0;
     }
     sub = pSUB;
-    if (sub->xFC != 0) {
+    if (sub->r_no_0 != 0) {
         return -1;
     }
-    switch (sub->xFD) {
+    switch (sub->r_no_1) {
     case 0:
     case 1:
     case 2:
@@ -929,16 +929,16 @@ int SubCharMotionReset()
     if (sub == 0) {
         return 0;
     }
-    if (sub->xFC != 0) {
+    if (sub->r_no_0 != 0) {
         return 0;
     }
-    if (sub->xFD != 0 && sub->xFD != 1) {
+    if (sub->r_no_1 != 0 && sub->r_no_1 != 1) {
         return 0;
     }
-    sub->xFC = 0;
-    sub->xFD = 0;
-    sub->xFF = 1;
-    sub->xFE = 0;
+    sub->r_no_0 = 0;
+    sub->r_no_1 = 0;
+    sub->r_no_3 = 1;
+    sub->r_no_2 = 0;
     return 1;
 }
 
@@ -949,24 +949,24 @@ void PlSetEyeMode(u8 mode)
 
 f32 PlGetDirY()
 {
-    return pPL->rot.y + pPL->pWaist->cur;
+    return pPL->ang.y + pPL->Waist->m_Ang.y;
 }
 
 void PlRegistBoss(void* a, void* b)
 {
-    pPL->boss0 = a;
-    pPL->boss1 = b;
+    pPL->m_pBoss = a;
+    pPL->m_pBossRmf = b;
 }
 
 int PlIsArmor()
 {
-    if (pG->flags_54 & 0x20) {
+    if (pG->System_flg & 0x20) {
         return 0;
     }
-    if (pG->x4FB8 != 0) {
+    if (pG->pl_type != 0) {
         return 0;
     }
-    return pG->costume == 2 || pG->costume == 3;
+    return pG->pl_costume == 2 || pG->pl_costume == 3;
 }
 
 int PlSetWhistle()
@@ -976,18 +976,18 @@ int PlSetWhistle()
     if (!(Key.trg & 0x200)) {
         return 0;
     }
-    if (pG->flags_500C & 0x400) {
+    if (pG->Status_flg[0] & 0x400) {
         return 0;
     }
-    if (!(pG->flags_5010 & 4)) {
+    if (!(pG->Status_flg[1] & 4)) {
         return 0;
     }
     pl = pPL;
-    if ((u32) pl->xFD > 6) {
+    if ((u32) pl->r_no_1 > 6) {
         return 0;
     }
-    if (pl->xFD == 6) {
-        switch (pl->xFE) {
+    if (pl->r_no_1 == 6) {
+        switch (pl->r_no_2) {
         case 2:
         case 4:
         case 6:
@@ -995,10 +995,10 @@ int PlSetWhistle()
         }
     }
     pl->interrupt();
-    pl->xFC = 0;
-    pl->xFD = 0x14;
-    pl->xFE = 0;
-    pl->xFF = 0;
+    pl->r_no_0 = 0;
+    pl->r_no_1 = 0x14;
+    pl->r_no_2 = 0;
+    pl->r_no_3 = 0;
     return 1;
 }
 
@@ -1006,10 +1006,10 @@ int PlGetWeaponNo()
 {
     cPlayer* pl = pPL;
 
-    if (((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->xFE != 3) || joyLKamae()) {
+    if (((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->r_no_2 != 3) || joyLKamae()) {
         return 0x10;
     }
-    return pG->wep_no;
+    return pG->weapon_no;
 }
 
 void PlSetFace(int no)
@@ -1052,7 +1052,7 @@ void PlDataRelease()
     if (obj) {
         do {
             objCur = obj;
-            objNext = (cObj*) objCur->next;
+            objNext = (cObj*) objCur->pNext;
             obj = objNext;
             switch (objCur->id) {
             case 0x1A:
@@ -1069,7 +1069,7 @@ void PlDataRelease()
     if (em) {
         do {
             emCur = em;
-            emNext = (cEm*) emCur->next;
+            emNext = (cEm*) emCur->pNext;
             em = emNext;
             if (emCur->id == 0x4F) {
                 EmMgr.destroy(emCur);

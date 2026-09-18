@@ -67,7 +67,7 @@ void R40dInit()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         r40d_setDoorEff(0, 1);
         r40d_setDoorEff(1, 1);
-        SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
+        SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
         SceAtSetEnable(3, 0);
         SceAtSetEnable(4, 0);
     } else {
@@ -77,21 +77,21 @@ void R40dInit()
         if (RsfCheck(G_ROOM_ID, 1) == 0) {
             r40d_setDoorEff(0, 0);
             r40d_setDoorEff(1, 0);
-            SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
+            SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
             if (r40d_work.p->door[0]) {
                 r40d_work.p->door[0]->setLockMode(1);
             }
             if (r40d_work.p->door[1]) {
                 r40d_work.p->door[1]->setLockMode(1);
             }
-            r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, 2, 0);
+            r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
         } else {
             r40d_setDoorEff(0, 1);
             r40d_setDoorEff(1, 1);
             SceAtSetEnable(3, 0);
             SceAtSetEnable(4, 0);
             if (RsfCheck(G_ROOM_ID, 4) == 0) {
-                SceExec(0x12, (TaskFunc) r40d_checkEmSetC, 0, 0, 2, 0);
+                SceExec(0x12, (TaskFunc) r40d_checkEmSetC, 0, 0, SCE_PRIO_DEF_2, 0);
             }
         }
     }
@@ -103,7 +103,7 @@ void R40dInit()
         if (m) {
             m->setNoSuspend(1);
         }
-        SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r40d_getItem, 0, 1);
+        SceAtDataSet_exec(7, SCE_LEVEL10, 0, (TaskFunc) r40d_getItem, 0, 1);
     }
     SceSetItemEvent(8, 0x83, 6, 5, r40d_openShelf, (void (*)()) r40d_openedShelf, 1, 0);
 }
@@ -115,7 +115,7 @@ void R40dMain()
 void r40d_openShelf_main(int no, int mode)
 {
     if (no == 1) {
-        OpenBoxMain(9, mode, 0x18, 0x30, -1, -1);
+        OpenBoxMain(OpenBoxPartsUpZP, mode, 0x18, 0x30, -1, -1);
     }
 }
 
@@ -158,7 +158,7 @@ static void r40d_getItem()
     SceSleep(1);
     if (SceAtItemFlgCk(0x81) == 1) {
         SceAtSetEnable(7, 0);
-        SceExec(0x12, (TaskFunc) r40d_execDoorLock, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r40d_execDoorLock, 0, 0, SCE_PRIO_DEF_2, 0);
     }
     CamCtrl.Comeback(0);
     SceEventEnd(0);
@@ -213,17 +213,17 @@ static void r40d_operateTerminal_end()
     }
     SceEventEnd(0);
     r40d_setEmA();
-    SceExec(0x12, (TaskFunc) r40d_checkEmSetC, 0, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r40d_checkEmSetC, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // The terminal: confirm, then both doors unlock with a camera cut each.
 static void r40d_operateTerminal()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SceExit();
     }
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case 1:
     default:
@@ -323,7 +323,7 @@ static void r40d_execDoorLock_end()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     r40d_setEmB();
-    r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, 2, 0);
+    r40d_work.p->se = SceExec(0x12, (TaskFunc) r40d_callTerminalSe, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // Both doors lock with a camera cut each once the key item was taken.
@@ -331,7 +331,7 @@ static void r40d_execDoorLock()
 {
     RsfSet(G_ROOM_ID, 0);
     SceAtSetDoorFunc(1, (TaskFunc) r40d_changeEmSet, 0);
-    SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
+    SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r40d_operateTerminal, 0, 1);
     SceAtSetEnable(3, 1);
     SceAtSetEnable(4, 1);
     if (r40d_work.p->door[0]) {

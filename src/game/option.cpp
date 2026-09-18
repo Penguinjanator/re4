@@ -18,7 +18,7 @@
 #include "math_sub.h"
 #include "option.h"
 
-#define OPT_PTR(ofs) ((void*) (*(u32*) ((u8*) pG->pOptionData + (ofs)) + (u32) pG->pOptionData))
+#define OPT_PTR(ofs) ((void*) (*(u32*) ((u8*) pG->pOption + (ofs)) + (u32) pG->pOption))
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
 
 #define ID_OPT 0x2A
@@ -106,7 +106,7 @@ int OptionOpenCheck()
     if (SubScreenWk.wait > 0) {
         return 0;
     }
-    u32 f = pG->flags_500C;
+    u32 f = pG->Status_flg[0];
     if (f & 0x400) {
         return 0;
     }
@@ -118,14 +118,14 @@ void OptionScreen::init(int title)
 {
     fromTitle = title;
     if (title != 0) {
-        mesAttr = 0x94;
+        _msg_attr = 0x94;
     } else {
-        mesAttr = 0x91;
+        _msg_attr = 0x91;
     }
     IdSys.dispSw(0x21, 0);
     IdSys.dispSw(0x20, 0);
     IdSys.dispSw(0x23, 0);
-    IdTexDataLoad(OPT_PTR(0x20), 10);
+    IdTexDataLoad(OPT_PTR(0x20), TEX_OWNER_ID_DEAD);
     IdSys.set(OPT_PTR(0x24), 0xFF, ID_OPT_BG, 0x13, 4, 0);
     if (fromTitle != 0) {
         IdUnit* u = IdSys.unitPtr(0, ID_OPT_BG);
@@ -133,12 +133,12 @@ void OptionScreen::init(int title)
         IdSys.setTimeS(u, (s16) (int) h->key[h->num - 1].t);
     }
     IdSys.set(OPT_PTR(0x28), 0xFF, ID_OPT, 0x13, 3, 0);
-    mode = 0;
-    cursor = 0;
-    sub = 0;
-    step = 0;
-    if (pG->flags_5014 & 0x8000) {
-        cursor = 1;
+    _rno0 = 0;
+    _rno1 = 0;
+    _rno2 = 0;
+    _rno3 = 0;
+    if (pG->Status_flg[2] & 0x8000) {
+        _rno1 = 1;
     }
     SndCall(0, 0x33, 0, 0, 0, 0);
 }
@@ -147,12 +147,12 @@ int OptionScreen::move()
 {
     int ret = 0;
 
-    switch (mode) {
+    switch (_rno0) {
     case 0:
         ret = top_menu(this);
         break;
     case 1:
-        switch (cursor) {
+        switch (_rno1) {
         case 0:
             retry_load_menu(this);
             break;
@@ -176,7 +176,7 @@ int OptionScreen::move()
 
 void OptionScreen::quit()
 {
-    IdTexRelease(10);
+    IdTexRelease(TEX_OWNER_ID_DEAD);
     IdSys.kill(0xFF, ID_OPT_BG);
     IdSys.kill(0xFF, ID_OPT);
 }
@@ -194,7 +194,7 @@ int top_menu(OptionScreen* o)
 {
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->cursor;
+    s8 old = o->_rno1;
     IdUnit* base;
     IdUnit* u;
     int i;
@@ -204,12 +204,12 @@ int top_menu(OptionScreen* o)
     }
     if (Key.trg & KEY_B) {
         if (old == 4) {
-            o->mode = 1;
-            o->sub = 0;
-            o->step = 0;
+            o->_rno0 = 1;
+            o->_rno2 = 0;
+            o->_rno3 = 0;
             return 0;
         }
-        o->cursor = 4;
+        o->_rno1 = 4;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         void* data = 0;
@@ -228,28 +228,28 @@ int top_menu(OptionScreen* o)
             data = OPT_PTR(0x38);
             break;
         }
-        if (o->cursor != 4) {
+        if (o->_rno1 != 4) {
             IdSys.kill(0xFF, ID_OPT);
             IdSys.set(data, 0xFF, ID_OPT, 0x13, 3, 0);
             SndCall(0, 0x36, 0, 0, 0, 0);
         }
-        if (o->cursor == 2) {
-            IdSys.unitPtr(0, ID_OPT_BG)->dir |= 0xF;
+        if (o->_rno1 == 2) {
+            IdSys.unitPtr(0, ID_OPT_BG)->rev_flag |= 0xF;
         }
         if (pSys->flags & 0x80000000) {
-            o->keyA = 1;
+            o->m_reverse = 1;
         } else {
-            o->keyA = 0;
+            o->m_reverse = 0;
         }
         if (pSys->flags & 0x08000000) {
-            o->keyB = 1;
+            o->m_vibration = 1;
         } else {
-            o->keyB = 0;
+            o->m_vibration = 0;
         }
         if (pSys->flags & 0x04000000) {
-            o->keyC = 1;
+            o->m_knife_key = 1;
         } else {
-            o->keyC = 0;
+            o->m_knife_key = 0;
         }
         switch (pSys->sound_mode) {
         case 0:
@@ -265,40 +265,40 @@ int top_menu(OptionScreen* o)
             o->sound = 0;
             break;
         }
-        o->mode = 1;
-        o->sub = 0;
-        o->step = 0;
-        if (o->cursor == 3) {
-            o->sub = o->sound;
+        o->_rno0 = 1;
+        o->_rno2 = 0;
+        o->_rno3 = 0;
+        if (o->_rno1 == 3) {
+            o->_rno2 = o->sound;
         }
         return 0;
     } else {
         if (Key.trg & KEY_UP) {
-            o->cursor--;
+            o->_rno1--;
         }
         if (Key.trg & KEY_DOWN) {
-            o->cursor++;
+            o->_rno1++;
         }
-        o->cursor = o->cursor < 0 ? 0 : (o->cursor > 4 ? 4 : o->cursor);
-        if ((pG->flags_5014 & 0x8000) && o->cursor == 0 && (Key.trg & KEY_UP)) {
-            o->cursor = 1;
+        o->_rno1 = o->_rno1 < 0 ? 0 : (o->_rno1 > 4 ? 4 : o->_rno1);
+        if ((pG->Status_flg[2] & 0x8000) && o->_rno1 == 0 && (Key.trg & KEY_UP)) {
+            o->_rno1 = 1;
         }
-        if (old != o->cursor) {
+        if (old != o->_rno1) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
     }
     base = IdSys.unitPtr(8, ID_OPT);
-    if (old != o->cursor) {
+    if (old != o->_rno1) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 5; i++) {
         u = IdSys.unitPtr((u8) (i + 2), ID_OPT);
-        if (o->cursor == i) {
+        if (o->_rno1 == i) {
             setColor(u, base);
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
-        if ((pG->flags_5014 & 0x8000) && i == 0) {
+        if ((pG->Status_flg[2] & 0x8000) && i == 0) {
             u->col0[0] = 0x40;
             u->col0[1] = 0x40;
             u->col0[2] = 0x40;
@@ -308,7 +308,7 @@ int top_menu(OptionScreen* o)
     {
         u8 mes[5] = {0x81, 0x82, 0x83, 0x84, 0x85};
 
-        cMes.MesSet(mes[o->cursor], x0, y0, o->mesAttr, 0, 0, 4);
+        cMes.MesSet(mes[o->_rno1], x0, y0, o->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
@@ -317,7 +317,7 @@ void back_to_top_menu(OptionScreen* o)
 {
     IdSys.kill(0xFF, ID_OPT);
     IdSys.set(OPT_PTR(0x28), 0xFF, ID_OPT, 0x13, 3, 0);
-    o->mode = 0;
+    o->_rno0 = 0;
     SndCall(0, 0x39, 0, 0, 0, 0);
 }
 
@@ -325,20 +325,20 @@ int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    register int old asm("r29") = o->sub;  // COMPILER-DIFF: o must outrank old for r31
+    register int old asm("r29") = o->_rno2;  // COMPILER-DIFF: o must outrank old for r31
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
     int i;
 
-    switch (o->step) {
+    switch (o->_rno3) {
     case 0:
         if (Key.trg & KEY_B) {
             if (old == 3) {
                 back_to_top_menu(o);
                 return 0;
             }
-            o->sub = 3;
+            o->_rno2 = 3;
             SndCall(0, 0x39, 0, 0, 0, 0);
         } else if (Key.trg & KEY_A) {
             switch (old) {
@@ -348,21 +348,21 @@ int retry_load_menu(OptionScreen* o)
                 static int y0 = 245;
                 int no;
 
-                if (o->sub == 0) {
+                if (o->_rno2 == 0) {
                     no = 0x98;
                 } else {
                     no = 0x8A;
                 }
-                cMes.MesSet(no, x0, y0, (o->mesAttr | 0x40) & ~0x80, 0, 0, 4);
-                cMes.getWork()->cursor = 1;
-                o->step = 1;
+                cMes.MesSet(no, x0, y0, (o->_msg_attr | 0x40) & ~0x80, 0, 0, 4);
+                cMes.getWork()->m_cur = 1;
+                o->_rno3 = 1;
                 confirm = 1;
                 yes = 1;
                 SndCall(0, 0x37, 0, 0, 0, 0);
                 break;
             }
             case 1:
-                o->step = 2;
+                o->_rno3 = 2;
                 SndCall(0, 0x36, 0, 0, 0, 0);
                 break;
             case 3:
@@ -371,38 +371,38 @@ int retry_load_menu(OptionScreen* o)
             }
         } else {
             if (Key.trg & KEY_UP) {
-                o->sub--;
+                o->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->sub++;
+                o->_rno2++;
             }
-            o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
-            if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
-                if (o->sub == 1) {
+            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
+            if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
+                if (o->_rno2 == 1) {
                     if (Key.trg & KEY_UP) {
-                        o->sub = 0;
+                        o->_rno2 = 0;
                     }
                     if (Key.trg & KEY_DOWN) {
-                        o->sub = 2;
+                        o->_rno2 = 2;
                     }
                 }
             }
-            if (old != o->sub) {
+            if (old != o->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
         base = IdSys.unitPtr(8, ID_OPT);
-        if (old != o->sub) {
+        if (old != o->_rno2) {
             IdSys.setTime(base, 0);
         }
         for (i = 0; i < 4; i++) {
             u = IdSys.unitPtr((u8) (i + 2), ID_OPT);
-            if (o->sub == i) {
+            if (o->_rno2 == i) {
                 setColor(u, base);
             } else {
                 u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
-            if (((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) && i == 1) {
+            if (((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) && i == 1) {
                 u->col0[0] = 0x40;
                 u->col0[1] = 0x40;
                 u->col0[2] = 0x40;
@@ -414,32 +414,32 @@ int retry_load_menu(OptionScreen* o)
             static int y0 = 245;
             u8 mes[4] = {0x87, 0x88, 0x89, 0x86};
 
-            cMes.MesSet(mes[o->sub], x0, y0, o->mesAttr, 0, 0, 4);
+            cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
         }
         break;
     case 1:
         if (Key.trg & KEY_B) {
-            o->step = 0;
+            o->_rno3 = 0;
             cMes.Delete(0);
             SndCall(0, 0x39, 0, 0, 0, 0);
         } else {
-            s8 res = cMes.getWork()->result;
+            s8 res = cMes.getWork()->m_sel;
 
             if (res != 0) {
                 cMes.Delete(0);
                 if (res == 1) {
-                    switch (o->sub) {
+                    switch (o->_rno2) {
                     case 0:
                         GameContinue(1);
                         SndCall(0, 0x38, 0, 0, 0, 0);
                         break;
                     case 2:
                         snd_id = SndCall(0, 0x38, 0, 0, 0, 0);
-                        o->step = 3;
+                        o->_rno3 = 3;
                         break;
                     }
                 } else {
-                    o->step = 0;
+                    o->_rno3 = 0;
                     SndCall(0, 0x39, 0, 0, 0, 0);
                 }
             } else {
@@ -465,10 +465,10 @@ int retry_load_menu(OptionScreen* o)
                 Cckpt.roomInit();
                 Cckpt.move();
                 Cockpit* ck = &Cckpt;
-                ck->life.fix(1);
+                ck->m_LifeMeter.fix(1);
                 ck->lifeMeterDisp(0);
             }
-            IdTexDataLoad(OPT_PTR(0x20), 10);
+            IdTexDataLoad(OPT_PTR(0x20), TEX_OWNER_ID_DEAD);
             IdSys.set(OPT_PTR(0x24), 0xFF, ID_OPT_BG, 0x13, 4, 0);
             {
                 IdUnit* bg = IdSys.unitPtr(0, ID_OPT_BG);
@@ -477,12 +477,12 @@ int retry_load_menu(OptionScreen* o)
             }
             IdSys.kill(0xFF, ID_OPT);
             IdSys.set(OPT_PTR(0x2C), 0xFF, ID_OPT, 0x13, 3, 0);
-            o->step = 0;
+            o->_rno3 = 0;
         }
         break;
     case 3:
         if (SndEndCheck(snd_id)) {
-            pG->flags_54 |= 0x04000000;
+            pG->System_flg |= 0x04000000;
         }
         break;
     }
@@ -495,7 +495,7 @@ int controller_menu(OptionScreen* o)
     static int vib_level = 0xFF;
     static int x0 = 100;
     static int y0 = 245;
-    int old = o->sub;
+    int old = o->_rno2;
     IdUnit* base;
     IdUnit* u;
     IdUnit* off;
@@ -507,19 +507,19 @@ int controller_menu(OptionScreen* o)
             back_to_top_menu(o);
             return 0;
         }
-        o->sub = 3;
+        o->_rno2 = 3;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
         case 0:
-            if (o->keyA) {
+            if (o->m_reverse) {
                 pSys->flags |= 0x80000000;
             } else {
                 pSys->flags &= ~0x80000000;
             }
             break;
         case 1:
-            if (o->keyB) {
+            if (o->m_vibration) {
                 BitOn(pSys->flags, 0x08000000);
                 VibSet(vib_time, vib_level, 0, 4);
             } else {
@@ -527,7 +527,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 2:
-            if (o->keyC) {
+            if (o->m_knife_key) {
                 pSys->flags |= 0x04000000;
             } else {
                 pSys->flags &= ~0x04000000;
@@ -544,34 +544,34 @@ int controller_menu(OptionScreen* o)
 
         switch (no) {
         case 0:
-            old = o->keyA;
+            old = o->m_reverse;
             if (Key.trg & KEY_LEFT) {
-                o->keyA = 1;
+                o->m_reverse = 1;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->keyA = 0;
+                o->m_reverse = 0;
             }
-            now = o->keyA;
+            now = o->m_reverse;
             break;
         case 1:
-            old = o->keyB;
+            old = o->m_vibration;
             if (Key.trg & KEY_LEFT) {
-                o->keyB = 1;
+                o->m_vibration = 1;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->keyB = 0;
+                o->m_vibration = 0;
             }
-            now = o->keyB;
+            now = o->m_vibration;
             break;
         case 2:
-            old = o->keyC;
+            old = o->m_knife_key;
             if (Key.trg & KEY_LEFT) {
-                o->keyC = 0;
+                o->m_knife_key = 0;
             }
             if (Key.trg & KEY_RIGHT) {
-                o->keyC = 1;
+                o->m_knife_key = 1;
             }
-            now = o->keyC;
+            now = o->m_knife_key;
             break;
         default:
             goto updown;
@@ -580,23 +580,23 @@ int controller_menu(OptionScreen* o)
             SndCall(0, 0x35, 0, 0, 0, 0);
         } else {
         updown:
-            old = o->sub;
+            old = o->_rno2;
             if (Key.trg & KEY_UP) {
-                o->sub--;
+                o->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->sub++;
+                o->_rno2++;
             }
-            if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && o->sub == 2) {
+            if (pG->pl_type != 0 && pG->pl_type != 4 && o->_rno2 == 2) {
                 if (Key.trg & KEY_UP) {
-                    o->sub = 1;
+                    o->_rno2 = 1;
                 }
                 if (Key.trg & KEY_DOWN) {
-                    o->sub = 3;
+                    o->_rno2 = 3;
                 }
             }
-            o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
-            if (old != o->sub) {
+            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
+            if (old != o->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
@@ -604,7 +604,7 @@ int controller_menu(OptionScreen* o)
     base = IdSys.unitPtr(8, ID_OPT);
     IdUnit* sel = 0;
     IdUnit* uns = 0;
-    if (old != o->sub) {
+    if (old != o->_rno2) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 4; i++) {
@@ -625,12 +625,12 @@ int controller_menu(OptionScreen* o)
             break;
         }
         u = IdSys.unitPtr(id, ID_OPT);
-        if (o->sub == i) {
+        if (o->_rno2 == i) {
             setColor(u, base);
         } else {
             u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
-        if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && i == 2) {
+        if (pG->pl_type != 0 && pG->pl_type != 4 && i == 2) {
             u->col0[0] = 0x40;
             u->col0[1] = 0x40;
             u->col0[2] = 0x40;
@@ -641,7 +641,7 @@ int controller_menu(OptionScreen* o)
     for (j = 0; j < 3; j++) {
         switch (j) {
         case 0:
-            if (o->keyA) {
+            if (o->m_reverse) {
                 sel = IdSys.unitPtr(3, ID_OPT);
                 uns = IdSys.unitPtr(4, ID_OPT);
             } else {
@@ -650,7 +650,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 1:
-            if (o->keyB) {
+            if (o->m_vibration) {
                 sel = IdSys.unitPtr(6, ID_OPT);
                 uns = IdSys.unitPtr(7, ID_OPT);
             } else {
@@ -659,7 +659,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         case 2:
-            if (o->keyC) {
+            if (o->m_knife_key) {
                 uns = IdSys.unitPtr(0x12, ID_OPT);
                 sel = IdSys.unitPtr(0x13, ID_OPT);
             } else {
@@ -668,7 +668,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         }
-        if (j == o->sub) {
+        if (j == o->_rno2) {
             setColor(sel, base);
         } else {
             sel->col0[3] = sel->col0[2] = sel->col0[1] = sel->col0[0] = 0xFF;
@@ -680,30 +680,30 @@ int controller_menu(OptionScreen* o)
     }
     asm("" : : "r"(sel));  // COMPILER-DIFF: candidate (global.c allocno order: sel 29/338 must outrank o 42/600 for r31)
     if ((s32) pSys->flags < 0) {
-        IdSys.unitPtr(0xA, ID_OPT)->flags |= 8;
-        IdSys.unitPtr(0xB, ID_OPT)->flags &= ~8;
+        IdSys.unitPtr(0xA, ID_OPT)->be_flag |= 8;
+        IdSys.unitPtr(0xB, ID_OPT)->be_flag &= ~8;
     } else {
-        IdSys.unitPtr(0xA, ID_OPT)->flags &= ~8;
-        IdSys.unitPtr(0xB, ID_OPT)->flags |= 8;
+        IdSys.unitPtr(0xA, ID_OPT)->be_flag &= ~8;
+        IdSys.unitPtr(0xB, ID_OPT)->be_flag |= 8;
     }
     if (pSys->flags & 0x08000000) {
-        IdSys.unitPtr(0xC, ID_OPT)->flags |= 8;
-        IdSys.unitPtr(0xD, ID_OPT)->flags &= ~8;
+        IdSys.unitPtr(0xC, ID_OPT)->be_flag |= 8;
+        IdSys.unitPtr(0xD, ID_OPT)->be_flag &= ~8;
     } else {
-        IdSys.unitPtr(0xC, ID_OPT)->flags &= ~8;
-        IdSys.unitPtr(0xD, ID_OPT)->flags |= 8;
+        IdSys.unitPtr(0xC, ID_OPT)->be_flag &= ~8;
+        IdSys.unitPtr(0xD, ID_OPT)->be_flag |= 8;
     }
     if (pSys->flags & 0x04000000) {
-        IdSys.unitPtr(0x14, ID_OPT)->flags &= ~8;
-        IdSys.unitPtr(0x15, ID_OPT)->flags |= 8;
+        IdSys.unitPtr(0x14, ID_OPT)->be_flag &= ~8;
+        IdSys.unitPtr(0x15, ID_OPT)->be_flag |= 8;
     } else {
-        IdSys.unitPtr(0x14, ID_OPT)->flags |= 8;
-        IdSys.unitPtr(0x15, ID_OPT)->flags &= ~8;
+        IdSys.unitPtr(0x14, ID_OPT)->be_flag |= 8;
+        IdSys.unitPtr(0x15, ID_OPT)->be_flag &= ~8;
     }
     {
         u8 mes[4] = {0x8B, 0x8C, 0x92, 0x86};
 
-        cMes.MesSet(mes[o->sub], x0, y0, o->mesAttr, 0, 0, 4);
+        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
@@ -715,7 +715,7 @@ int brightness_menu(OptionScreen* o)
     static int MAX_OFS = 50;
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->sub;
+    s8 old = o->_rno2;
     IdUnit* base;
     IdUnit* u;
     int level;
@@ -730,10 +730,10 @@ int brightness_menu(OptionScreen* o)
     if (Key.trg & KEY_B) {
         if (old == 1) {
             back_to_top_menu(o);
-            IdSys.unitPtr(0, ID_OPT_BG)->dir &= ~0xF;
+            IdSys.unitPtr(0, ID_OPT_BG)->rev_flag &= ~0xF;
             return 0;
         }
-        o->sub = 1;
+        o->_rno2 = 1;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
@@ -741,7 +741,7 @@ int brightness_menu(OptionScreen* o)
             break;
         case 1:
             back_to_top_menu(o);
-            IdSys.unitPtr(0, ID_OPT_BG)->dir &= ~0xF;
+            IdSys.unitPtr(0, ID_OPT_BG)->rev_flag &= ~0xF;
             return 0;
         }
     } else {
@@ -779,38 +779,38 @@ int brightness_menu(OptionScreen* o)
             }
         }
         {
-            old = o->sub;
+            old = o->_rno2;
             if (Key.trg & KEY_UP) {
-                o->sub--;
+                o->_rno2--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->sub++;
+                o->_rno2++;
             }
-            o->sub = o->sub < 0 ? 0 : (o->sub > 1 ? 1 : o->sub);
-            if (old != o->sub) {
+            o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 1 ? 1 : o->_rno2);
+            if (old != o->_rno2) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
         }
     }
     level = pSys->brightness - DEFAULT;
     base = IdSys.unitPtr(8, ID_OPT);
-    if (old != o->sub) {
+    if (old != o->_rno2) {
         IdSys.setTime(base, 0);
     }
     digits = (int) fabsf((f32) level);
     if (level == 0) {
-        IdSys.unitPtr(4, ID_OPT)->flags &= ~8;
-        IdSys.unitPtr(5, ID_OPT)->flags &= ~8;
+        IdSys.unitPtr(4, ID_OPT)->be_flag &= ~8;
+        IdSys.unitPtr(5, ID_OPT)->be_flag &= ~8;
     } else if (level > 0) {
-        IdSys.unitPtr(4, ID_OPT)->flags &= ~8;
-        IdSys.unitPtr(5, ID_OPT)->flags |= 8;
+        IdSys.unitPtr(4, ID_OPT)->be_flag &= ~8;
+        IdSys.unitPtr(5, ID_OPT)->be_flag |= 8;
     } else if (level < 0) {
-        IdSys.unitPtr(4, ID_OPT)->flags |= 8;
-        IdSys.unitPtr(5, ID_OPT)->flags &= ~8;
+        IdSys.unitPtr(4, ID_OPT)->be_flag |= 8;
+        IdSys.unitPtr(5, ID_OPT)->be_flag &= ~8;
     }
     for (i = 0; i < 2; i++) {
         u = IdSys.unitPtr((u8) (i + 4), ID_OPT);
-        if (o->sub == 0) {
+        if (o->_rno2 == 0) {
             setColor(u, base);
         } else {
             u->col0[0] = 0xFF;
@@ -824,9 +824,9 @@ int brightness_menu(OptionScreen* o)
 
         digits /= 10;
         u = IdSys.unitPtr((u8) (3 - j), ID_OPT);
-        u->no = d;
-        u->flags_7F |= 2;
-        if (o->sub == 0) {
+        u->texNo = d;
+        u->tex_flag |= 2;
+        if (o->_rno2 == 0) {
             setColor(u, base);
         } else {
             u->col0[0] = 0xFF;
@@ -842,7 +842,7 @@ int brightness_menu(OptionScreen* o)
     PSVECScale(&c, &c, rate);
     PSVECAdd(&a, &c, &IdSys.unitPtr(1, ID_OPT)->scr);
     u = IdSys.unitPtr(6, ID_OPT);
-    if (o->sub == 1) {
+    if (o->_rno2 == 1) {
         setColor(u, base);
     } else {
         u->col0[0] = 0xFF;
@@ -853,7 +853,7 @@ int brightness_menu(OptionScreen* o)
     {
         u8 mes[2] = {0x8D, 0x86};
 
-        cMes.MesSet(mes[o->sub], x0, y0, o->mesAttr, 0, 0, 4);
+        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
@@ -862,7 +862,7 @@ int audio_menu(OptionScreen* o)
 {
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->sub;
+    s8 old = o->_rno2;
     IdUnit* base;
     IdUnit* cur;
     IdUnit* u;
@@ -873,7 +873,7 @@ int audio_menu(OptionScreen* o)
             back_to_top_menu(o);
             return 0;
         }
-        o->sub = 3;
+        o->_rno2 = 3;
         SndCall(0, 0x39, 0, 0, 0, 0);
     } else if (Key.trg & KEY_A) {
         switch (old) {
@@ -890,31 +890,31 @@ int audio_menu(OptionScreen* o)
             back_to_top_menu(o);
             return 0;
         }
-        if (o->sub != 3) {
-            o->sound = o->sub;
+        if (o->_rno2 != 3) {
+            o->sound = o->_rno2;
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
     } else {
-        old = o->sub;
+        old = o->_rno2;
         if (Key.trg & KEY_UP) {
-            o->sub--;
+            o->_rno2--;
         }
         if (Key.trg & KEY_DOWN) {
-            o->sub++;
+            o->_rno2++;
         }
-        o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
-        if (old != o->sub) {
+        o->_rno2 = o->_rno2 < 0 ? 0 : (o->_rno2 > 3 ? 3 : o->_rno2);
+        if (old != o->_rno2) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
     }
     base = IdSys.unitPtr(8, ID_OPT);
     cur = IdSys.unitPtr(0xE, ID_OPT);
-    if (old != o->sub) {
+    if (old != o->_rno2) {
         IdSys.setTime(base, 0);
     }
     for (i = 0; i < 4; i++) {
         u = IdSys.unitPtr((u8) (i + 2), ID_OPT);
-        if (o->sub == i) {
+        if (o->_rno2 == i) {
             setColor(u, base);
         } else if (i == 3 || i == o->sound) {
             u->col0[0] = 0xFF;
@@ -928,9 +928,9 @@ int audio_menu(OptionScreen* o)
             u->col0[3] = cur->col0[3];
         }
     }
-    IdSys.unitPtr(0xA, ID_OPT)->flags &= ~8;
-    IdSys.unitPtr(0xB, ID_OPT)->flags &= ~8;
-    IdSys.unitPtr(0xC, ID_OPT)->flags &= ~8;
+    IdSys.unitPtr(0xA, ID_OPT)->be_flag &= ~8;
+    IdSys.unitPtr(0xB, ID_OPT)->be_flag &= ~8;
+    IdSys.unitPtr(0xC, ID_OPT)->be_flag &= ~8;
     switch (pSys->sound_mode) {
     case 1:
         u = IdSys.unitPtr(0xA, ID_OPT);
@@ -945,11 +945,11 @@ int audio_menu(OptionScreen* o)
         u = IdSys.unitPtr(0xA, ID_OPT);
         break;
     }
-    u->flags |= 8;
+    u->be_flag |= 8;
     {
         u8 mes[4] = {0x8E, 0x8E, 0x8E, 0x86};
 
-        cMes.MesSet(mes[o->sub], x0, y0, o->mesAttr, 0, 0, 4);
+        cMes.MesSet(mes[o->_rno2], x0, y0, o->_msg_attr, 0, 0, 4);
     }
     return 0;
 }
@@ -979,12 +979,12 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
             u = IdSys.unitPtr((u8) (base - i), type);
         }
         if (show == 0 && d[i] == 0 && i != 0) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
             show = 1;
-            u->flags_7F |= 2;
-            u->no = d[i];
+            u->tex_flag |= 2;
+            u->texNo = d[i];
         }
     }
 }
@@ -992,14 +992,14 @@ void num(int val, int n, int mode, int base, u8 type, int reverse)
 void GameResult::init(void* d)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x14), 0xFF, ID_RESULT, 0x13, 6, 0);
-    x4 = 0;
-    x5 = 0;
-    x6 = 0;
-    x7 = 0;
+    _rno0 = 0;
+    _rno1 = 0;
+    _rno2 = 0;
+    _rno3 = 0;
 }
 
 int GameResult::move()
@@ -1010,27 +1010,27 @@ int GameResult::move()
     IdUnit* u;
     int hit;
 
-    if (pG->shotTotal2 != 0) {
-        hit = (int) ((f32) pG->shotHit2 * 100.0f / (f32) pG->shotTotal2 + 0.5f);
+    if (pG->g_shot_cnt != 0) {
+        hit = (int) ((f32) pG->g_hit_cnt * 100.0f / (f32) pG->g_shot_cnt + 0.5f);
     } else {
         hit = 0;
     }
     num(hit, 3, 1, 1, ID_RESULT, 0);
-    num(pG->em_die_cnt2, 4, 1, 0x11, ID_RESULT, 0);
-    num(pG->x833A, 3, 1, 0x21, ID_RESULT, 0);
+    num(pG->g_kill_cnt, 4, 1, 0x11, ID_RESULT, 0);
+    num(pG->g_continue_cnt, 3, 1, 0x21, ID_RESULT, 0);
     SecToTime(pG->play_time, &h, &m, &s);
     num(h, 2, 0, 0x35, ID_RESULT, 0);
     num(m, 2, 0, 0x33, ID_RESULT, 0);
     num(s, 2, 0, 0x31, ID_RESULT, 0);
     u = IdSys.unitPtr(0x30, ID_RESULT);
-    u->no = 0xB;
-    u->flags |= 8;
-    u->flags_7F |= 2;
+    u->texNo = 0xB;
+    u->be_flag |= 8;
+    u->tex_flag |= 2;
     u = IdSys.unitPtr(0, ID_RESULT);
-    if (pG->x4F8E > 1) {
-        u->flags |= 8;
+    if (pG->game_cnt > 1) {
+        u->be_flag |= 8;
     } else {
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
     if (Key.trg & KEY_A) {
         return 1;
@@ -1047,9 +1047,9 @@ void GameResult::quit()
 void GameResult::omake_init(void* d)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x18), 0xFF, ID_RESULT, 0x13, 6, 0);
 }
 
@@ -1064,11 +1064,11 @@ int GameResult::omake_move()
 void ChapterEnd::init(void* d, u8 ch)
 {
     data = d;
-    IdTexRelease(4);
+    IdTexRelease(TEX_OWNER_ID_COCKPIT);
     IdSys.roomInit();
-    IdTexDataLoad(DATA_PTR(data, 0x10), 7);
+    IdTexDataLoad(DATA_PTR(data, 0x10), TEX_OWNER_ID_TITLE);
     IdSys.set(DATA_PTR(data, 0x14), 0xFF, ID_RESULT, 0x13, 6, 0);
-    chapter = ch;
+    _chapter = ch;
 }
 
 int ChapterEnd::move()
@@ -1085,51 +1085,51 @@ int ChapterEnd::move()
     IdUnit* u;
     int hit;
 
-    getChapterSection(chapter, &chap, &sec);
+    getChapterSection(_chapter, &chap, &sec);
     u = IdSys.unitPtr(0, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = chap;
+    u->tex_flag |= 2;
+    u->texNo = chap;
     u = IdSys.unitPtr(1, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = char_bar;
+    u->tex_flag |= 2;
+    u->texNo = char_bar;
     u = IdSys.unitPtr(2, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = sec;
+    u->tex_flag |= 2;
+    u->texNo = sec;
     u = IdSys.unitPtr(0x1A, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = sec - 1;
-    getChapterSection(chapter + 1, &chap2, &sec2);
+    u->tex_flag |= 2;
+    u->texNo = sec - 1;
+    getChapterSection(_chapter + 1, &chap2, &sec2);
     u = IdSys.unitPtr(3, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = chap2;
+    u->tex_flag |= 2;
+    u->texNo = chap2;
     u = IdSys.unitPtr(4, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = char_bar;
+    u->tex_flag |= 2;
+    u->texNo = char_bar;
     u = IdSys.unitPtr(5, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = sec2;
-    if (pG->shotTotal != 0) {
-        hit = (int) ((f32) pG->shotHit * 100.0f / (f32) pG->shotTotal + 0.5f);
+    u->tex_flag |= 2;
+    u->texNo = sec2;
+    if (pG->c_shot_cnt != 0) {
+        hit = (int) ((f32) pG->c_hit_cnt * 100.0f / (f32) pG->c_shot_cnt + 0.5f);
     } else {
         hit = 0;
     }
     num(hit, 3, 1, 8, ID_RESULT, 1);
     u = IdSys.unitPtr(9, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = char_per;
-    if (pG->shotTotal2 != 0) {
-        hit = (int) ((f32) pG->shotHit2 * 100.0f / (f32) pG->shotTotal2 + 0.5f);
+    u->tex_flag |= 2;
+    u->texNo = char_per;
+    if (pG->g_shot_cnt != 0) {
+        hit = (int) ((f32) pG->g_hit_cnt * 100.0f / (f32) pG->g_shot_cnt + 0.5f);
     } else {
         hit = 0;
     }
     num(hit, 3, 1, 0xC, ID_RESULT, 1);
     u = IdSys.unitPtr(0xD, ID_RESULT);
-    u->flags_7F |= 2;
-    u->no = char_per;
-    num(pG->em_die_cnt, 3, 1, 0x10, ID_RESULT, 1);
-    num(pG->em_die_cnt2, 3, 1, 0x13, ID_RESULT, 1);
-    num(pG->x8338, 3, 1, 0x16, ID_RESULT, 1);
-    num(pG->x833A, 3, 1, 0x19, ID_RESULT, 1);
+    u->tex_flag |= 2;
+    u->texNo = char_per;
+    num(pG->c_kill_cnt, 3, 1, 0x10, ID_RESULT, 1);
+    num(pG->g_kill_cnt, 3, 1, 0x13, ID_RESULT, 1);
+    num(pG->c_continue_cnt, 3, 1, 0x16, ID_RESULT, 1);
+    num(pG->g_continue_cnt, 3, 1, 0x19, ID_RESULT, 1);
     return 0;
 }
 

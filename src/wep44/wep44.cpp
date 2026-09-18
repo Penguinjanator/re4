@@ -32,7 +32,7 @@ void Wep44_init(cModel* m)
         pLog->err(0, 0, "Wep15_init() cObjMagnum CREATE FAILED");
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x3A, 1);
@@ -52,13 +52,13 @@ void cObjGovernment::init(cModel* parent)
         pLog->err(0, 0, "cObjWep::init() failed.");
         return;
     }
-    sub2B4.atari.flags &= 0xFCFF;
+    sub2B4.atari.m_flag &= 0xFCFF;
     pParts->pParent = parent->getPartsPtr(0xA);
     {
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     resetMotion();
@@ -81,8 +81,8 @@ void cObjGovernment::moveFire()
         SndCall(2, 2, &pos, 0, 0, 0);
         // the EstSet stack zeros come from an SImode pseudo set after the first SndCall
         int type = 0;
-        pG->flags_500C |= 0x00800000;
-        MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
+        pG->Status_flg[0] |= 0x00800000;
+        MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         EstSet((int) this, -1, 0, 0, 0x3A, type, 0, 0xA, 0, 0);
         setCartridge();
@@ -100,7 +100,7 @@ void cObjGovernment::moveReload()
         u16 se;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x36);
                 break;
@@ -112,7 +112,7 @@ void cObjGovernment::moveReload()
                 break;
             }
         } else {
-            switch (pG->x4FBA) {
+            switch (pG->weapon_lv_reload) {
             default:
                 m = WEP_ARC_PTR(0x33);
                 break;
@@ -125,7 +125,7 @@ void cObjGovernment::moveReload()
             }
         }
         motionSet(m, 0, 0, 1, 0);
-        switch (pG->x4FBA) {
+        switch (pG->weapon_lv_reload) {
         default:
             se = 0x16;
             break;
@@ -136,10 +136,10 @@ void cObjGovernment::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, reloadEnd[pG->x4FBA])) {
+    if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }
@@ -192,14 +192,14 @@ void cObjGovernment::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x10));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x1B));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1C));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x1D));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x1E));
     PSet(pl->pMotTbl[0x5D], WEP_ARC_PTR(0x1F));
     PSet(pl->pMotTbl[0x5E], WEP_ARC_PTR(0x20));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x8));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0x8));
     pl->setRightHand(1);
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
 }

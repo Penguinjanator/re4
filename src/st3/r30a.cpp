@@ -49,9 +49,9 @@ void R30aInit()
     r30a_work = (R30aWork*) MEM_CALLOC(sizeof(R30aWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30as00_func", (void*) Evt_R30AS00_Func);
     EvtMgr.SetFunc("evt_r30as98_func", (void*) Evt_R30AS00_Func);
-    if (pG->flags_51C0 & 0x800) {
+    if (pG->Scenario_flg[0] & 0x800) {
         SndBgmTblSetDisable(3, 0);
-        BitOff(pG->flags_51C0, 0x800);
+        BitOff(pG->Scenario_flg[0], 0x800);
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceExec(0x12, (TaskFunc) R30aEventS00, 0, 0, 2, 0);
             EvtMgr.EvtReadAram("event/evd/r30as00.evd", 0, 0, 0, 0);
@@ -72,7 +72,7 @@ void R30aMain()
 // The camera cuts of the ride (mode 0 down, 1 up).
 static void r30a_setElvCamera(u32 mode)
 {
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     if (mode == 0) {
         CamCtrl.CutCall(4);
         while (CamCtrl.IsMotionEnd() == 0) {
@@ -88,7 +88,7 @@ static void r30a_setElvCamera(u32 mode)
             SceSleep(1);
         }
     }
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
 }
 
 // Areas 1 / 2: the ride (dir 0 down, 1 up); the partner rides along when close enough.
@@ -98,7 +98,7 @@ static void r30a_moveElevator(u32 dir)
     u32 n;
 
     SceEventStart(0);
-    pG->flags_174 &= ~0x80000000;
+    pG->Room_flg[0] &= ~0x80000000;
     if (dir == 0) {
         r30a_work->elv.setReverse(0);
         SceAtSetEnable(5, 1);
@@ -109,11 +109,11 @@ static void r30a_moveElevator(u32 dir)
         SceAtSetEnable(6, 1);
     }
     if (obj) {
-        obj->pInfo->flagsDC |= 1;
+        obj->pModelInfo->flagsDC |= 1;
         if (dir == 0) {
-            obj->pInfo->uvScrollU = 0.05f;
+            obj->pModelInfo->uvScrollU = 0.05f;
         } else {
-            obj->pInfo->uvScrollU = -0.05f;
+            obj->pModelInfo->uvScrollU = -0.05f;
         }
     }
     SceExec(0x12, (TaskFunc) r30a_setElvCamera, dir, 0, 2, 0);
@@ -169,7 +169,7 @@ static void r30a_moveElevator(u32 dir)
     SndCall(6, 0, 0, 0, 0, 0);
     do {
         if (r30a_work->elv.move() == 0) {
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 break;
             }
         }
@@ -177,7 +177,7 @@ static void r30a_moveElevator(u32 dir)
     } while (1);
     SndCall(6, 1, 0, 0, 0, 0);
     if (obj) {
-        obj->pInfo->uvScrollU = 0.0f;
+        obj->pModelInfo->uvScrollU = 0.0f;
     }
     pPL->setNoSuspend(0);
     {
@@ -230,7 +230,7 @@ static void r30a_execEvent10()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         RsfSet(G_ROOM_ID, 1);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadExec("event/evd/r30as10.evd", 0, 0x100);
     }
 }
@@ -240,9 +240,9 @@ static void R30aEventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadExec("event/evd/r30as00.evd", 0, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         Vec pos = {12717.0f, 2000.0f, 7351.0f};
         Vec rot = {0.0f, 1.466f, 0.0f};
         SceAtExecRoomJump(0x316, &pos, &rot, 0);
@@ -255,14 +255,14 @@ extern "C" void Evt_R30AS00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         setRoomEtcBreakDisp(0, 0, 1);
-        pG->flags_5010 |= 0x800;
+        pG->Status_flg[1] |= 0x800;
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 2:
         case 4:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
@@ -275,14 +275,14 @@ extern "C" void Evt_R30AS00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 int skip = 1;
 
-                if ((e->status & 0x40000000) == 0) {
+                if ((e->StatusFlag & 0x40000000) == 0) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -294,10 +294,10 @@ extern "C" void Evt_R30AS00_Func(Event* e)
             }
             break;
         case 7:
-            if (e->frame == 50) {
+            if (e->NowFrame == 50) {
                 int skip = 1;
 
-                if ((e->status & 0x40000000) == 0) {
+                if ((e->StatusFlag & 0x40000000) == 0) {
                     skip = 0;
                 }
                 if (skip == 0) {
@@ -309,7 +309,7 @@ extern "C" void Evt_R30AS00_Func(Event* e)
         break;
     case 2:
         setRoomEtcBreakDisp(0, 1, 1);
-        pG->flags_5010 &= ~0x800;
+        pG->Status_flg[1] &= ~0x800;
         break;
     }
 }

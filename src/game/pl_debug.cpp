@@ -24,27 +24,27 @@ u8 PlCapNum[25];
 
 void mahoMuteki()
 {
-    BitOn(pG->flags_68, 0x800000);
+    BitOn(pG->Debug_flg[2], 0x800000);
     pLog->mes(0, 0, "NO DEATH ON");
 }
 
 void mahoInfBul()
 {
-    BitOn(pG->flags_68, 0x400000);
+    BitOn(pG->Debug_flg[2], 0x400000);
     pLog->mes(0, 0, "INF BULLET ON");
 }
 
 void mahoSkelOn()
 {
-    BitOn(pG->flags_60, 0x8000000);
-    BitOn(pG->flags_58, 0x8000000);
+    BitOn(pG->Debug_flg[0], 0x8000000);
+    BitOn(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON ON");
 }
 
 void mahoSkelOff()
 {
-    BitOff(pG->flags_60, 0x8000000);
-    BitOff(pG->flags_58, 0x8000000);
+    BitOff(pG->Debug_flg[0], 0x8000000);
+    BitOff(pG->Disp_flg, 0x8000000);
     pLog->mes(0, 0, "SKELTON OFF");
 }
 
@@ -58,27 +58,27 @@ void mahoCallSc()
 
 static void mahoKaiouOff()
 {
-    BitOff(pG->flags_68, 0x10000);
+    BitOff(pG->Debug_flg[2], 0x10000);
     pLog->mes(0, 0, "KAIOUKEN OFF");
 }
 
 void mahoKaiou2()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 0;
     pLog->mes(0, 0, "KAIOUKEN x2");
 }
 
 void mahoKaiou3()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 1;
     pLog->mes(0, 0, "KAIOUKEN x3");
 }
 
 void mahoKaiou4()
 {
-    BitOn(pG->flags_68, 0x10000);
+    BitOn(pG->Debug_flg[2], 0x10000);
     PlKaiou = 2;
     pLog->mes(0, 0, "KAIOUKEN x4");
 }
@@ -159,9 +159,9 @@ void satMakeTest(cPlayer* pl)
                 SatMgr.destroy(pS0);   // on the object: devirtualised `bl destroy__7cSatMgrP4cSat`
                 pS0 = 0;
             }
-            RotVector(&z0, &pl->rot, &pos);
+            RotVector(&z0, &pl->ang, &pos);
             PSVECAdd(&pos, &pl->pos, &pos);
-            pS0 = sat->create(&pos, &pl->rot, quad, 0, 0x200, 0.0f);
+            pS0 = sat->create(&pos, &pl->ang, quad, 0, 0x200, 0.0f);
         }
     }
 }
@@ -173,16 +173,16 @@ void localCoordTest(cPlayer* pl)
         static u16 pl_db_parts_no = 0;
         Mtx m;
 
-        vpos.x += (f32) Joy[2].sx / 100.0f;
-        vpos.y += (f32) Joy[2].sy / 100.0f;
-        vpos.z = vpos.z + (f32) Joy[2].trigR / 200.0f - (f32) Joy[2].trigL / 200.0f;
+        vpos.x += (f32) Joy[2].stickX / 100.0f;
+        vpos.y += (f32) Joy[2].stickY / 100.0f;
+        vpos.z = vpos.z + (f32) Joy[2].triggerRight / 200.0f - (f32) Joy[2].triggerLeft / 200.0f;
         if (Joy[0].trg & JOY_Y) {
             pl_db_parts_no++;
         }
         if (Joy[0].trg & JOY_X) {
             pl_db_parts_no--;
         }
-        PSMTXConcat(pG->Cam.viewMat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
+        PSMTXConcat(pG->Cam.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
         Draw_local_pos(&vpos, 1000, m);
         eprintf(40, 100, 0, 0, "%5.2f", vpos.x);
         eprintf(40, 116, 0, 0, "%5.2f", vpos.y);
@@ -206,7 +206,7 @@ void cPlayer::debugMove()
     emSearch();
     localCoordTest(this);
     EmYarareDisp(this);
-    if (pG->flags_68 & 0x10000000) {
+    if (pG->Debug_flg[2] & 0x10000000) {
         DrawOba(this);
     }
     if (PlDbFlag & 2) {
@@ -264,7 +264,7 @@ void cPlMaho::reset()
     int i;
 
     for (i = 0; i < 30; i++) {
-        tbl[i].x0 = 0;
+        tbl[i].rno = 0;
     }
 }
 
@@ -272,10 +272,10 @@ void cPlMaho::regist(const char* code, void (*func)())
 {
     PlMahoEntry* e = &tbl[num];
 
-    e->x0 = 0;
-    e->x1 = 0;
+    e->rno = 0;
+    e->timer = 0;
     e->func = func;
-    e->code = code;
+    e->pSpell = code;
     num++;
 }
 

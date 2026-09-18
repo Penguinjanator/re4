@@ -4,9 +4,9 @@
 #include "esp.h"
 
 struct Esp0cWork {
-    u8 estNo;      // 0x00 est number (gen->xC8)
-    u8 estPrm;     // 0x01 (gen->xC9)
-    u8 estNo2;     // 0x02 est number used when the sprite hit water (gen->prm byte 0xCF)
+    u8 EstNo;      // 0x00 est number (gen->xC8)
+    u8 EstOwner_wt;     // 0x01 (gen->xC9)
+    u8 EstNo_wt;     // 0x02 est number used when the sprite hit water (gen->prm byte 0xCF)
     u8 estPrm2;    // 0x03 (gen->prm byte 0xD3)
     u32 onWater;   // 0x04 1: the position was raised to the water surface
 };
@@ -26,7 +26,7 @@ struct EstSetWork {
 // Est (effect set) trigger: on its first move it starts an est at its position and dies.
 class cEsp0c : public cEsp {
 public:
-    Esp0cWork work;  // 0xF8
+    Esp0cWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -41,23 +41,23 @@ cEsp* Esp0c_Create()
 
 void cEsp0c::move()
 {
-    Esp0cWork* w = &work;
+    Esp0cWork* w = &m_Free;
     EstSetWork est;
 
     memclr_asm(&est, sizeof(EstSetWork));
     est.flag2 |= 1;
     est.flag1 |= 6;
-    est.sizeX = sizeX * 0.005f;
-    est.sizeY = sizeY * 0.005f;
-    est.col[0] = x80;
-    est.col[1] = x81;
-    est.col[2] = x82;
-    est.col[3] = x83;
-    est.spd = spd;
+    est.sizeX = m_Size_base_x * 0.005f;
+    est.sizeY = m_Size_base_y * 0.005f;
+    est.col[0] = m_Col_start_r;
+    est.col[1] = m_Col_start_g;
+    est.col[2] = m_Col_start_b;
+    est.col[3] = m_Col_start_a;
+    est.spd = m_Speed;
     if (w->onWater == 1) {
-        EstSet(0, -1, &pos, &rot, w->estNo2, w->estPrm2, info.x0, info.x2, info.x8, &est);
+        EstSet(0, -1, &m_Pos, &m_Ang, w->EstNo_wt, w->estPrm2, info.Core_flg, info.Core_kind, info.Core_pEm, &est);
     } else {
-        EstSet(0, -1, &pos, &rot, w->estNo, w->estPrm, info.x0, info.x2, info.x8, &est);
+        EstSet(0, -1, &m_Pos, &m_Ang, w->EstNo, w->EstOwner_wt, info.Core_flg, info.Core_kind, info.Core_pEm, &est);
     }
     PushEsp(this);
 }
@@ -69,44 +69,44 @@ extern "C" void Esp0c_Trans(cEsp* esp)
 
 int cEsp0c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp0cWork* w = &work;
+    Esp0cWork* w = &m_Free;
     u32 attr;
     f32 h;
 
-    w->estNo = gen->xC8;
-    w->estPrm = gen->xC9;
-    w->estNo2 = gen->prm.b.xCF;
+    w->EstNo = gen->Work8[0];
+    w->EstOwner_wt = gen->Work8[1];
+    w->EstNo_wt = gen->prm.b.xCF;
     w->estPrm2 = gen->prm.b.xD3;
     if (parent != pEffParentWorld) {
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    switch ((s8)gen->xCA) {
+    switch ((s8)gen->Work8[2]) {
     case 0:
         break;
     case 1:
-        pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, &attr, 0) + 65.0f + gen->xDC;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f + gen->Vec0.y;
         break;
     case 2:
-        pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, &attr, 0) + 65.0f;
-        if (GetWaterHeight(&pos, &h)) {
-            if (pos.y < h + gen->xDC) {
-                pos.y = h + gen->xDC;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f;
+        if (GetWaterHeight(&m_Pos, &h)) {
+            if (m_Pos.y < h + gen->Vec0.y) {
+                m_Pos.y = h + gen->Vec0.y;
                 w->onWater = 1;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->xCA);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[2]);
         return 0;
     }
-    if ((s8)gen->xCB == 0) {
-    } else if ((s8)gen->xCB == 1) {
-        if (EffAreaCheckInRoom(&pos) == 1) {
+    if ((s8)gen->Work8[3] == 0) {
+    } else if ((s8)gen->Work8[3] == 1) {
+        if (EffAreaCheckInRoom(&m_Pos) == 1) {
             PushEsp(this);
         }
     } else {
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->xCB);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
         return 0;
     }
     return 1;

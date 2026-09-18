@@ -73,15 +73,15 @@ void R316Init()
     cEm* door;
     cEm* win;
 
-    BitOff(pG->flags_54, 0x400);
-    BitOn(pG->flags_64, 0x00040000);
+    BitOff(pG->System_flg, 0x400);
+    BitOn(pG->Debug_flg[1], 0x00040000);
 #line 51 "D:/Bio4/Prog/r316.cpp"
     r316_work = (R316Work*) MEM_CALLOC(sizeof(R316Work), 1, 0xd);
-    if (pG->x4F9F == 1) {
+    if (pG->JumpPoint == 1) {
         RsfSet(G_ROOM_ID, 0);
         RsfSet(G_ROOM_ID, 1);
     }
-    pG->flags_5018 &= ~0x04000000;
+    pG->Status_flg[3] &= ~0x04000000;
     EvtMgr.SetFunc("evt_r316s00_func", (void*) Evt_R316S00_Func);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         EvtMgr.EvtReadAram("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0, 1, 0);
@@ -99,22 +99,22 @@ void R316Init()
     SceExec(0x12, (TaskFunc) r316_checkHeatEffect, 0, 0, 2, 0);
     SceExec(0x12, (TaskFunc) r316_checkFallItem, 0, 0, 2, 0);
     if (getRoomEtcWindow(0x10, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     if (getRoomEtcWindow(0x11, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     if (getRoomEtcWindow(0x12, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     if (getRoomEtcWindow(0x18, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     if (getRoomEtcWindow(0x19, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     if (getRoomEtcWindow(0x1A, &win, 1)) {
-        win->lightInfo.x54 &= ~0x10;
+        win->LightInfo.SelectMask &= ~0x10;
     }
     SmdSetTrans(0x3D, 1);
     SmdSetTrans(0x3E, 0);
@@ -243,7 +243,7 @@ static void R316EventS00()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         RsfSet(G_ROOM_ID, 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         EvtMgr.EvtReadExec("event/evd/r316s00.evd", (u8) GetEmIdFromListI(0), 0);
         SceSetChapterEnd(0xF, -1);
         SceExec(0x12, (TaskFunc) r316_checkEmReset, 0, 0, 2, 0);
@@ -262,7 +262,7 @@ static void R316EventSXX()
         FadeSetW(2, 60, 0, 0);
         FadeWait(2);
         SceEventEnd(0);
-        pG->flags_51C0 |= 0x800;
+        pG->Scenario_flg[0] |= 0x800;
         {
             Vec pos;
             Vec rot;
@@ -271,7 +271,7 @@ static void R316EventSXX()
             r316_memset(&rot, 0, sizeof(Vec));
             SceAtExecRoomJump(0x30A, &pos, &rot, 0);
         }
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
     }
     // COMPILER-DIFF: candidate (gcse table size). Five dead insns (folded by cse2, no code) grow the
     // PRE hash table from 45 to 47/49 buckets, which numbers the hoisted `&pos` (fp+0x10, hash
@@ -293,22 +293,22 @@ void Evt_R316S00_Func(Event* e)
     case 1: {
         void* mod;
 
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x3D, 1);
                 SmdSetTrans(0x3E, 0);
             }
             break;
         case 5:
         case 0xB:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x3D, 0);
                 SmdSetTrans(0x3E, 1);
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
             if (e->GetMod(&mod, "obm5500", 0, 0) == 1) {
@@ -321,26 +321,26 @@ void Evt_R316S00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0xB:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 0);
             }
             break;
         case 0xA:
         case 0xC:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 1);
             }
             break;
         case 0x12:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(6, 0);
             }
             break;
         case 0x11:
         case 0x13:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(6, 1);
             }
             break;

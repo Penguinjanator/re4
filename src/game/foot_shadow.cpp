@@ -43,14 +43,14 @@ void DrawFootShadow(cEm* em)
     cLight* l;
     int cnt;
 
-    if (pG->flags_58 & 0x02000000) {
+    if (pG->Disp_flg & 0x02000000) {
         return;
     }
-    if (em->shdCol == 0xFF) {
+    if (em->Shd_color == 0xFF) {
         return;
     }
-    if (pG->flags_500C & 0x1000) {
-        pos = em->pParts->worldPos;
+    if (pG->Status_flg[0] & 0x1000) {
+        pos = em->pParts->world;
         pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
     } else {
         pos = em->pos;
@@ -64,7 +64,7 @@ void DrawFootShadow(cEm* em)
         f32 range;
 
         if (cnt != 0) {
-            l = (cLight*) l->next;
+            l = (cLight*) l->pNext;
             if (l == 0) {
                 break;
             }
@@ -75,14 +75,14 @@ void DrawFootShadow(cEm* em)
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->type != 4) {
+        if (l->Type != 4) {
             continue;
         }
-        if (!(l->xF & em->lightInfo.x50)) {
+        if (!(l->xF & em->LightInfo.EnableMask)) {
             continue;
         }
-        if (pG->flags_500C & 0x80) {
-            if (l->kind & 0x80) {
+        if (pG->Status_flg[0] & 0x80) {
+            if (l->Kind & 0x80) {
                 continue;
             }
         }
@@ -90,13 +90,13 @@ void DrawFootShadow(cEm* em)
             continue;
         }
         {
-            int col = l->color.r;
+            int col = l->Col.r;
             rate = (f32) col / 255.0f;
         }
-        if (l->x1C == 0.0f) {
+        if (l->Radius == 0.0f) {
             range = 1000000000.0f;
         } else {
-            range = l->x1C;
+            range = l->Radius;
         }
         l->getPos(&lpos);
         range *= range;
@@ -120,7 +120,7 @@ void DrawFootShadow(cEm* em)
             PSMTXConcat(m2, m1, m1);
             PSMTXMultVecSR(m1, &dir, &dir);
         } else if (l->xD == 0) {
-            PSVECSubtract(&em->pParts->worldPos, &lpos, &dir);
+            PSVECSubtract(&em->pParts->world, &lpos, &dir);
 #line 152 "D:/Bio4/Prog/foot_shadow.cpp"
             VECNormalize(&dir, &dir);
         }
@@ -131,7 +131,7 @@ void DrawFootShadow(cEm* em)
             f32 ang;
             f32 d;
 
-            PSVECSubtract(&em->pParts->worldPos, &lpos, &tmp);
+            PSVECSubtract(&em->pParts->world, &lpos, &tmp);
             dot = PSVECDotProduct(&dir, &tmp);
             PSVECScale(&dir, &tmp, dot);
             PSVECAdd(&lpos, &tmp, &tmp);
@@ -159,25 +159,25 @@ void DrawFootShadow(cEm* em)
                 return;
             }
             tex = EspGetTexObj(0x13, 0);
-            rate *= (f32) (255 - em->shdCol) / 255.0f;
+            rate *= (f32) (255 - em->Shd_color) / 255.0f;
             prevOn = 0;
             prevCnt = 0;
             for (i = 0; i < tbl->num; i++) {
                 FootShadowDat* dat = &tbl->dat[i];
-                cModel* p = em->getPartsPtr(dat->parts);
+                cModel* p = em->getPartsPtr(dat->joint);
                 ShadowInfo mid;
                 Vec ofs;
 
                 {
                     f32 size;
 
-                    info.pos = p->worldPos;
+                    info.pos = p->world;
                     PSVECScale(&dir, &ofs, -(info.pos.y - pos.y) * (1.0f / dir.y));
                     PSVECAdd(&info.pos, &ofs, &info.pos);
                     info.pos.y += (f32) w->height * 10.0f + 50.0f;
                     size = dat->size;
                     info.size = size;
-                    info.alpha = (f32) dat->alpha;
+                    info.alpha = (f32) dat->color;
                     drawShadowParts(tex, &info.pos, size, info.alpha * rate * shadowRate(&info.pos, &lpos, range));
                 }
                 if (prevOn) {
@@ -254,10 +254,10 @@ void drawShadowParts(GXTexObj* tex, Vec* pos, f32 size, f32 alpha)
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 4, 5, 7);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    PSMTXInverse(pG->Cam.viewMat, m);
+    PSMTXInverse(pG->Cam.v_mat, m);
     PSMTXTranspose(m, m);
     GXLoadNrmMtxImm(m, 0);
-    GXLoadPosMtxImm(pG->Cam.viewMat, 0);
+    GXLoadPosMtxImm(pG->Cam.v_mat, 0);
     GXSetCurrentMtx(0);
     CameraCurrentProjection();
     GXSetBlendMode(1, 4, 5, 0);

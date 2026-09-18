@@ -27,19 +27,19 @@ int cEsp4b::SetFreeWork(EspGenWork* gen, u32* seed)
     EspAnmData* anm;
     u32 ptn;
 
-    if (!EspGetAnmAddr(anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", anmNo);
+    if (!EspGetAnmAddr(m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", m_Tex_id);
         return 0;
     }
-    ptn = gen->xC8;
+    ptn = gen->Work8[0];
     if (ptn == 0xff) {
-        anmPtn = (Rnd() + Rnd()) % anm->nPtn;
+        m_Ptn_no = (Rnd() + Rnd()) % anm->Frames;
     } else {
-        if (ptn >= anm->nPtn) {
-            pLog->err(0, 0, "ESP4B : PtnNo[%d >= %d] over", ptn, anm->nPtn);
+        if (ptn >= anm->Frames) {
+            pLog->err(0, 0, "ESP4B : PtnNo[%d >= %d] over", ptn, anm->Frames);
             return 0;
         }
-        anmPtn = ptn;
+        m_Ptn_no = ptn;
     }
     return 1;
 }

@@ -7,48 +7,48 @@
 
 // Screen id (widget) unit (game/id_sys.cpp), 0x138 bytes.
 struct IdUnit {
-    u8 flags;        // 0x00  0xFF: free; 0x01: alive, 0x02: just set, 0x04: move, 0x08: visible, 0x10: drawing
+    u8 be_flag;        // 0x00  0xFF: free; 0x01: alive, 0x02: just set, 0x04: move, 0x08: visible, 0x10: drawing
     u8 unitNo;       // 0x01  own number (parent lookup key)
-    u8 type;         // 0x02  id table type (IDSystem::set parameter)
-    u8 id;           // 0x03  unit id inside the table
-    u8 kind;         // 0x04  1: group (children follow)
-    u8 level;        // 0x05  depth in the parent tree
+    u8 classNo;         // 0x02  id table type (IDSystem::set parameter)
+    u8 markNo;           // 0x03  unit id inside the table
+    u8 type;         // 0x04  1: group (children follow)
+    u8 levelNo;        // 0x05  depth in the parent tree
     u8 parentNo;     // 0x06
-    u8 x7;           // 0x07
+    u8 rowNo;           // 0x07
     Mtx mat;         // 0x08  world matrix
-    Mtx localMat;    // 0x38
-    IdUnit* parent;  // 0x68
+    Mtx l_mat;    // 0x38
+    IdUnit* pParent;  // 0x68
     u8 texId;        // 0x6C
     u8 maskId;       // 0x6D
-    u8 no;           // 0x6E  texture frame (stage: digit)
+    u8 texNo;           // 0x6E  texture frame (stage: digit)
     u8 maskNo;       // 0x6F  mask texture frame
-    u8 texCnt;       // 0x70
-    u8 maskCnt;      // 0x71
+    u8 tex_ptn_no;       // 0x70
+    u8 mask_ptn_no;      // 0x71
     u16 timer[4];    // 0x72  (converted as s16)  path / scale / color / rotation curve times
     u8 vtxType;      // 0x7A  low nibble: anchor (IdCalcVertex)
-    u8 loop;         // 0x7B  bit n: timer n loops
-    u8 scaleType;    // 0x7C  0x10: scale x only, 0x20: y only
-    u8 rotAxis;      // 0x7D
-    u8 dir;          // 0x7E  bit n: timer n counts up
-    u8 flags_7F;     // 0x7F  0x01: mask texture, 0x02: no texture animation, 0x04: no mask animation
-    u8 ot;           // 0x80
-    u8 prio;         // 0x81
-    u8 transType;    // 0x82  0: common, 1: negative, 2/3: shimmer
-    u8 transSub;     // 0x83
-    u8 blendType;    // 0x84
+    u8 loop_flag;         // 0x7B  bit n: timer n loops
+    u8 size_flag;    // 0x7C  0x10: scale x only, 0x20: y only
+    u8 rot_flag;      // 0x7D
+    u8 rev_flag;          // 0x7E  bit n: timer n counts up
+    u8 tex_flag;     // 0x7F  0x01: mask texture, 0x02: no texture animation, 0x04: no mask animation
+    u8 otType;           // 0x80
+    u8 otNo;         // 0x81
+    u8 trans_type;    // 0x82  0: common, 1: negative, 2/3: shimmer
+    u8 pow;     // 0x83
+    u8 blend_type;    // 0x84
     u8 end;          // 0x85  bit n: timer n finished
     u8 pad_86[2];
     Vec scr;         // 0x88  screen position
     Vec pos;         // 0x94  path offset + scr (world position used for drawing)
     Vec vtx[4];      // 0xA0
     f32 sizeX;       // 0xD0
-    f32 sizeY;       // 0xD4
+    f32 size_H;       // 0xD4
     u8 pad_D8[8];
     u8 col0[4];      // 0xE0
     u8 col1[4];      // 0xE4
     f32 col[4];      // 0xE8
-    Vec rot;         // 0xF8
-    Vec rotCur;      // 0x104
+    Vec rot0;         // 0xF8
+    Vec rot;         // 0x104
     f32 u0;          // 0x110
     f32 u1;          // 0x114
     f32 v0;          // 0x118
@@ -134,11 +134,11 @@ struct IdDataHeader {
 
 class IDSystem {
 public:
-    s32 num;          // 0x00
-    s32 active;       // 0x04
-    s32 maxLevel;     // 0x08
-    u32 ck[8];        // 0x0C  table types set
-    u32 disp[8];      // 0x2C  table types hidden
+    s32 m_maxId;          // 0x00
+    s32 m_nId;       // 0x04
+    s32 m_levelMax;     // 0x08
+    u32 m_set_flag[8];        // 0x0C  table types set
+    u32 m_disp_off[8];      // 0x2C  table types hidden
     IdUnit* pUnit;    // 0x4C
 
     static Mtx m_scrn_mat;
@@ -205,6 +205,22 @@ void* IdGetBufferAddr(int type);
 void IdSetBufferType(int type);
 void IdTexGameInit();
 void IdTexRoomInit();
+enum TEX_OWNER {
+    TEX_OWNER_NONE = 0,
+    TEX_OWNER_CORE = 1,
+    TEX_OWNER_ROOM = 2,
+    TEX_OWNER_ID_TOOL = 3,
+    TEX_OWNER_ID_COCKPIT = 4,
+    TEX_OWNER_ID_CINESCO = 5,
+    TEX_OWNER_ID_EVENT = 6,
+    TEX_OWNER_ID_TITLE = 7,
+    TEX_OWNER_ID_SHARE = 8,
+    TEX_OWNER_ID_SSCRN = 9,
+    TEX_OWNER_ID_DEAD = 10,
+    TEX_OWNER_ID_SCOPE = 11,
+    TEX_OWNER_MAX = 12
+};
+
 void IdTexRelease(int id);
 int IdTexDataLoad(void* data, int id);
 }

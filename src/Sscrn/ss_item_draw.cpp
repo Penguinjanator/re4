@@ -142,7 +142,7 @@ void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, i
 static void ss_Draw_line3d_trans(SsLinePrim* p)
 {
     GXSetLineWidth(p->width, 0);
-    ss_Draw_line3d_local(&p->a, &p->b, pG->Cam.viewMat, p->color, p->blend, p->zupd);
+    ss_Draw_line3d_local(&p->a, &p->b, pG->Cam.v_mat, p->color, p->blend, p->zupd);
     GXSetLineWidth(6, 0);
 }
 
@@ -213,7 +213,7 @@ void ss_Draw_tile3d(Vec* a, Vec* b, Vec* c, Vec* d, u32 color, int x34, int blen
 
 static void ss_Draw_tile3d_trans(SsTilePrim* p)
 {
-    ss_Draw_tile3d_local(&p->a, &p->b, &p->c, &p->d, pG->Cam.viewMat, p->color, p->blend, 0);
+    ss_Draw_tile3d_local(&p->a, &p->b, &p->c, &p->d, pG->Cam.v_mat, p->color, p->blend, 0);
 }
 
 void ss_Draw_tile3d_local(Vec* a, Vec* b, Vec* c, Vec* d, Mtx mtx, u32 color, u32 blend, int zupd)

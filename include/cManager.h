@@ -14,7 +14,7 @@ inline void* operator new(unsigned int, void* p) { return p; }
 class cUnit {
 public:
     u32 be_flag;  // 0x0  bit0: alive, bit9/10: reserved-alive bits (0x601 = in use)
-    cUnit* next;  // 0x4  active list link
+    cUnit* pNext;  // 0x4  active list link
     // 0x8 vptr
 
     cUnit() {}
@@ -30,7 +30,7 @@ public:
     void operator delete(void*, unsigned int) {}
     // addListBack's `p->next = 0` goes through this: the argument copy gives the zero register a
     // lifetime of 2 luids, which is what makes loop.c hoist `li rN, 0` out of createBack's loop
-    void setNext(cUnit* n) { next = n; }
+    void setNext(cUnit* n) { pNext = n; }
     // deleteList / destroy test the work through this (a derived class may hide it with its own
     // test: cSat adds its active flag, which is why cManager<cSat>::destroy's check differs)
     int isAlive() { return (be_flag & 0x201) == 1; }
@@ -46,9 +46,9 @@ public:
     u32 size;          // 0x08 sizeof one work
     u8 flag;           // 0x0C
     T* pAlive;         // 0x10 head of active list (cUnit::next)
-    u32 x14;           // 0x14
-    u32 x18;           // 0x18
-    u32 x1C;           // 0x1C
+    u32 pAlivePush;     // 0x14  arrayPush (light.cpp keeps its own inSscrn globals): the room's pAlive while a debug tool works on its own array
+    u32 pArrayPush;     // 0x18  arrayPush: the room's pArray (0 = not pushed)
+    u32 nArrayPush;     // 0x1C  arrayPush: the room's nArray
     u32 maxAlive;      // 0x20 peak active count
     const char* name;  // 0x24
     u32 warnDiv;       // 0x28 countActiveWork() warns when free works < nArray / warnDiv
@@ -87,7 +87,7 @@ public:
     void endEvent(int mode);
     // destroy() every alive work (debug tools: db_light LitLoadWork, Sscrn ss_main)
     void destroyAll();
-    // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): park the room's array in x18/x14/x1C and work
+    // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): park the room's array in pArrayPush/pAlivePush/nArrayPush and work
     // on a fresh Debug_alloc'd one of `n` works; arrayPop frees it and restores the room's. Both
     // return 1 when they did something.
     int arrayPush(int n);
@@ -101,14 +101,14 @@ public:
         }
         q = pAlive;
         if (q == p) {
-            pAlive = (T*)p->next;
-            p->next = 0;
+            pAlive = (T*)p->pNext;
+            p->pNext = 0;
             return 1;
         }
-        for (; q->next; q = (T*)q->next) {
-            if (q->next == p) {
-                q->next = p->next;
-                p->next = 0;
+        for (; q->pNext; q = (T*)q->pNext) {
+            if (q->pNext == p) {
+                q->pNext = p->pNext;
+                p->pNext = 0;
                 return 1;
             }
         }
@@ -117,18 +117,18 @@ public:
     }
     void addListFront(T* p) {
         T* q;
-        for (q = pAlive; q; q = (T*)q->next) {
+        for (q = pAlive; q; q = (T*)q->pNext) {
             if (q == p) {
                 log("%s::addListFront() ERROR SET x2 0x%08X", name, p);
                 return;
             }
         }
-        p->next = pAlive;
+        p->pNext = pAlive;
         pAlive = p;
     }
     void addListBack(T* p) {
         T* q;
-        for (q = pAlive; q; q = (T*)q->next) {
+        for (q = pAlive; q; q = (T*)q->pNext) {
             if (q == p) {
                 log("%s::addListBack() ERROR 0x%08X", name, p);
                 return;
@@ -139,10 +139,10 @@ public:
             pAlive = p;
             return;
         }
-        while (q->next) {
-            q = (T*)q->next;
+        while (q->pNext) {
+            q = (T*)q->pNext;
         }
-        q->next = p;
+        q->pNext = p;
         p->setNext(0);
     }
 };
@@ -151,7 +151,7 @@ public:
 // would be rescheduled: the last use of the zero register first).
 template <class T>
 cManager<T>::cManager(u32 size, u8 flag)
-    : size(size), flag(flag), maxAlive(0), name("Mgr"), warnDiv(10), pArray(0), nArray(0), pAlive(0), x14(0), x18(0), x1C(0)
+    : size(size), flag(flag), maxAlive(0), name("Mgr"), warnDiv(10), pArray(0), nArray(0), pAlive(0), pAlivePush(0), pArrayPush(0), nArrayPush(0)
 {
 }
 
@@ -172,9 +172,9 @@ int cManager<T>::roomInit()
     pArray = 0;
     nArray = 0;
     pAlive = 0;
-    x14 = 0;
-    x18 = 0;
-    x1C = 0;
+    pAlivePush = 0;
+    pArrayPush = 0;
+    nArrayPush = 0;
     maxAlive = 0;
     return 1;
 }
@@ -302,14 +302,14 @@ int cManager<T>::arrayPush(int n)
 {
     // `if (busy) return 0;` first: the `li r3,0` stays out of line after the body (an `if (free) {..;
     // return 1;} return 0;` gets it hoisted above the branch)
-    if (x18 != 0) {
+    if (pArrayPush != 0) {
         return 0;
     }
-    x18 = (u32) pArray;
+    pArrayPush = (u32) pArray;
     pArray = (T*) Debug_alloc(size * n, 1);
-    x1C = nArray;
+    nArrayPush = nArray;
     nArray = n;
-    x14 = (u32) pAlive;
+    pAlivePush = (u32) pAlive;
     pAlive = 0;
     return 1;
 }
@@ -317,16 +317,16 @@ int cManager<T>::arrayPush(int n)
 template <class T>
 int cManager<T>::arrayPop()
 {
-    if (x18 == 0) {
+    if (pArrayPush == 0) {
         return 0;
     }
     Debug_free(pArray);
     // statement order found by brute force (zero stores last in the schedule, pAlive restored last)
-    pArray = (T*) x18;
-    nArray = x1C;
-    x18 = 0;
-    x1C = 0;
-    pAlive = (T*) x14;
+    pArray = (T*) pArrayPush;
+    nArray = nArrayPush;
+    pArrayPush = 0;
+    nArrayPush = 0;
+    pAlive = (T*) pAlivePush;
     return 1;
 }
 

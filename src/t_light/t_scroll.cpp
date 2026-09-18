@@ -332,7 +332,7 @@ int move()
         break;
     case 1:
         col = 0;
-        if (!(pG->flags_51E4 & 0x10)) {
+        if (!(pG->Frame_cnt & 0x10)) {
             col = 0x14;
         }
         eprintf(0xD8, 0, col, 0, "CAMERA MODE");
@@ -344,7 +344,7 @@ int move()
     case 2:
         pWork->areaNo = CamCtrl.CurrentAreaNo();
         col = 0;
-        if (!(pG->flags_51E4 & 0x10)) {
+        if (!(pG->Frame_cnt & 0x10)) {
             col = 0x14;
         }
         eprintf(0xD8, 0, col, 0, "PLAYER MODE");
@@ -391,15 +391,15 @@ int move()
     ObjMgr.move();
     LightMgr.move();
     CameraMove();
-    pWork->logX += (f32) Joy[0].ssx * 0.1f;
-    pWork->logY -= (f32) Joy[0].ssy * 0.1f;
+    pWork->logX += (f32) Joy[0].substickX * 0.1f;
+    pWork->logY -= (f32) Joy[0].substickY * 0.1f;
     {
         int x = (int) pWork->logX;
         int y = (int) pWork->logY;
         cLog* l = pLog.p;
 
-        l->x = x;
-        l->y = y;
+        l->m_Bx = x;
+        l->m_By = y;
     }
     return pWork->ret;
 }
@@ -673,7 +673,7 @@ static void edit_id_normal()
 
 void edit_id_rotate_ang(f32* ang, f32 step)
 {
-    *ang += (f32) pWork->joy[0].sx * step / 10000.0f;
+    *ang += (f32) pWork->joy[0].stickX * step / 10000.0f;
     if (pWork->joy[0].rep & 2) {
         *ang += (pWork->joy[0].on & 0x100) ? 0.001f : 0.00001f;
     }
@@ -824,7 +824,7 @@ static void edit_id_rotate()
 
 // stick / pad step of one swing parameter
 #define SWING_EDIT(v, scale)                                                        \
-    v += (f32) pWork->joy[0].sx * step / scale;                                     \
+    v += (f32) pWork->joy[0].stickX * step / scale;                                     \
     if (pWork->joy[0].rep & 2) {                                                    \
         v += (pWork->joy[0].on & 0x100) ? 0.001f : 0.00001f;                        \
     }                                                                               \
@@ -927,11 +927,11 @@ static void edit_litmask()
     if ((u32) LightMgr.getWorkPtr(pWork->id) >= 0x80000000 && (u32) LightMgr.getWorkPtr(pWork->id) <= 0x82FFFFFF &&
         (LightMgr.getWorkPtr(pWork->id)->be_flag & 1)) {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d %s", pWork->id,
-                (obj->lightInfo.x54 & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
+                (obj->LightInfo.SelectMask & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
     } else {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d NOT USED", pWork->id);
     }
-    if (pG->flags_51E4 & 8) {
+    if (pG->Frame_cnt & 8) {
         eprintf((pWork->id + 8) * 8, 0xA8, 0, 0, "V");
         eprintf((pWork->id + 8) * 8, 0xC4, 0, 0, "A");
     }
@@ -939,7 +939,7 @@ static void edit_litmask()
         cLight* l = LightMgr.getWorkPtr(i);
         int col = 0;
 
-        if (!(obj->lightInfo.x54 & (1 << i))) {
+        if (!(obj->LightInfo.SelectMask & (1 << i))) {
             col = 0x14;
         }
         if (!(l->be_flag & 1)) {
@@ -947,9 +947,9 @@ static void edit_litmask()
         } else {
             eprintf((8 + i) * 8, 0xB6, col, 0, "%d", i % 10);
             if (i == pWork->id && i <= 31) {
-                Vec pos = l->curPos;
+                Vec pos = l->World;
 
-                Draw_sphere(&pos, l->x1C, -1, 1, 1);
+                Draw_sphere(&pos, l->Radius, -1, 1, 1);
                 Draw_pos(&pos, 1000);
             }
         }
@@ -964,17 +964,17 @@ static void edit_litmask()
         cLight* l = LightMgr.getWorkPtr(i);
 
         if (!(l->be_flag & 1)) {
-            obj->lightInfo.x54 |= 1 << i;
+            obj->LightInfo.SelectMask |= 1 << i;
         }
     }
     // `one` is set here and used once in the next block: local-alloc's reg_equiv_replace moves the `li 1` to
     // just before the `slw` (after the x54 load), which is where the original has it
     u32 one = 1;
     if (pWork->joy[0].rep & 0x100) {
-        u32 mask = obj->lightInfo.x54 ^ (one << pWork->id);
+        u32 mask = obj->LightInfo.SelectMask ^ (one << pWork->id);
 
         do {
-            obj->lightInfo.x54 = mask;
+            obj->LightInfo.SelectMask = mask;
             obj = SmdGetGroupNext(obj);
         } while (obj);
     }
@@ -992,12 +992,12 @@ static void edit_ot()
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
     if (pWork->sub2 == 0) {
         edit_id_normal();
-        pWork->id = obj->x12F;
+        pWork->id = obj->ot_type;
         pWork->sub2 = 1;
     }
     eprintf(0x40, 0x8C, 4, 0, "MODEL PROPATY");
-    eprintf(0x40, 0x9A, 0, 0, "%02d %s", obj->x12F, otName[obj->x12F]);
-    if (obj->x12F != pWork->id) {
+    eprintf(0x40, 0x9A, 0, 0, "%02d %s", obj->ot_type, otName[obj->ot_type]);
+    if (obj->ot_type != pWork->id) {
         eprintf(0xD0, 0x9A, 6, 0, "--> %02d %s", pWork->id, otName[pWork->id]);
     }
     if (pWork->joy[0].rep & 2) {
@@ -1009,10 +1009,10 @@ static void edit_ot()
     if (pWork->joy[0].rep & 0x100) {
         int id;
 
-        obj->x12F = pWork->id;
-        id = obj->x12F;  // read back the just-stored member: forwarded as a plain copy
+        obj->ot_type = pWork->id;
+        id = obj->ot_type;  // read back the just-stored member: forwarded as a plain copy
         while ((obj = SmdGetGroupNext(obj)) != NULL) {
-            obj->x12F = id;
+            obj->ot_type = id;
         }
     }
     if (pWork->joy[0].rep & 0x200) {
@@ -1061,7 +1061,7 @@ static void edit_flag()
 
 void edit_flag_core(cObj* obj)
 {
-    ModelData* data = obj->pInfo->pData;
+    ModelData* data = obj->pModelInfo->pData;
     s8 sel = pWork->sub2;
 
     switch (sel) {
@@ -1075,10 +1075,10 @@ void edit_flag_core(cObj* obj)
         obj->be_flag ^= 0x2000000;
         break;
     case 3:
-        if (obj->x103 == 0xFF) {
-            obj->x103 = 0x80;
+        if (obj->alpha_omit == 0xFF) {
+            obj->alpha_omit = 0x80;
         } else {
-            obj->x103 = 0xFF;
+            obj->alpha_omit = 0xFF;
         }
         break;
     case 4:
@@ -1165,15 +1165,15 @@ static void edit_col()
             eprintf(0x40, 0x9A + i * 14, 0, 0, "%s", *name++);
         }
     }
-    info = obj->pInfo;
+    info = obj->pModelInfo;
     eprintf(0xA0, 0xA8, 0, 0, "%d", info->color[0]);
     eprintf(0xA0, 0xB6, 0, 0, "%d", info->color[1]);
     eprintf(0xA0, 0xC4, 0, 0, "%d", info->color[2]);
     eprintf(0xA0, 0xE0, 0, 0, "%d", info->color2[0]);
     eprintf(0xA0, 0xEE, 0, 0, "%d", info->color2[1]);
     eprintf(0xA0, 0xFC, 0, 0, "%d", info->color2[2]);
-    eprintf(0xA0, 0x10A, 0, 0, "%s", blendName[info->xD6]);
-    eprintf(0xA0, 0x118, 0, 0, "%s", cullName[obj->x135]);
+    eprintf(0xA0, 0x10A, 0, 0, "%s", blendName[info->blend_mode]);
+    eprintf(0xA0, 0x118, 0, 0, "%s", cullName[obj->CullMode]);
     eprintf(0x38, (pWork->sub2 + 0xB) * 14, 0, 0, ">");
     do {
         edit_col_core(obj);
@@ -1196,11 +1196,11 @@ void edit_col_core(cObj* obj)
     if (pWork->joy[0].rep & 1) {
         add = -1;
     }
-    add += (int) ((f32) pWork->joy[0].sx * 5.0f / 255.0f);
+    add += (int) ((f32) pWork->joy[0].stickX * 5.0f / 255.0f);
     if (pWork->joy[0].on & 0x100) {
         add *= 10;
     }
-    info = obj->pInfo;
+    info = obj->pModelInfo;
     sel = pWork->sub2;
     switch (sel) {
     case 0:
@@ -1229,18 +1229,18 @@ void edit_col_core(cObj* obj)
         break;
     case 8:
         if (pWork->joy[0].rep & 2) {
-            info->xD6 = (info->xD6 + 6 + 1) % 6;
+            info->blend_mode = (info->blend_mode + 6 + 1) % 6;
         }
         if (pWork->joy[0].rep & 1) {
-            info->xD6 = (info->xD6 + 6 - 1) % 6;
+            info->blend_mode = (info->blend_mode + 6 - 1) % 6;
         }
         break;
     case 9:
         if (pWork->joy[0].rep & 2) {
-            obj->x135 = (obj->x135 + 3 + 1) % 3;
+            obj->CullMode = (obj->CullMode + 3 + 1) % 3;
         }
         if (pWork->joy[0].rep & 1) {
-            obj->x135 = (obj->x135 + 3 - 1) % 3;
+            obj->CullMode = (obj->CullMode + 3 - 1) % 3;
         }
         break;
     }
@@ -1258,7 +1258,7 @@ static void edit_tex()
     f32 step;
 
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
-    info = obj->pInfo;
+    info = obj->pModelInfo;
     step = (pWork->joy[0].on & 0x100) ? 5.0f : 1.0f;
     if (pWork->sub == 0) {
         if (info->flagsDC & 1) {
@@ -1273,14 +1273,14 @@ static void edit_tex()
     eprintf(0x40, 0x8C, 4, 0, "TEXTURE  MODEL PROPATY");
     eprintf(0x40, 0xA8, 0, 0, "U:%3.5f", pWork->u);
     eprintf(0x40, 0xB6, 0, 0, "V:%3.5f", pWork->v);
-    pWork->u += (f32) pWork->joy[0].sx * step / 1000000.0f;
-    pWork->v += (f32) pWork->joy[0].sy * step / 1000000.0f;
+    pWork->u += (f32) pWork->joy[0].stickX * step / 1000000.0f;
+    pWork->v += (f32) pWork->joy[0].stickY * step / 1000000.0f;
     if (pWork->joy[0].rep & 0x800) {
         pWork->u = 0.0f;
         pWork->v = 0.0f;
     }
     do {
-        info = obj->pInfo;
+        info = obj->pModelInfo;
         if (pWork->u != 0.0f || pWork->v != 0.0f) {
             info->flagsDC |= 1;
         } else {
@@ -1306,10 +1306,10 @@ static void edit_pos()
     eprintf(0x40, 0x9A, 0, 0, "%6.0f %6.0f %6.0f", obj->pos.x, obj->pos.y, obj->pos.z);
     Draw_pos(&obj->pos, 1000);
     do {
-        obj->pos.x += (f32) pWork->joy[0].sx * step;
-        obj->pos.z -= (f32) pWork->joy[0].sy * step;
-        obj->pos.y += (f32) pWork->joy[0].trigR * step * 0.5f;
-        obj->pos.y -= (f32) pWork->joy[0].trigL * step * 0.5f;
+        obj->pos.x += (f32) pWork->joy[0].stickX * step;
+        obj->pos.z -= (f32) pWork->joy[0].stickY * step;
+        obj->pos.y += (f32) pWork->joy[0].triggerRight * step * 0.5f;
+        obj->pos.y -= (f32) pWork->joy[0].triggerLeft * step * 0.5f;
         if (pWork->joy[0].rep & 8) {
             obj->pos.z += 1.0f;
         } else if (pWork->joy[0].rep & 4) {
@@ -1341,27 +1341,27 @@ static void edit_ang()
     obj = SmdGetGroupObjPtr(pWork->top + pWork->row);
     step = (pWork->joy[0].on & 0x100) ? 10.0f : 1.0f;
     eprintf(0x40, 0x8C, 4, 0, "MODEL PROPATY");
-    eprintf(0x40, 0x9A, 0, 0, "%3.5f %3.5f %3.5f", obj->rot.x, obj->rot.y, obj->rot.z);
+    eprintf(0x40, 0x9A, 0, 0, "%3.5f %3.5f %3.5f", obj->ang.x, obj->ang.y, obj->ang.z);
     Draw_pos(&obj->pos, 1000);
     do {
-        obj->rot.x -= (f32) pWork->joy[0].sy * step / 50000.0f;
-        obj->rot.y += (f32) pWork->joy[0].sx * step / 50000.0f;
-        obj->rot.z += (f32) pWork->joy[0].trigR * step * 0.5f / 50000.0f;
-        obj->rot.z -= (f32) pWork->joy[0].trigL * step * 0.5f / 50000.0f;
+        obj->ang.x -= (f32) pWork->joy[0].stickY * step / 50000.0f;
+        obj->ang.y += (f32) pWork->joy[0].stickX * step / 50000.0f;
+        obj->ang.z += (f32) pWork->joy[0].triggerRight * step * 0.5f / 50000.0f;
+        obj->ang.z -= (f32) pWork->joy[0].triggerLeft * step * 0.5f / 50000.0f;
         if (pWork->joy[0].rep & 8) {
-            obj->rot.z += 1.0f;
+            obj->ang.z += 1.0f;
         } else if (pWork->joy[0].rep & 4) {
-            obj->rot.z -= 1.0f;
+            obj->ang.z -= 1.0f;
         }
         if (pWork->joy[0].rep & 2) {
-            obj->rot.x += 1.0f;
+            obj->ang.x += 1.0f;
         } else if (pWork->joy[0].rep & 1) {
-            obj->rot.x -= 1.0f;
+            obj->ang.x -= 1.0f;
         }
         if (pWork->joy[0].rep & 0x800) {
-            obj->rot.x = 0.0f;
-            obj->rot.y = 0.0f;
-            obj->rot.z = 0.0f;
+            obj->ang.x = 0.0f;
+            obj->ang.y = 0.0f;
+            obj->ang.z = 0.0f;
         }
         obj->matUpdate();
         obj = SmdGetGroupNext(obj);
@@ -1382,10 +1382,10 @@ static void edit_scale()
     eprintf(0x40, 0x9A, 0, 0, "%3.5f %3.5f %3.5f", obj->scale.x, obj->scale.y, obj->scale.z);
     Draw_pos(&obj->pos, 1000);
     do {
-        obj->scale.x += (f32) pWork->joy[0].sx * step / 50000.0f;
-        obj->scale.z += (f32) pWork->joy[0].sy * step / 50000.0f;
-        obj->scale.y += (f32) pWork->joy[0].trigR * step * 0.5f / 50000.0f;
-        obj->scale.y -= (f32) pWork->joy[0].trigL * step * 0.5f / 50000.0f;
+        obj->scale.x += (f32) pWork->joy[0].stickX * step / 50000.0f;
+        obj->scale.z += (f32) pWork->joy[0].stickY * step / 50000.0f;
+        obj->scale.y += (f32) pWork->joy[0].triggerRight * step * 0.5f / 50000.0f;
+        obj->scale.y -= (f32) pWork->joy[0].triggerLeft * step * 0.5f / 50000.0f;
         if (pWork->joy[0].rep & 8) {
             obj->scale.z += 1.0f;
         } else if (pWork->joy[0].rep & 4) {
@@ -1617,16 +1617,16 @@ int saveMain(const char* path)
         }
         rec->id = i;
         rec->type = obj->type;
-        rec->x4 = obj->lightInfo.x54;
-        rec->type2 = obj->x12F;
+        rec->x4 = obj->LightInfo.SelectMask;
+        rec->type2 = obj->ot_type;
         rec->flags = SmxGetFlag(obj);
-        rec->x3 = obj->x135;
-        *(u32*) rec->color = obj->pInfo->colorWord;
-        rec->color[3] = obj->pInfo->xD6;
-        *(u32*) rec->color2 = *(u32*) obj->pInfo->color2;
+        rec->x3 = obj->CullMode;
+        *(u32*) rec->color = obj->pModelInfo->colorWord;
+        rec->color[3] = obj->pModelInfo->blend_mode;
+        *(u32*) rec->color2 = *(u32*) obj->pModelInfo->color2;
         rec->color2[3] = 0;
-        rec->uvScrollU = obj->pInfo->uvScrollU;
-        rec->uvScrollV = obj->pInfo->uvScrollV;
+        rec->uvScrollU = obj->pModelInfo->uvScrollU;
+        rec->uvScrollV = obj->pModelInfo->uvScrollV;
         memcpy((u32*) rec->work, (u32*) obj->work, sizeof(rec->work));
         rec++;
         n++;
@@ -1658,7 +1658,7 @@ static void option()
             on = (pWork->flags & (1 << i)) ? 1 : 0;
         } else {
             on = 1;
-            if (!(pG->flags_6C & 0x02000000)) {
+            if (!(pG->Debug_flg[3] & 0x02000000)) {
                 on = 0;
             }
         }
@@ -1683,10 +1683,10 @@ static void option()
         case 1:
             break;
         case 2:
-            if (pG->flags_6C & 0x02000000) {
-                pG->flags_6C &= ~0x02000000;
+            if (pG->Debug_flg[3] & 0x02000000) {
+                pG->Debug_flg[3] &= ~0x02000000;
             } else {
-                pG->flags_6C |= 0x02000000;
+                pG->Debug_flg[3] |= 0x02000000;
             }
             break;
         }
@@ -1731,12 +1731,12 @@ void setMirrorModel(cObj* obj, int on)
 {
     switch (on) {
     case 1:
-        obj->x12E = 4;
+        obj->kindid = 4;
         obj->be_flag &= ~2;
         obj->be_flag |= 0x100;
         break;
     case 0:
-        obj->x12E = 2;
+        obj->kindid = 2;
         obj->be_flag |= 2;
         obj->be_flag &= ~0x100;
         break;
@@ -1785,7 +1785,7 @@ static void printEditTable()
         if (obj == NULL || !obj->isAlive()) {
             col = 0x14;
         } else {
-            if (obj->x12E != 2 && obj->x12E != 4) {
+            if (obj->kindid != 2 && obj->kindid != 4) {
                 col = 5;
             } else if (!(obj->be_flag & 4)) {
                 col = 0x14;
@@ -1802,13 +1802,13 @@ static void printEditTable()
         // two `!=` tests with re-reads (not a `switch`): each re-read is its own load/zero_extend pair, so
         // thread_jumps can walk the `== 4` test back to its load and thread the `beq` past the `== 4`
         // re-test below (a switch index is one promoted pseudo and the walk stops at the `== 2` jump)
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             if (pWork->flags & 1) {
                 eprintf(x * 8, y * 14, 0x14, 0, "UNKNOWN MODEL");
                 continue;
             }
         }
-        if (obj->x12E == 4) {
+        if (obj->kindid == 4) {
             col = 6;
         } else if (!flagBit(obj->be_flag, 4) || !flagBit(obj->be_flag, 2)) {
             col = 0x14;
@@ -1824,7 +1824,7 @@ static void printEditTable()
         xb = x;
         do {
         } while (0);
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             eprintf(x * 8, y * 14, col, 0, "UNKNOWN");
         } else {
             char* n;
@@ -1860,7 +1860,7 @@ static void printEditTable()
         {
             int t = xb + 9;
             int a0 = t * 8;
-            int tid = obj->x12E == 2 ? obj->type : obj->id;
+            int tid = obj->kindid == 2 ? obj->type : obj->id;
             do {
                 x2 = t;
             } while (0);
@@ -1872,11 +1872,11 @@ static void printEditTable()
             // The launder keeps the argument copy `r3 = cx` (priority +1 for the chain); it emits nothing.
             int cx = (x2 + 3) * 8;
             asm("" : "+r"(cx));
-            eprintf(cx, y * 14, col, 0, "%08x", obj->lightInfo.x54);
+            eprintf(cx, y * 14, col, 0, "%08x", obj->LightInfo.SelectMask);
         }
-        eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->x12F);
+        eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->ot_type);
         eprintf((x2 + 0xF) * 8, y * 14, col, 0, "FLAG");
-        eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->x135]);
+        eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->CullMode]);
         eprintf((x2 + 0x19) * 8, y * 14, col, 0, "TEX");
         eprintf((x2 + 0x1D) * 8, y * 14, col, 0, "POS");
         eprintf((x2 + 0x21) * 8, y * 14, col, 0, "ANG");
@@ -1907,7 +1907,7 @@ int wkck(cObj* obj, int no)
         return 0;
     }
     if (pWork->flags & 1) {
-        if (obj->x12E != 2 && obj->x12E != 4) {
+        if (obj->kindid != 2 && obj->kindid != 4) {
             return 0;
         }
     }
@@ -1919,19 +1919,19 @@ int smxCk(cObj* obj)
 {
     int ret = 0;
 
-    if (obj->x12E == 2 && obj->id == 2) {
+    if (obj->kindid == 2 && obj->id == 2) {
         cModelInfo* info;
 
         if (!(obj->be_flag & 4)) {
             return 0;
         }
-        info = obj->pInfo;
-        if (obj->type != 0 || obj->lightInfo.x54 != -1 || obj->x12F != 3 || SmxGetFlag(obj) != 0 || obj->x135 != 0 ||
-            (obj->pInfo->colorWord & 0xFFFFFF00) != 0xFFFFFF00 || (*(u32*) obj->pInfo->color2 & 0xFFFFFF00) != 0 ||
-            obj->pInfo->xD6 != 0 || obj->pInfo->uvScrollU != 0.0f || obj->pInfo->uvScrollV != 0.0f) {
+        info = obj->pModelInfo;
+        if (obj->type != 0 || obj->LightInfo.SelectMask != -1 || obj->ot_type != 3 || SmxGetFlag(obj) != 0 || obj->CullMode != 0 ||
+            (obj->pModelInfo->colorWord & 0xFFFFFF00) != 0xFFFFFF00 || (*(u32*) obj->pModelInfo->color2 & 0xFFFFFF00) != 0 ||
+            obj->pModelInfo->blend_mode != 0 || obj->pModelInfo->uvScrollU != 0.0f || obj->pModelInfo->uvScrollV != 0.0f) {
             ret = 1;
         }
-    } else if (obj->x12E == 4) {
+    } else if (obj->kindid == 4) {
         ret = 1;
     }
     return ret;

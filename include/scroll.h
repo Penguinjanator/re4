@@ -26,12 +26,12 @@ struct SmdWork {
 
 class cSmd {
 public:
-    u8 version;    // 0x00
-    u8 flags;      // 0x01  bit0: group count table in front of the works
-    u16 nWork;     // 0x02
-    u32 ofsBin;    // 0x04  offset table of the bins
-    u32 ofsTpl;    // 0x08  offset table of the tpls
-    u32 ofsMot;    // 0x0C  offset table of the motions
+    u8 Version;    // 0x00
+    u8 Flag;      // 0x01  bit0: group count table in front of the works
+    u16 nModel;     // 0x02
+    u32 BinTblOfs;    // 0x04  offset table of the bins
+    u32 TplTblOfs;    // 0x08  offset table of the tpls
+    u32 MotTblOfs;    // 0x0C  offset table of the motions
     union {
         SmdWork work[1];   // 0x10
         struct {
@@ -53,8 +53,8 @@ struct SmxWork {
     u8 id;         // 0x00
     u8 type;       // 0x01  -> cModel::type
     u8 type2;      // 0x02  -> cModel::x12F
-    u8 x3;         // 0x03  -> cModel::x135
-    u32 x4;        // 0x04  -> cLightInfo::x54
+    u8 CullMode;   // 0x03  -> cModel::CullMode
+    u32 SelectMask;  // 0x04  -> cLightInfo::SelectMask
     u32 flags;     // 0x08  SmxSetFlag bits
     u32 color;     // 0x0C  -> cModelInfo::color
     u8 work[0x74]; // 0x10  copied to cObj::work (0x78 bytes including color2)

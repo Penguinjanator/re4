@@ -46,7 +46,7 @@ void R326Init()
     SceSetItemEvent(3, 0x80, 0, 3, r326_openBox, (void (*)()) r326_openedBox, 0, 0);
     SceSetItemEvent(4, 0x81, 1, 4, r326_openBox, (void (*)()) r326_openedBox, 1, 0);
     SceSetItemEvent(5, -1, 2, 5, r326_openBox, (void (*)()) r326_openedBox, 2, 0);
-    PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     SceExec(0x12, (TaskFunc) r326_setSubCharMotion, 0, 0, 2, 0);
 }
 
@@ -58,7 +58,7 @@ static void r326_setSubCharMotion()
 {
     SceSleep(1);
     if (pSUB != 0) {
-        SubCharRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26));
+        SubCharRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26));
         SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r326_DoorLock, 0, 1);
     }
 }
@@ -71,10 +71,10 @@ static void r326_DoorLock()
 // Light set of the bag: the dark-room set while the lights are off.
 void set_bag_eid()
 {
-    if (pG->flags_5010 & 0x04000000) {
-        r326_work->bag->lightInfo.x50 = 0x80;
+    if (pG->Status_flg[1] & 0x04000000) {
+        r326_work->bag->LightInfo.EnableMask = 0x80;
     } else {
-        r326_work->bag->lightInfo.x50 = 0x10;
+        r326_work->bag->LightInfo.EnableMask = 0x10;
     }
 }
 
@@ -83,7 +83,7 @@ static void r326_setCorpseBag()
     Vec pos = {-3142.0f, 3863.0f, -1793.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
 
-    PSet(r326_work->bag, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &pos, &rot, 0x10, 1));
+    PSet(r326_work->bag, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1));
     if (RsfCheck(G_ROOM_ID, 3)) {
         SceExit();
     }
@@ -101,7 +101,7 @@ static void r326_setCorpseBag()
         }
     }
     RoomSeCall(0, &r326_work->bag->pos, 0, 0, r326_work->bag);
-    r326_work->bag->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0xA, 0, 4, 0);
+    r326_work->bag->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0xA, 0, 4, 0);
     {
         Vec hpos = {300.0f, 0.0f, 0.0f};
         Vec hrot = {0.0f, 0.0f, 1.5707964f};
@@ -115,7 +115,7 @@ static void r326_setCorpseBag()
         if (r326_work->hit->ckStatus() == 1) {
             RsfSet(G_ROOM_ID, 3);
             RoomSeCall(1, &r326_work->bag->pos, 0, 0, r326_work->bag);
-            r326_work->bag->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0xA, 0, 1, 0);
+            r326_work->bag->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0xA, 0, 1, 0);
             SceSleep(0x46);
             SceAtSetEnable(6, 1);
             return;
@@ -160,10 +160,10 @@ void r326_openBox_main(u32 id, int opened)
         obj->be_flag |= 0x20;
         if (opened == 1) {
             PSVECAdd(&obj->pos, &mv, &obj->pos);
-            PSVECAdd(&obj->pParts->rot, &rmv, &obj->pParts->rot);
+            PSVECAdd(&obj->pParts->ang, &rmv, &obj->pParts->ang);
             if (item != 0) {
                 PSVECAdd(&item->pos, &mv, &item->pos);
-                PSVECAdd(&item->pParts->rot, &rmv, &item->pParts->rot);
+                PSVECAdd(&item->pParts->ang, &rmv, &item->pParts->ang);
             }
         } else {
             Vec dmv;
@@ -175,10 +175,10 @@ void r326_openBox_main(u32 id, int opened)
             RoomSeCall(se, 0, 0, 0, 0);
             for (i = 0; i < 30; i++) {
                 PSVECAdd(&obj->pos, &dmv, &obj->pos);
-                PSVECAdd(&obj->pParts->rot, &drmv, &obj->pParts->rot);
+                PSVECAdd(&obj->pParts->ang, &drmv, &obj->pParts->ang);
                 if (item != 0) {
                     PSVECAdd(&item->pos, &dmv, &item->pos);
-                    PSVECAdd(&item->pParts->rot, &drmv, &item->pParts->rot);
+                    PSVECAdd(&item->pParts->ang, &drmv, &item->pParts->ang);
                 }
                 SceSleep(1);
             }

@@ -12,15 +12,15 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 struct Esp18Work {
-    Vec pos0;    // 0x00 initial position
-    f32 depth;   // 0x0C -gen->xD8
+    Vec base_pos;    // 0x00 initial position
+    f32 blur_rate;   // 0x0C -gen->xD8
 };
 
 // Heat shimmer: copies the frame buffer and redraws it through an indirect texture in
 // esp18_lp layers.
 class cEsp18 : public cEsp {
 public:
-    Esp18Work work;  // 0xF8
+    Esp18Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -49,10 +49,10 @@ void cEsp18::move()
 
 int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp18Work* w = &work;
+    Esp18Work* w = &m_Free;
 
-    w->pos0 = pos;
-    w->depth = -gen->xD8;
+    w->base_pos = m_Pos;
+    w->blur_rate = -gen->Vec0.x;
     return 1;
 }
 
@@ -61,12 +61,12 @@ int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
 // Texture corner flip (see esp08.cpp: the combined test and the add-before-copy leaves keep
 // the `zero + z` adds and the copies from `zero`'s register).
 #define ESP18_FLIP_T(esp) \
-    ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
-#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+    ((ESP_PARTS_SCREEN(esp) && !((esp)->m_Tool_flg & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->m_Tool_flg & 4)))
+#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 
 void Esp18_Trans(cEsp18* esp)
 {
-    Esp18Work* w = &esp->work;
+    Esp18Work* w = &esp->m_Free;
     Mtx44 proj;
     Mtx inv;
     EspAnmData* anm;
@@ -84,7 +84,7 @@ void Esp18_Trans(cEsp18* esp)
     f32 s1;
     f32 t0;
     f32 t1;
-    f32 ang = (f32)(int)esp->cnt;
+    f32 ang = (f32)(int)esp->m_Life_time;
     f32 ofs = 0.0f;
     f32 rx;
     f32 ry;
@@ -99,46 +99,46 @@ void Esp18_Trans(cEsp18* esp)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     GXSetCullMode(0);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetZMode(1, 3, 0);
     CameraCurrentProjection();
-    if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
+    if ((s8) esp->m_Parts_no >= -8 && (s8) esp->m_Parts_no <= -3) {
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
         C_MTXOrtho(proj, ofs, 448.0f, ofs, 512.0f, ofs, -100.0f);
         GXSetProjection(proj, 1);
-    } else if (!(esp->flags & 1)) {
+    } else if (!(esp->m_Tool_flg & 1)) {
         Vec p;
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        PSMTXRotRad(esp->mat, 'z', esp->rot.z);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXMultVec(m, &esp->pos, &p);
-        esp->mat[0][3] = p.x;
-        esp->mat[1][3] = p.y;
-        esp->mat[2][3] = p.z;
+        PSMTXIdentity(esp->m_Mat);
+        PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXMultVec(m, &esp->m_Pos, &p);
+        esp->m_Mat[0][3] = p.x;
+        esp->m_Mat[1][3] = p.y;
+        esp->m_Mat[2][3] = p.z;
     } else {
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXConcat(m, esp->mat, esp->mat);
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
-    PSMTXInverse(esp->mat, inv);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     GXClearVtxDesc();
@@ -148,14 +148,14 @@ void Esp18_Trans(cEsp18* esp)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    sx = esp->sizeX * esp->scale;
-    sy = esp->sizeY * esp->scale;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    sx = esp->m_Size_base_x * esp->m_Size_mul;
+    sy = esp->m_Size_base_y * esp->m_Size_mul;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     // `i` declared here (pseudo 237, not 116): gcse numbers its PRE pseudos in hash-bucket order
     // and hash(i + 1) = 13259 + regno(i) must land after hash(fp + 0xc0) = 13481 in the
@@ -163,11 +163,11 @@ void Esp18_Trans(cEsp18* esp)
     // 0x234 and `i + 1` gets 0x238.
     u32 i;
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
-    x0 = ox * sx / anm->x0;
-    y0 = oy * sy / anm->x2;
-    if (esp->flags & 2) {
+    x0 = ox * sx / anm->Width;
+    y0 = oy * sy / anm->Height;
+    if (esp->m_Tool_flg & 2) {
         if (ESP18_FLIP_T(esp)) {
             s0 = zero + z;
             s1 = zero;
@@ -218,7 +218,7 @@ void Esp18_Trans(cEsp18* esp)
         // then tie at priority 171 (270000/1570 vs /1574) and the older 0.5 is coloured first
         // (f18), 1.0 after it (f17); with 819 loop insns ours had 172 vs 171 the other way.
         asm("" : "=m"(inv[0][0]));  // COMPILER-DIFF: candidate (loop.c insn_count)
-        if (esp->flags & 0x1000) {
+        if (esp->m_Tool_flg & 0x1000) {
             if (GetDrawTmpBufType() == 2) {
                 copyOk = 0;
             }
@@ -230,7 +230,7 @@ void Esp18_Trans(cEsp18* esp)
         // there, and that f1 preference would otherwise follow `ofs` into the height conversion's
         // fmr temp (expand_preferences merges along the dying operands: 109 -> 526 -> 528).
         f32 ofs = 56.0f;
-        if (pG->flags_5010 & 0x08000000) {
+        if (pG->Status_flg[1] & 0x08000000) {
             ofs = 0.0f;
         }
         if (copyOk && i == 0) {
@@ -249,9 +249,9 @@ void Esp18_Trans(cEsp18* esp)
         g_Get_tex_obj = tex;
         Mtx tm;
         Mtx pm;
-        rx = prm2 * sinf(ang) * esp->colA * 0.01f;
-        ry = prm3 * cosf(ang) * esp->colA * 0.01f;
-        mul = esp18_mul_rate * 0.5f * esp18_div * (f32) i * w->depth * esp->colA * (1.0f / 255.0f) + 1.0f;
+        rx = prm2 * sinf(ang) * esp->m_Col_a * 0.01f;
+        ry = prm3 * cosf(ang) * esp->m_Col_a * 0.01f;
+        mul = esp18_mul_rate * 0.5f * esp18_div * (f32) i * w->blur_rate * esp->m_Col_a * (1.0f / 255.0f) + 1.0f;
         Mtx m1 = {
             {1.0f, 0.0f, -0.5f, 0.0f},
             {0.0f, 1.0f, -0.5f, 0.0f},
@@ -267,7 +267,7 @@ void Esp18_Trans(cEsp18* esp)
             {0.0f, 0.0f, 1.0f, 0.0f},
         };
 
-        if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
+        if ((s8) esp->m_Parts_no >= -8 && (s8) esp->m_Parts_no <= -3) {
             Mtx m4 = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
             m4[0][0] = 1.0f / 512.0f;
             m4[1][1] = 1.0f / 448.0f;
@@ -278,12 +278,12 @@ void Esp18_Trans(cEsp18* esp)
                 {0.0f, 0.0f, 1.0f, 0.0f},
             };
 
-            if (pG->flags_5010 & 0x08000000) {
-                PSMTXConcat(m4, esp->mat, tm);
+            if (pG->Status_flg[1] & 0x08000000) {
+                PSMTXConcat(m4, esp->m_Mat, tm);
             } else {
-                PSMTXConcat(m5, esp->mat, tm);
+                PSMTXConcat(m5, esp->m_Mat, tm);
             }
-            if (w->depth != 0.0f) {
+            if (w->blur_rate != 0.0f) {
                 PSMTXConcat(m1, tm, tm);
                 PSMTXConcat(m2, tm, tm);
                 PSMTXConcat(m3, tm, tm);
@@ -294,7 +294,7 @@ void Esp18_Trans(cEsp18* esp)
         } else {
             C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, rx * (1.0f / 512.0f) * e18mx + 0.5f,
                                   ry / 392.0f * e18my + 0.5f);
-            PSMTXConcat(pm, esp->mat, tm);
+            PSMTXConcat(pm, esp->m_Mat, tm);
             GXLoadTexMtxImm(tm, 0x1E, 0);
             GXSetTexCoordGen(texGens, 0, 0, 0x1E);
             texGens++;
@@ -304,7 +304,7 @@ void Esp18_Trans(cEsp18* esp)
         texGens++;
         GXSetIndTexOrder(0, 1, 0);
         GXSetIndTexCoordScale(0, 0, 0);
-        a = esp->colA;
+        a = esp->m_Col_a;
         if (a > 16.0f) {
             a = 255.0f;
         } else {
@@ -316,9 +316,9 @@ void Esp18_Trans(cEsp18* esp)
             }
         }
         f32 inv = 1.0f / (f32) (i + 2);
-        col.r = (u8) esp->colR;
-        col.g = (u8) esp->colG;
-        col.b = (u8) esp->colB;
+        col.r = (u8) esp->m_Col_r;
+        col.g = (u8) esp->m_Col_g;
+        col.b = (u8) esp->m_Col_b;
         col.a = (u8) (a * inv);
         GXSetChanMatColor(4, col);
         GXSetTevOrder(0, 0, 1, 4);
@@ -328,15 +328,15 @@ void Esp18_Trans(cEsp18* esp)
         GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
         stages++;
         {
-            int no = esp->anmNo;
+            int no = esp->m_Tex_id;
             EspTexWk* tw = EspGetTexWk(no, 1);
-            if (tw->owner == 0xD2) {
+            if (tw->Owner == 0xD2) {
                 pLog->err(0, 0, "ESP : TexId[%x] no data", no);
             } else {
                 GXTexObj tex2;
                 GXTexObj* pTex = &tex2;
                 GXTlutObj* pTlut = &tlut;
-                TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn);
+                TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_Ptn_no);
                 TEXHeader* th = td->textureHeader;
 
                 if (th->format == 8 || th->format == 9) {
@@ -357,7 +357,7 @@ void Esp18_Trans(cEsp18* esp)
                 GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
                 GXSetTevColorOp(1, 0, 0, 0, 1, 0);
                 GXSetTevAlphaIn(1, 7, 4, 5, 7);
-                if (esp->flags & 0x20000) {
+                if (esp->m_Tool_flg & 0x20000) {
                     GXSetTevAlphaOp(1, 0, 0, 2, 1, 0);
                 } else {
                     GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);

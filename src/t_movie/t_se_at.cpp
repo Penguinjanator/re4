@@ -315,10 +315,10 @@ static void seAtAreaEdit_EditMenu()
     TOOL_MENU* c = seAtCreateMenu;
     TOOL_MENU* e = seAtEditMenu;
 
-    e[4].enable = valid;
-    e[3].enable = valid;
-    c[2].enable = valid;
-    c[1].enable = valid;
+    e[4].Be_flg = valid;
+    e[3].Be_flg = valid;
+    c[2].Be_flg = valid;
+    c[1].Be_flg = valid;
     if (pCur->flags & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, seAtEditMenu, sizeof(seAtEditMenu), &Joy[0]);
         switch (sel) {
@@ -377,21 +377,21 @@ static void seAtAreaEdit_AreaMove()
     if (joy->on & (JOY_R | JOY_L)) {
         f32 dist = cam->dist;
         if (joy->on & JOY_R) {
-            dist -= joy->trigR * 3.0f;
+            dist -= joy->triggerRight * 3.0f;
         } else {
-            dist += joy->trigL * 3.0f;
+            dist += joy->triggerLeft * 3.0f;
         }
         if (dist < 200.0f) dist = 200.0f;
         CameraCamposDistance(cam, dist);
     }
-    if (joy->sx) {
-        d.x = (f32) joy->sx * 5.0f;
+    if (joy->stickX) {
+        d.x = (f32) joy->stickX * 5.0f;
     }
-    if (joy->sy) {
+    if (joy->stickY) {
         if (joy->on & JOY_Z) {
-            d.y = (f32) joy->sy * 5.0f;
+            d.y = (f32) joy->stickY * 5.0f;
         } else {
-            PSVECScale(&dir, &t, (f32) joy->sy * -5.0f);
+            PSVECScale(&dir, &t, (f32) joy->stickY * -5.0f);
             CameraDolly(cam, &t);
         }
     }
@@ -399,12 +399,12 @@ static void seAtAreaEdit_AreaMove()
         PSMTXMultVecSR(cam->mat, &d, &d);
         CameraDolly(cam, &d);
     }
-    if (joy->ssx) {
+    if (joy->substickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
-        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->ssx * 0.05f * 0.017453292f);
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->substickX * 0.05f * 0.017453292f);
     }
-    if (joy->ssy) {
-        CameraCamposRot(cam, 'x', (f32) joy->ssy * -0.05f * 0.017453292f);
+    if (joy->substickY) {
+        CameraCamposRot(cam, 'x', (f32) joy->substickY * -0.05f * 0.017453292f);
     }
     pCur->pos = cam->param.at;
     if (Joy[0].trg & JOY_B) {

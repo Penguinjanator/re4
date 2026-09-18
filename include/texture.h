@@ -39,11 +39,11 @@ struct TexOfsTbl {
 // One registered texture set (0x54 bytes).
 struct TexWk {
     GXTexObj* pTexObj;   // 0x00  first of nTex objects pulled from cTexSys::pTexObj
-    u16 nTex;            // 0x04
+    u16 nTexObj;            // 0x04
     u8 pad_6[2];
     GXTlutObj tlut;      // 0x08
     TEXHeader* texHdr;   // 0x14  header of texture 0
-    Mtx mtx;             // 0x18
+    Mtx _Mtx;             // 0x18
     TEXPalette* pTpl;    // 0x48
     TexAnm* pAnm;        // 0x4C
     u32 owner;           // 0x50  0 = free

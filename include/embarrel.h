@@ -26,26 +26,26 @@ struct EmiData {
 
 // Work of the barrel enemy (game/embarrel.cpp), overlaid on cEm from 0x3E0.
 struct EmBarrelWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int timer;            // 0x004 (0x3E4)  frames until the broken barrel is destroyed
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;            // 0x004 (0x3E4)  frames until the broken barrel is destroyed
     u8 pad_8[0x40 - 8];
     cSat* sat;            // 0x040 (0x420)  runtime collision piece (emBarrelEatSet)
     u8 pad_44[0x50 - 0x44];
     int routeIdx;         // 0x050 (0x430)  current EMI route point (type 6) of the rolling barrel
     EmiEntry* pRoute;     // 0x054 (0x434)
-    Vec spd;              // 0x058 (0x438)  rolling speed
+    Vec Roll_spd;              // 0x058 (0x438)  rolling speed
     f32 floorOfs;         // 0x064 (0x444)  barrel radius above the floor (700)
     u8 pad_68[4];
     u8 rollSe;            // 0x06C (0x44C)  rolling sound / burning effect on
-    u8 espKind;           // 0x06D (0x44D)  EspPullCoreKind at creation (R227 barrel)
+    u8 EffKindId;           // 0x06D (0x44D)  EspPullCoreKind at creation (R227 barrel)
     u8 pad_6E[2];
-    u32 sndId;            // 0x070 (0x450)  rolling sound handle (SndStop)
-    int seTimer;          // 0x074 (0x454)  frames until the rolling sound is retriggered
-    int bombTimer;        // 0x078 (0x458)  frames until the explosion damage check
-    Vec bombPos;          // 0x07C (0x45C)
-    f32 bombRange;        // 0x088 (0x468)
-    u8 eff;               // 0x08C (0x46C)  setEff: effect owner id, 0xFF = none
-    u8 etcNo;             // 0x08D (0x46D)  etc flag index (broken flag)
+    u32 Seid;            // 0x070 (0x450)  rolling sound handle (SndStop)
+    int Se_wait;          // 0x074 (0x454)  frames until the rolling sound is retriggered
+    int Bomb_wait;        // 0x078 (0x458)  frames until the explosion damage check
+    Vec Bomb_pos;          // 0x07C (0x45C)
+    f32 Bomb_r;        // 0x088 (0x468)
+    u8 Eff_id;               // 0x08C (0x46C)  setEff: effect owner id, 0xFF = none
+    u8 Etc_no;             // 0x08D (0x46D)  etc flag index (broken flag)
 };
 
 #define EMBARREL_WK(em) ((EmBarrelWork*) &(em)->x3E0)

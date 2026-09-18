@@ -49,7 +49,7 @@ static inline int emListVillage(int room)
     case 0x204:
     case 0x207:
     case 0x208:
-        if (!(pG->flags_51C0 & 0x40000)) {
+        if (!(pG->Scenario_flg[0] & 0x40000)) {
             return 2;
         }
     }
@@ -60,7 +60,7 @@ static inline int emListVillage(int room)
 int checkEmListNo(u16 room)
 {
     int stage = room >> 8;
-    u32 flags = pG->flags_54;
+    u32 flags = pG->System_flg;
 
     if ((s32) flags < 0) {
         return 8;
@@ -97,7 +97,7 @@ int checkEmListNo(u16 room)
             return -1;
         }
         if (room == 0x200) {
-            if (!(pG->flags_51C0 & 0x800000)) {
+            if (!(pG->Scenario_flg[0] & 0x800000)) {
                 return 1;
             }
             return 2;
@@ -111,7 +111,7 @@ int checkEmListNo(u16 room)
         if (room > 0x210) {
             return 4;
         }
-        if (pG->flags_51C0 & 0x10000000) {
+        if (pG->Scenario_flg[0] & 0x10000000) {
             return 4;
         }
         return emListVillage(room);
@@ -182,7 +182,7 @@ int getEmListNum()
 void StageSet()
 {
     GlobalWork* g = pG;
-    u32 flags = g->flags_54;
+    u32 flags = g->System_flg;
     int reload = 0;
     int relink = 0;
 
@@ -201,7 +201,7 @@ void StageSet()
         MemSetCurrentHeap(2);
         cMes.stageInit();
         if (pG->stage_no == 1) {
-            pG->flags_51BC |= 0x4;
+            pG->Item_find_flg |= 0x4;
         }
         TaskSleep(1);
     }
@@ -210,7 +210,7 @@ void StageSet()
     }
     if (relink == 1 || reload == 1) {
         RoomData.stopRelData();
-        RoomData.x1C = 0;
+        RoomData.m_RelNo = 0;
         MemReplaceHeap(2, 3);
         MemSetCurrentHeap(3);
         RoomData.linkRelData(G_ROOM_ID);
@@ -229,20 +229,20 @@ void readEmList(int mode)
     no = checkEmListNo(G_ROOM_ID);
     if (no >= 0) {
         GlobalWork* g = pG;
-        if (no > g->emlist_no || (g->flags_54 & 0x2000) || g->game_mode == 3 ||
-            ((s32) g->flags_68 < 0 && g->emlist_no != no)) {
+        if (no > g->em_list_no || (g->System_flg & 0x2000) || g->SaveKind == 3 ||
+            ((s32) g->Debug_flg[2] < 0 && g->em_list_no != no)) {
             name = getEmListName(no);
-            pG->emlist_no = no;
+            pG->em_list_no = no;
         }
     }
     if (name != NULL) {
 #line 296 "D:/Bio4/Prog/stage.cpp"
-        req = DvdReadN(name, pG->emlist, 0, 0, 0, mode | 0x10, __FILE__, __LINE__);
+        req = DvdReadN(name, pG->Em_list, 0, 0, 0, mode | 0x10, __FILE__, __LINE__);
         while (Dvd.ReadCheck(req, &result, 0, 0) != 1) {
             TaskSleep(1);
         }
         if (result == 0) {
-            memclr_asm(pG->emlist, 0x2000);
+            memclr_asm(pG->Em_list, 0x2000);
         }
     }
 }
@@ -317,7 +317,7 @@ void subMissionSt1()
         if (*p1 & 1) {
             count++;
         }
-        if (pG->x4 != 0) {
+        if (pG->shooting_mode != 0) {
             if (G_ROOM_ID == ((SubMissionTarget*) ((u32) t0 + ofs))->room1 && !(*p1 & 1)) {
                 if (getRoomEtcItem(t->no, &item, 1)) {
                     item->flags &= ~2;
@@ -340,13 +340,13 @@ void subMissionSt1()
         timer = 150;
         SetFree(0, count);
         if (count == 10) {
-            pG->flags_51BC |= 0x40000;
+            pG->Item_find_flg |= 0x40000;
             timer = 450;
             stockDataAdd(&merchantData, stock_1st_mission);
-            pG->flags_5014 &= ~0x40000;
+            pG->Status_flg[2] &= ~0x40000;
         }
         if (count == 15) {
-            pG->flags_51C0 |= 0x8000;
+            pG->Scenario_flg[0] |= 0x8000;
         }
         int n = 0;
         int base = 0;
@@ -378,9 +378,9 @@ void subMissionSt1()
             }
             for (j = 0; j <= 1; j++) {
                 u = IdSys.unitPtr(base + j, 0x33);
-                u->flags |= 0x8;
-                u->flags_7F |= 0x2;
-                u->no = digit[j];
+                u->be_flag |= 0x8;
+                u->tex_flag |= 0x2;
+                u->texNo = digit[j];
             }
         }
     }

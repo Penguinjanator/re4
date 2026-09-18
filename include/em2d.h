@@ -59,7 +59,7 @@ struct Em2dWork {
     int atkCnt;           // 0x4EC (0x8CC)  frames spent walking (over 450: bit13)
     u32 stuckCnt;         // 0x4F0 (0x8D0)  frames the enemy moved less than half of the intended distance
     int dmgTotal;         // 0x4F4 (0x8D4)  damage since the last reaction
-    f32 x4F8;             // 0x4F8 (0x8D8)
+    f32 Compress_y;             // 0x4F8 (0x8D8)  em2dScaleCompress: scale.y factor, fades to 0.1 in Die_Lost (vendor name as em10/em2b)
     Vec wallNrm;          // 0x4FC (0x8DC)  normal of the wall / ceiling the enemy stands on ((0, 1, 0) on the floor)
     int lockCnt;          // 0x508 (0x8E8)  frames the player has been locked on (em2dLockCk)
     int x50C;             // 0x50C (0x8EC)
@@ -78,7 +78,7 @@ struct Em2dWork {
     u8 pad_533;
     u8 x534;              // 0x534 (0x914)
     u8 x535;              // 0x535 (0x915)
-    u8 x536;              // 0x536 (0x916)
+    u8 Reset_enable;              // 0x536 (0x916)  ckReset: 0 blocks the reset; Die_Lost sets 1 (vendor name as em10)
 };
 
 #define EM2D_WK(em) ((Em2dWork*) &(em)->x3E0)

@@ -16,7 +16,7 @@
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
+void EtcSetAddAmb(cModel* m, int kind);                                                         // EtcModel.cpp
 }
 
 typedef void (*EmItemFunc)(cEmItem*);
@@ -50,7 +50,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetEmItem() failed.");
@@ -60,7 +60,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     em->type = type;
     em->be_flag |= 0x4000;
     EtcSetAddAmb(em, 4);
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     switch (em->type) {
     case 0:
     default:
@@ -75,28 +75,28 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
         break;
     }
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
-    em->atari.setPriority(3);
-    em->atari.flags &= ~0x300;
+    em->atari.setPriority(PRI_LV3);
+    em->atari.m_flag &= ~0x300;
     emItemYarareInit(em);
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     static const Vec ofs = { 0.0f, 0.0f, 0.0f };
     static const Vec size = { 1000.0f, 1000.0f, 0.0f };
     if (em->type != 1) {
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x20);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x20);
     } else {
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x20);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x20);
     }
     int rotType = 0;
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    em->setStatus(1);
+    em->setStatus(EM_STATUS_LOCKOFF);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->flags = 0;
+    w->Be_flg = 0;
     w->rotType = rotType;
-    w->status = 0;
+    w->Status = 0;
     w->rotAng.x = fRand1_1() * 3.1415927f;
     w->rotAng.y = fRand1_1() * 3.1415927f;
     w->rotAng.z = fRand1_1() * 3.1415927f;
@@ -118,27 +118,27 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     if (em->type == 1) {
         u16* p;
 
-        w->etcNo = etcNo;
+        w->Etc_no = etcNo;
         p = GetEtcFlgPtr(etcNo, pG->room_id);
         if (p && (*p & 1)) {
             em->hp = 0;
         }
     }
     if (em->hp <= 0) {
-        em->xFC = 1;
-        em->xFD = 4;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else if (em->type != 1) {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
     return em;
 }
@@ -159,19 +159,19 @@ void emItemDmCk(cEmItem* em)
             switch (em->type) {
             case 0:
             default:
-                em->xFC = 1;
-                em->xFD = 3;
+                em->r_no_0 = 1;
+                em->r_no_1 = 3;
                 em->hp = 0;
-                em->xFE = 0;
-                em->xFF = 0;
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
                 break;
             case 1:
-                em->xFC = 1;
-                em->xFD = 4;
+                em->r_no_0 = 1;
+                em->r_no_1 = 4;
                 em->hp = 0;
-                em->xFE = 0;
-                em->xFF = 0;
-                EstSet((int) em, -1, 0, 0, w->eff, 0, 0, 0, (u32) em, 0);
+                em->r_no_2 = 0;
+                em->r_no_3 = 0;
+                EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
                 break;
             }
             return;
@@ -197,7 +197,7 @@ void emItemDmCk(cEmItem* em)
     if (wep == 0xE) {
         return;
     }
-    w->status = 3;
+    w->Status = 3;
     switch (em->type) {
     case 0:
     default:
@@ -207,19 +207,19 @@ void emItemDmCk(cEmItem* em)
             dir.y = 0.0f;
             dir.z = 0.0f;
         }
-        EstSet(0, -1, &em->getPartsPtr(0)->worldPos, &dir, 0, 0x57, 0, 0, 0, 0);
-        em->xFC = 1;
-        em->xFD = 3;
-        em->xFE = 0;
-        em->xFF = 0;
+        EstSet(0, -1, &em->getPartsPtr(0)->world, &dir, 0, 0x57, 0, 0, 0, 0);
+        em->r_no_0 = 1;
+        em->r_no_1 = 3;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
         break;
     case 1:
-        em->xFC = 1;
-        em->xFD = 4;
+        em->r_no_0 = 1;
+        em->r_no_1 = 4;
         em->hp = 0;
-        em->xFE = 0;
-        em->xFF = 0;
-        EstSet((int) em, -1, 0, 0, w->eff, 0, 0, 0, (u32) em, 0);
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
+        EstSet((int) em, -1, 0, 0, w->Eff_id, 0, 0, 0, (u32) em, 0);
         break;
     }
     if (em->type == 1) {
@@ -231,45 +231,45 @@ void cEmItem::move()
 {
     emItemDmCk(this);
     be_flag &= ~0x4000;
-    EmItem_R0_move_tbl[xFC](this);
+    EmItem_R0_move_tbl[r_no_0](this);
 }
 
 void emItem_R0_Init(cEmItem* em)
 {
     if (em->type != 1) {
-        em->xFC = 1;
-        em->xFD = 0;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 0;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     } else {
-        em->xFC = 1;
-        em->xFD = 1;
-        em->xFE = 0;
-        em->xFF = 0;
+        em->r_no_0 = 1;
+        em->r_no_1 = 1;
+        em->r_no_2 = 0;
+        em->r_no_3 = 0;
     }
 }
 
 void emItem_R0_Move(cEmItem* em)
 {
-    EmItem_R1_move_tbl[em->xFD](em);
+    EmItem_R1_move_tbl[em->r_no_1](em);
 }
 
 void emItem_R1_Set(cEmItem* em)
 {
-    if (em->xFE == 0) {
-        RotMatrix(em->mat, &em->rot);
+    if (em->r_no_2 == 0) {
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        em->xFE++;
+        em->r_no_2++;
     }
     em->be_flag |= 0x4000;
 }
 
 void emItem_R1_MedalSet(cEmItem* em)
 {
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -286,7 +286,7 @@ void emItem_R1_Parent(cEmItem* em)
     EmItemWork* w = EMITEM_WK(em);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
@@ -343,26 +343,26 @@ void emItem_R1_Drop(cEmItem* em)
     EmItemWork* w = EMITEM_WK(em);
     f32 floor;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         w->spd.x = 0.0f;
         w->spd.y = -10.0f;
         w->spd.z = 0.0f;
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         w->spd.y -= 10.0f;
         floor = EatMgr.getFloor(&em->pos, 0.0f, 100000.0f, 0, 0);
         PSVECAdd(&em->pos, &w->spd, &em->pos);
         if (em->pos.y < floor) {
             em->pos.y = floor;
-            w->status = 1;
-            em->xFE++;
+            w->Status = 1;
+            em->r_no_2++;
         }
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
@@ -379,16 +379,16 @@ void emItem_R1_Break(cEmItem* em)
     EmItemWork* w = EMITEM_WK(em);
     u16* flg;
 
-    switch (em->xFE) {
+    switch (em->r_no_2) {
     case 0:
-        w->status = 2;
+        w->Status = 2;
         em->hp = 0;
         em->be_flag &= ~2;
-        flg = GetEtcFlgPtr(w->etcNo, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
         if (flg) {
             *flg |= 1;
         }
-        em->xFE++;
+        em->r_no_2++;
     case 1:
         em->be_flag |= 0x4000;
         break;
@@ -412,12 +412,12 @@ void emItemYarareInit(cEmItem* em)
 
 void cEmItem::setEff(u8 eff)
 {
-    EMITEM_WK(this)->eff = eff;
+    EMITEM_WK(this)->Eff_id = eff;
 }
 
 int cEmItem::ckStatus()
 {
-    return EMITEM_WK(this)->status;
+    return EMITEM_WK(this)->Status;
 }
 
 void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
@@ -427,11 +427,11 @@ void cEmItem::setParent(cModel* parent, int partsNo, int noNormalize)
     w->pParent = parent;
     w->partsNo = partsNo;
     w->noNormalize = noNormalize;
-    xFC = 1;
-    xFD = 2;
-    xFE = 0;
-    xFF = 0;
-    ((cEm*) parent)->atari.flags &= ~0x200;
+    r_no_0 = 1;
+    r_no_1 = 2;
+    r_no_2 = 0;
+    r_no_3 = 0;
+    ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
 void cEmItem::setRotType(u8 type)
@@ -450,13 +450,13 @@ void emItemRotMove(cEmItem* em)
         p = em->getPartsPtr(0);
         PSMTXRotRad(tmp, 'x', SINF(w->rotAng.x) * w->rotAmp.x);
         PSMTXConcat(tmp, p->mat, p->mat);
-        TransMatrix(p->mat, &p->worldPos);
+        TransMatrix(p->mat, &p->world);
         PSMTXRotRad(tmp, 'z', SINF(w->rotAng.z) * w->rotAmp.z);
         PSMTXConcat(tmp, p->mat, p->mat);
-        TransMatrix(p->mat, &p->worldPos);
+        TransMatrix(p->mat, &p->world);
         PSMTXRotRad(tmp, 'y', SINF(w->rotAng.y) * w->rotAmp.y);
         PSMTXConcat(p->mat, tmp, p->mat);
-        TransMatrix(p->mat, &p->worldPos);
+        TransMatrix(p->mat, &p->world);
         w->rotAng.x += w->rotSpd.x;
         w->rotAng.x = LIMIT_ANGLE(w->rotAng.x);
         w->rotAng.y += w->rotSpd.y;
@@ -466,8 +466,8 @@ void emItemRotMove(cEmItem* em)
         break;
     case 2:
         p = em->getPartsPtr(0);
-        RotMatrix(p->mat, &em->rot);
-        TransMatrix(p->mat, &p->worldPos);
+        RotMatrix(p->mat, &em->ang);
+        TransMatrix(p->mat, &p->world);
         break;
     }
 }

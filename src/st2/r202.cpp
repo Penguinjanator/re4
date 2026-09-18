@@ -171,12 +171,12 @@ void R202Init()
     if (RsfCheck(*(u16*) &g->stage_no, 1) == 0) {
         r202_initCatapult();
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
-            SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r202_CatapultGo, 0, 1);
+            SceAtDataSet_exec(5, SCE_LEVEL10, 0, (TaskFunc) r202_CatapultGo, 0, 1);
             r202_changeIdoSmd(0);
         } else {
             r202_changeIdoSmd(1);
-            SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, 2, 0);
-            pG->flags_174 |= 0x80000000;
+            SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
+            pG->Room_flg[0] |= 0x80000000;
             r202_work.p->em180.setPtr(0x2A, 2, 0);
             r202_work.p->em180.setFlag(1);
         }
@@ -184,7 +184,7 @@ void R202Init()
         r202_changeIdoSmd(1);
     }
     Vec zero = {0.0f, 0.0f, 0.0f};
-    r202_work.p->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), (Vec*) &r202_crankPos,
+    r202_work.p->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), (Vec*) &r202_crankPos,
                                    &zero, 0x10, 1);
     r202_work.p->ido0 = SmdGetObjPtr(0x33);
     r202_work.p->ido1 = SmdGetObjPtr(0x34);
@@ -196,7 +196,7 @@ void R202Init()
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        PSetSat(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
+        PSetSat(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             r202_work.p->idoY1 = r202_work.p->ido1->pos.y;
             r202_work.p->idoY0 = r202_work.p->ido0->pos.y;
@@ -206,12 +206,12 @@ void R202Init()
             r202_work.p->ido2->pos.y -= 7539.0f;
             pos.y = -7539.0f;
             r202_work.p->sat->setCoord(&pos, &rot);
-            SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r202_operateCrank, 0, 1);
+            SceAtDataSet_exec(2, SCE_LEVEL10, 0, (TaskFunc) r202_operateCrank, 0, 1);
             SceAtSetEnable(0x15, 1);
             SceAtSetEnable(0x16, 0);
             r202_initEmPatrol();
         } else if (RsfCheck(G_ROOM_ID, 1) == 0) {
-            SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r202_operateCannon, 0, 1);
+            SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r202_operateCannon, 0, 1);
             SmdGetObjPtr(0x25)->be_flag |= 2;
             SmdGetObjPtr(0x6A)->be_flag &= ~2;
             SceAtSetEnable(0x15, 0);
@@ -247,10 +247,10 @@ void R202Init()
     SceSetItemEvent(0x13, 0x81, 4, 6, r202_openBox, (void (*)()) r202_openedBox, 0, 0);
     SceSetItemEvent(0x14, 0x83, 5, 7, r202_openBox, (void (*)()) r202_openedBox, 1, 0);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        SceAtDataSet_exec(0x17, 0x12, 0, (TaskFunc) r202_execEmSet2, 0, 1);
+        SceAtDataSet_exec(0x17, SCE_LEVEL10, 0, (TaskFunc) r202_execEmSet2, 0, 1);
     }
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
-        SceAtDataSet_exec(0x18, 0x12, 0, (TaskFunc) r202_execShowView, 0, 1);
+        SceAtDataSet_exec(0x18, SCE_LEVEL10, 0, (TaskFunc) r202_execShowView, 0, 1);
     }
 }
 
@@ -314,7 +314,7 @@ void r202_openBox_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot = ang;
+            obj->pParts->ang = ang;
         } else {
             Vec step;
             int i;
@@ -323,7 +323,7 @@ void r202_openBox_main(int no, int opened)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    PSVECAdd(&obj->pParts->rot, &step, &obj->pParts->rot);
+                    PSVECAdd(&obj->pParts->ang, &step, &obj->pParts->ang);
                 }
                 SceSleep(1);
             }
@@ -408,10 +408,10 @@ void r202_initEmPatrol()
     r202_work.p->pat[1].pos[0] = p2;
     r202_work.p->pat[1].pos[1] = p3;
     if (r202_work.p->pat[0].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[0], 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[0], 0, SCE_PRIO_DEF_2, 0);
     }
     if (r202_work.p->pat[1].em.isAlive() == 1) {
-        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[1], 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_checkEmPatrol, (int) &r202_work.p->pat[1], 0, SCE_PRIO_DEF_2, 0);
     }
 }
 
@@ -432,13 +432,13 @@ static void r202_operateCannon()
             pSUB->setNoSuspend(1);
             ((cUnitEventView*) pSUB)->endEvent(0);
         } else {
-            BitOn(pG->flags_174, 0x01000000);
+            BitOn(pG->Room_flg[0], 0x01000000);
             if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 10000.0f) {
-                pG->flags_174 |= 0x00800000;
+                pG->Room_flg[0] |= 0x00800000;
             } else if (SceAtHitCheck(0x19) == 1) {
-                pG->flags_174 |= 0x00400000;
+                pG->Room_flg[0] |= 0x00400000;
             } else {
-                pG->flags_174 |= 0x00200000;
+                pG->Room_flg[0] |= 0x00200000;
             }
         }
     }
@@ -459,7 +459,7 @@ static void r202_operateCannon()
         ((cEmTorch*) torch)->setBreak();
     }
     SceSleep(10);
-    if (!(pG->flags_174 & 0x01000000)) {
+    if (!(pG->Room_flg[0] & 0x01000000)) {
         int hit = SceAtHitCheck(0x10);
 
         if (hit == 1) {
@@ -489,15 +489,15 @@ static void r202_operateCannon()
             InitModule(m);
         }
     }
-    if (pSUB != 0 && (pG->flags_174 & 0x01000000)) {
+    if (pSUB != 0 && (pG->Room_flg[0] & 0x01000000)) {
         EmMgr.destroy(pSUB);
     }
     SceSleep(2);
     setEm(0x30, 2, 0, 1, 1);
     EmListSetAlive(0x30, 1);
-    if (pG->flags_174 & 0x01000000) {
-        SubCharInit(1, &pPL->pos, pPL->rot.y);
-        SubCharCtrl(1, 0);
+    if (pG->Room_flg[0] & 0x01000000) {
+        SubCharInit(1, &pPL->pos, pPL->ang.y);
+        SubCharCtrl(SCC_CHASE, 0);
     }
     CamCtrl.Comeback(0);
     SceAtSetEnable(3, 0);
@@ -511,13 +511,13 @@ static void r202_operateCannon()
         cSubChar* sub = pSUB;
 
         if (sub != 0) {
-            if (pG->flags_174 & 0x01000000) {
-                if (pG->flags_174 & 0x00800000) {
+            if (pG->Room_flg[0] & 0x01000000) {
+                if (pG->Room_flg[0] & 0x00800000) {
                     Vec p;
 
                     SetVecXYZ(&p, -6366.0f, 6600.0f, -39153.0f);
                     sub->setPos(&p);
-                } else if (pG->flags_174 & 0x00400000) {
+                } else if (pG->Room_flg[0] & 0x00400000) {
                     sub->setPos(&pPL->pos);
                 } else {
                     v.x = 3215.0f;
@@ -525,12 +525,12 @@ static void r202_operateCannon()
                     v.z = -27553.0f;
                     sub->setPos(&v);
                 }
-                SubCharCtrl(1, 0);
+                SubCharCtrl(SCC_CHASE, 0);
             }
         }
     }
     SceSleep(30);
-    SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 1, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r202_checkBgmPlay, 1, 0, SCE_PRIO_DEF_2, 0);
 }
 
 // The player turns the crank: the wall rises while the button is held.
@@ -544,8 +544,8 @@ static void r202_operateCrank()
     ((cUnitEventView*) pPL)->beginEvent(0);
     PlSetHand(1, 0);
     ((cUnitEventView*) r202_work.p->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x22));
-    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x2D));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x22));
+    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
     {
         Vec v = {516.5f, 0.0f, -500.0f};
@@ -554,9 +554,9 @@ static void r202_operateCrank()
 
         PSMTXMultVec(r202_work.p->crank->mat, &v, &v);
         v.y = pPL->pos.y;
-        FSet(pPL->rot.y, r202_work.p->crank->rot.y - 1.5707964f);
+        FSet(pPL->ang.y, r202_work.p->crank->ang.y - 1.5707964f);
         pl = pPL;
-        pr = &pl->rot;
+        pr = &pl->ang;
         pl->setPos(&v);
         pl->setAng(pr);
     }
@@ -586,36 +586,36 @@ static void r202_operateCrank()
             switch (mot) {
             default:
             case 0:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2D);
                 break;
             case 1:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2E);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x23);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2E);
                 break;
             case 2:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2F);
                 break;
             case 3:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x25);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x30);
                 break;
             case 4:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x26);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x31);
                 break;
             case 5:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x32);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x32);
                 break;
             case 6:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x33);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x28);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x33);
                 break;
             case 7:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x34);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x29);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x34);
                 break;
             }
             n = *(u16*) m0;
@@ -625,18 +625,18 @@ static void r202_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, (u16) frame, 5, (int) m0);
-            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, (u16) frame, 5, (int) m0);
+            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, (u16) frame, 5, (int) m1);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 50.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 50.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 100.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
@@ -679,7 +679,7 @@ static void r202_operateCrank()
         RsfSet(G_ROOM_ID, 0);
         SndCall(6, 8, 0, 0, 0, 0);
         SceSleep(30);
-        SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r202_operateCannon, 0, 1);
+        SceAtDataSet_exec(4, SCE_LEVEL10, 0, (TaskFunc) r202_operateCannon, 0, 1);
     } else {
         SceAtSetEnable(2, 1);
     }
@@ -705,7 +705,7 @@ void r202_changeIdoSmd(int on)
 // The rock of the gate catapult lands: the wall changes.
 static void r202_waitRockImpact(cEm* rock)
 {
-    while (rock->checkStatus(5) == 1) {
+    while (rock->checkStatus(EM_STATUS_ACTIVE) == 1) {
         SceSleep(1);
     }
     r202_changeIdoSmd(1);
@@ -715,12 +715,12 @@ static void r202_waitRockImpact(cEm* rock)
 
 static void r202_CatapultGo_end()
 {
-    if (!(pG->flags_174 & 0x02000000)) {
+    if (!(pG->Room_flg[0] & 0x02000000)) {
         cEmRock* rock = r202_work.p->cat[2].rock;
 
         r202_work.p->em180.setFlag(1);
         r202_work.p->cat[2].state = 5;
-        SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 4, 2, 0);
+        SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 4, SCE_PRIO_DEF_2, 0);
     }
     r202_work.p->em180.setNoSuspend(0);
     r202_work.p->cat[2].em.setNoSuspend(0);
@@ -753,14 +753,14 @@ static void r202_CatapultGo()
     r202_work.p->cat[2].targetPos.z = -37644.0f;
     r202_work.p->cat[2].targetOn = 1;
     r202_work.p->cat[2].fire = 1;
-    pG->flags_174 |= 0x80000000;
+    pG->Room_flg[0] |= 0x80000000;
     rock = r202_work.p->cat[2].rock;
     EstSet((int) rock, -1, 0, 0, 1, 0, 1, EMROCK_WK(rock)->espKind, (u32) rock, zero);
     SceSleep(60);
-    pG->flags_174 |= 0x02000000;
+    pG->Room_flg[0] |= 0x02000000;
     r202_work.p->em180.setFlag(1);
     r202_work.p->cat[2].state = 5;
-    SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, 2, 0);
+    SceExec(0x12, (TaskFunc) r202_waitRockImpact, (int) rock, 0, SCE_PRIO_DEF_2, 0);
     SceSleep(60);
     SceSetEventCancel(0, 0, 0, -1, 1);
     r202_CatapultGo_end();
@@ -784,7 +784,7 @@ void r202_initCatapult()
         r202_work.p->cat[i].x31 = 1;
         r202_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objNo);
         r202_work.p->cat[i].obj->be_flag |= 0x20;
-        r202_work.p->cat[i].obj->rot.y = LIMIT_ANGLE(tbl[i].ang);
+        r202_work.p->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
         zero = 0;
         r202_work.p->cat[i].state = zero;
         r202_work.p->cat[i].timer = zero;
@@ -814,7 +814,7 @@ void r202_initCatapult()
     r202_work.p->cat[0].setNewArea(0xC, -1);
     r202_work.p->cat[0].speed = 7000.0f;
     r202_work.p->cat[2].timer = zero;
-    r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, 2, 0);
+    r202_work.p->checkTask = SceExec(0x12, (TaskFunc) r202_checkCatapult, 0, 0, SCE_PRIO_DEF_2, 0);
 }
 
 void cCatapult::setNewArea(int a, int b)
@@ -895,7 +895,7 @@ void cCatapult::move()
     if (em.isActive() == 0) {
         return;
     }
-    if (em.checkStatus(5) == 0) {
+    if (em.checkStatus(EM_STATUS_ACTIVE) == 0) {
         return;
     }
     if (em.getHp() <= 0) {
@@ -912,13 +912,13 @@ void cCatapult::move()
         timer--;
         break;
     case 1:
-        setRockTask = SceExec(0x12, (TaskFunc) r202_setRock, (int) this, 0, 2, 0);
+        setRockTask = SceExec(0x12, (TaskFunc) r202_setRock, (int) this, 0, SCE_PRIO_DEF_2, 0);
         rockSet = 0;
         state = 2;
         break;
     case 2:
         if (rockSet == 1) {
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 state = 3;
             }
         }
@@ -971,7 +971,7 @@ void cCatapult::move()
         timer--;
         break;
     case 7:
-        throwRockTask = SceExec(0x12, (TaskFunc) r202_throwRock, (int) this, 0, 2, 0);
+        throwRockTask = SceExec(0x12, (TaskFunc) r202_throwRock, (int) this, 0, SCE_PRIO_DEF_2, 0);
         state = 8;
         break;
     case 8:
@@ -1005,19 +1005,19 @@ int cCatapult::checkHitArea()
 static void r202_setRock(cCatapult* c)
 {
     c->em.setFlag(1);
-    c->em.motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x35), 0xA, 0, 1, 0);
+    c->em.motionSet(ROOM_ARC_PTR(pG->pRoom, 0x35), 0xA, 0, 1, 0);
     SceSleep(54);
     {
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
         cEmRock* rock;
 
-        rock = SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0);
+        rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0);
         c->rock = rock;
         rock->setParent(c->em.getPtr(), 0xA, 0);
     }
     SceSleep(50);
-    if (c->em.checkStatus(5) != 0) {
+    if (c->em.checkStatus(EM_STATUS_ACTIVE) != 0) {
         int i;
 
         c->setRock();
@@ -1030,10 +1030,10 @@ static void r202_setRock(cCatapult* c)
             register cModel* pp asm("r11");
             o = c->obj;
             pp = o->pParts;
-            pp->rot.x = 0.0f;
+            pp->ang.x = 0.0f;
         }
         for (i = 10; i != 0; i--) {
-            c->obj->pParts->rot.x += -0.024137001f;
+            c->obj->pParts->ang.x += -0.024137001f;
             SceSleep(1);
         }
         c->rockSet = 1;
@@ -1062,9 +1062,9 @@ static void r202_throwRock(cCatapult* c)
     f32 v;
     f32 lim;
 
-    c->obj->pParts->rot.x = -0.24137f;
+    c->obj->pParts->ang.x = -0.24137f;
     for (i = 10; i != 0; i--) {
-        c->obj->pParts->rot.x += 0.13986999f;
+        c->obj->pParts->ang.x += 0.13986999f;
         SceSleep(1);
     }
     c->throwRock();
@@ -1079,10 +1079,10 @@ static void r202_throwRock(cCatapult* c)
     // loop.c hoisted the exit store's constant (`fmr f28,f30`); the bounce loop's exit code is never
     // peeled (> 20 insns, then gcse's preheader insertions).
     for (;;) {
-        c->obj->pParts->rot.x += v;
+        c->obj->pParts->ang.x += v;
         v += -0.034906585f;
-        if (c->obj->pParts->rot.x < lim) {
-            c->obj->pParts->rot.x = -0.24137f;
+        if (c->obj->pParts->ang.x < lim) {
+            c->obj->pParts->ang.x = -0.24137f;
             break;
         }
         SceSleep(1);
@@ -1091,10 +1091,10 @@ static void r202_throwRock(cCatapult* c)
         lim *= 0.5f;
         v *= -0.5f;
         for (;;) {
-            c->obj->pParts->rot.x += v;
+            c->obj->pParts->ang.x += v;
             v += -0.034906585f;
-            if (c->obj->pParts->rot.x < lim && v < 0.0f) {
-                c->obj->pParts->rot.x = lim;
+            if (c->obj->pParts->ang.x < lim && v < 0.0f) {
+                c->obj->pParts->ang.x = lim;
                 break;
             }
             SceSleep(1);

@@ -133,7 +133,7 @@ void R30bInit()
 #line 63 "D:/Bio4/Prog/r30b.cpp"
     r30b_work.p = (R30bWork*) MEM_CALLOC(sizeof(R30bWork), 1, 0xd);
     EvtMgr.SetFunc("evt_r30bs00_func", (void*) Evt_R30BS00_Func);
-    if (pG->flags_5018 & 0x04000000) {
+    if (pG->Status_flg[3] & 0x04000000) {
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) R30bEventS00, 0, 1);
             EvtMgr.EvtReadAram("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0, 0, 0);
@@ -144,7 +144,7 @@ void R30bInit()
         SceAtSetEnable(2, 1);
         SceAtSetEnable(3, 0);
     }
-    if ((pG->flags_5018 & 0x04000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+    if ((pG->Status_flg[3] & 0x04000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) R30bCrane, 0, 1);
         SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) R30bCraneEnd, 0, 1);
         SceAtSetEnable(6, 0);
@@ -156,19 +156,19 @@ void R30bInit()
         Vec rot;
 
         r30b_memset(&rot, 0, sizeof(Vec));
-        r30b_work.p->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+        r30b_work.p->crane = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         {
             cObj* crane = r30b_work.p->crane;
 
             if (crane) {
-                MotionSetCore(crane, &crane->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+                MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                 crane->be_flag |= 0x1000;
-                r30b_work.p->cable = SetObjSmd(ROOM_ARC_PTR(pGS->pRoomArc, 0x1F), ROOM_ARC_PTR(pGS->pRoomArc, 0x20), &crane->pos, &crane->rot, 0x10, 1);
+                r30b_work.p->cable = SetObjSmd(ROOM_ARC_PTR(pGS->pRoom, 0x1F), ROOM_ARC_PTR(pGS->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
                 {
                     cObj* cable = r30b_work.p->cable;
 
                     if (cable) {
-                        MotionSetCore(cable, &cable->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+                        MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                         // COMPILER-DIFF: candidate (sched1 priority) -- the target issues the `be_flag` store before the
                         // pool word0 load of `sca`; with the plain stores the be_flag store's only dependents are the three
                         // sca stack stores (output dep, prio 5) and the pool load (prio 6 = word0 stack store + load
@@ -186,7 +186,7 @@ void R30bInit()
                         cable->setSca(&sca);
                     }
                 }
-                r30b_work.p->magnet = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x28), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &crane->pos, &crane->rot, 0x10, 1);
+                r30b_work.p->magnet = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x20), &crane->pos, &crane->ang, 0x10, 1);
                 {
                     cObj* magnet = r30b_work.p->magnet;
 
@@ -206,7 +206,7 @@ void R30bInit()
     }
     r30b_work.p->tryLeft = 3;
     r30b_work.p->timer = 0;
-    if ((pGS->flags_5018 & 0x04000000) == 0) {
+    if ((pGS->Status_flg[3] & 0x04000000) == 0) {
         r30b_work.p->em[0].setPtr(0x35, -1, 0);
         r30b_work.p->em[1].setPtr(0x36, -1, 0);
         r30b_work.p->em[2].setPtr(0x3F, -1, 0);
@@ -522,8 +522,8 @@ static void R30bCraneEnd()
     if (RsfCheck(G_ROOM_ID, 7) == 0) {
         RsfSet(G_ROOM_ID, 7);
         SceAtSetEnable(0x10, 0);
-        if ((int) pG->flags_174 < 0 && (pG->flags_174 & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
-            pG->flags_174 |= 0x40000000;
+        if ((int) pG->Room_flg[0] < 0 && (pG->Room_flg[0] & 0x40000000) == 0 && RsfCheck(G_ROOM_ID, 2) == 0) {
+            pG->Room_flg[0] |= 0x40000000;
             SceExec(0x12, (TaskFunc) R30bEmGotoSet2, 0, 0, 2, 0);
             RsfSet(G_ROOM_ID, 2);
             SceAtSetEnable(4, 0);
@@ -550,8 +550,8 @@ static void R30bCrane()
     light = SmdGetObjPtr(0xD);
     if (crane && magnet && cable && light) {
         if (SceCkFindPL(0) == 1) {
-            SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-            pG->flags_174 |= 0x40000000;
+            SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+            pG->Room_flg[0] |= 0x40000000;
             SceExec(0x12, (TaskFunc) R30bEmGotoSet, 0, 0, 2, 0);
             RsfSet(G_ROOM_ID, 2);
             SceAtSetEnable(4, 0);
@@ -560,7 +560,7 @@ static void R30bCrane()
         }
         SceEventStart(0);
         SetShadowParallelDirX(0.0000001f);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         if (SceMesGetSelection() != 1) {
             ReetShadowParallelDirX();
             SceEventEnd(0);
@@ -591,7 +591,7 @@ static void R30bCrane()
             switch (c->step) {
             case 0:
                 ActBtn.set(0x14, 5, 0, 0, 2, 0xF, 0, 0);
-                pG->flags_170 &= ~0x100;
+                pG->Stop_flg &= ~0x100;
                 if (Key.trg & 0x00040000) {
                     if (r30b_work.p->se) {
                         SndStop(r30b_work.p->se, 0);
@@ -605,8 +605,8 @@ static void R30bCrane()
                         r30b_work.p->se = 0;
                         SndCall(6, 6, 0, 0, 0, 0);
                     }
-                    MotionSetCore(crane, &crane->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0, 0, 1, 0);
-                    MotionSetCore(cable, &cable->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0, 0, 1, 0);
+                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
+                    MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
                     c->vel.x = 0.0f;
                     c->vel.y = 0.0f;
                     c->vel.z = 0.0f;
@@ -664,8 +664,8 @@ static void R30bCrane()
                 c->pos.y -= r30b_spd;
                 if (c->pos.y <= 1300.0f) {
                     c->pos.y = 1300.0f;
-                    MotionSetCore(crane, &crane->mot, ROOM_ARC_PTR(pGS->pRoomArc, 0x21), 0, 0, 1, 0);
-                    MotionSetCore(cable, &cable->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pGS->pRoom, 0x21), 0, 0, 1, 0);
+                    MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                     c->step++;
                 }
                 break;
@@ -685,7 +685,7 @@ static void R30bCrane()
                                 cEm* em = r30b_work.p->em[n].getPtr();
 
                                 if (em) {
-                                    ((cEmGanado*) em)->setUFOCatch(ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
+                                    ((cEmGanado*) em)->setUFOCatch(ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x27));
                                     SetCatchEm(n);
                                     c->catchIdx[c->nCatch] = n;
                                     c->nCatch++;
@@ -693,8 +693,8 @@ static void R30bCrane()
                             }
                         }
                     }
-                    if ((int) pG->flags_174 >= 0) {
-                        pG->flags_174 |= 0x80000000;
+                    if ((int) pG->Room_flg[0] >= 0) {
+                        pG->Room_flg[0] |= 0x80000000;
                         SceExec(0x12, (TaskFunc) R30bEmSitDownSet, 0, 0, 2, 0);
                     }
                     c->step++;
@@ -724,8 +724,8 @@ static void R30bCrane()
                 Vec target = {-16500.0f, 3000.0f, -1300.0f};
 
                 if (CalcMovePosDist(&c->pos, &target, r30b_spd) == 1) {
-                    if ((pG->flags_174 & 0x40000000) == 0 && r30b_work.p->timer > 700) {
-                        pG->flags_174 |= 0x40000000;
+                    if ((pG->Room_flg[0] & 0x40000000) == 0 && r30b_work.p->timer > 700) {
+                        pG->Room_flg[0] |= 0x40000000;
                         SceExec(0x12, (TaskFunc) R30bEmGotoSet, 0, 0, 2, 0);
                     }
                     if (r30b_work.p->se) {
@@ -733,8 +733,8 @@ static void R30bCrane()
                         r30b_work.p->se = 0;
                         SndCall(6, 6, 0, 0, 0, 0);
                     }
-                    MotionSetCore(crane, &crane->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0, 0, 1, 0);
-                    MotionSetCore(cable, &cable->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0, 0, 1, 0);
+                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
+                    MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0, 1, 0);
                     SndCall(6, 8, 0, 0, 0, 0);
                     c->cnt = 0;
                     c->step++;
@@ -759,8 +759,8 @@ static void R30bCrane()
             case 8:
                 c->cnt++;
                 if (c->cnt > 30) {
-                    MotionSetCore(crane, &crane->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
-                    MotionSetCore(cable, &cable->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+                    MotionSetCore(crane, &crane->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
+                    MotionSetCore(cable, &cable->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
                     c->step++;
                 }
                 break;
@@ -788,7 +788,7 @@ static void R30bCrane()
                         c->pos.x = -14000.0f;
                         c->pos.z = -5000.0f;
                         r30b_work.p->tryLeft--;
-                        if ((pGS->flags_174 & 0x40000000) || (CkCatchEm(0) && CkCatchEm(1) && CkCatchEm(2) && CkCatchEm(3))) {
+                        if ((pGS->Room_flg[0] & 0x40000000) || (CkCatchEm(0) && CkCatchEm(1) && CkCatchEm(2) && CkCatchEm(3))) {
                             RsfSet(G_ROOM_ID, 2);
                             c->active = off;
                             SceAtSetEnable(4, 0);
@@ -896,7 +896,7 @@ static void R30bCrane()
                     EspDrawLaserLine2(&a, &b, 0xFF, 0, 0, 0x80);
                 }
             }
-            if ((int) pG->flags_174 < 0) {
+            if ((int) pG->Room_flg[0] < 0) {
                 r30b_work.p->timer++;
             }
             eprintf(0x40, 0x20, 0, 0, "TRY:[%2d:%2d] Timer:[%d/%d]", r30b_work.p->tryLeft, 3, r30b_work.p->timer, 700);
@@ -927,7 +927,7 @@ static void R30bEventS00()
         SceDestroyEm(0x10, 0x20);
         SceSleep(2);
         EvtMgr.EvtReadExec("event/evd/r30bs00.evd", (u8) GetEmIdFromListI(0x56), 0);
-        pG->flags_54 |= 0x400;
+        pG->System_flg |= 0x400;
         Vec pos = {-6200.0f, 0.0f, -26100.0f};
         Vec rot;
         r30b_memset(&rot, 0, sizeof(Vec));
@@ -939,11 +939,11 @@ static void R30bEventS00()
 void Evt_R30BS00_Func(Event* e)
 {
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             break;
         case 5:
-            if (e->frame == 25) {
+            if (e->NowFrame == 25) {
                 FadeSetW(2, 40, 0, 0);
             }
             break;
@@ -1082,31 +1082,31 @@ static void R30bEmGotoSet2()
 void SetCatchEm(int no)
 {
     if (no == 0) {
-        pG->flags_174 |= 0x20000000;
+        pG->Room_flg[0] |= 0x20000000;
     }
     if (no == 1) {
-        pG->flags_174 |= 0x10000000;
+        pG->Room_flg[0] |= 0x10000000;
     }
     if (no == 2) {
-        pG->flags_174 |= 0x08000000;
+        pG->Room_flg[0] |= 0x08000000;
     }
     if (no == 3) {
-        pG->flags_174 |= 0x04000000;
+        pG->Room_flg[0] |= 0x04000000;
     }
 }
 
 int CkCatchEm(int no)
 {
-    if (no == 0 && (pG->flags_174 & 0x20000000)) {
+    if (no == 0 && (pG->Room_flg[0] & 0x20000000)) {
         return 1;
     }
-    if (no == 1 && (pG->flags_174 & 0x10000000)) {
+    if (no == 1 && (pG->Room_flg[0] & 0x10000000)) {
         return 1;
     }
-    if (no == 2 && (pG->flags_174 & 0x08000000)) {
+    if (no == 2 && (pG->Room_flg[0] & 0x08000000)) {
         return 1;
     }
-    if (no == 3 && (pG->flags_174 & 0x04000000)) {
+    if (no == 3 && (pG->Room_flg[0] & 0x04000000)) {
         return 1;
     }
     return 0;

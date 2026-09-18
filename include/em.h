@@ -32,7 +32,7 @@ public:
         u32 flags;        // 0x00
         struct {
             u8 stat;      // 0x00  bit0: a hit is registered, bit5 (pl_wep)
-            u8 x1;        // 0x01  frames the hit stays registered (move: bit7 = hold, low bits count down)
+            u8 m_Timer;        // 0x01  frames the hit stays registered (move: bit7 = hold, low bits count down)  (PS2 cDmgInfo::m_Timer)
             u16 x2;
         };
         struct {
@@ -46,8 +46,8 @@ public:
     EmHitInfo* part;      // 0x14  hit part
 
     cDmgInfo();
-    void set(int a, int b, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
-    void set(int a, int b);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
+    void set(int flag, int timer, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
+    void set(int flag, int timer);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
     void clear();
     void move();              // counts x1 down; clears stat when it reaches 0
 };
@@ -78,12 +78,27 @@ struct EmiEntry;   // embarrel.h
 class cSubChar;    // pl_npc.h
 class cLight;      // light.h
 
+enum EM_STATUS {
+    EM_STATUS_ATTACKING = 0,
+    EM_STATUS_LOCKOFF = 1,
+    EM_STATUS_MIST_ON = 2,
+    EM_STATUS_IK_OFF = 3,
+    EM_STATUS_ALERT = 4,
+    EM_STATUS_ACTIVE = 5,
+    EM_STATUS_DOGCK = 6,
+    EM_STATUS_DOGATK = 7,
+    EM_STATUS_ITEMSET = 8,
+    EM_STATUS_LOOK_ME = 9,
+    EM_STATUS_DONT_FIRE = 10,
+    EM_STATUS_ASHLEY_NO_HELP = 11
+};
+
 // Character work (game/em.cpp), sizeof 0xDE0: the cModel (0x320, which carries the motion work,
 // the cAtariInfo, pFootShadowTbl and the light area) plus the fields below.
 class cEm : public cModel {
 public:
     s16 hp;               // 0x320
-    s16 hpMax;            // 0x322
+    s16 hp_max;            // 0x322
     // 0x324 .. 0x33C: the cDmgInfo (em.cpp constructs it explicitly; a class with a constructor
     // cannot sit in a union directly) and the same bytes under the names the other units use.
     union {
@@ -105,14 +120,14 @@ public:
                     u8 dm327;
                 };
             };
-            Vec x328;             // 0x328  (obj14: damage position when EmGetDmPos has none)
+            Vec dmPos;             // 0x328  (obj14: damage position when EmGetDmPos has none)  cDmgInfo::set pos (PS2 m_PosFrom)
             f32 dmRad;            // 0x334  cDmgInfo::set rad
             EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
         };
     };
     EmHitInfo hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
-    f32 x374;             // 0x374  (em_set: 1e16 at creation)
+    f32 l_sub;             // 0x374  (em_set: 1e16 at creation)  squared distance to the partner (em30/em34/em38: closer than plDist2 -> target it) (PS2 l_sub)
     union {
         u32 x378;         // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
         PlArc* subArc;          // 0x378  cSubChar: motion archive the routines index (pl_npc.cpp)
@@ -123,11 +138,11 @@ public:
     };
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
     u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
-    u8 x38D;              // 0x38D  (db_cam "set=")
+    u8 set;              // 0x38D  (db_cam "set=")
     u8 pad_38E[2];
     void (*pScenario)(cEm*);  // 0x390  em_sub EmScenario: called with the enemy when set
     u8 pad_394[4];
-    u8 emsetNo;           // 0x398
+    u8 emset_no;           // 0x398
     u8 pad_399[3];
     union {
         struct {
@@ -140,36 +155,37 @@ public:
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
     f32 catchTurn;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it)
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
-    u8 rckFlag;           // 0x3BC  route_ck: bit0 = rckNear valid this frame (RouteCk clears it)
-    s8 rckPoint;          // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
-    s8 rckNext;           // 0x3BE  route_ck: way point nearest to the target
-    s8 rckNear;           // 0x3BF  route_ck: way point nearest to the enemy
+    u8 RckStat;           // 0x3BC  route_ck: bit0 = RckNear valid this frame (RouteCk clears it)
+    s8 RckMy;             // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
+    s8 RckTo;             // 0x3BE  route_ck: way point nearest to the target
+    s8 RckNear;           // 0x3BF  route_ck: way point nearest to the enemy
     u8 pad_3C0[4];
     u32 status;           // 0x3C4  setStatus / clearStatus / checkStatus bits (bit0 = in battle, bit1, bit11)
-    u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
-    f32 x3CC;             // 0x3CC  (em_set: list entry s16 x1A * 1000)
-    u8 x3D0;              // 0x3D0  (em_set: list entry byte 0xB)
+    u32 flag;        // 0x3C8  (db_cam "Flag=")  (PS2 cEm::flag; EM_LIST.flag)
+    f32 Guard_r;             // 0x3CC  (em_set: list entry s16 x1A * 1000)  guard radius (em10: L_guard vs Guard_r) (PS2 Guard_r)
+    u8 Character;              // 0x3D0  (em_set: list entry byte 0xB)  (PS2 Character)
     u8 itemFlag;          // 0x3D1  setItem 5th argument (setNoItem: 0)
     u8 pad_3D2[4];
-    u16 itemNo;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
-    u16 itemNum;          // 0x3D8  setItem b
-    u16 item3DA;          // 0x3DA  setItem c
-    u16 item3DC;          // 0x3DC  setItem d
+    u16 Item_id;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
+    u16 Item_num;          // 0x3D8  setItem b
+    u16 Item_flg;          // 0x3DA  setItem c
+    u16 Auto_item_flg;          // 0x3DC  setItem d
     u8 pad_3DE[2];
     union {
-        u32 x3E0;         // 0x3E0  player: event walk flag / damage timer
+        u32 x3E0;            // 0x3E0  anchor of the per-enemy work overlays (EMxx_WK(em) = &em->x3E0)
+        u32 m_Work0;         // 0x3E0  player: event walk flag / damage timer (PS2 cPlayer::m_Work0)
         cSubChar* subSelf;         // 0x3E0  cSubChar: the model the routines animate (itself)
     };
     // 0x3E4 .. 0x400: player fields, and the partner's neck control (cSubChar::neckCtrl) on the same bytes
     union {
         struct {
-            int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
-            u32 x3E8;             // 0x3E8  player damage (blow): water splash done
-            int x3EC;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)
-            int x3F0;             // 0x3F0  emrock escape: frames since the last button press
-            int x3F4;             // 0x3F4  emrock escape: EMI goal sub type (plemRockEscapeCk)
-            int x3F8;             // 0x3F8  emrock escape: goal reached
-            int x3FC;             // 0x3FC  emrock escape: Rnd() & 1 (action button variant)
+            int m_Work1;             // 0x3E4  player damage: 1 = turning towards x400  (PS2 cPlayer::m_Work1)
+            u32 m_Work2;             // 0x3E8  player damage (blow): water splash done  (PS2 cPlayer::m_Work2)
+            int m_Work3;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)  (PS2 cPlayer::m_Work3)
+            int m_Work4;             // 0x3F0  emrock escape: frames since the last button press  (PS2 cPlayer::m_Work4)
+            int m_Work5;             // 0x3F4  emrock escape: EMI goal sub type (plemRockEscapeCk)  (PS2 cPlayer::m_Work5)
+            int m_Work6;             // 0x3F8  emrock escape: goal reached  (PS2 cPlayer::m_Work6)
+            int m_Work7;             // 0x3FC  emrock escape: Rnd() & 1 (action button variant)  (PS2 cPlayer::m_Work7)
         };
         struct {
             int subNeckOn;        // 0x3E4  cSubChar: neckSet() called this frame
@@ -180,7 +196,7 @@ public:
         };
     };
     union {
-        f32 x400;         // 0x400  player: event turn limit / damage direction angle (123.0 = none)
+        f32 m_Fwork0;         // 0x400  player: event turn limit / damage direction angle (123.0 = none)  (PS2 cPlayer::m_Fwork0)
         struct {
             u16 subFlags;   // 0x400  sub character (cSubChar): bit7 (0x80) manual control, bit6 (0x40) ok to control, bit4 (0x10), bit3 (0x8) move-to, bit0
             u16 subFlags2;  // 0x402  cSubChar (pl_sub SubCharMoveTo clears 0x60)
@@ -191,68 +207,69 @@ public:
         struct {
             Vec evTarget;         // 0x404  player event: walk-to position
             Vec evTarget2;        // 0x410  player: position setPos'd while flags_420 bit7 is set (objRobo R0WaitGondola)
-            u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine
+            u32 m_Flag;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine  (PS2 cPlayer::m_Flag)
             u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
             void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)
             void** pRegistMot;    // 0x428  player: registered motion table (pl_sub PlRegistMotion fills [0..11])
             MotionWorkSub neckMot;   // 0x42C .. 0x4FC  player: neck turn motion (pl_class cPlNeck::motSet), blended via blendMot
             u8 x4FC;              // 0x4FC  (pl_sub PlChangeData/PlMotionReset clear it)
             u8 x4FD;              // 0x4FD
-            u8 x4FE;              // 0x4FE
-            u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
+            u8 m_BbtnCnt;              // 0x4FE  (PS2 cPlayer::m_BbtnCnt)
+            u8 m_CmdTimer;       // 0x4FF  player: frames until the X button (partner command) is accepted again  (PS2 cPlayer::m_CmdTimer)
             f32 blendRate500;     // 0x500  player: em2b plBlendMotSet: neckMot blend rate source (the strangle button mash 0..255)
-            u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
+            u32 m_SeId;         // 0x504  player: SndCall handle cPlayer::interrupt stops  (PS2 cPlayer::m_SeId)
             cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
-            cEm* pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
+            cEm* m_pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
             class cObjSpear* pSpear;  // 0x510  player: the harpoon in hand (pl0f plboatSetSpear / plboatSpearThrow)
             f32 sightRate;        // 0x514  player: pl0f harpoon aim: vertical sight rate (-0.3927 .. 0.3927)
             int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
-            u8 pad_51C[2];
+            u8 m_SplashCtr;       // 0x51C  (PS2 cPlayer::m_SplashCtr; unused on GC)
+            u8 m_OCMode;          // 0x51D  (PS2 cPlayer::m_OCMode; unused on GC)
             u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
             u8 binoMode;          // 0x51F  player: binocular step (cPlayer::moveBinocular 1 -> 2 -> 3 -> 0)
-            u8 dmgFlag520;        // 0x520  player: 1 once setDamage ran
+            u8 m_ConDmFlag;        // 0x520  player: 1 once setDamage ran  (PS2 cPlayer::m_ConDmFlag)
             u8 pad_521;
-            u16 dmgCnt522;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE
+            u16 m_ConDmTimer;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE  (PS2 cPlayer::m_ConDmTimer)
         };
         struct {
-            u8 sub404;            // 0x404  cSubChar
-            u8 sub405;            // 0x405
-            u16 sub406;           // 0x406  frame counter
-            u8 sub408;            // 0x408
-            u8 sub409;            // 0x409
-            u8 sub40A;            // 0x40A  timer
+            u8 m_BackRno;            // 0x404  cSubChar  (PS2 cSubChar::m_BackRno)
+            u8 m_BackRno2;            // 0x405
+            u16 m_BackTime;           // 0x406  frame counter
+            u8 m_Frame;            // 0x408
+            u8 m_Hokan;            // 0x409
+            u8 m_Timer;            // 0x40A  timer
             u8 pad_40B;
-            f32 subBlendRate;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
-            f32 subAng;           // 0x410  angle to the player (analyze)
-            f32 subDist;          // 0x414  distance to the player (analyze)
-            Vec subTarget;        // 0x418  position to walk to
-            f32 sub424;           // 0x424
+            f32 m_Blend;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
+            f32 dir;           // 0x410  angle to the player (analyze)
+            f32 dist;          // 0x414  distance to the player (analyze)
+            Vec distPos;        // 0x418  position to walk to
+            f32 fyBak;           // 0x424  (PS2 cSubChar::fyBak)
             Vec subOfs;           // 0x428  offset behind the player (atckPos)
-            u32 subPlStatus;      // 0x434  PlGetStatus() of the frame
-            u32 sub438;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
-            Vec sub43C;           // 0x43C  hit point of the action wall check (actionCheck)
-            Vec sub448;           // 0x448  its normal
+            u32 plStat;      // 0x434  PlGetStatus() of the frame
+            u32 satAttr;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
+            Vec satCross;           // 0x43C  hit point of the action wall check (actionCheck)
+            Vec satNorm;           // 0x448  its normal
             MotionWorkSub subBackMot;   // 0x454 .. 0x524  look-back motion blended in (backCheckSet -> blendMot)
         };
     };
     cModelInfo* subHand[2];   // 0x524  cSubChar: hand model infos (pl11 cSubAshley::setHand)
-    f32 sub52C;           // 0x52C  cSubChar: fence / window action direction
+    f32 fWork0;           // 0x52C  cSubChar: fence / window action direction  (PS2 cSubChar::fWork0)
     int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide); pl_npc: general step counter
     int subX534;          // 0x534  cSubChar (SubCharCtrlHide mode 0 sets 1)
     int sub538;           // 0x538  cSubChar: step counter
     int sub53C;           // 0x53C  cSubChar: the catch action button is set (moveFallWait)
     int sub540;           // 0x540  cSubChar: frames waiting for the player
     Vec subHidePos;       // 0x544  cSubChar hide position
-    u8 sub550;            // 0x550  cSubChar: frames until the route is re-checked
+    u8 m_FallWaitTimer;            // 0x550  cSubChar: frames until the route is re-checked  (PS2 cSubChar::m_FallWaitTimer)
     u8 pad_551[3];
-    struct EmiEntry* sub554;   // 0x554  cSubChar: EMI route entry (type 0xB) walked to (embarrel.h)
-    Vec sub558;           // 0x558  cSubChar: ledge position to wait at (catchOn / actionCheck)
-    f32 sub564;           // 0x564  cSubChar: angle to turn to while waiting to be caught
+    struct EmiEntry* pAnotherRoute;   // 0x554  cSubChar: EMI route entry (type 0xB) walked to (embarrel.h)  (PS2 cSubChar::pAnotherRoute, EMINFO_WK*)
+    Vec m_PlActPos;           // 0x558  cSubChar: ledge position to wait at (catchOn / actionCheck)  (PS2 cSubChar::m_PlActPos)
+    f32 m_PlActAngY;           // 0x564  cSubChar: angle to turn to while waiting to be caught  (PS2 cSubChar::m_PlActAngY)
     int subAux0;          // 0x568  cSubChar (SetSubAux/SetSubBulldozer arguments)
     int subAux1;          // 0x56C
     f32 subMoveTo[4];     // 0x570  cSubChar (SubCharMoveTo x, y, z, w)
-    u8 sub580;            // 0x580  cSubChar: timer
-    u8 sub581;            // 0x581
+    u8 m_PlActTime;            // 0x580  cSubChar: timer  (PS2 cSubChar::m_PlActTime)
+    u8 m_PlActType;            // 0x581  (PS2 cSubChar::m_PlActType)
     u8 pad_582[2];
     void* subMot0;        // 0x584  cSubChar registered motions (SubCharRegistMotion, SetSubDamage)
     void* subMot1;        // 0x588
@@ -263,25 +280,25 @@ public:
     f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
     EmHitInfo subHit[3];  // 0x5CC .. 0x668  cSubChar: extra hit boxes (YarareAdd in cSubChar::init)
     u8 pad_668[0x738 - 0x668];
-    int satCheckFlag;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
-    void (*pAuxFunc)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler
-    struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
-    void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
-    void* boss1;          // 0x748
-    Vec fallDir;          // 0x74C  player: -wallNrm of the ledge to drop from (pl_class fallCheck)
-    Vec jumpDir;          // 0x758  player: -normal of the jump-over wall (pl_class jumpCheck)
-    f32 jumpHeight;       // 0x764  player: floor height behind the jump wall minus pos.y
-    Vec actWallHit;       // 0x768  player: hit point of the action wall check (pl_class actWallCheck)
-    Vec actWallNrm;       // 0x774  player: its normal
-    u32 actWallAttr;      // 0x780  player: its scenario attribute (0 = no wall in front)
+    int m_pSatMask;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
+    void (*pFuncAux)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler
+    struct PlRoomEff* m_pEffRoom;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
+    void* m_pBoss;          // 0x744  player (pl_sub PlRegistBoss)
+    void* m_pBossRmf;          // 0x748
+    Vec m_FallVec;          // 0x74C  player: -wallNrm of the ledge to drop from (pl_class fallCheck)
+    Vec m_JumpVec;          // 0x758  player: -normal of the jump-over wall (pl_class jumpCheck)
+    f32 m_JumpAdjY;       // 0x764  player: floor height behind the jump wall minus pos.y
+    Vec m_ActCross;       // 0x768  player: hit point of the action wall check (pl_class actWallCheck)
+    Vec m_ActNorm;       // 0x774  player: its normal
+    u32 m_ActAttr;      // 0x780  player: its scenario attribute (0 = no wall in front)
     u8 pad_784[4];
-    class cPlWep* pWep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
-    class cPlNeck* pNeck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
-    class cPlWaist* pWaist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
-    class cPlBody* pBody; // 0x794  player: body / face / hand model set (pl_body.cpp, 0xF0 bytes)
+    class cPlWep* Wep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
+    class cPlNeck* Neck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
+    class cPlWaist* Waist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
+    class cPlBody* Body; // 0x794  player: body / face / hand model set (pl_body.cpp, 0xF0 bytes)
     u8 pad_798[8];
-    class cPlPush* pPush; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
-    class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
+    class cPlPush* Push; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
+    class cMotBase* MotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     union {
         Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
@@ -316,7 +333,7 @@ public:
     cEm();
     virtual ~cEm() {}
     virtual void move();
-    virtual void setItem(u16 a, u16 b, u16 c, u16 d, u8 e);  // 0x3D6.. item drop (0x3D1 flag)
+    virtual void setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff);  // 0x3D6.. item drop (0x3D1 flag)
     virtual void setNoItem();
     virtual int checkThrow();
     void setStatus(int bit);     // status |= 1 << bit
@@ -329,7 +346,7 @@ public:
 // read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {
 public:
-    u32 x34;              // 0x34  next cModel::serial (construct)
+    u32 Guid;              // 0x34  next cModel::serial (construct)
 
     static const char* idName[96];   // debug names per construct id
 
@@ -371,7 +388,7 @@ public:
     void setDown(Vec* pos);
     void setShock();
     void setEff(u8 eff);
-    void setRange(f32 a, f32 b, f32 c, f32 d);
+    void setRange(f32 x_low, f32 x_up, f32 y_low, f32 y_up);
     int adjustRange(u8 dir);
 };
 

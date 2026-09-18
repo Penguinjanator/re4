@@ -75,7 +75,7 @@ void cSubWep::move()
 {
     static void (cSubWep::*funcTbl[2])() = { &cSubWep::moveNormal, &cSubWep::moveWater };
 
-    (this->*funcTbl[xFC])();
+    (this->*funcTbl[r_no_0])();
 }
 
 void cSubWep::moveNormal()
@@ -97,13 +97,13 @@ void cSubWep::moveNormal()
     {
         cModel* parts = getPartsPtr(0);
         if (parts) {
-            PSVECAdd(&parts->rot, &subWep.rotSpd, &parts->rot);
-            parts->rot.x = LIMIT_ANGLE(parts->rot.x);
-            parts->rot.y = LIMIT_ANGLE(parts->rot.y);
-            parts->rot.z = LIMIT_ANGLE(parts->rot.z);
-            RotMatrix(parts->worldMat, &parts->rot);
-            TransMatrix(parts->worldMat, &parts->pos);
-            ScaleMatrix(parts->worldMat, &parts->scale);
+            PSVECAdd(&parts->ang, &subWep.rotSpd, &parts->ang);
+            parts->ang.x = LIMIT_ANGLE(parts->ang.x);
+            parts->ang.y = LIMIT_ANGLE(parts->ang.y);
+            parts->ang.z = LIMIT_ANGLE(parts->ang.z);
+            RotMatrix(parts->l_mat, &parts->ang);
+            TransMatrix(parts->l_mat, &parts->pos);
+            ScaleMatrix(parts->l_mat, &parts->scale);
         }
     }
     matUpdate();
@@ -238,13 +238,13 @@ void cSubWep::addSpeed()
     EatMgr.hitCheck(&old, &pos, &hit, 0, 0, 0x4000);
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh && hit.y < wh) {
         pos.y = wh + 20.0f;
-        info = EatMgr.getEffInfo(2);
+        info = EatMgr.getEffInfo(EAT_ET_WATER);
         if (info == 0) {
             pLog->err(0, 0, "GRENADE CANT FOUND WATER INFORMATION");
             pLog->err(0, 0, "  PLEASE SET EatMgr.registEffInfo()");
             return;
         }
-        subWep.attr = info->flags;
+        subWep.attr = info->flag;
         switch (type) {
         case 0:
         default:
@@ -289,7 +289,7 @@ void cSubWep::addSpeed()
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
             AddWaterPower(&pos, 0.5f);
-            xFC = 1;
+            r_no_0 = 1;
             be_flag &= ~2;
         } else {
             subWep.life = 1;
@@ -300,13 +300,13 @@ void cSubWep::addSpeed()
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &oldPos, &pos, subWep.rad * 0.5f, 0x2001, 0x4000);
+    EatMgr.adjust(&nrm, &pos_old, &pos, subWep.rad * 0.5f, 0x2001, 0x4000);
     if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
         return;
     }
     info = EatMgr.getEffInfo(getEffectType());
     if (info) {
-        subWep.attr = info->flags | 0x80000000;
+        subWep.attr = info->flag | 0x80000000;
         switch (type) {
         case 0:
         default:
@@ -342,7 +342,7 @@ void cSubWep::addSpeed()
                 EstSet(0, -1, &pos, 0, 0, 0x3A, 0, 0, 0, 0);
             }
             SndCall(5, 0x24, &pos, 0, 0, 0);
-            xFC = 1;
+            r_no_0 = 1;
             be_flag &= ~2;
         } else {
             subWep.life = 1;
@@ -414,7 +414,7 @@ cSubWep::cSubWep()
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     sub2B4.atari.throughOn();
-    lightInfo.init2(0, 1, &p0, &p1, 4);
+    LightInfo.init2(0, 1, &p0, &p1, 4);
     subWep.seCnt0 = 0;
     subWep.seCnt1 = 0;
     subWep.flags = 0;
@@ -445,28 +445,28 @@ int cSubWep::init(Vec* rot, f32 power)
     switch (type) {
     case 0:
     default:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6B);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6B);
         break;
     case 1:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6D);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6D);
         break;
     case 2:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6F);
         break;
     case 3:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7E);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7E);
         break;
     case 4:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7F);
         break;
     case 5:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x80);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x80);
         break;
     }
     if (modelInit(bin, tpl) == 0) {
@@ -480,12 +480,12 @@ int cSubWep::init(Vec* rot, f32 power)
     }
     parts = pPL->getPartsPtr(0);
     parts2 = pPL->getPartsPtr(10);
-    if (EatMgr.hitCheck(&parts->worldPos, &parts2->worldPos, &p, &d, 0, 0) & 0x1000000) {
+    if (EatMgr.hitCheck(&parts->world, &parts2->world, &p, &d, 0, 0) & 0x1000000) {
         PSVECScale(&d, &d, 500.0f);
         PSVECAdd(&p, &d, &p);
     }
     setPos(&p);
-    this->rot = *rot;
+    this->ang = *rot;
     setThrowSpeed(&subWep.spd, power);
     switch (type) {
     case 0:
@@ -520,7 +520,7 @@ void setThrowSpeed(Vec* spd, f32 power)
     Vec d;
     cModel* parts;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     default:
         v = speedGre;
         break;
@@ -544,7 +544,7 @@ void setThrowSpeed(Vec* spd, f32 power)
     RotVector(&v, &ang, &v);
     PSMTXMultVecSR(pPL->mat, &v, spd);
     parts = pPL->getPartsPtr(0);
-    PSVECSubtract(&parts->worldPos, &parts->x88, &d);
+    PSVECSubtract(&parts->world, &parts->world_old2, &d);
     PSVECAdd(spd, &d, spd);
 }
 
@@ -598,19 +598,19 @@ void cObjGrenade::explode()
         EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
         SndCall(1, 0x14, &pos, 0, 0, 0);
     }
-    BitOn(pG->flags_500C, 0x800000);
+    BitOn(pG->Status_flg[0], 0x800000);
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
 
 void cObjGrenade::waterExplode()
 {
-    BitOn(pG->flags_500C, 0x800000);
+    BitOn(pG->Status_flg[0], 0x800000);
     PlWepHitCheck2(0, &pos, &pos, 0x13, 0, 6000.0f);
     SndCall(1, 0x17, &pos, 0, 0, 0);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
@@ -664,8 +664,8 @@ void cObjGreFire::explode()
         SndCall(1, 0x22, &pos, 0, 0, 0);
         dmgSet(1);
     }
-    BitOn(pG->flags_500C, 0x800000);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[0], 0x800000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
@@ -705,9 +705,9 @@ void cObjGreLight::explode()
         EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
         SndCall(1, 0x13, &pos, 0, 0, 0);
     }
-    BitOn(pG->flags_500C, 0x800000);
+    BitOn(pG->Status_flg[0], 0x800000);
     PlWepHitCheck2(0, &pos, &pos, 0x17, 0, 15000.0f);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }
@@ -736,9 +736,9 @@ void cObjEgg::explode()
         }
         SndCall(1, 6, &pos, 0, 0, 0);
     }
-    BitOn(pG->flags_500C, 0x800000);
+    BitOn(pG->Status_flg[0], 0x800000);
     PlWepHitCheck2(0, &pos, &pos, 0x19, 0, 2000.0f);
-    BitOn(pG->flags_5010, 0x20000000);
+    BitOn(pG->Status_flg[1], 0x20000000);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pos, sizeof(Vec));
     pG->bell_stat = 1;
 }

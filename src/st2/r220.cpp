@@ -36,7 +36,7 @@ void r220_initElevator();
 
 void R220Init()
 {
-    pG->flags_54 &= ~0x400;
+    pG->System_flg &= ~0x400;
 #line 36 "D:/Bio4/Prog/r220.cpp"
     r220_work = (R220Work*) MEM_CALLOC(sizeof(R220Work), 1, 0xd);
     r220_initElevator();
@@ -169,13 +169,13 @@ static void r220_operateElevator()
 
 void r220_initElevator()
 {
-    if ((pG->room_id_prev == 0x221 || pG->room_id_prev == 0x22B) && flagBit(pG->flags_54, 0x100) == 0
-        && flagBit(pG->flags_54, 0x80000) == 0) {
+    if ((pG->room_id_prev == 0x221 || pG->room_id_prev == 0x22B) && flagBit(pG->System_flg, 0x100) == 0
+        && flagBit(pG->System_flg, 0x80000) == 0) {
         r220_moveElevatoDoor(0, 1);
-        SceExec(0x12, (TaskFunc) r220_moveElevator, 1, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r220_moveElevator, 1, 0, SCE_PRIO_DEF_2, 0);
     } else {
         r220_moveElevatoDoor(1, 1);
     }
-    SceAtDataSet_exec(3, 0x12, 0, (TaskFunc) r220_operateElevator, 0, 1);
+    SceAtDataSet_exec(3, SCE_LEVEL10, 0, (TaskFunc) r220_operateElevator, 0, 1);
     SceAtSetActColor(3, 1);
 }
