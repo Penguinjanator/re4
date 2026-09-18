@@ -1219,7 +1219,7 @@ static void playerRunMovePassage(cPlayer* pl)
         pl->r_no_2 = 4;
     case 4:
         playerRunCamMovePassage(pl, 1.0f);
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (MotionMoveF(pl, 0)) {
             BitOff(pG->Room_flg[0], 0x10000000);
             if (pG->Room_flg[0] & 0x08000000) {
@@ -1300,7 +1300,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         MotionMoveF(pl, 0);
         pl->r_no_2 = 4;
     case 4:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (pl->frame >= (f32) r226_pushFrame) {
             if (Key.trg & 0x80000) {
                 r226_work.p->btnCnt++;
@@ -1326,7 +1326,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         }
         break;
     case 5:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (Key.trg & 0x80000) {
             r226_work.p->btnCnt++;
         }
@@ -1352,7 +1352,7 @@ static void playerRunMoveBridge(cPlayer* pl)
         }
         break;
     case 6:
-        pl->st.x325 = 0x82;
+        pl->dmg.m_Timer = 0x82;
         if (MotionMoveF(pl, 0)) {
             BitOff(pG->Room_flg[0], 0x10000000);
             RsfSet(G_ROOM_ID, 13);

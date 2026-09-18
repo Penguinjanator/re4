@@ -600,7 +600,7 @@ void plobjLadderClimb(cPlayer* pl)
     Vec v;
     f32 fl;
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     pGS->Status_flg[1] |= 0x00040000;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
@@ -710,7 +710,7 @@ void plobjLadderClimb(cPlayer* pl)
     if (w->camera == -1) {
         objLadderClimbCamMove(em);
     }
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Partner: 1 (and starts subobjLadderClimb) when a climbable ladder is in front of the partner.
@@ -1021,7 +1021,7 @@ void plobjLadderDown(cPlayer* pl)
     Mtx m;
     Vec v;
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -1066,7 +1066,7 @@ void plobjLadderDown(cPlayer* pl)
         break;
     }
     objLadderDownCamMove(em);
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Extra camera for the kick-down.
@@ -1136,7 +1136,7 @@ void plobjLadderReset(cPlayer* pl)
     Vec v;
     int motA;
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -1171,7 +1171,7 @@ void plobjLadderReset(cPlayer* pl)
         break;
     }
     objLadderResetCamMove(em);
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Extra camera for the reset.

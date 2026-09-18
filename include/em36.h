@@ -35,7 +35,7 @@ struct Em36Work {
     int x01C;             // 0x01C (0x3FC)
     int x020;             // 0x020 (0x400)
     int x024;             // 0x024 (0x404)
-    EmHitInfo hit[30];    // 0x028 (0x408)  hit boxes (YarareAdd)
+    YARARE_INFO hit[30];    // 0x028 (0x408)  hit boxes (YarareAdd)
     f32 routeAng;         // 0x640 (0xA20)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x644 (0xA24)
     f32 subAng;           // 0x648 (0xA28)  towards the partner

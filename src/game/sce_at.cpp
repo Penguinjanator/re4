@@ -1750,7 +1750,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
     if (w->checkType & 1) {
         int dead = 1;
 
-        if ((pPL->flags_324 & 0xFFFF0000) == 0) {
+        if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
             dead = 0;
         }
         if (dead == 0 && (s16) pG->pl_life > 0) {
@@ -1775,7 +1775,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
         if (pSUB != 0) {
             int dead = 1;
 
-            if ((pSUB->flags_324 & 0xFFFF0000) == 0) {
+            if (!pSUB->dmg.m_Flag && !pSUB->dmg.m_Timer) {
                 dead = 0;
             }
             if (dead == 0 && (s16) pG->ashley_life > 0) {
@@ -3007,8 +3007,8 @@ static void sceAtItemFindCheck()
             cEm* m = (cEm*) w->item.pModel;
             f32 fl = EatMgr.getFloor(&m->pos, 0.0f, 100000.0f, 0, 0);
 
-            m->pos.y -= m->dmPos.y;
-            m->dmPos.y += 10.0f;
+            m->pos.y -= m->dmg.m_PosFrom.y;
+            m->dmg.m_PosFrom.y += 10.0f;
             if (m->pos.y < fl) {
                 m->pos.y = fl;
                 it->flag2 &= ~0x40;
@@ -4202,7 +4202,7 @@ void sceAtSetItem(SceAtWork* w)
             if (ok2 == 0 && it->effType == 0) {
                 it->effType = 1;
             }
-            ((cEm*) w->item.pModel)->dmPos.y = 0.0f;
+            ((cEm*) w->item.pModel)->dmg.m_PosFrom.y = 0.0f;
             if (it->effNo == 0) {
                 sceAtItemEffSet(w, w->item.pModel);
             }

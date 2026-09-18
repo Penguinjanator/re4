@@ -155,12 +155,12 @@ void em2fDmCk(cEm2f* em)
     int dmg;
 
     w->flags &= ~0x40;
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
     w->flags |= 0x40;
-    em->dmHit = 0;
-    switch (em->dmWep) {
+    em->dmg.m_Flag = 0;
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:

@@ -143,13 +143,13 @@ void emTreeDmCk(cEmTree* em)
 {
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     EmDmBloodSet2(em, 1, 12, 0, 0, 0);
 }
@@ -596,7 +596,7 @@ void emTree_R1_Shot(cEmTree* em)
     Vec hitPos;
     Vec nrm;
     Mtx inv;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int no;
     f32 len;
 
@@ -650,7 +650,7 @@ void emTree_R1_Shot(cEmTree* em)
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
         em->r_no_2 = 2;
-    } else if (w->pAtk && (part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0)) != 0) {
+    } else if (w->pAtk && (part = (YARARE_INFO*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0)) != 0) {
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
             SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);

@@ -91,7 +91,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em2aDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Work `no` of the enemy manager without the range check (em2aTrap2HitCkEM).
@@ -130,11 +130,11 @@ void em2aDmCkTrap1(cEm2a* em)
 {
     int wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A || wep == 0xE || wep == 0x13 || wep == 0x29
         || wep == 0x2D) {
         return;
@@ -166,11 +166,11 @@ void em2aDmCkTrap2(cEm2a* em)
     } else {
         int wep;
 
-        if (em->dmHit == 0) {
+        if (em->dmg.m_Flag == 0) {
             return;
         }
-        wep = em->dmWep;
-        em->dmHit = 0;
+        wep = em->dmg.m_Wep;
+        em->dmg.m_Flag = 0;
         if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A || wep == 0xE) {
             return;
         }
@@ -593,7 +593,7 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
         EstSet((int) sub, -1, 0, 0, 0x22, 8, 0, 0, (u32) sub, 0);
         sub->r_no_2++;
     case 5:
-        sub->dmType = 2;
+        sub->dmg.m_Timer = 2;
         if (MotionMoveF(sub, 0)) {
             EndSubDamage();
         }
@@ -613,8 +613,8 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
 static void em2aResuceAshleyAction(cSubChar* sub)
 {
     SetPlDamage(sub->dmgType, plemResuceAshley);
-    sub->dmType = 10;
-    pPL->dmType = 10;
+    sub->dmg.m_Timer = 10;
+    pPL->dmg.m_Timer = 10;
     sub->r_no_2 = 4;
     PL_EM(sub)->r_no_2 = 4;
 }
@@ -628,7 +628,7 @@ static void plemResuceAshley(cPlayer* pl)
     Vec v;
 
     pl->subArc = em->subArc;
-    pPLS->dmType = 10;
+    pPLS->dmg.m_Timer = 10;
     switch (pl->r_no_2) {
     case 0:
         pl->ang.y = em->ang.y + PI / 2.0f;

@@ -115,7 +115,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em22DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Module entry (SN loader): registers Em22Init as the DOL's enemy constructor (EmInitFunc).
@@ -163,16 +163,16 @@ void em22DmCk(cEm22* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     LifeDownSet2(em, em22SetDmVal(em), 0, 0);
@@ -194,7 +194,7 @@ void em22DmCk(cEm22* em)
         em->r_no_3 = 0;
         return;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -763,7 +763,7 @@ static void em22_R1_JumpWait(cEm22* em)
         w->flags |= 8;
         if (w->timer) {
             w->timer--;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             em->atari.throughOn();
         } else {
             em->atari.throughOff();
@@ -1151,7 +1151,7 @@ static void em22_R1_SideStep(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->flags |= 4;
     switch (em->r_no_2) {
     case 0: {
@@ -1279,8 +1279,8 @@ static void em22_R1_br_JumpAtk(cEm22* em)
         return;
     }
     EmRoutineSet(em, 1, 0xE, 0, 0);
-    pPL->dmType = 30;
-    em->dmType = 30;
+    pPL->dmg.m_Timer = 30;
+    em->dmg.m_Timer = 30;
     VibSetData(VIB_TBL, 7, 1);
 }
 
@@ -1325,7 +1325,7 @@ static void em22_R1_JumpAtkHit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 1, 0);
@@ -1483,7 +1483,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         break;
     }
     pl->x3A8 = pl->pos;
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // Branch check of ParaAtk (0xF): on the hit key with the player alive inside the 1000 x 4000 lane in
@@ -1505,8 +1505,8 @@ static void em22_R1_br_ParaAtk(cEm22* em)
         return;
     }
     EmRoutineSet(em, 1, 0x10, 0, 0);
-    pPL->dmType = 30;
-    em->dmType = 30;
+    pPL->dmg.m_Timer = 30;
+    em->dmg.m_Timer = 30;
     VibSetData(VIB_TBL, 7, 1);
 }
 
@@ -1560,7 +1560,7 @@ static void em22_R1_ParaAtkHit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->flags |= 0x204;
     switch (em->r_no_2) {
     case 0:
@@ -1618,7 +1618,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
         }
         break;
     }
-    pl->x378 = pl->x37C;
+    pl->subArc = pl->subArc2;
 }
 
 // R1 == 0x11 Wakeup: gets up after being blown away / thrown off (flag bit1), then RunAbout (7).
@@ -1779,7 +1779,7 @@ static void em22_R1_Dm_Small(cEm22* em)
         } else if (w->timer) {
             w->timer--;
             if (w->timer == 0 && (Rnd() & 3) == 0) {
-                em->dmType = 5;
+                em->dmg.m_Timer = 5;
                 EmRoutineSet(em, 1, 0xC, 0, 0);
             }
         }
@@ -1804,7 +1804,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
     w->flags |= 2;
     switch (em->r_no_2) {
     case 0:
-        ang = Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        ang = Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         angAbs = fabsf(ang);
         em->r_no_3 = ang < 0.0f ? 3 : 2;
         if (angAbs < 0.7853982f) {
@@ -2239,10 +2239,10 @@ void em22BloodSet(cEm22* em)
     int near;
 
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 7:
     case 8:
     case 0x21:
@@ -2304,12 +2304,12 @@ int em22SetDmVal(cEm22* em)
     int dm;
 
     near = 0;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
     dm = 100;
-    if (em->dmWep <= 0x2D) {
-        dm = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dm = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     return dm;
 }

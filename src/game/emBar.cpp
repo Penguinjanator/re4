@@ -120,11 +120,11 @@ void emBarDmCk(cEmBar* em)
 {
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -146,10 +146,10 @@ void emBarDmCk(cEmBar* em)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         break;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 7:
     case 8:
     case 0x12:
@@ -167,7 +167,7 @@ void emBarDmCk(cEmBar* em)
     // arm order matters for jump2's cross-jump: the SetBreak(0) arm must come first so the 7/8/0x21
     // then-block stays in place (`ble` to the else block) and the case bodies jump into it; the
     // explicit default-target cases (5, 6, 0xD..0xF, 0x12, 0x13, 0x29, 0x2A, 0x2C) shape the tree
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -192,7 +192,7 @@ void emBarDmCk(cEmBar* em)
     case 7:
     case 8:
     case 0x21:
-        if (em->dmRad > 36000000.0f) {
+        if (em->dmg.m_Dist > 36000000.0f) {
             emBarSetBreak(em, 0);
         } else {
             emBarSetBreak(em, 1);
@@ -316,7 +316,7 @@ void plemEscape(cPlayer* pl)
     cEmBar* bar = (cEmBar*) em->dmgType;
     EmBarWork* w = EMBAR_WK(bar);
 
-    em->x378 = ((cEm*) pPL->dmgType)->x378;
+    em->subArc = ((cEm*) pPL->dmgType)->subArc;
     em->dmg.set(0, 0xF);
     switch (em->r_no_2) {
     case 0:
@@ -328,7 +328,7 @@ void plemEscape(cPlayer* pl)
         }
         break;
     }
-    em->x378 = em->x37C;
+    em->subArc = em->subArc2;
 }
 
 // Rno1 == 1: broken; on entry sets bit0 of the etc flag (stays broken on re-entry), hp 0, hides the
@@ -385,7 +385,7 @@ int emBarHitCk(cEmBar* em)
         return 0;
     }
     p = em->getPartsPtr(0);
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 0.0f;
@@ -401,7 +401,7 @@ int emBarHitCk(cEmBar* em)
             v.z = 0.0f;
             PSMTXMultVec(p->mat, &v, &v);
             if (PlBombHitCk(&v, 500.0f) == 0 && PlWepHitCheck2(0, &v, &v, 0x12, 3, 500.0f) == 0) {
-                em->dmType = 0;
+                em->dmg.m_Timer = 0;
                 return 0;
             }
         }

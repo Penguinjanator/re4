@@ -111,9 +111,9 @@ void em28DmCk(cEm28* em)
             return;
         }
     }
-    if (em->dmHit) {
-        wep = em->dmWep;
-        em->dmHit = 0;
+    if (em->dmg.m_Flag) {
+        wep = em->dmg.m_Wep;
+        em->dmg.m_Flag = 0;
         switch (wep) {
         case 0x16:
         case 0x17:
@@ -129,7 +129,7 @@ void em28DmCk(cEm28* em)
         }
         em->hp = 0;
         SndCall(8, 0, &em->pos, em->id, 0, em);
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 0xb:
         case 0xc:
@@ -686,7 +686,7 @@ static void em28_R1_Die_Normal(cEm28* em)
             MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
             break;
         case 1:
-            em->ang.y += Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+            em->ang.y += Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, 1, 0);
             break;
         case 2:

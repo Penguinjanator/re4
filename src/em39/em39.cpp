@@ -172,7 +172,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em39DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Struct-member views of the player / partner pointers: a load through them is not hoisted above
@@ -273,7 +273,7 @@ void cEm39::setNoSuspend(int on)
 void em39DmCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
-    EmHitInfo* hit;
+    YARARE_INFO* hit;
     int dmg;
 
     if (em->hp > 0 && !em39DeadCk(em)) {
@@ -326,15 +326,15 @@ void em39DmCk(cEm39* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    hit = em->dmPart;
+    hit = em->dmg.m_pDamageYarare;
     if (em39GuardCk(em)) {
         EmDmBloodSet2(em, 0x2F, 0x2D, 0, 0, 0);
         SndCall(8, 0x4C, &pPL->pos, em->id, 0, pPL);
@@ -386,7 +386,7 @@ void em39DmCk(cEm39* em)
     if (w->Be_flg & 8) {
         return;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -1075,7 +1075,7 @@ static void em39_R1_Talk1st(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x30;
     switch (em->r_no_2) {
     case 0:
@@ -1099,7 +1099,7 @@ static void em39_R1_Talk2nd(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x30;
     switch (em->r_no_2) {
     case 0:
@@ -1125,7 +1125,7 @@ static void em39_R1_Success(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         AtariOff(&em->atari, 0xFCFF);
@@ -1189,7 +1189,7 @@ static void em39_R1_Failure(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         AtariOff(&em->atari, 0xFCFF);
@@ -2006,7 +2006,7 @@ static void em39_R1_Escape(cEm39* em)
             EstSet((int) em, -1, 0, 0, 0x2F, 0xF, 0, 0, (u32) em, 0);
             break;
         }
-        em->dmType = 0x1E;
+        em->dmg.m_Timer = 0x1E;
         w->Timer = 30;
         em->r_no_3++;
         w->Escape_wait = (u8) (Rnd() % 150) + 150;
@@ -2085,7 +2085,7 @@ static void em39_R1_Backjump(cEm39* em)
             EstSet((int) em, -1, 0, 0, 0x2F, 0x14, 0, 0, (u32) em, 0);
         }
         w->Arm_rno = 0;
-        em->dmType = 0x1E;
+        em->dmg.m_Timer = 0x1E;
         w->Timer = 10;
         if (em->type == 2) {
             w->Dash_wait = 60;
@@ -2236,7 +2236,7 @@ static void em39_R1_Step(cEm39* em)
             EstSet((int) em, -1, 0, 0, 0x2F, 0xC, 0, 0, (u32) em, 0);
             break;
         }
-        em->dmType = 0x14;
+        em->dmg.m_Timer = 0x14;
         w->Timer = 20;
         em->r_no_3++;
         em->r_no_2++;
@@ -2309,7 +2309,7 @@ static void em39_R1_Slant(cEm39* em)
             MotionSetCore(em, MOTION(em), ARC(0x66), (int) ARC(0x67), 3, 1, 0);
             EstSet((int) em, -1, 0, 0, 0x2F, 0xA, 0, 0, (u32) em, 0);
         }
-        em->dmType = 5;
+        em->dmg.m_Timer = 5;
         w->Timer = 10;
         em->r_no_2++;
     case 1:
@@ -2381,7 +2381,7 @@ static void em39_R1_Slant2(cEm39* em)
                 EstSet((int) em, -1, 0, 0, 0x2F, 0x41, 0, 0, (u32) em, 0);
             }
         }
-        em->dmType = 5;
+        em->dmg.m_Timer = 5;
         w->Timer = 10;
         w->Arm_rno = 8;
         em->r_no_2++;
@@ -2508,7 +2508,7 @@ static void em39_R1_JumpDown(cEm39* em)
         w->Be_flg |= 0x01000000;
         em->ang.y += Muku2(em->ang.y, w->Target_dir, 0.39269908f);
         em->ang.y = LIMIT_ANGLE(em->ang.y);
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         end = MotionMoveF(em, 0);
         if (em->seFlags28B & 0x10) {
             v = em->pos;
@@ -4702,7 +4702,7 @@ static void em39_R1_Hide(cEm39* em)
     Em39Work* w = EM39_WK(em);
     int lim;
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->Be_flg |= 0x430;
     if (w->Be_flg & 0x20000) {
         w->Locate = 5;
@@ -5237,7 +5237,7 @@ static void em39BackjumpAction(cEm39* em)
 static void plemBackjump(cPlayer* pl)
 {
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
-    pl->dmType = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     switch (pl->r_no_2) {
     case 0:
         PLEM39_BACKJUMP_INIT(pl, 0x12B, 0x10D);
@@ -5532,7 +5532,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         em->r_no_2++;
     case 1:
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         EmCatchMotionMove(em, 1.0f, 1.0f);
         if (em->seFlags28B & 4) {
             w->TmpU32B = 1;
@@ -5708,7 +5708,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
     Mtx mat;
     Vec a;
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (st) {
     case 0:
         AtariOff(&em->atari, 0xFCFF);
@@ -5993,7 +5993,7 @@ static void em39_R1_Dm_Normal(cEm39* em)
     w->Total_damage = 0;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI)) < 1.5707964f) {
+        if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI)) < 1.5707964f) {
             if ((u8) (Rnd() % 10) > 5) {
                 MotionSetCore(em, MOTION(em), ARC(0x56), (int) ARC(0x57), 3, 1, 0);
             } else {
@@ -6105,7 +6105,7 @@ static void em39_R1_Dm_Blow(cEm39* em)
     w->Total_damage = 0;
     switch (em->r_no_2) {
     case 0:
-        if (fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI)) < 1.5707964f) {
+        if (fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x5A), (int) ARC(0x5B), 3, 1, 0);
             EstSet((int) em, -1, 0, 0, 0x2F, 0x15, 0, 0, (u32) em, 0);
             w->Be_flg |= 0x200;
@@ -6735,7 +6735,7 @@ static void plemDmSide(cPlayer* pl)
             MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x10E), (int) PL_ARC_PTR(pl->subArc, 0x10F), 3, flag, 0);
         }
         PlSetFace(1);
-        pl->st.x325 = 0xA;
+        pl->dmg.m_Timer = 0xA;
         PlSetDamageSe(0);
         pl->r_no_2++;
     }
@@ -7276,10 +7276,10 @@ void em39BloodSet(cEm39* em)
 {
     int far = 0;
 
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         far = 1;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0xB:
     case 0xC:
     case 0x1B:
@@ -7365,7 +7365,7 @@ void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int 
 // Appear at an EMI type 0xE point: sub 0 = drop in, 1 = door (facing the player), 2 = fixed spot.
 #define EM39_APPEAR_POS(em, w, e)                                                                   \
     (w)->pGotoPoint = e;                                                                           \
-    (em)->dmType = 2;                                                                              \
+    (em)->dmg.m_Timer = 2;                                                                              \
     AtariOff(&(em)->atari, 0xFCFF);                                                                \
     (em)->setPos(&(e)->pos);                                                                       \
     (em)->pos = (e)->pos;                                                                          \
@@ -7490,7 +7490,7 @@ int em39AppearCk(cEm39* em)
             }
             w->Total_damage = st;
             w->pGotoPoint = (EmiEntry*) st;
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             AtariOff(&em->atari, 0xFCFF);
             em->setPos(&e->pos);
             em->pos = e->pos;
@@ -7736,7 +7736,7 @@ void em39WepSet(cEm39* em, int no)
     int dead = 1;                                                                                  \
     int noFlag;                                                                                    \
                                                                                                    \
-    if ((pPL->flags_324 & 0xFFFF0000) == 0) {                                                      \
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {                                                   \
         dead = 0;                                                                                  \
     }                                                                                              \
     if (dead) {                                                                                    \
@@ -8291,7 +8291,7 @@ int em39FanceJumpCk(cEm39* em)
 int em39SetDmVal(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
-    EmHitInfo* h = em->dmPart;
+    YARARE_INFO* h = em->dmg.m_pDamageYarare;
     int far = 0;
     int val;
 
@@ -8299,8 +8299,8 @@ int em39SetDmVal(cEm39* em)
         far = 1;
     }
     val = 100;
-    if (em->dmWep <= 0x2D) {
-        val = GetWepDmVal(em, em->dmWep, far);
+    if (em->dmg.m_Wep <= 0x2D) {
+        val = GetWepDmVal(em, em->dmg.m_Wep, far);
     }
     if (h->partsNo == 5) {
         val += val;
@@ -8323,7 +8323,7 @@ int em39AtkRtnCk(cEm39* em)
     int LongAtk_wait;
     int noFlag;
 
-    if ((pPL->flags_324 & 0xFFFF0000) == 0) {
+    if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
         dead = 0;
     }
     if (dead) {
@@ -8630,12 +8630,12 @@ int em39SlantCk2(cEm39* em)
 // Guard check (tower form): the hit landed on the shield parts.
 int em39GuardCk(cEm39* em)
 {
-    EmHitInfo* h;
+    YARARE_INFO* h;
 
     if (em->type != 2) {
         return 0;
     }
-    h = em->dmPart;
+    h = em->dmg.m_pDamageYarare;
     if (h->partsNo == 0xE) {
         return 1;
     }
@@ -8928,7 +8928,7 @@ void cEm39::setTalk1st()
     Em39Work* w = EM39_WK(this);
 
     SndStop(w->Se_id, 0);
-    dmType = 2;
+    dmg.m_Timer = 2;
     w->Be_flg |= 0x80000;
     EmRoutineSet(this, 1, 0, 0, 0);
 }
@@ -8966,7 +8966,7 @@ void cEm39::setTalk2nd()
     Em39Work* w = EM39_WK(this);
 
     SndStop(w->Se_id, 0);
-    dmType = 2;
+    dmg.m_Timer = 2;
     w->Be_flg |= 0x200000;
     EmRoutineSet(this, 1, 1, 0, 0);
 }

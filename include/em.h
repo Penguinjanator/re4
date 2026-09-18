@@ -12,7 +12,7 @@
 // Hit box ("yarare") / damage part info (cEm+0x33C for the player; GetWepTargetList returns
 // pointers to these per target), 0x34 bytes; extra boxes are chained through `next` (at_mod.cpp
 // YarareAdd / YarareAddCube).
-struct EmHitInfo {
+struct YARARE_INFO {
     Vec ofs;              // 0x00  box centre offset from the model / parts (yarareInit0 x, y, z)
     Vec pos;              // 0x0C  hit position in the parts (obj1b: the spear sticks here)
     f32 width;            // 0x18
@@ -22,31 +22,22 @@ struct EmHitInfo {
     s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
     f32 rad;              // 0x28  squared distance hit point -> line start (em_sub emLineAtCk / emBoxAtCk)
     f32 dist;             // 0x2C  squared distance of the hit from the aim line (em_sub GetWepTargetList sorts on it)
-    EmHitInfo* next;      // 0x30  next hit box of the model (YarareAdd)
+    YARARE_INFO* next;      // 0x30  next hit box of the model (YarareAdd)
 };
 
 // Damage info at cEm+0x324 (game/em.cpp), 0x18 bytes. set(0, 10, kind, pos, rad, part) registers a hit.
 class cDmgInfo {
 public:
-    union {
-        u32 flags;        // 0x00
-        struct {
-            u8 stat;      // 0x00  bit0: a hit is registered, bit5 (pl_wep)
-            u8 m_Timer;        // 0x01  frames the hit stays registered (move: bit7 = hold, low bits count down)  (PS2 cDmgInfo::m_Timer)
-            u16 x2;
-        };
-        struct {
-            u8 pad_0[2];
-            u8 kind;      // 0x02  set() kind
-            u8 x3;
-        };
-    };
-    Vec pos;              // 0x04  hit position
-    f32 rad;              // 0x10
-    EmHitInfo* part;      // 0x14  hit part
+    u8 m_Flag;
+    u8 m_Timer;
+    u8 m_Wep;      // 0x02  set() kind
+    u8 m_Padding03;
+    Vec m_PosFrom;              // 0x04  hit position
+    f32 m_Dist;              // 0x10
+    YARARE_INFO* m_pDamageYarare;      // 0x14  hit part
 
     cDmgInfo();
-    void set(int flag, int timer, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
+    void set(int flag, int timer, u8 kind, Vec* pos, f32 rad, YARARE_INFO* part);
     void set(int flag, int timer);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
     void clear();
     void move();              // counts x1 down; clears stat when it reaches 0
@@ -99,43 +90,12 @@ class cEm : public cModel {
 public:
     s16 hp;               // 0x320
     s16 hp_max;            // 0x322
-    // 0x324 .. 0x33C: the cDmgInfo (em.cpp constructs it explicitly; a class with a constructor
-    // cannot sit in a union directly) and the same bytes under the names the other units use.
-    union {
-        struct {
-            cDmgInfo dmg; // 0x324  (obj08: dmg.set on a hit target)
-        };
-        struct {
-            union {
-                u32 flags_324;    // 0x324  (db_cam: upper 16 bits set = dead)
-                struct {
-                    u8 x324;      // 0x324  (pl_dmg: cleared when the damage motion ends)
-                    u8 x325;      // 0x325  (pl_dmg: 5 at the end, bit7 while the damage motion plays)
-                    u16 x326;
-                } st;
-                struct {
-                    u8 dmHit;     // 0x324  damage registered this frame (emhit emHitDmCk consumes it)
-                    u8 dmType;    // 0x325  emhit: 1, 0x11 for weapon 0x10
-                    u8 dmWep;     // 0x326  weapon id of the damage (cEmHit::ckDmgWeapon)
-                    u8 dm327;
-                };
-            };
-            Vec dmPos;             // 0x328  (obj14: damage position when EmGetDmPos has none)  cDmgInfo::set pos (PS2 m_PosFrom)
-            f32 dmRad;            // 0x334  cDmgInfo::set rad
-            EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
-        };
-    };
-    EmHitInfo hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
+    cDmgInfo dmg;     // 0x324  (obj08: dmg.set on a hit target)
+    YARARE_INFO hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
     f32 l_sub;             // 0x374  (em_set: 1e16 at creation)  squared distance to the partner (em30/em34/em38: closer than plDist2 -> target it) (PS2 l_sub)
-    union {
-        u32 x378;         // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
-        PlArc* subArc;          // 0x378  cSubChar: motion archive the routines index (pl_npc.cpp)
-    };
-    union {
-        u32 x37C;         // 0x37C
-        PlArc* subArc2;         // 0x37C  cSubChar: the archive restored after a damage routine
-    };
+    PlArc* subArc;          // 0x378  cSubChar: motion archive the routines index (pl_npc.cpp)
+    PlArc* subArc2;         // 0x37C  cSubChar: the archive restored after a damage routine
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
     u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
     u8 set;              // 0x38D  (db_cam "set=")
@@ -278,7 +238,7 @@ public:
     u8 pad_58D[0x5C4 - 0x58D];
     u32 subSndId;         // 0x5C4  cSubChar: SndCall handle of the bulldozer SEs (objBull Sub_bull_*)
     f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
-    EmHitInfo subHit[3];  // 0x5CC .. 0x668  cSubChar: extra hit boxes (YarareAdd in cSubChar::init)
+    YARARE_INFO subHit[3];  // 0x5CC .. 0x668  cSubChar: extra hit boxes (YarareAdd in cSubChar::init)
     u8 pad_668[0x738 - 0x668];
     int m_pSatMask;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
     void (*pFuncAux)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler

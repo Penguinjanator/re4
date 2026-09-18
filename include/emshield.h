@@ -45,7 +45,7 @@ struct EmShieldWork {
     u8 inWater;           // 0x0A4 (0x484)  landed in water
     u8 pad_A5[3];
     int xA8;              // 0x0A8 (0x488)
-    EmHitInfo hit[9];     // 0x0AC (0x48C)  plank hit boxes (parts 2..10)
+    YARARE_INFO hit[9];     // 0x0AC (0x48C)  plank hit boxes (parts 2..10)
 };
 
 #define EMSHIELD_WK(em) ((EmShieldWork*) &(em)->x3E0)

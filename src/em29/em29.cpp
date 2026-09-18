@@ -212,16 +212,16 @@ void em29DmCk(cEm29* em)
             return;
         }
     }
-    hit = em->dmHit;
+    hit = em->dmg.m_Flag;
     if (hit == 0) {
         return;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     // b3, b1, store: `hit` dies at b1 (weight 0), so sched1 ranks b1 above b3 and, by source order, above
     // the dmHit store: `rlwinm b1; stb dmHit; rlwinm b3` like the target (the other five orders differ).
     b3 = (hit >> 3) & 1;
     b1 = (hit >> 1) & 1;
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     switch (wep) {
     case 0:
     case 1:
@@ -310,7 +310,7 @@ alive:
     // match is never tried; (2) the then-copy's arms are laid out 1, 2, default (em29DmRoutineSetLate),
     // so its kind-0 remnant `b` is not inverted around the kind-2 arm's remnant and the then-tree is
     // cross-jumped into the else tree. The tail's `dmg = 0` is also the dead store keeping the jump.
-    if (em->dmWep == 0x21) {
+    if (em->dmg.m_Wep == 0x21) {
         em29DmRoutineSetLate(em, kind);
     } else {
         em29DmRoutineSet(em, kind);

@@ -183,18 +183,18 @@ void emShieldDmCk(cEmShield* em)
     Vec p;
     Vec r;
     u8 wep;
-    EmHitInfo* part;
+    YARARE_INFO* part;
     cModel* parts;
     cModel* parts0;
     cModel* parts2;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    wep = em->dmWep;
-    em->dmHit = 0;
-    em->dmType = 1;
-    part = em->dmPart;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    part = em->dmg.m_pDamageYarare;
     if (wep == 0x14) {
         return;
     }
@@ -214,7 +214,7 @@ void emShieldDmCk(cEmShield* em)
     if (w->pParent) {
         SndCall(8, 0xAC, &parts0->world, w->pParent->id, 0, em);
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     default:
     case 0:
     case 1:

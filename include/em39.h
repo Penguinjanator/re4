@@ -22,7 +22,7 @@ struct Em39Work {
     f32 TmpF;              // 0x018 (0x3F8)  jump: per-frame fall of the vertical speed
     Vec TmpV;              // 0x01C (0x3FC)  jump: remaining horizontal movement (10% per frame)
     Vec Spd;              // 0x028 (0x408)  jump: vertical speed
-    EmHitInfo hit[19];    // 0x034 (0x414)  extra hit boxes (YarareAdd / YarareAddCube in em39_R0_Init)
+    YARARE_INFO hit[19];    // 0x034 (0x414)  extra hit boxes (YarareAdd / YarareAddCube in em39_R0_Init)
     u8 pad_410[0x444 - 0x410];
     f32 routeAng;         // 0x444 (0x824)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x448 (0x828)

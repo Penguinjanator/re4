@@ -104,15 +104,15 @@ void em18DmCk(cEm18* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Flag = 0;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -136,9 +136,9 @@ void em18DmCk(cEm18* em)
 // explosives, magnum and rifles; none for the hand weapons.
 void em18BloodSet(cEm18* em)
 {
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
 
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 7:
     case 8:
         if (part->rad < 36000000.0f) {
@@ -342,7 +342,7 @@ static void em18_R1_Trade(cEm18* em)
         KeyStop(0xEFCF0000);
         em->r_no_2++;
     case 1:
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         if (em->motFrame > 35.7f && em->motFrame < 36.3f) {
             em18ClothPartsSet(em, 1);
             SndCall(8, 0xA, &em->pos, em->id, 0, 0);

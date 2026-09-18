@@ -516,7 +516,7 @@ static void playerDieBridge(cPlayer* pl)
         }
         break;
     }
-    pl->st.x325 = 0x78;
+    pl->dmg.m_Timer = 0x78;
     FAdd(r332_work->dieY, step);
     setPosXYZ(pl, pl->pos.x, pl->pos.y - r332_work->dieY, pl->pos.z);
     {
@@ -560,7 +560,7 @@ static void playerBridge(cPlayer* pl)
         IntSet(r332_work->timer, 0);
         pl->r_no_2++;
     case 1:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (pl->frame >= (f32) r332_btnFrame) {
             if (Key.trg & 0x00080000) {
                 IntSet(r332_work->btnCnt, r332_work->btnCnt + 1);
@@ -590,7 +590,7 @@ static void playerBridge(cPlayer* pl)
         }
         break;
     case 2:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (Key.trg & 0x00080000) {
             IntSet(r332_work->btnCnt, r332_work->btnCnt + 1);
         }
@@ -622,7 +622,7 @@ static void playerBridge(cPlayer* pl)
         }
         break;
     case 3:
-        pl->st.x325 = 0x78;
+        pl->dmg.m_Timer = 0x78;
         if (MotionMoveF(pl, 0)) {
             BitOn(pPL->be_flag, 0x10);
             BitOff(pG->Room_flg[0], 0x10000000);

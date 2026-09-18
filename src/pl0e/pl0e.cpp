@@ -847,7 +847,7 @@ static void PlBoatMove(cPlayer* pl)
     pG->Status_flg[1] |= 0x00200000;
     PlSetNeck(2);
     pl->atari.m_flag &= 0xFCFF;
-    pl->dmType = 0x1E;
+    pl->dmg.m_Timer = 0x1E;
     pl->subArc = pl->m_pBoat->subArc;
     pl->motFlags2 &= ~0x40000000;
     pl->neckMot.flags2 &= ~0x40000000;
@@ -1132,7 +1132,7 @@ static void subBoatRide()
     cPl0e* boat = SUB_BOAT(sub);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1175,7 +1175,7 @@ static void subBoatRun()
     Pl0eWork* w = PL0E_WK(boat);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1204,7 +1204,7 @@ static void subBoatJump()
     cPl0e* boat = SUB_BOAT(sub);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1240,7 +1240,7 @@ static void subBoatLanding()
     Pl0eWork* w = PL0E_WK(boat);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1270,7 +1270,7 @@ static void subBoatCrash()
     cPl0e* boat = SUB_BOAT(sub);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1293,7 +1293,7 @@ static void subBoatSink()
     cPl0e* boat = SUB_BOAT(sub);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
@@ -1320,7 +1320,7 @@ static void subBoatJumpMiss()
     cPl0e* boat = SUB_BOAT(sub);
 
     sub->subArc = boat->subArc;
-    sub->dmType = 0x1E;
+    sub->dmg.m_Timer = 0x1E;
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:

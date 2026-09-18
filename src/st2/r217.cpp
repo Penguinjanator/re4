@@ -102,7 +102,7 @@ static inline int r217_emDead(cEm* e)
 {
     int dead = 1;
 
-    if ((e->flags_324 & 0xFFFF0000) == 0) {
+    if (!e->dmg.m_Flag && !e->dmg.m_Timer) {
         dead = 0;
     }
     return dead;

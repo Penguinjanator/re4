@@ -88,8 +88,8 @@ void em2eDmCk(cEm2e* em)
             EmRoutineSet(em, 3, 0, 0, 0);
         }
     }
-    if (em->dmHit) {
-        em->dmHit = 0;
+    if (em->dmg.m_Flag) {
+        em->dmg.m_Flag = 0;
         em->hp = 0;
         if (w->flags & 2) {
             Vec rot;

@@ -82,7 +82,7 @@ void Em26Init(cEm* em)
 void em26DmCk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int near;
     int dmg;
     u8 wep;
@@ -100,16 +100,16 @@ void em26DmCk(cEm26* em)
             return;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    part = em->dmPart;
+    em->dmg.m_Flag = 0;
+    part = em->dmg.m_pDamageYarare;
     near = 0;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -125,12 +125,12 @@ void em26DmCk(cEm26* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     {
-        u32 no = em->dmWep;
+        u32 no = em->dmg.m_Wep;
 
         dmg = 100;
         if (no <= 0x2D) {
@@ -139,7 +139,7 @@ void em26DmCk(cEm26* em)
     }
     LifeDownSet(em, dmg, 0);
     w->dmgTotal += dmg;
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0x2B:
         EmDmBloodSet2(em, 0x1E, 0, 0, 0, 0);
         break;
@@ -452,7 +452,7 @@ static void em26_R1_Dm_Small(cEm26* em)
 
     switch (em->r_no_2) {
     case 0: {
-        EmHitInfo* part = em->dmPart;
+        YARARE_INFO* part = em->dmg.m_pDamageYarare;
         int mode = 1;
         int kind;
 

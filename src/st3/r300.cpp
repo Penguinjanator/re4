@@ -517,7 +517,7 @@ void R300Main()
     if (SceCountEmAlive(0x10, 0x20) == 3 && r300_wk->rock && (s16) pG->pl_life > 0) {
         int skip = 1;
 
-        if ((pPL->flags_324 & 0xFFFF0000) == 0) {
+        if (!pPL->dmg.m_Flag && !pPL->dmg.m_Timer) {
             skip = 0;
         }
         if (skip == 0) {

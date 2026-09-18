@@ -123,7 +123,7 @@ void R21bInit()
 void R21bMain()
 {
     if (r21b_work.p->hit[0]->ckStatus() == 1) {
-        switch (r21b_work.p->hit[0]->dmWep) {
+        switch (r21b_work.p->hit[0]->dmg.m_Wep) {
         case 0xD:
         case 0xE:
         case 0x12:
@@ -136,7 +136,7 @@ void R21bMain()
     }
     if (r21b_work.p->trolley->ckStop() == 1) {
         if (r21b_work.p->hit[1] && r21b_work.p->hit[1]->ckStatus() == 1) {
-            switch (r21b_work.p->hit[1]->dmWep) {
+            switch (r21b_work.p->hit[1]->dmg.m_Wep) {
             case 0xD:
             case 0xE:
             case 0x12:

@@ -233,7 +233,7 @@
 - tools/ngccc.py `place_linkonce_module`: unnamed `.gnu.linkonce.t.*` copies of the module's FIRST
   object are dropped (an unreferenced first copy vanished in the original link) — the single-unit
   modules include light.h and would otherwise carry the 0x3B8 cManager<cLight> block.
-- Types: `Em2eWork`/`Em30Work`/... overlay cEm at 0x3E0 (include/em2e.h ...); `hit[N]` EmHitInfo boxes
+- Types: `Em2eWork`/`Em30Work`/... overlay cEm at 0x3E0 (include/em2e.h ...); `hit[N]` YARARE_INFO boxes
   at +0xC (YarareAdd), the RouteCk block at +0x214..+0x258 (em30/em34: routeAng, routeAngAbs, subAng,
   subAngAbs, targetAng, targetAngAbs, targetDist, routePos, subRoutePos, targetPos, pTarget, neckAng),
   `PlCloth cloth1/cloth2` at +0x25C/+0x2BC.
@@ -284,15 +284,15 @@
 - em34: `static EmAtkInfo em34_atk_tbl[1]` + `static int em34_atk_pad = 0` (the 4 zero bytes after it);
   `em34AtkCk(em, no, parts)` indexes the table `no << 4`.
 - OPEN (em30DmCk tail): the original ends the `hp > 0` else arm with `lbz r3, dmWep; cmpwi r3, 0x21`
-  and no branch (r3 = return value): a `return em->dmWep` on the taken path of `== 0x21` whose branch
+  and no branch (r3 = return value): a `return em->dmg.m_Wep` on the taken path of `== 0x21` whose branch
   only jump2 removed. Our cse folds the returned value to `li r3, 0x21` (record_jump_equiv on the
   fall-through, cse-skip-blocks on the taken path) in every form tried (if/switch, taken-path else
   arm, dead sibling arm, nested if, duplicated condition), and flow2's tidy_fallthru + life_analysis
   delete a dead compare, so the shape is out of reach: em30 stays 22/23 (+8 bytes), not Matching.
 - em24 (Matching, include/em24.h; 2026-09): `switch (DmgMgr.hitCheck(&em->pos, 0)) { case 1: case 4:
-  case 5: case 7: goto die; }` with the `die:` label inside the following `if (em->dmHit)` body (the
+  case 5: case 7: goto die; }` with the `die:` label inside the following `if (em->dmg.m_Flag)` body (the
   shared `hp = 0; dmType = 0x80; EmRoutineSet(3,0,0,0)` tail); the weapon filter is an `||` chain
-  (`cmpwi 0x14/0x16/0x17/0x2a/0xe` in source order, not a tree) on an `int wep = em->dmWep` read
+  (`cmpwi 0x14/0x16/0x17/0x2a/0xe` in source order, not a tree) on an `int wep = em->dmg.m_Wep` read
   before the `dmHit = 0` store. `scale = (f32) (int) Rnd() * 0.15f * (1.0f / 256.0f) + 1.1f` gives the
   signed double trick (`(f32) Rnd()` alone is a `psq_l` fast cast); `int zero = 0; int two = 2;`
   after the scale stores feed `lockParts = zero`, `w->flags/stuckCnt = zero`, `splashTimer = two` and
@@ -361,10 +361,10 @@
     BEFORE the `7, 8, 21` arm so its body follows the tree and the `beq END` of `cmpwi 0xe` and
     `cmpwi 0x2b` merge). Two identical arms written as separate `case 2:` / `case 3:` bodies (not
     `case 2: case 3:`) reproduce two `beq` nodes to one label (em3cModelInit).
-  - Player callbacks: `pl->subArc = PL_EM(pl)->subArc; pl->dmType = 2;` (this order gives the
+  - Player callbacks: `pl->subArc = PL_EM(pl)->subArc; pl->dmg.m_Timer = 2;` (this order gives the
     `stb` before the `stw`); `sub->rot.y = GetXZAngle(..); sub->rot.y += -0.17453292f; sub->rot.y =
     LIMIT_ANGLE(sub->rot.y);` gives the `fmr f0, f1` copy with the first store dropped;
-    `w->actMode = 0; w->escaped = 1; pPLS->dmType = 2;` gets the 1/2 constants in r0 and the zero in
+    `w->actMode = 0; w->escaped = 1; pPLS->dmg.m_Timer = 2;` gets the 1/2 constants in r0 and the zero in
     r11. `FSet(pPL->rot.y, pPL->rot.y + Muku(..))` when pPL is reloaded after the store
     (em3cAtkCk); `pPLS->setNoSuspend(1)` after a `pG->flags_5010 |=` store; `pGS->x4F88` for the
     difficulty table stores through `w` (`w->timer = 20; if (pGS->x4F88 <= 2) w->timer = 10;`);
@@ -398,9 +398,9 @@
   0x60, so the module's `_vt.5cUnit` copy lands at 0x5D0). R1 table of 20 `{br_*, main}` pairs, R2 2,
   R3 1. Work: +0x14/+0x18 route angle/abs, +0x24..+0x30 target angle/abs/dist2/RouteCkPosToPosDis,
   +0x34 plRoutePos, +0x4C routePos, +0x5C blow speed, +0x68/+0x6C goto flag/pos, +0x78 `Camera`,
-  +0x170 `EmHitInfo hit[5]`, +0x274 `cObj16* pPara[5]`, +0x288 `cObj16* pParaAtk[3]`, then the
+  +0x170 `YARARE_INFO hit[5]`, +0x274 `cObj16* pPara[5]`, +0x288 `cObj16* pParaAtk[3]`, then the
   ctrl pointers / timers up to +0x2E0 (espKind). Idioms found:
-  - Constant reuse across calls: after `em->dmHit = 0; em->dmType = 1;` the original's
+  - Constant reuse across calls: after `em->dmg.m_Flag = 0; em->dmg.m_Timer = 1;` the original's
     `EmRoutineSet(em, 2, 1, 0, 0)` in the `hp <= 0` / `flags & 8` arms reuses those 0/1 pseudos
     (`stb r30, 0xff; stb r28, 0xfd`, callee-saved across LifeDownSet2/SndCall). Only four direct
     `em->xFC = 2; em->xFD = 1; em->xFE = 0; em->xFF = 0;` stores reproduce it; the int-parameter
@@ -1506,7 +1506,7 @@
   barrier, so pick a statement whose neighbours are already ordered by dependences):
   - lightPath movePath: around the LAST `pCur = pCur + 1` store (`this` 9 weighted refs > pCur 5/14 -> this r9,
     pCur r11); the same wrap on the first arm's store or on the `v = pCur->data[0]` load reorders the code.
-  - emBar emBarHitCk: around `emBarSetBreak(em, 2)` (or `em->dmType = 0`, or the `hp <= 0` test): 7th em ref
+  - emBar emBarHitCk: around `emBarSetBreak(em, 2)` (or `em->dmg.m_Timer = 0`, or the `hp <= 0` test): 7th em ref
     (1686 > p 1509) -> em r31, p r30.
   - vfprintf fftoa: `do { u.d = value; } while (0); do { lo = u.w[1]; hi = u.w[0]; } while (0);` -- the second
     block makes lo (3 refs) beat sgn in global-alloc (lo r11, sgn r10), the first is the barrier that keeps the
@@ -1872,7 +1872,7 @@
 - Death body written twice (hitCheck arm with `return`, and `case 0x16:` reached by `goto` from the
   blood arm, laid out after the default arm): each copy stores the dmgWait register cse knows to be 0;
   jump2 cross-jumps them into the later copy. A shared `goto die` label materialises `li r0,0`.
-- `if (em->dmWep == 0x10) ...; switch (em->dmWep)` — the member read twice around a byte store reloads
+- `if (em->dmg.m_Wep == 0x10) ...; switch (em->dmg.m_Wep)` — the member read twice around a byte store reloads
   it; a `u8 wep` local keeps one load.
 - `p = em->getPartsPtr(0); ...switch...; LifeDownSet2(...); pos = &p->worldPos;` — the parts pointer
   crossing the call is the callee-saved `mr r30,r3` with the `addi ..,112` hoisted above the `bl`.
@@ -2204,7 +2204,7 @@
   Atk, AtkPoison, JumpAtk); `IntSet(w->jumpWait, Rnd() % 150 + 150); w->atkWait = 100;` (the reference store keeps
   the pG load of the difficulty chain below it; the 100 store is written AFTER the Rnd call: JumpAtkCounter,
   JumpKickHit, JumpAtk); `SndCall(1, 0x35, &pPLS->pos, 0, 0, pPLS)` after `pl->x3E0/x3E4/x3E8` stores (plem2dKick).
-- `switch (em->dmWep) { case 9: case 0xA: dmg = 9999; }` for `cmpwi 0xa; bgt; cmpwi 9; blt` (if-forms fold the
+- `switch (em->dmg.m_Wep) { case 9: case 0xA: dmg = 9999; }` for `cmpwi 0xa; bgt; cmpwi 9; blt` (if-forms fold the
   9 to `cmplwi 8`; em2dSetDmVal). `if ((Rnd() & 1) || (s16) pG->pl_life <= 299) stat = A; else stat = B;` lays
   the A store first (C_Fall). `switch (no) { case 0: SndCall(A); break; case 1: SndCall(B); break; }` for the
   `beq cr4; cmpwi 1; beq; b` shape where `if/else if` threads the second test (FootSeMove, both blocks).
@@ -2430,7 +2430,7 @@
 ### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105 -> 106/108 -> 107/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
 - Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs, R2/R3 one entry, EmAtkInfo x6, cloth tables,
   `.data` balign pad, `.comm common_em32`, cUnit/cManager<cObj> linkonce copies at the .text end). Work 0x994 bytes
-  (include/em32.h: 28 EmHitInfo, blend-motion sub work, PlCloth, two pDivide units, TexRender blend model, breakNo
+  (include/em32.h: 28 YARARE_INFO, blend-motion sub work, PlCloth, two pDivide units, TexRender blend model, breakNo
   bytes read by `cEm32::getBreakNo/getBreakNo2`, `setNext(int)` room-script hook). Harness /tmp/em32w (mcmp/sbs/
   variants/perm + tools/research/casetree.py for the DmCk tree, dump.sh for `.lreg`).
 - Two block-local loads of the same field give the `lfs f0; lfs f13,K; fmr f12,f0; fcmpu f0,f13` shape: `f32 a =
@@ -2546,7 +2546,7 @@
 ### em31 (El Gigante; src/em31/em31.cpp + include/em31.h written from scratch, 134 -> 137/138 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
 - Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs x35, R2 x4, R3 x1, EmAtkInfo x8, two u16 flip
   tables, `em31CatchObj` one-member struct, three PlCloth table sets, `.comm common_em31,52,4`, cUnit/cManager<cObj>
-  linkonce copies at the .text end). Work 0x994 bytes (include/em31.h: 29 EmHitInfo, route/target angles, body/
+  linkonce copies at the .text end). Work 0x994 bytes (include/em31.h: 29 YARARE_INFO, route/target angles, body/
   tentacle/tail/pillar/weak pointers, two PlCloth, a Camera, bridgePos, difficulty timers, four Em31Eyelid).
   The body ("pBody", type 0) and the tentacle unit ("pTen", type 1) are both cEm31; `Em31ClothSet` is the
   never-called static whose pool the link kept (STRIP_UNUSED). Harness /tmp/em31w (mcmp/sbs/variants/perm,
@@ -3128,7 +3128,7 @@
   !=`); read the target's branch polarity (`beq` past the second test) before writing the operator.
 - plem2b_dm_BlowKick (30 -> 0): one EstSet with `ChkWaterEffectEnable(&pl->pos) ? 6 : 5` as the argument (`cmpwi;
   li r8,5; beq; li r8,6` -- an `int kind = 5; if (..) kind = 6;` form reloads differently, 19).
-- plem2bDashEscape (35 -> 0): `pl->subArc = PL_EM(pl)->subArc; pl->dmType = 2;` (the byte store after the load) and
+- plem2bDashEscape (35 -> 0): `pl->subArc = PL_EM(pl)->subArc; pl->dmg.m_Timer = 2;` (the byte store after the load) and
   the atari flag RMWs through the wep_mod.h volatile view (`AtariFlagsAndV(&pl->atari, 0xFDFF)` /
   `AtariFlagsOrV(&pl->atari, 0x200)`, copied into em2b.cpp): `addi rX,pl,0x2b4; lhz/andi./sth 0x1a(rX)` with the
   following `lwz pSUB` below the store. The plain `flags &= ~0x200` folds the address and hoists the load;
@@ -3215,7 +3215,7 @@
   REG_EQUIV note, temp2 = the switch load `lbz r0,806` = a set of the same hard register) fires in ours after
   do_cross_jump re-processes the redirected `b` (`next = insn`), and hoists the `li` above the `beq` (inverted).
   All conditions are met in the target's final code too, so the original's RTL differed by something invisible
-  (a note / codeless insn); `asm volatile("")` right before `switch (em->dmWep)` (its ASM_INPUT insn is the block's
+  (a note / codeless insn); `asm volatile("")` right before `switch (em->dmg.m_Wep)` (its ASM_INPUT insn is the block's
   first insn and not a SET) keeps the arm as in the target; cse is not flushed by ASM_INPUT. Left as a candidate.
 - em2c BlendMotSet (2 -> 0) / BlendMotSet2 (7 -> 0), COMPILER-DIFF #2 (u16 parameter masked at the calls):
   **tied-operand launder** `int dd; asm("" : "=r"(dd) : "0"((int) d));` declared BEFORE `f32 val = fabsf(..)` (before
@@ -3445,7 +3445,7 @@
 - em29 em29DmCk (91): the target's tail zero is a routine-scope `int zero; zero = 0;` right after the wep switch,
   passed as the 9th/10th EstSet argument (`(void*) zero`) and as a third parameter of em29DmRoutineSet(em, kind, z)
   (`EmRoutineSet(em, 2, z/1/2, z, z)`), with the hp>0 arm calling it with the literal 0 inside a dead
-  `if (em->dmWep == 0x21) RS else RS` (the `lbz dmWep; cmpwi 0x21` left after jump2 merged the identical arms):
+  `if (em->dmg.m_Wep == 0x21) RS else RS` (the `lbz dmWep; cmpwi 0x21` left after jump2 merged the identical arms):
   that form reproduces `li r29,0` at the dmg join, the EstSet stack stores and the hp<=0 arms, but the early
   (hitCheck) routine set then has three separate arms ending `stb r30,0xfe; b END` that our jump2 cross-jumps
   (2-insn tails; the original never merges them — #6) and the hp>0 `bne` is not removed by our jump2 either, so
@@ -3541,7 +3541,7 @@
   EM39_ATK_SIDE arms (pPL reloaded for the `xFF` store), plus the `[no - 1]` table index above.
 - em39BloodSet (46 -> 0): `case 0: case 0x14: default: break;` (tools/research/casetree.py search: the two default-labelled
   nodes move the left root to [7,8] and keep `cmpwi 0x14; beq X`).
-- em39GuardCk (43 -> 0): the two tail tests read `h->partsNo` too (the old `em->dmPart->partsNo` kept `em` live, so
+- em39GuardCk (43 -> 0): the two tail tests read `h->partsNo` too (the old `em->dmg.m_pDamageYarare->partsNo` kept `em` live, so
   `h` could not take r3); the ten `if (h->partsNo == K) return 1;` stay separate statements (an `||` chain folds
   `0xE || 0xF` into `subi; cmplwi 1`).
 - em39JumpDownCk (37 -> 21): every `return 0` written before the last probe's (`if (em->type == 2) return 0;` first,
@@ -3924,7 +3924,7 @@
   while (0)` around the whole hp <= 0 body doubles zero's ref weight (10 -> 20) so it ranks above `kind` (27/444) and
   is allocated before it: em r31, b1 r30, zero r29, kind r28, w r27, b3 r26 (pass-0 rule: zero conflicts with `&em->pos`
   (r30, allocated first) and takes r29; b3 then finds r30..r27 taken and goes to r26 = the target's `stmw r26`);
-  (3) `if (em->dmWep == 0x21) RS(kind); else RS(kind);` for the dead `lbz dmWep; cmpwi 0x21` (jump2's
+  (3) `if (em->dmg.m_Wep == 0x21) RS(kind); else RS(kind);` for the dead `lbz dmWep; cmpwi 0x21` (jump2's
   `delete_computation` bails out after reload with sched2 on -- "schedulers do not keep REG_DEAD notes" -- so a jump
   deleted in jump2 always keeps its compare; a dead-test `if (X) local = K;` loses the compare in flow2 instead).
   Residue 27 = (a) 12 words of the then-copy's kind-0 body: our jump2 first tries the code before END for every
@@ -3981,7 +3981,7 @@
   last scheduled insn, dependents, LUID; `add_branch_dependences` skips insns that already have dependents
   (INSN_REF_COUNT). No C construct puts an insn between a switch/if compare and its branch, so a compare can never
   reach priority 3 -- the latency trick on the OTHER insn is the general lever for "compare before store" ties.
-- **em31DmCk (11 -> 0, zero code): the `> 0x17` half written out inside the switch.** `int no = em->dmWep; switch (no)`
+- **em31DmCk (11 -> 0, zero code): the `> 0x17` half written out inside the switch.** `int no = em->dmg.m_Wep; switch (no)`
   with `case 0x18 ... 0x1A: goto high1; case 0x1B ... 0x1D: goto high2; case 0x1E ... 0x20: goto high3; case 0x21 ...
   0x23: goto high4; case 0x24 ... 0x7FFFFFFF: goto high5;` then `high1: .. high5:` + the if-chain `if (no <= 0x28)
   break; if (no > 0x2C) { if (no == 0x2D) goto down; break; } if (no >= lim2B) break; down: case 0xD: ..` and
@@ -3995,8 +3995,8 @@
   tree's block (`cmpwi cr7` + `bgt cr7`, 10 words with `[18-28],[29-2A],[2B-2C],[2D-MAX]`); (d) fold rewrites `x >= C`
   to `x > C-1` (and `x < C` to `x <= C-1`) for a positive literal C, so the target's `cmpwi 0x2B; bge` (stmt.c emits GE
   directly) needs `int lim2B = 0x2B; if (no >= lim2B)` -- cse folds the register into the compare and keeps the code;
-  (e) the chain must compare the switch INDEX pseudo (`int no`), a re-read `em->dmWep` gets a `mr r9,r0` copy and
-  `(int) em->dmWep <= K` is narrowed to `cmplwi` by fold. Enum indexes do not help: g++ 2.95's `c_expand_start_case`
+  (e) the chain must compare the switch INDEX pseudo (`int no`), a re-read `em->dmg.m_Wep` gets a `mr r9,r0` copy and
+  `(int) em->dmg.m_Wep <= K` is narrowed to `cmplwi` by fold. Enum indexes do not help: g++ 2.95's `c_expand_start_case`
   runs `default_conversion` (enum -> int) and `get_unwidened` strips only widening NOP_EXPRs (bitschange > 0), so the
   tree's index_type is `int` (INT_MIN/INT_MAX bounds); `finish_enum` sets TYPE_MIN/MAX from the enumerators' precision,
   not their values. `case A ... 0x7FFFFFFF:` (INT_MAX high) is how a node gets `node_has_high_bound` without a parent.
@@ -4266,7 +4266,7 @@ Analyses left open (all zero-code and tagged forms tried, listed for the next pa
   remnant order is K1a, K2a, K0a and the inversion has no simplejump to take; all three arm orders with default last
   (120, 201, 210) work, the three with default first fail. Zero code -- the then copy is deleted whole.
   (3) The 3-word sched1 tie (`rlwinm b1; stb dmHit; rlwinm b3`) is source order after all: `b3 = ..; b1 = ..;
-  em->dmHit = 0;` -- `hit` dies at b1 (INSN_REG_WEIGHT 0 like the dying-zero store), and among equal weights the
+  em->dmg.m_Flag = 0;` -- `hit` dies at b1 (INSN_REG_WEIGHT 0 like the dying-zero store), and among equal weights the
   smaller LUID wins, so b1 (written before the store) issues first; the other five orders give 2-3 words.
 - **em3cPartsBombControl 295 -> 106 (module 46/47, not flipped).** (a) The phantom CFG edge is a dead loop exit that only
   cse2 can fold, tagged `COMPILER-DIFF: 3`: `if (k <= 4) goto next_n;` right after the k loop (`next_n:;` at the end of

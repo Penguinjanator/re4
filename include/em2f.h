@@ -14,7 +14,7 @@ struct Em2fWork {
     u32 flags;            // 0x000 (0x3E0)  bit0: route to the player found, bit1: partner present, bit2: targets the partner, bit3: damage / die routine, bit4: surfaced, bit5: mouth open (flip motions), bit6: damaged (DmCk), bit7: rising, bit8: fast (double water effect), bit9: BGM stopped, bit10: tentacles out
     int timer;            // 0x004 (0x3E4)
     int timer2;           // 0x008 (0x3E8)
-    EmHitInfo hit[7];     // 0x00C (0x3EC)  extra hit boxes (em2f_R0_Init)
+    YARARE_INFO hit[7];     // 0x00C (0x3EC)  extra hit boxes (em2f_R0_Init)
     u8 pad_178[0x41C - 0x178];
     f32 x41C;             // 0x41C (0x7FC)  Swim: 5000
     int x420;             // 0x420 (0x800)  Swim: 10

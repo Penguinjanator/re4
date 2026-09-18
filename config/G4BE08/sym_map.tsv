@@ -3591,7 +3591,7 @@ address	size	section	unit	scope	name	demangled
 0x800EDD28	0x4	.text	game/em.cpp	global	move__3cEm	cEm::move
 0x800EDD2C	0x18	.text	game/em.cpp	global	initWork__3cEm	cEm::initWork
 0x800EDD44	0x30	.text	game/em.cpp	global	__8cDmgInfo	cDmgInfo::cDmgInfo
-0x800EDD74	0x38	.text	game/em.cpp	global	set__8cDmgInfoiiUcP3VecfP9EmHitInfo	cDmgInfo::set
+0x800EDD74	0x38	.text	game/em.cpp	global	set__8cDmgInfoiiUcP3VecfP11YARARE_INFO	cDmgInfo::set
 0x800EDDAC	0xC	.text	game/em.cpp	global	set__8cDmgInfoii	cDmgInfo::set
 0x800EDDB8	0x10	.text	game/em.cpp	global	clear__8cDmgInfo	cDmgInfo::clear
 0x800EDDC8	0x30	.text	game/em.cpp	global	move__8cDmgInfo	cDmgInfo::move

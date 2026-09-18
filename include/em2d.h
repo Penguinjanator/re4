@@ -22,7 +22,7 @@ struct Em2dWork {
     int walkMode;         // 0x00C (0x3EC)  em2d_R1_Walk: 0 approach, 1 / 2 keep the distance (jump attack / poison)
     f32 turnAng;          // 0x010 (0x3F0)  em2d_R1_Turn180 target yaw; the A_ routines: hover amplitude
     Vec hoverSpd;         // 0x014 (0x3F4)  A_ routines: per-frame phase steps of the hover
-    EmHitInfo hit[15];    // 0x020 (0x400)  extra hit boxes (YarareAdd in em2d_R0_Init)
+    YARARE_INFO hit[15];    // 0x020 (0x400)  extra hit boxes (YarareAdd in em2d_R0_Init)
     f32 routeAng;         // 0x32C (0x70C)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x330 (0x710)
     u8 pad_334[8];

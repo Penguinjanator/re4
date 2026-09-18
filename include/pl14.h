@@ -33,7 +33,7 @@ public:
             Vec dmPos;     // 0x328  damage position  damage position (cEm::dmPos)
         };
     };
-    EmHitInfo hitInfo;    // 0x33C .. 0x370
+    YARARE_INFO hitInfo;    // 0x33C .. 0x370
     f32 plDist2;          // 0x370
     f32 l_sub;             // 0x374  (cEm::l_sub)
     PlArc* subArc;        // 0x378  motion archive the routines index
@@ -184,7 +184,7 @@ public:
     s8 flags;             // 0x58C  bit0 damaged, bit1 dead, bit2 upstairs, bit3 neck set this frame, bit6 damage from an enemy
     u8 pad58D[3];
     int cnt;              // 0x590  frames of the damage reaction voice
-    EmHitInfo hit[10];    // 0x594 .. 0x79C
+    YARARE_INFO hit[10];    // 0x594 .. 0x79C
     u8 pad79C[4];
     cModelInfo* pFace;    // 0x7A0
     u16 m_LeonHp;          // 0x7A4  player life the last worry line was spoken at

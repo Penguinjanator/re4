@@ -26,7 +26,7 @@ struct Em3aWork {
     u8 pad_8[8];
     int turnDir;          // 0x010 (0x3F0)  B_HideWait: 0 none, 1 left, 2 right
     u8 pad_14[0x20 - 0x14];
-    EmHitInfo hit[4];     // 0x020 (0x400)  extra hit boxes (YarareAddCube)
+    YARARE_INFO hit[4];     // 0x020 (0x400)  extra hit boxes (YarareAddCube)
     u8 pad_F0[0x238 - 0xF0];
     f32 routeAng;         // 0x238 (0x618)  Muku towards the route point
     f32 routeAngAbs;      // 0x23C (0x61C)

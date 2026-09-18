@@ -93,7 +93,7 @@ struct PlayerPtr {
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em3aDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Stores through a scalar reference: the following pG load is reloaded (em3a_R1_Atk's timer
@@ -196,23 +196,23 @@ void Em3aInit(cEm* em)
 void em3aDmCk(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
-    EmHitInfo* hit;
+    YARARE_INFO* hit;
     int one;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
+    em->dmg.m_Flag = 0;
     one = 1;
-    em->dmType = one;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Timer = one;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
-    hit = em->dmg.part;
+    hit = em->dmg.m_pDamageYarare;
     if (em->type == 2) {
         EmDmBloodSet2(em, 2, 1, 0, 0, 0);
         if (w->flags & 8) {
-            switch (em->dmWep) {
+            switch (em->dmg.m_Wep) {
             case 0x13:
             case 0x29:
             case 0x2D:
@@ -1380,12 +1380,12 @@ int em3aSetDmVal(cEm3a* em)
     int val;
 
     flag = 0;
-    if (em->dmg.part->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         flag = 1;
     }
     val = 100;
-    if (em->dmWep <= 0x2D) {
-        val = GetWepDmVal(em, em->dmWep, flag);
+    if (em->dmg.m_Wep <= 0x2D) {
+        val = GetWepDmVal(em, em->dmg.m_Wep, flag);
     }
     return val * 5;
 }

@@ -11,7 +11,7 @@ class cCtrl;
 struct Em26Work {
     u32 flags;            // 0x000 (0x3E0)  bit3: damage / die routine, bit4: mirrored motions (0x41 flag), bit5: died in a damage volume
     u8 pad_4[0xC];
-    EmHitInfo hit[2];     // 0x010 (0x3F0)  extra hit boxes (YarareAdd: parts 5 and 0x18)
+    YARARE_INFO hit[2];     // 0x010 (0x3F0)  extra hit boxes (YarareAdd: parts 5 and 0x18)
     u8 pad_78[0x17C - 0x78];
     int estTimer;         // 0x17C (0x55C)  frames between the idle effects
     int dmgTotal;         // 0x180 (0x560)  damage taken since the last attack (> 500 -> R1_Atk)

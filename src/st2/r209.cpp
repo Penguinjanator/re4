@@ -560,7 +560,7 @@ static void r209_LeaderAction()
         if (wp->leader.isActive()) {
             int snipe = r209_GanadoSnipeCheck(&wp->leader);
 
-            em->st.x325 = 2;
+            em->dmg.m_Timer = 2;
             if (moved == 0 && snipe == 1) {
                 moved = 1;
                 r209_LeaderMoveToPoint(6, 1);

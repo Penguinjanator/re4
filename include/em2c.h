@@ -27,7 +27,7 @@ struct Em2cWork {
     int mode;             // 0x010 (0x3F0)  TailAtk: the tail already hit; W_Walk: Rnd() & 3; F_Atk: motion select
     f32 turnAng;          // 0x014 (0x3F4)  Turn180: the angle the model turns towards
     u8 pad_18[0xC];
-    EmHitInfo hit[13];    // 0x024 (0x404)  extra hit boxes (YarareAdd in em2c_R0_Init)
+    YARARE_INFO hit[13];    // 0x024 (0x404)  extra hit boxes (YarareAdd in em2c_R0_Init)
     u8 pad_2C8[0x330 - 0x2C8];
     f32 routeAng;         // 0x330 (0x710)  Muku towards the route point (player)
     f32 routeAngAbs;      // 0x334 (0x714)

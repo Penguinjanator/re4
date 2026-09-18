@@ -82,7 +82,7 @@ static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
 static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // Upper half of the damage flags set = the enemy is dead (db_cam idiom); the inline's result is
 // materialised as 0/1 before the test.
-static inline int isDeadEm(cEm* em) { return (em->flags_324 & 0xFFFF0000) != 0; }
+static inline int isDeadEm(cEm* em) { return em->dmg.m_Flag || em->dmg.m_Timer; }
 // Set an enemy's four routine bytes (r_no_0..3) at once — Ashley's aux-routine steps.
 static inline void EmRoutineSet(cEm* p, int fc, int fd, int fe, int ff)
 {
@@ -626,7 +626,7 @@ static void r206_snipe()
     }
     SubCharCtrl(SCC_AUX_MOT, 0);
     pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
-    pSUB->st.x325 = 0x80;
+    pSUB->dmg.m_Timer = 0x80;
     {
         Vec pos = {0.0f, 0.0f, 900.0f};
 

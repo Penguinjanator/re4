@@ -77,7 +77,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em30DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // REL entry: registers the enemy constructor.
@@ -111,13 +111,13 @@ int em30DmCk(cEm30* em)
 {
     int dmg;
 
-    if (em->dmHit) {
-        em->dmHit = 0;
-        em->dmType = 1;
-        if (em->dmWep == 0x10) {
-            em->dmType = 0x11;
+    if (em->dmg.m_Flag) {
+        em->dmg.m_Flag = 0;
+        em->dmg.m_Timer = 1;
+        if (em->dmg.m_Wep == 0x10) {
+            em->dmg.m_Timer = 0x11;
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
@@ -170,8 +170,8 @@ int em30DmCk(cEm30* em)
             // around an empty taken arm is deleted by jump2 after reload. Written as `== 0x21`, cse
             // folds the returned value to `li r3, 0x21` on the taken path (record_jump_equiv); the
             // xor form hides the equivalence from cse and combine folds the compare back.
-            if ((em->dmWep ^ 0x21) == 0) {
-                return em->dmWep;
+            if ((em->dmg.m_Wep ^ 0x21) == 0) {
+                return em->dmg.m_Wep;
             }
         }
     }

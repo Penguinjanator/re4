@@ -156,7 +156,7 @@ static inline void PSet(void*& d, void* v) { d = v; }
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em32DeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
@@ -412,7 +412,7 @@ void em32DmCk(cEm32* em)
                     }
                     if (em->hp > 0) {
                         w->dmgTotal = f;
-                        em->dmWep = 0x16;
+                        em->dmg.m_Wep = 0x16;
                         em->r_no_0 = 2;
                         em->r_no_1 = f;
                         em->r_no_2 = f;
@@ -431,20 +431,20 @@ void em32DmCk(cEm32* em)
             break;
         }
     }
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
     zero = 0;
-    em->dmHit = zero;
+    em->dmg.m_Flag = zero;
     near = 0;
     w->flags |= 0x200;
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
-    em->dmType = 1;
+    wep = em->dmg.m_Wep;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     dmg = em32SetDmVal(em);
     flag = 0;
@@ -478,7 +478,7 @@ void em32DmCk(cEm32* em)
             return;
         }
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -540,7 +540,7 @@ void em32DmCk(cEm32* em)
         dmg /= 4;
     }
     w->dmgTotal += dmg;
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -915,7 +915,7 @@ static void em32_R1_2ndAppear(cEm32* em)
     int zero;
 
     w->flags |= 0x800;
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         em->be_flag &= ~2;
@@ -954,7 +954,7 @@ static void em32_R1_3rdAppear(cEm32* em)
     int zero;
 
     w->flags |= 0x800;
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     if (em->r_no_2 == 0) {
         em->be_flag &= ~2;
         em->invisible_factor = 0.0f;
@@ -978,7 +978,7 @@ static void em32_R1_3rdFall(cEm32* em)
     Em32Work* w = EM32_WK(em);
 
     w->flags |= 0x800;
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, &em->Motion, ARC(0x79), 0, 0, 1, 0);
@@ -1003,7 +1003,7 @@ static void em32_R1_4thAppear(cEm32* em)
     Em32Work* w = EM32_WK(em);
 
     w->flags |= 0x800;
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     switch (em->r_no_2) {
     case 0:
         em->r_no_2++;
@@ -1972,7 +1972,7 @@ static void em32_R1_CatchHit(cEm32* em)
         em->r_no_2++;
     case 1:
         if (EmCatchMotionMove(em, 1.0f, 1.0f)) {
-            em->dmType = 2;
+            em->dmg.m_Timer = 2;
             em->r_no_2 = 4;
             break;
         }
@@ -2051,7 +2051,7 @@ static void em32_R1_CatchHit(cEm32* em)
         pG->pl_life = 0;
         em->r_no_2++;
     case 5:
-        em->dmType = 2;
+        em->dmg.m_Timer = 2;
         EmCatchMotionMove(em, 1.0f, 1.0f);
         break;
     }
@@ -2828,7 +2828,7 @@ static void em32_R1_C_Wait(cEm32* em)
     Vec v;
     int timer;
 
-    em->dmType = 2;
+    em->dmg.m_Timer = 2;
     w->flags |= 0x840;
     em32SetYarareMark(em, 0);
     switch (em->r_no_2) {
@@ -3618,21 +3618,21 @@ static void em32_R1_Dm_Normal(cEm32* em)
         default:
             MotionSetCore(em, &em->Motion, ARC(0x25), (int) ARC(0x26), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
-            if (em->dmWep != 0x17) {
+            if (em->dmg.m_Wep != 0x17) {
                 EstSet((int) em, -1, 0, 0, 0x2A, 0x1D, 0, 0, (u32) em, (void*) step);
             }
             break;
         case 1:
             MotionSetCore(em, &em->Motion, ARC(0x69), (int) ARC(0x6A), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
-            if (em->dmWep != 0x17) {
+            if (em->dmg.m_Wep != 0x17) {
                 EstSet((int) em, -1, 0, 0, 0x2A, 0x1F, 0, 0, (u32) em, (void*) step);
             }
             break;
         case 2:
             MotionSetCore(em, &em->Motion, ARC(0x6B), (int) ARC(0x6C), 3, 1, 0);
             SndCall(8, 0x20, &em->pos, em->id, 0, em);
-            if (em->dmWep != 0x17) {
+            if (em->dmg.m_Wep != 0x17) {
                 EstSet((int) em, -1, 0, 0, 0x2A, 0x20, 0, 0, (u32) em, (void*) step);
             }
             break;
@@ -4671,12 +4671,12 @@ int em32SetDmVal(cEm32* em)
     int near = 0;
     int dmg;
 
-    if (em->dmPart->rad < 16000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 16000000.0f) {
         near = 1;
     }
     dmg = 20;
-    if (em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     return dmg;
 }
@@ -4747,10 +4747,10 @@ void em32BloodSet(cEm32* em)
 {
     int near = 0;
 
-    if (em->dmPart->rad < 36000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
         near = 1;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0xB:
     case 0xC:
     case 0x1B:

@@ -99,7 +99,7 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em3cDeadCk(cEm* em)
 {
-    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+    return em->dmg.m_Flag || em->dmg.m_Timer;
 }
 
 // REL entry: hands the module's constructor to the enemy manager (EmInitFunc) so an enemy set
@@ -138,33 +138,33 @@ void Em3cInit(cEm* em)
 void em3cDmCk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     int near;
     int kind;
     int dmg;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    em->dmHit = 0;
-    if (em->dmWep == 0x14 || em->dmWep == 0x16) {
+    em->dmg.m_Flag = 0;
+    if (em->dmg.m_Wep == 0x14 || em->dmg.m_Wep == 0x16) {
         return;
     }
-    part = em->dmPart;
+    part = em->dmg.m_pDamageYarare;
     near = 0;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
-    em->dmType = 1;
-    if (em->dmWep == 0x10) {
-        em->dmType = 0x11;
+    em->dmg.m_Timer = 1;
+    if (em->dmg.m_Wep == 0x10) {
+        em->dmg.m_Timer = 0x11;
     }
     w->Be_flg |= 0x80;
     kind = part->partsNo == 3;
     if (part->partsNo == 5) {
         kind = 2;
     }
-    switch (em->dmWep) {
+    switch (em->dmg.m_Wep) {
     case 0:
     case 1:
     case 2:
@@ -273,10 +273,10 @@ void em3cDmCk(cEm3c* em)
     }
     dmg = em3cSetDmVal(em);
     LifeDownSet(em, dmg, 0);
-    if (w->pCore && em->dmWep == 0x17) {
+    if (w->pCore && em->dmg.m_Wep == 0x17) {
         em->hp = 0;
     }
-    if (w->pCore && em->dmWep == 0x2A) {
+    if (w->pCore && em->dmg.m_Wep == 0x2A) {
         em->hp = 0;
     }
     if (em->hp <= 0) {
@@ -326,7 +326,7 @@ void em3cDmCk(cEm3c* em)
                 EmRoutineSet(em, 2, 1, 0, 0);
                 return;
             }
-            switch (em->dmWep) {
+            switch (em->dmg.m_Wep) {
             case 0:
             case 1:
             case 2:
@@ -862,7 +862,7 @@ static void plemEscapeAction(cEm3c* em)
 
     w->actMode = 0;
     w->Act_ck = 1;
-    pPLS->dmType = 2;
+    pPLS->dmg.m_Timer = 2;
     SetPlDamage((int) em, plemEscape);
     if (pSUB) {
         f32 d = (em->pos.x - pSUB->pos.x) * (em->pos.x - pSUB->pos.x) + (em->pos.y - pSUB->pos.y) * (em->pos.y - pSUB->pos.y)
@@ -881,7 +881,7 @@ static void plemEscapeAction(cEm3c* em)
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
-    pl->dmType = 2;
+    pl->dmg.m_Timer = 2;
     switch (pl->r_no_2) {
     case 0:
         if (pG->pl_type == 1) {
@@ -936,7 +936,7 @@ static void subemSurprised()
     cSubChar* sub = pSUB;
 
     sub->subArc = PL_EM(sub)->subArc;
-    sub->dmType = 2;
+    sub->dmg.m_Timer = 2;
     switch (sub->r_no_2) {
     case 0: {
         Vec v;
@@ -985,7 +985,7 @@ static void subemSit()
 {
     cSubChar* sub = pSUB;
 
-    sub->dmType = 2;
+    sub->dmg.m_Timer = 2;
     switch (sub->r_no_2) {
     case 0:
         sub->atari.throughOff();
@@ -1454,7 +1454,7 @@ static void em3c_R1_Dm_Normal(cEm3c* em)
         void* m0;
         void* m1;
 
-        ang = fabsf(Muku(&em->pos, &em->dmPos, em->ang.y, PI));
+        ang = fabsf(Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI));
         int dir = 1;
         if (ang < PI / 2.0f) {
             dir = 0;
@@ -2206,7 +2206,7 @@ void em3cPartsBombControl(cEm3c* em)
 // for weapon ids past 0x2D), tripled on the head part 3.
 int em3cSetDmVal(cEm3c* em)
 {
-    EmHitInfo* part = em->dmPart;
+    YARARE_INFO* part = em->dmg.m_pDamageYarare;
     int near = 0;
     int dmg;
 
@@ -2214,8 +2214,8 @@ int em3cSetDmVal(cEm3c* em)
         near = 1;
     }
     dmg = 20;
-    if (em->dmWep <= 0x2D) {
-        dmg = GetWepDmVal(em, em->dmWep, near);
+    if (em->dmg.m_Wep <= 0x2D) {
+        dmg = GetWepDmVal(em, em->dmg.m_Wep, near);
     }
     if (part->partsNo == 3) {
         dmg *= 3;

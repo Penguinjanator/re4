@@ -22,7 +22,7 @@
 // GetWepTargetList entry (em_sub.cpp).
 struct WepTarget {
     cEm* em;
-    EmHitInfo* part;
+    YARARE_INFO* part;
 };
 
 extern "C" {
@@ -365,7 +365,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
     }
     for (i = 0; i < n; i++) {
         cEm* em = list[i].em;
-        EmHitInfo* part = list[i].part;
+        YARARE_INFO* part = list[i].part;
         cDmgInfo* dmg = &em->dmg;
 
         switch (type) {
@@ -381,10 +381,10 @@ u32 PlWepHitCheck2(cModel* plm, Vec* pPos, Vec* pPos2, int type, u32 flag, f32 l
             }
             break;
         }
-        if (!(dmg->stat & 1)) {
+        if (!(dmg->m_Flag & 1)) {
             dmg->set(0, 10, type, pPos, part->rad, part);
             if (part->flags & 0x20) {
-                dmg->stat |= 0x20;
+                dmg->m_Flag |= 0x20;
             }
         }
         if (list[i].em->id == 0x38) {
@@ -525,8 +525,8 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
             }
             break;
         }
-        EmHitInfo* part = list[i].part;
-        if (!(dmg->stat & 1)) {
+        YARARE_INFO* part = list[i].part;
+        if (!(dmg->m_Flag & 1)) {
             dmg->set(0, 10, type, pos, part->rad, part);
         }
     }

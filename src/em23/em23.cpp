@@ -111,13 +111,13 @@ void em23DmCk(cEm23* em)
             return;
         }
     }
-    if (em->dmHit) {
-        em->dmHit = 0;
+    if (em->dmg.m_Flag) {
+        em->dmg.m_Flag = 0;
         near = 0;
-        if (em->dmPart->rad < 36000000.0f) {
+        if (em->dmg.m_pDamageYarare->rad < 36000000.0f) {
             near = 1;
         }
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 2:
         case 0xB:
@@ -943,7 +943,7 @@ static void em23_R1_Dm_Air(cEm23* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->dmType = 0x80;
+        em->dmg.m_Timer = 0x80;
         MotionSetCore(em, MOTION(em), ARC(0x16), (int) ARC(0x2A), 5, 5, 0);
         if (Rnd() & 1) {
             w->dmRotSpd = PI / 20.0f;
@@ -973,7 +973,7 @@ static void em23_R1_Dm_Air(cEm23* em)
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 5, 5, 0);
         w->spd.y = 0.0f;
-        em->dmType = 0;
+        em->dmg.m_Timer = 0;
         em->r_no_2++;
     case 3:
         w->dmRotSpd *= 0.9f;

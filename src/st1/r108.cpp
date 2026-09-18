@@ -222,7 +222,7 @@ static void r108_initChurchBell()
     }
     for (;;) {
         if (hit->ckStatus() == 1) {
-            switch (hit->dmWep) {
+            switch (hit->dmg.m_Wep) {
             case 0xD:
             case 0xF:
             case 0x12:

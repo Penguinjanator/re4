@@ -405,14 +405,14 @@ void cEmWindow::DmCk()
     int a = 0;
     int hit = 0;
     u8 eff;
-    int dmg;
+    int dmgType;
     u8 wep;
 
     eff = getEff();
-    dmg = 0;
+    dmgType = 0;
     if (hp > 0) {
-        dmg = DmgMgr.hitCheck(&pos, 0);
-        switch (dmg) {
+        dmgType = DmgMgr.hitCheck(&pos, 0);
+        switch (dmgType) {
         case 1:
         case 4:
         case 5:
@@ -421,11 +421,11 @@ void cEmWindow::DmCk()
             break;
         }
     }
-    if (dmHit == 0 && hit == 0) {
+    if (dmg.m_Flag == 0 && hit == 0) {
         return;
     }
-    wep = dmWep;
-    dmHit = 0;
+    wep = dmg.m_Wep;
+    dmg.m_Flag = 0;
     if (wep == 0x14) {
         return;
     }
@@ -445,13 +445,13 @@ void cEmWindow::DmCk()
     case 0xB:
     case 0xC:
     case 0x11:
-        dmType = 0;
+        dmg.m_Timer = 0;
         break;
     }
     if (ChkEnableDamage() == 0) {
         return;
     }
-    switch (dmg) {
+    switch (dmgType) {
     case 1:
     case 4:
     case 5:
@@ -460,7 +460,7 @@ void cEmWindow::DmCk()
         a = 0;
         break;
     }
-    switch (GetWepSizeGroup(dmWep)) {
+    switch (GetWepSizeGroup(dmg.m_Wep)) {
     case 0:
         if (WindowData[type].hpType == 0) {
             hp = 0;
@@ -488,7 +488,7 @@ void cEmWindow::DmCk()
         break;
     }
     if (hp <= 0) {
-        SetBreakAll(&dmPos, a, 0);
+        SetBreakAll(&dmg.m_PosFrom, a, 0);
     } else if (type == 1) {
         if (eff != 0xFF) {
             EmDmBloodSet2(this, eff, 5, 0, 0, 0);

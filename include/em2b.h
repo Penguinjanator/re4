@@ -61,7 +61,7 @@ struct Em2bWork {
     int mode;             // 0x00C (0x3EC)
     int TmpU32b;              // 0x010 (0x3F0)
     Vec posSave;          // 0x014 (0x3F4)  pos of the previous frame (GetTree / TreeAtk move the tree by the delta)
-    EmHitInfo hit[10];    // 0x020 (0x400)  extra hit boxes (YarareAdd in em2b_R0_Init); hit[9] is the parasite (parts 0x3F)
+    YARARE_INFO hit[10];    // 0x020 (0x400)  extra hit boxes (YarareAdd in em2b_R0_Init); hit[9] is the parasite (parts 0x3F)
     f32 routeAng;         // 0x228 (0x608)
     f32 routeAngAbs;      // 0x22C (0x60C)
     u8 pad_230[8];

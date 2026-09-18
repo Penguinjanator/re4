@@ -319,7 +319,7 @@ void EmHitUpdate(cEmHit* h)
 // Damage on shot target `no`.
 void Hit(int no)
 {
-    r222_work.p->hp[no] -= GetWepDmVal(r222_work.p->hit[no], r222_work.p->hit[no]->dmWep, 0);
+    r222_work.p->hp[no] -= GetWepDmVal(r222_work.p->hit[no], r222_work.p->hit[no]->dmg.m_Wep, 0);
     EmDmBloodSet2(r222_work.p->hit[no], 1, 0xD, 0, 0, 0);
     SndCall(6, 0xF, &r222_work.p->hit[no]->pos, 0, 0, 0);
 }

@@ -432,7 +432,7 @@ static void emmark_none(cEmMark* em)
 {
 }
 
-// Hit of the frame (cEm::dmHit set by PlWepHitCheck2): a wall reports its panel (setEffWall);
+// Hit of the frame (cEm::dmg.m_Flag set by PlWepHitCheck2): a wall reports its panel (setEffWall);
 // a target loses 1 hp; the hit kind is 5 for grenades, 2 for type 6's bonus box, 1 for the head
 // box (hitInfo), 0 for the body. Killed: the break effect and R22cHitMark(type, headshot, pos,
 // 1, age), then the end instruction; still alive: a hit effect, R22cHitMark(..., 3 / 2, ..., 0,
@@ -441,30 +441,30 @@ void cEmMark::damageCheck()
 {
     int eff;
 
-    if (hp > 0 && dmHit) {
+    if (hp > 0 && dmg.m_Flag) {
         if (type > 9) {
             setEffWall();
             dmg.clear();
             return;
         }
         hp--;
-        if (dmWep == 0x12 || dmWep == 0x13) {
+        if (dmg.m_Wep == 0x12 || dmg.m_Wep == 0x13) {
             eff = 5;
-        } else if (type == 6 && dmPart == &EMMARK(this)->hit[3]) {
+        } else if (type == 6 && dmg.m_pDamageYarare == &EMMARK(this)->hit[3]) {
             eff = 2;
         } else {
-            eff = dmPart == &hitInfo;
+            eff = dmg.m_pDamageYarare == &hitInfo;
         }
         if (hp <= 0) {
             setEff(1, eff);
-            R22cHitMark(type, eff != 0, &dmPart->pos, 1, EMMARK(this)->age);
+            R22cHitMark(type, eff != 0, &dmg.m_pDamageYarare->pos, 1, EMMARK(this)->age);
             r_no_0 = 1;
             r_no_1 = 0;
             r_no_2 = 0;
             r_no_3 = 0;
         } else {
             setEff(0, eff);
-            R22cHitMark(type, eff != 0 ? 3 : 2, &dmPart->pos, 0, EMMARK(this)->age);
+            R22cHitMark(type, eff != 0 ? 3 : 2, &dmg.m_pDamageYarare->pos, 0, EMMARK(this)->age);
             ang.x -= PI / 7.0f;
             dmg.clear();
         }
@@ -490,16 +490,16 @@ int cEmMark::setEff(int a, int kind)
         int k;
 
         k = 9;
-        if (dmWep != 7 && dmWep != 0x13) {
+        if (dmg.m_Wep != 7 && dmg.m_Wep != 0x13) {
             k = 8;
         }
         EstSet((int) this, -1, &pos, 0, 0x33, k, 0, 0, (u32) this, 0);
         SndCall(6, 7, &p, 0, 0, 0);
         be_flag &= ~2;
     } else if (type == 2) {
-        int k = dmWep == 7;
+        int k = dmg.m_Wep == 7;
 
-        EstSet((int) this, -1, &dmPart->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+        EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     } else if (kind == 2) {
         modelInit(ARC(0x13), ARC(0x14));
@@ -508,20 +508,20 @@ int cEmMark::setEff(int a, int kind)
         PlWepHitCheck2(0, &pos, &pos, 0x13, 0, range);
     } else if (kind != 0) {
         headBomb();
-    } else if (dmWep == 0x13) {
+    } else if (dmg.m_Wep == 0x13) {
         static const Vec up = { 0.0f, 1500.0f, 0.0f };
         static const Vec down = { 0.0f, -500.0f, 0.0f };
 
         headBomb();
         if (type != 3) {
-            PSVECAdd(&pos, &up, &dmPart->pos);
+            PSVECAdd(&pos, &up, &dmg.m_pDamageYarare->pos);
         } else {
-            PSVECAdd(&pos, &down, &dmPart->pos);
+            PSVECAdd(&pos, &down, &dmg.m_pDamageYarare->pos);
         }
     } else {
-        int k = dmWep == 7;
+        int k = dmg.m_Wep == 7;
 
-        EstSet((int) this, -1, &dmPart->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+        EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
         SndCall(6, 1, &p, 0, 0, 0);
     }
     return 1;
@@ -534,38 +534,38 @@ int cEmMark::setEffWall()
 
     switch (type) {
     case 0xC:
-        if (dmPart == &EMMARK(this)->hit[0]) {
+        if (dmg.m_pDamageYarare == &EMMARK(this)->hit[0]) {
             R22cHitEffect(0);
         } else {
             setEffWallNormal();
         }
         break;
     case 0xD:
-        if (dmPart == &EMMARK(this)->hit[0]) {
+        if (dmg.m_pDamageYarare == &EMMARK(this)->hit[0]) {
             R22cHitEffect(1);
-        } else if (dmPart == &EMMARK(this)->hit[1]) {
+        } else if (dmg.m_pDamageYarare == &EMMARK(this)->hit[1]) {
             R22cHitEffect(2);
-        } else if (dmPart == &EMMARK(this)->hit[2]) {
+        } else if (dmg.m_pDamageYarare == &EMMARK(this)->hit[2]) {
             R22cHitEffect(3);
         } else {
             setEffWallNormal();
         }
         break;
     case 0xE:
-        if (dmPart == &EMMARK(this)->hit[0]) {
+        if (dmg.m_pDamageYarare == &EMMARK(this)->hit[0]) {
             R22cHitEffect(5);
-        } else if (dmPart == &EMMARK(this)->hit[1]) {
+        } else if (dmg.m_pDamageYarare == &EMMARK(this)->hit[1]) {
             R22cHitEffect(4);
-        } else if (dmPart == &EMMARK(this)->hit[2]) {
+        } else if (dmg.m_pDamageYarare == &EMMARK(this)->hit[2]) {
             R22cHitEffect(6);
         } else {
             setEffWallNormal();
         }
         break;
     case 0xF:
-        if (dmPart == &EMMARK(this)->hit[0]) {
+        if (dmg.m_pDamageYarare == &EMMARK(this)->hit[0]) {
             R22cHitEffect(5);
-        } else if (dmPart == &EMMARK(this)->hit[1]) {
+        } else if (dmg.m_pDamageYarare == &EMMARK(this)->hit[1]) {
             R22cHitEffect(4);
         } else {
             setEffWallNormal();
@@ -580,9 +580,9 @@ int cEmMark::setEffWallNormal()
 {
     Vec p;
 
-    int k = dmWep == 7;
+    int k = dmg.m_Wep == 7;
 
-    EstSet((int) this, -1, &dmPart->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
+    EstSet((int) this, -1, &dmg.m_pDamageYarare->pos, 0, 0x33, k, 0, 0, (u32) this, 0);
     p.x = pos.x;
     p.y = pos.y + 1000.0f;
     p.z = pos.z;
@@ -597,7 +597,7 @@ void cEmMark::headBomb()
     void* tpl;
     int kind;
 
-    switch (dmWep) {
+    switch (dmg.m_Wep) {
     case 2:
     case 0xB:
     case 0xC:
@@ -733,7 +733,7 @@ void cEmMark::setDown()
     if (hp <= 0) {
         return;
     }
-    if (dmHit != 0) {
+    if (dmg.m_Flag != 0) {
         return;
     }
     r_no_0 = 1;

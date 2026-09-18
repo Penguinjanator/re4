@@ -613,10 +613,10 @@ void Hit(int no)
     cEmHit* em = r30f_work->hit[no];
     int near = 0;
 
-    if (em->dmPart->rad < 64000000.0f) {
+    if (em->dmg.m_pDamageYarare->rad < 64000000.0f) {
         near = 1;
     }
-    r30f_work->truckLife -= GetWepDmVal(em, em->dmWep, near);
+    r30f_work->truckLife -= GetWepDmVal(em, em->dmg.m_Wep, near);
     if (r30f_work->truckLife >= 0) {
         EmDmBloodSet2(r30f_work->hit[no], 1, 6, 0, 0, 0);
         EmDmBloodSet2(r30f_work->hit[no], 1, 0xD, 0, 0, 0);
@@ -1045,7 +1045,7 @@ static void R30f_ride2()
     ofs.z += pl->pos.z - p.z;
     pl->setPos(&ofs);
     pl->setAng(&ang);
-    pPL->st.x325 = 2;
+    pPL->dmg.m_Timer = 2;
     SetPlDamage(0, plemRide);
 }
 

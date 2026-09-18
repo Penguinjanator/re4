@@ -265,7 +265,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
 void emBarredDmCk(cEmBarred* em)
 {
     EmBarredWork* w = EMBARRED_WK(em);
-    EmHitInfo* part;
+    YARARE_INFO* part;
     cModel* parts;
     u16* flg;
     Vec v;
@@ -273,16 +273,16 @@ void emBarredDmCk(cEmBarred* em)
     int near;
     u8 wep;
 
-    if (em->dmHit == 0) {
+    if (em->dmg.m_Flag == 0) {
         return;
     }
-    part = em->dmPart;
-    em->dmHit = 0;
+    part = em->dmg.m_pDamageYarare;
+    em->dmg.m_Flag = 0;
     near = 0;
     if (part->rad < 36000000.0f) {
         near = 1;
     }
-    wep = em->dmWep;
+    wep = em->dmg.m_Wep;
     if (wep == 0x14) {
         return;
     }
@@ -298,12 +298,12 @@ void emBarredDmCk(cEmBarred* em)
     if (wep == 0xE) {
         return;
     }
-    em->dmType = 1;
+    em->dmg.m_Timer = 1;
     if (wep == 0x10) {
-        em->dmType = 0x11;
+        em->dmg.m_Timer = 0x11;
     }
     if (em->type == 6 && part == &em->hitInfo && w->Eff_id != 0xFF) {
-        ang = Muku(&em->pos, &em->dmPos, em->ang.y, PI);
+        ang = Muku(&em->pos, &em->dmg.m_PosFrom, em->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
             ang = em->ang.y;
         } else {
@@ -324,7 +324,7 @@ void emBarredDmCk(cEmBarred* em)
             *flg |= 2;
         }
     } else {
-        switch (em->dmWep) {
+        switch (em->dmg.m_Wep) {
         case 0:
         case 1:
         case 2:
