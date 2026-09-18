@@ -14,6 +14,14 @@ other marked line is an instruction the source placed by hand.
 
 Exit status 1 when any listed unit emits an instruction from asm. Output: `<unit> <count>` per
 unit and the emitted instructions.
+
+Asm-bodied units (ASM_BODIED): the eight units that were hand-written assembly in the original
+(crt0 `__start`, `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`, Capcom's `memset_2` and
+`yz2asm`) are C files whose every function is a whole-function top-level asm() body. Their
+instructions are counted the same way but reported on their own line (`<unit> <count> asm-bodied`),
+without the listing, and kept out of TOTAL: TOTAL is the hand-placed instructions inside
+compiler-generated functions, the number the README's "Assembly that remains" paragraph states.
+`--with-asm-bodied` folds them into TOTAL instead.
 """
 import os
 import re
@@ -24,6 +32,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MARK = "@ASMCHECK@"
+# units whose functions are all whole-function asm() bodies (configure.py ASM_BODY_UNITS + the two
+# Capcom asm units of game/)
+ASM_BODIED = {
+    "lib/__start.c", "lib/eabi.c", "lib/tealeaf.c", "lib/fileserver.c", "lib/ppcdown.c", "lib/proview.c",
+    "game/memset_2.cpp", "game/yz2asm.cpp",
+}
 NOARG = {"blr", "nop", "sync", "isync", "eieio", "sc", "rfi"}
 ASM_STMT = re.compile(r'(\basm\s*(?:volatile\s*)?\(\s*)((?:"(?:[^"\\]|\\.)*"\s*)+)')
 LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -96,6 +110,9 @@ def check(unit: str) -> int:
             if not part or part.startswith(".") or part.startswith("#") or re.fullmatch(r"[\w.$]+:", part):
                 continue
             hits.append((int(line), part))
+    if unit in ASM_BODIED:
+        print(f"{unit} {len(hits)} asm-bodied")
+        return len(hits)
     print(f"{unit} {len(hits)}")
     for line, h in hits:
         print(f"    {line:5d}  {h}")
@@ -107,14 +124,21 @@ def all_units():
 
 
 def main(argv):
+    with_bodied = "--with-asm-bodied" in argv
+    argv = [a for a in argv if a != "--with-asm-bodied"]
     units = all_units() if argv == ["--all"] else argv
     if not units:
         print(__doc__)
         return 2
-    total = 0
+    total = bodied = 0
     for u in units:
-        total += check(u)
-    print(f"TOTAL {total}")
+        n = check(u)
+        if u in ASM_BODIED and not with_bodied:
+            bodied += n
+        else:
+            total += n
+    tail = f" (+{bodied} in {len([u for u in units if u in ASM_BODIED])} asm-bodied units)" if bodied else ""
+    print(f"TOTAL {total}{tail}")
     return 1 if total else 0
 
 

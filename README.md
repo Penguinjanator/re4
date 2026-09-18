@@ -59,7 +59,8 @@ found, the construct is marked with a `// COMPILER-DIFF:` comment (644 of them: 
 `asm("")` launders and anchors, `register T x asm("rN")` pins, padding statements). None of them
 emits an instruction: `python3 tools/asmcheck.py --all` compiles every GCC unit with its asm templates
 marked and lists the instructions that came from a template — the only hits are the hardware kernels
-below. An earlier state of this tree had ~100 hand-placed instructions (`asm("li %0,0")`,
+below (TOTAL 231; the eight asm-bodied units are reported on their own line and kept out of that
+number). An earlier state of this tree had ~100 hand-placed instructions (`asm("li %0,0")`,
 `asm("lis/addi")`, `asm("mr")`) in the game code and ~100 register-pinning `asm { }` blocks in the CRI
 libraries; they were replaced by C on 2026-09-17 (`docs/research/asm-removal.md` records the recipe
 and the compiler mechanism per site). Each tag's mechanism is documented in `docs/matching.md` and
@@ -77,8 +78,13 @@ compilers had no other way to express it:
   8-byte literals; ours pools both). Codeless `asm { mr r11, x; mr x, r11 }` pins (both moves are
   deleted by the allocator; they narrow the colour set by one register) and `asm { mr v, v }` self
   copies (an opaque second definition) remain in 27 places.
-- Eight `.s` units: crt0 (`__start`), `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`, and
-  Capcom's `memset_2` and `yz2asm`.
+- Eight asm-bodied units: crt0 (`__start`), `eabi`, SN's `tealeaf`/`fileserver`/`ppcdown`/`proview`
+  (`src/lib/<name>.c`), and Capcom's `memset_2` and `yz2asm` (`src/game/<name>.cpp`). The originals
+  were assembly (SN's libsn/crt0 objects and Capcom's own asm; no compiler idiom in the bytes), so
+  each is a C file whose functions are whole-function top-level `asm()` bodies in GAS syntax
+  (`.globl`/`.type`/label/`.size`, local `.L_` labels, `.4byte`/`.float`/`.skip` data), compiled by
+  the same ProDG driver as the rest (`include/asm_regs.h` supplies the `r3`/`f1`/`GQR0` names as
+  `.set` constants; NgcAs takes bare numbers). `tools/asmcheck.py` lists them as `asm-bodied`.
 
 ### Naming
 
