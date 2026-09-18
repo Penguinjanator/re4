@@ -25,7 +25,7 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
     list = no * sizeof(EspGenWork) + 0x30;
     rec = (EspGenWork*) ((u32) head + list);
     if (info->Core_flg & 0x1000) {
-        u32 no = rec->x6;
+        u32 no = rec->Parent_no;
         list = (u32) EspEvModList;
         if (no > 0x7F) {
             model = NULL;
@@ -34,7 +34,7 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
         }
     }
 
-    switch (rec->type) {
+    switch (rec->Kind) {
     case 0: {
         cEsp* esp;
         if (flag == 0) {
@@ -51,7 +51,7 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
         }
         break;
     default:
-        pLog->err(0, 0, "ESP_CTRL : KIND[%d] is invalid.", rec->type);
+        pLog->err(0, 0, "ESP_CTRL : KIND[%d] is invalid.", rec->Kind);
         ret = 0;
         break;
     }
@@ -134,12 +134,12 @@ void espgen10_Update(EspgenWork* w)
             }
         }
     }
-    if (rec->x4 < p->Time_cnt) {
+    if (rec->Set_time < p->Time_cnt) {
         pLog->err(0, 0, "ESP_ESTSET : DATA[%d] is no SORT.", p->no);
         PushEspgen(w);
         return;
     }
-    while (rec->x4 == p->Time_cnt) {
+    while (rec->Set_time == p->Time_cnt) {
         int flag = 0;
         if (p->Flg & 2) {
             flag = 1;

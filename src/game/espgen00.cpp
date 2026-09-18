@@ -253,15 +253,15 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->Guid_pMod = (u32) model;
     }
     p->waitCnt = p->Time_cnt = 0;
-    p->life = rec->x110;
+    p->life = rec->Espgen_work16[0];
     p->wait = rec->x10C;
     p->num = rec->x10D;
     p->scaleD = rec->x124;
     p->spdD = rec->x125;
     p->colD = rec->x126;
     p->waitD = rec->x127;
-    p->Flg = rec->x10B;
-    p->waitRnd = rec->x128;
+    p->Flg = rec->Espgen_flg;
+    p->waitRnd = rec->Espgen_work8_3[0];
     if (p->waitRnd) {
         p->wait += (u32) Rnd() % p->waitRnd;
     }

@@ -60,11 +60,11 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    FSet(m_Pos.y, getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->xDC);
+    FSet(m_Pos.y, getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->Vec0.y);
     if ((pG->Debug_flg[1] & 0x00800000) && !(pG->Debug_flg[0] & 0x00010000)) {
         m_Pos.y = 0.0f;
     }
-    switch ((s8)gen->xCB) {
+    switch ((s8)gen->Work8[3]) {
     case 0:
         break;
     case 1:
@@ -74,13 +74,13 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         break;
     case 2:
         if (GetWaterHeight(&m_Pos, &h)) {
-            if (m_Pos.y < h + gen->xDC) {
-                m_Pos.y = h + gen->xDC;
+            if (m_Pos.y < h + gen->Vec0.y) {
+                m_Pos.y = h + gen->Vec0.y;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)gen->xCB);
+        pLog->err(0, 0, "ESP10 : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
         return 0;
     }
     return 1;

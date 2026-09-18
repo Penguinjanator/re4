@@ -23,7 +23,7 @@ void cEsp44::move()
 int cEsp44::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     if (EspGenGetMoveLoop() == 0) {
-        EffCallRoomSeFunc((s8)gen->xC8, &m_Pos);
+        EffCallRoomSeFunc((s8)gen->Work8[0], &m_Pos);
     }
     return 0;
 }

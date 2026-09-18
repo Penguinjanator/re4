@@ -94,11 +94,11 @@ int cEsp11::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp11Work* w = &m_Free;
 
-    w->Kind = gen->xC8;
-    w->CutNo = gen->xC9;
-    w->LitNo = gen->xCA;
-    w->Type = gen->xCB;
-    w->ToolState = gen->xFC;
+    w->Kind = gen->Work8[0];
+    w->CutNo = gen->Work8[1];
+    w->LitNo = gen->Work8[2];
+    w->Type = gen->Work8[3];
+    w->ToolState = gen->WorkSp8[0];
     if (w->Kind == 2) {
         w->Kind = 0;
         w->CutNo = 8;

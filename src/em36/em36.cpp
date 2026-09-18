@@ -4084,10 +4084,10 @@ void em36SetHitMark(cEm36* em, int big)
         for (i = 0; i < seq->num; i++) {
             EspGenWork* r = &seq->rec[i];
 
-            r->pos = lp;
-            r->x7 = part->partsNo - 1;
-            if (r->x1 != 0x16) {
-                r->x58 = rot;
+            r->Pos = lp;
+            r->Parts_no = part->partsNo - 1;
+            if (r->Id != 0x16) {
+                r->Ang = rot;
             }
         }
     }

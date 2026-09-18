@@ -152,7 +152,7 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     u32 t;
     int flag;
 
-    if (!EspGetTplAddr(m_Type, &tpl)) {
+    if (!EspGetTplAddr(m_Tex_id, &tpl)) {
         pLog->err(0, 0, "ESP4e : tex init invalid.");
         return 0;
     }
@@ -164,15 +164,15 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     ci = ClothTexSetUp(tpl, &wk->tex, 0, &wk->tlut);
     nx = (int) (m_Size_base_x / 200.0f * 36.0f);
     ny = (int) (m_Size_base_y / 200.0f * 24.0f);
-    width = gen->xD8 * 0.1f + 1.0f;
-    height = gen->xDC * 0.1f + 1.0f;
+    width = gen->Vec0.x * 0.1f + 1.0f;
+    height = gen->Vec0.y * 0.1f + 1.0f;
     if (width == 0.0f) {
         width = 0.001f;
     }
     if (height == 0.0f) {
         height = 0.001f;
     }
-    t = gen->flags & 1;
+    t = gen->Tool_flg & 1;
     flag = t == 0;
     if (nx < 2) {
         nx = 2;
@@ -191,19 +191,19 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     } else {
         wk->pCl->Set(m_Ang, m_Pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
     }
-    if (gen->xC2) {
+    if (gen->Blend_type) {
         wk->pCl->x74 = 1;
     }
-    wk->time_plus = gen->xC8;
-    wk->pow = gen->xC9;
-    wk->time_plus2 = gen->xCA;
-    wk->pow2 = gen->xCB;
+    wk->time_plus = gen->Work8[0];
+    wk->pow = gen->Work8[1];
+    wk->time_plus2 = gen->Work8[2];
+    wk->pow2 = gen->Work8[3];
     wk->range = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
     wk->range2 = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
     wk->offset = (f32) (int) gen->xD4 * 0.025f;
-    wk->wind_time_plus = (f32) (gen->xFC + 1) * 0.0025f;
-    wk->wind_range_pow = (f32) (gen->xFD + 1) * 0.07f;
-    wk->rand_ratio = (f32) (gen->xFE + 1) * 0.2f;
+    wk->wind_time_plus = (f32) (gen->WorkSp8[0] + 1) * 0.0025f;
+    wk->wind_range_pow = (f32) (gen->WorkSp8[1] + 1) * 0.07f;
+    wk->rand_ratio = (f32) (gen->WorkSp8[2] + 1) * 0.2f;
     return 1;
 }
 

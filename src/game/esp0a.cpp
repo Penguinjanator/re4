@@ -144,10 +144,10 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0aWork* w = &m_Free;
 
-    if (gen->xC9 != 0) {
+    if (gen->Work8[1] != 0) {
         pLog->err(0, 0, "ESP0a : WK1 not 0!!");
     }
-    w->Type = gen->xCA;
+    w->Type = gen->Work8[2];
     w->Base_alpha = m_Col_start_a;
     switch (w->Type) {
     case 0: {
@@ -172,7 +172,7 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
                     p->m_Pos_start_cnt = 0;
                     p->m_Size_start_cnt = 0;
                     p->m_Life_time = 0;
-                    p->m_Life_max = (s8)gen->xC8;
+                    p->m_Life_max = (s8)gen->Work8[0];
                 }
                 if (!base->CommonMove()) {
                     break;

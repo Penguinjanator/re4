@@ -82,12 +82,12 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     } else {
         n = w->Num;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -100,7 +100,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     // the dead three-load test splits the block at sched time so `lbz partsNo` and the 1.0 high
     // are scheduled after the zero load.
     z = 0.0f;  // COMPILER-DIFF: #13
-    if (esp->m_Life_time + w->Num + esp->m_Type == 99) {  // COMPILER-DIFF: candidate (sched block split)
+    if (esp->m_Life_time + w->Num + esp->m_Tex_id == 99) {  // COMPILER-DIFF: candidate (sched block split)
         t = z;
     }
     t = z;
@@ -176,11 +176,11 @@ int cEsp12::SetFreeWork(EspGenWork* gen, u32* seed)
     Vec wpos;
     int i;
 
-    if (gen->xC8 > 0x7B) {
+    if (gen->Work8[0] > 0x7B) {
         pLog->err(0, 0, "ESP_12 : WK0 > 123.");
         return 0;
     }
-    w->Num = (s8)gen->xC8 + 2;
+    w->Num = (s8)gen->Work8[0] + 2;
     if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pBuf, &info)) {
         pLog->err(0, 0, "ESP_12 : Buf alloc failed.");
         return 0;

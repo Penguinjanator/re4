@@ -42,7 +42,7 @@ void cEsp04::move()
             PushEsp(this);
         } else {
             m_Life_time++;
-            func_tbl[m_Rno2](this);
+            func_tbl[m_Rno0](this);
         }
     }
 }
@@ -50,7 +50,7 @@ void cEsp04::move()
 void move00(cEsp04* esp)
 {
     esp->m_Free.base_pos = esp->m_Pos;
-    esp->m_Rno2 = 1;
+    esp->m_Rno0 = 1;
 }
 
 void move10(cEsp04* esp)
@@ -166,8 +166,8 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     f32 uw;
     s16 z;
 
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     z = 0;
@@ -176,7 +176,7 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     GXSetProjection(proj, 1);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -236,10 +236,10 @@ int cEsp04::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp04Work* w = &m_Free;
 
-    w->flag = gen->xC8;
-    w->rand_x = gen->xC9;
-    w->rand_y = gen->xCA;
-    w->a_wait = gen->xCB;
+    w->flag = gen->Work8[0];
+    w->rand_x = gen->Work8[1];
+    w->rand_y = gen->Work8[2];
+    w->a_wait = gen->Work8[3];
     w->a_rate = gen->prm.b.xCF;
     if (m_Size_base_x < 0.1f) {
         m_Size_base_x = 0.1f;

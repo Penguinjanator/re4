@@ -93,7 +93,7 @@ void EspStrip02_setup(cEsp02* esp)
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();

@@ -92,7 +92,7 @@ void EspStrip01_setup(cEsp01* esp)
     PSMTXIdentity(id);
     GXLoadPosMtxImm(id, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -227,8 +227,8 @@ void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag)
     f32 sw;
     f32 tw;
 
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     if (flag) {
@@ -381,8 +381,8 @@ int cEsp01::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp01Work* w = &m_Free;
 
     w->pos0 = m_Pos;
-    w->Wari_num = (s8)gen->xC8;
-    w->interval = (s8)gen->xC9;
+    w->Wari_num = (s8)gen->Work8[0];
+    w->interval = (s8)gen->Work8[1];
     if (w->Wari_num > 12) {
         w->Wari_num = 2;
     } else {

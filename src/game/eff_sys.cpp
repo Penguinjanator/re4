@@ -568,13 +568,13 @@ int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
     if (w->Owner != 0xD2) {
         return 0;
     }
-    if (anm->nPtn != tpl->numDescriptors) {
-        pLog->err(0, 0, "ESP : ID[%02x] TEX/ANM ptn num diff[%d / %d]", id, tpl->numDescriptors, anm->nPtn);
+    if (anm->Frames != tpl->numDescriptors) {
+        pLog->err(0, 0, "ESP : ID[%02x] TEX/ANM ptn num diff[%d / %d]", id, tpl->numDescriptors, anm->Frames);
         return 0;
     }
     EspCalcTplAddr(tpl);
     desc = TEXGet(tpl, 0);
-    w->nTexObj = anm->nPtn;
+    w->nTexObj = anm->Frames;
     w->pTexObj = EspPullTexObj(w->nTexObj);
     if (w->pTexObj == NULL) {
         pLog->err(0, 0, "ESP : ID[%02x] PullTexObj() work full!!", id);

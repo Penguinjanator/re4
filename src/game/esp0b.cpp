@@ -120,11 +120,11 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
 
 int cEsp0b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    m_Free.prm = *(Vec*)&gen->xD8;
-    if (gen->xC8 != 0) {
+    m_Free.prm = *(Vec*)&gen->Vec0.x;
+    if (gen->Work8[0] != 0) {
         pLog->err(0, 0, "ESP : 'ESP15' WK0 not 0!! ");
     }
-    if (gen->xC9 != 0) {
+    if (gen->Work8[1] != 0) {
         pLog->err(0, 0, "ESP : 'ESP15' WK1 not 0!! ");
     }
     return 1;

@@ -191,15 +191,15 @@ int cEsp07::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp07Work* w = &m_Free;
 
-    w->RefRate = *(Vec*)&gen->xD8;
+    w->RefRate = *(Vec*)&gen->Vec0.x;
     PSVECScale(&w->RefRate, &w->RefRate, 0.1f);
-    w->GndEstOwner = gen->xC8;
-    w->GndEstNo = gen->xC9;
-    w->WallEstOwner = gen->xCA;
-    w->WallEstNo = gen->xCB;
-    w->HitType = gen->xFC;
-    w->EstCall = gen->xFD;
-    w->SeType = gen->xFE;
+    w->GndEstOwner = gen->Work8[0];
+    w->GndEstNo = gen->Work8[1];
+    w->WallEstOwner = gen->Work8[2];
+    w->WallEstNo = gen->Work8[3];
+    w->HitType = gen->WorkSp8[0];
+    w->EstCall = gen->WorkSp8[1];
+    w->SeType = gen->WorkSp8[2];
     if (w->HitType > 2) {
         pLog->err(0, 0, "ESP_07 : HitType[%x] is invalid.", w->HitType);
         return 0;

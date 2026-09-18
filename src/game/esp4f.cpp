@@ -42,6 +42,6 @@ void cEsp4f::move()
 
 int cEsp4f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    m_Free.area_no = gen->xC8;
+    m_Free.area_no = gen->Work8[0];
     return 1;
 }

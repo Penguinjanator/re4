@@ -223,7 +223,7 @@ extern "C" cModel* GetActiveModel(EspGenWork* gen)
     cModel* m;
 
     if (evtToolOn()) {
-        return dbModGetEmPtr(gen->x6);
+        return dbModGetEmPtr(gen->Parent_no);
     }
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
@@ -1296,18 +1296,18 @@ extern "C" void DB_DrawCursor2D(Vec* pos)
 
 extern "C" void DB_GetCursorPos(EspSeqData* head, EspGenWork* gen, int flag, Vec* out, Mtx* m)
 {
-    int parts = gen->x7;
+    int parts = gen->Parts_no;
 
     if (parts == 0xFF || flag != 0) {
-        DB_VecNullPartsPos(head, &gen->pos, out, m);
+        DB_VecNullPartsPos(head, &gen->Pos, out, m);
     } else if (parts == 0xFE) {
-        *out = gen->pos;
+        *out = gen->Pos;
         PSMTXIdentity(*m);
         (*m)[0][3] = out->x;
         (*m)[1][3] = out->y;
         (*m)[2][3] = out->z;
     } else {
-        DB_VecMulEmPartsMat(parts, &gen->pos, out, m, gen);
+        DB_VecMulEmPartsMat(parts, &gen->Pos, out, m, gen);
     }
 }
 
@@ -1444,7 +1444,7 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
         // r9 (not r0, not tied to `no`); the index lives while `la` does, which prunes `la`'s r9 preference and
         // leaves r9 to `p` (`la` r11). The `li r9,0` before the `bgt` is jump2's post-reload
         // "if (c) { x = a; goto l; } x = b" hoist: the else arm's first insn `slwi r9,r0,2` sets `p`'s register.
-        u32 no = gen->x6;
+        u32 no = gen->Parent_no;
         u32 la = (u32) EspEvModList;
         cModel* p;
         if (no > 0x7F) {
@@ -1457,8 +1457,8 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
             NONE_BODY;
             return;
         }
-    } else if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    } else if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             NONE_BODY;
             return;
@@ -1472,7 +1472,7 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     if (parts >= em->nParts) {
         goto none;
     }
-    if (gen->flags & 0x20) {
+    if (gen->Tool_flg & 0x20) {
         cModel* p = em->getPartsPtr(parts);
         PSMTXIdentity(*m);
         RotMatrix(*m, &em->ang);
@@ -1604,28 +1604,28 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
     f32 half;
     u32 i;
 
-    if (gen->xF8 == 0.0f) {
+    if (gen->Vec2.z == 0.0f) {
         return;
     }
     PSMTXIdentity(base);
-    if (em && (em->be_flag & 1) && gen->x7 != 0xFE && gen->x7 != 0xFD && gen->x7 != 0xFF) {
-        if (gen->x7 >= em->nParts) {
+    if (em && (em->be_flag & 1) && gen->Parts_no != 0xFE && gen->Parts_no != 0xFD && gen->Parts_no != 0xFF) {
+        if (gen->Parts_no >= em->nParts) {
             return;
         }
         onModel = 1;
-        PSMTXCopy(em->getPartsPtr(gen->x7)->mat, base);
+        PSMTXCopy(em->getPartsPtr(gen->Parts_no)->mat, base);
     } else {
         onModel = 0;
-        base[0][3] = gen->x0C;
-        base[1][3] = gen->x10;
-        base[2][3] = gen->x14;
+        base[0][3] = gen->Pos.x;
+        base[1][3] = gen->Pos.y;
+        base[2][3] = gen->Pos.z;
     }
     dir.x = 0.0f;
     dir.y = 0.0f;
     dir.z = 1500.0f;
-    half = gen->xF8 * 6.2831855f / 360.0f * 0.5f;
-    ay = gen->xF0 * 6.2831855f / 360.0f;
-    ax = gen->xF4 * 6.2831855f / 360.0f;
+    half = gen->Vec2.z * 6.2831855f / 360.0f * 0.5f;
+    ay = gen->Vec2.x * 6.2831855f / 360.0f;
+    ax = gen->Vec2.y * 6.2831855f / 360.0f;
     ay = LIMIT_ANGLE(ay);
     ax = LIMIT_ANGLE(ax);
     half = LIMIT_ANGLE(half);
@@ -1634,10 +1634,10 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
     PSMTXConcat(ry, rx, ry);
     PSMTXConcat(base, ry, ry);
     if (onModel) {
-        PSMTXMultVec(ry, &gen->pos, &p);
-        PSVECAdd(&gen->pos, &dir, &dir);
+        PSMTXMultVec(ry, &gen->Pos, &p);
+        PSVECAdd(&gen->Pos, &dir, &dir);
     } else {
-        p = gen->pos;
+        p = gen->Pos;
     }
     PSMTXMultVec(ry, &dir, &dir);
     Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
@@ -1656,7 +1656,7 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
         PSMTXConcat(ry, rx, ry);
         PSMTXConcat(base, ry, ry);
         if (onModel) {
-            PSVECAdd(&gen->pos, &dir, &dir);
+            PSVECAdd(&gen->Pos, &dir, &dir);
         }
         PSMTXMultVec(ry, &dir, &dir);
         Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
@@ -1669,7 +1669,7 @@ extern "C" void sp_sphere(EspSeqData* head, EspGenWork* gen)
     Mtx m;
 
     DB_GetCursorPos(head, gen, 0, &pos, &m);
-    Draw_sphere(&pos, gen->xE0, 0xFFFFFFFF, 1, 1);
+    Draw_sphere(&pos, gen->Vec0.z, 0xFFFFFFFF, 1, 1);
 }
 
 extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
@@ -1687,22 +1687,22 @@ extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
     f32 sx;
     f32 sy;
 
-    if (EspGetAnmAddr(gen->x2, &anm) == 0) {
+    if (EspGetAnmAddr(gen->Tex_id, &anm) == 0) {
         return;
     }
     DB_GetCursorPos(head, gen, 0, &pos, &m);
-    gw = gen->x88;
-    gh = gen->x8C;
-    w = (f32) -anm->x4;
-    h = (f32) anm->x6;
+    gw = gen->Size_base_x;
+    gh = gen->Size_base_y;
+    w = (f32) -anm->Cx;
+    h = (f32) anm->Cy;
     if (w == 0.0f) {
-        w = (f32) -(int) anm->x0 * 0.5f;
+        w = (f32) -(int) anm->Width * 0.5f;
     }
     if (h == 0.0f) {
-        h = (f32) (int) anm->x2 * 0.5f;
+        h = (f32) (int) anm->Height * 0.5f;
     }
-    sx = w * gw / (f32) (int) anm->x0;
-    sy = h * gh / (f32) (int) anm->x2;
+    sx = w * gw / (f32) (int) anm->Width;
+    sy = h * gh / (f32) (int) anm->Height;
     v[0].x = sx;
     v[0].y = sy;
     v[0].z = 1.0f;
@@ -1715,7 +1715,7 @@ extern "C" void sp_3dgrid_trans(EspSeqData* head, EspGenWork* gen)
     v[3].x = sx;
     v[3].y = sy - gh;
     v[3].z = 1.0f;
-    PSVECScale(&gen->x58, &rot, 0.017453289f);
+    PSVECScale(&gen->Ang, &rot, 0.017453289f);
     RotMatrix(rm, &rot);
     PSMTXConcat(m, rm, m);
     PSMTXMultVecSR(m, &v[0], &v[0]);
@@ -1745,8 +1745,8 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     f32 t;
     u32 i;
 
-    if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             return;
         }
@@ -1765,7 +1765,7 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     EspGetPathAddr(pw->id, pw->owner);
     t = 0.0f;
     for (i = 0; i < 256; i++) {
-        if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
+        if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
             PathGetPosEmM(pw->path, em, t, &pw->seg, &pos);
         } else {
             PathGetPos(pw->path, t, &pw->seg, &pos);
@@ -1803,8 +1803,8 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
 
     memclr_asm(pw, sizeof(EspgenWork));
     seg = 0;
-    if (gen->x6 != 0) {
-        em = SmdGetObjPtr(gen->x6 - 1);
+    if (gen->Parent_no != 0) {
+        em = SmdGetObjPtr(gen->Parent_no - 1);
         if (em == 0) {
             return;
         }
@@ -1836,8 +1836,8 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
         rot.z = 0.0f;
         RotMatrix(rm, &rot);
         PSMTXMultVec(rm, &pos, &pos);
-        if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
-            PSMTXMultVec(em->getPartsPtr(gen->x7)->mat, &pos, &pos);
+        if (em && (em->be_flag & 1) && gen->Parts_no <= 0xF7) {
+            PSMTXMultVec(em->getPartsPtr(gen->Parts_no)->mat, &pos, &pos);
         }
         PSVECAdd(&pos, &gen->pos, &pos);
         if (i != 0) {
@@ -1856,22 +1856,22 @@ extern "C" void sp_nobigenkai_trans(EspSeqData* head, EspGenWork* gen)
     Vec v2;
     Vec v3;
 
-    if (gen->xD8 == 0.0f && gen->xE0 == 0.0f) {
+    if (gen->Vec0.x == 0.0f && gen->Vec0.z == 0.0f) {
         return;
     }
-    PSVECAdd(&gen->pos, &gen->vE4, &c);
+    PSVECAdd(&gen->Pos, &gen->Vec1, &c);
     v0 = c;
-    v0.x += gen->xD8;
-    v0.z += gen->xE0;
+    v0.x += gen->Vec0.x;
+    v0.z += gen->Vec0.z;
     v1 = c;
-    v1.x -= gen->xD8;
-    v1.z += gen->xE0;
+    v1.x -= gen->Vec0.x;
+    v1.z += gen->Vec0.z;
     v2 = c;
-    v2.x -= gen->xD8;
-    v2.z -= gen->xE0;
+    v2.x -= gen->Vec0.x;
+    v2.z -= gen->Vec0.z;
     v3 = c;
-    v3.x += gen->xD8;
-    v3.z -= gen->xE0;
+    v3.x += gen->Vec0.x;
+    v3.z -= gen->Vec0.z;
     Draw_line3d(&v0, &v1, 0xFFFFFFFF, 0);
     Draw_line3d(&v1, &v2, 0xFFFFFFFF, 0);
     Draw_line3d(&v2, &v3, 0xFFFFFFFF, 0);
@@ -1891,24 +1891,24 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
     if (em == 0 || !(em->be_flag & 1)) {
         return;
     }
-    if (gen->x7 >= em->nParts) {
+    if (gen->Parts_no >= em->nParts) {
         return;
     }
-    p0 = em->getPartsPtr(gen->x7);
-    if ((s8) gen->xC8 >= em->nParts) {
+    p0 = em->getPartsPtr(gen->Parts_no);
+    if ((s8) gen->Work8[0] >= em->nParts) {
         return;
     }
-    p1 = em->getPartsPtr((s8) gen->xC8);
-    ofs = gen->pos;
+    p1 = em->getPartsPtr((s8) gen->Work8[0]);
+    ofs = gen->Pos;
     PSMTXMultVec(p0->mat, &ofs, &a);
     Vec v = {0.0f, 0.01f, 0.0f};
     Mtx inv;
     PSMTXMultVec(p1->mat, &v, &v);
     PSMTXInverse(p0->mat, inv);
     PSMTXMultVec(inv, &v, &v);
-    PSVECAdd(&v, &gen->pos, &v);
+    PSVECAdd(&v, &gen->Pos, &v);
     PSMTXMultVec(p0->mat, &v, &b);
-    r = gen->x20;
+    r = gen->R_pos.z;
     if (r == 0.0f) {
         r = 100.0f;
     }
@@ -1919,14 +1919,14 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
 
 extern "C" void sp_PosRand_trans(EspSeqData* head, EspGenWork* gen)
 {
-    f32 rx = gen->x18;
-    f32 ry = gen->x1C;
-    f32 rz = gen->x20;
+    f32 rx = gen->R_pos.x;
+    f32 ry = gen->R_pos.y;
+    f32 rz = gen->R_pos.z;
     Mtx m;  // the first local: its address is the frame pointer itself, so every `m` use is a fresh `addi r3,r1,8`
     Vec pos;
     Vec v[8];
 
-    if (gen->x1 == 0x1A) {
+    if (gen->Id == 0x1A) {
         sp_PosRand_trans_1a(head, gen);
         return;
     }

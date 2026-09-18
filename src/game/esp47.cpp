@@ -40,19 +40,19 @@ void Esp47_Trans(cEsp* pEsp)
     f32 h;
     int flag;
 
-    if (!EspGetAnmAddr(pEsp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", pEsp->m_Type);
+    if (!EspGetAnmAddr(pEsp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", pEsp->m_Tex_id);
         return;
     }
-    if ((f32)anm->x4 == 0.0f) {
+    if ((f32)anm->Cx == 0.0f) {
         rx = -0.5f;
     } else {
-        rx = (f32)(-anm->x4) / anm->x0;
+        rx = (f32)(-anm->Cx) / anm->Width;
     }
-    if ((f32)anm->x6 == 0.0f) {
+    if ((f32)anm->Cy == 0.0f) {
         ry = -0.5f;
     } else {
-        ry = (f32)anm->x6 / anm->x2 + -1.0f;
+        ry = (f32)anm->Cy / anm->Height + -1.0f;
     }
     w = rx * sx;
     h = ry * sy;

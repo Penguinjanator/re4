@@ -63,8 +63,8 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     f32 t0;
     f32 t1;
 
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
@@ -100,7 +100,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -113,15 +113,15 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32)anm->x6;
+    ox = -anm->Cx;
+    oy = (f32)anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -209,7 +209,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
 
 int cEsp0f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    m_Free.Pow = gen->xC8;
+    m_Free.Pow = gen->Work8[0];
     if (m_Free.Pow > 2) {
         pLog->err(0, 0, "ESP_0F : Power[%d] invalid", m_Free.Pow);
         return 0;

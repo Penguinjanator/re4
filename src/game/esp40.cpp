@@ -64,12 +64,12 @@ int cEsp40::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     if (parent != pEffParentWorld && (m_Release_time == 0xff || m_Release_time <= m_Life_time)) {
         Esp40Work* w = &m_Free;
-        w->Ofs_y = gen->x10;
+        w->Ofs_y = gen->Pos.y;
         w->Base_Pos = m_Pos;
         w->Speed_y = m_Speed.y;
         w->Speed_plus_y = m_Speed_plus.y;
     } else if (GetWaterHeight(&m_Pos, &h)) {
-        m_Pos.y = h + gen->x10;
+        m_Pos.y = h + gen->Pos.y;
     }
     return 1;
 }

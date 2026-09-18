@@ -136,20 +136,20 @@ int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp15Work* w = &m_Free;
 
-    m_Del_far = (s8)gen->xC8 * 10;
-    x14 = (s8)gen->xC9 * 10;
-    w->Del_ratio = (f32)(s8)gen->xCA / 100.0f;
+    m_Del_far = (s8)gen->Work8[0] * 10;
+    m_Del_near = (s8)gen->Work8[1] * 10;
+    w->Del_ratio = (f32)(s8)gen->Work8[2] / 100.0f;
     if (w->Del_ratio > 1.0f) {
         w->Del_ratio = 1.0f;
     }
     w->Del_ratio = 1.0f - w->Del_ratio;
-    w->Room_del_frame = gen->xCB;
-    w->Range = gen->x20;
+    w->Room_del_frame = gen->Work8[3];
+    w->Range = gen->R_pos.z;
     m_Pos.x += w->Range * fRandSeed1_1(seed);
     m_Pos.y += w->Range * fRandSeed1_1(seed);
     m_Pos.z += w->Range * fRandSeed1_1(seed);
     w->Base_alpha = m_Col_a;
-    w->Min_y = gen->xD8;
+    w->Min_y = gen->Vec0.x;
     if (pGS->Status_flg[1] & 0x02000000) {
         m_Col_a = 0.0f;
         w->Room_del_cnt = w->Room_del_frame;

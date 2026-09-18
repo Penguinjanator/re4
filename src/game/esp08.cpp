@@ -452,8 +452,8 @@ void Esp08_Trans(cEsp08* esp)
         Esp08_TransShimmer(esp, esp->m_Shimmer_pow);
         return;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
@@ -492,7 +492,7 @@ void Esp08_Trans(cEsp08* esp)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -503,15 +503,15 @@ void Esp08_Trans(cEsp08* esp)
     }
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -586,8 +586,8 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     void* buf;
 
     scale = (f32) type * (1.0f / 32.0f) + 1.0f;
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
@@ -622,21 +622,21 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -767,8 +767,8 @@ int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp08Work* w = &m_Free;
     u32 type;
 
-    w->Div_x = (f32) (int) gen->xC8 * 0.1f + 1.0f;
-    w->Div_y = (f32) (int) gen->xC9 * 0.1f + 1.0f;
+    w->Div_x = (f32) (int) gen->Work8[0] * 0.1f + 1.0f;
+    w->Div_y = (f32) (int) gen->Work8[1] * 0.1f + 1.0f;
     if (w->Div_x < 1.0f) {
         w->Div_x = 1.0f;
     }
@@ -779,9 +779,9 @@ int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
     w->Spd_y = (f32) (s32) gen->prm.w.xD0 * 0.001f;
     w->Scr_x = 0.0f;
     w->Scr_y = 0.0f;
-    w->Room_del_frame = gen->xCB;
+    w->Room_del_frame = gen->Work8[3];
     w->colA0 = m_Col_a;
-    w->Mask_type = gen->xCA;
+    w->Mask_type = gen->Work8[2];
     type = w->Mask_type;
     if (type > 1) {
         pLog->err(0, 0, "ESP08 : MaskType[%x] invalid", type);

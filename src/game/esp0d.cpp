@@ -58,9 +58,9 @@ int cEsp0d::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0dWork* w = &m_Free;
 
-    w->Dist = (f32)(s8)gen->xC8 * 100.0f;
-    w->Pow = (f32)(s8)gen->xC9 * 0.00005f;
-    w->Type = gen->xFC;
+    w->Dist = (f32)(s8)gen->Work8[0] * 100.0f;
+    w->Pow = (f32)(s8)gen->Work8[1] * 0.00005f;
+    w->Type = gen->WorkSp8[0];
     if (m_Tool_flg & 0x20) {
         w->target = m_pMod->getPartsPtr(m_Parts_no);
     } else {

@@ -65,14 +65,14 @@ int cEsp49::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp49Work* w = &m_Free;
 
-    w->del_height = gen->xD8;
-    w->fade_height = gen->xE0;
+    w->del_height = gen->Vec0.x;
+    w->fade_height = gen->Vec0.z;
     if (w->del_height > w->fade_height) {
         w->fade_height = w->del_height;
     }
-    w->EstNo = gen->xC8;
-    w->estPrm = gen->xC9;
-    w->estOn = gen->xCA;
+    w->EstNo = gen->Work8[0];
+    w->estPrm = gen->Work8[1];
+    w->estOn = gen->Work8[2];
     if (w->estOn > 1) {
         pLog->err(0, 0, "ESP_49 : FLAG[%d] invalid.", w->estOn);
         return 0;

@@ -52,7 +52,7 @@ int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4aWork* w = &m_Free;
 
-    switch ((s8)gen->xC8) {
+    switch ((s8)gen->Work8[0]) {
     case 0:
         w->quake_type = 2;
         break;
@@ -63,9 +63,9 @@ int cEsp4a::SetFreeWork(EspGenWork* gen, u32* seed)
         w->quake_type = 3;
         break;
     default:
-        pLog->err(0, 0, "ESP4A : Invalid Type[%d]", (s8)gen->xC8);
+        pLog->err(0, 0, "ESP4A : Invalid Type[%d]", (s8)gen->Work8[0]);
         return 0;
     }
-    w->range = gen->xE0;
+    w->range = gen->Vec0.z;
     return 1;
 }

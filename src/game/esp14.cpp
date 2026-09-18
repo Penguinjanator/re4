@@ -109,12 +109,12 @@ int cEsp14::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp14Work* w = &m_Free;
 
-    w->Mul = (f32)(s8)gen->xC8 * 0.05f + 0.25f;
+    w->Mul = (f32)(s8)gen->Work8[0] * 0.05f + 0.25f;
     w->Base_y = m_Size_base_y;
-    w->Rimiter = *(Vec*)&gen->xD8;
-    w->Rimiter_ofs = *(Vec*)&gen->xE4;
-    if (fabsf(gen->xD8) < fabsf(gen->xE4) || fabsf(gen->xE0) < fabsf(gen->xEC) ||
-        fabsf(gen->xDC) != 0.0f || fabsf(gen->xE8) != 0.0f) {
+    w->Rimiter = *(Vec*)&gen->Vec0.x;
+    w->Rimiter_ofs = *(Vec*)&gen->Vec1.x;
+    if (fabsf(gen->Vec0.x) < fabsf(gen->Vec1.x) || fabsf(gen->Vec0.z) < fabsf(gen->Vec1.z) ||
+        fabsf(gen->Vec0.y) != 0.0f || fabsf(gen->Vec1.y) != 0.0f) {
         pLog->err(0, 0, "ESP14 : Vec0 or Vec1 Invalid Paramater.");
         return 0;
     }

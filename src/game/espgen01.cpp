@@ -338,21 +338,21 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     f32 ry;
     f32 fov;
 
-    p->offset = *(Vec*) &rec->x0C;
-    p->owner = rec->xC8;
-    p->est_id = rec->xC9;
+    p->offset = *(Vec*) &rec->Pos.x;
+    p->owner = rec->Work8[0];
+    p->est_id = rec->Work8[1];
     p->flg = 0;
     p->parts = parts;
     p->pMod = model;
-    p->parts_no = rec->x7;
-    fov = rec->xF8;
+    p->parts_no = rec->Parts_no;
+    fov = rec->Vec2.z;
     if (fov != 0.0f) {
         p->dir_ang = fov * 6.2831855f / 360.0f * 0.5f;
         p->dir_vec.x = 0.0f;
         p->dir_vec.z = 1.0f;
         p->dir_vec.y = 0.0f;
-        rx = rec->xF0 * 6.2831855f / 360.0f;
-        ry = rec->xF4 * 6.2831855f / 360.0f;
+        rx = rec->Vec2.x * 6.2831855f / 360.0f;
+        ry = rec->Vec2.y * 6.2831855f / 360.0f;
         rx = LIMIT_ANGLE(rx);
         ry = LIMIT_ANGLE(ry);
         PSMTXRotRad(m1, 'Y', ry);
@@ -363,14 +363,14 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         VECNormalize(&p->dir_vec, &p->dir_vec);
         p->flg |= 1;
     }
-    p->sizeRate = 1.0f - rec->xD8 * 0.01f;
+    p->sizeRate = 1.0f - rec->Vec0.x * 0.01f;
     if (p->sizeRate > 1.0f) {
         p->sizeRate = 1.0f;
     }
-    p->scaleRate = rec->xDC * 0.01f;
-    p->dist = rec->xE0;
-    if (rec->xE4 != 0.0f) {
-        p->hide_r = rec->xE4;
+    p->scaleRate = rec->Vec0.y * 0.01f;
+    p->dist = rec->Vec0.z;
+    if (rec->Vec1.x != 0.0f) {
+        p->hide_r = rec->Vec1.x;
         p->flg |= 2;
     }
     return 1;

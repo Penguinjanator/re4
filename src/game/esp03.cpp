@@ -160,18 +160,18 @@ int cEsp03::SetFreeWork(EspGenWork* gen, u32* seed)
 
     w->pBeforePos = &w->Pos[0];
     w->idx = 1;
-    n = (s8)gen->xC8;
+    n = (s8)gen->Work8[0];
     if (n == 10) {
         w->maxPoints = n;
     } else {
-        w->maxPoints = 4 - gen->xC8;
+        w->maxPoints = 4 - gen->Work8[0];
         if (w->maxPoints <= 1) {
             w->maxPoints = 2;
         } else if (w->maxPoints > 6) {
             w->maxPoints = 6;
         }
     }
-    w->hitWall = gen->xC9;
+    w->hitWall = gen->Work8[1];
     if (w->hitWall > 1) {
         pLog->err(0, 0, "ESP_03 : WK1 invalid.");
         return 0;

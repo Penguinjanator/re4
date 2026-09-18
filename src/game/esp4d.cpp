@@ -60,7 +60,7 @@ void Esp4d_Trans()
 
 int cEsp4d::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    type = gen->xC8;
+    type = gen->Work8[0];
     if (type > 1) {
         pLog->err(0, 0, "ESP4D : Type[%d] is invalid.", type);
         type = 0;

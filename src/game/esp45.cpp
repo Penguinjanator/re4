@@ -248,13 +248,13 @@ int cEsp45::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp45Work* w = &m_Free;
 
-    w->type = gen->xC8;
-    w->rate = gen->xC2;
+    w->type = gen->Work8[0];
+    w->rate = gen->Blend_type;
     w->alpha = (u8) m_Col_a;
     w->power = m_Size_plus;
-    w->del_dist = gen->xE0;
-    if (gen->xE4 != 0.0f) {
-        w->hide_r = gen->xE4;
+    w->del_dist = gen->Vec0.z;
+    if (gen->Vec1.x != 0.0f) {
+        w->hide_r = gen->Vec1.x;
         w->flg |= 2;
     }
     return 1;

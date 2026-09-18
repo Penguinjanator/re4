@@ -93,12 +93,12 @@ int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
     if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
         cModel* parts;
 
-        if ((s8)gen->xC8 >= m_pMod->nParts) {
+        if ((s8)gen->Work8[0] >= m_pMod->nParts) {
             pLog->err(0, 0, "ESP1a : Wk0 PartsNo > %d ", m_pMod->nParts);
             return 0;
         }
-        parts = m_pMod->getPartsPtr((s8)gen->xC8);
-        m_Pos = *(Vec*)&gen->x0C;
+        parts = m_pMod->getPartsPtr((s8)gen->Work8[0]);
+        m_Pos = *(Vec*)&gen->Pos.x;
         {
             Vec dir = { 0.0f, 0.01f, 0.0f };
             Vec sc;
@@ -120,14 +120,14 @@ int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
             rot.z = 0.0f;
             RotMatrix(rm, &rot);
             a = fRandSeed0_1(seed) * 2.0f * PI;
-            off.x = SINF(a) * gen->x20 * fRandSeed0_1(seed);
-            off.y = COSF(a) * gen->x20 * fRandSeed0_1(seed);
+            off.x = SINF(a) * gen->R_pos.z * fRandSeed0_1(seed);
+            off.y = COSF(a) * gen->R_pos.z * fRandSeed0_1(seed);
             off.z = 0.0f;
             PSMTXMultVec(rm, &off, &off);
             PSVECAdd(&m_Pos, &off, &m_Pos);
             len = PSVECMag(&dir);
-            lo = gen->x18 / len;
-            hi = gen->x1C / len;
+            lo = gen->R_pos.x / len;
+            hi = gen->R_pos.y / len;
             t = 1.0f - lo + hi;
             PSVECScale(&dir, &sc, fRandSeed0_1(seed) * t + lo);
             PSVECAdd(&m_Pos, &sc, &m_Pos);
@@ -144,6 +144,6 @@ int cEsp1a::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP1a : no parent!!");
         return 0;
     }
-    w->Dist = *(Vec*)&gen->xD8;
+    w->Dist = *(Vec*)&gen->Vec0.x;
     return 1;
 }

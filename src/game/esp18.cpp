@@ -52,7 +52,7 @@ int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp18Work* w = &m_Free;
 
     w->base_pos = m_Pos;
-    w->blur_rate = -gen->xD8;
+    w->blur_rate = -gen->Vec0.x;
     return 1;
 }
 
@@ -99,8 +99,8 @@ void Esp18_Trans(cEsp18* esp)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     GXSetCullMode(0);
@@ -138,7 +138,7 @@ void Esp18_Trans(cEsp18* esp)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     GXClearVtxDesc();
@@ -150,12 +150,12 @@ void Esp18_Trans(cEsp18* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     // `i` declared here (pseudo 237, not 116): gcse numbers its PRE pseudos in hash-bucket order
     // and hash(i + 1) = 13259 + regno(i) must land after hash(fp + 0xc0) = 13481 in the
@@ -163,7 +163,7 @@ void Esp18_Trans(cEsp18* esp)
     // 0x234 and `i + 1` gets 0x238.
     u32 i;
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -328,7 +328,7 @@ void Esp18_Trans(cEsp18* esp)
         GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
         stages++;
         {
-            int no = esp->m_Type;
+            int no = esp->m_Tex_id;
             EspTexWk* tw = EspGetTexWk(no, 1);
             if (tw->Owner == 0xD2) {
                 pLog->err(0, 0, "ESP : TexId[%x] no data", no);

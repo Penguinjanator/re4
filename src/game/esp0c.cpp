@@ -73,40 +73,40 @@ int cEsp0c::SetFreeWork(EspGenWork* gen, u32* seed)
     u32 attr;
     f32 h;
 
-    w->EstNo = gen->xC8;
-    w->EstOwner_wt = gen->xC9;
+    w->EstNo = gen->Work8[0];
+    w->EstOwner_wt = gen->Work8[1];
     w->EstNo_wt = gen->prm.b.xCF;
     w->estPrm2 = gen->prm.b.xD3;
     if (parent != pEffParentWorld) {
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    switch ((s8)gen->xCA) {
+    switch ((s8)gen->Work8[2]) {
     case 0:
         break;
     case 1:
-        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f + gen->xDC;
+        m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f + gen->Vec0.y;
         break;
     case 2:
         m_Pos.y = SatMgr.getFloor(&m_Pos, 600.0f, 100000.0f, &attr, 0) + 65.0f;
         if (GetWaterHeight(&m_Pos, &h)) {
-            if (m_Pos.y < h + gen->xDC) {
-                m_Pos.y = h + gen->xDC;
+            if (m_Pos.y < h + gen->Vec0.y) {
+                m_Pos.y = h + gen->Vec0.y;
                 w->onWater = 1;
             }
         }
         break;
     default:
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->xCA);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[2]);
         return 0;
     }
-    if ((s8)gen->xCB == 0) {
-    } else if ((s8)gen->xCB == 1) {
+    if ((s8)gen->Work8[3] == 0) {
+    } else if ((s8)gen->Work8[3] == 1) {
         if (EffAreaCheckInRoom(&m_Pos) == 1) {
             PushEsp(this);
         }
     } else {
-        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->xCB);
+        pLog->err(0, 0, "ESP0C : Type[%d] Invalid Trans.", (s8)gen->Work8[3]);
         return 0;
     }
     return 1;

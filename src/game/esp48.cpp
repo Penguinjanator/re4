@@ -49,12 +49,12 @@ int cEsp48::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp48Work* w = &m_Free;
 
-    w->dist_x = gen->xD8 * 0.1f;
-    w->time_x = gen->xDC;
-    w->dist_y = gen->xE4 * 0.1f;
-    w->time_y = gen->xE8;
-    w->dist_z = gen->xF0 * 0.1f;
-    w->time_z = gen->xF4;
+    w->dist_x = gen->Vec0.x * 0.1f;
+    w->time_x = gen->Vec0.y;
+    w->dist_y = gen->Vec1.x * 0.1f;
+    w->time_y = gen->Vec1.y;
+    w->dist_z = gen->Vec2.x * 0.1f;
+    w->time_z = gen->Vec2.y;
     w->timer = fRandSeed1_1(seed) * 2.0f * PI;
     return 1;
 }

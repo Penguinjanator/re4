@@ -94,27 +94,27 @@ int cEsp4c::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp4cWork* w = &m_Free;
 
-    w->wave_ratio_base = gen->xFE;
-    w->Type = gen->xC8;
+    w->wave_ratio_base = gen->WorkSp8[2];
+    w->Type = gen->Work8[0];
     if (w->Type == 2) {
-        w->spread = 0.5f - (f32)(s8)gen->xC9 * 0.005f;
+        w->spread = 0.5f - (f32)(s8)gen->Work8[1] * 0.005f;
         if (w->spread > 0.5f) {
             w->spread = 0.5f;
         }
         if (w->spread < 0.0f) {
             w->spread = 0.0f;
         }
-        w->damp = 0.99f - gen->xCA * 0.001f;
+        w->damp = 0.99f - gen->Work8[2] * 0.001f;
     }
-    w->Spec_Tex = gen->x2;
+    w->Spec_Tex = gen->Tex_id;
     w->Shimmer_pow1 = gen->prm.h.xCE;
     w->Shimmer_pow2 = gen->prm.h.xD2;
-    w->Refrect_type = gen->xCB;
-    w->ang = gen->x58;
+    w->Refrect_type = gen->Work8[3];
+    w->ang = gen->Ang;
     PSVECScale(&w->ang, &w->ang, 3.14 / 180);
-    if (gen->flags & 0x4000) {
+    if (gen->Tool_flg & 0x4000) {
         w->flag |= 2;
-        w->x1D = gen->xC5;
+        w->x1D = gen->MaskTex_id;
         w->flag |= 1;
     }
     move();

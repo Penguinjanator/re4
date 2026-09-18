@@ -38,7 +38,7 @@ void cEsp3f::move()
 
 void cEsp3f::Destruct()
 {
-    if (m_Rno2 == 0) {
+    if (m_Rno0 == 0) {
         Esp3fWork* w = &m_Free;
         u32 i;
         for (i = 0; i < w->nBuf; i++) {
@@ -77,7 +77,7 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
     w->nBuf = n;
     for (i = 0; i < w->nBuf; i++) {
         if (PullEsp(&c, 0x3f)) {
-            c->m_Rno2 = 1;
+            c->m_Rno0 = 1;
             c->info = *info;
             w->pBuf[i] = c;
         } else {

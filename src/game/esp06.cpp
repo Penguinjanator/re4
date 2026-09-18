@@ -146,7 +146,7 @@ void esp06_CommonMove(cEsp06* esp)
 void esp06_Move00(cEsp06* esp)
 {
     esp06_CommonMove(esp);
-    esp->m_Rno2 = 1;
+    esp->m_Rno0 = 1;
 }
 
 void esp06_Move01(cEsp06* esp)
@@ -156,7 +156,7 @@ void esp06_Move01(cEsp06* esp)
 
 void cEsp06::move()
 {
-    Esp06MoveTbl[m_Rno2](this);
+    Esp06MoveTbl[m_Rno0](this);
 }
 
 int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
@@ -164,14 +164,14 @@ int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp06Work* w = &m_Free;
     f32 t;
 
-    w->pathId = gen->xC8;
-    w->PathId = gen->xC9;
-    w->Flg = gen->xCA;
+    w->pathId = gen->Work8[0];
+    w->PathId = gen->Work8[1];
+    w->Flg = gen->Work8[2];
     w->PathSpeed = (f32)(s32)gen->prm.w.xCC;
     w->PathAccele = (f32)(s32)gen->prm.w.xD0 * 0.1f;
     w->PathSpeed += (f32)(s32)gen->xD4 * fRandSeed1_1(seed);
-    w->StopFrame = gen->xFC;
-    w->StopFrameRnd = gen->xFD;
+    w->StopFrame = gen->WorkSp8[0];
+    w->StopFrameRnd = gen->WorkSp8[1];
     if ((f32)(s32)gen->prm.w.xCC != 0.0f) {
         if ((f32)(s32)gen->prm.w.xCC > 0.0f) {
             if (w->PathSpeed < 0.0f) {
@@ -188,21 +188,21 @@ int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
         return 0;
     }
     w->LocalPos = m_Pos;
-    if (gen->xE4 != 0.0f || gen->xE8 != 0.0f || gen->xEC != 0.0f) {
+    if (gen->Vec1.x != 0.0f || gen->Vec1.y != 0.0f || gen->Vec1.z != 0.0f) {
         Vec r;
 
-        r = *(Vec*)&gen->xE4;
+        r = *(Vec*)&gen->Vec1.x;
         w->Flg |= 0x80;
         PSVECScale(&r, &r, 0.017453292f);
         RotMatrix(w->PathMat, &r);
     } else {
         PSMTXIdentity(w->PathMat);
     }
-    if (gen->xD8 != 0.0f || gen->xDC != 0.0f || gen->xE0 != 0.0f) {
+    if (gen->Vec0.x != 0.0f || gen->Vec0.y != 0.0f || gen->Vec0.z != 0.0f) {
         Vec s;
         Mtx sm;
 
-        s = *(Vec*)&gen->xD8;
+        s = *(Vec*)&gen->Vec0.x;
         w->Flg |= 0x80;
         PSVECScale(&s, &s, 0.1f);
         s.x += 1.0f;
@@ -211,9 +211,9 @@ int cEsp06::SetFreeWork(EspGenWork* gen, u32* seed)
         PSMTXScale(sm, s.x, s.y, s.z);
         PSMTXConcat(w->PathMat, sm, w->PathMat);
     }
-    if (gen->xF0 != 0.0f || gen->xF4 != 0.0f) {
-        t = gen->xF0 * 0.01f;
-        t += gen->xF4 * 0.01f * fRandSeed0_1(seed);
+    if (gen->Vec2.x != 0.0f || gen->Vec2.y != 0.0f) {
+        t = gen->Vec2.x * 0.01f;
+        t += gen->Vec2.y * 0.01f * fRandSeed0_1(seed);
         if (t > 1.0f) {
             t -= (f32)(u32)t;
         }

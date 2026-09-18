@@ -154,12 +154,12 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     } else {
         n = w->Num;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -179,7 +179,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     // their unsigned magic double separately. Which expression it was is unknown. It must stay
     // in the first block so its constant is hoisted to the top.
     rate = (f32)(int)n;
-    if (esp->m_Life_time + w->Num + esp->m_Type == 99) { // COMPILER-DIFF: candidate (sched block split)
+    if (esp->m_Life_time + w->Num + esp->m_Tex_id == 99) { // COMPILER-DIFF: candidate (sched block split)
         t = z;
     }
     t = z;
@@ -274,9 +274,9 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
     Vec z;
     int i;
 
-    BitSet(w->Num, (u8)(gen->xC8 + 2));
+    BitSet(w->Num, (u8)(gen->Work8[0] + 2));
     if (parent != pEffParentWorld && (m_Release_time == 0xFF || m_Release_time <= m_Life_time)) {
-        s8 no = gen->xC9;
+        s8 no = gen->Work8[1];
 
         if (no != 0) {
             if ((u32)(no - 1) >= m_pMod->nParts) {
@@ -286,11 +286,11 @@ int cEsp16::SetFreeWork(EspGenWork* gen, u32* seed)
             w->pParts = m_pMod->getPartsPtr(no - 1);
         }
     }
-    w->grav = *(Vec*)&gen->xE4;
-    w->max_len = gen->xD8;
-    w->del = gen->xDC * 0.01f;
-    w->nen = gen->xE0 * 0.01f;
-    w->rand_plus = *(Vec*)&gen->xF0;
+    w->grav = *(Vec*)&gen->Vec1.x;
+    w->max_len = gen->Vec0.x;
+    w->del = gen->Vec0.y * 0.01f;
+    w->nen = gen->Vec0.z * 0.01f;
+    w->rand_plus = *(Vec*)&gen->Vec2.x;
     if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pos, &info) || !Esp3f_Alloc(sizeof(Vec), w->Num, &w->spd, &info)) {
         pLog->warn(0, 0, "ESP_16 : Buf alloc failed.");
         return 0;

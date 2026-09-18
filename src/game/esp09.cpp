@@ -86,22 +86,22 @@ void cEsp09::move()
     if (!CommonMove()) {
         return;
     }
-    switch (m_Rno2) {
+    switch (m_Rno0) {
     case 0:
         w->hidden = 1;
         Esp09_ClearPrevPos(this);
-        m_Rno2++;
+        m_Rno0++;
         break;
     case 1:
         if (w->flg & 2) {
-            m_Rno3++;
-            if (m_Rno3 & 1) {
+            m_Rno1++;
+            if (m_Rno1 & 1) {
                 w->nPos++;
             }
         } else {
             w->nPos++;
         }
-        if (m_Rno1 != 0) {
+        if (m_Type != 0) {
             if (w->nPos > 2) {
                 w->nPos = 0;
             }
@@ -124,7 +124,7 @@ void cEsp09::move()
         }
         break;
     }
-    if (m_Type == 0xFF) {
+    if (m_Tex_id == 0xFF) {
         w->Width = (u16)(m_Size_base_x * m_Size_mul * (0.3f * 0.1f));
         len /= 5000.0f;
         if (len > 1.0f) {
@@ -146,7 +146,7 @@ extern "C" void Esp09_Trans(cEsp09* esp)
 
     Esp09_Trans_Setup(esp);
     GXSetLineWidth(w->Width, 0);
-    if (esp->m_Type != 0xFF) {
+    if (esp->m_Tex_id != 0xFF) {
         Esp09_PolyTrans(esp, r, g, b, a);
     } else if (w->flg & 1) {
         Esp09_2DTrans(esp, r, g, b, a);
@@ -199,8 +199,8 @@ void Esp09_Trans_Setup(cEsp09* esp)
     GXSetVtxDesc(0xB, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
-    if (esp->m_Type != 0xFF) {
-        EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    if (esp->m_Tex_id != 0xFF) {
+        EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
         GXSetVtxDesc(0xD, 1);
         GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     }
@@ -355,8 +355,8 @@ void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
     f32 t0;
     f32 t1;
 
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     sw = 1.0f / (f32)w->maxPoints;
@@ -445,8 +445,8 @@ int cEsp09::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp09Work* w = &m_Free;
 
-    w->maxPoints = 4 - gen->xC8;
-    w->flg = gen->xC9;
+    w->maxPoints = 4 - gen->Work8[0];
+    w->flg = gen->Work8[1];
     if (w->maxPoints <= 1) {
         w->maxPoints = 2;
     } else if (w->maxPoints > 6) {

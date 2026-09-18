@@ -1131,15 +1131,15 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->err(0, 0, "Espgen42 : WaterTex(0xfe) not found!");
         return 0;
     }
-    if (rec->xFC != 0) {
-        nx = rec->xFC;
+    if (rec->WorkSp8[0] != 0) {
+        nx = rec->WorkSp8[0];
         if (nx > 0xB8) {
             nx = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : width > 184");
         }
     }
-    if (rec->xFD != 0) {
-        ny = rec->xFD;
+    if (rec->WorkSp8[1] != 0) {
+        ny = rec->WorkSp8[1];
         if (ny > 0xB8) {
             ny = 0xB8;
             pLog->warn(0, 0, "ESP_WATER : height > 184");
@@ -1155,32 +1155,32 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->warn(0, 0, "ESP_WATER : height (%d -> %d)", ny, n);
         ny = n;
     }
-    rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
-    PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) != NULL) {
-        p->col.r = rec->x9C;
-        p->col.g = rec->x9D;
-        p->col.b = rec->x9E;
-        p->col.a = rec->x9F;
-        p->amb.r = rec->xA0 * 255.0f;
-        p->amb.g = rec->xA4 * 255.0f;
-        p->amb.b = rec->xA8 * 255.0f;
-        p->amb.a = rec->xAC * 255.0f;
-        p->mode = rec->xC8;
+    rate = 1.0f - (f32) (int) rec->WorkSp8[2] / 255.0f;
+    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
+    if (SetWaterWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, nx, ny, rate) != NULL) {
+        p->col.r = rec->Col_start_r;
+        p->col.g = rec->Col_start_g;
+        p->col.b = rec->Col_start_b;
+        p->col.a = rec->Col_start_a;
+        p->amb.r = rec->Col_d_r * 255.0f;
+        p->amb.g = rec->Col_d_g * 255.0f;
+        p->amb.b = rec->Col_d_b * 255.0f;
+        p->amb.a = rec->Col_d_a * 255.0f;
+        p->mode = rec->Work8[0];
         if (p->mode == 2) {
-            p->damp = 0.5f - (f32) (s8) rec->xC9 * 0.005f;
+            p->damp = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
             if (p->damp > 0.5f) {
                 p->damp = 0.5f;
             }
             if (p->damp < 0.0f) {
                 p->damp = 0.0f;
             }
-            p->spread = 0.99f - (f32) (int) rec->xCA * 0.001f;
+            p->spread = 0.99f - (f32) (int) rec->Work8[2] * 0.001f;
         }
-        p->texId = rec->x2;
+        p->texId = rec->Tex_id;
         p->indS = rec->prm.h.xCE;
         p->indT = rec->prm.h.xD2;
-        p->stages = rec->xCB;
+        p->stages = rec->Work8[3];
         g_pWater = w;
         Espgen42_Move(w);
         return 1;

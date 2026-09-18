@@ -557,18 +557,18 @@ int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
             ny = 0x100;
         }
     }
-    p->Color.r = rec->x9C;
-    p->Color.g = rec->x9D;
-    p->Color.b = rec->x9E;
-    p->Color.a = rec->x9F;
-    p->Amb.r = rec->xA0 * 255.0f;
-    p->Amb.g = rec->xA4 * 255.0f;
-    p->Amb.b = rec->xA8 * 255.0f;
-    p->Amb.a = rec->xAC * 255.0f;
-    p->TexNo = rec->x2;
-    p->texRep = 1 << (s8) rec->xC8;
-    PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetSandWork(w, (Vec*) &rec->x0C, &r, rec->x88, rec->x94 + 1.0f, nx, ny) == NULL) {
+    p->Color.r = rec->Col_start_r;
+    p->Color.g = rec->Col_start_g;
+    p->Color.b = rec->Col_start_b;
+    p->Color.a = rec->Col_start_a;
+    p->Amb.r = rec->Col_d_r * 255.0f;
+    p->Amb.g = rec->Col_d_g * 255.0f;
+    p->Amb.b = rec->Col_d_b * 255.0f;
+    p->Amb.a = rec->Col_d_a * 255.0f;
+    p->TexNo = rec->Tex_id;
+    p->texRep = 1 << (s8) rec->Work8[0];
+    PSVECScale(&rec->Ang, &r, 6.28f / 360.0f);
+    if (SetSandWork(w, (Vec*) &rec->Pos.x, &r, rec->Size_base_x, rec->Size_plus + 1.0f, nx, ny) == NULL) {
         return 0;
     }
     Espgen43_Move(w);

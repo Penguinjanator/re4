@@ -40,12 +40,12 @@ int cEsp46::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp46Work* w = &m_Free;
 
-    w->level = (s8)gen->xC8;
-    w->priority = gen->xC9;
-    if ((s8)gen->xCA <= 1) {
-        w->sp_flag = gen->xCA;
+    w->level = (s8)gen->Work8[0];
+    w->priority = gen->Work8[1];
+    if ((s8)gen->Work8[2] <= 1) {
+        w->sp_flag = gen->Work8[2];
     } else {
-        pLog->err(0, 0, "ESP46 : WK2[%x] invalid.", (s8)gen->xCA);
+        pLog->err(0, 0, "ESP46 : WK2[%x] invalid.", (s8)gen->Work8[2]);
     }
     m_Parts_no = 0xf8;
     return 1;

@@ -107,13 +107,13 @@ void EspCommonTrans(cEsp* esp)
             s_proj_type = 1;
             CameraCurrentProjection();
         }
-        if (!EspGetAnmAddr(esp->m_Type, &s_pAnm)) {
-            pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+        if (!EspGetAnmAddr(esp->m_Tex_id, &s_pAnm)) {
+            pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
             s_tex_no = -1;
             return;
         }
-        EspTexSet(esp->m_Type, esp->m_Ptn_no);
-        s_tex_no = esp->m_Type;
+        EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
+        s_tex_no = esp->m_Tex_id;
         s_ptn_no = esp->m_Ptn_no;
         esp->CommonStateSet();
         GXClearVtxDesc();
@@ -137,33 +137,33 @@ void EspCommonTrans(cEsp* esp)
                 CameraCurrentProjection();
             }
         }
-        if (s_tex_no != esp->m_Type) {
-            if (!EspGetAnmAddr(esp->m_Type, &s_pAnm)) {
-                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+        if (s_tex_no != esp->m_Tex_id) {
+            if (!EspGetAnmAddr(esp->m_Tex_id, &s_pAnm)) {
+                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
                 s_tex_no = -1;
                 return;
             }
         }
-        if (s_tex_no != esp->m_Type || s_ptn_no != esp->m_Ptn_no) {
-            EspTexSet(esp->m_Type, esp->m_Ptn_no);
+        if (s_tex_no != esp->m_Tex_id || s_ptn_no != esp->m_Ptn_no) {
+            EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
             s_ptn_no = esp->m_Ptn_no;
         }
-        s_tex_no = esp->m_Type;
+        s_tex_no = esp->m_Tex_id;
     }
     if (!esp->ChannelSet()) {
         return;
     }
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    if ((f32) s_pAnm->x4 == 0.0f) {
+    if ((f32) s_pAnm->Cx == 0.0f) {
         ox = -0.5f;
     } else {
-        ox = (f32) -s_pAnm->x4 / s_pAnm->x0;
+        ox = (f32) -s_pAnm->Cx / s_pAnm->Width;
     }
-    if ((f32) s_pAnm->x6 == 0.0f) {
+    if ((f32) s_pAnm->Cy == 0.0f) {
         oy = -0.5f;
     } else {
-        oy = (f32) s_pAnm->x6 / s_pAnm->x2 + -1.0f;
+        oy = (f32) s_pAnm->Cy / s_pAnm->Height + -1.0f;
     }
     if (ESP_PARTS_SCREEN(esp)) {
         Mtx m;
@@ -388,8 +388,8 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     GXSetCullMode(0);
@@ -427,7 +427,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     GXClearVtxDesc();
@@ -439,15 +439,15 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -673,8 +673,8 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
+    if (!EspGetAnmAddr(esp->m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Tex_id);
         return;
     }
     CameraCurrentProjection();
@@ -710,7 +710,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     GXLoadNrmMtxImm(inv, 0);
     GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->m_Type, esp->m_Ptn_no);
+    EspTexSet(esp->m_Tex_id, esp->m_Ptn_no);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     GXClearVtxDesc();
@@ -722,15 +722,15 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     sx = esp->m_Size_base_x * esp->m_Size_mul;
     sy = esp->m_Size_base_y * esp->m_Size_mul;
-    ox = -anm->x4;
-    oy = (f32) anm->x6;
+    ox = -anm->Cx;
+    oy = (f32) anm->Cy;
     z = 1.0f;
     zero = 0.0f;
     if (ox == zero) {
-        ox = -anm->x0 * 0.5f;
+        ox = -anm->Width * 0.5f;
     }
     if (oy == zero) {
-        oy = anm->x2 * 0.5f;
+        oy = anm->Height * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
@@ -899,55 +899,55 @@ int cEsp::AnmMove()
     EspAnmData* anm;
     u32 time;
 
-    if (!EspGetAnmAddr(m_Type, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", m_Type);
+    if (!EspGetAnmAddr(m_Tex_id, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", m_Tex_id);
         return 0;
     }
-    if (anm->xC == 0) {
+    if (anm->Data_num == 0) {
         time = 1;
     } else {
-        time = anm->ptnTime[anm->nPtn + m_Ptn_no];
+        time = anm->Frame_cnt[anm->Frames + m_Ptn_no];
     }
     m_Anm_cnt += m_Anm_rate;
     while ((m_Anm_cnt >> 5) > (u16) time) {
         m_Ptn_no++;
         m_Anm_cnt -= time << 5;
-        if (m_Ptn_no >= anm->nPtn) {
-            switch (anm->xB & 3) {
+        if (m_Ptn_no >= anm->Frames) {
+            switch (anm->Loop & 3) {
             case 0:
                 return 0;
             case 1:
                 m_Ptn_no = 0;
                 break;
             case 2:
-                m_Ptn_no = anm->nPtn - 1;
+                m_Ptn_no = anm->Frames - 1;
                 break;
             }
         }
     }
     if (m_Tool_flg & 0x4000) {
         if (!EspGetAnmAddr(m_MaskTex_id, &anm)) {
-            pLog->err(0, 0, "ESP : MaskTexId[%x] no data", m_Type);
+            pLog->err(0, 0, "ESP : MaskTexId[%x] no data", m_Tex_id);
             return 0;
         }
-        if (anm->xC == 0) {
+        if (anm->Data_num == 0) {
             time = 1;
         } else {
-            time = anm->ptnTime[anm->nPtn + m_MaskPtn_no];
+            time = anm->Frame_cnt[anm->Frames + m_MaskPtn_no];
         }
         m_MaskAnm_cnt += m_Anm_rate;
         while ((m_MaskAnm_cnt >> 5) > (u16) time) {
             m_MaskPtn_no++;
             m_MaskAnm_cnt -= time << 5;
-            if (m_MaskPtn_no >= anm->nPtn) {
-                switch (anm->xB & 3) {
+            if (m_MaskPtn_no >= anm->Frames) {
+                switch (anm->Loop & 3) {
                 case 0:
                     return 0;
                 case 1:
                     m_MaskPtn_no = 0;
                     break;
                 case 2:
-                    m_MaskPtn_no = anm->nPtn - 1;
+                    m_MaskPtn_no = anm->Frames - 1;
                     break;
                 }
             }
@@ -1020,7 +1020,7 @@ int cEsp::ChannelSet()
         d.z = p.z - cam->param.pos.z;
         dot = PSVECDotProduct(&dir, &d);
         if (dot < m_Del_far * 10.0f) {
-            f32 rate = 1.0f - (m_Del_far * 10.0f - dot) / ((m_Del_far - x14) * 10.0f);
+            f32 rate = 1.0f - (m_Del_far * 10.0f - dot) / ((m_Del_far - m_Del_near) * 10.0f);
             if (m_Flg & 1) {
                 col.r = (u8) (col.r * rate);
                 col.g = (u8) (col.g * rate);
@@ -1127,37 +1127,37 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
     int ret;
     cModel* parts;
 
-    if ((u8) (rec->x1 + 4) <= 3) {
+    if ((u8) (rec->Id + 4) <= 3) {
         EfmSeqSet(rec, (EfmCore*) info, seed, model, *mtx, 0, 0.0f, pos);
         *out = EspGetDmyPtr();
         return 1;
     }
-    if (rec->x1 == 0x3F) {
-        pLog->err(0, 0, "ESP : ESP_ID[%x] is invalid.", rec->x1);
+    if (rec->Id == 0x3F) {
+        pLog->err(0, 0, "ESP : ESP_ID[%x] is invalid.", rec->Id);
         *out = EspGetDmyPtr();
         return 0;
     }
-    if (rec->x1 != 3 && rec->x1 != 9 && rec->x1 != 0xC && !EspChkTexId(rec->x2)) {
-        pLog->err(0, 0, "ESP : TEX_ID[%x] not initialized.", rec->x2);
+    if (rec->Id != 3 && rec->Id != 9 && rec->Id != 0xC && !EspChkTexId(rec->Tex_id)) {
+        pLog->err(0, 0, "ESP : TEX_ID[%x] not initialized.", rec->Tex_id);
         *out = EspGetDmyPtr();
         return 0;
     }
-    if (PullEsp(&e.p, rec->x1) != 0) {
+    if (PullEsp(&e.p, rec->Id) != 0) {
         e.p->info = *info;
-        e.p->m_Id = rec->x1;
-        e.p->m_Type = rec->x2;
-        e.p->m_Rno1 = rec->x3;
-        e.p->m_Parts_no = rec->x7;
-        if (!(info->Core_flg & 0x1000) && rec->x6 != 0) {
-            model = SmdGetObjPtr(rec->x6 - 1);
+        e.p->m_Id = rec->Id;
+        e.p->m_Tex_id = rec->Tex_id;
+        e.p->m_Type = rec->Type;
+        e.p->m_Parts_no = rec->Parts_no;
+        if (!(info->Core_flg & 0x1000) && rec->Parent_no != 0) {
+            model = SmdGetObjPtr(rec->Parent_no - 1);
             if (model == 0) {
-                pLog->err(0, 0, "ESP : PARENT_NO[%d] Invalid.", rec->x6);
+                pLog->err(0, 0, "ESP : PARENT_NO[%d] Invalid.", rec->Parent_no);
                 PushEsp(e.p);
                 *out = EspGetDmyPtr();
                 return 0;
             }
         }
-        e.p->m_Tool_flg = rec->flags;
+        e.p->m_Tool_flg = rec->Tool_flg;
         if (e.p->m_Tool_flg & 8) {
             if (fRandSeed1_1(seed) > 0.0f) {
                 e.p->m_Tool_flg |= 2;
@@ -1172,14 +1172,14 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                 e.p->m_Tool_flg &= ~4;
             }
         }
-        e.p->m_Pos = rec->pos;
-        e.p->m_Pos.x += rec->x18 * fRandSeed1_1(seed);
-        e.p->m_Pos.y += rec->x1C * fRandSeed1_1(seed);
-        e.p->m_Pos.z += rec->x20 * fRandSeed1_1(seed);
-        e.p->m_Speed = rec->x24;
-        e.p->m_Speed.x += rec->x34.x * fRandSeed1_1(seed);
-        e.p->m_Speed.y += rec->x34.y * fRandSeed1_1(seed);
-        e.p->m_Speed.z += rec->x34.z * fRandSeed1_1(seed);
+        e.p->m_Pos = rec->Pos;
+        e.p->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
+        e.p->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
+        e.p->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
+        e.p->m_Speed = rec->Speed;
+        e.p->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
+        e.p->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
+        e.p->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
         if (flg) {
             v.x = 0.0f;
             v.y = f;
@@ -1187,70 +1187,70 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
             RotMatrixZXY(m, &v);
             PSMTXMultVecSR(m, &e.p->m_Speed, &e.p->m_Speed);
         }
-        e.p->m_D_speed = rec->x30;
-        e.p->m_Speed_plus = rec->x40;
-        e.p->m_Speed_plus.x += rec->x4C.x * fRandSeed1_1(seed);
-        e.p->m_Speed_plus.y += rec->x4C.y * fRandSeed1_1(seed);
-        e.p->m_Speed_plus.z += rec->x4C.z * fRandSeed1_1(seed);
-        e.p->m_Ang = rec->x58;
-        e.p->m_Ang.x += rec->x64.x * fRandSeed1_1(seed);
-        e.p->m_Ang.y += rec->x64.y * fRandSeed1_1(seed);
-        e.p->m_Ang.z += rec->x64.z * fRandSeed1_1(seed);
+        e.p->m_D_speed = rec->D_speed;
+        e.p->m_Speed_plus = rec->Speed_plus;
+        e.p->m_Speed_plus.x += rec->R_speed_plus.x * fRandSeed1_1(seed);
+        e.p->m_Speed_plus.y += rec->R_speed_plus.y * fRandSeed1_1(seed);
+        e.p->m_Speed_plus.z += rec->R_speed_plus.z * fRandSeed1_1(seed);
+        e.p->m_Ang = rec->Ang;
+        e.p->m_Ang.x += rec->R_ang.x * fRandSeed1_1(seed);
+        e.p->m_Ang.y += rec->R_ang.y * fRandSeed1_1(seed);
+        e.p->m_Ang.z += rec->R_ang.z * fRandSeed1_1(seed);
         PSVECScale(&e.p->m_Ang, &e.p->m_Ang, DEG2RAD);
-        e.p->m_Ang_plus = rec->x70;
-        e.p->m_Ang_plus.x += rec->x7C.x * fRandSeed1_1(seed);
-        e.p->m_Ang_plus.y += rec->x7C.y * fRandSeed1_1(seed);
-        e.p->m_Ang_plus.z += rec->x7C.z * fRandSeed1_1(seed);
+        e.p->m_Ang_plus = rec->Ang_plus;
+        e.p->m_Ang_plus.x += rec->R_ang_plus.x * fRandSeed1_1(seed);
+        e.p->m_Ang_plus.y += rec->R_ang_plus.y * fRandSeed1_1(seed);
+        e.p->m_Ang_plus.z += rec->R_ang_plus.z * fRandSeed1_1(seed);
         PSVECScale(&e.p->m_Ang_plus, &e.p->m_Ang_plus, DEG2RAD);
-        e.p->m_Size_base_x = rec->x88;
-        e.p->m_Size_base_y = rec->x8C;
+        e.p->m_Size_base_x = rec->Size_base_x;
+        e.p->m_Size_base_y = rec->Size_base_y;
         e.p->m_Size_mul = 1.0f;
-        rnd = rec->x90 * fRandSeed1_1(seed);
+        rnd = rec->R_size_base * fRandSeed1_1(seed);
         e.p->m_Size_base_x += rnd;
         e.p->m_Size_base_y += rnd;
-        e.p->m_Size_plus = rec->x94;
-        e.p->m_D_size_plus = rec->x98;
-        e.p->m_Col_start_r = rec->x9C;
-        e.p->m_Col_start_g = rec->x9D;
-        e.p->m_Col_start_b = rec->x9E;
-        e.p->m_Col_start_a = rec->x9F;
-        e.p->m_Col_r = (f32) rec->x9C;
-        e.p->m_Col_g = (f32) rec->x9D;
-        e.p->m_Col_b = (f32) rec->x9E;
-        e.p->m_Col_a = (f32) rec->x9F;
-        e.p->m_Col_d_r = rec->xA0;
-        e.p->m_Col_d_g = rec->xA4;
-        e.p->m_Col_d_b = rec->xA8;
-        e.p->m_Col_d_a = rec->xAC;
-        if (rec->xC2 > 5) {
-            pLog->err(0, 0, "ESP : BLEND_TYPE[%d] Invalid.", rec->xC2);
+        e.p->m_Size_plus = rec->Size_plus;
+        e.p->m_D_size_plus = rec->D_size_plus;
+        e.p->m_Col_start_r = rec->Col_start_r;
+        e.p->m_Col_start_g = rec->Col_start_g;
+        e.p->m_Col_start_b = rec->Col_start_b;
+        e.p->m_Col_start_a = rec->Col_start_a;
+        e.p->m_Col_r = (f32) rec->Col_start_r;
+        e.p->m_Col_g = (f32) rec->Col_start_g;
+        e.p->m_Col_b = (f32) rec->Col_start_b;
+        e.p->m_Col_a = (f32) rec->Col_start_a;
+        e.p->m_Col_d_r = rec->Col_d_r;
+        e.p->m_Col_d_g = rec->Col_d_g;
+        e.p->m_Col_d_b = rec->Col_d_b;
+        e.p->m_Col_d_a = rec->Col_d_a;
+        if (rec->Blend_type > 5) {
+            pLog->err(0, 0, "ESP : BLEND_TYPE[%d] Invalid.", rec->Blend_type);
             PushEsp(e.p);
             *out = EspGetDmyPtr();
             return 0;
         }
-        e.p->m_Blend_type = rec->xC2;
-        e.p->xA4 = bl[rec->xC2][0];
-        e.p->xA5 = bl[rec->xC2][1];
-        e.p->xA6 = bl[rec->xC2][2];
-        e.p->xA7 = bl[rec->xC2][3];
-        if (rec->xC2 == 4) {
+        e.p->m_Blend_type = rec->Blend_type;
+        e.p->xA4 = bl[rec->Blend_type][0];
+        e.p->xA5 = bl[rec->Blend_type][1];
+        e.p->xA6 = bl[rec->Blend_type][2];
+        e.p->xA7 = bl[rec->Blend_type][3];
+        if (rec->Blend_type == 4) {
             e.p->m_Flg |= 1;
         }
-        e.p->m_Col_max_cnt = rec->xB0;
-        e.p->m_Col_start_cnt = rec->xB2;
-        e.p->m_Pos_start_cnt = rec->xB4;
-        e.p->m_Size_start_cnt = rec->xB6;
-        e.p->m_Life_max = rec->xB8;
-        e.p->m_Life_time = rec->xBA;
-        e.p->m_Ptn_no = rec->xBC;
-        e.p->m_Anm_rate = rec->xBD + 0x20;
-        e.p->m_Anm_cnt = rec->xBE;
-        e.p->m_Release_time = rec->xC0;
-        e.p->m_Shimmer_type = rec->xC3;
-        e.p->m_Shimmer_pow = rec->xC4;
-        e.p->m_MaskTex_id = rec->xC5;
-        e.p->m_Del_far = rec->xC6 * 10;
-        e.p->x14 = rec->xC7 * 10;
+        e.p->m_Col_max_cnt = rec->Col_max_cnt;
+        e.p->m_Col_start_cnt = rec->Col_start_cnt;
+        e.p->m_Pos_start_cnt = rec->Pos_start_cnt;
+        e.p->m_Size_start_cnt = rec->Size_start_cnt;
+        e.p->m_Life_max = rec->Life_max;
+        e.p->m_Life_time = rec->Life_time;
+        e.p->m_Ptn_no = rec->Ptn_no;
+        e.p->m_Anm_rate = rec->Anm_rate + 0x20;
+        e.p->m_Anm_cnt = rec->Anm_cnt;
+        e.p->m_Release_time = rec->Release_time;
+        e.p->m_Shimmer_type = rec->Shimmer_type;
+        e.p->m_Shimmer_pow = rec->Shimmer_pow;
+        e.p->m_MaskTex_id = rec->MaskTex_id;
+        e.p->m_Del_far = rec->Del_far * 10;
+        e.p->m_Del_near = rec->Del_near * 10;
         if (e.p->m_Shimmer_type != 0) {
             e.p->m_Flg |= 4;
         }
@@ -1272,7 +1272,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
             break;
         case 0xFE:
             e.p->parent = pEffParentWorld;
-            if (rec->xC0 != 0) {
+            if (rec->Release_time != 0) {
                 pLog->warn(0, 0, "ESP:ReleaseTime not 0 but no parent.");
             }
             break;
@@ -1288,7 +1288,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     parts = model->getPartsPtr(e.p->m_Parts_no);
                     PSMTXIdentity(m2);
                     low_RotMatrix(m2, &model->ang);
-                    PSMTXMultVecSR(m2, &rec->pos, &v);
+                    PSMTXMultVecSR(m2, &rec->Pos, &v);
                     m2[0][3] = parts->mat[0][3] + v.x;
                     m2[1][3] = parts->mat[1][3] + v.y;
                     m2[2][3] = parts->mat[2][3] + v.z;
@@ -1297,9 +1297,9 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     e.p->m_Pos.y = 0.0f;
                     e.p->m_Pos.z = 0.0f;
                     e.p->ApplyMatrix(m2);
-                    e.p->m_Pos.x += rec->x18 * fRandSeed1_1(seed);
-                    e.p->m_Pos.y += rec->x1C * fRandSeed1_1(seed);
-                    e.p->m_Pos.z += rec->x20 * fRandSeed1_1(seed);
+                    e.p->m_Pos.x += rec->R_pos.x * fRandSeed1_1(seed);
+                    e.p->m_Pos.y += rec->R_pos.y * fRandSeed1_1(seed);
+                    e.p->m_Pos.z += rec->R_pos.z * fRandSeed1_1(seed);
                 } else {
                     e.p->m_pMod = model;
                     e.p->m_Guid_pMod = model->serial;
@@ -1320,9 +1320,9 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         if (pSct) {
             if (pSct->set & 1) {
                 e.p->m_Speed = pSct->spd;
-                e.p->m_Speed.x += rec->x34.x * fRandSeed1_1(seed);
-                e.p->m_Speed.y += rec->x34.y * fRandSeed1_1(seed);
-                e.p->m_Speed.z += rec->x34.z * fRandSeed1_1(seed);
+                e.p->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
+                e.p->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
+                e.p->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
             }
             if (pSct->set & 2) {
                 e.p->m_Size_base_x = pSct->sizeX;

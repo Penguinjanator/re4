@@ -43,10 +43,10 @@ int cEsp05::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp05Work* w = &m_Free;
 
-    w->Pow = gen->xD8;
-    w->Spd = gen->xDC * 0.05f;
-    w->Pow += w->Pow * fRand0_1() * (gen->xE0 * 0.1f);
-    w->Spd += w->Spd * fRand0_1() * (gen->xE0 * 0.1f);
+    w->Pow = gen->Vec0.x;
+    w->Spd = gen->Vec0.y * 0.05f;
+    w->Pow += w->Pow * fRand0_1() * (gen->Vec0.z * 0.1f);
+    w->Spd += w->Spd * fRand0_1() * (gen->Vec0.z * 0.1f);
     w->Theta = fRand0_1() * PI * 2.0f;
     return 1;
 }

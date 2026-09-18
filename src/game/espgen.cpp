@@ -536,17 +536,17 @@ int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 par
     EspgenWork* w;
     u32 max = GetEspgenIdMax();
 
-    if (rec->genId >= max && rec->genId != 0xFF) {
-        pLog->err(0, 0, "ESP_CTRL : CTRL_ID[%x] is invalid.", rec->x1);
+    if (rec->Espgen_id >= max && rec->Espgen_id != 0xFF) {
+        pLog->err(0, 0, "ESP_CTRL : CTRL_ID[%x] is invalid.", rec->Id);
         return 0;
     }
-    if (rec->genId == 0xFF) {
-        EspGenSetMoveLoop(rec->x110);
+    if (rec->Espgen_id == 0xFF) {
+        EspGenSetMoveLoop(rec->Espgen_work16[0]);
         return 1;
     }
     if (PullEspEspgen(&w, info->Core_flg, info->Core_kind, info->b.x7, info->Core_pEm, info->owner, 0)) {
-        w->id = rec->genId;
-        w->xE = rec->x10A;
+        w->id = rec->Espgen_id;
+        w->xE = rec->Espgen_type;
         if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, pSct, flag)) {
             PushEspgen(w);
             return 0;

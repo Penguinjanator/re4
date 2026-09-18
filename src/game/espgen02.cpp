@@ -284,14 +284,14 @@ void espgen02_Update(EspgenWork* w)
                     PSMTXMultVec(sm, &pos, &pos);
                     PSMTXMultVec(rm, &pos, &pos);
                     PSMTXCopy(p->Mat, m3);
-                    m3[0][3] -= rec->x0C + p->Mat[0][3];
-                    m3[1][3] -= rec->x10 + p->Mat[1][3];
-                    m3[2][3] -= rec->x14 + p->Mat[2][3];
+                    m3[0][3] -= rec->Pos.x + p->Mat[0][3];
+                    m3[1][3] -= rec->Pos.y + p->Mat[1][3];
+                    m3[2][3] -= rec->Pos.z + p->Mat[2][3];
                     PSMTXConcat(m2, m3, m3);
                     PSMTXConcat(rm, m3, m3);
-                    m3[0][3] += rec->x0C + p->Mat[0][3];
-                    m3[1][3] += rec->x10 + p->Mat[1][3];
-                    m3[2][3] += rec->x14 + p->Mat[2][3];
+                    m3[0][3] += rec->Pos.x + p->Mat[0][3];
+                    m3[1][3] += rec->Pos.y + p->Mat[1][3];
+                    m3[2][3] += rec->Pos.z + p->Mat[2][3];
                     m3[0][3] += pos.x;
                     m3[1][3] += pos.y;
                     m3[2][3] += pos.z;
@@ -328,14 +328,14 @@ void espgen02_Update(EspgenWork* w)
                     PSMTXMultVec(sm, &pos, &pos);
                     PSMTXMultVec(rm, &pos, &pos);
                     PSMTXCopy(p->Mat, m3);
-                    m3[0][3] -= rec->x0C + p->Mat[0][3];
-                    m3[1][3] -= rec->x10 + p->Mat[1][3];
-                    m3[2][3] -= rec->x14 + p->Mat[2][3];
+                    m3[0][3] -= rec->Pos.x + p->Mat[0][3];
+                    m3[1][3] -= rec->Pos.y + p->Mat[1][3];
+                    m3[2][3] -= rec->Pos.z + p->Mat[2][3];
                     PSMTXConcat(m2, m3, m3);
                     PSMTXConcat(rm, m3, m3);
-                    m3[0][3] += rec->x0C + p->Mat[0][3];
-                    m3[1][3] += rec->x10 + p->Mat[1][3];
-                    m3[2][3] += rec->x14 + p->Mat[2][3];
+                    m3[0][3] += rec->Pos.x + p->Mat[0][3];
+                    m3[1][3] += rec->Pos.y + p->Mat[1][3];
+                    m3[2][3] += rec->Pos.z + p->Mat[2][3];
                     m3[0][3] += pos.x;
                     m3[1][3] += pos.y;
                     m3[2][3] += pos.z;
@@ -413,15 +413,15 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->Guid_pMod = (u32) model;
     }
     p->Next_cnt = p->Time_cnt = 0;
-    p->life = rec->x110;
+    p->life = rec->Espgen_work16[0];
     p->wait = rec->x10C;
     p->Set_num = rec->x10D;
     p->D_size = rec->x124;
     p->D_speed = rec->x125;
     p->D_alpha = rec->x126;
     p->waitD = rec->x127;
-    p->Espgen_flg = rec->x10B;
-    p->R_inter = rec->x128;
+    p->Espgen_flg = rec->Espgen_flg;
+    p->R_inter = rec->Espgen_work8_3[0];
     if (p->R_inter) {
         p->wait += (u32) Rnd() % p->R_inter;
     }
@@ -446,16 +446,16 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     } else {
         p->pOpt = pSct;
     }
-    p->pathId = rec->x104;
-    p->PathId = rec->x105;
-    p->Start_ratio = rec->x106;
-    p->Rnd_ratio = rec->x107;
-    p->PathRot_x = rec->x129;
-    p->PathRot_y = rec->x12A;
-    p->mode = rec->x12B;
-    if (rec->x118.x != 0.0f || rec->x118.y != 0.0f || rec->x118.z != 0.0f) {
+    p->pathId = rec->Espgen_work8_4[0];
+    p->PathId = rec->Espgen_work8_4[1];
+    p->Start_ratio = rec->Espgen_work8_4[2];
+    p->Rnd_ratio = rec->Espgen_work8_4[3];
+    p->PathRot_x = rec->Espgen_work8_3[1];
+    p->PathRot_y = rec->Espgen_work8_3[2];
+    p->mode = rec->Espgen_work8_3[3];
+    if (rec->Espgen_vec0.x != 0.0f || rec->Espgen_vec0.y != 0.0f || rec->Espgen_vec0.z != 0.0f) {
         p->Flg |= 4;
-        p->PathScale = rec->x118;
+        p->PathScale = rec->Espgen_vec0;
         PSVECScale(&p->PathScale, &p->PathScale, 0.1f);
         p->PathScale.x += 1.0f;
         p->PathScale.y += 1.0f;

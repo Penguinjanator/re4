@@ -29,17 +29,17 @@ int cEsp42::SetFreeWork(EspGenWork* gen, u32* seed)
     static u32 bl1[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     static u32 bl2[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    if ((s8)gen->xC8 > 8) {
-        pLog->err(0, 0, "ESP42 : WK0[%d] invalid", (s8)gen->xC8);
+    if ((s8)gen->Work8[0] > 8) {
+        pLog->err(0, 0, "ESP42 : WK0[%d] invalid", (s8)gen->Work8[0]);
         return 0;
     }
-    if ((s8)gen->xC9 > 8) {
-        pLog->err(0, 0, "ESP42 : WK1[%d] invalid", (s8)gen->xC9);
+    if ((s8)gen->Work8[1] > 8) {
+        pLog->err(0, 0, "ESP42 : WK1[%d] invalid", (s8)gen->Work8[1]);
         return 0;
     }
     xA4 = 1;
-    xA5 = bl1[(s8)gen->xC8];
-    xA6 = bl2[(s8)gen->xC9];
+    xA5 = bl1[(s8)gen->Work8[0]];
+    xA6 = bl2[(s8)gen->Work8[1]];
     xA7 = 0;
     return 1;
 }

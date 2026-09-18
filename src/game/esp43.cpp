@@ -62,6 +62,6 @@ void cEsp43::move()
 
 int cEsp43::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    m_Free.EstNo = gen->xC8;
+    m_Free.EstNo = gen->Work8[0];
     return 1;
 }

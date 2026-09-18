@@ -40,20 +40,20 @@ int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
     Esp1bWork* w = &m_Free;
     int n;
 
-    n = (s8)gen->xC8 + 4;
+    n = (s8)gen->Work8[0] + 4;
     if (n <= 1) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->xC8);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
         n = 2;
     }
     if (n > 0x40) {
-        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->xC8);
+        pLog->err(0, 0, "ESP1B : Wk0[%d] Invalid.", (s8)gen->Work8[0]);
         n = 0x40;
     }
     m_Flg |= 0x10;
     w->n = n;
-    memcpy((u8*)w + 4, &gen->xD8, sizeof(Vec));
-    memcpy((u8*)w + 0x10, &gen->xE4, sizeof(Vec));
-    memcpy((u8*)w + 0x1C, &gen->xF0, sizeof(Vec));
+    memcpy((u8*)w + 4, &gen->Vec0.x, sizeof(Vec));
+    memcpy((u8*)w + 0x10, &gen->Vec1.x, sizeof(Vec));
+    memcpy((u8*)w + 0x1C, &gen->Vec2.x, sizeof(Vec));
     PSVECScale(&w->Vec0, &w->Vec0, esp1b_scale);
     PSVECScale(&w->Vec1, &w->Vec1, esp1b_scale);
     PSVECScale(&w->Vec2, &w->Vec2, esp1b_scale);
