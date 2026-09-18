@@ -90,24 +90,32 @@ static inline int em21DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Module entry (SN loader): registers Em21Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     EmInitFunc = Em21Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm21 class in the manager's work.
 void Em21Init(cEm* em)
 {
     new (em) cEm21();
 }
 
+// Per-frame damage check (cEm21::move): the dog never dies; an explosion / fire damage volume (kind
+// 1/4/5/7) or any weapon hit only makes it run away (Escape 3, dmType 0x3C = no more damage), the
+// trapped room 100 dog (R1 5) gets free instead (its trap goes to routine 1/4, R100Escape 7 with
+// r_no_3 1). The set 2 dog (El Gigante's companion) ignores hits.
 void em21DmCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -204,6 +212,9 @@ extern Camera em21_trap_cam_v asm("em21_trap_cam");
 // .data is padded to 8 bytes before the linker's BSS tag word.
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update: clears the neck flag, damage check, route check (Em21RouteCk), the R0 table
+// (Init / Move / Damage and Die share R0_Move / Scenario), then the neck, collision and scenario check;
+// a dead player makes the dog forget its target.
 void cEm21::move()
 {
     Em21Work* w = EM21_WK(this);
@@ -238,6 +249,9 @@ void cEm21::move()
     }
 }
 
+// R0 == 0: creation. Builds the model of type 0 / 1, no lock-on / no Ashley help status, hp 1000,
+// collision and hit boxes (em21YarareInit), and the start routine by set: 0 Wait, 1 the room 100 bear
+// trap dog (R100TrapWait 5), 2 El Gigante's companion (VsElgigante 8).
 static void em21_R0_Init(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -303,11 +317,14 @@ static void em21_R0_Init(cEm21* em)
     em21_R0_Move(em);
 }
 
+// R0 == 1..3: runs the R1 routine (Em21_R1_move_tbl).
 static void em21_R0_Move(cEm21* em)
 {
     Em21_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 Wait: lies asleep (motion 0xB) then stretches (0xC) and either wanders (1) or keeps
+// sleeping; wakes into Escape (3) when the player comes close (em21WakeCk).
 static void em21_R1_Wait(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -346,6 +363,8 @@ static void em21_R1_Wait(cEm21* em)
     }
 }
 
+// R1 == 1 Wander: trots (motion 7) towards the wander point (em21SetWanderPos, work flag bit2),
+// arriving after a few steps back to Wait; the player nearby -> Escape (3).
 static void em21_R1_Wander(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -373,6 +392,7 @@ static void em21_R1_Wander(cEm21* em)
     }
 }
 
+// R1 == 2 Turn: turns on the spot towards the target point, then Escape (3) or Bark (4).
 static void em21_R1_Turn(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -397,6 +417,10 @@ static void em21_R1_Turn(cEm21* em)
     }
 }
 
+// R1 == 3 Escape: runs away from the player (RouteCkEscEm target, one of four run motions 9 +
+// 0x12..0x15, random swerves every 15..45 frames, body tilt em21DirMatrix), rings the bell alarm
+// (Status_flg[1] bit29) and takes the other dogs along (em21EscapeWithYou); slows to a trot (0xA) and
+// back to Turn when far enough.
 static void em21_R1_Escape(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -498,6 +522,8 @@ static void em21_R1_Escape(cEm21* em)
     }
 }
 
+// R1 == 4 Bark: faces the player and barks (motions 8 + 0xE..0x11 at random), escaping (3) when he
+// comes within range or looks at it.
 static void em21_R1_Bark(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -564,6 +590,9 @@ static void em21_R1_Bark(cEm21* em)
     }
 }
 
+// R1 == 5: the room 100 dog caught in the bear trap (pTrap, em21TrapSearch): whimpers (motion 0x18,
+// SE every 75..105 frames) until the player frees it (the trap's action button -> em21TrapCancelAction)
+// or a hit makes it tear loose (R100Escape 7).
 static void em21_R1_R100TrapWait(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -596,6 +625,8 @@ static void em21_R1_R100TrapWait(cEm21* em)
     }
 }
 
+// R1 == 6: freed from the trap by the player: the release motion 0x19 in sync with plemTrapCancel,
+// the "dog freed" music cue, then R100Escape (7).
 static void em21_R1_R100TrapCancel(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -620,6 +651,8 @@ static void em21_R1_R100TrapCancel(cEm21* em)
     }
 }
 
+// R1 == 7: the freed / torn-loose trap dog runs off to the room exit (motion 9 or 0x1A), jumps the
+// fence (0x1E) and fades out (invisible_factor) once out of sight.
 static void em21_R1_R100Escape(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -692,6 +725,9 @@ static void em21_R1_R100Escape(cEm21* em)
     }
 }
 
+// R1 == 8: the dog fighting El Gigante at the player's side (pGigante, em21SearchElgigante): waits at
+// the bark point (em21GetBarkPos, work flag bit3), barks at the giant, runs at it and lunges (motions
+// 0x1F / 0x21 / 0x26 by distance and angle), and runs off (0x25) when the giant dies; 18 steps.
 static void em21_R1_VsElgigante(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -894,6 +930,7 @@ static void em21_R1_VsElgigante(cEm21* em)
     }
 }
 
+// Finds the alive El Gigante (id 0x2B) into pGigante; 1 when found.
 int em21SearchElgigante(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -923,6 +960,8 @@ int em21SearchElgigante(cEm21* em)
     return 0;
 }
 
+// Action button callback of the trapped dog: starts the player's release routine (plemTrapCancel) and
+// R100TrapCancel (6) on the dog.
 static void em21TrapCancelAction(cEm21* em)
 {
     pPL->dmType = 2;
@@ -931,6 +970,8 @@ static void em21TrapCancelAction(cEm21* em)
     EmRoutineSet(em, 1, 6, 0, 0);
 }
 
+// Player damage routine of the trap release: the kneel-and-open motion (player archive 0x1B) with the
+// trap camera, then EndPlDamage.
 static void plemTrapCancel(cPlayer* pl)
 {
     cEm* em = PL_EM(pl);
@@ -958,6 +999,7 @@ static void plemTrapCancel(cPlayer* pl)
     plem21TrapCamMove(pl);
 }
 
+// Installs the trap release cut camera (em21_trap_cam) beside the player looking at the dog.
 void plem21TrapCamMove(cModel* m)
 {
     Camera* c = &pG->Cam;
@@ -994,6 +1036,9 @@ void plem21TrapCamMove(cModel* m)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// Per frame: the route point / angle to the player (routePos, routeAng, flag bit0 = reachable), to
+// the current target (bark point, wander point or the player: targetPos / targetAng / targetDist2),
+// the player distance plDist, and the escape point while escTimer runs.
 void Em21RouteCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1040,6 +1085,8 @@ void Em21RouteCk(cEm21* em)
     }
 }
 
+// Builds the model matrix with the run tilt: rolls the body 30 deg into the turn direction `dir`
+// (smoothed in tilt), used by the running routines.
 void em21DirMatrix(cEm21* em, f32 dir)
 {
     Em21Work* w = EM21_WK(em);
@@ -1076,6 +1123,8 @@ void em21DirMatrix(cEm21* em, f32 dir)
     TransMatrix(em->mat, &em->pos);
 }
 
+// Neck tracking (work flag bit1): turns the head parts 3..5 towards El Gigante's root or the player's
+// head within 60 deg (neckX / neckY eased), else eases back.
 void em21NeckMove(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1144,6 +1193,8 @@ void em21NeckMove(cEm21* em)
     }
 }
 
+// Should the sleeping / wandering dog notice the player: within 1500 units, within 4000 in front, the
+// alert / bell alarm (Status_flg bits, bell_pos within 15000) or the room's forced alert. 1 = yes.
 int em21WakeCk(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1188,6 +1239,7 @@ int em21WakeCk(cEm21* em)
     return 0;
 }
 
+// Hit boxes: the body box and hit[0..4] on the head / legs (YarareInit / YarareAdd).
 void em21YarareInit(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1200,6 +1252,7 @@ void em21YarareInit(cEm21* em)
     YarareAdd(em, &w->hit[4], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x18, 1);
 }
 
+// Sends every other alive dog (id 0x21) that is waiting / turning / barking into Escape (3).
 void em21EscapeWithYou(cEm21* em)
 {
     u32 i;
@@ -1234,6 +1287,7 @@ void em21EscapeWithYou(cEm21* em)
     }
 }
 
+// Picks a wander point 3000..6000 units ahead within +-90 deg (stopped at the first wall), flag bit2.
 void em21SetWanderPos(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1259,6 +1313,8 @@ void em21SetWanderPos(cEm21* em)
     w->flags |= 4;
 }
 
+// Finds the unused bear trap object (id 0x2A, type 0, set 1) and snaps it to the dog's hind leg
+// (pTrap). 1 when found.
 int em21TrapSearch(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);
@@ -1300,6 +1356,7 @@ int em21TrapSearch(cEm21* em)
     return 0;
 }
 
+// The EMI type 0xA bark point farthest from the dog into barkPos; 0 when the room has none.
 int em21GetBarkPos(cEm21* em)
 {
     Em21Work* w = EM21_WK(em);

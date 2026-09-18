@@ -80,25 +80,33 @@ static inline cEm* em27MgrWork(u32 no)
     return (cEm*) ((u8*) m->pArray + m->size * no);
 }
 
+// Module entry (SN loader): registers Em27Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em27 prolog Ok\n");
     EmInitFunc = Em27Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm27 class in the manager's work.
 void Em27Init(cEm* em)
 {
     new (em) cEm27();
 }
 
+// Per-frame damage check (cEm27::move): a weapon hit (not 0x14 / 0x16 / flash 0x17 / 0x2A) takes
+// 999..1000 for guns / knife / TMP (one hit of the 1000 hp), 9999 for explosives, magnum, rifles and
+// the mine, or 0 for the harpoon kinds 0x19 / 0x1F / 0x20 (they kill through their own code); a kill
+// goes to Dm_Air (R2 2), a survivor to Dm_Normal / Dm_Big (a far shotgun hit prefers the small one).
 void em27DmCk(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -233,6 +241,11 @@ static u16 em27_flip_tbl[24] = {
     0, 1, 2, 3, 4, 5, 6, 8, 7, 9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10, 0x11, 0x12, 0x13, 0x14, 0, 0, 0,
 };
 
+// Per-frame update: room 10B hides the fish while the lake boss fight is on (Status_flg[1] bit21);
+// damage check, the dash / escape timers, the water surface height (GetWaterHeight unless the room
+// set it), the swim target: away from the player while Esc_timer runs (started when he comes within
+// 500 units, on the room alert, or at random), else home or a random point within 10000; then the R0
+// table, the fin scale relax, collision, the push-apart (em27ObaHitCk) and the airborne scenario check.
 void cEm27::move()
 {
     Em27Work* w = EM27_WK(this);
@@ -303,6 +316,8 @@ void cEm27::move()
     em27WaterEffSet(this);
 }
 
+// R0 == 0: creation. Builds the model (ARC 5/6, mirrored parts), hp 1000, no Ashley help / lock-on,
+// collision, hit boxes, home = Start_pos, the room's ctrl11 / ctrl12, Dash_wait 210..360, and Wait.
 static void em27_R0_Init(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -377,11 +392,14 @@ static void em27_R0_Init(cEm27* em)
     em27_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em27_R1_move_tbl: Wait, Walk, Dash, Bank, Turn180, Jump).
 static void em27_R0_Move(cEm27* em)
 {
     Em27_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 Wait: hovers (one of two idle motions) for Timer frames, then Jump (5, one in eight when
+// clear of the boat), Dash (2) when Dash_wait ran out, Walk (1) or Turn180 (4).
 static void em27_R1_Wait(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -418,6 +436,8 @@ static void em27_R1_Wait(cEm27* em)
     }
 }
 
+// R1 == 1 Walk: swims towards target (em27SetSPeed, turning PI/32 per frame); after each motion loop
+// may Jump (5) when far from the target, Bank (3), Dash (2), or return to Wait (0).
 static void em27_R1_Walk(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -456,6 +476,8 @@ static void em27_R1_Walk(cEm27* em)
     }
 }
 
+// R1 == 2 Dash: the fast swim towards target (faster turn), Dash_wait 210..270, back to Walk (1) when
+// the motion ends.
 static void em27_R1_Dash(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -484,6 +506,7 @@ static void em27_R1_Dash(cEm27* em)
     }
 }
 
+// R1 == 3 Bank: a banking turn (mirrored by the target side) towards target, then Walk (1).
 static void em27_R1_Bank(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -513,6 +536,7 @@ static void em27_R1_Bank(cEm27* em)
     }
 }
 
+// R1 == 4 Turn180: turns around (random side / motion variant), then Dash (2) or Walk (1).
 static void em27_R1_Turn180(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -547,6 +571,8 @@ static void em27_R1_Turn180(cEm27* em)
     }
 }
 
+// R1 == 5 Jump: leaps out of the water (one of two jump motions, mirrored at random) with the
+// surface splash (em27WaterEffSet), then Dash (2) or Walk (1).
 static void em27_R1_Jump(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -588,6 +614,7 @@ static void em27_R1_Jump(cEm27* em)
     }
 }
 
+// R0 == 2: damage (Be_flg bit3), runs Em27_R2_move_tbl (Dm_Normal, Dm_Big, Dm_Air).
 static void em27_R0_Damage(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -596,6 +623,8 @@ static void em27_R0_Damage(cEm27* em)
     Em27_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Normal: the small flinch turned to the hit direction (two variants), then Dash (2);
+// a dead fish goes to Die_Normal on the motion's key frame.
 static void em27_R1_Dm_Normal(cEm27* em)
 {
     switch (em->r_no_2) {
@@ -626,6 +655,7 @@ static void em27_R1_Dm_Normal(cEm27* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_Big: the big thrash (mirrored by r_no_3) turned to the hit direction, then Die_Normal.
 static void em27_R1_Dm_Big(cEm27* em)
 {
     switch (em->r_no_2) {
@@ -652,6 +682,8 @@ static void em27_R1_Dm_Big(cEm27* em)
     }
 }
 
+// R0 2 / R1 == 2 Dm_Air: shot into a leap out of the water: the jump (mirrored by r_no_3), the fall
+// back through the surface with the splash, then Die_Normal when dead or Dash (2).
 static void em27_R1_Dm_Air(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -734,6 +766,7 @@ static void em27_R1_Dm_Air(cEm27* em)
     }
 }
 
+// R0 == 3: death (Be_flg bit3), runs Em27_R3_move_tbl (Die_Normal).
 static void em27_R0_Die(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -742,6 +775,9 @@ static void em27_R0_Die(cEm27* em)
     Em27_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: the death thrash (ARC 0x15 / 0x1C by dieVariant), counts the kill in the
+// room's ctrl12 EM27_DIE counter, the item drop, then the body floats up to the surface (upDown) and
+// bobs there (0x1B / 0x1C) with splashes every 5..65 frames.
 static void em27_R1_Die_Normal(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -835,6 +871,8 @@ static void em27_R1_Die_Normal(cEm27* em)
     }
 }
 
+// Blends the current speed Spd towards the wanted Spd_t by `rate`, moves the fish along its heading
+// and keeps it between the surface (waterHeight) and 300 below.
 void em27SetSPeed(cEm27* em, f32 rate)
 {
     Em27Work* w = EM27_WK(em);
@@ -855,6 +893,7 @@ void em27SetSPeed(cEm27* em, f32 rate)
     }
 }
 
+// Relaxes the fin parts 1 / 3 back to scale 1 (10% per frame) unless the routine holds them (Be_flg bit4).
 void em27ScaleReset(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -873,6 +912,8 @@ void em27ScaleReset(cEm27* em)
     p->scale.z = p->scale.z * 0.9f + 0.1f;
 }
 
+// Pushes the fish out of other alive enemies (within 200 units: moved to 0.9 of the distance + 20) and
+// out of the player's collision radius + 100, unless Be_flg bit6 (no push).
 void em27ObaHitCk(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -941,6 +982,8 @@ void em27ObaHitCk(cEm27* em)
     PartsWorldPosCalc(em);
 }
 
+// MotionMove with the motion's translation divided by the model scale (so a scaled fish swims at the
+// authored speed); returns the motion-ended flag.
 int em27MotionMoveScale(cEm27* em)
 {
     Vec spd;
@@ -964,6 +1007,9 @@ int em27MotionMoveScale(cEm27* em)
     return ret;
 }
 
+// Surface crossing effects: when the root part passes the surface (waterHeight + 300) upwards the
+// leap splash / jump SE, downwards the dive splash / SE, both pushing the water (AddWaterPower);
+// off while dying (Be_flg bit7).
 void em27WaterEffSet(cEm27* em)
 {
     Em27Work* w = EM27_WK(em);
@@ -994,6 +1040,7 @@ void em27WaterEffSet(cEm27* em)
     }
 }
 
+// 1 when no boat (enemy id 0xF) is within 2000 units: the fish may leap.
 int em27JumpCk(cEm27* em)
 {
     u32 i;
@@ -1011,6 +1058,7 @@ int em27JumpCk(cEm27* em)
     return 1;
 }
 
+// Room script: fixes the surface height (Be_flg bit8 stops the GetWaterHeight lookup).
 void cEm27::setWaterHeight(f32 h)
 {
     Em27Work* w = EM27_WK(this);

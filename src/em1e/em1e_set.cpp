@@ -23,6 +23,8 @@ void Em1eWeaponSet(cEm10* em);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
+// Module entry (SN loader): registers Em1eInit as the DOL's enemy constructor (EmInitFunc) and Em1eSet as
+// em10.cpp's per-enemy set function (Em10SetFunc).
 extern "C" void _prolog()
 {
     OSReport("em10 prolog Ok\n");
@@ -30,19 +32,27 @@ extern "C" void _prolog()
     Em10SetFunc = Em1eSet;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the shared cEm10 class in the manager's work (em10_R0_Init then
+// builds the enemy through Em10SetFunc).
 void Em1eInit(cEm* em)
 {
     new (em) cEm10();
 }
 
+// Em10SetFunc of this module: the island soldiers (class 2) plus the robed type 6 (class 0): model types 14 (default, voice 0), 15 / 23 / 25 (voice 2) and 6 (voice 0). Fills the work's motion table mot[0..40] (body / head / hand
+// models, cloth and accessory models, event motions) from the enemy archive for the model type (an
+// unknown type is forced to the default), picks the voice table (Em10SetSeTbl), sets the Ganado class
+// and calls Em1eWeaponSet.
 void Em1eSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
@@ -280,6 +290,9 @@ void Em1eSet(cEm10* em)
     EspDataLoad((u32) ARC(0x278), 0xcd, 0);
 }
 
+// Weapon model table of the module: mot[41..78] = the bin / tpl pairs em10MakeWeapon uses (hoe, bucket
+// and its motions, sickle, hatchet / flail, chainsaw (the real saw only for the chainsaw type), scythe /
+// stun rod, torch, bowgun and arrow, pitchfork); 0 = the weapon does not exist in this island module.
 void Em1eWeaponSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);

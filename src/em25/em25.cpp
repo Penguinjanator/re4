@@ -163,24 +163,33 @@ static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
 static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
+// Module entry (SN loader): registers Em25Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     EmInitFunc = Em25Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm25 class in the manager's work.
 void Em25Init(cEm* em)
 {
     new (em) cEm25();
 }
 
+// Per-frame damage check (cEm25::move): a floor parasite (Mode 0) in an explosion / fire volume burns
+// (Dm_Frame, R2 4). A weapon hit takes em25SetDmVal off hp with the blood effect: a dead floor
+// parasite goes to Die_Big (R3 2), a dead attached one is left at 1 hp in Dm_P_Normal (the host
+// decides its death); a surviving floor one flinches (Dm_Small / Dm_Big, half the time), an attached
+// one recoils (Dm_P_Normal).
 void em25DmCk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -258,6 +267,10 @@ void em25DmCk(cEm25* em)
     }
 }
 
+// Per-frame update: the R0 table (Init / Move / Damage / Die / Scenario) after the damage check, the
+// route check, Atk_wait countdown; a floor parasite gets collision and scenario check, an attached one
+// follows its host's parts (em25OnParent); the tentacle objects, the crawl SE and effects, and the
+// hide-all flag (Status_flg[1] bit26) are handled here too.
 void cEm25::move()
 {
     Em25Work* w = EM25_WK(this);
@@ -322,6 +335,9 @@ void cEm25::move()
     }
 }
 
+// R0 == 0: creation. Builds the model (ARC 5/6), no Ashley help, hit boxes (hit[0..2]), effect data,
+// and the start routine by cEm::set: 0 Hide (0, waits for setParent / setBirth), 1 an active floor
+// parasite (Wait 2).
 static void em25_R0_Init(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -390,16 +406,20 @@ static void em25_R0_Init(cEm25* em)
     em25_R0_Move(em);
 }
 
+// R0 == 1: runs the branch check and the move handler of R1 (Em25_R1_move_tbl pairs).
 static void em25_R0_Move(cEm25* em)
 {
     Em25_R1_move_tbl[em->r_no_1 * 2](em);
     Em25_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the routines that have none.
 static void em25_R1_br_Dummy(cEm25* em)
 {
 }
 
+// R1 == 0 Hide: parked out of play (hp 0, invisible, no collision, lock-on off) until a host calls
+// setParent (P_Appear) or the room calls setBirth (Birth); be_flag 0x4000 keeps it hidden.
 static void em25_R1_Hide(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -438,6 +458,8 @@ static void em25_R1_Hide(cEm25* em)
     }
 }
 
+// R1 == 1 Birth: appears on the floor at the setBirth position (full hp, visible, active) with the
+// landing motion 0x26, then Wait (2).
 static void em25_R1_Birth(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -476,6 +498,9 @@ static void em25_R1_Birth(cEm25* em)
     }
 }
 
+// R1 == 2 Wait: idle (ARC 0x19) 30..60 frames, then Turn90 (5) when the player is off to the side,
+// Run (4) / Walk (3) towards him, or JumpAtk (6) when close; dies by itself when Alive_timer runs out
+// (Die_Big).
 static void em25_R1_Wait(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -511,6 +536,8 @@ static void em25_R1_Wait(cEm25* em)
     }
 }
 
+// R1 == 3 Walk: crawls (ARC 0x1A) towards the route point turning 0.098 rad/frame, back to Wait after
+// the timer or when close, Turn90 when the target is far off the side; Alive_timer death.
 static void em25_R1_Walk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -544,6 +571,7 @@ static void em25_R1_Walk(cEm25* em)
     }
 }
 
+// R1 == 4 Run: the fast crawl (ARC 0x1C), same exits as Walk.
 static void em25_R1_Run(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -577,6 +605,8 @@ static void em25_R1_Run(cEm25* em)
     }
 }
 
+// R1 == 5 Turn90: turns 90 deg towards the player (ARC 0x1E, mirrored by side), then Run / Walk when
+// he is still off the side or Wait.
 static void em25_R1_Turn90(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -612,6 +642,7 @@ static void em25_R1_Turn90(cEm25* em)
     }
 }
 
+// Branch check of JumpAtk (6): the catch test em25CatchCk on the leap's hit frame -> Bite (7).
 static void em25_R1_br_JumpAtk(cEm25* em)
 {
     if ((em->seFlags28B & 1) && em25CatchCk(em)) {
@@ -619,6 +650,8 @@ static void em25_R1_br_JumpAtk(cEm25* em)
     }
 }
 
+// R1 == 6 JumpAtk: leaps at the player (ARC 0x26) turning towards him; a miss scores an escape and
+// goes back to Wait (2).
 static void em25_R1_JumpAtk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -643,6 +676,9 @@ static void em25_R1_JumpAtk(cEm25* em)
     }
 }
 
+// R1 == 7 Bite: latched onto the player's face (ARC 0x27, plem25_Bite on the player, catch blend
+// EmCatchMotionMove): drains 5 hp per frame while he mashes the button; a failed mash bites for 500
+// and kills him at 1 hp (head lost SE); thrown off into Wait with Atk_wait 60.
 static void em25_R1_Bite(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -722,6 +758,8 @@ static void em25_R1_Bite(cEm25* em)
     em->x3A8 = em->pos;
 }
 
+// Player damage routine of the bite: grabbed at the face (weapon hidden), the struggle, the throw-off
+// or the death; ends with EndPlDamage.
 static void plem25_Bite(cPlayer* pl)
 {
     int end;
@@ -760,6 +798,9 @@ static void plem25_Bite(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R1 == 8 P_Appear: bursts out of the host's neck (setParent): grows and fades in (scale, invisible_factor
+// +0.1 per frame) with the emerge motion, then P_Wait (9) with hp 0 (the host takes the damage) and
+// Atk_enable set.
 static void em25_R1_P_Appear(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -802,6 +843,9 @@ static void em25_R1_P_Appear(cEm25* em)
     }
 }
 
+// R1 == 9 P_Wait: rides the host's parts (em25OnParent) between attacks: the idle (ARC 8), rearing up
+// (9) when the player is within 5000 units or the host's part tilts up, ducking (0xA) when it tilts
+// down (Be_flg bit5 = tilted more than 30 deg); the host triggers P_Atk / P_Poison via setAtk / setPoison.
 static void em25_R1_P_Wait(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -883,6 +927,8 @@ static void em25_R1_P_Wait(cEm25* em)
     }
 }
 
+// R1 == 0xA P_Atk: the bite from the host's shoulders (em25AtkCk kind 1 on the hit frames, atkHit for
+// the host's ckAtkHit), then back to P_Wait (9).
 static void em25_R1_P_Atk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -906,6 +952,8 @@ static void em25_R1_P_Atk(cEm25* em)
     }
 }
 
+// R1 == 0xB P_Poison: spits the poison projectile (em25SetPoison at frame 18) at the player / partner,
+// then P_Wait (9).
 static void em25_R1_P_Poison(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -926,12 +974,14 @@ static void em25_R1_P_Poison(cEm25* em)
     }
 }
 
+// R0 == 2: damage, runs Em25_R2_move_tbl (Dm_P_Normal, Dm_P_GoOut, Dm_Small, Dm_Big, Dm_Frame).
 static void em25_R0_Damage(cEm25* em)
 {
     EM25_WK(em)->Be_flg |= 8;
     Em25_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_P_Normal: the attached parasite recoils from a hit (one of two motions), then P_Wait.
 static void em25_R1_Dm_P_Normal(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -961,6 +1011,9 @@ static void em25_R1_Dm_P_Normal(cEm25* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_P_GoOut: leaves the dying host (setGoOut): drops to the host's floor position
+// (pulled back when a wall is in the way), becomes a floor parasite (Mode 0, full hp, Alive_timer
+// 900, tentacles em25SetParasite) with the landing motion (0x24 or 0x26 by r_no_3), then Wait (2).
 static void em25_R1_Dm_P_GoOut(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1015,6 +1068,7 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
     }
 }
 
+// R0 2 / R1 == 2 Dm_Small: the floor parasite's small flinch, then Wait.
 static void em25_R1_Dm_Small(cEm25* em)
 {
     switch (em->r_no_2) {
@@ -1031,6 +1085,8 @@ static void em25_R1_Dm_Small(cEm25* em)
     }
 }
 
+// R0 2 / R1 == 3 Dm_Big: the floor parasite knocked over: the fall, Die_Normal (R3 1) when dead, else
+// gets up and back to Wait.
 static void em25_R1_Dm_Big(cEm25* em)
 {
     switch (em->r_no_2) {
@@ -1058,6 +1114,8 @@ static void em25_R1_Dm_Big(cEm25* em)
     }
 }
 
+// R0 2 / R1 == 4 Dm_Frame: burning (explosion / fire volume): 1000 damage, the burn motion; dies into
+// Die_Normal, else recovers to Wait.
 static void em25_R1_Dm_Frame(cEm25* em)
 {
     cModelInfo* info;
@@ -1097,11 +1155,14 @@ static void em25_R1_Dm_Frame(cEm25* em)
     }
 }
 
+// R0 == 3: death, runs Em25_R3_move_tbl (Die_P_Normal, Die_Normal, Die_Big).
 static void em25_R0_Die(cEm25* em)
 {
     Em25_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_P_Normal: the attached parasite dies with its host (setDie): the death effect and
+// shrink (Compress_y), then back to Hide (0) for reuse.
 static void em25_R1_Die_P_Normal(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1138,6 +1199,8 @@ static void em25_R1_Die_P_Normal(cEm25* em)
     }
 }
 
+// R0 3 / R1 == 1 Die_Normal: the floor parasite's death (inactive, item drop), dissolves and returns
+// to Hide (0).
 static void em25_R1_Die_Normal(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1178,6 +1241,8 @@ static void em25_R1_Die_Normal(cEm25* em)
     }
 }
 
+// R0 3 / R1 == 2 Die_Big: the floor parasite bursts (the big death effect), item drop, dissolves and
+// returns to Hide (0).
 static void em25_R1_Die_Big(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1261,11 +1326,14 @@ void em25OnParent(cEm25* em)
     }
 }
 
+// 1 while the parasite has no host (free for em10's em10SetParasite / em10SearchParasite).
 int cEm25::ckParent()
 {
     return EM25_WK(this)->pEm_oya == 0;
 }
 
+// Attaches the parasite to `parent`'s part `parts` at the local offset / rotation (Mode 1) and starts
+// P_Appear (8).
 void cEm25::setParent(cEm* parent, int parts, Vec* ppos, Vec* prot)
 {
     Em25Work* w = EM25_WK(this);
@@ -1292,6 +1360,7 @@ void cEm25::setParent(cEm* parent, int parts, Vec* ppos, Vec* prot)
     EmRoutineSet(this, 1, 8, 0, 0);
 }
 
+// Host dying: leaves the host (Dm_P_GoOut, r_no_3 = `flag` picks the landing motion).
 void cEm25::setGoOut(int flag)
 {
     if (flag) {
@@ -1301,11 +1370,13 @@ void cEm25::setGoOut(int flag)
     }
 }
 
+// Host request: back to the attached idle (P_Wait 9).
 void cEm25::setWait()
 {
     EmRoutineSet(this, 1, 9, 0, 0);
 }
 
+// Host request (em10_R1_ParasiteAtk): the bite from the shoulders (P_Atk 0xA), atkHit cleared.
 void cEm25::setAtk()
 {
     r_no_0 = 1;
@@ -1315,6 +1386,7 @@ void cEm25::setAtk()
     r_no_3 = 0;
 }
 
+// 1 when the current attack hit the player / partner (atkHit).
 int cEm25::ckAtkHit()
 {
     if (EM25_WK(this)->atkHit) {
@@ -1323,21 +1395,25 @@ int cEm25::ckAtkHit()
     return 0;
 }
 
+// Host request: the poison spit (P_Poison 0xB).
 void cEm25::setPoison()
 {
     EmRoutineSet(this, 1, 0xB, 0, 0);
 }
 
+// Motion state of the attack: non-zero when the attack motion ended.
 int cEm25::ckAtkEnd()
 {
     return motState;
 }
 
+// Host request: die with the host (Die_P_Normal, R3 0).
 void cEm25::setDie()
 {
     EmRoutineSet(this, 3, 0, 0, 0);
 }
 
+// 1 once the parasite has died (dead).
 int cEm25::ckDie()
 {
     if (EM25_WK(this)->dead) {
@@ -1346,6 +1422,7 @@ int cEm25::ckDie()
     return 0;
 }
 
+// Parks the parasite out of play (hp 0, invisible) in Hide (0).
 void cEm25::setHide()
 {
     Em25Work* w = EM25_WK(this);
@@ -1357,11 +1434,13 @@ void cEm25::setHide()
     EmRoutineSet(this, 1, 0, 0, 0);
 }
 
+// 1 while the parasite is parked in Hide (R0 1 / R1 0).
 int cEm25::ckHide()
 {
     return (stat & 0xFFFF0000) == 0x01000000;
 }
 
+// Room script: a floor parasite is born at `ppos` facing `ang` (Birth 1).
 void cEm25::setBirth(Vec* ppos, f32 ang)
 {
     setPos(ppos);
@@ -1370,6 +1449,9 @@ void cEm25::setBirth(Vec* ppos, f32 ang)
     EmRoutineSet(this, 1, 1, 0, 0);
 }
 
+// Bite hit test on the attack frames: the capsule at part `parts` against the player / partner with
+// em25_atk_tbl[no] (0 floor bite, 1 from the host), once per attack (atkHit); blood on a hit, the
+// player's head comes off when it kills him (em25PlHeadLost). 1 = hit.
 int em25AtkCk(cEm25* em, int no, int parts)
 {
     Em25Work* w = EM25_WK(em);
@@ -1410,6 +1492,8 @@ int em25AtkCk(cEm25* em, int no, int parts)
     return 0;
 }
 
+// Catch test of the leap (br_JumpAtk): the player alive, not held, on the leap's hit frame, inside the
+// box in front and reachable (scenario / object probes). 1 = caught -> Bite.
 int em25CatchCk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1492,6 +1576,7 @@ int em25CatchCk(cEm25* em)
     return 1;
 }
 
+// Squashes the parts vertically by Compress_y (the die routines shrink the body into the floor).
 void em25ScaleCompress(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1512,6 +1597,8 @@ void em25ScaleCompress(cEm25* em)
     }
 }
 
+// Per frame for a floor parasite: the route point / angle to the player (routePos, routeAng, Be_flg
+// bit0 = route found) and the target copies used by the crawl routines.
 void em25RouteCk(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1545,6 +1632,8 @@ void em25RouteCk(cEm25* em)
     w->Be_flg &= ~4;
 }
 
+// Damage of the weapon hit: twice GetWepDmVal (`near` for a muzzle within 6000 units); the flash
+// grenade (0x17 / 0x2A) kills outright (9999).
 int em25SetDmVal(cEm25* em)
 {
     int near = 0;
@@ -1564,6 +1653,8 @@ int em25SetDmVal(cEm25* em)
     return dmg;
 }
 
+// Creates the three tentacle objects (pPara[], cObj16 type 7) on the floor parasite's body parts once
+// (Be_flg bit4).
 void em25SetParasite(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1601,6 +1692,7 @@ void em25SetParasite(cEm25* em)
     }
 }
 
+// Removes the tentacle objects (clearLostWait) and clears Be_flg bit4.
 void em25ClearParasite(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1617,6 +1709,8 @@ void em25ClearParasite(cEm25* em)
     }
 }
 
+// Blood effect of the hit by weapon kind (EmDmBloodSet2 0x1D): small for handguns (a quarter of the
+// TMP / knife hits none), big for explosives / magnum / rifles and a near shotgun hit.
 void em25BloodSet(cEm25* em)
 {
     Vec pos;
@@ -1720,6 +1814,8 @@ void em25PlHeadLost()
     EstSet((int) obj, -1, 0, 0, 0x10, 0x46, 0, 0, (u32) obj, (void*) zero);
 }
 
+// Spits the poison projectile (SetObj08 from the head part 0) aimed at the player's or the partner's
+// head with the poison attack parameters and effects.
 void em25SetPoison(cEm25* em)
 {
     Em25Work* w = EM25_WK(em);
@@ -1774,6 +1870,7 @@ void em25SetPoison(cEm25* em)
     EstSet(0, -1, &p->world, &rot, 0x1D, 6, 0, 0, 0, 0);
 }
 
+// 1 when the attached parasite may attack now (Atk_enable, set by P_Wait after its wait).
 int cEm25::ckAtkEnable()
 {
     if (EM25_WK(this)->Atk_enable == 0) {
@@ -1782,11 +1879,14 @@ int cEm25::ckAtkEnable()
     return 1;
 }
 
+// Host request: the host was hit, recoil (Dm_P_Normal).
 void cEm25::setDamage()
 {
     EmRoutineSet(this, 2, 0, 0, 0);
 }
 
+// For the host: 1 when the partner is the nearer target (the host is more than 3000 units farther
+// from the player than from her), so the parasite attack aims at Ashley.
 int cEm25::ckLock()
 {
     cEm* parent = EM25_WK(this)->pEm_oya;

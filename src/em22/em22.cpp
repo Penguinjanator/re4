@@ -118,24 +118,32 @@ static inline int em22DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Module entry (SN loader): registers Em22Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     EmInitFunc = Em22Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm22 class in the manager's work.
 void Em22Init(cEm* em)
 {
     new (em) cEm22();
 }
 
+// Per-frame damage check (cEm22::move): an explosion / fire damage volume kills the dog outright
+// (work flag 0x400, Dm_Blow). A weapon hit takes GetWepDmVal off hp with the blood effect and yelp;
+// a kill goes to Dm_Blow (R2 1); otherwise handguns / knife / TMP flinch (Dm_Small, three times in
+// four), heavy weapons and explosives blow it away, a near shotgun hit mostly blows it away.
 void em22DmCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -305,6 +313,10 @@ static u16 em22_para_flip[80] = {
 // The original link 8-aligns the end of .data (the ngcld BSS tag follows): the 4 pad bytes after the table.
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update: clears the per-frame work flags, damage check, forgets the target when the player
+// is dead (plDeadWait), route check (Em22RouteCk), the R0 table, then the neck / body tilt,
+// collision, scenario check (checkAir while jumping, flag bit7), the back parasites' upkeep (growl
+// timer, em22ParaSetMotWait), the slaver drool effect, foot effects and SEs.
 void cEm22::move()
 {
     Em22Work* w = EM22_WK(this);
@@ -382,6 +394,10 @@ void cEm22::move()
     em22AtkParaClearCk(this);
 }
 
+// R0 == 0: creation. Builds the model (ARC 5/6, remap tables), collision and hit boxes
+// (em22YarareInit), the room's ctrl11 / ctrl12 controls, the parasite grow delay paraWait (300..1200
+// frames), water flag, and the start routine by cEm::set: 0 Wait (6), 1 R11B_A (room 11B kennel
+// dog), 2 R11B_B, 3 R11B_C, 4 InCage, 5 JumpWait.
 static void em22_R0_Init(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -467,12 +483,14 @@ static void em22_R0_Init(cEm22* em)
     em22_R0_Move(em);
 }
 
+// R0 == 1: runs the branch check and the move handler of R1 (Em22_R1_move_tbl pairs).
 static void em22_R0_Move(cEm22* em)
 {
     Em22_R1_move_tbl[em->r_no_1 * 2](em);
     Em22_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the routines that have none.
 static void em22_R1_br_dummy(cEm22* em)
 {
 }
@@ -512,6 +530,8 @@ static inline void em22SetRunMotion(cEm22* em)
     (em)->ang.y = LIMIT_ANGLE((em)->ang.y);                                                       \
     em22DirMatrix(em, Muku(&(em)->pos, &(w)->routePos, (em)->ang.y, PI))
 
+// R1 == 0 Goto: runs to gotoPos (cEm22::setGoto) and drops into Wait (6) when there or when the
+// order is cancelled.
 static void em22_R1_Goto(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -542,6 +562,8 @@ static void em22_R1_Goto(cEm22* em)
     }
 }
 
+// R1 == 1: room 11B kennel dog A: breaks out of the kennel (motion 0x44), then the idle 0xD until the
+// player is near, then Threat (0xB).
 static void em22_R1_R11B_A(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -576,6 +598,8 @@ static void em22_R1_R11B_A(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 2: room 11B kennel dog B: idles (0xD), jumps down from its ledge (0xB / 0xC landing on the
+// floor found below), shakes itself (0xE), idles again and goes to Threat (0xB) when the player is near.
 static void em22_R1_R11B_B(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -654,6 +678,8 @@ static void em22_R1_R11B_B(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 3: room 11B kennel dog C (a decoy): idles from frame 15 of motion 0xD and, once the room
+// releases it, vanishes (hp 0, invisible, inactive).
 static void em22_R1_R11B_C(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -682,6 +708,7 @@ static void em22_R1_R11B_C(cEm22* em)
     }
 }
 
+// R1 == 4 InCage: idles (0xD) inside the cage until the room's release flag, then Run (8).
 static void em22_R1_InCage(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -703,6 +730,8 @@ static void em22_R1_InCage(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 5 JumpWait: waits (motion 7) until the player is seen / near, then leaps down (0x59, flag
+// bit3 = no damage switch, collision through) and goes to RunAbout (7).
 static void em22_R1_JumpWait(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -753,6 +782,8 @@ static void em22_R1_JumpWait(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 6 Wait: idle (motion 7), turning slowly to the route point; the player seen, near, or the
+// room's forced alert (Status_flg[0] bit23) starts RunAbout (7).
 static void em22_R1_Wait(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -805,6 +836,9 @@ static void em22_R1_Wait(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 7 RunAbout: runs the route towards the player for 3..5 steps (em22SetRunMotion), then
+// Threat (0xB) when close, Turn (9) when the target is behind, Run (8) after a fleeing player,
+// Escape (0xA) when hurt, or grows a parasite (0x12) when em22SetParasiteCk allows.
 static void em22_R1_RunAbout(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -846,6 +880,8 @@ static void em22_R1_RunAbout(cEm22* em)
     }
 }
 
+// R1 == 8 Run: the charge at the player: within 4500 units in front with a clear line and on screen
+// it jumps (JumpAtk 0xD, half the time) or slows to RunAbout (7); Turn (9) when the route bends away.
 static void em22_R1_Run(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -911,6 +947,8 @@ static void em22_R1_Run(cEm22* em)
     }
 }
 
+// R1 == 9 Turn: turns towards the route point (delta = angle left), then Escape (0xA) when hurt, Run
+// (8) after a running player, RunAbout (7) or Threat (0xB).
 static void em22_R1_Turn(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -967,6 +1005,8 @@ static void em22_R1_Turn(cEm22* em)
 // The bell / rung point (emwep.cpp): the byte-pointer copy keeps the pG reload before the next store.
 #define SET_BELL_POS(pos) memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), pos, sizeof(Vec))
 
+// R1 == 0xA Escape: runs away from the player (RouteCkEscEm) for 30..60 frames, ringing the bell alarm
+// (Status_flg[1] bit29), then RunAbout (7) or Turn (9).
 static void em22_R1_Escape(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1029,6 +1069,9 @@ static void em22_R1_Escape(cEm22* em)
     }
 }
 
+// R1 == 0xB Threat: growls facing the player (30..45 frames): Run (8) when he runs at it or looks
+// away, ParaAtk (0xF) with the parasites out when he is in the lane, grows a parasite (0x12), or
+// side-steps (0xC) / RunAbout (7).
 static void em22_R1_Threat(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1102,6 +1145,8 @@ static void em22_R1_Threat(cEm22* em)
     em22SlaverSet(em, 0);
 }
 
+// R1 == 0xC SideStep: dodges to the free side (wall probes), then Run (8) when the player faces it,
+// else RunAbout (7).
 static void em22_R1_SideStep(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1166,6 +1211,9 @@ static void em22_R1_SideStep(cEm22* em)
 #define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
 
 
+// Branch check of JumpAtk (0xD): on the motion's hit key (motEvent bit0) with the player alive, seen,
+// inside the 1000 x 1200 box in front and reachable (scenario probes at 500 / 1500 height and the two
+// side lanes) -> JumpAtkHit (0xE), both damage-held, controller vibration.
 static void em22_R1_br_JumpAtk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1236,6 +1284,8 @@ static void em22_R1_br_JumpAtk(cEm22* em)
     VibSetData(VIB_TBL, 7, 1);
 }
 
+// R1 == 0xD JumpAtk: the leap at the player (motion with flag bit3 = jumping), turning slightly onto
+// the route point; a miss scores an escape and goes to Escape (0xA).
 static void em22_R1_JumpAtk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1268,6 +1318,9 @@ static void em22_R1_JumpAtk(cEm22* em)
     em22SlaverSet(em, 1);
 }
 
+// R1 == 0xE JumpAtkHit: the dog on top of the player biting (plem22_JumpAtkHit on the player side,
+// cut-in camera em22CamMove): drains 10 hp per frame while he mashes the button (PlGacha), a failed
+// mash bites for 200 more and kills him at 1 hp; thrown off into Jump (0x11) / recovery.
 static void em22_R1_JumpAtkHit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1362,6 +1415,8 @@ static void em22_R1_JumpAtkHit(cEm22* em)
     em->x3A8 = em->pos;
 }
 
+// Player damage routine of JumpAtkHit: knocked down with the dog on him (weapon hidden), the
+// struggle, the kick-off, gets up (or dies); ends with EndPlDamage.
 static void plem22_JumpAtkHit(cPlayer* pl)
 {
     f32 y;
@@ -1431,6 +1486,8 @@ static void plem22_JumpAtkHit(cPlayer* pl)
     pl->x378 = pl->x37C;
 }
 
+// Branch check of ParaAtk (0xF): on the hit key with the player alive inside the 1000 x 4000 lane in
+// front -> ParaAtkHit (0x10), damage held.
 static void em22_R1_br_ParaAtk(cEm22* em)
 {
     Mtx inv;
@@ -1453,6 +1510,8 @@ static void em22_R1_br_ParaAtk(cEm22* em)
     VibSetData(VIB_TBL, 7, 1);
 }
 
+// R1 == 0xF ParaAtk: the back parasites lash out at the player (em22SetParasiteAtk tentacles, work
+// flag 0x200) while the dog turns to him; a miss scores an escape -> Escape (0xA).
 static void em22_R1_ParaAtk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1495,6 +1554,8 @@ static void em22_R1_ParaAtk(cEm22* em)
     }
 }
 
+// R1 == 0x10 ParaAtkHit: the tentacles connected: the player takes plem22_ParaAtkHit while the dog
+// holds its pose, then RunAbout (7).
 static void em22_R1_ParaAtkHit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1524,6 +1585,8 @@ static void em22_R1_ParaAtkHit(cEm22* em)
     }
 }
 
+// Player damage routine of the parasite lash: turned to face the dog, the hit motion with 10 damage
+// per frame; dies with the standard death when hp runs out.
 static void plem22_ParaAtkHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -1558,6 +1621,7 @@ static void plem22_ParaAtkHit(cPlayer* pl)
     pl->x378 = pl->x37C;
 }
 
+// R1 == 0x11 Wakeup: gets up after being blown away / thrown off (flag bit1), then RunAbout (7).
 static void em22_R1_Wakeup(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1591,6 +1655,8 @@ static void em22_R1_Wakeup(cEm22* em)
     }
 }
 
+// R1 == 0x12 Parasite: the parasites burst out of the back (em22OpenBack, em22SetParasite, flag bit5),
+// the growl, then RunAbout (7).
 static void em22_R1_Parasite(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1618,6 +1684,8 @@ static void em22_R1_Parasite(cEm22* em)
     }
 }
 
+// R1 == 0x13 Jump: jumps over the low wall found by em22JumpCk (delta = height to climb, flags
+// 0x88 airborne), landing into Run (8).
 static void em22_R1_Jump(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1657,11 +1725,14 @@ static void em22_R1_Jump(cEm22* em)
     em22SlaverSet(em, 1);
 }
 
+// R0 == 2: damage, runs Em22_R2_move_tbl (Dm_Small, Dm_Blow).
 static void em22_R0_Damage(cEm22* em)
 {
     Em22_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Small: the flinch (one of four yelp motions), then SideStep (0xC) / Escape /
+// Run / RunAbout; one time in four a second flinch turns into a side step.
 static void em22_R1_Dm_Small(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1716,6 +1787,9 @@ static void em22_R1_Dm_Small(cEm22* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_Blow: blown off its feet by the hit direction (r_no_3 picks the four fall
+// motions), flies with blowSpd (flags 0x88), takes landing damage (timer2 * 50), then Die_Lost when
+// dead or Wakeup (0x11).
 static void em22_R1_Dm_Blow(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1909,11 +1983,14 @@ static void em22_R1_Dm_Blow(cEm22* em)
     }
 }
 
+// R0 == 3: death, runs Em22_R3_move_tbl (Die_Lost).
 static void em22_R0_Die(cEm22* em)
 {
     Em22_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Lost: the corpse: item drop (ITEMSET), the back parasites released, then the
+// body dissolves (em22ScaleCompress + invisible_factor) and the enemy is left invisible (be_flag 0x4000).
 static void em22_R1_Die_Lost(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -1972,6 +2049,9 @@ static void em22_R1_Die_Lost(cEm22* em)
     }
 }
 
+// Per frame: the route point / angle to the player (plRoutePos, routeAng; flag bit0 = line of sight
+// clear), plDist, and the current target route point (routePos / targetAng / targetDist2: the goto
+// position, the escape point while escTimer runs, or the player).
 void Em22RouteCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2037,6 +2117,8 @@ void Em22RouteCk(cEm22* em)
     }
 }
 
+// Builds the model matrix with the run tilt: rolls the body into the turn direction `dir` (smoothed
+// in tilt), used by the running routines.
 void em22DirMatrix(cEm22* em, f32 dir)
 {
     Em22Work* w = EM22_WK(em);
@@ -2075,6 +2157,8 @@ void em22DirMatrix(cEm22* em, f32 dir)
     TransMatrix(em->mat, &em->pos);
 }
 
+// Neck tracking (work flag bit2): turns the head parts 3..5 towards the player's head within 60 deg
+// (neckX / neckY eased), else eases back to the motion.
 void em22NeckMove(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2135,6 +2219,7 @@ void em22NeckMove(cEm22* em)
     }
 }
 
+// Hit boxes: the body box and hit[0..4] on the head / legs (YarareInit / YarareAdd).
 void em22YarareInit(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2147,6 +2232,8 @@ void em22YarareInit(cEm22* em)
     YarareAdd(em, &w->hit[4], 0.0f, -400.0f, 0.0f, 150.0f, 200.0f, 0x18, 1);
 }
 
+// Blood effect of the hit by weapon kind (EmDmBloodSet2): small for handguns / knife, big for
+// explosives, magnum and rifles and a near shotgun hit, none for the hand weapons.
 void em22BloodSet(cEm22* em)
 {
     int near;
@@ -2210,6 +2297,7 @@ void em22BloodSet(cEm22* em)
     }
 }
 
+// Damage of the weapon hit (GetWepDmVal, `near` for a muzzle within 6000 units), 100 for unknown weapons.
 int em22SetDmVal(cEm22* em)
 {
     int near;
@@ -2226,6 +2314,7 @@ int em22SetDmVal(cEm22* em)
     return dm;
 }
 
+// Picks the catch-scene camera side: 1 when the default viewpoint behind the player is blocked by a wall.
 int em22GetCamType(cEm22* em)
 {
     Vec a;
@@ -2245,6 +2334,8 @@ int em22GetCamType(cEm22* em)
     return 0;
 }
 
+// Cut-in camera of the bite scene: eases the work Camera (cam) to the viewpoint `type` (0 / 1) beside
+// the player, pulled in front of walls, and installs it as the extra camera.
 void em22CamMove(cEm22* em, int type)
 {
     Em22Work* w = EM22_WK(em);
@@ -2302,6 +2393,7 @@ void em22CamMove(cEm22* em, int type)
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
+// 1 when the parasites may grow now: not yet out (flag bit4) and paraWait counted down.
 int em22SetParasiteCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2316,6 +2408,8 @@ int em22SetParasiteCk(cEm22* em)
     return 1;
 }
 
+// Grows the five back parasites: cObj16 objects (ARC 0x39/0x3A) on parts 0x23..0x27 with staggered
+// wriggle motions (0x3B) and 1.3 / 1.5 scale; flag bit4 = parasites out.
 void em22SetParasite(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2354,6 +2448,7 @@ void em22SetParasite(cEm22* em)
     w->flags |= 0x10;
 }
 
+// Creates the three attack tentacles (pParaAtk[]) for ParaAtk, scaled like the back ones.
 void em22SetParasiteAtk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2383,6 +2478,7 @@ void em22SetParasiteAtk(cEm22* em)
     }
 }
 
+// Puts the back parasites into their idle wriggle motion.
 void em22ParaSetMotWait(cEm22* em)
 {
     u32 i;
@@ -2401,6 +2497,7 @@ void em22ParaSetMotWait(cEm22* em)
     }
 }
 
+// Puts the attack tentacles into the lash motion.
 void em22ParaSetMotAtk(cEm22* em)
 {
     u32 i;
@@ -2419,6 +2516,7 @@ void em22ParaSetMotAtk(cEm22* em)
     }
 }
 
+// Puts the attack tentacles into the hit-hold motions (one per tentacle) for ParaAtkHit.
 void em22ParaSetMotAtkHit(cEm22* em)
 {
     u32 i;
@@ -2443,6 +2541,7 @@ void em22ParaSetMotAtkHit(cEm22* em)
     }
 }
 
+// Removes the attack tentacles (clearLostWait) after the attack.
 void em22AtkParaClearCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2459,6 +2558,7 @@ void em22AtkParaClearCk(cEm22* em)
     }
 }
 
+// Opens the back plates (parts 0x1F..0x22 rotated) for the parasites to come out.
 void em22OpenBack(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2476,6 +2576,8 @@ void em22OpenBack(cEm22* em)
     }
 }
 
+// Is the player aiming a gun (not the knife, with ammo, aim routine 0/6) at this dog within 8000 units:
+// the weapon's target is this enemy or the root lies inside a 1000-unit box in front of the weapon hand.
 int em22LockCk(cEm22* em)
 {
     Mtx inv;
@@ -2522,6 +2624,7 @@ int em22LockCk(cEm22* em)
     return 1;
 }
 
+// During Die_Lost squashes every part vertically by `scale` so the dissolving corpse sinks into the floor.
 void em22ScaleCompress(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2547,6 +2650,7 @@ void em22ScaleCompress(cEm22* em)
     }
 }
 
+// Footstep / paw SEs through the room's ctrl11 control by the motion's step events and the floor material.
 void em22FootSeControl(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2579,6 +2683,7 @@ void em22FootSeControl(cEm22* em)
     }
 }
 
+// A low jumpable wall (scenario flag 0x80020) in front of the chest part -> Jump (0x13). 1 when set.
 int em22JumpCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2613,6 +2718,7 @@ int em22JumpCk(cEm22* em)
     return 0;
 }
 
+// 1 while the player is running (routine 0 / 3).
 int em22PlRunCk(cEm22* em)
 {
     if (pPL->r_no_0 != 0) {
@@ -2621,6 +2727,7 @@ int em22PlRunCk(cEm22* em)
     return pPL->r_no_1 == 3;
 }
 
+// 1 when the player runs towards this dog (within 45 deg in front, inside the approach lane).
 int em22PlRunCk2(cEm22* em)
 {
     Mtx inv;
@@ -2658,6 +2765,8 @@ static inline void em22FootSplash(cEm22* em, int no)
     }
 }
 
+// Water splashes at the paws (parts 0xC / 0x10 / 0x15 / 0x19) on the motion's step events when the
+// dog stands in water.
 void em22FootEff(cEm22* em)
 {
     if (!(em->motEvent & 0x3C)) {
@@ -2680,6 +2789,7 @@ void em22FootEff(cEm22* em)
     }
 }
 
+// Places the dog for the tentacle hit: a fixed distance in front of the player on the floor.
 void em22ParaAtkHitPosSet(cEm22* em)
 {
     Vec d;
@@ -2704,6 +2814,7 @@ void em22ParaAtkHitPosSet(cEm22* em)
     }
 }
 
+// Drool effect from the mouth every 8 (idle) / 14 (running) frames, the water variant when in water.
 void em22SlaverSet(cEm22* em, int run)
 {
     Em22Work* w = EM22_WK(em);
@@ -2733,6 +2844,7 @@ void em22SlaverSet(cEm22* em, int run)
     }
 }
 
+// When a goto order is pending (gotoOn) switches to Goto (0) and returns 1.
 int em22GotoCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);
@@ -2744,6 +2856,7 @@ int em22GotoCk(cEm22* em)
     return 1;
 }
 
+// Room script: sends the dog to `pos` (snapped 50 above the floor), `on` = order pending.
 void cEm22::setGoto(Vec* pos, int on)
 {
     Em22Work* w = EM22_WK(this);
@@ -2757,6 +2870,7 @@ void cEm22::setGoto(Vec* pos, int on)
     }
 }
 
+// 1 when the dog's root or head is inside the screen (the jump attack needs it).
 int em22ScreenInCk(cEm22* em)
 {
     Vec s;
@@ -2779,6 +2893,7 @@ static inline cEmDoor* em22EmWork(u32 no)
     return (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * no);
 }
 
+// Opens a closed door (cEmDoor) the dog runs into from its side (within reach and angle).
 void em22DoorOpenCk(cEm22* em)
 {
     Em22Work* w = EM22_WK(em);

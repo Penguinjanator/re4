@@ -21,6 +21,8 @@ void Em1bWeaponSet(cEm10* em);
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
+// Module entry (SN loader): registers Em1bInit as the DOL's enemy constructor (EmInitFunc) and Em1bSet as
+// em10.cpp's per-enemy set function (Em10SetFunc).
 extern "C" void _prolog()
 {
     OSReport("em10 prolog Ok\n");
@@ -28,19 +30,27 @@ extern "C" void _prolog()
     Em10SetFunc = Em1bSet;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the shared cEm10 class in the manager's work (em10_R0_Init then
+// builds the enemy through Em10SetFunc).
 void Em1bInit(cEm* em)
 {
     new (em) cEm10();
 }
 
+// Em10SetFunc of this module: the castle zealots (class 1): model types 7 (default; voice 0 / 2), 8 (voice 3) and 10 (voice 1). Fills the work's motion table mot[0..40] (body / head / hand
+// models, cloth and accessory models, event motions) from the enemy archive for the model type (an
+// unknown type is forced to the default), picks the voice table (Em10SetSeTbl), sets the Ganado class
+// and calls Em1bWeaponSet.
 void Em1bSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
@@ -190,6 +200,9 @@ void Em1bSet(cEm10* em)
     Em1bWeaponSet(em);
 }
 
+// Weapon model table of the module: mot[41..78] = the bin / tpl pairs em10MakeWeapon uses (hoe, bucket
+// and its motions, sickle, hatchet / flail, chainsaw (the real saw only for the chainsaw type), scythe /
+// stun rod, torch, bowgun and arrow, pitchfork); 0 = the weapon does not exist in this castle module.
 void Em1bWeaponSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);

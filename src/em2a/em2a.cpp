@@ -100,25 +100,32 @@ static inline cEm* em2aMgrWork(u32 no)
     return (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * no);
 }
 
+// Module entry (SN loader): registers Em2aInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em2a prolog Ok\n");
     EmInitFunc = Em2aInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2a class in the manager's work.
 void Em2aInit(cEm* em)
 {
     new (em) cEm2a();
 }
 
+// Damage check of the bear trap (type 0): a weapon hit other than the hand / flash / mine / explosive
+// kinds breaks it (hp 0, snap SE, spark effect 0x22/9): while it holds the dog (R1 5) it goes to
+// Trap1Reset (4), else Trap1Break (3) with a critical-hit score.
 void em2aDmCkTrap1(cEm2a* em)
 {
     int wep;
@@ -143,6 +150,9 @@ void em2aDmCkTrap1(cEm2a* em)
     }
 }
 
+// Damage check of the tripwire bombs (types 1 / 2): the wire crossed (em2aTrap2HitCk) or any weapon
+// hit except the hand / flash / mine kinds sets it off (hp 0, EmSetDie, Trap2Bomb 7); a shot wire
+// scores a critical.
 void em2aDmCkTrap2(cEm2a* em)
 {
     int hit = em2aTrap2HitCk(em);
@@ -209,6 +219,8 @@ extern Camera em2a_rescue_cam_v asm("em2a_rescue_cam");
 // .data is padded to 8 bytes before the linker's BSS tag word.
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update: the damage check of the trap kind (em2aDmCkTrap1 / Trap2), clears the per-frame
+// flags and runs the R0 table (Init / Move / Damage / Die / Scenario).
 void cEm2a::move()
 {
     Em2aWork* w = EM2A_WK(this);
@@ -236,6 +248,11 @@ void cEm2a::move()
     }
 }
 
+// R0 == 0: creation. Builds the model of the trap type (0 bear trap; 1 / 2 the tripwire bombs whose
+// wire parts 1 / 2 are stretched to hp/1000 * 0.5 of the model, hp = wire length), collision / hit
+// boxes (em2aYarareInit), the room's ctrl11 / ctrl12, and the start routine: the bear trap Trap1Set
+// (0), set 1 the room 100 dog trap (Trap1R100 5), set 2 an already sprung trap (Trap1Break, inactive);
+// the bombs Trap2Set (6).
 static void em2a_R0_Init(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -369,16 +386,20 @@ static void em2a_R0_Init(cEm2a* em)
     em2a_R0_Move(em);
 }
 
+// R0 == 1: runs the branch check and the move handler of R1 (Em2a_R1_move_tbl pairs).
 static void em2a_R0_Move(cEm2a* em)
 {
     Em2a_R1_move_tbl[em->r_no_1 * 2](em);
     Em2a_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the routines that have none.
 static void em2a_R1_br_Dummy(cEm2a* em)
 {
 }
 
+// Branch check of the armed bear trap: the player (em2aTrap1BiteCk -> Trap1Bite 1) or the partner
+// (em2aTrap1BiteSubCk -> Trap1BiteSub 2) stepping into it.
 static void em2a_R1_br_Trap1Set(cEm2a* em)
 {
     if (em2aTrap1BiteCk(em) == 0) {
@@ -386,6 +407,7 @@ static void em2a_R1_br_Trap1Set(cEm2a* em)
     }
 }
 
+// R1 == 0 Trap1Set: the armed bear trap lying open (the open motion held).
 static void em2a_R1_Trap1Set(cEm2a* em)
 {
     switch (em->r_no_2) {
@@ -398,6 +420,9 @@ static void em2a_R1_Trap1Set(cEm2a* em)
     }
 }
 
+// R1 == 1 Trap1Bite: snaps shut on the player's leg (ARC 0xB, snap SE, the player catch
+// plem2a_Trap1Bite with the trap camera for 120 frames, the list entry marked sprung), then stays shut
+// (hp 0); a dead player leaves the trap at the motion's last frame.
 static void em2a_R1_Trap1Bite(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -445,6 +470,7 @@ static void em2a_R1_Trap1Bite(cEm2a* em)
     }
 }
 
+// Player catch routine of the bear trap: the leg-caught motion, 300 damage, then EndPlDamage.
 static void plem2a_Trap1Bite(cPlayer* pl)
 {
     pl->subArc = PL_EM(pPL)->subArc;
@@ -465,6 +491,9 @@ static void plem2a_Trap1Bite(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R1 == 2 Trap1BiteSub: snaps shut on the partner (Ashley): EmCatchSubSet with subem2a_Trap1Bite,
+// the trap stays shut (hp 0) until the player frees her with the action button
+// (em2aResuceAshleyAction), then Trap1Break.
 static void em2a_R1_Trap1BiteSub(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -518,6 +547,8 @@ static void em2a_R1_Trap1BiteSub(cEm2a* em)
     }
 }
 
+// Ashley's routine in the bear trap: caught (300 damage) and struggling (3 damage per struggle, cries
+// every 30..45 frames, "partner held" bit Status_flg[2] bit29) until freed, then EndSubDamage.
 static void subem2a_Trap1Bite(cSubChar* sub_)
 {
     cSubChar* sub = pSUB;
@@ -577,6 +608,8 @@ static void subem2a_Trap1Bite(cSubChar* sub_)
     sub->subArc = sub->subArc2;
 }
 
+// Action button callback "free Ashley": starts the player's rescue routine (plemResuceAshley) with
+// both damage-held.
 static void em2aResuceAshleyAction(cSubChar* sub)
 {
     SetPlDamage(sub->dmgType, plemResuceAshley);
@@ -586,6 +619,8 @@ static void em2aResuceAshleyAction(cSubChar* sub)
     PL_EM(sub)->r_no_2 = 4;
 }
 
+// Player routine of the rescue: kneels and opens the trap (rescue camera plem2aTrapCamMove), then
+// EndPlDamage.
 static void plemResuceAshley(cPlayer* pl)
 {
     cEm* em = PL_EM(pl);
@@ -617,6 +652,7 @@ static void plemResuceAshley(cPlayer* pl)
     plem2aTrapCamMove(pl);
 }
 
+// Installs the rescue cut camera (em2a_rescue_cam) beside the player looking at the trap.
 void plem2aTrapCamMove(cModel* m)
 {
     Camera* c = &pG->Cam;
@@ -653,6 +689,8 @@ void plem2aTrapCamMove(cModel* m)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// R1 == 3 Trap1Break: the sprung / shot trap snaps shut empty (ARC 0xC, spark effect when shot) and
+// goes inactive; the list entry is marked sprung.
 static void em2a_R1_Trap1Break(cEm2a* em)
 {
     EmListData* l = EM_LIST(em->emset_no);
@@ -677,6 +715,7 @@ static void em2a_R1_Trap1Break(cEm2a* em)
     }
 }
 
+// R1 == 4 Trap1Reset: the shot dog trap springs open again (ARC 0x15) and re-arms (hp 1, Trap1Set).
 static void em2a_R1_Trap1Reset(cEm2a* em)
 {
     switch (em->r_no_2) {
@@ -697,6 +736,8 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
     }
 }
 
+// R1 == 5 Trap1R100: the room 100 trap holding the dog (ARC 0x13 closed on the leg) until the
+// release flag (cEm::flag bit0: the dog freed / torn loose), then it stays shut and used.
 static void em2a_R1_Trap1R100(cEm2a* em)
 {
     switch (em->r_no_2) {
@@ -722,6 +763,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
     }
 }
 
+// R1 == 6 Trap2Set: the armed tripwire bomb: only rebuilds the model matrix each frame.
 static void em2a_R1_Trap2Set(cEm2a* em)
 {
     RotMatrix(em->l_mat, &em->ang);
@@ -731,6 +773,7 @@ static void em2a_R1_Trap2Set(cEm2a* em)
     em->partsMatCalc();
 }
 
+// R1 == 7 Trap2Bomb: triggered: 3 frames later the blast (em2aTrap2Bomb), then the dead trap keeps its matrix.
 static void em2a_R1_Trap2Bomb(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -755,6 +798,8 @@ static void em2a_R1_Trap2Bomb(cEm2a* em)
     }
 }
 
+// Hit boxes: the bear trap's plate, or the tripwire's box (length of the wire between parts 0 and 2,
+// hit[0..5]) so bullets can cut the wire.
 void em2aYarareInit(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -781,6 +826,7 @@ void em2aYarareInit(cEm2a* em)
     }
 }
 
+// 1 when something crossed the armed tripwire: the player (em2aTrap2HitCkPL) or a Ganado (HitCkEM).
 int em2aTrap2HitCk(cEm2a* em)
 {
     if (em->hp <= 0) {
@@ -795,6 +841,8 @@ int em2aTrap2HitCk(cEm2a* em)
     return 0;
 }
 
+// The player inside the wire box (the wire's length + 100, 800 wide, 500 high, in the trap's frame):
+// sets hp 0 and returns 1.
 int em2aTrap2HitCkPL(cEm2a* em)
 {
     cModel* p0;
@@ -818,6 +866,7 @@ int em2aTrap2HitCkPL(cEm2a* em)
     return 0;
 }
 
+// An alive Ganado (ids 0x10..0x20) inside the wire box: 1 when found.
 int em2aTrap2HitCkEM(cEm2a* em)
 {
     cModel* p0;
@@ -860,6 +909,9 @@ int em2aTrap2HitCkEM(cEm2a* em)
     return 0;
 }
 
+// The tripwire blast: the trap dies (inactive, invisible), explosion effects at the two posts (the
+// water variant when under the surface), explosion SE, and two 3000-unit blast damage lines
+// (PlWepHitCheck2 kind 0x13) along the wire hurting the player and the enemies.
 void em2aTrap2Bomb(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -934,6 +986,8 @@ void em2aTrap2Bomb(cEm2a* em)
     }
 }
 
+// Bear trap bite camera: eases the work Camera (cam) to a low viewpoint on the trapped leg and installs
+// it as the extra camera.
 void em2aTrap1CamMove(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
@@ -967,6 +1021,8 @@ void em2aTrap1CamMove(cEm2a* em)
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
+// The alive player within 300 units (same height) of the armed trap: snaps it onto his leg
+// (Trap1Bite 1). 1 when set.
 int em2aTrap1BiteCk(cEm2a* em)
 {
     int dead;
@@ -990,6 +1046,8 @@ int em2aTrap1BiteCk(cEm2a* em)
     return 1;
 }
 
+// The alive, free partner within 500 units of the armed trap: snaps it onto her leg (Trap1BiteSub 2).
+// 1 when set.
 int em2aTrap1BiteSubCk(cEm2a* em)
 {
     int dead;

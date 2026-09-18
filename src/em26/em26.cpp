@@ -51,25 +51,34 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->r_no_3 = r3;
 }
 
+// Module entry (SN loader): registers Em26Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em26 prolog Ok\n");
     EmInitFunc = Em26Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm26 class in the manager's work.
 void Em26Init(cEm* em)
 {
     new (em) cEm26();
 }
 
+// Per-frame damage check (cEm26::move): an explosion / fire volume kills the cow at once (flag bit5,
+// Die_Normal). A weapon hit (all but 0x14 / 0x16 / flash 0x17 / 0x2A / mine 0xE) takes GetWepDmVal
+// off hp (dmgTotal accumulates it for the bite), blood by weapon kind (big for explosives and a near
+// shotgun hit); a kill goes to Die_Normal, a hit to the head (5) or tail (0x18), or one in five
+// elsewhere, to Dm_Small.
 void em26DmCk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -227,6 +236,8 @@ static u16 em26_flip_tbl[32] = {
 // Bite attack (em26AtkCk): range, type, damage, ...
 static EmAtkInfo em26_atk_info = { 600.0f, 8, 0x12C, 4, 0xA, 0 };
 
+// Per-frame update: damage check, clears the per-frame flags, the R0 table (Init / Move / Damage /
+// Die), then the collision and scenario check and the breath SE.
 void cEm26::move()
 {
     Em26Work* w = EM26_WK(this);
@@ -250,6 +261,9 @@ void cEm26::move()
     SatMgr.check(this, 0);
 }
 
+// R0 == 0: creation. Builds the model of type 0 / 1 (ARC 5/6 or 6/7), mirrors half of the cows (flag
+// bit4 -> the 0x41 motion flag), hp from the list (1000 default), IK / lock-on off, hit boxes on the
+// head 5 and tail 0x18, the room's ctrl11 / ctrl12, and starts Wait with the idle motion 8.
 static void em26_R0_Init(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -322,11 +336,15 @@ static void em26_R0_Init(cEm26* em)
     em26_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em26_R1_move_tbl: Wait, Atk).
 static void em26_R0_Move(cEm26* em)
 {
     Em26_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 Wait: chews (ARC 8), now and then moos (ARC 9, voice 4) with the breath effect every
+// 90..120 frames; once it took more than 500 damage since the last attack and the player stands
+// within 1000 units of its head it bites (Atk 1).
 static void em26_R1_Wait(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -378,6 +396,8 @@ static void em26_R1_Wait(cEm26* em)
     }
 }
 
+// R1 == 1 Atk: the head butt / bite to the side the player is on (ARC 0xE / 0xF), em26AtkCk on the
+// hit frames, then back to Wait with dmgTotal reset.
 static void em26_R1_Atk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -415,6 +435,7 @@ static void em26_R1_Atk(cEm26* em)
     }
 }
 
+// R0 == 2: damage (flag bit3), runs Em26_R2_move_tbl (Dm_Small).
 static void em26_R0_Damage(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -423,6 +444,8 @@ static void em26_R0_Damage(cEm26* em)
     Em26_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Small: the flinch by hit zone (head ARC 0xA, tail 0xC, body 0xB / 0x10) with the
+// pain voice 8, then back to Wait.
 static void em26_R1_Dm_Small(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -468,6 +491,7 @@ static void em26_R1_Dm_Small(cEm26* em)
     }
 }
 
+// R0 == 3: death (flag bit3), runs Em26_R3_move_tbl (Die_Normal).
 static void em26_R0_Die(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -476,6 +500,8 @@ static void em26_R0_Die(cEm26* em)
     Em26_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: item drop (ITEMSET), the collapse motion ARC 0xD (blend by list slot)
+// with the death voice, the body thud effect / SE on landing; the corpse stays.
 static void em26_R1_Die_Normal(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -539,6 +565,7 @@ static void em26_R1_Die_Normal(cEm26* em)
     }
 }
 
+// Breath SE through the room's ctrl11 every breathTimer frames while alive.
 void em26BreathSe(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);
@@ -552,6 +579,8 @@ void em26BreathSe(cEm26* em)
     }
 }
 
+// Bite hit test on the attack frames: the head part 4's sweep against the player (em26_atk_info: 600
+// range, 300 damage), once per attack (atkHit); a hit adds blood and vibration. 1 = hit.
 int em26AtkCk(cEm26* em)
 {
     Em26Work* w = EM26_WK(em);

@@ -65,25 +65,32 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
+// Module entry (SN loader): registers Em23Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em23 prolog Ok\n");
     EmInitFunc = Em23Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm23 class in the manager's work.
 void Em23Init(cEm* em)
 {
     new (em) cEm23();
 }
 
+// Per-frame damage check (cEm23::move): an explosion / fire volume kills the crow (flag bit2, Dm_Air);
+// a weapon hit does 900..1100 for the hand weapons / knife / TMP and a far shotgun hit, 9999 (a kill)
+// for everything else and a near shotgun hit, the mine (0xE) nothing; blood, caw, then Dm_Air (R2 0).
 void em23DmCk(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -204,6 +211,8 @@ static u16 em23_flip_tbl[80] = {
     0x4E, 0x4F,
 };
 
+// Per-frame update: damage check, the R0 table (Init / Move / Damage / Die), then the collision and
+// airborne scenario check (checkAir), and flag bit1 = the position changed this frame (moveTimer).
 void cEm23::move()
 {
     Em23Work* w = EM23_WK(this);
@@ -241,6 +250,9 @@ void cEm23::move()
     }
 }
 
+// R0 == 0: creation. No lock-on / no Ashley help, builds the model (ARC 5/6 + the folded wing), hp,
+// collision, hit box, the room's ctrl11 / ctrl12, flyHeight, and the start routine by cEm::set: 0 Wait
+// (1), 1 the room 20A corpse-landing crow (R20ALanding 0).
 static void em23_R0_Init(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -307,6 +319,7 @@ static void em23_R0_Init(cEm23* em)
     em23_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em23_R1_move_tbl).
 static void em23_R0_Move(cEm23* em)
 {
     Em23_R1_move_tbl[em->r_no_1](em);
@@ -405,6 +418,8 @@ static inline void em23FlyMove(cEm23* em, Em23Work* w)
     em23AddSpeedAir(em, em->ang.y);
 }
 
+// R1 == 0: room 20A crow sitting on the corpse: idle (hp 1), takes off (ARC 0xE) when the player comes
+// close with the wing flap SE, climbs, then Turn (4) once airborne.
 // Both motion switches are written out with ONE pair of routine-scope pointers (not the
 // em23WaitMotion/em23TakeoffMotion inlines): the shared `m1` pseudo is what makes the takeoff join's
 // subArc copy take r10 instead of r11 (global-alloc `regs_someone_prefers`).
@@ -509,6 +524,8 @@ static void em23_R1_R20ALanding(cEm23* em)
     }
 }
 
+// R1 == 1 Wait: pecks around on the ground (em23WaitMotion) until the player comes near (EM23_PL_NEAR),
+// then Takeoff (2).
 static void em23_R1_Wait(cEm23* em)
 {
     switch (em->r_no_2) {
@@ -528,6 +545,8 @@ static void em23_R1_Wait(cEm23* em)
     }
 }
 
+// R1 == 2 Takeoff: the takeoff flap (em23TakeoffMotion) turning to the heading targetAng (away from
+// the player), wing spread (em23SetWing), then Turn (4) in the air.
 static void em23_R1_Takeoff(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -560,6 +579,7 @@ static void em23_R1_Takeoff(cEm23* em)
     }
 }
 
+// R1 == 3 TakeoffDash: the hurried takeoff (ARC 0xF) used when startled, otherwise like Takeoff.
 static void em23_R1_TakeoffDash(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -592,6 +612,9 @@ static void em23_R1_TakeoffDash(cEm23* em)
     }
 }
 
+// R1 == 4 Turn: flies circles at flyHeight above the player (em23FlyMove), banking with one of the
+// six glide blends (r_no_3), flipping the turn direction every turnTimer frames; after stateTimer it
+// heads for the corpse (Landing 5) when the room has one.
 static void em23_R1_Turn(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -678,6 +701,8 @@ static void em23_R1_Turn(cEm23* em)
     em23FlyMove(em, w);
 }
 
+// R1 == 5 Landing: glides towards the corpse (pCorpse), descends onto it and lands (ARC 0x10), then
+// ToCorpse (6) / Eat (7), or takes off again when disturbed; without a floor it goes back to Turn.
 static void em23_R1_Landing(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -784,6 +809,8 @@ static void em23_R1_Landing(cEm23* em)
     em23SetWing(em, 0);
 }
 
+// R1 == 6 ToCorpse: hops (ARC 0x1A / 0x1B) towards the corpse turning to it, then Eat (7) when there
+// or Takeoff (2 / 3) when the player comes near; the hop-landing motions 0x12 / 0x13.
 static void em23_R1_ToCorpse(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -860,6 +887,8 @@ static void em23_R1_ToCorpse(cEm23* em)
     em23SetWing(em, 1);
 }
 
+// R1 == 7 Eat: pecks at the corpse (ARC 0x18, repeated at random), looks up, and takes off (2) when
+// the player comes near.
 static void em23_R1_Eat(cEm23* em)
 {
     switch (em->r_no_2) {
@@ -899,11 +928,15 @@ static void em23_R1_Eat(cEm23* em)
     }
 }
 
+// R0 == 2: damage, runs Em23_R2_move_tbl (Dm_Air).
 static void em23_R0_Damage(cEm23* em)
 {
     Em23_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Air: shot in the air: tumbles down spinning (ARC 0x16, dmRotSpd / dmAng, no more
+// damage) until it hits the floor (em23AddSpeedAir); a dead crow goes to Die_Normal, a living one
+// flaps up again (0x15) and takes off (2).
 static void em23_R1_Dm_Air(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -956,11 +989,14 @@ static void em23_R1_Dm_Air(cEm23* em)
     em23SetWing(em, 0);
 }
 
+// R0 == 3: death, runs Em23_R3_move_tbl (Die_Normal).
 static void em23_R0_Die(cEm23* em)
 {
     Em23_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: the death motion ARC 0x14, drops the item (ITEMSET), then the body fades
+// out (flag bit2) and the enemy is left dead.
 static void em23_R1_Die_Normal(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
@@ -994,6 +1030,8 @@ static void em23_R1_Die_Normal(cEm23* em)
     em23SetWing(em, 0);
 }
 
+// Moves the crow by its local speed spd rotated to heading `ang`; when descending stops it on the
+// floor found between the old height + 500 and the new position (halving the fall speed). 1 = landed.
 int em23AddSpeedAir(cEm23* em, f32 ang)
 {
     Em23Work* w = EM23_WK(em);
@@ -1024,6 +1062,7 @@ int em23AddSpeedAir(cEm23* em, f32 ang)
     return 0;
 }
 
+// Swaps the wing model (pWingInfo): `on` 1 the spread wings (ARC 7), 0 the folded ones (ARC 6).
 void em23SetWing(cEm23* em, int on)
 {
     Em23Work* w = EM23_WK(em);

@@ -321,25 +321,36 @@ static inline void em2dTurnTo(cEm2d* em, Vec* target, f32 step)
     em->ang.y = LIMIT_ANGLE(em->ang.y);
 }
 
+// Module entry (SN loader): registers Em2dInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em2d prolog Ok\n");
     EmInitFunc = Em2dInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2d class in the manager's work.
 void Em2dInit(cEm* em)
 {
     new (em) cEm2d();
 }
 
+// Per-frame damage check (cEm2d::move). An explosion / fire volume takes 500 every 120 frames
+// (dmGuard) and, dead or alive, sends the insect to the reaction of where it is (on a wall Dm_Wall /
+// Die_Wall, ceiling Dm_Ceiling / Die_Ceiling, flying Dm_Air / Die_Air, jumping Dm_Jump, airborne
+// Dm_Down / Die_Down, else Dm_Normal / Die_Normal). A weapon hit rings the bell alarm, takes
+// em2dSetDmVal off hp with the camouflage-breaking flag 0x200 and the blood / poison-sac effects by
+// hit part, then the same by-place dispatch: a kill dies in place, a survivor flinches (heavy
+// weapons and near shotgun hits blow it over: Dm_Blow).
 void em2dDmCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -768,6 +779,10 @@ void em2dDmCk(cEm2d* em)
     }
 }
 
+// Per-frame update: damage check, clears the per-frame flags, the water / near-floor tests (flags
+// 0x2000 / 0x80000 / 0x200000), route check, the R0 table, then the collision size and scenario check
+// by mode (checkAir on walls / ceilings / in the air with the wall attribute mask), the camouflage
+// blend (em2dCamouflageMove, blendRatio), the eye glow and the hum SE.
 void cEm2d::move()
 {
     Em2dWork* w = EM2D_WK(this);
@@ -875,6 +890,10 @@ void cEm2d::move()
     em2dHumSeMove(this);
 }
 
+// Start routine and work defaults from cEm::set: 0 Wait on the floor, 3 Walk already alerted, 1 a
+// flying one (type 4: A_Wait 0x1C, flags 0x840), 2 hanging under the ceiling found above (flag 0x80,
+// C_Wait 0x27), 4 on the wall behind it (W_Wait... or A_Wait when no wall), 5 the wall walk test
+// (W_WalkTest 0x29); homePos = the start position.
 void em2dInitRtnSet(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1004,6 +1023,9 @@ void em2dInitRtnSet(cEm2d* em)
     }
 }
 
+// R0 == 0: creation. Builds the model of the type (0..4, the flying type 4 with wings), collision and
+// the fifteen hit boxes, camouflage blend 0, the room's ctrl11 / ctrl12, the IK-off parts, effect data,
+// and the start routine (em2dInitRtnSet).
 static void em2d_R0_Init(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1094,16 +1116,20 @@ static void em2d_R0_Init(cEm2d* em)
     em2d_R0_Move(em);
 }
 
+// R0 == 1: runs the branch check and the move handler of R1 (Em2d_R1_move_tbl pairs).
 static void em2d_R0_Move(cEm2d* em)
 {
     Em2d_R1_move_tbl[em->r_no_1 * 2](em);
     Em2d_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the routines that have none.
 static void em2d_R1_br_Dummy(cEm2d* em)
 {
 }
 
+// R1 == 0x00 R213NestWait: the room 213 nest insects (hp 1, flag 0x20, IK off): idle wriggles with
+// random 1..3 loops, die in place (Die_Wall) when killed.
 static void em2d_R1_R213NestWait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1149,6 +1175,8 @@ static void em2d_R1_R213NestWait(cEm2d* em)
     }
 }
 
+// R1 == 0x01 Wait: idle on the floor (flag 0x100 = ground); when the player is found (em2dFindCk)
+// turns to him (Turn180 3) or walks (2), or side-steps (4) one time in four.
 static void em2d_R1_Wait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1202,6 +1230,10 @@ static void em2d_R1_Wait(cEm2d* em)
     em2dFallCk(em);
 }
 
+// R1 == 0x02 Walk: approaches the player (walkMode 0) or keeps its distance (1 / 2) along the route;
+// leaves for Turn180, SideStep, BackJump (5), the melee Atk (6), poison spit (7), the critical (8) or
+// jump sign (9 -> JumpAtk), climbs a wall in the way (W_Walk 0x15 unless an EMI no-wall point
+// forbids it), and at low rank may just Wait.
 static void em2d_R1_Walk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1369,6 +1401,7 @@ next:
     }
 }
 
+// R1 == 0x03 Turn180: turns towards the target (turnAng eased), then Walk (2) or another turn.
 static void em2d_R1_Turn180(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1409,6 +1442,8 @@ static void em2d_R1_Turn180(cEm2d* em)
     em2dFallCk(em);
 }
 
+// R1 == 0x04 SideStep: dodges to the free side (wall probes), then Turn180 / Walk; when the step ends
+// against a wall it climbs it (W_Walk 0x15, flag 0x20).
 static void em2d_R1_SideStep(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1512,6 +1547,7 @@ static void em2d_R1_SideStep(cEm2d* em)
     }
 }
 
+// R1 == 0x05 BackJump: hops backwards away from the player, then Wait (1).
 static void em2d_R1_BackJump(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1536,6 +1572,8 @@ static void em2d_R1_BackJump(cEm2d* em)
     }
 }
 
+// R1 == 0x06 Atk: the melee slash (one of two motions), em2dAtkCk on the hit frames; a miss scores
+// an escape and hops back (BackJump) or waits.
 static void em2d_R1_Atk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1595,6 +1633,8 @@ static void em2d_R1_Atk(cEm2d* em)
     }
 }
 
+// R1 == 0x07 AtkPoison: spits the poison glob (em2dSetPoison on the spit frame, poisonWait 300..450),
+// then Wait (1).
 static void em2d_R1_AtkPoison(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1637,6 +1677,8 @@ static void em2d_R1_AtkPoison(cEm2d* em)
     }
 }
 
+// R1 == 0x08 CriticalAtk: the decapitating bite (em2dAtkCk kind 2): a hit at low player hp kills him
+// (plem2d_CriticalHit, em2dPlHeadLost); a miss scores an escape, then Wait (1).
 static void em2d_R1_CriticalAtk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1693,6 +1735,7 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
     }
 }
 
+// Player damage routine of the critical bite: the head comes off (em2dPlHeadLost), routine held.
 static void plem2d_CriticalHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -1708,6 +1751,7 @@ static void plem2d_CriticalHit(cPlayer* pl)
     }
 }
 
+// R1 == 0x09 JumpSign: the crouch before the leap, then JumpAtk (0xA).
 static void em2d_R1_JumpSign(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1726,6 +1770,8 @@ static void em2d_R1_JumpSign(cEm2d* em)
     }
 }
 
+// Branch check of JumpAtk (0xA): on the catch frame em2dCatchCk decides the grab: JumpAtkHit (0xB,
+// the face grab) or, half the time on a healthy player, JumpKickHit (0xC, knocked down).
 static void em2d_R1_br_JumpAtk(cEm2d* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em2dCatchCk(em)) {
@@ -1737,6 +1783,8 @@ static void em2d_R1_br_JumpAtk(cEm2d* em)
     }
 }
 
+// R1 == 0x0A JumpAtk: the leap at the player (flag 0x10 = jumping, kickSide picked), lands with the
+// landing effect; a miss scores an escape, sets jumpWait 150..300 and goes back to Wait (1).
 static void em2d_R1_JumpAtk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -1797,6 +1845,9 @@ static void em2d_R1_JumpAtk(cEm2d* em)
     }
 }
 
+// R1 == 0x0B JumpAtkHit: on the player's face (plem2d_JumpAtkHit, cut camera): 500 damage per bite
+// while he mashes the button (PlGacha); over 30 he throws it off (JumpAtkCounter 0xD when he kicks it
+// away), else it bites again and kills him at 1 hp (head melted by the acid).
 static void em2d_R1_JumpAtkHit(cEm2d* em)
 {
     Em2dWork* w;
@@ -1936,6 +1987,8 @@ static void em2d_R1_JumpAtkHit(cEm2d* em)
     em->x3A8 = em->pos;
 }
 
+// Player damage routine of the face grab: grabbed (weapon hidden), the struggle, the throw-off, the
+// kick, or the death (em2dPlHeadMelt, die camera); camera by r_no_3 side (em2dCamMove).
 static void plem2d_JumpAtkHit(cPlayer* pl)
 {
     int fe;
@@ -2100,6 +2153,8 @@ static inline void em2dCatchCamMove(cEm2d* em, cEm* pl)
     }
 }
 
+// R1 == 0x0C JumpKickHit: the leap knocked the player down (300 damage, plem2d_JumpKickHit, camera
+// 4 / 5): the insect lands beyond him, jumpWait 150..300, then Wait (1).
 static void em2d_R1_JumpKickHit(cEm2d* em)
 {
     Em2dWork* w;
@@ -2180,6 +2235,7 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
     em->x3A8 = em->pos;
 }
 
+// Player damage routine of the knock-down: the fall motion, then the standard knock-down (PlSetDamage 8).
 static void plem2d_JumpKickHit(cPlayer* pl)
 {
     int t;
@@ -2208,6 +2264,8 @@ static void plem2d_JumpKickHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R1 == 0x0D JumpAtkCounter: kicked off the player's face (em2dKickAction, critical scored): flies
+// back, 100 damage on landing (dies into Die_Down), else WakeupWait (0xE).
 static void em2d_R1_JumpAtkCounter(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2270,6 +2328,8 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
     }
 }
 
+// Offers the kick action button (variant `side`) while the insect hangs on the player's face and he
+// faces it.
 void em2dActEvtSetKick(cEm2d* em, int side)
 {
     if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.14159274f)) > 1.57079637f) {
@@ -2281,6 +2341,8 @@ void em2dActEvtSetKick(cEm2d* em, int side)
     ActBtn.set(7, 0xB, (int) em2dKickAction, (int) em, 1, 1, 0, 0);
 }
 
+// Action button callback of the kick: the player's kick routine (plem2dKick), the insect's
+// JumpAtkCounter (0xD), critical scored, damage held 30 frames.
 static void em2dKickAction(cEm2d* em)
 {
     SetPlDamage((int) em, plem2dKick);
@@ -2296,6 +2358,8 @@ static void em2dKickAction(cEm2d* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player routine of the kick: the kick motion; at frame 15 the foot sweep (PlWepHitCheck3 kind 0x14,
+// 1200 units) hits the insect; critical scored.
 static void plem2dKick(cPlayer* pl)
 {
     Vec pos;
@@ -2337,6 +2401,7 @@ static void plem2dKick(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R1 == 0x0E WakeupWait: lies on its back 30..60 frames (flag 0x20000), then Wakeup (0xF).
 static void em2d_R1_WakeupWait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2358,6 +2423,7 @@ static void em2d_R1_WakeupWait(cEm2d* em)
     }
 }
 
+// R1 == 0x0F Wakeup: rights itself, then SideStep (4), Turn180 (3) or Walk (2).
 static void em2d_R1_Wakeup(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2390,6 +2456,8 @@ static void em2d_R1_Wakeup(cEm2d* em)
     }
 }
 
+// R1 == 0x10 DownJump: leaps up onto a wall (em2dDownJumpCk found one above / ahead): airborne (0x400)
+// until the wall probe hits, snaps onto it (flags 0x120) and continues as W_Turn180 (0x18) or W_Walk.
 static void em2d_R1_DownJump(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2453,6 +2521,8 @@ static void em2d_R1_DownJump(cEm2d* em)
     }
 }
 
+// R1 == 0x11 ToCeiling: leaps from the floor up to the ceiling (em2dToCeilingCk), snaps onto it and
+// continues as a wall walker (W_Turn180 / W_Walk).
 static void em2d_R1_ToCeiling(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2515,6 +2585,8 @@ static void em2d_R1_ToCeiling(cEm2d* em)
     }
 }
 
+// R1 == 0x12 JumpDown: jumps off an edge (em2dJumpDownCk, turning to jumpAng, flag 0x40 airborne),
+// lands on the floor below (landing effect; dies in the water / a bottomless drop), then Turn180 / Walk.
 static void em2d_R1_JumpDown(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2578,6 +2650,8 @@ static void em2d_R1_JumpDown(cEm2d* em)
     }
 }
 
+// R1 == 0x13 WallOver: jumps over a low wall found by em2dWallOverCk (turning to jumpAng), then
+// Turn180 / Walk.
 static void em2d_R1_WallOver(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2624,6 +2698,8 @@ static void em2d_R1_WallOver(cEm2d* em)
     }
 }
 
+// R1 == 0x14 W_Wait: idle on the wall / ceiling (flags 0x120), then W_Walk (0x15) when the player is
+// found or W_Turn180 (0x18).
 static void em2d_R1_W_Wait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2654,6 +2730,10 @@ static void em2d_R1_W_Wait(cEm2d* em)
     }
 }
 
+// R1 == 0x15 W_Walk: walks the wall / ceiling (em2dSetWallMatrix2 follows the surface) towards the
+// player (walkMode 0..3 by chance: straight, around, keep away), 8..11 steps then W_Wait; attacks from
+// the wall (W_Atk 0x16 within reach, W_AtkPoison 0x17 or W_Fall 0x19 = the drop attack, the
+// floor melee 6 when low), W_Turn180 (0x18) when the player is behind, back to the floor (BackJump 5).
 static void em2d_R1_W_Walk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2787,6 +2867,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
     w->atkCnt++;
 }
 
+// R1 == 0x29 W_WalkTest: debug set 5: walks the wall forever.
 static void em2d_R1_W_WalkTest(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2804,6 +2885,8 @@ static void em2d_R1_W_WalkTest(cEm2d* em)
     }
 }
 
+// R1 == 0x16 W_Atk: the slash from the wall (flag 0x20), em2dAtkCk on the hit frames; a miss scores an
+// escape; then W_Wait (0x14) or W_Walk.
 static void em2d_R1_W_Atk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2854,6 +2937,7 @@ static void em2d_R1_W_Atk(cEm2d* em)
     }
 }
 
+// R1 == 0x17 W_AtkPoison: spits the poison glob from the wall (frame 23, poisonWait 300..450), then W_Wait.
 static void em2d_R1_W_AtkPoison(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2905,6 +2989,7 @@ static void em2d_R1_W_AtkPoison(cEm2d* em)
     }
 }
 
+// R1 == 0x18 W_Turn180: turns around on the wall, then W_Wait (0x14).
 static void em2d_R1_W_Turn180(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -2958,6 +3043,9 @@ static void em2d_R1_W_Turn180(cEm2d* em)
         }                                                                                      \
     } else
 
+// R1 == 0x19 W_Fall: drops off the wall / ceiling onto the player (flags 0x140, the fall-catch test
+// em2dFallCatchCk grabs him half the time or at low hp -> JumpAtkHit / JumpKickHit), lands on the
+// floor (em2dSetFallMatrix, landing effect), then Turn180 / Walk.
 static void em2d_R1_W_Fall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3052,6 +3140,7 @@ static void em2d_R1_W_Fall(cEm2d* em)
     }
 }
 
+// R1 == 0x1A ToAir: the flying type takes off from the floor (flag 0x10), then A_Walk (0x1D).
 static void em2d_R1_ToAir(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3073,6 +3162,8 @@ static void em2d_R1_ToAir(cEm2d* em)
     }
 }
 
+// R1 == 0x1B ToGround: the flying type lands (flags 0x840 -> 0x40 falling) on the floor below (dies in
+// water), then Turn180 / Walk on the ground.
 static void em2d_R1_ToGround(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3135,6 +3226,9 @@ static void em2d_R1_ToGround(cEm2d* em)
         (w)->turnAng = (w)->turnAng * 0.949999988f + 0.0500000007f;                   \
     }
 
+// R1 == 0x1C A_Wait: hovers in place (em2dHoverMove sine sway, flags 0x840 | 0x40000 hum) at least
+// 2000 above the floor; after each loop may climb (A_Up 0x20) / descend (A_Down 0x21) / A_Step
+// (0x1F), and when the player is found attacks (A_Atk 0x23 from far, A_Catch 0x24 near).
 static void em2d_R1_A_Wait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3241,6 +3335,8 @@ static void em2d_R1_A_Wait(cEm2d* em)
         (em)->pos.y = fl;                                                                 \
     }
 
+// R1 == 0x1D A_Walk: flies towards the target (EM2D_AIR_MOVE), then em2dAirNextRtnSet picks the next
+// air routine.
 static void em2d_R1_A_Walk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3279,6 +3375,7 @@ static void em2d_R1_A_Walk(cEm2d* em)
     em2dDoorOpenCk(em);
 }
 
+// R1 == 0x1E A_Back: flies backwards away from the player, then em2dAirNextRtnSet.
 static void em2d_R1_A_Back(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3308,6 +3405,8 @@ static void em2d_R1_A_Back(cEm2d* em)
     }
 }
 
+// R1 == 0x1F A_Step: a sideways dodge in the air (random side, no damage while dodging), then
+// em2dAirNextRtnSet.
 static void em2d_R1_A_Step(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3361,6 +3460,7 @@ static void em2d_R1_A_Step(cEm2d* em)
         (em)->pos.y = fl;                                                                 \
     }
 
+// R1 == 0x20 A_Up: climbs (EM2D_AIR_MOVE_UD) for the timer, then em2dAirNextRtnSet.
 static void em2d_R1_A_Up(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3393,6 +3493,7 @@ static void em2d_R1_A_Up(cEm2d* em)
     }
 }
 
+// R1 == 0x21 A_Down: descends towards the player's height, then em2dAirNextRtnSet.
 static void em2d_R1_A_Down(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3420,6 +3521,7 @@ static void em2d_R1_A_Down(cEm2d* em)
     }
 }
 
+// R1 == 0x22 A_Turn180: turns around in the air towards the target (turnAng eased), then em2dAirNextRtnSet.
 static void em2d_R1_A_Turn180(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3461,6 +3563,8 @@ static void em2d_R1_A_Turn180(cEm2d* em)
     }
 }
 
+// R1 == 0x23 A_Atk: the poison spit from the air (em2dSetPoison type 1 on the spit frame), then
+// em2dAirNextRtnSet.
 static void em2d_R1_A_Atk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3509,6 +3613,8 @@ static void em2d_R1_A_Atk(cEm2d* em)
     }
 }
 
+// Branch check of A_Catch (0x24): em2dAirCatchCk on the dive -> A_CatchHit (0x26, face grab) or
+// A_CatchKick (0x25, knock-down), half / half.
 static void em2d_R1_br_A_Catch(cEm2d* em)
 {
     if (em->hp > 0 && em2dAirCatchCk(em)) {
@@ -3520,6 +3626,8 @@ static void em2d_R1_br_A_Catch(cEm2d* em)
     }
 }
 
+// R1 == 0x24 A_Catch: the dive at the player from the air; a miss scores an escape and continues
+// with em2dAirNextRtnSet.
 static void em2d_R1_A_Catch(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3551,6 +3659,8 @@ static void em2d_R1_A_Catch(cEm2d* em)
     }
 }
 
+// R1 == 0x25 A_CatchKick: the dive knocked the player down (300 damage, plem2d_JumpKickHit), then back
+// into the air.
 static void em2d_R1_A_CatchKick(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3583,6 +3693,8 @@ static void em2d_R1_A_CatchKick(cEm2d* em)
     }
 }
 
+// R1 == 0x26 A_CatchHit: the flying type on the player's face (plem2d_A_CatchHit): the same bite /
+// button-mash / throw-off as JumpAtkHit, flies off (A_Back 0x1E) afterwards or lands into Wait.
 static void em2d_R1_A_CatchHit(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3709,6 +3821,8 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
     em->x3A8 = em->pos;
 }
 
+// Player damage routine of the flying face grab: like plem2d_JumpAtkHit (struggle, throw-off, kick,
+// death with the melted head).
 static void plem2d_A_CatchHit(cPlayer* pl)
 {
     int fe;
@@ -3801,6 +3915,8 @@ static void plem2d_A_CatchHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R1 == 0x27 C_Wait: hangs under the ceiling (flags 0x180) until the player comes below / runs past,
+// then drops (C_Fall 0x28).
 static void em2d_R1_C_Wait(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3833,6 +3949,8 @@ static void em2d_R1_C_Wait(cEm2d* em)
     }
 }
 
+// R1 == 0x28 C_Fall: drops from the ceiling (flag 0x40, the fall-catch grab half the time / at low hp),
+// lands (dies in water), then Turn180 / Walk.
 static void em2d_R1_C_Fall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3909,6 +4027,7 @@ static void em2d_R1_C_Fall(cEm2d* em)
     }
 }
 
+// R0 == 2: damage (flag bit3), runs Em2d_R1_dm_tbl[r_no_1].
 static void em2d_R0_Damage(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3917,6 +4036,8 @@ static void em2d_R0_Damage(cEm2d* em)
     Em2d_R1_dm_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Normal: the floor flinch by hit side (front / back, left / right), then SideStep,
+// Turn180 or Walk.
 static void em2d_R1_Dm_Normal(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -3986,6 +4107,8 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_Blow: knocked over (turned to the hit direction, flag 0x4000 = on its back), then
+// Die_Down when dead or WakeupWait (0xE).
 static void em2d_R1_Dm_Blow(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4023,6 +4146,7 @@ static void em2d_R1_Dm_Blow(cEm2d* em)
     }
 }
 
+// R0 2 / R1 == 2 Dm_Down: shot while airborne / down: the fall, then Wakeup (0xF).
 static void em2d_R1_Dm_Down(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4089,6 +4213,8 @@ static void em2d_R1_Dm_Down(cEm2d* em)
         }                                                                                      \
     }
 
+// R0 2 / R1 == 3 Dm_Jump: shot out of a jump (EM2D_DM_FALL: falls to the floor, dies in water), lands
+// on its back, then WakeupWait or Die_Down.
 static void em2d_R1_Dm_Jump(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4140,6 +4266,8 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
     }
 }
 
+// R0 2 / R1 == 4 Dm_Wall: shot off the wall (after 200+ damage): falls to the floor on its back, then
+// WakeupWait or Die_Down.
 static void em2d_R1_Dm_Wall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4179,6 +4307,7 @@ static void em2d_R1_Dm_Wall(cEm2d* em)
     }
 }
 
+// R0 2 / R1 == 5 Dm_Air: the flying type's flinch (turned to the hit direction), then A_Step (0x1F).
 static void em2d_R1_Dm_Air(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4217,6 +4346,8 @@ static void em2d_R1_Dm_Air(cEm2d* em)
     }
 }
 
+// R0 2 / R1 == 6 Dm_Ceiling: shot off the ceiling: drops to the floor (dies in water), lands on its
+// back, then WakeupWait or Die_Down.
 static void em2d_R1_Dm_Ceiling(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4282,6 +4413,7 @@ static void em2d_R1_Dm_Ceiling(cEm2d* em)
     }
 }
 
+// R0 == 3: death (flag bit3), runs Em2d_R1_die_tbl[r_no_1].
 static void em2d_R0_Die(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4290,6 +4422,8 @@ static void em2d_R0_Die(cEm2d* em)
     Em2d_R1_die_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Lost: the corpse: item drop (ITEMSET, inactive), dissolves (em2dScaleCompress +
+// invisible_factor), then hidden (be_flag 0x4000) with Reset_enable for the room.
 static void em2d_R1_Die_Lost(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4345,6 +4479,7 @@ static void em2d_R1_Die_Lost(cEm2d* em)
     }
 }
 
+// R0 3 / R1 == 1 Die_Normal: dies standing on the floor (death motion, floor snap), then Die_Lost.
 static void em2d_R1_Die_Normal(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4371,6 +4506,7 @@ static void em2d_R1_Die_Normal(cEm2d* em)
     }
 }
 
+// R0 3 / R1 == 2 Die_Down: dies on its back (the twitch), then Die_Lost.
 static void em2d_R1_Die_Down(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4436,6 +4572,7 @@ static void em2d_R1_Die_Down(cEm2d* em)
         }                                                                                      \
     }
 
+// R0 3 / R1 == 3 Die_Wall: dies on the wall: drops to the floor (EM2D_DIE_FALL), then Die_Down.
 static void em2d_R1_Die_Wall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4470,6 +4607,7 @@ static void em2d_R1_Die_Wall(cEm2d* em)
     }
 }
 
+// R0 3 / R1 == 4 Die_Air: the flying type dies in the air: tumbles to the floor, then Die_Down.
 static void em2d_R1_Die_Air(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4512,6 +4650,7 @@ static void em2d_R1_Die_Air(cEm2d* em)
     }
 }
 
+// R0 3 / R1 == 5 Die_Ceiling: dies on the ceiling: drops to the floor, then Die_Down.
 static void em2d_R1_Die_Ceiling(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4546,6 +4685,9 @@ static void em2d_R1_Die_Ceiling(cEm2d* em)
     }
 }
 
+// Per frame: the route point / angle to the player (routePos / routeAng; the flying type aims
+// straight at him), the direction to his head (plDir), line of sight (flag bit0), plDist / homeDist,
+// and the target (the home position when returning, flag 0x8000, else the player).
 void em2dRouteCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4643,6 +4785,8 @@ void em2dRouteCk(cEm2d* em)
     }
 }
 
+// Damage of the weapon hit: GetWepDmVal (`near` for a muzzle within 6000), x1.25 on the head part 6
+// (a rifle head shot kills outright), x18 / x25 on the flying type in the air (one shot downs it).
 int em2dSetDmVal(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4676,6 +4820,9 @@ int em2dSetDmVal(cEm2d* em)
     return dmg;
 }
 
+// Attack hit test at part `parts`: kind `no` 0 / 1 the slashes (blood, a kill takes the player's
+// head), 2 the critical bite (kills outright with plem2d_CriticalHit); the partner is hurt too;
+// once per attack (atkHit). 1 = hit.
 int em2dAtkCk(cEm2d* em, int no, int parts)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4737,6 +4884,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
     return 0;
 }
 
+// Squashes the parts vertically by Compress_y (Die_Lost sinks the corpse into the floor).
 void em2dScaleCompress(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4763,6 +4911,8 @@ void em2dScaleCompress(cEm2d* em)
     }
 }
 
+// Is the player aiming a gun (ammo, not the knife) at this insect within range and in front: the root
+// lies inside the box in front of the weapon hand. The air routines dodge when it is.
 int em2dLockCk(cEm2d* em)
 {
     Mtx inv;
@@ -4806,6 +4956,8 @@ int em2dLockCk(cEm2d* em)
     return 1;
 }
 
+// Snaps the insect onto the surface under it (probe along wallNrm) and rotates the model matrix so
+// its up axis matches the surface normal.
 void em2dSetWallMatrix(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4842,6 +4994,8 @@ void em2dSetWallMatrix(cEm2d* em)
     TransMatrix(em->mat, &em->pos);
 }
 
+// Wall walk step: probes the surface around the feet (four probes), blends wallNrm towards the found
+// normal by `rate`, snaps to the surface and rebuilds the matrix; 0 when the surface was lost.
 int em2dSetWallMatrix2(cEm2d* em, f32 rate)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4959,6 +5113,7 @@ int em2dSetWallMatrix2(cEm2d* em, f32 rate)
     return 0;
 }
 
+// While falling off a wall: eases wallNrm back to straight up so the insect lands feet first.
 void em2dSetFallMatrix(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -4993,6 +5148,9 @@ struct Em2dColSel {
     u16 v;
 };
 
+// The camouflage: fades the model in (visible while attacking / damaged / near the player, flag
+// 0x200) and out (blendRatio towards the colour-select table), with the shimmer effect every
+// effTimer frames; the room's "show all" flag (Status_flg[1] bit26) forces it visible.
 void em2dCamouflageMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5147,6 +5305,7 @@ void em2dCamouflageMove(cEm2d* em)
     p->color2[3] = p->color2[0];
 }
 
+// Catch test of the leap: the player alive, not held, inside the box in front and reachable. 1 = caught.
 int em2dCatchCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5185,6 +5344,7 @@ int em2dCatchCk(cEm2d* em)
     return 1;
 }
 
+// Catch test of the dive from the air: like em2dCatchCk with the dive box.
 int em2dAirCatchCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5220,6 +5380,8 @@ int em2dAirCatchCk(cEm2d* em)
     return 1;
 }
 
+// Catch test of the drop from the wall / ceiling: the player right below (within 200 below .. 2000
+// above), damage held. 1 = caught.
 int em2dFallCatchCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5252,6 +5414,9 @@ int em2dFallCatchCk(cEm2d* em)
     return 0;
 }
 
+// Cut-in camera of the face grab: eases the work Camera (cam) to viewpoint `mode` (0..5 around the
+// player) by `rate`, pulled in front of walls; installs it as the extra camera. Returns 0 when the
+// view is blocked (the caller falls back to the game camera).
 int em2dCamMove(cEm2d* em, int mode, f32 rate)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5355,6 +5520,7 @@ int em2dCamMove(cEm2d* em, int mode, f32 rate)
     return blocked ^ 1;
 }
 
+// Camera of the player's death by the insect: looks at his head from the fixed offset.
 void em2dDieCamMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5380,6 +5546,8 @@ void em2dDieCamMove(cEm2d* em)
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
+// 1 when this insect may approach: fewer than three visible ones are already nearer to the player, or
+// it is farther than 8000 units.
 int em2dStayCk(cEm2d* em)
 {
     u32 cnt = 0;
@@ -5396,11 +5564,13 @@ int em2dStayCk(cEm2d* em)
     return cnt > 2 ? em->plDist2 > 64000000.0f : 1;
 }
 
+// Registers a kind 3 crash volume of radius `r` at the insect (a falling one knocks the others over).
 void em2dSetCrash(cEm2d* em, f32 r)
 {
     DmgMgr.set(3, 2, &em->pos, 1500.0f, r);
 }
 
+// Hit by a kind 3 crash volume while standing on the floor -> Dm_Blow (R2 1). 1 = crashed.
 int em2dCrashCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5433,6 +5603,8 @@ int em2dCrashCk(cEm2d* em)
     return 1;
 }
 
+// The player's head comes off (the critical bite): in the overseas versions hides the head model and
+// spawns it as a cObj01 with the blood effect; the Japanese version only plays the blood / SE.
 void em2dPlHeadLost()
 {
     Vec ofs;
@@ -5471,6 +5643,7 @@ void em2dPlHeadLost()
     EstSet((int) obj, -1, 0, 0, 0x25, 0x2E, 0, 0, (u32) obj, (void*) zero);
 }
 
+// Swaps the player's head for the acid-melted skull (player archive 0x6D / 0x6E) after the face grab kill.
 void em2dPlHeadMelt(cPlayer* pl)
 {
     if (pSys->region) {
@@ -5478,6 +5651,8 @@ void em2dPlHeadMelt(cPlayer* pl)
     }
 }
 
+// Spits the poison projectile (SetObj08 from the mouth part 5) aimed at the player: `type` 0 from the
+// ground / wall, 1 from the air (different effects).
 void em2dSetPoison(cEm2d* em, int type)
 {
     cObj* obj;
@@ -5507,6 +5682,7 @@ void em2dSetPoison(cEm2d* em, int type)
     SetObj08Se(obj, 8, 0x18);
 }
 
+// Yaw from the insect to `pos` (used for the head direction and the wall-walk target).
 f32 em2dGetPlDir(cEm2d* em, Vec* pos)
 {
     Mtx inv;
@@ -5527,6 +5703,7 @@ f32 em2dGetPlDir(cEm2d* em, Vec* pos)
         (w)->wallTarget = hit;          \
     }
 
+// Is there a climbable wall right in front (three probes): sets the wall walk (W_Walk 0x15) when so. 1 = set.
 int em2dWallWalkCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5565,6 +5742,7 @@ int em2dWallWalkCk(cEm2d* em)
     return 0;
 }
 
+// 1 when the wall under the wall-walker ends (no surface ahead / below): it must drop (W_Fall).
 int em2dWallFallCk(cEm2d* em)
 {
     Vec a;
@@ -5592,6 +5770,7 @@ int em2dWallFallCk(cEm2d* em)
     return SatMgr.hitCheck(&a, &b, 0, 0, 0, 0x383830) == 0;
 }
 
+// 1 while the player is running (routine 0 / 3).
 int em2dPlRunCk(cEm2d* em)
 {
     if (pPL->r_no_0 != 0) {
@@ -5600,6 +5779,7 @@ int em2dPlRunCk(cEm2d* em)
     return pPL->r_no_1 == 3;
 }
 
+// Opens a closed door (cEmDoor) the insect walks into from its side.
 void em2dDoorOpenCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5662,6 +5842,7 @@ void em2dDoorOpenCk(cEm2d* em)
     }
 }
 
+// Footstep SEs on the motion's step events (parts / floor material), with the wall / ceiling variants.
 void em2dFootSeMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5730,6 +5911,7 @@ void em2dFootSeMove(cEm2d* em)
     }
 }
 
+// Landing dust / splash at the root and the feet (parts 0x12 / 0x16).
 void em2dSetdLandingEff(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5757,6 +5939,7 @@ void em2dSetdLandingEff(cEm2d* em)
     }
 }
 
+// Dust / splash when the insect hits the floor on its back.
 void em2dSetDownEff(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5775,6 +5958,7 @@ void em2dSetDownEff(cEm2d* em)
     }
 }
 
+// Dust / splash at the take-off of a jump.
 void em2dSetJumpEff(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5793,6 +5977,7 @@ void em2dSetJumpEff(cEm2d* em)
     }
 }
 
+// The floor under the insect dropped away by more than 250 -> W_Fall (0x19). 1 = set.
 int em2dFallCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5807,6 +5992,7 @@ int em2dFallCk(cEm2d* em)
     return 1;
 }
 
+// Half the time, when the player stands above and a wall rises in front -> DownJump (0x10). 1 = set.
 int em2dDownJumpCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5835,6 +6021,7 @@ int em2dDownJumpCk(cEm2d* em)
     return 1;
 }
 
+// Half the time, with a ceiling within reach above -> ToCeiling (0x11). 1 = set.
 int em2dToCeilingCk(cEm2d* em)
 {
     Vec a;
@@ -5862,6 +6049,7 @@ int em2dToCeilingCk(cEm2d* em)
     return 1;
 }
 
+// The flying type takes off (ToAir 0x1A) one time in four when allowed. 1 = set.
 int em2dToAirCk(cEm2d* em)
 {
     int r = Rnd() & 3;
@@ -5876,6 +6064,7 @@ int em2dToAirCk(cEm2d* em)
     return 1;
 }
 
+// The flying type lands (ToGround 0x1B) one time in four when low enough over the floor. 1 = set.
 int em2dToGround(cEm2d* em)
 {
     int r = Rnd() & 3;
@@ -5898,6 +6087,7 @@ int em2dToGround(cEm2d* em)
     return 1;
 }
 
+// 1 while alive, active and the player is found (flag 0x200).
 int cEm2d::ckFindPL()
 {
     if (hp <= 0) {
@@ -5912,6 +6102,7 @@ int cEm2d::ckFindPL()
     return 0;
 }
 
+// The eye glow: blinks the eye parts by the x535 state machine while alive.
 void em2dEyeMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5958,6 +6149,7 @@ void em2dEyeMove(cEm2d* em)
     }
 }
 
+// 1 when the insect's root or head is inside the screen.
 int em2dScreenInCk(cEm2d* em)
 {
     Vec scr;
@@ -5974,6 +6166,7 @@ int em2dScreenInCk(cEm2d* em)
     return 0;
 }
 
+// An edge ahead (scenario mask 0x102010) within 30 deg of the heading -> JumpDown (0x12). 1 = set.
 int em2dJumpDownCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6005,6 +6198,7 @@ int em2dJumpDownCk(cEm2d* em)
     return 1;
 }
 
+// A low wall ahead within 30 deg of the heading -> WallOver (0x13). 1 = set.
 int em2dWallOverCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6041,6 +6235,9 @@ int em2dWallOverCk(cEm2d* em)
     return 1;
 }
 
+// Picks the next air routine after an A_ routine: attack (A_Atk / A_Catch) when the player is found
+// and faces it, dodge (A_Step) when he aims at it (em2dLockCk), A_Back when too close, A_Wait, A_Turn180
+// when he is behind, A_Down / A_Up by relative height, else A_Walk.
 void em2dAirNextRtnSet(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6114,6 +6311,8 @@ void em2dAirNextRtnSet(cEm2d* em)
     }
 }
 
+// Sight check: the player found (flag 0x200) when seen and near, on the bell alarm within range, or
+// on the room's forced alert within 25000 route units. 1 = found.
 int em2dFindCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6163,6 +6362,8 @@ int em2dFindCk(cEm2d* em)
     return 1;
 }
 
+// 1 when another active insect that has found the player is within 10000 units (30000 for a flier):
+// it joins in.
 int em2dSomebodyFindCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6204,6 +6405,7 @@ int em2dSomebodyFindCk(cEm2d* em)
     return 0;
 }
 
+// 1 once the die routine finished (Reset_enable): the room may reset the enemy.
 int cEm2d::ckReset()
 {
     if (EM2D_WK(this)->Reset_enable == 0) {
@@ -6212,6 +6414,8 @@ int cEm2d::ckReset()
     return 1;
 }
 
+// Room script: resets the insect to `pos` / `rot` (or its start) alive and visible with full hp,
+// already alerted, into the air routine (A_Walk) for the flying type or the ground walk.
 void cEm2d::setReset(Vec* pos, Vec* rot)
 {
     Em2dWork* w = EM2D_WK(this);
@@ -6263,6 +6467,7 @@ void cEm2d::setReset(Vec* pos, Vec* rot)
     }
 }
 
+// Height of the ceiling above the insect (scenario probe up to the limit), or the probe top.
 f32 Em2dGetCeiling(cEm2d* em)
 {
     Vec a;
@@ -6278,6 +6483,8 @@ f32 Em2dGetCeiling(cEm2d* em)
     return b.y;
 }
 
+// Reaching an EMI type 0xC return point within 3000 units: heads home (flag 0x8000) and forgets the
+// player. 1 = set.
 int em2dReturnPosCk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6305,6 +6512,8 @@ int em2dReturnPosCk(cEm2d* em)
     return 0;
 }
 
+// The wing hum: keeps the hum effect / SE (0x27 / 0x32) on the flying insect while flag 0x40000 is
+// set, at most three closest to the camera at a time.
 void em2dHumSeMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -6354,6 +6563,7 @@ void em2dHumSeMove(cEm2d* em)
     SndCall(8, 0x32, &em->pos, em->id, 0, em);
 }
 
+// 1 when an EMI type 0x10 "no wall climbing" point lies within 1500 units: the insect stays on the floor.
 int em2dNoWallCk(cEm2d* em)
 {
     EmiData* emi = (EmiData*) pG->pEmi;

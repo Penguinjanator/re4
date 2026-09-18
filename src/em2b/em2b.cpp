@@ -197,6 +197,8 @@ static inline void em2bVariantMot(cEm2b* em, Em2bWork* w, int a0, int a1, int b0
     MotionSetCore(em, &em->Motion, m0, (int) m1, blend, flip, 0);
 }
 
+// Attack wind-up effect by giant variant (0 the normal one: a0 / a1, 1 the chained one: b0 / b1) and
+// the hand the motion uses (motFlags bit6 = right).
 static inline void em2bVariantEst(cEm2b* em, Em2bWork* w, int a0, int a1, int b0, int b1)
 {
     switch (w->variant) {
@@ -429,25 +431,31 @@ CLOTH_AT_SET em2b_chain_at2[5] = {
 };
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Module entry (SN loader): registers Em2bInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em2b prolog Ok\n");
     EmInitFunc = Em2bInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2b class in the manager's work.
 void Em2bInit(cEm* em)
 {
     new (em) cEm2b();
 }
 
+// Destructor: destroys the parasite head object, the ten tentacle objects and the three chain
+// objects of the chained variant that are still alive.
 cEm2b::~cEm2b()
 {
     Em2bWork* w = EM2B_WK(this);
@@ -742,6 +750,9 @@ void em2bDmCk(cEm2b* em)
     }
 }
 
+// Per-frame update: damage check, clears the per-frame Be_flg bits, the timers (Rock_wait, Atk_wait,
+// Dash_wait ...), route check (em2bRouteCk), the R0 table, then collision and scenario check, the
+// debug attack override (Debug_atk_rtn), the parasite hit box (hit[9]) and the dropped tree cleanup.
 void cEm2b::move()
 {
     Em2bWork* w = EM2B_WK(this);
@@ -885,6 +896,10 @@ void cEm2b::move()
     }
 }
 
+// R0 == 0: creation. Builds the model of the variant (type 0..3: plain / chained / the two mercenaries
+// ones), the room's ctrl12, priority, collision and the hit boxes, the "look at me" / active status,
+// and the start routine by cEm::set: 0 Wait, 1 FromEvent (walks in from the cut scene), 2
+// R11E_Appear (bursts through the room 11E gate), 3 R224_CageWait (the caged one of room 224).
 static void em2b_R0_Init(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1064,6 +1079,7 @@ static void em2b_R0_Init(cEm2b* em)
     em2b_R0_Move(em);
 }
 
+// R0 == 1: marks a routine running (Be_flg bit4) and runs Em2b_R1_move_tbl[r_no_1].
 static void em2b_R0_Move(cEm2b* em)
 {
     Em2b_R1_move_tbl[em->r_no_1](em);
@@ -1360,6 +1376,7 @@ static void em2b_R1_Walk(cEm2b* em)
     em2bR11eScrBrkCk(em);
 }
 
+// R1 == 3 Turn180: turns around towards the target (variant motions 0x51 / 0x52), then back to the walk.
 static void em2b_R1_Turn180(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1392,6 +1409,7 @@ static void em2b_R1_Turn180(cEm2b* em)
     }
 }
 
+// R1 == 4 Threat: the roar at the player (0x4C, mirrored by side), then the walk / attack choice.
 static void em2b_R1_Threat(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1506,6 +1524,8 @@ static void em2b_R1_Stamp(cEm2b* em)
     }
 }
 
+// R1 == 6 Punch: the straight punch (variant wind-up effect), em2bAtkCk along the striking hand
+// (parts 0x10 / 0xA by motFlags bit6) on the hit frames, then the walk.
 static void em2b_R1_Punch(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1547,6 +1567,8 @@ static void em2b_R1_Punch(cEm2b* em)
     }
 }
 
+// R1 == 7 Hook: the hook punch (effects 0x19/0x15 or 0x1A/0x16 by variant), em2bAtkCk along the hand
+// and forearm parts (0x10/0xF or 0xA/9), then the walk.
 static void em2b_R1_Hook(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1589,6 +1611,8 @@ static void em2b_R1_Hook(cEm2b* em)
     }
 }
 
+// R1 == 8 UpperCut: the uppercut (effects 0x17/0x13 or 0x18/0x14), em2bAtkCk along hand, forearm and
+// upper arm (0x10/0xF/0xE or 0xA/9/8), then the walk.
 static void em2b_R1_UpperCut(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1665,6 +1689,9 @@ static inline void em2bKickStart(cEm2b* em, Em2bWork* w, int step)
     }
 }
 
+// R1 == 9 Kick: the kick (em2bKickStart by variant), em2bAtkCk along the kicking foot (0x18 / 0x14);
+// a hit sets Dash_wait 150 and goes to Threat, a miss on a far player may chain a second kick turning
+// after him; then the walk.
 static void em2b_R1_Kick(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -1894,6 +1921,7 @@ static inline void em2bHouseFlagSet(Em2bEmi* h)
     }
 }
 
+// Marks the house EMI entry (pHouse) as broken (state 3) and, in room 119, raises its room flag.
 static inline void em2bHouseBreakSet(Em2bWork* w)
 {
     Em2bEmi* h = w->pHouse;
@@ -3075,6 +3103,7 @@ static void plem2bDmFall(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R0 == 2: damage (Be_flg bit3), runs Em2b_R1_dm_tbl[r_no_1].
 static void em2b_R0_Damage(cEm2b* em)
 {
     EM2B_WK(em)->Be_flg |= 8;
@@ -3810,6 +3839,7 @@ static void em2b_R1_Dm_Bomb(cEm2b* em)
     }
 }
 
+// R0 == 3: death (Be_flg bit3), runs Em2b_R1_die_tbl[r_no_1].
 static void em2b_R0_Die(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -4111,6 +4141,8 @@ void em2bNeckMove(cEm2b* em)
     p->addRot.z = 0.0f;
 }
 
+// Two-motion blend: m0 on the main motion work, m1 (Blend < 0) or m2 on the blend work with the
+// weight |Blend|; blendCnt / blendSeq give the hokan frames and start frame (the stamp aim).
 void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -4215,6 +4247,7 @@ void em2bClothSet(cEm2b* em)
     }
 }
 
+// Per frame: the chained variant's (type 1) cloth simulation (PenClothMove3).
 void em2bClothMove(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -4307,6 +4340,8 @@ static void plem2b_dm_Stamp(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Ashley's damage routine when stamped on (em2bPressSubCk): the crushed motion 0xD5 from the giant's
+// archive, held (she is dead).
 static void subem2b_dm_Stamp(cSubChar* sub)
 {
     cSubChar* s = pSUB;
@@ -5465,6 +5500,7 @@ void cEm2b::setEventDie()
     EmRoutineSet(this, 3, 2, 0, 0);
 }
 
+// Unused: always 0 (kept for the original's dead code).
 int em2bStaggerCk(cEm2b* em, Vec* pos)
 {
     return 0;
@@ -5895,6 +5931,8 @@ int em2bPressPlCk(cEm2b* em)
     return 0;
 }
 
+// Stamp on the partner: when one of the giant's feet / body parts (3, 2, 0, 0x12, 0x16) is within 3000
+// units of Ashley's chest she is killed (ashley_life 0, subem2b_dm_Stamp). 1 = crushed.
 int em2bPressSubCk(cEm2b* em)
 {
     int parts[5] = { 3, 2, 0, 0x12, 0x16 };
@@ -6276,6 +6314,7 @@ void em2bObaHitCk(cEm2b* em)
     }
 }
 
+// 1 while the parasite head object is out of the back (pParasite).
 int cEm2b::ckParasite()
 {
     Em2bWork* w = EM2B_WK(this);
@@ -6428,6 +6467,8 @@ void em2bTexrenderInit(cEm2b* em)
     w->pMgr->m_H_size = w->pMgr->m_W_size = 0x40;
 }
 
+// 1 while the giant kneels with the parasite exposed (Be_flg bit14: Dm_Face / Dm_Tree), the window for
+// the player's climb-and-slash attack.
 int cEm2b::ckSit()
 {
     Em2bWork* w = EM2B_WK(this);

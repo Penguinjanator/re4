@@ -69,25 +69,32 @@ static inline int em24DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Module entry (SN loader): registers Em24Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em24 prolog Ok\n");
     EmInitFunc = Em24Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm24 class in the manager's work.
 void Em24Init(cEm* em)
 {
     new (em) cEm24();
 }
 
+// Per-frame damage check (cEm24::move): an explosion / fire volume (kind 1/4/5/7) or any weapon hit
+// except 0x14 / 0x16 / flash 0x17 / 0x2A / the mine 0xE kills the snake at once (hit SE 8, blood 0x1C,
+// dmType 0x80 = no more damage, R0_Die).
 void em24DmCk(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -140,6 +147,9 @@ static EmAtkInfo em24_atk_tbl[1] = {
     { 500.0f, 8, 100, 4, 0xA, 0 },
 };
 
+// Per-frame update: damage check, the R0 table (Init / Move / Damage / Die), then the collision and
+// scenario check (checkAir in box mode / while jumping, else snapped to the floor), the slope tilt
+// (em24SlopeMove) and the in-water splash effects (Be_flg bit5).
 void cEm24::move()
 {
     Em24Work* w = EM24_WK(this);
@@ -192,6 +202,9 @@ void cEm24::move()
     }
 }
 
+// R0 == 0: creation. Builds the model (ARC 5/6) at a random 1.1..1.25 scale, no lock-on / no Ashley
+// help, collision and hit boxes, and the start routine by cEm::set: 0 BoxWait (the snake in the box,
+// Be_flg bit2), else Free (2).
 static void em24_R0_Init(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -255,11 +268,15 @@ static void em24_R0_Init(cEm24* em)
     em24_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em24_R1_move_tbl: BoxWait, CoilWait, Free, Coil).
 static void em24_R0_Move(cEm24* em)
 {
     Em24_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 BoxWait: coiled inside the box (ARC 0x17); when the box opens with the player close it
+// springs at him (ARC 0x11, spd arc, the bite em24AtkCk at the head part 5), lands on the floor and
+// goes Free (2).
 static void em24_R1_BoxWait(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -334,6 +351,7 @@ static void em24_R1_BoxWait(cEm24* em)
     }
 }
 
+// R1 == 1 CoilWait: coiled idle (ARC 0xF) until the player comes near, uncoils (0x12) and goes Free (2).
 static void em24_R1_CoilWait(cEm24* em)
 {
     switch (em->r_no_2) {
@@ -357,6 +375,8 @@ static void em24_R1_CoilWait(cEm24* em)
     }
 }
 
+// R1 == 2 Free: slithers about (ARC 7 / 8), turning towards a new random Target_dir every turnTimer
+// frames, pauses (9 / 0xA); coils up (Coil 3) when the player comes close.
 static void em24_R1_Free(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -407,6 +427,8 @@ static void em24_R1_Free(cEm24* em)
     }
 }
 
+// R1 == 3 Coil: coils up (ARC 0xE), stays coiled facing the player (0xF), uncoils (0x12) and goes
+// back to Free (2) when he moves away.
 static void em24_R1_Coil(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -447,11 +469,15 @@ static void em24_R1_Coil(cEm24* em)
     }
 }
 
+// R0 == 2: the snake has no damage reaction; straight back to Free (R1 2).
 static void em24_R0_Damage(cEm24* em)
 {
     EmRoutineSet(em, 1, 2, 0, 0);
 }
 
+// R0 == 3: death. The death motion (ARC 0x15 in the box / 0x13), the burst effect, then drops a
+// random weapon item (cEmWep + SceAtCreateItemAt: id 8 mostly, 9 or 0xA rarer) and fades out
+// (invisible_factor -0.05, Be_flg bit4), left invisible (be_flag 0x4000).
 static void em24_R0_Die(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
@@ -543,6 +569,8 @@ static void em24_R0_Die(cEm24* em)
     }
 }
 
+// Bite hit test of the box jump: the capsule a -> b against the player / partner with
+// em24_atk_tbl[no] (once per attack, Atk_ck); a player hit adds blood, quake and vibration. 1 = hit.
 int em24AtkCk(cEm24* em, Vec* a, Vec* b, int no)
 {
     Em24Work* w = EM24_WK(em);
@@ -566,6 +594,8 @@ int em24AtkCk(cEm24* em, Vec* a, Vec* b, int no)
     return 0;
 }
 
+// Tilts the model to the floor slope measured by two floor probes ahead / behind (slopeRot smoothed),
+// while alive.
 void em24SlopeMove(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);

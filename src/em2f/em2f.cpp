@@ -122,25 +122,33 @@ static inline void em2fEffectDelete(cEm2f* em, Em2fWork* w)
     EffectEfmDelete(0, w->espKind, (int) em);
 }
 
+// Module entry (SN loader): registers Em2fInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em2f prolog Ok\n");
     EmInitFunc = Em2fInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2f class in the manager's work.
 void Em2fInit(cEm* em)
 {
     new (em) cEm2f();
 }
 
+// Per-frame damage check (cEm2f::move): the monster only takes real damage from the harpoons: a
+// hit sets flag bit6 (damaged) and costs 1 hp for guns / knife, 100 for the harpoon kind 0x15, 1 / 3
+// (far) for shotguns, 1000 for explosives / mine / grenades; at hp 0 (of 1000) it is marked dead
+// (EmSetDie, inactive) and the routines run the death.
 void em2fDmCk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -258,6 +266,9 @@ static Vec em2f_die_pos = { -46800.0f, -734.0f, 22157.0f };
 // in .data.
 static Camera em2f_cri_cam = { 0 };
 
+// Per-frame update: damage check, waitTimer countdown, clears the per-frame flags, the route check,
+// the R0 table (Init / Move / Damage / Die), then collision, scenario check, the island crash test,
+// the swim SEs (surfaced motion frames) and the tentacle objects (em2fTentacleMove).
 void cEm2f::move()
 {
     Em2fWork* w = EM2F_WK(this);
@@ -308,6 +319,10 @@ void cEm2f::move()
     em2fTentacleMove(this);
 }
 
+// R0 == 0: creation. Builds the model of type 0 / 1, hp 1000, waterY = the creation height, the hit
+// boxes (hit[0..6]), atkCnt 1..3, the room's ctrl12, the first route point (em2fSetNextRoute), and the
+// start routine by cEm::set: 0 Wait (a land-bound test enemy), 1 SwimWait (waiting for the boss
+// fight flag), 2 Critical (the drowning cut scene, IK off).
 static void em2f_R0_Init(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -419,6 +434,8 @@ static void em2f_R0_Init(cEm2f* em)
     em2f_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em2f_R1_move_tbl) and mirrors the motion's event bits into cEm::flag
+// bits 2..4 for the room / boat code.
 static void em2f_R0_Move(cEm2f* em)
 {
     em->flag &= ~0x1FC;
@@ -434,6 +451,7 @@ static void em2f_R0_Move(cEm2f* em)
     }
 }
 
+// R1 == 0 Wait: the idle motion (ARC 0xA) on land, waiting for the player.
 static void em2f_R1_Wait(cEm2f* em)
 {
     switch (em->r_no_2) {
@@ -446,6 +464,7 @@ static void em2f_R1_Wait(cEm2f* em)
     }
 }
 
+// R1 == 1 Walk: the land test walk (ARC 9) towards the target, back to Wait within 1000 units.
 static void em2f_R1_Walk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -465,6 +484,8 @@ static void em2f_R1_Walk(cEm2f* em)
     }
 }
 
+// R1 == 2 SwimWait: invisible under the lake until the room starts the boss fight (Status_flg[1]
+// bit21), then Swim (3).
 static void em2f_R1_SwimWait(cEm2f* em)
 {
     // single use in another block: update_equiv_regs moves the li next to the stb (short qty, r0)
@@ -485,6 +506,10 @@ static void em2f_R1_SwimWait(cEm2f* em)
     }
 }
 
+// R1 == 3 Swim: follows the EMI route points (nextPos, turning PI/200 per frame, diving / surfacing
+// by `dive` towards waterY, mouth open flag bit5 mirroring the motion); at a point takes the next one
+// (em2fSetNextRoute) and by its sub type turns (SwimTurn90 4 / 180 5), attacks (SwimTurn180Atk 6) or
+// hides (HideMode 9); em2fChangeRoute re-routes when the point lies far behind.
 static void em2f_R1_Swim(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -607,6 +632,7 @@ static void em2f_R1_Swim(cEm2f* em)
     }
 }
 
+// R1 == 4 SwimTurn90: banks 90 deg towards nextPos (mirrored by side), then Swim (3).
 static void em2f_R1_SwimTurn90(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -652,6 +678,7 @@ static void em2f_R1_SwimTurn90(cEm2f* em)
     em2fRisingDragonCk(em);
 }
 
+// R1 == 5 SwimTurn180: turns around diving or surfacing (flag bit4), then Swim (3).
 static void em2f_R1_SwimTurn180(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -683,6 +710,8 @@ static void em2f_R1_SwimTurn180(cEm2f* em)
     em2fRisingDragonCk(em);
 }
 
+// R1 == 6 SwimTurn180Atk: the turn that starts an attack: with attacks left (atkCnt) and the fight on
+// it goes for the boat (em2fRisingDragonCk -> RisingDragon 7 / Packman 8), else back to Swim (3).
 static void em2f_R1_SwimTurn180Atk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -723,6 +752,9 @@ static void em2f_R1_SwimTurn180Atk(cEm2f* em)
     em2fRisingDragonCk(em);
 }
 
+// R1 == 7 RisingDragon: dives (em2fSetPosRisingD beside the boat), rushes up under it and rams it
+// from below (the boat event flag Status_flg[1] bit22: the player is thrown into the water, his
+// routine 0xF/9), the BGM restarts, then em2fChangeRoute and Swim (3).
 static void em2f_R1_RisingDragon(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -830,6 +862,9 @@ static void em2f_R1_RisingDragon(cEm2f* em)
     em2fWaterEffSet(em);
 }
 
+// R1 == 8 Packman: dives beside the boat (em2fSetPosPackman), surfaces with the mouth open and
+// swallows the player off the boat (his routine 0xF/9, hidden) when the boat flag is set, else misses;
+// then em2fChangeRoute and Swim (3).
 static void em2f_R1_Packman(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -948,6 +983,10 @@ static void em2f_R1_Packman(cEm2f* em)
     em2fWaterEffSet(em);
 }
 
+// R1 == 9 HideMode: after atkCnt attacks the monster dives out of sight (BGM stopped, invisible,
+// em2fSetPosHideMode far from the player) for 90..180 frames, surfaces and rushes (flags 0x480 /
+// 0x580: fast, surfaced, tentacles out) at the boat; a harpoon hit while hiding (hideRush) makes it
+// break out early; back to Swim (3) with a new atkCnt.
 static void em2f_R1_HideMode(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1073,6 +1112,9 @@ static void em2f_R1_HideMode(cEm2f* em)
     em2fWaterEffSet(em);
 }
 
+// R1 == 0xA Critical: the death scene: surfaces at em2f_die_pos when the player is near (quake), then
+// the drowning motion (ARC 0x1B) pulling the player under (the fixed camera pair blended by
+// em2fCriCamMove, DiedemoExec 2, pl_life 0); ends with the monster dead and hidden.
 static void em2f_R1_Critical(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1165,6 +1207,7 @@ static void em2f_R1_Critical(cEm2f* em)
     }
 }
 
+// Eases the drowning cut camera (em2f_cri_cam) towards camPos / camAt and installs it as the extra camera.
 void em2fCriCamMove(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1202,6 +1245,7 @@ void em2fCriCamMove(cEm2f* em)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// R0 == 2: damage (flag bit3), runs Em2f_R2_move_tbl (Dm_Normal).
 static void em2f_R0_Damage(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1210,6 +1254,7 @@ static void em2f_R0_Damage(cEm2f* em)
     Em2f_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Normal: the land flinch motion, then Wait (0) (the lake fight never uses it).
 static void em2f_R1_Dm_Normal(cEm2f* em)
 {
     switch (em->r_no_2) {
@@ -1224,6 +1269,7 @@ static void em2f_R1_Dm_Normal(cEm2f* em)
     }
 }
 
+// R0 == 3: death (flag bit3), runs Em2f_R3_move_tbl (Die_Normal).
 static void em2f_R0_Die(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1232,6 +1278,9 @@ static void em2f_R0_Die(cEm2f* em)
     Em2f_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: puts the player into his boat routine (0/0xF) and releases the boat
+// (pBoat routine 1/1), the death thrash at em2fSetPosDie, inactive, then fades out (invisible_factor
+// -0.02 per frame).
 static void em2f_R1_Die_Normal(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1282,6 +1331,8 @@ static void em2f_R1_Die_Normal(cEm2f* em)
     }
 }
 
+// Per frame: the route point / angle to the player (routePos, routeAng, flag bit0 = found) and the
+// partner (subRoutePos, flag bit1 present / bit2 targeted), and the chosen target copies.
 void em2fRouteCk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1340,6 +1391,8 @@ static inline void em2fWaterPower(cEm2f* em, int no)
     AddWaterPower(&p->world, fRand0_1() * 0.3f + 0.3f);
 }
 
+// Water effects on the swim: the wake / splash at the body parts every effTimer2 (surfaced), effTimer3
+// (fast, flag bit8) or effTimer1 (underwater) frames.
 void em2fWaterEffSet(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1383,6 +1436,9 @@ void em2fWaterEffSet(cEm2f* em)
     }
 }
 
+// Advances to the next EMI type 2 route point (routeIdx, wrapping to the first) into nextPos and
+// returns its sub type (the action at that point); without EMI data a random em2f_route_tbl point
+// and a random type 0..2.
 int em2fSetNextRoute(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1571,6 +1627,7 @@ void em2fSetPosHideMode(cEm2f* em)
     em2fEffectDelete(em, w);
 }
 
+// Puts the monster at the fixed death position em2f_die_pos for the death routine.
 void em2fSetPosDie(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1583,6 +1640,8 @@ void em2fSetPosDie(cEm2f* em)
     em->ang.z = 0.0f;
 }
 
+// Attack choice when the fight is on (Status_flg[1] bit22 clear): alternates RisingDragon (7) and
+// Packman (8) with rndFlag (three in four keep the last kind). 1 when a routine was set.
 int em2fRisingDragonCk(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1606,6 +1665,8 @@ int em2fRisingDragonCk(cEm2f* em)
     return 0;
 }
 
+// Re-routes after an attack: picks the EMI type 2 point ahead of the monster (within 45 deg of its
+// heading, else the nearest) as nextPos / routeIdx; random em2f_route_tbl point without EMI data.
 void em2fChangeRoute(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
@@ -1725,6 +1786,9 @@ void em2fIslandCrashCk(cEm2f* em)
     }
 }
 
+// While the tentacle motion flag (seFlags28B bit5) and flag bit7 (rising) are set, creates the six
+// tentacle objects (cObj16 type 0xA) on parts 0x1D..0x22 with staggered motions and the tentacle SE
+// every 45 frames; removes them (clearLostWait) otherwise.
 void em2fTentacleMove(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);

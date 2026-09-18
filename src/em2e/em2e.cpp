@@ -49,24 +49,31 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->r_no_3 = r3;
 }
 
+// Module entry (SN loader): registers Em2eInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     EmInitFunc = Em2eInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2e class in the manager's work.
 void Em2eInit(cEm* em)
 {
     new (em) cEm2e();
 }
 
+// Per-frame damage check (cEm2e::move): a floor spider is squashed (hp 0, splat effect, Die_Normal)
+// when the player comes within 400 units while the alert flag Status_flg[1] bit31 is set; any weapon
+// hit kills it (the wall variant with its own effect).
 void em2eDmCk(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -121,6 +128,8 @@ static Em2eFunc Em2e_R3_move_tbl[1] = {
     em2e_R1_Die_Normal,
 };
 
+// Per-frame update: damage check, the R0 table (Init / Move / Damage / Die / Scenario), then the
+// collision and, for a floor spider, the scenario check.
 void cEm2e::move()
 {
     Em2eWork* w = EM2E_WK(this);
@@ -140,6 +149,9 @@ void cEm2e::move()
     }
 }
 
+// R0 == 0: creation. Builds the model of type 0 / 1 (ARC 4 + 5 / 6), lock-on off, no Ashley help,
+// hp 1, effect data, a small light, collision and hit box; set 0 starts Wait on the floor, other
+// sets snap the spider onto the wall behind it (scenario probe -> pos / nrm) and start W_Wait (3).
 static void em2e_R0_Init(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -223,11 +235,13 @@ static void em2e_R0_Init(cEm2e* em)
     em2e_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em2e_R1_move_tbl: Wait, Walk, Turn, W_Wait, W_Walk, W_Turn).
 static void em2e_R0_Move(cEm2e* em)
 {
     Em2e_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 Wait: sits 60..150 frames, then Walk (1) or Turn (2) at random; rebuilds the matrix.
 static void em2e_R1_Wait(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -253,6 +267,8 @@ static void em2e_R1_Wait(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R1 == 1 Walk: crawls forward 10 units per frame for 30..90 frames with the leg swing
+// (em2eFootMove), then Wait or Turn.
 static void em2e_R1_Walk(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -287,6 +303,7 @@ static void em2e_R1_Walk(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R1 == 2 Turn: turns PI/64 per frame (turnDir side) for 15..60 frames, then Wait or Walk.
 static void em2e_R1_Turn(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -319,6 +336,8 @@ static void em2e_R1_Turn(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R1 == 3 W_Wait: the wall spider (flag bit1) sits 60..150 frames on its surface (em2eSetWallMatrix),
+// then W_Turn (5).
 static void em2e_R1_W_Wait(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -341,6 +360,7 @@ static void em2e_R1_W_Wait(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R1 == 4 W_Walk: crawls 15 frames along the wall following the surface normal, then W_Wait or W_Turn.
 static void em2e_R1_W_Walk(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -374,6 +394,7 @@ static void em2e_R1_W_Walk(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R1 == 5 W_Turn: turns 15 frames about the surface normal (direction from the list slot), then W_Walk (4).
 static void em2e_R1_W_Turn(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -404,16 +425,19 @@ static void em2e_R1_W_Turn(cEm2e* em)
     em->partsWorldCalc();
 }
 
+// R0 == 2: the spider has no damage reaction; runs the die table.
 static void em2e_R0_Damage(cEm2e* em)
 {
     Em2e_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 == 3: death, runs Em2e_R3_move_tbl (Die_Normal).
 static void em2e_R0_Die(cEm2e* em)
 {
     Em2e_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: the squashed spider: collision off and invisible, nothing more.
 static void em2e_R1_Die_Normal(cEm2e* em)
 {
     if (em->r_no_2 == 0) {
@@ -423,6 +447,7 @@ static void em2e_R1_Die_Normal(cEm2e* em)
     }
 }
 
+// Swings the leg parts 2 / 3 back and forth (footAng +-PI/16, PI/64 per frame, flag bit0 = direction).
 void em2eFootMove(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);
@@ -446,6 +471,8 @@ void em2eFootMove(cEm2e* em)
     }
 }
 
+// Wall mode: re-finds the surface under the spider (probe along nrm), snaps to it and rotates the
+// model matrix so its up axis matches the surface normal.
 void em2eSetWallMatrix(cEm2e* em)
 {
     Em2eWork* w = EM2E_WK(em);

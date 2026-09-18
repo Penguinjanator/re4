@@ -64,25 +64,32 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->r_no_3 = r3;
 }
 
+// Module entry (SN loader): registers Em18Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em18 prolog Ok\n");
     EmInitFunc = Em18Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm18 class in the manager's work.
 void Em18Init(cEm* em)
 {
     new (em) cEm18();
 }
 
+// Per-frame damage check (cEm18::move, r_no_0 != 0): an explosion / fire damage volume (kind 1 / 7) or
+// any weapon hit except the mine (0xE), 0x14, 0x16 and the flash grenade (0x17) kills the merchant at
+// once (hp 0, blood, death SE 4, EmSetDie, Die_Normal); the knife sets dmType 0x11.
 void em18DmCk(cEm18* em)
 {
     u8 wep;
@@ -125,6 +132,8 @@ void em18DmCk(cEm18* em)
     EmRoutineSet(em, 3, 0, 0, 0);
 }
 
+// Blood effect of the killing hit (EmDmBloodSet2 kind 0x15): the big splash for a near shotgun hit,
+// explosives, magnum and rifles; none for the hand weapons.
 void em18BloodSet(cEm18* em)
 {
     EmHitInfo* part = em->dmPart;
@@ -199,6 +208,8 @@ static u16 em18_flip_tbl[80] = {
     0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
 };
 
+// Per-frame update: damage check, clears the per-frame Be_flg bits, the R0 routine table (Init / Move /
+// Damage / Die), then the neck tracking, collision and scenario check and the robe cloth (Em18ClothMove).
 void cEm18::move()
 {
     Em18Work* w = EM18_WK(this);
@@ -220,6 +231,9 @@ void cEm18::move()
     Em18ClothMove(this, &w->Cloth);
 }
 
+// R0 == 0: creation. Builds the model (body ARC 5/6, the robe ARC 0xE and the extra part ARC 7, hands,
+// hidden coat / goods parts), light, collision, hit boxes (head 5 + hit[0..8]), loads the effect data,
+// sets up the cloth and starts Wait; the merchant is not "active" (Ashley never runs from him).
 static void em18_R0_Init(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -290,11 +304,14 @@ static void em18_R0_Init(cEm18* em)
     em18_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em18_R1_move_tbl: Wait, Trade).
 static void em18_R0_Move(cEm18* em)
 {
     Em18_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 Wait: the idle motion ARC 0x14 with the neck following the player (Be_flg bit4) and the
+// trade action button offered (em18ActEvtSetTrade).
 static void em18_R1_Wait(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -311,6 +328,9 @@ static void em18_R1_Wait(cEm18* em)
     em18ActEvtSetTrade(em);
 }
 
+// R1 == 1 Trade: opens the coat (motion 0x15, greeting voice 9, cloth shown at frame 36, goods at 41)
+// turning to the player, waits for the shop sub screen (SubScreenOpen SS_OPEN_SHOP) to close, closes
+// the coat again (0x17, farewell voice 7) and returns to Wait; damage is held meanwhile.
 static void em18_R1_Trade(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -361,6 +381,8 @@ static void em18_R1_Trade(cEm18* em)
     }
 }
 
+// Offers the "trade" action button when the alive merchant is in front of the player inside the talk
+// box (type 1 = the far-standing variant uses a 1000..2500 box beyond 1500 units).
 void em18ActEvtSetTrade(cEm18* em)
 {
     Mtx inv;
@@ -407,6 +429,8 @@ void em18ActEvtSetTrade(cEm18* em)
     ActBtn.set(0, 2, (int) em18TradeAction, (int) em, 0, 1, 0, 0);
 }
 
+// Action button callback: the first time starts the Trade routine (Be_flg bit5) with the player's
+// damage held 30 frames; afterwards (and always for type 1) opens the shop sub screen directly.
 static void em18TradeAction(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -424,6 +448,7 @@ static void em18TradeAction(cEm18* em)
     }
 }
 
+// R0 == 2: damage (Be_flg bit3), runs Em18_R2_move_tbl (Dm_Normal).
 static void em18_R0_Damage(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -432,6 +457,8 @@ static void em18_R0_Damage(cEm18* em)
     Em18_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Normal: plays the idle motion once with the neck tracking on, back to Wait; the
+// merchant has no real flinch (every hit kills him).
 static void em18_R1_Dm_Normal(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -449,6 +476,7 @@ static void em18_R1_Dm_Normal(cEm18* em)
     }
 }
 
+// R0 == 3: death (Be_flg bit3), runs Em18_R3_move_tbl (Die_Normal).
 static void em18_R0_Die(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -457,6 +485,8 @@ static void em18_R0_Die(cEm18* em)
     Em18_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: the death motion ARC 0x18 with the death voice 8 and the body-fall SEs at
+// frames 35 / 66, then inactive with the collision off; the corpse stays.
 static void em18_R1_Die_Normal(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -487,6 +517,8 @@ static void em18_R1_Die_Normal(cEm18* em)
     }
 }
 
+// Neck tracking: while Be_flg bit4 is set turns the head part 3 towards the player within 60 deg
+// (neckAng smoothed 10% per frame), else eases back to the motion.
 void em18NeckMove(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
@@ -514,6 +546,7 @@ void em18NeckMove(cEm18* em)
     ((cParts*) p)->addRot.z = 0.0f;
 }
 
+// Swaps the coat model (pCloth): `on` 1 the open coat ARC 0xB, 0 the closed coat ARC 0xC.
 void em18ClothPartsSet(cEm18* em, int on)
 {
     Em18Work* w = EM18_WK(em);
@@ -542,6 +575,7 @@ void em18ClothPartsSet(cEm18* em, int on)
     }
 }
 
+// Shows (1) / hides (0) the goods model ARC 0xD hanging inside the coat (pGoods; created on first use).
 void em18GoodsPartsSet(cEm18* em, int on)
 {
     Em18Work* w = EM18_WK(em);
@@ -561,6 +595,7 @@ void em18GoodsPartsSet(cEm18* em, int on)
     }
 }
 
+// Creates / swaps the two hand models (ARC 0x12 / 0x13) into pRHand / pLHand.
 void em18HandSet(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);

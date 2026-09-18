@@ -18,9 +18,9 @@ class cCtrl;
 // work-relative offsets; the comment gives the cEm offset.
 struct Em2cWork {
     u32 flags;            // 0x000 (0x3E0)  bit0: route found, bit3: damage / die routine, bit5: on the wall / ceiling, bit6: in the air,
-                          //                bit8: ground routine, bit9: player found, bit10: motion event, bit11: hidden (tail form), bit12: falling,
-                          //                bit13: attack count over 450, bit15: returning, bit16: attack, bit18: no side attacks, bit20: guard,
-                          //                bit21: frozen, bit22: no death, bit23: not yet in the room
+                          //                bit8: ground routine, bit9: player found, bit10: motion event, bit11: frozen (em2cSetFreeze, the F_ routines), bit12: falling,
+                          //                bit13: attack count over 450, bit15: returning, bit16: attack, bit18: no side attacks, bit20: no damage (hidden / Reset_Wait),
+                          //                bit21: hidden above the player (HideWait / HideAtk / C_Wait), bit22: no death, bit23: not yet in the room
     int timer;            // 0x004 (0x3E4)
     int timer8;           // 0x008 (0x3E8)
     int walkMode;         // 0x00C (0x3EC)  attack: frames before the action button shows

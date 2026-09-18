@@ -1,6 +1,8 @@
-// em28 module (D:/Bio4/Prog/em28.cpp): the crow. Waits, walks and takes off (dash / jump routines) when
-// the player comes near or the bell rings (em28EscapeCk), drops a random item from its wait routine,
-// and dies on the ground (R1_Die_Normal) or falling out of the air (R1_Die_Air).
+// em28 module (D:/Bio4/Prog/em28.cpp): the chicken (cEmMgr::idName 0x28 "CHICKEN"; the crow is em23).
+// Waits, pecks and lays a random egg item (ids 8 / 9 / 0xA) from its wait routine, walks, and flutters
+// off (dash / jump routines) when the player comes near, shoots, or the bell rings (em28EscapeCk); dies
+// on the ground (R1_Die_Normal) or falling out of the air (R1_Die_Air). Routines: R0 Init / Move /
+// Damage / Die, R1 Wait / Walk / Dash / Jump, R2 Dm_Small, R3 Die_Normal / Die_Air.
 
 #include "atari.h"
 #include "light.h"
@@ -60,25 +62,33 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
+// Module entry (SN loader): registers Em28Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em28 prolog Ok\n");
     EmInitFunc = Em28Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm28 class in the manager's work.
 void Em28Init(cEm* em)
 {
     new (em) cEm28();
 }
 
+// Per-frame damage check (cEm28::move): an explosion / fire volume kills the chicken (flag bit6,
+// Die_Air when airborne else Die_Normal). A weapon hit: 0x16 / flash 0x17 / 0x2A only startle it
+// (Dash / Jump), the mine (0xE) leaves it at 1 hp, anything else kills it with the blood effect
+// by weapon kind (big for explosives / magnum / rifles / near shotgun).
 void em28DmCk(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -222,6 +232,8 @@ static u16 em28_flip_tbl[36] = {
 };
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update: damage check, clears the per-frame flags, the R0 table (Init / Move / Damage /
+// Die), then collision and the scenario check (checkAir while airborne, flag bit4).
 void cEm28::move()
 {
     Em28Work* w = EM28_WK(this);
@@ -255,6 +267,8 @@ void cEm28::move()
     }
 }
 
+// R0 == 0: creation. Builds the model of type 0 / 1, IK / lock-on off, no Ashley help, collision and
+// hit box, the room's ctrl11 / ctrl12, and starts Wait.
 static void em28_R0_Init(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -308,12 +322,13 @@ static void em28_R0_Init(cEm28* em)
     em28_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em28_R1_move_tbl: Wait, Walk, Dash, Jump).
 static void em28_R0_Move(cEm28* em)
 {
     Em28_R1_move_tbl[em->r_no_1](em);
 }
 
-// Take off when the floor under the crow drops away (its perch broke).
+// Take off when the floor under the chicken drops away (its perch broke).
 static inline void em28FloorCk(cEm28* em)
 {
     if ((pG->Frame_cnt & 3) == (em->emset_no & 3)) {
@@ -323,7 +338,7 @@ static inline void em28FloorCk(cEm28* em)
     }
 }
 
-// Remember where the bell (this crow) was disturbed.
+// Remember where the bell (this chicken) was disturbed.
 static inline void em28BellSet(cEm28* em)
 {
     if (!(pG->Status_flg[1] & 0x20000000)) {
@@ -333,6 +348,9 @@ static inline void em28BellSet(cEm28* em)
     }
 }
 
+// R1 == 0 Wait: idles and pecks (random idle variants); once (flag bit5) it may lay an egg: a
+// cEmWep egg model registered as a pickup item (SceAtCreateItemAt id 8 white / 9 brown / 0xA gold,
+// 1 in 8 attempts); then Walk (1); flees (em28EscapeCk) or takes off when its perch breaks.
 static void em28_R1_Wait(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -438,6 +456,8 @@ static void em28_R1_Wait(cEm28* em)
     em28EscapeCk(em);
 }
 
+// R1 == 1 Walk: struts (two walk variants) 3..7 steps turning slowly to targetAng, then back to Wait;
+// escape checks meanwhile.
 static void em28_R1_Walk(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -471,6 +491,8 @@ static void em28_R1_Walk(cEm28* em)
     em28EscapeCk(em);
 }
 
+// R1 == 2 Dash: runs away flapping (mirrored by r_no_3) for 3..5 loops with random turns every
+// turnTimer frames, then Wait (0).
 static void em28_R1_Dash(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -520,6 +542,8 @@ static void em28_R1_Dash(cEm28* em)
     em28EscapeCk(em);
 }
 
+// R1 == 3 Jump: flutters up into the air (spd, flag bit4 airborne) heading targetAng, glides 4..7
+// loops, lands on the floor found below and goes to Dash (2).
 static void em28_R1_Jump(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -599,6 +623,7 @@ static void em28_R1_Jump(cEm28* em)
     em28EscapeCk(em);
 }
 
+// R0 == 2: damage (flag bit3), runs Em28_R2_move_tbl (Dm_Small).
 static void em28_R0_Damage(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -607,6 +632,7 @@ static void em28_R0_Damage(cEm28* em)
     Em28_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Small: the startled flap, then Wait (0).
 static void em28_R1_Dm_Small(cEm28* em)
 {
     switch (em->r_no_2) {
@@ -621,6 +647,7 @@ static void em28_R1_Dm_Small(cEm28* em)
     }
 }
 
+// R0 == 3: death (flag bit3), runs Em28_R3_move_tbl (Die_Normal, Die_Air).
 static void em28_R0_Die(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -644,6 +671,8 @@ static inline void em28DieFade(cEm28* em, Em28Work* w)
     }
 }
 
+// R0 3 / R1 == 0 Die_Normal: dies on the ground (one of three death motions, one turned to the hit
+// direction), drops the item (ITEMSET) and fades the parts out (em28DieFade).
 static void em28_R1_Die_Normal(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -684,6 +713,8 @@ static void em28_R1_Die_Normal(cEm28* em)
     }
 }
 
+// R0 3 / R1 == 1 Die_Air: killed in the air: tumbles down (spd, flag bit4) to the floor, then the
+// item drop and the fade.
 static void em28_R1_Die_Air(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);
@@ -734,7 +765,7 @@ static void em28_R1_Die_Air(cEm28* em)
     }
 }
 
-// Escape when the crow stands too close to the player, the bell rings or the player shoots.
+// Escape when the chicken stands too close to the player, the bell rings or the player shoots.
 int em28EscapeCk(cEm28* em)
 {
     Em28Work* w = EM28_WK(em);

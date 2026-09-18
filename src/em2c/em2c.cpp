@@ -307,20 +307,24 @@ static EmAtkInfo em2c_atk_info[8] = {
     { 500.0f, 8, 650, 0, 10, 0 },
 };
 
+// Module entry (SN loader): registers Em2cInit as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em2c prolog Ok\n");
     EmInitFunc = Em2cInit;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm2c class in the manager's work.
 void Em2cInit(cEm* em)
 {
     new (em) cEm2c();
@@ -814,6 +818,9 @@ void em2cDmCk(cEm2c* em)
     }
 }
 
+// Per-frame damage check of the tail (type 1): a weapon hit rings the bell alarm, takes the damage
+// off the tail's hp (the boss body reads it) with the blood effect by weapon kind; the tail itself
+// has no reaction routines.
 void em2cTailDmCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -942,6 +949,10 @@ void em2cTailDmCk(cEm2c* em)
     SndCall(8, 6, &em->pos, em->id, 0, em);
 }
 
+// Per-frame update: the damage check of the body (em2cDmCk) or the tail (em2cTailDmCk), clears the
+// per-frame flags, timers (Dash_wait, guardCnt), the water test, the route check, the R0 table, then
+// the collision size and scenario check by mode (checkAir on walls / ceilings / in the air), the
+// frozen-ice texture render, cloth, neck and breath SEs.
 void cEm2c::move()
 {
     Em2cWork* w = EM2C_WK(this);
@@ -1047,6 +1058,9 @@ void cEm2c::move()
     em2cBreathSeStopCk(this);
 }
 
+// Start routine from the type and cEm::set: the body (type 0): set 0 Walk (1), 1 C_Wait (0x21, hangs
+// under the ceiling), 2 Reset_Wait (0x23, waits out of sight until the room releases it); the tail
+// (type 1): set 0 T_Wait (0x24), 1 T_Hide (0x25).
 void em2cInitRtnSet(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1114,6 +1128,9 @@ void em2cInitRtnSet(cEm2c* em)
     }
 }
 
+// R0 == 0: creation. Builds the body (type 0) or tail (type 1) model, the room's ctrl12 (and the
+// texture-render work for the ice, em2cTexrenderInit), collision and hit boxes, the cloth
+// (em2cClothSet), effect data, and the start routine (em2cInitRtnSet).
 static void em2c_R0_Init(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1197,12 +1214,14 @@ static void em2c_R0_Init(cEm2c* em)
     OSReport("em2c free size = 0x%x\n", 0x6C0);
 }
 
+// R0 == 1: runs the branch check and the move handler of R1 (Em2c_R1_move_tbl pairs).
 static void em2c_R0_Move(cEm2c* em)
 {
     Em2c_R1_move_tbl[em->r_no_1 * 2](em);
     Em2c_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the routines that have none.
 static void em2c_R1_br_Dummy(cEm2c* em)
 {
 }
@@ -1210,6 +1229,9 @@ static void em2c_R1_br_Dummy(cEm2c* em)
 // ---------------------------------------------------------------------------------------------
 // Routine 1: floor
 
+// R1 == 0x00 Wait: idle on the floor (flags 0x180 ground, 0x40000 breath); when the player is found
+// turns (Turn180 3), walks (1) or dashes (2), or hides above him (ToHide 0x12, room 221 when he looks
+// away), or side-steps (5).
 static void em2c_R1_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1280,6 +1302,10 @@ static void em2c_R1_Wait(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x01 Walk: walks towards the player along the route; picks the attacks by distance / angle
+// (Atk 9, JumpAtk 0xA, BackKnuckle 0xB, TailAtk 0xC, AtkSign 8, Threat 7 when he is out of ammo),
+// SideStep / BackJump (5 / 6) when aimed at, Dash (2) when far, Turn180 (3) when he is behind, ToHide
+// (0x12); em2cNextWalkSet picks the follow-up.
 static void em2c_R1_Walk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1466,6 +1492,8 @@ static inline void em2cNextWalkSet(cEm2c* em, Em2cWork* w, int r)
     }
 }
 
+// R1 == 0x02 Dash: the charge along the route (Dash_wait afterwards), the same attack choice as Walk
+// when in reach, SideStep when aimed at, else Wait / BackJump.
 static void em2c_R1_Dash(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1605,6 +1633,7 @@ static void em2c_R1_Dash(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x03 Turn180: turns around towards the target, then Dash (2) or Walk (1).
 static void em2c_R1_Turn180(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1674,6 +1703,8 @@ static inline void em2cSideStepMotSet(cEm2c* em, Em2cWork* w, int side)
     EstSet((int) em, -1, 0, 0, 0x24, 9, 0, w->espKind2, (u32) em, 0);
 }
 
+// R1 == 0x04 Ambush: waits at an em2c_ambush_pos (em2cAmbushCk) until the player comes within 10000,
+// then springs out (motion 0xF mirrored by side, effect / roar) and walks.
 static void em2c_R1_Ambush(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1706,6 +1737,7 @@ static void em2c_R1_Ambush(cEm2c* em)
     }
 }
 
+// R1 == 0x05 SideStep: dodges to the free side (wall probes), then the attack choice / Dash / Walk.
 static void em2c_R1_SideStep(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1797,6 +1829,8 @@ static void em2c_R1_SideStep(cEm2c* em)
     }
 }
 
+// R1 == 0x06 BackJump: hops back (flag 0x80 jumping), then ToHide (0x12) in room 221 when the player
+// looks away, Threat (7) when he is out of ammo, else Walk.
 static void em2c_R1_BackJump(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1838,6 +1872,8 @@ static void em2c_R1_BackJump(cEm2c* em)
     }
 }
 
+// R1 == 0x07 Threat: the roar at the player (flags 0x50000), then an attack when he is in reach,
+// Dash / Turn180 / Walk.
 static void em2c_R1_Threat(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1895,6 +1931,8 @@ static void em2c_R1_Threat(cEm2c* em)
     }
 }
 
+// R1 == 0x08 AtkSign: the wind-up before an attack; on its key frame (rank > 3, half the time)
+// attacks directly (Atk / BackKnuckle / TailAtk / JumpAtk), else Dash / Walk.
 static void em2c_R1_AtkSign(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -1976,6 +2014,9 @@ static void em2c_R1_AtkSign(cEm2c* em)
     }
 }
 
+// R1 == 0x09 Atk: the double claw slash (random side, flags 0x80 | 0x10000): em2cClawAtkCk on the
+// hit frames; the player can escape / duck with the action button (em2cEscapeAction / em2cSitAction);
+// then BackJump (6), ToHide (0x12) or Wait.
 static void em2c_R1_Atk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2079,6 +2120,8 @@ static inline void em2cClawAtkCk(cEm2c* em, int no)
     }
 }
 
+// R1 == 0x0A JumpAtk: the leaping claw attack: em2cClawAtkCk on landing; the duck action button
+// (em2cSitAction) lets the player avoid it; then the walk.
 static void em2c_R1_JumpAtk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2139,6 +2182,8 @@ static void em2c_R1_JumpAtk(cEm2c* em)
     }
 }
 
+// R1 == 0x0B BackKnuckle: the spinning back-hand swipe (random side), em2cClawAtkCk on the hit
+// frames, then the walk.
 static void em2c_R1_BackKnuckle(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2188,6 +2233,8 @@ static void em2c_R1_BackKnuckle(cEm2c* em)
     }
 }
 
+// R1 == 0x0C TailAtk: the tail sweep (flags 0x80 | 0x30000): em2cAtkCk kind 5 along the seventeen
+// tail parts 0x3C..0x4C (mode = already hit); the escape action button lets the player roll away.
 static void em2c_R1_TailAtk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2259,6 +2306,7 @@ static void em2c_R1_TailAtk(cEm2c* em)
     }
 }
 
+// Player damage routine of the boss's killing blow: the head comes off (em2cPlHeadLost), routine held.
 static void plem2c_CriticalHit(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -2274,6 +2322,8 @@ static void plem2c_CriticalHit(cPlayer* pl)
     }
 }
 
+// R1 == 0x0D SwayBack: sways back after a hit / blocked attack (one of three motions, flag 0x80000),
+// then attacks when the player is in reach or Dash / Walk.
 static void em2c_R1_SwayBack(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2344,6 +2394,7 @@ static void em2c_R1_SwayBack(cEm2c* em)
     }
 }
 
+// R1 == 0x0E WakeupWait: lies on its back 30..60 frames (flag 0x400), then Wakeup (0xF).
 static void em2c_R1_WakeupWait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2372,6 +2423,8 @@ static void em2c_R1_WakeupWait(cEm2c* em)
     }
 }
 
+// R1 == 0x0F Wakeup: rights itself (flags 0x8100); a frozen boss whose ice ran out (guardCnt 0)
+// breaks free (F_Clear 0x1A), else Turn180 / SideStep / Walk.
 static void em2c_R1_Wakeup(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2429,6 +2482,8 @@ static void em2c_R1_Wakeup(cEm2c* em)
     }
 }
 
+// R1 == 0x10 DownJump: leaps up onto a wall (em2cDownJumpCk), snaps onto it (flags 0x120) and
+// continues as W_Turn180 (0x1F) / W_Walk (0x1D).
 static void em2c_R1_DownJump(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2491,6 +2546,8 @@ static void em2c_R1_DownJump(cEm2c* em)
     }
 }
 
+// R1 == 0x11 ToCeiling: leaps up to the ceiling (em2cToCeilingCk), snaps onto it and continues as a
+// wall walker.
 static void em2c_R1_ToCeiling(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2553,6 +2610,8 @@ static void em2c_R1_ToCeiling(cEm2c* em)
     }
 }
 
+// R1 == 0x12 ToHide: jumps up out of the player's view (flags 0x8100, airborne) and lands on the
+// ceiling above him, then HideWait (0x13).
 static void em2c_R1_ToHide(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2618,6 +2677,9 @@ static void em2c_R1_ToHide(cEm2c* em)
     }
 }
 
+// R1 == 0x13 HideWait: lurks unseen 4000 above the player, following him (GetPlPos, flags 0x8000 |
+// 0x220000 = hidden, no damage) for 60..120 frames (longer near a door, em2cDoorCk), then the tail
+// attack from above (HideAtk 0x14, half the time when the tail is alive) or drops (HideFall 0x15).
 static void em2c_R1_HideWait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2671,6 +2733,9 @@ static void em2c_R1_HideWait(cEm2c* em)
     }
 }
 
+// R1 == 0x14 HideAtk: the tail strikes down from hiding (mode 1..3 = the strike variant, the tail
+// object pTail animated), effects 1 / 6; the player can dodge with the action button
+// (em2cBackjumpAction2 / em2cSitAction); then HideFall (0x15).
 static void em2c_R1_HideAtk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2776,6 +2841,8 @@ static void em2c_R1_HideAtk(cEm2c* em)
     }
 }
 
+// R1 == 0x15 HideFall: drops out of hiding onto the floor (flags 0x8000 | 0x500000, falling 0x1000),
+// lands with the landing effect and continues with Turn180 / Dash / Walk.
 static void em2c_R1_HideFall(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2890,6 +2957,7 @@ static void em2c_R1_HideFall(cEm2c* em)
     }
 }
 
+// R1 == 0x16 JumpDown: jumps off an edge (em2cJumpDownCk), lands below, then Turn180 / Dash-walk.
 static void em2c_R1_JumpDown(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -2951,6 +3019,7 @@ static void em2c_R1_JumpDown(cEm2c* em)
     }
 }
 
+// R1 == 0x1B WallOver: jumps over a low wall (em2cWallOverCk), then Turn180 / W_ or floor walk.
 static void em2c_R1_WallOver(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3002,6 +3071,8 @@ static void em2c_R1_WallOver(cEm2c* em)
 // ---------------------------------------------------------------------------------------------
 // Routine 1: frozen (F_*), wall (W_*)
 
+// R1 == 0x17 F_Wait: the frozen boss (flag 0x800, em2cSetFreeze) stands stiff (motion 0x2B) until
+// atkWait runs out, then F_Walk (0x18) or Turn180 (3); dies to any fall.
 static void em2c_R1_F_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3038,6 +3109,9 @@ static void em2c_R1_F_Wait(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x18 F_Walk: the frozen boss shuffles towards the player (blend motions 0x2C / 0x32 / 0x33
+// by turn angle), attacks with F_Atk (0x19) when he is within 2000 in front, and breaks the ice
+// (F_Clear 0x1A) when guardCnt reaches 0.
 static void em2c_R1_F_Walk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3114,6 +3188,8 @@ static void em2c_R1_F_Walk(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x19 F_Atk: the frozen boss's slow slash (mode picks the motion), em2cAtkCk on the hit
+// frames, then F_Wait (0x17).
 static void em2c_R1_F_Atk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3169,6 +3245,8 @@ static void em2c_R1_F_Atk(cEm2c* em)
     }
 }
 
+// R1 == 0x1A F_Clear: shatters the ice (flags 0x8080, the ice texture blend cleared), then Turn180 /
+// Dash / Walk at full speed.
 static void em2c_R1_F_Clear(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3204,6 +3282,7 @@ static void em2c_R1_F_Clear(cEm2c* em)
     }
 }
 
+// R1 == 0x1C W_Wait: idle on the wall / ceiling (flags 0x120), then W_Walk (0x1D) or W_Turn180 (0x1F).
 static void em2c_R1_W_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3231,6 +3310,9 @@ static void em2c_R1_W_Wait(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x1D W_Walk: walks the wall / ceiling (em2cSetWallMatrix2) towards the player; W_Atk (0x1E)
+// in reach, the drop attack (W_Fall 0x20), W_Turn180 when he is behind, back to the floor attack (9)
+// or BackJump (6) when low.
 static void em2c_R1_W_Walk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3343,6 +3425,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x1E W_Atk: the slash from the wall (em2cAtkCk), then W_Fall (0x20), W_Wait or W_Walk.
 static void em2c_R1_W_Atk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3398,6 +3481,7 @@ static void em2c_R1_W_Atk(cEm2c* em)
     }
 }
 
+// R1 == 0x1F W_Turn180: turns around on the wall, then W_Wait (0x1C).
 static void em2c_R1_W_Turn180(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3425,6 +3509,8 @@ static void em2c_R1_W_Turn180(cEm2c* em)
     em2cBreathSe(em);
 }
 
+// R1 == 0x20 W_Fall: drops off the wall / ceiling (flags 0x140, falling 0x1000) onto the floor
+// (em2cSetFallMatrix, landing effect), then Turn180 / Walk.
 static void em2c_R1_W_Fall(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3553,6 +3639,9 @@ static void em2c_R1_W_Fall(cEm2c* em)
 // ---------------------------------------------------------------------------------------------
 // Routine 1: ceiling (C_*), reset, tail (T_*)
 
+// R1 == 0x21 C_Wait: lurks under the ceiling above the player (flags 0x8000 | 0x120000, no damage)
+// following him; when he comes close the tail strikes (the player ducks / back-jumps with the action
+// button) or it drops (C_Fall 0x22).
 static void em2c_R1_C_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3705,6 +3794,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
     }
 }
 
+// R1 == 0x22 C_Fall: appears (visible) and drops from the ceiling onto the floor, then Turn180 / Dash
+// / Walk.
 static void em2c_R1_C_Fall(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3747,6 +3838,9 @@ static void em2c_R1_C_Fall(cEm2c* em)
     }
 }
 
+// R1 == 0x23 Reset_Wait: parked out of sight at y 4330 (hp 0, invisible, flags 0x8000 | 0x100000)
+// until the room's release flag (cEm::flag bit0), then full hp, drops in (falling 0x1000) and joins
+// the fight (Turn180 / Dash / Walk).
 static void em2c_R1_Reset_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3844,6 +3938,9 @@ static void em2c_R1_Reset_Wait(cEm2c* em)
     }
 }
 
+// R1 == 0x24 T_Wait: the tail (type 1) hovers 4000 above the player behind his back (motion 0x87)
+// waiting for the body's requests: cEm::flag bit1 sends it into T_Hide (0x25, list set 3), bit0 the
+// strike (whose dodge is the back-jump action button); em2cFloorTypeCk picks the strike variant.
 static void em2c_R1_T_Wait(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -3981,6 +4078,8 @@ static void em2c_R1_T_Wait(cEm2c* em)
     }
 }
 
+// R1 == 0x25 T_Hide: the tail hidden above the player (following him closely) until the body needs it
+// (HideAtk), then back to the floor routines.
 static void em2c_R1_T_Hide(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4068,12 +4167,14 @@ static inline int em2cDmEndSet(cEm2c* em, Em2cWork* w, int zero)
     return 1;
 }
 
+// R0 == 2: damage (flag bit3), runs Em2c_R1_dm_tbl[r_no_1].
 static void em2c_R0_Damage(cEm2c* em)
 {
     EM2C_WK(em)->flags |= 8;
     Em2c_R1_dm_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Normal: the floor flinch (one of three by hit side), then SideStep (5) or the walk.
 static void em2c_R1_Dm_Normal(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4129,6 +4230,7 @@ static void em2c_R1_Dm_Normal(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_Down: knocked down (flag 0x8000), then Wakeup (0xF).
 static void em2c_R1_Dm_Down(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4203,6 +4305,8 @@ static void em2c_R1_Dm_Down(cEm2c* em)
         }                                                                                      \
     }
 
+// R0 2 / R1 == 2 Dm_Jump: shot out of a jump: falls to the floor on its back (flag 0x4000), then
+// WakeupWait (0xE) or Die_Down (R3 3).
 static void em2c_R1_Dm_Jump(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4260,6 +4364,8 @@ static void em2c_R1_Dm_Jump(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 3 Dm_Wall: shot off the wall (after 1000+ damage): falls on its back, then WakeupWait
+// or Die_Down.
 static void em2c_R1_Dm_Wall(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4305,6 +4411,9 @@ static void em2c_R1_Dm_Wall(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 4 Dm_Guard: blocks the hit with the claws (motion 0x11, 30 frames, guard effect
+// cleared), then dodges when aimed at (SideStep / ToCeiling), attacks when the player is in reach, or
+// Turn180 / Dash / Walk.
 static void em2c_R1_Dm_Guard(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4391,6 +4500,8 @@ static void em2c_R1_Dm_Guard(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 5 Dm_Freeze: the liquid nitrogen freezes it on the floor (Room_flg[2] bit31 ->
+// em2cSetFreeze): the freeze motion, then F_Walk (0x18).
 static void em2c_R1_Dm_Freeze(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4426,6 +4537,8 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 6 Dm_C_Freeze: frozen while hidden above the player: becomes visible and drops on its
+// back, then WakeupWait (0xE) or Die_Down.
 static void em2c_R1_Dm_C_Freeze(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4474,6 +4587,8 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
     }
 }
 
+// Action button callback of the kick on the frozen boss: the player's kick routine (plemKick), both
+// damage-held, critical scored.
 static void em2cKickAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4491,6 +4606,8 @@ static void em2cKickAction(cEm2c* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player routine of the kick on the frozen boss (r_no_3 picks one of four kick motions), the foot sweep
+// (PlWepHitCheck3) shatters it.
 static void plemKick(cPlayer* pl)
 {
     Vec pos;
@@ -4554,6 +4671,8 @@ static void plemKick(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// R0 2 / R1 == 7 Dm_F_Normal: the frozen boss hit: the stiff flinch; when the ice is spent (guardCnt 0)
+// it breaks free (F_Clear 0x1A), else Turn180 / F_Walk.
 static void em2c_R1_Dm_F_Normal(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4609,6 +4728,8 @@ static void em2c_R1_Dm_F_Normal(cEm2c* em)
     }
 }
 
+// R0 2 / R1 == 8 Dm_F_Blow: the frozen boss kicked over (em2cKickAction): falls on its back (flag
+// 0x4000), then Die_Down when dead or WakeupWait.
 static void em2c_R1_Dm_F_Blow(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4658,12 +4779,14 @@ static inline void em2cDieEffDelete(cEm2c* em, Em2cWork* w)
     EffectEfmDelete(0, w->espKind, (int) em);
 }
 
+// R0 == 3: death (flag bit3), runs Em2c_R1_die_tbl[r_no_1].
 static void em2c_R0_Die(cEm2c* em)
 {
     EM2C_WK(em)->flags |= 8;
     Em2c_R1_die_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Lost: the corpse dissolves (em2cScaleCompress + invisible_factor), item drop, hidden.
 static void em2c_R1_Die_Lost(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4688,6 +4811,7 @@ static void em2c_R1_Die_Lost(cEm2c* em)
     }
 }
 
+// R0 3 / R1 == 1 Die_Normal: dies standing (death motion), then Die_Lost.
 static void em2c_R1_Die_Normal(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4709,6 +4833,7 @@ static void em2c_R1_Die_Normal(cEm2c* em)
     }
 }
 
+// R0 3 / R1 == 2 Die_Freeze: the frozen boss shatters (ice break effects), then Die_Lost.
 static void em2c_R1_Die_Freeze(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4746,6 +4871,7 @@ static void em2c_R1_Die_Freeze(cEm2c* em)
     }
 }
 
+// R0 3 / R1 == 3 Die_Down: dies on its back, then Die_Lost.
 static void em2c_R1_Die_Down(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4768,6 +4894,7 @@ static void em2c_R1_Die_Down(cEm2c* em)
     }
 }
 
+// R0 3 / R1 == 4 Die_Wall: dies on the wall: drops to the floor on its back, then Die_Down.
 static void em2c_R1_Die_Wall(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4808,6 +4935,8 @@ static void em2c_R1_Die_Wall(cEm2c* em)
 // ---------------------------------------------------------------------------------------------
 // Helpers
 
+// Per frame: the route point / angle to the player (routePos / routeAng), the direction to his head
+// (plDir), line of sight (flag bit0), plDist / homeDist and the target copies.
 void em2cRouteCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4855,6 +4984,7 @@ void em2cRouteCk(cEm2c* em)
     w->flags &= ~4;
 }
 
+// Damage of the weapon hit: GetWepDmVal (`near` for a muzzle within 6000), tripled on the frozen boss.
 int em2cSetDmVal(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4874,6 +5004,9 @@ int em2cSetDmVal(cEm2c* em)
     return dmg;
 }
 
+// Attack hit test at part `parts` with em2c_atk_info[no]: 0 / 1 the side slashes (plemDmSide, the
+// player spun by the hit), 2 / 3 the claws (head lost when they kill), 4 the critical (plem2c_CriticalHit
+// or knock-down), 5 / 6 the tail (plemDmTail); the partner is hurt too; once per attack (atkHit). 1 = hit.
 int em2cAtkCk(cEm2c* em, int no, int parts)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -4987,6 +5120,7 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
     }
     return 0;
 }
+// Squashes the parts vertically by Compress_y (Die_Lost sinks the corpse into the floor).
 void em2cScaleCompress(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5013,6 +5147,8 @@ void em2cScaleCompress(cEm2c* em)
     }
 }
 
+// Is the player aiming a gun at the boss (by weapon kind, with ammo, in front): the weapon's target is
+// this enemy or its root lies in the box in front of the weapon hand.
 int em2cLockCk(cEm2c* em)
 {
     Mtx inv;
@@ -5076,6 +5212,8 @@ int em2cLockCk(cEm2c* em)
     return 1;
 }
 
+// Wall walk step: probes the surface around the feet (four probes), blends wallNrm towards the found
+// normal by `rate`, snaps to the surface and rebuilds the matrix; 0 when the surface was lost.
 int em2cSetWallMatrix2(cEm2c* em, f32 rate)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5193,6 +5331,7 @@ int em2cSetWallMatrix2(cEm2c* em, f32 rate)
     return 0;
 }
 
+// While falling off a wall: eases wallNrm back to straight up so the boss lands feet first.
 void em2cSetFallMatrix(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5220,6 +5359,8 @@ void em2cSetFallMatrix(cEm2c* em)
     TransMatrix(em->mat, &em->pos);
 }
 
+// The player's head comes off: in the overseas versions hides the head model and spawns it as a cObj01
+// with the blood effect; the Japanese version only plays the blood / SE.
 void em2cPlHeadLost()
 {
     Vec ofs;
@@ -5258,6 +5399,7 @@ void em2cPlHeadLost()
     EstSet((int) obj, -1, 0, 0, 0x24, 0x30, 0, 0, (u32) obj, (void*) zero);
 }
 
+// Yaw from the boss to `pos`.
 f32 em2cGetPlDir(cEm2c* em, Vec* pos)
 {
     Mtx inv;
@@ -5268,6 +5410,7 @@ f32 em2cGetPlDir(cEm2c* em, Vec* pos)
     return atan2f(d.x, d.z);
 }
 
+// 1 when the wall under the wall-walker ends (no surface ahead / below): it must drop (W_Fall).
 int em2cWallFallCk(cEm2c* em)
 {
     Vec a;
@@ -5385,6 +5528,7 @@ void em2cDoorOpenCk(cEm2c* em)
     }
 }
 
+// Opens a closed door (cEmDoor) the boss walks into from its side (the plain open, setOpen).
 void em2cDoorOpenCk2(cEm2c* em)
 {
     Vec v;
@@ -5452,6 +5596,7 @@ static u8 em2c_cloth_down[20] = { 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41
 static f32 em2c_cloth_max[20] = { 0.3f, 0.4f, 0.53f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.0f, 1.0f,
                                   1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
+// Sets up the 20-link pendulum cloth of the back tendrils (parts 0x39..0x4C).
 void em2cClothSet(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5491,6 +5636,7 @@ void em2cClothSet(cEm2c* em)
     PenClothSet(em, (PenCloth*) &w->cloth, 100.0f);
 }
 
+// Per frame: the tendril cloth update (PenClothMove) with the hide bits of the parts handled.
 void em2cClothMove(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5515,6 +5661,7 @@ void em2cClothMove(cEm2c* em)
     em->be_flag &= ~0xE00000;
 }
 
+// Footstep SEs on the motion's step events (parts / floor material).
 void em2cFootSeMove(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5559,6 +5706,7 @@ void em2cFootSeMove(cEm2c* em)
     }
 }
 
+// Landing dust / splash at the root.
 void em2cSetdLandingEff(cEm2c* em)
 {
     em->getPartsPtr(0);
@@ -5566,6 +5714,7 @@ void em2cSetdLandingEff(cEm2c* em)
     EstSet((int) em, -1, 0, 0, 0x24, 0x2A, 0, 0, 0, 0);
 }
 
+// Dust / splash when the boss hits the floor on its back.
 void em2cSetDownEff(cEm2c* em)
 {
     cModel* p0 = em->getPartsPtr(0);
@@ -5573,6 +5722,7 @@ void em2cSetDownEff(cEm2c* em)
     SndCall(8, 5, &p0->world, em->id, 0, em);
 }
 
+// Dust / splash at the take-off of a jump.
 void em2cSetJumpEff(cEm2c* em)
 {
     cModel* p0 = em->getPartsPtr(0);
@@ -5580,6 +5730,7 @@ void em2cSetJumpEff(cEm2c* em)
     SndCall(8, 0xE, &p0->world, em->id, 0, em);
 }
 
+// The floor under the boss dropped away by more than 250 -> W_Fall (0x20). 1 = set.
 int em2cFallCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5594,6 +5745,7 @@ int em2cFallCk(cEm2c* em)
     return 1;
 }
 
+// Half the time, with a wall rising in front -> DownJump (0x10). 1 = set.
 int em2cDownJumpCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5612,6 +5764,7 @@ int em2cDownJumpCk(cEm2c* em)
     return 0;
 }
 
+// With a ceiling within reach above -> ToCeiling (0x11). 1 = set.
 int em2cToCeilingCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5638,6 +5791,7 @@ int em2cToCeilingCk(cEm2c* em)
     return 1;
 }
 
+// An edge ahead within 30 deg of the heading -> JumpDown (0x16). 1 = set.
 int em2cJumpDownCk(cEm2c* em)
 {
     Vec a;
@@ -5647,6 +5801,7 @@ int em2cJumpDownCk(cEm2c* em)
     return 0;
 }
 
+// A low wall ahead within 30 deg of the heading -> WallOver (0x1B). 1 = set.
 int em2cWallOverCk(cEm2c* em)
 {
     Vec a;
@@ -5752,6 +5907,7 @@ static void plemDmTail(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button callback "duck": the player's duck routine (plem2cSit), critical scored.
 static void em2cSitAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5761,6 +5917,7 @@ static void em2cSitAction(cEm2c* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player routine of the duck under the claw / tail (motion 0x73 of the boss archive), escape scored.
 static void plem2cSit(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -5779,6 +5936,7 @@ static void plem2cSit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button callback "dodge": the player's roll (plem2cEscape), critical scored.
 static void em2cEscapeAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5936,6 +6094,7 @@ void em2cEscapeCamMove(cEm2c* em)
     CamCtrl.m_pExtraCamera = (s32) &w->cam;
 }
 
+// Action button callback "back-jump" (C_Wait / T_Wait strikes): the player's back jump (plemBackjump).
 static void em2cBackjumpAction(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5945,6 +6104,7 @@ static void em2cBackjumpAction(cEm2c* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player routine of the back jump away from the tail strike, with its step SEs; escape scored.
 static void plemBackjump(cPlayer* pl)
 {
     int fe;
@@ -5983,6 +6143,7 @@ static void plemBackjump(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button callback "back-jump" of the HideAtk strike (plemBackjump2).
 static void em2cBackjumpAction2(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -5992,6 +6153,7 @@ static void em2cBackjumpAction2(cEm2c* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player routine of the second back-jump variant (HideAtk), escape scored.
 static void plemBackjump2(cPlayer* pl)
 {
     int fe;
@@ -6065,6 +6227,8 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
     }
 }
 
+// Two-motion blend with one blend motion: m0 on the main work, m1 on the blend work weighted by
+// |blendVal| (F_Walk steering).
 void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -6087,6 +6251,8 @@ void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
     }
 }
 
+// Takes the room's em2c texture-render work (Ctrl12GetTexRenderEm2c) for the ice overlay (pTex);
+// logs an error when none.
 void em2cTexrenderInit(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -6110,6 +6276,8 @@ void em2cTexrenderInit(cEm2c* em)
     EstSet(0, -1, 0, 0, 0x24, 0, w->pTex->mask | 0x801, 0, zero, (void*) zero);
 }
 
+// Freezes the boss (liquid nitrogen): flag 0x800, ice guard guardCnt 900, the room's frozen flag
+// (Room_flg[0] bit31), the ice texture blended over the model.
 void em2cSetFreeze(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -6125,6 +6293,7 @@ void em2cSetFreeze(cEm2c* em)
     }
 }
 
+// 1 when an EMI type 0x10 "no wall climbing" point lies within 1500 units.
 int em2cNoWallCk(cEm2c* em)
 {
     EmiData* emi = (EmiData*) pG->pEmi;
@@ -6145,6 +6314,7 @@ int em2cNoWallCk(cEm2c* em)
     return 0;
 }
 
+// Finds the alive tail enemy (id 0x2C type 1) into pTail.
 void em2cGetTail(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -6176,6 +6346,7 @@ void em2cGetTail(cEm2c* em)
     }
 }
 
+// 1 when a door / gate enemy (id 0x41 / 0x4E) stands within 2000 units (HideWait lurks longer there).
 int em2cDoorCk(cEm2c* em)
 {
     u32 i;
@@ -6213,6 +6384,7 @@ static Vec em2c_floor_pos[3] = {
 static f32 em2c_floor_rot[3] = { 1.17999995f, -1.47000003f, 2.45000005f };
 static f32 em2c_floor_w[3] = { 5000.0f, 5000.0f, 10000.0f };
 
+// Which of the three room floor areas (em2c_floor_pos / rot / w) the boss stands in: the index, or -1.
 int em2cFloorTypeCk(cEm2c* em)
 {
     Mtx m;
@@ -6238,6 +6410,8 @@ static Vec em2c_ambush_pos[2] = {
 };
 static f32 em2c_ambush_rot[2] = { -3.03999996f, 2.75f };
 
+// When the player looks away, teleports the boss to one of the two ambush points (em2c_ambush_pos)
+// and starts Ambush (4). 1 = set.
 int em2cAmbushCk(cEm2c* em)
 {
     Mtx m;
@@ -6302,6 +6476,7 @@ void em2cGetFallPos(cEm2c* em)
     }
 }
 
+// Breath / hiss SEs while walking, throttled by the work timer.
 void em2cBreathSe(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);

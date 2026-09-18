@@ -153,25 +153,34 @@ static inline void em29DmRoutineSetZ(cEm29* em, u32 kind, int z)
     }
 }
 
+// Module entry (SN loader): registers Em29Init as the DOL's enemy constructor (EmInitFunc).
 extern "C" void _prolog()
 {
     OSReport("em29 prolog Ok\n");
     EmInitFunc = Em29Init;
 }
 
+// Module exit: nothing to undo.
 extern "C" void _epilog()
 {
 }
 
+// SN loader stub for unresolved imports: nothing.
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc of the module: constructs the cEm29 class in the manager's work.
 void Em29Init(cEm* em)
 {
     new (em) cEm29();
 }
 
+// Per-frame damage check (cEm29::move): an explosion / fire volume kills the bat (flag bit7, the
+// room's EM29_DIE count, death squeak). A weapon hit does 999..1000 (= the whole hp) for most guns and
+// the knife, 9999 for explosives / magnum and a near shotgun hit (far: 999), the mine 0xE nothing; a
+// dead bat is counted and goes to Dm_Air / Dm_Ceiling / Dm_Land by where it was (R2 0..2), a
+// surviving one flinches the same way.
 void em29DmCk(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -350,6 +359,9 @@ static EmAtkInfo em29_atk_tbl[1] = {
     { 350.0f, 8, 10, 1, 10, 0 },
 };
 
+// Per-frame update: damage check, clears the per-frame flags, the route check, the R0 table (Init /
+// Move / Damage / Die), the airborne scenario check, the push-apart (em29ObaHitCk) and the "a bat is
+// alive" ctrl12 tick (EM29_LIVE) for the room.
 void cEm29::move()
 {
     Em29Work* w = EM29_WK(this);
@@ -382,6 +394,9 @@ void cEm29::move()
     }
 }
 
+// R0 == 0: creation. Builds the model (ARC 5/6), hp 1000, no Ashley help, collision and hit box,
+// initPos / initRot, the room's ctrl11 / ctrl12, and the start routine by cEm::set: 0 WaitLand (on the
+// ground), 1 WaitCeiling (hanging).
 static void em29_R0_Init(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -446,11 +461,14 @@ static void em29_R0_Init(cEm29* em)
     em29_R0_Move(em);
 }
 
+// R0 == 1: runs the R1 routine (Em29_R1_move_tbl: WaitLand, WaitCeiling, Walk, Turn, AtkDash, AtkRush).
 static void em29_R0_Move(cEm29* em)
 {
     Em29_R1_move_tbl[em->r_no_1](em);
 }
 
+// R1 == 0 WaitLand: sits on the ground (flag bit5) with the idle squeaks until the player comes near
+// or another bat takes off (em29FriendCk), then flies (Walk 2).
 static void em29_R1_WaitLand(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -495,6 +513,8 @@ static void em29_R1_WaitLand(cEm29* em)
     Ctrl11SetSe(w->pCtrl11, em, Rnd() % 30 + 60, se, 9);
 }
 
+// R1 == 1 WaitCeiling: hangs from the ceiling (flag bit6) squeaking until disturbed, then drops and
+// flies (Walk 2).
 static void em29_R1_WaitCeiling(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -533,6 +553,9 @@ static void em29_R1_WaitCeiling(cEm29* em)
     Ctrl11SetSe(w->pCtrl11, em, Rnd() % 30 + 60, se, 9);
 }
 
+// R1 == 2 Walk: flies towards the target point (em29SetSPeed, between 100 and 2500 above the floor)
+// for 10..20 loops, then Turn (3) or the attack (AtkDash 4 / AtkRush 5 when the rush lock allows);
+// once ten bats have died (EM29_DIE count) the rest fly off and vanish (Die_FadeOut, R3 2).
 static void em29_R1_Walk(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -578,6 +601,7 @@ static void em29_R1_Walk(cEm29* em)
     em29CallSe(em, 0);
 }
 
+// R1 == 3 Turn: banks around towards the target, then Walk (2); the ten-dead check applies here too.
 static void em29_R1_Turn(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -614,6 +638,8 @@ static void em29_R1_Turn(cEm29* em)
     em29CallSe(em, 0);
 }
 
+// R1 == 4 AtkDash: a single swoop at the player (ARC 0x12): on the bite frame em29AtkCk hurts him and
+// opens the swarm rush lock (ctrl12 EM29_RUSH 60 frames), then the pull-up (0x13) and Walk (2).
 static void em29_R1_AtkDash(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -659,6 +685,9 @@ static void em29_R1_AtkDash(cEm29* em)
     em29CallSe(em, 0);
 }
 
+// R1 == 5 AtkRush: the swarm rush (flag bit4) while the EM29_RUSH lock is open: flutters at the
+// player's head, each contact takes 20 hp with blood half the time and kills him at 0; ends into
+// Walk (2) when the lock closes or the player dies.
 static void em29_R1_AtkRush(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -744,6 +773,7 @@ static void em29_R1_AtkRush(cEm29* em)
     }
 }
 
+// R0 == 2: damage (flag bit3), runs Em29_R2_move_tbl (Dm_Air, Dm_Ceiling, Dm_Land, Dm_Recovery).
 static void em29_R0_Damage(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -752,6 +782,8 @@ static void em29_R0_Damage(cEm29* em)
     Em29_R2_move_tbl[em->r_no_1](em);
 }
 
+// R0 2 / R1 == 0 Dm_Air: shot in flight: tumbles down spinning (dmRot, grav) onto the floor found
+// below (mirrored by r_no_3), then Die_Normal when dead or Dm_Recovery (R2 3).
 static void em29_R1_Dm_Air(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -835,6 +867,7 @@ static void em29_R1_Dm_Air(cEm29* em)
     }
 }
 
+// R0 2 / R1 == 1 Dm_Ceiling: shot off the ceiling: drops spinning to the floor, then Die_Normal or Dm_Recovery.
 static void em29_R1_Dm_Ceiling(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -897,6 +930,7 @@ static void em29_R1_Dm_Ceiling(cEm29* em)
     }
 }
 
+// R0 2 / R1 == 2 Dm_Land: shot on the ground: the flinch, then Die_Normal when dead or Dm_Recovery.
 static void em29_R1_Dm_Land(cEm29* em)
 {
     switch (em->r_no_2) {
@@ -915,6 +949,7 @@ static void em29_R1_Dm_Land(cEm29* em)
     }
 }
 
+// R0 2 / R1 == 3 Dm_Recovery: the surviving bat gets up and returns to WaitLand (R1 0).
 static void em29_R1_Dm_Recovery(cEm29* em)
 {
     switch (em->r_no_2) {
@@ -929,6 +964,7 @@ static void em29_R1_Dm_Recovery(cEm29* em)
     }
 }
 
+// R0 == 3: death (flag bit3), runs Em29_R3_move_tbl (Die_Normal, Die_Reset, Die_FadeOut).
 static void em29_R0_Die(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -937,6 +973,8 @@ static void em29_R0_Die(cEm29* em)
     Em29_R3_move_tbl[em->r_no_1](em);
 }
 
+// R0 3 / R1 == 0 Die_Normal: the dead bat lies 30..60 frames and fades out; when the room still has
+// bats to spend (em29LastCk) it goes to Die_Reset to respawn.
 static void em29_R1_Die_Normal(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -965,6 +1003,8 @@ static void em29_R1_Die_Normal(cEm29* em)
     }
 }
 
+// R0 3 / R1 == 1 Die_Reset: respawns the bat at its creation position (initPos / initRot, hp 1000),
+// fades it in and sends it flying (Walk 2).
 static void em29_R1_Die_Reset(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -1004,6 +1044,8 @@ static void em29_R1_Die_Reset(cEm29* em)
     }
 }
 
+// R0 3 / R1 == 2 Die_FadeOut: the swarm is spent (ten dead): the bat flies off towards its start point
+// and fades out for good.
 static void em29_R1_Die_FadeOut(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -1036,6 +1078,9 @@ static void em29_R1_Die_FadeOut(cEm29* em)
     }
 }
 
+// Per frame: the route point / angle to the player (routePos, routeAng, flag bit0 = found) and the
+// target (targetPos / targetAng / targetDist): the player, the start point for a fading bat, or the
+// escape point while escTimer runs.
 void em29RouteCk(cEm29* em)
 {
     Em29Work* w = EM29_WK(em);
@@ -1086,6 +1131,8 @@ void em29RouteCk(cEm29* em)
     }
 }
 
+// Blends the speed spd towards tgtSpd by `rate`, moves the bat along its heading and keeps it between
+// 100 and 2500 above the floor.
 void em29SetSPeed(cEm29* em, f32 rate)
 {
     Em29Work* w = EM29_WK(em);
@@ -1108,6 +1155,8 @@ void em29SetSPeed(cEm29* em, f32 rate)
     }
 }
 
+// Pushes the bat out of other alive enemies and out of the player's collision radius so the swarm
+// does not overlap.
 void em29ObaHitCk(cEm29* em)
 {
     Vec d;
@@ -1179,6 +1228,7 @@ void em29ObaHitCk(cEm29* em)
     FSet(em->pos.z, pPL->pos.z + d.z);
 }
 
+// 1 when this is the last alive bat (id 0x29) in the room (Die_Normal then respawns it).
 int em29LastCk(cEm29* em)
 {
     u32 i;
@@ -1212,6 +1262,7 @@ int em29LastCk(cEm29* em)
     return 1;
 }
 
+// 1 when another bat is already alive / flying (a waiting bat takes off with it); 0 once ten have died.
 int em29FriendCk(cEm29* em)
 {
     u32 i;
@@ -1241,6 +1292,7 @@ int em29FriendCk(cEm29* em)
     return 0;
 }
 
+// Wing flap + squeak SEs through the room's ctrl11 (`type` 0 flying, else the rush variant).
 void em29CallSe(cEm29* em, int type)
 {
     Em29Work* w = EM29_WK(em);
@@ -1259,6 +1311,8 @@ void em29CallSe(cEm29* em, int type)
     }
 }
 
+// Bite hit test on the swoop frame: em29_atk_tbl[no] against the player (blood, the plem29_BatRush
+// damage routine) or the partner, once per attack (atkHit). 1 = hit.
 int em29AtkCk(cEm29* em, int no)
 {
     Em29Work* w = EM29_WK(em);
@@ -1283,6 +1337,7 @@ int em29AtkCk(cEm29* em, int no)
     return 0;
 }
 
+// Player damage routine of the bat bite: the flinch with the damage SE, then EndPlDamage.
 static void plem29_BatRush(cPlayer* pl)
 {
     pl->dmg.set(0, 10);
