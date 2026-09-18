@@ -825,7 +825,7 @@ def generate_build_ninja(
         prodg_driver = config.tools_dir / "ngccc.py"
         prodg_cc_cmd = (
             f"$python {prodg_driver} --prodg-dir $sn_ngc_path --wrapper {wrapper} "
-            f"--native-dir {config.prodg_native_dir} -c $in -o $out $cflags"
+            f"--native-dir {config.prodg_native_dir} -c $in -o $out --depfile $basefile.d $cflags"
         )
         prodg_cc_implicit: List[Optional[Path]] = [
             compilers_implicit or prodg_cc,
@@ -1034,11 +1034,20 @@ def generate_build_ninja(
     )
     n.newline()
 
+    # Only the native pipeline writes a dependency list (tools/ngccc.py --depfile); ngccc.exe
+    # itself does not, and ninja fails an edge whose depfile is absent.
+    prodg_deps = (
+        {"depfile": "$basefile.d", "deps": "gcc"}
+        if config.prodg_native_dir is not None
+        else {}
+    )
+
     n.comment("ProDG GCC build")
     n.rule(
         name="prodg_cc",
         command=prodg_cc_cmd,
         description="NGCCC $out",
+        **prodg_deps,
     )
     n.newline()
 
@@ -1047,6 +1056,7 @@ def generate_build_ninja(
         name="prodg_cc_keep_sections",
         command=prodg_cc_keep_sections_cmd,
         description="NGCCC $out",
+        **prodg_deps,
     )
     n.newline()
 
