@@ -28,8 +28,8 @@ typedef struct {
     s8 prio;        // 0x04
     s8 pan;         // 0x05  < 0: from the DLS
     s8 vol;         // 0x06  < 0: from the DLS
-    s8 x7;          // 0x07  aux A
-    s8 x8;          // 0x08  aux B
+    s8 aux_a;       // 0x07  AUX A send, < 0: from the area table (snd_iss3)
+    s8 aux_b;       // 0x08  AUX B send, < 0: none
     s8 curve_no;    // 0x09  distance curve selector (game/snd.cpp SndCall), -1 = none
     u16 pitch_l;   // 0x0A  random pitch range
     u16 pitch_hi;   // 0x0C
@@ -133,20 +133,20 @@ typedef struct {
     s16 se_pause_type;      // 0x34  block number to pause, -1 = all
     u8 pad_36[6];
     s16 sys_vol[6];         // 0x3C  system volumes (<< 8), bit 1..0x20 selects
-    u8 x48;                 // 0x48  request override parameters (copied when flag_58 bit set)
-    u8 x49;                 // 0x49
-    u8 x4A;                 // 0x4A
-    u8 x4B;                 // 0x4B
-    u8 x4C;                 // 0x4C
-    u8 x4D;                 // 0x4D
-    u8 x4E;                 // 0x4E
-    u8 x4F;                 // 0x4F
-    u8 x50;                 // 0x50  surround type override (flag_58 & 0x100)
+    u8 prio;                // 0x48  request override parameters, copied into SND_REQ_WORK when the ovr_flag bit is set: priority (0x1)
+    u8 pan;                 // 0x49  (0x2) from the camera angle
+    u8 span;                // 0x4A  (0x4)
+    u8 vol;                 // 0x4B  (0x8) distance volume
+    u8 svol;                // 0x4C  (0x10)
+    u8 aux_a;               // 0x4D  (0x20) area AUX send
+    u8 aux_b;               // 0x4E  (0x40)
+    u8 lpf_no;              // 0x4F  (0x80) distance filter
+    u8 srd_type_ovr;        // 0x50  surround type override (ovr_flag & 0x100): 1 = positioned
     u8 pad_51[1];
-    u16 x52;                // 0x52
-    u16 x54;                // 0x54
-    u16 x56;                // 0x56
-    u16 flag_58;            // 0x58  which override parameters are valid
+    u16 pitch_add;          // 0x52  (0x200) cents added to the base pitch
+    u16 pitch_ofs;          // 0x54  (0x400) distance pitch offset
+    u16 se_flag;            // 0x56  (0x800) SND_AXV_WORK::flag bits
+    u16 ovr_flag;           // 0x58  which override parameters are valid
     u8 pad_5A[2];
     u32 seq_tick;           // 0x5C  sequencer clock (1/1000 ms units, wraps at 999000)
     u32 seq_msec;           // 0x60  milliseconds elapsed this audio frame
@@ -187,17 +187,17 @@ typedef struct {
     u16 flag;       // 0x14  override flags (from ctrl->flag_58)
     u16 para;       // 0x16  command parameter
     u8 pad_18[2];
-    s8 x1A;         // 0x1A
-    s8 x1B;         // 0x1B
-    s8 x1C;         // 0x1C
-    s8 x1D;         // 0x1D
-    s8 x1E;         // 0x1E
-    s8 x1F;         // 0x1F
-    s8 x20;         // 0x20
-    s8 x21;         // 0x21
-    s16 x22;        // 0x22  pitch offset (cents)
-    u16 x24;        // 0x24  pitch offset 2
-    u16 x26;        // 0x26  SE flags (SND_AXV_WORK::flag)
+    s8 prio;        // 0x1A  overrides (-1 = use the SIT): priority
+    s8 pan;         // 0x1B
+    s8 span;        // 0x1C
+    s8 vol;         // 0x1D
+    s8 svol;        // 0x1E
+    s8 aux_a;       // 0x1F
+    s8 aux_b;       // 0x20
+    s8 lpf_no;      // 0x21  low-pass filter table index
+    s16 pitch_add;  // 0x22  cents added to the base pitch
+    u16 pitch_ofs;  // 0x24  distance pitch offset (SND_AXV_WORK::pitch_ofs)
+    u16 se_flag;    // 0x26  SE flags (SND_AXV_WORK::flag)
     s16 pitch;      // 0x28  random pitch (cents)
     u8 pad_2A[2];
 } SND_REQ_WORK;
@@ -209,7 +209,7 @@ typedef struct {
     u16 status;     // 0x00
     u16 no;         // 0x02
     u32 snd_id;     // 0x04
-    u8 x8;          // 0x08
+    u8 srd_type;    // 0x08  surround type of the request (snd_iss3)
     u8 out_mode;    // 0x09  1 / 2
     s8 type;        // 0x0A  1 iss, 2 seq, 3 str
     u8 pad_B[1];
@@ -305,7 +305,7 @@ typedef struct {
     u8* seq_pos;            // 0x3174  read position
     u8* seq_loop;           // 0x3178
     s32 tempo;              // 0x317C  1000
-    s32 x3180;              // 0x3180  480
+    s32 division;           // 0x3180  ticks per beat (480): subtracted from delta * tempo every ms
     s32 delta;              // 0x3184  ticks to the next event
     s8 tpr_num;             // 0x3188  pending track parameter changes (seq_tpr_check)
     s8 tpr_kind[8];         // 0x3189  8 = volume (CC 7), else pan (CC 10)
@@ -354,7 +354,7 @@ typedef struct {
     s8 pan;         // 0x28
     s8 span;        // 0x29
     s8 vol;         // 0x2A
-    s8 x2B;         // 0x2B
+    s8 svol;        // 0x2B  surround volume (same order as SND_AXV_WORK vol/svol)
     s8 auxA;        // 0x2C
     s8 auxB;        // 0x2D
     u8 pad_2E[2];
@@ -385,7 +385,7 @@ typedef struct {
     u32 aram_R_nbl; // 0x78
     u32 play_nbl;   // 0x7C
     u32 play_pos;   // 0x80  play position (bytes)
-    u32 x84;        // 0x84
+    u32 blk_end;    // 0x84  end of the ARAM block being played (bytes): play_pos + blk_size, wraps at loop_end
     u32 loop_start; // 0x88
     u32 loop_end;   // 0x8C
     s16 play_blk;   // 0x90  ARAM block being played (-1 = not started)
@@ -422,21 +422,20 @@ typedef struct {
 
 // Sound test / debug work (Snd_test_work, 0x7C0 bytes, 32-aligned).
 typedef struct {
-    u8 x0;
-    u8 x1;
-    u8 x2;
-    u8 x3;
+    u8 mode;            // 0x00  test mode (snd_test.h SndTestWork names)
+    u8 tbl;             // 0x01  0 = SIT, 1 = RIT
+    u8 type;            // 0x02  SIT type
+    u8 aux;             // 0x03  effect slot being edited
     u8 pad_4[8];
-    u16 xC;             // 0x0C
-    u16 xE;             // 0x0E
+    u16 menu;           // 0x0C  1 = mode menu shown
+    u16 dispFlag;       // 0x0E  0x1 request parameters, 0x2 voice map, 0x4 aux state
     u8 pad_10[8];
-    u16 x18;            // 0x18
-    u16 x1A;            // 0x1A
+    u16 blkMax[2];      // 0x18  blocks per table (0xE SIT, 2 RIT)
     u8 pad_1C[0x9C - 0x1C];
     char path0[0x100];  // 0x9C
     char path1[0x380];  // 0x19C
-    u32 x51C[14];       // 0x51C
-    u32 x554[2];        // 0x554
+    u32 sitData[14];    // 0x51C  SIT parameters being edited
+    u32 ritData[2];     // 0x554  RIT parameters being edited
     u8 pad_55C[0x6B8 - 0x55C];
     u32 aram_base;      // 0x6B8
     u8 pad_6BC[0x7C0 - 0x6BC];

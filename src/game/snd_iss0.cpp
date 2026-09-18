@@ -45,8 +45,8 @@ int req_iss_main(u16 blk_no, u16 req_no, u8* para)
 
 void req_set_srd_type(SND_CTRL_WORK* ctrl, SND_SIT* sit, u8* para)
 {
-    if (ctrl->flag_58 & 0x100) {
-        ctrl->srd_type = ctrl->x50;
+    if (ctrl->ovr_flag & 0x100) {
+        ctrl->srd_type = ctrl->srd_type_ovr;
     } else {
         ctrl->srd_type = sit->srd_type;
     }

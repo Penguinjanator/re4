@@ -50,50 +50,50 @@ void Snd_req_work_copy_para(SND_CTRL_WORK* ctrl, SND_REQ_WORK* req)
 
     sit = Snd_iss_blk[req->blk_no].sit;
     sit += req->req_no;
-    req->x1A = -1;
-    req->x1B = -1;
-    req->x1C = -1;
-    req->x1D = -1;
-    req->x1E = -1;
-    req->x1F = -1;
-    req->x20 = -1;
-    req->x21 = -1;
-    req->x22 = 0;
-    req->x24 = 0;
-    req->x26 = 0;
-    req->flag = ctrl->flag_58;
+    req->prio = -1;
+    req->pan = -1;
+    req->span = -1;
+    req->vol = -1;
+    req->svol = -1;
+    req->aux_a = -1;
+    req->aux_b = -1;
+    req->lpf_no = -1;
+    req->pitch_add = 0;
+    req->pitch_ofs = 0;
+    req->se_flag = 0;
+    req->flag = ctrl->ovr_flag;
     if (req->flag & 0x1) {
-        req->x1A = ctrl->x48;
+        req->prio = ctrl->prio;
     }
     if (req->flag & 0x2) {
-        req->x1B = ctrl->x49;
+        req->pan = ctrl->pan;
     }
     if (req->flag & 0x4) {
-        req->x1C = ctrl->x4A;
+        req->span = ctrl->span;
     }
     if (req->flag & 0x8) {
-        req->x1D = ctrl->x4B;
+        req->vol = ctrl->vol;
     }
     if (req->flag & 0x10) {
-        req->x1E = ctrl->x4C;
+        req->svol = ctrl->svol;
     }
     if (req->flag & 0x20) {
-        req->x1F = ctrl->x4D;
+        req->aux_a = ctrl->aux_a;
     }
     if (req->flag & 0x40) {
-        req->x20 = ctrl->x4E;
+        req->aux_b = ctrl->aux_b;
     }
     if (req->flag & 0x80) {
-        req->x21 = ctrl->x4F;
+        req->lpf_no = ctrl->lpf_no;
     }
     if (req->flag & 0x200) {
-        req->x22 = ctrl->x52;
+        req->pitch_add = ctrl->pitch_add;
     }
     if (req->flag & 0x400) {
-        req->x24 = ctrl->x54;
+        req->pitch_ofs = ctrl->pitch_ofs;
     }
     if (req->flag & 0x800) {
-        req->x26 = ctrl->x56;
+        req->se_flag = ctrl->se_flag;
     }
     if (req->type != 4) {
         if (ctrl->multi_req == 1) {

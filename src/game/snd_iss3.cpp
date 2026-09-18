@@ -21,8 +21,8 @@ void iss_new_voice_work(SND_ISS_BLK* blk, SND_SIT* sit, SND_REQ_WORK* req)
     SND_AXV_WORK* axv;
     s8 prio;
 
-    if (req->x1A >= 0) {
-        prio = req->x1A;
+    if (req->prio >= 0) {
+        prio = req->prio;
     } else {
         prio = sit->prio;
     }
@@ -64,7 +64,7 @@ void iss_voice_work_init(SND_VOICE_WORK* vw, SND_AXV_WORK* axv, SND_REQ_WORK* re
 {
     vw->status = 1;
     vw->snd_id = req->snd_id;
-    vw->x8 = req->srd_type;
+    vw->srd_type = req->srd_type;
     vw->out_mode = 2;
     vw->type = 1;
     vw->count = 0;
@@ -76,7 +76,7 @@ void iss_voice_work_init(SND_VOICE_WORK* vw, SND_AXV_WORK* axv, SND_REQ_WORK* re
     axv->snd_id = req->snd_id;
     axv->srd_type = req->srd_type;
     axv->upd = 0;
-    axv->flag = req->x26;
+    axv->flag = req->se_flag;
     axv->vw = vw;
 }
 
@@ -132,16 +132,16 @@ void iss_ax_set_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
     s32 vol;
 
-    if (req->x1D >= 0) {
-        axv->vol = req->x1D;
+    if (req->vol >= 0) {
+        axv->vol = req->vol;
     } else if (sit->vol >= 0) {
         axv->vol = sit->vol;
     } else {
         vol = axv->rgn->attn / 0x10000;
         axv->vol = Snd_vol_ax_to_syn(vol);
     }
-    if (req->x1E >= 0) {
-        axv->svol = req->x1E;
+    if (req->svol >= 0) {
+        axv->svol = req->svol;
     } else if (sit->svol >= 0) {
         axv->svol = sit->svol;
     } else {
@@ -161,15 +161,15 @@ void iss_ax_set_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 
 void iss_ax_set_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
-    if (req->x1B >= 0) {
-        axv->pan = req->x1B;
+    if (req->pan >= 0) {
+        axv->pan = req->pan;
     } else if (sit->pan >= 0) {
         axv->pan = sit->pan;
     } else {
         axv->pan = axv->art->pan;
     }
-    if (req->x1C >= 0) {
-        axv->span = req->x1C;
+    if (req->span >= 0) {
+        axv->span = req->span;
     } else if (sit->span >= 0) {
         axv->span = sit->span;
     } else {
@@ -180,17 +180,17 @@ void iss_ax_set_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 
 void iss_ax_set_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
 {
-    if (req->x1F >= 0) {
-        axv->auxA = req->x1F;
-    } else if (sit->x7 >= 0) {
-        axv->auxA = sit->x7;
+    if (req->aux_a >= 0) {
+        axv->auxA = req->aux_a;
+    } else if (sit->aux_a >= 0) {
+        axv->auxA = sit->aux_a;
     } else {
         axv->auxA = 0;
     }
-    if (req->x20 >= 0) {
-        axv->auxB = req->x20;
-    } else if (sit->x8 >= 0) {
-        axv->auxB = sit->x8;
+    if (req->aux_b >= 0) {
+        axv->auxB = req->aux_b;
+    } else if (sit->aux_b >= 0) {
+        axv->auxB = sit->aux_b;
     } else {
         axv->auxB = 0;
     }
@@ -209,20 +209,20 @@ void iss_ax_set_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, SND_SIT* sit)
     cents *= 100;
     cents += rgn->fineTune;
     cents += req->pitch;
-    cents += req->x22;
+    cents += req->pitch_add;
     axv->pitch_base = cents;
-    axv->pitch_ofs = req->x24;
+    axv->pitch_ofs = req->pitch_ofs;
     axv->pitch = axv->pitch_base + axv->pitch_ofs;
 }
 
 void iss_ax_set_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req)
 {
-    if (req->x21 == -1) {
+    if (req->lpf_no == -1) {
         axv->lpf_on = 0;
     } else {
         axv->lpf_on = 1;
     }
-    axv->lpf_no = req->x21;
+    axv->lpf_no = req->lpf_no;
 }
 
 void iss_ax_set_para(SND_AXV_WORK* axv, SND_REQ_WORK* req)

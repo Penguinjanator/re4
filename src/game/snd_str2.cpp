@@ -168,12 +168,12 @@ void str_ax_voice_to_next_block(SND_STR_WORK* str)
     if (str->loop_top != 0) {
         str->loop_top = 0;
         str->blk_cnt = str->loop_start / str->blk_size;
-        str->x84 = str->blk_cnt * str->blk_size;
+        str->blk_end = str->blk_cnt * str->blk_size;
     } else {
         str->blk_cnt++;
     }
-    str->x84 += str->blk_size;
-    if (str->x84 >= str->loop_end) {
+    str->blk_end += str->blk_size;
+    if (str->blk_end >= str->loop_end) {
         ofs = str->play_blk * str->blk_size;
         ofs += str->loop_end % str->blk_size;
         str->end_L = str->aram_L_nbl + ofs;

@@ -52,7 +52,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     str->pan = rit->pan;
     str->span = str_init_get_span(rit);
     str->vol = str_init_get_vol(rit);
-    str->x2B = 0;
+    str->svol = 0;
     str->auxA = rit->aux_a;
     str->auxB = rit->aux_b;
     str->rate = (f32) shd->rate;
@@ -83,7 +83,7 @@ u32 Snd_str_init(SND_SHD* shd, SND_RIT* rit, u32 aram, char* name, s8 no)
     str->blk_size = str->blk_half * 2;
     str->play_nbl = 0;
     str->play_pos = 0;
-    str->x84 = str->blk_size;
+    str->blk_end = str->blk_size;
     str->loop_start = shd->loop_start;
     str->loop_end = shd->lpend_nbl;
     str->play_blk = -1;

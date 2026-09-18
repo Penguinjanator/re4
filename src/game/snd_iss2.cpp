@@ -348,9 +348,9 @@ void req_cmd_se_para(SND_REQ_WORK* req)
 void req_cmd_se_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (bit == 0x2) {
-        axv->pan = req->x1B;
+        axv->pan = req->pan;
     } else {
-        axv->span = req->x1C;
+        axv->span = req->span;
     }
     axv->upd |= 0x2;
 }
@@ -358,10 +358,10 @@ void req_cmd_se_pan(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (bit == 0x8) {
-        axv->vol = req->x1D << 8;
+        axv->vol = req->vol << 8;
         axv->vdown_src_vol = axv->vol;
     } else {
-        axv->svol = req->x1E << 8;
+        axv->svol = req->svol << 8;
         axv->vdown_src_svol = axv->svol;
     }
     axv->upd |= 0x1;
@@ -370,10 +370,10 @@ void req_cmd_se_vol(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (bit == 0x20) {
-        axv->auxA = req->x1F;
+        axv->auxA = req->aux_a;
         axv->upd |= 0x4;
     } else {
-        axv->auxB = req->x20;
+        axv->auxB = req->aux_b;
         axv->upd |= 0x8;
     }
 }
@@ -381,19 +381,19 @@ void req_cmd_se_aux(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (axv->lpf_on == 0) {
-        if (req->x21 == -1) {
+        if (req->lpf_no == -1) {
             return;
         }
         axv->lpf_on = 1;
-        axv->lpf_no = req->x21;
+        axv->lpf_no = req->lpf_no;
         axv->upd |= 0x10;
     } else {
-        if (req->x21 == -1) {
+        if (req->lpf_no == -1) {
             axv->lpf_on = 0;
             axv->lpf_no = -1;
             axv->upd |= 0x10;
         } else {
-            axv->lpf_no = req->x21;
+            axv->lpf_no = req->lpf_no;
             axv->upd |= 0x20;
         }
     }
@@ -402,9 +402,9 @@ void req_cmd_se_lpf(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 void req_cmd_se_pitch(SND_AXV_WORK* axv, SND_REQ_WORK* req, u16 bit)
 {
     if (bit == 0x200) {
-        axv->pitch_base += req->x22;
+        axv->pitch_base += req->pitch_add;
     } else {
-        axv->pitch_ofs = req->x24;
+        axv->pitch_ofs = req->pitch_ofs;
     }
     axv->pitch = axv->pitch_base + axv->pitch_ofs;
     if (axv->pitch > 2400) {

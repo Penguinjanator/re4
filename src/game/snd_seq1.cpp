@@ -177,7 +177,7 @@ void seq_one_msec(SND_CTRL_WORK* ctrl, SND_SEQ_WORK* seq)
             }
             seq->delta = Snd_seq_get_delta(seq) * seq->tempo;
         } else {
-            seq->delta -= seq->x3180;
+            seq->delta -= seq->division;
             if (seq->delta > 0) {
                 break;
             }

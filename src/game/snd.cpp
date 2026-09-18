@@ -757,7 +757,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         return 0;
     }
 
-    c->flag_58 = 0;
+    c->ovr_flag = 0;
     sit = Snd_get_sit_adrs(blk, no);
     v = Snd_iss_get_sit_vol(blk, no);
     sv = Snd_iss_get_sit_svol(blk, no);
@@ -781,34 +781,34 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         if (seq == 0 && pan_ok == 1) {
             s8 p = sit->pan;
             if (p < 0) {
-                c->flag_58 |= 0x2;
+                c->ovr_flag |= 0x2;
                 pan = sndPanCalc(pan_f);
-                c->x49 = pan;
+                c->pan = pan;
             } else {
-                c->x49 = sit->pan;
+                c->pan = sit->pan;
                 pan = p;
                 pan_calc = 0;
             }
             p = sit->span;
             if (p < 0) {
-                c->flag_58 |= 0x4;
+                c->ovr_flag |= 0x4;
                 span = sndSpanCalc(pan_f);
-                c->x4A = span;
+                c->span = span;
             } else {
-                c->x4A = sit->span;
+                c->span = sit->span;
                 span = p;
                 pan_calc = 0;
             }
-            if (c->flag_58 & 0x6) {
-                c->flag_58 |= 0x100;
-                c->x50 = 1;
+            if (c->ovr_flag & 0x6) {
+                c->ovr_flag |= 0x100;
+                c->srd_type_ovr = 1;
             }
         }
     } else {
         vol_calc = 0;
-        c->x50 = 0;
+        c->srd_type_ovr = 0;
         curve_ok = 0;
-        c->flag_58 |= 0x100;
+        c->ovr_flag |= 0x100;
         pan_calc = 0;
     }
 
@@ -824,14 +824,14 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
             svol_ofs = cs[0];
             v = sndVolCalc(v, vol_ofs, dist);
             sv = sndVolCalc(sv, svol_ofs, dist);
-            c->flag_58 |= 0x400;
+            c->ovr_flag |= 0x400;
             pitch_ofs = (cs + m)[2];
-            c->x54 = sndPitchCalc(pitch_ofs, dist);
+            c->pitch_ofs = sndPitchCalc(pitch_ofs, dist);
             filter_ofs = (cs + m)[4];
             f = sndFilterCalc(filter_ofs, dist);
             if (f != -1) {
-                c->x4F = f;
-                c->flag_58 |= 0x80;
+                c->lpf_no = f;
+                c->ovr_flag |= 0x80;
             }
         } else {
             vol_calc = 0;
@@ -846,8 +846,8 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         sv = (s8) vol;
     }
 
-    if (sit->x7 == -1) {
-        c->flag_58 |= 0x20;
+    if (sit->aux_a == -1) {
+        c->ovr_flag |= 0x20;
         if (pSnd->hdr != NULL) {
             SndEfxParam* p = &pSnd->hdr->efx[0];
             if (pSys->sound_mode != 2) {
@@ -855,57 +855,57 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
             }
             switch (blk) {
             case 0:
-                c->x4D = (u8) p->Aux_core;
+                c->aux_a = (u8) p->Aux_core;
                 break;
             case 1:
-                c->x4D = (u8) p->Aux_core;
+                c->aux_a = (u8) p->Aux_core;
                 break;
             case 2:
-                c->x4D = (u8) p->Aux_weapon;
+                c->aux_a = (u8) p->Aux_weapon;
                 break;
             case 5:
-                c->x4D = (u8) p->Aux_room;
+                c->aux_a = (u8) p->Aux_room;
                 break;
             case 6:
-                c->x4D = (u8) p->Aux_room;
+                c->aux_a = (u8) p->Aux_room;
                 break;
             case 8:
-                c->x4D = (u8) p->Aux_enemy;
+                c->aux_a = (u8) p->Aux_enemy;
                 break;
             default:
-                c->x4D = 0;
+                c->aux_a = 0;
                 break;
             }
         } else {
-            c->x4D = 0;
+            c->aux_a = 0;
         }
     }
 
-    c->x4E = 0;
-    c->x56 = 0;
-    c->flag_58 |= 0x40;
+    c->aux_b = 0;
+    c->se_flag = 0;
+    c->ovr_flag |= 0x40;
     if (sit->se_flag != 0) {
-        c->flag_58 |= 0x840;
+        c->ovr_flag |= 0x840;
         if (sit->se_flag & 0x2) {
-            c->x56 = 1;
+            c->se_flag = 1;
         }
         if (sit->se_flag & 0x4) {
-            c->x56 |= 0x2;
+            c->se_flag |= 0x2;
         }
         if (sit->se_flag & 0x1) {
-            c->x56 |= 0x4;
+            c->se_flag |= 0x4;
         }
     }
     if (vol & ~0xFF) {
-        c->flag_58 |= 0x800;
+        c->ovr_flag |= 0x800;
         if (vol & 0x100) {
-            c->x56 |= 0x1;
+            c->se_flag |= 0x1;
         }
         if (vol & 0x200) {
-            c->x56 |= 0x2;
+            c->se_flag |= 0x2;
         }
         if (vol & 0x400) {
-            c->x56 |= 0x4;
+            c->se_flag |= 0x4;
         }
     }
 
@@ -925,11 +925,11 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         return 0;
     }
 
-    c->x4B = v;
-    c->x4C = sv;
-    c->flag_58 |= 0x18;
+    c->vol = v;
+    c->svol = sv;
+    c->ovr_flag |= 0x18;
     if (sit->srd_type == 1) {
-        c->flag_58 &= 0x860;
+        c->ovr_flag &= 0x860;
     }
     snd_id = Snd_iss_req_para(blk, no, 0);
 
@@ -1003,9 +1003,9 @@ int SndSetVol(u32 id, int vol, int time)
     case 0:
         break;
     case 1:
-        c->x4B = vol;
-        c->flag_58 = 0x18;
-        c->x4C = vol;
+        c->vol = vol;
+        c->ovr_flag = 0x18;
+        c->svol = vol;
         ret = Snd_se_set_paras(id) == 0;
         break;
     case 2:
@@ -1024,8 +1024,8 @@ int SndSetDopPitch(u32 id, int pitch)
     int ret = 0;
 
     if (Snd_get_play_type(id) == 1) {
-        c->x54 = pitch;
-        c->flag_58 = 0x400;
+        c->pitch_ofs = pitch;
+        c->ovr_flag = 0x400;
         ret = Snd_se_set_paras(id) == 0;
     }
     return ret;
@@ -2055,7 +2055,7 @@ static void sndSurroundCalc()
         if (w->type == 0) {
             continue;
         }
-        c->flag_58 = 0;
+        c->ovr_flag = 0;
         idx = 0;
         if (w->type & 0x1) {
             idx = 1;
@@ -2084,39 +2084,39 @@ static void sndSurroundCalc()
                 getCam2SndAngle(&pan, 0, &dist, &w->pos);
             }
             if (w->inner != 0) {
-                c->flag_58 |= 0x18;
-                c->x4B = sit->vol;
-                c->x4C = sit->svol;
-                sndInnerVolCheck(sit, &c->x4B, &c->x4C);
+                c->ovr_flag |= 0x18;
+                c->vol = sit->vol;
+                c->svol = sit->svol;
+                sndInnerVolCheck(sit, &c->vol, &c->svol);
             } else {
                 if (w->vol_calc != 0) {
-                    c->flag_58 |= 0x418;
-                    c->x4B = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
-                    c->x4C = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
-                    sndWallCheck(sit, &c->x4B, &c->x4C, &w->pos);
-                    sndVolCtrlAtCheck(sit, &c->x4B, &c->x4C, &w->pos);
-                    sndInnerVolCheck(sit, &c->x4B, &c->x4C);
-                    c->x54 = sndPitchCalc(w->pitch_ofs, dist);
-                    c->x4F = sndFilterCalc(w->filter_ofs, dist);
-                    c->flag_58 |= 0x80;
+                    c->ovr_flag |= 0x418;
+                    c->vol = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
+                    c->svol = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
+                    sndWallCheck(sit, &c->vol, &c->svol, &w->pos);
+                    sndVolCtrlAtCheck(sit, &c->vol, &c->svol, &w->pos);
+                    sndInnerVolCheck(sit, &c->vol, &c->svol);
+                    c->pitch_ofs = sndPitchCalc(w->pitch_ofs, dist);
+                    c->lpf_no = sndFilterCalc(w->filter_ofs, dist);
+                    c->ovr_flag |= 0x80;
                 }
                 if (w->pan_calc != 0) {
-                    c->flag_58 |= 0x6;
+                    c->ovr_flag |= 0x6;
                     if (sit->pan & 0x80) {
-                        c->x49 = sndPanCalc(pan);
+                        c->pan = sndPanCalc(pan);
                     } else {
-                        c->flag_58 &= ~0x2;
-                        c->x49 = sit->pan;
+                        c->ovr_flag &= ~0x2;
+                        c->pan = sit->pan;
                     }
                     if (sit->span & 0x80) {
-                        c->x4A = sndSpanCalc(pan);
+                        c->span = sndSpanCalc(pan);
                     } else {
-                        c->flag_58 &= ~0x4;
-                        c->x4A = sit->span;
+                        c->ovr_flag &= ~0x4;
+                        c->span = sit->span;
                     }
                 }
             }
-            if (c->x4B == 0 || c->x4C == 0) {
+            if (c->vol == 0 || c->svol == 0) {
                 SndStop(w->id, 0);
             } else {
                 Snd_se_set_paras(w->id);
