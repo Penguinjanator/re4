@@ -1,6 +1,14 @@
 // em30 module (D:/Bio4/Prog/em30.cpp): a large stationary enemy with two cloth chains and three
 // head objects (obj16) carrying four parasites each; it turns towards the player or the partner
 // (em30RouteCk chooses the target) and dies after one damage routine.
+//
+// Em30Init is the module's EmInitFunc. Routines: r_no_0 0 init, 1 move (r_no_1 0 wait, 1 turn
+// towards the target), 2 damage (r_no_1 0), 3 die (r_no_1 0). em30DmCk converts the registered
+// hit (cEm::dmHit / dmWep) into hp loss per weapon class; the head objects and their parasites are
+// cObj16 objects hung on the model (em30SetParasite), created only when the list flag is negative.
+// Em30Work (em30.h): flags bit0 route to the player valid, bit1 partner present, bit2 target is
+// the partner, bit3 in damage / die, bit4 the head follows the player; the neck yaw neckAng is
+// applied to parts 3.
 
 #include "atari.h"
 #include "light.h"
@@ -72,25 +80,33 @@ static inline int em30DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// REL entry: registers the enemy constructor.
 extern "C" void _prolog()
 {
     OSReport("em30 prolog Ok\n");
     EmInitFunc = Em30Init;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc: placement-constructs the enemy in the cEm work.
 void Em30Init(cEm* em)
 {
     new (em) cEm30();
 }
 
+// Damage of the frame: consumes cEm::dmHit and sets dmType (1, 0x11 for the knife); hp loss by
+// weapon class (handguns / rifles / MGs 10-11, shotguns 10 or 50-51 when farther than 4 m,
+// magnums / launchers / grenades 50), blood effect; hp <= 0 -> die routine (3). The return value
+// is meaningless (a folded `dmWep == 0x21` test).
 int em30DmCk(cEm30* em)
 {
     int dmg;
@@ -181,6 +197,9 @@ static Em30Func Em30_R3_move_tbl[1] = {
     em30_R1_Die_Normal,
 };
 
+// Per-frame update (emMove): damage, the target choice (em30RouteCk), the r_no_0 routine (0xFF
+// after a failed init destroys the work), the neck, parts matrices, enemy / scenery collision and
+// the two cloth chains.
 void cEm30::move()
 {
     Em30Work* w = EM30_WK(this);
@@ -204,6 +223,11 @@ void cEm30::move()
     Em30ClothMove2(this, &w->cloth2);
 }
 
+// r_no_0 == 0: creation: the body (archive 4/5) plus five extra models (6, 8 = pInfo0 / pInfo1 the
+// hideable ones, 9, 0xA or 0xB by type, 0xC, 0xD), the em10 foot shadows, the two cloth chains,
+// a 10 m light area, a 0x2000-attribute collision cylinder, hit boxes (body + hit[0..2]), lock-on
+// on parts 2, effects (archive 0xE as group 0x28); with the list flag negative the two extra
+// models are hidden and the three heads with their parasites are created. Then wait (1/0).
 static void em30_R0_Init(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -284,11 +308,14 @@ static void em30_R0_Init(cEm30* em)
     em30_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void em30_R0_Move(cEm30* em)
 {
     Em30_R1_move_tbl[em->r_no_1](em);
 }
 
+// r_no_1 == 0: the idle motion 0xF (30-frame blend), head following the player; a registered
+// death (dmg upper bits) -> state 1.
 static void em30_R1_Wait(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -307,6 +334,8 @@ static void em30_R1_Wait(cEm30* em)
     }
 }
 
+// r_no_1 == 1: the "walk" motion 0x10 while turning towards the target (PI/64 per frame); back
+// to wait when the player is within 2 m.
 static void em30_R1_Walk(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -327,6 +356,7 @@ static void em30_R1_Walk(cEm30* em)
     }
 }
 
+// r_no_0 == 2: the damage routine (flags bit3), r_no_1 state table.
 static void em30_R0_Damage(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -335,6 +365,7 @@ static void em30_R0_Damage(cEm30* em)
     Em30_R2_move_tbl[em->r_no_1](em);
 }
 
+// Damage state 0: the flinch (motion 0xF), then back to move / state 1 with r_no_3 = 10.
 static void em30_R1_Dm_Normal(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -352,6 +383,7 @@ static void em30_R1_Dm_Normal(cEm30* em)
     }
 }
 
+// r_no_0 == 3: the die routine (flags bit3), r_no_1 state table.
 static void em30_R0_Die(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -360,6 +392,9 @@ static void em30_R0_Die(cEm30* em)
     Em30_R3_move_tbl[em->r_no_1](em);
 }
 
+// Die state 0: the death motion 0xF; at its end the battle / active / dog status bits and the
+// collision are cleared, then after 30 frames the model fades out (invisible_factor -0.02 per
+// frame) and is hidden.
 static void em30_R1_Die_Normal(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -395,6 +430,10 @@ static void em30_R1_Die_Normal(cEm30* em)
     }
 }
 
+// Target choice of the frame (alive only): the route point towards the player (flags bit0 when
+// reachable) and its angle become the target; with a partner present (flags bit1) and the player
+// unreachable or farther than the partner (l_sub) the partner's route data is the target (flags
+// bit2). During init the angles are zeroed and the player distance forced far.
 void em30RouteCk(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -430,6 +469,8 @@ void em30RouteCk(cEm30* em)
     }
 }
 
+// Head tracking: while flags bit4 the neck yaw eases (0.9/0.1) towards the player within +-60
+// degrees, else back to 0; applied as the additional rotation of parts 3.
 void em30NeckMove(cEm30* em)
 {
     Em30Work* w = EM30_WK(em);
@@ -457,6 +498,10 @@ void em30NeckMove(cEm30* em)
     ((cParts*) p)->addRot.z = 0.0f;
 }
 
+// Creates head `no` (0..2, spread 120 degrees apart on parts 3) as a cObj16 (model 0x15/0x16)
+// with its motion set (0x17..0x1F) and the player-damage motion 0x20, and four parasites (model
+// 0x12/0x13, motion 0x14) on the head's parts 0x16..0x19, their motions offset by a quarter
+// period each.
 void em30SetParasite(cEm30* em, int no)
 {
     Em30Work* w = EM30_WK(em);

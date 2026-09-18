@@ -2,6 +2,15 @@
 // 15/38/43/44, byte-identical in all nine; real file name unknown): routine 2 of the player while a
 // handgun is equipped: ready (draw + aim), set (idle / turn), fire, down (wepDown) and reload.
 // Modelled on game/pl_knife.cpp / wep/pl_rocket.cpp.
+//
+// Entry: PlHandgunMove is the module's WeaponMoveFunc, called by pl_R1_Weapon (player.cpp) every
+// frame while r_no_1 == 6. r_no_2 selects the weapon state (0 ready, 1 set, 2 fire, 4 reload),
+// r_no_3 the step inside it; the routines mirror the state into the weapon object's wep.mode /
+// wep.step so cObjWep::move plays the matching weapon animation. Weapon archive slots (pG->pWep):
+// 0x22/0x23 draw, 0x24/0x25 holster, 0x26..0x28 aim idle (down/level/up for the mot3 pitch blend),
+// 0x29..0x2B fire, 0x2D..0x2F reload by weapon_lv_reload. The aim pitch is m3r[] (player.h):
+// [1] target, [0] current, [2] mix; the waist twist is cPlWaist and the yaw of the lock-on turn
+// goes through m_Fwork0 / PlWepLockRand.
 
 #include "atari.h"
 #include "light.h"
@@ -49,6 +58,8 @@ static Vec pos = {0.0f, 0.0f, 0.0f};
 static Vec tgt = {0.0f, 0.0f, 0.0f};
 
 #ifndef PL_HANDGUN_NO_MOVE
+// WeaponMoveFunc of the handgun modules: dispatches on r_no_2 (0 ready, 1 set, 2 fire, 4 reload;
+// 3 = down has no entry, wepDown leaves the routine directly) and runs the lock-on stick control.
 void PlHandgunMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -73,6 +84,11 @@ static void (*wep02_func_tbl[])(cPlayer*) = {
 };
 #endif
 
+// r_no_2 == 0: the ready (draw) state. Runs the r_no_3 step, then: aim key released before the
+// lock turn (step 3) -> back to footwork (r_no_1 0, or 0x11 crouch with flags_420 bit6) and the
+// weapon's enemy collision (atari flag 0x200) is cleared; reload key with rounds available -> reload (r_no_2 4,
+// m_Flag bit0, m_Work0 = 1); otherwise the over-shoulder camera is aimed at the scenario hit of
+// the player's forward line (10 m ahead, 1 m up).
 static void wep02_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -113,6 +129,10 @@ static void wep02_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim. Resets the lock-on (lockInit, PlSetLockPitch), the neck, the aim
+// yaw m_Fwork0, puts the weapon object into mode 1 (ready), lets the weapon collide with enemies
+// (atari flag 0x200) for weapon 2 (the Punisher), remembers the camera direction in m_CamAdjY (ready10 turns the player to
+// it) and starts the draw motion 0x22/0x23 through mot3.
 static void wep02_r3_ready00(cPlayer* pl)
 {
     void* mot0;
@@ -139,6 +159,10 @@ static void wep02_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw motion plays. Frame ~2: draw SE (0x29 while m_Work2 == 1, else 0x28);
+// over frames 0..4 the remaining m_CamAdjY is folded into ang.y so the player faces the camera
+// direction; at frame 4 -> set state step 4 (r_no_2 1, r_no_3 4: finish the motion). Blends the
+// aim pitch m3r and straightens the waist.
 static void wep02_r3_ready10(cPlayer* pl)
 {
     if (pl->frame > 1.7f && pl->frame < 2.3f) {
@@ -166,6 +190,8 @@ static void wep02_r3_ready10(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// ready step 2: like step 1 without the SE and the camera turn (a re-draw after a fire / reload:
+// set by the shotgun-style callers; unused by the handgun's own transitions). Frame 4 -> set step 4.
 static void wep02_r3_ready20(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
@@ -180,7 +206,11 @@ static void wep02_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
-// ready30: turn / step towards the aim target while the motion plays. The pitch control is the
+// ready step 3: the lock-on turn (set by PlWepLockCtrl's ready-turn request): the player turns
+// towards `tgt` (PI/8 per frame) and slides 40 % per frame towards `pos` while the motion plays;
+// the aim pitch target m3r[1] follows atan2(height difference, distance) in 0.05 steps, clamped
+// to -1..1. Motion end: SE 5/0 and -> set state step 0.
+// The pitch control is the
 // shared PlWepAutoTrack tail (game/pl_wep.cpp). Forms that matter: `t` is assigned AFTER the Muku
 // call and lives across GetDistance3 (a pseudo that already crosses a call is hoisted by sched1 above
 // the earlier call and reload_cse turns its `addi` into the copy `mr r29, r4` of Muku's argument);
@@ -238,6 +268,11 @@ static void wep02_r3_ready30(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state. Runs the step, the lock-on control and the laser sight,
+// then: aim key released -> holster (wepDown, or crouch routine 0x11 with flags_420 bit6); fire
+// trigger with rounds -> fire (r_no_2 2), with an empty magazine -> reload (r_no_2 4, m_Flag
+// bit0) or the empty-click SE 2/0x17; fire held with rounds -> fire; reload key -> reload
+// (m_Work0 = 1 marks a manual reload).
 static void wep02_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -299,6 +334,8 @@ static void wep02_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way aim idle (0x26 down / 0x27 level / 0x28 up blended by the
+// pitch m3r[0]) with a 3-frame blend-in, then step 1.
 static void wep02_r3_set00(cPlayer* pl)
 {
     PlArc* arc = (PlArc*) pG->pWep;
@@ -309,11 +346,14 @@ static void wep02_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle (mot3 itself is advanced by the caller chain through m3r).
 static void wep02_r3_set10(cPlayer* pl)
 {
     pl->motionMove();
 }
 
+// set step 4: finish the current motion (the draw / the fire recoil) and go to step 0 when it
+// ends or as soon as the fire / aim / action keys (Key.on & 0x10F) are pressed.
 static void wep02_r3_set40(cPlayer* pl)
 {
     if (pl->motionMove() || (Key.on & 0x10F)) {
@@ -321,6 +361,8 @@ static void wep02_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 shoots, step 1 plays the recoil); keeps the lock-on control
+// running so the next shot's target is current.
 static void wep02_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -332,6 +374,12 @@ static void wep02_r2_fire(cPlayer* pl)
     PlWepLockCtrl(pl);
 }
 
+// fire step 0: the shot. trigger() spends a round and fires the weapon object, the fire motions
+// 0x29..0x2B replace the idle, the waist is twisted to the lock yaw m_Fwork0, and after a parts
+// recalculation the bullet line is taken from the right hand (parts 10): muzzle offset (234.5,
+// -24, 38.33) along -X for 50 m with a +-200 random spread -> PlWepHitCheck2 (6 m damage range).
+// m_Work4/m_Work5 = 1 (shot fired flags read by the camera / partner), weapon object mode 2, and
+// PlWepLockRand kicks the aim pitch / yaw for the recoil. Then step 1.
 static void wep02_r3_fire00(cPlayer* pl)
 {
     PlArc* arc;
@@ -377,6 +425,9 @@ static void wep02_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the recoil plays until the weapon's shot frame (PlShotFrameTbl by fire-speed level,
+// minus 2) is crossed, then -> set step 4 (the next shot may start); weapon 2 gets its atari flag
+// 0x200 back.
 static void wep02_r3_fire10(cPlayer* pl)
 {
     pl->motionMove();
@@ -391,6 +442,11 @@ static void wep02_r3_fire10(cPlayer* pl)
     }
 }
 
+// Holster: leaves the weapon routine for footwork (r_no_1 0) sub-routine 2 (the weapon-down
+// motion 0x24/0x25, blended over 3 frames from a fresh draw or 5 frames from mid-aim) when a
+// motion may be set (dmMotCk), else straight to the idle with x4FD = 0xF. Weapon object mode 3
+// (down), atari flag 0x200 cleared, the waist twist is unwound into ang.y. Also called by the
+// reload routine and the set state; exported for the module's own object.
 void wepDown(cPlayer* pl)
 {
     cObjWep* obj;
@@ -427,6 +483,12 @@ void wepDown(cPlayer* pl)
     FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
+// r_no_2 == 4: the reload state. Step 0 starts the reload motion of the reload-speed level
+// (0x2D/0x2E/0x2F) and weapon object mode 4 (the object refills the magazine when its motion
+// ends). Step 1 waits for PlReloadEndTbl's frame: aiming -> step 2, else holster (wepDown; crouch
+// with flags_420 bit6); with a level aim (|m3r[0]| <= 0.1) the motion may also run to its last
+// frame and return to set step 0. Steps 2/3 blend the aim idle back in over 8 frames (m_Work0
+// counts) and return to set step 0.
 static void wep02_r2_reload(cPlayer* pl)
 {
     u8 step = pl->r_no_3;

@@ -1,5 +1,11 @@
 // Bolt-action rifle weapon object (wep09 module, first object; real file name unknown): scoped rifle
 // with cartridge ejection after the shot and the level-dependent reload motion.
+//
+// cObjSniper is the cObjWep (game/objWep.cpp) of the rifle (weapon_no 9), hanging on the player's
+// right hand (parts 10) and driven by wep.mode / wep.step from the rifle routines
+// (wep/pl_rifle.cpp): mode 2 -> moveFire is the bolt cycle (set by fire20 after the shot: the
+// gun's motion 0x21 with the cartridge ejected at frame 14), mode 4 -> moveReload (motion by tune
+// level, ItemMgr.reload at frame 10). The scope glass is display type 1 (setDisp in pl_rifle).
 
 #include "wep_mod.h"
 #include "item.h"
@@ -23,11 +29,15 @@ public:
 extern const u8 sniper_tbl[3];
 const u8 sniper_tbl[3] = { 0x14, 0, 0 };
 
+// ObjInitFunc[0x28]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjSniper_init(cObj* obj)
 {
     new (obj) cObjSniper();
 }
 
+// cObjWep::init override (equipWeapon, parent = the player): weapon list id 0x2E, model 0xA /
+// texture 0x9 (the object is destroyed when the model fails), atari bits 8/9 off, hung on the
+// right hand, light area, idle motion 0x23, the sniper_tbl bytes, default lock spread.
 void cObjSniper::init(cModel* parent)
 {
     U16Set(wep.x24, 0x2E);
@@ -53,6 +63,9 @@ void cObjSniper::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (the bolt cycle, set by the rifle fire20): step 0 starts the gun's bolt motion
+// 0x21 at normal speed with the bolt SE and Status_flg[0] bit23; step 1 ejects the cartridge at
+// frame 14 and returns to mode 0 at the motion's end.
 void cObjSniper::moveFire()
 {
     if (wep.step == 0) {
@@ -72,6 +85,8 @@ void cObjSniper::moveFire()
     }
 }
 
+// Ejects a cartridge: an obj10 model (archive 0xB/0xC) from the rifle's own parts 1 (the bolt)
+// at (-240, -20, 70) with a random +-15 spread, gravity 10, 40 frames, landing effect 0x13.
 void cObjSniper::setCartridge()
 {
     cModel* parts = getPartsPtr(1);
@@ -101,6 +116,9 @@ void cObjSniper::setCartridge()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the gun's reload motion of the tune level (0x22/0x25/
+// 0x26) with the level's SE (2/0x20/0x21); at frame 10 the clip effect 0x3D plays and
+// ItemMgr.reload refills. The player routine ends the mode.
 void cObjSniper::moveReload()
 {
     if (wep.step == 0) {
@@ -139,6 +157,9 @@ void cObjSniper::moveReload()
     }
 }
 
+// Fills the player's motion table with the rifle-carrying footwork motions (idle, walk, run,
+// turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions; 0x3D stays the player
+// archive's) and sets the weapon hand models (right hand 1, left hand 2).
 void cObjSniper::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0E));

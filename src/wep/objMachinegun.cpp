@@ -1,5 +1,14 @@
 // Machine gun weapon object (wep11 / wep29 modules, first object; real file name unknown): model
 // by weapon type, fire burst with cartridge ejection and reload motions.
+//
+// cObjMachinegun is the cObjWep (game/objWep.cpp) of the TMP: the model hanging on the player's
+// right hand (parts 10), driven by wep.mode / wep.step, which the player routines
+// (wep/pl_machine.cpp) set: mode 2 fire -> moveFire (one shot's flash, SEs, cartridge and the
+// gun's own recoil motion), mode 4 reload -> moveReload (the gun motion, ItemMgr.reload at the
+// tune level's frame). weapon_type 0..3 selects the model (0x6..0x9: TMP with / without the stock
+// and the special variants), the idle motions and the lock random (setAbility). setMotion fills
+// the player's motion table with the TMP versions of the footwork motions. ObjMachinegun_init is
+// the ObjInitFunc entry the module registers for the object id.
 
 #include "wep_mod.h"
 #include "item.h"
@@ -9,11 +18,16 @@
 #include "pad.h"
 #include "rnd.h"
 
+// ObjInitFunc entry: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjMachinegun_init(cObj* obj)
 {
     new (obj) cObjMachinegun();
 }
 
+// cObjWep::init override, called by cPlayer::weaponInit with the player as parent: loads the
+// model of weapon_type (0x6..0x9, texture 0x5), turns off atari bits 8/9, hangs the model on the
+// player's right hand (parts 10), sets the light area, the idle motions (0x2A/0x2B normal, 0x2F
+// empty), the weapon list id wep.x24 (0x30..0x33) and the per-type lock random spread.
 void cObjMachinegun::init(cModel* parent)
 {
     void* bin;
@@ -77,6 +91,10 @@ void cObjMachinegun::init(cModel* parent)
     resetMotion();
 }
 
+// wep.mode == 2 (fire, set by wep11_r3_fire00 per round): step 0 starts the gun's recoil motion
+// (0x27, 0x2D on the last round), sets Status_flg[0] bit23 (shot noise this frame), plays the
+// three shot SEs, vibrates the pad, ejects a cartridge and spawns the muzzle flash (EstSet 0x45,
+// type by weapon_type); the motion's end returns to mode 0 (stay).
 void cObjMachinegun::moveFire()
 {
     int type = 0;
@@ -115,6 +133,9 @@ void cObjMachinegun::moveFire()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0xA/0xB) from the right hand's ejection port
+// offset (-109, -22, 90), thrown sideways / up with a random +-15 spread, gravity 10, 30 frames of
+// life, with the shell-landing effect 0x13.
 void cObjMachinegun::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -144,6 +165,10 @@ void cObjMachinegun::setCartridge()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the gun's reload motion of the reload tune level
+// (0x29/0x32/0x33, or 0x28/0x30/0x31 from an empty magazine) with the magazine-out SE; when the
+// motion crosses the level's frame (40/33/19) the magazine-in SE plays and ItemMgr.reload refills
+// the item. The mode is left by the player routine (wep11_r2_reload).
 void cObjMachinegun::moveReload()
 {
     static const int reloadEnd[3] = { 40, 33, 19 };
@@ -186,6 +211,10 @@ void cObjMachinegun::moveReload()
     }
 }
 
+// Fills the player's motion table (pMotTbl) with the TMP-carrying versions of the footwork
+// motions (idle, walk, run, turns, back, 0x57/0x5B knife transitions, 0x39..0x42 the damage /
+// stagger set; 0x3D stays the player archive's) and sets the weapon hand model (initWepHand +
+// right hand 1, left hand 3). Called by cPlayer::weaponInit / PlReloadBullet.
 void cObjMachinegun::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0D));

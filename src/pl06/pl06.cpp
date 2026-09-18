@@ -1,5 +1,10 @@
 // pl06 module (D:/Bio4/Prog/pl_hunk.cpp): HUNK, the mercenaries player: model set (body, hair, hands), the
 // Leon motion table, no face shapes and no cloth.
+//
+// cPlHunk (pl_mod.h) is the cPlayer of pl_type 3: the constructor builds the model set from the
+// player archive (4/5 body, 6/7 the mask "hair", 0x11 hand texture, 0x12 right hand, 0x14/0x15
+// left hands), loads / inits the weapon module and installs the event motions 0x5F..0x6C.
+// Pl06Init is the module's PlInitFunc. The HALT in setRightHand is line 253 of the vendor file.
 
 #include "atari.h"
 #include "light.h"
@@ -19,6 +24,9 @@ extern "C" void OSReport(const char* fmt, ...);
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 static inline void PSet(void*& d, void* v) { d = v; }
 
+// Builds HUNK: the cPlayer work init (init0), the model set, the equipped weapon module, the
+// routine init (init1), the event motions, the player effects (archive 0x1A as group 3), startUp
+// and the players' foot shadow table.
 cPlHunk::cPlHunk()
 {
     PlArc* arc;
@@ -36,6 +44,8 @@ cPlHunk::cPlHunk()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// Installs the character's event / action motions (pMotTbl 0x5F..0x6C from the player archive
+// 0x32..0x3F); the weapon module fills the footwork slots.
 void cPlHunk::setMotion()
 {
     PSet(pMotTbl[0x5F], PL_ARC(0x32));
@@ -54,11 +64,15 @@ void cPlHunk::setMotion()
     PSet(pMotTbl[0x6A], PL_ARC(0x3F));
 }
 
+// Per-frame update: the common cPlayer::move.
 void cPlHunk::move()
 {
     cPlayer::move();
 }
 
+// Builds the model set: the body (4/5) as the base model, the mask / hair (6/7, Body->pHair), a
+// first right (0x12) and left (0x14) hand; TEV scale group 1, then the hands are re-set through
+// setRightHand(0) / setLeftHand(1). (The error string still says cSubLuis.)
 void cPlHunk::setModel()
 {
     cModelInfo* info;
@@ -84,6 +98,9 @@ void cPlHunk::setModel()
     setLeftHand(1);
 }
 
+// Right hand model: 0 bare (0x12), 1 the weapon module's hand (Body->pWepHand), any other value
+// a model data pointer; replaces Body->pRight. HALTs (pl_hunk.cpp line 253) when the model
+// info cannot be created.
 void cPlHunk::setRightHand(int no)
 {
     cModelInfo* info;
@@ -116,6 +133,8 @@ void cPlHunk::setRightHand(int no)
     }
 }
 
+// Left hand model: 0 bare (0x14), 1 / 3 the gripping hand (0x15), 0x63 = the previous one, any
+// other value a model data pointer; replaces Body->pLeft.
 void cPlHunk::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -153,10 +172,12 @@ void cPlHunk::setLeftHand(u32 no)
     }
 }
 
+// HUNK wears a mask: no face expressions.
 void cPlHunk::setFace(int no)
 {
 }
 
+// Head swap by number (only 0 does anything): replaces the mask model with the archive's 0xB.
 void cPlHunk::setHead(int no)
 {
     cModelInfo* info;
@@ -175,6 +196,7 @@ void cPlHunk::setHead(int no)
     }
 }
 
+// Head swap with explicit model / texture data; never effective for HUNK (no Body->pShape).
 void cPlHunk::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -190,21 +212,25 @@ void cPlHunk::setHead(void* bin, void* tpl)
     }
 }
 
+// PlInitFunc: placement-constructs HUNK in the player's cEm work.
 void Pl06Init(cEm* em)
 {
     new (em) cPlHunk();
 }
 
+// REL entry: registers the player constructor.
 extern "C" void _prolog()
 {
     PlInitFunc = Pl06Init;
     OSReport("Pl06 HUNK prolog Ok\n");
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

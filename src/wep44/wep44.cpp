@@ -1,4 +1,10 @@
 // wep44 module: Wesker's handgun (cObjGovernment, object id 0x31; routines wep/pl_handgun.cpp).
+//
+// Wesker's Killer7: the wep06 cObjGovernment without weapon types (one model 0x6, weapon list id
+// 0x2A), hanging on the player's right hand (parts 10) and driven by wep.mode / wep.step from the
+// handgun routines (mode 2 fire: slide motion, SEs, flash 0x3A, cartridge; mode 4 reload by tune
+// level, ItemMgr.reload at its frame; both ended by the player routine). Wep44_init is the
+// WeaponInitFunc, PlHandgunMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -23,6 +29,9 @@ public:
 
 void ObjGovernment_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjGovernment as
+// Wep->m_pWep, inits it on the player, installs its motions and loads the muzzle-flash effects
+// (archive 0x4 as group 0x3A). (The error string still says Wep15 / cObjMagnum.)
 void Wep44_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -38,11 +47,15 @@ void Wep44_init(cModel* m)
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x3A, 1);
 }
 
+// ObjInitFunc[0x31]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjGovernment_init(cObj* obj)
 {
     new (obj) cObjGovernment();
 }
 
+// cObjWep::init override (parent = the player): idle motions 0x34 (normal) / 0x3A (empty), weapon
+// list id 0x2A, model 0x6 / texture 0x5, atari bits 8/9 off, hung on the right hand, light area,
+// wep.x18..x1A = 0x14, default lock spread.
 void cObjGovernment::init(cModel* parent)
 {
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
@@ -68,6 +81,9 @@ void cObjGovernment::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire): step 0 starts the slide motion (0x32, 0x35 on the last round), plays the
+// shot SEs, sets Status_flg[0] bit23 (shot noise), muzzle flash 0x3A, a cartridge and the pad
+// vibration; step 1 waits for the player routine.
 void cObjGovernment::moveFire()
 {
     if (wep.step == 0) {
@@ -91,6 +107,9 @@ void cObjGovernment::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the tune level (0x36/0x3D/0x3E, or
+// 0x33/0x3B/0x3C from an empty magazine) with the level's SE (0x16/0x20/0x21); at the level's
+// frame (44/37/22) ItemMgr.reload refills the magazine.
 void cObjGovernment::moveReload()
 {
     static const f32 reloadEnd[3] = { 44.0f, 37.0f, 22.0f };
@@ -144,6 +163,8 @@ void cObjGovernment::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x3F/0x40) from the right hand's ejection
+// port offset (-163, -163, 100) with a random +-15 spread, gravity 10, 30 frames, effect 0x13.
 void cObjGovernment::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -173,6 +194,9 @@ void cObjGovernment::setCartridge()
     }
 }
 
+// Fills the player's motion table with the handgun-carrying footwork motions (idle, walk, run,
+// turns, back, the 0x39..0x42 and 0x5D/0x5E damage set; no knife transitions; 0x3D stays the
+// player archive's), the weapon hand model (right hand 1) and the archive's left hand (0x9).
 void cObjGovernment::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));
@@ -204,6 +228,7 @@ void cObjGovernment::setMotion(cPlayer* pl)
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep44_init;
@@ -212,11 +237,13 @@ extern "C" void _prolog()
     OSReport("Wep44 WESKER - KILLER7 prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x31] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

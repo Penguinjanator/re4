@@ -1,5 +1,11 @@
 // Semi-auto rifle weapon object (wep10 module, first object; real file name unknown): the
 // cObjHkSniper class shared with wep40/wep47 (which carry their own copies).
+//
+// cObjHkSniper is the cObjWep (game/objWep.cpp) of the semi-auto rifle (weapon_no 0xA), hanging
+// on the player's right hand (parts 10) and driven by wep.mode / wep.step from the rifle routines
+// (wep/pl_rifle.cpp): mode 2 -> moveFire (the shot's SEs and vibration; no gun motion, the
+// pointer is cleared), mode 4 -> moveReload (motion by tune level, ItemMgr.reload at frame 34).
+// Both modes are ended by the player routine.
 
 #include "wep_mod.h"
 #include "item.h"
@@ -12,11 +18,15 @@
 extern const u8 hksniper_tbl[3];
 const u8 hksniper_tbl[3] = { 0x14, 0xA, 0 };
 
+// ObjInitFunc[0x30]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHkSniper_init(cObj* obj)
 {
     new (obj) cObjHkSniper();
 }
 
+// cObjWep::init override (Wep10_init, parent = the player): model 0xA / texture 0x9 (the object
+// is destroyed when the model fails), atari bits 8/9 off, hung on the right hand, light area, the
+// hksniper_tbl bytes, idle motion 0x22, default lock spread.
 void cObjHkSniper::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0xA), WEP_ARC_PTR(0x9)) == 0) {
@@ -41,6 +51,8 @@ void cObjHkSniper::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, set by the rifle fire00 for the semi-auto): step 0 drops the gun's motion,
+// plays the shot SEs, sets Status_flg[0] bit23 (shot noise) and vibrates the pad; step 1 waits.
 void cObjHkSniper::moveFire()
 {
     if (wep.step == 0) {
@@ -53,6 +65,8 @@ void cObjHkSniper::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the gun's reload motion of the tune level (0x21/0x25/
+// 0x26) with the level's SE (2/0x20/0x21); at frame 34 ItemMgr.reload refills the magazine.
 void cObjHkSniper::moveReload()
 {
     if (wep.step == 0) {
@@ -90,6 +104,9 @@ void cObjHkSniper::moveReload()
     }
 }
 
+// Fills the player's motion table with the rifle-carrying footwork motions (idle, no walk [1],
+// run, turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions; 0x3D stays the
+// player archive's) and sets the weapon hand models (right hand 1, left hand 2).
 void cObjHkSniper::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0E));

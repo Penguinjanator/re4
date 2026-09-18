@@ -1,6 +1,11 @@
 // wep42 module: Krauser's grenades (the wep19 cObjHandGre build for the flash grenade and the eggs;
 // object id 0x3C). The module object carries the class, the entry points and the grenade routine
 // registration (wep/pl_grenade.cpp).
+//
+// Krauser's build of wep19: the display-only cObjHandGre (flash grenade or egg model by weapon
+// number) at his hand (parts 0x11) and belt (parts 10) offsets; the aim key is let through
+// regardless of the item count when Status_flg[3] bit23 is set (the Krauser fight's forced throw).
+// Wep42_init is the WeaponInitFunc, PlGrenadeMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -24,6 +29,9 @@ public:
 // item kind of the equipped throwable (equipWeapon)
 static u16 greType;
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the two grenade objects, installs
+// the grenade footwork motions, loads the throw effects (archive 0x4 as group 0x4D) and points
+// the debug preview PlWepMot at the aim idles 0x11/0x14/0x17.
 void Wep42_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -42,6 +50,9 @@ void Wep42_init(cModel* m)
 }
 
 // The two grenade objects: the hand one (parts 0x11) is pObj, the belt one (parts 0xA) pObj2.
+// greType = the item kind of weapon_no (1 grenade, 2 incendiary, 0xE flash, 8/9/0xA eggs); the
+// eggs are drawn at half scale; the hand one is hidden with <= 1 item, the belt one with none.
+// Returns the hand object, NULL when a work could not be created.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -118,11 +129,14 @@ cObjWep* equipWeapon(cPlayer* pl)
     return pl->Wep->m_pWep;
 }
 
+// ObjInitFunc[0x3C]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHandGre_init(cObj* obj)
 {
     new (obj) cObjHandGre();
 }
 
+// cObjWep::init override: the model of weapon_no from the player archive (flash grenade 0x6A/0x6F
+// by default, egg 0x7D with 0x7E/0x7F/0x80) and the item kind in wep.x24; no atari / parent.
 void cObjHandGre::init(cModel* parent)
 {
     void* bin;
@@ -156,6 +170,10 @@ void cObjHandGre::init(cModel* parent)
     }
 }
 
+// Fills the player's motion table with the grenade footwork motions (idle, no walk [1], run,
+// turns, back, the 0x39..0x42 damage set; 0x3D stays the player archive's), shows / hides the
+// hand and belt grenades by the item count, and sets the right hand model (the grenade hand 0x7
+// while any is left, else the bare hand 0x12).
 void cObjHandGre::setMotion(cPlayer* pl)
 {
     u16 num;
@@ -203,6 +221,8 @@ void cObjHandGre::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// Aim key check (cObjWep::keyKamae override): the aim button counts only while an item is left,
+// unless Status_flg[3] bit23 lets it through regardless.
 int cObjHandGre::keyKamae()
 {
     if (pG->Status_flg[3] & 0x00800000) {
@@ -214,6 +234,7 @@ int cObjHandGre::keyKamae()
     return 0;
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep42_init;
@@ -222,11 +243,13 @@ extern "C" void _prolog()
     OSReport("Wep42 KLAUSER GRENADE prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x3C] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

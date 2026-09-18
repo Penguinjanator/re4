@@ -2,6 +2,14 @@
 // creates a target from an EmMarkData record; the target then runs its instruction list (begin: rise,
 // stay: wait N frames, move: walk to an integer position, end: fold down / vanish) and reports hits to
 // the room through R22cHitMark / R22cHitEffect.
+//
+// em3eInit is the module's EmInitFunc; the room (st2 r22c) then calls cEmMark::init with the
+// record. Types 0..6 are the targets (0 Ganado, 1, 2 Ashley = the "don't shoot" target that folds
+// when older targets remain, 3 the bottle, 4 / 5 tougher ones, 6 with a bonus box on hit[3]),
+// 0xA..0xF the gallery scenery walls (hp 1000, hits reported as R22cHitEffect). r_no_0 is the
+// running instruction (0 begin, 1 end, 2 stay, 3 move, 4 none), r_no_1 / r_no_2 its steps; the
+// target pops up by rotating ang.x from PI/2 to 0 and folds back down. EmMarkWork (em3e.h):
+// pInst the instruction cursor, age frames since the pop-up, timer, downTimer, hit[] boxes.
 
 #include "atari.h"
 #include "light.h"
@@ -31,21 +39,29 @@ static void emmark_none(cEmMark* em);
 
 #define ARC(no) PL_ARC_PTR(subArc, no)
 
+// EmInitFunc: placement-constructs a target in the cEm work.
 void em3eInit(cEm* em)
 {
     new (em) cEmMark();
 }
 
+// Constructor: targets cannot be locked on.
 cEmMark::cEmMark()
 {
     setStatus(EM_STATUS_LOCKOFF);
 }
 
+// Room entry: init from an EmMarkData record (type, instruction list, integer position).
 void cEmMark::init(EmMarkData* d)
 {
     init(d->type, d->inst, (f32) d->X, (f32) d->Y, (f32) d->Z);
 }
 
+// Builds the target at (x, y, z): the model by type (targets from the module archive, walls
+// 0xA..0xF from the room's scroll objects), type 5 six times larger and upside down, a light
+// area (1 m for targets, 10 m for walls), hp (1 / 5 / 10 / 1000), the effects (archive 4 as
+// group 0x33), the hit cubes (head / chest / body / legs, plus the bonus box of type 6 and the
+// wall panels), type 6's bonus glow, and the instruction cursor at `inst` with age 0.
 void cEmMark::init(u8 type, EmMarkInst* inst, f32 x, f32 y, f32 z)
 {
     static const Vec ofs = { 0.0f, 0.0f, 0.0f };
@@ -225,6 +241,8 @@ EmMarkFunc emmark_tbl[6] = {
     0,
 };
 
+// Per-frame update (emMove): the hit check, the Ashley target's fold-down check while standing,
+// the current instruction, age counts while staying / moving, then the matrix.
 void cEmMark::move()
 {
 
@@ -242,6 +260,7 @@ void cEmMark::move()
     matUpdate();
 }
 
+// Number of other live targets (not the Ashley types 2 / 3) that have been up at least `age` frames.
 int countOldMark(cEmMark* self, int age)
 {
     int n = 0;
@@ -274,6 +293,7 @@ int countOldMark(cEmMark* self, int age)
     return n;
 }
 
+// The Ashley target (type 2) folds down (setDown) 10 frames after the last older target has gone.
 void cEmMark::downCheck()
 {
 
@@ -289,6 +309,8 @@ void cEmMark::downCheck()
     }
 }
 
+// Instruction 0 (begin): the pop-up SE (targets only) and the rise from ang.x PI/2 to 0 in 10
+// frames, then the next instruction.
 static void emmark_begin(cEmMark* em)
 {
     int st = em->r_no_1;
@@ -313,6 +335,8 @@ static void emmark_begin(cEmMark* em)
     }
 }
 
+// Instruction 1 (end, also entered by a killing hit / setDown): an unhit target waits 10 frames
+// first; hp = 0, the fold-down SE, the fold from 0 to PI/2 in 10 frames, then the work is destroyed.
 static void emmark_end(cEmMark* em)
 {
     switch (em->r_no_1) {
@@ -352,6 +376,8 @@ static void emmark_end(cEmMark* em)
     }
 }
 
+// Instruction 2 (stay): waits inst->count frames (springing back upright after a hit), then the
+// next instruction.
 static void emmark_stay(cEmMark* em)
 {
     EmMarkInst* inst = EMMARK(em)->pInst;
@@ -371,6 +397,8 @@ static void emmark_stay(cEmMark* em)
     em->standSpring();
 }
 
+// Instruction 3 (move): slides towards the integer target position at inst->spd units per frame
+// (springing upright), snaps onto it and takes the next instruction.
 static void emmark_move(cEmMark* em)
 {
     EmMarkInst* inst = EMMARK(em)->pInst;
@@ -399,10 +427,16 @@ static void emmark_move(cEmMark* em)
     em->standSpring();
 }
 
+// Instruction 4 (none): the target holds (the walls).
 static void emmark_none(cEmMark* em)
 {
 }
 
+// Hit of the frame (cEm::dmHit set by PlWepHitCheck2): a wall reports its panel (setEffWall);
+// a target loses 1 hp; the hit kind is 5 for grenades, 2 for type 6's bonus box, 1 for the head
+// box (hitInfo), 0 for the body. Killed: the break effect and R22cHitMark(type, headshot, pos,
+// 1, age), then the end instruction; still alive: a hit effect, R22cHitMark(..., 3 / 2, ..., 0,
+// age) and the target tilts back PI/7.
 void cEmMark::damageCheck()
 {
     int eff;
@@ -437,6 +471,10 @@ void cEmMark::damageCheck()
     }
 }
 
+// Hit effect: the bottle (3) shatters (effect 8 / 9 by weapon) and vanishes; the Ashley target
+// (2) a plain hit effect; kind 2 (the bonus box) swaps in the opened model, effect 6 and a
+// grenade-type blast hit check around it; kind 1 (headshot) or a grenade kill blows the head off
+// (headBomb); a body hit the plain effect (0, 1 for the shotgun) at the hit point. Returns 1.
 int cEmMark::setEff(int a, int kind)
 {
     const f32 range = 6000.0f;
@@ -489,6 +527,8 @@ int cEmMark::setEff(int a, int kind)
     return 1;
 }
 
+// Wall hit: the panel hit boxes of types 0xC..0xF map to the room's R22cHitEffect numbers (0..6);
+// any other spot gets the plain hit effect. Returns 1.
 int cEmMark::setEffWall()
 {
 
@@ -535,6 +575,7 @@ int cEmMark::setEffWall()
     return 1;
 }
 
+// Plain wall hit effect (0, 1 for the shotgun) at the hit point. Returns 1.
 int cEmMark::setEffWallNormal()
 {
     Vec p;
@@ -548,6 +589,8 @@ int cEmMark::setEffWallNormal()
     return 1;
 }
 
+// Headshot: swaps in the headless model of the type and plays the head-burst effect (kind by
+// type; the shotgun / grenade variants 4 / 5 / 9) with its SE.
 void cEmMark::headBomb()
 {
     void* bin;
@@ -637,6 +680,8 @@ void cEmMark::headBomb()
     SndCall(6, 2, &pos, 0, 0, 0);
 }
 
+// Advances the instruction cursor past the current record (begin / end 4 bytes, stay 8, move
+// 0x14, none 0) and starts the new one: r_no_0 = its type byte, steps zero.
 void cEmMark::setNextInstruction()
 {
     int size;
@@ -668,6 +713,7 @@ void cEmMark::setNextInstruction()
     r_no_3 = 0;
 }
 
+// Springs a hit target back upright: ang.x (tilted negative by a hit) returns to 0 by PI/20 per frame.
 void cEmMark::standSpring()
 {
     const f32 step = PI / 20.0f;
@@ -681,6 +727,7 @@ void cEmMark::standSpring()
     }
 }
 
+// Folds a live, unhit target down: the end instruction (also called by the room).
 void cEmMark::setDown()
 {
     if (hp <= 0) {
@@ -695,16 +742,19 @@ void cEmMark::setDown()
     r_no_3 = 0;
 }
 
+// REL entry: registers the target constructor.
 extern "C" void _prolog()
 {
     OSReport("emMark prolog Ok\n");
     EmInitFunc = em3eInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

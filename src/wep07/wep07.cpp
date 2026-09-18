@@ -1,4 +1,11 @@
 // wep07 module: the shotgun (cObjShotgun, object id 0x2B; routines wep/pl_shotgun.cpp).
+//
+// cObjShotgun is the cObjWep (game/objWep.cpp) of the pump shotgun (weapon_no 7), hanging on the
+// player's right hand (parts 10) and driven by wep.mode / wep.step from the shotgun routines:
+// mode 2 -> moveFire (recoil motion, then the pump ejects the shell at frame 20), mode 4 ->
+// moveReload (shell-by-shell motion by tune level; the mode ends itself with the motion).
+// Wep07_init is the module's WeaponInitFunc, PlShotgunMove its WeaponMoveFunc; the module object
+// carries the class, the entry points and the ObjInitFunc slot.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -23,6 +30,9 @@ public:
 
 void ObjShotgun_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjShotgun as Wep->m_pWep,
+// inits it on the player, installs its motions, loads the muzzle-flash effects (archive 0x4 as
+// group 0x3B) and points the debug preview PlWepMot at the aim idles 0x1A/0x20/0x22.
 void Wep07_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -41,11 +51,15 @@ void Wep07_init(cModel* m)
     PlWepMot[2] = WEP_ARC_PTR(0x22);
 }
 
+// ObjInitFunc[0x2B]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjShotgun_init(cObj* obj)
 {
     new (obj) cObjShotgun();
 }
 
+// cObjWep::init override (parent = the player): model 0x5 / texture 0x6, atari bits 8/9 off,
+// hung on the right hand, light area, weapon list id 0x2C, idle motion 0x31, wep.x18..x1A = 0x2E,
+// default lock spread.
 void cObjShotgun::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x5), WEP_ARC_PTR(0x6)) == 0) {
@@ -70,6 +84,10 @@ void cObjShotgun::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, set by the shotgun fire00): step 0 starts the recoil + pump motion (0x30,
+// 0x32 on the last shell), shot SE, pad vibration, Status_flg[0] bit23 (shot noise), muzzle flash
+// 0x3B; step 1 ejects the spent shell with the pump SE at frame 20 and returns to mode 0 at the
+// motion's end.
 void cObjShotgun::moveFire()
 {
     if (wep.step == 0) {
@@ -98,6 +116,9 @@ void cObjShotgun::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the tune level (0x2B/0x2D/0x2F) with
+// the level's SE (7/0x20/0x21); step 1 refills the shells at the level's frame (30/26/17), plays
+// the pump SE at 66/57/40 and returns to mode 0 at the motion's end.
 void cObjShotgun::moveReload()
 {
     static const f32 reloadEnd[3] = { 30.0f, 26.0f, 17.0f };
@@ -147,6 +168,8 @@ void cObjShotgun::moveReload()
     }
 }
 
+// Ejects a spent shell: an obj10 model (archive 0x8/0x9) from the right hand's ejection port
+// offset (-201, -6.9, 1.8) with a random +-15 spread, gravity 10, 40 frames, landing effect 0x13.
 void cObjShotgun::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -176,6 +199,9 @@ void cObjShotgun::setCartridge()
     }
 }
 
+// Fills the player's motion table with the shotgun-carrying footwork motions (idle, walk, run,
+// turns, back, the 0x39..0x42 and 0x5D/0x5E damage set, 0x57/0x5B knife transitions; 0x3D stays
+// the player archive's) and sets the weapon hand models (left hand 2, right hand 1).
 void cObjShotgun::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0A));
@@ -213,6 +239,7 @@ void cObjShotgun::setMotion(cPlayer* pl)
     pl->setRightHand(1);
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep07_init;
@@ -221,11 +248,13 @@ extern "C" void _prolog()
     OSReport("Wep07 SHOTGUN prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x2B] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

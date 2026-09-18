@@ -1,4 +1,7 @@
 // wep10 module entry: the semi-auto rifle (class in objHkSniper.cpp, routines wep/pl_rifle.cpp).
+// Wep10_init is the module's WeaponInitFunc (creates the cObjHkSniper, object id 0x30, as the
+// player's weapon and loads the effects), PlRifleMove its WeaponMoveFunc; _prolog registers both
+// and the ObjInitFunc slot.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -8,6 +11,9 @@ void PlRifleMove(cPlayer* pl);   // wep/pl_rifle.cpp
 
 void ObjHkSniper_init(cObj* obj);   // wep10/objHkSniper.cpp
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjHkSniper as Wep->m_pWep
+// (NULL is stored too), inits it on the player, installs its motions, loads the effects (archive
+// 0x8 as group 0x44) and points the debug preview PlWepMot at motion 0xE.
 void Wep10_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -27,6 +33,7 @@ void Wep10_init(cModel* m)
     PlWepMot[2] = WEP_ARC_PTR(0xE);
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep10_init;
@@ -35,11 +42,13 @@ extern "C" void _prolog()
     OSReport("Wep10 HK-SNIPER prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x30] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

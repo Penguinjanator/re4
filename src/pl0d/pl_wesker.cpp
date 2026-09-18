@@ -1,5 +1,13 @@
 // pl0d module, third object (D:/Bio4/Prog/pl_wesker.cpp): Wesker: the jacket cloth chain (allocated on
 // initCloth), the player class with Leon's motion table and model set (body, hair, head, face shapes).
+//
+// cPlWesker (pl_mod.h) is the cPlayer of pl_type 5 (Wesker in the mercenaries): the constructor
+// builds the model set from the player archive (4/5 body, 0xA extra part, 8/7 head with the face
+// shapes, 6/7 hair, 0x11 hand texture, 0x12 right hand, 0x14/0x16/0x18 left hands, 0x62/0x63 face
+// shapes), loads / inits the weapon module and installs the event motions 0x5F..0x6C. The jacket
+// is a 24-part pendulum cloth chain (weskerJacketP, 4 bundles, PenClothMove3) whose PlCloth work
+// is MemAlloc'd on initCloth. Pl0dInit is the module's PlInitFunc; the module's first two objects
+// are the Punisher class and the handgun routines rebuilt without their entry points.
 
 #include "atari.h"
 #include "light.h"
@@ -43,6 +51,10 @@ CLOTH_AT_SET weskerJacketAt[6] = {
 
 static PlCloth* weskerJacket;
 
+// Sets up Wesker's jacket as a pendulum cloth chain: 24 parts (weskerJacketP) in 4 bundles,
+// linked parent/child (weskerJacketUp/Dp) and sideways (weskerJacketLp), sway limits 0.2 / 0.3,
+// per-part wind phase / rate, 6 collision spheres on the hips / legs (weskerJacketAt), gravity
+// 25, damping 0.5, stretch 0.1, flags 0x100; PenClothSet initialises the chain 100 units long.
 void testJacketSetWesker(cModel* pl, PlCloth* c)
 {
     f32 rate;
@@ -75,22 +87,29 @@ void testJacketSetWesker(cModel* pl, PlCloth* c)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Per-frame update of the jacket chain (the sideways-linked pendulum variant).
 void testJacketMoveWesker(cModel* pl, PlCloth* c)
 {
     PenClothMove3(pl, (PenCloth*) c);
 }
 
+// Cloth set-up (cPlWesker::initCloth): the jacket chain.
 void PlClothSetWesker(cModel* pl, PlCloth* jacket)
 {
     testJacketSetWesker(pl, jacket);
 }
 
+// Cloth update (cPlWesker::moveCloth): the jacket, then the model's be_flag bits 21..23 (the
+// cloth "just set" flags) are cleared.
 void PlClothMoveWesker(cModel* pl, PlCloth* jacket)
 {
     testJacketMoveWesker(pl, jacket);
     pl->be_flag &= ~0x00E00000;
 }
 
+// Builds Wesker: the cPlayer work init, the model set, the equipped weapon module, the routine
+// init, the event motions, the player effects (archive 0x1A as group 3), startUp and the players'
+// foot shadow table.
 cPlWesker::cPlWesker()
 {
     PlArc* arc;
@@ -108,6 +127,8 @@ cPlWesker::cPlWesker()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// Installs the character's event / action motions (pMotTbl 0x5F..0x6C from the player archive
+// 0x32..0x3F); the weapon module fills the footwork slots.
 void cPlWesker::setMotion()
 {
     PSet(pMotTbl[0x5F], PL_ARC(0x32));
@@ -126,11 +147,15 @@ void cPlWesker::setMotion()
     PSet(pMotTbl[0x6A], PL_ARC(0x3F));
 }
 
+// Per-frame update: the common cPlayer::move.
 void cPlWesker::move()
 {
     cPlayer::move();
 }
 
+// Builds the model set: the body (4/5) as the base model, an extra part (0xA/5), the head with the
+// face shape data (8/7, Body->pShape / pHeadData), the hair (6/7, Body->pHair); TEV scale group
+// 1, neutral face, bare hands.
 void cPlWesker::setModel()
 {
     cModelInfo* info;
@@ -167,6 +192,9 @@ void cPlWesker::setModel()
     setLeftHand(0);
 }
 
+// Right hand model: 0 bare (0x12), 1 the weapon module's hand (Body->pWepHand), any other value
+// a model data pointer; replaces Body->pRight. HALTs (pl_wesker.cpp line 515) when the model
+// info cannot be created.
 void cPlWesker::setRightHand(int no)
 {
     cModelInfo* info;
@@ -199,6 +227,8 @@ void cPlWesker::setRightHand(int no)
     }
 }
 
+// Left hand model: 0 bare (0x14), 2 (0x16), 4 (0x18), 0x63 = the previous one, any other value a
+// model data pointer; replaces Body->pLeft.
 void cPlWesker::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -238,6 +268,8 @@ void cPlWesker::setLeftHand(u32 no)
     }
 }
 
+// Face expression: 0 ends the shape blend (neutral), 1 / 2 blend the face shapes 0x62 / 0x63
+// onto the head model.
 void cPlWesker::setFace(int no)
 {
     void* data = 0;
@@ -263,6 +295,8 @@ void cPlWesker::setFace(int no)
     }
 }
 
+// Head swap by number (only 0 does anything): drops the head and hair models and adds the
+// archive's event head 0xB.
 void cPlWesker::setHead(int no)
 {
     cModelInfo* info;
@@ -283,6 +317,8 @@ void cPlWesker::setHead(int no)
     }
 }
 
+// Head swap with explicit model / texture data (events): drops the head, hair and eye models
+// and adds the given one.
 void cPlWesker::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -302,6 +338,7 @@ void cPlWesker::setHead(void* bin, void* tpl)
     }
 }
 
+// Cloth set-up (cPlayer::startUp): allocates the jacket's PlCloth work and initialises the chain.
 void cPlWesker::initCloth()
 {
     weskerJacket = (PlCloth*) MemAlloc(sizeof(PlCloth), 1);
@@ -310,6 +347,7 @@ void cPlWesker::initCloth()
     }
 }
 
+// Per-frame cloth update (cPlayer::move) while the jacket work exists.
 void cPlWesker::moveCloth()
 {
     if (weskerJacket) {
@@ -317,21 +355,25 @@ void cPlWesker::moveCloth()
     }
 }
 
+// PlInitFunc: placement-constructs Wesker in the player's cEm work.
 void Pl0dInit(cEm* em)
 {
     new (em) cPlWesker();
 }
 
+// REL entry: registers the player constructor.
 extern "C" void _prolog()
 {
     PlInitFunc = Pl0dInit;
     OSReport("Pl0d WESKER prolog Ok\n");
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

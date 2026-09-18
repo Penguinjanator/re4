@@ -2,6 +2,16 @@
 // Matching notes: the byte flag fields are s8 (their bit clears compile to full-width rlwinm masks);
 // `default:` comes first in most switches; two-case switches whose tree tests 1 before 0 carry an
 // empty `case 2:`; cAnalysis::move's scan is a while loop with the scan in its condition.
+//
+// Luis is the enemy work of id 3 (pSUB) during the cabin siege: LuisInit is the module's
+// EmInitFunc. Every frame cSubLuis::move runs damageCheck (the player's / enemies' hits ->
+// flags bit0), cAnalysis::move (nearest shootable enemy, route distance to the player, is the
+// player aiming a gun / grenade at him), think (picks the cAction mode), cAction::move (the mode's
+// step machine, which requests cRoutine routines) and cRoutine::move (the motion routine of
+// r_no_0: footwork, damage, die, walk, run, turn, weapon ready / set / fire / down, throw the item,
+// down / avoid / up / blast). His gun is a cObjLuisItem hung on his right hand; the thrown item
+// (routine 0xD) is another cObjLuisItem that lands as a pickup. Lines he speaks go through cVoice
+// (SE + subtitle). Room 11C positions are hard-coded (the stairs, the upper floor, the rack escape).
 
 #include "atari.h"
 #include "atari_init.h"
@@ -63,6 +73,8 @@ static inline void RoutineStepClear(cSubLuis* o)
 
 // LuisInit is public and defined before the first initialised public object: the static initializer's
 // key (`global constructors keyed to LuisInit`) is the first public function/initialised object assembled.
+// EmInitFunc: placement-constructs Luis in the cEm work, builds his models, inits the work and
+// creates his gun object.
 void LuisInit(cEm* em)
 {
     cSubLuis* luis = new (em) cSubLuis();
@@ -98,6 +110,9 @@ static int luisUnused = 0;       // never read (the second .data word)
 
 static cMot3Rate luisEye;        // [0] current eye yaw, [1] target, [2] mix
 
+// Constructor: the three machines start (routine 0 footwork, action mode 2 chase the player), the
+// players' foot shadow table, registers himself as pSUB, and the eye yaw blend (luisEye) is reset
+// with mix 0.4.
 cSubLuis::cSubLuis()
 {
     routine.init(this);
@@ -113,6 +128,7 @@ cSubLuis::cSubLuis()
     luisEye.r[2] = 0.4f;
 }
 
+// Destructor (killEm / room change): destroys the gun object and clears pSUB.
 cSubLuis::~cSubLuis()
 {
     ObjMgr.destroy(pItem);
@@ -128,6 +144,10 @@ static inline const Vec* LuisLightZero()
     return &zero;
 }
 
+// Work init (LuisInit): light area, a 300 x 900 collision cylinder, lock-on point on parts 4, not
+// lockable (EM_STATUS_LOCKOFF), hp 1200, 5 hits from the player before he goes down (m_PlAtack),
+// be_flag bit25, his effects (archive 0x34 as group 7), the hair cloth, the hit boxes (torso,
+// head, legs, arms; YarareInit / YarareAdd), the idle motion 0x40 and the three racks of the room.
 void cSubLuis::init()
 {
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
@@ -171,6 +191,8 @@ void cSubLuis::init()
     getRoomEtcRack(2, &rack[2], 1);
 }
 
+// Builds the model set from the partner archive: the body (0x10/0x14) as the base model, the hair
+// (0x18/0x1C), the face (0x20/0x1C, pFace) and three more parts (0x24, 0x28, 0x2C with the body texture).
 void cSubLuis::modelSet()
 {
     cModelInfo* info;
@@ -191,6 +213,10 @@ void cSubLuis::modelSet()
     if (info) addModel(info);
 }
 
+// Per-frame update (emMove): clears Status_flg[1] bit16 / [2] bit29 (partner request bits), then
+// damage -> analysis -> think -> action -> routine, the eyes and neck, the parts matrices, the
+// hair cloth, the enemy / scenery collision (EmAtCheck, SatMgr.check, atari.move) and the motion
+// key sounds.
 void cSubLuis::move()
 {
     U32And(pG->Status_flg[1], ~0x10000);
@@ -216,6 +242,14 @@ void cSubLuis::move()
 // or a direct `flags & bit` read gives SImode pseudos and no copies.
 static inline int Chk8(u8 f, int b) { return f & b; }
 
+// Picks the action mode of the frame (nothing while in damage / die). flags bit0 (hit) -> damage
+// (5) or die (6, when the event routine was running); else in priority order: a grenade aimed at
+// him (analysis bit4) -> avoid (0xA); down and no longer aimed at -> get up (9); flags bit1 (5
+// player hits) -> attack the player (4); aimed at by the player -> down (8); upstairs (set 2)
+// and not yet there -> go upstairs (3); ground floor with a rack coming -> escape it (0xC), or
+// the room 11C opening (0xB); a target -> attack (1), or every 1800 frames with the player on the
+// same floor the item gift (7); nothing -> chase the player (2). Also the worry line when the
+// player's life changed (every 90 frames) and the reaction line after enemy damage (cnt).
 void cSubLuis::think()
 {
     static const Vec upPos = { 112160.0f, 3182.64f, -51016.84f };
@@ -276,6 +310,8 @@ void cSubLuis::think()
     if (cnt) cnt--;
 }
 
+// The first rack is alive, pushed past z -49000 and Luis is within 3 m of the rack spot: sets
+// analysis bit7 (escape the rack) and returns 1.
 int cSubLuis::rackCheck()
 {
     static const Vec rackPos = { 107455.0f, 4.0f, -47540.0f };
@@ -292,6 +328,7 @@ int cSubLuis::rackCheck()
     return 1;
 }
 
+// Routine machine init: routine bytes zero, no saved routines, no burst, routine 0 (footwork).
 void cRoutine::init(cSubLuis* o)
 {
     owner = o;
@@ -306,6 +343,7 @@ void cRoutine::init(cSubLuis* o)
     set(0);
 }
 
+// Runs the routine of r_no_0 (4 = the scenario's event function m_pFunc) and the voice timer.
 int cRoutine::move()
 {
     if (owner->r_no_0 == 4) {
@@ -317,6 +355,7 @@ int cRoutine::move()
     return 1;
 }
 
+// Routine 0: the idle motion 0x40.
 void cRoutine::moveFootwork()
 {
     if (owner->r_no_1 == 0) {
@@ -326,6 +365,10 @@ void cRoutine::moveFootwork()
     owner->motionMove();
 }
 
+// Routine 1: the damage reaction of work[0] (0..5 flinches 0xB4..0xC8, 6/7 knock-downs 0xCC /
+// 0xD4 that stay down (step 0xA), 8 the grenade blast 0xDC followed by the get-up 0xD8); the
+// complaint line of work[1] (hits left) at frame 20 when the player is on his floor; the damage
+// info is cleared at the motion's end and the routine ends two steps later.
 void cRoutine::moveDamage()
 {
     void* mot = 0;
@@ -385,6 +428,8 @@ void cRoutine::moveDamage()
     }
 }
 
+// Routine 2: death (only through the scenario, damageCheck stat 0x0400xxxx): the fall 0xCC/0xD0
+// with the death SE, dmType bit7 (dead), the collision moved to parts 4; the motion then holds.
 void cRoutine::moveDie()
 {
     switch (owner->r_no_1) {
@@ -404,10 +449,13 @@ void cRoutine::moveDie()
     }
 }
 
+// Routine 3 (event placeholder): nothing; the real event routine is 4 (m_pFunc).
 void cRoutine::moveEvent()
 {
 }
 
+// Routine 5: walk (motion 0x58) along the route network towards `target` (turning 0.209 rad per
+// frame); ends within `dist` of it.
 void cRoutine::moveWalk()
 {
     Vec out;
@@ -422,6 +470,8 @@ void cRoutine::moveWalk()
     if (GetDistance(&owner->pos, &target) < dist * dist) end();
 }
 
+// Routine 6: run (motion 0x68) along the route network towards `target`; ends within `dist` of it
+// once the route check reports the last leg (r == 1).
 void cRoutine::moveRun()
 {
     Vec out;
@@ -437,6 +487,8 @@ void cRoutine::moveRun()
     if (GetDistance(&owner->pos, &target) < dist * dist && r == 1) end();
 }
 
+// Routine 9: draw the gun (motion 0x78) while turning to pTarget (0.449 rad per frame); at the
+// end -> routine 0xA (aim).
 void cRoutine::moveWepReady()
 {
     switch (owner->r_no_1) {
@@ -453,6 +505,9 @@ void cRoutine::moveWepReady()
     }
 }
 
+// Routine 0xA: aim at pTarget: the three-way aim idle (0x7C level, 0x94 / 0x98 up / down) with
+// the mot3 rate = the elevation to the target's head, turning 0.209 rad per frame; without a
+// valid target -> routine 0xC (lower the gun). Ends at once (the action decides the next step).
 void cRoutine::moveWepSet()
 {
     Vec d;
@@ -478,6 +533,11 @@ void cRoutine::moveWepSet()
     owner->motionMove();
 }
 
+// Routine 0xB: shoot at pTarget. Steps 0/1 aim (0x7C/0x94/0x98 on the elevation) and turn until
+// within 0.196 rad; step 2: a target no longer valid ends the burst (a kill after 10 / 30 dead
+// targets gets a line) -> routine 0xB restarts; else up to 10 shots per burst (fire motions
+// 0xF4/0xF8/0xFC + shot()), the 11th is the reload 0x100; step 3 plays the motion and re-enters
+// 0xB (the three arms are identical: a wall between them or a live target both re-aim).
 void cRoutine::moveWepFire()
 {
     Vec d;
@@ -543,6 +603,7 @@ void cRoutine::moveWepFire()
     }
 }
 
+// Routine 0xC: lower the gun (motion 0x88), then end.
 void cRoutine::moveWepDown()
 {
     switch (owner->r_no_1) {
@@ -557,6 +618,8 @@ void cRoutine::moveWepDown()
     }
 }
 
+// Routine 0xD: throw an item to the player: motion 0x124 with the "catch" line, turning to the
+// player for the first 30 frames, the item object created at frame 18 (setItem); ends with the motion.
 void cRoutine::moveThrowItem()
 {
     switch (owner->r_no_1) {
@@ -574,12 +637,16 @@ void cRoutine::moveThrowItem()
     }
 }
 
+// Creates the thrown item (ObjMgr id 0x1E) at his right hand, flying towards the player.
 void cRoutine::setItem()
 {
     cObjLuisItem* item = (cObjLuisItem*) ObjMgr.create(0x1E);
     item->init(&owner->getPartsPtr(10)->world, owner->ang.y);
 }
 
+// Routine 0xE: duck (the player aims at him): the crouch 0x118, then the crouched idle blend
+// 0x11C / 0x128 / 0x12C whose rate turns his upper body towards the player (+-PI/2 mapped to
+// -1..1); the routine ends when the crouch is reached and holds until the action changes.
 void cRoutine::moveDown()
 {
     f32 a;
@@ -608,6 +675,7 @@ void cRoutine::moveDown()
     }
 }
 
+// Routine 0x10: stand up from the crouch (motion 0x120), then end.
 void cRoutine::moveUp()
 {
     switch (owner->r_no_1) {
@@ -620,6 +688,7 @@ void cRoutine::moveUp()
     }
 }
 
+// Routine 0x11: the blast knock-back motion 0x130 (never requested by the action machine), then end.
 void cRoutine::moveBlast()
 {
     switch (owner->r_no_1) {
@@ -632,6 +701,9 @@ void cRoutine::moveBlast()
     }
 }
 
+// Routine 0xF: dodge a grenade: within 3 m of the player he turns his back to the player's facing,
+// else towards the player; the dive 0x114 with his own damage info armed (dmg.set 0x80); the
+// damage info is cleared and the routine ends with the motion.
 void cRoutine::moveAvoid()
 {
     switch (owner->r_no_1) {
@@ -653,6 +725,7 @@ void cRoutine::moveAvoid()
     }
 }
 
+// Routine 7: a turn-in-place motion (work[0]: 0 left 0x48, 1 right 0x50) held for work[1] frames.
 void cRoutine::moveTurn()
 {
     void* mot;
@@ -670,6 +743,7 @@ void cRoutine::moveTurn()
     }
 }
 
+// Routine 8: the 180-degree turn motion 0x70, ends with it.
 void cRoutine::moveTurn180()
 {
     if (owner->r_no_1 == 0) {
@@ -680,6 +754,10 @@ void cRoutine::moveTurn180()
 }
 
 // Starts routine `no` when its priority allows it (1) or refuses (0).
+// Priorities: 0 for footwork / walk / run / turns / weapon ready-set-down / down / up, 1 for fire /
+// throw / avoid / blast (actions), 2 for damage. A higher priority interrupts (the interrupted
+// routine number is remembered in saved[]), an equal one replaces; the step bytes are cleared and
+// the ended flag reset.
 int cRoutine::set(int no)
 {
     int p;
@@ -724,12 +802,14 @@ int cRoutine::set(int no)
     return ret;
 }
 
+// Marks the running routine finished (priority back to 0, flags bit0); the action machine polls eor().
 void cRoutine::end()
 {
     prio = 0;
     flags |= 1;
 }
 
+// "End of routine": 1 once the running routine called end().
 int cRoutine::eor()
 {
     int r = 0;
@@ -737,6 +817,7 @@ int cRoutine::eor()
     return r;
 }
 
+// Action machine init: mode / request 2 (chase the player), step bytes zero.
 void cAction::init(cSubLuis* o)
 {
     rno3 = 0;
@@ -747,6 +828,8 @@ void cAction::init(cSubLuis* o)
     mode = 2;
 }
 
+// Runs the step machine of the requested mode: 0 wait (routine 0 once), 5 damage (routine 1,
+// back to chase when it ends), 6 die (nothing), the others in their move* functions.
 void cAction::move(cAnalysis* an, cRoutine* rt)
 {
     switch (req) {
@@ -779,6 +862,10 @@ void cAction::move(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 1 (attack the nearest enemy): draw (routine 9) on the analysis target, aim (0xA) for a
+// random 0..29 frames, fire (0xB), then after each burst retarget (a closer target within 2000,
+// or a new one when the old is gone / dead) and aim again; no target left -> lower the gun (0xC)
+// and restart.
 void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
@@ -832,6 +919,8 @@ void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 3 (go upstairs, set == 2): run (routine 6) to the foot of the stairs (the "upstairs" line
+// once, when the player is still low), then on to the upper-floor spot; holds there.
 void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
 {
     static const Vec stairPos = { 112500.0f, 1247.0f, -46690.0f };
@@ -862,6 +951,8 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 4 (the player shot him 5 times): only raises Room_flg[0] bit29 -- the room script takes
+// over (the "Luis shoots back" fail state).
 void cAction::moveAttackPl(cAnalysis* an, cRoutine* rt)
 {
     if (rno1 == 0) {
@@ -870,6 +961,7 @@ void cAction::moveAttackPl(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 7 (give the item): the throw routine 0xD (target = the player, 4 m), then holds.
 void cAction::moveGiveItem(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
@@ -885,6 +977,7 @@ void cAction::moveGiveItem(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 8 (the player aims at him): the crouch routine 0xE; analysis bit2 (down) once it settles.
 void cAction::moveDown(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
@@ -902,6 +995,7 @@ void cAction::moveDown(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 9 (no longer aimed at): the stand-up routine 0x10; clears analysis bit2 when done.
 void cAction::moveUp(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
@@ -919,6 +1013,7 @@ void cAction::moveUp(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 0xA (grenade aimed at him): the dodge routine 0xF; clears analysis bit4 when done.
 void cAction::moveAvoid(cAnalysis* an, cRoutine* rt)
 {
     switch (rno1) {
@@ -931,6 +1026,8 @@ void cAction::moveAvoid(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 0xB (the room 11C opening, ground floor, once: flags bit0 / bit1): stands (routine 0)
+// looking 90 degrees left, then from step 0xF0 turns the head back to the front in 8 frames.
 void cAction::move11cBegin(cAnalysis* an, cRoutine* rt)
 {
     cSubLuis* o = owner;
@@ -968,6 +1065,8 @@ void cAction::move11cBegin(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 0xC (a rack is being pushed onto him): run (routine 6) to the escape spot (within 500);
+// clears analysis bit7 when there.
 void cAction::moveEscRack(cAnalysis* an, cRoutine* rt)
 {
     static const Vec escPos = { 114536.0f, 4.0f, -51880.0f };
@@ -985,6 +1084,10 @@ void cAction::moveEscRack(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Mode 2 (no target: stay with the player): idle (routine 0) for a random 30..119 frames, then a
+// turn (7, random direction, 10..59 frames) or a 180 turn (8); when the player is reachable
+// (chasePlAreaCheck) and farther than 2 m, waits up to 210 frames then walks (5) to within 1.5 m;
+// farther than 5 m -> runs (6) to within 1.5 m.
 void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
 {
     f32 plDist = an->plDist;
@@ -1041,6 +1144,9 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
     }
 }
 
+// Requests action mode `m`: die (6) always; nothing while in damage (5); from down (8) / up (9)
+// only avoid, damage or once the step machine reached step 2; otherwise any different mode.
+// Accepted: mode = req = m, step bytes zero.
 void cAction::set(int m)
 {
     int ok = 0;
@@ -1063,6 +1169,8 @@ void cAction::set(int m)
     }
 }
 
+// May he walk to the player? Outside room 11C always; in 11C only while the player is on his floor
+// (set 1: ground floor part of the cabin, set 2: upstairs) -- not on the stairs / porch side.
 int cAction::chasePlAreaCheck()
 {
     if ((pG->room_id32 & 0xFFFF0000) != 0x011C0000) return 1;
@@ -1078,6 +1186,7 @@ int cAction::chasePlAreaCheck()
     }
 }
 
+// Analysis init: no target, scan index 0, player distance far, the periodic-gift flag clear.
 void cAnalysis::init(cSubLuis* o)
 {
     // Store order from the weight model: cnt is the zero's last use (issued first of the zero stores),
@@ -1106,6 +1215,11 @@ int doorHitCheck(Vec* a, Vec* b)
     return 0;
 }
 
+// Per-frame analysis: one round-robin step of the enemy scan (isTarget) keeps the nearest valid
+// target in pTarget / pEmNearDist (a dead / hidden one is dropped); the route distance to the
+// player; aimCheck; every 1800 frames flags bit3 (offer an item); a grenade held near his height
+// (greThrowCheck) counts greCnt up and sets flags bit4 (dodge) after 30 frames (hand grenade), 5
+// (incendiary / flash) or 1 (rocket), decaying when none is held.
 void cAnalysis::move()
 {
     cEm* found;
@@ -1183,6 +1297,8 @@ scanned:
 }
 
 // Is the player aiming at him? Sets flags bit1; returns 1 when the check applies to the weapon.
+// Knife (0x10): aiming within 2 m and facing him; grenades (0x13/0x16/0x17): never; any gun: the
+// laser target is him, or he stays flagged until the aim direction is more than 10 degrees off.
 int cAnalysis::aimCheck()
 {
     switch (pG->weapon_no) {
@@ -1213,6 +1329,9 @@ int cAnalysis::aimCheck()
     return 0;
 }
 
+// One shot: a hit line from 1.6 m above / 0.5 m ahead of him to the target's lock-on parts as
+// weapon 3 (Red9 damage) through PlWepHitCheck2 with his own hp zeroed for the call (so he is
+// not in the target list), the muzzle flash on the gun object and the shot SE.
 void cRoutine::shot()
 {
     Vec p;
@@ -1272,6 +1391,11 @@ void cSubLuis::seqSeCtrl()
     seNo = 0;
 }
 
+// Damage of the frame -> flags bit0 and the routine's work[]: stat 0x0400xxxx (scenario kill) ->
+// die; a damage area hit (DmgMgr) -> flinch 3; a registered enemy / player hit (dmHit) by weapon
+// (dmWep): the player's guns count down m_PlAtack (at 0 flags bit1 = attack the player, at 1
+// EM_STATUS_DONT_FIRE), flinch 2 from the front / 3 from behind, pTarget = the player; grenade 0x13
+// -> blast 8; 0x17 (flash) ignored; 0x18 -> flinch 2. Returns 1 when a reaction was set.
 int cSubLuis::damageCheck()
 {
     int dead;
@@ -1326,6 +1450,8 @@ int cSubLuis::damageCheck()
     return 1;
 }
 
+// Creates his gun (ObjMgr id 0xB, model 0x38/0x3C of the partner archive) hung on his right hand
+// (parts 10) with a light area and himself as the weapon parent.
 void cSubLuis::equipWeapon()
 {
     pItem = (cObjLuisItem*) ObjMgr.createBack(0xB);
@@ -1341,6 +1467,8 @@ void cSubLuis::equipWeapon()
     }
 }
 
+// End of an enemy's grab / damage routine on him (pl_sub EndSubDamage): a reaction line in 30
+// frames when the attacker is still marked, back to action mode 0 and the routine ended.
 void cSubLuis::endDamage()
 {
     if ((flags & 0x40) && dmgType && ((cEm*) dmgType)->dmType) cnt = 30;
@@ -1365,6 +1493,9 @@ static inline void EyeLimit(cMot3Rate* e, f32 lo, f32 hi)
 static inline f32 EyeGet(cMot3Rate* e) { return e->r[0]; }
 static inline void EyeMove(cMot3Rate* e) { e->r[0] = e->r[0] * e->r[2] + e->r[1] * (1.0f - e->r[2]); }
 
+// Eyes: the eyelid (parts 0x1C) blink animation on luisEyeTimer (a blink at 0..6, a double blink
+// from 0x5A, random pause), the eye yaw target (luisEye) picked randomly at each blink and
+// jittered every 2..4 frames (luisBlink), clamped to +-0.314 and applied to both eye parts 0x20 / 0x21.
 void cSubLuis::moveEye()
 {
     static int luisEyeTimer;   // eyelid animation frame; a function-local static so it precedes the ctor'd luisEye in .bss
@@ -1421,12 +1552,15 @@ void cSubLuis::moveEye()
     EyeMove(&luisEye);
 }
 
+// Turns the head yaw neckY towards `ang` by at most `limit` this frame and marks it set (flags bit3).
 void cSubLuis::neckSet(f32 ang, f32 limit)
 {
     neckY += Muku2(neckY, ang, limit);
     flags |= 8;
 }
 
+// Applies the head yaw: without a neckSet this frame it returns to 0 (0.628 rad per frame); the
+// neck parts (3) gets the additional rotation.
 void cSubLuis::neckMove()
 {
     cModel* p;
@@ -1442,6 +1576,7 @@ void cSubLuis::neckMove()
     ((cParts*) p)->addRot.y = neckY;
 }
 
+// No line playing.
 cVoice::cVoice()
 {
     on = 0;
@@ -1449,6 +1584,9 @@ cVoice::cVoice()
     seId = 0xF0F0F0F0;
 }
 
+// Speaks a line: stops the previous voice, clears the subtitles when the last line has run out,
+// plays the voice SE (bank 8) at him and shows message `mesNo` at the subtitle position; the line
+// lasts `time` frames.
 void cVoice::set(int mesNo, u16 seNo, int time)
 {
     int i;
@@ -1468,6 +1606,7 @@ void cVoice::set(int mesNo, u16 seNo, int time)
     on = 1;
 }
 
+// Counts the line down and clears the subtitles when it ends.
 void cVoice::move()
 {
     int i;
@@ -1489,6 +1628,7 @@ int stairCheck(cModel* m)
     return 0;
 }
 
+// The two models are within 1 m in height (same floor of the cabin).
 int sameFloorCheck(cModel* a, cModel* b)
 {
     const f32 lim = 1000.0f;   // the pool `lis` is expanded here, above the fabsf barrier
@@ -1496,11 +1636,14 @@ int sameFloorCheck(cModel* a, cModel* b)
     return fabsf(a->pos.y - b->pos.y) < lim;
 }
 
+// ObjInitFunc[0x1E]: placement-constructs the thrown item object.
 void luisItemInit(cObj* obj)
 {
     new (obj) cObjLuisItem();
 }
 
+// The thrown item: the room archive's item model at his hand, a glow effect (group 0x3C), flying
+// towards the player at 7 % of the distance per frame with a small downward acceleration.
 void cObjLuisItem::init(Vec* p, f32 rotY)
 {
     modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc));
@@ -1517,6 +1660,9 @@ void cObjLuisItem::init(Vec* p, f32 rotY)
     LITEM->timer = 0;
 }
 
+// Thrown item update: r_no_0 0 flies (pushed off walls, dropped to the floor on a hit; gone after
+// 150 frames), 1 lands: turns into a pickup (SceAtCreateItemAt) chosen by need -- ammo short:
+// handgun ammo 4 (75 %), else 1 / 2 / 0xE; health short: herb 5 (21 %) or 6 -- and destroys itself.
 void cObjLuisItem::move()
 {
     Vec hit;
@@ -1593,6 +1739,9 @@ int greThrowCheck()
     return 0;
 }
 
+// Can Luis shoot enemy `em`? Alive, visible, a real enemy (id > 0xF), lockable, no effect
+// collision or door enemy between them, and the weapon target list from him to it does not put
+// something else in front.
 int isTarget(cSubLuis* luis, cEm* em)
 {
     WepTarget list[2];
@@ -1616,6 +1765,7 @@ int isTarget(cSubLuis* luis, cEm* em)
     return 1;
 }
 
+// REL entry: registers Luis as the enemy init function and the thrown item's constructor slot.
 extern "C" void _prolog()
 {
     EmInitFunc = LuisInit;
@@ -1623,12 +1773,14 @@ extern "C" void _prolog()
     OSReport("LUIS prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x1E] = 0;
     OSReport("LUIS epilog Ok\n");
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

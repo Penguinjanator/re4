@@ -1,5 +1,13 @@
 // Mine thrower weapon object (wep14 module, first object; real file name unknown): fires a cEmMine
 // (SetMine) along the aim line, ejects a cartridge (SetObj10), reloads by tune level.
+//
+// cObjMine is the cObjWep (game/objWep.cpp) of the mine thrower (weapon_no 0x14): the launcher
+// body hangs on the player's left hand (parts 9), its parts 1 is the loaded mine dart, re-parented
+// to the right hand (parts 10) while the player handles it (partsSet). Driven by wep.mode /
+// wep.step from the module's own routines (wep14/wep14.cpp): mode 1 ready (raise + load), 2 fire
+// (setBullet launches a cEmMine), 3 down, 4 reload. weapon_type bit0 = the scope version (the
+// dart flies along the camera trajectory), pG->bullet_type picks the dart speed, weapon_lv_power
+// 3 the exclusive (homing) dart.
 
 #include "wep_mod.h"
 #include "atari_init.h"
@@ -34,11 +42,15 @@ void partsSet(cObjMine* obj);
 
 #define PLA_ARC_PTR(no) PL_ARC_PTR(pG->pPlayer, no)
 
+// ObjInitFunc[0x36]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjMine_init(cObj* obj)
 {
     new (obj) cObjMine();
 }
 
+// cObjWep::init override (Wep14_init, parent = the player): weapon list id 0x36, model 0x8 /
+// texture 0x7, a 100-unit box atari with bits 8/9 off, hung on the player's left hand (parts 9),
+// light area, idle motion 0x21, default lock spread.
 void cObjMine::init(cModel* parent)
 {
     cAtariInfo* at;
@@ -79,6 +91,9 @@ void partsSet(cObjMine* obj)
     p->ang.z = 0.0f;
 }
 
+// wep.mode == 1 (ready, set by the wep14 ready00): step 0/1 play the raise motion 0x22 with the
+// dart on the launcher; step 2 moves the dart to the right hand and starts the aim idle 0x20;
+// step 3 holds (the player routine ends the mode).
 void cObjMine::moveReady()
 {
     switch (wep.step) {
@@ -99,6 +114,9 @@ void cObjMine::moveReady()
     }
 }
 
+// wep.mode == 2 (fire): step 0 launches the dart (setBullet), starts the fire motion 0x1E, the
+// shot SE, Status_flg[0] bit23 (shot noise), the muzzle effect 0x48 (normal type only) and the
+// pad vibration; the normal type ejects a cartridge at frame 24; the motion's end returns to mode 0.
 void cObjMine::moveFire()
 {
     if (wep.step == 0) {
@@ -126,6 +144,8 @@ void cObjMine::moveFire()
 
 // Launch the mine: from the hand (normal) or along the camera trajectory towards the aim target
 // (scope type), pushed out of any effect collision it starts inside.
+// Speed 1500 (bullet_type 0) or 600 units/frame; the model/texture come from the player archive
+// (0x72/0x73); weapon_lv_power 3 makes the dart homing (SetMine's last argument).
 void cObjMine::setBullet()
 {
     static const Vec mineSpd[2] = { { -1500.0f, 0.0f, 0.0f }, { -600.0f, 0.0f, 0.0f } };
@@ -166,6 +186,7 @@ void cObjMine::setBullet()
     SetMine(PLA_ARC_PTR(0x72), PLA_ARC_PTR(0x73), pos, &spd, pG->weapon_lv_power == 3);
 }
 
+// wep.mode == 3 (down): plays the lower motion 0x23 with the dart back on the launcher, then mode 0.
 void cObjMine::moveDown()
 {
     switch (wep.step) {
@@ -183,6 +204,10 @@ void cObjMine::moveDown()
     }
 }
 
+// wep.mode == 4 (reload): step 0 puts the dart in the right hand and starts the reload motion of
+// the tune level (0x1F, level 1: 0x25) with the reload effect 0x48/1 and the level's SE; step 1
+// refills at frame 74/58, and at the motion's end re-hangs the launcher on the left hand and
+// returns to mode 0.
 void cObjMine::moveReload()
 {
     if (wep.step == 0) {
@@ -225,6 +250,8 @@ void cObjMine::moveReload()
     }
 }
 
+// Ejects the spent gas cartridge: an obj10 model (player archive 0x7A/0x7B) from the launcher's
+// port (-348, -63, 38), rolled 90 degrees, with a random +-15 spread, gravity 10, 30 frames, effect 0x13.
 void cObjMine::setCartridge()
 {
     cModel* parts = getPartsPtr(0);
@@ -254,6 +281,8 @@ void cObjMine::setCartridge()
     }
 }
 
+// Weapon interrupt (damage / event cuts the routine): the base reset, the dart back on the
+// launcher, motion and mode reset, the player's hands restored (weapon right hand 0x9, left hand 4).
 void cObjMine::interrupt()
 {
     cObjWep::interrupt();
@@ -265,6 +294,9 @@ void cObjMine::interrupt()
     pPL->setLeftHand(4);
 }
 
+// Fills the player's motion table with the mine-thrower footwork motions (idle, walk, run, turns,
+// back, the 0x39..0x42 damage set, 0x57/0x58 and 0x5B/0x5C knife transitions; 0x3D stays the
+// player archive's). The hands are set by the module's own code (wep14changeRightHand).
 void cObjMine::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));

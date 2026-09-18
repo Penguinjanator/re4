@@ -1,5 +1,13 @@
 // pl02 module (pl02.rel = pl0b.rel = pl0c.rel): Ada: the hair / holster cloth chains of costume 2, the
 // player class with Leon's motion table and model set (body, hair, head, face shapes, hands).
+//
+// cPlAda (pl_mod.h) is the cPlayer of the Ada scenarios (pl_type 2): the constructor builds the
+// model set from the player archive (pG->pPlayer: 4/5 body, 6/7 hair, 8 head with the face
+// shapes, 9/0xA extra part, 0x11 right hand, 0x12..0x15 left hands, 0x62/0x63 face shapes),
+// loads / inits the weapon module and installs the event motions 0x5F..0x6C. pl_costume 2 wears
+// the hair chain (adaHair2P, 14 parts, 4 bundles) and the holster strap (adaHolsterP, 5 parts)
+// as pendulum cloth; costume 1 has no cloth. Pl02Init is the module's PlInitFunc (em.cpp
+// cEmMgr::construct calls it for the player work).
 
 #include "atari.h"
 #include "light.h"
@@ -37,6 +45,9 @@ CLOTH_AT_SET adaHolsterAt[1] = {
     {0x0000, 0x11, 0x11, 1.0f, 170.0f, {50.0f, -120.0f, 30.0f}, {0.0f, 0.0f, 0.0f}},
 };
 
+// Sets up Ada's costume-2 hair as a pendulum cloth chain: 14 parts (adaHair2P) in 4 bundles
+// linked parent/child by adaHair2Up/Dp, gravity 15, damping 0.75, the DOL's adaHair wind / max
+// / collision tables, flags 0x302; PenClothSet initialises the chain 100 units long.
 static void testHairSetAda2(cModel* pl, PlCloth* c)
 {
     c->Num = 14;
@@ -66,11 +77,15 @@ static void testHairSetAda2(cModel* pl, PlCloth* c)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Per-frame update of the hair chain (pendulum simulation).
 void testHairMoveAda2(cModel* pl, PlCloth* c)
 {
     PenClothMove(pl, (PenCloth*) c);
 }
 
+// Sets up the costume-2 holster strap as a pendulum chain: 5 parts (adaHolsterP: two anchors 26 /
+// 31 and the strap 78..80, max sway 0.2 / 1.0), gravity 15, damping 0.7, no wind, one collision
+// sphere (adaHolsterAt) on parts 0x11.
 void testHolsterSetAda2(cModel* pl, PlCloth* c)
 {
     c->Num = 5;
@@ -100,17 +115,22 @@ void testHolsterSetAda2(cModel* pl, PlCloth* c)
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
 
+// Per-frame update of the holster chain.
 void testHolsterMoveAda2(cModel* pl, PlCloth* c)
 {
     PenClothMove(pl, (PenCloth*) c);
 }
 
+// Costume 2 cloth set-up (cPlAda::initCloth): the hair goes into the `hair` work, the holster
+// strap into the `dress` work; the ribbon work and `evt` are unused.
 void PlClothSetAda2(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair, int evt)
 {
     testHairSetAda2(pl, hair);
     testHolsterSetAda2(pl, dress);
 }
 
+// Costume 2 cloth update (cPlAda::moveCloth): both chains, then the model's be_flag bits 21..23
+// (the cloth "just set" flags) are cleared.
 void PlClothMoveAda2(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
 {
     testHairMoveAda2(pl, hair);
@@ -118,14 +138,20 @@ void PlClothMoveAda2(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
     pl->be_flag &= ~0x00E00000;
 }
 
+// Costume 1 (the red dress) has no simulated cloth.
 void PlClothSetAda3(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair, int evt)
 {
 }
 
+// Costume 1: nothing to update.
 void PlClothMoveAda3(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
 {
 }
 
+// Builds Ada: the cPlayer work init (init0), the model set, the equipped weapon module
+// (weaponRelease / weaponLoad / weaponInit), the routine init (init1), the event motions, the
+// player effects (archive 0x1A as group 3), startUp; costume 1 gets a permanent effect 0x59 on the
+// model; the foot shadow table is the players' one.
 cPlAda::cPlAda()
 {
     PlArc* arc;
@@ -146,6 +172,8 @@ cPlAda::cPlAda()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// Installs the character's event / action motions (pMotTbl 0x5F..0x6C from the player archive
+// 0x32..0x3F); the weapon module fills the footwork slots.
 void cPlAda::setMotion()
 {
     PSet(pMotTbl[0x5F], PL_ARC(0x32));
@@ -164,11 +192,15 @@ void cPlAda::setMotion()
     PSet(pMotTbl[0x6A], PL_ARC(0x3F));
 }
 
+// Per-frame update: the common cPlayer::move (routines, weapon, cloth, damage).
 void cPlAda::move()
 {
     cPlayer::move();
 }
 
+// Builds the model set: the body (4/5) as the base model, the hair (6/7, Body->pHair), the head
+// with the face shape data (8/7, Body->pShape / pHeadData), an extra be_flag 0x40 part (9/0xA);
+// TEV scale group 1, neutral face, bare hands. (The error strings still name Ashley / Leon.)
 void cPlAda::setModel()
 {
     cModelInfo* info;
@@ -206,6 +238,8 @@ void cPlAda::setModel()
     setLeftHand(0);
 }
 
+// Right hand model: 1 = the weapon module's hand (Body->pWepHand), 0 and 2..9 = the bare hand
+// (0x11), any other value is a model data pointer; replaces Body->pRight.
 void cPlAda::setRightHand(int no)
 {
     cModelInfo* info;
@@ -242,6 +276,8 @@ void cPlAda::setRightHand(int no)
     }
 }
 
+// Left hand model: 0 bare (0x12), 1 (0x13), 2 (0x14), 4 (0x15), 0x63 = the previous one
+// (Body->oldLhandNo), any other value is a model data pointer; replaces Body->pLeft.
 void cPlAda::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -284,6 +320,8 @@ void cPlAda::setLeftHand(u32 no)
     }
 }
 
+// Face expression: 0 ends the shape blend (neutral), 1 / 2 blend the face shapes 0x62 / 0x63
+// onto the head model.
 void cPlAda::setFace(int no)
 {
     void* data = 0;
@@ -309,6 +347,8 @@ void cPlAda::setFace(int no)
     }
 }
 
+// Head swap by number (only 0 does anything): replaces the hair model with the archive's 0xB
+// (the event head) and forgets Body->pHair.
 void cPlAda::setHead(int no)
 {
     cModelInfo* info;
@@ -327,6 +367,7 @@ void cPlAda::setHead(int no)
     }
 }
 
+// Head swap with explicit model / texture data (events): replaces the hair model.
 void cPlAda::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -342,6 +383,7 @@ void cPlAda::setHead(void* bin, void* tpl)
     }
 }
 
+// Cloth set-up by costume (cPlayer::startUp): costume 2 the hair + holster chains, costume 1 none.
 void cPlAda::initCloth()
 {
     if (pG->pl_costume != 1) {
@@ -351,6 +393,7 @@ void cPlAda::initCloth()
     }
 }
 
+// Per-frame cloth update by costume (cPlayer::move).
 void cPlAda::moveCloth()
 {
     if (pG->pl_costume != 1) {
@@ -360,21 +403,25 @@ void cPlAda::moveCloth()
     }
 }
 
+// PlInitFunc: placement-constructs Ada in the player's cEm work (em.cpp cEmMgr::construct id 0).
 void Pl02Init(cEm* em)
 {
     new (em) cPlAda();
 }
 
+// REL entry: registers the player constructor.
 extern "C" void _prolog()
 {
     PlInitFunc = Pl02Init;
     OSReport("Pl02 ADA prolog Ok\n");
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

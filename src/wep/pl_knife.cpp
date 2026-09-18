@@ -2,6 +2,15 @@
 // unknown): the DOL's game/pl_knife.cpp with every knife_r2_*/knife_r3_* routine `static` (the REL's
 // .data table fields hold S+A) and the -G 0 build (the DOL's .sdata routine tables land in .data).
 // Keep in sync with game/pl_knife.cpp.
+//
+// Entry: PlKnifeMove is player routine r_no_1 == 0xB (player.cpp's routine table), entered from
+// the footwork routine when the knife key (joyLKamae) is held. r_no_2 is the knife state (0 ready,
+// 1 set, 2 fire = slash, 3 down), r_no_3 the step. The knife is not a weapon module object: the
+// motions come from the player archive (pG->pPlayer: 0x23/0x24 draw, 0x81/0x83/0x85 stance idle
+// low/middle/high, 0x82/0x84/0x86 slash, 0x87 put away) or, with the rocket launcher (G_WEP_ID
+// 0x0D02xxxx) in hand, from pMotTbl[0x55..0x5C] (the launcher is gripped back / released around
+// the slash). Wep->knifeStance (0 low, 1 middle, 2 high from the stick) picks the blend; the
+// equipped gun is hidden by setWepTrans while the knife is out; hitCheck traces the blade.
 
 #include "atari.h"
 #include "light.h"
@@ -59,6 +68,8 @@ static void knife_r3_down10(cPlayer* pl);
         }                                               \
     } while (0)
 
+// Routine 0xB (knife): dispatches on r_no_2, runs the lock-on stick control and the character's
+// X-button (partner command) check.
 void PlKnifeMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -73,6 +84,10 @@ void PlKnifeMove(cPlayer* pl)
     pl->checkXbutton();
 }
 
+// r_no_2 == 0: the ready (draw) state. r_no_3 == 100 is the re-entry from a set state exit
+// (m_Work0 = 1). The stick picks knifeStance (up 0 low, down 2 high, else 1 middle). Knife key
+// released -> the gun is shown again, the face reset, back to footwork (r_no_1 0, or 0x11 crouch
+// with flags_420 bit6); else the shoulder camera aims at the locked enemy or the forward hit.
 static void knife_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -127,6 +142,10 @@ static void knife_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the stance: pitch from the camera pitch (doubled looking up) into Wep->pitch
+// and m3r, aim yaw m_Fwork0 = 0, neck reset; the draw motion is the launcher's (pMotTbl 0x59/0x5A),
+// the launcher-aim variant while the aim key is held with rockets (0x55/0x56), or the player
+// archive's 0x23/0x24. lockCtr = 0, step 1.
 static void knife_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -162,6 +181,8 @@ static void knife_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays; at frame 4 the gun is hidden and the knife face set; at frame 10
+// -> set state step 4 (with the launcher: gripBack at frame 10 first).
 static void knife_r3_ready10(cPlayer* pl)
 {
     if (MotionCheckCrossFrame(&pl->pMotion, 4.0f)) {
@@ -184,6 +205,9 @@ static void knife_r3_ready10(cPlayer* pl)
     pl->motionMove();
 }
 
+// r_no_2 == 1: the set (stance) state. Lock-on control except in step 4. Knife key released ->
+// crouch 0x11, or with the rocket launcher aimed the weapon routine (r_no_1 6) ready step 2, or
+// the down state (r_no_2 3); fire trigger / held -> fire (slash).
 static void knife_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -221,6 +245,7 @@ static void knife_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way stance idle (0x81 low / 0x83 middle / 0x85 high on m3r[0]), step 1.
 static void knife_r3_set00(cPlayer* pl)
 {
     PlArc* arc = pG->pPlayer;
@@ -231,11 +256,14 @@ static void knife_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the stance idle.
 static void knife_r3_set10(cPlayer* pl)
 {
     pl->motionMove();
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
+// released -> step 0. Set by PlWepLockCtrl's turn request.
 static void knife_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -250,6 +278,7 @@ static void knife_r3_set20(cPlayer* pl)
     }
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void knife_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -264,6 +293,7 @@ static void knife_r3_set30(cPlayer* pl)
     }
 }
 
+// set step 4: finish the draw / slash motion; ends or any fire / aim / action key -> step 0.
 static void knife_r3_set40(cPlayer* pl)
 {
     if (MotionMove(pl, 0) || (Key.on & 0x10F)) {
@@ -271,6 +301,7 @@ static void knife_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 starts the slash, step 1 plays it with the blade hit checks).
 static void knife_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -282,6 +313,12 @@ static void knife_r2_fire(cPlayer* pl)
     PlWepLockCtrl(pl);
 }
 
+// Blade hit check for one slash frame `no` (frame - 6): the blade line runs from the right elbow
+// (parts 2) to the knife tip (parts 9, 750 units out; 1200 for Krauser), traced as weapon type
+// 0x10 with PlWepHitCheck2 flag bit0 (no scenery effect). Unless flag bit3 (first frame of the
+// slash) it first sweeps four intermediate lines between the tip's previous position `ohpos` and
+// the new one, then the line itself and two more offset +200/+400 and -100/-200 in Y (the arc).
+// flag bit2 marks the frames outside 7..8 as secondary hits.
 void hitCheck(cPlayer* pl, int no, u32 flag)
 {
     static Vec ohpos;
@@ -334,6 +371,8 @@ void hitCheck(cPlayer* pl, int no, u32 flag)
     PlWepHitCheck2(pl, &p0, &p1, 0x10, flag | 1, 6000.0f);
 }
 
+// fire step 0: start the slash (0x82/0x84/0x86 blended on the pitch), twist the waist to the lock
+// yaw m_Fwork0, spawn the blade-swish effect (EstSet type 0x2B) and recalculate the parts; step 1.
 static void knife_r3_fire00(cPlayer* pl)
 {
     PlArc* arc = pG->pPlayer;
@@ -349,6 +388,10 @@ static void knife_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the slash plays: swing SE 1/3 at frame 3, hitCheck on frames 6..10 (bit3 on the
+// first, bit2 outside 7..8), a water splash effect + SE at frame 6 when the hand (parts 10) is
+// near the water (the swamp rooms 010A/011A use effect 0x25). Two frames before the end -> set
+// state step 4.
 static void knife_r3_fire10(cPlayer* pl)
 {
     f32 st = 6.0f;   // unused: only order the constant pool (6.0, 10.0 before 3.0)
@@ -388,6 +431,8 @@ static void knife_r3_fire10(cPlayer* pl)
     }
 }
 
+// r_no_2 == 3: the down state (put the knife away). Unwinds the waist twist into ang.y, sets
+// Status_flg[0] bit25 (knife put away this frame) and runs the control-flag check.
 static void knife_r2_down(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -401,6 +446,10 @@ static void knife_r2_down(cPlayer* pl)
     pl->checkCtrl();
 }
 
+// down step 0: pick the put-away motion: aim key held -> knife-to-gun transition (pMotTbl
+// 0x57/0x58, weapon object mode 1, m_Work0 = 1: end in the weapon routine), else the launcher's
+// 0x5B/0x5C or the archive's 0x87 (m_Work0 = 0). No motion available (damage) -> straight back to
+// footwork with the gun shown; else the motion starts (flag 0x100 for weapon 0xE) and step 1.
 static void knife_r3_down00(cPlayer* pl)
 {
     void* mot0;
@@ -449,6 +498,10 @@ static void knife_r3_down00(cPlayer* pl)
         (pl)->r_no_3 = 0;    \
     } while (0)
 
+// down step 1: the put-away plays: gun shown / face reset at frame 4, the launcher released at
+// frame 15. At the end: m_Work0 == 0 -> footwork idle, else the weapon routine's set state with
+// the pitch reset. Any fire / aim / action key, or the aim key changing against m_Work0, cancels
+// straight to footwork.
 static void knife_r3_down10(cPlayer* pl)
 {
     if (MotionCheckCrossFrame(&pl->pMotion, 4.0f)) {
@@ -482,6 +535,9 @@ static void knife_r3_down10(cPlayer* pl)
     }
 }
 
+// Show (on = 1) / hide the equipped gun's display type 1 while the knife is out: the rifles and
+// the launcher-type weapons (0x13, 0x16, 0x17, 0x19, 0x1F, 0x20) switch their second object
+// pObj2, the rocket launcher (0xD) is never hidden.
 void setWepTrans(cPlayer* pl, int on)
 {
     switch (pG->weapon_no) {

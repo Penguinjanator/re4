@@ -1,6 +1,13 @@
 // em34 module (D:/Bio4/Prog/em34.cpp): the em34 / em37 / em33 enemies in one module, selected by
 // cModel::type (1 = em37, 2..3 = em33, else em34). A large enemy that turns towards its target
 // (em34RouteCk: the player or the partner), walks up to it and bites (em34AtkCk).
+//
+// Em34Init is the module's EmInitFunc. Routines: r_no_0 0 init, 1 move (r_no_1 0 wait, 1 walk /
+// turn towards the target, 2 bite), 2 damage, 3 die. Each type has its own model set (archive
+// 4..8 em34, 9..0xB em37, 0xC..0xF em33), cloth chains and motion slots (em34: 0x11 idle / 0x12
+// walk; em37: 0x14 idle / 0x13 walk / 0x15 bite; em33: 0x17 idle / 0x18 walk). Em34Work (em34.h):
+// Be_flg bit0 route to the player valid, bit1 partner present, bit2 target is the partner, bit3
+// in damage / die, bit4 the head follows the player; Go_pos / Go_dir / L_go the target of the frame.
 
 #include "atari.h"
 #include "light.h"
@@ -74,25 +81,32 @@ static inline int em34DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// REL entry: registers the enemy constructor.
 extern "C" void _prolog()
 {
     OSReport("em34 prolog Ok\n");
     EmInitFunc = Em34Init;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc: placement-constructs the enemy in the cEm work.
 void Em34Init(cEm* em)
 {
     new (em) cEm34();
 }
 
+// Damage of the frame: consumes cEm::dmHit and sets dmType (1, 0x11 for the knife); hp loss by
+// weapon class (handguns / rifles / MGs 10-11, shotguns 10 or 50-51 beyond 4 m, magnums /
+// launchers / grenades 50), blood effect; hp <= 0 -> die routine (3).
 void em34DmCk(cEm34* em)
 {
     int dmg;
@@ -175,6 +189,9 @@ static EmAtkInfo em34_atk_tbl[1] = {
 };
 static int em34_atk_pad = 0;
 
+// Per-frame update (emMove): damage, target choice, the r_no_0 routine (0xFF after a failed init
+// destroys the work), the neck, parts matrices, enemy / scenery collision and the type's two
+// cloth chains.
 void cEm34::move()
 {
     Em34Work* w = EM34_WK(this);
@@ -212,6 +229,10 @@ void cEm34::move()
     }
 }
 
+// r_no_0 == 0: creation: the type's model set (em34: body + shoulder / head / hand infos; em37:
+// body + one part; em33: body + one part, be_flag bit24), the em10 foot shadows, the type's cloth
+// chains, a 10 m light area, the collision cylinder (smaller for em37), hit boxes (body +
+// hit[0..2]), lock-on on parts 2, effects (archive 0x10 as group 0x2B), the idle motion; then wait (1/0).
 static void em34_R0_Init(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -345,11 +366,14 @@ static void em34_R0_Init(cEm34* em)
     em34_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void em34_R0_Move(cEm34* em)
 {
     Em34_R1_move_tbl[em->r_no_1](em);
 }
 
+// r_no_1 == 0: the type's idle motion (30-frame blend), head following the player; a registered
+// death (dmg upper bits) -> walk (1).
 static void em34_R1_Wait(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -380,6 +404,8 @@ static void em34_R1_Wait(cEm34* em)
     }
 }
 
+// r_no_1 == 1: the type's walk motion while turning towards the target (PI/64 per frame); em37
+// below 500 hp bites (2) within 1 m, the others go back to wait within 2 m of the player.
 static void em34_R1_Walk(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -418,6 +444,9 @@ static void em34_R1_Walk(cEm34* em)
     }
 }
 
+// r_no_1 == 2: the bite: em37's attack motion 0x15/0x16 (the other types just play their idle)
+// turning towards the target (PI/32 per frame); the motion's SE flag bit0 marks the frames the
+// jaw (parts 10) hits (em34AtkCk); back to wait at the end.
 static void em34_R1_Atk(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -452,6 +481,7 @@ static void em34_R1_Atk(cEm34* em)
     }
 }
 
+// r_no_0 == 2: the damage routine (Be_flg bit3), r_no_1 state table.
 static void em34_R0_Damage(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -460,6 +490,7 @@ static void em34_R0_Damage(cEm34* em)
     Em34_R2_move_tbl[em->r_no_1](em);
 }
 
+// Damage state 0: the flinch (the type's idle motion), then back to walk with r_no_3 = 10.
 static void em34_R1_Dm_Normal(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -489,6 +520,7 @@ static void em34_R1_Dm_Normal(cEm34* em)
     }
 }
 
+// r_no_0 == 3: the die routine (Be_flg bit3), r_no_1 state table.
 static void em34_R0_Die(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -497,6 +529,9 @@ static void em34_R0_Die(cEm34* em)
     Em34_R3_move_tbl[em->r_no_1](em);
 }
 
+// Die state 0: the death motion (the type's idle); at its end the battle / active / dog status
+// bits and the collision are cleared, then after 30 frames the model fades out (invisible_factor
+// -0.02 per frame) and is hidden.
 static void em34_R1_Die_Normal(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -544,6 +579,11 @@ static void em34_R1_Die_Normal(cEm34* em)
     }
 }
 
+// Target choice of the frame (alive only): the route point towards the player (Be_flg bit0 when
+// reachable) and its angle become Go_pos / Go_dir / Go_rot / L_go with pEm = the player; with a
+// partner present (bit1) and the player unreachable or farther than the partner (l_sub) the
+// partner's route data is the target (bit2). During init the angles are zeroed and the player
+// distance forced far.
 void em34RouteCk(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -579,6 +619,8 @@ void em34RouteCk(cEm34* em)
     }
 }
 
+// Head tracking: while Be_flg bit4 the neck yaw eases (0.9/0.1) towards the player within +-60
+// degrees, else back to 0; applied as the additional rotation of parts 3.
 void em34NeckMove(cEm34* em)
 {
     Em34Work* w = EM34_WK(em);
@@ -606,6 +648,9 @@ void em34NeckMove(cEm34* em)
     ((cParts*) p)->addRot.z = 0.0f;
 }
 
+// Bite hit check: once per attack (Atk_ck), the sweep of parts `parts` from its last position
+// against the player (hit bit0) / partner (bit1) with em34_atk_tbl[no] (300 range, damage type 8):
+// blood on the victim, a quake and pad vibration. Returns 1 on a hit.
 int em34AtkCk(cEm34* em, int no, int parts)
 {
     Em34Work* w = EM34_WK(em);

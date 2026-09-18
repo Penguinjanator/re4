@@ -9,6 +9,10 @@
 void PlHandgunMove(cPlayer* pl);   // wep/pl_handgun.cpp
 void ObjFn57_init(cObj* obj);      // objFn57.cpp
 
+// WeaponInitFunc of the module (cPlayer::weaponInit with the player): creates the cObjFn57 (ObjMgr
+// id 0x32) as the player's weapon (Wep->m_pWep), inits it on the player, installs the handgun
+// motions, loads the muzzle-flash effect data (archive 0x4 as effect group 0x35) and points the
+// debug weapon-motion preview PlWepMot at the aim motions 0x26..0x28.
 void Wep01_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -28,6 +32,7 @@ void Wep01_init(cModel* m)
     }
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep01_init;
@@ -36,11 +41,13 @@ extern "C" void _prolog()
     OSReport("Wep01 FN57 prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x32] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

@@ -298,6 +298,8 @@ extern "C" void _unresolved()
 {
 }
 
+// Placement-constructs the body / tentacle over the manager's cEm slot (EmInitFunc for id 0x31);
+// em31_R0_Init does the per-type setup on the first move.
 void Em31Init(cEm* em)
 {
     new (em) cEm31();
@@ -323,6 +325,15 @@ static inline void em31BridgeVsSet(cEm31* em, Em31Work* w)
     w->Down_type = type;                                                                             \
     w->Be_flg |= 0x4000
 
+// Damage reaction of the body, from move(). The body has no HP of its own: it dies when its
+// tentacle does, and a hit on the tentacle's weak point (ckWeakDamage, outside a catch / jump or a
+// running reaction) ends the berserk and either knocks it down (EM31_SET_DOWN 210 frames, motion 0)
+// or, with the accumulated weak damage past 1/20 of max HP, starts the flinch (2/0). Area damage
+// only arms Fire_timer. A weapon hit in dmHit: em31SetDmVal is applied to the tentacle (twice when
+// an eye took it, em31EyelidDmcK), the body mirrors its HP and bleeds (em31BloodSet). Then, unless
+// in a catch / jump or a reaction: a shot into one of the four eyes shuts its lid and knocks the
+// body down (down motion by eye 0..3); a grenade class weapon (0x29 / 0x2A / 0x2D) knocks it down
+// for 90 frames; the flash grenade (0x17) shuts the eyes for 90 frames.
 void em31DmCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -488,6 +499,9 @@ void em31DmCk(cEm31* em)
     }
 }
 
+// Damage reaction of the tentacle (type 1), from move(): applies em31SetDmVal to its own HP (the
+// enemy's real HP), and a hit on the weak point part 0xC marks Be_flg 0x2000 / 0x100 and adds to
+// Total_damage (read by the body through ckWeakDamage / getTotalDamage). Bleeds with em31TBloodSet.
 void em31DmCkT(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -518,6 +532,12 @@ void em31DmCkT(cEm31* em)
     em31TBloodSet(em);
 }
 
+// Per-frame update from the enemy manager. Order: the type's damage check, clear the per-frame
+// flags, tick the attack waits, the berserk cooldown (paused while berserk) and the flash timer (a
+// dead player holds the attack wait at 60), route, the routine table (r_no_0 0xFF = model load
+// failed: destroy), the eyelids, the parts (the tentacle is placed on the body by em31TenMatCalc),
+// attack / collision / stage collision, the body's two chain cloths and its dust effect while alive,
+// the tail attack, footsteps, breath stop and the weak point object.
 void cEm31::move()
 {
     Em31Work* w = EM31_WK(this);
@@ -582,6 +602,12 @@ void cEm31::move()
     em31WeakMove(this);
 }
 
+// Routine 0: per-type setup. The body loads archive 4 with the head model 5 and its flip table
+// (all parts flagged 0x440), the tentacle archive 8 with its own flip table; IK off, the body's chain
+// cloths, a huge light box, a 2 m radius collision at priority 1 (the tentacle's passed through),
+// the type's hit boxes (the tentacle's root box on part 0xC), effect data and the work (berserk
+// cooldown 450). The body sets up the eyelids and starts in Appear (1/0), the tentacle in T_Appear
+// (1/0x11); both create their weak point object.
 static void em31_R0_Init(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -735,16 +761,21 @@ static void em31_R0_Init(cEm31* em)
     em31_R0_Move(em);
 }
 
+// Routine 1: runs the branch check and then the behaviour of the current r_no_1 state.
 static void em31_R0_Move(cEm31* em)
 {
     Em31_R1_move_tbl[em->r_no_1 * 2](em);
     Em31_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the states that have none.
 static void em31_R1_br_Dummy(cEm31* em)
 {
 }
 
+// Body routine 1/0: the entrance (Be_flg 0x200: cloth off). Holds the idle pose until the level
+// script sets flag bit 0, then plays the appearance motion with its effect (the four small tail
+// tentacles spawn at frame 400, em31SetTail) and walks (1/2).
 static void em31_R1_Appear(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -795,6 +826,11 @@ static inline void em31SetAtkWait(Em31Work* w)
     }
 }
 
+// Body routine 1/1: idle (the berserk idle when Be_flg 0x40) for 45..210 frames by Game_level
+// (none on level 10), with the attack selection (em31AtkRtnCk) running; a tentacle hit resets the
+// wait. Then beyond 8 m with the cooldown out, facing a player at the same height, it goes berserk
+// (1/5; Game_level above 1); otherwise a turn past 45 deg or the walk. The jump / bridge jump /
+// bridge fight checks run every frame.
 static void em31_R1_Wait(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -865,6 +901,10 @@ static void em31_R1_Wait(cEm31* em)
     }
 }
 
+// Body routine 1/2: the walk towards the route point (the berserk walk when Be_flg 0x40; yaw at
+// PI/64 per frame), 2 / 5 loops before a Wait, the berserk start beyond 8 m as in Wait. The feet
+// (parts 7 / 0xD, motion events 0 / 1) stamp attack 0 with a dust effect. A turn past 45 deg; Wait
+// within 3.5 m or after a tentacle hit (em31SetAtkWait). Jump / bridge checks every frame.
 static void em31_R1_Walk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -948,6 +988,10 @@ static void em31_R1_Walk(cEm31* em)
     }
 }
 
+// Body routine 1/3: the berserk charge (Be_flg 0x8000: heavy footsteps; the tentacle plays its
+// dash pose), 3 / 5 loops then the berserk end (1/6), also ended when the target falls more than
+// 135 deg behind (or a coin flip turns instead). The feet stamp attack 0 as in Walk; a tentacle hit
+// cuts the charge to one more loop. The bridge fight check runs every frame.
 static void em31_R1_Dash(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1019,6 +1063,9 @@ static void em31_R1_Dash(cEm31* em)
     }
 }
 
+// Body routine 1/4: the turn towards the route point: the about-face past 135 deg (or r_no_3), the
+// wide turn past 60 deg, else the short one, mirrored to the side. Then the bridge fight if due,
+// another turn, the charge when berserk, the berserk start (as in Wait) or the walk.
 static void em31_R1_Turn(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1080,6 +1127,13 @@ static void em31_R1_Turn(cEm31* em)
     }                                                                                               \
     EmRoutineSet(em, 1, 8, 0, 0)
 
+// Body routine 1/7: the stand-off across the bridge (berserk cancelled). `side` is which bank the
+// giant is on (x -44 m), `ang` the yaw facing across. Steps: 0/1 turn to face across, 2/3 side-step
+// along the bank to line up with the player (motVar = direction; the tentacle's pillar attack
+// (setAtk / em31PillarCk2) when it can, or the jump over (EM31_BRIDGE_JUMP_SET) if the player leaves
+// the bridge zone or reaches the crane), 4/5 idle facing him until the attack wait is out and the
+// tentacle is ready, 6/7 the pillar throw (setPillarThrow, Vs_cnt++; after three or a 30 % roll it
+// jumps across), 8/9 a 90-frame idle after a pillar attack. Leaves for Wait when em31BridgeVsCk fails.
 static void em31_R1_BridgeVs(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1261,6 +1315,10 @@ static void em31_R1_BridgeVs(cEm31* em)
     v.y += 250.0f;                                                                                  \
     em31AtkCk(em, &v, &ep, 0)
 
+// Body routine 1/8: the leap to Target_pos (Be_flg 0x80: no damage switch; the tentacle plays its
+// jump pose): while motion event bit 1 is set the remaining offset is covered a tenth per frame
+// with the collision passed through; on event bit 0 the landing hits (attack 4 at the root, the
+// stamp attack 0 under the four feet). Then a turn past 45 deg or the walk.
 static void em31_R1_Jump(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1309,6 +1367,8 @@ static void em31_R1_Jump(cEm31* em)
     }
 }
 
+// Body routine 1/5: the roar that starts the berserk (Be_flg 0x40, 300 frames of Berserk_timer,
+// the cooldown reset to 450; the tentacle plays along). Then a turn past 45 deg or the charge.
 static void em31_R1_BerserkStart(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1336,6 +1396,8 @@ static void em31_R1_BerserkStart(cEm31* em)
     }
 }
 
+// Body routine 1/6: the berserk winds down (Be_flg 0x40 cleared, cooldown 450; the tentacle plays
+// along). Then a turn past 45 deg or the walk.
 static void em31_R1_BerserkEnd(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1392,6 +1454,12 @@ static inline void em31StampAtkCk(cEm31* em, int parts, f32 x, Vec* v, Vec* ep)
     em31AtkCk(em, v, ep, 1);
 }
 
+// Body routine 1/9: the stamp. r_no_3 picks the variant (0 / 1 the single stamp, mirrored, when the
+// player is within 30 cm of the centre line, else 2 the double stamp; the tentacle mirrors it). On
+// motion events 0 / 1 the landing foot (parts 6 / 0xC, 3 m out from its origin) stamps attack 1 with
+// dust; on event 2 a player up to 5 m ahead within 2.5 m of the line gets the dodge prompt
+// (em31ActEscape). Ends through em31StampEnd (escape point on a miss; a hit rests in Wait or, when
+// berserk, ends the berserk).
 static void em31_R1_Stamp(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1489,12 +1557,16 @@ static void em31_R1_Stamp(cEm31* em)
     }
 }
 
+// Action button of the stamp: the player dodges (plemEscape; Act_ck marks it).
 static void em31ActEscape(cEm31* em)
 {
     EM31_WK(em)->Act_ck = 1;
     SetPlDamage((int) em, plemEscape);
 }
 
+// Player damage callback of the stamp dodge (dmType 2: no hit damage): the dive to the side
+// (mirrored by r_no_3) under the event camera (em31EscapeCamMove), with an escape rank point; ends
+// with the motion.
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -1532,6 +1604,9 @@ static void plemEscape(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Event camera of the stamp dodge: eases from the current camera to a spot behind the player's
+// right shoulder looking past him, pulled in 25 cm short of any wall, and installs itself as the
+// extra camera.
 void em31EscapeCamMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1583,6 +1658,9 @@ void em31EscapeCamMove(cEm31* em)
     v.y += 250.0f;                                                                                  \
     em31AtkCk(em, &v, &ep, 3)
 
+// Body routine 1/0xA: the kick with a random foot (r_no_3 = mirrored; the tentacle idles and roars):
+// on motion event bit 1 attack 3 is tested at 2 / 2.5 / 3 m along the kicking foot. Ends through
+// em31StampEnd.
 static void em31_R1_Kick(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1667,6 +1745,8 @@ static void em31_R1_Kick(cEm31* em)
         VibSetData(VIB_TBL, 0xB, 1);                                                                \
     }
 
+// Branch check of the grab: on the tentacle's motion event bit 1, a living player within 1.5 m
+// (XZ) of the tentacle's hand part 0xD is caught: dmType 2 on all three and CatchHit (1/0xC).
 static void em31_R1_br_Catch(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1675,6 +1755,9 @@ static void em31_R1_br_Catch(cEm31* em)
     EM31_CATCH_BR_CK(0xD, 2250000.0f, 0xC);
 }
 
+// Body routine 1/0xB: the grab (the body's reach pose with its effect; the tentacle does the actual
+// grab motion, setCatch, whose hit is in em31_R1_br_Catch). A miss awards the escape point, sets the
+// attack wait and returns to Wait.
 static void em31_R1_Catch(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1719,6 +1802,10 @@ static inline void em31CatchEnd(cEm31* em, Em31Work* w)
     EmRoutineSet(em, 1, 1, 0, 0);
 }
 
+// Body routine 1/0xC: the grab connected (Be_flg 0x80, dmType 2). Snapped to the grab spot
+// (em31CatchPosSet), the collision passed through for 30 frames, the crush motion with the player
+// taken over (plem31_CatchHit) and the tentacle's matching motion; then em31CatchEnd (berserk over,
+// attack wait by difficulty, Wait).
 static void em31_R1_CatchHit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1805,11 +1892,16 @@ static void em31_R1_CatchHit(cEm31* em)
     pl->x3A8 = pl->pos;                                                                             \
     pl->subArc = pl->subArc2;                                                                      
 
+// Player damage callback of the grab: placed 4.5 m in front of the giant facing it, the carried
+// motion (900 damage with the crush sound / rumble at frame 86, the death voice if it kills), then
+// the drop and get-up; ends with the motion.
 static void plem31_CatchHit(cPlayer* pl)
 {
     PLEM31_CATCH_HIT_SUB(0x74, 0x36);
 }
 
+// Branch check of the stepping grab: a living player within 2 m (XZ) of the tentacle's part 0xB
+// on its motion event bit 1 is caught: StepCatchHit (1/0xE).
 static void em31_R1_br_StepCatch(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1818,6 +1910,8 @@ static void em31_R1_br_StepCatch(cEm31* em)
     EM31_CATCH_BR_CK(0xB, 4000000.0f, 0xE);
 }
 
+// Body routine 1/0xD: the grab with a step forward (the tentacle's setStepCatch motion carries the
+// hit, em31_R1_br_StepCatch). A miss awards the escape point, ends the berserk and walks on.
 static void em31_R1_StepCatch(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1842,6 +1936,8 @@ static void em31_R1_StepCatch(cEm31* em)
     }
 }
 
+// Body routine 1/0xE: the stepping grab connected: like em31_R1_CatchHit with the step variant of
+// the player's motion (plem31_StepCatchHit) and the tentacle's setStepCatchHit.
 static void em31_R1_StepCatchHit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1872,6 +1968,7 @@ static void em31_R1_StepCatchHit(cEm31* em)
     }
 }
 
+// Player damage callback of the stepping grab: plem31_CatchHit with the other carried motion / effect.
 static void plem31_StepCatchHit(cPlayer* pl)
 {
     PLEM31_CATCH_HIT_SUB(0x72, 0x37);
@@ -1894,6 +1991,9 @@ static inline void em31AtkEnd(cEm31* em, Em31Work* w)
     }
 }
 
+// Body routine 1/0xF: the tentacle's whip attack, the body playing the matching lean (variant by
+// where the predicted player is: 0 straight ahead, 1 up to 90 deg off, 2 / 3 behind left / right,
+// 4 the mirrored 1; r_no_3 forces one). The tentacle does the hit (setAtk); em31AtkEnd decides the exit.
 static void em31_R1_HeadAtk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1960,6 +2060,8 @@ static void em31_R1_HeadAtk(cEm31* em)
     }
 }
 
+// Body routine 1/0x10: the backhand sweep behind it while the tentacle whips (setAtk 0);
+// em31AtkEnd decides the exit.
 static void em31_R1_BackAtk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -1979,6 +2081,9 @@ static void em31_R1_BackAtk(cEm31* em)
     }
 }
 
+// Tentacle routine 1/0x11: holds its idle pose (following the body, em31SearchBody) until the level
+// script sets flag bit 0, then plays the appearance effects, goes active and idles (T_Wait). The
+// weak point stays hidden.
 static void em31_R1_T_Appear(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2010,6 +2115,10 @@ static void em31_R1_T_Appear(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x12: idle on the body's back (Atk_enable = the body may attack): the normal
+// loop, the raised berserk loop or the exposed loop after an eye was shot, re-picked when the body's
+// state changes. The weak point is exposed (em31WeakMode) while the body is berserk or eye-broken.
+// Breathes.
 static void em31_R1_T_Wait(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2058,6 +2167,9 @@ static void em31_R1_T_Wait(cEm31* em)
     em31BreathSe(em);
 }
 
+// Tentacle routine 1/0x16 (setStamp): follows the body's stamp (r_no_3 = the body's variant: 0 / 1
+// the single stamp, mirrored, 2 the double) with a roar; back to T_Wait (from frame 1 after the
+// double). Weak point hidden.
 static void em31_R1_T_Stamp(cEm31* em)
 {
     void* mot;
@@ -2127,6 +2239,9 @@ static inline void em31TenAtkCk(cEm31* em, int no)
     em31AtkCk(em, &em->getPartsPtr(0x3A)->world, &p0->world, no);
 }
 
+// Tentacle routine 1/0x17 (setAtk): the whip (variant r_no_3 as in em31_R1_HeadAtk) with its
+// effect and roar; on motion event bit 0 attack 5 (6 for the off-centre variants) is swept along
+// every whip part (em31TenAtkCk). A miss awards the escape point; back to T_Wait. Weak point hidden.
 static void em31_R1_T_Atk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2193,6 +2308,9 @@ static void em31_R1_T_Atk(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x18 (setDashAtk): the raised whipping loop during the body's charge (attack
+// 5 along the whip on motion event bit 0, a roar at frame 22; the loop repeats until the body
+// changes it). Weak point exposed.
 static void em31_R1_T_DashAtk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2223,6 +2341,8 @@ static void em31_R1_T_DashAtk(cEm31* em)
     em31WeakMode(em, 1);
 }
 
+// Tentacle routine 1/0x13 (setBerserkStart): rises with a roar as the body goes berserk, weak
+// point exposed; then T_Wait.
 static void em31_R1_T_BerserkStart(cEm31* em)
 {
     em31SearchBody(em);
@@ -2240,6 +2360,7 @@ static void em31_R1_T_BerserkStart(cEm31* em)
     em31WeakMode(em, 1);
 }
 
+// Tentacle routine 1/0x14 (setBerserkEnd): settles back with its voice, weak point hidden; then T_Wait.
 static void em31_R1_T_BerserkEnd(cEm31* em)
 {
     em31SearchBody(em);
@@ -2257,6 +2378,7 @@ static void em31_R1_T_BerserkEnd(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x15 (setJump): the jump pose with a roar at frame 19; then T_Wait.
 static void em31_R1_T_Jump(cEm31* em)
 {
     em31SearchBody(em);
@@ -2275,6 +2397,8 @@ static void em31_R1_T_Jump(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x19 (setCatch): the grab reach, the short one when the player is within 3 m
+// in front, with a roar (the hit is the body's em31_R1_br_Catch on this motion's event); then T_Wait.
 static void em31_R1_T_Catch(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2309,6 +2433,8 @@ static void em31_R1_T_Catch(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x1A (setCatchHit): the crush motion with its effect and sound while the body
+// holds the player; then T_Wait from frame 1.
 static void em31_R1_T_CatchHit(cEm31* em)
 {
     em31SearchBody(em);
@@ -2327,6 +2453,8 @@ static void em31_R1_T_CatchHit(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x1B (setStepCatch): the stepping grab reach with a roar (the body's
+// em31_R1_br_StepCatch reads its motion event); then T_Wait.
 static void em31_R1_T_StepCatch(cEm31* em)
 {
     em31SearchBody(em);
@@ -2344,6 +2472,8 @@ static void em31_R1_T_StepCatch(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x1C (setStepCatchHit): the crush motion of the stepping grab with its effect
+// and sound; then T_Wait from frame 1.
 static void em31_R1_T_StepCatchHit(cEm31* em)
 {
     em31SearchBody(em);
@@ -2362,6 +2492,9 @@ static void em31_R1_T_StepCatchHit(cEm31* em)
     em31WeakMode(em, 0);
 }
 
+// Tentacle routine 1/0x1D (setPillarThrow, bridge fight): the pillar throw motion with roars: on
+// motion event bit 1 a pillar object is created 2.5 m ahead of the body and set to fly (setThrow),
+// released from pPillar on event bit 0; then T_Wait.
 static void em31_R1_T_PillarThrow(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2409,6 +2542,8 @@ static inline void em31PillarDrop(cEm31* em, Em31Work* w)
     }
 }
 
+// Tentacle routine 1/0x1E (setDmNormal): the flinch after a weak-point hit (Be_flg 0x10): drops
+// any held pillar, resets Total_damage, pain voice, weak point hidden; then T_Wait.
 static void em31_R1_T_Dm_Normal(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2432,6 +2567,11 @@ static void em31_R1_T_Dm_Normal(cEm31* em)
     }
 }
 
+// Tentacle routine 1/0x1F (setDown / setDownBody / setDownDamage): the tentacle while the body is
+// down (r_no_3 = mirrored). Steps 0/1 the collapse (Be_flg 0x1000, pillar dropped, pain voice),
+// 2/3 the exposed loop with the weak point out and its drip effect every 3 frames, until the body
+// sets flag bit 0 (it gets up), 4/5 the recovery (a hit-during-down effect when Be_flg 0x2000),
+// then T_Wait. Steps 6/7 (setDownDamage) are the flinch while down, returning to the loop.
 static void em31_R1_T_Down(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2521,6 +2661,9 @@ static void em31_R1_T_Down(cEm31* em)
     }
 }
 
+// Tentacle routine 1/0x20 (setDamageCrane): the reaction to the crane / falling-rock hit: the
+// knock-down motion (mirrored by r_no_3) with the pillar dropped and the weak point out, then
+// straight into the exposed down loop (T_Down step 2).
 static void em31_R1_T_Dm_Crane(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2550,6 +2693,9 @@ static void em31_R1_T_Dm_Crane(cEm31* em)
     }
 }
 
+// Tentacle routine 1/0x21 (setClimb): the player has climbed onto the back and slashes the
+// parasite: the exposed pose to frame 41, the slashed motion with its blood effect and scream at
+// frame 78, then the recovery (weak point hidden) and 1/20 of max HP lost; then T_Wait.
 static void em31_R1_T_Dm_Climb(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2601,6 +2747,8 @@ static void em31_R1_T_Dm_Climb(cEm31* em)
     }
 }
 
+// Tentacle routine 1/0x22 (setDie): the death in three motions (the writhe, the collapse after
+// which the active status goes, the dead pose held); hp 0, no more body attacks.
 static void em31_R1_T_Die(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2634,6 +2782,8 @@ static void em31_R1_T_Die(cEm31* em)
     }
 }
 
+// Routine 2 (body): damage reactions (r_no_1: Dm_Normal, Dm_Down, Dm_Crane, Dm_Climb); Be_flg 8
+// keeps em31DmCk from restarting one.
 static void em31_R0_Damage(cEm31* em)
 {
     EM31_WK(em)->Be_flg |= 8;
@@ -2650,6 +2800,8 @@ static inline void em31DmEnd(cEm31* em, Em31Work* w)
     }
 }
 
+// Body routine 2/0: the flinch after heavy weak-point damage (the tentacle flinches with it,
+// berserk cancelled); then the bridge fight if due, else the walk (em31DmEnd).
 static void em31_R1_Dm_Normal(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2681,6 +2833,10 @@ static inline void em31ClimbBtnCk(cEm31* em)
     }
 }
 
+// Body routine 2/1: knocked down (Be_flg 0x1000). Step 0/1 the fall (Down_type picks the motion /
+// mirror, the tentacle drops with it), 2/3 the down loop for Wake_timer frames offering the climb
+// prompt (em31ClimbBtnCk); a light weak-point hit meanwhile plays the down flinch (6/7), a heavy one
+// ends the down. Step 4/5 the get-up (the tentacle's flag bit 0 tells it), then em31DmEnd.
 static void em31_R1_Dm_Down(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2809,6 +2965,8 @@ static void em31_R1_Dm_Down(cEm31* em)
     }
 }
 
+// Body routine 2/2 (setHitCrane): hit by the crane's boulder: the knock-down (r_no_3 = mirrored,
+// the tentacle's setDamageCrane), berserk cancelled, then the down loop (2/1 step 2) for 210 frames.
 static void em31_R1_Dm_Crane(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2841,6 +2999,10 @@ static void em31_R1_Dm_Crane(cEm31* em)
     }
 }
 
+// Body routine 2/3 (em31SetActClimb): the player climbs the downed giant's back (dmType 2, Be_flg
+// 0x80). Snapped to the climb spot (em31CatchPosSet), the down pose to frame 41 while the player
+// climbs (plem31_Climb; the tentacle's setClimb), then the writhing motion with the collision back,
+// the get-up and em31DmEnd.
 static void em31_R1_Dm_Climb(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -2977,6 +3139,7 @@ static void plem31_Climb(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button of the down loop: starts the back climb (routine 2/3), both sides invulnerable.
 static void em31SetActClimb(cEm31* em)
 {
     EmRoutineSet(em, 2, 3, 0, 0);
@@ -2984,6 +3147,7 @@ static void em31SetActClimb(cEm31* em)
     pPL->dmg.set(0, 30);
 }
 
+// Routine 3 (body): death (only em31_R1_Die_Normal); Be_flg 8 blocks reactions.
 static void em31_R0_Die(cEm31* em)
 {
     EM31_WK(em)->Be_flg |= 8;
@@ -3017,6 +3181,11 @@ static void em31_R0_Die(cEm31* em)
         }                                                                                           \
     }
 
+// Body routine 3/0 (setDie / setDieNormal): the scripted death at the fixed spot by the bridge in
+// three motions, the tentacle stepping through its own death (T_Die steps 0 / 2 / 4) in step. Step
+// 2 drops the small tails and plays the death effects (the lava variant when Be_flg 0x800: after
+// 90 frames the model colours fade to 0x30, EM31_DIE_FADE); step 4 removes the effects, ends the
+// fade, and sets the item drop; the final pose is held. Any held pillar is destroyed.
 static void em31_R1_Die_Normal(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3128,6 +3297,9 @@ static void em31_R1_Die_Normal(cEm31* em)
     }
 }
 
+// Per-frame routing while alive: the route from a point 50 cm behind the giant's centre to the
+// player (Be_flg bit 0 when found), the yaw to the route point (routeAng / Pl_rot, zero during
+// init) copied as the movement target (Go_pos / Go_dir / Go_rot).
 void em31RouteCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3186,6 +3358,8 @@ static void Em31ClothSet(cEm31* em, PlCloth* c)
     PenClothSet(em, (PenCloth*) c, 1000.0f);
 }
 
+// Sets up the 15-node hanging chain (parts em31ClothP2) as a stiff pendulum cloth (gravity 30,
+// 100 mm segments, no bundles).
 void Em31ClothSet2(cEm31* em, PlCloth* c)
 {
     c->Num = 15;
@@ -3215,6 +3389,8 @@ void Em31ClothSet2(cEm31* em, PlCloth* c)
     PenClothSet(em, (PenCloth*) c, 100.0f);
 }
 
+// Per frame (not during the entrance, Be_flg 0x200): simulates the first chain and rebuilds the
+// world matrices of the parts 0x38..0x49 hanging off it.
 void Em31ClothMove2(cEm31* em, PlCloth* c)
 {
     Em31Work* w = EM31_WK(em);
@@ -3234,6 +3410,7 @@ void Em31ClothMove2(cEm31* em, PlCloth* c)
     }
 }
 
+// Sets up the 18-node second chain (parts em31ClothP3) with the same pendulum parameters.
 void Em31ClothSet3(cEm31* em, PlCloth* c)
 {
     c->Num = 18;
@@ -3263,6 +3440,7 @@ void Em31ClothSet3(cEm31* em, PlCloth* c)
     PenClothSet(em, (PenCloth*) c, 100.0f);
 }
 
+// Per frame (not during the entrance): simulates the second chain.
 void Em31ClothMove3(cEm31* em, PlCloth* c)
 {
     if (!(EM31_WK(em)->Be_flg & 0x200)) {
@@ -3293,6 +3471,12 @@ static inline void em31PlBlow(cEm31* em)
     PlSetDamage(8, 0, 0);
 }
 
+// Tests attack `no` of em31_atk_tbl swept from oldPos to pos against the player (the table's flag
+// 4 = may kill only while the player has more than 1 HP), after letting the point break pillars
+// (em31PillarAtkCk); once per attack (Atk_ck, Be_flg 0x400). On a hit: the stamps (0 / 1) and the
+// landing (4) flatten the player under the foot (plem31_dm_Stamp, r_no_3 picks the effect), the
+// tentacle whips (5 / 6) crush him (em31PlCrush; 6 also knocks him away), the backhand (3) bleeds and
+// knocks him away, the tail (7) only sounds. Camera shake and rumble; returns 1 on a hit.
 int em31AtkCk(cEm31* em, Vec* pos, Vec* oldPos, int no)
 {
     Em31Work* w = EM31_WK(em);
@@ -3359,6 +3543,9 @@ int em31AtkCk(cEm31* em, Vec* pos, Vec* oldPos, int no)
     return 0;
 }
 
+// Player damage callback of the stamp: the flattened motion with the pain / death sound and the
+// blood effect of the variant (r_no_3), under the stamp camera; a survivor returns to standing
+// (routine 1/0 step 0xA) at frame 50 or the end.
 static void plem31_dm_Stamp(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -3397,6 +3584,8 @@ static void plem31_dm_Stamp(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Event camera of the stamp: eases towards a point 3 m up and 3 m behind the player looking at his
+// root part, and installs itself as the extra camera.
 void em31StampCamMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3423,6 +3612,8 @@ void em31StampCamMove(cEm31* em)
     CamCtrl.m_pExtraCamera = (s32) cam;
 }
 
+// Tentacle only: finds the live body (id 0x31, type 0) among the enemies once and links the two
+// (pBody here, pTen on the body).
 void em31SearchBody(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3442,6 +3633,8 @@ void em31SearchBody(cEm31* em)
     }
 }
 
+// Tentacle only: places it on the body's back (its matrix is the body's part 1 matrix), computes
+// its parts and hooks the small tails on (em31TentacleConnect). Without a body it just computes parts.
 void em31TenMatCalc(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3469,6 +3662,7 @@ void em31TenMatCalc(cEm31* em)
     em31TentacleConnect(em);
 }
 
+// Tentacle: play the crane-hit knock-down (1/0x20, `flip` = mirrored).
 void cEm31::setDamageCrane(int flip)
 {
     if (type != 1) {
@@ -3477,6 +3671,8 @@ void cEm31::setDamageCrane(int flip)
     EmRoutineSet(this, 1, 0x20, 0, flip);
 }
 
+// Body, for the level script: teleports the giant to crane spot `no` (0 the west bank facing
+// south, 1 the east bank facing north), sets an attack wait by difficulty and idles (the tentacle too).
 void cEm31::setCranePos(int no)
 {
     Em31Work* w = EM31_WK(this);
@@ -3517,6 +3713,7 @@ void cEm31::setCranePos(int no)
     }
 }
 
+// Tentacle: 1 while it is free for the body to attack with (Atk_enable, set by its idle routines).
 int cEm31::ckAtkEnable()
 {
     Em31Work* w = EM31_WK(this);
@@ -3530,6 +3727,7 @@ int cEm31::ckAtkEnable()
     return 1;
 }
 
+// Tentacle: the whip attack (1/0x17), variant `no` (see em31_R1_HeadAtk).
 void cEm31::setAtk(int no)
 {
     if (type != 1) {
@@ -3538,6 +3736,7 @@ void cEm31::setAtk(int no)
     EmRoutineSet(this, 1, 0x17, 0, no);
 }
 
+// Tentacle: the whipping loop of the body's charge (1/0x18).
 void cEm31::setDashAtk()
 {
     if (type != 1) {
@@ -3546,6 +3745,7 @@ void cEm31::setDashAtk()
     EmRoutineSet(this, 1, 0x18, 0, 0);
 }
 
+// Tentacle: back to idle (1/0x12).
 void cEm31::setWait()
 {
     if (type != 1) {
@@ -3554,6 +3754,7 @@ void cEm31::setWait()
     EmRoutineSet(this, 1, 0x12, 0, 0);
 }
 
+// Tentacle: the player is climbing the back and slashing it (1/0x21).
 void cEm31::setClimb()
 {
     if (type != 1) {
@@ -3562,6 +3763,7 @@ void cEm31::setClimb()
     EmRoutineSet(this, 1, 0x21, 0, 0);
 }
 
+// Tentacle: the pillar throw of the bridge fight (1/0x1D).
 void cEm31::setPillarThrow()
 {
     if (type != 1) {
@@ -3570,6 +3772,7 @@ void cEm31::setPillarThrow()
     EmRoutineSet(this, 1, 0x1D, 0, 0);
 }
 
+// Tentacle: rise with the body's berserk roar (1/0x13).
 void cEm31::setBerserkStart()
 {
     if (type != 1) {
@@ -3578,6 +3781,7 @@ void cEm31::setBerserkStart()
     EmRoutineSet(this, 1, 0x13, 0, 0);
 }
 
+// Tentacle: settle as the berserk ends (1/0x14).
 void cEm31::setBerserkEnd()
 {
     if (type != 1) {
@@ -3586,6 +3790,7 @@ void cEm31::setBerserkEnd()
     EmRoutineSet(this, 1, 0x14, 0, 0);
 }
 
+// Tentacle: the jump pose (1/0x15).
 void cEm31::setJump()
 {
     if (type != 1) {
@@ -3594,6 +3799,7 @@ void cEm31::setJump()
     EmRoutineSet(this, 1, 0x15, 0, 0);
 }
 
+// Tentacle: follow the body's stamp variant `no` (1/0x16).
 void cEm31::setStamp(u8 no)
 {
     if (type != 1) {
@@ -3602,6 +3808,7 @@ void cEm31::setStamp(u8 no)
     EmRoutineSet(this, 1, 0x16, 0, no);
 }
 
+// Tentacle: the grab reach (1/0x19).
 void cEm31::setCatch()
 {
     if (type != 1) {
@@ -3610,6 +3817,7 @@ void cEm31::setCatch()
     EmRoutineSet(this, 1, 0x19, 0, 0);
 }
 
+// Tentacle: the crush of a caught player (1/0x1A).
 void cEm31::setCatchHit()
 {
     if (type != 1) {
@@ -3618,6 +3826,7 @@ void cEm31::setCatchHit()
     EmRoutineSet(this, 1, 0x1A, 0, 0);
 }
 
+// Tentacle: the stepping grab reach (1/0x1B).
 void cEm31::setStepCatch()
 {
     if (type != 1) {
@@ -3626,6 +3835,7 @@ void cEm31::setStepCatch()
     EmRoutineSet(this, 1, 0x1B, 0, 0);
 }
 
+// Tentacle: the crush of the stepping grab (1/0x1C).
 void cEm31::setStepCatchHit()
 {
     if (type != 1) {
@@ -3634,6 +3844,7 @@ void cEm31::setStepCatchHit()
     EmRoutineSet(this, 1, 0x1C, 0, 0);
 }
 
+// Tentacle: the flinch after weak-point damage (1/0x1E).
 void cEm31::setDmNormal()
 {
     if (type != 1) {
@@ -3642,6 +3853,7 @@ void cEm31::setDmNormal()
     EmRoutineSet(this, 1, 0x1E, 0, 0);
 }
 
+// Tentacle: collapse with the body's knock-down (1/0x1F, `flip` = mirrored).
 void cEm31::setDown(int flip)
 {
     if (type != 1) {
@@ -3650,6 +3862,7 @@ void cEm31::setDown(int flip)
     EmRoutineSet(this, 1, 0x1F, 0, flip);
 }
 
+// Tentacle: the flinch while down (T_Down step 6).
 void cEm31::setDownDamage()
 {
     if (type != 1) {
@@ -3660,6 +3873,7 @@ void cEm31::setDownDamage()
     r_no_2 = 6;
 }
 
+// Tentacle: 1 on the frame its weak point was hit (Be_flg 0x100).
 int cEm31::ckWeakDamage()
 {
     if (type != 1) {
@@ -3671,6 +3885,7 @@ int cEm31::ckWeakDamage()
     return 0;
 }
 
+// Body: 1 when a knock-down has been requested (Be_flg 0x4000, EM31_SET_DOWN) but not started.
 int cEm31::ckDownEnable()
 {
     if (type != 0) {
@@ -3682,6 +3897,7 @@ int cEm31::ckDownEnable()
     return 0;
 }
 
+// Body, for the level script: start the knock-down (2/1).
 void cEm31::setDownBody()
 {
     if (type != 0) {
@@ -3690,6 +3906,8 @@ void cEm31::setDownBody()
     EmRoutineSet(this, 2, 1, 0, 0);
 }
 
+// Body, for the level script (the climb was interrupted): back to the down loop (2/1 step 2), the
+// tentacle to its exposed loop.
 void cEm31::setDownCancel()
 {
     Em31Work* w = EM31_WK(this);
@@ -3706,11 +3924,15 @@ void cEm31::setDownCancel()
     }
 }
 
+// Tentacle: the weak-point damage accumulated since the last reaction.
 int cEm31::getTotalDamage()
 {
     return EM31_WK(this)->Total_damage;
 }
 
+// Body only, while alive: the four small tail tentacles (pTail) hiss every 30 frames, are moved
+// (em31SmallTentacleMove) and each tip (part 7) tests the tail attack 7 against the player without
+// consuming the main attack's Atk_ck.
 void em31TailAtkCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3751,6 +3973,9 @@ void em31TailAtkCk(cEm31* em)
     w->Atk_ck = hit;
 }
 
+// Body only: sets up the four eyes of the back parasite: lid part / eye part pairs (0x1B / 0x1A,
+// 0x1D / 0x1C, 0x1F / 0x1E, 0x21 / 0x20), the lid's opening direction, the eye's open and closed
+// heights, the hits each takes (2 for the upper pair, 1 for the lower) and a 90..180 frame timer.
 void em31EyelidInit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3801,6 +4026,10 @@ void em31EyelidInit(cEm31* em)
     w->Eyelid[3].Hp = 1;
 }
 
+// Body only, per frame: each eye's lid state machine (Rno 0/1 open: lid flat, eye raised and full
+// size, for a timer by difficulty; 2/3 shut: lid rotated over, eye sunk 5 cm and shrunk, the eye
+// unhittable (Flag); 4/5 broken: eye shrunk to a tenth). Berserk / catch / jump / a reaction or a
+// flash shut the eyes at once. Every eye also turns to look at the player's head (addRot within 45 deg).
 void em31EyelidMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3924,6 +4153,8 @@ void em31EyelidMove(cEm31* em)
     }
 }
 
+// Body only: 1 when the pending hit landed on an open, unbroken eye. With `dmg` set the eye takes
+// the hit: its lid shuts for 900 frames, or at 0 hits it breaks (its hit box disabled, state 4).
 int em31EyelidDmcK(cEm31* em, int dmg)
 {
     Em31Work* w = EM31_WK(em);
@@ -3961,6 +4192,8 @@ int em31EyelidDmcK(cEm31* em, int dmg)
     return 0;
 }
 
+// Tentacle only: copies its part 1 matrix onto the body's part 0x52 so the body's skin follows the
+// tentacle root.
 void em31TentacleConnect(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -3979,6 +4212,7 @@ void em31TentacleConnect(cEm31* em)
     q->world = p->world;
 }
 
+// Body, for the crane boulder: the crane knock-down (2/2), mirrored when `target` lies behind it.
 void cEm31::setHitCrane(Vec* target)
 {
     int back;
@@ -3995,6 +4229,8 @@ void cEm31::setHitCrane(Vec* target)
     EmRoutineSet(this, 2, 2, 0, back);
 }
 
+// Switches the four small tails between the calm loop (player beyond 7 m) and the agitated loop
+// (within 5 m; Be_flg 0x20), each tail phased a quarter loop apart.
 void em31SmallTentacleMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4026,6 +4262,7 @@ void em31SmallTentacleMove(cEm31* em)
     }
 }
 
+// Body: 1 while berserk (Be_flg 0x40).
 int cEm31::ckBerserk()
 {
     if (type != 0) {
@@ -4037,6 +4274,8 @@ int cEm31::ckBerserk()
     return 0;
 }
 
+// Damage of the pending hit: the weapon table value (near = within 6 m; 100 for weapon ids past
+// 0x2D), divided by 5 everywhere except on the tentacle's weak point part 0xC.
 int em31SetDmVal(cEm31* em)
 {
     EmHitInfo* part = em->dmPart;
@@ -4069,6 +4308,8 @@ int em31SetDmVal(cEm31* em)
     return dmg;
 }
 
+// Tentacle: exposes the weak point (the root hit box on part 0xC enabled, the armoured box hit[0]
+// off) or hides it again.
 void em31WeakMode(cEm31* em, int on)
 {
     Em31Work* w = EM31_WK(em);
@@ -4082,6 +4323,7 @@ void em31WeakMode(cEm31* em, int on)
     }
 }
 
+// Body, for the level script: the lava death (Be_flg 0x800, routine 3/0 from its first motion).
 void cEm31::setDie()
 {
     if (type != 0) {
@@ -4091,6 +4333,7 @@ void cEm31::setDie()
     EmRoutineSet(this, 3, 0, 0, 0);
 }
 
+// Body, for the level script: the plain death, straight into the second motion (3/0 step 2).
 void cEm31::setDieNormal()
 {
     if (type != 0) {
@@ -4099,6 +4342,7 @@ void cEm31::setDieNormal()
     EmRoutineSet(this, 3, 0, 2, 0);
 }
 
+// Body, for the level script: skip to the final death pose (3/0 step 4).
 void cEm31::setDieCancel()
 {
     if (type != 0) {
@@ -4107,6 +4351,8 @@ void cEm31::setDieCancel()
     EmRoutineSet(this, 3, 0, 4, 0);
 }
 
+// A standing pillar (obj 0x1F) within a 7 m wide, 4 m deep box in front: starts the whip attack at
+// it (HeadAtk 1/0xF, variant 1 / 4 by side). Returns 1 when started.
 int em31PillarCk(cEm31* em)
 {
     Mtx inv;
@@ -4141,6 +4387,8 @@ int em31PillarCk(cEm31* em)
     return 0;
 }
 
+// Bridge fight: a standing pillar beside the giant (within 2.5 m to the right -> 1, to the left ->
+// 2, from 1.5 m behind to 3.5 m ahead); 0 when none.
 int em31PillarCk2(cEm31* em)
 {
     Mtx inv;
@@ -4166,6 +4414,8 @@ int em31PillarCk2(cEm31* em)
     return 0;
 }
 
+// An attack point within 1 m of a standing pillar breaks it (setBreak away from the body, with
+// the crumble sound). Called for every attack sweep point.
 void em31PillarAtkCk(cEm31* em, Vec* pos)
 {
     Em31Work* w = EM31_WK(em);
@@ -4186,6 +4436,9 @@ void em31PillarAtkCk(cEm31* em, Vec* pos)
     }
 }
 
+// The leap at a far player: with a route, the player at the same height beyond 15 m, outside the
+// bridge zones and 4 m clear of the far gate spot, and no standing pillar in a 7 m wide lane between
+// them, starts the jump (1/8) at the player's position and ends the berserk. Returns 1 when started.
 int em31JumpCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4299,6 +4552,9 @@ int em31JumpCk(cEm31* em)
         break;                                                                                      \
     }
 
+// Hit feedback of the body: the hit sound and the effect set by where it landed (kind 0 the
+// armoured skin: sparks / hard-hit effects; 1 the soft parts hit[4..8]: blood; 2 an open eye: the
+// eye splash, with the eye's own burst effect for hit[0..3]) and by weapon class (EM31_BLOOD_SWITCH).
 void em31BloodSet(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4367,6 +4623,8 @@ void em31BloodSet(cEm31* em)
     }
 }
 
+// Hit feedback of the tentacle: the hard-hit set on its armoured boxes, the blood / splash set on
+// the weak point (its root hit box), by weapon class (EM31_BLOOD_SWITCH).
 void em31TBloodSet(cEm31* em)
 {
     Vec pos;
@@ -4405,6 +4663,8 @@ void em31TBloodSet(cEm31* em)
     }
 }
 
+// Creates the four small tail tentacles (obj16 on the body's parts 0x4A..0x4D, angled outwards)
+// with the calm loop phased a quarter apart; any already present are kept.
 void em31SetTail(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4474,6 +4734,9 @@ static inline void em31ScaleReset(cEm31* em)
     }
 }
 
+// For the level script (the entrance cutscene was skipped): restores the parts scale, removes the
+// appearance effects and puts the body straight into the walk (with its tails) or the tentacle
+// into its idle, both active.
 void cEm31::setAppearCancel()
 {
     Em31Work* w = EM31_WK(this);
@@ -4518,6 +4781,9 @@ void cEm31::setAppearCancel()
         SndCall(8, 0, &v, em->id, 0, em);                                                           \
     }
 
+// Footsteps: motion events 4..7 mark a foot landing (left / right front, mirrored with the motion,
+// and the rear feet): dust at the foot and the step sound, or the heavy charge stomp with its
+// effect while dashing (Be_flg 0x8000).
 void em31FootSe(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4562,6 +4828,7 @@ void em31FootSe(cEm31* em)
     }
 }
 
+// Tentacle: 1 on a frame one of its attacks hit the player (Be_flg 0x400).
 int cEm31::ckAtkHit()
 {
     if (type != 1) {
@@ -4573,6 +4840,8 @@ int cEm31::ckAtkHit()
     return 1;
 }
 
+// For the level script: 1 while the tentacle's HP is at or below half (and above 0), when the
+// rocket launcher may be given; works from either part.
 int cEm31::ckRocketEnable()
 {
     Em31Work* w = EM31_WK(this);
@@ -4604,6 +4873,7 @@ int cEm31::ckRocketEnable()
     return 0;
 }
 
+// Body: 1 once all four eyes are broken.
 int cEm31::ckEyeBreak()
 {
     Em31Work* w = EM31_WK(this);
@@ -4620,6 +4890,9 @@ int cEm31::ckEyeBreak()
     return 1;
 }
 
+// The bridge jump from the EMI route data: standing within 3 m of a type 0x11 jump-off entry with
+// the player more than 6 m past it, it leaps (1/8) to that entry's paired landing entry (state 1,
+// same group) unless that lies more than 15 deg off its facing. Returns 1 when started.
 int em31BridgeJumpCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4679,6 +4952,9 @@ int em31BridgeJumpCk(cEm31* em)
     return 0;
 }
 
+// 1 when the player and the giant are on opposite banks of the bridge (player west of x -49 m
+// with the giant on the east bank strip, or player east of -39 m with the giant west of -49 m);
+// `far` widens the east strip by a metre for the fight already in progress.
 int em31BridgeVsCk(cEm31* em, int far)
 {
     if (far) {
@@ -4699,6 +4975,12 @@ int em31BridgeVsCk(cEm31* em, int far)
     return 0;
 }
 
+// The attack selection of Wait / Walk / Dash / Turn against the player predicted 18 frames ahead,
+// in the giant's local frame. A pillar in reach is whipped first (em31PillarCk). With Atk_wait out:
+// a player 3..4 m ahead within 2.5 m of the line and not above gets the stamp (50 %) or kick (not
+// while berserk); with the tentacle free: a player up on the back (lp.y over 1 m) the stepping grab;
+// then a 50 % retry wait of 15 frames; a player 3..5 m dead ahead the whip or the grab; within 2 m
+// ahead the grab, the backhand or a short leap onto him; anyone within 5 m the whip.
 int em31AtkRtnCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4792,6 +5074,9 @@ int em31AtkRtnCk(cEm31* em)
         }                                                                                           \
     }
 
+// Snaps the giant to a fixed catch / climb spot on the bank it stands on (x -53 m west, -35 m
+// east, z clamped to 65..75 m; a third spot for the lower area) facing along the bridge (`climb`) or
+// 30 deg off it, so the grab and back-climb motions have room.
 void em31CatchPosSet(cEm31* em, int climb)
 {
     if (em->pos.x < -44500.0f) {
@@ -4822,6 +5107,7 @@ void em31CatchPosSet(cEm31* em, int climb)
     }
 }
 
+// 1 when the player stands at one of the two crane control spots (within 3 m, same height).
 int em31PLCraneCk(cEm31* em)
 {
     Vec tbl[2] = {
@@ -4883,6 +5169,8 @@ void em31PlHeadLost()
     EstSet((int) obj, -1, 0, 0, 0x29, 0x28, 0, 0, (u32) obj, 0);
 }
 
+// Creates the weak point objects (obj00): one per eye on the body (hooked to the eye parts, 1.1x)
+// or the single one on the tentacle's part 0xB (1.3x); shown by em31WeakMove.
 void em31WeakInit(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4927,6 +5215,8 @@ void em31WeakInit(cEm31* em)
     }
 }
 
+// Per frame: the weak point objects are shown while the thermal scope marks them (Status_flg[1]
+// 0x04000000) and the enemy lives: an eye while open and unbroken, the tentacle's while exposed.
 void em31WeakMove(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4959,6 +5249,8 @@ void em31WeakMove(cEm31* em)
     }
 }
 
+// Tentacle: stops the current voice and breath and plays voice `no` at its mouth part 0xB; the
+// breath resumes after `timer` frames.
 void cEm31::setVoice(int no, int timer)
 {
     Em31Work* w = EM31_WK(this);
@@ -4974,6 +5266,7 @@ void cEm31::setVoice(int no, int timer)
     w->breathTimer = timer;
 }
 
+// Tentacle: the breath at its mouth every 60 frames (breathTimer).
 void em31BreathSe(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
@@ -4989,6 +5282,8 @@ void em31BreathSe(cEm31* em)
     }
 }
 
+// Tentacle: the voiced motion sound events replace the breath with that voice (setVoice) and are
+// consumed.
 void em31BreathSeStopCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);

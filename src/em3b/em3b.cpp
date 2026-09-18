@@ -1,6 +1,15 @@
 // em3b module (D:/Bio4/Prog/em3b.cpp): the truck (type 0) that runs into the barricade and the mine
 // carts (type 1 running down the track, type 2 stopped). The driver is another enemy (work pDriver);
 // the vehicles run over the player, the partner and any Ganado in front (em3bRunDownCk*).
+//
+// Em3bInit is the module's EmInitFunc. The vehicle sits at the origin and is placed by its
+// motion (the room's matrix). Routines: r_no_0 0 init, 1 move, 4 scenario; r_no_1 for the truck:
+// 0 wait (flag bit0 from the room starts it), 1 run (450 frames; the driver dying or the truck's
+// hp at 1 makes it veer at frame 250 / 320), 2 run into the barricade / off the road (r_no_3 =
+// direction); for the carts: 3 wait, 4 run down the track, 5 hit (explodes 80 frames after being
+// stopped), 6 lost, 7 stopped-cart explosion. em->flag bit1 = the vehicle is finished (the room
+// reads it); hp 1 / dmgWait is the "engine on fire" state (ckFire). Em3bWork (em3b.h): timer /
+// seTimer, sndId / sndId2 SE handles, espKind, pDriver, hit.
 
 #include "atari.h"
 #include "light.h"
@@ -68,25 +77,33 @@ static inline int em3bDeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// REL entry: registers the enemy constructor.
 extern "C" void _prolog()
 {
     OSReport("em3b prolog Ok\n");
     EmInitFunc = Em3bInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc: placement-constructs the vehicle in the cEm work.
 void Em3bInit(cEm* em)
 {
     new (em) cEm3b();
 }
 
+// Truck damage of the frame: consumes cEm::dmHit (grenades / flash / mines ignored); hp loss by
+// weapon class (200 small arms, 500 shotgun close / 200 far, 1000 magnums / launchers), the
+// metal-hit spark and SE; the last hp point (hp <= 1) starts the burning engine: effect 0x23,
+// SEs and a 150-frame dmgWait.
 void em3bDmCkTruck(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -165,6 +182,9 @@ void em3bDmCkTruck(cEm3b* em)
     }
 }
 
+// Running cart damage: a damage area (explosion kinds 1 / 4 / 5 / 7) or any weapon hit except the
+// flash grenade (0x17 / 0x2A) stops the cart: the hit spark (a dull one for melee / knife / mines),
+// dmgWait 150, the stop effect and -> r_no_1 5 (hit).
 void em3bDmCkCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -249,6 +269,8 @@ void em3bDmCkCart(cEm3b* em)
     }
 }
 
+// Stopped cart damage: the same triggers as the running cart (a damage area or any hit but the
+// flash grenade) kill it (hp 0) and -> r_no_1 7 (the stopped-cart explosion).
 void em3bDmCkStopCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -349,6 +371,9 @@ static Em3bFunc Em3b_R1_move_tbl[9] = {
     0,
 };
 
+// Per-frame update (emMove): the type's damage check, dmgWait countdown, the r_no_0 routine (0xFF
+// after a failed init destroys the work), the cart's track tilt, parts matrices and the enemy /
+// scenery collision.
 void cEm3b::move()
 {
     Em3bWork* w = EM3B_WK(this);
@@ -383,6 +408,10 @@ void cEm3b::move()
     SatMgr.check(this, 0);
 }
 
+// r_no_0 == 0: creation: the truck (archive 4/5) or cart (0xB/0xC) model, a 10 m light area, the
+// collision (a 3.4 m box for the truck, 1.5 m for the carts; priority 3), Ashley does not ask for
+// help near it, the hit cubes (truck: body + cab), no lock-on point, EM_STATUS_ACTIVE, the effects
+// (archive 6 as group 0x30); then the type's wait state (truck 1/0, carts 1/3).
 static void em3b_R0_Init(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -465,6 +494,7 @@ static void em3b_R0_Init(cEm3b* em)
     em3b_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void em3b_R0_Move(cEm3b* em)
 {
     Em3b_R1_move_tbl[em->r_no_1](em);
@@ -481,6 +511,8 @@ static inline void em3bPosReset(cEm3b* em)
     em->ang.z = 0.0f;
 }
 
+// Truck r_no_1 == 0: parked (the engine-start motion 0xA for one frame, then the idle 7); after
+// 10 frames the room's start flag (em->flag bit0) -> run (1).
 static void em3b_R1_Truck_Wait(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -507,6 +539,10 @@ static void em3b_R1_Truck_Wait(cEm3b* em)
     }
 }
 
+// Truck r_no_1 == 1: the drive: the start motion 0xA, then the 470-frame drive motion 7 with the
+// exhaust effect, running down whoever is in front; at frame 250 / 320 a dead driver or a burning
+// truck (hp <= 1) veers off (-> 2 with r_no_3 = 0 / 1); random engine SEs for 450 frames; at frame
+// 465 the crash into the barricade (effect 0x24, flag bit1 done, hp 0, no longer active).
 static void em3b_R1_Truck_Run(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -587,6 +623,9 @@ static void em3b_R1_Truck_Run(cEm3b* em)
     }
 }
 
+// Truck r_no_1 == 2: veers off the road (r_no_3 1: motion 9 / effect 0x26, 60 frames of running
+// down; 0: motion 8 / effect 0x25, 120 frames), then the collision shrinks to the wreck; crash SEs
+// at the motion's key frames set flag bit1 (done) and hp 0; inactive when the motion ends.
 static void em3b_R1_Truck_RunInto(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -656,12 +695,16 @@ static void em3b_R1_Truck_RunInto(cEm3b* em)
     }
 }
 
+// Cart r_no_1 == 3: waits at the first frame of the track motion 0xD (the room switches it to run).
 static void em3b_R1_Cart_Wait(cEm3b* em)
 {
     MotionSetCore(em, MOTION(em), ARC(0xD), 0, 0, 0, 0);
     MotionMoveF(em, 0);
 }
 
+// Cart r_no_1 == 4: runs down the track (motion 0xD) running over whoever is in front; after 80
+// frames (also re-entered after a hit) it explodes: a grenade-type blast hit check 1 m up, the
+// shot noise flag, the explosion effect, dmgWait 150 -> lost (6).
 static void em3b_R1_Cart_Run(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -701,6 +744,8 @@ static void em3b_R1_Cart_Run(cEm3b* em)
     }
 }
 
+// Cart r_no_1 == 5: hit while running: the derail motion 0xE with the screech SE, marked dead and
+// inactive; at its end back to run (4), which then explodes.
 static void em3b_R1_Cart_Damage(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -720,6 +765,9 @@ static void em3b_R1_Cart_Damage(cEm3b* em)
     }
 }
 
+// Stopped cart r_no_1 == 7: the explosion: effect 3, dmgWait 150, the break motion 0xE, dead;
+// next frame two grenade-type blast hit checks (1 m and 4 m up), the shot noise flag, the
+// explosion SE -> lost (6).
 static void em3b_R1_StopCart_Damage(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -755,6 +803,7 @@ static void em3b_R1_StopCart_Damage(cEm3b* em)
     }
 }
 
+// Cart r_no_1 == 6: gone: hidden, collision off, dead, hp 0, inactive.
 static void em3b_R1_Cart_Lost(cEm3b* em)
 {
     int st = em->r_no_2;
@@ -783,6 +832,9 @@ static inline f32 em3bDistXZ(cModel* p, Vec* q)
     return d;
 }
 
+// The truck's parts 0 / 1 / 4 within 2.5 m (XZ) of the player kill him (pl_life 0, turned to
+// face the truck, damage motion 8, the run-over SE); the same for the partner (ashley_life 0,
+// subem3bRunDown); Ganados (ids 0x10..0x20, not the driver) within 4.5 m of parts 0 die (routine 3/4).
 void em3bRunDownCkTruck(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -853,6 +905,8 @@ void em3bRunDownCkTruck(cEm3b* em)
 }
 
 // Run over the player and the Ganados in front of the cart.
+// The cart's parts 1 within 1.5 m (XZ) of a living, unhit player: 500 damage, turned away, damage
+// motion 8; Ganados (ids 0x10..0x20) within 1.7 m die (routine 3/4).
 void em3bRunDownCkCart(cEm3b* em)
 {
     cModel* p;
@@ -919,6 +973,9 @@ static void subem3bRunDown()
 }
 
 // Tilt the running cart to the slope of the track.
+// Type 1 only, while the motion places it (motFlags2 bit30 clear): snaps pos.y to the floor when
+// within 500 of it and pitches the matrix by the floor slope between 500 ahead and behind (clamped
+// +-30 degrees).
 void em3bSlopeMove(cEm3b* em)
 {
     Mtx m;
@@ -972,6 +1029,7 @@ void em3bSlopeMove(cEm3b* em)
     TransMatrix(em->mat, &em->pos);
 }
 
+// Room query: 1 while the vehicle burns / has just been hit (dmgWait running).
 int cEm3b::ckFire()
 {
     if (EM3B_WK(this)->dmgWait != 0) {

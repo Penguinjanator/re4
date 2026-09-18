@@ -1,5 +1,11 @@
 // Thompson weapon object (wep12 module, first object; real file name unknown): a machine gun
 // without weapon types (fixed model / ability), cartridge ejection and level-dependent reload.
+//
+// cObjTompson (wep_mod.h) is the cObjWep of the Chicago Typewriter, hanging on the player's right
+// hand (parts 10) and driven by wep.mode / wep.step from the machine gun routines
+// (wep/pl_machine.cpp): mode 2 -> moveFire (one round: gun motion, flash 0x46, SEs, cartridge),
+// mode 4 -> moveReload (motion by tune level, ItemMgr.reload at its frame). Both modes are ended
+// by the player routine.
 
 #include "wep_mod.h"
 #include "item.h"
@@ -9,11 +15,15 @@
 #include "pad.h"
 #include "rnd.h"
 
+// ObjInitFunc[0x25]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjTompson_init(cObj* obj)
 {
     new (obj) cObjTompson();
 }
 
+// cObjWep::init override (equipWeapon, parent = the player): model 0x6 / texture 0x5, atari
+// bits 8/9 off, hung on the right hand, light area, weapon list id 0x34, idle motion 0x29,
+// default lock spread.
 void cObjTompson::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -35,6 +45,9 @@ void cObjTompson::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, one round per wep11_r3_fire00): step 0 starts the gun's recoil motion
+// (0x27, 0x2A on the last round), the muzzle flash 0x46, the shot SEs, Status_flg[0] bit23 (shot
+// noise), a cartridge and the pad vibration; step 1 waits for the player routine.
 void cObjTompson::moveFire()
 {
     if (wep.step == 0) {
@@ -56,6 +69,9 @@ void cObjTompson::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the gun's reload motion of the tune level (0x28/0x2B/
+// 0x2C) with the level's SE (2/0x20/0x21); at the level's frame (40/34/28) ItemMgr.reload
+// refills the drum.
 void cObjTompson::moveReload()
 {
     static const f32 reloadEnd[3] = { 40.0f, 34.0f, 28.0f };
@@ -94,6 +110,8 @@ void cObjTompson::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0xA/0xB) from the right hand's ejection port
+// offset (-216, -24, 105.9) with a random +-15 spread, gravity 10, 40 frames, landing effect 0x13.
 void cObjTompson::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -123,6 +141,10 @@ void cObjTompson::setCartridge()
     }
 }
 
+// Fills the player's motion table with the Thompson-carrying footwork motions (idle, no walk [1],
+// run, turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions, 0x52; the 0x5D/0x5E
+// damage motions are cleared; 0x3D stays the player archive's) and sets the weapon hand models
+// (right hand 1, left hand 2).
 void cObjTompson::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0D));

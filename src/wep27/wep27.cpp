@@ -1,4 +1,10 @@
 // wep27 module: the Klauser machine gun (own copy of the cObjMachinegun class, routines wep/pl_machine.cpp).
+//
+// Krauser's (mercenaries) build of the TMP: the same cObjMachinegun as wep/objMachinegun.cpp with
+// its own fire motions / SEs per weapon_type (0/2: the loud type with Status_flg[0] bit23; 1/3: the
+// suppressed type) and reload frames, hanging on the player's right hand (parts 10) and driven by
+// wep.mode / wep.step from the machine gun routines (mode 2 fire, mode 4 reload). Wep27_init is
+// the WeaponInitFunc, PlMachineMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -14,6 +20,9 @@ void PlMachineMove(cPlayer* pl);   // wep/pl_machine.cpp
 // static here (the REL field holds S+A).
 void ObjKlauMGun_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the machine gun (ObjMgr id 0x2D)
+// as Wep->m_pWep, inits it on the player, installs its motions and loads the muzzle-flash
+// effects (archive 0x4 as group 0x45).
 void Wep27_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -29,6 +38,10 @@ void Wep27_init(cModel* m)
     }
 }
 
+// cObjWep::init override (parent = the player): one model 0x6 / texture 0x5 (the object is
+// destroyed when it fails), atari bits 8/9 off, hung on the right hand, light area; weapon_type
+// 0..3 picks the idle motions (0x2A / 0x2B normal, 0x2F empty), the weapon list id 0x30..0x33
+// and the lock random spread.
 void cObjMachinegun::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -75,6 +88,10 @@ void cObjMachinegun::init(cModel* parent)
     resetMotion();
 }
 
+// wep.mode == 2 (fire, one round per wep11_r3_fire00): step 0 starts the gun's recoil motion
+// (types 0/2: 0x27, 0x2D on the last round; types 1/3: 0x2C / 0x2E), the shot SEs (loud types
+// set Status_flg[0] bit23, the suppressed ones play 0x18 + 0x15), the pad vibration, a cartridge
+// and the muzzle flash 0x45 (type 1 for the suppressed models); the motion's end returns to mode 0.
 void cObjMachinegun::moveFire()
 {
     int type = 0;
@@ -134,6 +151,8 @@ void cObjMachinegun::moveFire()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0xA/0xB) from the right hand's ejection port
+// offset (-109, -22, 90) with a random +-15 spread, gravity 10, 30 frames, landing effect 0x13.
 void cObjMachinegun::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -163,6 +182,9 @@ void cObjMachinegun::setCartridge()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the reload tune level (0x29/0x32/
+// 0x33, or 0x28/0x30/0x31 from an empty magazine) with the magazine-out SE; at the weapon type's
+// frame (40 / 52) the magazine-in SE plays and ItemMgr.reload refills. The player routine ends the mode.
 void cObjMachinegun::moveReload()
 {
     static const int reloadEnd[4] = { 40, 40, 52, 52 };
@@ -205,6 +227,9 @@ void cObjMachinegun::moveReload()
     }
 }
 
+// Fills the player's motion table with Krauser's TMP-carrying footwork motions (idle, run, turns,
+// back, the 0x39..0x42 damage set; no knife transitions; 0x3D stays the player archive's) and
+// sets the weapon hand models (right hand 1, left hand 2).
 void cObjMachinegun::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0D));
@@ -232,11 +257,13 @@ void cObjMachinegun::setMotion(cPlayer* pl)
     pl->setLeftHand(2);
 }
 
+// ObjInitFunc[0x2D]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjKlauMGun_init(cObj* obj)
 {
     new (obj) cObjMachinegun();
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep27_init;
@@ -245,11 +272,13 @@ extern "C" void _prolog()
     OSReport("Wep27 KLAUSER-MACHINEGUN prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x2D] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

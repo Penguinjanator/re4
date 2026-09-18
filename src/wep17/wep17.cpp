@@ -3,6 +3,15 @@
 // its own player routine: the handgun routine (wep/pl_handgun.cpp) with an aim stance (the
 // pWep->knifeStance byte), a wall check / enemy check at the ready start (ready00, ckEmWep), the
 // lock target switch (r2_next) and the wall-facing "out" routine (r2_out).
+//
+// Entry: Wep17_init is the WeaponInitFunc, Wep17_move the WeaponMoveFunc (pl_R1_Weapon, r_no_1
+// == 6). r_no_2 is the weapon state (0 ready, 1 set, 2 fire, 4 reload, 5 next target, 6 out),
+// r_no_3 the step, mirrored into the weapon object's wep.mode / wep.step. The VP70 (0x11) fires a
+// three-round burst while the trigger is held (m_Work4 counts); weapon 3 is the Red9 with this
+// module's motions (weapon_type 2 = the stock variant's fire / reload set). Weapon archive slots:
+// 0x11 draw, 0x12/0x17/0x19 aim idle down/level/up (mot3 pitch on m3r), 0x14/0x18/0x1A (Red9
+// stock) / 0x21..0x23 (Red9) / 0x3D..0x3F (VP70) fire, 0x15 holster, 0x16 / 0x24 / 0x40,0x27,0x2A
+// reload.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -60,6 +69,10 @@ static Vec tgt;
 // enemy found by ckEmWep (the out routine turns to it)
 static cModel* pCkEm;
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the weapon object of weapon_no as
+// Wep->m_pWep, installs its motions (for the Red9 the footwork set is then replaced by this
+// module's own), loads the muzzle-flash effects (archive 0x4 as group 0x4B) and points the debug
+// preview PlWepMot at 0x14/0x18/0x1A.
 void Wep17_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -93,6 +106,8 @@ void Wep17_init(cModel* m)
     }
 }
 
+// WeaponMoveFunc: dispatches on r_no_2 (0, 1, 2, 4, 5, 6; 3 = down has no entry, wepDown leaves
+// directly) and runs the lock-on stick control.
 void Wep17_move(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -109,6 +124,11 @@ void Wep17_move(cPlayer* pl)
     pl->Wep->lockMove();
 }
 
+// r_no_2 == 0: the ready (draw) state. r_no_3 == 100 is the re-entry from the out routine
+// (m_Work0 = 1: skip the wall check). The stick picks knifeStance (up 0, down 2, else 1). Aim key
+// released before the lock turn -> footwork (or crouch 0x11) with the weapon's enemy collision
+// (atari 0x200) cleared; reload key with rounds -> reload (m_Flag bit0, m_Work0 = 1); else the
+// shoulder camera aims at the locked enemy or the forward scenery hit.
 static void wep17_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -171,6 +191,8 @@ static void wep17_r2_ready(cPlayer* pl)
 }
 
 // Alive enemy in front of the player (within a quarter turn) with a free line of sight: pCkEm.
+// Only enemies whose checkThrow() is set count; returns 1 when one was found (the out routine
+// then turns towards it).
 int ckEmWep(cPlayer* pl)
 {
     u32 i;
@@ -197,9 +219,13 @@ int ckEmWep(cPlayer* pl)
     return 0;
 }
 
-// ready00: aim start. Outside the first stage (and not coming back from the out routine) the player
+// ready step 0: aim start. Outside the first stage (and not coming back from the out routine) the player
 // facing a wall turns away from it (routine 6, r2_out: x3E0 = the free side) and an enemy in front is
-// faced instead. Forms that matter: `md` (an int holding 1) is what wep.mode and the left tail's x3E4
+// faced instead. Wep->pitch from the camera pitch, aim yaw m_Fwork0 = 0, cocking SE 2/9, weapon
+// object mode 1, its enemy collision (atari 0x200) on; the wall check (Status_flg[3] bit27 set,
+// stage > 1) probes 1 m ahead at head height and picks the free side (left: m_Work0 0, right: 1)
+// for the out routine, or turns to a visible enemy (ckEmWep, side from the stick). Otherwise the
+// lock-on resets and the draw motion 0x11 starts. Forms that matter: `md` (an int holding 1) is what wep.mode and the left tail's x3E4
 // share (r23); the x3E0 store is written first in both tails: the later use of the same register is
 // the one the scheduler issues early (its REG_DEAD lowers the register weight), so the earlier store
 // ends up last, before the call.
@@ -317,6 +343,8 @@ static void wep17_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays with the draw SE at frame ~2 (0x29 while m_Work2 == 1, else
+// 0x28); at frame 4 -> set state step 4 (finish the motion). Blends the pitch and straightens the waist.
 static void wep17_r3_ready10(cPlayer* pl)
 {
     if (pl->frame > 1.7f && pl->frame < 2.3f) {
@@ -341,6 +369,7 @@ static void wep17_r3_ready10(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// ready step 2: like step 1 without the SE; frame 4 -> set step 4.
 static void wep17_r3_ready20(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
@@ -355,7 +384,9 @@ static void wep17_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
-// ready30: turn / step towards the aim target while the motion plays (wep/pl_handgun.cpp).
+// ready step 3: the lock-on turn (PlWepLockCtrl's request): turn towards `tgt` (PI/8 per frame),
+// slide towards `pos`, aim the pitch target m3r[1] at the target's elevation in 0.05 steps
+// (clamped -1..1); motion end -> set state. (The form of wep/pl_handgun.cpp.)
 static void wep17_r3_ready30(cPlayer* pl)
 {
     f32 dist;
@@ -407,6 +438,10 @@ static void wep17_r3_ready30(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state with the laser sight and (outside step 4) the lock-on
+// control. Aim released -> wepDown (or crouch 0x11, which still falls through to the fire
+// checks); fire trigger with rounds -> fire, empty -> reload (m_Flag bit0) or the empty-click SE
+// 2/0x17; fire held with rounds -> fire; reload key -> reload (m_Work0 = 1).
 static void wep17_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -470,6 +505,8 @@ static void wep17_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way aim idle (0x12 down / 0x17 level / 0x19 up on m3r[0]), reset
+// the burst counter m_Work4, step 1.
 static void wep17_r3_set00(cPlayer* pl)
 {
     PlArc* arc = (PlArc*) pG->pWep;
@@ -481,11 +518,14 @@ static void wep17_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle.
 static void wep17_r3_set10(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
+// released -> step 0. Set by PlWepLockCtrl's turn request.
 static void wep17_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -500,6 +540,7 @@ static void wep17_r3_set20(cPlayer* pl)
     }
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void wep17_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -514,6 +555,7 @@ static void wep17_r3_set30(cPlayer* pl)
     }
 }
 
+// set step 4: finish the draw / fire motion; ends or any fire / aim / action key -> step 0.
 static void wep17_r3_set40(cPlayer* pl)
 {
     if (pl->motionMove() || (Key.on & 0x10F)) {
@@ -521,6 +563,8 @@ static void wep17_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 shoots, step 1 plays the recoil / continues the burst) with
+// the lock-on control.
 static void wep17_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -532,6 +576,11 @@ static void wep17_r2_fire(cPlayer* pl)
     PlWepLockCtrl(pl);
 }
 
+// fire step 0: the shot. trigger() spends a round; the fire motions by weapon (VP70 0x3D..0x3F,
+// Red9 stock 0x14/0x18/0x1A, Red9 0x21..0x23) replace the idle, the waist twists to the lock yaw,
+// the weapon's enemy collision is cleared, and the bullet line runs from the right hand (parts
+// 10) muzzle offset (234.5, -24, 38.33) 50 m along -X with a +-200 spread -> PlWepHitCheck2.
+// m_Work4 counts the burst rounds, weapon object mode 2, PlWepLockRand recoils the aim. Step 1.
 static void wep17_r3_fire00(cPlayer* pl)
 {
     cModel* parts;
@@ -590,7 +639,9 @@ static void wep17_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
-// fire10: the VP70 fires up to three shots on the held trigger (x3F0 counts them).
+// fire step 1: the recoil plays; the VP70 fires up to three shots on the held trigger (m_Work4
+// counts them: back to step 0 at frame 3 while <= 2 and rounds remain). At frame 11 the burst
+// counter resets, the enemy collision comes back and -> set state step 4.
 static void wep17_r3_fire10(cPlayer* pl)
 {
     pl->motionMove();
@@ -608,6 +659,9 @@ static void wep17_r3_fire10(cPlayer* pl)
     }
 }
 
+// Holster: footwork routine (r_no_1 0) sub-routine 2 with the weapon-down motion 0x15 when a
+// motion may be set (dmMotCk), else the idle with x4FD = 0xF; weapon object mode 3, its enemy
+// collision cleared, the waist twist unwound into ang.y.
 void wepDown(cPlayer* pl)
 {
     cObjWep* obj;
@@ -634,6 +688,10 @@ void wepDown(cPlayer* pl)
     FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
+// r_no_2 == 4: the reload state. Step 0 starts the reload motion (VP70: 0x40/0x27/0x2A by reload
+// tune level; Red9 stock 0x16; Red9 0x24), knifeStance = 1, weapon object mode 4 (it refills the
+// magazine at its frame). Step 1: at the motion's end -> set state while aiming, else crouch 0x11
+// or wepDown.
 static void wep17_r2_reload(cPlayer* pl)
 {
     u8 step = pl->r_no_3;
@@ -687,8 +745,12 @@ static void wep17_r2_reload(cPlayer* pl)
     }
 }
 
-// next: turn to the next lock target (pLockEm); a target far round the back is turned to through
-// the waist first (step 2).
+// r_no_2 == 5: the next-target state (Key.trg bit5): turn to the lock target pLockEm. Step 0: a
+// target within the waist limit is turned to by the waist alone (m_Fwork0, step 2 -> set state
+// step 1 when settled); farther round the body turns with a (missing, NULL) turn motion in step
+// 1 (0.314 rad per frame beyond 200 units, 10 frames on m_Work0) then -> set state. Another press
+// searches the next enemy from the head (SearchLockEm) and restarts, none -> set; aim released
+// -> set state (or crouch 0x11).
 static void wep17_r2_next(cPlayer* pl)
 {
     u8 step = pl->r_no_3;
@@ -780,8 +842,14 @@ static void wep17_r2_next(cPlayer* pl)
     }
 }
 
-// out: the player with his back to a wall (ready00) turns round / steps out before aiming; the
-// motions of the steps are not in the archive (null motion pointers).
+// r_no_2 == 6: the "out" state: the player with his back to a wall (ready00) turns round / steps out
+// before aiming; the motions of the steps are not in the archive (null motion pointers).
+// m_Work0 is the side (0 left, 1 right), m_Work1 = 1 when a wall (not an enemy) started it. Step
+// 0/1 the turn-out motion, facing pCkEm over its last frames; step 2 the cover aim (stick turns
+// 3 degrees per frame, m_Fwork0 keeps the entry angle): fire held -> a shot from the hand with
+// the flash 0x4B and the hit line, step 3 (recoil, back to 2); aim released -> step 6 (turn back
+// to m_Fwork0, wall case) or step 5 (step back in, camera angle reset); both end in footwork idle
+// with the weapon's enemy collision cleared.
 static void wep17_r2_out(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -914,6 +982,8 @@ static void wep17_r2_out(cPlayer* pl)
     }
 }
 
+// Creates the weapon object of the equipped weapon (weapon_no 3 Red9 -> cObjMauser id 0x27,
+// 0x11 -> cObjVp70 0x34) and inits it on the player; NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -937,6 +1007,8 @@ cObjWep* equipWeapon(cPlayer* pl)
     return obj;
 }
 
+// REL entry: registers the weapon init / move routines and both object constructor slots (the
+// Mauser's constructor is imported from the wep02 module).
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep17_init;
@@ -946,12 +1018,14 @@ extern "C" void _prolog()
     OSReport("Wep17 VP70 prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slots.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x27] = 0;
     ObjInitFunc[0x34] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

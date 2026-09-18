@@ -266,6 +266,8 @@ extern "C" void _unresolved()
 {
 }
 
+// Placement-constructs the enemy over the manager's cEm slot (EmInitFunc for id 0x36); em36_R0_Init
+// sets it up on the first move.
 void Em36Init(cEm* em)
 {
     new (em) cEm36();
@@ -287,6 +289,15 @@ void Em36Init(cEm* em)
         }                                                                                          \
     }
 
+// Per-frame damage reaction, from move(). A crushing hit (em36CrashCk) takes precedence. The area
+// damage manager (kinds 1 / 4 / 5 / 7) deals 1000 once per 120 frames, killing or knocking it down
+// by state (flags 0x100 crawling -> 2/5, 0x20 on the floor -> 3/1 or 2/3, else 3/0 or 2/1). A weapon
+// hit in dmHit applies em36SetDmVal (the mine 0xD / 0x12 kill outright); at 0 HP the same
+// state-dependent death. Otherwise flags 0x40 (no reaction) just bleeds; crawling: heavy / close
+// shotgun hits may tear a limb (em36LostParts) and it flinches (2/5); on the floor: heavy hits
+// (handgun-class 1 in 10; a rifle on a marked weak limb goes to 2/4) tear a limb and it flinches
+// (2/3); standing: handgun-class 1 in 10 tears a limb (flinch 2/0), close shotgun / magnum / rifle
+// (rifle on a marked weak limb -> 2/2) tear a limb and flinch (2/0). em36BloodSet when no limb went.
 void em36DmCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -545,6 +556,13 @@ void em36DmCk(cEm36* em)
     }
 }
 
+// Per-frame update from the enemy manager. Order: damage, clear the per-frame flags, tick the wait
+// / trap / per-limb attack timers, regenerate 1 HP per frame, route to the target (the find / voice
+// waits only run with a route), the routine table (r_no_0 0xFF = model load failed: destroy), the
+// on-floor motion flag (seFlags 0x80 -> flags 0xA0, IK off), neck, slope tilt, parts, the death
+// shrink, attack / collision (seFlags 0x20 marks the low crawl: pushes ignored, player-block off
+// for the pass) / stage collision (in the air with flags 0x400), stuckCnt, the hit-box enable
+// (em36YarareCk), weak points, regrowth, the tentacles, breath stop and the spine scale.
 void cEm36::move()
 {
     Em36Work* w = EM36_WK(this);
@@ -628,6 +646,12 @@ void cEm36::move()
     em36SpineScaleMove(this);
 }
 
+// Routine 0: one-time setup. Loads the model of the type (archive 4 with texture 0x13 / 0x14 for
+// types 0 / 1, 0x15 / 0x24 for the spined 2 / 3), attaches the seven limb models (em36PartsSet), the
+// flip table, effect data, a 2 m light box, a 1 m collision, the body hit box plus the extras, the
+// weak point objects, the work (find wait 150..300, first voice 450..1050 frames), and the start by
+// `set`: 0 active idle, 1 the bed scene (R307Bed), 2 the R307 appearance, 3 the R309 appearance
+// (inactive), 4 the R308 appearance (inactive).
 static void em36_R0_Init(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -782,16 +806,20 @@ static void em36_R0_Init(cEm36* em)
     OSReport("em36 free size = 0x%x\n", 0x7E4);
 }
 
+// Routine 1: runs the branch check and then the behaviour of the current r_no_1 state.
 static void em36_R0_Move(cEm36* em)
 {
     Em36_R1_move_tbl[em->r_no_1 * 2](em);
     Em36_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the states that have none.
 static void em36_R1_br_Dummy(cEm36* em)
 {
 }
 
+// Routine 1/0x1A (set 1, room 307): the body lying on the lab bed as a non-colliding prop (dmType
+// 2: no hit damage), holding the lying pose; the script swaps it for the live one.
 static void em36_R1_R307Bed(cEm36* em)
 {
     em->dmType = 2;
@@ -814,6 +842,8 @@ static void em36_R1_R307Bed(cEm36* em)
     }
 }
 
+// Routine 1/0x1B (set 2, room 307): stands idle at its spawn spot with the appearance effects
+// until the level script sets flag bit 0, then becomes active (player found, collision on) and walks.
 static void em36_R1_R307Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -844,6 +874,8 @@ static void em36_R1_R307Appear(cEm36* em)
     }
 }
 
+// Routine 1/0x1C (set 3, room 309): idles active where placed until the script sets flag bit 0,
+// then walks with the player found and its first voice held 300 frames.
 static void em36_R1_R309Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -866,6 +898,9 @@ static void em36_R1_R309Appear(cEm36* em)
     }
 }
 
+// Routine 1/0x1D (set 4, room 308): lies dead (hp 0) at its spot until the script sets flag bit 0,
+// then revives at full HP with the appearance effects and the get-up motion, and starts on the
+// floor (D_Wait 1/0x10) when it has lost legs (flags2 0xC), else with the wake-up (1/0x16).
 static void em36_R1_R308Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -906,6 +941,10 @@ static void em36_R1_R308Appear(cEm36* em)
     }
 }
 
+// Routine 1/0x1E (room 310): hangs dead and non-colliding in its pose until the script sets flag
+// bit 0, then revives with the appearance effects and plays the drop-down motion (no damage
+// reaction from motion event bit 2 on; the stage collision returns after 98 frames), ending in a
+// turn when the player is behind or the walk beyond 3 m.
 static void em36_R1_R310Appear(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -964,6 +1003,9 @@ static void em36_R1_R310Appear(cEm36* em)
     }
 }
 
+// Routine 1/0: idle (flags 0x10 = a routine runs, the neck follows). Looks for the player
+// (em36FindCk); once found (flags 0x200) and `wait` is out, it turns past 135 deg or walks when he
+// is beyond 3 m. Breathes unless a limb is regrowing.
 static void em36_R1_Wait(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1008,6 +1050,11 @@ static inline void em36WalkTail(cEm36* em)
     }
 }
 
+// Routine 1/1: the walk towards the target (the spined types' own motion; yaw at PI/32 per frame).
+// After 6..11 loops with a route it pauses in Threat (1/6) for 30 frames. Each frame: the attack
+// selection (em36AtkRtnCk), a turn past 135 deg, and on types 0 / 1 with the voice wait out a dash at
+// 5..10 m. Then the shared tail: regrowth, back to Wait if the player is dead, doors, the jump down /
+// fence checks, breathing, and the spined types' rattle every 60 frames.
 static void em36_R1_Walk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1079,6 +1126,8 @@ static void em36_R1_Walk(cEm36* em)
     }
 }
 
+// Routine 1/2: the run towards the target (types 0 / 1 push the next voice 450..900 frames out),
+// 4..6 loops then a 30-frame Threat; the attack selection and the turn as in Walk, then em36WalkTail.
 static void em36_R1_Dash(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1122,6 +1171,9 @@ static void em36_R1_Dash(cEm36* em)
     em36WalkTail(em);
 }
 
+// Routine 1/3: the about-face; turnAng starts at yaw + PI and both it and the yaw steer to the
+// target at PI/32 per frame, with the attack selection still running. Ends in a dash (types 0 / 1,
+// 5..10 m, voice wait out) or the walk.
 static void em36_R1_Turn(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1165,6 +1217,9 @@ static void em36_R1_Turn(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/4 (em36JumpDownCk): drops off a ledge: the jump motion turned to jumpAng (flags 0x440:
+// airborne stage collision, no damage reaction, IK off) until the floor under it is reached (or the
+// motion ends), then the landing; afterwards Wait (player dead), Turn or Walk.
 static void em36_R1_JumpDown(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1220,6 +1275,9 @@ static void em36_R1_JumpDown(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/5 (em36FanceOverCk): climbs over a fence: the climb motion while fanceVec (the
+// remaining offset to the landing spot, rotated into the facing) is consumed a fifth per frame; no
+// damage reaction meanwhile. Lands on the floor (D_Wait) when the legs are lost, else wakes up (1/0x16).
 static void em36_R1_FanceOver(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1254,6 +1312,8 @@ static void em36_R1_FanceOver(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/6: the roar between moves (motion event bit 0 sets flags 0x2000: the voice cue); then
+// Wait (player dead), Turn past 135 deg or Walk.
 static void em36_R1_Threat(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1280,6 +1340,8 @@ static void em36_R1_Threat(cEm36* em)
     }
 }
 
+// Routine 1/7 (em36CrashCk): knocked back by a crushing hit: the standing (r_no_3 0, homing 20
+// frames) or the on-floor stagger, mirrored half the time, with its voice; then Walk.
 static void em36_R1_Crash(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1328,6 +1390,11 @@ static void em36_R1_Crash(cEm36* em)
         } \
     }
 
+// Routine 1/8: the arm swing (mirrored when the right arm is lost, flags2 bit 0): the front swing
+// homing on the target 5 / 20 / 30 frames by Game_level, or the back swing when the target is behind.
+// On motion event bit 0 the stamp attack (0) is swept along the swinging arm's parts and its hand
+// down to knee height (em36AtkCk2). flags 0x1A000 / 0x2A000 mark which arm is attacking. A miss
+// awards the escape point and walks on, a hit roars (Threat).
 static void em36_R1_Atk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1430,6 +1497,8 @@ static void em36_R1_Atk(cEm36* em)
     }
 }
 
+// Routine 1/9 (spined types): the spine burst: attack 1 from the root on motion event bit 0
+// (flags 0xA000 = attacking). Exits like em36_R1_Atk.
 static void em36_R1_SpineAtk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1463,6 +1532,8 @@ static void em36_R1_SpineAtk(cEm36* em)
 
 #define SUB_ARC(no) PL_ARC_PTR(sub->subArc, no)
 
+// Player damage callback of the arm swing / spine (em36AtkCk): the knock-down motion (the death
+// variant at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
 static void plem36_Stamp(cPlayer* pl)
 {
     BitOn(pG->Status_flg[1], 0x8000);
@@ -1507,6 +1578,8 @@ static void plem36_Stamp(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Partner damage callback of the arm swing / spine: 780 damage, the knock-down motion (the death
+// variant when she is out of HP) with voice and blood effect; ends with the motion if she lives.
 static void subem36_Stamp()
 {
     cSubChar* sub = pSUB;
@@ -1542,6 +1615,8 @@ static void subem36_Stamp()
     sub->subArc = sub->subArc2;
 }
 
+// Branch check of the grab: on motion event bit 1 with the player in reach (em36CatchCk) it
+// rumbles and switches to CatchHit (1/0xB).
 static void em36_R1_br_Catch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36CatchCk(em)) {
@@ -1550,6 +1625,9 @@ static void em36_R1_br_Catch(cEm36* em)
     }
 }
 
+// Routine 1/0xA: the grab reach (front or turned-around variant; turnAng homes on the predicted
+// player position for 5 / 20 / 30 frames by Game_level while motion event bit 3 is set; the hit is in
+// em36_R1_br_Catch). A miss awards the escape point, then Turn or Walk.
 static void em36_R1_Catch(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1627,6 +1705,11 @@ static void em36_R1_Catch(cEm36* em)
     EffectEspgenDelete(1, (w)->espKind[no], (int) (em)); \
     EffectEfmDelete(1, (w)->espKind[no], (int) (em))
 
+// Routine 1/0xB: the player is held (EmCatchPLSet: he follows the enemy's motion). Step 0/1: the
+// grab and bite; after 25 frames the button mash runs and costs 20 HP per frame, a mash count over
+// 30 (or the motion ending with the player alive) frees him (step 4: the throw-off with its effects,
+// then Walk), else step 2: the kill bite (its effects, then Threat). The appearance effects are
+// removed for the scene.
 static void em36_R1_CatchHit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1739,6 +1822,9 @@ static void em36_R1_CatchHit(cEm36* em)
     }
 }
 
+// Player damage callback of the grab (r_no_2 mirrors the enemy's): 0/1 held and bitten (rumble at
+// frame 15, the bite sound at 25; released early if the enemy leaves 1/0xB), 2/3 the death bite, 4/5
+// the throw-off with its effect / sound, ending the damage when the motion finishes.
 static void plem36_CatchHit(cPlayer* pl)
 {
     u8 step;
@@ -1822,6 +1908,8 @@ static inline void em36SetFindWait(Em36Work* w)
     }
 }
 
+// Branch check of the stretched grab: on motion event bit 1 with the player in the long reach
+// (em36LongCatchCk) it rumbles and switches to LongCatchHit (1/0xD).
 static void em36_R1_br_LongCatch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36LongCatchCk(em)) {
@@ -1830,6 +1918,9 @@ static void em36_R1_br_LongCatch(cEm36* em)
     }
 }
 
+// Routine 1/0xC: the stretched-arm grab from range (homing like em36_R1_Catch, with its effect;
+// the hit is in em36_R1_br_LongCatch). A miss awards the escape point, resets the find wait
+// (em36SetFindWait) and goes to Turn or Walk.
 static void em36_R1_LongCatch(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1885,6 +1976,10 @@ static void em36_R1_LongCatch(cEm36* em)
     }
 }
 
+// Routine 1/0xD: the stretched grab connected: reels the player in (EmCatchPLSet with
+// plem36_LongCatchHit, the drag sound on motion event bit 0) and hands over to the close grab
+// (stat -> CatchHit 1/0xB, or 1/0xE the spine grab on the spined types) once the pull ends; a
+// crushing hit meanwhile (em36BetweenHitCk) breaks it into Crash.
 static void em36_R1_LongCatchHit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -1926,6 +2021,8 @@ static void em36_R1_LongCatchHit(cEm36* em)
     }
 }
 
+// Player damage callback of the stretched grab (r_no_2 mirrors the enemy's): 0/1 dragged along
+// the enemy's motion while it stays in 1/0xD, 2/3 the death bite, 4/5 the throw-off.
 static void plem36_LongCatchHit(cPlayer* pl)
 {
     BitOn(pG->Status_flg[1], 0x8000);
@@ -1966,6 +2063,9 @@ static void plem36_LongCatchHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 1/0xE (spined types): the pulled-in player is impaled on the spines: 1100 damage up
+// front, the kill or survive variant of the motion (plem36_SpineCatchHit), rumble; flags 0x6000
+// (spines out) for 45 frames or for good on a kill. A survivor is dropped and the enemy roars.
 static void em36_R1_SpineCatchHit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2010,6 +2110,9 @@ static void em36_R1_SpineCatchHit(cEm36* em)
     }
 }
 
+// Player damage callback of the spine impalement: the death or survive motion with its blood
+// effect, attached to the enemy for 10 frames, the pain sound at frame 7 and the drop sound at 62;
+// ends with the motion if alive.
 static void plem36_SpineCatchHit(cPlayer* pl)
 {
     u8 step;
@@ -2062,6 +2165,8 @@ static void plem36_SpineCatchHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Branch check of the armless bite: on motion event bit 1 with the player at the mouth
+// (em36BiteCk) it rumbles and switches to D_CatchHit (1/0x15).
 static void em36_R1_br_LostCatch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
@@ -2070,6 +2175,8 @@ static void em36_R1_br_LostCatch(cEm36* em)
     }
 }
 
+// Routine 1/0xF: the lunging bite used when both arms are gone (homing like em36_R1_Catch; the
+// hit is in em36_R1_br_LostCatch). A miss awards the escape point, then Turn or Walk.
 static void em36_R1_LostCatch(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2149,6 +2256,9 @@ static inline void em36RegeneArmParts(cEm36* em, Em36Work* w)
     }
 }
 
+// Routine 1/0x17: a lost arm grows back while standing (flags 0x50: no damage reaction): the
+// regrow motion for one (mirrored for the left, flags2 bit 1) or both arms with its effect; the
+// motion events reattach the limb models (em36RegeneArmParts). Then Dash or Walk.
 static void em36_R1_RegeneArm(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2183,6 +2293,8 @@ static void em36_R1_RegeneArm(cEm36* em)
     }
 }
 
+// Routine 1/0x18: the arms grow back while lying on the floor (flags 0xD0); then the legs (1/0x19)
+// if those are lost too, else the wake-up (1/0x16).
 static void em36_R1_RegeneArm2(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2216,6 +2328,10 @@ static void em36_R1_RegeneArm2(cEm36* em)
     }
 }
 
+// Routine 1/0x19: the lost legs grow back while lying on the floor: the regrow motion for one
+// (mirrored for the left, flags2 bit 3) or both legs with its effect, the motion events
+// reattaching the leg models. Then the arms (1/0x18) if lost and their timers are out, else the
+// wake-up (1/0x16).
 static void em36_R1_RegeneFoot(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2270,6 +2386,11 @@ static void em36_R1_RegeneFoot(cEm36* em)
     }
 }
 
+// Routine 1/0x10: lying on the floor with the legs lost (flags 0xB0: on the floor, no damage
+// reaction), the crawl idle. Regrows the legs (1/0x19) once their timers are out, wakes up (1/0x16)
+// if they are back; otherwise with a live player: the crawl grab (1/0x14) when facing him within
+// 6 m (types 0 / 1) or the spine attack (1/0x13) within 1.5 m (spined types), a crawl turn (1/0x12)
+// past 30 deg, and the spined types crawl after a player beyond 1.5 m (1/0x11).
 static void em36_R1_D_Wait(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2335,6 +2456,9 @@ static void em36_R1_D_Wait(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/0x11 (spined types on the floor): the crawl towards the target (yaw PI/32 per frame);
+// per loop end a crawl turn past 30 deg, D_Wait within 1 m or with a dead player, the leg regrowth
+// or the wake-up; meanwhile the crawl grab / spine attack selection of em36_R1_D_Wait.
 static void em36_R1_D_Walk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2392,6 +2516,9 @@ static void em36_R1_D_Walk(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/0x12: the quarter turn on the floor towards the target's side (turnAng homes on it
+// while motion event bit 3 is set), with the crawl grab / spine attack within 4 m in front; then the
+// leg regrowth, another turn or D_Wait.
 static void em36_R1_D_Turn(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2457,6 +2584,8 @@ static void em36_R1_D_Turn(cEm36* em)
     em36BreathSe(em);
 }
 
+// Routine 1/0x13 (spined types on the floor): the spine burst from the floor (attack 1 on motion
+// event bit 0, flags 0xA000), then 30 frames of D_Wait.
 static void em36_R1_D_SpineAtk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2481,6 +2610,8 @@ static void em36_R1_D_SpineAtk(cEm36* em)
     }
 }
 
+// Branch check of the crawl grab: on motion event bit 1 with the player at the mouth
+// (em36BiteCk) it rumbles and switches to D_CatchHit (1/0x15).
 static void em36_R1_br_D_Catch(cEm36* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em36BiteCk(em)) {
@@ -2489,6 +2620,9 @@ static void em36_R1_br_D_Catch(cEm36* em)
     }
 }
 
+// Routine 1/0x14 (types 0 / 1 on the floor): the lunging bite from the floor, homing 5 / 20 / 30
+// frames by Game_level (the hit is in em36_R1_br_D_Catch; motion event bit 6 marks the low crawl
+// pose, flags 0x100); then 30 frames of D_Wait.
 static void em36_R1_D_Catch(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2524,6 +2658,9 @@ static void em36_R1_D_Catch(cEm36* em)
     }
 }
 
+// Routine 1/0x15: the floor bite holds the player (EmCatchPLSet with plem36_D_CatchHit): the
+// button mash runs against 20 HP per frame; a mash count over 30 (or the motion ending alive) frees
+// him (step 4: the throw-off, then 90 frames of D_Wait), else step 2: the kill bite.
 static void em36_R1_D_CatchHit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2598,6 +2735,9 @@ static void em36_R1_D_CatchHit(cEm36* em)
     }
 }
 
+// Player damage callback of the floor bite (r_no_2 mirrors the enemy's): 0/1 held with the bite
+// sound and rumble (released early when the enemy leaves the hold), 2/3 the death bite with its
+// blood effect, 4/5 the throw-off; ends with the motion.
 static void plem36_D_CatchHit(cPlayer* pl)
 {
     BitOn(pG->Status_flg[1], 0x8000);
@@ -2666,6 +2806,8 @@ static void plem36_D_CatchHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 1/0x16: gets up from the floor once the legs are back (no damage reaction; flags 0x20
+// tracks the on-floor part of the motion), then Dash or Walk.
 static void em36_R1_Wakeup(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2696,6 +2838,8 @@ static void em36_R1_Wakeup(cEm36* em)
     }
 }
 
+// Routine 2: damage reactions (r_no_1: Dm_Normal, Dm_Big, Dm_Weak, Dm_Down, Dm_DownWeak,
+// Dm_DownJump); flags 8 keeps em36DmCk from restarting one.
 static void em36_R0_Damage(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2704,6 +2848,10 @@ static void em36_R0_Damage(cEm36* em)
     Em36_R2_move_tbl[em->r_no_1](em);
 }
 
+// Routine 2/0: the standing flinch, chosen by what the hit took (em36GetDmPosType -> r_no_3: 0
+// body, 1 head, 2 / 3 an arm, 4 / 5 a leg) and whether it came from the front or back; a lost leg
+// (4 / 5) means the enemy falls (no damage reaction meanwhile) and continues on the floor (D_Wait),
+// the rest resume Dash or Walk from frame 0xA.
 static void em36_R1_Dm_Normal(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2886,6 +3034,8 @@ static inline void em36DmVoice(cEm36* em)
     }
 }
 
+// Routine 2/1: the heavy stagger (one of two motions, mirrored at random) with the pain voice
+// and the limb twitches (em36DmTwitch, flags 0x200000 marks it); then Dash or Walk from frame 0xA.
 static void em36_R1_Dm_Big(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2939,6 +3089,8 @@ static void em36_R1_Dm_Big(cEm36* em)
     }
 }
 
+// Routine 2/2: the weak point was shot standing (a rifle hit on a marked limb): the convulsion
+// with the pain voice and twitches, then Dash or Walk from frame 0xA.
 static void em36_R1_Dm_Weak(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2968,6 +3120,8 @@ static void em36_R1_Dm_Weak(cEm36* em)
     }
 }
 
+// Routine 2/3: the flinch while lying on the floor (flags 0x30), then the wake-up if the legs are
+// back, else D_Wait.
 static void em36_R1_Dm_Down(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -2993,6 +3147,8 @@ static void em36_R1_Dm_Down(cEm36* em)
     }
 }
 
+// Routine 2/4: the weak point was shot while on the floor: the convulsion with voice and
+// twitches, then the wake-up or D_Wait.
 static void em36_R1_Dm_DownWeak(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3022,6 +3178,8 @@ static void em36_R1_Dm_DownWeak(cEm36* em)
     }
 }
 
+// Routine 2/5: hit during the low crawl lunge (flags 0x100): the knock-back on the floor; then
+// death (3/1) at 0 HP, else D_Wait (70 %) or straight into another crawl grab / spine attack.
 static void em36_R1_Dm_DownJump(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3055,6 +3213,7 @@ static void em36_R1_Dm_DownJump(cEm36* em)
     }
 }
 
+// Routine 3: death (r_no_1: 0 standing, 1 from the floor), through em36DieCore.
 static void em36_R0_Die(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3169,16 +3328,23 @@ static inline void em36DieCore(cEm36* em, int mot0, int mot1)
     }
 }
 
+// Routine 3/0: death from standing (em36DieCore with the standing collapse motion).
 static void em36_R1_Die_Normal(cEm36* em)
 {
     em36DieCore(em, 0x56, 0x57);
 }
 
+// Routine 3/1: death from the floor (em36DieCore with the lying collapse motion).
 static void em36_R1_Die_Down(cEm36* em)
 {
     em36DieCore(em, 0x89, 0x8A);
 }
 
+// Per-frame target selection while alive: routes to the player (routeAng / routePos, zero during
+// init), the route distance, and the line-of-sight flags: bit 0 clear at head height (1.3 m), 0x1000
+// clear of the 0x4000-class obstacles, 0x800 clear at 50 cm against the stage; the partner's route
+// / distance / angle and her line of sight (bit 1) when present. The player is the target unless the
+// partner is present, not protected (Status_flg[0] 0x800) and more than 1 m nearer by route (flags bit 2).
 void em36RouteCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3268,11 +3434,13 @@ void em36RouteCk(cEm36* em)
     }
 }
 
+// Head tracking hook called from move(); empty in the shipped game (the local is all that is left).
 void em36NeckMove(cEm36* em)
 {
     Vec v;
 }
 
+// Tests attack `no` swept from part `parts`' previous to its current world position (em36AtkCk2).
 int em36AtkCk(cEm36* em, u32 no, int parts)
 {
     cModel* p = em->getPartsPtr(parts);
@@ -3280,6 +3448,10 @@ int em36AtkCk(cEm36* em, u32 no, int parts)
     return em36AtkCk2(em, no, &p->world, &p->world_old);
 }
 
+// Attack sphere `no` of em36_atk_tbl swept from oldPos to pos against the player (hit bit 0) and
+// partner (bit 1), once per attack (atkHit). The arm swing (0) knocks the victim down
+// (plem36_Stamp / subem36_Stamp) with rumble and camera shake; the spine (1) bleeds them with its
+// sound. Returns 1 on a hit.
 int em36AtkCk2(cEm36* em, int no, Vec* pos, Vec* oldPos)
 {
     Em36Work* w = EM36_WK(em);
@@ -3324,6 +3496,9 @@ int em36AtkCk2(cEm36* em, int no, Vec* pos, Vec* oldPos)
     return 0;
 }
 
+// Which limb the pending hit landed on, by hit part: 0 the torso (2, 3, 0x12), 1 the head (4, 5),
+// 2 the right arm (7..0xB), 3 the left arm (0xD..0x11), 4 the right leg (0x13, 0x14), 5 the left
+// leg (the rest). Indexes flags2 / atkTimer / the limb models.
 int em36GetDmPosType(cEm36* em)
 {
     EmHitInfo* p = em->dmPart;
@@ -3376,6 +3551,10 @@ int em36GetDmPosType(cEm36* em)
     return 5;
 }
 
+// Tears off the limb the pending hit landed on (em36GetDmPosType) if it is still attached: marks
+// it in flags2 (0x20 torso, 0x10 head, 1 / 2 arms, 4 / 8 legs), swaps in the stump model
+// (em36PartsSet), plays the burst effects and sound, and starts the 450-frame regrowth timer
+// (atkTimer[limb]) and lostTimer. Returns 1 when a limb went.
 int em36LostParts(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3465,6 +3644,8 @@ int em36LostParts(cEm36* em)
     return 0;
 }
 
+// From the standing routines: once both arm timers are out and an arm is missing, starts the
+// standing arm regrowth (1/0x17). Returns 1 when it did.
 int em36RegeneCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3479,6 +3660,10 @@ int em36RegeneCk(cEm36* em)
     return 0;
 }
 
+// Per-frame regrowth of the torso and head while alive: 9 frames before their timers run out the
+// regrow effect plays (the torso's part 0x2D shrinks back over the last 45 frames), at 0 the limb
+// model returns with its sound (types 0 / 1 restore the head glow) and the tentacles clear. The
+// lost-limb groan repeats every 30 frames of lostTimer.
 void em36RegeneCk2(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3670,16 +3855,23 @@ void em36YarareCk(cEm36* em)
     return 1;
 
 
+// The grab test (em36_R1_br_Catch): on motion event bit 1, with a live free player in a 0.8 m wide
+// box up to 1.7 m ahead at the same height, with a route, clear lines of sight and no wall beside
+// the reach; marks both dmg and rumbles. Returns 1 on a catch.
 int em36CatchCk(cEm36* em)
 {
     EM36_CATCH_AREA_CK(1700.0f);
 }
 
+// The bite test of the armless / floor lunges: em36CatchCk with a 1 m reach.
 int em36BiteCk(cEm36* em)
 {
     EM36_CATCH_AREA_CK(1000.0f);
 }
 
+// The stretched-grab test (em36_R1_br_LongCatch): on motion event bit 1, with a live free player
+// within 50 cm (XZ) of the hand part 10 at the same height, with a route, clear lines of sight and
+// no wall alongside the whole reach; marks both dmg and rumbles. Returns 1 on a catch.
 int em36LongCatchCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3759,6 +3951,8 @@ int em36LongCatchCk(cEm36* em)
     return 1;
 }
 
+// 1 when a stage or object collision lies between the enemy and the player at 50 cm height (a
+// held player pulled through a wall breaks the grab).
 int em36BetweenHitCk(cEm36* em)
 {
     Vec a;
@@ -3779,6 +3973,11 @@ int em36BetweenHitCk(cEm36* em)
     return 0;
 }
 
+// Creates the parasite weak points (cObj00 on em36_weak_parts, 1000 HP each) and sets the enemy's
+// HP to their sum. Which of the five slots exist is rolled once per enemy and kept in the em list
+// flag bits 31..27 (flag 0x04000000 = already rolled, for reloads): types 0 / 1 skip one or two
+// random slots (two distinct ones on the easier ranks, up to Game_level 7) and slot 4 on Game_level
+// up to 9. Each existing one enables its hit box.
 void em36WeakInit(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3872,6 +4071,9 @@ void em36WeakInit(cEm36* em)
     em->hp_max = sum;
 }
 
+// Per frame: each weak point's hit box follows its object (offset in root-part space); the
+// objects and boxes are shown / enabled only while the thermal scope shows them (Status_flg[1]
+// 0x04000000) and the weak point and enemy live.
 void em36WeakMove(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3898,6 +4100,10 @@ void em36WeakMove(cEm36* em)
     }
 }
 
+// While lying on the floor (flags 0x80) tilts the body to the slope: the floor height is probed
+// under the head and feet ends (collision radius less 10 cm) and the pitch eased towards their
+// angle (slopeRot.x), with a forward lift (slopeLift) that eases the body along the slope while the
+// tilt settles (slopeTimer); standing, the tilt eases back to zero. Applied to the model matrix.
 void em36SlopeMove(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -3978,6 +4184,9 @@ void em36SlopeMove(cEm36* em)
     TransMatrix(em->mat, &em->pos);
 }
 
+// Damage of the pending hit: the weapon table value (near = within 4 m; 100 for weapon ids past
+// 0x2D). A rifle (9) with the thermal scope on that hits a weak point's box kills that weak point
+// (1000 damage, its em-list flag bit cleared); with no weak points left the shot kills the enemy.
 int em36SetDmVal(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4026,6 +4235,7 @@ int em36SetDmVal(cEm36* em)
     return dmg;
 }
 
+// For the level script: switches the enemy to the room 307 appearance wait (1/0x1B).
 void cEm36::setR307Appear()
 {
     EmRoutineSet(this, 1, 0x1B, 0, 0);
@@ -4150,6 +4360,13 @@ void em36DoorOpenCk(cEm36* em)
     }
 }
 
+// The attack selection of the walking routines (target predicted 18 frames ahead, or its actual
+// position when headless or on Game_level up to 2). Against the partner: the arm swing within 1.5 m
+// (arm regrowth first when both arms are gone). Against the player: the stretched grab (1/0xC) from
+// 1.5..3.5 m in front with both arms and a clear line (always on Game_level above 9, else 20 % / 40 %
+// for the spined types); within 1.5 m at the same height: the grab (1/0xA) or the spine burst (1/9)
+// half the time with both arms, the arm swing (1/8) with a clear line, the armless bite (1/0xF) or
+// the spined types' burst. Returns 1 when an attack routine was set.
 int em36AtkRtnCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4253,6 +4470,9 @@ int em36AtkRtnCk(cEm36* em)
     return 0;
 }
 
+// Swaps limb model `no` (0 torso, 1 head, 2 / 3 arms, 4 / 5 legs, 6 the death variant) between
+// its intact (`on` 0) and lost / stump (`on` 1) model from the archive (separate sets per type),
+// replacing the attached model in pParts[no].
 void em36PartsSet(cEm36* em, int no, int on)
 {
     Em36Work* w = EM36_WK(em);
@@ -4604,6 +4824,7 @@ void em36RegeneTenMove(cEm36* em)
     }
 }
 
+// Releases the three tentacle objects growing out of lost limb `no` (they fade out on their own).
 void em36RegeneTenClear(cEm36* em, int no)
 {
     Em36Work* w = EM36_WK(em);
@@ -4617,6 +4838,9 @@ void em36RegeneTenClear(cEm36* em, int no)
     }
 }
 
+// Blood of the pending hit, sized by weapon class (rapid-fire weapons medium with a hit mark and an
+// occasional spark, shotgun by range, heavy weapons large with the big hit mark, the rest small;
+// knife and weapon 0 none).
 void em36BloodSet(cEm36* em)
 {
     int near = 0;
@@ -4701,6 +4925,10 @@ void em36BloodSet(cEm36* em)
     }
 }
 
+// Player detection while idle; sets flags 0x200 and returns 1 when (with a route) the player is
+// within 15 m inside 60 deg, within 5 m during a fight alert (Status_flg[1] bit 31), or within 3.5
+// m; or the alarm bell rang within 25 m with the player under 25 m of route; or the global alert
+// (Status_flg[0] 0x00800000) with the route under 25 m; or the player is dead.
 int em36FindCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4755,6 +4983,7 @@ int em36FindCk(cEm36* em)
     return 0;
 }
 
+// For the level script: 1 while alive, active and hunting the player (flags 0x200).
 int cEm36::ckFindPL()
 {
     Em36Work* w = EM36_WK(this);
@@ -4768,6 +4997,7 @@ int cEm36::ckFindPL()
     return 0;
 }
 
+// For the level script: makes the enemy aware of the player (flags 0x200).
 void cEm36::setFindPL()
 {
     Em36Work* w = EM36_WK(this);
@@ -4775,6 +5005,8 @@ void cEm36::setFindPL()
     w->flags |= 0x200;
 }
 
+// From the walking routines: when a ledge-type collision (flags 0x102010) is within 50 cm ahead
+// and faces the enemy within 30 deg, starts the jump down (1/4) towards it. Returns 1 when started.
 int em36JumpDownCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4804,6 +5036,11 @@ int em36JumpDownCk(cEm36* em)
     return 0;
 }
 
+// From the walking routines when the collision has been blocking the walk (stuckCnt at 5 mod 10)
+// and fences are climbable (Status_flg[2] 0x08000000 clear): a fence collision (flag 0x20) within 80
+// cm ahead turns the enemy square to it and, unless both shoulders are blocked at head height,
+// starts the climb (1/5) with fanceVec = the spot to land, shifted 30 cm to the free side. Returns 1
+// when started.
 int em36FanceOverCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4886,6 +5123,8 @@ int em36FanceOverCk(cEm36* em)
     return 1;
 }
 
+// The idle breath voice every 60..90 frames (voiceTimer; its handle in sndId so a routine voice
+// can cut it).
 void em36BreathSe(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -4898,6 +5137,8 @@ void em36BreathSe(cEm36* em)
     w->sndId = SndCall(8, 0x1F, &em->pos, em->id, 0, em);
 }
 
+// Motion sound events 6..0xE and 0x38 (the voiced ones) replace the breath with that voice
+// (em36VoiceSet) and are consumed.
 void em36BreathSeStopCk(cEm36* em)
 {
     u32 no = em->seNo;
@@ -4922,6 +5163,8 @@ void em36BreathSeStopCk(cEm36* em)
     }
 }
 
+// Stops the current voice and plays voice `no` at the head part 3; the breath waits `timer` frames.
+// Also used for the partner's damage voices (hence the cEm argument).
 void em36VoiceSet(cEm* em, int no, int timer)
 {
     Em36Work* w = EM36_WK(em);
@@ -4952,6 +5195,10 @@ static Vec em36_spine_scale2[14] = {
     { 4.0f, 3.0f, 4.0f }, { 4.0f, 3.0f, 4.0f }, { 4.0f, 3.0f, 4.0f }, { 8.0f, 8.0f, 8.0f },
 };
 
+// Spined types only, per frame: the 14 spine parts extend (flags 0x2000; 0x10000 / 0x20000 limit
+// it to one arm's group) towards one of three scale tables (0x4000 / 0x8000 pick the bigger ones)
+// and retract otherwise, eased per part in `spine`; the extend / retract sounds play on the
+// transition (flags 0x40000), except during the damage twitches (0x80000).
 void em36SpineScaleMove(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -5016,6 +5263,9 @@ void em36SpineScaleMove(cEm36* em)
     }
 }
 
+// A crushing hit from the area damage manager (kind 3: a thrown / falling object) while standing
+// and not being shot: knocks the enemy into Crash (1/7; r_no_3 1 when hit from behind) or, while
+// in the low crawl, into the floor knock-back (2/5). Returns 1 when it reacted.
 int em36CrashCk(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);
@@ -5046,6 +5296,8 @@ int em36CrashCk(cEm36* em)
     return 1;
 }
 
+// During the death sink (flags 0x100000) squashes every part's matrix vertically by `scale`
+// about its own world position, so the corpse flattens into the floor.
 void em36ScaleCompress(cEm36* em)
 {
     Em36Work* w = EM36_WK(em);

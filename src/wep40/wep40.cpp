@@ -1,5 +1,10 @@
 // wep40 module: Ada's semi-auto rifle (own copy of the cObjHkSniper class, object id 0x30; routines
 // wep/pl_rifle.cpp).
+//
+// Ada's cObjHkSniper: model 0xA or 0xB by weapon_type, offset in her right hand (parts 10), driven
+// by wep.mode / wep.step from the rifle routines (mode 2 fire: SEs and vibration only, mode 4
+// reload: one motion, ItemMgr.reload at frame 34; both ended by the player routine). Wep40_init
+// is the WeaponInitFunc, PlRifleMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -15,6 +20,9 @@ void PlRifleMove(cPlayer* pl);   // wep/pl_rifle.cpp
 cObjWep* equipWeapon(cPlayer* pl);
 void ObjHkSniper_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the rifle object as Wep->m_pWep,
+// installs its motions, loads the effects (archive 0x8 as group 0x44) and points the debug preview
+// PlWepMot at motion 0xE / the player archive's 0x5E. (The error string still says Wep02.)
 void Wep40_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -32,6 +40,8 @@ void Wep40_init(cModel* m)
     }
 }
 
+// Creates the cObjHkSniper (ObjMgr id 0x30) and inits it on the player; NULL (stored as the
+// player's weapon too) when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x30);
@@ -49,6 +59,9 @@ cObjWep* equipWeapon(cPlayer* pl)
 extern const u8 hksniper_tbl[3];
 const u8 hksniper_tbl[3] = { 0x14, 0xA, 0 };
 
+// cObjWep::init override (parent = the player): weapon list id 0x2F, model 0xA (type 0) or 0xB
+// with texture 0x9 (the object is destroyed when it fails), atari bits 8/9 off, hung on the right
+// hand at (0.5, -5, -3), light area, the hksniper_tbl bytes, idle motion 0x22, default lock spread.
 void cObjHkSniper::init(cModel* parent)
 {
     void* bin;
@@ -84,6 +97,8 @@ void cObjHkSniper::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, set by the rifle fire00): step 0 drops the gun's motion, plays the shot
+// SEs, sets Status_flg[0] bit23 (shot noise) and vibrates the pad; step 1 waits.
 void cObjHkSniper::moveFire()
 {
     if (wep.step == 0) {
@@ -96,6 +111,8 @@ void cObjHkSniper::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the gun's reload motion 0x25 with the magazine SE; at
+// frame 34 ItemMgr.reload refills the magazine.
 void cObjHkSniper::moveReload()
 {
     if (wep.step == 0) {
@@ -108,6 +125,9 @@ void cObjHkSniper::moveReload()
     }
 }
 
+// Fills the player's motion table with the rifle-carrying footwork motions (idle, no walk [1],
+// run, turns, back, the 0x39..0x42 damage set; 0x3D stays the player archive's) and sets the
+// weapon hand models (right hand 1, left hand 2).
 void cObjHkSniper::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0E));
@@ -136,11 +156,13 @@ void cObjHkSniper::setMotion(cPlayer* pl)
     pl->setLeftHand(2);
 }
 
+// ObjInitFunc[0x30]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHkSniper_init(cObj* obj)
 {
     new (obj) cObjHkSniper();
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep40_init;
@@ -149,11 +171,13 @@ extern "C" void _prolog()
     OSReport("Wep40 ADA SEMIAUTO-RIFLE prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x30] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

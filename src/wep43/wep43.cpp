@@ -9,6 +9,9 @@
 void PlHandgunMove(cPlayer* pl);   // wep/pl_handgun.cpp
 void ObjRuger_init(cObj* obj);     // wep/objRuger.cpp
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjRuger (ObjMgr id 0x21)
+// as Wep->m_pWep, inits it on the player, installs its motions, loads the muzzle-flash effects
+// (archive 0x4 as group 0x36) and points the debug preview PlWepMot at 0x26..0x28.
 void Wep43_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -28,6 +31,7 @@ void Wep43_init(cModel* m)
     }
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep43_init;
@@ -36,11 +40,13 @@ extern "C" void _prolog()
     OSReport("Wep43 WESKER - HANDGUN prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x21] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

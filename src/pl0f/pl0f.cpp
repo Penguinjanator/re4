@@ -2,6 +2,21 @@
 // script; two point masses (bow / stern) on the water carry the hull (pl0fBoatControl), the player
 // rides and steers it (PlBoatMove / plboat_R2_*, setTiller), the boss drags it by the anchor rope
 // (pl0fBoatChaseBoss) and the player throws the harpoons (plboat_R2_SpearSet / SpearThrow).
+//
+// The boat is an enemy work (Pl0fInit is the module's EmInitFunc; em->type / em->set from the
+// room's enemy list pick the start: type 0 the lake boat (set 1 = the player already aboard),
+// 1..5 the ferry entrances / exits of rooms 10D / 10E). Its routines: r_no_0 0 init, 1 move with
+// r_no_1: 0 wait at the shore, 1 ride (steered), 2 ride start, 3 crash guard, 4 dropped by the
+// boss (player thrown in the water), 5 the player climbs back in, 6 dragged by the boss, 7 boss
+// crash guard, 8..13 the room 10D / 10E entrances / exits. The player runs routine 1 == 0xF
+// (pl_R1_Boat -> BoatMoveFunc = PlBoatMove) with r_no_2 = the plboat_R2_* state: 0 board, 1 get
+// off, 2 sit / steer (setTiller), 3/4 harpoon aim / throw (the lake fight), 5 fall in the water,
+// 6 swim back (button mashing), 7 crash guard, 8 climb in, 9 die (drowned / eaten), 10/11 the
+// hiding variant of the harpoon aim / throw, 12 the boss death, 13..18 the room entrances / exits;
+// the partner (Ashley on the ferry) runs the subBoat* damage-routine handlers. The cameras are the
+// module's own (pl0f_camera handed to CamCtrl as the extra camera). Hull physics: two point masses
+// bow / stern (Pl0fNode) kept at their rest distance by four relaxation passes, the heading from
+// their line; the tiller adds speed to the stern node.
 
 #include "atari.h"
 #include "light.h"
@@ -163,25 +178,34 @@ static Pl0fFunc Pl0f_R1_move_tbl[14] = {
 static Camera pl0f_camera = { 0 };
 static f32 pl0f_spd_damp = 0.96f;
 
+// REL entry: registers the boat constructor as the enemy init function.
 extern "C" void _prolog()
 {
     OSReport("Pl0f prolog Ok\n");
     EmInitFunc = Pl0fInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc: placement-constructs the boat in the cEm work.
 void Pl0fInit(cEm* em)
 {
     new (em) cPl0f();
 }
 
+// Per-frame update (emMove): clears the no-crash / no-drop flags, runs the r_no_0 routine, the
+// idle ripple effect every 0x1D frames outside rooms 10D / 10E, pins the long rope's end to the
+// anchor (or frees it) and shows the rope only while the boss holds it (and is not submerged, boss
+// flag bit8); a boss lunge (boss flag bit6) rocks the hull (sway PI/16) and shoves both nodes away
+// from it with an impact SE.
 void cPl0f::move()
 {
     Pl0fWork* w = PL0F_WK(this);
@@ -237,6 +261,8 @@ void cPl0f::move()
     }
 }
 
+// Tiller input of the frame from the stick (player state 2): Tiller bit0 forward, bit1 back, bit2
+// left, bit3 right; consumed by pl0fBoatSpdControl.
 void cPl0f::setTiller()
 {
     Pl0fWork* w = PL0F_WK(this);
@@ -255,6 +281,7 @@ void cPl0f::setTiller()
     }
 }
 
+// Room script: full ahead this frame.
 void cPl0f::setTillerFront()
 {
     Pl0fWork* w = PL0F_WK(this);
@@ -262,6 +289,8 @@ void cPl0f::setTillerFront()
     w->Tiller |= 1;
 }
 
+// Room script: places the boat at `p` facing `ang` (level, both nodes stopped), rebuilds its
+// matrices and kills the wake effects (group 0x35) of the old position.
 void cPl0f::setPos(Vec* p, f32 ang)
 {
     Pl0fWork* w = PL0F_WK(this);
@@ -288,6 +317,12 @@ void cPl0f::setPos(Vec* p, f32 ang)
     EffectEfmDelete(0, 0x35, (int) this);
 }
 
+// r_no_0 == 0: creation. Loads the boat model (archive 5/6) with a 2 m light area, no IK / lock-on,
+// atari priority 1, the effects (archive 4 as group 0xF); the nodes at z +2500 (bow) / -1500
+// (stern) with their rest distance and a 25 m leash; zeroes the work; a back light when the
+// list flag is negative; the idle wave effect outside 10D / 10E; the anchor and the long rope;
+// then the start state from type / set (0: wait or ride start; 1: R10d in; 2: R10e in; 3: type
+// 2 -> wait; 4: R10e in 2; 5: type 4 -> wait) and runs it this frame.
 static void pl0f_R0_Init(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -396,6 +431,8 @@ static void pl0f_R0_Init(cPl0f* em)
     pl0f_R0_Move(em);
 }
 
+// r_no_0 == 1: spins the propeller (parts 2, 60 degrees per frame) while moving, runs the r_no_1
+// state and records the boss position into the 10-entry history ring.
 static void pl0f_R0_Move(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -427,6 +464,8 @@ static inline void pl0fEngineStop(Pl0fWork* w, Vec* pos)
     }
 }
 
+// r_no_1 == 0: moored / waiting: stops a running engine, no boss chase, the hull physics and the
+// boarding action button check.
 static void pl0f_R1_Wait(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -451,6 +490,9 @@ static void pl0f_R1_Wait(cPl0f* em)
 #define BOSS_NEAR(boss, em) \
     ((boss) && ((boss)->flag & 0x10) && ((boss)->pos.x - (em)->pos.x) * ((boss)->pos.x - (em)->pos.x) + ((boss)->pos.z - (em)->pos.z) * ((boss)->pos.z - (em)->pos.z) < 9.0e8f)
 
+// r_no_1 == 1: the player steers freely: tiller -> speed, hull physics, the player's control flags;
+// the boss surfacing close (BOSS_NEAR: flag bit4 within 30 m) -> guard (player state 7, boat 7),
+// a crash into the boss / an island -> guard 3.
 static void pl0f_R1_RideMove(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -470,6 +512,9 @@ static void pl0f_R1_RideMove(cPl0f* em)
     }
 }
 
+// r_no_1 == 2 (set 1: the player starts aboard): the tiller hand model, the weapon hidden, the
+// player into routine 0xF state 2 (steer) with PlBoatMove installed, the engine started, the
+// partner into subBoatRide step 2 (already seated), then -> ride (1).
 static void pl0f_R1_RideStart(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -494,6 +539,11 @@ static void pl0f_R1_RideStart(cPl0f* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 6: dragged by Del Lago (setBossStart / after the climb-in): the bow is leashed to the
+// boss (pl0fBoatChaseBoss), tiller and hull physics still run. The boss dying -> ride (1) with
+// the boss forgotten. After a 30-frame grace: the boss surfacing close -> guard 7; a crash while
+// fast (> 200) or during the boss's ram (flag bit2) -> the player is thrown in the water (player
+// state 5, harpoon lost, boat 4), a slow crash -> guard 7.
 static void pl0f_R1_BossMove(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -550,6 +600,8 @@ static void pl0f_R1_BossMove(cPl0f* em)
     }
 }
 
+// r_no_1 == 3: the crash shake (motion 0x1D, impact SE, vibration) during free riding; back to
+// ride (1) at its end; the boss close / another crash re-trigger the guards.
 static void pl0f_R1_Guard(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -579,6 +631,10 @@ static void pl0f_R1_Guard(cPl0f* em)
     }
 }
 
+// r_no_1 == 4: the boat capsizes and throws the player out: the drop motion 0x1F with the splash
+// effect, 100 damage to the boat itself (its hp is the fight's boat damage), the tiller reset,
+// and for 60 frames both nodes are shoved along their current direction (300..450 units by the
+// boat's remaining hp); crash / drop checks are off (Be_flg bits 2/3); ends in wait (0).
 static void pl0f_R1_Drop(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -641,6 +697,8 @@ static void pl0f_R1_Drop(cPl0f* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 5: the player climbs back in (set by the swim state within 1.8 m): the rocking motion
+// 0x22 with a splash effect and SE, crash checks off; then -> dragged by the boss (6).
 static void pl0f_R1_WaterRide(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -664,6 +722,8 @@ static void pl0f_R1_WaterRide(cPl0f* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 7: the crash shake (motion 0x1D) while dragged by the boss (leash and tiller keep
+// running); back to dragged (6) at its end.
 static void pl0f_R1_BossGuard(cPl0f* em)
 {
     switch (em->r_no_2) {
@@ -741,6 +801,9 @@ static void pl0f_R1_BossGuard(cPl0f* em)
     } \
 }
 
+// r_no_1 == 8 (type 1): the room 10D entrance: the player (state 0xD) and partner ride in, full
+// ahead for 45 frames, then after 75 frames the player gets off at the 10D landing (state 1) and
+// the boat waits.
 static void pl0f_R1_R10dIn(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -749,6 +812,7 @@ static void pl0f_R1_R10dIn(cPl0f* em)
     PL0F_ROOM_IN_END(1.47f, -500.0f, -2280.0f, -16870.0f);
 }
 
+// r_no_1 == 9: leaving room 10D: steered by the player's exit state (0xE), no boss chase.
 static void pl0f_R1_R10dOut(cPl0f* em)
 {
     PL0F_WK(em)->Boss_chase = 0;
@@ -758,6 +822,8 @@ static void pl0f_R1_R10dOut(cPl0f* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 10 (type 2): the first room 10E entrance (player state 0xF): 65 frames ahead, off at
+// the landing after 95.
 static void pl0f_R1_R10eIn(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -766,6 +832,7 @@ static void pl0f_R1_R10eIn(cPl0f* em)
     PL0F_ROOM_IN_END(1.568879f, 38250.0f, -15000.0f, 52360.0f);
 }
 
+// r_no_1 == 11: leaving room 10E (player state 0x10).
 static void pl0f_R1_R10eOut(cPl0f* em)
 {
     PL0F_WK(em)->Boss_chase = 0;
@@ -775,6 +842,7 @@ static void pl0f_R1_R10eOut(cPl0f* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 12 (type 4): the second room 10E entrance (player state 0x11), the other landing.
 static void pl0f_R1_R10eIn2(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -783,6 +851,7 @@ static void pl0f_R1_R10eIn2(cPl0f* em)
     PL0F_ROOM_IN_END(1.57f, -46610.0f, -15000.0f, 39280.0f);
 }
 
+// r_no_1 == 13: leaving room 10E the second time (player state 0x12).
 static void pl0f_R1_R10eOut2(cPl0f* em)
 {
     PL0F_WK(em)->Boss_chase = 0;
@@ -813,6 +882,13 @@ static void pl0f_R1_R10eOut2(cPl0f* em)
         PSVECAdd(&(n)->fixPos, &d, &(n)->wpos);                                                    \
     }
 
+// The hull physics of the frame: each node moves by its speed (a leashed node is pulled back
+// inside maxLen of fixPos), four relaxation passes restore the bow-stern distance, the speeds
+// are re-derived and damped (pl0f_spd_damp 0.96), the nodes are pushed out of the scenery
+// (pl0fScrAdjust); the boat's heading is the stern -> bow line and its position the bow node
+// minus the bow offset. Then the movement direction, the wake effects, the roll / pitch bobbing,
+// water ripples under the nodes when moving, and the tiller parts (1) follows the rider's lean
+// while the player sits (stat 0x0F02xx).
 void pl0fBoatControl(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -898,6 +974,9 @@ void pl0fBoatControl(cPl0f* em)
     }
 }
 
+// Movement of the frame: Boat_spd = the XZ distance moved since pos_old; faster than 100 units
+// Boat_dir = the heading change towards the movement direction, else it decays by 0.9;
+// Boat_rot = |Boat_dir|.
 void pl0fGetBoatDir(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -914,6 +993,11 @@ void pl0fGetBoatDir(cPl0f* em)
     w->Boat_rot = fabsf(w->Boat_dir);
 }
 
+// Wake / spray effects (group 0x35) on the lake only: a sideways skid spray (0x1D) when moving
+// almost backwards, and above 150 units/frame (not while capsized): the turn spray 3 / 4 once per
+// turn with SE 8/0xC, the bow wake (0) every 2nd frame, the side wakes (1, 2) when going forward,
+// a splash (9) with SE every 20 frames, and while the player hides (Status_flg[1] bit23) the
+// stopped-boat ripple (5) after 4 frames, then the restart splash (8).
 void pl0fWaterEff(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -976,6 +1060,9 @@ void pl0fWaterEff(cPl0f* em)
     }
 }
 
+// Adds the hull attitude to `mat`: a roll into the turn (Boat_dir * 0.3 scaled by the speed,
+// smoothed 0.9/0.1), a bow-up pitch with the speed (up to -0.196 rad) plus a random wobble
+// (Bank_sin), and the decaying impact sway (swayAmp * sin(swayPhase), amplitude * 0.96 per frame).
 void pl0fBoatRoll(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1022,6 +1109,7 @@ void pl0fBoatRoll(cPl0f* em)
     PSMTXConcat(em->mat, m, em->mat);
 }
 
+// Adds a world-space speed to node `no` (0 bow, 1 stern).
 void pl0fBoatAddSpd(cPl0f* em, u32 no, Vec* spd)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1031,6 +1119,11 @@ void pl0fBoatAddSpd(cPl0f* em, u32 no, Vec* spd)
     }
 }
 
+// Tiller -> engine: while the player hides (Status_flg[1] bit23) the engine only stops; else any
+// tiller bit starts the engine SE (8/0xA) and counts Sailing_timer, none stops it. Forward adds
+// 50 units/frame (20 on the ferry types 1..5) at the stern, back -15; left / right turn the
+// thrust by PI/20 while going forward, or spin the boat (PI/8, PI/16 when the boss is hooked)
+// with a 25 / 50 push, halved and reversed with back. The Tiller bits are consumed.
 void pl0fBoatSpdControl(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1129,6 +1222,9 @@ void pl0fBoatSpdControl(cPl0f* em)
     w->Tiller = 0;
 }
 
+// The anchor rope: leashes the bow node to a point 2 m behind the boss; while the boss dives (flag
+// bit3) the leash is slack (500 m), else it shortens to the current distance when that is between
+// 25 m and the leash, otherwise relaxes by 3 % + 750 units per frame.
 void pl0fBoatChaseBoss(cPl0f* em)
 {
     cEm* boss = PL0F_WK(em)->pBoss;   // no work pointer: pBoss folds into em+0x3F0
@@ -1177,6 +1273,8 @@ void pl0fBoatChaseBoss(cPl0f* em)
 
 static Vec pl0f_ride_cam_ofs = { -1000.0f, 1500.0f, -5000.0f };
 
+// Ferry ride camera (rooms 10D / 10E): 5 m behind, 1.5 m up and 1 m left of the boat, looking at
+// the player, blended in at `rate` (1.0 = snap, 0.3 = follow); fovy 40.
 void pl0fRideCamMove(cPl0f* em, f32 rate)
 {
     Camera* gcam = &pG->Cam;
@@ -1200,6 +1298,7 @@ void pl0fRideCamMove(cPl0f* em, f32 rate)
 
 static Vec pl0f_getoff_cam_ofs = { -1000.0f, 1500.0f, -5000.0f };
 
+// Get-off camera: the same offset as the ride camera, snapped every frame.
 void pl0fGetoffCamMove(cPl0f* em)
 {
     Camera* gcam = &pG->Cam;
@@ -1238,6 +1337,12 @@ static Vec pl0f_boss_cam_at0 = { 0.0f, 1000.0f, 5000.0f };
 static Vec pl0f_boss_cam_pos1 = { -500.0f, 1900.0f, -1500.0f };
 static Vec pl0f_boss_cam_at1 = { 0.0f, 1500.0f, 5000.0f };
 
+// The lake fight camera (skipped while the player has flags_420 bit2). With the boss hooked
+// (Boss_chase): `hide` (the player ducks) looks from 1.8 m behind the boat (within +-45 degrees
+// of its heading, 1.6 m up) at the boss; otherwise it sits 5 m behind the boat on the line away
+// from the boss position of 10 frames ago (the history ring), 1.4 m up, looking at the midpoint
+// between boat and boss with the pitch clamped to +-15 degrees. Without the boss a fixed
+// behind-the-boat camera (pos0 / at0, or pos1 / at1 while hiding). fovy relaxes to 30 / 40.
 void pl0fBossCamMove(cPl0f* em, int hide)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1377,6 +1482,8 @@ void pl0fBossCamMove(cPl0f* em, int hide)
 static Vec pl0f_hide_cam_at = { -500.0f, 1850.0f, -1800.0f };
 static Vec pl0f_hide_cam_pos = { 0.0f, -200.0f, 10000.0f };
 
+// Hiding-mode camera set-up (plboat_R2_SpearSet2 step 0): from 1.85 m up behind the player's
+// shoulder looking 10 m ahead of the boat, snapped (the at / pos offsets are used swapped).
 void pl0fHideModeCamSet(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -1397,6 +1504,7 @@ void pl0fHideModeCamSet(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Hiding-mode camera per frame: the same placement followed at 10 % per frame, handed to CamCtrl.
 void pl0fHideModeCamMove(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -1421,6 +1529,8 @@ void pl0fHideModeCamMove(cPlayer* pl)
 static Vec pl0f_die_cam_at = { -300.0f, 1700.0f, -2500.0f };
 static Vec pl0f_die_cam_pos = { 0.0f, 1600.0f, 10000.0f };
 
+// Boss-death camera set-up (plboat_R2_BossDie step 0): from behind the player's shoulder (1.7 m
+// up, 2.5 m back) looking 10 m ahead of the boat, fovy 40, snapped.
 void pl0fBossDieCamSet(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -1441,6 +1551,7 @@ void pl0fBossDieCamSet(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Boss-death camera per frame: the same placement, snapped and handed to CamCtrl.
 void pl0fBossDieCamMove(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -1462,6 +1573,9 @@ void pl0fBossDieCamMove(cPlayer* pl)
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
+// Boarding action button: while the player is on foot (Status_flg[1] bit21 clear), faces the
+// boat within 45 degrees, is within 3 m and 10 m in height, offers action 0x23 whose callback is
+// the pl0fActRide* of the boat type (lake / 10D / 10E / 10E second).
 void pl0fRideActEvtCk(cPl0f* em)
 {
     if (pG->Status_flg[1] & 0x00200000) {
@@ -1507,6 +1621,8 @@ static Vec pl0f_getoff_land[3] = {
 };
 static f32 pl0f_getoff_ang[3] = { 1.466677f, 3.089821f, 0.0f };
 
+// Get-off action button (rooms 10B / 11B, while aboard): near one of the two landings (7 m) the
+// landing position / heading go to Getoff_pos / Getoff_dir and action 0x24 (pl0fActGetOff) is offered.
 void pl0fGetoffActEvtCk(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1527,6 +1643,9 @@ void pl0fGetoffActEvtCk(cPl0f* em)
     }
 }
 
+// Action callbacks: the player boards (m_pBoat, PlBoatMove installed, routine 0xF at the boarding
+// state of the boat type) and the boat goes to its ride state; the partner into subBoatRide.
+// Lake boat: player state 0, boat ride (1).
 static void pl0fActRide(cPl0f* em)
 {
     EmSet(pPL->m_pBoat, em);
@@ -1538,6 +1657,7 @@ static void pl0fActRide(cPl0f* em)
     }
 }
 
+// Room 10D exit: player state 0xE, boat 9.
 static void pl0fActRideR10d(cPl0f* em)
 {
     EmSet(pPL->m_pBoat, em);
@@ -1549,6 +1669,7 @@ static void pl0fActRideR10d(cPl0f* em)
     }
 }
 
+// Room 10E first exit: player state 0x10, boat 11.
 static void pl0fActRideR10e(cPl0f* em)
 {
     EmSet(pPL->m_pBoat, em);
@@ -1560,6 +1681,7 @@ static void pl0fActRideR10e(cPl0f* em)
     }
 }
 
+// Room 10E second exit: player state 0x12, boat 13.
 static void pl0fActRideR10e2(cPl0f* em)
 {
     EmSet(pPL->m_pBoat, em);
@@ -1571,6 +1693,8 @@ static void pl0fActRideR10e2(cPl0f* em)
     }
 }
 
+// Get-off callback: the player walks to the landing (state 1 with evTarget / m_Fwork0), the boat
+// waits, the engine stops, the partner into subBoatGetoff.
 static void pl0fActGetOff(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1588,6 +1712,9 @@ static void pl0fActGetOff(cPl0f* em)
 }
 
 // The boat hits the boss (em2f) or a floating island (obj1c).
+// A node within 800 of a live Del Lago's hit box, or inside an island's radius (scale * 1800,
+// which is set crashing): pl0fCrashAdjustSet with `away` (a straight backward shove) while the
+// player hides or the boss rams (flag bit2), else a shove off the hit point. Returns 1 on a hit.
 int pl0fCrashCk(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1641,6 +1768,8 @@ int pl0fCrashCk(cPl0f* em)
     return 0;
 }
 
+// Crash response: both nodes get a 300-unit speed straight backwards (`away`) or away from the
+// hit point `p` (horizontal; backwards when the boat sits on the point).
 void pl0fCrashAdjustSet(cPl0f* em, Vec* p, int away)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1684,6 +1813,9 @@ void pl0fCrashAdjustSet(cPl0f* em, Vec* p, int away)
     } else                                                                              \
         PSVECNormalize(src, dst)
 
+// Pushes both nodes out of the scenario walls (SatMgr.adjust, 600-unit radius); the correction of
+// the first node that hit is applied to both so the hull keeps its length. Skipped on the ferry
+// types 1 / 2 (rails do it).
 void pl0fScrAdjust(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1771,6 +1903,8 @@ static PlBoatFunc plboat_R2_move_tbl[19] = {
 
 // The player's boat routine (pl_R1_Boat -> BoatMoveFunc): the boat's motion archive replaces the
 // player's for the duration of the routine.
+// Every frame: Status_flg[1] bit21 (hands busy / aboard), neck mode 2, the player's atari bits 8/9
+// off, damage type 0x1E, then the plboat_R2_* state of r_no_2, then the anchor rope effects.
 static void PlBoatMove(cPlayer* pl)
 {
     if (pl->m_pBoat == 0) {
@@ -1804,6 +1938,9 @@ static void PlBoatMove(cPlayer* pl)
     w->Seid_engine = SndCall(8, 0x11, &v, 0xF, 0, 0); \
 }
 
+// Player state 0 (board from the shore): the step-in motion 0x29 from 1.5 m beside the boat,
+// climbing the height difference (m_Fwork0) over 20 frames, the tiller hand model, the weapon
+// hidden, the engine started; then -> steer (2).
 static void plboat_R2_Ride(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -1858,6 +1995,9 @@ static void plboat_R2_Ride(cPlayer* pl)
     }
 }
 
+// Player state 1 (get off at a landing): the boat is moored at the landing position (evTarget /
+// m_Fwork0), the step-out motion 0x2A plays with the partner seated, the hands / weapon are
+// restored and the routine ends into footwork.
 static void plboat_R2_Getoff(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -1905,6 +2045,10 @@ static void plboat_R2_Getoff(cPlayer* pl)
     }
 }
 
+// Player state 2 (sitting at the tiller): the sit / lean blend 0x9 / 0xB / 0xA with the lean
+// (blendRate500) from the stick left / right, the sight tilt relaxing; the stick goes to the boat's
+// tiller; aim key -> harpoon aim (3); the boss opening its mouth (flag bit5) -> the hiding aim
+// (0xA); without a boss the get-off action is offered. Runs the fight camera.
 static void plboat_R2_Move(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2042,6 +2186,12 @@ static void plboat_R2_Move(cPlayer* pl)
     } \
 }
 
+// Player state 3 (harpoon aim): steps 0/1 stand up (motion 0xC, the harpoon appears in the hand at
+// frame 7; the aim key released or the boss opening its mouth cancels back to sitting); step 3
+// the aim blend 0xE / 0xF / 0xD with the stick leaning (blendRate500) and tilting the sight
+// (sightRate, the boat turns at the limits), the sight cursor effect; the throw button -> throw
+// (4); released / mouth open -> steps 4/5 sit down (0x13, the harpoon vanishes at frame 14).
+// The camera stays in the normal view for 15 frames (m_Work3) then hides the player.
 static void plboat_R2_SpearSet(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2125,6 +2275,10 @@ static void plboat_R2_SpearSet(cPlayer* pl)
     }
 }
 
+// Player state 4 (harpoon throw): the throw blend 0x11 / 0x12 / 0x10; the harpoon flies at frame
+// 12 (plboatSpearThrow), the next one is drawn at frame 46; at the end -> aim (3) step 2. The aim
+// key released after 20 frames -> sit (2) during frames 31..49, else -> aim step 4 (sit down).
+// Status_flg[1] bit23 (hidden view) and the hidden-view camera.
 static void plboat_R2_SpearThrow(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -2163,6 +2317,11 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
     }
 }
 
+// Player state 0xA (the boss opens its mouth: the "throw into the mouth" chance): the boat is
+// teleported to the hiding spot (pl0fHidePosSet), the long stand-up motion 0x27 (harpoon at frame
+// 90), then the aim blend with the sight and the throw action prompt (0x17); the throw button ->
+// throw (0xB); the mouth closing (flag bit5 clear) -> sit down (0x13) and back to sitting (2).
+// Hidden-view camera throughout.
 static void plboat_R2_SpearSet2(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2241,6 +2400,8 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
     }
 }
 
+// Player state 0xB (the throw of the mouth chance): the throw blend, the harpoon flies at frame 12
+// and the next is drawn at frame 46; at the end -> the hiding aim (0xA) step 2. Hidden view.
 static void plboat_R2_SpearThrow2(cPlayer* pl)
 {
     ActBtn.set(0x17, 5, 0, 0, 0, 1, 0, 0);
@@ -2269,6 +2430,9 @@ static void plboat_R2_SpearThrow2(cPlayer* pl)
     pl0fHideModeCamMove(pl);
 }
 
+// Player state 0xC (Del Lago dies, set by the boss): the boat is put at the death spot
+// (pl0fBossDiePosSet), the player holds the aim pose 0xE with a harpoon for 300 frames, then sits
+// down (0x13, the harpoon vanishes at frame 14) and -> sitting (2). Boss-death camera.
 static void plboat_R2_BossDie(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -2308,6 +2472,8 @@ static void plboat_R2_BossDie(cPlayer* pl)
     pl0fBossDieCamMove(pl);
 }
 
+// Player state 7 (crash / boss-close guard): the brace motion 0x1E with the harpoon dropped, then
+// -> sitting (2); fight camera.
 static void plboat_R2_Guard(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -2333,6 +2499,10 @@ static void plboat_R2_Guard(cPlayer* pl)
     }
 }
 
+// Player state 5 (thrown into the water by the capsize): the fall motion 0x20, 500 damage,
+// vibration, harpoon lost, the drop camera; the player stays on the boat's origin for 23 frames
+// (then 150 up), the splash effect / SE after 26 frames, the stream ducked; from frame 65 he turns
+// towards the boat; at the end, if alive, -> swim (6). Status_flg[1] bit22 = in the water.
 static void plboat_R2_FallWater(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2407,6 +2577,13 @@ static void plboat_R2_FallWater(cPlayer* pl)
     pl00DropCamMove(pl);
 }
 
+// Player state 6 (swim back to the boat, button mashing): the boat is re-placed (pl0fSwimPosSet),
+// the swim camera or (random, not the first time) the chase camera with the boss closing in
+// (Status_flg[1] bit20) for 90 frames. m_Work0 is the stroke energy (A presses add m_Work4, which
+// recharges to 12 / 8 / 4 by Game_level, capped 159; halved when nearly dead) and decays; every 20
+// energy the stroke motion (0x15..0x1C) and forward speed (50..170 units) step up; splash effects
+// on the motion events, kept at the water surface; within 1.8 m of the boat -> climb in (8) and
+// the boat's r_no_1 5. The action prompt 0x11 (mash) is shown.
 static void plboat_R2_Swim(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2590,6 +2767,9 @@ static void plboat_R2_Swim(cPlayer* pl)
 static Vec plboat_ride_pos;
 static f32 plboat_ride_ang;
 
+// Player state 8 (climb back into the boat): the climb motion 0x21 while sliding to the boat's
+// side seat (30 % per frame) and following the boat's movement / turn; at the end the tiller hand
+// and hidden weapon are restored and -> sitting (2). Swim camera.
 static void plboat_R2_WaterRide(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2634,6 +2814,10 @@ static void plboat_R2_WaterRide(cPlayer* pl)
     pl00SwimCamMove(pl);
 }
 
+// Player state 9 (death in the water, set by the boss): the death motion 0x28; with the boss
+// biting (flag bit7, 50 %) the player is eaten: carried in the boss's mouth (parts 8) with the
+// top-down death camera, pl_life = 0 after 60 frames; else he drowns under the swim camera with
+// pl_life = 0 next frame.
 static void plboat_R2_Die(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2735,6 +2919,8 @@ static void plboat_R2_Die(cPlayer* pl)
     } \
 }
 
+// Player states 0xD / 0xF / 0x11 (ferry entrances of rooms 10D / 10E): sits at the tiller with
+// the lean blend while the boat drives itself; ride camera (snapped the first frame).
 static void plboat_R2_R10dIn(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2830,6 +3016,10 @@ static void plboat_R2_R10dIn(cPlayer* pl)
     } \
 }
 
+// Player states 0xE / 0x10 / 0x12 (ferry exits): steps 0/1 board from the landing (motion 0x29,
+// step SEs, the engine starts at the end), step 2 teleports boat and player to the room's exit
+// start position / heading, step 3 drives full ahead (setTillerFront) with the wake effect and a
+// water SE every 20 frames while sitting (the room script changes the room).
 static void plboat_R2_R10dOut(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2837,6 +3027,7 @@ static void plboat_R2_R10dOut(cPlayer* pl)
     PLBOAT_ROOM_OUT(30.0f, -2490.0f, -14520.0f, -0.05043f);
 }
 
+// Room 10E first entrance (see plboat_R2_R10dIn).
 static void plboat_R2_R10eIn(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2844,6 +3035,7 @@ static void plboat_R2_R10eIn(cPlayer* pl)
     PLBOAT_ROOM_IN();
 }
 
+// Room 10E first exit (see plboat_R2_R10dOut).
 static void plboat_R2_R10eOut(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2851,6 +3043,7 @@ static void plboat_R2_R10eOut(cPlayer* pl)
     PLBOAT_ROOM_OUT(36030.0f, -15000.0f, 54920.0f, -1.570221f);
 }
 
+// Room 10E second entrance (see plboat_R2_R10dIn).
 static void plboat_R2_R10eIn2(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2858,6 +3051,7 @@ static void plboat_R2_R10eIn2(cPlayer* pl)
     PLBOAT_ROOM_IN();
 }
 
+// Room 10E second exit (see plboat_R2_R10dOut).
 static void plboat_R2_R10eOut2(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -2870,6 +3064,8 @@ static Vec pl00_swim_cam_at = { 5000.0f, -500.0f, 500.0f };
 static Vec pl00_chase_cam_ofs = { 0.0f, -2000.0f, -40000.0f };
 static Camera pl00_drop_camera = { 0 };
 
+// Swim camera set-up: a fixed camera in the boat's frame (3.5 m beside, 2 m up, 2 m behind)
+// looking 5 m ahead of the boat; fovy 40.
 void pl00SetSwimCam(cPlayer* pl)
 {
     Mtx m;
@@ -2885,6 +3081,9 @@ void pl00SetSwimCam(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Swim camera per frame (Status_flg[1] bit19 = boat camera active): the set-up's fixed camera;
+// once the player is dead it stays where it is and looks at the boss's head (parts 7). fovy
+// relaxes to 40; handed to CamCtrl.
 void pl00SwimCamMove(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -2918,6 +3117,8 @@ void pl00SwimCamMove(cPlayer* pl)
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
+// Chase camera set-up (the boss closing in on the swimmer): 40 m behind and 2 m below the player,
+// looking at him; fovy 40.
 void pl00SetChaseCam(cPlayer* pl)
 {
     Mtx m;
@@ -2933,6 +3134,8 @@ void pl00SetChaseCam(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Chase camera per frame: closes 260 units per frame on the swimmer (horizontally), looking at
+// him; fovy relaxes to 40; handed to CamCtrl.
 void pl00ChaseCamMove(cPlayer* pl)
 {
     Vec d;
@@ -2953,6 +3156,8 @@ void pl00ChaseCamMove(cPlayer* pl)
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
+// Eaten-death camera set-up: straight above the player (23 m) looking down, the up vector along
+// his heading; fovy 40.
 void pl00SetDieCam(cPlayer* pl)
 {
     Mtx m;
@@ -2970,6 +3175,7 @@ void pl00SetDieCam(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Eaten-death camera per frame: 14 m above the player's root parts looking down; handed to CamCtrl.
 void pl00DieCamMove(cPlayer* pl)
 {
     Mtx m;
@@ -2991,6 +3197,8 @@ void pl00DieCamMove(cPlayer* pl)
     CamCtrl.m_pExtraCamera = (s32) &pl0f_camera;
 }
 
+// Fall-in-the-water camera set-up: one of two random spots beside / behind the player (9 m back
+// or 8 m to the side), looking at him; fovy 40.
 void pl00SetDropCam(cPlayer* pl)
 {
     Vec v;   // frame offset 0: recomputed per call; `m` behind it gets the callee-saved address pseudo
@@ -3016,6 +3224,10 @@ void pl00SetDropCam(cPlayer* pl)
     CAM_SET(pl0f_camera);
 }
 
+// Fall camera per frame (pl00_drop_camera): the set-up position held at the player's height + 1 m,
+// looking at him; when the camera point dips under the water surface the underwater effect
+// (0x34 group 0xA) and Status_flg[1] bit20 (underwater view) come on (m_Work3 steps 0 -> 1 -> 2),
+// and go off again once it comes back up.
 void pl00DropCamMove(cPlayer* pl)
 {
     Camera* gcam = &pG->Cam;
@@ -3069,6 +3281,8 @@ void pl00DropCamMove(cPlayer* pl)
     }
 }
 
+// Puts a harpoon in the player's right hand (parts 10) when he holds none: SetSpear (obj1c) with
+// the boat archive's model, the draw SE 8/0.
 void plboatSetSpear(cPlayer* pl)
 {
     Vec pos;
@@ -3090,6 +3304,8 @@ void plboatSetSpear(cPlayer* pl)
 }
 
 // Lean blend of the rider: m0 straight, m1 left / m2 right by the sign of the blend rate.
+// The straight motion on the player's own work, the lean into neckMot as the blend work with
+// weight |blendRate500| / 256; x4FD is the blend-in counter, x4FC the frame (wraps at frameMax).
 void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(pl->blendRate500);
@@ -3118,6 +3334,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     }
 }
 
+// The same lean blend for the partner (subBackMot as the blend work, m_Hokan / m_Frame counters).
 void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(sub->m_Blend);
@@ -3148,6 +3365,8 @@ void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, i
 
 // Seats the player on the boat: position from the boat's matrix, the matrix and rotation copied,
 // the waist follows the sight.
+// Seats the player on the boat: position / matrix / angles from the boat, the motion's root
+// translation suppressed (motFlags2 bit30), and the waist twisted by the harpoon sight rate.
 void plOnBoat(cPlayer* pl)
 {
     Vec v;
@@ -3164,6 +3383,8 @@ void plOnBoat(cPlayer* pl)
 }
 
 // Finds the living Del Lago (em id 0x2F, x38D == 1) and hooks the boat to it.
+// pBoss / pSelf are set, the boat goes to the dragged state (r_no_1 6), the position history is
+// filled with the boss position and the bow leash is at least 25 m. Returns 1 when found.
 int testSearchEm2f(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -3220,6 +3441,7 @@ void plboatSightCurGet(cPlayer* pl, Vec* out)
     out->z = 0.0f;
 }
 
+// Draws the harpoon sight cursor (screen effect 0xF/6) at the sight position.
 void plboatSightCurMove(cPlayer* pl)
 {
     Vec p;
@@ -3228,6 +3450,9 @@ void plboatSightCurMove(cPlayer* pl)
     EstSet(0, -1, &p, 0, 0xF, 6, 0, 0x35, (u32) pl, 0);
 }
 
+// Throws the held harpoon: the target is 25 m along the camera ray through the sight cursor, the
+// harpoon flies from the hand towards it at 2000 units/frame (+50 up) with the throw SE; the
+// player's pSpear is released (the cObjSpear flies on its own).
 void plboatSpearThrow(cPlayer* pl)
 {
     cObjSpear* spear = pl->pSpear;
@@ -3273,6 +3498,9 @@ static u8 pl0f_rope_down[30] = {
 };
 
 // The anchor rope: a 30-link chain object hung on the boat's parts 5.
+// Creates the anchor rope: a 30-link chain object (SetChain, archive 0x23/0x24) simulated as a
+// pendulum cloth (parts pl0f_rope_parts, gravity 5, damping 0.9, stretch 0.1) that collides with
+// the boat; its end is pinned to the anchor every frame in cPl0f::move.
 void pl0fLongRopeSet(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -3320,6 +3548,9 @@ void pl0fLongRopeSet(cPl0f* em)
 }
 
 // Where the player surfaces after the drop: a random spot around the boat.
+// Start of the swim: the boat is teleported to the swim spot of the lake (37460, 63360) facing
+// one of two headings, and the player is dropped 15 m (17 / 13 m when the boat and the player are
+// both hurt, random) behind it facing the boat.
 void pl0fSwimPosSet(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -3378,6 +3609,8 @@ void pl0fSwimPosSet(cPlayer* pl)
     EffectEfmDelete(0, 0x35, (int) boat);
 }
 
+// Start of the mouth chance: the boat is teleported to the hiding spot (40000, 40000) facing one
+// of two headings, the player onto it, the wake effects killed.
 void pl0fHidePosSet(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -3401,6 +3634,8 @@ void pl0fHidePosSet(cPlayer* pl)
     EffectEfmDelete(0, 0x35, (int) boat);
 }
 
+// Boss death: the boat is teleported to the death-scene spot (24250, 92250) facing 2.85 rad, the
+// player onto it, the wake effects killed.
 void pl0fBossDiePosSet(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
@@ -3454,6 +3689,9 @@ void pl0fSetAnchorEm2f(cPl0f* em)
 }
 
 // Rope effects while the boss pulls: the rope strain effect left (0x1F) or right (0x1E) of the boat.
+// Called every frame from PlBoatMove: without a boss, with its mouth closed (flag bit5 clear) or
+// outside its ram (flag bit2 clear) the effects (group 0x36 on the player) are removed and
+// anchorEff reset; otherwise the side is picked from the angle to the boss.
 void pl0fSetAnchorEm2f(cPlayer* pl)
 {
     Pl0fWork* w;
@@ -3540,6 +3778,11 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
     MotionMoveF(sub, 0); \
 }
 
+// Partner damage-routine handlers (SetSubDamage(boat, fn); the boat pointer sits in the partner's
+// dmgType): each swaps in the boat archive, damage type 0x1E, runs its r_no_2 steps and restores
+// the partner's own archive.
+// Boarding (Ashley on the ferry): the step-in motion 0x2B from beside the boat climbing the height
+// difference over 20 frames, then step 2 the seated lean blend in step with the boat's rider.
 static void subBoatRide()
 {
     cSubChar* sub = pSUB;
@@ -3598,6 +3841,8 @@ static void subBoatRide()
     sub->subArc = sub->subArc2;
 }
 
+// Getting off at the landing: the step-out motion 0x2D beside the moored boat, then the routine
+// ends (she returns to following the player).
 static void subBoatGetoff()
 {
     cSubChar* sub = pSUB;
@@ -3653,21 +3898,26 @@ static void subBoatGetoff()
     sub->subArc = sub->subArc2; \
 }
 
+// Ferry entrances (rooms 10D / 10E): seated on the boat with the lean blend in step with the rider.
 static void subBoatR10dIn()
 {
     SUB_BOAT_ROOM_IN();
 }
 
+// Room 10E first entrance (same as subBoatR10dIn).
 static void subBoatR10eIn()
 {
     SUB_BOAT_ROOM_IN();
 }
 
+// Room 10E second entrance (same as subBoatR10dIn).
 static void subBoatR10eIn2()
 {
     SUB_BOAT_ROOM_IN();
 }
 
+// Seats the partner in the bow (1.2 m ahead of the boat origin) facing backwards, the motion's
+// root translation suppressed.
 void subOnBoat(cSubChar* sub, cPl0f* boat)
 {
     Mtx m;
@@ -3687,6 +3937,9 @@ void subOnBoat(cSubChar* sub, cPl0f* boat)
     sub->motFlags2 |= 0x40000000;
 }
 
+// Room script (the Del Lago fight starts): hooks the boat to the boss (testSearchEm2f), moves the
+// anchor onto it, places boat and player at `p` / `ang`, and puts the player into the sitting
+// state (routine 0xF state 2) with the tiller hand and hidden weapon, the boat into dragged (6).
 void cPl0f::setBossStart(Vec* p, f32 ang)
 {
     if (testSearchEm2f(this)) {
@@ -3708,6 +3961,7 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
     }
 }
 
+// Room script: stops the engine SE.
 void cPl0f::stopEngine()
 {
     SndStop(PL0F_WK(this)->Seid_engine, 0);

@@ -1,4 +1,11 @@
 // wep15 module: the magnum (cObjMagnum, object id 0x2C; routines wep/pl_handgun.cpp).
+//
+// cObjMagnum is the cObjWep (game/objWep.cpp) of the Broken Butterfly revolver, hanging on the
+// player's right hand (parts 10) and driven by wep.mode / wep.step from the handgun routines:
+// mode 2 -> moveFire (recoil motion, SEs, flash 0x49, strong vibration; no cartridge), mode 4 ->
+// moveReload (motion by tune level, ItemMgr.reload at frame 34). Both modes are ended by the
+// player routine. Wep15_init is the WeaponInitFunc, PlHandgunMove the WeaponMoveFunc; the module
+// object carries the class, the entry points and the ObjInitFunc slot.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -20,6 +27,9 @@ public:
 
 void ObjMagnum_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjMagnum as Wep->m_pWep,
+// inits it on the player, installs its motions, loads the muzzle-flash effects (archive 0x4 as
+// group 0x49) and points the debug preview PlWepMot at the aim motions 0x29..0x2B.
 void Wep15_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -38,11 +48,14 @@ void Wep15_init(cModel* m)
     PlWepMot[2] = WEP_ARC_PTR(0x2B);
 }
 
+// ObjInitFunc[0x2C]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjMagnum_init(cObj* obj)
 {
     new (obj) cObjMagnum();
 }
 
+// cObjWep::init override (parent = the player): model 0x6 / texture 0x5, atari bits 8/9 off,
+// hung on the right hand, light area, idle motion 0x34, wep.x18..x1A = 0x20, default lock spread.
 void cObjMagnum::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -66,6 +79,8 @@ void cObjMagnum::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire): step 0 starts the recoil motion 0x32, plays the three shot SEs, the
+// muzzle flash 0x49 and the strong pad vibration (pattern 7); step 1 waits for the player routine.
 void cObjMagnum::moveFire()
 {
     if (wep.step == 0) {
@@ -79,6 +94,8 @@ void cObjMagnum::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the cylinder reload motion of the tune level (0x33/0x36/
+// 0x35) with the level's SE (0x16/0x20/0x18); at frame 34 ItemMgr.reload refills the cylinder.
 void cObjMagnum::moveReload()
 {
     if (wep.step == 0) {
@@ -115,6 +132,9 @@ void cObjMagnum::moveReload()
     }
 }
 
+// Fills the player's motion table with the magnum-carrying footwork motions (idle, walk, run,
+// turns, back, the 0x39..0x42 and 0x5D/0x5E damage set, 0x57/0x5B knife transitions; 0x3D stays
+// the player archive's), the weapon hand model (right hand 1) and the archive's left hand (0x9).
 void cObjMagnum::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));
@@ -148,6 +168,7 @@ void cObjMagnum::setMotion(cPlayer* pl)
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep15_init;
@@ -156,11 +177,13 @@ extern "C" void _prolog()
     OSReport("Wep15 MAGNUM prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x2C] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

@@ -1,6 +1,13 @@
 // em39 module (D:/Bio4/Prog/em39.cpp): the knife-fight / second-battle boss enemy. Types 0/1 are
-// the knife fight (Talk / Success / Failure / the knife routines), type 2 the second battle with the
-// machine gun, grenades, the bow and the mutated arm (the T_ routines).
+// the ruins stalker of the first battle: he hides (Hide), appears at EMI points with the machine
+// gun, grenades, flash grenades or the bow (AppearMG / AppearGR / AppearBow / Flash / Atk_MG /
+// ThrowGR), runs the walls and jumps (JumpUp* / JumpDown / FanceJump / SuperDash) and fights with
+// the knife (AtkKnife / KnifeCatch / Knife4Atk), pausing for the scripted talks (Talk1st / Talk2nd).
+// Type 2 is the final battle: the opening knife exchange's outcome (Success / Failure, then the
+// cliff grab), then the mutated arm (em39ArmControl, the T_ routines: T_Atk / T_LongAtk / T_JumpAtk
+// / T_Kick / T_LowKick / T_CliffAtk) with the Dm_T_* reactions. Both share the floor routines (Wait /
+// Walk / Run / Goto / Turn180 / Threat / Escape / Backjump / Step / Slant) and the player callbacks
+// (plem39_*).
 
 #include "atari.h"
 #include "light.h"
@@ -196,11 +203,15 @@ extern "C" void _unresolved()
 {
 }
 
+// Placement-constructs the boss over the manager's cEm slot (EmInitFunc for id 0x39); em39_R0_Init
+// sets it up on the first move.
 void Em39Init(cEm* em)
 {
     new (em) cEm39();
 }
 
+// Destroys the held weapon enemies (knife, machine gun, bow, thrown knife) and the cap object that
+// are still alive when the boss is removed.
 cEm39::~cEm39()
 {
     Em39Work* w = EM39_WK(this);
@@ -222,6 +233,8 @@ cEm39::~cEm39()
     }
 }
 
+// Keeps the boss and its held objects (knife, machine gun, bow, thrown knife, cap) running while
+// the scene is suspended (be_flag 0x800), or lets them suspend again.
 void cEm39::setNoSuspend(int on)
 {
     Em39Work* w = EM39_WK(this);
@@ -248,6 +261,15 @@ void cEm39::setNoSuspend(int on)
     }
 }
 
+// Per-frame damage reaction, from move(). Area damage (DmgMgr kinds 1 / 4 / 5 / 7) once per 120
+// frames: 200 (knife fight, floored at 1 HP) or 100 (second battle), death (routine 3/1, except in
+// room 0x31C where the script handles it) or the flinch (knife fight 2/0; second battle 2/4, or 2/1
+// while the arm is up, Be_flg 0x1000). A weapon hit in dmHit: a knife parry (em39GuardCk) only
+// clinks; otherwise em39SetDmVal, blood and hit sound, death as above. Reactions are held off by
+// Be_flg 0x100 (invulnerable) / 8 (one running); in the second battle a head hit (part 5) gives
+// the head flinch (2/3, or 2/5 when downed, Be_flg 0x10000) and 200 accumulated damage the down
+// (2/4, not while the arm is up); in the knife fight a head hit gives 2/1, heavy weapons flinch at
+// once, handgun-class / shotgun past 200 accumulated, and other weapons (grenades) blow him away (2/2).
 void em39DmCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -543,6 +565,14 @@ static EmAtkInfo em39_atk_tbl[10] = {
     { 200.0f, 8, 500, 0, 0xA, 0 },
 };
 
+// Per-frame update from the enemy manager. Order: damage, the tower proximity check, clear the
+// per-frame flags, tick the attack / dash / escape / hide / trap timers (the back attack wait only
+// while Be_flg 0x800), route, the routine table (r_no_0 0xFF = model load failed: destroy), the
+// mutated arm, neck and waist aim, parts, attack / collision / stage collision (skipped during the
+// jump motions, seFlags 0x40, which also pass pushes), stuckCnt, the invisibility fade (Be_flg 0x400
+// = hidden), the shadow fade while airborne / on steep floors / when the camera is below, the
+// marker, voice and speech, the "not shooting" counter, footsteps, the player's voice reactions,
+// the em-list HP mirror and the shadow colour.
 void cEm39::move()
 {
     Em39Work* w = EM39_WK(this);
@@ -670,6 +700,14 @@ void cEm39::move()
     }
 }
 
+// Routine 0: one-time setup. Types 0 / 1 load the first-battle body (archive 0x15) with its extra
+// models, the beret as a hanging obj12 on the head, the knife model, the hand models (em39HandSet),
+// and the knife / machine gun / bow weapon enemies parented to the hands (gun and bow hidden);
+// type 2 loads the final-battle body (0x1A) with its extras and knife model. Then foot shadows,
+// the flip table, a huge light box, a 1 m collision, the body hit box plus the extras, effect data
+// and the work (long attack wait 300, back attack / super dash waits 450, cap hp 10). Start by
+// `set`: types 0 / 1 hidden (Hide, 1/0x26; set 1 waits, set 4 sits), type 2 Wait (sets 0 / 1) or
+// the knife exchange outcome scenes (set 2 Success, set 3 Failure).
 static void em39_R0_Init(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -942,6 +980,8 @@ static void em39_R0_Init(cEm39* em)
     em39_R0_Move(em);
 }
 
+// Types 0 / 1: swaps the hand models for pose `type` (0 / 1 / 3 the open hands, 2 the gripping
+// hands), keeping the current one when unchanged (Hand_type).
 void em39HandSet(cEm39* em, int type)
 {
     Em39Work* w = EM39_WK(em);
@@ -1007,6 +1047,7 @@ void em39HandSet(cEm39* em, int type)
     }
 }
 
+// Swaps the body for the death model (archive 0x21 / 0x22).
 void em39DieModelSet(cEm39* em)
 {
     cModelInfo* info = ModInfoMgr.create(ARC(0x21), ARC(0x22));
@@ -1016,16 +1057,20 @@ void em39DieModelSet(cEm39* em)
     }
 }
 
+// Routine 1: runs the branch check and then the behaviour of the current r_no_1 state.
 static void em39_R0_Move(cEm39* em)
 {
     Em39_R1_move_tbl[em->r_no_1 * 2](em);
     Em39_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the states that have none.
 static void em39_R1_br_Dummy(cEm39* em)
 {
 }
 
+// Routine 1/0 (setTalk1st, first battle): stands at the first talk spot in the idle pose, weapon
+// away, collision off, invulnerable (dmType 2, Be_flg 0x30) while the cutscene dialogue runs.
 static void em39_R1_Talk1st(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1049,6 +1094,7 @@ static void em39_R1_Talk1st(cEm39* em)
     }
 }
 
+// Routine 1/1 (setTalk2nd): the same idle at the second talk spot.
 static void em39_R1_Talk2nd(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1072,6 +1118,9 @@ static void em39_R1_Talk2nd(cEm39* em)
     }
 }
 
+// Routine 1/2 (type 2, set 2): the knife exchange the player won: placed on the arena ledge, the
+// parried motion with its effect (the arm pose 6 until motion event bit 0), the player playing his
+// side (plem39_Success); then Be_flg 0x00800000 (ckBombCutEnable: the fight is on) and Wait.
 static void em39_R1_Success(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1103,6 +1152,8 @@ static void em39_R1_Success(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Player damage callback of the won knife exchange: placed opposite the boss, the parry motion
+// with the weapon hidden; the damage ends with it.
 static void plem39_Success(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -1131,6 +1182,9 @@ static void plem39_Success(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 1/3 (set 3): the knife exchange the player lost: the slashing motion with its effect
+// while the player takes the cut (plem39_Failure); then the cliff attack (stat -> T_CliffAtk 1/0x2E)
+// when a cliff spot is at hand (em39GetCliffPos), else Wait.
 static void em39_R1_Failure(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1162,6 +1216,8 @@ static void em39_R1_Failure(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Player damage callback of the lost knife exchange: placed opposite the boss, the slashed
+// motion with its blood effect and pain face, weapon hidden; held (the cliff attack takes over).
 static void plem39_Failure(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -1187,6 +1243,12 @@ static void plem39_Failure(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 1/4: idle (Be_flg 0x30: routine running, aims head). Type 2 first plays its arrival
+// pose turning to the target. Then the idle loop; with a live player (not in set 1): a wall jump
+// (em39JumpUpCk3), an about-face past 135 deg, the walk (Game_level up to 9) or the run; a dead
+// player gets walked to. Being aimed at for more than 10 frames (em39LockCk): type 2 dodges
+// (em39SlantCk2), types 0 / 1 dodge, step (1/0xF within 5 m) or escape (1/0xD). Be_flg 0x20000
+// (leave the area) sends him into hiding at phase 5, else em39GotoCk may pick a point to go to.
 static void em39_R1_Wait(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1288,6 +1350,11 @@ static void em39_R1_Wait(cEm39* em)
     }
 }
 
+// Routine 1/5 (types 0 / 1): crouched at a perch point (pGotoPoint), collision off, walking the
+// last 30 cm to it if far (r_no_3 skips the settle), turning to face the player once there. If the
+// player closes within 5 m, is about to leave (em39ExitCk) or Be_flg 0x2000 is set, he relocates
+// (em39AreaMoveCk) or hides for 200 frames; otherwise once Atk_wait is out he draws the bow (1/0x24),
+// the machine gun (1/0x1F) or a grenade (1/0x21). Be_flg 0x20000 sends him into hiding at phase 5.
 static void em39_R1_Sit(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1369,6 +1436,9 @@ static void em39_R1_Sit(cEm39* em)
     }
 }
 
+// Routine 1/6 (types 0 / 1): drops back into the crouch after a ranged attack (the bow variant
+// when the bow is in hand), collision off; then, after more than 400 total damage, relocates or
+// hides, else crouches again (Sit) with a 90..135 frame attack wait.
 static void em39_R1_SitDown(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1399,6 +1469,11 @@ static void em39_R1_SitDown(cEm39* em)
     }
 }
 
+// Routine 1/7 (types 0 / 1): standing at a wall point (pGotoPoint, eased onto it and turned to
+// face out of it) for 60 frames; then, with the player within 5 m or in front of him, he charges
+// (Run, or Walk while Dash_wait runs) with the long attack held 300 frames; otherwise once the
+// attack wait is out he draws the gun from the wall (1/0x20; always when the player is 2 m below or
+// above) or a grenade (1/0x22). Be_flg 0x20000 sends him into hiding.
 static void em39_R1_WallWait(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1461,6 +1536,11 @@ static void em39_R1_WallWait(cEm39* em)
 
 // Walk / Run / Goto share the "stop when the player is dead or the enemy died" branch and the
 // lock-on escape (em39LockCk) and the jump / door checks.
+// Routine 1/8: the walk at the target (the type's / weapon's motion; the knife lowered, a thrown
+// knife dropped). Route_type tracks which side of the player he is on. Stops in Wait when either
+// dies; runs the melee selection (em39AtkRtnCk); an about-face past 135 deg; beyond 4.5 m a dodge
+// or the run. Then the lock-on reaction as in Wait, the jump down / up, fence, door and goto checks,
+// and the leave-area hide.
 static void em39_R1_Walk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1568,6 +1648,10 @@ static void em39_R1_Walk(cEm39* em)
     }
 }
 
+// Routine 1/9: the run at the target (one of two runs, or type 2's; yaw PI/12 per frame). Stops in
+// Wait when either dies; the melee selection; an about-face past 135 deg; type 2 slows to a walk
+// near the player on the easy ranks. Types 0 / 1 react to a 15-frame lock-on with a wall jump, a
+// dodge, a step or the escape; then the jump / fence / door / goto checks and the leave-area hide.
 static void em39_R1_Run(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1674,6 +1758,9 @@ static void em39_R1_Run(cEm39* em)
     }
 }
 
+// Routine 1/0xA (em39GotoCk): runs to Goto_pos (em39RouteCk routes there instead of to the player)
+// and idles once within 1 m (Goto_mode cleared); an about-face past 135 deg or a dead player ends it
+// early. The jump / fence / door checks and the leave-area hide run every frame.
 static void em39_R1_Goto(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1744,6 +1831,9 @@ static void em39_R1_Goto(cEm39* em)
     }
 }
 
+// Routine 1/0xB: the about-face (TmpF the yaw to reach, steered to the target while motion event
+// bit 3 is set); on event bit 2 with the attack wait out it may attack, dodge, or break into the run
+// / walk; otherwise Walk when it ends. Jump / fence / goto checks every frame.
 static void em39_R1_Turn180(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1792,6 +1882,9 @@ static void em39_R1_Turn180(cEm39* em)
     em39GotoCk(em);
 }
 
+// Routine 1/0xC: the taunt facing the player. With r_no_3 set it may lead (60 %) into a gun burst
+// (1/0x1D beyond 5 m) or a grenade throw (1/0x23), else Walk. Types 0 / 1 break it off when aimed
+// at: a wall jump (30 %), a step within 5 m or the escape.
 static void em39_R1_Threat(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1843,6 +1936,12 @@ static void em39_R1_Threat(cEm39* em)
     PSMTXMultVec((em)->mat, &(a), &(a));                                                           \
     PSMTXMultVec((em)->mat, &(b), &(b));
 
+// Routine 1/0xD: the evasive roll when aimed at: probes 2 m right / left / back for walls and rolls
+// in a free direction (0 right, 1 left, 2 back, 3 the long back flip only beyond 4 m), each with its
+// dust effect, turning to face the player for 30 frames; invulnerable (dmType 0x1E, Be_flg 0x100
+// until motion event bit 2). Sets the next escape 150..300 frames out. Still aimed at (types 0 / 1,
+// up to three rolls) it repeats or wall-jumps; on event bit 0 half the time it moves on early
+// (turn, wait, attack, dodge, run / walk); else Turn or Wait when the motion ends.
 static void em39_R1_Escape(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -1964,6 +2063,12 @@ static void em39_R1_Escape(cEm39* em)
     }
 }
 
+// Routine 1/0xE: the back flip away from the player (r_no_3: 0 a plain one, 1 / 2 the chained
+// second and third flips, 3 / 4 the retreat variant that leads to the reload (r_no_3 3) or, on type
+// 2, a fresh attack), facing him for 10 frames, invulnerable until motion event bit 2; type 2 sets
+// Dash_wait by difficulty. On event bit 2: a wall jump, the chained flips, or (types 0 / 1 aimed at)
+// a step / escape; on event bit 0 half the time a gun burst at 6..10 m, a dodge or the run / walk.
+// Otherwise Turn or Wait at the end.
 static void em39_R1_Backjump(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2087,6 +2192,10 @@ static void em39_R1_Backjump(cEm39* em)
     }
 }
 
+// Routine 1/0xF: the quick side step (right / left, away from a wall within 2 m; the forward dash
+// step at 2.5..3.5 m or when r_no_3 is set), with dust, facing the player for 20 frames, dmType 0x14
+// and invulnerable until motion event bit 2. On event bit 0 the melee selection, then half the time
+// a wall jump / turn / dodge / run; otherwise Turn, a dodge or the run / walk at the end.
 static void em39_R1_Step(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2182,6 +2291,10 @@ static void em39_R1_Step(cEm39* em)
     }
 }
 
+// Routine 1/0x10 (em39SlantCk): the diagonal dodge run to the side (r_no_3 = right), dmType 5,
+// facing the player for 10 frames, the long attack held 30 frames. On motion event bit 2, facing him
+// within 45 deg: another dodge, a dash step within 3.5 m, or the run / walk; on event bit 0 half the
+// time a turn or the melee selection; else Turn or the run / walk at the end.
 static void em39_R1_Slant(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2242,6 +2355,10 @@ static void em39_R1_Slant(cEm39* em)
     }
 }
 
+// Routine 1/0x11 (type 2, em39SlantCk2): the dodging dash of the final form (one of two motions,
+// with the effect variant for Ada), dmType 5, facing the player 10 frames. On motion event bit 2,
+// beyond 3.5 m on Game_level above 3, half the time another dodge or the run; else Walk (Turn past
+// 135 deg at the end).
 static void em39_R1_Slant2(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2300,6 +2417,9 @@ static void em39_R1_Slant2(cEm39* em)
     }
 }
 
+// Routine 1/0x12 (type 2): the closing dash that covers the distance to the player less 7.1 m in
+// four frames of motion event bit 0 (TmpF per frame), turning to him while event bit 3 is set;
+// sets SuperDashWait by difficulty (360..900). On event bit 2 the melee selection, else Wait step 2.
 static void em39_R1_SuperDash(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2355,6 +2475,10 @@ static void em39_R1_SuperDash(cEm39* em)
     }
 }
 
+// Routine 1/0x13 (em39JumpDownCk): drops off a ledge (r_no_3 picks the plain or the long drop),
+// facing Target_dir, invulnerable (dmType 2), collision off and shadow hidden; on motion event bit 4
+// past the floor height it snaps to the floor, puts a gun / bow away, and plays the landing. Then
+// below y -4 m it hides for 200 frames; else a goto point or the run / walk. Be_flg 0x20000 hides.
 static void em39_R1_JumpDown(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2434,6 +2558,10 @@ static void em39_R1_JumpDown(cEm39* em)
     }
 }
 
+// Routine 1/0x14 (em39JumpUpCk): the climb onto a ledge at jumpPos facing Target_dir (Be_flg 0x100:
+// invulnerable): the motion's own rise brings him 3.2 m up and 2.5 m forward, TmpV covers the rest a
+// tenth per frame while motion event bit 0 is set; collision off in the air. Then a goto point or
+// the run / walk.
 static void em39_R1_JumpUp(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2479,6 +2607,10 @@ static void em39_R1_JumpUp(cEm39* em)
     }
 }
 
+// Routine 1/0x15 (em39JumpUpCk2): the high leap up to jumpPos, invulnerable: a ballistic arc
+// (Spd.y starts at 19 steps of the rise-plus-1 m over 190 frames, TmpF the per-frame fall; the
+// landing phase, motion event bit 4, falls faster) while event bit 6 is set, with TmpV covering the
+// horizontal gap a tenth per frame, facing Target_dir. Then a goto point or the run / walk.
 static void em39_R1_JumpUp2(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2551,6 +2683,10 @@ static void em39_R1_JumpUp2(cEm39* em)
     }
 }
 
+// Routine 1/0x16 (em39JumpUpCk3): the wall jump up to a perch at jumpPos when aimed at: the
+// forward leap (r_no_3 0) or the backwards one (r_no_3 1, facing away from the perch), the same arc
+// as em39_R1_JumpUp2. On landing Be_flg 0x8000 (perched; 0x00400000 / 0x00040000 count the wall
+// jumps), then a goto point, or a gun burst (50 % beyond 5 m) / grenade throw from above.
 static void em39_R1_JumpUp3(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2678,6 +2814,8 @@ static void em39_R1_JumpUp3(cEm39* em)
     }
 }
 
+// Routine 1/0x17 (em39FanceJumpCk): vaults a fence facing Target_dir, invulnerable; then a goto
+// point or Walk.
 static void em39_R1_FanceJump(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2701,6 +2839,11 @@ static void em39_R1_FanceJump(cEm39* em)
     }
 }
 
+// Routine 1/0x18: the knife slash (Be_flg 0x80: attacking). With the knife already out (Wep_type
+// 1) steps 0/1 the plain slash, else 2/3 the draw-and-slash (the knife appears on motion event bit 4)
+// homing on the player; the blade (attack 2 at the hand part 0xA) hits on event bit 0, the grunt on
+// bit 1. A miss awards the escape point; then a wall jump, the back flip within 3 m (30-frame
+// attack wait) or Wait.
 static void em39_R1_AtkKnife(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2814,6 +2957,9 @@ static inline void em39DoorHit(cEm39* em, Em39Work* w)
     }
 }
 
+// Routine 1/0x19 (em39DoorOpenCk): the knife slash at a door in the way (pDoor), the same two
+// variants as em39_R1_AtkKnife; the door breaks or opens on the hit frame (em39DoorHit). Then the
+// run / walk.
 static void em39_R1_AtkDoor(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2883,6 +3029,8 @@ static void em39_R1_AtkDoor(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Branch check of the knife grab: on motion event bit 1 with the player in reach (em39CatchCk) it
+// rumbles and switches to KnifeHit (1/0x1B).
 static void em39_R1_br_KnifeCatch(cEm39* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em39CatchCk(em)) {
@@ -2891,6 +3039,9 @@ static void em39_R1_br_KnifeCatch(cEm39* em)
     }
 }
 
+// Routine 1/0x1A: the grab with the knife: the reach forward (the side variants are dead code:
+// `pang` is always 0), TmpF homing on the player for 10 frames, the knife drawn to its grab pose.
+// A miss awards the escape point, then a wall jump, the back flip within 3 m or Wait.
 static void em39_R1_KnifeCatch(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -2959,6 +3110,11 @@ static void em39_R1_KnifeCatch(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Routine 1/0x1B: the player is held at knife point (EmCatchPLSet with plem39_KnifeHit). Step 0/1
+// the hold: the button mash runs until it reaches the difficulty threshold (5..15), then the action
+// prompt (em39ActOn) appears on the swing frame; step 2/3 the stab for 1150 damage (the kill
+// variant at 0 HP), then Wait or the back flip; step 4/5 the player broke free: the recoil, then a
+// wall jump or Wait.
 static void em39_R1_KnifeHit(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3072,6 +3228,9 @@ static void em39_R1_KnifeHit(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Player damage callback of the knife hold (r_no_2 mirrors the boss's): 0/1 held following his
+// motion (weapon hidden), 2/3 stabbed (the death variant at 0 HP) with rumble, 4/5 the break-free
+// counter; ends with the motion or as soon as the boss leaves 1/0x1B.
 static void plem39_KnifeHit(cPlayer* pl)
 {
     int end;
@@ -3165,6 +3324,13 @@ static void plem39_KnifeHit(cPlayer* pl)
     EffectEspgenDelete(0, (w)->EffKindId, (int) (em));                                               \
     EffectEfmDelete(0, (w)->EffKindId, (int) (em));
 
+// Routine 1/0x1C: the four-swing knife combo with the player locked in (EmCatchPLSet with
+// plem39_Knife4Atk). Even steps 0 / 2 / 4 / 6 start a swing (each with its effect, voice and a
+// difficulty-scaled window in Timer), the odd steps wait: the player's action prompt (em39ActOn)
+// shows once the window passes and a press parries into the next swing (after swings 2 and 3 half
+// the time he breaks off instead, step 0xA / 0xB the recoil); a swing that ends unparried lands
+// (step 8 / 9: 1150 damage, the kill variant at 0 HP), then the back flip (player alive) or a wall
+// jump / Wait. Step 0xC / 0xD after the recoil: the recover motion, then the melee selection or Walk.
 static void em39_R1_Knife4Atk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3405,6 +3571,9 @@ static void em39_R1_Knife4Atk(cEm39* em)
     }                                                                                              \
     break;
 
+// Player damage callback of the knife combo (r_no_2 mirrors the boss's): the four held poses
+// (0..7) following his motion, 8/9 the stab taken (death variant at 0 HP) with rumble, 0xA/0xB the
+// parry that pushes him back; ends when the boss leaves 1/0x1C.
 static void plem39_Knife4Atk(cPlayer* pl)
 {
     int end;
@@ -3492,6 +3661,12 @@ static void plem39_Knife4Atk(cPlayer* pl)
         ang = -255.0f;                                                                             \
     }
 
+// Routine 1/0x1D: the machine gun burst (Be_flg 0xC0: attacking / gun up; long attack held 300).
+// Aims at a point 1.5 m up the player, 5 deg to the side: steps 0/1 the draw and shoulder, 2/3 the
+// aim (gunPitch eased, the aim blend em39BlendMotSet, 5 frames, a taunt), 4/5 the firing loop: up
+// to 50 rounds, each round's hit at Timer2 3 (em39GunHitCk, a cartridge ejected), stopping early
+// after 5 rounds on a dead player or when he gets behind; 6/7 the lower. Then the reload (r_no_3) or
+// a wall jump / the retreating back flip.
 static void em39_R1_Atk_MG(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3632,6 +3807,9 @@ static void em39_R1_Atk_MG(cEm39* em)
     em39HandSet(em, 2);
 }
 
+// Routine 1/0x1E: the machine gun reload (gun in hand, its magazine motion). Then Wait (player
+// dead); with r_no_3 set 60 % of the time another burst (beyond 5 m) or a grenade throw; else a wall
+// jump, Turn or Walk.
 static void em39_R1_Reload(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3670,6 +3848,12 @@ static void em39_R1_Reload(cEm39* em)
     em39HandSet(em, 2);
 }
 
+// Routine 1/0x1F (from a perch, Sit): rises and fires the machine gun from cover at the player
+// predicted 10 frames ahead (1.3 m up, aimed a degree to the side): steps 0/1 the rise with the gun
+// (Total_damage primed to 200 so the next hit flinches), 2/3 the 30-frame aim with a taunt, 4/5 the
+// firing loop (up to 50 rounds, a hit per round at Timer2 3; cut to 5 rounds on a dead player or
+// when the player is leaving), 6/7 the lower (a line when he hit), then back to the crouch (Sit)
+// with a 90..135 frame attack wait.
 static void em39_R1_AppearMG(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3812,6 +3996,10 @@ static void em39_R1_AppearMG(cEm39* em)
         t = -255.0f;                                                                               \
     }
 
+// Routine 1/0x20 (from a wall point, WallWait): swings out of cover (the left or right variant by
+// the player's side, r_no_3) turning to face him, aims 5 frames with a taunt, fires the machine
+// gun loop as in em39_R1_AppearMG, then either walks straight in (within 3 m or 30 %) or swings
+// back behind cover and returns to WallWait with a 60..90 frame attack wait.
 static void em39_R1_AppearMG2(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -3958,6 +4146,10 @@ static void em39_R1_AppearMG2(cEm39* em)
     (w)->pBomb = 0;                                                                             \
     em39WepSet(em, 0);
 
+// Routine 1/0x21 (from a perch, Sit): rises and throws a grenade (a taunt if he has not fired for
+// 450 frames): the grenade weapon is created in the hand on motion event bit 1 and thrown on event
+// bit 0 with a speed scaled to the player's distance (EM39_GRENADE_THROW), tracking him while Timer
+// runs; then back to the crouch with a 90..135 frame attack wait.
 static void em39_R1_AppearGR(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4055,6 +4247,9 @@ static void em39_R1_AppearGR(cEm39* em)
     em39HandSet(em, 0);
 }
 
+// Routine 1/0x22 (from a wall point, WallWait): leans out of cover (left or right by the player's
+// side) with a grenade already in hand and throws it at the player on motion event bit 0 (speed by
+// distance), then back behind cover to WallWait with a 60..90 frame attack wait.
 static void em39_R1_AppearGR2(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4114,6 +4309,11 @@ static void em39_R1_AppearGR2(cEm39* em)
     em39HandSet(em, 0);
 }
 
+// Routine 1/0x23: the standing grenade throw (long attack held 600). With r_no_3 set and the player
+// on the west side of the arena the target is one of three fixed spots along the walkway (by the
+// boss's z) instead of the player; the grenade appears on motion event bit 1 and flies on bit 0
+// (flat when thrown from 2 m above). Repeats r_no_3 times, ending in the taunt; otherwise a wall
+// jump or the retreating back flip with a 30-frame attack wait.
 static void em39_R1_ThrowGR(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4244,6 +4444,12 @@ static void em39_R1_ThrowGR(cEm39* em)
     em39HandSet(em, 0);
 }
 
+// Routine 1/0x24 (from a perch, Sit): rises with the bow (Wep_type 4, the bow string set up and
+// an arrow nocked, a taunt if he has not fired for 450 frames) and shoots 3..5 arrows at the player
+// predicted 10 frames ahead: steps 2/3 the 30-frame draw with the aim blend (gunPitch), 4/5 the
+// shot (em39ArrowFire with a random spread; the last arrow uses the release motion) and re-draw
+// after 50 frames; the volley stops when the player dies, is knocked down or leaves. Then the lower
+// and back to the crouch.
 static void em39_R1_AppearBow(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4429,6 +4635,9 @@ static void em39_R1_AppearBow(cEm39* em)
     }
 }
 
+// Routine 1/0x25: throws a flash grenade to cover his exit (invulnerable, Be_flg 0x130): the flash
+// weapon is created in the hand and thrown on motion event bit 0 (setFlashThrow, 28 frames); then he
+// vanishes into hiding (Hide) for 200 frames.
 static void em39_R1_Flash(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4483,6 +4692,11 @@ static void em39_R1_Flash(cEm39* em)
     em39HandSet(em, 0);
 }
 
+// Routine 1/0x26 (types 0 / 1): hidden between appearances (invisible, no collision, unlockable,
+// invulnerable; Be_flg 0x430). Entering it drops the knife / arrow, resets the goto and advances
+// the battle phase (Locate 1 -> 2, 4 -> 5; Be_flg 0x20000 forces 5, the final phase, which also
+// sets Be_flg 0x100000). He reappears (em39AppearCk) once Hide_timer is out and the damage taken
+// in the last appearance (Flash_damage) is under the phase's limit (1000 / 500 / 0).
 static void em39_R1_Hide(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4549,6 +4763,9 @@ static void em39_R1_Hide(cEm39* em)
     }
 }
 
+// Branch check of the mutated-arm swing: on motion event bit 0 the arm (attack 4, em39LeftArmAtkCk)
+// hits; a hit next to a cliff spot (em39GetCliffPos) becomes the cliff kill (stat -> T_CliffAtk,
+// the player kept at 1 HP for it), otherwise the player bleeds and is knocked down facing the boss.
 static void em39_R1_br_T_Atk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4631,6 +4848,10 @@ static void em39_R1_br_T_Atk(cEm39* em)
         EmRoutineSet(em, 1, 0xE, end, 1);                                                          \
     }
 
+// Routine 1/0x27 (type 2): the mutated-arm swing (its effect; the hit is in em39_R1_br_T_Atk),
+// homing while motion event bit 3 is set. The back-jump dodge prompt (em39BackjumpAction) is offered
+// after the wind-up until it connects; a dodge or the swing's end (event bit 2, an escape point on a
+// miss) leads into the retreating back flip, a dead player into Wait.
 static void em39_R1_T_Atk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4655,6 +4876,8 @@ static void em39_R1_T_Atk(cEm39* em)
     EM39_T_ATK_TAIL(em, w, em39BackjumpAction);
 }
 
+// Routine 1/0x28 (type 2): the backhand with the mutated arm (attack 5 on motion event bit 0),
+// with the duck prompt (em39SitAction); exits as em39_R1_T_Atk.
 static void em39_R1_T_BackKnuckle(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4682,6 +4905,8 @@ static void em39_R1_T_BackKnuckle(cEm39* em)
     EM39_T_ATK_TAIL(em, w, em39SitAction);
 }
 
+// Branch check of the long arm sweep: attack 6 on motion event bit 0, with the same cliff kill /
+// knock-down outcome as em39_R1_br_T_Atk.
 static void em39_R1_br_T_LongAtk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4724,6 +4949,9 @@ static void em39_R1_br_T_LongAtk(cEm39* em)
         }                                                                                          \
     }
 
+// Routine 1/0x29 (type 2): the long lunging arm sweep (the hit is in em39_R1_br_T_LongAtk), the
+// long attack held 450, invulnerable for Timer frames; the duck prompt (em39SitAction) is offered
+// while he faces the player. Exits as em39_R1_T_Atk.
 static void em39_R1_T_LongAtk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4791,6 +5019,10 @@ static void em39_R1_T_LongAtk(cEm39* em)
     EM39_T_LONG_TAIL(em, w, em39SitAction);
 }
 
+// Routine 1/0x2A (type 2): the leaping arm slam (effects with the Ada variant, long attack held
+// 450; invulnerable until motion event bit 1): attack 7 on event bit 0, the back-jump prompt while
+// he faces the player. A miss on event bit 2 awards the escape point and may chain into another
+// attack or a walk within 3 m; otherwise the retreating back flip or Wait.
 static void em39_R1_T_JumpAtk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4881,6 +5113,8 @@ static void em39_R1_T_JumpAtk(cEm39* em)
 // Frame window test on the player's motion frame (sound cues of the damage motions).
 #define PL_FRAME_IN(pl, lo, hi) ((pl)->frame > (lo) && (pl)->frame < (hi))
 
+// Player damage callback of the arm kick / stamp hits: the knock-down motion (the death variant
+// at 0 HP) with its blood effect and the footstep / get-up sounds; ends with the motion.
 static void plem39_Stamp(cPlayer* pl)
 {
     pG->Status_flg[1] |= 0x8000;
@@ -4925,6 +5159,8 @@ static void plem39_Stamp(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button of the arm swings: the player ducks (plem39Sit; Act_ck marks the dodge) and gets
+// a critical-hit rank point.
 static void em39SitAction(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4934,6 +5170,8 @@ static void em39SitAction(cEm39* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback of the duck (Ada has her own motion): 30 invulnerable frames, an escape
+// rank point; ends with the motion.
 static void plem39Sit(cPlayer* pl)
 {
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
@@ -4956,6 +5194,8 @@ static void plem39Sit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button of the arm swings / kicks: the player jumps back (plemBackjump; the side roll
+// variant, step 2, when the boss is behind him), Act_ck marks the dodge, a critical-hit rank point.
 static void em39BackjumpAction(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -4991,6 +5231,9 @@ static void em39BackjumpAction(cEm39* em)
         pl->m_Work1 = 1;                                                                              \
     }
 
+// Player damage callback of the dodge (dmType 0x1E: invulnerable): the back jump (steps 0/1) or
+// the side roll (2/3), each with its dust and sounds, cancellable by any button after 35 frames;
+// ends with the motion.
 static void plemBackjump(cPlayer* pl)
 {
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
@@ -5038,6 +5281,9 @@ static void plemBackjump(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Branch check of the high kick: on motion event bit 1 with the player in the kick zone
+// (em39KickHitCk): 500 damage; next to a cliff spot the cliff kill (stat -> T_CliffAtk), else the
+// knock-down facing the boss.
 static void em39_R1_br_T_Kick(cEm39* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em39KickHitCk(em)) {
@@ -5064,6 +5310,11 @@ static void em39_R1_br_T_Kick(cEm39* em)
     (b).y = (a).y;                                                                                 \
     em39AtkCk2(em, 8, &(a), &(b));
 
+// Routine 1/0x2B (type 2): the spinning high kick (its effect; the zone hit is in
+// em39_R1_br_T_Kick, and attack 8 is swept along the leg part 0x13 on motion event bit 0). On
+// event bit 2 a miss awards the escape point and, facing a player within 3 m (50 %), chains into
+// another kick or the low kick beyond 2 m, else the melee selection or a walk; otherwise the
+// retreating back flip or Wait.
 static void em39_R1_T_Kick(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5148,6 +5399,8 @@ static void em39_R1_T_Kick(cEm39* em)
     }
 }
 
+// Branch check of the low kick: on motion event bit 1 with the player in the kick zone, 500 damage
+// and the trample follow-up (stat -> T_LowKickHit 1/0x2D).
 static void em39_R1_br_T_LowKick(cEm39* em)
 {
     if (em->hp > 0 && (em->seFlags28B & 2) && em39KickHitCk(em)) {
@@ -5158,6 +5411,10 @@ static void em39_R1_br_T_LowKick(cEm39* em)
     }
 }
 
+// Routine 1/0x2C (type 2): the sweeping low kick (effect with the Ada variant; the zone hit is in
+// em39_R1_br_T_LowKick). On motion event bit 2 a miss awards the escape point and may chain into a
+// high or low kick (facing a player at 2..3 m, 50 %), the melee selection or a walk; otherwise the
+// retreating back flip or Wait.
 static void em39_R1_T_LowKick(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5223,6 +5480,11 @@ static void em39_R1_T_LowKick(cEm39* em)
     }
 }
 
+// Routine 1/0x2D (type 2): the swept player is pinned and the arm comes down (EmCatchPLSet with
+// plem39_LowKickHit; arm pose 0xC, the pin effects). Step 0/1: after Timer frames (by difficulty)
+// the action prompt (em39ActOn) appears until the arm falls (motion event bit 2); the fall on event
+// bit 0 kills. A press in time goes to step 2/3: the player rolls clear (arm pose 0xE, effects), then
+// the retreating back flip.
 static void em39_R1_T_LowKickHit(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5324,6 +5586,9 @@ static void em39_R1_T_LowKickHit(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Player damage callback of the low-kick pin (Ada has her own motions): 0/1 pinned following the
+// boss's motion with the impact / crush sounds and rumble (released early if the boss leaves the
+// hold), 2/3 the roll clear; ends with the motion.
 static void plem39_LowKickHit(cPlayer* pl)
 {
     cModel* p = pl->getPartsPtr(4);
@@ -5431,6 +5696,11 @@ static u32 em39MarkerCol1 = 0x20800000;
     PSMTXMultVec(mat, &(a), &(em)->pos);                                                           \
     (em)->ang.y = (w)->Target_dir;
 
+// Routine 1/0x2E (type 2): the cliff-edge grab: the boss stands on the ledge (jumpPos /
+// Target_dir) holding the player over the drop (plem39_CliffAtk). Step 0/1: the button-mash
+// prompt during motion event bit 2, TmpU32 presses (5..20 by difficulty and player HP) break free
+// before event bit 0 drops him (the kill); voice and rumble cues. Step 2/3: the break-free counter
+// with its effect; then Be_flg 0x800000 (the fight is on) and the retreating back flip.
 static void em39_R1_T_CliffAtk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5517,6 +5787,9 @@ static void em39_R1_T_CliffAtk(cEm39* em)
     em39HandSet(em, 1);
 }
 
+// Player damage callback of the cliff grab (r_no_2 driven by the boss): 0/1 held over the drop
+// facing the boss with the struggle sounds, 2/3 the break-free: the knife object appears in his
+// hand (em39CliffObj) and he stabs the arm, then the weapon returns and the damage ends.
 static void plem39_CliffAtk(cPlayer* pl)
 {
     cModel* p = pl->getPartsPtr(4);
@@ -5607,6 +5880,8 @@ static void plem39_CliffAtk(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 2: damage reactions (r_no_1: Dm_Normal, Dm_Head, Dm_Blow for the first battle, Dm_T_Head,
+// Dm_T_Down, Dm_T_DownHead for the final form); Be_flg 8 keeps em39DmCk from restarting one.
 static void em39_R0_Damage(cEm39* em)
 {
     EM39_WK(em)->Be_flg |= 8;
@@ -5704,6 +5979,12 @@ static void em39_R0_Damage(cEm39* em)
         }                                                                                          \
     }
 
+// Routine 2/0 (first battle): the body flinch (one of two front flinches or the back one by the
+// hit side), the beret knocked a step looser (Cap_hp) and dropped at 0, any grenade in hand tossed,
+// effects cleared, pain voice and a line (EM39_DM_DROP). Invulnerable until motion event bit 2,
+// where EM39_DM_RECOVER decides: back to the crouch at a perch, a goto, a flash-grenade exit when
+// the phase's damage limit is reached, or a step / escape when aimed at or within 2 m. On event bit
+// 0 half the time an early exit (crouch / goto / turn / back flip / walk); else Walk from frame 0xA.
 static void em39_R1_Dm_Normal(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5761,6 +6042,8 @@ static void em39_R1_Dm_Normal(cEm39* em)
     }
 }
 
+// Routine 2/1 (first battle): the head-shot flinch, with the same drop / recovery handling as
+// em39_R1_Dm_Normal.
 static void em39_R1_Dm_Head(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5810,6 +6093,9 @@ static void em39_R1_Dm_Head(cEm39* em)
     }
 }
 
+// Routine 2/2 (first battle): blown off his feet by a grenade (forwards or backwards by the hit
+// side, Be_flg 0x200 remembers which; the beret always comes off), then the matching get-up, with
+// the recovery handling of em39_R1_Dm_Normal.
 static void em39_R1_Dm_Blow(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5918,6 +6204,10 @@ static void em39_R1_Dm_Blow(cEm39* em)
         (w)->Arm_rno = 8;                                                                             \
     }
 
+// Routine 2/3 (final form): the head-shot flinch, invulnerable (Be_flg 0x110), effects cleared,
+// pain voice. On motion event bit 2 (EM39_DM_T_RECOVER) a back flip on the harder ranks or when
+// aimed at (a step otherwise), else the melee selection or the run / walk; the arm pose returns to
+// 8 on event bit 0.
 static void em39_R1_Dm_T_Head(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5942,6 +6232,9 @@ static void em39_R1_Dm_T_Head(cEm39* em)
     }
 }
 
+// Routine 2/4 (final form): knocked to a knee after 200 accumulated damage: the arm shields him
+// (Be_flg 0x1000 while the motion runs; 0x10000 until motion event bit 4 marks the head exposed for
+// Dm_T_DownHead), then the recovery of EM39_DM_T_RECOVER.
 static void em39_R1_Dm_T_Down(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5973,6 +6266,8 @@ static void em39_R1_Dm_T_Down(cEm39* em)
     }
 }
 
+// Routine 2/5 (final form): the head shot while kneeling: the big stagger with its effect and
+// voice, invulnerable, then the same recovery choice as em39_R1_Dm_T_Head (run / walk at the end).
 static void em39_R1_Dm_T_DownHead(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -6028,12 +6323,16 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
     }
 }
 
+// Routine 3: death (r_no_1: 0 the scripted Die_Normal, 1 Die_Flash from the damage check).
 static void em39_R0_Die(cEm39* em)
 {
     EM39_WK(em)->Be_flg |= 8;
     Em39_R1_die_tbl[em->r_no_1](em);
 }
 
+// Routine 3/0 (setDie, the final battle): placed at the death spot on the arena, the death motion
+// with its effect, the death model swapped in (em39DieModelSet) and the death stream; at the end it
+// holds the last frame, drops the item and the stream fades out.
 static void em39_R1_Die_Normal(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -6077,6 +6376,8 @@ static void em39_R1_Die_Normal(cEm39* em)
     }
 }
 
+// Routine 3/1 (the first battle's "death": HP run out): throws a flash grenade (on motion event
+// bit 0) and vanishes: item dropped, collision off, unlockable and hidden; invulnerable throughout.
 static void em39_R1_Die_Flash(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -6144,6 +6445,11 @@ static void em39_R1_Die_Flash(cEm39* em)
 }
 
 // ---- HELPERS ----
+// Per-frame routing while alive: the route to the player (`up` when he is a floor above; the
+// type 0 / 1 distance branches are dead code), routeAng / routeAngAbs (zero during init), the
+// line-of-sight flag (Be_flg bit 0, clear of 0x4000-class obstacles at head height) and the target
+// copy; a goto (Goto_mode) replaces the target with the route to Goto_pos. Debug_flg[0] 0x4000
+// draws the target line.
 void em39RouteCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -6278,6 +6584,8 @@ void em39NeckMove(cEm39* em)
     ((cParts*) p)->addRot.z = 0.0f;
 }
 
+// Waist aim hook called from move() and before each gun hit; empty in the shipped game (only the
+// local and its constant pool survive).
 void em39WaistMove(cEm39* em)
 {
     Vec a;
@@ -6409,6 +6717,8 @@ static void em39ActOn(cEm39* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback of the knife slash (EM39_ATK_SIDE): the sideways stagger (mirrored by
+// r_no_3, Ada's own motion) with the pain face and sound, 10 frames of stun; ends with the motion.
 static void plemDmSide(cPlayer* pl)
 {
     pl->subArc = ((cEm*) pl->dmgType)->subArc;
@@ -6518,6 +6828,8 @@ int em39LockCk(cEm39* em)
     return 1;
 }
 
+// 1 when the player's loaded gun (not the rocket launcher, Game_level above 1) points at the
+// boss's head: a point 15 cm above the head part lies within a 30 cm box in front of the weapon hand.
 int em39HeadLockCk(cEm39* em)
 {
     Mtx inv;
@@ -6558,6 +6870,7 @@ int em39HeadLockCk(cEm39* em)
     return 1;
 }
 
+// Tests attack `no` swept from part `parts`' previous to its current world position (em39AtkCk2).
 int em39AtkCk(cEm39* em, int no, int parts)
 {
     cModel* p = em->getPartsPtr(parts);
@@ -6582,6 +6895,12 @@ int em39AtkCk(cEm39* em, int no, int parts)
     pPL->ang.y = GetXZAngle(&pPL->pos, &(em)->pos);                                                \
     PlSetDamage(8, 0, 0);
 
+// Attack `no` (1-based into em39_atk_tbl) swept from `b` to `a` against the player (hit bit 0) and
+// partner (bit 1), once per attack (Atk_ck). A player hit bleeds with the hit sound and, by attack:
+// the knife (2) only cuts; the backhand (5) and the high kick (8) stagger him sideways (plemDmSide)
+// or knock a dying player down; the leaping slam (7) knocks him down (plem39_Stamp; Ada is just
+// knocked back); 9 knocks back; 0xA only bleeds. Camera shake, a taunt when hit from behind in the
+// first battle, rumble. Returns 1 on a hit.
 int em39AtkCk2(cEm39* em, int no, Vec* a, Vec* b)
 {
     Em39Work* w = EM39_WK(em);
@@ -6699,6 +7018,11 @@ void em39PLNearTowerCk(cEm39* em)
         return 1;                                                                                  \
     }
 
+// The drop check of the first battle (not the final form): every 4th frame a floor more than 35 cm
+// below under both feet starts the jump down (1/0x13) straight ahead. Otherwise (outside the 2 m
+// no-drop spot; without `force` only when stuck, stuckCnt at 5 mod 10, and heading for the target)
+// four wall probes 1 m ahead / behind / to the sides for a ledge-type collision (EM39_JUMPDOWN_PROBE,
+// flags 0x142810) start the drop facing the ledge. Returns 1 when started.
 int em39JumpDownCk(cEm39* em, int force)
 {
     Em39Work* w = EM39_WK(em);
@@ -7047,6 +7371,13 @@ void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int 
     (em)->pos = (e)->pos;                                                                          \
     (em)->pos_old = (em)->pos;
 
+// The reappearance from hiding: scans the EMI type 0xE appear points (skipping the last one used
+// and, on the first pass, any of the same kind / group) for one whose area suits the player's
+// position (em39AreaCk): sub 0 = a perch, he crouches there facing the player (Sit); sub 1 = a wall
+// point the player is facing within 45 deg (60 % skipped when another exists), he stands behind it
+// (WallWait); sub 2 = a fixed spot from which he runs in (Run). Placed there invulnerable and
+// collision off with the damage counters reset. Returns 1 when he appeared; nothing while the
+// player is below y -1 m or east of x 20 m.
 int em39AppearCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -7486,6 +7817,9 @@ void em39WepSet(cEm39* em, int no)
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);                           \
     return 1;
 
+// The knife grab test (em39_R1_br_KnifeCatch): a live, free player in a 1.6 m wide box up to 1.7 m
+// ahead at the same height, with clear lines of sight and no wall beside the reach; marks both dmg
+// and rumbles. Returns 1 on a catch.
 int em39CatchCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -7493,6 +7827,7 @@ int em39CatchCk(cEm39* em)
     EM39_CATCH_BODY(em, w);
 }
 
+// The kick zone test of the final form's kicks: the same box as em39CatchCk.
 int em39KickHitCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -7537,6 +7872,9 @@ void em39ArrowSet(cEm39* em)
         dir.z = 1.0f;                                                                              \
     }
 
+// Shoots the nocked arrow from the bow's string part at `target` (mode 0 1.5 m past it, 1 / 2 a
+// metre to its right / left) at 1.5 m per frame with a small random spread (setShotArrow with
+// attack 0, the wall hit sound); the bow string relaxes and the arrow becomes free-flying.
 void em39ArrowFire(cEm39* em, Vec* target, int mode)
 {
     Em39Work* w = EM39_WK(em);
@@ -7718,6 +8056,11 @@ int em39DoorOpenCk(cEm39* em)
 // Tower form left arm: its own motion work (armMot) by the arm state x8BB / x8BC.
 #define EM39_ARM_MOT(w)  ((MotionWork*) &(w)->Arm_mot)
 
+// Final form only, per frame: the mutated left arm runs its own motion work (Arm_mot) as a state
+// machine set by the routines through Arm_rno: 0 / 4 / 8 blend from the current pose (Arm_type 0
+// relaxed, 1 raised, 2 shielding) into the new one and hold its loop (2 / 6 / 0xA -> the loop
+// states); 0xC / 0xE / 0x10 are the one-shot attack / pin / release motions, 0x12 holds the release's
+// last frame. The pose changes play the arm's flesh sound.
 void em39ArmControl(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -7933,6 +8276,8 @@ int em39FanceJumpCk2(cEm39* em)
     return 1;
 }
 
+// From the walking routines: starts the fence vault (1/0x17) when em39FanceJumpCk2 finds one to
+// clear. Returns 1 when started.
 int em39FanceJumpCk(cEm39* em)
 {
     if (em39FanceJumpCk2(em)) {
@@ -8078,6 +8423,8 @@ int em39AtkRtnCk(cEm39* em)
     return 0;
 }
 
+// From the floor routines: when the level script has set a goto target (Goto_mode, setGoto*), runs
+// there (1/0xA). Returns 1 when started.
 int em39GotoCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -8089,6 +8436,8 @@ int em39GotoCk(cEm39* em)
     return 1;
 }
 
+// For the level script: starts the second half of the first battle: placed at its spot, phase 3
+// (Locate), damage counters reset, a 30-frame attack wait, Wait.
 void cEm39::set2ndBattle()
 {
     register Em39Work* w asm("r29"); // COMPILER-DIFF: #13 -- w kept live past its last store (see the asm below)
@@ -8110,6 +8459,7 @@ void cEm39::set2ndBattle()
     asm volatile("" : : "r"(zero), "r"(w)); // COMPILER-DIFF: #13 -- neither the zero nor w dies at its last store in the original (pure source order)
 }
 
+// For the level script: the first door was opened: phase 1, the appearance damage counter reset.
 void cEm39::set1stDoorClear()
 {
     Em39Work* w = EM39_WK(this);
@@ -8118,6 +8468,7 @@ void cEm39::set1stDoorClear()
     w->Locate = 1;
 }
 
+// For the level script: the second door was opened: phase 4, the appearance damage counter reset.
 void cEm39::set2ndDoorClear()
 {
     Em39Work* w = EM39_WK(this);
@@ -8170,6 +8521,7 @@ void em39VoiceMove(cEm39* em)
     }
 }
 
+// Stops the current voice and plays voice `no` at the head part 4; any queued line is dropped.
 void em39SetVoice(cEm39* em, int no)
 {
     Em39Work* w = EM39_WK(em);
@@ -8180,6 +8532,8 @@ void em39SetVoice(cEm39* em, int no)
     w->Speech_wait = 0;
 }
 
+// Queues voice `time` to play `no` frames from now (the arguments are used swapped: `no` is the
+// delay in Speech_wait, `time` the voice number in Speech_se).
 void em39SetSpeech(cEm39* em, int no, int time)
 {
     Em39Work* w = EM39_WK(em);
@@ -8188,6 +8542,7 @@ void em39SetSpeech(cEm39* em, int no, int time)
     w->Speech_se = time;
 }
 
+// Per frame: counts the queued line down and plays it when due.
 void em39SpeechMove(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -8404,6 +8759,7 @@ void em39PLVoiceCk(cEm39* em)
     SndCallI(8, no, &pPL->getPartsPtr(4)->world, em->id, 0, pPL);
 }
 
+// For the level script: 1 while hidden (Be_flg 0x400).
 int cEm39::ckHide()
 {
     if (EM39_WK(this)->Be_flg & 0x400) {
@@ -8533,11 +8889,14 @@ int em39GetCliffPos(cEm39* em)
     return 1;
 }
 
+// For the level script (final battle timer / HP): the scripted death (3/0).
 void cEm39::setDie()
 {
     EmRoutineSet(this, 3, 0, 0, 0);
 }
 
+// For the level script (the death cutscene was skipped): the corpse placed at its spot, straight
+// into the held last frame (3/0 step 2).
 void cEm39::setDieCancel()
 {
     AtariOff(&atari, 0xFCFF);
@@ -8548,6 +8907,8 @@ void cEm39::setDieCancel()
     EmRoutineSet(this, 3, 0, 2, 0);
 }
 
+// For the level script: 1 when the first talk is due (Be_flg 0x40000 after the second wall jump)
+// and has not run yet (0x80000).
 int cEm39::ckTalk1st()
 {
     Em39Work* w = EM39_WK(this);
@@ -8561,6 +8922,7 @@ int cEm39::ckTalk1st()
     return 0;
 }
 
+// For the level script: starts the first talk (voice cut, invulnerable, Be_flg 0x80000, Talk1st).
 void cEm39::setTalk1st()
 {
     Em39Work* w = EM39_WK(this);
@@ -8571,6 +8933,8 @@ void cEm39::setTalk1st()
     EmRoutineSet(this, 1, 0, 0, 0);
 }
 
+// For the level script: the first talk ended: collision back, then a gun burst (50 % beyond 5 m)
+// or a grenade throw.
 void cEm39::setTalk1stCancel()
 {
     AtariOn(&atari, 0x300);
@@ -8581,6 +8945,8 @@ void cEm39::setTalk1stCancel()
     }
 }
 
+// For the level script: 1 when the second talk is due (Be_flg 0x100000, hiding in the final
+// phase) and has not run yet (0x200000).
 int cEm39::ckTalk2nd()
 {
     Em39Work* w = EM39_WK(this);
@@ -8594,6 +8960,7 @@ int cEm39::ckTalk2nd()
     return 0;
 }
 
+// For the level script: starts the second talk (voice cut, invulnerable, Be_flg 0x200000, Talk2nd).
 void cEm39::setTalk2nd()
 {
     Em39Work* w = EM39_WK(this);
@@ -8604,12 +8971,15 @@ void cEm39::setTalk2nd()
     EmRoutineSet(this, 1, 1, 0, 0);
 }
 
+// For the level script: the second talk ended: back into hiding in the final phase (Locate 5).
 void cEm39::setTalk2ndCancel()
 {
     EM39_WK(this)->Locate = 5;
     EmRoutineSet(this, 1, 0x26, 0, 0);
 }
 
+// For the level script: 1 once the final battle's opening (Success / the cliff grab) is over
+// (Be_flg 0x800000) and the bomb countdown may run.
 int cEm39::ckBombCutEnable()
 {
     if (EM39_WK(this)->Be_flg & 0x800000) {

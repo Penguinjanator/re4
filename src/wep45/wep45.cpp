@@ -1,6 +1,11 @@
 // wep45 module: HUNK's hand grenade (the wep19 cObjHandGre build without the weapon-specific motion
 // slots; object id 0x3C). The module object carries the class, the entry points and the grenade
 // routine registration (wep/pl_grenade.cpp).
+//
+// The same code as wep41 (HUNK's other grenade slot): the display-only cObjHandGre (model by the
+// item kind) at the hand (parts 0x11) and belt (parts 10) offsets, no damage motion set;
+// Wep45_init is the WeaponInitFunc, PlGrenadeMove the WeaponMoveFunc (itemThrow creates the
+// thrown cSubWep).
 
 #include "wep_mod.h"
 #include "light.h"
@@ -24,6 +29,9 @@ public:
 // item kind of the equipped throwable (equipWeapon)
 static u16 greType;
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the two grenade objects, installs
+// the grenade footwork motions, loads the throw effects (archive 0x4 as group 0x4D) and points
+// the debug preview PlWepMot at the aim idles 0x11/0x14/0x17.
 void Wep45_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -42,6 +50,9 @@ void Wep45_init(cModel* m)
 }
 
 // The two grenade objects: the hand one (parts 0x11) is pObj, the belt one (parts 0xA) pObj2.
+// greType = the item kind of weapon_no (1 grenade, 2 incendiary, 0xE flash, 8/9/0xA eggs); the
+// eggs are drawn at half scale; the hand one is hidden with <= 1 item, the belt one with none.
+// Returns the hand object, NULL when a work could not be created.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -118,11 +129,15 @@ cObjWep* equipWeapon(cPlayer* pl)
     return pl->Wep->m_pWep;
 }
 
+// ObjInitFunc[0x3C]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHandGre_init(cObj* obj)
 {
     new (obj) cObjHandGre();
 }
 
+// cObjWep::init override: the model of weapon_no from the player archive (grenade body 0x6A with
+// the texture of the kind 0x6B/0x6D/0x6F, egg 0x7D with 0x7E/0x7F/0x80) and the item kind in
+// wep.x24; no atari / parent (parentSet does that).
 void cObjHandGre::init(cModel* parent)
 {
     void* bin;
@@ -166,6 +181,10 @@ void cObjHandGre::init(cModel* parent)
     }
 }
 
+// Fills the player's motion table with the grenade footwork motions (idle, no walk [1], run,
+// turns, back; no damage set; 0x3D stays the player archive's), shows / hides the hand and belt
+// grenades by the item count, and sets the right hand model (the grenade hand 0x7 while any is
+// left, else the bare hand 0x12).
 void cObjHandGre::setMotion(cPlayer* pl)
 {
     u16 num;
@@ -212,6 +231,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// Aim key check (cObjWep::keyKamae override): the aim button counts only while an item is left.
 int cObjHandGre::keyKamae()
 {
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {
@@ -220,6 +240,7 @@ int cObjHandGre::keyKamae()
     return 0;
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep45_init;
@@ -228,11 +249,13 @@ extern "C" void _prolog()
     OSReport("Wep45 HUNK GRENADE prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x3C] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

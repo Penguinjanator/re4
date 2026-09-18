@@ -145,11 +145,20 @@ extern "C" void _unresolved()
 {
 }
 
+// Placement-constructs one part of the boss over the manager's cEm slot (EmInitFunc for id 0x38);
+// em38_R0_Init does the per-type setup on the first move.
 void Em38Init(cEm* em)
 {
     new (em) cEm38();
 }
 
+// Per-frame damage reaction of every part, from move(). Consumes dmHit: applies em38SetDmVal
+// (LifeDownSet2 keeps 1 HP: the parts do not die from weapon fire) and em38BloodSet. The body's
+// weak part 0x3B accumulates dmgCnt; at 200 the body goes down (routine 2/0) and the upper body cries
+// out through ctrl11. The lower body routes hits on a root's two parts to that root's hp and sinks
+// its tentacle (state 6, tentacle hp 1) when it runs out. The upper body at 1 HP is the kill: it and
+// the body enter their death routines. Otherwise a hit upper body flinches (routine 2/1). Nothing
+// restarts while a routine holds flags 0x10.
 void em38DmCk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -297,6 +306,12 @@ static EmAtkInfo em38_atk_tbl[5] = {
 };
 
 
+// Per-frame update of one part. Order: damage, clear the per-frame flags, tick the timers (a
+// player on the mid platform, y 1..3 m, keeps resetting the attack wait to 120..240 frames), route,
+// the routine table (r_no_0 0xFF = model load failed: destroy), find the other parts, the shell,
+// eyes, parasite roots, parts / attack / collision passes, parasite birth, the body's breathing
+// sound and its upper body's opening voice, the upper body's light mask by the "weak point shown"
+// flag (Status_flg[1] 0x04000000), and the weak point object.
 void cEm38::move()
 {
     Em38Work* w = EM38_WK(this);
@@ -363,6 +378,12 @@ void cEm38::move()
     em38WeakMove(this);
 }
 
+// Routine 0: per-type setup on the first frame. Loads the model of the type (body: archive 4 with
+// the extra model 9 / 0xA; tentacles 5; upper body 6; lower body 7, pinned to the origin), the
+// identity flip table, a huge light box, a passed-through collision, the type's hit boxes, the
+// effect data, the ctrl11 sound controller, the work (first attack in 270 frames, first parasite in
+// 240, shell mode 6, opening voice in 10), the weak point object and the parasite roots. Start
+// routines: body Wait, tentacles T_Wait at 200 HP, upper body U_Wait, lower body L_Wait.
 static void em38_R0_Init(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -521,16 +542,22 @@ static void em38_R0_Init(cEm38* em)
     OSReport("em38 free size = 0x%x\n", 0x900);
 }
 
+// Routine 1: runs the branch check and then the behaviour of the current r_no_1 state.
 static void em38_R0_Move(cEm38* em)
 {
     Em38_R1_move_tbl[em->r_no_1 * 2](em);
     Em38_R1_move_tbl[em->r_no_1 * 2 + 1](em);
 }
 
+// Branch check of the states that have none.
 static void em38_R1_br_Dummy(cEm38* em)
 {
 }
 
+// Body routine 1/0: idle. The idle loop is blended left / right (blendRate eased towards the yaw
+// of the player from the head part 4, up to 40 deg). At each loop end: on Game_level up to 1 the
+// first loop is skipped half the time; once atkWait is out and the head has settled on the player, a
+// 60 % roll bites (routine 1/3); otherwise after waitCnt (2..3) loops the head goes up (1/1).
 static void em38_R1_Wait(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -583,6 +610,9 @@ static void em38_R1_Wait(cEm38* em)
     }
 }
 
+// Body routine 1/1: rears its head (flags 0x20 = ckHeadUp for the tentacles, whose next attacks
+// are pushed 120 / 180 frames out). Steps: rise, hold the loop until both tentacles are out of the
+// water (ckIn; if not, stamp instead: 1/2), then lower the head back towards the player and Wait.
 static void em38_R1_HeadUp(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -663,6 +693,9 @@ static void em38_R1_HeadUp(cEm38* em)
     }
 }
 
+// Body routine 1/2: the head slams down (tentacle attacks pushed 210 / 240 frames out). On motion
+// event bit 0 the catch attack (table 4) is tested at head parts 0x17..0x19; a miss awards the escape
+// rank point. Back to Wait.
 static void em38_R1_HeadStamp(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -697,6 +730,9 @@ static void em38_R1_HeadStamp(cEm38* em)
     }
 }
 
+// Branch check of the bite: on motion event bit 0 the bite sphere (table 3, instant kill) is tested
+// at head part 0x19; a hit rumbles, switches to AtkHit (1/4) and marks the player, body and upper
+// body dmType 0x80 (the death-bite scene).
 static void em38_R1_br_Atk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -716,6 +752,10 @@ static void em38_R1_br_Atk(cEm38* em)
     }
 }
 
+// Body routine 1/3: the bite lunge (flags 0x80 = ckCritical). Opens the shell (mode 2, 150 frames)
+// if it was closed, makes the upper body play its attack pose (setCritical), and homes on the player
+// for the first 15 frames through the blend rate. When the motion ends the player escaped: rank
+// point, 210-frame attack wait, back to Wait.
 static void em38_R1_Atk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -767,6 +807,9 @@ static void em38_R1_Atk(cEm38* em)
     }
 }
 
+// Body routine 1/4: the bite connected. Plays the swallow motion once with its effect and sound
+// and takes over the player (plem38_AtkHit: a death); the routine holds (flags 0x10) as the game
+// over runs.
 static void em38_R1_AtkHit(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -817,6 +860,11 @@ static void plem38_AtkHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Tentacle routine 1/5: out of the water, idling (type 1 plays the flipped motion). Sinks (1/8) when
+// the body is dead or its own HP is down to 1. Once atkWait is out: with the player up on the
+// platform (y over 2 m) it does the big slam (1/0xB) while the body's head is up, or with a 20 % roll
+// (not while the body bites, Game_level above 1) the middle slam (1/0xA), else the sweep (1/9); with
+// the player below, the down slam (1/0xC) on Game_level above 1. Splashes every 60 frames.
 static void em38_R1_T_Wait(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -869,6 +917,8 @@ static void em38_R1_T_Wait(cEm38* em)
     }
 }
 
+// Tentacle routine 1/6: hidden under water (flags 0x40 off), holding the submerged pose until the
+// lower body's root raises it again (setIn -> 1/7).
 static void em38_R1_T_Hide(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -888,6 +938,8 @@ static void em38_R1_T_Hide(cEm38* em)
     }
 }
 
+// Tentacle routine 1/7: rises out of the water with the splash effects and sound (flags 0x40 =
+// ckIn), attack wait cleared, then T_Wait.
 static void em38_R1_T_In(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -915,6 +967,8 @@ static void em38_R1_T_In(cEm38* em)
     }
 }
 
+// Tentacle routine 1/8: sinks back under water (its lingering effects deleted, splash and sound),
+// then T_Hide.
 static void em38_R1_T_Out(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -955,6 +1009,12 @@ static inline void em38SetTentAtkWait(Em38Work* w)
     }
 }
 
+// Tentacle routine 1/9: the horizontal sweep across the platform. The swing is a blend steered
+// towards the player from a point 4 m ahead (asymmetric limits so it stays in front of the body).
+// The sweep sphere (table 0) is tested at parts 7..0x12 on motion event bit 0. For the first 25
+// frames, while the player is on the far side (x beyond +-3 m) and has neither been hit nor escaped,
+// the action button prompt offers the duck (em38EscapeAction; the prompt icon depends on whether the
+// player is aiming, r_no_0 4). A miss awards the escape point; hp 1 sinks it. Back to T_Wait.
 static void em38_R1_T_Atk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1078,6 +1138,8 @@ static void em38_R1_T_Atk(cEm38* em)
     }
 }
 
+// Branch check of the middle slam: on motion event bit 0 the slam sphere (table 1) is tested at
+// parts 7..0x12; a hit switches to T_CatchHit (1/0xD).
 static void em38_R1_br_T_MdlAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1102,6 +1164,9 @@ static void em38_R1_br_T_MdlAtk(cEm38* em)
     }
 }
 
+// Tentacle routine 1/0xA: the middle slam onto the platform (the hit is in the branch check, which
+// leads to the catch). After 10 frames, for 25 frames, while the player is on this tentacle's side
+// (x within 4 m) the action button offers the back jump (em38BackjumpAction). Exits like T_Atk.
 static void em38_R1_T_MdlAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1162,6 +1227,8 @@ static void em38_R1_T_MdlAtk(cEm38* em)
     }
 }
 
+// Branch check of the big slam: the slam sphere (table 1) at the tip parts 7..9 on motion event
+// bit 0; a hit switches to T_CatchHit.
 static void em38_R1_br_T_BigAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1186,6 +1253,10 @@ static void em38_R1_br_T_BigAtk(cEm38* em)
     }
 }
 
+// Tentacle routine 1/0xB: the big slam used while the body's head is up (each type has its own
+// motion). After 20 frames, for 30 frames, while the player is within 6 m on this side, the action
+// button offers the crouch (tentacle 1, em38SitAction) or the back jump (tentacle 2). Exits like
+// T_Atk (the escape point is always awarded here).
 static void em38_R1_T_BigAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1260,6 +1331,8 @@ static void em38_R1_T_BigAtk(cEm38* em)
     }
 }
 
+// Tentacle routine 1/0xC: the slam at a player who is down below the platform. The stamp sphere
+// (table 2) is tested at parts 7..0x12 on motion event bit 0 (plemDmStamp on a hit). Exits like T_Atk.
 static void em38_R1_T_DownAtk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1305,6 +1378,9 @@ static void em38_R1_T_DownAtk(cEm38* em)
     }
 }
 
+// Tentacle routine 1/0xD: the slam caught the player. Plays the lift-and-throw motion (tentacle 1
+// mirrored, the player's r_no_3 set so plem38_CatchHit uses the mirrored side), with the upper body's
+// voice at frame 15 and the grab sound at frame 10, then T_Wait.
 static void em38_R1_T_CatchHit(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1408,6 +1484,7 @@ static void plem38_CatchHit(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Upper body routine 1/0xE: idles on the body's head (em38UpperOnBody every frame).
 static void em38_R1_U_Wait(cEm38* em)
 {
     switch (em->r_no_2) {
@@ -1422,6 +1499,8 @@ static void em38_R1_U_Wait(cEm38* em)
     }
 }
 
+// Upper body routine 1/0xF (setCritical from the body's bite): the attack pose with its voice,
+// then back to U_Wait.
 static void em38_R1_U_Critical(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1442,6 +1521,8 @@ static void em38_R1_U_Critical(cEm38* em)
     }
 }
 
+// Lower body routine 1/0x10: its only state; loops the idle motion while em38RootMove swings the
+// parasite roots.
 static void em38_R1_L_Wait(cEm38* em)
 {
     em38SearchParts(em);
@@ -1455,12 +1536,18 @@ static void em38_R1_L_Wait(cEm38* em)
     }
 }
 
+// Routine 2: damage reactions (r_no_1: 0 the body's down, 1 the upper body's flinch); flags 8
+// keeps em38DmCk from re-triggering.
 static void em38_R0_Damage(cEm38* em)
 {
     EM38_WK(em)->flags |= 8;
     Em38_R2_move_tbl[em->r_no_1](em);
 }
 
+// Body routine 2/0: knocked down after 200 damage on the weak part (ckDown). Steps: the collapse
+// (blend eased to centre; a closing shell is reset), then the shell opens for 240 frames (the first
+// down uses the long opening mode 0xA, flags 0x100, later ones mode 2), the down loop for 190 frames,
+// and the get-up; back to Wait with r_no_3 0xA.
 static void em38_R1_Dm_Down(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1521,6 +1608,7 @@ static void em38_R1_Dm_Down(cEm38* em)
     }
 }
 
+// Upper body routine 2/1: one of two flinch motions (coin flip) riding on the body, then U_Wait.
 static void em38_R1_Dm_Upper(cEm38* em)
 {
     switch (em->r_no_2) {
@@ -1541,12 +1629,16 @@ static void em38_R1_Dm_Upper(cEm38* em)
     }
 }
 
+// Routine 3: death (r_no_1: 0 the body, 1 the upper body), entered from em38DmCk when the upper
+// body's HP reaches 1.
 static void em38_R0_Die(cEm38* em)
 {
     EM38_WK(em)->flags |= 8;
     Em38_R3_move_tbl[em->r_no_1](em);
 }
 
+// Body routine 3/0: the death motion with the death stream sound, the body's effects deleted and
+// the collision passed through; at frame 200 the shell switches to its death mode 8.
 static void em38_R1_Die_Body(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1571,6 +1663,8 @@ static void em38_R1_Die_Body(cEm38* em)
     }
 }
 
+// Upper body routine 3/1: the death motion riding on the body; the collision's player-block bits
+// are cleared once it ends.
 static void em38_R1_Die_Upper(cEm38* em)
 {
     switch (em->r_no_2) {
@@ -1587,6 +1681,10 @@ static void em38_R1_Die_Upper(cEm38* em)
     }
 }
 
+// Per-frame target selection while alive: routes to the player (flags bit 0 when a route exists;
+// routeAng is the yaw to the route point, zero during init) and copies it as the target; when a
+// partner is present (flags bit 1) and the player is unreachable or farther, the partner's route
+// becomes the target (flags bit 2).
 void em38RouteCk(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -1917,6 +2015,11 @@ void em38BlendMotSet(cEm38* em, void* m0, void* m1, void* m2, void* m3, int a, i
     }
 }
 
+// Hit feedback of the pending damage at the hit part: the body's weak part 0x3B gets a special
+// sound and a splash effect sized by weapon class (handgun / rapid fire / shotgun by range / heavy),
+// other body parts and the lower body's part 3 the hard-shell clang with sparks, and everything else
+// the blood effect sized the same way (the upper body with its own hit sound). Knife (0x14) and
+// weapon 0 give no effect.
 void em38BloodSet(cEm38* em)
 {
     EmHitInfo* part = em->dmPart;
@@ -2042,6 +2145,8 @@ void em38BloodSet(cEm38* em)
     }
 }
 
+// Hit boxes of the body: the root sphere plus the extra boxes along the neck, head and back (the
+// weak part 0x3B among them).
 void em38YarareInitBody(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -2075,6 +2180,7 @@ void em38YarareInitBody(cEm38* em)
     YarareAdd(em, &w->hit[25], 300.0f, -100.0f, 600.0f, 450.0f, 900.0f, 0x1B, 5);
 }
 
+// Hit boxes of a tentacle: the root sphere plus one box per segment.
 void em38YarareInitTentacle(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -2098,6 +2204,7 @@ void em38YarareInitTentacle(cEm38* em)
     YarareAdd(em, &w->hit[15], 0.0f, 0.0f, 0.0f, 380.0f, 400.0f, 0x12, 5);
 }
 
+// Hit boxes of the upper body: a human-sized root sphere plus the torso / head boxes.
 void em38YarareInitUpper(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -2113,6 +2220,8 @@ void em38YarareInitUpper(cEm38* em)
     YarareAdd(em, &w->hit[7], 0.0f, 0.0f, 0.0f, 150.0f, 50.0f, 0x14, 3);
 }
 
+// Hit boxes of the lower body: a 4 x 8 x 3 m root cube plus the boxes of the two parasite roots
+// (parts + 1 / parts + 2 of each, which em38DmCk routes to the root's hp).
 void em38YarareInitLower(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -2122,6 +2231,8 @@ void em38YarareInitLower(cEm38* em)
     YarareAdd(em, &w->hit[1], 0.0f, 500.0f, 0.0f, 2800.0f, 0.0f, 0x12, 1);
 }
 
+// Damage of the pending hit: the weapon table value (near = within 6 m for the range falloff), 20
+// for weapon ids past 0x2D.
 int em38SetDmVal(cEm38* em)
 {
     int near;
@@ -2142,6 +2253,7 @@ int em38SetDmVal(cEm38* em)
     return dmg;
 }
 
+// Tests attack `no` swept from part `parts`' previous to its current world position.
 int em38AtkCk(cEm38* em, int no, int parts)
 {
     cModel* p = em->getPartsPtr(parts);
@@ -2149,6 +2261,10 @@ int em38AtkCk(cEm38* em, int no, int parts)
     return em38AtkCk2(em, no, &p->world, &p->world_old);
 }
 
+// Attack sphere `no` of em38_atk_tbl swept from `a` to `b` against the player (once per attack:
+// atkHit). A player hit: the sweep / stamp / catch take the player over with plemDmStamp, the bite
+// (3) kills outright (Debug_flg[2] 0x00800000 disables it). Any hit shakes the camera and rumbles.
+// Returns 1 on a hit.
 int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
 {
     Em38Work* w = EM38_WK(em);
@@ -2231,6 +2347,7 @@ static void plemDmStamp(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Body only: 1 while the head is reared (em38_R1_HeadUp), queried by the tentacles.
 int cEm38::ckHeadUp()
 {
     if (type != 0) {
@@ -2242,6 +2359,7 @@ int cEm38::ckHeadUp()
     return 1;
 }
 
+// Pushes this part's next attack `frames` out (the body staggers the tentacles with it).
 void cEm38::setAtkWait(int frames)
 {
     EM38_WK(this)->atkWait = frames;
@@ -2257,6 +2375,9 @@ static void em38EscapeAction(cEm38* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback of the duck (em38EscapeAction, dmType 0x1E: invulnerable): probes 2 m to
+// each side for walls and picks the free side (random when both are free) for the dodge roll under
+// the tentacle, with the event camera (em38EscapeCamMove); ends when the motion finishes.
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -2393,6 +2514,9 @@ static void em38BackjumpAction(cEm38* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback of the back jump (em38BackjumpAction, dmType 0x1E: invulnerable): the
+// jump-back motion from frame 5, turning to face the tentacle for the first 15 frames, with the
+// jump / landing sounds; ends when the motion finishes.
 static void plemBackjump(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -2447,6 +2571,8 @@ static void em38SitAction(cEm38* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback of the crouch (em38SitAction): the duck motion under tentacle 1's big
+// slam, an escape rank point, and the damage ends with the motion.
 static void plemSit(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -2495,6 +2621,13 @@ void em38RootInit(cEm38* em)
     w->para[1].pEm = 0;
 }
 
+// Lower body only, per frame while it and the body live: the state machine of each parasite root.
+// 0/1 wait 750..1050 frames, 2/3 rise over 120 frames (the tentacle surfaces at 30 left: setIn, root
+// hp 200), 4/5 stay out until the tentacle is beaten to 1 HP, 6/7 sink over 120 frames and restart.
+// Rising winds the root's swing forward (angSpd up to 5 deg/frame), sinking winds it back, idle
+// decays it; a fast swing splashes every 7 frames. The swing is laid out as a 30-degree stepped
+// angle over the root's two parts (swingAng / 30 whole steps plus the remainder split between them,
+// mirrored for root 0) with a breathing y scale, written into the parts' local matrices.
 void em38RootMove(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);
@@ -2646,6 +2779,7 @@ void em38RootMove(cEm38* em)
     }
 }
 
+// Tentacles only (from the lower body's root): a hidden tentacle (T_Hide) surfaces at 200 HP (T_In).
 void cEm38::setIn()
 {
     if (type == 1 || type == 2) {
@@ -2656,6 +2790,7 @@ void cEm38::setIn()
     }
 }
 
+// Tentacles only: 1 while out of the water (flags 0x40).
 int cEm38::ckIn()
 {
     if (type != 1 && type != 2) {
@@ -2667,6 +2802,7 @@ int cEm38::ckIn()
     return 0;
 }
 
+// Upper body only (from the body's bite): plays the attack pose (U_Critical).
 void cEm38::setCritical()
 {
     if (type == 3) {
@@ -2674,6 +2810,8 @@ void cEm38::setCritical()
     }
 }
 
+// Upper body only: 1 while flags 0x80 (the bite) is set. The tentacles call it on the body, whose
+// type is 0, so it reads 0 there.
 int cEm38::ckCritical()
 {
     if (type != 3) {
@@ -2685,6 +2823,7 @@ int cEm38::ckCritical()
     return 0;
 }
 
+// Body only: 1 while knocked down (routine 2/0).
 int cEm38::ckDown()
 {
     if (type != 0) {
@@ -2721,6 +2860,8 @@ void em38WeakInit(cEm38* em)
     }
 }
 
+// Body only, per frame: the weak point object is displayed while Status_flg[1] 0x04000000 (the
+// shell is open) and the body lives.
 void em38WeakMove(cEm38* em)
 {
     Em38Work* w = EM38_WK(em);

@@ -1,6 +1,18 @@
 // Rocket launcher player routines (wep13 module, first object; real file name unknown): routine 2
 // of the player while the launcher is equipped: ready (grip + aim), set (idle / turn), fire, down,
 // next target (routine 5) and throw away (routine 6). Modelled on game/pl_knife.cpp.
+//
+// Entry: PlRocketMove is the wep13 module's WeaponMoveFunc (pl_R1_Weapon, r_no_1 == 6). r_no_2
+// is the weapon state (0 ready, 1 set = scope view, 2 fire, 3 down, 5 next target, 6 throw the
+// empty tube away), r_no_3 the step. The weapon object is the DOL's cObjLauncher (pl_wep.h): its
+// grip()/gripBack() move the launcher between the back and the shoulder, launch happens in its
+// moveFire (mode 2) along launcher.from/to = the scope camera trajectory stored by the set state.
+// weapon_type 2 is the infinite launcher (kept after a shot, back to the scope or down); any other
+// type is the single-shot one, thrown away (r_no_2 6, wep.mode 5, flags_420 bit10 = tube gone).
+// The knife routine (0xB) shares the launcher grip: down step 3 / ready step 2 use the player
+// motion table 0x55..0x58 for the launcher <-> knife transitions. Weapon archive slots: 0x18
+// shoulder, 0xF/0x12/0x14 aim idle, 0x11/0x13/0x15 fire, 0x16 throw away, 0x19 unshoulder,
+// 0x20 the launcher's own grip motion.
 
 #include "atari.h"
 #include "light.h"
@@ -70,6 +82,8 @@ static void wep13_r3_down30(cPlayer* pl);
 static void wep13_r2_throw(cPlayer* pl);
 static void wep13_r2_next(cPlayer* pl);
 
+// WeaponMoveFunc of the launcher module: dispatches on r_no_2 (0..3, 5, 6) and runs the lock-on
+// stick control.
 void PlRocketMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -86,6 +100,9 @@ void PlRocketMove(cPlayer* pl)
     pl->Wep->lockMove();
 }
 
+// r_no_2 == 0: the ready (shoulder) state. Aim key released before step 3 -> the launcher goes
+// back to the back (grip(0), motion reset) and footwork (r_no_1 0, or 0x11 crouch with flags_420
+// bit6). The shoulder camera aims at the locked enemy or the forward scenery hit.
 static void wep13_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -123,6 +140,10 @@ static void wep13_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim: Wep->pitch from the camera pitch, aim yaw m_Fwork0 = 0, camera
+// direction saved in m_CamAdjY, neck / lock-on reset, shoulder motion 0x18, mot3 pitch zeroed,
+// lockCtr = 0. A launcher thrown away earlier (flags_420 bit10) is shown again and gets its
+// motions; the single-shot type is gripped back with its own motion 0x20.
 static void wep13_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -162,6 +183,8 @@ static void wep13_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the shoulder motion plays: ang.y turns to the camera direction over 4 frames, the
+// launcher is gripped (grip(1)) at frame 11, at frame 32 -> set state (the scope).
 static void wep13_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
@@ -186,6 +209,8 @@ static void wep13_r3_ready10(cPlayer* pl)
 
 }
 
+// ready step 2 (entered from the knife routine when the aim key is pressed): the knife-to-launcher
+// transition motion pMotTbl[0x57]/[0x58]; step 3.
 static void wep13_r3_ready20(cPlayer* pl)
 {
     pl->motionSet(pl->pMotTbl[0x57], 5, 0, 0, (int) pl->pMotTbl[0x58]);
@@ -193,6 +218,8 @@ static void wep13_r3_ready20(cPlayer* pl)
     pl->r_no_3 = 3;
 }
 
+// ready step 3: the transition plays: knife face off at frame 5, launcher gripped at frame 14,
+// at frame 39 -> set state.
 static void wep13_r3_ready30(cPlayer* pl)
 {
     if (MotionCheckCrossFrame(&pl->Motion, 5.0f)) {
@@ -220,6 +247,9 @@ static inline void VecCopy(Vec* d, const Vec* s)
     *d = *s;
 }
 
+// r_no_2 == 1: the set state = looking through the launcher's scope (no laser). Aim released ->
+// down (r_no_2 3, or crouch 0x11); fire held with a rocket loaded -> the scope trajectory is
+// stored in launcher.from/to, the scope camera ends and -> fire.
 static void wep13_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -261,6 +291,9 @@ static void wep13_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the aim idle (0xF/0x12/0x14 on the pitch), hide display type 1 of the
+// launcher (the part in front of the eye), scope-on SE 2/9 and the scope camera (flags_420 bit4
+// once); step 1.
 static void wep13_r3_set00(cPlayer* pl)
 {
     PlArc* arc = (PlArc*) pG->pWep;
@@ -277,11 +310,14 @@ static void wep13_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle.
 static void wep13_r3_set10(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
+// released -> step 0. Set by PlWepLockCtrl's turn request.
 static void wep13_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -296,6 +332,7 @@ static void wep13_r3_set20(cPlayer* pl)
     }
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void wep13_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -310,6 +347,7 @@ static void wep13_r3_set30(cPlayer* pl)
     }
 }
 
+// set step 4: finish the current motion; ends or any fire / aim / action key -> step 0.
 static void wep13_r3_set40(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0) || (Key.on & 0x10F)) {
@@ -317,6 +355,7 @@ static void wep13_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 launches, step 1 plays the recoil).
 static void wep13_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -327,6 +366,10 @@ static void wep13_r2_fire(cPlayer* pl)
     func_tbl[pl->r_no_3](pl);
 }
 
+// fire step 0: the launch. trigger() spends the rocket and the launcher object (mode 2,
+// cObjLauncher::moveFire) fires it along launcher.from/to; the fire motions 0x11/0x13/0x15 start
+// level (m3r zeroed), display type 1 is shown again, controller vibration, PlWepLockRand kicks
+// the aim yaw (the pitch result is discarded). Step 1.
 static void wep13_r3_fire00(cPlayer* pl)
 {
     PlArc* arc;
@@ -356,6 +399,9 @@ static void wep13_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the recoil plays. Single-shot launcher: at frame 39 -> throw-away state (r_no_2 6).
+// Infinite launcher: aim released from frame 45 -> down; at the motion end -> back into the scope
+// (set state) while aiming, else down.
 static void wep13_r3_fire10(cPlayer* pl)
 {
     pl->motionMove();
@@ -392,6 +438,8 @@ static void wep13_r3_fire10(cPlayer* pl)
     }
 }
 
+// r_no_2 == 3: the down state (unshoulder, or switch to the knife). Unwinds the waist twist into
+// ang.y, sets Status_flg[0] bit25 and runs the control-flag check.
 static void wep13_r2_down(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -408,6 +456,9 @@ static void wep13_r2_down(cPlayer* pl)
     pl->checkCtrl();
 }
 
+// down step 0: end the scope camera (flags_420 bit4 off), show the launcher fully; knife key held
+// -> the launcher-to-knife transition pMotTbl[0x55]/[0x56] and step 3, else the unshoulder
+// motion 0x19 and step 1.
 static void wep13_r3_down00(cPlayer* pl)
 {
     CamCtrl.endScope();
@@ -439,6 +490,10 @@ static void wep13_r3_down00(cPlayer* pl)
     pl->motionMove();
 }
 
+// down step 1: the unshoulder motion plays: launcher released to the back (grip(0)) at frame 13,
+// SE 2/2 at frame 18; ends (SE 5/2) into footwork idle, or from frame 15 straight to the idle when
+// a damage blocks motions. Knife key -> knife routine 0xB, aim key -> ready again, any fire / aim
+// / action key -> footwork idle.
 static void wep13_r3_down10(cPlayer* pl)
 {
     const f32 gripFrame = 13.0f;
@@ -485,12 +540,17 @@ static void wep13_r3_down10(cPlayer* pl)
     }
 }
 
+// down step 2: start the idle walk motion (pMotTbl[0]) and finish it in step 1 (an alternative
+// entry, unused by the transitions here).
 static void wep13_r3_down20(cPlayer* pl)
 {
     MotionSetCore(pl, &pl->Motion, pl->pMotTbl[0], 0, 3, 5, 0);
     pl->r_no_3 = 1;
 }
 
+// down step 3: the launcher-to-knife transition plays: at frame 9 the infinite launcher is
+// gripped back (kept in hand), the single-shot one released; knife face on at frame 13. Knife key
+// released -> footwork idle; the motion's end (SE 5/2) -> knife routine 0xB set state.
 static void wep13_r3_down30(cPlayer* pl)
 {
     if (MotionCheckCrossFrame(&pl->Motion, 9.0f)) {
@@ -519,6 +579,10 @@ static void wep13_r3_down30(cPlayer* pl)
     }
 }
 
+// r_no_2 == 6: throw the empty single-shot tube away: motion 0x16 with SE 2/2; at frame 18 the
+// launcher object drops (wep.mode 5, cObjLauncher::moveDrop), flags_420 bit10 marks it gone, the
+// player's motion table gets the hand motions back (setMotion) and the routine leaves to footwork
+// sub-routine 2.
 static void wep13_r2_throw(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -542,6 +606,10 @@ static void wep13_r2_throw(cPlayer* pl)
     }
 }
 
+// r_no_2 == 5: the next-target state (Key.trg bit5 in the lock control): turn towards the locked
+// enemy pLockEm (PI/10 per frame beyond 200 units) with the waist straightened for 10 frames
+// (m_Work0), then back to the set state. Another press cycles lockNext() (new target restarts,
+// none -> set); aim released -> set state (or crouch 0x11).
 static void wep13_r2_next(cPlayer* pl)
 {
     cModel* em = pl->pLockEm;

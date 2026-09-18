@@ -1,6 +1,13 @@
 // Punisher (Ruger) weapon object (wep02 second object / wep43 first object, the same object in both;
 // real file name unknown): model by weapon type, fire with cartridge ejection, reload by tune level.
 // wep38 carries its own build of the class (no weapon types).
+//
+// cObjRuger is the cObjWep (game/objWep.cpp) of the Punisher handgun, hanging on the player's
+// right hand (parts 10) and driven by wep.mode / wep.step from the handgun routines
+// (wep/pl_handgun.cpp): mode 2 -> moveFire (slide motion, SEs, flash, cartridge), mode 4 ->
+// moveReload (reload motion by tune level, ItemMgr.reload at its frame). weapon_type 1 is the
+// upgraded (exclusive) model 0x7 with the silenced-style SE. setMotion installs the Punisher
+// footwork motions into the player's table; ruger_tbl fills wep.x18..x1A.
 
 #include "wep_mod.h"
 #include "item.h"
@@ -25,6 +32,7 @@ public:
 extern const u8 ruger_tbl[3];
 const u8 ruger_tbl[3] = { 0x10, 0xE, 0xC };
 
+// ObjInitFunc entry: placement-constructs the class in the work cObjMgr::construct hands over.
 #ifndef OBJRUGER_NO_INIT   // pl0d (Wesker) carries this object without the entry point (src/pl0d/objRuger.cpp)
 void ObjRuger_init(cObj* obj)
 {
@@ -32,6 +40,10 @@ void ObjRuger_init(cObj* obj)
 }
 #endif
 
+// cObjWep::init override (cPlayer::weaponInit, parent = the player): model 0x6 (type 1: 0x7,
+// weapon list id wep.x24 0x23 / 0x24), a 100-unit box atari with bits 8/9 off, hung on the
+// player's right hand, light area, idle motions 0x36 (normal) / 0x3B (empty), the three
+// ruger_tbl bytes and the default lock random spread.
 void cObjRuger::init(cModel* parent)
 {
     void* bin;
@@ -66,6 +78,10 @@ void cObjRuger::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, set by the handgun fire00): step 0 starts the slide motion (0x34, 0x39 on
+// the last round = slide locked back), plays the shot SEs (type 0: three SEs and Status_flg[0]
+// bit23 shot noise; type 1: the single SE 0x18), muzzle flash 0x36, a cartridge and the pad
+// vibration; the motion's end returns to mode 0.
 void cObjRuger::moveFire()
 {
     if (wep.step == 0) {
@@ -96,6 +112,10 @@ void cObjRuger::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the reload tune level (0x38/0x3E/
+// 0x3F, or 0x35/0x3C/0x3D from an empty magazine) with the level's reload SE (0x16/0x20/0x21);
+// at the level's frame (31/26/17) ItemMgr.reload refills the magazine. The player routine ends
+// the mode.
 void cObjRuger::moveReload()
 {
     static const f32 reloadEnd[3] = { 31.0f, 26.0f, 17.0f };
@@ -148,6 +168,8 @@ void cObjRuger::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x8/0x9) from the right hand's ejection port
+// offset (-109, -22, 90) with a random +-15 spread, gravity 10, 30 frames, landing effect 0x13.
 void cObjRuger::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -177,6 +199,10 @@ void cObjRuger::setCartridge()
     }
 }
 
+// Fills the player's motion table with the handgun-carrying footwork motions (idle, walk, run,
+// turns, back, 0x57/0x5B knife transitions, 0x39..0x42 and 0x5D/0x5E the damage set; 0x3D stays
+// the player archive's) and sets the weapon hand model (right hand 1, left hand 4). Called by
+// cPlayer::weaponInit / PlReloadBullet.
 void cObjRuger::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));

@@ -102,6 +102,8 @@ static inline int em3cDeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// REL entry: hands the module's constructor to the enemy manager (EmInitFunc) so an enemy set
+// with id 0x3C is built as a cEm3c.
 extern "C" void _prolog()
 {
     OSReport("em3c prolog Ok\n");
@@ -116,11 +118,23 @@ extern "C" void _unresolved()
 {
 }
 
+// Placement-constructs the enemy over the manager's cEm slot (vtable install; the work is set up
+// by em3c_R0_Init on the first move).
 void Em3cInit(cEm* em)
 {
     new (em) cEm3c();
 }
 
+// Per-frame damage reaction, run from move() once the enemy is past init. Consumes the hit the
+// weapon code left in dmHit / dmPart / dmWep: picks the hit sound and blood effect by weapon
+// class (handgun / shotgun (7, 8: strong only within 6 m) / other) and hit part (kind 0 body, 1 the
+// part 3 head, 2 the part 5 parasite), then applies em3cSetDmVal through LifeDownSet. Knife (0x14)
+// and 0x16 hits are ignored; the parasite core dies outright to 0x17 / 0x2A (flash). On death it
+// plays the core death effect and enters routine 3 (die). Otherwise: a parasite hit drains Head_hp /
+// Head_cnt and picks the head-damage routine (2/2); a body hit below half HP without the parasite
+// set forces the big damage routine (2/1), and handgun-class / shotgun hits roll for the normal (2/0)
+// or big flinch. Nothing happens while the enemy is in start / attack wait (Be_flg 0x400) or already
+// in a damage routine (0x100 / 0x200).
 void em3cDmCk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -420,6 +434,12 @@ Vec em3c_bomb_pt[5][5] = {
 // The original link 8-aligns the end of .data (the ngcld BSS tag follows): the 4 pad bytes after the table.
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update from the enemy manager. Order: damage check, clear the per-frame Be_flg bits,
+// tick the wait timers (a dead player forces at least a 5-frame attack wait), route to the player,
+// the routine table, parts / attack / collision / stage-collision passes (HoseiCnt counts frames
+// the collision cut the movement in half, em3cDoorOpenCk keys on it), the falling head pieces, the
+// 45-frame hide of head parts 3 / 4 after the burst, footsteps, the parasite's periodic voice and
+// the parasite hit box (hit[10]) placed at the core's head part in part-2 space.
 void cEm3c::move()
 {
     Em3cWork* w = EM3C_WK(this);
@@ -517,6 +537,13 @@ void cEm3c::move()
     }
 }
 
+// Routine 0: one-time setup on the first frame. Loads the models (em3cModelInit), light, a 1.2 m
+// wide collision, the body hit box plus 11 extra ones (arms, legs, [9] the parasite, [10] the head
+// object; both disabled until em3cSetParasite), the effect data, the work (Head_hp = hp_max / 14 plus
+// 1..25, Head_cnt 1..3 head hits before the head-damage flinch), the motion set (`female` for types
+// 1 / 3) and the piece rest distances for the head burst. `set` picks the start: 0 active and
+// waiting, 1 a lying dummy that rises (StartWait), 2 an ambush pose that grabs the player when they
+// come near (AtkWait). Falls through to em3c_R0_Move.
 static void em3c_R0_Init(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -618,11 +645,16 @@ static void em3c_R0_Init(cEm3c* em)
     em3c_R0_Move(em);
 }
 
+// Routine 1: dispatches the behaviour sub-routine (r_no_1: StartWait, AtkWait, Wait, Walk, Run,
+// Turn180, MoveAtk, CoreAtk).
 static void em3c_R0_Move(cEm3c* em)
 {
     Em3c_R1_move_tbl[em->r_no_1](em);
 }
 
+// Routine 1/0 (set 1): the enemy lies as a harmless dummy (hp forced to 1000, collision passed
+// through, Be_flg 0x400 blocks damage) until the level script raises flag bit 0; then it plays the
+// rising motion at full HP, marks the player found and goes to Turn180 or Walk by the route angle.
 static void em3c_R1_StartWait(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -667,6 +699,15 @@ static void em3c_R1_StartWait(cEm3c* em)
     }
 }
 
+// Routine 1/1 (set 2): the ambush grab. Steps: 0 idle pose, 1 wait until the living player is
+// within 3 m, 2 kill the enemy as an enemy (hp 0, EmSetDie: it is a one-shot scripted grab), take
+// over the player (plemSurprised) and a partner within 5 m (subemSurprised), suspend the other
+// enemies (em3cAtkSuspend), 3 a 30-frame hold after which the action-button variant (actMode 1 / 2)
+// is rolled, 4 the grab motion with its effect and a 60-frame window, 5 the grab hits through
+// em3cAtkCk2 (Atk_ck -> Act_ck and flag bit 1, which releases the partner), a foot dust effect on
+// motion event 4, and when the window ends the suspend is lifted and the enemy dies (routine 3,
+// r_no_3 1: the "grab" death effect). While the player has not escaped, the action button prompt
+// 0x25 is offered and runs plemEscapeAction.
 static void em3c_R1_AtkWait(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -773,6 +814,10 @@ static void em3c_R1_AtkWait(cEm3c* em)
     }
 }
 
+// Player damage callback (SetPlDamage) for the ambush grab: puts the player 1.8 m in front of the
+// enemy facing it, plays the surprised motion from the enemy's archive (0x64 for Ashley, 0x63
+// otherwise) with the collision passed through for 5 frames, and ends the damage when it finishes.
+// The player's sub archive is swapped to the enemy's for the duration of the call.
 static void plemSurprised(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -808,6 +853,9 @@ static void plemSurprised(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Action button handler (ActBtn.set in em3c_R1_AtkWait): the player broke the grab. Clears the
+// prompt, marks the escape (Act_ck), switches the player damage to plemEscape (dmType 2: no hit
+// damage), sits a partner within 4 m down (subemSit) and awards a critical-hit rank point.
 static void plemEscapeAction(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -827,6 +875,9 @@ static void plemEscapeAction(cEm3c* em)
     GameAddPoint(LVADD_CRITICALHIT);
 }
 
+// Player damage callback for the grab escape: plays the break-free motion (archive 0x65 for
+// Ashley with her voice, 0x60 otherwise with the struggle sounds) with per-frame voice / foley cues,
+// and ends the damage when it finishes. The sub archive is swapped like in plemSurprised.
 static void plemEscape(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -876,6 +927,10 @@ static void plemEscape(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Partner damage callback (SetSubDamage) for the ambush grab: places the partner beside the
+// player (0.4 m right, 2.1 m ahead of the enemy), plays her surprised pose with the collision off and
+// holds it up to 50 frames or until the grab connects (enemy flag bit 1), then the recoil motion with
+// its effect and voice, and ends when it finishes.
 static void subemSurprised()
 {
     cSubChar* sub = pSUB;
@@ -924,6 +979,8 @@ static void subemSurprised()
     sub->subArc = sub->subArc2;
 }
 
+// Partner damage callback after the player escapes the grab: the partner drops to a sit (archive
+// 0x43), stays there (0x44) while her r_no_3 is set, then stands up (0x45) and the damage ends.
 static void subemSit()
 {
     cSubChar* sub = pSUB;
@@ -959,6 +1016,8 @@ static void subemSit()
     }
 }
 
+// Routine 1/2: idle. Plays the standing loop and runs em3cFindCk; once the player is found, the
+// attack wait is over and em3cStayCk lets it go, it turns (route angle over 120 deg) or walks.
 static void em3c_R1_Wait(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -985,6 +1044,13 @@ static void em3c_R1_Wait(cEm3c* em)
     }
 }
 
+// Routine 1/3: walk towards the route point (r_no_3 = start phase of the loop in 1/256ths; yaw
+// turns at PI/64 per frame). Leaves to Wait when the motion loops and em3cStayCk holds it back, or
+// during the attack wait within 2.5 m. Within 2 m and facing the player it attacks: the kick / grab
+// (MoveAtk), or on types 2 / 3 a coin flip for the parasite bite (CoreAtk) when the core can bite.
+// Otherwise it turns around past 120 deg, and breaks into a run on Game_level above 9, or with a
+// 50 % roll when the route to the player is over 7 m (Run_wait suppresses the reroll 150 frames).
+// Opens doors on its way (em3cDoorOpenCk).
 static void em3c_R1_Walk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1051,6 +1117,9 @@ static void em3c_R1_Walk(cEm3c* em)
     em3cDoorOpenCk(em);
 }
 
+// Routine 1/4: run towards the route point (yaw at PI/48 per frame). At each loop end it drops to a
+// walk within 3 m of the player when a route exists, or to Wait when em3cStayCk holds it back; the
+// attack wait within 2.5 m also stops it. The attack / turn choice is the same as em3c_R1_Walk.
 static void em3c_R1_Run(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1114,6 +1183,8 @@ static void em3c_R1_Run(cEm3c* em)
     em3cDoorOpenCk(em);
 }
 
+// Routine 1/5: the about-face motion. turnAng starts at yaw + PI and, while motion event bit 3 is
+// set, both it and the yaw steer towards the route point at PI/32 per frame. Ends in Wait or Walk.
 static void em3c_R1_Turn180(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1147,6 +1218,12 @@ static void em3c_R1_Turn180(cEm3c* em)
     }
 }
 
+// Routine 1/6: the melee attack. Picks the lunging kick (`far`, Atk_type 1: only against Leon-type
+// players, when the player is more than 15 deg off the facing, with a 50 % roll) or the grab swing
+// (Atk_type 0, which keeps homing on the route point for Timer frames: 10 / 20 / 30 by Game_level).
+// The hit is em3cAtkCk2 along the weapon part; a miss awards the player an escape rank point, and
+// a hit or a player within 2.5 m sets Atk_wait (45 / 60 / 75 frames by Game_level) before Wait, else
+// it walks on. A foot dust effect plays on motion event 4.
 static void em3c_R1_MoveAtk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1244,6 +1321,10 @@ static void em3c_R1_MoveAtk(cEm3c* em)
     }
 }
 
+// Routine 1/7: the parasite head attacks. Types 0 / 1 (r_no_3 0) stand idle for 120 frames while
+// the core runs its attack (setAtk); types 2 / 3 (r_no_3 1) play the lean-in motion once while the
+// core does its critical bite (setCritical). The core reports the hit (ckAtkHit -> Atk_ck); the
+// exit is like em3c_R1_MoveAtk (attack wait then Wait on a hit, Walk otherwise).
 static void em3c_R1_CoreAtk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1322,6 +1403,10 @@ static void em3c_R1_CoreAtk(cEm3c* em)
     }
 }
 
+// Player damage callback for the kick (em3cAtkCk, attack 1): plays the knock-down motion from the
+// enemy's archive (0x61 / 0x62; r_no_3 set by em3cAtkCk picks the mirrored variant, flag 0x41) with
+// the pain face and sound, and hands control back when it finishes. dmg is set to type 2 while it
+// plays and to 0xF (knocked down) on exit.
 static void plemDmMStar(cPlayer* pl)
 {
     pl->subArc = PL_EM(pl)->subArc;
@@ -1348,12 +1433,17 @@ static void plemDmMStar(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Routine 2: damage reactions (r_no_1: Dm_Normal, Dm_Big, Dm_Head). Be_flg 0x100 tells em3cDmCk
+// not to restart a flinch while one plays.
 static void em3c_R0_Damage(cEm3c* em)
 {
     EM3C_WK(em)->Be_flg |= 0x100;
     Em3c_R2_move_tbl[em->r_no_1](em);
 }
 
+// Routine 2/0: the light flinch. Picks the motion by the side the hit came from (front / back, or
+// the heavy stagger on a coin flip) and, when it ends, walks on or runs (Game_level above 9, or a 50 %
+// roll when the route to the player is over 7 m and Run_wait is out).
 static void em3c_R1_Dm_Normal(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1422,6 +1512,8 @@ static void em3c_R1_Dm_Normal(cEm3c* em)
     }
 }
 
+// Routine 2/1: the heavy stagger. Same exit as em3c_R1_Dm_Normal; while it plays, an enemy below
+// half HP that has not set its parasite yet bursts its head 60 frames in (em3cPartsBombHead).
 static void em3c_R1_Dm_Big(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1461,6 +1553,9 @@ static void em3c_R1_Dm_Big(cEm3c* em)
     }
 }
 
+// Routine 2/2: the head-hit reaction (Be_flg 0x200 keeps further parasite hits from restarting it).
+// Plays the head flinch with its sound and, on motion event bit 0 with Head_hp used up, bursts the
+// head (em3cPartsBombHead). Same exit as em3c_R1_Dm_Normal.
 static void em3c_R1_Dm_Head(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1491,11 +1586,17 @@ static void em3c_R1_Dm_Head(cEm3c* em)
     }
 }
 
+// Routine 3: death (only em3c_R1_Die_Normal).
 static void em3c_R0_Die(cEm3c* em)
 {
     Em3c_R3_move_tbl[em->r_no_1](em);
 }
 
+// Routine 3/0: the body falls apart. Step 0 plays the collapse effects (r_no_3 1 = the grab death
+// variant), the death sound, unhooks the chainmail model, passes the collision through, deletes the
+// parasite core and its effects, and lets every body part drop as a five-point piece
+// (em3cPartsBombSet). Step 1 waits 60 frames, then marks the item drop and fades the model out over
+// 35 frames (invisible_factor). Step 2 flags the enemy for removal.
 static void em3c_R1_Die_Normal(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1560,6 +1661,11 @@ static void em3c_R1_Die_Normal(cEm3c* em)
     }
 }
 
+// Tests one attack sphere from em3c_atk_tbl[no] at world `pos` against the player (hit bit 0) and
+// partner (bit 1), swept from the weapon part's (0x1A) previous position. On a hit: Atk_ck, blood on
+// the victim, and for the kick (no 1) on a living player the knock-down takeover (plemDmMStar) with
+// the player turned to face towards / away from the enemy (r_no_3 picks the mirrored motion);
+// rumble and the hit sound. Returns 1 on a hit.
 int em3cAtkCk(cEm3c* em, Vec* pos, int no)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1601,6 +1707,9 @@ int em3cAtkCk(cEm3c* em, Vec* pos, int no)
     return 0;
 }
 
+// Runs em3cAtkCk at points 0 / 0.5 / 1 m (and 1.5 m for the first motion set) along the weapon
+// part's forward axis, only while motion event bit 0 (the swing) is set and nothing has hit yet.
+// Returns 1 on the first hit.
 int em3cAtkCk2(cEm3c* em, int no)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1650,6 +1759,11 @@ int em3cAtkCk2(cEm3c* em, int no)
     return 0;
 }
 
+// Every 4th frame (staggered by emset_no), routes towards the player. The goal is a point beside
+// the player (0 / +-1.5 / +-2 m sideways by emset_no % 5, scaled by the distance up to 6 m, so a
+// group spreads out), pulled back 35 cm in front of any wall between it and the player. RouteCkToPos
+// gives routePos (Be_flg bit 0 when a route exists); routeAng / targetAng are the yaw to it,
+// L_pl_route the route distance to the player. Debug_flg[0] 0x4000 draws the wall probe.
 void em3cRouteCk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1732,6 +1846,9 @@ void em3cRouteCk(cEm3c* em)
     w->Be_flg &= ~4;
 }
 
+// Loads the body model for the type (archive 5 / 6 for types 0 / 1, 9 / 0xA for 2 / 3), the
+// chainmail overlay (7 or 0xB with texture 8) and the hand weapon (0xC / 0xD for types 0 / 2,
+// 0xE / 0xF for 1 / 3) as attached models, at 1.2x scale.
 void em3cModelInit(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1800,6 +1917,11 @@ void em3cModelInit(cEm3c* em)
     em->scale.z = 1.2f;
 }
 
+// Death collapse: turns each of the 25 body parts in em3c_bomb_parts that is not already falling
+// into a five-point piece (motParts flag 0x01000000 marks it as one, 0x25000002 also detaches it from
+// the motion). The piece kind picks the corner layout (1 the pelvis, 4 part 0x10, 2 / 3 the limb
+// pairs, 0 the rest), the points get a random push, and each piece waits `add` + its table delay
+// before em3cPartsBombControl starts dropping it.
 void em3cPartsBombSet(cEm3c* em, int add)
 {
     u32 i;
@@ -1858,6 +1980,10 @@ void em3cPartsBombSet(cEm3c* em, int add)
     }
 }
 
+// The head bursts (Head_hp used up, or the big flinch below half HP): the head part 3 becomes a
+// falling piece pushed 10 cm forward, disabled as a hit box (hit[0]), bombTimer hides parts 3 / 4
+// after 45 frames, the burst effect and sound play and the parasite takes its place
+// (em3cSetParasite). Be_flg 0x10 makes it a one-shot.
 void em3cPartsBombHead(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -1895,6 +2021,14 @@ void em3cPartsBombHead(cEm3c* em)
     em3cSetParasite(em);
 }
 
+// Per-frame simulation of the falling pieces (em3cPartsBombSet / em3cPartsBombHead), while the
+// enemy is displayed. For each falling part past its delay: gravity of 10 mm/frame^2 on the five
+// points, five relaxation passes that restore the rest distances (em3c_bomb_dist) and clamp the
+// points to the enemy's floor height (hitBits), a bounce (x/z damped to 0.8, y reversed at 40..60 %;
+// the head part's first floor hit plays the clang) or the free-flight speed from the moved distance,
+// and the part stops falling once the total speed is under 1. The part matrix is rebuilt from the
+// points (front and side axes) centred between points 0 / 1; debug_mode 8 draws the pieces.
+// Children that are not pieces themselves follow their falling parent.
 void em3cPartsBombControl(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -2068,6 +2202,8 @@ void em3cPartsBombControl(cEm3c* em)
     }
 }
 
+// Damage of the pending hit: the weapon table value (near = within 6 m for the range falloff; 20
+// for weapon ids past 0x2D), tripled on the head part 3.
 int em3cSetDmVal(cEm3c* em)
 {
     EmHitInfo* part = em->dmPart;
@@ -2087,6 +2223,10 @@ int em3cSetDmVal(cEm3c* em)
     return dmg;
 }
 
+// Spawns the parasite that replaces the burst head (Be_flg 0x800): an obj16 core attached 20 cm up
+// (types 0 / 1: kind 0xB with four tentacle objects on parts 0x16..0x19 phased a quarter loop apart;
+// types 2 / 3: kind 0xD), given its motion set and the player bite motion, with the burst voice /
+// effect. Enables the parasite hit box hit[9].
 void em3cSetParasite(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -2222,6 +2362,7 @@ void em3cSetParasite(cEm3c* em)
     w->hit[9].flags |= 1;
 }
 
+// Plays the footstep at the root part on motion sound events 1 / 2 and consumes the event.
 void em3cFootSe(cEm3c* em)
 {
     if (em->seNo) {
@@ -2232,6 +2373,9 @@ void em3cFootSe(cEm3c* em)
     }
 }
 
+// Crowd control: returns 1 when this enemy should hold back because enough other living, active
+// em3c enemies are closer to the player along the route (more than 0 on Game_level up to 2, more than
+// 1 otherwise) and it is either within 5 m or has a route to the player.
 int em3cStayCk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -2261,6 +2405,10 @@ int em3cStayCk(cEm3c* em)
     return 1;
 }
 
+// Player detection while idle; sets Be_flg 0x80 and returns 1 when: a route exists and the player
+// is within 60 deg of the facing and 10 m; the alarm bell (Status_flg[1] 0x20000000) rang within 25 m
+// of the enemy with the player under 25 m of route away; the global alert (Status_flg[0]
+// 0x00800000) is up within 25 m of route; or the player is dead.
 int em3cFindCk(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
@@ -2313,6 +2461,9 @@ int em3cFindCk(cEm3c* em)
     return 0;
 }
 
+// When the collision has been blocking the walk for a while (HoseiCnt at 5 mod 10), looks for an
+// intact door enemy (id 0x41) within 2.5 m that the enemy faces within 45 deg from either side and
+// stands within 80 cm of, inside its width and +-50 cm of its height, and pushes it open.
 void em3cDoorOpenCk(cEm3c* em)
 {
     Vec v;
@@ -2374,6 +2525,9 @@ void em3cDoorOpenCk(cEm3c* em)
     }
 }
 
+// Freezes the rest of the scene during the ambush grab (on = 1) and releases it (on = 0):
+// Status_flg[1] 0x10000000 / Status_flg[2] 0x02000000 suspend the world, while the player, partner,
+// this enemy and any other em3c still in its start / ambush wait keep running.
 void em3cAtkSuspend(cEm3c* em, int on)
 {
     u32 i;

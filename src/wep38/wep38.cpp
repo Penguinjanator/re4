@@ -1,6 +1,11 @@
 // wep38 module: Ada's handgun (the Punisher class rebuilt without weapon types, object id 0x21).
 // The module object carries the class, the entry points and the handgun routine registration
 // (wep/pl_handgun.cpp).
+//
+// Ada's cObjRuger: one model (0x6) offset in her right hand (parts 10), driven by wep.mode /
+// wep.step from the handgun routines (mode 2 fire: slide motion, the loud or the suppressed SE set
+// by weapon_type, flash 0x35, cartridge; mode 4 reload with only the level-1 motion variants).
+// Wep38_init is the WeaponInitFunc, PlHandgunMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -28,6 +33,9 @@ public:
 extern const u8 ruger_tbl[3];
 const u8 ruger_tbl[3] = { 0x10, 0xE, 0xC };
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjRuger (ObjMgr id 0x21)
+// as Wep->m_pWep, inits it on the player, installs its motions, loads the muzzle-flash effects
+// (archive 0x4 as group 0x35) and points the debug preview PlWepMot at 0x26..0x28.
 void Wep38_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -47,6 +55,9 @@ void Wep38_init(cModel* m)
     }
 }
 
+// cObjWep::init override (parent = the player): model 0x6 / texture 0x5, a 100-unit box atari
+// with bits 8/9 off, hung on the right hand at (22.5, 0, -5), light area, idle motions 0x36
+// (normal) / 0x3B (empty), the ruger_tbl bytes, default lock spread.
 void cObjRuger::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -75,6 +86,10 @@ void cObjRuger::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire): step 0 starts the slide motion (0x34, 0x39 on the last round), the six
+// shot SEs of the loud (type != 1, Status_flg[0] bit23) or suppressed set, the muzzle flash 0x35
+// (type 1 variant for the suppressed model), a cartridge and the pad vibration; mode 0 at the
+// motion's end.
 void cObjRuger::moveFire()
 {
     if (wep.step == 0) {
@@ -123,6 +138,9 @@ void cObjRuger::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion (0x3D; 0x3C from an empty magazine at
+// level 1) with the level's SE (0x16/0x20/0x21); at the level's frame (31/26/17) ItemMgr.reload
+// refills. The player routine ends the mode.
 void cObjRuger::moveReload()
 {
     static const f32 reloadEnd[3] = { 31.0f, 26.0f, 17.0f };
@@ -159,6 +177,8 @@ void cObjRuger::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x8/0x9) from the right hand's ejection port
+// offset (-109, -22, 90) with a random +-15 spread, gravity 10, 30 frames, landing effect 0x13.
 void cObjRuger::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -188,6 +208,9 @@ void cObjRuger::setCartridge()
     }
 }
 
+// Fills the player's motion table with Ada's handgun footwork motions (idle, walk, run, turns,
+// back, the 0x39..0x42 damage set; 0x3D from the player archive's 0x5E) and sets the weapon hand
+// model (right hand 1, bare left hand 0).
 void cObjRuger::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));
@@ -216,11 +239,13 @@ void cObjRuger::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// ObjInitFunc[0x21]: placement-constructs the class in the work cObjMgr::construct hands over.
 static void ObjRuger_init(cObj* obj)
 {
     new (obj) cObjRuger();
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep38_init;
@@ -229,11 +254,13 @@ extern "C" void _prolog()
     OSReport("Wep38 ADA-HANDGUN prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x21] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

@@ -1,4 +1,11 @@
 // wep08 module: the Striker shotgun (cObjStriker, object id 0x2F; routines wep/pl_shotgun.cpp).
+//
+// cObjStriker is the cObjWep (game/objWep.cpp) of the Striker (weapon_no 8, a semi-auto drum
+// shotgun: 19 pellets in pl_shotgun, no pump), hanging on the player's right hand (parts 10) and
+// driven by wep.mode / wep.step from the shotgun routines: mode 2 -> moveFire (recoil motion, the
+// shell ejected at frame 21), mode 4 -> moveReload (one motion by tune level, ItemMgr.reload at
+// frame 35); both modes are ended by the player routine. Wep08_init is the WeaponInitFunc,
+// PlShotgunMove the WeaponMoveFunc; the module object carries the class and the entry points.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -23,6 +30,9 @@ public:
 
 void ObjStriker_init(cObj* obj);
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjStriker as Wep->m_pWep,
+// inits it on the player, installs its motions, loads the muzzle-flash effects (archive 0x4 as
+// group 0x3C) and points the debug preview PlWepMot at the aim idles 0x1A/0x20/0x22.
 void Wep08_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -41,11 +51,15 @@ void Wep08_init(cModel* m)
     PlWepMot[2] = WEP_ARC_PTR(0x22);
 }
 
+// ObjInitFunc[0x2F]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjStriker_init(cObj* obj)
 {
     new (obj) cObjStriker();
 }
 
+// cObjWep::init override (parent = the player): model 0x5 / texture 0x6, atari bits 8/9 off,
+// hung on the right hand, light area, weapon list id 0x2D, idle motion 0x31, wep.x18..x1A = 0x2E,
+// default lock spread.
 void cObjStriker::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x5), WEP_ARC_PTR(0x6)) == 0) {
@@ -70,6 +84,9 @@ void cObjStriker::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire, set by the shotgun fire00): step 0 starts the recoil motion 0x30, the shot
+// SEs, pad vibration, Status_flg[0] bit23 (shot noise) and the muzzle flash 0x3C; step 1 ejects
+// the shell at frame 21. The player routine's next state resets the mode.
 void cObjStriker::moveFire()
 {
     if (wep.step == 0) {
@@ -85,6 +102,8 @@ void cObjStriker::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the tune level (0x2B/0x2D/0x2F) with
+// the level's SE (2/0x20/0x21); at frame 35 ItemMgr.reload refills the drum.
 void cObjStriker::moveReload()
 {
     if (wep.step == 0) {
@@ -121,6 +140,8 @@ void cObjStriker::moveReload()
     }
 }
 
+// Ejects a spent shell: an obj10 model (archive 0x8/0x9) from the right hand's ejection port
+// offset (-163.31, -6.87, 83.13) with a small random spread, gravity 10, 40 frames, effect 0x13.
 void cObjStriker::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -150,6 +171,9 @@ void cObjStriker::setCartridge()
     }
 }
 
+// Fills the player's motion table with the Striker-carrying footwork motions (idle, walk (no
+// [1]), run, turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions; 0x3D stays
+// the player archive's), the weapon hand model (right hand 1) and the player archive's left hand 0x19.
 void cObjStriker::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0A));
@@ -180,6 +204,7 @@ void cObjStriker::setMotion(cPlayer* pl)
     pl->setLeftHand((u32) PL_ARC_PTR(pG->pPlayer, 0x19));
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep08_init;
@@ -188,12 +213,14 @@ extern "C" void _prolog()
     OSReport("Wep08 STRIKER prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x2F] = 0;
     OSReport("Wep08 STRIKER epilog Ok\n");
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

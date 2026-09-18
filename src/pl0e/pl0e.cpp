@@ -2,6 +2,17 @@
 // path (setRail / set2ndRail) and the player rides (setRide): pl0ePathMove follows the path with the
 // stick steering the lateral offset, the player and partner routines (PlBoatMove / plboat_R2_*,
 // subBoat*) ride on it, pl0eCamMove drives the camera, pl0eWaveMove the wave object under it.
+//
+// The ski is an enemy work (Pl0eInit is the module's EmInitFunc; the room script creates it and
+// calls setRail / setRide / set2ndRail). Its routines: r_no_0 0 init, 1 move (r_no_1: 0 wait on
+// the water, 1 the boarding cutscene motion, 2 rail run, 3 jump, 4 crash, 5 sink, 6 jump miss;
+// 4..6 end the game with pl_life = 0 and DiedemoExec). While ridden the player runs routine 1 ==
+// 0xF (pl_R1_Boat -> BoatMoveFunc = PlBoatMove, r_no_2 = the plboat_R2_* state mirroring the
+// ski's r_no_1) and the partner's damage routine slot (SetSubDamage) runs the matching subBoat*
+// function; both take their motions from the ski's archive (subArc) and are seated by plOnJet /
+// subOnJet. Speeds are units per frame along the path: pl0e_spd_max 800 (idle), 1440 boosting
+// (up on the stick), 600 braking; the 2nd rail drains `sink` by the speed deficit until the ski
+// goes under.
 
 #include "atari.h"
 #include "light.h"
@@ -143,25 +154,31 @@ static Pl0eFunc Pl0e_R1_move_tbl[7] = {
     pl0e_R1_JumpMiss,
 };
 
+// REL entry: registers the ski constructor as the enemy init function.
 extern "C" void _prolog()
 {
     OSReport("Pl0e prolog Ok\n");
     EmInitFunc = Pl0eInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// EmInitFunc: placement-constructs the ski in the cEm work (cEm::move -> cPl0e::move from then on).
 void Pl0eInit(cEm* em)
 {
     new (em) cPl0e();
 }
 
+// Per-frame update (emMove): clears the frozen-input flag, remembers rot.y for the camera roll,
+// runs the r_no_0 routine, counts cnt68 down outside the chase rooms 10D / 10E and moves the wave.
 void cPl0e::move()
 {
     Pl0eWork* w = PL0E_WK(this);
@@ -179,6 +196,8 @@ void cPl0e::move()
     pl0eWaveMove(this);
 }
 
+// Room script: places the ski at `p` facing `ang` (level), recomputes its matrices and kills the
+// spray effects (group 0x35) of the old position.
 void cPl0e::setPos(Vec* p, f32 ang)
 {
     pos = *p;
@@ -195,6 +214,10 @@ void cPl0e::setPos(Vec* p, f32 ang)
     EffectEfmDelete(0, 0x35, (int) this);
 }
 
+// r_no_0 == 0: creation. Loads the ski model (archive 5/6) with a 2 m light area, no IK, no lock-on
+// (EM_STATUS_IK_OFF / LOCKOFF), atari priority 1, the effects (archive 4 as group 0xE), zeroes
+// the work, sink = 96000, creates the wave object (SetObj00 from the room archive), remembers the
+// effect pull kind, then goes to r_no_0 1 / r_no_1 0 (wait) and runs it this frame.
 static void pl0e_R0_Init(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -260,11 +283,14 @@ static void pl0e_R0_Init(cPl0e* em)
     pl0e_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void pl0e_R0_Move(cPl0e* em)
 {
     Pl0e_R1_move_tbl[em->r_no_1](em);
 }
 
+// r_no_1 == 0: waiting on the water before the ride: floats on the floor / water height, bobs
+// (pl0eBoatControl) and checks the player's boarding action.
 static void pl0e_R1_Wait(cPl0e* em)
 {
     em->pos.y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
@@ -274,6 +300,9 @@ static void pl0e_R1_Wait(cPl0e* em)
     pl0eRideActEvtCk(em);
 }
 
+// r_no_1 == 1 (setRide): the boarding motion 0xF played at the origin (the motion carries the
+// world placement) with the launch effect; at its end the ski is put at the chase start
+// (y -26663, heading 2.2), the engine SE 8/0xA starts and -> rail run (r_no_1 2).
 static void pl0e_R1_Ride(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -304,6 +333,11 @@ static void pl0e_R1_Ride(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 2: the rail run. Step 0 resets the lean blend; step 1 follows the path
+// (pl0ePathMove), rides the water (pl0eSlopeControl) and checks, in order, a wall crash (-> 4),
+// sinking (-> 5), a fall-off area (-> 6) and a jump ramp (-> 3 with spdY 200); the first three
+// kill the player (pl_life = 0). The lean blendRate follows the stick left / right (+-31.875
+// per frame up to +-255, decays 0.9) and drives the straight / left / right idle blend 8 / 0xA / 9.
 static void pl0e_R1_RailMove(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -356,6 +390,13 @@ static void pl0e_R1_RailMove(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 3: the jump. Step 0 picks the jump motion (0xB plain; with both shoulder buttons a
+// trick: 0xE the first time, 0x14 after flags bit3) and puts the player (routine 0xF state 2,
+// m_Work0 = variant) and the partner (subBoatJump, r_no_3 = variant) into their jump, SE 8/8,
+// vibration, engine SE stops after 5 frames. Step 1 flies with the rail input frozen (flags bit0)
+// until the ski has fallen and is nearly level again; step 2 sets up the landing (player state 3,
+// subBoatLanding, splash effect, SE, engine SE restarted); step 3 plays the landing blend
+// (0xC / 0x11 / 0x10) with the rail checks and returns to the rail run at its end.
 static void pl0e_R1_Jump(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -458,6 +499,9 @@ static void pl0e_R1_Jump(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 4: the wall crash (game over): motion 0xD with the crash effect (0xB on the 2nd rail,
+// else 5), the player into routine 0xF state 4 and the partner into subBoatCrash, engine SE off,
+// the crash stream 0x38 and vibration; then the motion plays out.
 static void pl0e_R1_Crash(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -485,6 +529,9 @@ static void pl0e_R1_Crash(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 5: the ski sinks (game over, `sink` ran out on the 2nd rail): the sinking motion 0x12
+// at the origin with effect 0xC, flags bit2, the death demo 0x1E, the player into routine 0xF
+// state 5 and the partner into subBoatSink, engine off, stream 0x39; a vibration at frame 18.
 static void pl0e_R1_Sink(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -520,6 +567,9 @@ static void pl0e_R1_Sink(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// r_no_1 == 6: the missed jump (game over, fell into a bit-13 area): the fall motion 0x13 at the
+// origin with effect 0xD, the death demo 0x1E, the player into routine 0xF state 6 and the
+// partner into subBoatJumpMiss, engine off, stream 0x72; a vibration at frame 33.
 static void pl0e_R1_JumpMiss(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -554,6 +604,9 @@ static void pl0e_R1_JumpMiss(cPl0e* em)
     em->partsWorldCalc();
 }
 
+// Waiting-state placement: applies the ofsF0 offset in the ski's frame to pos, rebuilds l_mat /
+// mat from ang / pos / scale, pushes the ski out of the scenery (pl0eScrAdjust) and adds the
+// heading / roll / pitch bobbing.
 void pl0eBoatControl(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -573,6 +626,9 @@ void pl0eBoatControl(cPl0e* em)
     pl0eBoatRoll(em);
 }
 
+// Movement direction of the frame: spdXZ = the XZ distance moved since pos_old; when moving
+// faster than 100 units dirAng = the heading change towards the movement direction (Muku2),
+// else it decays by 0.9; dirAngAbs = |dirAng|.
 void pl0eGetBoatDir(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -589,6 +645,10 @@ void pl0eGetBoatDir(cPl0e* em)
     w->dirAngAbs = fabsf(w->dirAng);
 }
 
+// Adds the hull attitude to `mat`: a roll towards the turn direction (dirAng * 0.3 scaled by the
+// speed, smoothed 0.9/0.1), a nose-up pitch with the speed (up to -0.196 rad) plus a random
+// noise wobble (pitchPhase), and the decaying sway set by impacts (swayAmp * sin(swayPhase),
+// amplitude * 0.96 per frame).
 void pl0eBoatRoll(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -642,6 +702,11 @@ static f32 pl0e_cam_dist = 5000.0f;
 static Vec pl0e_cam_pos0 = { -1500.0f, 0.0f, -3000.0f };
 static Vec pl0e_cam_pos1 = { -1500.0f, 0.0f, -5000.0f };
 
+// The chase camera (called from the player's boat states while riding; skipped while the player
+// has flags_420 bit2): looks at the path point 15 m ahead (or 5 m ahead of the ski), sits 5 m
+// behind on the line ski -> target blended with a fixed offset (pl0e_cam_pos0 -> pos1 by camRate,
+// which rises when boosting), 1.5 m up; fovy relaxes to 40, the up vector rolls with the heading
+// change of the frame (x3); handed to CamCtrl as the extra camera.
 void pl0eCamMove(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -692,6 +757,9 @@ void pl0eCamMove(cPl0e* em)
     CamCtrl.m_pExtraCamera = (s32) &pl0e_camera;
 }
 
+// Boarding check while waiting: with the hands free (Status_flg[1] bit21 clear) and the player
+// facing the ski within 45 degrees the height difference is computed and discarded -- the
+// result is unused, the boarding itself is triggered by the room script (setRide).
 void pl0eRideActEvtCk(cPl0e* em)
 {
     u8 unused[6];   // the original frame has 8 unused bytes (a BLKmode local nothing references)
@@ -703,6 +771,9 @@ void pl0eRideActEvtCk(cPl0e* em)
     }
 }
 
+// Room script: the player (and partner) board the ski (needs a rail): the ski goes to the boarding
+// state (r_no_1 1), becomes the player's m_pBoat, PlBoatMove is installed as BoatMoveFunc and the
+// player is put into routine 0xF state 0 (plboat_R2_Ride), the partner into subBoatRide.
 void cPl0e::setRide()
 {
     Pl0eWork* w = PL0E_WK(this);
@@ -725,6 +796,9 @@ void cPl0e::setRide()
     }
 }
 
+// Pushes the ski out of the scenery: SatMgr.adjust of the pos_old -> pos move with a 600-unit
+// radius (attribute mask 0x2081); the horizontal correction is applied to pos. Debug mode 7
+// draws the collision sphere.
 void pl0eScrAdjust(cPl0e* em)
 {
     Vec nrm;
@@ -760,6 +834,9 @@ static PlBoatFunc plboat_R2_move_tbl[7] = {
 
 // The player's boat routine (pl_R1_Boat -> BoatMoveFunc): the boat's motion archive replaces the
 // player's for the duration of the routine.
+// Every frame: the sub screen is held (SubScreenWait), Status_flg[1] bit21 (hands busy) set, the
+// neck mode 2, the player's atari bits 8/9 off, damage type 0x1E (boat), then the plboat_R2_*
+// state of r_no_2; the motion "no root translation" flag (motFlags2 bit30) is cleared around it.
 static void PlBoatMove(cPlayer* pl)
 {
     if (pl->m_pBoat == 0) {
@@ -780,6 +857,9 @@ static void PlBoatMove(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+// Player boat state 0 (boarding): the boarding motion 0x1D from the ski archive at the origin,
+// the ski-riding hands (right: ski archive 0x7, left: player archive 0x15), the weapon hidden;
+// at the motion's end -> state 1 (ride).
 static void plboat_R2_Ride(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -811,6 +891,9 @@ static void plboat_R2_Ride(cPlayer* pl)
     }
 }
 
+// Player boat state 1 (riding): the straight / left / right lean blend 0x16 / 0x18 / 0x17 driven
+// by the ski's blendRate and frame (so rider and ski stay in step), seated by plOnJet; runs the
+// chase camera.
 static void plboat_R2_Move(cPlayer* pl)
 {
     Pl0eWork* w = PL0E_WK(PL_BOAT(pl));
@@ -834,6 +917,8 @@ static void plboat_R2_Move(cPlayer* pl)
     }
 }
 
+// Player boat state 2 (in the air): the jump motion of the variant in m_Work0 (0 plain 0x19, 1
+// trick 0x1C, 2 second trick 0x23), seated by plOnJet, with the chase camera.
 static void plboat_R2_Jump(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -861,6 +946,8 @@ static void plboat_R2_Jump(cPlayer* pl)
     }
 }
 
+// Player boat state 3 (landing): the landing lean blend 0x1A / 0x1F / 0x1E (10-frame blend-in)
+// in step with the ski; at its end -> state 1.
 static void plboat_R2_Landing(cPlayer* pl)
 {
     Pl0eWork* w = PL0E_WK(PL_BOAT(pl));
@@ -886,6 +973,8 @@ static void plboat_R2_Landing(cPlayer* pl)
     }
 }
 
+// Player boat state 4 (crash): thrown off to the side the ski is offset to (0x1B right / 0x20
+// left), pl_life = 0; the motion plays out.
 static void plboat_R2_Crash(cPlayer* pl)
 {
     Pl0eWork* w = PL0E_WK(PL_BOAT(pl));
@@ -906,6 +995,8 @@ static void plboat_R2_Crash(cPlayer* pl)
     }
 }
 
+// Player boat state 5 (sinking): the sinking motion 0x21 at the origin (world placement in the
+// motion), pl_life = 0.
 static void plboat_R2_Sink(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -930,6 +1021,7 @@ static void plboat_R2_Sink(cPlayer* pl)
     }
 }
 
+// Player boat state 6 (missed jump): the fall motion 0x22 at the origin, pl_life = 0.
 static void plboat_R2_JumpMiss(cPlayer* pl)
 {
     switch (pl->r_no_3) {
@@ -955,6 +1047,8 @@ static void plboat_R2_JumpMiss(cPlayer* pl)
 }
 
 // Lean blend of the rider: m0 straight, m1 left / m2 right by the sign of the blend rate.
+// The straight motion goes on the player's own work, the lean into neckMot as the blend work with
+// weight |blendRate500| / 256; x4FD is the blend-in counter, x4FC the frame (wraps at frameMax).
 void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(pl->blendRate500);
@@ -983,6 +1077,8 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     }
 }
 
+// The same lean blend for the partner: straight on her own work, the lean (by the sign of
+// m_Blend) into subBackMot with weight |m_Blend| / 256; m_Hokan / m_Frame are the blend counter / frame.
 void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     f32 rate = fabsf(sub->m_Blend);
@@ -1026,6 +1122,10 @@ void plOnJet(cPlayer* pl)
     pl->neckMot.flags2 |= 0x40000000;
 }
 
+// Partner damage-routine handlers (SetSubDamage(boat, fn) installs them; the boat pointer sits in
+// the partner's dmgType): each swaps in the ski archive, damage type 0x1E, runs its r_no_2 steps
+// and restores the partner's own archive.
+// Boarding: the motion 0x2C at the origin with two step SEs; at its end -> subBoatRun.
 static void subBoatRide()
 {
     cSubChar* sub = pSUB;
@@ -1066,6 +1166,8 @@ static void subBoatRide()
     sub->subArc = sub->subArc2;
 }
 
+// Riding: seated behind the player (subOnJet) with the lean blend 0x25 / 0x27 / 0x26 driven by
+// the ski's blendRate / frame.
 static void subBoatRun()
 {
     cSubChar* sub = pSUB;
@@ -1094,6 +1196,8 @@ static void subBoatRun()
     sub->subArc = sub->subArc2;
 }
 
+// In the air: the jump motion of the variant in r_no_3 (0 plain 0x28, 1 trick 0x2B, 2 second
+// trick 0x31), seated on the ski.
 static void subBoatJump()
 {
     cSubChar* sub = pSUB;
@@ -1127,6 +1231,8 @@ static void subBoatJump()
     sub->subArc = sub->subArc2;
 }
 
+// Landing: the landing lean blend 0x29 / 0x2E / 0x2D (10-frame blend-in) in step with the ski;
+// at its end -> subBoatRun.
 static void subBoatLanding()
 {
     cSubChar* sub = pSUB;
@@ -1157,6 +1263,7 @@ static void subBoatLanding()
     sub->subArc = sub->subArc2;
 }
 
+// Crash: the crash motion 0x2A, seated on the ski.
 static void subBoatCrash()
 {
     cSubChar* sub = pSUB;
@@ -1179,6 +1286,7 @@ static void subBoatCrash()
     sub->subArc = sub->subArc2;
 }
 
+// Sinking: the motion 0x2F at the origin (world placement in the motion).
 static void subBoatSink()
 {
     cSubChar* sub = pSUB;
@@ -1205,6 +1313,7 @@ static void subBoatSink()
     sub->subArc = sub->subArc2;
 }
 
+// Missed jump: the fall motion 0x30 at the origin.
 static void subBoatJumpMiss()
 {
     cSubChar* sub = pSUB;
@@ -1231,6 +1340,8 @@ static void subBoatJumpMiss()
     sub->subArc = sub->subArc2;
 }
 
+// Seats the partner on the ski: position and matrix from the ski's, the ski's angles, and the
+// motion's root translation suppressed (motFlags2 bit30).
 void subOnJet(cSubChar* sub, cPl0e* boat)
 {
     Vec v;
@@ -1245,6 +1356,9 @@ void subOnJet(cSubChar* sub, cPl0e* boat)
     sub->motFlags2 |= 0x40000000;
 }
 
+// Room script: attaches the ski to a rail path: creates the rail object (SetObj00 from the room
+// archive) the path positions are evaluated on, resets the distance / segment, speed =
+// pl0e_spd_max, length from the path, and seeds the path positions with the current pos.
 void cPl0e::setRail(void* path)
 {
     Pl0eWork* w = PL0E_WK(this);
@@ -1261,6 +1375,15 @@ void cPl0e::setRail(void* path)
     }
 }
 
+// One frame along the rail (jump != 0: in the air, no steering / throttle). The path point at
+// `dist` is the ski's frame origin; the stick's left / right (Key.on bits 2/3) accelerates the
+// lateral speed spdX (+80 / -50 per frame, clamped +-400) which moves ofs.x; a wall (attribute
+// 0x80800) between the path and the ski pushes it back 500 units and zeroes spdX. dist advances
+// by spd: up on the stick boosts towards pl0e_spd_boost (engine pitch up to 500), down brakes to
+// pl0e_spd_slow, else back to pl0e_spd_max (25 per frame). The heading turns towards the path
+// point 15 m ahead (0.098 rad per frame). Spray effects (group 0xE: 0 wake, 3 boost, 1/2 the
+// side splash with SE 8/0xC on a stick tap), on the 2nd rail `sink` drains by the speed deficit,
+// a water-noise SE every 20 frames while alive, and the engine SE doppler pitch is updated.
 void pl0ePathMove(cPl0e* em, int jump)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -1400,6 +1523,10 @@ void pl0ePathMove(cPl0e* em, int jump)
     SndSetDopPitch(w->seNo, (s16) w->pitch104);
 }
 
+// Room script: the second half of the chase (the collapsing tunnel): flags bit1 (sink drain on),
+// the engine SE restarted, sink refilled, the path distance skipped 50 m ahead, the lateral offset
+// reset, straight into the rail run with the player (routine 0xF state 1) and partner
+// (subBoatRun) riding; the wave object gets its effect 9.
 void cPl0e::set2ndRail()
 {
     Pl0eWork* w = PL0E_WK(this);
@@ -1428,6 +1555,7 @@ void cPl0e::set2ndRail()
     }
 }
 
+// Room script: stops the engine SE.
 void cPl0e::stopEngine()
 {
     SndStop(PL0E_WK(this)->seNo, 0);
@@ -1453,6 +1581,9 @@ void pl0ePathGetTarget(cPl0e* em, Vec* out)
 }
 
 // Gravity plus the water surface under the four corners: returns 0 while the ski sits on the water.
+// spdY falls by 15 per frame and moves pos.y; the surface is the mean of the higher of the two
+// front and the higher of the two rear corner floors (+-200 x, +-1500 z); below it the ski is put
+// on the surface with spdY = 0. Returns 1 while airborne.
 int pl0eSlopeControl(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -1500,6 +1631,9 @@ int pl0eSlopeControl(cPl0e* em)
     return 1;
 }
 
+// The ski's own lean blend: m0 straight on the ski's motion work, m1 left / m2 right (by the
+// sign of blendRate) into blendMot with weight |blendRate| / 256; hokan is the blend-in counter,
+// frame the shared frame the riders copy (wraps at frameMax).
 void pl0eBlendMotSet(cPl0e* em, void* m0, void* m1, void* m2, int a, int b, int c)
 {
     Pl0eWork* w = PL0E_WK(em);
@@ -1592,6 +1726,7 @@ int pl0eCrashCk(cPl0e* em)
     return 0;
 }
 
+// The ski has run out of buoyancy (`sink` drained to 0 on the 2nd rail) while the player lives.
 int pl0eSinkCk(cPl0e* em)
 {
     Pl0eWork* w = PL0E_WK(em);

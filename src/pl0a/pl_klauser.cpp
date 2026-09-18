@@ -1,6 +1,14 @@
 // pl0a module, second object (D:/Bio4/Prog/pl_klauser.cpp): Krauser: the Leon model set plus the three
 // fading arm / mutation models (transMove), the X-button attack routine (pl_R1_KlauserAttack) and the
 // tex-render material of the mutation model.
+//
+// cPlKlauser (pl_mod.h) is the cPlayer of pl_type 4 (Krauser in the mercenaries). On top of the
+// Leon-style model set it carries three cModelInfos in krModel[] (em.h): [0] the normal arm, [1]
+// the mutated arm, [2] a tex-rendered glow model; Status_flg[3] bit23 (set by the X-button attack)
+// selects which arm is faded in by transMove every frame (moveMatCalcBefore). x894 counts frames
+// until the idle effects (EstSet 0x3F group) are spawned again, x890 is cleared by the interrupt.
+// pl_R1_KlauserAttack is the aux routine (r_no_1 == 0xA through pFuncAux) of the mutation attack.
+// Pl0aInit is the module's PlInitFunc; the first object of the module is the reduced pl_shotgun.
 
 #include "atari.h"
 #include "light.h"
@@ -40,6 +48,10 @@ static u8 pl0aTexTbl[0x20];
 static f32 pl0aAlphaBase = 80.0f;
 asm(".section .data\n\t.balign 8\n\t.text");   // the module's .data is 8-aligned before the BSS tag
 
+// Gives the mutation glow model (krModel[2]) a texture-render material: allocates a TexRenderMng
+// (pl0aTex, replace type 1) whose render texture id goes into the blend table pl0aTexTbl, spawns
+// the render-target effect (EstSet type 3/0xC on the manager's mask) and sets the model's blend
+// table / ratio 0xFF / blend type 1.
 extern "C" void setTexRender(cModelInfo* info)
 {
     u8* tbl = pl0aTexTbl;
@@ -59,6 +71,9 @@ extern "C" void setTexRender(cModelInfo* info)
     info->setBlendType(1);
 }
 
+// Builds Krauser: the cPlayer work init, the player effects (archive 0x1A as group 3), the model
+// set, the equipped weapon module, the routine init, the event motions, startUp; the mutation
+// state starts normal (x880 = 1, x894 = 1: idle effects next frame, Status_flg[3] bit23 off).
 cPlKlauser::cPlKlauser()
 {
     init0();
@@ -79,6 +94,8 @@ cPlKlauser::cPlKlauser()
     pFootShadowTbl = pl_fs_tbl;
 }
 
+// Installs the character's event / action motions (pMotTbl 0x5F..0x6C from the player archive
+// 0x32..0x3F); the weapon module fills the footwork slots.
 void cPlKlauser::setMotion()
 {
     PSet(pMotTbl[0x5F], PL_ARC(0x32));
@@ -97,6 +114,9 @@ void cPlKlauser::setMotion()
     PSet(pMotTbl[0x6A], PL_ARC(0x3F));
 }
 
+// Per-frame update: the common cPlayer::move, then the arm's idle effects (EstSet types 0 and
+// 0x15 in group 0x3F on the player) once x894 counts down to 0; the debug combination Joy
+// 0x640 kills the effects and restarts the count.
 void cPlKlauser::move()
 {
     cPlayer::move();
@@ -115,6 +135,7 @@ void cPlKlauser::move()
     }
 }
 
+// Before the matrix calculation of the frame: the arm / glow alpha fades.
 void cPlKlauser::moveMatCalcBefore()
 {
     transMove();
@@ -158,6 +179,11 @@ static inline void alphaFlag(cModelInfo* m)
     }
 }
 
+// Arm cross-fade: while Status_flg[3] bit23 (mutated) the mutated arm krModel[1] fades in
+// (+0x40 per frame) and the normal arm krModel[0] out, else the reverse; be_flag bit3 (draw)
+// follows the alpha. The glow model krModel[2] fades out while x894 != 0 (effects pending /
+// attack cooldown), else fades in and pulses on a 32-frame triangle (x898) between pl0aAlphaBase
+// (80) and 255.
 void cPlKlauser::transMove()
 {
     int step = 0x40;
@@ -206,6 +232,9 @@ void cPlKlauser::transMove()
     alphaFlag(krModel[2]);
 }
 
+// X button (cPlayer::actionSelect / PlKnifeMove): with the arm normal and the effects settled
+// (x894 == 0) starts the mutation attack: routine 1 = 0xA (aux) with pFuncAux =
+// pl_R1_KlauserAttack, x894 = -1 (glow off). Returns 1 when the routine was taken.
 int cPlKlauser::checkXbutton()
 {
     if ((Joy[0].trg & 0x400) && !(pG->Status_flg[3] & 0x00800000) && x894 == 0) {
@@ -220,6 +249,11 @@ int cPlKlauser::checkXbutton()
     return 0;
 }
 
+// Builds the model set: the body (4/5) as the base model, the head (6/7, Body->pShape), the
+// normal arm (8/9, krModel[0], be_flag 0x20), the mutated arm (0xA/0xB, krModel[1], alpha 0 and
+// hidden), the face (0xE/9, Body->pFace with the blend weights zeroed), an extra part (0xF/0x10)
+// and the glow model (0x18/0x19, krModel[2], hidden, invisible_factor 0.9999, tex-render
+// material); TEV scale group 1, bare right hand, left hand 1.
 void cPlKlauser::setModel()
 {
     cModelInfo* info;
@@ -291,6 +325,9 @@ void cPlKlauser::setModel()
     setLeftHand(1);
 }
 
+// Right hand model: 1 = the weapon module's hand (Body->pWepHand), 0 and 2..9 = the bare hand
+// (0x12, texture 0x11), any other value a model data pointer; replaces Body->pRight. HALTs
+// (pl_klauser.cpp line 586) when the model info cannot be created.
 void cPlKlauser::setRightHand(int no)
 {
     cModelInfo* info;
@@ -331,6 +368,8 @@ void cPlKlauser::setRightHand(int no)
     }
 }
 
+// Left hand model: 0..6, 8, 9 the bare hand (0x14), 7 the gripping hand (0x15), 0x63 = the
+// previous one, any other value a model data pointer; replaces Body->pLeft.
 void cPlKlauser::setLeftHand(u32 no)
 {
     cModelInfo* info;
@@ -375,10 +414,13 @@ void cPlKlauser::setLeftHand(u32 no)
     }
 }
 
+// Krauser has no face shapes.
 void cPlKlauser::setFace(int no)
 {
 }
 
+// Head swap by number (only 0 does anything): replaces the head model with the archive's 0xC and
+// forgets Body->pShape.
 void cPlKlauser::setHead(int no)
 {
     cModelInfo* info;
@@ -397,6 +439,7 @@ void cPlKlauser::setHead(int no)
     }
 }
 
+// Head swap with explicit model / texture data (events): replaces the head model.
 void cPlKlauser::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
@@ -412,7 +455,13 @@ void cPlKlauser::setHead(void* bin, void* tpl)
     }
 }
 
-// Routine 1 / 0xA (cPlayer::pAuxFunc): the X-button mutation attack.
+// Routine 1 / 0xA (cPlayer::pAuxFunc): the X-button mutation attack. r_no_2 steps: 0/1 the arm
+// transforms (motion 0x8A, Status_flg[3] bit23 on, a 1000..2000-unit damage area, the change
+// effects / SEs, the weapon hidden); 0xA/0xB the mutated stance 0x8B (stick turns; A button ->
+// the slash 0x14, X/B -> revert 0x1E); 0x14/0x15 the slash 0x8C: PlWepHitCheck2 as weapon 0x2D
+// over 3 m for the first 15 frames with the player's own damage info armed (dmg.set 0x80) and
+// atari priority raised, the arm reverts at frame 30, then a 0x546-frame cooldown (x894) and
+// back to footwork; 0x1E/0x1F the revert motion 0x89 (bit23 off, weapon shown) into footwork.
 static void pl_R1_KlauserAttack(cPlayer* pl)
 {
     const f32 hitLen = 3000.0f;   // pool order: the case-0x15 constant comes first
@@ -509,21 +558,25 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
     }
 }
 
+// PlInitFunc: placement-constructs Krauser in the player's cEm work.
 void Pl0aInit(cEm* em)
 {
     new (em) cPlKlauser();
 }
 
+// REL entry: registers the player constructor.
 extern "C" void _prolog()
 {
     PlInitFunc = Pl0aInit;
     OSReport("Pl0a Klauser prolog Ok\n");
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

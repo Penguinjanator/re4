@@ -2,6 +2,14 @@
 // byte-identical in all five; real file name unknown): routine 2 of the player while a throwable is
 // equipped: ready (draw + aim, stance by the up/down keys), set (idle / turn), fire (throw), down
 // and next target (routine 5). Modelled on game/pl_knife.cpp / wep/pl_handgun.cpp.
+//
+// Entry: PlGrenadeMove is the module's WeaponMoveFunc (pl_R1_Weapon, r_no_1 == 6). r_no_2 is the
+// weapon state (0 ready, 1 set, 2 fire = throw, 3 down, 5 next target; 4 reload is an error),
+// r_no_3 the step. The ammo is the item count (ItemMgr.bulletNum); the throw creates a cSubWep
+// object (game/objSubWep.cpp) by weapon number: 0x13 hand grenade, 0x16 incendiary, 0x17 flash,
+// 0x19/0x1F/0x20 the eggs. The grenade in the hand is the weapon's second object pObj2, the one on
+// the belt m_pWep. Weapon archive slots: 0xF draw, 0x10 holster, 0x11/0x14/0x17 aim idle
+// down/level/up (mot3 pitch on m3r), 0x12/0x15/0x18 throw, 0x13/0x16/0x19 throw of the last one.
 
 #include "atari.h"
 #include "light.h"
@@ -54,6 +62,8 @@ void itemThrow(cPlayer* pl);
 static Vec pos;
 static Vec tgt;
 
+// WeaponMoveFunc of the grenade modules: lock-on stick control, then the r_no_2 state; a reload
+// request (r_no_2 == 4, from the shared keyReload path) is logged and turned back into ready.
 void PlGrenadeMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -73,6 +83,10 @@ void PlGrenadeMove(cPlayer* pl)
     func_tbl[pl->r_no_2](pl);
 }
 
+// r_no_2 == 0: the ready (draw) state. r_no_3 == 100 is the re-entry marker (m_Work0 = 1). The
+// stick picks knifeStance (up 0, down 2, else 1; the throw arc). Aim key released before the lock
+// turn (step 3) -> footwork (r_no_1 0, or 0x11 crouch with flags_420 bit6). The shoulder camera
+// aims at the locked enemy or the forward scenery hit.
 static void wep19_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -126,6 +140,9 @@ static void wep19_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim: camera direction saved in m_CamAdjY, Wep->pitch from the camera
+// pitch, aim yaw m_Fwork0 = 0, neck / lock-on reset, draw motion 0xF; the mot3 pitch rate is then
+// zeroed (the throw always starts level), draw SE 1/0x28, lockCtr = 0.
 static void wep19_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -157,6 +174,8 @@ static void wep19_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays while ang.y turns to the camera direction; at frame 4 -> set state
+// step 4 (finish the motion).
 static void wep19_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
@@ -177,6 +196,7 @@ static void wep19_r3_ready10(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// ready step 2: like step 1 without the camera turn; frame 4 -> set step 4.
 static void wep19_r3_ready20(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
@@ -191,7 +211,10 @@ static void wep19_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
-// ready30: turn / step towards the aim target while the motion plays (the pl_handgun form: `t` is
+// ready step 3: the lock-on turn (PlWepLockCtrl's ready-turn request): turn towards `tgt` (PI/8
+// per frame), slide towards `pos`, aim the pitch target m3r[1] at the target's elevation in 0.05
+// steps (clamped -1..1); motion end -> set state step 0.
+// (the pl_handgun form: `t` is
 // assigned after the Muku call and lives across GetDistance3, m3r is walked through `r`, the
 // first m3r[0] store is a direct reference, the clamp bounds are variables).
 static void wep19_r3_ready30(cPlayer* pl)
@@ -245,6 +268,9 @@ static void wep19_r3_ready30(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state with the lock-on control (lockCtr counts down; no laser
+// sight). Aim released -> down state (r_no_2 3, or crouch 0x11); fire trigger / held with an item
+// left -> fire (throw).
 static void wep19_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -282,6 +308,7 @@ static void wep19_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way aim idle (0x11 down / 0x14 level / 0x17 up on m3r[0]), step 1.
 static void wep19_r3_set00(cPlayer* pl)
 {
     PlArc* arc = (PlArc*) pG->pWep;
@@ -292,6 +319,7 @@ static void wep19_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle.
 static void wep19_r3_set10(cPlayer* pl)
 {
     pl->motionMove();
@@ -312,6 +340,7 @@ static void wep19_r3_set50(cPlayer* pl)
     }
 }
 
+// (never called, see above)
 static void wep19_r3_set60(cPlayer* pl)
 {
     static Vec rot = {-0.2617994f, 0.0f, 0.0f};
@@ -327,6 +356,8 @@ static void wep19_r3_set60(cPlayer* pl)
     pl->setAng(&rot);
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
+// released -> step 0. Set by PlWepLockCtrl's turn request.
 static void wep19_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -341,6 +372,7 @@ static void wep19_r3_set20(cPlayer* pl)
     }
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void wep19_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -355,6 +387,7 @@ static void wep19_r3_set30(cPlayer* pl)
     }
 }
 
+// set step 4: finish the draw / throw motion, then step 0.
 static void wep19_r3_set40(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0)) {
@@ -362,6 +395,7 @@ static void wep19_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire (throw) state; the lock-on control keeps running while the aim key is held.
 static void wep19_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -375,6 +409,9 @@ static void wep19_r2_fire(cPlayer* pl)
     }
 }
 
+// fire step 0: start the throw: 0x12/0x15/0x18 while more than one item is left (m_Work4 = 0:
+// the next one is readied afterwards), 0x13/0x16/0x19 for the last one (m_Work4 = 1: the hand
+// ends empty); throw SE 1/1, waist twisted to the lock yaw m_Fwork0. Step 1.
 static void wep19_r3_fire00(cPlayer* pl)
 {
     if (ItemMgr.bulletNum() > 1) {
@@ -397,6 +434,10 @@ static void wep19_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the throw plays: at frame 5 itemThrow releases the grenade and the hand model is
+// hidden (display type 0 when it was the last). With more left: the next grenade is shown at frame
+// 25 (SE 1/0) and at frame 30 -> set step 4. With the last one thrown: at frame 15 the right hand
+// is reset and the routine leaves to footwork sub-routine 2 (or crouch 0x11).
 static void wep19_r3_fire10(cPlayer* pl)
 {
     const f32 throwFrame = 5.0f;
@@ -439,6 +480,9 @@ static void wep19_r3_fire10(cPlayer* pl)
     }
 }
 
+// r_no_2 == 3: the down (holster) state, one frame: footwork sub-routine 2 with the put-away
+// motion 0x10 when a motion may be set, else the idle with x4FD = 0xF; the waist twist is
+// unwound into ang.y.
 static void wepDown(cPlayer* pl)
 {
     if (dmMotCk()) {
@@ -459,6 +503,10 @@ static void wepDown(cPlayer* pl)
     FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
+// r_no_2 == 5: the next-target state (Key.trg bit5 in the lock control): turn towards the locked
+// enemy pLockEm (PI/10 per frame beyond 200 units) with the waist straightened for 10 frames
+// (m_Work0), then back to the set state. Another press cycles lockNext() (a new target restarts,
+// none -> set); aim released -> set state (or crouch 0x11).
 static void wep19_r2_next(cPlayer* pl)
 {
     cModel* em = pl->pLockEm;
@@ -516,7 +564,8 @@ static void wep19_r2_next(cPlayer* pl)
     }
 }
 
-// Shows the grenade in the hand again after a throw (the next one, while any is left).
+// Shows the grenade in the hand again after a throw (the next one, while any is left); with one
+// item left the belt grenade m_pWep is hidden (unless Debug_flg[2] bit22 keeps it).
 void readyWeapon(cPlayer* pl)
 {
     pl->Wep->pObj2->setDisp(1, 1);
@@ -525,8 +574,9 @@ void readyWeapon(cPlayer* pl)
     }
 }
 
-// Throws the equipped item: creates the sub weapon object of the weapon number and launches it
-// along the aim pitch (m3r[0]).
+// Throws the equipped item: creates the sub weapon object of the weapon number (ObjMgr id 0x1A
+// hand grenade, 0x29 incendiary, 0x2A flash, 0x3A egg; obj->type 0..5 = the weapon) and launches
+// it from the player's angles along the aim pitch (m3r[0]); spends one item (ItemMgr.trigger).
 void itemThrow(cPlayer* pl)
 {
     cObj* obj;

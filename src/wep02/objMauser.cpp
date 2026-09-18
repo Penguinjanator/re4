@@ -1,5 +1,11 @@
 // Red9 (Mauser) weapon object (wep02 module, first object; real file name unknown): model by weapon
 // type, ready / fire / down motions, cartridge ejection, the two-step reload (magazine then pin).
+//
+// cObjMauser is the cObjWep (game/objWep.cpp) of the Red9 (weapon_no 3), hanging on the player's
+// right hand (parts 10) and driven by wep.mode / wep.step from the handgun routines
+// (wep/pl_handgun.cpp): mode 1 -> moveReady (the gun's own draw motion), 2 -> moveFire, 3 ->
+// moveDown, 4 -> moveReload (magazine at reloadFrame, the stripper pin ejected at pinFrame).
+// weapon_type 2 is the model with the stock (0x7, weapon list id 0x26, much smaller lock random).
 
 #include "wep_mod.h"
 #include "item.h"
@@ -31,11 +37,15 @@ static f32 pinFrame;
 extern const u8 mauser_tbl[3];
 const u8 mauser_tbl[3] = { 0xE, 0xC, 0xA };
 
+// ObjInitFunc[0x27]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjMauser_init(cObj* obj)
 {
     new (obj) cObjMauser();
 }
 
+// cObjWep::init override (Wep02_init, parent = the player): model 0x6 (type 2: 0x7 with the
+// stock, weapon list id 0x25 / 0x26, lock random spread 1/5), a box atari with bits 8/9 off, hung
+// on the right hand, light area, mauser_tbl bytes, idle motions 0x34 (normal) / 0x38 (empty).
 void cObjMauser::init(cModel* parent)
 {
     void* bin;
@@ -71,6 +81,8 @@ void cObjMauser::init(cModel* parent)
     resetMotion();
 }
 
+// wep.mode == 1 (ready, set by the handgun ready00): plays the gun's draw motion 0x3B once, then
+// back to mode 0.
 void cObjMauser::moveReady()
 {
     if (wep.step == 0) {
@@ -82,6 +94,9 @@ void cObjMauser::moveReady()
     }
 }
 
+// wep.mode == 2 (fire): step 0 starts the bolt motion (0x32, 0x37 on the last round), plays the
+// shot SEs, sets Status_flg[0] bit23 (shot noise), muzzle flash 0x36, a cartridge and the pad
+// vibration; the motion's end returns to mode 0.
 void cObjMauser::moveFire()
 {
     if (wep.step == 0) {
@@ -107,6 +122,7 @@ void cObjMauser::moveFire()
     }
 }
 
+// wep.mode == 3 (down, set by wepDown): plays the gun's holster motion 0x3C once, then mode 0.
 void cObjMauser::moveDown()
 {
     if (wep.step == 0) {
@@ -118,6 +134,8 @@ void cObjMauser::moveDown()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x8/0x9) from the right hand's ejection port
+// offset (-109, -22, 90) with a random +-15 spread, gravity 10, 30 frames, landing effect 0x13.
 void cObjMauser::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -188,6 +206,10 @@ void cObjMauser::setCartridge()
         }                                          \
     }
 
+// wep.mode == 4 (reload): step 0 picks the reload motion by ammunition state and tune level
+// (MAUSER_RELOAD_MOTION, the same table for both models) with the level's SE (0x16/0x20/0x21);
+// ItemMgr.reload refills at reloadFrame (44/34/24) and the empty stripper clip is thrown away at
+// pinFrame (55/51/39). The player routine ends the mode.
 void cObjMauser::moveReload()
 {
     if (wep.step == 0) {
@@ -222,6 +244,8 @@ void cObjMauser::moveReload()
     }
 }
 
+// Throws the empty stripper clip away: an obj10 model (archive 0x43/0x44) from the gun's top
+// (-270, 0, 100 in the gun's frame) with a small random spread, gravity 8, 30 frames, effect 0x13.
 void cObjMauser::setPin()
 {
     const f32 rad = 50.0f;
@@ -252,6 +276,9 @@ void cObjMauser::setPin()
     }
 }
 
+// Fills the player's motion table with the handgun-carrying footwork motions (idle, walk, run,
+// turns, back, 0x57/0x5B knife transitions, 0x39..0x42 and 0x5D/0x5E the damage set; 0x3D stays
+// the player archive's) and sets the weapon hand model (right hand 1, left hand 4).
 void cObjMauser::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));

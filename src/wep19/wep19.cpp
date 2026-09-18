@@ -2,6 +2,12 @@
 // and the eggs by weapon number). Two grenade objects hang on the player (the one in the hand and the
 // one on the belt); the module object carries the class, the entry points and the grenade routine
 // registration (wep/pl_grenade.cpp).
+//
+// cObjHandGre is a display-only cObjWep: no fire / reload modes (the throw creates a cSubWep in
+// pl_grenade's itemThrow), just the model of the item kind (grenade / incendiary / flash / the
+// three eggs), hung on the player's parts by parentSet. The hand one is Wep->m_pWep (parts 0x11,
+// hidden when only one item is left), the belt one Wep->pObj2 (parts 10). Wep19_init is the
+// WeaponInitFunc, PlGrenadeMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -25,6 +31,9 @@ public:
 // item kind of the equipped throwable (equipWeapon)
 static u16 greType;
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the two grenade objects, installs
+// the grenade footwork motions, loads the throw effects (archive 0x4 as group 0x4D) and points
+// the debug preview PlWepMot at the aim idles 0x11/0x14/0x17.
 void Wep19_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -43,6 +52,9 @@ void Wep19_init(cModel* m)
 }
 
 // The two grenade objects: the hand one (parts 0x11) is pObj, the belt one (parts 0xA) pObj2.
+// greType = the item kind of weapon_no (1 grenade, 2 incendiary, 0xE flash, 8/9/0xA eggs); the
+// eggs are drawn at half scale; the hand one is hidden with <= 1 item, the belt one with none.
+// Returns the hand object, NULL when a work could not be created.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -119,11 +131,15 @@ cObjWep* equipWeapon(cPlayer* pl)
     return pl->Wep->m_pWep;
 }
 
+// ObjInitFunc[0x3C]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHandGre_init(cObj* obj)
 {
     new (obj) cObjHandGre();
 }
 
+// cObjWep::init override: the model of weapon_no from the player archive (grenade body 0x6A with
+// the texture of the kind 0x6B/0x6D/0x6F, egg 0x7D with 0x7E/0x7F/0x80) and the item kind in
+// wep.x24; no atari / parent (parentSet does that).
 void cObjHandGre::init(cModel* parent)
 {
     void* bin;
@@ -167,6 +183,10 @@ void cObjHandGre::init(cModel* parent)
     }
 }
 
+// Fills the player's motion table with the grenade footwork motions (idle, no walk [1], run,
+// turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions; 0x3D stays the player
+// archive's), shows / hides the hand and belt grenades by the item count, and sets the right
+// hand model (the grenade hand 0x7 while any is left, else the bare hand).
 void cObjHandGre::setMotion(cPlayer* pl)
 {
     u16 num;
@@ -221,6 +241,8 @@ void cObjHandGre::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// Aim key check used by the player (cObjWep::keyKamae override): the aim button counts only while
+// an item is left to throw.
 int cObjHandGre::keyKamae()
 {
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {
@@ -229,6 +251,7 @@ int cObjHandGre::keyKamae()
     return 0;
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep19_init;
@@ -237,11 +260,13 @@ extern "C" void _prolog()
     OSReport("Wep19 HAND GRENADE prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x3C] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

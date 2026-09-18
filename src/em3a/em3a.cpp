@@ -2,6 +2,17 @@
 // points (em3a_R1_Patrol), find the player (em3aFindPLCk), chase and shoot him with the gun
 // (em3aGunHitCk) or a missile (em3aRocketFire); type 2 is the hovering variant that hides,
 // appears and circles the player (the B_ routines) until its nearCnt runs out.
+//
+// Em3aInit is the module's EmInitFunc. Routines: r_no_0 0 init, 1 move with r_no_1 for types
+// 0/1 (the gunship; type 1 also carries a missile on parts 9): 0 patrol the EMI 0x13 points of
+// its Character, 1 attack (gun bursts / the rocket), 2 chase the player along the route network,
+// 3 fixed fly-in from em->set (a direction), 4 attack without height control, 5 die (falls, kills
+// with a blast); for type 2 (the hiding boss variant): 6 hidden wait (r_no_3 1 = wait for the
+// room's flag bit0), 7 hide, 8 appear, 9 wait, 0xA move around the player, 0xB / 0xC die
+// variants, 0xD the self-destruct blast. Em3aWork (em3a.h): flags bit0 player found, bit1 gun
+// attack running, bit2 damage smoke set, bit3 hidden; atkWait holds the attacks off (setAtkWait
+// from the rooms, 90 frames while the player is down); em->id 0x39 enemies (em39) in front block
+// the fire (em3aBossCk).
 
 #include "atari.h"
 #include "light.h"
@@ -144,20 +155,25 @@ static inline void em3aFoundSet(cEm3a* em, Em3aWork* w, int est, int parts)
     SndCall(8, 0xA, &em->getPartsPtr(parts)->world, em->id, 0, em);
 }
 
+// REL entry: registers the enemy constructor.
 extern "C" void _prolog()
 {
     OSReport("em3a prolog Ok\n");
     EmInitFunc = Em3aInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// cUnit::setNoSuspend override: the helicopter and its hung missile keep moving through pauses
+// (be_flag bit11).
 void cEm3a::setNoSuspend(int on)
 {
     if (on) {
@@ -167,11 +183,16 @@ void cEm3a::setNoSuspend(int on)
     }
 }
 
+// EmInitFunc: placement-constructs the helicopter in the cEm work.
 void Em3aInit(cEm* em)
 {
     new (em) cEm3a();
 }
 
+// Damage of the frame (cEm::dmHit): type 2 while hidden dies at once from anything but a distant
+// grenade / rocket blast (-> 0xC), a hit on its weak spot (hit part on parts 0xB) kills it (->
+// 0xB); otherwise hp -= 5x the weapon's damage value, a spark / blood effect, the smoke trail
+// once (flags bit2, types 0/1); hp <= 0 -> die (type 2: 0xD blast, else 5).
 void em3aDmCk(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -266,6 +287,10 @@ static u16 em3a_flip_tbl[120] = {
 // Gun hit damage handed to EmAtkSetDamagePL (em3aGunHitCk): range, type, damage, ...
 static EmAtkInfo em3a_atk_info = { 100.0f, 8, 600, 0, 0xA, 0 };
 
+// Per-frame update (emMove): damage, the attack hold-off countdown (90 frames while the player is
+// down), the r_no_0 routine (0xFF after a failed init destroys the work), the rotors, parts
+// matrices, the gun aim, and while alive the enemy collision plus the flight collision (types
+// 0/1: kept 500 above the floor, SatMgr.checkAir) or the ground check (type 2); the engine SE.
 void cEm3a::move()
 {
     Em3aWork* w = EM3A_WK(this);
@@ -310,6 +335,12 @@ void cEm3a::move()
     em3aEngineSe(this);
 }
 
+// r_no_0 == 0: creation: the model (types 0/1 archive 5/6, type 2 0xB/0xC with its flip table),
+// a 10 m light area, the collision cylinder, hit boxes (gunship: body + rotor hub / tail / gun /
+// nose cubes; type 2: body + the weak spot on parts 0xB), type 1's missile on parts 9 (the pod
+// model hidden), lock-on parts 2, effects (archive 4 as group 2), the hover wobble, the patrol
+// route, the rotor tilt / idle effect, EM_STATUS_ACTIVE; the start state from em->set (gunship:
+// 0 patrol, 1..5 fixed fly-in directions; type 2: 5 hidden, 6 waiting, 7 hidden until the room's flag).
 static void em3a_R0_Init(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -463,11 +494,15 @@ static void em3a_R0_Init(cEm3a* em)
     em3a_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void em3a_R0_Move(cEm3a* em)
 {
     Em3a_R1_move_tbl[em->r_no_1](em);
 }
 
+// r_no_1 == 0 (gunship patrol): hovers turning slowly for 90..179 frames, then flies along the
+// route network to the current EMI patrol point (10 units/frame once facing it), advancing to the
+// next point on arrival; spotting the player (em3aFindPLCk) -> alert effect and attack (1).
 static void em3a_R1_Patrol(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -551,6 +586,12 @@ static inline void em3aSetAtkTimer(Em3aWork* w)
     }
 }
 
+// r_no_1 == 1 (gunship attack): steps 0/1 the gun-out motion 7 (flags bit1); 2/3 hover facing
+// the player with the warning ticks (SE + effect every 15 frames) for the rank-based wait
+// (16..76 frames; reset while the player is more than 30 degrees off, cleared when he is hidden
+// or dead); losing sight or 10 m away -> chase (2); then a 90-frame gun burst (4/5: a shot every
+// 3 frames, cut short 30 frames after a hit) or type 1's rocket (6/7); the gun-in motion 8 (8/9)
+// ends the attack with a 60-frame hold-off.
 static void em3a_R1_Atk(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -671,6 +712,8 @@ static void em3a_R1_Atk(cEm3a* em)
     em->partsMatCalc();
 }
 
+// r_no_1 == 2 (gunship chase): flies along the route network towards the player (10 units/frame
+// once facing the route point); back to attack (1) once he is in sight within 10 m.
 static void em3a_R1_Chase(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -711,6 +754,9 @@ static void em3a_R1_Chase(cEm3a* em)
     em->partsMatCalc();
 }
 
+// r_no_1 == 3 (fixed entrance, em->set 1..5): a 20-frame fly-in along the direction of r_no_3
+// (0 up, 1 down, 2 left, 3 right, 4 forward; 250 / 350 units, damped), then the alert and the
+// fixed attack (4) with the player marked found.
 static void em3a_R1_Fix(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -780,6 +826,9 @@ static void em3a_R1_Fix(cEm3a* em)
     em->partsMatCalc();
 }
 
+// r_no_1 == 4 (fixed attack): the attack routine without the height control: gun-out, the
+// warning wait (reset beyond 15 m or 30 degrees off; losing sight -> chase 2), the 90-frame gun
+// burst (aborted when sight is lost) or the rocket, gun-in; 60-frame hold-offs between rounds.
 static void em3a_R1_FixAtk(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -901,6 +950,8 @@ static void em3a_R1_FixAtk(cEm3a* em)
     em->partsMatCalc();
 }
 
+// r_no_1 == 5 (gunship death): dead / counted, the explosion effect 6 and SE, the engine SE off
+// (type 2 adds a 4 m grenade blast), hidden and collision off; the crash is the effect's.
 static void em3a_R1_Die(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -925,6 +976,9 @@ static void em3a_R1_Die(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 6: hidden (flags bit3, no collision): the hidden idle 0x12, turning left /
+// right in random spells (r_no_3 == 0), or held until the room's flag bit0 (r_no_3 == 1);
+// spotting the player at its own height -> the appear alert and -> appear (8).
 static void em3a_R1_B_HideWait(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -985,6 +1039,8 @@ static void em3a_R1_B_HideWait(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 7: hides (lost the player): collision off, the hide motion 0x11 with SE and the
+// idle / hide effects, then -> hidden wait (6).
 static void em3a_R1_B_Hide(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1008,6 +1064,8 @@ static void em3a_R1_B_Hide(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 8: appears: collision on, the appear motion 0x13 with SE / effect, then ->
+// move (0xA) with the lost counter reset.
 static void em3a_R1_B_Appear(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1028,6 +1086,8 @@ static void em3a_R1_B_Appear(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 9 (em->set 6): visible idle: the idle 0xD then a turn 0x10 (randomly flipped),
+// repeating; spotting the player at its height -> the alert and -> move (0xA).
 static void em3a_R1_B_Wait(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1069,6 +1129,11 @@ static void em3a_R1_B_Wait(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 0xA: closes in on the player along the route network: the move motion 0xE/0xF
+// (2..4 cycles) turning towards the route point, a turn motion 0x10 when more than 30 degrees
+// off, idle 0xD pauses of 60..119 frames; the player 5 m away for 90 frames (or 1 m above /
+// below) -> hide (7). Within 3 m of the player (and no em39 near) nearCnt counts with a warning
+// tick every 15 frames; past the rank limit (46..121 frames) -> the self-destruct blast (0xD).
 static void em3a_R1_B_Move(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1178,6 +1243,8 @@ static void em3a_R1_B_Move(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 0xB (the weak spot was hit): the death motion 0x14 with effect / SE, hp 0;
+// after 50 frames -> the blast (0xD).
 static void em3a_R1_B_Die(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1201,6 +1268,8 @@ static void em3a_R1_B_Die(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 0xC (killed while hidden): the appear-and-die motion 0x15 with effect / SEs,
+// hp 0; after 50 frames -> the blast (0xD).
 static void em3a_R1_B_AppearDie(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1229,6 +1298,8 @@ static void em3a_R1_B_AppearDie(cEm3a* em)
     }
 }
 
+// Type 2 r_no_1 == 0xD: the self-destruct: dead / counted, the explosion effect 0x10 and SE, the
+// item drop, a grenade-type blast hit check with a 3 m range at 250 up; hidden, collision off.
 static void em3a_R1_B_Bomb(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1257,6 +1328,7 @@ static void em3a_R1_B_Bomb(cEm3a* em)
     }
 }
 
+// Hover wobble: three sine offsets (6 / 3 / 6 units) at the random speeds set at init.
 void em3aVibMove(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1269,6 +1341,8 @@ void em3aVibMove(cEm3a* em)
     em->pos.z += SINF(w->vibAng.z) * 6.0f;
 }
 
+// Gunship gun pitch (parts 9) while the gun is out: eased towards the player's chest (1.3 m up),
+// between -15 and +45 degrees.
 void em3aGunMove(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1298,6 +1372,8 @@ void em3aGunMove(cEm3a* em)
     }
 }
 
+// Damage of the registered hit: 5x the weapon's table value (GetWepDmVal; the close-range flag
+// for hits within 6 m), 500 for unknown weapons.
 int em3aSetDmVal(cEm3a* em)
 {
     int flag;
@@ -1314,6 +1390,8 @@ int em3aSetDmVal(cEm3a* em)
     return val * 5;
 }
 
+// Patrol route start: the room's EMI entry of type 0x13 with state == this enemy's Character and
+// index 0 (pad_3), or none.
 void em3aPatrolInit(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1334,6 +1412,8 @@ void em3aPatrolInit(cEm3a* em)
     }
 }
 
+// Within 500 (XZ) of the current patrol point: advances to the entry with the next index of the
+// same route (wrapping to index 0). Returns 1 when the point changed.
 int em3aPatrolUpdate(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1371,6 +1451,7 @@ int em3aPatrolUpdate(cEm3a* em)
     return 0;
 }
 
+// Spins the gunship's rotors (parts 5 and 7) 30 degrees per frame while alive.
 void em3aFanMove(cEm3a* em)
 {
     if (em->type != 2 && em->hp > 0) {
@@ -1385,6 +1466,9 @@ void em3aFanMove(cEm3a* em)
     }
 }
 
+// Has it noticed the player? Already found, within 2.5 m, or in front within 30 degrees and in
+// sight within 15 m (5 m for type 2); the gunship also reacts to being hit, to a shot fired
+// (Status_flg[0] bit23) within 15 m and to the noise bell within 10 m.
 int em3aFindPLCk(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1440,6 +1524,7 @@ int em3aFindPLCk(cEm3a* em)
     return 0;
 }
 
+// Line of sight to the player (no effect collision between 200 above the helicopter and 1 m above him).
 int em3aLookPLCk(cEm3a* em)
 {
     Vec a;
@@ -1452,6 +1537,10 @@ int em3aLookPLCk(cEm3a* em)
     return EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0;
 }
 
+// One gun shot: muzzle effect and SE, a 50 m line from the gun (parts 0xB) with a +-5 m random
+// spread, traced as weapon 0xC for the other enemies (with its own hp zeroed) and against the
+// player / partner (EmAtkLineHitCk): a miss puts the impact effect / gatling spark / SE on the
+// wall; a hit shakes the pad and camera, blood, and 600 damage through em3a_atk_info. Returns 1 on a hit.
 int em3aGunHitCk(cEm3a* em)
 {
     Vec a;
@@ -1509,6 +1598,7 @@ int em3aGunHitCk(cEm3a* em)
     return ret;
 }
 
+// Fires a missile: a new cObjMissile under parts 9 launched at the player (target NULL).
 void em3aRocketFire(cEm3a* em)
 {
     Vec pos;
@@ -1528,6 +1618,8 @@ void em3aRocketFire(cEm3a* em)
     }
 }
 
+// A live, visible em39 in the line of fire (within a 4 m wide, 30 m long box ahead, or within
+// 45 degrees and 15 m): 1 = do not shoot.
 int em3aBossCk(cEm3a* em)
 {
     Mtx inv;
@@ -1551,6 +1643,7 @@ int em3aBossCk(cEm3a* em)
     return 0;
 }
 
+// A live em39 within 4 m of the helicopter.
 int em3aBossNearCk(cEm3a* em)
 {
     u32 i;
@@ -1568,6 +1661,7 @@ int em3aBossNearCk(cEm3a* em)
     return 0;
 }
 
+// The gunship's engine SE (8/0) every 30 frames while alive; the handle is kept for SndStop.
 void em3aEngineSe(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
@@ -1582,6 +1676,7 @@ void em3aEngineSe(cEm3a* em)
     }
 }
 
+// Room script: hold the gun / rocket attacks off for `frames`.
 void cEm3a::setAtkWait(int frames)
 {
     EM3A_WK(this)->atkWait = frames;

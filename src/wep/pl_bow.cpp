@@ -1,6 +1,13 @@
 // Bow player routines (wep28 module, first object; real file name unknown): routine 2 of the
 // player while Krauser's bow is equipped: ready (draw the arrow), set (idle / turn), fire (shoot),
 // down. Modelled on game/pl_knife.cpp.
+//
+// Entry: PlBowMove is the wep28 module's WeaponMoveFunc (pl_R1_Weapon, r_no_1 == 6). r_no_2 is
+// the weapon state (0 ready, 1 set, 2 fire, 3 down; no reload: the arrow count is the ammo),
+// r_no_3 the step; wep.mode / wep.step of the bow object follow. The arrow shown on the bow
+// (cObjBow::setDispAllow) and the arrow held in the right hand (pObj2 display type 1 plus
+// setRightHand(1)) are swapped as the draw / shoot motions play. Weapon archive slots: 0x1F draw,
+// 0x20 holster, 0x21/0x24/0x27 aim idle down/level/up (mot3 pitch on m3r), 0x22/0x25/0x28 shoot.
 
 #include "atari.h"
 #include "light.h"
@@ -44,6 +51,7 @@ static void wep28_r3_fire00(cPlayer* pl);
 static void wep28_r3_fire10(cPlayer* pl);
 static void wepDown(cPlayer* pl);
 
+// WeaponMoveFunc of the bow module: dispatches on r_no_2 (no lockMove: the bow has no stick lock).
 void PlBowMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -57,6 +65,9 @@ void PlBowMove(cPlayer* pl)
     func_tbl[pl->r_no_2](pl);
 }
 
+// r_no_2 == 0: the ready (draw) state. Aim key released -> crouch 0x11, or the down state with
+// r_no_3 = 0xD (wepDown blends the holster from that many frames in); else the shoulder camera
+// aims at the forward scenery hit.
 static void wep28_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -93,6 +104,9 @@ static void wep28_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim: pitch from the camera pitch (doubled looking up) into Wep->pitch
+// and m3r, aim yaw m_Fwork0 = 0, neck reset, camera direction saved in m_CamAdjY, bow object mode
+// 1, draw motion 0x1F (blend 4 frames from a crouch, 5 otherwise).
 static void wep28_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -127,6 +141,9 @@ static void wep28_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays: ang.y turns to the camera direction over 4 frames; at frame 4
+// the arrow appears in the hand (pObj2 + right hand 1), at frame 11 it is nocked (hand arrow off,
+// bow arrow on). Motion end -> set state.
 static void wep28_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
@@ -150,6 +167,7 @@ static void wep28_r3_ready10(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// ready step 2: finish a motion set by the lock-on turn, then -> set state.
 static void wep28_r3_ready20(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0)) {
@@ -160,6 +178,8 @@ static void wep28_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state with the laser sight and the lock-on control. Aim released
+// -> wepDown (or crouch 0x11); fire trigger / held with arrows left -> fire.
 static void wep28_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -191,6 +211,7 @@ static void wep28_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way aim idle (0x21 down / 0x24 level / 0x27 up on m3r[0]), step 1.
 static void wep28_r3_set00(cPlayer* pl)
 {
     PlArc* arc = (PlArc*) pG->pWep;
@@ -201,11 +222,14 @@ static void wep28_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle.
 static void wep28_r3_set10(cPlayer* pl)
 {
     MotionMoveI(pl, 0);
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down (foot SEs at frames 10 and 23);
+// released -> step 0. Set by PlWepLockCtrl's turn request.
 static void wep28_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -220,6 +244,7 @@ static void wep28_r3_set20(cPlayer* pl)
     }
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void wep28_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -234,6 +259,7 @@ static void wep28_r3_set30(cPlayer* pl)
     }
 }
 
+// set step 4: finish the current motion; ends or any fire / aim / action key -> step 0.
 static void wep28_r3_set40(cPlayer* pl)
 {
     if (pl->motionMove() || (Key.on & 0x10F)) {
@@ -241,6 +267,7 @@ static void wep28_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 shoots, step 1 plays the shot and re-nocks an arrow).
 static void wep28_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -252,6 +279,10 @@ static void wep28_r2_fire(cPlayer* pl)
     func_tbl[pl->r_no_3](pl);
 }
 
+// fire step 0: the shot. trigger() spends the arrow and the bow object (mode 2, cObjBow::moveFire)
+// launches it as a projectile (setAllow), so there is no hit line here; the shoot motions
+// 0x22/0x25/0x28 start, the hand arrow model is removed (right hand 0), m_Work4/m_Work5 = 1,
+// PlWepLockRand kicks the aim. Step 1.
 static void wep28_r3_fire00(cPlayer* pl)
 {
     PlArc* arc;
@@ -278,6 +309,9 @@ static void wep28_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the shot motion plays with the lock-on control: at frame 16 the next arrow is
+// taken in hand, at frame 35 nocked on the bow. Motion end -> set state; aim released from frame
+// 5 -> down state with r_no_3 = 0xD.
 static void wep28_r3_fire10(cPlayer* pl)
 {
     int endFrame = 5;
@@ -300,6 +334,9 @@ static void wep28_r3_fire10(cPlayer* pl)
     }
 }
 
+// r_no_2 == 3: the down (holster) state, one frame: hand arrow removed, bow object mode 3, the
+// holster motion 0x20 (blended in from frame r_no_3) into footwork sub-routine 2 when a motion may
+// be set, else the idle with x4FD = 0xF.
 static void wepDown(cPlayer* pl)
 {
     cObjWep* obj;

@@ -1,4 +1,9 @@
 // wep16 module: Leon's knife (cObjKnife; routines wep/pl_knife.cpp = the DOL's game/pl_knife.cpp).
+//
+// The knife as an equipped "weapon" (the mercenaries / Krauser-style knife slot): cObjKnife
+// (wep_mod.h) is a cObjWep hanging on the player's right hand with the player archive's knife
+// motion, no fire / reload modes of its own; PlKnifeMove (the knife routine) is registered as the
+// WeaponMoveFunc so routine 6 slashes. Wep16_init is the WeaponInitFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -15,6 +20,10 @@ struct PlayerPtr {
 };
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjKnife (ObjMgr id 0x24),
+// inits it (no parent argument: the player is pPL), stores it as Wep->m_pWep, installs the knife
+// footwork motions, loads the effects (archive 0x4 as group 0x4A) and points the debug preview
+// PlWepMot at the stance motions.
 void Wep16_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -33,6 +42,9 @@ void Wep16_init(cModel* m)
     PlWepMot[2] = WEP_ARC_PTR(0x2E);
 }
 
+// The knife's own init (the cObjWep::init(parent) virtual is not overridden): model 0x6 / texture
+// 0x5, atari bits 8/9 off, hung on the player's right hand (parts 10), light area, and the player
+// archive's knife-in-hand motion 0x1B started on it.
 void cObjKnife::init()
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -52,11 +64,15 @@ void cObjKnife::init()
     MotionSetCore(this, &this->Motion, PL_ARC_PTR(pG->pPlayer, 0x1B), 0, 0, 0, 0);
 }
 
+// ObjInitFunc[0x24]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjKnife_init(cObj* obj)
 {
     new (obj) cObjKnife();
 }
 
+// Fills the player's motion table with the knife-in-hand footwork motions (idle, no walk [1],
+// run, turns, back; no damage set of its own; 0x3D stays the player archive's) and sets the
+// weapon hand model (right hand 1, bare left hand 0).
 void cObjKnife::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x08));
@@ -84,6 +100,8 @@ void cObjKnife::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// REL entry: registers the weapon init routine, the knife routine as the weapon move and the
+// object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep16_init;
@@ -92,10 +110,12 @@ extern "C" void _prolog()
     OSReport("Wep16 KNIFE prolog Ok\n");
 }
 
+// REL exit: nothing to free (the ObjInitFunc slot is left set).
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

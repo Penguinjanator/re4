@@ -1,5 +1,10 @@
 // VP70 weapon object (wep17 module, first object; real file name unknown): a Mauser-style handgun
 // with ready / fire motions, cartridge ejection and the reload by tune level.
+//
+// cObjVp70 is the cObjWep (game/objWep.cpp) of Ada's / Krauser's VP70 (weapon list id 3, the
+// Red9-style small lock random), hanging on the player's right hand (parts 10) and driven by
+// wep.mode / wep.step from the module's own routines (wep17/wep17.cpp): mode 1 -> moveReady (the
+// gun's draw motion), 2 -> moveFire, 4 -> moveReload (ItemMgr.reload at the tune level's frame).
 
 #include "wep_mod.h"
 #include "item.h"
@@ -27,11 +32,15 @@ const u8 vp70_tbl[3] = { 0xE, 0xC, 0xA };
 
 #define VP70_ARC_PTR(no) PL_ARC_PTR(pG->pPlArc, no)
 
+// ObjInitFunc[0x34]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjVp70_init(cObj* obj)
 {
     new (obj) cObjVp70();
 }
 
+// cObjWep::init override (Wep17_init, parent = the player): model 0x6 / texture 0x5, atari bits
+// 8/9 off, hung on the right hand, light area, weapon list id 3, idle motions 0x36 (normal) /
+// 0x38 (empty), the vp70_tbl bytes, a 1/5 lock random spread.
 void cObjVp70::init(cModel* parent)
 {
     if (modelInit(WEP_ARC_PTR(0x6), WEP_ARC_PTR(0x5)) == 0) {
@@ -57,6 +66,7 @@ void cObjVp70::init(cModel* parent)
     setAbility(1.146f, 0.57199997f, 0.1432f, 0.1432f);
 }
 
+// wep.mode == 1 (ready): plays the gun's draw motion 0x39 once, then mode 0.
 void cObjVp70::moveReady()
 {
     if (wep.step == 0) {
@@ -68,6 +78,9 @@ void cObjVp70::moveReady()
     }
 }
 
+// wep.mode == 2 (fire): step 0 starts the slide motion (0x35, 0x37 on the last round), the shot
+// SE, Status_flg[0] bit23 (shot noise), muzzle flash 0x4B, a cartridge and the pad vibration;
+// step 1 waits for the player routine.
 void cObjVp70::moveFire()
 {
     if (wep.step == 0) {
@@ -88,6 +101,9 @@ void cObjVp70::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the tune level (0x26/0x2B/0x2C, or
+// 0x25/0x28/0x29 from an empty magazine) with the level's SE (0x16/0x20/0x21); at the level's
+// frame (33/27/19) ItemMgr.reload refills the magazine.
 void cObjVp70::moveReload()
 {
     if (wep.step == 0) {
@@ -144,6 +160,8 @@ void cObjVp70::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x7/0x8) from the right hand's ejection port
+// offset (-109, -22, 90) with a random +-15 spread, gravity 10, 30 frames, landing effect 0x13.
 void cObjVp70::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -173,6 +191,9 @@ void cObjVp70::setCartridge()
     }
 }
 
+// Fills the player's motion table with the VP70-carrying footwork motions (idle, no walk [1],
+// run, turns, back, the 0x39..0x42 damage set, 0x57/0x5B knife transitions; 0x3D stays the
+// player archive's) and sets the weapon hand models (right hand 1, left hand 4).
 void cObjVp70::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0A));

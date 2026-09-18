@@ -3,6 +3,17 @@
 // hovers there shooting its chain guns at the room targets or the enemies it finds
 // (em3d_R1_Atk, em3dChainGunMove, em3dGetTargetEm) before it fires a rocket; the rooms drive it
 // through the extra virtuals of cEm3d.
+//
+// Em3dInit is the module's EmInitFunc. Routines: r_no_0 0 init, 1 move with r_no_1: 0 patrol
+// (hover at Patrol_pos, then circle), 1 fly to Em3d_pos_tbl[Target_area], 2 attack (hover 240
+// frames shooting at Em3d_target_tbl[Target_area] / the nearest enemy near it, then a rocket,
+// then the next area), 3 warp-in (setTargetPos). Em3dWork (em3d.h): Be_flg bit0 guns may fire
+// (aimed at the target), bit1 the room may select a target (ckSelectEnable), bit2 the rocket is
+// about to fire (ckMissileFire), bit3 an enemy locked on it (setEmLocked -> the "under fire"
+// radio line), bit4 a target was requested, bit5 free fire (the player far from the patrol
+// point), bit6 patrolling; Spd is the hover speed, Se_wait the radio message hold, pMissile[]
+// the four rockets on parts 0xC..0xF. The helicopter itself cannot be killed (hp stays 1;
+// weapon hits only trigger the pilot's radio lines).
 
 #include "atari.h"
 #include "light.h"
@@ -110,20 +121,25 @@ static inline void em3dMatCalc(cEm3d* em)
     em->partsMatCalc();
 }
 
+// REL entry: registers the enemy constructor.
 extern "C" void _prolog()
 {
     OSReport("em3d prolog Ok\n");
     EmInitFunc = Em3dInit;
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
 
+// cUnit::setNoSuspend override: the helicopter and its four rockets keep moving through pauses
+// (be_flag bit11).
 void cEm3d::setNoSuspend(int on)
 {
     Em3dWork* w = EM3D_WK(this);
@@ -141,11 +157,15 @@ void cEm3d::setNoSuspend(int on)
     }
 }
 
+// EmInitFunc: placement-constructs the helicopter in the cEm work.
 void Em3dInit(cEm* em)
 {
     new (em) cEm3d();
 }
 
+// A weapon hit on the helicopter (cEm::dmHit, no damage taken): when no radio line is running the
+// pilot complains -- "close" (hit within 3 m of the player or a rocket / grenade: voice 0x6D,
+// message 3) or "far" (voice 0x6C, message 2).
 void em3dDmCk(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -226,6 +246,10 @@ Vec Em3d_target_tbl[8] = {
 // The module's .data is padded to 8 bytes after the last table.
 asm(".section .data\n\t.balign 8\n\t.text");
 
+// Per-frame update (emMove): the hit check, the radio hold countdown, the r_no_0 routine (0xFF
+// after a failed init destroys the work), the locked target check, the nose pitch, the rotors,
+// parts matrices, the chain guns (with hp 0 so its own shots skip it), enemy / scenery collision
+// and the "under fire" radio line when an enemy locked on it this frame (Be_flg bit3).
 void cEm3d::move()
 {
     Em3dWork* w = EM3D_WK(this);
@@ -263,6 +287,11 @@ void cEm3d::move()
     w->Be_flg &= ~0x8;
 }
 
+// r_no_0 == 0: creation: the model (archive 5/6), a 10 m light area, the collision cylinder (no
+// enemy collision bits), not lockable, Ashley does not ask for help, a big hit box behind the
+// nose, lock-on parts 2, effects (archive 4 as group 0x32), a random hover wobble phase / speed,
+// search range 12 m, the four rockets hung on parts 0xC..0xF, the first patrol position, the
+// rotor effects and SE; then patrol (1/0).
 static void em3d_R0_Init(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -333,11 +362,17 @@ static void em3d_R0_Init(cEm3d* em)
     em3d_R0_Move(em);
 }
 
+// r_no_0 == 1: dispatches the r_no_1 state.
 static void em3d_R0_Move(cEm3d* em)
 {
     Em3d_R1_move_tbl[em->r_no_1](em);
 }
 
+// r_no_1 == 0: patrol: hovers facing Patrol_pos for 90..179 frames (the room may select a target
+// once the 30-frame entry delay from an attack has passed: Be_flg bit1), then circles forward /
+// climbing (up to 25 m) for 120..149 frames; in free-fire mode (bit5) the guns fire when the
+// player is farther than 5 m from the patrol point. A setTarget request (Target_ck) -> fly to
+// the target (1).
 static void em3d_R1_Patrol(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -417,6 +452,9 @@ static void em3d_R1_Patrol(cEm3d* em)
     }
 }
 
+// r_no_1 == 1: fly to the area's flight position: the "on my way" voice, turn to face it, then
+// fly forward (30 units/frame, climbing / descending to its height) until within 3 m -> attack (2).
+// Debug mode 7 draws the flight line and the target sphere.
 static void em3d_R1_TargetMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -467,6 +505,12 @@ static void em3d_R1_TargetMove(cEm3d* em)
     }
 }
 
+// r_no_1 == 2: the attack: hovers at the flight height facing the area's target for 240 frames,
+// picking enemies near the target to gun (em3dGetTargetEm; `count` = kills claimed); the player
+// within 8 m of the target gets the "get clear" line and the timer restarts once; the last 30
+// frames arm the rocket warning (Be_flg bit2), then the rocket fires; 45 more frames, then the
+// next area (wrapping 0..7), a result line (6 with 3+ targets, else 5) and back to patrol with
+// the 30-frame delay. Be_flg bit0 (guns may fire) while facing the target within 30 degrees.
 static void em3d_R1_Atk(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -555,6 +599,8 @@ static void em3d_R1_Atk(cEm3d* em)
     }
 }
 
+// r_no_1 == 3 (setTargetPos): flies in from the placed position at 1000 units/frame sideways
+// (its local +X), turning to the flight position, for 45 frames -> attack (2).
 static void em3d_R1_WarpMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -589,6 +635,7 @@ static void em3d_R1_WarpMove(cEm3d* em)
     }
 }
 
+// Spins the main rotor (parts 0xA, yaw) and the tail rotor (parts 0xB, pitch) 35 degrees per frame.
 void em3dRoterMove(cEm3d* em)
 {
     cModel* p;
@@ -668,6 +715,11 @@ void em3dRoterMove(cEm3d* em)
         }                                                                               \
     }
 
+// Aims the two chain gun mounts (parts 4/2, 7/5; +-30 / +-20 degrees) at the locked enemy (1 m
+// above it) or the area target (the patrol point while patrolling), spins the barrels, aims the
+// rocket pod (parts 9/8, +-45 degrees) at the area target; while Be_flg bit0 both guns fire every
+// 3 frames: muzzle effects, SE, and a random hit line per gun (weapon 0xA, no player damage
+// flags) with a wall-hit effect (and SE for the first gun).
 void em3dChainGunMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -728,6 +780,8 @@ void em3dChainGunMove(cEm3d* em)
     EM3D_GUN_SHOT(em, 7, 2000.0f, 300000.0f, 0, t);
 }
 
+// Nose pitch of the fuselage (parts 0): 15 degrees plus up to 20 degrees with the horizontal
+// speed, eased 0.9/0.1.
 void em3dHeliPitchMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -744,6 +798,7 @@ void em3dHeliPitchMove(cEm3d* em)
     p->ang.x = p->ang.x * 0.9f + ang * 0.1f;
 }
 
+// Hover wobble: three sine offsets (20 / 10 / 20 units) at the random speeds set at init.
 void em3dVibMove(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -756,6 +811,9 @@ void em3dVibMove(cEm3d* em)
     em->pos.z += SINF(w->vibAng.z) * 20.0f;
 }
 
+// Picks an enemy to gun: the first live, visible enemy (ids 0x10..0x40) within Search_len of the
+// area target, within 30 degrees of the helicopter -> target line, with a clear line of sight
+// (no effect collision of mask 0x404000) -> pTargetEm. Returns 1 when one was found.
 int em3dGetTargetEm(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -814,6 +872,7 @@ int em3dGetTargetEm(cEm3d* em)
     return 0;
 }
 
+// Drops the gunned enemy once it is dead or out of sight.
 void em3dTargetEmUpdate(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -833,6 +892,8 @@ void em3dTargetEmUpdate(cEm3d* em)
     }
 }
 
+// Fires a rocket at the area target: the first pod slot; an empty slot gets a fresh missile
+// created on its parts first, a loaded one is launched and the slot cleared.
 void em3dRocketFire(cEm3d* em)
 {
     Em3dWork* w = EM3D_WK(em);
@@ -866,6 +927,7 @@ void em3dRocketFire(cEm3d* em)
     }
 }
 
+// Room query: 1 while a new target may be selected (patrolling past the entry delay).
 int cEm3d::ckSelectEnable()
 {
     int ret = 0;
@@ -876,6 +938,8 @@ int cEm3d::ckSelectEnable()
     return ret;
 }
 
+// Room script: attack area `no` (0..7) searching enemies within `range` of its target; the
+// patrol routine picks the request up next frame.
 void cEm3d::setTarget(u32 no, f32 range)
 {
     Em3dWork* w = EM3D_WK(this);
@@ -889,6 +953,8 @@ void cEm3d::setTarget(u32 no, f32 range)
     w->Search_len = range;
 }
 
+// Room script: place the helicopter at `pos` / `rotY` and attack area `no` at once through the
+// warp-in state (1/3).
 void cEm3d::setTargetPos(u32 no, Vec* pos, f32 rotY, f32 range)
 {
     Em3dWork* w = EM3D_WK(this);
@@ -909,6 +975,7 @@ void cEm3d::setTargetPos(u32 no, Vec* pos, f32 rotY, f32 range)
     r_no_3 = 0;
 }
 
+// Room query: 1 during the last 30 frames before the rocket launch.
 int cEm3d::ckMissileFire()
 {
     int ret = 0;
@@ -919,11 +986,13 @@ int cEm3d::ckMissileFire()
     return ret;
 }
 
+// Enemies call this when they aim at the helicopter: the pilot's "under fire" line this frame.
 void cEm3d::setEmLocked()
 {
     EM3D_WK(this)->Be_flg |= 8;
 }
 
+// Room script: the hover point of the patrol state.
 void cEm3d::setPatrolPos(Vec* pos)
 {
     if (pos) {
@@ -931,6 +1000,7 @@ void cEm3d::setPatrolPos(Vec* pos)
     }
 }
 
+// Room script: free fire while patrolling (the guns fire once the player is away from the patrol point).
 void cEm3d::setFreeFire()
 {
     EM3D_WK(this)->Be_flg |= 0x20;

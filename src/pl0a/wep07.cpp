@@ -1,6 +1,12 @@
 // pl0a module, first object: Krauser's build of the shotgun player routines (wep07: ready / set / fire,
 // no PlShotgunMove / set20 / set30 / set40 / reload — the routine table keeps their empty slots).
 // Real file name unknown (the weapon modules' shared routine object).
+//
+// Nothing in the module registers these routines (Krauser's weapons come from their own wep
+// modules), so the object is dead code kept by the link: the shotgun-style ready (0) / set (1) /
+// fire (2) states of r_no_2 with r_no_3 steps, but driven from the PLAYER archive (pG->pPlayer:
+// 0x8B draw, 0x8D/0x8F/0x4A aim idle, 0x8E/0x90/0x4B fire, 0x8C holster) instead of a weapon
+// archive, with no ammo, no hit check and no weapon object.
 
 #include "atari.h"
 #include "light.h"
@@ -33,6 +39,8 @@ static void (*wep07_func_tbl[5])(cPlayer*) = {
     0,
 };
 
+// r_no_2 == 0: the ready (draw) state: aim key released -> footwork idle; else the shoulder
+// camera aims at the forward scenery hit.
 static void wep07_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -57,6 +65,9 @@ static void wep07_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim: Wep->pitch from the camera pitch (doubled looking up) into the
+// mot3 rate m3r, aim yaw m_Fwork0 = 0, neck reset, camera direction saved in m_CamAdjY, the draw
+// motion 0x8B of the player archive (blend 4 frames from a crouch, 5 otherwise).
 static void wep07_r3_ready00(cPlayer* pl)
 {
     f32 pitch;
@@ -88,6 +99,7 @@ static void wep07_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays with the lock-on control from frame 5; at its end -> set state.
 static void wep07_r3_ready10(cPlayer* pl)
 {
     if (pl->frame >= 5.0f) {
@@ -104,6 +116,7 @@ static void wep07_r3_ready10(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// ready step 2: finish a motion set by the lock-on turn, then -> set state.
 static void wep07_r3_ready20(cPlayer* pl)
 {
     if (MotionMoveF(pl, 0)) {
@@ -117,6 +130,8 @@ static void wep07_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state with the lock-on control: aim released -> wepDown, fire
+// held -> fire (no ammo check).
 static void wep07_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -136,6 +151,7 @@ static void wep07_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: start the three-way aim idle (player archive 0x8D / 0x8F / 0x4A on m3r[0]), step 1.
 static void wep07_r3_set00(cPlayer* pl)
 {
     PlArc* arc = pG->pPlayer;
@@ -146,11 +162,13 @@ static void wep07_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle.
 static void wep07_r3_set10(cPlayer* pl)
 {
     pl->motionMove();
 }
 
+// r_no_2 == 2: the fire state (step 0 starts the fire motion, step 1 plays it out).
 static void wep07_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -161,6 +179,8 @@ static void wep07_r2_fire(cPlayer* pl)
     func_tbl[pl->r_no_3](pl);
 }
 
+// fire step 0: the fire motions (player archive 0x8E / 0x90 / 0x4B) replace the idle and the
+// parts are recalculated; no shot, no hit check. Step 1.
 static void wep07_r3_fire00(cPlayer* pl)
 {
     PlArc* arc = pG->pPlayer;
@@ -173,6 +193,7 @@ static void wep07_r3_fire00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// fire step 1: the fire motion plays; at its end -> set state.
 static void wep07_r3_fire10(cPlayer* pl)
 {
     if (pl->motionMove()) {
@@ -183,6 +204,8 @@ static void wep07_r3_fire10(cPlayer* pl)
     }
 }
 
+// Holster: footwork routine (r_no_1 0) sub-routine 2 with the player archive's down motion 0x8C
+// when a motion may be set (dmMotCk), else the idle with x4FD = 0xF.
 void wepDown(cPlayer* pl)
 {
     pl->motionMove();

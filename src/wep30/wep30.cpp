@@ -1,6 +1,10 @@
 // wep30 module: Ada's hand grenade (the wep19 cObjHandGre build for one grenade kind; object id
 // 0x3C). The module object carries the class, the entry points and the grenade routine registration
 // (wep/pl_grenade.cpp).
+//
+// Ada's build of wep19: the display-only cObjHandGre (always the hand grenade model, player
+// archive 0x6A/0x6B) hung at Ada's hand (parts 0x11) and belt (parts 10) offsets; Wep30_init is
+// the WeaponInitFunc, PlGrenadeMove the WeaponMoveFunc (itemThrow creates the thrown cSubWep).
 
 #include "wep_mod.h"
 #include "light.h"
@@ -21,6 +25,8 @@ public:
     virtual int keyKamae();
 };
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the two grenade objects, installs
+// the grenade footwork motions and loads the throw effects (archive 0x4 as group 0x4D).
 void Wep30_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -36,6 +42,8 @@ void Wep30_init(cModel* m)
 }
 
 // The two grenade objects: the hand one (parts 0x11) is pObj, the belt one (parts 0xA) pObj2.
+// The hand one is hidden with <= 1 item, the belt one with none (the egg half-scale branch is
+// kept although this module only shows the grenade model). Returns the hand object, NULL on failure.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -91,11 +99,14 @@ cObjWep* equipWeapon(cPlayer* pl)
     return pl->Wep->m_pWep;
 }
 
+// ObjInitFunc[0x3C]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjHandGre_init(cObj* obj)
 {
     new (obj) cObjHandGre();
 }
 
+// cObjWep::init override: the hand grenade model from the player archive (0x6A/0x6B); no atari /
+// parent (parentSet does that).
 void cObjHandGre::init(cModel* parent)
 {
     if (modelInit(PL_ARC_PTR(pG->pPlayer, 0x6A), PL_ARC_PTR(pG->pPlayer, 0x6B)) == 0) {
@@ -103,6 +114,10 @@ void cObjHandGre::init(cModel* parent)
     }
 }
 
+// Fills the player's motion table with the grenade footwork motions (idle, run, turns, back, the
+// 0x39..0x42 damage set; 0x3D stays the player archive's), shows / hides the hand and belt
+// grenades by the item count, and sets the right hand model (the grenade hand 0x7 while any is
+// left, else the bare hand 0x11).
 void cObjHandGre::setMotion(cPlayer* pl)
 {
     u16 num;
@@ -149,6 +164,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
     pl->setLeftHand(0);
 }
 
+// Aim key check (cObjWep::keyKamae override): the aim button counts only while an item is left.
 int cObjHandGre::keyKamae()
 {
     if ((Key.on & 0x10) && ItemMgr.bulletNum()) {
@@ -157,6 +173,7 @@ int cObjHandGre::keyKamae()
     return 0;
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep30_init;
@@ -165,11 +182,13 @@ extern "C" void _prolog()
     OSReport("Wep30 ADA|GRENADE prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x3C] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

@@ -2,6 +2,13 @@
 // The module has its own player routine (the handgun routine of wep/pl_handgun.cpp with the
 // mine thrower's aim types: type 0 fires from the hand, the scope type (wep_type bit0) aims
 // through the camera trajectory and swaps the right hand model between the ready/reload motions).
+//
+// Entry: Wep14_init is the WeaponInitFunc, Wep14_move the WeaponMoveFunc (pl_R1_Weapon, r_no_1
+// == 6). r_no_2 is the weapon state (0 ready, 1 set, 2 fire, 3 down, 4 reload, 5 next target),
+// r_no_3 the step, mirrored into the cObjMine's wep.mode / wep.step (objMine.cpp plays the
+// launcher's own motions and launches the dart in mode 2). Weapon archive slots: 0x12 draw /
+// turn, 0x13/0x17/0x19 aim idle down/level/up (mot3 pitch on m3r), 0x14/0x18/0x1A fire, 0x15
+// holster, 0x16/0x1B reload by weapon_lv_reload, 0x9/0xA the two right-hand models.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -67,6 +74,9 @@ u8 lockCtr = 0;
 static Vec pos;
 static Vec tgt;
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjMine as Wep->m_pWep,
+// installs its motions, loads the effects (archive 0x6 as group 0x48), sets the carrying right
+// hand (0x9) and left hand 4, and points the debug preview PlWepMot at the aim idles.
 void Wep14_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -86,6 +96,7 @@ void Wep14_init(cModel* m)
     }
 }
 
+// WeaponMoveFunc: dispatches on r_no_2 (0..5) and runs the lock-on stick control.
 void Wep14_move(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -101,6 +112,10 @@ void Wep14_move(cPlayer* pl)
     pl->Wep->lockMove();
 }
 
+// r_no_2 == 0: the ready (draw) state. Aim key released before the lock turn (step 3) -> footwork
+// (or crouch 0x11) with the launcher object in mode 3 (lower) and the carrying hand 0x9; reload key
+// with darts left -> reload (m_Work0 = 1); else the shoulder camera aims at the locked enemy or
+// the forward scenery hit.
 static void wep14_r2_ready(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -149,6 +164,10 @@ static void wep14_r2_ready(cPlayer* pl)
     }
 }
 
+// ready step 0: enter the aim: Wep->pitch from the camera pitch (doubled looking up), aim yaw
+// m_Fwork0 = 0, camera direction saved in m_CamAdjY, the aiming right hand 0xA, neck / lock-on
+// reset, draw motion 0x12 (blend 4 frames; the normal type adds flag 0x100), m3r zeroed, lockCtr
+// = 0, launcher object mode 1 (raise + load).
 static void wep14_r3_ready00(cPlayer* pl)
 {
     const f32 zero = 0.0f;
@@ -193,6 +212,8 @@ static void wep14_r3_ready00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// ready step 1: the draw plays while ang.y turns to the camera direction over 4 frames; at its
+// end the load SE 2/9 and -> set state.
 static void wep14_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
@@ -213,6 +234,7 @@ static void wep14_r3_ready10(cPlayer* pl)
     }
 }
 
+// ready step 2: finish a motion set by the lock-on turn, then SE 5/0 and -> set state.
 static void wep14_r3_ready20(cPlayer* pl)
 {
     if (pl->motionMove()) {
@@ -224,7 +246,9 @@ static void wep14_r3_ready20(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
-// ready30: turn / step towards the aim target while the motion plays (wep/pl_handgun.cpp).
+// ready step 3: the lock-on turn (PlWepLockCtrl's request): turn towards `tgt` (PI/8 per frame),
+// slide towards `pos`, aim the pitch target m3r[1] at the target's elevation in 0.05 steps
+// (clamped -1..1); motion end -> set state. (The form of wep/pl_handgun.cpp.)
 static void wep14_r3_ready30(cPlayer* pl)
 {
     f32 dist;
@@ -273,6 +297,10 @@ static void wep14_r3_ready30(cPlayer* pl)
     pl->Waist->set(0.0f, 0.4f);
 }
 
+// r_no_2 == 1: the set (aiming) state: laser sight for the normal type only (the scope type looks
+// through the camera). Aim released -> down (r_no_2 3, or crouch 0x11); fire trigger / held with
+// darts -> fire; trigger on an empty launcher -> reload (m_Flag bit0) or the empty SE 2/3; reload
+// key -> reload (m_Work0 = 1).
 static void wep14_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -338,6 +366,8 @@ static void wep14_r2_set(cPlayer* pl)
     }
 }
 
+// set step 0: the scope type switches the camera to the scope (flags_420 bit4); start the
+// three-way aim idle (0x13/0x17/0x19 on the pitch), step 1.
 static void wep14_r3_set00(cPlayer* pl)
 {
     PlArc* arc;
@@ -354,12 +384,14 @@ static void wep14_r3_set00(cPlayer* pl)
     pl->r_no_3 = 1;
 }
 
+// set step 1: hold the aim idle with the lock-on control.
 static void wep14_r3_set10(cPlayer* pl)
 {
     PlWepLockCtrl(pl);
     pl->motionMove();
 }
 
+// set step 2: a turn motion held while Key.on bit2 stays down; released -> step 0.
 static void wep14_r3_set20(cPlayer* pl)
 {
     if ((Key.on & 4) == 0) {
@@ -368,6 +400,7 @@ static void wep14_r3_set20(cPlayer* pl)
     MotionMoveI(pl, 0);
 }
 
+// set step 3: the same for the other turn direction (Key.on bit3).
 static void wep14_r3_set30(cPlayer* pl)
 {
     if ((Key.on & 8) == 0) {
@@ -376,6 +409,7 @@ static void wep14_r3_set30(cPlayer* pl)
     pl->motionMove();
 }
 
+// set step 4: finish the current motion; ends or any fire / aim / action key -> step 0.
 static void wep14_r3_set40(cPlayer* pl)
 {
     if (MotionMoveI(pl, 0) || (Key.on & 0x10F)) {
@@ -383,6 +417,7 @@ static void wep14_r3_set40(cPlayer* pl)
     }
 }
 
+// r_no_2 == 2: the fire state (step 0 launches, step 1 plays the reload-a-dart motion).
 static void wep14_r2_fire(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -393,6 +428,9 @@ static void wep14_r2_fire(cPlayer* pl)
     func_tbl[pl->r_no_3](pl);
 }
 
+// fire step 0: trigger() spends the dart and the launcher object (mode 2, cObjMine::moveFire)
+// launches it, so there is no hit line here; the fire motions 0x14/0x18/0x1A start, PlWepLockRand
+// kicks the aim, flags_420 bit5 (hand swap) is cleared. Step 1.
 static void wep14_r3_fire00(cPlayer* pl)
 {
     PlArc* arc;
@@ -417,7 +455,8 @@ static void wep14_r3_fire00(cPlayer* pl)
     pl->flags_420 &= ~0x20;
 }
 
-// fire10: the hand model is swapped for the throw frames (setRightHand 5 / 4).
+// fire step 1: the fire motion plays; the left hand model is swapped to 5 (holding the next dart,
+// flags_420 bit5) from frame 23 (SE 2/4) to frame 30; motion end -> set state.
 static void wep14_r3_fire10(cPlayer* pl)
 {
     if (MotionCheckCrossFrame(&pl->Motion, 23.0f)) {
@@ -437,6 +476,10 @@ static void wep14_r3_fire10(cPlayer* pl)
     }
 }
 
+// r_no_2 == 3: the down (holster) state, one frame: the scope type ends the scope camera; the
+// holster motion 0x15 into footwork sub-routine 2 when a motion may be set, else the idle with
+// x4FD = 0xF; launcher object mode 3, its enemy collision (atari 0x200) cleared, the carrying
+// right hand 0x9, the waist twist unwound into ang.y.
 static void wep14_r2_down(cPlayer* pl)
 {
     cObjWep* obj;
@@ -470,6 +513,9 @@ static void wep14_r2_down(cPlayer* pl)
     FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
+// r_no_2 == 4: the reload state. Step 0 ends the scope camera (scope type), starts the reload
+// motion of the tune level (0x16 / 0x1B), the aiming right hand 0xA and launcher object mode 4
+// (it refills at its frame); step 1 waits for the motion's end, restores the scope and -> set state.
 static void wep14_r2_reload(cPlayer* pl)
 {
     u8 step = pl->r_no_3;
@@ -511,7 +557,10 @@ static void wep14_r2_reload(cPlayer* pl)
     }
 }
 
-// next: turn to the lock target (pLockEm) with the turn motion.
+// r_no_2 == 5: the next-target state (Key.trg bit5 in the lock control): the turn motion 0x12
+// while turning towards the locked enemy pLockEm (0.314 rad per frame beyond 200 units) for 10
+// frames (m_Work0), then -> set state. Another press cycles lockNext() (new target restarts, none
+// -> set); aim released -> set state (or crouch 0x11).
 static void wep14_r2_next(cPlayer* pl)
 {
     u8 step = pl->r_no_3;
@@ -563,6 +612,7 @@ static void wep14_r2_next(cPlayer* pl)
     }
 }
 
+// Creates the cObjMine (ObjMgr id 0x36) and inits it on the player; NULL when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj;
@@ -584,6 +634,7 @@ void wep14changeRightHand(cPlayer* pl, void* hand)
     pl->setRightHand(1);
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep14_init;
@@ -592,10 +643,12 @@ extern "C" void _prolog()
     OSReport("Wep14 MINE-THROWER prolog Ok\n");
 }
 
+// REL exit: nothing to free (the ObjInitFunc slot is left set).
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

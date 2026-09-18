@@ -1,5 +1,8 @@
 // wep13 module: the rocket launcher. The weapon object is the DOL's cObjLauncher (id 0x23); the
 // module supplies the player routines (wep/pl_rocket.cpp) and this entry object.
+// Wep13_init is the module's WeaponInitFunc (creates the launcher as the player's weapon and
+// loads the effects), PlRocketMove its WeaponMoveFunc; there is no ObjInitFunc slot to register
+// because the DOL's cObjMgr::construct already knows id 0x23.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -7,6 +10,10 @@
 
 void PlRocketMove(cPlayer* pl);   // wep/pl_rocket.cpp
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): clears flags_420 bit10 (launcher thrown
+// away), creates the cObjLauncher (ObjMgr id 0x23), inits it on the player (loads its rocket),
+// stores it as Wep->m_pWep, installs its motions, loads the launch effects (archive 0x6 as group
+// 0x47) and points the debug preview PlWepMot at the aim idles 0xF/0x12/0x14.
 void Wep13_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -27,6 +34,7 @@ void Wep13_init(cModel* m)
     }
 }
 
+// REL entry: registers the weapon init / move routines.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep13_init;
@@ -34,10 +42,12 @@ extern "C" void _prolog()
     OSReport("Wep13 ROCKET-RUNCHER prolog Ok\n");
 }
 
+// REL exit: nothing to free.
 extern "C" void _epilog()
 {
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

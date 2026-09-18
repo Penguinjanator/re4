@@ -10,6 +10,10 @@ void PlHandgunMove(cPlayer* pl);   // wep/pl_handgun.cpp
 void ObjMauser_init(cObj* obj);    // objMauser.cpp
 void ObjRuger_init(cObj* obj);     // objRuger.cpp
 
+// WeaponInitFunc of the module (cPlayer::weaponInit with the player): creates the weapon object of
+// the equipped handgun (weapon_no 2 Punisher -> cObjRuger id 0x21, 3 Red9 -> cObjMauser 0x27) as
+// Wep->m_pWep, inits it on the player, installs its motions, loads the muzzle-flash effects
+// (archive 0x4 as group 0x36) and points the debug preview PlWepMot at the aim motions 0x26..0x28.
 void Wep02_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -39,6 +43,7 @@ void Wep02_init(cModel* m)
     }
 }
 
+// REL entry: registers the weapon init / move routines and both object constructor slots.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep02_init;
@@ -48,12 +53,14 @@ extern "C" void _prolog()
     OSReport("Wep02 HANDGUN prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slots.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x21] = 0;
     ObjInitFunc[0x27] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

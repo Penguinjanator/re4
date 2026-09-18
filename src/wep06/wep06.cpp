@@ -1,5 +1,11 @@
 // wep06 module: the Government (Matilda) handgun (cObjGovernment, object id 0x31). The module object
 // carries the class, the entry points and the handgun routine registration (wep/pl_handgun.cpp).
+//
+// cObjGovernment is the cObjWep (game/objWep.cpp) of the Matilda, hanging on the player's right
+// hand (parts 10) and driven by wep.mode / wep.step from the handgun routines: mode 2 -> moveFire
+// (slide motion, SEs, flash, cartridge; the mode is left by the player routine, not by the motion
+// end), mode 4 -> moveReload. weapon_type 1 is the model with the stock (0x7, its own idle 0x39,
+// weapon list id 0x2B). Wep06_init is the WeaponInitFunc, PlHandgunMove the WeaponMoveFunc.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -23,6 +29,9 @@ public:
     void setCartridge();
 };
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the cObjGovernment (ObjMgr id
+// 0x31) as Wep->m_pWep, inits it on the player, installs its motions, loads the muzzle-flash
+// effects (archive 0x4 as group 0x3A) and points the debug preview PlWepMot at 0x26..0x28.
 void Wep06_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -42,11 +51,15 @@ void Wep06_init(cModel* m)
     }
 }
 
+// ObjInitFunc[0x31]: placement-constructs the class in the work cObjMgr::construct hands over.
 void ObjGovernment_init(cObj* obj)
 {
     new (obj) cObjGovernment();
 }
 
+// cObjWep::init override (parent = the player): model 0x6 with idle 0x34 (type 1: model 0x7 with
+// idle 0x39; empty idle 0x3A; weapon list id 0x2A / 0x2B), atari bits 8/9 off, hung on the right
+// hand, light area, wep.x18..x1A = 0x14, default lock spread.
 void cObjGovernment::init(cModel* parent)
 {
     void* bin;
@@ -80,6 +93,9 @@ void cObjGovernment::init(cModel* parent)
     setAbility(5.73f, 2.86f, 0.2864f, 0.2864f);
 }
 
+// wep.mode == 2 (fire): step 0 starts the slide motion (0x32, 0x35 on the last round), plays the
+// shot SEs, sets Status_flg[0] bit23 (shot noise), muzzle flash 0x3A, a cartridge and the pad
+// vibration. Step 1 does nothing: the handgun routine's next state resets the mode.
 void cObjGovernment::moveFire()
 {
     if (wep.step == 0) {
@@ -103,6 +119,9 @@ void cObjGovernment::moveFire()
     }
 }
 
+// wep.mode == 4 (reload): step 0 starts the reload motion of the tune level (0x36/0x3D/0x3E, or
+// 0x33/0x3B/0x3C from an empty magazine) with the level's SE (0x16/0x20/0x21); at the level's
+// frame (44/37/22) ItemMgr.reload refills the magazine. The player routine ends the mode.
 void cObjGovernment::moveReload()
 {
     static const f32 reloadEnd[3] = { 44.0f, 37.0f, 22.0f };
@@ -156,6 +175,8 @@ void cObjGovernment::moveReload()
     }
 }
 
+// Ejects a cartridge: an obj10 shell model (archive 0x3F/0x40) from the right hand's ejection
+// port offset (-163, -163, 100) with a random +-15 spread, gravity 10, 30 frames, effect 0x13.
 void cObjGovernment::setCartridge()
 {
     cModel* parts = pPL->getPartsPtr(0xA);
@@ -185,6 +206,9 @@ void cObjGovernment::setCartridge()
     }
 }
 
+// Fills the player's motion table with the handgun-carrying footwork motions (idle, walk, run,
+// turns, back, the 0x39..0x42 and 0x5D/0x5E damage set, 0x57/0x5B knife transitions; 0x3D stays
+// the player archive's), the weapon hand model (right hand 1) and the archive's left hand (0x9).
 void cObjGovernment::setMotion(cPlayer* pl)
 {
     PSet(pl->pMotTbl[0x00], WEP_ARC_PTR(0x0B));
@@ -218,6 +242,7 @@ void cObjGovernment::setMotion(cPlayer* pl)
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep06_init;
@@ -226,11 +251,13 @@ extern "C" void _prolog()
     OSReport("Wep06 GOVERNMENT prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x31] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }

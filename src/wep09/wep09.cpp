@@ -1,4 +1,7 @@
 // wep09 module entry: the bolt-action rifle (class in objSniper.cpp, routines wep/pl_rifle.cpp).
+// Wep09_init is the module's WeaponInitFunc (creates the cObjSniper, object id 0x28, as the
+// player's weapon and loads the effects), PlRifleMove its WeaponMoveFunc; _prolog registers both
+// and the ObjInitFunc slot.
 
 #include "wep_mod.h"
 #include "light.h"
@@ -10,6 +13,9 @@ void PlRifleMove(cPlayer* pl);   // wep/pl_rifle.cpp
 cObjWep* equipWeapon(cPlayer* pl);
 void ObjSniper_init(cObj* obj);  // wep09/objSniper.cpp
 
+// WeaponInitFunc (cPlayer::weaponInit with the player): creates the rifle object as Wep->m_pWep,
+// installs its motions, loads the effects (archive 0x8 as group 0x3D) and points the debug preview
+// PlWepMot at the scope idle 0x15. (The error string still says Wep02.)
 void Wep09_init(cModel* m)
 {
     cPlayer* pl = (cPlayer*) m;
@@ -27,6 +33,8 @@ void Wep09_init(cModel* m)
     }
 }
 
+// Creates the cObjSniper (ObjMgr id 0x28) and inits it on the player; NULL (also stored as the
+// player's weapon) when the work is full.
 cObjWep* equipWeapon(cPlayer* pl)
 {
     cObjWep* obj = (cObjWep*) ObjMgr.createBack(0x28);
@@ -40,6 +48,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     return obj;
 }
 
+// REL entry: registers the weapon init / move routines and the object constructor slot.
 extern "C" void _prolog()
 {
     WeaponInitFunc = Wep09_init;
@@ -48,11 +57,13 @@ extern "C" void _prolog()
     OSReport("Wep09 SNIPER prolog Ok\n");
 }
 
+// REL exit: frees the object constructor slot.
 extern "C" void _epilog()
 {
     ObjInitFunc[0x28] = 0;
 }
 
+// Target of every unresolved cross-module branch (snmakerel patches them to `bl _unresolved`).
 extern "C" void _unresolved()
 {
 }
