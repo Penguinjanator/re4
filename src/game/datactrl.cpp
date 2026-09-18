@@ -67,7 +67,7 @@ void cDataUnit::setCommand(int cmd, u32 arg, u8 wait)
     m_command = cmd;
     this->arg = arg;
     this->wait = wait;
-    if (wait != 0 || DC.xA0C != 1) {
+    if (wait != 0 || DC.m_nblock_read_stop != 1) {
         checkCommand();
     }
 }
@@ -676,7 +676,7 @@ void cDataCtrl::initDataUnit()
 
     m_aram_free = ARAM_FREE_BASE;
     setAramSort(1);
-    xA08 = 1;
+    m_data_ctrl_flag = 1;
     dbgHeap = 0;
     for (i = 0; i < 32; i++) {
         u = &m_DataUnit[i];
@@ -951,7 +951,7 @@ void cDataCtrl::check()
     cDataUnit* u;
     int i;
 
-    if (xA08 != 0 && xA0C != 1) {
+    if (m_data_ctrl_flag != 0 && m_nblock_read_stop != 1) {
         while (checkAramSort() == 1) {
         }
         for (i = 0; i < 32; i++) {

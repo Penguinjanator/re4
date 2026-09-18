@@ -85,7 +85,7 @@ void cRoomData::init()
 
     pModule = 0;
     m_pModule_bss = 0;
-    x1C = 0;
+    m_RelNo = 0;
     total = 0;
     for (stage = 0; stage <= 9; stage++) {
         if (Room_data_tbl[stage].tbl != 0) {
@@ -251,7 +251,7 @@ int cRoomData::checkRelRead(u16 room)
 
     if (checkRoomRange(stage, no) == 1) {
         rel = Room_data_tbl[stage].tbl[no].rel_no;
-        if (rel != 0 && rel != x1C) {
+        if (rel != 0 && rel != m_RelNo) {
             return 1;
         }
     }
@@ -274,13 +274,13 @@ void cRoomData::linkRelData(u16 room)
     if (Room_data_tbl[stage].tbl[no].rel_no == 0) {
         return;
     }
-    x1C = Room_data_tbl[stage].tbl[no].rel_no;
+    m_RelNo = Room_data_tbl[stage].tbl[no].rel_no;
 #line 484
-    id = DvdRead(x1C, 0, 0, 0, 0, 0x104, __FILE__, __LINE__);
+    id = DvdRead(m_RelNo, 0, 0, 0, 0, 0x104, __FILE__, __LINE__);
     while ((ret = Dvd.ReadCheck(id, 0, 0, (void**) &pModule)) != 1) {
         if (ret < 0) {
-            pLog->err(0, 0, "cRoomData::readRelData(): RelDataReadError! %s", FileTbl[x1C]);
-            x1C = 0;
+            pLog->err(0, 0, "cRoomData::readRelData(): RelDataReadError! %s", FileTbl[m_RelNo]);
+            m_RelNo = 0;
             pModule = 0;
             return;
         }

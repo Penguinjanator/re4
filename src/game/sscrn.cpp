@@ -447,7 +447,7 @@ void SubScreenExec()
             TaskSuspend(0);
             RoomData.stopRelData();
             wk->pBuf = pG->pStFnt;
-            DC.xA08 = 0;
+            DC.m_data_ctrl_flag = 0;
             MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
             MemSuspendHeap(4);
             if (wk->type & 0x10) {
@@ -581,7 +581,7 @@ void SubScreenExitCore(SubScreenWork* wk)
         MemSignalHeap(4);
         MemSetCurrentHeap(4);
         MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
-        DC.xA08 = 1;
+        DC.m_data_ctrl_flag = 1;
         RoomData.restartRelData();
         MGR_PTR(cModel::mm) = &ModInfoMgr;
         MGR_PTR(cModel::pm) = &PartsMgr;

@@ -80,8 +80,8 @@ public:
     cDataUnit m_DataUnit[32];  // 0x000
     u32 m_aram_free;         // 0xA00  first free ARAM address above the loaded units
     s32 aramSort;        // 0xA04  1 = repack the ARAM units (checkAramSort)
-    s32 xA08;            // 0xA08  0 while the sub screen owns the ARAM area (sscrn), 1 otherwise
-    s32 xA0C;            // 0xA0C  1 = commands are not executed immediately
+    s32 m_data_ctrl_flag;  // 0xA08  0 while the sub screen owns the ARAM area (sscrn), 1 otherwise (PS2 m_data_ctrl_flag)
+    s32 m_nblock_read_stop;  // 0xA0C  1 = commands are not executed immediately (PS2 m_nblock_read_stop)
     void* dispBuf;       // 0xA10  dispDebug tiles
     u32 dispBase;        // 0xA14
     u32 dispEnd;         // 0xA18

@@ -62,7 +62,7 @@ FlrAt* FlrAtCheck(int type, Vec* pos, int flag)
     p.z = pos->z;
     for (i = 0; i < ((FlrAtHead*) pFlrSys->pData)->num; i++) {
         at = &pFlrSys->pList[i];
-        if ((at->x0 & 1) == 0) {
+        if ((at->flag & 1) == 0) {
             continue;
         }
         if (at->group != pFlrSys->group && pFlrSys->group != 0xFF) {
@@ -93,7 +93,7 @@ static int FlrAtSetEnable(int no)
         pLog->err(0, 0, "FlrAtSetEnable() : AT DATA NOT FOUND");
         return 0;
     }
-    pFlrSys->pList[no].x0 |= 1;
+    pFlrSys->pList[no].flag |= 1;
     return 1;
 }
 
@@ -103,7 +103,7 @@ static int FlrAtSetDisable(int no)
         pLog->err(0, 0, "FlrAtSetDisable() : AT DATA NOT FOUND");
         return 0;
     }
-    pFlrSys->pList[no].x0 &= ~1;
+    pFlrSys->pList[no].flag &= ~1;
     return 1;
 }
 

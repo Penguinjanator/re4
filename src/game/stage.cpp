@@ -210,7 +210,7 @@ void StageSet()
     }
     if (relink == 1 || reload == 1) {
         RoomData.stopRelData();
-        RoomData.x1C = 0;
+        RoomData.m_RelNo = 0;
         MemReplaceHeap(2, 3);
         MemSetCurrentHeap(3);
         RoomData.linkRelData(G_ROOM_ID);

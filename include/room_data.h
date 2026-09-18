@@ -53,8 +53,8 @@ public:
     void* m_pModule_bss_bak;            // 0x10  bss copy kept while the DLL is unlinked
     RoomSaveHdr* pSaveBuf;    // 0x14
     u8* pSave;                // 0x18  room save records, 0xD8 bytes each
-    u16 x1C;                  // 0x1C  cleared before linkRelData (stage.cpp); FileTbl index of the room dll
-    u16 m_RelNo;
+    u16 m_RelNo;              // 0x1C  FileTbl index (rel_no) of the room dll loaded; cleared before linkRelData (stage.cpp)
+    u16 x1E;                  // 0x1E
 
     cRoomData() { flag = 0; }
     ~cRoomData() {}  // the empty destructor is what makes GCC emit the static destructor function
