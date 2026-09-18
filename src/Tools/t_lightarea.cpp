@@ -46,13 +46,13 @@ void __builtin_delete(void* p)
 
 struct LIGHT_AREA {
     u8 no;           // 0x00
-    u8 flags;        // 0x01  bit 0: in use
-    u8 lightNoPl;    // 0x02  light no for the player (0xFF: none)
-    u8 lightNoEm;    // 0x03  light no for the other characters
+    u8 be_flag;        // 0x01  bit 0: in use
+    u8 pl_light_no;    // 0x02  light no for the player (0xFF: none)
+    u8 em_light_no;    // 0x03  light no for the other characters
     AreaData area;   // 0x04
     u8 x34[4];
     s8 power;        // 0x38  scale in percent (0..100)
-    u8 lightNoSub;   // 0x39  light no for the sub character
+    u8 sub_light_no;   // 0x39  light no for the sub character
     u8 x3A[0xD8 - 0x3A];
 };
 
@@ -65,7 +65,7 @@ static DbgToolFileHeader* light_area_buf;  // the file image fed to the game
 
 int IsWorkAlive(LIGHT_AREA* w)
 {
-    if (w->flags & 1) {
+    if (w->be_flag & 1) {
         return 1;
     }
     return 0;
@@ -74,9 +74,9 @@ int IsWorkAlive(LIGHT_AREA* w)
 void SetWorkAlive(LIGHT_AREA* w, int alive)
 {
     if (alive == 1) {
-        w->flags |= 1;
+        w->be_flag |= 1;
     } else {
-        w->flags &= ~1;
+        w->be_flag &= ~1;
     }
 }
 
@@ -119,7 +119,7 @@ void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
     if (IsWorkAlive(w)) {
         AreaGetCenterPos(&pos, &w->area);
         PSVECScale(&pos, &pos, 0.001f);
-        h = w->area.u.xz4.h / 1000.0f;
+        h = w->area.u.xz4.height / 1000.0f;
     }
     sprintf(buf, "%6.1f %6.1f %6.1f %6.1f", pos.x, pos.y, pos.z, h);
     DbgButtonSetName(b, buf);
@@ -134,20 +134,20 @@ int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
 
     // 0xFF: no light
     eprintf(0xAA, 0xA0, 4, 0, "PL NO : ");
-    if (w->lightNoPl != 0xFF) {
-        eprintf(0xAA, 0xA0, 0, 0, "       %3d", w->lightNoPl);
+    if (w->pl_light_no != 0xFF) {
+        eprintf(0xAA, 0xA0, 0, 0, "       %3d", w->pl_light_no);
     } else {
         eprintf(0xAA, 0xA0, 0, 0, "       OFF");
     }
     eprintf(0xAA, 0xB0, 4, 0, "EM NO : ");
-    if (w->lightNoEm != 0xFF) {
-        eprintf(0xAA, 0xB0, 0, 0, "       %3d", w->lightNoEm);
+    if (w->em_light_no != 0xFF) {
+        eprintf(0xAA, 0xB0, 0, 0, "       %3d", w->em_light_no);
     } else {
         eprintf(0xAA, 0xB0, 0, 0, "       OFF");
     }
     eprintf(0xAA, 0xC0, 4, 0, "SUB NO: ");
-    if (w->lightNoSub != 0xFF) {
-        eprintf(0xAA, 0xC0, 0, 0, "       %3d", w->lightNoSub);
+    if (w->sub_light_no != 0xFF) {
+        eprintf(0xAA, 0xC0, 0, 0, "       %3d", w->sub_light_no);
     } else {
         eprintf(0xAA, 0xC0, 0, 0, "       OFF");
     }
@@ -183,9 +183,9 @@ int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
         if (joy->on & 0x100) {
             step *= 10;
         }
-        w->lightNoPl += step;
+        w->pl_light_no += step;
         if ((joy->on & 0x800) && (joy->trg & 0x100)) {
-            w->lightNoPl = 0;
+            w->pl_light_no = 0;
         }
         break;
     case 1:
@@ -198,9 +198,9 @@ int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
         if (joy->on & 0x100) {
             step *= 10;
         }
-        w->lightNoEm += step;
+        w->em_light_no += step;
         if ((joy->on & 0x800) && (joy->trg & 0x100)) {
-            w->lightNoEm = 0;
+            w->em_light_no = 0;
         }
         break;
     case 2:
@@ -213,9 +213,9 @@ int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b
         if (joy->on & 0x100) {
             step *= 10;
         }
-        w->lightNoSub += step;
+        w->sub_light_no += step;
         if ((joy->on & 0x800) && (joy->trg & 0x100)) {
-            w->lightNoSub = 0;
+            w->sub_light_no = 0;
         }
         break;
     case 3:
@@ -254,7 +254,7 @@ void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>
     u32 n;
     char buf[13];
 
-    n = w->lightNoPl;
+    n = w->pl_light_no;
     if (n == 0xFF) {
         buf[0] = ' ';
         buf[1] = 'x';
@@ -271,7 +271,7 @@ void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>
         buf[1] = digits[n / 10];
         buf[2] = digits[n % 10];
     }
-    n = w->lightNoEm;
+    n = w->em_light_no;
     if (n == 0xFF) {
         buf[4] = 'x';
         buf[5] = 'x';
@@ -285,7 +285,7 @@ void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>
         buf[4] = digits[n / 10];
         buf[5] = digits[n % 10];
     }
-    n = w->lightNoSub;
+    n = w->sub_light_no;
     if (n == 0xFF) {
         buf[7] = 'x';
         buf[8] = 'x';
@@ -440,14 +440,14 @@ void ToolLightAreaMain()
             for (i = 0; i < LIGHT_AREA_MAX; i++, w++) {
                     if (IsWorkAlive(w)) {
                     AreaGetCenterPos(&pos, &w->area);
-                    pos.y = (pos.y + w->area.u.xz4.h) * 0.5f;
+                    pos.y = (pos.y + w->area.u.xz4.height) * 0.5f;
                     if (GetScreenPos(pos, &scr) == 1) {
                         if (i == tool.GetEdit()->GetCurrentNo()) {
                             AreaDataDisp(&w->area, 0xA0FF8080, 0, 0);
-                            eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->lightNoPl);
+                            eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->pl_light_no);
                         } else {
                             AreaDataDisp(&w->area, 0x60808080, 1, 0);
-                            eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->lightNoPl);
+                            eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->pl_light_no);
                         }
                     }
                 }
@@ -508,7 +508,7 @@ void tLightAreaInit()
     BitOn(pG->flags_170, 0x00010000);
     BitOn(pG->flags_170, 0x00002000);
     BitOn(pG->flags_60, 0x10000000);
-    CamDbg.target_type = 4;
+    CamDbg.m_target_type = 4;
     Block.dispAllBlock(1);
 }
 
@@ -525,7 +525,7 @@ void tLightAreaExit()
     {
         // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`)
         volatile debugCamera* c = &CamDbg;
-        c->target_type = 0;
+        c->m_target_type = 0;
     }
     Block.dispAllBlock(0);
 }

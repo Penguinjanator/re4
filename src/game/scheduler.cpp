@@ -31,19 +31,19 @@ void TaskSchedulerInit()
     u32 i;
 
     for (i = 0; i < TASK_NUM; i++) {
-        Task[i].stack_size = GetStackSize(i);
-        total += Task[i].stack_size;
+        Task[i].StackSize = GetStackSize(i);
+        total += Task[i].StackSize;
     }
 #line 48 "D:/Bio4/Prog/scheduler.cpp"
     stack = (u8*) MEM_ALLOC(total, 1, 13);
     memset_asm(stack, 0xB3, total);
     for (i = 0; i < TASK_NUM; i++) {
-        Task[i].no = i;
-        Task[i].status = 0;
-        Task[i].stack = stack + Task[i].stack_size;
+        Task[i].Task_no = i;
+        Task[i].Status = 0;
+        Task[i].pStack = stack + Task[i].StackSize;
         Task[i].suspend_cnt = 0;
-        OSInitThreadQueue(&Task[i].queue);
-        stack = Task[i].stack;
+        OSInitThreadQueue(&Task[i].Queue);
+        stack = Task[i].pStack;
     }
     OSInitSemaphore(&Sema, 0);
     iTask_exec_flg = 0;
@@ -100,30 +100,30 @@ void TaskSchedulerMain(TASK* t)
     if ((pG->flags_500C & 0x100000) && !(t->flag & 4)) {
         return;
     }
-    switch (t->status) {
+    switch (t->Status) {
     case TASK_EXEC:
-        OSCreateThread(&t->thread, t->hook, (void*) t->arg, t->stack, t->stack_size, t->level, 1);
-        t->status = TASK_RUN;
-        OSResumeThread(&t->thread);
+        OSCreateThread(&t->Thread, t->hook, (void*) t->arg, t->pStack, t->StackSize, t->Priority, 1);
+        t->Status = TASK_RUN;
+        OSResumeThread(&t->Thread);
         GXSetCurrentGXThread();
         break;
     case TASK_SLEEP:
-        t->sleep--;
-        if (t->sleep != 0) {
+        t->SleepCtr--;
+        if (t->SleepCtr != 0) {
             return;
         }
-        t->status = TASK_RUN;
-        OSWakeupThread(&t->queue);
+        t->Status = TASK_RUN;
+        OSWakeupThread(&t->Queue);
         GXSetCurrentGXThread();
         break;
     case TASK_RUN:
-        OSResumeThread(&t->thread);
+        OSResumeThread(&t->Thread);
         GXSetCurrentGXThread();
         break;
     default:
         return;
     }
-    if (CTASK->level > 0xF) {
+    if (CTASK->Priority > 0xF) {
         OSWaitSemaphore(&Sema);
         GXSetCurrentGXThread();
     }
@@ -137,23 +137,23 @@ void stackUsedCheck()
 
     eprintf2(9, 0x10, 0x22, 0x24, 0, 6, "   SIZE REST");
     for (i = 0; i < TASK_NUM; i++) {
-        u32* p = (u32*) (Task[i].stack - Task[i].stack_size);
+        u32* p = (u32*) (Task[i].pStack - Task[i].StackSize);
         u32 n = 1;
         p++;
-        while (n < (u32) (Task[i].stack_size >> 2) && *p == 0xB3B3B3B3) {
+        while (n < (u32) (Task[i].StackSize >> 2) && *p == 0xB3B3B3B3) {
             n++;
             p++;
         }
         y += 0x10;
-        eprintf(0x10, y, 0, 6, "%02d %4x %4x %08x", i, Task[i].stack_size, n * 4, Task[i].stack - Task[i].stack_size);
+        eprintf(0x10, y, 0, 6, "%02d %4x %4x %08x", i, Task[i].StackSize, n * 4, Task[i].pStack - Task[i].StackSize);
     }
 }
 
 void StackOverflowCheck(TASK* t)
 {
-    if (*(u32*) (t->stack - t->stack_size) != 0xDEADBABE) {
+    if (*(u32*) (t->pStack - t->StackSize) != 0xDEADBABE) {
         OSReport("***************************************\n");
-        OSReport("Stack overflow in Thread %d !!\n", t->no);
+        OSReport("Stack overflow in Thread %d !!\n", t->Task_no);
         OSReport("***************************************\n");
         OSPanic("D:/Bio4/Prog/scheduler.cpp", 217, "End of biohazard4");
     }
@@ -180,7 +180,7 @@ void* TaskExec_hook(void* value)
         :
         : "r3");
     GXSetCurrentGXThread();
-    CTASK->func((int) value);
+    CTASK->pFunc((int) value);
     return NULL;
 }
 
@@ -194,11 +194,11 @@ TASK* TaskExec(int prio, TaskFunc func, int arg)
     }
     t = &Task[prio];
     t->hook = TaskExec_hook;
-    t->func = (void (*)(int)) func;
-    t->status = TASK_EXEC;
+    t->pFunc = (void (*)(int)) func;
+    t->Status = TASK_EXEC;
     t->arg = arg;
     t->flag = 6;
-    t->level = 0xF;
+    t->Priority = 0xF;
     return t;
 }
 
@@ -207,15 +207,15 @@ void TaskSleep(int frames)
     if (frames == 0) {
         return;
     }
-    CTASK->sleep = frames;
-    CTASK->status = (CTASK->status & TASK_SUSPEND) | TASK_SLEEP;
+    CTASK->SleepCtr = frames;
+    CTASK->Status = (CTASK->Status & TASK_SUSPEND) | TASK_SLEEP;
     if (ParentThread() != NULL) {
         OSResumeThread(ParentThread());
     }
-    if (CTASK->level > 0xF) {
+    if (CTASK->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
-    OSSleepThread(&pCTask->queue);
+    OSSleepThread(&pCTask->Queue);
     if (ParentThread() != NULL) {
         OSSuspendThread(ParentThread());
     }
@@ -225,31 +225,31 @@ void TaskSleep(int frames)
 void TaskChain(TaskFunc func, int arg)
 {
     CTASK->hook = TaskExec_hook;
-    CTASK->func = (void (*)(int)) func;
-    CTASK->status = TASK_EXEC;
+    CTASK->pFunc = (void (*)(int)) func;
+    CTASK->Status = TASK_EXEC;
     CTASK->arg = arg;
     if (ParentThread() != NULL) {
         OSResumeThread(ParentThread());
     }
-    if (CTASK->level > 0xF) {
+    if (CTASK->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
-    OSExitThread(&pCTask->thread);
+    OSExitThread(&pCTask->Thread);
 }
 
 void TaskExit()
 {
     TASK* t = pCTask;
 
-    t->status = TASK_NONE;
+    t->Status = TASK_NONE;
     t->suspend_cnt = 0;
     if (ParentThread() != NULL) {
         OSResumeThread(ParentThread());
     }
-    if (CTASK->level > 0xF) {
+    if (CTASK->Priority > 0xF) {
         OSSignalSemaphore(&Sema);
     }
-    OSExitThread(&pCTask->thread);
+    OSExitThread(&pCTask->Thread);
 }
 
 void TaskKill(int prio)
@@ -259,25 +259,25 @@ void TaskKill(int prio)
 
 void TaskKill(TASK* t)
 {
-    if (t->status == 0) {
+    if (t->Status == 0) {
         return;
     }
-    switch (t->status & ~TASK_SUSPEND) {
+    switch (t->Status & ~TASK_SUSPEND) {
     case TASK_NONE:
     case TASK_EXEC:
         break;
     case TASK_SLEEP:
-        OSCancelThread(&t->thread);
+        OSCancelThread(&t->Thread);
         break;
     case TASK_RUN:
-        if (t->status & TASK_SUSPEND) {
-            OSCancelThread(&t->thread);
+        if (t->Status & TASK_SUSPEND) {
+            OSCancelThread(&t->Thread);
         } else {
             TaskExit();
         }
         break;
     }
-    t->status = TASK_NONE;
+    t->Status = TASK_NONE;
     t->suspend_cnt = 0;
 }
 
@@ -286,7 +286,7 @@ void TaskSuspend(int task)
     TASK* t = &Task[task];
 
     t->suspend_cnt++;
-    t->status |= TASK_SUSPEND;
+    t->Status |= TASK_SUSPEND;
 }
 
 void TaskSignal(int task)
@@ -300,20 +300,20 @@ void TaskSignal(int task)
     if (t->suspend_cnt != 0) {
         return;
     }
-    t->status &= ~TASK_SUSPEND;
+    t->Status &= ~TASK_SUSPEND;
 }
 
 u8 TaskStatus(int prio)
 {
-    return Task[prio].status;
+    return Task[prio].Status;
 }
 
 void SetTaskModelPtr(void* model, TASK* t)
 {
     if (t == NULL) {
-        CTASK->model = model;
+        CTASK->pModel = model;
     } else {
-        t->model = model;
+        t->pModel = model;
     }
 }
 
@@ -325,7 +325,7 @@ void iTaskScheduler()
         TASK* t = &Task[TASK_ISR];
         pParentThread = NULL;
         pCTask = t;
-        t->status &= ~TASK_SUSPEND;
+        t->Status &= ~TASK_SUSPEND;
         TaskSchedulerMain(t);
         pCTask = CTASK_MAIN;
     }
@@ -340,7 +340,7 @@ TASK* iTaskExec(TaskFunc func)
     if (flg == 0) {
         iTask_exec_flg = 1;
         t = TaskExec(TASK_ISR, func, 0);
-        t->level = flg;
+        t->Priority = flg;
         return t;
     }
     return NULL;
@@ -362,9 +362,9 @@ void iTaskSuspend()
 {
     if (iTask_exec_flg == 1) {
         TASK* t = &Task[TASK_ISR];
-        if (t->thread.state == 2) {
-            t->status |= TASK_SUSPEND;
-            OSSuspendThread(&t->thread);
+        if (t->Thread.state == 2) {
+            t->Status |= TASK_SUSPEND;
+            OSSuspendThread(&t->Thread);
         }
     }
 }

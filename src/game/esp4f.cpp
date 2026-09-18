@@ -2,13 +2,13 @@
 #include "esp.h"
 
 struct Esp4fWork {
-    u8 areaNo;  // 0x00
+    u8 area_no;  // 0x00
 };
 
 // Effect that is only drawn while inside a given room area.
 class cEsp4f : public cEsp {
 public:
-    Esp4fWork work;  // 0xF8
+    Esp4fWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -21,7 +21,7 @@ cEsp* Esp4f_Create()
 
 void cEsp4f::move()
 {
-    Esp4fWork* w = &work;
+    Esp4fWork* w = &m_Free;
     Vec wpos;
 
     if (CommonMove()) {
@@ -29,11 +29,11 @@ void cEsp4f::move()
             PushEsp(this);
         } else {
             if (parent == pEffParentWorld) {
-                wpos = pos;
+                wpos = m_Pos;
             } else {
-                PSMTXMultVec(parent->mat, &pos, &wpos);
+                PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             }
-            if (EffAreaCheckNo(&wpos, w->areaNo)) {
+            if (EffAreaCheckNo(&wpos, w->area_no)) {
                 PushEsp(this);
             }
         }
@@ -42,6 +42,6 @@ void cEsp4f::move()
 
 int cEsp4f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    work.areaNo = gen->xC8;
+    m_Free.area_no = gen->xC8;
     return 1;
 }

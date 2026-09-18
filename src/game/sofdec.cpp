@@ -363,7 +363,7 @@ void cSofdec::initApp(const char* fname)
     mwPlyGetHdrInf(buf, 0x5000, &info);
     Mem_free(buf);
     width = info.width;
-    height = info.height;
+    m_height = info.height;
 }
 
 int cSofdec::startApp()
@@ -376,7 +376,7 @@ int cSofdec::startApp()
     cprm->max_bps = 8000000;
     cprm->nfrm_pool_wk = 4;
     cprm->max_width = width;
-    cprm->max_height = height;
+    cprm->max_height = m_height;
     cprm->max_stm = 2;
     cprm->wksize = mwPlyCalcWorkCprmSfd(cprm);
 #line 649 "D:/Bio4/Prog/sofdec.cpp"
@@ -401,7 +401,7 @@ void cSofdec::initSync()
 {
     systemVISetBlack(1);
     fadeIn = 1;
-    vcnt = GetSystemVcnt();
+    m_vcnt_save = GetSystemVcnt();
     SetSystemVcnt(1);
     if (Screen.width != 512.0f) {
         resized = 1;
@@ -417,7 +417,7 @@ int cSofdec::appMain()
     int stat;
 
     if (Joy[0].trg & 0x1200) {
-        flag |= 0x20;
+        m_be_flag |= 0x20;
         return 0;
     }
     ADXM_ExecMain();
@@ -466,21 +466,21 @@ void cSofdec::finishMovie()
     if (resized != 0) {
         ScreenReSize(0x280, 0x1C0);
     }
-    SetU32(pG->Disp_flg, save58);
+    SetU32(pG->Disp_flg, m_disp_flg_bak);
     SetU32(pG->flags_170, save170);
-    SetSystemVcnt(vcnt);
+    SetSystemVcnt(m_vcnt_save);
     BitOff(pG->flags_500C, 0x10000000);
     if (!(pG->flags_5014 & 0x8000)) {
         MemDestroyHeap(11);
         Aram.DmaTransReq(1, 0x740000, heapStart, 0x500000, 1);
-        MemSignalHeap(heapNo);
-        MemSetCurrentHeap(heapNo);
+        MemSignalHeap(m_save_cur_heap);
+        MemSetCurrentHeap(m_save_cur_heap);
     }
     BitOff(pG->System_flg, 0x00100000);
     if (!chkFlag(0x100)) {
         systemVISetBlack(0);
     }
-    flag &= ~1;
+    m_be_flag &= ~1;
 }
 
 int cSofdec::initWork(const char* fname)
@@ -494,13 +494,13 @@ int cSofdec::initWork(const char* fname)
     }
     SetU32(save170, pG->flags_170);
     SetU32(pG->flags_170, 0xFFFFFFFF);
-    SetU32(save58, pG->Disp_flg);
+    SetU32(m_disp_flg_bak, pG->Disp_flg);
     SetU32(pG->Disp_flg, 0xFFFFFFFF);
     if (!(pG->flags_5014 & 0x8000)) {
-        heapNo = MemGetCurrentHeap();
-        heapStart = MemGetHeapStartAddr(heapNo);
+        m_save_cur_heap = MemGetCurrentHeap();
+        heapStart = MemGetHeapStartAddr(m_save_cur_heap);
         Aram.DmaTransReq(0, heapStart, 0x740000, 0x500000, 1);
-        MemSuspendHeap(heapNo);
+        MemSuspendHeap(m_save_cur_heap);
         MemCreateHeap(11, heapStart, heapStart + 0x500000);
         MemSetCurrentHeap(11);
     }
@@ -535,7 +535,7 @@ int cSofdec::initSub(const char* fname, u32 flags)
         startApp();
         pG->flags_500C |= 0x10000000;
         initSync();
-        flag = flags | 1;
+        m_be_flag = flags | 1;
     }
     SndAllStop();
     return 1;
@@ -563,7 +563,7 @@ void cSofdec::ThreadMove(cSofdec* s)
         s->startApp();
         pG->flags_500C |= 0x10000000;
         s->initSync();
-        s->flag = 1;
+        s->m_be_flag = 1;
         while (s->Move() == 0) {
             TaskSleep(1);
         }
@@ -575,9 +575,9 @@ void cSofdec::ThreadMove(cSofdec* s)
 void cSofdec::PlayPause(int pause)
 {
     if (pause == 1) {
-        flag |= 4;
+        m_be_flag |= 4;
     } else {
-        flag &= ~4;
+        m_be_flag &= ~4;
     }
     mwPlyPause(app.hn, pause);
 }

@@ -184,7 +184,7 @@ void R202Init()
         r202_changeIdoSmd(1);
     }
     Vec zero = {0.0f, 0.0f, 0.0f};
-    r202_work.p->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), (Vec*) &r202_crankPos,
+    r202_work.p->crank = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), (Vec*) &r202_crankPos,
                                    &zero, 0x10, 1);
     r202_work.p->ido0 = SmdGetObjPtr(0x33);
     r202_work.p->ido1 = SmdGetObjPtr(0x34);
@@ -196,7 +196,7 @@ void R202Init()
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        PSetSat(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
+        PSetSat(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             r202_work.p->idoY1 = r202_work.p->ido1->pos.y;
             r202_work.p->idoY0 = r202_work.p->ido0->pos.y;
@@ -314,7 +314,7 @@ void r202_openBox_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot = ang;
+            obj->pParts->ang = ang;
         } else {
             Vec step;
             int i;
@@ -323,7 +323,7 @@ void r202_openBox_main(int no, int opened)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    PSVECAdd(&obj->pParts->rot, &step, &obj->pParts->rot);
+                    PSVECAdd(&obj->pParts->ang, &step, &obj->pParts->ang);
                 }
                 SceSleep(1);
             }
@@ -496,7 +496,7 @@ static void r202_operateCannon()
     setEm(0x30, 2, 0, 1, 1);
     EmListSetAlive(0x30, 1);
     if (pG->flags_174 & 0x01000000) {
-        SubCharInit(1, &pPL->pos, pPL->rot.y);
+        SubCharInit(1, &pPL->pos, pPL->ang.y);
         SubCharCtrl(1, 0);
     }
     CamCtrl.Comeback(0);
@@ -544,8 +544,8 @@ static void r202_operateCrank()
     ((cUnitEventView*) pPL)->beginEvent(0);
     PlSetHand(1, 0);
     ((cUnitEventView*) r202_work.p->crank)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x22));
-    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x2D));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x22));
+    r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2D));
     CamCtrl.CutCall(3);
     {
         Vec v = {516.5f, 0.0f, -500.0f};
@@ -554,9 +554,9 @@ static void r202_operateCrank()
 
         PSMTXMultVec(r202_work.p->crank->mat, &v, &v);
         v.y = pPL->pos.y;
-        FSet(pPL->rot.y, r202_work.p->crank->rot.y - 1.5707964f);
+        FSet(pPL->ang.y, r202_work.p->crank->ang.y - 1.5707964f);
         pl = pPL;
-        pr = &pl->rot;
+        pr = &pl->ang;
         pl->setPos(&v);
         pl->setAng(pr);
     }
@@ -586,36 +586,36 @@ static void r202_operateCrank()
             switch (mot) {
             default:
             case 0:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2D);
                 break;
             case 1:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2E);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x23);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2E);
                 break;
             case 2:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x2F);
                 break;
             case 3:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x25);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x30);
                 break;
             case 4:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x26);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x31);
                 break;
             case 5:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x32);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x32);
                 break;
             case 6:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x33);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x28);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x33);
                 break;
             case 7:
-                m0 = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-                m1 = ROOM_ARC_PTR(pG->pRoomArc, 0x34);
+                m0 = ROOM_ARC_PTR(pG->pRoom, 0x29);
+                m1 = ROOM_ARC_PTR(pG->pRoom, 0x34);
                 break;
             }
             n = *(u16*) m0;
@@ -625,18 +625,18 @@ static void r202_operateCrank()
             if (frame >= n) {
                 frame = 0;
             }
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, (u16) frame, 5, (int) m0);
-            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 3, (u16) frame, 5, (int) m1);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, (u16) frame, 5, (int) m0);
+            r202_work.p->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 3, (u16) frame, 5, (int) m1);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 50.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 50.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 100.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, 0, 0, 0, 0);
             SndCall(6, 7, 0, 0, 0, 0);
         }
@@ -784,7 +784,7 @@ void r202_initCatapult()
         r202_work.p->cat[i].x31 = 1;
         r202_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objNo);
         r202_work.p->cat[i].obj->be_flag |= 0x20;
-        r202_work.p->cat[i].obj->rot.y = LIMIT_ANGLE(tbl[i].ang);
+        r202_work.p->cat[i].obj->ang.y = LIMIT_ANGLE(tbl[i].ang);
         zero = 0;
         r202_work.p->cat[i].state = zero;
         r202_work.p->cat[i].timer = zero;
@@ -1005,14 +1005,14 @@ int cCatapult::checkHitArea()
 static void r202_setRock(cCatapult* c)
 {
     c->em.setFlag(1);
-    c->em.motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x35), 0xA, 0, 1, 0);
+    c->em.motionSet(ROOM_ARC_PTR(pG->pRoom, 0x35), 0xA, 0, 1, 0);
     SceSleep(54);
     {
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
         cEmRock* rock;
 
-        rock = SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0);
+        rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0);
         c->rock = rock;
         rock->setParent(c->em.getPtr(), 0xA, 0);
     }
@@ -1030,10 +1030,10 @@ static void r202_setRock(cCatapult* c)
             register cModel* pp asm("r11");
             o = c->obj;
             pp = o->pParts;
-            pp->rot.x = 0.0f;
+            pp->ang.x = 0.0f;
         }
         for (i = 10; i != 0; i--) {
-            c->obj->pParts->rot.x += -0.024137001f;
+            c->obj->pParts->ang.x += -0.024137001f;
             SceSleep(1);
         }
         c->rockSet = 1;
@@ -1062,9 +1062,9 @@ static void r202_throwRock(cCatapult* c)
     f32 v;
     f32 lim;
 
-    c->obj->pParts->rot.x = -0.24137f;
+    c->obj->pParts->ang.x = -0.24137f;
     for (i = 10; i != 0; i--) {
-        c->obj->pParts->rot.x += 0.13986999f;
+        c->obj->pParts->ang.x += 0.13986999f;
         SceSleep(1);
     }
     c->throwRock();
@@ -1079,10 +1079,10 @@ static void r202_throwRock(cCatapult* c)
     // loop.c hoisted the exit store's constant (`fmr f28,f30`); the bounce loop's exit code is never
     // peeled (> 20 insns, then gcse's preheader insertions).
     for (;;) {
-        c->obj->pParts->rot.x += v;
+        c->obj->pParts->ang.x += v;
         v += -0.034906585f;
-        if (c->obj->pParts->rot.x < lim) {
-            c->obj->pParts->rot.x = -0.24137f;
+        if (c->obj->pParts->ang.x < lim) {
+            c->obj->pParts->ang.x = -0.24137f;
             break;
         }
         SceSleep(1);
@@ -1091,10 +1091,10 @@ static void r202_throwRock(cCatapult* c)
         lim *= 0.5f;
         v *= -0.5f;
         for (;;) {
-            c->obj->pParts->rot.x += v;
+            c->obj->pParts->ang.x += v;
             v += -0.034906585f;
-            if (c->obj->pParts->rot.x < lim && v < 0.0f) {
-                c->obj->pParts->rot.x = lim;
+            if (c->obj->pParts->ang.x < lim && v < 0.0f) {
+                c->obj->pParts->ang.x = lim;
                 break;
             }
             SceSleep(1);

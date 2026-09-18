@@ -14,13 +14,13 @@ struct EmSwitchWork {
     u8 pad_218[4];
     class cEmBarred* pBarred;     // 0x21C (0x5FC)  gates the lever drives
     class cEmBarred* pBarred2;    // 0x220 (0x600)
-    class cEmSwitch* pConnect;    // 0x224 (0x604)  switch moved together with this one
-    u8 mode;              // 0x228 (0x608)  1 = open only (no close prompt), 2 = closes again after opening, 3 = auto open
-    u8 dmToggle;          // 0x229 (0x609)  a hit toggles the lever
-    u8 barrel;            // 0x22A (0x60A)  closing drops the r227 barrel
-    int timer;            // 0x22C (0x60C)  frames between barrel drops
-    f32 ckDist;           // 0x230 (0x610)  action button distance (1500, setLongCk 2000)
-    u8 flagNo;            // 0x234 (0x614)  etc flag the lever state is saved in
+    class cEmSwitch* pSwitch;    // 0x224 (0x604)  switch moved together with this one
+    u8 Mode;              // 0x228 (0x608)  1 = open only (no close prompt), 2 = closes again after opening, 3 = auto open
+    u8 Damage_ck;          // 0x229 (0x609)  a hit toggles the lever
+    u8 Barrel_ck;            // 0x22A (0x60A)  closing drops the r227 barrel
+    int Barrel_wait;            // 0x22C (0x60C)  frames between barrel drops
+    f32 Ck_dis;           // 0x230 (0x610)  action button distance (1500, setLongCk 2000)
+    u8 Etc_no;            // 0x234 (0x614)  etc flag the lever state is saved in
     u8 pad_235[3];
     int actButton;        // 0x238 (0x618)  0 = no action button prompt
 };

@@ -47,7 +47,7 @@ static TestPara test_para_sit[] = {
     {&Snd_test_work.sit.svol, 0, 0, -1, 0x7F, 1, 10},
     {&Snd_test_work.sit.x7, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.sit.x8, 0, 0, 0, 0x7F, 1, 10},
-    {&Snd_test_work.sit.pitch_lo, 1, 0, -2400, 2400, 1, 100},
+    {&Snd_test_work.sit.pitch_l, 1, 0, -2400, 2400, 1, 100},
     {&Snd_test_work.sit.pitch_hi, 1, 0, -2400, 2400, 1, 100},
     {&Snd_test_work.sit.voice_start, 0, 0, 0, 0x3F, 1, 10},
     {&Snd_test_work.sit.voice_num, 0, 0, 0, 0x3F, 1, 10},
@@ -80,10 +80,10 @@ static TestPara test_para_rit[] = {
     {&Snd_test_work.rit.vol, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.pad_B[0], 0, 4, 0, 0, 0, 0},
     {&Snd_test_work.rit.flag, 7, 3, 0, 0, 0, 0},
-    {&Snd_test_work.rit.voice_start, 0, 0, 0, 0x3F, 1, 10},
-    {&Snd_test_work.rit.str_no, 8, 0, 0, 0, 1, 1},
-    {&Snd_test_work.rit.auxA, 0, 0, 0, 0x7F, 1, 10},
-    {&Snd_test_work.rit.auxB, 0, 0, 0, 0x7F, 1, 10},
+    {&Snd_test_work.rit.ch, 0, 0, 0, 0x3F, 1, 10},
+    {&Snd_test_work.rit.pl_id, 8, 0, 0, 0, 1, 1},
+    {&Snd_test_work.rit.aux_a, 0, 0, 0, 0x7F, 1, 10},
+    {&Snd_test_work.rit.aux_b, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.pad_6[1], 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.pan, 0, 0, 0, 0x7F, 1, 10},
     {&Snd_test_work.rit.span, 0, 0, -1, 0x7F, 1, 10},
@@ -968,9 +968,9 @@ void test_tbl_aux_ck(SndTestWork* w)
             p = &w->sit.x7;
         }
     } else {
-        p = &w->rit.auxB;
+        p = &w->rit.aux_b;
         if (w->aux == 0) {
-            p = &w->rit.auxA;
+            p = &w->rit.aux_a;
         }
     }
     v = *p;
@@ -1135,7 +1135,7 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
     eprintf(x, y + 0x38, 0, 1, "SVOL      : %5d", sit->svol);
     eprintf(x, y + 0x46, 0, 1, "AUX_A     : %5d", sit->x7);
     eprintf(x, y + 0x54, 0, 1, "AUX_B     : %5d", sit->x8);
-    eprintf(x, y + 0x62, 0, 1, "PITCH_L   : %5d", (s16) sit->pitch_lo);
+    eprintf(x, y + 0x62, 0, 1, "PITCH_L   : %5d", (s16) sit->pitch_l);
     eprintf(x, y + 0x70, 0, 1, "PITCH_H   : %5d", (s16) sit->pitch_hi);
     eprintf(x, y + 0x7E, 0, 1, "CH_NO     : %5d", sit->voice_start);
     eprintf(x, y + 0x8C, 0, 1, "MONOPOLY  : %5d", sit->voice_num);
@@ -1277,11 +1277,11 @@ static void snd_test_disp_rit()
     } else {
         eprintf(0xD0, 0x8C, 0, 1, "STR_TYPE  :   BGM");
     }
-    eprintf(0xD0, 0x9A, 0, 1, "CH_NO     : %5d", rit->voice_start);
-    eprintf(0xD0, y0 + 0x54, 0, 1, "MONOPOLY  : %5d", rit->voice_num);
-    eprintf(0xD0, 0xB6, 0, 1, "PLAYER_ID : %5d", rit->str_no);
-    eprintf(0xD0, 0xC4, 0, 1, "AUX_A     : %5d", rit->auxA);
-    eprintf(0xD0, 0xD2, 0, 1, "AUX_B     : %5d", rit->auxB);
+    eprintf(0xD0, 0x9A, 0, 1, "CH_NO     : %5d", rit->ch);
+    eprintf(0xD0, y0 + 0x54, 0, 1, "MONOPOLY  : %5d", rit->poly);
+    eprintf(0xD0, 0xB6, 0, 1, "PLAYER_ID : %5d", rit->pl_id);
+    eprintf(0xD0, 0xC4, 0, 1, "AUX_A     : %5d", rit->aux_a);
+    eprintf(0xD0, 0xD2, 0, 1, "AUX_B     : %5d", rit->aux_b);
     eprintf(0xD0, 0xE0, 0, 1, "PAN_FLAG  : %5d", (s8) rit->pad_6[1]);
     eprintf(0xD0, 0xEE, 0, 1, "PAN       : %5d", rit->pan);
     eprintf(0xD0, 0xFC, 0, 1, "SPAN      : %5d", rit->span);
@@ -1672,8 +1672,8 @@ void Snd_test_disp_efx()
         eprintf(0x90, 0xE0, 0, 1, "I.S.S.(SIT) AUX A : %3d", w->sit.x7);
         eprintf(0x90, 0xEE, 0, 1, "I.S.S.(SIT) AUX B : %3d", w->sit.x8);
     } else {
-        eprintf(0x90, 0xE0, 0, 1, "Stream(RIT) AUX A : %3d", w->rit.auxA);
-        eprintf(0x90, 0xEE, 0, 1, "Stream(RIT) AUX B : %3d", w->rit.auxB);
+        eprintf(0x90, 0xE0, 0, 1, "Stream(RIT) AUX A : %3d", w->rit.aux_a);
+        eprintf(0x90, 0xEE, 0, 1, "Stream(RIT) AUX B : %3d", w->rit.aux_b);
     }
 }
 

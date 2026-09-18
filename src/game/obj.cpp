@@ -325,7 +325,7 @@ void cObjMgr::move()
     p = pAlive;
     while (p) {
         n = p;
-        p = (cObj*) p->next;
+        p = (cObj*) p->pNext;
         func(n);
     }
 }
@@ -339,7 +339,7 @@ void objMove(cObj* p)
         return;
     }
     p->move();
-    ShapeMove(p->pInfo);
+    ShapeMove(p->pModelInfo);
     p->updateOldPos();
     if (pG->flags_68 & 0x10000000) {
         DrawOba(p);
@@ -348,7 +348,7 @@ void objMove(cObj* p)
         p->debugSkeletonDisp();
     }
     if ((int) p->be_flag < 0) {
-        p->drawAllBoundingBox(p->pInfo);
+        p->drawAllBoundingBox(p->pModelInfo);
     }
 }
 

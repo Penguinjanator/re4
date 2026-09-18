@@ -44,22 +44,22 @@ static inline void DbgButtonSetName(cDbgButtonBase* b, const char* s)
         u32 i;
 
         for (i = 0; i < b->nameLen - 2; i++) {
-            b->pName[i] = s[i];
+            b->m_pStr[i] = s[i];
         }
-        b->pName[i] = 0;
+        b->m_pStr[i] = 0;
     } else {
-        strcpy(b->pName, s);
+        strcpy(b->m_pStr, s);
     }
 }
 
 // File selector: a 0..99 file number with the name preview, "[OK]" on the second cursor row.
 class cDbgFileSelectWindow : public cDbgWindow {
 public:
-    int fileNo;            // 0x238
-    const char* pPath1;    // 0x23C  directory
-    const char* pPath2;    // 0x240  file stem
-    const char* pExt;      // 0x244
-    char fileName[0x100];  // 0x248  path1 + path2 + "%02d" + ext
+    int m_no;            // 0x238
+    const char* m_pPath;    // 0x23C  directory
+    const char* m_pFname;    // 0x240  file stem
+    const char* m_pExt;      // 0x244
+    char m_FnameBuf[0x100];  // 0x248  path1 + path2 + "%02d" + ext
 
     void Init(int wx, int wy, const char* name, const char* path1, const char* path2, const char* ext);
     virtual int LocalUpdate();
@@ -88,16 +88,16 @@ static inline void DbgFileSelectWindowAddButtons(cDbgFileSelectWindow* w)
 inline void cDbgFileSelectWindow::Init(int wx, int wy, const char* name, const char* path1, const char* path2,
                                        const char* ext)
 {
-    x = wx;
-    y = wy;
-    w = strlen(name);
-    h = 1;
-    cxMax = 1;
-    cyMax = 1;
+    m_px = wx;
+    m_py = wy;
+    m_wx = strlen(name);
+    m_wy = 1;
+    m_max_cx = 1;
+    m_max_cy = 1;
     pName = name;
     x1C = 0;
     x20 = 0;
-    num = 0;
+    m_nBut = 0;
     // COMPILER-DIFF: #13 -- the cDbgWindow::Init region-split recipe (db_toolbase.h): the original's
     // zero is a reload-materialised constant (no `li` in sched1, no death at its last store), so the
     // block is issued in source order with `li 1` before `li 0`. The three dead loop notes split our
@@ -106,18 +106,18 @@ inline void cDbgFileSelectWindow::Init(int wx, int wy, const char* name, const c
     // last (18 -> 0 words in t_event, t_esp_area, t_lightarea).
     do {
     } while (0);
-    pCur = 0;
-    fileName[0] = 0;
+    m_pCurrentBut = 0;
+    m_FnameBuf[0] = 0;
     do {
     } while (0);
-    pPath1 = path1;
-    pPath2 = path2;
-    pExt = ext;
-    pTop = 0;
+    m_pPath = path1;
+    m_pFname = path2;
+    m_pExt = ext;
+    m_pStartBut = 0;
     pBottom = 0;
     do {
     } while (0);
-    fileNo = 0;
+    m_no = 0;
 }
 
 inline int cDbgFileSelectWindow::LocalUpdate()
@@ -144,29 +144,29 @@ inline int cDbgFileSelectWindow::LocalUpdate()
         bcy++;
     }
     if (bcx < 0) {
-        bcx = cxMax;
+        bcx = m_max_cx;
     }
     if (bcy < 0) {
-        bcy = cyMax;
+        bcy = m_max_cy;
     }
-    if (bcx > cxMax) {
+    if (bcx > m_max_cx) {
         bcx = 0;
     }
-    if (bcy > cyMax) {
+    if (bcy > m_max_cy) {
         bcy = 0;
     }
     if (bcx != GetCx() || bcy != GetCy()) {
         cDbgButton* b;
 
         if (FindButton(bcx, bcy, &b)) {
-            pCur = b;
+            m_pCurrentBut = b;
         }
     }
     if (Joy[0].trg & 0x100) {
-        cDbgButton* c = pCur;
+        cDbgButton* c = m_pCurrentBut;
 
-        if (c && c->pFunc) {
-            c->pFunc(c);
+        if (c && c->m_pFuncExec) {
+            c->m_pFuncExec(c);
         }
     }
     ButtonAllUpdate();
@@ -182,15 +182,15 @@ inline int cDbgFileSelectWindow::LocalUpdate()
         if (Joy[0].on & 0x100) {
             step *= 10;
         }
-        fileNo += step;
-        if (fileNo < 0) {
-            fileNo = 0;
+        m_no += step;
+        if (m_no < 0) {
+            m_no = 0;
         }
-        if (fileNo > 99) {
-            fileNo = 99;
+        if (m_no > 99) {
+            m_no = 99;
         }
         if ((Joy[0].on & 0x800) && (Joy[0].trg & 0x100)) {
-            fileNo = 0;
+            m_no = 0;
         }
     }
     if (GetCy() == 1 && (Joy[0].trg & 0x100)) {
@@ -200,12 +200,12 @@ inline int cDbgFileSelectWindow::LocalUpdate()
         cDbgButton* nb;
 
         if (FindButton(0x10000, 0xFFFF, &nb)) {
-            sprintf(buf, "%s%02d%s", pPath2, fileNo, pExt);
-            sprintf(fileName, "%s%s%02d%s", pPath1, pPath2, fileNo, pExt);
+            sprintf(buf, "%s%02d%s", m_pFname, m_no, m_pExt);
+            sprintf(m_FnameBuf, "%s%s%02d%s", m_pPath, m_pFname, m_no, m_pExt);
             DbgButtonSetName(nb, buf);
         }
         if (FindButton(0, 0, &nb)) {
-            sprintf(buf, " %02d", fileNo);
+            sprintf(buf, " %02d", m_no);
             DbgButtonSetName(nb, buf);
         }
     }
@@ -235,21 +235,21 @@ public:
 // first). Region split + asm-emitted zero reproduce the first form, InitLast the last one.
 inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
 {
-    x = wx;
-    y = wy;
-    w = strlen(name);
-    h = 1;
-    cxMax = 1;
-    cyMax = 1;
+    m_px = wx;
+    m_py = wy;
+    m_wx = strlen(name);
+    m_wy = 1;
+    m_max_cx = 1;
+    m_max_cy = 1;
     pName = name;
     x1C = 0;
     x20 = 0;
-    num = 0;
+    m_nBut = 0;
     do { } while (0); // COMPILER-DIFF: #13 (sched region split)
     {
         cDbgButton* z;
-        asm("li %0,0" : "=r"(z) : "m"(w)); // COMPILER-DIFF: #13 (asm-emitted zero, reload-placed li)
-        pBottom = pTop = pCur = z;
+        asm("li %0,0" : "=r"(z) : "m"(m_wx)); // COMPILER-DIFF: #13 (asm-emitted zero, reload-placed li)
+        pBottom = m_pStartBut = m_pCurrentBut = z;
     }
     AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
     AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
@@ -257,18 +257,18 @@ inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
 
 inline void cDbgOkCancelWindow::InitLast(int wx, int wy, const char* name)
 {
-    x = wx;
-    y = wy;
-    w = strlen(name);
-    h = 1;
-    cxMax = 1;
-    cyMax = 1;
+    m_px = wx;
+    m_py = wy;
+    m_wx = strlen(name);
+    m_wy = 1;
+    m_max_cx = 1;
+    m_max_cy = 1;
     pName = name;
     x1C = 0;
     x20 = 0;
-    num = 0;
+    m_nBut = 0;
     do { } while (0); // COMPILER-DIFF: #13 (sched region split)
-    pBottom = pTop = pCur = 0;
+    pBottom = m_pStartBut = m_pCurrentBut = 0;
     AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
     AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
 }
@@ -298,27 +298,27 @@ inline int cDbgOkCancelWindow::LocalUpdate()
         bcy++;
     }
     if (bcx < 0) {
-        bcx = cxMax;
+        bcx = m_max_cx;
     }
     if (bcy < 0) {
-        bcy = cyMax;
+        bcy = m_max_cy;
     }
-    if (bcx > cxMax) {
+    if (bcx > m_max_cx) {
         bcx = 0;
     }
-    if (bcy > cyMax) {
+    if (bcy > m_max_cy) {
         bcy = 0;
     }
     if (bcx != GetCx() || bcy != GetCy()) {
         if (FindButton(bcx, bcy, &b)) {
-            pCur = b;
+            m_pCurrentBut = b;
         }
     }
     if (Joy[0].trg & 0x100) {
-        cDbgButton* c = pCur;
+        cDbgButton* c = m_pCurrentBut;
 
-        if (c && c->pFunc) {
-            c->pFunc(c);
+        if (c && c->m_pFuncExec) {
+            c->m_pFuncExec(c);
         }
     }
     ButtonAllUpdate();
@@ -371,18 +371,18 @@ public:
     {
         u32 i;
 
-        x = wx;
-        y = wy;
-        w = strlen(name);
+        m_px = wx;
+        m_py = wy;
+        m_wx = strlen(name);
         // One codeless RA-time insn between `stw x` and `stw pWork` (sched1 issues it at c11 beside
         // `stw w`; every earlier slot goes to a higher-priority insn): local-alloc then sees `pWork`
         // stored two suids later, so `work`'s qty (2 refs / 50) ranks below the `4` constant (2/48)
         // and takes r28 while `li 4` / `li 5` share r29 (ToolEspArea's e08-e98). Reading `name`
         // adds no ref to the ranked qtys; `"=m"(x)` is one true dependence and no store.
-        asm("" : "=m"(x) : "r"(name)); // COMPILER-DIFF: candidate (local-alloc qty order)
-        h = 1;
-        cxMax = 1;
-        cyMax = 1;
+        asm("" : "=m"(m_px) : "r"(name)); // COMPILER-DIFF: candidate (local-alloc qty order)
+        m_wy = 1;
+        m_max_cx = 1;
+        m_max_cy = 1;
         pName = name;
         x1C = 0;
         x20 = 0;
@@ -456,7 +456,7 @@ public:
     int GetCurrentNo()
     {
         if (pCur) {
-            return pCur->cy + top;
+            return pCur->m_cy + top;
         }
         return 0;
     }
@@ -492,14 +492,14 @@ public:
         if (pCur == 0) {
             return 0;
         }
-        return pCur->cx;
+        return pCur->m_cx;
     }
     virtual int GetCy()
     {
         if (pCur == 0) {
             return 0;
         }
-        return pCur->cy;
+        return pCur->m_cy;
     }
     virtual void SetCurrentBottomButton() { pCur = pBottom; }
     virtual void ButtonAllUpdate()
@@ -508,7 +508,7 @@ public:
 
         for (i = 0; i < num; i++) {
             cDbgButtonTemplate<T>* b = pButton[i];
-            int no = b->cy + top;
+            int no = b->m_cy + top;
 
             if (b) {
                 T* w = WorkPtr(no);
@@ -525,9 +525,9 @@ public:
             cDbgButtonTemplate<T>* b = pCur;
 
             if (b) {
-                int no = b->cy + top;
+                int no = b->m_cy + top;
 
-                if (b->cx == 0) {
+                if (b->m_cx == 0) {
                     if (IsWorkAlive(WorkPtr(no))) {
                         SetWorkAlive(WorkPtr(no), 0);
                     } else {
@@ -559,21 +559,21 @@ void cDbgEditWindow<T>::AddButton(int bx, int by, const char* name, int bcx, int
         pLog->err(0, 0, "AddButton(): new failed.");
         return;
     }
-    if (w < bx + strlen(name)) {
-        w = bx + strlen(name);
+    if (m_wx < bx + strlen(name)) {
+        m_wx = bx + strlen(name);
     }
-    if (h < by) {
-        h = by;
+    if (m_wy < by) {
+        m_wy = by;
     }
     if (pCur == 0) {
         pTop = pCur = pButton[num];
     }
     pBottom = pButton[num];
-    if (cxMax < bcx) {
-        cxMax = bcx;
+    if (m_max_cx < bcx) {
+        m_max_cx = bcx;
     }
-    if (cyMax < bcy) {
-        cyMax = bcy;
+    if (m_max_cy < bcy) {
+        m_max_cy = bcy;
     }
     num++;
 }
@@ -671,7 +671,7 @@ template <class T> int cDbgEditWindow<T>::FindButton(int bcx, int bcy, cDbgButto
 
     *out = 0;
     for (i = 0; i < num; i++) {
-        if (pButton[i]->cx == bcx && pButton[i]->cy == bcy) {
+        if (pButton[i]->m_cx == bcx && pButton[i]->m_cy == bcy) {
             *out = pButton[i];
             return 1;
         }
@@ -721,24 +721,24 @@ template <class T> int cDbgEditWindow<T>::LocalUpdate()
             bcy++;
         }
         if (bcx < 0) {
-            bcx = cxMax;
+            bcx = m_max_cx;
         }
-        if (bcx > cxMax) {
+        if (bcx > m_max_cx) {
             bcx = 0;
         }
         if (bcy < 0) {
             if (top != 0) {
                 top--;
             } else if (Joy[0].trg & 0x80008) {
-                top = numWork - cyMax - 1;
-                bcy = cyMax;
+                top = numWork - m_max_cy - 1;
+                bcy = m_max_cy;
             } else {
                 top = 0;
                 bcy = 0;
             }
         }
-        if (bcy > cyMax) {
-            u32 last = numWork - cyMax - 1;
+        if (bcy > m_max_cy) {
+            u32 last = numWork - m_max_cy - 1;
 
             if ((u32) top < last) {
                 top++;
@@ -747,7 +747,7 @@ template <class T> int cDbgEditWindow<T>::LocalUpdate()
                 bcy = 0;
             } else {
                 top = last;
-                bcy = cyMax;
+                bcy = m_max_cy;
             }
         }
         if (bcx != GetCx() || bcy != GetCy()) {
@@ -772,43 +772,43 @@ template <class T> void cDbgEditWindow<T>::LocalDisp()
     cDbgButtonTemplate<T>* cur;
 
     for (i = 0; i < num; i++) {
-        int no = pButton[i]->cy + top;
+        int no = pButton[i]->m_cy + top;
 
         if (pButton[i]) {
             int alive = IsWorkAlive(WorkPtr(no));
-            int by = y + 1;
+            int by = m_py + 1;
             cDbgButtonTemplate<T>* b = pButton[i];
-            int bx = x;
+            int bx = m_px;
 
             if (alive) {
-                eprintf2(8, 12, (bx + b->x) * 8, (by + b->y) * 14, 0x10, 0, b->pName);
+                eprintf2(8, 12, (bx + b->m_px) * 8, (by + b->m_py) * 14, 0x10, 0, b->m_pStr);
             } else {
-                eprintf2(8, 12, (bx + b->x) * 8, (by + b->y) * 14, 0x14, 0, b->pName);
+                eprintf2(8, 12, (bx + b->m_px) * 8, (by + b->m_py) * 14, 0x14, 0, b->m_pStr);
             }
         }
     }
     if (execMode == 0) {
         if (pCur) {
-            int alive = IsWorkAlive(WorkPtr(pCur->cy + top));
-            int by = y + 1;
-            int bx = x;
+            int alive = IsWorkAlive(WorkPtr(pCur->m_cy + top));
+            int by = m_py + 1;
+            int bx = m_px;
 
             cur = pCur;
             if (pG->flags_51E4 & 4) {
-                eprintf2(8, 12, (bx + cur->x - 1) * 8, (by + cur->y) * 14, 0, 0, ">");
+                eprintf2(8, 12, (bx + cur->m_px - 1) * 8, (by + cur->m_py) * 14, 0, 0, ">");
             }
             if (alive) {
-                eprintf2(8, 12, (bx + cur->x) * 8, (by + cur->y) * 14, 0, 0, cur->pName);
+                eprintf2(8, 12, (bx + cur->m_px) * 8, (by + cur->m_py) * 14, 0, 0, cur->m_pStr);
             } else {
-                eprintf2(8, 12, (bx + cur->x) * 8, (by + cur->y) * 14, 0x14, 0, cur->pName);
+                eprintf2(8, 12, (bx + cur->m_px) * 8, (by + cur->m_py) * 14, 0x14, 0, cur->m_pStr);
             }
             {
-                f32 fx = (f32) ((bx + cur->x) * 8);
+                f32 fx = (f32) ((bx + cur->m_px) * 8);
                 f32 fh = 14.0f;
                 f32 mgn = 2.0f;
                 f32 zero = 0.0f;
 
-                DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->y) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
+                DbgDrawBoxFill(fx - mgn, (f32) ((by + cur->m_py) * 14) - mgn, (f32) (cur->nameLen * 8) + zero,
                                fh + mgn, 0.7f, 0.7f, zero, 0.3f);
             }
         }
@@ -1127,11 +1127,11 @@ public:
     // the active window: title, single and double frame, then its own display
     void DispWindow(cDbgWindowBase* w)
     {
-        eprintf2(8, 12, w->x * 8, w->y * 14, 0x12, 0, w->pName);
-        DbgDrawBox(((f32) w->x - 0.5f) * 8.0f - 1.0f, (f32) (w->y * 14) - 1.0f, ((f32) w->w + 1.5f) * 8.0f + 2.0f,
+        eprintf2(8, 12, w->m_px * 8, w->m_py * 14, 0x12, 0, w->pName);
+        DbgDrawBox(((f32) w->m_px - 0.5f) * 8.0f - 1.0f, (f32) (w->m_py * 14) - 1.0f, ((f32) w->m_wx + 1.5f) * 8.0f + 2.0f,
                    14.0f, 0.7f, 0.7f, 0.7f, 0.45f);
-        DbgDrawBox(((f32) w->x - 0.5f) * 8.0f - 2.0f, (f32) (w->y * 14) - 2.0f, ((f32) w->w + 1.5f) * 8.0f + 4.0f,
-                   (f32) ((w->h + 2) * 14) + 8.0f, 0.6f, 0.6f, 0.6f, 0.7f);
+        DbgDrawBox(((f32) w->m_px - 0.5f) * 8.0f - 2.0f, (f32) (w->m_py * 14) - 2.0f, ((f32) w->m_wx + 1.5f) * 8.0f + 4.0f,
+                   (f32) ((w->m_wy + 2) * 14) + 8.0f, 0.6f, 0.6f, 0.6f, 0.7f);
         w->LocalDisp();
     }
 
@@ -1188,7 +1188,7 @@ public:
             } else {
                 r = WinUpdate(pLoad);
                 if (r == 0) {
-                    pSave->fileNo = pLoad->fileNo;
+                    pSave->m_no = pLoad->m_no;
                     if (pLoad->GetCy() == 1) {
                         pLoadOk->SetCurrentBottomButton();
                         mode = 6;
@@ -1201,7 +1201,7 @@ public:
         case 6:
             if (WinUpdate(pLoadOk) == 0) {
                 if (pLoadOk->GetCx() == 0) {
-                    LoadData(pLoad->fileName, pEdit->pWork, pEdit->numWork);
+                    LoadData(pLoad->m_FnameBuf, pEdit->pWork, pEdit->numWork);
                 }
                 mode = 0;
             }
@@ -1214,7 +1214,7 @@ public:
             } else {
                 r = WinUpdate(pSave);
                 if (r == 0) {
-                    pLoad->fileNo = pSave->fileNo;
+                    pLoad->m_no = pSave->m_no;
                     if (pSave->GetCy() == 1) {
                         pSaveOk->SetCurrentBottomButton();
                         mode = 7;
@@ -1227,7 +1227,7 @@ public:
         case 7:
             if (WinUpdate(pSaveOk) == 0) {
                 if (pSaveOk->GetCx() == 0) {
-                    SaveData(pSave->fileName, pEdit->pWork, pEdit->numWork);
+                    SaveData(pSave->m_FnameBuf, pEdit->pWork, pEdit->numWork);
                 }
                 mode = 0;
             }

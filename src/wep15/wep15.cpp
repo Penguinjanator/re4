@@ -29,7 +29,7 @@ void Wep15_init(cModel* m)
         pLog->err(0, 0, "Wep15_init() cObjMagnum CREATE FAILED");
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x49, 1);
@@ -49,13 +49,13 @@ void cObjMagnum::init(cModel* parent)
         pLog->err(0, 0, "cObjMagnum::init() failed.");
         return;
     }
-    sub2B4.atari.flags &= 0xFCFF;
+    sub2B4.atari.m_flag &= 0xFCFF;
     pParts->pParent = parent->getPartsPtr(0xA);
     {
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     PSet(wep.parent, parent);
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
@@ -69,7 +69,7 @@ void cObjMagnum::init(cModel* parent)
 void cObjMagnum::moveFire()
 {
     if (wep.step == 0) {
-        MotionSetCore(this, &this->mot, WEP_ARC_PTR(0x32), 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x32), 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         SndCall(2, 4, &pos, 0, 0, 0);
@@ -108,9 +108,9 @@ void cObjMagnum::moveReload()
             se = 0x18;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, 34.0f)) {
+    } else if (MotionCheckCrossFrame(&Motion, 34.0f)) {
         ItemMgr.reload();
     }
 }
@@ -134,7 +134,7 @@ void cObjMagnum::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x10));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x1B));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1C));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x1D));
@@ -143,7 +143,7 @@ void cObjMagnum::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x5E], WEP_ARC_PTR(0x20));
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x31));
     PSet(pl->pMotTbl[0x5B], WEP_ARC_PTR(0x30));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x8));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0x8));
     pl->setRightHand(1);
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
 }

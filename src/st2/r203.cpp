@@ -101,7 +101,7 @@ void R203Init()
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         if ((pG->flags_5018 & 0x04000000) == 0) {
             BitOn(pG->flags_5018, 0x04000000);
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);
         }
         r203_work.p->data = DC.setData(EvtMgr.NameChange("evd/r203s00.evd"));
@@ -237,12 +237,12 @@ static void r203_EventMeetAgain()
     m = SearchEmModule(0x11);
     SceEventStart(0);
     if (r203_work.p->data->waitLoadOk() == 1) {
-        MemorySwap(m->pArc, (u32) r203_work.p->data->addr, r203_work.p->data->size);
+        MemorySwap(m->pArc, (u32) r203_work.p->data->m_addr, r203_work.p->data->m_size);
         EvtMgr.SetEvt(m->pArc, 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r203_work.p->data->addr, r203_work.p->data->size);
+        MemorySwap(m->pArc, (u32) r203_work.p->data->m_addr, r203_work.p->data->m_size);
         r203_work.p->data->setCommand(4, 0, 0);
     }
     {
@@ -341,11 +341,11 @@ static void r203_StreamCheck()
 
 extern "C" void Evt_R203S00_Func(Event* e)
 {
-    if (e->funcMode == 1 && e->cut == 0 && e->frame == 0) {
+    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         void* mod;
 
         if (e->GetMod(&mod, "pl0400", 0, 0) == 1) {
-            ((cModel*) mod)->lightInfo.x50 = 2;
+            ((cModel*) mod)->LightInfo.x50 = 2;
         }
     }
 }

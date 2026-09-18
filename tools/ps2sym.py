@@ -1939,18 +1939,32 @@ def apply_plan(path, min_conf, kinds, only=None, skip=None):
         # keep the alignment of the trailing comment where possible
         lines[ln] = new_code + ("//" + com if com else "")
         taken[struct].add(pfield)
+        struct_names[struct].discard(old)  # the old name is free again (chained renames)
         applied.append((struct, old, pfield, ptype, conf, ln + 1))
     Path(path).write_text("\n".join(lines))
     return applied, skipped
 
 
-ERR_MEMBER = re.compile(r"^(\S+?):(\d+): `(?:class|struct|union) (\w+)' has no member named `(\w+)'")
+ERR_MEMBER = re.compile(r"^(\S+?):(\d+): `(?:class|struct|union) [\w:]*?(\w+)' has no member named `(\w+)'")
 ERR_UNDECL = re.compile(r"^(\S+?):(\d+): `(\w+)' undeclared")
 ERR_CALL = re.compile(r"^(\S+?):(\d+): no matching function for call to `(\w+)::(\w+) \(")
 ERR_CTX = re.compile(r"^(\S+?): In (?:method|function|member function) `.*?\b(\w+)::(?:operator\s*[^\s(]+|[~\w]+)\s*\(")
 
 
-def fix_errors(errors_text, renames):
+
+def subn_code(pattern, repl, code, count=0):
+    """re.subn restricted to the parts of `code` outside string / char literals"""
+    parts = re.split(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')', code)
+    total = 0
+    for i in range(0, len(parts), 2):
+        if count and total >= count:
+            break
+        parts[i], n = re.subn(pattern, repl, parts[i], count=(count - total) if count else 0)
+        total += n
+    return "".join(parts), total
+
+
+def fix_errors(errors_text, renames, bare=True):
     """Rename use sites at the exact file:line the compiler reported. `renames` maps
     (struct, old) -> new. Errors are `class X' has no member named `old' (struct known) or
     `old' undeclared inside a method (struct from the preceding In method `X::f(...)' line).
@@ -1972,17 +1986,17 @@ def fix_errors(errors_text, renames):
             continue
         m = ERR_MEMBER.match(line)
         if m:
-            by_file[m.group(1)][(int(m.group(2)), m.group(4))] = m.group(3)
+            by_file[m.group(1)][(int(m.group(2)), m.group(4))] = (m.group(3), "member")
             unit_of.setdefault(m.group(1), set()).add(unit)
             continue
         m = ERR_UNDECL.match(line)
         if m:
-            by_file[m.group(1)][(int(m.group(2)), m.group(3))] = ctx_struct
+            by_file[m.group(1)][(int(m.group(2)), m.group(3))] = (ctx_struct, "undecl")
             unit_of.setdefault(m.group(1), set()).add(unit)
             continue
         m = ERR_CALL.match(line)
         if m:
-            by_file[m.group(1)][(int(m.group(2)), m.group(4))] = m.group(3)
+            by_file[m.group(1)][(int(m.group(2)), m.group(4))] = (m.group(3), "member")
             unit_of.setdefault(m.group(1), set()).add(unit)
     by_old = defaultdict(set)
     for (st, old), new in renames.items():
@@ -2057,17 +2071,17 @@ def fix_errors(errors_text, renames):
                 r = r[0]
                 groups[r[0]][(r[1], old)] = st
             for src, sites2 in groups.items():
-                fx, un = fix_errors_file(src, sites2, renames, by_old)
+                fx, un = fix_errors_file(src, sites2, renames, by_old, bare)
                 fixed += fx
                 unresolved += un
             continue
-        fx, un = fix_errors_file(f, sites, renames, by_old)
+        fx, un = fix_errors_file(f, sites, renames, by_old, bare)
         fixed += fx
         unresolved += un
     return fixed, unresolved
 
 
-def fix_errors_file(f, sites, renames, by_old):
+def fix_errors_file(f, sites, renames, by_old, bare=True):
     fixed = []
     unresolved = []
     if True:
@@ -2077,7 +2091,14 @@ def fix_errors_file(f, sites, renames, by_old):
             return fixed, unresolved
         lines = p.read_text().split("\n")
         bare_done = set()
-        for (ln, old), st in sorted(sites.items()):
+        reverted = defaultdict(set)  # line -> char offsets of member accesses reverted this pass
+
+        def order(item):
+            (ln, old), (st, kind) = item
+            is_revert = renames.get((st, old)) is None and not by_old.get(old) and any(nw == old for nw in renames.values())
+            return (ln, 0 if is_revert else 1, old)
+
+        for (ln, old), (st, kind) in sorted(sites.items(), key=order):
             new = renames.get((st, old))
             if new is None:
                 cands = by_old.get(old, set())
@@ -2090,11 +2111,17 @@ def fix_errors_file(f, sites, renames, by_old):
                     if len({o for _, o in back}) == 1:
                         o = back[0][1]
                         code, com = split_comment(lines[ln - 1])
-                        occ = list(re.finditer(r"\b" + re.escape(old) + r"\b", code))
+                        # member error: the fixer renames left to right, so the wrong one is the
+                        # first `.new`; undeclared: the last bare use
+                        if kind == "member":
+                            occ = list(re.finditer(r"(?<=[.>])\s*" + re.escape(old) + r"\b", strip_strings(code)))[:1]
+                        else:
+                            occ = list(re.finditer(r"(?<![\w.>:])" + re.escape(old) + r"\b", strip_strings(code)))
                         if occ:
                             m0 = occ[-1]
                             code = code[: m0.start()] + o + code[m0.end():]
                             lines[ln - 1] = code + ("//" + com if com else "")
+                            reverted[ln].add(m0.start())
                             fixed.append((f, ln, old, o, "revert"))
                             continue
                     unresolved.append((f, ln, old, f"not in the applied renames (struct {st})"))
@@ -2104,21 +2131,59 @@ def fix_errors_file(f, sites, renames, by_old):
                     continue
             code, com = split_comment(lines[ln - 1])
             # one occurrence per pass: another struct's same-named field on the line stays valid
-            # and is never reported, so it is never renamed
-            new_code, n = re.subn(r"\b" + re.escape(old) + r"\b", new, code, count=1)
+            # and is never reported, so it is never renamed. A member error only ever renames a
+            # `.old` / `->old` access; an undeclared error only a bare use (locals and parameters
+            # of the same name on the line are left alone)
+            if kind == "member":
+                # skip the occurrence a revert on this line just restored: it belongs to the other struct
+                n = 0
+                new_code = code
+                for m0 in re.finditer(r"(?:\.|->)\s*(" + re.escape(old) + r")\b", strip_strings(code)):
+                    if m0.start(1) in reverted.get(ln, ()):
+                        continue
+                    new_code = code[: m0.start(1)] + new + code[m0.end(1):]
+                    n = 1
+                    break
+            else:
+                new_code, n = subn_code(r"(?<![\w.>:])" + re.escape(old) + r"\b", new, code, count=1)
             if n == 0:
                 # the use is inside a macro expanded on this line: rename it in the #define
                 # of this file (a macro of a header would have failed in every unit anyway)
+                # Only the macros named on the line are patched (transitively: macros they use), and a
+                # member error only patches `.old` / `->old` accesses in them.
                 nm = 0
-                in_macro = False
-                for k, l in enumerate(lines):
-                    if re.match(r"^\s*#\s*define\b", l):
-                        in_macro = True
-                    if in_macro and re.search(r"\b" + re.escape(old) + r"\b", l):
-                        lines[k], n2 = re.subn(r"\b" + re.escape(old) + r"\b", new, l)
-                        nm += n2
-                    if in_macro and not l.rstrip().endswith("\\"):
-                        in_macro = False
+                macro_of = {}
+                k = 0
+                while k < len(lines):
+                    mdef = re.match(r"^\s*#\s*define\s+(\w+)", lines[k])
+                    if mdef:
+                        start = k
+                        while k < len(lines) - 1 and lines[k].rstrip().endswith("\\"):
+                            k += 1
+                        macro_of[mdef.group(1)] = (start, k)
+                    k += 1
+                wanted = set(re.findall(r"\b([A-Za-z_]\w*)\b", code)) & set(macro_of)
+                seen = set()
+                while wanted - seen:
+                    nmac = next(iter(wanted - seen))
+                    seen.add(nmac)
+                    a_, b_ = macro_of[nmac]
+                    body = "\n".join(lines[a_ : b_ + 1])
+                    wanted |= set(re.findall(r"\b([A-Za-z_]\w*)\b", body)) & set(macro_of)
+                pat = (r"((?:\.|->)\s*)" + re.escape(old) + r"\b") if kind == "member" else (r"(?<![\w.>:])()" + re.escape(old) + r"\b")
+                total = sum(len(re.findall(pat, split_comment(lines[k])[0])) for nmac in seen for k in range(*[x + y for x, y in zip(macro_of[nmac], (0, 1))]))
+                if total > 1:
+                    # several accesses in the macro body may belong to different structs: by hand
+                    unresolved.append((f, ln, old, f"macro body has {total} `{old}' accesses; rename by hand"))
+                    continue
+                for nmac in seen:
+                    a_, b_ = macro_of[nmac]
+                    for k in range(a_, b_ + 1):
+                        c2, cm2 = split_comment(lines[k])
+                        c3, n2 = subn_code(pat, r"\g<1>" + new, c2)
+                        if n2:
+                            lines[k] = c3 + ("//" + cm2 if cm2 else "")
+                            nm += n2
                 if nm == 0:
                     unresolved.append((f, ln, old, "use not found on the line"))
                     continue
@@ -2130,20 +2195,35 @@ def fix_errors_file(f, sites, renames, by_old):
             # function, so rename every bare (not member-access) use in the file at once; a bare
             # use can only be that struct's field or another struct's same-named one, which the
             # next compile would report as `has no member named new'
-            if sites[(ln, old)] is not None and re.search(r"(?<![\w.>:])" + re.escape(old) + r"\b", code) and old not in bare_done:
-                bare_done.add(old)
+            # The pass is scoped to the enclosing function body (`{` .. `}` at column 0) and skipped
+            # when that function declares a local or parameter of the same name.
+            if bare and kind == "undecl" and st is not None and re.search(r"(?<![\w.>:])" + re.escape(old) + r"\b", code):
+                start = ln - 1
+                while start > 0 and not lines[start].startswith("{"):
+                    start -= 1
+                end = ln - 1
+                while end < len(lines) - 1 and not lines[end].startswith("}"):
+                    end += 1
+                if (start, old) in bare_done:
+                    continue
+                bare_done.add((start, old))
+                decl = re.compile(r"^\s*(?:const\s+|static\s+|struct\s+|class\s+|register\s+|volatile\s+)*[A-Za-z_][\w:<>]*\s*[\*&]*\s+[\*&]*" + re.escape(old) + r"\s*(?:\[[^\]]*\]\s*)*(?:;|:\s*\d+|,|=|\))")
+                sig = lines[start - 1] if start > 0 else ""
+                decl_new = re.compile(r"^\s*(?:const\s+|static\s+|struct\s+|class\s+|register\s+|volatile\s+)*[A-Za-z_][\w:<>]*\s*[\*&]*\s+[\*&]*" + re.escape(new) + r"\s*(?:\[[^\]]*\]\s*)*(?:;|:\s*\d+|,|=|\))")
+                if re.search(r"[(,]\s*(?:const\s+)?[\w:<>]+\s*[\*&]*\s*(" + re.escape(old) + "|" + re.escape(new) + r")\s*(?:\[[^\]]*\])?\s*[,)=]", sig) or any(
+                    decl.match(split_comment(l)[0]) or decl_new.match(split_comment(l)[0]) for l in lines[start : end + 1]
+                ):
+                    fixed.append((f, ln, old, new, "bare skipped: local/parameter of that name in the function"))
+                    continue
                 nb = 0
-                decl = re.compile(r"^\s*(?:const\s+|static\s+|struct\s+|class\s+)*[A-Za-z_][\w:<>]*\s*[\*&]*\s+[\*&]*" + re.escape(old) + r"\s*(?:\[[^\]]*\]\s*)*(?:;|:\s*\d+|,|=)")
-                for k, l in enumerate(lines):
-                    c2, cm2 = split_comment(l)
-                    if decl.match(c2) or re.match(r"^\s*#\s*include", c2):
-                        continue
-                    c3, n3 = re.subn(r"(?<![\w.>:])" + re.escape(old) + r"\b", new, c2)
+                for k in range(start, end + 1):
+                    c2, cm2 = split_comment(lines[k])
+                    c3, n3 = subn_code(r"(?<![\w.>:])" + re.escape(old) + r"\b", new, c2)
                     if n3:
                         lines[k] = c3 + ("//" + cm2 if cm2 else "")
                         nb += n3
                 if nb:
-                    fixed.append((f, 0, old, new, f"bare x{nb}"))
+                    fixed.append((f, ln, old, new, f"bare x{nb} in function at line {start}"))
         p.write_text("\n".join(lines))
     return fixed, unresolved
 
@@ -2162,6 +2242,7 @@ def main():
     ap.add_argument("--map", help="tsv of applied renames (struct old new) used by --fix-errors")
     ap.add_argument("--apply-params", action="store_true", help="rename placeholder parameters per the param plan")
     ap.add_argument("--files", help="comma list of source files to restrict --apply-params to")
+    ap.add_argument("--no-bare", action="store_true", help="--fix-errors: only rename the reported line, never every bare use of the name in the file")
     args = ap.parse_args()
     if args.apply_params:
         rows = report_params(None)
@@ -2188,7 +2269,7 @@ def main():
                 continue
             struct, old, new = line.split("\t")[:3]
             renames[(struct, old)] = new
-        fixed, unresolved = fix_errors(Path(args.fix_errors).read_text(), renames)
+        fixed, unresolved = fix_errors(Path(args.fix_errors).read_text(), renames, not args.no_bare)
         for x in fixed:
             print("fixed\t" + "\t".join(str(v) for v in x))
         for x in unresolved:

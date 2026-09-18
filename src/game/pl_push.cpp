@@ -26,7 +26,7 @@ int cPlPush::catchCheck()
 
     bak = pl->pos;
     AddSpeed(pl, &sp);
-    pTarget = 0;
+    m_Target = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
         if ((em->be_flag & 0x201) != 1) {
@@ -47,45 +47,45 @@ int cPlPush::catchCheck()
         pos.x = em->pos.x;
         pos.y = em->pos.y + 300.0f;
         pos.z = em->pos.z;
-        if (SatMgr.hitCheck(&pPl->getPartsPtr(0)->worldPos, &pos, 0, 0, 0, 0x800) != 0) {
+        if (SatMgr.hitCheck(&pPl->getPartsPtr(0)->world, &pos, 0, 0, 0, 0x800) != 0) {
             continue;
         }
         if (At_em_rect_rect_ck(pPl, em)) {
-            pTarget = em;
+            m_Target = em;
             break;
         }
     }
     pl->pos = bak;
-    if (pTarget == 0) {
+    if (m_Target == 0) {
         return 0;
     }
 
-    PSVECSubtract(&pl->pos, &pTarget->pos, &pos);
+    PSVECSubtract(&pl->pos, &m_Target->pos, &pos);
     rot.x = 0.0f;
-    rot.y = -pTarget->rot.y;
+    rot.y = -m_Target->ang.y;
     rot.z = 0.0f;
     RotVector(&pos, &rot, &pos);
     {
-        f32 sx = pTarget->atari.rectX;
-        f32 sz = pTarget->atari.rectZ;
+        f32 sx = m_Target->atari.m_radius;
+        f32 sz = m_Target->atari.m_radius2;
 
-        dir = 4;
+        m_Dir = 4;
         if (pos.z < sz && pos.z > -sz) {
             if (pos.x > sx) {
-                dir = 3;
+                m_Dir = 3;
             } else if (pos.x < -sx) {
-                dir = 1;
+                m_Dir = 1;
             }
         }
         if (pos.x < sx && pos.x > -sx) {
             if (pos.z > sz) {
-                dir = 0;
+                m_Dir = 0;
             } else if (pos.z < -sz) {
-                dir = 2;
+                m_Dir = 2;
             }
         }
     }
-    if (dir == 4) {
+    if (m_Dir == 4) {
         return 0;
     }
     x8 = 0;
@@ -94,9 +94,9 @@ int cPlPush::catchCheck()
 
 void cPlPush::pushTargetInit(u8 flag)
 {
-    PlArc* arc = pG->pPlArc;
+    PlArc* arc = pG->pPlayer;
 
-    MotionSetCore(pTarget, &pTarget->pMotion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
+    MotionSetCore(m_Target, &m_Target->pMotion, PL_ARC_PTR(arc, 0x59), 0, 0, 5, 0);
     x9 = flag;
 }
 
@@ -105,73 +105,73 @@ int cPlPush::pushTarget()
     int ret;
     cModel* t;
 
-    switch (dir) {
+    switch (m_Dir) {
     case 0:
-        pTarget->rot.y += PI;
+        m_Target->ang.y += PI;
         break;
     case 1:
-        pTarget->rot.y += PI * 0.5f;
+        m_Target->ang.y += PI * 0.5f;
         break;
     case 3:
-        pTarget->rot.y += PI * 1.5f;
+        m_Target->ang.y += PI * 1.5f;
         break;
     case 2:
     case 4:
         break;
     }
-    pTarget->rot.y = LIMIT_ANGLE(pTarget->rot.y);
-    RotMatrix(pTarget->mat, &pTarget->rot);
-    MotionMove(pTarget, 0);
-    switch (dir) {
+    m_Target->ang.y = LIMIT_ANGLE(m_Target->ang.y);
+    RotMatrix(m_Target->mat, &m_Target->ang);
+    MotionMove(m_Target, 0);
+    switch (m_Dir) {
     case 0:
-        pTarget->rot.y -= PI;
+        m_Target->ang.y -= PI;
         break;
     case 1:
-        pTarget->rot.y -= PI * 0.5f;
+        m_Target->ang.y -= PI * 0.5f;
         break;
     case 3:
-        pTarget->rot.y -= PI * 1.5f;
+        m_Target->ang.y -= PI * 1.5f;
         break;
     case 2:
     case 4:
         break;
     }
     ret = 0;
-    pTarget->rot.y = LIMIT_ANGLE(pTarget->rot.y);
-    if (((cEmRack*) pTarget)->adjustRange(dir)) {
+    m_Target->ang.y = LIMIT_ANGLE(m_Target->ang.y);
+    if (((cEmRack*) m_Target)->adjustRange(m_Dir)) {
         ret = 1;
     }
-    EmAtCheck(pTarget);
+    EmAtCheck(m_Target);
     if (scrHitCheck()) {
         ret = 1;
     }
-    t = pTarget;
-    RotMatrix(t->worldMat, &t->rot);
-    TransMatrix(t->worldMat, &t->pos);
-    ScaleMatrix(t->worldMat, &t->scale);
-    PSMTXCopy(t->worldMat, t->mat);
-    pTarget->partsWorldCalc();
+    t = m_Target;
+    RotMatrix(t->l_mat, &t->ang);
+    TransMatrix(t->l_mat, &t->pos);
+    ScaleMatrix(t->l_mat, &t->scale);
+    PSMTXCopy(t->l_mat, t->mat);
+    m_Target->partsWorldCalc();
     if (ret == 1) {
-        pTarget->pMotion = 0;
+        m_Target->pMotion = 0;
     }
     return ret;
 }
 
 void cPlPush::stopTarget()
 {
-    pTarget->pMotion = 0;
+    m_Target->pMotion = 0;
 }
 
 void cPlPush::getWHY(f32* w, f32* h, f32* y)
 {
-    f32 sz = pTarget->atari.rectZ;
-    f32 sx = pTarget->atari.rectX;
+    f32 sz = m_Target->atari.m_radius2;
+    f32 sx = m_Target->atari.m_radius;
     u8 d;
 
     if (x9 & 1) {
-        switch (dir) {
+        switch (m_Dir) {
         default:
-            pLog->err(0, 0, "cPlPush::getWHY() DIR ERR %d", dir);
+            pLog->err(0, 0, "cPlPush::getWHY() DIR ERR %d", m_Dir);
         case 0:
             d = 2;
             break;
@@ -186,28 +186,28 @@ void cPlPush::getWHY(f32* w, f32* h, f32* y)
             break;
         }
     } else {
-        d = dir;
+        d = m_Dir;
     }
     switch (d) {
     case 0:
         *w = sx;
         *h = sz;
-        *y = pTarget->rot.y + PI;
+        *y = m_Target->ang.y + PI;
         break;
     case 1:
         *w = sz;
         *h = sx;
-        *y = pTarget->rot.y + PI * 0.5f;
+        *y = m_Target->ang.y + PI * 0.5f;
         break;
     case 2:
         *w = sx;
         *h = sz;
-        *y = pTarget->rot.y;
+        *y = m_Target->ang.y;
         break;
     case 3:
         *w = sz;
         *h = sx;
-        *y = pTarget->rot.y + PI * 1.5f;
+        *y = m_Target->ang.y + PI * 1.5f;
         break;
     }
     *y = LIMIT_ANGLE(*y);
@@ -221,14 +221,14 @@ int cPlPush::scrHitCheck()
     int ret;
 
     getWHY(&w, &h, &y);
-    if (emSandCheck(&pTarget->pos, w, h, y)) {
+    if (emSandCheck(&m_Target->pos, w, h, y)) {
         return 1;
     }
     ret = 0;
-    if (scrHitCheckSub(&pTarget->pos, w, h, y, 1.0f)) {
+    if (scrHitCheckSub(&m_Target->pos, w, h, y, 1.0f)) {
         ret = 1;
     }
-    if (scrHitCheckSub(&pTarget->pos, w, h, y, -1.0f)) {
+    if (scrHitCheckSub(&m_Target->pos, w, h, y, -1.0f)) {
         ret = 1;
     }
     return ret;
@@ -334,30 +334,30 @@ int cPlPush::emSandCheck(Vec* pos, f32 w, f32 h, f32 y)
 
 int cPlPush::plAdjust()
 {
-    cEm* t = pTarget;
+    cEm* t = m_Target;
     f32 ang;
 
     if (t == 0) {
         return 0;
     }
-    switch (dir) {
+    switch (m_Dir) {
     case 0:
-        ang = t->rot.y + PI;
+        ang = t->ang.y + PI;
         break;
     case 1:
-        ang = t->rot.y + PI * 0.5f;
+        ang = t->ang.y + PI * 0.5f;
         break;
     case 2:
-        ang = t->rot.y;
+        ang = t->ang.y;
         break;
     case 3:
-        ang = t->rot.y + PI * 1.5f;
+        ang = t->ang.y + PI * 1.5f;
         break;
     default:
-        pLog->err(0, 0, "cPlPush::plAdjust() DIR ERR %d", dir);
+        pLog->err(0, 0, "cPlPush::plAdjust() DIR ERR %d", m_Dir);
         return 0;
     }
-    pPl->rot.y += Muku2(pPl->rot.y, ang, PI / 12.0f);
+    pPl->ang.y += Muku2(pPl->ang.y, ang, PI / 12.0f);
     return 1;
 }
 

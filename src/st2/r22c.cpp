@@ -449,7 +449,7 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
-#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 void R22cInit()
 {
@@ -560,7 +560,7 @@ static void r22c_ShootingStar()
     pos.y = 9000.0f;
     pos.z = -25337.0f;
     o->setPos(&pos);
-    o->modelInit(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20));
+    o->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20));
     EstSet((int) o, -1, 0, 0, 1, 6, 0, 0, (u32) o, 0);
     SceSleep(10);
     pos.x = -3951.0f;
@@ -801,7 +801,7 @@ int weaponSelect(int sel)
             SndCall(0, 5, 0, 0, 0, 0);
         }
     }
-    wep = pG->wep_no;
+    wep = pG->weapon_no;
     switch (sel) {
     case 1:
         if ((int) pG->flags_174 >= 0) {
@@ -844,8 +844,8 @@ int weaponSelect(int sel)
 
 void itemSave()
 {
-    r22c_work.p->wepNo = pG->wep_no;
-    r22c_work.p->wepType = pG->wep_type;
+    r22c_work.p->wepNo = pG->weapon_no;
+    r22c_work.p->wepType = pG->weapon_type;
     pG->flags_174 |= 0x80000000;
     SceAtSetEnable(9, 0);
     ((cEmDoor*) r22c_work.p->door[0])->setNormal();
@@ -1053,7 +1053,7 @@ static void (*r22c_shootFunc[5])() = {shootInit, shootReady, shootMain, shootRes
 // Task: the shooting game.
 static void r22c_startShootingGame()
 {
-    SndCall(6, 5, &pPL->pPartsHead->worldPos, 0, 0, 0);
+    SndCall(6, 5, &pPL->pList->world, 0, 0, 0);
     pG->flags_174 |= 0x20000000;
     if (Joy[0].on & 0x400) {
         r22c_checkGameLevel();
@@ -1091,8 +1091,8 @@ static void shootInit()
     r22c_work.p->ageSum = zero;
     r22c_work.p->cnt46 = zero;
     r22c_work.p->cnt47 = zero;
-    U32Set(r22c_work.p->shotHit, pG->shotHit2);
-    U32Set(r22c_work.p->shotTotal, pG->shotTotal2);
+    U32Set(r22c_work.p->shotHit, pG->g_hit_cnt);
+    U32Set(r22c_work.p->shotTotal, pG->g_shot_cnt);
     r22c_work.p->effTimer = zero;
     r22c_work.p->effFlags = zero;
     LightMgr.onKind(1);
@@ -1335,7 +1335,7 @@ int countMark()
     int n = 0;
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->next) {
+    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
         if (em->isAlive() && em->id == 0x3E && em->hp > 0) {
             switch (em->type) {
             case 0:
@@ -1418,7 +1418,7 @@ void deleteAllMark()
 {
     cEm* em;
 
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->next) {
+    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
         if (em->id == 0x3E && em->type <= 9 && em->hp > 0) {
             ((cEmMark*) em)->setDown();
         }
@@ -1520,11 +1520,11 @@ static void r22cGateCtrl()
             if (up->pos.x < lim) {
                 up->pos.x += spd;
                 if (open == 0) {
-                    SndCall(6, 3, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                    SndCall(6, 3, &pPL->pList->world, 0, 0, 0);
                     open = 1;
                 }
             } else if (open != 0) {
-                SndCall(6, 4, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                SndCall(6, 4, &pPL->pList->world, 0, 0, 0);
                 open = 0;
                 up->pos.x = lim;
             }
@@ -1535,11 +1535,11 @@ static void r22cGateCtrl()
             if (up->pos.x > 0.0f) {
                 up->pos.x -= spd;
                 if (open == 0) {
-                    SndCall(6, 3, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                    SndCall(6, 3, &pPL->pList->world, 0, 0, 0);
                     open = 1;
                 }
             } else if (open != 0) {
-                SndCall(6, 4, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                SndCall(6, 4, &pPL->pList->world, 0, 0, 0);
                 open = 0;
                 up->pos.x = 0.0f;
             }
@@ -1721,12 +1721,12 @@ void ResultScreen::highscore(int score)
         IdUnit* u = IdSys.unitPtr(i + 1, 0x28);
 
         if (score == 0 && digit[i] == 0 && i != 0) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
             score = 1;
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = digit[i];
+            u->texNo = digit[i];
         }
     }
 }
@@ -1759,8 +1759,8 @@ int ResultScreen::move(int flag)
     u0 = IdSys.unitPtr(0, 0x28);
     u3 = IdSys.unitPtr(3, 0x28);
     if (flag != 0) {
-        u0->dir |= 0xF;
-        u3->dir |= 0xF;
+        u0->rev_flag |= 0xF;
+        u3->rev_flag |= 0xF;
         state = 1;
     }
     if (state != 0) {
@@ -1773,19 +1773,19 @@ int ResultScreen::move(int flag)
     n = r22c_work.p->hits;
     u = IdSys.unitPtr(1, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     n /= 10;
     u = IdSys.unitPtr(2, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     n = r22c_work.p->total;
     u = IdSys.unitPtr(0x11, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     n /= 10;
     u = IdSys.unitPtr(0x12, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     n = r22c_work.p->score;
     for (i = 0; i < 6; i++) {
         digit[i] = n % 10;
@@ -1795,12 +1795,12 @@ int ResultScreen::move(int flag)
     for (i = 5; i >= 0; i--) {
         u = IdSys.unitPtr(i + 0x21, 0x28);
         if (on == 0 && digit[i] == 0 && i != 0) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
             on = 1;
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = digit[i];
+            u->texNo = digit[i];
         }
     }
     sum = 0;
@@ -1810,23 +1810,23 @@ int ResultScreen::move(int flag)
     n = sum;
     u = IdSys.unitPtr(0x31, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     n /= 10;
     u = IdSys.unitPtr(0x32, 0x28);
     u->tex_flag |= 2;
-    u->no = n % 10;
+    u->texNo = n % 10;
     switch (r22c_work.p->capId) {
     case 0xFFFF:
-        IdSys.unitPtr(0xFD, 0x28)->flags &= ~8;
-        IdSys.unitPtr(0xFE, 0x28)->flags &= ~8;
+        IdSys.unitPtr(0xFD, 0x28)->be_flag &= ~8;
+        IdSys.unitPtr(0xFE, 0x28)->be_flag &= ~8;
         break;
     case 0xE3:
-        IdSys.unitPtr(0xFD, 0x28)->flags &= ~8;
-        IdSys.unitPtr(0xFE, 0x28)->flags |= 8;
+        IdSys.unitPtr(0xFD, 0x28)->be_flag &= ~8;
+        IdSys.unitPtr(0xFE, 0x28)->be_flag |= 8;
         break;
     default:
-        IdSys.unitPtr(0xFD, 0x28)->flags |= 8;
-        IdSys.unitPtr(0xFE, 0x28)->flags &= ~8;
+        IdSys.unitPtr(0xFD, 0x28)->be_flag |= 8;
+        IdSys.unitPtr(0xFE, 0x28)->be_flag &= ~8;
         break;
     }
     return ret;
@@ -1902,7 +1902,7 @@ void ScoreSet(int pt, Vec* pos)
     }
     r22c_work.p->scoreTimer[slot] = 30;
     type = slot + 0x40;
-    r22c_work.p->score2.setI(ROOM_ARC_PTR(pGS->pRoomArc, 0x21), 0xFF, type, 0x13, 6, 0);
+    r22c_work.p->score2.setI(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xFF, type, 0x13, 6, 0);
     u = r22c_work.p->score2.unitPtrI(0, type);
     v = *pos;
     GetScreenPos(&v, &scr);
@@ -1913,14 +1913,14 @@ void ScoreSet(int pt, Vec* pos)
         IdUnit* m;
 
         pt = -pt;
-        r22c_work.p->score2.unitPtrI(0xFE, type)->flags &= ~8;
+        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag &= ~8;
         m = r22c_work.p->score2.unitPtrI(0xFD, type);
         u->col0[0] = m->col0[0];
         u->col0[1] = m->col0[1];
         u->col0[2] = m->col0[2];
         u->col0[3] = m->col0[3];
     } else {
-        r22c_work.p->score2.unitPtrI(0xFE, type)->flags |= 8;
+        r22c_work.p->score2.unitPtrI(0xFE, type)->be_flag |= 8;
     }
     d = digit;
     {
@@ -1949,9 +1949,9 @@ void ScoreSet(int pt, Vec* pos)
 
         if (i - n >= 0) {
             du->tex_flag = 2;
-            du->no = d[i - n];
+            du->texNo = d[i - n];
         } else {
-            du->flags &= ~8;
+            du->be_flag &= ~8;
         }
     }
 }

@@ -86,44 +86,44 @@ struct CardStr {
 
 class cCard {
 public:
-    u32 useMemSize;      // 0x000  heap range parked in `swap`
-    u8 mode;             // 0x004  state (row of the MainLoop table)
-    u8 step;             // 0x005
-    u8 sub;              // 0x006  async sub-step of the CARD helpers
-    u8 sub2;             // 0x007
-    u32 saveFlags170;    // 0x008  pG->flags_170 while the card screen runs
-    u32 saveFlags58;     // 0x00C  pG->flags_58
-    u32 flag;            // 0x010  bit 0: file written, bit 1: file list changed
+    u32 m_NeedMemSize;      // 0x000  heap range parked in `swap`
+    u8 m_Rno0;             // 0x004  state (row of the MainLoop table)
+    u8 m_Rno1;             // 0x005
+    u8 m_Rno2;              // 0x006  async sub-step of the CARD helpers
+    u8 m_Rno3;             // 0x007
+    u32 m_SPFbak;    // 0x008  pG->flags_170 while the card screen runs
+    u32 m_DPFbak;     // 0x00C  pG->flags_58
+    u32 m_Status;            // 0x010  bit 0: file written, bit 1: file list changed
     s32 type;            // 0x014  0 load, 1 save, 2 first check
     s32 isSystem;        // 0x018  saveMain: 1 = writing the system file
-    u8 slot;             // 0x01C
-    s8 fileNo;           // 0x01D  0..19
+    u8 m_SlotNo;             // 0x01C
+    s8 m_SaveNo;           // 0x01D  0..19
     u8 pad_1E;
-    u8 retry;            // 0x01F
-    s32 errCode;         // 0x020  CARD result / -0x2xx game error shown by errorDisp
+    u8 m_RetryCtr;            // 0x01F
+    s32 m_ErrCode;         // 0x020  CARD result / -0x2xx game error shown by errorDisp
     u8 pad_24[4];
     CardSlot slotw[3];   // 0x028
     u8* pSaveBuf;        // 0x310
     u32 saveBufSize;     // 0x314  0xEAFC
-    u32 saveBlocks;      // 0x318  8
-    u8* pInfoBuf;        // 0x31C  20 * 0x200 save headers
+    u32 m_SaveSize;      // 0x318  8
+    u8* m_pInfoAddr;        // 0x31C  20 * 0x200 save headers
     u8* pInfo[20];       // 0x320
     u8* pSysBuf;         // 0x370
     u32 sysBufSize;      // 0x374  0x1E7C
-    u32 sysBlocks;       // 0x378  1
+    u32 m_SysSize;       // 0x378  1
     struct CardArc* pSubData;  // 0x37C  sub screen data archive (SndMem.sub_adr)
-    void* pIdData;       // 0x380  ss/cmn/save_?.dat
-    s32 timer;           // 0x384
-    s32 bgmTimer;        // 0x388
-    s32 result;          // 0x38C  last CARD result code
+    void* m_IdDataAddr;       // 0x380  ss/cmn/save_?.dat
+    s32 m_Timer;           // 0x384
+    s32 m_StrTimer;        // 0x388
+    s32 m_ResultCode;          // 0x38C  last CARD result code
     CardStr str[4];      // 0x390
-    u32 bgmStrId;        // 0x3B0
+    u32 m_SndId;        // 0x3B0
     s32 formatted;       // 0x3B4
     s32 exitFlag;        // 0x3B8
     s32 dispFlag;        // 0x3BC
     char fileName[0x40]; // 0x3C0
-    cDataSwap swap;      // 0x400
-    s32 scrWidth;        // 0x418
+    cDataSwap m_DataSwap;      // 0x400
+    s32 m_Width_bak;        // 0x418
     u32 sysFlags;        // 0x41C
                          // 0x420
 

@@ -6,28 +6,28 @@
 #include "cloth.h"
 
 struct Esp4eWork {
-    Cloth* cloth;      // 0x00
+    Cloth* pCl;      // 0x00
     GXTexObj tex;      // 0x04
     GXTlutObj tlut;    // 0x24
-    f32 angX;          // 0x30 wave phase along x
-    f32 angY;          // 0x34 wave phase along y
-    s8 waveSpdX;       // 0x38
-    s8 waveSpdY;       // 0x39
-    s8 ampX;           // 0x3A
-    s8 ampY;           // 0x3B
-    f32 freqX;         // 0x3C
-    f32 freqY;         // 0x40
-    f32 power;         // 0x44
-    f32 ang;           // 0x48 global phase
-    f32 angSpd;        // 0x4C
-    f32 powerRate;     // 0x50
-    f32 rnd;           // 0x54 random factor
+    f32 time;          // 0x30 wave phase along x
+    f32 time2;          // 0x34 wave phase along y
+    s8 time_plus;       // 0x38
+    s8 time_plus2;       // 0x39
+    s8 pow;           // 0x3A
+    s8 pow2;           // 0x3B
+    f32 range;         // 0x3C
+    f32 range2;         // 0x40
+    f32 offset;         // 0x44
+    f32 wind_time;           // 0x48 global phase
+    f32 wind_time_plus;        // 0x4C
+    f32 wind_range_pow;     // 0x50
+    f32 rand_ratio;           // 0x54 random factor
 };
 
 // Cloth sheet: a Cloth grid attached to the effect position, waving with a sine field.
 class cEsp4e : public cEsp {
 public:
-    Esp4eWork w;       // 0xF8
+    Esp4eWork m_Free;       // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -46,9 +46,9 @@ cEsp* Esp4e_Create()
 
 void cEsp4e::move()
 {
-    Vec pos0 = pos;
+    Vec pos0 = m_Pos;
     Vec sp;
-    Esp4eWork* wk = &w;
+    Esp4eWork* wk = &m_Free;
     Cloth* c;
     f32 base;
     f32 rand;
@@ -66,8 +66,8 @@ void cEsp4e::move()
     if (!CommonMove()) {
         return;
     }
-    pos = pos0;
-    c = wk->cloth;
+    m_Pos = pos0;
+    c = wk->pCl;
     if (c == NULL) {
         return;
     }
@@ -75,23 +75,23 @@ void cEsp4e::move()
         Vec p;
         Vec r;
         Mtx m;
-        PSMTXMultVec(parent->mat, &pos, &p);
-        low_RotMatrix(m, &rot);
+        PSMTXMultVec(parent->mat, &m_Pos, &p);
+        low_RotMatrix(m, &m_Ang);
         PSMTXConcat(parent->mat, m, m);
         Matrix2AxisAngle(m, &r);
         c->SetPosAng(r, p);
     }
     {
         Mtx m;
-        PSVECScale(&spd, &sp, 0.1f);
-        RotMatrix(m, &rot);
+        PSVECScale(&m_Speed, &sp, 0.1f);
+        RotMatrix(m, &m_Ang);
         PSMTXInverse(m, m);
         PSMTXMultVec(m, &sp, &sp);
     }
-    c->colR = (u8) colR;
-    c->colG = (u8) colG;
-    c->colB = (u8) colB;
-    c->colA = (u8) colA;
+    c->colR = (u8) m_Col_r;
+    c->colG = (u8) m_Col_g;
+    c->colB = (u8) m_Col_b;
+    c->colA = (u8) m_Col_a;
     {
         static f32 DAMPING = 0.98f;
         c->calcSpeed(DAMPING);
@@ -99,39 +99,39 @@ void cEsp4e::move()
     c->move();
     c->calcNormal();
 
-    wk->ang += wk->angSpd;
-    rand = wk->rnd;
-    wk->ang = LIMIT_ANGLE(wk->ang);
-    s1 = SINF(wk->ang);
-    s = wk->powerRate * s1 * SINF(wk->ang * 0.3f) + 1.0f;
-    wk->angX = (f32) wk->waveSpdX * 0.01f + wk->angX;
-    wk->angY = (f32) wk->waveSpdY * 0.01f + wk->angY;
-    stepY = wk->freqX / c->ny;
-    stepX = wk->freqY / c->nx;
-    wx = (f32) wk->ampX * 0.025f;
-    wy = (f32) wk->ampY * 0.025f;
+    wk->wind_time += wk->wind_time_plus;
+    rand = wk->rand_ratio;
+    wk->wind_time = LIMIT_ANGLE(wk->wind_time);
+    s1 = SINF(wk->wind_time);
+    s = wk->wind_range_pow * s1 * SINF(wk->wind_time * 0.3f) + 1.0f;
+    wk->time = (f32) wk->time_plus * 0.01f + wk->time;
+    wk->time2 = (f32) wk->time_plus2 * 0.01f + wk->time2;
+    stepY = wk->range / c->divV;
+    stepX = wk->range2 / c->divH;
+    wx = (f32) wk->pow * 0.025f;
+    wy = (f32) wk->pow2 * 0.025f;
     PSVECScale(&sp, &sp, s);
-    ay = wk->angX;
-    wk->angX = LIMIT_ANGLE(wk->angX);
-    wk->angY = LIMIT_ANGLE(wk->angY);
+    ay = wk->time;
+    wk->time = LIMIT_ANGLE(wk->time);
+    wk->time2 = LIMIT_ANGLE(wk->time2);
 
-    for (i = 0; i < c->ny; i++) {
+    for (i = 0; i < c->divV; i++) {
         base = SINF(ay) * wx;
         ay += stepY * rand * fRand0_1() + stepY;
-        ax = wk->angY;
-        for (j = 0; j < c->nx; j++) {
+        ax = wk->time2;
+        for (j = 0; j < c->divH; j++) {
             f32 v = SINF(ax) * wy;
             ax += stepX * rand * fRand0_1() + stepX;
-            c->disturbance((base + v) * s + wk->power * s, j, i);
-            PSVECAdd(&c->spd[j + c->nx * i], &sp, &c->spd[j + c->nx * i]);
+            c->disturbance((base + v) * s + wk->offset * s, j, i);
+            PSVECAdd(&c->pSpd[j + c->divH * i], &sp, &c->pSpd[j + c->divH * i]);
         }
     }
 }
 
 void cEsp4e::Destruct()
 {
-    if (w.cloth) {
-        w.cloth->Destroy();
+    if (m_Free.pCl) {
+        m_Free.pCl->Destroy();
     }
 }
 
@@ -141,7 +141,7 @@ void Esp4e_Trans()
 
 int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp4eWork* wk = &w;
+    Esp4eWork* wk = &m_Free;
     void* tpl;
     int ci;
     int nx;
@@ -152,18 +152,18 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
     u32 t;
     int flag;
 
-    if (!EspGetTplAddr(anmNo, &tpl)) {
+    if (!EspGetTplAddr(m_Type, &tpl)) {
         pLog->err(0, 0, "ESP4e : tex init invalid.");
         return 0;
     }
-    if (!PullCloth(&wk->cloth)) {
+    if (!PullCloth(&wk->pCl)) {
         pLog->err(0, 0, "ESP4e : init invalid.");
         return 0;
     }
     d = 60.857143f;
     ci = ClothTexSetUp(tpl, &wk->tex, 0, &wk->tlut);
-    nx = (int) (sizeX / 200.0f * 36.0f);
-    ny = (int) (sizeY / 200.0f * 24.0f);
+    nx = (int) (m_Size_base_x / 200.0f * 36.0f);
+    ny = (int) (m_Size_base_y / 200.0f * 24.0f);
     width = gen->xD8 * 0.1f + 1.0f;
     height = gen->xDC * 0.1f + 1.0f;
     if (width == 0.0f) {
@@ -187,23 +187,23 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
         ny = 50;
     }
     if (ci) {
-        wk->cloth->Set(rot, pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, &wk->tlut, flag);
+        wk->pCl->Set(m_Ang, m_Pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, &wk->tlut, flag);
     } else {
-        wk->cloth->Set(rot, pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
+        wk->pCl->Set(m_Ang, m_Pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
     }
     if (gen->xC2) {
-        wk->cloth->x74 = 1;
+        wk->pCl->x74 = 1;
     }
-    wk->waveSpdX = gen->xC8;
-    wk->ampX = gen->xC9;
-    wk->waveSpdY = gen->xCA;
-    wk->ampY = gen->xCB;
-    wk->freqX = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
-    wk->freqY = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
-    wk->power = (f32) (int) gen->xD4 * 0.025f;
-    wk->angSpd = (f32) (gen->xFC + 1) * 0.0025f;
-    wk->powerRate = (f32) (gen->xFD + 1) * 0.07f;
-    wk->rnd = (f32) (gen->xFE + 1) * 0.2f;
+    wk->time_plus = gen->xC8;
+    wk->pow = gen->xC9;
+    wk->time_plus2 = gen->xCA;
+    wk->pow2 = gen->xCB;
+    wk->range = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
+    wk->range2 = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
+    wk->offset = (f32) (int) gen->xD4 * 0.025f;
+    wk->wind_time_plus = (f32) (gen->xFC + 1) * 0.0025f;
+    wk->wind_range_pow = (f32) (gen->xFD + 1) * 0.07f;
+    wk->rand_ratio = (f32) (gen->xFE + 1) * 0.2f;
     return 1;
 }
 

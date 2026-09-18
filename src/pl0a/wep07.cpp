@@ -52,7 +52,7 @@ static void wep07_r2_ready(cPlayer* pl)
         Vec hit;
 
         PSMTXMultVec(pl->mat, &aim, &aim);
-        SatMgr.hitCheck(&pl->getPartsPtr(0)->worldPos, &aim, &hit, 0, 0, 0);
+        SatMgr.hitCheck(&pl->getPartsPtr(0)->world, &aim, &hit, 0, 0, 0);
         CamCtrlShoulderSetAim(&hit);
     }
 }
@@ -64,20 +64,20 @@ static void wep07_r3_ready00(cPlayer* pl)
     int hokan;
 
     pl->x3E4 = 0;
-    pl->pWep->x23 = 0;
-    pl->pWep->m_CenterY = 0.0f;
+    pl->Wep->x23 = 0;
+    pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
     }
-    pl->pWep->pitch = pitch;
+    pl->Wep->pitch = pitch;
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[2] = 0.0f;
     m3r[0] = pitch;
     pl->x400 = 0.0f;
-    pl->pNeck->init(0, 0, 0);
-    pl->pWep->m_CamAdjY = CamCtrl.getCameraDirection();
+    pl->Neck->init(0, 0, 0);
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     hokan = 4;
     if (!(pl->flags_420 & 0x40)) {
         hokan = 5;
@@ -101,7 +101,7 @@ static void wep07_r3_ready10(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep07_r3_ready20(cPlayer* pl)
@@ -114,7 +114,7 @@ static void wep07_r3_ready20(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep07_r2_set(cPlayer* pl)
@@ -138,7 +138,7 @@ static void wep07_r2_set(cPlayer* pl)
 
 static void wep07_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = pG->pPlArc;
+    PlArc* arc = pG->pPlayer;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x8D), PL_ARC_PTR(arc, 0x8F), PL_ARC_PTR(arc, 0x4A), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -163,12 +163,12 @@ static void wep07_r2_fire(cPlayer* pl)
 
 static void wep07_r3_fire00(cPlayer* pl)
 {
-    PlArc* arc = pG->pPlArc;
+    PlArc* arc = pG->pPlayer;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x8E), PL_ARC_PTR(arc, 0x90), PL_ARC_PTR(arc, 0x4B), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMoveF(pl, 0);
-    pl->pBody->waistMove();
+    pl->Body->waistMove();
     pl->partsWorldCalc();
     pl->r_no_3 = 1;
 }

@@ -137,9 +137,9 @@ static void r221_execEmCamera1()
 // TexRender blend setup of one water object.
 #define R229_TEX_OBJ(id, tbl, col, v138, v136, v137) \
     obj = SmdGetObjPtr(id);                          \
-    obj->pInfo->setTexBlendTbl(tbl);                 \
-    obj->pInfo->setBlendRatio(0xFF);                 \
-    obj->pInfo->color[3] = col;                      \
+    obj->pModelInfo->setTexBlendTbl(tbl);                 \
+    obj->pModelInfo->setBlendRatio(0xFF);                 \
+    obj->pModelInfo->color[3] = col;                      \
     obj->Shader_type = v136;                                \
     obj->Refract_pow = v137;                                \
     obj->Refract_ratio = v138;
@@ -156,7 +156,7 @@ static void setTexRender()
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
         tbl0[5] = r229_work.p->tex[0]->texId;
-        r229_work.p->tex[0]->repType = 1;
+        r229_work.p->tex[0]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r229_work.p->tex[0]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
@@ -170,16 +170,16 @@ static void setTexRender()
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
         tbl1[5] = r229_work.p->tex[1]->texId;
-        r229_work.p->tex[1]->repType = 1;
+        r229_work.p->tex[1]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 3, r229_work.p->tex[1]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xF);
-    obj->pInfo->setTexBlendTbl(tbl1);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl1);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
     obj->Shader_type = 2;
     obj->Refract_pow = 8;
     obj->Refract_ratio = 0x30;

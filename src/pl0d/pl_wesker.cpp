@@ -47,21 +47,21 @@ void testJacketSetWesker(cModel* pl, PlCloth* c)
 {
     f32 rate;
 
-    c->num = 24;
-    c->pParts = weskerJacketP;
+    c->Num = 24;
+    c->pCloth = weskerJacketP;
     c->pLeft = weskerJacketLp;
     c->pRight = 0;
     c->pUpLeft = 0;
     c->pUpRight = 0;
-    c->pUp = weskerJacketUp;
-    c->pDown = weskerJacketDp;
+    c->pParent = weskerJacketUp;
+    c->pChild = weskerJacketDp;
     c->pGravity = 0;
     c->pRate = 0;
     c->pMax = weskerJacketMax;
-    c->pWindS = weskerJacketWindS;
-    c->pWindR = weskerJacketWindR;
-    c->pAt = weskerJacketAt;
-    c->nAt = 6;
+    c->pWindSin = weskerJacketWindS;
+    c->pWindRate = weskerJacketWindR;
+    c->pAtset = weskerJacketAt;
+    c->At_num = 6;
     c->Gravity = 25.0f;
     rate = 0.5f;
     c->Bundle_num = 4;
@@ -70,7 +70,7 @@ void testJacketSetWesker(cModel* pl, PlCloth* c)
     c->pModel = 0;
     c->Rate = rate;
     c->Move_rate = rate;
-    c->flags = 0x100;
+    c->Flag = 0x100;
     c->x54 = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
@@ -98,11 +98,11 @@ cPlWesker::cPlWesker()
     init0();
     setModel();
     weaponRelease();
-    weaponLoad(pG->wep_no, pG->wep_type);
+    weaponLoad(pG->weapon_no, pG->weapon_type);
     weaponInit();
     init1();
     setMotion();
-    arc = pG->pPlArc;
+    arc = pG->pPlayer;
     EspDataLoad((u32) PL_ARC_PTR(arc, 0x1A), 3, 0);
     startUp();
     pFootShadowTbl = pl_fs_tbl;
@@ -152,15 +152,15 @@ void cPlWesker::setModel()
         return;
     }
     addModel(info);
-    PSet(pBody->pShape, info);
-    PSet(pBody->pHeadData, PL_ARC(8));
+    PSet(Body->pShape, info);
+    PSet(Body->pHeadData, PL_ARC(8));
     info = ModInfoMgr.create(PL_ARC(6), PL_ARC(7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlWesker::setModel() failed.");
         return;
     }
     addModel(info);
-    pBody->pHair = info;
+    Body->pHair = info;
     TevScaleGroup = 1;
     setFace(0);
     setRightHand(0);
@@ -172,17 +172,17 @@ void cPlWesker::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pRight) {
-        deleteModelInfo(pBody->pRight);
-        pBody->pRight = 0;
-        pBody->pRightData = 0;
+    if (Body->pRight) {
+        deleteModelInfo(Body->pRight);
+        Body->pRight = 0;
+        Body->pRightData = 0;
     }
     switch (no) {
     case 0:
         data = PL_ARC(0x12);
         break;
     case 1:
-        data = pBody->pWepHand;
+        data = Body->pWepHand;
         break;
     default:
         data = (void*) no;
@@ -190,8 +190,8 @@ void cPlWesker::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(0x11))) != 0) {
         addModel(info);
-        pBody->pRight = info;
-        pBody->pRightData = data;
+        Body->pRight = info;
+        Body->pRightData = data;
     }
     if (!info) {
 #line 515 "D:/Bio4/Prog/pl_wesker.cpp"
@@ -204,13 +204,13 @@ void cPlWesker::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pLeft) {
-        deleteModelInfo(pBody->pLeft);
-        pBody->pLeft = 0;
-        pBody->pLeftData = 0;
+    if (Body->pLeft) {
+        deleteModelInfo(Body->pLeft);
+        Body->pLeft = 0;
+        Body->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pBody->leftNoPrev;
+        no = Body->oldLhandNo;
     }
     switch (no) {
     case 0:
@@ -226,22 +226,22 @@ void cPlWesker::setLeftHand(u32 no)
         data = (void*) no;
         break;
     }
-    pBody->leftNoPrev = pBody->leftNo;
-    pBody->leftNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
+    Body->oldLhandNo = Body->nowLhandNo;
+    Body->nowLhandNo = no;
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlWesker::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pBody->pLeft = info;
-        pBody->pLeftData = data;
+        Body->pLeft = info;
+        Body->pLeftData = data;
     }
 }
 
 void cPlWesker::setFace(int no)
 {
     void* data = 0;
-    void* shape = pBody->pShape;
+    void* shape = Body->pShape;
 
     if (shape == 0) {
         return;
@@ -259,7 +259,7 @@ void cPlWesker::setFace(int no)
         break;
     }
     if (no != 0) {
-        ShapeSet(pBody->pShape, 0, data, 2);
+        ShapeSet(Body->pShape, 0, data, 2);
     }
 }
 
@@ -270,14 +270,14 @@ void cPlWesker::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xB), PL_ARC_PTR(pGS->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -287,15 +287,15 @@ void cPlWesker::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
-    deleteModelInfo(pBody->pHair);
-    pBody->pHair = 0;
-    deleteModelInfo(pBody->pEye);
-    pBody->pEye = 0;
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
+    deleteModelInfo(Body->pHair);
+    Body->pHair = 0;
+    deleteModelInfo(Body->pEye);
+    Body->pEye = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);

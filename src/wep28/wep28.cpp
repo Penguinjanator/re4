@@ -22,7 +22,7 @@ void Wep28_init(cModel* m)
         pLog->err(0, 0, "Wep28_init() cObjWep CREATE FAILED");
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     obj = (cObjWep*) ObjMgr.createBack(0x10);
@@ -30,24 +30,24 @@ void Wep28_init(cModel* m)
         pLog->err(0, 0, "Wep28_init() cObjWep CREATE FAILED");
         return;
     }
-    pl->pWep->pObj2 = obj;
+    pl->Wep->pObj2 = obj;
     obj->init(pl);
     obj->setDisp(1, 0);
-    PSet(pl->pWep->pObj->bow.allow, obj);
+    PSet(pl->Wep->m_pWep->bow.allow, obj);
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x50, 1);
 }
 
 void cObjBow::moveReady()
 {
     if (wep.step == 0) {
-        MotionSetCore(this, &this->mot, WEP_ARC_PTR(0x2E), 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, WEP_ARC_PTR(0x2E), 0, 0, 0, 0);
         if (bow.allow) {
-            bow.allow->motionSet(PL_ARC_PTR(pG->pPlArc, 0x73), 0, 0, 1, 0);
+            bow.allow->motionSet(PL_ARC_PTR(pG->pPlayer, 0x73), 0, 0, 1, 0);
         }
         wep.step = 1;
     }
-    if (MotionCheckCrossFrame(&mot, 10.0f)) {
-        SndCall(2, 0, &pParts->worldPos, 0, 0, 0);
+    if (MotionCheckCrossFrame(&Motion, 10.0f)) {
+        SndCall(2, 0, &pParts->world, 0, 0, 0);
     }
     if (MotionGetState(this)) {
         wep.mode = 0;
@@ -65,10 +65,10 @@ void cObjBow::moveFire()
         } else {
             m = WEP_ARC_PTR(0x2C);
         }
-        MotionSetCore(this, &this->mot, m, 0, 0, 0, 0);
+        MotionSetCore(this, &this->Motion, m, 0, 0, 0, 0);
         setDispAllow(0);
         setAllow();
-        SndCall(2, 1, &pParts->worldPos, 0, 0, 0);
+        SndCall(2, 1, &pParts->world, 0, 0, 0);
         wep.step = 1;
     }
     if (MotionGetState(this)) {
@@ -102,7 +102,7 @@ static inline void wepLightInit(cObjWep* o)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-    o->lightInfo.init2(1, 1, &p0, &p1, 1);
+    o->LightInfo.init2(1, 1, &p0, &p1, 1);
 }
 
 void cObjBow::init(cModel* parent)
@@ -156,12 +156,12 @@ void cObjBow::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x16));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x1B));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1C));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x17));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x18));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x7));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0x7));
     pl->setRightHand(0);
     pl->setLeftHand(7);
 }
@@ -175,12 +175,12 @@ void cObjBow::setAllow()
     Vec nrm;
 
     PSMTXMultVecSR(parts->mat, &dir, &spd);
-    if (EatMgr.hitCheck(&pPL->getPartsPtr(0)->worldPos, &parts->worldPos, &hit, &nrm, 0, 0)) {
+    if (EatMgr.hitCheck(&pPL->getPartsPtr(0)->world, &parts->world, &hit, &nrm, 0, 0)) {
         PSVECScale(&nrm, &nrm, 2000.0f);
-        PSVECAdd(&hit, &nrm, &parts->worldPos);
-        setPos(&parts->worldPos);
+        PSVECAdd(&hit, &nrm, &parts->world);
+        setPos(&parts->world);
     }
-    SetMine(PL_ARC_PTR(pG->pPlArc, 0x70), PL_ARC_PTR(pG->pPlArc, 0x71), &parts->worldPos, &spd, 2);
+    SetMine(PL_ARC_PTR(pG->pPlayer, 0x70), PL_ARC_PTR(pG->pPlayer, 0x71), &parts->world, &spd, 2);
 }
 
 int cObjBow::keyKamae()
@@ -217,7 +217,7 @@ void cObjAllow::moveFire()
 
 void cObjAllow::init(cModel* parent)
 {
-    if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x70), PL_ARC_PTR(pG->pPlArc, 0x71)) == 0) {
+    if (modelInit(PL_ARC_PTR(pG->pPlayer, 0x70), PL_ARC_PTR(pG->pPlayer, 0x71)) == 0) {
         wepInitErr();
         return;
     }
@@ -227,10 +227,10 @@ void cObjAllow::init(cModel* parent)
     pos.x = -850.0f;
     pos.y = 5.0f;
     pos.z = 24.0f;
-    rot.x = 0.0f;
-    rot.y = -(PI / 2.0f);
-    rot.z = 0.0f;
-    parentSet(parent, 0xA, &pos, &rot);
+    ang.x = 0.0f;
+    ang.y = -(PI / 2.0f);
+    ang.z = 0.0f;
+    parentSet(parent, 0xA, &pos, &ang);
 }
 
 void cObjAllow::setMotion(cPlayer* pl)

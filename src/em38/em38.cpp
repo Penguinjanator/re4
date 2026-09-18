@@ -355,9 +355,9 @@ void cEm38::move()
     }
     if (type == 3) {
         if (pG->flags_5010 & 0x04000000) {
-            lightInfo.x50 = 0x80;
+            LightInfo.x50 = 0x80;
         } else {
-            lightInfo.x50 = 4;
+            LightInfo.x50 = 4;
         }
     }
     em38WeakMove(this);
@@ -410,13 +410,13 @@ static void em38_R0_Init(cEm38* em)
         em->pos.x = 0.0f;
         em->pos.y = 0.0f;
         em->pos.z = 0.0f;
-        em->rot.x = 0.0f;
-        em->rot.y = 0.0f;
-        em->rot.z = 0.0f;
+        em->ang.x = 0.0f;
+        em->ang.y = 0.0f;
+        em->ang.z = 0.0f;
         break;
     }
     em->be_flag |= 0x1000;
-    em->motFlip = em38_flip;
+    em->pXFlip = em38_flip;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
@@ -425,17 +425,17 @@ static void em38_R0_Init(cEm38* em)
         switch (em->type) {
         case 0:
         default:
-            em->lightInfo.init2(0, 1, &ofs, &size, 4);
+            em->LightInfo.init2(0, 1, &ofs, &size, 4);
             break;
         case 1:
         case 2:
-            em->lightInfo.init2(0, 1, &ofs, &size, 4);
+            em->LightInfo.init2(0, 1, &ofs, &size, 4);
             break;
         case 3:
-            em->lightInfo.init2(0, 1, &ofs, &size, 4);
+            em->LightInfo.init2(0, 1, &ofs, &size, 4);
             break;
         case 4:
-            em->lightInfo.init2(0, 1, &ofs, &size, 4);
+            em->LightInfo.init2(0, 1, &ofs, &size, 4);
             break;
         }
     }
@@ -550,7 +550,7 @@ static void em38_R1_Wait(cEm38* em)
         w->waitCnt = (Rnd() & 1) + 2;
         em->r_no_2++;
     case 1:
-        t = Muku(&p->worldPos, &pPL->pos, em->rot.y, PI);
+        t = Muku(&p->world, &pPL->pos, em->ang.y, PI);
         if (t > 0.6981317f) {
             t = 0.6981317f;
         }
@@ -646,7 +646,7 @@ static void em38_R1_HeadUp(cEm38* em)
         em->r_no_2++;
     case 5:
         w->flags |= 0x20;
-        t = Muku(&p->worldPos, &pPLS->pos, em->rot.y, PI);
+        t = Muku(&p->world, &pPLS->pos, em->ang.y, PI);
         if (t > 0.6981317f) {
             t = 0.6981317f;
         }
@@ -747,7 +747,7 @@ static void em38_R1_Atk(cEm38* em)
         w->flags |= 0x80;
         if (w->timer) {
             w->timer--;
-            t = Muku(&p->worldPos, &pPLS->pos, em->rot.y, PI);
+            t = Muku(&p->world, &pPLS->pos, em->ang.y, PI);
             if (t > 0.6981317f) {
                 t = 0.6981317f;
             }
@@ -802,8 +802,8 @@ static void plem38_AtkHit(cPlayer* pl)
         v.y = -5817.0f;
         v.z = 13351.18f;
         PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-        pl->rot.y = PL_EM(pl)->rot.y + PI;
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+        pl->ang.y = PL_EM(pl)->ang.y + PI;
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x46), 0, 0, 1, 0);
         pG->pl_life = 0;
         PlSetFace(1);
@@ -995,9 +995,9 @@ static void em38_R1_T_Atk(cEm38* em)
         v.z = 4000.0f;
         PSMTXMultVec(em->mat, &v, &v);
         if (em->motFlags & 0x40) {
-            ang = em->rot.y - 0.6981317f;
+            ang = em->ang.y - 0.6981317f;
         } else {
-            ang = em->rot.y + 0.6981317f;
+            ang = em->ang.y + 0.6981317f;
         }
         ang = LIMIT_ANGLE(ang);
         ang = Muku(&v, &pPL->pos, ang, PI);
@@ -1329,7 +1329,7 @@ static void em38_R1_T_CatchHit(cEm38* em)
             w->seWait = 180;
         }
         if (em->frame > 9.7f && em->frame < 10.3f) {
-            SndCall(8, 0x26, &em->getPartsPtr(4)->worldPos, em->id, 0, pPL);
+            SndCall(8, 0x26, &em->getPartsPtr(4)->world, em->id, 0, pPL);
         }
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 5, 0, 0);
@@ -1354,8 +1354,8 @@ static void plem38_CatchHit(cPlayer* pl)
             v.y = -2000.0f;
             v.z = 11349.85f;
             PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-            pl->rot.y = PL_EM(pl)->rot.y + PI;
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y = PL_EM(pl)->ang.y + PI;
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 0x41, 0);
         } else {
             Vec v;
@@ -1364,8 +1364,8 @@ static void plem38_CatchHit(cPlayer* pl)
             v.y = -2000.0f;
             v.z = 11349.85f;
             PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
-            pl->rot.y = PL_EM(pl)->rot.y + PI;
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y = PL_EM(pl)->ang.y + PI;
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionSetCore(pl, MOTION(pl), PL_ARC(0x47), 0, 0, 1, 0);
         }
         EstSet((int) pl, -1, 0, 0, 0x2E, 0xE, 0, 0, (u32) pl, 0);
@@ -1384,9 +1384,9 @@ static void plem38_CatchHit(cPlayer* pl)
         }
         break;
     case 2:
-        pl->atari.flags |= 0x300;
+        pl->atari.m_flag |= 0x300;
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4C), 0, 0, 1, 0);
-        SndCall(1, 0x29, &pl->getPartsPtr(0)->worldPos, 0, 0, pPL);
+        SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
         EstSet((int) pl, -1, 0, 0, 0x2E, 0x1C, 0, 0, (u32) pl, 0);
         pl->r_no_2++;
@@ -1581,7 +1581,7 @@ static void em38_R1_Die_Upper(cEm38* em)
     case 1:
         em38UpperOnBody(em);
         if (MotionMoveF(em, 0)) {
-            em->atari.flags &= ~0x300;
+            em->atari.m_flag &= ~0x300;
         }
         break;
     }
@@ -1597,7 +1597,7 @@ void em38RouteCk(cEm38* em)
     if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {
         w->flags |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
@@ -1643,10 +1643,10 @@ void em38EyeMove(cEm38* em)
         PSMTXMultVecSR(p->mat, &a, &a);
         ang = atan2f(a.x, a.z);
         p = (cParts*) em->getPartsPtr(0x3A);
-        b = p->worldPos;
-        c = pPL->getPartsPtr(4)->worldPos;
+        b = p->world;
+        c = pPL->getPartsPtr(4)->world;
         w->eyeY = w->eyeY * 0.5f + Muku(&b, &c, ang, 1.0471976f) * 0.5f;
-        PSVECSubtract(&c, &p->worldPos, &a);
+        PSVECSubtract(&c, &p->world, &a);
         len = SQRTF(a.x * a.x + a.z * a.z);
         e = -atan2f(a.y, len);
         if (e > 0.7853982f) {
@@ -1724,10 +1724,10 @@ void em38UpperOnBody(cEm38* em)
         em->pos.x = 0.0f;
         em->pos.y = -128.0f;
         em->pos.z = 1450.0f;
-        em->rot.x = 0.0f;
-        em->rot.y = 0.0f;
-        em->rot.z = 0.0f;
-        RotMatrix(em->mat, &em->rot);
+        em->ang.x = 0.0f;
+        em->ang.y = 0.0f;
+        em->ang.z = 0.0f;
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         PSMTXConcat(p->mat, em->mat, em->mat);
@@ -1930,7 +1930,7 @@ void em38BloodSet(cEm38* em)
     p = em->getPartsPtr(part->partsNo - 1);
     if (em->type == 0) {
         if (part->partsNo == 0x3B) {
-            SndCall(8, 5, &p->worldPos, em->id, 0, em);
+            SndCall(8, 5, &p->world, em->id, 0, em);
             switch (em->dmWep) {
             case 1:
             case 2:
@@ -1979,18 +1979,18 @@ void em38BloodSet(cEm38* em)
                 break;
             }
         } else {
-            SndCall(8, 0x1A, &p->worldPos, em->id, 0, em);
+            SndCall(8, 0x1A, &p->world, em->id, 0, em);
             EmDmBloodSet2(em, 0x2E, 3, 0, 0, 0);
         }
     } else if (em->type == 4 && part->partsNo == 3) {
-        SndCall(8, 0x1A, &p->worldPos, em->id, 0, em);
+        SndCall(8, 0x1A, &p->world, em->id, 0, em);
         EmDmBloodSet2(em, 0x2E, 3, 0, 0, 0);
     } else {
         if (em->type == 1 || em->type == 2 || em->type == 4) {
-            SndCall(8, 5, &p->worldPos, em->id, 0, em);
+            SndCall(8, 5, &p->world, em->id, 0, em);
         }
         if (em->type == 3) {
-            SndCall(8, 0x1B, &p->worldPos, em->id, 0, em);
+            SndCall(8, 0x1B, &p->world, em->id, 0, em);
         }
         switch (em->dmWep) {
         case 1:
@@ -2146,7 +2146,7 @@ int em38AtkCk(cEm38* em, int no, int parts)
 {
     cModel* p = em->getPartsPtr(parts);
 
-    return em38AtkCk2(em, no, &p->worldPos, &p->oldWorldPos);
+    return em38AtkCk2(em, no, &p->world, &p->world_old);
 }
 
 int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
@@ -2222,7 +2222,7 @@ static void plemDmStamp(cPlayer* pl)
                 }
                 if (pl->frame > 59.7f && pl->frame < 60.3f) {
                     SndCall(1, 4, &pl->pos, 0, 0, pl);
-                    SndCall(1, 0x29, &pl->getPartsPtr(0)->worldPos, 0, 0, pPL);
+                    SndCall(1, 0x29, &pl->getPartsPtr(0)->world, 0, 0, pPL);
                 }
             }
         }
@@ -2268,7 +2268,7 @@ static void plemEscape(cPlayer* pl)
         int side;
         int hit;
 
-        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->rot.y, PI) > 0.0f) {
+        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->ang.y, PI) > 0.0f) {
             side = 1;
         } else {
             side = 0;
@@ -2310,7 +2310,7 @@ static void plemEscape(cPlayer* pl)
         }
         GameAddPoint(0xB);
         SndCall(1, 0x48, &pl->pos, 0, 0, pl);
-        SndCall(1, 0x11, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
+        SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->x3E0 = 50;
         pl->x3E4 = 15;
         pl->r_no_2++;
@@ -2324,8 +2324,8 @@ static void plemEscape(cPlayer* pl)
             }
         }
         if (pl->x3E4) {
-            pl->rot.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->rot.y, 0.3926991f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (MotionMoveF(pl, 0)) {
             pl->x3E0 = 0;
@@ -2401,16 +2401,16 @@ static void plemBackjump(cPlayer* pl)
     case 0:
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4E), 0, 5, 1, 5);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
+        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->x3E0 = 50;
         pl->x3E4 = 15;
         pl->x3E8 = 0;
         pl->r_no_2++;
     case 1:
         if (pl->x3E4) {
-            pl->rot.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->rot.y, 0.3926991f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, 0.3926991f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (pl->frame > 10.7f && pl->frame < 11.3f) {
             SndCall(1, 0x4F, &pl->pos, 0, 0, pl);
@@ -2631,17 +2631,17 @@ void em38RootMove(cEm38* em)
             scale = SINF(p->phase) * 0.1f + 1.0f;
             p->phase += 0.08726646f;
             m = em->getPartsPtr(p->parts);
-            m->rot.y = a1;
+            m->ang.y = a1;
             m->scale.y = scale;
-            RotMatrix(m->worldMat, &m->rot);
-            TransMatrix(m->worldMat, &m->pos);
-            ScaleMatrix(m->worldMat, &m->scale);
+            RotMatrix(m->l_mat, &m->ang);
+            TransMatrix(m->l_mat, &m->pos);
+            ScaleMatrix(m->l_mat, &m->scale);
             m = em->getPartsPtr(p->parts2);
-            m->rot.y = a2;
+            m->ang.y = a2;
             m->scale.y = scale;
-            RotMatrix(m->worldMat, &m->rot);
-            TransMatrix(m->worldMat, &m->pos);
-            ScaleMatrix(m->worldMat, &m->scale);
+            RotMatrix(m->l_mat, &m->ang);
+            TransMatrix(m->l_mat, &m->pos);
+            ScaleMatrix(m->l_mat, &m->scale);
         }
     }
 }
@@ -2714,7 +2714,7 @@ void em38WeakInit(cEm38* em)
             w->pWeak->scale.x = 1.3f;
             w->pWeak->scale.y = 1.3f;
             w->pWeak->scale.z = 1.3f;
-            w->pWeak->lightInfo.x50 = 0x80;
+            w->pWeak->LightInfo.x50 = 0x80;
             OyaSetObj00(w->pWeak, em, 0x3A);
             w->pWeak->atari.throughOn();
         }

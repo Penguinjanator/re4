@@ -21,7 +21,7 @@ struct EmListData {
     u8 pad_1C[4];
 };
 
-#define EM_LIST(no) ((EmListData*) &pG->emlist[(no) * 0x20])
+#define EM_LIST(no) ((EmListData*) &pG->Em_list[(no) * 0x20])
 
 extern cEm* errEm;   // returned by EmSetFromList2 when no enemy was created
 

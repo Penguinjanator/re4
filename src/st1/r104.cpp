@@ -192,7 +192,7 @@ void R104Init()
     SceAtSetEnable(0x97, 1);
     m = SceAtItemModelPtr(0x97);
     if (m != 0) {
-        m->lightInfo.x50 = (m->lightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x00400000)) {
@@ -269,7 +269,7 @@ extern "C" void r104_openBox_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot.z = ang;
+            obj->pParts->ang.z = ang;
         } else {
             int i;
 
@@ -277,7 +277,7 @@ extern "C" void r104_openBox_main(int no, int opened)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    obj->pParts->rot.z += ang;
+                    obj->pParts->ang.z += ang;
                 }
                 SceSleep(1);
             }
@@ -323,7 +323,7 @@ extern "C" void r104_openShelf_main(int no, int opened)
     if (obj != 0) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            obj->pParts->rot.y = ang;
+            obj->pParts->ang.y = ang;
         } else {
             int i;
 
@@ -331,7 +331,7 @@ extern "C" void r104_openShelf_main(int no, int opened)
             SndCall(6, 0x1C, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (obj != 0) {
-                    obj->pParts->rot.y += ang;
+                    obj->pParts->ang.y += ang;
                 }
                 SceSleep(1);
             }
@@ -449,7 +449,7 @@ static void r104_checkDoor107KeyUse()
     SceSleep(20);
     SceAtSetEnable(0x97, 1);
     SndCall(6, 3, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x00400000;
     SceAtDataReset(0);
     CamCtrl.Comeback(0);
@@ -782,14 +782,14 @@ static void Evt_R104S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         EvtFlgOnStatus(e, 3);
-        e->cancelCut = 0x1E;
+        e->EvtCancelCut = 0x1E;
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm4200", 0, 0) == 1) {
                     cLight* l = LightMgr.getKindLight(1);
 
@@ -800,11 +800,11 @@ static void Evt_R104S00_Func(Event* e)
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 fadeOn = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -820,9 +820,9 @@ static void Evt_R104S00_Func(Event* e)
                     ((cModel*) mod2)->ot_type = 1;
                 }
             }
-            if (e->frame == 120) {
+            if (e->NowFrame == 120) {
                 fadeOn = 1;
-                if (!(e->status & 0x40000000)) {
+                if (!(e->StatusFlag & 0x40000000)) {
                     fadeOn = 0;
                 }
                 if (fadeOn == 0) {
@@ -849,7 +849,7 @@ static void Evt_R104S00_Func(Event* e)
         break;
     case 3:
         fadeOn = 1;
-        if (!(e->status & 0x4000)) {
+        if (!(e->StatusFlag & 0x4000)) {
             fadeOn = 0;
         }
         if (fadeOn == 0) {
@@ -863,7 +863,7 @@ static void Evt_R104S01_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1 && e->cut == 0 && e->frame == 0) {
+    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         if (e->GetMod(&mod, "evm4500", 0, 0) == 1) {
             ((cModel*) mod)->be_flag |= 0x10;
         }

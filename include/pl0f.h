@@ -31,36 +31,36 @@ struct Pl0fNode {
 
 // Work of the boat, overlaid on cEm from 0x3E0.
 struct Pl0fWork {
-    u32 flags;        // 0x000 (0x3E0)  bit0: player on board, bit1: engine SE running, bit2/3: no crash / drop checks
-    int timer;        // 0x004
-    int timer2;       // 0x008
-    int cnt;          // 0x00C  frame counter of the R10d / R10e entrances (wake effect every 2nd frame)
+    u32 Be_flg;        // 0x000 (0x3E0)  bit0: player on board, bit1: engine SE running, bit2/3: no crash / drop checks
+    int Timer;        // 0x004
+    int Timer2;       // 0x008
+    int Timer3;          // 0x00C  frame counter of the R10d / R10e entrances (wake effect every 2nd frame)
     cEm* pBoss;       // 0x010  Del Lago (testSearchEm2f)
     Vec swayAmp;      // 0x014  roll sway amplitude (x / z used), decays by 0.96 per frame
     Vec swayPhase;    // 0x020
     u8 pad_2C[0x10];
     f32 rotSpd;       // 0x03C  tiller turn per frame
     f32 rollPhase;    // 0x040
-    f32 pitchPhase;   // 0x044
-    f32 roll;         // 0x048
-    f32 pitch;        // 0x04C
+    f32 Bank_sin;   // 0x044
+    f32 Roll_rot;         // 0x048
+    f32 Bank_rot;        // 0x04C
     f32 Vib_sin;          // 0x050
-    f32 spdXZ;        // 0x054  |pos - oldPos| in the XZ plane
-    f32 dirAng;       // 0x058  heading change towards the movement direction
-    f32 dirAngAbs;    // 0x05C
-    int engineCnt;    // 0x060  frames the engine ran (SE 8/0xB after 60, 8/0x10 before)
+    f32 Boat_spd;        // 0x054  |pos - oldPos| in the XZ plane
+    f32 Boat_dir;       // 0x058  heading change towards the movement direction
+    f32 Boat_rot;    // 0x05C
+    int Sailing_timer;    // 0x060  frames the engine ran (SE 8/0xB after 60, 8/0x10 before)
     int Ripple_wait;        // 0x064  0x1D countdown outside rooms 10D / 10E (wave effect)
-    u32 seNo;         // 0x068  engine SE handle
-    u8 espKind;       // 0x06C  EspPullCoreKind at creation
+    u32 Seid_engine;         // 0x068  engine SE handle
+    u8 EffKindId;       // 0x06C  EspPullCoreKind at creation
     u8 First_camck;           // 0x06D  plboat_R2_Swim: first swim after the drop
-    u8 bossMode;      // 0x06E  1 while the boss pulls the boat (camera / anchor)
+    u8 Boss_chase;      // 0x06E  1 while the boss pulls the boat (camera / anchor)
     u8 anchorEff;     // 0x06F  anchor rope effect state (pl0fAnchorEffMove)
     Vec hist[10];     // 0x070  boss position history (pl0f_R0_Move)
     u32 histIdx;      // 0x0E8
-    u32 tiller;       // 0x0EC  setTiller bits: 1 forward, 2 back, 4 left, 8 right
-    Vec getoffPos;    // 0x0F0  pl0fGetoffActEvtCk: landing position
-    f32 getoffAng;    // 0x0FC
-    PenCloth cloth;   // 0x100  long rope pendulum (pl0fLongRopeSet)
+    u32 Tiller;       // 0x0EC  setTiller bits: 1 forward, 2 back, 4 left, 8 right
+    Vec Getoff_pos;    // 0x0F0  pl0fGetoffActEvtCk: landing position
+    f32 Getoff_dir;    // 0x0FC
+    PenCloth Cloth;   // 0x100  long rope pendulum (pl0fLongRopeSet)
     cObjChain* pRope; // 0x160  long rope chain object
     cObj* pAnchor;    // 0x164  anchor object (pl0fSetAnchor)
     Pl0fNode node[2]; // 0x168  bow / stern

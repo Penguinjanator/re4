@@ -9,23 +9,23 @@ class cSat;
 
 // Work of the box enemy (game/embox.cpp), overlaid on cEm from 0x3E0.
 struct EmBoxWork {
-    u32 flags;            // 0x000 (0x3E0)
+    u32 Be_flg;            // 0x000 (0x3E0)
     u8 pad_4[8];
     EmHitInfo hit;        // 0x00C (0x3EC)  second yarare cube (YarareAddCube)
     u8 pad_40[0x214 - 0x40];
     Vec size;             // 0x214 (0x5F4)  yarare box size
     u8 pad_220[4];
     int itemNo;           // 0x224 (0x604)  item dropped when broken (-1 none)
-    int itemNum;          // 0x228 (0x608)
+    int Item_num;          // 0x228 (0x608)
     u16 Item_flg;          // 0x22C (0x60C)
     u16 Auto_item_flg;          // 0x22E (0x60E)
-    cSat* sat0;           // 0x230 (0x610)  collision pieces disabled when broken
-    cSat* sat1;           // 0x234 (0x614)
-    void* breakBin;       // 0x238 (0x618)  break model (setBreakModel, SetEffModel)
-    void* breakTpl;       // 0x23C (0x61C)
-    int timer;            // 0x240 (0x620)  150 when broken
-    u8 eff;               // 0x244 (0x624)  setEff: effect owner id, 0xFF = none
-    u8 etcNo;             // 0x245 (0x625)  etc flag index (broken flag)
+    cSat* pSat;           // 0x230 (0x610)  collision pieces disabled when broken
+    cSat* pEat;           // 0x234 (0x614)
+    void* Break_bin;       // 0x238 (0x618)  break model (setBreakModel, SetEffModel)
+    void* Break_tpl;       // 0x23C (0x61C)
+    int Lost_wait;            // 0x240 (0x620)  150 when broken
+    u8 Eff_id;               // 0x244 (0x624)  setEff: effect owner id, 0xFF = none
+    u8 Etc_no;             // 0x245 (0x625)  etc flag index (broken flag)
 };
 
 #define EMBOX_WK(em) ((EmBoxWork*) &(em)->x3E0)

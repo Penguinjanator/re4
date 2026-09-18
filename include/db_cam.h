@@ -9,27 +9,27 @@
 // Debug camera tool (game/db_cam.cpp), instance `CamDbg` (0x20 bytes). Driven from CameraMove.
 class debugCamera {
 public:
-    s8 mode;           // 0x00  1 = menu open
-    s8 sel;            // 0x01  menu page (sel0_menu_tbl)
-    s8 cursor;         // 0x02  cursor inside the page
-    s8 lr;             // 0x03  left/right counter (menuFlag)
-    u8 timer;          // 0x04  frames until the Z trigger is checked again
-    u8 draw_timer;     // 0x05  frames left to draw the target cross
+    s8 m_menu_sw;           // 0x00  1 = menu open
+    s8 m_sel0;            // 0x01  menu page (sel0_menu_tbl)
+    s8 m_sel1;         // 0x02  cursor inside the page
+    s8 m_sel2;             // 0x03  left/right counter (menuFlag)
+    u8 m_timer;          // 0x04  frames until the Z trigger is checked again
+    u8 m_draw_timer;     // 0x05  frames left to draw the target cross
     u8 pad_6[2];
     int save_mode;     // 0x08  pG->debug_mode saved while the tool is open
-    s8 cam_no;         // 0x0C  camera cut to play (menuCamera)
-    s8 play;           // 0x0D  cut playback state
-    s8 key_type;       // 0x0E  camera_type_tbl index
-    s8 target_type;    // 0x0F  0 EM, 1 OBJ, 2 PL, 3 ORG, 4 OFF
+    s8 m_cam_no;         // 0x0C  camera cut to play (menuCamera)
+    s8 m_cam_play;           // 0x0D  cut playback state
+    s8 m_key_type;       // 0x0E  camera_type_tbl index
+    s8 m_target_type;    // 0x0F  0 EM, 1 OBJ, 2 PL, 3 ORG, 4 OFF
     u8 pad_10[4];
     u32 pad_bits : 26; // 0x14
     u32 info_disp : 1; // 0x14  bit 0x20: print the camera in player space
     u32 pad_bits2 : 2;
     u32 along_xyz : 1; // 0x14  bit 0x04: dolly along the world axes
     u32 pad_bits3 : 2;
-    u8 cam_mode;       // 0x18  CAMERA MODE (0 AREA .. 5 BIRD)
+    u8 m_cam_mode;       // 0x18  CAMERA MODE (0 AREA .. 5 BIRD)
     u8 pad_19[3];
-    f32 gain;          // 0x1C  stick gain (CameraRoomInit resets it)
+    f32 m_move_gain;          // 0x1C  stick gain (CameraRoomInit resets it)
 
     void move(Camera* cam, JOY* joy, int flag);
     void camera_type_00(Camera* cam, JOY* joy);

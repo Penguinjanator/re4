@@ -77,7 +77,7 @@ struct PlayerPtr {
 #define pPLS (((PlayerPtr*) &pPL)->p)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -302,7 +302,7 @@ static void em2a_R0_Init(cEm2a* em)
     default: {
         static const Vec size = { 750.0f, 750.0f, 750.0f };
 
-        em->lightInfo.init2(0, 3, &ofs, &size, 2);
+        em->LightInfo.init2(0, 3, &ofs, &size, 2);
         em->lockParts = 0;
         em->lockOfs.x = 0.0f;
         em->lockOfs.y = 300.0f;
@@ -313,7 +313,7 @@ static void em2a_R0_Init(cEm2a* em)
     case 2: {
         static const Vec size = { 8000.0f, 8000.0f, 8000.0f };
 
-        em->lightInfo.init2(0, 3, &ofs, &size, 2);
+        em->LightInfo.init2(0, 3, &ofs, &size, 2);
         em->lockParts = 1;
         em->lockOfs.x = 0.0f;
         em->lockOfs.y = 0.0f;
@@ -401,7 +401,7 @@ static void em2a_R1_Trap1Set(cEm2a* em)
 static void em2a_R1_Trap1Bite(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emsetNo);
+    EmListData* l = EM_LIST(em->emset_no);
 
     switch (em->r_no_2) {
     case 0:
@@ -468,7 +468,7 @@ static void plem2a_Trap1Bite(cPlayer* pl)
 static void em2a_R1_Trap1BiteSub(cEm2a* em)
 {
     Em2aWork* w = EM2A_WK(em);
-    EmListData* l = EM_LIST(em->emsetNo);
+    EmListData* l = EM_LIST(em->emset_no);
     int r;
 
     switch (em->r_no_2) {
@@ -596,9 +596,9 @@ static void plemResuceAshley(cPlayer* pl)
     pPLS->dmType = 10;
     switch (pl->r_no_2) {
     case 0:
-        pl->rot.y = em->rot.y + PI / 2.0f;
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
-        PSMTXRotRad(m, 'y', pl->rot.y);
+        pl->ang.y = em->ang.y + PI / 2.0f;
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+        PSMTXRotRad(m, 'y', pl->ang.y);
         TransMatrix(m, &em->pos);
         v.x = 175.38f;
         v.y = 0.0f;
@@ -655,7 +655,7 @@ void plem2aTrapCamMove(cModel* m)
 
 static void em2a_R1_Trap1Break(cEm2a* em)
 {
-    EmListData* l = EM_LIST(em->emsetNo);
+    EmListData* l = EM_LIST(em->emset_no);
 
     switch (em->r_no_2) {
     case 0:
@@ -681,7 +681,7 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
 {
     switch (em->r_no_2) {
     case 0:
-        EM_LIST(em->emsetNo)->x3 = 0;
+        EM_LIST(em->emset_no)->x3 = 0;
         MotionSetCore(em, MOTION(em), ARC(0x15), 0, 0, 1, 0);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -710,7 +710,7 @@ static void em2a_R1_Trap1R100(cEm2a* em)
         }
         break;
     case 2:
-        EM_LIST(em->emsetNo)->x3 = 0;
+        EM_LIST(em->emset_no)->x3 = 0;
         em->hp = 0;
         MotionSetCore(em, MOTION(em), ARC(0x13), (int) ARC(0x14), 0, 1, 0);
         em->r_no_2++;
@@ -724,10 +724,10 @@ static void em2a_R1_Trap1R100(cEm2a* em)
 
 static void em2a_R1_Trap2Set(cEm2a* em)
 {
-    RotMatrix(em->worldMat, &em->rot);
-    TransMatrix(em->worldMat, &em->pos);
-    ScaleMatrix(em->worldMat, &em->scale);
-    PSMTXCopy(em->worldMat, em->mat);
+    RotMatrix(em->l_mat, &em->ang);
+    TransMatrix(em->l_mat, &em->pos);
+    ScaleMatrix(em->l_mat, &em->scale);
+    PSMTXCopy(em->l_mat, em->mat);
     em->partsMatCalc();
 }
 
@@ -746,10 +746,10 @@ static void em2a_R1_Trap2Bomb(cEm2a* em)
             em2aTrap2Bomb(em);
             em->r_no_2++;
         }
-        RotMatrix(em->worldMat, &em->rot);
-        TransMatrix(em->worldMat, &em->pos);
-        ScaleMatrix(em->worldMat, &em->scale);
-        PSMTXCopy(em->worldMat, em->mat);
+        RotMatrix(em->l_mat, &em->ang);
+        TransMatrix(em->l_mat, &em->pos);
+        ScaleMatrix(em->l_mat, &em->scale);
+        PSMTXCopy(em->l_mat, em->mat);
         em->partsMatCalc();
         break;
     }
@@ -805,9 +805,9 @@ int em2aTrap2HitCkPL(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->worldPos.x - p2->worldPos.x) * (p0->worldPos.x - p2->worldPos.x)
-                + (p0->worldPos.y - p2->worldPos.y) * (p0->worldPos.y - p2->worldPos.y)
-                + (p0->worldPos.z - p2->worldPos.z) * (p0->worldPos.z - p2->worldPos.z))
+    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
+                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
+                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     PSMTXMultVec(inv, &pPL->pos, &v);
@@ -829,9 +829,9 @@ int em2aTrap2HitCkEM(cEm2a* em)
 
     p0 = em->getPartsPtr(0);
     p2 = em->getPartsPtr(2);
-    len = SQRTF((p0->worldPos.x - p2->worldPos.x) * (p0->worldPos.x - p2->worldPos.x)
-                + (p0->worldPos.y - p2->worldPos.y) * (p0->worldPos.y - p2->worldPos.y)
-                + (p0->worldPos.z - p2->worldPos.z) * (p0->worldPos.z - p2->worldPos.z))
+    len = SQRTF((p0->world.x - p2->world.x) * (p0->world.x - p2->world.x)
+                + (p0->world.y - p2->world.y) * (p0->world.y - p2->world.y)
+                + (p0->world.z - p2->world.z) * (p0->world.z - p2->world.z))
           + 100.0f;
     PSMTXInverse(em->mat, inv);
     for (i = 0; i < EmMgr.nArray; i++) {
@@ -896,27 +896,27 @@ void em2aTrap2Bomb(cEm2a* em)
     }
     p = em->getPartsPtr(0);
     p1 = em->getPartsPtr(1);
-    PSVECSubtract(&p1->worldPos, &p->worldPos, &d);
+    PSVECSubtract(&p1->world, &p->world, &d);
 #line 1394 "D:/Bio4/Prog/em2a.cpp"
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, 2000.0f);
-    PSVECAdd(&p->worldPos, &d, &e);
+    PSVECAdd(&p->world, &d, &e);
     PlWepHitCheck2(0, &e, &e, 0x13, 2, 3000.0f);
     p = em->getPartsPtr(2);
-    PSVECSubtract(&p1->worldPos, &p->worldPos, &d);
+    PSVECSubtract(&p1->world, &p->world, &d);
 #line 1401 "D:/Bio4/Prog/em2a.cpp"
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, 2000.0f);
-    PSVECAdd(&p->worldPos, &d, &e);
+    PSVECAdd(&p->world, &d, &e);
     PlWepHitCheck2(0, &e, &e, 0x13, 2, 3000.0f);
     {
         Camera* c = &pG->Cam;
         f32 dist;
 
         p = em->getPartsPtr(1);
-        dist = (p->worldPos.x - c->param.pos.x) * (p->worldPos.x - c->param.pos.x)
-               + (p->worldPos.y - c->param.pos.y) * (p->worldPos.y - c->param.pos.y)
-               + (p->worldPos.z - c->param.pos.z) * (p->worldPos.z - c->param.pos.z);
+        dist = (p->world.x - c->param.pos.x) * (p->world.x - c->param.pos.x)
+               + (p->world.y - c->param.pos.y) * (p->world.y - c->param.pos.y)
+               + (p->world.z - c->param.pos.z) * (p->world.z - c->param.pos.z);
         if (dist < 400000000.0f) {
             f32 power = 10.0f;
 
@@ -941,7 +941,7 @@ void em2aTrap1CamMove(cEm2a* em)
     Mtx m;
     Vec v;
 
-    PSMTXRotRad(m, 'y', pPL->rot.y);
+    PSMTXRotRad(m, 'y', pPL->ang.y);
     TransMatrix(m, &em->pos);
     v.x = -1200.0f;
     v.y = 1300.0f;

@@ -240,7 +240,7 @@ int GetWepDmVal(cEm* em, u32 wep, int flag)
         val = Dmg_tbl_em10[wep];
         break;
     }
-    lv = pG->wep_lv;
+    lv = pG->weapon_lv_power;
     if (lv > 7) {
         lv = 7;
     }

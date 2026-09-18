@@ -45,7 +45,7 @@ EmBarredFunc EmBarred_R1_move_tbl[4] = {
 // Closes again when the player leaves (setNoClose clears this).
 static inline int emBarredCanClose(EmBarredWork* w)
 {
-    return !(w->flags & 1);
+    return !(w->be_flag & 1);
 }
 
 cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int type)
@@ -65,7 +65,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         return 0;
     }
     w = EMBARRED_WK(em);
-    w->flagNo = flagNo;
+    w->Etc_no = flagNo;
     em->type = type;
     if (type == 6) {
         em->ot_type = 1;
@@ -79,7 +79,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 3000.0f, 3000.0f, 3000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     switch (em->type) {
     case 1:
@@ -117,15 +117,15 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 5:
     default:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2400.0f, 140.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 8:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 850.0f, 2600.0f, 140.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 9:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 750.0f, 3100.0f, 140.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 6:
         YarareInitCube(em, 0.0f, 260.0f, 0.0f, 490.0f, 1880.0f, 140.0f, 0, 0x41);
@@ -133,23 +133,23 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         YarareAddCube(em, &w->hit[1], 490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, 0x41);
         YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
         YarareAddCube(em, &w->hit[3], 0.0f, 2040.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 2:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2700.0f, 120.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 3:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 4150.0f, 4800.0f, 250.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 4:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 1650.0f, 3150.0f, 250.0f, 0, 0x41);
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     case 0:
     case 7:
-        em->hpMax = em->hp = 1000;
+        em->hp_max = em->hp = 1000;
         break;
     }
     if (pos) {
@@ -159,9 +159,9 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         em->pos.y = 0.0f;
         em->pos.z = 0.0f;
     }
-    em->oldPos = em->pos;
+    em->pos_old = em->pos;
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     w->pos0 = em->pos;
     switch (em->type) {
@@ -170,67 +170,67 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 5:
     case 6:
     default:
-        w->openH = 2300.0f;
+        w->Height = 2300.0f;
         break;
     case 8:
-        w->openH = 2600.0f;
+        w->Height = 2600.0f;
         break;
     case 9:
-        w->openH = 3100.0f;
+        w->Height = 3100.0f;
         break;
     case 2:
-        w->openH = 2600.0f;
+        w->Height = 2600.0f;
         break;
     case 3:
-        w->openH = 3800.0f;
+        w->Height = 3800.0f;
         break;
     case 4:
-        w->openH = 3000.0f;
+        w->Height = 3000.0f;
         break;
     case 7:
-        w->openH = 3500.0f;
+        w->Height = 3500.0f;
         break;
     }
     switch (em->type) {
     case 0:
-        w->halfW = 675.0f;
+        w->Width = 675.0f;
         break;
     case 1:
-        w->halfW = 675.0f;
+        w->Width = 675.0f;
         break;
     case 8:
-        w->halfW = 875.0f;
+        w->Width = 875.0f;
         break;
     case 9:
-        w->halfW = 875.0f;
+        w->Width = 875.0f;
         break;
     case 2:
-        w->halfW = 750.0f;
+        w->Width = 750.0f;
         break;
     case 3:
-        w->halfW = 4150.0f;
+        w->Width = 4150.0f;
         break;
     case 4:
-        w->halfW = 1500.0f;
+        w->Width = 1500.0f;
         break;
     case 7:
-        w->halfW = 2000.0f;
+        w->Width = 2000.0f;
         break;
     case 5:
-        w->halfW = 675.0f;
+        w->Width = 675.0f;
         break;
     case 6:
-        w->halfW = 675.0f;
+        w->Width = 675.0f;
         break;
     default:
-        w->halfW = 675.0f;
+        w->Width = 675.0f;
         break;
     }
-    w->sat = 0;
+    w->pEat = 0;
     for (i = 0; i < 4; i++) {
-        w->sub[i] = 0;
+        w->pEatFrame[i] = 0;
     }
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     if (flg && (*flg & 2)) {
         parts = em->getPartsPtr(1);
         em->hitInfo.flags &= ~1;
@@ -238,13 +238,13 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;
     }
-    w->status = 1;
-    w->lockMode = 0;
-    w->open = 1;
-    w->pDouble = 0;
+    w->Status = 1;
+    w->Lock_mode = 0;
+    w->Open_flag = 1;
+    w->pBarred = 0;
     if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
-        w->status = 2;
-        w->open = 0;
+        w->Status = 2;
+        w->Open_flag = 0;
     }
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -294,24 +294,24 @@ void emBarredDmCk(cEmBarred* em)
     if (wep == 0x10) {
         em->dmType = 0x11;
     }
-    if (em->type == 6 && part == &em->hitInfo && w->eff != 0xFF) {
-        ang = Muku(&em->pos, &em->x328, em->rot.y, PI);
+    if (em->type == 6 && part == &em->hitInfo && w->Eff_id != 0xFF) {
+        ang = Muku(&em->pos, &em->x328, em->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
-            ang = em->rot.y;
+            ang = em->ang.y;
         } else {
-            ang = em->rot.y + PI;
+            ang = em->ang.y + PI;
         }
         v.y = LIMIT_ANGLE(ang);
         v.x = 0.0f;
         v.z = 0.0f;
         parts = em->getPartsPtr(1);
-        EstSet(0, -1, &em->pos, &v, w->eff, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &em->pos, &v, w->Eff_id, 3, 0, 0, 0, 0);
         part->flags &= ~1;
         parts->scale.x = 0.0f;
         parts->scale.y = 0.0f;
         parts->scale.z = 0.0f;
         SndCall(6, 0x3B, &em->pos, 0, 0, em);
-        flg = GetEtcFlgPtr(w->flagNo, pG->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 2;
         }
@@ -331,18 +331,18 @@ void emBarredDmCk(cEmBarred* em)
         case 0x26:
         case 0x27:
         case 0x2B:
-            if (w->eff != 0xFF) {
-                EmDmBloodSet2(em, w->eff, 0, 0, 0, 0);
+            if (w->Eff_id != 0xFF) {
+                EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
             }
             break;
         case 7:
         case 8:
         case 0x21:
-            if (w->eff != 0xFF) {
+            if (w->Eff_id != 0xFF) {
                 if (near) {
-                    EmDmBloodSet2(em, w->eff, 1, 0, 0, 0);
+                    EmDmBloodSet2(em, w->Eff_id, 1, 0, 0, 0);
                 } else {
-                    EmDmBloodSet2(em, w->eff, 0, 0, 0, 0);
+                    EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
                 }
             }
             break;
@@ -359,8 +359,8 @@ void emBarredDmCk(cEmBarred* em)
         case 0x29:
         case 0x2C:
         case 0x2D:
-            if (w->eff != 0xFF) {
-                EmDmBloodSet2(em, w->eff, 0, 0, 0, 0);
+            if (w->Eff_id != 0xFF) {
+                EmDmBloodSet2(em, w->Eff_id, 0, 0, 0, 0);
             }
             break;
         case 0x14:
@@ -384,7 +384,7 @@ void cEmBarred::setOpen(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
-    if (w->status == 1) {
+    if (w->Status == 1) {
         return;
     }
     if (r_no_1 == 1) {
@@ -393,8 +393,8 @@ void cEmBarred::setOpen(int mode)
     if (r_no_1 == 3) {
         return;
     }
-    w->status = 0;
-    w->open = 1;
+    w->Status = 0;
+    w->Open_flag = 1;
     r_no_0 = 1;
     r_no_1 = 1;
     r_no_2 = 0;
@@ -405,7 +405,7 @@ void cEmBarred::setClose(int mode)
 {
     EmBarredWork* w = EMBARRED_WK(this);
 
-    if (w->status == 2) {
+    if (w->Status == 2) {
         return;
     }
     if (r_no_1 == 2) {
@@ -414,8 +414,8 @@ void cEmBarred::setClose(int mode)
     if (r_no_1 == 3) {
         return;
     }
-    w->status = 0;
-    w->open = 0;
+    w->Status = 0;
+    w->Open_flag = 0;
     r_no_0 = 1;
     r_no_1 = 2;
     r_no_2 = 0;
@@ -427,10 +427,10 @@ void cEmBarred::setOpened()
     EmBarredWork* w = EMBARRED_WK(this);
 
     if (r_no_1 != 3) {
-        w->status = 1;
-        w->open = 1;
+        w->Status = 1;
+        w->Open_flag = 1;
         pos.y = w->pos0.y + 2500.0f;
-        SndStop(w->sndId, 0);
+        SndStop(w->Seid, 0);
         r_no_0 = 1;
         r_no_1 = 0;
         r_no_2 = 0;
@@ -443,10 +443,10 @@ void cEmBarred::setClosed()
     EmBarredWork* w = EMBARRED_WK(this);
 
     if (r_no_1 != 3) {
-        w->status = 2;
-        w->open = 0;
+        w->Status = 2;
+        w->Open_flag = 0;
         pos = w->pos0;
-        SndStop(w->sndId, 0);
+        SndStop(w->Seid, 0);
         r_no_0 = 1;
         r_no_1 = 0;
         r_no_2 = 0;
@@ -456,17 +456,17 @@ void cEmBarred::setClosed()
 
 void cEmBarred::setLockMode(u8 mode)
 {
-    EMBARRED_WK(this)->lockMode = mode;
+    EMBARRED_WK(this)->Lock_mode = mode;
 }
 
 int cEmBarred::ckStatus()
 {
-    return EMBARRED_WK(this)->status;
+    return EMBARRED_WK(this)->Status;
 }
 
 int cEmBarred::ckOpen()
 {
-    if (EMBARRED_WK(this)->open) {
+    if (EMBARRED_WK(this)->Open_flag) {
         return 1;
     }
     return 0;
@@ -478,34 +478,34 @@ void emBarred_R1_Set(cEmBarred* em)
 
     em->matUpdate();
     if (em->r_no_2 == 0) {
-        w->timer = 0;
+        w->Timer = 0;
         em->r_no_2++;
     }
     if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
         if (emBarredNearCk(em)) {
-            w->timer = 0;
-            if (w->status != 1 && w->lockMode == 0) {
-                w->open = 1;
-                w->status = 0;
+            w->Timer = 0;
+            if (w->Status != 1 && w->Lock_mode == 0) {
+                w->Open_flag = 1;
+                w->Status = 0;
                 em->r_no_0 = 1;
                 em->r_no_1 = 1;
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
-                if (w->pDouble) {
-                    w->pDouble->setOpen(1);
+                if (w->pBarred) {
+                    w->pBarred->setOpen(1);
                 }
             }
         } else if (emBarredCanClose(w)) {
-            w->timer++;
-            if (w->status == 1 && w->timer > 30 && w->lockMode == 0) {
-                w->status = 0;
-                w->open = 0;
+            w->Timer++;
+            if (w->Status == 1 && w->Timer > 30 && w->Lock_mode == 0) {
+                w->Status = 0;
+                w->Open_flag = 0;
                 em->r_no_0 = 1;
                 em->r_no_1 = 2;
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
-                if (w->pDouble) {
-                    w->pDouble->setClose(1);
+                if (w->pBarred) {
+                    w->pBarred->setClose(1);
                 }
             }
         }
@@ -518,21 +518,21 @@ void emBarred_R1_Open(cEmBarred* em)
     Vec v;
     f32 d;
 
-    w->status = 0;
-    w->open = 1;
+    w->Status = 0;
+    w->Open_flag = 1;
     switch (em->r_no_2) {
     case 0:
-        SndStop(w->sndId, 0);
+        SndStop(w->Seid, 0);
         if (em->r_no_3 == 0) {
             switch (em->type) {
             case 5:
             case 6:
             case 8:
             case 9:
-                w->sndId = SndCall(6, 0xF, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0xF, &em->pos, 0, 0, em);
                 break;
             default:
-                w->sndId = SndCall(6, 0x24, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0x24, &em->pos, 0, 0, em);
                 break;
             }
         }
@@ -546,8 +546,8 @@ void emBarred_R1_Open(cEmBarred* em)
             } else {
                 em->pos.y += 100.0f;
             }
-            if (em->pos.y > w->pos0.y + w->openH) {
-                em->pos.y = w->pos0.y + w->openH;
+            if (em->pos.y > w->pos0.y + w->Height) {
+                em->pos.y = w->pos0.y + w->Height;
                 em->r_no_2++;
             }
             break;
@@ -560,7 +560,7 @@ void emBarred_R1_Open(cEmBarred* em)
             PSVECAdd(&em->pos, &v, &em->pos);
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 1690000.0f) {
-                w->status = 1;
+                w->Status = 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 0;
                 em->r_no_2 = 0;
@@ -575,7 +575,7 @@ void emBarred_R1_Open(cEmBarred* em)
             PSVECAdd(&em->pos, &v, &em->pos);
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
-                w->status = 1;
+                w->Status = 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 0;
                 em->r_no_2 = 0;
@@ -590,7 +590,7 @@ void emBarred_R1_Open(cEmBarred* em)
             PSVECAdd(&em->pos, &v, &em->pos);
             d = (em->pos.x - w->pos0.x) * (em->pos.x - w->pos0.x) + (em->pos.y - w->pos0.y) * (em->pos.y - w->pos0.y) + (em->pos.z - w->pos0.z) * (em->pos.z - w->pos0.z);
             if (d > 2890000.0f) {
-                w->status = 1;
+                w->Status = 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 0;
                 em->r_no_2 = 0;
@@ -601,21 +601,21 @@ void emBarred_R1_Open(cEmBarred* em)
         break;
     case 2:
         if (em->r_no_3 == 0) {
-            SndStop(w->sndId, 0);
-            w->sndId = SndCall(6, 0x25, &em->pos, 0, 0, em);
+            SndStop(w->Seid, 0);
+            w->Seid = SndCall(6, 0x25, &em->pos, 0, 0, em);
         }
-        w->timer = 5;
+        w->Timer = 5;
         em->r_no_2++;
     case 3:
         em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
-        em->pos.y = fRand0_1() * 20.0f + (w->pos0.y + w->openH);
+        em->pos.y = fRand0_1() * 20.0f + (w->pos0.y + w->Height);
         em->pos.z = fRand1_1() * 20.0f + w->pos0.z;
-        if (w->timer != 0) {
-            w->timer--;
+        if (w->Timer != 0) {
+            w->Timer--;
         } else {
             em->pos = w->pos0;
-            em->pos.y = w->pos0.y + w->openH;
-            w->status = 1;
+            em->pos.y = w->pos0.y + w->Height;
+            w->Status = 1;
             em->r_no_0 = 1;
             em->r_no_1 = 0;
             em->r_no_2 = 0;
@@ -631,8 +631,8 @@ void emBarred_R1_Close(cEmBarred* em)
     EmBarredWork* w = EMBARRED_WK(em);
     Vec d;
 
-    w->status = 0;
-    w->open = 0;
+    w->Status = 0;
+    w->Open_flag = 0;
     switch (em->r_no_2) {
     case 0:
         if (em->type == 4) {
@@ -640,17 +640,17 @@ void emBarred_R1_Close(cEmBarred* em)
         } else {
             w->spd = -50.0f;
         }
-        SndStop(w->sndId, 0);
+        SndStop(w->Seid, 0);
         if (em->r_no_3 == 0) {
             switch (em->type) {
             case 5:
             case 6:
             case 8:
             case 9:
-                w->sndId = SndCall(6, 0xF, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0xF, &em->pos, 0, 0, em);
                 break;
             default:
-                w->sndId = SndCall(6, 0x24, &em->pos, 0, 0, em);
+                w->Seid = SndCall(6, 0x24, &em->pos, 0, 0, em);
                 break;
             }
         }
@@ -687,14 +687,14 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         }
         if (emBarredUnderCk(em)) {
-            w->status = 0;
-            w->open = 1;
+            w->Status = 0;
+            w->Open_flag = 1;
             em->r_no_0 = 1;
             em->r_no_1 = 1;
             em->r_no_2 = 0;
             em->r_no_3 = 0;
-            if (w->pDouble) {
-                w->pDouble->setOpen(1);
+            if (w->pBarred) {
+                w->pBarred->setOpen(1);
             }
         }
         break;
@@ -707,8 +707,8 @@ void emBarred_R1_Close(cEmBarred* em)
             break;
         default:
             if (em->r_no_3 == 0) {
-                SndStop(w->sndId, 0);
-                w->sndId = SndCall(6, 0x27, &em->pos, 0, 0, em);
+                SndStop(w->Seid, 0);
+                w->Seid = SndCall(6, 0x27, &em->pos, 0, 0, em);
             }
             break;
         }
@@ -719,22 +719,22 @@ void emBarred_R1_Close(cEmBarred* em)
         case 9:
             break;
         default:
-            if (w->eff != 0xFF) {
-                EstSet((int) em, -1, 0, 0, w->eff, 2, 0, 0, (u32) em, 0);
+            if (w->Eff_id != 0xFF) {
+                EstSet((int) em, -1, 0, 0, w->Eff_id, 2, 0, 0, (u32) em, 0);
             }
             break;
         }
-        w->timer = 5;
+        w->Timer = 5;
         em->r_no_2++;
     case 3:
         em->pos.x = fRand1_1() * 20.0f + w->pos0.x;
         em->pos.y = fRand0_1() * 20.0f + w->pos0.y;
         em->pos.z = fRand1_1() * 20.0f + w->pos0.z;
-        if (w->timer != 0) {
-            w->timer--;
+        if (w->Timer != 0) {
+            w->Timer--;
         } else {
             em->pos = w->pos0;
-            w->status = 2;
+            w->Status = 2;
             em->r_no_0 = 1;
             em->r_no_1 = 0;
             em->r_no_2 = 0;
@@ -743,18 +743,18 @@ void emBarred_R1_Close(cEmBarred* em)
         break;
     }
     em->matUpdate();
-    if (w->lockMode == 0) {
+    if (w->Lock_mode == 0) {
         if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
             if (emBarredNearCk(em)) {
-                if (w->status != 1) {
-                    w->status = 0;
-                    w->open = 1;
+                if (w->Status != 1) {
+                    w->Status = 0;
+                    w->Open_flag = 1;
                     em->r_no_0 = 1;
                     em->r_no_1 = 1;
                     em->r_no_2 = 0;
                     em->r_no_3 = 0;
-                    if (w->pDouble) {
-                        w->pDouble->setOpen(1);
+                    if (w->pBarred) {
+                        w->pBarred->setOpen(1);
                     }
                 }
             }
@@ -772,7 +772,7 @@ void emBarred_R1_Break(cEmBarred* em)
         em->be_flag &= ~2;
         em->clearStatus(5);
         em->atari.throughOn();
-        flg = GetEtcFlgPtr(w->flagNo, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
         if (flg) {
             *flg |= 1;
         }
@@ -794,20 +794,20 @@ void emBarredEatSet(cEmBarred* em)
 
     if (em->hp <= 0) {
         em->atari.throughOn();
-        if (w->sat) {
-            w->sat->flags &= ~4;
+        if (w->pEat) {
+            w->pEat->m_Flag &= ~4;
         }
-        if (w->sub[0]) {
-            w->sub[0]->flags &= ~4;
+        if (w->pEatFrame[0]) {
+            w->pEatFrame[0]->m_Flag &= ~4;
         }
-        if (w->sub[1]) {
-            w->sub[1]->flags &= ~4;
+        if (w->pEatFrame[1]) {
+            w->pEatFrame[1]->m_Flag &= ~4;
         }
-        if (w->sub[2]) {
-            w->sub[2]->flags &= ~4;
+        if (w->pEatFrame[2]) {
+            w->pEatFrame[2]->m_Flag &= ~4;
         }
-        if (w->sub[3]) {
-            w->sub[3]->flags &= ~4;
+        if (w->pEatFrame[3]) {
+            w->pEatFrame[3]->m_Flag &= ~4;
         }
     }
     attr = 0;
@@ -862,7 +862,7 @@ void emBarredEatSet(cEmBarred* em)
         attr = 0x404000;
         break;
     }
-    if (w->sat == 0) {
+    if (w->pEat == 0) {
         y = 0.0f;
         h = hz;
         if (em->type == 6) {
@@ -881,18 +881,18 @@ void emBarredEatSet(cEmBarred* em)
         poly[3].x = -hx;
         poly[3].y = y;
         poly[3].z = hy;
-        w->sat = EatMgr.create(&em->pos, &em->rot, poly, attr, 0, h);
+        w->pEat = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, h);
     } else {
-        w->sat->flags |= 4;
-        w->sat->setCoord(&em->pos, &em->rot);
-        flg = GetEtcFlgPtr(w->flagNo, pG->room_id);
+        w->pEat->m_Flag |= 4;
+        w->pEat->setCoord(&em->pos, &em->ang);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg && (*flg & 2)) {
-            w->sat->flags &= ~4;
+            w->pEat->m_Flag &= ~4;
         }
     }
     if (em->type == 6) {
         h = hz;
-        if (w->sub[0] == 0) {
+        if (w->pEatFrame[0] == 0) {
             poly[0].x = -hx;
             poly[0].y = 0.0f;
             poly[0].z = -hy;
@@ -905,12 +905,12 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->sub[0] = SatMgrCreateF(&EatMgr, &em->pos, &em->rot, poly, h, attr, 0);
+            w->pEatFrame[0] = SatMgrCreateF(&EatMgr, &em->pos, &em->ang, poly, h, attr, 0);
         } else {
-            w->sub[0]->flags |= 4;
-            w->sub[0]->setCoord(&em->pos, &em->rot);
+            w->pEatFrame[0]->m_Flag |= 4;
+            w->pEatFrame[0]->setCoord(&em->pos, &em->ang);
         }
-        if (w->sub[1] == 0) {
+        if (w->pEatFrame[1] == 0) {
             poly[0].x = hx - 160.0f;
             poly[0].y = 0.0f;
             poly[0].z = -hy;
@@ -923,12 +923,12 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = hx - 160.0f;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->sub[1] = SatMgrCreateF(&EatMgr, &em->pos, &em->rot, poly, h, attr, 0);
+            w->pEatFrame[1] = SatMgrCreateF(&EatMgr, &em->pos, &em->ang, poly, h, attr, 0);
         } else {
-            w->sub[1]->flags |= 4;
-            w->sub[1]->setCoord(&em->pos, &em->rot);
+            w->pEatFrame[1]->m_Flag |= 4;
+            w->pEatFrame[1]->setCoord(&em->pos, &em->ang);
         }
-        if (w->sub[2] == 0) {
+        if (w->pEatFrame[2] == 0) {
             poly[0].x = -hx;
             poly[0].y = 0.0f;
             poly[0].z = -hy;
@@ -941,12 +941,12 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->sub[2] = EatMgr.create(&em->pos, &em->rot, poly, attr, 0, 260.0f);
+            w->pEatFrame[2] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, 260.0f);
         } else {
-            w->sub[2]->flags |= 4;
-            w->sub[2]->setCoord(&em->pos, &em->rot);
+            w->pEatFrame[2]->m_Flag |= 4;
+            w->pEatFrame[2]->setCoord(&em->pos, &em->ang);
         }
-        if (w->sub[3] == 0) {
+        if (w->pEatFrame[3] == 0) {
             poly[0].x = -hx;
             poly[0].y = hz - 260.0f;
             poly[0].z = -hy;
@@ -959,10 +959,10 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = hz - 260.0f;
             poly[3].z = hy;
-            w->sub[3] = EatMgr.create(&em->pos, &em->rot, poly, attr, 0, 260.0f);
+            w->pEatFrame[3] = EatMgr.create(&em->pos, &em->ang, poly, attr, 0, 260.0f);
         } else {
-            w->sub[3]->flags |= 4;
-            w->sub[3]->setCoord(&em->pos, &em->rot);
+            w->pEatFrame[3]->m_Flag |= 4;
+            w->pEatFrame[3]->setCoord(&em->pos, &em->ang);
         }
     }
 }
@@ -983,10 +983,10 @@ int emBarredNearCk(cEmBarred* em)
     default:
         return 0;
     }
-    if (w->lockMode != 0) {
+    if (w->Lock_mode != 0) {
         return 0;
     }
-    if (w->status == 1) {
+    if (w->Status == 1) {
         r2 = 12250000.0f;
     } else {
         r2 = 6250000.0f;
@@ -1020,7 +1020,7 @@ int emBarredNearCk(cEmBarred* em)
 
 void cEmBarred::setEff(u8 eff)
 {
-    EMBARRED_WK(this)->eff = eff;
+    EMBARRED_WK(this)->Eff_id = eff;
 }
 
 void cEmBarred::setBreak(Vec* target)
@@ -1030,16 +1030,16 @@ void cEmBarred::setBreak(Vec* target)
     f32 ang;
 
     if (hp > 0) {
-        ang = Muku(&pos, target, rot.y, PI);
+        ang = Muku(&pos, target, this->ang.y, PI);
         if (fabsf(ang) < PI / 2) {
-            ang = rot.y;
+            ang = this->ang.y;
         } else {
-            ang = rot.y + PI;
+            ang = this->ang.y + PI;
         }
         v.y = LIMIT_ANGLE(ang);
         v.x = 0.0f;
         v.z = 0.0f;
-        EstSet(0, -1, &pos, &v, w->eff, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &pos, &v, w->Eff_id, 3, 0, 0, 0, 0);
         atari.throughOn();
         hp = 0;
         r_no_0 = 1;
@@ -1051,7 +1051,7 @@ void cEmBarred::setBreak(Vec* target)
 
 void cEmBarred::setNoClose()
 {
-    EMBARRED_WK(this)->flags |= 1;
+    EMBARRED_WK(this)->be_flag |= 1;
 }
 
 void cEmBarred::setDouble(cEmBarred* other)
@@ -1059,14 +1059,14 @@ void cEmBarred::setDouble(cEmBarred* other)
     EmBarredWork* w = EMBARRED_WK(this);
 
     if (other) {
-        w->pDouble = other;
-        EMBARRED_WK(other)->pDouble = this;
+        w->pBarred = other;
+        EMBARRED_WK(other)->pBarred = this;
     }
 }
 
 void cEmBarred::setUnderCk()
 {
-    EMBARRED_WK(this)->flags |= 2;
+    EMBARRED_WK(this)->be_flag |= 2;
 }
 
 int emBarredUnderCk(cEmBarred* em)
@@ -1076,7 +1076,7 @@ int emBarredUnderCk(cEmBarred* em)
     Vec v;
     u32 i;
 
-    if (!(w->flags & 2)) {
+    if (!(w->be_flag & 2)) {
         return 0;
     }
     switch (em->type) {
@@ -1089,16 +1089,16 @@ int emBarredUnderCk(cEmBarred* em)
     if (em->pos.y - w->pos0.y > 2200.0f) {
         return 0;
     }
-    PSMTXRotRad(m, 'y', em->rot.y);
+    PSMTXRotRad(m, 'y', em->ang.y);
     TransMatrix(m, &w->pos0);
     PSMTXInverse(m, m);
     PSMTXMultVec(m, &pPL->pos, &v);
-    if (v.x > -w->halfW && v.x < w->halfW && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 200.0f) {
+    if (v.x > -w->Width && v.x < w->Width && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 200.0f) {
         return 1;
     }
     if (pSUB) {
         PSMTXMultVec(m, &pSUB->pos, &v);
-        if (v.x > -w->halfW && v.x < w->halfW && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 2100.0f) {
+        if (v.x > -w->Width && v.x < w->Width && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 2100.0f) {
             return 1;
         }
     }
@@ -1121,7 +1121,7 @@ int emBarredUnderCk(cEmBarred* em)
             continue;
         }
         PSMTXMultVec(m, &e->pos, &v);
-        if (v.x > -w->halfW && v.x < w->halfW && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 200.0f) {
+        if (v.x > -w->Width && v.x < w->Width && v.y > -100.0f && v.y < 100.0f && v.z > -200.0f && v.z < 200.0f) {
             return 1;
         }
     }

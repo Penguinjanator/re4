@@ -17,13 +17,13 @@ struct CameraParam {
 // cam_ctrl unit touches are named; extend this, do not rewrite it.
 struct Camera {
     Mtx mat;            // 0x00 camera orientation matrix (QuakeMain rotates the quake offset by it)
-    Mtx viewMat;        // 0x30 look-at matrix (C_MTXLookAt)
+    Mtx v_mat;        // 0x30 look-at matrix (C_MTXLookAt)
     u8 pad_60[4];
-    Mtx44 projMat;      // 0x64 projection matrix
+    Mtx44 ProjMat;      // 0x64 projection matrix
     CameraParam param;  // 0xA4 (pos 0xA4, at 0xB0, roll 0xBC, fovy 0xC0)
     Vec up;             // 0xC4 up vector (C_MTXLookAt)
-    Vec dir;            // 0xD0 pos - at, normalised (matrix column 2)
-    Vec right;          // 0xDC up x dir (matrix column 0)
+    Vec Look;            // 0xD0 pos - at, normalised (matrix column 2)
+    Vec Right;          // 0xDC up x dir (matrix column 0)
     u8 pad_E8[0xF4 - 0xE8];
     f32 dist;           // 0xF4 |pos - at| (db_cam keeps it current for the debug camera)
 };

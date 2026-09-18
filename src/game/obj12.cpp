@@ -49,15 +49,15 @@ void cObj12::move()
     Quaternion q1;
     Quaternion q;
 
-    w->motResult = 0;
+    w->Motion_info = 0;
     if (pMotion) {
-        w->motResult = MotionMove(this, 0);
+        w->Motion_info = MotionMove(this, 0);
     }
-    if (!(w->flags & 0x106)) {
-        RotMatrix(worldMat, &rot);
-        TransMatrix(worldMat, &pos);
-        ScaleMatrix(worldMat, &scale);
-        PSMTXCopy(worldMat, mat);
+    if (!(w->be_flag & 0x106)) {
+        RotMatrix(l_mat, &ang);
+        TransMatrix(l_mat, &pos);
+        ScaleMatrix(l_mat, &scale);
+        PSMTXCopy(l_mat, mat);
     }
     if (w->oya) {
         if ((w->oya->be_flag & 0x201) != 1) {
@@ -65,8 +65,8 @@ void cObj12::move()
             return;
         }
         if (w->oya->pParts) {
-            PSMTXConcat(w->oya->getPartsPtr(w->partsNo)->mat, mat, m);
-            if (!(w->flags & 0x80)) {
+            PSMTXConcat(w->oya->getPartsPtr(w->oya_parts)->mat, mat, m);
+            if (!(w->be_flag & 0x80)) {
                 v0.x = m[0][0];
                 v0.y = m[1][0];
                 v0.z = m[2][0];
@@ -101,47 +101,47 @@ void cObj12::move()
                 m[1][2] = v2.y;
                 m[2][2] = v2.z;
             }
-            if (w->rate < 1.0f) {
-                w->rate += w->rateSpd;
-                if (w->rate >= 1.0f) {
-                    w->rate = 1.0f;
-                    w->flags &= ~8;
+            if (w->oya_hokan < 1.0f) {
+                w->oya_hokan += w->rateSpd;
+                if (w->oya_hokan >= 1.0f) {
+                    w->oya_hokan = 1.0f;
+                    w->be_flag &= ~8;
                 }
             }
-            if (w->flags & 8) {
-                f32 rate = w->rate;
+            if (w->be_flag & 8) {
+                f32 rate = w->oya_hokan;
                 f32 inv = 1.0f - rate;
 
-                p.x = m[0][3] * rate + w->mat[0][3] * inv;
-                p.y = m[1][3] * rate + w->mat[1][3] * inv;
-                p.z = m[2][3] * rate + w->mat[2][3] * inv;
+                p.x = m[0][3] * rate + w->hokan_mat[0][3] * inv;
+                p.y = m[1][3] * rate + w->hokan_mat[1][3] * inv;
+                p.z = m[2][3] * rate + w->hokan_mat[2][3] * inv;
                 C_QUATMtx(&q0, m);
-                C_QUATMtx(&q1, w->mat);
-                C_QUATSlerp(&q0, &q1, &q, w->rate);
+                C_QUATMtx(&q1, w->hokan_mat);
+                C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
                 PSMTXQuat(mat, &q);
                 TransMatrix(mat, &p);
-                PSMTXCopy(mat, w->mat);
+                PSMTXCopy(mat, w->hokan_mat);
             } else {
                 PSMTXCopy(m, mat);
             }
         }
         if (w->oya) {
-            if (w->oya->lightInfo.x50 & 2) {
-                lightInfo.x50 &= ~0x10;
-                lightInfo.x50 |= 2;
+            if (w->oya->LightInfo.x50 & 2) {
+                LightInfo.x50 &= ~0x10;
+                LightInfo.x50 |= 2;
             }
         }
     }
     throwMove();
     fallMove();
     if ((be_flag & 0x201) == 1) {
-        if (!(w->flags & 6)) {
+        if (!(w->be_flag & 6)) {
             partsMatCalc();
         }
         partsWorldCalc();
         chainMove();
         if (w->oya) {
-            alpha = w->oya->alpha;
+            invisible_factor = w->oya->invisible_factor;
             invisible_factor2 = w->oya->invisible_factor2;
             if (w->oya->be_flag & 2) {
                 be_flag |= 2;
@@ -149,17 +149,17 @@ void cObj12::move()
                 be_flag &= ~2;
             }
         }
-        if (G_ROOM_ID == 0x30F && (w->flags & 4)) {
+        if (G_ROOM_ID == 0x30F && (w->be_flag & 4)) {
             ObjMgr.destroy(this);
             return;
         }
-        if (w->flags & 0x200) {
-            if (w->life) {
-                w->life--;
+        if (w->be_flag & 0x200) {
+            if (w->Lost_wait) {
+                w->Lost_wait--;
             } else {
-                alpha -= 0.1f;
-                if (alpha < 0.0f) {
-                    alpha = 0.0f;
+                invisible_factor -= 0.1f;
+                if (invisible_factor < 0.0f) {
+                    invisible_factor = 0.0f;
                     be_flag &= ~2;
                     ObjMgr.destroy(this);
                 }
@@ -185,16 +185,16 @@ cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
             static const Vec p1 = { 500.0f, 500.0f, 500.0f };
 
             obj->sub2B4.atari.throughOn();
-            obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+            obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
             obj->pos = *pos;
-            obj->oldPos = *pos;
-            obj->rot = *rot;
-            w->rate = 1.0f;
+            obj->pos_old = *pos;
+            obj->ang = *rot;
+            w->oya_hokan = 1.0f;
             w->rateSpd = 0.0f;
             w->oya = 0;
-            w->partsNo = 0;
-            w->motResult = 0;
-            w->life = 0;
+            w->oya_parts = 0;
+            w->Motion_info = 0;
+            w->Lost_wait = 0;
             return obj;
         }
     }
@@ -206,13 +206,13 @@ void cObj12::setParent(cModel* oya, int partsNo, int noNormalize)
     Obj12Work* w = &o12;
 
     w->oya = oya;
-    w->partsNo = partsNo;
-    w->flags &= ~8;
-    w->flags &= ~3;
+    w->oya_parts = partsNo;
+    w->be_flag &= ~8;
+    w->be_flag &= ~3;
     if (noNormalize) {
-        w->flags |= 0x80;
+        w->be_flag |= 0x80;
     } else {
-        w->flags &= ~0x80;
+        w->be_flag &= ~0x80;
     }
 }
 
@@ -230,7 +230,7 @@ static void obj12SetRate(cObj* obj, u32 rate)
 {
     Obj12Work* w = &obj->o12;
 
-    if (w->rate == 0.0) {
+    if (w->oya_hokan == 0.0) {
         return;
     }
     w->rateSpd = (f32) rate;
@@ -245,7 +245,7 @@ void cObj12::setFall(Vec* spd, u8 type)
     u32 i;
     f32 r;
 
-    w->flags |= 4;
+    w->be_flag |= 4;
     w->oya = 0;
     for (i = 0; i < 3; i++) {
         if (spd) {
@@ -270,23 +270,23 @@ void cObj12::setFall(Vec* spd, u8 type)
             w->fallSpd[i][2] = (s16) (fRand1_1() * 100.0f);
         }
     }
-    w->flags |= 0x200;
-    w->seBlk = 0xFF;
-    w->seId = 0;
-    w->sePlayed = 0;
-    w->type = type;
-    w->life = 90;
-    w->seNo = 0xFF;
+    w->be_flag |= 0x200;
+    w->fall_se_id = 0xFF;
+    w->fall_em_id = 0;
+    w->fall_se_ck = 0;
+    w->fall_type = type;
+    w->Lost_wait = 90;
+    w->fall_se_no = 0xFF;
 }
 
 void cObj12::setFallSe(u8 blk, u8 no, u8 id)
 {
     Obj12Work* w = &o12;
 
-    w->seBlk = blk;
-    w->seNo = no;
-    w->seId = id;
-    w->sePlayed = 0;
+    w->fall_se_id = blk;
+    w->fall_se_no = no;
+    w->fall_em_id = id;
+    w->fall_se_ck = 0;
 }
 
 void cObj12::fallMove()
@@ -312,7 +312,7 @@ void cObj12::fallMove()
     f32 diff;
     f32 floor;
 
-    if (!(w->flags & 4)) {
+    if (!(w->be_flag & 4)) {
         return;
     }
     floor = EatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
@@ -324,7 +324,7 @@ void cObj12::fallMove()
     }
     for (i = 0; i < 3; i++) {
         p = &node[i];
-        PSMTXMultVec(mat, &ofs[w->type][i], &p->pos);
+        PSMTXMultVec(mat, &ofs[w->fall_type][i], &p->pos);
         p->old = p->pos;
     }
     for (i = 0; i < 3; i++) {
@@ -376,13 +376,13 @@ void cObj12::fallMove()
             n = &node[i + 1];
         }
         if (p->hit) {
-            if (w->sePlayed == 0 && p->spd.y < -50.0f) {
-                w->sePlayed = 1;
-                if (w->seBlk != 0xFF) {
-                    SndCall(w->seBlk, w->seNo, &pos, w->seId, 0, 0);
+            if (w->fall_se_ck == 0 && p->spd.y < -50.0f) {
+                w->fall_se_ck = 1;
+                if (w->fall_se_id != 0xFF) {
+                    SndCall(w->fall_se_id, w->fall_se_no, &pos, w->fall_em_id, 0, 0);
                 }
             }
-            switch (w->type) {
+            switch (w->fall_type) {
             default:
                 p->spd.x *= fRand0_1() * 0.2f + 0.5f;
                 p->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
@@ -409,7 +409,7 @@ void cObj12::fallMove()
         w->fallSpd[i][1] = (s16) (p->spd.y * 10.0f);
         w->fallSpd[i][2] = (s16) (p->spd.z * 10.0f);
     }
-    if (w->type != 4) {
+    if (w->fall_type != 4) {
         PSVECSubtract(&node[0].pos, &node[1].pos, &vz);
         PSVECSubtract(&node[2].pos, &node[1].pos, &vx);
         PSVECCrossProduct(&vz, &vx, &vy);
@@ -437,7 +437,7 @@ void cObj12::fallMove()
     mat[0][2] = vz.x;
     mat[1][2] = vz.y;
     mat[2][2] = vz.z;
-    PSVECScale(&ofs[w->type][0], &d, -1.0f);
+    PSVECScale(&ofs[w->fall_type][0], &d, -1.0f);
     TransMatrix(mat, &node[0].pos);
     PSMTXMultVec(mat, &d, &d);
     TransMatrix(mat, &d);
@@ -449,8 +449,8 @@ void cObj12::fallMove()
         pos.x = mat[0][3];
         pos.y = mat[1][3];
         pos.z = mat[2][3];
-        Matrix2AxisAngle(mat, &rot);
-        w->flags &= ~4;
+        Matrix2AxisAngle(mat, &ang);
+        w->be_flag &= ~4;
     }
 }
 
@@ -467,7 +467,7 @@ static void obj12ThrowSet(cObj* obj, Vec* spd)
     if (ang < 0.0f) {
         ang += 1.5707964f;
     }
-    obj->rot.y = ang;
+    obj->ang.y = ang;
 }
 
 void cObj12::throwMove()
@@ -479,7 +479,7 @@ void cObj12::throwMove()
     Vec dir;
     f32 ang;
 
-    if (!(w->flags & 0x100)) {
+    if (!(w->be_flag & 0x100)) {
         return;
     }
     static EmAtkInfo obj12Atk = { 300.0f, 8, 400, 0, 10, 0 };
@@ -489,18 +489,18 @@ void cObj12::throwMove()
     spd.y = (f32) w->fallSpd[0][1];
     spd.z = (f32) w->fallSpd[0][2];
     PSVECAdd(&pos, &spd, &pos);
-    if (EatMgr.hitCheck(&oldPos, &pos, 0, 0, 0, 0)) {
-        w->flags &= ~0x100;
+    if (EatMgr.hitCheck(&pos_old, &pos, 0, 0, 0, 0)) {
+        w->be_flag &= ~0x100;
         setFall(0, 0);
-    } else if (EmAtkHitCk(&obj12Atk, &pos, &oldPos, 1)) {
+    } else if (EmAtkHitCk(&obj12Atk, &pos, &pos_old, 1)) {
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-        w->flags &= ~0x100;
+        w->be_flag &= ~0x100;
         setFall(0, 0);
     }
     up.x = 0.0f;
     up.y = 1.0f;
     up.z = 0.0f;
-    PSMTXRotRad(m, 'y', rot.y);
+    PSMTXRotRad(m, 'y', this->ang.y);
     dir.x = 0.0f;
     dir.y = 0.0f;
     dir.z = 1.0f;
@@ -523,7 +523,7 @@ void cObj12::setBurn()
 {
     cModelInfo* info;
 
-    for (info = pInfo; info; info = info->pNext) {
+    for (info = pModelInfo; info; info = info->pList) {
         info->color[0] = 0x20;
         info->color[1] = 0x20;
         info->color[2] = 0x20;

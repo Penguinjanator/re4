@@ -51,10 +51,10 @@ public:
     cModelInfo* pHair;           // 0x24
     cModelInfo* pEye;            // 0x28  (flags |= 0x40)
     cModelInfo* pFace;           // 0x2C  face model info (pl_knife zeroes/ones its 0x5C/0x70/0x84)
-    u32 leftNo;                  // 0x30  current left hand item no
-    u32 leftNoPrev;              // 0x34  previous one (setLeftHand(0x63) restores it)
-    cModel* pModel;              // 0x38
-    f32 waist;                   // 0x3C  waist twist angle (waistSet)
+    u32 nowLhandNo;                  // 0x30  current left hand item no
+    u32 oldLhandNo;              // 0x34  previous one (setLeftHand(0x63) restores it)
+    cModel* m_pMod;              // 0x38
+    f32 m_WaistY;                   // 0x3C  waist twist angle (waistSet)
     SpaeData spae[2];            // 0x40
 
     cPlBody(cModel* model);

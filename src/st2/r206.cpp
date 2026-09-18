@@ -78,8 +78,8 @@ void ShapeSet(void* info, int a, void* data, int b);
 
 // `pSUB->atari.flags &= 0xFCFF` through a pointer to the collision info (r207).
 // Routine bytes through int parameters: one SI zero pseudo, the stores issued ff, fc, fd, fe (r210).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // Upper half of the damage flags set = the enemy is dead (db_cam idiom); the inline's result is
 // materialised as 0/1 before the test.
 static inline int isDeadEm(cEm* em) { return (em->flags_324 & 0xFFFF0000) != 0; }
@@ -302,24 +302,24 @@ static void Evt_R206S00_Func(Event* e)
         setRoomEtcDisp(0x11, 0, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x13:
         case 0x15:
         case 0x17:
         case 0x18:
         case 0x1A:
         case 0x1E:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(8, 1);
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(8, 0);
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0xF:
         case 0x11:
             if (e->GetMod(&mod, "obm5500", 0, 0) == 1) {
@@ -332,8 +332,8 @@ static void Evt_R206S00_Func(Event* e)
             }
             break;
         }
-        if (e->cut <= 0xC) {
-            if (e->frame == 0) {
+        if (e->NowCut <= 0xC) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "ev0401", 0, 0) == 1) {
                     if (EvtMgr.GetBin(&bin, "event/model/ev0400/ev0401.tpl", 0) == 1) {
                         ((cModelInfo*) mod2)->setTplAddr(bin);
@@ -341,7 +341,7 @@ static void Evt_R206S00_Func(Event* e)
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "ev0401", 0, 0) == 1) {
                     if (EvtMgr.GetBin(&bin2, "event/model/ev0400/ev0401_blood.tpl", 0) == 1) {
                         ((cModelInfo*) mod2)->setTplAddr(bin2);
@@ -349,14 +349,14 @@ static void Evt_R206S00_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 5:
         case 7:
         case 8:
         case 0xC:
         case 0xE:
         case 0xF:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     ((cModel*) mod)->ot_type = 1;
                     TexRenderModSet((cModel*) mod, 0, r206_work.p->texTbl, r206_work.p->tex, 0, 1, 1, 1, 1.0f);
@@ -368,7 +368,7 @@ static void Evt_R206S00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc800", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 0);
                 }
@@ -409,7 +409,7 @@ static void Evt_R206S20_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0x12, 0);
         }
         break;
@@ -431,7 +431,7 @@ static void funcAshley(cEm* p)
     switch (p->r_no_2) {
     case 0:
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x21), 0xA, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x21), 0xA, 0, 1, 0);
         SndCall(6, 0xD, &pSUB->pos, 0, 0, 0);
         p->r_no_2 = 1;
     case 1:
@@ -440,7 +440,7 @@ static void funcAshley(cEm* p)
         }
         break;
     case 2:
-        p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0xA, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 0xA, 0, 1, 0);
         p->r_no_2 = 3;
     case 3:
         if (p->motionMove() != 0) {
@@ -448,7 +448,7 @@ static void funcAshley(cEm* p)
         }
         break;
     case 4:
-        p->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0xA, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0xA, 0, 1, 0);
         p->r_no_2 = 5;
     default:
         if (p->motionMove() != 0) {
@@ -458,14 +458,14 @@ static void funcAshley(cEm* p)
         }
         break;
     }
-    p->rot.y = 2.35f;
+    p->ang.y = 2.35f;
 }
 
 static void funcAshley2(cEm* p)
 {
     if (p->r_no_2 == 0) {
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x27), 0x19, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x19, 0, 1, 0);
         p->r_no_2 = 1;
     }
     if (p->motionMove() != 0) {
@@ -482,7 +482,7 @@ static void funcAshley3(cEm* p)
     switch (step) {
     case 0:
         AtariFlagsAnd(&pSUB->atari, 0xFCFF);
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x31), 0x19, 0, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x31), 0x19, 0, 1, 0);
         r206_work.p->cnt3 = step;
         p->r_no_2 = 1;
     case 1:
@@ -596,7 +596,7 @@ static void r206_snipe()
         luis_set();
     }
     SubCharCtrl(5, 0);
-    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 5, 0);
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 5, 0);
     pSUB->st.x325 = 0x80;
     {
         Vec pos = {0.0f, 0.0f, 900.0f};
@@ -675,28 +675,28 @@ static void r206_snipe()
         }
         if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 2)) {
             if (r206_work.p->frame == 0) {
-                pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 0, 0, 1, 0);
-                *(u32*) &r206_work.p->maxFrame = (u32) MotionGetMaxFrame(&pSUB->mot);
+                pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
+                *(u32*) &r206_work.p->maxFrame = (u32) MotionGetMaxFrame(&pSUB->Motion);
                 YarareInitCube(subHit0, 0.0f, r206_subCubeY, r206_subCubeZ, r206_subCubeW, r206_subCubeH * 0.85f,
                                r206_subCubeD, 0, 1);
                 YarareInitCube(subHit1, 0.0f, r206_subCube2Y, r206_subCube2Z, r206_subCube2W, r206_subCube2H * 0.7f,
                                r206_subCube2D, 0, 1);
             } else if (r206_work.p->frame == r206_work.p->maxFrame) {
-                pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 0, 5, 0);
+                pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 5, 0);
             }
             r206_work.p->frame++;
         }
         if ((pG->flags_68 & 0x00800000) == 0) {
             if (fire_die_ck() == 1 || subHit0->ckStatus() == 1 || subHit1->ckStatus() == 1) {
-                *(s16*) &pG->sub_life = -1;
+                *(s16*) &pG->ashley_life = -1;
                 if (RsfCheck(G_ROOM_ID, 1) && RsfCheck(G_ROOM_ID, 2)) {
-                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0, 0, 1, 0);
+                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0, 1, 0);
                 } else {
-                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+                    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
                 }
             }
         }
-        if ((s16) pG->sub_life != -1 && (u32) done > 2) {
+        if ((s16) pG->ashley_life != -1 && (u32) done > 2) {
             EmRoutineSet(pSUB, 0, 0, 0, 0);
             goto snipe_done;
         }
@@ -754,7 +754,7 @@ snipe_done:
     }
     SceSleep(0x32);
     SndCall(6, 0xB, 0, 0, 0, 0);
-    SceMesSet(2, 0xA2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0xA2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceSleep(0xA);
     SceSleep(0x37);
     CamCtrl.Comeback(0);
@@ -772,7 +772,7 @@ snipe_done:
         Vec ofs = {0.0f, -2.0f, 180.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        r206_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x30), &ofs, &rot);
+        r206_work.p->head = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30), &ofs, &rot);
         r206_work.p->head->setNoSuspend(1);
         OyaSetObj00(r206_work.p->head, r206_work.p->em[7].getPtr(), 2);
         r206_work.p->esp = EspPullCoreKind();
@@ -872,7 +872,7 @@ wave_done:
     }
     SceSleep(0xF);
     SndCall(6, 0xC, 0, 0, 0, 0);
-    SceMesSet(4, 0xA2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(4, 0xA2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     while (SubCharGetStatus() & 0x01000000) {
         SceSleep(1);
     }
@@ -897,7 +897,7 @@ wave_done:
     }
     SceSleep(1);
     SndCall(6, 3, 0, 0, 0, 0);
-    SceMesSet(5, 2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(5, 2, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (pSUB != NULL) {
         EmMgr.destroy(pSUB);
         pG->flags_5018 &= ~0x04000000;
@@ -1001,7 +1001,7 @@ static void r206_checkDoor()
 
 static void r206_checkDoorToR20c()
 {
-    cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+    cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
 }
 
 static void r206_asl_call()
@@ -1027,7 +1027,7 @@ static void r206_asl_call()
 
 static void r206_checkDoor2()
 {
-    SceMesSet(6, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(6, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 static void r206_snipe_end()
@@ -1052,25 +1052,25 @@ void luis_set()
     f32 zero;
     int lit = 4;
 
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x32), ROOM_ARC_PTR(pG->pRoomArc, 0x33), &pos, &rot, 0x10, 1);
-    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x34), ROOM_ARC_PTR(pG->pRoomArc, 0x35)));
-    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x36), ROOM_ARC_PTR(pG->pRoomArc, 0x37)));
-    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x38), ROOM_ARC_PTR(pG->pRoomArc, 0x39)));
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3D), 0xA, 0, 1, 0);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), &pos, &rot, 0x10, 1);
+    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x34), ROOM_ARC_PTR(pG->pRoom, 0x35)));
+    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x36), ROOM_ARC_PTR(pG->pRoom, 0x37)));
+    obj->addModel(ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x38), ROOM_ARC_PTR(pG->pRoom, 0x39)));
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3D), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
     zero = 0.0f;
     obj->motSpeedRate = zero;
     obj->setNoSuspend(1);
-    obj->lightInfo.x50 = lit;
+    obj->LightInfo.x50 = lit;
     obj->be_flag |= 0x10;
-    ShapeSet(obj->pInfo->pNext->pNext, 0, ROOM_ARC_PTR(pG->pRoomArc, 0x3C), 2);
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x3A), ROOM_ARC_PTR(pG->pRoomArc, 0x3B), &pos, &rot, 0x10, 1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3C), 0xA, 0, 1, 0);
+    ShapeSet(obj->pModelInfo->pList->pList, 0, ROOM_ARC_PTR(pG->pRoom, 0x3C), 2);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x3A), ROOM_ARC_PTR(pG->pRoom, 0x3B), &pos, &rot, 0x10, 1);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3C), 0xA, 0, 1, 0);
     obj->be_flag |= 0x1000;
     obj->motSpeedRate = zero;
     obj->setNoSuspend(1);
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x3E), 0xA, 0, 1, 0);
-    obj->lightInfo.x50 = lit;
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0xA, 0, 1, 0);
+    obj->LightInfo.x50 = lit;
     obj->be_flag |= 0x10;
     EstSet((int) obj, -1, 0, 0, 1, 3, 1, 0, 0, 0);
     SceAtSetEnable(0xB, 1);
@@ -1083,17 +1083,17 @@ void r206_openShelf_main(int no, int opened)
     OpenBoxMain(0x15, opened, 0x15, 9, -1, -1);
     obj = SmdGetObjPtr(9);
     if (obj != NULL) {
-        Vec* rot = &obj->rot;
+        Vec* rot = &obj->ang;
 
         obj->pos.x = -401.0f;
         obj->pos.y = 8028.0f;
         obj->pos.z = -4054.0f;
-        obj->rot.x = 1.5592f;
-        obj->rot.y = 1.42932f;
-        obj->rot.z = 0.0f;
-        obj->pParts->rot.x = 0.0f;
-        obj->pParts->rot.y = 0.0f;
-        obj->pParts->rot.z = 0.0f;
+        obj->ang.x = 1.5592f;
+        obj->ang.y = 1.42932f;
+        obj->ang.z = 0.0f;
+        obj->pParts->ang.x = 0.0f;
+        obj->pParts->ang.y = 0.0f;
+        obj->pParts->ang.z = 0.0f;
         obj->setPos(&obj->pos);
         obj->setAng(rot);
     }

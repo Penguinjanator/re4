@@ -80,7 +80,7 @@ static inline int r228_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -137,7 +137,7 @@ static void r228_checkSalazarBattle()
     GamePointBossReset();
     cEmWrap boss;
     boss.setPtr(0x2C, -1, 1);
-    Cckpt.life.flags = (u32) boss.getPtr();
+    Cckpt.m_LifeMeter.flags = (u32) boss.getPtr();
     cEmWrap em0;
     cEmWrap em1;
     cEmWrap em2;
@@ -320,8 +320,8 @@ void r228_initEvent00()
         SceAtSetEnable(2, 0);
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
-        PSetSat(r228_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
-        r228_work.p->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1);
+        PSetSat(r228_work.p->sat, SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        r228_work.p->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     } else {
         cObj* o = SmdGetObjPtr(0x32);
         if (o) {
@@ -354,22 +354,22 @@ extern "C" void Evt_R228S00_Func(Event* e)
         r228_evtEffectSet();
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 0);
                 if (e->GetMod(&mod, "evma400a", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x80;
                     SetShadowCamMoveSize(0.0f);
                 }
             }
-            if (e->frame == 1) {
+            if (e->NowFrame == 1) {
                 EvtMgr.EvtReadAram("event/evd/r228s01.evd", 0, 0, 0, 0);
                 pG->flags_174 |= 0x00200000;
             }
             break;
         case 2:
-            if (e->frame == e->maxFrame - 10) {
+            if (e->NowFrame == e->MaxFrame - 10) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
@@ -378,35 +378,35 @@ extern "C" void Evt_R228S00_Func(Event* e)
             }
             break;
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
                     pG->System_flg |= 0x400;
                 }
             }
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
                     FadeSetW(0x80000002, 10, 0, 0);
                 }
             }
-            if (e->frame == 1) {
+            if (e->NowFrame == 1) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
                     pG->System_flg &= ~0x400;
                 }
             }
-            if (e->frame == e->maxFrame - 30) {
+            if (e->NowFrame == e->MaxFrame - 30) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
                     FadeSetW(2, 30, 0, 0);
                 }
             }
-            if (e->frame == e->maxFrame - 1) {
+            if (e->NowFrame == e->MaxFrame - 1) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
@@ -438,15 +438,15 @@ extern "C" void Evt_R228S01_Func(Event* e)
         r228_evtEffectSet();
         break;
     case 1:
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 0);
                 if (e->GetMod(&mod, "evma400a", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x80;
                     SetShadowCamMoveSize(0.0f);
                 }
             }
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 EvtMgr.EvtReadAram("event/evd/r228s02.evd", 0, 0, 0, 0);
                 pG->flags_174 |= 0x00100000;
                 int skip = r228_evtSkip(e);
@@ -455,7 +455,7 @@ extern "C" void Evt_R228S01_Func(Event* e)
                     FadeSetW(0x80000002, 20, 0, 0);
                 }
             }
-            if (e->frame == 1) {
+            if (e->NowFrame == 1) {
                 int skip = r228_evtSkip(e);
 
                 if (skip == 0) {
@@ -489,17 +489,17 @@ extern "C" void Evt_R228S02_Func(Event* e)
         r228_evtEffectSet();
         break;
     case 1:
-        if (e->cut == 5) {
-            if (e->frame == 0) {
+        if (e->NowCut == 5) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x25, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x25, 1);
             }
         }
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 o = SmdGetObjPtr(1);
                 if (o) {
                     e->SetMod("scr0000", o, 5, 0, 2, 0);
@@ -510,27 +510,27 @@ extern "C" void Evt_R228S02_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
         case 1:
         case 2:
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 0);
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(1, 1);
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 5:
         case 7:
             break;
         case 8:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (r228_work.p->obj77) {
                     r228_work.p->obj77->be_flag &= ~2;
                 }
@@ -540,7 +540,7 @@ extern "C" void Evt_R228S02_Func(Event* e)
             }
             break;
         case 9:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (r228_work.p->obj79) {
                     r228_work.p->obj79->be_flag &= ~2;
                 }
@@ -550,8 +550,8 @@ extern "C" void Evt_R228S02_Func(Event* e)
             }
             break;
         }
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "em3800", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 1, r228_work.p->texTbl, r228_work.p->texEvt, 0, 1, 1, 1, 1.0f);
                 }
@@ -576,8 +576,8 @@ extern "C" void Evt_R228S02_Func(Event* e)
 // TexRender blend setup of one object (the two room render targets).
 #define R228_TEX_OBJ(id, tbl)                \
     obj = SmdGetObjPtr(id);                  \
-    obj->pInfo->setTexBlendTbl(tbl);         \
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl);         \
+    obj->pModelInfo->setBlendRatio(0xFF);
 
 void setTexRender()
 {
@@ -590,7 +590,7 @@ void setTexRender()
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
         tbl0[5] = r228_work.p->tex[0]->texId;
-        r228_work.p->tex[0]->repType = 1;
+        r228_work.p->tex[0]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r228_work.p->tex[0]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
@@ -600,7 +600,7 @@ void setTexRender()
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
         tbl1[5] = r228_work.p->tex[1]->texId;
-        r228_work.p->tex[1]->repType = 1;
+        r228_work.p->tex[1]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 1, r228_work.p->tex[1]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");

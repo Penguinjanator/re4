@@ -16,7 +16,7 @@ void Wep02_init(cModel* m)
     cObjWep* obj;
     int id;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 2:
     default:
         id = 0x21;
@@ -29,7 +29,7 @@ void Wep02_init(cModel* m)
     if (obj == 0) {
         pLog->err(0, 0, "Wep02_init() cObjWep CREATE FAILED");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->init(pl);
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x36, 1);

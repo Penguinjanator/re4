@@ -18,14 +18,14 @@ struct EmTreeNode {
 
 // Work of the tree enemy (game/emtree.cpp), overlaid on cEm from 0x3E0.
 struct EmTreeWork {
-    u32 flags;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: hidden
-    int timer;            // 0x004 (0x3E4)
-    int timer2;           // 0x008 (0x3E8)  emTree_R1_Shot: frames before the tree is lost
+    u32 Be_flg;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: hidden
+    int Timer;            // 0x004 (0x3E4)
+    int Timer2;           // 0x008 (0x3E8)  emTree_R1_Shot: frames before the tree is lost
     u8 pad_C[0x18 - 0xC];
     int fallTimer;        // 0x018 (0x3F8)  emTree_R1_Parent: frames until setFall (30 when the player survived)
     cModel* pParent;      // 0x01C (0x3FC)  model the tree follows (setParent)
     int x20;              // 0x020 (0x400)
-    int partsNo;          // 0x024 (0x404)
+    int oya_parts;          // 0x024 (0x404)
     u32 sndId;            // 0x028 (0x408)  handle of the looping sound (seAlways)
     Vec pt[3];            // 0x02C (0x40C)  node speeds kept between frames (setFall randomises them)
     Vec spd;              // 0x050 (0x430)  throw / shot speed

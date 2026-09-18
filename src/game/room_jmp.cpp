@@ -47,20 +47,20 @@ cRoomJmp* pRj;
 
 void CRoomInfo::setNextPos()
 {
-    if (flags & 1) {
-        FSet(pG->next_pos.x, pos.x);
-        FSet(pG->next_pos.y, pos.y);
-        FSet(pG->next_pos.z, pos.z);
-        FSet(pG->next_angle, angle);
+    if (flag & 1) {
+        FSet(pG->NextPos.x, pos.x);
+        FSet(pG->NextPos.y, pos.y);
+        FSet(pG->NextPos.z, pos.z);
+        FSet(pG->NextY, angle);
     } else {
-        FSet(pG->next_pos.x, 0.0f);
-        FSet(pG->next_pos.y, 0.0f);
-        FSet(pG->next_pos.z, 0.0f);
-        FSet(pG->next_angle, 0.0f);
+        FSet(pG->NextPos.x, 0.0f);
+        FSet(pG->NextPos.y, 0.0f);
+        FSet(pG->NextPos.z, 0.0f);
+        FSet(pG->NextY, 0.0f);
     }
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->x4F9E);
-    U16Set(pG->next_room, room_id);
+    U16Set(pG->next_room, roomNo);
     U8Set(pG->next_point, 0);
 }
 
@@ -189,7 +189,7 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
         if (cur == info) {
             return idx;
         }
-        if (cur->room_id != info->room_id) {
+        if (cur->roomNo != info->roomNo) {
             break;
         }
     }
@@ -203,7 +203,7 @@ s8 cRoomJmp::getNextRoomNo(s8 stage, s8 idx, int dir)
         if (cur == info) {
             return idx;
         }
-        if (info->room_id != cur->room_id) {
+        if (info->roomNo != cur->roomNo) {
             return idx;
         }
         idx = next;
@@ -218,7 +218,7 @@ s8 cRoomJmp::getNextPointNo(s8 stage, s8 room, s8 point, int dir)
     s8 next;
 
     next = (n + idx + dir) % n;
-    if (getRoomInfo(stage, next)->room_id == room_id) {
+    if (getRoomInfo(stage, next)->roomNo == room_id) {
         idx = next;
     }
     return idx - getRoomIdx(stage, room);

@@ -175,13 +175,13 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         lightFlag = 8;
     }
     w->type = type;
-    info = obj->pInfo;
+    info = obj->pModelInfo;
     b = &info->bound;
     sz.x = b->size.x;
     sz.y = b->size.y;
     sz.z = b->size.z;
     PSVECSubtract(&info->bound.center, &obj->pParts->pos, &ofs);
-    obj->lightInfo.init2(2, 1, &ofs, &sz, lightFlag);
+    obj->LightInfo.init2(2, 1, &ofs, &sz, lightFlag);
     if (pos) {
         obj->pos = *pos;
     } else {
@@ -189,18 +189,18 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
-    w->rate = 1.0f;
+    w->oya_hokan = 1.0f;
     w->rateSpd = 0.0f;
     w->oya = 0;
-    w->partsNo = 0;
+    w->oya_parts = 0;
     w->x74 = 0;
     switch (w->type) {
     case 1:
@@ -213,13 +213,13 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         break;
     case 3:
         PlClothSetAda(obj, &Evt_adaRibbon, &Evt_adaDress, &Evt_adaHair, 1);
-        if (pG->costume2 == 0) {
+        if (pG->game_costume == 0) {
             if (EvtMgr.GetBin(&cbin, "em/pl02/pl020f.bin", 0)) {
                 if (EvtMgr.GetBin(&ctpl, "em/pl02/pl020a.tpl", 0)) {
                     w->child = (cObj*) AdaRibbonSet(obj, &Evt_adaRibbon, cbin, ctpl);
                     if (w->child) {
                         w->child->setNoSuspend(1);
-                        w->child->lightInfo.x50 = obj->lightInfo.x50;
+                        w->child->LightInfo.x50 = obj->LightInfo.x50;
                     }
                 }
             }
@@ -292,17 +292,17 @@ void cObj18::move()
 {
     Obj18Work* w = &o18;
 
-    if (w->debugFlag) {
+    if (w->DebugFlag) {
         pLog->mes(0, 0, "cObj18:move DebugFlag");
     }
     if (pMotion) {
         MotionMove(this, 0);
         partsWorldCalc();
     } else {
-        RotMatrix(worldMat, &rot);
-        TransMatrix(worldMat, &pos);
-        ScaleMatrix(worldMat, &scale);
-        PSMTXCopy(worldMat, mat);
+        RotMatrix(l_mat, &ang);
+        TransMatrix(l_mat, &pos);
+        ScaleMatrix(l_mat, &scale);
+        PSMTXCopy(l_mat, mat);
     }
     if (w->oya) {
         if ((w->oya->be_flag & 0x201) != 1) {
@@ -310,16 +310,16 @@ void cObj18::move()
         }
     }
     obj18SetOya(this);
-    if (x2B0 == 0) {
+    if (pDblJnt == 0) {
         partsMatCalc();
         partsWorldCalc();
     }
-    if (pG->costume2 == 1) {
+    if (pG->game_costume == 1) {
         if (w->type == 2) {
-            w->flags &= ~0x40;
+            w->be_flag &= ~0x40;
         }
     }
-    if (!(w->flags & 0x40)) {
+    if (!(w->be_flag & 0x40)) {
         switch (w->type) {
         case 1:
             if (pG->x4FB8 == 0) {
@@ -393,9 +393,9 @@ void OyaSetObj18(cObj* obj, cModel* oya, int partsNo)
     }
     w = &obj->o18;
     w->oya = oya;
-    w->partsNo = partsNo;
-    w->flags &= ~8;
-    w->flags &= ~3;
+    w->oya_parts = partsNo;
+    w->be_flag &= ~8;
+    w->be_flag &= ~3;
 }
 
 int obj18GetOya(cModel** out, cObj* obj)
@@ -429,7 +429,7 @@ void obj18SetOya(cObj18* obj)
     if (w->oya->pParts == 0) {
         return;
     }
-    PSMTXConcat(w->oya->getPartsPtr(w->partsNo)->mat, obj->mat, m);
+    PSMTXConcat(w->oya->getPartsPtr(w->oya_parts)->mat, obj->mat, m);
     v0.x = m[0][0];
     v0.y = m[1][0];
     v0.z = m[2][0];
@@ -452,15 +452,15 @@ void obj18SetOya(cObj18* obj)
     m[0][2] = v2.x;
     m[1][2] = v2.y;
     m[2][2] = v2.z;
-    if (w->rate < 1.0f) {
-        w->rate += w->rateSpd;
-        if (w->rate >= 1.0f) {
-            w->rate = 1.0f;
-            w->flags &= ~8;
+    if (w->oya_hokan < 1.0f) {
+        w->oya_hokan += w->rateSpd;
+        if (w->oya_hokan >= 1.0f) {
+            w->oya_hokan = 1.0f;
+            w->be_flag &= ~8;
         }
     }
-    if (w->flags & 8) {
-        f32 rate = w->rate;
+    if (w->be_flag & 8) {
+        f32 rate = w->oya_hokan;
         f32 inv = 1.0f - rate;
 
         p.x = m[0][3] * rate + w->mat[0][3] * inv;
@@ -468,7 +468,7 @@ void obj18SetOya(cObj18* obj)
         p.z = m[2][3] * rate + w->mat[2][3] * inv;
         C_QUATMtx(&q0, m);
         C_QUATMtx(&q1, w->mat);
-        C_QUATSlerp(&q0, &q1, &q, w->rate);
+        C_QUATSlerp(&q0, &q1, &q, w->oya_hokan);
         PSMTXQuat(obj->mat, &q);
         TransMatrix(obj->mat, &p);
         PSMTXCopy(obj->mat, w->mat);
@@ -476,9 +476,9 @@ void obj18SetOya(cObj18* obj)
         PSMTXCopy(m, obj->mat);
     }
     if (w->oya) {
-        if (w->oya->lightInfo.x50 & 2) {
-            obj->lightInfo.x50 &= ~0x10;
-            obj->lightInfo.x50 |= 2;
+        if (w->oya->LightInfo.x50 & 2) {
+            obj->LightInfo.x50 &= ~0x10;
+            obj->LightInfo.x50 |= 2;
         }
     }
 }

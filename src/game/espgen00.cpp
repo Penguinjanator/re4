@@ -20,22 +20,22 @@ static f32 Calc_D256(Espgen00Work* p, u8 d, f32 rate);
 // Effect controller 00: emits one esp record repeatedly (num at a time, every wait frames).
 struct Espgen00Work {
     EspGenWork* rec;   // 0x14
-    cModel* model;     // 0x18
-    u32 serial;        // 0x1C model serial the controller was set up with
-    u16 cnt;           // 0x20 frame counter
+    cModel* pMod;     // 0x18
+    u32 Guid_pMod;        // 0x1C model serial the controller was set up with
+    u16 Time_cnt;           // 0x20 frame counter
     u16 life;          // 0x24 life time (0 = infinite)
     u8 pad_24;
     u8 wait;           // 0x25 frames between emissions
     u8 waitCnt;        // 0x26 frames left until the next emission
     u8 num;            // 0x27 emissions per frame - 1
     u32 seed;          // 0x28
-    u8 flags;          // 0x2C rec->x10B: bit0 spread the angle, bit1 fixed seed
+    u8 Flg;          // 0x2C rec->x10B: bit0 spread the angle, bit1 fixed seed
     u8 flags2;         // 0x2D bit0 parts matrix fixed, bit1 head flag, bit2 pass the position on
     u8 parts;          // 0x2E
     u8 waitRnd;        // 0x2F random range added to the wait
-    Mtx mtx;           // 0x30
-    Vec pos;           // 0x60
-    Vec rot;           // 0x6C
+    Mtx Mat;           // 0x30
+    Vec Offset;           // 0x60
+    Vec Ang;           // 0x6C
     u8 scaleD;         // 0x78 rate curve parameters (Calc_D256)
     u8 spdD;           // 0x79
     u8 colD;           // 0x7A
@@ -47,7 +47,7 @@ struct Espgen00Work {
 void espgen00_UpdateMatrix(EspgenWork* w)
 {
     Espgen00Work* p = (Espgen00Work*) w->work;
-    cModel* model = p->model;
+    cModel* model = p->pMod;
 
     if ((p->parts >= 0xF8 && p->parts <= 0xFD) || p->parts == 0xFF) {
         pLog->err(0, 0, "ESP_CTRL : NULL_PARTS_NO[%x] invalid.", p->parts);
@@ -68,13 +68,13 @@ void espgen00_UpdateMatrix(EspgenWork* w)
             Vec r;
 
             part = model->getPartsPtr(p->parts);
-            PSMTXIdentity(p->mtx);
-            PSVECAdd(&p->rot, &model->rot, &r);
-            RotMatrix(p->mtx, &r);
-            PSMTXMultVecSR(p->mtx, &p->pos, &ofs);
-            p->mtx[0][3] = part->mat[0][3] + ofs.x;
-            p->mtx[1][3] = part->mat[1][3] + ofs.y;
-            p->mtx[2][3] = part->mat[2][3] + ofs.z;
+            PSMTXIdentity(p->Mat);
+            PSVECAdd(&p->Ang, &model->ang, &r);
+            RotMatrix(p->Mat, &r);
+            PSMTXMultVecSR(p->Mat, &p->Offset, &ofs);
+            p->Mat[0][3] = part->mat[0][3] + ofs.x;
+            p->Mat[1][3] = part->mat[1][3] + ofs.y;
+            p->Mat[2][3] = part->mat[2][3] + ofs.z;
             if (!(p->flags2 & 2)) {
                 p->flags2 |= 1;
             }
@@ -115,17 +115,17 @@ void espgen00_Update(EspgenWork* w)
     int bSpd = 0;
     int bCol = 0;
     int add = 0;
-    cModel* model = p->model;
+    cModel* model = p->pMod;
 
     if (model != NULL) {
-        if ((model->be_flag & 0x201) != 1 || model->serial != p->serial) {
+        if ((model->be_flag & 0x201) != 1 || model->serial != p->Guid_pMod) {
             PushEspgen(w);
             return;
         }
     }
     espgen00_UpdateMatrix(w);
     if (p->life != 0) {
-        f32 rate = (f32) p->cnt / (f32) (int) p->life;
+        f32 rate = (f32) p->Time_cnt / (f32) (int) p->life;
 
         if (p->scaleD) {
             scaleR = Calc_D256(p, p->scaleD, rate);
@@ -178,21 +178,21 @@ void espgen00_Update(EspgenWork* w)
                 int ret;
 
                 if (p->flags2 & 4) {
-                    pos = &p->pos;
+                    pos = &p->Offset;
                 }
-                if (p->flags & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &p->mtx, 1, ang, &esp, p->pOpt, pos);
+                if (p->Flg & 1) {
+                    ret = EspSeqSet(rec, &w->info, &p->seed, p->pMod, &p->Mat, 1, ang, &esp, p->pOpt, pos);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &p->mtx, 0, 0.0f, &esp, p->pOpt, pos);
+                    ret = EspSeqSet(rec, &w->info, &p->seed, p->pMod, &p->Mat, 0, 0.0f, &esp, p->pOpt, pos);
                 }
                 if (ret) {
                     if (bScale) {
-                        esp->sizeX *= scaleR;
-                        esp->sizeY *= scaleR;
+                        esp->m_Size_base_x *= scaleR;
+                        esp->m_Size_base_y *= scaleR;
                     }
                     if (bSpd) {
-                        PSVECScale(&esp->spd, &esp->spd, spdR);
+                        PSVECScale(&esp->m_Speed, &esp->m_Speed, spdR);
                     }
                     if (bCol) {
                         f32 a = (f32) (int) esp->m_Col_start_a * colR;
@@ -201,7 +201,7 @@ void espgen00_Update(EspgenWork* w)
                             a = 255.0f;
                         }
                         esp->m_Col_start_a = (u8) a;
-                        esp->colA *= colR;
+                        esp->m_Col_a *= colR;
                     }
                 }
             }
@@ -209,8 +209,8 @@ void espgen00_Update(EspgenWork* w)
     } else {
         p->waitCnt--;
     }
-    p->cnt++;
-    if (p->life != 0 && p->life <= p->cnt) {
+    p->Time_cnt++;
+    if (p->life != 0 && p->life <= p->Time_cnt) {
         PushEspgen(w);
     }
 }
@@ -229,7 +229,7 @@ void espgen00_Move01(EspgenWork* w)
 void Espgen00_Move(EspgenWork* w)
 {
     static void (*Espgen00MoveTbl[])(EspgenWork*) = {espgen00_Move00, espgen00_Move01};
-    cModel* model = ((Espgen00Work*) w->work)->model;
+    cModel* model = ((Espgen00Work*) w->work)->pMod;
 
     if (model != NULL && (pG->flags_5010 & 0x10000000)) {
         int susp = !(model->be_flag & 0x800);
@@ -246,13 +246,13 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     Espgen00Work* p = (Espgen00Work*) w->work;
 
     p->rec = rec;
-    p->model = model;
+    p->pMod = model;
     if (model != NULL) {
-        p->serial = model->serial;
+        p->Guid_pMod = model->serial;
     } else {
-        p->serial = (u32) model;
+        p->Guid_pMod = (u32) model;
     }
-    p->waitCnt = p->cnt = 0;
+    p->waitCnt = p->Time_cnt = 0;
     p->life = rec->x110;
     p->wait = rec->x10C;
     p->num = rec->x10D;
@@ -260,7 +260,7 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->spdD = rec->x125;
     p->colD = rec->x126;
     p->waitD = rec->x127;
-    p->flags = rec->x10B;
+    p->Flg = rec->x10B;
     p->waitRnd = rec->x128;
     if (p->waitRnd) {
         p->wait += (u32) Rnd() % p->waitRnd;
@@ -272,14 +272,14 @@ int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->flags2 |= 4;
     }
     p->parts = parts;
-    p->pos = *pos;
-    p->rot = *rot;
-    if (p->flags & 2) {
+    p->Offset = *pos;
+    p->Ang = *rot;
+    if (p->Flg & 2) {
         p->seed = 0x12345678 + rec->x10E;
     } else {
         p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
-    PSMTXCopy(*mtx, p->mtx);
+    PSMTXCopy(*mtx, p->Mat);
     if (pSct != NULL) {
         p->pOpt = &p->opt;
         p->opt = *pSct;

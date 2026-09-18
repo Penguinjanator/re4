@@ -139,13 +139,13 @@ void R204Init()
         low_RotMatrix(m, (Vec*) &r204_chandRot0);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos0, &pos, &pos);
-        r204_work.p->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos,
+        r204_work.p->chand[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot0, 0x10, 1);
         r204_work.p->chand[0]->be_flag |= 0x1000;
         low_RotMatrix(m, (Vec*) &r204_chandRot1);
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &pos);
         PSVECAdd((Vec*) &r204_chandPos1, &pos, &pos);
-        r204_work.p->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos,
+        r204_work.p->chand[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos,
                                           (Vec*) &r204_chandRot1, 0x10, 1);
         r204_work.p->chand[1]->be_flag |= 0x1000;
     }
@@ -177,7 +177,7 @@ void R204Init()
                     Vec rot = {-0.17453292f, 0.0f, 0.0f};
 
                     if (i == 7) {
-                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), &ofs, &rot);
+                        r204_work.p->head[i] = SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), &ofs, &rot);
                         r204_work.p->head[i]->setNoSuspend(1);
                         OyaSetObj00(r204_work.p->head[i], r204_work.p->em[7].getPtr(), 2);
                         r204_work.p->esp[i] = EspPullCoreKind();
@@ -191,9 +191,9 @@ void R204Init()
                     }
                 }
                 if (0x4A + i == 0x51) {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2B), 0, 0, 5, 0);
+                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2B), 0, 0, 5, 0);
                 } else {
-                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 5, 0);
+                    r204_work.p->em[i].motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 5, 0);
                 }
             }
         }
@@ -212,7 +212,7 @@ void R204Init()
         SceAtSetEnable(0x12, 0);
         SceAtSetEnable(0x13, 0);
         SmdGetObjPtr(0x1C)->be_flag |= 0x20;
-        SmdGetObjPtr(0x1C)->rot.y = -2.72f;
+        SmdGetObjPtr(0x1C)->ang.y = -2.72f;
         SceAtSetEnable(0xD, 0);
         EstSet(0, -1, 0, 0, 1, 1, 1, 0, (u32) zero, zero);
         SmdSetTrans(0x3C, 0);
@@ -238,7 +238,7 @@ void R204Init()
         SmdSetTrans(0x3D, 0);
         EstSet(0, -1, 0, 0, 1, 3, 1, 0, (u32) zero, zero);
     }
-    if (pG->emlist_no == 3) {
+    if (pG->em_list_no == 3) {
         cEm* em0;
         cEm* em1;
 
@@ -286,15 +286,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r204_work.p->tex->texId;
-        r204_work.p->tex->repType = 1;
+        r204_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r204_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x18);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(2);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(2);
     SceAtLinkEtcDead(8, 0x2B, 1);
     SceAtLinkEtcDead(0x16, 2, 1);
     SceSetItemEvent(8, 0x88, 3, 5, r204_openBox, (void (*)()) r204_openedBox, 0, 0);
@@ -391,7 +391,7 @@ void r204_BoxMove(cObj* obj, int opened)
     obj->be_flag |= 0x20;
     const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.z = lim;
+        obj->ang.z = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
@@ -399,9 +399,9 @@ void r204_BoxMove(cObj* obj, int opened)
         while (1) {
             const f32 spd = -0.05f;
 
-            obj->rot.z += spd;
-            if (obj->rot.z < lim) {
-                obj->rot.z = lim;
+            obj->ang.z += spd;
+            if (obj->ang.z < lim) {
+                obj->ang.z = lim;
                 break;
             }
             SceSleep(1);
@@ -417,7 +417,7 @@ void r204_BoxMove2(cObj* obj, int opened)
     obj->be_flag |= 0x20;
     const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.x = lim;
+        obj->ang.x = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
@@ -425,9 +425,9 @@ void r204_BoxMove2(cObj* obj, int opened)
         while (1) {
             const f32 spd = -0.05f;
 
-            obj->rot.x += spd;
-            if (obj->rot.x < lim) {
-                obj->rot.x = lim;
+            obj->ang.x += spd;
+            if (obj->ang.x < lim) {
+                obj->ang.x = lim;
                 break;
             }
             SceSleep(1);
@@ -450,15 +450,15 @@ void r204_TanaMove(int opened)
     const f32 lim = -2.83f;
     const f32 spd = -0.09f;
     if (opened == 1) {
-        a->rot.z = lim;
-        b->rot.z = -lim;
+        a->ang.z = lim;
+        b->ang.z = -lim;
     } else {
         while (1) {
-            a->rot.y += spd;
-            b->rot.y -= spd;
-            if (a->rot.y < lim) {
-                a->rot.y = lim;
-                b->rot.y = -lim;
+            a->ang.y += spd;
+            b->ang.y -= spd;
+            if (a->ang.y < lim) {
+                a->ang.y = lim;
+                b->ang.y = -lim;
                 break;
             }
             SceSleep(1);
@@ -533,7 +533,7 @@ static void r204_nige_check()
                     BitOn(pG->flags_170, 0x10000000);
                     BitOn(pG->Disp_flg, 0x40000000);
                     PlEndCamera();
-                    pl->pWep->pObj->setDisp(1, 1);
+                    pl->Wep->m_pWep->setDisp(1, 1);
                     CamCtrl.CutCall(0xF);
                     for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(1);
@@ -803,21 +803,21 @@ struct PlPtr {
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
         register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
-        Vec* rot;                                                                                                  \
+        Vec* ang;                                                                                                  \
                                                                                                                    \
         ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
         ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
         low_RotMatrix(m, (Vec*) &crot0);                                                                           \
-        rot = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
+        ang = (Vec*) &crot0; /* after the call: see the comment above the macro */                                 \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
         FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
         FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
-        mdl->setAng(rot);                                                                                          \
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 1, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);                          \
+        mdl->setAng(ang);                                                                                          \
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 1, 0);                                             \
+        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);                          \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \
         pl->dmg.set(0, 0x80);                                                                                      \
         pl->be_flag &= ~0x10;                                                                                      \
@@ -832,8 +832,8 @@ struct PlPtr {
             SceSleep(1);                                                                                           \
         } while (1);                                                                                               \
         do { } while (0);                                                                                          \
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 5, 0);                                             \
-        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 3, 0, 5, 0);                          \
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 5, 0);                                             \
+        r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 3, 0, 5, 0);                          \
         RoomSeCall(0x13, &pPL->pos, 0, 0, 0);                                                                      \
         while (1) {                                                                                                \
             if (MotionGetState(pPL) & 1) {                                                                         \
@@ -853,14 +853,14 @@ struct PlPtr {
                     far = 1;                                                                                       \
                     nz = cpos.z + (dz1);                                                                           \
                     nx = cpos.x - (dx1);                                                                           \
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x27);                                                      \
-                    motCh = ROOM_ARC_PTR(pG->pRoomArc, 0x23);                                                      \
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x27);                                                      \
+                    motCh = ROOM_ARC_PTR(pG->pRoom, 0x23);                                                      \
                 } else {                                                                                           \
                     far = 0;                                                                                       \
                     nz = cpos.z + (dz2);                                                                           \
                     nx = cpos.x - (dx2);                                                                           \
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x29);                                                      \
-                    motCh = ROOM_ARC_PTR(pG->pRoomArc, 0x24);                                                      \
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x29);                                                      \
+                    motCh = ROOM_ARC_PTR(pG->pRoom, 0x24);                                                      \
                 }                                                                                                  \
                 break;                                                                                             \
             }                                                                                                      \
@@ -872,7 +872,7 @@ struct PlPtr {
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         {                                                                                                          \
-            Vec* rp = &mdl->rot;                                                                                   \
+            Vec* rp = &mdl->ang;                                                                                   \
             asm("" : "+r"(rp) : : "cc"); /* COMPILER-DIFF: 12 (codeless, see above) */                            \
             mdl->setAng(rp);                                                                                       \
         }                                                                                                          \
@@ -975,11 +975,11 @@ void Evt_R204S00_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             SmdSetTrans(0xC, 0);
             obj = SmdGetObjPtr(0xC);
             if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                ((cModel*) mod)->lightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.x50 = 0x40;
             }
             if (e->GetMod(&mod, "evm6500", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x10;
@@ -1001,29 +1001,29 @@ void Evt_R204S00_Func(Event* e)
             }
             if (e->GetMod(&mod, "evm0300", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x80;
-                ((cModel*) mod)->lightInfo.x50 = 0x10;
-                ((cModel*) mod)->pInfo->color[0] = 0xA5;
-                ((cModel*) mod)->pInfo->color[1] = 0xA5;
-                ((cModel*) mod)->pInfo->color[2] = 0xA5;
-                ((cModel*) mod)->lightInfo.x54 = obj->lightInfo.x54;
+                ((cModel*) mod)->LightInfo.x50 = 0x10;
+                ((cModel*) mod)->pModelInfo->color[0] = 0xA5;
+                ((cModel*) mod)->pModelInfo->color[1] = 0xA5;
+                ((cModel*) mod)->pModelInfo->color[2] = 0xA5;
+                ((cModel*) mod)->LightInfo.x54 = obj->LightInfo.x54;
             }
         }
-        if (e->cut <= 2) {
-            if (e->cut >= 0) {
-                if (e->frame == 0) {
+        if (e->NowCut <= 2) {
+            if (e->NowCut >= 0) {
+                if (e->NowFrame == 0) {
                     if (e->GetMod(&mod2, "pl0100", 0, 0) == 1) {
                         ModelInfoSetTrans((cModel*) mod2, 6, 0);
                     }
                 }
             } else {
-                if (e->frame == 0) {
+                if (e->NowFrame == 0) {
                     if (e->GetMod(&mod3, "pl0100", 0, 0) == 1) {
                         ModelInfoSetTrans((cModel*) mod3, 6, 1);
                     }
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod3, "pl0100", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod3, 6, 1);
                 }

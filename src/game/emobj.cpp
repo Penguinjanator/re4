@@ -31,7 +31,7 @@ void cEmObj::EmObjMove()
 {
     EmObjWork* w = EMOBJ_WK(this);
 
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     TransMatrix(mat, &pos);
     ScaleMatrix(mat, &scale);
     if (x3E0 & 1) {
@@ -71,7 +71,7 @@ void cEmObj::setSatMain()
     Vec poly[4];
 
     if (w->pSat) {
-        w->pSat->flags &= ~4;
+        w->pSat->m_Flag &= ~4;
     }
     poly[0].x = w->satPos.x - w->satSize.x;
     poly[0].y = w->satPos.y;
@@ -86,10 +86,10 @@ void cEmObj::setSatMain()
     poly[3].y = w->satPos.y;
     poly[3].z = w->satPos.z + w->satSize.z;
     if (w->pSat == 0) {
-        w->pSat = SatMgrCreateF(&SatMgr, &pos, &rot, poly, w->satSize.y, w->satN, w->satFlag);
+        w->pSat = SatMgrCreateF(&SatMgr, &pos, &ang, poly, w->satSize.y, w->satN, w->satFlag);
     } else {
-        w->pSat->flags |= 4;
-        w->pSat->setCoord(&pos, &rot);
+        w->pSat->m_Flag |= 4;
+        w->pSat->setCoord(&pos, &ang);
     }
 }
 
@@ -98,7 +98,7 @@ void cEmObj::clrSat()
     EmObjWork* w = EMOBJ_WK(this);
 
     if (w->pSat) {
-        w->pSat->flags &= ~4;
+        w->pSat->m_Flag &= ~4;
     }
     x3E0 &= ~2;
 }
@@ -125,7 +125,7 @@ void cEmObj::setEatMain()
     Vec poly[4];
 
     if (w->pEat) {
-        w->pEat->flags &= ~4;
+        w->pEat->m_Flag &= ~4;
     }
     poly[0].x = w->eatPos.x - w->eatSize.x;
     poly[0].y = w->eatPos.y;
@@ -140,10 +140,10 @@ void cEmObj::setEatMain()
     poly[3].y = w->eatPos.y;
     poly[3].z = w->eatPos.z + w->eatSize.z;
     if (w->pEat == 0) {
-        w->pEat = SatMgrCreateF(&EatMgr, &pos, &rot, poly, w->eatSize.y, w->eatN, w->eatFlag);
+        w->pEat = SatMgrCreateF(&EatMgr, &pos, &ang, poly, w->eatSize.y, w->eatN, w->eatFlag);
     } else {
-        w->pEat->flags |= 4;
-        w->pEat->setCoord(&pos, &rot);
+        w->pEat->m_Flag |= 4;
+        w->pEat->setCoord(&pos, &ang);
     }
 }
 
@@ -152,7 +152,7 @@ void cEmObj::clrEat()
     EmObjWork* w = EMOBJ_WK(this);
 
     if (w->pEat) {
-        w->pEat->flags &= ~4;
+        w->pEat->m_Flag &= ~4;
     }
     x3E0 &= ~4;
 }

@@ -49,7 +49,7 @@ extern "C" void setTexRender(cModelInfo* info)
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = pl0aTex.p->texId;
-        pl0aTex.p->repType = 1;
+        pl0aTex.p->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 3, 0xC, pl0aTex.p->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
@@ -65,7 +65,7 @@ cPlKlauser::cPlKlauser()
     EspDataLoad((u32) PL_ARC(0x1A), 3, 0);
     setModel();
     weaponRelease();
-    weaponLoad(pG->wep_no, pG->wep_type);
+    weaponLoad(pG->weapon_no, pG->weapon_type);
     weaponInit();
     init1();
     setMotion();
@@ -209,7 +209,7 @@ void cPlKlauser::transMove()
 int cPlKlauser::checkXbutton()
 {
     if ((Joy[0].trg & 0x400) && !(pG->flags_5018 & 0x00800000) && x894 == 0) {
-        pAuxFunc = pl_R1_KlauserAttack;
+        pFuncAux = pl_R1_KlauserAttack;
         r_no_0 = 0;
         r_no_1 = 0xA;
         r_no_2 = 0;
@@ -236,7 +236,7 @@ void cPlKlauser::setModel()
         return;
     }
     addModel(info);
-    PSet(pBody->pShape, info);
+    PSet(Body->pShape, info);
     info = ModInfoMgr.create(PL_ARC(8), PL_ARC(9));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlKlauser::setModel() failed.");
@@ -261,8 +261,8 @@ void cPlKlauser::setModel()
         return;
     }
     addModel(info);
-    pBody->pFace = info;
-    face = pBody->pFace;
+    Body->pFace = info;
+    face = Body->pFace;
     if (VALID_PTR(face)) {
         face->x84 = 0.0f;
         face->x70 = 0.0f;
@@ -296,10 +296,10 @@ void cPlKlauser::setRightHand(int no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pRight) {
-        deleteModelInfo(pBody->pRight);
-        pBody->pRight = 0;
-        pBody->pRightData = 0;
+    if (Body->pRight) {
+        deleteModelInfo(Body->pRight);
+        Body->pRight = 0;
+        Body->pRightData = 0;
     }
     switch ((u32) no) {
     case 0:
@@ -314,7 +314,7 @@ void cPlKlauser::setRightHand(int no)
         data = PL_ARC(0x12);
         break;
     case 1:
-        data = pBody->pWepHand;
+        data = Body->pWepHand;
         break;
     default:
         data = (void*) no;
@@ -322,8 +322,8 @@ void cPlKlauser::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create(data, PL_ARC(0x11))) != 0) {
         addModel(info);
-        pBody->pRight = info;
-        pBody->pRightData = data;
+        Body->pRight = info;
+        Body->pRightData = data;
     }
     if (!info) {
 #line 586 "D:/Bio4/Prog/pl_klauser.cpp"
@@ -336,13 +336,13 @@ void cPlKlauser::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pBody->pLeft) {
-        deleteModelInfo(pBody->pLeft);
-        pBody->pLeft = 0;
-        pBody->pLeftData = 0;
+    if (Body->pLeft) {
+        deleteModelInfo(Body->pLeft);
+        Body->pLeft = 0;
+        Body->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pBody->leftNoPrev;
+        no = Body->oldLhandNo;
     }
     switch (no) {
     case 0:
@@ -363,15 +363,15 @@ void cPlKlauser::setLeftHand(u32 no)
         data = (void*) no;
         break;
     }
-    pBody->leftNoPrev = pBody->leftNo;
-    pBody->leftNo = no;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
+    Body->oldLhandNo = Body->nowLhandNo;
+    Body->nowLhandNo = no;
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlayer, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlKlauser::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pBody->pLeft = info;
-        pBody->pLeftData = data;
+        Body->pLeft = info;
+        Body->pLeftData = data;
     }
 }
 
@@ -386,12 +386,12 @@ void cPlKlauser::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
-    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xC), PL_ARC_PTR(pGS->pPlArc, 7));
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlayer, 0xC), PL_ARC_PTR(pGS->pPlayer, 7));
     if (info) {
         addModel(info);
     }
@@ -401,11 +401,11 @@ void cPlKlauser::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pBody->pShape == 0) {
+    if (Body->pShape == 0) {
         return;
     }
-    deleteModelInfo(pBody->pShape);
-    pBody->pShape = 0;
+    deleteModelInfo(Body->pShape);
+    Body->pShape = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);
@@ -422,7 +422,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         pl->motionSet(PL_ARC(0x8A), 5, 0, 1, 0);
         pl->x890 = 10;
         BitOn(pGS->flags_5018, 0x00800000);
-        pl->pNeck->motL = 0;
+        pl->Neck->motL = 0;
         DmgMgr.set(3, 0x1E, &pl->pos, 1000.0f, 2000.0f);
         EffectEspDelete(0, 0x3F, (u32) pl, 0);
         EffectEspgenDelete(0, 0x3F, (int) pl);
@@ -430,7 +430,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         EstSet((int) pl, -1, 0, 0, 3, 0xA, 0, 0x3F, (u32) pl, 0);
         SndCall(1, 0x51, &pl->pos, 0, 0, 0);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
-        pl->pWep->pObj->setDisp(1, 0);
+        pl->Wep->m_pWep->setDisp(1, 0);
         pl->r_no_2 = 1;
         // fallthrough
     case 1:
@@ -444,10 +444,10 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         break;
     case 0xB:
         if (Key.on & 4) {
-            pl->rot.y -= cPlayer::SPEED_WALK_TURN;
+            pl->ang.y -= cPlayer::SPEED_WALK_TURN;
         }
         if (Key.on & 8) {
-            pl->rot.y += cPlayer::SPEED_WALK_TURN;
+            pl->ang.y += cPlayer::SPEED_WALK_TURN;
         }
         pl->motionMove();
         if (Joy[0].trg & 0x100) {
@@ -468,13 +468,13 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         if (pl->frame <= 15.0f) {
             PlWepHitCheck2(0, &pl->pos, &pl->pos, 0x2D, 0, hitLen);
         }
-        if (MotionCheckCrossFrame(&pl->mot, 30.0f)) {
+        if (MotionCheckCrossFrame(&pl->Motion, 30.0f)) {
             pl->x890 = 0x14;
             BitOff(pGS->flags_5018, 0x00800000);
         }
         if (pl->motionMove()) {
             pl->dmg.clear();
-            pl->pWep->pObj->setDisp(1, 1);
+            pl->Wep->m_pWep->setDisp(1, 1);
             pl->atari.setPriority(0);
             EffectEspDelete(0, 0x3F, (u32) pl, 0);
             EffectEspgenDelete(0, 0x3F, (int) pl);
@@ -495,7 +495,7 @@ static void pl_R1_KlauserAttack(cPlayer* pl)
         EffectEspgenDelete(0, 0x3F, (int) pl);
         EffectEfmDelete(0, 0x3F, (int) pl);
         SndCall(1, 0x52, &pl->pos, 0, 0, 0);
-        pl->pWep->pObj->setDisp(1, 1);
+        pl->Wep->m_pWep->setDisp(1, 1);
         pl->r_no_2 = 0x1F;
         // fallthrough
     case 0x1F:

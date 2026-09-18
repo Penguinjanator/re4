@@ -36,16 +36,16 @@ struct SUB_SCREEN {
     s32 x44;
     s32 x48;
     int (*scrn_out_func)(SUB_SCREEN*);  // 0x04C  screen exit routine (Sscrn ss_*: sscrn_*_out), run until it returns 1
-    u32 save170;              // 0x050  pG->flags_170 while open
-    u32 save58;               // 0x054  pG->flags_58 while open
-    Camera cam;               // 0x058  pG->Cam while open
-    Mtx plMat;                // 0x150  player matrix at open
-    Mtx subMat;               // 0x180  partner matrix at open
+    u32 stop_bak;              // 0x050  pG->flags_170 while open
+    u32 disp_bak;               // 0x054  pG->flags_58 while open
+    Camera camera_bak;               // 0x058  pG->Cam while open
+    Mtx pl_mat;                // 0x150  player matrix at open
+    Mtx sub_mat;               // 0x180  partner matrix at open
     u8 stage;                 // 0x1B0  sscrnStageNo()
     u8 pad_1B1;
-    u16 room;                 // 0x1B2  sscrnRoomNo()
-    u8 scope;                 // 0x1B4  1: the scope was up, 2: and flags_5010 bit 26
-    u8 bino;                  // 0x1B5  the binocular was up
+    u16 room_no;                 // 0x1B2  sscrnRoomNo()
+    u8 scope_flag;                 // 0x1B4  1: the scope was up, 2: and flags_5010 bit 26
+    u8 binocular_flag;                  // 0x1B5  the binocular was up
     u8 suspend_flag;                  // 0x1B6  flags_5010 bit 28 (always 0: the mask is stored as a byte)
     u8 noBullet;              // 0x1B7  the equipped weapon (type 3) was empty
     u8 x1B8;                  // 0x1B8  item 0xFE owned
@@ -53,9 +53,9 @@ struct SUB_SCREEN {
     s32 healing;              // 0x1BC  SubCharCheckHealing()
     void* pBuf;               // 0x1C0  MRAM area swapped with the ARAM copy (pG->pStageFont)
     u32 aramSize;             // 0x1C4  bytes read to ARAM (SubScreenAramRead)
-    u32 heapOfs;              // 0x1C8  heap 12 starts at pBuf + heapOfs
-    u32 relOfs;               // 0x1CC  Sscrn.rel offset in the area
-    u32 cmmnOfs;              // 0x1D0  ss_cmmn.dat offset
+    u32 pHeapOffs;              // 0x1C8  heap 12 starts at pBuf + heapOfs
+    u32 pPreplfOffs;               // 0x1CC  Sscrn.rel offset in the area
+    u32 pCommonOffs;              // 0x1D0  ss_cmmn.dat offset
     u32 pzzlOfs;              // 0x1D4  ss_pzzl.dat offset
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
@@ -70,7 +70,7 @@ struct SUB_SCREEN {
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
     SsArc* pShop;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
     void* pPartner;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
-    void* pTplBuf;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
+    void* pTplDat;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
     void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
@@ -97,10 +97,10 @@ struct SUB_SCREEN {
     u16 alpha_cnt;                 // 0x26A
     s8 cmd_menu_no;                  // 0x26C  Sscrn ss_item: command cursor
     u8 pad_26D[3];
-    Mtx plMapMat;             // 0x270  player matrix on the map (Sscrn ss_map mapPositionCheck)
+    Mtx pl_mat_map;             // 0x270  player matrix on the map (Sscrn ss_map mapPositionCheck)
     u8 map_help;                  // 0x2A0
-    u8 mapRooms;              // 0x2A1  Sscrn ss_map: model count of the area's rooms (door models start there)
-    s8 mapFloor;              // 0x2A2  Sscrn ss_map: player floor (y / 100 rounded)
+    u8 map_obj_num;              // 0x2A1  Sscrn ss_map: model count of the area's rooms (door models start there)
+    s8 floor_no;              // 0x2A2  Sscrn ss_map: player floor (y / 100 rounded)
     u8 pad_2A3[0x2AD - 0x2A3];
     u8 Key_disable;                  // 0x2AD  Sscrn ss_map mapCameraInit clears it
     u8 board_size;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
@@ -117,14 +117,14 @@ struct SUB_SCREEN {
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
     s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
     struct ShopWork* pShopWk; // 0x314  Sscrn ss_shop list/cursor state (0x48 bytes)
-    class Merchant* pMerchant;// 0x318  Sscrn ss_shop: the shop session (game/merchant.cpp Merchant)
-    s32 mdtNo;                // 0x31C  OpeSetOpenTerm number
-    s32 strBlk;               // 0x320  SndStrPlayBlock handle
-    cObjWep* pObj;            // 0x324  OpeSetOpenTerm weapon object
-    Vec savePos;              // 0x328  player position before OpeSetOpenTerm
-    Vec saveRot;              // 0x334
+    class Merchant* merchant;// 0x318  Sscrn ss_shop: the shop session (game/merchant.cpp Merchant)
+    s32 opeMdtNo;                // 0x31C  OpeSetOpenTerm number
+    s32 sndId;               // 0x320  SndStrPlayBlock handle
+    cObjWep* pObjWep;            // 0x324  OpeSetOpenTerm weapon object
+    Vec posBak;              // 0x328  player position before OpeSetOpenTerm
+    Vec angBak;              // 0x334
     s32 cancel;               // 0x340  OpeSetOpenTermCancel
-    OSModuleHeader* pModule;  // 0x344  linked sub screen DLL
+    OSModuleHeader* p_module;  // 0x344  linked sub screen DLL
     union {
         u32 save;             // 0x348  SscrnDataSave/Load word
         struct {

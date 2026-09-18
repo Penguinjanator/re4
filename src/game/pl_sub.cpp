@@ -55,8 +55,8 @@ void PlSelect(int no)
         s16 life = pG->pl_life_max;
         u32 tmp;
 
-        U16Set(pG->pl_life_max, pG->sub_life_max);
-        U16Set(pG->sub_life_max, life);
+        U16Set(pG->pl_life_max, pG->ashley_life_max);
+        U16Set(pG->ashley_life_max, life);
         pG->pl_life = pG->pl_life_max;
         ReleaseWepData();
         tmp = pG->x4F98;
@@ -71,25 +71,25 @@ void PlSelect(int no)
 int PlSetCostume()
 {
     if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
-        return pG->costume;
+        return pG->pl_costume;
     }
     if (pG->x4FB8 == 0) {
-        if (pG->costume2 != 1) {
+        if (pG->game_costume != 1) {
             if (ItemMgr.num(0xFE, 0)) {
-                U8Set(pG->costume, 2);
+                U8Set(pG->pl_costume, 2);
             } else if (pG->Item_find_flg & 0x200000) {
-                U8Set(pG->costume, 1);
+                U8Set(pG->pl_costume, 1);
             } else {
-                U8Set(pG->costume, 0);
+                U8Set(pG->pl_costume, 0);
             }
         } else {
-            U8Set(pG->costume, 3);
+            U8Set(pG->pl_costume, 3);
         }
     } else {
-        U8Set(pG->costume, pG->costume2);
+        U8Set(pG->pl_costume, pG->game_costume);
     }
     BitOn16(pG->pl_flag, 1);
-    return pG->costume;
+    return pG->pl_costume;
 }
 
 void PlChangeData()
@@ -101,11 +101,11 @@ void PlChangeData()
     EspDataRelease(3, 1, 1);
     pPL->push();
     BitOn16(pG->pl_flag, 1);
-    ReadPlayerData(pG->x4FB8, pG->costume);
+    ReadPlayerData(pG->x4FB8, pG->pl_costume);
     pl = pPL;
     pl->setModel();
     pl->setMotion();
-    EspDataLoad((u32) PL_ARC_PTR(pG->pPlArc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlayer, 0x1A), 3, 0);
     pPL->weaponInit();
     pl->be_flag |= 0x20;
     pl->r_no_0 = 0;
@@ -157,7 +157,7 @@ void PlSetDamageSe(int no)
 
         no = r + 9;
     }
-    SndCall(1, no, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
+    SndCall(1, no, &pl->getPartsPtr(4)->world, 0, 0, 0);
 }
 
 u32 PlGetStatus()
@@ -265,7 +265,7 @@ void PlSetHand(int type, int on)
     if (type == 1) {
         t = 0;
     }
-    pPL->pWep->setTrans(t, on);
+    pPL->Wep->setTrans(t, on);
 }
 
 void SubCharSetHand(int no)
@@ -397,7 +397,7 @@ void SubCharInit(int type, Vec* pos, f32 ang)
         sub = (cSubChar*) EmMgr.createBack(2);
         break;
     case 1:
-        if (pG->costume2 != 1) {
+        if (pG->game_costume != 1) {
             sub = (cSubChar*) EmMgr.createBack(3);
         } else {
             sub = (cSubChar*) EmMgr.createBack(5);
@@ -617,7 +617,7 @@ void PlSetLadder(Vec* pos, int level, f32 ang)
 
 void PlSetNeck(int mode)
 {
-    pPL->pNeck->setMode(mode);
+    pPL->Neck->setMode(mode);
 }
 
 void PlEndCamera()
@@ -626,7 +626,7 @@ void PlEndCamera()
 
     if (pl->endCamera()) {
         if (PlGetStatus() & 0x10) {
-            pl->pWep->pObj->setDisp(1, 1);
+            pl->Wep->m_pWep->setDisp(1, 1);
             pl->r_no_0 = 0;
             pl->r_no_1 = 0;
             pl->r_no_2 = 0;
@@ -700,19 +700,19 @@ void SubCharRegistMotion(void* m0, void* m1)
 
 void PlRegistRoomEff(PlRoomEff* eff)
 {
-    pPL->pRoomEff = eff;
+    pPL->m_pEffRoom = eff;
 }
 
 void PlReloadBullet()
 {
     cPlayer* pl = pPL;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0xD:
     case 0x13:
     case 0x16:
     case 0x17:
-        pl->pWep->pObj->setMotion(pl);
+        pl->Wep->m_pWep->setMotion(pl);
         break;
     }
 }
@@ -763,15 +763,15 @@ int joyKamae()
         default:
             return 0;
         }
-        wep = pPL->pWep;
-        if (wep == 0 || wep->pObj == 0) {
+        wep = pPL->Wep;
+        if (wep == 0 || wep->m_pWep == 0) {
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
         // `goto` to the shared `return 0`: with a plain `return 0` jump.c hoists a set over the
         // branch (`li 1; bne end; li 0`) because the following `li 1` sets the same register; the
         // jump to the label gives the target's `beq ret0; li 1; b end`.
-        if (wep->pObj->keyKamae() == 0) {
+        if (wep->m_pWep->keyKamae() == 0) {
             goto ng;
         }
         return 1;
@@ -786,15 +786,15 @@ int joyKamae()
         default:
             return 0;
         }
-        wep = pl->pWep;
-        if (wep == 0 || wep->pObj == 0) {
+        wep = pl->Wep;
+        if (wep == 0 || wep->m_pWep == 0) {
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
         if (pl->flags_420 & 0x1000) {
             return 0;
         }
-        if (wep->pObj->keyKamae()) {
+        if (wep->m_pWep->keyKamae()) {
             return 1;
         }
     }
@@ -839,7 +839,7 @@ void PlWaterProc(cPlayer* pl)
     if (pG->flags_5010 & 0x200000) {
         return;
     }
-    if (pl->pRoomEff == 0) {
+    if (pl->m_pEffRoom == 0) {
         pLog->err(2, 0, "PL WATER EFF NOT REGIST");
         return;
     }
@@ -848,17 +848,17 @@ void PlWaterProc(cPlayer* pl)
         u8 t = hamonTimer % 13;
 
         if (t == 0) {
-            EstSet((int) pl, -1, 0, 0, pl->pRoomEff[0].id, pl->pRoomEff[0].type, 0, 0, (u32) pl, (void*) t);
+            EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[0].id, pl->m_pEffRoom[0].type, 0, 0, (u32) pl, (void*) t);
         }
     }
     dist = GetDistance(&m_PosOldWater, &pl->pos);
     if (sibukiTimer) {
         sibukiTimer--;
     } else if (dist > spd1) {
-        EstSet((int) pl, -1, 0, 0, pl->pRoomEff[2].id, pl->pRoomEff[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[2].id, pl->m_pEffRoom[2].type, 0, 0, (u32) pl, (void*) sibukiTimer);
         sibukiTimer = 10;
     } else if (dist > spd0) {
-        EstSet((int) pl, -1, 0, 0, pl->pRoomEff[1].id, pl->pRoomEff[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
+        EstSet((int) pl, -1, 0, 0, pl->m_pEffRoom[1].id, pl->m_pEffRoom[1].type, 0, 0, (u32) pl, (void*) sibukiTimer);
         sibukiTimer = 0x10;
     }
     if (dist > spd0) {
@@ -949,13 +949,13 @@ void PlSetEyeMode(u8 mode)
 
 f32 PlGetDirY()
 {
-    return pPL->rot.y + pPL->pWaist->cur;
+    return pPL->ang.y + pPL->Waist->cur;
 }
 
 void PlRegistBoss(void* a, void* b)
 {
-    pPL->boss0 = a;
-    pPL->boss1 = b;
+    pPL->m_pBoss = a;
+    pPL->m_pBossRmf = b;
 }
 
 int PlIsArmor()
@@ -966,7 +966,7 @@ int PlIsArmor()
     if (pG->x4FB8 != 0) {
         return 0;
     }
-    return pG->costume == 2 || pG->costume == 3;
+    return pG->pl_costume == 2 || pG->pl_costume == 3;
 }
 
 int PlSetWhistle()
@@ -1009,7 +1009,7 @@ int PlGetWeaponNo()
     if (((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->r_no_2 != 3) || joyLKamae()) {
         return 0x10;
     }
-    return pG->wep_no;
+    return pG->weapon_no;
 }
 
 void PlSetFace(int no)
@@ -1052,7 +1052,7 @@ void PlDataRelease()
     if (obj) {
         do {
             objCur = obj;
-            objNext = (cObj*) objCur->next;
+            objNext = (cObj*) objCur->pNext;
             obj = objNext;
             switch (objCur->id) {
             case 0x1A:
@@ -1069,7 +1069,7 @@ void PlDataRelease()
     if (em) {
         do {
             emCur = em;
-            emNext = (cEm*) emCur->next;
+            emNext = (cEm*) emCur->pNext;
             em = emNext;
             if (emCur->id == 0x4F) {
                 EmMgr.destroy(emCur);

@@ -162,7 +162,7 @@ struct OptionArc {
 
 // Game task work (`Game`).
 struct GameWork {
-    u32 mode_bak;   // 0x00  pG->mode32 saved while the option screen runs
+    u32 Rno_bak;   // 0x00  pG->mode32 saved while the option screen runs
     u8 pad_4[0x14];
     void* pBuf;     // 0x18  0xE8-byte buffer of the extra game modes (gameInit)
 };
@@ -286,7 +286,7 @@ void gameInit()
     LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
     ScenarioInit();
     PlayerInit();
-    U16Set(pG->sub_life, 600);
+    U16Set(pG->ashley_life, 600);
     if (pG->System_flg & 0x2000) {
         ItemMgr.gameInit();
         SceAtInitSaveItem();
@@ -326,19 +326,19 @@ void gameStageInit()
             pG->Disp_flg &= ~0x800;
             cMes.setLayout(0, 0);
             m = cMes.getMes(0);
-            cMes.MesSet(150, 100, 336 - m->lineSpace - m->fontH - 1, 1, 0, 0, 4);
-            if ((res = m->result) == 0) {
+            cMes.MesSet(150, 100, 336 - m->lineSpace - m->m_font_h - 1, 1, 0, 0, 4);
+            if ((res = m->m_sel) == 0) {
                 do {
                     TaskSleep(1);
-                } while ((res = cMes.getMes(0)->result) == 0);
+                } while ((res = cMes.getMes(0)->m_sel) == 0);
             }
             switch (res) {
             case 1:
             default:
-                pG->costume2 = 1;
+                pG->game_costume = 1;
                 break;
             case 2:
-                pG->costume2 = 0;
+                pG->game_costume = 0;
                 break;
             }
             PlSetCostume();
@@ -387,15 +387,15 @@ void gameRoomInit()
         BitOff(pG->flags_6C, 0x2000);
     }
     BitOn(pG->flags_60, 0x200);
-    ReadPlayerData(pG->x4FB8, pG->costume);
+    ReadPlayerData(pG->x4FB8, pG->pl_costume);
     ReadAreaData();
     DC.initDataUnit();
     ActBtn.init();
-    ConsInitRoom((ConsRoom*) GetDataExt(pG->pRoomArc, "CNS", 0));
+    ConsInitRoom((ConsRoom*) GetDataExt(pG->pRoom, "CNS", 0));
     {
-        cSmd* smd = (cSmd*) GetDataExt(pG->pRoomArc, "SMD", 0);
-        cSmx* smx = (cSmx*) GetDataExt(pG->pRoomArc, "SMX", 0);
-        SmdInit(smd, smx, (cSmd*) GetDataExt(pG->pRoomArc, "SMD", 1));
+        cSmd* smd = (cSmd*) GetDataExt(pG->pRoom, "SMD", 0);
+        cSmx* smx = (cSmx*) GetDataExt(pG->pRoom, "SMX", 0);
+        SmdInit(smd, smx, (cSmd*) GetDataExt(pG->pRoom, "SMD", 1));
     }
     ModInfoMgr.roomInit();
     n = ConsGetRoomValue(7) + SmdGetObjNum();
@@ -428,8 +428,8 @@ void gameRoomInit()
     EspgenArrayAlloc(ConsGetRoomValue(3));
     CtrlMgr.roomInit();
     CtrlMgr.arrayAlloc(ConsGetRoomValue(4));
-    LightMgr.roomInit((cLit*) (pG->pArc->ofs_2C + (u32) pG->pArc), (cLit*) GetDataExt(pG->pRoomArc, "LIT", 0),
-                      (cLit*) GetDataExt(pG->pRoomArc, "LIT", 1));
+    LightMgr.roomInit((cLit*) (pG->pArc->ofs_2C + (u32) pG->pArc), (cLit*) GetDataExt(pG->pRoom, "LIT", 0),
+                      (cLit*) GetDataExt(pG->pRoom, "LIT", 1));
     LightMgr.arrayAlloc(ConsGetRoomValue(5));
     LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
     ShadowRoomInit();
@@ -442,16 +442,16 @@ void gameRoomInit()
     EtcModelRoomInit();
     LightAreaInit();
     if (pG->System_flg & 0x200000) {
-        pG->prim_max = 0x8000;
+        pG->nPrim = 0x8000;
     } else {
-        pG->prim_max = ConsGetRoomValue(8);
+        pG->nPrim = ConsGetRoomValue(8);
     }
     primInit();
     {
         Vec pos;
         Vec rot;
 
-        p = GetDataExt(pG->pRoomArc, "SAT", 0);
+        p = GetDataExt(pG->pRoom, "SAT", 0);
         pos.x = 0.0f;
         pos.y = 0.0f;
         pos.z = 0.0f;
@@ -461,7 +461,7 @@ void gameRoomInit()
         SatMgr.roomInit();
         SatMgr.arrayAlloc(ConsGetRoomValue(10));
         SatMgr.create(p, 0, &pos, &rot, 0);
-        p = GetDataExt(pG->pRoomArc, "EAT", 0);
+        p = GetDataExt(pG->pRoom, "EAT", 0);
         EatMgr.roomInit();
         EatMgr.arrayAlloc(ConsGetRoomValue(11));
         EatMgr.create(p, 0, &pos, &rot, 0);
@@ -474,7 +474,7 @@ void gameRoomInit()
         EatMgr.registEffInfo(6, (AtEffInfo*) &effInfoNormal);
         EatMgr.registEffInfo(7, (AtEffInfo*) &effInfoNormal);
     }
-    SceAtInit(GetDataExt(pG->pRoomArc, "AEV", 0), GetDataExt(pG->pRoomArc, "ITA", 0));
+    SceAtInit(GetDataExt(pG->pRoom, "AEV", 0), GetDataExt(pG->pRoom, "ITA", 0));
     EvtMgr.roomInit();
     EvtMgr.arrayAlloc(2);
     EvtMgr.myRoomInit();
@@ -484,45 +484,45 @@ void gameRoomInit()
         PlRegistRoomEff((PlRoomEff*) effRoom);
     }
     SmdSetup(-1);
-    ShdInit((ShdHeader*) GetDataExt(pG->pRoomArc, "SHD", 0));
-    if ((p = GetDataExt(pG->pRoomArc, "EFF", 0)) != 0) {
+    ShdInit((ShdHeader*) GetDataExt(pG->pRoom, "SHD", 0));
+    if ((p = GetDataExt(pG->pRoom, "EFF", 0)) != 0) {
         EspDataLoad((u32) p, 1, 0);
     }
-    if ((p = GetDataExt(pG->pRoomArc, "EAR", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "EAR", 0)) != 0) {
         EffAreaDataLoad((SstArea*) p);
     }
-    if ((p = GetDataExt(pG->pRoomArc, "SAR", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "SAR", 0)) != 0) {
         LightAreaDataLoad(p);
     }
-    if ((p = GetDataExt(pG->pRoomArc, "TEX", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "TEX", 0)) != 0) {
         RoomTexDataLoad((TexData*) p, 2);
     }
-    if ((p = GetDataExt(pG->pRoomArc, "ITM", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "ITM", 0)) != 0) {
         ItemModelDataLoad(p);
     }
-    if ((p = GetDataExt(pG->pRoomArc, "ETM", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "ETM", 0)) != 0) {
         EtcModelDataLoad(p);
     }
     ClothRoomInit();
-    if ((p = GetDataExt(pG->pRoomArc, "ETS", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "ETS", 0)) != 0) {
         EtcModelListSet(p);
     }
     LightMgr.update(0, -1);
     FlrAtInit();
     SeAtInit();
     CameraRoomInit();
-    p = GetDataExt(pG->pRoomArc, "CAM", 0);
+    p = GetDataExt(pG->pRoom, "CAM", 0);
     if (p != 0) {
         CamCtrl.RoomDataRead((CameraDataHeader*) p);
     } else {
-        pG->pRoomCamData = p;
+        pG->pCamRoom = p;
     }
     CamCtrl.CoreDataRead((CameraDataHeader*) (pG->pArc->ofs_30 + (u32) pG->pArc));
     CamCtrl.roomInit();
     View.roomInit();
-    p = GetDataExt(pG->pRoomArc, "BLK", 0);
+    p = GetDataExt(pG->pRoom, "BLK", 0);
     Block.roomInit(p);
-    if ((p = GetDataExt(pG->pRoomArc, "EVS", 0)) != 0) {
+    if ((p = GetDataExt(pG->pRoom, "EVS", 0)) != 0) {
         EvtMgr.SetEvs(p);
     }
     EmSetRoomInit();
@@ -732,7 +732,7 @@ void gameMainLoop()
         gameDebugDisp();
     }
     if (KeyTrg(0x2000) && !KeyOn(0x400000) && !(pG->flags_60 & 0x80000000) && OptionOpenCheck() == 1) {
-        Game.mode_bak = pG->mode32;
+        Game.Rno_bak = pG->mode32;
         pG->x20 = 6;
         pG->x21 = 0;
         pG->x22 = 0;
@@ -761,7 +761,7 @@ void GameContinue(int mode)
 {
     u32 time = pG->play_time;
     u16 x4F90 = pG->x4F90;
-    u16 x8338 = pG->x8338;
+    u16 x8338 = pG->c_continue_cnt;
     u16 g_continue_cnt = pG->g_continue_cnt;
 
     GameSave.load(pSaveData);
@@ -772,14 +772,14 @@ void GameContinue(int mode)
     }
     if (mode == 0) {
         U16Set(pG->x4F90, x4F90 + 1);
-        U16Set(pG->x8338, x8338 + 1);
+        U16Set(pG->c_continue_cnt, x8338 + 1);
         U16Set(pG->g_continue_cnt, g_continue_cnt + 1);
     }
     pG->play_time = time;
     PlSetCostume();
     ContinueWepData();
     memcpy((u8*) pG + 0x2C, &pG->sub_pos, sizeof(Vec));
-    FSet(pG->next_angle, pG->sub_angle);
+    FSet(pG->NextY, pG->sub_angle);
     U16Set(pG->next_room, pG->room_id);
     pG->next_point = pG->x4F9E;
     pG->x20 = 4;
@@ -819,7 +819,7 @@ void clearGlobalSaveData()
     pG->x8354 = x8354;
     S32Set(pG->game_mode, game_mode);
     U16Set(pG->pl_life, pG->pl_life_max);
-    U16Set(pG->sub_life, pG->sub_life_max);
+    U16Set(pG->ashley_life, pG->ashley_life_max);
     InitGameTime();
 }
 
@@ -862,7 +862,7 @@ extern "C" int save__9cGameSavePv(cGameSave* g, GameSaveData* data, int mode)
     g->checkAddr(data);
     if (pG->x20 == 3) {
         memcpy((u8*) pG + 0x4FC0, &pPL->pos, sizeof(Vec));
-        FSet(pG->sub_angle, pPL->rot.y);
+        FSet(pG->sub_angle, pPL->ang.y);
     }
     S32Set(pG->game_mode, mode);
     *data->pGlobal = *(GameSaveBlock*) pG->pad_4F80;
@@ -1018,7 +1018,7 @@ void gameOption()
         IdSys.dispSw(0x23, 1);
         OptScrn.quit();
         SndSePauseAll(0);
-        pG->mode32 = Game.mode_bak;
+        pG->mode32 = Game.Rno_bak;
         break;
     }
 }
@@ -1028,14 +1028,14 @@ void DiedemoExec(int time, int type)
     if (pG->flags_500C & 0x100000) {
         return;
     }
-    diedemo_work.time = time;
-    diedemo_work.type = type;
+    diedemo_work.exec_frame = time;
+    diedemo_work.demo_type = type;
     pG->flags_500C |= 0x100000;
     KeyStop(0xEFCF0000);
     BitOn(pG->flags_170, 0x400000);
     BitOn(pG->flags_170, 0x100);
     IdSys.kill(0xFF, 0x20);
-    Cckpt.getCountDown()->flags &= ~1;
+    Cckpt.getCountDown()->m_state &= ~1;
     Cckpt.getCountDown()->frameOut();
     PlEndCamera();
     TaskExec(1, (TaskFunc) gameDiedemo, (int) &diedemo_work);
@@ -1046,7 +1046,7 @@ void gameDiedemoCheck()
     if ((s32) pG->flags_60 < 0) {
         return;
     }
-    if (pSUB != 0 && (s16) pG->sub_life <= 0) {
+    if (pSUB != 0 && (s16) pG->ashley_life <= 0) {
         DiedemoExec(90, 0);
     }
     if ((s16) pG->pl_life <= 0) {
@@ -1073,14 +1073,14 @@ void gameDiedemo(DiedemoWork* w)
     for (;;) {
         switch (step) {
         case 0:
-            if (cnt >= w->time) {
+            if (cnt >= w->exec_frame) {
                 step++;
             }
             break;
         case 1:
-            IdTexDataLoad((void*) (((OptionArc*) pG->pOptionData)->ofs_10 + (u32) pG->pOptionData), 10);
+            IdTexDataLoad((void*) (((OptionArc*) pG->pOption)->ofs_10 + (u32) pG->pOption), 10);
             IdSys.kill(0xFF, 0x21);
-            kind = w->type;
+            kind = w->demo_type;
             if (kind == 0) {
                 kind = 1;
                 if (pSUB != 0 && (s16) pG->pl_life != 0) {
@@ -1089,31 +1089,31 @@ void gameDiedemo(DiedemoWork* w)
             }
             switch (kind) {
             case 1:
-                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_14 + (u32) pG->pOptionData), 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_14 + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             case 2:
-                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_1C + (u32) pG->pOptionData), 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_1C + (u32) pG->pOption), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             }
             if (pG->flags_5018 & 0x1000000) {
-                IdSys.unitPtr(0, 0x2D)->flags |= 8;
+                IdSys.unitPtr(0, 0x2D)->be_flag |= 8;
                 fadeSetG(0x80000002, 1, 0, 0);
             } else {
-                IdSys.unitPtr(0, 0x2D)->flags &= ~8;
+                IdSys.unitPtr(0, 0x2D)->be_flag &= ~8;
             }
             SndAllFadeOut();
             step++;
             SndStrReq(0, 0, (int) 0x80000003, 0, 0, 0.0f);
             /* fallthrough */
         case 2:
-            if (cnt >= w->time + 0x10E || KeyTrg(0x80000000)) {
-                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_18 + (u32) pG->pOptionData), 0xFF, 0x2E, 0x13, 5, 0);
+            if (cnt >= w->exec_frame + 0x10E || KeyTrg(0x80000000)) {
+                IdSys.set((void*) (((OptionArc*) pG->pOption)->ofs_18 + (u32) pG->pOption), 0xFF, 0x2E, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
                 IdSys.beMove(IdSys.unitPtr(0x30, 0x2E), 0);
                 IdSys.beMove(IdSys.unitPtr(0x40, 0x2E), 0);
-                IdSys.unitPtr(0, 0x2E)->flags |= 8;
-                IdSys.unitPtr(1, 0x2E)->flags &= ~8;
+                IdSys.unitPtr(0, 0x2E)->be_flag |= 8;
+                IdSys.unitPtr(1, 0x2E)->be_flag &= ~8;
                 BitSet(pG->flags_170, 0xFFFFFFFF);
                 BitOff(pG->flags_170, 0x40);
             }
@@ -1155,11 +1155,11 @@ void gameDiedemo(DiedemoWork* w)
                     SndCall(0, 6, 0, 0, 0, 0);
                 }
                 if (sel) {
-                    IdSys.unitPtr(0, 0x2E)->flags |= 8;
-                    IdSys.unitPtr(1, 0x2E)->flags &= ~8;
+                    IdSys.unitPtr(0, 0x2E)->be_flag |= 8;
+                    IdSys.unitPtr(1, 0x2E)->be_flag &= ~8;
                 } else {
-                    IdSys.unitPtr(0, 0x2E)->flags &= ~8;
-                    IdSys.unitPtr(1, 0x2E)->flags |= 8;
+                    IdSys.unitPtr(0, 0x2E)->be_flag &= ~8;
+                    IdSys.unitPtr(1, 0x2E)->be_flag |= 8;
                 }
             }
             break;
@@ -1250,8 +1250,8 @@ void gameDoordemo()
     if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
-    memcpy((u8*) pG + 0x4FC0, &pG->next_pos, sizeof(Vec));
-    FSet(pG->sub_angle, pG->next_angle);
+    memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
+    FSet(pG->sub_angle, pG->NextY);
     U16Set(pG->room_id, pG->next_room);
     pG->x4F9E = pG->next_point;
     if ((s32) pG->flags_68 >= 0 && !(pG->System_flg & 0x80000)) {
@@ -1494,16 +1494,16 @@ void GamePointBossReset()
 void primInit()
 {
     S32Set(pG->prim_cnt, 0);
-    pG->prim_max *= 2;
+    pG->nPrim *= 2;
     do {
-        S32Set(pG->prim_max, pG->prim_max / 2);
+        S32Set(pG->nPrim, pG->nPrim / 2);
 #line 2215 "D:/Bio4/Prog/game.cpp"
-        S32Set(pG->prim_cnt, (s32) MEM_ALLOC(pG->prim_max * 2, 1, 13));
+        S32Set(pG->prim_cnt, (s32) MEM_ALLOC(pG->nPrim * 2, 1, 13));
         if ((u32) pG->prim_cnt < 0x80000000 || (u32) pG->prim_cnt > 0x82FFFFFF) {
-            pLog->err(0, 0, "workInit() PRIM BUFFER SIZE WAS REDUCE %08X", pG->prim_max);
+            pLog->err(0, 0, "workInit() PRIM BUFFER SIZE WAS REDUCE %08X", pG->nPrim);
         }
     } while (pG->prim_cnt == 0);
-    memclr_asm((void*) pG->prim_cnt, pG->prim_max * 2);
+    memclr_asm((void*) pG->prim_cnt, pG->nPrim * 2);
     SetPrimBuffPtr();
 }
 
@@ -1515,7 +1515,7 @@ void primFree()
 
 void PrimDispWorkNum(int x, int y, int col)
 {
-    eprintf(x, y, 0, col, "%5X/%5X", (int) ((f32) pG->prim_max * pG->prim_rate), pG->prim_max);
+    eprintf(x, y, 0, col, "%5X/%5X", (int) ((f32) pG->nPrim * pG->prim_rate), pG->nPrim);
 }
 
 u32 stop_rno = 0;
@@ -1582,12 +1582,12 @@ void gameDebugDisp()
         if (pPL->flags_324 & 0xFFFF0000) {
             col = 2;
         }
-        eprintf(60, 0x18C, col, 0, "Rank[%d,%d],Kill[%d]", pG->x4F88, pG->point, pG->em_die_cnt2);
-        eprintf(60, 0x19B, col, 0, "C:SHOT[%d],HIT[%d]", pG->shotTotal, pG->shotHit);
-        eprintf(60, 0x1AA, col, 0, "G:SHOT[%d],HIT[%d]", pG->shotTotal2, pG->shotHit2);
+        eprintf(60, 0x18C, col, 0, "Rank[%d,%d],Kill[%d]", pG->x4F88, pG->point, pG->g_kill_cnt);
+        eprintf(60, 0x19B, col, 0, "C:SHOT[%d],HIT[%d]", pG->c_shot_cnt, pG->c_hit_cnt);
+        eprintf(60, 0x1AA, col, 0, "G:SHOT[%d],HIT[%d]", pG->g_shot_cnt, pG->g_hit_cnt);
         if (pG->debug_mode == 7) {
             eprintf2(8, 14, 32, 0x19C, col, 7, "POS[%.2f, %.2f, %.2f], Dir[%.2f]", pPL->pos.x, pPL->pos.y + 0.01f,
-                     pPL->pos.z, pPL->rot.y);
+                     pPL->pos.z, pPL->ang.y);
             eprintf2(8, 14, 32, 0x1AA, col, 7, "RNO[%02x][%02x][%02x][%02x], HP[%04d],FRAME[%03d/%03d]", pPL->r_no_0,
                      pPL->r_no_1, pPL->r_no_2, pPL->r_no_3, (s16) pG->pl_life, (u32) pPL->frame, pPL->frameMax);
         }
@@ -1599,7 +1599,7 @@ void gameDebugDisp()
                 if (pPL->flags_324 & 0xFFFF0000) {
                     c0 = 'X';
                 }
-                if (!(pPL->atari.flags & 0x100)) {
+                if (!(pPL->atari.m_flag & 0x100)) {
                     c1 = 'X';
                 }
                 eprintf(20, 45, 0, 0, "[%c%c:%d,%d,%d,%d]", c0, c1, pPL->r_no_0, pPL->r_no_1, pPL->r_no_2, pPL->r_no_3);
@@ -1612,7 +1612,7 @@ void gameDebugDisp()
                     if (pSUB->flags_324 & 0xFFFF0000) {
                         c0 = 'X';
                     }
-                    if (!(pSUB->atari.flags & 0x100)) {
+                    if (!(pSUB->atari.m_flag & 0x100)) {
                         c1 = 'X';
                     }
                     eprintf(20, 75, 0, 0, "[%c%c:%d,%d,%d,%d]", c0, c1, pSUB->r_no_0, pSUB->r_no_1, pSUB->r_no_2, pSUB->r_no_3);
@@ -1674,7 +1674,7 @@ void gameDebugDisp()
                     break;
                 case 0x30:
                 case 0x31:
-                    pos = em->getPartsPtr(0)->worldPos;
+                    pos = em->getPartsPtr(0)->world;
                     pos2 = pos;
                     if (em->type == 0) {
                         pos2.y += -400.0f;
@@ -1737,7 +1737,7 @@ void gameDebug()
     }
     eprintf2(10, 16, 0x1AE, 8, 0, 0, "%03x ", pG->room_id);
     eprintf(0x1DA, 8, 0, 0, "%d", CamCtrl.CurrentAreaNo());
-    eprintf(0x1F2, 8, 0, 0, "%d", pG->area_no);
+    eprintf(0x1F2, 8, 0, 0, "%d", pG->AreaNo);
     if (pG->x4 != 0) {
         Vec v = {0.0f, 0.0f, 0.0f};
 
@@ -1755,10 +1755,10 @@ void gameDebug()
                 v.y -= 50.0f;
             }
             if (Joy[3].on & 0x100000) {
-                pPL->rot.y += 0.09817477f;
+                pPL->ang.y += 0.09817477f;
             }
             if (Joy[3].on & 0x200000) {
-                pPL->rot.y -= 0.09817477f;
+                pPL->ang.y -= 0.09817477f;
             }
         } else {
             if (Joy[3].on & 2) {
@@ -1774,10 +1774,10 @@ void gameDebug()
                 v.y -= 15.0f;
             }
             if (Joy[3].on & 0x100000) {
-                pPL->rot.y += 0.024543693f;
+                pPL->ang.y += 0.024543693f;
             }
             if (Joy[3].on & 0x200000) {
-                pPL->rot.y -= 0.024543693f;
+                pPL->ang.y -= 0.024543693f;
             }
         }
         if (Joy[3].on & 0xF) {

@@ -19,15 +19,15 @@ void cActionButton::init()
 {
     int stop;
 
-    ClearOTagR(ot, 16);
-    num = 0;
+    ClearOTagR(m_ot, 16);
+    m_num = 0;
     BitOff(pG->flags_500C, 0x4000);
     BitOff(pG->flags_500C, 0x200000);
     stop = 1;
     if (!(pG->flags_170 & 0x100)) {
         stop = 0;
     }
-    this->stop = stop;
+    this->m_stop_flag_old = stop;
 }
 
 void cActionButton::move()
@@ -36,12 +36,12 @@ void cActionButton::move()
     ActBtnWork* w;
 
     Cckpt.action.no = 0;
-    active = 0;
-    if ((pG->flags_170 & 0x100) || (pG->flags_500C & 0x100000) || stop) {
+    m_active_flag = 0;
+    if ((pG->flags_170 & 0x100) || (pG->flags_500C & 0x100000) || m_stop_flag_old) {
         init();
         return;
     }
-    for (tag = ot[15]; tag != 0xFFFFFFFF; tag = w->tag) {
+    for (tag = m_ot[15]; tag != 0xFFFFFFFF; tag = w->tag) {
         w = (ActBtnWork*) (tag | 0x80000000);
         if ((s32) tag >= 0) {
             continue;
@@ -52,7 +52,7 @@ void cActionButton::move()
         if (checkPLStatus(w) == 0) {
             continue;
         }
-        active = 1;
+        m_active_flag = 1;
         if (!(pG->Disp_flg & 0x1000) && !(w->flags & 8)) {
             disp(w);
         }
@@ -113,7 +113,7 @@ void cActionButton::disp(ActBtnWork* w)
         sx = (s16) u->scr.x;
         sy = (s16) u->scr.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
-        y = cMes.mes[1].fontH / 2;
+        y = cMes.mes[1].m_font_h / 2;
         y = (s16) ((240.0f - (f32) sy) * 0.8f) - y;
         cMes.MesSet(kind + 0x16, x, (s16) y, 0x200F1, 1, col, 4);
         break;
@@ -122,7 +122,7 @@ void cActionButton::disp(ActBtnWork* w)
         sx = (s16) u->scr.x;
         sy = (s16) u->scr.y;
         x = (s16) (((f32) sx + 320.0f) * 0.8f);
-        y = cMes.mes[1].fontH / 2;
+        y = cMes.mes[1].m_font_h / 2;
         y = (s16) ((240.0f - (f32) sy) * 0.8f) - y;
         cMes.MesSet(kind + 0x16, x, (s16) y, 0xF1, 1, col, 4);
         break;
@@ -316,11 +316,11 @@ ActBtnWork* cActionButton::pullWork()
 {
     ActBtnWork* w;
 
-    if (num > 7) {
+    if (m_num > 7) {
         return 0;
     }
-    w = &work[num];
-    num++;
+    w = &work[m_num];
+    m_num++;
     return w;
 }
 
@@ -342,7 +342,7 @@ void cActionButton::set(int kind, int slot, int func, int arg, int flags, int bt
     w->btn = btn;
     w->slot = slot;
     w->d = d;
-    AddPrim(&ot[slot], (u32*) w);
+    AddPrim(&m_ot[slot], (u32*) w);
     switch (w->btn) {
     case 1:
     case 2:

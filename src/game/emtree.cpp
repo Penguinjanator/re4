@@ -60,7 +60,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetTree() ModelInit failed.");
@@ -73,12 +73,12 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     f32 h = 5000.0f;
     f32 r = 200.0f;
     em->atari.init(parts, 2, parts, zero, h, zero, r, r, r, h);
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 20000.0f, 20000.0f, 20000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
@@ -89,7 +89,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->be_flag &= ~0x01000000;
     em->atari.setPriority(3);
     em->atari.clrFlag100();
-    w->flags = 0;
+    w->Be_flg = 0;
     em->be_flag &= ~0x10;
     w->fallTimer = 0;
     w->pParent = 0;
@@ -160,7 +160,7 @@ void cEmTree::move()
         EmAtCheck(this);
         atari.move();
         if (w->pParent) {
-            alpha = w->pParent->alpha;
+            invisible_factor = w->pParent->invisible_factor;
             invisible_factor2 = w->pParent->invisible_factor2;
             if (w->pParent->be_flag & 2) {
                 be_flag |= 2;
@@ -168,7 +168,7 @@ void cEmTree::move()
                 be_flag &= ~2;
             }
         }
-        if (w->flags & 2) {
+        if (w->Be_flg & 2) {
             be_flag &= ~2;
         }
     }
@@ -192,7 +192,7 @@ void emTree_R1_Set(cEmTree* em)
     if (em->pMotion) {
         MotionMove(em, 0);
     } else {
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
@@ -208,13 +208,13 @@ void emTree_R1_LostWait(cEmTree* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer = 90;
+        w->Timer = 90;
         em->r_no_2++;
     case 1:
-        if (w->timer == 0) {
-            em->alpha -= 0.1f;
-            if (em->alpha <= 0.0f) {
-                em->alpha = 0.0f;
+        if (w->Timer == 0) {
+            em->invisible_factor -= 0.1f;
+            if (em->invisible_factor <= 0.0f) {
+                em->invisible_factor = 0.0f;
                 em->r_no_0 = 1;
                 em->r_no_1 = 2;
                 em->r_no_2 = 0;
@@ -222,7 +222,7 @@ void emTree_R1_LostWait(cEmTree* em)
                 break;
             }
         } else {
-            w->timer--;
+            w->Timer--;
         }
         pos = em->pos;
         GetScreenPos(&pos, &scr);
@@ -234,7 +234,7 @@ void emTree_R1_LostWait(cEmTree* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -248,13 +248,13 @@ void emTree_R1_Lost(cEmTree* em)
     switch (em->r_no_2) {
     case 0:
         em->hp = 0;
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         em->be_flag &= ~2;
-        w->timer = 30;
+        w->Timer = 30;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             EmMgr.destroy(em);
         }
@@ -271,12 +271,12 @@ void emTree_R1_Parent(cEmTree* em)
     EmTreeWork* w = EMTREE_WK(em);
     cModel* parent = w->pParent;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
-        if (!(w->flags & 1)) {
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -481,7 +481,7 @@ void emTree_R1_Fall(cEmTree* em)
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
@@ -501,13 +501,13 @@ void emTree_R1_Throw(cEmTree* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
+        w->Timer = 0;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seAlwaysWait;
+            w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
                 w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
@@ -516,14 +516,14 @@ void emTree_R1_Throw(cEmTree* em)
     }
     w->spd.y -= 15.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->oldPos, &em->pos, 0, 0, 0, 0)) {
+    if (EatMgr.hitCheck(&em->pos_old, &em->pos, 0, 0, 0, 0)) {
         em->setFall();
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
             SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
         }
         SndStop(w->sndId, 0);
     } else if (w->pAtk) {
-        if (EmAtkHitCk(w->pAtk, &em->pos, &em->oldPos, 1)) {
+        if (EmAtkHitCk(w->pAtk, &em->pos, &em->pos_old, 1)) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
@@ -538,7 +538,7 @@ void emTree_R1_Throw(cEmTree* em)
             em->setFall();
         }
     }
-    PSVECSubtract(&em->pos, &em->oldPos, &d);
+    PSVECSubtract(&em->pos, &em->pos_old, &d);
     PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
     up.x = 0.0f;
     up.y = 1.0f;
@@ -575,20 +575,20 @@ void emTree_R1_Shot(cEmTree* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        w->timer2 = 90;
+        w->Timer = 0;
+        w->Timer2 = 90;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->seAlwaysWait;
+            w->Timer = w->seAlwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
                 w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
         } else {
             em->r_no_0 = 1;
             em->r_no_1 = 2;
@@ -599,13 +599,13 @@ void emTree_R1_Shot(cEmTree* em)
         break;
     case 2:
         w->x20 = 0;
-        w->timer = 60;
+        w->Timer = 60;
         em->hp = 0;
         em->r_no_2++;
     case 3:
         em->partsWorldCalc();
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             em->setFall();
             SndStop(w->sndId, 0);
@@ -614,7 +614,7 @@ void emTree_R1_Shot(cEmTree* em)
     }
     w->spd.y -= 0.0f;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, 0, 0, 0)) {
+    if (EatMgr.hitCheck(&em->pos_old, &em->pos, &hit, 0, 0, 0)) {
         if (w->seWall[0] != 0xFF && w->seWall[1] != 0xFF) {
             SndCall(w->seWall[0], w->seWall[1], &em->pos, w->seWall[2], 0, em);
         }
@@ -623,7 +623,7 @@ void emTree_R1_Shot(cEmTree* em)
         TransMatrix(em->mat, &em->pos);
         em->partsWorldCalc();
         em->r_no_2 = 2;
-    } else if (w->pAtk && (part = (EmHitInfo*) EmAtkLineHitCk(&em->oldPos, &em->pos, &hitPos, &nrm, 0)) != 0) {
+    } else if (w->pAtk && (part = (EmHitInfo*) EmAtkLineHitCk(&em->pos_old, &em->pos, &hitPos, &nrm, 0)) != 0) {
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
             SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
@@ -635,7 +635,7 @@ void emTree_R1_Shot(cEmTree* em)
         } else {
             EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
         }
-        EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->oldPos, &em->pos);
+        EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->pos_old, &em->pos);
         if ((part->flags & 0x4000) == 0) {
             em->setFall();
         } else {
@@ -646,9 +646,9 @@ void emTree_R1_Shot(cEmTree* em)
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
             PSMTXMultVec(inv, &part->pos, &em->pos);
             len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
-            em->rot.x = -atan2f(-em->pos.y, len);
-            em->rot.y = atan2f(-em->pos.x, -em->pos.z);
-            em->rot.z = 0.0f;
+            em->ang.x = -atan2f(-em->pos.y, len);
+            em->ang.y = atan2f(-em->pos.x, -em->pos.z);
+            em->ang.z = 0.0f;
             if ((s16) pGS->pl_life <= 0) {
                 w->fallTimer = 0;
             } else {
@@ -668,17 +668,17 @@ void cEmTree::setParent(cModel* parent, int partsNo, int flag)
     EmTreeWork* w = EMTREE_WK(this);
 
     w->pParent = parent;
-    w->partsNo = partsNo;
+    w->oya_parts = partsNo;
     if (flag) {
-        w->flags |= 1;
+        w->Be_flg |= 1;
     } else {
-        w->flags &= ~1;
+        w->Be_flg &= ~1;
     }
     r_no_0 = 1;
     r_no_1 = 3;
     r_no_2 = 0;
     r_no_3 = 0;
-    ((cEm*) parent)->atari.flags &= ~0x200;
+    ((cEm*) parent)->atari.m_flag &= ~0x200;
 }
 
 void cEmTree::clearParent()
@@ -710,13 +710,13 @@ void cEmTree::setFall()
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    Matrix2AxisAngle(mat, &rot);
+    Matrix2AxisAngle(mat, &ang);
     parts = getPartsPtr(0);
-    parts->rot.x = 0.0f;
-    parts->rot.y = 0.0f;
-    parts->rot.z = 0.0f;
-    RotMatrix(parts->worldMat, &parts->rot);
-    TransMatrix(parts->worldMat, &parts->pos);
+    parts->ang.x = 0.0f;
+    parts->ang.y = 0.0f;
+    parts->ang.z = 0.0f;
+    RotMatrix(parts->l_mat, &parts->ang);
+    TransMatrix(parts->l_mat, &parts->pos);
     r_no_0 = 1;
     r_no_1 = 4;
     r_no_2 = 0;
@@ -743,17 +743,17 @@ void cEmTree::setThrow(Vec* spd, EmAtkInfo* atk)
     }
     PSMTXMultVecSR(mat, &v, &v);
     w->spd = v;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(m, mat, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
+    pos_old = pos;
     w->pParent = 0;
     if (atk) {
         w->pAtk = atk;
@@ -784,17 +784,17 @@ void cEmTree::setShot(Vec* spd, EmAtkInfo* atk)
     }
     PSMTXMultVecSR(mat, &v, &v);
     w->spd = v;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(m, mat, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
+    pos_old = pos;
     w->pParent = 0;
     if (atk) {
         w->pAtk = atk;
@@ -820,7 +820,7 @@ void cEmTree::setCatch()
 void cEmTree::setLost()
 {
     be_flag &= ~2;
-    atari.flags &= ~0x200;
+    atari.m_flag &= ~0x200;
     hp = 0;
     r_no_0 = 1;
     r_no_1 = 2;

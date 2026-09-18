@@ -45,7 +45,7 @@ static inline void ssWidgetDelete(Widget<SUB_SCREEN>* w)
 // ss_main.cpp
 class SsExitInit : public Widget<SUB_SCREEN> {
 public:
-    int state;  // 0x10
+    int _rno;  // 0x10
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
@@ -62,7 +62,7 @@ class SsItemExamine : public Widget<SUB_SCREEN> {
 public:
     u8 state;          // 0x10
     u8 pad_11[3];
-    ItemExamine exam;  // 0x14
+    ItemExamine _itemExam;  // 0x14
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);

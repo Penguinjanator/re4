@@ -404,7 +404,7 @@ int Et01_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET01:EFM[%02x] TPL err", 0x04);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(6, 0, "ET01:Mod err");
         return 0;
@@ -427,7 +427,7 @@ int Et02_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET02:EFM[%02x] TPL err", 0x04);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET02:Mod err");
         return 0;
@@ -451,7 +451,7 @@ int Et03_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET03:EFM[%02x] TPL err", 0x0A);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET03:Mod err");
         return 0;
@@ -475,7 +475,7 @@ static int Et04_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET04:EFM[%02x] TPL err", 0x00);
         return 0;
     }
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET04:Mod err");
         return 0;
@@ -498,7 +498,7 @@ int Et05_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET05:EFM[%02x] TPL err", 0x03);
         return 0;
     }
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET05:Mod err");
         return 0;
@@ -518,7 +518,7 @@ int Et15_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et15.eff"), 0x69, 0);
     bin = GetEtcAddr(arc, "et1500.bin");
     tpl = GetEtcAddr(arc, "et1500.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET05:Mod err");
         return 0;
@@ -538,7 +538,7 @@ int Et06_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0600.bin");
     tpl = GetEtcAddr(arc, "et0600.tpl");
-    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->rot, d->type);
+    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET06:Mod err");
         return 0;
@@ -580,7 +580,7 @@ int Et08_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0800.bin");
     tpl = GetEtcAddr(arc, "et0800.tpl");
-    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->rot, d->type);
+    em = (cObjLadder*) SetLadder(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET08:Mod err");
         return 0;
@@ -623,7 +623,7 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
     bin = GetEtcAddr(arc, "et0900.bin");
     tpl = GetEtcAddr(arc, "et0900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET09:Mod err");
         return 0;
@@ -649,7 +649,7 @@ int Et0a_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0a:EFM[%02x] TPL err", 0x4B);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0a:Mod err");
         return 0;
@@ -672,7 +672,7 @@ int Et0b_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET0b:EFM[%02x] TPL err", 0x0D);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0B:Mod err");
         return 0;
@@ -691,7 +691,7 @@ int Et0c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0c00.bin");
     tpl = GetEtcAddr(arc, "et0c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0C:Mod err");
         return 0;
@@ -711,7 +711,7 @@ int Et0d_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0d00.bin");
     tpl = GetEtcAddr(arc, "et0d00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0D:Mod err");
         return 0;
@@ -736,7 +736,7 @@ int Et10_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET10:EFM[%02x] TPL err", 0x0F);
         return 0;
     }
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET10:Mod err");
         return 0;
@@ -755,7 +755,7 @@ int Et0e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0e00.bin");
     tpl = GetEtcAddr(arc, "et0e00.tpl");
-    em = SetEmSwitch(bin, tpl, &d->pos, &d->rot, d->type);
+    em = SetEmSwitch(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET0E:Mod err");
         return 0;
@@ -773,7 +773,7 @@ int Et0f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0f00.bin");
     tpl = GetEtcAddr(arc, "et0f00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 1);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 1);
     if (em == 0) {
         pLog->err(0, 0, "ET0F:Mod err");
         return 0;
@@ -796,7 +796,7 @@ int Et11_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET11:EFM[%02x] TPL err", 0x09);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET11:Mod err");
         return 0;
@@ -819,7 +819,7 @@ int Et12_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET12:EFM[%02x] TPL err", 0x0B);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET12:Mod err");
         return 0;
@@ -843,7 +843,7 @@ int Et13_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET13:EFM[%02x] TPL err", 0x0C);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET13:Mod err");
         return 0;
@@ -863,7 +863,7 @@ int Et14_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1400.bin");
     tpl = GetEtcAddr(arc, "et1400.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET14:Mod err");
         return 0;
@@ -883,7 +883,7 @@ static int Et16_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1600.bin");
     tpl = GetEtcAddr(arc, "et1600.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET16:Mod err");
         return 0;
@@ -904,7 +904,7 @@ int Et17_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1700.bin");
     tpl = GetEtcAddr(arc, "et1700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET17:Mod err");
         return 0;
@@ -930,7 +930,7 @@ int Et18_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET18:EFM[%02x] TPL err", 0x1E);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET18:Mod err");
         return 0;
@@ -950,7 +950,7 @@ int Et19_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1400.bin");
     tpl = GetEtcAddr(arc, "et1400.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET19:Mod err");
         return 0;
@@ -970,7 +970,7 @@ int Et1a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1a00.bin");
     tpl = GetEtcAddr(arc, "et1a00.tpl");
-    em = SetEmItem(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetEmItem(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1a:Mod err");
         return 0;
@@ -990,7 +990,7 @@ int Et1b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1b00.bin");
     tpl = GetEtcAddr(arc, "et1b00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 0);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 0);
     if (em == 0) {
         pLog->err(0, 0, "ET1b:Mod err");
         return 0;
@@ -1009,7 +1009,7 @@ int Et1c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et1c00.bin");
     tpl = GetEtcAddr(arc, "et1c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1C:Mod err");
         return 0;
@@ -1033,7 +1033,7 @@ int Et1e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET1e:EFM[%02x] TPL err", 0x09);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1e:Mod err");
         return 0;
@@ -1053,7 +1053,7 @@ int Et1f_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et1f.eff"), 0x73, 0);
     bin = GetEtcAddr(arc, "et1f00.bin");
     tpl = GetEtcAddr(arc, "et1f00.tpl");
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET1f:Mod err");
         return 0;
@@ -1077,7 +1077,7 @@ int Et20_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET20:EFM[%02x] TPL err", 0x27);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET20:Mod err");
         return 0;
@@ -1097,7 +1097,7 @@ int Et21_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2100.bin");
     tpl = GetEtcAddr(arc, "et2100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
@@ -1123,7 +1123,7 @@ int Et22_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET22:EFM[%02x] TPL err", 0x2C);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET22:Mod err");
         return 0;
@@ -1143,7 +1143,7 @@ int Et23_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2300.bin");
     tpl = GetEtcAddr(arc, "et2300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET23:Mod err");
         return 0;
@@ -1164,7 +1164,7 @@ int Et24_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2400.bin");
     tpl = GetEtcAddr(arc, "et2400.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET24:Mod err");
         return 0;
@@ -1185,7 +1185,7 @@ int Et26_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2600.bin");
     tpl = GetEtcAddr(arc, "et2600.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 2);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 2);
     if (em == 0) {
         pLog->err(0, 0, "ET26:Mod err");
         return 0;
@@ -1204,7 +1204,7 @@ int Et27_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2700.bin");
     tpl = GetEtcAddr(arc, "et2700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 6, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 6, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET21:Mod err");
         return 0;
@@ -1225,7 +1225,7 @@ int Et28_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2800.bin");
     tpl = GetEtcAddr(arc, "et2800.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 3);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 3);
     if (em == 0) {
         pLog->err(0, 0, "ET28:Mod err");
         return 0;
@@ -1244,7 +1244,7 @@ int Et2a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2a00.bin");
     tpl = GetEtcAddr(arc, "et2a00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2a:Mod err");
         return 0;
@@ -1265,7 +1265,7 @@ int Et2b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et2b00.bin");
     tpl = GetEtcAddr(arc, "et2b00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2b:Mod err");
         return 0;
@@ -1290,7 +1290,7 @@ int Et2d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2d:EFM[%02x] TPL err", 0x44);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2D:Mod err");
         return 0;
@@ -1310,7 +1310,7 @@ int Et30_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et30.eff"), 0x84, 0);
     bin = GetEtcAddr(arc, "et3000.bin");
     tpl = GetEtcAddr(arc, "et3000.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET30:Mod err");
         return 0;
@@ -1333,7 +1333,7 @@ static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2e:EFM[%02x] TPL err", 0x45);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 6, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 6, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2e:Mod err");
         return 0;
@@ -1358,7 +1358,7 @@ int Et2f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2f:EFM[%02x] TPL err", 0x46);
         return 0;
     }
-    em = SetBox(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetBox(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET2f:Mod err");
         return 0;
@@ -1379,7 +1379,7 @@ int Et31_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3100.bin");
     tpl = GetEtcAddr(arc, "et3100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET31:Mod err");
         return 0;
@@ -1400,7 +1400,7 @@ int Et32_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3200.bin");
     tpl = GetEtcAddr(arc, "et3200.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET32:Mod err");
         return 0;
@@ -1422,7 +1422,7 @@ int Et33_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3300.bin");
     tpl = GetEtcAddr(arc, "et3300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET33:Mod err");
         return 0;
@@ -1444,7 +1444,7 @@ int Et34_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3400.bin");
     tpl = GetEtcAddr(arc, "et3400.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET34:Mod err");
         return 0;
@@ -1465,7 +1465,7 @@ int Et37_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3700.bin");
     tpl = GetEtcAddr(arc, "et3700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET37:Mod err");
         return 0;
@@ -1485,7 +1485,7 @@ int Et38_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et0c00.bin");
     tpl = GetEtcAddr(arc, "et0c00.tpl");
-    em = SetTorch(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetTorch(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET38:Mod err");
         return 0;
@@ -1505,7 +1505,7 @@ int Et39_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3900.bin");
     tpl = GetEtcAddr(arc, "et3900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET39:Mod err");
         return 0;
@@ -1526,7 +1526,7 @@ int Et3a_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3a00.bin");
     tpl = GetEtcAddr(arc, "et3a00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 4);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 4);
     if (em == 0) {
         pLog->err(0, 0, "ET3a:Mod err");
         return 0;
@@ -1545,7 +1545,7 @@ int Et3b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3b00.bin");
     tpl = GetEtcAddr(arc, "et3b00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3b:Mod err");
         return 0;
@@ -1570,7 +1570,7 @@ int Et3c_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3c:EFM[%02x] TPL err", 0x51);
         return 0;
     }
-    em = SetBarrel(bin, tpl, &d->pos, &d->rot, 2, d->type);
+    em = SetBarrel(bin, tpl, &d->pos, &d->ang, 2, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3c:Mod err");
         return 0;
@@ -1594,7 +1594,7 @@ int Et3d_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET3d:EFM[%02x] TPL err", 0x55);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3d:Mod err");
         return 0;
@@ -1614,7 +1614,7 @@ int Et3e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3e00.bin");
     tpl = GetEtcAddr(arc, "et3e00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3e:Mod err");
         return 0;
@@ -1635,7 +1635,7 @@ int Et3f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et3f00.bin");
     tpl = GetEtcAddr(arc, "et3f00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET3f:Mod err");
         return 0;
@@ -1661,7 +1661,7 @@ int Et40_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET40:EFM[%02x] TPL err", 0x83);
         return 0;
     }
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 0, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 0, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET40:Mod err");
         return 0;
@@ -1681,7 +1681,7 @@ int Et41_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4100.bin");
     tpl = GetEtcAddr(arc, "et4100.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET41:Mod err");
         return 0;
@@ -1706,7 +1706,7 @@ int Et42_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET42:EFM[%02x] TPL err", 0x5D);
         return 0;
     }
-    em = SetBar(bin, tpl, &d->pos, &d->rot, d->type);
+    em = SetBar(bin, tpl, &d->pos, &d->ang, d->type);
     if (em == 0) {
         pLog->err(6, 0, "ET42:Mod err");
         return 0;
@@ -1726,7 +1726,7 @@ int Et43_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4300.bin");
     tpl = GetEtcAddr(arc, "et4300.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 5);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 5);
     if (em == 0) {
         pLog->err(0, 0, "ET43:Mod err");
         return 0;
@@ -1745,7 +1745,7 @@ int Et45_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4500.bin");
     tpl = GetEtcAddr(arc, "et4500.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET45:Mod err");
         return 0;
@@ -1766,7 +1766,7 @@ int Et46_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4600.bin");
     tpl = GetEtcAddr(arc, "et4600.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 4, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 4, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET46:Mod err");
         return 0;
@@ -1788,7 +1788,7 @@ int Et47_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4700.bin");
     tpl = GetEtcAddr(arc, "et4700.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET47:Mod err");
         return 0;
@@ -1809,7 +1809,7 @@ int Et49_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4900.bin");
     tpl = GetEtcAddr(arc, "et4900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET49:Mod err");
         return 0;
@@ -1830,7 +1830,7 @@ int Et4b_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4b00.bin");
     tpl = GetEtcAddr(arc, "et4b00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 6);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 6);
     if (em == 0) {
         pLog->err(0, 0, "ET4b:Mod err");
         return 0;
@@ -1849,7 +1849,7 @@ int Et4c_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4c00.bin");
     tpl = GetEtcAddr(arc, "et4c00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 7);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 7);
     if (em == 0) {
         pLog->err(0, 0, "ET4c:Mod err");
         return 0;
@@ -1868,7 +1868,7 @@ static int Et4d_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4d00.bin");
     tpl = GetEtcAddr(arc, "et4d00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET4d:Mod err");
         return 0;
@@ -1889,7 +1889,7 @@ int Et4e_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4e00.bin");
     tpl = GetEtcAddr(arc, "et4e00.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET4e:Mod err");
         return 0;
@@ -1910,7 +1910,7 @@ int Et4f_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et4f00.bin");
     tpl = GetEtcAddr(arc, "et4f00.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 6);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 6);
     if (em == 0) {
         pLog->err(0, 0, "ET4f:Mod err");
         return 0;
@@ -1929,7 +1929,7 @@ int Et59_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et5900.bin");
     tpl = GetEtcAddr(arc, "et5900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET59:Mod err");
         return 0;
@@ -1950,7 +1950,7 @@ int Et61_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6100.bin");
     tpl = GetEtcAddr(arc, "et6100.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 8);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 8);
     if (em == 0) {
         pLog->err(0, 0, "ET61:Mod err");
         return 0;
@@ -1969,7 +1969,7 @@ int Et62_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6200.bin");
     tpl = GetEtcAddr(arc, "et6200.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 7, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 7, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET62:Mod err");
         return 0;
@@ -1990,7 +1990,7 @@ int Et63_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6300.bin");
     tpl = GetEtcAddr(arc, "et6300.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 1, d->type);
+    em = SetDoor(bin, tpl, &d->pos, &d->ang, 1, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET63:Mod err");
         return 0;
@@ -2012,7 +2012,7 @@ int Et66_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et66.eff"), 0xBA, 0);
     bin = GetEtcAddr(arc, "et6600.bin");
     tpl = GetEtcAddr(arc, "et6600.tpl");
-    em = SetRack(bin, tpl, &d->pos, &d->rot, 5, d->type);
+    em = SetRack(bin, tpl, &d->pos, &d->ang, 5, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET66:Mod err");
         return 0;
@@ -2031,7 +2031,7 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 
     bin = GetEtcAddr(arc, "et6700.bin");
     tpl = GetEtcAddr(arc, "et6700.tpl");
-    em = SetEmBarred(bin, tpl, &d->pos, &d->rot, d->type, 8);
+    em = SetEmBarred(bin, tpl, &d->pos, &d->ang, d->type, 8);
     if (em == 0) {
         pLog->err(0, 0, "ET67:Mod err");
         return 0;

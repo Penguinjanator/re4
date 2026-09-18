@@ -90,11 +90,11 @@ void R405Init()
     }
     EatMgr.registEffInfo(2, (AtEffInfo*) &r405_eff_info);
     if (pG->x4FB8 == 2) {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 0,
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
+                       ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0,
                        zero, zero, zero, zero);
     } else {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0, zero, zero, zero, zero);
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, zero, zero, zero, zero);
     }
     setTexRender();
     SceSetRoomExitFunc((int) snd_tbl_set, 0);
@@ -146,28 +146,28 @@ void setTexRender()
         tbl0[1] = 0;
         tbl0[4] = 0xF7;
         tbl0[5] = r405_work.p->tex[0]->texId;
-        r405_work.p->tex[0]->repType = 1;
+        r405_work.p->tex[0]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r405_work.p->tex[0]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC);
-    obj->pInfo->setTexBlendTbl(tbl0);
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl0);
+    obj->pModelInfo->setBlendRatio(0xFF);
     if (GetTexRenderMgr(&r405_work.p->tex[1])) {
         tbl1[0] = 1;
         tbl1[1] = 0;
         tbl1[4] = 0xF7;
         tbl1[5] = r405_work.p->tex[1]->texId;
-        r405_work.p->tex[1]->repType = 1;
+        r405_work.p->tex[1]->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 4, r405_work.p->tex[1]->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R300Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xE);
-    obj->pInfo->setTexBlendTbl(tbl1);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
+    obj->pModelInfo->setTexBlendTbl(tbl1);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
 }
 
 static void R405ExecEventS00()
@@ -184,7 +184,7 @@ static void R405ExecEventS00()
         SndRoomBgmStart(0, 0);
         SndRoomBgmStart(1, 0);
         SceSleep(2);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
 }
 
@@ -193,10 +193,10 @@ extern "C" void Evt_R405S00_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 1;
+                    ((cModel*) mod)->LightInfo.x50 = 1;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;

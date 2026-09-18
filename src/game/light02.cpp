@@ -24,26 +24,26 @@ void Light02_Move(cLight* l)
     w->phase = LIMIT_ANGLE(w->phase);
     rate = w->base + w->amp * sinf(w->phase);
 
-    r = rate * l->color.r;
+    r = rate * l->Col.r;
     if (r < 0.0f) {
         r = 0.0f;
     } else if (r > 255.0f) {
         r = 255.0f;
     }
-    l->curColor.r = (u8)r;
-    g = rate * l->color.g;
+    l->DispCol.r = (u8)r;
+    g = rate * l->Col.g;
     if (g < 0.0f) {
         g = 0.0f;
     } else if (g > 255.0f) {
         g = 255.0f;
     }
-    l->curColor.g = (u8)g;
-    b = rate * l->color.b;
+    l->DispCol.g = (u8)g;
+    b = rate * l->Col.b;
     if (b < 0.0f) {
         b = 0.0f;
     } else if (b > 255.0f) {
         b = 255.0f;
     }
-    l->curColor.b = (u8)b;
-    l->curColor.a = l->color.a;
+    l->DispCol.b = (u8)b;
+    l->DispCol.a = l->Col.a;
 }

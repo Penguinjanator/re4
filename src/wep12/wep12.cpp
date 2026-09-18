@@ -17,7 +17,7 @@ void Wep12_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep11_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x46, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x1B);

@@ -4,20 +4,20 @@
 #include "esp.h"
 
 struct Esp48Work {
-    f32 ampX;    // 0x00
-    f32 freqX;   // 0x04
-    f32 ampY;    // 0x08
-    f32 freqY;   // 0x0C
-    f32 ampZ;    // 0x10
-    f32 freqZ;   // 0x14
-    f32 time;    // 0x18
-    Vec swing;   // 0x1C rotation added this frame
+    f32 dist_x;    // 0x00
+    f32 time_x;   // 0x04
+    f32 dist_y;    // 0x08
+    f32 time_y;   // 0x0C
+    f32 dist_z;    // 0x10
+    f32 time_z;   // 0x14
+    f32 timer;    // 0x18
+    Vec add_ang;   // 0x1C rotation added this frame
 };
 
 // Effect whose rotation swings on a sine wave around the base rotation.
 class cEsp48 : public cEsp {
 public:
-    Esp48Work work;  // 0xF8
+    Esp48Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -30,15 +30,15 @@ cEsp* Esp48_Create()
 
 void cEsp48::move()
 {
-    Esp48Work* w = &work;
+    Esp48Work* w = &m_Free;
 
-    PSVECSubtract(&rot, &w->swing, &rot);
+    PSVECSubtract(&m_Ang, &w->add_ang, &m_Ang);
     if (CommonMove()) {
-        w->time += 0.01f;
-        w->swing.x = w->ampX * sinf(w->time * w->freqX);
-        w->swing.y = w->ampY * sinf(w->time * w->freqY);
-        w->swing.z = w->ampZ * sinf(w->time * w->freqZ);
-        PSVECAdd(&rot, &w->swing, &rot);
+        w->timer += 0.01f;
+        w->add_ang.x = w->dist_x * sinf(w->timer * w->time_x);
+        w->add_ang.y = w->dist_y * sinf(w->timer * w->time_y);
+        w->add_ang.z = w->dist_z * sinf(w->timer * w->time_z);
+        PSVECAdd(&m_Ang, &w->add_ang, &m_Ang);
         if (!AnmMove()) {
             PushEsp(this);
         }
@@ -47,14 +47,14 @@ void cEsp48::move()
 
 int cEsp48::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp48Work* w = &work;
+    Esp48Work* w = &m_Free;
 
-    w->ampX = gen->xD8 * 0.1f;
-    w->freqX = gen->xDC;
-    w->ampY = gen->xE4 * 0.1f;
-    w->freqY = gen->xE8;
-    w->ampZ = gen->xF0 * 0.1f;
-    w->freqZ = gen->xF4;
-    w->time = fRandSeed1_1(seed) * 2.0f * PI;
+    w->dist_x = gen->xD8 * 0.1f;
+    w->time_x = gen->xDC;
+    w->dist_y = gen->xE4 * 0.1f;
+    w->time_y = gen->xE8;
+    w->dist_z = gen->xF0 * 0.1f;
+    w->time_z = gen->xF4;
+    w->timer = fRandSeed1_1(seed) * 2.0f * PI;
     return 1;
 }

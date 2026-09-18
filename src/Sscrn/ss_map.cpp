@@ -468,7 +468,7 @@ void mapInitViewport(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0xFE, 0x10);
     f32 sx = fabsf(u->sizeX);
-    f32 sy = fabsf(u->sizeY);
+    f32 sy = fabsf(u->size_H);
     Vec p;
 
     if (sy <= sx * 0.75f) {
@@ -513,9 +513,9 @@ void stageNameDisp(SUB_SCREEN* wk)
 {
     u8 id;
 
-    IdSub.unitPtr(0x31, 0x10)->flags &= ~8;
-    IdSub.unitPtr(0x32, 0x10)->flags &= ~8;
-    IdSub.unitPtr(0x33, 0x10)->flags &= ~8;
+    IdSub.unitPtr(0x31, 0x10)->be_flag &= ~8;
+    IdSub.unitPtr(0x32, 0x10)->be_flag &= ~8;
+    IdSub.unitPtr(0x33, 0x10)->be_flag &= ~8;
     switch ((s8) wk->stage) {
     case 1:
         id = 0x31;
@@ -530,7 +530,7 @@ void stageNameDisp(SUB_SCREEN* wk)
         id = 0x31;
         break;
     }
-    IdSub.unitPtr(id, 0x10)->flags |= 8;
+    IdSub.unitPtr(id, 0x10)->be_flag |= 8;
 }
 
 void markCharDisp(IdUnit* u, Mtx m)
@@ -549,7 +549,7 @@ void markCharDisp(IdUnit* u, Mtx m)
     ang = atan2f(dir.x, dir.z);
     if (mapPos2screenPos(&pos, &scr)) {
         u->scr = scr;
-        u->rot.z = ang * 180.0f / 3.1415927f + 180.0f;
+        u->rot0.z = ang * 180.0f / 3.1415927f + 180.0f;
     }
 }
 
@@ -559,17 +559,17 @@ void markPlayerDisp(SUB_SCREEN* wk, int sw)
 
     if (!sw) {
         u = IdSub.unitPtr(0, 0x14);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
         u = IdSub.unitPtr(1, 0x14);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     } else {
         u = IdSub.unitPtr(0, 0x14);
-        markCharDisp(u, wk->plMapMat);
-        u->flags |= 8;
+        markCharDisp(u, wk->pl_mat_map);
+        u->be_flag |= 8;
         u = IdSub.unitPtr(1, 0x14);
         if (pSUB) {
             markCharDisp(u, wk->pMapWk->subMapMat);
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
     }
 }
@@ -586,10 +586,10 @@ void markGoalInit(SUB_SCREEN* wk)
         m->pGoal->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
     }
     mdl = m->pGoal;
-    RotMatrix(mdl->worldMat, &mdl->rot);
-    TransMatrix(mdl->worldMat, &mdl->pos);
-    ScaleMatrix(mdl->worldMat, &mdl->scale);
-    PSMTXCopy(mdl->worldMat, mdl->mat);
+    RotMatrix(mdl->l_mat, &mdl->ang);
+    TransMatrix(mdl->l_mat, &mdl->pos);
+    ScaleMatrix(mdl->l_mat, &mdl->scale);
+    PSMTXCopy(mdl->l_mat, mdl->mat);
     if (mdl->pParts) {
         mdl->partsMatCalc();
         mdl->partsWorldCalc();
@@ -700,13 +700,13 @@ void markGoalDisp(SUB_SCREEN* wk, int sw)
     Vec scr;
 
     if (!sw) {
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     } else {
-        u->flags &= ~8;
+        u->be_flag &= ~8;
         if (markGoalPosition(wk, &pos)) {
             if (mapPos2screenPos(&pos, &scr)) {
                 u->scr = scr;
-                u->flags |= 8;
+                u->be_flag |= 8;
             }
         }
     }
@@ -724,10 +724,10 @@ void markMerchantInit(SUB_SCREEN* wk)
         m->pMerchant->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
     }
     mdl = m->pMerchant;
-    RotMatrix(mdl->worldMat, &mdl->rot);
-    TransMatrix(mdl->worldMat, &mdl->pos);
-    ScaleMatrix(mdl->worldMat, &mdl->scale);
-    PSMTXCopy(mdl->worldMat, mdl->mat);
+    RotMatrix(mdl->l_mat, &mdl->ang);
+    TransMatrix(mdl->l_mat, &mdl->pos);
+    ScaleMatrix(mdl->l_mat, &mdl->scale);
+    PSMTXCopy(mdl->l_mat, mdl->mat);
     if (mdl->pParts) {
         mdl->partsMatCalc();
         mdl->partsWorldCalc();
@@ -848,7 +848,7 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
 
         for (i = 0; i < 7; i++) {
             u = IdSub.unitPtr(getMerchantMarkNo(i), 0x14);
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     } else {
         Vec pos[7];
@@ -859,9 +859,9 @@ void markMerchantDisp(SUB_SCREEN* wk, int sw)
             u = IdSub.unitPtr(getMerchantMarkNo(i), 0x14);
             if (markMerchantPosition(wk, i, &pos[i]) && mapPos2screenPos(&pos[i], &scr)) {
                 u->scr = scr;
-                u->flags |= 8;
+                u->be_flag |= 8;
             } else {
-                u->flags &= ~8;
+                u->be_flag &= ~8;
             }
         }
     }
@@ -879,10 +879,10 @@ void markTreasureInit(SUB_SCREEN* wk)
         m->pTreasure->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
     }
     mdl = m->pTreasure;
-    RotMatrix(mdl->worldMat, &mdl->rot);
-    TransMatrix(mdl->worldMat, &mdl->pos);
-    ScaleMatrix(mdl->worldMat, &mdl->scale);
-    PSMTXCopy(mdl->worldMat, mdl->mat);
+    RotMatrix(mdl->l_mat, &mdl->ang);
+    TransMatrix(mdl->l_mat, &mdl->pos);
+    ScaleMatrix(mdl->l_mat, &mdl->scale);
+    PSMTXCopy(mdl->l_mat, mdl->mat);
     if (mdl->pParts) {
         mdl->partsMatCalc();
         mdl->partsWorldCalc();
@@ -957,8 +957,8 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
         for (int i = 0; i < treasure_mark_num; i++) {
             u = IdNum.unitPtr(i, 0x15);
             u2 = IdNum.unitPtr(i + 0x10, 0x15);
-            u->flags &= ~8;
-            u2->flags &= ~8;
+            u->be_flag &= ~8;
+            u2->be_flag &= ~8;
         }
     } else {
         Vec pos;
@@ -972,19 +972,19 @@ void markTreasureDisp(SUB_SCREEN* wk, int sw)
                 if (mapPos2screenPos(&pos, &scr)) {
                     u->scr = scr;
                     if (markTreasureExist(i)) {
-                        u->flags |= 8;
-                        u2->flags &= ~8;
+                        u->be_flag |= 8;
+                        u2->be_flag &= ~8;
                     } else {
-                        u->flags |= 8;
-                        u2->flags |= 8;
+                        u->be_flag |= 8;
+                        u2->be_flag |= 8;
                     }
                 } else {
-                    u->flags &= ~8;
-                    u2->flags &= ~8;
+                    u->be_flag &= ~8;
+                    u2->be_flag &= ~8;
                 }
             } else {
-                u->flags &= ~8;
-                u2->flags &= ~8;
+                u->be_flag &= ~8;
+                u2->be_flag &= ~8;
             }
         }
     }
@@ -1002,10 +1002,10 @@ void markCoinInit(SUB_SCREEN* wk)
         m->pCoin->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
     }
     mdl = m->pCoin;
-    RotMatrix(mdl->worldMat, &mdl->rot);
-    TransMatrix(mdl->worldMat, &mdl->pos);
-    ScaleMatrix(mdl->worldMat, &mdl->scale);
-    PSMTXCopy(mdl->worldMat, mdl->mat);
+    RotMatrix(mdl->l_mat, &mdl->ang);
+    TransMatrix(mdl->l_mat, &mdl->pos);
+    ScaleMatrix(mdl->l_mat, &mdl->scale);
+    PSMTXCopy(mdl->l_mat, mdl->mat);
     if (mdl->pParts) {
         mdl->partsMatCalc();
         mdl->partsWorldCalc();
@@ -1044,10 +1044,10 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
     if (!sw) {
         for (int i = 0; i < coin_mark_num; i++) {
             u = IdNum.unitPtr(i, 0x16);
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
         u = IdSub.unitPtr(0xF, 0x10);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     } else {
         Vec pos;
         Vec scr;
@@ -1063,22 +1063,22 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
                 if (mapPos2screenPos(&pos, &scr)) {
                     u->scr = scr;
                     if (markCoinExist((s8) wk->stage, i)) {
-                        u->flags |= 8;
+                        u->be_flag |= 8;
                     } else {
-                        u->flags &= ~8;
+                        u->be_flag &= ~8;
                     }
                 } else {
-                    u->flags &= ~8;
+                    u->be_flag &= ~8;
                 }
             } else {
-                u->flags &= ~8;
+                u->be_flag &= ~8;
             }
         }
         u = IdSub.unitPtr(0xF, 0x10);
         if (m->area == 1) {
-            u->flags |= 8;
+            u->be_flag |= 8;
         } else {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
         cnt = 0;
         for (int i = 0; i < m->nCoin; i++) {
@@ -1093,9 +1093,9 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         }
         for (j = 0; j < 2; j++) {
             u = IdSub.unitPtr(0x12 - j, 0x10);
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = digit[j];
+            u->texNo = digit[j];
         }
         v = m->nCoin;
         for (j = 0; j < 2; j++) {
@@ -1104,9 +1104,9 @@ void markCoinDisp(SUB_SCREEN* wk, int sw)
         }
         for (j = 0; j < 2; j++) {
             u = IdSub.unitPtr(0x15 - j, 0x10);
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = digit[j];
+            u->texNo = digit[j];
         }
     }
 }
@@ -1123,10 +1123,10 @@ void markSaveInit(SUB_SCREEN* wk)
         m->pSave->modelInit(SS_ARC_PTR(wk->pMapCmn, 0xF), SS_ARC_PTR(wk->pMapCmn, 0x10));
     }
     mdl = m->pSave;
-    RotMatrix(mdl->worldMat, &mdl->rot);
-    TransMatrix(mdl->worldMat, &mdl->pos);
-    ScaleMatrix(mdl->worldMat, &mdl->scale);
-    PSMTXCopy(mdl->worldMat, mdl->mat);
+    RotMatrix(mdl->l_mat, &mdl->ang);
+    TransMatrix(mdl->l_mat, &mdl->pos);
+    ScaleMatrix(mdl->l_mat, &mdl->scale);
+    PSMTXCopy(mdl->l_mat, mdl->mat);
     if (mdl->pParts) {
         mdl->partsMatCalc();
         mdl->partsWorldCalc();
@@ -1161,7 +1161,7 @@ void markSaveDisp(SUB_SCREEN* wk, int sw)
     if (!sw) {
         for (i = 0; i < save_mark_num; i++) {
             u = IdNum.unitPtr(i, 0x14);
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     } else {
         Vec pos;
@@ -1173,11 +1173,11 @@ void markSaveDisp(SUB_SCREEN* wk, int sw)
                 markSavePosition(wk, i, &pos);
                 if (mapPos2screenPos(&pos, &scr)) {
                     u->scr = scr;
-                    u->flags |= 8;
+                    u->be_flag |= 8;
                     continue;
                 }
             }
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     }
 }
@@ -1270,8 +1270,8 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         a.y += 100000.0f;
         b.y -= 100000.0f;
     }
-    poly = satB.poly;
-    for (i = 0; i < satB.nA + satB.nB; i++, poly++) {
+    poly = satB.poly_p;
+    for (i = 0; i < satB.floor_num + satB.slope_num; i++, poly++) {
         if (At_poly_line_ck((AtPolyData*) &satB, &hit2, poly, &a, &b, 0, 0)) {
             if (hit2.y <= best) {
                 idx = i;
@@ -1284,7 +1284,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         pLog->err(0, 0, "mapPositionCheck(): deviate from hit area");
         PSMTXIdentity(out);
     } else {
-        poly = satB.poly;
+        poly = satB.poly_p;
         poly += idx;
         vtx = satB.vtx;
         PSVECSubtract(&vtx[poly->v[1]], &vtx[poly->v[0]], &a);
@@ -1300,9 +1300,9 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         s1 = s;
         t1 = t;
         if (SubScreenWk.x34C & 0x10) {
-            poly = satA.poly;
+            poly = satA.poly_p;
             vtx = satA.vtx;
-            for (i = 0; i < satA.nA + satA.nB; i++, poly++) {
+            for (i = 0; i < satA.floor_num + satA.slope_num; i++, poly++) {
                 u32 col;
 
                 if (i != idx) {
@@ -1321,7 +1321,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
                 Draw_line3d(&a, &b, col, 0);
             }
         }
-        poly = satB.poly;
+        poly = satB.poly_p;
         poly += idx;
         vtx = satA.vtx;
         PSVECSubtract(&vtx[poly->v[1]], &vtx[poly->v[0]], &a);
@@ -1517,7 +1517,7 @@ int mapColor(u16 room)
     if (p == 0) {
         return 4;
     }
-    if (room == SubScreenWk.room) {
+    if (room == SubScreenWk.room_no) {
         return 0;
     }
     if (stageFlag(p->hide)) {
@@ -1853,11 +1853,11 @@ void mapTblInit(SUB_SCREEN* wk)
         map_room_num = mapDataInit_St4G(wk);
         break;
     }
-    wk->mapRooms = 0;
+    wk->map_obj_num = 0;
     wk->pMapWk->roomIdx = -1;
     for (i = 0; i < map_room_num; i++) {
-        wk->mapRooms += mapRoomNum(&map_room[i]);
-        if (wk->room == map_room[i].room) {
+        wk->map_obj_num += mapRoomNum(&map_room[i]);
+        if (wk->room_no == map_room[i].room) {
             wk->pMapWk->roomIdx = i;
         }
     }
@@ -1888,7 +1888,7 @@ static inline void mapModelLight(cModel* m)
     static const Vec ofs = {0.0f, 0.0f, 0.0f};
     static const Vec size = {1000.0f, 1000.0f, 0.0f};
 
-    m->lightInfo.init2(0, 0, &ofs, &size, 4);
+    m->LightInfo.init2(0, 0, &ofs, &size, 4);
     m->CullMode = 2;
     m->ot_type = 3;
 }
@@ -1931,7 +1931,7 @@ void mapModelInit(SUB_SCREEN* wk)
                 mdl->scale.x = 10.0f;
                 mdl->scale.y = 10.0f;
                 mdl->scale.z = 10.0f;
-                RotMatrix(mdl->mat, &mdl->rot);
+                RotMatrix(mdl->mat, &mdl->ang);
                 TransMatrix(mdl->mat, &mdl->pos);
                 ScaleMatrix(mdl->mat, &mdl->scale);
             }
@@ -1943,24 +1943,24 @@ void mapModelInit(SUB_SCREEN* wk)
     }
     m = wk->pMapWk;
     if (m->roomIdx == -1) {
-        PSMTXIdentity(wk->plMapMat);
+        PSMTXIdentity(wk->pl_mat_map);
     } else {
         hitA = mapHitAddr(&map_room[m->roomIdx], 0);
         hitB = mapHitAddr(&map_room[wk->pMapWk->roomIdx], 1);
         parts = MapMgr.room(wk->pMapWk->roomIdx, 0)->getPartsPtr(0);
-        mapPositionCheck(hitB, hitA, wk->plMat, parts->mat, wk->plMapMat,
+        mapPositionCheck(hitB, hitA, wk->pl_mat, parts->mat, wk->pl_mat_map,
                          mapRoomNum(&map_room[wk->pMapWk->roomIdx]) - 1);
         if (pSUB) {
             parts = MapMgr.room(wk->pMapWk->roomIdx, 0)->getPartsPtr(0);
-            mapPositionCheck(hitB, hitA, wk->subMat, parts->mat, wk->pMapWk->subMapMat,
+            mapPositionCheck(hitB, hitA, wk->sub_mat, parts->mat, wk->pMapWk->subMapMat,
                              mapRoomNum(&map_room[wk->pMapWk->roomIdx]) - 1);
         }
     }
-    y = wk->plMapMat[1][3] / 100.0f;
+    y = wk->pl_mat_map[1][3] / 100.0f;
     if (y > 0.0f) {
-        wk->mapFloor = (s8) (y + 0.5f);
+        wk->floor_no = (s8) (y + 0.5f);
     } else {
-        wk->mapFloor = (s8) (y - 0.5f);
+        wk->floor_no = (s8) (y - 0.5f);
     }
     no = 0;
     for (i = 0; i < map_room_num; i++) {
@@ -1976,19 +1976,19 @@ void mapModelInit(SUB_SCREEN* wk)
             if (col == 0 && n > 1) {
                 s8 floor = (s8) (mdl->getPartsPtr(0)->mat[1][3] / 100.0f + 0.5f);
 
-                if (floor == wk->mapFloor) {
+                if (floor == wk->floor_no) {
                     col = 0;
                 } else {
                     col = floor + 5;
                 }
             }
-            info = mdl->pInfo;
+            info = mdl->pModelInfo;
             u = id[col];
             if (info->be_flag & 2) {
                 info->be_flag &= ~2;
                 pLog.p->warn(0, 0, "mapModelInit(): R%1x%02x flag SHAPE_MODEL clear", 1, i);
             }
-            for (; info; info = info->pNext) {
+            for (; info; info = info->pList) {
                 info->color[0] = u->col0[0];
                 info->color[1] = u->col0[1];
                 info->color[2] = u->col0[2];
@@ -2010,7 +2010,7 @@ void mapModelDisp(SUB_SCREEN* wk)
     while (m) {
         cModel* p = m;
 
-        m = (cModel*) m->next;
+        m = (cModel*) m->pNext;
         func(p);
     }
 }
@@ -2030,7 +2030,7 @@ void doorModelInit(SUB_SCREEN* wk)
         wk->pMapArea = (SsArc*) ((u8*) wk->pMapArea + (u32) wk->pBuf);
     }
     m = wk->pMapWk;
-    base = (s8) wk->mapRooms;
+    base = (s8) wk->map_obj_num;
     e = map_door_tbl[m->area].p;
     n = map_door_tbl[m->area].n;
     for (i = 0; i < n; i++) {
@@ -2063,7 +2063,7 @@ void doorModelDisp(SUB_SCREEN* wk)
 {
     SsMapWork* m = wk->pMapWk;
     MapDoor* e = map_door_tbl[m->area].p;
-    int base = (s8) wk->mapRooms;
+    int base = (s8) wk->map_obj_num;
     int n = map_door_tbl[m->area].n;
     IdUnit* id[3];
     int i;
@@ -2102,7 +2102,7 @@ void doorModelDisp(SUB_SCREEN* wk)
                 u = id[2];
             }
         }
-        for (info = mdl->pInfo; info; info = info->pNext) {
+        for (info = mdl->pModelInfo; info; info = info->pList) {
             info->color[0] = (u8) u->col[0];
             info->color[1] = (u8) u->col[1];
             info->color[2] = (u8) u->col[2];
@@ -2173,9 +2173,9 @@ f32 zoomOutLimit()
 void mapCameraEntire(SUB_SCREEN* wk, CameraParam* out)
 {
     *out = map_cam_entire[(s8) wk->stage];
-    IdSub.unitPtr(1, 0x1D)->flags |= 8;
-    IdSub.unitPtr(1, 0x1D)->dir &= 0xF0;
-    IdSub.unitPtr(0, 0x1D)->dir |= 0xF;
+    IdSub.unitPtr(1, 0x1D)->be_flag |= 8;
+    IdSub.unitPtr(1, 0x1D)->rev_flag &= 0xF0;
+    IdSub.unitPtr(0, 0x1D)->rev_flag |= 0xF;
 }
 
 f32 zoomInLimit()
@@ -2191,9 +2191,9 @@ void mapCameraZoomIn(SUB_SCREEN* wk, CameraParam* out)
     Vec d;
     f32 h;
 
-    pl.x = wk->plMapMat[0][3];
-    pl.y = wk->plMapMat[1][3];
-    pl.z = wk->plMapMat[2][3];
+    pl.x = wk->pl_mat_map[0][3];
+    pl.y = wk->pl_mat_map[1][3];
+    pl.z = wk->pl_mat_map[2][3];
     markGoalPosition(wk, &goal);
     PSVECAdd(&pl, &goal, &mid);
     PSVECScale(&mid, &mid, 0.5f);
@@ -2214,9 +2214,9 @@ void mapCameraZoomIn(SUB_SCREEN* wk, CameraParam* out)
     out->pos = mid;
     out->at = mid;
     out->pos.y += h;
-    IdSub.unitPtr(1, 0x1D)->dir |= 0xF;
-    IdSub.unitPtr(0, 0x1D)->dir &= 0xF0;
-    IdSub.unitPtr(0, 0x1D)->flags |= 8;
+    IdSub.unitPtr(1, 0x1D)->rev_flag |= 0xF;
+    IdSub.unitPtr(0, 0x1D)->rev_flag &= 0xF0;
+    IdSub.unitPtr(0, 0x1D)->be_flag |= 8;
 }
 
 // Camera interpolation from `from` to `to` over `max` frames; 1 when done.
@@ -2410,26 +2410,26 @@ void SsMapMain::init(SUB_SCREEN* wk)
     IdSub.set(SS_ARC_PTR(wk->pMapCmn, 6), 0xFF, 0x14, 0xC, 5, 0);
     IdSub.set(SS_ARC_PTR(wk->pMapCmn, 7), 0xFF, 0x10, 0xF, 2, 0);
     IdSub.set(SS_ARC_PTR(wk->pMapCmn, 0xB), 0xFF, 0x1D, 0x13, 8, 0);
-    IdSub.unitPtr(0x10, 0x10)->dir |= 0xF;
-    IdSub.unitPtr(0x10, 0x10)->flags &= ~8;
-    IdSub.unitPtr(0, 0x10)->flags &= ~8;
-    IdSub.unitPtr(0, 0x10)->dir |= 0xF;
+    IdSub.unitPtr(0x10, 0x10)->rev_flag |= 0xF;
+    IdSub.unitPtr(0x10, 0x10)->be_flag &= ~8;
+    IdSub.unitPtr(0, 0x10)->be_flag &= ~8;
+    IdSub.unitPtr(0, 0x10)->rev_flag |= 0xF;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x13));
 #line 3409 "D:/Bio4/Prog/ss_map.cpp"
     wk->pMapWk = (SsMapWork*) MEM_ALLOC(sizeof(SsMapWork), 1, 0xD);
     mapInitViewport(wk);
     mapCameraInit(wk, &pG->Cam);
-    IdSub.unitPtr(1, 0x1D)->flags &= ~8;
-    IdSub.unitPtr(0, 0x1D)->flags &= ~8;
-    IdSub.unitPtr(2, 0x1D)->flags &= ~8;
+    IdSub.unitPtr(1, 0x1D)->be_flag &= ~8;
+    IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
+    IdSub.unitPtr(2, 0x1D)->be_flag &= ~8;
     if (!(pG->flags_51C0 & 0x20000000)) {
-        IdSub.unitPtr(0x12, 0x1D)->flags &= ~8;
+        IdSub.unitPtr(0x12, 0x1D)->be_flag &= ~8;
     }
     if (!ItemMgr.search(0xA9)) {
-        IdSub.unitPtr(0x14, 0x1D)->flags &= ~8;
+        IdSub.unitPtr(0x14, 0x1D)->be_flag &= ~8;
     }
     if (ItemMgr.num(0xB0) == 0 && !(pG->flags_51C0 & 0x00400000)) {
-        IdSub.unitPtr(0x13, 0x1D)->flags &= ~8;
+        IdSub.unitPtr(0x13, 0x1D)->be_flag &= ~8;
     }
     sscrnMainMenuInit(wk, 0);
     markGoalDisp(wk, 0);
@@ -2438,7 +2438,7 @@ void SsMapMain::init(SUB_SCREEN* wk)
     markTreasureDisp(wk, 0);
     markCoinDisp(wk, 0);
     markSaveDisp(wk, 0);
-    wk->pMapWk->area = getAreaNo(wk->room);
+    wk->pMapWk->area = getAreaNo(wk->room_no);
     state = 2;
     step = 0;
     SndCall(0, 0x1E, 0, 0, 0, 0);
@@ -2658,10 +2658,10 @@ void sscrn_map_out_init(SUB_SCREEN* wk)
 {
     IdUnit* u = IdSub.unitPtr(0, 0x10);
 
-    u->flags |= 8;
-    u->dir &= 0xF0;
+    u->be_flag |= 8;
+    u->rev_flag &= 0xF0;
     IdSub.setTime(u, 0);
-    IdSub.unitPtr(3, 0x1D)->dir |= 0xF;
+    IdSub.unitPtr(3, 0x1D)->rev_flag |= 0xF;
 }
 
 static int sscrn_map_out(SUB_SCREEN* wk)
@@ -2670,7 +2670,7 @@ static int sscrn_map_out(SUB_SCREEN* wk)
 
     if ((s16) u->timer[0] == 0xF) {
         sscrnModelFree(wk);
-        IdSub.unitPtr(1, 0x10)->flags &= ~8;
+        IdSub.unitPtr(1, 0x10)->be_flag &= ~8;
         IdSub.kill(0xFF, 0x19);
         IdSub.kill(0xFF, 0x14);
         IdNumErase();
@@ -2768,8 +2768,8 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     IdUnit* u;
     IdUnit* u2;
 
-    IdSub.unitPtr(0x10, 0x10)->flags |= 8;
-    IdSub.unitPtr(0x10, 0x10)->dir &= 0xF0;
+    IdSub.unitPtr(0x10, 0x10)->be_flag |= 8;
+    IdSub.unitPtr(0x10, 0x10)->rev_flag &= 0xF0;
     m->modeCursor = 0;
     u = IdSub.unitPtr(0x20, 0x10);
     u2 = IdSub.unitPtr(0x60, 0x10);
@@ -2780,20 +2780,20 @@ void MapModeSelect::init(SUB_SCREEN* wk)
     u->timer[0] = 0;
     if (pGS->flags_51C0 & 0x20000000) {
         u = IdSub.unitPtr(0x61, 0x10);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
     if (ItemMgr.num(0xA9)) {
         u = IdSub.unitPtr(0x62, 0x10);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
     if (ItemMgr.num(0xB0) || (pG->flags_51C0 & 0x00400000)) {
         u = IdSub.unitPtr(0x63, 0x10);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
-    IdSub.unitPtr(2, 0x1D)->flags |= 8;
-    IdSub.unitPtr(2, 0x1D)->dir &= 0xF0;
-    IdSub.unitPtr(1, 0x1D)->dir |= 0xF;
-    IdSub.unitPtr(0, 0x1D)->dir |= 0xF;
+    IdSub.unitPtr(2, 0x1D)->be_flag |= 8;
+    IdSub.unitPtr(2, 0x1D)->rev_flag &= 0xF0;
+    IdSub.unitPtr(1, 0x1D)->rev_flag |= 0xF;
+    IdSub.unitPtr(0, 0x1D)->rev_flag |= 0xF;
     SndCall(0, 9, 0, 0, 0, 0);
 }
 
@@ -2826,15 +2826,15 @@ void MapModeSelect::move(SUB_SCREEN* wk)
     if (Key.trg & 0x40020000) {
         switch (m->modeSel) {
         case 0:
-            IdSub.unitPtr(2, 0x1D)->dir |= 0xF;
-            IdSub.unitPtr(1, 0x1D)->flags |= 8;
-            IdSub.unitPtr(1, 0x1D)->dir &= 0xF0;
+            IdSub.unitPtr(2, 0x1D)->rev_flag |= 0xF;
+            IdSub.unitPtr(1, 0x1D)->be_flag |= 8;
+            IdSub.unitPtr(1, 0x1D)->rev_flag &= 0xF0;
             transit(0, wk);
             return;
         case 1:
-            IdSub.unitPtr(2, 0x1D)->dir |= 0xF;
-            IdSub.unitPtr(0, 0x1D)->flags |= 8;
-            IdSub.unitPtr(0, 0x1D)->dir &= 0xF0;
+            IdSub.unitPtr(2, 0x1D)->rev_flag |= 0xF;
+            IdSub.unitPtr(0, 0x1D)->be_flag |= 8;
+            IdSub.unitPtr(0, 0x1D)->rev_flag &= 0xF0;
             transit(1, wk);
             return;
         }
@@ -2868,9 +2868,9 @@ void MapModeSelect::move(SUB_SCREEN* wk)
         for (i = 0; i < 4; i++) {
             u = IdSub.unitPtr(0x50 + i, 0x10);
             if (mapModeCheck(wk, i)) {
-                u->flags &= ~8;
+                u->be_flag &= ~8;
             } else {
-                u->flags |= 8;
+                u->be_flag |= 8;
             }
         }
         old = m->modeCursor;
@@ -2898,6 +2898,6 @@ void MapModeSelect::move(SUB_SCREEN* wk)
 
 void MapModeSelect::quit(SUB_SCREEN* wk)
 {
-    IdSub.unitPtr(0x10, 0x10)->dir |= 0xF;
+    IdSub.unitPtr(0x10, 0x10)->rev_flag |= 0xF;
     SndCall(0, 5, 0, 0, 0, 0);
 }

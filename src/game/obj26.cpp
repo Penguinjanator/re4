@@ -39,11 +39,11 @@ static cObj* SetObj26(cObj* parent, Vec* scale)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 1000.0f, 1000.0f, 1000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     obj->obj26.parent = parent;
     obj->obj26.tgtScale = *scale;
     obj->scale.x = obj->scale.y = obj->scale.z = 0.0f;
-    obj->alpha = 1.0f;
+    obj->invisible_factor = 1.0f;
     return obj;
 }
 
@@ -56,7 +56,7 @@ void cObj26::move()
         }
     }
     Obj26_R1_move_tbl[r_no_1](this);
-    if (alpha == 0.0f) {
+    if (invisible_factor == 0.0f) {
         ObjMgr.destroy(this);
     }
 }
@@ -87,9 +87,9 @@ void obj26_R1_Die(cObj26* obj)
         obj->r_no_2++;
     case 1:
         obj->scale.y = obj->scale.z = obj->scale.x = obj->scale.x * 0.9f;
-        obj->alpha *= 0.9f;
-        if (obj->alpha <= 0.01f) {
-            obj->alpha = 0.0f;
+        obj->invisible_factor *= 0.9f;
+        if (obj->invisible_factor <= 0.01f) {
+            obj->invisible_factor = 0.0f;
             obj->r_no_2++;
         } else if (obj->pMotion) {
             MotionMove(obj, 0);
@@ -105,16 +105,16 @@ void obj26MatCalc(cObj26* obj)
 {
     if (obj->obj26.parent) {
         cModel* parts = obj->obj26.parent->getPartsPtr(2);
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         PSMTXConcat(parts->mat, obj->mat, obj->mat);
         obj->x21C |= 0x40000000;
     } else {
-        RotMatrix(obj->worldMat, &obj->rot);
-        TransMatrix(obj->worldMat, &obj->pos);
-        ScaleMatrix(obj->worldMat, &obj->scale);
-        PSMTXCopy(obj->worldMat, obj->mat);
+        RotMatrix(obj->l_mat, &obj->ang);
+        TransMatrix(obj->l_mat, &obj->pos);
+        ScaleMatrix(obj->l_mat, &obj->scale);
+        PSMTXCopy(obj->l_mat, obj->mat);
     }
     obj->partsMatCalc();
     obj->partsWorldCalc();

@@ -176,11 +176,11 @@ static void r40e_moveElevator(u32 dir)
         r40e_work->elv.setReverse(1);
     }
     if (obj) {
-        obj->pInfo->flagsDC |= 1;
+        obj->pModelInfo->flagsDC |= 1;
         if (dir == 0) {
-            obj->pInfo->uvScrollU = 0.05f;
+            obj->pModelInfo->uvScrollU = 0.05f;
         } else {
-            obj->pInfo->uvScrollU = -0.05f;
+            obj->pModelInfo->uvScrollU = -0.05f;
         }
     }
     SceExec(0x12, (TaskFunc) r40e_setElvCamera, dir, 0, 2, 0);
@@ -227,7 +227,7 @@ static void r40e_moveElevator(u32 dir)
     }
     SndCall(6, 1, 0, 0, 0, 0);
     if (obj) {
-        obj->pInfo->uvScrollU = 0.0f;
+        obj->pModelInfo->uvScrollU = 0.0f;
     }
     pPL->setNoSuspend(0);
     {
@@ -329,14 +329,14 @@ static void R40EExecEventS00()
         // `cMes.getWork()` pseudo gives `addi r9,..; addi r31,r9,4`).
         MesWork* w = (MesWork*) &cMes;
         w = (MesWork*) ((u8*) w + 4);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);
         } else {
             SndCall(6, 2, 0, 0, 0, 0);
             if ((u32) ItemMgr.num(0xC) <= 4) {
-                SceMesSet(2, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+                SceMesSet(2, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
                 CamCtrl.Comeback(0);
                 SceEventEnd(0);
             } else {
@@ -406,7 +406,7 @@ static void gameResult()
         Dvd.FileExistCheck(data_name, &size);
         size += 0x34;
         size += MARGIN;
-        swap.SwapOut((u32) pG->pRoomArc, size, 0);
+        swap.SwapOut((u32) pG->pRoom, size, 0);
         res = new AdaResult;
         AdaResultInit(res);
         FadeKillAll();
@@ -438,16 +438,16 @@ extern "C" void Evt_R40ES00_Func(Event* e)
         BitOn(pG->flags_5010, 0x800);
         break;
     case 1:
-        if (e->cut == 0) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0d00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 0x40;
+                    ((cModel*) mod)->LightInfo.x50 = 0x40;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 1;
+                    ((cModel*) mod)->LightInfo.x50 = 1;
                 }
                 if (e->GetMod(&mod, "evmb900", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 2;
+                    ((cModel*) mod)->LightInfo.x50 = 2;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
@@ -459,9 +459,9 @@ extern "C" void Evt_R40ES00_Func(Event* e)
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -469,7 +469,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 3);
             break;
         case 5:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -477,7 +477,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 5);
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModSet((cModel*) mod, 0, r40e_work->texTbl, r40e_work->tex, 1, 1, 1, 1, 1.0f);
                 }
@@ -485,7 +485,7 @@ extern "C" void Evt_R40ES00_Func(Event* e)
             EvtTexRenderCamTrans(e, 7);
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evmc100", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 0);
                 }
@@ -506,7 +506,7 @@ void EvtTexRenderCamTrans(Event* e, int cut)
     void* bin;
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     if (skip == 0) {

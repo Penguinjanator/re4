@@ -53,12 +53,12 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         return 0;
     }
     w = EMRACK_WK(em);
-    w->etcNo = etcNo;
+    w->Etc_no = etcNo;
     if (pos) {
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetRack() failed.");
@@ -101,12 +101,12 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         w->size.z = 1400.0f;
         break;
     }
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     zero = 0;
     em->lockParts = zero;
@@ -124,7 +124,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         at->init(0, 2, 0, 0.0f, w->size.y * 0.5f, 0.0f, w->size.x - 100.0f, w->size.z - 100.0f,
                  w->size.z - 100.0f, w->size.y * 0.5f);
         at->setPriority(3);
-        at->flags &= ~0x100;
+        at->m_flag &= ~0x100;
     }
     w->xEC = zero;
     w->sat[2] = 0;
@@ -132,11 +132,11 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     w->sat[0] = 0;
     emRackYarareInit(em);
     w->xE8 = 0.0f;
-    w->flags = 0;
+    w->Be_flg = 0;
     if (em->type == 1) {
         w->xE8 = 1.0f;
     }
-    w->etcNo = etcNo;
+    w->Etc_no = etcNo;
     flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
@@ -361,26 +361,26 @@ void emRack_R1_Down(cEmRack* em)
         switch (em->r_no_3) {
         case 0:
         default:
-            p->rot.x += w->downSpd;
-            if (p->rot.x > 1.2566371f) {
+            p->ang.x += w->downSpd;
+            if (p->ang.x > 1.2566371f) {
                 done = 1;
             }
             break;
         case 1:
-            p->rot.x -= w->downSpd;
-            if (p->rot.x < -1.2566371f) {
+            p->ang.x -= w->downSpd;
+            if (p->ang.x < -1.2566371f) {
                 done = 1;
             }
             break;
         case 2:
-            p->rot.z += w->downSpd;
-            if (p->rot.z > 1.2566371f) {
+            p->ang.z += w->downSpd;
+            if (p->ang.z > 1.2566371f) {
                 done = 1;
             }
             break;
         case 3:
-            p->rot.z -= w->downSpd;
-            if (p->rot.z < -1.2566371f) {
+            p->ang.z -= w->downSpd;
+            if (p->ang.z < -1.2566371f) {
                 done = 1;
             }
             break;
@@ -394,7 +394,7 @@ void emRack_R1_Down(cEmRack* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -409,7 +409,7 @@ void emRack_R1_Break(cEmRack* em)
     if (em->r_no_2 == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        flg = GetEtcFlgPtr(w->etcNo, pGS->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pGS->room_id);
         if (flg) {
             *flg |= 1;
         }
@@ -447,25 +447,25 @@ void emRack_R1_Break(cEmRack* em)
             switch (em->r_no_3) {
             case 0:
             default:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->eff, 3, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 5, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->eff, 5, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->eff, 0, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 4, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->eff, 4, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
                 break;
             case 5:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->ang, w->eff, 3, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             }
@@ -487,7 +487,7 @@ void emRack_R1_Shock(cEmRack* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->shockTimer = 7;
+        w->Timer = 7;
         em->hp -= 50;
         if (em->hp <= 0) {
             em->hp = 1;
@@ -496,14 +496,14 @@ void emRack_R1_Shock(cEmRack* em)
         em->r_no_2++;
     case 1:
         p = em->getPartsPtr(0);
-        if (w->shockTimer != 0) {
-            w->shockTimer--;
-            p->rot.x = 0.0f;
+        if (w->Timer != 0) {
+            w->Timer--;
+            p->ang.x = 0.0f;
             if (pGS->flags_51E4 & 1) {
-                p->rot.x = fRand0_1() * 0.024543693f + 0.024543693f;
+                p->ang.x = fRand0_1() * 0.024543693f + 0.024543693f;
             }
         } else {
-            p->rot.y = 0.0f;
+            p->ang.y = 0.0f;
             em->r_no_0 = 1;
             em->r_no_1 = 0;
             em->r_no_2 = 0;
@@ -511,7 +511,7 @@ void emRack_R1_Shock(cEmRack* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -533,7 +533,7 @@ void emRackSatSet(cEmRack* em)
     {
         cAtariInfo* at = &em->atari;
 
-        at->flags |= 0x200;
+        at->m_flag |= 0x200;
     }
     if (w->sat[0] != 0 && em->plDist2 > 225000000.0f) {
         return;
@@ -558,10 +558,10 @@ void emRackSatSet(cEmRack* em)
         h = w->size.y;
     }
     if (w->sat[0] == 0) {
-        w->sat[0] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, h);
+        w->sat[0] = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
     } else {
-        w->sat[0]->flags |= 4;
-        w->sat[0]->setCoord(&em->pos, &em->rot);
+        w->sat[0]->m_Flag |= 4;
+        w->sat[0]->setCoord(&em->pos, &em->ang);
     }
     if (em->type != 1) {
         return;
@@ -572,10 +572,10 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1000.0f;
     h = 500.0f;
     if (w->sat[1] == 0) {
-        w->sat[1] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, h);
+        w->sat[1] = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
     } else {
-        w->sat[1]->flags |= 4;
-        w->sat[1]->setCoord(&em->pos, &em->rot);
+        w->sat[1]->m_Flag |= 4;
+        w->sat[1]->setCoord(&em->pos, &em->ang);
     }
     v[0].y = 1500.0f;
     v[1].y = 1500.0f;
@@ -583,10 +583,10 @@ void emRackSatSet(cEmRack* em)
     v[3].y = 1500.0f;
     h = 500.0f;
     if (w->sat[2] == 0) {
-        w->sat[2] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, h);
+        w->sat[2] = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, h);
     } else {
-        w->sat[2]->flags |= 4;
-        w->sat[2]->setCoord(&em->pos, &em->rot);
+        w->sat[2]->m_Flag |= 4;
+        w->sat[2]->setCoord(&em->pos, &em->ang);
     }
 }
 
@@ -596,13 +596,13 @@ void emRackSatClear(cEmRack* em)
 
     em->atari.clrFlag200();
     if (w->sat[0]) {
-        w->sat[0]->flags &= ~4;
+        w->sat[0]->m_Flag &= ~4;
     }
     if (w->sat[1]) {
-        w->sat[1]->flags &= ~4;
+        w->sat[1]->m_Flag &= ~4;
     }
     if (w->sat[2]) {
-        w->sat[2]->flags &= ~4;
+        w->sat[2]->m_Flag &= ~4;
     }
 }
 
@@ -658,7 +658,7 @@ void cEmRack::setDown(Vec* target)
     if (hp <= 0) {
         return;
     }
-    ang = Muku(&pos, target, rot.y, 3.1415927f);
+    ang = Muku(&pos, target, this->ang.y, 3.1415927f);
     abs = fabsf(ang);
     if (ang < 0.0f) {
         r_no_3 = 3;
@@ -700,7 +700,7 @@ void cEmRack::setEff(u8 eff)
 
 void cEmRack::setRange(f32 n, f32 e, f32 s, f32 w)
 {
-    RotMatrix(rackMat, &rot);
+    RotMatrix(rackMat, &ang);
     TransMatrix(rackMat, &pos);
     PSMTXInverse(rackMat, rackInvMat);
     if (n > 0.0f) {

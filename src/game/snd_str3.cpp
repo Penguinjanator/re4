@@ -97,11 +97,11 @@ void str_ax_voice_para_set(SND_STR_WORK* str)
     addr.currentAddressHi = str->cur_L >> 16;
     addr.currentAddressLo = str->cur_L;
     for (i = 0; i < 8; i++) {
-        adpcm.a[i][0] = shd->coefL[i];
-        adpcm.a[i][1] = shd->coefL[i + 8];
+        adpcm.a[i][0] = shd->coef[i];
+        adpcm.a[i][1] = shd->coef[i + 8];
     }
     adpcm.gain = shd->gain[0];
-    adpcm.pred_scale = shd->pred_scale[0];
+    adpcm.pred_scale = shd->ps[0];
     adpcm.yn1 = shd->yn1[0];
     adpcm.yn2 = shd->yn2[0];
     if (loop == 1) {
@@ -130,7 +130,7 @@ void str_ax_voice_para_set(SND_STR_WORK* str)
         adpcm.a[i][1] = shd->coefR[i + 8];
     }
     adpcm.gain = shd->gain[1];
-    adpcm.pred_scale = shd->pred_scale[1];
+    adpcm.pred_scale = shd->ps[1];
     adpcm.yn1 = shd->yn1[1];
     adpcm.yn2 = shd->yn2[1];
     if (loop == 1) {

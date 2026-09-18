@@ -34,8 +34,8 @@ static inline int IGet(int& v) { return v; }
 
 // Tool-side view of the FlrAt record (flr_at.h), 0x84 bytes.
 struct TFlrAt {
-    u8 flags;        // 0x00  bit 0 enabled, bit 1 created
-    u8 type;         // 0x01  0 foot SE, 1 SE volume, 2 BGM volume, 3 thunder volume
+    u8 be_flg;        // 0x00  bit 0 enabled, bit 1 created
+    u8 id;         // 0x01  0 foot SE, 1 SE volume, 2 BGM volume, 3 thunder volume
     u8 no;           // 0x02  record index (set on save)
     u8 group;        // 0x03
     u8 priority;     // 0x04  save order (15 first)
@@ -284,13 +284,13 @@ static void flrAtAreaEdit()
     }
     if (pW->copyValid) {
         eprintf(pW->x, pW->y - 0x10, 5, 0, "AREA[ %d ]  ID:%s", pW->copyNo[pW->editType],
-                (u32) pW->area[pW->copySrc].type <= 3 ? flrAtTypeName[pW->area[pW->copySrc].type] : "...no string");
+                (u32) pW->area[pW->copySrc].id <= 3 ? flrAtTypeName[pW->area[pW->copySrc].id] : "...no string");
     }
     pCur = &pW->area[pW->curNo];
     eprintf(pW->x, pW->y, 4, 0, "AREA[ %d ]", pW->areaNo[pW->editType]);
-    if (pCur->flags & 1) {
+    if (pCur->be_flg & 1) {
         eprintf(pW->x + 0x58, pW->y, 0, 0, "ID:");
-        eprintf(pW->x + 0x58, pW->y, 6, 0, "   %s", (u32) pCur->type <= 3 ? flrAtTypeName[pCur->type] : "...no string");
+        eprintf(pW->x + 0x58, pW->y, 6, 0, "   %s", (u32) pCur->id <= 3 ? flrAtTypeName[pCur->id] : "...no string");
     } else {
         eprintf(pW->x + 0x58, pW->y, 2, 0, "NO DATA:");
     }
@@ -319,8 +319,8 @@ static void flrAtAreaEdit_EditMenu()
     s8 sel;
     u8 valid = pW->copyValid;
 
-    flrAtCreateMenu[1].enable = flrAtCreateMenu[2].enable = flrAtEditMenu[3].enable = flrAtEditMenu[4].enable = valid;
-    if (pCur->flags & 1) {
+    flrAtCreateMenu[1].Be_flg = flrAtCreateMenu[2].Be_flg = flrAtEditMenu[3].Be_flg = flrAtEditMenu[4].Be_flg = valid;
+    if (pCur->be_flg & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, flrAtEditMenu, sizeof(flrAtEditMenu), &Joy[0]);
         switch (sel) {
         case 0:
@@ -372,11 +372,11 @@ static void flrAtAreaEdit_AreaCreate()
         break;
     }
     pCur->priority = 8;
-    pCur->flags |= 3;
+    pCur->be_flg |= 3;
     if (pW->editType == 0) {
         pCur->x46[1] = 7;
     } else {
-        pCur->type = 2;
+        pCur->id = 2;
     }
     pW->editCursor = 0;
     pW->sub = 0;
@@ -406,7 +406,7 @@ static void flrAtAreaEdit_CopyBuffClear()
 
 static void flrAtAreaEdit_AreaDelete()
 {
-    pCur->flags &= ~1;
+    pCur->be_flg &= ~1;
     pW->editCursor = 0;
 }
 
@@ -416,13 +416,13 @@ void flrAtAreaEdit_disp()
     u32 col;
 
     for (i = 0; i < 256; i++) {
-        if ((pW->area[i].flags & 1) == 0) continue;  // (`!(x & 1)` here compiles to xori)
+        if ((pW->area[i].be_flg & 1) == 0) continue;  // (`!(x & 1)` here compiles to xori)
         if (pW->editType == -1) {
-            if (pW->dispType != -1 && pW->dispType != pW->area[i].type) continue;
+            if (pW->dispType != -1 && pW->dispType != pW->area[i].id) continue;
             if (pW->dispGroup != -1 && pW->dispGroup != pW->area[i].group) continue;
-            AreaDataDisp(&pW->area[i].area, flrAtTypeCol[pW->area[i].type], 1, NULL);
+            AreaDataDisp(&pW->area[i].area, flrAtTypeCol[pW->area[i].id], 1, NULL);
         } else {
-            switch (pW->area[i].type) {
+            switch (pW->area[i].id) {
             case 0:
             case 1:
             case 3:
@@ -431,12 +431,12 @@ void flrAtAreaEdit_disp()
                     if (pW->curNo == i) {
                         col = 0x80F08080;
                     } else {
-                        col = flrAtTypeCol[pW->area[i].type];
+                        col = flrAtTypeCol[pW->area[i].id];
                     }
                 } else if (AreaHitCheck(&pW->area[i].area, &pPL->pos) == 1) {
                     col = 0x80F08080;
                 } else {
-                    col = flrAtTypeCol[pW->area[i].type];
+                    col = flrAtTypeCol[pW->area[i].id];
                 }
                 AreaDataDisp(&pW->area[i].area, col, 1, NULL);
                 break;
@@ -451,7 +451,7 @@ void flrAtAreaEdit_disp()
                 } else if (AreaHitCheck(&pW->area[i].area, &pPL->pos) == 1) {
                     col = 0x80F08080;
                 } else {
-                    col = flrAtTypeCol[pW->area[i].type];
+                    col = flrAtTypeCol[pW->area[i].id];
                 }
                 AreaDataDisp(&pW->area[i].area, col, 1, NULL);
                 break;
@@ -463,12 +463,12 @@ void flrAtAreaEdit_disp()
     eprintf(0x1AE, 0x34, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(0x1AE, 0x44, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(0x1AE, 0x54, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(0x1AE, 0x64, 0, 0, "A:%f", pPL->rot.y);
+    eprintf(0x1AE, 0x64, 0, 0, "A:%f", pPL->ang.y);
 }
 
 static void flrAtAreaEdit_AreaMove()
 {
-    if (pCur->flags & 1) {
+    if (pCur->be_flg & 1) {
         AreaDataEdit(&pCur->area, 0x80F08080, 0, NULL, 1.0f);
         AreaDataInfoDisp(&pCur->area, pW->x, pW->y);
         AreaDataHelpDisp(&pCur->area, (s16) (pW->x + 0xE0), (s16) (pW->y - 0x20));
@@ -485,8 +485,8 @@ static void (*flrAtInputRoutine[4])() = {flrAtDataInput_sedata, flrAtDataInput_s
 
 static void flrAtAreaEdit_DataInput()
 {
-    if (pCur->flags & 1) {
-        flrAtInputRoutine[pCur->type]();
+    if (pCur->be_flg & 1) {
+        flrAtInputRoutine[pCur->id]();
     }
     if (Joy[0].trg & JOY_B) {
         pW->sub = 0;
@@ -527,21 +527,21 @@ void flrAtDataInput_common_menu(int sel)
     case 0:
         if (pW->editType == 0) {
             for (i = 0; i < SE_TYPE_NUM; i++) {
-                if (pCur->type == flrAtSeType[i]) break;
+                if (pCur->id == flrAtSeType[i]) break;
             }
         } else {
             for (i = 0; i < BGM_TYPE_NUM; i++) {
-                if (pCur->type == flrAtBgmType[i]) break;
+                if (pCur->id == flrAtBgmType[i]) break;
             }
         }
         if (Joy[0].rep & REP_RIGHT) i++;
         if (Joy[0].rep & REP_LEFT) i--;
         if (pW->editType == 0) {
             n = i < 0 ? 0 : (i > SE_TYPE_MAX ? SE_TYPE_MAX : i);
-            pCur->type = flrAtSeType[n];
+            pCur->id = flrAtSeType[n];
         } else {
             n = i < 0 ? 0 : (i > BGM_TYPE_MAX ? BGM_TYPE_MAX : i);
-            pCur->type = flrAtBgmType[n];
+            pCur->id = flrAtBgmType[n];
         }
         break;
     case 1:
@@ -561,7 +561,7 @@ void flrAtDataInput_common_menu(int sel)
     }
     x = pW->x + 0x80;
     y = pW->y;
-    eprintf(x, y, 0, 0, "%s", (u32) pCur->type <= 3 ? flrAtTypeName[pCur->type] : "...no string");
+    eprintf(x, y, 0, 0, "%s", (u32) pCur->id <= 3 ? flrAtTypeName[pCur->id] : "...no string");
     y += 0x10;
     eprintf(x, y, 0, 0, "%d", pCur->group);
     y += 0x10;
@@ -691,41 +691,41 @@ static void flrAtDataInput_bgm_volctrl()
     int col;
 
     if (pCur->x44 & 1) {
-        flrAtBgmMenu[4].enable = 1;
-        flrAtBgmMenu[5].enable = 1;
+        flrAtBgmMenu[4].Be_flg = 1;
+        flrAtBgmMenu[5].Be_flg = 1;
         if (pCur->x45 & 1) {
-            flrAtBgmMenu[6].enable = 1;
+            flrAtBgmMenu[6].Be_flg = 1;
         } else {
-            flrAtBgmMenu[6].enable = 0;
+            flrAtBgmMenu[6].Be_flg = 0;
         }
     } else {
-        flrAtBgmMenu[4].enable = 0;
-        flrAtBgmMenu[5].enable = 0;
-        flrAtBgmMenu[6].enable = 0;
+        flrAtBgmMenu[4].Be_flg = 0;
+        flrAtBgmMenu[5].Be_flg = 0;
+        flrAtBgmMenu[6].Be_flg = 0;
     }
     if (pCur->x44 & 2) {
-        flrAtBgmMenu[8].enable = 1;
-        flrAtBgmMenu[9].enable = 1;
+        flrAtBgmMenu[8].Be_flg = 1;
+        flrAtBgmMenu[9].Be_flg = 1;
         if (pCur->x45 & 2) {
-            flrAtBgmMenu[10].enable = 1;
+            flrAtBgmMenu[10].Be_flg = 1;
         } else {
-            flrAtBgmMenu[10].enable = 0;
+            flrAtBgmMenu[10].Be_flg = 0;
         }
     } else {
-        flrAtBgmMenu[8].enable = 0;
-        flrAtBgmMenu[9].enable = 0;
-        flrAtBgmMenu[10].enable = 0;
+        flrAtBgmMenu[8].Be_flg = 0;
+        flrAtBgmMenu[9].Be_flg = 0;
+        flrAtBgmMenu[10].Be_flg = 0;
     }
     if (pCur->x44 & 0x10) {
-        flrAtBgmMenu[12].enable = 1;
-        flrAtBgmMenu[13].enable = 1;
-        flrAtBgmMenu[14].enable = 1;
-        flrAtBgmMenu[15].enable = 1;
+        flrAtBgmMenu[12].Be_flg = 1;
+        flrAtBgmMenu[13].Be_flg = 1;
+        flrAtBgmMenu[14].Be_flg = 1;
+        flrAtBgmMenu[15].Be_flg = 1;
     } else {
-        flrAtBgmMenu[12].enable = 0;
-        flrAtBgmMenu[13].enable = 0;
-        flrAtBgmMenu[14].enable = 0;
-        flrAtBgmMenu[15].enable = 0;
+        flrAtBgmMenu[12].Be_flg = 0;
+        flrAtBgmMenu[13].Be_flg = 0;
+        flrAtBgmMenu[14].Be_flg = 0;
+        flrAtBgmMenu[15].Be_flg = 0;
     }
     ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->inputCursor, flrAtBgmMenu, sizeof(flrAtBgmMenu), &Joy[0]);
     flrAtDataInput_common_menu(pW->inputCursor);
@@ -885,16 +885,16 @@ void flrAtPreview_pl_pos()
     pos.z = pPL->pos.z;
     for (i = 0; i < 256; i++) {
         hit = 0;
-        if (pW->area[i].flags & 1) {
+        if (pW->area[i].be_flg & 1) {
             if (pW->editType == 0) {
-                switch (pW->area[i].type) {
+                switch (pW->area[i].id) {
                 case 0:
                 case 1:
                     hit = AreaHitCheck(&pW->area[i].area, &pos) == 1;
                     break;
                 }
             } else {
-                if (pW->area[i].type == 2) {
+                if (pW->area[i].id == 2) {
                     if (AreaHitCheck(&pW->area[i].area, &pos) == 1) hit = 1;
                 }
             }
@@ -1045,10 +1045,10 @@ static void flrAtDataLoad()
                 case -1:
                     pW->area[pW->file[i].no] = pW->file[i];
                     pW->defCartridge = pW->fileHead.pad_8[0];
-                    if (pW->area[i].type == 2) pW->area[i].type = 2;
+                    if (pW->area[i].id == 2) pW->area[i].id = 2;
                     break;
                 case 0:
-                    switch (pW->file[i].type) {
+                    switch (pW->file[i].id) {
                     case 0:
                     case 1:
                         pW->area[pW->file[i].no] = pW->file[i];
@@ -1056,7 +1056,7 @@ static void flrAtDataLoad()
                     }
                     break;
                 case 1:
-                    if (pW->file[i].type == 2) {
+                    if (pW->file[i].id == 2) {
                         pW->area[pW->file[i].no] = pW->file[i];
                     }
                     break;
@@ -1064,9 +1064,9 @@ static void flrAtDataLoad()
             }
             // BGM areas saved in the SE half move to the BGM half
             for (i = 0; i < 0x80; i++) {
-                if (pW->area[i].type == 2) {
+                if (pW->area[i].id == 2) {
                     for (j = 0x80; j < 0x100; j++) {
-                        if (pW->area[j].flags == 0) {
+                        if (pW->area[j].be_flg == 0) {
                             pW->area[j] = pW->area[i];
                             pW->area[j].no = j;
                             memclr_asm(&pW->area[i], sizeof(TFlrAt));
@@ -1154,7 +1154,7 @@ static void flrAtDataSave()
         flrAtSaveNum = 0;
         for (j = 0; j < 16; j++) {
             for (i = 0; i < 256; i++) {
-                if (pW->area[i].flags & 1) {
+                if (pW->area[i].be_flg & 1) {
                     if (pW->area[i].priority == 15 - j) {
                         pW->area[i].no = i;
                         pW->file[flrAtSaveNum] = pW->area[i];

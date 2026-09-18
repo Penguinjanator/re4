@@ -53,9 +53,9 @@ struct R403WorkPtr {
 // Typed view of pG->emlist (r400): pG is loaded before the index shift.
 struct EmListView {
     u8 pad[0x52E8];
-    EmListData emlist[0x100];
+    EmListData Em_list[0x100];
 };
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
+#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static u8 r403_texTbl[0x20];
 static R403WorkPtr r403_work;
@@ -124,19 +124,19 @@ void R403Init()
         ((cEmWindow*) win)->SetBreakModel();
         win->be_flag &= ~2;
     }
-    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoomArc, 0x36), ROOM_ARC_PTR(pG->pRoomArc, 0x37), ROOM_ARC_PTR(pG->pRoomArc, 0x38));
+    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoom, 0x36), ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x38));
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     {
-        PSet(r403_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), &pos, &rot, 0x10, 1));
+        PSet(r403_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot, 0x10, 1));
     }
     if (pG->x4FB8 == 2) {
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0, 0, 1, 0);
+        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
     } else {
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 1, 0);
+        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
     }
     int one = 1;
-    r403_work.p->slide->mot.speedRate = 0.0f;
+    r403_work.p->slide->Motion.Seq_speed = 0.0f;
     r403_work.p->slide->be_flag |= 0x1000;
     r403_work.p->slide->setNoSuspend(0);
     SceAtDataSet_exec(0xB, 0x12, 0, (TaskFunc) slide_move, 0, 1);
@@ -149,7 +149,7 @@ void R403Init()
         init.m.pos = r403_pos[n];
         init.m.rot = r403_rot[n];
         init.m.x18 = 0;
-        init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x2E);
+        init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x2E);
         init.m.x20 = 30000;
         init.m.mesStart = one;
         init.m.mesA8 = 0xC;
@@ -483,7 +483,7 @@ void emset_gatling(int no)
     int list;
 
     EM_LIST_V(no).flags &= ~2;
-    list = pG->emlist_no;
+    list = pG->em_list_no;
     if (list >= 0) {
         u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);
 
@@ -634,7 +634,7 @@ static void slide_move()
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (pG->x4FB8 == 2) {
         cModel* m = pPL;
@@ -647,8 +647,8 @@ static void slide_move()
         v.x = 0.0f;
         v.z = 0.0f;
         pPL->setAng(&v);
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, 0, 0x201, 0);
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x29), 0, 0, 0x201, 0);
+        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2D), 0, 0, 1, 0);
     } else {
         cModel* m = pPL;
 
@@ -660,12 +660,12 @@ static void slide_move()
         v.y = 0.0f;
         v.z = 0.0f;
         pPL->setAng(&v);
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, 0, 0x201, 0);
-        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2C), 0, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 0, 0, 0x201, 0);
+        r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2C), 0, 0, 1, 0);
     }
-    r403_work.p->slide->mot.speedRate = 1.0f;
+    r403_work.p->slide->Motion.Seq_speed = 1.0f;
     SndCall(6, 0x18, 0, 0, 0, 0);
-    max = (u32) MotionGetMaxFrame(&pPL->mot);
+    max = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < max; i++) {
         if (i > 60 && i < max - 30) {
             PlWepHitCheck2(0, &pPL->pos, &pPL->pos, 0x13, 2, 1500.0f);
@@ -677,7 +677,7 @@ static void slide_move()
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     pl->endAction(5);
     pPL->dmg.clear();
     pPLS->atari.setFlag100();
@@ -697,15 +697,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r403_work.p->tex->texId;
-        r403_work.p->tex->repType = 1;
+        r403_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r403_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x16);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->color[3] = 0xF0;
     obj->Shader_type = 2;
     obj->Refract_pow = 8;
     obj->Refract_ratio = 0x40;
@@ -722,18 +722,18 @@ static void setLadderMotion(int no)
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 
-                mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
-                mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
-                mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
-                mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x32);
-                mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x33);
-                mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x34);
+                mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x2F);
+                mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x30);
+                mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x31);
+                mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x32);
+                mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x33);
+                mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x34);
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x35);
+                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x35);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");

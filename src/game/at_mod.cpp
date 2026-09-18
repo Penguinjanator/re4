@@ -115,39 +115,39 @@ void EmAtCheck(cEm* em)
 {
     cEm* m;
 
-    if (!(em->atari.flags & 0x200) || em->atari.rectZ == 0.0f) {
+    if (!(em->atari.m_flag & 0x200) || em->atari.m_radius2 == 0.0f) {
         em->atari.m_stat |= 1;
         return;
     }
-    em->atari.getPos(em, &em->atari.worldPos);
-    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m->atari.rectZ != 0.0f) {
-            m->atari.getPos(m, &m->atari.worldPos);
+    em->atari.getPos(em, &em->atari.m_Pos);
+    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m->atari.m_radius2 != 0.0f) {
+            m->atari.getPos(m, &m->atari.m_Pos);
         }
     }
-    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m != em && m->atari.rectZ != 0.0f) {
+    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m != em && m->atari.m_radius2 != 0.0f) {
             __em_at_core(em, m);
         }
     }
-    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m->atari.rectZ != 0.0f) {
-            m->atari.oldWorldPos = m->atari.worldPos;
+    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m->atari.m_radius2 != 0.0f) {
+            m->atari.m_oldPos = m->atari.m_Pos;
         }
     }
-    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m->atari.rectZ != 0.0f) {
-            m->atari.getPos(m, &m->atari.worldPos);
+    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m->atari.m_radius2 != 0.0f) {
+            m->atari.getPos(m, &m->atari.m_Pos);
         }
     }
-    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m != em && m->atari.rectZ != 0.0f) {
+    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m != em && m->atari.m_radius2 != 0.0f) {
             __em_at_core(em, m);
         }
     }
-    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if ((m->atari.flags & 0x200) && m->atari.rectZ != 0.0f) {
-            m->atari.oldWorldPos = m->atari.worldPos;
+    for (m = (cEm*) ObjMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if ((m->atari.m_flag & 0x200) && m->atari.m_radius2 != 0.0f) {
+            m->atari.m_oldPos = m->atari.m_Pos;
         }
     }
     PartsWorldPosCalc(em);
@@ -156,8 +156,8 @@ void EmAtCheck(cEm* em)
 
 static int priorityCheck(cEm* pMod, cEm* pMod2)
 {
-    u8 pa = pMod->atari.flags & 0x18;
-    u8 pb = pMod2->atari.flags & 0x18;
+    u8 pa = pMod->atari.m_flag & 0x18;
+    u8 pb = pMod2->atari.m_flag & 0x18;
 
     if (pa != 0 && pa >= pb) {
         return 1;
@@ -170,14 +170,14 @@ void __em_at_core(cEm* pMod, cEm* pMod2)
     if (priorityCheck(pMod, pMod2) == 1) {
         return;
     }
-    if (pMod->atari.flags & 2) {
-        if (pMod2->atari.flags & 2) {
+    if (pMod->atari.m_flag & 2) {
+        if (pMod2->atari.m_flag & 2) {
             At_em_rect_rect_ck(pMod, pMod2);
         } else {
             At_em_sphere_rect_ck(pMod2, pMod);
         }
     } else {
-        if (pMod2->atari.flags & 2) {
+        if (pMod2->atari.m_flag & 2) {
             At_em_sphere_rect_ck(pMod, pMod2);
         } else {
             At_em_sphere_sphere_ck(pMod, pMod2);
@@ -201,26 +201,26 @@ int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
     ret = em_rect2_ck_sub(pMod, pMod2);
     if (ret != 0) {
     posA = pMod->pos;
-    if (!(Get_ang_dir(pMod->rot.y) & 1)) {
-        aw = pMod->atari.rectX;
-        ad = pMod->atari.rectZ;
+    if (!(Get_ang_dir(pMod->ang.y) & 1)) {
+        aw = pMod->atari.m_radius;
+        ad = pMod->atari.m_radius2;
     } else {
-        aw = pMod->atari.rectZ;
-        ad = pMod->atari.rectX;
+        aw = pMod->atari.m_radius2;
+        ad = pMod->atari.m_radius;
     }
-    RotVector(&pMod->atari.pos, &pMod->rot, &ra);
-    if (!(Get_ang_dir(pMod2->rot.y) & 1)) {
-        bw = pMod2->atari.rectX;
-        bd = pMod2->atari.rectZ;
+    RotVector(&pMod->atari.m_offset, &pMod->ang, &ra);
+    if (!(Get_ang_dir(pMod2->ang.y) & 1)) {
+        bw = pMod2->atari.m_radius;
+        bd = pMod2->atari.m_radius2;
     } else {
-        bw = pMod2->atari.rectZ;
-        bd = pMod2->atari.rectX;
+        bw = pMod2->atari.m_radius2;
+        bd = pMod2->atari.m_radius;
     }
-    RotVector(&pMod2->atari.pos, &pMod2->rot, &rb);
-    pa = pMod->atari.flags & 0x18;
-    pb = pMod2->atari.flags & 0x18;
+    RotVector(&pMod2->atari.m_offset, &pMod2->ang, &rb);
+    pa = pMod->atari.m_flag & 0x18;
+    pb = pMod2->atari.m_flag & 0x18;
     if (pa > pb || (pa == 0 && pb == 0)) {
-        if (pMod->pos.x != pMod->oldPos.x) {
+        if (pMod->pos.x != pMod->pos_old.x) {
             f32 ax = pMod->pos.x + ra.x;
             f32 bx = pMod2->pos.x + rb.x;
             if (ax < bx) {
@@ -228,7 +228,7 @@ int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
             } else {
                 pMod2->pos.x = ax - aw - bw - 1.0f - rb.x;
             }
-        } else if (pMod->pos.z != pMod->oldPos.z) {
+        } else if (pMod->pos.z != pMod->pos_old.z) {
             f32 az = pMod->pos.z + ra.z;
             f32 bz = pMod2->pos.z + rb.z;
             if (az > bz) {
@@ -238,7 +238,7 @@ int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
             }
         }
     } else if (pa != pb) {
-        if (pMod->pos.x != pMod->oldPos.x) {
+        if (pMod->pos.x != pMod->pos_old.x) {
             f32 ax = pMod->pos.x + ra.x;
             f32 bx = pMod2->pos.x + rb.x;
             if (ax > bx) {
@@ -246,7 +246,7 @@ int At_em_rect_rect_ck(cEm* pMod, cEm* pMod2)
             } else {
                 pMod->pos.x = bx - bw - aw - 1.0f - ra.x;
             }
-        } else if (pMod->pos.z != pMod->oldPos.z) {
+        } else if (pMod->pos.z != pMod->pos_old.z) {
             f32 az = pMod->pos.z + ra.z;
             f32 bz = pMod2->pos.z + rb.z;
             if (az > bz) {
@@ -275,62 +275,62 @@ int em_rect2_ck_sub(cEm* pMod, cEm* pMod2)
     int ret;
 
     {
-        f32 rx = ia->rectX;
-        f32 rz = ia->rectZ;
+        f32 rx = ia->m_radius;
+        f32 rz = ia->m_radius2;
         v.x = rx;
         v.y = 0.0f;
         v.z = rz;
-        PSVECAdd(&v, &ia->pos, &v);
-        RotVector(&v, &pMod->rot, &v);
+        PSVECAdd(&v, &ia->m_offset, &v);
+        RotVector(&v, &pMod->ang, &v);
         PSVECAdd(&v, &pMod->pos, &ra[0]);
         v.x = rx;
         v.y = 0.0f;
         v.z = -rz;
-        PSVECAdd(&v, &ia->pos, &v);
-        RotVector(&v, &pMod->rot, &v);
+        PSVECAdd(&v, &ia->m_offset, &v);
+        RotVector(&v, &pMod->ang, &v);
         PSVECAdd(&v, &pMod->pos, &ra[1]);
         v.x = -rx;
         v.y = 0.0f;
         v.z = -rz;
-        PSVECAdd(&v, &ia->pos, &v);
-        RotVector(&v, &pMod->rot, &v);
+        PSVECAdd(&v, &ia->m_offset, &v);
+        RotVector(&v, &pMod->ang, &v);
         PSVECAdd(&v, &pMod->pos, &ra[2]);
         v.x = -rx;
         v.y = 0.0f;
         v.z = rz;
-        PSVECAdd(&v, &ia->pos, &v);
-        RotVector(&v, &pMod->rot, &v);
+        PSVECAdd(&v, &ia->m_offset, &v);
+        RotVector(&v, &pMod->ang, &v);
         PSVECAdd(&v, &pMod->pos, &ra[3]);
     }
     {
-        f32 rx = ib->rectX;
-        f32 rz = ib->rectZ;
+        f32 rx = ib->m_radius;
+        f32 rz = ib->m_radius2;
         v.x = rx;
         v.y = 0.0f;
         v.z = rz;
-        PSVECAdd(&v, &ib->pos, &v);
-        RotVector(&v, &pMod2->rot, &v);
+        PSVECAdd(&v, &ib->m_offset, &v);
+        RotVector(&v, &pMod2->ang, &v);
         PSVECAdd(&v, &pMod2->pos, &rb[0]);
         v.x = rx;
         v.y = 0.0f;
         v.z = -rz;
-        PSVECAdd(&v, &ib->pos, &v);
-        RotVector(&v, &pMod2->rot, &v);
+        PSVECAdd(&v, &ib->m_offset, &v);
+        RotVector(&v, &pMod2->ang, &v);
         PSVECAdd(&v, &pMod2->pos, &rb[1]);
         v.x = -rx;
         v.y = 0.0f;
         v.z = -rz;
-        PSVECAdd(&v, &ib->pos, &v);
-        RotVector(&v, &pMod2->rot, &v);
+        PSVECAdd(&v, &ib->m_offset, &v);
+        RotVector(&v, &pMod2->ang, &v);
         PSVECAdd(&v, &pMod2->pos, &rb[2]);
         v.x = -rx;
         v.y = 0.0f;
         v.z = rz;
-        PSVECAdd(&v, &ib->pos, &v);
-        RotVector(&v, &pMod2->rot, &v);
+        PSVECAdd(&v, &ib->m_offset, &v);
+        RotVector(&v, &pMod2->ang, &v);
         PSVECAdd(&v, &pMod2->pos, &rb[3]);
     }
-    if (fabsf(ra[0].y - rb[0].y) > ia->h + ib->h) {
+    if (fabsf(ra[0].y - rb[0].y) > ia->m_height + ib->m_height) {
         ret = 0;
     } else if (At_rect_rect_ck(ra, rb) != 0) {
         ret = 1;
@@ -356,35 +356,35 @@ int At_em_sphere_rect_ck(cEm* sph, cEm* rect)
     int i;
     int hit;
 
-    ps = sph->atari.worldPos;
-    pr = rect->atari.worldPos;
-    if (ps.y + sph->atari.h < pr.y - rect->atari.h) {
+    ps = sph->atari.m_Pos;
+    pr = rect->atari.m_Pos;
+    if (ps.y + sph->atari.m_height < pr.y - rect->atari.m_height) {
         return 0;
     }
-    if (ps.y - sph->atari.h > pr.y + rect->atari.h) {
+    if (ps.y - sph->atari.m_height > pr.y + rect->atari.m_height) {
         return 0;
     }
     ir = &rect->atari;
-    if (ir->partsNo != 0) {
-        cModel* pm = rect->getPartsPtr(ir->partsNo - 1);
-        PSMTXRotRad(m, 'y', pm->rot.y);
-        PSMTXMultVecSR(m, &ir->pos, &c);
+    if (ir->m_parts_no != 0) {
+        cModel* pm = rect->getPartsPtr(ir->m_parts_no - 1);
+        PSMTXRotRad(m, 'y', pm->ang.y);
+        PSMTXMultVecSR(m, &ir->m_offset, &c);
         PSVECAdd(&c, &pr, &c);
         TransMatrix(m, &c);
     } else {
-        PSMTXRotRad(m, 'y', rect->rot.y);
+        PSMTXRotRad(m, 'y', rect->ang.y);
         TransMatrix(m, &rect->pos);
-        PSMTXMultVec(m, &ir->pos, &c);
+        PSMTXMultVec(m, &ir->m_offset, &c);
         m[0][3] = c.x;
         m[1][3] = c.y;
         m[2][3] = c.z;
     }
     PSMTXInverse(m, inv);
-    c = sph->atari.worldPos;
-    rad = sph->atari.rectX;
+    c = sph->atari.m_Pos;
+    rad = sph->atari.m_radius;
     if (!(sph->atari.m_stat & 1)) {
-        PSMTXMultVec(inv, &sph->atari.worldPos, &step);
-        PSMTXMultVec(inv, &sph->atari.oldWorldPos, &p);
+        PSMTXMultVec(inv, &sph->atari.m_Pos, &step);
+        PSMTXMultVec(inv, &sph->atari.m_oldPos, &p);
         if (rad >= 200.0f) {
             n = (int) (GetDistance3(&step, &p) / rad) + 1;
         } else {
@@ -393,7 +393,7 @@ int At_em_sphere_rect_ck(cEm* sph, cEm* rect)
         PSVECSubtract(&step, &p, &step);
         PSVECScale(&step, &step, 1.0f / (f32) n);
     } else {
-        PSMTXMultVec(inv, &sph->atari.worldPos, &p);
+        PSMTXMultVec(inv, &sph->atari.m_Pos, &p);
         n = 1;
         step.x = 0.0f;
         step.y = 0.0f;
@@ -413,7 +413,7 @@ int At_em_sphere_rect_ck(cEm* sph, cEm* rect)
         PSVECSubtract(&q, &c, &q);
         q.y = 0.0f;
         PSVECAdd(&sph->pos, &q, &sph->pos);
-        sph->atari.getPos(sph, &sph->atari.worldPos);
+        sph->atari.getPos(sph, &sph->atari.m_Pos);
     }
     return hit;
 }
@@ -422,8 +422,8 @@ static int sphereRectCk(cAtariInfo* info, Vec* p, f32 rad)
 {
     Vec corner;
     Vec d;
-    f32 rx = info->rectX;
-    f32 rz = info->rectZ;
+    f32 rx = info->m_radius;
+    f32 rz = info->m_radius2;
     f32 rr;
     int hit = 0;
 
@@ -518,9 +518,9 @@ int At_em_sphere_sphere_ck(cEm* pMod, cEm* pMod2)
     f32 rr;
     cModel* m;
 
-    pa = pMod->atari.worldPos;
-    pb = pMod2->atari.worldPos;
-    hh = pMod->atari.h + pMod2->atari.h;
+    pa = pMod->atari.m_Pos;
+    pb = pMod2->atari.m_Pos;
+    hh = pMod->atari.m_height + pMod2->atari.m_height;
     if (pa.y < pb.y - hh) {
         return 0;
     }
@@ -530,7 +530,7 @@ int At_em_sphere_sphere_ck(cEm* pMod, cEm* pMod2)
     PSVECSubtract(&pb, &pa, &d);
     d.y = 0.0f;
     dist = RootSumSquare3(&d);
-    rr = pMod->atari.rectZ + pMod2->atari.rectZ;
+    rr = pMod->atari.m_radius2 + pMod2->atari.m_radius2;
     if (dist < rr) {
         if (dist < 0.1f) {
             d.x += 0.1f;
@@ -539,20 +539,20 @@ int At_em_sphere_sphere_ck(cEm* pMod, cEm* pMod2)
         VECNormalize(&d, &d);
         PSVECScale(&d, &d, rr - dist);
         PSVECSubtract(&pMod->pos, &d, &pMod->pos);
-        pMod->atari.getPos(pMod, &pMod->atari.worldPos);
-        if (pMod->atari.pLink != 0) {
-            m = pMod->atari.pLink;
+        pMod->atari.getPos(pMod, &pMod->atari.m_Pos);
+        if (pMod->atari.m_pMod != 0) {
+            m = pMod->atari.m_pMod;
             PSVECSubtract(&m->pos, &d, &m->pos);
-            ((cEm*) m)->atari.getPos(m, &((cEm*) m)->atari.worldPos);
+            ((cEm*) m)->atari.getPos(m, &((cEm*) m)->atari.m_Pos);
         }
-        if ((pMod2->atari.flags & 0x18) == 0 && (u32) pMod2 > (u32) pMod) {
+        if ((pMod2->atari.m_flag & 0x18) == 0 && (u32) pMod2 > (u32) pMod) {
             PSVECScale(&d, &d, rate);
             PSVECAdd(&pMod2->pos, &d, &pMod2->pos);
-            pMod2->atari.getPos(pMod2, &pMod2->atari.worldPos);
-            if (pMod2->atari.pLink != 0) {
-                m = pMod2->atari.pLink;
+            pMod2->atari.getPos(pMod2, &pMod2->atari.m_Pos);
+            if (pMod2->atari.m_pMod != 0) {
+                m = pMod2->atari.m_pMod;
                 PSVECAdd(&m->pos, &d, &m->pos);
-                ((cEm*) m)->atari.getPos(m, &((cEm*) m)->atari.worldPos);
+                ((cEm*) m)->atari.getPos(m, &((cEm*) m)->atari.m_Pos);
             }
         }
         return 1;
@@ -579,8 +579,8 @@ int EmHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
     if (hit != 0) {
         *hit = *pos1;
     }
-    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->next) {
-        if (!(m->atari.flags & 0x200)) {
+    for (m = EmMgr.pAlive; m != 0; m = (cEm*) m->pNext) {
+        if (!(m->atari.m_flag & 0x200)) {
             continue;
         }
         if (!(flag & 4) && m == pPL) {
@@ -616,7 +616,7 @@ int ObjHitCheck(Vec* hit, Vec* nrm, Vec* pos0, Vec* pos1, int flag)
     if (hit != 0) {
         *hit = *pos1;
     }
-    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->next) {
+    for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->pNext) {
         if ((o->be_flag & 0x201) != 1) {
             continue;
         }
@@ -646,16 +646,16 @@ int ComnHitCheck(Vec* hit, Vec* nrm, cEm* m, Vec* pos0, Vec* pos1, int flag)
     Mtx mat;
     int r;
 
-    if (m->atari.flags & 2) {
+    if (m->atari.m_flag & 2) {
         if (!(flag & 1)) {
             return 0;
         }
-        if (m->atari.partsNo > 0) {
-            MTX_COPY(m->getPartsPtr(m->atari.partsNo - 1)->mat, mat);
+        if (m->atari.m_parts_no > 0) {
+            MTX_COPY(m->getPartsPtr(m->atari.m_parts_no - 1)->mat, mat);
         } else {
             MTX_COPY(m->mat, mat);
         }
-        r = emLineCubeCrossCk(pos0, pos1, mat, m->atari.rectX, m->atari.h, m->atari.rectZ, &m->atari, hit);
+        r = emLineCubeCrossCk(pos0, pos1, mat, m->atari.m_radius, m->atari.m_height, m->atari.m_radius2, &m->atari, hit);
         if (r != 0) {
             return 1;
         }
@@ -675,11 +675,11 @@ void DrawOba(cEm* m)
 {
     cAtariInfo* info;
 
-    if (m->atari.flags & 0x200) {
+    if (m->atari.m_flag & 0x200) {
         info = &m->atari;
         do {
             info->disp(m);
-            info = info->next;
+            info = info->m_pList;
         } while (info != 0);
     }
 }
@@ -713,10 +713,10 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     f32 depth;
     int parts;
 
-    p1 = info->pos;
-    p0 = info->pos;
-    p0.y += info->h;
-    parts = info->partsNo;
+    p1 = info->m_offset;
+    p0 = info->m_offset;
+    p0.y += info->m_height;
+    parts = info->m_parts_no;
     // COMPILER-DIFF: 12 (cse AROUND path): the target's `&p0` argument is a fresh `addi r4,r1,8` (the
     // copy's address pseudo dies at the copy). With `pm = m; if (parts) pm = ..;` cse skips the arm and
     // carries the copy pseudo into the join, folding `&p0` into it across the getPartsPtr call. The
@@ -727,7 +727,7 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     } else {
         pm = m;
     }
-    rad = info->rectX * 0.75f;
+    rad = info->m_radius * 0.75f;
     PSMTXMultVec(pm->mat, &p0, &w0);
     PSMTXMultVec(pm->mat, &p1, &w1);
     PSVECSubtract(&w1, &w0, &d);

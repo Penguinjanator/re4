@@ -249,7 +249,7 @@ static void em30_R0_Init(cEm30* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f);
     em->litArea.on(1);
@@ -317,8 +317,8 @@ static void em30_R1_Walk(cEm30* em)
         MotionSetCore(em, MOTION(em), ARC(0x10), 0, 10, 5, 0);
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMoveF(em, 0);
         if (em->plDist2 < 4000000.0f) {
             EmRoutineSet(em, 1, 0, 0, 0);
@@ -374,7 +374,7 @@ static void em30_R1_Die_Normal(cEm30* em)
             em->clearStatus(5);
             em->clearStatus(6);
             em->clearStatus(7);
-            em->atari.flags &= ~0x300;
+            em->atari.m_flag &= ~0x300;
             em->r_no_2++;
         }
         break;
@@ -385,9 +385,9 @@ static void em30_R1_Die_Normal(cEm30* em)
         if (w->timer) {
             w->timer--;
         } else {
-            em->alpha -= 0.02f;
-            if (em->alpha < 0.0f) {
-                em->alpha = 0.0f;
+            em->invisible_factor -= 0.02f;
+            if (em->invisible_factor < 0.0f) {
+                em->invisible_factor = 0.0f;
                 em->be_flag &= ~2;
             }
         }
@@ -405,7 +405,7 @@ void em30RouteCk(cEm30* em)
     if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {
         w->flags |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
@@ -446,7 +446,7 @@ void em30NeckMove(cEm30* em)
         PSMTXMultVec(h->mat, &v, &v);
     }
     if (w->flags & 0x10) {
-        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->rot.y, 1.0471976f) * 0.1f;
+        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f) * 0.1f;
     } else {
         w->neckAng = w->neckAng * 0.9f;
     }

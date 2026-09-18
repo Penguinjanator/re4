@@ -11,20 +11,20 @@ struct EmAtkInfo;
 
 // Work of the rolling rock enemy (game/emrock.cpp), overlaid on cEm from 0x3E0.
 struct EmRockWork {
-    u32 flags;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: transparent mode
-    int timer;            // 0x004 (0x3E4)
-    int timer2;           // 0x008 (0x3E8)  Fall / Throw: frames before the rock stops
+    u32 Be_flg;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: transparent mode
+    int Timer;            // 0x004 (0x3E4)
+    int Timer2;           // 0x008 (0x3E8)  Fall / Throw: frames before the rock stops
     int rnd;              // 0x00C (0x3EC)  Drop2: Rnd() & 1 (action button variant)
-    f32 radius;           // 0x010 (0x3F0)  collision radius (scale.x * 265 or 450)
-    f32 grav;             // 0x014 (0x3F4)  gravity per frame
+    f32 Radius;           // 0x010 (0x3F0)  collision radius (scale.x * 265 or 450)
+    f32 Gravity;             // 0x014 (0x3F4)  gravity per frame
     u8 pad_18[0xC];
     u32 x24;              // 0x024 (0x404)
     int rollWait;         // 0x028 (0x408)  Roll: frames before the floor check starts
-    cEm* pParent;         // 0x02C (0x40C)  model the rock hangs on (setParent)
+    cEm* pEm_oya;         // 0x02C (0x40C)  model the rock hangs on (setParent)
     u32 x30;              // 0x030 (0x410)  pParent at the time of setFall / setThrow
-    int partsNo;          // 0x034 (0x414)  parts of pParent
-    u32 sndId;            // 0x038 (0x418)  SndCall handle of the always sound
-    int timer3;           // 0x03C (0x41C)  Roll: start delay
+    int oya_parts;          // 0x034 (0x414)  parts of pParent
+    u32 seid_throw;            // 0x038 (0x418)  SndCall handle of the always sound
+    int Roll_wait;           // 0x03C (0x41C)  Roll: start delay
     void* mot0;           // 0x040 (0x420)  Drop motions (setDropMot)
     void* mot1;           // 0x044 (0x424)
     void* mot2;           // 0x048 (0x428)  player death motion (plemDropDie)
@@ -46,9 +46,9 @@ struct EmRockWork {
     u8 espKind;           // 0x0A0 (0x480)  EspPullCoreKind at creation
     u8 xA1;               // 0x0A1 (0x481)
     u8 pad_A2[2];
-    int routeIdx;         // 0x0A4 (0x484)  current EMI route point (type 6) of the rolling rock
+    int Rock_route;         // 0x0A4 (0x484)  current EMI route point (type 6) of the rolling rock
     EmiEntry* pRoute;     // 0x0A8 (0x488)
-    u8 started;           // 0x0AC (0x48C)  Set: the roll started
+    u8 Roll_flag;           // 0x0AC (0x48C)  Set: the roll started
     u8 First_bound;               // 0x0AD (0x48D)  Roll: room 104 flag
     u8 Act_ck;               // 0x0AE (0x48E)  Drop2 / escape: the player escaped / died
     u8 pad_AF;

@@ -49,7 +49,7 @@ static void r218_appearClawMan();
 // Death bit of entry `no` of the loaded enemy list (0 while no list is loaded).
 static inline u32 r218_emDead(int no)
 {
-    int list = pG->emlist_no;
+    int list = pG->em_list_no;
     u32 v;
 
     if (list >= 0) {
@@ -97,7 +97,7 @@ void R218Init()
         rot.x = 0.0f;
         rot.y = PI;
         rot.z = 0.0f;
-        r218_work.p->bell[0] = (cObjBell*) SetObjBell(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), &pos, &rot);
+        r218_work.p->bell[0] = (cObjBell*) SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot);
     }
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         pos.x = -5352.0f;
@@ -106,7 +106,7 @@ void R218Init()
         rot.x = 0.0f;
         rot.y = PI;
         rot.z = 0.0f;
-        r218_work.p->bell[1] = (cObjBell*) SetObjBell(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), &pos, &rot);
+        r218_work.p->bell[1] = (cObjBell*) SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot);
     }
     SceExec(0x12, (TaskFunc) r218_checkBellBreak, 0, 0, 2, 0);
 }

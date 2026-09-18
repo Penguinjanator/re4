@@ -364,9 +364,9 @@ static void tSceItemMainMenu()
     s8 sel;
 
     if (pW->loaded == 1) {
-        tSceItemMainMenuTbl[3].enable = 1;
+        tSceItemMainMenuTbl[3].Be_flg = 1;
     } else {
-        tSceItemMainMenuTbl[3].enable = 0;
+        tSceItemMainMenuTbl[3].Be_flg = 0;
     }
     sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, tSceItemMainMenuTbl, sizeof(tSceItemMainMenuTbl), &Joy[0]);
     if (sel >= 0) {
@@ -501,8 +501,8 @@ static void tSceItemAreaEdit_EditMenu()
     s8 sel;
     u8 valid = pW->copyValid;
 
-    tSceItemCreateMenu[1].enable = tSceItemCreateMenu[2].enable = tSceItemEditMenu[3].enable =
-        tSceItemEditMenu[4].enable = valid;
+    tSceItemCreateMenu[1].Be_flg = tSceItemCreateMenu[2].Be_flg = tSceItemEditMenu[3].Be_flg =
+        tSceItemEditMenu[4].Be_flg = valid;
     if (pCur->flag & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, tSceItemEditMenu, sizeof(tSceItemEditMenu), &Joy[0]);
         switch (sel) {
@@ -730,7 +730,7 @@ void tSceItemAreaEdit_disp()
     eprintf(0x1AE, 0x34, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(0x1AE, 0x44, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(0x1AE, 0x54, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->rot.y);
+    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
 static void tSceItemAreaEdit_AreaMove()
@@ -780,8 +780,8 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
 
     on = pCur->x37 & 2;
     if (on) on = 1;
-    menu[1].enable = on;
-    menu[2].enable = on;
+    menu[1].Be_flg = on;
+    menu[2].Be_flg = on;
     // dead test (n is re-set before every read): its branch splits the sched1 region so the
     // pW `lis` is not issued with the first menu store; deleted at flow2, emits nothing
     if (menu == 0) n = 0; // COMPILER-DIFF: #13 (region split, dead test)
@@ -896,16 +896,16 @@ static void tSceItemDataInput_item_main()
     u16 id;
 
     if (LINKED(pCur)) {
-        tSceItemMenu[8].enable = 1;
-        tSceItemMenu[9].enable = 1;
+        tSceItemMenu[8].Be_flg = 1;
+        tSceItemMenu[9].Be_flg = 1;
     } else {
-        tSceItemMenu[8].enable = 0;
-        tSceItemMenu[9].enable = 0;
+        tSceItemMenu[8].Be_flg = 0;
+        tSceItemMenu[9].Be_flg = 0;
     }
     if (LINKED(pCur) && !(pCur->item.flag2 & 1)) {
-        tSceItemMenu[10].enable = 0;
+        tSceItemMenu[10].Be_flg = 0;
     } else {
-        tSceItemMenu[10].enable = 1;
+        tSceItemMenu[10].Be_flg = 1;
     }
     ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->inputCursor, tSceItemMenu, sizeof(tSceItemMenu), &Joy[0]);
     tSceItemDataInput_basic_menu(pW->inputCursor, tSceItemMenu);
@@ -1143,16 +1143,16 @@ static void tSceItemDataInput_item_ETedit()
         }
         AreaDataInfoDisp(&pW->editArea, pW->x, pW->y);
         AreaDataHelpDisp(&pW->editArea, (s16) (pW->x + 0xE0), (s16) (pW->y - 0x20));
-        it->pos.x = pW->editArea.u.eye.x;
-        it->pos.y = pW->editArea.u.eye.y;
+        it->pos.x = pW->editArea.u.eye.xz;
+        it->pos.y = pW->editArea.u.eye.floor;
         it->pos.z = pW->editArea.u.eye.z;
         it->rot.z = pW->editArea.u.eye.open;
         it->rot.x = pW->editArea.u.eye.ang_x;
         it->rot.y = pW->editArea.u.eye.ang_y;
         if (!((u32) it->pModel < 0x80000000 || (u32) it->pModel > 0x82FFFFFF)) {
             if (it->rot.z > 0.0f) {
-                it->pModel->rot.x = it->rot.x;
-                it->pModel->rot.y = it->rot.y;
+                it->pModel->ang.x = it->rot.x;
+                it->pModel->ang.y = it->rot.y;
             }
         }
         if (Joy[0].trg & JOY_B) {

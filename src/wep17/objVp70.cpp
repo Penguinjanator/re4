@@ -44,7 +44,7 @@ void cObjVp70::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     wep.x24 = 3;
@@ -60,7 +60,7 @@ void cObjVp70::init(cModel* parent)
 void cObjVp70::moveReady()
 {
     if (wep.step == 0) {
-        MotionSetCore(this, &mot, WEP_ARC_PTR(0x39), 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, WEP_ARC_PTR(0x39), 0, 0, 0, 0);
         wep.step = 1;
     } else if (MotionGetState(this)) {
         wep.mode = 0;
@@ -78,7 +78,7 @@ void cObjVp70::moveFire()
         } else {
             m = WEP_ARC_PTR(0x37);
         }
-        MotionSetCore(this, &mot, m, 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 0, &pos, 0, 0, 0);
         pG->flags_500C |= 0x00800000;
         EstSet((int) this, -1, 0, 0, 0x4B, 0, 0, 0xA, 0, 0);
@@ -131,14 +131,14 @@ void cObjVp70::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &getPartsPtr(0)->world, 0, 0, 0);
         wep.step = 1;
     }
     {
         // reload frame (the magazine change) by reload tune level
         static const f32 reloadFrame[3] = { 33.0f, 27.0f, 19.0f };
 
-        if (MotionCheckCrossFrame(&mot, reloadFrame[pG->weapon_lv_reload])) {
+        if (MotionCheckCrossFrame(&Motion, reloadFrame[pG->weapon_lv_reload])) {
             ItemMgr.reload();
         }
     }
@@ -193,12 +193,12 @@ void cObjVp70::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x42));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x45));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x46));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x47));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x48));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x43));
     PSet(pl->pMotTbl[0x40], WEP_ARC_PTR(0x44));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x9));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0x9));
     pl->setRightHand(1);
     pl->setLeftHand(4);
 }

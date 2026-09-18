@@ -17,15 +17,15 @@
 
 // Parameter block handed over by esp4c (Esp4cWork, 0x20 bytes; the layout is esp4c.cpp's).
 struct Esp4cWork {
-    u8 type;      // 0x00
+    u8 Type;      // 0x00
     u8 Refrect_type;        // 0x01
     u8 Spec_Tex;        // 0x02
     u8 wave_ratio_base;        // 0x03
-    s16 indS;     // 0x04 indirect matrix parameters (SetIndMtx)
-    s16 indT;     // 0x06
+    s16 Shimmer_pow1;     // 0x04 indirect matrix parameters (SetIndMtx)
+    s16 Shimmer_pow2;     // 0x06
     f32 damp;     // 0x08 (Espgen42Work::damp)
     f32 spread;   // 0x0C (Espgen42Work::spread)
-    Vec rot;      // 0x10 surface rotation (SetWaterWork45)
+    Vec ang;      // 0x10 surface rotation (SetWaterWork45)
     u8 flag;      // 0x1C
     u8 Mask_Tex;       // 0x1D
     u8 x1E;       // 0x1E
@@ -182,7 +182,7 @@ void Espgen45_Move00(EspgenWork* w)
     if (g_bSetParam == 0) {
         PSMTXScale(p->mat, size, size * 0.05f + 100.0f, size);
     } else {
-        RotMatrix(p->mat, &g_Free.rot);
+        RotMatrix(p->mat, &g_Free.ang);
         PSMTXScale(m, size, size * 0.05f + 100.0f, size);
         PSMTXConcat(p->mat, m, p->mat);
     }
@@ -217,7 +217,7 @@ void Espgen45_Move00(EspgenWork* w)
     if (g_bSetParam == 0) {
         mode = p->mode;
     } else {
-        mode = g_Free.type;
+        mode = g_Free.Type;
     }
     if (mode != 1) {
         if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
@@ -417,12 +417,12 @@ void SetIndMtx_801291F4(Espgen42Work* p)
     if (g_bSetParam == 0) {
         indS = p->indS;
     } else {
-        indS = g_Free.indS;
+        indS = g_Free.Shimmer_pow1;
     }
     if (g_bSetParam == 0) {
         indT = p->indT;
     } else {
-        indT = g_Free.indT;
+        indT = g_Free.Shimmer_pow2;
     }
     m[0][0] = (f32) indS * 0.001f + 0.01f;
     m[0][1] = 0.0f;
@@ -479,7 +479,7 @@ void Espgen45_TransSub(EspgenWork* w)
     {
         static const Vec p0 = {0.0f, 0.0f, 0.0f};
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
-        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+        model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
@@ -497,7 +497,7 @@ void Espgen45_TransSub(EspgenWork* w)
         amb.b = (u8) ((f32) amb.b * g_sb);
         amb.a = (u8) ((f32) amb.a * g_sa);
     }
-    commonWaterLightSet(model.lightInfo.pLight, 5, amb.a);
+    commonWaterLightSet(model.LightInfo.pLight, 5, amb.a);
     GXColor white;
     white.r = white.g = white.b = white.a = 0xFF;
     GXSetChanMatColor(4, white);
@@ -505,10 +505,10 @@ void Espgen45_TransSub(EspgenWork* w)
     Mtx nrm;
     Mtx mv;
     Mtx tmp;
-    PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
+    PSMTXConcat(pG->Cam.v_mat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
     tmp[1][1] = p->size * 0.05f + 100.0f;
-    PSMTXConcat(pG->Cam.viewMat, tmp, tmp);
+    PSMTXConcat(pG->Cam.v_mat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
     GXLoadNrmMtxImm(nrm, 0);
@@ -606,7 +606,7 @@ void Espgen45_TransSub(EspgenWork* w)
             Mtx ms;
             Mtx mt;
             Mtx m3;
-            PSMTXCopy(pG->Cam.viewMat, m3);
+            PSMTXCopy(pG->Cam.v_mat, m3);
             PSMTXInverse(m3, m3);
             PSMTXTranspose(m3, m3);
             PSMTXScale(ms, 1.0f, -0.5f, 0.0f);
@@ -633,7 +633,7 @@ void Espgen45_TransSub(EspgenWork* w)
                 texId = p->xC5;
             }
             tw = EspGetTexWk(texId, 1);
-            if (tw == NULL || tw->owner == 0xD2) {
+            if (tw == NULL || tw->Owner == 0xD2) {
                 pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", texId);
             } else {
                 // the same frame slots as the first block's tex/tm: PRE shares their addresses
@@ -784,7 +784,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     if (IGet(g_bSetParam) == 0) {
         PSMTXScale(p->mat, p->size, p->size * 0.05f + 100.0f, p->size);
     } else {
-        RotMatrix(p->mat, &g_Free.rot);
+        RotMatrix(p->mat, &g_Free.ang);
         PSMTXScale(m, p->size, p->size * 0.05f + 100.0f, p->size);
         PSMTXConcat(p->mat, m, p->mat);
     }

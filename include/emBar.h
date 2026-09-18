@@ -7,14 +7,14 @@
 
 // Work of the wooden bar (window board) enemy (game/emBar.cpp), overlaid on cEm from 0x3E0.
 struct EmBarWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int timer;            // 0x004 (0x3E4)
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;            // 0x004 (0x3E4)
     u8 pad_8[0x110 - 0x8];
     Vec size;             // 0x110 (0x4F0)  yarare box size
     void* motion;         // 0x11C (0x4FC)  player escape motion (setMotion)
-    u8 eff;               // 0x120 (0x500)  break effect no, 0xFF = none (setEff)
-    u8 escaping;          // 0x121 (0x501)  the player is climbing through
-    u8 flagNo;            // 0x122 (0x502)  etc flag that remembers the broken bar
+    u8 Eff_id;               // 0x120 (0x500)  break effect no, 0xFF = none (setEff)
+    u8 Act_ck;          // 0x121 (0x501)  the player is climbing through
+    u8 Etc_no;            // 0x122 (0x502)  etc flag that remembers the broken bar
 };
 
 #define EMBAR_WK(em) ((EmBarWork*) &(em)->x3E0)

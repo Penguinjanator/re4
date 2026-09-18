@@ -85,7 +85,7 @@ void R106Init()
     EvtMgr.SetFunc("evt_r106s00_func", (void*) Evt_R106S00_Func);
     EatMgr.registEffInfo(4, (AtEffInfo*) &r106_eff_info);
     if (getRoomEtcDoor(8, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x32), ROOM_ARC_PTR(pG->pRoomArc, 0x33), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x32), ROOM_ARC_PTR(pG->pRoom, 0x33), 0, 0);
     }
     SceSetItemEvent(6, 0x85, 0, 6, r106_openShelf, (void (*)()) r106_openedShelf, 0, 0);
     SceSetItemEvent(7, 0x86, 1, 7, r106_openShelf, (void (*)()) r106_openedShelf, 1, 0);
@@ -118,9 +118,9 @@ void R106Init()
     rot.x = 0.0f;
     rot.y = 2.75f;
     rot.z = 0.0f;
-    hit = SetEmHit(ROOM_ARC_PTR(pG->pRoomArc, 0x36), ROOM_ARC_PTR(pG->pRoomArc, 0x37), &pos, &rot, 2);
+    hit = SetEmHit(ROOM_ARC_PTR(pG->pRoom, 0x36), ROOM_ARC_PTR(pG->pRoom, 0x37), &pos, &rot, 2);
     if (hit != 0) {
-        hit->setBeetle(ROOM_ARC_PTR(pG->pRoomArc, 0x38), ROOM_ARC_PTR(pG->pRoomArc, 0x3A), ROOM_ARC_PTR(pG->pRoomArc, 0x39));
+        hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x38), ROOM_ARC_PTR(pG->pRoom, 0x3A), ROOM_ARC_PTR(pG->pRoom, 0x39));
     }
 }
 
@@ -153,32 +153,32 @@ extern "C" void r106_setRollingStone()
     rot.x = 0.0f;
     rot.y = 1.813549f;
     rot.z = 0.0f;
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0xC8, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x2E), 0xC8, 0);
     if (EspGetEfmTplAddr(0x20, &tpl) == 0) {
         pLog->err(0, 0, "IWA init: EFM[%02x] TPL not regist.", 0x20);
         return;
     }
-    rock = SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x20), tpl, &pos, &rot, 1);
+    rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x20), tpl, &pos, &rot, 1);
     r106_work->rock = rock;
     if (rock != 0) {
         void* mot[16];
 
-        mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-        mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-        mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-        mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-        mot[6] = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-        mot[7] = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-        mot[8] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-        mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x2A);
-        mot[10] = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
-        mot[11] = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
-        mot[12] = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
-        mot[13] = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
-        mot[14] = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
-        mot[15] = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+        mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x21);
+        mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x23);
+        mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x25);
+        mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x26);
+        mot[6] = ROOM_ARC_PTR(pG->pRoom, 0x27);
+        mot[7] = ROOM_ARC_PTR(pG->pRoom, 0x28);
+        mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x29);
+        mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x2A);
+        mot[10] = ROOM_ARC_PTR(pG->pRoom, 0x2B);
+        mot[11] = ROOM_ARC_PTR(pG->pRoom, 0x2C);
+        mot[12] = ROOM_ARC_PTR(pG->pRoom, 0x2D);
+        mot[13] = ROOM_ARC_PTR(pG->pRoom, 0x2F);
+        mot[14] = ROOM_ARC_PTR(pG->pRoom, 0x30);
+        mot[15] = ROOM_ARC_PTR(pG->pRoom, 0x31);
         rock->setPlMotion(mot);
         rock->setScale(4.2f);
     }
@@ -294,19 +294,19 @@ extern "C" void r106_openShelf_main(int type, int opened)
             register cModel* pa2 asm("r10");
 
             pa2 = pa;
-            pa2->rot.y = ra;
+            pa2->ang.y = ra;
             asm("" : "=m"(b->be_flag) : "r"(pa2));
-            b->pParts->rot.y = rb;
+            b->pParts->ang.y = rb;
         } else {
             int i;
 
             SndCall(6, 0x1A, 0, 0, 0, 0);
             for (i = 30; i != 0; i--) {
                 if (a != 0) {
-                    a->pParts->rot.y += -0.063995406f;
+                    a->pParts->ang.y += -0.063995406f;
                 }
                 if (b != 0) {
-                    b->pParts->rot.y += 0.063995406f;
+                    b->pParts->ang.y += 0.063995406f;
                 }
                 SceSleep(1);
             }
@@ -357,8 +357,8 @@ static void r106_Event()
     if (r106_work->evd->waitLoadOk()) {
         EventMgr* evt;
 
-        if (EvtMgr.SetEvt(r106_work->evd->addr, (u32*) &ev)) {
-            ev->status |= 0x400;
+        if (EvtMgr.SetEvt(r106_work->evd->m_addr, (u32*) &ev)) {
+            ev->StatusFlag |= 0x400;
         }
         evt = &EvtMgr;
         while (evt->IsAliveEvt(&evt->x34, 0, 0) != 0) {
@@ -384,17 +384,17 @@ static void r106_shakeClosetBody(cModel* m)
     f32 spd = fRand0_1() * 0.008726646f + 0.004363323f;
 
     for (;;) {
-        m->rot.x += spd;
-        if (m->rot.x > lim) {
-            m->rot.x = lim;
+        m->ang.x += spd;
+        if (m->ang.x > lim) {
+            m->ang.x = lim;
             break;
         }
         SceSleep(1);
     }
     for (;;) {
-        m->rot.x -= spd;
-        if (m->rot.x < 0.0f) {
-            m->rot.x = 0.0f;
+        m->ang.x -= spd;
+        if (m->ang.x < 0.0f) {
+            m->ang.x = 0.0f;
             break;
         }
         SceSleep(1);
@@ -410,17 +410,17 @@ static void r106_shakeClosetDoorR(cModel* m)
     // `ble TOP` over `b END`; jump2's fall-through cross-jump then merges the two exit jumps
     // (`cmp; b TEST; ...; TEST: ble TOP`) -- see docs/matching.md COMPILER-DIFF #7/#9 (not a diff).
     for (;;) {
-        m->rot.y += 0.02617994f;
-        if (m->rot.y > lim) {
-            m->rot.y = lim;
+        m->ang.y += 0.02617994f;
+        if (m->ang.y > lim) {
+            m->ang.y = lim;
             break;
         }
         SceSleep(1);
     }
     for (;;) {
-        m->rot.y -= 0.02617994f;
-        if (m->rot.y < 0.0f) {
-            m->rot.y = 0.0f;
+        m->ang.y -= 0.02617994f;
+        if (m->ang.y < 0.0f) {
+            m->ang.y = 0.0f;
             break;
         }
         SceSleep(1);
@@ -433,17 +433,17 @@ static void r106_shakeClosetDoorL(cModel* m)
     f32 lim = fRand0_1() * 0.06981317f - 0.06981317f;
 
     for (;;) {
-        m->rot.y -= 0.05235988f;
-        if (m->rot.y < lim) {
-            m->rot.y = lim;
+        m->ang.y -= 0.05235988f;
+        if (m->ang.y < lim) {
+            m->ang.y = lim;
             break;
         }
         SceSleep(1);
     }
     for (;;) {
-        m->rot.y += 0.05235988f;
-        if (m->rot.y > 0.0f) {
-            m->rot.y = 0.0f;
+        m->ang.y += 0.05235988f;
+        if (m->ang.y > 0.0f) {
+            m->ang.y = 0.0f;
             break;
         }
         SceSleep(1);
@@ -461,7 +461,7 @@ static void r106_setCloset()
     cModel* doorL;
     int cnt = 0;
 
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x34), ROOM_ARC_PTR(pG->pRoomArc, 0x35), &pos, &rot, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x34), ROOM_ARC_PTR(pG->pRoom, 0x35), &pos, &rot, 0x10, 1);
     r106_work->closet = obj;
     body = GetPartsAddr(obj->pParts, 0);
     doorR = GetPartsAddr(obj->pParts, 2);
@@ -491,9 +491,9 @@ extern "C" void Evt_R106S00_Func(Event* ev)
         r106_work->closet->be_flag &= ~2;
         break;
     case 1:
-        switch (ev->cut) {
+        switch (ev->NowCut) {
         case 0:
-            if (ev->frame == 0) {
+            if (ev->NowFrame == 0) {
                 if (ev->GetMod(&mod, "obm4000", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cObj*) mod)->be_flag |= 2;
@@ -503,7 +503,7 @@ extern "C" void Evt_R106S00_Func(Event* ev)
             }
             break;
         case 0x10:
-            if (ev->frame == 0) {
+            if (ev->NowFrame == 0) {
                 EffectEspDelete(0, 0x15, 0, 0);
                 EffectEspgenDelete(0, 0x15, 0);
                 EffectEfmDelete(0, 0x15, 0);
@@ -512,7 +512,7 @@ extern "C" void Evt_R106S00_Func(Event* ev)
             }
             break;
         case 0x11:
-            if (ev->frame == 0) {
+            if (ev->NowFrame == 0) {
                 if (ev->GetMod(&mod, "obm4000", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cObj*) mod)->be_flag &= ~2;
@@ -522,7 +522,7 @@ extern "C" void Evt_R106S00_Func(Event* ev)
             }
             break;
         case 0x12:
-            if (ev->frame == 0x41) {
+            if (ev->NowFrame == 0x41) {
                 if (ev->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cObj*) mod)->be_flag |= 2;
@@ -534,9 +534,9 @@ extern "C" void Evt_R106S00_Func(Event* ev)
             }
             break;
         }
-        if (ev->frame == 0) {
+        if (ev->NowFrame == 0) {
             if (ev->GetMod(&mod, "wep0200", 0, 0) == 1) {
-                if (ev->cut > 3) {
+                if (ev->NowCut > 3) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cObj*) mod)->be_flag &= ~2;
                 } else {

@@ -86,7 +86,7 @@ inline void cPlayer::subCharLiveCheck()
     if (sub && sub->id == 3 && sub->hp <= 0 && r_no_0 == 0) {
         PlRoutineSet(this, 6, 0, 0, 0);
         dmg.set(0, 0x80);
-        pWep->pObj->interrupt();
+        Wep->m_pWep->interrupt();
     }
 }
 
@@ -242,7 +242,7 @@ int PlReloadDirect = 0;
 // facing the wall. 1 when both shoulders (+-350) also see the wall.
 int actWallCheck(cPlayer* pl)
 {
-    pl->actWallAttr = 0;
+    pl->m_ActAttr = 0;
     Vec p0 = { 0.0f, 400.0f, 0.0f };
 
     PSVECAdd(&p0, &pl->pos, &p0);
@@ -290,9 +290,9 @@ int actWallCheck(cPlayer* pl)
     if (ret == 0) {
         return 0;
     }
-    pl->actWallAttr = ret;
-    pl->actWallNrm = nrm;
-    pl->actWallHit = hit;
+    pl->m_ActAttr = ret;
+    pl->m_ActNorm = nrm;
+    pl->m_ActCross = hit;
     return 1;
 }
 
@@ -311,13 +311,13 @@ int fanceCheck(cPlayer* pl)
     if (pG->flags_5014 & 0x08000000) {
         return 0;
     }
-    if ((pl->actWallAttr & 0x20) == 0) {
+    if ((pl->m_ActAttr & 0x20) == 0) {
         return 0;
     }
     rot.x = 0.0f;
     rot.y = pl->x400;
     rot.z = 0.0f;
-    PSVECScale(&pl->actWallNrm, &dir, -1000.0f);
+    PSVECScale(&pl->m_ActNorm, &dir, -1000.0f);
     p0.x = 400.0f;
     p0.y = 300.0f;
     p0.z = 0.0f;
@@ -335,8 +335,8 @@ int fanceCheck(cPlayer* pl)
     if ((hit0 | hit1) != 0) {
         return 0;
     }
-    PSVECScale(&pl->actWallNrm, &p0, -1500.0f);
-    PSVECAdd(&p0, &pl->actWallHit, &p0);
+    PSVECScale(&pl->m_ActNorm, &p0, -1500.0f);
+    PSVECAdd(&p0, &pl->m_ActCross, &p0);
     p1.x = p0.x;
     p1.y = p0.y - 10000.0f;
     p1.z = p0.z;
@@ -362,7 +362,7 @@ int windowCheck(cPlayer* pl, u8* dir, cEmWindow** out)
     cEmWindow* win;
     Vec* d = &wdir;
 
-    RotVector(&p1, &pl->rot, &p1);
+    RotVector(&p1, &pl->ang, &p1);
     PSVECAdd(&p1, &pl->pos, &p1);
     if (ChkWindow(pl, &p0, &p1, 1, &status, d, &wpos, &win) == 1) {
         pl->x400 = (f32) atan2(-d->x, -d->z);
@@ -404,10 +404,10 @@ void windowOn(cEmWindow* w)
 // Ledge to drop from (wall attribute bits 4 / 20): fallDir = -wall normal.
 static int fallCheck_80172E38(cPlayer* pl)
 {
-    if (pl->actWallAttr & 0x100010) {
-        pl->fallDir.x = -pl->actWallNrm.x;
-        pl->fallDir.y = pl->actWallNrm.y;
-        pl->fallDir.z = -pl->actWallNrm.z;
+    if (pl->m_ActAttr & 0x100010) {
+        pl->m_FallVec.x = -pl->m_ActNorm.x;
+        pl->m_FallVec.y = pl->m_ActNorm.y;
+        pl->m_FallVec.z = -pl->m_ActNorm.z;
         return 1;
     }
     return 0;
@@ -500,17 +500,17 @@ int jumpCheck(cPlayer* pl)
     PSMTXMultVec(pl->mat, &p1, &p1);
     attr &= SatMgr.hitCheck(&p0, &p1, &hit, &nrm, 0, 0);
     if (attr & 0x80000) {
-        pl->jumpDir.x = -nrm.x;
-        pl->jumpDir.y = nrm.y;
-        pl->jumpDir.z = -nrm.z;
-        PSVECScale(&pl->jumpDir, &p2, dist);
+        pl->m_JumpVec.x = -nrm.x;
+        pl->m_JumpVec.y = nrm.y;
+        pl->m_JumpVec.z = -nrm.z;
+        PSVECScale(&pl->m_JumpVec, &p2, dist);
         PSVECAdd(&p2, &hit, &p2);
         p2.y += up;
         h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
-        FSet(pl->jumpHeight, h);
+        FSet(pl->m_JumpAdjY, h);
         if ((pG->room_id32 & 0xFFFF0000) == 0x02260000) {
             if (fabsf(h) > up) {
-                pl->jumpHeight = 0.0f;
+                pl->m_JumpAdjY = 0.0f;
             }
         } else {
             if (fabsf(h) > up) {
@@ -528,7 +528,7 @@ void jumpFallOn()
     cPlayer* pl = pPL;
 
     PlRoutineSet(pl, 0, 0x13, 0, 0);
-    FSet(pPL->rot.y, pPL->rot.y + Muku3(&pl->jumpDir, pPL->rot.y, 3.1415927f));
+    FSet(pPL->ang.y, pPL->ang.y + Muku3(&pl->m_JumpVec, pPL->ang.y, 3.1415927f));
     pPL->dmg.set(0, 0x80);
 }
 
@@ -607,13 +607,13 @@ int cPlayer::actionSelect()
         PlRoutineSet(this, 0, 2, 0, 0);
         return 1;
     }
-    if (keyReload() && pWep->pObj && pWep->pObj->reloadable()) {
+    if (keyReload() && Wep->m_pWep && Wep->m_pWep->reloadable()) {
         PlRoutineSet(this, 0, 6, 4, 0);
         x3E0 = 1;
         return 1;
     }
     actWallCheck(this);
-    if (pPush->catchCheck()) {
+    if (Push->catchCheck()) {
         ActBtn.set(6, 2, (int) holdOn, 0, 0x10, 1, 0, 0);
     }
     if (fallCheck_80172E38(this)) {
@@ -679,7 +679,7 @@ void cPlayer::dmgCheck()
     if ((s16) pG->pl_life <= 0) {
         return;
     }
-    switch (DmgMgr.hitCheck(&getPartsPtr(0)->worldPos, 0)) {
+    switch (DmgMgr.hitCheck(&getPartsPtr(0)->world, 0)) {
     case 2:
     case 8:
         setDamage(0, 0, 123.0f, 0, 8);
@@ -703,7 +703,7 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
     dmgCnt522 += b;
     if (dmgCnt522 > 0xFE) {
         if (ang != 123.0f) {
-            f32 d = Muku2(rot.y, ang, 3.1415927f);
+            f32 d = Muku2(this->ang.y, ang, 3.1415927f);
             if (d < 1.5707964f && d > -1.5707964f) {
                 x400 = ang;
                 switch (kind) {
@@ -761,15 +761,15 @@ void cPlayer::setDamage(u8 kind, int arg, f32 ang, int a, int b)
 void cPlayer::visibleCtrl()
 {
     if (pG->flags_500C & 0x2000) {
-        alpha -= 0.1f;
-        if (alpha < 0.0f) {
-            alpha = 0.0f;
+        invisible_factor -= 0.1f;
+        if (invisible_factor < 0.0f) {
+            invisible_factor = 0.0f;
         }
     } else {
-        alpha = 1.0f;
+        invisible_factor = 1.0f;
     }
-    if (pWep->pObj) {
-        pWep->pObj->alpha = alpha;
+    if (Wep->m_pWep) {
+        Wep->m_pWep->invisible_factor = invisible_factor;
     }
 }
 
@@ -801,11 +801,11 @@ void cPlayer::setNoSuspend(int on)
     } else {
         be_flag &= ~0x800;
     }
-    if (pWep->pObj) {
-        pWep->pObj->setNoSuspend(on);
+    if (Wep->m_pWep) {
+        Wep->m_pWep->setNoSuspend(on);
     }
-    if (pWep->pObj2) {
-        pWep->pObj2->setNoSuspend(on);
+    if (Wep->pObj2) {
+        Wep->pObj2->setNoSuspend(on);
     }
 }
 
@@ -825,7 +825,7 @@ void cPlayer::setFootwork()
         frame = 0;
         hokan = 5;
     }
-    motionSet(pMotTbl[0], pMotTbl[1], PL_ARC_PTR(pG->pPlArc, 0x32), PL_ARC_PTR(pG->pPlArc, 0x33), hokan, frame);
+    motionSet(pMotTbl[0], pMotTbl[1], PL_ARC_PTR(pG->pPlayer, 0x32), PL_ARC_PTR(pG->pPlayer, 0x33), hokan, frame);
     blendMot = 0;
 }
 
@@ -873,14 +873,14 @@ void cPlayer::seqSeCtrl()
         switch (no) {
         case 0:
         case 1:
-            SndCall(1, 0x2A, &pParts->worldPos, id, 0, 0);
+            SndCall(1, 0x2A, &pParts->world, id, 0, 0);
             break;
         case 2:
         case 3:
         case 0xD:
         case 0xE:
         case 0x14:
-            SndCall(1, 0x2F, &pParts->worldPos, id, 0, 0);
+            SndCall(1, 0x2F, &pParts->world, id, 0, 0);
             break;
         }
     }
@@ -899,7 +899,7 @@ void cPlayer::seqSeCtrl()
     case 4:
         break;
     }
-    SndCall(kind, no, &getPartsPtr(parts)->worldPos, id, 0, 0);
+    SndCall(kind, no, &getPartsPtr(parts)->world, id, 0, 0);
     seNo = 0;
     if ((frame >= 1.0f && frame <= 4.0f) || (frame >= 8.0f && frame <= 16.0f)) {
         AddSandPower(&pPL->pos, -0.5f);
@@ -961,13 +961,13 @@ void cPlayer::checkCtrl()
 // Level change wall attributes: 1 up, 2 down, 3 up (kind 2), 0 none.
 u32 upDownCk(cPlayer* pl)
 {
-    if (pl->actWallAttr & 0x200000) {
+    if (pl->m_ActAttr & 0x200000) {
         return 1;
     }
-    if (pl->actWallAttr & 0x2000) {
+    if (pl->m_ActAttr & 0x2000) {
         return 2;
     }
-    if (pl->actWallAttr & 0x1000) {
+    if (pl->m_ActAttr & 0x1000) {
         return 3;
     }
     return 0;
@@ -1035,8 +1035,8 @@ void cPlayer::endDamage()
     cPlayer* pl = pPL;
 
     pl->setFace(0);
-    if (pl->type == 4 && pG->wep_no == 0x1C) {
-        pWep->pObj->setDisp(2, 1);
+    if (pl->type == 4 && pG->weapon_no == 0x1C) {
+        Wep->m_pWep->setDisp(2, 1);
     }
 }
 
@@ -1088,15 +1088,15 @@ void cPlayer::beginEvent()
     int mode = modeReg;
 
     interrupt();
-    pNeck->motL = 0;
+    Neck->motL = 0;
     switch (mode) {
     case 0:
         PlRoutineSet(this, 5, 0, 0, 0);
         MotionBlendOff(this);
         atari.throughOn();
         be_flag |= 0x04000000;
-        if (pWep->pObj) {
-            pWep->pObj->resetMotion();
+        if (Wep->m_pWep) {
+            Wep->m_pWep->resetMotion();
         }
         setFootwork();
         flags_41C &= ~0x100;
@@ -1116,29 +1116,29 @@ void cPlayer::interrupt()
     endCamera();
     flags_420 |= 0x800;
     x4FE = 0;
-    pNeck->mode = 1;
-    MOTION(this)->speedRate = 1.0f;
+    Neck->m_Mode = 1;
+    MOTION(this)->Seq_speed = 1.0f;
     flags_420 &= ~0x40;
-    rot.y += pParts->rot.y;
-    pParts->rot.y = 0.0f;
-    if (pWep->pObj) {
-        if (pWep->pObj2) {
-            pWep->pObj2->setDisp(1, 1);
+    ang.y += pParts->ang.y;
+    pParts->ang.y = 0.0f;
+    if (Wep->m_pWep) {
+        if (Wep->pObj2) {
+            Wep->pObj2->setDisp(1, 1);
         }
-        pWep->pObj->interrupt();
-        switch (pG->wep_no) {
+        Wep->m_pWep->interrupt();
+        switch (pG->weapon_no) {
         case 0xD:
         case 0x13:
         case 0x16:
         case 0x17:
-            pWep->pObj->setMotion(this);
+            Wep->m_pWep->setMotion(this);
             break;
         case 0x1C:
             setRightHand(0);
             break;
         }
     }
-    face = pBody->pFace;
+    face = Body->pFace;
     if (VALID_PTR(face)) {
         face->x84 = 0.0f;
         face->x70 = 0.0f;
@@ -1166,7 +1166,7 @@ int cPlayer::endCamera()
         BitOff(flags_420, 0x200);
         BitOff(pG->flags_5010, 0x04000000);
         if (pG->flags_500C & 0x40000) {
-            LightMgr.update(CamCtrl.area_no, 0);
+            LightMgr.update(CamCtrl.areaNo, 0);
         }
     }
     if (flags_420 & 0x10) {
@@ -1219,7 +1219,7 @@ void cPlayer::endEvent0(u32 mode)
     be_flag &= ~0x04000000;
     setNoSuspend(0);
     dmg.set(0, 10);
-    pNeck->mode = one;
+    Neck->m_Mode = one;
     if ((s16) pG->pl_life > 0) {
         switch (mode) {
         case 0:
@@ -1252,8 +1252,8 @@ void cPlayer::beginAction()
     endCamera();
     PlRoutineSet(this, 5, 0, 0, 0);
     MotionBlendOff(this);
-    if (pWep->pObj) {
-        pWep->pObj->resetMotion();
+    if (Wep->m_pWep) {
+        Wep->m_pWep->resetMotion();
     }
     setFootwork();
     flags_420 |= 2;
@@ -1282,9 +1282,9 @@ void cPlayer::setSlow(f32 rate)
     if (pG->x4FB8 != 0) {
         return;
     }
-    MOTION(this)->speedRate = rate;
-    if (pWep->pObj) {
-        MOTION(pWep->pObj)->speedRate = rate;
+    MOTION(this)->Seq_speed = rate;
+    if (Wep->m_pWep) {
+        MOTION(Wep->m_pWep)->Seq_speed = rate;
     }
 }
 
@@ -1329,7 +1329,7 @@ void cPlayer::moveEyeNormal()
     // 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62) and constant-pool order.
     switch (timer++) {
     default:
-        p->rot.x = 0.0f;
+        p->ang.x = 0.0f;
         break;
     case 0: {
         f32 y = ((f32) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
@@ -1337,26 +1337,26 @@ void cPlayer::moveEyeNormal()
         if (eyeDir.z == 0.0f) {
             eyeDir.x = y;
         }
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     }
     case 1:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 2:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 3:
-        p->rot.x = 0.3141592741012573f;
+        p->ang.x = 0.3141592741012573f;
         break;
     case 4:
-        p->rot.x = 0.24434609711170197f;
+        p->ang.x = 0.24434609711170197f;
         break;
     case 5:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 6:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     case 0x1E:
         eyeDir.y = 0.0f;
@@ -1372,31 +1372,31 @@ void cPlayer::moveEyeNormal()
         }
         break;
     case 0x5A:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     case 0x5B:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 0x5C:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 0x5D:
-        p->rot.x = 0.296705961227417f;
+        p->ang.x = 0.296705961227417f;
         break;
     case 0x5E:
-        p->rot.x = 0.33161255717277527f;
+        p->ang.x = 0.33161255717277527f;
         break;
     case 0x5F:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 0x60:
-        p->rot.x = 0.2617993950843811f;
+        p->ang.x = 0.2617993950843811f;
         break;
     case 0x61:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 0x62:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         timer = 10;
         break;
     }
@@ -1427,10 +1427,10 @@ void cPlayer::moveEyeNormal()
         }
     }
     p = getPartsPtr(0x20);
-    p->rot.y = eyeDir.x;
+    p->ang.y = eyeDir.x;
     p->matUpdate();
     p = getPartsPtr(0x21);
-    p->rot.y = eyeDir.x;
+    p->ang.y = eyeDir.x;
     p->matUpdate();
     eyeDir.x = eyeDir.x * eyeDir.z + eyeDir.y * (1.0f - eyeDir.z);
 }
@@ -1445,17 +1445,17 @@ void cPlayer::moveEyeMotion()
 
     a = getPartsPtr(0x20);
     b = getPartsPtr(0x21);
-    b->rot = a->rot;
+    b->ang = a->ang;
     b->matUpdate();
 }
 
 void cPlayer::setLaserSight(int draw, int noCalc)
 {
-    pBody->move();
+    Body->move();
     partsWorldCalc();
-    pWep->pObj->partsWorldCalc();
-    pWep->pObj->wep.disp |= 2;
-    pWep->pObj->drawLaserSight(draw, noCalc);
+    Wep->m_pWep->partsWorldCalc();
+    Wep->m_pWep->wep.disp |= 2;
+    Wep->m_pWep->drawLaserSight(draw, noCalc);
 }
 
 // Binocular sequence: 1 raise sound -> 2 wait for the key -> 3 end camera -> 0.
@@ -1465,7 +1465,7 @@ void cPlayer::moveBinocular()
     case 0:
         break;
     case 1:
-        SndCall(1, 2, &getPartsPtr(3)->worldPos, 0, 0, 0);
+        SndCall(1, 2, &getPartsPtr(3)->world, 0, 0, 0);
         binoMode = 2;
         break;
     case 2:
@@ -1485,22 +1485,22 @@ void cPlayer::shadowCtrl()
 {
     int on;
 
-    if (!(flags_420 & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloorNrm || pFloorNrm->y < 0.8f) {
+    if (!(flags_420 & 0x800) || pG->Cam.param.pos.y < pos.y || !pFloor_norm || pFloor_norm->y < 0.8f) {
         on = 0;
     } else {
         on = 1;
     }
     if (on) {
-        if (shdCol > 0xF) {
-            shdCol -= 0x10;
+        if (Shd_color > 0xF) {
+            Shd_color -= 0x10;
         } else {
-            shdCol = 0;
+            Shd_color = 0;
         }
     } else {
-        if (shdCol <= 0xEF) {
-            shdCol += 0x10;
+        if (Shd_color <= 0xEF) {
+            Shd_color += 0x10;
         } else {
-            shdCol = 0xFF;
+            Shd_color = 0xFF;
         }
     }
 }
@@ -1539,11 +1539,11 @@ cPlNeck::cPlNeck(cPlayer* p)
 {
     pl = p;
     ang = 0.0f;
-    timer = 0;
+    m_lockCtr = 0;
     motL = 0;
     motR = 0;
-    flags = 0;
-    mode = 1;
+    m_Flag = 0;
+    m_Mode = 1;
 }
 
 // Neck motions: the left turn (frame `frame`) is set at once; the look timer restarts.
@@ -1554,11 +1554,11 @@ void cPlNeck::init(void* l, void* r, int frame)
     if (VALID_PTR2(l) && VALID_PTR2(r)) {
         motSet(l, frame);
         move();
-        flags = 0;
-        if (timer > 0x10000000) {
-            timer = 0x7FFFFFFF;
+        m_Flag = 0;
+        if (m_lockCtr > 0x10000000) {
+            m_lockCtr = 0x7FFFFFFF;
         } else {
-            timer = 0;
+            m_lockCtr = 0;
             ang = 0.0f;
         }
     }
@@ -1571,11 +1571,11 @@ void cPlNeck::move()
     cModel* head;
     cEm* em;
 
-    if (mode == 0) {
+    if (m_Mode == 0) {
         return;
     }
-    if (mode == 2) {
-        mode = 1;
+    if (m_Mode == 2) {
+        m_Mode = 1;
         return;
     }
     if (!VALID_PTR2(motL)) {
@@ -1592,19 +1592,19 @@ void cPlNeck::move()
     if (em) {
         if (em != target) {
             target = em;
-            timer = em->checkStatus(9) ? 0x7FFFFFFF : 20;
+            m_lockCtr = em->checkStatus(9) ? 0x7FFFFFFF : 20;
         }
     } else {
         if (target && target->hp <= 0) {
             target = 0;
-            timer = 0;
+            m_lockCtr = 0;
         }
     }
     if (pPL->r_no_0 != 0 || pPL->r_no_1 > 3) {
-        timer = 0;
+        m_lockCtr = 0;
     }
-    if (timer) {
-        f32 a = GetXZAngleLocal(&head->worldPos, &target->pos, pPL->rot.y);
+    if (m_lockCtr) {
+        f32 a = GetXZAngleLocal(&head->world, &target->pos, pPL->ang.y);
         if (a > ang) {
             if (a - ang > 0.10471975803375244f) {
                 ang = ang + 0.10471975803375244f;
@@ -1624,14 +1624,14 @@ void cPlNeck::move()
         if (ang < -0.7853981852531433f) {
             ang = -0.7853981852531433f;
         }
-        if (ang < 0.0f && flags) {
-            And16(flags, 0xFFFE);
+        if (ang < 0.0f && m_Flag) {
+            And16(m_Flag, 0xFFFE);
             motSet(motL, (u16) pPL->frame);
-        } else if (ang > 0.0f && !flags) {
-            BitOn16(flags, 1);
+        } else if (ang > 0.0f && !m_Flag) {
+            BitOn16(m_Flag, 1);
             motSet(motR, (u16) pPL->frame);
         }
-        timer--;
+        m_lockCtr--;
     } else {
         if (ang != 0.0f) {
             if (ang > 0.10471975803375244f) {
@@ -1645,7 +1645,7 @@ void cPlNeck::move()
     }
     if (pPL->blendMot) {
         f32 rate = ang / 0.7853981852531433f;
-        if (!(flags & 1)) {
+        if (!(m_Flag & 1)) {
             rate = -rate;
         }
         pPL->blendMot->blendRate = rate;
@@ -1678,8 +1678,8 @@ cEm* cPlNeck::getTarget()
     f32 bestDist = 25000000.0f;
     Vec* from;
 
-    from = &pPL->getPartsPtr(3)->worldPos;
-    for (em = EmMgr.pAlive; em; em = (cEm*) em->next) {
+    from = &pPL->getPartsPtr(3)->world;
+    for (em = EmMgr.pAlive; em; em = (cEm*) em->pNext) {
         if (em->checkStatus(1)) {
             continue;
         }
@@ -1692,7 +1692,7 @@ cEm* cPlNeck::getTarget()
         if (em == pSubEm) {
             continue;
         }
-        Vec* to = &em->getPartsPtr(em->lockParts)->worldPos;
+        Vec* to = &em->getPartsPtr(em->lockParts)->world;
         f32 d = GetDistance(from, to);
         if (em->checkStatus(9)) {
             d -= 100000.0f;
@@ -1709,7 +1709,7 @@ cEm* cPlNeck::getTarget()
 
 void cPlNeck::setMode(int m)
 {
-    mode = m;
+    m_Mode = m;
 }
 
 cPlWaist::cPlWaist()
@@ -1728,7 +1728,7 @@ f32 cPlWaist::set(f32 target, f32 rate)
 cMot3::cMot3()
 {
     x14 = 0;
-    rate = 0.0f;
+    m_Rate = 0.0f;
 }
 
 void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16 d, u16 e)
@@ -1742,8 +1742,8 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     register int rb asm("r9");
     int mode = (u8) rb;
 
-    model = m;
-    rate = 0.0f;
+    m_pEm = m;
+    m_Rate = 0.0f;
     mot0 = m0;
     mot1 = m1;
     mot2 = m2;
@@ -1756,7 +1756,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
 // Blend motion `m` (frame a, hokan b) into the model's motion.
 void cMot3::set0(void* m, u8 a, int b)
 {
-    MotionSetCore(model, &work, m, 0, b, 4, a);
+    MotionSetCore(m_pEm, &work, m, 0, b, 4, a);
     switch (x14) {
     case 0:
         break;
@@ -1764,17 +1764,17 @@ void cMot3::set0(void* m, u8 a, int b)
         work.flags2 |= 0x80000000;
         break;
     }
-    ((cEm*) model)->blendMot = &work;
+    ((cEm*) m_pEm)->blendMot = &work;
 }
 
 // Blend rate -1..1: crossing 0 switches the blended motion (mot1 below, mot2 above) at the current
 // frame; the work's blend rate is |rate|.
 void cMot3::move(f32 r)
 {
-    if (model == 0) {
+    if (m_pEm == 0) {
         return;
     }
-    if (((cEm*) model)->blendMot == 0) {
+    if (((cEm*) m_pEm)->blendMot == 0) {
         return;
     }
     if (r > 1.0f) {
@@ -1783,16 +1783,16 @@ void cMot3::move(f32 r)
     if (r < -1.0f) {
         r = -1.0f;
     }
-    if (rate < 0.0f && r >= 0.0f) {
-        set0(mot1, (u8) ((cEm*) model)->frame, 2);
-    } else if (rate >= 0.0f && r < 0.0f) {
-        set0(mot2, (u8) ((cEm*) model)->frame, 2);
+    if (m_Rate < 0.0f && r >= 0.0f) {
+        set0(mot1, (u8) ((cEm*) m_pEm)->frame, 2);
+    } else if (m_Rate >= 0.0f && r < 0.0f) {
+        set0(mot2, (u8) ((cEm*) m_pEm)->frame, 2);
     }
-    rate = r;
+    m_Rate = r;
     if (r < 0.0f) {
         r = -r;
     }
-    ((cEm*) model)->blendMot->blendRate = r;
+    ((cEm*) m_pEm)->blendMot->blendRate = r;
 }
 
 const f32 cPlayer::SPEED_WALK_TURN = 0.0418879f;

@@ -13,7 +13,7 @@
 // 2 = the second battle), overlaid on cEm from 0x3E0. Field names are the work-relative offsets;
 // the comment gives the cEm offset.
 struct Em39Work {
-    u32 flags;            // 0x000 (0x3E0)
+    u32 Be_flg;            // 0x000 (0x3E0)
     int Timer;               // 0x004 (0x3E4)  routine timer
     int Timer2;               // 0x008 (0x3E8)
     int Timer3;               // 0x00C (0x3EC)
@@ -36,18 +36,18 @@ struct Em39Work {
     cPlayer* pTarget;     // 0x484 (0x864)
     u8 pad_488[0x580 - 0x488];
     cEmWep* pWep;         // 0x580 (0x960)  knife
-    cEmWep* pWep2;        // 0x584 (0x964)  machine gun
-    cEmWep* pWep3;        // 0x588 (0x968)  bow
+    cEmWep* pMachineGun;        // 0x584 (0x964)  machine gun
+    cEmWep* pBow;        // 0x588 (0x968)  bow
     cEmWep* pArrow;         // 0x58C (0x96C)  thrown knife (setFall when the enemy moves)
-    cEmWep* pGrenade;     // 0x590 (0x970)  grenade in hand (AppearGR / AppearGR2)
+    cEmWep* pBomb;     // 0x590 (0x970)  grenade in hand (AppearGR / AppearGR2)
     cEmWep* pFlash;       // 0x594 (0x974)  flash grenade in hand (Flash)
     f32 x598;             // 0x598 (0x978)
     f32 x59C;             // 0x59C (0x97C)
     u8 pad_5A0[0x664 - 0x5A0];
     cModelInfo* pHandInfo;   // 0x664 (0xA44)  em39HandSet: right hand parts info
-    cModelInfo* pHandInfo2;  // 0x668 (0xA48)  em39HandSet: left hand parts info
+    cModelInfo* pHandL;  // 0x668 (0xA48)  em39HandSet: left hand parts info
     cModelInfo* pModKnife;     // 0x66C (0xA4C)
-    u8 handType;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
+    u8 Hand_type;          // 0x670 (0xA50)  em39HandSet type (0xFF = none)
     u8 pad_671[3];
     cObj* pObj12;         // 0x674 (0xA54)  hanging object (SetObj12)
     int x678;             // 0x678 (0xA58)
@@ -57,15 +57,15 @@ struct Em39Work {
     int LongAtk_wait;             // 0x684 (0xA64)
     int SuperDashWait;             // 0x688 (0xA68)
     int Action_timer;             // 0x68C (0xA6C)
-    int lockCnt;          // 0x690 (0xA70)  frames the player has been locked on (em39LockCk)
+    int Lock_timer;          // 0x690 (0xA70)  frames the player has been locked on (em39LockCk)
     int Escape_wait;             // 0x694 (0xA74)
     int Total_damage;             // 0x698 (0xA78)  damage since the last reaction
     int Flash_damage;             // 0x69C (0xA7C)
     int Dash_wait;             // 0x6A0 (0xA80)
     Vec jumpPos;          // 0x6A4 (0xA84)  jump target (em39JumpUpCk / em39JumpDownCk)
-    f32 jumpAng;          // 0x6B0 (0xA90)  facing during the jump
-    Vec gotoPos;          // 0x6B4 (0xA94)  goto target (em39RouteCk overrides the player target)
-    u8 gotoOn;            // 0x6C0 (0xAA0)
+    f32 Target_dir;          // 0x6B0 (0xA90)  facing during the jump
+    Vec Goto_pos;          // 0x6B4 (0xA94)  goto target (em39RouteCk overrides the player target)
+    u8 Goto_mode;            // 0x6C0 (0xAA0)
     u8 pad_6C1[3];
     struct EmiEntry* pGotoPoint;  // 0x6C4 (0xAA4)  EMI point the enemy sits / waits at
     class cEmDoor* pDoor; // 0x6C8 (0xAA8)  door the knife swing opens / breaks (em39DoorOpenCk)
@@ -78,7 +78,7 @@ struct Em39Work {
     void* bowMot2;        // 0x7B0 (0xB90)
     void* bowMot3;        // 0x7B4 (0xB94)
     u8 pad_7B8[0xC];
-    MotionWorkSub armMot;  // 0x7C4 (0xBA4)  tower form left arm motion (em39ArmControl)
+    MotionWorkSub Arm_mot;  // 0x7C4 (0xBA4)  tower form left arm motion (em39ArmControl)
     int stuckCnt;         // 0x894 (0xC74)  frames the enemy moved less than half of the intended distance
     int Hide_timer;             // 0x898 (0xC78)
     int Back_atk_wait;             // 0x89C (0xC7C)
@@ -86,22 +86,22 @@ struct Em39Work {
     int No_fire_timer;             // 0x8A4 (0xC84)
     u16 x8A8;             // 0x8A8 (0xC88)
     u8 pad_8AA[2];
-    u32 voiceId;          // 0x8AC (0xC8C)  em39SetVoice SndCall id
-    u32 sndId;            // 0x8B0 (0xC90)  Die_Normal stream request id
+    u32 Se_id;          // 0x8AC (0xC8C)  em39SetVoice SndCall id
+    u32 Str_seid;            // 0x8B0 (0xC90)  Die_Normal stream request id
     u8 Wep_type;              // 0x8B4 (0xC94)  weapon in hand (em39WepSet)
     u8 Route_type;              // 0x8B5 (0xC95)
     u8 Atk_ck;              // 0x8B6 (0xC96)  attack already hit
     u8 Act_ck;              // 0x8B7 (0xC97)  action button pressed (em39ActOn)
-    s16 speechTime;       // 0x8B8 (0xC98)  frames until the queued voice (em39SetSpeech)
-    u8 speechNo;          // 0x8BA (0xC9A)
+    s16 Speech_wait;       // 0x8B8 (0xC98)  frames until the queued voice (em39SetSpeech)
+    u8 Speech_se;          // 0x8BA (0xC9A)
     u8 Arm_rno;              // 0x8BB (0xC9B)
     u8 Arm_type;              // 0x8BC (0xC9C)  em39ArmControl arm pose
     u8 pad_8BD[3];
     int x8C0;             // 0x8C0 (0xCA0)  EMI appear point used last (-1 none)
     u8 Locate;              // 0x8C4 (0xCA4)  battle phase
-    u8 slantSide;         // 0x8C5 (0xCA5)
-    u8 espKind;           // 0x8C6 (0xCA6)  EspPullCoreKind at creation
-    u8 espKind2;          // 0x8C7 (0xCA7)
+    u8 Slant_type;         // 0x8C5 (0xCA5)
+    u8 EffKindId;           // 0x8C6 (0xCA6)  EspPullCoreKind at creation
+    u8 EffKindIdArrow;          // 0x8C7 (0xCA7)
 };
 
 #define EM39_WK(em) ((Em39Work*) &(em)->x3E0)

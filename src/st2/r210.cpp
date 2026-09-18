@@ -97,14 +97,14 @@ void R210Init()
         u32 flags = pG->flags_5018;
 
         if (flags & 0x04000000) {
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             SubCharCtrl(1, 0);
             pG->Item_find_flg &= ~0x80;
         }
     }
     if ((pG->System_flg & 0x100) == 0 && pG->room_id_prev == 0x222) {
         if ((pG->flags_51C0 & 0x40) == 0) {
-            SubCharInit(1, &pPL->pos, pPL->rot.y);
+            SubCharInit(1, &pPL->pos, pPL->ang.y);
             BitOn(pG->flags_5018, 0x04000000);
             if (pSUB) {
                 Vec v;
@@ -143,8 +143,8 @@ void R210Init()
         }
     }
     if (pSUB) {
-        U16And(pSUB->atari.flags, 0xEFFF);
-        BitOn16(pSUB->atari.flags, 0x2000);
+        U16And(pSUB->atari.m_flag, 0xEFFF);
+        BitOn16(pSUB->atari.m_flag, 0x2000);
     }
     SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r222_dai_go, 0, 1);
     SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r222_dai_ret, 0, 1);
@@ -188,7 +188,7 @@ static void funcAshley2(cEm* p)
         cAtariInfo* at = &pSUB->atari;
 
         at->throughOn();
-        p->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x27), 0x2D, 0x2D, 1, 0);
+        p->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x27), 0x2D, 0x2D, 1, 0);
         p->r_no_2 = 1;
         p->motSpeedRate = 0.2f;
     }
@@ -292,7 +292,7 @@ static void r222_dai_go()
 
         spd += (r210_daiRotGo - spd) * 0.1f;
         dz = spd * dist;
-        SmdGetObjPtr(0x20)->rot.x += spd;
+        SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
         FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
         pPL->pos.z += dz;
@@ -346,7 +346,7 @@ static void r222_dai_ret()
 
         spd += (r210_daiRotRet - spd) * 0.1f;
         dz = spd * dist;
-        SmdGetObjPtr(0x20)->rot.x += spd;
+        SmdGetObjPtr(0x20)->ang.x += spd;
         SmdGetObjPtr(0x21)->pos.z += dz;
         FAdd(SmdGetObjPtr(0x20)->pos.z, dz);
         pPL->pos.z += dz;
@@ -370,10 +370,10 @@ static void toroko_go(int dir)
     Vec pos;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     SmdGetObjPtr(0x1E)->be_flag &= ~2;
     SmdGetObjPtr(0x1F)->be_flag &= ~2;
     if (dir == 0) {
@@ -389,7 +389,7 @@ static void toroko_go(int dir)
     }
     SceEventStart(0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     SubCharCtrl(5, 0);
     {
@@ -414,11 +414,11 @@ static void toroko_go(int dir)
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
-    MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
     if (pSUB) {
-        MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 1, 0);
+        MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 1, 0);
     }
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
     SceSleep(115);
     SndCall(6, 3, &pPL->pos, 0, 0, 0);
     SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -432,7 +432,7 @@ static void toroko_go(int dir)
     SceEventEnd(0);
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     if (dir == 0) {
         SceAtDataReset(3);
         SceAtExecute(3);
@@ -458,10 +458,10 @@ static void toroko_ret(int dir)
     Vec pos;
 
     if (CheckDoorJumpWithAshley() == 0) {
-        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         return;
     }
-    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
+    obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), (Vec*) &vecZero, (Vec*) &vecZero, 0x10, 1);
     Vec ang = {0.0f, -0.07f, 0.0f};
     SmdGetObjPtr(0x1E)->be_flag &= ~2;
     SmdGetObjPtr(0x1F)->be_flag &= ~2;
@@ -474,7 +474,7 @@ static void toroko_ret(int dir)
     SceEventStart(0);
     SndStrReq(1, 0xE5, 0x80000003, 0, 0, 0.0f);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     SceSleep(1);
     SubCharCtrl(5, 0);
@@ -499,11 +499,11 @@ static void toroko_ret(int dir)
     if (pSUB) {
         pSUB->setNoSuspend(1);
     }
-    MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+    MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     if (pSUB) {
-        MotionSetCore(pSUB, &pSUB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x25), 0, 0, 1, 0);
+        MotionSetCore(pSUB, &pSUB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x25), 0, 0, 1, 0);
     }
-    obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 10, 0, 1, 0);
+    obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 1, 0);
     SceSleep(20);
     SndCall(6, 3, &pPL->pos, 0, 0, 0);
     SndCall(6, 4, &pPL->pos, 0, 0, 0);
@@ -519,7 +519,7 @@ static void toroko_ret(int dir)
     SceEventEnd(0);
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     if (dir == 0) {
         Vec p;
         Vec* pp = &p;
@@ -601,7 +601,7 @@ static void plemRide(cPlayer* pl)
     switch (pl->r_no_2) {
     case 0:
         pPL->setNoSuspend(1);
-        MotionSetCore(pPL, &pPL->mot, pl->pMotTbl[11], 0, 0, 0x201, 0);
+        MotionSetCore(pPL, &pPL->Motion, pl->pMotTbl[11], 0, 0, 0x201, 0);
         pl->r_no_2++;
         pl->r_no_3 = 0;
     case 1:

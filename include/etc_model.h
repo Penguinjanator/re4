@@ -23,7 +23,7 @@ struct EtcSetData {
         };
     };
     u8 pad_4[0x10 - 0x4];
-    Vec rot;         // 0x10
+    Vec ang;         // 0x10
     Vec pos;         // 0x1C
 };
 

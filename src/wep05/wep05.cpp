@@ -18,7 +18,7 @@ void Wep05_init(cModel* m)
         pLog->err(0, 0, "Wep05_init() wep model init failed.");
         return;
     }
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     obj->init(pl);
     obj->setMotion(pl);
     EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x39, 1);

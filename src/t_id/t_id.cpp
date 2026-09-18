@@ -257,11 +257,11 @@ void toolIdDrawSafeZone(IdTool* w)
 void toolIdSubMenuPosition(IdTool* w)
 {
     JOY* joy = &Joy[0];
-    if (joy->ssx != 0) {
-        w->menuX += (int) ((f32) joy->ssx / 10.0f);
+    if (joy->substickX != 0) {
+        w->menuX += (int) ((f32) joy->substickX / 10.0f);
     }
-    if (joy->ssy != 0) {
-        w->menuY -= (int) ((f32) joy->ssy / 10.0f);
+    if (joy->substickY != 0) {
+        w->menuY -= (int) ((f32) joy->substickY / 10.0f);
     }
 }
 

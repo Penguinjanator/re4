@@ -8,15 +8,15 @@
 // Option menu work (`OptScrn`, 0x14 bytes).
 class OptionScreen {
 public:
-    s8 mode;          // 0x00  0 top menu, 1 sub menu (cursor selects which)
-    s8 cursor;        // 0x01  top menu item: 0 retry/load, 1 controller, 2 brightness, 3 audio, 4 back
-    s8 sub;           // 0x02  sub menu cursor
-    s8 step;          // 0x03  sub menu state (retry/load: 1 confirm, 2 loading, 3 wait for the SE)
+    s8 _rno0;          // 0x00  0 top menu, 1 sub menu (cursor selects which)
+    s8 _rno1;        // 0x01  top menu item: 0 retry/load, 1 controller, 2 brightness, 3 audio, 4 back
+    s8 _rno2;           // 0x02  sub menu cursor
+    s8 _rno3;          // 0x03  sub menu state (retry/load: 1 confirm, 2 loading, 3 wait for the SE)
     s32 fromTitle;    // 0x04  init argument: 1 = opened from the title screen
-    u32 mesAttr;      // 0x08  MesSet attribute word (0x91 in game, 0x94 from the title)
-    s8 keyA;          // 0x0C  controller: pSys->flags bit 31
-    s8 keyB;          // 0x0D  controller: vibration (bit 27)
-    s8 keyC;          // 0x0E  controller: bit 26
+    u32 _msg_attr;      // 0x08  MesSet attribute word (0x91 in game, 0x94 from the title)
+    s8 m_reverse;          // 0x0C  controller: pSys->flags bit 31
+    s8 m_vibration;          // 0x0D  controller: vibration (bit 27)
+    s8 m_knife_key;          // 0x0E  controller: bit 26
     u8 pad_F;
     s8 sound;         // 0x10  audio: 0 stereo, 1 mono, 2 surround
     u8 pad_11[3];
@@ -48,7 +48,7 @@ public:
 class ChapterEnd {
 public:
     void* data;       // 0x00  chapter id archive
-    s32 chapter;      // 0x04
+    s32 _chapter;      // 0x04
     u8 pad_8[4];
 
     void init(void* data, u8 chapter);

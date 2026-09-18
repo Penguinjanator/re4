@@ -5,19 +5,19 @@
 #include "esp.h"
 
 struct Esp04Work {
-    Vec pos0;      // 0x00 initial position
-    u8 tileFlag;   // 0x0C bit0: repeat horizontally, bit1: repeat vertically (gen->xC8)
-    s8 randX;      // 0x0D random jitter in x (gen->xC9)
-    s8 randY;      // 0x0E random jitter in y (gen->xCA)
-    s8 alphaSpd;   // 0x0F alpha change per frame (gen->prm byte 0xCF)
-    u8 alphaWait;  // 0x10 frames before the alpha starts changing (gen->xCB)
+    Vec base_pos;      // 0x00 initial position
+    u8 flag;   // 0x0C bit0: repeat horizontally, bit1: repeat vertically (gen->xC8)
+    s8 rand_x;      // 0x0D random jitter in x (gen->xC9)
+    s8 rand_y;      // 0x0E random jitter in y (gen->xCA)
+    s8 a_rate;   // 0x0F alpha change per frame (gen->prm byte 0xCF)
+    u8 a_wait;  // 0x10 frames before the alpha starts changing (gen->xCB)
 };
 
 // Screen-space tiled texture (rain / dust overlay): a 2D quad grid drawn in an orthographic
 // projection; scrolls with pos and wraps around the 512x448 screen.
 class cEsp04 : public cEsp {
 public:
-    Esp04Work work;  // 0xF8
+    Esp04Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -38,24 +38,24 @@ cEsp* Esp04_Create()
 void cEsp04::move()
 {
     if (ColorUpdate()) {
-        if (life != 0 && life <= cnt) {
+        if (m_Life_max != 0 && m_Life_max <= m_Life_time) {
             PushEsp(this);
         } else {
-            cnt++;
-            func_tbl[x10](this);
+            m_Life_time++;
+            func_tbl[m_Rno2](this);
         }
     }
 }
 
 void move00(cEsp04* esp)
 {
-    esp->work.pos0 = esp->pos;
-    esp->x10 = 1;
+    esp->m_Free.base_pos = esp->m_Pos;
+    esp->m_Rno2 = 1;
 }
 
 void move10(cEsp04* esp)
 {
-    Esp04Work* w = &esp->work;
+    Esp04Work* w = &esp->m_Free;
     f32 v;
     f32 x;
     f32 y;
@@ -64,82 +64,82 @@ void move10(cEsp04* esp)
     // Wrap the position back into the screen. The original keeps the loaded coordinate (x/y)
     // and the loop variable (v) in separate registers, which GCC's cse only does when the
     // loaded variable's last mention is later than v's (see the trailing reloads below).
-    x = esp->pos.x;
+    x = esp->m_Pos.x;
     v = x;
     lim = 512.0f;
     if (x >= lim) {
         while (v >= 0.0f) {
-            esp->pos.x = v - esp->sizeX;
-            v = esp->pos.x;
+            esp->m_Pos.x = v - esp->m_Size_base_x;
+            v = esp->m_Pos.x;
         }
-    } else if (x < -esp->sizeX) {
-        if (x < lim - esp->sizeX) {
+    } else if (x < -esp->m_Size_base_x) {
+        if (x < lim - esp->m_Size_base_x) {
             v = x;
-            while (v < lim - esp->sizeX) {
-                v += esp->sizeX;
+            while (v < lim - esp->m_Size_base_x) {
+                v += esp->m_Size_base_x;
             }
-            esp->pos.x = v;
+            esp->m_Pos.x = v;
         }
     }
-    y = esp->pos.y;
+    y = esp->m_Pos.y;
     v = y;
     lim = 448.0f;
     if (y >= lim) {
         while (v >= 0.0f) {
-            esp->pos.y = v - esp->sizeY;
-            v = esp->pos.y;
+            esp->m_Pos.y = v - esp->m_Size_base_y;
+            v = esp->m_Pos.y;
         }
-    } else if (y < -esp->sizeY) {
-        if (y < lim - esp->sizeX) {
+    } else if (y < -esp->m_Size_base_y) {
+        if (y < lim - esp->m_Size_base_x) {
             // The original's loop step lives in f0 and its `v = y` copy is issued after the
             // hoisted step/bound copies (y stays live past it, so the loop bound cannot take
             // y's f12): value pin + keep-alive.
             register f32 s asm("fr0");  // COMPILER-DIFF: #17 (FPR value pin)
-            s = esp->sizeY;
+            s = esp->m_Size_base_y;
             v = y;
-            while (v < lim - esp->sizeX) {
+            while (v < lim - esp->m_Size_base_x) {
                 v += s;
             }
-            esp->pos.y = v;
-            asm("" : "=m"(esp->pos.y) : "f"(y));  // COMPILER-DIFF: #13 (keep-alive)
+            esp->m_Pos.y = v;
+            asm("" : "=m"(esp->m_Pos.y) : "f"(y));  // COMPILER-DIFF: #13 (keep-alive)
         }
     }
-    x = esp->pos.x;  // dead: keeps x/y alive past v for cse (see above)
-    y = esp->pos.y;
+    x = esp->m_Pos.x;  // dead: keeps x/y alive past v for cse (see above)
+    y = esp->m_Pos.y;
 
-    if (w->randX != 0) {
-        esp->pos.x = w->pos0.x + (Rnd() % (w->randX * 2)) - (f32)w->randX;
-        if (esp->pos.x < -esp->sizeX) {
-            esp->pos.x += esp->sizeX + 512.0f;
+    if (w->rand_x != 0) {
+        esp->m_Pos.x = w->base_pos.x + (Rnd() % (w->rand_x * 2)) - (f32)w->rand_x;
+        if (esp->m_Pos.x < -esp->m_Size_base_x) {
+            esp->m_Pos.x += esp->m_Size_base_x + 512.0f;
         }
-        if (esp->pos.x > esp->sizeX + 512.0f) {
-            esp->pos.x -= esp->sizeX + 512.0f;
+        if (esp->m_Pos.x > esp->m_Size_base_x + 512.0f) {
+            esp->m_Pos.x -= esp->m_Size_base_x + 512.0f;
         }
     }
-    if (w->randY != 0) {
-        esp->pos.y = w->pos0.y + (Rnd() % (w->randY * 2)) - (f32)w->randY;
-        if (esp->pos.y < -esp->sizeY) {
-            esp->pos.y += esp->sizeY + 448.0f;
+    if (w->rand_y != 0) {
+        esp->m_Pos.y = w->base_pos.y + (Rnd() % (w->rand_y * 2)) - (f32)w->rand_y;
+        if (esp->m_Pos.y < -esp->m_Size_base_y) {
+            esp->m_Pos.y += esp->m_Size_base_y + 448.0f;
         }
-        if (esp->pos.y > esp->sizeY + 448.0f) {
-            esp->pos.y -= esp->sizeY + 448.0f;
+        if (esp->m_Pos.y > esp->m_Size_base_y + 448.0f) {
+            esp->m_Pos.y -= esp->m_Size_base_y + 448.0f;
         }
     }
 
-    if (w->alphaWait != 0) {
-        w->alphaWait--;
+    if (w->a_wait != 0) {
+        w->a_wait--;
     } else {
-        if (w->alphaSpd > 0) {
-            if ((int)esp->colA + w->alphaSpd > 255) {
-                esp->colA = 255.0f;
+        if (w->a_rate > 0) {
+            if ((int)esp->m_Col_a + w->a_rate > 255) {
+                esp->m_Col_a = 255.0f;
             } else {
-                esp->colA += (f32)w->alphaSpd;
+                esp->m_Col_a += (f32)w->a_rate;
             }
-        } else if (w->alphaSpd < 0) {
-            if ((int)esp->colA + w->alphaSpd < 0) {
-                esp->colA = 0.0f;
+        } else if (w->a_rate < 0) {
+            if ((int)esp->m_Col_a + w->a_rate < 0) {
+                esp->m_Col_a = 0.0f;
             } else {
-                esp->colA += (f32)w->alphaSpd;
+                esp->m_Col_a += (f32)w->a_rate;
             }
         }
     }
@@ -150,7 +150,7 @@ void move10(cEsp04* esp)
 
 extern "C" void Esp04_Trans(cEsp04* esp)
 {
-    Esp04Work* w = &esp->work;
+    Esp04Work* w = &esp->m_Free;
     EspAnmData* anm;
     Mtx44 proj;
     int sx;
@@ -166,17 +166,17 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     f32 uw;
     s16 z;
 
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
         return;
     }
     z = 0;
-    PSMTXIdentity(esp->mat);
+    PSMTXIdentity(esp->m_Mat);
     C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
     GXSetProjection(proj, 1);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Type, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -186,13 +186,13 @@ extern "C" void Esp04_Trans(cEsp04* esp)
     GXSetVtxAttrFmt(0, 9, 1, 3, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
 
-    sx = (int)esp->sizeX;
-    sy = (int)esp->sizeY;
+    sx = (int)esp->m_Size_base_x;
+    sy = (int)esp->m_Size_base_y;
     u = 0.0f;
     uw = 1.0f;
-    if (w->tileFlag & 1) {
+    if (w->flag & 1) {
         nx = 542 / sx + 2;
-        x = (s16)esp->pos.x;
+        x = (s16)esp->m_Pos.x;
         if (sx != 0) {
             while (x > 0) {
                 x -= sx;
@@ -200,11 +200,11 @@ extern "C" void Esp04_Trans(cEsp04* esp)
         }
     } else {
         nx = 1;
-        x = (s16)esp->pos.x;
+        x = (s16)esp->m_Pos.x;
     }
-    if (w->tileFlag & 2) {
+    if (w->flag & 2) {
         ny = 448 / sy + 2;
-        y = (s16)esp->pos.y;
+        y = (s16)esp->m_Pos.y;
         if (sy != 0) {
             while (y > 0) {
                 y -= sy;
@@ -212,7 +212,7 @@ extern "C" void Esp04_Trans(cEsp04* esp)
         }
     } else {
         ny = 1;
-        y = (s16)esp->pos.y;
+        y = (s16)esp->m_Pos.y;
     }
     for (j = 0; j < ny; j++) {
         xx = x;
@@ -234,20 +234,20 @@ extern "C" void Esp04_Trans(cEsp04* esp)
 
 int cEsp04::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp04Work* w = &work;
+    Esp04Work* w = &m_Free;
 
-    w->tileFlag = gen->xC8;
-    w->randX = gen->xC9;
-    w->randY = gen->xCA;
-    w->alphaWait = gen->xCB;
-    w->alphaSpd = gen->prm.b.xCF;
-    if (sizeX < 0.1f) {
-        sizeX = 0.1f;
+    w->flag = gen->xC8;
+    w->rand_x = gen->xC9;
+    w->rand_y = gen->xCA;
+    w->a_wait = gen->xCB;
+    w->a_rate = gen->prm.b.xCF;
+    if (m_Size_base_x < 0.1f) {
+        m_Size_base_x = 0.1f;
     }
-    if (sizeY < 0.1f) {
-        sizeY = 0.1f;
+    if (m_Size_base_y < 0.1f) {
+        m_Size_base_y = 0.1f;
     }
-    if (!((s8)partsNo >= -8 && (s8)partsNo <= -3)) {
+    if (!((s8)m_Parts_no >= -8 && (s8)m_Parts_no <= -3)) {
         pLog->warn(0, 0, "ESP04: Parent is no SCREEN.");
     }
     return 1;

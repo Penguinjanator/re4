@@ -81,13 +81,13 @@ void RenderTexRenderMgr(TexRenderMng* m)
 {
     u32 ofs, w, h;
 
-    if (m->sx == 0xE0) {
-        ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
+    if (m->m_W_size == 0xE0) {
+        ofs = (u32) ((f32) m->m_H_size * 2.0f / 0.875f - (f32) m->m_W_size * 2.0f);
     } else {
-        ofs = (m->sx >> 2) + (m->sx >> 4);
+        ofs = (m->m_W_size >> 2) + (m->m_W_size >> 4);
     }
-    w = m->sx * 2 + ofs;
-    h = m->sy * 2;
+    w = m->m_W_size * 2 + ofs;
+    h = m->m_H_size * 2;
 
     if (w > 0x280) {
         pLog->err(0, 0, "RenderTexRenderMgr:: Invalid SX[%d]", w);
@@ -98,7 +98,7 @@ void RenderTexRenderMgr(TexRenderMng* m)
         h = 0x210;
     }
     EFBReSize(w, h);
-    GXSetScissor(ofs >> 1, 0, m->sx << 1, m->sy << 1);
+    GXSetScissor(ofs >> 1, 0, m->m_W_size << 1, m->m_H_size << 1);
 }
 
 void CopyTexRenderMgr(TexRenderMng* m)
@@ -112,17 +112,17 @@ void CopyTexRenderMgr(TexRenderMng* m)
 
         GXSetCopyFilter(0, rmode->sample_pattern, 0, vfilter);
         GXSetAlphaUpdate(1);
-        if (m->sx == 0xE0) {
-            ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
+        if (m->m_W_size == 0xE0) {
+            ofs = (u32) ((f32) m->m_H_size * 2.0f / 0.875f - (f32) m->m_W_size * 2.0f);
         } else {
-            ofs = (m->sx >> 2) + (m->sx >> 4);
+            ofs = (m->m_W_size >> 2) + (m->m_W_size >> 4);
         }
         // The original reloads m->sx and m->sy here in both paths: a memory kill at the top of the
         // join block makes neither load anticipatable, so gcse does not PRE the if-arm's m->sy
         // load into the else arm (an empty asm keeps the two conversion paths' jumps on the join).
         asm volatile("" : : : "memory");
-        w = m->sx * 2;
-        h = m->sy * 2;
+        w = m->m_W_size * 2;
+        h = m->m_H_size * 2;
         if (w > 0x280) {
             pLog->err(0, 0, "CopyTexRenderMgr:: Invalid SX[%d]", w);
             w = 0x280;
@@ -132,13 +132,13 @@ void CopyTexRenderMgr(TexRenderMng* m)
             h = 0x210;
         }
         GXSetTexCopySrc(ofs >> 1, 0, w, h);
-        GXSetTexCopyDst(m->sx, m->sy, 6, 1);
+        GXSetTexCopyDst(m->m_W_size, m->m_H_size, 6, 1);
         GXCopyTex(m->buf, 1);
         GXSetAlphaUpdate(0);
         GXSetCopyFilter(rmode->aa, rmode->sample_pattern, 1, rmode->vfilter);
         GXPixModeSync();
         GXInvalidateTexAll();
-        switch (m->repType) {
+        switch (m->m_Rep_type) {
         case 1:
             wrap = 1;
             break;
@@ -150,12 +150,12 @@ void CopyTexRenderMgr(TexRenderMng* m)
             break;
         default:   // its own `wrap = 2` (cross-jumped into case 0): with a fallthrough the err block's
                    // string `lis` gains an anti-dependence on the call and is scheduled before `lwz pLog`
-            pLog->err(0, 0, "TexRenderMng:: Invalid REPTYPE[%d]", m->repType);
+            pLog->err(0, 0, "TexRenderMng:: Invalid REPTYPE[%d]", m->m_Rep_type);
             wrap = 2;
             break;
         }
-        GXInitTexObj(&m->texObj, m->buf, m->sx, m->sy, 6, wrap, wrap, 0);
-        GXInitTexObjLOD(&m->texObj, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
+        GXInitTexObj(&m->m_Tex_obj, m->buf, m->m_W_size, m->m_H_size, 6, wrap, wrap, 0);
+        GXInitTexObjLOD(&m->m_Tex_obj, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
         g_draw = 1;
     }
     if (m == &g_RndMgr[g_RndMgrNum - 1]) {
@@ -196,15 +196,15 @@ void TexRenderMng::Init()
     texId = 0;
     x29 = 0;
     mask = 0;
-    sx = 0x80;
-    sy = 0x80;
-    repType = 0;
+    m_W_size = 0x80;
+    m_H_size = 0x80;
+    m_Rep_type = 0;
 }
 
 int TexRenderMng::AllocBuf()
 {
 #line 323 "D:/Bio4/Prog/TexRender.cpp"
-    buf = MEM_ALLOC(sx * sy * 4, 1, 13);
+    buf = MEM_ALLOC(m_W_size * m_H_size * 4, 1, 13);
     if (buf == NULL) {
         pLog->err(0, 0, "TexRenderMng::AllocBuf() : not enough memory");
         return 0;
@@ -227,11 +227,11 @@ void TexRenderInit(TexRenderMng** out, int size, int repType)
     }
     if (size != 0) {
         TexRenderMng* m = *out;
-        m->sx = size;
-        m->sy = size;
+        m->m_W_size = size;
+        m->m_H_size = size;
         (*out)->ReAllocBuf();
     }
-    (*out)->repType = repType;
+    (*out)->m_Rep_type = repType;
 }
 
 void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepBlendType, int keepRefrect, int keepD6, int keep12C, f32 alpha)
@@ -250,7 +250,7 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
     tbl[1] = 0;
     tbl[4] = 0xF7;
     tbl[5] = mgr->texId;
-    info = GetModelInfoAddr(m->pInfo, parts);
+    info = GetModelInfoAddr(m->pModelInfo, parts);
     if (info != NULL) {
         info->be_flag |= 8;
         info->setTexBlendTbl(tbl);
@@ -272,7 +272,7 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
     if (keep12C == 0) {
         m->z_mode = 2;
     }
-    m->alpha = alpha;
+    m->invisible_factor = alpha;
 }
 
 void TexRenderModRes(cModel* m)
@@ -284,7 +284,7 @@ void TexRenderModRes(cModel* m)
         pLog->err(0, 0, "TexRenderModRes() : failed!!");
         return;
     }
-    info = GetModelInfoAddr(m->pInfo, parts);
+    info = GetModelInfoAddr(m->pModelInfo, parts);
     if (info != NULL) {
         info->be_flag &= ~8;
         info->setBlendRatio(0);
@@ -323,7 +323,7 @@ void TexRenderModAddOtMirror(int ot, cModel* m)
         u8 c = 0xFF;
         m->AddAmb_b = m->AddAmb_g = m->AddAmb_r = c;
     }
-    m->alpha = 0.4f;
+    m->invisible_factor = 0.4f;
 }
 
 void TexRenderCamAddOt(int ot, TexRenderCam* pWk, TexRenderEvt* evt, void* data)
@@ -358,8 +358,8 @@ void CamRenderPrev(TexRenderCam* pWk)
     pWk->pCam->move();
     pWk->save = pG->Cam;
     pGS->Cam = *pWk->pCam;
-    C_MTXPerspective(pGS->Cam.projMat, pGS->Cam.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
-    C_MTXLookAt(pG->Cam.viewMat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
+    C_MTXPerspective(pGS->Cam.ProjMat, pGS->Cam.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
+    C_MTXLookAt(pG->Cam.v_mat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
 }
 
 void CamRenderAfter(TexRenderCam* pWk)

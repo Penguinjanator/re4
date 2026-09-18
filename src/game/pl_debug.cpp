@@ -159,9 +159,9 @@ void satMakeTest(cPlayer* pl)
                 SatMgr.destroy(pS0);   // on the object: devirtualised `bl destroy__7cSatMgrP4cSat`
                 pS0 = 0;
             }
-            RotVector(&z0, &pl->rot, &pos);
+            RotVector(&z0, &pl->ang, &pos);
             PSVECAdd(&pos, &pl->pos, &pos);
-            pS0 = sat->create(&pos, &pl->rot, quad, 0, 0x200, 0.0f);
+            pS0 = sat->create(&pos, &pl->ang, quad, 0, 0x200, 0.0f);
         }
     }
 }
@@ -173,16 +173,16 @@ void localCoordTest(cPlayer* pl)
         static u16 pl_db_parts_no = 0;
         Mtx m;
 
-        vpos.x += (f32) Joy[2].sx / 100.0f;
-        vpos.y += (f32) Joy[2].sy / 100.0f;
-        vpos.z = vpos.z + (f32) Joy[2].trigR / 200.0f - (f32) Joy[2].trigL / 200.0f;
+        vpos.x += (f32) Joy[2].stickX / 100.0f;
+        vpos.y += (f32) Joy[2].stickY / 100.0f;
+        vpos.z = vpos.z + (f32) Joy[2].triggerRight / 200.0f - (f32) Joy[2].triggerLeft / 200.0f;
         if (Joy[0].trg & JOY_Y) {
             pl_db_parts_no++;
         }
         if (Joy[0].trg & JOY_X) {
             pl_db_parts_no--;
         }
-        PSMTXConcat(pG->Cam.viewMat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
+        PSMTXConcat(pG->Cam.v_mat, pl->getPartsPtr(pl_db_parts_no)->mat, m);
         Draw_local_pos(&vpos, 1000, m);
         eprintf(40, 100, 0, 0, "%5.2f", vpos.x);
         eprintf(40, 116, 0, 0, "%5.2f", vpos.y);

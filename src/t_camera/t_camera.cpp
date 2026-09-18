@@ -102,8 +102,8 @@ void ToolCamera()
                     tcPlayerMove();
                     CameraMove();
                     LightMgr.move();
-                    PTC->x634 = CamCtrl.camera_no;
-                    PTC->x635 = CamCtrl.area_no;
+                    PTC->x634 = CamCtrl.cameraNo;
+                    PTC->x635 = CamCtrl.areaNo;
                     PTC->x636 = CamCtrl.areaSuffix;
                     tcGameCamera2ToolCamera();
                 }
@@ -174,8 +174,8 @@ static void tcInit()
     PTC->cdatNo = -1;
     PTC->adatNo = -1;
     PTC->x5E1 = -1;
-    PTC->x634 = CamCtrl.camera_no;
-    PTC->x635 = CamCtrl.area_no;
+    PTC->x634 = CamCtrl.cameraNo;
+    PTC->x635 = CamCtrl.areaNo;
     PTC->x636 = CamCtrl.areaSuffix;
     if (CamCtrl.data) {
         if (cameraDataVersion((char*) CamCtrl.data) > 1) {
@@ -1040,7 +1040,7 @@ void tcAdatInit(TcAdat* a, int area_no, int cam_no)
     poly->pt[3].x = -2000.0f;
     pos = pPL->pos;
     PSMTXIdentity(m);
-    PSMTXRotAxisRad(m, &axis, pPL->rot.y);
+    PSMTXRotAxisRad(m, &axis, pPL->ang.y);
     PSMTXTransApply(m, m, pos.x, pos.y, pos.z);
     // COMPILER-DIFF: tie -- the phony do-while doubles the body's REG_N_REFS (the pt pointer giv then takes
     // r31 ahead of `a`/`poly`); the increment must sit INSIDE it so that its `addi` is not pinned behind
@@ -1658,9 +1658,9 @@ void tcEdit_camera_qfps()
         break;
     case 6:
         if (oldRet != 6) {
-            CamCtrl.sub_state = 0;
+            CamCtrl.r1 = 0;
         }
-        CamCtrl.state = 10;
+        CamCtrl.r0 = 10;
         CamCtrl.Move();
         PTC->cam = CamCtrl.camera;
         break;
@@ -2545,7 +2545,7 @@ void tcCameraCopyPoint(TcCdat* c)
         // both arms: `v.x >= 0` test first, a shared `p` and one `x627++` behind `goto skip` -- the
         // layout jump2 needs to cross-jump A2 into B1 and B2 into A1 (four per-arm copies leave 13 words)
         if (i - 1 >= 0) {
-            PSMTXMultVec(pG->Cam.viewMat, &c->at[i - 1], &v);
+            PSMTXMultVec(pG->Cam.v_mat, &c->at[i - 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
                 if (p->x629 != 0) {
@@ -2559,7 +2559,7 @@ void tcCameraCopyPoint(TcCdat* c)
             }
             p->x627++;
         } else {
-            PSMTXMultVec(pG->Cam.viewMat, &c->at[i + 1], &v);
+            PSMTXMultVec(pG->Cam.v_mat, &c->at[i + 1], &v);
             if (v.x >= 0.0f) {
                 p = PTC;
                 if (p->x629 == 0) {
@@ -2613,9 +2613,9 @@ void tcDrawOffset()
         Vec a;
         Vec b;
         cc->CalcAim((CameraCut*) c);
-        a = cc->aim;
+        a = cc->Aim;
         a.y = 0.0f;
-        b = cc->aim;
+        b = cc->Aim;
         tcDrawLine3D(&pPL->pos, &a, 0x202080FF);
         tcDrawLine3D(&a, &b, 0x202080FF);
         tcDrawSphere(&b, 0x202080FF, 100.0f);
@@ -2933,9 +2933,9 @@ void tcToolCameraMove(Camera* cam)
 
     if (TC_ON & 0x60) {
         if (TC_ON & 0x20) {
-            z = (f32) -(int) PTC->joy.trigR;
+            z = (f32) -(int) PTC->joy.triggerRight;
         } else {
-            z = (f32) PTC->joy.trigL;
+            z = (f32) PTC->joy.triggerLeft;
         }
         z *= tcDollySpeed;
         switch (CameraGetProjection()) {
@@ -2960,29 +2960,29 @@ void tcToolCameraMove(Camera* cam)
             break;
         }
     }
-    if (PTC->joy.ssx) {
-        d.x = (f32) PTC->joy.ssx * 5.0f;
+    if (PTC->joy.substickX) {
+        d.x = (f32) PTC->joy.substickX * 5.0f;
     }
-    if (PTC->joy.ssy) {
-        d.y = (f32) PTC->joy.ssy * 5.0f;
+    if (PTC->joy.substickY) {
+        d.y = (f32) PTC->joy.substickY * 5.0f;
     }
     if (d.x != 0.0f || d.y != 0.0f || d.z != 0.0f) {
         PSMTXMultVecSR(cam->mat, &d, &d);
         CameraDolly(cam, &d);
     }
-    if (PTC->joy.sx) {
+    if (PTC->joy.stickX) {
         Vec axis = {0.0f, 1.0f, 0.0f};
         if (PTC->x62F) {
-            CameraRotAxisPosRad(cam, &axis, &cam->param.pos, (f32) PTC->joy.sx / 20.0f * 0.017453292f);
+            CameraRotAxisPosRad(cam, &axis, &cam->param.pos, (f32) PTC->joy.stickX / 20.0f * 0.017453292f);
         } else {
-            CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) PTC->joy.sx / 20.0f * 0.017453292f);
+            CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) PTC->joy.stickX / 20.0f * 0.017453292f);
         }
     }
-    if (PTC->joy.sy) {
+    if (PTC->joy.stickY) {
         if (PTC->x62F) {
-            CameraTargetRot(cam, 'x', (f32) PTC->joy.sy / -20.0f * 0.017453292f);
+            CameraTargetRot(cam, 'x', (f32) PTC->joy.stickY / -20.0f * 0.017453292f);
         } else {
-            CameraCamposRot(cam, 'x', (f32) PTC->joy.sy / -20.0f * 0.017453292f);
+            CameraCamposRot(cam, 'x', (f32) PTC->joy.stickY / -20.0f * 0.017453292f);
         }
     }
     CameraDrawTarget(cam, 1);

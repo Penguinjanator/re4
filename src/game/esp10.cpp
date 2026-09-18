@@ -60,22 +60,22 @@ int cEsp10::SetFreeWork(EspGenWork* gen, u32* seed)
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    FSet(pos.y, getFloor_attr(&pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->xDC);
+    FSet(m_Pos.y, getFloor_attr(&m_Pos, &attr, 0, 600.0f, 100000.0f) + 65.0f + gen->xDC);
     if ((pG->flags_64 & 0x00800000) && !(pG->flags_60 & 0x00010000)) {
-        pos.y = 0.0f;
+        m_Pos.y = 0.0f;
     }
     switch ((s8)gen->xCB) {
     case 0:
         break;
     case 1:
-        if (EffAreaCheckInRoom(&pos) == 1) {
+        if (EffAreaCheckInRoom(&m_Pos) == 1) {
             PushEsp(this);
         }
         break;
     case 2:
-        if (GetWaterHeight(&pos, &h)) {
-            if (pos.y < h + gen->xDC) {
-                pos.y = h + gen->xDC;
+        if (GetWaterHeight(&m_Pos, &h)) {
+            if (m_Pos.y < h + gen->xDC) {
+                m_Pos.y = h + gen->xDC;
             }
         }
         break;

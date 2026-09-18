@@ -187,9 +187,9 @@ void R21dInit()
     if (pG->room_id_prev == 0x225 && flagBit(pG->System_flg, 0x100) == 0 && flagBit(pG->System_flg, 0x80000) == 0) {
         SceExec(0x12, (TaskFunc) r21d_moveGrave, 0, 0, 2, 0);
     }
-    PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0,
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24),
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26));
+    PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0,
+                   ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24),
+                   ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26));
     SceExec(0x12, (TaskFunc) r21d_checkBgmPlay, 0, 0, 2, 0);
 }
 
@@ -489,9 +489,9 @@ void r21d_onSwitch(int no, int init)
             }
         }
         EstSet(0, -1, 0, 0, 1, (u8) lightB, 1, r21d_work.p->eff, 0, 0);
-        obj->pInfo->flagsDC |= 1;
-        obj->pInfo->uvScrollU = 0.01677f;
-        obj->pInfo->uvScrollV = 0.01343f;
+        obj->pModelInfo->flagsDC |= 1;
+        obj->pModelInfo->uvScrollU = 0.01677f;
+        obj->pModelInfo->uvScrollV = 0.01343f;
         LightMgr.onKind((u8) kind);
         if (init == 0) {
             cLight* l = LightMgr.getKindLight((u8) kind);
@@ -579,7 +579,7 @@ static void r21d_operateSwitch(int no)
         break;
     }
     SceAtSetEnable(atNo, 0);
-    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 0:
@@ -712,7 +712,7 @@ void r21d_moveFence()
 // Area 0x13: the fence switch.
 static void r21d_checkFence()
 {
-    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 0:
@@ -857,7 +857,7 @@ void TRAP::stop(int v)
             pPL->dmg.set(0, 0x80);                                                             \
             pPL->setNoSuspend(1);                                                              \
             ((cUnitEventView*) pPL)->beginEvent(0);                                            \
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 0x101, 0);                 \
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 0x101, 0);                 \
             DiedemoExec(30, 0);                                                                \
         }                                                                                      \
     }
@@ -1009,7 +1009,7 @@ static void r21d_checkDeathTrapSwitch_end()
 // Area 0x15: the lever that stops the pistons of the second switch.
 static void r21d_checkDeathTrapSwitch()
 {
-    SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 0:
@@ -1066,14 +1066,14 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r21d_work.p->tex->texId;
-        r21d_work.p->tex->repType = 1;
+        r21d_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0x12, r21d_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(4);
-    obj->pInfo->xD6 = 1;
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
+    obj->pModelInfo->xD6 = 1;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
 }

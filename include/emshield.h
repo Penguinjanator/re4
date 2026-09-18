@@ -8,12 +8,12 @@
 
 // Work of the shield enemy (game/emshield.cpp), overlaid on cEm from 0x3E0.
 struct EmShieldWork {
-    u32 flags;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: hidden
-    int timer;            // 0x004 (0x3E4)
+    u32 Be_flg;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: hidden
+    int Timer;            // 0x004 (0x3E4)
     u8 pad_8[0x1C - 0x8];
     int hitCnt;           // 0x01C (0x3FC)  hits left before the next plank breaks off (Rnd() % 3 + 2)
     int breakCnt;         // 0x020 (0x400)  planks broken off so far (4 = the shield is destroyed)
-    int fallTimer;        // 0x024 (0x404)  emShield_R1_Parent: frames until setFall
+    int Fall_wait;        // 0x024 (0x404)  emShield_R1_Parent: frames until setFall
     cModel* pParent;      // 0x028 (0x408)  model the shield follows (setParent)
     cModel* pOldParent;   // 0x02C (0x40C)  parent before setFall (landing sound owner)
     int partsNo;          // 0x030 (0x410)
@@ -21,12 +21,12 @@ struct EmShieldWork {
     int x38;              // 0x038 (0x418)  -1
     u8 pad_3C[4];
     Vec effOfs;           // 0x040 (0x420)  looping effect offset in parts effParts
-    u8 effParts;          // 0x04C (0x42C)  0xFF = none
+    u8 always2_parts;          // 0x04C (0x42C)  0xFF = none
     u8 pad_4D;
     u16 effWait;          // 0x04E (0x42E)  frames between the looping effect restarts
     u16 effTimer;         // 0x050 (0x430)
     u8 pad_52[2];
-    f32 gravity;          // 0x054 (0x434)  setFall first argument (20)
+    f32 Gravity;          // 0x054 (0x434)  setFall first argument (20)
     Vec pt[3];            // 0x058 (0x438)  node speeds kept between frames (setFall initialises them)
     u8 pad_7C[0x88 - 0x7C];
     u8 seFall[3];         // 0x088 (0x468)  blk, no, id of the landing sound (0xFF = none)

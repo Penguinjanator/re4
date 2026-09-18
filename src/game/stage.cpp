@@ -229,20 +229,20 @@ void readEmList(int mode)
     no = checkEmListNo(G_ROOM_ID);
     if (no >= 0) {
         GlobalWork* g = pG;
-        if (no > g->emlist_no || (g->System_flg & 0x2000) || g->game_mode == 3 ||
-            ((s32) g->flags_68 < 0 && g->emlist_no != no)) {
+        if (no > g->em_list_no || (g->System_flg & 0x2000) || g->game_mode == 3 ||
+            ((s32) g->flags_68 < 0 && g->em_list_no != no)) {
             name = getEmListName(no);
-            pG->emlist_no = no;
+            pG->em_list_no = no;
         }
     }
     if (name != NULL) {
 #line 296 "D:/Bio4/Prog/stage.cpp"
-        req = DvdReadN(name, pG->emlist, 0, 0, 0, mode | 0x10, __FILE__, __LINE__);
+        req = DvdReadN(name, pG->Em_list, 0, 0, 0, mode | 0x10, __FILE__, __LINE__);
         while (Dvd.ReadCheck(req, &result, 0, 0) != 1) {
             TaskSleep(1);
         }
         if (result == 0) {
-            memclr_asm(pG->emlist, 0x2000);
+            memclr_asm(pG->Em_list, 0x2000);
         }
     }
 }
@@ -378,9 +378,9 @@ void subMissionSt1()
             }
             for (j = 0; j <= 1; j++) {
                 u = IdSys.unitPtr(base + j, 0x33);
-                u->flags |= 0x8;
+                u->be_flag |= 0x8;
                 u->tex_flag |= 0x2;
-                u->no = digit[j];
+                u->texNo = digit[j];
             }
         }
     }

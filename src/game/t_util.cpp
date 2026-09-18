@@ -30,7 +30,7 @@ void TutilInitDefault()
     view.rect.h = Screen.height;
     view.nearz = 0.0f;
     view.farz = 1.0f;
-    TprimInitEnv2D3D(&view, pG->Cam.projMat, pG->Cam.viewMat);
+    TprimInitEnv2D3D(&view, pG->Cam.ProjMat, pG->Cam.v_mat);
     globalCamera = pG->Cam;
     system_flg_bak = TOOL_FLAG(OFS_SYSTEM_FLG);
     stop_flg_bak = TOOL_FLAG(OFS_STOP_FLG);
@@ -115,10 +115,10 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
     }
     for (i = 0; i < num; i++) {
         color = 0x14;
-        if (p->enable) {
+        if (p->Be_flg) {
             color = 0;
         }
-        eprintf(x, y + i * 16, color, 0, "%s", p->name);
+        eprintf(x, y + i * 16, color, 0, "%s", p->pName);
         p++;
     }
     if (flicker & 0x18) {
@@ -129,9 +129,9 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
         *cursor = cursor_s;
     }
     p = &menu[cursor_s];
-    if ((joy->trg & JOY_A) && p->enable) {
-        if (p->func != NULL) {
-            p->func();
+    if ((joy->trg & JOY_A) && p->Be_flg) {
+        if (p->pFunc != NULL) {
+            p->pFunc();
         }
         ret = cursor_s;
         cursor_s = 0;

@@ -45,7 +45,7 @@ static void em24_R0_Die(cEm24* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -109,7 +109,7 @@ void em24DmCk(cEm24* em)
             return;
         }
         SndCall(8, 8, &em->pos, em->id, 0, em);
-        if (w->flags & 0x20) {
+        if (w->Be_flg & 0x20) {
             EmDmBloodSet2(em, 0x1C, 2, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x1C, 0, 0, 0, 0);
@@ -146,7 +146,7 @@ void cEm24::move()
     f32 spd;
 
     em24DmCk(this);
-    w->flags &= ~4;
+    w->Be_flg &= ~4;
     Em24_R0_move_tbl[r_no_0](this);
     if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
@@ -154,15 +154,15 @@ void cEm24::move()
     }
     em24SlopeMove(this);
     partsWorldCalc();
-    w->flags &= ~0x20;
-    if (w->flags & 0x10) {
+    w->Be_flg &= ~0x20;
+    if (w->Be_flg & 0x10) {
         return;
     }
-    spd = SQRTF((oldPos.x - pos.x) * (oldPos.x - pos.x) + (oldPos.z - pos.z) * (oldPos.z - pos.z));
+    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
     EmAtCheck(this);
     atari.move();
     if (hp > 0) {
-        if (w->flags & 4) {
+        if (w->Be_flg & 4) {
             SatMgr.checkAir(this, 0);
         } else {
             f32 wh;
@@ -170,13 +170,13 @@ void cEm24::move()
             pos.y = SatMgr.getFloor(&pos, 600.0f, 100000.0f, 0, 0);
             if (GetWaterHeight(&pos, &wh)) {
                 if (pos.y < wh) {
-                    w->flags |= 0x20;
+                    w->Be_flg |= 0x20;
                     pos.y = wh;
                     if (hp > 0) {
-                        if (w->splashTimer) {
-                            w->splashTimer--;
+                        if (w->Water_eff_wait) {
+                            w->Water_eff_wait--;
                         } else {
-                            w->splashTimer = 2;
+                            w->Water_eff_wait = 2;
                             EstSet((int) this, -1, 0, 0, 0x1C, 4, 0, 0, (u32) this, 0);
                         }
                     }
@@ -185,10 +185,10 @@ void cEm24::move()
             SatMgr.checkAir(this, 0);
         }
     }
-    if (SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z)) < spd * 0.5f) {
-        w->stuckCnt++;
+    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
+        w->HoseiCnt++;
     } else {
-        w->stuckCnt = 0;
+        w->HoseiCnt = 0;
     }
 }
 
@@ -216,7 +216,7 @@ static void em24_R0_Init(cEm24* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 1000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     at = &em->atari;
     em->lockParts = zero;
@@ -234,9 +234,9 @@ static void em24_R0_Init(cEm24* em)
     YarareAdd(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 8, 5);
     YarareAdd(em, &w->hit[3], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xA, 5);
     YarareAdd(em, &w->hit[4], 0.0f, 0.0f, 0.0f, 50.0f, 50.0f, 0xC, 5);
-    w->flags = zero;
-    w->stuckCnt = zero;
-    w->splashTimer = two;
+    w->Be_flg = zero;
+    w->HoseiCnt = zero;
+    w->Water_eff_wait = two;
     w->slopeRot.x = 0.0f;
     w->slopeRot.y = 0.0f;
     w->slopeRot.z = 0.0f;
@@ -264,22 +264,22 @@ static void em24_R1_BoxWait(cEm24* em)
 {
     Em24Work* w = EM24_WK(em);
 
-    w->flags |= 4;
+    w->Be_flg |= 4;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x17), 0, 0, 5, 0);
         AtariOff(&em->atari, 0xFCFF);
-        w->timer = 45;
+        w->Timer = 45;
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI);
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI);
         MotionMoveF(em, 0);
         if (!(em->flags_3C8 & 1)) {
             em->dmType = 2;
             break;
         }
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             em->r_no_2++;
         }
@@ -290,7 +290,7 @@ static void em24_R1_BoxWait(cEm24* em)
         w->spd.y = -100.0f;
         w->spd.z = 200.0f;
         w->motEnd = 0;
-        w->atkHit = 0;
+        w->Atk_ck = 0;
         SndCall(8, 4, &em->pos, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 0x1C, 5, 0, 0, (u32) em, 0);
         em->r_no_2++;
@@ -301,14 +301,14 @@ static void em24_R1_BoxWait(cEm24* em)
         if (em->seFlags28B & 1) {
             cModel* p = em->getPartsPtr(5);
 
-            em24AtkCk(em, &p->worldPos, &p->oldWorldPos, 0);
+            em24AtkCk(em, &p->world, &p->world_old, 0);
         }
         if (!(em->seFlags28B & 0x80)) {
             cAtariInfo* at = &em->atari;
             Vec v;
             f32 fl;
 
-            at->flags |= 0x100;
+            at->m_flag |= 0x100;
             PSMTXMultVecSR(em->mat, &w->spd, &v);
             PSVECAdd(&em->pos, &v, &em->pos);
             w->spd.y -= 20.0f;
@@ -320,7 +320,7 @@ static void em24_R1_BoxWait(cEm24* em)
                     w->motEnd = 1;
                 }
                 if (w->motEnd) {
-                    at->flags |= 0x100;
+                    at->m_flag |= 0x100;
                     EmRoutineSet(em, 1, two, 0, 0);
                     break;
                 }
@@ -369,25 +369,25 @@ static void em24_R1_Free(cEm24* em)
             MotionSetCore(em, MOTION(em), ARC(8), 0, 3, 5, 0);
         }
         w->motEnd = Rnd() % 3;
-        w->targetAng = GetXZAngle(&pPLS->pos, &em->pos);
-        w->targetAng += fRand1_1() * (PI / 2.0f);
-        w->targetAng = LIMIT_ANGLE(w->targetAng);
-        w->timer = Rnd() % 3 + 3;
+        w->Target_dir = GetXZAngle(&pPLS->pos, &em->pos);
+        w->Target_dir += fRand1_1() * (PI / 2.0f);
+        w->Target_dir = LIMIT_ANGLE(w->Target_dir);
+        w->Timer = Rnd() % 3 + 3;
         w->turnTimer = Rnd() % 30 + 30;
-        w->stuckCnt = 0;
+        w->HoseiCnt = 0;
         em->r_no_2++;
     case 1:
         if (w->turnTimer) {
             w->turnTimer--;
         } else {
             w->turnTimer = Rnd() % 15 + 15;
-            w->targetAng += fRand1_1() * (PI / 4.0f);
-            w->targetAng = LIMIT_ANGLE(w->targetAng);
+            w->Target_dir += fRand1_1() * (PI / 4.0f);
+            w->Target_dir = LIMIT_ANGLE(w->Target_dir);
         }
-        em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 128.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku2(em->ang.y, w->Target_dir, PI / 128.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
-            if (w->stuckCnt > 1) {
+            if (w->HoseiCnt > 1) {
                 em->r_no_2++;
             }
         }
@@ -422,14 +422,14 @@ static void em24_R1_Coil(cEm24* em)
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xF), 0, 3, 5, 0);
-        w->timer = Rnd() % 90 + 90;
+        w->Timer = Rnd() % 90 + 90;
         em->r_no_2++;
     case 3:
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             em->r_no_2++;
         }
@@ -438,8 +438,8 @@ static void em24_R1_Coil(cEm24* em)
         MotionSetCore(em, MOTION(em), ARC(0x12), 0, 3, 5, 0);
         em->r_no_2++;
     case 5:
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 64.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 64.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 2, 0, 0);
         }
@@ -459,7 +459,7 @@ static void em24_R0_Die(cEm24* em)
     switch (em->r_no_1) {
     case 0:
         AtariOff(&em->atari, 0xFEFF);
-        if (w->flags & 0x20) {
+        if (w->Be_flg & 0x20) {
             em->r_no_3 = 1;
         } else {
             em->r_no_3 = 0;
@@ -484,7 +484,7 @@ static void em24_R0_Die(cEm24* em)
         int id;
         cEmWep* wep;
 
-        w->timer = 60;
+        w->Timer = 60;
         if (em->r_no_3) {
             EstSet((int) em, -1, 0, 0, 0x1C, 3, 0, 0, (u32) em, 0);
         } else {
@@ -510,7 +510,7 @@ static void em24_R0_Die(cEm24* em)
             tpl = ARC(0x1C);
             break;
         }
-        wep = SetWeapon(bin, tpl, &pos, &em->rot, 1);
+        wep = SetWeapon(bin, tpl, &pos, &em->ang, 1);
         if (wep) {
             int no = SceAtCreateItemAt(&pos, id, 0, -1, -1, 0, -1);
 
@@ -525,14 +525,14 @@ static void em24_R0_Die(cEm24* em)
     }
     case 3:
         em->pos.y -= 2.0f;
-        if (w->timer) {
-            em->alpha -= 0.05f;
-            if (em->alpha < 0.0f) {
-                em->alpha = 0.0f;
+        if (w->Timer) {
+            em->invisible_factor -= 0.05f;
+            if (em->invisible_factor < 0.0f) {
+                em->invisible_factor = 0.0f;
                 em->be_flag &= ~2;
                 em->be_flag |= 0x4000;
                 em->r_no_1++;
-                w->flags |= 0x10;
+                w->Be_flg |= 0x10;
                 break;
             }
         }
@@ -547,14 +547,14 @@ int em24AtkCk(cEm24* em, Vec* a, Vec* b, int no)
 {
     Em24Work* w = EM24_WK(em);
 
-    if (w->atkHit) {
+    if (w->Atk_ck) {
         return 0;
     }
     {
         int hit = EmAtkHitCk(&em24_atk_tbl[no], a, b, 0);
 
         if (hit) {
-            w->atkHit = 1;
+            w->Atk_ck = 1;
             if (hit & 1) {
                 EmPlBloodSet2(em, a, 1, 0x1C, 6);
                 QuakeExec(0, 0, 5, 22.0f, 2);

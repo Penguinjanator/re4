@@ -194,7 +194,7 @@ int cEmMgr::construct(cEm* p, u32 id)
     }
     p->serial = Guid;
     Guid++;
-    p->emsetNo = 0xFF;
+    p->emset_no = 0xFF;
     p->be_flag |= 0x40;
     p->id = id;
     p->be_flag |= 0x02000000;
@@ -223,7 +223,7 @@ void cEmMgr::move()
         while (p) {
             cEm* cur = p;
 
-            p = (cEm*) p->next;
+            p = (cEm*) p->pNext;
             func(cur);
         }
     } else if (pSUB && !(pG->flags_170 & 0x1000)) {
@@ -253,7 +253,7 @@ int cEmMgr::isBattle()
     while (p) {
         cEm* cur = p;
 
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
         func(cur);
     }
     return battleCheckFlag;
@@ -283,7 +283,7 @@ void cEmMgr::destroyAll()
     while (p) {
         cEm* cur = p;
 
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
         func(cur);
     }
 }
@@ -294,7 +294,7 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
 
     p = start;
     if (p) {
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
     } else {
         p = pAlive;
     }
@@ -302,7 +302,7 @@ cEm* cEmMgr::getEmPtr(int id, cEm* start)
         if (p->id == id) {
             return p;
         }
-        p = (cEm*) p->next;
+        p = (cEm*) p->pNext;
     }
     return 0;
 }
@@ -338,8 +338,8 @@ int cEm::checkThrow()
 
 void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item_eff)
 {
-    itemNo = item_id;
-    itemNum = num;
+    Item_id = item_id;
+    Item_num = num;
     Item_flg = item_flg;
     Auto_item_flg = auto_item_flg;
     itemFlag = item_eff;
@@ -347,8 +347,8 @@ void cEm::setItem(u16 item_id, u16 num, u16 item_flg, u16 auto_item_flg, u8 item
 
 void cEm::setNoItem()
 {
-    itemNo = 0xFFFF;
-    itemNum = 0;
+    Item_id = 0xFFFF;
+    Item_num = 0;
     Item_flg = 0;
     Auto_item_flg = 0;
     itemFlag = 0;
@@ -383,12 +383,12 @@ void emMove(cEm* em)
         return;
     }
     em->be_flag &= ~0x20000000;
-    ShapeMove(em->pInfo);
+    ShapeMove(em->pModelInfo);
     if (em->seNo) {
         int no = em->seNo - 1;
         cModel* parts = em->getPartsPtr(0);
 
-        SndCall(8, no, &parts->worldPos, em->id, 0, em);
+        SndCall(8, no, &parts->world, em->id, 0, em);
         em->seNo = 0;
     }
     em->updateOldPos();
@@ -397,7 +397,7 @@ void emMove(cEm* em)
         DrawOba(em);
     }
     if (em->be_flag & 0x80000000) {
-        em->drawAllBoundingBox(em->pInfo);
+        em->drawAllBoundingBox(em->pModelInfo);
     }
     em->invisible_factor2 = 1.0f;
 }

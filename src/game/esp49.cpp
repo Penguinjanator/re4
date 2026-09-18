@@ -3,18 +3,18 @@
 #include "esp.h"
 
 struct Esp49Work {
-    f32 depth;     // 0x00 depth below the water surface at which the effect dies
-    f32 fadeDepth; // 0x04 depth over which the alpha fades
-    f32 alpha;     // 0x08 base alpha
+    f32 del_height;     // 0x00 depth below the water surface at which the effect dies
+    f32 fade_height; // 0x04 depth over which the alpha fades
+    f32 Base_alpha;     // 0x08 base alpha
     u8 estOn;      // 0x0C spawn an est when the effect dies underwater
-    u8 estNo;      // 0x0D
+    u8 EstNo;      // 0x0D
     u8 estPrm;     // 0x0E
 };
 
 // Effect that fades out and dies when it sinks below the water surface.
 class cEsp49 : public cEsp {
 public:
-    Esp49Work work;  // 0xF8
+    Esp49Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -27,35 +27,35 @@ cEsp* Esp49_Create()
 
 void cEsp49::move()
 {
-    Esp49Work* w = &work;
+    Esp49Work* w = &m_Free;
     Vec wpos;
     Vec r;
     Vec ep;
     f32 h;
 
-    colA = w->alpha;
+    m_Col_a = w->Base_alpha;
     if (CommonMove()) {
         if (!AnmMove()) {
             PushEsp(this);
             return;
         }
-        w->alpha = colA;
-        if (parent != pEffParentWorldS && (parentCnt == 0xff || parentCnt <= cnt)) {
-            PSMTXMultVec(parent->mat, &pos, &wpos);
+        w->Base_alpha = m_Col_a;
+        if (parent != pEffParentWorldS && (m_Release_time == 0xff || m_Release_time <= m_Life_time)) {
+            PSMTXMultVec(parent->mat, &m_Pos, &wpos);
         } else {
-            wpos = pos;
+            wpos = m_Pos;
         }
-        if (GetWaterHeight(&pos, &h)) {
-            f32 d = h - pos.y;
-            if (d < w->depth) {
+        if (GetWaterHeight(&m_Pos, &h)) {
+            f32 d = h - m_Pos.y;
+            if (d < w->del_height) {
                 if (w->estOn & 1) {
                     r.x = r.y = r.z = 0.0f;
-                    ep = pos;
-                    EstSet(0, -1, &ep, &r, w->estNo, w->estPrm, info.Core_flg, info.Core_kind, info.x8, 0);
+                    ep = m_Pos;
+                    EstSet(0, -1, &ep, &r, w->EstNo, w->estPrm, info.Core_flg, info.Core_kind, info.x8, 0);
                 }
                 PushEsp(this);
-            } else if (d < w->fadeDepth) {
-                colA *= (d - w->depth) / w->fadeDepth;
+            } else if (d < w->fade_height) {
+                m_Col_a *= (d - w->del_height) / w->fade_height;
             }
         }
     }
@@ -63,20 +63,20 @@ void cEsp49::move()
 
 int cEsp49::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp49Work* w = &work;
+    Esp49Work* w = &m_Free;
 
-    w->depth = gen->xD8;
-    w->fadeDepth = gen->xE0;
-    if (w->depth > w->fadeDepth) {
-        w->fadeDepth = w->depth;
+    w->del_height = gen->xD8;
+    w->fade_height = gen->xE0;
+    if (w->del_height > w->fade_height) {
+        w->fade_height = w->del_height;
     }
-    w->estNo = gen->xC8;
+    w->EstNo = gen->xC8;
     w->estPrm = gen->xC9;
     w->estOn = gen->xCA;
     if (w->estOn > 1) {
         pLog->err(0, 0, "ESP_49 : FLAG[%d] invalid.", w->estOn);
         return 0;
     }
-    w->alpha = colA;
+    w->Base_alpha = m_Col_a;
     return 1;
 }

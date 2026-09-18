@@ -205,7 +205,7 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
     this->errOn = errOn;
     this->no = no;
     this->list = list;
-    if (list >= 0 && pG->emlist_no != list) {
+    if (list >= 0 && pG->em_list_no != list) {
         pEm = 0;
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", this->no);
         return 0;
@@ -240,7 +240,7 @@ int cEmWrap::setPtr(s16 no, s8 list, int errOn)
 {
     cEm* p;
 
-    if (list >= 0 && pG->emlist_no != list) {
+    if (list >= 0 && pG->em_list_no != list) {
         pEm = 0;
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", no);
         return 0;
@@ -455,7 +455,7 @@ s16 cEmWrap::getHp()
 s16 cEmWrap::getHpMax()
 {
     if (isAlive() == 1) {
-        return pEm->hpMax;
+        return pEm->hp_max;
     }
     err("EM_SET_NO(%d) cEmWrap::getHpMax error", no);
     return 0;
@@ -594,7 +594,7 @@ f32 cEmWrap::getPosZ()
 void cEmWrap::getAng(Vec* ang)
 {
     if (isAlive() == 1) {
-        *ang = pEm->rot;
+        *ang = pEm->ang;
     } else {
         err("EM_SET_NO(%d) cEmWrap::getAng error", no);
         ang->x = 0.0f;
@@ -606,7 +606,7 @@ void cEmWrap::getAng(Vec* ang)
 f32 cEmWrap::getAngX()
 {
     if (isAlive() == 1) {
-        return pEm->rot.x;
+        return pEm->ang.x;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngX error", no);
     return 0.0f;
@@ -615,7 +615,7 @@ f32 cEmWrap::getAngX()
 f32 cEmWrap::getAngY()
 {
     if (isAlive() == 1) {
-        return pEm->rot.y;
+        return pEm->ang.y;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngY error", no);
     return 0.0f;
@@ -624,7 +624,7 @@ f32 cEmWrap::getAngY()
 f32 cEmWrap::getAngZ()
 {
     if (isAlive() == 1) {
-        return pEm->rot.z;
+        return pEm->ang.z;
     }
     err("EM_SET_NO(%d) cEmWrap::getAngZ error", no);
     return 0.0f;

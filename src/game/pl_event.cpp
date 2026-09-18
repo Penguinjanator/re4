@@ -37,7 +37,7 @@ void pl_R1_Event_ToWalk(cPlayer* pl)
 
     switch (pl->r_no_2) {
     case 0:
-        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, PI * 2.0f);
+        ang = Muku(&pl->pos, &pl->evTarget, pl->ang.y, PI * 2.0f);
         if (fabsf(ang) > PI / 3.0f) {
             pl->motionSet(pl->pMotTbl[2], 5, 0, 4, 0);
             pl->r_no_2 = 1;
@@ -45,8 +45,8 @@ void pl_R1_Event_ToWalk(cPlayer* pl)
         }
         goto set_walk;
     case 1:
-        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->x400);
-        pl->rot.y += ang;
+        ang = Muku(&pl->pos, &pl->evTarget, pl->ang.y, pl->x400);
+        pl->ang.y += ang;
         if (fabsf(ang) < pl->x400 * 0.5f) {
         set_walk:
             pl->motionSet(pl->pMotTbl[2], 5, 0, 5, 0);
@@ -54,8 +54,8 @@ void pl_R1_Event_ToWalk(cPlayer* pl)
         }
         break;
     case 2:
-        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->x400);
-        pl->rot.y += ang;
+        ang = Muku(&pl->pos, &pl->evTarget, pl->ang.y, pl->x400);
+        pl->ang.y += ang;
         if (GetDistance(&pl->pos, &pl->evTarget) < 10000.0f) {
             pl->motionSet(pl->pMotTbl[0], 5, 0, 1, 0);
             pl->x3E0 = 1;

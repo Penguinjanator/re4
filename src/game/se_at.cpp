@@ -13,7 +13,7 @@ void SeAtInit()
 {
     SndWork* s = &Snd;
 
-    s->se_at = (SeAtHead*) GetDataExt(pG->pRoomArc, "ESE", 0);
+    s->se_at = (SeAtHead*) GetDataExt(pG->pRoom, "ESE", 0);
     if (s->se_at == 0) {
         return;
     }

@@ -220,10 +220,10 @@ static void r40d_operateTerminal_end()
 static void r40d_operateTerminal()
 {
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
-        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SceExit();
     }
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case 1:
     default:

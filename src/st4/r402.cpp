@@ -56,9 +56,9 @@ struct R402WorkPtr {
 // Typed view of pG->emlist (r400): pG is loaded before the index shift.
 struct EmListView {
     u8 pad[0x52E8];
-    EmListData emlist[0x100];
+    EmListData Em_list[0x100];
 };
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
+#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static R402WorkPtr r402_work;
 
@@ -143,7 +143,7 @@ void R402Init()
         init.m.rot.y = -1.53f;
         init.m.rot.z = 0.0f;
         init.m.x18 = 0;
-        init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
+        init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x26);
         init.m.x20 = 30000;
         init.m.mesStart = 2;
         init.m.mesA8 = 0xD;
@@ -188,18 +188,18 @@ static void setLadderMotion(int no)
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 
-                mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x1F);
-                mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x20);
-                mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-                mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-                mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-                mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
+                mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x1F);
+                mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x20);
+                mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x21);
+                mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x22);
+                mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x23);
+                mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x24);
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x25);
+                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x25);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -341,8 +341,8 @@ void R402InitDoor02()
         cObj* obj = SmdGetObjPtr(id[i]);
 
         if (obj) {
-            r402_work.p->sat[i] = SatMgrCreateF(&SatMgr, &obj->pos, &obj->rot, poly, h, 0x40, 0x100);
-            r402_work.p->eat[i] = SatMgrCreateF(&EatMgr, &obj->pos, &obj->rot, poly, h, 0x40, 0x100);
+            r402_work.p->sat[i] = SatMgrCreateF(&SatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
+            r402_work.p->eat[i] = SatMgrCreateF(&EatMgr, &obj->pos, &obj->ang, poly, h, 0x40, 0x100);
         }
     }
 }
@@ -388,10 +388,10 @@ top:
                 v.z = z;
                 obj->setPos(&v);
                 if (r402_work.p->sat[i]) {
-                    r402_work.p->sat[i]->setCoord(&obj->pos, &obj->rot);
+                    r402_work.p->sat[i]->setCoord(&obj->pos, &obj->ang);
                 }
                 if (r402_work.p->eat[i]) {
-                    r402_work.p->eat[i]->setCoord(&obj->pos, &obj->rot);
+                    r402_work.p->eat[i]->setCoord(&obj->pos, &obj->ang);
                     asm("" : "=r"(obj) : "0"(obj) : "r31"); // COMPILER-DIFF: 3
                 }
             }

@@ -17,8 +17,8 @@ cLightInfo::cLightInfo()
     x52 = 0;
     x53 = 0;
     x54 = 0;
-    ofs.x = ofs.y = ofs.z = 0.0f;
-    size.x = size.y = size.z = 0.0f;
+    Offset.x = Offset.y = Offset.z = 0.0f;
+    Size.x = Size.y = Size.z = 0.0f;
 }
 
 int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask)
@@ -36,14 +36,14 @@ int cLightInfo::init2(int type, int partsNo, const Vec* pOffset, const Vec* pSiz
     x50 = mask;
     x52 = partsNo;
     x54 = 0xFFFFFFFF;
-    ofs = *pOffset;
-    size = *pSize;
+    Offset = *pOffset;
+    Size = *pSize;
     if ((x51 & 3) == 0) {
-        radius = size.x + size.y;
+        Radius = Size.x + Size.y;
     } else if ((x51 & 3) != 2) {
-        radius = size.x;
+        Radius = Size.x;
     } else {
-        radius = SQRTF(size.x * size.x + size.y * size.y + size.z * size.z);
+        Radius = SQRTF(Size.x * Size.x + Size.y * Size.y + Size.z * Size.z);
     }
     return 1;
 }
@@ -66,21 +66,21 @@ void cLightInfo::updateMatrix(cModel* m)
     Vec v;
     Mtx tmp;
 
-    v.x = ofs.x * m->scale.x;
-    v.y = ofs.y * m->scale.y;
-    v.z = ofs.z * m->scale.z;
-    RotVector(&v, &m->rot, &v);
+    v.x = Offset.x * m->scale.x;
+    v.y = Offset.y * m->scale.y;
+    v.z = Offset.z * m->scale.z;
+    RotVector(&v, &m->ang, &v);
     if (x52 == 0) {
         PSVECAdd(&v, &m->pos, &v);
     } else {
         if (m->pParts == 0) {
             return;
         }
-        PSVECAdd(&v, &m->getPartsPtr(x52 - 1)->worldPos, &v);
+        PSVECAdd(&v, &m->getPartsPtr(x52 - 1)->world, &v);
     }
-    RotMatrix(tmp, &m->rot);
+    RotMatrix(tmp, &m->ang);
     TransMatrix(tmp, &v);
-    PSMTXInverse(tmp, mat);
+    PSMTXInverse(tmp, imat);
 }
 
 cModel* cLightInfo::getPos(cModel* m, Vec* out)
@@ -93,11 +93,11 @@ cModel* cLightInfo::getPos(cModel* m, Vec* out)
             pLog->err(0, 0, "litHitCk PNo%d %d %d %x %x", x52 - 1, m->kindid, m->id, x51, x50);
             c = m;
         }
-        PSMTXMultVecSR(c->mat, &ofs, out);
-        PSVECAdd(out, &c->worldPos, out);
+        PSMTXMultVecSR(c->mat, &Offset, out);
+        PSVECAdd(out, &c->world, out);
     } else {
         c = m;
-        PSMTXMultVecSR(c->mat, &ofs, out);
+        PSMTXMultVecSR(c->mat, &Offset, out);
         PSVECAdd(out, &c->pos, out);
     }
     return c;

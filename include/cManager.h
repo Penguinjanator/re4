@@ -14,7 +14,7 @@ inline void* operator new(unsigned int, void* p) { return p; }
 class cUnit {
 public:
     u32 be_flag;  // 0x0  bit0: alive, bit9/10: reserved-alive bits (0x601 = in use)
-    cUnit* next;  // 0x4  active list link
+    cUnit* pNext;  // 0x4  active list link
     // 0x8 vptr
 
     cUnit() {}
@@ -30,7 +30,7 @@ public:
     void operator delete(void*, unsigned int) {}
     // addListBack's `p->next = 0` goes through this: the argument copy gives the zero register a
     // lifetime of 2 luids, which is what makes loop.c hoist `li rN, 0` out of createBack's loop
-    void setNext(cUnit* n) { next = n; }
+    void setNext(cUnit* n) { pNext = n; }
     // deleteList / destroy test the work through this (a derived class may hide it with its own
     // test: cSat adds its active flag, which is why cManager<cSat>::destroy's check differs)
     int isAlive() { return (be_flag & 0x201) == 1; }
@@ -101,14 +101,14 @@ public:
         }
         q = pAlive;
         if (q == p) {
-            pAlive = (T*)p->next;
-            p->next = 0;
+            pAlive = (T*)p->pNext;
+            p->pNext = 0;
             return 1;
         }
-        for (; q->next; q = (T*)q->next) {
-            if (q->next == p) {
-                q->next = p->next;
-                p->next = 0;
+        for (; q->pNext; q = (T*)q->pNext) {
+            if (q->pNext == p) {
+                q->pNext = p->pNext;
+                p->pNext = 0;
                 return 1;
             }
         }
@@ -117,18 +117,18 @@ public:
     }
     void addListFront(T* p) {
         T* q;
-        for (q = pAlive; q; q = (T*)q->next) {
+        for (q = pAlive; q; q = (T*)q->pNext) {
             if (q == p) {
                 log("%s::addListFront() ERROR SET x2 0x%08X", name, p);
                 return;
             }
         }
-        p->next = pAlive;
+        p->pNext = pAlive;
         pAlive = p;
     }
     void addListBack(T* p) {
         T* q;
-        for (q = pAlive; q; q = (T*)q->next) {
+        for (q = pAlive; q; q = (T*)q->pNext) {
             if (q == p) {
                 log("%s::addListBack() ERROR 0x%08X", name, p);
                 return;
@@ -139,10 +139,10 @@ public:
             pAlive = p;
             return;
         }
-        while (q->next) {
-            q = (T*)q->next;
+        while (q->pNext) {
+            q = (T*)q->pNext;
         }
-        q->next = p;
+        q->pNext = p;
         p->setNext(0);
     }
 };

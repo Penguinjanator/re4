@@ -117,7 +117,7 @@ void R217Init()
     for (u32 i = 0; i < 5; i++) {
         if (RsfCheck(G_ROOM_ID, i + 2) == 0) {
             r217_work.p->hit[i] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                         &SmdGetObjPtr(0x83 + i)->pos, &SmdGetObjPtr(0x83 + i)->rot, 0);
+                                         &SmdGetObjPtr(0x83 + i)->pos, &SmdGetObjPtr(0x83 + i)->ang, 0);
             YarareInitCube(r217_work.p->hit[i], 0.0f, r217_cubeY[0], r217_cubeZ[0], r217_cubeW[0], r217_cubeH[0], r217_cubeD[0], 0, 1);
         } else {
             SmdGetObjPtr(0x83 + i)->be_flag &= ~2;
@@ -136,7 +136,7 @@ void R217Init()
         EmReadSearch(0x11, 0, 0);
     } else {
         SmdGetObjPtr(0x88)->be_flag |= 0x20;
-        SmdGetObjPtr(0x88)->pParts->rot.x = 1.6f;
+        SmdGetObjPtr(0x88)->pParts->ang.x = 1.6f;
         SceAtSetEnable(5, 0);
         SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r217_3rd_set, 0, 1);
         for (u32 n = 0; n < 3; n++) {
@@ -171,7 +171,7 @@ void R217Main()
                 Vec v;
 
                 RsfSet(G_ROOM_ID, i + 2);
-                v = r217_work.p->hit[i]->rot;
+                v = r217_work.p->hit[i]->ang;
                 v.y += 1.5707964f;
                 SndCall(6, 4, &r217_work.p->hit[i]->pos, 0, 0, 0);
                 EstSet(0, -1, &r217_work.p->hit[i]->pos, &v, 1, 0, 0, 0, 0, 0);
@@ -358,7 +358,7 @@ static void r217_3rd_set()
 
 static void r217_close_door()
 {
-    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // The door rises (cut 10).
@@ -467,8 +467,8 @@ static void r217_Puzzle()
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
         }
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-        SmdGetObjPtr(0x88)->pParts->rot.x = 0.0f;
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
+        SmdGetObjPtr(0x88)->pParts->ang.x = 0.0f;
     } else {
         pG->flags_51C0 |= 0x40000000;
         SceSetEventCancel(1, (TaskFunc) r217_Puzzle_exit, 0, -1, 1);
@@ -560,18 +560,18 @@ extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur)
     int dir;
 
     if (lim > cur) {
-        obj->pParts->rot.x += *spd;
+        obj->pParts->ang.x += *spd;
         dir = 1;
     } else {
-        obj->pParts->rot.x -= *spd;
+        obj->pParts->ang.x -= *spd;
         dir = 0;
     }
     if (*spd >= 0.0f) {
-        if (dir ? (obj->pParts->rot.x < lim) : (obj->pParts->rot.x > lim)) {
+        if (dir ? (obj->pParts->ang.x < lim) : (obj->pParts->ang.x > lim)) {
             *spd += r217_switchAcc * 1.85f;
         } else {
             *spd = -r217_switchAcc;
-            obj->pParts->rot.x = lim;
+            obj->pParts->ang.x = lim;
             return 1;
         }
     }

@@ -157,8 +157,8 @@ static void first_init()
     v.z = 0.0f;
     pPL->setAng(&v);
     EstSet((int) pPL, -1, 0, 0, 1, 4, 1, 0, 0, 0);
-    MotionSetCore(pPL, &pPL->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0xF, 0x201, 0);
-    frame = (u32) MotionGetMaxFrame(&pPL->mot);
+    MotionSetCore(pPL, &pPL->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0xF, 0x201, 0);
+    frame = (u32) MotionGetMaxFrame(&pPL->Motion);
     SceSleep(30);
     SndCall(5, 0x14, &pPL->pos, 0, 0, 0);
     SceSleep(frame - 30);

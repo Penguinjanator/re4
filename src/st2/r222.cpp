@@ -101,7 +101,7 @@ void em_reset();
 // RTX_UNCHANGING_P from an inlined body's pool loads, which then wait for the `hit[no]` store (cost 2);
 // as pool MEMs of the function itself the YarareInitCube constants are `mem/u` and issue before it.
 #define r222_setHit(no, objId)                                                                                  \
-    r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->rot, 1); \
+    r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->ang, 1); \
     YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1)
 
 void R222Init()
@@ -125,8 +125,8 @@ void R222Init()
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
     BitOn(SmdGetObjPtr(0x15)->be_flag, 0x20);
     if (RsfCheck(G_ROOM_ID, 0)) {
-        SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 4);
-        EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 5);
+        SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 4);
+        EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 5);
         SceAtSetEnable(5, 0);
         SmdGetObjPtr(0x14)->be_flag &= ~2;
         SmdGetObjPtr(0x15)->be_flag &= ~2;
@@ -167,8 +167,8 @@ void R222Init()
         SmdGetObjPtr(0x25)->pos.y = -3677.0f;
         SmdGetObjPtr(8)->pos.y = -3660.0f;
         SmdGetObjPtr(9)->pos.y = -3338.0f;
-        SmdGetObjPtr(0x26)->pParts->rot.z = -1.5707964f;
-        SmdGetObjPtr(0x27)->pParts->rot.z = 1.5707964f;
+        SmdGetObjPtr(0x26)->pParts->ang.z = -1.5707964f;
+        SmdGetObjPtr(0x27)->pParts->ang.z = 1.5707964f;
         SceAtSetEnable(9, 0);
     }
     if (RsfCheck(G_ROOM_ID, 2)) {
@@ -192,15 +192,15 @@ void R222Init()
         SmdGetObjPtr(0x29)->pos.y = -3589.0f;
         SmdGetObjPtr(6)->pos.y = -3573.0f;
         SmdGetObjPtr(7)->pos.y = -3250.0f;
-        SmdGetObjPtr(0x2A)->pParts->rot.z = -1.5707964f;
-        SmdGetObjPtr(0x2B)->pParts->rot.z = 1.5707964f;
+        SmdGetObjPtr(0x2A)->pParts->ang.z = -1.5707964f;
+        SmdGetObjPtr(0x2B)->pParts->ang.z = 1.5707964f;
         SceAtSetEnable(0xA, 0);
     }
-    r222_work.p->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 6);
+    r222_work.p->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 6);
     r222_work.p->satPos.x = -26987.0f;
     r222_work.p->satPos.y = -1460.0f;
     r222_work.p->satPos.z = -8329.0f;
-    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->rot.y;
+    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
     r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
     if (RsfCheck(G_ROOM_ID, 4) == 0) {
         RsfSet(G_ROOM_ID, 4);
@@ -262,25 +262,25 @@ void r222_BoxMove(cObj* obj, int opened)
         const f32* pk = &r222_k212;
     }
     if (opened == 1) {
-        obj->pParts->rot.x = r222_k212;
+        obj->pParts->ang.x = r222_k212;
     } else {
         f32 lim;
         f32 r;
         // a goto loop: the constants are reloaded per iteration; the limit is computed in both
         // predecessors of `test` (the target loads 2.12 there and compares/stores that register)
-        r = obj->pParts->rot.x;
+        r = obj->pParts->ang.x;
         lim = r222_k212;
-        obj->pParts->rot.x = r + 0.05f;
+        obj->pParts->ang.x = r + 0.05f;
         goto test;
     wait:
         SceSleep(1);
-        obj->pParts->rot.x += 0.05f;
+        obj->pParts->ang.x += 0.05f;
         lim = r222_k212_v;
     test:
-        if (!(obj->pParts->rot.x > lim)) {
+        if (!(obj->pParts->ang.x > lim)) {
             goto wait;
         }
-        obj->pParts->rot.x = lim;
+        obj->pParts->ang.x = lim;
     }
 }
 
@@ -299,7 +299,7 @@ void EmHitUpdate(cEmHit* h)
 {
     MtxPtr m = h->mat;
 
-    RotMatrix(m, &h->rot);
+    RotMatrix(m, &h->ang);
     TransMatrix(m, &h->pos);
     ScaleMatrix(m, &h->scale);
     h->partsMatCalc();
@@ -325,8 +325,8 @@ void R222Main()
     if (DebugTrg(0)) {
         SceExec(0x12, (TaskFunc) dragon_down, 0, 0, 2, 0);
     }
-    SmdGetObjPtr(1)->pParts->rot.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->rot.y);
-    ry = SmdGetObjPtr(1)->pParts->rot.y;
+    SmdGetObjPtr(1)->pParts->ang.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->ang.y);
+    ry = SmdGetObjPtr(1)->pParts->ang.y;
     if ((ry > r222_angA0 && ry < r222_angA1) || (ry > r222_angA2 && ry < r222_angA3)) {
         if ((int) pG->sceat_x17C < 0) {
             pG->flags_500C &= ~8;
@@ -340,8 +340,8 @@ void R222Main()
         SceAtSetEnable(8, 1);
         eprintf(0xD8, 0x38, 2, 0, "%f", ry);
     }
-    SmdGetObjPtr(1)->pParts->rot.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->rot.y);
-    ry = SmdGetObjPtr(1)->pParts->rot.y;
+    SmdGetObjPtr(1)->pParts->ang.y = LIMIT_ANGLE(SmdGetObjPtr(1)->pParts->ang.y);
+    ry = SmdGetObjPtr(1)->pParts->ang.y;
     if ((ry > r222_angB0 && ry < r222_angB1) || (ry > r222_angB2 && ry < r222_angB3)) {
         if (pG->sceat_x17C & 0x40000000) {
             pG->flags_500C &= ~8;
@@ -355,7 +355,7 @@ void R222Main()
         eprintf(0xD8, 0x46, 2, 0, "%f", ry);
         SceAtSetEnable(7, 1);
     }
-    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->rot.y;
+    r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->ang.y;
     r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
     if (r222_work.p->seTimer <= 0) {
         r222_work.p->seTimer = seReset;
@@ -444,20 +444,20 @@ static void dragon_down()
     obj->be_flag |= 0x20;
     obj->pos.y = -7500.0f;
     RsfSet(pGS->room_id, 0);
-    SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 4);
-    EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 5);
+    SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 4);
+    EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &r222_zero, &r222_zero, 5);
     SceAtSetEnable(5, 0);
     o14 = SmdGetObjPtr(0x14);
     o15 = SmdGetObjPtr(0x15);
     o14->pos.y = -2362.0f;
     o15->pos.y = -2362.0f;
-    o14->rot.y = 1.5708f;
-    o15->rot.y = 1.5708f;
+    o14->ang.y = 1.5708f;
+    o15->ang.y = 1.5708f;
     r222_work.p->dragon.setNoSuspend(1);
     EstSet((int) o14, -1, 0, 0, 1, 7, 1, 0, zero, (void*) zero);
     CamCtrl.CutCall(3);
-    MotionSetCore(o14, &o14->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
-    MotionSetCore(o15, &o15->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(o14, &o14->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(o15, &o15->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
     SndStrReq(1, 5, 0x80000003, 0, 0, 0.0f);
     SceSleep(15);
     EstSet(0, -1, &SmdGetObjPtr(0x16)->pos, 0, 1, 0xB, 1, 0, zero, (void*) zero);
@@ -524,8 +524,8 @@ static void box_appear1()
     SceEventStart(1);
     pG->flags_174 |= 0x20000000;
     CamCtrl.CutCall(0xC);
-    SmdGetObjPtr(0x26)->pParts->rot.z = 0.0f;
-    SmdGetObjPtr(0x27)->pParts->rot.z = 0.0f;
+    SmdGetObjPtr(0x26)->pParts->ang.z = 0.0f;
+    SmdGetObjPtr(0x27)->pParts->ang.z = 0.0f;
     y[0] = SmdGetObjPtr(0x25)->pos.y;
     y[1] = SmdGetObjPtr(8)->pos.y;
     y[2] = SmdGetObjPtr(9)->pos.y;
@@ -566,8 +566,8 @@ static void dragon_down2()
     SmdGetObjPtr(0xD)->be_flag &= ~2;
     SmdGetObjPtr(0xE)->be_flag &= ~2;
     SndCall(6, 0xD, &SmdGetObjPtr(0xD)->pos, 0, 0, 0);
-    MotionSetCore(oA, &oA->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
-    MotionSetCore(oB, &oB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(oA, &oA->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(oB, &oB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
     // hit / i / zero2 declared after the EstSets: `zero` then has the latest last-mention when cse
     // canonicalises its stack stores (a zero declared at the top with them would lose them to `hit`) and
     // stays block-local (r30, local-alloc); sched1 hoists the three `li`s to the block top anyway.
@@ -617,8 +617,8 @@ static void box_appear2()
     SceEventStart(1);
     pG->flags_174 |= 0x10000000;
     CamCtrl.CutCall(0xE);
-    SmdGetObjPtr(0x2A)->pParts->rot.z = 0.0f;
-    SmdGetObjPtr(0x2B)->pParts->rot.z = 0.0f;
+    SmdGetObjPtr(0x2A)->pParts->ang.z = 0.0f;
+    SmdGetObjPtr(0x2B)->pParts->ang.z = 0.0f;
     y[0] = SmdGetObjPtr(0x29)->pos.y;
     y[1] = SmdGetObjPtr(6)->pos.y;
     y[2] = SmdGetObjPtr(7)->pos.y;
@@ -654,8 +654,8 @@ static void dragon_down3()
     RsfSet(G_ROOM_ID, 2);
     oA = SmdGetObjPtr(0xF);
     oB = SmdGetObjPtr(0x10);
-    MotionSetCore(oA, &oA->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
-    MotionSetCore(oB, &oB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(oA, &oA->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
+    MotionSetCore(oB, &oB->Motion, ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 1, 0);
     EstSet(0, -1, &SmdGetObjPtr(0x12)->pos, 0, 1, 0xB, 1, 0, zero, (void*) zero);
     EstSet(0, -1, &SmdGetObjPtr(0x13)->pos, 0, 1, 0xB, 1, 0, zero, (void*) zero);
     SmdGetObjPtr(0x12)->be_flag &= ~2;

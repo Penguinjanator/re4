@@ -10,7 +10,7 @@ cCtrlMgr::cCtrlMgr() : cManager<cCtrl>(sizeof(cCtrl), 2)
 
 int cCtrlMgr::construct(cCtrl* p, u32 id)
 {
-    p->id = id;
+    p->Id = id;
     switch (id) {
     case 0:
         new (p) cCtrl00;

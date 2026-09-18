@@ -132,7 +132,7 @@ void R223Init()
     SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r223_GanadoEscapeCheck, 0, 1);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    r223_work.p->toroko = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+    r223_work.p->toroko = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
     void* bin;
     void* tpl;
     if (ItemGetBinTplAddr(0x8D, &bin, &tpl)) {
@@ -199,8 +199,8 @@ void R223Init()
     }
     r223_work.p->em[21].setEm(0xE0, -1, 1, 1, 1);
     r223_work.p->em[22].setEm(0xE1, -1, 1, 1, 1);
-    PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23),
-                   ROOM_ARC_PTR(pG->pRoomArc, 0x24), ROOM_ARC_PTR(pG->pRoomArc, 0x25));
+    PlRegistMotion(0, 0, 0, 0, 0, 0, 0, 0, ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
+                   ROOM_ARC_PTR(pG->pRoom, 0x24), ROOM_ARC_PTR(pG->pRoom, 0x25));
 }
 
 void R223Main()
@@ -224,7 +224,7 @@ extern "C" void reva_common_move__FP4cObjiiff(cObj* obj, int axis, f32 lo, f32 h
     }
     obj->be_flag |= 0x20;
     if (axis == 1) {
-        p = &obj->rot.x;
+        p = &obj->ang.x;
         acc = reva_rate;
     } else {
         p = &obj->pos.y;
@@ -294,7 +294,7 @@ void reva2_use_after_reva3()
     RsfSet(G_ROOM_ID, 9);
     reva_common_move(SmdGetObjPtr(0x18), 1, 1, reva2_lo, reva2_hi);
     SceSleep(15);
-    SmdGetObjPtr(0x18)->rot.x = reva2_lo;
+    SmdGetObjPtr(0x18)->ang.x = reva2_lo;
     SceEventEnd(0);
     SceEventStart(1);
     SceSetEventCancel(1, (TaskFunc) reva2_use_after_reva3_exit, 0, -1, 1);
@@ -358,14 +358,14 @@ void reva2_use_pre_reva3()
     reva_common_move(SmdGetObjPtr(0x18), 1, 1, reva2_lo, reva2_hi);
     SceSleep(15);
     if (RsfCheck(G_ROOM_ID, 6) == 0) {
-        SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     } else if (RsfCheck(G_ROOM_ID, 7) == 0) {
         RsfSet(G_ROOM_ID, 7);
         SceExec(0x12, (TaskFunc) toroko_go_and_stop, 0, 0, 2, 0);
     } else {
-        SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
-    SmdGetObjPtr(0x18)->rot.x = reva2_lo;
+    SmdGetObjPtr(0x18)->ang.x = reva2_lo;
     CamCtrl.Comeback(0);
     SceEventEnd(0);
 }
@@ -375,11 +375,11 @@ static void reva2_move()
     SceEventStart(1);
     CamCtrl.CutCall(0xA);
     if (RsfCheck(G_ROOM_ID, 9)) {
-        SceMesSet(4, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(4, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         CamCtrl.Comeback(0);
         SceEventEnd(0);
     } else {
-        SceMesSet(2, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         if (SceMesGetSelection() == 1) {
             if (RsfCheck(G_ROOM_ID, 8)) {
                 reva2_use_after_reva3();
@@ -398,9 +398,9 @@ static void reva3_move()
     SceEventStart(1);
     CamCtrl.CutCall(0xB);
     if (RsfCheck(G_ROOM_ID, 7) == 0 || RsfCheck(G_ROOM_ID, 8)) {
-        SceMesSet(7, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(7, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     } else {
-        SceMesSet(6, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(6, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         if (SceMesGetSelection() == 1) {
             RsfSet(G_ROOM_ID, 8);
             reva_common_move(SmdGetObjPtr(0x19), 0, 2, reva3_lo, reva3_hi);
@@ -424,7 +424,7 @@ void toroko_move1()
 
     r223_work.p->str = SndStrReq(1, 1, 0x80000003, 0, 0, 0.0f);
     SmdSetTrans(0x16, 0);
-    MotionSetCore(r223_work.p->toroko, &r223_work.p->toroko->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 1, 0);
+    MotionSetCore(r223_work.p->toroko, &r223_work.p->toroko->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 1, 0);
     EstSet((int) r223_work.p->toroko, -1, 0, 0, 1, 0x1C, 1, 4, 0, 0);
     CamCtrl.CutCall(8);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -662,10 +662,10 @@ void dai_down_stop()
         r223_work.p->toroko->pos.y -= 10.0f;
         SmdGetObjPtr(0x16)->pos.y -= 10.0f;
         r223_work.p->dai->pos.y -= 10.0f;
-        SmdGetObjPtr(0xA)->pParts->rot.z += 0.035f;
-        SmdGetObjPtr(0xB)->pParts->rot.z -= 0.035f;
-        SmdGetObjPtr(0xC)->pParts->rot.y += 0.035f;
-        SmdGetObjPtr(0xD)->pParts->rot.x += 0.035f;
+        SmdGetObjPtr(0xA)->pParts->ang.z += 0.035f;
+        SmdGetObjPtr(0xB)->pParts->ang.z -= 0.035f;
+        SmdGetObjPtr(0xC)->pParts->ang.y += 0.035f;
+        SmdGetObjPtr(0xD)->pParts->ang.x += 0.035f;
         if (first == 1) {
             if (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
@@ -724,10 +724,10 @@ void dai_down_end()
         r223_work.p->toroko->pos.y -= spd;
         SmdGetObjPtr(0x16)->pos.y -= spd;
         r223_work.p->dai->pos.y -= spd;
-        SmdGetObjPtr(0xA)->pParts->rot.z += 0.035f;
-        SmdGetObjPtr(0xB)->pParts->rot.z -= 0.035f;
-        SmdGetObjPtr(0xC)->pParts->rot.y += 0.035f;
-        SmdGetObjPtr(0xD)->pParts->rot.x += 0.035f;
+        SmdGetObjPtr(0xA)->pParts->ang.z += 0.035f;
+        SmdGetObjPtr(0xB)->pParts->ang.z -= 0.035f;
+        SmdGetObjPtr(0xC)->pParts->ang.y += 0.035f;
+        SmdGetObjPtr(0xD)->pParts->ang.x += 0.035f;
         SceSleep(1);
     }
     r223_work.p->se[2] = SndCall(6, 6, &r223_work.p->toroko->pos, 0, 0, 0);

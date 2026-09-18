@@ -8,7 +8,7 @@
 class cDbWork {
 public:
     int mode;  // 0x00  0 = enemies, 1 = objects, 2 = lights
-    u32 no;    // 0x04  work index shown
+    u32 wkNo;    // 0x04  work index shown
 
     cDbWork();
     void move();

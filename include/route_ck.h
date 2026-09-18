@@ -11,8 +11,8 @@ class cEm;
 // One way point (16 bytes).
 struct RtpPoint {
     Vec pos;       // 0x00
-    u16 linkOfs;   // 0x0C  first entry in the link table
-    u16 nLink;     // 0x0E  linked points
+    u16 offLine;   // 0x0C  first entry in the link table
+    u16 nLine;     // 0x0E  linked points
 };
 
 // Link table entry (4 bytes).

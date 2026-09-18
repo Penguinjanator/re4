@@ -87,9 +87,9 @@ void R200Init()
         }
     } else {
         SmdGetObjPtr(8)->be_flag |= 0x20;
-        SmdGetObjPtr(8)->pParts->rot.x = -0.87266463f;
+        SmdGetObjPtr(8)->pParts->ang.x = -0.87266463f;
         SmdGetObjPtr(9)->be_flag |= 0x20;
-        SmdGetObjPtr(9)->pParts->rot.x = 0.87266463f;
+        SmdGetObjPtr(9)->pParts->ang.x = 0.87266463f;
     }
     EvtMgr.SetFunc("evt_r200s00_func", (void*) Evt_R200S00_Func);
     SceSetItemEvent(8, 0x84, 5, 6, r200_openBox, (void (*)()) r200_openedBox, 0, 0);
@@ -129,7 +129,7 @@ void r200_openBox_main(int id, int mode)
     if (obj) {
         obj->be_flag |= 0x20;
         if (mode == 1) {
-            obj->pParts->rot.x = spd;
+            obj->pParts->ang.x = spd;
         } else {
             int i;
 
@@ -137,7 +137,7 @@ void r200_openBox_main(int id, int mode)
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 0; i < 30; i++) {
                 if (obj) {
-                    obj->pParts->rot.x += spd;
+                    obj->pParts->ang.x += spd;
                 }
                 SceSleep(1);
             }
@@ -217,7 +217,7 @@ static void r200_checkDoor()
 void r200_lockDoor()
 {
     SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r200_checkDoor, 0, 1);
-    memclr_asm(pG->save_item, 0x1000);
+    memclr_asm(pG->item_save, 0x1000);
 }
 
 // The Ganado wave once the player has turned away from the truck (or reached area 0xB).
@@ -226,7 +226,7 @@ static void r200_checkEmSetEvent()
     int cnt = 0;
 
     for (;;) {
-        if (SceAtHitCheck(3) == 0 && pPL->rot.y >= 0.0f && pPL->rot.y <= 3.14f) {
+        if (SceAtHitCheck(3) == 0 && pPL->ang.y >= 0.0f && pPL->ang.y <= 3.14f) {
             cnt++;
             if (cnt > 15) {
                 goto found;
@@ -299,8 +299,8 @@ static void r200_execTruckEvent_end()
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
-        EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1);
+        SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
+        EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1);
     }
     SceExec(0x12, (TaskFunc) r200_checkEmSetEvent, 0, 0, 2, 0);
 }
@@ -324,7 +324,7 @@ static void r200_execTruckEvent()
     r200_work.p->eff0C = 0;
     r200_work.p->eff0C = EspPullCoreKind();
     SceSleep(10);
-    SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->worldPos, 0, 0, 0);
+    SndCall(6, 5, &r200_work.p->em0.getPtr()->getPartsPtr(1)->world, 0, 0, 0);
     SceSleep(10);
     pG->flags_174 |= 0x80000000;
     {
@@ -361,9 +361,9 @@ extern "C" void Evt_R200S00_Func(Event* e)
         setRoomEtcBreakDisp(6, 0, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
@@ -420,12 +420,12 @@ extern "C" void Evt_R200S00_Func(Event* e)
         case 0xA:
         case 0x10:
         case 0x13:
-            if (e->frame == 0) {
-                EventCutEstSet(1, e->cut);
+            if (e->NowFrame == 0) {
+                EventCutEstSet(1, e->NowCut);
             }
             break;
         case 0x14:
-            if (e->frame == 2) {
+            if (e->NowFrame == 2) {
                 SndRoomStrStop(3);
             }
             break;
@@ -433,9 +433,9 @@ extern "C" void Evt_R200S00_Func(Event* e)
         break;
     case 2:
         SmdGetObjPtr(8)->be_flag |= 0x20;
-        SmdGetObjPtr(8)->pParts->rot.x = -0.87266463f;
+        SmdGetObjPtr(8)->pParts->ang.x = -0.87266463f;
         SmdGetObjPtr(9)->be_flag |= 0x20;
-        SmdGetObjPtr(9)->pParts->rot.x = 0.87266463f;
+        SmdGetObjPtr(9)->pParts->ang.x = 0.87266463f;
         SmdGetObjPtr(0x18)->setNoSuspend(1);
         SmdGetObjPtr(0x33)->setNoSuspend(1);
         SmdGetObjPtr(0x34)->setNoSuspend(1);
@@ -444,7 +444,7 @@ extern "C" void Evt_R200S00_Func(Event* e)
 
             if (sub) {
                 cPlayer* pl = pPL;
-                Vec* rot = &pl->rot;
+                Vec* rot = &pl->ang;
 
                 sub->setPos(&pl->pos);
                 sub->setAng(rot);

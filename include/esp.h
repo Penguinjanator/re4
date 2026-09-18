@@ -211,69 +211,69 @@ struct EspInfo {
 class cEsp {
 public:
     EspInfo info;      // 0x00
-    u8 flag;           // 0x0C bit0: in use
-    u8 id;             // 0x0D effect id
-    u8 anmNo;          // 0x0E texture animation id
-    u8 xF;             // 0x0F
-    u8 x10;            // 0x10
-    u8 x11;            // 0x11
+    u8 m_Be_flg;           // 0x0C bit0: in use
+    u8 m_Id;             // 0x0D effect id
+    u8 m_Type;          // 0x0E texture animation id
+    u8 m_Rno1;             // 0x0F
+    u8 m_Rno2;            // 0x10
+    u8 m_Rno3;            // 0x11
     u16 x12;           // 0x12
     u16 x14;           // 0x14
     u16 m_Del_far;           // 0x16
-    u32 flags;         // 0x18 effect option bits
-    cModel* pModel;    // 0x1C model the effect is attached to
+    u32 m_Tool_flg;         // 0x18 effect option bits
+    cModel* m_pMod;    // 0x1C model the effect is attached to
     u32 m_Guid_pMod;           // 0x20
     cCoord* parent;    // 0x24 parent coordinate (pEffParentWorld = world)
-    u8 partsNo;        // 0x28 parts of pModel the effect follows
-    u8 parentCnt;      // 0x29 frames to stay attached to parent (0xFF = forever)
-    u16 dispFlag;      // 0x2A bit1: sizeY is a world-space length (beam sprites)
-    Vec pos;           // 0x2C
-    Vec spd;           // 0x38
-    f32 spdScale;      // 0x44
-    Vec acc;           // 0x48
-    Vec rot;           // 0x54
-    Vec rotSpd;        // 0x60
-    f32 sizeX;         // 0x6C
-    f32 sizeY;         // 0x70
-    f32 scale;         // 0x74
-    f32 scaleSpd;      // 0x78
-    f32 scaleScale;    // 0x7C
+    u8 m_Parts_no;        // 0x28 parts of pModel the effect follows
+    u8 m_Release_time;      // 0x29 frames to stay attached to parent (0xFF = forever)
+    u16 m_Flg;      // 0x2A bit1: sizeY is a world-space length (beam sprites)
+    Vec m_Pos;           // 0x2C
+    Vec m_Speed;           // 0x38
+    f32 m_D_speed;      // 0x44
+    Vec m_Speed_plus;           // 0x48
+    Vec m_Ang;           // 0x54
+    Vec m_Ang_plus;        // 0x60
+    f32 m_Size_base_x;         // 0x6C
+    f32 m_Size_base_y;         // 0x70
+    f32 m_Size_mul;         // 0x74
+    f32 m_Size_plus;      // 0x78
+    f32 m_D_size_plus;    // 0x7C
     u8 m_Col_start_r;            // 0x80 (esp0c: copied into the est work colour bytes)
     u8 m_Col_start_g;            // 0x81
     u8 m_Col_start_b;            // 0x82
     u8 m_Col_start_a;            // 0x83
-    f32 colR;          // 0x84
-    f32 colG;          // 0x88
-    f32 colB;          // 0x8C
-    f32 colA;          // 0x90
-    f32 colRSpd;       // 0x94
-    f32 colGSpd;       // 0x98
-    f32 colBSpd;       // 0x9C
-    f32 colASpd;       // 0xA0
+    f32 m_Col_r;          // 0x84
+    f32 m_Col_g;          // 0x88
+    f32 m_Col_b;          // 0x8C
+    f32 m_Col_a;          // 0x90
+    f32 m_Col_d_r;       // 0x94
+    f32 m_Col_d_g;       // 0x98
+    f32 m_Col_d_b;       // 0x9C
+    f32 m_Col_d_a;       // 0xA0
     u8 xA4;            // 0xA4
     u8 xA5;            // 0xA5
     u8 xA6;            // 0xA6
     u8 xA7;            // 0xA7
     u16 m_Col_max_cnt;           // 0xA8
     u16 m_Col_start_cnt;           // 0xAA
-    u16 spdCnt;        // 0xAC frames the speed is applied (0 = always)
-    u16 scaleCnt;      // 0xAE frames the scale speed is applied (0 = always)
-    u16 life;          // 0xB0 life time in frames (0 = infinite)
-    u16 cnt;           // 0xB2 frame counter
-    u8 anmPtn;         // 0xB4 current animation pattern
-    u8 anmSpd;         // 0xB5
-    u16 anmCnt;        // 0xB6
+    u16 m_Pos_start_cnt;        // 0xAC frames the speed is applied (0 = always)
+    u16 m_Size_start_cnt;      // 0xAE frames the scale speed is applied (0 = always)
+    u16 m_Life_max;          // 0xB0 life time in frames (0 = infinite)
+    u16 m_Life_time;           // 0xB2 frame counter
+    u8 m_Ptn_no;         // 0xB4 current animation pattern
+    u8 m_Anm_rate;         // 0xB5
+    u16 m_Anm_cnt;        // 0xB6
     f32 m_Radius;           // 0xB8
-    Mtx mat;           // 0xBC model matrix built by the Trans functions
+    Mtx m_Mat;           // 0xBC model matrix built by the Trans functions
     union {
         u8 pad_EC[0xF4 - 0xEC];
         struct {
             u8 m_Shimmer_type;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
             u8 m_Shimmer_pow;        // 0xED  (EspGenWork xC4)
-            u16 anmCnt2;   // 0xEE  mask texture animation counter
-            u8 anmPtn2;    // 0xF0  mask texture animation pattern
-            u8 anmNo2;     // 0xF1  mask texture animation id (EspGenWork xC5)
-            u8 blendType;  // 0xF2  EspGenWork xC2 (3: colour bytes scaled by the fade)
+            u16 m_MaskAnm_cnt;   // 0xEE  mask texture animation counter
+            u8 m_MaskPtn_no;    // 0xF0  mask texture animation pattern
+            u8 m_MaskTex_id;     // 0xF1  mask texture animation id (EspGenWork xC5)
+            u8 m_Blend_type;  // 0xF2  EspGenWork xC2 (3: colour bytes scaled by the fade)
             u8 xF3;
         };
     };
@@ -415,11 +415,11 @@ extern GXTexObj Specular;
 // shapes): flags bit1 flips s, bit2 flips t, screen sprites are drawn upside down. One combined
 // condition and corners built from a `zero` variable: each leaf is a jump target where cse knows
 // neither operand of `zero + z`, which keeps the `fadds` (nested ifs with literals fold 0 + z).
-#define ESP_SPRITE_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+#define ESP_SPRITE_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 #define ESP_SPRITE_FLIP_T(esp)                                                                    \
-    ((ESP_SPRITE_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_SPRITE_SCREEN(esp) && ((esp)->flags & 4)))
+    ((ESP_SPRITE_SCREEN(esp) && !((esp)->m_Tool_flg & 4)) || (!ESP_SPRITE_SCREEN(esp) && ((esp)->m_Tool_flg & 4)))
 #define ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)                                          \
-    if ((esp)->flags & 2) {                                                                       \
+    if ((esp)->m_Tool_flg & 2) {                                                                  \
         if (ESP_SPRITE_FLIP_T(esp)) {                                                             \
             s0 = zero + z;                                                                        \
             s1 = zero;                                                                            \

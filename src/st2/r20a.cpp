@@ -125,18 +125,18 @@ static void r20a_CarryOnShoulder()
         ang.z = 0.0f;
         pl->setAng(pa);
     }
-    low_RotMatrix(m, &pPL->rot);
+    low_RotMatrix(m, &pPL->ang);
     TransMatrix(m, &pos);
     PSMTXMultVec(m, &dSub, &pos2);
     {
         cSubChar* sub = pSUB;
-        Vec* rot2 = &pPL->rot;
+        Vec* rot2 = &pPL->ang;
 
         sub->setPos(&pos2);
         sub->setAng(rot2);
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 10, 0, 1, 0);
-    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 10, 0, 1, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 10, 0, 1, 0);
+    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 10, 0, 1, 0);
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
     }
@@ -156,7 +156,7 @@ static void r20a_CarryOnShoulderEndProc()
     pSUB->setNoSuspend(0);
     {
         cSubChar* sub = pSUB;
-        Vec* rot = &pPL->rot;
+        Vec* rot = &pPL->ang;
 
         sub->setPos(&pos);
         sub->setAng(rot);
@@ -198,20 +198,20 @@ void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r20a_work.p->tex->texId;
-        r20a_work.p->tex->repType = 1;
+        r20a_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r20a_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x1C);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
     obj->Shader_type = 2;
     obj->Refract_pow = 8;
     obj->Refract_ratio = 0x20;
-    obj->alpha = 0.7f;
+    obj->invisible_factor = 0.7f;
 }
 
 static void r20a_TreasureBoxOpen(int id)
@@ -254,7 +254,7 @@ static void r20a_DoorLock()
     cEm* door;
 
     if (getRoomEtcDoor(0xB, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), 0, 0);
     }
     if (door) {
         while (((cEmDoor*) door)->ckLock()) {

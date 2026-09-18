@@ -107,8 +107,8 @@ static inline u32 r11c_emDead(u32 no)
 {
     u32 v;
 
-    if (pG->emlist_no >= 0) {
-        u32* tbl = (u32*) (pG->emlist_no * 0x20 + (u32) pG + 0x501C);
+    if (pG->em_list_no >= 0) {
+        u32* tbl = (u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C);
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
     } else {
@@ -283,10 +283,10 @@ extern "C" void r11c_eventInit()
     W->evd0 = DC.setData(EvtMgr.NameChange("evd/r11cs00.evd"));
     W->evd0->setCommand(2, 0, 0);
     W->evd1 = DC.setData(EvtMgr.NameChange("evd/r11cs10.evd"));
-    EmReadSearch(0x13, 0, W->evd0->size);
+    EmReadSearch(0x13, 0, W->evd0->m_size);
     EmReadSearch(3, 0, 0x120000);
     BitOn(pG->flags_5018, 0x04000000);
-    SubCharInit(1, &pPL->pos, pPL->rot.y);
+    SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(1, 0);
     W->mod3 = SearchEmModule(3);
 }
@@ -334,7 +334,7 @@ static void r11c_EventBesiegedStart()
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-    } else if (W->evd0->size > mod->size) {
+    } else if (W->evd0->m_size > mod->size) {
         pLog->err(0, 0, "r11c_Event00 data size over");
         {
             Vec pos = {109264.0f, 4.0f, -50575.0f};
@@ -350,14 +350,14 @@ static void r11c_EventBesiegedStart()
             pl->setAng(&ang);
         }
     } else {
-        MemorySwap(mod->pArc, (u32) W->evd0->addr, W->evd0->size);
+        MemorySwap(mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         EvtMgr.SetEvt(mod->pArc, (u32*) 0);
         SceSleep(2);
         SceSleep(2);
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(mod->pArc, (u32) W->evd0->addr, W->evd0->size);
+        MemorySwap(mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
     }
     W->evd0->setCommand(4, 0, 0);
     pG->System_flg |= 0x400;
@@ -566,17 +566,17 @@ static void r11c_EventBesiegedStart()
     InitModule(W->mod4);
     mod2 = SearchEmModule(0x13);
     if (err2 != 1) {
-        if (W->evd1->size > mod2->size) {
+        if (W->evd1->m_size > mod2->size) {
             pLog->err(0, 0, "r11c_Event10 exec error");
         } else {
-            MemorySwap(mod2->pArc, (u32) W->evd1->addr, W->evd1->size);
+            MemorySwap(mod2->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
             if (EvtMgr.SetEvt(mod2->pArc, (u32*) &ev)) {
-                ev->status |= 0x400;
+                ev->StatusFlag |= 0x400;
             }
             while (EvtMgr.IsAliveEvt(r11c_evtKey(&EvtMgr), 0, 0) != 0) {
                 SceSleep(1);
             }
-            MemorySwap(mod2->pArc, (u32) W->evd1->addr, W->evd1->size);
+            MemorySwap(mod2->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         }
     }
     W->evd1->setCommand(4, 0, 0);
@@ -584,7 +584,7 @@ static void r11c_EventBesiegedStart()
     SceEventEnd(0);
     r11c_initGate();
     BitOn(pG->flags_5018, 0x04000000);
-    SubCharInit(1, &pPL->pos, pPL->rot.y);
+    SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(1, 0);
     if (!r11c_emDead(0xC8)) {
         EM_LIST(0xC8)->flags &= ~2;
@@ -804,13 +804,13 @@ static void r11c_moveGear(int dir)
     g2->be_flag |= 0x20;
     W->seGear = SndCall(6, 0x56, 0, 0, 0, 0);
     d = (f32) dir;
-    g0->pParts->rot.z += d * DEG(0.2f);
+    g0->pParts->ang.z += d * DEG(0.2f);
     SceSleep(1);
-    g0->pParts->rot.z += d * DEG(0.4f);
+    g0->pParts->ang.z += d * DEG(0.4f);
     SceSleep(1);
     d *= DEG(0.6f);
-    g0->pParts->rot.z += d;
-    g1->pParts->rot.y += d;
+    g0->pParts->ang.z += d;
+    g1->pParts->ang.y += d;
     SceSleep(1);
     EstSet(0, -1, 0, 0, 1, 5, 1, (u8) W->effGear, 0, 0);
     while ((s32) pG->sceat_x17C >= 0) {
@@ -821,9 +821,9 @@ static void r11c_moveGear(int dir)
             t = max;
         }
         a = t * DEG(1.0f) * (f32) dir;
-        g0->pParts->rot.z += a;
-        g1->pParts->rot.y += -a * t0 / t1;
-        g2->pParts->rot.z += -a * t0 / t1 * t2 / t0;
+        g0->pParts->ang.z += a;
+        g1->pParts->ang.y += -a * t0 / t1;
+        g2->pParts->ang.z += -a * t0 / t1 * t2 / t0;
         SceSleep(1);
     }
     EffectEspDelete(0, (u8) W->effGear, 0, 0);
@@ -871,15 +871,15 @@ static void r11c_moveLever2(int dir)
     lv = SmdGetObjPtr(0x35);
     spd = (f32) dir * DEG(5.5f);
     for (i = 0; i < 10; i++) {
-        lv->pParts->rot.z -= spd;
+        lv->pParts->ang.z -= spd;
         SceSleep(1);
     }
     spd = (f32) dir * DEG(1.0f);
     for (i = 0; i < 3; i++) {
-        lv->pParts->rot.z += spd;
+        lv->pParts->ang.z += spd;
         SceSleep(1);
     }
-    lv->pParts->rot.z = 0.0f;
+    lv->pParts->ang.z = 0.0f;
 }
 
 // The lever is pulled; unless `noGear`, the gear and chain tasks start.
@@ -893,22 +893,22 @@ extern "C" void r11c_moveLever(int dir, int noGear)
 
     lv = SmdGetObjPtr(0x35);
     lv->be_flag |= 0x20;
-    lv->pParts->rot.z = 0.0f;
+    lv->pParts->ang.z = 0.0f;
     d = (f32) dir;
     spd = d * DEG(5.5f);
     SndCall(6, 0xA, 0, 0, 0, 0);
     d2 = d * DEG(1.0f);
     for (i = 0; i < 3; i++) {
-        lv->pParts->rot.z += d2;
+        lv->pParts->ang.z += d2;
         SceSleep(1);
     }
     for (i = 0; i < 10; i++) {
-        lv->pParts->rot.z += spd;
+        lv->pParts->ang.z += spd;
         SceSleep(1);
     }
     d2 = (f32) dir * DEG(1.0f);
     for (i = 0; i < 3; i++) {
-        lv->pParts->rot.z -= d2;
+        lv->pParts->ang.z -= d2;
         SceSleep(1);
     }
     if (noGear == 0) {
@@ -927,7 +927,7 @@ static void r11c_selectRoute_end(int sel)
 
     if (pG->flags_174 & 0x10000000) {
         if (lv) {
-            lv->pParts->rot.z = 0.0f;
+            lv->pParts->ang.z = 0.0f;
         }
         if (W->closeGate) {
             SceKill(W->closeGate);
@@ -1000,7 +1000,7 @@ static void r11c_selectRoute()
     pGS->sceat_x17C &= 0x7FFFFFFF;
     SceEventStart(0);
     CamCtrl.CutCall(3);
-    SceMesSet(0, 0x220, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0x220, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case 1:
         if ((r11c_save()->flags & 0x40000000) && !(r11c_save()->flags & 0x20000000)) {
@@ -1085,13 +1085,13 @@ extern "C" void setFire()
         Vec rot = {0.0f, 0.0f, 0.0f};
         cObj* o;
 
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         W->fire[0] = o;
         if (o == 0) {
             pLog->err(0, 0, "setFire : set failed");
             return;
         }
-        MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 5, 0);
+        MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
         EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
     {
@@ -1099,13 +1099,13 @@ extern "C" void setFire()
         Vec rot = {0.0f, DEG(-80.0f), 0.0f};
         cObj* o;
 
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         W->fire[1] = o;
         if (o == 0) {
             pLog->err(0, 0, "setFire : set failed");
             return;
         }
-        MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 5, 0);
+        MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
         EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
     {
@@ -1113,13 +1113,13 @@ extern "C" void setFire()
         Vec rot = {0.0f, DEG(-80.0f), 0.0f};
         cObj* o;
 
-        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0x10, 1);
+        o = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot, 0x10, 1);
         W->fire[2] = o;
         if (o == 0) {
             pLog->err(0, 0, "setFire : set failed");
             return;
         }
-        MotionSetCore(o, &o->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0, 0, 5, 0);
+        MotionSetCore(o, &o->Motion, ROOM_ARC_PTR(pG->pRoom, 0x21), 0, 0, 5, 0);
         EstSet((int) o, -1, 0, 0, 1, 0xD, 0, 2, 0, 0);
     }
 }
@@ -1146,9 +1146,9 @@ extern "C" void Evt_R11CS00_Func(Event* e)
         setRoomEtcDisp(0xA, 0, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0: {
-            int frame = e->frame;
+            int frame = e->NowFrame;
 
             if (frame == 0) {
                 EffectEspDelete(0x2001, 3, 0, 0);
@@ -1214,7 +1214,7 @@ extern "C" void Evt_R11CS10_Func(Event* e)
         break;
     }
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             break;
         case 8:
@@ -1233,7 +1233,7 @@ extern "C" void Evt_R11CS10_Func(Event* e)
 // Per-cut effect of the s20 event on the render texture.
 static inline void r11c_evtEsp(Event* e, int no)
 {
-    if (e->frame == 0) {
+    if (e->NowFrame == 0) {
         EffectEspDelete(W->tex->mask | 0x3001, 0, 0, 0);
         EffectEspgenDelete(W->tex->mask | 0x3001, 0, 0);
         EffectEfmDelete(W->tex->mask | 0x3001, 0, 0);
@@ -1256,9 +1256,9 @@ extern "C" void Evt_R11CS20_Func(Event* e)
         setRoomEtcDisp(0xA, 1, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {

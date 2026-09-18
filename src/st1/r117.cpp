@@ -147,7 +147,7 @@ void R117Init()
     W = (R117Work*) MEM_CALLOC(sizeof(R117Work), 1, 0xd);
 
     SceExec(0x12, (TaskFunc) r117_ThunderMove, 0, 0, 2, 0);
-    W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
+    W->smd = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), (Vec*) &r117_smdPos, (Vec*) &r117_smdRot, 0x10, 1);
     W->smd->be_flag |= 0x1000;
     r117_MechanismInit();
     if (!(pG->Item_find_flg & 0x00100000)) {
@@ -159,7 +159,7 @@ void R117Init()
         W->evd0 = DC.setData(EvtMgr.NameChange("evd/r117s00.evd"));
         W->evd0->setCommand(2, 0, 0);
         W->evd1 = DC.setData(EvtMgr.NameChange("evd/r117s10.evd"));
-        EmReadSearch(3, 0, W->evd1->size);
+        EmReadSearch(3, 0, W->evd1->m_size);
         SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r117_EventAshleyFind, 0, 1);
         SceAtDataSet_exec(4, 0x12, 0, (TaskFunc) r117_EventChandelier, 0, 1);
         EvtMgr.SetFunc("evt_r117s00_func", (void*) Evt_R117S00_Func);
@@ -258,13 +258,13 @@ extern "C" void r117_MechanismInit()
     }
     W->light[0] = SmdGetObjPtr(0x32);
     f32 quarter = 1.5707964f;
-    W->light[0]->rot.z = (f32) W->tgt[0] * quarter;
+    W->light[0]->ang.z = (f32) W->tgt[0] * quarter;
     W->light[0]->matUpdate();
     W->light[1] = SmdGetObjPtr(0x30);
-    W->light[1]->rot.z = (f32) W->tgt[1] * quarter;
+    W->light[1]->ang.z = (f32) W->tgt[1] * quarter;
     W->light[1]->matUpdate();
     W->light[2] = SmdGetObjPtr(0x31);
-    W->light[2]->rot.z = (f32) W->tgt[2] * quarter;
+    W->light[2]->ang.z = (f32) W->tgt[2] * quarter;
     W->light[2]->matUpdate();
 }
 
@@ -314,17 +314,17 @@ extern "C" void r117_LightSet(int n)
     }
     if (n != 0) {
         if (EspEstSetSelect(1, type[0], 0, &W->esp[0], 1) == 1) {
-            W->esp[0]->rot.z = (f32) W->cur[0] * 1.5707964f;
+            W->esp[0]->m_Ang.z = (f32) W->cur[0] * 1.5707964f;
         } else {
             W->esp[0] = 0;
         }
         if (EspEstSetSelect(1, type[1], 0, &W->esp[1], 1) == 1) {
-            W->esp[1]->rot.z = (f32) W->cur[1] * 1.5707964f;
+            W->esp[1]->m_Ang.z = (f32) W->cur[1] * 1.5707964f;
         } else {
             W->esp[1] = 0;
         }
         if (EspEstSetSelect(1, type[2], 0, &W->esp[2], 1) == 1) {
-            W->esp[2]->rot.z = (f32) W->cur[2] * 1.5707964f;
+            W->esp[2]->m_Ang.z = (f32) W->cur[2] * 1.5707964f;
         } else {
             W->esp[2] = 0;
         }
@@ -365,10 +365,10 @@ extern "C" void r117_LightDirCalc(int n)
     default:
         return;
     }
-    PSVECSubtract(&SmdGetObjPtr(id)->pos, &W->esp[n]->pos, &dir);
+    PSVECSubtract(&SmdGetObjPtr(id)->pos, &W->esp[n]->m_Pos, &dir);
     SetOrientationZX(&dir, &axis, m);
     Matrix2AxisAngle(m, &rot);
-    SmdGetObjPtr(id)->rot = rot;
+    SmdGetObjPtr(id)->ang = rot;
     SmdGetObjPtr(id)->matUpdate();
 }
 
@@ -380,17 +380,17 @@ static void r117_EventAshleyFind()
     BitOn(pG->Item_find_flg, 0x00100000);
     BitOff(pG->door_flags_51CC, 0x8000);
     if (W->evd0->waitLoadOk() == 1) {
-        MemorySwap(W->mod->pArc, (u32) W->evd0->addr, W->evd0->size);
+        MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         EvtMgr.SetEvt(W->mod->pArc, (u32*) 0);
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
         pG->System_flg |= 0x400;
-        MemorySwap(W->mod->pArc, (u32) W->evd0->addr, W->evd0->size);
+        MemorySwap(W->mod->pArc, (u32) W->evd0->m_addr, W->evd0->m_size);
         W->evd0->setCommand(4, 0, 0);
     }
     BitOn(pG->flags_5018, 0x04000000);
-    SubCharInit(1, &pPL->pos, pPL->rot.y);
+    SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(4, 0);
     SceSleep(2);
     OpeOwTypeSet(3);
@@ -421,14 +421,14 @@ static void r117_EventSaddlerAppear()
     pG->flags_5018 &= ~0x04000000;
     SceSleep(3);
     if (W->evd1->waitLoadOk() == 1) {
-        MemorySwap(W->mod->pArc, (u32) W->evd1->addr, W->evd1->size);
+        MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         if (EvtMgr.SetEvt(W->mod->pArc, (u32*) &ev)) {
-            ev->status |= 0x400;
+            ev->StatusFlag |= 0x400;
         }
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(W->mod->pArc, (u32) W->evd1->addr, W->evd1->size);
+        MemorySwap(W->mod->pArc, (u32) W->evd1->m_addr, W->evd1->m_size);
         W->evd1->setCommand(4, 0, 0);
     }
     EffectEspDelete(0x2001, 3, 0, 0);
@@ -446,7 +446,7 @@ static void r117_EventSaddlerAppear()
     pa->y = ry;
     ang.z = 0.0f;
     pl->setAng(pa);
-    SubCharInit(1, &pPL->pos, pPL->rot.y);
+    SubCharInit(1, &pPL->pos, pPL->ang.y);
     SubCharCtrl(1, 0);
     SndBgmTblSet(0x117, 1);
     SceSetChapterEnd(3, -1);
@@ -505,7 +505,7 @@ static void r117_LightMechanismMove()
 
     switch (W->mode) {
     case 0:
-        cMes.MesSet(3, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x100012, 0, 0, 4);
+        cMes.MesSet(3, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x100012, 0, 0, 4);
         sel = SceMesGetSelection();
         switch (sel) {
         case -1:
@@ -527,7 +527,7 @@ static void r117_LightMechanismMove()
         s8 oldCur = W->cur[W->sel];
         s8 oldTgt = W->tgt[W->sel];
 
-        cMes.MesSet(4, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x100012, 0, 0, 4);
+        cMes.MesSet(4, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x100012, 0, 0, 4);
         if (SceMesGetSelection() != 1) {
             W->mode--;
         } else {
@@ -557,7 +557,7 @@ static void r117_LightMechanismMove()
         EffectEfmDelete(1, 3, 0);
         r117_LightSet(4);
         if (EspEstSetSelect(1, effTbl[W->cur[0]][W->cur[1]][W->cur[2]], 0, &esp2, 1) == 1) {
-            esp2->rot.z = angTbl[W->cur[0]] * 1.5707964f;
+            esp2->m_Ang.z = angTbl[W->cur[0]] * 1.5707964f;
         }
         if (W->cur[0] == 0 && W->cur[1] == 0 && W->cur[2] == 0) {
             RoomSeCall(4, 0, 0, 0, 0);
@@ -566,7 +566,7 @@ static void r117_LightMechanismMove()
             W->mode++;
         } else {
             SceSleep(15);
-            SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            SceMesSet(5, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
             CamCtrl.CutCall(7);
             r117_LightSet(3);
             EstSet(0, -1, 0, 0, 1, 0x11, 1, 3, 0, 0);
@@ -651,13 +651,13 @@ extern "C" void r117_LightRotate(int no, f32 dir)
     for (i = 0; i < 10; i++) {
         f32 d = step[i] * 0.017453292f * dir;
 
-        W->esp[no]->rot.z += d;
-        W->light[no]->rot.z += d;
+        W->esp[no]->m_Ang.z += d;
+        W->light[no]->ang.z += d;
         W->light[no]->matUpdate();
         SceSleep(1);
     }
-    W->esp[no]->rot.z = (f32) W->cur[no] * 1.5707964f;
-    W->light[no]->rot.z = (f32) W->tgt[no] * 1.5707964f;
+    W->esp[no]->m_Ang.z = (f32) W->cur[no] * 1.5707964f;
+    W->light[no]->ang.z = (f32) W->tgt[no] * 1.5707964f;
     W->light[no]->matUpdate();
 }
 
@@ -703,8 +703,8 @@ static void r117_EventChandelier()
         ang.y = ry;
         pl->setAng(&ang);
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 1, 0);
-    W->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 3, 0, 1, 0);
+    W->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, 1, 0);
     PlSeCall(0x29, &pPL->pos, 0, 0, 0);
     cnt = 0;
     do {
@@ -722,8 +722,8 @@ static void r117_EventChandelier()
     do { } while (0);
     ok = 1;
     loop = 1;
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 5, 0);
-    W->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 3, 0, 5, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 5, 0);
+    W->smd->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 3, 0, 5, 0);
     RoomSeCall(0x13, &pPL->pos, 0, 0, 0);
     cnt = 0;
     do {
@@ -737,14 +737,14 @@ static void r117_EventChandelier()
                     dir = 1;
                     px = -606.0f;
                     pz = r117_smdPos.z + 1964.0f;
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                    motSmd = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                    motSmd = ROOM_ARC_PTR(pG->pRoom, 0x23);
                 } else {
                     dir = 0;
                     px = -647.0f;
                     pz = r117_smdPos.z + 926.0f;
-                    motPl = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-                    motSmd = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
+                    motPl = ROOM_ARC_PTR(pG->pRoom, 0x28);
+                    motSmd = ROOM_ARC_PTR(pG->pRoom, 0x24);
                 }
                 loop = 0;
             }
@@ -762,7 +762,7 @@ static void r117_EventChandelier()
         cPlayer* pl;
 
         pl = pPLS;
-        ry = pl->rot.y;
+        ry = pl->ang.y;
         pl->setPos(&pl->pos);
         ang.x = 0.0f;
         ang.z = 0.0f;
@@ -797,18 +797,18 @@ static void r117_EventChandelier()
 
 static void r117_ThunderFlagOn()
 {
-    SmdGetObjPtr(0)->pInfo->color[0] = 0x5F;
-    SmdGetObjPtr(0)->pInfo->color[1] = 0x87;
-    SmdGetObjPtr(0)->pInfo->color[2] = 0x9B;
+    SmdGetObjPtr(0)->pModelInfo->color[0] = 0x5F;
+    SmdGetObjPtr(0)->pModelInfo->color[1] = 0x87;
+    SmdGetObjPtr(0)->pModelInfo->color[2] = 0x9B;
 }
 
 static void r117_ThunderFlagOff()
 {
     u8 c = 0x35;
 
-    SmdGetObjPtr(0)->pInfo->color[0] = 0x32;
-    SmdGetObjPtr(0)->pInfo->color[1] = c;
-    SmdGetObjPtr(0)->pInfo->color[2] = c;
+    SmdGetObjPtr(0)->pModelInfo->color[0] = 0x32;
+    SmdGetObjPtr(0)->pModelInfo->color[1] = c;
+    SmdGetObjPtr(0)->pModelInfo->color[2] = c;
 }
 
 // Thunder every 90..235 frames (150..295 after the first), lit through the effect tool state.
@@ -852,15 +852,15 @@ extern "C" void Evt_R117S00_Func(Event* e)
         setRoomEtcDisp(0xA, 0, 1);
         break;
     case 1: {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 4:
         case 6:
         case 7: {
             void* mod;
 
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
             break;
@@ -868,37 +868,37 @@ extern "C" void Evt_R117S00_Func(Event* e)
         default: {
             void* mod;
 
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags &= ~0x40;
+                    ((cObj*) mod)->o18.be_flag &= ~0x40;
                 }
             }
             break;
         }
         }
         void* mod;
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 0x40;
+                    ((cModel*) mod)->LightInfo.x50 = 0x40;
                 }
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.x50 = 0x20;
                 }
                 if (e->GetMod(&mod, "evmb300", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 8;
+                    ((cModel*) mod)->LightInfo.x50 = 8;
                     ((cModel*) mod)->be_flag |= 0x80;
                 }
                 if (e->GetMod(&mod, "evmb310", 0, 0) == 1) {
-                    ((cModel*) mod)->lightInfo.x50 = 8;
+                    ((cModel*) mod)->LightInfo.x50 = 8;
                     ((cModel*) mod)->be_flag |= 0x80;
                 }
             }
             break;
         case 6:
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag &= ~2;
@@ -906,7 +906,7 @@ extern "C" void Evt_R117S00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cModel*) mod)->be_flag |= 2;
@@ -938,11 +938,11 @@ extern "C" void Evt_R117S10_Func(Event* e)
     if (e->funcMode != 1) {
         return;
     }
-    switch (e->cut) {
+    switch (e->NowCut) {
     case 8:
     case 9:
     case 10:
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             if (e->GetMod(&mod, "evm4200", 0, 0) == 1) {
                 cLight* l = LightMgr.getKindLight(1);
 
@@ -953,20 +953,20 @@ extern "C" void Evt_R117S10_Func(Event* e)
         }
         break;
     }
-    switch (e->cut) {
+    switch (e->NowCut) {
     case 0: {
         void* m;
 
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             if (e->GetMod(&m, "evm3100", 0, 0) == 1) {
-                ((cModel*) m)->lightInfo.x50 = 0x10;
+                ((cModel*) m)->LightInfo.x50 = 0x10;
             }
             if (e->GetMod(&m, "pl0100", 0, 0) == 1) {
-                ((cModel*) m)->lightInfo.x50 = 0x40;
+                ((cModel*) m)->LightInfo.x50 = 0x40;
             }
             if (e->GetMod(&mod2, "ev0101", 0, 0) == 1) {
                 W->evBin = ((cModelInfo*) mod2)->pData;
-                W->evTpl = ((cModelInfo*) mod2)->pTpl;
+                W->evTpl = ((cModelInfo*) mod2)->tpl_addr;
             }
             if (e->GetMod(&m, "em3000", 0, 0) == 1) {
                 ((cModel*) m)->be_flag |= 0x10;
@@ -977,13 +977,13 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 ((cModel*) m)->be_flag |= 0x10;
                 ((cModel*) m)->be_flag |= 0x04000000;
                 ((cModel*) m)->be_flag |= 0x01000000;
-                ((cModel*) m)->lightInfo.x50 = 2;
+                ((cModel*) m)->LightInfo.x50 = 2;
             }
             if (e->GetMod(&m, "evm5010", 0, 0) == 1) {
                 ((cModel*) m)->be_flag |= 0x10;
                 ((cModel*) m)->be_flag |= 0x04000000;
                 ((cModel*) m)->be_flag |= 0x01000000;
-                ((cModel*) m)->lightInfo.x50 = 2;
+                ((cModel*) m)->LightInfo.x50 = 2;
             }
             if (e->GetMod(&m, "obm5500", 0, 0) == 1) {
                 ((cModel*) m)->be_flag |= 0x10;
@@ -994,10 +994,10 @@ extern "C" void Evt_R117S10_Func(Event* e)
         break;
     }
     case 7:
-        if (e->frame == 0x23) {
+        if (e->NowFrame == 0x23) {
             int skip = 1;
 
-            if (!(e->status & 0x40000000)) {
+            if (!(e->StatusFlag & 0x40000000)) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -1007,10 +1007,10 @@ extern "C" void Evt_R117S10_Func(Event* e)
         break;
     case 8:
     case 9:
-        if (e->frame == 0x19) {
+        if (e->NowFrame == 0x19) {
             int skip = 1;
 
-            if (!(e->status & 0x40000000)) {
+            if (!(e->StatusFlag & 0x40000000)) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -1019,17 +1019,17 @@ extern "C" void Evt_R117S10_Func(Event* e)
         }
         break;
     case 10:
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             if (e->GetMod(&mod2, "ev0101", 0, 0) == 1) {
                 if (EvtMgr.GetBin(&bin, "event/model/ev0100/ev0100a.tpl", 0) == 1) {
                     ((cModelInfo*) mod2)->setTplAddr(bin);
                 }
             }
         }
-        if (e->frame == 0x55) {
+        if (e->NowFrame == 0x55) {
             int skip = 1;
 
-            if (!(e->status & 0x40000000)) {
+            if (!(e->StatusFlag & 0x40000000)) {
                 skip = 0;
             }
             if (skip == 0) {
@@ -1038,20 +1038,20 @@ extern "C" void Evt_R117S10_Func(Event* e)
         }
         break;
     case 0xB:
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             if (e->GetMod(&mod2, "ev0101", 0, 0) == 1) {
                 ((cModelInfo*) mod2)->setTplAddr(W->evTpl);
             }
         }
         break;
     case 0x14:
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             SmdGetObjPtr(0x27)->be_flag &= ~2;
             SmdGetObjPtr(0x28)->be_flag &= ~2;
         }
         break;
     case 0x20:
-        if (e->frame == 0) {
+        if (e->NowFrame == 0) {
             SmdGetObjPtr(0x2E)->be_flag &= ~2;
         }
         break;

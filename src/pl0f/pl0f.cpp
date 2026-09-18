@@ -98,7 +98,7 @@ static void subBoatR10eIn2();
 #define SUBARC(no) PL_ARC_PTR(sub->subArc, no)
 #define PLARC(no) PL_ARC_PTR(pl->subArc, no)
 #define VIB_TBL ((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc))
-#define PL_BOAT(pl) ((cPl0f*) (pl)->pBoat)
+#define PL_BOAT(pl) ((cPl0f*) (pl)->m_pBoat)
 #define SUB_BOAT(sub) ((cPl0f*) (sub)->dmgType)
 #define ROPE(w) ((cObj*) (w)->pRope)
 
@@ -186,7 +186,7 @@ void cPl0f::move()
 {
     Pl0fWork* w = PL0F_WK(this);
 
-    w->flags &= ~0xC;
+    w->Be_flg &= ~0xC;
     Pl0f_R0_move_tbl[r_no_0](this);
     if (pG->room_id != 0x10D && pG->room_id != 0x10E) {
         if (w->Ripple_wait) {
@@ -204,11 +204,11 @@ void cPl0f::move()
             v.y = 1000.0f;
             v.z = 0.0f;
             PSMTXMultVec(w->pAnchor->mat, &v, &v);
-            PenClothFixSet(ROPE(w), &w->cloth, 0x1C, &v);
+            PenClothFixSet(ROPE(w), &w->Cloth, 0x1C, &v);
         } else {
-            PenClothFixClear(ROPE(w), &w->cloth, 0x1C);
+            PenClothFixClear(ROPE(w), &w->Cloth, 0x1C);
         }
-        if (!(pG->flags_5010 & 0x00080000) && !(w->flags & 8) && w->pBoss) {
+        if (!(pG->flags_5010 & 0x00080000) && !(w->Be_flg & 8) && w->pBoss) {
             ROPE(w)->be_flag |= 2;
             if (w->pBoss && (w->pBoss->flags_3C8 & 0x100)) {
                 ROPE(w)->be_flag &= ~2;
@@ -242,16 +242,16 @@ void cPl0f::setTiller()
     Pl0fWork* w = PL0F_WK(this);
 
     if (Key.on & 1) {
-        w->tiller |= 1;
+        w->Tiller |= 1;
     }
     if (Key.on & 2) {
-        w->tiller |= 2;
+        w->Tiller |= 2;
     }
     if (Key.on & 8) {
-        w->tiller |= 4;
+        w->Tiller |= 4;
     }
     if (Key.on & 4) {
-        w->tiller |= 8;
+        w->Tiller |= 8;
     }
 }
 
@@ -259,7 +259,7 @@ void cPl0f::setTillerFront()
 {
     Pl0fWork* w = PL0F_WK(this);
 
-    w->tiller |= 1;
+    w->Tiller |= 1;
 }
 
 void cPl0f::setPos(Vec* p, f32 ang)
@@ -275,11 +275,11 @@ void cPl0f::setPos(Vec* p, f32 ang)
         n->spd.z = 0.0f;
     }
     pos = *p;
-    oldPos = pos;
-    rot.y = ang;
-    rot.x = 0.0f;
-    rot.z = 0.0f;
-    RotMatrix(mat, &rot);
+    pos_old = pos;
+    this->ang.y = ang;
+    this->ang.x = 0.0f;
+    this->ang.z = 0.0f;
+    RotMatrix(mat, &this->ang);
     TransMatrix(mat, &pos);
     partsMatCalc();
     partsWorldCalc();
@@ -301,14 +301,14 @@ static void pl0f_R0_Init(cPl0f* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 4);
+        em->LightInfo.init2(0, 1, &ofs, &size, 4);
     }
     U8Set(em->lockParts, 0);   // SImode zero: not merged with x12F's QImode zero across the init2 call
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->setStatus(3);
-    em->atari.flags &= 0xFCFF;
+    em->atari.m_flag &= 0xFCFF;
     em->atari.setPriority(1);
     em->setStatus(1);
     EspDataLoad((u32) ARC(0x4), 0xF, 0);
@@ -336,14 +336,14 @@ static void pl0f_R0_Init(cPl0f* em)
         }
     }
     w->Ripple_wait = 0x1D;
-    w->flags = 0;
-    w->roll = 0.0f;
-    w->pitch = 0.0f;
+    w->Be_flg = 0;
+    w->Roll_rot = 0.0f;
+    w->Bank_rot = 0.0f;
     w->rollPhase = 0.0f;
-    w->pitchPhase = 0.0f;
+    w->Bank_sin = 0.0f;
     w->Vib_sin = 0.0f;
-    w->bossMode = 0;
-    w->tiller = 0;
+    w->Boss_chase = 0;
+    w->Tiller = 0;
     w->First_camck = 0;
     w->anchorEff = 0;
     w->swayAmp.x = 0.0f;
@@ -351,12 +351,12 @@ static void pl0f_R0_Init(cPl0f* em)
     w->swayAmp.z = 0.0f;
     w->swayPhase.x = 0.0f;
     w->swayPhase.y = 0.0f;
-    w->seNo = 0;
+    w->Seid_engine = 0;
     w->swayPhase.z = 0.0f;   // last 0.0 store (dying register): issued first
     if ((int) em->flags_3C8 < 0) {
         LightMgr.createBack(0, 3, 0, 0)->setParent(em);
     }
-    w->espKind = EspPullCoreKind();
+    w->EffKindId = EspPullCoreKind();
     if (pG->room_id != 0x10D && pG->room_id != 0x10E) {
         EstSet((int) em, -1, 0, 0, 0xF, 0xF, 0x800, 0, (u32) em, 0);
     }
@@ -400,11 +400,11 @@ static void pl0f_R0_Move(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    if (w->spdXZ > 30.0f) {
+    if (w->Boat_spd > 30.0f) {
         cModel* p = em->getPartsPtr(2);
 
-        p->rot.z += 1.0471976f;
-        p->rot.z = LIMIT_ANGLE(p->rot.z);
+        p->ang.z += 1.0471976f;
+        p->ang.z = LIMIT_ANGLE(p->ang.z);
     }
     Pl0f_R1_move_tbl[em->r_no_1](em);
     if (w->pBoss) {
@@ -419,8 +419,8 @@ static void pl0f_R0_Move(cPl0f* em)
 // Engine stop SE: the long one after a minute of running.
 static inline void pl0fEngineStop(Pl0fWork* w, Vec* pos)
 {
-    w->flags &= ~2;
-    if (w->engineCnt > 60) {
+    w->Be_flg &= ~2;
+    if (w->Sailing_timer > 60) {
         SndCall(8, 0xB, pos, 0xF, 0, 0);
     } else {
         SndCall(8, 0x10, pos, 0xF, 0, 0);
@@ -431,16 +431,16 @@ static void pl0f_R1_Wait(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    if (w->flags & 2) {
-        w->flags &= ~2;
-        if (w->engineCnt > 60) {
+    if (w->Be_flg & 2) {
+        w->Be_flg &= ~2;
+        if (w->Sailing_timer > 60) {
             SndCall(8, 0xB, &em->pos, 0xF, 0, 0);
         } else {
             SndCall(8, 0x10, &em->pos, 0xF, 0, 0);
         }
-        w->engineCnt = 0;
+        w->Sailing_timer = 0;
     }
-    w->bossMode = 0;
+    w->Boss_chase = 0;
     pl0fBoatControl(em);
     em->partsMatCalc();
     em->partsWorldCalc();
@@ -455,7 +455,7 @@ static void pl0f_R1_RideMove(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    w->bossMode = 0;
+    w->Boss_chase = 0;
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
     ((cPlayer*) em)->checkCtrl();
@@ -475,14 +475,14 @@ static void pl0f_R1_RideStart(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
     cPlayer* pl = pPL;
 
-    pl->pBody->initWepHand((u32) ARC(0x8));
+    pl->Body->initWepHand((u32) ARC(0x8));
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
-    EmSet(pl->pBoat, em);
+    pl->Wep->setTrans(0, 0);
+    EmSet(pl->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 2, 0);
-    w->flags |= 1;
-    w->seNo = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
+    w->Be_flg |= 1;
+    w->Seid_engine = SndCall(8, 0x11, &em->pos, 0xF, 0, 0);
     if (pSUBS) {
         SetSubDamage((int) em, (void*) subBoatRide);
         pSUB->r_no_2 = 2;
@@ -498,7 +498,7 @@ static void pl0f_R1_BossMove(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    w->bossMode = 1;
+    w->Boss_chase = 1;
     pl0fBoatChaseBoss(em);
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
@@ -513,22 +513,22 @@ static void pl0f_R1_BossMove(cPl0f* em)
             int zero = 0;   // one SImode zero for both stores, separate from the routine's QImode zero
 
             w->pBoss = (cEm*) zero;
-            w->bossMode = zero;
+            w->Boss_chase = zero;
         }
         return;
     }
     switch (em->r_no_2) {
     case 0:
-        w->timer = 30;
+        w->Timer = 30;
         em->r_no_2++;
     case 1: {
         if (BOSS_NEAR(w->pBoss, em)) {
             PlRoutineSet(pPL, 0, 0xF, 7, 0);
             PlRoutineSet(em, 1, 7, 0, 0);
-        } else if (w->timer) {
-            w->timer--;
+        } else if (w->Timer) {
+            w->Timer--;
         } else if (w->pBoss && pl0fCrashCk(em)) {
-            if (w->spdXZ > 200.0f || (w->pBoss->flags_3C8 & 4)) {
+            if (w->Boat_spd > 200.0f || (w->pBoss->flags_3C8 & 4)) {
                 PlRoutineSet(pPL, 0, 0xF, 5, 0);
                 {
                     cPlayer* pl = pPL;   // second pPL load (the byte stores above alias it), kept across setLost
@@ -539,7 +539,7 @@ static void pl0f_R1_BossMove(cPl0f* em)
                     }
                 }
                 PlRoutineSet(em, 1, 4, 0, 0);
-                w->bossMode = 1;
+                w->Boss_chase = 1;
             } else {
                 PlRoutineSet(pPL, 0, 0xF, 7, 0);
                 PlRoutineSet(em, 1, 7, 0, 0);
@@ -556,7 +556,7 @@ static void pl0f_R1_Guard(cPl0f* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x1D), 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x1D), 0, 0, 5, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         VibSetData(VIB_TBL, 0xB, 1);
         em->r_no_2++;
@@ -583,23 +583,23 @@ static void pl0f_R1_Drop(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    w->flags |= 0xC;
+    w->Be_flg |= 0xC;
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x1F), 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x1F), 0, 0, 5, 0);
         EstSet((int) em, -1, 0, 0, 0xF, 0xB, 0, 0x35, (u32) em, 0);
         LifeDownSet2(em, 100, 0, 1);
-        em->getPartsPtr(1)->rot.y = 0.0f;
-        w->timer = 60;
+        em->getPartsPtr(1)->ang.y = 0.0f;
+        w->Timer = 60;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
             PlRoutineSet(em, 1, 0, 0, 0);
-        } else if (w->timer) {
+        } else if (w->Timer) {
             f32 spd;
             u32 i;
 
-            w->timer--;
+            w->Timer--;
             spd = 300.0f;
             if ((s16) em->hp <= 699) {
                 spd = 350.0f;
@@ -628,7 +628,7 @@ static void pl0f_R1_Drop(cPl0f* em)
                 // Dead test (flow deletes the store, jump2 the branch): its insns keep the loop
                 // above loop.c's pass-2 threshold, so the VECNormalize string `lis` stays inside
                 // the loop like the target's.
-                if (w->timer == 0) {
+                if (w->Timer == 0) {
                     s = 0.0f;
                 }
             }
@@ -645,13 +645,13 @@ static void pl0f_R1_WaterRide(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
 
-    w->flags |= 4;
+    w->Be_flg |= 4;
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x22), 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x22), 0, 0, 5, 0);
         EstSet((int) em, -1, 0, 0, 0xF, 0xC, 0, 0x35, (u32) em, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
-        w->timer = 60;
+        w->Timer = 60;
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
@@ -668,7 +668,7 @@ static void pl0f_R1_BossGuard(cPl0f* em)
 {
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x1D), 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x1D), 0, 0, 5, 0);
         SndCall(8, 0x17, &em->pos, 0xF, 0, 0);
         em->r_no_2++;
     case 1:
@@ -693,24 +693,24 @@ static void pl0f_R1_BossGuard(cPl0f* em)
  \
     switch (em->r_no_2) { \
     case 0: \
-        EmSet(pl->pBoat, em); \
+        EmSet(pl->m_pBoat, em); \
         BoatMoveFunc = PlBoatMove; \
         PlRoutineSet(pPL, 0, 0xF, plRoutine, 0); \
         if (pSUB) { \
             SetSubDamage((int) em, (void*) subFunc); \
         } \
-        w->timer = t1; \
-        w->timer2 = t2; \
-        w->cnt = 0; \
+        w->Timer = t1; \
+        w->Timer2 = t2; \
+        w->Timer3 = 0; \
         em->r_no_2++; \
     case 1: \
-        w->cnt++; \
-        if (w->cnt & 1) { \
+        w->Timer3++; \
+        if (w->Timer3 & 1) { \
             EstSet((int) em, -1, 0, 0, 1, 0xA, 0, 0x35, (u32) em, 0); \
         } \
-        if (w->timer) { \
-            w->timer--; \
-            w->tiller |= 1; \
+        if (w->Timer) { \
+            w->Timer--; \
+            w->Tiller |= 1; \
         } \
         break; \
     } \
@@ -722,8 +722,8 @@ static void pl0f_R1_BossGuard(cPl0f* em)
 
 #define PL0F_ROOM_IN_END(ang, px, py, pz) \
 { \
-    if (w->timer2) { \
-        w->timer2--; \
+    if (w->Timer2) { \
+        w->Timer2--; \
     } else { \
         cPlayer* pl = pPL; \
  \
@@ -733,8 +733,8 @@ static void pl0f_R1_BossGuard(cPl0f* em)
         pl->evTarget.z = pz; \
         PlRoutineSet(pl, 0, 0xF, 1, 0); \
         PlRoutineSet(em, 1, 0, 0, 0); \
-        PL0F_WK(em)->flags &= ~1; \
-        SndStop(PL0F_WK(em)->seNo, 0); \
+        PL0F_WK(em)->Be_flg &= ~1; \
+        SndStop(PL0F_WK(em)->Seid_engine, 0); \
         if (pSUB) { \
             SetSubDamage((int) em, (void*) subBoatGetoff); \
         } \
@@ -751,7 +751,7 @@ static void pl0f_R1_R10dIn(cPl0f* em)
 
 static void pl0f_R1_R10dOut(cPl0f* em)
 {
-    PL0F_WK(em)->bossMode = 0;
+    PL0F_WK(em)->Boss_chase = 0;
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
     em->partsMatCalc();
@@ -768,7 +768,7 @@ static void pl0f_R1_R10eIn(cPl0f* em)
 
 static void pl0f_R1_R10eOut(cPl0f* em)
 {
-    PL0F_WK(em)->bossMode = 0;
+    PL0F_WK(em)->Boss_chase = 0;
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
     em->partsMatCalc();
@@ -785,7 +785,7 @@ static void pl0f_R1_R10eIn2(cPl0f* em)
 
 static void pl0f_R1_R10eOut2(cPl0f* em)
 {
-    PL0F_WK(em)->bossMode = 0;
+    PL0F_WK(em)->Boss_chase = 0;
     pl0fBoatSpdControl(em);
     pl0fBoatControl(em);
     em->partsMatCalc();
@@ -831,7 +831,7 @@ void pl0fBoatControl(cPl0f* em)
     // jump loop.c marks it `cant_derive` (the biv is `maybe_multiple` behind the k loop's back
     // edge) and `&n->wpos` / `&n->fixPos` / `n->dist` stay displacements off the `mr r31,r25` copy
     // instead of becoming their own stepping pointers.
-    PSMTXRotRad(m, 'y', em->rot.y);
+    PSMTXRotRad(m, 'y', em->ang.y);
     TransMatrix(m, &em->pos);
     for (i = 0; i < 2; i++) {
         n = &w->node[i];
@@ -871,9 +871,9 @@ void pl0fBoatControl(cPl0f* em)
     }
     pl0fScrAdjust(em);
     PSVECSubtract(&w->node[0].wpos, &w->node[1].wpos, &d);
-    em->rot.x = 0.0f;
-    em->rot.y = atan2f(d.x, d.z);
-    RotMatrix(em->mat, &em->rot);
+    em->ang.x = 0.0f;
+    em->ang.y = atan2f(d.x, d.z);
+    RotMatrix(em->mat, &em->ang);
     PSVECScale(&w->node[0].pos, &d, -1.0f);
     TransMatrix(em->mat, &w->node[0].wpos);
     PSMTXMultVec(em->mat, &d, &d);
@@ -882,7 +882,7 @@ void pl0fBoatControl(cPl0f* em)
     pl0fGetBoatDir(em);
     pl0fWaterEff(em);
     pl0fBoatRoll(em);
-    if (w->spdXZ > 100.0f) {
+    if (w->Boat_spd > 100.0f) {
         AddWaterPower(&w->node[0].wpos, fRand1_1() * 0.3f);
         AddWaterPower(&w->node[1].wpos, fRand1_1() * 0.3f);
     }
@@ -891,9 +891,9 @@ void pl0fBoatControl(cPl0f* em)
         cModel* p = em->getPartsPtr(1);
 
         if ((pPL->stat & 0xFFFFFF00) == 0x000F0200) {
-            p->rot.y = pl->blendRate500 * (1.0f / 255.0f) * -0.5235988f;
+            p->ang.y = pl->blendRate500 * (1.0f / 255.0f) * -0.5235988f;
         } else {
-            p->rot.y *= 0.9f;
+            p->ang.y *= 0.9f;
         }
     }
 }
@@ -903,15 +903,15 @@ void pl0fGetBoatDir(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
     Vec d;
 
-    PSVECSubtract(&em->pos, &em->oldPos, &d);
-    w->spdXZ = SQRTF(d.x * d.x + d.z * d.z);
-    if (w->spdXZ > 100.0f) {
-        w->dirAng = atan2f(d.x, d.z);
-        w->dirAng = Muku2(em->rot.y, w->dirAng, PI);
+    PSVECSubtract(&em->pos, &em->pos_old, &d);
+    w->Boat_spd = SQRTF(d.x * d.x + d.z * d.z);
+    if (w->Boat_spd > 100.0f) {
+        w->Boat_dir = atan2f(d.x, d.z);
+        w->Boat_dir = Muku2(em->ang.y, w->Boat_dir, PI);
     } else {
-        w->dirAng *= 0.9f;
+        w->Boat_dir *= 0.9f;
     }
-    w->dirAngAbs = fabsf(w->dirAng);
+    w->Boat_rot = fabsf(w->Boat_dir);
 }
 
 void pl0fWaterEff(cPl0f* em)
@@ -926,20 +926,20 @@ void pl0fWaterEff(cPl0f* em)
     if (pG->room_id == 0x10D || pG->room_id == 0x10E) {
         return;
     }
-    if (w->dirAngAbs > 2.443461f && w->spdXZ > 30.0f && !(pG->flags_51E4 & 3)) {
+    if (w->Boat_rot > 2.443461f && w->Boat_spd > 30.0f && !(pG->flags_51E4 & 3)) {
         EstSet((int) em, -1, 0, 0, 0xF, 0x1D, 0, 0x35, (u32) em, 0);
     }
-    if (w->spdXZ < 150.0f) {
+    if (w->Boat_spd < 150.0f) {
         return;
     }
-    if (w->flags & 4) {
+    if (w->Be_flg & 4) {
         return;
     }
-    a = fabsf(w->dirAng);
-    if (w->dirAngAbs > PI / 16 && a < 2.0943952f) {
+    a = fabsf(w->Boat_dir);
+    if (w->Boat_rot > PI / 16 && a < 2.0943952f) {
         if (turn == 0) {
             turn = 1;
-            if (w->dirAng < 0.0f) {
+            if (w->Boat_dir < 0.0f) {
                 EstSet((int) em, -1, 0, 0, 0xF, 3, 0, 0x35, (u32) em, 0);
             } else {
                 EstSet((int) em, -1, 0, 0, 0xF, 4, 0, 0x35, (u32) em, 0);
@@ -984,33 +984,33 @@ void pl0fBoatRoll(cPl0f* em)
     f32 t;
     f32 a;
 
-    if (w->dirAngAbs < PI / 2) {
-        t = w->spdXZ * 0.01f;
+    if (w->Boat_rot < PI / 2) {
+        t = w->Boat_spd * 0.01f;
         if (t > 1.0f) {
             t = 1.0f;
         }
-        a = w->dirAng * 0.3f * t;
-        w->roll = w->roll * 0.9f + a * 0.1f;
+        a = w->Boat_dir * 0.3f * t;
+        w->Roll_rot = w->Roll_rot * 0.9f + a * 0.1f;
     } else {
-        w->roll *= 0.9f;
+        w->Roll_rot *= 0.9f;
     }
     w->rollPhase += fRand0_1() * 0.3926991f + 0.09817477f;
     sinf(w->rollPhase);
-    PSMTXRotRad(m, 'z', w->roll);
+    PSMTXRotRad(m, 'z', w->Roll_rot);
     PSMTXConcat(em->mat, m, em->mat);
-    if (w->dirAngAbs < PI / 2) {
-        a = w->spdXZ * 0.005f;
+    if (w->Boat_rot < PI / 2) {
+        a = w->Boat_spd * 0.005f;
         if (a > 1.0f) {
             a = 1.0f;
         }
         a *= -0.19634955f;
-        w->pitch = w->pitch * 0.9f + a * 0.1f;
+        w->Bank_rot = w->Bank_rot * 0.9f + a * 0.1f;
     } else {
-        w->pitch *= 0.9f;
+        w->Bank_rot *= 0.9f;
     }
-    a = w->pitch;
-    w->pitchPhase += fRand0_1() * 0.3926991f + 0.09817477f;
-    PSMTXRotRad(m, 'x', sinf(w->pitchPhase) * 0.012271847f + a);
+    a = w->Bank_rot;
+    w->Bank_sin += fRand0_1() * 0.3926991f + 0.09817477f;
+    PSMTXRotRad(m, 'x', sinf(w->Bank_sin) * 0.012271847f + a);
     PSMTXConcat(em->mat, m, em->mat);
     sway.x = w->swayAmp.x * sinf(w->swayPhase.x);
     sway.y = 0.0f;
@@ -1041,29 +1041,29 @@ void pl0fBoatSpdControl(cPl0f* em)
     p = em->pos;
     p.y += 500.0f;
     if (pG->flags_5010 & 0x00800000) {
-        if (w->flags & 2) {
+        if (w->Be_flg & 2) {
             pl0fEngineStop(w, &p);
         }
-        w->engineCnt = 0;
+        w->Sailing_timer = 0;
         return;
     }
-    if (w->tiller & 0xF) {
-        if (!(w->flags & 2)) {
-            w->flags |= 2;
+    if (w->Tiller & 0xF) {
+        if (!(w->Be_flg & 2)) {
+            w->Be_flg |= 2;
             SndCall(8, 0xA, &p, 0xF, 0, 0);
-            w->engineCnt = 0;
+            w->Sailing_timer = 0;
         }
-        w->engineCnt++;
+        w->Sailing_timer++;
     } else {
-        if (w->flags & 2) {
+        if (w->Be_flg & 2) {
             pl0fEngineStop(w, &p);
         }
-        w->engineCnt = 0;
+        w->Sailing_timer = 0;
     }
     spd.x = 0.0f;
     spd.y = 0.0f;
     spd.z = 0.0f;
-    if (w->tiller & 1) {
+    if (w->Tiller & 1) {
         switch (em->type) {   // range node: `cmpwi 5; bgt; cmpwi 1; bge` (an if-range folds to subi/cmplwi); default first
         default:
             spd.x = 0.0f;
@@ -1081,52 +1081,52 @@ void pl0fBoatSpdControl(cPl0f* em)
             break;
         }
     }
-    if (w->tiller & 2) {
+    if (w->Tiller & 2) {
         spd.x = 0.0f;
         spd.y = 0.0f;
         spd.z = -15.0f;
     }
-    if (w->tiller & 0xC) {
-        if (w->tiller & 1) {
-            if (w->tiller & 4) {
+    if (w->Tiller & 0xC) {
+        if (w->Tiller & 1) {
+            if (w->Tiller & 4) {
                 w->rotSpd = -PI / 20;
             }
-            if (w->tiller & 8) {
+            if (w->Tiller & 8) {
                 w->rotSpd = PI / 20;
             }
         } else {
             if (w->pBoss) {
-                if (w->tiller & 4) {
+                if (w->Tiller & 4) {
                     w->rotSpd = -PI / 16;
                 }
-                if (w->tiller & 8) {
+                if (w->Tiller & 8) {
                     w->rotSpd = PI / 16;
                 }
                 spd.x = 0.0f;
                 spd.y = 0.0f;
                 spd.z = 50.0f;
             } else {
-                if (w->tiller & 4) {
+                if (w->Tiller & 4) {
                     w->rotSpd = -PI / 8;
                 }
-                if (w->tiller & 8) {
+                if (w->Tiller & 8) {
                     w->rotSpd = PI / 8;
                 }
                 spd.x = 0.0f;
                 spd.y = 0.0f;
                 spd.z = 25.0f;
             }
-            if (w->tiller & 2) {
+            if (w->Tiller & 2) {
                 spd.z *= -0.5f;
             }
         }
     } else {
         w->rotSpd = 0.0f;
     }
-    PSMTXRotRad(m, 'y', em->rot.y + w->rotSpd);
+    PSMTXRotRad(m, 'y', em->ang.y + w->rotSpd);
     PSMTXMultVecSR(m, &spd, &spd);
     pl0fBoatAddSpd(em, 1, &spd);
-    w->tiller = 0;
+    w->Tiller = 0;
 }
 
 void pl0fBoatChaseBoss(cPl0f* em)
@@ -1184,10 +1184,10 @@ void pl0fRideCamMove(cPl0f* em, f32 rate)
     Vec pos;
     Vec at;
 
-    PSMTXRotRad(m, 'y', em->rot.y);
+    PSMTXRotRad(m, 'y', em->ang.y);
     TransMatrix(m, &em->pos);
     PSMTXMultVec(m, &pl0f_ride_cam_ofs, &pos);
-    at = pPL->getPartsPtr(0)->worldPos;
+    at = pPL->getPartsPtr(0)->world;
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &at, &pl0f_camera.param.at, rate);
     PosToPos(&gcam->param.pos, &pos, &pl0f_camera.param.pos, rate);
@@ -1207,10 +1207,10 @@ void pl0fGetoffCamMove(cPl0f* em)
     Vec pos;
     Vec at;
 
-    PSMTXRotRad(m, 'y', em->rot.y);
+    PSMTXRotRad(m, 'y', em->ang.y);
     TransMatrix(m, &em->pos);
     PSMTXMultVec(m, &pl0f_getoff_cam_ofs, &pos);
-    at = pPL->getPartsPtr(0)->worldPos;
+    at = pPL->getPartsPtr(0)->world;
     pl0f_camera.param.fovy = 40.0f;
     PosToPos(&gcam->param.at, &at, &pl0f_camera.param.at, 1.0f);
     PosToPos(&gcam->param.pos, &pos, &pl0f_camera.param.pos, 1.0f);
@@ -1256,7 +1256,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
     if (pPL->flags_420 & 4) {
         return;
     }
-    if (boss && w->bossMode) {
+    if (boss && w->Boss_chase) {
         if (hide) {
             bpos = boss->pos;
             bpos.y = em->pos.y + 1300.0f;
@@ -1267,7 +1267,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             ang.x = -atan2f(d.y, len);
             ang.y = atan2f(d.x, d.z);
             ang.z = 0.0f;
-            ang.y = Muku2(em->rot.y, ang.y, PI / 4) + em->rot.y;
+            ang.y = Muku2(em->ang.y, ang.y, PI / 4) + em->ang.y;
             RotMatrix(m, &ang);
             TransMatrix(m, &cpos);
             d.z = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
@@ -1308,7 +1308,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             PSMTXMultVec(m, &d, &cat);
             pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 3.0f;
         } else {
-            PSMTXRotRad(m, 'y', em->rot.y);
+            PSMTXRotRad(m, 'y', em->ang.y);
             TransMatrix(m, &em->pos);
             PSMTXMultVec(m, &pl0f_boss_cam_ofs, &cpos);
             bpos = w->hist[w->histIdx];
@@ -1348,7 +1348,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
         PosToPos(&gcam->param.at, &cat, &pl0f_camera.param.at, 0.1f);
         PosToPos(&gcam->param.pos, &cpos, &pl0f_camera.param.pos, 0.5f);
     } else {
-        PSMTXRotRad(m, 'y', em->rot.y);
+        PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
         if (hide) {
             PSMTXMultVec(m, &pl0f_boss_cam_pos1, &cpos);
@@ -1384,7 +1384,7 @@ void pl0fHideModeCamSet(cPlayer* pl)
     Vec at;
     Vec pos;
 
-    PSMTXRotRad(m, 'y', pl->pBoat->rot.y);
+    PSMTXRotRad(m, 'y', pl->m_pBoat->ang.y);
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl0f_hide_cam_at, &at);
     PSMTXMultVec(m, &pl0f_hide_cam_pos, &pos);
@@ -1404,7 +1404,7 @@ void pl0fHideModeCamMove(cPlayer* pl)
     Vec at;
     Vec pos;
 
-    PSMTXRotRad(m, 'y', pl->pBoat->rot.y);
+    PSMTXRotRad(m, 'y', pl->m_pBoat->ang.y);
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl0f_hide_cam_at, &at);
     PSMTXMultVec(m, &pl0f_hide_cam_pos, &pos);
@@ -1428,7 +1428,7 @@ void pl0fBossDieCamSet(cPlayer* pl)
     Vec at;
     Vec pos;
 
-    PSMTXRotRad(m, 'y', pl->pBoat->rot.y);
+    PSMTXRotRad(m, 'y', pl->m_pBoat->ang.y);
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl0f_die_cam_at, &at);
     PSMTXMultVec(m, &pl0f_die_cam_pos, &pos);
@@ -1448,7 +1448,7 @@ void pl0fBossDieCamMove(cPlayer* pl)
     Vec at;
     Vec pos;
 
-    PSMTXRotRad(m, 'y', pl->pBoat->rot.y);
+    PSMTXRotRad(m, 'y', pl->m_pBoat->ang.y);
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl0f_die_cam_at, &at);
     PSMTXMultVec(m, &pl0f_die_cam_pos, &pos);
@@ -1467,7 +1467,7 @@ void pl0fRideActEvtCk(cPl0f* em)
     if (pG->flags_5010 & 0x00200000) {
         return;
     }
-    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI)) > PI / 4) {
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > PI / 4) {
         return;
     }
     if (fabsf(em->pos.y - pPL->pos.y) > 10000.0f) {
@@ -1520,8 +1520,8 @@ void pl0fGetoffActEvtCk(cPl0f* em)
     }
     for (i = 0; i < 2; i++) {
         if ((pPL->pos.x - pl0f_getoff_ck[i].x) * (pPL->pos.x - pl0f_getoff_ck[i].x) + (pPL->pos.z - pl0f_getoff_ck[i].z) * (pPL->pos.z - pl0f_getoff_ck[i].z) < 4.9e7f) {
-            w->getoffAng = pl0f_getoff_ang[i];
-            w->getoffPos = pl0f_getoff_land[i];
+            w->Getoff_dir = pl0f_getoff_ang[i];
+            w->Getoff_pos = pl0f_getoff_land[i];
             ActBtn.set(0x24, 5, (int) pl0fActGetOff, (int) em, 0, 1, 0, 0);
         }
     }
@@ -1529,7 +1529,7 @@ void pl0fGetoffActEvtCk(cPl0f* em)
 
 static void pl0fActRide(cPl0f* em)
 {
-    EmSet(pPL->pBoat, em);
+    EmSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 0, 0);
     PlRoutineSet(em, 1, 1, 0, 0);
@@ -1540,7 +1540,7 @@ static void pl0fActRide(cPl0f* em)
 
 static void pl0fActRideR10d(cPl0f* em)
 {
-    EmSet(pPL->pBoat, em);
+    EmSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 0xE, 0);
     PlRoutineSet(em, 1, 9, 0, 0);
@@ -1551,7 +1551,7 @@ static void pl0fActRideR10d(cPl0f* em)
 
 static void pl0fActRideR10e(cPl0f* em)
 {
-    EmSet(pPL->pBoat, em);
+    EmSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 0x10, 0);
     PlRoutineSet(em, 1, 0xB, 0, 0);
@@ -1562,7 +1562,7 @@ static void pl0fActRideR10e(cPl0f* em)
 
 static void pl0fActRideR10e2(cPl0f* em)
 {
-    EmSet(pPL->pBoat, em);
+    EmSet(pPL->m_pBoat, em);
     BoatMoveFunc = PlBoatMove;
     PlRoutineSet(pPL, 0, 0xF, 0x12, 0);
     PlRoutineSet(em, 1, 0xD, 0, 0);
@@ -1576,12 +1576,12 @@ static void pl0fActGetOff(cPl0f* em)
     Pl0fWork* w = PL0F_WK(em);
     cPlayer* pl = pPL;
 
-    pl->x400 = w->getoffAng;
-    pl->evTarget = w->getoffPos;
+    pl->x400 = w->Getoff_dir;
+    pl->evTarget = w->Getoff_pos;
     PlRoutineSet(pl, 0, 0xF, 1, 0);
     PlRoutineSet(em, 1, 0, 0, 0);
-    w->flags &= ~1;
-    SndStop(w->seNo, 0);
+    w->Be_flg &= ~1;
+    SndStop(w->Seid_engine, 0);
     if (pSUB) {
         SetSubDamage((int) em, (void*) subBoatGetoff);
     }
@@ -1652,7 +1652,7 @@ void pl0fCrashAdjustSet(cPl0f* em, Vec* p, int away)
         d.x = 0.0f;
         d.y = 0.0f;
         d.z = -1.0f;
-        PSMTXRotRad(m, 'y', em->rot.y);
+        PSMTXRotRad(m, 'y', em->ang.y);
         PSMTXMultVecSR(m, &d, &d);
         PSVECScale(&d, &d, 300.0f);
     } else {
@@ -1773,15 +1773,15 @@ static PlBoatFunc plboat_R2_move_tbl[19] = {
 // player's for the duration of the routine.
 static void PlBoatMove(cPlayer* pl)
 {
-    if (pl->pBoat == 0) {
+    if (pl->m_pBoat == 0) {
         pLog->err(0, 0, "PlBoatMove(): m_pBoat == NULL!");
         return;
     }
     pG->flags_5010 |= 0x00200000;
     PlSetNeck(2);
-    pl->atari.flags &= 0xFCFF;
+    pl->atari.m_flag &= 0xFCFF;
     pl->dmType = 0x1E;
-    pl->subArc = pl->pBoat->subArc;
+    pl->subArc = pl->m_pBoat->subArc;
     pl->motFlags2 &= ~0x40000000;
     pl->neckMot.flags2 &= ~0x40000000;
     plboat_R2_move_tbl[pl->r_no_2](pl);
@@ -1798,10 +1798,10 @@ static void PlBoatMove(cPlayer* pl)
 { \
     Pl0fWork* w = PL0F_WK(boat); \
  \
-    w->flags |= 1; \
+    w->Be_flg |= 1; \
     v = boat->pos; \
     v.y += 500.0f; \
-    w->seNo = SndCall(8, 0x11, &v, 0xF, 0, 0); \
+    w->Seid_engine = SndCall(8, 0x11, &v, 0xF, 0, 0); \
 }
 
 static void plboat_R2_Ride(cPlayer* pl)
@@ -1820,14 +1820,14 @@ static void plboat_R2_Ride(cPlayer* pl)
         pl->x3FC = 1;
         pl->x400 = v.y - pl->pos.y;
         pl->x3E0 = 20;
-        pl->rot.y = boat->rot.y - PI / 2;
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
-        MotionSetCore(pl, &pl->mot, PLARC(0x29), 0, 0, 5, 0);
+        pl->ang.y = boat->ang.y - PI / 2;
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x29), 0, 0, 5, 0);
         pl->sightRate = 0.0f;
         pl->blendRate500 = 0.0f;
-        pl->pBody->initWepHand((u32) PLARC(0x8));
+        pl->Body->initWepHand((u32) PLARC(0x8));
         pl->setRightHand(1);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         pl->r_no_3++;
     case 1:
         if (pl->x3E0) {
@@ -1864,9 +1864,9 @@ static void plboat_R2_Getoff(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PLARC(0x2A), 0, 0, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x2A), 0, 0, 5, 0);
         pl->pos = pl->evTarget;
-        pl->rot.y = pl->x400;
+        pl->ang.y = pl->x400;
         boat->setPos(&pl->pos, pl->x400);
         FSet(pl->blendRate500, 0.0f);   // the pSUB load stays below the store
         if (pSUB) {
@@ -1899,7 +1899,7 @@ static void plboat_R2_Getoff(cPlayer* pl)
             EndPlDamage();
             p = pPL;
             p->setRightHand(0);
-            p->pWep->setTrans(1, 0);
+            p->Wep->setTrans(1, 0);
         }
         break;
     }
@@ -1954,9 +1954,9 @@ static void plboat_R2_Move(cPlayer* pl)
         }
         break;
     }
-    if (pl->pBoat) {
+    if (pl->m_pBoat) {
         PL_BOAT(pl)->setTiller();
-        if (pl->pBoat) {
+        if (pl->m_pBoat) {
             pl0fBossCamMove(PL_BOAT(pl), 0);
         }
     }
@@ -1978,11 +1978,11 @@ static void plboat_R2_Move(cPlayer* pl)
 { \
     f32 d; \
  \
-    if ((u8) (Key.sy + 15) > 30) { \
+    if ((u8) (Key.stickY + 15) > 30) { \
         if ((int) pSys->flags < 0) { \
-            d = (f32) -Key.sy / 72.0f * 31.875f; \
+            d = (f32) -Key.stickY / 72.0f * 31.875f; \
         } else { \
-            d = (f32) Key.sy / 72.0f * 31.875f; \
+            d = (f32) Key.stickY / 72.0f * 31.875f; \
         } \
         pl->blendRate500 += d; \
         if (pl->blendRate500 > 255.0f) { \
@@ -2013,16 +2013,16 @@ static void plboat_R2_Move(cPlayer* pl)
             pl->blendRate500 = -255.0f; \
         } \
     } \
-    if ((u8) (Key.sx + 15) > 30) { \
-        d = (f32) Key.sx / -72.0f * 0.049087385f; \
+    if ((u8) (Key.stickX + 15) > 30) { \
+        d = (f32) Key.stickX / -72.0f * 0.049087385f; \
         pl->sightRate += d; \
         if (pl->sightRate > 0.3926991f) { \
             pl->sightRate = 0.3926991f; \
-            boat->rot.y += d; \
+            boat->ang.y += d; \
         } \
         if (pl->sightRate < -0.3926991f) { \
             pl->sightRate = -0.3926991f; \
-            boat->rot.y += d; \
+            boat->ang.y += d; \
         } \
     } else if (Key.on & 0xC) { \
         if (Key.on & 4) { \
@@ -2033,11 +2033,11 @@ static void plboat_R2_Move(cPlayer* pl)
         pl->sightRate += d; \
         if (pl->sightRate > 0.3926991f) { \
             pl->sightRate = 0.3926991f; \
-            boat->rot.y += d; \
+            boat->ang.y += d; \
         } \
         if (pl->sightRate < -0.3926991f) { \
             pl->sightRate = -0.3926991f; \
-            boat->rot.y += d; \
+            boat->ang.y += d; \
         } \
     } \
 }
@@ -2057,7 +2057,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
     }
     switch (pl->r_no_3) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PLARC(0xC), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0xC), 0, 0xA, 1, 0);
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         pl->blendRate500 = 0.0f;
@@ -2097,7 +2097,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         }
         break;
     case 4:
-        MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
         pl->r_no_3++;
     case 5:
@@ -2114,7 +2114,7 @@ static void plboat_R2_SpearSet(cPlayer* pl)
         }
         break;
     }
-    if (pl->pBoat) {
+    if (pl->m_pBoat) {
         if (pl->x3EC) {
             pl->x3EC--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
@@ -2158,7 +2158,7 @@ static void plboat_R2_SpearThrow(cPlayer* pl)
         break;
     }
     pG->flags_5010 |= 0x00800000;
-    if (pl->pBoat) {
+    if (pl->m_pBoat) {
         pl0fBossCamMove(PL_BOAT(pl), 1);
     }
 }
@@ -2179,7 +2179,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
     switch (pl->r_no_3) {
     case 0:
         pl0fHidePosSet(pl);
-        MotionSetCore(pl, &pl->mot, PLARC(0x27), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x27), 0, 0xA, 1, 0);
         pl->blendRate500 = 0.0f;
         pl->x4FC = 0;
         pl->x4FD = 0xA;
@@ -2214,7 +2214,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         }
         break;
     case 4:
-        MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
         pl->r_no_3++;
     case 5:
@@ -2230,7 +2230,7 @@ static void plboat_R2_SpearSet2(cPlayer* pl)
         }
         break;
     }
-    if (pl->pBoat) {
+    if (pl->m_pBoat) {
         if (pl->x3EC) {
             pl->x3EC--;
             pl0fBossCamMove(PL_BOAT(pl), 0);
@@ -2275,7 +2275,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
     case 0:
         pl0fBossDiePosSet(pl);
         plboatSetSpear(pl);
-        MotionSetCore(pl, &pl->mot, PLARC(0xE), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0xE), 0, 0, 1, 0);
         pl0fBossDieCamSet(pl);
         pl->x3E0 = 300;
         pl->r_no_3++;
@@ -2289,7 +2289,7 @@ static void plboat_R2_BossDie(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->mot, PLARC(0x13), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x13), 0, 0xA, 1, 0);
         pl->x3EC = 99999;
         pl->r_no_3++;
     case 3:
@@ -2312,7 +2312,7 @@ static void plboat_R2_Guard(cPlayer* pl)
 {
     switch (pl->r_no_3) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PLARC(0x1E), 0, 0xA, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x1E), 0, 0xA, 1, 0);
         pl->x4FD = 0xA;
         pl->x4FC = 0;
         pl->blendRate500 = 0.0f;
@@ -2328,7 +2328,7 @@ static void plboat_R2_Guard(cPlayer* pl)
         }
         break;
     }
-    if (pl->pBoat) {
+    if (pl->m_pBoat) {
         pl0fBossCamMove(PL_BOAT(pl), 0);
     }
 }
@@ -2340,9 +2340,9 @@ static void plboat_R2_FallWater(cPlayer* pl)
     pG->flags_5010 |= 0x00400000;
     switch (pl->r_no_3) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PLARC(0x20), 0, 3, 1, 0);
-        pl->rot.x = 0.0f;
-        pl->rot.z = 0.0f;
+        MotionSetCore(pl, &pl->Motion, PLARC(0x20), 0, 3, 1, 0);
+        pl->ang.x = 0.0f;
+        pl->ang.z = 0.0f;
         pl->blendRate500 = 0.0f;
         LifeDownSet2(pl, 500, 0, 1);
         VibSetData(VIB_TBL, 0xB, 1);
@@ -2352,7 +2352,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
         }
         pl->x3E0 = 65;
         pl->x3E4 = 23;
-        pl->x400 = pl->rot.y;
+        pl->x400 = pl->ang.y;
         pl->x3EC = 0;
         pPLS->endCamera();   // struct view: the pPL load stays below the four stores
         pl00SetDropCam(pl);
@@ -2370,8 +2370,8 @@ static void plboat_R2_FallWater(cPlayer* pl)
         if (pl->x3E0) {
             pl->x3E0--;
         } else {
-            pl->rot.y += Muku(&pl->pos, &pl->pBoat->pos, pl->rot.y, 0.09817477f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &pl->m_pBoat->pos, pl->ang.y, 0.09817477f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         if (pl->x3E4) {
             Vec v;
@@ -2380,7 +2380,7 @@ static void plboat_R2_FallWater(cPlayer* pl)
             v.x = 0.0f;
             v.y = 0.0f;
             v.z = 0.0f;
-            PSMTXMultVec(pl->pBoat->mat, &v, &pl->pos);
+            PSMTXMultVec(pl->m_pBoat->mat, &v, &pl->pos);
             if (pl->x3E4 == 0) {
                 pl->pos.y += 150.0f;
             }
@@ -2430,8 +2430,8 @@ static void plboat_R2_Swim(cPlayer* pl)
     pG->flags_5010 |= 0x00400000;
     switch (pl->r_no_3) {
     case 0:
-        pl->rot.x = 0.0f;
-        pl->rot.z = 0.0f;
+        pl->ang.x = 0.0f;
+        pl->ang.z = 0.0f;
         pl0fSwimPosSet(pl);
         EffectEspDelete(0, 0x34, (u32) pl, 0);
         EffectEspgenDelete(0, 0x34, (int) pl);
@@ -2450,12 +2450,12 @@ static void plboat_R2_Swim(cPlayer* pl)
             EstSet(0, -1, 0, 0, 0xF, 0xE, 0, 0x34, (u32) pl, (void*) first);
             pG->flags_5010 |= 0x00100000;
         }
-        MotionSetCore(pl, &pl->mot, PLARC(0x14), (int) PLARC(0x15), 5, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) PLARC(0x15), 5, 5, 0);
         pl->evTarget.x = 0.0f;
         pl->evTarget.y = 0.0f;
         pl->evTarget.z = 50.0f;
-        pl->rot.y += Muku(&pl->pos, &pl->pBoat->pos, pl->rot.y, PI);
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+        pl->ang.y += Muku(&pl->pos, &pl->m_pBoat->pos, pl->ang.y, PI);
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         pl->r_no_3++;
     case 1: {
         int n = (int) pl->x3E0 / 20;
@@ -2512,7 +2512,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             if (f >= cnt) {
                 f = 0;
             }
-            MotionSetCore(pl, &pl->mot, PLARC(0x14), (int) m, pl->x29D, 5, (u16) f);
+            MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) m, pl->x29D, 5, (u16) f);
         }
         if (pl->motEvent & 0x40) {
             EstSet((int) pl, -1, 0, 0, 0xF, 0x11, 0, 0x35, (u32) boat, 0);
@@ -2562,12 +2562,12 @@ static void plboat_R2_Swim(cPlayer* pl)
     if (GetWaterHeight(&pl->pos, &h)) {
         pl->pos.y = h - 100.0f;
     }
-    if (pl->pBoat->plDist2 < 3240000.0f) {
+    if (pl->m_pBoat->plDist2 < 3240000.0f) {
         PlRoutineSet(pPL, 0, 0xF, 8, 0);
-        pl->pBoat->r_no_0 = 1;
-        pl->pBoat->r_no_1 = 5;
-        pl->pBoat->r_no_2 = 0;
-        pl->pBoat->r_no_3 = 0;
+        pl->m_pBoat->r_no_0 = 1;
+        pl->m_pBoat->r_no_1 = 5;
+        pl->m_pBoat->r_no_2 = 0;
+        pl->m_pBoat->r_no_3 = 0;
     }
     if (pl->x3EC) {
         pl->x3EC--;
@@ -2598,21 +2598,21 @@ static void plboat_R2_WaterRide(cPlayer* pl)
 
     switch (pl->r_no_3) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PLARC(0x21), 0, 0xF, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x21), 0, 0xF, 5, 0);
         pl->sightRate = 0.0f;
         pl->blendRate500 = 0.0f;
-        PSMTXRotRad(m, 'y', boat->rot.y);
+        PSMTXRotRad(m, 'y', boat->ang.y);
         TransMatrix(m, &boat->pos);
         v.x = 1604.49f;
         v.y = 0.0f;
         v.z = -50.0f;
         PSMTXMultVec(m, &v, &v);
         PSVECSubtract(&v, &pl->pos, &pl->evTarget);
-        pl->rot.y = pl->pBoat->rot.y - PI / 2;
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+        pl->ang.y = pl->m_pBoat->ang.y - PI / 2;
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         EstSet((int) pl, -1, 0, 0, 0xF, 0x16, 0, 0x35, (u32) boat, 0);
         plboat_ride_pos = boat->pos;
-        plboat_ride_ang = boat->rot.y;
+        plboat_ride_ang = boat->ang.y;
         pl->r_no_3++;
     case 1:
         PSVECScale(&pl->evTarget, &v, 0.3f);
@@ -2621,12 +2621,12 @@ static void plboat_R2_WaterRide(cPlayer* pl)
         PSVECSubtract(&boat->pos, &plboat_ride_pos, &v);
         plboat_ride_pos = boat->pos;
         PSVECAdd(&pl->pos, &v, &pl->pos);
-        pl->rot.y += Muku2(plboat_ride_ang, boat->rot.y, PI);
-        plboat_ride_ang = boat->rot.y;
+        pl->ang.y += Muku2(plboat_ride_ang, boat->ang.y, PI);
+        plboat_ride_ang = boat->ang.y;
         if (MotionMoveF(pl, 0)) {
-            pl->pBody->initWepHand((u32) PLARC(0x8));
+            pl->Body->initWepHand((u32) PLARC(0x8));
             pl->setRightHand(1);
-            pl->pWep->setTrans(0, 0);
+            pl->Wep->setTrans(0, 0);
             PlRoutineSet(pPL, 0, 0xF, 2, 0);
         }
         break;
@@ -2651,7 +2651,7 @@ static void plboat_R2_Die(cPlayer* pl)
     case 0: {
         int eaten = 0;
 
-        MotionSetCore(pl, &pl->mot, PLARC(0x28), 0, 0, 5, 0);
+        MotionSetCore(pl, &pl->Motion, PLARC(0x28), 0, 0, 5, 0);
         if (boss && (boss->flags_3C8 & 0x80) && (Rnd() & 1)) {
             eaten = 1;
         }
@@ -2679,10 +2679,10 @@ static void plboat_R2_Die(cPlayer* pl)
             pl->pos.x = 0.0f;
             pl->pos.y = -300.0f;
             pl->pos.z = 700.0f;
-            pl->rot.x = PI / 2;
-            pl->rot.y = 0.0f;
-            pl->rot.z = 0.0f;
-            RotMatrix(pl->mat, &pl->rot);
+            pl->ang.x = PI / 2;
+            pl->ang.y = 0.0f;
+            pl->ang.z = 0.0f;
+            RotMatrix(pl->mat, &pl->ang);
             TransMatrix(pl->mat, &pl->pos);
             ScaleMatrix(pl->mat, &pl->scale);
             PSMTXConcat(boss->getPartsPtr(8)->mat, pl->mat, pl->mat);
@@ -2713,9 +2713,9 @@ static void plboat_R2_Die(cPlayer* pl)
 { \
     switch (pl->r_no_3) { \
     case 0: \
-        pl->pBody->initWepHand((u32) PLARC(0x8)); \
+        pl->Body->initWepHand((u32) PLARC(0x8)); \
         pl->setRightHand(1); \
-        pl->pWep->setTrans(0, 0); \
+        pl->Wep->setTrans(0, 0); \
         pl->x3FC = 1; \
         pl->x4FD = 0; \
         pl->x4FC = 0; \
@@ -2745,7 +2745,7 @@ static void plboat_R2_R10dIn(cPlayer* pl)
 // R10d / R10e exit: the player boards the boat at the landing and it leaves the room. A macro, not an
 // inline with f32 parameters: the room position literals must enter the constant pool at their use in
 // case 2 (an inline's constant arguments are expanded first and head the pool).
-#define PLBOAT_ROOM_OUT(px, py, pz, ang) \
+#define PLBOAT_ROOM_OUT(px, py, pz, a) \
 { \
     Vec v; \
  \
@@ -2760,14 +2760,14 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl->x3FC = 1; \
         pl->x400 = v.y - pl->pos.y; \
         pl->x3E0 = 20; \
-        pl->rot.y = boat->rot.y - PI / 2; \
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y); \
-        MotionSetCore(pl, &pl->mot, PLARC(0x29), 0, 0, 5, 0); \
+        pl->ang.y = boat->ang.y - PI / 2; \
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y); \
+        MotionSetCore(pl, &pl->Motion, PLARC(0x29), 0, 0, 5, 0); \
         pl->sightRate = 0.0f; \
         pl->blendRate500 = 0.0f; \
-        pl->pBody->initWepHand((u32) PLARC(0x8)); \
+        pl->Body->initWepHand((u32) PLARC(0x8)); \
         pl->setRightHand(1); \
-        pl->pWep->setTrans(0, 0); \
+        pl->Wep->setTrans(0, 0); \
         pl->r_no_3++; \
     case 1: \
         if (pl->x3FC) { \
@@ -2802,8 +2802,8 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         pl->pos.x = px; \
         pl->pos.y = py; \
         pl->pos.z = pz; \
-        pl->rot.y = ang; \
-        boat->setPos(&pl->pos, ang); \
+        pl->ang.y = a; \
+        boat->setPos(&pl->pos, a); \
         EffectEspDelete(0, 0x35, (u32) boat, 0); \
         EffectEspgenDelete(0, 0x35, (int) boat); \
         EffectEfmDelete(0, 0x35, (int) boat); \
@@ -2874,8 +2874,8 @@ void pl00SetSwimCam(cPlayer* pl)
 {
     Mtx m;
 
-    PSMTXRotRad(m, 'y', pl->pBoat->rot.y);
-    TransMatrix(m, &pl->pBoat->pos);
+    PSMTXRotRad(m, 'y', pl->m_pBoat->ang.y);
+    TransMatrix(m, &pl->m_pBoat->pos);
     PSMTXMultVec(m, &pl00_swim_cam_pos, &pl0f_camera.param.pos);
     PSMTXMultVec(m, &pl00_swim_cam_at, &pl0f_camera.param.at);
     pl0f_camera.param.fovy = 40.0f;
@@ -2895,14 +2895,14 @@ void pl00SwimCamMove(cPlayer* pl)
     if ((s16) pG->pl_life <= 0) {
         cEm* boss;
 
-        if (pl->pBoat) {
-            Pl0fWork* w = PL0F_WK(pl->pBoat);   // two insns at jump1: the `boss = 0` arm is not hoisted
+        if (pl->m_pBoat) {
+            Pl0fWork* w = PL0F_WK(pl->m_pBoat);   // two insns at jump1: the `boss = 0` arm is not hoisted
             boss = w->pBoss;
         } else {
             boss = 0;
         }
         if (boss) {
-            at = boss->getPartsPtr(7)->worldPos;
+            at = boss->getPartsPtr(7)->world;
         } else {
             at = gcam->param.at;
         }
@@ -2923,7 +2923,7 @@ void pl00SetChaseCam(cPlayer* pl)
     Mtx m;
 
     pl0f_camera.param.at = pl->pos;
-    PSMTXRotRad(m, 'y', pl->rot.y);
+    PSMTXRotRad(m, 'y', pl->ang.y);
     TransMatrix(m, &pl->pos);
     PSMTXMultVec(m, &pl00_chase_cam_ofs, &pl0f_camera.param.pos);
     pl0f_camera.param.fovy = 40.0f;
@@ -2965,7 +2965,7 @@ void pl00SetDieCam(cPlayer* pl)
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 1.0f;
-    PSMTXRotRad(m, 'y', pl->rot.y);
+    PSMTXRotRad(m, 'y', pl->ang.y);
     PSMTXMultVecSR(m, &v, &pl0f_camera.up);
     CAM_SET(pl0f_camera);
 }
@@ -2978,14 +2978,14 @@ void pl00DieCamMove(cPlayer* pl)
 
     BitOn(pG->flags_5010, 0x00080000);   // reference store: the pPL load stays below it
     p = pPL->getPartsPtr(0);
-    pl0f_camera.param.pos = p->worldPos;
-    pl0f_camera.param.at = p->worldPos;
+    pl0f_camera.param.pos = p->world;
+    pl0f_camera.param.at = p->world;
     pl0f_camera.param.pos.y = 14000.0f;
     pl0f_camera.param.fovy = 40.0f;
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 1.0f;
-    PSMTXRotRad(m, 'y', pl->rot.y);
+    PSMTXRotRad(m, 'y', pl->ang.y);
     PSMTXMultVecSR(m, &v, &pl0f_camera.up);
     CAM_SET(pl0f_camera);
     CamCtrl.x250 = (s32) &pl0f_camera;
@@ -2996,7 +2996,7 @@ void pl00SetDropCam(cPlayer* pl)
     Vec v;   // frame offset 0: recomputed per call; `m` behind it gets the callee-saved address pseudo
     Mtx m;
 
-    PSMTXRotRad(m, 'y', pl->rot.y);
+    PSMTXRotRad(m, 'y', pl->ang.y);
     TransMatrix(m, &pl->pos);
     if (Rnd() & 1) {
         v.x = 1500.0f;
@@ -3097,7 +3097,7 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
     void* m;
     int f;
 
-    MotionSetCore(pl, &pl->mot, m0, a, pl->x4FD, 4, pl->x4FC);
+    MotionSetCore(pl, &pl->Motion, m0, a, pl->x4FD, 4, pl->x4FC);
     if (pl->blendRate500 < 0.0f) {
         m = m1;
         f = b;
@@ -3120,13 +3120,13 @@ void plboatBlendMotSet(cPlayer* pl, void* m0, void* m1, void* m2, int a, int b, 
 
 void subBlendMotSet(cSubChar* sub, void* m0, void* m1, void* m2, int a, int b, int c)
 {
-    f32 rate = fabsf(sub->subBlendRate);
+    f32 rate = fabsf(sub->m_Blend);
     MotionWorkSub* bm;
     void* m;
     int f;
 
-    MotionSetCore(sub, &sub->mot, m0, a, sub->m_Hokan, 4, sub->m_Frame);
-    if (sub->subBlendRate < 0.0f) {
+    MotionSetCore(sub, &sub->Motion, m0, a, sub->m_Hokan, 4, sub->m_Frame);
+    if (sub->m_Blend < 0.0f) {
         m = m1;
         f = b;
     } else {
@@ -3155,12 +3155,12 @@ void plOnBoat(cPlayer* pl)
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 0.0f;
-    PSMTXMultVec(pl->pBoat->mat, &v, &pl->pos);
-    PSMTXCopy(pl->pBoat->mat, pl->mat);
-    pl->rot = pl->pBoat->rot;
+    PSMTXMultVec(pl->m_pBoat->mat, &v, &pl->pos);
+    PSMTXCopy(pl->m_pBoat->mat, pl->mat);
+    pl->ang = pl->m_pBoat->ang;
     pl->motFlags2 |= 0x40000000;
     pl->neckMot.flags2 |= 0x40000000;
-    pl->pWaist->set(pl->sightRate, 0.4f);
+    pl->Waist->set(pl->sightRate, 0.4f);
 }
 
 // Finds the living Del Lago (em id 0x2F, x38D == 1) and hooks the boat to it.
@@ -3257,7 +3257,7 @@ void plboatSpearThrow(cPlayer* pl)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, 2000.0f);
     dir.y += 50.0f;
-    SndCall(8, 1, &p->worldPos, 0xF, 0, 0);
+    SndCall(8, 1, &p->world, 0xF, 0, 0);
     spear->setThrow(&dir);
     pl->pSpear = 0;
 }
@@ -3287,31 +3287,31 @@ void pl0fLongRopeSet(cPl0f* em)
     rot.z = 0.0f;
     w->pRope = SetChain(ARC(0x23), ARC(0x24), &pos, &rot);
     if (w->pRope) {
-        w->cloth.num = 30;
-        w->cloth.pParts = pl0f_rope_parts;
-        w->cloth.x58 = em;
-        w->cloth.WindSin = 0.0f;
-        w->cloth.Move_rate = 0.0f;
-        w->cloth.pUp = pl0f_rope_up;
-        w->cloth.pDown = pl0f_rope_down;
-        w->cloth.Gravity = 5.0f;
-        w->cloth.Rate = 0.9f;
-        w->cloth.Bundle_num = 100;
-        w->cloth.Stretchy = 0.1f;
-        w->cloth.flags = 0x108;
-        w->cloth.pLeft = 0;
-        w->cloth.pRight = 0;
-        w->cloth.pUpLeft = 0;
-        w->cloth.pUpRight = 0;
-        w->cloth.pMax = 0;
-        w->cloth.pWindSin = 0;
-        w->cloth.pWindRate = 0;
-        w->cloth.pAtset = 0;
-        w->cloth.pGravity = 0;
-        w->cloth.pRate = 0;
-        w->cloth.At_num = 0;
-        w->cloth.x54 = 0;   // the last zero store (dying zero register) is issued first
-        w->pRope->setChain(&w->cloth);
+        w->Cloth.Num = 30;
+        w->Cloth.pCloth = pl0f_rope_parts;
+        w->Cloth.x58 = em;
+        w->Cloth.WindSin = 0.0f;
+        w->Cloth.Move_rate = 0.0f;
+        w->Cloth.pParent = pl0f_rope_up;
+        w->Cloth.pChild = pl0f_rope_down;
+        w->Cloth.Gravity = 5.0f;
+        w->Cloth.Rate = 0.9f;
+        w->Cloth.Bundle_num = 100;
+        w->Cloth.Stretchy = 0.1f;
+        w->Cloth.Flag = 0x108;
+        w->Cloth.pLeft = 0;
+        w->Cloth.pRight = 0;
+        w->Cloth.pUpLeft = 0;
+        w->Cloth.pUpRight = 0;
+        w->Cloth.pMax = 0;
+        w->Cloth.pWindSin = 0;
+        w->Cloth.pWindRate = 0;
+        w->Cloth.pAtset = 0;
+        w->Cloth.pGravity = 0;
+        w->Cloth.pRate = 0;
+        w->Cloth.At_num = 0;
+        w->Cloth.x54 = 0;   // the last zero store (dying zero register) is issued first
+        w->pRope->setChain(&w->Cloth);
         pos.x = 0.0f;
         pos.y = 600.0f;
         pos.z = 2550.0f;
@@ -3365,14 +3365,14 @@ void pl0fSwimPosSet(cPlayer* pl)
     v.y = pl->pos.y;
     v.z = 0.0f;
     PSMTXMultVec(boat->mat, &v, &pl->pos);
-    pl->oldPos = pl->pos;
-    pl->rot.y = GetXZAngle(&pl->pos, &boat->pos);
-    RotMatrix(pl->mat, &pl->rot);
+    pl->pos_old = pl->pos;
+    pl->ang.y = GetXZAngle(&pl->pos, &boat->pos);
+    RotMatrix(pl->mat, &pl->ang);
     TransMatrix(pl->mat, &pl->pos);
-    RotMatrix(pl->worldMat, &pl->rot);
-    TransMatrix(pl->worldMat, &pl->pos);
-    ScaleMatrix(pl->worldMat, &pl->scale);
-    PSMTXCopy(pl->worldMat, pl->mat);
+    RotMatrix(pl->l_mat, &pl->ang);
+    TransMatrix(pl->l_mat, &pl->pos);
+    ScaleMatrix(pl->l_mat, &pl->scale);
+    PSMTXCopy(pl->l_mat, pl->mat);
     EffectEspDelete(0, 0x35, (u32) boat, 0);
     EffectEspgenDelete(0, 0x35, (int) boat);
     EffectEfmDelete(0, 0x35, (int) boat);
@@ -3395,7 +3395,7 @@ void pl0fHidePosSet(cPlayer* pl)
     ang = fRand1_1() * 0.049087385f + ang;   // the inner call into the local first: the vtable lookup follows it
     boat->setPos(&v, ang);
     pl->pos = boat->pos;
-    pl->rot.y = boat->rot.y;
+    pl->ang.y = boat->ang.y;
     EffectEspDelete(0, 0x35, (u32) boat, 0);
     EffectEspgenDelete(0, 0x35, (int) boat);
     EffectEfmDelete(0, 0x35, (int) boat);
@@ -3409,9 +3409,9 @@ void pl0fBossDiePosSet(cPlayer* pl)
     v.x = 24250.0f;
     v.y = boat->pos.y;
     v.z = 92250.0f;
-    pl->rot.y = 2.8464928f;
-    pl->rot.y = LIMIT_ANGLE(pl->rot.y);
-    boat->setPos(&v, pl->rot.y);   // the just-stored member is forwarded: f1 passes straight through
+    pl->ang.y = 2.8464928f;
+    pl->ang.y = LIMIT_ANGLE(pl->ang.y);
+    boat->setPos(&v, pl->ang.y);   // the just-stored member is forwarded: f1 passes straight through
     pl->pos = boat->pos;
     EffectEspDelete(0, 0x35, (u32) boat, 0);
     EffectEspgenDelete(0, 0x35, (int) boat);
@@ -3446,9 +3446,9 @@ void pl0fSetAnchorEm2f(cPl0f* em)
         w->pAnchor->pos.x = 0.0f;
         w->pAnchor->pos.y = 1000.0f;
         w->pAnchor->pos.z = 0.0f;
-        w->pAnchor->rot.x = 0.0f;
-        w->pAnchor->rot.y = 0.0f;
-        w->pAnchor->rot.z = 0.0f;
+        w->pAnchor->ang.x = 0.0f;
+        w->pAnchor->ang.y = 0.0f;
+        w->pAnchor->ang.z = 0.0f;
         OyaSetObj00(w->pAnchor, w->pBoss, 0x1A);
     }
 }
@@ -3460,10 +3460,10 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
     cEm* boss;
     f32 ang;
 
-    if (pl->pBoat == 0) {
+    if (pl->m_pBoat == 0) {
         return;
     }
-    w = PL0F_WK(pl->pBoat);
+    w = PL0F_WK(pl->m_pBoat);
     boss = w->pBoss;
     if (boss == 0) {
         EffectEspDelete(0, 0x36, (u32) pl, 0);
@@ -3488,7 +3488,7 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
         w->anchorEff = 0;
         return;
     }
-    ang = Muku(&pl->pos, &boss->pos, pl->rot.y, PI);
+    ang = Muku(&pl->pos, &boss->pos, pl->ang.y, PI);
     if (fabsf(ang) < PI / 8) {
         EffectEspDelete(0, 0x36, (u32) pl, 0);
         EffectEspgenDelete(0, 0x36, (int) pl);
@@ -3522,18 +3522,18 @@ void pl0fSetAnchorEm2f(cPlayer* pl)
 #define SUB_BOAT_SIT(lo, hi) \
 { \
     if (sub->subHideMode) { \
-        if (w->spdXZ < lo) { \
+        if (w->Boat_spd < lo) { \
             sub->subHideMode = 0; \
-            MotionSetCore(sub, &sub->mot, SUBARC(0x2C), 0, 5, 5, 0); \
+            MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 5, 5, 0); \
         } \
-    } else if (w->spdXZ > hi) { \
+    } else if (w->Boat_spd > hi) { \
         sub->subHideMode = 1; \
         sub->subSelf->m_Hokan = 5; \
         sub->m_Frame = 0; \
-        sub->subBlendRate = 0.0f; \
+        sub->m_Blend = 0.0f; \
     } \
     if (sub->subHideMode) { \
-        sub->subBlendRate = sub->subBlendRate * 0.9f + pPL->blendRate500 * 0.1f; \
+        sub->m_Blend = sub->m_Blend * 0.9f + pPL->blendRate500 * 0.1f; \
         subBlendMotSet(sub, SUBARC(0x2E), SUBARC(0x2F), SUBARC(0x30), 0, 0, 0); \
     } \
     subOnBoat(sub, boat); \
@@ -3552,7 +3552,7 @@ static void subBoatRide()
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->mot, SUBARC(0x2B), 0, 5, 5, 0);
+        MotionSetCore(sub, &sub->Motion, SUBARC(0x2B), 0, 5, 5, 0);
         v.x = 984.32f;
         v.y = 500.0f;
         v.z = 731.88f;
@@ -3561,9 +3561,9 @@ static void subBoatRide()
         sub->pos.z = v.z;
         sub->sub52C = v.y - sub->pos.y;
         sub->subHideMode = 20;
-        sub->rot.y = boat->rot.y - PI / 2;
-        sub->rot.y = LIMIT_ANGLE(sub->rot.y);
-        sub->atari.flags &= 0xFCFF;
+        sub->ang.y = boat->ang.y - PI / 2;
+        sub->ang.y = LIMIT_ANGLE(sub->ang.y);
+        sub->atari.m_flag &= 0xFCFF;
         sub->r_no_2++;
     case 1:
         if (sub->subHideMode) {
@@ -3586,8 +3586,8 @@ static void subBoatRide()
         }
         break;
     case 2:
-        MotionSetCore(sub, &sub->mot, SUBARC(0x2C), 0, 5, 5, 0);
-        sub->atari.flags &= 0xFCFF;
+        MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 5, 5, 0);
+        sub->atari.m_flag &= 0xFCFF;
         sub->subHideMode = 0;
         sub->r_no_2++;
     case 3:
@@ -3608,7 +3608,7 @@ static void subBoatGetoff()
     sub->motFlags2 &= ~0x40000000;
     switch (sub->r_no_2) {
     case 0:
-        MotionSetCore(sub, &sub->mot, SUBARC(0x2D), 0, 5, 5, 0);
+        MotionSetCore(sub, &sub->Motion, SUBARC(0x2D), 0, 5, 5, 0);
         sub->subHideMode = 20;
         sub->sub52C = 100.0f;
         sub->r_no_2++;
@@ -3641,8 +3641,8 @@ static void subBoatGetoff()
     sub->motFlags2 &= ~0x40000000; \
     switch (sub->r_no_2) { \
     case 0: \
-        MotionSetCore(sub, &sub->mot, SUBARC(0x2C), 0, 0, 5, 0); \
-        sub->atari.flags &= 0xFCFF; \
+        MotionSetCore(sub, &sub->Motion, SUBARC(0x2C), 0, 0, 5, 0); \
+        sub->atari.m_flag &= 0xFCFF; \
         sub->subHideMode = 0; \
         sub->r_no_2++; \
     case 1: \
@@ -3681,9 +3681,9 @@ void subOnBoat(cSubChar* sub, cPl0f* boat)
     PSMTXRotRad(m, 'y', PI);
     PSMTXConcat(sub->mat, m, sub->mat);
     TransMatrix(sub->mat, &sub->pos);
-    sub->rot = boat->rot;
-    sub->rot.y += PI;
-    sub->rot.y = LIMIT_ANGLE(sub->rot.y);
+    sub->ang = boat->ang;
+    sub->ang.y += PI;
+    sub->ang.y = LIMIT_ANGLE(sub->ang.y);
     sub->motFlags2 |= 0x40000000;
 }
 
@@ -3694,7 +3694,7 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
 
         pl0fSetAnchorEm2f(this);
         setPos(p, ang);
-        FSet(pPL->rot.y, ang);   // scalar-reference store: pPL is reloaded for the pos copy
+        FSet(pPL->ang.y, ang);   // scalar-reference store: pPL is reloaded for the pos copy
         pPL->pos = pos;
         EffectEspDelete(0, 0x35, (u32) this, 0);
         EffectEspgenDelete(0, 0x35, (int) this);
@@ -3702,13 +3702,13 @@ void cPl0f::setBossStart(Vec* p, f32 ang)
         PlRoutineSet(pPL, 0, 0xF, 2, 0);
         PlRoutineSet(this, 1, 6, 0, 0);
         pl = pPL;
-        pl->pBody->initWepHand((u32) PL_ARC_PTR(subArc, 8));
+        pl->Body->initWepHand((u32) PL_ARC_PTR(subArc, 8));
         pl->setRightHand(1);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
     }
 }
 
 void cPl0f::stopEngine()
 {
-    SndStop(PL0F_WK(this)->seNo, 0);
+    SndStop(PL0F_WK(this)->Seid_engine, 0);
 }

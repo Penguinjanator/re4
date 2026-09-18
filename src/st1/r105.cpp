@@ -176,7 +176,7 @@ void R105Init()
     }
     SceAtSetEnable(8, 0);
     if (getRoomEtcDoor(1, &door, 1)) {
-        door->lightInfo.x50 = 4;
+        door->LightInfo.x50 = 4;
     }
     SceExec(0x12, r105_initCesspit, 0, 0, 2, 0);
 }
@@ -274,7 +274,7 @@ static void r105_markInit()
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
-    SceMesSet(1, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     r105_work->state = 1;
     r105_work->sub = 0;
 }
@@ -289,9 +289,9 @@ static void r105_markMain()
     switch (r105_work->sub) {
     case 0:
         if (mk->mes == 0) {
-            SceMesSet(2, 0x220, mk->sel, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            SceMesSet(2, 0x220, mk->sel, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         } else {
-            SceMesSet(2, 0x2A0, mk->sel, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            SceMesSet(2, 0x2A0, mk->sel, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         }
         mk->mes = 1;
         mk->sel = SceMesGetSelection();
@@ -340,8 +340,8 @@ static void r105_markMain()
 
             if (obj) {
                 PSMTXConcat(m, mat, tmp);
-                r105_markMtxCopy(obj->worldMat, tmp);
-                memcpy(obj->mat, obj->worldMat, sizeof(Mtx));
+                r105_markMtxCopy(obj->l_mat, tmp);
+                memcpy(obj->mat, obj->l_mat, sizeof(Mtx));
                 if (obj->pParts) {
                     obj->partsMatCalc();
                     obj->partsWorldCalc();
@@ -353,7 +353,7 @@ static void r105_markMain()
             int ck;
 
             if (obj) {
-                MtxPtr wm = obj->worldMat;
+                MtxPtr wm = obj->l_mat;
                 MtxPtr mat = mk->obj[0].mat;
 
                 r105_markMtxClean(obj, wm);
@@ -364,7 +364,7 @@ static void r105_markMain()
                 if (mk->obj[0].obj) {
                     SndCall(6, 5, &mk->obj[0].obj->pos, 0, 0, 0);
                 }
-                SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+                SceMesSet(3, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
                 r105_work->state = 2;
                 r105_work->sub = 0;
             } else {
@@ -488,8 +488,8 @@ extern "C" void r105_markMtxInit()
             PSMTXConcat(tmp, mk->obj[i].mat, mk->obj[i].mat);
             PSMTXRotRad(tmp, 'x', -1.5707964f);
             PSMTXConcat(tmp, mk->obj[i].mat, mk->obj[i].mat);
-            r105_markMtxCopy(obj->worldMat, mk->obj[i].mat);
-            memcpy(obj->mat, obj->worldMat, sizeof(Mtx));
+            r105_markMtxCopy(obj->l_mat, mk->obj[i].mat);
+            memcpy(obj->mat, obj->l_mat, sizeof(Mtx));
             if (obj->pParts) {
                 obj->partsMatCalc();
                 obj->partsWorldCalc();
@@ -636,7 +636,7 @@ static void r105_checkDoor()
     SmdSetTrans(0x23, 0);
     SceAtDataReset(1);
     SndCall(6, 0xB, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     BitOn(pG->door_unlock[0], 0x02000000);
     pG->door_flags_51CC |= 0x8000;
     CamCtrl.Comeback(0);
@@ -651,13 +651,13 @@ extern "C" void Evt_R105S00_Func(Event* e)
         setRoomEtcDisp(1, 0, 1);
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             break;
         case 0xB: {
             void* mod;
 
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 e->GetMod(&mod, "pl0000", 0, 0);
             }
             break;
@@ -666,9 +666,9 @@ extern "C" void Evt_R105S00_Func(Event* e)
         case 0xC: {
             void* mod;
 
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
-                    cModelInfo* info = GetModelInfoAddr(((cModel*) mod)->pInfo, 3);
+                    cModelInfo* info = GetModelInfoAddr(((cModel*) mod)->pModelInfo, 3);
 
                     if (info) {
                         info->be_flag &= ~0x20;
@@ -695,58 +695,58 @@ extern "C" void Evt_R105S10_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0) {
-            if (e->frame == 15) {
+        if (e->NowCut == 0) {
+            if (e->NowFrame == 15) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod, 5, 0);
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     ModelInfoSetTrans((cModel*) mod, 5, 1);
                 }
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 setRoomEtcDisp(1, 0, 1);
                 if (e->GetMod(&mod, "evm2500", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;
                 }
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
             break;
         case 0x14:
-            if (e->frame == 2) {
+            if (e->NowFrame == 2) {
                 if (getRoomEtcWindow(5, &win, 1)) {
                     ((cEmWindow*) win)->SetBreakModel();
                 }
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0x13:
         case 0x14:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags |= 0x40;
+                    ((cObj*) mod)->o18.be_flag |= 0x40;
                 }
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
-                    ((cObj*) mod)->o18.flags &= ~0x40;
+                    ((cObj*) mod)->o18.be_flag &= ~0x40;
                 }
             }
             break;
         }
-        if (e->cut == 0xE || e->cut == 0x13) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0xE || e->NowCut == 0x13) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
@@ -757,7 +757,7 @@ extern "C" void Evt_R105S10_Func(Event* e)
                 }
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0200", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;
 
@@ -768,8 +768,8 @@ extern "C" void Evt_R105S10_Func(Event* e)
                 }
             }
         }
-        if (pG->costume2 == 1) {
-            if (e->frame == 0) {
+        if (pG->game_costume == 1) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl8200", 0, 0) == 1) {
                     Obj18CmfOn((cObj*) mod, 5);
                     ((cObj*) mod)->be_flag &= ~2;
@@ -800,9 +800,9 @@ static void r105_execOpenCover()
     f32 step = 0.06981317f;
 
     for (;;) {
-        obj->pParts->rot.z -= step;
-        if (obj->pParts->rot.z < -(73.0f * 0.01f)) {
-            obj->pParts->rot.z = -(73.0f * 0.01f);
+        obj->pParts->ang.z -= step;
+        if (obj->pParts->ang.z < -(73.0f * 0.01f)) {
+            obj->pParts->ang.z = -(73.0f * 0.01f);
             break;
         }
         SceSleep(1);
@@ -822,7 +822,7 @@ static void r105_checkCloseCover()
     BitOn(cover->be_flag, 0x20);
     BitOn(lid->be_flag, 0x20);
     hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos,
-                   &cover->rot, 0);
+                   &cover->ang, 0);
     {
         const f32 w = 100.0f;
         const f32 h = 2000.0f;
@@ -847,9 +847,9 @@ static void r105_checkCloseCover()
         f32 lim = 0.69f;
 
         do {
-            lid->pParts->rot.z += spd;
-            if (lid->pParts->rot.z > lim) {
-                lid->pParts->rot.z = 0.69f;
+            lid->pParts->ang.z += spd;
+            if (lid->pParts->ang.z > lim) {
+                lid->pParts->ang.z = 0.69f;
                 break;
             }
             spd += 0.017453292f;
@@ -859,13 +859,13 @@ static void r105_checkCloseCover()
     SndCall(6, 0x5E, &lid->pos, 0, 0, 0);
     EstSet(0, -1, 0, 0, 1, 0x11, 0, 0, 0, 0);
     RsfSet(G_ROOM_ID, 4);
-    lid->pParts->rot.z -= 0.06981317f;
+    lid->pParts->ang.z -= 0.06981317f;
     SceSleep(1);
-    lid->pParts->rot.z -= 0.02617994f;
+    lid->pParts->ang.z -= 0.02617994f;
     SceSleep(1);
-    lid->pParts->rot.z += 0.02617994f;
+    lid->pParts->ang.z += 0.02617994f;
     SceSleep(1);
-    lid->pParts->rot.z += 0.06981317f;
+    lid->pParts->ang.z += 0.06981317f;
     SceSleep(1);
 }
 
@@ -878,7 +878,7 @@ static inline void r105_setItemModel(SceAtWork* at)
     at2 = SceAtPtr(0x9B);
     if (at2->item.pModel && at->item.pModel) {
         at2->item.pModel->pos = at->item.pModel->pos;
-        at2->item.pModel->rot = at->item.pModel->rot;
+        at2->item.pModel->ang = at->item.pModel->ang;
         at->item.pModel->be_flag &= ~2;
         at->item.pModel = at2->item.pModel;
     }
@@ -975,7 +975,7 @@ static void r105_initCesspit()
     } else {
         BitOff(SmdGetObjPtr(0x31)->be_flag, 2);
         if (RsfCheck(G_ROOM_ID, 3) == 0) {
-            SmdGetObjPtr(0x30)->pParts->rot.z = 0.69f;
+            SmdGetObjPtr(0x30)->pParts->ang.z = 0.69f;
             SceAtDataSet_exec(0xC, 0x12, 0, r105_execOpenCover, 0, 1);
             SceAtSetEnable(9, 0);
             if (RsfCheck(G_ROOM_ID, 5)) {
@@ -990,7 +990,7 @@ static void r105_initCesspit()
             }
             SceExec(0x12, r105_checkCesspit1, 0, 0, 2, 0);
         } else {
-            SmdGetObjPtr(0x30)->pParts->rot.z = -(73.0f * 0.01f);
+            SmdGetObjPtr(0x30)->pParts->ang.z = -(73.0f * 0.01f);
             SceAtSetEnable(0x11, 0);
             if (SceAtItemFlgCk(0x8D) == 0) {
                 SceExec(0x12, r105_checkCesspit2, 0, 0, 2, 0);

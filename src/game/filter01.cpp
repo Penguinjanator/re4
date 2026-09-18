@@ -16,7 +16,7 @@ struct LensEffectWork {
     int on;     // 0x00
     int z;      // 0x04  focus depth (screen z, 0..65535)
     f32 level;  // 0x08  blur level (index into level_tbl1)
-    u8 mode;    // 0x0C  0 near, 1 far
+    u8 Mode;    // 0x0C  0 near, 1 far
     u8 type;    // 0x0D  0 quads by level, 1 four quads + fade
 };
 
@@ -42,9 +42,9 @@ void Filter01Init()
     filter01_buff = 0;
     LightMgr.getEnvPtr()->FocusLevel = 0;
     g_LeNear.on = 0;
-    g_LeNear.mode = 0;
+    g_LeNear.Mode = 0;
     g_LeFar.on = 0;
-    g_LeFar.mode = 1;
+    g_LeFar.Mode = 1;
 }
 
 void Filter01RoomInit()
@@ -52,9 +52,9 @@ void Filter01RoomInit()
     filter01_buff = 0;
     LightMgr.getEnvPtr()->FocusLevel = 0;
     g_LeNear.on = 0;
-    g_LeNear.mode = 0;
+    g_LeNear.Mode = 0;
     g_LeFar.on = 0;
-    g_LeFar.mode = 1;
+    g_LeFar.Mode = 1;
 }
 
 void Filter01Trans()
@@ -65,7 +65,7 @@ void Filter01Trans()
             g_LeLit.on = 1;
             g_LeLit.z = env->FocusZ;
             g_LeLit.level = (f32) env->FocusLevel;
-            g_LeLit.mode = env->FocusMode;
+            g_LeLit.Mode = env->FocusMode;
             AddOtDirect(0x12, &g_LeLit, (void (*)()) Filter01Render, 7, 0x400, 0, 0.0f);
         }
         if (g_LeNear.on) {
@@ -154,7 +154,7 @@ void Filter01Render(LensEffectWork* w)
     y = 0.0f;
     cx = 0.0f;
     cy = 0.0f;
-    switch (w->mode) {
+    switch (w->Mode) {
     case 0:
         GXSetZMode(1, 6, 0);
         z = (f32) w->z;
@@ -164,7 +164,7 @@ void Filter01Render(LensEffectWork* w)
         z = (f32) w->z;
         break;
     default:
-        pLog->err(0, 0, "Filter01: [%d]invalid FocusMode.", w->mode);
+        pLog->err(0, 0, "Filter01: [%d]invalid FocusMode.", w->Mode);
         break;
     }
     if (w->type == 0) {
@@ -333,13 +333,13 @@ void Filter01SetParam(int mode, int z, u8 type, f32 level)
 {
     if (mode == 0) {
         g_LeNear.on = 1;
-        g_LeNear.mode = 0;
+        g_LeNear.Mode = 0;
         g_LeNear.level = level;
         g_LeNear.z = z;
         g_LeNear.type = type;
     } else {
         g_LeFar.on = 1;
-        g_LeFar.mode = 1;
+        g_LeFar.Mode = 1;
         g_LeFar.level = level;
         g_LeFar.z = z;
         g_LeFar.type = type;

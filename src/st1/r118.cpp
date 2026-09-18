@@ -60,14 +60,14 @@ void R118Init()
     r118_work = (R118Work*) MEM_CALLOC(sizeof(R118Work), 1, 0xd);
 
     SmdGetObjPtr(0)->be_flag &= ~2;
-    SmdGetObjPtr(0)->lightInfo.x50 = zero;
+    SmdGetObjPtr(0)->LightInfo.x50 = zero;
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, 2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
     pG->flags_5010 |= 0x400;
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
-        m->lightInfo.x50 = (m->lightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x10000000)) {
@@ -90,7 +90,7 @@ void R118Init()
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             SceExec(0x12, (TaskFunc) r118_execShowView, 0, 0, 2, 0);
         }
-        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xCA, 0);
+        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
         r118_work->em.setEm(0x78, -1, 0, 1, 1);
         SceAtDataSet_exec(9, 0x12, 0, (TaskFunc) r118_execAshleyVoice, 0, 1);
         SceAtSetEnable(1, 0);
@@ -153,7 +153,7 @@ static void r118_execAshleyVoice()
             i = 0;
             SndCall(6, 0, 0, 0, 0, 0);
             mes = &cMes;
-            SceMesSet(8, 0xB0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->fontH - 1);
+            SceMesSet(8, 0xB0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->m_font_h - 1);
             SceSleep(90);
             for (; i < 16; i++) {
                 mes->Delete(i);
@@ -204,7 +204,7 @@ static void r118_checkDoor117KeyUse()
     SceSleep(20);
     SceAtSetEnable(0x80, 1);
     SndCall(6, 8, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x10000000;
     SceAtDataReset(4);
     CamCtrl.Comeback(0);
@@ -230,17 +230,17 @@ static void r118_checkDoor117()
 static void r118_ThunderFlagOn()
 {
     SmdGetObjPtr(0)->be_flag |= 2;
-    SmdGetObjPtr(0x64)->pInfo->color[0] = 0xEB;
-    SmdGetObjPtr(0x64)->pInfo->color[1] = 0xF9;
-    SmdGetObjPtr(0x64)->pInfo->color[2] = 0xFF;
+    SmdGetObjPtr(0x64)->pModelInfo->color[0] = 0xEB;
+    SmdGetObjPtr(0x64)->pModelInfo->color[1] = 0xF9;
+    SmdGetObjPtr(0x64)->pModelInfo->color[2] = 0xFF;
 }
 
 static void r118_ThunderFlagOff()
 {
     SmdGetObjPtr(0)->be_flag &= ~2;
-    SmdGetObjPtr(0x64)->pInfo->color[0] = 0x5F;
-    SmdGetObjPtr(0x64)->pInfo->color[1] = 0x61;
-    SmdGetObjPtr(0x64)->pInfo->color[2] = 0x67;
+    SmdGetObjPtr(0x64)->pModelInfo->color[0] = 0x5F;
+    SmdGetObjPtr(0x64)->pModelInfo->color[1] = 0x61;
+    SmdGetObjPtr(0x64)->pModelInfo->color[2] = 0x67;
 }
 
 // Thunder every 90..235 frames (30..117 while the player is in area 4); no flash while the dog

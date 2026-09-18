@@ -46,8 +46,8 @@ extern cGameSave GameSave;
 
 // Died demo task parameter (DiedemoExec -> gameDiedemo).
 struct DiedemoWork {
-    int time;   // 0x00  frames before the demo starts
-    int type;   // 0x04  0 normal, 1 with the sub character alive, 2 (flags_54 bit31)
+    int exec_frame;   // 0x00  frames before the demo starts
+    int demo_type;   // 0x04  0 normal, 1 with the sub character alive, 2 (flags_54 bit31)
 };
 
 extern "C" {

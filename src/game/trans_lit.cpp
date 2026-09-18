@@ -61,21 +61,21 @@ void LightSetModel(cModel* m)
     Vec p;
     GXColor mat;
     GXColor amb;
-    cModelInfo* info = m->pInfo;
+    cModelInfo* info = m->pModelInfo;
     ModelData* data = info->pData;
-    cLight** list = m->lightInfo.pLight;
+    cLight** list = m->LightInfo.pLight;
     int n = (m->be_flag & 0x8000) ? 0 : 8;
     u32 mask;
     int i;
     cLightEnv* env;
 
-    if (m->lightInfo.x51 & 4) {
+    if (m->LightInfo.x51 & 4) {
         LightDisable();
         return;
     }
-    obj_pos = m->pParts->worldPos;
-    obj_size = m->lightInfo.size.x > m->lightInfo.size.y ? m->lightInfo.size.x : m->lightInfo.size.y;
-    if ((m->lightInfo.x51 & 3) == 2) {
+    obj_pos = m->pParts->world;
+    obj_size = m->LightInfo.Size.x > m->LightInfo.Size.y ? m->LightInfo.Size.x : m->LightInfo.Size.y;
+    if ((m->LightInfo.x51 & 3) == 2) {
         obj_flag = 0;
     } else {
         obj_flag = 1;
@@ -94,7 +94,7 @@ void LightSetModel(cModel* m)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.viewMat, &p, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, (cEm*) m);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -119,18 +119,18 @@ void LightSetModel(cModel* m)
     }
     GXSetChanCtrl(0, 1, 0, 0, mask, 2, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    if (m->lightInfo.x50 & 0x10) {
-        amb.r = MAX(LightMgr.getEnvPtr()->amb.r, amb.r);
-        amb.g = MAX(LightMgr.getEnvPtr()->amb.g, amb.g);
-        amb.b = MAX(LightMgr.getEnvPtr()->amb.b, amb.b);
-    } else if (m->lightInfo.x50 & 8) {
-        amb.r = MAX(LightMgr.getEnvPtr()->ambEsp.r, amb.r);
-        amb.g = MAX(LightMgr.getEnvPtr()->ambEsp.g, amb.g);
-        amb.b = MAX(LightMgr.getEnvPtr()->ambEsp.b, amb.b);
+    if (m->LightInfo.x50 & 0x10) {
+        amb.r = MAX(LightMgr.getEnvPtr()->AmbientScr.r, amb.r);
+        amb.g = MAX(LightMgr.getEnvPtr()->AmbientScr.g, amb.g);
+        amb.b = MAX(LightMgr.getEnvPtr()->AmbientScr.b, amb.b);
+    } else if (m->LightInfo.x50 & 8) {
+        amb.r = MAX(LightMgr.getEnvPtr()->AmbientEsp.r, amb.r);
+        amb.g = MAX(LightMgr.getEnvPtr()->AmbientEsp.g, amb.g);
+        amb.b = MAX(LightMgr.getEnvPtr()->AmbientEsp.b, amb.b);
     } else {
-        amb.r = MAX(LightMgr.getEnvPtr()->ambSub.r, amb.r);
-        amb.g = MAX(LightMgr.getEnvPtr()->ambSub.g, amb.g);
-        amb.b = MAX(LightMgr.getEnvPtr()->ambSub.b, amb.b);
+        amb.r = MAX(LightMgr.getEnvPtr()->AmbientEm.r, amb.r);
+        amb.g = MAX(LightMgr.getEnvPtr()->AmbientEm.g, amb.g);
+        amb.b = MAX(LightMgr.getEnvPtr()->AmbientEm.b, amb.b);
     }
     if (m->be_flag & 8) {
         amb.r += m->AddAmb_r;
@@ -168,7 +168,7 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.viewMat, &p, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, NULL);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -186,9 +186,9 @@ void commonClothLightSet(cLight** list, int n, Vec* pos, f32 size)
     GXSetNumChans(1);
     GXSetChanCtrl(0, 1, 0, 0, mask, 2, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    amb.r = MAX(LightMgr.getEnvPtr()->amb.r, amb.r);
-    amb.g = MAX(LightMgr.getEnvPtr()->amb.g, amb.g);
-    amb.b = MAX(LightMgr.getEnvPtr()->amb.b, amb.b);
+    amb.r = MAX(LightMgr.getEnvPtr()->AmbientScr.r, amb.r);
+    amb.g = MAX(LightMgr.getEnvPtr()->AmbientScr.g, amb.g);
+    amb.b = MAX(LightMgr.getEnvPtr()->AmbientScr.b, amb.b);
     lightSetAmbient(&amb);
     GXColor mat = {0xFF, 0xFF, 0xFF, 0xFF};
     GXSetChanMatColor(4, mat);
@@ -220,12 +220,12 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
         }
         l->getPos(&p);
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.viewMat, &p, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &p, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
-        a = l->curColor.a;
-        l->curColor.a = (a * alpha) >> 8;
+        a = l->DispCol.a;
+        l->DispCol.a = (a * alpha) >> 8;
         lightSetColor(&lobj[i], l, NULL);
-        l->curColor.a = a;
+        l->DispCol.a = a;
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
         if (l->xD > 7) {
             pLog->err(0, 0, "LIGHT() INVALIED TYPE %d", l->xD);
@@ -241,9 +241,9 @@ void commonWaterLightSet(cLight** list, int n, u32 alpha)
     GXSetNumChans(1);
     GXSetChanCtrl(0, 1, 0, 0, mask, 2, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    amb.r = MAX(LightMgr.getEnvPtr()->amb.r, amb.r);
-    amb.g = MAX(LightMgr.getEnvPtr()->amb.g, amb.g);
-    amb.b = MAX(LightMgr.getEnvPtr()->amb.b, amb.b);
+    amb.r = MAX(LightMgr.getEnvPtr()->AmbientScr.r, amb.r);
+    amb.g = MAX(LightMgr.getEnvPtr()->AmbientScr.g, amb.g);
+    amb.b = MAX(LightMgr.getEnvPtr()->AmbientScr.b, amb.b);
     lightSetAmbient(&amb);
     GXColor mat = {0xFF, 0xFF, 0xFF, 0xFF};
     GXSetChanMatColor(4, mat);
@@ -267,7 +267,7 @@ void commonEspLightSet(cLight** list, int n)
             continue;
         }
         mask |= 1 << i;
-        PSMTXMultVec(pG->Cam.viewMat, &l->pos, &p);
+        PSMTXMultVec(pG->Cam.v_mat, &l->Pos, &p);
         GXInitLightPos(&lobj[i], p.x, p.y, p.z);
         lightSetColor(&lobj[i], l, NULL);
         GXInitLightDir(&lobj[i], 0.0f, 0.0f, 1.0f);
@@ -285,20 +285,20 @@ void commonEspLightSet(cLight** list, int n)
     GXSetNumChans(1);
     GXSetChanCtrl(0, 1, 0, 0, mask, 0, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    lightSetAmbient(&LightMgr.getEnvPtr()->ambEsp);
+    lightSetAmbient(&LightMgr.getEnvPtr()->AmbientEsp);
 }
 
 void lightSetConstant(cLight* l, GXLightObj* obj)
 {
-    Vec p = l->curPos;
+    Vec p = l->World;
     f32 d = GetDistance3(&obj_pos, &p);
     f32 range = l->x1C + obj_size;
     f32 br;
 
     if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
-        br = l->power;
+        br = l->Intensity;
     } else if (d < range) {
-        br = l->power * (range - d) / l->normal.x;
+        br = l->Intensity * (range - d) / l->normal.x;
     } else {
         br = 0.0f;
     }
@@ -307,38 +307,38 @@ void lightSetConstant(cLight* l, GXLightObj* obj)
 
 void lightSetLinear(cLight* l, GXLightObj* obj)
 {
-    Vec p = l->curPos;
+    Vec p = l->World;
     f32 br;
 
     if (l->x1C != 0.0f) {
         f32 d = GetDistance3(&obj_pos, &p);
 
-        br = l->power * (l->x1C - d) / l->x1C;
+        br = l->Intensity * (l->x1C - d) / l->x1C;
     } else {
-        br = l->power;
+        br = l->Intensity;
     }
     GXInitLightAttn(obj, br, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 }
 
 static void lightSetQuadratic(cLight* l, GXLightObj* obj)
 {
-    Vec p = l->curPos;
+    Vec p = l->World;
     f32 k2 = 0.1f;
     f32 d = GetDistance3(&obj_pos, &p);
     f32 range = l->x1C + obj_size;
     f32 br;
 
     if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
-        br = l->power;
+        br = l->Intensity;
     } else if (d < range) {
-        br = l->power * (range - d) / l->normal.x;
+        br = l->Intensity * (range - d) / l->normal.x;
     } else {
         br = 0.001f;
     }
     f32 zero = 0.0f;
     f32 one = 1.0f;
     if (l->x1C != zero) {
-        k2 = (l->power - 0.1f) / 0.1f / (l->x1C * l->x1C);
+        k2 = (l->Intensity - 0.1f) / 0.1f / (l->x1C * l->x1C);
     } else {
         k2 = zero;
     }
@@ -357,19 +357,19 @@ void lightSetSpotlight(cLight* l, GXLightObj* obj)
     f32 br;
 
     l->getPos(&p);
-    l->getNormal(&sp->normal, &dir);
-    PSMTXMultVecSR(pG->Cam.viewMat, &dir, &cdir);
+    l->getNormal(&sp->Normal, &dir);
+    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
     range = l->x1C + obj_size;
-    if (d < range - sp->fade || !(obj_flag & 1) || l->x1C == 0.0f) {
-        br = l->power;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+        br = l->Intensity;
     } else if (d < range) {
-        br = l->power * (range - d) / sp->fade;
+        br = l->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
-    GXInitLightSpot(obj, sp->cutoff, 2);
+    GXInitLightSpot(obj, sp->A0, 2);
     GXInitLightDistAttn(obj, 5000.0f, br, 2);
 }
 
@@ -379,10 +379,10 @@ void lightSetCustom(cLight* l, GXLightObj* obj)
     Vec dir;
     LightSpot* sp = &l->spot;
 
-    l->getNormal(&sp->normal, &dir);
-    PSMTXMultVecSR(pG->Cam.viewMat, &dir, &cdir);
+    l->getNormal(&sp->Normal, &dir);
+    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
-    GXInitLightAttn(obj, sp->cutoff, sp->fade, sp->a2, sp->k0, sp->k1, sp->k2);
+    GXInitLightAttn(obj, sp->A0, sp->A1, sp->A2, sp->K0, sp->K1, sp->K2);
 }
 
 void lightSetParallel(cLight* l, GXLightObj* obj)
@@ -396,22 +396,22 @@ void lightSetParallel(cLight* l, GXLightObj* obj)
     if (sp->flags & 1) {
         Mtx inv;
 
-        PSMTXInverse(pG->Cam.viewMat, inv);
-        PSMTXMultVecSR(inv, &sp->normal, &p);
+        PSMTXInverse(pG->Cam.v_mat, inv);
+        PSMTXMultVecSR(inv, &sp->Normal, &p);
     } else {
-        p = sp->normal;
+        p = sp->Normal;
     }
     PSVECAdd(&obj_pos, &p, &p);
-    PSMTXMultVec(pG->Cam.viewMat, &p, &p);
+    PSMTXMultVec(pG->Cam.v_mat, &p, &p);
     GXInitLightPos(obj, p.x, p.y, p.z);
     Vec q;
     l->getPos(&q);
     d = GetDistance3(&obj_pos, &q);
     range = l->x1C + obj_size;
-    if (d < range - sp->fade || !(obj_flag & 1) || l->x1C == 0.0f) {
-        br = l->power;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+        br = l->Intensity;
     } else if (d < range) {
-        br = l->power * (range - d) / sp->fade;
+        br = l->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
@@ -430,21 +430,21 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
     f32 br;
 
     l->getPos(&p);
-    l->getNormal(&sp->normal, &dir);
-    PSMTXMultVecSR(pG->Cam.viewMat, &dir, &cdir);
+    l->getNormal(&sp->Normal, &dir);
+    PSMTXMultVecSR(pG->Cam.v_mat, &dir, &cdir);
     GXInitLightDir(obj, cdir.x, cdir.y, cdir.z);
     d = GetDistance3(&obj_pos, &p);
     range = l->x1C + obj_size;
-    if (d < range - sp->fade || !(obj_flag & 1) || l->x1C == 0.0f) {
-        br = l->power;
+    if (d < range - sp->A1 || !(obj_flag & 1) || l->x1C == 0.0f) {
+        br = l->Intensity;
     } else if (d < range) {
-        br = l->power * (range - d) / sp->fade;
+        br = l->Intensity * (range - d) / sp->A1;
     } else {
         br = 0.001f;
     }
-    GXInitLightSpot(obj, sp->cutoff, 2);
+    GXInitLightSpot(obj, sp->A0, 2);
     if (l->x1C != 0.0f) {
-        k2 = (l->power - 0.1f) / 0.1f / (l->x1C * l->x1C) / br;
+        k2 = (l->Intensity - 0.1f) / 0.1f / (l->x1C * l->x1C) / br;
     } else {
         k2 = 0.0f;
     }
@@ -453,18 +453,18 @@ void lightSetSpotQuad(cLight* l, GXLightObj* obj)
 
 void lightSetLocalAmb(cLight* l, GXColor* amb)
 {
-    Vec p = l->curPos;
+    Vec p = l->World;
     f32 d = GetDistance3(&obj_pos, &p);
     f32 range = l->x1C + obj_size;
     GXColor c;
 
     if (d < range - l->normal.x || !(obj_flag & 1) || l->x1C == 0.0f) {
-        c = l->curColor;
+        c = l->DispCol;
     } else if (d < range) {
         d = (range - d) / l->normal.x;
-        c.r = (u8) (d * (f32) (int) l->curColor.r);
-        c.g = (u8) (d * (f32) (int) l->curColor.g);
-        c.b = (u8) (d * (f32) (int) l->curColor.b);
+        c.r = (u8) (d * (f32) (int) l->DispCol.r);
+        c.g = (u8) (d * (f32) (int) l->DispCol.g);
+        c.b = (u8) (d * (f32) (int) l->DispCol.b);
     } else {
         c.a = c.b = c.g = c.r = 0;
     }
@@ -477,10 +477,10 @@ void lightSetColor(GXLightObj* obj, cLight* l, cEm* em)
 {
     f32 col[3];
     GXColor c;
-    f32 r = (f32) l->curColor.r;
-    f32 g = (f32) l->curColor.g;
-    f32 b = (f32) l->curColor.b;
-    f32 a = (f32) (int) l->curColor.a;
+    f32 r = (f32) l->DispCol.r;
+    f32 g = (f32) l->DispCol.g;
+    f32 b = (f32) l->DispCol.b;
+    f32 a = (f32) (int) l->DispCol.a;
 
     col[0] = r * a * 0.0078125f;
     col[1] = g * a * 0.0078125f;

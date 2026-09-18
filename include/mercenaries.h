@@ -100,7 +100,7 @@ public:
     void* pIdStart;    // 0x08  type 0x2C "mission start"
     void* pIdTimeUp;   // 0x0C  type 0x2C "time up"
     void* pData;       // 0x10
-    IDSystem idsys;    // 0x14
+    IDSystem _idSys;    // 0x14
 
     void init(int num);
     void set();
@@ -120,8 +120,8 @@ public:
     void* pIdEnd;      // 0x1C
     u8 pad_20[0xC];
     void* pData;       // 0x2C
-    s8 step;           // 0x30
-    s8 cnt;            // 0x31
+    s8 _rno0;           // 0x30
+    s8 _rno1;            // 0x31
     u8 x32;
     u8 x33;
 
@@ -137,8 +137,8 @@ public:
     void* pId;         // 0x04
     u8 pad_8[0x24];
     void* pData;       // 0x2C
-    s8 step;           // 0x30
-    s8 cnt;            // 0x31
+    s8 _rno0;           // 0x30
+    s8 _rno1;            // 0x31
     u8 x32;
     u8 x33;
 

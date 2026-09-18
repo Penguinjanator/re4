@@ -26,7 +26,7 @@ struct DbObj18Work {
 
 cDbWork::cDbWork()
 {
-    no = mode = 0;
+    wkNo = mode = 0;
 }
 
 void cDbWork::move()
@@ -78,21 +78,21 @@ void cDbWork::dispEm()
 {
     cEm* em;
 
-    eprintf(32, 28, 4, 0, "ENEMY %d", no);
-    em = EmMgrWork(no);
+    eprintf(32, 28, 4, 0, "ENEMY %d", wkNo);
+    em = EmMgrWork(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
-        no++;
+        wkNo++;
     }
     if (Joy[0].rep & JOY_LEFT) {
-        no--;
+        wkNo--;
     }
-    no = (no + EmMgr.nArray) % EmMgr.nArray;
+    wkNo = (wkNo + EmMgr.nArray) % EmMgr.nArray;
     if ((em->be_flag & 0x201) == 1) {
         dispModel(em, 4, 3);
         eprintf(32, 280, 0, 0, "HP       %d", em->hp);
-        eprintf(32, 294, 0, 0, "HP MAX   %d", em->hpMax);
+        eprintf(32, 294, 0, 0, "HP MAX   %d", em->hp_max);
         eprintf(32, 308, 0, 0, "L PL     %f", SQRTF(em->plDist2));
-        eprintf(32, 322, 0, 0, "EMSET NO %d", em->emsetNo);
+        eprintf(32, 322, 0, 0, "EMSET NO %d", em->emset_no);
         Draw_pos(&em->pos, 500);
     }
 }
@@ -103,15 +103,15 @@ void cDbWork::dispObj()
     int x;
     int y;
 
-    obj = ObjMgrWork(no);
-    eprintf(32, 28, 4, 0, "OBJ %d  [0x%08X]", no, obj);
+    obj = ObjMgrWork(wkNo);
+    eprintf(32, 28, 4, 0, "OBJ %d  [0x%08X]", wkNo, obj);
     if (Joy[0].rep & JOY_RIGHT) {
-        no++;
+        wkNo++;
     }
     if (Joy[0].rep & JOY_LEFT) {
-        no--;
+        wkNo--;
     }
-    no = (no + ObjMgr.nArray) % ObjMgr.nArray;
+    wkNo = (wkNo + ObjMgr.nArray) % ObjMgr.nArray;
     if ((obj->be_flag & 0x201) == 1) {
         dispModel(obj, 4, 3);
         x = 4;
@@ -146,7 +146,7 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "POSITION %7.0f %7.0f %7.0f", m->pos.x, m->pos.y, m->pos.z);
     y++;
-    eprintf(x, y * 14, 0, 0, "ANGLE    %4.2f %4.2f %4.2f", m->rot.x, m->rot.y, m->rot.z);
+    eprintf(x, y * 14, 0, 0, "ANGLE    %4.2f %4.2f %4.2f", m->ang.x, m->ang.y, m->ang.z);
     y++;
     eprintf(x, y * 14, 0, 0, "SCALE    %4.2f %4.2f %4.2f", m->scale.x, m->scale.y, m->scale.z);
     y++;
@@ -162,30 +162,30 @@ void cDbWork::dispModel(cModel* m, int x, int y)
     y++;
     eprintf(x, y * 14, 0, 0, "pCldShMd %08X", m->pCldShMd);
     y++;
-    eprintf(x, y * 14, 0, 0, "SHD COL  %02X", m->shdCol);
+    eprintf(x, y * 14, 0, 0, "SHD COL  %02X", m->Shd_color);
     y++;
     eprintf(x, y * 14, 0, 0, "CullMode %d", m->CullMode);
     y++;
-    eprintf(x, y * 14, 0, 0, "pModInfo %08X", m->pInfo);
+    eprintf(x, y * 14, 0, 0, "pModInfo %08X", m->pModelInfo);
     y++;
-    eprintf(x, y * 14, 0, 0, "pShMdIfo %08X", m->pShMdInfo);
+    eprintf(x, y * 14, 0, 0, "pShMdIfo %08X", m->pShadowModelInfo);
     y++;
     color = 0;
-    if (m->lightInfo.getLightNum() > 5) {
+    if (m->LightInfo.getLightNum() > 5) {
         color = 0x16;
     }
-    eprintf(x, y * 14, color, 0, "nLight   %d", m->lightInfo.getLightNum());
+    eprintf(x, y * 14, color, 0, "nLight   %d", m->LightInfo.getLightNum());
     if (Joy[0].on & JOY_A) {
-        if (m->pInfo != NULL) {
-            m->pInfo->color[0] = ~m->pInfo->color[0];
-            m->pInfo->color[1] = ~m->pInfo->color[1];
-            m->pInfo->color[2] = ~m->pInfo->color[2];
+        if (m->pModelInfo != NULL) {
+            m->pModelInfo->color[0] = ~m->pModelInfo->color[0];
+            m->pModelInfo->color[1] = ~m->pModelInfo->color[1];
+            m->pModelInfo->color[2] = ~m->pModelInfo->color[2];
         }
     } else {
-        if (m->pInfo != NULL) {
-            m->pInfo->color[0] = 0xFF;
-            m->pInfo->color[1] = 0xFF;
-            m->pInfo->color[2] = 0xFF;
+        if (m->pModelInfo != NULL) {
+            m->pModelInfo->color[0] = 0xFF;
+            m->pModelInfo->color[1] = 0xFF;
+            m->pModelInfo->color[2] = 0xFF;
         }
     }
     if (Joy[0].on & JOY_X) {
@@ -203,26 +203,26 @@ void cDbWork::dispModel(cModel* m, int x, int y)
         m->pos.y -= 1000.0f;
         m->matUpdate();
     }
-    m->drawAllBoundingBox(m->pInfo);
+    m->drawAllBoundingBox(m->pModelInfo);
 }
 
 void cDbWork::dispLit()
 {
     cLight* l;
 
-    eprintf(32, 28, 4, 0, "LIGHT %d", no);
-    l = LightMgr.getWorkPtr(no);
+    eprintf(32, 28, 4, 0, "LIGHT %d", wkNo);
+    l = LightMgr.getWorkPtr(wkNo);
     if (Joy[0].rep & JOY_RIGHT) {
-        no++;
+        wkNo++;
     }
     if (Joy[0].rep & JOY_LEFT) {
-        no--;
+        wkNo--;
     }
-    no = (no + LightMgr.nArray) % LightMgr.nArray;
+    wkNo = (wkNo + LightMgr.nArray) % LightMgr.nArray;
     if ((l->be_flag & 0x201) == 1) {
         eprintf(32, 280, 0, 0, "BE FLAG  %08X", l->be_flag);
-        eprintf(32, 294, 0, 0, "POSITION %7.0f %7.0f %7.0f", l->pos.x, l->pos.y, l->pos.z);
-        eprintf(32, 308, 0, 0, "ATTR     %02x", l->attr);
-        Draw_sphere(l->curPos, l->x1C, -1, 1, 1);
+        eprintf(32, 294, 0, 0, "POSITION %7.0f %7.0f %7.0f", l->Pos.x, l->Pos.y, l->Pos.z);
+        eprintf(32, 308, 0, 0, "ATTR     %02x", l->Attribute);
+        Draw_sphere(l->World, l->x1C, -1, 1, 1);
     }
 }

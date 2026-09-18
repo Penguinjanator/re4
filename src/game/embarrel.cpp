@@ -78,7 +78,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         barrelInitFailed(em);
@@ -97,24 +97,24 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         EtcSetAddAmb(em, 1);
         break;
     }
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     {
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
-        at->flags &= ~0x100;
+        at->m_flag &= ~0x100;
     }
     if (em->type != 1) {
         YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, 330.0f, 1250.0f, 330.0f, 0, 1);
     } else {
         YarareInit((cEmHit*) em, 0.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
     }
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
+        em->LightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
     }
     zero = 0;
     em->lockParts = zero;
@@ -124,10 +124,10 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     em->setStatus(1);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->etcNo = etcNo;
-    w->sndId = 0;
-    w->bombTimer = 0;
-    w->flags = zero;
+    w->Etc_no = etcNo;
+    w->Seid = 0;
+    w->Bomb_wait = 0;
+    w->Be_flg = zero;
     flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
@@ -167,29 +167,29 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
-    if (em->modelInit(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21)) == 0) {
+    if (em->modelInit(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21)) == 0) {
         barrelInitFailed(em);
         return 0;
     }
     em->type = 1;
-    w->eff = 0xFF;
-    w->espKind = EspPullCoreKind();
+    w->Eff_id = 0xFF;
+    w->EffKindId = EspPullCoreKind();
     zero = 0;
     {
         cAtariInfo* at = &em->atari;
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
-        at->flags &= ~0x100;
+        at->m_flag &= ~0x100;
     }
     YarareInit((cEmHit*) em, -350.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec size = { 4000.0f, 4000.0f, 4000.0f };
 
-        em->lightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
+        em->LightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -200,7 +200,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     em->be_flag &= ~0x10;
     em->r_no_0 = 1;
     em->r_no_1 = 2;
-    w->flags = 0;
+    w->Be_flg = 0;
     em->r_no_2 = zero;
     em->r_no_3 = 0;
     return em;
@@ -451,15 +451,15 @@ void emBarrelSetBreak(cEmBarrel* em, int kind)
 
     em->hp = 0;
     em->be_flag &= ~2;
-    SndStop(w->sndId, 0);
+    SndStop(w->Seid, 0);
     if (em->type != 1) {
-        if (w->eff != 0xFF) {
+        if (w->Eff_id != 0xFF) {
             emBarrelSetBomb(em);
         }
     } else {
-        EffectEspDelete(0, w->espKind, em, 0);
-        EffectEspgenDelete(0, w->espKind, em);
-        EffectEfmDelete(0, w->espKind, em);
+        EffectEspDelete(0, w->EffKindId, em, 0);
+        EffectEspgenDelete(0, w->EffKindId, em);
+        EffectEfmDelete(0, w->EffKindId, em);
         if (w->rollSe != 0) {
             EstSet(0, -1, &em->pos, 0, 1, 5, 0, 0, 0, 0);
             emBarrelSetBomb2(em);
@@ -490,10 +490,10 @@ void cEmBarrel::move()
         EmAtCheck(this);
         atari.move();
         emBarrelEatSet(this);
-        if (w->bombTimer) {
-            w->bombTimer--;
-            if (w->bombTimer == 0) {
-                PlWepHitCheck2(0, &w->bombPos, &w->bombPos, 0x13, 3, w->bombRange);
+        if (w->Bomb_wait) {
+            w->Bomb_wait--;
+            if (w->Bomb_wait == 0) {
+                PlWepHitCheck2(0, &w->Bomb_pos, &w->Bomb_pos, 0x13, 3, w->Bomb_r);
                 pG->flags_500C |= 0x00800000;
             }
         }
@@ -518,12 +518,12 @@ void emBarrel_R1_Set(cEmBarrel* em)
     EmBarrelWork* w = EMBARREL_WK(em);
 
     if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        w->timer = 30;
+        w->Timer = 30;
         em->r_no_2++;
     }
     em->be_flag |= 0x4000;
@@ -537,20 +537,20 @@ void emBarrel_R1_Break(cEmBarrel* em)
     switch (em->r_no_2) {
     case 0:
         if (em->type == 0 || em->type == 2) {
-            flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
+            flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
             if (flg) {
                 *flg |= 1;
             }
         }
         em->be_flag &= ~2;
         em->hp = 0;
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         em->clearStatus(5);
-        w->timer = 10;
+        w->Timer = 10;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else if (em->type == 1) {
             EmMgr.destroy(em);
         }
@@ -573,7 +573,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
             em->pos.x = em->mat[0][3];
             em->pos.y = em->mat[1][3];
             em->pos.z = em->mat[2][3];
-            Matrix2AxisAngle(em->mat, &em->rot);
+            Matrix2AxisAngle(em->mat, &em->ang);
             em->r_no_0 = 1;
             em->r_no_1 = 1;
             em->r_no_2 = 0;
@@ -584,13 +584,13 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         w->rollSe = 0;
         if ((Rnd() & 3) == 0) {
             w->rollSe = 1;
-            EstSet((int) em, -1, 0, 0, 1, 4, 0, w->espKind, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, 1, 4, 0, w->EffKindId, (u32) em, 0);
         }
-        w->seTimer = 0;
+        w->Se_wait = 0;
         w->floorOfs = 700.0f;
-        w->spd.x = 0.0f;
-        w->spd.y = 0.0f;
-        w->spd.z = 0.0f;
+        w->Roll_spd.x = 0.0f;
+        w->Roll_spd.y = 0.0f;
+        w->Roll_spd.z = 0.0f;
         em->r_no_2++;
     case 1:
         if (emBarrelSetRollSpd(em)) {
@@ -599,20 +599,20 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         }
     default:
         if (w->rollSe) {
-            if (w->seTimer) {
-                w->seTimer--;
+            if (w->Se_wait) {
+                w->Se_wait--;
             } else {
-                w->sndId = SndCall(6, 6, &em->pos, 0, 0, em);
-                w->seTimer = 30;
+                w->Seid = SndCall(6, 6, &em->pos, 0, 0, em);
+                w->Se_wait = 30;
             }
         }
-        w->spd.y -= 10.0f;
-        PSVECAdd(&em->pos, &w->spd, &em->pos);
+        w->Roll_spd.y -= 10.0f;
+        PSVECAdd(&em->pos, &w->Roll_spd, &em->pos);
         floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y < floor + w->floorOfs) {
             em->pos.y = floor + w->floorOfs;
-            w->spd.y *= -0.3f;
-            if (w->spd.y > 20.0f) {
+            w->Roll_spd.y *= -0.3f;
+            if (w->Roll_spd.y > 20.0f) {
                 Vec v;
 
                 v = em->pos;
@@ -621,20 +621,20 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
                 SndCall(6, 2, &em->pos, 0, 0, em);
             }
         }
-        ang = GetXZAngle(&em->oldPos, &em->pos);
-        em->rot.y += Muku2(em->rot.y, ang, 0.012271847f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
-        dist = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
-                     (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
-                     (em->pos.z - em->oldPos.z) * (em->pos.z - em->oldPos.z));
+        ang = GetXZAngle(&em->pos_old, &em->pos);
+        em->ang.y += Muku2(em->ang.y, ang, 0.012271847f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
+        dist = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
+                     (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
+                     (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
         if (dist > 500.0f) {
             dist = 500.0f;
         }
         spin = dist * 0.002f * 0.31415927f;
         p = em->getPartsPtr(0);
-        p->rot.x += spin;
-        p->rot.x = LIMIT_ANGLE(p->rot.x);
-        RotMatrix(em->mat, &em->rot);
+        p->ang.x += spin;
+        p->ang.x = LIMIT_ANGLE(p->ang.x);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         em->partsMatCalc();
         em->partsWorldCalc();
@@ -654,15 +654,15 @@ int emBarrelSetRollRoute(cEmBarrel* em)
     int i;
     int idx;
 
-    emi = (u8*) pG->pRoomEmi;
+    emi = (u8*) pG->pEmi;
     if (emi == 0) {
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
 
-        if (((u8*) pG->pRoomEmi)[o] == 6) {
+        if (((u8*) pG->pEmi)[o] == 6) {
             idx = i;
             break;
         }
@@ -674,7 +674,7 @@ int emBarrelSetRollRoute(cEmBarrel* em)
     {
         u32 o = idx * 0x40 + 8;
 
-        w->pRoute = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+        w->pRoute = (EmiEntry*) ((u8*) pGS->pEmi + o);
     }
     return 1;
 }
@@ -689,7 +689,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
     f32 spd;
     Vec dir;
 
-    emi = (u8*) pG->pRoomEmi;
+    emi = (u8*) pG->pEmi;
     if (emi == 0) {
         return 1;
     }
@@ -697,10 +697,10 @@ int emBarrelSetRollSpd(cEmBarrel* em)
     spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
     if (spd < 250000.0f) {
         idx = -1;
-        for (i = w->routeIdx + 1; i < *(int*) pG->pRoomEmi; i++) {
+        for (i = w->routeIdx + 1; i < *(int*) pG->pEmi; i++) {
             u32 o = i * 0x40 + 8;
 
-            if (((u8*) pG->pRoomEmi)[o] == 6) {
+            if (((u8*) pG->pEmi)[o] == 6) {
                 idx = i;
                 break;
             }
@@ -712,7 +712,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         {
             u32 o = idx * 0x40 + 8;
 
-            e = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+            e = (EmiEntry*) ((u8*) pGS->pEmi + o);
         }
         w->pRoute = e;
     }
@@ -720,7 +720,7 @@ int emBarrelSetRollSpd(cEmBarrel* em)
     dir.y = 0.0f;
 #line 1017 "D:/Bio4/Prog/embarrel.cpp"
     VECNormalize(&dir, &dir);
-    spd = SQRTF(w->spd.x * w->spd.x + w->spd.z * w->spd.z) + 1.0f;
+    spd = SQRTF(w->Roll_spd.x * w->Roll_spd.x + w->Roll_spd.z * w->Roll_spd.z) + 1.0f;
     if (spd < 50.0f) {
         spd = 50.0f;
     }
@@ -728,8 +728,8 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         spd = 150.0f;
     }
     PSVECScale(&dir, &dir, spd);
-    w->spd.x = dir.x;
-    w->spd.z = dir.z;
+    w->Roll_spd.x = dir.x;
+    w->Roll_spd.z = dir.z;
     return 0;
 }
 
@@ -737,7 +737,7 @@ void cEmBarrel::setEff(u8 eff)
 {
     EmBarrelWork* w = EMBARREL_WK(this);
 
-    w->eff = eff;
+    w->Eff_id = eff;
 }
 
 void emBarrelSetBomb(cEmBarrel* em)
@@ -767,17 +767,17 @@ void emBarrelSetBomb(cEmBarrel* em)
         }
         break;
     }
-    EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 0, 0, 0, 0);
+    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 0, 0, 0, 0);
     v = em->pos;
     v.y += 500.0f;
-    w->bombTimer = 2;
-    w->bombPos = v;
-    w->bombRange = 6000.0f;
+    w->Bomb_wait = 2;
+    w->Bomb_pos = v;
+    w->Bomb_r = 6000.0f;
     cam = &pGS->Cam;
     p = em->getPartsPtr(1);
-    d2 = (p->worldPos.x - cam->param.pos.x) * (p->worldPos.x - cam->param.pos.x) +
-         (p->worldPos.y - cam->param.pos.y) * (p->worldPos.y - cam->param.pos.y) +
-         (p->worldPos.z - cam->param.pos.z) * (p->worldPos.z - cam->param.pos.z);
+    d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
+         (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
+         (p->world.z - cam->param.pos.z) * (p->world.z - cam->param.pos.z);
     if (d2 < 400000000.0f) {
         power = 10.0f;
         if (d2 > 25000000.0f) {
@@ -818,14 +818,14 @@ void emBarrelSetBomb2(cEmBarrel* em)
     }
     v = em->pos;
     v.y += 500.0f;
-    w->bombTimer = 2;
-    w->bombPos = v;
-    w->bombRange = 4000.0f;
+    w->Bomb_wait = 2;
+    w->Bomb_pos = v;
+    w->Bomb_r = 4000.0f;
     cam = &pGS->Cam;
     p = em->getPartsPtr(1);
-    d2 = (p->worldPos.x - cam->param.pos.x) * (p->worldPos.x - cam->param.pos.x) +
-         (p->worldPos.y - cam->param.pos.y) * (p->worldPos.y - cam->param.pos.y) +
-         (p->worldPos.z - cam->param.pos.z) * (p->worldPos.z - cam->param.pos.z);
+    d2 = (p->world.x - cam->param.pos.x) * (p->world.x - cam->param.pos.x) +
+         (p->world.y - cam->param.pos.y) * (p->world.y - cam->param.pos.y) +
+         (p->world.z - cam->param.pos.z) * (p->world.z - cam->param.pos.z);
     if (d2 < 400000000.0f) {
         power = 10.0f;
         if (d2 > 25000000.0f) {
@@ -850,7 +850,7 @@ void emBarrelEatSet(cEmBarrel* em)
         return;
     }
     if (w->sat) {
-        w->sat->flags &= ~4;
+        w->sat->m_Flag &= ~4;
     }
     if (em->hp <= 0) {
         return;
@@ -870,10 +870,10 @@ void emBarrelEatSet(cEmBarrel* em)
         v[3].x = -r;
         v[3].y = 0.0f;
         v[3].z = r;
-        w->sat = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, 1250.0f);
+        w->sat = EatMgr.create(&em->pos, &em->ang, v, 0x400000, 0, 1250.0f);
     } else {
-        w->sat->flags |= 4;
-        w->sat->setCoord(&em->pos, &em->rot);
+        w->sat->m_Flag |= 4;
+        w->sat->setCoord(&em->pos, &em->ang);
     }
 }
 

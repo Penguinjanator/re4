@@ -36,7 +36,7 @@ static inline int r215_evtStatus(Event* e, u32 bit)
 {
     int on = 1;
 
-    if ((e->status & bit) == 0) {
+    if ((e->StatusFlag & bit) == 0) {
         on = 0;
     }
     return on;
@@ -51,7 +51,7 @@ static inline u32* evtKey(EventMgr* m) { return &m->x34; }
 // Light kind mask / display flag of an event model.
 #define R215_EVT_MOD_LIGHT(name, kind)                  \
     if (e->GetMod(&mod, name, 0, 0) == 1) {             \
-        ((cModel*) mod)->lightInfo.x50 = kind;          \
+        ((cModel*) mod)->LightInfo.x50 = kind;          \
     }
 #define R215_EVT_MOD_FLAG(name)                         \
     if (e->GetMod(&mod, name, 0, 0) == 1) {             \
@@ -125,25 +125,25 @@ extern "C" void Evt_R215S00_Func(Event* e)
     switch (e->funcMode) {
     case 0:
         EvtFlgOnStatus(e, 3);
-        e->cancelCut = 9;
+        e->EvtCancelCut = 9;
         break;
     case 1:
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 3:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SetShadowCamMoveSize(0.0f);
             }
             break;
         case 2:
         case 4:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 ResetShadowCamMoveSize();
             }
             break;
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 R215_EVT_MOD_LIGHT("pl0100", 1)
                 R215_EVT_MOD_LIGHT("em3700", 2)
                 R215_EVT_MOD_LIGHT("evm7400", 4)
@@ -193,29 +193,29 @@ extern "C" void Evt_R215S01_Func(Event* e)
     case 0:
         break;
     case 1:
-        if (e->cut == 0x10) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0x10) {
+            if (e->NowFrame == 0) {
                 SetShadowCamMoveSize(0.0f);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 ResetShadowCamMoveSize();
             }
         }
-        if (e->cut == 0x11) {
-            if (e->frame == 0) {
+        if (e->NowCut == 0x11) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x2C, 0);
                 SmdSetTrans(0x2E, 0);
             }
         } else {
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 SmdSetTrans(0x2C, 1);
                 SmdSetTrans(0x2E, 1);
             }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 R215_EVT_MOD_LIGHT("pl0100", 1)
                 R215_EVT_MOD_LIGHT("em3700", 2)
                 R215_EVT_MOD_LIGHT("evm7400", 4)
@@ -235,7 +235,7 @@ extern "C" void Evt_R215S01_Func(Event* e)
             }
             break;
         case 0x12:
-            if (e->frame == 0x5A) {
+            if (e->NowFrame == 0x5A) {
                 if (r215_evtStatus(e, 0x40000000) == 0) {
                     FadeSetW(2, 30, 0, 0);
                 }

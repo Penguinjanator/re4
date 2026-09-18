@@ -156,26 +156,26 @@ static void r113_execHide(int mode)
         // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         for (;;) {
-            door->pParts->rot.z += spd;
+            door->pParts->ang.z += spd;
             asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
             spd += add;
-            if (door->pParts->rot.z > lim) {
+            if (door->pParts->ang.z > lim) {
                 break;
             }
             SceSleep(1);
         }
-        door->pParts->rot.z = lim;
+        door->pParts->ang.z = lim;
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
         goto close;
     wait_close:
         SceSleep(1);
     close:
-        door->pParts->rot.z -= 0.2f;
-        if (!(door->pParts->rot.z < 0.0f)) {
+        door->pParts->ang.z -= 0.2f;
+        if (!(door->pParts->ang.z < 0.0f)) {
             goto wait_close;
         }
-        door->pParts->rot.z = 0.0f;
+        door->pParts->ang.z = 0.0f;
     }
 }
 
@@ -233,18 +233,18 @@ static void r113_EventRideShoulder()
             ang.z = 0.0f;
             pl->setAng(&ang);
         }
-        low_RotMatrix(m, &pPL->rot);
+        low_RotMatrix(m, &pPL->ang);
         TransMatrix(m, &pos);
         PSMTXMultVec(m, &pos2, &pos3);
         {
             cSubChar* sub = pSUB;
-            Vec* prot = &pPL->rot;
+            Vec* prot = &pPL->ang;
 
             sub->setPos(&pos3);
             sub->setAng(prot);
         }
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xA, 0, 1, 0);
-        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0xA, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xA, 0, 1, 0);
+        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0xA, 0, 1, 0);
     }
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
@@ -261,7 +261,7 @@ static void r113_EventRideShoulder()
     {
         MessageControl* mes = &cMes;
 
-        SceMesSet(5, 0xF0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->fontH - 1);
+        SceMesSet(5, 0xF0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->m_font_h - 1);
         SceSleep(75);
         for (i = 0; i < 16; i++) {
             mes->Delete(i);

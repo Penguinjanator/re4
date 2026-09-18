@@ -6,15 +6,15 @@
 #include "esp.h"
 
 struct Esp12Work {
-    u32 n;         // 0x00 number of trail points
-    cEsp3f* buf;   // 0x04 vector buffer (esp3f)
+    u32 Num;         // 0x00 number of trail points
+    cEsp3f* pBuf;   // 0x04 vector buffer (esp3f)
 };
 
 // Ribbon trail: keeps the last n positions in an esp3f buffer and draws a textured strip
 // through them.
 class cEsp12 : public cEsp {
 public:
-    Esp12Work work;  // 0xF8
+    Esp12Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -28,7 +28,7 @@ cEsp* Esp12_Create()
 
 void cEsp12::move()
 {
-    Esp12Work* w = &work;
+    Esp12Work* w = &m_Free;
     Vec wpos;
     Vec* dst;
     Vec* src;
@@ -40,23 +40,23 @@ void cEsp12::move()
         } else {
             FSet(m_Radius, 100000000.0f);
             if (parent == pEffParentWorld) {
-                wpos = pos;
+                wpos = m_Pos;
             } else {
-                PSMTXMultVec(parent->mat, &pos, &wpos);
+                PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             }
-            for (i = w->n - 1; i != 0; i--) {
-                dst = Esp3f_GetVecPtr(w->buf, i);
-                src = Esp3f_GetVecPtr(w->buf, i - 1);
+            for (i = w->Num - 1; i != 0; i--) {
+                dst = Esp3f_GetVecPtr(w->pBuf, i);
+                src = Esp3f_GetVecPtr(w->pBuf, i - 1);
                 *dst = *src;
             }
-            *Esp3f_GetVecPtr(w->buf, 0) = wpos;
+            *Esp3f_GetVecPtr(w->pBuf, 0) = wpos;
         }
     }
 }
 
 extern "C" void Esp12_Trans(cEsp12* esp)
 {
-    Esp12Work* w = &esp->work;
+    Esp12Work* w = &esp->m_Free;
     EspAnmData* anm;
     Mtx inv;
     Vec camPos;
@@ -77,17 +77,17 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     register f32 z asm("fr12");  // COMPILER-DIFF: #13
     u32 magic;                   // COMPILER-DIFF: #13 (hoisted conversion constant)
 
-    if (esp->cnt < w->n) {
-        n = esp->cnt + 1;
+    if (esp->m_Life_time < w->Num) {
+        n = esp->m_Life_time + 1;
     } else {
-        n = w->n;
+        n = w->Num;
     }
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
         return;
     }
     CameraCurrentProjection();
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Type, esp->m_Ptn_no);
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
@@ -100,22 +100,22 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     // the dead three-load test splits the block at sched time so `lbz partsNo` and the 1.0 high
     // are scheduled after the zero load.
     z = 0.0f;  // COMPILER-DIFF: #13
-    if (esp->cnt + w->n + esp->anmNo == 99) {  // COMPILER-DIFF: candidate (sched block split)
+    if (esp->m_Life_time + w->Num + esp->m_Type == 99) {  // COMPILER-DIFF: candidate (sched block split)
         t = z;
     }
     t = z;
     tstep = 1.0f;
-    if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
+    if ((s8)esp->m_Parts_no >= -8 && (s8)esp->m_Parts_no <= -3) {
         pLog->err(0, 0, "ESP_12 : Parent is screen.");
         return;
     }
-    PSMTXIdentity(esp->mat);
-    RotMatrix(esp->mat, &esp->rot);
-    PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);
-    PSMTXInverse(esp->mat, inv);
+    PSMTXIdentity(esp->m_Mat);
+    RotMatrix(esp->m_Mat, &esp->m_Ang);
+    PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -124,18 +124,18 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    tstep = tstep / (f32)w->n;
+    tstep = tstep / (f32)w->Num;
     camPos = pG->Cam.param.pos;
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
     GXBegin(0x98, 0, n * 2);
     asm("" : "=m"(nrm.x) : "r"(magic));  // COMPILER-DIFF: #13 (keep-alive)
-    p = Esp3f_GetVecPtr(w->buf, 0);
+    p = Esp3f_GetVecPtr(w->pBuf, 0);
     next = NULL;
     for (i = 0; i < n; i++) {
         if (i != n - 1) {
-            next = Esp3f_GetVecPtr(w->buf, i + 1);
+            next = Esp3f_GetVecPtr(w->pBuf, i + 1);
             PSVECSubtract(next, p, &dir);
         }
         PSVECSubtract(p, &camPos, &toCam);
@@ -145,7 +145,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
             VECNormalize(&cross, &nrm);
         }
         r = (f32)i / (f32)(n - 1);
-        wid = (r * esp->sizeY + (1.0f - r) * esp->sizeX) * esp->scale;
+        wid = (r * esp->m_Size_base_y + (1.0f - r) * esp->m_Size_base_x) * esp->m_Size_mul;
         PSVECScale(&nrm, &v0, wid);
         PSVECScale(&nrm, &v1, -wid);
         PSVECAdd(&v0, p, &v0);
@@ -163,16 +163,16 @@ extern "C" void Esp12_Trans(cEsp12* esp)
 
 void cEsp12::Destruct()
 {
-    cEsp* b = (cEsp*)work.buf;
+    cEsp* b = (cEsp*)m_Free.pBuf;
 
-    if (b != NULL && (b->flag & 1)) {
+    if (b != NULL && (b->m_Be_flg & 1)) {
         PushEsp(b);
     }
 }
 
 int cEsp12::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp12Work* w = &work;
+    Esp12Work* w = &m_Free;
     Vec wpos;
     int i;
 
@@ -180,20 +180,20 @@ int cEsp12::SetFreeWork(EspGenWork* gen, u32* seed)
         pLog->err(0, 0, "ESP_12 : WK0 > 123.");
         return 0;
     }
-    w->n = (s8)gen->xC8 + 2;
-    if (!Esp3f_Alloc(sizeof(Vec), w->n, &w->buf, &info)) {
+    w->Num = (s8)gen->xC8 + 2;
+    if (!Esp3f_Alloc(sizeof(Vec), w->Num, &w->pBuf, &info)) {
         pLog->err(0, 0, "ESP_12 : Buf alloc failed.");
         return 0;
     }
     FSet(m_Radius, 100000000.0f);
-    BitOn16(dispFlag, 2);
+    BitOn16(m_Flg, 2);
     if (parent == pEffParentWorld) {
-        wpos = pos;
+        wpos = m_Pos;
     } else {
-        PSMTXMultVec(parent->mat, &pos, &wpos);
+        PSMTXMultVec(parent->mat, &m_Pos, &wpos);
     }
-    for (i = w->n - 1; i >= 0; i--) {
-        *Esp3f_GetVecPtr(w->buf, i) = wpos;
+    for (i = w->Num - 1; i >= 0; i--) {
+        *Esp3f_GetVecPtr(w->pBuf, i) = wpos;
     }
     return 1;
 }

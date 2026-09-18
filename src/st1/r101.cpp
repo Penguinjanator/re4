@@ -119,7 +119,7 @@ static inline void r101_emListOn(int no)
 
 static inline void r101_emDeadClear(int no)
 {
-    int list = pG->emlist_no;
+    int list = pG->em_list_no;
 
     if (list >= 0) {
         BitOff(*(u32*) ((list << 5) + (u32) pG + 0x501C), 0x80000000 >> (no & 31));
@@ -153,7 +153,7 @@ void R101Init()
     EvtMgr.SetFunc("evt_r101s30_func", (void*) Evt_R101S30_Func);
     EatMgr.registEffInfo(4, (AtEffInfo*) &r101_eff_info);
     if (getRoomEtcDoor(0xB, &door, 1)) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x1E), ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1E), ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0);
     }
     if (getRoomEtcRack(0xD, &rack, 1)) {
         ((cEmRack*) rack)->setRange(0.0f, 1000.0f, 0.0f, 2000.0f);
@@ -190,7 +190,7 @@ void R101Init()
         rot.x = 0.0f;
         rot.y = -1.5707964f;
         rot.z = 0.0f;
-        PSet(r101_work->obj00, SetObj00(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), &pos, &rot));
+        PSet(r101_work->obj00, SetObj00(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &pos, &rot));
         r101_work->obj00->setNoSuspend(1);
         EstSet(0, -1, 0, 0, 1, 0, 0x801, 0, 0, 0);
         pos.y += 1500.0f;
@@ -202,7 +202,7 @@ void R101Init()
             SceAtDataSet_exec(0x13, 0x12, 0, (TaskFunc) r101_callGanadoVoice, 0, 1);
             PSet(r101_work->evt00, DC.setData(EvtMgr.NameChange("evd/r101s00.evd")));
             r101_work->evt00->setCommand(2, 0, 0);
-            EmReadSearch(0x26, 0, r101_work->evt00->size);
+            EmReadSearch(0x26, 0, r101_work->evt00->m_size);
             SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r101_Event00, 0, 1);
         } else {
             SceExec(0x12, (TaskFunc) r101_checkEmNum, 0, 0, 2, 0);
@@ -213,10 +213,10 @@ void R101Init()
         if (RsfCheck(G_ROOM_ID, 8) == 0) {
             PSet(r101_work->evt21, DC.setData(EvtMgr.NameChange("evd/r101s21.evd")));
             r101_work->evt21->setCommand(2, 0, 0);
-            if (r101_work->evt21->size > r101_work->evt30->size) {
-                EmReadSearch(0x15, 0, r101_work->evt21->size);
+            if (r101_work->evt21->m_size > r101_work->evt30->m_size) {
+                EmReadSearch(0x15, 0, r101_work->evt21->m_size);
             } else {
-                EmReadSearch(0x15, 0, r101_work->evt30->size);
+                EmReadSearch(0x15, 0, r101_work->evt30->m_size);
             }
             if (getRoomEtcWindow(0, &win, 1)) {
                 ((cEmWindow*) win)->SetEnableDamage(0);
@@ -252,9 +252,9 @@ void R101Init()
                 r101_emDeadClear(0x19);
                 r101_emDeadClear(0x1E);
                 r101_emDeadClear(0x1F);
-                ((EmListData*) &pGS->emlist[0x48 * 0x20])->flags |= 1;
-                ((EmListData*) &pGS->emlist[0x49 * 0x20])->flags |= 1;
-                ((EmListData*) &pGS->emlist[0x4A * 0x20])->flags |= 1;
+                ((EmListData*) &pGS->Em_list[0x48 * 0x20])->flags |= 1;
+                ((EmListData*) &pGS->Em_list[0x49 * 0x20])->flags |= 1;
+                ((EmListData*) &pGS->Em_list[0x4A * 0x20])->flags |= 1;
             }
             SceExec(0x12, (TaskFunc) r101_checkFindPlayer, 1, 0, 2, 0);
         }
@@ -271,7 +271,7 @@ void R101Init()
         cModel* m = SceAtItemModelPtr(0xA3);
 
         if (m != 0) {
-            m->lightInfo.x50 = (m->lightInfo.x50 & ~0x20) | 8;
+            m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 8;
         }
     }
 }
@@ -315,7 +315,7 @@ extern "C" void r101_setFlameBottle(Vec* from, Vec* to)
     AreaGetInsidePos(to, &SceAtPtr(0x15)->area);
     CalcParabolaVector(&dir, from, to, 2000.0f);
     Vec zeroVec = {0.0f, 0.0f, 0.0f};
-    obj = SetObj01(ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), from, &zeroVec, &dir, spd, 50.0f, 0xD2, 5);
+    obj = SetObj01(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), from, &zeroVec, &dir, spd, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 1, 0x12, 2, 1, 0x11, 0, 0x14, (int) zero, (int) zero);
     EstSet((int) obj, -1, 0, 0, 1, 0x10, 0, 0, (u32) obj, zero);
 }
@@ -421,7 +421,7 @@ static void r101_Event30_TitleCall()
 
         m = &EvtMgr;
         if (m->GetEvt(&m->x34, &evt)) {
-            frame = ((Event*) evt)->totalFrame;
+            frame = ((Event*) evt)->NowTotalFrame;
         }
         if (frame > 1099) {
             break;
@@ -432,8 +432,8 @@ static void r101_Event30_TitleCall()
         SceSleep(1);
     } while (1);
     IdSys.dispSw(0x21, 0);
-    IdTexDataLoad(tex->addr, 6);
-    IdSys.set(id->addr, 0xFF, 0x2C, 0x13, 6, 0);
+    IdTexDataLoad(tex->m_addr, 6);
+    IdSys.set(id->m_addr, 0xFF, 0x2C, 0x13, 6, 0);
     while (1) {
         if (pG->flags_174 & 0x20000000) {
             goto end;
@@ -468,7 +468,7 @@ static void r101_Event30()
     r101_work->evt30->setCommand(2, 0, 0);
     SceSleep(60);
     while (r101_work->evt30->isLoadOk() == 0) {
-        if (r101_work->evt30->err != 0) {
+        if (r101_work->evt30->m_err != 0) {
             fail = 1;
             break;
         }
@@ -484,7 +484,7 @@ static void r101_Event30()
     SceSleep(2);
     m = SearchEmModule(0x15);
     if (fail != 1) {
-        if (r101_work->evt30->size > m->size) {
+        if (r101_work->evt30->m_size > m->size) {
             // COMPILER-DIFF: frame layout -- codeless use that keeps the 8-byte slot allocated
             // (an unreferenced aggregate gets no slot; the original's use is not in the bytes).
             asm("" : "=m"(unused));
@@ -494,7 +494,7 @@ static void r101_Event30()
             InitModule(m);
             r101_work->evt30->setCommand(1, 0, 1);
             SceExec(0x12, (TaskFunc) r101_Event30_TitleCall, 0, 2, 2, 0);
-            EvtMgr.SetEvt(r101_work->evt30->addr, 0);
+            EvtMgr.SetEvt(r101_work->evt30->m_addr, 0);
             while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
                 SceSleep(1);
             }
@@ -641,7 +641,7 @@ static void r101_Event20()
         r = rack;
         {
             Vec* pp = &r->pos;
-            Vec* pa = &r->rot;
+            Vec* pa = &r->ang;
             r->setPos(pp);
             r->setAng(pa);
         }
@@ -650,10 +650,10 @@ static void r101_Event20()
     SceSleep(2);
     m = SearchEmModule(0x15);
     if (fail != 1) {
-        if (r101_work->evt21->size > m->size) {
+        if (r101_work->evt21->m_size > m->size) {
             pLog->err(0, 0, "r101_Event20 exec error");
         } else {
-            MemorySwap(m->pArc, (u32) r101_work->evt21->addr, r101_work->evt21->size);
+            MemorySwap(m->pArc, (u32) r101_work->evt21->m_addr, r101_work->evt21->m_size);
             EvtMgr.SetEvt(m->pArc, 0);
             SceSleep(3);
             for (;;) {
@@ -664,7 +664,7 @@ static void r101_Event20()
                 if (em->IsAliveEvt(key, 0, 0) == 0) {
                     break;
                 }
-                if (em->GetEvt(key, &evt) && ((Event*) evt)->cut == 0xA && ((Event*) evt)->frame == 0x20) {
+                if (em->GetEvt(key, &evt) && ((Event*) evt)->NowCut == 0xA && ((Event*) evt)->NowFrame == 0x20) {
                     if (getRoomEtcWindow(0, &win, 1)) {
                         ((cEmWindow*) win)->SetBreakModel();
                     }
@@ -672,7 +672,7 @@ static void r101_Event20()
                 SceSleep(1);
             }
             BitOff(pG->System_flg, 0x400);
-            MemorySwap(m->pArc, (u32) r101_work->evt21->addr, r101_work->evt21->size);
+            MemorySwap(m->pArc, (u32) r101_work->evt21->m_addr, r101_work->evt21->m_size);
         }
     }
     r101_work->evt21->setCommand(4, 0, 0);
@@ -725,7 +725,7 @@ static void r101_Event20()
     }
     SndRoomStrStart(1, 3, 1);
     pPL->cCoord::matUpdate();
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     CamCtrl.roomInit();
     SceEventEnd(0);
 }
@@ -843,13 +843,13 @@ static void r101_checkEmReset()
 static void r101_DoorDontOpen100()
 {
     SndCall(6, 0x26, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 static void r101_DoorDontOpen103()
 {
     SndCall(6, 0x29, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // The player holds the key: the door area unlocks.
@@ -859,7 +859,7 @@ static void r101_checkDoor102KeyUse()
         SceSleep(1);
     }
     SndCall(6, 0x25, 0, 0, 0, 0);
-    SceMesSet(0xB, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0xB, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     pG->door_unlock[0] |= 0x20000000;
     SceAtDataReset(0x19);
 }
@@ -878,7 +878,7 @@ static void r101_checkDoor102()
 static void r101_DoorDontOpen3()
 {
     SndCall(6, 0x27, 0, 0, 0, 0);
-    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // Once a Ganado has found the player: the fight (mode 0) or the battle stream (mode 1).
@@ -973,12 +973,12 @@ static void r101_Event00()
             pG->System_flg |= 0x400;
             SceSleep(2);
             m = SearchEmModule(0x26);
-            MemorySwap(m->pArc, (u32) r101_work->evt00->addr, r101_work->evt00->size);
+            MemorySwap(m->pArc, (u32) r101_work->evt00->m_addr, r101_work->evt00->m_size);
             EvtMgr.SetEvt(m->pArc, 0);
             while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0)) {
                 SceSleep(1);
             }
-            MemorySwap(m->pArc, (u32) r101_work->evt00->addr, r101_work->evt00->size);
+            MemorySwap(m->pArc, (u32) r101_work->evt00->m_addr, r101_work->evt00->m_size);
         }
         r101_work->evt00->setCommand(4, 0, 0);
         r101_setEmSuspend(0);
@@ -1012,7 +1012,7 @@ static void r101_Event00()
     ang.y += 1750.0f;
     pG->flags_170 |= 0x100;
     SndCall(1, 2, 0, 0, 0, 0);
-    CamCtrl.HoldBinocular(ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), &ang, &at);
+    CamCtrl.HoldBinocular(ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), &ang, &at);
     CamCtrl.SetBinocularRange(-0.05992f, 0.2645f, -0.2532f, 0.14943f);
     pG->flags_170 |= 0x10000000;
     for (;;) {
@@ -1029,7 +1029,7 @@ static void r101_Event00()
     BitOff(pG->flags_170, 0x10000000);
     BitOff(pG->flags_170, 0x100);
     pPL->cCoord::matUpdate();
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     CamCtrl.roomInit();
 }
 
@@ -1062,7 +1062,7 @@ extern "C" void Evt_R101S21_Func(Event* e)
 {
     void* mod;
 
-    if (e->funcMode == 1 && e->cut == 0 && e->frame == 0) {
+    if (e->funcMode == 1 && e->NowCut == 0 && e->NowFrame == 0) {
         e->GetMod(&mod, "et0800", 0, 0);
     }
 }
@@ -1079,7 +1079,7 @@ extern "C" void Evt_R101S30_Func(Event* e)
         LadderEventTrans(0);
         break;
     case 1:
-        if (e->cut == 0 && e->frame == 0) {
+        if (e->NowCut == 0 && e->NowFrame == 0) {
             if ((obj = SmdGetObjPtr(0x39)) != 0) {
                 e->SetMod("scr0000", obj, 5, 0, 2, 0);
                 obj->setPos(&pos);

@@ -21,7 +21,7 @@ void Light08_Move(cLight* l)
         if (em) {
             cModel* parts = em->getPartsPtr(w->partsNo);
             if (parts) {
-                l->setSpotTarget(&parts->worldPos);
+                l->setSpotTarget(&parts->world);
             }
         }
     }

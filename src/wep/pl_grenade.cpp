@@ -23,7 +23,7 @@ f64 atan2(f64 y, f64 x);
 int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 }
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWepArc, no)
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
 
 // game/objSubWep.cpp: the thrown grenade / egg objects (init only, the module never touches the rest)
 class cSubWep : public cObj {
@@ -65,7 +65,7 @@ void PlGrenadeMove(cPlayer* pl)
         wep19_r2_next,
     };
 
-    pl->pWep->lockMove();
+    pl->Wep->lockMove();
     if (pl->r_no_2 == 4) {
         pLog->err(0, 0, "ERROR:grenade cant reload action!!!!!");
         pl->r_no_2 = 0;
@@ -88,16 +88,16 @@ static void wep19_r2_ready(cPlayer* pl)
         pl->x3E0 = 1;
     }
     if (Key.on & 1) {
-        if (pl->pWep->knifeStance != 0) {
-            pl->pWep->knifeStance = 0;
+        if (pl->Wep->knifeStance != 0) {
+            pl->Wep->knifeStance = 0;
         }
     } else if (Key.on & 2) {
-        if (pl->pWep->knifeStance != 2) {
-            pl->pWep->knifeStance = 2;
+        if (pl->Wep->knifeStance != 2) {
+            pl->Wep->knifeStance = 2;
         }
     } else {
-        if (pl->pWep->knifeStance != 1) {
-            pl->pWep->knifeStance = 1;
+        if (pl->Wep->knifeStance != 1) {
+            pl->Wep->knifeStance = 1;
         }
     }
     func_tbl[pl->r_no_3](pl);
@@ -121,7 +121,7 @@ static void wep19_r2_ready(cPlayer* pl)
         Vec hit;
 
         PSMTXMultVec(pl->mat, &aim, &aim);
-        SatMgr.hitCheck(&pl->getPartsPtr(0)->worldPos, &aim, &hit, 0, 0, 0);
+        SatMgr.hitCheck(&pl->getPartsPtr(0)->world, &aim, &hit, 0, 0, 0);
         CamCtrlShoulderSetAim(&hit);
     }
 }
@@ -132,27 +132,27 @@ static void wep19_r3_ready00(cPlayer* pl)
     void* mot;
 
     pl->x3E4 = 0;
-    pl->pWep->m_CenterY = 0.0f;
-    pl->pWep->m_CamAdjY = CamCtrl.getCameraDirection();
+    pl->Wep->m_CenterY = 0.0f;
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
     }
-    pl->pWep->pitch = pitch;
+    pl->Wep->pitch = pitch;
     m3r[2] = 0.0f;
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
     pl->x400 = 0.0f;
-    pl->pNeck->init(0, 0, 0);
-    pl->pWep->lockInit();
+    pl->Neck->init(0, 0, 0);
+    pl->Wep->lockInit();
     mot = WEP_ARC_PTR(0xF);
     mot3.set(pl, mot, mot, mot, 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
     m3r[0] = 0.0f;
     m3r[1] = 0.0f;
     m3r[2] = 0.0f;
-    SndCall(1, 0x28, &pl->pParts->worldPos, 0, 0, 0);
+    SndCall(1, 0x28, &pl->pParts->world, 0, 0, 0);
     lockCtr = 0;
     pl->r_no_3 = 1;
 }
@@ -160,10 +160,10 @@ static void wep19_r3_ready00(cPlayer* pl)
 static void wep19_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
-        f32 d = pl->pWep->m_CamAdjY / (4.0f - pl->frame);
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
 
-        pl->rot.y += d;
-        pl->pWep->m_CamAdjY -= d;
+        pl->ang.y += d;
+        pl->Wep->m_CamAdjY -= d;
     }
     pl->motionMove();
     if (pl->frame >= 4.0f) {
@@ -174,7 +174,7 @@ static void wep19_r3_ready10(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep19_r3_ready20(cPlayer* pl)
@@ -188,7 +188,7 @@ static void wep19_r3_ready20(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 // ready30: turn / step towards the aim target while the motion plays (the pl_handgun form: `t` is
@@ -203,13 +203,13 @@ static void wep19_r3_ready30(cPlayer* pl)
     Vec* t;
 
     if (MotionMoveI(pl, 0)) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 6;
         pl->r_no_2 = 1;
         pl->r_no_3 = 0;
     }
-    pl->rot.y += Muku(&pl->pos, &tgt, pl->rot.y, PI / 8.0f);
+    pl->ang.y += Muku(&pl->pos, &tgt, pl->ang.y, PI / 8.0f);
     pl->pos.x = pl->pos.x * 0.6f + pos.x * 0.4f;
     pl->pos.z = pl->pos.z * 0.6f + pos.z * 0.4f;
     t = &tgt;
@@ -242,7 +242,7 @@ static void wep19_r3_ready30(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep19_r2_set(cPlayer* pl)
@@ -284,7 +284,7 @@ static void wep19_r2_set(cPlayer* pl)
 
 static void wep19_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWepArc;
+    PlArc* arc = (PlArc*) pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x11), PL_ARC_PTR(arc, 0x14), PL_ARC_PTR(arc, 0x17), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -334,10 +334,10 @@ static void wep19_r3_set20(cPlayer* pl)
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
@@ -348,10 +348,10 @@ static void wep19_r3_set30(cPlayer* pl)
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
@@ -378,22 +378,22 @@ static void wep19_r2_fire(cPlayer* pl)
 static void wep19_r3_fire00(cPlayer* pl)
 {
     if (ItemMgr.bulletNum() > 1) {
-        PlArc* arc = (PlArc*) pG->pWepArc;
+        PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x12), PL_ARC_PTR(arc, 0x15), PL_ARC_PTR(arc, 0x18), 0, 3, 0, 4, 0);
         pl->x3F0 = 0;
     } else {
-        PlArc* arc = (PlArc*) pG->pWepArc;
+        PlArc* arc = (PlArc*) pG->pWep;
 
         mot3.set(pl, PL_ARC_PTR(arc, 0x13), PL_ARC_PTR(arc, 0x16), PL_ARC_PTR(arc, 0x19), 0, 3, 0, 4, 0);
         pl->x3F0 = 1;
     }
     mot3.move(m3r[0]);
     MotionMoveI(pl, 0);
-    SndCall(1, 1, &pl->pParts->worldPos, 0, 0, 0);
+    SndCall(1, 1, &pl->pParts->world, 0, 0, 0);
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(pl->x400, 0.4f);
+    pl->Waist->set(pl->x400, 0.4f);
     pl->r_no_3 = 1;
 }
 
@@ -402,18 +402,18 @@ static void wep19_r3_fire10(cPlayer* pl)
     const f32 throwFrame = 5.0f;
 
     pl->motionMove();
-    if (MotionCheckCrossFrame(&pl->mot, throwFrame)) {
+    if (MotionCheckCrossFrame(&pl->Motion, throwFrame)) {
         itemThrow(pl);
         if (ItemMgr.bulletNum()) {
-            pl->pWep->pObj2->setDisp(1, 0);
+            pl->Wep->pObj2->setDisp(1, 0);
         } else {
-            pl->pWep->pObj2->setDisp(0, 0);
+            pl->Wep->pObj2->setDisp(0, 0);
         }
     }
     if (pl->x3F0 == 0) {
         if (pl->frame > 24.7f && pl->frame < 25.3f) {
             readyWeapon(pl);
-            SndCall(1, 0, &pl->pParts->worldPos, 0, 0, 0);
+            SndCall(1, 0, &pl->pParts->world, 0, 0, 0);
         }
         if (pl->frame >= 30.0f) {
             pl->r_no_0 = 0;
@@ -442,7 +442,7 @@ static void wep19_r3_fire10(cPlayer* pl)
 static void wepDown(cPlayer* pl)
 {
     if (dmMotCk()) {
-        MotionSetCore(pl, &pl->mot, WEP_ARC_PTR(0x10), 0, 3, 5, 0);
+        MotionSetCore(pl, &pl->Motion, WEP_ARC_PTR(0x10), 0, 3, 5, 0);
         pl->r_no_0 = 0;
         pl->r_no_1 = 0;
         pl->r_no_2 = 2;
@@ -456,7 +456,7 @@ static void wepDown(cPlayer* pl)
         pl->x4FC = 0;
     }
     pl->motionMove();
-    FSet(pl->rot.y, pl->rot.y - pl->pWaist->set(0.0f, 0.4f));
+    FSet(pl->ang.y, pl->ang.y - pl->Waist->set(0.0f, 0.4f));
 }
 
 static void wep19_r2_next(cPlayer* pl)
@@ -471,12 +471,12 @@ static void wep19_r2_next(cPlayer* pl)
         pl->x3E4 = 0;
     case 1:
         if (GetDistance3(&pl->pos, &em->pos) > 200.0f) {
-            pl->rot.y += Muku(&pl->pos, &em->pos, pl->rot.y, PI / 10.0f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &em->pos, pl->ang.y, PI / 10.0f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         pl->x400 = 0.0f;
-        pl->pWaist->set(0.0f, 0.4f);
-        pl->pBody->waistMove();
+        pl->Waist->set(0.0f, 0.4f);
+        pl->Body->waistMove();
         pl->motionMove();
         n = pl->x3E0++;
         if (n > 9) {
@@ -488,7 +488,7 @@ static void wep19_r2_next(cPlayer* pl)
         break;
     }
     if (Key.trg & 0x20) {
-        if (pl->pWep->lockNext()) {
+        if (pl->Wep->lockNext()) {
             pl->r_no_0 = 0;
             pl->r_no_1 = 6;
             pl->r_no_2 = 5;
@@ -519,9 +519,9 @@ static void wep19_r2_next(cPlayer* pl)
 // Shows the grenade in the hand again after a throw (the next one, while any is left).
 void readyWeapon(cPlayer* pl)
 {
-    pl->pWep->pObj2->setDisp(1, 1);
+    pl->Wep->pObj2->setDisp(1, 1);
     if (!(pG->flags_68 & 0x00400000) && ItemMgr.bulletNum() == 1) {
-        pl->pWep->pObj->setDisp(0, 0);
+        pl->Wep->m_pWep->setDisp(0, 0);
     }
 }
 
@@ -532,7 +532,7 @@ void itemThrow(cPlayer* pl)
     cObj* obj;
     int id;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
     case 0x1E:
     case 0x29:
@@ -557,7 +557,7 @@ void itemThrow(cPlayer* pl)
         pLog->err(0, 0, "itemThrow() grenade work alloc failed.");
         return;
     }
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
         obj->type = 0;
         break;
@@ -577,7 +577,7 @@ void itemThrow(cPlayer* pl)
         obj->type = 5;
         break;
     }
-    if (((cSubWep*) obj)->init(&pl->rot, m3r[0]) == 0) {
+    if (((cSubWep*) obj)->init(&pl->ang, m3r[0]) == 0) {
         pLog->err(0, 0, "itemThrow() init failed.");
     }
     ItemMgr.trigger();

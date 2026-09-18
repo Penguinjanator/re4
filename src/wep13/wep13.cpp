@@ -18,7 +18,7 @@ void Wep13_init(cModel* m)
         pLog->err(0, 0, "Wep13_init() cObjWep CREATE FAILED");
     } else {
         obj->init(pl);
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x6), 0x47, 1);
         PlWepMot[0] = WEP_ARC_PTR(0xF);

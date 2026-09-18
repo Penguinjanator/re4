@@ -279,7 +279,7 @@ void SetFree(int no, u32 v)
     if (no > 0x3F) {
         return;
     }
-    tbl = pG->sce_free;
+    tbl = pG->save_free_work;
     tbl[no] = v;
 }
 
@@ -288,7 +288,7 @@ u32 GetFree(int no)
     u32* tbl;
 
     if (no <= 0x3F) {
-        tbl = pG->sce_free;
+        tbl = pG->save_free_work;
         return tbl[no];
     }
     return 0;
@@ -321,7 +321,7 @@ void SceMesSet(int no, u32 flags, int sel, int x, int y)
         attr |= 0x2000000;
     }
     cMes.MesSet(no, x, y, attr, 0, 0, 4);
-    cMes.mes[0].cursor = sel - 1;
+    cMes.mes[0].m_cur = sel - 1;
     Cckpt.lifeMeterDisp(0);
     if (!(flags & 0x10)) {
         SceMesWait();
@@ -336,7 +336,7 @@ void SceMesCamSndSet(int no, int cut, int se)
     if (se != -1) {
         SndCall(6, se, 0, 0, 0, 0);
     }
-    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 void SceUpCut(int a, int b, int c, int flags)
@@ -367,10 +367,10 @@ int SceMesGetSelection()
 {
     int r;
 
-    if ((r = cMes.getWork()->result) == 0) {
+    if ((r = cMes.getWork()->m_sel) == 0) {
         do {
             SceSleep(1);
-        } while ((r = cMes.getWork()->result) == 0);
+        } while ((r = cMes.getWork()->m_sel) == 0);
     }
     return r;
 }
@@ -747,7 +747,7 @@ void SceChapterEnd()
     Dvd.FileExistCheck(chap_data_name, &len);
     len = len + 0xC;
     len = len + MARGIN;
-    swap.SwapOut((u32) pG->pRoomArc, len, 0);
+    swap.SwapOut((u32) pG->pRoom, len, 0);
     ce = (ChapterEnd*) __builtin_new(sizeof(ChapterEnd));
 #line 994 "D:/Bio4/Prog/sce_com.cpp"
     req = DVD_READ_N(chap_data_name, 0, 0, 0, 0, 5);
@@ -757,7 +757,7 @@ void SceChapterEnd()
     FadeKillAll();
     FadeSetW(0x80000000, 10, 0, 0);
     SceSleep(0xF);
-    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     Vec plPos;
     Vec plRot;
     // The two zeros are assigned after the FadeSetW so its `col.end = 0` keeps its own zero pseudo (the
@@ -767,14 +767,14 @@ void SceChapterEnd()
     x4F9E = 0;
     if (SceSys.x78 >= 0) {
         plPos = pPL->pos;
-        plRot = pPL->rot;
+        plRot = pPL->ang;
         room = pG->room_id;
         x4F9E = pG->x4F9E;
         if (SceAtPtr(SceSys.x78)->x35 == 1) {
             pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
             pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
             pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
-            FSet(pPL->rot.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
+            FSet(pPL->ang.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
             U8Set(pG->Part_old, pG->x4F9E);
             U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
@@ -786,10 +786,10 @@ void SceChapterEnd()
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
     }
-    U16Zero(pG->x8338);
-    U32Set(pG->em_die_cnt, 0);
-    U32Set(pG->shotHit, 0);
-    U32Set(pG->shotTotal, 0);
+    U16Zero(pG->c_continue_cnt);
+    U32Set(pG->c_kill_cnt, 0);
+    U32Set(pG->c_hit_cnt, 0);
+    U32Set(pG->c_shot_cnt, 0);
     GameSaveSave(&GameSave, pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
@@ -911,7 +911,7 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             }
             for (int i = 0; i < 2; i++) {
                 if (o1) {
-                    o1->pParts->rot.z += -0.034906585f;
+                    o1->pParts->ang.z += -0.034906585f;
                 }
                 SceSleep(1);
             }
@@ -932,100 +932,100 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             switch (type) {
             case 0:
                 if (o1) {
-                    o1->rot.y += (-1.9198622f / 30.0f);
+                    o1->ang.y += (-1.9198622f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += (1.9198622f / 30.0f);
+                    o2->ang.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 0x17:
                 if (o1) {
-                    o1->rot.y += (-2.7925267f / 30.0f);
+                    o1->ang.y += (-2.7925267f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += (2.7925267f / 30.0f);
+                    o2->ang.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 1:
             case 0x13:
                 if (o1) {
-                    o1->rot.y += (-1.9198622f / 30.0f);
+                    o1->ang.y += (-1.9198622f / 30.0f);
                 }
                 break;
             case 2:
             case 0x14:
                 if (o1) {
-                    o1->rot.y += (1.9198622f / 30.0f);
+                    o1->ang.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 0x18:
                 if (o1) {
-                    o1->rot.y += (-2.7925267f / 30.0f);
+                    o1->ang.y += (-2.7925267f / 30.0f);
                 }
                 break;
             case 0x19:
                 if (o1) {
-                    o1->rot.y += (2.7925267f / 30.0f);
+                    o1->ang.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 3:
                 if (o1) {
-                    o1->rot.x += (1.7f / 30.0f);
+                    o1->ang.x += (1.7f / 30.0f);
                 }
                 break;
             case 4:
                 if (o1) {
-                    o1->rot.x += (-1.7f / 30.0f);
+                    o1->ang.x += (-1.7f / 30.0f);
                 }
                 break;
             case 5:
                 if (o1) {
-                    o1->rot.z += (1.7f / 30.0f);
+                    o1->ang.z += (1.7f / 30.0f);
                 }
                 break;
             case 6:
                 if (o1) {
-                    o1->rot.z += (-1.7f / 30.0f);
+                    o1->ang.z += (-1.7f / 30.0f);
                 }
                 break;
             case 7:
                 if (o1) {
-                    o1->pParts->rot.x += (1.7f / 30.0f);
+                    o1->pParts->ang.x += (1.7f / 30.0f);
                 }
                 break;
             case 8:
                 if (o1) {
-                    o1->pParts->rot.x += (-1.7f / 30.0f);
+                    o1->pParts->ang.x += (-1.7f / 30.0f);
                 }
                 break;
             case 9:
                 if (o1) {
-                    o1->pParts->rot.z += (1.7f / 30.0f);
+                    o1->pParts->ang.z += (1.7f / 30.0f);
                 }
                 break;
             case 0xA:
                 if (o1) {
-                    o1->pParts->rot.z += (-1.7f / 30.0f);
+                    o1->pParts->ang.z += (-1.7f / 30.0f);
                 }
                 break;
             case 0xB:
                 if (o1) {
-                    o1->rot.x += (1.5707964f / 30.0f);
+                    o1->ang.x += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xC:
                 if (o1) {
-                    o1->rot.x += (-1.5707964f / 30.0f);
+                    o1->ang.x += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xD:
                 if (o1) {
-                    o1->rot.z += (1.5707964f / 30.0f);
+                    o1->ang.z += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xE:
                 if (o1) {
-                    o1->rot.z += (-1.5707964f / 30.0f);
+                    o1->ang.z += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xF:
@@ -1064,7 +1064,7 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
                 dy -= 10.0f;
                 if (o1) {
                     o1->pos.y += dy;
-                    o1->pParts->rot.z += -0.017453292f;
+                    o1->pParts->ang.z += -0.017453292f;
                 }
                 break;
             case 0x16:
@@ -1080,100 +1080,100 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
         switch (type) {
         case 0:
             if (o1) {
-                o1->rot.y += -1.9198622f;
+                o1->ang.y += -1.9198622f;
             }
             if (o2) {
-                o2->rot.y += 1.9198622f;
+                o2->ang.y += 1.9198622f;
             }
             break;
         case 0x17:
             if (o1) {
-                o1->rot.y += -2.7925267f;
+                o1->ang.y += -2.7925267f;
             }
             if (o2) {
-                o2->rot.y += 2.7925267f;
+                o2->ang.y += 2.7925267f;
             }
             break;
         case 1:
         case 0x13:
             if (o1) {
-                o1->rot.y += -1.9198622f;
+                o1->ang.y += -1.9198622f;
             }
             break;
         case 2:
         case 0x14:
             if (o1) {
-                o1->rot.y += 1.9198622f;
+                o1->ang.y += 1.9198622f;
             }
             break;
         case 0x18:
             if (o1) {
-                o1->rot.y += -2.7925267f;
+                o1->ang.y += -2.7925267f;
             }
             break;
         case 0x19:
             if (o1) {
-                o1->rot.y += 2.7925267f;
+                o1->ang.y += 2.7925267f;
             }
             break;
         case 3:
             if (o1) {
-                o1->rot.x += 1.7f;
+                o1->ang.x += 1.7f;
             }
             break;
         case 4:
             if (o1) {
-                o1->rot.x += -1.7f;
+                o1->ang.x += -1.7f;
             }
             break;
         case 5:
             if (o1) {
-                o1->rot.z += 1.7f;
+                o1->ang.z += 1.7f;
             }
             break;
         case 6:
             if (o1) {
-                o1->rot.z += -1.7f;
+                o1->ang.z += -1.7f;
             }
             break;
         case 7:
             if (o1) {
-                o1->pParts->rot.x += 1.7f;
+                o1->pParts->ang.x += 1.7f;
             }
             break;
         case 8:
             if (o1) {
-                o1->pParts->rot.x += -1.7f;
+                o1->pParts->ang.x += -1.7f;
             }
             break;
         case 9:
             if (o1) {
-                o1->pParts->rot.z += 1.7f;
+                o1->pParts->ang.z += 1.7f;
             }
             break;
         case 0xA:
             if (o1) {
-                o1->pParts->rot.z += -1.7f;
+                o1->pParts->ang.z += -1.7f;
             }
             break;
         case 0xB:
             if (o1) {
-                o1->rot.x += 1.5707964f;
+                o1->ang.x += 1.5707964f;
             }
             break;
         case 0xC:
             if (o1) {
-                o1->rot.x += -1.5707964f;
+                o1->ang.x += -1.5707964f;
             }
             break;
         case 0xD:
             if (o1) {
-                o1->rot.z += 1.5707964f;
+                o1->ang.z += 1.5707964f;
             }
             break;
         case 0xE:
             if (o1) {
-                o1->rot.z += -1.5707964f;
+                o1->ang.z += -1.5707964f;
             }
             break;
         case 0xF:

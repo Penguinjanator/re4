@@ -254,17 +254,17 @@ void EspRoomInit()
     g_pEspSys = p;
     memclr_asm(p, sizeof(cEspSystem));
     sys = g_pEspSys;
-    sys->areaState = 0;
+    sys->RstAreaState = 0;
     EffSetFinalCol(0xFF, 0xFF, 0xFF, 0xFF);
-    g_pEspSys->pDmy = &g_DmyEsp;
+    g_pEspSys->pDmyEsp = &g_DmyEsp;
     pEffParentWorld = &g_EffParentWorld;
     PSMTXIdentity(g_EffParentWorld.mat);
-    sys->sstDispFlag = 0xFFFFFFFF;
-    sys->coreKind = 0x45;
+    sys->SstSetFlag = 0xFFFFFFFF;
+    sys->CoreKindTop = 0x45;
     sys->pEspBuf = NULL;
-    tw = sys->texWk;
+    tw = sys->Esp_tex_tbl;
     for (i = 0; i < 0x100; i++) {
-        tw->owner = 0xD2;
+        tw->Owner = 0xD2;
         tw++;
     }
     ew = sys->efmWk;
@@ -439,9 +439,9 @@ int EspDataRelease(u32 owner, int flag, int warn)
 
 EspTexWk* EspGetTexWk(int id, int quiet)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         if (quiet == 0) {
             pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         }
@@ -452,9 +452,9 @@ EspTexWk* EspGetTexWk(int id, int quiet)
 
 void EspTexSet(int id, int ptn)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         pLog->err(0, 0, "ESP : TexId[%x] no data", id);
         return;
     }
@@ -467,9 +467,9 @@ void EspTexSet(int id, int ptn)
 
 GXTexObj* EspGetTexObj(int id, int ptn)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
@@ -478,9 +478,9 @@ GXTexObj* EspGetTexObj(int id, int ptn)
 
 GXTlutObj* EspGetTlutObj(int id)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         pLog->err(0, 0, "ESP : TEX_ID[%x] no data", id);
         return NULL;
     }
@@ -492,9 +492,9 @@ GXTlutObj* EspGetTlutObj(int id)
 
 int EspGetTplAddr(int id, void** out)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         return 0;
     }
     *out = w->pTpl;
@@ -503,10 +503,10 @@ int EspGetTplAddr(int id, void** out)
 
 int EspGetTexOwner(int id, u32* out)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    *out = w->owner;
-    if (w->owner == 0xD2) {
+    *out = w->Owner;
+    if (w->Owner == 0xD2) {
         return 0;
     }
     return 1;
@@ -514,9 +514,9 @@ int EspGetTexOwner(int id, u32* out)
 
 int EspGetAnmAddr(int id, EspAnmData** out)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         return 0;
     }
     *out = w->pAnm;
@@ -525,9 +525,9 @@ int EspGetAnmAddr(int id, EspAnmData** out)
 
 int EspChkTexId(int id)
 {
-    EspTexWk* w = &g_pEspSys->texWk[id];
+    EspTexWk* w = &g_pEspSys->Esp_tex_tbl[id];
 
-    if (w->owner == 0xD2) {
+    if (w->Owner == 0xD2) {
         return 0;
     }
     return 1;
@@ -559,13 +559,13 @@ static void EspCalcTplAddr(TEXPalette* tpl)
 int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
 {
     cEspSystem* sys = g_pEspSys;
-    EspTexWk* w = &sys->texWk[id];
+    EspTexWk* w = &sys->Esp_tex_tbl[id];
     TEXDescriptor* desc;
     TEXHeader* hdr;
     GXTexObj* obj;
     u32 i;
 
-    if (w->owner != 0xD2) {
+    if (w->Owner != 0xD2) {
         return 0;
     }
     if (anm->nPtn != tpl->numDescriptors) {
@@ -574,17 +574,17 @@ int espTexRegist(TEXPalette* tpl, EspAnmData* anm, u8 id, u32 owner)
     }
     EspCalcTplAddr(tpl);
     desc = TEXGet(tpl, 0);
-    w->nTex = anm->nPtn;
-    w->pTexObj = EspPullTexObj(w->nTex);
+    w->nTexObj = anm->nPtn;
+    w->pTexObj = EspPullTexObj(w->nTexObj);
     if (w->pTexObj == NULL) {
         pLog->err(0, 0, "ESP : ID[%02x] PullTexObj() work full!!", id);
         return 0;
     }
     w->texHdr = desc->textureHeader;
     w->pAnm = anm;
-    w->owner = owner;
+    w->Owner = owner;
     w->pTpl = tpl;
-    for (i = 0; i < w->nTex; i++) {
+    for (i = 0; i < w->nTexObj; i++) {
         obj = &w->pTexObj[i];
         desc = TEXGet(tpl, i);
         hdr = desc->textureHeader;
@@ -772,17 +772,17 @@ int efmRegist(void* model, void* tpl, void* mot, void* x, u8 id, u32 owner)
 int espTexRelease(u32 owner)
 {
     cEspSystem* sys = g_pEspSys;
-    EspTexWk* w = sys->texWk;
+    EspTexWk* w = sys->Esp_tex_tbl;
     u32 i;
     u32 j;
     u32 start;
 
     for (i = 0; i < 0x100; i++, w++) {
-        if (w->owner == owner) {
+        if (w->Owner == owner) {
             j = w->pTexObj - sys->texObj;
             start = j;
-            w->owner = 0xD2;
-            for (; j < start + w->nTex; j++) {
+            w->Owner = 0xD2;
+            for (; j < start + w->nTexObj; j++) {
                 sys->SetTexObjFlag(j, 0);
             }
         }
@@ -894,13 +894,13 @@ int EspGetEfmMotAddr(int id, u32 no, void** out)
 u8 EspPullCoreKind()
 {
     cEspSystem* sys = g_pEspSys;
-    u8 kind = sys->coreKind;
+    u8 kind = sys->CoreKindTop;
 
     if (kind == 0xFF) {
         pLog->err(0, 0, "EspPullCoreKind() :  STACK OVER FLOW.");
         return 0;
     }
-    sys->coreKind++;
+    sys->CoreKindTop++;
     return kind;
 }
 
@@ -965,21 +965,21 @@ void EffGetFinalCol(GXColor* col)
 {
     cEspSystem* sys = g_pEspSys;
 
-    col->r = sys->finalCol.r;
-    col->g = sys->finalCol.g;
-    col->b = sys->finalCol.b;
-    col->a = sys->finalCol.a;
+    col->r = sys->Final_col.r;
+    col->g = sys->Final_col.g;
+    col->b = sys->Final_col.b;
+    col->a = sys->Final_col.a;
 }
 
 void EffSetFinalCol(u8 r, u8 g, u8 b, u8 a)
 {
     cEspSystem* sys = g_pEspSys;
 
-    sys->finalCol.r = r;
-    sys->finalCol.g = g;
-    sys->finalCol.b = b;
-    sys->finalCol.a = a;
-    if (*(u32*) &sys->finalCol == 0xFFFFFFFF) {
+    sys->Final_col.r = r;
+    sys->Final_col.g = g;
+    sys->Final_col.b = b;
+    sys->Final_col.a = a;
+    if (*(u32*) &sys->Final_col == 0xFFFFFFFF) {
         sys->finalColSet = 1;
     } else {
         sys->finalColSet = 0;
@@ -988,7 +988,7 @@ void EffSetFinalCol(u8 r, u8 g, u8 b, u8 a)
 
 int GetAreaState(int no)
 {
-    if (g_pEspSys->areaState & (1 << no)) {
+    if (g_pEspSys->RstAreaState & (1 << no)) {
         return 1;
     }
     return 0;
@@ -1000,9 +1000,9 @@ void SetAreaState(int no, int on)
     cEspSystem* sys = g_pEspSys;
 
     if (on == 1) {
-        sys->areaState |= bit;
+        sys->RstAreaState |= bit;
     } else {
-        sys->areaState &= ~bit;
+        sys->RstAreaState &= ~bit;
     }
 }
 
@@ -1029,17 +1029,17 @@ void EffSetAreaState(int no, int on)
 
 void EffSetToolState(int state)
 {
-    g_pEspSys->toolState |= state;
+    g_pEspSys->ToolState |= state;
 }
 
 u8 EffGetToolState()
 {
-    return g_pEspSys->toolState;
+    return g_pEspSys->ToolState;
 }
 
 void EffClearToolState()
 {
-    g_pEspSys->toolState = 0;
+    g_pEspSys->ToolState = 0;
 }
 
 extern "C" void EffSetToolStateCallBack(int no, void (*on)(), void (*off)())
@@ -1065,7 +1065,7 @@ void EffCallToolStateCallBack()
 
 void RoomEfmRegist(cModel* m, u8 id)
 {
-    efmRegist(m->pInfo->pData, m->pInfo->pTpl, NULL, NULL, id, 1);
+    efmRegist(m->pModelInfo->pData, m->pModelInfo->tpl_addr, NULL, NULL, id, 1);
 }
 
 void RoomEfmRegist(void* model, void* tpl, u8 id)

@@ -7,27 +7,27 @@
 
 // Work of the mine enemy (game/emmine.cpp), overlaid on cEm from 0x3E0.
 struct EmMineWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int timer;            // 0x004 (0x3E4)  frames until the next beep (R1_Set / R1_Parent), bomb wait
-    int count;            // 0x008 (0x3E8)  beep interval, shrinks from 17 to 5
-    cEm* pParent;         // 0x00C (0x3EC)  enemy the mine sticks to (setParent)
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;            // 0x004 (0x3E4)  frames until the next beep (R1_Set / R1_Parent), bomb wait
+    int Timer2;            // 0x008 (0x3E8)  beep interval, shrinks from 17 to 5
+    cEm* pEm_oya;         // 0x00C (0x3EC)  enemy the mine sticks to (setParent)
     int x10;              // 0x010 (0x3F0)
-    cEm* pTarget;         // 0x014 (0x3F4)  homing target (emMineSearchEm)
-    int partsNo;          // 0x018 (0x3F8)  parts of pParent the mine sticks to
-    int life;             // 0x01C (0x3FC)  frames until the mine explodes / the arrow is lost
-    int searchWait;       // 0x020 (0x400)  frames between homing target searches
-    Vec spd;              // 0x024 (0x404)  flight speed
+    cEm* pEm_homing;         // 0x014 (0x3F4)  homing target (emMineSearchEm)
+    int oya_parts;          // 0x018 (0x3F8)  parts of pParent the mine sticks to
+    int Bomb_wait;             // 0x01C (0x3FC)  frames until the mine explodes / the arrow is lost
+    int Homing_wait;       // 0x020 (0x400)  frames between homing target searches
+    Vec Spd;              // 0x024 (0x404)  flight speed
     Vec pts[3];           // 0x030 (0x410)  fall: speeds of the three rope nodes
     f32 grav;             // 0x054 (0x434)  fall: gravity per frame (15)
-    Vec hitNrm;           // 0x058 (0x438)  normal of the surface the mine hit
-    u8 hitFlag;           // 0x064 (0x444)  1: stuck to the scenario (the bomb goes off 1000 along hitNrm)
-    u8 wepLv;             // 0x065 (0x445)  pG->wep_lv at creation (blast radius of BombWait2)
-    u8 waterSnd;          // 0x066 (0x446)  fall: water sound played
-    u8 effKind;           // 0x067 (0x447)  EstSet id / type of the explosion (from the AtEffInfo hit)
-    u8 effNo;             // 0x068 (0x448)
-    u8 snd0;              // 0x069 (0x449)  SndCall block / number of the explosion
-    u8 snd1;              // 0x06A (0x44A)
-    u8 espKind;           // 0x06B (0x44B)  EspPullCoreKind at creation (trail effect owner)
+    Vec Norm;           // 0x058 (0x438)  normal of the surface the mine hit
+    u8 Norm_ck;           // 0x064 (0x444)  1: stuck to the scenario (the bomb goes off 1000 along hitNrm)
+    u8 Lv;             // 0x065 (0x445)  pG->wep_lv at creation (blast radius of BombWait2)
+    u8 Water_ck;          // 0x066 (0x446)  fall: water sound played
+    u8 Bomb_eff;           // 0x067 (0x447)  EstSet id / type of the explosion (from the AtEffInfo hit)
+    u8 Bomb_est;             // 0x068 (0x448)
+    u8 Bomb_seid;              // 0x069 (0x449)  SndCall block / number of the explosion
+    u8 Bomb_seno;              // 0x06A (0x44A)
+    u8 EffKindId;           // 0x06B (0x44B)  EspPullCoreKind at creation (trail effect owner)
 };
 
 #define EMMINE_WK(em) ((EmMineWork*) &(em)->x3E0)

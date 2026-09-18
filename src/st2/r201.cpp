@@ -147,7 +147,7 @@ void R201Init()
 
         em.setEm(0x56, 2, 0, 1, 1);
         if (em.getPtr()) {
-            ((cEmGanado*) em.getPtr())->setEvtMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, ROOM_ARC_PTR(pG->pRoomArc, 0x21), 0);
+            ((cEmGanado*) em.getPtr())->setEvtMotion(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, ROOM_ARC_PTR(pG->pRoom, 0x21), 0);
         }
         SceAtDataSet_exec(0x10, 0x12, 0, (TaskFunc) r201_appearClawMan, 0, 1);
     } else {
@@ -195,7 +195,7 @@ void R201Init()
     if (!(pG->Item_find_flg & 0x10000)) {
         r201_work.p->evd = DC.setData(EvtMgr.NameChange("evd/r201s00.evd"));
         r201_work.p->evd->setCommand(2, 0, 0);
-        EmReadSearch(0x1B, 0, r201_work.p->evd->size);
+        EmReadSearch(0x1B, 0, r201_work.p->evd->m_size);
         SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r201_execEvent00, 0, 1);
     } else {
         EmReadSearch(0x1B, 0, 0);
@@ -214,7 +214,7 @@ void R201Init()
         rot.x = 0.0f;
         rot.y = 3.1415927f;
         rot.z = 0.0f;
-        r201_work.p->bell[0] = SetObjBell(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
+        r201_work.p->bell[0] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
     if (RsfCheck(G_ROOM_ID, 11) == 0) {
         pos.x = 26972.0f;
@@ -223,7 +223,7 @@ void R201Init()
         rot.x = 0.0f;
         rot.y = 0.0f;
         rot.z = 0.0f;
-        r201_work.p->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
+        r201_work.p->bell[1] = SetObjBell(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
     }
     SceExec(0x12, (TaskFunc) r201_checkBellBreak, 0, 0, 2, 0);
     SceSetItemEvent(0x26, 0x8F, 0xC, 0x10, (void (*)(int)) r201_openShelf, (void (*)()) r201_openedShelf, 0, 0);
@@ -250,17 +250,17 @@ void r201_openShelf_main(int no, int opened)
         OpenBoxMain(0x15, opened, 0x15, 0x63, -1, -1);
         obj = SmdGetObjPtr(0x63);
         if (obj) {
-            Vec* pa = &obj->rot;
+            Vec* pa = &obj->ang;
 
             obj->pos.x = 4569.0f;
             obj->pos.y = 8756.0f;
             obj->pos.z = -44044.0f;
-            obj->rot.x = 1.5707964f;
-            obj->rot.y = -0.39f;
-            obj->rot.z = 0.0f;
-            obj->pParts->rot.x = 0.0f;
-            obj->pParts->rot.y = 0.0f;
-            obj->pParts->rot.z = 0.0f;
+            obj->ang.x = 1.5707964f;
+            obj->ang.y = -0.39f;
+            obj->ang.z = 0.0f;
+            obj->pParts->ang.x = 0.0f;
+            obj->pParts->ang.y = 0.0f;
+            obj->pParts->ang.z = 0.0f;
             obj->setPos(&obj->pos);
             obj->setAng(pa);
         }
@@ -269,17 +269,17 @@ void r201_openShelf_main(int no, int opened)
         OpenBoxMain(0x16, opened, 0x15, 0x40, -1, -1);
         obj = SmdGetObjPtr(0x40);
         if (obj) {
-            Vec* pa = &obj->rot;
+            Vec* pa = &obj->ang;
 
             obj->pos.x = 24520.0f;
             obj->pos.y = 2000.0f;
             obj->pos.z = -22563.0f;
-            obj->rot.x = -1.5707964f;
-            obj->rot.y = -0.23f;
-            obj->rot.z = 0.0f;
-            obj->pParts->rot.x = 0.0f;
-            obj->pParts->rot.y = 0.0f;
-            obj->pParts->rot.z = 0.0f;
+            obj->ang.x = -1.5707964f;
+            obj->ang.y = -0.23f;
+            obj->ang.z = 0.0f;
+            obj->pParts->ang.x = 0.0f;
+            obj->pParts->ang.y = 0.0f;
+            obj->pParts->ang.z = 0.0f;
             obj->setPos(&obj->pos);
             obj->setAng(pa);
         }
@@ -505,12 +505,12 @@ void r201_initGemObj()
     r201_work.p->gem[0]->setNoSuspend(1);
     r201_work.p->gem[1]->setNoSuspend(1);
     r201_work.p->gem[2]->setNoSuspend(1);
-    r201_work.p->gem[0]->lightInfo.x50 &= ~0x20;
-    r201_work.p->gem[0]->lightInfo.x50 |= 0x10;
-    r201_work.p->gem[1]->lightInfo.x50 &= ~0x20;
-    r201_work.p->gem[1]->lightInfo.x50 |= 0x10;
-    r201_work.p->gem[2]->lightInfo.x50 &= ~0x20;
-    r201_work.p->gem[2]->lightInfo.x50 |= 0x10;
+    r201_work.p->gem[0]->LightInfo.x50 &= ~0x20;
+    r201_work.p->gem[0]->LightInfo.x50 |= 0x10;
+    r201_work.p->gem[1]->LightInfo.x50 &= ~0x20;
+    r201_work.p->gem[1]->LightInfo.x50 |= 0x10;
+    r201_work.p->gem[2]->LightInfo.x50 &= ~0x20;
+    r201_work.p->gem[2]->LightInfo.x50 |= 0x10;
     SceAtSetEnable(0x94, 0);
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);
@@ -636,13 +636,13 @@ int r201_checkAltarObj()
     }
     switch ((u32) n) {
     case 0:
-        SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     case 1:
-        SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     case 2:
-        SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         break;
     case 3:
         return 1;
@@ -1069,13 +1069,13 @@ static void r201_execEvent00()
         pG->System_flg |= 0x400;
         SceSleep(2);
         m = SearchEmModule(0x1B);
-        MemorySwap(m->pArc, (u32) r201_work.p->evd->addr, r201_work.p->evd->size);
+        MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
         EvtMgr.SetEvt(m->pArc, &key);
-        ((Event*) key)->status |= 0x800;
+        ((Event*) key)->StatusFlag |= 0x800;
         while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
             SceSleep(1);
         }
-        MemorySwap(m->pArc, (u32) r201_work.p->evd->addr, r201_work.p->evd->size);
+        MemorySwap(m->pArc, (u32) r201_work.p->evd->m_addr, r201_work.p->evd->m_size);
     }
     r201_work.p->evd->setCommand(4, 0, 0);
     SceEventEnd(0);

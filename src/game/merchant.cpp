@@ -1101,27 +1101,27 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
 
 void MerchantCharacter::setChar(MerchantInfo* info_, MerchantData* data_, PriceEntry* sell, PriceEntry* exer, LevelPrice* level)
 {
-    info = info_;
-    data = data_;
-    pSell = sell;
-    pExer = exer;
-    pLevel = level;
+    m_p_info = info_;
+    m_p_data = data_;
+    m_p_sell = sell;
+    m_p_exer = exer;
+    m_p_lvup = level;
 }
 
 Merchant::Merchant(MerchantCharacter* c)
 {
-    info = c->info;
-    pSell = c->pSell;
-    pExer = c->pExer;
-    pLevel = c->pLevel;
-    memclr_asm(&stock, sizeof(STOCK_INFO));
+    m_p_info = c->m_p_info;
+    m_p_sell = c->m_p_sell;
+    m_p_exer = c->m_p_exer;
+    m_p_lvup = c->m_p_lvup;
+    memclr_asm(&m_stock, sizeof(STOCK_INFO));
     memclr_asm(&level, sizeof(LEVEL_INFO));
-    load(c->data);
+    load(c->m_p_data);
 }
 
 void Merchant::save(MerchantData* p_data)
 {
-    p_data->stock = stock;
+    p_data->stock = m_stock;
     p_data->level = level;
     p_data->favor = favor;
     p_data->x301 = x311;
@@ -1135,7 +1135,7 @@ void Merchant::load(MerchantData* p_data)
         pLog->err(0, 0, "Merchant::load() Data is empty.");
         return;
     }
-    stock = p_data->stock;
+    m_stock = p_data->stock;
     level = p_data->level;
     favor = p_data->favor;
     x311 = p_data->x301;
@@ -1147,7 +1147,7 @@ StockEntry* Merchant::stockPtr(u16 id)
 {
     StockEntry* s;
 
-    for (s = stock.e;; s++) {
+    for (s = m_stock.e;; s++) {
         if (s->id == 0xFFFF) {
             return 0;
         }
@@ -1197,7 +1197,7 @@ int Merchant::stockNum(u16 id)
         if (ItemMgr.num(0xFE) != 0) {
             return 0;
         }
-        return pG->costume != 2 && pG->costume != 3;
+        return pG->pl_costume != 2 && pG->pl_costume != 3;
     case 0x7D:
         if (ItemMgr.num(0x7F) != 0 || ItemMgr.num(0x7E) != 0 || ItemMgr.num(0x7D) != 0) {
             return 0;
@@ -1234,7 +1234,7 @@ int Merchant::stockNew()
 {
     StockEntry* s;
 
-    for (s = stock.e; s->id != 0xFFFF; s++) {
+    for (s = m_stock.e; s->id != 0xFFFF; s++) {
         if (s->isNew) {
             return 1;
         }
@@ -1378,7 +1378,7 @@ int checkSellingItem(u16 id)
 
 int Merchant::makeSellingList()
 {
-    PriceEntry* p = pSell;
+    PriceEntry* p = m_p_sell;
     int n;
     int i;
 
@@ -1402,12 +1402,12 @@ u8 Merchant::sellingItemNum()
 
 PriceEntry* Merchant::sellingItemNo(int no)
 {
-    return &pSell[sellingList[no]];
+    return &m_p_sell[sellingList[no]];
 }
 
 PriceEntry* Merchant::sellingItemId(u16 id)
 {
-    PriceEntry* p = pSell;
+    PriceEntry* p = m_p_sell;
 
     if (p->id != 0xFFFF) {
         do {
@@ -1440,7 +1440,7 @@ int checkExerciseItem(u16 id)
 
 int Merchant::makeExerciseList()
 {
-    PriceEntry* p = pExer;
+    PriceEntry* p = m_p_exer;
     int n;
     int j;
     ItemInfo info;
@@ -1461,9 +1461,9 @@ int Merchant::makeExerciseList()
         itemInfo(p->id, &info);
         if (info.type == 1) {
             ItemMgr.ordering(p->id);
-            if (ItemMgr.nOrder > 0) {
-                for (j = 0; j < ItemMgr.nOrder; j++) {
-                    exerciseList[n] = ItemMgr.searchAt(ItemMgr.pOrder[j].item);
+            if (ItemMgr.m_order_tbl_num > 0) {
+                for (j = 0; j < ItemMgr.m_order_tbl_num; j++) {
+                    exerciseList[n] = ItemMgr.searchAt(ItemMgr.m_p_order_tbl[j].p_item);
                     n++;
                 }
             }
@@ -1492,7 +1492,7 @@ PriceEntry* Merchant::exerciseItemNo(int no)
 
 PriceEntry* Merchant::exerciseItemId(u16 id)
 {
-    PriceEntry* p = pExer;
+    PriceEntry* p = m_p_exer;
 
     if (p->id != 0xFFFF) {
         do {
@@ -1601,7 +1601,7 @@ int Merchant::buyup(ItemWork* item, int num, int* money)
     if (ii.type == 1 && num == 1) {
         stockAdd(WeaponId2BulletId(item->id, item->x8 >> 13), item->x8 & 0x1FFF);
     }
-    favor += info->buyFavor;
+    favor += m_p_info->buyFavor;
     favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
     return 1;
 }
@@ -1669,10 +1669,10 @@ int Merchant::sell(u16 id, int num, int* money)
             u16 bid = WeaponId2BulletId(id, 0);
             stockSub(bid, WeaponId2ChargeNum(id, 1));
         }
-        if (point >= info->sellBig) {
-            favor += info->sellFavorBig;
+        if (point >= m_p_info->threshold) {
+            favor += m_p_info->sellFavorBig;
         } else {
-            favor += info->sellFavor;
+            favor += m_p_info->sellFavor;
         }
         favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
         discount = 0;
@@ -1701,8 +1701,8 @@ int Merchant::levelupItemNum()
             continue;
         }
         ItemMgr.ordering(l->id);
-        if (ItemMgr.nOrder > 0) {
-            n += ItemMgr.nOrder;
+        if (ItemMgr.m_order_tbl_num > 0) {
+            n += ItemMgr.m_order_tbl_num;
         } else {
             n++;
         }
@@ -1723,8 +1723,8 @@ LevelEntry* Merchant::levelupItemNo(int no)
             continue;
         }
         ItemMgr.ordering(l->id);
-        if (ItemMgr.nOrder > 0) {
-            for (j = 0; j < ItemMgr.nOrder; j++) {
+        if (ItemMgr.m_order_tbl_num > 0) {
+            for (j = 0; j < ItemMgr.m_order_tbl_num; j++) {
                 if (cnt == no) {
                     return l;
                 }
@@ -1753,10 +1753,10 @@ ItemWork* Merchant::levelupItemPtr(int no)
             continue;
         }
         ItemMgr.ordering(l->id);
-        if (ItemMgr.nOrder > 0) {
-            for (j = 0; j < ItemMgr.nOrder; j++) {
+        if (ItemMgr.m_order_tbl_num > 0) {
+            for (j = 0; j < ItemMgr.m_order_tbl_num; j++) {
                 if (cnt == no) {
-                    return ItemMgr.pOrder[j].item;
+                    return ItemMgr.m_p_order_tbl[j].p_item;
                 }
                 cnt++;
             }
@@ -1773,7 +1773,7 @@ ItemWork* Merchant::levelupItemPtr(int no)
 
 LevelPrice* Merchant::levelupItemPrice(u16 id)
 {
-    LevelPrice* p = pLevel;
+    LevelPrice* p = m_p_lvup;
 
     if (p->id != 0xFFFF) {
         do {

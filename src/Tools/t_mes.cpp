@@ -14,12 +14,12 @@ extern "C" unsigned int strlen(const char* s);
 // simple vertical text menu: tbl[0] is the header, the list ends with "\\"
 class cIdToolMenu {
 public:
-    char** tbl;     // 0x00
-    int num;        // 0x04  entries (without the header)
-    int cursor;     // 0x08
-    int maxLen;     // 0x0C
-    s16 x;          // 0x10
-    s16 y;          // 0x12
+    char** m_Menu;     // 0x00
+    int m_maxMenu;        // 0x04  entries (without the header)
+    int m_menuNo;     // 0x08
+    int m_maxLen;     // 0x0C
+    s16 m_x;          // 0x10
+    s16 m_y;          // 0x12
     // 0x14 vptr
 
     cIdToolMenu(char** tbl, int x, int y);
@@ -30,21 +30,21 @@ public:
 
 class cMessageDebug {
 public:
-    u8 step;              // 0x00
-    u8 sub;               // 0x01
+    u8 r_no_0;              // 0x00
+    u8 r_no_1;               // 0x01
     u8 r_no_2;                // 0x02
     u8 r_no_3;                // 0x03
     u8* buf;              // 0x04
-    cIdToolMenu* pMenu;   // 0x08
+    cIdToolMenu* m_pMenu;   // 0x08
     int m_language;               // 0x0C
-    u32 attr;             // 0x10
-    s16 mesNo;            // 0x14
-    s16 mesMax;           // 0x16
-    s16 x;                // 0x18
-    s16 y;                // 0x1A
+    u32 m_type;             // 0x10
+    s16 m_mes;            // 0x14
+    s16 m_mesNum;           // 0x16
+    s16 m_x;                // 0x18
+    s16 m_y;                // 0x1A
     // 0x1C vptr
 
-    cMessageDebug() { step = sub = r_no_2 = r_no_3 = 0; }
+    cMessageDebug() { r_no_0 = r_no_1 = r_no_2 = r_no_3 = 0; }
     virtual ~cMessageDebug() {}
     void move();
     void init();
@@ -83,7 +83,7 @@ void cMessageDebug::move()
     int loop = 1;
 
     do {
-        switch (step) {
+        switch (r_no_0) {
         case 0:
             menu();
             break;
@@ -112,8 +112,8 @@ void cMessageDebug::move()
             loop = 0;
             break;
         }
-        if (pMenu) {
-            pMenu->ToolMenuLocate(Joy[0].ssx / 4, Joy[0].ssy / 4, 1);
+        if (m_pMenu) {
+            m_pMenu->ToolMenuLocate(Joy[0].substickX / 4, Joy[0].substickY / 4, 1);
         }
         TaskSleep(1);
     } while (loop);
@@ -122,12 +122,12 @@ void cMessageDebug::move()
 void cMessageDebug::init()
 {
     MesData.lang = 0;
-    attr = 1;
-    x = 30;
-    y = 360;
-    mesNo = 0;
-    mesMax = 0;
-    pMenu = 0;
+    m_type = 1;
+    m_x = 30;
+    m_y = 360;
+    m_mes = 0;
+    m_mesNum = 0;
+    m_pMenu = 0;
     buf = new u8[0x200000];
 }
 
@@ -135,45 +135,45 @@ void cMessageDebug::menu()
 {
     int ret;
 
-    switch (sub) {
+    switch (r_no_1) {
     case 0:
-        pMenu = new cIdToolMenu(menuTbl, 50, 120);
-        sub++;
+        m_pMenu = new cIdToolMenu(menuTbl, 50, 120);
+        r_no_1++;
         break;
     case 1:
-        ret = pMenu->ToolMenuMove(0);
+        ret = m_pMenu->ToolMenuMove(0);
         if (ret != -1) {
-            if (pMenu) {
-                delete pMenu;
-                pMenu = 0;
+            if (m_pMenu) {
+                delete m_pMenu;
+                m_pMenu = 0;
             }
             switch (ret) {
             case 0:
-                step = 7;
+                r_no_0 = 7;
                 break;
             case 1:
-                step = 1;
+                r_no_0 = 1;
                 break;
             case 2:
-                step = 3;
+                r_no_0 = 3;
                 break;
             case 3:
-                step = 2;
+                r_no_0 = 2;
                 break;
             case 4:
-                step = 4;
+                r_no_0 = 4;
                 break;
             case 5:
-                step = 5;
+                r_no_0 = 5;
                 break;
             case 6:
-                step = 6;
+                r_no_0 = 6;
                 break;
             case 7:
-                step = 7;
+                r_no_0 = 7;
                 break;
             }
-            sub = 0;
+            r_no_1 = 0;
         }
         break;
     }
@@ -189,28 +189,28 @@ void cMessageDebug::message()
         return;
     }
     if (Joy[0].trg & 0x100) {
-        pm->MesSet(mesNo, x, y, attr, 0, 0, 4);
+        pm->MesSet(m_mes, m_x, m_y, m_type, 0, 0, 4);
         for (i = 0; i < 3; i++) {
             cMes.getMes(0)->setJump(0xFFFF);
         }
     } else if (Joy[0].trg & 0x200) {
         pm->Delete(0);
-        step = 0;
+        r_no_0 = 0;
     } else if (Joy[0].rep & 0x80008) {
-        mesNo--;
-        if (mesNo < 0) {
-            mesNo = mesMax - 1;
-            if (mesNo < 0) {
-                mesNo = 0;
+        m_mes--;
+        if (m_mes < 0) {
+            m_mes = m_mesNum - 1;
+            if (m_mes < 0) {
+                m_mes = 0;
             }
         }
     } else if (Joy[0].rep & 0x40004) {
-        mesNo++;
-        if (mesNo >= mesMax) {
-            mesNo = 0;
+        m_mes++;
+        if (m_mes >= m_mesNum) {
+            m_mes = 0;
         }
     }
-    eprintf(50, 120, 0, 0, "MESSAGE: %d / %d", mesNo, mesMax);
+    eprintf(50, 120, 0, 0, "MESSAGE: %d / %d", m_mes, m_mesNum);
     eprintf(50, 136, 0, 0, "SELECT UP/DOWN");
 }
 
@@ -229,7 +229,7 @@ void cMessageDebug::color()
 
     eprintf(40, 140, colCur == 0 ? 4 : 0, 15, "MODE: %s", names[colIdx]);
     if (joy->trg & 0x200) {
-        step = 0;
+        r_no_0 = 0;
         return;
     }
     if (joy->trg & 0x80008) {
@@ -295,23 +295,23 @@ void cMessageDebug::locate()
 {
     JOY* joy = &Joy[0];
 
-    x += joy->sx / 4;
-    y -= joy->sy / 4;
+    m_x += joy->stickX / 4;
+    m_y -= joy->stickY / 4;
     if (joy->rep & 8) {
-        y--;
+        m_y--;
     } else if (joy->rep & 4) {
-        y++;
+        m_y++;
     } else if (joy->rep & 1) {
-        x--;
+        m_x--;
     } else if (joy->rep & 2) {
-        x++;
+        m_x++;
     } else if (joy->trg & 0x100) {
-        x = 30;
-        y = 360;
+        m_x = 30;
+        m_y = 360;
     } else if (joy->trg & 0x200) {
-        step = 0;
+        r_no_0 = 0;
     }
-    eprintf(x, y, 0, 0, "LOCATE: %d / %d", x, y);
+    eprintf(m_x, m_y, 0, 0, "LOCATE: %d / %d", m_x, m_y);
 }
 
 static char* typeTbl[] = {"-TYPE-", " CORE", " ROOM", " FREE", "\\"};
@@ -320,37 +320,37 @@ void cMessageDebug::type()
 {
     int ret;
 
-    switch (sub) {
+    switch (r_no_1) {
     case 0:
-        pMenu = new cIdToolMenu(typeTbl, 50, 120);
-        sub++;
+        m_pMenu = new cIdToolMenu(typeTbl, 50, 120);
+        r_no_1++;
         break;
     case 1:
-        ret = pMenu->ToolMenuMove(0);
+        ret = m_pMenu->ToolMenuMove(0);
         if (ret != -1) {
-            if (pMenu) {
-                delete pMenu;
-                pMenu = 0;
+            if (m_pMenu) {
+                delete m_pMenu;
+                m_pMenu = 0;
             }
             switch (ret) {
             case 0:
                 break;
             case 1:
-                attr = 1;
-                mesMax = MesData.getMesNum(0);
+                m_type = 1;
+                m_mesNum = MesData.getMesNum(0);
                 break;
             case 2:
-                attr = 2;
-                mesMax = MesData.getMesNum(1);
+                m_type = 2;
+                m_mesNum = MesData.getMesNum(1);
                 break;
             case 3:
-                attr = 4;
-                mesMax = MesData.getMesNum(2);
+                m_type = 4;
+                m_mesNum = MesData.getMesNum(2);
                 break;
             }
-            mesNo = 0;
-            step = 0;
-            sub = 0;
+            m_mes = 0;
+            r_no_0 = 0;
+            r_no_1 = 0;
         }
         break;
     }
@@ -363,17 +363,17 @@ void cMessageDebug::language()
 {
     int ret;
 
-    switch (sub) {
+    switch (r_no_1) {
     case 0:
-        pMenu = new cIdToolMenu(langTbl, 50, 120);
-        sub++;
+        m_pMenu = new cIdToolMenu(langTbl, 50, 120);
+        r_no_1++;
         break;
     case 1:
-        ret = pMenu->ToolMenuMove(0);
+        ret = m_pMenu->ToolMenuMove(0);
         if (ret != -1) {
-            if (pMenu) {
-                delete pMenu;
-                pMenu = 0;
+            if (m_pMenu) {
+                delete m_pMenu;
+                m_pMenu = 0;
             }
             switch (ret) {
             case 0:
@@ -382,8 +382,8 @@ void cMessageDebug::language()
                 MesData.lang = 1;
                 break;
             }
-            step = 0;
-            sub = 0;
+            r_no_0 = 0;
+            r_no_1 = 0;
         }
         break;
     }
@@ -391,36 +391,36 @@ void cMessageDebug::language()
 
 void cMessageDebug::data()
 {
-    step = 0;
+    r_no_0 = 0;
 }
 
 void cMessageDebug::quit()
 {
     delete buf;
-    step = 8;
+    r_no_0 = 8;
 }
 
 cIdToolMenu::cIdToolMenu(char** t, int px, int py)
 {
     int i;
 
-    tbl = t;
-    x = px;
-    y = py;
-    cursor = 0;
-    num = 0;
-    while (t[num][0] != '\\') {
-        num++;
+    m_Menu = t;
+    m_x = px;
+    m_y = py;
+    m_menuNo = 0;
+    m_maxMenu = 0;
+    while (t[m_maxMenu][0] != '\\') {
+        m_maxMenu++;
     }
-    if (num > 0) {
-        num--;
+    if (m_maxMenu > 0) {
+        m_maxMenu--;
     }
-    maxLen = 0;
-    for (i = 0; i < num; i++) {
-        int len = strlen(tbl[i]);
+    m_maxLen = 0;
+    for (i = 0; i < m_maxMenu; i++) {
+        int len = strlen(m_Menu[i]);
 
-        if (maxLen < len) {
-            maxLen = len;
+        if (m_maxLen < len) {
+            m_maxLen = len;
         }
     }
 }
@@ -430,36 +430,36 @@ int cIdToolMenu::ToolMenuMove(int flag)
     int ret = -1;
     int i;
 
-    eprintf(x, y, 4, 0, "%s", tbl[0]);
-    for (i = 1; i <= num; i++) {
+    eprintf(m_x, m_y, 4, 0, "%s", m_Menu[0]);
+    for (i = 1; i <= m_maxMenu; i++) {
         int col = 0;
 
-        if (cursor == i - 1) {
+        if (m_menuNo == i - 1) {
             col = 5;
         }
-        eprintf(x, i * 16 + y, col, 0, "%s", tbl[i]);
+        eprintf(m_x, i * 16 + m_y, col, 0, "%s", m_Menu[i]);
     }
     if (Joy[0].trg & 0x100) {
-        ret = cursor + 1;
+        ret = m_menuNo + 1;
     } else if (Joy[0].trg & 0x200) {
         if (flag) {
             ret = 0;
         } else {
-            if (cursor != num - 1) {
-                cursor = num - 1;
+            if (m_menuNo != m_maxMenu - 1) {
+                m_menuNo = m_maxMenu - 1;
             } else {
                 ret = 0;
             }
         }
     } else if (Joy[0].rep & 0x80008) {
-        cursor--;
-        if (cursor < 0) {
-            cursor = num - 1;
+        m_menuNo--;
+        if (m_menuNo < 0) {
+            m_menuNo = m_maxMenu - 1;
         }
     } else if (Joy[0].rep & 0x40004) {
-        cursor++;
-        if (cursor > num - 1) {
-            cursor = 0;
+        m_menuNo++;
+        if (m_menuNo > m_maxMenu - 1) {
+            m_menuNo = 0;
         }
     }
     return ret;
@@ -467,18 +467,18 @@ int cIdToolMenu::ToolMenuMove(int flag)
 
 void cIdToolMenu::ToolMenuLocate(int dx, int dy, int clamp)
 {
-    x += dx;
-    y -= dy;
+    m_x += dx;
+    m_y -= dy;
     if (clamp) {
-        if (x < 16) {
-            x = 16;
-        } else if (x > 496) {
-            x = 496;
+        if (m_x < 16) {
+            m_x = 16;
+        } else if (m_x > 496) {
+            m_x = 496;
         }
-        if (y < 0) {
-            y = 0;
-        } else if (y > 432) {
-            y = 432;
+        if (m_y < 0) {
+            m_y = 0;
+        } else if (m_y > 432) {
+            m_y = 432;
         }
     }
 }

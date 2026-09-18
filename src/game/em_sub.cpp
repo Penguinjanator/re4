@@ -356,7 +356,7 @@ void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int esp_core_flg, int f)
         pos.y = fRand1_1() * 50.0f + pos.y;
         pos.z = fRand1_1() * 50.0f + pos.z;
     }
-    EstSetB(0, -1, &pos, &em->rot, no, prm, esp_core_flg, f, (u32) em, 0);
+    EstSetB(0, -1, &pos, &em->ang, no, prm, esp_core_flg, f, (u32) em, 0);
 }
 
 // Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
@@ -374,7 +374,7 @@ void EmPlBloodSet(cEm* em, Vec* pos, int type, int eff_id, int est_id)
     f32 mag;
 
     parts = pl->getPartsPtr(0);
-    p = parts->worldPos;
+    p = parts->world;
     h = pos->y - p.y;
     if (h > hit->height * 0.5f) {
         h = hit->height * 0.5f;
@@ -1303,7 +1303,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -1387,7 +1387,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -1643,9 +1643,9 @@ int PlBombHitCk(Vec* pos, f32 r)
         return 0;
     }
     parts = pPL->getPartsPtr(0);
-    d2 = (pos->x - parts->worldPos.x) * (pos->x - parts->worldPos.x) +
-         (pos->y - parts->worldPos.y) * (pos->y - parts->worldPos.y) +
-         (pos->z - parts->worldPos.z) * (pos->z - parts->worldPos.z);
+    d2 = (pos->x - parts->world.x) * (pos->x - parts->world.x) +
+         (pos->y - parts->world.y) * (pos->y - parts->world.y) +
+         (pos->z - parts->world.z) * (pos->z - parts->world.z);
     if (d2 > 36000000.0f) {
         return 0;
     }
@@ -1661,7 +1661,7 @@ int PlBombHitCk(Vec* pos, f32 r)
         PlSetDamage(9, 0, 0);
         return 1;
     }
-    if (EatMgr.hitCheck(pos, &parts->worldPos, 0, 0, 0, 0x400000) != 0) {
+    if (EatMgr.hitCheck(pos, &parts->world, 0, 0, 0, 0x400000) != 0) {
         return 0;
     }
     LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
@@ -1747,7 +1747,7 @@ int GetWepTargetPos(Vec* pPos, Vec* pPos2, int plCheck, int wepNo, cEm** outEm, 
         case 0x4D:
             break;
         default:
-            PSMTXMultVec(m, &parts->worldPos, &d);
+            PSMTXMultVec(m, &parts->world, &d);
             if (d.z < -10000.0f) {
                 continue;
             }
@@ -2004,7 +2004,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         }
         ret = (s16) pG->pl_life;
     } else if (em->id <= 0xD) {
-        if ((s16) pG->sub_life <= 0) {
+        if ((s16) pG->ashley_life <= 0) {
             return 0;
         }
         rate = (f32) pG->x4F88 * 0.1f + 0.5f;
@@ -2016,25 +2016,25 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
                 GameAddPoint(2);
             }
         }
-        if ((s16) pG->sub_life < dmg) {
-            dmg = (s16) pG->sub_life;
+        if ((s16) pG->ashley_life < dmg) {
+            dmg = (s16) pG->ashley_life;
         }
-        HSet(pG->sub_life, pG->sub_life - dmg);
-        if ((s16) pG->sub_life <= 0) {
+        HSet(pG->ashley_life, pG->ashley_life - dmg);
+        if ((s16) pG->ashley_life <= 0) {
             if (flag & 1) {
-                HSet(pG->sub_life, 1);
+                HSet(pG->ashley_life, 1);
             }
-            if ((s16) pG->sub_life < 0) {
-                HSet(pG->sub_life, 0);
+            if ((s16) pG->ashley_life < 0) {
+                HSet(pG->ashley_life, 0);
             }
         }
         if (pG->flags_68 & 0x800000) {
-            HSet(pG->sub_life, pG->sub_life_max);
+            HSet(pG->ashley_life, pG->ashley_life_max);
         }
-        if ((pG->flags_6C & 0x400) && (s16) pG->sub_life <= 1) {
-            HSet(pG->sub_life, 2);
+        if ((pG->flags_6C & 0x400) && (s16) pG->ashley_life <= 1) {
+            HSet(pG->ashley_life, 2);
         }
-        ret = (s16) pG->sub_life;
+        ret = (s16) pG->ashley_life;
     } else {
         if (pG->flags_68 & 0x20000) {
             return em->hp;
@@ -2187,7 +2187,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
         return 0;
     }
     parts = pPL->getPartsPtr(0);
-    if (EatMgr.hitCheck(&parts->worldPos, pPos, 0, 0, 0, 0) != 0) {
+    if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
     part = emSphereAtCk(pPL, pPos, pPosOld, info->range, 0x18, info->range);
@@ -2204,7 +2204,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
     fwd.x = 0.0f;
     fwd.y = 0.0f;
     fwd.z = 1.0f;
-    RotVector(&fwd, &pPL->rot, &fwd);
+    RotVector(&fwd, &pPL->ang, &fwd);
     ret = PSVECDotProduct(&fwd, &d) >= 0.0f;
     dy = pPos->y - pPL->pos.y;
     if (dy < 800.0f) {
@@ -2264,7 +2264,7 @@ cEm* EmAtkLineHitCk(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm, u32* attr)
         PSMTXIdentity(m);
     }
     parts = pl->getPartsPtr(0);
-    PSMTXMultVec(m, &parts->worldPos, &d);
+    PSMTXMultVec(m, &parts->world, &d);
     if (d.z < -10000.0f) {
         return 0;
     }
@@ -2311,7 +2311,7 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
     if (!(sub->be_flag & 0x20)) {
         return 0;
     }
-    if ((s16) pG->sub_life <= 0) {
+    if ((s16) pG->ashley_life <= 0) {
         return 0;
     }
     if (EmIsDead(sub)) {
@@ -2328,7 +2328,7 @@ EmHitInfo* EmAtkLineHitCkSub(Vec* pPos, Vec* pPos2, Vec* hit, Vec* nrm)
         PSMTXIdentity(m);
     }
     parts = sub->getPartsPtr(0);
-    PSMTXMultVec(m, &parts->worldPos, &d);
+    PSMTXMultVec(m, &parts->world, &d);
     if (d.z < -10000.0f) {
         return 0;
     }
@@ -2364,7 +2364,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* pPos, Vec* pPos2)
     fwd.x = 0.0f;
     fwd.y = 0.0f;
     fwd.z = 1.0f;
-    RotVector(&fwd, &pPL->rot, &fwd);
+    RotVector(&fwd, &pPL->ang, &fwd);
     type = PSVECDotProduct(&fwd, &d) >= 0.0f;
     dy = pPos->y - pPL->pos.y;
     if (dy < 800.0f) {
@@ -2410,7 +2410,7 @@ EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* pPos, Vec* pPosOld)
         return 0;
     }
     parts = pSUB->getPartsPtr(0);
-    if (EatMgr.hitCheck(&parts->worldPos, pPos, 0, 0, 0, 0) != 0) {
+    if (EatMgr.hitCheck(&parts->world, pPos, 0, 0, 0, 0) != 0) {
         return 0;
     }
     part = emSphereAtCk(pSUB, pPos, pPosOld, info->range, 0x18, info->range);
@@ -2430,14 +2430,14 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     Vec d;
     f32 r;
 
-    r = em->rot.y;
+    r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
-    FSet(em->catchTurn, Muku2(em->rot.y, r, PI));
-    r = pPL->rot.y;
+    FSet(em->catchTurn, Muku2(em->ang.y, r, PI));
+    r = pPL->ang.y;
     r += Muku(&pPL->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    FSet(pPL->catchTurn, Muku2(pPL->rot.y, r, PI));
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->rot.y + pPL->catchTurn));
+    FSet(pPL->catchTurn, Muku2(pPL->ang.y, r, PI));
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->ang.y + pPL->catchTurn));
     TransMatrix(m, &pPL->pos);
     p.x = x;
     p.y = y;
@@ -2488,14 +2488,14 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     Vec d;
     f32 r;
 
-    r = em->rot.y;
+    r = em->ang.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &sub->pos, r, PI));
-    em->catchTurn = Muku2(em->rot.y, r, PI);
-    r = sub->rot.y;
+    em->catchTurn = Muku2(em->ang.y, r, PI);
+    r = sub->ang.y;
     r += Muku(&sub->pos, &em->pos, r, PI);
     r = LIMIT_ANGLE(r + ang);
-    sub->catchTurn = Muku2(sub->rot.y, r, PI);
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->rot.y + em->catchTurn));
+    sub->catchTurn = Muku2(sub->ang.y, r, PI);
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->ang.y + em->catchTurn));
     TransMatrix(m, &em->pos);
     p.x = x;
     p.y = y;
@@ -2553,17 +2553,17 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     d.y = 0.0f;
     PSVECAdd(&em->pos, &d, &em->pos);
     PSVECSubtract(&em->catchOfs, &d, &em->catchOfs);
-    tmp = em->rot.y;
+    tmp = em->ang.y;
     ry = tmp;
-    em->rot.y = ry + em->catchTurn;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    em->ang.y = ry + em->catchTurn;
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
     ret = MotionMove(em, 0);
     tmp = em->catchTurn * rate;
     ry += tmp;
     em->catchTurn -= tmp;
-    em->rot.y = ry;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
-    RotMatrix(em->mat, &em->rot);
+    em->ang.y = ry;
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->x3A8 = em->pos;
@@ -3107,36 +3107,36 @@ void EmSetDropItem(cEm* em)
     int id;
     int num;
 
-    if (em->itemNo == 0xFFFF) {
+    if (em->Item_id == 0xFFFF) {
         return;
     }
     if (em->be_flag & 0x10000) {
         return;
     }
     em->be_flag |= 0x10000;
-    if (em->itemNo != 0) {
+    if (em->Item_id != 0) {
         if (SceAtItemFlgCk(em->Item_flg, em->Auto_item_flg)) {
             return;
         }
         SceAtItemFlgOn(em->Item_flg, em->Auto_item_flg);
         rot.x = 0.0f;
-        rot.y = em->rot.y;
+        rot.y = em->ang.y;
         rot.z = 1.0f;
-        if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, &em->pos, &rot) != 1) {
+        if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, &em->pos, &rot) != 1) {
             return;
         }
-        if (em->itemNo != id) {
-            em->itemNo = id;
-            em->itemNum = num;
+        if (em->Item_id != id) {
+            em->Item_id = id;
+            em->Item_num = num;
         }
-        if (TrolleyItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        if (TrolleyItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
-        if (BullItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        if (BullItemSetCk(&em->pos, em->Item_id, em->Item_num)) {
             return;
         }
         SceAtCancelItemAt((int) em);
-        SceAtCreateItemAt(&em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1, 0, -1);
+        SceAtCreateItemAt(&em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1, 0, -1);
     } else {
         RandomItemSet(em);
     }
@@ -3148,23 +3148,23 @@ void EmReserveDropItem(cEm* em)
     int id;
     int num;
 
-    if (em->itemNo == 0xFFFF) {
+    if (em->Item_id == 0xFFFF) {
         return;
     }
     if (em->be_flag & 0x10000) {
         return;
     }
-    if (em->itemNo == 0) {
+    if (em->Item_id == 0) {
         return;
     }
-    if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
+    if (SceAtCheckSystemItemSet(em->Item_id, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
         return;
     }
-    if (em->itemNo != id) {
-        em->itemNo = id;
-        em->itemNum = num;
+    if (em->Item_id != id) {
+        em->Item_id = id;
+        em->Item_num = num;
     }
-    SceAtReserveItemAt((int) em, &em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1);
+    SceAtReserveItemAt((int) em, &em->pos, em->Item_id, em->Item_num, (s8) em->itemFlag, -1);
 }
 
 // Random drop for the enemy type (RandomItemCk) placed at the enemy.
@@ -3381,7 +3381,7 @@ int CheckInWater(cModel* m, int parts)
         return 0;
     }
     if (parts != 0) {
-        if (m->getPartsPtr(parts)->worldPos.y + 300.0f < h) {
+        if (m->getPartsPtr(parts)->world.y + 300.0f < h) {
             return 0;
         }
     }
@@ -3419,7 +3419,7 @@ void GetPlPos(Vec* out, cEm* em, f32 t)
         em = pPL;
     }
     parts = em->getPartsPtr(0);
-    PSVECSubtract(&parts->worldPos, &parts->world_old2, &d);
+    PSVECSubtract(&parts->world, &parts->world_old2, &d);
     PSVECScale(&d, &d, t);
     PSVECAdd(&em->pos, &d, out);
 }
@@ -3491,7 +3491,7 @@ int VehicleAdjust(Vec* pos)
     cObj* obj;
 
     if (pG->room_id == 0x21B) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
             if (obj->id != 0x3B) {
                 continue;
             }
@@ -3502,7 +3502,7 @@ int VehicleAdjust(Vec* pos)
         }
     }
     if (pG->room_id == 0x30F) {
-        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->pNext) {
             if (obj->id != 0x3E) {
                 continue;
             }

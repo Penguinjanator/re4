@@ -39,16 +39,16 @@ struct EspPtr {
     cEsp* p;
 };
 
-#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->m_Parts_no >= -8 && (s8) (esp)->m_Parts_no <= -3)
 
 // Texture coordinate corners for the sprite orientation (flags bit1: flip s, bit2: flip t;
 // screen sprites are drawn upside down). One combined condition and corners built from a `zero`
 // variable: each leaf is a jump target where cse knows neither operand of `zero + z`, which
 // keeps the adds (nested ifs with literals fold 0 + z). The flip-s leaves add first, copy after.
 #define ESP_FLIP_T(esp)                                                                           \
-    ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
+    ((ESP_PARTS_SCREEN(esp) && !((esp)->m_Tool_flg & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->m_Tool_flg & 4)))
 #define ESP_TEXCOORD_SET()                                                                        \
-    if (esp->flags & 2) {                                                                         \
+    if (esp->m_Tool_flg & 2) {                                                                         \
         if (ESP_FLIP_T(esp)) {                                                                    \
             s0 = zero + z;                                                                        \
             s1 = zero;                                                                            \
@@ -92,7 +92,7 @@ void EspCommonTrans(cEsp* esp)
         EspCommonTransShimmer(esp, esp->m_Shimmer_pow, esp->m_Shimmer_type);
         return;
     }
-    if (esp->flags & 0x2000) {
+    if (esp->m_Tool_flg & 0x2000) {
         EspCommonTransNega(esp, 2);
         return;
     }
@@ -107,14 +107,14 @@ void EspCommonTrans(cEsp* esp)
             s_proj_type = 1;
             CameraCurrentProjection();
         }
-        if (!EspGetAnmAddr(esp->anmNo, &s_pAnm)) {
-            pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+        if (!EspGetAnmAddr(esp->m_Type, &s_pAnm)) {
+            pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
             s_tex_no = -1;
             return;
         }
-        EspTexSet(esp->anmNo, esp->anmPtn);
-        s_tex_no = esp->anmNo;
-        s_ptn_no = esp->anmPtn;
+        EspTexSet(esp->m_Type, esp->m_Ptn_no);
+        s_tex_no = esp->m_Type;
+        s_ptn_no = esp->m_Ptn_no;
         esp->CommonStateSet();
         GXClearVtxDesc();
         GXSetVtxDesc(9, 1);
@@ -137,24 +137,24 @@ void EspCommonTrans(cEsp* esp)
                 CameraCurrentProjection();
             }
         }
-        if (s_tex_no != esp->anmNo) {
-            if (!EspGetAnmAddr(esp->anmNo, &s_pAnm)) {
-                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+        if (s_tex_no != esp->m_Type) {
+            if (!EspGetAnmAddr(esp->m_Type, &s_pAnm)) {
+                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
                 s_tex_no = -1;
                 return;
             }
         }
-        if (s_tex_no != esp->anmNo || s_ptn_no != esp->anmPtn) {
-            EspTexSet(esp->anmNo, esp->anmPtn);
-            s_ptn_no = esp->anmPtn;
+        if (s_tex_no != esp->m_Type || s_ptn_no != esp->m_Ptn_no) {
+            EspTexSet(esp->m_Type, esp->m_Ptn_no);
+            s_ptn_no = esp->m_Ptn_no;
         }
-        s_tex_no = esp->anmNo;
+        s_tex_no = esp->m_Type;
     }
     if (!esp->ChannelSet()) {
         return;
     }
-    sx = esp->sizeX * esp->scale;
-    sy = esp->sizeY * esp->scale;
+    sx = esp->m_Size_base_x * esp->m_Size_mul;
+    sy = esp->m_Size_base_y * esp->m_Size_mul;
     if ((f32) s_pAnm->x4 == 0.0f) {
         ox = -0.5f;
     } else {
@@ -168,124 +168,124 @@ void EspCommonTrans(cEsp* esp)
     if (ESP_PARTS_SCREEN(esp)) {
         Mtx m;
 
-        esp->mat[2][2] = 1.0f;
-        esp->mat[0][0] = sx;
-        esp->mat[0][1] = 0.0f;
-        esp->mat[0][2] = 0.0f;
-        esp->mat[0][3] = ox * sx;
-        esp->mat[1][0] = 0.0f;
-        esp->mat[1][1] = sy;
-        esp->mat[1][2] = 0.0f;
-        esp->mat[1][3] = oy * sy;
-        esp->mat[2][0] = 0.0f;
-        esp->mat[2][1] = 0.0f;
-        esp->mat[2][3] = 0.0f;
-        if (esp->flags & 2) {
-            esp->mat[0][0] = -sx;
-            esp->mat[0][3] = -(ox * sx);
-            if (!(esp->flags & 4)) {
-                esp->mat[1][1] = -sy;
-                esp->mat[1][3] = -(oy * sy);
+        esp->m_Mat[2][2] = 1.0f;
+        esp->m_Mat[0][0] = sx;
+        esp->m_Mat[0][1] = 0.0f;
+        esp->m_Mat[0][2] = 0.0f;
+        esp->m_Mat[0][3] = ox * sx;
+        esp->m_Mat[1][0] = 0.0f;
+        esp->m_Mat[1][1] = sy;
+        esp->m_Mat[1][2] = 0.0f;
+        esp->m_Mat[1][3] = oy * sy;
+        esp->m_Mat[2][0] = 0.0f;
+        esp->m_Mat[2][1] = 0.0f;
+        esp->m_Mat[2][3] = 0.0f;
+        if (esp->m_Tool_flg & 2) {
+            esp->m_Mat[0][0] = -sx;
+            esp->m_Mat[0][3] = -(ox * sx);
+            if (!(esp->m_Tool_flg & 4)) {
+                esp->m_Mat[1][1] = -sy;
+                esp->m_Mat[1][3] = -(oy * sy);
             }
-        } else if (!(esp->flags & 4)) {
-            esp->mat[1][1] = -sy;
-            esp->mat[1][3] = -(oy * sy);
+        } else if (!(esp->m_Tool_flg & 4)) {
+            esp->m_Mat[1][1] = -sy;
+            esp->m_Mat[1][3] = -(oy * sy);
         }
-        low_RotMatrix(m, &esp->rot);
-        PSMTXConcat(m, esp->mat, esp->mat);
-        esp->mat[0][3] += esp->pos.x;
-        esp->mat[1][3] += esp->pos.y;
-        esp->mat[2][3] += esp->pos.z;
-    } else if (!(esp->flags & 0x80001)) {
+        low_RotMatrix(m, &esp->m_Ang);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
+        esp->m_Mat[0][3] += esp->m_Pos.x;
+        esp->m_Mat[1][3] += esp->m_Pos.y;
+        esp->m_Mat[2][3] += esp->m_Pos.z;
+    } else if (!(esp->m_Tool_flg & 0x80001)) {
         Mtx m;
         Vec p;
         Mtx m2;
 
-        esp->mat[2][2] = 1.0f;
-        esp->mat[0][0] = sx;
-        esp->mat[0][1] = 0.0f;
-        esp->mat[0][2] = 0.0f;
-        esp->mat[0][3] = ox * sx;
-        esp->mat[1][0] = 0.0f;
-        esp->mat[1][1] = sy;
-        esp->mat[1][2] = 0.0f;
-        esp->mat[1][3] = oy * sy;
-        esp->mat[2][0] = 0.0f;
-        esp->mat[2][1] = 0.0f;
-        esp->mat[2][3] = 0.0f;
-        if (esp->flags & 2) {
-            esp->mat[0][0] = -sx;
-            esp->mat[0][3] = -(ox * sx);
-            if (esp->flags & 4) {
-                esp->mat[1][1] = -sy;
-                esp->mat[1][3] = -(oy * sy);
+        esp->m_Mat[2][2] = 1.0f;
+        esp->m_Mat[0][0] = sx;
+        esp->m_Mat[0][1] = 0.0f;
+        esp->m_Mat[0][2] = 0.0f;
+        esp->m_Mat[0][3] = ox * sx;
+        esp->m_Mat[1][0] = 0.0f;
+        esp->m_Mat[1][1] = sy;
+        esp->m_Mat[1][2] = 0.0f;
+        esp->m_Mat[1][3] = oy * sy;
+        esp->m_Mat[2][0] = 0.0f;
+        esp->m_Mat[2][1] = 0.0f;
+        esp->m_Mat[2][3] = 0.0f;
+        if (esp->m_Tool_flg & 2) {
+            esp->m_Mat[0][0] = -sx;
+            esp->m_Mat[0][3] = -(ox * sx);
+            if (esp->m_Tool_flg & 4) {
+                esp->m_Mat[1][1] = -sy;
+                esp->m_Mat[1][3] = -(oy * sy);
             }
-        } else if (esp->flags & 4) {
-            esp->mat[1][1] = -sy;
-            esp->mat[1][3] = -(oy * sy);
+        } else if (esp->m_Tool_flg & 4) {
+            esp->m_Mat[1][1] = -sy;
+            esp->m_Mat[1][3] = -(oy * sy);
         }
-        PSMTXRotRad(m, 'z', esp->rot.z);
-        PSMTXConcat(m, esp->mat, esp->mat);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m2);
-        PSMTXMultVec(m2, &esp->pos, &p);
-        esp->mat[0][3] += p.x;
-        esp->mat[1][3] += p.y;
-        esp->mat[2][3] += p.z;
+        PSMTXRotRad(m, 'z', esp->m_Ang.z);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m2);
+        PSMTXMultVec(m2, &esp->m_Pos, &p);
+        esp->m_Mat[0][3] += p.x;
+        esp->m_Mat[1][3] += p.y;
+        esp->m_Mat[2][3] += p.z;
     } else {
         Mtx m;
 
-        esp->mat[0][0] = sx;
-        esp->mat[0][1] = 0.0f;
-        esp->mat[2][2] = 1.0f;
-        esp->mat[0][2] = 0.0f;
-        esp->mat[0][3] = ox * sx;
-        esp->mat[1][0] = 0.0f;
-        esp->mat[1][1] = sy;
-        esp->mat[1][2] = 0.0f;
-        esp->mat[1][3] = oy * sy;
-        esp->mat[2][0] = 0.0f;
-        esp->mat[2][1] = 0.0f;
-        esp->mat[2][3] = 0.0f;
-        if (esp->flags & 2) {
-            esp->mat[0][0] = -sx;
-            esp->mat[0][3] = -(ox * sx);
-            if (esp->flags & 4) {
-                esp->mat[1][1] = -sy;
-                esp->mat[1][3] = -(oy * sy);
+        esp->m_Mat[0][0] = sx;
+        esp->m_Mat[0][1] = 0.0f;
+        esp->m_Mat[2][2] = 1.0f;
+        esp->m_Mat[0][2] = 0.0f;
+        esp->m_Mat[0][3] = ox * sx;
+        esp->m_Mat[1][0] = 0.0f;
+        esp->m_Mat[1][1] = sy;
+        esp->m_Mat[1][2] = 0.0f;
+        esp->m_Mat[1][3] = oy * sy;
+        esp->m_Mat[2][0] = 0.0f;
+        esp->m_Mat[2][1] = 0.0f;
+        esp->m_Mat[2][3] = 0.0f;
+        if (esp->m_Tool_flg & 2) {
+            esp->m_Mat[0][0] = -sx;
+            esp->m_Mat[0][3] = -(ox * sx);
+            if (esp->m_Tool_flg & 4) {
+                esp->m_Mat[1][1] = -sy;
+                esp->m_Mat[1][3] = -(oy * sy);
             }
-        } else if (esp->flags & 4) {
-            esp->mat[1][1] = -sy;
-            esp->mat[1][3] = -(oy * sy);
+        } else if (esp->m_Tool_flg & 4) {
+            esp->m_Mat[1][1] = -sy;
+            esp->m_Mat[1][3] = -(oy * sy);
         }
-        low_RotMatrix(m, &esp->rot);
-        PSMTXConcat(m, esp->mat, esp->mat);
-        if (esp->flags & 0x80000) {
+        low_RotMatrix(m, &esp->m_Ang);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
+        if (esp->m_Tool_flg & 0x80000) {
             Mtx m3;
             PSMTXRotRad(m3, 'y', EspGetCameraPan() * (3.1415927f / 180.0f));
-            PSMTXConcat(m3, esp->mat, esp->mat);
+            PSMTXConcat(m3, esp->m_Mat, esp->m_Mat);
         }
-        esp->mat[0][3] += esp->pos.x;
-        esp->mat[1][3] += esp->pos.y;
-        esp->mat[2][3] += esp->pos.z;
-        PSMTXConcat(esp->parent->mat, esp->mat, esp->mat);
-        PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);
+        esp->m_Mat[0][3] += esp->m_Pos.x;
+        esp->m_Mat[1][3] += esp->m_Pos.y;
+        esp->m_Mat[2][3] += esp->m_Pos.z;
+        PSMTXConcat(esp->parent->mat, esp->m_Mat, esp->m_Mat);
+        PSMTXConcat(pG->Cam.v_mat, esp->m_Mat, esp->m_Mat);
     }
-    PSMTXInverse(esp->mat, inv);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    if (esp->flags & 0x4000) {
-        int no = esp->anmNo2;
+    if (esp->m_Tool_flg & 0x4000) {
+        int no = esp->m_MaskTex_id;
         EspTexWk* tw = EspGetTexWk(no, 1);
-        if (tw->owner == 0xD2) {
+        if (tw->Owner == 0xD2) {
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex;
             GXTlutObj tlut;
             GXTexObj* pTex = &tex;
             GXTlutObj* pTlut = &tlut;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_MaskPtn_no);
             TEXHeader* th = td->textureHeader;
 
             if (th->format == 8 || th->format == 9) {
@@ -304,7 +304,7 @@ void EspCommonTrans(cEsp* esp)
             GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
             GXSetTevColorOp(1, 0, 0, 0, 1, 0);
             GXSetTevAlphaIn(1, 7, 4, 5, 7);
-            if (esp->flags & 0x20000) {
+            if (esp->m_Tool_flg & 0x20000) {
                 GXSetTevAlphaOp(1, 0, 0, 2, 1, 0);
             } else {
                 GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);
@@ -315,34 +315,34 @@ void EspCommonTrans(cEsp* esp)
         // The flag word is read into a local for the first test only: with two plain reads the
         // pre-cse jump threading merges the compares; the original kept one compare in cr7.
         u32 sysFlags = pG->flags_5010;
-        if ((!(sysFlags & 0x80) && (esp->flags & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->flags & 0x800000))) {
+        if ((!(sysFlags & 0x80) && (esp->m_Tool_flg & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->m_Tool_flg & 0x800000))) {
             GXSetAlphaUpdate(1);
         }
     }
-    if (esp->flags & 0x200000) {
+    if (esp->m_Tool_flg & 0x200000) {
         GXSetZMode(1, 3, 1);
         GXSetDstAlpha(1, 0);
     }
-    if (esp->flags & 0x100000) {
+    if (esp->m_Tool_flg & 0x100000) {
         GXSetAlphaCompare(4, 0x80, 1, 4, 0x80);
     }
-    if (esp->dispFlag & 0x10) {
+    if (esp->m_Flg & 0x10) {
         Esp1b_SpTrans(esp);
     } else {
         GXCallDisplayList(g_EspCommonDisplayList, 0x60);
     }
-    if (esp->flags & 0x4000) {
+    if (esp->m_Tool_flg & 0x4000) {
         GXSetNumTevStages(1);
         GXSetNumTexGens(1);
     }
-    if (esp->flags & 0x200000) {
+    if (esp->m_Tool_flg & 0x200000) {
         GXSetZMode(1, 3, 0);
         GXSetDstAlpha(0, 0);
     }
-    if (esp->flags & 0x100000) {
+    if (esp->m_Tool_flg & 0x100000) {
         GXSetAlphaCompare(4, 1, 1, 4, 1);
     }
-    if (esp->flags & 0x808000) {
+    if (esp->m_Tool_flg & 0x808000) {
         GXSetAlphaUpdate(0);
     }
 }
@@ -388,8 +388,8 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
         return;
     }
     GXSetCullMode(0);
@@ -397,37 +397,37 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXSetZMode(1, 3, 0);
     CameraCurrentProjection();
     if (ESP_PARTS_SCREEN(esp)) {
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
         C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
         GXSetProjection(proj, 1);
-    } else if (!(esp->flags & 1)) {
+    } else if (!(esp->m_Tool_flg & 1)) {
         Vec p;
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        PSMTXRotRad(esp->mat, 'z', esp->rot.z);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXMultVec(m, &esp->pos, &p);
-        esp->mat[0][3] = p.x;
-        esp->mat[1][3] = p.y;
-        esp->mat[2][3] = p.z;
+        PSMTXIdentity(esp->m_Mat);
+        PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXMultVec(m, &esp->m_Pos, &p);
+        esp->m_Mat[0][3] = p.x;
+        esp->m_Mat[1][3] = p.y;
+        esp->m_Mat[2][3] = p.z;
     } else {
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXConcat(m, esp->mat, esp->mat);
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
-    PSMTXInverse(esp->mat, inv);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Type, esp->m_Ptn_no);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     GXClearVtxDesc();
@@ -437,8 +437,8 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    sx = esp->sizeX * esp->scale;
-    sy = esp->sizeY * esp->scale;
+    sx = esp->m_Size_base_x * esp->m_Size_mul;
+    sy = esp->m_Size_base_y * esp->m_Size_mul;
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
@@ -459,7 +459,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     copyOk = 1;
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
-    if (esp->flags & 0x1000) {
+    if (esp->m_Tool_flg & 0x1000) {
         if (GetDrawTmpBufType() == 2) {
             copyOk = 0;
         }
@@ -489,15 +489,15 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     Mtx pm;
     if (ESP_PARTS_SCREEN(esp)) {
         if (pG->flags_5010 & 0x08000000) {
-            PSMTXConcat(Matrix1, esp->mat, tm);
+            PSMTXConcat(Matrix1, esp->m_Mat, tm);
         } else {
-            PSMTXConcat(Matrix2, esp->mat, tm);
+            PSMTXConcat(Matrix2, esp->m_Mat, tm);
         }
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(texGens, 1, 0, 0x1E);
     } else {
         C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
-        PSMTXConcat(pm, esp->mat, tm);
+        PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(texGens, 0, 0, 0x1E);
     }
@@ -516,9 +516,9 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         Camera* cam;
 
         if (esp->parent != pEffParentWorld) {
-            PSMTXMultVec(esp->parent->mat, &esp->pos, &p);
+            PSMTXMultVec(esp->parent->mat, &esp->m_Pos, &p);
         } else {
-            p = esp->pos;
+            p = esp->m_Pos;
         }
         cam = &pG->Cam;
         dir.x = cam->param.at.x - cam->param.pos.x;
@@ -535,7 +535,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         dot = 1500.0f;
     }
     if (blur != 3) {
-        indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
+        indMtx[1][1] = indMtx[0][0] = esp->m_Col_a * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
         indMtx[0][1] = 0.0f;
         indMtx[0][2] = 0.0f;
         indMtx[1][0] = 0.0f;
@@ -585,16 +585,16 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 7, 7, 5);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    if (esp->flags & 0x4000) {
-        int no = esp->anmNo2;
+    if (esp->m_Tool_flg & 0x4000) {
+        int no = esp->m_MaskTex_id;
         EspTexWk* tw = EspGetTexWk(no, 1);
-        if (tw->owner == 0xD2) {
+        if (tw->Owner == 0xD2) {
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex2;
             GXTexObj* pTex = &tex2;
             GXTlutObj* pTlut = (GXTlutObj*) indMtx;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->m_MaskPtn_no);
             TEXHeader* th = td->textureHeader;
 
             if (th->format == 8 || th->format == 9) {
@@ -611,7 +611,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
             GXSetTevColorOp(1, 0, 0, 0, 1, 0);
             GXSetTevAlphaIn(1, 7, 4, 5, 7);
-            if (esp->flags & 0x20000) {
+            if (esp->m_Tool_flg & 0x20000) {
                 GXSetTevAlphaOp(1, 0, 0, 2, 1, 0);
             } else {
                 GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);
@@ -673,44 +673,44 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     if (!esp->ChannelSet()) {
         return;
     }
-    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+    if (!EspGetAnmAddr(esp->m_Type, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->m_Type);
         return;
     }
     CameraCurrentProjection();
     if (ESP_PARTS_SCREEN(esp)) {
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
         C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
         GXSetProjection(proj, 1);
-    } else if (!(esp->flags & 1)) {
+    } else if (!(esp->m_Tool_flg & 1)) {
         Vec p;
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        PSMTXRotRad(esp->mat, 'z', esp->rot.z);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXMultVec(m, &esp->pos, &p);
-        esp->mat[0][3] = p.x;
-        esp->mat[1][3] = p.y;
-        esp->mat[2][3] = p.z;
+        PSMTXIdentity(esp->m_Mat);
+        PSMTXRotRad(esp->m_Mat, 'z', esp->m_Ang.z);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXMultVec(m, &esp->m_Pos, &p);
+        esp->m_Mat[0][3] = p.x;
+        esp->m_Mat[1][3] = p.y;
+        esp->m_Mat[2][3] = p.z;
     } else {
         Mtx m;
 
-        PSMTXIdentity(esp->mat);
-        low_RotMatrix(esp->mat, &esp->rot);
-        TransMatrix(esp->mat, &esp->pos);
-        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
-        PSMTXConcat(m, esp->mat, esp->mat);
+        PSMTXIdentity(esp->m_Mat);
+        low_RotMatrix(esp->m_Mat, &esp->m_Ang);
+        TransMatrix(esp->m_Mat, &esp->m_Pos);
+        PSMTXConcat(pG->Cam.v_mat, esp->parent->mat, m);
+        PSMTXConcat(m, esp->m_Mat, esp->m_Mat);
     }
     GXTexObj tex;
-    PSMTXInverse(esp->mat, inv);
+    PSMTXInverse(esp->m_Mat, inv);
     PSMTXTranspose(inv, inv);
     GXLoadNrmMtxImm(inv, 0);
-    GXLoadPosMtxImm(esp->mat, 0);
+    GXLoadPosMtxImm(esp->m_Mat, 0);
     GXSetCurrentMtx(0);
-    EspTexSet(esp->anmNo, esp->anmPtn);
+    EspTexSet(esp->m_Type, esp->m_Ptn_no);
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     GXClearVtxDesc();
@@ -720,8 +720,8 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    sx = esp->sizeX * esp->scale;
-    sy = esp->sizeY * esp->scale;
+    sx = esp->m_Size_base_x * esp->m_Size_mul;
+    sy = esp->m_Size_base_y * esp->m_Size_mul;
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
@@ -753,7 +753,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     if (ESP_PARTS_SCREEN(esp)) {
         Mtx tm;
 
-        PSMTXConcat(Matrix, esp->mat, tm);
+        PSMTXConcat(Matrix, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
@@ -761,7 +761,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
         Mtx pm;
 
         C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
-        PSMTXConcat(pm, esp->mat, tm);
+        PSMTXConcat(pm, esp->m_Mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
         GXSetTexCoordGen(0, 0, 0, 0x1E);
     }
@@ -817,74 +817,74 @@ void EspCommonTransNega(cEsp* esp, u32 type)
 
 void cEsp::move()
 {
-    pLog->err(0, 0, "ESP : ESP_ID[%x] move() invalid", id);
+    pLog->err(0, 0, "ESP : ESP_ID[%x] move() invalid", m_Id);
 }
 
 int cEsp::CommonMove()
 {
-    if (parent != pEffParentWorld && parentCnt != 0xFF && parentCnt <= cnt) {
+    if (parent != pEffParentWorld && m_Release_time != 0xFF && m_Release_time <= m_Life_time) {
         ApplyMatrix(parent->mat);
         parent = pEffParentWorld;
     }
-    if (spdCnt == 0 || spdCnt <= cnt) {
-        PSVECAdd(&pos, &spd, &pos);
-        PSVECAdd(&spd, &acc, &spd);
-        PSVECScale(&spd, &spd, spdScale);
+    if (m_Pos_start_cnt == 0 || m_Pos_start_cnt <= m_Life_time) {
+        PSVECAdd(&m_Pos, &m_Speed, &m_Pos);
+        PSVECAdd(&m_Speed, &m_Speed_plus, &m_Speed);
+        PSVECScale(&m_Speed, &m_Speed, m_D_speed);
     }
-    if (scaleCnt == 0 || scaleCnt <= cnt) {
-        scale += scaleSpd;
-        scaleSpd *= scaleScale;
-        if (scale <= 0.0f) {
+    if (m_Size_start_cnt == 0 || m_Size_start_cnt <= m_Life_time) {
+        m_Size_mul += m_Size_plus;
+        m_Size_plus *= m_D_size_plus;
+        if (m_Size_mul <= 0.0f) {
             PushEsp(this);
             return 0;
         }
     }
-    PSVECAdd(&rot, &rotSpd, &rot);
+    PSVECAdd(&m_Ang, &m_Ang_plus, &m_Ang);
     if (!ColorUpdate()) {
         return 0;
     }
-    if (life != 0 && life <= cnt) {
+    if (m_Life_max != 0 && m_Life_max <= m_Life_time) {
         PushEsp(this);
         return 0;
     }
-    cnt++;
-    m_Radius = SQRTF(sizeX * sizeX + sizeY * sizeY) * scale;
+    m_Life_time++;
+    m_Radius = SQRTF(m_Size_base_x * m_Size_base_x + m_Size_base_y * m_Size_base_y) * m_Size_mul;
     return 1;
 }
 
 int cEsp::ColorUpdate()
 {
-    if (m_Col_max_cnt < cnt) {
-        if (m_Col_max_cnt + m_Col_start_cnt <= cnt) {
-            colR *= colRSpd;
-            colG *= colGSpd;
-            colB *= colBSpd;
-            colA *= colASpd;
-            if (colR > 255.0f) {
-                colR = 255.0f;
+    if (m_Col_max_cnt < m_Life_time) {
+        if (m_Col_max_cnt + m_Col_start_cnt <= m_Life_time) {
+            m_Col_r *= m_Col_d_r;
+            m_Col_g *= m_Col_d_g;
+            m_Col_b *= m_Col_d_b;
+            m_Col_a *= m_Col_d_a;
+            if (m_Col_r > 255.0f) {
+                m_Col_r = 255.0f;
             }
-            if (colG > 255.0f) {
-                colG = 255.0f;
+            if (m_Col_g > 255.0f) {
+                m_Col_g = 255.0f;
             }
-            if (colB > 255.0f) {
-                colB = 255.0f;
+            if (m_Col_b > 255.0f) {
+                m_Col_b = 255.0f;
             }
-            if (colA > 255.0f) {
-                colA = 255.0f;
+            if (m_Col_a > 255.0f) {
+                m_Col_a = 255.0f;
             }
-            if (colA < 4.0f) {
+            if (m_Col_a < 4.0f) {
                 PushEsp(this);
                 return 0;
             }
         }
     } else if (m_Col_max_cnt != 0) {
-        f32 rate = (f32) cnt / (f32) m_Col_max_cnt;
-        if (blendType == 3) {
-            colR = (f32) m_Col_start_r * rate;
-            colG = (f32) m_Col_start_g * rate;
-            colB = (f32) m_Col_start_b * rate;
+        f32 rate = (f32) m_Life_time / (f32) m_Col_max_cnt;
+        if (m_Blend_type == 3) {
+            m_Col_r = (f32) m_Col_start_r * rate;
+            m_Col_g = (f32) m_Col_start_g * rate;
+            m_Col_b = (f32) m_Col_start_b * rate;
         }
-        colA = (f32) m_Col_start_a * rate;
+        m_Col_a = (f32) m_Col_start_a * rate;
     }
     return 1;
 }
@@ -899,55 +899,55 @@ int cEsp::AnmMove()
     EspAnmData* anm;
     u32 time;
 
-    if (!EspGetAnmAddr(anmNo, &anm)) {
-        pLog->err(0, 0, "ESP : TexId[%x] no data", anmNo);
+    if (!EspGetAnmAddr(m_Type, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", m_Type);
         return 0;
     }
     if (anm->xC == 0) {
         time = 1;
     } else {
-        time = anm->ptnTime[anm->nPtn + anmPtn];
+        time = anm->ptnTime[anm->nPtn + m_Ptn_no];
     }
-    anmCnt += anmSpd;
-    while ((anmCnt >> 5) > (u16) time) {
-        anmPtn++;
-        anmCnt -= time << 5;
-        if (anmPtn >= anm->nPtn) {
+    m_Anm_cnt += m_Anm_rate;
+    while ((m_Anm_cnt >> 5) > (u16) time) {
+        m_Ptn_no++;
+        m_Anm_cnt -= time << 5;
+        if (m_Ptn_no >= anm->nPtn) {
             switch (anm->xB & 3) {
             case 0:
                 return 0;
             case 1:
-                anmPtn = 0;
+                m_Ptn_no = 0;
                 break;
             case 2:
-                anmPtn = anm->nPtn - 1;
+                m_Ptn_no = anm->nPtn - 1;
                 break;
             }
         }
     }
-    if (flags & 0x4000) {
-        if (!EspGetAnmAddr(anmNo2, &anm)) {
-            pLog->err(0, 0, "ESP : MaskTexId[%x] no data", anmNo);
+    if (m_Tool_flg & 0x4000) {
+        if (!EspGetAnmAddr(m_MaskTex_id, &anm)) {
+            pLog->err(0, 0, "ESP : MaskTexId[%x] no data", m_Type);
             return 0;
         }
         if (anm->xC == 0) {
             time = 1;
         } else {
-            time = anm->ptnTime[anm->nPtn + anmPtn2];
+            time = anm->ptnTime[anm->nPtn + m_MaskPtn_no];
         }
-        anmCnt2 += anmSpd;
-        while ((anmCnt2 >> 5) > (u16) time) {
-            anmPtn2++;
-            anmCnt2 -= time << 5;
-            if (anmPtn2 >= anm->nPtn) {
+        m_MaskAnm_cnt += m_Anm_rate;
+        while ((m_MaskAnm_cnt >> 5) > (u16) time) {
+            m_MaskPtn_no++;
+            m_MaskAnm_cnt -= time << 5;
+            if (m_MaskPtn_no >= anm->nPtn) {
                 switch (anm->xB & 3) {
                 case 0:
                     return 0;
                 case 1:
-                    anmPtn2 = 0;
+                    m_MaskPtn_no = 0;
                     break;
                 case 2:
-                    anmPtn2 = anm->nPtn - 1;
+                    m_MaskPtn_no = anm->nPtn - 1;
                     break;
                 }
             }
@@ -966,34 +966,34 @@ int cEsp::ChannelSet()
     Vec d;
     cEspSystem* sys = g_pEspSys;
 
-    if (flags & 0x40) {
+    if (m_Tool_flg & 0x40) {
         GXSetTevOp(0, 0);
         GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
         GXSetTevColorOp(0, 0, 0, 2, 1, 0);
         commonEspLightSet(sys->lightList.p, sys->lightList.num);
     } else {
         GXSetTevOp(0, 0);
-        if (flags & 0x80) {
+        if (m_Tool_flg & 0x80) {
             GXSetTevColorOp(0, 0, 0, 2, 1, 0);
         }
-        if (flags & 0x20000) {
+        if (m_Tool_flg & 0x20000) {
             GXSetTevAlphaOp(0, 0, 0, 2, 1, 0);
         }
         GXSetNumChans(1);
         GXSetChanCtrl(4, 0, 0, 0, 0, 0, 2);
     }
-    if (dispFlag & 1) {
-        col.r = (u8) (colR * colA * (1.0f / 255.0f));
-        col.g = (u8) (colG * colA * (1.0f / 255.0f));
-        col.b = (u8) (colB * colA * (1.0f / 255.0f));
+    if (m_Flg & 1) {
+        col.r = (u8) (m_Col_r * m_Col_a * (1.0f / 255.0f));
+        col.g = (u8) (m_Col_g * m_Col_a * (1.0f / 255.0f));
+        col.b = (u8) (m_Col_b * m_Col_a * (1.0f / 255.0f));
         col.a = 0xFF;
     } else {
-        col.r = (u8) colR;
-        col.g = (u8) colG;
-        col.b = (u8) colB;
-        col.a = (u8) colA;
+        col.r = (u8) m_Col_r;
+        col.g = (u8) m_Col_g;
+        col.b = (u8) m_Col_b;
+        col.a = (u8) m_Col_a;
     }
-    if (!(dispFlag & 4) && EffIsSetFinalCol()) {
+    if (!(m_Flg & 4) && EffIsSetFinalCol()) {
         EffGetFinalCol(&fin);
         col.r = (u32) col.r * fin.r >> 8;
         col.g = (u32) col.g * fin.g >> 8;
@@ -1005,9 +1005,9 @@ int cEsp::ChannelSet()
         f32 dot;
 
         if (parent != pEffParentWorld) {
-            PSMTXMultVec(parent->mat, &pos, &p);
+            PSMTXMultVec(parent->mat, &m_Pos, &p);
         } else {
-            p = pos;
+            p = m_Pos;
         }
         cam = &pG->Cam;
         dir.x = cam->param.at.x - cam->param.pos.x;
@@ -1021,7 +1021,7 @@ int cEsp::ChannelSet()
         dot = PSVECDotProduct(&dir, &d);
         if (dot < m_Del_far * 10.0f) {
             f32 rate = 1.0f - (m_Del_far * 10.0f - dot) / ((m_Del_far - x14) * 10.0f);
-            if (dispFlag & 1) {
+            if (m_Flg & 1) {
                 col.r = (u8) (col.r * rate);
                 col.g = (u8) (col.g * rate);
                 col.b = (u8) (col.b * rate);
@@ -1044,13 +1044,13 @@ void cEsp::ApplyMatrix(Mtx m)
 {
     Mtx r;
 
-    PSMTXMultVec(m, &pos, &pos);
-    PSMTXMultVecSR(m, &spd, &spd);
-    PSMTXMultVecSR(m, &acc, &acc);
-    if (flags & 1) {
-        low_RotMatrix(r, &rot);
+    PSMTXMultVec(m, &m_Pos, &m_Pos);
+    PSMTXMultVecSR(m, &m_Speed, &m_Speed);
+    PSMTXMultVecSR(m, &m_Speed_plus, &m_Speed_plus);
+    if (m_Tool_flg & 1) {
+        low_RotMatrix(r, &m_Ang);
         PSMTXConcat(m, r, r);
-        Matrix2AxisAngle(r, &rot);
+        Matrix2AxisAngle(r, &m_Ang);
     }
 }
 
@@ -1144,10 +1144,10 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
     }
     if (PullEsp(&e.p, rec->x1) != 0) {
         e.p->info = *info;
-        e.p->id = rec->x1;
-        e.p->anmNo = rec->x2;
-        e.p->xF = rec->x3;
-        e.p->partsNo = rec->x7;
+        e.p->m_Id = rec->x1;
+        e.p->m_Type = rec->x2;
+        e.p->m_Rno1 = rec->x3;
+        e.p->m_Parts_no = rec->x7;
         if (!(info->Core_flg & 0x1000) && rec->x6 != 0) {
             model = SmdGetObjPtr(rec->x6 - 1);
             if (model == 0) {
@@ -1157,104 +1157,104 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                 return 0;
             }
         }
-        e.p->flags = rec->flags;
-        if (e.p->flags & 8) {
+        e.p->m_Tool_flg = rec->flags;
+        if (e.p->m_Tool_flg & 8) {
             if (fRandSeed1_1(seed) > 0.0f) {
-                e.p->flags |= 2;
+                e.p->m_Tool_flg |= 2;
             } else {
-                e.p->flags &= ~2;
+                e.p->m_Tool_flg &= ~2;
             }
         }
-        if (e.p->flags & 0x10) {
+        if (e.p->m_Tool_flg & 0x10) {
             if (fRandSeed1_1(seed) > 0.0f) {
-                e.p->flags |= 4;
+                e.p->m_Tool_flg |= 4;
             } else {
-                e.p->flags &= ~4;
+                e.p->m_Tool_flg &= ~4;
             }
         }
-        e.p->pos = rec->pos;
-        e.p->pos.x += rec->x18 * fRandSeed1_1(seed);
-        e.p->pos.y += rec->x1C * fRandSeed1_1(seed);
-        e.p->pos.z += rec->x20 * fRandSeed1_1(seed);
-        e.p->spd = rec->x24;
-        e.p->spd.x += rec->x34.x * fRandSeed1_1(seed);
-        e.p->spd.y += rec->x34.y * fRandSeed1_1(seed);
-        e.p->spd.z += rec->x34.z * fRandSeed1_1(seed);
+        e.p->m_Pos = rec->pos;
+        e.p->m_Pos.x += rec->x18 * fRandSeed1_1(seed);
+        e.p->m_Pos.y += rec->x1C * fRandSeed1_1(seed);
+        e.p->m_Pos.z += rec->x20 * fRandSeed1_1(seed);
+        e.p->m_Speed = rec->x24;
+        e.p->m_Speed.x += rec->x34.x * fRandSeed1_1(seed);
+        e.p->m_Speed.y += rec->x34.y * fRandSeed1_1(seed);
+        e.p->m_Speed.z += rec->x34.z * fRandSeed1_1(seed);
         if (flg) {
             v.x = 0.0f;
             v.y = f;
             v.z = 0.0f;
             RotMatrixZXY(m, &v);
-            PSMTXMultVecSR(m, &e.p->spd, &e.p->spd);
+            PSMTXMultVecSR(m, &e.p->m_Speed, &e.p->m_Speed);
         }
-        e.p->spdScale = rec->x30;
-        e.p->acc = rec->x40;
-        e.p->acc.x += rec->x4C.x * fRandSeed1_1(seed);
-        e.p->acc.y += rec->x4C.y * fRandSeed1_1(seed);
-        e.p->acc.z += rec->x4C.z * fRandSeed1_1(seed);
-        e.p->rot = rec->x58;
-        e.p->rot.x += rec->x64.x * fRandSeed1_1(seed);
-        e.p->rot.y += rec->x64.y * fRandSeed1_1(seed);
-        e.p->rot.z += rec->x64.z * fRandSeed1_1(seed);
-        PSVECScale(&e.p->rot, &e.p->rot, DEG2RAD);
-        e.p->rotSpd = rec->x70;
-        e.p->rotSpd.x += rec->x7C.x * fRandSeed1_1(seed);
-        e.p->rotSpd.y += rec->x7C.y * fRandSeed1_1(seed);
-        e.p->rotSpd.z += rec->x7C.z * fRandSeed1_1(seed);
-        PSVECScale(&e.p->rotSpd, &e.p->rotSpd, DEG2RAD);
-        e.p->sizeX = rec->x88;
-        e.p->sizeY = rec->x8C;
-        e.p->scale = 1.0f;
+        e.p->m_D_speed = rec->x30;
+        e.p->m_Speed_plus = rec->x40;
+        e.p->m_Speed_plus.x += rec->x4C.x * fRandSeed1_1(seed);
+        e.p->m_Speed_plus.y += rec->x4C.y * fRandSeed1_1(seed);
+        e.p->m_Speed_plus.z += rec->x4C.z * fRandSeed1_1(seed);
+        e.p->m_Ang = rec->x58;
+        e.p->m_Ang.x += rec->x64.x * fRandSeed1_1(seed);
+        e.p->m_Ang.y += rec->x64.y * fRandSeed1_1(seed);
+        e.p->m_Ang.z += rec->x64.z * fRandSeed1_1(seed);
+        PSVECScale(&e.p->m_Ang, &e.p->m_Ang, DEG2RAD);
+        e.p->m_Ang_plus = rec->x70;
+        e.p->m_Ang_plus.x += rec->x7C.x * fRandSeed1_1(seed);
+        e.p->m_Ang_plus.y += rec->x7C.y * fRandSeed1_1(seed);
+        e.p->m_Ang_plus.z += rec->x7C.z * fRandSeed1_1(seed);
+        PSVECScale(&e.p->m_Ang_plus, &e.p->m_Ang_plus, DEG2RAD);
+        e.p->m_Size_base_x = rec->x88;
+        e.p->m_Size_base_y = rec->x8C;
+        e.p->m_Size_mul = 1.0f;
         rnd = rec->x90 * fRandSeed1_1(seed);
-        e.p->sizeX += rnd;
-        e.p->sizeY += rnd;
-        e.p->scaleSpd = rec->x94;
-        e.p->scaleScale = rec->x98;
+        e.p->m_Size_base_x += rnd;
+        e.p->m_Size_base_y += rnd;
+        e.p->m_Size_plus = rec->x94;
+        e.p->m_D_size_plus = rec->x98;
         e.p->m_Col_start_r = rec->x9C;
         e.p->m_Col_start_g = rec->x9D;
         e.p->m_Col_start_b = rec->x9E;
         e.p->m_Col_start_a = rec->x9F;
-        e.p->colR = (f32) rec->x9C;
-        e.p->colG = (f32) rec->x9D;
-        e.p->colB = (f32) rec->x9E;
-        e.p->colA = (f32) rec->x9F;
-        e.p->colRSpd = rec->xA0;
-        e.p->colGSpd = rec->xA4;
-        e.p->colBSpd = rec->xA8;
-        e.p->colASpd = rec->xAC;
+        e.p->m_Col_r = (f32) rec->x9C;
+        e.p->m_Col_g = (f32) rec->x9D;
+        e.p->m_Col_b = (f32) rec->x9E;
+        e.p->m_Col_a = (f32) rec->x9F;
+        e.p->m_Col_d_r = rec->xA0;
+        e.p->m_Col_d_g = rec->xA4;
+        e.p->m_Col_d_b = rec->xA8;
+        e.p->m_Col_d_a = rec->xAC;
         if (rec->xC2 > 5) {
             pLog->err(0, 0, "ESP : BLEND_TYPE[%d] Invalid.", rec->xC2);
             PushEsp(e.p);
             *out = EspGetDmyPtr();
             return 0;
         }
-        e.p->blendType = rec->xC2;
+        e.p->m_Blend_type = rec->xC2;
         e.p->xA4 = bl[rec->xC2][0];
         e.p->xA5 = bl[rec->xC2][1];
         e.p->xA6 = bl[rec->xC2][2];
         e.p->xA7 = bl[rec->xC2][3];
         if (rec->xC2 == 4) {
-            e.p->dispFlag |= 1;
+            e.p->m_Flg |= 1;
         }
         e.p->m_Col_max_cnt = rec->xB0;
         e.p->m_Col_start_cnt = rec->xB2;
-        e.p->spdCnt = rec->xB4;
-        e.p->scaleCnt = rec->xB6;
-        e.p->life = rec->xB8;
-        e.p->cnt = rec->xBA;
-        e.p->anmPtn = rec->xBC;
-        e.p->anmSpd = rec->xBD + 0x20;
-        e.p->anmCnt = rec->xBE;
-        e.p->parentCnt = rec->xC0;
+        e.p->m_Pos_start_cnt = rec->xB4;
+        e.p->m_Size_start_cnt = rec->xB6;
+        e.p->m_Life_max = rec->xB8;
+        e.p->m_Life_time = rec->xBA;
+        e.p->m_Ptn_no = rec->xBC;
+        e.p->m_Anm_rate = rec->xBD + 0x20;
+        e.p->m_Anm_cnt = rec->xBE;
+        e.p->m_Release_time = rec->xC0;
         e.p->m_Shimmer_type = rec->xC3;
         e.p->m_Shimmer_pow = rec->xC4;
-        e.p->anmNo2 = rec->xC5;
+        e.p->m_MaskTex_id = rec->xC5;
         e.p->m_Del_far = rec->xC6 * 10;
         e.p->x14 = rec->xC7 * 10;
         if (e.p->m_Shimmer_type != 0) {
-            e.p->dispFlag |= 4;
+            e.p->m_Flg |= 4;
         }
-        switch (e.p->partsNo) {
+        switch (e.p->m_Parts_no) {
         case 0xFF:
             e.p->parent = pEffParentWorld;
             e.p->ApplyMatrix(*mtx);
@@ -1266,9 +1266,9 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         case 0xFC:
         case 0xFD:
             e.p->parent = pEffParentWorld;
-            e.p->pos.x += (*mtx)[0][3];
-            e.p->pos.y += (*mtx)[1][3];
-            e.p->pos.z += (*mtx)[2][3];
+            e.p->m_Pos.x += (*mtx)[0][3];
+            e.p->m_Pos.y += (*mtx)[1][3];
+            e.p->m_Pos.z += (*mtx)[2][3];
             break;
         case 0xFE:
             e.p->parent = pEffParentWorld;
@@ -1278,38 +1278,38 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
             break;
         default:
             if (model == 0) {
-                pLog->err(0, 0, "ESP : PARTS_NO[%d] but Not on parts.", e.p->partsNo);
+                pLog->err(0, 0, "ESP : PARTS_NO[%d] but Not on parts.", e.p->m_Parts_no);
                 PushEsp(e.p);
                 *out = EspGetDmyPtr();
                 return 0;
             }
-            if (e.p->partsNo < model->nParts) {
-                if (e.p->flags & 0x20) {
-                    parts = model->getPartsPtr(e.p->partsNo);
+            if (e.p->m_Parts_no < model->nParts) {
+                if (e.p->m_Tool_flg & 0x20) {
+                    parts = model->getPartsPtr(e.p->m_Parts_no);
                     PSMTXIdentity(m2);
-                    low_RotMatrix(m2, &model->rot);
+                    low_RotMatrix(m2, &model->ang);
                     PSMTXMultVecSR(m2, &rec->pos, &v);
                     m2[0][3] = parts->mat[0][3] + v.x;
                     m2[1][3] = parts->mat[1][3] + v.y;
                     m2[2][3] = parts->mat[2][3] + v.z;
                     e.p->parent = pEffParentWorld;
-                    e.p->pos.x = 0.0f;
-                    e.p->pos.y = 0.0f;
-                    e.p->pos.z = 0.0f;
+                    e.p->m_Pos.x = 0.0f;
+                    e.p->m_Pos.y = 0.0f;
+                    e.p->m_Pos.z = 0.0f;
                     e.p->ApplyMatrix(m2);
-                    e.p->pos.x += rec->x18 * fRandSeed1_1(seed);
-                    e.p->pos.y += rec->x1C * fRandSeed1_1(seed);
-                    e.p->pos.z += rec->x20 * fRandSeed1_1(seed);
+                    e.p->m_Pos.x += rec->x18 * fRandSeed1_1(seed);
+                    e.p->m_Pos.y += rec->x1C * fRandSeed1_1(seed);
+                    e.p->m_Pos.z += rec->x20 * fRandSeed1_1(seed);
                 } else {
-                    e.p->pModel = model;
+                    e.p->m_pMod = model;
                     e.p->m_Guid_pMod = model->serial;
-                    e.p->parent = model->getPartsPtr(e.p->partsNo);
+                    e.p->parent = model->getPartsPtr(e.p->m_Parts_no);
                     if (pos) {
-                        PSVECAdd(&e.p->pos, pos, &e.p->pos);
+                        PSVECAdd(&e.p->m_Pos, pos, &e.p->m_Pos);
                     }
                 }
             } else {
-                pLog->err(0, 0, "ESP : PARTS_NO[%d] is invalid(MAX:%d).", e.p->partsNo, model->nParts);
+                pLog->err(0, 0, "ESP : PARTS_NO[%d] is invalid(MAX:%d).", e.p->m_Parts_no, model->nParts);
                 PushEsp(e.p);
                 *out = EspGetDmyPtr();
                 return 0;
@@ -1319,33 +1319,33 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         ret = e.p->SetFreeWork(rec, seed);
         if (pSct) {
             if (pSct->set & 1) {
-                e.p->spd = pSct->spd;
-                e.p->spd.x += rec->x34.x * fRandSeed1_1(seed);
-                e.p->spd.y += rec->x34.y * fRandSeed1_1(seed);
-                e.p->spd.z += rec->x34.z * fRandSeed1_1(seed);
+                e.p->m_Speed = pSct->spd;
+                e.p->m_Speed.x += rec->x34.x * fRandSeed1_1(seed);
+                e.p->m_Speed.y += rec->x34.y * fRandSeed1_1(seed);
+                e.p->m_Speed.z += rec->x34.z * fRandSeed1_1(seed);
             }
             if (pSct->set & 2) {
-                e.p->sizeX = pSct->sizeX;
-                e.p->sizeY = pSct->sizeY;
+                e.p->m_Size_base_x = pSct->sizeX;
+                e.p->m_Size_base_y = pSct->sizeY;
             }
             if (pSct->set & 4) {
                 e.p->m_Col_start_r = pSct->r;
                 e.p->m_Col_start_g = pSct->g;
                 e.p->m_Col_start_b = pSct->b;
                 e.p->m_Col_start_a = pSct->a;
-                e.p->colR = (f32) pSct->r;
-                e.p->colG = (f32) pSct->g;
-                e.p->colB = (f32) pSct->b;
-                e.p->colA = (f32) pSct->a;
+                e.p->m_Col_r = (f32) pSct->r;
+                e.p->m_Col_g = (f32) pSct->g;
+                e.p->m_Col_b = (f32) pSct->b;
+                e.p->m_Col_a = (f32) pSct->a;
             }
             if (pSct->mul & 1) {
-                e.p->spd.x *= pSct->spd.x;
-                e.p->spd.y *= pSct->spd.y;
-                e.p->spd.z *= pSct->spd.z;
+                e.p->m_Speed.x *= pSct->spd.x;
+                e.p->m_Speed.y *= pSct->spd.y;
+                e.p->m_Speed.z *= pSct->spd.z;
             }
             if (pSct->mul & 2) {
-                e.p->sizeX *= pSct->sizeX;
-                e.p->sizeY *= pSct->sizeY;
+                e.p->m_Size_base_x *= pSct->sizeX;
+                e.p->m_Size_base_y *= pSct->sizeY;
             }
             if (pSct->mul & 4) {
                 f32 c;
@@ -1381,19 +1381,19 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_a = (u8) c;
-                e.p->colR = (f32) e.p->m_Col_start_r;
-                e.p->colG = (f32) e.p->m_Col_start_g;
-                e.p->colB = (f32) e.p->m_Col_start_b;
-                e.p->colA = (f32) e.p->m_Col_start_a;
+                e.p->m_Col_r = (f32) e.p->m_Col_start_r;
+                e.p->m_Col_g = (f32) e.p->m_Col_start_g;
+                e.p->m_Col_b = (f32) e.p->m_Col_start_b;
+                e.p->m_Col_a = (f32) e.p->m_Col_start_a;
             }
             if (pSct->add & 1) {
-                e.p->spd.x += pSct->spd.x;
-                e.p->spd.y += pSct->spd.y;
-                e.p->spd.z += pSct->spd.z;
+                e.p->m_Speed.x += pSct->spd.x;
+                e.p->m_Speed.y += pSct->spd.y;
+                e.p->m_Speed.z += pSct->spd.z;
             }
             if (pSct->add & 2) {
-                e.p->sizeX += pSct->sizeX;
-                e.p->sizeY += pSct->sizeY;
+                e.p->m_Size_base_x += pSct->sizeX;
+                e.p->m_Size_base_y += pSct->sizeY;
             }
             if (pSct->add & 4) {
                 f32 c;
@@ -1429,10 +1429,10 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_a = (u8) c;
-                e.p->colR = (f32) e.p->m_Col_start_r;
-                e.p->colG = (f32) e.p->m_Col_start_g;
-                e.p->colB = (f32) e.p->m_Col_start_b;
-                e.p->colA = (f32) e.p->m_Col_start_a;
+                e.p->m_Col_r = (f32) e.p->m_Col_start_r;
+                e.p->m_Col_g = (f32) e.p->m_Col_start_g;
+                e.p->m_Col_b = (f32) e.p->m_Col_start_b;
+                e.p->m_Col_a = (f32) e.p->m_Col_start_a;
             }
         }
     } else {
@@ -1440,7 +1440,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
     }
     if (ret == 0) {
         *out = EspGetDmyPtr();
-        if (e.p->flag & 1) {
+        if (e.p->m_Be_flg & 1) {
             PushEsp(e.p);
         }
         return 0;

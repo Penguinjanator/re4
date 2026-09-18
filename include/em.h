@@ -83,7 +83,7 @@ class cLight;      // light.h
 class cEm : public cModel {
 public:
     s16 hp;               // 0x320
-    s16 hpMax;            // 0x322
+    s16 hp_max;            // 0x322
     // 0x324 .. 0x33C: the cDmgInfo (em.cpp constructs it explicitly; a class with a constructor
     // cannot sit in a union directly) and the same bytes under the names the other units use.
     union {
@@ -127,7 +127,7 @@ public:
     u8 pad_38E[2];
     void (*pScenario)(cEm*);  // 0x390  em_sub EmScenario: called with the enemy when set
     u8 pad_394[4];
-    u8 emsetNo;           // 0x398
+    u8 emset_no;           // 0x398
     u8 pad_399[3];
     union {
         struct {
@@ -140,10 +140,10 @@ public:
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
     f32 catchTurn;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it)
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
-    u8 rckFlag;           // 0x3BC  route_ck: bit0 = rckNear valid this frame (RouteCk clears it)
-    s8 rckPoint;          // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
-    s8 rckNext;           // 0x3BE  route_ck: way point nearest to the target
-    s8 rckNear;           // 0x3BF  route_ck: way point nearest to the enemy
+    u8 RckStat;           // 0x3BC  route_ck: bit0 = RckNear valid this frame (RouteCk clears it)
+    s8 RckMy;             // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
+    s8 RckTo;             // 0x3BE  route_ck: way point nearest to the target
+    s8 RckNear;           // 0x3BF  route_ck: way point nearest to the enemy
     u8 pad_3C0[4];
     u32 status;           // 0x3C4  setStatus / clearStatus / checkStatus bits (bit0 = in battle, bit1, bit11)
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
@@ -151,8 +151,8 @@ public:
     u8 x3D0;              // 0x3D0  (em_set: list entry byte 0xB)
     u8 itemFlag;          // 0x3D1  setItem 5th argument (setNoItem: 0)
     u8 pad_3D2[4];
-    u16 itemNo;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
-    u16 itemNum;          // 0x3D8  setItem b
+    u16 Item_id;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
+    u16 Item_num;          // 0x3D8  setItem b
     u16 Item_flg;          // 0x3DA  setItem c
     u16 Auto_item_flg;          // 0x3DC  setItem d
     u8 pad_3DE[2];
@@ -203,7 +203,7 @@ public:
             f32 blendRate500;     // 0x500  player: em2b plBlendMotSet: neckMot blend rate source (the strangle button mash 0..255)
             u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
             cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
-            cEm* pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
+            cEm* m_pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
             class cObjSpear* pSpear;  // 0x510  player: the harpoon in hand (pl0f plboatSetSpear / plboatSpearThrow)
             f32 sightRate;        // 0x514  player: pl0f harpoon aim: vertical sight rate (-0.3927 .. 0.3927)
             int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
@@ -222,13 +222,13 @@ public:
             u8 m_Hokan;            // 0x409
             u8 m_Timer;            // 0x40A  timer
             u8 pad_40B;
-            f32 subBlendRate;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
-            f32 subAng;           // 0x410  angle to the player (analyze)
-            f32 subDist;          // 0x414  distance to the player (analyze)
-            Vec subTarget;        // 0x418  position to walk to
+            f32 m_Blend;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
+            f32 dir;           // 0x410  angle to the player (analyze)
+            f32 dist;          // 0x414  distance to the player (analyze)
+            Vec distPos;        // 0x418  position to walk to
             f32 sub424;           // 0x424
             Vec subOfs;           // 0x428  offset behind the player (atckPos)
-            u32 subPlStatus;      // 0x434  PlGetStatus() of the frame
+            u32 plStat;      // 0x434  PlGetStatus() of the frame
             u32 satAttr;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
             Vec satCross;           // 0x43C  hit point of the action wall check (actionCheck)
             Vec satNorm;           // 0x448  its normal
@@ -263,25 +263,25 @@ public:
     f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
     EmHitInfo subHit[3];  // 0x5CC .. 0x668  cSubChar: extra hit boxes (YarareAdd in cSubChar::init)
     u8 pad_668[0x738 - 0x668];
-    int satCheckFlag;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
-    void (*pAuxFunc)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler
-    struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
-    void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
-    void* boss1;          // 0x748
-    Vec fallDir;          // 0x74C  player: -wallNrm of the ledge to drop from (pl_class fallCheck)
-    Vec jumpDir;          // 0x758  player: -normal of the jump-over wall (pl_class jumpCheck)
-    f32 jumpHeight;       // 0x764  player: floor height behind the jump wall minus pos.y
-    Vec actWallHit;       // 0x768  player: hit point of the action wall check (pl_class actWallCheck)
-    Vec actWallNrm;       // 0x774  player: its normal
-    u32 actWallAttr;      // 0x780  player: its scenario attribute (0 = no wall in front)
+    int m_pSatMask;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
+    void (*pFuncAux)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler
+    struct PlRoomEff* m_pEffRoom;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
+    void* m_pBoss;          // 0x744  player (pl_sub PlRegistBoss)
+    void* m_pBossRmf;          // 0x748
+    Vec m_FallVec;          // 0x74C  player: -wallNrm of the ledge to drop from (pl_class fallCheck)
+    Vec m_JumpVec;          // 0x758  player: -normal of the jump-over wall (pl_class jumpCheck)
+    f32 m_JumpAdjY;       // 0x764  player: floor height behind the jump wall minus pos.y
+    Vec m_ActCross;       // 0x768  player: hit point of the action wall check (pl_class actWallCheck)
+    Vec m_ActNorm;       // 0x774  player: its normal
+    u32 m_ActAttr;      // 0x780  player: its scenario attribute (0 = no wall in front)
     u8 pad_784[4];
-    class cPlWep* pWep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
-    class cPlNeck* pNeck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
-    class cPlWaist* pWaist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
-    class cPlBody* pBody; // 0x794  player: body / face / hand model set (pl_body.cpp, 0xF0 bytes)
+    class cPlWep* Wep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
+    class cPlNeck* Neck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
+    class cPlWaist* Waist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
+    class cPlBody* Body; // 0x794  player: body / face / hand model set (pl_body.cpp, 0xF0 bytes)
     u8 pad_798[8];
-    class cPlPush* pPush; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
-    class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
+    class cPlPush* Push; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
+    class cMotBase* MotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     union {
         Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)

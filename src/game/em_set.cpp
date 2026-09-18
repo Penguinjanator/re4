@@ -14,13 +14,13 @@ static int emSetDummy = 0;
 // Death bit of list entry `no` in the current enemy list (0 when no list is loaded).
 // Death bit table of the current enemy list (pG->em_dead[pG->emlist_no]); the original computes
 // it with byte arithmetic: the row offset is added to pG before the table offset.
-#define EM_DEAD_TBL() ((u32*) (pG->emlist_no * 0x20 + (u32) pG + 0x501C))
+#define EM_DEAD_TBL() ((u32*) (pG->em_list_no * 0x20 + (u32) pG + 0x501C))
 
 static inline u32 EmSetDieCk(u32 no)
 {
     u32 v;
 
-    if (pG->emlist_no >= 0) {
+    if (pG->em_list_no >= 0) {
         u32* tbl = EM_DEAD_TBL();
 
         v = tbl[no >> 5] & (0x80000000 >> (no & 31));
@@ -32,7 +32,7 @@ static inline u32 EmSetDieCk(u32 no)
 
 static inline void EmSetDieOn(u32 no)
 {
-    if (pG->emlist_no >= 0) {
+    if (pG->em_list_no >= 0) {
         u32* tbl = EM_DEAD_TBL();
 
         tbl[no >> 5] |= 0x80000000 >> (no & 31);
@@ -65,15 +65,15 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
     em->flags_3C8 = d->flags4;
     em->x3D0 = d->xB;
     em->x3CC = (f32) d->x1A * kx;
-    em->hpMax = em->hp = d->hp;
-    em->rot.x = (f32) d->rot[0] * kr;
-    em->rot.y = (f32) d->rot[1] * kr;
-    em->rot.z = (f32) d->rot[2] * kr;
+    em->hp_max = em->hp = d->hp;
+    em->ang.x = (f32) d->rot[0] * kr;
+    em->ang.y = (f32) d->rot[1] * kr;
+    em->ang.z = (f32) d->rot[2] * kr;
     em->pos.x = (f32) d->pos[0] * kp;
     em->pos.y = (f32) d->pos[1] * kp;
     em->pos.z = (f32) d->pos[2] * kp;
-    em->oldPos = em->pos;
-    em->emsetNo = no;
+    em->pos_old = em->pos;
+    em->emset_no = no;
 }
 
 // The same body as a macro for the two straight-line creators (EmSetFromList2, EmSetEvent). A pool
@@ -92,15 +92,15 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
         (em)->flags_3C8 = (d)->flags4;                                                    \
         (em)->x3D0 = (d)->xB;                                                             \
         (em)->x3CC = (f32) (d)->x1A * kx;                                                 \
-        (em)->hpMax = (em)->hp = (d)->hp;                                                 \
-        (em)->rot.x = (f32) (d)->rot[0] * kr;                                             \
-        (em)->rot.y = (f32) (d)->rot[1] * kr;                                             \
-        (em)->rot.z = (f32) (d)->rot[2] * kr;                                             \
+        (em)->hp_max = (em)->hp = (d)->hp;                                                 \
+        (em)->ang.x = (f32) (d)->rot[0] * kr;                                             \
+        (em)->ang.y = (f32) (d)->rot[1] * kr;                                             \
+        (em)->ang.z = (f32) (d)->rot[2] * kr;                                             \
         (em)->pos.x = (f32) (d)->pos[0] * kp;                                             \
         (em)->pos.y = (f32) (d)->pos[1] * kp;                                             \
         (em)->pos.z = (f32) (d)->pos[2] * kp;                                             \
-        (em)->oldPos = (em)->pos;                                                         \
-        (em)->emsetNo = (no);                                                             \
+        (em)->pos_old = (em)->pos;                                                         \
+        (em)->emset_no = (no);                                                             \
     } while (0)
 
 // Squared XZ distance to the player. The `x374 = 1e16` reset is a caller statement AFTER this call:
@@ -139,7 +139,7 @@ int checkListId(int no)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* em = emSetWork(i);
 
-        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+        if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return 0;
         }
     }
@@ -277,7 +277,7 @@ cEm* GetEmPtrFromList(int no)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* em = emSetWork(i);
 
-        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+        if ((em->be_flag & 0x201) == 1 && em->emset_no == (u8) no) {
             return em;
         }
     }
@@ -286,10 +286,10 @@ cEm* GetEmPtrFromList(int no)
 
 EmListData* GetListPtrFromEm(cEm* em)
 {
-    if (em->emsetNo == 0xFF) {
+    if (em->emset_no == 0xFF) {
         return 0;
     }
-    return EM_LIST(em->emsetNo);
+    return EM_LIST(em->emset_no);
 }
 
 u8 GetEmIdFromList(u32 no)
@@ -299,7 +299,7 @@ u8 GetEmIdFromList(u32 no)
     if (no >= 0xFF) {
         return 0xFF;
     }
-    list = (EmListData*) pG->emlist;
+    list = (EmListData*) pG->Em_list;
     return list[no].id;
 }
 
@@ -331,16 +331,16 @@ void EmSetDie(cEm* em)
     if (pG->flags_6C & 0x00080000) {
         return;
     }
-    if (EmSetDieCk(em->emsetNo)) {
+    if (EmSetDieCk(em->emset_no)) {
         return;
     }
-    EmSetDieOn(em->emsetNo);
+    EmSetDieOn(em->emset_no);
 }
 
 void EmSetDieCnt()
 {
-    CntInc(pG->em_die_cnt);
-    CntInc(pG->em_die_cnt2);
+    CntInc(pG->c_kill_cnt);
+    CntInc(pG->g_kill_cnt);
 }
 
 void EmSetRoomInit()

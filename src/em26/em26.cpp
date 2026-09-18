@@ -151,9 +151,9 @@ void em26DmCk(cEm26* em)
             Camera* cam = &pG->Cam;
             cModel* p = em->getPartsPtr(0);
 
-            if ((cam->param.pos.x - p->worldPos.x) * (cam->param.pos.x - p->worldPos.x)
-                    + (cam->param.pos.y - p->worldPos.y) * (cam->param.pos.y - p->worldPos.y)
-                    + (cam->param.pos.z - p->worldPos.z) * (cam->param.pos.z - p->worldPos.z) < 4000000.0f) {
+            if ((cam->param.pos.x - p->world.x) * (cam->param.pos.x - p->world.x)
+                    + (cam->param.pos.y - p->world.y) * (cam->param.pos.y - p->world.y)
+                    + (cam->param.pos.z - p->world.z) * (cam->param.pos.z - p->world.z) < 4000000.0f) {
                 EmDmBloodSet2(em, 0x1E, 7, 0, 0, 0);
             } else {
                 EmDmBloodSet2(em, 0x1E, 1, 0, 0, 0);
@@ -273,7 +273,7 @@ static void em26_R0_Init(cEm26* em)
         break;
     }
     em->setStatus(0xB);
-    em->motFlip = em26_flip_tbl;
+    em->pXFlip = em26_flip_tbl;
     if (Rnd() & 1) {
         w->flags |= 0x10;
     } else {
@@ -283,7 +283,7 @@ static void em26_R0_Init(cEm26* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 3, &ofs, &size, 2);
+        em->LightInfo.init2(0, 3, &ofs, &size, 2);
     }
     em->lockParts = 5;
     em->lockOfs.x = 0.0f;
@@ -298,8 +298,8 @@ static void em26_R0_Init(cEm26* em)
     zero = 0;
     em->setStatus(3);
     em->setStatus(1);
-    em->atari.flags &= ~0x100;
-    em->atari.flags |= 0x10;
+    em->atari.m_flag &= ~0x100;
+    em->atari.m_flag |= 0x10;
     YarareInit(em, 0.0f, -150.0f, -150.0f, 500.0f, 1200.0f, 2, 5);
     YarareAdd(em, &w->hit[0], 0.0f, -50.0f, -100.0f, 300.0f, 350.0f, 5, 5);
     YarareAdd(em, &w->hit[1], 0.0f, 0.0f, -200.0f, 100.0f, 200.0f, 0x18, 5);
@@ -370,8 +370,8 @@ static void em26_R1_Wait(cEm26* em)
     if (w->dmgTotal > 500) {
         cModel* p = em->getPartsPtr(4);
 
-        if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x)
-                + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z) < 1000000.0f
+        if ((p->world.x - pPL->pos.x) * (p->world.x - pPL->pos.x)
+                + (p->world.z - pPL->pos.z) * (p->world.z - pPL->pos.z) < 1000000.0f
             && fabsf(em->pos.y - pPL->pos.y) < 500.0f) {
             EmRoutineSet(em, 1, 1, 0, 0);
         }
@@ -384,7 +384,7 @@ static void em26_R1_Atk(cEm26* em)
 
     switch (em->r_no_2) {
     case 0: {
-        f32 ang = Muku(&em->pos, &pPL->pos, em->rot.y, PI);
+        f32 ang = Muku(&em->pos, &pPL->pos, em->ang.y, PI);
         int mode = 1;
 
         if (w->flags & 0x10) {
@@ -489,7 +489,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         em->setStatus(8);
         EmSetDropItem(em);
         EmSetDie(em);
-        switch (em->emsetNo % 5) {
+        switch (em->emset_no % 5) {
         case 0:
         default:
             seq = ARC(0x11);
@@ -512,7 +512,7 @@ static void em26_R1_Die_Normal(cEm26* em)
             mode = 0x41;
         }
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) seq, 0, mode, 0);
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         SndStop(w->sndId, 0);
         w->sndId = SndCall(8, 8, &em->pos, em->id, 0, em);
         EstSet((int) em, -1, 0, 0, 0x1E, 2, 0, 0, (u32) em, 0);
@@ -522,7 +522,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         if (w->flags & 0x20) {
             cModelInfo* info;
 
-            for (info = em->pInfo; info; info = info->pNext) {
+            for (info = em->pModelInfo; info; info = info->pList) {
                 if (info->color[0] > 0x20) {
                     info->color[0] -= 0x20;
                 }
@@ -532,7 +532,7 @@ static void em26_R1_Die_Normal(cEm26* em)
         if (MotionMoveF(em, 0)) {
             cModel* p = em->getPartsPtr(2);
 
-            EstSet(0, -1, &p->worldPos, &em->rot, 0x1E, 4, 0, 0, 0, 0);
+            EstSet(0, -1, &p->world, &em->ang, 0x1E, 4, 0, 0, 0, 0);
             em->r_no_2++;
         }
         break;
@@ -564,11 +564,11 @@ int em26AtkCk(cEm26* em)
     {
         EmAtkInfo* atk = &em26_atk_info;
         cModel* p = em->getPartsPtr(4);
-        int hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+        int hit = EmAtkHitCk(atk, &p->world, &p->world_old, 0);
 
         if (hit) {
             if (hit & 1) {
-                EmPlBloodSet2(em, &p->oldWorldPos, 1, 0x1E, 8);
+                EmPlBloodSet2(em, &p->world_old, 1, 0x1E, 8);
                 w->atkHit = 1;
             }
             QuakeExec(0, 0, 5, 22.0f, 2);

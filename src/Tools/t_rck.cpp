@@ -174,7 +174,7 @@ void rckInit()
     TOOL_FLAG(OFS_DISP_FLG) |= 0x02000000;
     memclr_asm(RCK, sizeof(RckWork));
     RCK->mode = 2;
-    RCK->savedRtp = pGS->pRoomRtp;
+    RCK->savedRtp = pGS->Rtp;
     RCK->cur = -1;
     RCK->near = -1;
     RCK->catchTimer = zero;
@@ -182,17 +182,17 @@ void rckInit()
     RCK->x290 = RCK->x298 = RCK->curX = (Screen.x + Screen.width) * 0.5f;
     RCK->x294 = RCK->x29C = RCK->curY = (Screen.y + Screen.height) * 0.5f;
     RCK->camMode = zero;
-    if (pGS->pRoomRtp != NULL) {
-        rckMakeEditData(pG->pRoomRtp);
+    if (pGS->Rtp != NULL) {
+        rckMakeEditData(pG->Rtp);
     } else {
         rckFileLoad(0);
     }
-    pG->pRoomRtp = RCK_SAVE;
+    pG->Rtp = RCK_SAVE;
 }
 
 static void tool_quit()
 {
-    pG->pRoomRtp = RCK->savedRtp;
+    pG->Rtp = RCK->savedRtp;
     TutilQuitDefault();
     TOOL_FLAG(OFS_STATUS_FLG) &= ~0x80000000;
     TOOL_FLAG(OFS_STOP_FLG) &= ~0x00200000;

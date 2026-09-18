@@ -34,12 +34,12 @@ struct EvtFocusData {
 // cDbgEditWindow<EventMessageData::MessElem> rows.
 struct EventMessageData {
     struct MessElem {
-        int flag;      // 0x00  bit 0: in use
-        int no;        // 0x04  row number
-        int cutNo;     // 0x08
-        int frame;     // 0x0C
-        int messNo;    // 0x10  -1: continue the previous message
-        int timer;     // 0x14
+        int be_flag;      // 0x00  bit 0: in use
+        int No;        // 0x04  row number
+        int CutNo;     // 0x08
+        int Frame;     // 0x0C
+        int MessNo;    // 0x10  -1: continue the previous message
+        int Timer;     // 0x14
     };
     MessElem elem[100];  // 0x000
     int num;             // 0x960
@@ -52,35 +52,35 @@ struct EvtHdrCopy {
 
 class ToolEvt {
 public:
-    s16 mode;             // 0x00  main routine (0 menu, 1 preview, 2 exit)
-    s16 step;             // 0x02  preview step
+    s16 r_no_0;             // 0x00  main routine (0 menu, 1 preview, 2 exit)
+    s16 r_no_1;             // 0x02  preview step
     s16 r_no_2;              // 0x04
     s16 r_no_3;              // 0x06
-    s16 subMode;          // 0x08  preview sub routine (0 menu, 1 fog, 2 focus)
+    s16 r_no_0_sub;          // 0x08  preview sub routine (0 menu, 1 fog, 2 focus)
     s16 r_no_1_sub;              // 0x0A
     s16 r_no_2_sub;              // 0x0C
     s16 r_no_3_sub;              // 0x0E
-    s16 stopWait;         // 0x10  frames the start button is held before the stop toggles
-    s16 startWait;        // 0x12  frames before the event starts
-    u32 flags;            // 0x14
+    s16 FFTimer;         // 0x10  frames the start button is held before the stop toggles
+    s16 StopTimer;        // 0x12  frames before the event starts
+    u32 EtcFlag;            // 0x14
     u32 ListCur;              // 0x18
     u32 ListBase;              // 0x1C
-    int capCnt;           // 0x20  capture frame counter
-    u8 curveNo;           // 0x24  edited curve (0 start / near, 1 end / far)
-    s8 menuCur;           // 0x25  main menu cursor
-    s8 subCur;            // 0x26  preview menu cursor
-    s8 fogCur;            // 0x27  fog menu cursor
-    s8 focusCur;          // 0x28  focus menu cursor
+    int CaptureTimer;           // 0x20  capture frame counter
+    u8 CurveNo;           // 0x24  edited curve (0 start / near, 1 end / far)
+    s8 CursolMain;           // 0x25  main menu cursor
+    s8 CursolSub;            // 0x26  preview menu cursor
+    s8 CursolFog;            // 0x27  fog menu cursor
+    s8 CursolFocus;          // 0x28  focus menu cursor
     u8 pad_29[3];
     void* pEvd;           // 0x2C  event file (8,000,000 bytes)
-    u8 camMode;           // 0x30  debug camera on
-    u8 camCnt;            // 0x31
-    char fileName[0x22];  // 0x32  selected file name
+    u8 DebugCameraFlag;           // 0x30  debug camera on
+    u8 DebugCameraTimer;            // 0x31
+    char ToolFileName[0x22];  // 0x32  selected file name
     EvtHdrCopy hdr;       // 0x54
     u8 pad_94[4];
     cLightTool* pLightTool;  // 0x98
     JOY* pJoy0;           // 0x9C  &Joy[0] (&Joy[2] while a sub tool runs)
-    JOY* pJoy1;           // 0xA0  &Joy[1] (&Joy[3])
+    JOY* pJoy2;           // 0xA0  &Joy[1] (&Joy[3])
     EvtFogData fog;       // 0xA4
     EvtFocusData focus;   // 0x8AC
     DbSctrlWork* pSctrl;  // 0x10BC  (1,000,000 bytes)
@@ -88,9 +88,9 @@ public:
     u8 pad_10E0[0x28];
     u32 x1108;            // 0x1108
     u8 pad_110C[4];
-    EventMessageData* pMess;  // 0x1110  (1,000,000 bytes)
-    char room[0x10];      // 0x1114  "r10b" of the file name
-    char no[0x10];        // 0x1124  "s10"
+    EventMessageData* PMesDat;  // 0x1110  (1,000,000 bytes)
+    char roomNo[0x10];      // 0x1114  "r10b" of the file name
+    char eventNo[0x10];        // 0x1124  "s10"
     u8 pad_1134[4];
 
     ToolEvt();

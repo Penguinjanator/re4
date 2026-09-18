@@ -63,18 +63,18 @@ inline void cSceObj::addRot(Vec* d)
         return;
     }
     if (flags & 4) {
-        r = obj->pParts->rot;
+        r = obj->pParts->ang;
     } else {
-        r = obj->rot;
+        r = obj->ang;
     }
     PSVECAdd(&r, d, &out);
     out.x = LIMIT_ANGLE(out.x);
     out.y = LIMIT_ANGLE(out.y);
     out.z = LIMIT_ANGLE(out.z);
     if (flags & 4) {
-        obj->pParts->rot = out;
+        obj->pParts->ang = out;
     } else {
-        obj->rot = out;
+        obj->ang = out;
     }
     obj->matUpdate();
     for (i = 0; i < 4; i++) {
@@ -109,9 +109,9 @@ inline void cSceObj::setRotTo(Vec* target)
 
     if (obj) {
         if (flags & 4) {
-            PSVECSubtract(target, &obj->pParts->rot, &d);
+            PSVECSubtract(target, &obj->pParts->ang, &d);
         } else {
-            PSVECSubtract(target, &obj->rot, &d);
+            PSVECSubtract(target, &obj->ang, &d);
         }
         addRot(&d);
     }
@@ -131,9 +131,9 @@ inline void cSceObj::moveTo(Vec* tp, Vec* tr)
 
         if (o) {
             if (flags & 4) {
-                PSVECSubtract(tr, &o->pParts->rot, &d);
+                PSVECSubtract(tr, &o->pParts->ang, &d);
             } else {
-                PSVECSubtract(tr, &o->rot, &d);
+                PSVECSubtract(tr, &o->ang, &d);
             }
             addRot(&d);
         }
@@ -393,7 +393,7 @@ void cSceObj::initMove1_pos(cModel* o, u32 nFrame, Vec* dp, f32 acc, f32 dec)
     if (o) {
         obj = o;
         basePos = o->pos;
-        baseRot = o->rot;
+        baseRot = o->ang;
         obj->be_flag |= 0x20;
     }
     setMove1_pos(nFrame, dp, acc, dec);
@@ -411,9 +411,9 @@ void cSceObj::initMove1_ang(cModel* o, u32 nFrame, Vec* dr, f32 acc, f32 dec, in
         obj = o;
         basePos = o->pos;
         if (flg & 4) {
-            baseRot = o->pParts->rot;
+            baseRot = o->pParts->ang;
         } else {
-            baseRot = o->rot;
+            baseRot = o->ang;
         }
         obj->be_flag |= 0x20;
     }
@@ -453,7 +453,7 @@ void cSceObj::initMove3_y(cModel* o, Vec* v, f32 grav, f32 h, f32 bnc)
     if (o) {
         obj = o;
         basePos = o->pos;
-        baseRot = o->rot;
+        baseRot = o->ang;
         obj->be_flag |= 0x20;
     }
     setMove3_y(v, grav, h, bnc);

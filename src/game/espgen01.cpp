@@ -12,28 +12,28 @@
 // Effect controller 01: lens flare. Projects the light position to the screen and lays the
 // est table sprites along the line to the screen centre; HideCheck samples the Z buffer.
 struct Espgen01Work {
-    Vec pos;           // 0x14 light offset (from the parts)
-    Vec wpos;          // 0x20 world position
-    Vec dir;           // 0x2C light direction
-    f32 ang;           // 0x38 half of the visible cone angle
+    Vec offset;           // 0x14 light offset (from the parts)
+    Vec pos;           // 0x20 world position
+    Vec dir_vec;           // 0x2C light direction
+    f32 dir_ang;           // 0x38 half of the visible cone angle
     f32 sizeRate;      // 0x3C
     f32 scaleRate;     // 0x40
     f32 dist;          // 0x44 fade distance
     u8 pad_48[4];
     u16 parts;         // 0x4C
     u8 pad_4E[2];
-    cModel* model;     // 0x50
-    u8 partsNo;        // 0x54
+    cModel* pMod;     // 0x50
+    u8 parts_no;        // 0x54
     u8 pad_55;
-    u16 flags;         // 0x56 bit0: directional, bit1: hide check
-    f32 sx;            // 0x58 screen position
-    f32 sy;            // 0x5C
-    f32 hideAlpha;     // 0x60
-    f32 hideRadius;    // 0x64
+    u16 flg;         // 0x56 bit0: directional, bit1: hide check
+    f32 pos_x;            // 0x58 screen position
+    f32 pos_y;            // 0x5C
+    f32 hide_alpha;     // 0x60
+    f32 hide_r;    // 0x64
     u8 owner;          // 0x68
-    u8 estId;          // 0x69
-    u16 camCnt;        // 0x6A frames to hide after a camera change
-    u32 seed;          // 0x6C
+    u8 est_id;          // 0x69
+    u16 delay_cnt;        // 0x6A frames to hide after a camera change
+    u32 Rand_seed;          // 0x6C
 };
 
 extern "C" {
@@ -88,39 +88,39 @@ void SetEsp(EspgenWork* w)
     f32 x0;
     f32 s;
 
-    head = EspGetEstAddr(p->owner, p->estId, 0);
+    head = EspGetEstAddr(p->owner, p->est_id, 0);
     if (head == NULL) {
-        pLog->err(0, 0, "ESP_FLARE : OWNER[%d] EST_ID[%d] invalid", p->owner, p->estId);
+        pLog->err(0, 0, "ESP_FLARE : OWNER[%d] EST_ID[%d] invalid", p->owner, p->est_id);
         PushEspgen(w);
         return;
     }
     num = GetEstTblnum(head);
-    if (p->model == NULL || p->partsNo == 0xFE) {
-        p->wpos = p->pos;
-        dir = p->dir;
+    if (p->pMod == NULL || p->parts_no == 0xFE) {
+        p->pos = p->offset;
+        dir = p->dir_vec;
     } else {
         cModel* part;
 
-        if (p->partsNo >= p->model->nParts) {
-            pLog->err(0, 0, "ESP_FLARE :PARTS_NO[%d] is invalid(MAX:%d).", p->partsNo, p->model->nParts);
+        if (p->parts_no >= p->pMod->nParts) {
+            pLog->err(0, 0, "ESP_FLARE :PARTS_NO[%d] is invalid(MAX:%d).", p->parts_no, p->pMod->nParts);
             PushEspgen(w);
             return;
         }
-        part = p->model->getPartsPtr(p->partsNo);
-        PSMTXMultVec(part->mat, &p->pos, &p->wpos);
+        part = p->pMod->getPartsPtr(p->parts_no);
+        PSMTXMultVec(part->mat, &p->offset, &p->pos);
         PSMTXCopy(part->mat, m);
         m[0][3] = 0.0f;
         m[1][3] = 0.0f;
         m[2][3] = 0.0f;
-        PSMTXMultVec(m, &p->dir, &dir);
+        PSMTXMultVec(m, &p->dir_vec, &dir);
     }
-    PSMTXMultVec(pG->Cam.viewMat, &p->wpos, &v);
-    PSMTX44MultVec(pG->Cam.projMat, &v, &scr);
+    PSMTXMultVec(pG->Cam.v_mat, &p->pos, &v);
+    PSMTX44MultVec(pG->Cam.ProjMat, &v, &scr);
     scr.x = (scr.x * 0.5f + 0.5f) * Screen.width;
     scr.y = (-scr.y * 0.5f + 0.5f) * Screen.height;
     scr.z = 0.0f;
-    p->sx = scr.x;
-    p->sy = scr.y;
+    p->pos_x = scr.x;
+    p->pos_y = scr.y;
     if (v.z < 0.0f) {
         v.x = Screen.width * 0.5f;
         v.y = Screen.height * 0.5f;
@@ -129,12 +129,12 @@ void SetEsp(EspgenWork* w)
         alpha = PSVECMag(&d) / (Screen.height * (p->sizeRate * 0.7f));
         alpha *= alpha;
         alpha = 1.0f - alpha;
-        if (p->flags & 1) {
+        if (p->flg & 1) {
             alpha *= GetDirAlpha(w, &dir);
         }
         alpha *= GetDistAlpha(w);
-        if (p->flags & 2) {
-            alpha *= p->hideAlpha;
+        if (p->flg & 2) {
+            alpha *= p->hide_alpha;
         }
         if (alpha > 0.01f) {
             esp = SetEstTbl(w, head, 0);
@@ -142,19 +142,19 @@ void SetEsp(EspgenWork* w)
                 PushEspgen(w);
                 return;
             }
-            esp->partsNo = 0xF8;
-            esp->life = 1;
-            x0 = esp->pos.x;
-            esp->pos.x = p->sx;
-            esp->pos.y = p->sy;
-            esp->colA *= alpha;
+            esp->m_Parts_no = 0xF8;
+            esp->m_Life_max = 1;
+            x0 = esp->m_Pos.x;
+            esp->m_Pos.x = p->pos_x;
+            esp->m_Pos.y = p->pos_y;
+            esp->m_Col_a *= alpha;
             if (p->scaleRate != 0.0f) {
                 s = alpha * p->scaleRate + (1.0f - p->scaleRate);
                 if (s < 0.0f) {
                     s = 0.0f;
                 }
-                esp->sizeX *= s;
-                esp->sizeY *= s;
+                esp->m_Size_base_x *= s;
+                esp->m_Size_base_y *= s;
             }
             for (i = 1; i < num; i++) {
                 esp = SetEstTbl(w, head, i);
@@ -162,21 +162,21 @@ void SetEsp(EspgenWork* w)
                     PushEspgen(w);
                     return;
                 }
-                PSVECScale(&d, &v, (esp->pos.x - x0) / (Screen.width * 0.5f - x0));
-                esp->partsNo = 0xF8;
-                esp->life = 1;
-                esp->pos.x = p->sx;
-                esp->pos.y = p->sy;
-                esp->colA *= alpha;
+                PSVECScale(&d, &v, (esp->m_Pos.x - x0) / (Screen.width * 0.5f - x0));
+                esp->m_Parts_no = 0xF8;
+                esp->m_Life_max = 1;
+                esp->m_Pos.x = p->pos_x;
+                esp->m_Pos.y = p->pos_y;
+                esp->m_Col_a *= alpha;
                 if (p->scaleRate != 0.0f) {
                     s = alpha * p->scaleRate + (1.0f - p->scaleRate);
                     if (s < 0.0f) {
                         s = 0.0f;
                     }
-                    esp->sizeX *= s;
-                    esp->sizeY *= s;
+                    esp->m_Size_base_x *= s;
+                    esp->m_Size_base_y *= s;
                 }
-                PSVECAdd(&v, &esp->pos, &esp->pos);
+                PSVECAdd(&v, &esp->m_Pos, &esp->m_Pos);
             }
         }
     }
@@ -199,7 +199,7 @@ cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no)
 
     rec = &rec[no];
     PSMTXIdentity(m);
-    EspSeqSet(rec, &w->info, &p->seed, p->model, &m, 0, 0.0f, &esp, NULL, NULL);
+    EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &m, 0, 0.0f, &esp, NULL, NULL);
     return esp;
 }
 
@@ -212,9 +212,9 @@ f32 GetDistAlpha(EspgenWork* w)
 
     if (p->dist != 0.0f) {
         cam = &pG->Cam;
-        d.x = p->wpos.x - cam->param.pos.x;
-        d.y = p->wpos.y - cam->param.pos.y;
-        d.z = p->wpos.z - cam->param.pos.z;
+        d.x = p->pos.x - cam->param.pos.x;
+        d.y = p->pos.y - cam->param.pos.y;
+        d.z = p->pos.z - cam->param.pos.z;
         a = PSVECMag(&d) / p->dist;
         if (a > 1.0f) {
             a = 1.0f;
@@ -236,11 +236,11 @@ f32 GetDirAlpha(EspgenWork* w, Vec* dir)
     f32 a;
     f32 c;
 
-    ang = LIMIT_ANGLE(p->ang);
+    ang = LIMIT_ANGLE(p->dir_ang);
     cam = &pG->Cam;
-    d.x = p->wpos.x - cam->param.pos.x;
-    d.y = p->wpos.y - cam->param.pos.y;
-    d.z = p->wpos.z - cam->param.pos.z;
+    d.x = p->pos.x - cam->param.pos.x;
+    d.y = p->pos.y - cam->param.pos.y;
+    d.z = p->pos.z - cam->param.pos.z;
 #line 339 "D:/Bio4/Prog/espgen01.cpp"
     VECNormalize(&d, &d);
     a = -PSVECDotProduct(&d, dir);
@@ -276,10 +276,10 @@ void HideCheck(cEsp* esp)
     f32 m23;
     f32 iw;
 
-    if (!(p->flags & 2)) {
+    if (!(p->flg & 2)) {
         return;
     }
-    PSMTXMultVec(pG->Cam.viewMat, &p->wpos, &v);
+    PSMTXMultVec(pG->Cam.v_mat, &p->pos, &v);
     v.z += 150.0f;
     tmp = 1.0f / (ZFAR - ZNEAR);
     m22 = -(ZNEAR) * tmp;
@@ -296,8 +296,8 @@ void HideCheck(cEsp* esp)
     GXDrawDone();
     cnt = 0;
     for (i = 0; i < 12; i++) {
-        s.x = hide_x_tbl[i] * p->hideRadius + p->sx;
-        s.y = hide_y_tbl[i] * p->hideRadius + p->sy;
+        s.x = hide_x_tbl[i] * p->hide_r + p->pos_x;
+        s.y = hide_y_tbl[i] * p->hide_r + p->pos_y;
         if (s.x < 0.0f || s.x >= Screen.width || s.y < border + 0.0f || s.y >= Screen.height - border) {
             cnt++;
         } else {
@@ -308,7 +308,7 @@ void HideCheck(cEsp* esp)
         }
     }
     if (cnt == 12) {
-        p->hideAlpha = 0.0f;
+        p->hide_alpha = 0.0f;
     } else {
         a = 1.0f - (f32) cnt * 0.1f;
         if (a < 0.0f) {
@@ -317,14 +317,14 @@ void HideCheck(cEsp* esp)
         if (a > 1.0f) {
             a = 1.0f;
         }
-        p->hideAlpha = (a - p->hideAlpha) * 0.6f + p->hideAlpha;
+        p->hide_alpha = (a - p->hide_alpha) * 0.6f + p->hide_alpha;
     }
     if (CamCtrl.IsChangeCamera()) {
-        p->camCnt = 2;
+        p->delay_cnt = 2;
     }
-    if (p->camCnt != 0) {
-        p->camCnt--;
-        p->hideAlpha = 0.0f;
+    if (p->delay_cnt != 0) {
+        p->delay_cnt--;
+        p->hide_alpha = 0.0f;
     }
 }
 
@@ -338,19 +338,19 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     f32 ry;
     f32 fov;
 
-    p->pos = *(Vec*) &rec->x0C;
+    p->offset = *(Vec*) &rec->x0C;
     p->owner = rec->xC8;
-    p->estId = rec->xC9;
-    p->flags = 0;
+    p->est_id = rec->xC9;
+    p->flg = 0;
     p->parts = parts;
-    p->model = model;
-    p->partsNo = rec->x7;
+    p->pMod = model;
+    p->parts_no = rec->x7;
     fov = rec->xF8;
     if (fov != 0.0f) {
-        p->ang = fov * 6.2831855f / 360.0f * 0.5f;
-        p->dir.x = 0.0f;
-        p->dir.z = 1.0f;
-        p->dir.y = 0.0f;
+        p->dir_ang = fov * 6.2831855f / 360.0f * 0.5f;
+        p->dir_vec.x = 0.0f;
+        p->dir_vec.z = 1.0f;
+        p->dir_vec.y = 0.0f;
         rx = rec->xF0 * 6.2831855f / 360.0f;
         ry = rec->xF4 * 6.2831855f / 360.0f;
         rx = LIMIT_ANGLE(rx);
@@ -358,10 +358,10 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         PSMTXRotRad(m1, 'Y', ry);
         PSMTXRotRad(m2, 'X', rx);
         PSMTXConcat(m1, m2, m1);
-        PSMTXMultVec(m1, &p->dir, &p->dir);
+        PSMTXMultVec(m1, &p->dir_vec, &p->dir_vec);
 #line 482 "D:/Bio4/Prog/espgen01.cpp"
-        VECNormalize(&p->dir, &p->dir);
-        p->flags |= 1;
+        VECNormalize(&p->dir_vec, &p->dir_vec);
+        p->flg |= 1;
     }
     p->sizeRate = 1.0f - rec->xD8 * 0.01f;
     if (p->sizeRate > 1.0f) {
@@ -370,8 +370,8 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->scaleRate = rec->xDC * 0.01f;
     p->dist = rec->xE0;
     if (rec->xE4 != 0.0f) {
-        p->hideRadius = rec->xE4;
-        p->flags |= 2;
+        p->hide_r = rec->xE4;
+        p->flg |= 2;
     }
     return 1;
 }

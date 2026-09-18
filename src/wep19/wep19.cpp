@@ -33,7 +33,7 @@ void Wep19_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep19_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x4D, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x11);
@@ -49,7 +49,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     Vec pos;
     Vec rot;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
     default:
         greType = 1;
@@ -70,14 +70,14 @@ cObjWep* equipWeapon(cPlayer* pl)
         greType = 0xA;
         break;
     }
-    pl->pWep->pObj = 0;
-    pl->pWep->pObj2 = 0;
+    pl->Wep->m_pWep = 0;
+    pl->Wep->pObj2 = 0;
     obj = (cObjWep*) ObjMgr.createBack(0x3C);
     if (obj == 0) {
         goto fail;
     }
     obj->init(pl);
-    pl->pWep->pObj = obj;
+    pl->Wep->m_pWep = obj;
     pos.x = -145.0f;
     pos.y = -75.0f;
     pos.z = -120.0f;
@@ -85,7 +85,7 @@ cObjWep* equipWeapon(cPlayer* pl)
     rot.y = 1.134464f;
     rot.z = 2.6179938f;
     obj->parentSet(pl, 0x11, &pos, &rot);
-    if (pG->wep_no == 0x19 || pG->wep_no == 0x1F || pG->wep_no == 0x20) {
+    if (pG->weapon_no == 0x19 || pG->weapon_no == 0x1F || pG->weapon_no == 0x20) {
         obj->pParts->scale.x = 0.5f;
         obj->pParts->scale.y = 0.5f;
         obj->pParts->scale.z = 0.5f;
@@ -107,16 +107,16 @@ cObjWep* equipWeapon(cPlayer* pl)
     rot.y = 0.0f;
     rot.z = 0.0f;
     obj->parentSet(pl, 0xA, &pos, &rot);
-    if (pG->wep_no == 0x19 || pG->wep_no == 0x1F || pG->wep_no == 0x20) {
+    if (pG->weapon_no == 0x19 || pG->weapon_no == 0x1F || pG->weapon_no == 0x20) {
         obj->pParts->scale.x = 0.5f;
         obj->pParts->scale.y = 0.5f;
         obj->pParts->scale.z = 0.5f;
     }
-    pl->pWep->pObj2 = obj;
+    pl->Wep->pObj2 = obj;
     if (ItemMgr.bulletNum() == 0) {
         obj->setDisp(0, 0);
     }
-    return pl->pWep->pObj;
+    return pl->Wep->m_pWep;
 }
 
 void ObjHandGre_init(cObj* obj)
@@ -129,36 +129,36 @@ void cObjHandGre::init(cModel* parent)
     void* bin;
     void* tpl;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x13:
     default:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6B);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6B);
         wep.x24 = 1;
         break;
     case 0x16:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6D);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6D);
         wep.x24 = 2;
         break;
     case 0x17:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6F);
         wep.x24 = 0xE;
         break;
     case 0x19:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7E);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7E);
         wep.x24 = 8;
         break;
     case 0x1F:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7F);
         wep.x24 = 9;
         break;
     case 0x20:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x80);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x80);
         wep.x24 = 0xA;
         break;
     }
@@ -193,7 +193,7 @@ void cObjHandGre::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x13], WEP_ARC_PTR(0x0B));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x22));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x23));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x24));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x25));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x20));
@@ -207,16 +207,16 @@ void cObjHandGre::setMotion(cPlayer* pl)
         setDisp(0, 0);
     }
     if (num) {
-        pl->pWep->pObj2->setDisp(0, 1);
+        pl->Wep->pObj2->setDisp(0, 1);
     } else {
-        pl->pWep->pObj2->setDisp(0, 0);
+        pl->Wep->pObj2->setDisp(0, 0);
     }
     if (bulletNum()) {
         hand = WEP_ARC_PTR(0x7);
     } else {
-        hand = PL_ARC_PTR(pG->pPlArc, 0x12);
+        hand = PL_ARC_PTR(pG->pPlayer, 0x12);
     }
-    pl->pBody->initWepHand((u32) hand);
+    pl->Body->initWepHand((u32) hand);
     pl->setRightHand(1);
     pl->setLeftHand(0);
 }

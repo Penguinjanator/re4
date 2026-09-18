@@ -355,8 +355,8 @@ void tSceAtInit()
     pW->mesNum = loadMesName(buf, (char*) pW->mesName);
     sprintf(buf, "d:\\bio4/prog/head/cmesmes.h");
     pW->cmesNum = loadMesName(buf, (char*) pW->cmesName);
-    CamDbg.pad_10[0] = CamDbg.target_type;
-    CamDbg.target_type = 4;
+    CamDbg.pad_10[0] = CamDbg.m_target_type;
+    CamDbg.m_target_type = 4;
 }
 
 void set_filename()
@@ -397,7 +397,7 @@ static void tSceAtExit()
     case 9:
         file_unlock(pW->pathX);
         Debug_free(pW);
-        CamDbg.target_type = CamDbg.pad_10[0];
+        CamDbg.m_target_type = CamDbg.pad_10[0];
         TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
         SetToolLight(-1);
         TOOL_FLAG(0x5010) &= ~0x1000000;
@@ -420,9 +420,9 @@ static void tSceAtMainMenu()
     s8 sel;
 
     if (pW->loaded == 1) {
-        tSceAtMainMenuTbl[3].enable = 1;
+        tSceAtMainMenuTbl[3].Be_flg = 1;
     } else {
-        tSceAtMainMenuTbl[3].enable = 0;
+        tSceAtMainMenuTbl[3].Be_flg = 0;
     }
     sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, tSceAtMainMenuTbl, sizeof(tSceAtMainMenuTbl), &Joy[0]);
     if (sel >= 0) {
@@ -495,7 +495,7 @@ static void tSceAtAreaEdit_EditMenu()
     s8 sel;
     u8 valid = pW->copyValid;
 
-    tSceAtCreateMenu[1].enable = tSceAtCreateMenu[2].enable = tSceAtEditMenu[3].enable = tSceAtEditMenu[4].enable = valid;
+    tSceAtCreateMenu[1].Be_flg = tSceAtCreateMenu[2].Be_flg = tSceAtEditMenu[3].Be_flg = tSceAtEditMenu[4].Be_flg = valid;
     if (pCur->flag & 1) {
         sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, tSceAtEditMenu, sizeof(tSceAtEditMenu), &Joy[0]);
         switch (sel) {
@@ -683,7 +683,7 @@ void tSceAtAreaEdit_disp()
     eprintf(0x1AE, 0x34, 0, 0, "X:%.0f", pPL->pos.x);
     eprintf(0x1AE, 0x44, 0, 0, "Y:%.0f", pPL->pos.y);
     eprintf(0x1AE, 0x54, 0, 0, "Z:%.0f", pPL->pos.z);
-    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->rot.y);
+    eprintf(0x1AE, 0x64, 0, 0, "ANG:%f", pPL->ang.y);
 }
 
 static void tSceAtAreaEdit_AreaMove()
@@ -748,12 +748,12 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
 
     on = pCur->x37 & 2;
     if (on) on = 1;
-    menu[2].enable = on;
-    menu[3].enable = on;
+    menu[2].Be_flg = on;
+    menu[3].Be_flg = on;
     do { } while (0); // COMPILER-DIFF: #12 (ends the cse1 path from bb0; sched region split)
     on = PC(m5)->x38 & 8;
     if (on) on = 1;
-    menu[5].enable = on;
+    menu[5].Be_flg = on;
     x = pW->x + 0x80;
     y = pW->y;
     switch (sel) {
@@ -1071,14 +1071,14 @@ void tSceAtDataInput_door_PosSet()
     pW->saveRoom = pG->room_no;
     pW->saveX4F9E = pG->x4F9E;
     memcpy((u8*) pW + 0x14, &pPL->pos, sizeof(Vec));
-    memcpy((u8*) pW + 0x20, &pPL->rot, sizeof(Vec));
+    memcpy((u8*) pW + 0x20, &pPL->ang, sizeof(Vec));
     if (pCur->dstPos.x == (z = FCRef(zero)) && pCur->dstPos.y == z && pCur->dstPos.z == z) {
         GetNextPos(pCur->dstStage, pCur->dstRoom);
     } else {
-        FSet(pG->next_pos.x, pCur->dstPos.x);
-        FSet(pG->next_pos.y, pCur->dstPos.y);
-        FSet(pG->next_pos.z, pCur->dstPos.z);
-        FSet(pG->next_angle, pCur->dstAngle);
+        FSet(pG->NextPos.x, pCur->dstPos.x);
+        FSet(pG->NextPos.y, pCur->dstPos.y);
+        FSet(pG->NextPos.z, pCur->dstPos.z);
+        FSet(pG->NextY, pCur->dstAngle);
         U16Set(pG->room_id_prev, pG->room_id);
         U8Set(pG->Part_old, pG->x4F9E);
         U8Set(pG->next_stage, pCur->dstStage);
@@ -1102,10 +1102,10 @@ void tSceAtDataInput_door_PosSet()
                 spd = 1.0f;
             }
             Vec d = {0.0f, 0.0f, 0.0f};
-            d.x = spd * (f32) Joy[0].sx + d.x;
-            d.y = spd * (f32) Joy[0].sy + d.y;
+            d.x = spd * (f32) Joy[0].stickX + d.x;
+            d.y = spd * (f32) Joy[0].stickY + d.y;
             moveOnPlaneXZ(&d, &d);
-            d.y = spd * (f32) (int) Joy[0].trigR + d.y - spd * (f32) (int) Joy[0].trigL;
+            d.y = spd * (f32) (int) Joy[0].triggerRight + d.y - spd * (f32) (int) Joy[0].triggerLeft;
             PSVECAdd(&pPL->pos, &d, &pPL->pos);
             Draw_pos(&pPL->pos, 2000);
         } else {
@@ -1117,11 +1117,11 @@ void tSceAtDataInput_door_PosSet()
     FSet(pCur->dstPos.x, pPL->pos.x);
     FSet(pCur->dstPos.y, pPL->pos.y);
     FSet(pCur->dstPos.z, pPL->pos.z);
-    FSet(pCur->dstAngle, pPL->rot.y);
-    FSet(pG->next_pos.x, pW->savePos.x);
-    FSet(pG->next_pos.y, pW->savePos.y);
-    FSet(pG->next_pos.z, pW->savePos.z);
-    FSet(pG->next_angle, pW->saveRot.y);
+    FSet(pCur->dstAngle, pPL->ang.y);
+    FSet(pG->NextPos.x, pW->savePos.x);
+    FSet(pG->NextPos.y, pW->savePos.y);
+    FSet(pG->NextPos.z, pW->savePos.z);
+    FSet(pG->NextY, pW->saveRot.y);
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->x4F9E);
     U8Set(pG->next_stage, pW->saveStage);
@@ -1762,8 +1762,8 @@ static void tSceAtDataInput_cam_ctrl_main()
     AreaDataDisp(&pW->editArea, 0xA0FF8080, 1, NULL);                                      \
     AreaDataInfoDisp(&pW->editArea, pW->x, pW->y);                                         \
     AreaDataHelpDisp(&pW->editArea, (s16) (pW->x + 0xE0), (s16) (pW->y - 0x20));           \
-    pos.x = pW->editArea.u.eye.x;                                                          \
-    pos.y = pW->editArea.u.eye.y;                                                          \
+    pos.x = pW->editArea.u.eye.xz;                                                         \
+    pos.y = pW->editArea.u.eye.floor;                                                     \
     pos.z = pW->editArea.u.eye.z;                                                          \
     if (Joy[0].trg & JOY_B) {                                                              \
         pW->step = 0;                                                                      \
@@ -1785,8 +1785,8 @@ static void tSceAtDataInput_cam_ctrl_pos_edit()
             c->range2 = 500.0f;
             c->pad_10 = 1;
         } else {
-            pW->editArea.u.eye.x = c->pos.x;
-            pW->editArea.u.eye.y = c->pos.y;
+            pW->editArea.u.eye.xz = c->pos.x;
+            pW->editArea.u.eye.floor = c->pos.y;
             pW->editArea.u.eye.z = c->pos.z;
         }
         pW->step2++;
@@ -1994,8 +1994,8 @@ static void tSceAtDataInput_ladder_ETedit()
         if (l->posSet == 0) {
             l->posSet = 1;
         } else {
-            pW->editArea.u.eye.x = l->pos.x;
-            pW->editArea.u.eye.y = l->pos.y;
+            pW->editArea.u.eye.xz = l->pos.x;
+            pW->editArea.u.eye.floor = l->pos.y;
             pW->editArea.u.eye.z = l->pos.z;
         }
         pW->step2++;
@@ -2152,8 +2152,8 @@ static void tSceAtDataInput_hide_pos_edit()
         if (h->posSet == 0) {
             h->posSet = 1;
         } else {
-            pW->editArea.u.eye.x = h->pos.x;
-            pW->editArea.u.eye.y = h->pos.y;
+            pW->editArea.u.eye.xz = h->pos.x;
+            pW->editArea.u.eye.floor = h->pos.y;
             pW->editArea.u.eye.z = h->pos.z;
         }
         pW->step2++;
@@ -2287,8 +2287,8 @@ static void tSceAtDataInput_pos_jump_ETedit()
         if (j->posSet == 0) {
             j->posSet = 1;
         } else {
-            pW->editArea.u.eye.x = j->pos.x;
-            pW->editArea.u.eye.y = j->pos.y;
+            pW->editArea.u.eye.xz = j->pos.x;
+            pW->editArea.u.eye.floor = j->pos.y;
             pW->editArea.u.eye.z = j->pos.z;
         }
         pW->step2++;

@@ -205,10 +205,10 @@ int healing(u16 n)
             return 1;
         }
     } else if (ItemMgr.m_to_whom == 1) {
-        if ((s16) pG->sub_life < (s16) pG->sub_life_max) {
-            U16Set(pG->sub_life, n + pG->sub_life);
-            if ((s16) pG->sub_life > (s16) pG->sub_life_max) {
-                pG->sub_life = pG->sub_life_max;
+        if ((s16) pG->ashley_life < (s16) pG->ashley_life_max) {
+            U16Set(pG->ashley_life, n + pG->ashley_life);
+            if ((s16) pG->ashley_life > (s16) pG->ashley_life_max) {
+                pG->ashley_life = pG->ashley_life_max;
             }
             return 1;
         }
@@ -288,7 +288,7 @@ void cItemMgr::clear()
         p->flags = 0;
     }
     flagclear();
-    checkId = 0xFFFF;
+    used_id = 0xFFFF;
 }
 
 int cItemMgr::set_game(int no)
@@ -1207,7 +1207,7 @@ int cItemMgr::init()
     nItems = 0x180;
 #line 2508 "D:/Bio4/Prog/item.cpp"
     pItems = (ItemWork*) MEM_ALLOC(0x180 * sizeof(ItemWork), 1, 13);
-    pOrder = (ItemOrder*) MEM_ALLOC(nItems * sizeof(ItemOrder), 1, 13);
+    m_p_order_tbl = (ItemOrder*) MEM_ALLOC(nItems * sizeof(ItemOrder), 1, 13);
     if (pItems == 0) {
         return 0;
     }
@@ -1220,16 +1220,16 @@ int cItemMgr::init()
         // update_equiv_regs substitutes the constant afterwards.
         sz = 8 * sizeof(u32);
     }
-    nFlags = 8;
+    m_flag_num = 8;
 #line 2522 "D:/Bio4/Prog/item.cpp"
-    pFlags = (u32*) MEM_ALLOC(sz, 1, 13);
-    if (pFlags == 0) {
+    m_pAvailable = (u32*) MEM_ALLOC(sz, 1, 13);
+    if (m_pAvailable == 0) {
         Mem_free(pItems);
-        Mem_free(pOrder);
+        Mem_free(m_p_order_tbl);
         return 0;
     }
     flagclear();
-    checkId = 0xFFFF;
+    used_id = 0xFFFF;
     return 1;
 }
 
@@ -1745,13 +1745,13 @@ void cItemMgr::ordering(u16 id)
 
     for (i = 0; i < nItems; i++, p++) {
         if (itemUse(p, type) && id == p->id) {
-            pOrder[n].item = p;
-            pOrder[n].num = p->num;
+            m_p_order_tbl[n].p_item = p;
+            m_p_order_tbl[n].num = p->num;
             n++;
         }
     }
-    nOrder = n;
-    qsort(pOrder, n, sizeof(ItemOrder), order_cmp);
+    m_order_tbl_num = n;
+    qsort(m_p_order_tbl, n, sizeof(ItemOrder), order_cmp);
 }
 
 int addMoney(int n)
@@ -1934,12 +1934,12 @@ int cItemMgr::use(ItemWork* p)
                 ok = 1;
             }
         } else {
-            int level = lifeLevel(5, pG->sub_life_max, 600);
+            int level = lifeLevel(5, pG->ashley_life_max, 600);
 
             if (level <= 4) {
                 level++;
-                U16Set(pG->sub_life_max, 600);
-                pG->sub_life_max += (int) ((f32) (level * 120) + 0.5f);
+                U16Set(pG->ashley_life_max, 600);
+                pG->ashley_life_max += (int) ((f32) (level * 120) + 0.5f);
                 ok = 1;
             }
         }
@@ -2026,12 +2026,12 @@ int cItemMgr::use(ItemWork* p)
         {
             int no = p->id;
 
-            if (!(pFlags[no >> 5] & (0x80000000 >> (no & 0x1F)))) {
+            if (!(m_pAvailable[no >> 5] & (0x80000000 >> (no & 0x1F)))) {
                 return 0;
             }
         }
         flagclear();
-        checkId = p->id;
+        used_id = p->id;
         if (p->id == 0x84 || p->id == 0x92) {
             goto chk;
         }
@@ -2069,7 +2069,7 @@ void cItemMgr::erase(ItemWork* p)
     } else {
         cItemMgr* m = &ItemMgr;
 
-        if (ITEM_TYPE(m->armId) == 1) {
+        if (ITEM_TYPE(m->m_wep_id) == 1) {
             m->arm(m->pArm);
         }
     }
@@ -2239,7 +2239,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
 
                         arm = pArm;
                         if (a == arm) {
-                            pG->wep_x4FB2 = ATTR(a);
+                            pG->bullet_type = ATTR(a);
                         }
                     }
                     ret = 1;
@@ -2279,7 +2279,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
 
                         arm = pArm;
                         if (b == arm) {
-                            pG->wep_x4FB2 = ATTR(b);
+                            pG->bullet_type = ATTR(b);
                         }
                     }
                     ret = 1;
@@ -2349,7 +2349,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         if (part->x6 != 0) {
         part->x6 = 0;
         if (pArm != 0 && pArm == at(part->x8)) {
-            armId = weaponId(pArm);
+            m_wep_id = weaponId(pArm);
         }
         part->x8 = 0xFFFF;
     }
@@ -2388,7 +2388,7 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
         part->x8 = searchAt(wep);
         part->x6 = 1;
         if (pArm != 0 && pArm == wep) {
-            armId = weaponId(wep);
+            m_wep_id = weaponId(wep);
         }
     }
     return ret;
@@ -2396,22 +2396,22 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 
 int cItemMgr::available(u16 id)
 {
-    pFlags[id >> 5] |= 0x80000000 >> (id & 0x1F);
+    m_pAvailable[id >> 5] |= 0x80000000 >> (id & 0x1F);
 }
 
 void cItemMgr::flagclear()
 {
     int i;
 
-    for (i = 0; i < nFlags; i++) {
-        pFlags[i] = 0;
+    for (i = 0; i < m_flag_num; i++) {
+        m_pAvailable[i] = 0;
     }
 }
 
 int cItemMgr::check(u16 id)
 {
-    if (id == checkId) {
-        checkId = 0xFFFF;
+    if (id == used_id) {
+        used_id = 0xFFFF;
         return 1;
     }
     return 0;
@@ -2428,7 +2428,7 @@ int cItemMgr::arm(ItemWork* p)
 
     if (p == 0) {
         pArm = p;
-        armId = bareHand();
+        m_wep_id = bareHand();
         goto ok;
     }
     if (p->num == 0) {
@@ -2436,13 +2436,13 @@ int cItemMgr::arm(ItemWork* p)
     }
     if (ITEM_TYPE(p->id) == 1 || ITEM_TYPE(p->id) == 3 || ITEM_TYPE(p->id) == 6) {
         pArm = p;
-        armId = weaponId(p);
+        m_wep_id = weaponId(p);
         pArm->x8 = BULLET(pArm);
         if (ITEM_TYPE(p->id) == 1) {
-            pG->wep_lv = p->x6 >> 12;
-            pG->wep_lv_mag = (p->x6 >> 8) & 0xF;
+            pG->weapon_lv_power = p->x6 >> 12;
+            pG->weapon_lv_speed = (p->x6 >> 8) & 0xF;
             pG->weapon_lv_reload = (p->x6 >> 4) & 0xF;
-            pG->wep_lv_ex = LV_EX(p);
+            pG->weapon_lv_blt = LV_EX(p);
         }
         goto ok;
     }
@@ -2521,7 +2521,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
             }
             bid = WeaponId2BulletId(p->id, ATTR(p));
             if (p == pArm) {
-                pG->wep_x4FB2 = ATTR(p);
+                pG->bullet_type = ATTR(p);
             }
         }
     }
@@ -2563,14 +2563,14 @@ int cItemMgr::trigger()
 {
     ItemInfo info;
 
-    switch (ITEM_TYPE(armId)) {
+    switch (ITEM_TYPE(m_wep_id)) {
     case 1:
         return trigger(pArm);
     case 3:
     case 6: {
         ItemWork* p = pArm;
         register int id asm("r9"); // COMPILER-DIFF: #2 (the original masks the u16 member before the call)
-        id = armId;
+        id = m_wep_id;
         asm("" : "+r"(id));
 
         if (p->flags == 0 || id != p->id) {
@@ -2691,12 +2691,12 @@ u32 cItemMgr::bulletNumCurrent()
 {
     ItemInfo info;
 
-    switch (ITEM_TYPE(armId)) {
+    switch (ITEM_TYPE(m_wep_id)) {
     case 1:
         return bulletNum(pArm);
     case 3:
     case 6:
-        return bulletNum(armId);
+        return bulletNum(m_wep_id);
     }
     return 0;
 }
@@ -2763,11 +2763,11 @@ void cItemMgr::save(void* dst)
 {
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) dst;
-    ItemSaveWork* s = sd->item;
+    ItemSaveWork* s = sd->item_list;
     ItemWork* p = pItems;
     int i;
 
-    sd->armIdx = 0xFFFF;
+    sd->arm_no = 0xFFFF;
     for (i = 0; i < 0x180; i++) {
         memclr_asm(&s[i], sizeof(ItemSaveWork));
         s[i].id = 0xFFFF;
@@ -2803,17 +2803,17 @@ void cItemMgr::save(void* dst)
             s[i].board = p->board;
         }
         if (p == pArm) {
-            sd->armIdx = i;
+            sd->arm_no = i;
         }
     }
-    sd->armId = armId;
+    sd->wep_id = m_wep_id;
 }
 
 void cItemMgr::load(void* src)
 {
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) src;
-    ItemSaveWork* s = sd->item;
+    ItemSaveWork* s = sd->item_list;
     ItemWork* p = pItems;
     int i;
 
@@ -2857,11 +2857,11 @@ void cItemMgr::load(void* src)
         } else {
             p->flags = 0;
         }
-        if (sd->armIdx != 0xFFFF && i == sd->armIdx) {
+        if (sd->arm_no != 0xFFFF && i == sd->arm_no) {
             pArm = p;
         }
     }
-    armId = sd->armId;
+    m_wep_id = sd->wep_id;
 }
 
 int cItemMgr::offboardDump(ItemWork* keep)
@@ -2884,7 +2884,7 @@ int cItemMgr::offboardDump(ItemWork* keep)
                     }
                     if (pArm == p) {
                         pArm = 0;
-                        armId = bareHand();
+                        m_wep_id = bareHand();
                     }
                 }
                 break;
@@ -3138,7 +3138,7 @@ void cItemMgr::debugWeapon(int id)
         get(id, 0);
         pArm = pLast;
     }
-    armId = id;
+    m_wep_id = id;
 }
 
 // the split object pads .sdata to 8 bytes (lbl_80313F4C)

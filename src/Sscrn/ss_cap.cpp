@@ -170,7 +170,7 @@ static int sscrn_cap_out(SUB_SCREEN* wk)
         IdSub.dispSw(0, 1);
         wk->alpha_flag = 0;
         wk->alpha_cnt = 0;
-        Cckpt.life.fix(0);
+        Cckpt.m_LifeMeter.fix(0);
         FadeSetW(0x80000000, 7, 0, 0);
         ret = 1;
     }
@@ -187,11 +187,11 @@ void dispCapList(SUB_SCREEN* wk)
     for (i = 0; i < 24; i++) {
         u = IdSub.unitPtr(i + 1, 0x14);
         if (ItemMgr.search(cap_id_tbl[i])) {
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = cap_id_tbl[i] + 0x25;
+            u->texNo = cap_id_tbl[i] + 0x25;
         } else {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     }
     u = IdSub.unitPtr(0xFE, 0x14);

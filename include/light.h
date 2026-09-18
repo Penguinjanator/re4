@@ -14,16 +14,16 @@ class cEm;
 
 // Spot block of a light (0x40 bytes, cLight+0x38 / cLightWork+0x2C). Only the direction is known.
 struct LightSpot {
-    Vec normal;        // 0x00 direction
+    Vec Normal;        // 0x00 direction
     union {
-        f32 cutoff;    // 0x0C  spot cutoff angle (GXInitLightSpot); custom: a0
+        f32 A0;    // 0x0C  spot cutoff angle (GXInitLightSpot); custom: a0
         u32 flags;     // 0x0C  parallel: bit0 = direction is in view space
     };
-    f32 fade;          // 0x10  distance fade width (trans_lit); custom: a1
-    f32 a2;            // 0x14  custom attenuation
-    f32 k0;            // 0x18
-    f32 k1;            // 0x1C
-    f32 k2;            // 0x20
+    f32 A1;          // 0x10  distance fade width (trans_lit); custom: a1
+    f32 A2;            // 0x14  custom attenuation
+    f32 K0;            // 0x18
+    f32 K1;            // 0x1C
+    f32 K2;            // 0x20
     u8 pad_24[0x40 - 0x24];
 };
 
@@ -43,19 +43,19 @@ struct LightPath {
 class cLight;
 class cLightWork {
 public:
-    u8 flag;           // 0x00  -> cLight::be_flag
+    u8 BeFlag;           // 0x00  -> cLight::be_flag
     u8 xD;             // 0x01  -> cLight::xD (spot type: 3 / 6 have a direction)
-    u8 type;           // 0x02  -> cLight::type (per-type move handler, construct id)
+    u8 Type;           // 0x02  -> cLight::type (per-type move handler, construct id)
     u8 xF;             // 0x03  -> cLight::xF (screen kind mask; 0x10 cloth, 0x40 set by versionUp)
-    Vec pos;           // 0x04
+    Vec Pos;           // 0x04
     f32 x1C;           // 0x10
-    GXColor color;     // 0x14
-    f32 power;         // 0x18
-    u8 parentType;     // 0x1C
-    u8 kind;           // 0x1D
-    u8 attr;           // 0x1E
+    GXColor Col;     // 0x14
+    f32 Intensity;         // 0x18
+    u8 ParentType;     // 0x1C
+    u8 Kind;           // 0x1D
+    u8 Attribute;           // 0x1E
     u8 Priority;            // 0x1F
-    u32 parentId;      // 0x20  parts no << 16 | parent no
+    u32 ParentNo;      // 0x20  parts no << 16 | parent no
     u16 HitRadius;           // 0x24  hit adjust radius
     u16 x32;           // 0x26
     u32 x34;           // 0x28
@@ -71,18 +71,18 @@ class cLight : public cUnit {
 public:
     u8 xC;             // 0x0C
     u8 xD;             // 0x0D  spot type (setSpotNormal accepts 3 and 6)
-    u8 type;           // 0x0E  per-type move handler index
+    u8 Type;           // 0x0E  per-type move handler index
     u8 xF;             // 0x0F  screen kind mask
-    Vec pos;           // 0x10
+    Vec Pos;           // 0x10
     f32 x1C;           // 0x1C (esp11: sizeX * scale * 10; hit check radius)
-    GXColor color;     // 0x20 base color
-    f32 power;         // 0x24
-    u8 parentType;     // 0x28  0 none, 1 enemy, 2 scroll group, 3 room etc model, 4 object
-    u8 kind;           // 0x29  (0x7F = item light)
-    u8 attr;           // 0x2A  (db_work "ATTR")
+    GXColor Col;     // 0x20 base color
+    f32 Intensity;         // 0x24
+    u8 ParentType;     // 0x28  0 none, 1 enemy, 2 scroll group, 3 room etc model, 4 object
+    u8 Kind;           // 0x29  (0x7F = item light)
+    u8 Attribute;           // 0x2A  (db_work "ATTR")
     u8 Priority;            // 0x2B
     union {
-        u32 parentId;  // 0x2C  parts no << 16 | parent no
+        u32 ParentNo;  // 0x2C  parts no << 16 | parent no
         struct {
             u16 partsNo;   // 0x2C
             u16 no;        // 0x2E
@@ -102,10 +102,10 @@ public:
     LightPath path;    // 0xF8 .. 0x138
     u8 x138;           // 0x138
     u8 pad_139[3];
-    GXColor curColor;  // 0x13C color actually applied
+    GXColor DispCol;  // 0x13C color actually applied
     u16 x140;          // 0x140  index in the cut (0xFFFF = none; trans_lit compares it zero-extended)
     u8 pad_142[2];
-    Vec curPos;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
+    Vec World;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
     cModel* pParent;   // 0x150
 #ifndef LIGHT_H_CLIGHT_154
     // The debug tool objects (tools/db_light.cpp) were built against a light.h revision where cLight
@@ -116,7 +116,7 @@ public:
     cLight();
     virtual ~cLight() {}
     // the position actually applied (inlined into the hit checks; the out-of-line copy is stripped)
-    void getPos(Vec* dst) { *dst = curPos; }
+    void getPos(Vec* dst) { *dst = World; }
     void move();
     cLight& operator=(cLightWork& w);
     int checkScr();
@@ -159,16 +159,16 @@ struct LightPathHeader {
 
 // Fog block (cLightEnv+0x8, copied to `fogNew` by setEnv).
 struct LightFog {
-    s32 type;          // 0x00  GX fog type (0 = off)
-    f32 start;         // 0x04
-    f32 end;           // 0x08
-    GXColor color;     // 0x0C
+    s32 Type;          // 0x00  GX fog type (0 = off)
+    f32 Start;         // 0x04
+    f32 End;           // 0x08
+    GXColor Color;     // 0x0C
 };
 
 // Wind of the pendulum system (cLightEnv+0xEC).
 class cPenWind {
 public:
-    s8 dir;            // 0x00  angle -128..127 (units of pi/127)
+    s8 direction;            // 0x00  angle -128..127 (units of pi/127)
     u8 power;          // 0x01
     u8 frequency;             // 0x02
 
@@ -180,11 +180,11 @@ public:
 struct cLightEnv {
     union {
         u32 x0;          // 0x00  (versionUp 0x23 copies it to xFC / x100)
-        GXColor amb;     // 0x00  model ambient (trans_lit LightSetModel / cloth / water)
+        GXColor AmbientScr;     // 0x00  model ambient (trans_lit LightSetModel / cloth / water)
     };
     u32 nLight;      // 0x04
     union {
-        LightFog fog;    // 0x08
+        LightFog Fog;    // 0x08
         struct {
             s32 x8;          // 0x08  fog type; gx_sub: 0 = the background colour has no rgb (alpha only)
             f32 fogStart;    // 0x0C
@@ -193,38 +193,38 @@ struct cLightEnv {
         };
     };
     union {
-        LightFog mfog;   // 0x18  mirror fog (db_light "MIRROR FOG")
+        LightFog MirrorFog;   // 0x18  mirror fog (db_light "MIRROR FOG")
         u8 pad_18[0x28 - 0x18];
     };
     s32 FocusZ;         // 0x28  focus depth (screen z, 0..65535)
     u8 FocusFlag;          // 0x2C
     u8 FocusLevel;          // 0x2D  focus level (0 = depth of field off)
     u8 FocusMode;          // 0x2E  focus mode (0 near, 1 far)
-    u8 blurAlpha;    // 0x2F  Filter00SetAlpha
+    u8 blur_rate;    // 0x2F  Filter00SetAlpha
     u8 tuneOn;       // 0x30  bit0: tune colours below are valid
     u8 pad_31[3];
-    GXColor tune[3]; // 0x34
-    u8 tevScale[2];  // 0x40  -> gxCsScale
+    GXColor Tune[3]; // 0x34
+    u8 tev_scale[2];  // 0x40  -> gxCsScale
     u8 pad_42[2];
-    f32 farRate;     // 0x44  far plane = fog end * (1 - farRate) + 1
-    u8 hokan;        // 0x48  fog interpolation frames
+    f32 far_play_ratio;     // 0x44  far plane = fog end * (1 - farRate) + 1
+    u8 Hokan;        // 0x48  fog interpolation frames
     u8 pad_49[0xEC - 0x49];
     cPenWind wind;   // 0xEC
     u8 pad_EF;       // 0xEF
-    u8 blurType;     // 0xF0  Filter00SetType
-    s8 blurPower;    // 0xF1  Filter00SetPower
-    u8 minLod;       // 0xF2
-    u8 maxLod;       // 0xF3
+    u8 blur_type;     // 0xF0  Filter00SetType
+    s8 blur_power;    // 0xF1  Filter00SetPower
+    u8 min_lod;       // 0xF2
+    u8 max_lod;       // 0xF3
     u8 aniso;        // 0xF4
     s8 contrast[3];  // 0xF5  Filter00SetContrast
-    f32 lodBias;     // 0xF8
+    f32 lod_bias;     // 0xF8
     union {
         u32 xFC;         // 0xFC
-        GXColor ambSub;  // 0xFC  ambient of models without lightInfo.x50 bits 3/4 (trans_lit)
+        GXColor AmbientEm;  // 0xFC  ambient of models without lightInfo.x50 bits 3/4 (trans_lit)
     };
     union {
         u32 x100;        // 0x100
-        GXColor ambEsp;  // 0x100  ambient of effects / lightInfo.x50 bit3 models (trans_lit)
+        GXColor AmbientEsp;  // 0x100  ambient of effects / lightInfo.x50 bit3 models (trans_lit)
     };
 
     cLightWork* getLightWork(int no);
@@ -234,8 +234,8 @@ struct cLightEnv {
 // Light data file (.lit): cut offset table, then the cuts.
 class cLit {
 public:
-    u16 nCut;          // 0x00
-    u8 version;        // 0x02
+    u16 CutNum;          // 0x00
+    u8 Version;        // 0x02
     u8 nMaxLight;      // 0x03
     // 0x04: u32[nCut] byte offset of each cut from the file start (0 = none)
 
@@ -256,22 +256,22 @@ class cLightMgr : public cManager<cLight> {
 public:
     static const f32 FarDistance;  // dead-stripped from the DOL (keys the unit's static ctor name)
 
-    cLit* pLit;            // 0x34  lit the cuts are taken from (the room lit by default)
-    cLightEnv env;         // 0x38 .. 0x13C  current cut environment
+    cLit* pLitHeader;            // 0x34  lit the cuts are taken from (the room lit by default)
+    cLightEnv LightEnv;         // 0x38 .. 0x13C  current cut environment
     u32 kindFlags[8];      // 0x13C  kind enable bits (onKind / offKind)
     u8 pad_15C[0x17C - 0x15C];
-    LightPathHeader* pPath;  // 0x17C
-    cLit* x180;            // 0x180  core lit
-    cLit* x184;            // 0x184  room lit
-    cLit* x188;            // 0x188  third lit
-    int cutNo;             // 0x18C
-    u8 hokanCnt;           // 0x190  fog interpolation frames left
-    u8 logOn;              // 0x191
+    LightPathHeader* pLitPath;  // 0x17C
+    cLit* m_pLitCore;            // 0x180  core lit
+    cLit* m_pLitRoom;            // 0x184  room lit
+    cLit* m_pLitRoom2;            // 0x188  third lit
+    int m_oldCutNo;             // 0x18C
+    u8 m_Hokan;           // 0x190  fog interpolation frames left
+    u8 m_logMode;              // 0x191
     u8 pad_192[2];
-    f32 elecPower;         // 0x194
+    f32 ElecPower;         // 0x194
     u8 pad_198[4];
-    GXColor tune[3];       // 0x19C
-    f32 colBrendRate;      // 0x1A8
+    GXColor m_Tune[3];       // 0x19C
+    f32 m_ColBrendRate;      // 0x1A8
     u32 dbFlag;              // 0x1AC
     cLit* dbMem;            // 0x1B0  lit built by the light tool (db_light updateLit), x1AC bit0: valid
     u8 pad_1B4[0x204 - 0x1B4];

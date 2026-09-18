@@ -154,7 +154,7 @@ void EfmArrayClear()
     p = ObjMgr.pAlive;
     while (p) {
         n = p;
-        p = (cObj*) p->next;
+        p = (cObj*) p->pNext;
         func(n);
     }
 }
@@ -202,8 +202,8 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             pLog->err(0, 0, "ESP_EFM : SCR_MODEL_NO[%x] is invalid.", gen->x2);
             return 0;
         }
-        model = PRef(scr->pInfo)->pData;
-        tpl = PRef(scr->pInfo)->pTpl;
+        model = PRef(scr->pModelInfo)->pData;
+        tpl = PRef(scr->pModelInfo)->tpl_addr;
     } else {
         if (EspGetEfmAddr(gen->x2, &model, &tpl) == 0) {
             pLog->err(0, 0, "ESP_EFM : EFM_ID[%x] is invalid.", gen->x2);
@@ -232,15 +232,15 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             light = 8;
         }
         if (moveId == 3) {
-            ModelBound* bound = &obj->pInfo->bound;
+            ModelBound* bound = &obj->pModelInfo->bound;
             size.x = bound->size.x;
             size.y = bound->size.y;
             size.z = bound->size.z;
             PSVECSubtract(&bound->center, &obj->pParts->pos, &center);
-            obj->lightInfo.init2(2, 1, &center, &size, light);
+            obj->LightInfo.init2(2, 1, &center, &size, light);
             obj->alpha_omit = 0x80;
         } else {
-            obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
+            obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         }
         obj->id = GetEfmMoveId(moveId);
         obj = EfmSetObj04(obj, gen, info, seed, parent, m, x, rate, ofs);
@@ -268,7 +268,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         if (gen->flags & 0x20000) {
             light = 8;
         }
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         obj->id = GetEfmMoveId(1);
         obj = EfmSetObj05(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
@@ -287,7 +287,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             return 0;
         }
         obj->sub2B4.clrFlags(0xFCFF);
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
         obj->id = GetEfmMoveId(2);
         obj = EfmSetObj09(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
@@ -340,11 +340,11 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->acc.x += gen->x4C.x * fRandSeed1_1(seed);
     w->acc.y += gen->x4C.y * fRandSeed1_1(seed);
     w->acc.z += gen->x4C.z * fRandSeed1_1(seed);
-    obj->rot = gen->x58;
-    obj->rot.x += gen->x64.x * fRandSeed1_1(seed);
-    obj->rot.y += gen->x64.y * fRandSeed1_1(seed);
-    obj->rot.z += gen->x64.z * fRandSeed1_1(seed);
-    PSVECScale(&obj->rot, &obj->rot, DEG2RAD);
+    obj->ang = gen->x58;
+    obj->ang.x += gen->x64.x * fRandSeed1_1(seed);
+    obj->ang.y += gen->x64.y * fRandSeed1_1(seed);
+    obj->ang.z += gen->x64.z * fRandSeed1_1(seed);
+    PSVECScale(&obj->ang, &obj->ang, DEG2RAD);
     w->rotSpd = gen->x70;
     w->rotSpd.x += gen->x7C.x * fRandSeed1_1(seed);
     w->rotSpd.y += gen->x7C.y * fRandSeed1_1(seed);
@@ -384,16 +384,16 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->life = gen->xB8;
     w->frame = gen->xBA;
     w->rotFrame = gen->xC0;
-    obj->pInfo->color[0] = (u8) w->r;
-    obj->pInfo->color[1] = (u8) w->g;
-    obj->pInfo->color[2] = (u8) w->b;
-    obj->pInfo->color[3] = 0xFF;
+    obj->pModelInfo->color[0] = (u8) w->r;
+    obj->pModelInfo->color[1] = (u8) w->g;
+    obj->pModelInfo->color[2] = (u8) w->b;
+    obj->pModelInfo->color[3] = 0xFF;
     if (w->fadeStart == 0) {
-        obj->alpha = w->a * (1.0f / 255.0f);
+        obj->invisible_factor = w->a * (1.0f / 255.0f);
     } else {
-        obj->alpha = 0.0f;
+        obj->invisible_factor = 0.0f;
     }
-    obj->pInfo->xD6 = gen->xC2;
+    obj->pModelInfo->xD6 = gen->xC2;
     obj->scale.y = w->scaleY * w->scale;
     obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
     w->groundOfs = (f32) (int) gen->xD4;
@@ -414,7 +414,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->bounce = gen->vE4;
     PSVECScale(&w->bounce, &w->bounce, 0.1f);
     if (!(w->flags & 0x40)) {
-        obj->lightInfo.x54 = 0;
+        obj->LightInfo.x54 = 0;
         obj->be_flag |= 0x20000;
     }
     if (w->flags & 0x200000) {
@@ -449,7 +449,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
             if (w->flags & 0x20) {
                 parts = parent->getPartsPtr(w->x79);
                 PSMTXIdentity(mtx);
-                RotMatrix(mtx, &parent->rot);
+                RotMatrix(mtx, &parent->ang);
                 PSMTXMultVecSR(mtx, &obj->pos, &v);
                 mtx[0][3] = parts->mat[0][3] + v.x;
                 mtx[1][3] = parts->mat[1][3] + v.y;
@@ -520,14 +520,14 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     obj->pos.x += gen->x18 * fRandSeed1_1(seed);
     obj->pos.y += gen->x1C * fRandSeed1_1(seed);
     obj->pos.z += gen->x20 * fRandSeed1_1(seed);
-    obj->rot = gen->x58;
-    obj->rot.x += gen->x64.x * fRandSeed1_1(seed);
-    obj->rot.y += gen->x64.y * fRandSeed1_1(seed);
-    obj->rot.z += gen->x64.z * fRandSeed1_1(seed);
-    PSVECScale(&obj->rot, &obj->rot, DEG2RAD);
+    obj->ang = gen->x58;
+    obj->ang.x += gen->x64.x * fRandSeed1_1(seed);
+    obj->ang.y += gen->x64.y * fRandSeed1_1(seed);
+    obj->ang.z += gen->x64.z * fRandSeed1_1(seed);
+    PSVECScale(&obj->ang, &obj->ang, DEG2RAD);
     if ((w->flags & 0x10) && parent) {
         Matrix2AxisAngle(parent->pParts->mat, &v);
-        PSVECAdd(&obj->rot, &v, &obj->rot);
+        PSVECAdd(&obj->ang, &v, &obj->ang);
     }
     if (w->flags & 0x200000) {
         obj->z_mode = 1;
@@ -570,18 +570,18 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->scaleStart = gen->xB6;
     w->life = gen->xB8;
     w->frame = gen->xBA;
-    obj->pInfo->color[0] = (u8) w->r;
-    obj->pInfo->color[1] = (u8) w->g;
-    obj->pInfo->color[2] = (u8) w->b;
-    obj->pInfo->color[3] = 0xFF;
+    obj->pModelInfo->color[0] = (u8) w->r;
+    obj->pModelInfo->color[1] = (u8) w->g;
+    obj->pModelInfo->color[2] = (u8) w->b;
+    obj->pModelInfo->color[3] = 0xFF;
     if (w->fadeStart == 0) {
-        obj->alpha = w->a * (1.0f / 255.0f);
+        obj->invisible_factor = w->a * (1.0f / 255.0f);
     } else {
-        obj->alpha = 0.0f;
+        obj->invisible_factor = 0.0f;
     }
-    obj->pInfo->xD6 = gen->xC2;
+    obj->pModelInfo->xD6 = gen->xC2;
     if (!(w->flags & 0x40)) {
-        obj->lightInfo.x54 = 0;
+        obj->LightInfo.x54 = 0;
         obj->be_flag |= 0x20000;
     }
     w->center = gen->vD8;
@@ -624,7 +624,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
             if (w->flags & 0x20) {
                 parts = parent->getPartsPtr(gen->x7);
                 PSMTXIdentity(mtx);
-                RotMatrix(mtx, &parent->rot);
+                RotMatrix(mtx, &parent->ang);
                 PSMTXMultVecSR(mtx, &obj->pos, &v);
                 mtx[0][3] = parts->mat[0][3];
                 mtx[1][3] = parts->mat[1][3];
@@ -723,7 +723,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
             return 0;
         }
         obj->sub2B4.clrFlags(0xFCFF);
-        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
+        obj->LightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
         obj->id = 4;
         obj->setNoSuspend(1);
         w = &obj->efm04;
@@ -733,7 +733,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->flags = 0;
         obj->pos = *pos;
         w->spdDamp = 0.0f;
-        obj->rot = *rot;
+        obj->ang = *rot;
         w->scaleXZ = 1.0f;
         w->scaleY = 1.0f;
         w->scale = 1.0f;
@@ -750,14 +750,14 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->bMul = 1.0f;
         w->aMul = 1.0f;
         obj->ot_type = 1;
-        obj->pInfo->color[0] = (u8) w->r;
-        obj->pInfo->color[1] = (u8) w->g;
-        obj->pInfo->color[2] = (u8) w->b;
-        obj->pInfo->color[3] = 0xFF;
+        obj->pModelInfo->color[0] = (u8) w->r;
+        obj->pModelInfo->color[1] = (u8) w->g;
+        obj->pModelInfo->color[2] = (u8) w->b;
+        obj->pModelInfo->color[3] = 0xFF;
         if (w->fadeStart == 0) {
-            obj->alpha = w->a * (1.0f / 255.0f);
+            obj->invisible_factor = w->a * (1.0f / 255.0f);
         } else {
-            obj->alpha = 0.0f;
+            obj->invisible_factor = 0.0f;
         }
         obj->scale.y = w->scaleY * w->scale;
         obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
@@ -780,8 +780,8 @@ void setModTexRender(cObj* obj, int no)
     tbl[1] = 0;
     tbl[4] = 0xF7;
     tbl[5] = mgr->texId;
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
     obj->Shader_type = 1;
     obj->Refract_pow = 0xF;
     obj->Refract_ratio = 0xB4;

@@ -15,14 +15,14 @@ struct VibWork {
 
 // Controller state (game/main.cpp `Joy[4]`, 0x268 bytes each), filled by pad.cpp PadRead.
 struct JOY {
-    s8 sx;    // 0x00  main stick x
-    s8 sy;    // 0x01  main stick y
-    s8 ssx;   // 0x02  sub stick x
-    s8 ssy;   // 0x03  sub stick y
-    u8 trigL; // 0x04  analog L
-    u8 trigR; // 0x05  analog R
-    u8 anaA;  // 0x06
-    u8 anaB;  // 0x07
+    s8 stickX;    // 0x00  main stick x
+    s8 stickY;    // 0x01  main stick y
+    s8 substickX;   // 0x02  sub stick x
+    s8 substickY;   // 0x03  sub stick y
+    u8 triggerLeft; // 0x04  analog L
+    u8 triggerRight; // 0x05  analog R
+    u8 analogA;  // 0x06
+    u8 analogB;  // 0x07
     s8 err;    // 0x08  PADStatus err (tv_mode: -3/-2 counts toward the progressive-mode prompt)
     u8 pad_9[3];
     u32 old;  // 0x0C  `on` of the previous frame
@@ -33,7 +33,7 @@ struct JOY {
     u32 rep2; // 0x20  buttons held, with fast auto-repeat (18/3 frames)
     s8 rep_timer[32];   // 0x24
     s8 rep2_timer[32];  // 0x44
-    u8 vib_state;       // 0x64  motor command last sent (Joy[0] only)
+    u8 motor_state;       // 0x64  motor command last sent (Joy[0] only)
     u8 pad_65[3];
     VibWork vib[10];    // 0x68  (Joy[0] only)
     u8 pad_108[0x268 - 0x108];

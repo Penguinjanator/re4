@@ -34,7 +34,7 @@ void ClothInit()
     int i;
 
     for (i = 0; i < 8; i++) {
-        ClothWk[i].flag = 0;
+        ClothWk[i].be_flag = 0;
     }
 }
 
@@ -69,24 +69,24 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
     Wgap = w;
     Hgap = h;
     Scale = d;
-    nx = nx_;
-    ny = ny_;
+    divH = nx_;
+    divV = ny_;
     x70 = flag_;
     RotMatrix(mat, &ang);
     TransMatrix(mat, &pos_);
     rowSize = ny_ * sizeof(Vec);
 #line 212 "D:/Bio4/Prog/cloth.cpp"
-    mem = MEM_ALLOC(nx_ * rowSize * 3, 1, 13);
-    if (mem == 0) {
+    m_pMem = MEM_ALLOC(nx_ * rowSize * 3, 1, 13);
+    if (m_pMem == 0) {
         OSReport("ClothSet(): Can't allocate memory.\n");
-        flag = 0;
+        be_flag = 0;
     }
-    pp = (Vec*) mem;
-    pos = pp;
+    pp = (Vec*) m_pMem;
+    pVer = pp;
     pn = pp + nx_ * ny_;
-    nrm = pn;
+    pNor = pn;
     ps = pp + nx_ * 2 * ny_;
-    spd = ps;
+    pSpd = ps;
     for (j = 0; j < ny_; j++) {
         for (i = 0; i < nx_; i++) {
             pp->x = i * Wgap;
@@ -108,15 +108,15 @@ void Cloth::Set(Vec ang, Vec pos_, u8 nx_, u8 ny_, f32 w, GXTexObj* tex_, f32 h,
         calcSpeed(0.9f);
         move();
     }
-    center.x = Wgap * nx * 0.5f * Scale;
+    center.x = Wgap * divH * 0.5f * Scale;
     center.y = 0.0f;
     center.z = 0.0f;
     PSMTXMultVec(mat, &center, &center);
-    radius = Wgap * nx * 0.5f * Scale;
+    radius = Wgap * divH * 0.5f * Scale;
     tex = tex_;
     tlut = tlut_;
     pTobjA = p_;
-    flag = 0x31;
+    be_flag = 0x31;
     colR = 0xFF;
     colG = 0xFF;
     colB = 0xFF;
@@ -132,8 +132,8 @@ void Cloth::SetPosAng(Vec ang, Vec pos_)
 
 void Cloth::Destroy()
 {
-    Mem_free(mem);
-    flag = 0;
+    Mem_free(m_pMem);
+    be_flag = 0;
 }
 
 void ClothCalcTplAddr(void* tpl)
@@ -185,20 +185,20 @@ int ClothTexSetUp(void* tpl, GXTexObj* tex, int no, GXTlutObj* tlut)
 void Cloth::calcSpeed(f32 damping)
 {
     Vec v;
-    Vec* p = pos;
-    Vec* s = spd;
+    Vec* p = pVer;
+    Vec* s = pSpd;
     int i;
     int j;
     int k;
     int w;
     f32 len;
 
-    for (i = 0; i < ny; i++) {
-        for (j = 0; j < nx; j++) {
-            if (i == 0 && j != 0 && j != nx - 1) {
+    for (i = 0; i < divV; i++) {
+        for (j = 0; j < divH; j++) {
+            if (i == 0 && j != 0 && j != divH - 1) {
                 continue;
             }
-            w = nx;
+            w = divH;
             k = j + i * w;
             if (j != 0) {
                 PSVECSubtract(&p[k - 1], &p[k], &v);
@@ -208,7 +208,7 @@ void Cloth::calcSpeed(f32 damping)
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
-            if (j != nx - 1) {
+            if (j != divH - 1) {
                 PSVECSubtract(&p[k + 1], &p[k], &v);
                 len = PSVECMag(&v);
                 if (len > Wgap) {
@@ -224,7 +224,7 @@ void Cloth::calcSpeed(f32 damping)
                     PSVECAdd(&v, &s[k], &s[k]);
                 }
             }
-            if (i != ny - 1) {
+            if (i != divV - 1) {
                 PSVECSubtract(&p[k + w], &p[k], &v);
                 len = PSVECMag(&v);
                 if (len > Hgap) {
@@ -245,7 +245,7 @@ int PullCloth(Cloth** out)
 
     *out = 0;
     for (i = 0; i < 8; i++) {
-        if ((c->flag & 1) == 0) {
+        if ((c->be_flag & 1) == 0) {
             *out = c;
             return 1;
         }
@@ -260,7 +260,7 @@ void Cloth::move()
     int i;
     int j;
 
-    for (i = 0; i < ny; i++) {
+    for (i = 0; i < divV; i++) {
         if (x70 == 0) {
             if (i == 0) {
                 continue;
@@ -268,10 +268,10 @@ void Cloth::move()
         } else if (i >= 0 && i <= 3) {
             continue;
         }
-        for (j = 0; j < nx; j++) {
-            int k = j + nx * i;
-            PSVECScale(&spd[k], &v, T_PARAM);
-            PSVECAdd(&pos[k], &v, &pos[k]);
+        for (j = 0; j < divH; j++) {
+            int k = j + divH * i;
+            PSVECScale(&pSpd[k], &v, T_PARAM);
+            PSVECAdd(&pVer[k], &v, &pVer[k]);
         }
     }
 }
@@ -285,20 +285,20 @@ void Cloth::calcNormal()
     int j;
     int k;
 
-    for (i = 0; i < ny; i++) {
-        for (j = 0; j < nx; j++) {
-            u8 w = nx;
+    for (i = 0; i < divV; i++) {
+        for (j = 0; j < divH; j++) {
+            u8 w = divH;
             k = j + i * w;
-            if (i == ny - 1) {
-                nrm[k] = nrm[k - w];
+            if (i == divV - 1) {
+                pNor[k] = pNor[k - w];
             } else if (j == w - 1) {
-                nrm[k] = nrm[k - 1];
+                pNor[k] = pNor[k - 1];
             } else {
-                PSVECSubtract(&pos[k + 1], &pos[k], &a);
-                PSVECSubtract(&pos[k + w], &pos[k], &b);
+                PSVECSubtract(&pVer[k + 1], &pVer[k], &a);
+                PSVECSubtract(&pVer[k + w], &pVer[k], &b);
                 PSVECCrossProduct(&b, &a, &c);
 #line 622 "D:/Bio4/Prog/cloth.cpp"
-                VECNormalize(&c, &nrm[k]);
+                VECNormalize(&c, &pNor[k]);
             }
         }
     }
@@ -306,10 +306,10 @@ void Cloth::calcNormal()
 
 void Cloth::disturbance(f32 power, u32 x, u32 y)
 {
-    u32 idx = x + nx * y;
+    u32 idx = x + divH * y;
 
-    spd[idx].z += power;
-    spd[idx].y += power * 0.5f;
+    pSpd[idx].z += power;
+    pSpd[idx].y += power * 0.5f;
 }
 
 void ClothDraw()
@@ -318,7 +318,7 @@ void ClothDraw()
     int i;
 
     for (i = 0; i < 8; i++, c++) {
-        if (c->flag & 0x20) {
+        if (c->be_flag & 0x20) {
             AddOtDirect(0xD, c, (void (*)()) clothTrans, 0, 0x1000, 0, 0.0f);
         }
     }
@@ -353,16 +353,16 @@ void clothTrans(Cloth* pCL)
     {
         static const Vec p0 = {0.0f, 0.0f, 0.0f};
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
-        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+        model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos = pCL->center;
     LightMgr.setClothN(&model, 8);
-    if (model.lightInfo.size.x > model.lightInfo.size.y) {
-        r = model.lightInfo.size.x;
+    if (model.LightInfo.Size.x > model.LightInfo.Size.y) {
+        r = model.LightInfo.Size.x;
     } else {
-        r = model.lightInfo.size.y;
+        r = model.LightInfo.Size.y;
     }
-    commonClothLightSet(model.lightInfo.pLight, 8, model.pos, r);
+    commonClothLightSet(model.LightInfo.pLight, 8, model.pos, r);
     GXSetChanMatColor(4, pCL->color);
     GXSetNumTexGens(1);
     GXLoadTexObj(tex, 0);
@@ -393,7 +393,7 @@ void clothTrans(Cloth* pCL)
         Mtx tmp;
         PSMTXScale(scale, pCL->Scale, pCL->Scale, pCL->Scale);
         PSMTXConcat(pCL->mat, scale, tmp);
-        PSMTXConcat(pG->Cam.viewMat, tmp, scale);
+        PSMTXConcat(pG->Cam.v_mat, tmp, scale);
         GXLoadPosMtxImm(scale, 0);
         PSMTXInverse(scale, tmp);
         PSMTXTranspose(tmp, scale);
@@ -407,23 +407,23 @@ void clothTrans(Cloth* pCL)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 10, 0, 4, 0);
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
-    for (i = 0; i < pCL->ny - 1; i++) {
-        GXBegin(0x98, 0, pCL->nx * 2);
-        for (j = 0; j < pCL->nx * 2; j++) {
+    for (i = 0; i < pCL->divV - 1; i++) {
+        GXBegin(0x98, 0, pCL->divH * 2);
+        for (j = 0; j < pCL->divH * 2; j++) {
             Vec* pp;
             Vec* pn;
             if (j & 1) {
-                k = pCL->nx * (i + 1) + j / 2;
+                k = pCL->divH * (i + 1) + j / 2;
                 t = 1;
             } else {
-                k = i * pCL->nx + j / 2;
+                k = i * pCL->divH + j / 2;
                 t = 0;
             }
-            pp = &pCL->pos[k];
-            pn = &pCL->nrm[k];
+            pp = &pCL->pVer[k];
+            pn = &pCL->pNor[k];
             GXPosition3f32(pp->x, pp->y, pp->z);
             GXNormal3f32(pn->x, pn->y, pn->z);
-            GXTexCoord2f32((f32) (j / 2) / (f32) (pCL->nx - 1), (f32) (i + t) / (f32) (pCL->ny - 1));
+            GXTexCoord2f32((f32) (j / 2) / (f32) (pCL->divH - 1), (f32) (i + t) / (f32) (pCL->divV - 1));
         }
     }
 }

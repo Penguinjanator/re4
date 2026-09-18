@@ -16,13 +16,13 @@ public:
     u32 y;        // 0x04  text row
     int cx;       // 0x08  cursor cell
     int cy;       // 0x0C
-    char* name;   // 0x10  (allocated; freed by the destructor)
+    char* m_pStr;   // 0x10  (allocated; freed by the destructor)
     u32 w;        // 0x14  width in characters
     // 0x18 vptr
 
-    virtual ~cDbgButtonBase() { delete name; }
+    virtual ~cDbgButtonBase() { delete m_pStr; }
     int Init(int n) {
-        if (name == 0) {
+        if (m_pStr == 0) {
             pLog->err(0, 0, "cDbgButtonBase::Init(): new failed.");
             return 0;
         }
@@ -50,8 +50,8 @@ public:
     u32 y;        // 0x04  window row
     int x8;
     int xC;
-    int maxCx;    // 0x10  cursor wraps past this column
-    int maxCy;    // 0x14  cursor wraps past this row
+    int m_max_cx;    // 0x10  cursor wraps past this column
+    int m_max_cy;    // 0x14  cursor wraps past this row
     int x18;
     int x1C;
     int x20;
@@ -70,7 +70,7 @@ public:
 class cDbgButton : public cDbgButtonBase {
 public:
     int x1C;
-    void (*func)(cDbgButton* b);  // 0x20  called by cDbgWindow::ButtonAllUpdate when set
+    void (*m_pFuncUpdate)(cDbgButton* b);  // 0x20  called by cDbgWindow::ButtonAllUpdate when set
 
     virtual ~cDbgButton() {}
 };

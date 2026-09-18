@@ -31,7 +31,7 @@ cObj03::cObj03()
     obj03.speed = 0.0f;
     obj03.flags = 0;
     sub2B4.clrFlags(0xFCFF);
-    lightInfo.init2(1, 1, &p0, &p1, 1);
+    LightInfo.init2(1, 1, &p0, &p1, 1);
 }
 
 // Nobody calls this: the original linker dead-stripped it from .text (unit in STRIP_UNUSED)
@@ -63,7 +63,7 @@ void cObj03::move()
         PathGetMatEm(obj03.path, obj03.data, t, &h, parts->mat);
         if (obj03.flags & 1) {
             Mtx m;
-            PSMTXConcat(pG->Cam.viewMat, parts->mat, m);
+            PSMTXConcat(pG->Cam.v_mat, parts->mat, m);
             Draw_local_pos(&bp, 10, m);
         }
         t += 40.0f;

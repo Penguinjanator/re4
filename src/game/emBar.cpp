@@ -58,7 +58,7 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetBar() failed.");
@@ -70,16 +70,16 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     w->size.x = 3500.0f;
     w->size.y = 400.0f;
     w->size.z = 10.0f;
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     em->atari.init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
     em->atari.throughOn();
     emBarYarareInit(em);
-    em->hpMax = em->hp;
+    em->hp_max = em->hp;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
@@ -90,8 +90,8 @@ cEmBar* SetBar(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
     em->hp = 1000;
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->flags = zero;
-    w->flagNo = flagNo;
+    w->Be_flg = zero;
+    w->Etc_no = flagNo;
     flg = GetEtcFlgPtr(flagNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
@@ -211,22 +211,22 @@ void emBarDmCk(cEmBar* em)
 void emBarSetBreak(cEmBar* em, u32 type)
 {
     EmBarWork* w = EMBAR_WK(em);
-    u8 eff = w->eff;
+    u8 eff = w->Eff_id;
 
     em->hp = 0;
     if (eff != 0xFF) {
         switch (type) {
         case 0:
         default:
-            EstSet(0, -1, &em->pos, &em->rot, eff, 0, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 0, 0, 0, 0, 0);
             SndCall(6, 8, &em->pos, 0, 0, em);
             break;
         case 1:
-            EstSet(0, -1, &em->pos, &em->rot, eff, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 1, 0, 0, 0, 0);
             SndCall(6, 8, &em->pos, 0, 0, em);
             break;
         case 2:
-            EstSet(0, -1, &em->pos, &em->rot, eff, 2, 0, 0, 0, 0);
+            EstSet(0, -1, &em->pos, &em->ang, eff, 2, 0, 0, 0, 0);
             SndCall(6, 7, &em->pos, 0, 0, em);
             break;
         }
@@ -264,21 +264,21 @@ void emBar_R1_Set(cEmBar* em)
     u8 step = em->r_no_2;
 
     if (step == 0) {
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
         em->partsWorldCalc();
-        w->escaping = step;
-        w->timer = 30;
+        w->Act_ck = step;
+        w->Timer = 30;
         em->r_no_2++;
     }
     em->be_flag |= 0x4000;
     if (em->plDist2 < 25000000.0f) {
-        u8 esc = w->escaping;
+        u8 esc = w->Act_ck;
 
         if (esc == 0) {
-            if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f)) < 1.5707964f) {
+            if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f)) < 1.5707964f) {
                 ActBtn.set(0x25, 5, (int) emBarActEscape, (int) em, 1, 3, 0, esc);
             }
         }
@@ -288,7 +288,7 @@ void emBar_R1_Set(cEmBar* em)
 
 void emBarActEscape(cEmBar* em)
 {
-    EMBAR_WK(em)->escaping = 1;
+    EMBAR_WK(em)->Act_ck = 1;
     SetPlDamage((int) em, plemEscape);
 }
 
@@ -319,7 +319,7 @@ void emBar_R1_Break(cEmBar* em)
     u8 step = em->r_no_2;
 
     if (step == 0) {
-        u16* flg = GetEtcFlgPtr(w->flagNo, pG->room_id);
+        u16* flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
 
         if (flg) {
             *flg |= 1;
@@ -340,7 +340,7 @@ void emBarYarareInit(cEmBar* em)
 
 void cEmBar::setEff(u8 no)
 {
-    EMBAR_WK(this)->eff = no;
+    EMBAR_WK(this)->Eff_id = no;
 }
 
 void cEmBar::setMotion(void* mot)

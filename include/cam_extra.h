@@ -40,7 +40,7 @@ public:
 
 class CameraAttachedToMotion : public cCamera {
 public:
-    cModel* model;  // 0xFC
+    cModel* m_pModel;  // 0xFC
 
     CameraAttachedToMotion(cModel* model);
     virtual ~CameraAttachedToMotion();
@@ -62,10 +62,10 @@ public:
 
 // Filter0a focus blur animation.
 struct FocusAnimation {
-    u8 state;    // 0x00
-    s32 count;   // 0x04
-    f32 frame;   // 0x08
-    u8 alpha;    // 0x0C
+    u8 m_anim_on;    // 0x00
+    s32 m_counter;   // 0x04
+    f32 m_focus_frame;   // 0x08
+    u8 m_alpha_max;    // 0x0C
 
     void init(int id);
     void move(int dir);
@@ -84,12 +84,12 @@ public:
     f32 angle_max;    // 0x12C
     u8 pad_130[8];
     f32 zoom;         // 0x138
-    Vec yure;         // 0x13C  (x, y used; z = x144)
+    Vec m_rnd;         // 0x13C  (x, y used; z = x144)
     u8 pad_148[13];
     u8 type;          // 0x155
     u8 pad_156[2];
-    IdScope id;       // 0x158
-    FocusAnimation focus;  // 0x164
+    IdScope m_id;       // 0x158
+    FocusAnimation m_focus;  // 0x164
 
     CameraScope(Vec* pos, Vec* at);
     virtual ~CameraScope();
@@ -101,13 +101,13 @@ public:
 // Binocular ids (IdSys unit 0x27).
 class IdBinocular : public IDApplication {
 public:
-    Vec scr1;    // 0x04  screen positions of the heading scale ends
-    Vec scr2;    // 0x10
-    Vec scr3;    // 0x1C
-    f32 fovy;    // 0x28  fovy of the previous frame
-    Vec scr35;   // 0x2C  zoom gauge origin
-    f32 sizeY;   // 0x38
-    f32 sizeX;   // 0x3C
+    Vec m_pos0_L;    // 0x04  screen positions of the heading scale ends
+    Vec m_pos0_R;    // 0x10
+    Vec m_pos0_C;    // 0x1C
+    f32 m_fovy_old;    // 0x28  fovy of the previous frame
+    Vec m_meter_pos0;   // 0x2C  zoom gauge origin
+    f32 m_meter_h0;   // 0x38
+    f32 m_meter_w0;   // 0x3C
 
     void init(Camera* cam, void* tex, void* data);
     virtual void move(void* cam);
@@ -129,10 +129,10 @@ public:
     f32 x120;          // 0x120
     f32 x124;          // 0x124
     IdBinocular id;    // 0x128
-    FocusAnimation focus;  // 0x168
-    Vec pos_local;     // 0x178
-    Vec at_local;      // 0x184
-    Vec up_local;      // 0x190
+    FocusAnimation m_focus;  // 0x168
+    Vec m_campos;     // 0x178
+    Vec m_target;      // 0x184
+    Vec m_up_vec;      // 0x190
     void* id_a;        // 0x19C
     void* id_b;        // 0x1A0
 

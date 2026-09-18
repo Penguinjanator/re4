@@ -133,7 +133,7 @@ void cSubLuis::init()
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     TevScaleGroup = 1;
-    lightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
+    LightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
     // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
     atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     {
@@ -145,9 +145,9 @@ void cSubLuis::init()
     }
     setStatus(1);
     hp = hpMax = 0x4B0;
-    dmgCnt = 5;
+    m_PlAtack = 5;
     be_flag |= 0x2000000;
-    lifeOld = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
+    m_LeonHp = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
     voiceWait = 0;
     cnt = 0;
     x38D = 0;
@@ -164,7 +164,7 @@ void cSubLuis::init()
     YarareAdd(EM, &hit[7], 0.0f, 0.0f, 0.0f, 100.0f, 350.0f, 0xF, 3);
     YarareAdd(EM, &hit[8], -180.0f, 0.0f, 0.0f, 120.0f, 180.0f, 8, 3);
     YarareAdd(EM, &hit[9], 0.0f, 0.0f, 0.0f, 120.0f, 180.0f, 0xE, 3);
-    MotionSetCore(subSelf, &subSelf->mot, SUBARC(0x40 / 4), 0, 0, 5, 0);
+    MotionSetCore(subSelf, &subSelf->Motion, SUBARC(0x40 / 4), 0, 0, 5, 0);
     motionMove();
     getRoomEtcRack(0, &rack[0], 1);
     getRoomEtcRack(1, &rack[1], 1);
@@ -260,9 +260,9 @@ void cSubLuis::think()
         }
     }
 
-    if ((s16) pG->pl_life != lifeOld && (s16) pG->pl_life > 0 && sameFloorCheck(this, pPL)) {
+    if ((s16) pG->pl_life != m_LeonHp && (s16) pG->pl_life > 0 && sameFloorCheck(this, pPL)) {
         if (voiceWait == 0) {
-            lifeOld = pG->pl_life;
+            m_LeonHp = pG->pl_life;
             routine.voice.set(0x5A, 0x10, 60);
             voiceWait = 0x5A;
         }
@@ -309,7 +309,7 @@ void cRoutine::init(cSubLuis* o)
 int cRoutine::move()
 {
     if (owner->r_no_0 == 4) {
-        owner->evFunc();
+        owner->m_pFunc();
     } else {
         (this->*cRoutine_move_tbl[owner->r_no_0])();
     }
@@ -343,11 +343,11 @@ void cRoutine::moveDamage()
         case 7: mot = OARC(0xD4 / 4); owner->r_no_1 = 0xA; break;
         case 8: mot = OARC(0xDC / 4); owner->r_no_1 = 0x14; break;
         }
-        MotionSetCore(owner, &owner->mot, mot, 0, 3, 1, 0);
-        SndCall(8, 9, &owner->pParts->worldPos, owner->id, 0, 0);
+        MotionSetCore(owner, &owner->Motion, mot, 0, 3, 1, 0);
+        SndCall(8, 9, &owner->pParts->world, owner->id, 0, 0);
         owner->cnt = 0;
     case 1:
-        if (MotionCheckCrossFrame(&owner->mot, 20.0f) && x114 && sameFloorCheck(owner, pPL)) {
+        if (MotionCheckCrossFrame(&owner->Motion, 20.0f) && x114 && sameFloorCheck(owner, pPL)) {
             switch (x114) {
             case 4: voice.set(0x5D, 3, 60); break;
             case 3: voice.set(0x5E, 4, 60); break;
@@ -368,7 +368,7 @@ void cRoutine::moveDamage()
         if (MotionMoveF(owner, 0)) owner->r_no_1 = 0x15;
         break;
     case 0x15:
-        MotionSetCore(owner, &owner->mot, OARC(0xD8 / 4), 0, 3, 1, 0);
+        MotionSetCore(owner, &owner->Motion, OARC(0xD8 / 4), 0, 3, 1, 0);
         owner->r_no_1 = 0x16;
     case 0x16:
         if (MotionMoveF(owner, 0)) {
@@ -389,10 +389,10 @@ void cRoutine::moveDie()
 {
     switch (owner->r_no_1) {
     case 0:
-        MotionSetCore(owner, &owner->mot, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
-        SndCall(1, 0xD, &owner->getPartsPtr(4)->worldPos, owner->id, 0, 0);
+        MotionSetCore(owner, &owner->Motion, OARC(0xCC / 4), (int) OARC(0xD0 / 4), 5, 1, 0);
+        SndCall(1, 0xD, &owner->getPartsPtr(4)->world, owner->id, 0, 0);
         owner->dmType |= 0x80;
-        owner->atari.partsNo = 4;
+        owner->atari.m_parts_no = 4;
         owner->r_no_1 = 1;
         break;
     case 1:
@@ -417,7 +417,7 @@ void cRoutine::moveWalk()
         owner->motionSet(OARC(0x58 / 4), 5, 0, 5, 0);
         owner->r_no_1 = 1;
     }
-    owner->rot.y += Muku(&owner->pos, &out, owner->rot.y, 0.20943952f);
+    owner->ang.y += Muku(&owner->pos, &out, owner->ang.y, 0.20943952f);
     owner->motionMove();
     if (GetDistance(&owner->pos, &target) < dist * dist) end();
 }
@@ -432,7 +432,7 @@ void cRoutine::moveRun()
         owner->motionSet(OARC(0x68 / 4), 5, 0, 5, 0);
         owner->r_no_1 = 1;
     }
-    owner->rot.y += Muku(&owner->pos, &out, owner->rot.y, 0.20943952f);
+    owner->ang.y += Muku(&owner->pos, &out, owner->ang.y, 0.20943952f);
     owner->motionMove();
     if (GetDistance(&owner->pos, &target) < dist * dist && r == 1) end();
 }
@@ -444,7 +444,7 @@ void cRoutine::moveWepReady()
         owner->motionSet(OARC(0x78 / 4), 10, 0, 1, 0);
         owner->r_no_1 = 1;
     case 1:
-        if (pTarget) owner->rot.y += Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.44879895f);
+        if (pTarget) owner->ang.y += Muku(&owner->pos, &pTarget->pos, owner->ang.y, 0.44879895f);
         if (owner->motionMove()) {
             end();
             set(0xA);
@@ -461,7 +461,7 @@ void cRoutine::moveWepSet()
     case 0:
         mot3.set(owner, OARC(0x7C / 4), OARC(0x94 / 4), OARC(0x98 / 4), 0, 3, 0, 4, 0);
         if (VALID_PTR(pTarget) && VALID_PTR(pTarget->pParts)) {
-            PSVECSubtract(&pTarget->pParts->worldPos, &owner->pParts->worldPos, &d);
+            PSVECSubtract(&pTarget->pParts->world, &owner->pParts->world, &d);
             rate = VecElevation(&d);
         } else {
             owner->motionMove();
@@ -472,7 +472,7 @@ void cRoutine::moveWepSet()
         end();
     case 1:
         mot3.move(rate);
-        if (VALID_PTR(pTarget)) owner->rot.y += Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.20943952f);
+        if (VALID_PTR(pTarget)) owner->ang.y += Muku(&owner->pos, &pTarget->pos, owner->ang.y, 0.20943952f);
         break;
     }
     owner->motionMove();
@@ -490,7 +490,7 @@ void cRoutine::moveWepFire()
             end();
             break;
         }
-        PSVECSubtract(&pTarget->pParts->worldPos, &owner->pParts->worldPos, &d);
+        PSVECSubtract(&pTarget->pParts->world, &owner->pParts->world, &d);
         rate = VecElevation(&d);
         mot3.set(owner, OARC(0x7C / 4), OARC(0x94 / 4), OARC(0x98 / 4), 0, 3, 0, 4, 0);
         owner->r_no_1 = 1;
@@ -500,8 +500,8 @@ void cRoutine::moveWepFire()
             end();
             break;
         }
-        a = Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.3926991f);
-        owner->rot.y += a;
+        a = Muku(&owner->pos, &pTarget->pos, owner->ang.y, 0.3926991f);
+        owner->ang.y += a;
         owner->motionMove();
         if (fabsf(a) < lim) owner->r_no_1 = 2;
         break;
@@ -531,7 +531,7 @@ void cRoutine::moveWepFire()
     case 3:
         if (shotCnt) mot3.move(rate);
         if (owner->motionMove()) {
-            if (SatMgr.hitCheck(&owner->pParts->worldPos, &pTarget->pParts->worldPos, 0, 0, 0, 0)) {
+            if (SatMgr.hitCheck(&owner->pParts->world, &pTarget->pParts->world, 0, 0, 0, 0)) {
                 RoutineSet(owner, 0xB);
             } else if (pTarget->hp > 0) {
                 RoutineSet(owner, 0xB);
@@ -565,9 +565,9 @@ void cRoutine::moveThrowItem()
         voice.set(0x59, 1, 60);
         owner->r_no_1 = 1;
     case 1:
-        if (MotionCheckCrossFrame(&owner->mot, 18.0f)) setItem();
+        if (MotionCheckCrossFrame(&owner->Motion, 18.0f)) setItem();
         if (owner->frame <= 30.0f) {
-            owner->rot.y += Muku(&owner->pos, &pPL->pos, owner->rot.y, 0.31415927f);
+            owner->ang.y += Muku(&owner->pos, &pPL->pos, owner->ang.y, 0.31415927f);
         }
         if (owner->motionMove()) end();
         break;
@@ -577,7 +577,7 @@ void cRoutine::moveThrowItem()
 void cRoutine::setItem()
 {
     cObjLuisItem* item = (cObjLuisItem*) ObjMgr.create(0x1E);
-    item->init(&owner->getPartsPtr(10)->worldPos, owner->rot.y);
+    item->init(&owner->getPartsPtr(10)->world, owner->ang.y);
 }
 
 void cRoutine::moveDown()
@@ -598,7 +598,7 @@ void cRoutine::moveDown()
         break;
     case 2:
         FSet(rate, rate * (PI / 2));   // reference store: the pPL load stays below it
-        a = Muku(&owner->pos, &pPL->pos, owner->rot.y - rate, 0.31415927f);
+        a = Muku(&owner->pos, &pPL->pos, owner->ang.y - rate, 0.31415927f);
         rate = (rate - a) / (PI / 2);
         if (rate > 1.0f) rate = 1.0f;
         else if (rate < -1.0f) rate = -1.0f;
@@ -637,9 +637,9 @@ void cRoutine::moveAvoid()
     switch (owner->r_no_1) {
     case 0:
         if (GetDistance(&pPL->pos, &pSUB->pos) < 9000000.0f) {
-            owner->rot.y = LIMIT_ANGLE(pPL->rot.y + PI);
+            owner->ang.y = LIMIT_ANGLE(pPL->ang.y + PI);
         } else {
-            owner->rot.y += Muku(&owner->pos, &pPL->pos, owner->rot.y, 2 * PI);
+            owner->ang.y += Muku(&owner->pos, &pPL->pos, owner->ang.y, 2 * PI);
         }
         owner->motionSet(OARC(0x114 / 4), 10, 0, 1, 0);
         owner->dmg.set(0, 0x80);
@@ -740,8 +740,8 @@ int cRoutine::eor()
 void cAction::init(cSubLuis* o)
 {
     rno3 = 0;
-    sub = 0;
-    step = 0;
+    rno2 = 0;
+    rno1 = 0;
     owner = o;
     req = 2;
     mode = 2;
@@ -751,9 +751,9 @@ void cAction::move(cAnalysis* an, cRoutine* rt)
 {
     switch (req) {
     case 0:
-        if (step == 0) {
+        if (rno1 == 0) {
             rt->set(0);
-            step = 1;
+            rno1 = 1;
         }
         break;
     case 1: moveAttack(an, rt); break;
@@ -761,9 +761,9 @@ void cAction::move(cAnalysis* an, cRoutine* rt)
     case 3: moveGo2F(an, rt); break;
     case 4: moveAttackPl(an, rt); break;
     case 5:
-        if (step == 0) {
+        if (rno1 == 0) {
             rt->set(1);
-            step = 1;
+            rno1 = 1;
         } else if (rt->eor()) {
             mode = 2;
             set(0);
@@ -781,30 +781,30 @@ void cAction::move(cAnalysis* an, cRoutine* rt)
 
 void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
 {
-    switch (step) {
+    switch (rno1) {
     case 0:
         if (an->pTarget) {
             rt->set(9);
             rt->pTarget = an->pTarget;
-            step = 1;
+            rno1 = 1;
         } else {
             rt->set(0);
         }
         break;
     case 1:
-        if (rt->eor()) step = 2;
+        if (rt->eor()) rno1 = 2;
         break;
     case 2:
         rt->set(0xA);
         timer = (u8) (Rnd() % 30);
-        step = 3;
+        rno1 = 3;
         break;
     case 3:
         if (--timer == -1) {
             if (an->pTarget) {
                 rt->set(0xB);
                 rt->pTarget = an->pTarget;
-                step = 4;
+                rno1 = 4;
             } else {
                 rt->pTarget = an->pTarget;
             }
@@ -813,21 +813,21 @@ void cAction::moveAttack(cAnalysis* an, cRoutine* rt)
     case 4:
         if (rt->eor()) {
             if (an->pTarget) {
-                if (an->pTarget != rt->pTarget && an->targetDist < 2000.0f) rt->pTarget = an->pTarget;
+                if (an->pTarget != rt->pTarget && an->pEmNearDist < 2000.0f) rt->pTarget = an->pTarget;
                 if (!(rt->pTarget && (rt->pTarget->be_flag & 0x201) == 1 && rt->pTarget->hp > 0)) {
                     rt->pTarget = an->pTarget;
                 }
-                step = 3;
+                rno1 = 3;
                 timer = (u8) (Rnd() % 30);
             } else {
                 rt->pTarget = an->pTarget;
                 rt->set(0xC);
-                step = 5;
+                rno1 = 5;
             }
         }
         break;
     case 5:
-        if (rt->eor()) step = 0;
+        if (rt->eor()) rno1 = 0;
         break;
     }
 }
@@ -838,7 +838,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
     static const Vec upPos = { 112160.0f, 3182.64f, -51016.84f };
     const f32 lowY = 2500.0f;   // pool order: the player-height limit precedes the 1000.0 distance
 
-    switch (step) {
+    switch (rno1) {
     case 0:
         if (rt->set(6)) {
             rt->target = stairPos;
@@ -847,13 +847,13 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
                 an->flags |= 0x20;
                 if (pPL->pos.y < lowY) rt->voice.set(0x58, 2, 60);
             }
-            step = 1;
+            rno1 = 1;
         }
         break;
     case 1:
         if (rt->eor()) {
             rt->target = upPos;
-            step = 2;
+            rno1 = 2;
         }
         break;
     case 2:
@@ -864,20 +864,20 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
 
 void cAction::moveAttackPl(cAnalysis* an, cRoutine* rt)
 {
-    if (step == 0) {
+    if (rno1 == 0) {
         pG->flags_174 |= 0x20000000;
-        step = 1;
+        rno1 = 1;
     }
 }
 
 void cAction::moveGiveItem(cAnalysis* an, cRoutine* rt)
 {
-    switch (step) {
+    switch (rno1) {
     case 0:
         rt->set(0xD);
         rt->target = pPL->pos;
         rt->dist = 4000.0f;
-        step = 1;
+        rno1 = 1;
         break;
     case 1:
         rt->eor();
@@ -887,14 +887,14 @@ void cAction::moveGiveItem(cAnalysis* an, cRoutine* rt)
 
 void cAction::moveDown(cAnalysis* an, cRoutine* rt)
 {
-    switch (step) {
+    switch (rno1) {
     case 0:
         rt->set(0xE);
-        step = 1;
+        rno1 = 1;
     case 1:
         if (rt->eor()) {
             an->flags |= 4;
-            step = 2;
+            rno1 = 2;
         }
         break;
     case 2:
@@ -904,14 +904,14 @@ void cAction::moveDown(cAnalysis* an, cRoutine* rt)
 
 void cAction::moveUp(cAnalysis* an, cRoutine* rt)
 {
-    switch (step) {
+    switch (rno1) {
     case 0:
         rt->set(0x10);
-        step = 1;
+        rno1 = 1;
     case 1:
         if (rt->eor()) {
             an->flags &= ~4;
-            step = 2;
+            rno1 = 2;
         }
         break;
     case 2:
@@ -921,10 +921,10 @@ void cAction::moveUp(cAnalysis* an, cRoutine* rt)
 
 void cAction::moveAvoid(cAnalysis* an, cRoutine* rt)
 {
-    switch (step) {
+    switch (rno1) {
     case 0:
         rt->set(0xF);
-        step = 1;
+        rno1 = 1;
     case 1:
         if (rt->eor()) an->flags &= ~0x10;
         break;
@@ -935,7 +935,7 @@ void cAction::move11cBegin(cAnalysis* an, cRoutine* rt)
 {
     cSubLuis* o = owner;
 
-    switch (step) {
+    switch (rno1) {
     case 0:
         if (flags & 1) {
             flags |= 2;
@@ -943,10 +943,10 @@ void cAction::move11cBegin(cAnalysis* an, cRoutine* rt)
         }
         flags |= 1;
         rt->set(0);
-        sub = 0;
-        step = 1;
+        rno2 = 0;
+        rno1 = 1;
     case 1:
-        switch (sub) {
+        switch (rno2) {
         default: o->neckSet(-PI / 2, PI); break;
         case 0xF0: o->neckSet(-1.3962634f, PI); break;
         case 0xF1: o->neckSet(-1.0471976f, PI); break;
@@ -957,11 +957,11 @@ void cAction::move11cBegin(cAnalysis* an, cRoutine* rt)
         case 0xF6: o->neckSet(-0.034906585f, PI); break;
         case 0xF7: o->neckSet(-0.017453292f, PI); break;
         case 0xF8:
-            step = 2;
+            rno1 = 2;
             flags |= 2;
             break;
         }
-        sub++;
+        rno2++;
         break;
     case 2:
         break;
@@ -972,12 +972,12 @@ void cAction::moveEscRack(cAnalysis* an, cRoutine* rt)
 {
     static const Vec escPos = { 114536.0f, 4.0f, -51880.0f };
 
-    switch (step) {
+    switch (rno1) {
     case 0:
         if (rt->set(6)) {
             rt->target = escPos;
             rt->dist = 500.0f;
-            step = 1;
+            rno1 = 1;
         }
     case 1:
         if (rt->eor()) an->flags &= ~0x80;
@@ -989,17 +989,17 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
 {
     f32 plDist = an->plDist;
 
-    switch (step) {
+    switch (rno1) {
     case 0:
         rt->set(0);
         timer = (u8) (Rnd() % 90) + 30;
-        step = 1;
+        rno1 = 1;
     case 1:
         if (chasePlAreaCheck() == 1) {
-            if (plDist > 5000.0f) step = 0x1E;
-            else if (plDist > 2000.0f) step = 0x14;
+            if (plDist > 5000.0f) rno1 = 0x1E;
+            else if (plDist > 2000.0f) rno1 = 0x14;
         } else if (--timer == 0) {
-            step = 2;
+            rno1 = 2;
         }
         break;
     case 2:
@@ -1010,33 +1010,33 @@ void cAction::moveChasePl(cAnalysis* an, cRoutine* rt)
         } else {
             rt->set(8);
         }
-        step = 3;
+        rno1 = 3;
         break;
     case 0x14:
         timer = 0;
-        step = 0x15;
+        rno1 = 0x15;
     case 0x15:
-        if ((u32) ++timer > 210) step = 0x16;
-        if (plDist > 5000.0f) step = 0x1E;
+        if ((u32) ++timer > 210) rno1 = 0x16;
+        if (plDist > 5000.0f) rno1 = 0x1E;
         break;
     case 0x16:
         rt->set(5);
         rt->target = pPL->pos;
         rt->dist = 1500.0f;
-        step = 0x17;
+        rno1 = 0x17;
         break;
     case 0x17:
-        if (rt->eor()) step = 0;
-        if (plDist > 5000.0f) step = 0x1E;
+        if (rt->eor()) rno1 = 0;
+        if (plDist > 5000.0f) rno1 = 0x1E;
         break;
     case 0x1E:
         rt->set(6);
         rt->target = pPL->pos;
         rt->dist = 1500.0f;
-        step = 0x1F;
+        rno1 = 0x1F;
     case 0x1F:
     case 3:
-        if (rt->eor()) step = 0;
+        if (rt->eor()) rno1 = 0;
         break;
     }
 }
@@ -1049,7 +1049,7 @@ void cAction::set(int m)
         ok = 1;
     } else if (mode != 5) {
         if ((mode == 8 && m != 8) || (mode == 9 && m != 9)) {
-            if (m == 0xA || m == 5 || step == 2) ok = 1;
+            if (m == 0xA || m == 5 || rno1 == 2) ok = 1;
         } else if (m != mode) {
             ok = 1;
         }
@@ -1058,8 +1058,8 @@ void cAction::set(int m)
         mode = m;
         req = m;
         rno3 = 0;
-        sub = 0;
-        step = 0;
+        rno2 = 0;
+        rno1 = 0;
     }
 }
 
@@ -1083,10 +1083,10 @@ void cAnalysis::init(cSubLuis* o)
     // Store order from the weight model: cnt is the zero's last use (issued first of the zero stores),
     // the byte RMW of flags comes last in source.
     owner = o;
-    targetDist = 0.0f;
+    pEmNearDist = 0.0f;
     pTarget = 0;
     idx = 0;
-    cnt = 0;
+    time = 0;
     plDist = 1000000.0f;
     flags &= ~8;
 }
@@ -1113,7 +1113,7 @@ void cAnalysis::move()
     u32 i;
     f32 d;
 
-    cnt++;
+    time++;
     // Round-robin scan from the entry after idx, until a target is found or it wraps around.
     i = idx;
     while (!isTarget(owner, em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * (i = (i + 1) % EmMgr.nArray)))) {
@@ -1134,17 +1134,17 @@ scanned:
         if (pTarget) {
             if (d < GetDistance(owner->pos, pTarget->pos)) {
                 pTarget = found;
-                targetDist = d;
+                pEmNearDist = d;
             }
         } else {
             pTarget = found;
-            targetDist = d;
+            pEmNearDist = d;
         }
     }
 
     plDist = RouteCkPosToPosDis(&owner->pos, &pPL->pos);
     aimCheck();
-    if (cnt % 1800 == 0) flags |= 8;
+    if (time % 1800 == 0) flags |= 8;
 
     switch ((u32) greThrowCheck()) {   // unsigned range tests (cmplwi), the EQ tests stay cmpwi
     case 0x13:
@@ -1185,18 +1185,18 @@ scanned:
 // Is the player aiming at him? Sets flags bit1; returns 1 when the check applies to the weapon.
 int cAnalysis::aimCheck()
 {
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     case 0x10:
         flags &= ~2;
         if ((PlGetStatus() & 0x10) && GetDistance(pPL->pos, pSUB->pos) < 4000000.0f &&
-            Front_check(pPL, pSUB, pPL->rot.y)) {
+            Front_check(pPL, pSUB, pPL->ang.y)) {
             flags |= 2;
             return 1;
         }
         break;
     default:
         if (PlGetStatus() & 0x10) {
-            if (pPL->pWep->pObj->wep.target == (cEm*) owner) {
+            if (pPL->Wep->m_pWep->wep.target == (cEm*) owner) {
                 flags |= 2;
             } else {
                 f32 dir = PlGetDirY();
@@ -1225,13 +1225,13 @@ void cRoutine::shot()
     p.z = 500.0f;
     PSMTXMultVecSR(owner->mat, &p, &p);
     PSVECAdd(&p, &owner->pos, &p);
-    t = pTarget->getPartsPtr(pTarget->lockParts)->worldPos;
+    t = pTarget->getPartsPtr(pTarget->lockParts)->world;
     hp = owner->hp;
     owner->hp = 0;
     PlWepHitCheck2(0, &p, &t, 3, 0, 6000.0f);
     owner->hp = hp;
     EstSet((int) owner->pItem, -1, 0, 0, 7, 0, 0, 0xA, 0, 0);
-    SndCall(8, 0, &owner->pParts->worldPos, owner->id, 0, 0);
+    SndCall(8, 0, &owner->pParts->world, owner->id, 0, 0);
 }
 
 // Plays the motion key sound (seNo) at its parts.
@@ -1268,7 +1268,7 @@ void cSubLuis::seqSeCtrl()
         blk = 8;
         break;
     }
-    SndCall(blk, (u16) se, &getPartsPtr(parts)->worldPos, id, 0, 0);
+    SndCall(blk, (u16) se, &getPartsPtr(parts)->world, id, 0, 0);
     seNo = 0;
 }
 
@@ -1281,7 +1281,7 @@ int cSubLuis::damageCheck()
         return 1;
     }
     dead = (dmg.flags & 0xFFFF0000) != 0;
-    if (!dead && (s16) pG->pl_life > 0 && DmgMgr.hitCheck(&getPartsPtr(0)->worldPos, 0) == 1) {
+    if (!dead && (s16) pG->pl_life > 0 && DmgMgr.hitCheck(&getPartsPtr(0)->world, 0) == 1) {
         routine.x110 = 3;
         dmHit = dead;
         dmType = 0x80;
@@ -1294,19 +1294,19 @@ int cSubLuis::damageCheck()
     routine.x114 = 0;
     switch (dmWep) {
     default:
-        dmgCnt--;
-        if (dmgCnt == 0) {
+        m_PlAtack--;
+        if (m_PlAtack == 0) {
             flags |= 2;
         } else {
-            if (dmgCnt == 1) setStatus(0xA);
+            if (m_PlAtack == 1) setStatus(0xA);
             analysis.flags |= 0x40;
-            routine.x114 = dmgCnt;
+            routine.x114 = m_PlAtack;
         }
         routine.pTarget = pPL;
         dmType = 1;
         if (Front_check(this, &x328, PI / 2)) routine.x110 = 2;
         else routine.x110 = 3;
-        SndCall(8, 0x13, &subSelf->pParts->worldPos, subSelf->id, 0, 0);
+        SndCall(8, 0x13, &subSelf->pParts->world, subSelf->id, 0, 0);
         break;
     case 0x13:
         dmType = 1;
@@ -1334,9 +1334,9 @@ void cSubLuis::equipWeapon()
     } else {
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
         pItem->modelInit(SUBARC(0x38 / 4), SUBARC(0x3C / 4));
-        pItem->atari.flags &= 0xFCFF;
+        pItem->atari.m_flag &= 0xFCFF;
         pItem->pParts->pParent = getPartsPtr(10);
-        pItem->lightInfo.init2(1, 1, LuisLightZero(), &p1, 1);
+        pItem->LightInfo.init2(1, 1, LuisLightZero(), &p1, 1);
         pItem->wep.parent = this;
     }
 }
@@ -1373,35 +1373,35 @@ void cSubLuis::moveEye()
     // where the target ties the masked remainder to the Rnd result (`clrlwi r3, r3, 24`).
 
     switch (luisEyeTimer++) {
-    default: p->rot.x = 0.0f; break;
+    default: p->ang.x = 0.0f; break;
     case 0: {
         u8 r = Rnd() % 200;
         EyeSet(&luisEye, (r * 0.01f - 1.0f) * PI * 0.1f);
-        p->rot.x = 0.17453292f;
+        p->ang.x = 0.17453292f;
         break;
     }
-    case 1: p->rot.x = 0.34906584f; break;
-    case 2: p->rot.x = 0.6981317f; break;
-    case 3: p->rot.x = 0.62831855f; break;
-    case 4: p->rot.x = 0.4886922f; break;
-    case 5: p->rot.x = 0.34906584f; break;
-    case 6: p->rot.x = 0.17453292f; break;
+    case 1: p->ang.x = 0.34906584f; break;
+    case 2: p->ang.x = 0.6981317f; break;
+    case 3: p->ang.x = 0.62831855f; break;
+    case 4: p->ang.x = 0.4886922f; break;
+    case 5: p->ang.x = 0.34906584f; break;
+    case 6: p->ang.x = 0.17453292f; break;
     case 0x1E:
         EyeSet(&luisEye, 0.0f);
         break;
     case 0x58:
         luisEyeTimer = (Rnd() & 3) ? 0 : 0x5A;
         break;
-    case 0x5A: p->rot.x = 0.17453292f; break;
-    case 0x5B: p->rot.x = 0.34906584f; break;
-    case 0x5C: p->rot.x = 0.6981317f; break;
-    case 0x5D: p->rot.x = 0.5934119f; break;
-    case 0x5E: p->rot.x = 0.6632251f; break;
-    case 0x5F: p->rot.x = 0.6981317f; break;
-    case 0x60: p->rot.x = 0.5235988f; break;
-    case 0x61: p->rot.x = 0.34906584f; break;
+    case 0x5A: p->ang.x = 0.17453292f; break;
+    case 0x5B: p->ang.x = 0.34906584f; break;
+    case 0x5C: p->ang.x = 0.6981317f; break;
+    case 0x5D: p->ang.x = 0.5934119f; break;
+    case 0x5E: p->ang.x = 0.6632251f; break;
+    case 0x5F: p->ang.x = 0.6981317f; break;
+    case 0x60: p->ang.x = 0.5235988f; break;
+    case 0x61: p->ang.x = 0.34906584f; break;
     case 0x62:
-        p->rot.x = 0.17453292f;
+        p->ang.x = 0.17453292f;
         luisEyeTimer = 10;
         break;
     }
@@ -1414,16 +1414,16 @@ void cSubLuis::moveEye()
     }
     EyeLimit(&luisEye, -0.31415927f, 0.31415927f);
 
-    getPartsPtr(0x20)->rot.y = EyeGet(&luisEye);
+    getPartsPtr(0x20)->ang.y = EyeGet(&luisEye);
     getPartsPtr(0x20)->cCoord::matUpdate();
-    getPartsPtr(0x21)->rot.y = EyeGet(&luisEye);
+    getPartsPtr(0x21)->ang.y = EyeGet(&luisEye);
     getPartsPtr(0x21)->cCoord::matUpdate();
     EyeMove(&luisEye);
 }
 
 void cSubLuis::neckSet(f32 ang, f32 limit)
 {
-    neckAng += Muku2(neckAng, ang, limit);
+    neckY += Muku2(neckY, ang, limit);
     flags |= 8;
 }
 
@@ -1435,25 +1435,25 @@ void cSubLuis::neckMove()
     if (flags & 8) {
         flags &= ~8;
     } else {
-        neckAng += Muku2(neckAng, 0.0f, spd);
+        neckY += Muku2(neckY, 0.0f, spd);
     }
     p = subSelf->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
-    ((cParts*) p)->addRot.y = neckAng;
+    ((cParts*) p)->addRot.y = neckY;
 }
 
 cVoice::cVoice()
 {
     on = 0;
     timer = 0;
-    sndId = 0xF0F0F0F0;
+    seId = 0xF0F0F0F0;
 }
 
 void cVoice::set(int mesNo, u16 seNo, int time)
 {
     int i;
 
-    if (sndId != 0xF0F0F0F0) SndStop(sndId, 0);
+    if (seId != 0xF0F0F0F0) SndStop(seId, 0);
     if (timer <= 1) {
         MessageControl* mes = &cMes;
         timer = 0;
@@ -1461,8 +1461,8 @@ void cVoice::set(int mesNo, u16 seNo, int time)
         for (i = 0; i < 16; i++) mes->Delete(i);
     }
     if ((s16) pG->pl_life > 0) {
-        sndId = SndCall(8, seNo, &pSUB->pParts->worldPos, pSUB->id, 0, 0);
-        cMes.MesSet(mesNo, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x1000051, 0, 0, 4);   // fold swaps the two subtrahends
+        seId = SndCall(8, seNo, &pSUB->pParts->world, pSUB->id, 0, 0);
+        cMes.MesSet(mesNo, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 0x1000051, 0, 0, 4);   // fold swaps the two subtrahends
     }
     timer = time;
     on = 1;
@@ -1505,9 +1505,9 @@ void cObjLuisItem::init(Vec* p, f32 rotY)
 {
     modelInit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc));
     setPos(p);
-    rot.y = rotY;
-    rot.x = 0.0f;
-    rot.z = 0.0f;
+    ang.y = rotY;
+    ang.x = 0.0f;
+    ang.z = 0.0f;
     EstSet((int) this, -1, 0, 0, 0, 0x2D, 0, 0x3C, (u32) this, 0);
     PSVECSubtract(&pPL->pos, &pos, &LITEM->spd);
     PSVECScale(&LITEM->spd, &LITEM->spd, 0.07f);
@@ -1529,7 +1529,7 @@ void cObjLuisItem::move()
     case 0:
         PSVECAdd(&pos, &LITEM->spd, &pos);
         PSVECAdd(&LITEM->spd, &LITEM->acc, &LITEM->spd);
-        if (SatMgr.hitCheck(&oldPos, &pos, &hit, &nrm, 0, 0)) {
+        if (SatMgr.hitCheck(&pos_old, &pos, &hit, &nrm, 0, 0)) {
             if (nrm.y < 0.5f && nrm.y > -0.5f) {
                 PSVECScale(&nrm, &nrm, 200.0f);
                 PSVECAdd(&hit, &nrm, &pos);
@@ -1580,7 +1580,7 @@ int greThrowCheck()
 {
     cObj* o;
 
-    for (o = ObjMgr.pAlive; o; o = (cObj*) o->next) {
+    for (o = ObjMgr.pAlive; o; o = (cObj*) o->pNext) {
         if (fabsf(o->pos.y - (pSUB->pos.y + 2000.0f)) < 2500.0f) {
             switch (o->id) {
             case 0x1A: return 0x13;
@@ -1605,11 +1605,11 @@ int isTarget(cSubLuis* luis, cEm* em)
         return 0;
     }
     if (!VALID_PTR(em) || (em->be_flag & 0x201) != 1 || em->hp <= 0 || em->id <= 0xF || em->checkStatus(1) ||
-        EatMgr.hitCheck(&luis->pParts->worldPos, &em->pParts->worldPos, 0, 0, 0, 0x400000) ||
-        doorHitCheck(&luis->pParts->worldPos, &em->pParts->worldPos)) {
+        EatMgr.hitCheck(&luis->pParts->world, &em->pParts->world, 0, 0, 0, 0x400000) ||
+        doorHitCheck(&luis->pParts->world, &em->pParts->world)) {
         return 0;
     }
-    if (GetWepTargetList2(&luis->pParts->worldPos, &em->pParts->worldPos, list, 2, &hit, &nrm, &attr, 2, 0) > 1 &&
+    if (GetWepTargetList2(&luis->pParts->world, &em->pParts->world, list, 2, &hit, &nrm, &attr, 2, 0) > 1 &&
         list[1].em != em) {
         return 0;
     }

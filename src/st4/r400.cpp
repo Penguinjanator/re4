@@ -46,9 +46,9 @@ struct R400WorkPtr {
 // index shift and the table offset stays in the displacement (EM_LIST's byte form shifts first).
 struct EmListView {
     u8 pad[0x52E8];
-    EmListData emlist[0x100];
+    EmListData Em_list[0x100];
 };
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
+#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static R400WorkPtr r400_work;
 
@@ -92,7 +92,7 @@ void R400Init()
     setLadderMotion(6);
     setLadderMotion(7);
     setLadderMotion(0x24);
-    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoomArc, 0x2E), ROOM_ARC_PTR(pG->pRoomArc, 0x2F), ROOM_ARC_PTR(pG->pRoomArc, 0x30));
+    EvtMgr.SetEmWindowFcv(ROOM_ARC_PTR(pG->pRoom, 0x2E), ROOM_ARC_PTR(pG->pRoom, 0x2F), ROOM_ARC_PTR(pG->pRoom, 0x30));
     if (getRoomEtcWindow(0, &win, 1)) {
         ((cEmWindow*) win)->SetBreakModel();
     }
@@ -104,7 +104,7 @@ void R400Init()
         init.m.pos = r400_pos[n];
         init.m.rot = r400_rot[n];
         init.m.x18 = 0;
-        init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+        init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x31);
         init.m.x20 = 30000;
         init.m.mesStart = 1;
         init.m.mesA8 = 0xC;
@@ -392,18 +392,18 @@ void setLadderMotion(int no)
             if (EtcGetDasAddr(6, &das)) {
                 void* mot[20];
 
-                mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-                mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-                mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x2A);
-                mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
-                mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
+                mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x28);
+                mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x29);
+                mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x2A);
+                mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x2B);
+                mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x2C);
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
                 // struct view: the pG load stays below the mot[8] frame store (the target issues
                 // the das reload for mot[10] first); a plain pG read is hoisted above it
-                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x2D);
+                mot[9] = ROOM_ARC_PTR(pGS->pRoom, 0x2D);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -427,7 +427,7 @@ void emset_boss(int no, int dir)
     int list;
 
     EM_LIST_V(no).flags &= ~2;
-    list = pG->emlist_no;
+    list = pG->em_list_no;
     if (list >= 0) {
         u32* tbl = (u32*) (list * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[list], em_set.cpp style
 

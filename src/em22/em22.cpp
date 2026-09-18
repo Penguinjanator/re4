@@ -341,12 +341,12 @@ void cEm22::move()
     em22NeckMove(this);
     partsWorldCalc();
     em22ScaleCompress(this);
-    len = SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z));
-    atFlags = atari.flags;
+    len = SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z));
+    atFlags = atari.m_flag;
     if (w->flags & 0x80) {
-        atari.flags |= 0x10;
+        atari.m_flag |= 0x10;
     } else {
-        atari.flags &= ~0x10;
+        atari.m_flag &= ~0x10;
     }
     EmAtCheck(this);
     atari.move();
@@ -355,8 +355,8 @@ void cEm22::move()
     } else {
         SatMgr.check(this, 0);
     }
-    atari.flags = atFlags;
-    if (SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z)) < len * 0.5f) {
+    atari.m_flag = atFlags;
+    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < len * 0.5f) {
         w->stuckTimer = 3;
         w->stuckCnt++;
     } else {
@@ -397,12 +397,12 @@ static void em22_R0_Init(cEm22* em)
     zero = 0;
     mot = MOTION(em);
     EspDataLoad((u32) ARC(6), 0x1A, 0);
-    em->motFlip = em22_flip;
+    em->pXFlip = em22_flip;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -480,7 +480,7 @@ static void em22_R1_br_dummy(cEm22* em)
 // The run motion of the enemy (five variants by list number) with its blend sequence.
 static inline void em22SetRunMotion(cEm22* em)
 {
-    switch ((u8) (em->emsetNo % 5)) {
+    switch ((u8) (em->emset_no % 5)) {
     case 0:
     default:
         MotionSetCore(em, MOTION(em), ARC(9), (int) ARC(0x21), 10, 5, 0);
@@ -508,9 +508,9 @@ static inline void em22SetRunMotion(cEm22* em)
     } else {                                                                                      \
         lim = 0.078539819f;                                                                       \
     }                                                                                             \
-    (em)->rot.y += Muku(&(em)->pos, &(w)->routePos, (em)->rot.y, lim);                            \
-    (em)->rot.y = LIMIT_ANGLE((em)->rot.y);                                                       \
-    em22DirMatrix(em, Muku(&(em)->pos, &(w)->routePos, (em)->rot.y, PI))
+    (em)->ang.y += Muku(&(em)->pos, &(w)->routePos, (em)->ang.y, lim);                            \
+    (em)->ang.y = LIMIT_ANGLE((em)->ang.y);                                                       \
+    em22DirMatrix(em, Muku(&(em)->pos, &(w)->routePos, (em)->ang.y, PI))
 
 static void em22_R1_Goto(cEm22* em)
 {
@@ -583,7 +583,7 @@ static void em22_R1_R11B_B(cEm22* em)
     w->flags |= 4;
     switch (em->r_no_2) {
     case 0:
-        em->atari.flags &= ~0x300;
+        em->atari.m_flag &= ~0x300;
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) ARC(0x27), 10, 5, 0);
         w->timer = 150;
         em->r_no_2++;
@@ -605,7 +605,7 @@ static void em22_R1_R11B_B(cEm22* em)
         em22DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
         v = em->pos;
-        v.y = em->oldPos.y;
+        v.y = em->pos_old.y;
         fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y > fl) {
             break;
@@ -615,7 +615,7 @@ static void em22_R1_R11B_B(cEm22* em)
     }
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xC), 0, 3, 5, 0);
-        em->atari.flags |= 0x300;
+        em->atari.m_flag |= 0x300;
         em->r_no_2++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -661,7 +661,7 @@ static void em22_R1_R11B_C(cEm22* em)
     w->flags |= 4;
     switch (em->r_no_2) {
     case 0:
-        em->atari.flags &= ~0x300;
+        em->atari.m_flag &= ~0x300;
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) ARC(0x27), 10, 0x45, 0xF);
         w->timer = 310;
         em->r_no_2++;
@@ -670,7 +670,7 @@ static void em22_R1_R11B_C(cEm22* em)
         if (w->timer == 0) {
             em->hp = 0;
             em->clearStatus(5);
-            em->alpha = 0.0f;
+            em->invisible_factor = 0.0f;
             em->be_flag &= ~2;
             em->be_flag |= 0x4000;
             em->r_no_2++;
@@ -772,8 +772,8 @@ static void em22_R1_Wait(cEm22* em)
         MotionSetCore(em, MOTION(em), ARC(0x44), (int) ARC(0x46), 10, 5, 0);
         em->r_no_2++;
     case 3:
-        em->rot.y += Muku(&em->pos, &w->routePos, em->rot.y, 0.049087387f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.049087387f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         em22DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
         if (w->routeAngAbs < 0.2617994f) {
@@ -920,7 +920,7 @@ static void em22_R1_Turn(cEm22* em)
     w->flags |= 4;
     switch (em->r_no_2) {
     case 0:
-        ang = LIMIT_ANGLE(GetXZAngle(&em->pos, &w->routePos) - em->rot.y);
+        ang = LIMIT_ANGLE(GetXZAngle(&em->pos, &w->routePos) - em->ang.y);
         d = fabsf(ang);
         if (d < 0.7853982f) {
             MotionSetCore(em, MOTION(em), ARC(0x3E), (int) ARC(0x41), 3, 1, 0);
@@ -936,8 +936,8 @@ static void em22_R1_Turn(cEm22* em)
         em->r_no_2++;
     case 1:
         d = w->delta * 0.1f;
-        em->rot.y += d;
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += d;
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         w->delta -= d;
         em22DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
@@ -977,7 +977,7 @@ static void em22_R1_Escape(cEm22* em)
     }
     if (em->r_no_2 == 0) {
         RouteCkEscEm(em, pPL, &w->routePos);
-        lim = fabsf(Muku(&em->pos, &w->routePos, em->rot.y, PI));
+        lim = fabsf(Muku(&em->pos, &w->routePos, em->ang.y, PI));
         if (lim > 2.3561945f) {
             em->r_no_2 = 2;
         }
@@ -1046,7 +1046,7 @@ static void em22_R1_Threat(cEm22* em)
     case 1:
         em22DirMatrix(em, 0.0f);
         MotionMoveF(em, 0);
-        if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI)) < 1.0471976f) {
+        if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) < 1.0471976f) {
             if (w->timer) {
                 w->timer--;
             } else {
@@ -1152,7 +1152,7 @@ static void em22_R1_SideStep(cEm22* em)
             if (em22GotoCk(em)) {
                 return;
             }
-            if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI)) < 1.0471976f && w->plDeadWait == 0) {
+            if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) < 1.0471976f && w->plDeadWait == 0) {
                 EmRoutineSet(em, 1, 8, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 7, 0, 1);
@@ -1251,8 +1251,8 @@ static void em22_R1_JumpAtk(cEm22* em)
         w->flags |= 8;
         if (w->timer) {
             w->timer--;
-            em->rot.y += Muku(&em->pos, &w->routePos, em->rot.y, 0.049087387f);
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
+            em->ang.y += Muku(&em->pos, &w->routePos, em->ang.y, 0.049087387f);
+            em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         em22DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
@@ -1374,7 +1374,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x35), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.00003f, 400.0f);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         VibSetData(VIB_TBL, 0xF, 1);
         pl->r_no_2++;
     case 1:
@@ -1390,11 +1390,11 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         v.x = -35.86f;
         v.y = 0.0f;
         v.z = 235.52f;
-        pl->rot.x = 0.0f;
-        y = PL_EM(pl)->rot.y;
-        pl->rot.z = 0.0f;
-        pl->rot.y = y + PI;
-        LIMIT_ANGLE(pl->rot.y);
+        pl->ang.x = 0.0f;
+        y = PL_EM(pl)->ang.y;
+        pl->ang.z = 0.0f;
+        pl->ang.y = y + PI;
+        LIMIT_ANGLE(pl->ang.y);
         PSMTXMultVec(PL_EM(pl)->mat, &v, &pl->pos);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x36), 0, 3, 1, 0);
         pl->r_no_2++;
@@ -1412,7 +1412,7 @@ static void plem22_JumpAtkHit(cPlayer* pl)
         if (pl->x3E0) {
             pl->x3E0--;
             if (pl->x3E0 == 0) {
-                pl->pWep->setTrans(1, 0);
+                pl->Wep->setTrans(1, 0);
             }
         }
         if (MotionMoveF(pl, 0)) {
@@ -1469,8 +1469,8 @@ static void em22_R1_ParaAtk(cEm22* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em->rot.y += Muku(&em->pos, &pPLS->pos, em->rot.y, 0.19634955f);
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
+            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.19634955f);
+            em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (w->timer2) {
             w->timer2--;
@@ -1512,8 +1512,8 @@ static void em22_R1_ParaAtkHit(cEm22* em)
         PlSetDamageSe(0);
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, 0.098174773f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, 0.098174773f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
             em->atari.setPriority(0);
             w->plDeadWait = 30;
@@ -1531,8 +1531,8 @@ static void plem22_ParaAtkHit(cPlayer* pl)
     pl->subArc = PL_EM_G->subArc;
     switch (pl->r_no_2) {
     case 0:
-        pl->rot.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->rot.y, PI);
-        pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+        pl->ang.y += Muku(&pl->pos, &PL_EM(pl)->pos, pl->ang.y, PI);
+        pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x4D), 0, 3, 1, 0);
         PlSetFace(1);
         EstSet((int) pl, -1, 0, 0, 0x1A, 0xC, 0, 0, (u32) pl, 0);
@@ -1629,7 +1629,7 @@ static void em22_R1_Jump(cEm22* em)
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x3C), (int) ARC(0x3D), 3, 1, 0);
-        PSMTXRotRad(m, 'y', em->rot.y);
+        PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
         v.x = 0.0f;
         v.y = 500.0f;
@@ -1730,7 +1730,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
     w->flags |= 2;
     switch (em->r_no_2) {
     case 0:
-        ang = Muku(&em->pos, &em->x328, em->rot.y, PI);
+        ang = Muku(&em->pos, &em->x328, em->ang.y, PI);
         angAbs = fabsf(ang);
         em->r_no_3 = ang < 0.0f ? 3 : 2;
         if (angAbs < 0.7853982f) {
@@ -1800,7 +1800,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
-                em->atari.flags &= ~0x300;
+                em->atari.m_flag &= ~0x300;
                 EmRoutineSet(em, 3, 0, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 0x11, 0, 0);
@@ -1890,7 +1890,7 @@ static void em22_R1_Dm_Blow(cEm22* em)
     case 5:
         if (MotionMoveF(em, 0)) {
             if (em->hp <= 0) {
-                em->atari.flags &= ~0x300;
+                em->atari.m_flag &= ~0x300;
                 EmRoutineSet(em, 3, 0, 0, 0);
             } else {
                 EmRoutineSet(em, 1, 0x11, 0, 0);
@@ -1898,8 +1898,8 @@ static void em22_R1_Dm_Blow(cEm22* em)
         }
         break;
     }
-    if ((w->flags & 0x400) && em->pInfo) {
-        for (info = em->pInfo; info; info = info->pNext) {
+    if ((w->flags & 0x400) && em->pModelInfo) {
+        for (info = em->pModelInfo; info; info = info->pList) {
             if (info->color[0] > 0x20) {
                 info->color[0] -= 0x20;
             }
@@ -1921,8 +1921,8 @@ static void em22_R1_Die_Lost(cEm22* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->atari.flags &= ~0x300;
-        em->atari.flags |= 0x10;
+        em->atari.m_flag &= ~0x300;
+        em->atari.m_flag |= 0x10;
         EmSetDie(em);
         EmReserveDropItem(em);
         EmSetDieCntE(em);
@@ -1960,9 +1960,9 @@ static void em22_R1_Die_Lost(cEm22* em)
         if (w->timer2) {
             w->timer2--;
         } else {
-            em->alpha -= 0.1f;
-            if (em->alpha <= 0.0f) {
-                em->alpha = 0.0f;
+            em->invisible_factor -= 0.1f;
+            if (em->invisible_factor <= 0.0f) {
+                em->invisible_factor = 0.0f;
                 em->be_flag &= ~2;
                 em->be_flag |= 0x4000;
                 em->r_no_2++;
@@ -1984,12 +1984,12 @@ void Em22RouteCk(cEm22* em)
     if (em->hp <= 0) {
         return;
     }
-    if ((pG->flags_51E4 & 3) != (em->emsetNo & 3)) {
+    if ((pG->flags_51E4 & 3) != (em->emset_no & 3)) {
         return;
     }
     w->flags &= ~1;
     RouteCkToPos(em, &pPLS->pos, &w->plRoutePos, 0, 0);
-    w->routeAng = Muku(&em->pos, &w->plRoutePos, em->rot.y, PI);
+    w->routeAng = Muku(&em->pos, &w->plRoutePos, em->ang.y, PI);
     w->routeAngAbs = fabsf(w->routeAng);
     a.x = em->pos.x;
     a.y = em->pos.y + 500.0f;
@@ -2008,7 +2008,7 @@ void Em22RouteCk(cEm22* em)
     w->plDist = RouteCkPosToPosDis(&em->pos, &pPLS->pos);
     if (w->gotoOn) {
         RouteCkToPos(em, &w->gotoPos, &w->routePos, 0, 0);
-        w->targetAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+        w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
         dz = em->pos.z - w->gotoPos.z;
         dx = em->pos.x - w->gotoPos.x;
@@ -2021,7 +2021,7 @@ void Em22RouteCk(cEm22* em)
         }
     } else if (w->escTimer) {
         RouteCkEscEm(em, pPL, &w->routePos);
-        w->targetAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
+        w->targetAng = Muku(&em->pos, &w->routePos, em->ang.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
         if (pGS->flags_60 & 0x4000) {
             dbg = em->pos;
@@ -2042,7 +2042,7 @@ void em22DirMatrix(cEm22* em, f32 dir)
     Em22Work* w = EM22_WK(em);
     f32 t;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->motFlags2 |= 0x40000000;
@@ -2088,9 +2088,9 @@ void em22NeckMove(cEm22* em)
     plP = pPL->getPartsPtr(4);
     p = (cParts*) em->getPartsPtr(4);
     if (w->flags & 4) {
-        f = Muku(&em->pos, &pPL->pos, em->rot.y, 1.0471976f);
+        f = Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f);
         w->neckY += Muku2(w->neckY, f, 0.098174773f);
-        PSVECSubtract(&plP->worldPos, &p->worldPos, &d);
+        PSVECSubtract(&plP->world, &p->world, &d);
         len = SQRTF(d.x * d.x + d.z * d.z);
         f = -atan2f(d.y, len);
         if (f > 1.2217305f) {
@@ -2125,13 +2125,13 @@ void em22NeckMove(cEm22* em)
         f = w->neckX * 0.33333334f;
         p = (cParts*) em->getPartsPtr(3);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
         p = (cParts*) em->getPartsPtr(4);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
         p = (cParts*) em->getPartsPtr(5);
         PSMTXRotRad(m, 'x', f);
-        PSMTXConcat(p->worldMat, m, p->worldMat);
+        PSMTXConcat(p->l_mat, m, p->l_mat);
     }
 }
 
@@ -2378,7 +2378,7 @@ void em22SetParasiteAtk(cEm22* em)
             sc.y = 1.0f;
             sc.z = 1.0f;
             w->pParaAtk[i]->setScale(&sc);
-            w->pParaAtk[i]->motFlip = em22_para_flip;
+            w->pParaAtk[i]->pXFlip = em22_para_flip;
         }
     }
 }
@@ -2466,13 +2466,13 @@ void em22OpenBack(cEm22* em)
 
     if (w->flags & 0x10) {
         p = em->getPartsPtr(0x1F);
-        p->rot.z = p->rot.z * 0.9f + 0.08726647f;
+        p->ang.z = p->ang.z * 0.9f + 0.08726647f;
         p = em->getPartsPtr(0x20);
-        p->rot.z = p->rot.z * 0.9f + -0.08726647f;
+        p->ang.z = p->ang.z * 0.9f + -0.08726647f;
         p = em->getPartsPtr(0x21);
-        p->rot.z = p->rot.z * 0.9f + 0.08726647f;
+        p->ang.z = p->ang.z * 0.9f + 0.08726647f;
         p = em->getPartsPtr(0x22);
-        p->rot.z = p->rot.z * 0.9f + -0.08726647f;
+        p->ang.z = p->ang.z * 0.9f + -0.08726647f;
     }
 }
 
@@ -2490,20 +2490,20 @@ int em22LockCk(cEm22* em)
     if (em->plDist2 > 64000000.0f) {
         return 0;
     }
-    if (pG->wep_no == 0x10) {
+    if (pG->weapon_no == 0x10) {
         return 0;
     }
     if (ItemMgr.bulletNumCurrent() == 0) {
         return 0;
     }
-    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 1.0471976f) {
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 1.0471976f) {
         return 0;
     }
-    if (pPL->pWep->pObj->wep.target && pPL->pWep->pObj->wep.target == em) {
+    if (pPL->Wep->m_pWep->wep.target && pPL->Wep->m_pWep->wep.target == em) {
         return 1;
     }
     PSMTXInverse(pPL->getPartsPtr(10)->mat, inv);
-    PSMTXMultVec(inv, &em->getPartsPtr(0)->worldPos, &v);
+    PSMTXMultVec(inv, &em->getPartsPtr(0)->world, &v);
     if (v.x > 0.0f) {
         return 0;
     }
@@ -2538,11 +2538,11 @@ void em22ScaleCompress(cEm22* em)
         s.y = w->scale;
         s.z = 1.0f;
         ScaleMatrix(m, &s);
-        for (p = (cParts*) em->pParts; p; p = p->pNext) {
+        for (p = (cParts*) em->pParts; p; p = p->pList) {
             PSMTXConcat(m, p->mat, p->mat);
-            p->mat[0][3] = p->worldPos.x;
-            p->mat[1][3] = p->worldPos.y;
-            p->mat[2][3] = p->worldPos.z;
+            p->mat[0][3] = p->world.x;
+            p->mat[1][3] = p->world.y;
+            p->mat[2][3] = p->world.z;
         }
     }
 }
@@ -2596,7 +2596,7 @@ int em22JumpCk(cEm22* em)
     }
     p = em->getPartsPtr(2);
     PSMTXCopy(em->mat, m);
-    TransMatrix(m, &p->worldPos);
+    TransMatrix(m, &p->world);
     a.x = 0.0f;
     a.y = 500.0f;
     a.z = 0.0f;
@@ -2606,7 +2606,7 @@ int em22JumpCk(cEm22* em)
     PSMTXMultVec(m, &a, &a);
     PSMTXMultVec(m, &b, &b);
     if (SatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0) & 0x80020) {
-        em->rot.y = atan2f(-nrm.x, -nrm.z);
+        em->ang.y = atan2f(-nrm.x, -nrm.z);
         EmRoutineSet(em, 1, 0x13, 0, 0);
         return 1;
     }
@@ -2632,7 +2632,7 @@ int em22PlRunCk2(cEm22* em)
     if (pPL->r_no_1 != 3) {
         return 0;
     }
-    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 0.7853982f) {
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, PI)) > 0.7853982f) {
         return 0;
     }
     PSMTXInverse(pPL->mat, inv);
@@ -2652,9 +2652,9 @@ static inline void em22FootSplash(cEm22* em, int no)
     cModel* p = em->getPartsPtr(no);
 
     if (em->be_flag & 0x800) {
-        EstSet(0, -1, &p->worldPos, 0, 0x1A, 3, 1, 0, (u32) em, 0);
+        EstSet(0, -1, &p->world, 0, 0x1A, 3, 1, 0, (u32) em, 0);
     } else {
-        EstSet(0, -1, &p->worldPos, 0, 0x1A, 3, 0, 0, 0, 0);
+        EstSet(0, -1, &p->world, 0, 0x1A, 3, 0, 0, 0, 0);
     }
 }
 
@@ -2766,7 +2766,7 @@ int em22ScreenInCk(cEm22* em)
     if (GetScreenPos(&p, &s) && s.x > 0.0f && s.x < 512.0f && s.y > 0.0f && s.y < 448.0f) {
         return 1;
     }
-    p = em->getPartsPtr(4)->worldPos;
+    p = em->getPartsPtr(4)->world;
     if (GetScreenPos(&p, &s) && s.x > 0.0f && s.x < 512.0f && s.y > 0.0f && s.y < 448.0f) {
         return 1;
     }
@@ -2808,11 +2808,11 @@ void em22DoorOpenCk(cEm22* em)
             continue;
         }
         dw = EMDOOR_WK(door);
-        ang = fabsf(Muku2(dw->rotY, em->rot.y, PI));
+        ang = fabsf(Muku2(dw->base_dir, em->ang.y, PI));
         if (ang > 0.7853982f && ang < 2.3561945f) {
             continue;
         }
-        PSMTXMultVec(dw->inv, &em->pos, &v);
+        PSMTXMultVec(dw->base_im, &em->pos, &v);
         if (ang < 1.5707964f) {
             if (v.z > 0.0f) {
                 continue;
@@ -2828,10 +2828,10 @@ void em22DoorOpenCk(cEm22* em)
                 continue;
             }
         }
-        if (v.x > dw->width) {
+        if (v.x > dw->Width) {
             continue;
         }
-        if (v.x < -dw->width) {
+        if (v.x < -dw->Width) {
             continue;
         }
         if (v.y > 500.0f) {

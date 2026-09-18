@@ -387,12 +387,12 @@ static void r205_PendulumMove()
             }
             pd = &r205_work.p->pend[i];
             pd->rotPrev = pd->rot;
-            rot = pd->obj->rot.z;
+            rot = pd->obj->ang.z;
             pd->rot = rot;
             if (fabsf(rot) <= 0.8f) {
                 if (se[i] == 0) {
                     se[i] = 1;
-                    RoomSeCall((u16) (12 + i), &r205_work.p->hit[i]->pParts->worldPos, 0, 0, 0);
+                    RoomSeCall((u16) (12 + i), &r205_work.p->hit[i]->pParts->world, 0, 0, 0);
                 }
             } else {
                 se[i] = 0;
@@ -435,19 +435,19 @@ static void r205_ExecDieDemo(R205Pend* p)
     BitOn(pG->System_flg, 0x40);
     BEGIN_EVENT(pPL, 0);
     d = p->rot - p->rotPrev;
-    if (pPL->rot.y >= -1.5707964f && pPL->rot.y <= 1.5707964f) {
-        pPL->rot.y = 0.0f;
+    if (pPL->ang.y >= -1.5707964f && pPL->ang.y <= 1.5707964f) {
+        pPL->ang.y = 0.0f;
         if (d > 0.0f) {
             mot = 0x41;
         }
     } else {
-        pPL->rot.y = 3.1415927f;
+        pPL->ang.y = 3.1415927f;
         if (d < 0.0f) {
             mot |= 0x40;
         }
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 3, 0, (u16) mot, 0);
-    wp = &pPL->getPartsPtr(2)->worldPos;
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 3, 0, (u16) mot, 0);
+    wp = &pPL->getPartsPtr(2)->world;
     RoomSeCall(0, wp, 0, 0, 0);
     PlSeCall(9, wp, 0, 0, 0);
     cam = pG->Cam;
@@ -456,9 +456,9 @@ static void r205_ExecDieDemo(R205Pend* p)
     while (!(MotionGetState(pPL) & 4)) {
         if (!(pG->flags_174 & 0x20000000)) {
             if (i == 2) {
-                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->worldPos, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
+                EstSet((int) pPL, -1, &pPL->getPartsPtr(2)->world, 0, 1, 0x10, 0, 0, (u32) pPL, 0);
             }
-            cam.param.at = parts->worldPos;
+            cam.param.at = parts->world;
             i++;
             CameraSetOrientationUp(&cam);
             CamCtrl.x250 = (s32) &cam;
@@ -467,14 +467,14 @@ static void r205_ExecDieDemo(R205Pend* p)
             break;
         }
     }
-    RoomSeCall(1, &pPL->getPartsPtr(2)->worldPos, 0, 0, 0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, (u16) mot, 0);
+    RoomSeCall(1, &pPL->getPartsPtr(2)->world, 0, 0, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 3, 0, (u16) mot, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 0x11, 0, 0, (u32) pPL, 0);
     DiedemoExec(0x19, 0);
     CamCtrl.Disable();
     CamCtrl.camera = cam;
     CamCtrl.cur = cam.param;
-    CamSmth.ratio = 0.0f;
+    CamSmth.m_ratio = 0.0f;
     CamCtrl.interp.frame = 0;
     CamCtrl.be_flag |= 4;
 }
@@ -484,7 +484,7 @@ static void r205_DrainEvent()
     SceEventStart(0);
     CamCtrl.CutCall(2);
     SceSleep(1);
-    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 1) {
         void* zero;
 
@@ -563,15 +563,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r205_work.p->tex->texId;
-        r205_work.p->tex->repType = 1;
+        r205_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 1, r205_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R205Init() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
     obj->Shader_type = 2;
     obj->Refract_pow = 5;
     obj->Refract_ratio = 0x40;

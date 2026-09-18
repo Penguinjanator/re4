@@ -213,23 +213,23 @@ void Em34ClothSet1(cModel* m, PlCloth* pCloth)
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pModel = m;
     pCloth->WindSin = 0.0f;
     pCloth->Move_rate = 0.0f;
-    pCloth->num = 91;
-    pCloth->pParts = em34ClothP2;
+    pCloth->Num = 91;
+    pCloth->pCloth = em34ClothP2;
     pCloth->pLeft = em34ClothLp2;
-    pCloth->pUp = em34ClothUp2;
-    pCloth->pDown = em34ClothDp2;
+    pCloth->pParent = em34ClothUp2;
+    pCloth->pChild = em34ClothDp2;
     pCloth->pMax = em34ClothMax2;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
-    pCloth->pAt = em34ClothAt2_LongStride;
-    pCloth->nAt = 16;
+    pCloth->pAtset = em34ClothAt2_LongStride;
+    pCloth->At_num = 16;
     pCloth->Gravity = 20.0f;
     pCloth->Rate = 0.7f;
     pCloth->Bundle_num = 14;
@@ -249,21 +249,21 @@ void Em34ClothReset(cModel* m)
 
 void Em34ClothSet2(cModel* m, PlCloth* pCloth)
 {
-    pCloth->num = 2;
-    pCloth->pParts = em34ClothP;
+    pCloth->Num = 2;
+    pCloth->pCloth = em34ClothP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em34ClothUp;
-    pCloth->pDown = em34ClothDp;
+    pCloth->pParent = em34ClothUp;
+    pCloth->pChild = em34ClothDp;
     pCloth->pMax = em34ClothMax;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pGravity = 0;
-    pCloth->pAt = em34ClothAt;
+    pCloth->pAtset = em34ClothAt;
     pCloth->pRate = em34ClothRate;
-    pCloth->nAt = 5;
+    pCloth->At_num = 5;
     pCloth->Gravity = 15.0f;
     pCloth->Rate = 0.8f;
     pCloth->Bundle_num = 4;
@@ -271,7 +271,7 @@ void Em34ClothSet2(cModel* m, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -283,21 +283,21 @@ void Em34ClothMove2(cModel* m, PlCloth* pCloth)
 
 void Em18ClothSet(cModel* m, PlCloth* pCloth, int mode)
 {
-    pCloth->num = 27;
-    pCloth->pParts = em18ClothP;
+    pCloth->Num = 27;
+    pCloth->pCloth = em18ClothP;
     pCloth->pLeft = em18ClothLp;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em18ClothUp;
-    pCloth->pDown = em18ClothDp;
+    pCloth->pParent = em18ClothUp;
+    pCloth->pChild = em18ClothDp;
     pCloth->pMax = em18ClothMax;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pGravity = 0;
-    pCloth->pAt = em18ClothAt;
+    pCloth->pAtset = em18ClothAt;
     pCloth->pRate = em18ClothRate;
-    pCloth->nAt = 15;
+    pCloth->At_num = 15;
     pCloth->Gravity = 20.0f;
     pCloth->pModel = m;
     pCloth->Rate = 0.1f;
@@ -305,7 +305,7 @@ void Em18ClothSet(cModel* m, PlCloth* pCloth, int mode)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.05f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     if (mode) {
         // The x40/x44 stores repeat the defaults: they are real uses for flow/sched1/regalloc
@@ -327,21 +327,21 @@ void Em18ClothMove(cModel* m, PlCloth* pCloth)
 
 void Em37HairSet(cModel* m, PlCloth* pCloth)
 {
-    pCloth->num = 8;
-    pCloth->pParts = em37HairP;
+    pCloth->Num = 8;
+    pCloth->pCloth = em37HairP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em37HairUp;
-    pCloth->pDown = em37HairDp;
+    pCloth->pParent = em37HairUp;
+    pCloth->pChild = em37HairDp;
     pCloth->pMax = em37HairMax;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pGravity = 0;
-    pCloth->pAt = em37HairAt;
+    pCloth->pAtset = em37HairAt;
     pCloth->pRate = em37HairRate;
-    pCloth->nAt = 8;
+    pCloth->At_num = 8;
     pCloth->Gravity = 10.0f;
     pCloth->Rate = 0.8f;
     pCloth->Bundle_num = 4;
@@ -349,7 +349,7 @@ void Em37HairSet(cModel* m, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -366,21 +366,21 @@ void Em37ClothReset(cModel* m)
 
 void Em37CoatSet(cModel* m, PlCloth* pCloth)
 {
-    pCloth->num = 39;
-    pCloth->pParts = em37CoatP;
+    pCloth->Num = 39;
+    pCloth->pCloth = em37CoatP;
     pCloth->pLeft = em37CoatLp;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em37CoatUp;
-    pCloth->pDown = em37CoatDp;
+    pCloth->pParent = em37CoatUp;
+    pCloth->pChild = em37CoatDp;
     pCloth->pMax = em37CoatMax;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pGravity = 0;
-    pCloth->pAt = em37CoatAt;
+    pCloth->pAtset = em37CoatAt;
     pCloth->pRate = em37CoatRate;
-    pCloth->nAt = 12;
+    pCloth->At_num = 12;
     pCloth->Gravity = 15.0f;
     pCloth->Rate = 0.9f;
     pCloth->Bundle_num = 4;
@@ -388,7 +388,7 @@ void Em37CoatSet(cModel* m, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -400,23 +400,23 @@ void Em37CoatMove(cModel* m, PlCloth* pCloth)
 
 void Em33ClothSet(cModel* m, PlCloth* pCloth, int small)
 {
-    pCloth->num = 60;
-    pCloth->pParts = em33HairP;
+    pCloth->Num = 60;
+    pCloth->pCloth = em33HairP;
     pCloth->pLeft = em33ClothLp;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em33HairUp;
-    pCloth->pDown = em33HairDp;
+    pCloth->pParent = em33HairUp;
+    pCloth->pChild = em33HairDp;
     pCloth->pMax = em33HairMax;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     if (small == 0) {
-        pCloth->pAt = em33HairAt;
+        pCloth->pAtset = em33HairAt;
     } else {
-        pCloth->pAt = em33HairAtSmall;
+        pCloth->pAtset = em33HairAtSmall;
     }
-    pCloth->nAt = 17;
+    pCloth->At_num = 17;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->Gravity = 10.0f;
@@ -426,7 +426,7 @@ void Em33ClothSet(cModel* m, PlCloth* pCloth, int small)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -438,23 +438,23 @@ void Em33ClothMove(cModel* m, PlCloth* pCloth)
 
 void Em33ClothSet2(cModel* m, PlCloth* pCloth, int small)
 {
-    pCloth->num = 46;
-    pCloth->pParts = em33HairP2;
+    pCloth->Num = 46;
+    pCloth->pCloth = em33HairP2;
     pCloth->pLeft = em33ClothLp2;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em33HairUp2;
-    pCloth->pDown = em33HairDp2;
+    pCloth->pParent = em33HairUp2;
+    pCloth->pChild = em33HairDp2;
     pCloth->pMax = em33HairMax2;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     if (small == 0) {
-        pCloth->pAt = em33HairAt2;
+        pCloth->pAtset = em33HairAt2;
     } else {
-        pCloth->pAt = em33HairAt2Small;
+        pCloth->pAtset = em33HairAt2Small;
     }
-    pCloth->nAt = 11;
+    pCloth->At_num = 11;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->Gravity = 10.0f;
@@ -464,7 +464,7 @@ void Em33ClothSet2(cModel* m, PlCloth* pCloth, int small)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -474,23 +474,23 @@ void Em33ClothMove2(cModel* m, PlCloth* pCloth)
     cModel* p;
 
     p = m->getPartsPtr(0xA9);
-    p->rot.z = m->getPartsPtr(7)->rot.z;
-    RotMatrix(p->worldMat, &p->rot);
-    TransMatrix(p->worldMat, &p->pos);
-    ScaleMatrix(p->worldMat, &p->scale);
-    PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);
-    p->worldPos.x = p->mat[0][3];
-    p->worldPos.y = p->mat[1][3];
-    p->worldPos.z = p->mat[2][3];
+    p->ang.z = m->getPartsPtr(7)->ang.z;
+    RotMatrix(p->l_mat, &p->ang);
+    TransMatrix(p->l_mat, &p->pos);
+    ScaleMatrix(p->l_mat, &p->scale);
+    PSMTXConcat(p->pParent->mat, p->l_mat, p->mat);
+    p->world.x = p->mat[0][3];
+    p->world.y = p->mat[1][3];
+    p->world.z = p->mat[2][3];
     p = m->getPartsPtr(0xB8);
-    p->rot.z = m->getPartsPtr(0xB)->rot.z;
-    RotMatrix(p->worldMat, &p->rot);
-    TransMatrix(p->worldMat, &p->pos);
-    ScaleMatrix(p->worldMat, &p->scale);
-    PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);
-    p->worldPos.x = p->mat[0][3];
-    p->worldPos.y = p->mat[1][3];
-    p->worldPos.z = p->mat[2][3];
+    p->ang.z = m->getPartsPtr(0xB)->ang.z;
+    RotMatrix(p->l_mat, &p->ang);
+    TransMatrix(p->l_mat, &p->pos);
+    ScaleMatrix(p->l_mat, &p->scale);
+    PSMTXConcat(p->pParent->mat, p->l_mat, p->mat);
+    p->world.x = p->mat[0][3];
+    p->world.y = p->mat[1][3];
+    p->world.z = p->mat[2][3];
     PenClothMove3(m, (PenCloth*) pCloth);
 }
 
@@ -516,21 +516,21 @@ cObjChain* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl)
     if (chain == 0) {
         return 0;
     }
-    c->num = 5;
-    c->pParts = em2bShortRopeP;
+    c->Num = 5;
+    c->pCloth = em2bShortRopeP;
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
     c->pUpRight = 0;
-    c->pUp = em2bShortRopeUp;
-    c->pDown = em2bShortRopeDp;
+    c->pParent = em2bShortRopeUp;
+    c->pChild = em2bShortRopeDp;
     c->pMax = 0;
-    c->pWindS = 0;
-    c->pWindR = 0;
+    c->pWindSin = 0;
+    c->pWindRate = 0;
     c->pGravity = 0;
     c->pRate = 0;
-    c->pAt = em2bRopeAt;
-    c->nAt = 5;
+    c->pAtset = em2bRopeAt;
+    c->At_num = 5;
     c->Gravity = 20.0f;
     c->Rate = 0.8f;
     c->Bundle_num = 100;
@@ -538,7 +538,7 @@ cObjChain* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl)
     c->WindSin = 0.0f;
     c->Stretchy = 0.1f;
     c->Move_rate = 0.0f;
-    c->flags = 0;
+    c->Flag = 0;
     c->x54 = 0;
     chain->setChain((PenCloth*) c);
     pos.x = -290.0f;
@@ -553,21 +553,21 @@ cObjChain* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl)
 
 void Em30ClothSet1(cModel* m, PlCloth* pCloth)
 {
-    pCloth->num = 49;
-    pCloth->pParts = em30ClothP;
+    pCloth->Num = 49;
+    pCloth->pCloth = em30ClothP;
     pCloth->pLeft = em30ClothLp;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em30ClothUp;
-    pCloth->pDown = em30ClothDp;
+    pCloth->pParent = em30ClothUp;
+    pCloth->pChild = em30ClothDp;
     pCloth->pMax = em30ClothMax;
-    pCloth->pWindS = em30ClothWindS;
-    pCloth->pWindR = em30ClothWindR;
+    pCloth->pWindSin = em30ClothWindS;
+    pCloth->pWindRate = em30ClothWindR;
     pCloth->pGravity = 0;
-    pCloth->pAt = em30ClothAt;
+    pCloth->pAtset = em30ClothAt;
     pCloth->pRate = 0;
-    pCloth->nAt = 2;
+    pCloth->At_num = 2;
     pCloth->Gravity = 30.0f;
     pCloth->Rate = 0.9f;
     pCloth->Bundle_num = 20;
@@ -575,7 +575,7 @@ void Em30ClothSet1(cModel* m, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }
@@ -587,21 +587,21 @@ void Em30ClothMove1(cModel* m, PlCloth* pCloth)
 
 void Em30ClothSet2(cModel* m, PlCloth* pCloth)
 {
-    pCloth->num = 30;
-    pCloth->pParts = em30ClothP2;
+    pCloth->Num = 30;
+    pCloth->pCloth = em30ClothP2;
     pCloth->pLeft = em30ClothLp2;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = em30ClothUp2;
-    pCloth->pDown = em30ClothDp2;
-    pCloth->pWindS = 0;
-    pCloth->pWindR = 0;
+    pCloth->pParent = em30ClothUp2;
+    pCloth->pChild = em30ClothDp2;
+    pCloth->pWindSin = 0;
+    pCloth->pWindRate = 0;
     pCloth->pMax = em30ClothMax2;
-    pCloth->pAt = 0;
+    pCloth->pAtset = 0;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
-    pCloth->nAt = 0;
+    pCloth->At_num = 0;
     pCloth->Gravity = 15.0f;
     pCloth->Rate = 0.5f;
     pCloth->pModel = m;
@@ -609,7 +609,7 @@ void Em30ClothSet2(cModel* m, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.05f;
     pCloth->Move_rate = 0.0f;
-    pCloth->flags = 0;
+    pCloth->Flag = 0;
     pCloth->x54 = 0;
     PenClothSet(m, (PenCloth*) pCloth, 100.0f);
 }

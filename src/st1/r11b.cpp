@@ -162,12 +162,12 @@ void R11bInit()
     rot.y = 0.0f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.5f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 12708.0f;
@@ -177,12 +177,12 @@ void R11bInit()
     rot.y = 3.1415927f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 2.0f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 412.0f;
@@ -192,12 +192,12 @@ void R11bInit()
     rot.y = 1.5707964f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.7f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     pos.x = 53338.0f;
@@ -207,12 +207,12 @@ void R11bInit()
     rot.y = 0.7853982f;
     rot.z = 0.0f;
     {
-        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        cObj* o = SetFloatIsland(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
 
         if (o) {
             r11b_setScale(o, 1.5f);
-            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22),
-                                      ROOM_ARC_PTR(pG->pRoomArc, 0x23), ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+            ((cObj1c*) o)->setMotion(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22),
+                                      ROOM_ARC_PTR(pG->pRoom, 0x23), ROOM_ARC_PTR(pG->pRoom, 0x24));
         }
     }
     TexRenderInit(&r11b_work.p->tex[0], 0xE0, 2);
@@ -232,16 +232,16 @@ static void R11b_bgm_ck()
 // Lightning on / off: the sky object's colour.
 static void r11b_ThunderFlagOn()
 {
-    SmdGetObjPtr(0x2B)->pInfo->color[0] = 0xDA;
-    SmdGetObjPtr(0x2B)->pInfo->color[1] = 0xF1;
-    SmdGetObjPtr(0x2B)->pInfo->color[2] = 0xFF;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[0] = 0xDA;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[1] = 0xF1;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[2] = 0xFF;
 }
 
 static void r11b_ThunderFlagOff()
 {
-    SmdGetObjPtr(0x2B)->pInfo->color[0] = 0x18;
-    SmdGetObjPtr(0x2B)->pInfo->color[1] = 0x19;
-    SmdGetObjPtr(0x2B)->pInfo->color[2] = 0x1A;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[0] = 0x18;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[1] = 0x19;
+    SmdGetObjPtr(0x2B)->pModelInfo->color[2] = 0x1A;
 }
 
 // Thunder every 90..235 frames.
@@ -270,7 +270,7 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
-#define EM_LIST_S(no) ((EmListData*) &pGS->emlist[(no) * 0x20])
+#define EM_LIST_S(no) ((EmListData*) &pGS->Em_list[(no) * 0x20])
 extern "C" void EmSetChange()
 {
     EmListData* l;
@@ -447,7 +447,7 @@ static inline int r11b_evtSkip(Event* e)
 {
     int skip = 1;
 
-    if ((e->status & 0x40000000) == 0) {
+    if ((e->StatusFlag & 0x40000000) == 0) {
         skip = 0;
     }
     return skip;
@@ -488,9 +488,9 @@ extern "C" void Evt_R11BS00_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(2);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -502,7 +502,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 2:
-            if (e->frame == 0x84) {
+            if (e->NowFrame == 0x84) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -511,7 +511,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 3:
-            if (e->frame == 0x55) {
+            if (e->NowFrame == 0x55) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -520,7 +520,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 4:
-            if (e->frame == 0x26) {
+            if (e->NowFrame == 0x26) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -529,7 +529,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         case 5:
-            if (e->frame == 0x5D) {
+            if (e->NowFrame == 0x5D) {
                 int skip = r11b_evtSkip(e);
 
                 if (skip == 0) {
@@ -543,7 +543,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             if (skip == 0) {
                 SetNearClipDist(1.0f);
             }
-            if (e->frame == 0x68) {
+            if (e->NowFrame == 0x68) {
                 int skip2 = r11b_evtSkip(e);
 
                 if (skip2 == 0) {
@@ -553,23 +553,23 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             break;
         }
         }
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 6:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 6, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
             }
             break;
         case 7:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 0, 1);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 7, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
             }
             break;
         case 8:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 r11b_evtTexRenderSet(e, mod, 1, 0);
                 r11b_evtEffDelete();
                 EstSet(0, -1, 0, 0, 1, 8, r11b_work.p->tex[1]->mask | 0x3001, 0, 0, 0);
@@ -577,7 +577,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         default:
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                     TexRenderModResP((cModel*) mod, 6);
                     TexRenderModResP((cModel*) mod, 7);
@@ -587,7 +587,7 @@ extern "C" void Evt_R11BS00_Func(Event* e)
             }
             break;
         }
-        if (pG->costume2 == 1 && e->frame == 0) {
+        if (pG->game_costume == 1 && e->NowFrame == 0) {
             if (e->GetMod(&mod, "pl0000", 0, 0) == 1) {
                 ModelInfoSetTrans((cModel*) mod, 7, 0);
                 ModelInfoSetTrans((cModel*) mod, 8, 0);

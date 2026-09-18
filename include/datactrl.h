@@ -6,29 +6,29 @@
 // One streamed data file (game/datactrl.cpp, 0x50 bytes).
 class cDataUnit {
 public:
-    s32 condition;   // 0x00  0 none, 1 MRAM loading, 2 MRAM ok, 3 ARAM loading, 4 ARAM ok,
+    s32 m_condition;   // 0x00  0 none, 1 MRAM loading, 2 MRAM ok, 3 ARAM loading, 4 ARAM ok,
                      //       5 ARAM->MRAM, 6 MRAM->ARAM, 7 ARAM->ARAM, 8 MRAM->MRAM
-    s32 command;     // 0x04  0 none, 1 load to MRAM, 2 load to ARAM, 3 clear, 4 delete
-    s32 err;         // 0x08
-    u8 flag;         // 0x0C  bit0 in use, bit1 memory allocated by the unit
+    s32 m_command;     // 0x04  0 none, 1 load to MRAM, 2 load to ARAM, 3 clear, 4 delete
+    s32 m_err;         // 0x08
+    u8 m_be_flag;         // 0x0C  bit0 in use, bit1 memory allocated by the unit
     u8 wait;         // 0x0D  setCommand argument (1 = synchronous)
-    u8 waitFlag;     // 0x0E  set while waitUseOk/waitLoadOk spin
-    u8 heap;         // 0x0F  heap the allocation came from
-    void* addr;      // 0x10  current address of the data
+    u8 m_wait;     // 0x0E  set while waitUseOk/waitLoadOk spin
+    u8 m_malloc_heap;         // 0x0F  heap the allocation came from
+    void* m_addr;      // 0x10  current address of the data
     u32 arg;         // 0x14  setCommand argument: destination (0 = allocate)
-    void* mallocAddr;// 0x18
+    void* m_malloc_addr;// 0x18
     u32 dest;        // 0x1C  destination of the running transfer
-    u32 fixAddr;     // 0x20  fixed MRAM destination (fixMramAddr)
-    u32 size;        // 0x24
+    u32 m_fix_addr;     // 0x20  fixed MRAM destination (fixMramAddr)
+    u32 m_size;        // 0x24
     u8 pad_28[4];
-    char name[0x20]; // 0x2C
-    int reqNo;       // 0x4C  DVD / ARAM request number
+    char m_name[0x20]; // 0x2C
+    int m_id;       // 0x4C  DVD / ARAM request number
 
     cDataUnit() {}
     ~cDataUnit() {}
 
     int chk(u32 bit) {
-        if (flag & bit) {
+        if (m_be_flag & bit) {
             return 1;
         }
         return 0;
@@ -60,17 +60,17 @@ public:
     void checkCondition();
     // Inline accessors: as call arguments they make GCC precompute the values before the
     // stack argument stores (block.cpp dispDebugInfo).
-    void* getAddr() { return addr; }
+    void* getAddr() { return m_addr; }
     u32 getArg() { return arg; }
     u32 getDest() { return dest; }
-    u32 getSize() { return size; }
+    u32 getSize() { return m_size; }
 };
 
 // Room data unit controller (game/datactrl.cpp, `DC`, 0xAA4 bytes).
 class cDataCtrl {
 public:
-    cDataUnit unit[32];  // 0x000
-    u32 aramEnd;         // 0xA00  first free ARAM address above the loaded units
+    cDataUnit m_DataUnit[32];  // 0x000
+    u32 m_aram_free;         // 0xA00  first free ARAM address above the loaded units
     s32 aramSort;        // 0xA04  1 = repack the ARAM units (checkAramSort)
     s32 xA08;            // 0xA08  0 while the sub screen owns the ARAM area (sscrn), 1 otherwise
     s32 xA0C;            // 0xA0C  1 = commands are not executed immediately

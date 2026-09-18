@@ -90,13 +90,13 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetLadder() failed.");
@@ -107,13 +107,13 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 0.0f, 0.0f, 400.0f, 400.0f, 400.0f, 5000.0f, 0, 2, 0);
     obj->sub2B4.atari.clrFlag100();
     w->plMot = 0;
     w->plMotA = 0;
-    w->basePos = obj->pos;
-    w->sat = 0;
+    w->St_pos = obj->pos;
+    w->pEat = 0;
     obj->r_no_0 = 0;
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
@@ -123,8 +123,8 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
 
 void cObjPillar::move()
 {
-    if (pillar.sat) {
-        pillar.sat->flags &= ~4;
+    if (pillar.pEat) {
+        pillar.pEat->m_Flag &= ~4;
     }
     ObjPillar_R0_move_tbl[r_no_0](this);
 }
@@ -133,8 +133,8 @@ void objPillar_R0_Set(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
 
-    w->flags |= 1;
-    w->basePos = obj->pos;
+    w->Be_flg |= 1;
+    w->St_pos = obj->pos;
     obj->matUpdate();
     obj->partsWorldCalc();
     objPillarEatSet(obj);
@@ -149,34 +149,34 @@ void objPillar_R0_Break(cObjPillar* obj)
 
     switch (step) {
     case 0:
-        w->timer = (*(u16*) w->motBreak & 0x3FFF) - 10;
+        w->Timer = (*(u16*) w->motBreak & 0x3FFF) - 10;
         MotionSetCore(obj, &obj->pMotion, w->motBreak, 0, 0, 0x8001, 0);
         w->rnd = Rnd() & 1;
-        w->escaped = step;
-        w->seHandle = step;
+        w->Act_ck = step;
+        w->Seid = step;
         obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             obj->be_flag &= ~2;
             obj->r_no_2++;
         } else {
-            objPillarAtkCk(obj, &obj->getPartsPtr(1)->worldPos);
-            objPillarAtkCk(obj, &obj->getPartsPtr(2)->worldPos);
-            if (w->seHandle == 0) {
+            objPillarAtkCk(obj, &obj->getPartsPtr(1)->world);
+            objPillarAtkCk(obj, &obj->getPartsPtr(2)->world);
+            if (w->Seid == 0) {
                 cModel* parts = obj->getPartsPtr(1);
 
-                if ((parts->worldPos.x - pPL->pos.x) * (parts->worldPos.x - pPL->pos.x) +
-                    (parts->worldPos.y - pPL->pos.y) * (parts->worldPos.y - pPL->pos.y) +
-                    (parts->worldPos.z - pPL->pos.z) * (parts->worldPos.z - pPL->pos.z) < 16000000.0f) {
-                    w->seHandle = SndCall(8, 0x2C, &parts->worldPos, 0x31, 0, obj);
+                if ((parts->world.x - pPL->pos.x) * (parts->world.x - pPL->pos.x) +
+                    (parts->world.y - pPL->pos.y) * (parts->world.y - pPL->pos.y) +
+                    (parts->world.z - pPL->pos.z) * (parts->world.z - pPL->pos.z) < 16000000.0f) {
+                    w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, obj);
                 }
             }
-            if (w->timer) {
-                w->timer--;
+            if (w->Timer) {
+                w->Timer--;
             } else {
-                obj->alpha -= 0.1f;
-                if (obj->alpha < 0.0f) {
-                    obj->alpha = 0.0f;
+                obj->invisible_factor -= 0.1f;
+                if (obj->invisible_factor < 0.0f) {
+                    obj->invisible_factor = 0.0f;
                     obj->be_flag &= ~2;
                 }
             }
@@ -188,7 +188,7 @@ void objPillar_R0_Break(cObjPillar* obj)
         ObjMgr.destroy(obj);
         return;
     }
-    step = w->escaped;
+    step = w->Act_ck;
     if (step == 0) {
         PSMTXInverse(obj->mat, inv);
         PSMTXMultVec(inv, &pPL->pos, &v);
@@ -217,9 +217,9 @@ void objPillar_R0_Throw(cObjPillar* obj)
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->motThrow0, 0, 0, 0x8001, 0x1F);
         w->rnd = Rnd() & 1;
-        w->escaped = 1;
+        w->Act_ck = 1;
         EstSet((int) obj, -1, 0, 0, 0x29, 0x22, 0, 0, (u32) obj, (void*) step);
-        w->seHandle = step;
+        w->Seid = step;
         obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
@@ -228,50 +228,50 @@ void objPillar_R0_Throw(cObjPillar* obj)
         break;
     case 2:
         parts = obj->getPartsPtr(0);
-        obj->pos = parts->worldPos;
-        w->spd.x = 0.0f;
-        w->spd.y = 0.0f;
-        w->spd.z = 500.0f;
+        obj->pos = parts->world;
+        w->Spd.x = 0.0f;
+        w->Spd.y = 0.0f;
+        w->Spd.z = 500.0f;
         v = pPLS->pos;
         v.y += 1000.0f;
         PSVECSubtract(&v, &obj->pos, &d);
         len = SQRTF(d.x * d.x + d.z * d.z) / 500.0f;
         if (len == 0.0f) {
-            w->spd.y = 0.0f;
+            w->Spd.y = 0.0f;
         } else {
-            w->spd.y = d.y / len;
+            w->Spd.y = d.y / len;
         }
-        PSMTXMultVecSR(obj->mat, &w->spd, &w->spd);
+        PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
         MotionSetCore(obj, &obj->pMotion, w->motThrow1, 0, 0, 0x8005, 0);
         w->rnd = Rnd() & 1;
-        w->escaped = 0;
-        w->timer = 90;
+        w->Act_ck = 0;
+        w->Timer = 90;
         EstSet((int) obj, -1, 0, 0, 0x29, 0x23, 1, 0x40, (u32) obj, 0);
         obj->r_no_2++;
     case 3:
-        PSVECAdd(&obj->pos, &w->spd, &obj->pos);
+        PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
         MotionMove(obj, 0);
-        if (w->seHandle == 0) {
+        if (w->Seid == 0) {
             parts = obj->getPartsPtr(0);
-            len = (parts->worldPos.x - pPL->pos.x) * (parts->worldPos.x - pPL->pos.x) +
-                  (parts->worldPos.y - pPL->pos.y) * (parts->worldPos.y - pPL->pos.y) +
-                  (parts->worldPos.z - pPL->pos.z) * (parts->worldPos.z - pPL->pos.z);
+            len = (parts->world.x - pPL->pos.x) * (parts->world.x - pPL->pos.x) +
+                  (parts->world.y - pPL->pos.y) * (parts->world.y - pPL->pos.y) +
+                  (parts->world.z - pPL->pos.z) * (parts->world.z - pPL->pos.z);
             if (len < 16000000.0f) {
-                w->seHandle = SndCall(8, 0x2C, &parts->worldPos, 0x31, 0, obj);
+                w->Seid = SndCall(8, 0x2C, &parts->world, 0x31, 0, obj);
             }
         }
-        if (w->timer == 0) {
-            obj->alpha -= 0.1f;
-            if (obj->alpha < 0.0f) {
+        if (w->Timer == 0) {
+            obj->invisible_factor -= 0.1f;
+            if (obj->invisible_factor < 0.0f) {
                 EffectEspDelete(1, 0x40, (u32) obj, 0);
                 EffectEspgenDelete(1, 0x40, (int) obj);
                 EffectEfmDelete(1, 0x40, (int) obj);
-                obj->alpha = 0.0f;
+                obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
             }
         } else {
-            w->timer--;
+            w->Timer--;
         }
         parts = obj->getPartsPtr(0);
         v.x = 0.0f;
@@ -316,14 +316,14 @@ void objPillar_R0_Throw(cObjPillar* obj)
         ObjMgr.destroy(obj);
         return;
     }
-    esc = w->escaped;
+    esc = w->Act_ck;
     if (esc == 0) {
-        PSMTXRotRad(m, 'y', GetXZAngle(&obj->oldPos, &obj->pos));
+        PSMTXRotRad(m, 'y', GetXZAngle(&obj->pos_old, &obj->pos));
         TransMatrix(m, &obj->pos);
         PSMTXInverse(m, m);
         PSMTXMultVec(m, &pPL->pos, &d);
         if (d.z < 1000.0f) {
-            w->escaped = 1;
+            w->Act_ck = 1;
         }
         if (w->rnd) {
             ActBtn.set(0x25, 0xB, (int) EscapeAction2, (int) obj, 1, 3, 0, 0);
@@ -340,17 +340,17 @@ void objPillar_R0_Escape(cObjPillar* obj)
     switch (obj->r_no_2) {
     case 0:
         memcpy((u8*) obj + ((u32) &((cObj*) 0)->pos), &pPL->pos, sizeof(Vec));
-        memcpy((u8*) obj + ((u32) &((cObj*) 0)->rot), &pPL->rot, sizeof(Vec));
-        MotionSetCore(obj, &obj->pMotion, w->motEscape, 0, 0, 0x8001, 0);
-        SndStop(w->seHandle, 0);
-        w->seHandle = SndCall(8, 0x2C, &obj->getPartsPtr(0)->worldPos, 0x31, 0, obj);
+        memcpy((u8*) obj + ((u32) &((cObj*) 0)->ang), &pPL->ang, sizeof(Vec));
+        MotionSetCore(obj, &obj->pMotion, w->Mot_escape, 0, 0, 0x8001, 0);
+        SndStop(w->Seid, 0);
+        w->Seid = SndCall(8, 0x2C, &obj->getPartsPtr(0)->world, 0x31, 0, obj);
         obj->r_no_2++;
     case 1:
         if (MotionMove(obj, 0)) {
             EffectEspDelete(1, 0x40, (u32) obj, 0);
             EffectEspgenDelete(1, 0x40, (int) obj);
             EffectEfmDelete(1, 0x40, (int) obj);
-            obj->alpha = 0.0f;
+            obj->invisible_factor = 0.0f;
             ObjMgr.destroy(obj);
             return;
         }
@@ -370,14 +370,14 @@ void objPillar_R0_Fall(cObjPillar* obj)
     switch (obj->r_no_2) {
     case 0:
         MotionSetCore(obj, &obj->pMotion, w->motFall0, 0, 0, 0x8004, 0);
-        w->spd.x = 0.0f;
-        w->spd.y = -100.0f;
-        w->spd.z = 0.0f;
+        w->Spd.x = 0.0f;
+        w->Spd.y = -100.0f;
+        w->Spd.z = 0.0f;
         obj->r_no_2++;
     case 1:
-        PSVECAdd(&obj->pos, &w->spd, &obj->pos);
-        w->spd.y -= 15.0f;
-        floor = EatMgr.getFloor(&obj->oldPos, 600.0f, 100000.0f, 0, 0);
+        PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
+        w->Spd.y -= 15.0f;
+        floor = EatMgr.getFloor(&obj->pos_old, 600.0f, 100000.0f, 0, 0);
         if (obj->pos.y < floor) {
             obj->pos.y = floor;
             SndCall(8, 0x26, &obj->pos, 0x31, 0, obj);
@@ -390,21 +390,21 @@ void objPillar_R0_Fall(cObjPillar* obj)
         break;
     case 2:
         obj->r_no_2++;
-        w->timer = 30;
+        w->Timer = 30;
     case 3:
         MotionMove(obj, 0);
-        if (w->timer == 0) {
-            obj->alpha -= 0.1f;
-            if (obj->alpha < 0.0f) {
+        if (w->Timer == 0) {
+            obj->invisible_factor -= 0.1f;
+            if (obj->invisible_factor < 0.0f) {
                 EffectEspDelete(1, 0x40, (u32) obj, 0);
                 EffectEspgenDelete(1, 0x40, (int) obj);
                 EffectEfmDelete(1, 0x40, (int) obj);
-                obj->alpha = 0.0f;
+                obj->invisible_factor = 0.0f;
                 ObjMgr.destroy(obj);
                 return;
             }
         } else {
-            w->timer--;
+            w->Timer--;
         }
         break;
     }
@@ -421,7 +421,7 @@ void cObjPillar::setMotion(void* mot)
 
 int cObjPillar::ckSet()
 {
-    if (pillar.flags & 1) {
+    if (pillar.Be_flg & 1) {
         return 1;
     }
     return 0;
@@ -431,14 +431,14 @@ void cObjPillar::setBreak(Vec* pos, void* mot, int a)
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->flags, 1);
-    FSet(rot.y, GetXZAngle(pos, &this->pos));
-    if (fabsf(Muku(&this->pos, &pPL->pos, rot.y, PI)) < PI / 2) {
-        rot.y = GetXZAngle(&this->pos, &pPL->pos);
+    BitOff(w->Be_flg, 1);
+    FSet(ang.y, GetXZAngle(pos, &this->pos));
+    if (fabsf(Muku(&this->pos, &pPL->pos, ang.y, PI)) < PI / 2) {
+        ang.y = GetXZAngle(&this->pos, &pPL->pos);
     }
     w->plMot = mot;
     w->plMotA = a;
-    w->target = *pos;
+    w->Break_pos = *pos;
     sub2B4.atari.throughOn();
     r_no_0 = 1;
     r_no_1 = 0;
@@ -450,13 +450,13 @@ void cObjPillar::setThrow(void* mot0, void* mot1, void* motEscape, void* plMot, 
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->flags, 1);
-    if (fabsf(Muku(&pos, &pPL->pos, rot.y, PI)) < 0.5235988f) {
-        rot.y = GetXZAngle(&pos, &pPL->pos);
+    BitOff(w->Be_flg, 1);
+    if (fabsf(Muku(&pos, &pPL->pos, ang.y, PI)) < 0.5235988f) {
+        ang.y = GetXZAngle(&pos, &pPL->pos);
     }
     w->motThrow0 = mot0;
     w->motThrow1 = mot1;
-    w->motEscape = motEscape;
+    w->Mot_escape = motEscape;
     w->plMot = plMot;
     w->plMotA = a;
     sub2B4.atari.throughOn();
@@ -470,8 +470,8 @@ void cObjPillar::setFall(void* mot0, void* mot1)
 {
     PillarWork* w = &pillar;
 
-    BitOff(w->flags, 1);
-    pos = getPartsPtr(0)->worldPos;
+    BitOff(w->Be_flg, 1);
+    pos = getPartsPtr(0)->world;
     w->motFall0 = mot0;
     w->motFall1 = mot1;
     sub2B4.atari.throughOn();
@@ -492,10 +492,10 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
     } else {
         atk->x0A &= ~4;
     }
-    hit = EmAtkHitCk(atk, pos, &w->basePos, 1);
+    hit = EmAtkHitCk(atk, pos, &w->St_pos, 1);
     if (hit) {
         if (hit & 1) {
-            pPL->rot.y = GetXZAngle(&pPL->pos, &w->basePos);
+            pPL->ang.y = GetXZAngle(&pPL->pos, &w->St_pos);
             PlSetDamage(8, 0, 0);
             EmPlBloodSet2(obj, pos, 1, 0x29, 0x3D);
             if ((s16) pG->pl_life <= 0) {
@@ -505,7 +505,7 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
             }
             QuakeExec(0, 0, 5, 22.0f, 2);
             SndCall(8, 0x25, &pPL->pos, 0x31, 0, pPL);
-            w->escaped = 1;
+            w->Act_ck = 1;
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
         if (hit & 2) {
@@ -521,7 +521,7 @@ void EscapeAction(cObjPillar* obj)
     u8 one = 1;
 
     if (!(pG->flags_51C0 & 0x200)) {
-        w->escaped = one;
+        w->Act_ck = one;
         SetPlDamage((int) obj, plemEscape);
         GameAddPoint(9);
     }
@@ -540,14 +540,14 @@ static void plemEscape(cPlayer* pl)
         // the dead 0.0f store creates the pool `lis` in this block before the call, so
         // update_equiv_regs leaves it there (callee-saved) instead of moving it after Muku
         ang = 0.0f;
-        ang = Muku(&em->pos, &w->target, em->rot.y, PI);
+        ang = Muku(&em->pos, &w->Break_pos, em->ang.y, PI);
         if (ang < 0.0f) {
             MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 0x41, 0);
         } else {
             MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 1, 0);
         }
         SndCall(1, 0x48, &em->pos, 0, 0, em);
-        SndCall(1, 0x11, &em->getPartsPtr(4)->worldPos, 0, 0, em);
+        SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
         memclr_asm(&Cam, sizeof(Camera));
         em->x3E0 = 50;
         em->x3E4 = 15;
@@ -555,8 +555,8 @@ static void plemEscape(cPlayer* pl)
     case 1:
         EscapeCamMove();
         if (em->x3E4) {
-            em->rot.y += Muku(&em->pos, &w->target, em->rot.y, PI / 16);
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
+            em->ang.y += Muku(&em->pos, &w->Break_pos, em->ang.y, PI / 16);
+            em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         MotionMove(em, 0);
         if (em->frame > 11.7f && em->frame < 12.3f) {
@@ -620,7 +620,7 @@ void EscapeAction2(cObjPillar* obj)
     PillarWork* w = &obj->pillar;
 
     if (!(pG->flags_51C0 & 0x200)) {
-        w->escaped = 1;
+        w->Act_ck = 1;
         SetPlDamage((int) obj, plemEscape2);
         obj->r_no_0 = 3;
         obj->r_no_1 = 0;
@@ -640,11 +640,11 @@ void plemEscape2(cPlayer* pl)
     step = em->r_no_2;
     switch (step) {
     case 0:
-        em->rot.y = GetXZAngle(&em->pos, &w->basePos);
+        em->ang.y = GetXZAngle(&em->pos, &w->St_pos);
         MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 0, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x29, 0x39, 0, 0, (u32) em, (void*) step);
         SndCall(1, 0x48, &em->pos, 0, 0, em);
-        SndCall(1, 0x11, &em->getPartsPtr(4)->worldPos, 0, 0, em);
+        SndCall(1, 0x11, &em->getPartsPtr(4)->world, 0, 0, em);
         em->r_no_2++;
     case 1:
         if (MotionMove(em, 0)) {
@@ -661,7 +661,7 @@ void objPillarEatSet(cObjPillar* obj)
     f32 r = 400.0f;
     f32 h = 5000.0f;
 
-    if (w->sat == 0) {
+    if (w->pEat == 0) {
         poly[0].x = -r;
         poly[0].y = 0.0f;
         poly[0].z = -r;
@@ -674,9 +674,9 @@ void objPillarEatSet(cObjPillar* obj)
         poly[3].x = -r;
         poly[3].y = 0.0f;
         poly[3].z = r;
-        w->sat = EatMgr.create(&obj->pos, &obj->rot, poly, 0, 0, h);
+        w->pEat = EatMgr.create(&obj->pos, &obj->ang, poly, 0, 0, h);
     } else {
-        w->sat->flags |= 4;
-        w->sat->setCoord(&obj->pos, &obj->rot);
+        w->pEat->m_Flag |= 4;
+        w->pEat->setCoord(&obj->pos, &obj->ang);
     }
 }

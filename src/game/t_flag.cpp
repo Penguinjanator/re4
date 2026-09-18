@@ -19,11 +19,11 @@ struct FE_WORK {
 
 struct FE_DATA {
     const char* name;    // 0x00
-    u32* flags;          // 0x04
-    s16 bits;            // 0x08  flag word bits on this page
-    s16 base;            // 0x0A  added to the bit number for display
-    const char** names;  // 0x0C
-    u32 num_names;       // 0x10
+    u32* addr;          // 0x04
+    s16 max;            // 0x08  flag word bits on this page
+    s16 start_bit;            // 0x0A  added to the bit number for display
+    const char** bit_name;  // 0x0C
+    u32 bit_name_size;       // 0x10
 };
 
 static void init(FE_WORK* t);
@@ -150,8 +150,8 @@ static FE_DATA fe_data[12] = {
     {"KEY_LOCK", (u32*) ((u8*) &Global + 0x51DC), 64, 0, kyf_s, 1},
     {"ROOM", (u32*) ((u8*) &Global + 0x174), 128, 0, NULL, 0},
     {"ROOM_SAVE", NULL, 32, 0, NULL, 0},
-    {"EXTRA", &SystemSave.extra_flg, 32, 0, cfg_s, 2},
-    {"CONFIG", &SystemSave.config_flg, 32, 0, cfg_s, 6},
+    {"EXTRA", &SystemSave.Extra_flg, 32, 0, cfg_s, 2},
+    {"CONFIG", &SystemSave.Config_flg, 32, 0, cfg_s, 6},
     {"DISP", (u32*) ((u8*) &Global + OFS_DISP_FLG), 32, 0, dpf_s, 21},
 };
 
@@ -215,8 +215,8 @@ static void move(FE_WORK* t)
     } else if (joy->rep & 0x40000) {
         t->cursor += 16;
     }
-    if (t->cursor >= fe_data[t->page].bits) {
-        t->cursor -= fe_data[t->page].bits;
+    if (t->cursor >= fe_data[t->page].max) {
+        t->cursor -= fe_data[t->page].max;
         t->page++;
         if (t->page > 11) {
             t->page = 0;
@@ -227,7 +227,7 @@ static void move(FE_WORK* t)
         if (t->page < 0) {
             t->page = 11;
         }
-        t->cursor += fe_data[t->page].bits;
+        t->cursor += fe_data[t->page].max;
     }
     if (joy->rep & JOY_R) {
         t->cursor = 0;
@@ -245,15 +245,15 @@ static void move(FE_WORK* t)
     }
     if (strcmp(fe_data[t->page].name, "ROOM_SAVE") == 0) {
         if (RoomData.getRoomSavePtr(G_ROOM_ID) != NULL) {
-            fe_data[t->page].flags = (u32*) (RoomData.getRoomSavePtr(G_ROOM_ID) + 4);
+            fe_data[t->page].addr = (u32*) (RoomData.getRoomSavePtr(G_ROOM_ID) + 4);
         } else {
-            fe_data[t->page].flags = NULL;
+            fe_data[t->page].addr = NULL;
         }
     }
     p = &fe_data[t->page];
-    if (fe_data[t->page].flags != NULL) {
-        for (i = 0; i < p->bits / 16; i++) {
-            w = ((u16*) p->flags)[i];
+    if (fe_data[t->page].addr != NULL) {
+        for (i = 0; i < p->max / 16; i++) {
+            w = ((u16*) p->addr)[i];
             a = BtoX(w >> 12);
             b = BtoX((w >> 8) & 0xF);
             c = BtoX((w >> 4) & 0xF);
@@ -275,19 +275,19 @@ static void move(FE_WORK* t)
             int y = ((cur >> 4) + u + 6) * 14;
             m = cur & 0xF;
             int x = (m + (m >> 2) + 23) * 8;
-            eprintf(x, y, 2, 0, "%01x", CkBit(p->flags, cur));
+            eprintf(x, y, 2, 0, "%01x", CkBit(p->addr, cur));
         }
         bit = t->cursor;
         if (joy->trg & JOY_A) {
             sh = bit % 32;
-            p->flags[bit / 32] ^= 0x80000000 >> sh;
+            p->addr[bit / 32] ^= 0x80000000 >> sh;
         }
     }
-    bit += p->base;
+    bit += p->start_bit;
     eprintf(184, 56, 6, 0, "[%s]", p->name);
     eprintf(184, 70, 0, 0, " (0x%02x)", bit, bit);
-    if ((u32) bit < p->num_names) {
-        eprintf(264, 70, 4, 0, "%s", p->names[bit]);
+    if ((u32) bit < p->bit_name_size) {
+        eprintf(264, 70, 4, 0, "%s", p->bit_name[bit]);
     }
     if (joy->trg & JOY_B) {
         t->mode++;

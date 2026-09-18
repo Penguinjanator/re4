@@ -9,20 +9,20 @@ extern f32 ZNEAR;
 extern f32 ZFAR;
 
 struct Esp0eWork {
-    Vec wpos;       // 0x00 world position
-    Vec dir;        // 0x0C facing direction (world)
-    f32 angle;      // 0x18 half angle of the visible cone (rad)
-    f32 distRate;   // 0x1C 1 - gen->xD8 / 100: screen-centre fade factor
-    f32 sizeRate;   // 0x20 gen->xDC / 100: how much the alpha scales the size
-    f32 dist;       // 0x24 camera distance where the glow is gone (gen->xE0)
+    Vec wld_pos;       // 0x00 world position
+    Vec dir_vec;        // 0x0C facing direction (world)
+    f32 dir_ang;      // 0x18 half angle of the visible cone (rad)
+    f32 center_dist_ratio;   // 0x1C 1 - gen->xD8 / 100: screen-centre fade factor
+    f32 size_ratio;   // 0x20 gen->xDC / 100: how much the alpha scales the size
+    f32 del_dist;       // 0x24 camera distance where the glow is gone (gen->xE0)
     Vec scr;        // 0x28 screen position (z: view depth)
     Vec scrOld;     // 0x34 previous screen position
     f32 hideAlpha;  // 0x40 alpha from the Z-buffer visibility test
-    f32 hideR;      // 0x44 radius of the visibility test (gen->xE4)
+    f32 hide_r;      // 0x44 radius of the visibility test (gen->xE4)
     f32 alpha;      // 0x48 final alpha
-    u16 flags;      // 0x4C bit0: direction test, bit1: visibility test
-    u16 hideCnt;    // 0x4E frames the visibility test is forced to 0
-    u32 seed;       // 0x50 random seed for the screen jitter
+    u16 flg;      // 0x4C bit0: direction test, bit1: visibility test
+    u16 delay_cnt;    // 0x4E frames the visibility test is forced to 0
+    u32 Rand_seed;       // 0x50 random seed for the screen jitter
     EspGenWork* gen;  // 0x54
 };
 
@@ -30,7 +30,7 @@ struct Esp0eWork {
 // position, faded by distance from the screen centre, the facing direction and a Z-buffer test.
 class cEsp0e : public cEsp {
 public:
-    Esp0eWork work;  // 0xF8
+    Esp0eWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -49,7 +49,7 @@ cEsp* Esp0e_Create()
 
 void cEsp0e::move()
 {
-    Esp0eWork* w = &work;
+    Esp0eWork* w = &m_Free;
     Vec dir;
     Vec view;
     Vec scr;
@@ -65,28 +65,28 @@ void cEsp0e::move()
         PushEsp(this);
         return;
     }
-    if (w->flags & 2) {
+    if (w->flg & 2) {
         if (pG->flags_5014 & 0x10000000) {
-            w->hideCnt = 2;
+            w->delay_cnt = 2;
         }
-        if (w->hideCnt != 0) {
-            w->hideCnt--;
+        if (w->delay_cnt != 0) {
+            w->delay_cnt--;
             w->hideAlpha = 0.0f;
         }
     }
     if (parent == pEffParentWorld) {
-        w->wpos = pos;
-        dir = w->dir;
+        w->wld_pos = m_Pos;
+        dir = w->dir_vec;
     } else {
         cModel* parts;
 
-        if (partsNo >= pModel->nParts) {
-            pLog->err(0, 0, "ESP0E :PARTS_NO[%d] is invalid(MAX:%d).", partsNo, pModel->nParts);
+        if (m_Parts_no >= m_pMod->nParts) {
+            pLog->err(0, 0, "ESP0E :PARTS_NO[%d] is invalid(MAX:%d).", m_Parts_no, m_pMod->nParts);
             PushEsp(this);
             return;
         }
-        parts = pModel->getPartsPtr(partsNo);
-        PSMTXMultVec(parts->mat, &pos, &w->wpos);
+        parts = m_pMod->getPartsPtr(m_Parts_no);
+        PSMTXMultVec(parts->mat, &m_Pos, &w->wld_pos);
         {
             Mtx m;
 
@@ -94,11 +94,11 @@ void cEsp0e::move()
             m[0][3] = 0.0f;
             m[1][3] = 0.0f;
             m[2][3] = 0.0f;
-            PSMTXMultVec(m, &w->dir, &dir);
+            PSMTXMultVec(m, &w->dir_vec, &dir);
         }
     }
-    PSMTXMultVec(pG->Cam.viewMat, &w->wpos, &view);
-    PSMTX44MultVec(pG->Cam.projMat, &view, &scr);
+    PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &view);
+    PSMTX44MultVec(pG->Cam.ProjMat, &view, &scr);
     sx = (scr.x * 0.5f + 0.5f) * Screen.width;
     sy = (-scr.y * 0.5f + 0.5f) * Screen.height;
     w->scrOld.x = w->scr.x;
@@ -114,24 +114,24 @@ void cEsp0e::move()
         view.y = Screen.height * 0.5f;
         view.z = 0.0f;
         PSVECSubtract(&view, &scr, &d);
-        alpha = PSVECMag(&d) / (Screen.height * (w->distRate * 0.7f));
+        alpha = PSVECMag(&d) / (Screen.height * (w->center_dist_ratio * 0.7f));
         alpha *= alpha;
         alpha = 1.0f - alpha;
-        if (w->flags & 1) {
+        if (w->flg & 1) {
             alpha *= GetDirAlpha(this, &dir);
         }
         alpha *= GetDistAlpha(this);
-        if (w->flags & 2) {
+        if (w->flg & 2) {
             alpha *= w->hideAlpha;
         }
         w->alpha = alpha;
     } else {
         w->alpha = 0.0f;
     }
-    if (flag & 1) {
+    if (m_Be_flg & 1) {
         Vec v;
 
-        PSMTXMultVec(pG->Cam.viewMat, &w->wpos, &v);
+        PSMTXMultVec(pG->Cam.v_mat, &w->wld_pos, &v);
         w->scr.z = v.z;
         EspAddOtAfterRender(this, Esp0e_HideCheck);
     }
@@ -139,7 +139,7 @@ void cEsp0e::move()
 
 extern "C" void Esp0e_Trans(cEsp0e* esp)
 {
-    Esp0eWork* w = &esp->work;
+    Esp0eWork* w = &esp->m_Free;
 
     if (w->alpha > 0.01f) {
         cEsp tmp;
@@ -147,23 +147,23 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
         Mtx m;
         PSMTXIdentity(m);
         *p = *esp;
-        p->id = 0;
-        p->pModel = NULL;
-        p->partsNo = 0xF8;
-        p->life = 1;
-        p->pos.x = w->scr.x + w->gen->x18 * fRandSeed1_1(&w->seed);
-        p->pos.y = w->scr.y + w->gen->x1C * fRandSeed1_1(&w->seed);
-        p->pos.z = 1.0f;
-        p->colA *= w->alpha;
-        if (w->sizeRate != 0.0f) {
+        p->m_Id = 0;
+        p->m_pMod = NULL;
+        p->m_Parts_no = 0xF8;
+        p->m_Life_max = 1;
+        p->m_Pos.x = w->scr.x + w->gen->x18 * fRandSeed1_1(&w->Rand_seed);
+        p->m_Pos.y = w->scr.y + w->gen->x1C * fRandSeed1_1(&w->Rand_seed);
+        p->m_Pos.z = 1.0f;
+        p->m_Col_a *= w->alpha;
+        if (w->size_ratio != 0.0f) {
             f32 s;
 
-            s = w->alpha * w->sizeRate + (1.0f - w->sizeRate);
+            s = w->alpha * w->size_ratio + (1.0f - w->size_ratio);
             if (s < 0.0f) {
                 s = 0.0f;
             }
-            p->sizeX *= s;
-            p->sizeY *= s;
+            p->m_Size_base_x *= s;
+            p->m_Size_base_y *= s;
         }
         EspCommonTrans(p);
     }
@@ -172,17 +172,17 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
 // Alpha from the distance to the camera: 1 at the camera, 0 at `dist`.
 static f32 GetDistAlpha(cEsp0e* esp)
 {
-    Esp0eWork* w = &esp->work;
+    Esp0eWork* w = &esp->m_Free;
     Vec d;
     f32 a;
 
-    if (w->dist != 0.0f) {
+    if (w->del_dist != 0.0f) {
         Camera* cam = &pG->Cam;
 
-        d.x = w->wpos.x - cam->param.pos.x;
-        d.y = w->wpos.y - cam->param.pos.y;
-        d.z = w->wpos.z - cam->param.pos.z;
-        a = PSVECMag(&d) / w->dist;
+        d.x = w->wld_pos.x - cam->param.pos.x;
+        d.y = w->wld_pos.y - cam->param.pos.y;
+        d.z = w->wld_pos.z - cam->param.pos.z;
+        a = PSVECMag(&d) / w->del_dist;
         if (a > 1.0f) {
             a = 1.0f;
         }
@@ -198,18 +198,18 @@ static f32 GetDistAlpha(cEsp0e* esp)
 // the camera, 0 at the cone edge.
 static f32 GetDirAlpha(cEsp0e* esp, Vec* dir)
 {
-    Esp0eWork* w = &esp->work;
+    Esp0eWork* w = &esp->m_Free;
     Camera* cam;
     Vec d;
     f32 ang;
     f32 c;
     f32 a;
 
-    ang = LIMIT_ANGLE(w->angle);
+    ang = LIMIT_ANGLE(w->dir_ang);
     cam = &pG->Cam;
-    d.x = w->wpos.x - cam->param.pos.x;
-    d.y = w->wpos.y - cam->param.pos.y;
-    d.z = w->wpos.z - cam->param.pos.z;
+    d.x = w->wld_pos.x - cam->param.pos.x;
+    d.y = w->wld_pos.y - cam->param.pos.y;
+    d.z = w->wld_pos.z - cam->param.pos.z;
 #line 295 "D:/Bio4/Prog/esp0e.cpp"
     VECNormalize(&d, &d);
     a = -PSVECDotProduct(&d, dir);
@@ -233,7 +233,7 @@ void Esp0e_HideCheck(cEsp* esp0)
     static const f32 hide_y_tbl[12] = { 1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f, 0.0f, 0.5f, 0.86f };
     static s32 Zs_bias0e_2 = 0;  // unreferenced 4-byte .sdata word after Zs_bias0e (name unknown)
     cEsp0e* esp = (cEsp0e*)esp0;
-    Esp0eWork* w = &esp->work;
+    Esp0eWork* w = &esp->m_Free;
     Vec p;
     u32 z;
     s32 zi;
@@ -248,10 +248,10 @@ void Esp0e_HideCheck(cEsp* esp0)
     u32 hidden;
     u32 i;
 
-    if (!(esp->flag & 1)) {
+    if (!(esp->m_Be_flg & 1)) {
         return;
     }
-    if (!(w->flags & 2)) {
+    if (!(w->flg & 2)) {
         return;
     }
     nz = w->scrOld.z + 150.0f;
@@ -278,8 +278,8 @@ void Esp0e_HideCheck(cEsp* esp0)
         f32 ox;
         f32 oy;
 
-        ox = hide_x_tbl[i] * w->hideR;
-        oy = hide_y_tbl[i] * w->hideR;
+        ox = hide_x_tbl[i] * w->hide_r;
+        oy = hide_y_tbl[i] * w->hide_r;
         if (scale < 1.0f) {
             ox *= scale;
             ox *= scale;
@@ -319,20 +319,20 @@ void Esp0e_HideCheck(cEsp* esp0)
 
 int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp0eWork* w = &work;
+    Esp0eWork* w = &m_Free;
 
-    dispFlag |= 8;
-    w->flags = 0;
+    m_Flg |= 8;
+    w->flg = 0;
     if (gen->xF8 != 0.0f) {
         Mtx mx;
         Mtx my;
         f32 rx;
         f32 ry;
 
-        w->angle = gen->xF8 * PI * 2.0f / 360.0f * 0.5f;
-        w->dir.x = 0.0f;
-        w->dir.y = 0.0f;
-        w->dir.z = 1.0f;
+        w->dir_ang = gen->xF8 * PI * 2.0f / 360.0f * 0.5f;
+        w->dir_vec.x = 0.0f;
+        w->dir_vec.y = 0.0f;
+        w->dir_vec.z = 1.0f;
         rx = gen->xF0 * PI * 2.0f / 360.0f;
         ry = gen->xF4 * PI * 2.0f / 360.0f;
         rx = LIMIT_ANGLE(rx);
@@ -340,25 +340,25 @@ int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
         PSMTXRotRad(mx, 'Y', ry);
         PSMTXRotRad(my, 'X', rx);
         PSMTXConcat(mx, my, mx);
-        PSMTXMultVec(mx, &w->dir, &w->dir);
+        PSMTXMultVec(mx, &w->dir_vec, &w->dir_vec);
 #line 442 "D:/Bio4/Prog/esp0e.cpp"
-        VECNormalize(&w->dir, &w->dir);
-        w->flags |= 1;
+        VECNormalize(&w->dir_vec, &w->dir_vec);
+        w->flg |= 1;
     }
-    w->distRate = 1.0f - gen->xD8 * 0.01f;
-    if (w->distRate > 1.0f) {
-        w->distRate = 1.0f;
+    w->center_dist_ratio = 1.0f - gen->xD8 * 0.01f;
+    if (w->center_dist_ratio > 1.0f) {
+        w->center_dist_ratio = 1.0f;
     }
-    w->sizeRate = gen->xDC * 0.01f;
-    w->dist = gen->xE0;
+    w->size_ratio = gen->xDC * 0.01f;
+    w->del_dist = gen->xE0;
     if (gen->xE4 != 0.0f) {
-        w->hideR = gen->xE4;
-        w->flags |= 2;
+        w->hide_r = gen->xE4;
+        w->flg |= 2;
     }
-    w->seed = 0x12345678;
+    w->Rand_seed = 0x12345678;
     w->gen = gen;
-    if (partsNo != 0xFE && parentCnt == 0) {
-        parentCnt = 0xFF;
+    if (m_Parts_no != 0xFE && m_Release_time == 0) {
+        m_Release_time = 0xFF;
     }
     return 1;
 }

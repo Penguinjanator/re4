@@ -47,7 +47,7 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos = *pos;
     }
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetObj1c() modelInit() failed.");
@@ -58,7 +58,7 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 3000.0f, 3000.0f, 0.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     w->x00 = 0;
     w->estTimer = (u8) ((u32) Rnd() % 30);
     w->crashEstWait = 0;
@@ -73,7 +73,7 @@ cObj* SetFloatIsland(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->r_no_0 = 1;
     obj->r_no_2 = 0;
     obj->r_no_3 = 0;
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     obj->partsMatCalc();
@@ -123,7 +123,7 @@ void obj1c_R1_Set(cObj1c* obj)
     if (obj->pMotion) {
         MotionMove(obj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();
@@ -151,7 +151,7 @@ void obj1c_R1_Crash(cObj1c* obj)
             }
         }
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();
@@ -179,7 +179,7 @@ void obj1c_R1_CrashBig(cObj1c* obj)
             }
         }
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();

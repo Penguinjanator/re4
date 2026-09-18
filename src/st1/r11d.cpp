@@ -105,7 +105,7 @@ void R11dInit()
     } else {
         SmdGetObjPtr(0x20)->be_flag &= ~2;
     }
-    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xCA, 0);
+    EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x1F), 0xCA, 0);
     SceAtDataSet_hide(3, r11d_execHide0);
     SceAtDataSet_hide(4, r11d_execHide1);
     SceAtDataSet_hide(5, r11d_execHide2);
@@ -127,8 +127,8 @@ void R11dInit()
         }
         SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, 2, 0);
-    } else if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
-        ((u8*) pG->pRoomEmi)[0xD08] = 0;
+    } else if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
+        ((u8*) pG->pEmi)[0xD08] = 0;
     }
     AreaGetCenterPos(&pos[0], &SceAtPtr(0xA)->area);
     AreaGetCenterPos(&pos[1], &SceAtPtr(0xB)->area);
@@ -165,8 +165,8 @@ static void r11d_checkIronDoorKeyUse()
     SceUpCut(2, -1, 2, 0);
     SceAtSetEnable(8, 0);
     GameSaveSave(&GameSave, pSaveData, -1);
-    if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
-        ((u8*) pG->pRoomEmi)[0xD08] = 0;
+    if (pG->pEmi != 0 && ((u8*) pG->pEmi)[0xD08] == 5) {
+        ((u8*) pG->pEmi)[0xD08] = 0;
     }
 }
 
@@ -210,7 +210,7 @@ extern "C" void r11d_appearBigSister()
         obj = SetObj00((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &pos, &rot);
         OyaSetObj00(obj, r11d_work->em0.getPtr(), 2);
         obj->setNoSuspend(1);
-        PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22)));
+        PSet(r11d_work->mi, ModInfoMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22)));
         if (r11d_work->mi != 0) {
             r11d_work->em0.addModel(r11d_work->mi);
         }
@@ -227,7 +227,7 @@ extern "C" void r11d_appearLittleSister()
         cEm* em = r11d_work->em1.getPtr();
 
         if (em != 0) {
-            ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+            ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoom, 0x23));
         }
     }
     // The two EstSet stack zeros come from one callee-saved `li r31,0` set here (after the join).
@@ -405,26 +405,26 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
         // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         for (;;) {
-            door->pParts->rot.x -= spd;
+            door->pParts->ang.x -= spd;
             asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
             spd += add;
-            if (door->pParts->rot.x < lim) {
+            if (door->pParts->ang.x < lim) {
                 break;
             }
             SceSleep(1);
         }
-        door->pParts->rot.x = lim;
+        door->pParts->ang.x = lim;
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
         goto close;
     wait_close:
         SceSleep(1);
     close:
-        door->pParts->rot.x += 0.2f;
-        if (!(door->pParts->rot.x > 0.0f)) {
+        door->pParts->ang.x += 0.2f;
+        if (!(door->pParts->ang.x > 0.0f)) {
             goto wait_close;
         }
-        door->pParts->rot.x = 0.0f;
+        door->pParts->ang.x = 0.0f;
     }
 }
 
@@ -466,7 +466,7 @@ static void r11d_checkDoor()
     SmdSetTrans(0x20, 0);
     pG->door_unlock[0] |= 0x00010000;
     SndCall(6, 0xB, 0, 0, 0, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SceAtDataReset(1);
     CamCtrl.Comeback(0);
     SceEventEnd(0);

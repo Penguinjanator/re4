@@ -310,7 +310,7 @@ void PlClothMoveLeon(cModel* pl, PlCloth* jacket, PlCloth* holster, PlCloth* hai
 void PlClothSetGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater, int evt)
 {
     testHairSetGirl(pl, hair, evt);
-    if (pG->costume2 == 1) {
+    if (pG->game_costume == 1) {
         testRibbonSetGirl(pl, sweater);
     } else {
         testSkirtSetGirl(pl, skirt, evt);
@@ -321,7 +321,7 @@ void PlClothSetGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater,
 void PlClothMoveGirl(cModel* pl, PlCloth* skirt, PlCloth* hair, PlCloth* sweater)
 {
     testHairMoveGirl(pl, hair);
-    if (pG->costume2 == 1) {
+    if (pG->game_costume == 1) {
         testRibbonMoveGirl(pl, sweater);
         girlLapelMove(pl);
     } else {
@@ -357,21 +357,21 @@ void PlClothMoveAda(cModel* pl, PlCloth* ribbon, PlCloth* dress, PlCloth* hair)
 
 void testHairSetLeon(cModel* pl, PlCloth* pCloth)
 {
-    pCloth->num = 21;
-    pCloth->pParts = leonHairP;
+    pCloth->Num = 21;
+    pCloth->pCloth = leonHairP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = leonHairUp;
-    pCloth->pDown = leonHairDp;
+    pCloth->pParent = leonHairUp;
+    pCloth->pChild = leonHairDp;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pMax = leonHairMax;
-    pCloth->pWindS = leonHairWindS;
-    pCloth->pWindR = leonHairWindR;
-    pCloth->pAt = leonHairAt;
-    pCloth->nAt = 4;
+    pCloth->pWindSin = leonHairWindS;
+    pCloth->pWindRate = leonHairWindR;
+    pCloth->pAtset = leonHairAt;
+    pCloth->At_num = 4;
     pCloth->Gravity = 15.0f;
     pCloth->Rate = 0.75f;
     pCloth->Bundle_num = 4;
@@ -379,7 +379,7 @@ void testHairSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x302;
+    pCloth->Flag = 0x302;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
@@ -391,24 +391,24 @@ void testHairMoveLeon(cModel* pl, PlCloth* pCloth)
 
 void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
 {
-    if (pG->costume != 0) {
+    if (pG->pl_costume != 0) {
         return;
     }
-    pCloth->num = 24;
-    pCloth->pParts = leonJacketP;
+    pCloth->Num = 24;
+    pCloth->pCloth = leonJacketP;
     pCloth->pLeft = leonJacketLp;
     pCloth->pRight = leonJacketRp;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = leonJacketUp;
-    pCloth->pDown = leonJacketDp;
+    pCloth->pParent = leonJacketUp;
+    pCloth->pChild = leonJacketDp;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pMax = leonJacketMax;
-    pCloth->pWindS = leonJacketWindS;
-    pCloth->pWindR = leonJacketWindR;
-    pCloth->pAt = leonJacketAt;
-    pCloth->nAt = 6;
+    pCloth->pWindSin = leonJacketWindS;
+    pCloth->pWindRate = leonJacketWindR;
+    pCloth->pAtset = leonJacketAt;
+    pCloth->At_num = 6;
     pCloth->Gravity = 25.0f;
     pCloth->pModel = 0;
     pCloth->Rate = 0.5f;
@@ -416,38 +416,38 @@ void testJacketSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->WindSin = 0.0f;
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.5f;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
 void testJacketMoveLeon(cModel* pl, PlCloth* pCloth)
 {
-    if (pG->costume == 0) {
+    if (pG->pl_costume == 0) {
         PenClothMove3(pl, (PenCloth*) pCloth);
     }
 }
 
 void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
 {
-    if (pG->costume != 1) {
+    if (pG->pl_costume != 1) {
         return;
     }
-    pCloth->num = 2;
-    pCloth->pParts = leonHolsterP;
+    pCloth->Num = 2;
+    pCloth->pCloth = leonHolsterP;
     pCloth->pLeft = leonHolsterLp;
     pCloth->pRight = leonHolsterRp;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = leonHolsterUp;
-    pCloth->pDown = leonHolsterDp;
+    pCloth->pParent = leonHolsterUp;
+    pCloth->pChild = leonHolsterDp;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pMax = leonHolsterMax;
-    pCloth->pWindS = leonHolsterWindS;
-    pCloth->pWindR = leonHolsterWindR;
-    pCloth->pAt = leonHolsterAt;
-    pCloth->nAt = 1;
+    pCloth->pWindSin = leonHolsterWindS;
+    pCloth->pWindRate = leonHolsterWindR;
+    pCloth->pAtset = leonHolsterAt;
+    pCloth->At_num = 1;
     pCloth->Gravity = 25.0f;
     pCloth->Rate = 0.7f;
     pCloth->Bundle_num = 4;
@@ -455,38 +455,38 @@ void testHolsterSetLeon(cModel* pl, PlCloth* pCloth)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
 
 void testHolsterMoveLeon(cModel* pl, PlCloth* pCloth)
 {
-    if (pG->costume == 1) {
+    if (pG->pl_costume == 1) {
         PenClothMove3(pl, (PenCloth*) pCloth);
     }
 }
 
 void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
-    pCloth->num = 21;
-    pCloth->pParts = girlHairP;
+    pCloth->Num = 21;
+    pCloth->pCloth = girlHairP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = girlHairUp;
-    pCloth->pDown = girlHairDp;
-    pCloth->pWindS = girlHairWindS;
-    pCloth->pWindR = girlHairWindR;
+    pCloth->pParent = girlHairUp;
+    pCloth->pChild = girlHairDp;
+    pCloth->pWindSin = girlHairWindS;
+    pCloth->pWindRate = girlHairWindR;
     if (evt) {
         pCloth->pMax = girlHairMaxEvt;
-        pCloth->pAt = girlHairAtEvt;
-        pCloth->nAt = 7;
+        pCloth->pAtset = girlHairAtEvt;
+        pCloth->At_num = 7;
     } else {
         pCloth->pMax = girlHairMax;
-        pCloth->pAt = girlHairAt;
-        pCloth->nAt = 5;
+        pCloth->pAtset = girlHairAt;
+        pCloth->At_num = 5;
     }
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
@@ -497,7 +497,7 @@ void testHairSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x302;
+    pCloth->Flag = 0x302;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
@@ -509,25 +509,25 @@ void testHairMoveGirl(cModel* pl, PlCloth* pCloth)
 
 void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
 {
-    pCloth->num = 48;
-    pCloth->pParts = girlSkirtP;
+    pCloth->Num = 48;
+    pCloth->pCloth = girlSkirtP;
     pCloth->pLeft = girlSkirtLp;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = girlSkirtUp;
-    pCloth->pDown = girlSkirtDp;
+    pCloth->pParent = girlSkirtUp;
+    pCloth->pChild = girlSkirtDp;
     if (evt) {
         pCloth->pMax = girlSkirtMaxEvt;
-        pCloth->pAt = girlSkirtAtEvt;
-        pCloth->nAt = 11;
+        pCloth->pAtset = girlSkirtAtEvt;
+        pCloth->At_num = 11;
     } else {
         pCloth->pMax = girlSkirtMax;
-        pCloth->pAt = girlSkirtAt;
-        pCloth->nAt = 11;
+        pCloth->pAtset = girlSkirtAt;
+        pCloth->At_num = 11;
     }
-    pCloth->pWindS = girlSkirtWindS;
-    pCloth->pWindR = girlSkirtWindR;
+    pCloth->pWindSin = girlSkirtWindS;
+    pCloth->pWindRate = girlSkirtWindR;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->Gravity = 10.0f;
@@ -537,7 +537,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* pCloth, int evt)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
@@ -554,21 +554,21 @@ void testSkirtMoveGirl(cModel* pl, PlCloth* pCloth)
 
 void testSweaterSetGirl(cModel* pl, PlCloth* c)
 {
-    c->num = 8;
-    c->pParts = girlSweaterP;
+    c->Num = 8;
+    c->pCloth = girlSweaterP;
     c->pLeft = girlSweaterLp;
     c->pRight = 0;
     c->pUpLeft = 0;
     c->pUpRight = 0;
-    c->pUp = girlSweaterUp;
-    c->pDown = girlSweaterDp;
+    c->pParent = girlSweaterUp;
+    c->pChild = girlSweaterDp;
     c->pGravity = 0;
     c->pRate = 0;
     c->pMax = girlSweaterMax;
-    c->pWindS = girlSweaterWindS;
-    c->pWindR = girlSweaterWindR;
-    c->pAt = girlSweaterAt;
-    c->nAt = 6;
+    c->pWindSin = girlSweaterWindS;
+    c->pWindRate = girlSweaterWindR;
+    c->pAtset = girlSweaterAt;
+    c->At_num = 6;
     c->Gravity = 10.0f;
     c->Rate = 0.7f;
     c->Bundle_num = 4;
@@ -576,7 +576,7 @@ void testSweaterSetGirl(cModel* pl, PlCloth* c)
     c->Stretchy = 0.1f;
     c->Move_rate = 0.5f;
     c->pModel = 0;
-    c->flags = 0x100;
+    c->Flag = 0x100;
     c->x54 = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
@@ -588,21 +588,21 @@ void testSweaterMoveGirl(cModel* pl, PlCloth* c)
 
 void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
 {
-    pCloth->num = 12;
-    pCloth->pParts = girlRibbonP;
+    pCloth->Num = 12;
+    pCloth->pCloth = girlRibbonP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = girlRibbonUp;
-    pCloth->pDown = girlRibbonDp;
+    pCloth->pParent = girlRibbonUp;
+    pCloth->pChild = girlRibbonDp;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pMax = girlRibbonMax;
-    pCloth->pWindS = girlRibbonWindS;
-    pCloth->pWindR = girlRibbonWindR;
-    pCloth->pAt = girlRibbonAt;
-    pCloth->nAt = 8;
+    pCloth->pWindSin = girlRibbonWindS;
+    pCloth->pWindRate = girlRibbonWindR;
+    pCloth->pAtset = girlRibbonAt;
+    pCloth->At_num = 8;
     pCloth->Gravity = 10.0f;
     pCloth->Rate = 0.7f;
     pCloth->Bundle_num = 4;
@@ -610,7 +610,7 @@ void testRibbonSetGirl(cModel* pl, PlCloth* pCloth)
     pCloth->Stretchy = 0.1f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x100;
+    pCloth->Flag = 0x100;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
@@ -630,17 +630,17 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
     {                                                                               \
         f32 ang;                                                                    \
         p = pl->getPartsPtr(no);                                                    \
-        PSMTXIdentity(p->worldMat);                                                 \
-        TransMatrix(p->worldMat, &p->pos);                                          \
-        PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);                          \
-        p->worldPos.x = p->mat[0][3];                                               \
-        p->worldPos.y = p->mat[1][3];                                               \
-        p->worldPos.z = p->mat[2][3];                                               \
+        PSMTXIdentity(p->l_mat);                                                 \
+        TransMatrix(p->l_mat, &p->pos);                                          \
+        PSMTXConcat(p->pParent->mat, p->l_mat, p->mat);                          \
+        p->world.x = p->mat[0][3];                                               \
+        p->world.y = p->mat[1][3];                                               \
+        p->world.z = p->mat[2][3];                                               \
         PSMTXConcat(p->mat, rotm, pm1);                                             \
         PSMTXInverse(pm1, pinv);                                                    \
         a = pl->getPartsPtr(pa);                                                    \
         b = pl->getPartsPtr(pb);                                                    \
-        PosToPos(&a->worldPos, &b->worldPos, pv, lapel_weight);                     \
+        PosToPos(&a->world, &b->world, pv, lapel_weight);                     \
         PSMTXMultVec(pinv, pv, pv);                                                 \
         v.y += lift;                                                                \
         if (v.y > 0.0f) {                                                           \
@@ -655,9 +655,9 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
             rot.x = -ang * lapel_rate_x;                                            \
             rot.y = sy ang * lapel_rate_y;                                          \
             rot.z = sz ang * lapel_rate_z;                                          \
-            PSMTXRotRad(p->worldMat, 'x', rot.x);                                   \
-            TransMatrix(p->worldMat, &p->pos);                                      \
-            PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);                      \
+            PSMTXRotRad(p->l_mat, 'x', rot.x);                                   \
+            TransMatrix(p->l_mat, &p->pos);                                      \
+            PSMTXConcat(p->pParent->mat, p->l_mat, p->mat);                      \
             PSMTXConcat(p->mat, rotm, pm1);                                         \
             axis.x = 0.0f;                                                          \
             axis.y = 1.0f;                                                          \
@@ -665,7 +665,7 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
             PSMTXMultVecSR(pm1, pax, pax);                                          \
             PSMTXRotAxisRad(pm3, pax, rot.y);                                       \
             PSMTXConcat(pm3, p->mat, p->mat);                                       \
-            TransMatrix(p->mat, &p->worldPos);                                      \
+            TransMatrix(p->mat, &p->world);                                      \
             PSMTXConcat(p->mat, rotm, pm1);                                         \
             axis.x = 0.0f;                                                          \
             axis.y = 0.0f;                                                          \
@@ -673,7 +673,7 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* pCloth)
             PSMTXMultVecSR(pm1, pax, pax);                                          \
             PSMTXRotAxisRad(pm3, pax, rot.z);                                       \
             PSMTXConcat(pm3, p->mat, p->mat);                                       \
-            TransMatrix(p->mat, &p->worldPos);                                      \
+            TransMatrix(p->mat, &p->world);                                      \
         }                                                                           \
     }
 
@@ -714,21 +714,21 @@ void girlLapelMove(cModel* pl)
 
 void testHairSetLuis(cModel* pl, PlCloth* pCloth)
 {
-    pCloth->num = 26;
-    pCloth->pParts = luisHairP;
+    pCloth->Num = 26;
+    pCloth->pCloth = luisHairP;
     pCloth->pLeft = 0;
     pCloth->pRight = 0;
     pCloth->pUpLeft = 0;
     pCloth->pUpRight = 0;
-    pCloth->pUp = luisHairUp;
-    pCloth->pDown = luisHairDp;
+    pCloth->pParent = luisHairUp;
+    pCloth->pChild = luisHairDp;
     pCloth->pGravity = 0;
     pCloth->pRate = 0;
     pCloth->pMax = luisHairMax;
-    pCloth->pWindS = luisHairWindS;
-    pCloth->pWindR = luisHairWindR;
-    pCloth->pAt = luisHairAt;
-    pCloth->nAt = 7;
+    pCloth->pWindSin = luisHairWindS;
+    pCloth->pWindRate = luisHairWindR;
+    pCloth->pAtset = luisHairAt;
+    pCloth->At_num = 7;
     pCloth->Gravity = 15.0f;
     pCloth->Rate = 0.75f;
     pCloth->Bundle_num = 4;
@@ -736,7 +736,7 @@ void testHairSetLuis(cModel* pl, PlCloth* pCloth)
     pCloth->Stretchy = 1.0f;
     pCloth->Move_rate = 0.5f;
     pCloth->pModel = 0;
-    pCloth->flags = 0x302;
+    pCloth->Flag = 0x302;
     pCloth->x54 = 0;
     PenClothSet(pl, (PenCloth*) pCloth, 100.0f);
 }
@@ -753,17 +753,17 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
 {
     f32 rate;
 
-    c->num = 146;
-    c->pParts = adaDressP;
+    c->Num = 146;
+    c->pCloth = adaDressP;
     c->pLeft = adaDressLp;
     c->pUpLeft = adaDressULp;
-    c->pUp = adaDressUp;
-    c->pDown = adaDressDp;
+    c->pParent = adaDressUp;
+    c->pChild = adaDressDp;
     c->pMax = adaDressMax;
-    c->pWindS = adaDressWindS;
-    c->pWindR = adaDressWindR;
-    c->pAt = adaDressAt;
-    c->nAt = 35;
+    c->pWindSin = adaDressWindS;
+    c->pWindRate = adaDressWindR;
+    c->pAtset = adaDressAt;
+    c->At_num = 35;
     c->Gravity = 20.0f;
     rate = 0.7f;
     c->WindSin = 0.0f;
@@ -774,7 +774,7 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     c->pRate = 0;
     c->pModel = 0;
     c->Rate = rate;
-    c->flags = 0;
+    c->Flag = 0;
     c->x54 = 0;
     if (evt) {
         c->Move_rate = rate;
@@ -793,21 +793,21 @@ void testDressMoveAda(cModel* pl, PlCloth* c)
 
 void testHairSetAda(cModel* pl, PlCloth* c)
 {
-    c->num = 14;
-    c->pParts = adaHairP;
+    c->Num = 14;
+    c->pCloth = adaHairP;
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
     c->pUpRight = 0;
-    c->pUp = adaHairUp;
-    c->pDown = adaHairDp;
+    c->pParent = adaHairUp;
+    c->pChild = adaHairDp;
     c->pGravity = 0;
     c->pRate = 0;
-    c->pWindS = adaHairWindS;
-    c->pWindR = adaHairWindR;
+    c->pWindSin = adaHairWindS;
+    c->pWindRate = adaHairWindR;
     c->pMax = adaHairMax;
-    c->pAt = adaHairAt;
-    c->nAt = 6;
+    c->pAtset = adaHairAt;
+    c->At_num = 6;
     c->Gravity = 15.0f;
     c->Rate = 0.75f;
     c->Bundle_num = 4;
@@ -815,7 +815,7 @@ void testHairSetAda(cModel* pl, PlCloth* c)
     c->Stretchy = 1.0f;
     c->Move_rate = 0.5f;
     c->pModel = 0;
-    c->flags = 0x302;
+    c->Flag = 0x302;
     c->x54 = 0;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
 }
@@ -835,14 +835,14 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     if (bin == 0 || tpl == 0) {
         return 0;
     }
-    c->num = 22;
-    c->pParts = adaRibbonP;
+    c->Num = 22;
+    c->pCloth = adaRibbonP;
     c->pLeft = 0;
     c->pRight = 0;
     c->pUpLeft = 0;
     c->pUpRight = 0;
-    c->pUp = adaRibbonUp;
-    c->pDown = adaRibbonDp;
+    c->pParent = adaRibbonUp;
+    c->pChild = adaRibbonDp;
     c->pGravity = 0;
     c->pRate = 0;
     c->pMax = adaRibbonMax;
@@ -853,11 +853,11 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     c->Move_rate = 0.5f;
     c->Stretchy = 1.0f;
     c->x54 = 0;
-    c->pWindS = adaRibbonWindS;
-    c->pWindR = adaRibbonWindR;
-    c->pAt = adaRibbonAt;
-    c->nAt = 10;
-    c->flags = 0x200;
+    c->pWindSin = adaRibbonWindS;
+    c->pWindRate = adaRibbonWindR;
+    c->pAtset = adaRibbonAt;
+    c->At_num = 10;
+    c->Flag = 0x200;
     c->pModel = pl;
     c->WindSin = zero;
     pos.x = zero;

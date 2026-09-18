@@ -69,13 +69,13 @@ struct GxStageWork {
 
 // Item left in a room (pG->save_item[256], game/sce_at.cpp), 16 bytes.
 struct ITEM_SAVE_WORK {
-    u8 type;          // 0x00  0 item area, 1 item handed to an area
-    u8 atNo;          // 0x01
-    s8 effType;       // 0x02
+    u8 item_type;          // 0x00  0 item area, 1 item handed to an area
+    u8 item_at;          // 0x01
+    s8 item_eff;       // 0x02
     u8 pad_3;
-    u16 room;         // 0x04  0 = free
-    u16 id;           // 0x06
-    u16 num;          // 0x08
+    u16 room_no;         // 0x04  0 = free
+    u16 item_id;           // 0x06
+    u16 item_num;          // 0x08
     s16 pos[3];       // 0x0A  / 10
 };
 
@@ -110,17 +110,17 @@ struct GlobalWork {
     };
     u8 next_point;         // 0x2A  spawn point in the next room (room_jmp CRoomInfo::setNextPos clears it)
     u8 pad_2B;
-    Vec next_pos;          // 0x2C  player position in the next room (room_jmp)
-    f32 next_angle;        // 0x38
-    void* pStageFont;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
-    void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
-    void* pWepArc;         // 0x44  weapon data (read: ReadWepData)
+    Vec NextPos;          // 0x2C  player position in the next room (room_jmp)
+    f32 NextY;        // 0x38
+    void* pStFnt;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
+    void* pRoom;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
+    void* pWep;         // 0x44  weapon data (read: ReadWepData)
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
-    void* pOptionData;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
-    struct PlArc* pPlArc;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
+    void* pOption;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
+    struct PlArc* pPlayer;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
     u32 System_flg;          // 0x54
     u32 Disp_flg;          // 0x58
-    u32 time_base;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
+    u32 game_start_time;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
     u32 flags_60;          // 0x60
     u32 flags_64;          // 0x64
     u32 flags_68;          // 0x68
@@ -139,14 +139,14 @@ struct GlobalWork {
     s32 prim_base;         // 0x4F10  primitive buffer: first entry of the current frame (debug PrimitiveBuffDisp)
     f32 prim_rate;         // 0x4F14  worst free ratio of the primitive buffer seen so far
     s32 prim_cnt;          // 0x4F18  entries used so far this frame
-    s32 prim_max;          // 0x4F1C  entries per frame (game: ConsGetRoomValue(8), 0x8000 while stopped)
-    void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
-    void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
-    void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
-    void* pRoomRtp;        // 0x4F2C  room "RTP" data (read: ReadAreaData)
-    void* pRoomEmi;        // 0x4F30  room "EMI" data
-    void* pRoomOsd;        // 0x4F34  room "OSD" data
-    s8 area_no;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
+    s32 nPrim;          // 0x4F1C  entries per frame (game: ConsGetRoomValue(8), 0x8000 while stopped)
+    void* RoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
+    void* pCamCore;    // 0x4F24  core camera data ("B40x")
+    void* pCamRoom;    // 0x4F28  room camera data ("B40x")
+    void* Rtp;        // 0x4F2C  room "RTP" data (read: ReadAreaData)
+    void* pEmi;        // 0x4F30  room "EMI" data
+    void* pOsd;        // 0x4F34  room "OSD" data
+    s8 AreaNo;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
     u8 pad_4F39[3];
     Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
     u8 bell_stat;          // 0x4F48  2 = bell rung
@@ -186,26 +186,26 @@ struct GlobalWork {
         };
     };
     u8 Part_old;              // 0x4FA2  copy of x4F9E (room_jmp)
-    s8 emlist_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
+    s8 em_list_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
     u16 pl_life;           // 0x4FA4  (compared as s16 by the debug tools)
     u16 pl_life_max;       // 0x4FA6
-    u16 sub_life;          // 0x4FA8  Ashley
-    u16 sub_life_max;      // 0x4FAA
+    u16 ashley_life;          // 0x4FA8  Ashley
+    u16 ashley_life_max;      // 0x4FAA
     u8 pad_4FAC[4];
-    u8 wep_no;             // 0x4FB0  equipped weapon (cPlayer::weaponLoad(no, type))
-    u8 wep_type;           // 0x4FB1
-    u8 wep_x4FB2;          // 0x4FB2  equipped weapon slot num >> 13 (sscrn SubScreenExit re-arms when it changed)
-    u8 wep_lv;             // 0x4FB3  weapon upgrade level (em_dm_val: WeaponLevelTbl column, clamped to 7)
-    u8 wep_lv_mag;         // 0x4FB4  magazine tune level of the equipped weapon (item cItemMgr::arm)
-    u8 wep_lv_ex;          // 0x4FB5  exclusive tune level (item cItemMgr::arm)
+    u8 weapon_no;             // 0x4FB0  equipped weapon (cPlayer::weaponLoad(no, type))
+    u8 weapon_type;           // 0x4FB1
+    u8 bullet_type;        // 0x4FB2  equipped weapon slot num >> 13 (sscrn SubScreenExit re-arms when it changed)
+    u8 weapon_lv_power;    // 0x4FB3  firepower tune level (em_dm_val: WeaponLevelTbl column, clamped to 7)
+    u8 weapon_lv_speed;    // 0x4FB4  firing speed tune level (PlShotFrameTbl column; item cItemMgr::arm)
+    u8 weapon_lv_blt;      // 0x4FB5  capacity tune level (item cItemMgr::arm)
     u8 pad_4FB6[2];
     union {
         u32 x4FB8_32;      // 0x4FB8  the four bytes as one word (title: `& 0xFF0000FF` == 0 -> Leon with the default Ashley)
         struct {
             u8 x4FB8;      // 0x4FB8  player character: 0 Leon, 1 Ashley, 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker, 6 Leon+Ashley
-            u8 costume;    // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
+            u8 pl_costume;    // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
             u8 weapon_lv_reload;      // 0x4FBA
-            u8 costume2;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
+            u8 game_costume;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
         };
     };
     u8 pad_4FBC[2];
@@ -228,9 +228,9 @@ struct GlobalWork {
     u8 pad_51D4[0x51DC - 0x51D4];
     u32 door_unlock[2];    // 0x51DC  one bit per locked door (sce_at: SceAtWork::lockFlag)
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
-    u32 sce_free[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
-    u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
-    ITEM_SAVE_WORK save_item[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
+    u32 save_free_work[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
+    u8 Em_list[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
+    ITEM_SAVE_WORK item_save[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
     u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
     u8 pad_82ED[3];
@@ -241,14 +241,14 @@ struct GlobalWork {
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
     u32 x8330;             // 0x8330  (game clearGlobalSaveData keeps x8330/x8334 across the clear)
     u32 x8334;             // 0x8334
-    u16 x8338;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
+    u16 c_continue_cnt;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
     u16 g_continue_cnt;             // 0x833A  (option: result screen counter next to x8338)
-    u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
-    u32 em_die_cnt2;       // 0x8340
-    u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)
-    u32 shotHit2;          // 0x8348
-    u32 shotTotal;         // 0x834C  shots fired
-    u32 shotTotal2;        // 0x8350
+    u32 c_kill_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
+    u32 g_kill_cnt;       // 0x8340
+    u32 c_hit_cnt;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)
+    u32 g_hit_cnt;          // 0x8348
+    u32 c_shot_cnt;         // 0x834C  shots fired
+    u32 g_shot_cnt;        // 0x8350
     u8 x8354;              // 0x8354  (main systemWorkInit: 5)
     u8 pad_8355[3];
     s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
@@ -263,8 +263,8 @@ extern GlobalWork Global;  // the instance pG points at (game/main.cpp); static 
 
 // System save block (game/main.cpp `SystemSave`, 0x38 bytes; layout partially known).
 struct SystemSaveWork {
-    u32 config_flg;  // 0x00  CFG_* bits
-    u32 extra_flg;   // 0x04
+    u32 Config_flg;  // 0x00  CFG_* bits
+    u32 Extra_flg;   // 0x04
     u8 pad_8[0x38 - 0x08];
 };
 extern SystemSaveWork SystemSave;

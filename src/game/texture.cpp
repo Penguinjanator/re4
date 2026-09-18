@@ -183,8 +183,8 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
     }
     CalcTplAddr(tpl);
     desc = TEXGet(tpl, 0);
-    w->nTex = anm->numTex;
-    w->pTexObj = PullTexObj(w->nTex);
+    w->nTexObj = anm->numTex;
+    w->pTexObj = PullTexObj(w->nTexObj);
     if (w->pTexObj == NULL) {
         pLog->err(0, 0, "%s : ID[%02x] PullTexObj() work full!!", name, id);
         return 0;
@@ -193,7 +193,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
     w->pAnm = anm;
     w->owner = owner;
     w->pTpl = tpl;
-    for (i = 0; i < w->nTex; i++) {
+    for (i = 0; i < w->nTexObj; i++) {
         obj = &w->pTexObj[i];
         desc = TEXGet(tpl, i);
         hdr = desc->textureHeader;
@@ -219,7 +219,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
             GXInitTexObjLOD(obj, 0, 0, (f32) h->minLOD, (f32) h->maxLOD, h->LODBias, 0, h->edgeLODEnable, 0);
         }
     }
-    PSMTXIdentity(w->mtx);
+    PSMTXIdentity(w->_Mtx);
     return 1;
 }
 
@@ -295,7 +295,7 @@ int cTexSys::TexRelease(u32 owner)
         if (w->owner == owner) {
             w->owner = 0;
             base = w->pTexObj - pTexObj;
-            for (j = base; j < base + w->nTex; j++) {
+            for (j = base; j < base + w->nTexObj; j++) {
                 SetTexObjFlag(j, 0);
             }
         }

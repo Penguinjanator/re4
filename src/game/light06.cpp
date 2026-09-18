@@ -26,9 +26,9 @@ void Light06_Move(cLight* l)
                 w->rate = 0.0f;
             }
         }
-        l->curColor.r = (u8)(w->rate * l->color.r);
-        l->curColor.g = (u8)(w->rate * l->color.g);
-        l->curColor.b = (u8)(w->rate * l->color.b);
+        l->DispCol.r = (u8)(w->rate * l->Col.r);
+        l->DispCol.g = (u8)(w->rate * l->Col.g);
+        l->DispCol.b = (u8)(w->rate * l->Col.b);
         break;
     }
 }

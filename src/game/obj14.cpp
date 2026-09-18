@@ -54,13 +54,13 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetObj14() failed.");
@@ -72,7 +72,7 @@ cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot)
 
     obj14ClothSet((cObjBell*) obj);
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &l0, &l1, 0x10);
+    obj->LightInfo.init2(0, 1, &l0, &l1, 0x10);
     w->ringTimer = 0;
     p0.x = 0.0f;
     p0.y = 0.0f;
@@ -131,7 +131,7 @@ void obj14_R1_Break(cObjBell* obj)
         if (w->pEmHit) {
             w->pEmHit->hp = 0;
         }
-        EstSet(0, -1, &obj->pos, &obj->rot, 1, 7, 0, 0, 0, 0);
+        EstSet(0, -1, &obj->pos, &obj->ang, 1, 7, 0, 0, 0, 0);
         obj->r_no_2++;
     }
     obj14MatCalc(obj);
@@ -139,10 +139,10 @@ void obj14_R1_Break(cObjBell* obj)
 
 void obj14MatCalc(cObjBell* obj)
 {
-    RotMatrix(obj->worldMat, &obj->rot);
-    TransMatrix(obj->worldMat, &obj->pos);
-    ScaleMatrix(obj->worldMat, &obj->scale);
-    PSMTXCopy(obj->worldMat, obj->mat);
+    RotMatrix(obj->l_mat, &obj->ang);
+    TransMatrix(obj->l_mat, &obj->pos);
+    ScaleMatrix(obj->l_mat, &obj->scale);
+    PSMTXCopy(obj->l_mat, obj->mat);
     if (obj->pMotion == 0) {
         obj->partsMatCalc();
     }
@@ -270,10 +270,10 @@ void obj14ClothSet(cObjBell* obj)
 {
     BellWork* w = &obj->bell;
 
-    w->cloth.num = 2;
-    w->cloth.pParts = obj14ClothP;
-    w->cloth.pUp = obj14ClothUp;
-    w->cloth.pDown = obj14ClothDp;
+    w->cloth.Num = 2;
+    w->cloth.pCloth = obj14ClothP;
+    w->cloth.pParent = obj14ClothUp;
+    w->cloth.pChild = obj14ClothDp;
     w->cloth.pMax = obj14ClothMax;
     w->cloth.Gravity = 15.0f;
     w->cloth.Rate = 1.0f;
@@ -292,7 +292,7 @@ void obj14ClothSet(cObjBell* obj)
     w->cloth.WindSin = 0.0f;
     w->cloth.Stretchy = 0.0f;
     w->cloth.Move_rate = 0.0f;
-    w->cloth.flags = 0x100;
+    w->cloth.Flag = 0x100;
     w->cloth.x54 = 0;
     PenClothSet(obj, &w->cloth, 100.0f);
 }

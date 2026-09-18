@@ -35,12 +35,12 @@ void IKInit(cModel* m, MotionWork* w)
         IK_FLAGS(p) &= ~0x10;
         IK_FLAGS(p) &= ~0x300;
     }
-    for (i = 0; i < w->nParts; i++) {
-        int kind = w->partsInfo[i] & 0xFF;
+    for (i = 0; i < w->Joint_num; i++) {
+        int kind = w->pJoint_kind[i] & 0xFF;
         if (!(kind & 0x30)) {
             continue;
         }
-        root = m->getPartsPtr(w->partsNo[i]);
+        root = m->getPartsPtr(w->pJoint_no[i]);
         if (root == 0) {
             pLog->err(2, 0, "IKInit(): missing Root.");
             return;
@@ -56,7 +56,7 @@ void IKInit(cModel* m, MotionWork* w)
             return;
         }
         IK_FLAGS(root) |= 4;
-        switch ((w->partsInfo[i] >> 8) & 0xF) {
+        switch ((w->pJoint_kind[i] >> 8) & 0xF) {
         case 4:
             axis.x = 0.0f;
             axis.y = 0.0f;
@@ -171,7 +171,7 @@ void ikCalc(cModel* root, cModel* joint, cModel* eff)
     f32 c1;
     f32 c2;
 
-    d = GetDistance3(&root->worldPos, &eff->worldPos);
+    d = GetDistance3(&root->world, &eff->world);
     la = IK_PARTS(root)->len;
     lb = IK_PARTS(joint)->len;
     if (d < la + lb) {
@@ -193,16 +193,16 @@ void ikCalc(cModel* root, cModel* joint, cModel* eff)
         ang2 = acosf(c2);
     }
     PSMTXMultVecSR(root->mat, &IK_PARTS(root)->axis, &axis);
-    PSVECSubtract(&eff->worldPos, &root->worldPos, &dir);
+    PSVECSubtract(&eff->world, &root->world, &dir);
     SetOrientationZX(&dir, &axis, m);
     PSMTXConcat(m, IK_PARTS(root)->mat, m);
     PSMTXRotAxisRad(r1, &IK_PARTS(root)->axis, -ang1);
     PSMTXConcat(m, r1, root->mat);
-    TransMatrix(root->mat, &root->worldPos);
+    TransMatrix(root->mat, &root->world);
     PSMTXRotAxisRad(r2, &IK_PARTS(root)->axis, ang2);
     PSMTXConcat(m, r2, joint->mat);
-    PSMTXMultVec(root->mat, &joint->pos, &joint->worldPos);
-    TransMatrix(joint->mat, &joint->worldPos);
+    PSMTXMultVec(root->mat, &joint->pos, &joint->world);
+    TransMatrix(joint->mat, &joint->world);
 }
 
 // Put the heel (p) so that its toe (the child) lands on `pos`.
@@ -215,29 +215,29 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
         pLog->err(2, 0, "heel2toe(): missing joint.");
         return;
     }
-    PSMTXConcat(m, p->worldMat, p->mat);
-    PSMTXMultVecSR(p->mat, &toe->pos, &p->worldPos);
-    PSVECSubtract(pos, &p->worldPos, &p->worldPos);
-    TransMatrix(p->mat, &p->worldPos);
+    PSMTXConcat(m, p->l_mat, p->mat);
+    PSMTXMultVecSR(p->mat, &toe->pos, &p->world);
+    PSVECSubtract(pos, &p->world, &p->world);
+    TransMatrix(p->mat, &p->world);
     PSMTXInverse(p->pParent->mat, inv);
-    PSMTXConcat(inv, p->mat, p->worldMat);
+    PSMTXConcat(inv, p->mat, p->l_mat);
     IK_FLAGS(p) |= 0x10000000;
-    TransMatrix(toe->worldMat, &toe->pos);
-    PSMTXConcat(toe->pParent->mat, toe->worldMat, toe->mat);
-    toe->worldPos.x = toe->mat[0][3];
-    toe->worldPos.y = toe->mat[1][3];
-    toe->worldPos.z = toe->mat[2][3];
+    TransMatrix(toe->l_mat, &toe->pos);
+    PSMTXConcat(toe->pParent->mat, toe->l_mat, toe->mat);
+    toe->world.x = toe->mat[0][3];
+    toe->world.y = toe->mat[1][3];
+    toe->world.z = toe->mat[2][3];
     IK_FLAGS(toe) |= 0x10000000;
 }
 
 // Recompute the local matrix of `q` from its world matrix and flag it as posed by the IK.
 #define IK_LOCAL(q)                                                  \
     PSMTXInverse((q)->pParent->mat, inv);                            \
-    PSMTXConcat(inv, (q)->mat, (q)->worldMat);                       \
+    PSMTXConcat(inv, (q)->mat, (q)->l_mat);                       \
     {                                                                \
         u32 f = IK_FLAGS(q);                                         \
         IK_FLAGS(q) = f | 0x10000000;                                \
-        if (blend != 0 && (s32) blend->flags2 < 0) {                 \
+        if (blend != 0 && (s32) blend->Mot_flag < 0) {                 \
             IK_FLAGS(q) = f | 0x90000000;                            \
         }                                                            \
     }
@@ -246,7 +246,7 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
     {                                                                \
         u32 f = IK_FLAGS(q);                                         \
         IK_FLAGS(q) = f | 0x10000000;                                \
-        if (blend != 0 && (s32) blend->flags2 < 0) {                 \
+        if (blend != 0 && (s32) blend->Mot_flag < 0) {                 \
             IK_FLAGS(q) = f | 0x90000000;                            \
         }                                                            \
     }
@@ -314,7 +314,7 @@ void InverseKinematics(cModel* m, int flag)
         eff = joint->pParts;
         PSMTXMultVec(m->mat, &eff->pos, &target);
         if (!em->checkStatus(3) && !(IK_FLAGS(p) & 0x200)) {
-            if (!(em->atari.flags & 0x100)) {
+            if (!(em->atari.m_flag & 0x100)) {
                 floorY = target.y - eff->pos.y;
             } else if (IK_FLAGS(p) & 0x800) {
                 target.y += 1000.0f;
@@ -330,7 +330,7 @@ void InverseKinematics(cModel* m, int flag)
                 a.x = target.x;
                 a.y = floorY + eff->pos.y;
                 a.z = target.z;
-                dist = GetDistance3(&p->worldPos, &a);
+                dist = GetDistance3(&p->world, &a);
                 reach = IK_PARTS(p)->len + IK_PARTS(p->pParts)->len;
                 if (target.y < floorY + eff->pos.y || ((IK_FLAGS(p) & 0x400) && dist < reach) || (IK_FLAGS(p) & 0x800)) {
                     if ((IK_FLAGS(p) & 0x800) && floorY < target.y) {
@@ -345,15 +345,15 @@ void InverseKinematics(cModel* m, int flag)
             if (IK_FLAGS(p) & 0x100) {
                 heel2toe(m->mat, eff, &target);
             } else {
-                PSMTXConcat(m->mat, eff->worldMat, eff->mat);
+                PSMTXConcat(m->mat, eff->l_mat, eff->mat);
                 TransMatrix(eff->mat, &target);
-                MAT_COL(eff->worldPos, eff->mat, 3);
+                MAT_COL(eff->world, eff->mat, 3);
                 IK_LOCAL(eff);
             }
         } else {
             eff = p->pParts->pParts->pParts;
-            PSMTXConcat(m->mat, eff->worldMat, eff->mat);
-            MAT_COL(eff->worldPos, eff->mat, 3);
+            PSMTXConcat(m->mat, eff->l_mat, eff->mat);
+            MAT_COL(eff->world, eff->mat, 3);
             IK_LOCAL(eff);
         }
         if (!(IK_FLAGS(p) & 0x10)) {
@@ -366,19 +366,19 @@ void InverseKinematics(cModel* m, int flag)
                 a.z = BIND_Z(joint) - BIND_Z(eff);
                 PSMTXMultVec(eff->pParent->mat, &a, &a);
                 TransMatrix(eff->mat, &a);
-                MAT_COL(eff->worldPos, eff->mat, 3);
+                MAT_COL(eff->world, eff->mat, 3);
                 IK_LOCAL(eff);
-                MAT_COL(eff->pos, eff->worldMat, 3);
+                MAT_COL(eff->pos, eff->l_mat, 3);
             } else {
                 PSMTXInverse(eff->pParent->mat, inv);
-                PSMTXConcat(inv, eff->mat, eff->worldMat);
+                PSMTXConcat(inv, eff->mat, eff->l_mat);
             }
             if (IK_FLAGS(p) & 0x100) {
                 cModel* toe = eff->pParts;
-                RotMatrix(toe->worldMat, &toe->rot);
-                TransMatrix(toe->worldMat, &toe->pos);
-                PSMTXConcat(toe->pParent->mat, toe->worldMat, toe->mat);
-                MAT_COL(toe->worldPos, toe->mat, 3);
+                RotMatrix(toe->l_mat, &toe->ang);
+                TransMatrix(toe->l_mat, &toe->pos);
+                PSMTXConcat(toe->pParent->mat, toe->l_mat, toe->mat);
+                MAT_COL(toe->world, toe->mat, 3);
                 IK_FLAG_ONLY(toe);
             }
             if (IK_FLAGS(p) & 0x1000) {
@@ -437,9 +437,9 @@ void InverseKinematics(cModel* m, int flag)
                 q = p;
                 for (n = 0; n <= 2; n++) {
                     PSMTXInverse(q->pParent->mat, inv);
-                    PSMTXConcat(inv, q->mat, q->worldMat);
+                    PSMTXConcat(inv, q->mat, q->l_mat);
                     if (n == 2) {
-                        MAT_COL(q->pos, q->worldMat, 3);
+                        MAT_COL(q->pos, q->l_mat, 3);
                     }
                     IK_FLAG_ONLY(q);
                     q = q->pParts;
@@ -450,7 +450,7 @@ void InverseKinematics(cModel* m, int flag)
             cModel* e = j->pParts;
             cModel* toe = e->pParts;
             ikCalc(p, j, toe);
-            PSMTXConcat(j->mat, e->worldMat, e->mat);
+            PSMTXConcat(j->mat, e->l_mat, e->mat);
             {
                 Vec b;
                 Vec t;
@@ -470,9 +470,9 @@ void InverseKinematics(cModel* m, int flag)
             q = p;
             for (n = 0; n <= 3; n++) {
                 PSMTXInverse(q->pParent->mat, inv);
-                PSMTXConcat(inv, q->mat, q->worldMat);
+                PSMTXConcat(inv, q->mat, q->l_mat);
                 if (n == 3) {
-                    MAT_COL(q->pos, q->worldMat, 3);
+                    MAT_COL(q->pos, q->l_mat, 3);
                 }
                 IK_FLAG_ONLY(q);
                 q = q->pParts;

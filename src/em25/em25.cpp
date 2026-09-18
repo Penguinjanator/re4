@@ -156,12 +156,12 @@ static inline int em25DeadCk(cEm* em)
 }
 
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
+static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
 
 // u8 store through a reference with a promoted parameter: the constant is an SImode pseudo the
 // following routine bytes share (em2d.cpp).
 static inline void U8Set(u8& d, u8 v) { d = v; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 extern "C" void _prolog()
 {
@@ -187,14 +187,14 @@ void em25DmCk(cEm25* em)
     int wep;
     int zero;
 
-    if ((em->be_flag & 2) && em25DeadCk(em) == 0 && w->pParent == 0 && em->hp > 0) {
+    if ((em->be_flag & 2) && em25DeadCk(em) == 0 && w->pEm_oya == 0 && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
         case 1:
         case 4:
         case 5:
         case 7:
-            if (w->dmGuard == 0) {
-                w->dmGuard = 120;
+            if (w->Fire_timer == 0) {
+                w->Fire_timer = 120;
                 EmRoutineSet(em, 2, 4, 0, 0);
                 return;
             }
@@ -223,7 +223,7 @@ void em25DmCk(cEm25* em)
     LifeDownSet(em, em25SetDmVal(em), 0);
     SndCall(8, 0xB, &em->pos, em->id, 0, em);
     if (em->hp <= 0) {
-        switch (w->mode) {
+        switch (w->Mode) {
         case 0:
         default:
             em->be_flag &= ~0x10000;
@@ -237,10 +237,10 @@ void em25DmCk(cEm25* em)
             break;
         }
     } else {
-        if (w->flags & 8) {
+        if (w->Be_flg & 8) {
             return;
         }
-        switch (w->mode) {
+        switch (w->Mode) {
         case 0:
         default:
             if (!(Rnd() & 1)) {
@@ -262,25 +262,25 @@ void cEm25::move()
 {
     Em25Work* w = EM25_WK(this);
 
-    if (r_no_0 && w->pParent && !w->pParent->isAlive()) {
-        w->pParent = 0;
+    if (r_no_0 && w->pEm_oya && !w->pEm_oya->isAlive()) {
+        w->pEm_oya = 0;
         EmRoutineSet(this, 1, 0, 0, 0);
     }
     be_flag &= ~0x4000;
     motFlags2 &= ~0x40000000;
     em25DmCk(this);
-    w->flags &= ~0x2F;
-    if (!(pGS->flags_68 & 0x20000) && w->lifeTimer) {
-        w->lifeTimer--;
+    w->Be_flg &= ~0x2F;
+    if (!(pGS->flags_68 & 0x20000) && w->Alive_timer) {
+        w->Alive_timer--;
     }
-    if (w->waitTimer) {
-        w->waitTimer--;
+    if (w->Atk_wait) {
+        w->Atk_wait--;
     }
     if (em25DeadCk(pPL)) {
-        w->waitTimer = 120;
+        w->Atk_wait = 120;
     }
-    if (w->dmGuard) {
-        w->dmGuard--;
+    if (w->Fire_timer) {
+        w->Fire_timer--;
     }
     em25RouteCk(this);
     Em25_R0_move_tbl[r_no_0](this);
@@ -290,23 +290,23 @@ void cEm25::move()
     }
     partsWorldCalc();
     em25ScaleCompress(this);
-    if (w->mode == 0 && hp > 0) {
+    if (w->Mode == 0 && hp > 0) {
         EmAtCheck(this);
         atari.move();
         SatMgr.check(this, 0);
     }
-    if (hp > 0 || w->pParent) {
-        if (w->seTimer) {
-            w->seTimer--;
+    if (hp > 0 || w->pEm_oya) {
+        if (w->Se_breath_wait) {
+            w->Se_breath_wait--;
         } else {
-            w->seTimer = 30;
-            if (w->pParent) {
-                SndCall(8, 0x1A, &w->pParent->pos, id, 0, this);
+            w->Se_breath_wait = 30;
+            if (w->pEm_oya) {
+                SndCall(8, 0x1A, &w->pEm_oya->pos, id, 0, this);
             } else {
                 SndCall(8, 8, &pos, id, 0, this);
             }
         }
-        if (w->pParent) {
+        if (w->pEm_oya) {
             if (w->estTimer) {
                 w->estTimer--;
             } else {
@@ -316,9 +316,9 @@ void cEm25::move()
         }
     }
     if (pG->flags_5010 & 0x04000000) {
-        lightInfo.x50 = 0x80;
+        LightInfo.x50 = 0x80;
     } else {
-        lightInfo.x50 = 2;
+        LightInfo.x50 = 2;
     }
 }
 
@@ -336,12 +336,12 @@ static void em25_R0_Init(cEm25* em)
     }
     em->setStatus(0xB);
     zero = 0;
-    em->motFlip = em25_flip_tbl;
+    em->pXFlip = em25_flip_tbl;
     EspDataLoad((u32) ARC(7), 0x1D, 0);
     {
         static const Vec ofs = {0.0f, 0.0f, 0.0f};
         static const Vec size = {2000.0f, 2000.0f, 2000.0f};
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     fzero = 0.0f;
     em->lockParts = zero;
@@ -353,20 +353,20 @@ static void em25_R0_Init(cEm25* em)
     YarareAdd(em, &w->hit[0], fzero, fzero, fzero, 100.0f, 100.0f, 0x1D, 1);
     YarareAdd(em, &w->hit[1], fzero, fzero, fzero, 100.0f, 100.0f, 0x1E, 1);
     YarareAdd(em, &w->hit[2], fzero, fzero, fzero, 100.0f, 100.0f, 0x1F, 1);
-    w->flags = zero;
-    w->scaleY = 1.0f;
-    w->pParent = (cEm*) zero;
+    w->Be_flg = zero;
+    w->Compress_y = 1.0f;
+    w->pEm_oya = (cEm*) zero;
     w->parentParts = zero;
     w->hitCnt = zero;
     w->dead = zero;
     w->Eff_wait1 = zero;
     w->estTimer = zero;
-    w->waitTimer = zero;
-    w->atkEnable = zero;
+    w->Atk_wait = zero;
+    w->Atk_enable = zero;
     for (i = 0; i < 3; i++) {
         w->pPara[i] = 0;
     }
-    w->espKind = EspPullCoreKind();
+    w->EffKindId = EspPullCoreKind();
     switch (em->set) {
     case 0:
     default:
@@ -374,16 +374,16 @@ static void em25_R0_Init(cEm25* em)
         em->r_no_1 = 0;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        w->mode = 0;
+        w->Mode = 0;
         break;
     case 1:
         em->setStatus(5);
-        w->lifeTimer = 900;
+        w->Alive_timer = 900;
         em->r_no_0 = 1;
         em->r_no_1 = 2;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
-        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->espKind, (u32) em, 0);
+        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, (u32) em, 0);
         em25SetParasite(em);
         break;
     }
@@ -408,18 +408,18 @@ static void em25_R1_Hide(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(8), 0, 0, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(8), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         em->hp = 0;
         em->be_flag &= ~2;
         em->be_flag &= ~0x10000;
-        w->pParent = 0;
+        w->pEm_oya = 0;
         w->dead = 0;
         AtariOff(&em->atari, 0xFCFF);
         em->setStatus(1);
         em->be_flag &= ~0x10;
-        w->scaleY = 1.0f;
-        for (info = em->pInfo; info; info = info->pNext) {
+        w->Compress_y = 1.0f;
+        for (info = em->pModelInfo; info; info = info->pList) {
             info->color[0] = 0xFF;
             info->color[1] = 0xFF;
             info->color[2] = 0xFF;
@@ -429,7 +429,7 @@ static void em25_R1_Hide(cEm25* em)
             p->scale.y = 1.0f;
             p->scale.z = 1.0f;
         }
-        w->scaleY = 1.0f;
+        w->Compress_y = 1.0f;
         em->r_no_2++;
         break;
     case 1:
@@ -448,13 +448,13 @@ static void em25_R1_Birth(cEm25* em)
         em->scale.x = 1.0f;
         em->scale.y = 1.0f;
         em->scale.z = 1.0f;
-        em->alpha = 1.0f;
-        em->hp = em->hpMax;
+        em->invisible_factor = 1.0f;
+        em->hp = em->hp_max;
         em->be_flag |= 2;
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         TransMatrix(em->mat, &em->scale);
-        MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x2E), 0, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x26), (int) ARC(0x2E), 0, 1, 0);
         for (p = em->pParts; p; p = p->pParts) {
             p->scale.x = 1.0f;
             p->scale.y = 1.0f;
@@ -463,9 +463,9 @@ static void em25_R1_Birth(cEm25* em)
         em->setStatus(5);
         AtariOn(&em->atari, 0x300);
         em->clearStatus(1);
-        w->scaleY = 1.0f;
-        w->lifeTimer = 900;
-        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->espKind, (u32) em, 0);
+        w->Compress_y = 1.0f;
+        w->Alive_timer = 900;
+        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, (u32) em, 0);
         em25SetParasite(em);
         em->r_no_2++;
     case 1:
@@ -482,9 +482,9 @@ static void em25_R1_Wait(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x19), 0, 5, 5, 0);
-        if (w->waitTimer <= 29) {
-            w->waitTimer = (u8) (Rnd() % 30) + 30;
+        MotionSetCore(em, &em->Motion, ARC(0x19), 0, 5, 5, 0);
+        if (w->Atk_wait <= 29) {
+            w->Atk_wait = (u8) (Rnd() % 30) + 30;
         }
         em->r_no_2++;
     case 1:
@@ -492,7 +492,7 @@ static void em25_R1_Wait(cEm25* em)
         if ((s16) pG->pl_life > 0) {
             if (w->targetAngAbs > 1.22173047f) {
                 EmRoutineSet(em, 1, 5, 0, 0);
-            } else if (w->waitTimer == 0) {
+            } else if (w->Atk_wait == 0) {
                 if (em->plDist2 < 4000000.0f && w->targetAngAbs < 0.523598790f) {
                     EmRoutineSet(em, 1, 6, 0, 0);
                 } else if (em->plDist2 > 25000000.0f) {
@@ -504,7 +504,7 @@ static void em25_R1_Wait(cEm25* em)
         }
         break;
     }
-    if (w->lifeTimer == 0) {
+    if (w->Alive_timer == 0) {
         em->hp = 0;
         em->be_flag |= 0x10000;
         EmRoutineSet(em, 3, 2, 0, 0);
@@ -517,18 +517,18 @@ static void em25_R1_Walk(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x1A), (int) ARC(0x1B), 5, 5, 0);
-        w->timer = (u8) (Rnd() % 5) + 5;
+        MotionSetCore(em, &em->Motion, ARC(0x1A), (int) ARC(0x1B), 5, 5, 0);
+        w->Timer = (u8) (Rnd() % 5) + 5;
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, 0.0981747732f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.0981747732f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
-            if (w->timer == 0) {
+            if (w->Timer == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
             }
-            w->timer--;
+            w->Timer--;
         }
         if (em->plDist2 < 4000000.0f && w->targetAngAbs < 0.523598790f) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -537,7 +537,7 @@ static void em25_R1_Walk(cEm25* em)
         }
         break;
     }
-    if (w->lifeTimer == 0) {
+    if (w->Alive_timer == 0) {
         em->hp = 0;
         em->be_flag |= 0x10000;
         EmRoutineSet(em, 3, 2, 0, 0);
@@ -550,18 +550,18 @@ static void em25_R1_Run(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x1C), (int) ARC(0x1D), 5, 5, 0);
-        w->timer = (u8) (Rnd() % 3) + 2;
+        MotionSetCore(em, &em->Motion, ARC(0x1C), (int) ARC(0x1D), 5, 5, 0);
+        w->Timer = (u8) (Rnd() % 3) + 2;
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, 0.0981747732f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, 0.0981747732f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
-            if (w->timer == 0) {
+            if (w->Timer == 0) {
                 EmRoutineSet(em, 1, 2, 0, 0);
                 break;
             }
-            w->timer--;
+            w->Timer--;
         }
         if (em->plDist2 < 4000000.0f && w->targetAngAbs < 0.523598790f) {
             EmRoutineSet(em, 1, 2, 0, 0);
@@ -570,7 +570,7 @@ static void em25_R1_Run(cEm25* em)
         }
         break;
     }
-    if (w->lifeTimer == 0) {
+    if (w->Alive_timer == 0) {
         em->hp = 0;
         em->be_flag |= 0x10000;
         EmRoutineSet(em, 3, 2, 0, 0);
@@ -583,15 +583,15 @@ static void em25_R1_Turn90(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        if (Muku(&em->pos, &pPL->pos, em->rot.y, 3.14159274f) < 0.0f) {
-            MotionSetCore(em, &em->mot, ARC(0x1E), (int) ARC(0x1F), 5, 1, 0);
+        if (Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f) < 0.0f) {
+            MotionSetCore(em, &em->Motion, ARC(0x1E), (int) ARC(0x1F), 5, 1, 0);
         } else {
-            MotionSetCore(em, &em->mot, ARC(0x1E), (int) ARC(0x1F), 5, 0x41, 0);
+            MotionSetCore(em, &em->Motion, ARC(0x1E), (int) ARC(0x1F), 5, 0x41, 0);
         }
         em->r_no_2++;
     case 1:
         if (MotionMoveF(em, 0)) {
-            if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.14159274f)) > 1.22173047f) {
+            if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.14159274f)) > 1.22173047f) {
                 em->r_no_2 = 0;
             } else if (em->plDist2 > 9000000.0f) {
                 if (em->plDist2 > 25000000.0f) {
@@ -605,7 +605,7 @@ static void em25_R1_Turn90(cEm25* em)
         }
         break;
     }
-    if (w->lifeTimer == 0) {
+    if (w->Alive_timer == 0) {
         em->hp = 0;
         em->be_flag |= 0x10000;
         EmRoutineSet(em, 3, 2, 0, 0);
@@ -625,15 +625,15 @@ static void em25_R1_JumpAtk(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
-        w->timer = 10;
+        MotionSetCore(em, &em->Motion, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
+        w->Timer = 10;
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
-            em->rot.y += Muku(&em->pos, &pPLS->pos, em->rot.y, 0.0981747732f);
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
+        if (w->Timer) {
+            w->Timer--;
+            em->ang.y += Muku(&em->pos, &pPLS->pos, em->ang.y, 0.0981747732f);
+            em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
         if (MotionMoveF(em, 0)) {
             GameAddPoint(0xB);
@@ -653,21 +653,21 @@ static void em25_R1_Bite(cEm25* em)
     fe = em->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x27), 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x27), 0, 0, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x1D, 3, 0, 0, (u32) em, (void*) fe);
         EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, -150.0f, 0.0f, 628.0f);
         PlGachaInit();
         SndCall(8, 0x12, &em->pos, em->id, 0, em);
-        w->timer = 50;
-        w->catchTimer = 10;
+        w->Timer = 50;
+        w->Timer2 = 10;
         em->r_no_3 = Rnd() & 3;
         w->sndId = 0;
         em->r_no_2++;
     case 1:
         em->dmg.set(0, 10);
         PlGachaMove();
-        if (w->catchTimer) {
-            w->catchTimer--;
+        if (w->Timer2) {
+            w->Timer2--;
             end = EmCatchMotionMove(em, 0.3f, 0.2f);
         } else {
             end = MotionMoveF(em, 0);
@@ -676,7 +676,7 @@ static void em25_R1_Bite(cEm25* em)
             at = &em->atari;
             at->setPriority(0);
             AtariOn(at, 0x300);
-            w->waitTimer = 60;
+            w->Atk_wait = 60;
             em->dmType = 10;
             EmRoutineSet(em, 1, 2, 0, 0);
             break;
@@ -684,10 +684,10 @@ static void em25_R1_Bite(cEm25* em)
         if (em->frame > 19.7000008f && em->frame < 20.2999992f) {
             w->sndId = SndCall(8, 0x13, &em->pos, em->id, 0, em);
         }
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             LifeDownSet2(pPLS, 5, 0, 1);
-            if (w->timer == 0) {
+            if (w->Timer == 0) {
                 if ((u32) PlGachaGet() < 15) {
                     LifeDownSet2(pPL, 500, 0, 1);
                 }
@@ -702,7 +702,7 @@ static void em25_R1_Bite(cEm25* em)
         }
         break;
     case 2:
-        MotionSetCore(em, &em->mot, ARC(0x2B), 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x2B), 0, 0, 1, 0);
         SndStop(w->sndId, 0);
         PlSetDamageSe(0xD);
         EmCatchPLSet(em, 0.0f, 2, (int) plem25_Bite, 24.3600006f, 0.0f, 307.75f);
@@ -713,7 +713,7 @@ static void em25_R1_Bite(cEm25* em)
             at = &em->atari;
             at->setPriority(0);
             AtariOn(at, 0x300);
-            w->waitTimer = 60;
+            w->Atk_wait = 60;
             em->dmType = 10;
             EmRoutineSet(em, 1, 2, 0, 0);
         }
@@ -731,7 +731,7 @@ static void plem25_Bite(cPlayer* pl)
     pl->subArc = ((cEm*) pPL->dmgType)->subArc;
     switch (pl->r_no_2) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PL_ARC(0x2F), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC(0x2F), 0, 0, 1, 0);
         PlSetFace(1);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->x3E0 = 10;
@@ -749,7 +749,7 @@ static void plem25_Bite(cPlayer* pl)
         }
         break;
     case 2:
-        MotionSetCore(pl, &pl->mot, PL_ARC(0x30), 0, 0, 1, 0);
+        MotionSetCore(pl, &pl->Motion, PL_ARC(0x30), 0, 0, 1, 0);
         pl->atari.set(10, 480.000031f, 400.0f);
         pl->r_no_2++;
     case 3:
@@ -771,31 +771,31 @@ static void em25_R1_P_Appear(cEm25* em)
         em->scale.x = 0.0f;
         em->scale.y = 0.0f;
         em->scale.z = 0.0f;
-        MotionSetCore(em, &em->mot, ARC(0xC), (int) ARC(0xD), 0, 1, 0);
-        w->seTimer = 0;
+        MotionSetCore(em, &em->Motion, ARC(0xC), (int) ARC(0xD), 0, 1, 0);
+        w->Se_breath_wait = 0;
         em->setStatus(5);
-        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->espKind, (u32) em, (void*) fe);
-        w->atkEnable = 0;
-        w->scaleY = 1.0f;
-        em->alpha = 0.0f;
+        EstSet((int) em, -1, 0, 0, 0x1D, 2, 0, w->EffKindId, (u32) em, (void*) fe);
+        w->Atk_enable = 0;
+        w->Compress_y = 1.0f;
+        em->invisible_factor = 0.0f;
         em->be_flag |= 2;
         em->r_no_2++;
     case 1:
         em->scale.x = em->scale.x * 0.899999976f + 0.100000001f;
         em->scale.y = em->scale.y * 0.899999976f + 0.100000001f;
         em->scale.z = em->scale.z * 0.899999976f + 0.100000001f;
-        em->alpha += 0.100000001f;
-        if (em->alpha > 1.0f) {
-            em->alpha = 1.0f;
+        em->invisible_factor += 0.100000001f;
+        if (em->invisible_factor > 1.0f) {
+            em->invisible_factor = 1.0f;
         }
         em25OnParent(em);
         if (MotionMoveF(em, 0)) {
             em->scale.x = 1.0f;
             em->scale.y = 1.0f;
             em->scale.z = 1.0f;
-            em->alpha = 1.0f;
+            em->invisible_factor = 1.0f;
             em->hp = 0;
-            U8Set(w->atkEnable, 1);
+            U8Set(w->Atk_enable, 1);
             EmRoutineSet(em, 1, 9, 0, 0);
         }
         break;
@@ -810,10 +810,10 @@ static void em25_R1_P_Wait(cEm25* em)
     f32 ang;
     f32 d;
 
-    w->atkEnable = 1;
+    w->Atk_enable = 1;
     ang = 0.0f;
-    if (w->pParent) {
-        p = w->pParent->getPartsPtr(w->parentParts);
+    if (w->pEm_oya) {
+        p = w->pEm_oya->getPartsPtr(w->parentParts);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 1.0f;
@@ -826,18 +826,18 @@ static void em25_R1_P_Wait(cEm25* em)
         ang = asinf(v.y);
     }
     if (ang > 0.523598790f || ang < -0.523598790f) {
-        w->flags |= 0x20;
+        w->Be_flg |= 0x20;
     }
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(8), 0, 30, 5, 0);
-        w->timer = 10;
+        MotionSetCore(em, &em->Motion, ARC(8), 0, 30, 5, 0);
+        w->Timer = 10;
         em->r_no_2++;
     case 1:
         em25OnParent(em);
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             break;
         }
         if (!(em->r_no_2 == 2 || em->r_no_2 == 3) && ang > 1.04719758f) {
@@ -849,29 +849,29 @@ static void em25_R1_P_Wait(cEm25* em)
             break;
         }
         p = em->getPartsPtr(0);
-        d = (pPL->pos.x - p->worldPos.x) * (pPL->pos.x - p->worldPos.x) +
-            (pPL->pos.y - p->worldPos.y) * (pPL->pos.y - p->worldPos.y) +
-            (pPL->pos.z - p->worldPos.z) * (pPL->pos.z - p->worldPos.z);
+        d = (pPL->pos.x - p->world.x) * (pPL->pos.x - p->world.x) +
+            (pPL->pos.y - p->world.y) * (pPL->pos.y - p->world.y) +
+            (pPL->pos.z - p->world.z) * (pPL->pos.z - p->world.z);
         if (d < 25000000.0f) {
             em->r_no_2 = 2;
         }
         break;
     case 2:
-        MotionSetCore(em, &em->mot, ARC(9), 0, 30, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(9), 0, 30, 5, 0);
         em->r_no_2++;
     case 3:
         em25OnParent(em);
         MotionMoveF(em, 0);
         p = em->getPartsPtr(0);
-        d = (pPL->pos.x - p->worldPos.x) * (pPL->pos.x - p->worldPos.x) +
-            (pPL->pos.y - p->worldPos.y) * (pPL->pos.y - p->worldPos.y) +
-            (pPL->pos.z - p->worldPos.z) * (pPL->pos.z - p->worldPos.z);
+        d = (pPL->pos.x - p->world.x) * (pPL->pos.x - p->world.x) +
+            (pPL->pos.y - p->world.y) * (pPL->pos.y - p->world.y) +
+            (pPL->pos.z - p->world.z) * (pPL->pos.z - p->world.z);
         if ((d > 64000000.0f && ang < 0.785398185f) || ang < -0.523598790f) {
             em->r_no_2 = 0;
         }
         break;
     case 4:
-        MotionSetCore(em, &em->mot, ARC(0xA), 0, 30, 5, 0);
+        MotionSetCore(em, &em->Motion, ARC(0xA), 0, 30, 5, 0);
         em->r_no_2++;
     case 5:
         em25OnParent(em);
@@ -891,7 +891,7 @@ static void em25_R1_P_Atk(cEm25* em)
     fe = em->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x13), (int) ARC(0x14), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x13), (int) ARC(0x14), 5, 1, 0);
         EstSet((int) em, -1, 0, 0, 0x1D, 0xC, 0, 0, (u32) em, (void*) fe);
         w->atkHit = 0;
         em->r_no_2++;
@@ -912,7 +912,7 @@ static void em25_R1_P_Poison(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x15), (int) ARC(0x16), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x15), (int) ARC(0x16), 5, 1, 0);
         w->atkHit = 0;
         em->r_no_2++;
     case 1:
@@ -928,7 +928,7 @@ static void em25_R1_P_Poison(cEm25* em)
 
 static void em25_R0_Damage(cEm25* em)
 {
-    EM25_WK(em)->flags |= 8;
+    EM25_WK(em)->Be_flg |= 8;
     Em25_R2_move_tbl[em->r_no_1](em);
 }
 
@@ -939,20 +939,20 @@ static void em25_R1_Dm_P_Normal(cEm25* em)
     switch (em->r_no_2) {
     case 0:
         if (Rnd() & 1) {
-            MotionSetCore(em, &em->mot, ARC(0xE), 0, 5, 5, 0);
+            MotionSetCore(em, &em->Motion, ARC(0xE), 0, 5, 5, 0);
         } else {
-            MotionSetCore(em, &em->mot, ARC(0xF), 0, 5, 5, 0);
+            MotionSetCore(em, &em->Motion, ARC(0xF), 0, 5, 5, 0);
         }
         SndCall(8, 5, &em->pos, em->id, 0, em);
-        w->timer = 30;
+        w->Timer = 30;
         em->r_no_2++;
     case 1:
         em25OnParent(em);
-        if (w->timer) {
-            w->timer--;
-            w->atkEnable = 0;
+        if (w->Timer) {
+            w->Timer--;
+            w->Atk_enable = 0;
         } else {
-            w->atkEnable = 1;
+            w->Atk_enable = 1;
         }
         if (MotionMoveF(em, 0)) {
             EmRoutineSet(em, 1, 9, 0, 0);
@@ -973,34 +973,34 @@ static void em25_R1_Dm_P_GoOut(cEm25* em)
     switch (fe) {
     case 0:
         em->setStatus(5);
-        if (w->pParent) {
-            em->rot.y = w->pParent->rot.y;
+        if (w->pEm_oya) {
+            em->ang.y = w->pEm_oya->ang.y;
         }
         em->pos.x = em->mat[0][3];
-        em->pos.y = w->pParent->pos.y;
+        em->pos.y = w->pEm_oya->pos.y;
         em->pos.z = em->mat[2][3];
-        if (w->pParent) {
-            a = w->pParent->pos;
+        if (w->pEm_oya) {
+            a = w->pEm_oya->pos;
             b = em->pos;
             a.y += 100.0f;
             b.y += 100.0f;
             if (SatMgr.hitCheck(&a, &b, &hit, 0, 0, 0) || ObjHitCheck(&hit, 0, &a, &b, 1)) {
-                em->pos = w->pParent->pos;
+                em->pos = w->pEm_oya->pos;
             }
         }
-        em->oldPos = em->pos;
-        w->mode = 0;
-        w->pParent = 0;
+        em->pos_old = em->pos;
+        w->Mode = 0;
+        w->pEm_oya = 0;
         if (em->r_no_3) {
-            MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
+            MotionSetCore(em, &em->Motion, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         } else {
-            MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
+            MotionSetCore(em, &em->Motion, ARC(0x26), (int) ARC(0x2E), 5, 1, 0);
         }
-        w->lifeTimer = 900;
+        w->Alive_timer = 900;
         em25SetParasite(em);
-        em->hp = em->hpMax;
+        em->hp = em->hp_max;
         SndCall(8, 5, &em->pos, em->id, 0, em);
-        w->scaleY = 1.0f;
+        w->Compress_y = 1.0f;
         em->dmType = 2;
         MotionMoveF(em, 0);
         em->partsWorldCalc();
@@ -1019,7 +1019,7 @@ static void em25_R1_Dm_Small(cEm25* em)
 {
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x21), 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x21), 0, 5, 1, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
         SndCall(8, 0, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -1035,7 +1035,7 @@ static void em25_R1_Dm_Big(cEm25* em)
 {
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x29), (int) ARC(0x2A), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x29), (int) ARC(0x2A), 5, 1, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
@@ -1048,7 +1048,7 @@ static void em25_R1_Dm_Big(cEm25* em)
         }
         break;
     case 2:
-        MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
@@ -1064,7 +1064,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x29), 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x29), 0, 5, 1, 0);
         LifeDownSet(em, 1000, 0);
         SndCall(8, 5, &em->pos, em->id, 0, em);
         em->r_no_2++;
@@ -1078,7 +1078,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
                 em->r_no_2++;
             }
         } else if (em->hp <= 0) {
-            for (info = em->pInfo; info; info = info->pNext) {
+            for (info = em->pModelInfo; info; info = info->pList) {
                 if (info->color[0] > 0x20) {
                     info->color[0] -= 0x20;
                 }
@@ -1087,7 +1087,7 @@ static void em25_R1_Dm_Frame(cEm25* em)
         }
         break;
     case 2:
-        MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         em->r_no_2++;
     case 3:
         if (MotionMoveF(em, 0)) {
@@ -1108,20 +1108,20 @@ static void em25_R1_Die_P_Normal(cEm25* em)
 
     switch (em->r_no_2) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x10), 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x10), 0, 5, 1, 0);
         w->dead = 1;
-        w->timer = 15;
+        w->Timer = 15;
         em->hp = 0;
         em->clearStatus(5);
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->EffKindId, (u32) em, 0);
+        EffectEspgenDelete(0, w->EffKindId, (int) em);
+        EffectEfmDelete(0, w->EffKindId, (int) em);
         em->r_no_2++;
     case 1:
         em25OnParent(em);
         MotionMoveF(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             em->scale.x *= 0.899999976f;
             em->scale.y *= 0.899999976f;
@@ -1146,12 +1146,12 @@ static void em25_R1_Die_Normal(cEm25* em)
     fe = em->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x20), 0, 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x20), 0, 5, 1, 0);
         em25ClearParasite(em);
         EstSet((int) em, -1, 0, 0, 0x1D, 4, 0, 0, (u32) em, (void*) fe);
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->EffKindId, (u32) em, 0);
+        EffectEspgenDelete(0, w->EffKindId, (int) em);
+        EffectEfmDelete(0, w->EffKindId, (int) em);
         em->clearStatus(5);
         SndCall(8, 0xE, &em->pos, em->id, 0, em);
         em->hp = 0;
@@ -1168,9 +1168,9 @@ static void em25_R1_Die_Normal(cEm25* em)
     case 2:
         em->pos.y -= 3.0f;
         MotionMoveF(em, 0);
-        w->scaleY -= 0.00999999978f;
-        if (w->scaleY < 0.100000001f) {
-            w->scaleY = 0.100000001f;
+        w->Compress_y -= 0.00999999978f;
+        if (w->Compress_y < 0.100000001f) {
+            w->Compress_y = 0.100000001f;
             em->be_flag &= ~2;
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -1186,14 +1186,14 @@ static void em25_R1_Die_Big(cEm25* em)
     fe = em->r_no_2;
     switch (fe) {
     case 0:
-        MotionSetCore(em, &em->mot, ARC(0x22), (int) ARC(0x23), 5, 1, 0);
+        MotionSetCore(em, &em->Motion, ARC(0x22), (int) ARC(0x23), 5, 1, 0);
         em->clearStatus(5);
         em25ClearParasite(em);
         EstSet((int) em, -1, 0, 0, 0x1D, 4, 0, 0, (u32) em, (void*) fe);
         SndCall(8, 0xD, &em->pos, em->id, 0, em);
-        EffectEspDelete(0, w->espKind, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind, (int) em);
-        EffectEfmDelete(0, w->espKind, (int) em);
+        EffectEspDelete(0, w->EffKindId, (u32) em, 0);
+        EffectEspgenDelete(0, w->EffKindId, (int) em);
+        EffectEfmDelete(0, w->EffKindId, (int) em);
         em->hp = 0;
         em->r_no_2++;
     case 1:
@@ -1207,9 +1207,9 @@ static void em25_R1_Die_Big(cEm25* em)
     case 2:
         em->pos.y -= 3.0f;
         MotionMoveF(em, 0);
-        w->scaleY -= 0.00999999978f;
-        if (w->scaleY < 0.100000001f) {
-            w->scaleY = 0.100000001f;
+        w->Compress_y -= 0.00999999978f;
+        if (w->Compress_y < 0.100000001f) {
+            w->Compress_y = 0.100000001f;
             em->be_flag &= ~2;
             EmRoutineSet(em, 1, 0, 0, 0);
         }
@@ -1229,14 +1229,14 @@ void em25OnParent(cEm25* em)
     f32 d;
     f32 ang;
 
-    parent = w->pParent;
+    parent = w->pEm_oya;
     if (parent) {
         p = parent->getPartsPtr(w->parentParts);
-        if (w->flags & 0x20) {
-            em->rot.y *= 0.899999976f;
+        if (w->Be_flg & 0x20) {
+            em->ang.y *= 0.899999976f;
         } else {
             t = pPL->getPartsPtr(3);
-            tgt = t->worldPos;
+            tgt = t->world;
             if (pSUB) {
                 d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
                           (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
@@ -1246,14 +1246,14 @@ void em25OnParent(cEm25* em)
                               (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
                             3000.0f) {
                     t = pSUB->getPartsPtr(3);
-                    tgt = t->worldPos;
+                    tgt = t->world;
                 }
             }
-            ang = Muku(&parent->pos, &tgt, parent->rot.y, 1.57079637f);
-            ang = Muku2(em->rot.y, ang, 0.0981747732f);
-            em->rot.y += ang;
+            ang = Muku(&parent->pos, &tgt, parent->ang.y, 1.57079637f);
+            ang = Muku2(em->ang.y, ang, 0.0981747732f);
+            em->ang.y += ang;
         }
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         PSMTXConcat(p->mat, em->mat, em->mat);
@@ -1263,14 +1263,14 @@ void em25OnParent(cEm25* em)
 
 int cEm25::ckParent()
 {
-    return EM25_WK(this)->pParent == 0;
+    return EM25_WK(this)->pEm_oya == 0;
 }
 
 void cEm25::setParent(cEm* parent, int parts, Vec* ppos, Vec* prot)
 {
     Em25Work* w = EM25_WK(this);
 
-    w->pParent = parent;
+    w->pEm_oya = parent;
     w->parentParts = parts;
     if (ppos) {
         pos = *ppos;
@@ -1280,15 +1280,15 @@ void cEm25::setParent(cEm* parent, int parts, Vec* ppos, Vec* prot)
         pos.z = 0.0f;
     }
     if (prot) {
-        rot = *prot;
+        ang = *prot;
     } else {
-        rot.x = 0.0f;
-        rot.y = 0.0f;
-        rot.z = 0.0f;
+        ang.x = 0.0f;
+        ang.y = 0.0f;
+        ang.z = 0.0f;
     }
     AtariOff(&atari, 0xFCFF);
     U8Set(w->dead, 0);
-    w->mode = 1;
+    w->Mode = 1;
     EmRoutineSet(this, 1, 8, 0, 0);
 }
 
@@ -1352,7 +1352,7 @@ void cEm25::setHide()
 
     hp = 0;
     be_flag &= ~2;
-    w->pParent = 0;
+    w->pEm_oya = 0;
     w->dead = 0;
     EmRoutineSet(this, 1, 0, 0, 0);
 }
@@ -1365,8 +1365,8 @@ int cEm25::ckHide()
 void cEm25::setBirth(Vec* ppos, f32 ang)
 {
     setPos(ppos);
-    oldPos = *ppos;
-    rot.y = ang;
+    pos_old = *ppos;
+    this->ang.y = ang;
     EmRoutineSet(this, 1, 1, 0, 0);
 }
 
@@ -1382,12 +1382,12 @@ int em25AtkCk(cEm25* em, int no, int parts)
     }
     atk = &em25_atk_tbl[no];
     p = em->getPartsPtr(parts);
-    hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+    hit = EmAtkHitCk(atk, &p->world, &p->world_old, 0);
     if (hit) {
         if (hit & 1) {
             w->atkHit = 1;
             if (no == 1) {
-                EmPlBloodSet2(em, &p->worldPos, 1, 0x1D, 0x10);
+                EmPlBloodSet2(em, &p->world, 1, 0x1D, 0x10);
                 if ((s16) pG->pl_life <= 0) {
                     em25PlHeadLost();
                 }
@@ -1400,7 +1400,7 @@ int em25AtkCk(cEm25* em, int no, int parts)
             if (pSUB) {
                 w->atkHit = 1;
                 if (no == 1) {
-                    EmSubBloodSet(em, &p->worldPos, 1, 0x1D, 0x10);
+                    EmSubBloodSet(em, &p->world, 1, 0x1D, 0x10);
                     SndCall(8, 0x21, &em->pos, em->id, 0, em);
                 }
             }
@@ -1431,7 +1431,7 @@ int em25CatchCk(cEm25* em)
     if (!(em->seFlags28B & 1)) {
         return 0;
     }
-    if (!(w->flags & 1)) {
+    if (!(w->Be_flg & 1)) {
         return 0;
     }
     if (pG->flags_5010 & 0x8000) {
@@ -1501,14 +1501,14 @@ void em25ScaleCompress(cEm25* em)
 
     PSMTXIdentity(m);
     scale.x = 1.0f;
-    scale.y = w->scaleY;
+    scale.y = w->Compress_y;
     scale.z = 1.0f;
     ScaleMatrix(m, &scale);
     for (p = em->pParts; p; p = p->pParts) {
         PSMTXConcat(m, p->mat, p->mat);
-        p->mat[0][3] = p->worldPos.x;
-        p->mat[1][3] = p->worldPos.y;
-        p->mat[2][3] = p->worldPos.z;
+        p->mat[0][3] = p->world.x;
+        p->mat[1][3] = p->world.y;
+        p->mat[2][3] = p->world.z;
     }
 }
 
@@ -1519,18 +1519,18 @@ void em25RouteCk(cEm25* em)
     if (em->hp <= 0) {
         return;
     }
-    if (w->mode != 0) {
+    if (w->Mode != 0) {
         return;
     }
     if (em->r_no_0 != 0) {
-        if ((pG->flags_51E4 & 7) != (em->emsetNo & 7)) {
+        if ((pG->flags_51E4 & 7) != (em->emset_no & 7)) {
             return;
         }
     }
     if (RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0)) {
-        w->flags |= 1;
+        w->Be_flg |= 1;
     }
-    w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, 3.14159274f);
+    w->routeAng = Muku(&em->pos, &w->routePos, em->ang.y, 3.14159274f);
     w->routeAngAbs = fabsf(w->routeAng);
     if (em->r_no_0 == 0) {
         w->routeAng = 0.0f;
@@ -1541,8 +1541,8 @@ void em25RouteCk(cEm25* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->pTarget = pPLS;
-    w->flags &= ~4;
+    w->pEm = pPLS;
+    w->Be_flg &= ~4;
 }
 
 int em25SetDmVal(cEm25* em)
@@ -1571,7 +1571,7 @@ void em25SetParasite(cEm25* em)
     Vec rot;
     u16 step;
 
-    if (w->pPara[0] == 0 && w->pPara[1] == 0 && w->pPara[2] == 0 && !(w->flags & 0x10)) {
+    if (w->pPara[0] == 0 && w->pPara[1] == 0 && w->pPara[2] == 0 && !(w->Be_flg & 0x10)) {
         step = (*(u16*) ARC(0x33) & 0x3FFF) / 3;
         pos.x = 0.0f;
         pos.y = 0.0f;
@@ -1597,7 +1597,7 @@ void em25SetParasite(cEm25* em)
         if (w->pPara[2]) {
             MotSetObj16(w->pPara[2], ARC(0x33), 4, step * 2);
         }
-        w->flags |= 0x10;
+        w->Be_flg |= 0x10;
     }
 }
 
@@ -1606,14 +1606,14 @@ void em25ClearParasite(cEm25* em)
     Em25Work* w = EM25_WK(em);
     u32 i;
 
-    if (w->flags & 0x10) {
+    if (w->Be_flg & 0x10) {
         for (i = 0; i < 3; i++) {
             if (w->pPara[i]) {
                 w->pPara[i]->clearLostWait();
                 w->pPara[i] = 0;
             }
         }
-        w->flags &= ~0x10;
+        w->Be_flg &= ~0x10;
     }
 }
 
@@ -1712,9 +1712,9 @@ void em25PlHeadLost()
     spd.z = -25.0f;
     PSMTXMultVec(p->mat, &ofs, &ofs);
     PSMTXMultVecSR(pPL->mat, &spd, &spd);
-    obj = SetObj01(PL_ARC_PTR(pG->pPlArc, 0xC), PL_ARC_PTR(pG->pPlArc, 7), &ofs, &pPL->rot, &spd, 10.0f, 150.0f, 1000, 0x11);
+    obj = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &ofs, &pPL->ang, &spd, 10.0f, 150.0f, 1000, 0x11);
     if (obj) {
-        obj->lightInfo.x50 = 1;
+        obj->LightInfo.x50 = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, (int) zero, -1);
     }
     EstSet((int) obj, -1, 0, 0, 0x10, 0x46, 0, 0, (u32) obj, (void*) zero);
@@ -1735,10 +1735,10 @@ void em25SetPoison(cEm25* em)
     f32 d;
     f32 ang;
 
-    parent = w->pParent;
+    parent = w->pEm_oya;
     em->partsWorldCalc();
     t = pPL->getPartsPtr(3);
-    tgt = t->worldPos;
+    tgt = t->world;
     if (pSUB) {
         d = SQRTF((parent->pos.x - pPL->pos.x) * (parent->pos.x - pPL->pos.x) +
                   (parent->pos.y - pPL->pos.y) * (parent->pos.y - pPL->pos.y) +
@@ -1748,17 +1748,17 @@ void em25SetPoison(cEm25* em)
                       (parent->pos.z - pSUB->pos.z) * (parent->pos.z - pSUB->pos.z)) +
                     3000.0f) {
             t = pSUB->getPartsPtr(3);
-            tgt = t->worldPos;
+            tgt = t->world;
         }
     }
-    SndCall(8, 0x1E, &em->getPartsPtr(0)->worldPos, em->id, 0, em);
+    SndCall(8, 0x1E, &em->getPartsPtr(0)->world, em->id, 0, em);
     atk = em25_poison_atk;
     p = em->getPartsPtr(0);
-    obj = SetObj08(em, 0, 0, &p->worldPos, &em->rot, 0x40000000, atk);
+    obj = SetObj08(em, 0, 0, &p->world, &em->ang, 0x40000000, atk);
     if (parent) {
-        ang = LIMIT_ANGLE(parent->rot.y + em->rot.y);
+        ang = LIMIT_ANGLE(parent->ang.y + em->ang.y);
     } else {
-        ang = GetXZAngle(&p->worldPos, &tgt);
+        ang = GetXZAngle(&p->world, &tgt);
     }
     PSMTXRotRad(m, 'y', ang);
     spd.x = 0.0f;
@@ -1771,12 +1771,12 @@ void em25SetPoison(cEm25* em)
     rot.x = 0.0f;
     rot.y = ang;
     rot.z = 0.0f;
-    EstSet(0, -1, &p->worldPos, &rot, 0x1D, 6, 0, 0, 0, 0);
+    EstSet(0, -1, &p->world, &rot, 0x1D, 6, 0, 0, 0, 0);
 }
 
 int cEm25::ckAtkEnable()
 {
-    if (EM25_WK(this)->atkEnable == 0) {
+    if (EM25_WK(this)->Atk_enable == 0) {
         return 0;
     }
     return 1;
@@ -1789,7 +1789,7 @@ void cEm25::setDamage()
 
 int cEm25::ckLock()
 {
-    cEm* parent = EM25_WK(this)->pParent;
+    cEm* parent = EM25_WK(this)->pEm_oya;
     f32 d;
 
     if (parent && pSUB) {

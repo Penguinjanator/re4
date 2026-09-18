@@ -483,7 +483,7 @@ struct EmListEnt {
     u8 pad_1C[4];
 };
 
-#define EMLIST_ENT(no) ((EmListEnt*) &pG->emlist[(no) * 0x20])
+#define EMLIST_ENT(no) ((EmListEnt*) &pG->Em_list[(no) * 0x20])
 // The insert/paste searches address the entries tool-style (pG first in the add, shift index).
 #define EMLIST_ENT_I(no) ((EmListEnt*) ((u32) pG + ((no) << 5) + 0x52E8))
 // Entry-to-entry copies are byte-pointer memcpys: the stores then alias pG, which is reloaded per iteration.
@@ -1828,7 +1828,7 @@ static void emlist_r0_clear()
     }
     if (EmList.wk->joy.trg & JOY_A) {
         if (EmList.wk->x24 != 0) {
-            memclr_asm(pG->emlist, 0x1FE0);
+            memclr_asm(pG->Em_list, 0x1FE0);
         }
         EmList.wk->routine = 13;
         EmList.wk->step = 0;
@@ -1887,7 +1887,7 @@ static void emlist_r0_set_exit()
     u32 i;
 
     for (i = 0; i < 255; i++) {
-        int no = pG->emlist_no;
+        int no = pG->em_list_no;
         if (no >= 0) {
             u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[no], tool style
             BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
@@ -2487,9 +2487,9 @@ void emlist_file_save(int no)
 
     EmList.wk->fileNo = no + 1;
     emlist_set_fname(name, no, 0);
-    HDWrite(name, pG->emlist, 0x1FE0);
+    HDWrite(name, pG->Em_list, 0x1FE0);
     emlist_set_fname(name, no, 1);
-    HDWrite(name, pG->emlist, 0x1FE0);
+    HDWrite(name, pG->Em_list, 0x1FE0);
 }
 
 int emlist_file_load(int no)
@@ -2499,9 +2499,9 @@ int emlist_file_load(int no)
 
     EmList.wk->fileNo = no + 1;
     emlist_set_fname(name, no, 0);
-    ret = HDRead(name, pG->emlist);
+    ret = HDRead(name, pG->Em_list);
     if (ret == 0) {
-        memclr_asm(pG->emlist, 0x1FE0);
+        memclr_asm(pG->Em_list, 0x1FE0);
         return 0;
     }
     return ret;

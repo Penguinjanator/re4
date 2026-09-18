@@ -110,13 +110,13 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     if (obj->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetLadder() failed.");
@@ -126,13 +126,13 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
-    w->sat = 0;
-    w->sat2 = 0;
-    w->eat = 0;
-    w->ride = 0;
+    w->pSat = 0;
+    w->pSat2 = 0;
+    w->pEat = 0;
+    w->Ride_pl = 0;
     p = w->mot;
     for (i = 0; i < 12; i++) {
         *p++ = 0;
@@ -143,7 +143,7 @@ cObj* SetBull(void* bin, void* tpl, Vec* pos, Vec* rot, u32 type)
     w->break3rd = 1;
     w->type = type;
     w->Move_point = type;
-    w->adjustMode = 1;
+    w->Ride_mode = 1;
     obj->r_no_0 = 0;
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
@@ -182,15 +182,15 @@ void objBull_R0_Break1st(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->r_no_2) {
     case 0:
-        SndCall(6, 6, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 7, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 6, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 7, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         w->Act_ck = 0;
         w->timer = 0;
         obj->r_no_2++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
         }
         obj->r_no_2++;
@@ -198,7 +198,7 @@ void objBull_R0_Break1st(cObjBull* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[0], 0, 0, 0x8001, 0);
         if (w->break1st == 0 || --w->break1st == 0) {
-            obj->bull.flags |= 2;
+            obj->bull.Be_flg |= 2;
         }
         obj->r_no_2++;
     case 3:
@@ -216,7 +216,7 @@ void objBull_R0_Break1st(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -234,8 +234,8 @@ void objBull_R0_To2nd(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
         w->cnt++;
@@ -249,7 +249,7 @@ void objBull_R0_To2nd(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -266,14 +266,14 @@ void objBull_R0_Break2nd(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
         }
         obj->r_no_2++;
@@ -281,7 +281,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[2], 0, 0, 0x8001, 0);
         if (w->break2nd == 0 || --w->break2nd == 0) {
-            obj->bull.flags |= 4;
+            obj->bull.Be_flg |= 4;
         }
         obj->r_no_2++;
     case 3:
@@ -299,7 +299,7 @@ void objBull_R0_Break2nd(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -316,8 +316,8 @@ static void objBull_R0_ToLift(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, 0);
         obj->r_no_2++;
     case 1:
@@ -332,7 +332,7 @@ static void objBull_R0_ToLift(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -350,8 +350,8 @@ void objBull_R0_LiftWait(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
@@ -367,7 +367,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -385,14 +385,14 @@ void objBull_R0_Lift(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0x8001, 0);
-        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        obj->bull.flags |= 0x20;
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        obj->bull.Be_flg |= 0x20;
         obj->r_no_2++;
     case 1:
         w->cnt++;
         if (MotionMove(obj, 0)) {
-            w->flags |= 0x100;
+            w->Be_flg |= 0x100;
             obj->r_no_2++;
         }
         break;
@@ -411,7 +411,7 @@ void objBull_R0_Lift(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -428,9 +428,9 @@ void objBull_R0_To3rd(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        obj->bull.flags &= ~0x20;
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        obj->bull.Be_flg &= ~0x20;
         obj->r_no_2++;
     case 1:
         w->cnt++;
@@ -444,7 +444,7 @@ void objBull_R0_To3rd(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -461,14 +461,14 @@ void objBull_R0_Break3rd(cObjBull* obj)
     switch (obj->r_no_2) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         w->Act_ck = 0;
         obj->r_no_2++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
         }
         obj->r_no_2++;
@@ -476,7 +476,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0x8001, 0);
         if (w->break3rd == 0 || --w->break3rd == 0) {
-            obj->bull.flags |= 8;
+            obj->bull.Be_flg |= 8;
         }
         obj->r_no_2++;
     case 3:
@@ -494,7 +494,7 @@ void objBull_R0_Break3rd(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -512,8 +512,8 @@ void objBull_R0_To4th(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[7], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
         w->cnt++;
@@ -527,7 +527,7 @@ void objBull_R0_To4th(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -545,13 +545,13 @@ void objBull_R0_Break4th(cObjBull* obj)
     case 0:
         w->timer = 0;
         w->Act_ck = 0;
-        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         obj->r_no_2++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
         MotionMove(obj, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
         }
         obj->r_no_2++;
@@ -559,7 +559,7 @@ void objBull_R0_Break4th(cObjBull* obj)
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
         if (w->break4th == 0 || --w->break4th == 0) {
-            obj->bull.flags |= 0x10;
+            obj->bull.Be_flg |= 0x10;
         }
         obj->r_no_2++;
     case 3:
@@ -577,7 +577,7 @@ void objBull_R0_Break4th(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -595,17 +595,17 @@ void objBull_R0_Collision(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].world, 0, 0, obj);
         w->frame = (*(u16*) w->mot[9] & 0x3FFF) - 30;
-        obj->bull.flags |= 0x40;
+        obj->bull.Be_flg |= 0x40;
         w->Act_ck = 0;
-        w->breakTruck = 0;
+        w->Truck_down = 0;
         obj->r_no_2++;
     case 1:
         w->cnt++;
         if (MotionMove(obj, 0)) {
-            if (w->breakTruck) {
+            if (w->Truck_down) {
                 obj->r_no_2 = 2;
             } else {
                 obj->r_no_2 = 4;
@@ -614,19 +614,19 @@ void objBull_R0_Collision(cObjBull* obj)
         break;
     case 2:
         MotionSetCore(obj, &obj->pMotion, w->mot[10], 0, 0, 0x8201, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_operation, (int) Sub_dm_bull);
         }
         obj->r_no_2++;
     case 3:
         w->cnt++;
         if (MotionMove(obj, 0)) {
-            w->flags |= 1;
+            w->Be_flg |= 1;
         }
         break;
     case 4:
         MotionSetCore(obj, &obj->pMotion, w->mot[11], 0, 0, 0x8001, 0);
-        obj->bull.flags |= 0x80;
+        obj->bull.Be_flg |= 0x80;
         obj->r_no_2++;
     case 5:
         w->cnt++;
@@ -635,7 +635,7 @@ void objBull_R0_Collision(cObjBull* obj)
     }
     obj->partsWorldCalc();
     objBullGetAdjust(obj);
-    if (w->ride) {
+    if (w->Ride_pl) {
         objBullMoveAdjustPL(obj);
     }
     objBullMoveAdjustEM(obj);
@@ -648,14 +648,14 @@ void objBullSatClear(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
 
-    if (w->sat) {
-        w->sat->flags &= ~4;
+    if (w->pSat) {
+        w->pSat->m_Flag &= ~4;
     }
-    if (w->sat2) {
-        w->sat2->flags &= ~4;
+    if (w->pSat2) {
+        w->pSat2->m_Flag &= ~4;
     }
-    if (w->eat) {
-        w->eat->flags &= ~4;
+    if (w->pEat) {
+        w->pEat->m_Flag &= ~4;
     }
 }
 
@@ -675,26 +675,26 @@ void objBullSatSet(cObjBull* obj, int moving)
     rot.x = 0.0f;
     rot.y = atan2f(v.x, v.z);
     rot.z = 0.0f;
-    pos = parts->worldPos;
+    pos = parts->world;
     pos.y += 500.0f;
-    if (w->sat) {
-        w->sat->flags |= 4;
-        w->sat->setCoord(&pos, &rot);
+    if (w->pSat) {
+        w->pSat->m_Flag |= 4;
+        w->pSat->setCoord(&pos, &rot);
     } else {
-        w->sat = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
+        w->pSat = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1);
     }
-    if (w->eat) {
-        w->eat->flags |= 4;
-        w->eat->setCoord(&pos, &rot);
+    if (w->pEat) {
+        w->pEat->m_Flag |= 4;
+        w->pEat->setCoord(&pos, &rot);
     } else {
-        w->eat = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 7);
+        w->pEat = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 7);
     }
     if (moving) {
-        if (w->sat2) {
-            w->sat2->flags |= 4;
-            w->sat2->setCoord(&pos, &rot);
+        if (w->pSat2) {
+            w->pSat2->m_Flag |= 4;
+            w->pSat2->setCoord(&pos, &rot);
         } else {
-            w->sat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 8);
+            w->pSat2 = SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 8);
         }
     }
 }
@@ -793,7 +793,7 @@ void objBullSetAdjust(cObjBull* obj, cEm* em)
         return;
     }
     em->be_flag |= 0x20000000;
-    if (w->adjustMode == 0) {
+    if (w->Ride_mode == 0) {
         return;
     }
     parts = obj->getPartsPtr(Bull_parts);
@@ -802,8 +802,8 @@ void objBullSetAdjust(cObjBull* obj, cEm* em)
     PSMTXMultVec(parts->mat, &v, &v);
     PSVECSubtract(&v, &em->pos, &d);
     PSVECAdd(&em->x3A8, &d, &em->x3A8);
-    em->rot.y += Bull_dir;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    em->ang.y += Bull_dir;
+    em->ang.y = LIMIT_ANGLE(em->ang.y);
     em->setPos(&v);
     if (em->id == 0) {
         if (CamCtrl.x250) {
@@ -816,8 +816,8 @@ void objBullSetAdjust(cObjBull* obj, cEm* em)
 
 static void objBullMoveAdjustPL(cObjBull* obj)
 {
-    if (obj->bull.adjustFunc) {
-        obj->bull.adjustFunc(obj);
+    if (obj->bull.adjust_func) {
+        obj->bull.adjust_func(obj);
     }
     objBullSetAdjust(obj, pPL);
 }
@@ -884,9 +884,9 @@ void objBullHitCk(cObjBull* obj)
     cModel* parts;
 
     parts = obj->getPartsPtr(4);
-    if ((parts->worldPos.x - parts->world_old2.x) * (parts->worldPos.x - parts->world_old2.x) +
-        (parts->worldPos.y - parts->world_old2.y) * (parts->worldPos.y - parts->world_old2.y) +
-        (parts->worldPos.z - parts->world_old2.z) * (parts->worldPos.z - parts->world_old2.z) < 2500.0f) {
+    if ((parts->world.x - parts->world_old2.x) * (parts->world.x - parts->world_old2.x) +
+        (parts->world.y - parts->world_old2.y) * (parts->world.y - parts->world_old2.y) +
+        (parts->world.z - parts->world_old2.z) * (parts->world.z - parts->world_old2.z) < 2500.0f) {
         return;
     }
     v.x = 0.0f;
@@ -918,7 +918,7 @@ void objBullHitCk(cObjBull* obj)
 
 int cObjBull::ckGoal()
 {
-    if (bull.flags & 1) {
+    if (bull.Be_flg & 1) {
         return 1;
     }
     return 0;
@@ -932,13 +932,13 @@ void cObjBull::setRide()
     int zero = 0;
 
     parts = getPartsPtr(Bull_parts);
-    p = parts->worldPos;
+    p = parts->world;
     p.y += 1000.0f;
     pPL->setPos(&p);
     pG->flags_500C |= 0x20;
-    w->ride = 1;
+    w->Ride_pl = 1;
     if (pSUB) {
-        p = parts->worldPos;
+        p = parts->world;
         p.y += 1000.0f;
         p.z += -500.0f;
         pSUB->setPos(&p);
@@ -981,7 +981,7 @@ void cObjBull::setRide()
 
 int cObjBull::ckBreak1st()
 {
-    if (bull.flags & 2) {
+    if (bull.Be_flg & 2) {
         return 1;
     }
     return 0;
@@ -989,7 +989,7 @@ int cObjBull::ckBreak1st()
 
 int cObjBull::ckBreak2nd()
 {
-    if (bull.flags & 4) {
+    if (bull.Be_flg & 4) {
         return 1;
     }
     return 0;
@@ -997,7 +997,7 @@ int cObjBull::ckBreak2nd()
 
 int cObjBull::ckBreak3rd()
 {
-    if (bull.flags & 8) {
+    if (bull.Be_flg & 8) {
         return 1;
     }
     return 0;
@@ -1005,7 +1005,7 @@ int cObjBull::ckBreak3rd()
 
 int cObjBull::ckBreak4th()
 {
-    if (bull.flags & 0x10) {
+    if (bull.Be_flg & 0x10) {
         return 1;
     }
     return 0;
@@ -1013,7 +1013,7 @@ int cObjBull::ckBreak4th()
 
 int cObjBull::ckLift()
 {
-    if (bull.flags & 0x20) {
+    if (bull.Be_flg & 0x20) {
         return 1;
     }
     return 0;
@@ -1021,7 +1021,7 @@ int cObjBull::ckLift()
 
 int cObjBull::ckTruckGo()
 {
-    if (bull.flags & 0x40) {
+    if (bull.Be_flg & 0x40) {
         return 1;
     }
     return 0;
@@ -1029,7 +1029,7 @@ int cObjBull::ckTruckGo()
 
 int cObjBull::ckLiftWait()
 {
-    if (bull.flags & 0x100) {
+    if (bull.Be_flg & 0x100) {
         return 1;
     }
     return 0;
@@ -1051,7 +1051,7 @@ static inline void SubBullSeat(cEm* em)
         v.y = 0.0f;
         v.z = 1.0f;
         PSMTXMultVecSR(parts->mat, &v, &v);
-        em->rot.y = atan2f(v.x, v.z);
+        em->ang.y = atan2f(v.x, v.z);
     }
 }
 
@@ -1063,9 +1063,9 @@ void Sub_bull_drive(cEm* em)
     case 0:
         em->atari.throughOn();
         if (em->r_no_3) {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 50), 0, 0, 5, 0);
+            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 0, 5, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 50), 0, 3, 5, 0);
+            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 50), 0, 3, 5, 0);
         }
         em->subHideMode = (u8) ((u32) Rnd() % 100);
         em->r_no_2++;
@@ -1075,7 +1075,7 @@ void Sub_bull_drive(cEm* em)
         if (em->subHideMode) {
             em->subHideMode--;
         } else if (SubCkNearEm()) {
-            if ((s16) pG->sub_life > 0) {
+            if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
             }
         }
@@ -1090,12 +1090,12 @@ void Sub_bull_operation(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 51), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 51), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
-            if ((s16) pG->sub_life > 0) {
+            if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             }
         }
@@ -1112,20 +1112,20 @@ void Sub_bull_lookback(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 66), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 66), 0, 3, 1, 0);
         parts = em->getPartsPtr(3);
         if (em->r_no_3) {
             SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(6, 3, &parts->worldPos, 0, 0, em);
+            em->subSndId = SndCall(6, 3, &parts->world, 0, 0, em);
         } else {
             SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(6, 0x19, &parts->worldPos, 0, 0, em);
+            em->subSndId = SndCall(6, 0x19, &parts->world, 0, 0, em);
         }
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
-            if ((s16) pG->sub_life > 0) {
+            if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             }
         }
@@ -1140,12 +1140,12 @@ void Sub_bull_look(cEm* em)
     switch (em->r_no_2) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 67), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoom, 67), 0, 3, 1, 0);
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
-            if ((s16) pG->sub_life > 0) {
+            if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             }
         }
@@ -1187,21 +1187,21 @@ void Sub_dm_bull(cEm* em)
             break;
         }
         LifeDownSet(em, dmg, 0);
-        if ((s16) pG->sub_life <= 0) {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 53), 0, 3, 1, 0);
+        if ((s16) pG->ashley_life <= 0) {
+            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 53), 0, 3, 1, 0);
             SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(8, 0xD, &em->pParts->worldPos, em->id, 0, 0);
+            em->subSndId = SndCall(8, 0xD, &em->pParts->world, em->id, 0, 0);
         } else {
-            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 52), 0, 3, 1, 0);
+            MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoom, 52), 0, 3, 1, 0);
             em->dmType = 1;
             SndStop(em->subSndId, 0);
-            em->subSndId = SndCall(8, 9, &em->pParts->worldPos, em->id, 0, 0);
+            em->subSndId = SndCall(8, 9, &em->pParts->world, em->id, 0, 0);
         }
         em->r_no_2++;
     case 1:
         SubBullSeat(em);
         if (MotionMove(em, 0)) {
-            if ((s16) pG->sub_life > 0) {
+            if ((s16) pG->ashley_life > 0) {
                 SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             }
         }
@@ -1212,7 +1212,7 @@ void Sub_dm_bull(cEm* em)
 void cObjBull::setSubBullDrive()
 {
     if (pSUB) {
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_drive, (int) Sub_dm_bull);
             pSUB->r_no_3 = 1;
             pSUB->dmgType = (int) this;
@@ -1223,7 +1223,7 @@ void cObjBull::setSubBullDrive()
 void cObjBull::setSubBullFinger()
 {
     if (pSUB) {
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_look, (int) Sub_dm_bull);
             pSUB->dmgType = (int) this;
         }
@@ -1233,7 +1233,7 @@ void cObjBull::setSubBullFinger()
 void cObjBull::setSubBullLookBack()
 {
     if (pSUB) {
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SetSubBulldozer((int) Sub_bull_lookback, (int) Sub_dm_bull);
             pSUB->r_no_3 = 1;
             pSUB->dmgType = (int) this;
@@ -1255,13 +1255,13 @@ void cObjBull::setAdjustMode(u8 mode, void (*func)(cObj*))
 {
     BullWork* w = &bull;
 
-    w->adjustMode = mode;
-    w->adjustFunc = func;
+    w->Ride_mode = mode;
+    w->adjust_func = func;
 }
 
 void cObjBull::setBreakTruck()
 {
-    bull.breakTruck = 1;
+    bull.Truck_down = 1;
 }
 
 // An enemy stands in the box in front of the partner's seat (the player's position widens it).

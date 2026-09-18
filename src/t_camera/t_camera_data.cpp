@@ -441,10 +441,10 @@ void tcSetBesideOffset(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 3; j++) {
             o = i <= 1 ? &ready[i][j] : &trans[i - 2][j];
-            c->pos[n] = o->campos;
+            c->pos[n] = o->Campos;
             c->at[n] = o->target;
             c->roll[n] = o->Roll;
-            c->fovy[n] = o->fovy;
+            c->fovy[n] = o->Fovy;
             n++;
         }
     }
@@ -465,8 +465,8 @@ void tcSetBesideCamera()
     int j;
     int n = 0;
 
-    CamCtrl.qfps.setAreaData(g_readyOfs[0], g_transOfs[0]);
-    CamCtrl.qfps.getAreaData(ready, trans);
+    CamCtrl.m_QuasiFPS.setAreaData(g_readyOfs[0], g_transOfs[0]);
+    CamCtrl.m_QuasiFPS.getAreaData(ready, trans);
     if (c->num == 24) {
         for (i = 0; i < 4; i++) {
             for (j = 0; j < 3; j++, n++) {
@@ -476,10 +476,10 @@ void tcSetBesideCamera()
                 } else if (!(c->flags & 0x10)) {
                     if (i <= 1) continue;
                 }
-                o->campos = c->pos[n];
+                o->Campos = c->pos[n];
                 o->target = c->at[n];
                 o->Roll = c->roll[n];
-                o->fovy = c->fovy[n];
+                o->Fovy = c->fovy[n];
             }
         }
         for (i = 0; i < 4; i++) {
@@ -499,8 +499,8 @@ void tcSetBesideCamera()
     } else {
         c->num = n;
     }
-    CamCtrl.qfps.setAreaData(ready, trans);
-    CamCtrl.qfps.setFloorRatio(c->u44.floor);
+    CamCtrl.m_QuasiFPS.setAreaData(ready, trans);
+    CamCtrl.m_QuasiFPS.setFloorRatio(c->u44.floor);
 }
 
 // the split object ends .rodata with a 4-byte pad to 8 (the linker does not re-create it)

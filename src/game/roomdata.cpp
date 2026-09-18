@@ -84,7 +84,7 @@ void cRoomData::init()
     u8* rec;
 
     pModule = 0;
-    pBss = 0;
+    m_pModule_bss = 0;
     x1C = 0;
     total = 0;
     for (stage = 0; stage <= 9; stage++) {
@@ -288,13 +288,13 @@ void cRoomData::linkRelData(u16 room)
     }
     BitOff16(flag, 1);
     if (pModule->bssSize == 0) {
-        pBss = 0;
+        m_pModule_bss = 0;
     } else {
 #line 503
-        pBss = MEM_ALLOC(pModule->bssSize, 1, 13);
-        pBssBak = MEM_ALLOC(pModule->bssSize, 1, 13);
+        m_pModule_bss = MEM_ALLOC(pModule->bssSize, 1, 13);
+        m_pModule_bss_bak = MEM_ALLOC(pModule->bssSize, 1, 13);
     }
-    DLL_Link(pModule, pBss);
+    DLL_Link(pModule, m_pModule_bss);
     pModule->prolog();
 }
 
@@ -302,8 +302,8 @@ void cRoomData::stopRelData()
 {
     if ((flag & 1) == 0 && pModule != 0) {
         flag |= 1;
-        if (pBss != 0) {
-            memcpy(pBssBak, pBss, pModule->bssSize);
+        if (m_pModule_bss != 0) {
+            memcpy(m_pModule_bss_bak, m_pModule_bss, pModule->bssSize);
         }
         DLL_Unlink(pModule);
     }
@@ -313,9 +313,9 @@ void cRoomData::restartRelData()
 {
     if ((flag & 1) && pModule != 0) {
         BitOff16(flag, 1);
-        DLL_Link(pModule, pBss);
-        if (pBss != 0) {
-            memcpy(pBss, pBssBak, pModule->bssSize);
+        DLL_Link(pModule, m_pModule_bss);
+        if (m_pModule_bss != 0) {
+            memcpy(m_pModule_bss, m_pModule_bss_bak, pModule->bssSize);
         }
     }
 }

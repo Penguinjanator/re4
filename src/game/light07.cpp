@@ -14,7 +14,7 @@ void Light07_Move(cLight* l)
 
     switch (l->x138) {
     case 0:
-        l->curColor = l->color;
+        l->DispCol = l->Col;
         l->x138 = 1;
     case 1:
         PSVECAdd(ang, spd, ang);

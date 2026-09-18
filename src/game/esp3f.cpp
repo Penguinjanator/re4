@@ -8,13 +8,13 @@
 struct Esp3fWork {
     u8 pad_0[2];
     u8 nBuf;                     // 0x02 number of child buffers
-    u8 nPerBuf;                  // 0x03 vectors per child buffer
+    u8 nElem;                  // 0x03 vectors per child buffer
     cEsp* pBuf[ESP3F_BUF_MAX];   // 0x04
 };
 
 class cEsp3f : public cEsp {
 public:
-    Esp3fWork work;  // 0xF8
+    Esp3fWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -38,12 +38,12 @@ void cEsp3f::move()
 
 void cEsp3f::Destruct()
 {
-    if (x10 == 0) {
-        Esp3fWork* w = &work;
+    if (m_Rno2 == 0) {
+        Esp3fWork* w = &m_Free;
         u32 i;
         for (i = 0; i < w->nBuf; i++) {
             cEsp* p = w->pBuf[i];
-            if (p && (p->flag & 1)) {
+            if (p && (p->m_Be_flg & 1)) {
                 PushEsp(p);
             }
         }
@@ -72,12 +72,12 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
     }
     e = (cEsp3f*)p;
     e->info = *info;
-    w = &e->work;
-    w->nPerBuf = per;
+    w = &e->m_Free;
+    w->nElem = per;
     w->nBuf = n;
     for (i = 0; i < w->nBuf; i++) {
         if (PullEsp(&c, 0x3f)) {
-            c->x10 = 1;
+            c->m_Rno2 = 1;
             c->info = *info;
             w->pBuf[i] = c;
         } else {
@@ -97,8 +97,8 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info)
 
 Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no)
 {
-    Esp3fWork* w = &p->work;
-    u32 per = w->nPerBuf;
+    Esp3fWork* w = &p->m_Free;
+    u32 per = w->nElem;
     u32 n = w->nBuf;
     u32 buf = no / per;
     Vec* ret;

@@ -157,11 +157,11 @@ void R213Init()
         r213_work.p->sat[i] = 0;
         r213_work.p->eat[i] = 0;
     }
-    PSetSat(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, pr, 1));
-    PSetSat(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, pr, 1));
-    PSetSat(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, pr, 2));
-    PSetSat(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, pr, 3));
-    r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r213_satPos, &r213_satRot, 2);
+    PSetSat(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 1));
+    PSetSat(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, pr, 1));
+    PSetSat(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 2));
+    PSetSat(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, pr, 3));
+    r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &r213_satPos, &r213_satRot, 2);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);
@@ -242,12 +242,12 @@ void R213SuInit()
         }
         obj = SmdGetObjPtr(0x12);
         if (obj) {
-            obj->pInfo->setTexBlendTbl(tbl);
-            obj->pInfo->setBlendRatio(0xFF);
+            obj->pModelInfo->setTexBlendTbl(tbl);
+            obj->pModelInfo->setBlendRatio(0xFF);
             obj->Shader_type = 1;
             obj->Refract_pow = 0xF;
             obj->Refract_ratio = 0xB4;
-            obj->pInfo->setSpecular(0xFF, 0xFF, 0xFF);
+            obj->pModelInfo->setSpecular(0xFF, 0xFF, 0xFF);
         }
         EstSet(0, -1, 0, 0, 1, 5, 1, 2, 0, 0);
         SceExec(0x12, (TaskFunc) R213SuMove, 0, 0, 2, 0);
@@ -360,10 +360,10 @@ void R213SuBreakModel()
     SceAtSetEnable(0x8D, 1);
     SceAtSetEnable(0x8E, 1);
     if (r213_work.p->sat[0]) {
-        r213_work.p->sat[0]->flags &= ~4;
+        r213_work.p->sat[0]->m_Flag &= ~4;
     }
     if (r213_work.p->eat[0]) {
-        r213_work.p->eat[0]->flags &= ~4;
+        r213_work.p->eat[0]->m_Flag &= ~4;
     }
     r213_work.p->em[0].setFlag(0x20000000);
     r213_work.p->em[1].setFlag(0x20000000);
@@ -493,8 +493,8 @@ void R213StatusSetSwitch(int on)
 
         if (obj) {
             Vec a;
-            f32 ry = obj->rot.y;
-            f32 rz = obj->rot.z;
+            f32 ry = obj->ang.y;
+            f32 rz = obj->ang.z;
 
             a.x = 1.5707964f;
             a.y = ry;
@@ -510,17 +510,17 @@ void R213StatusSetBridge(int mode)
     if (mode == 2) {
         RsfSet(G_ROOM_ID, 4);
         if (r213_work.p->sat[1]) {
-            r213_work.p->sat[1]->flags &= ~4;
+            r213_work.p->sat[1]->m_Flag &= ~4;
         }
         if (r213_work.p->sat[2]) {
-            r213_work.p->sat[2]->flags |= 4;
+            r213_work.p->sat[2]->m_Flag |= 4;
         }
     } else {
         if (r213_work.p->sat[1]) {
-            r213_work.p->sat[1]->flags |= 4;
+            r213_work.p->sat[1]->m_Flag |= 4;
         }
         if (r213_work.p->sat[2]) {
-            r213_work.p->sat[2]->flags &= ~4;
+            r213_work.p->sat[2]->m_Flag &= ~4;
         }
     }
     if (mode == 0) {
@@ -545,11 +545,11 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
     case 0: {
         cObjChain* chain;
 
-        r213_cloth.num = r213_chainNum;
+        r213_cloth.Num = r213_chainNum;
         r213_cloth.Bundle_num = 200;
-        r213_cloth.pParts = r213_chainParts;
-        r213_cloth.pUp = r213_chainUp;
-        r213_cloth.pDown = r213_chainDown;
+        r213_cloth.pCloth = r213_chainParts;
+        r213_cloth.pParent = r213_chainUp;
+        r213_cloth.pChild = r213_chainDown;
         // Statement order = local-alloc order of the four pool constants (0.8 f0, 50 f13, 0.1 f12,
         // 0.0 f11): the non-dying x48 store sits behind three zero stores in sched1 (0.0's life
         // 63 > 1.5x the others'), x4C last puts its store after the dying x54 (0.1's life = 50's,
@@ -570,13 +570,13 @@ void R213StatusSetChain(int mode, int no, u32 objId, int hitNo, int flagNo)
         r213_cloth.pRate = 0;
         r213_cloth.At_num = 0;
         r213_cloth.x58 = 0;
-        r213_cloth.flags = 0;
+        r213_cloth.Flag = 0;
         r213_cloth.x54 = 0;
         r213_cloth.Stretchy = 0.1f;
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        chain = SetChain(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot);
+        chain = SetChain(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &rot);
         r213_work.p->chain[no] = chain;
         if (chain) {
             ((cModel*) chain)->setNoSuspend(1);
@@ -718,15 +718,15 @@ void R213BridgeAngSet(f32 ang)
     obj = SmdGetObjPtr(0x3B);
     if (obj) {
         Vec a;
-        f32 rx = obj->rot.x;
-        f32 ry = obj->rot.y;
+        f32 rx = obj->ang.x;
+        f32 ry = obj->ang.y;
 
         a.x = rx;
         a.y = ry;
         a.z = ang;
         obj->setAng(&a);
         if (r213_work.p->eat[2]) {
-            r213_work.p->eat[2]->setCoord(&r213_satPos, &obj->rot);
+            r213_work.p->eat[2]->setCoord(&r213_satPos, &obj->ang);
         }
     }
     R213ChainAngSetF3(0, 0x40, 3, ang, 0);
@@ -745,15 +745,15 @@ void R213ChainAngSet(int no, u32 objId, int hitNo, int flag, f32 ang)
         cObjChain* chain = r213_work.p->chain[no];
 
         if (chain) {
-            RotMatrix(m, &bridge->rot);
+            RotMatrix(m, &bridge->ang);
             PSMTXMultVec(m, &ofs[no], &p);
             PSVECAdd(&p, &bridge->pos, &p);
             ((cModel*) chain)->setPos(&p);
             {
                 Vec a;
-                f32 rz = bridge->rot.z * 0.22f - 1.5707964f;
-                f32 rx = ((cModel*) chain)->rot.x;
-                f32 ry = ((cModel*) chain)->rot.y;
+                f32 rz = bridge->ang.z * 0.22f - 1.5707964f;
+                f32 rx = ((cModel*) chain)->ang.x;
+                f32 ry = ((cModel*) chain)->ang.y;
 
                 a.x = rx;
                 a.y = ry;
@@ -766,20 +766,20 @@ void R213ChainAngSet(int no, u32 objId, int hitNo, int flag, f32 ang)
                 if (obj) {
                     cModel* parts = ((cModel*) chain)->getPartsPtr(0x11);
 
-                    if (parts->worldPos.x > obj->pos.x || flag != 0) {
+                    if (parts->world.x > obj->pos.x || flag != 0) {
                         Vec t;
                         Vec a2;
                         f32 ry;
                         f32 rx;
                         f32 ry2;
 
-                        t.x = parts->worldPos.x;
+                        t.x = parts->world.x;
                         t.y = obj->pos.y;
                         t.z = obj->pos.z;
                         ry = GetXYAngle(&obj->pos, &((cModel*) chain)->pos);
                         SetPosV(obj, &t);
-                        rx = obj->rot.x;
-                        ry2 = obj->rot.y;
+                        rx = obj->ang.x;
+                        ry2 = obj->ang.y;
                         a2.x = rx;
                         a2.y = ry2;
                         a2.z = ry;
@@ -846,7 +846,7 @@ static void R213EventSwitchMain()
         SceEventStart(1);
         CamCtrl.CutCall(3);
         SceSleep(10);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);
@@ -864,15 +864,15 @@ static void R213EventSwitchMain()
             // preheader is `lis lim; lis step; lfs step; lfs lim` like the target.
             for (;;) {
                 Vec a;
-                f32 rx = obj->rot.x + 0.06981317f;
-                f32 ry = obj->rot.y;
-                f32 rz = obj->rot.z;
+                f32 rx = obj->ang.x + 0.06981317f;
+                f32 ry = obj->ang.y;
+                f32 rz = obj->ang.z;
 
                 a.x = rx;
                 a.y = ry;
                 a.z = rz;
                 obj->setAng(&a);
-                if (!(obj->rot.x >= 1.5707964f)) {
+                if (!(obj->ang.x >= 1.5707964f)) {
                     SceSleep(1);
                 } else {
                     break;
@@ -881,8 +881,8 @@ static void R213EventSwitchMain()
             do { } while (0); // COMPILER-DIFF: #12 (the 1.5707964 store below is reloaded, not the loop's hoisted register)
             {
                 Vec a;
-                f32 ry = obj->rot.y;
-                f32 rz = obj->rot.z;
+                f32 ry = obj->ang.y;
+                f32 rz = obj->ang.z;
 
                 a.x = 1.5707964f;
                 a.y = ry;
@@ -910,10 +910,10 @@ static void R213EventSwitchMain()
             {
                 cObj* o40 = SmdGetObjPtr(0x40);
 
-                EstSet(0, -1, &o40->pos, &o40->rot, 1, 0xC, 1, 6, 0, 0);
+                EstSet(0, -1, &o40->pos, &o40->ang, 1, 0xC, 1, 6, 0, 0);
             }
             o41 = SmdGetObjPtr(0x41);
-            EstSet(0, -1, &o41->pos, &o41->rot, 1, 0xC, 1, 6, 0, 0);
+            EstSet(0, -1, &o41->pos, &o41->ang, 1, 0xC, 1, 6, 0, 0);
             SndCall(6, 8, &o41->pos, 0, 0, 0);
             R213BridgeAngMove(0, r213_work.p->ang + 0.0017453294f);
             while (CamCtrl.IsMotionEnd() == 0) {
@@ -1060,10 +1060,10 @@ extern "C" void Evt_R213S00_Func(Event* e)
         break;
     case 1:
         SetSstAddAreaFlag(0x800);
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             SetSstAddAreaFlag(0);
-            if (e->frame == 0) {
+            if (e->NowFrame == 0) {
                 void* mod;
 
                 if (e->GetMod(&mod, "em2d00", 0, 0) == 1) {
@@ -1082,7 +1082,7 @@ extern "C" void Evt_R213S00_Func(Event* e)
             SetNearClipDist(clip);
             break;
         case 1: {
-            int frame = e->frame;
+            int frame = e->NowFrame;
 
             if (frame == 0) {
                 EffectEspDelete(0x4001, 1, 0, 0);

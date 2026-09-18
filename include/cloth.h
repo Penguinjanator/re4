@@ -8,16 +8,16 @@
 // Cloth simulation (game/cloth.cpp). ClothWk[8], stride 0x78. Layout from Cloth::Set / esp4e.
 class Cloth {
 public:
-    u8 flag;           // 0x00 bit0: in use
+    u8 be_flag;           // 0x00 bit0: in use
     u8 attr;             // 0x01
-    u8 nx;             // 0x02 grid columns
-    u8 ny;             // 0x03 grid rows
+    u8 divH;             // 0x02 grid columns
+    u8 divV;             // 0x03 grid rows
     f32 Wgap;            // 0x04 cell width
     f32 Hgap;            // 0x08 cell height
     f32 Scale;            // 0x0C
-    Vec* pos;          // 0x10 grid positions (nx*ny)
-    Vec* nrm;          // 0x14 grid normals (calcNormal; {0,0,1} initially)
-    Vec* spd;          // 0x18
+    Vec* pVer;          // 0x10 grid positions (nx*ny)
+    Vec* pNor;          // 0x14 grid normals (calcNormal; {0,0,1} initially)
+    Vec* pSpd;          // 0x18
     Mtx mat;           // 0x1C
     Vec center;           // 0x4C
     f32 radius;           // 0x58
@@ -33,7 +33,7 @@ public:
             u8 colA;   // 0x6B
         };
     };
-    void* mem;         // 0x6C
+    void* m_pMem;         // 0x6C
     int x70;           // 0x70
     int x74;           // 0x74
 

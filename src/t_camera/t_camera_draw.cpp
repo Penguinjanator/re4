@@ -25,14 +25,14 @@ void tcCameraMove()
 
     switch (CameraGetProjection()) {
     case 1:
-        C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
+        C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
         break;
     case 2:
-        C_MTXOrtho(cam->projMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
+        C_MTXOrtho(cam->ProjMat, ORTHO_T, ORTHO_B, ORTHO_L, ORTHO_R, 0.0f, ZFAR);
         break;
     }
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
     tcToolCamera2GameCamera();
     View.move();
 }

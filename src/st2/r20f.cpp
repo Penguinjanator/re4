@@ -93,17 +93,17 @@ void R20fInit()
         r20f_work.p->sat[i] = NULL;
         r20f_work.p->eat[i] = NULL;
     }
-    PSet(r20f_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
-    PSet(r20f_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
-    PSet(r20f_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3));
-    PSet(r20f_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 2));
-    PSet(r20f_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
+    PSet(r20f_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+    PSet(r20f_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2));
+    PSet(r20f_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3));
+    PSet(r20f_work.p->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 2));
+    PSet(r20f_work.p->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 0x12), 0, &pos, &rot, 1));
     if (checkEmListNo(G_ROOM_ID) == 4 && (pG->em_dead[3][6] & 0x10)) {
         EmListSetAlive(0xF, 0);
     }
     getRoomEtcDoor(0xF, &door, 1);
     if (door) {
-        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0);
+        ((cEmDoor*) door)->setLock(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0);
     }
     obj0 = SmdGetObjPtr(0x18);
     obj1 = SmdGetObjPtr(0x19);
@@ -123,9 +123,9 @@ void R20fInit()
                 obj0->setPos(pv);
             }
             {
-                f32 x = obj1->rot.x;
-                f32 y = obj1->rot.y;
-                f32 z = obj1->rot.z;
+                f32 x = obj1->ang.x;
+                f32 y = obj1->ang.y;
+                f32 z = obj1->ang.z;
 
                 v.x = x;
                 v.y = y;
@@ -133,19 +133,19 @@ void R20fInit()
                 obj1->setAng(pv);
             }
             if (r20f_work.p->sat[0]) {
-                r20f_work.p->sat[0]->flags |= 4;
+                r20f_work.p->sat[0]->m_Flag |= 4;
             }
             if (r20f_work.p->sat[1]) {
-                r20f_work.p->sat[1]->flags &= ~4;
+                r20f_work.p->sat[1]->m_Flag &= ~4;
             }
             if (r20f_work.p->sat[2]) {
-                r20f_work.p->sat[2]->flags &= ~4;
+                r20f_work.p->sat[2]->m_Flag &= ~4;
             }
             if (r20f_work.p->eat[1]) {
-                r20f_work.p->eat[1]->flags &= ~4;
+                r20f_work.p->eat[1]->m_Flag &= ~4;
             }
             if (r20f_work.p->eat[2]) {
-                r20f_work.p->eat[2]->flags &= ~4;
+                r20f_work.p->eat[2]->m_Flag &= ~4;
             }
             SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) R20fSwitchMain, 0, 1);
         }
@@ -184,19 +184,19 @@ void R20fSwitchMove(cObj* obj, int dir)
         for (;;) {
             if (end == 0) {
                 if (dir == 1) {
-                    obj->rot.z += 0.06981317f;
+                    obj->ang.z += 0.06981317f;
                 } else {
-                    obj->rot.z -= 0.06981317f;
+                    obj->ang.z -= 0.06981317f;
                 }
                 obj->matUpdate();
                 if (dir == 1) {
-                    if (obj->rot.z >= 1.5707964f) {
-                        obj->rot.z = 1.5707964f;
+                    if (obj->ang.z >= 1.5707964f) {
+                        obj->ang.z = 1.5707964f;
                         return;
                     }
                 } else {
-                    if (obj->rot.z <= 0.0f) {
-                        obj->rot.z = 0.0f;
+                    if (obj->ang.z <= 0.0f) {
+                        obj->ang.z = 0.0f;
                         return;
                     }
                 }
@@ -272,8 +272,8 @@ static void R20fSwitchEnd(int evt)
     }
     if (obj1) {
         Vec rot;
-        f32 x = obj1->rot.x;
-        f32 y = obj1->rot.y;
+        f32 x = obj1->ang.x;
+        f32 y = obj1->ang.y;
 
         rot.x = x;
         rot.y = y;
@@ -281,19 +281,19 @@ static void R20fSwitchEnd(int evt)
         obj1->setAng(&rot);
     }
     if (r20f_work.p->sat[0]) {
-        r20f_work.p->sat[0]->flags &= ~4;
+        r20f_work.p->sat[0]->m_Flag &= ~4;
     }
     if (r20f_work.p->sat[1]) {
-        r20f_work.p->sat[1]->flags |= 4;
+        r20f_work.p->sat[1]->m_Flag |= 4;
     }
     if (r20f_work.p->sat[2]) {
-        r20f_work.p->sat[2]->flags |= 4;
+        r20f_work.p->sat[2]->m_Flag |= 4;
     }
     if (r20f_work.p->eat[1]) {
-        r20f_work.p->eat[1]->flags |= 4;
+        r20f_work.p->eat[1]->m_Flag |= 4;
     }
     if (r20f_work.p->eat[2]) {
-        r20f_work.p->eat[2]->flags |= 4;
+        r20f_work.p->eat[2]->m_Flag |= 4;
     }
     if (evt) {
         CamCtrl.Comeback(0);

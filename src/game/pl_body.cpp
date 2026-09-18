@@ -5,7 +5,7 @@
 
 cPlBody::cPlBody(cModel* model)
 {
-    pModel = model;
+    m_pMod = model;
     pHeadData = 0;
     pRightData = 0;
     pLeftData = 0;
@@ -15,7 +15,7 @@ cPlBody::cPlBody(cModel* model)
     x18 = 0;
     pRight = 0;
     pLeft = 0;
-    waist = 0.0f;
+    m_WaistY = 0.0f;
 }
 
 void cPlBody::move()
@@ -25,30 +25,30 @@ void cPlBody::move()
 
 void cPlBody::waistSet(f32 angle)
 {
-    waist = angle;
+    m_WaistY = angle;
 }
 
 void cPlBody::waistMove()
 {
     PlBodyParts* p;
-    f32 half = waist * 0.5f;
+    f32 half = m_WaistY * 0.5f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(1);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(1);
     p->flags |= 0x40000000;
     p->rot.y = half;
     p->rot.x = 0.0f;
     p->rot.z = 0.0f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(2);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(2);
     p->flags |= 0x40000000;
     p->rot.y = half;
     p->rot.x = 0.0f;
     p->rot.z = 0.0f;
 
-    p = (PlBodyParts*) pModel->getPartsPtr(3);
+    p = (PlBodyParts*) m_pMod->getPartsPtr(3);
     p->flags |= 0x40000000;
     p->rot.x = 0.0f;
-    p->rot.y = -waist;
+    p->rot.y = -m_WaistY;
     p->rot.z = 0.0f;
 }
 

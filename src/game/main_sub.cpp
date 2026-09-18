@@ -345,14 +345,14 @@ void SecToTime(u32 sec, u32* h, u32* m, u32* s)
 void InitGameTime()
 {
     OSTime t = OSGetTime();
-    pG->time_base = OSTicksToSeconds(t);
+    pG->game_start_time = OSTicksToSeconds(t);
 }
 
 u32 GetGameTime(u32* h, u32* m, u32* s)
 {
     u32 sec;
     OSTime t = OSGetTime();
-    sec = OSTicksToSeconds(t) - pG->time_base + pG->play_time;
+    sec = OSTicksToSeconds(t) - pG->game_start_time + pG->play_time;
     SecToTime(sec, h, m, s);
     return sec;
 }
@@ -360,9 +360,9 @@ u32 GetGameTime(u32* h, u32* m, u32* s)
 void SetGameTime()
 {
     OSTime t = OSGetTime();
-    pG->play_time += OSTicksToSeconds(t) - pG->time_base;
+    pG->play_time += OSTicksToSeconds(t) - pG->game_start_time;
     t = OSGetTime();
-    pG->time_base = OSTicksToSeconds(t);
+    pG->game_start_time = OSTicksToSeconds(t);
 }
 
 void ScreenShotStart(char* name, int frame, int flag)

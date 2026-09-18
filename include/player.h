@@ -25,9 +25,9 @@ class cPlNeck {
 public:
     cPlayer* pl;         // 0x00
     cEm* target;         // 0x04  enemy looked at
-    int timer;           // 0x08  frames left looking (0x7FFFFFFF: until the target changes)
-    u16 flags;           // 0x0C  bit0: the right-turn motion is set
-    u8 mode;             // 0x0E  0 off, 1 on, 2 -> 1 next frame (PlSetNeck)
+    int m_lockCtr;           // 0x08  frames left looking (0x7FFFFFFF: until the target changes)
+    u16 m_Flag;           // 0x0C  bit0: the right-turn motion is set
+    u8 m_Mode;             // 0x0E  0 off, 1 on, 2 -> 1 next frame (PlSetNeck)
     u8 pad_F;
     f32 ang;             // 0x10  current neck angle
     void* motL;          // 0x14  left turn motion data
@@ -59,8 +59,8 @@ public:
 // motion (mot0) blended with mot1 (rate < 0) or mot2 (rate > 0) through MotionWork::blend.
 class cMot3 {
 public:
-    cModel* model;       // 0x00
-    f32 rate;            // 0x04  last move() rate, clamped to -1..1
+    cModel* m_pEm;       // 0x00
+    f32 m_Rate;            // 0x04  last move() rate, clamped to -1..1
     void* mot0;          // 0x08
     void* mot1;          // 0x0C
     void* mot2;          // 0x10
@@ -191,13 +191,13 @@ public:
     // (in-class inline members of the class whose vtable the unit owns), not in source order.
     virtual void initCloth()
     {
-        if (pG->costume != 2) {
+        if (pG->pl_costume != 2) {
             PlClothSetLeon(this, &leonHair, &leonJacket, &leonHolster);
         }
     }
     virtual void moveCloth()
     {
-        if (pG->costume != 2) {
+        if (pG->pl_costume != 2) {
             PlClothMoveLeon(this, &leonHair, &leonJacket, &leonHolster);
         }
     }
@@ -283,7 +283,7 @@ void knife_r2_down(cPlayer* pl);
 void setWepTrans(cPlayer* pl, int on);
 
 // (u32) view of pG->wep_no/wep_type (`(G_WEP_ID & 0xFFFF0000) == 0x0D020000`: rocket launcher)
-#define G_WEP_ID (*(u32*) &pG->wep_no)
+#define G_WEP_ID (*(u32*) &pG->weapon_no)
 // (u32) view of pG->stage_no/room_no
 #define G_ROOM_ID32 (*(u32*) &pG->stage_no)
 

@@ -51,7 +51,7 @@ public:
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 // Message y: below the bottom line of the message window.
-#define MES_Y(m) (336 - (m)->lineSpace - (m)->fontH - 1)
+#define MES_Y(m) (336 - (m)->lineSpace - (m)->m_font_h - 1)
 
 #define ID_MERC 0x22
 #define ID_MERC_MES 0x2C
@@ -107,7 +107,7 @@ struct SystemWorkPtr {
 };
 #define pSysS (((SystemWorkPtr*) &pSys)->p)
 #define SYS_FLAG_TBL_S ((u32*) &pSysS->x4)
-#define MID (&mercId.idsys)
+#define MID (&mercId._idSys)
 
 MercSysWork MercSysWk;
 MercID mercId;
@@ -277,7 +277,7 @@ int MercSysMoveStart(MercSysWork* wk)
     SceEventStart(1);
     BEGIN_EVENT(pPL, 0);
     pPL->setNoSuspend(1);
-    Cckpt.getCountDown()->flags |= 1;
+    Cckpt.getCountDown()->m_state |= 1;
     Cckpt.getCountDown()->initTime(MercMin, MercSec, MercCes);
     // Codeless fake store surviving to global alloc: one more real insn in the range of the
     // hoisted `mercId.idsys` high (r24) but not in `&cMes`'s (r25), so their equal-priority
@@ -322,8 +322,8 @@ int MercSysMoveStart(MercSysWork* wk)
             st[0] = 0;
             break;
         }
-        mercId.idsys.move();
-        mercId.idsys.trans();
+        mercId._idSys.move();
+        mercId._idSys.trans();
         SceSleep(1);
     } while (st[0] != 0);
     pPL->setNoSuspend(0);
@@ -505,7 +505,7 @@ int MercSysMoveMain(MercSysWork* wk)
             int end = 0;
 
             if (cd->checkState(1)) {
-                end = cd->frame == 0;
+                end = cd->m_frame == 0;
             }
             if (end == 1) {
                 st[0] = 0;
@@ -522,15 +522,15 @@ int MercSysMoveMain(MercSysWork* wk)
                 wk->sndId = 0;
             }
         }
-        mercId.idsys.move();
-        mercId.idsys.trans();
+        mercId._idSys.move();
+        mercId._idSys.trans();
         SceSleep(1);
     } while (st[0] != 0);
     wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
-    IdSetTrans(&mercId.idsys, 0x30, ID_MERC, 0);
+    IdSetTrans(&mercId._idSys, 0x30, ID_MERC, 0);
     int zero = 0;
     wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
-    IdSetTrans(&mercId.idsys, 0x40, ID_MERC, 0);
+    IdSetTrans(&mercId._idSys, 0x40, ID_MERC, 0);
     wk->combo = zero;
     wk->comboTimer = zero;
     wk->bonusTimer = zero;
@@ -644,7 +644,7 @@ int MercSysResultMove(MercSysWork* wk)
                 rs->step++;
             case 1:
                 MercSysMoveScore(wk);
-                if (IdIsAnimEnd(&mercId.idsys, 0, ID_MERC_MES)) {
+                if (IdIsAnimEnd(&mercId._idSys, 0, ID_MERC_MES)) {
                     FadeSetW(2, 0, 0, 0);
                     MercSysResultInit(wk);
                     disp_bak = pG->Disp_flg;
@@ -668,7 +668,7 @@ int MercSysResultMove(MercSysWork* wk)
                     Dvd.FileExistCheck(data_name, &size);
                     size += 0x34;
                     size += MARGIN;
-                    swap.SwapOut((u32) pG->pRoomArc, size, 0);
+                    swap.SwapOut((u32) pG->pRoom, size, 0);
                     pRslt = new MercResult;
                     pRslt->init(wk);
                     wk->strId = SndStrReq(0, 0x3A, 0x80000003, 0, 0, 0.0f);
@@ -692,8 +692,8 @@ int MercSysResultMove(MercSysWork* wk)
                 }
                 break;
             }
-            mercId.idsys.move();
-            mercId.idsys.trans();
+            mercId._idSys.move();
+            mercId._idSys.trans();
             SceSleep(1);
         } while (rs->run != 0);
         SceSleep(1);
@@ -864,9 +864,9 @@ void IdSetTrans(IDSystem* id, int no, u8 type, int on)
         pLog->err(0, 0, "IdSetTrans : pIdUnit is NULL");
     } else {
         if (on == 1) {
-            u->flags |= 8;
+            u->be_flag |= 8;
         } else {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         }
     }
 }
@@ -879,9 +879,9 @@ void IdSetAnmStart(IDSystem* id, int no, u8 type, int on)
         pLog->err(0, 0, "IdSetAnmStart : pIdUnit is NULL");
     } else {
         if (on == 1) {
-            u->dir &= ~0xF;
+            u->rev_flag &= ~0xF;
         } else {
-            u->dir |= 0xF;
+            u->rev_flag |= 0xF;
         }
         id->setTime(u, 0);
     }
@@ -910,9 +910,9 @@ static void IdSetColLoop(IDSystem* id, int no, u8 type, int on)
         pLog->err(0, 0, "IdSetColInit : pIdUnit is NULL");
     } else {
         if (on == 1) {
-            u->loop |= 4;
+            u->loop_flag |= 4;
         } else {
-            u->loop &= ~4;
+            u->loop_flag &= ~4;
         }
     }
 }
@@ -962,12 +962,12 @@ void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int m
             return;
         }
         if (show == 0 && d[i] == 0 && i != 0) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
             show = 1;
             u->tex_flag |= 2;
-            u->no = d[i];
+            u->texNo = d[i];
         }
     }
 }
@@ -979,7 +979,7 @@ void IdSetTexNo(IDSystem* id, int no, u8 type, int texNo)
     if (u == NULL) {
         pLog->err(0, 0, "IdSetTexNo : pIdUnit is NULL");
     } else {
-        u->no = texNo;
+        u->texNo = texNo;
         u->tex_flag |= 2;
     }
 }
@@ -1004,20 +1004,20 @@ void MercID::init(int num)
 #line 1715 "D:/Bio4/Prog/mercenaries.cpp"
     Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
     pData = addr;
-    idsys.gameInit(num);
-    idsys.roomInit();
+    _idSys.gameInit(num);
+    _idSys.roomInit();
     pTex = DATA_PTR(pData, 0x10);
     pIdMain = DATA_PTR(pData, 0x14);
     pIdStart = DATA_PTR(pData, 0x18);
     pIdTimeUp = DATA_PTR(pData, 0x1C);
     set();
-    idsys.set(pIdMain, 0xFF, ID_MERC, 0x13, 5, 0);
-    IdSetTrans(&idsys, 0x20, ID_MERC, 0);
-    IdSetTrans(&idsys, 0x60, ID_MERC, 0);
-    IdSetTrans(&idsys, 0, ID_MERC, 0);
-    IdSetTrans(&idsys, 0x10, ID_MERC, 0);
-    IdSetTrans(&idsys, 0x30, ID_MERC, 0);
-    IdSetTrans(&idsys, 0x40, ID_MERC, 0);
+    _idSys.set(pIdMain, 0xFF, ID_MERC, 0x13, 5, 0);
+    IdSetTrans(&_idSys, 0x20, ID_MERC, 0);
+    IdSetTrans(&_idSys, 0x60, ID_MERC, 0);
+    IdSetTrans(&_idSys, 0, ID_MERC, 0);
+    IdSetTrans(&_idSys, 0x10, ID_MERC, 0);
+    IdSetTrans(&_idSys, 0x30, ID_MERC, 0);
+    IdSetTrans(&_idSys, 0x40, ID_MERC, 0);
 }
 
 void MercID::set()
@@ -1029,19 +1029,19 @@ void MercID::set()
 void MercID::kill()
 {
     IdTexRelease(6);
-    idsys.kill(0xFF, ID_MERC);
-    idsys.kill(0xFF, ID_MERC_MES);
+    _idSys.kill(0xFF, ID_MERC);
+    _idSys.kill(0xFF, ID_MERC_MES);
 }
 
 void MercID::dispMissionStart()
 {
-    idsys.set(pIdStart, 0xFF, ID_MERC_MES, 0x13, 4, 0);
+    _idSys.set(pIdStart, 0xFF, ID_MERC_MES, 0x13, 4, 0);
     SndCall(6, 0x7C, 0, 0, 0, 0);
 }
 
 void MercID::dispTimeUp()
 {
-    idsys.set(pIdTimeUp, 0xFF, ID_MERC_MES, 0x13, 4, 0);
+    _idSys.set(pIdTimeUp, 0xFF, ID_MERC_MES, 0x13, 4, 0);
     SndCall(6, 0x7E, 0, 0, 0, 0);
 }
 
@@ -1070,8 +1070,8 @@ int MercResult::init(MercSysWork* wk)
     pIdEnd = DATA_PTR(pData, 0x2C);
     IdTexDataLoad(pTex, 7);
     IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
-    step = 0;
-    cnt = 0;
+    _rno0 = 0;
+    _rno1 = 0;
     x32 = 0;
     x33 = 0;
     return 1;
@@ -1089,10 +1089,10 @@ int MercResult::move(MercSysWork* wk)
     mes[1] = wk->mes[6];
     mes[2] = wk->mes[7];
     mes[3] = wk->mes[8];
-    switch (step) {
+    switch (_rno0) {
     case 0:
         FadeSetW(0x80000002, 10, 0, 0);
-        step++;
+        _rno0++;
         break;
     case 1:
         IdSetNum(&IdSys, 0x11, ID_RESULT, wk->rslt.kill, 9999, 4, 0);
@@ -1107,9 +1107,9 @@ int MercResult::move(MercSysWork* wk)
         if (Key.trg & KEY_A) {
             FadeSetW(2, 10, 0, 0);
             if (flagCk(&wk->flags, mercSysGetFlag[wk->stage])) {
-                step = 0xA;
+                _rno0 = 0xA;
             } else if (wk->flags & MF_ALL_RANK) {
-                step = 0x14;
+                _rno0 = 0x14;
             } else {
                 return 0;
             }
@@ -1133,17 +1133,17 @@ int MercResult::move(MercSysWork* wk)
         IdSetTrans(&IdSys, wk->stage + 1, ID_RESULT, 1);
         IdSetAnmStart(&IdSys, wk->stage + 1, ID_RESULT, 1);
         IdSetColStart(&IdSys, wk->stage + 1, 0, ID_RESULT);
-        cnt = 0;
-        step++;
+        _rno1 = 0;
+        _rno0++;
         break;
     case 0xB:
         if (Fade[2].flags & 1) {
             break;
         }
-        cnt++;
-        if (cnt > 29) {
+        _rno1++;
+        if (_rno1 > 29) {
             SceMesSet(mes[wk->stage], 0xF0, 1, 100, MES_Y(cMes.getWork()));
-            step++;
+            _rno0++;
         }
         break;
     case 0xC:
@@ -1155,7 +1155,7 @@ int MercResult::move(MercSysWork* wk)
             }
             FadeSetW(2, 10, 0, 0);
             if (wk->flags & MF_ALL_RANK) {
-                step = 0x14;
+                _rno0 = 0x14;
             } else {
                 return 0;
             }
@@ -1168,17 +1168,17 @@ int MercResult::move(MercSysWork* wk)
         FadeSetW(0x80000002, 10, 0, 0);
         IdSys.kill(0xFF, ID_RESULT);
         IdSys.set(pIdEnd, 0xFF, ID_RESULT, 0x13, 4, 0);
-        cnt = 0;
-        step++;
+        _rno1 = 0;
+        _rno0++;
         break;
     case 0x15:
         if (Fade[2].flags & 1) {
             break;
         }
-        cnt++;
-        if (cnt > 29) {
+        _rno1++;
+        if (_rno1 > 29) {
             SceMesSet(wk->mes[9], 0xF0, 1, 100, MES_Y(cMes.getWork()));
-            step++;
+            _rno0++;
         }
         break;
     case 0x16:
@@ -1217,8 +1217,8 @@ void AdaResult::init(int no)
     pId = DATA_PTR(pData, 0x14);
     IdTexDataLoad(pTex, 7);
     IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 6, 0);
-    step = 0;
-    cnt = 0;
+    _rno0 = 0;
+    _rno1 = 0;
     x32 = 0;
     x33 = 0;
 }
@@ -1227,21 +1227,21 @@ int AdaResult::move(int mesNo)
 {
     int i;
 
-    switch (step) {
+    switch (_rno0) {
     case 0:
         FadeSetW(0x80000002, 10, 0, 0);
         IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 4, 0);
-        cnt = 0;
-        step++;
+        _rno1 = 0;
+        _rno0++;
         break;
     case 1:
         if (Fade[2].flags & 1) {
             break;
         }
-        cnt++;
-        if (cnt > 29) {
+        _rno1++;
+        if (_rno1 > 29) {
             SceMesSet(mesNo, 0xF0, 1, 100, MES_Y(cMes.getWork()));
-            step++;
+            _rno0++;
         }
         break;
     case 2:
@@ -1267,5 +1267,5 @@ void AdaResult::quit()
 
 int CountDown::checkState(u32 bit)
 {
-    return (flags & bit) ? 1 : 0;
+    return (m_state & bit) ? 1 : 0;
 }

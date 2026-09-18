@@ -19,7 +19,7 @@ void MirrorDraw2(cModel* m)
         return;
     }
     commonScreenMat(m);
-    mirrorModelTrans2(m, m->pInfo, pG->Cam.viewMat);
+    mirrorModelTrans2(m, m->pModelInfo, pG->Cam.v_mat);
 }
 
 static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
@@ -55,7 +55,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
     GXLoadNrmMtxImm(nrm, 0);
     GXSetCurrentMtx(0);
 
-    for (; info != 0; info = info->pNext) {
+    for (; info != 0; info = info->pList) {
         d = info->pData;
         void* texArr = d->pTex;
         GXClearVtxDesc();
@@ -81,7 +81,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
             GXSetArray(10, d->nrmOrig, 8);
         }
         GXSetCullMode(1);
-        GXLoadTexObj(&GetTexRenderMgrAddr(0)->texObj, st->texMap);
+        GXLoadTexObj(&GetTexRenderMgrAddr(0)->m_Tex_obj, st->texMap);
         C_MTXLightPerspective(proj, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
         PSMTXConcat(proj, mv, tex);
         GXLoadTexMtxImm(tex, 0x1E, 0);
@@ -99,9 +99,9 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         nParts = d->nParts;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
-            if (m->alpha < 1.0f) {
+            if (m->invisible_factor < 1.0f) {
                 col = *(GXColor*) info->color;
-                col.a = col.a * m->alpha;
+                col.a = col.a * m->invisible_factor;
                 GXSetChanMatColor(4, col);
             }
             {

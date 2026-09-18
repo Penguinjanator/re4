@@ -188,7 +188,7 @@ s16 Snd_get_rnd_pitch(SND_SIT* sit)
     s16 r;
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
 
-    lo = sit->pitch_lo;
+    lo = sit->pitch_l;
     hi = sit->pitch_hi;
     if (lo == hi) {
         ctrl->rnd_pitch = lo;

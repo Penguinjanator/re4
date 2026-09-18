@@ -15,16 +15,16 @@
 
 // Reverb parameters (room header `STB` efx[0] = DPL2, efx[1] = stereo).
 struct SndEfxParam {
-    u16 aux_core;    // 0x00  default aux A per block type (low bytes)
-    u16 aux_em;      // 0x02
-    u16 aux_wep;     // 0x04
-    u16 aux_room;    // 0x06
-    f32 preDelay;    // 0x08
-    f32 time;        // 0x0C
-    f32 coloration;  // 0x10
-    f32 damping;     // 0x14
-    f32 mix;         // 0x18
-    f32 crosstalk;   // 0x1C
+    u16 Aux_core;    // 0x00  default aux A per block type (low bytes)
+    u16 Aux_enemy;      // 0x02
+    u16 Aux_weapon;     // 0x04
+    u16 Aux_room;    // 0x06
+    f32 Delay;    // 0x08
+    f32 Time;        // 0x0C
+    f32 Coloration;  // 0x10
+    f32 Damping;     // 0x14
+    f32 Mix;         // 0x18
+    f32 Crosstalk;   // 0x1C
 };
 
 // Room sound header (`STB` sub-file of the room archive, pSnd->hdr; DefEffTbl when missing).
@@ -149,9 +149,9 @@ struct SndWork {
     SndPlayWork bgm_work[2]; // 0x24
     SndPlayWork str_work[4]; // 0x44
     u8* bgm_mram;            // 0x84  BGM MRAM allocation top (dvd.cpp grows it down)
-    u32 bgm_aram;            // 0x88  BGM ARAM allocation top (grows down)
-    u8 bgm_id[2];            // 0x8C
-    u16 door_no;             // 0x8E  door SE table loaded
+    u32 aram_base_addr_bgm;            // 0x88  BGM ARAM allocation top (grows down)
+    u8 snd_bgm_id[2];            // 0x8C
+    u16 doorse_id;             // 0x8E  door SE table loaded
     s32 room_ok;             // 0x90  room sound data initialised
     struct SeAtHead* se_at;  // 0x94  room "ESE" sound area data (se_at.cpp), NULL when none
     struct SeAt* se_at_list; // 0x98  its records
@@ -159,11 +159,11 @@ struct SndWork {
     SndSurWork sur[48];      // 0xA0
     SndEmHist em_hist[32];   // 0x9A0
     u8* mram_top;            // 0xAA0  MRAM allocation pointer (dvd.cpp)
-    u32 aram_top;            // 0xAA4  ARAM allocation pointer (dvd.cpp)
-    u8 em_id[8];             // 0xAA8  enemy id per enemy block (6 used)
-    u32 room_bgm[6];         // 0xAB0  [0] current, [1..5] by pG->snd_tbl_no
-    u32 room_str[6];         // 0xAC8
-    u8 str_no[2];            // 0xAE0
+    u32 aram_base_addr;            // 0xAA4  ARAM allocation pointer (dvd.cpp)
+    u8 snd_em_id[8];             // 0xAA8  enemy id per enemy block (6 used)
+    u32 room_bgm_tbl[6];         // 0xAB0  [0] current, [1..5] by pG->snd_tbl_no
+    u32 room_str_tbl[6];         // 0xAC8
+    u8 play_str_no[2];            // 0xAE0
     s16 bgm_at[2];           // 0xAE2  floor attribute BGM control applied per slot
     u8 pad_AE6[2];
 };
@@ -222,7 +222,7 @@ struct SndMemWork {
 struct SndHistory {
     s8 idx;          // 0x00
     s8 num;          // 0x01
-    s8 top;          // 0x02
+    s8 disp_idx;          // 0x02
     u8 blk[25];      // 0x03
     u16 no[25];      // 0x1C
     s8 vol[25];      // 0x4E

@@ -35,8 +35,8 @@
 struct R21aRoof {
     int slot;    // 0x00  hit[] slot
     f32 x;       // 0x04  YarareInit box
-    f32 y;       // 0x08
-    f32 z;       // 0x0C
+    f32 Y;       // 0x08
+    f32 Z;       // 0x0C
     f32 w;       // 0x10
     f32 h;       // 0x14
     int est;     // 0x18  EstSet number of the burning support
@@ -147,7 +147,7 @@ void R21aInit()
 
                 if (hit) {
                     hit->setParent(obj, 0, 0);
-                    YarareInit(hit, r->x, r->y, r->z, r->w, r->h, 0, 1);
+                    YarareInit(hit, r->x, r->Y, r->Z, r->w, r->h, 0, 1);
                     r21a_work.p->hit[r->slot] = hit;
                 }
             }
@@ -335,7 +335,7 @@ static void R21aDoorMain()
         if (obj) {
             SndCall(6, 7, &obj->pos, 0, 0, 0);
         }
-        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         SceSetEventCancel(1, (TaskFunc) R21aDoorEnd, 0, -1, 1);
         CamCtrl.CutCall(3);
         obj = SmdGetObjPtr(0x19);

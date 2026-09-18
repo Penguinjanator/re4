@@ -31,7 +31,7 @@ typedef struct {
     s8 x7;          // 0x07  aux A
     s8 x8;          // 0x08  aux B
     s8 curve_no;    // 0x09  distance curve selector (game/snd.cpp SndCall), -1 = none
-    u16 pitch_lo;   // 0x0A  random pitch range
+    u16 pitch_l;   // 0x0A  random pitch range
     u16 pitch_hi;   // 0x0C
     u8 inner_vol;   // 0x0E  volume % while the player is on a type-3 floor attribute (0 = off)
     u8 xF;
@@ -47,14 +47,14 @@ typedef struct {
 // Room information table entry (RIT, 0x10 bytes) inside a stream block.
 typedef struct {
     s16 shd_no;     // 0x00  index into the block's stream header offset table
-    s8 voice_start; // 0x02  first Snd_voice_work slot
-    s8 voice_num;   // 0x03  last slot offset (inclusive)
+    s8 ch; // 0x02  first Snd_voice_work slot
+    s8 poly;   // 0x03  last slot offset (inclusive)
     s8 vol;         // 0x04
     s8 pan;         // 0x05
     u8 pad_6[2];
-    s8 auxA;        // 0x08
-    s8 auxB;        // 0x09
-    s8 str_no;      // 0x0A  default Snd_str_work slot
+    s8 aux_a;        // 0x08
+    s8 aux_b;        // 0x09
+    s8 pl_id;      // 0x0A  default Snd_str_work slot
     u8 pad_B[1];
     u16 flag;       // 0x0C  0x1 = surround type
     s8 span;        // 0x0E  < 0: 0x7F
@@ -69,17 +69,17 @@ typedef struct {
     u32 rate;       // 0x0C  sample rate
     u32 x10;
     u32 loop_start; // 0x14  nibble offset
-    u32 loop_end;   // 0x18  nibble offset
-    u32 aram;       // 0x1C  ARAM buffer address
-    u16 coefL[16];  // 0x20
+    u32 lpend_nbl;   // 0x18  nibble offset
+    u32 offset;       // 0x1C  ARAM buffer address
+    u16 coef[16];  // 0x20
     u16 coefR[16];  // 0x40
     u16 gain[2];    // 0x60  L, R
-    u16 pred_scale[2];      // 0x64
+    u16 ps[2];      // 0x64
     u16 yn1[2];             // 0x68
     u16 yn2[2];             // 0x6C
-    u16 loop_pred_scale[2]; // 0x70
-    u16 loop_yn1[2];        // 0x74
-    u16 loop_yn2[2];        // 0x78
+    u16 lps[2]; // 0x70
+    u16 lyn1[2];        // 0x74
+    u16 lyn2[2];        // 0x78
 } SND_SHD;
 
 typedef struct {

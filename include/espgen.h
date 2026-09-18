@@ -92,14 +92,14 @@ struct SstArea {
 // One registered effect texture set (eff_sys espTexRegist), 0x54 bytes; owner 0xD2 = free.
 struct EspTexWk {
     GXTexObj* pTexObj;   // 0x00 first of nTex objects pulled from cEspSystem::texObj
-    u16 nTex;            // 0x04
+    u16 nTexObj;            // 0x04
     u8 pad_6[2];
     GXTlutObj tlut;      // 0x08
     TEXHeader* texHdr;   // 0x14 header of texture 0
     Mtx mtx;             // 0x18
     TEXPalette* pTpl;    // 0x48
     EspAnmData* pAnm;    // 0x4C
-    u32 owner;           // 0x50
+    u32 Owner;           // 0x50
 };
 
 // Effect model (efm) registration (eff_sys efmRegist), 0x14 bytes.
@@ -117,7 +117,7 @@ struct EspEfmWk {
 
 // Effect system work (game/eff_sys.cpp, g_pEspSys, sizeof 0xC5E8).
 struct cEspSystem {
-    EspTexWk texWk[0x100];       // 0x0000 by texture id
+    EspTexWk Esp_tex_tbl[0x100];       // 0x0000 by texture id
     EspEfmWk efmWk[0x100];       // 0x5400 by effect model id
     SstTbl estTbl[0xD3];         // 0x6800 effect set tables by owner id
     SstTbl sstTbl[0xD3];         // 0x71E4 room effect tables by owner id
@@ -132,20 +132,20 @@ struct cEspSystem {
     u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
     u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
     u32 xC554;         // 0xC554 number of esp slots
-    u32 numSave;       // 0xC558 slot count saved by EspArrayPush
-    cEsp* pDmy;        // 0xC55C dummy esp returned when the pool is full
-    u8 coreKind;       // 0xC560 next effect kind handed out by EspPullCoreKind (0x45..)
-    u8 toolState;      // 0xC561
+    u32 nEspBack;       // 0xC558 slot count saved by EspArrayPush
+    cEsp* pDmyEsp;        // 0xC55C dummy esp returned when the pool is full
+    u8 CoreKindTop;       // 0xC560 next effect kind handed out by EspPullCoreKind (0x45..)
+    u8 ToolState;      // 0xC561
     u8 pad_C562[2];
-    u32 areaState;     // 0xC564 bit per area (GetAreaState)
+    u32 RstAreaState;     // 0xC564 bit per area (GetAreaState)
     EspLightList lightList;  // 0xC568 lights the effects draw with (esp.cpp EspTrans -> cLightMgr::setEsp)
     u8 pad_C58C[4];
     int finalColSet;   // 0xC590 1 while finalCol.r == 0xFF (EffSetFinalCol)
-    GXColor finalCol;  // 0xC594
-    f32 camPan;        // 0xC598 camera yaw in degrees (EspGetCameraPan)
-    f32 camPan2;       // 0xC59C camera pitch in degrees (EspGetCameraPan2)
-    u32 sstDispFlag;   // 0xC5A0 room effect display flags (bit per id)
-    u32 sstAddAreaFlag;  // 0xC5A4
+    GXColor Final_col;  // 0xC594
+    f32 CameraPan;        // 0xC598 camera yaw in degrees (EspGetCameraPan)
+    f32 CameraPan2;       // 0xC59C camera pitch in degrees (EspGetCameraPan2)
+    u32 SstSetFlag;   // 0xC5A0 room effect display flags (bit per id)
+    u32 Add_area_bit;  // 0xC5A4
     void (*toolCb[8])();   // 0xC5A8 tool state callbacks (state bits 0/1 set)
     void (*toolCb2[8])();  // 0xC5C8 (state bits 0/1 clear)
 
@@ -171,17 +171,17 @@ struct EspgenWork {
 // record. est.cpp EstSet fills it directly.
 struct Espgen10Work {
     EspSeqData* head;  // 0x14
-    cModel* model;     // 0x18
-    u32 serial;        // 0x1C model serial the controller was set up with
-    u16 cnt;           // 0x20 frame counter
+    cModel* pMod;     // 0x18
+    u32 Guid_pMod;        // 0x1C model serial the controller was set up with
+    u16 Time_cnt;           // 0x20 frame counter
     u8 no;             // 0x22 next record
-    u8 flags;          // 0x23 bit0: parts matrix fixed, bit1: pass the rotation on
-    u16 parts;         // 0x24 parts number (0xFE: free position, 0xFF: none)
+    u8 Flg;          // 0x23 bit0: parts matrix fixed, bit1: pass the rotation on
+    u16 Null_parts_no;         // 0x24 parts number (0xFE: free position, 0xFF: none)
     u8 pad_26[2];
-    u32 seed;          // 0x28
-    Mtx mtx;           // 0x2C
-    Vec pos;           // 0x5C
-    Vec rot;           // 0x68
+    u32 Rand_seed;          // 0x28
+    Mtx Mat;           // 0x2C
+    Vec Offset;           // 0x5C
+    Vec Ang;           // 0x68
     EspSeqOpt opt;     // 0x74 copy of the option block p8 points at
     EspSeqOpt* p8;     // 0x90
 };

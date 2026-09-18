@@ -42,7 +42,7 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
@@ -52,15 +52,15 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
-    w->pMotionVib = 0;
+    w->Mot_vib = 0;
     obj->r_no_0 = 0;
     obj->r_no_1 = 0;
     obj->r_no_2 = 0;
@@ -86,13 +86,13 @@ void objYagura_R0_Set(cObjYagura* obj)
 
 void cObjYagura::setMotionVib(void* mot)
 {
-    yagura.pMotionVib = mot;
+    yagura.Mot_vib = mot;
 }
 
 void cObjYagura::setVib()
 {
-    if (yagura.pMotionVib) {
-        MotionSetCore(this, &pMotion, yagura.pMotionVib, 0, 0, 0, 0);
+    if (yagura.Mot_vib) {
+        MotionSetCore(this, &pMotion, yagura.Mot_vib, 0, 0, 0, 0);
     }
 }
 

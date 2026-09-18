@@ -88,7 +88,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 0x10);
     AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
@@ -98,24 +98,24 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     for (i = 0; i < 5; i++) {
-        w->sat[i] = 0;
+        w->pSat[i] = 0;
         w->sat2[i] = 0;
     }
-    p = w->rideEm;
+    p = w->pEm;
     for (i = 0; i < 5; i++) {
         *p++ = 0;
     }
-    w->ridePL = 0;
-    w->rideSUB = 0;
+    w->Ride_pl = 0;
+    w->Ride_sub = 0;
     w->subWork = 0;
     w->subMot = 0;
     w->breakMot = 0;
@@ -132,8 +132,8 @@ void cObjGondola::move()
     GondolaWork* w = &gondola;
 
     objGondolaSatClear(this);
-    if (w->cnt) {
-        w->cnt--;
+    if (w->Act_wait) {
+        w->Act_wait--;
     }
     ObjGondola_R0_move_tbl[r_no_0](this);
 }
@@ -151,7 +151,7 @@ void objGondola_R0_Move(cObjGondola* obj)
     Vec d;
     cModel* parts;
 
-    obj->gondola.ridePL = 0;
+    obj->gondola.Ride_pl = 0;
     parts = obj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
@@ -176,7 +176,7 @@ void objGondola_R0_Down(cObjGondola* obj)
     Vec d;
     cModel* parts;
 
-    w->ridePL = 1;
+    w->Ride_pl = 1;
     parts = obj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
@@ -193,7 +193,7 @@ void objGondola_R0_Down(cObjGondola* obj)
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &d, sizeof(Vec));
-    if (pSUB && w->rideSUB) {
+    if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
     }
@@ -208,7 +208,7 @@ void objGondola_R0_Up(cObjGondola* obj)
     Vec d;
     cModel* parts;
 
-    w->ridePL = 1;
+    w->Ride_pl = 1;
     parts = obj->getPartsPtr(1);
     a.x = 0.0f;
     a.y = -4828.03f;
@@ -225,7 +225,7 @@ void objGondola_R0_Up(cObjGondola* obj)
     PSVECAdd(&pPL->pos, &d, &b);
     pPL->setPos(&b);
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &d, sizeof(Vec));
-    if (pSUB && w->rideSUB) {
+    if (pSUB && w->Ride_sub) {
         PSVECAdd(&pSUB->pos, &d, &b);
         pSUB->setPos(&b);
     }
@@ -234,17 +234,17 @@ void objGondola_R0_Up(cObjGondola* obj)
         b.x = 21722.0f;
         b.y = 10274.0f;
         b.z = -35327.0f;
-        FSet(pPL->rot.y, -0.49f);
+        FSet(pPL->ang.y, -0.49f);
         pPL->setPos(&b);
-        if (pSUB && w->rideSUB) {
+        if (pSUB && w->Ride_sub) {
             b.x = 22577.0f;
             b.y = 10274.0f;
             b.z = -35864.0f;
-            FSet(pSUB->rot.y, -0.49f);
+            FSet(pSUB->ang.y, -0.49f);
             pSUB->setPos(&b);
         }
         pG->flags_500C &= ~0x20;
-        w->ridePL = 0;
+        w->Ride_pl = 0;
         obj->r_no_0 = 1;
         obj->r_no_1 = 0;
         obj->r_no_2 = 0;
@@ -269,11 +269,11 @@ void objGondola_R0_Break(cObjGondola* obj)
         w->Spd.x = 0.0f;
         w->Spd.y = 0.0f;
         w->Spd.z = 0.0f;
-        if (w->ridePL) {
+        if (w->Ride_pl) {
             pG->pl_life = 0;
             DiedemoExec(0x3C, 0);
         }
-        w->timer = 42;
+        w->Timer = 42;
         obj->r_no_2++;
     case 1:
         parts = obj->getPartsPtr(0);
@@ -298,9 +298,9 @@ void objGondola_R0_Break(cObjGondola* obj)
         ObjGondolaCam.dist = SQRTF(len);
         CameraSetOrientationUp(&ObjGondolaCam);
         CamCtrl.x250 = (s32) &ObjGondolaCam;
-        if (w->timer) {
-            w->timer--;
-            if (w->timer == 0) {
+        if (w->Timer) {
+            w->Timer--;
+            if (w->Timer == 0) {
                 if (w->subWork && w->breakMot) {
                     ((GondolaMotWork*) w->subWork)->flags2 |= 0x10000000;
                     MotionSetCore(obj, w->subWork, w->breakMot, 0, 0, 0, 0);
@@ -326,11 +326,11 @@ void objGondola_R0_Break(cObjGondola* obj)
     b.z = 0.0f;
     PSMTXMultVec(parts->mat, &b, &b);
     PSVECSubtract(&b, &a, &v);
-    if (w->ridePL) {
+    if (w->Ride_pl) {
         PSVECAdd(&pPL->pos, &v, &b);
         pPL->setPos(&b);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->quake_ofs), &v, sizeof(Vec));
-        if (pSUB && w->rideSUB) {
+        if (pSUB && w->Ride_sub) {
             PSVECAdd(&pSUB->pos, &v, &b);
             pSUB->setPos(&b);
         }
@@ -344,11 +344,11 @@ void objGondolaSatClear(cObjGondola* obj)
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (w->sat[i]) {
-            w->sat[i]->flags &= ~4;
+        if (w->pSat[i]) {
+            w->pSat[i]->m_Flag &= ~4;
         }
         if (w->sat2[i]) {
-            w->sat2[i]->flags &= ~4;
+            w->sat2[i]->m_Flag &= ~4;
         }
     }
 }
@@ -377,7 +377,7 @@ void objGondolaSatSet(cObjGondola* obj)
     rot.x = 0.0f;
     rot.y = atan2f(v.x, v.z);
     rot.z = 0.0f;
-    pos = parts->worldPos;
+    pos = parts->world;
     pos.y -= 4828.03f;
     for (i = 0; i < 1; i++) {
         switch (i) {
@@ -435,11 +435,11 @@ void objGondolaSatSet(cObjGondola* obj)
         poly[3].x = hw + cx;
         poly[3].y = h;
         poly[3].z = -hd + cz;
-        if (w->sat[i]) {
-            w->sat[i]->flags |= 4;
-            w->sat[i]->setCoord(&pos, &rot);
+        if (w->pSat[i]) {
+            w->pSat[i]->m_Flag |= 4;
+            w->pSat[i]->setCoord(&pos, &rot);
         } else {
-            w->sat[i] = SatMgr.create(&pos, &rot, poly, 0, 0x100, r);
+            w->pSat[i] = SatMgr.create(&pos, &rot, poly, 0, 0x100, r);
         }
     }
 }
@@ -455,7 +455,7 @@ static int objGondolaRideAreaCk(cObjGondola* obj, cEm* em)
     if (d.x * d.x + d.z * d.z > 9000000.0f) {
         return 0;
     }
-    ang = atan2f(d.x, d.z) - obj->rot.y;
+    ang = atan2f(d.x, d.z) - obj->ang.y;
     if (ang > 3.1415927f) {
         return 0;
     }
@@ -506,7 +506,7 @@ void cObjGondola::setMoveMotion(void* mot, int frame)
 
 int cObjGondola::ckRide()
 {
-    if (gondola.ridePL) {
+    if (gondola.Ride_pl) {
         return 1;
     }
     return 0;
@@ -520,8 +520,8 @@ void cObjGondola::setRideEm(cEm* em)
     u32 i;
 
     for (i = 0; i < 5; i++) {
-        if (w->rideEm[i] == 0) {
-            w->rideEm[i] = em;
+        if (w->pEm[i] == 0) {
+            w->pEm[i] = em;
             v.x = 0.0f;
             v.y = -4828.03f;
             v.z = (f32) i * 300.0f + -1000.0f;
@@ -542,8 +542,8 @@ void cObjGondola::setGetOffEm(cEm* em)
     int i;
 
     for (i = 0; i < 5; i++) {
-        if (w->rideEm[i] == em) {
-            w->rideEm[i] = 0;
+        if (w->pEm[i] == em) {
+            w->pEm[i] = 0;
         }
     }
 }
@@ -576,13 +576,13 @@ void objGondolaRideEmAdjust(cObjGondola* obj, Vec* pVec)
     c.z = 0.0f;
     PSMTXMultVec(parts->mat, &c, &c);
     for (i = 0; i < 5; i++) {
-        if (w->rideEm[i]) {
-            PSVECAdd(&w->rideEm[i]->pos, pVec, &w->rideEm[i]->pos);
-            w->rideEm[i]->setPos(&w->rideEm[i]->pos);
-            if ((c.x - w->rideEm[i]->pos.x) * (c.x - w->rideEm[i]->pos.x) +
-                (c.y - w->rideEm[i]->pos.y) * (c.y - w->rideEm[i]->pos.y) +
-                (c.z - w->rideEm[i]->pos.z) * (c.z - w->rideEm[i]->pos.z) > 16000000.0f) {
-                w->rideEm[i] = 0;
+        if (w->pEm[i]) {
+            PSVECAdd(&w->pEm[i]->pos, pVec, &w->pEm[i]->pos);
+            w->pEm[i]->setPos(&w->pEm[i]->pos);
+            if ((c.x - w->pEm[i]->pos.x) * (c.x - w->pEm[i]->pos.x) +
+                (c.y - w->pEm[i]->pos.y) * (c.y - w->pEm[i]->pos.y) +
+                (c.z - w->pEm[i]->pos.z) * (c.z - w->pEm[i]->pos.z) > 16000000.0f) {
+                w->pEm[i] = 0;
             }
         }
     }
@@ -595,11 +595,11 @@ void cObjGondola::setRidePL()
 
     MotionMove(this, 0);
     partsWorldCalc();
-    v = getPartsPtr(0)->worldPos;
+    v = getPartsPtr(0)->world;
     v.y -= 4828.03f;
-    FSet(pPL->rot.y, 2.84f);
+    FSet(pPL->ang.y, 2.84f);
     pPL->setPos(&v);
-    w->rideSUB = 0;
+    w->Ride_sub = 0;
     if (pSUBS) {
         Vec v2;
 
@@ -607,9 +607,9 @@ void cObjGondola::setRidePL()
         v2.y = 0.0f;
         v2.z = -800.0f;
         PSMTXMultVec(pPL->mat, &v2, &v2);
-        FSet(pSUB->rot.y, 2.84f);
+        FSet(pSUB->ang.y, 2.84f);
         pSUB->setPos(&v2);
-        w->rideSUB = 1;
+        w->Ride_sub = 1;
     }
     pG->flags_500C |= 0x20;
     r_no_0 = 2;

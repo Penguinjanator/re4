@@ -107,39 +107,39 @@ void DbgDrawBoxFill(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
 class cDbgWindow : public cDbgWindowBase {
 public:
     u32 num;               // 0x28
-    cDbgButton* btn[128];  // 0x2C
-    cDbgButton* cur;       // 0x22C
-    cDbgButton* top;       // 0x230
-    cDbgButton* bottom;    // 0x234
+    cDbgButton* m_pButList[128];  // 0x2C
+    cDbgButton* m_pCurrentBut;       // 0x22C
+    cDbgButton* m_pStartBut;       // 0x230
+    cDbgButton* m_pEndBut;    // 0x234
 
     virtual ~cDbgWindow() {
         u32 i;
         for (i = 0; i < num; i++) {
-            if (btn[i]) {
-                delete btn[i];
+            if (m_pButList[i]) {
+                delete m_pButList[i];
             }
         }
     }
     virtual int GetCx() {
-        if (cur) {
-            return cur->cx;
+        if (m_pCurrentBut) {
+            return m_pCurrentBut->cx;
         }
         return 0;
     }
     virtual int GetCy() {
-        if (cur) {
-            return cur->cy;
+        if (m_pCurrentBut) {
+            return m_pCurrentBut->cy;
         }
         return 0;
     }
-    virtual void SetCurrentTopButton() { cur = top; }
-    virtual void SetCurrentBottomButton() { cur = bottom; }
+    virtual void SetCurrentTopButton() { m_pCurrentBut = m_pStartBut; }
+    virtual void SetCurrentBottomButton() { m_pCurrentBut = m_pEndBut; }
     virtual void ButtonAllUpdate() {
         u32 i;
         for (i = 0; i < num; i++) {
-            cDbgButton* b = btn[i];
-            if (b && b->func) {
-                b->func(b);
+            cDbgButton* b = m_pButList[i];
+            if (b && b->m_pFuncUpdate) {
+                b->m_pFuncUpdate(b);
             }
         }
     }
@@ -158,7 +158,7 @@ int cDbgWindow::AddButton(int bx, int by, const char* name, int bcx, int bcy)
 {
     cDbgButton* b;
 
-    btn[num] = b = new cDbgButton;
+    m_pButList[num] = b = new cDbgButton;
     if (b == 0) {
         pLog->err(0, 0, "AddButton(): new failed.");
         return 0;
@@ -173,7 +173,7 @@ int cDbgWindow::FindButton(int cx, int cy, cDbgButton** out)
 
     *out = 0;
     for (i = 0; i < num; i++) {
-        cDbgButton* b = btn[i];
+        cDbgButton* b = m_pButList[i];
         if (b->cx == cx && b->cy == cy) {
             *out = b;
             return 1;
@@ -201,21 +201,21 @@ int cDbgWindow::LocalUpdate()
         cy++;
     }
     if (cx < 0) {
-        cx = maxCx;
+        cx = m_max_cx;
     }
     if (cy < 0) {
-        cy = maxCy;
+        cy = m_max_cy;
     }
-    if (cx > maxCx) {
+    if (cx > m_max_cx) {
         cx = 0;
     }
-    if (cy > maxCy) {
+    if (cy > m_max_cy) {
         cy = 0;
     }
     if (cx != GetCx() || cy != GetCy()) {
         cDbgButton* b;
         if (FindButton(cx, cy, &b)) {
-            cur = b;
+            m_pCurrentBut = b;
         }
     }
     ButtonAllUpdate();
@@ -237,17 +237,17 @@ void cDbgWindow::LocalDisp()
     cDbgButton* c;
 
     for (i = 0; i < num; i++) {
-        cDbgButton* b = btn[i];
-        eprintf2(8, 0xC, (x + b->x) * 8, (dbgWindowRow(y) + b->y) * 14, 0x10, 0, b->name);
+        cDbgButton* b = m_pButList[i];
+        eprintf2(8, 0xC, (x + b->x) * 8, (dbgWindowRow(y) + b->y) * 14, 0x10, 0, b->m_pStr);
     }
-    c = cur;
+    c = m_pCurrentBut;
     if (c) {
         int wx = x;
         int wy = dbgWindowRow(y);
         if (pG->flags_51E4 & 4) {
             eprintf2(8, 0xC, (wx + c->x - 1) * 8, (wy + c->y) * 14, 0, 0, ">");
         }
-        eprintf2(8, 0xC, (wx + c->x) * 8, (wy + c->y) * 14, 0, 0, c->name);
+        eprintf2(8, 0xC, (wx + c->x) * 8, (wy + c->y) * 14, 0, 0, c->m_pStr);
         {
             f32 px = (f32) ((wx + c->x) * 8);
             f32 py = (f32) ((wy + c->y) * 14);
@@ -519,7 +519,7 @@ int SsTermMain::OpeMesMove()
 {
     if (ope.seqCnt == 0 && ope.str == 0) {
         if (ope.mdtNo != 0) {
-            SndStrStopBlock(SubScreenWk.strBlk);
+            SndStrStopBlock(SubScreenWk.sndId);
             ope.str = SndStrReq(1, ope.mdtNo, 1, 0, 0, 0.0f);
             ope.flags |= 0x08000000;
             return 0;
@@ -537,12 +537,12 @@ int SsTermMain::OpeMesMove()
         modelOn = 1;
         u = IdSub.unitPtr(0x13, 0x10);
         IdSub.setTime(u, 0);
-        u->flags |= 8;
-        u->dir &= 0xF0;
+        u->be_flag |= 8;
+        u->rev_flag &= 0xF0;
         u = IdSub.unitPtr(0x14, 0x10);
         IdSub.setTime(u, 0);
-        u->flags |= 8;
-        u->dir &= 0xF0;
+        u->be_flag |= 8;
+        u->rev_flag &= 0xF0;
     }
     OpeMesClear();
     if (!(ope.flags & 0x10000000)) {
@@ -655,11 +655,11 @@ void termMotionSet(void* data, int no)
     cModel* m;
 
     m = MapMgr.getWork(0);
-    MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(d, 12), 0, (u8) no, 0x8000, 0);
-    ShapeSet(GetModelInfoAddr(m->pInfo, 3), 0, SS_ARC_PTR(d, 13), 2);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(d, 12), 0, (u8) no, 0x8000, 0);
+    ShapeSet(GetModelInfoAddr(m->pModelInfo, 3), 0, SS_ARC_PTR(d, 13), 2);
     m = MapMgr.getWork(2);
-    MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(d, 14), 0, (u8) no, 0x8000, 0);
-    ShapeSet(GetModelInfoAddr(m->pInfo, 3), 0, SS_ARC_PTR(d, 15), 0xA);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(d, 14), 0, (u8) no, 0x8000, 0);
+    ShapeSet(GetModelInfoAddr(m->pModelInfo, 3), 0, SS_ARC_PTR(d, 15), 0xA);
 }
 
 void termMotionCancel(void* data, int no)
@@ -669,9 +669,9 @@ void termMotionCancel(void* data, int no)
     cModel* m;
 
     m = MapMgr.getWork(0);
-    MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(wk->pTerm, 14), 0, (u8) no, 0x8004, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(wk->pTerm, 14), 0, (u8) no, 0x8004, 0);
     m = MapMgr.getWork(2);
-    MotionSetCore(m, &((cMotModel*) m)->mot, SS_ARC_PTR(d, 4), 0, (u8) no, 0x8004, 0);
+    MotionSetCore(m, &((cMotModel*) m)->Motion, SS_ARC_PTR(d, 4), 0, (u8) no, 0x8004, 0);
 }
 
 static cFileList term_file_list;
@@ -722,7 +722,7 @@ void SsTermInit::move(SUB_SCREEN* wk)
     }
     case 5: {
         char name[32];
-        partnerDataName(name, wk->mdtNo);
+        partnerDataName(name, wk->opeMdtNo);
 #line 1156 "D:/Bio4/Prog/ss_term.cpp"
         term_read_req = DVD_READ_N(name, 0, 0, 0, 0, 5);
         Dvd.ReadCheck(term_read_req, 0, 0, &partner);
@@ -779,9 +779,9 @@ void terminalCameraInit(SUB_SCREEN* wk, Camera* cam)
     cam->up.z = 0.0f;
     cam->param.fovy = 50.0f;
     CameraSetOrientationUp(cam);
-    C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
+    C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
 }
 
 extern "C" f64 tan(f64 x);
@@ -813,14 +813,14 @@ void SsTermMain::init(SUB_SCREEN* wk)
     IdSub.set(SS_ARC_PTR(wk->pTerm, 8), 0xFF, 0x14, 0xC, 5, 0);
     IdSub.set(SS_ARC_PTR(wk->pTerm, 9), 0xFF, 0x10, 0xF, 2, 0);
     u = IdSub.unitPtr(0x12, 0x10);
-    u->flags &= ~8;
-    u->dir |= 0xF;
+    u->be_flag &= ~8;
+    u->rev_flag |= 0xF;
     u = IdSub.unitPtr(0x13, 0x10);
-    u->flags &= ~8;
-    u->dir |= 0xF;
+    u->be_flag &= ~8;
+    u->rev_flag |= 0xF;
     u = IdSub.unitPtr(0x14, 0x10);
-    u->flags &= ~8;
-    u->dir |= 0xF;
+    u->be_flag &= ~8;
+    u->rev_flag |= 0xF;
     sscrnMainMenuInit(wk, 0);
     IntSet(x10, 0);
     if (pSys->language == 0) {
@@ -841,7 +841,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
     ssWepModel2 = 0;
     tel00ModelInit(MapMgr.getWork(0), wk->pTerm);
     m = MapMgr.getWork(2);
-    hunniganModelInit(m, wk->pPartner, partnerType(wk->mdtNo));
+    hunniganModelInit(m, wk->pPartner, partnerType(wk->opeMdtNo));
     modelOn = 0;
     ended = 0;
     {
@@ -849,7 +849,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
         Vec ang = {0.0f, 0.0f, 0.0f};
         pos = term_pl_pos;
         MapMgr.getWork(2)->pos = pos;
-        MapMgr.getWork(2)->rot = ang;
+        MapMgr.getWork(2)->ang = ang;
         MapMgr.getWork(2)->matUpdate();
         {
             Vec d;
@@ -860,7 +860,7 @@ void SsTermMain::init(SUB_SCREEN* wk)
             ang2.y = atan2f(d.x, d.z);
             ang2.z = 0.0f;
             MapMgr.getWork(0)->pos = pos;
-            MapMgr.getWork(0)->rot = ang2;
+            MapMgr.getWork(0)->ang = ang2;
             MapMgr.getWork(0)->matUpdate();
         }
     }
@@ -879,17 +879,17 @@ void SsTermMain::move(SUB_SCREEN* wk)
             ended = 1;
             u = IdSub.unitPtr(0x13, 0x10);
             IdSub.setTime(u, 0);
-            u->flags |= 8;
-            u->dir &= 0xF0;
+            u->be_flag |= 8;
+            u->rev_flag &= 0xF0;
             u = IdSub.unitPtr(0x14, 0x10);
             IdSub.setTime(u, 0);
-            u->flags |= 8;
-            u->dir &= 0xF0;
+            u->be_flag |= 8;
+            u->rev_flag &= 0xF0;
         }
         MotionMoveF(MapMgr.getWork(0), 0);
-        ShapeMove(MapMgr.getWork(0)->pInfo);
+        ShapeMove(MapMgr.getWork(0)->pModelInfo);
         MotionMoveF(MapMgr.getWork(2), 0);
-        ShapeMove(MapMgr.getWork(2)->pInfo);
+        ShapeMove(MapMgr.getWork(2)->pModelInfo);
     }
     if (x10 == 0) {
         if (ope.wait != 0) {

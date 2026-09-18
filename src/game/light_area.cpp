@@ -44,7 +44,7 @@ struct LightAreaLauncher {
     cEm* rocket;  // 0x384
 };
 
-#define WEP_OBJ() (((LightAreaWep*) em->pWep)->pObj)
+#define WEP_OBJ() (((LightAreaWep*) em->Wep)->pObj)
 #define WEP_ROCKET(w) (((LightAreaLauncher*) (w))->rocket)
 
 static inline void LitAreaSet(EmLightArea* la, u32 bit)

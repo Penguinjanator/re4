@@ -102,18 +102,18 @@ void tvModeMenu_progressive(TvModeWork* tv)
         cMes.MesSet(0, 100, 220, 0x1000051, 0, 0, 1);
         timer = 0;
         w = cMes.getWork();
-        if ((sel = w->result) == 0) {
+        if ((sel = w->m_sel) == 0) {
             do {
                 timer++;
                 if (Joy[0].trg & 0x30003) {
                     timer = 0;
                 }
                 if (timer > 300) {
-                    sel = cMes.mes[0].cursor + 1;
+                    sel = cMes.mes[0].m_cur + 1;
                     break;
                 }
                 TaskSleep(1);
-            } while ((sel = w->result) == 0);
+            } while ((sel = w->m_sel) == 0);
         }
         old = pRK->progressive;
         if (sel == 1) {

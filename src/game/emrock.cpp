@@ -120,7 +120,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetRock() ModelInit failed.");
@@ -144,15 +144,15 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         atariInitF(&em->atari, 0.0f, 2000.0f, 0.0f, 2700.0f, 2700.0f, 2700.0f, 2000.0f, 0, 0x2000, 10);
     }
     em->hp = 1000;
-    em->hpMax = 1000;
+    em->hp_max = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
         if (type != 1 && type != 3) {
-            em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+            em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
         } else {
-            em->lightInfo.init2(0, 1, &ofs, &size, 8);
+            em->LightInfo.init2(0, 1, &ofs, &size, 8);
         }
     }
     // COMPILER-DIFF: #13 (dying-store shape): the original's zero pseudo (REG_EQUIV 0, never
@@ -173,10 +173,10 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->atari.clrFlag100();
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
-    w->sndId = zero;
-    w->flags = zero;
+    w->seid_throw = zero;
+    w->Be_flg = zero;
     w->x24 = zero;
-    w->pParent = (cEm*) zero;
+    w->pEm_oya = (cEm*) zero;
     w->x30 = zero;
     w->pAtk = (EmAtkInfo*) zero;
     w->xA1 = zero;
@@ -205,12 +205,12 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->eff9C[1] = 0xFF;
     asm volatile("" : : "r"(zero)); // COMPILER-DIFF: #13
     if (em->type != 3) {
-        w->radius = em->scale.x * 600.0f;
+        w->Radius = em->scale.x * 600.0f;
     } else {
-        w->radius = 2000.0f;
+        w->Radius = 2000.0f;
     }
-    w->started = 0;
-    w->grav = 20.0f;
+    w->Roll_flag = 0;
+    w->Gravity = 20.0f;
     w->rollWait = 0;
     em->pMotion = (void*) 0;
     w->plMot[2] = (void*) 0;
@@ -262,16 +262,16 @@ void cEmRock::move()
     }
     EmAtCheck(this);
     atari.move();
-    if (w->pParent) {
-        alpha = w->pParent->alpha;
-        invisible_factor2 = w->pParent->invisible_factor2;
-        if (w->pParent->be_flag & 2) {
+    if (w->pEm_oya) {
+        invisible_factor = w->pEm_oya->invisible_factor;
+        invisible_factor2 = w->pEm_oya->invisible_factor2;
+        if (w->pEm_oya->be_flag & 2) {
             be_flag |= 2;
         } else {
             be_flag &= ~2;
         }
     }
-    if (w->flags & 2) {
+    if (w->Be_flg & 2) {
         be_flag &= ~2;
     }
     emRockSatSet(this);
@@ -297,7 +297,7 @@ void emRock_R1_Set(cEmRock* em)
     if (em->pMotion) {
         MotionMove(em, 0);
     } else {
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
@@ -308,9 +308,9 @@ void emRock_R1_Set(cEmRock* em)
         em->r_no_2++;
         break;
     case 1:
-        if (w->started == 0 && em->type == 1) {
+        if (w->Roll_flag == 0 && em->type == 1) {
             if (emRockRollStartCk(em)) {
-                w->started = 1;
+                w->Roll_flag = 1;
                 em->flags_3C8 |= 1;
                 em->r_no_0 = 1;
                 em->r_no_1 = 6;
@@ -333,10 +333,10 @@ void emRock_R1_Lost(cEmRock* em)
         em->clearStatus(5);
         EffectEspgenDelete(0, w->espKind, em);
         em->r_no_2++;
-        w->timer = 30;
+        w->Timer = 30;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             EmMgr.destroy(em);
         }
@@ -347,18 +347,18 @@ void emRock_R1_Lost(cEmRock* em)
 void emRock_R1_Parent(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
-    cEm* parent = w->pParent;
+    cEm* parent = w->pEm_oya;
     Mtx m;
     Vec v0;
     Vec v1;
     Vec v2;
 
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     if (parent && parent->pParts) {
-        PSMTXConcat(parent->getPartsPtr(w->partsNo)->mat, em->mat, m);
-        if (!(w->flags & 1)) {
+        PSMTXConcat(parent->getPartsPtr(w->oya_parts)->mat, em->mat, m);
+        if (!(w->Be_flg & 1)) {
             v0.x = m[0][0];
             v0.y = m[1][0];
             v0.z = m[2][0];
@@ -414,17 +414,17 @@ void emRock_R1_Fall(cEmRock* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer2 = 60;
+        w->Timer2 = 60;
         em->r_no_2++;
     case 1:
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
             break;
         }
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
@@ -432,18 +432,18 @@ void emRock_R1_Fall(cEmRock* em)
         EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
         break;
     }
-    w->spd.y -= w->grav;
+    w->spd.y -= w->Gravity;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, w->radius, 0x2001, 0);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, w->Radius, 0x2001, 0);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         em->be_flag &= ~2;
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
@@ -452,18 +452,18 @@ void emRock_R1_Fall(cEmRock* em)
         return;
     }
     if (w->pAtk) {
-        emRockAtkCk(em, w->pAtk, 0, w->radius);
+        emRockAtkCk(em, w->pAtk, 0, w->Radius);
     }
     {
         Mtx m;
         Vec up;
         Vec axis;
 
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
-                    (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
-                    (em->pos.z - em->oldPos.z) * (em->pos.z - em->oldPos.z));
+        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
+                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
+                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -502,26 +502,26 @@ void emRock_R1_Throw(cEmRock* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        w->timer2 = 60;
+        w->Timer = 0;
+        w->Timer2 = 60;
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->alwaysWait;
+            w->Timer = w->alwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
             break;
         }
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
@@ -529,12 +529,12 @@ void emRock_R1_Throw(cEmRock* em)
         EstSet(0, -1, &em->pos, 0, 1, 8, 0, 0, 0, 0);
         break;
     }
-    w->spd.y -= w->grav;
+    w->spd.y -= w->Gravity;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, w->radius, 0x2001, 0);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, w->Radius, 0x2001, 0);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         f32 spd;
 
@@ -546,7 +546,7 @@ void emRock_R1_Throw(cEmRock* em)
             em->pos.x = em->mat[0][3];
             em->pos.y = em->mat[1][3];
             em->pos.z = em->mat[2][3];
-            Matrix2AxisAngle(em->mat, &em->rot);
+            Matrix2AxisAngle(em->mat, &em->ang);
             em->r_no_0 = 1;
             em->r_no_1 = 1;
             em->r_no_2 = 0;
@@ -569,18 +569,18 @@ void emRock_R1_Throw(cEmRock* em)
         }
     }
     if (w->pAtk) {
-        emRockAtkCk(em, w->pAtk, 1, w->radius);
+        emRockAtkCk(em, w->pAtk, 1, w->Radius);
     }
     {
         Mtx m;
         Vec up;
         Vec axis;
 
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
-                    (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
-                    (em->pos.z - em->oldPos.z) * (em->pos.z - em->oldPos.z));
+        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
+                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
+                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -620,41 +620,41 @@ void emRock_R1_Throw2(cEmRock* em)
 
     switch (em->r_no_2) {
     case 0:
-        w->timer = 0;
-        w->timer2 = 180;
+        w->Timer = 0;
+        w->Timer2 = 180;
         at = &em->atari;
-        at->flags &= ~0x300;
+        at->m_flag &= ~0x300;
         SndCall(6, 0x49, &em->pos, 0, 0, em);
         em->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
-            w->timer = w->alwaysWait;
+            w->Timer = w->alwaysWait;
             if (w->seAlways[0] != 0xFF && w->seAlways[1] != 0xFF) {
-                w->sndId = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
+                w->seid_throw = SndCall(w->seAlways[0], w->seAlways[1], &em->pos, w->seAlways[2], 0, em);
             }
         }
-        if (w->timer2) {
-            w->timer2--;
+        if (w->Timer2) {
+            w->Timer2--;
             break;
         }
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
-        Matrix2AxisAngle(em->mat, &em->rot);
+        Matrix2AxisAngle(em->mat, &em->ang);
         em->r_no_0 = 1;
         em->r_no_1 = 1;
         em->r_no_2 = 0;
         em->r_no_3 = 0;
         break;
     }
-    w->spd.y -= w->grav;
+    w->spd.y -= w->Gravity;
     PSVECAdd(&em->pos, &w->spd, &em->pos);
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &em->oldPos, &em->pos, w->radius, 0x2001, 0);
+    EatMgr.adjust(&nrm, &em->pos_old, &em->pos, w->Radius, 0x2001, 0);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
         Vec p;
 
@@ -687,11 +687,11 @@ void emRock_R1_Throw2(cEmRock* em)
         Vec up;
         Vec axis;
 
-        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        PSVECSubtract(&em->pos, &em->pos_old, &d);
         PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-        len = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
-                    (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
-                    (em->pos.z - em->oldPos.z) * (em->pos.z - em->oldPos.z));
+        len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
+                    (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
+                    (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
         if (len > 500.0f) {
             len = 500.0f;
         }
@@ -734,7 +734,7 @@ void emRock_R1_Roll(cEmRock* em)
             em->pos.x = em->mat[0][3];
             em->pos.y = em->mat[1][3];
             em->pos.z = em->mat[2][3];
-            Matrix2AxisAngle(em->mat, &em->rot);
+            Matrix2AxisAngle(em->mat, &em->ang);
             em->r_no_0 = 1;
             em->r_no_1 = 0;
             em->r_no_2 = 0;
@@ -753,10 +753,10 @@ void emRock_R1_Roll(cEmRock* em)
             break;
         }
         emRockPushCk(em, 0);
-        em->atari.flags &= ~0x200;
-        PLS->rot.y = em->rot.y;
+        em->atari.m_flag &= ~0x200;
+        PLS->ang.y = em->ang.y;
         SetPlDamage((int) em, (void (*)(cPlayer*)) plemRockEscape);
-        w->timer3 = 75;
+        w->Roll_wait = 75;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
@@ -769,9 +769,9 @@ void emRock_R1_Roll(cEmRock* em)
         }
         em->r_no_2++;
     case 1:
-        if (w->timer3) {
-            w->timer3--;
-            if (w->timer3 == 0) {
+        if (w->Roll_wait) {
+            w->Roll_wait--;
+            if (w->Roll_wait == 0) {
                 w->sndId2 = SndCall(6, 5, &em->pos, 0, 0, em);
             }
             return;
@@ -795,7 +795,7 @@ void emRock_R1_Roll(cEmRock* em)
         } else {
             f32 floor;
 
-            floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + w->radius;
+            floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + w->Radius;
             if (em->pos.y < floor) {
                 em->pos.y = floor;
                 w->spd.y *= -0.5f;
@@ -803,7 +803,7 @@ void emRock_R1_Roll(cEmRock* em)
                     Vec fp;
 
                     fp = em->pos;
-                    fp.y -= w->radius;
+                    fp.y -= w->Radius;
                     EstSet(0, -1, &fp, 0, 0xC8, 0, 0, 0, 0, 0);
                     SndCall(6, 7, &em->pos, 0, 0, em);
                     if (w->First_bound == 0) {
@@ -821,11 +821,11 @@ void emRock_R1_Roll(cEmRock* em)
             Vec up;
             Vec axis;
 
-            PSVECSubtract(&em->pos, &em->oldPos, &d);
+            PSVECSubtract(&em->pos, &em->pos_old, &d);
             PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
-            len = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
-                        (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
-                        (em->pos.z - em->oldPos.z) * (em->pos.z - em->oldPos.z));
+            len = SQRTF((em->pos.x - em->pos_old.x) * (em->pos.x - em->pos_old.x) +
+                        (em->pos.y - em->pos_old.y) * (em->pos.y - em->pos_old.y) +
+                        (em->pos.z - em->pos_old.z) * (em->pos.z - em->pos_old.z));
             if (len > 500.0f) {
                 len = 500.0f;
             }
@@ -862,7 +862,7 @@ void emRock_R1_Drop(cEmRock* em)
 
     switch (em->r_no_2) {
     case 0:
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         MotionSetCore(em, &em->pMotion, w->mot0, 0, 0, 1, 0);
         em->r_no_2++;
     case 1:
@@ -875,29 +875,29 @@ void emRock_R1_Drop(cEmRock* em)
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
         EstSet((int) em, -1, 0, 0, 1, 4, 0, w->espKind, (u32) em, 0);
         SndCall(6, 8, &em->pos, 0, 0, em);
-        w->timer = 37;
+        w->Timer = 37;
         em->r_no_2++;
     case 3:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             emRockDropHitCk(em);
             emRockDropHitCkSub(em);
             if (emRockDropHitCkEm2b(em)) {
                 em->be_flag &= ~2;
-                em->atari.flags &= ~0x200;
+                em->atari.m_flag &= ~0x200;
                 em->hp = 0;
                 em->r_no_0 = 1;
                 em->r_no_1 = 1;
                 em->r_no_2 = 0;
                 em->r_no_3 = 0;
                 EffectEspgenDelete(0, w->espKind, em);
-                EstSet(0, -1, &em->getPartsPtr(0)->worldPos, 0, 1, 1, 0, 0, 0, 0);
+                EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 1, 1, 0, 0, 0, 0);
                 SndCall(6, 7, &em->pos, 0, 0, em);
                 break;
             }
-            if (w->timer == 0) {
+            if (w->Timer == 0) {
                 SndCall(6, 7, &em->pos, 0, 0, em);
-                em->atari.flags |= 0x200;
+                em->atari.m_flag |= 0x200;
             }
         }
         if (MotionMove(em, 0)) {
@@ -917,7 +917,7 @@ void emRock_R1_Drop2(cEmRock* em)
     switch (em->r_no_2) {
     case 0:
         em->r_no_2++;
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
     case 1:
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
         MotionMove(em, 0);
@@ -930,9 +930,9 @@ void emRock_R1_Drop2(cEmRock* em)
         KeyStop(0xEFCF0000ULL);
         em->r_no_2++;
     case 2:
-        w->timer = 25;
+        w->Timer = 25;
         emRockPushCk(em, 50);
-        FSet(pPL->rot.y, -0.1f);
+        FSet(pPL->ang.y, -0.1f);
         FSet(pPL->pos.x, -4924.0f);
         FSet(pPL->pos.y, -11950.0f);
         FSet(pPL->pos.z, -14770.0f);
@@ -943,8 +943,8 @@ void emRock_R1_Drop2(cEmRock* em)
     case 3:
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
         MotionMove(em, 0);
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
             break;
         }
         em->r_no_2++;
@@ -953,7 +953,7 @@ void emRock_R1_Drop2(cEmRock* em)
         MotionSetCore(em, &em->pMotion, w->mot1, 0, 0, 1, 0);
         EstSet(0, -1, 0, 0, 1, 5, 0, 0, 0, 0);
         SndCall(6, 4, &em->pos, 0, 0, em);
-        w->timer = 31;
+        w->Timer = 31;
         w->rnd = Rnd() & 1;
         w->Act_ck = 0;
         em->r_no_2++;
@@ -967,9 +967,9 @@ void emRock_R1_Drop2(cEmRock* em)
             em->r_no_3 = 0;
             break;
         }
-        if (w->timer) {
-            w->timer--;
-            if (w->timer == 0) {
+        if (w->Timer) {
+            w->Timer--;
+            if (w->Timer == 0) {
                 if (w->Act_ck != 0) {
                     break;
                 }
@@ -1042,8 +1042,8 @@ void plemDropEscape(cPlayer* pl)
     case 0:
         MotionSetCore(pl, &pl->pMotion, w->mot4, 0, 3, 1, 0);
         EstSet((int) pl, -1, 0, 0, 3, 0x14, 0, 0, (u32) pl, 0);
-        SndCall(1, 0x43, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        SndCall(1, 0x44, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
+        SndCall(1, 0x43, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        SndCall(1, 0x44, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pPL->st.x325 = 0x1E;
         pl->r_no_2++;
     case 1:
@@ -1079,7 +1079,7 @@ int emRockRollHitCk(cEmRock* em)
         return 0;
     }
     if ((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z) >
-        w->radius * w->radius) {
+        w->Radius * w->Radius) {
         return 0;
     }
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
@@ -1093,18 +1093,18 @@ void cEmRock::setParent(cEm* parent, int partsNo_, int flag)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->partsNo = partsNo_;
-    w->pParent = parent;
+    w->oya_parts = partsNo_;
+    w->pEm_oya = parent;
     if (flag) {
-        w->flags |= 1;
+        w->Be_flg |= 1;
     } else {
-        w->flags &= ~1;
+        w->Be_flg &= ~1;
     }
     r_no_0 = 1;
     r_no_1 = 2;
     r_no_2 = 0;
     r_no_3 = 0;
-    parent->atari.flags &= ~0x200;
+    parent->atari.m_flag &= ~0x200;
 }
 
 // Drops the rock off its parent: it falls straight down (emRock_R1_Fall) with `atk` as its attack.
@@ -1119,22 +1119,22 @@ void cEmRock::setFall(EmAtkInfo* atk)
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->x30 = (u32) w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->x30 = (u32) w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
         w->pAtk = &emRockAtk;
-        emRockAtk.range = w->radius;
+        emRockAtk.range = w->Radius;
     }
     r_no_0 = 1;
     r_no_1 = 3;
@@ -1155,8 +1155,8 @@ void cEmRock::setThrow(Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -1164,28 +1164,28 @@ void cEmRock::setThrow(Vec* spd, EmAtkInfo* atk)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->x30 = (u32) w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->x30 = (u32) w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
         w->pAtk = &emRockAtk;
-        emRockAtk.range = w->radius;
+        emRockAtk.range = w->Radius;
     }
     r_no_0 = 1;
     r_no_1 = 4;
@@ -1206,8 +1206,8 @@ void cEmRock::setThrow2(Vec* spd, EmAtkInfo* atk)
         v.x = fRand1_1() * 10.0f + 20.0f;
         v.y = fRand1_1() * 10.0f + 75.0f;
         v.z = fRand1_1() * 10.0f + 350.0f;
-        if (w->pParent) {
-            PSMTXMultVecSR(w->pParent->mat, &v, &v);
+        if (w->pEm_oya) {
+            PSMTXMultVecSR(w->pEm_oya->mat, &v, &v);
         } else {
             PSMTXMultVecSR(mat, &v, &v);
         }
@@ -1215,28 +1215,28 @@ void cEmRock::setThrow2(Vec* spd, EmAtkInfo* atk)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = 0.0f;
-    rot.y = atan2f(v.x, v.z);
-    rot.z = 0.0f;
+    ang.x = 0.0f;
+    ang.y = atan2f(v.x, v.z);
+    ang.z = 0.0f;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
     pos.z = mat[2][3];
-    RotMatrix(mat, &rot);
+    RotMatrix(mat, &ang);
     PSMTXRotRad(m, 'z', 1.5707964f);
     PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
-    oldPos = pos;
-    if (w->pParent) {
-        w->x30 = (u32) w->pParent;
+    pos_old = pos;
+    if (w->pEm_oya) {
+        w->x30 = (u32) w->pEm_oya;
     }
-    w->pParent = 0;
+    w->pEm_oya = 0;
     hp = 1;
     setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
         w->pAtk = &emRockAtk;
-        emRockAtk.range = w->radius;
+        emRockAtk.range = w->Radius;
     }
     r_no_0 = 1;
     r_no_1 = 5;
@@ -1293,9 +1293,9 @@ void cEmRock::setTransMode(int on)
     EmRockWork* w = EMROCK_WK(this);
 
     if (on) {
-        w->flags &= ~2;
+        w->Be_flg &= ~2;
     } else {
-        w->flags |= 2;
+        w->Be_flg |= 2;
     }
 }
 
@@ -1305,14 +1305,14 @@ void emRockAtkScrCk(cEmRock* em)
 {
     int i;
 
-    if (pG->pRoomEmi == 0) {
+    if (pG->pEmi == 0) {
         return;
     }
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
-        EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
-        if (((u8*) pG->pRoomEmi)[o] != 3) {
+        if (((u8*) pG->pEmi)[o] != 3) {
             continue;
         }
         if (e->state == 3) {
@@ -1364,15 +1364,15 @@ int emRockSetRollRoute(cEmRock* em)
     int i;
     int idx;
 
-    emi = (u8*) pG->pRoomEmi;
+    emi = (u8*) pG->pEmi;
     if (emi == 0) {
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
 
-        if (((u8*) pG->pRoomEmi)[o] == 6) {
+        if (((u8*) pG->pEmi)[o] == 6) {
             idx = i;
             break;
         }
@@ -1380,11 +1380,11 @@ int emRockSetRollRoute(cEmRock* em)
     if (idx == -1) {
         return 0;
     }
-    w->routeIdx = idx;
+    w->Rock_route = idx;
     {
         u32 o = idx * 0x40 + 8;
 
-        w->pRoute = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+        w->pRoute = (EmiEntry*) ((u8*) pGS->pEmi + o);
     }
     return 1;
 }
@@ -1402,7 +1402,7 @@ int emRockSetRollSpd(cEmRock* em)
     f32 add;
     Vec dir;
 
-    emi = (u8*) pG->pRoomEmi;
+    emi = (u8*) pG->pEmi;
     if (emi == 0) {
         return 1;
     }
@@ -1410,10 +1410,10 @@ int emRockSetRollSpd(cEmRock* em)
     spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
     if (spd < 250000.0f) {
         idx = -1;
-        for (i = w->routeIdx + 1; i < *(int*) pG->pRoomEmi; i++) {
+        for (i = w->Rock_route + 1; i < *(int*) pG->pEmi; i++) {
             u32 o = i * 0x40 + 8;
 
-            if (((u8*) pG->pRoomEmi)[o] == 6) {
+            if (((u8*) pG->pEmi)[o] == 6) {
                 idx = i;
                 break;
             }
@@ -1421,11 +1421,11 @@ int emRockSetRollSpd(cEmRock* em)
         if (idx == -1) {
             return 1;
         }
-        w->routeIdx = idx;
+        w->Rock_route = idx;
         {
             u32 o = idx * 0x40 + 8;
 
-            e = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+            e = (EmiEntry*) ((u8*) pGS->pEmi + o);
         }
         w->pRoute = e;
     }
@@ -1463,7 +1463,7 @@ int emRockRollStartCk(cEmRock* em)
     int i;
     GlobalWork* g;
 
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (EmiData*) pG->pEmi;
     g = pGS;  // the struct-view read is a second pG pseudo (`mr r11,r9`) that the pl_life test reads
     if (emi == 0) {
         return 0;
@@ -1512,26 +1512,26 @@ void plemRockEscape(cPlayer* pl)
     case 0:
         pl->x3E0 = 85;
         Cckpt.lifeMeterDisp(0);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         switch (pG->room_no) {
         case 4:
         default:
             FSet(pPL->pos.x, 57947.0f);
             FSet(pPL->pos.y, 3273.0f);
             FSet(pPL->pos.z, -27900.0f);
-            pl->rot.y = 1.67f;
+            pl->ang.y = 1.67f;
             break;
         case 6:
             FSet(pPL->pos.x, 28428.0f);
             FSet(pPL->pos.y, -5465.0f);
             FSet(pPL->pos.z, 2765.0f);
-            pl->rot.y = -1.99f;
+            pl->ang.y = -1.99f;
             break;
         case 0xA:
             FSet(pPL->pos.x, -38340.0f);
             FSet(pPL->pos.y, 5111.0f);
             FSet(pPL->pos.z, 68313.0f);
-            pl->rot.y = -1.86f;
+            pl->ang.y = -1.86f;
             break;
         }
         pl->r_no_2++;
@@ -1541,8 +1541,8 @@ void plemRockEscape(cPlayer* pl)
             pl->x3E0--;
             emRockPushCamMove(PL_ROCK(pl));
             MotionSetCore(pl, &pl->pMotion, w->plMot[0], (int) w->plMot[1], 0, 1, 0);
-            pl->rot.y += Muku(&pl->pos, &PL_ROCK(pl)->pos, pl->rot.y, 3.1415927f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &PL_ROCK(pl)->pos, pl->ang.y, 3.1415927f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
             MotionMove(pl, 0);
         } else {
             emRockPushCamMove2(PL_ROCK(pl));
@@ -1642,11 +1642,11 @@ void plemRockEscape(cPlayer* pl)
         }
         if (pl->x3EC != -1) {
             u32 o = pl->x3EC * 0x40 + 8;
-            EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+            EmiEntry* e = (EmiEntry*) ((u8*) pG->pEmi + o);
 
             RouteCkToPos(pl, &e->pos, &v, 0, 0);
-            pl->rot.y += Muku(&pl->pos, &v, pl->rot.y, 0.024543693f);
-            pl->rot.y = LIMIT_ANGLE(pl->rot.y);
+            pl->ang.y += Muku(&pl->pos, &v, pl->ang.y, 0.024543693f);
+            pl->ang.y = LIMIT_ANGLE(pl->ang.y);
         }
         MotionMove(pl, 0);
         if (pl->x3F8 == 0) {
@@ -1672,8 +1672,8 @@ void plemRockEscape(cPlayer* pl)
         }
         MotionSetCore(pl, &pl->pMotion, mot, 0, 3, flag, 0);
         pl->x3E0 = 20;
-        SndCall(1, 0x48, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
-        SndCall(1, 0x11, &pl->getPartsPtr(4)->worldPos, 0, 0, pl);
+        SndCall(1, 0x48, &pl->getPartsPtr(4)->world, 0, 0, pl);
+        SndCall(1, 0x11, &pl->getPartsPtr(4)->world, 0, 0, pl);
         pl->r_no_2++;
     case 5:
         if (pl->x3E0) {
@@ -1690,7 +1690,7 @@ void plemRockEscape(cPlayer* pl)
         if (MotionMove(pl, 0)) {
             pG->flags_170 &= ~0x80000000;
             Cckpt.lifeMeterDisp(1);
-            pl->pWep->setTrans(1, 0);
+            pl->Wep->setTrans(1, 0);
             GameSaveSave(&GameSave, pSaveData, -1);
             EndPlDamage();
         }
@@ -1726,7 +1726,7 @@ void cEmRock::setScale(f32 s)
     scale.z = s;
     scale.y = s;
     scale.x = s;
-    EMROCK_WK(this)->radius = s * 600.0f;
+    EMROCK_WK(this)->Radius = s * 600.0f;
 }
 
 // Last EMI route point (type 6): the player runs towards it. -1 when there is none.
@@ -1735,7 +1735,7 @@ int plemRockSetEscapeRoute()
     EmiData* emi;
     int i;
 
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (EmiData*) pG->pEmi;
     if (emi == 0) {
         return -1;
     }
@@ -1755,15 +1755,15 @@ int plemRockEscapeCk(cPlayer* pl)
     int i;
     int idx;
 
-    emi = (u8*) pG->pRoomEmi;
+    emi = (u8*) pG->pEmi;
     if (emi == 0) {
         return 0;
     }
     idx = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
 
-        if (((u8*) pG->pRoomEmi)[o] == 7) {
+        if (((u8*) pG->pEmi)[o] == 7) {
             idx = i;
             break;
         }
@@ -1774,7 +1774,7 @@ int plemRockEscapeCk(cPlayer* pl)
     {
         u32 o = idx * 0x40 + 8;
 
-        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        e = (EmiEntry*) ((u8*) pG->pEmi + o);
     }
     if ((pl->pos.x - e->pos.x) * (pl->pos.x - e->pos.x) + (pl->pos.z - e->pos.z) * (pl->pos.z - e->pos.z) > 9000000.0f) {
         return 0;
@@ -1894,7 +1894,7 @@ void plemRockDropDieCamMove(cEmRock* em)
     Camera* gcam = &pG->Cam;
 
     emRockCam.param.fovy = 50.0f;
-    if (Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f) < 0.0f) {
+    if (Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f) < 0.0f) {
         p.x = -10000.0f;
         p.y = 5000.0f;
         p.z = 0.0f;
@@ -1905,7 +1905,7 @@ void plemRockDropDieCamMove(cEmRock* em)
     }
     PSMTXMultVec(em->mat, &p, &p);
     parts = pPL->getPartsPtr(0);
-    PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 0.1f);
+    PosToPos(&gcam->param.at, &parts->world, &emRockCam.param.at, 0.1f);
     PosToPos(&gcam->param.pos, &p, &emRockCam.param.pos, 0.1f);
     {
         Camera* cam = &emRockCam;
@@ -1955,7 +1955,7 @@ void emRockPushCamMove(cEmRock* em)
         break;
     }
     parts = em->getPartsPtr(0);
-    PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 1.0f);
+    PosToPos(&gcam->param.at, &parts->world, &emRockCam.param.at, 1.0f);
     emRockCam.param.pos = p;
     {
         Camera* cam = &emRockCam;
@@ -2085,9 +2085,9 @@ void emRockRunDownCk(cEmRock* em)
         }
         v = e->pos;
         v.y += 1000.0f;
-        r = w->radius * 1.5f;
-        len = (p->worldPos.x - v.x) * (p->worldPos.x - v.x) + (p->worldPos.y - v.y) * (p->worldPos.y - v.y) +
-              (p->worldPos.z - v.z) * (p->worldPos.z - v.z);
+        r = w->Radius * 1.5f;
+        len = (p->world.x - v.x) * (p->world.x - v.x) + (p->world.y - v.y) * (p->world.y - v.y) +
+              (p->world.z - v.z) * (p->world.z - v.z);
         if (len < r * r) {
             e->hp = 0;
             e->r_no_0 = 3;
@@ -2106,13 +2106,13 @@ int emRockAtkCk(cEmRock* em, EmAtkInfo* atk, int type, f32 r)
 
     if (atk) {
         a = *atk;
-        a.range = w->radius;
-        if (EmAtkHitCk(&a, &em->pos, &em->oldPos, 1)) {
+        a.range = w->Radius;
+        if (EmAtkHitCk(&a, &em->pos, &em->pos_old, 1)) {
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->se8D[0] != 0xFF && w->se8D[1] != 0xFF) {
                 SndCall(w->se8D[0], w->se8D[1], &em->pos, w->se8D[2], 0, em);
             }
-            SndStop(w->sndId, 0);
+            SndStop(w->seid_throw, 0);
             QuakeExec(0, 0, 5, 22.0f, 2);
             if (type) {
                 PlSetDamage(8, 0, 0);
@@ -2225,9 +2225,9 @@ int emRockDropHitCk(cEmRock* em)
         return 0;
     }
     p = em->getPartsPtr(0);
-    len = (p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x) + (p->worldPos.y - pPL->pos.y) * (p->worldPos.y - pPL->pos.y) +
-          (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z);
-    r = w->radius + 1000.0f;
+    len = (p->world.x - pPL->pos.x) * (p->world.x - pPL->pos.x) + (p->world.y - pPL->pos.y) * (p->world.y - pPL->pos.y) +
+          (p->world.z - pPL->pos.z) * (p->world.z - pPL->pos.z);
+    r = w->Radius + 1000.0f;
     if (len > r * r) {
         return 0;
     }
@@ -2247,7 +2247,7 @@ int emRockDropHitCkSub(cEmRock* em)
     if (pSUB == 0) {
         return 0;
     }
-    if ((s16) pG->sub_life <= 0) {
+    if ((s16) pG->ashley_life <= 0) {
         return 0;
     }
     dead = 1;
@@ -2261,9 +2261,9 @@ int emRockDropHitCkSub(cEmRock* em)
         return 0;
     }
     p = em->getPartsPtr(0);
-    len = (p->worldPos.x - pSUB->pos.x) * (p->worldPos.x - pSUB->pos.x) + (p->worldPos.y - pSUB->pos.y) * (p->worldPos.y - pSUB->pos.y) +
-          (p->worldPos.z - pSUB->pos.z) * (p->worldPos.z - pSUB->pos.z);
-    r = w->radius + 1000.0f;
+    len = (p->world.x - pSUB->pos.x) * (p->world.x - pSUB->pos.x) + (p->world.y - pSUB->pos.y) * (p->world.y - pSUB->pos.y) +
+          (p->world.z - pSUB->pos.z) * (p->world.z - pSUB->pos.z);
+    r = w->Radius + 1000.0f;
     if (len > r * r) {
         return 0;
     }
@@ -2297,10 +2297,10 @@ int emRockDropHitCkEm2b(cEmRock* em)
             continue;
         }
         q = e->getPartsPtr(2);
-        len = (q->worldPos.x - p->worldPos.x) * (q->worldPos.x - p->worldPos.x) +
-              (q->worldPos.y - p->worldPos.y) * (q->worldPos.y - p->worldPos.y) +
-              (q->worldPos.z - p->worldPos.z) * (q->worldPos.z - p->worldPos.z);
-        r = w->radius + 2000.0f;
+        len = (q->world.x - p->world.x) * (q->world.x - p->world.x) +
+              (q->world.y - p->world.y) * (q->world.y - p->world.y) +
+              (q->world.z - p->world.z) * (q->world.z - p->world.z);
+        r = w->Radius + 2000.0f;
         if (len < r * r) {
             if (!(e->flags_3C8 & 8)) {
                 e->r_no_0 = 2;
@@ -2348,7 +2348,7 @@ void subemDropDie()
     switch (sub->r_no_2) {
     case 0:
         MotionSetCore(sub, &sub->pMotion, w->mot3, 0, 3, 1, 0);
-        pG->sub_life = 0;
+        pG->ashley_life = 0;
         sub->r_no_2++;
     case 1:
         MotionMove(sub, 0);
@@ -2362,11 +2362,11 @@ void cEmRock::setBreakR11E()
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    EstSet(0, -1, &getPartsPtr(0)->worldPos, 0, 1, 2, 0, 0, 0, 0);
+    EstSet(0, -1, &getPartsPtr(0)->world, 0, 1, 2, 0, 0, 0, 0);
     SndCall(6, 7, &pos, 0, 0, this);
     hp = 0;
     be_flag &= ~2;
-    atari.flags &= ~0x200;
+    atari.m_flag &= ~0x200;
     r_no_0 = 1;
     r_no_1 = 1;
     r_no_2 = 0;
@@ -2387,7 +2387,7 @@ void emRockSatClear(cEmRock* em)
     if (w->pSat == 0) {
         return;
     }
-    w->pSat->flags &= ~4;
+    w->pSat->m_Flag &= ~4;
 }
 
 void emRockSatSet(cEmRock* em)
@@ -2406,15 +2406,15 @@ void emRockSatSet(cEmRock* em)
     if (!(em->be_flag & 2)) {
         return;
     }
-    pos = em->getPartsPtr(0)->worldPos;
+    pos = em->getPartsPtr(0)->world;
     pos.y -= 2800.0f;
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
     if (w->pSat) {
-        w->pSat->flags |= 4;
+        w->pSat->m_Flag |= 4;
         w->pSat->setCoord(&pos, &rot);
     } else {
-        w->pSat = EatMgr.create((void*) (((u32*) pG->pRoomArc)[5] + (u32) pG->pRoomArc), 0, &pos, &rot, 1);
+        w->pSat = EatMgr.create((void*) (((u32*) pG->pRoom)[5] + (u32) pG->pRoom), 0, &pos, &rot, 1);
     }
 }

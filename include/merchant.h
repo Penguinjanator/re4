@@ -64,7 +64,7 @@ struct MerchantInfo {
     s8 x5;
     s8 x6;
     s8 buyFavor;   // 0x07  favor change per purchase
-    s32 sellBig;   // 0x08  sell points from which sellFavorBig applies
+    s32 threshold;   // 0x08  sell points from which sellFavorBig applies
     u8 sellFavorBig;   // 0x0C
     u8 sellFavor;      // 0x0D
     u8 xE;
@@ -79,11 +79,11 @@ struct MerchantInfo {
 // The merchant selected for the current room (merchantChar).
 class MerchantCharacter {
 public:
-    MerchantInfo* info;      // 0x00
-    MerchantData* data;      // 0x04
-    PriceEntry* pSell;       // 0x08
-    PriceEntry* pExer;       // 0x0C
-    LevelPrice* pLevel;      // 0x10
+    MerchantInfo* m_p_info;      // 0x00
+    MerchantData* m_p_data;      // 0x04
+    PriceEntry* m_p_sell;       // 0x08
+    PriceEntry* m_p_exer;       // 0x0C
+    LevelPrice* m_p_lvup;      // 0x10
 
     MerchantCharacter() {}
     ~MerchantCharacter() {}
@@ -93,11 +93,11 @@ public:
 // Shop session: a working copy of the merchant data plus the item lists shown in the shop.
 class Merchant {
 public:
-    MerchantInfo* info;      // 0x000
-    PriceEntry* pSell;       // 0x004  selling price table
-    PriceEntry* pExer;       // 0x008  exercise (buy-up) price table
-    LevelPrice* pLevel;      // 0x00C  weapon tune price table
-    STOCK_INFO stock;        // 0x010
+    MerchantInfo* m_p_info;      // 0x000
+    PriceEntry* m_p_sell;       // 0x004  selling price table
+    PriceEntry* m_p_exer;       // 0x008  exercise (buy-up) price table
+    LevelPrice* m_p_lvup;      // 0x00C  weapon tune price table
+    STOCK_INFO m_stock;        // 0x010
     LEVEL_INFO level;        // 0x210
     s8 favor;                // 0x310
     u8 x311;

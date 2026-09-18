@@ -64,7 +64,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         em->pos = *pos;
     }
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetBox() failed.");
@@ -88,7 +88,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         EtcSetAddAmb(em, 1);
         break;
     }
-    w->eff = 0xFF;
+    w->Eff_id = 0xFF;
     switch (em->type) {
     case 0:
     default:
@@ -164,8 +164,8 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         w->size.z = 550.0f;
         break;
     }
-    w->sat0 = 0;
-    w->sat1 = 0;
+    w->pSat = 0;
+    w->pEat = 0;
     em->type = type;
     switch (em->type) {
     default: {
@@ -173,7 +173,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         atariInitF(at, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
         at->setPriority(3);
-        at->flags &= ~0x300;
+        at->m_flag &= ~0x300;
         break;
     }
     case 3: {
@@ -181,7 +181,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
-        at->flags &= ~0x100;
+        at->m_flag &= ~0x100;
         break;
     }
     case 5:
@@ -190,27 +190,27 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
-        at->flags &= ~0x100;
+        at->m_flag &= ~0x100;
         break;
     }
     }
     emBoxYarareInit(em);
-    em->hpMax = em->hp = 1000;
+    em->hp_max = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 1000.0f, 1000.0f, 0.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     em->setStatus(1);
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->etcNo = etcNo;
-    w->flags = 0;
-    w->breakBin = 0;
-    w->breakTpl = 0;
-    w->itemNum = 0;
+    w->Etc_no = etcNo;
+    w->Be_flg = 0;
+    w->Break_bin = 0;
+    w->Break_tpl = 0;
+    w->Item_num = 0;
     w->itemNo = -1;
     flg = GetEtcFlgPtr(etcNo, pGS->room_id);
     if (flg && (*flg & 1)) {
@@ -379,17 +379,17 @@ void emBoxDmCk(cEmBox* em)
             break;
         }
     }
-    if (w->eff != 0xFF && em->type != 4) {
-        EmDmBloodSet2(em, w->eff, 3, 0, 0, 0);
+    if (w->Eff_id != 0xFF && em->type != 4) {
+        EmDmBloodSet2(em, w->Eff_id, 3, 0, 0, 0);
     }
 }
 
 // Each break kind carries its own EstSet + fallback pair (a macro in the original: the arms are
 // full copies whose tails the compiler cross-jumps).
 #define EMBOX_BREAK_EFF(no, fallback)                                                       \
-    EstSet(0, -1, &em->pos, &em->rot, w->eff, no, 1, 0, (u32) em, 0);                     \
-    if (w->breakBin == 0 && w->breakTpl == 0) {                                            \
-        EstSet(0, -1, &em->pos, &em->rot, w->eff, fallback, 1, 0, (u32) em, 0);           \
+    EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, no, 1, 0, (u32) em, 0);                     \
+    if (w->Break_bin == 0 && w->Break_tpl == 0) {                                            \
+        EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, fallback, 1, 0, (u32) em, 0);           \
     }
 
 void emBoxSetBreak(cEmBox* em, u32 kind)
@@ -398,7 +398,7 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
 
     em->hp = 0;
     em->be_flag &= ~2;
-    if (w->eff != 0xFF) {
+    if (w->Eff_id != 0xFF) {
         switch (em->type) {
         default:
             switch (kind) {
@@ -429,12 +429,12 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
             }
             break;
         case 4:
-            EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 1, 0, (u32) em, 0);
+            EstSet(0, -1, &em->pos, &em->ang, w->Eff_id, 0, 1, 0, (u32) em, 0);
             break;
         }
     }
-    if (w->breakBin && w->breakTpl) {
-        SetEffModel(w->breakBin, w->breakTpl, &em->pos, &em->rot);
+    if (w->Break_bin && w->Break_tpl) {
+        SetEffModel(w->Break_bin, w->Break_tpl, &em->pos, &em->ang);
     }
     switch (em->type) {
     default:
@@ -503,7 +503,7 @@ void emBox_R0_Move(cEmBox* em)
 void emBox_R1_Set(cEmBox* em)
 {
     if (em->r_no_2 == 0) {
-        RotMatrix(em->mat, &em->rot);
+        RotMatrix(em->mat, &em->ang);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
         em->partsMatCalc();
@@ -519,14 +519,14 @@ void emBox_R1_Break(cEmBox* em)
     u16* flg;
 
     if (em->r_no_2 == 0) {
-        flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
+        flg = GetEtcFlgPtr(w->Etc_no, pG->room_id);
         if (flg) {
             *flg |= 1;
         }
         em->hp = 0;
         em->be_flag &= ~2;
         em->clearStatus(5);
-        w->timer = 150;
+        w->Lost_wait = 150;
         em->atari.throughOn();
         em->r_no_2++;
     }
@@ -537,11 +537,11 @@ void emBoxSatClear(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
 
-    if (w->sat0) {
-        w->sat0->flags &= ~4;
+    if (w->pSat) {
+        w->pSat->m_Flag &= ~4;
     }
-    if (w->sat1) {
-        w->sat1->flags &= ~4;
+    if (w->pEat) {
+        w->pEat->m_Flag &= ~4;
     }
 }
 
@@ -557,7 +557,7 @@ static void emBoxSatSet(cEmBox* em)
     if (hx == 0.0f) {
         return;
     }
-    if (w->sat0 != 0 && em->plDist2 > 225000000.0f) {
+    if (w->pSat != 0 && em->plDist2 > 225000000.0f) {
         return;
     }
     emBoxSatClear(em);
@@ -575,19 +575,19 @@ void cEmBox::setEff(u8 eff)
 {
     EmBoxWork* w = EMBOX_WK(this);
 
-    w->eff = eff;
+    w->Eff_id = eff;
     if (hp > 0) {
         return;
     }
-    if (w->breakBin == 0 && w->breakTpl == 0 && w->eff != 0xFF && type != 4) {
+    if (w->Break_bin == 0 && w->Break_tpl == 0 && w->Eff_id != 0xFF && type != 4) {
         if (type != 5) {
-            EstSet(0, -1, &pos, &rot, w->eff, 4, 1, 0, (u32) this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 4, 1, 0, (u32) this, 0);
         } else {
-            EstSet(0, -1, &pos, &rot, w->eff, 8, 1, 0, (u32) this, 0);
+            EstSet(0, -1, &pos, &ang, w->Eff_id, 8, 1, 0, (u32) this, 0);
         }
     }
-    if (w->breakBin && w->breakTpl) {
-        SetEffModel(w->breakBin, w->breakTpl, &pos, &rot);
+    if (w->Break_bin && w->Break_tpl) {
+        SetEffModel(w->Break_bin, w->Break_tpl, &pos, &ang);
     }
 }
 
@@ -596,7 +596,7 @@ void cEmBox::setItem(int no, int num, u16 c, u16 d)
     EmBoxWork* w = EMBOX_WK(this);
 
     w->itemNo = no;
-    w->itemNum = num;
+    w->Item_num = num;
     w->Item_flg = c;
     w->Auto_item_flg = d;
 }
@@ -612,7 +612,7 @@ void emBoxActEvtCk(cEmBox* em)
     if (em->hp <= 0) {
         return;
     }
-    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f)) > 0.7853982f) {
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f)) > 0.7853982f) {
         return;
     }
     PSMTXInverse(em->mat, inv);
@@ -672,14 +672,14 @@ void emBoxAction(cEmBox* em)
     case 6:
     case 7:
     default:
-        cMes.MesSet(3, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+        cMes.MesSet(3, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         break;
     case 3:
     case 5:
         if (checkNearOtherBarrel(em) == 1) {
-            cMes.MesSet(5, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+            cMes.MesSet(5, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         } else {
-            cMes.MesSet(4, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
+            cMes.MesSet(4, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1, 1, 0, 0, 4);
         }
         break;
     }
@@ -690,7 +690,7 @@ void emBoxSetItem(cEmBox* em)
     EmBoxWork* w = EMBOX_WK(em);
 
     if (w->itemNo != -1) {
-        SceAtCreateItemAt(&em->pos, w->itemNo, w->itemNum, -1, -1, 0, -1);
+        SceAtCreateItemAt(&em->pos, w->itemNo, w->Item_num, -1, -1, 0, -1);
     }
 }
 
@@ -698,6 +698,6 @@ void cEmBox::setBreakModel(void* bin, void* tpl)
 {
     EmBoxWork* w = EMBOX_WK(this);
 
-    w->breakBin = bin;
-    w->breakTpl = tpl;
+    w->Break_bin = bin;
+    w->Break_tpl = tpl;
 }

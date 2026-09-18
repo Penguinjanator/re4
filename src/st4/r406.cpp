@@ -50,7 +50,7 @@ static const struct {
 // Death bit of entry `no` of the loaded enemy list (0 while no list is loaded).
 static inline u32 r406_emDead(int no)
 {
-    int list = pG->emlist_no;
+    int list = pG->em_list_no;
     u32 v;
 
     if (list >= 0) {
@@ -81,14 +81,14 @@ void R406Init()
     r406_work.p = (R406Work*) MEM_CALLOC(sizeof(R406Work), 1, 0xd);
     setTexRender();
     if (pG->x4FB8 == 2) {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x25), ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x2B),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x2C), ROOM_ARC_PTR(pG->pRoomArc, 0x2D), ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0, 0,
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x27), ROOM_ARC_PTR(pG->pRoomArc, 0x28), ROOM_ARC_PTR(pG->pRoomArc, 0x29),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x2A));
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x25), ROOM_ARC_PTR(pG->pRoom, 0x26), ROOM_ARC_PTR(pG->pRoom, 0x2B),
+                       ROOM_ARC_PTR(pG->pRoom, 0x2C), ROOM_ARC_PTR(pG->pRoom, 0x2D), ROOM_ARC_PTR(pG->pRoom, 0x2E), 0, 0,
+                       ROOM_ARC_PTR(pG->pRoom, 0x27), ROOM_ARC_PTR(pG->pRoom, 0x28), ROOM_ARC_PTR(pG->pRoom, 0x29),
+                       ROOM_ARC_PTR(pG->pRoom, 0x2A));
     } else {
-        PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0,
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23),
-                       ROOM_ARC_PTR(pG->pRoomArc, 0x24));
+        PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0,
+                       ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23),
+                       ROOM_ARC_PTR(pG->pRoom, 0x24));
     }
     EatMgr.registEffInfo(2, (AtEffInfo*) &r406_eff_info.info);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
@@ -355,12 +355,12 @@ void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r406_work.p->tex->texId;
-        r406_work.p->tex->repType = 1;
+        r406_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 3, r406_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "SetTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x15);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
 }

@@ -47,7 +47,7 @@ static int EtXX_init(void* arc, EtcSetData* d, cEmWindow** out, int flag, const 
     cEmWindow* em;
 
     pBin = GetEtcAddr(arc, bin);
-    em = SetWindow(pBin, GetEtcAddr(arc, tpl), &d->pos, &d->rot, flag, d->type, arc);
+    em = SetWindow(pBin, GetEtcAddr(arc, tpl), &d->pos, &d->ang, flag, d->type, arc);
     if (em == 0) {
         pLog->err(0, 0, "Etxx_init : set failed");
         return 0;

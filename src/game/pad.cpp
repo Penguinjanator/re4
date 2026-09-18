@@ -106,23 +106,23 @@ void PadRead()
         }
         joy->old = joy->on;
         joy->on = pad->button;
-        joy->sx = pad->stickX;
-        joy->sy = pad->stickY;
-        joy->ssx = pad->substickX;
-        joy->ssy = pad->substickY;
-        joy->trigL = pad->triggerLeft;
-        joy->trigR = pad->triggerRight;
-        joy->anaA = pad->analogA;
-        joy->anaB = pad->analogB;
-        if (joy->trigL) {
+        joy->stickX = pad->stickX;
+        joy->stickY = pad->stickY;
+        joy->substickX = pad->substickX;
+        joy->substickY = pad->substickY;
+        joy->triggerLeft = pad->triggerLeft;
+        joy->triggerRight = pad->triggerRight;
+        joy->analogA = pad->analogA;
+        joy->analogB = pad->analogB;
+        if (joy->triggerLeft) {
             joy->on |= JOY_L;
         }
-        if (joy->trigR) {
+        if (joy->triggerRight) {
             joy->on |= JOY_R;
         }
         {
-            f32 x = (f32) joy->sx;
-            f32 y = (f32) joy->sy;
+            f32 x = (f32) joy->stickX;
+            f32 y = (f32) joy->stickY;
             f32 ang = -atan2f(x, y);
             if (x * x + y * y > STICK_ON * STICK_ON) {
                 if (ang < 0.0f) {
@@ -148,19 +148,19 @@ void PadRead()
                 }
             }
         }
-        if (joy->ssx < -10) {
+        if (joy->substickX < -10) {
             joy->on |= JOY_SSLEFT;
-        } else if (dead < joy->ssx) {
+        } else if (dead < joy->substickX) {
             joy->on |= JOY_SSRIGHT;
         } else {
-            joy->ssx = 0;
+            joy->substickX = 0;
         }
-        if (joy->ssy < -10) {
+        if (joy->substickY < -10) {
             joy->on |= JOY_SSDOWN;
-        } else if (dead < joy->ssy) {
+        } else if (dead < joy->substickY) {
             joy->on |= JOY_SSUP;
         } else {
-            joy->ssy = 0;
+            joy->substickY = 0;
         }
         {
         u32 bit;
@@ -268,12 +268,12 @@ void PadRead()
     }
 
     if (!(pG->flags_170 & 0x80000000)) {
-        Key.sx = Joy[0].sx;
-        Key.sy = Joy[0].sy;
-        Key.ssx = Joy[0].ssx;
-        Key.ssy = Joy[0].ssy;
-        Key.trigL = Joy[0].trigL;
-        Key.trigR = Joy[0].trigR;
+        Key.stickX = Joy[0].stickX;
+        Key.stickY = Joy[0].stickY;
+        Key.substickX = Joy[0].substickX;
+        Key.substickY = Joy[0].substickY;
+        Key.triggerLeft = Joy[0].triggerLeft;
+        Key.triggerRight = Joy[0].triggerRight;
     } else {
         KeyStop(0);
     }
@@ -304,14 +304,14 @@ void KeyClear(u64 mask)
     Key.rel &= un_stop_mask;
     Key.rep &= un_stop_mask;
     Key.rep2 &= un_stop_mask;
-    Key.trigL = 0;
-    Key.trigR = 0;
+    Key.triggerLeft = 0;
+    Key.triggerRight = 0;
     KeyStopFlagClear();
 }
 
 void VibControl()
 {
-    u8 old = Joy[0].vib_state;
+    u8 old = Joy[0].motor_state;
     int max = 0;
     VibWork* v;
     int lvl;
@@ -339,16 +339,16 @@ void VibControl()
     Vib_level += max;
     if (Vib_level > 0x7F7F) {
         Vib_level -= 0x7F80;
-        Joy[0].vib_state = 1;
+        Joy[0].motor_state = 1;
     } else {
-        Joy[0].vib_state = 0;
+        Joy[0].motor_state = 0;
     }
     if ((pG->flags_170 & 0x8000) && old == 1) {
-        Joy[0].vib_state = 2;
+        Joy[0].motor_state = 2;
         PADControlMotor(0, 2);
         Vib_level = 0;
-    } else if (Joy[0].vib_state != old) {
-        PADControlMotor(0, Joy[0].vib_state);
+    } else if (Joy[0].motor_state != old) {
+        PADControlMotor(0, Joy[0].motor_state);
     }
 }
 
@@ -444,12 +444,12 @@ void Pad_test()
     eprintf(32, 120, 0, 5, "REL  %08x %08x %08x %08x", BtoX(p[0x18]), BtoX(p[0x19]), BtoX(p[0x1A]), BtoX(p[0x1B]));
     eprintf(32, 135, 0, 5, "REP  %08x %08x %08x %08x", BtoX(p[0x1C]), BtoX(p[0x1D]), BtoX(p[0x1E]), BtoX(p[0x1F]));
     eprintf(32, 150, 0, 5, "REP2 %08x %08x %08x %08x", BtoX(p[0x20]), BtoX(p[0x21]), BtoX(p[0x22]), BtoX(p[0x23]));
-    eprintf(32, 180, 0, 5, "STICK_X       %d", Joy[0].sx);
-    eprintf(32, 195, 0, 5, "STICK_Y       %d", Joy[0].sy);
-    eprintf(32, 210, 0, 5, "SUB_STICK_X   %d", Joy[0].ssx);
-    eprintf(32, 225, 0, 5, "SUB_STICK_Y   %d", Joy[0].ssy);
-    eprintf(32, 240, 0, 5, "TRIGGER_LEFT  %d", Joy[0].trigL);
-    eprintf(32, 255, 0, 5, "TRIGGER_RIGHT %d", Joy[0].trigR);
+    eprintf(32, 180, 0, 5, "STICK_X       %d", Joy[0].stickX);
+    eprintf(32, 195, 0, 5, "STICK_Y       %d", Joy[0].stickY);
+    eprintf(32, 210, 0, 5, "SUB_STICK_X   %d", Joy[0].substickX);
+    eprintf(32, 225, 0, 5, "SUB_STICK_Y   %d", Joy[0].substickY);
+    eprintf(32, 240, 0, 5, "TRIGGER_LEFT  %d", Joy[0].triggerLeft);
+    eprintf(32, 255, 0, 5, "TRIGGER_RIGHT %d", Joy[0].triggerRight);
 }
 
 // The split object's .rodata is 8-aligned and 4 bytes longer (padding after the last string).

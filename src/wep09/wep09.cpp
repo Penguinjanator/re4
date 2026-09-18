@@ -18,7 +18,7 @@ void Wep09_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep02_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x8), 0x3D, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x15);
@@ -33,7 +33,7 @@ cObjWep* equipWeapon(cPlayer* pl)
 
     if (obj == 0) {
         pLog->err(0, 0, "Wep09_init() cObjWep CREATE FAILED");
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         return 0;
     }
     obj->init(pl);

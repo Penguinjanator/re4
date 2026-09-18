@@ -11,14 +11,14 @@ struct CLOTH_AT_SET;
 // PlCloth). Field meanings from obj14ClothSet; the rest is zeroed there. Every link is one
 // model parts; the u8 tables give the parts index per link and its neighbours (0xFF = none).
 struct PenCloth {
-    int num;             // 0x00  number of chain links
-    const u8* pParts;    // 0x04  parts index per link
+    int Num;             // 0x00  number of chain links
+    const u8* pCloth;    // 0x04  parts index per link
     const u8* pLeft;       // 0x08  left neighbour per link
     const u8* pRight;       // 0x0C  right neighbour per link
     const u8* pUpLeft;       // 0x10  third neighbour per link (Ada dress)
     const u8* pUpRight;       // 0x14  fourth neighbour per link
-    const u8* pUp;       // 0x18  upper neighbour per link (0xFF = none)
-    const u8* pDown;     // 0x1C  lower neighbour per link (0xFF = none)
+    const u8* pParent;       // 0x18  upper neighbour per link (0xFF = none)
+    const u8* pChild;     // 0x1C  lower neighbour per link (0xFF = none)
     const f32* pGravity;      // 0x20  gravity per link (NULL: x3C)
     const f32* pRate;      // 0x24  damping rate per link (NULL: x40)
     const f32* pMax;     // 0x28  max swing angle per link
@@ -34,7 +34,7 @@ struct PenCloth {
     f32 Move_rate;             // 0x50  parent speed rate
     cModel** x54;        // 0x54  parts pointer table (NULL: cModel::getPartsPtr)
     cModel* x58;         // 0x58  model the collision volumes hang on (NULL: the chain model)
-    u32 flags;           // 0x5C  (0x100)
+    u32 Flag;           // 0x5C  (0x100)
 };
 
 // Per-link work the pendulum keeps in the parts' cModel from 0x128 on.

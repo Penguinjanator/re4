@@ -20,7 +20,7 @@ static void Pl11Init(cEm* em)
 
 cSubAshley::cSubAshley()
 {
-    hp = pGS->sub_life;
+    hp = pGS->ashley_life;
     litArea.on(1);
     pFootShadowTbl = pl_fs_tbl;
     EspDataLoad((u32) ARC(0x11), 4, 0);

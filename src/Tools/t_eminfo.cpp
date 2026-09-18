@@ -29,11 +29,11 @@ void TransMatrix(Mtx m, Vec* pos);
 
 struct EmInfoWork {
     u8 type;   // 0x00  0 = free slot, else workTypeName index
-    u8 work0;  // 0x01
-    u8 work1;  // 0x02
-    u8 work2;  // 0x03
-    Vec pos;   // 0x04
-    f32 dir;   // 0x10
+    u8 Work0;  // 0x01
+    u8 Work1;  // 0x02
+    u8 Work2;  // 0x03
+    Vec Pos;   // 0x04
+    f32 Dir;   // 0x10
     u8 pad_14[0x40 - 0x14];
 };
 
@@ -404,10 +404,10 @@ static void eminfo_r0_move()
         EmInfoWork* p = &W->work[W->cur];
 
         if (W->joy.rep & JOY_SSUP) {
-            p->pos.y += 500.0f;
+            p->Pos.y += 500.0f;
         }
         if (W->joy.rep & JOY_SSDOWN) {
-            p->pos.y -= 500.0f;
+            p->Pos.y -= 500.0f;
         }
         if (W->cur != -1 && (W->joy.trg & JOY_L)) {
             W->cur--;
@@ -439,20 +439,20 @@ static void eminfo_r0_catch()
     }
     W->copy = *p;
     if (p->type != 0) {
-        Get3DPosFrom2D(&p->pos, W->cx, W->cy, p->pos.y);
+        Get3DPosFrom2D(&p->Pos, W->cx, W->cy, p->Pos.y);
         if (W->joy.on & JOY_L) {
-            p->dir += 0.09817477f;
-            p->dir = LIMIT_ANGLE(p->dir);
+            p->Dir += 0.09817477f;
+            p->Dir = LIMIT_ANGLE(p->Dir);
         }
         if (W->joy.on & JOY_R) {
-            p->dir -= 0.09817477f;
-            p->dir = LIMIT_ANGLE(p->dir);
+            p->Dir -= 0.09817477f;
+            p->Dir = LIMIT_ANGLE(p->Dir);
         }
         if (W->joy.rep2 & JOY_SSUP) {
-            p->pos.y += 500.0f;
+            p->Pos.y += 500.0f;
         }
         if (W->joy.rep2 & JOY_SSDOWN) {
-            p->pos.y -= 500.0f;
+            p->Pos.y -= 500.0f;
         }
         if (W->joy.trg & JOY_Z) {
             eminfoDeleteWork(W->cur);
@@ -572,11 +572,11 @@ void Detail01UpdateWorkType()
         W->copy.type = W->workType;
         memclr_asm(p, sizeof(EmInfoWork));
         p->type = W->copy.type;
-        p->pos = W->copy.pos;
-        p->dir = W->copy.dir;
-        p->work0 = 0;
-        p->work1 = 0;
-        p->work2 = 0;
+        p->Pos = W->copy.Pos;
+        p->Dir = W->copy.Dir;
+        p->Work0 = 0;
+        p->Work1 = 0;
+        p->Work2 = 0;
         return;
     }
     eprintf(40, 60, 0, 0, "-- Change WorkType --------");
@@ -619,13 +619,13 @@ void Detail01UpdatePosX()
     if (W->joy.on & JOY_L) {
         step *= 100.0f;
     }
-    p->pos.x += step;
+    p->Pos.x += step;
     eprintf(40, 60, 0, 0, "-- Position X Move --------");
     eprintf(40, 80, 0, 0, "Pos.x = ");
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
-    eprintf(104, 80, 4, 0, "%.2f", p->pos.x);
+    eprintf(104, 80, 4, 0, "%.2f", p->Pos.x);
 }
 
 void Detail01UpdatePosY()
@@ -650,13 +650,13 @@ void Detail01UpdatePosY()
     if (W->joy.on & JOY_L) {
         step *= 100.0f;
     }
-    p->pos.y += step;
+    p->Pos.y += step;
     eprintf(40, 60, 0, 0, "-- Position Y Move --------");
     eprintf(40, 80, 0, 0, "Pos.y = ");
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
-    eprintf(104, 80, 4, 0, "%.2f", p->pos.y);
+    eprintf(104, 80, 4, 0, "%.2f", p->Pos.y);
 }
 
 void Detail01UpdatePosZ()
@@ -681,13 +681,13 @@ void Detail01UpdatePosZ()
     if (W->joy.on & JOY_L) {
         step *= 100.0f;
     }
-    p->pos.z += step;
+    p->Pos.z += step;
     eprintf(40, 60, 0, 0, "-- Position Z Move --------");
     eprintf(40, 80, 0, 0, "Pos.z = ");
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
-    eprintf(104, 80, 4, 0, "%.2f", p->pos.z);
+    eprintf(104, 80, 4, 0, "%.2f", p->Pos.z);
 }
 
 void Detail01UpdateDir()
@@ -712,11 +712,11 @@ void Detail01UpdateDir()
     if (W->joy.on & JOY_L) {
         step *= 8.0f;
     }
-    p->dir += step;
-    p->dir = LIMIT_ANGLE(p->dir);
+    p->Dir += step;
+    p->Dir = LIMIT_ANGLE(p->Dir);
     eprintf(40, 60, 0, 0, "-- Direction Move --------");
     eprintf(40, 80, 0, 0, "Dir = ");
-    eprintf(96, 80, 4, 0, "%.2f", p->dir);
+    eprintf(96, 80, 4, 0, "%.2f", p->Dir);
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
@@ -744,10 +744,10 @@ void Detail01UpdateWork0()
     if (W->joy.on & JOY_L) {
         step *= 16;
     }
-    p->work0 += step;
+    p->Work0 += step;
     eprintf(40, 60, 0, 0, "-- Direction Move --------");
     eprintf(40, 80, 0, 0, "Work0 = ");
-    eprintf(104, 80, 4, 0, "%02x", p->work0);
+    eprintf(104, 80, 4, 0, "%02x", p->Work0);
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
@@ -775,10 +775,10 @@ void Detail01UpdateWork1()
     if (W->joy.on & JOY_L) {
         step *= 16;
     }
-    p->work1 += step;
+    p->Work1 += step;
     eprintf(40, 60, 0, 0, "-- Direction Move --------");
     eprintf(40, 80, 0, 0, "Work1 = ");
-    eprintf(104, 80, 4, 0, "%02x", p->work1);
+    eprintf(104, 80, 4, 0, "%02x", p->Work1);
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
@@ -806,10 +806,10 @@ void Detail01UpdateWork2()
     if (W->joy.on & JOY_L) {
         step *= 16;
     }
-    p->work2 += step;
+    p->Work2 += step;
     eprintf(40, 60, 0, 0, "-- Direction Move --------");
     eprintf(40, 80, 0, 0, "Work2 = ");
-    eprintf(104, 80, 4, 0, "%02x", p->work2);
+    eprintf(104, 80, 4, 0, "%02x", p->Work2);
     if (eminfoBlink()) {
         eprintf(32, 80, 0, 0, ">");
     }
@@ -869,25 +869,25 @@ void eminfo_detail_disp(int no)
             eprintf(136, y, 0, 0, "[ %s ]", workTypeName[p->type]);
             break;
         case 1:
-            eprintf(136, y, 0, 0, "[ %.2f ]", p->pos.x);
+            eprintf(136, y, 0, 0, "[ %.2f ]", p->Pos.x);
             break;
         case 2:
-            eprintf(136, y, 0, 0, "[ %.2f ]", p->pos.y);
+            eprintf(136, y, 0, 0, "[ %.2f ]", p->Pos.y);
             break;
         case 3:
-            eprintf(136, y, 0, 0, "[ %.2f ]", p->pos.z);
+            eprintf(136, y, 0, 0, "[ %.2f ]", p->Pos.z);
             break;
         case 4:
-            eprintf(136, y, 0, 0, "[ %.2f, %.2f ]", p->dir, p->dir * 0.017453292f);
+            eprintf(136, y, 0, 0, "[ %.2f, %.2f ]", p->Dir, p->Dir * 0.017453292f);
             break;
         case 5:
-            eprintf(136, y, 0, 0, "[ %d ]", p->work0);
+            eprintf(136, y, 0, 0, "[ %d ]", p->Work0);
             break;
         case 6:
-            eprintf(136, y, 0, 0, "[ %d ]", p->work1);
+            eprintf(136, y, 0, 0, "[ %d ]", p->Work1);
             break;
         case 7:
-            eprintf(136, y, 0, 0, "[ %d ]", p->work2);
+            eprintf(136, y, 0, 0, "[ %d ]", p->Work2);
             break;
         case 8:
             break;
@@ -905,8 +905,8 @@ void eminfoAddWork()
         if (p->type == 0) {
             W->cur = i;
             *p = W->copy;
-            Get3DPosFrom2D(&p->pos, W->cx, W->cy, 100000000.0f);
-            p->pos.y += 50.0f;
+            Get3DPosFrom2D(&p->Pos, W->cx, W->cy, 100000000.0f);
+            p->Pos.y += 50.0f;
             W->num++;
             break;
         }
@@ -940,7 +940,7 @@ void eminfoGetNearPoint(Vec* cursor)
         EmInfoWork* p = &W->work[i];
 
         if (p->type != 0) {
-            if (GetScreenPos(p->pos, &scr)) {
+            if (GetScreenPos(p->Pos, &scr)) {
                 f32 d = (scr.x - cursor->x) * (scr.x - cursor->x) + (scr.y - cursor->y) * (scr.y - cursor->y);
 
                 if (!(d > min)) {
@@ -959,7 +959,7 @@ void eminfoCursorToWork(int no)
     EmInfoWork* p = &W->work[no];
 
     if (p->type != 0) {
-        if (GetScreenPos(p->pos, &scr)) {
+        if (GetScreenPos(p->Pos, &scr)) {
             W->cx = scr.x;
             W->cy = scr.y;
         }
@@ -988,8 +988,8 @@ void eminfoDisp()
             if (W->cur == i) {
                 c = t + 0x60A0D060;
             }
-            eminfoDrawDir(&p->pos, p->dir, c, 0xFF80FF80);
-            eminfoDispNo(&p->pos, i);
+            eminfoDrawDir(&p->Pos, p->Dir, c, 0xFF80FF80);
+            eminfoDispNo(&p->Pos, i);
         }
     }
     TprimDraw2D(0);
@@ -1062,9 +1062,9 @@ void eminfoTargetDisp(int no)
     if (p->type == 0) {
         return;
     }
-    eprintf(40, 388, 0, 0, "Pos[ %.2f, %.2f, %.2f]   Dir[ %.2f, %.2f ]", p->pos.x, p->pos.y, p->pos.z, p->dir,
-            p->dir * 57.295776f);
-    eprintf(40, 404, 0, 0, "Work0[ 0x%02x ], Work1[ 0x%02x ], Work2[ 0x%02x ]", p->work0, p->work1, p->work2);
+    eprintf(40, 388, 0, 0, "Pos[ %.2f, %.2f, %.2f]   Dir[ %.2f, %.2f ]", p->Pos.x, p->Pos.y, p->Pos.z, p->Dir,
+            p->Dir * 57.295776f);
+    eprintf(40, 404, 0, 0, "Work0[ 0x%02x ], Work1[ 0x%02x ], Work2[ 0x%02x ]", p->Work0, p->Work1, p->Work2);
     eprintf(40, 372, 0, 0, "Work No.[ %02d / %02d ] -->> WorkType [ %s ]", no, 255, workTypeName[p->type]);
 }
 
@@ -1095,7 +1095,7 @@ void eminfoEm2fRouteDisp()
             if (cur && prev) {
                 u32 c;
 
-                switch (prev->work0) {
+                switch (prev->Work0) {
                 case 0:
                 default:
                     c = 0xFFFFFFFF;
@@ -1107,14 +1107,14 @@ void eminfoEm2fRouteDisp()
                     c = 0xFFFF0000;
                     break;
                 }
-                Draw_line3d(&prev->pos, &cur->pos, c, 0);
+                Draw_line3d(&prev->Pos, &cur->Pos, c, 0);
             }
         }
     }
     if (first && prev && cur) {
         u32 c;
 
-        switch (cur->work0) {
+        switch (cur->Work0) {
         case 0:
         default:
             c = 0xFFFFFFFF;
@@ -1126,7 +1126,7 @@ void eminfoEm2fRouteDisp()
             c = 0xFFFF0000;
             break;
         }
-        Draw_line3d(&cur->pos, &first->pos, c, 0);
+        Draw_line3d(&cur->Pos, &first->Pos, c, 0);
     }
 }
 
@@ -1144,15 +1144,15 @@ void eminfoEm39AreaDisp()
         EmInfoWork* p = &W->work[i];
 
         if (p->type == 14) {
-            if (p->work1 == 0) {
+            if (p->Work1 == 0) {
                 for (j = 0; j < W->num; j++) {
                     q = &W->work[j];
-                    if (q->type == 14 && p->work0 == q->work0 && q->work1 == 1 && p->work2 == q->work2) {
-                        a = p->pos;
-                        b = q->pos;
+                    if (q->type == 14 && p->Work0 == q->Work0 && q->Work1 == 1 && p->Work2 == q->Work2) {
+                        a = p->Pos;
+                        b = q->Pos;
                         a.y += 500.0f;
                         b.y += 500.0f;
-                        switch (p->work0) {
+                        switch (p->Work0) {
                         case 0:
                         default:
                             c1 = 0xFFFFFFFF;
@@ -1168,8 +1168,8 @@ void eminfoEm39AreaDisp()
                             break;
                         }
                         Draw_line3d(&a, &b, c1, 0);
-                        Draw_sphere(&q->pos, 2000.0f, c2, 1, 1);
-                        switch (p->work0) {
+                        Draw_sphere(&q->Pos, 2000.0f, c2, 1, 1);
+                        switch (p->Work0) {
                         case 0:
                         default:
                             c2 = 0xFFFFFFFF;
@@ -1181,17 +1181,17 @@ void eminfoEm39AreaDisp()
                             c2 = 0x00FF00FF;
                             break;
                         }
-                        Draw_sphere(&p->pos, 500.0f, c2, 1, 1);
+                        Draw_sphere(&p->Pos, 500.0f, c2, 1, 1);
                     }
                 }
                 for (j = 0; j < W->num; j++) {
                     q = &W->work[j];
-                    if (q->type == 14 && p->work0 == q->work0 && q->work1 == 2 && p->work2 == q->work2) {
-                        a = p->pos;
-                        b = q->pos;
+                    if (q->type == 14 && p->Work0 == q->Work0 && q->Work1 == 2 && p->Work2 == q->Work2) {
+                        a = p->Pos;
+                        b = q->Pos;
                         a.y += 500.0f;
                         b.y += 500.0f;
-                        switch (p->work0) {
+                        switch (p->Work0) {
                         case 0:
                         default:
                             c1 = 0x80808080;
@@ -1207,17 +1207,17 @@ void eminfoEm39AreaDisp()
                             break;
                         }
                         Draw_line3d(&a, &b, c1, 0);
-                        Draw_sphere(&q->pos, 2000.0f, c2, 1, 1);
+                        Draw_sphere(&q->Pos, 2000.0f, c2, 1, 1);
                     }
                 }
                 for (j = 0; j < W->num; j++) {
                     q = &W->work[j];
-                    if (q->type == 14 && p->work0 == q->work0 && q->work1 == 3 && p->work2 == q->work2) {
-                        a = p->pos;
-                        b = q->pos;
+                    if (q->type == 14 && p->Work0 == q->Work0 && q->Work1 == 3 && p->Work2 == q->Work2) {
+                        a = p->Pos;
+                        b = q->Pos;
                         a.y += 500.0f;
                         b.y += 500.0f;
-                        switch (p->work0) {
+                        switch (p->Work0) {
                         case 0:
                         default:
                             c1 = 0x40404040;
@@ -1233,7 +1233,7 @@ void eminfoEm39AreaDisp()
                             break;
                         }
                         Draw_line3d(&a, &b, c1, 0);
-                        Draw_sphere(&q->pos, 500.0f, c2, 1, 1);
+                        Draw_sphere(&q->Pos, 500.0f, c2, 1, 1);
                     }
                 }
             }
@@ -1249,21 +1249,21 @@ void eminfoEm3aRouteDisp()
     for (i = 0; i < W->num; i++) {
         EmInfoWork* p = &W->work[i];
 
-        if (p->type == 19 && p->work1 != 0) {
-            if (p->work2 == 0) {
-                Draw_sphere(&p->pos, 500.0f, 0xFFFFFFFF, 1, 1);
+        if (p->type == 19 && p->Work1 != 0) {
+            if (p->Work2 == 0) {
+                Draw_sphere(&p->Pos, 500.0f, 0xFFFFFFFF, 1, 1);
             } else {
-                Draw_sphere(&p->pos, 500.0f, 0x60606060, 1, 1);
+                Draw_sphere(&p->Pos, 500.0f, 0x60606060, 1, 1);
             }
             for (j = 0; j < W->num; j++) {
                 EmInfoWork* q = &W->work[j];
 
-                if (q->type == 19 && q->work1 == p->work1 && q->work2 == p->work2 + 1) {
+                if (q->type == 19 && q->Work1 == p->Work1 && q->Work2 == p->Work2 + 1) {
                     Vec a;
                     Vec b;
 
-                    a = p->pos;
-                    b = q->pos;
+                    a = p->Pos;
+                    b = q->Pos;
                     a.y += 250.0f;
                     b.y += 250.0f;
                     Draw_line3d(&a, &b, 0xFFFF0000, 0);

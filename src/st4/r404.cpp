@@ -57,9 +57,9 @@ struct R404WorkPtr {
 // Typed view of pG->emlist (r400): pG is loaded before the index shift.
 struct EmListView {
     u8 pad[0x52E8];
-    EmListData emlist[0x100];
+    EmListData Em_list[0x100];
 };
-#define EM_LIST_V(no) (((EmListView*) pG)->emlist[(no)])
+#define EM_LIST_V(no) (((EmListView*) pG)->Em_list[(no)])
 
 static u8 r404_texTbl[0x20];
 static R404WorkPtr r404_work;
@@ -134,14 +134,14 @@ void R404Init()
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     {
-        PSet(r404_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &pos, &rot, 0x10, 1));
+        PSet(r404_work.p->slide, SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1));
     }
     if (pG->x4FB8 == 2) {
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 1, 0);
+        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     } else {
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     }
-    r404_work.p->slide->mot.speedRate = 0.0f;
+    r404_work.p->slide->Motion.Seq_speed = 0.0f;
     r404_work.p->slide->be_flag |= 0x1000;
     r404_work.p->slide->setNoSuspend(0);
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) slide_move, 0, 1);
@@ -151,16 +151,16 @@ void R404Init()
 
         memset(&init, 0, sizeof(init));
         init.m.pos = pPL->pos;
-        init.m.rot = pPL->rot;
+        init.m.rot = pPL->ang;
         init.m.x18 = 0;
         switch ((u32) n) {
         case 0:
         case 1:
         default:
-            init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+            init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x25);
             break;
         case 2:
-            init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
+            init.m.smdMot = ROOM_ARC_PTR(pG->pRoom, 0x26);
             break;
         }
         init.m.x20 = 30000;
@@ -716,16 +716,16 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r404_work.p->tex->texId;
-        r404_work.p->tex->repType = 1;
+        r404_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0, r404_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0xC7);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->setBlendType(1);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->setBlendType(1);
+    obj->pModelInfo->color[3] = 0xF0;
 }
 
 // Area 0: Leon slides down the banister (the slide object plays its motion along).
@@ -743,7 +743,7 @@ static void slide_move()
     pPL->dmg.set(0, 0x80);
     pl->be_flag &= ~0x10;
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (pG->x4FB8 == 2) {
         cModel* m = pPL;
@@ -756,8 +756,8 @@ static void slide_move()
         v.x = 0.0f;
         v.z = 0.0f;
         pPL->setAng(&v);
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0x201, 0);
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0x201, 0);
+        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     } else {
         cModel* m = pPL;
 
@@ -769,12 +769,12 @@ static void slide_move()
         v.x = 0.0f;
         v.z = 0.0f;
         pPL->setAng(&v);
-        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 0x201, 0);
-        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 0, 0, 0x201, 0);
+        r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 1, 0);
     }
-    r404_work.p->slide->mot.speedRate = 1.0f;
+    r404_work.p->slide->Motion.Seq_speed = 1.0f;
     SndCall(6, 0, 0, 0, 0, 0);
-    max = (u32) MotionGetMaxFrame(&pPL->mot);
+    max = (u32) MotionGetMaxFrame(&pPL->Motion);
     for (i = 0; i < max; i++) {
         SceSleep(1);
         if (i == r404_seFrame) {
@@ -783,7 +783,7 @@ static void slide_move()
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     pl->endAction(5);
     pPL->dmg.clear();
     pPLS->atari.setFlag100();

@@ -123,8 +123,8 @@ static inline void SetAngV(cModel* m, Vec* v)
 // Store through a scalar reference: pPL is reloaded for the following call (r22a idiom).
 static inline void FSetP(f32& d, f32 v) { d = v; }
 // Atari flag stores through the info's address (r207 idiom): `addi r9, pl, 0x2B4` + lhz/sth 0x1A(r9).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // Struct view of pPL: cse invalidates an in-struct pPL load at the following in-struct flags store
 // (true_dependence), so the next `pPL->atari` reloads pPL and recomputes the address (the plain
 // scalar load survives the store and gets cse'd into `mr r3, r9`).
@@ -193,7 +193,7 @@ void R20eInit()
             SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r20d_getSalazarCrest, 0, 1);
             SceAtSetEnable(0x80, 1);
             m = SceAtItemModelPtr(0x80);
-            m->lightInfo.x50 |= 4;
+            m->LightInfo.x50 |= 4;
             SceAtSetEnable(0x85, 1);
             m = SceAtItemModelPtr(0x85);
             if (m) {
@@ -224,7 +224,7 @@ void R20eInit()
         SceAtSetEnable(0x89, 1);
         m = SceAtItemModelPtr(0x89);
         m->setNoSuspend(1);
-        m->lightInfo.x50 |= 4;
+        m->LightInfo.x50 |= 4;
     }
     if (getRoomEtcRack(8, &r20e_work->rack, 1)) {
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);
@@ -361,7 +361,7 @@ static void r20e_checkSwitch_end(int sw)
 
 static void r20e_checkSwitch(int sw)
 {
-    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case 1:
     default: {
@@ -480,18 +480,18 @@ static void r20e_execThrough(int no)
     pPLS->atari.setPriority(1);
     pPL->dmg.set(0, 0x80);
     t = &r20e_throughTbl[no];
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 10, 0, 0x201, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
     PSVECSubtract(&t->pos, &pPL->pos, &d);
     PSVECScale(&d, &d, 0.1f);
-    step = Muku2(pPL->rot.y, t->angY, 3.1415927f) * 0.1f;
+    step = Muku2(pPL->ang.y, t->angY, 3.1415927f) * 0.1f;
     for (i = 0; i < 10; i++) {
         cPlayer* p;
         f32 ry;
 
         PSVECAdd(&pPL->pos, &d, &pPL->pos);
-        FAdd(pPL->rot.y, step);
+        FAdd(pPL->ang.y, step);
         p = pPL;
-        ry = p->rot.y;
+        ry = p->ang.y;
         p->setPos(&p->pos);
         {
             Vec ang;
@@ -522,15 +522,15 @@ static void r20e_execThrough(int no)
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 5, 0, 0x205, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x25), 5, 0, 0x205, 0);
     {
         f32 dist2 = t->dist * t->dist;
 
         do {
-            if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1) {
+            if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1) {
                 SndCall(6, 0xE, 0, 0, 0, 0);
             }
-            if (MotionCheckCrossFrame(&pPL->mot, frame10) == 1) {
+            if (MotionCheckCrossFrame(&pPL->Motion, frame10) == 1) {
                 SndCall(6, 0xD, 0, 0, 0, 0);
             }
             // `if (!c) {...} else break;` keeps the loop un-rotated (the exit jump targets the
@@ -542,7 +542,7 @@ static void r20e_execThrough(int no)
             }
         } while (1);
     }
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 10, 0, 0x201, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 10, 0, 0x201, 0);
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
     }
@@ -630,16 +630,16 @@ void r20d_moveArmorStatue(int noAnim)
             EstSet(0, -1, 0, 0, 1, 1, 1, (u8) r20e_work->effKind, 0, 0);
             U32Set(r20e_work->snd, SndCall(6, 7, 0, 0, 0, 0));
             for (i = 0; i < 90; i++) {
-                o23->pParts->rot.y += 0.034906585f;
-                o24->pParts->rot.y += 0.034906585f;
+                o23->pParts->ang.y += 0.034906585f;
+                o24->pParts->ang.y += 0.034906585f;
                 SceSleep(1);
             }
         }
         // weight lever: the two extra refs rank o23 above noAnim in global-alloc (o23 r31, noAnim r30,
         // o24 r29, i r28)
         do {
-            o23->pParts->rot.y = 3.1415927f;
-            o24->pParts->rot.y = 3.1415927f;
+            o23->pParts->ang.y = 3.1415927f;
+            o24->pParts->ang.y = 3.1415927f;
         } while (0);
     }
 }
@@ -734,11 +734,11 @@ static void r20d_getSalazarCrest_end()
         o24 = SmdGetObjPtr(0x24);
         if (o23) {
             o23->be_flag |= 0x20;
-            o23->pParts->rot.y = 3.1415927f;
+            o23->pParts->ang.y = 3.1415927f;
         }
         if (o24) {
             o24->be_flag |= 0x20;
-            o24->pParts->rot.y = 3.1415927f;
+            o24->pParts->ang.y = 3.1415927f;
         }
         obj = SmdGetObjPtr(0x16);
         if (obj) {
@@ -828,7 +828,7 @@ static void r20e_checkFinalPieceUse()
     SceAtSetEnable(0x11, 0);
     CamCtrl.CutCall(5);
     SceSleep(30);
-    SceMesSet(2, 0x30, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(2, 0x30, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     SndCall(6, 1, 0, 0, 0, 0);
     p = &r20e_work->puzzle;
     pc = PUZZLE_PIECE(p, p->hidden);
@@ -1072,7 +1072,7 @@ static void r20d_checkPuzzle()
     CamCtrl.CutCall(5);
     SceSleep(1);
     w = cMes.getWork();
-    SceMesSet(0, 0x200, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+    SceMesSet(0, 0x200, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 2:
@@ -1116,7 +1116,7 @@ static void r20d_checkPuzzle()
             SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
             SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, 2, 0);
             w = cMes.getWork();
-            SceMesSet(1, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
+            SceMesSet(1, 0, 1, 0x64, 0x150 - w->lineSpace - w->m_font_h - 1);
             break;
         }
         key = &Key;
@@ -1288,7 +1288,7 @@ void r20e_openBox_main(int no, int opened)
     if (obj) {
         obj->be_flag |= 0x20;
         if (opened == 1) {
-            PSVECAdd(&obj->pParts->rot, &spd, &obj->pParts->rot);
+            PSVECAdd(&obj->pParts->ang, &spd, &obj->pParts->ang);
         } else {
             Vec step;
             int i;
@@ -1296,7 +1296,7 @@ void r20e_openBox_main(int no, int opened)
             PSVECScale(&spd, &step, 1.0f / 30.0f);
             SndCall(6, 0x5B, 0, 0, 0, 0);
             for (i = 0; i < 30; i++) {
-                PSVECAdd(&obj->pParts->rot, &step, &obj->pParts->rot);
+                PSVECAdd(&obj->pParts->ang, &step, &obj->pParts->ang);
                 SceSleep(1);
             }
         }
@@ -1339,16 +1339,16 @@ void r20e_openShelf_main(int no, int opened)
         a->be_flag |= 0x20;
         b->be_flag |= 0x20;
         if (opened == 1) {
-            a->pParts->rot.y = ang;
-            b->pParts->rot.y = -ang;
+            a->pParts->ang.y = ang;
+            b->pParts->ang.y = -ang;
         } else {
             int i;
 
             ang /= 30.0f;
             SndCall(6, 0x19, 0, 0, 0, 0);
             for (i = 0; i < 30; i++) {
-                a->pParts->rot.y += ang;
-                b->pParts->rot.y -= ang;
+                a->pParts->ang.y += ang;
+                b->pParts->ang.y -= ang;
                 SceSleep(1);
             }
         }

@@ -33,17 +33,17 @@ class cLit;
 
 // Named data slot table (game/event.cpp `cDatTbl`, demangled `DatTbl`): `num` entries of 0x3C.
 struct DatTblEntry {
-    char name[0x30];   // 0x00
-    u8 flag;           // 0x30  bit0: in use, bit1: `dat2` is a debug-heap block freed with the entry
-    u8 type;           // 0x31
-    u16 count;         // 0x32  reference count (SetDat of an existing name increments it)
-    void* dat;         // 0x34
+    char Name[0x30];   // 0x00
+    u8 FlagBe8;           // 0x30  bit0: in use, bit1: `dat2` is a debug-heap block freed with the entry
+    u8 Etc;           // 0x31
+    u16 Count;         // 0x32  reference count (SetDat of an existing name increments it)
+    void* Dat;         // 0x34
     void* dat2;        // 0x38
 };
 
 class DatTbl {
 public:
-    int num;               // 0x00
+    int NumDatTbl;               // 0x00
     DatTblEntry* pWork;    // 0x04
 
     DatTbl();
@@ -142,53 +142,53 @@ struct EvtDebugModel {
 class Event : public cUnit {
 public:
     u8 xC;                 // 0x0C
-    s8 endStep;            // 0x0D  DelEvt: 0 run ExeEndEvt, 1 wait `endWait` frames
-    s8 endWait;            // 0x0E
+    s8 EndRNo2;            // 0x0D  DelEvt: 0 run ExeEndEvt, 1 wait `endWait` frames
+    s8 EndRNo3;            // 0x0E
     u8 Id;                 // 0x0F
-    u8 type;               // 0x10  constructor argument (EventMgr::construct id)
+    u8 Type;               // 0x10  constructor argument (EventMgr::construct id)
     u8 pad_11[3];
     int effNo;             // 0x14  effect owner slot: -1 none, 0/1 -> EspDataLoad owner 0xC4 + effNo
-    char name[0x20];       // 0x18  event name ("r105s10")
+    char Name[0x20];       // 0x18  event name ("r105s10")
     EvtHeader* pData;      // 0x38
     EvtPacket* pPacket;    // 0x3C  current packet
     EvtPacket* pPrevPacket;  // 0x40  packet executed before it
-    u32 status;            // 0x44  EVT_ST_* bits (FlgOnStatus numbers them from bit 31 down)
-    DatTbl datTbl;         // 0x48  models of the event (name -> cModel*, type)
-    Mtx camMat;            // 0x50  camera base matrix (ExePacket_Pos "cam0000")
-    cModel* pOya;          // 0x80  the "pl0000" object model (player stand-in)
-    cModel* pPosOya;       // 0x84  "oya0000" position base
+    u32 StatusFlag;            // 0x44  EVT_ST_* bits (FlgOnStatus numbers them from bit 31 down)
+    DatTbl ModTbl;         // 0x48  models of the event (name -> cModel*, type)
+    Mtx MatCamOya;            // 0x50  camera base matrix (ExePacket_Pos "cam0000")
+    cModel* PPl;          // 0x80  the "pl0000" object model (player stand-in)
+    cModel* PModOya;       // 0x84  "oya0000" position base
     void* x88;             // 0x88
-    u32 funcTbl;           // 0x8C  ExePacket_Func table (void (*[])(Event*, int)), kept as an address
-    int totalFrame;        // 0x90
-    int maxTotalFrame;     // 0x94
-    int frame;             // 0x98  frame in the cut
-    int maxFrame;          // 0x9C  frames of the cut
-    int cut;               // 0xA0
-    int maxCut;            // 0xA4
-    int dbgTotalFrame;     // 0xA8  DebugDisp copies (DebugDispTool prints them)
-    int dbgMaxTotalFrame;  // 0xAC
-    int dbgFrame;          // 0xB0
-    int dbgMaxFrame;       // 0xB4
-    int dbgCut;            // 0xB8
-    int dbgMaxCut;         // 0xBC
-    int strNo[2];          // 0xC0  stream number per block (-1 = none)
-    u32 strId[2];          // 0xC8  SndStrReq id per block
-    int cancelCut;         // 0xD0  RunEvtCancel: cut the cancel skips to
-    int mesTimer;          // 0xD4
+    u32 PFuncTbl;           // 0x8C  ExePacket_Func table (void (*[])(Event*, int)), kept as an address
+    int NowTotalFrame;        // 0x90
+    int MaxTotalFrame;     // 0x94
+    int NowFrame;             // 0x98  frame in the cut
+    int MaxFrame;          // 0x9C  frames of the cut
+    int NowCut;               // 0xA0
+    int MaxCut;            // 0xA4
+    int BakNowTotalFrame;     // 0xA8  DebugDisp copies (DebugDispTool prints them)
+    int BakMaxTotalFrame;  // 0xAC
+    int BakNowFrame;          // 0xB0
+    int BakMaxFrame;       // 0xB4
+    int BakNowCut;            // 0xB8
+    int BakMaxCut;         // 0xBC
+    int NowStr[2];          // 0xC0  stream number per block (-1 = none)
+    u32 SndId[2];          // 0xC8  SndStrReq id per block
+    int EvtCancelCut;         // 0xD0  RunEvtCancel: cut the cancel skips to
+    int TimerMes;          // 0xD4
     int NoEvt;               // 0xD8
     int NoLit;               // 0xDC
-    int toolFrame;         // 0xE0  RunTool: frame the tool seeks to
+    int FFNowFrame;         // 0xE0  RunTool: frame the tool seeks to
     int actBtnOn;          // 0xE4
     int actBtnCount;       // 0xE8
     int actBtnNo;          // 0xEC
     int funcMode;          // 0xF0  ExeFunc mode the Evt_*_Func handler sees (0 begin, 1 run, 2 end, 3 cancel)
-    int nEspModel;         // 0xF4  EspEvModList entries used
-    void* pFog;            // 0xF8  fog Hermite curves (ExePacket_Fog)
-    void* pFocus;          // 0xFC  focus Hermite curves (ExePacket_Focus)
-    int mesNo;             // 0x100
-    int mesWait;           // 0x104
-    int strTime;           // 0x108  ExePacket_Str time override
-    int nextCut;           // 0x10C  cut jump pending (CalNextFrame)
+    int EmListNo;         // 0xF4  EspEvModList entries used
+    void* pDatFog;            // 0xF8  fog Hermite curves (ExePacket_Fog)
+    void* pDatFocus;          // 0xFC  focus Hermite curves (ExePacket_Focus)
+    int MesNoOld;             // 0x100
+    int DelTimer;           // 0x104
+    int ChangeNoStr;           // 0x108  ExePacket_Str time override
+    int ChangeNowCut;           // 0x10C  cut jump pending (CalNextFrame)
     int toolCut;           // 0x110
     int toolFrame2;        // 0x114
     cLit* pLit;            // 0x118  room lit set by ExePacket_Lit
@@ -270,7 +270,7 @@ public:
     int GetMod(void** mod, char* name, u8* type, int* wkNo);
     void FlgOnStatus(u32 no)
     {
-        u32* f = &status;
+        u32* f = &StatusFlag;
         f[no >> 5] |= 0x80000000 >> (no & 0x1F);
     }
 };
@@ -288,17 +288,17 @@ class EventMgr : public cManager<Event> {
 public:
     union {
         u32 x34;           // 0x34  running event key (sce_com SceChapterEnd: IsAliveEvt / GetEvt)
-        char evtName[0x30];  // 0x34  name of the running event ("" = none)
+        char NowExeEvtName[0x30];  // 0x34  name of the running event ("" = none)
     };
     EvtReadEm readEm[8];   // 0x64  enemy modules loaded per read slot
-    char nameBuf[0x20];    // 0x84  NameChange result
+    char NameTmp[0x20];    // 0x84  NameChange result
     u32 xA4[0x20];         // 0xA4  cleared by myRoomInit
     u8 pad_124[0x144 - 0x124];
     void* emWindowFcv[3];  // 0x144  window jump motions (emwindow ExeWindowEvent)
-    DatTbl evdTbl;         // 0x150  event data by name (0x20)
-    DatTbl binTbl;         // 0x158  bin/tpl files by name (0x140)
-    DatTbl funcTbl;        // 0x160  Evt_*_Func handlers by name (0x10)
-    DatTbl readTbl;        // 0x168  data units being read (0x8)
+    DatTbl EvdTbl;         // 0x150  event data by name (0x20)
+    DatTbl BinTbl;         // 0x158  bin/tpl files by name (0x140)
+    DatTbl FuncTbl;        // 0x160  Evt_*_Func handlers by name (0x10)
+    DatTbl ReadTbl;        // 0x168  data units being read (0x8)
     u8 pad_170[0x180 - 0x170];
 
     EventMgr();
@@ -360,12 +360,12 @@ public:
     char evName[0x30];     // 0x60  packet 6 name (EspToolSetDat)
     char camName[0x30];    // 0x90  packet 0xE name
     s32 mesCnt[3];         // 0xC0
-    int strNo[2];          // 0xCC  last stream number per block
-    s32 strWait;           // 0xD4
-    int toolCut;           // 0xD8
-    s32 nModel;            // 0xDC
+    int NowStr[2];          // 0xCC  last stream number per block
+    s32 StfStrTimer;           // 0xD4
+    int NowCut;           // 0xD8
+    s32 NumMod;            // 0xDC
     EvtDebugModel* pModel; // 0xE0  0x60 entries
-    u32 flags;             // 0xE4  tool switches (bit19 fog off, bit20 focus off, bit18 lit off, bit21 mes off)
+    u32 FlagEtc;             // 0xE4  tool switches (bit19 fog off, bit20 focus off, bit18 lit off, bit21 mes off)
 
     EventDebug();
     ~EventDebug();

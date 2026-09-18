@@ -211,9 +211,9 @@ void str_ax_voice_loop_to_top(SND_STR_WORK* str)
     ofs += str->loop_start % str->blk_size;
     str->loop_L = str->aram_L_nbl + ofs;
     str->loop_R = str->aram_R_nbl + ofs;
-    loop.loop_pred_scale = shd->loop_pred_scale[0];
-    loop.loop_yn1 = shd->loop_yn1[0];
-    loop.loop_yn2 = shd->loop_yn2[0];
+    loop.loop_pred_scale = shd->lps[0];
+    loop.loop_yn1 = shd->lyn1[0];
+    loop.loop_yn2 = shd->lyn2[0];
     AXSetVoiceAdpcmLoop(str->voiceL, &loop);
     AXSetVoiceType(str->voiceL, 0);
     AXSetVoiceLoopAddr(str->voiceL, str->loop_L);
@@ -221,9 +221,9 @@ void str_ax_voice_loop_to_top(SND_STR_WORK* str)
     if (str->flag & 0x2) {
         return;
     }
-    loop.loop_pred_scale = shd->loop_pred_scale[1];
-    loop.loop_yn1 = shd->loop_yn1[1];
-    loop.loop_yn2 = shd->loop_yn2[1];
+    loop.loop_pred_scale = shd->lps[1];
+    loop.loop_yn1 = shd->lyn1[1];
+    loop.loop_yn2 = shd->lyn2[1];
     AXSetVoiceAdpcmLoop(str->voiceR, &loop);
     AXSetVoiceType(str->voiceR, 0);
     AXSetVoiceLoopAddr(str->voiceR, str->loop_R);

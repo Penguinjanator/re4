@@ -17,8 +17,8 @@
 // motion.h declares the one-argument MotionMove; the routines pass a second argument (pl_knife.cpp).
 int MotionMoveI(cModel* m, int flag) asm("MotionMove");
 
-#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWepArc, no)
-#define BOW(pl) ((cObjBow*) (pl)->pWep->pObj)
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWep, no)
+#define BOW(pl) ((cObjBow*) (pl)->Wep->m_pWep)
 
 // Routine bytes through int parameters (player.cpp PlRoutineSet).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
@@ -88,7 +88,7 @@ static void wep28_r2_ready(cPlayer* pl)
         Vec hit;
 
         PSMTXMultVec(pl->mat, &aim, &aim);
-        SatMgr.hitCheck(&pl->getPartsPtr(0)->worldPos, &aim, &hit, 0, 0, 0);
+        SatMgr.hitCheck(&pl->getPartsPtr(0)->world, &aim, &hit, 0, 0, 0);
         CamCtrlShoulderSetAim(&hit);
     }
 }
@@ -101,20 +101,20 @@ static void wep28_r3_ready00(cPlayer* pl)
     int hokan;
 
     pl->x3E4 = 0;
-    pl->pWep->m_CenterY = 0.0f;
+    pl->Wep->m_CenterY = 0.0f;
     pitch = CamCtrl.getCameraPitch();
     if (pitch > 0.0f) {
         pitch += pitch;
     }
-    pl->pWep->pitch = pitch;
+    pl->Wep->pitch = pitch;
     pitch *= 2.0f / PI;
     m3r[1] = pitch;
     m3r[0] = pitch;
     m3r[2] = 0.0f;
     pl->x400 = 0.0f;
-    pl->pNeck->init(0, 0, 0);
-    pl->pWep->m_CamAdjY = CamCtrl.getCameraDirection();
-    obj = pl->pWep->pObj;
+    pl->Neck->init(0, 0, 0);
+    pl->Wep->m_CamAdjY = CamCtrl.getCameraDirection();
+    obj = pl->Wep->m_pWep;
     obj->wep.mode = 1;
     obj->wep.step = 0;
     hokan = 4;
@@ -130,16 +130,16 @@ static void wep28_r3_ready00(cPlayer* pl)
 static void wep28_r3_ready10(cPlayer* pl)
 {
     if (pl->frame < 4.0f) {
-        f32 d = pl->pWep->m_CamAdjY / (4.0f - pl->frame);
+        f32 d = pl->Wep->m_CamAdjY / (4.0f - pl->frame);
 
-        pl->rot.y += d;
-        pl->pWep->m_CamAdjY -= d;
+        pl->ang.y += d;
+        pl->Wep->m_CamAdjY -= d;
     }
-    if (MotionCheckCrossFrame(&pl->mot, 4.0f)) {
-        pl->pWep->pObj2->setDisp(1, 1);
+    if (MotionCheckCrossFrame(&pl->Motion, 4.0f)) {
+        pl->Wep->pObj2->setDisp(1, 1);
         pl->setRightHand(1);
-    } else if (MotionCheckCrossFrame(&pl->mot, 11.0f)) {
-        pl->pWep->pObj2->setDisp(1, 0);
+    } else if (MotionCheckCrossFrame(&pl->Motion, 11.0f)) {
+        pl->Wep->pObj2->setDisp(1, 0);
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
@@ -147,7 +147,7 @@ static void wep28_r3_ready10(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep28_r3_ready20(cPlayer* pl)
@@ -157,7 +157,7 @@ static void wep28_r3_ready20(cPlayer* pl)
     }
     m3r[0] = m3r[0] * m3r[2] + m3r[1] * (1.0f - m3r[2]);
     mot3.move(m3r[0]);
-    pl->pWaist->set(0.0f, 0.4f);
+    pl->Waist->set(0.0f, 0.4f);
 }
 
 static void wep28_r2_set(cPlayer* pl)
@@ -183,17 +183,17 @@ static void wep28_r2_set(cPlayer* pl)
             wepDown(pl);
         }
     } else if (joyFireTrg()) {
-        if (pl->pWep->pObj->bulletNum()) {
+        if (pl->Wep->m_pWep->bulletNum()) {
             PlRoutineSet(pl, 0, 6, 2, 0);
         }
-    } else if (joyFireOn() && pl->pWep->pObj->bulletNum()) {
+    } else if (joyFireOn() && pl->Wep->m_pWep->bulletNum()) {
         PlRoutineSet(pl, 0, 6, 2, 0);
     }
 }
 
 static void wep28_r3_set00(cPlayer* pl)
 {
-    PlArc* arc = (PlArc*) pG->pWepArc;
+    PlArc* arc = (PlArc*) pG->pWep;
 
     mot3.set(pl, PL_ARC_PTR(arc, 0x21), PL_ARC_PTR(arc, 0x24), PL_ARC_PTR(arc, 0x27), 0, 3, 0, 4, 0);
     mot3.move(m3r[0]);
@@ -213,10 +213,10 @@ static void wep28_r3_set20(cPlayer* pl)
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
@@ -227,10 +227,10 @@ static void wep28_r3_set30(cPlayer* pl)
     }
     MotionMoveI(pl, 0);
     if (pl->frame > 9.7f && pl->frame < 10.3f) {
-        SndCall(5, 0, &pl->getPartsPtr(0x14)->worldPos, 0, 0, 0);
+        SndCall(5, 0, &pl->getPartsPtr(0x14)->world, 0, 0, 0);
     }
     if (pl->frame > 22.7f && pl->frame < 23.3f) {
-        SndCall(5, 1, &pl->getPartsPtr(0x18)->worldPos, 0, 0, 0);
+        SndCall(5, 1, &pl->getPartsPtr(0x18)->world, 0, 0, 0);
     }
 }
 
@@ -258,14 +258,14 @@ static void wep28_r3_fire00(cPlayer* pl)
     f32 pitch;
     cObjWep* obj;
 
-    pl->pWep->pObj->trigger();
-    arc = (PlArc*) pG->pWepArc;
+    pl->Wep->m_pWep->trigger();
+    arc = (PlArc*) pG->pWep;
     mot3.set(pl, PL_ARC_PTR(arc, 0x22), PL_ARC_PTR(arc, 0x25), PL_ARC_PTR(arc, 0x28), 0, 0, 0, 4, 0);
     mot3.move(m3r[0]);
     MotionMoveI(pl, 0);
     pl->x3F4 = 1;
     pl->x3F0 = 1;
-    obj = pl->pWep->pObj;
+    obj = pl->Wep->m_pWep;
     obj->wep.mode = 2;
     obj->wep.step = 0;
     pl->setRightHand(0);
@@ -283,11 +283,11 @@ static void wep28_r3_fire10(cPlayer* pl)
     int endFrame = 5;
 
     PlWepLockCtrl(pl);
-    if (MotionCheckCrossFrame(&pl->mot, 16.0f)) {
-        pl->pWep->pObj2->setDisp(1, 1);
+    if (MotionCheckCrossFrame(&pl->Motion, 16.0f)) {
+        pl->Wep->pObj2->setDisp(1, 1);
         pl->setRightHand(1);
-    } else if (MotionCheckCrossFrame(&pl->mot, 35.0f)) {
-        pl->pWep->pObj2->setDisp(1, 0);
+    } else if (MotionCheckCrossFrame(&pl->Motion, 35.0f)) {
+        pl->Wep->pObj2->setDisp(1, 0);
         BOW(pl)->setDispAllow(1);
     }
     if (pl->motionMove()) {
@@ -305,8 +305,8 @@ static void wepDown(cPlayer* pl)
     cObjWep* obj;
 
     pl->setRightHand(0);
-    pl->pWep->pObj2->setDisp(1, 0);
-    obj = pl->pWep->pObj;
+    pl->Wep->pObj2->setDisp(1, 0);
+    obj = pl->Wep->m_pWep;
     obj->wep.mode = 3;
     obj->wep.step = 0;
     if (dmMotCk()) {

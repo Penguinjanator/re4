@@ -38,7 +38,7 @@ static void em2e_R1_Die_Normal(cEm2e* em);
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
 // Collision flag bits cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -174,7 +174,7 @@ static void em2e_R0_Init(cEm2e* em)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 500.0f, 500.0f, 500.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -201,7 +201,7 @@ static void em2e_R0_Init(cEm2e* em)
         Vec hit;
         Vec nrm;
 
-        PSMTXRotRad(m, 'y', em->rot.y);
+        PSMTXRotRad(m, 'y', em->ang.y);
         TransMatrix(m, &em->pos);
         a.x = 0.0f;
         a.y = 0.0f;
@@ -246,7 +246,7 @@ static void em2e_R1_Wait(cEm2e* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -280,7 +280,7 @@ static void em2e_R1_Walk(cEm2e* em)
         break;
     }
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -298,9 +298,9 @@ static void em2e_R1_Turn(cEm2e* em)
         em->r_no_2++;
     case 1:
         if (w->turnDir) {
-            em->rot.y += PI / 64.0f;
+            em->ang.y += PI / 64.0f;
         } else {
-            em->rot.y -= PI / 64.0f;
+            em->ang.y -= PI / 64.0f;
         }
         em2eFootMove(em);
         if (w->timer) {
@@ -312,7 +312,7 @@ static void em2e_R1_Turn(cEm2e* em)
         }
         break;
     }
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -382,7 +382,7 @@ static void em2e_R1_W_Turn(cEm2e* em)
     switch (em->r_no_2) {
     case 0:
         w->timer = 15;
-        w->turnDir = em->emsetNo & 1;
+        w->turnDir = em->emset_no & 1;
         em->r_no_2++;
     case 1: {
         Mtx m;
@@ -429,8 +429,8 @@ void em2eFootMove(cEm2e* em)
     cModel* p2 = em->getPartsPtr(2);
     cModel* p3 = em->getPartsPtr(3);
 
-    p2->rot.y = w->footAng;
-    p3->rot.y = -w->footAng;
+    p2->ang.y = w->footAng;
+    p3->ang.y = -w->footAng;
     if (w->flags & 1) {
         w->footAng += PI / 64.0f;
         if (w->footAng >= PI / 16.0f) {

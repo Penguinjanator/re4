@@ -736,13 +736,13 @@ void Espgen42_TransSub(EspgenWork* w)
     {
         static const Vec p0 = {0.0f, 0.0f, 0.0f};
         static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
-        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+        model.LightInfo.init2(1, 0, &p0, &p1, 0x10);
     }
     model.pos.x = p->mat[0][3];
     model.pos.y = p->mat[1][3];
     model.pos.z = p->mat[2][3];
     LightMgr.setClothN(&model, 5);
-    commonWaterLightSet(model.lightInfo.pLight, 5, p->amb.a);
+    commonWaterLightSet(model.LightInfo.pLight, 5, p->amb.a);
     GXColor white;
     white.r = white.g = white.b = white.a = 0xFF;
     GXSetChanMatColor(4, white);
@@ -750,10 +750,10 @@ void Espgen42_TransSub(EspgenWork* w)
     Mtx nrm;
     Mtx mv;
     Mtx tmp;
-    PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
+    PSMTXConcat(pG->Cam.v_mat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
     tmp[1][1] = p->size * 0.05f + 100.0f;
-    PSMTXConcat(pG->Cam.viewMat, tmp, tmp);
+    PSMTXConcat(pG->Cam.v_mat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
     GXLoadNrmMtxImm(nrm, 0);
@@ -839,7 +839,7 @@ void Espgen42_TransSub(EspgenWork* w)
             Mtx ms;
             Mtx mt;
             Mtx m3;
-            PSMTXCopy(pG->Cam.viewMat, m3);
+            PSMTXCopy(pG->Cam.v_mat, m3);
             PSMTXInverse(m3, m3);
             PSMTXTranspose(m3, m3);
             PSMTXScale(ms, 1.0f, -0.5f, 0.0f);

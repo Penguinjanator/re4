@@ -14,7 +14,7 @@ struct Esp0bWork {
 // applied only while drawing.
 class cEsp0b : public cEsp {
 public:
-    Esp0bWork work;  // 0xF8
+    Esp0bWork m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -27,7 +27,7 @@ cEsp* Esp0b_Create()
 
 void cEsp0b::move()
 {
-    Esp0bWork* w = &work;
+    Esp0bWork* w = &m_Free;
     Vec look;
     Vec up;
     Vec side;
@@ -37,7 +37,7 @@ void cEsp0b::move()
     Camera* cam;
 
     if (!(info.Core_flg & 0x8000)) {
-        PSVECSubtract(&pos, &w->ofs, &pos);
+        PSVECSubtract(&m_Pos, &w->ofs, &m_Pos);
     }
     if (CommonMove()) {
         if (!AnmMove()) {
@@ -45,9 +45,9 @@ void cEsp0b::move()
         } else if (!(info.Core_flg & 0x8000)) {
             cam = &pG->Cam;
             if (parent != pEffParentWorld) {
-                PSMTXMultVec(parent->mat, &pos, &wpos);
+                PSMTXMultVec(parent->mat, &m_Pos, &wpos);
             } else {
-                wpos = pos;
+                wpos = m_Pos;
             }
             PSVECSubtract(&wpos, &cam->param.pos, &look);
             if (look.x == 0.0f && look.y == 0.0f && look.z == 0.0f) {
@@ -68,7 +68,7 @@ void cEsp0b::move()
                 PSMTXInverse(parent->mat, inv);
                 PSMTXMultVecSR(inv, &w->ofs, &w->ofs);
             }
-            PSVECAdd(&pos, &w->ofs, &pos);
+            PSVECAdd(&m_Pos, &w->ofs, &m_Pos);
         }
     }
 }
@@ -84,12 +84,12 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
     Camera* cam;
 
     if (esp->info.Core_flg & 0x8000) {
-        Esp0bWork* w = &esp->work;
+        Esp0bWork* w = &esp->m_Free;
         cam = &pG->Cam;
         if (esp->parent != pEffParentWorld) {
-            PSMTXMultVec(esp->parent->mat, &esp->pos, &wpos);
+            PSMTXMultVec(esp->parent->mat, &esp->m_Pos, &wpos);
         } else {
-            wpos = esp->pos;
+            wpos = esp->m_Pos;
         }
         PSVECSubtract(&wpos, &cam->param.pos, &look);
         if (look.x == 0.0f && look.y == 0.0f && look.z == 0.0f) {
@@ -110,9 +110,9 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
             PSMTXInverse(esp->parent->mat, inv);
             PSMTXMultVecSR(inv, &w->ofs, &w->ofs);
         }
-        PSVECAdd(&esp->pos, &w->ofs, &esp->pos);
+        PSVECAdd(&esp->m_Pos, &w->ofs, &esp->m_Pos);
         EspCommonTrans(esp);
-        PSVECSubtract(&esp->pos, &w->ofs, &esp->pos);
+        PSVECSubtract(&esp->m_Pos, &w->ofs, &esp->m_Pos);
     } else {
         EspCommonTrans(esp);
     }
@@ -120,7 +120,7 @@ extern "C" void Esp0b_Trans(cEsp0b* esp)
 
 int cEsp0b::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    work.prm = *(Vec*)&gen->xD8;
+    m_Free.prm = *(Vec*)&gen->xD8;
     if (gen->xC8 != 0) {
         pLog->err(0, 0, "ESP : 'ESP15' WK0 not 0!! ");
     }

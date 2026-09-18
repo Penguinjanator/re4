@@ -7,10 +7,10 @@
 
 // Work of the hit-only enemy (game/emhit.cpp), overlaid on cEm from 0x3E0.
 struct EmHitWork {
-    u32 flags;            // 0x000 (0x3E0)
-    int timer;            // 0x004 (0x3E4)  beetle: frames before it fades out
+    u32 Be_flg;            // 0x000 (0x3E0)
+    int Timer;            // 0x004 (0x3E4)  beetle: frames before it fades out
     u8 pad_8[4];
-    int status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
+    int Status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
     cModel* pParent;      // 0x010 (0x3F0)  model the hit follows (setParent)
     int partsNo;          // 0x014 (0x3F4)
     int noNormalize;      // 0x018 (0x3F8)  setParent 3rd argument: keep the parent's scale

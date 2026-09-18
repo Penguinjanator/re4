@@ -12,14 +12,14 @@ class cModel;
 class TexRenderMng {
 public:
     int used;        // 0x00
-    GXTexObj texObj; // 0x04
+    GXTexObj m_Tex_obj; // 0x04
     void* buf;       // 0x24  sx * sy * 4 bytes
     u8 texId;        // 0x28  0xF8 + slot
     u8 x29;
     u16 mask;        // 0x2A  8 << slot
-    u32 sx;          // 0x2C  texture size (EFB copy is 2x)
-    u32 sy;          // 0x30
-    int repType;     // 0x34  0 mirror, 1 repeat, 2 clamp
+    u32 m_W_size;          // 0x2C  texture size (EFB copy is 2x)
+    u32 m_H_size;          // 0x30
+    int m_Rep_type;     // 0x34  0 mirror, 1 repeat, 2 clamp
 
     TexRenderMng();
     void Init();

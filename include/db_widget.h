@@ -48,20 +48,20 @@ struct DB_RECT {
 };
 
 struct DB_COLOR {
-    f32 r;
-    f32 g;
-    f32 b;
-    f32 a;
+    f32 R;
+    f32 G;
+    f32 B;
+    f32 A;
 
-    DB_COLOR() { a = b = g = r = 1.0f; }
+    DB_COLOR() { A = B = G = R = 1.0f; }
     // DB_WINDOW's member init: the constant comes from the caller (an unchanging pool MEM), the
     // inlined default ctor's own 1.0f loses RTX_UNCHANGING_P in integrate and waits for the vptr store
-    DB_COLOR(f32 v) { a = b = g = r = v; }
+    DB_COLOR(f32 v) { A = B = G = R = v; }
     DB_COLOR(f32 r_, f32 g_, f32 b_, f32 a_) {
-        r = r_;
-        g = g_;
-        b = b_;
-        a = a_;
+        R = r_;
+        G = g_;
+        B = b_;
+        A = a_;
     }
 };
 

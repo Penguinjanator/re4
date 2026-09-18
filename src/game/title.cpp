@@ -129,7 +129,7 @@ void Title_task()
 #line 114 "D:/Bio4/Prog/title.cpp"
     w = (TitleWork*) MEM_CALLOC(sizeof(TitleWork), 1, 13);
     for (;;) {
-        titleFuncTbl[w->mode](w);
+        titleFuncTbl[w->Rno0](w);
         TaskSleep(1);
     }
 }
@@ -145,11 +145,11 @@ void titleInit(TitleWork* w)
     // The work fields are written through the reference setters (the order and the ISet/FSet
     // forms decide the store schedule; found by brute force).
     ISet(w->req, req);
-    w->mode = 1;
+    w->Rno0 = 1;
     w->xC = 0;
-    w->step = 0;
+    w->Rno1 = 0;
     ISet(w->scroll, 0);
-    FSet(w->speed, 1.5f);
+    FSet(w->scroll_add, 1.5f);
     pG->flags_5014 |= 0x8000;
     IdAllocBuffer();
 }
@@ -169,14 +169,14 @@ void titleWait(TitleWork* w)
 {
     static char title_dat[] = "SS/___/title.dat";
 
-    switch (w->step) {
+    switch (w->Rno1) {
     case 0:
         if (CardCheckDone() == 1) {
             int stat = Dvd.ReadCheck(w->req, 0, 0, 0);
             if (stat == 1) {
                 FadeKill(0);
                 systemVISetBlack(0);
-                w->step = 1;
+                w->Rno1 = 1;
             }
         }
         break;
@@ -185,12 +185,12 @@ void titleWait(TitleWork* w)
 #line 210 "D:/Bio4/Prog/title.cpp"
         w->req = DvdReadN(title_dat, 0, 0, 0, 0, 4, __FILE__, __LINE__);
         READ_ERROR("%s read error!!");
-        w->step = 2;
+        w->Rno1 = 2;
         break;
     case 2: {
         int stat = Dvd.ReadCheck(w->req, 0, 0, (void**) &w->pDat);
         if (stat == 1) {
-            pG->prim_max = 0x20000;
+            pG->nPrim = 0x20000;
             primInit();
             IdTexRoomInit();
             IdSys.roomInit();
@@ -198,31 +198,31 @@ void titleWait(TitleWork* w)
             {
                 register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
                 z = 0;
-                CSet(w->mode, 2);
+                CSet(w->Rno0, 2);
                 ISet(w->sndFlag, 1);
-                w->step = z;
-                ISet(w->cnt, 0);
+                w->Rno1 = z;
+                ISet(w->counter, 0);
                 ISet(w->dbg_mode, 0);
             }
             if (pRK->x17 != 0) {
-                w->mode = 5;
-                w->cnt = 585;
+                w->Rno0 = 5;
+                w->counter = 585;
                 titleSet(w, 585);
                 if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
-                    w->saveStep = w->step;
-                    w->saveSub = w->sub;
+                    w->saveStep = w->Rno1;
+                    w->saveSub = w->Rno2;
                     w->saveX3 = w->Rno3;
-                    w->saveCnt = w->cnt;
-                    w->mode = 6;
-                    w->step = 0;
+                    w->saveCnt = w->counter;
+                    w->Rno0 = 6;
+                    w->Rno1 = 0;
                 }
             }
         }
         {
             Camera* cam = &pG->Cam;
-            C_MTXPerspective(cam->projMat, cam->param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
+            C_MTXPerspective(cam->ProjMat, cam->param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
             cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-            C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+            C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
         }
         break;
     }
@@ -237,35 +237,35 @@ void titleNintendo(TitleWork* w)
 
     if (PadCheckStatus(&Joy[1]) == 1) {
         FadeKill(0);
-        w->mode = 5;
-        w->step = 0;
-        w->cnt = 585;
+        w->Rno0 = 5;
+        w->Rno1 = 0;
+        w->counter = 585;
         titleSet(w, 585);
         return;
     }
-    switch (w->step) {
+    switch (w->Rno1) {
     case 0:
         IdSys.set(TITLE_ARC_PTR(w->pDat, 0xB), 0xFF, ID_TITLE, 0x13, 6, 0);
         c0.w = 0x000000FF;
         c1.w = 0x00000000;
         FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
         wait_cnt = 0;
-        w->step++;
+        w->Rno1++;
         break;
     case 1:
         if (wait_cnt++ > 60) {
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-            w->step++;
+            w->Rno1++;
         }
         break;
     case 2:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->step = 0;
-            w->mode = 3;
-            titleSet(w, w->cnt);
+            w->Rno1 = 0;
+            w->Rno0 = 3;
+            titleSet(w, w->counter);
         }
         break;
     }
@@ -277,35 +277,35 @@ void titleWarning(TitleWork* w)
     FadeColor c0;
     FadeColor c1;
 
-    w->cnt++;
+    w->counter++;
     if (PadCheckStatus(&Joy[1]) == 1) {
-        w->cnt = 585;
-        w->mode = 5;
-        w->step = 0;
-        IdSys.setTimeS(u, (s16) w->cnt);
+        w->counter = 585;
+        w->Rno0 = 5;
+        w->Rno1 = 0;
+        IdSys.setTimeS(u, (s16) w->counter);
         return;
     }
-    switch (w->step) {
+    switch (w->Rno1) {
     case 0:
-        if (w->cnt > 105) {
-            w->step = 0;
-            w->mode = 4;
-        } else if (w->cnt > TTL_CANCEL_WARNING) {
+        if (w->counter > 105) {
+            w->Rno1 = 0;
+            w->Rno0 = 4;
+        } else if (w->counter > TTL_CANCEL_WARNING) {
             if (Key.trg & KEY_START) {
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-                w->step = 1;
+                w->Rno1 = 1;
             }
         }
         break;
     case 1:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->cnt = 105;
-            w->step = 0;
-            w->mode = 4;
-            IdSys.setTimeS(u, (s16) w->cnt);
+            w->counter = 105;
+            w->Rno1 = 0;
+            w->Rno0 = 4;
+            IdSys.setTimeS(u, (s16) w->counter);
         }
         break;
     }
@@ -318,74 +318,74 @@ void titleLogo(TitleWork* w)
     FadeColor c0;
     FadeColor c1;
 
-    w->cnt++;
-    switch (w->step) {
+    w->counter++;
+    switch (w->Rno1) {
     case 0:
-        if (w->cnt > 230) {
-            w->step = 2;
-        } else if (w->cnt > TTL_CANCEL_CAPCOM) {
+        if (w->counter > 230) {
+            w->Rno1 = 2;
+        } else if (w->counter > TTL_CANCEL_CAPCOM) {
             if (Key.trg & KEY_START) {
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-                w->step = 1;
+                w->Rno1 = 1;
             }
         }
         break;
     case 1:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->cnt = 230;
-            w->step = 2;
-            IdSys.setTimeS(u, (s16) w->cnt);
+            w->counter = 230;
+            w->Rno1 = 2;
+            IdSys.setTimeS(u, (s16) w->counter);
         }
         break;
     case 2:
-        if (w->cnt > 330) {
-            w->step = 4;
-        } else if (w->cnt > TTL_CANCEL_CRI) {
+        if (w->counter > 330) {
+            w->Rno1 = 4;
+        } else if (w->counter > TTL_CANCEL_CRI) {
             if (Key.trg & KEY_START) {
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-                w->step = 3;
+                w->Rno1 = 3;
             }
         }
         break;
     case 3:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->cnt = 330;
-            w->step = 4;
-            IdSys.setTimeS(u, (s16) w->cnt);
+            w->counter = 330;
+            w->Rno1 = 4;
+            IdSys.setTimeS(u, (s16) w->counter);
         }
         break;
     case 4:
-        if (w->cnt > 585) {
-            w->step = 6;
-        } else if (w->cnt > TTL_CANCEL_DOLBY) {
+        if (w->counter > 585) {
+            w->Rno1 = 6;
+        } else if (w->counter > TTL_CANCEL_DOLBY) {
             if (Key.trg & KEY_START) {
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-                w->step = 5;
+                w->Rno1 = 5;
             }
         }
         break;
     case 5:
         if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
-            w->cnt = 585;
-            w->step = 6;
-            IdSys.setTimeS(u, (s16) w->cnt);
+            w->counter = 585;
+            w->Rno1 = 6;
+            IdSys.setTimeS(u, (s16) w->counter);
         }
         break;
     case 6:
-        w->mode = 5;
-        w->step = 0;
+        w->Rno0 = 5;
+        w->Rno1 = 0;
         break;
     }
-    if ((u32) w->cnt > LOGO_CALL_FRAME && w->sndFlag == 1) {
+    if ((u32) w->counter > LOGO_CALL_FRAME && w->sndFlag == 1) {
         SndCall(6, 4, 0, 0, 0, 0);
         w->sndFlag = 0;
     }
@@ -396,7 +396,7 @@ void titleMenuInit(TitleWork* w)
     IdSys.kill(0xFF, ID_MENU);
     if (pSys->x4 & 0x40000000) {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 9), 0xFF, ID_MENU, 0x13, 5, 0);
-        w->menuNum = 5;
+        w->menu_num = 5;
         w->menu[0] = IdSys.unitPtr(1, ID_MENU);
         w->menu[1] = IdSys.unitPtr(7, ID_MENU);
         w->menu[2] = IdSys.unitPtr(9, ID_MENU);
@@ -405,14 +405,14 @@ void titleMenuInit(TitleWork* w)
         w->cursor = 3;
     } else {
         IdSys.set(TITLE_ARC_PTR(w->pDat, 8), 0xFF, ID_MENU, 0x13, 5, 0);
-        w->menuNum = 3;
+        w->menu_num = 3;
         w->menu[0] = IdSys.unitPtr(1, ID_MENU);
         w->menu[1] = IdSys.unitPtr(5, ID_MENU);
         w->menu[2] = IdSys.unitPtr(3, ID_MENU);
         w->cursor = 1;
     }
     w->scroll = 0;
-    w->speed = 1.5f;
+    w->scroll_add = 1.5f;
 }
 
 // Cursor movement shared by the main menu and the level select.
@@ -425,23 +425,23 @@ void titleMenuInit(TitleWork* w)
         if (Key.trg & KEY_DOWN) {                                                          \
             (w)->cursor++;                                                                 \
         }                                                                                  \
-        (w)->cursor = (w)->cursor < 0 ? 0 : ((w)->cursor > (w)->menuNum - 1 ? (w)->menuNum - 1 : (w)->cursor); \
+        (w)->cursor = (w)->cursor < 0 ? 0 : ((w)->cursor > (w)->menu_num - 1 ? (w)->menu_num - 1 : (w)->cursor); \
         if (old != (w)->cursor) {                                                          \
             SndCall(0, 10, 0, 0, 0, 0);                                                    \
         }                                                                                  \
         {                                                                                  \
             int i;                                                                         \
-            for (i = 0; i < (w)->menuNum; i++) {                                           \
+            for (i = 0; i < (w)->menu_num; i++) {                                           \
                 if (i == (w)->cursor) {                                                    \
-                    (w)->menu[i]->flags |= 8;                                              \
+                    (w)->menu[i]->be_flag |= 8;                                              \
                 } else {                                                                   \
-                    (w)->menu[i]->flags &= ~8;                                             \
+                    (w)->menu[i]->be_flag &= ~8;                                             \
                 }                                                                          \
             }                                                                              \
         }                                                                                  \
-        if ((w)->menuNum > 1 && (Key.trg & (KEY_UP | KEY_DOWN))) {                        \
+        if ((w)->menu_num > 1 && (Key.trg & (KEY_UP | KEY_DOWN))) {                        \
             int i;                                                                         \
-            for (i = 0; i < (w)->menuNum; i++) {                                           \
+            for (i = 0; i < (w)->menu_num; i++) {                                           \
                 IdUnit* u = (w)->menu[i];                                                  \
                 u->timer[3] = 0;                                                           \
                 u->timer[1] = 0;                                                           \
@@ -501,11 +501,11 @@ void titleLevelInit(TitleWork* w)
     w->menu[1] = IdSys.unitPtr(3, ID_MENU);
     w->menu[2] = IdSys.unitPtr(5, ID_MENU);
     if (pSys->language == 1) {
-        IdSys.unitPtr(5, ID_MENU)->flags &= ~8;
-        IdSys.unitPtr(6, ID_MENU)->flags &= ~8;
-        w->menuNum = 2;
+        IdSys.unitPtr(5, ID_MENU)->be_flag &= ~8;
+        IdSys.unitPtr(6, ID_MENU)->be_flag &= ~8;
+        w->menu_num = 2;
     } else {
-        w->menuNum = 3;
+        w->menu_num = 3;
     }
     w->cursor = 1;
 }
@@ -562,10 +562,10 @@ void titleMain(TitleWork* w)
     if (!(pG->System_flg & 0x100) && (pSys->x4 & 0x40000000)) {
         titleLoop(w);
     }
-    switch (w->step) {
+    switch (w->Rno1) {
     case 0:
         titleMenuInit(w);
-        w->step = 1;
+        w->Rno1 = 1;
         demo_loop_cnt = 600;
         break;
     case 1: {
@@ -576,19 +576,19 @@ void titleMain(TitleWork* w)
         case 1:
             Snd.room_ok = 1;
             if (pSys->language == 0) {
-                w->sndId = SndCall(6, 0, 0, 0, 0, 0);
+                w->se_id = SndCall(6, 0, 0, 0, 0, 0);
             } else {
-                w->sndId = SndCall(6, 2, 0, 0, 0, 0);
+                w->se_id = SndCall(6, 2, 0, 0, 0, 0);
             }
             VibSetData((VibDataTbl*) G_ARC_PTR(ofs_1C), 0x10, 1);
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
-            w->step = 3;
+            w->Rno1 = 3;
             break;
         case 6:
             titleLevelInit(w);
-            w->step = 2;
+            w->Rno1 = 2;
             SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 2:
@@ -601,17 +601,17 @@ void titleMain(TitleWork* w)
                 pG->System_flg |= 0x40000000;
                 break;
             }
-            w->saveStep = w->step;
-            w->saveSub = w->sub;
+            w->saveStep = w->Rno1;
+            w->saveSub = w->Rno2;
             w->saveX3 = w->Rno3;
-            w->saveCnt = w->cnt;
-            w->mode = 6;
-            w->step = 0;
-            w->omkChar = 0;
+            w->saveCnt = w->counter;
+            w->Rno0 = 6;
+            w->Rno1 = 0;
+            w->omk_char_no = 0;
             SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 4:
-            w->step = 7;
+            w->Rno1 = 7;
             SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 5:
@@ -623,12 +623,12 @@ void titleMain(TitleWork* w)
             IdTexDataLoad(G_ARC_PTR(ofs_74), 4);
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), 6);
             IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, ID_OPTION, 0x13, 5, 0);
-            w->saveCnt = w->cnt;
-            w->step = 4;
+            w->saveCnt = w->counter;
+            w->Rno1 = 4;
             SndCall(0, 0x33, 0, 0, 0, 0);
             break;
         }
-        if (w->step == 1 && !(pG->System_flg & 8)) {
+        if (w->Rno1 == 1 && !(pG->System_flg & 8)) {
             if (Key.trg & (KEY_UP | KEY_DOWN)) {
                 demo_loop_cnt = 600;
             }
@@ -638,8 +638,8 @@ void titleMain(TitleWork* w)
                     c0.w = 0x00000000;
                     c1.w = 0x000000FF;
                     FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-                    w->sub = 0;
-                    w->step = 6;
+                    w->Rno2 = 0;
+                    w->Rno1 = 6;
                 }
             } else {
                 demo_loop_cnt = 600;
@@ -650,23 +650,23 @@ void titleMain(TitleWork* w)
     case 2:
         if (Key.trg & KEY_B) {
             titleMenuInit(w);
-            w->step = 1;
+            w->Rno1 = 1;
         } else if (titleLevelSelect(w) != 0) {
             Snd.room_ok = 1;
             if (pSys->language == 0) {
-                w->sndId = SndCall(6, 0, 0, 0, 0, 0);
+                w->se_id = SndCall(6, 0, 0, 0, 0, 0);
             } else {
-                w->sndId = SndCall(6, 2, 0, 0, 0, 0);
+                w->se_id = SndCall(6, 2, 0, 0, 0, 0);
             }
             VibSetData((VibDataTbl*) G_ARC_PTR(ofs_1C), 0x10, 1);
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
-            w->step = 3;
+            w->Rno1 = 3;
         }
         break;
     case 3:
-        w->mode = 7;
+        w->Rno0 = 7;
         break;
     case 4:
         if (OptScrn.move() == 1) {
@@ -675,18 +675,18 @@ void titleMain(TitleWork* w)
             IdSys.kill(0xFF, ID_OPTION);
             OptScrn.quit();
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
-            w->mode = 5;
-            w->step = 0;
+            w->Rno0 = 5;
+            w->Rno1 = 0;
             w->cursor = 2;
-            w->cnt = w->saveCnt;
+            w->counter = w->saveCnt;
             titleSet(w, w->saveCnt);
         }
         break;
     case 5:
-        switch (w->sub) {
+        switch (w->Rno2) {
         case 0:
             if ((Fade[0].flags & 1) == 0) {
-                w->sub++;
+                w->Rno2++;
             }
             break;
         case 1:
@@ -694,7 +694,7 @@ void titleMain(TitleWork* w)
             FadeKill(0);
             ScreenReSize(512, 448);
             Sofdec.Initialize("movie/e3_jpn.sfd", 0);
-            w->sub++;
+            w->Rno2++;
             break;
         case 2:
             if (!Sofdec.isPlay()) {
@@ -704,35 +704,35 @@ void titleMain(TitleWork* w)
                 c0.w = 0x000000FF;
                 c1.w = 0x00000000;
                 FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
-                w->sub++;
+                w->Rno2++;
             }
             break;
         case 3:
             if ((Fade[0].flags & 1) == 0) {
-                w->sub = 0;
-                w->step = 1;
+                w->Rno2 = 0;
+                w->Rno1 = 1;
             }
             break;
         }
         break;
     case 6:
-        switch (w->sub) {
+        switch (w->Rno2) {
         case 0:
             if ((Fade[0].flags & 1) == 0) {
-                w->sub++;
-                w->demoNo = w->demoNo == 0;
+                w->Rno2++;
+                w->demo_no = w->demo_no == 0;
             }
             break;
         case 1:
             systemVISetBlack(1);
             FadeKill(0);
             ScreenReSize(512, 448);
-            if (w->demoNo) {
+            if (w->demo_no) {
                 Sofdec.Initialize("movie/demo0.sfd", 0);
             } else {
                 Sofdec.Initialize("movie/demo1.sfd", 0);
             }
-            w->sub++;
+            w->Rno2++;
             break;
         case 2:
             if (!Sofdec.isPlay()) {
@@ -742,19 +742,19 @@ void titleMain(TitleWork* w)
                 c0.w = 0x000000FF;
                 c1.w = 0x00000000;
                 FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
-                w->sub++;
+                w->Rno2++;
             }
             break;
         case 3:
             if ((Fade[0].flags & 1) == 0) {
-                w->step = 1;
+                w->Rno1 = 1;
             }
             break;
         }
         break;
     case 7:
         if (CardLoad() == 1) {
-            w->step = 3;
+            w->Rno1 = 3;
             pG->System_flg |= 0x100;
         } else {
             pG->System_flg |= 0x04000000;
@@ -762,27 +762,27 @@ void titleMain(TitleWork* w)
         }
         break;
     case 8:
-        switch (w->sub) {
+        switch (w->Rno2) {
         case 0: {
             IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
-            if (w->cnt <= 584) {
-                w->cnt = 645;
+            if (w->counter <= 584) {
+                w->counter = 645;
             }
-            IdSys.setTimeS(u, (s16) w->cnt);
+            IdSys.setTimeS(u, (s16) w->counter);
             w->dbg_mode = 1;
-            w->sub++;
+            w->Rno2++;
         }
         case 1:
             if (Joy[0].trg & 0x1100) {
                 int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
-                w->mode = 7;
+                w->Rno0 = 7;
                 if ((s32) pG->System_flg < 0 || (pG->System_flg & 0x40000000)) {
-                    w->saveSub = w->sub;
-                    w->saveStep = w->step;
+                    w->saveSub = w->Rno2;
+                    w->saveStep = w->Rno1;
                     w->saveX3 = w->Rno3;
-                    w->saveCnt = w->cnt;
-                    w->mode = 6;
-                    w->step = zero;
+                    w->saveCnt = w->counter;
+                    w->Rno0 = 6;
+                    w->Rno1 = zero;
                 } else {
                     Snd.room_ok = 1;
                     c0.w = 0x00000000;
@@ -795,8 +795,8 @@ void titleMain(TitleWork* w)
         }
         break;
     }
-    if (w->cnt > 54000) {
-        w->cnt = 54000;
+    if (w->counter > 54000) {
+        w->counter = 54000;
     }
 }
 
@@ -813,19 +813,19 @@ void titleLoop(TitleWork* w)
     IdSys.unitPtr(5, ID_TITLE)->scr.x = width * 2.0f;
     u = IdSys.unitPtr(6, ID_TITLE);
     if (w->scroll == 0) {
-        u->scr.x -= w->speed;
+        u->scr.x -= w->scroll_add;
         if (Key.on & (KEY_RIGHT | KEY_LEFT)) {
             w->scroll = 1;
         }
     } else {
-        if ((f32) Key.sx != 0.0f) {
-            f32 spd = (f32) Key.sx / 59.0f * 3.0f;
+        if ((f32) Key.stickX != 0.0f) {
+            f32 spd = (f32) Key.stickX / 59.0f * 3.0f;
             u->scr.x -= spd;
-            if (__builtin_fabsf((f32) Key.sx) > 3.0f) {
-                w->speed = spd;
+            if (__builtin_fabsf((f32) Key.stickX) > 3.0f) {
+                w->scroll_add = spd;
             }
         } else {
-            u->scr.x -= w->speed;
+            u->scr.x -= w->scroll_add;
         }
         if (Key.on & 0x00400000) {
             u->scr.z -= 5.0f;
@@ -864,7 +864,7 @@ void titleSub(TitleWork* w)
     int charBit[5] = {4, 4, 6, 5, 7};
 #define OMK_PTR(no) TITLE_ARC_PTR((TitleArc*) omk_addr, no)
 
-    switch (w->step) {
+    switch (w->Rno1) {
     case 0:
         if ((s32) pG->System_flg < 0) {
             omake_dat[12] = '0';
@@ -879,7 +879,7 @@ void titleSub(TitleWork* w)
             break;
         }
         FadeSetW(0, 5, 0, 0);
-        w->step++;
+        w->Rno1++;
         if ((s32) pG->System_flg < 0) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
         } else if (pG->System_flg & 0x40000000) {
@@ -889,12 +889,12 @@ void titleSub(TitleWork* w)
     case 1:
         if (Dvd.ReadCheck(w->req, &w->omkSize, 0, (void**) &w->pOmk) != 0) {
             omk_addr = w->pOmk;
-            w->step++;
+            w->Rno1++;
         }
         break;
     case 2:
         if ((Fade[0].flags & 1) == 0) {
-            w->step++;
+            w->Rno1++;
         }
         break;
     case 3: {
@@ -906,36 +906,36 @@ void titleSub(TitleWork* w)
         IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
         if (pG->System_flg & 0x40000000) {
             if (!(pSys->x4 & 0x08000000)) {
-                IdSys.unitPtr(4, ID_OMAKE_BG)->flags &= ~8;
+                IdSys.unitPtr(4, ID_OMAKE_BG)->be_flag &= ~8;
             }
             if (!(pSys->x4 & 0x02000000)) {
-                IdSys.unitPtr(1, ID_OMAKE_BG)->flags &= ~8;
+                IdSys.unitPtr(1, ID_OMAKE_BG)->be_flag &= ~8;
             }
             if (!(pSys->x4 & 0x04000000)) {
-                IdSys.unitPtr(2, ID_OMAKE_BG)->flags &= ~8;
+                IdSys.unitPtr(2, ID_OMAKE_BG)->be_flag &= ~8;
             }
             if (!(pSys->x4 & 0x01000000)) {
-                IdSys.unitPtr(3, ID_OMAKE_BG)->flags &= ~8;
+                IdSys.unitPtr(3, ID_OMAKE_BG)->be_flag &= ~8;
             }
         }
-        w->omkCursor = 0;
-        w->step++;
+        w->omk_menu_no = 0;
+        w->Rno1++;
         break;
     }
     case 4:
         if (Key.trg & KEY_B) {
             FadeSetW(0, 5, 0, 0);
-            w->step++;
+            w->Rno1++;
             SndCall(0, 5, 0, 0, 0, 0);
             SndStrReq(snd_id, 4, 200, 0);
         } else if (Key.trg & KEY_A) {
-            if (w->omkCursor == 0) {
+            if (w->omk_menu_no == 0) {
                 if ((s32) pG->System_flg < 0) {
-                    w->mode = 7;
+                    w->Rno0 = 7;
                     FadeSetW(0, 90, 0, 0);
                     pG->x4FB8 = 2;
-                    pG->costume = 1;
-                    w->sndId = SndCall(6, 6, 0, 0, 0, 0);
+                    pG->pl_costume = 1;
+                    w->se_id = SndCall(6, 6, 0, 0, 0, 0);
                     SndStrReq(snd_id, 4, 200, 0);
                 } else if (pG->System_flg & 0x40000000) {
                     if (!(pSys->x4 & 0x00400000)) {
@@ -968,33 +968,33 @@ void titleSub(TitleWork* w)
                     // here `&col.start` is PRE'd across the loops (`addi r29,r1,32`, `mr r4,r29`) while
                     // `&col.end` stays a hard-register argument set (`addi r5,r1,36` at the call).
                     FadeSetW(0, 5, 0, 0);
-                    w->omkChar = 0;
-                    w->step = 6;
+                    w->omk_char_no = 0;
+                    w->Rno1 = 6;
                     SndCall(0, 60, 0, 0, 0, 0);
                 }
             } else {
                 FadeSetW(0, 5, 0, 0);
-                w->step++;
+                w->Rno1++;
                 SndCall(0, 5, 0, 0, 0, 0);
                 SndStrReq(snd_id, 4, 200, 0);
             }
         } else if (Key.trg & (KEY_UP | KEY_DOWN)) {
-            s8 old = w->omkCursor;
+            s8 old = w->omk_menu_no;
             if (Key.trg & KEY_UP) {
-                w->omkCursor = 0;
+                w->omk_menu_no = 0;
             } else {
-                w->omkCursor = 1;
+                w->omk_menu_no = 1;
             }
-            if (old != w->omkCursor) {
+            if (old != w->omk_menu_no) {
                 SndCall(0, 10, 0, 0, 0, 0);
             }
         }
-        if (w->omkCursor == 0) {
-            IdSys.unitPtr(0, ID_OMAKE)->flags |= 8;
-            IdSys.unitPtr(1, ID_OMAKE)->flags &= ~8;
+        if (w->omk_menu_no == 0) {
+            IdSys.unitPtr(0, ID_OMAKE)->be_flag |= 8;
+            IdSys.unitPtr(1, ID_OMAKE)->be_flag &= ~8;
         } else {
-            IdSys.unitPtr(0, ID_OMAKE)->flags &= ~8;
-            IdSys.unitPtr(1, ID_OMAKE)->flags |= 8;
+            IdSys.unitPtr(0, ID_OMAKE)->be_flag &= ~8;
+            IdSys.unitPtr(1, ID_OMAKE)->be_flag |= 8;
         }
         break;
     case 5:
@@ -1004,11 +1004,11 @@ void titleSub(TitleWork* w)
             IdSys.kill(0xFF, ID_OMAKE);
             Mem_free(w->pOmk);
             FadeSetW(0x80000000, 5, 0, 0);
-            w->mode = 5;
-            w->step = w->saveStep;
-            w->sub = w->saveSub;
+            w->Rno0 = 5;
+            w->Rno1 = w->saveStep;
+            w->Rno2 = w->saveSub;
             w->Rno3 = w->saveX3;
-            w->cnt = w->saveCnt;
+            w->counter = w->saveCnt;
             titleSet(w, w->saveCnt);
             titleMenuInit(w);
         }
@@ -1018,7 +1018,7 @@ void titleSub(TitleWork* w)
             IdTexRelease(6);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
-            w->step++;
+            w->Rno1++;
         }
         break;
     case 7: {
@@ -1028,10 +1028,10 @@ void titleSub(TitleWork* w)
         IdSys.set(OMK_PTR(7), 0xFF, ID_OMAKE, 0x13, 4, 0);
         for (i = 0; i < 5; i++) {
             IdUnit* u = IdSys.unitPtr(i, ID_OMAKE);
-            u->no = i;
+            u->texNo = i;
             u->tex_flag |= 2;
         }
-        w->step++;
+        w->Rno1++;
         break;
     }
     case 8: {
@@ -1055,80 +1055,80 @@ void titleSub(TitleWork* w)
         } else {
             id_color_copy(0xFC, 4, ID_OMAKE);
         }
-        if ((Key.on & 0x20000) && w->omkChar != 0) {
-            u32 bit = charBit[w->omkChar];
+        if ((Key.on & 0x20000) && w->omk_char_no != 0) {
+            u32 bit = charBit[w->omk_char_no];
             u32* tbl = &pSys->x4;
             BitOn(tbl[bit >> 5], 0x80000000 >> (bit & 0x1F));
         }
         if (Key.trg & KEY_B) {
             FadeSetW(0, 5, 0, 0);
-            w->step++;
+            w->Rno1++;
             SndCall(0, 5, 0, 0, 0, 0);
         } else if (Key.trg & KEY_A) {
-            if (w->omkChar != 0) {
-                u32 bit = charBit[w->omkChar];
+            if (w->omk_char_no != 0) {
+                u32 bit = charBit[w->omk_char_no];
                 u32* tbl = &pSys->x4;
                 if (!(tbl[bit >> 5] & (0x80000000 >> (bit & 0x1F)))) {
                     SndCall(0, 5, 0, 0, 0, 0);
                     break;
                 }
             }
-            switch (w->omkChar) {
+            switch (w->omk_char_no) {
             case 0:
                 pG->x4FB8 = 0;
-                pG->costume = 1;
+                pG->pl_costume = 1;
                 break;
             case 1:
                 pG->x4FB8 = 2;
-                pG->costume = 0;
+                pG->pl_costume = 0;
                 break;
             case 2:
                 pG->x4FB8 = 4;
-                pG->costume = 0;
+                pG->pl_costume = 0;
                 break;
             case 3:
                 pG->x4FB8 = 3;
-                pG->costume = 0;
+                pG->pl_costume = 0;
                 break;
             case 4:
                 pG->x4FB8 = 5;
-                pG->costume = 0;
+                pG->pl_costume = 0;
                 break;
             }
-            w->step = 10;
-            w->omkStage = 0;
+            w->Rno1 = 10;
+            w->omk_stage_no = 0;
             FadeSetW(0, 15, 0, 0);
             SndCall(0, 0x3F, 0, 0, 0, 0);
         } else if (Key.rep & (KEY_RIGHT | KEY_LEFT)) {
-            s8 old = w->omkChar;
+            s8 old = w->omk_char_no;
             if (Key.rep & KEY_LEFT) {
-                w->omkChar--;
+                w->omk_char_no--;
             } else {
-                w->omkChar++;
+                w->omk_char_no++;
             }
-            w->omkChar = w->omkChar < 0 ? 4 : (w->omkChar > 4 ? 0 : w->omkChar);
-            if (old != w->omkChar) {
+            w->omk_char_no = w->omk_char_no < 0 ? 4 : (w->omk_char_no > 4 ? 0 : w->omk_char_no);
+            if (old != w->omk_char_no) {
                 SndCall(0, 0x3E, 0, 0, 0, 0);
             }
         }
         {
-            s8 sel = w->omkChar;
+            s8 sel = w->omk_char_no;
             IdUnit* a = IdSys.unitPtr(sel, ID_OMAKE);
             IdUnit* b = IdSys.unitPtr(0xFE, ID_OMAKE);
             IdUnit* u;
             b->scr = a->scr;
             u = IdSys.unitPtr(5, ID_OMAKE);
-            u->no = sel;
+            u->texNo = sel;
             u->tex_flag |= 2;
             u = IdSys.unitPtr(6, ID_OMAKE);
-            u->no = sel;
+            u->texNo = sel;
             u->tex_flag |= 2;
         }
-        if (w->omkChar == 0 || omkFlagChk(charBit[w->omkChar])) {
+        if (w->omk_char_no == 0 || omkFlagChk(charBit[w->omk_char_no])) {
             id_color_copy(0xFC, 5, ID_OMAKE);
         } else {
             id_color_copy(0xFD, 5, ID_OMAKE);
-            IdSys.unitPtr(6, ID_OMAKE)->no = 5;
+            IdSys.unitPtr(6, ID_OMAKE)->texNo = 5;
         }
         break;
     }
@@ -1137,37 +1137,37 @@ void titleSub(TitleWork* w)
             IdTexRelease(6);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
-            w->step = 3;
+            w->Rno1 = 3;
         }
         break;
     case 10:
         if ((Fade[0].flags & 1) == 0) {
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
-            w->step = 11;
+            w->Rno1 = 11;
         }
         break;
     case 11:
         FadeSetW(0x80000000, 15, 0, 0);
-        w->step = 12;
+        w->Rno1 = 12;
         stageSelectInit(w);
         break;
     case 12:
         if (Key.trg & KEY_B) {
-            w->step = 6;
+            w->Rno1 = 6;
             SndCall(0, 5, 0, 0, 0, 0);
         } else if (stageSelect(w) != 0) {
-            w->sub = 0;
-            w->step = 13;
+            w->Rno2 = 0;
+            w->Rno1 = 13;
         }
         break;
     case 13:
-        w->sub++;
-        if (w->sub == title_snd_wait) {
-            w->sndId = SndCall(6, 8, 0, 0, 0, 0);
+        w->Rno2++;
+        if (w->Rno2 == title_snd_wait) {
+            w->se_id = SndCall(6, 8, 0, 0, 0, 0);
         }
-        if (w->sub > 30) {
-            w->mode = 7;
+        if (w->Rno2 > 30) {
+            w->Rno0 = 7;
             FadeSetW(0, 60, 0, 0);
             SndStrReq(snd_id, 4, 200, 0);
         }
@@ -1181,7 +1181,7 @@ void stageSelectInit(TitleWork* w)
 
     IdSys.kill(0xFF, ID_OMAKE);
     IdSys.set(TITLE_ARC_PTR(omk, 8), 0xFF, ID_OMAKE, 0x13, 4, 0);
-    w->omkStage = 0;
+    w->omk_stage_no = 0;
 }
 
 int stageSelect(TitleWork* w)
@@ -1193,26 +1193,26 @@ int stageSelect(TitleWork* w)
     if (Key.trg & KEY_A) {
         ret = 1;
     } else if (Key.rep & (KEY_UP | KEY_DOWN | KEY_RIGHT | KEY_LEFT)) {
-        s8 old = w->omkStage;
+        s8 old = w->omk_stage_no;
         if (Key.rep & KEY_UP) {
             if (old > 1) {
-                w->omkStage -= 2;
+                w->omk_stage_no -= 2;
             }
         } else if (Key.rep & KEY_DOWN) {
             if (old <= 1) {
-                w->omkStage += 2;
+                w->omk_stage_no += 2;
             }
         } else if (Key.rep & KEY_LEFT) {
-            if (w->omkStage & 1) {
-                w->omkStage -= 1;
+            if (w->omk_stage_no & 1) {
+                w->omk_stage_no -= 1;
             }
         } else if (Key.rep & KEY_RIGHT) {
-            if ((w->omkStage & 1) == 0) {
-                w->omkStage += 1;
+            if ((w->omk_stage_no & 1) == 0) {
+                w->omk_stage_no += 1;
             }
         }
-        w->omkStage = w->omkStage < 0 ? 3 : (w->omkStage > 3 ? 0 : w->omkStage);
-        if (old != w->omkStage) {
+        w->omk_stage_no = w->omk_stage_no < 0 ? 3 : (w->omk_stage_no > 3 ? 0 : w->omk_stage_no);
+        if (old != w->omk_stage_no) {
             SndCall(0, 0x3E, 0, 0, 0, 0);
         }
     }
@@ -1220,7 +1220,7 @@ int stageSelect(TitleWork* w)
         int i;
         for (i = 0; i < 4; i++) {
             IdUnit* u = IdSys.unitPtr(i + 0x11, ID_OMAKE);
-            u->no = i;
+            u->texNo = i;
             u->tex_flag |= 2;
         }
     }
@@ -1228,55 +1228,55 @@ int stageSelect(TitleWork* w)
         int i;
         for (i = 0; i < 4; i++) {
             IdUnit* u = IdSys.unitPtr(i + 0x21, ID_OMAKE);
-            if (w->omkStage == i) {
-                u->flags &= ~8;
+            if (w->omk_stage_no == i) {
+                u->be_flag &= ~8;
             } else {
-                u->flags |= 8;
+                u->be_flag |= 8;
             }
         }
     }
-    IdSys.unitPtr(0x31, ID_OMAKE)->flags &= ~8;
-    IdSys.unitPtr(0x32, ID_OMAKE)->flags &= ~8;
-    IdSys.unitPtr(0x33, ID_OMAKE)->flags &= ~8;
-    IdSys.unitPtr(0x34, ID_OMAKE)->flags &= ~8;
+    IdSys.unitPtr(0x31, ID_OMAKE)->be_flag &= ~8;
+    IdSys.unitPtr(0x32, ID_OMAKE)->be_flag &= ~8;
+    IdSys.unitPtr(0x33, ID_OMAKE)->be_flag &= ~8;
+    IdSys.unitPtr(0x34, ID_OMAKE)->be_flag &= ~8;
     if (ret == 1) {
-        IdUnit* u = IdSys.unitPtr(w->omkStage + 0x31, ID_OMAKE);
-        u->flags |= 8;
+        IdUnit* u = IdSys.unitPtr(w->omk_stage_no + 0x31, ID_OMAKE);
+        u->be_flag |= 8;
         IdSys.setTime(u, 0);
     }
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
         if (pSys->x4 & 0x08000000) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
-        u->no = 0;
+        u->texNo = 0;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(2, ID_OMAKE);
         if (pSys->x4 & 0x02000000) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
-        u->no = 1;
+        u->texNo = 1;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(3, ID_OMAKE);
         if (pSys->x4 & 0x04000000) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
-        u->no = 2;
+        u->texNo = 2;
         u->tex_flag |= 2;
         u = IdSys.unitPtr(4, ID_OMAKE);
         if (pSys->x4 & 0x01000000) {
-            u->flags &= ~8;
+            u->be_flag &= ~8;
         } else {
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
-        u->no = 3;
+        u->texNo = 3;
         u->tex_flag |= 2;
         // The target's `li r30,0` sits right before MercSysGetSaveWork; a plain `mode = 0` there lets
         // jump1 turn the first `if` into a store-flag (`xori/subfic/adde`: reg_set_last finds the
@@ -1305,15 +1305,15 @@ int stageSelect(TitleWork* w)
             int j;
             rank = save.rank[mode][i];
             if (rank == 0) {
-                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->flags &= ~8;
+                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->be_flag &= ~8;
             } else {
-                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->flags |= 8;
+                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->be_flag |= 8;
             }
             for (j = 0; j < 5; j++) {
                 if (j < rank) {
-                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->flags |= 8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->be_flag |= 8;
                 } else {
-                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->flags &= ~8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->be_flag &= ~8;
                 }
             }
             // A do-while(0) body (a macro in the original): its loop depth weights the two
@@ -1321,11 +1321,11 @@ int stageSelect(TitleWork* w)
             do {
             if (save.stage[i].score == 0) {
                 for (j = 0; j < 8; j++) {
-                    IdSys.unitPtr(i * 16 + 0x80 + j, ID_OMAKE)->flags &= ~8;
+                    IdSys.unitPtr(i * 16 + 0x80 + j, ID_OMAKE)->be_flag &= ~8;
                 }
             } else {
                 IdUnit* u = IdSys.unitPtr(i * 16 + 0x88, ID_OMAKE);
-                u->flags |= 8;
+                u->be_flag |= 8;
                 u->tex_flag |= 2;
                 IdSetNum(&IdSys, i * 16 + 0x81, ID_OMAKE, save.stage[i].score, 9999999, 7, 0);
             }
@@ -1341,31 +1341,31 @@ void titleExit(TitleWork* w)
 {
     if ((s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
         pG->x4FB8 = 0;
-        pG->costume2 = 0;
+        pG->game_costume = 0;
     }
     if (!(pG->System_flg & 0x100) && (s32) pG->System_flg >= 0 && !(pG->System_flg & 0x40000000)) {
         pRj = new cRoomJmp(roomInfoAddr);
-        w->dbgStage = pG->stage_no;
-        w->dbgRoom[w->dbgStage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
-        w->dbgPoint = pG->x4F9F;
-        w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
-        w->loadNo = 1;
-        w->dbgX = 340;
-        w->dbgY = 60;
-        w->sndId = 0;
+        w->Stage = pG->stage_no;
+        w->Room[w->Stage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
+        w->JumpPoint = pG->x4F9F;
+        w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
+        w->load_no = 1;
+        w->menu_x = 340;
+        w->menu_y = 60;
+        w->se_id = 0;
         while (!(Joy[0].trg & 0x1100)) {
             titleDebugMenu(w);
             TaskSleep(1);
         }
-        G_ROOM_ID = pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage] + w->dbgPoint)->room_id;
-        pG->x4F9F = w->dbgPoint;
-        pG->emlist_no = w->dbgEmList;
-        if (pG->emlist_no > 3) {
+        G_ROOM_ID = pRj->getRoomInfo(w->Stage, w->Room[w->Stage] + w->JumpPoint)->roomNo;
+        pG->x4F9F = w->JumpPoint;
+        pG->em_list_no = w->em_list_no;
+        if (pG->em_list_no > 3) {
             pG->flags_51C0 |= 0x10000000;
-        } else if (pG->emlist_no > 2) {
+        } else if (pG->em_list_no > 2) {
             pG->flags_51C0 |= 0x40000;
         }
-        switch (w->dbgCursor) {
+        switch (w->c_pos) {
         case 1:
             if (CardLoad() == 1) {
                 pG->System_flg |= 0x100;
@@ -1389,9 +1389,9 @@ void titleExit(TitleWork* w)
         if (!(pG->x4FB8_32 & 0xFF0000FF)) {
             u32 room = pG->room_id32 & 0xFFFF0000;
             if (room == 0x01200000 || room == 0x01000000 || room == 0x01010000 || room == 0x01030000 || room == 0x01060000) {
-                pG->costume = 0;
+                pG->pl_costume = 0;
             } else {
-                pG->costume = 1;
+                pG->pl_costume = 1;
                 pG->Item_find_flg |= 0x00200000;
             }
         }
@@ -1435,7 +1435,7 @@ void titleExit(TitleWork* w)
             pG->System_flg |= 0x2000;
         }
         G_ROOM_ID_PREV = 0xFFF;
-        pG->emlist_no = -1;
+        pG->em_list_no = -1;
         if (pG->System_flg & 0x80000000) {
             G_ROOM_ID = 0x405;
             pG->x4F9F = point;
@@ -1445,7 +1445,7 @@ void titleExit(TitleWork* w)
         FSet(pG->sub_pos.z, -40000.0f);
         FSet(pG->sub_angle, -2.49f);
         } else if (pG->System_flg & 0x40000000) {
-        switch (w->omkStage) {
+        switch (w->omk_stage_no) {
         case 0:
             G_ROOM_ID = 0x400;
             pG->x4F9F = point;
@@ -1484,14 +1484,14 @@ void titleExit(TitleWork* w)
             break;
         }
         } else {
-            memcpy((u8*) pG + 0x4FC0, &pG->next_pos, sizeof(Vec));
-            FSet(pG->sub_angle, pG->next_angle);
+            memcpy((u8*) pG + 0x4FC0, &pG->NextPos, sizeof(Vec));
+            FSet(pG->sub_angle, pG->NextY);
             G_ROOM_ID = pG->next_room;
             pG->x4F9E = pG->next_point;
         }
     }
-    if (w->sndId != 0) {
-        while (SndEndCheck(w->sndId) == 0) {
+    if (w->se_id != 0) {
+        while (SndEndCheck(w->se_id) == 0) {
             TaskSleep(1);
         }
     }
@@ -1539,39 +1539,39 @@ void titleDebugMenu(TitleWork* w)
     int num;
 
     if (Joy[0].on & 0x00200000) {
-        w->dbgX += 4;
+        w->menu_x += 4;
     }
     if (Joy[0].on & 0x00100000) {
-        w->dbgX -= 4;
+        w->menu_x -= 4;
     }
     if (Joy[0].on & 0x00400000) {
-        w->dbgY += 4;
+        w->menu_y += 4;
     }
     if (Joy[0].on & 0x00800000) {
-        w->dbgY -= 4;
+        w->menu_y -= 4;
     }
-    x = w->dbgX;
-    y = w->dbgY;
-    info = pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage] + w->dbgPoint);
-    if (pRj->checkRoomNo(w->dbgStage, w->dbgRoom[w->dbgStage]) == w->dbgRoom[w->dbgStage]) {
+    x = w->menu_x;
+    y = w->menu_y;
+    info = pRj->getRoomInfo(w->Stage, w->Room[w->Stage] + w->JumpPoint);
+    if (pRj->checkRoomNo(w->Stage, w->Room[w->Stage]) == w->Room[w->Stage]) {
         eprintf(x, y - 16, 4, 0, "%s", info->name);
     }
     for (i = 0; i < lines; i++) {
         int col = 0;
-        if (i == w->dbgCursor) {
+        if (i == w->c_pos) {
             col = 6;
         }
         eprintf(x, y + i * 16, col, 0, "%s", title_debug_tbl[i]);
     }
-    eprintf(x - 8, y + w->dbgCursor * 16, 0, 0, ">");
+    eprintf(x - 8, y + w->c_pos * 16, 0, 0, ">");
     y -= 16;
     eprintf(x + 96, y += 16, 4, 0, "%s", pl_type_tbl[pG->x4FB8]);
     eprintf(x + 96, y += 16, 4, 0, "");
     eprintf(x + 96, y += 16, 4, 0, "");
-    eprintf(x + 96, y += 16, 4, 0, "%x", w->dbgStage);
+    eprintf(x + 96, y += 16, 4, 0, "%x", w->Stage);
     eprintf(x + 96, y += 16, 4, 0, "%02x", info->room);
-    eprintf(x + 96, y += 16, 4, 0, "%x", w->dbgPoint);
-    eprintf(x + 96, y += 16, 4, 0, "%s", getEmListDbgName(w->dbgEmList));
+    eprintf(x + 96, y += 16, 4, 0, "%x", w->JumpPoint);
+    eprintf(x + 96, y += 16, 4, 0, "%s", getEmListDbgName(w->em_list_no));
     eprintf(x + 96, y += 16, 4, 0, "%d", pG->debug_mode);
     eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x00200000) ? "OFF" : "ON");
     eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x800) ? "OFF" : "ON");
@@ -1579,7 +1579,7 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x04000000) ? "OFF" : "ON");
     eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x00200000) ? "ON" : "OFF");
     eprintf(x + 96, y += 16, 4, 0, "%s", shoot_mode[(s8) pG->x4]);
-    eprintf(x + 96, y += 16, 4, 0, "%d", pG->costume2);
+    eprintf(x + 96, y += 16, 4, 0, "%d", pG->game_costume);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
     eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->x4F93]);
@@ -1594,13 +1594,13 @@ void titleDebugMenu(TitleWork* w)
     eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x400) ? "OFF" : "ON");
 
     if (Joy[0].rep & 0x00080008) {
-        w->dbgCursor--;
+        w->c_pos--;
     }
     if (Joy[0].rep & 0x00040004) {
-        w->dbgCursor++;
+        w->c_pos++;
     }
-    w->dbgCursor = w->dbgCursor < 0 ? lines - 1 : (w->dbgCursor > lines - 1 ? 0 : w->dbgCursor);
-    switch (w->dbgCursor) {
+    w->c_pos = w->c_pos < 0 ? lines - 1 : (w->c_pos > lines - 1 ? 0 : w->c_pos);
+    switch (w->c_pos) {
     case 0:
         if (Joy[0].trg & 0x00020002) {
             pG->x4FB8 = (pG->x4FB8 + 1) % 7;
@@ -1611,63 +1611,63 @@ void titleDebugMenu(TitleWork* w)
         break;
     case 1:
         if (Joy[0].rep & 0x00020002) {
-            w->loadNo++;
+            w->load_no++;
         }
         if (Joy[0].trg & 0x00010001) {
-            w->loadNo--;
+            w->load_no--;
         }
-        w->loadNo = w->loadNo == 0 ? 10 : (w->loadNo > 10 ? 1 : w->loadNo);
+        w->load_no = w->load_no == 0 ? 10 : (w->load_no > 10 ? 1 : w->load_no);
         break;
     case 2:
         break;
     case 3:
         if (Joy[0].rep2 & 0x00020002) {
-            w->dbgStage = pRj->getNextStageNo(w->dbgStage, 1);
-            w->dbgPoint = 0;
-            w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
+            w->Stage = pRj->getNextStageNo(w->Stage, 1);
+            w->JumpPoint = 0;
+            w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
         }
         if (Joy[0].rep2 & 0x00010001) {
-            w->dbgStage = pRj->getNextStageNo(w->dbgStage, -1);
-            w->dbgPoint = 0;
-            w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
+            w->Stage = pRj->getNextStageNo(w->Stage, -1);
+            w->JumpPoint = 0;
+            w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
         }
-        no = pRj->checkRoomNo(w->dbgStage, w->dbgRoom[w->dbgStage]);
+        no = pRj->checkRoomNo(w->Stage, w->Room[w->Stage]);
         if (no >= 0) {
-            w->dbgRoom[w->dbgStage] = no;
+            w->Room[w->Stage] = no;
         }
         break;
     case 4:
         if (Joy[0].rep2 & 0x00020002) {
-            w->dbgRoom[w->dbgStage] = pRj->getNextRoomNo(w->dbgStage, w->dbgRoom[w->dbgStage], 1);
-            w->dbgPoint = 0;
-            w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
+            w->Room[w->Stage] = pRj->getNextRoomNo(w->Stage, w->Room[w->Stage], 1);
+            w->JumpPoint = 0;
+            w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
         }
         if (Joy[0].rep2 & 0x00010001) {
-            w->dbgRoom[w->dbgStage] = pRj->getNextRoomNo(w->dbgStage, w->dbgRoom[w->dbgStage], -1);
-            w->dbgPoint = 0;
-            w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
+            w->Room[w->Stage] = pRj->getNextRoomNo(w->Stage, w->Room[w->Stage], -1);
+            w->JumpPoint = 0;
+            w->em_list_no = checkEmListNo(pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->roomNo);
         }
         break;
     case 5:
-        no = (s8) pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room;
+        no = (s8) pRj->getRoomInfo(w->Stage, w->Room[w->Stage])->room;
         if (Joy[0].rep2 & 0x00020002) {
-            if (RjGetPointNumI(pRj, w->dbgStage, no) - 1 == w->dbgPoint) {
-                w->dbgPoint = 0;
+            if (RjGetPointNumI(pRj, w->Stage, no) - 1 == w->JumpPoint) {
+                w->JumpPoint = 0;
             } else {
-                w->dbgPoint = RjGetNextPointNoI(pRj, w->dbgStage, no, w->dbgPoint, 1);
+                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, 1);
             }
         }
         if (Joy[0].rep2 & 0x00010001) {
-            if (w->dbgPoint == 0) {
-                w->dbgPoint = RjGetPointNumI(pRj, w->dbgStage, no) - 1;
+            if (w->JumpPoint == 0) {
+                w->JumpPoint = RjGetPointNumI(pRj, w->Stage, no) - 1;
             } else {
-                w->dbgPoint = RjGetNextPointNoI(pRj, w->dbgStage, no, w->dbgPoint, -1);
+                w->JumpPoint = RjGetNextPointNoI(pRj, w->Stage, no, w->JumpPoint, -1);
             }
         }
-        w->dbgPoint = w->dbgPoint < 0 ? 0 : (w->dbgPoint > RjGetPointNumI(pRj, w->dbgStage, no) - 1 ? RjGetPointNumI(pRj, w->dbgStage, no) - 1 : w->dbgPoint);
+        w->JumpPoint = w->JumpPoint < 0 ? 0 : (w->JumpPoint > RjGetPointNumI(pRj, w->Stage, no) - 1 ? RjGetPointNumI(pRj, w->Stage, no) - 1 : w->JumpPoint);
         break;
     case 6:
-        num = w->dbgEmList;
+        num = w->em_list_no;
         if (Joy[0].rep & 0x00020002) {
             num++;
         }
@@ -1675,7 +1675,7 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num < 0 ? 0 : (num > getEmListNum() - 1 ? getEmListNum() - 1 : num);
-        w->dbgEmList = num;
+        w->em_list_no = num;
         break;
     case 7:
         if (Joy[0].rep & 0x00020002) {
@@ -1732,7 +1732,7 @@ void titleDebugMenu(TitleWork* w)
         pG->x4 = num;
         break;
     case 14:
-        num = pG->costume2;
+        num = pG->game_costume;
         if (Joy[0].trg & 0x00020002) {
             num++;
         }
@@ -1740,7 +1740,7 @@ void titleDebugMenu(TitleWork* w)
             num--;
         }
         num = num < 0 ? 0 : (num > 1 ? 1 : num);
-        pG->costume2 = num;
+        pG->game_costume = num;
         break;
     case 15:
         num = pSys->language;

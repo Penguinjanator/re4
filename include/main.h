@@ -30,12 +30,12 @@ extern RK* pRK;
 // Logical key state (main.cpp `Key`, 0xB8 bytes), built from Joy[0] by pad.cpp PadRead through
 // Key_type_tbl. 64 logical keys, one bit each.
 struct KeyWork {
-    s8 sx;     // 0x00  copies of Joy[0] (zero while the game is stopped)
-    s8 sy;     // 0x01
-    s8 ssx;    // 0x02
-    s8 ssy;    // 0x03
-    u8 trigL;  // 0x04
-    u8 trigR;  // 0x05
+    s8 stickX;     // 0x00  copies of Joy[0] (zero while the game is stopped)
+    s8 stickY;     // 0x01
+    s8 substickX;    // 0x02
+    s8 substickY;    // 0x03
+    u8 triggerLeft;  // 0x04
+    u8 triggerRight;  // 0x05
     u8 analogA;     // 0x06
     u8 analogB;     // 0x07
     u64 old;   // 0x08

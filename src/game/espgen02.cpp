@@ -21,75 +21,75 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate);
 // optionally oriented along it.
 struct Espgen02Work {
     EspGenWork* rec;   // 0x14
-    cModel* model;     // 0x18
-    u32 serial;        // 0x1C model serial the controller was set up with
-    u16 cnt;           // 0x20 frame counter
+    cModel* pMod;     // 0x18
+    u32 Guid_pMod;        // 0x1C model serial the controller was set up with
+    u16 Time_cnt;           // 0x20 frame counter
     u16 life;          // 0x24 life time (0 = infinite)
     u8 pad_24;
     u8 wait;           // 0x25 frames between emissions
-    u8 waitCnt;        // 0x26 frames left until the next emission
-    u8 num;            // 0x27 emissions per frame - 1
-    u32 seed;          // 0x28
-    u8 flags;          // 0x2C rec->x10B: bit0 spread the angle, bit1 fixed seed
-    u8 flags2;         // 0x2D bit0 parts matrix fixed, bit1 head flag, bit2 scale, bit3 pass the position on
-    u8 parts;          // 0x2E
-    u8 waitRnd;        // 0x2F random range added to the wait
-    Mtx mtx;           // 0x30
-    Vec pos;           // 0x60
-    Vec rot;           // 0x6C
-    u8 scaleD;         // 0x78 rate curve parameters (Calc_D256)
-    u8 spdD;           // 0x79
-    u8 colD;           // 0x7A
+    u8 Next_cnt;        // 0x26 frames left until the next emission
+    u8 Set_num;            // 0x27 emissions per frame - 1
+    u32 Rand_seed;          // 0x28
+    u8 Espgen_flg;          // 0x2C rec->x10B: bit0 spread the angle, bit1 fixed seed
+    u8 Flg;         // 0x2D bit0 parts matrix fixed, bit1 head flag, bit2 scale, bit3 pass the position on
+    u8 Null_parts_no;          // 0x2E
+    u8 R_inter;        // 0x2F random range added to the wait
+    Mtx Mat;           // 0x30
+    Vec Offset;           // 0x60
+    Vec Ang;           // 0x6C
+    u8 D_size;         // 0x78 rate curve parameters (Calc_D256)
+    u8 D_speed;           // 0x79
+    u8 D_alpha;           // 0x7A
     u8 waitD;          // 0x7B
     EspSeqOpt opt;     // 0x7C
     EspSeqOpt* pOpt;   // 0x98
     u8 pathId;         // 0x9C
-    u8 pathNo;         // 0x9D
-    u8 pathOfs;        // 0x9E position along the path in 1/100
-    u8 pathRnd;        // 0x9F random range added to it
-    u16 seg;           // 0xA0 path segment cache
-    u8 rotX;           // 0xA2 rotation in 1/256 turns
-    u8 rotY;           // 0xA3
-    Vec scale;         // 0xA4
+    u8 PathId;         // 0x9D
+    u8 Start_ratio;        // 0x9E position along the path in 1/100
+    u8 Rnd_ratio;        // 0x9F random range added to it
+    u16 PntNo;           // 0xA0 path segment cache
+    u8 PathRot_x;           // 0xA2 rotation in 1/256 turns
+    u8 PathRot_y;           // 0xA3
+    Vec PathScale;         // 0xA4
     u8 mode;           // 0xB0 bit0: orient along the path, bit1: orient along the path (type 2)
 };
 
 void espgen02_UpdateMatrix(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;
-    cModel* model = p->model;
+    cModel* model = p->pMod;
 
-    if ((p->parts >= 0xF8 && p->parts <= 0xFD) || p->parts == 0xFF) {
-        pLog->err(0, 0, "ESP_CTRL : NULL_PARTS_NO[%x] invalid.", p->parts);
+    if ((p->Null_parts_no >= 0xF8 && p->Null_parts_no <= 0xFD) || p->Null_parts_no == 0xFF) {
+        pLog->err(0, 0, "ESP_CTRL : NULL_PARTS_NO[%x] invalid.", p->Null_parts_no);
         PushEspgen(w);
         return;
     }
-    if (p->parts == 0xFE) {
+    if (p->Null_parts_no == 0xFE) {
         return;
     }
     if (model == NULL) {
         pLog->err(0, 0, "ESP_CTRL : PARTS_NO is set but No Parent.");
         return;
     }
-    if (!(p->flags2 & 1)) {
-        if (p->parts < model->nParts) {
+    if (!(p->Flg & 1)) {
+        if (p->Null_parts_no < model->nParts) {
             cModel* part;
             Vec ofs;
             Vec r;
 
-            part = model->getPartsPtr(p->parts);
-            PSMTXIdentity(p->mtx);
-            PSVECAdd(&p->rot, &model->rot, &r);
-            RotMatrix(p->mtx, &r);
-            PSMTXMultVecSR(p->mtx, &p->pos, &ofs);
-            p->mtx[0][3] = part->mat[0][3] + ofs.x;
-            p->mtx[1][3] = part->mat[1][3] + ofs.y;
-            p->mtx[2][3] = part->mat[2][3] + ofs.z;
-            if (!(p->flags2 & 2)) {
-                p->flags2 |= 1;
+            part = model->getPartsPtr(p->Null_parts_no);
+            PSMTXIdentity(p->Mat);
+            PSVECAdd(&p->Ang, &model->ang, &r);
+            RotMatrix(p->Mat, &r);
+            PSMTXMultVecSR(p->Mat, &p->Offset, &ofs);
+            p->Mat[0][3] = part->mat[0][3] + ofs.x;
+            p->Mat[1][3] = part->mat[1][3] + ofs.y;
+            p->Mat[2][3] = part->mat[2][3] + ofs.z;
+            if (!(p->Flg & 2)) {
+                p->Flg |= 1;
             }
         } else {
-            pLog->err(0, 0, "ESP_CTRL : PARTS_NO[%d] is invalid(MAX:%d).", p->parts, model->nParts);
+            pLog->err(0, 0, "ESP_CTRL : PARTS_NO[%d] is invalid(MAX:%d).", p->Null_parts_no, model->nParts);
             PushEspgen(w);
             return;
         }
@@ -133,37 +133,37 @@ void espgen02_Update(EspgenWork* w)
     int bSpd = 0;
     int bCol = 0;
     int add = 0;
-    cModel* model = p->model;
+    cModel* model = p->pMod;
     Mtx sm;
     Mtx rm;
 
     if (model != NULL) {
-        if ((model->be_flag & 0x201) != 1 || model->serial != p->serial) {
+        if ((model->be_flag & 0x201) != 1 || model->serial != p->Guid_pMod) {
             PushEspgen(w);
             return;
         }
     }
     espgen02_UpdateMatrix(w);
     if (p->life != 0) {
-        f32 rate = (f32) p->cnt / (f32) (int) p->life;
+        f32 rate = (f32) p->Time_cnt / (f32) (int) p->life;
 
-        if (p->scaleD) {
-            scaleR = Calc_D256(p, p->scaleD, rate);
+        if (p->D_size) {
+            scaleR = Calc_D256(p, p->D_size, rate);
             bScale = 1;
         }
-        if (p->spdD) {
-            spdR = Calc_D256(p, p->spdD, rate);
+        if (p->D_speed) {
+            spdR = Calc_D256(p, p->D_speed, rate);
             bSpd = 1;
         }
-        if (p->colD) {
-            colR = Calc_D256(p, p->colD, rate);
+        if (p->D_alpha) {
+            colR = Calc_D256(p, p->D_alpha, rate);
             bCol = 1;
         }
         if (p->waitD) {
             add = (int) (rate * (f32) (s8) p->waitD);
         }
     }
-    if (p->waitCnt == 0) {
+    if (p->Next_cnt == 0) {
         Mtx mtx;
         EspGenWork* rec;
         int n;
@@ -173,31 +173,31 @@ void espgen02_Update(EspgenWork* w)
         rec = p->rec;
         n = p->wait + add;
         if (n < 0) {
-            p->waitCnt = 0;
+            p->Next_cnt = 0;
         } else {
-            p->waitCnt = n;
+            p->Next_cnt = n;
         }
-        if (p->waitRnd) {
-            int r = Rnd() % (p->waitRnd * 2) - p->waitRnd;
+        if (p->R_inter) {
+            int r = Rnd() % (p->R_inter * 2) - p->R_inter;
 
-            if (p->waitCnt + r < 0) {
-                p->waitCnt = 0;
-            } else if (p->waitCnt + r > 255) {
-                p->waitCnt = 255;
+            if (p->Next_cnt + r < 0) {
+                p->Next_cnt = 0;
+            } else if (p->Next_cnt + r > 255) {
+                p->Next_cnt = 255;
             } else {
-                p->waitCnt = p->waitCnt + r;
+                p->Next_cnt = p->Next_cnt + r;
             }
         }
-        if (g_pEspSys->xC554 - g_pEspSys->xC548 < (u32) (p->num + 1)) {
+        if (g_pEspSys->xC554 - g_pEspSys->xC548 < (u32) (p->Set_num + 1)) {
             pLog->warn(0, 0, "ESP : num max. retry.[left:%d/need:%d]", g_pEspSys->xC554 - g_pEspSys->xC548,
-                       p->num + 1);
+                       p->Set_num + 1);
             return;
         }
         {
-            f32 step = 6.28f / (f32) (p->num + 1);
+            f32 step = 6.28f / (f32) (p->Set_num + 1);
             f32 ang = 0.0f;
 
-            for (i = 0; i < p->num + 1; i++) {
+            for (i = 0; i < p->Set_num + 1; i++) {
                 Vec pos;
                 Vec rot2;
                 Mtx m3;
@@ -215,12 +215,12 @@ void espgen02_Update(EspgenWork* w)
                 f32 d;
                 int ret;
 
-                path = EspGetPathAddr(p->pathId, p->pathNo);
+                path = EspGetPathAddr(p->pathId, p->PathId);
                 if (path == NULL) {
                     return;
                 }
                 len = PathGetLength(path);
-                t = ((f32) p->pathOfs + fRandSeed0_1(&p->seed) * (f32) (int) p->pathRnd) * 0.01f;
+                t = ((f32) p->Start_ratio + fRandSeed0_1(&p->Rand_seed) * (f32) (int) p->Rnd_ratio) * 0.01f;
                 while (t > 1.0f) {
                     t -= 1.0f;
                 }
@@ -235,31 +235,31 @@ void espgen02_Update(EspgenWork* w)
                     d = len - 1.01f;
                 }
                 if (PathHasWeight(path)) {
-                    if (p->model != NULL) {
-                        ret = PathGetPosEm(path, d, p->model, &p->seg, &pos);
+                    if (p->pMod != NULL) {
+                        ret = PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos);
                     } else {
-                        ret = PathGetPos(path, d, &p->seg, &pos);
+                        ret = PathGetPos(path, d, &p->PntNo, &pos);
                     }
                 } else {
-                    ret = PathGetPos(path, d, &p->seg, &pos);
+                    ret = PathGetPos(path, d, &p->PntNo, &pos);
                 }
                 if (ret == 0) {
                     pLog->err(0, 0, "ESP_CTRL02 : OUT OF RANGE.");
                 }
                 PSMTXIdentity(sm);
-                if (p->flags2 & 4) {
-                    PSMTXScale(sm, p->scale.x, p->scale.y, p->scale.z);
+                if (p->Flg & 4) {
+                    PSMTXScale(sm, p->PathScale.x, p->PathScale.y, p->PathScale.z);
                 }
-                rot2.x = (f32) p->rotX * 3.1415927f * 2.0f * 0.00390625f;
-                rot2.y = (f32) p->rotY * 3.1415927f * 2.0f * 0.00390625f;
+                rot2.x = (f32) p->PathRot_x * 3.1415927f * 2.0f * 0.00390625f;
+                rot2.y = (f32) p->PathRot_y * 3.1415927f * 2.0f * 0.00390625f;
                 rot2.z = 0.0f;
                 RotMatrix(rm, &rot2);
                 if (p->mode & 1) {
                     d += 1.0f;
-                    if (PathHasWeight(path) && p->model != NULL) {
-                        PathGetPosEm(path, d, p->model, &p->seg, &pos2);
+                    if (PathHasWeight(path) && p->pMod != NULL) {
+                        PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos2);
                     } else {
-                        PathGetPos(path, d, &p->seg, &pos2);
+                        PathGetPos(path, d, &p->PntNo, &pos2);
                     }
                     PSVECSubtract(&pos2, &pos, &dir);
                     up.x = 0.0f;
@@ -283,15 +283,15 @@ void espgen02_Update(EspgenWork* w)
                     m2[2][3] = 0.0f;
                     PSMTXMultVec(sm, &pos, &pos);
                     PSMTXMultVec(rm, &pos, &pos);
-                    PSMTXCopy(p->mtx, m3);
-                    m3[0][3] -= rec->x0C + p->mtx[0][3];
-                    m3[1][3] -= rec->x10 + p->mtx[1][3];
-                    m3[2][3] -= rec->x14 + p->mtx[2][3];
+                    PSMTXCopy(p->Mat, m3);
+                    m3[0][3] -= rec->x0C + p->Mat[0][3];
+                    m3[1][3] -= rec->x10 + p->Mat[1][3];
+                    m3[2][3] -= rec->x14 + p->Mat[2][3];
                     PSMTXConcat(m2, m3, m3);
                     PSMTXConcat(rm, m3, m3);
-                    m3[0][3] += rec->x0C + p->mtx[0][3];
-                    m3[1][3] += rec->x10 + p->mtx[1][3];
-                    m3[2][3] += rec->x14 + p->mtx[2][3];
+                    m3[0][3] += rec->x0C + p->Mat[0][3];
+                    m3[1][3] += rec->x10 + p->Mat[1][3];
+                    m3[2][3] += rec->x14 + p->Mat[2][3];
                     m3[0][3] += pos.x;
                     m3[1][3] += pos.y;
                     m3[2][3] += pos.z;
@@ -300,10 +300,10 @@ void espgen02_Update(EspgenWork* w)
                         pLog->warn(0, 0, "ESP : USE CTRL_PATH TYPE=2");
                     }
                     d += 1.0f;
-                    if (PathHasWeight(path) && p->model != NULL) {
-                        PathGetPosEm(path, d, p->model, &p->seg, &pos2);
+                    if (PathHasWeight(path) && p->pMod != NULL) {
+                        PathGetPosEm(path, d, p->pMod, &p->PntNo, &pos2);
                     } else {
-                        PathGetPos(path, d, &p->seg, &pos2);
+                        PathGetPos(path, d, &p->PntNo, &pos2);
                     }
                     PSVECSubtract(&pos2, &pos, &dir2);
                     up.x = 0.0f;
@@ -327,57 +327,57 @@ void espgen02_Update(EspgenWork* w)
                     m2[2][3] = 0.0f;
                     PSMTXMultVec(sm, &pos, &pos);
                     PSMTXMultVec(rm, &pos, &pos);
-                    PSMTXCopy(p->mtx, m3);
-                    m3[0][3] -= rec->x0C + p->mtx[0][3];
-                    m3[1][3] -= rec->x10 + p->mtx[1][3];
-                    m3[2][3] -= rec->x14 + p->mtx[2][3];
+                    PSMTXCopy(p->Mat, m3);
+                    m3[0][3] -= rec->x0C + p->Mat[0][3];
+                    m3[1][3] -= rec->x10 + p->Mat[1][3];
+                    m3[2][3] -= rec->x14 + p->Mat[2][3];
                     PSMTXConcat(m2, m3, m3);
                     PSMTXConcat(rm, m3, m3);
-                    m3[0][3] += rec->x0C + p->mtx[0][3];
-                    m3[1][3] += rec->x10 + p->mtx[1][3];
-                    m3[2][3] += rec->x14 + p->mtx[2][3];
+                    m3[0][3] += rec->x0C + p->Mat[0][3];
+                    m3[1][3] += rec->x10 + p->Mat[1][3];
+                    m3[2][3] += rec->x14 + p->Mat[2][3];
                     m3[0][3] += pos.x;
                     m3[1][3] += pos.y;
                     m3[2][3] += pos.z;
                 } else {
                     PSMTXMultVec(sm, &pos, &pos);
                     PSMTXMultVec(rm, &pos, &pos);
-                    PSMTXCopy(p->mtx, m3);
+                    PSMTXCopy(p->Mat, m3);
                     m3[0][3] += pos.x;
                     m3[1][3] += pos.y;
                     m3[2][3] += pos.z;
                 }
                 pp = NULL;
-                if (p->flags2 & 8) {
-                    pp = &p->pos;
+                if (p->Flg & 8) {
+                    pp = &p->Offset;
                 }
-                if (p->flags & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 1, ang, &esp, p->pOpt, pp);
+                if (p->Espgen_flg & 1) {
+                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &mtx, 1, ang, &esp, p->pOpt, pp);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 0, 0.0f, &esp, p->pOpt, pp);
+                    ret = EspSeqSet(rec, &w->info, &p->Rand_seed, p->pMod, &mtx, 0, 0.0f, &esp, p->pOpt, pp);
                 }
                 if (ret) {
                     esp->ApplyMatrix(m3);
                     if (bScale) {
-                        esp->sizeX *= scaleR;
-                        esp->sizeY *= scaleR;
+                        esp->m_Size_base_x *= scaleR;
+                        esp->m_Size_base_y *= scaleR;
                     }
                     if (bSpd) {
-                        PSVECScale(&esp->spd, &esp->spd, spdR);
+                        PSVECScale(&esp->m_Speed, &esp->m_Speed, spdR);
                     }
                     if (bCol) {
                         esp->m_Col_start_a = (u8) ((f32) (int) esp->m_Col_start_a * colR);
-                        esp->colA *= colR;
+                        esp->m_Col_a *= colR;
                     }
                 }
             }
         }
     } else {
-        p->waitCnt--;
+        p->Next_cnt--;
     }
-    p->cnt++;
-    if (p->life != 0 && p->life <= p->cnt) {
+    p->Time_cnt++;
+    if (p->life != 0 && p->life <= p->Time_cnt) {
         PushEspgen(w);
     }
 }
@@ -406,40 +406,40 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     Espgen02Work* p = (Espgen02Work*) w->work;
 
     p->rec = rec;
-    p->model = model;
+    p->pMod = model;
     if (model != NULL) {
-        p->serial = model->serial;
+        p->Guid_pMod = model->serial;
     } else {
-        p->serial = (u32) model;
+        p->Guid_pMod = (u32) model;
     }
-    p->waitCnt = p->cnt = 0;
+    p->Next_cnt = p->Time_cnt = 0;
     p->life = rec->x110;
     p->wait = rec->x10C;
-    p->num = rec->x10D;
-    p->scaleD = rec->x124;
-    p->spdD = rec->x125;
-    p->colD = rec->x126;
+    p->Set_num = rec->x10D;
+    p->D_size = rec->x124;
+    p->D_speed = rec->x125;
+    p->D_alpha = rec->x126;
     p->waitD = rec->x127;
-    p->flags = rec->x10B;
-    p->waitRnd = rec->x128;
-    if (p->waitRnd) {
-        p->wait += (u32) Rnd() % p->waitRnd;
+    p->Espgen_flg = rec->x10B;
+    p->R_inter = rec->x128;
+    if (p->R_inter) {
+        p->wait += (u32) Rnd() % p->R_inter;
     }
     if (head->flags & 1) {
-        p->flags2 |= 2;
+        p->Flg |= 2;
     }
     if (flag == 1) {
-        p->flags2 |= 8;
+        p->Flg |= 8;
     }
-    p->parts = parts;
-    p->pos = *pos;
-    p->rot = *rot;
-    if (p->flags & 2) {
-        p->seed = 0x12345678 + rec->x10E;
+    p->Null_parts_no = parts;
+    p->Offset = *pos;
+    p->Ang = *rot;
+    if (p->Espgen_flg & 2) {
+        p->Rand_seed = 0x12345678 + rec->x10E;
     } else {
-        p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
+        p->Rand_seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     }
-    PSMTXCopy(*mtx, p->mtx);
+    PSMTXCopy(*mtx, p->Mat);
     if (pSct != NULL) {
         p->pOpt = &p->opt;
         p->opt = *pSct;
@@ -447,19 +447,19 @@ int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->pOpt = pSct;
     }
     p->pathId = rec->x104;
-    p->pathNo = rec->x105;
-    p->pathOfs = rec->x106;
-    p->pathRnd = rec->x107;
-    p->rotX = rec->x129;
-    p->rotY = rec->x12A;
+    p->PathId = rec->x105;
+    p->Start_ratio = rec->x106;
+    p->Rnd_ratio = rec->x107;
+    p->PathRot_x = rec->x129;
+    p->PathRot_y = rec->x12A;
     p->mode = rec->x12B;
     if (rec->x118.x != 0.0f || rec->x118.y != 0.0f || rec->x118.z != 0.0f) {
-        p->flags2 |= 4;
-        p->scale = rec->x118;
-        PSVECScale(&p->scale, &p->scale, 0.1f);
-        p->scale.x += 1.0f;
-        p->scale.y += 1.0f;
-        p->scale.z += 1.0f;
+        p->Flg |= 4;
+        p->PathScale = rec->x118;
+        PSVECScale(&p->PathScale, &p->PathScale, 0.1f);
+        p->PathScale.x += 1.0f;
+        p->PathScale.y += 1.0f;
+        p->PathScale.z += 1.0f;
     }
     return 1;
 }

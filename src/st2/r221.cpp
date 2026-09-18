@@ -79,7 +79,7 @@ static inline u32 flagBit(u32 f, u32 bit)
     return f & bit;
 }
 
-#define R221_MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+#define R221_MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 void r221_setShutterEff(int on);
 static void r221_checkShutterOpen_end();
@@ -416,8 +416,8 @@ static void r221_moveWire(int mode)
     if (w0 == 0 || w1 == 0) {
         return;
     }
-    w0->pInfo->flagsDC |= 1;
-    w1->pInfo->flagsDC |= 1;
+    w0->pModelInfo->flagsDC |= 1;
+    w1->pModelInfo->flagsDC |= 1;
     switch (mode) {
     case 0:
         SceSleep(3);
@@ -427,14 +427,14 @@ static void r221_moveWire(int mode)
         SceSleep(1);
     up:
         s += step0;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         if (!(s > lim)) {
             goto wait0;
         }
         s = lim;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         break;
     case 1:
         s = lim;
@@ -443,14 +443,14 @@ static void r221_moveWire(int mode)
         SceSleep(1);
     down:
         s -= 0.002f;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         if (!(s <= 0.0f)) {
             goto wait1;
         }
         s = 0.0f;
-        w0->pInfo->uvScrollV = s;
-        w1->pInfo->uvScrollV = -s;
+        w0->pModelInfo->uvScrollV = s;
+        w1->pModelInfo->uvScrollV = -s;
         break;
     }
     r221_work.p->wireTask = 0;
@@ -609,10 +609,10 @@ static void r221_checkElevatorArrive_end()
         cObj* w0 = SmdGetObjPtr(0x42);
         cObj* w1 = SmdGetObjPtr(0x43);
         if (w0 && w1) {
-            w0->pInfo->flagsDC |= 1;
-            w1->pInfo->flagsDC |= 1;
-            w0->pInfo->uvScrollV = 0.0f;
-            w1->pInfo->uvScrollV = 0.0f;
+            w0->pModelInfo->flagsDC |= 1;
+            w1->pModelInfo->flagsDC |= 1;
+            w0->pModelInfo->uvScrollV = 0.0f;
+            w1->pModelInfo->uvScrollV = 0.0f;
         }
         r221_moveElevatoDoor(1, 1);
         if (r221_work.p->doorSe) {
@@ -760,7 +760,7 @@ static void r221_checkBossAppear_end()
     if (pG->flags_174 & 0x20000000) {
         em.destroy();
         {
-            int list = pG->emlist_no;
+            int list = pG->em_list_no;
 
             if (list >= 0) {
                 emDeadWords(list)[0x8C >> 5] &= ~(0x80000000 >> (0x8C & 31));
@@ -1118,7 +1118,7 @@ cObj* r201_setBonbe(int id, f32 ang)
         o->be_flag &= ~2;
         Vec rot = {0.0f, 0.0f, 0.0f};
         rot.y = LIMIT_ANGLE(ang);
-        cObj* s = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21), &o->pos, &rot, 0x10, 1);
+        cObj* s = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x20), ROOM_ARC_PTR(pG->pRoom, 0x21), &o->pos, &rot, 0x10, 1);
         s->be_flag |= 0x1000;
         return s;
     }
@@ -1207,10 +1207,10 @@ static void r221_fadeoutBonbe(cObj* o)
 
     SceSleep(60);
     for (i = 0; i < 90; i++) {
-        o->alpha = (f32) (90 - i) / 90.0f;
+        o->invisible_factor = (f32) (90 - i) / 90.0f;
         SceSleep(1);
     }
-    o->alpha = 0.0f;
+    o->invisible_factor = 0.0f;
 }
 
 // Task: the player throws bomb `no` down the shaft.
@@ -1258,8 +1258,8 @@ static void r201_throwBonbe(int no)
         eff3 = 9;
         t2 = 0;
         t1 = 0;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x25);
         pos.x = -17.89f;
         pos.y = 0.0f;
         pos.z = -1793.51f;
@@ -1276,8 +1276,8 @@ static void r201_throwBonbe(int no)
         eff3 = 0xA;
         t1 = 0x32;
         t2 = 0x5A;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x23);
         pos.x = -1410.2101f;
         pos.y = 0.0f;
         pos.z = -1350.1799f;
@@ -1295,8 +1295,8 @@ static void r201_throwBonbe(int no)
         eff3 = 9;
         t2 = 0;
         t1 = 0;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x24);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x25);
         pos.x = -17.89f;
         pos.y = 0.0f;
         pos.z = -1793.51f;
@@ -1313,8 +1313,8 @@ static void r201_throwBonbe(int no)
         eff3 = 0xA;
         t1 = 0x32;
         t2 = 0x5A;
-        mot0 = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-        mot1 = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
+        mot0 = ROOM_ARC_PTR(pG->pRoom, 0x22);
+        mot1 = ROOM_ARC_PTR(pG->pRoom, 0x23);
         pos.x = -1410.2101f;
         pos.y = 0.0f;
         pos.z = -1350.1799f;
@@ -1330,15 +1330,15 @@ static void r201_throwBonbe(int no)
     pPL->setNoSuspend(1);
     bonbe->setNoSuspend(1);
     PlSetHand(1, 0);
-    bonbe->rot.y = LIMIT_ANGLE(bonbe->rot.y);
-    low_RotMatrix(m, &bonbe->rot);
+    bonbe->ang.y = LIMIT_ANGLE(bonbe->ang.y);
+    low_RotMatrix(m, &bonbe->ang);
     TransMatrix(m, &bonbe->pos);
     PSMTXMultVec(m, &pos, &pPL->pos);
     {
         cPlayer* pl = pPL;
 
         pl->setPos(&pl->pos);
-        pl->setAng(&bonbe->rot);
+        pl->setAng(&bonbe->ang);
     }
     if (mot0 != 0) {
         pPL->motionSet(mot0, 10, 0, 1, 0);
@@ -1393,15 +1393,15 @@ static void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r221_work.p->tex->texId;
-        r221_work.p->tex->repType = 1;
+        r221_work.p->tex->m_Rep_type = 1;
         EstSet(0, -1, 0, 0, 1, 0x1F, r221_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(0x28);
-    obj->pInfo->setTexBlendTbl(tbl);
-    obj->pInfo->setBlendRatio(0xFF);
-    obj->pInfo->color[3] = 0xF0;
+    obj->pModelInfo->setTexBlendTbl(tbl);
+    obj->pModelInfo->setBlendRatio(0xFF);
+    obj->pModelInfo->color[3] = 0xF0;
     obj->Shader_type = 2;
     obj->Refract_pow = 0x10;
     obj->Refract_ratio = 0x30;

@@ -38,7 +38,7 @@ void Wep04_init(cModel* m)
     if (!VALID_PTR(obj)) {
         pLog->err(0, 0, "Wep04_init() wep model init failed.");
     } else {
-        pl->pWep->pObj = obj;
+        pl->Wep->m_pWep = obj;
         obj->setMotion(pl);
         EspDataLoad((u32) WEP_ARC_PTR(0x4), 0x38, 1);
         PlWepMot[0] = WEP_ARC_PTR(0x26);
@@ -68,7 +68,7 @@ void cObjXd9::init(cModel* parent)
 {
     void* bin;
 
-    if (pG->wep_type != 1) {
+    if (pG->weapon_type != 1) {
         bin = WEP_ARC_PTR(0x6);
         wep.x24 = 0x27;
     } else {
@@ -85,7 +85,7 @@ void cObjXd9::init(cModel* parent)
         static const Vec p0 = { 0.0f, 0.0f, 0.0f };
         static const Vec p1 = { 500.0f, 0.0f, 0.0f };
 
-        lightInfo.init2(1, 1, &p0, &p1, 1);
+        LightInfo.init2(1, 1, &p0, &p1, 1);
     }
     wep.parent = parent;
     PSet(wep.pMotNormal, WEP_ARC_PTR(0x34));
@@ -106,7 +106,7 @@ void cObjXd9::moveFire()
         int zero;
 
         if (ItemMgr.bulletNum()) {
-            switch (pG->wep_type) {
+            switch (pG->weapon_type) {
             case 0:
             default:
                 m = WEP_ARC_PTR(0x32);
@@ -116,7 +116,7 @@ void cObjXd9::moveFire()
                 break;
             }
         } else {
-            switch (pG->wep_type) {
+            switch (pG->weapon_type) {
             case 0:
             default:
                 m = WEP_ARC_PTR(0x37);
@@ -126,14 +126,14 @@ void cObjXd9::moveFire()
                 break;
             }
         }
-        MotionSetCore(this, &mot, m, 0, 0, 0, 0);
+        MotionSetCore(this, &Motion, m, 0, 0, 0, 0);
         SndCall(2, 2, &pos, 0, 0, 0);
         SndCall(2, 4, &pos, 0, 0, 0);
         zero = 0;
         SndCall(2, zero, &pos, 0, 0, 0);
         BitOn(pG->flags_500C, 0x00800000);
         type = 0;
-        if (pG->wep_type == 1) {
+        if (pG->weapon_type == 1) {
             type = 1;
         }
         EstSet((int) this, -1, 0, 0, 0x38, type, 0, 0xA, 0, 0);
@@ -191,9 +191,9 @@ void cObjXd9::moveReload()
             se = 0x21;
             break;
         }
-        wep.seHandle = SndCall(2, se, &pParts->worldPos, 0, 0, 0);
+        wep.seHandle = SndCall(2, se, &pParts->world, 0, 0, 0);
         wep.step = 1;
-    } else if (MotionCheckCrossFrame(&mot, reloadEnd[pG->weapon_lv_reload])) {
+    } else if (MotionCheckCrossFrame(&Motion, reloadEnd[pG->weapon_lv_reload])) {
         ItemMgr.reload();
     }
 }
@@ -246,7 +246,7 @@ void cObjXd9::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x10], WEP_ARC_PTR(0x10));
     PSet(pl->pMotTbl[0x39], WEP_ARC_PTR(0x19));
     PSet(pl->pMotTbl[0x3A], WEP_ARC_PTR(0x1A));
-    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlArc, 0x5D));
+    PSet(pl->pMotTbl[0x3D], PL_ARC_PTR(pG->pPlayer, 0x5D));
     PSet(pl->pMotTbl[0x41], WEP_ARC_PTR(0x1B));
     PSet(pl->pMotTbl[0x42], WEP_ARC_PTR(0x1C));
     PSet(pl->pMotTbl[0x3F], WEP_ARC_PTR(0x1D));
@@ -255,7 +255,7 @@ void cObjXd9::setMotion(cPlayer* pl)
     PSet(pl->pMotTbl[0x5E], WEP_ARC_PTR(0x20));
     PSet(pl->pMotTbl[0x5B], WEP_ARC_PTR(0x30));
     PSet(pl->pMotTbl[0x57], WEP_ARC_PTR(0x31));
-    pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xA));
+    pl->Body->initWepHand((u32) WEP_ARC_PTR(0xA));
     pl->setRightHand(1);
     pl->setLeftHand(4);
 }

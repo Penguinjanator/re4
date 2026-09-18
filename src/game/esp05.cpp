@@ -5,15 +5,15 @@
 #include "esp.h"
 
 struct Esp05Work {
-    f32 amp;     // 0x00 wobble amplitude
-    f32 angSpd;  // 0x04
-    f32 ang;     // 0x08
+    f32 Pow;     // 0x00 wobble amplitude
+    f32 Spd;  // 0x04
+    f32 Theta;     // 0x08
 };
 
 // Fluttering sprite (falling leaf / feather): wobbles the position with sin/cos of a random angle.
 class cEsp05 : public cEsp {
 public:
-    Esp05Work work;  // 0xF8
+    Esp05Work m_Free;  // 0xF8
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
@@ -26,13 +26,13 @@ cEsp* Esp05_Create()
 
 void cEsp05::move()
 {
-    Esp05Work* w = &work;
+    Esp05Work* w = &m_Free;
 
     if (CommonMove()) {
-        pos.x += w->amp * sinf(w->ang);
-        pos.z += w->amp * cosf(w->ang * 1.7f);
-        pos.y += w->amp * 0.3f * cosf(w->ang * 1.9f);
-        w->ang += w->angSpd * (fRand0_1() + 0.2f);
+        m_Pos.x += w->Pow * sinf(w->Theta);
+        m_Pos.z += w->Pow * cosf(w->Theta * 1.7f);
+        m_Pos.y += w->Pow * 0.3f * cosf(w->Theta * 1.9f);
+        w->Theta += w->Spd * (fRand0_1() + 0.2f);
         if (!AnmMove()) {
             PushEsp(this);
         }
@@ -41,12 +41,12 @@ void cEsp05::move()
 
 int cEsp05::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    Esp05Work* w = &work;
+    Esp05Work* w = &m_Free;
 
-    w->amp = gen->xD8;
-    w->angSpd = gen->xDC * 0.05f;
-    w->amp += w->amp * fRand0_1() * (gen->xE0 * 0.1f);
-    w->angSpd += w->angSpd * fRand0_1() * (gen->xE0 * 0.1f);
-    w->ang = fRand0_1() * PI * 2.0f;
+    w->Pow = gen->xD8;
+    w->Spd = gen->xDC * 0.05f;
+    w->Pow += w->Pow * fRand0_1() * (gen->xE0 * 0.1f);
+    w->Spd += w->Spd * fRand0_1() * (gen->xE0 * 0.1f);
+    w->Theta = fRand0_1() * PI * 2.0f;
     return 1;
 }

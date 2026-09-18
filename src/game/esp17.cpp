@@ -19,21 +19,21 @@ void cEsp17::move()
 {
     Mtx inv;
 
-    pos = work;
+    m_Pos = work;
     if (CommonMove()) {
         if (!AnmMove()) {
             PushEsp(this);
         } else {
-            work = pos;
-            FSet(pos.z, -pos.z);
-            PSMTXInverse(pG->Cam.viewMat, inv);
-            PSMTXMultVec(inv, &pos, &pos);
+            work = m_Pos;
+            FSet(m_Pos.z, -m_Pos.z);
+            PSMTXInverse(pG->Cam.v_mat, inv);
+            PSMTXMultVec(inv, &m_Pos, &m_Pos);
         }
     }
 }
 
 int cEsp17::SetFreeWork(EspGenWork* gen, u32* seed)
 {
-    work = pos;
+    work = m_Pos;
     return 1;
 }

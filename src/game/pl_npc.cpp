@@ -59,8 +59,8 @@ void waterProc(cSubChar* pl);
 #define SUBFLAG(pl) ((cFlag*) &(pl)->subFlags)
 #define SUBFLAG2(pl) ((cFlag*) &(pl)->subFlags2)
 // Collision flag bits set / cleared through the info's address (`cAtariInfo* at = &atari` locals).
-static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
-static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+static inline void AtariOn(cAtariInfo* at, u16 b) { at->m_flag |= b; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->m_flag &= mask; }
 // Same as a raw (non-struct) store through the info's address: a following global load (pG)
 // stays below it (interrupt(), moveDamage).
 static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
@@ -127,7 +127,7 @@ static inline void SubRoutineSet(cSubChar* pl, int r0, int r1, int r2, int r3)
 
 int cSubChar::mot_ck()
 {
-    return hp >= (s16) pG->sub_life_max / 2;
+    return hp >= (s16) pG->ashley_life_max / 2;
 }
 
 cSubChar::cSubChar()
@@ -159,7 +159,7 @@ void cSubChar::init()
     {
         static const Vec lightOfs = { 0.0f, 0.0f, 0.0f };
         static const Vec lightSize = { 1000.0f, 1000.0f, 0.0f };
-        lightInfo.init2(0, 1, &lightOfs, &lightSize, 0x40);
+        LightInfo.init2(0, 1, &lightOfs, &lightSize, 0x40);
     }
     atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     if (subLight == 0) {
@@ -217,12 +217,12 @@ void cSubChar::move()
     if (SUBFLAG(this)->check(0)) {
         return;
     }
-    hp = pG->sub_life;
+    hp = pG->ashley_life;
     SUB_MOTBASE(this)->adjust();
     BitOff(pG->flags_5010, 0x10000);
     BitOff(pG->flags_5014, 0x20000000);
     BitOff(pG->flags_5010, 0x8);
-    subPlStatus = PlGetStatus();
+    plStat = PlGetStatus();
     dmgCheck();
     damageCheck();
     if (r_no_0 == 4) {
@@ -339,7 +339,7 @@ void cSubChar::moveFootwork()
         }
         subHideMode = 0;
         if (SUBFLAG(this)->check(3)) {
-            if (subDist > 400.0f) {
+            if (dist > 400.0f) {
                 SubRoutineSet(this, 0, 1, 0, 0);
                 return;
             }
@@ -378,12 +378,12 @@ void cSubChar::moveFootwork()
         if (checkBackEm()) {
             break;
         }
-        if (subAng > 2.617994f || subAng < -2.617994f) {
+        if (dir > 2.617994f || dir < -2.617994f) {
             m_Timer = 60;
             r_no_2 = 0x14;
             break;
         }
-        if (subAng > 0.5235988f || subAng < -0.5235988f) {
+        if (dir > 0.5235988f || dir < -0.5235988f) {
             m_Timer = 6;
             r_no_2 = 0xA;
             break;
@@ -395,10 +395,10 @@ void cSubChar::moveFootwork()
         r_no_2 = 0x1E;
         break;
     case 0xA:
-        if (subAng < -0.19634955f) {
+        if (dir < -0.19634955f) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x35), SUB_MOT(subSelf, 0x5D), 7, 5, 0);
             subSelf->r_no_2 = 0xB;
-        } else if (subAng > 0.19634955f) {
+        } else if (dir > 0.19634955f) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x36), SUB_MOT(subSelf, 0x5E), 7, 5, 0);
             subSelf->r_no_2 = 0xC;
         } else {
@@ -406,12 +406,12 @@ void cSubChar::moveFootwork()
         }
         break;
     case 0xB:
-        if (subAng >= -0.19634955f) {
+        if (dir >= -0.19634955f) {
             subSelf->r_no_2 = 1;
         }
         break;
     case 0xC:
-        if (subAng < 0.19634955f) {
+        if (dir < 0.19634955f) {
             subSelf->r_no_2 = 1;
         }
         break;
@@ -480,7 +480,7 @@ void cSubChar::moveFootwork()
                 subHideMode++;
                 if (subHideMode > 150) {
                     subHideMode = 0;
-                    subSndId = SndCall(8, 2, &subSelf->pParts->worldPos, id, 0, 0);
+                    subSndId = SndCall(8, 2, &subSelf->pParts->world, id, 0, 0);
                 }
             }
         }
@@ -505,7 +505,7 @@ void cSubChar::moveFootwork()
     if (SUBFLAG(this)->check(1)) {
         return;
     }
-    if (subPlStatus & 0x40000) {
+    if (plStat & 0x40000) {
         return;
     }
     if (sub550) {
@@ -515,7 +515,7 @@ void cSubChar::moveFootwork()
         }
         return;
     }
-    if (subPlStatus & 0x400) {
+    if (plStat & 0x400) {
         return;
     }
     if (SUBFLAG2(this)->check(8)) {
@@ -531,7 +531,7 @@ void cSubChar::moveFootwork()
         }
         return;
     }
-    if ((subPlStatus & 0x20000) && subDist < 1000.0f) {
+    if ((plStat & 0x20000) && dist < 1000.0f) {
         return;
     }
     if (readyCheck()) {
@@ -541,7 +541,7 @@ void cSubChar::moveFootwork()
     act = actCheck();
     switch (act) {
     default:
-        if (subPlStatus & 0x41F) {
+        if (plStat & 0x41F) {
             if (SUBFLAG(subSelf)->check(3)) {
                 if (!SUBFLAG2(subSelf)->check(6)) {
                     subSelf->m_Frame = 0;
@@ -550,7 +550,7 @@ void cSubChar::moveFootwork()
                     break;
                 }
             }
-            if (subDist > 1100.0f || sub580) {
+            if (dist > 1100.0f || sub580) {
                 subSelf->m_Frame = 0;
                 subSelf->m_Hokan = 5;
                 SubRoutineSet(subSelf, 0, 1, 0, 0);
@@ -580,8 +580,8 @@ void cSubChar::moveMove()
     switch (subSelf->r_no_2) {
     case 0:
         m_Timer = 0;
-        if (subAng > 2.617994f || subAng < -2.617994f) {
-            if (!SUBFLAG(this)->check(4) && (ckPlRun() || subDist > 3000.0f)) {
+        if (dir > 2.617994f || dir < -2.617994f) {
+            if (!SUBFLAG(this)->check(4) && (ckPlRun() || dist > 3000.0f)) {
                 MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x26), SUB_MOT(subSelf, 0x58), 7, 5, 0);
                 subSelf->r_no_3 = 3;
             } else {
@@ -589,7 +589,7 @@ void cSubChar::moveMove()
                 subSelf->r_no_3 = 2;
             }
         } else {
-            if (!SUBFLAG(this)->check(4) && (ckPlRun() || subDist > 3000.0f)) {
+            if (!SUBFLAG(this)->check(4) && (ckPlRun() || dist > 3000.0f)) {
                 MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x25), SUB_MOT(subSelf, 0x57), 7, 4, 0);
                 subSelf->r_no_3 = 1;
             } else {
@@ -605,7 +605,7 @@ void cSubChar::moveMove()
         subSelf->r_no_2 = 1;
     case 1:
         if (subSelf->r_no_3 <= 1) {
-            rot.y += Muku(&pos, &subTarget, rot.y, 0.20943952f);
+            ang.y += Muku(&pos, &distPos, ang.y, 0.20943952f);
         }
         if (!subSelf->motionMove()) {
             break;
@@ -641,7 +641,7 @@ void cSubChar::moveMove()
         motionMove();
         switch (subSelf->r_no_3) {
         case 0:
-            if (!SUBFLAG(this)->check(4) && (ckPlRun() || subDist > 3000.0f)) {
+            if (!SUBFLAG(this)->check(4) && (ckPlRun() || dist > 3000.0f)) {
                 m_Frame = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
                 m_Hokan = 3;
                 r_no_2 = 2;
@@ -649,7 +649,7 @@ void cSubChar::moveMove()
             }
             break;
         case 1:
-            if (SUBFLAG(this)->check(4) || (!ckPlRun() && subDist < 550.0f)) {
+            if (SUBFLAG(this)->check(4) || (!ckPlRun() && dist < 550.0f)) {
                 m_Frame = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
                 m_Hokan = 3;
                 r_no_2 = 2;
@@ -657,25 +657,25 @@ void cSubChar::moveMove()
             }
             break;
         }
-        if (subDist > 400.0f || SUBFLAG(this)->check(3) || sub580) {
-            rot.y += Muku(&pos, &subTarget, rot.y, 0.20943952f);
-        } else if (subPlStatus & 4) {
-            f32 a = LIMIT_ANGLE(pPL->rot.y + 3.1415927f);
+        if (dist > 400.0f || SUBFLAG(this)->check(3) || sub580) {
+            ang.y += Muku(&pos, &distPos, ang.y, 0.20943952f);
+        } else if (plStat & 4) {
+            f32 a = LIMIT_ANGLE(pPL->ang.y + 3.1415927f);
 
-            rot.y += Muku2(rot.y, a, 0.10471976f);
+            ang.y += Muku2(ang.y, a, 0.10471976f);
         } else {
-            rot.y += Muku2(rot.y, pPL->rot.y, 0.10471976f);
+            ang.y += Muku2(ang.y, pPL->ang.y, 0.10471976f);
         }
         if (SUBFLAG(this)->check(3) || sub580) {
-            if (subDist <= 400.0f) {
+            if (dist <= 400.0f) {
                 r_no_2 = 4;
                 motFlags &= ~1;
                 subHideMode = 0;
             }
-        } else if (subDist <= 400.0f) {
+        } else if (dist <= 400.0f) {
             if (pPL->r_no_0 == 0 && (pPL->r_no_1 == 0 || pPL->r_no_1 == 4)) {
                 r_no_0 = 0;
-                subDist = 0.0f;
+                dist = 0.0f;
                 r_no_1 = 0;
                 r_no_2 = 0;
                 r_no_3 = 0;
@@ -685,8 +685,8 @@ void cSubChar::moveMove()
     case 4:
         motionMove();
         subHideMode++;
-        if (subDist < 50.0f || subHideMode > 6) {
-            setPos(&subTarget);
+        if (dist < 50.0f || subHideMode > 6) {
+            setPos(&distPos);
             if (subMoveTo[3] == 193.0f) {
                 subFlags2 |= 0x40;
                 r_no_0 = 0;
@@ -699,7 +699,7 @@ void cSubChar::moveMove()
         }
         break;
     case 0xA:
-        if (Muku2(rot.y, subMoveTo[3], 3.1415927f) < 0.0f) {
+        if (Muku2(ang.y, subMoveTo[3], 3.1415927f) < 0.0f) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x35), SUB_MOT(subSelf, 0x5D), 4, 5, 0);
             r_no_2 = 0xB;
         } else {
@@ -710,16 +710,16 @@ void cSubChar::moveMove()
         break;
     case 0xB:
         motionMove();
-        if (Muku2(rot.y, subMoveTo[3], 3.1415927f) > 0.0f) {
-            rot.y = subMoveTo[3];
+        if (Muku2(ang.y, subMoveTo[3], 3.1415927f) > 0.0f) {
+            ang.y = subMoveTo[3];
             subFlags2 |= 0x40;
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         break;
     case 0xC:
         motionMove();
-        if (Muku2(rot.y, subMoveTo[3], 3.1415927f) < 0.0f) {
-            rot.y = subMoveTo[3];
+        if (Muku2(ang.y, subMoveTo[3], 3.1415927f) < 0.0f) {
+            ang.y = subMoveTo[3];
             subFlags2 |= 0x40;
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -735,7 +735,7 @@ void cSubChar::moveMove()
     } else if (r_no_2 == 4) {
         Vec d;
 
-        PSVECSubtract(&subTarget, &pos, &d);
+        PSVECSubtract(&distPos, &pos, &d);
         PSVECScale(&d, &d, 0.4f);
         PSVECAdd(&pos, &d, &pos);
     } else if (r_no_3 <= 1) {
@@ -743,23 +743,23 @@ void cSubChar::moveMove()
         f32 spd;
 
         if (subSelf->r_no_3 == 0) {
-            if (subDist > 600.0f) {
+            if (dist > 600.0f) {
                 spd = 100.0f;
-            } else if (subDist <= distMin) {
+            } else if (dist <= distMin) {
                 spd = 0.0f;
             } else {
-                spd = (subDist - distMin) * 100.0f / (600.0f - distMin);
+                spd = (dist - distMin) * 100.0f / (600.0f - distMin);
             }
         } else {
-            if (subDist > 600.0f) {
+            if (dist > 600.0f) {
                 spd = 160.0f;
-            } else if (subDist <= distMin) {
+            } else if (dist <= distMin) {
                 spd = 0.0f;
             } else {
-                spd = (subDist - distMin) * 160.0f / (600.0f - distMin);
+                spd = (dist - distMin) * 160.0f / (600.0f - distMin);
             }
         }
-        movePos(&subTarget, spd);
+        movePos(&distPos, spd);
     }
     if (m_Timer <= 0xF9) {
         m_Timer++;
@@ -780,11 +780,11 @@ void cSubChar::moveMove()
         return;
     } else if (sub550) {
         SubRoutineSet(this, 0, 0, 0, 0);
-    } else if ((subPlStatus & 0x400) && !SUBFLAG(this)->check(3)) {
+    } else if ((plStat & 0x400) && !SUBFLAG(this)->check(3)) {
         SubRoutineSet(this, 0, 0, 0, 0);
-    } else if (subPlStatus & 0x40000) {
+    } else if (plStat & 0x40000) {
         SubRoutineSet(this, 0, 0, 0, 0);
-    } else if ((subPlStatus & 0x20000) && subDist < 1000.0f && !SUBFLAG(this)->check(3)) {
+    } else if ((plStat & 0x20000) && dist < 1000.0f && !SUBFLAG(this)->check(3)) {
         SubRoutineSet(this, 0, 0, 0, 0);
     } else {
         switch ((u32) actCheck()) {
@@ -822,13 +822,13 @@ void cSubChar::moveMove()
 
 int cSubChar::readyOkCheck()
 {
-    if (!(subPlStatus & 0x10)) {
+    if (!(plStat & 0x10)) {
         return 0;
     }
     if (GetDistance(&pPL->pos, &pos) > 302500.0f) {
         return 0;
     }
-    return SatMgr.hitCheck(&pPL->pParts->worldPos, &pParts->worldPos, 0, 0, 0, 0) == 0;
+    return SatMgr.hitCheck(&pPL->pParts->world, &pParts->world, 0, 0, 0, 0) == 0;
 }
 
 // Routine 0 / 2 (and 5): stand behind the aiming player, cover the ears.
@@ -850,16 +850,16 @@ void cSubChar::moveBehind()
         ap = &atckPos2;
         break;
     }
-    if (r_no_2 <= 0x13 && (subPlStatus & 0x10)) {
+    if (r_no_2 <= 0x13 && (plStat & 0x10)) {
         subOfs = *ap;
         // reference stores: the following pPL loads stay below them
-        FSet(subOfs.z, subOfs.z - pPL->pWep->getAngle() * 0.31830987f * 300.0f);
+        FSet(subOfs.z, subOfs.z - pPL->Wep->getAngle() * 0.31830987f * 300.0f);
         PSMTXMultVec(pPL->mat, &subOfs, &subOfs);
         FSet(pos.x, pos.x * 0.7f + subOfs.x * 0.3f);
         FSet(pos.z, pos.z * 0.7f + subOfs.z * 0.3f);
-        rot.y += Muku2(rot.y, pPL->rot.y, 0.31415927f);
+        ang.y += Muku2(ang.y, pPL->ang.y, 0.31415927f);
     }
-    if (!(subPlStatus & 0x10)) {
+    if (!(plStat & 0x10)) {
         subHideMode = 1;
     }
     switch (r_no_2) {
@@ -869,7 +869,7 @@ void cSubChar::moveBehind()
         subHideMode = 0;
         r_no_2 = 1;
     case 1:
-        if (!(subPlStatus & 0x10)) {
+        if (!(plStat & 0x10)) {
             r_no_2 = 0x14;
         }
         if (motionMove()) {
@@ -881,7 +881,7 @@ void cSubChar::moveBehind()
         motionMove();
         if (pG->flags_5010 & 0x20000) {
             pG->flags_5010 &= ~0x20000;
-            if (!(subPlStatus & 0x2080)) {
+            if (!(plStat & 0x2080)) {
                 r_no_2 = 0xA;
             }
         }
@@ -894,7 +894,7 @@ void cSubChar::moveBehind()
         MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x20), 0, 7, 5, 0);
         r_no_2 = 0xB;
     case 0xB:
-        if ((subPlStatus & 0x2080) || motionMove()) {
+        if ((plStat & 0x2080) || motionMove()) {
             setHand(0);
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x1E), 0, 3, 5, 0);
             motionMove();
@@ -973,18 +973,18 @@ void cSubChar::movePants()
     switch (subSelf->r_no_2) {
     case 0:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x21), 0, 7, 5, 0);
-        subSndId = SndCall(8, 0x16, &subSelf->pParts->worldPos, id, 0, 0);
+        subSndId = SndCall(8, 0x16, &subSelf->pParts->world, id, 0, 0);
         subSelf->r_no_2 = 1;
     case 1:
         if (MotionMoveF(subSelf, 0)) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x22), 0, 7, 5, 0);
             subSelf->r_no_2 = 2;
         }
-        rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
+        ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         break;
     case 2:
         MotionMoveF(subSelf, 0);
-        rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
+        ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         if (!SUBFLAG2(this)->check(2)) {
             subSelf->r_no_2 = 3;
             subSelf->r_no_3 = 0;
@@ -992,7 +992,7 @@ void cSubChar::movePants()
         break;
     case 3:
         MotionMoveF(subSelf, 0);
-        rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
+        ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         if (SUBFLAG2(this)->check(2)) {
             subSelf->r_no_2 = 2;
         } else {
@@ -1160,11 +1160,11 @@ void pl_fall_ok(cPlayer* pl)
     switch (pl->r_no_1) {
     case 0:
         MOT_SET(pl, MOTION(pl), PL_ARC_PTR(arc, 0x3E), PL_ARC_PTR(arc, 0x68), 0, 5, 0);
-        pl->pWep->setTrans(0, 0);
+        pl->Wep->setTrans(0, 0);
         pl->r_no_1 = 1;
     case 1:
         if (pl->motionMove()) {
-            pl->pWep->setTrans(1, 0);
+            pl->Wep->setTrans(1, 0);
             pl->endAction(0);
             EndPlDamage();
         }
@@ -1181,9 +1181,9 @@ void cSubChar::moveFall()
 
     switch (r_no_2) {
     case 0:
-        getFallPos(this, &pPL->pos, &pPL->rot);
-        FSet(pPL->rot.y, pPL->rot.y + 4.712389f);
-        FSet(pPL->rot.y, LIMIT_ANGLE(pPL->rot.y));
+        getFallPos(this, &pPL->pos, &pPL->ang);
+        FSet(pPL->ang.y, pPL->ang.y + 4.712389f);
+        FSet(pPL->ang.y, LIMIT_ANGLE(pPL->ang.y));
         pPL->cCoord::matUpdate();
         SetPlDamage((int) this, (void (*)(cPlayer*)) pl_fall_ok0);
         pPL->dmg.set(0, 0x80);
@@ -1210,8 +1210,8 @@ void cSubChar::moveFall()
         AtariOn(&atari, 0x200);
         AtariOff(&atari, 0xFEFF);
         atari.setPriority(3);
-        rot.y = pPL->rot.y - 4.712389f;
-        FSet(rot.y, LIMIT_ANGLE(rot.y));
+        ang.y = pPL->ang.y - 4.712389f;
+        FSet(ang.y, LIMIT_ANGLE(ang.y));
         PSMTXMultVec(pPL->mat, &v_ok, &pos);
         setPos(&pos);
         SetPlDamage((int) this, pl_fall_ok);
@@ -1276,7 +1276,7 @@ void cSubChar::moveAction()
             break;
         }
         if (subHideMode == 4) {
-            subSndId = SndCall(8, 0x12, &subSelf->pParts->worldPos, id, 0, 0);
+            subSndId = SndCall(8, 0x12, &subSelf->pParts->world, id, 0, 0);
         }
         MOT_SET(subSelf, MOTION(subSelf), m, seq, 3, 0x101, 0);
         AtariOff(&atari, 0xFCFF);
@@ -1465,7 +1465,7 @@ void cSubChar::moveBack()
         if (++r_no_3 > 30) {
             r_no_2 = 2;
         }
-        rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
+        ang.y += Muku(&pos, &pPL->pos, ang.y, 0.31415927f);
         break;
     case 2:
         if (mot_ck()) {
@@ -1508,7 +1508,7 @@ void cSubChar::moveHide()
 
         BitOff16(subFlags, 2);
         subHidePos.y += 300.0f;
-        ang = Muku(&pos, &subHidePos, rot.y, 3.1415927f);
+        ang = Muku(&pos, &subHidePos, this->ang.y, 3.1415927f);
         if (fabsf(ang) > 2.0943952f) {
             if (mot_ck()) {
                 m = SUB_MOT(subSelf, 0x1A);
@@ -1546,8 +1546,8 @@ void cSubChar::moveHide()
         break;
     }
     case 1:
-        ang = Muku(&pos, &subHidePos, rot.y, 0.62831855f);
-        subSelf->rot.y += ang;
+        ang = Muku(&pos, &subHidePos, this->ang.y, 0.62831855f);
+        subSelf->ang.y += ang;
         if (fabsf(ang) < 0.44879895f) {
             r_no_2 = 5;
         }
@@ -1593,13 +1593,13 @@ void cSubChar::moveHide()
         }
         up = subHidePos.y > pos.y + 1000.0f;
         RouteCkToPos(this, &b, &a, up | 2, &subX5C8);
-        subSelf->rot.y += Muku(&pos, &a, rot.y, 0.20943952f);
+        subSelf->ang.y += Muku(&pos, &a, this->ang.y, 0.20943952f);
         motionMove();
         break;
     }
     case 0xA:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x2C), SUB_MOT(subSelf, 0x67), 7, 5, 0);
-        rot.y = atan2f(-norm.x, -norm.z);
+        this->ang.y = atan2f(-norm.x, -norm.z);
         cCoord::matUpdate();
         PSVECScale(&norm, &a, 400.0f);
         PSVECAdd(&a, &subHidePos, &a);
@@ -1638,7 +1638,7 @@ void cSubChar::moveHide()
         motionMove();
         r_no_3--;
         if (r_no_3 == 0) {
-            rot.y = LIMIT_ANGLE(rot.y + 3.1415927f);
+            this->ang.y = LIMIT_ANGLE(this->ang.y + 3.1415927f);
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x44), 0, 7, 5, 0);
             r_no_2 = 0xE;
         }
@@ -1749,8 +1749,8 @@ void cSubChar::moveFallWait()
         }
     case 1:
         motionMove();
-        ang = Muku2(subSelf->rot.y, sub564, 0.31415927f);
-        subSelf->rot.y += ang;
+        ang = Muku2(subSelf->ang.y, sub564, 0.31415927f);
+        subSelf->ang.y += ang;
         if (fabsf(ang) < 0.15707964f) {
             subHideMode--;
             if (subHideMode <= 0) {
@@ -1795,7 +1795,7 @@ void cSubChar::moveFallWait()
     if (GetDistance(&v, &pPL->pos) > 25000000.0f) {
         sub540++;
         if (sub540 == 300) {
-            subSndId = SndCall(8, 0x14, &subSelf->pParts->worldPos, id, 0, 0);
+            subSndId = SndCall(8, 0x14, &subSelf->pParts->world, id, 0, 0);
             sub540 = 0;
         }
     } else if (sub540 <= 0x95) {
@@ -1807,13 +1807,13 @@ void cSubChar::moveFallWait()
         }
     }
     if (subX534) {
-        if (GetDistance(&v, &pPL->pos) < 9000000.0f && !SatMgr.hitCheck(&v, &pPL->pParts->worldPos, 0, 0, 0, 0) &&
-            !SatMgr.hitCheck(&pPL->pParts->worldPos, &v, 0, 0, 0, 0)) {
+        if (GetDistance(&v, &pPL->pos) < 9000000.0f && !SatMgr.hitCheck(&v, &pPL->pParts->world, 0, 0, 0, 0) &&
+            !SatMgr.hitCheck(&pPL->pParts->world, &v, 0, 0, 0, 0)) {
             ActBtn.set(0x1C, 6, (int) catchOn, 0, 0, 1, 0, 0);
             sub53C = 1;
         }
     }
-    if (!SatMgr.hitCheck(&pParts->worldPos, &pPL->pParts->worldPos, 0, 0, 0, 0)) {
+    if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0)) {
         BitOff16(subFlags2, 0x80);
         SubRoutineSet(this, 0, 0, 0, 0);
     }
@@ -1839,8 +1839,8 @@ void cSubChar::moveLadderWait()
         motionMove();
         break;
     }
-    if (!SatMgr.hitCheck(&pParts->worldPos, &pPL->pParts->worldPos, 0, 0, 0, 0) &&
-        !SatMgr.hitCheck(&pPL->pParts->worldPos, &pParts->worldPos, 0, 0, 0, 0)) {
+    if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0) &&
+        !SatMgr.hitCheck(&pPL->pParts->world, &pParts->world, 0, 0, 0, 0)) {
         SubRoutineSet(this, 0, 0, 0, 0);
     }
 }
@@ -1865,8 +1865,8 @@ void cSubChar::moveWindowWait()
         motionMove();
         break;
     }
-    if (!SatMgr.hitCheck(&pParts->worldPos, &pPL->pParts->worldPos, 0, 0, 0, 0) &&
-        !SatMgr.hitCheck(&pPL->pParts->worldPos, &pParts->worldPos, 0, 0, 0, 0)) {
+    if (!SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0) &&
+        !SatMgr.hitCheck(&pPL->pParts->world, &pParts->world, 0, 0, 0, 0)) {
         SubRoutineSet(this, 0, 0, 0, 0);
     }
 }
@@ -2004,7 +2004,7 @@ void cSubChar::moveDamage()
         }
         MOT_SET(subSelf, MOTION(subSelf), m, 0, 3, 1, 0);
         setFace(1);
-        SndCall(8, 9, &subSelf->pParts->worldPos, id, 0, 0);
+        SndCall(8, 9, &subSelf->pParts->world, id, 0, 0);
         subSelf->r_no_1 = 1;
     case 1:
         if (subSelf->frame >= 10.0f && subHideMode == 11 && landCheck()) {
@@ -2046,7 +2046,7 @@ void cSubChar::moveDamage()
         if (MotionMoveF(subSelf, 0)) {
             if (subHideMode == 7 || subHideMode == 9) {
                 hp = 0;
-                pG->sub_life = 0;
+                pG->ashley_life = 0;
             }
         }
         break;
@@ -2085,8 +2085,8 @@ void cSubChar::moveDie()
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x30), 0, 3, 1, 0);
             EstSet((int) this, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 4 : 3, 0, 0, (u32) this, 0);
         }
-        SndCall(8, 0xD, &pParts->worldPos, id, 0, 0);
-        atari.partsNo = 4;
+        SndCall(8, 0xD, &pParts->world, id, 0, 0);
+        atari.m_parts_no = 4;
         r_no_1 = 1;
     case 1:
         if (motionMove()) {
@@ -2129,8 +2129,8 @@ void cSubChar::moveEvent()
             Vec out;
 
             RouteCkToPos(this, &subHidePos, &out, subHidePos.y > pos.y + 1000.0f, &subX5C8);
-            ang = Muku(&pos, &out, rot.y, 0.44879895f);
-            rot.y += ang;
+            ang = Muku(&pos, &out, this->ang.y, 0.44879895f);
+            this->ang.y += ang;
             if (fabsf(ang) < 0.20943952f) {
                 if (mot_ck()) {
                     MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x16), SUB_MOT(subSelf, 0x52), 10, 5, 0);
@@ -2145,7 +2145,7 @@ void cSubChar::moveEvent()
             Vec out;
 
             RouteCkToPos(this, &subHidePos, &out, subHidePos.y > pos.y + 1000.0f, &subX5C8);
-            rot.y += Muku(&pos, &out, rot.y, 0.31415927f);
+            this->ang.y += Muku(&pos, &out, this->ang.y, 0.31415927f);
             if (GetDistance(pos, subHidePos) < 250000.0f) {
                 if (mot_ck()) {
                     MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x12), SUB_MOT(subSelf, 0x4F), 7, 5, 0);
@@ -2235,7 +2235,7 @@ void cSubChar::neckCtrl()
         if (subNeckOn > 0) {
             subNeckOn--;
         }
-        ang = rot.y + subNeckAng;
+        ang = this->ang.y + subNeckAng;
         ang = Muku(&pos, &pPL->pos, ang, 0.10471976f);
         subNeckAng += ang;
         if (subNeckAng > 0.78539819f) {
@@ -2296,11 +2296,11 @@ int cSubChar::cautionCheck()
 
     if (SUBFLAG(this)->check(3)) {
         ret = 0;
-    } else if (!(subPlStatus & 0x10)) {
+    } else if (!(plStat & 0x10)) {
         ret = 0;
-    } else if (fabsf(GetXZAngleLocal(&pPL->pos, &pos, pPL->rot.y)) > 0.78539819f) {
+    } else if (fabsf(GetXZAngleLocal(&pPL->pos, &pos, pPL->ang.y)) > 0.78539819f) {
         ret = 0;
-    } else if (GetDistance(pPL->pParts->worldPos, pParts->worldPos) > 100000000.0f) {
+    } else if (GetDistance(pPL->pParts->world, pParts->world) > 100000000.0f) {
         ret = 0;
     } else {
         ret = 1;
@@ -2315,7 +2315,7 @@ int cSubChar::cautionCheck()
 
 int cSubChar::plDownCheck()
 {
-    return (subPlStatus & 0x8000) != 0;
+    return (plStat & 0x8000) != 0;
 }
 
 // A fence (attribute 0x20) 600 ahead with a floor within 300 of the partner's height 1500 behind it.
@@ -2394,7 +2394,7 @@ int cSubChar::fallLadderCheck()
     if (!SubLadderClimbCk2(this)) {
         return 0;
     }
-    PSVECSubtract(&subTarget, &pos, &d);
+    PSVECSubtract(&distPos, &pos, &d);
     if (VecElevation(&d) < 0.78539819f) {
         return 0;
     }
@@ -2421,7 +2421,7 @@ int cSubChar::readyCheck()
     if (SUBFLAG(this)->check(3)) {
         return 0;
     }
-    if (!(subPlStatus & 0x10)) {
+    if (!(plStat & 0x10)) {
         return 0;
     }
     return 1;
@@ -2502,13 +2502,13 @@ int cSubChar::actionCheck()
         d.x = -satNorm.x;
         d.y = 0.0f;
         d.z = -satNorm.z;
-        rot.y += Muku3(&d, rot.y, 3.1415927f);
+        ang.y += Muku3(&d, ang.y, 3.1415927f);
     }
-    if (sub580 && subDist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
+    if (sub580 && dist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
         if (getCliffHeight(sub564) < 2900.0f) {
             sub580 = 0;
             pos = sub558;
-            rot.y = sub564;
+            ang.y = sub564;
             subSelf->subHideMode = 3;
             ret = 1;
         } else {
@@ -2529,7 +2529,7 @@ int cSubChar::ladder2Check()
     if (!SceAtCheckLadder(this, &p, &ang, &level)) {
         return 0;
     }
-    if (fabsf(subTarget.y - pos.y) < 1000.0f) {
+    if (fabsf(distPos.y - pos.y) < 1000.0f) {
         return 0;
     }
     if ((pPL->stat & 0xFFFF0000) == 0x00100000) {
@@ -2586,11 +2586,11 @@ void cSubChar::pantsCheck()
     Vec* sp;
 
     BitOff16(subFlags2, 4);
-    if (pG->costume2 == 1) {
+    if (pG->game_costume == 1) {
         return;
     }
-    hp = &pPL->getPartsPtr(4)->worldPos;
-    sp = &pParts->worldPos;
+    hp = &pPL->getPartsPtr(4)->world;
+    sp = &pParts->world;
     if (GetDistance(hp, sp) > 25000000.0f) {
         return;
     }
@@ -2598,7 +2598,7 @@ void cSubChar::pantsCheck()
     if (VecElevation(&d) < 0.78539819f) {
         return;
     }
-    if (fabsf(Muku(hp, sp, pPL->rot.y, 6.2831855f)) > 0.78539819f) {
+    if (fabsf(Muku(hp, sp, pPL->ang.y, 6.2831855f)) > 0.78539819f) {
         return;
     }
     if (EatMgr.hitCheck(hp, sp, 0, 0, 0, 0)) {
@@ -2609,7 +2609,7 @@ void cSubChar::pantsCheck()
 
 int cSubChar::ckPlRun()
 {
-    return (subPlStatus & 8) != 0;
+    return (plStat & 8) != 0;
 }
 
 // Motion sequence sound (seNo) -> SndCall: footsteps by surface kind (seFlags28B), voices as is.
@@ -2668,7 +2668,7 @@ void cSubChar::seqSeCtrl()
         blk = 1;
         break;
     }
-    SndCall(blk, no, &getPartsPtr(parts)->worldPos, id, 0, 0);
+    SndCall(blk, no, &getPartsPtr(parts)->world, id, 0, 0);
     seNo = 0;
 }
 
@@ -2805,7 +2805,7 @@ int cSubChar::checkBackEm()
         if (d > 400000000.0f) {
             continue;
         }
-        ang = GetXZAngleLocal(&pos, &em->pos, rot.y);
+        ang = GetXZAngleLocal(&pos, &em->pos, this->ang.y);
         if (d < 25000000.0f) {
             if (ang < 2.3561945f && ang > -2.3561945f) {
                 continue;
@@ -2815,7 +2815,7 @@ int cSubChar::checkBackEm()
                 continue;
             }
         }
-        if (SatMgr.hitCheck(&pParts->worldPos, &em->pParts->worldPos, 0, 0, 0, 0)) {
+        if (SatMgr.hitCheck(&pParts->world, &em->pParts->world, 0, 0, 0, 0)) {
             continue;
         }
         return 1;
@@ -2894,83 +2894,83 @@ void cSubChar::analyze()
     if (sub554 && moveAnotherRoute()) {
         sub554 = 0;
     }
-    if (sub580 && !SatMgr.hitCheck(&pParts->worldPos, &pPL->pParts->worldPos, 0, 0, 0, 0)) {
+    if (sub580 && !SatMgr.hitCheck(&pParts->world, &pPL->pParts->world, 0, 0, 0, 0)) {
         sub580 = 0;
     }
     up = 0;
-    if (fabsf(subTarget.y - pos.y) > 1000.0f) {
+    if (fabsf(distPos.y - pos.y) > 1000.0f) {
         up = 1;
     }
     if (sub554) {
         if (fabsf(sub554->pos.y - pos.y) > 1000.0f) {
             up = 1;
         }
-        r = RouteCkToPos(this, &sub554->pos, &subTarget, up, &subX5C8);
+        r = RouteCkToPos(this, &sub554->pos, &distPos, up, &subX5C8);
     } else if (SUBFLAG(this)->check(3)) {
         if (fabsf(subMoveTo[1] - pos.y) > 1000.0f) {
             up = 1;
         }
-        r = RouteCkToPos(this, (Vec*) subMoveTo, &subTarget, up, &subX5C8);
+        r = RouteCkToPos(this, (Vec*) subMoveTo, &distPos, up, &subX5C8);
     } else if (sub580) {
         if (fabsf(sub558.y - pos.y) > 1000.0f) {
             up = 1;
         }
-        r = RouteCkToPos(this, &sub558, &subTarget, up, &subX5C8);
+        r = RouteCkToPos(this, &sub558, &distPos, up, &subX5C8);
     } else {
         if (delayMove) {
             delayMove--;
         }
-        if (subPlStatus & 0xE) {
+        if (plStat & 0xE) {
             delayMove = 5;
         }
-        if (delayMove == 0 && (GetDistance(&pos, &pPL->pos) > 16000000.0f || !(subPlStatus & 0xE))) {
+        if (delayMove == 0 && (GetDistance(&pos, &pPL->pos) > 16000000.0f || !(plStat & 0xE))) {
             if (fabsf(pPL->pos.y - pos.y) > 1000.0f) {
                 up = 1;
             }
-            r = RouteCkToPos(this, &pPL->pos, &subTarget, up, &subX5C8);
+            r = RouteCkToPos(this, &pPL->pos, &distPos, up, &subX5C8);
         } else {
             f32 fl;
 
             if (r_no_1 != 0 && r_no_1 != 2) {
-                if (subPlStatus & 4) {
-                    subTarget = chasePosFwd;
+                if (plStat & 4) {
+                    distPos = chasePosFwd;
                 } else {
-                    subTarget = chasePosBck;
+                    distPos = chasePosBck;
                 }
-                PSMTXMultVec(pPL->mat, &subTarget, &subTarget);
+                PSMTXMultVec(pPL->mat, &distPos, &distPos);
             } else {
-                subTarget = pPL->pos;
+                distPos = pPL->pos;
             }
-            fl = SatMgr.getFloor(&subTarget, 1000.0f, 1000.0f, 0, 0);
+            fl = SatMgr.getFloor(&distPos, 1000.0f, 1000.0f, 0, 0);
             if (fl != -100000.0f) {
-                subTarget.y = fl + 100.0f;
+                distPos.y = fl + 100.0f;
             }
-            if (SatMgr.hitCheck(&pPL->pParts->worldPos, &subTarget, 0, 0, 0, 0)) {
-                PSVECSubtract(&subTarget, &pPL->pParts->worldPos, &d);
+            if (SatMgr.hitCheck(&pPL->pParts->world, &distPos, 0, 0, 0, 0)) {
+                PSVECSubtract(&distPos, &pPL->pParts->world, &d);
 #line 3781 "D:/Bio4/Prog/pl_npc.cpp"
                 VECNormalize(&d, &d);
                 PSVECScale(&d, &d, -400.0f);
-                PSVECAdd(&subTarget, &d, &subTarget);
+                PSVECAdd(&distPos, &d, &distPos);
             }
-            if (fabsf(subTarget.y - pos.y) > 1000.0f) {
+            if (fabsf(distPos.y - pos.y) > 1000.0f) {
                 up = 1;
             }
-            r = RouteCkToPos(this, &subTarget, &subTarget, up, &subX5C8);
+            r = RouteCkToPos(this, &distPos, &distPos, up, &subX5C8);
         }
     }
-    if (SatMgr.hitCheck(&pos, &subTarget, 0, 0, 0, 0)) {
-        subDist = GetDistance3(&pos, &subTarget);
+    if (SatMgr.hitCheck(&pos, &distPos, 0, 0, 0, 0)) {
+        dist = GetDistance3(&pos, &distPos);
     } else {
-        d.x = subTarget.x;
+        d.x = distPos.x;
         d.y = pos.y;
-        d.z = subTarget.z;
-        subDist = GetDistance3(&pos, &d);
+        d.z = distPos.z;
+        dist = GetDistance3(&pos, &d);
     }
     if (r == 0) {
-        subDist += 10000.0f;
+        dist += 10000.0f;
     }
-    subAng = GetXZAngleLocal(&pos, &subTarget, rot.y);
-    subAng = LIMIT_ANGLE(subAng);
+    dir = GetXZAngleLocal(&pos, &distPos, ang.y);
+    dir = LIMIT_ANGLE(dir);
     pantsCheck();
     cautionCheck();
     frontCheck();
@@ -2978,7 +2978,7 @@ void cSubChar::analyze()
         for (i = 0; i <= 15; i++) {
             eprintf(0x18 + i * 8, 0x180, 0, 0, "%d", ((cFlag*) &subFlags)->check(i));
         }
-        Draw_pos(&subTarget, 1000);
+        Draw_pos(&distPos, 1000);
     }
 }
 
@@ -2989,7 +2989,7 @@ void cSubChar::frontCheck()
     Vec d;
 
     BitOff16(subFlags2, 0x100);
-    PSVECSubtract(&subTarget, &pos, &d);
+    PSVECSubtract(&distPos, &pos, &d);
     if (d.x == 0.0f && d.z == 0.0f) {
         return;
     }
@@ -3014,12 +3014,12 @@ void cSubChar::anaSatInfo()
 
     PSVECAdd(&a, &subSelf->pos, &a);
     satAttr = 0;
-    if (fabsf(Muku(&pos, &subTarget, rot.y, 3.1415927f)) > lim) {
+    if (fabsf(Muku(&pos, &distPos, ang.y, 3.1415927f)) > lim) {
         return;
     }
-    b.x = subTarget.x;
+    b.x = distPos.x;
     b.y = a.y;
-    b.z = subTarget.z;
+    b.z = distPos.z;
     r = SatMgr.hitCheck(&a, &b, &satCross, &satNorm, 0, 0);
     if (!(r & 0x01000000)) {
         return;
@@ -3256,7 +3256,7 @@ int cSubChar::checkAnotherRoute()
     e = 0;
     id = 0;
     *(u32*) &sub554 = 0;
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (EmiData*) pG->pEmi;
     if (emi == 0) {
         return 0;
     }
@@ -3264,11 +3264,11 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
 
-        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
-        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
+        e = (EmiEntry*) ((u8*) pG->pEmi + o);
+        if (((u8*) pG->pEmi)[o] != 0xB) {
             continue;
         }
         if (e->state != 0) {
@@ -3290,11 +3290,11 @@ int cSubChar::checkAnotherRoute()
         if (e->pad_3 == 1) {
             int ok = 0;
 
-            for (j = 0; j < *(int*) pG->pRoomEmi; j++) {
+            for (j = 0; j < *(int*) pG->pEmi; j++) {
                 u32 o = j * 0x40 + 8;
-                EmiEntry* f = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+                EmiEntry* f = (EmiEntry*) ((u8*) pG->pEmi + o);
 
-                if (((u8*) pG->pRoomEmi)[o] != 0xB) {
+                if (((u8*) pG->pEmi)[o] != 0xB) {
                     continue;
                 }
                 if (f->state != 0) {
@@ -3334,8 +3334,8 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-        e = &((EmiData*) pG->pRoomEmi)->entry[i];
+    for (i = 0; i < ((EmiData*) pG->pEmi)->n; i++) {
+        e = &((EmiData*) pG->pEmi)->entry[i];
         if (e->type != 0xB) {
             continue;
         }
@@ -3359,7 +3359,7 @@ int cSubChar::checkAnotherRoute()
 // walking (sub554 advances to the next step once the current one is reached).
 int cSubChar::moveAnotherRoute()
 {
-    EmiData* emi = (EmiData*) pG->pRoomEmi;
+    EmiData* emi = (EmiData*) pG->pEmi;
     EmiEntry* f = 0;
     int bad;
     int next;
@@ -3390,11 +3390,11 @@ int cSubChar::moveAnotherRoute()
         return 0;
     }
     next = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+    for (i = 0; i < *(int*) pG->pEmi; i++) {
         u32 o = i * 0x40 + 8;
 
-        f = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
-        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
+        f = (EmiEntry*) ((u8*) pG->pEmi + o);
+        if (((u8*) pG->pEmi)[o] != 0xB) {
             continue;
         }
         if (f->sub != sub554->sub) {
@@ -3432,7 +3432,7 @@ void cSubChar::damageCheck()
         if (pG->flags_5010 & 8) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
-        } else if ((s16) pG->sub_life > 0) {
+        } else if ((s16) pG->ashley_life > 0) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
@@ -3455,10 +3455,10 @@ void cSubChar::damageCheck()
             SubRoutineSet(this, 1, 0, 0, 0);
             if (Front_check(this, &x328, 1.5707964f)) {
                 subHideMode = 7;
-                rot.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
             } else {
                 subHideMode = 9;
-                rot.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
+                ang.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
             }
         }
         break;
@@ -3468,7 +3468,7 @@ void cSubChar::damageCheck()
     case 0x18:
         dmType = 0x3C;
         LifeDownSet2(this, 300, 0, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
         } else {
@@ -3489,7 +3489,7 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
     beginDamage();
     LifeDownSet2(this, arg, 0, 1);
     if (power != 123.0f) {
-        f32 ang = Muku2(rot.y, power, 3.1415927f);
+        f32 ang = Muku2(this->ang.y, power, 3.1415927f);
 
         if (ang < 1.5707964f && ang > -1.5707964f) {
             sub52C = power;
@@ -3595,7 +3595,7 @@ void cSubChar::moveBust()
         step = 15;
     }
     body = getPartsPtr(0);
-    if (GetDistance3(&body->worldPos, &body->world_old2) > 5.0f) {
+    if (GetDistance3(&body->world, &body->world_old2) > 5.0f) {
         bul = max;
     }
     if (Joy[1].on & JOY_X) {
@@ -3619,9 +3619,9 @@ void cSubChar::moveBust()
     bbx += step;
     parts->matUpdate();
     PSMTXConcat(parts->pParent->mat, parts->mat, parts->mat);
-    parts->worldPos.x = parts->mat[0][3];
-    parts->worldPos.y = parts->mat[1][3];
-    parts->worldPos.z = parts->mat[2][3];
+    parts->world.x = parts->mat[0][3];
+    parts->world.y = parts->mat[1][3];
+    parts->world.z = parts->mat[2][3];
 }
 
 // Eyelid (parts 0x1C) blink sequence on `timer` and the eye direction (parts 0x20/0x21) wander:
@@ -3637,7 +3637,7 @@ void cSubChar::moveFace()
     p = getPartsPtr(0x1C);
     switch (timer++) {
     default:
-        p->rot.x = 0.0f;
+        p->ang.x = 0.0f;
         break;
     case 0: {
         // computed into a local first: the constant loads precede the eyeDir.z test
@@ -3647,26 +3647,26 @@ void cSubChar::moveFace()
         if (eyeDir.z == 0.0f) {
             eyeDir.x = y;
         }
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     }
     case 1:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 2:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 3:
-        p->rot.x = 0.3141592741012573f;
+        p->ang.x = 0.3141592741012573f;
         break;
     case 4:
-        p->rot.x = 0.24434609711170197f;
+        p->ang.x = 0.24434609711170197f;
         break;
     case 5:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 6:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     case 0x1E:
         eyeDir.y = 0.0f;
@@ -3678,31 +3678,31 @@ void cSubChar::moveFace()
         timer = (Rnd() & 3) ? 0 : 0x5A;
         break;
     case 0x5A:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         break;
     case 0x5B:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 0x5C:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 0x5D:
-        p->rot.x = 0.296705961227417f;
+        p->ang.x = 0.296705961227417f;
         break;
     case 0x5E:
-        p->rot.x = 0.33161255717277527f;
+        p->ang.x = 0.33161255717277527f;
         break;
     case 0x5F:
-        p->rot.x = 0.3490658402442932f;
+        p->ang.x = 0.3490658402442932f;
         break;
     case 0x60:
-        p->rot.x = 0.2617993950843811f;
+        p->ang.x = 0.2617993950843811f;
         break;
     case 0x61:
-        p->rot.x = 0.1745329201221466f;
+        p->ang.x = 0.1745329201221466f;
         break;
     case 0x62:
-        p->rot.x = 0.0872664600610733f;
+        p->ang.x = 0.0872664600610733f;
         timer = 10;
         break;
     }
@@ -3722,9 +3722,9 @@ void cSubChar::moveFace()
     }
     eyeDir.limit();
     p = getPartsPtr(0x20);
-    p->rot.y = eyeDir.x;
+    p->ang.y = eyeDir.x;
     p = getPartsPtr(0x21);
-    p->rot.y = eyeDir.x;
+    p->ang.y = eyeDir.x;
     eyeDir.mix();
 }
 
@@ -3739,20 +3739,20 @@ void cSubChar::shadowCtrl()
     if (pG->Cam.param.pos.y < subSelf->pos.y) {
         fade = 1;
     }
-    if (subSelf->pFloorNrm && subSelf->pFloorNrm->y < 0.8f) {
+    if (subSelf->pFloor_norm && subSelf->pFloor_norm->y < 0.8f) {
         fade = 1;
     }
     if (fade) {
-        if (subSelf->shdCol <= 0xEF) {
-            subSelf->shdCol += 0x10;
+        if (subSelf->Shd_color <= 0xEF) {
+            subSelf->Shd_color += 0x10;
         } else {
-            subSelf->shdCol = 0xFF;
+            subSelf->Shd_color = 0xFF;
         }
     } else {
-        if (subSelf->shdCol > 0xF) {
-            subSelf->shdCol -= 0x10;
+        if (subSelf->Shd_color > 0xF) {
+            subSelf->Shd_color -= 0x10;
         } else {
-            subSelf->shdCol = 0;
+            subSelf->Shd_color = 0;
         }
     }
 }
@@ -3771,15 +3771,15 @@ void cSubChar::dmgCheck()
     if ((s16) pG->pl_life <= 0) {
         return;
     }
-    switch (DmgMgr.hitCheck(&getPartsPtr(0)->worldPos, 0)) {
+    switch (DmgMgr.hitCheck(&getPartsPtr(0)->world, 0)) {
     case 2:
     case 8: {
-        LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
+        LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (pG->flags_5010 & 8) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
-        } else if ((s16) pG->sub_life > 0) {
+        } else if ((s16) pG->ashley_life > 0) {
             dmType = 0x5A;
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
@@ -3789,11 +3789,11 @@ void cSubChar::dmgCheck()
         }
         BitOff(pG->flags_5010, 8);
         int two = 1;
-        LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
+        LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         if (pG->flags_5010 & 8) {
             SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 11;
-        } else if ((s16) pG->sub_life > 0) {
+        } else if ((s16) pG->ashley_life > 0) {
             dmType = 0x5A;
             SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 2;
@@ -3805,12 +3805,12 @@ void cSubChar::dmgCheck()
     }
     case 1:
     case 4: {
-        LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
+        LifeDownSet2(this, (s16) pG->ashley_life_max, 0, 0);
         int one = 1;
         if (pG->flags_5010 & 8) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
-        } else if ((s16) pG->sub_life > 0) {
+        } else if ((s16) pG->ashley_life > 0) {
             dmType = 0x5A;
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
@@ -3822,7 +3822,7 @@ void cSubChar::dmgCheck()
     }
     case 5:
         LifeDownSet2(this, 300, 0, 0);
-        if ((s16) pG->sub_life > 0) {
+        if ((s16) pG->ashley_life > 0) {
             dmType = 0x5A;
             SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
@@ -3890,7 +3890,7 @@ void cSubChar::inSat()
     Vec hit;
     Vec nrm;
 
-    if (SatMgr.hitCheck(&pPL->pParts->worldPos, &pSUB->pParts->worldPos, &hit, &nrm, 0, 0)) {
+    if (SatMgr.hitCheck(&pPL->pParts->world, &pSUB->pParts->world, &hit, &nrm, 0, 0)) {
         PSVECScale(&nrm, &nrm, 400.0f);
         PSVECAdd(&nrm, &hit, &nrm);
         nrm.y = pPL->pos.y;
@@ -3945,7 +3945,7 @@ void cSubChar::debugMove()
     if (dbsubflag == 0) {
         return;
     }
-    Draw_pos(&subTarget, 1000);
+    Draw_pos(&distPos, 1000);
     Draw_pos(&sub558, 500);
     eprintf(0x18, 0x8C, 0, 0, "PAT:%d", sub580);
     eprintf(0x18, 0x118, 0, 0, "R:%02d.%02d.%02d.%02d", r_no_0, r_no_1, r_no_2, r_no_3);
@@ -3975,5 +3975,5 @@ inline void cSubChar::moveCloth()
 // the static initialiser's 0.0 at the end of `.rodata`).
 inline int cSubChar::farCheck()
 {
-    return subDist > 1000.0f;
+    return dist > 1000.0f;
 }

@@ -206,7 +206,7 @@ void cEm18::move()
     if (r_no_0) {
         em18DmCk(this);
     }
-    w->flags &= ~0x1F;
+    w->Be_flg &= ~0x1F;
     Em18_R0_move_tbl[r_no_0](this);
     if (r_no_0 == 0xFF) {
         EmMgr.destroy(this);
@@ -217,7 +217,7 @@ void cEm18::move()
     EmAtCheck(this);
     atari.move();
     SatMgr.check(this, 0);
-    Em18ClothMove(this, &w->cloth);
+    Em18ClothMove(this, &w->Cloth);
 }
 
 static void em18_R0_Init(cEm18* em)
@@ -235,32 +235,32 @@ static void em18_R0_Init(cEm18* em)
     }
     tpl = ARC(8);
     tplE = ARC(0xF);
-    w->pInfoE = ModInfoMgr.create(ARC(0xE), tplE);
-    if (w->pInfoE) {
-        em->addModel(w->pInfoE);
-        w->pInfoE->be_flag |= 0x20;
+    w->pRobe = ModInfoMgr.create(ARC(0xE), tplE);
+    if (w->pRobe) {
+        em->addModel(w->pRobe);
+        w->pRobe->be_flag |= 0x20;
     }
     info = ModInfoMgr.create(ARC(7), tpl);
     if (info) {
         em->addModel(info);
     }
-    w->pHandL = 0;
-    w->pHandR = 0;
+    w->pRHand = 0;
+    w->pLHand = 0;
     em18HandSet(em);
     w->pCloth = 0;
     w->pGoods = 0;
     em18ClothPartsSet(em, 0);
     em18GoodsPartsSet(em, 0);
     em->pFootShadowTbl = &Em10_fs_tbl;
-    em->motFlip = em18_flip_tbl;
+    em->pXFlip = em18_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 2);
+        em->LightInfo.init2(0, 1, &ofs, &size, 2);
     }
     em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 1800.0f);
-    em->atari.flags |= 8;
+    em->atari.m_flag |= 8;
     em->litArea.on(1);
     one = 1;
     em->setStatus(one);
@@ -280,8 +280,8 @@ static void em18_R0_Init(cEm18* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(4), 0x15, 0);
-    Em18ClothSet(em, &w->cloth, 0);
-    w->flags = 0;
+    Em18ClothSet(em, &w->Cloth, 0);
+    w->Be_flg = 0;
     w->neckAng = 0.0f;
     EmRoutineSet(em, one, 0, 0, 0);
     MotionSetCore(em, MOTION(em), ARC(0x14), 0, 0, 1, 0);
@@ -299,7 +299,7 @@ static void em18_R1_Wait(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    w->flags |= 0x10;
+    w->Be_flg |= 0x10;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 30, 5, 0);
@@ -330,8 +330,8 @@ static void em18_R1_Trade(cEm18* em)
         if (em->motFrame > 40.7f && em->motFrame < 41.3f) {
             em18GoodsPartsSet(em, 1);
         }
-        em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, PI / 16.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku(&em->pos, &pPL->pos, em->ang.y, PI / 16.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (MotionMoveF(em, 0)) {
             em->r_no_2++;
         }
@@ -374,7 +374,7 @@ void em18ActEvtSetTrade(cEm18* em)
     if (em->hp <= 0) {
         return;
     }
-    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI)) > 0.7853982f) {
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, PI)) > 0.7853982f) {
         return;
     }
     PSMTXInverse(pPL->mat, inv);
@@ -412,10 +412,10 @@ static void em18TradeAction(cEm18* em)
     Em18Work* w = EM18_WK(em);
 
     if (em->type != 1) {
-        if (w->flags & 0x20) {
+        if (w->Be_flg & 0x20) {
             SubScreenOpen(0x10, 0);
         } else {
-            BitOn(w->flags, 0x20);
+            BitOn(w->Be_flg, 0x20);
             EmRoutineSet(em, 1, 1, 0, 0);
             pPL->dmg.set(0, 30);
         }
@@ -428,7 +428,7 @@ static void em18_R0_Damage(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    w->flags |= 8;
+    w->Be_flg |= 8;
     Em18_R2_move_tbl[em->r_no_1](em);
 }
 
@@ -436,7 +436,7 @@ static void em18_R1_Dm_Normal(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    w->flags |= 0x10;
+    w->Be_flg |= 0x10;
     switch (em->r_no_2) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x14), 0, 3, 1, 0);
@@ -453,7 +453,7 @@ static void em18_R0_Die(cEm18* em)
 {
     Em18Work* w = EM18_WK(em);
 
-    w->flags |= 8;
+    w->Be_flg |= 8;
     Em18_R3_move_tbl[em->r_no_1](em);
 }
 
@@ -473,7 +473,7 @@ static void em18_R1_Die_Normal(cEm18* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             em->clearStatus(5);
-            em->atari.flags &= ~0x300;
+            em->atari.m_flag &= ~0x300;
             em->r_no_2++;
         } else {
             if (em->motFrame > 34.7f && em->motFrame < 35.3f) {
@@ -502,8 +502,8 @@ void em18NeckMove(cEm18* em)
         v.z = 0.0f;
         PSMTXMultVec(h->mat, &v, &v);
     }
-    if (w->flags & 0x10) {
-        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->rot.y, 1.0471976f) * 0.1f;
+    if (w->Be_flg & 0x10) {
+        w->neckAng = w->neckAng * 0.9f + Muku(&em->pos, &pPL->pos, em->ang.y, 1.0471976f) * 0.1f;
     } else {
         w->neckAng = w->neckAng * 0.9f;
     }
@@ -570,20 +570,20 @@ void em18HandSet(cEm18* em)
 
     info = ModInfoMgr.create(binL, ARC(6));
     if (info) {
-        if (w->pHandL) {
-            cModel_swapModelInfo(em, w->pHandL->pData, info);
+        if (w->pRHand) {
+            cModel_swapModelInfo(em, w->pRHand->pData, info);
         } else {
             em->addModel(info);
         }
-        w->pHandL = info;
+        w->pRHand = info;
     }
     info = ModInfoMgr.create(binR, ARC(6));
     if (info) {
-        if (w->pHandR) {
-            cModel_swapModelInfo(em, w->pHandR->pData, info);
+        if (w->pLHand) {
+            cModel_swapModelInfo(em, w->pLHand->pData, info);
         } else {
             em->addModel(info);
         }
-        w->pHandR = info;
+        w->pLHand = info;
     }
 }

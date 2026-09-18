@@ -69,7 +69,7 @@ int LogMove()
     if (pT->joy[0].rep & JOY_DOWN) {
         pLog->scrSet(pT->joy[0].on & JOY_A ? 5 : 1);
     }
-    pLog->scrSet(-(Joy[0].sy / 20));
+    pLog->scrSet(-(Joy[0].stickY / 20));
     pLog->dispLineNum(24, 42);
     if (pT->joy[0].rep & JOY_B) {
         pT->active = 0;

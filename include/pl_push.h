@@ -11,11 +11,11 @@
 class cPlPush {
 public:
     cPlayer* pPl;       // 0x00
-    cEm* pTarget;       // 0x04  object being pushed (NULL = none)
+    cEm* m_Target;       // 0x04  object being pushed (NULL = none)
     u8 x8;              // 0x08  cleared when a target is caught
     u8 x9;              // 0x09  pushTargetInit flag (bit0: getWHY uses `dir`, else `dirSub`)
     u8 pad_A[2];
-    int dir;            // 0x0C  side of the object the player stands on (0..3, 4 = none); read as u8 too (lbz 0xF)
+    int m_Dir;            // 0x0C  side of the object the player stands on (0..3, 4 = none); read as u8 too (lbz 0xF)
 
     int catchCheck();
     void pushTargetInit(u8 flag);

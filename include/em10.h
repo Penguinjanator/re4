@@ -31,7 +31,7 @@ struct Em10Work {
     Vec x24;              // 0x024 (0x404)
     void* mot[79];        // 0x030 (0x410)  motion data table (Em10Set / Em10WeaponSet fill it; [0x29..] weapons)
     cEmWep* pWep;         // 0x16C (0x54C)  weapon in hand
-    cEmWep* pWep2;        // 0x170 (0x550)
+    cEmWep* pWeapon2;        // 0x170 (0x550)
     cEmShield* pShield;   // 0x174 (0x554)
     cObj* x178;           // 0x178 (0x558)
     cObj* x17C;           // 0x17C (0x55C)
@@ -53,7 +53,7 @@ struct Em10Work {
     cModel* x1BC;         // 0x1BC (0x59C)
     cModel* x1C0;         // 0x1C0 (0x5A0)
     EmHitInfo hit[10];    // 0x1C4 (0x5A4)  extra hit boxes (YarareAdd in em10_R0_Init)
-    Camera cam;           // 0x3CC (0x7AC)  takeaway camera (em10CamMoveTakeaway installs it as CamCtrl.x250)
+    Camera Cam;           // 0x3CC (0x7AC)  takeaway camera (em10CamMoveTakeaway installs it as CamCtrl.x250)
     u8 x4C4;              // 0x4C4 (0x8A4)  chgSet value (cEm::x38D copy)
     u8 pad_4C5[3];
     Vec startPos;         // 0x4C8 (0x8A8)  pos at init
@@ -83,7 +83,7 @@ struct Em10Work {
     class cObjGondola* pGondola;  // 0x560 (0x940)  em10GetGondola (room 10F)
     u32 x564;             // 0x564 (0x944)
     class cObjGatling* pGatling;  // 0x568 (0x948)
-    u8 gatlingMode;       // 0x56C (0x94C)
+    u8 Gatling_mode;       // 0x56C (0x94C)
     u8 pad_56D[3];
     class cCtrl* pDragon; // 0x570 (0x950)  GetCtrlDragon (room 222 dragon statues)
     class cObj16* pParasite;  // 0x574 (0x954)  parasite object (em10SetParasite)
@@ -94,7 +94,7 @@ struct Em10Work {
     Vec x598;             // 0x598 (0x978)
     Vec x5A4;             // 0x5A4 (0x984)
     class cCtrl* pCtrl12; // 0x5B0 (0x990)  GetCtrlCtrl12()
-    class cCtrl* pCtrl11; // 0x5B4 (0x994)  GetCtrlCtrl11()
+    class cCtrl* pCtrlSe; // 0x5B4 (0x994)  GetCtrlCtrl11()
     u32 Seid_voice;             // 0x5B8 (0x998)
     u32 Seid_breath;             // 0x5BC (0x99C)
     u32 Seid_frame;             // 0x5C0 (0x9A0)
@@ -173,8 +173,8 @@ struct Em10Work {
     u8 x6AF;              // 0x6AF (0xA8F)
     u8 x6B0;              // 0x6B0 (0xA90)
     u8 x6B1;              // 0x6B1 (0xA91)
-    u8 wepType;           // 0x6B2 (0xA92)  weapon in hand kind (4 chainsaw, 8 bowgun, 9 ...)
-    u8 wep2Type;          // 0x6B3 (0xA93)
+    u8 Wep_type;           // 0x6B2 (0xA92)  weapon in hand kind (4 chainsaw, 8 bowgun, 9 ...)
+    u8 Wep_type2;          // 0x6B3 (0xA93)
     u8 x6B4;              // 0x6B4 (0xA94)
     u8 x6B5;              // 0x6B5 (0xA95)
     u8 x6B6;              // 0x6B6 (0xA96)
@@ -214,7 +214,7 @@ struct Em10Work {
     u8 se6D7;             // 0x6D7 (0xAB7)
     u8 se6D8;             // 0x6D8 (0xAB8)
     u8 pad_6D9[3];
-    PenCloth cloth;       // 0x6DC (0xABC)  Em18ClothSet / Em1fClothSet / em10ChainSet / em10BeltSet
+    PenCloth Cloth;       // 0x6DC (0xABC)  Em18ClothSet / Em1fClothSet / em10ChainSet / em10BeltSet
     f32 blendRate;        // 0x73C (0xB1C)  em10BlendMotSet
     int x740;             // 0x740 (0xB20)  em10BlendMotSet: hokan frames left (low byte passed)
     u32 x744;             // 0x744 (0xB24)  em10BlendMotSet: start frame (low half passed)

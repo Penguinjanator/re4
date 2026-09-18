@@ -126,9 +126,9 @@ void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
     cam->up.z = 0.0f;
     cam->param.fovy = 20.0f;
     CameraSetOrientationUp(cam);
-    C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
+    C_MTXPerspective(cam->ProjMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
-    C_MTXLookAt(cam->viewMat, &cam->param.pos, &cam->up, &cam->param.at);
+    C_MTXLookAt(cam->v_mat, &cam->param.pos, &cam->up, &cam->param.at);
 }
 
 int sscrnKey2Game(SUB_SCREEN* wk)
@@ -150,12 +150,12 @@ void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* dow
     if (n < num) {
         f32 h = up->scr.y - down->scr.y;
         f32 rate = (f32) n / (f32) num;
-        bar->sizeY = rate * h;
+        bar->size_H = rate * h;
         rate = (f32) top / (f32) num;
         bar->scr.y = up->pos.y - rate * (up->scr.y - down->scr.y);
-        bar->flags |= 8;
+        bar->be_flag |= 8;
     } else {
-        bar->flags &= ~8;
+        bar->be_flag &= ~8;
     }
 }
 
@@ -264,7 +264,7 @@ void SubScreenTask()
         if (pG->x4FB8 != 1) {
             char name[0x40];
             int req;
-            weaponFilename(name, WeaponId2WeaponNo(ItemMgr.armId));
+            weaponFilename(name, WeaponId2WeaponNo(ItemMgr.m_wep_id));
 #line 412 "D:/Bio4/Prog/ss_main.cpp"
             req = DVD_READ_N(name, wk->x210, 0, 0, 0, 0x11);
             Dvd.ReadCheck(req, 0, 0, 0);
@@ -336,7 +336,7 @@ void SubScreenTask()
                 }
             }
             if (ssWepModel2 && ssWepModel) {
-                switch (WeaponId2WeaponNo(ItemMgr.armId)) {
+                switch (WeaponId2WeaponNo(ItemMgr.m_wep_id)) {
                 case 0x19:
                 case 0x1F:
                 case 0x20:
@@ -374,12 +374,12 @@ void SubScreenTask()
             for (i = 0; i < 8; i++) {
                 IdUnit* u;
                 u = IdSub.unitPtr(i + 1, 2);
-                u->flags |= 8;
+                u->be_flag |= 8;
                 u->tex_flag |= 2;
-                u->no = d[i];
+                u->texNo = d[i];
             }
             for (i = 7; i > 0 && d[i] == 0; i--) {
-                IdSub.unitPtr(i + 1, 2)->flags &= ~8;
+                IdSub.unitPtr(i + 1, 2)->be_flag &= ~8;
             }
         }
         Cckpt.move();
@@ -400,14 +400,14 @@ void SubScreenTask()
             m = mgr->pAlive;
             while (m) {
                 cModel* p = m;
-                m = (cModel*) m->next;
+                m = (cModel*) m->pNext;
                 func(p);
             }
             func = LightSetModel2;
             m = mgr->pAlive;
             while (m) {
                 cModel* p = m;
-                m = (cModel*) m->next;
+                m = (cModel*) m->pNext;
                 func(p);
             }
         }
@@ -419,15 +419,15 @@ void SubScreenTask()
 
 void SsExitInit::init(SUB_SCREEN* wk)
 {
-    state = 0;
+    _rno = 0;
 }
 
 void SsExitInit::move(SUB_SCREEN* wk)
 {
-    switch (state) {
+    switch (_rno) {
     case 0:
         FadeSetW(0, 3, 0, 0);
-        state++;
+        _rno++;
     case 1:
         if (Fade[0].flags & 1) {
             break;
@@ -435,7 +435,7 @@ void SsExitInit::move(SUB_SCREEN* wk)
         if (weaponChangeReadCheck() == 0) {
             break;
         }
-        state++;
+        _rno++;
     case 2:
         sscrnModelFree(wk);
         sscrnLightClear(wk);
@@ -445,7 +445,7 @@ void SsExitInit::move(SUB_SCREEN* wk)
         IdFreeBuffer();
         IdSub.roomInit();
         IdNum.roomInit();
-        state++;
+        _rno++;
     case 3:
         transit(0, wk);
         break;
@@ -564,7 +564,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         cMap* m = wk->x24C;
         m->modelInit(wk->pItemBin, wk->pItemTpl);
         m->be_flag |= 0x4000;
-        m->lightInfo.init2(0, 1, &exam_light_ofs, &exam_light_size, 0x20);
+        m->LightInfo.init2(0, 1, &exam_light_ofs, &exam_light_size, 0x20);
         m->partsMatCalc();
         m->partsWorldCalc();
         ssItemInfo(exam_id, &info);
@@ -580,21 +580,21 @@ void SsItemExamine::move(SUB_SCREEN* wk)
                 break;
             }
             if (w) {
-                exam.level((w->x6 >> 12) + 1, ((w->x6 >> 8) & 0xF) + 1, ((w->x6 >> 4) & 0xF) + 1, (w->x6b[1] & 0xF) + 1);
+                _itemExam.level((w->x6 >> 12) + 1, ((w->x6 >> 8) & 0xF) + 1, ((w->x6 >> 4) & 0xF) + 1, (w->x6b[1] & 0xF) + 1);
             }
         }
         ssItemInfo(exam_id, &info);
         if (info.type == 0xD) {
-            exam.init(exam_id, m, 2);
+            _itemExam.init(exam_id, m, 2);
         } else {
-            exam.init(exam_id, m, 1);
+            _itemExam.init(exam_id, m, 1);
         }
         state++;
     }
     case 5: {
         IdUnit* pos;
-        exam.move();
-        exam.trans();
+        _itemExam.move();
+        _itemExam.trans();
         pos = IdSub.unitPtr(0xFE, 0x27);
         cMes.setLayout(7, 2);
         cMes.MesSet(exam_id, (int) ((pos->scr.x + 320.0f) * 0.8f), (int) ((240.0f - pos->scr.y) * 0.8f), 0x20084, 7, 0, 4);
@@ -605,7 +605,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
             }
         }
         if (Key.trg & 0xC0000000) {
-            exam.quit();
+            _itemExam.quit();
             LightMgr.offKind(0x7F);
             wk->x24C->be_flag &= ~2;
             transit(0, wk);
@@ -673,11 +673,11 @@ void idMainMenu(SUB_SCREEN* wk, int sw)
 
     for (i = 0; i < 5; i++) {
         u = IdSub.unitPtr(i, 0);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
     if (sw) {
         u = IdSub.unitPtr(wk->menu_next, 0);
-        u->flags |= 8;
+        u->be_flag |= 8;
         IdSub.setTime(u, 0);
     }
 }
@@ -687,9 +687,9 @@ void idMainMenuFade(SUB_SCREEN* wk, int sw)
     if (wk->type != 0x10) {
         IdUnit* u = IdSub.unitPtr(7, 0);
         if (sw) {
-            u->dir &= ~0xF;
+            u->rev_flag &= ~0xF;
         } else {
-            u->dir |= 0xF;
+            u->rev_flag |= 0xF;
         }
     }
 }
@@ -835,10 +835,10 @@ void numDisp(u8 id, int num, Vec* pos, u32 flags)
     int i;
 
     u = IdNum.unitPtr(0, id);
-    u->flags &= ~8;
+    u->be_flag &= ~8;
     for (i = 1; i <= 3; i++) {
         u = IdNum.unitPtr(i, id);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
         if (flags & 2) {
             u->col0[0] = col1->col0[0];
             u->col0[1] = col1->col0[1];
@@ -853,7 +853,7 @@ void numDisp(u8 id, int num, Vec* pos, u32 flags)
     }
     for (i = 0x11; i <= 0x13; i++) {
         u = IdNum.unitPtr(i, id);
-        u->flags &= ~8;
+        u->be_flag &= ~8;
     }
     if (pos) {
         u8 d[3];
@@ -871,14 +871,14 @@ void numDisp(u8 id, int num, Vec* pos, u32 flags)
                 on = 1;
             }
             u = IdNum.unitPtr(i + 1, id);
-            u->flags |= 8;
+            u->be_flag |= 8;
             u->tex_flag |= 2;
-            u->no = d[i];
+            u->texNo = d[i];
             u = IdNum.unitPtr(i + 0x11, id);
-            u->flags |= 8;
+            u->be_flag |= 8;
         }
         u = IdNum.unitPtr(0, id);
-        u->flags |= 8;
+        u->be_flag |= 8;
         u->scr = *pos;
     }
 }
@@ -948,10 +948,10 @@ static void weaponChangeTask()
             wk->wep_cnt--;
             rate = (f32) wk->wep_cnt / (f32) fade_out_frame;
             if (ssPlModel) {
-                ssPlModel->alpha = rate;
+                ssPlModel->invisible_factor = rate;
             }
             if (ssWepModel2) {
-                ssWepModel->alpha = rate;
+                ssWepModel->invisible_factor = rate;
             }
             if (wk->wep_cnt <= 0) {
                 if (ssPlModel) {
@@ -1006,11 +1006,11 @@ static void weaponChangeTask()
             }
             if (ssPlModel) {
                 BitOn(ssPlModel->be_flag, 2);
-                ssPlModel->alpha = 0.0f;
+                ssPlModel->invisible_factor = 0.0f;
             }
             if (ssWepModel2) {
                 BitOn(ssWepModel->be_flag, 2);
-                ssWepModel->alpha = 0.0f;
+                ssWepModel->invisible_factor = 0.0f;
             }
             wk->wepChange[wep_slot].req = 0;
             wk->wep_cnt = 0;
@@ -1021,17 +1021,17 @@ static void weaponChangeTask()
             wk->wep_cnt++;
             rate = (f32) wk->wep_cnt / (f32) fade_in_frame;
             if (ssPlModel) {
-                ssPlModel->alpha = rate;
+                ssPlModel->invisible_factor = rate;
             }
             if (ssWepModel2) {
-                ssWepModel->alpha = rate;
+                ssWepModel->invisible_factor = rate;
             }
             if (wk->wep_cnt >= fade_in_frame) {
                 if (ssPlModel) {
-                    ssPlModel->alpha = 1.0f;
+                    ssPlModel->invisible_factor = 1.0f;
                 }
                 if (ssWepModel2) {
-                    ssWepModel->alpha = 1.0f;
+                    ssWepModel->invisible_factor = 1.0f;
                 }
                 wk->wep_rno = 0;
             }

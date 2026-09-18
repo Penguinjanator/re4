@@ -31,7 +31,7 @@ cCtrl* GetCtrlCtrl12()
 
     for (i = 0; i < n; i++) {
         c = CtrlMgrWork(i);
-        if ((c->be_flag & 0x201) == 1 && c->id == 0x12) {
+        if ((c->be_flag & 0x201) == 1 && c->Id == 0x12) {
             return c;
         }
     }
@@ -49,7 +49,7 @@ void Ctrl12Set(cCtrl* pCtrl, int idx, u16 val)
     if (pCtrl == 0) {
         return;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return;
     }
     if (idx > 12) {
@@ -66,7 +66,7 @@ int Ctrl12Ck(cCtrl* pCtrl, int idx)
     if (pCtrl == 0) {
         return 0;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return 0;
     }
     if (idx > 12) {
@@ -87,7 +87,7 @@ void Ctrl12CntAdd(cCtrl* pCtrl, int idx, u16 add)
     if (pCtrl == 0) {
         return;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return;
     }
     if (idx > 5) {
@@ -105,7 +105,7 @@ int Ctrl12CntCk(cCtrl* pCtrl, int idx, u16 val)
     if (pCtrl == 0) {
         return 0;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return 0;
     }
     if (idx > 5) {
@@ -123,7 +123,7 @@ TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* pCtrl)
     if (pCtrl == 0) {
         return 0;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return 0;
     }
     w = (Ctrl12Work*) pCtrl->work;
@@ -144,7 +144,7 @@ TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* pCtrl)
     if (pCtrl == 0) {
         return 0;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return 0;
     }
     w = (Ctrl12Work*) pCtrl->work;
@@ -161,7 +161,7 @@ TexRenderMng* Ctrl12GetTexRenderEm32(cCtrl* pCtrl)
     if (pCtrl == 0) {
         return 0;
     }
-    if (pCtrl->id != 0x12) {
+    if (pCtrl->Id != 0x12) {
         return 0;
     }
     w = (Ctrl12Work*) pCtrl->work;

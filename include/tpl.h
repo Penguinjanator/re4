@@ -35,7 +35,7 @@ struct TEXDescriptor {
 };
 
 struct TEXPalette {
-    u32 versionNumber;               // 0x00
+    u32 version;               // 0x00
     u32 numDescriptors;              // 0x04
     TEXDescriptor* descriptorArray;  // 0x08
 };

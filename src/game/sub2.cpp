@@ -153,7 +153,7 @@ static int sub2_dead2(f32 x)
 
 int Front_check(cModel* a, cModel* b, f32 ang)
 {
-    f32 d = GetXZAngleLocal(&a->pos, &b->pos, a->rot.y);
+    f32 d = GetXZAngleLocal(&a->pos, &b->pos, a->ang.y);
     int ret = 0;
     if (!(d < -ang) && !(d > ang)) {
         ret = 1;
@@ -163,7 +163,7 @@ int Front_check(cModel* a, cModel* b, f32 ang)
 
 int Front_check(cModel* a, Vec* b, f32 ang)
 {
-    f32 d = GetXZAngleLocal(&a->pos, b, a->rot.y);
+    f32 d = GetXZAngleLocal(&a->pos, b, a->ang.y);
     int ret = 0;
     if (!(d < -ang) && !(d > ang)) {
         ret = 1;
@@ -186,7 +186,7 @@ void AddSpeed(cModel* m, const Vec* speed)
     Vec v;
     Mtx mtx;
 
-    low_RotMatrix(mtx, &m->rot);
+    low_RotMatrix(mtx, &m->ang);
     PSMTXMultVec(mtx, speed, &v);
     m->pos.x += v.x;
     m->pos.y += v.y;
@@ -237,8 +237,8 @@ int GetScreenPos(Vec* pos, Vec* scr)
     CameraCurrentProjection();
     GXGetProjectionv(proj);
     GXGetViewportv(vp);
-    GXProject(pos->x, pos->y, pos->z, pG->Cam.viewMat, proj, vp, &scr->x, &scr->y, &scr->z);
-    PSMTXMultVec(pG->Cam.viewMat, pos, &cam);
+    GXProject(pos->x, pos->y, pos->z, pG->Cam.v_mat, proj, vp, &scr->x, &scr->y, &scr->z);
+    PSMTXMultVec(pG->Cam.v_mat, pos, &cam);
     return cam.z < -0.0f;
 }
 

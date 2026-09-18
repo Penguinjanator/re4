@@ -86,8 +86,8 @@ static Vec r207_wallRot = {0.0f, -1.5707964f, 0.0f};
 // `pSUB->atari.flags &= 0xFDFF` through a pointer to the collision info: `addi r9,pSUB,0x2B4` is
 // kept (two uses); the volatile halfword store makes the following `work->sub = pSUB` reload pSUB
 // (EnemySet: `lwz r0,pSUB` after the `sth`, and pSUB@ha stays in a callee-saved register).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { *(volatile u16*) &a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 // pPL read as a struct member: the load stays below the preceding store into the work (R207Main).
 struct PlPtr { cPlayer* p; };
 #define pPLS (((PlPtr*) &pPL)->p)
@@ -590,7 +590,7 @@ static void r207_GetSword(int no)
         }
         break;
     }
-    SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 2) {
         SceExit();
     }
@@ -730,7 +730,7 @@ void r207_SetSword(int which, int mode)
     r207_ItemModelSet(SceAtItemModelPtr(at), mode);
     RoomSeCall(3, &obj->pos, 0, 0, 0);
     if (pSys->language == 0) {
-        SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(mes, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     }
     if (RsfCheck(G_ROOM_ID, 4) && RsfCheck(G_ROOM_ID, 7)) {
         SceExec(0x12, (TaskFunc) r207_WallMove, 0, 0, 2, 0);
@@ -799,12 +799,12 @@ void r207_ItemModelSet(cModel* m, int mode)
     switch (mode) {
     case 2:
         m->pos = r207_swordPos;
-        m->rot = r207_swordRot;
+        m->ang = r207_swordRot;
         at = 0xD;
         break;
     case 3:
         m->pos = r207_wallPos;
-        m->rot = r207_wallRot;
+        m->ang = r207_wallRot;
         at = 0xE;
         break;
     }

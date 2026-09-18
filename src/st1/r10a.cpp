@@ -86,32 +86,32 @@ void R10aInit()
         rot.x = 0.0f;
         rot.y = 0.39f;
         rot.z = 0.0f;
-        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x2E), 0xC8, 0);
+        EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoom, 0x2E), 0xC8, 0);
         if (EspGetEfmTplAddr(0x20, &tpl) == 0) {
             pLog->err(0, 0, "IWA init: EFM[%02x] TPL not regist.", 0x20);
             return;
         }
-        rock = SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x20), tpl, &pos, &rot, 1);
+        rock = SetRock(ROOM_ARC_PTR(pG->pRoom, 0x20), tpl, &pos, &rot, 1);
         r10a_work->rock = rock;
         if (rock != 0) {
             void* mot[16];
 
-            mot[0] = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-            mot[1] = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-            mot[2] = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-            mot[3] = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-            mot[4] = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-            mot[5] = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-            mot[6] = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-            mot[7] = ROOM_ARC_PTR(pG->pRoomArc, 0x28);
-            mot[8] = ROOM_ARC_PTR(pG->pRoomArc, 0x29);
-            mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x2A);
-            mot[10] = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
-            mot[11] = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
-            mot[12] = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
-            mot[13] = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
-            mot[14] = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
-            mot[15] = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+            mot[0] = ROOM_ARC_PTR(pG->pRoom, 0x21);
+            mot[1] = ROOM_ARC_PTR(pG->pRoom, 0x22);
+            mot[2] = ROOM_ARC_PTR(pG->pRoom, 0x23);
+            mot[3] = ROOM_ARC_PTR(pG->pRoom, 0x24);
+            mot[4] = ROOM_ARC_PTR(pG->pRoom, 0x25);
+            mot[5] = ROOM_ARC_PTR(pG->pRoom, 0x26);
+            mot[6] = ROOM_ARC_PTR(pG->pRoom, 0x27);
+            mot[7] = ROOM_ARC_PTR(pG->pRoom, 0x28);
+            mot[8] = ROOM_ARC_PTR(pG->pRoom, 0x29);
+            mot[9] = ROOM_ARC_PTR(pG->pRoom, 0x2A);
+            mot[10] = ROOM_ARC_PTR(pG->pRoom, 0x2B);
+            mot[11] = ROOM_ARC_PTR(pG->pRoom, 0x2C);
+            mot[12] = ROOM_ARC_PTR(pG->pRoom, 0x2D);
+            mot[13] = ROOM_ARC_PTR(pG->pRoom, 0x2F);
+            mot[14] = ROOM_ARC_PTR(pG->pRoom, 0x30);
+            mot[15] = ROOM_ARC_PTR(pG->pRoom, 0x31);
             rock->setPlMotion(mot);
             rock->setScale(4.2f);
         }

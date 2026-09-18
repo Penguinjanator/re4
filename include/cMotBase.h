@@ -11,9 +11,9 @@ class cMotBase {
 public:
     cMotModel* pModel;  // 0x00
     Vec pos;            // 0x04  followed position
-    Vec rot;            // 0x10  followed rotation
-    Vec basePos;        // 0x1C  model position at the last move
-    Vec baseRot;        // 0x28  model rotation at the last move
+    Vec ang;            // 0x10  followed rotation
+    Vec pos_old;        // 0x1C  model position at the last move
+    Vec ang_old;        // 0x28  model rotation at the last move
     u8 cnt;             // 0x34  frames left to ease back (0 = follow forever, 0xFF = off)
     u8 pad_35[3];
 

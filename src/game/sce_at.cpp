@@ -129,7 +129,7 @@ static inline u32* itemFindFlags()
 // pG->save_item as a pointer (the original adds the record offset to pG before the index).
 static inline ITEM_SAVE_WORK* saveItemTbl()
 {
-    return pG->save_item;
+    return pG->item_save;
 }
 // Halfword fields of the save items: the original forms the address as integer arithmetic with the index
 // first (`idx*16 + ((u32)pG + ofs)`): non-struct MEM with an unflagged base, so pG is reloaded after
@@ -154,9 +154,9 @@ static inline u32 emDeadRow(int n)
 #define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
 #define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, 0x72F0)
 #define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + ((i) << 4)))
-#define SAVE_ITEM_TYPE(i) pG->save_item[i].type
-#define SAVE_ITEM_ATNO(i) pG->save_item[i].atNo
-#define SAVE_ITEM_EFF(i) pG->save_item[i].effType
+#define SAVE_ITEM_TYPE(i) pG->item_save[i].item_type
+#define SAVE_ITEM_ATNO(i) pG->item_save[i].item_at
+#define SAVE_ITEM_EFF(i) pG->item_save[i].item_eff
 
 // Room save record words: item flags at +8, item-found flags at +0x18 (separate pointer pseudos keep the addi).
 static inline u32* roomItemFlags()
@@ -168,7 +168,7 @@ static inline u32* roomItemFindFlags()
     return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18);
 }
 
-#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1)
 
 // One entry of the scenario area system (`SceAtSys`, 0x124 bytes).
 struct SceAtReserve {
@@ -637,7 +637,7 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
     Vec p[4];
     switch (out->type) {
     case 1:
-        p[0].y = p[1].y = p[2].y = p[3].y = out->u.xz4.y;
+        p[0].y = p[1].y = p[2].y = p[3].y = out->u.xz4.floor;
         p[0].x = out->u.xz4.p[0].x;
         p[0].z = out->u.xz4.p[0].z;
         p[1].x = out->u.xz4.p[1].x;
@@ -650,7 +650,7 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
         PSMTXMultVec(mat, &p[1], &p[1]);
         PSMTXMultVec(mat, &p[2], &p[2]);
         PSMTXMultVec(mat, &p[3], &p[3]);
-        out->u.xz4.y = p[0].y;
+        out->u.xz4.floor = p[0].y;
         out->u.xz4.p[0].x = p[0].x;
         out->u.xz4.p[0].z = p[0].z;
         out->u.xz4.p[1].x = p[1].x;
@@ -663,11 +663,11 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
     case 2:
     case 3:
         p[0].x = out->u.cyl.x;
-        p[0].y = out->u.cyl.y;
+        p[0].y = out->u.cyl.floor;
         p[0].z = out->u.cyl.z;
         PSMTXMultVec(mat, &p[0], &p[0]);
         out->u.cyl.x = p[0].x;
-        out->u.cyl.y = p[0].y;
+        out->u.cyl.floor = p[0].y;
         out->u.cyl.z = p[0].z;
         break;
     }
@@ -685,9 +685,9 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
     if (w->pParent != 0) {
         // `rot.y` read in both arms: the cross-jumped `lfs` lands ahead of the flag test.
         if (w->parentParts >= 0) {
-            ry = w->pParent->getPartsPtr(w->parentParts)->rot.y;
+            ry = w->pParent->getPartsPtr(w->parentParts)->ang.y;
         } else {
-            ry = w->pParent->rot.y;
+            ry = w->pParent->ang.y;
         }
         if (!(w->flag & 8)) {
             ang = LIMIT_ANGLE(ang + ry);
@@ -699,8 +699,8 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
         Vec c = {0.0f, 0.0f, 0.0f};
         SceAtViewCone cone;
 
-        c.x = area.u.eye.x;
-        c.y = area.u.eye.y;
+        c.x = area.u.eye.xz;
+        c.y = area.u.eye.floor;
         c.z = area.u.eye.z;
         cc = c;
         if (AreaViewCheck(&area, (GeoCone*) &cone) == 1) {
@@ -718,7 +718,7 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
             }
         }
         if (m != 0 && (w->x37 & 2) && ret == 1) {
-            f32 d = LIMIT_ANGLE(ang - m->rot.y);
+            f32 d = LIMIT_ANGLE(ang - m->ang.y);
             int r = w->angleRange;
 
             if (d < (f32) (-r * 2) * (PI / 180.0f) || d > (f32) (r * 2) * (PI / 180.0f)) {
@@ -824,10 +824,10 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
         w->doorFunc = 0;
     }
     SceSys.x75 = w->x77;
-    FSet(pG->next_pos.x, w->dstPos.x);
-    FSet(pG->next_pos.y, w->dstPos.y);
-    FSet(pG->next_pos.z, w->dstPos.z);
-    FSet(pG->next_angle, w->dstAngle);
+    FSet(pG->NextPos.x, w->dstPos.x);
+    FSet(pG->NextPos.y, w->dstPos.y);
+    FSet(pG->NextPos.z, w->dstPos.z);
+    FSet(pG->NextY, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->Part_old, pG->x4F9E);
     pG->next_stage = w->dstStage;
@@ -961,8 +961,8 @@ void releaseModel(SceAtWork* w, int keep)
 {
     if ((w->item.flag & 2) && w->item.pModel != 0) {
         cObj* obj = (cObj*) w->item.pModel;
-        void* bin = obj->pInfo->pData;
-        void* tpl = obj->pInfo->pTpl;
+        void* bin = obj->pModelInfo->pData;
+        void* tpl = obj->pModelInfo->tpl_addr;
 
         ObjMgr.destroy(obj);
         setReleaseModelTbl(bin, tpl);
@@ -1004,7 +1004,7 @@ static void sceAtGetItem(SceAtWork* w_)
     static int swep_flag;
     SceAtItem* it = &w->item;
     cModel* model = w->item.pModel;
-    int fh = cMes.getWork()->fontH;
+    int fh = cMes.getWork()->m_font_h;
     int ls = cMes.getWork()->lineSpace;
     int y = 0x129 - fh - ls;
     // `cancel` is the newest zero when `swep_flag = 0` is expanded (sel has no initializer), so
@@ -1070,7 +1070,7 @@ static void sceAtGetItem(SceAtWork* w_)
         break;
     }
     case 3:
-        itemInfo(ItemMgr.armId, &info);
+        itemInfo(ItemMgr.m_wep_id, &info);
         if (info.type == 3) {
             swep_flag = put;
         }
@@ -1151,7 +1151,7 @@ static void sceAtGetItem(SceAtWork* w_)
     LightMgr.create(0, 9, -2, 0);
     sub_screen_open = sel;
     if (mes != 0) {
-        while (cMes.getWork()->result == 0 && cancel == 0) {
+        while (cMes.getWork()->m_sel == 0 && cancel == 0) {
             itemExam.move();
             itemExam.trans();
             if (Key.trg & 0x40000000) {
@@ -1169,7 +1169,7 @@ static void sceAtGetItem(SceAtWork* w_)
             // COMPILER-DIFF: candidate #12 (r0 pin): cse1 follows the `bne` into the else arm and would
             // canonicalise `res == 2` to sel; canon_reg never replaces a hard register, so the pinned res
             // keeps `cmpwi r0,2` and sel (a pseudo: preferred as class head) keeps `mr; cmpwi sel,1`.
-            register int res asm("r0") = cMes.getWork()->result;
+            register int res asm("r0") = cMes.getWork()->m_sel;
 
             sel = res;
             if (sel == 1) {
@@ -1210,8 +1210,8 @@ static void sceAtGetItem(SceAtWork* w_)
     }
     itemExam.quit();
     pG->Disp_flg = disp_flag_bak;
-    if (CamCtrl.area_no != -1) {
-        LightMgr.update(CamCtrl.area_no, 0);
+    if (CamCtrl.areaNo != -1) {
+        LightMgr.update(CamCtrl.areaNo, 0);
     } else {
         LightMgr.update(0, 0);
     }
@@ -1237,7 +1237,7 @@ static void sceAtGetItem(SceAtWork* w_)
     SceAtSetEnable(w->no, 0);
     releaseModel(w, 0);
     if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
-        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
+        memclr_asm(&pG->item_save[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
     }
     if (w->flag & 4) {
         Mem_free(w);
@@ -1262,7 +1262,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     static int sub_screen_open;
     static int swep_flag;
     SceAtItem* it = &w->item;
-    int fh = cMes.getWork()->fontH;
+    int fh = cMes.getWork()->m_font_h;
     int ls = cMes.getWork()->lineSpace;
     int y = 0x129 - fh - ls;
     int cancel = 0;
@@ -1330,7 +1330,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         break;
     }
     case 3:
-        itemInfo(ItemMgr.armId, &info);
+        itemInfo(ItemMgr.m_wep_id, &info);
         if (info.type == 3) {
             swep_flag = put;
         }
@@ -1394,7 +1394,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     sub_screen_open = 0;
     cancel = 0;
     if (mes != 0) {
-        while (cMes.getWork()->result == 0 && cancel == 0) {
+        while (cMes.getWork()->m_sel == 0 && cancel == 0) {
             if (Key.trg & 0x40000000) {
                 MessageControl* mc = &cMes;
 
@@ -1410,7 +1410,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             // COMPILER-DIFF: candidate #12 (r0 pin): cse1 follows the `bne` into the else arm and would
             // canonicalise `res == 2` to sel; canon_reg never replaces a hard register, so the pinned res
             // keeps `cmpwi r0,2` and sel (a pseudo: preferred as class head) keeps `mr; cmpwi sel,1`.
-            register int res asm("r0") = cMes.getWork()->result;
+            register int res asm("r0") = cMes.getWork()->m_sel;
 
             sel = res;
             if (sel == 1) {
@@ -1463,7 +1463,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     }
     SceAtSetEnable(w->no, 0);
     if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
-        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
+        memclr_asm(&pG->item_save[w->item.saveNo], sizeof(ITEM_SAVE_WORK));
     }
     if (w->flag & 4) {
         Mem_free(w);
@@ -1692,7 +1692,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
             if ((pSUB->flags_324 & 0xFFFF0000) == 0) {
                 dead = 0;
             }
-            if (dead == 0 && (s16) pG->sub_life > 0) {
+            if (dead == 0 && (s16) pG->ashley_life > 0) {
                 u8 fl = w->dmg.flags;
                 int a = 0;
                 int b = 0xFF;
@@ -1715,24 +1715,24 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
         switch (w->area.type) {
         case 1:
             pt[0].x = w->area.u.xz4.p[0].x;
-            pt[0].y = w->area.u.xz4.y;
+            pt[0].y = w->area.u.xz4.floor;
             pt[0].z = w->area.u.xz4.p[0].z;
             pt[1].x = w->area.u.xz4.p[3].x;
-            pt[1].y = w->area.u.xz4.y;
+            pt[1].y = w->area.u.xz4.floor;
             pt[1].z = w->area.u.xz4.p[3].z;
             pt[2].x = w->area.u.xz4.p[2].x;
-            pt[2].y = w->area.u.xz4.y;
+            pt[2].y = w->area.u.xz4.floor;
             pt[2].z = w->area.u.xz4.p[2].z;
             pt[3].x = w->area.u.xz4.p[1].x;
-            pt[3].y = w->area.u.xz4.y;
+            pt[3].y = w->area.u.xz4.floor;
             pt[3].z = w->area.u.xz4.p[1].z;
-            DmgMgr.set(w->dmg.kind, time, pt, w->area.u.xz4.h);
+            DmgMgr.set(w->dmg.kind, time, pt, w->area.u.xz4.height);
             break;
         case 2:
             c.x = w->area.u.cyl.x;
-            c.y = w->area.u.cyl.y;
+            c.y = w->area.u.cyl.floor;
             c.z = w->area.u.cyl.z;
-            DmgMgr.set(w->dmg.kind, time, &c, w->area.u.cyl.r, w->area.u.cyl.h);
+            DmgMgr.set(w->dmg.kind, time, &c, w->area.u.cyl.radius, w->area.u.cyl.height);
             break;
         }
     }
@@ -1988,7 +1988,7 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     rot.x = z;
     rot.z = z;
     pPL->setAng(&rot);
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     return 0;
 }
 
@@ -2103,20 +2103,20 @@ void sceAtSetScrAt(SceAtWork* w)
 
         pos = p->pos;
         poly[0].x = p->scale.x * w->area.u.xz4.p[0].x;
-        poly[0].y = p->scale.y * w->area.u.xz4.y;
+        poly[0].y = p->scale.y * w->area.u.xz4.floor;
         poly[0].z = p->scale.z * w->area.u.xz4.p[0].z;
         poly[1].x = p->scale.x * w->area.u.xz4.p[1].x;
-        poly[1].y = p->scale.y * w->area.u.xz4.y;
+        poly[1].y = p->scale.y * w->area.u.xz4.floor;
         poly[1].z = p->scale.z * w->area.u.xz4.p[1].z;
         poly[2].x = p->scale.x * w->area.u.xz4.p[2].x;
-        poly[2].y = p->scale.y * w->area.u.xz4.y;
+        poly[2].y = p->scale.y * w->area.u.xz4.floor;
         poly[2].z = p->scale.z * w->area.u.xz4.p[2].z;
         poly[3].x = p->scale.x * w->area.u.xz4.p[3].x;
-        poly[3].y = p->scale.y * w->area.u.xz4.y;
+        poly[3].y = p->scale.y * w->area.u.xz4.floor;
         poly[3].z = p->scale.z * w->area.u.xz4.p[3].z;
     } else {
         pos.x = w->area.u.xz4.p[0].x;
-        pos.y = w->area.u.xz4.y;
+        pos.y = w->area.u.xz4.floor;
         pos.z = w->area.u.xz4.p[0].z;
         poly[0].x = 0.0f;
         poly[0].y = 0.0f;
@@ -2131,7 +2131,7 @@ void sceAtSetScrAt(SceAtWork* w)
         poly[3].y = 0.0f;
         poly[3].z = w->area.u.xz4.p[3].z - w->area.u.xz4.p[0].z;
     }
-    h = w->area.u.xz4.h;
+    h = w->area.u.xz4.height;
     if (!(w->scr.flags & 2)) {
         if (!(w->scr.flags & 4)) {
             w->scr.attr |= 0x40;
@@ -2174,10 +2174,10 @@ void SceAtCheckMoveScrAt()
             continue;
         }
         if (w->scr.pSat != 0) {
-            w->scr.pSat->setCoord(&w->pParent->pos, &w->pParent->rot);
+            w->scr.pSat->setCoord(&w->pParent->pos, &w->pParent->ang);
         }
         if (w->scr.pEat != 0) {
-            w->scr.pEat->setCoord(&w->pParent->pos, &w->pParent->rot);
+            w->scr.pEat->setCoord(&w->pParent->pos, &w->pParent->ang);
         }
     }
 }
@@ -2413,7 +2413,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     w->pParent = parent;
     switch (w->area.type) {
     case 1:
-        w->area.u.xz4.y -= parent->pos.y;
+        w->area.u.xz4.floor -= parent->pos.y;
         w->area.u.xz4.p[0].x -= parent->pos.x;
         w->area.u.xz4.p[0].z -= parent->pos.z;
         w->area.u.xz4.p[1].x -= parent->pos.x;
@@ -2422,7 +2422,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
         w->area.u.xz4.p[2].z -= parent->pos.z;
         w->area.u.xz4.p[3].x -= parent->pos.x;
         w->area.u.xz4.p[3].z -= parent->pos.z;
-        w->area.u.xz4.y *= inv.y;
+        w->area.u.xz4.floor *= inv.y;
         w->area.u.xz4.p[0].x *= inv.x;
         w->area.u.xz4.p[0].z *= inv.z;
         w->area.u.xz4.p[1].x *= inv.x;
@@ -2435,10 +2435,10 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     case 2:
     case 3:
         w->area.u.cyl.x -= parent->pos.x;
-        w->area.u.xz4.y -= parent->pos.y;
+        w->area.u.xz4.floor -= parent->pos.y;
         w->area.u.cyl.z -= parent->pos.z;
         w->area.u.cyl.x *= inv.x;
-        w->area.u.xz4.y *= inv.y;
+        w->area.u.xz4.floor *= inv.y;
         w->area.u.cyl.z *= inv.z;
         break;
     default:
@@ -2663,7 +2663,7 @@ static void sceAtCamCtrlCheck()
         }
         switch (c->mode) {
         case 0:
-            a = LIMIT_ANGLE(c->angle - pPL->rot.y);
+            a = LIMIT_ANGLE(c->angle - pPL->ang.y);
             if (pS->pCamAt == c) {
                 if (a < -1.3962634f || a > 1.3962634f) {
                     continue;
@@ -2675,7 +2675,7 @@ static void sceAtCamCtrlCheck()
             }
             break;
         case 1:
-            a = GetXZAngleLocal(&pPL->pos, &c->pos, pPL->rot.y);
+            a = GetXZAngleLocal(&pPL->pos, &c->pos, pPL->ang.y);
             if (pS->pCamAt == c) {
                 if (a < -2.3561945f || a > 0.17453292f) {
                     continue;
@@ -2692,7 +2692,7 @@ static void sceAtCamCtrlCheck()
     }
     if (found != 0) {
         RAW_U32(pS, 0x120) = (u32) found;
-        CamCtrl.qfps.LRinfo(found);
+        CamCtrl.m_QuasiFPS.LRinfo(found);
         return;
     }
     ret = PlCornerCheck();
@@ -2703,8 +2703,8 @@ static void sceAtCamCtrlCheck()
         if (ret == 2) {
             RAW_U32(pS, 0x120) = (u32) &auto_work;
             auto_work.pos = pPL->pos;
-            auto_work.angle = pPL->rot.y;
-            CamCtrl.qfps.LRinfo(&auto_work);
+            auto_work.angle = pPL->ang.y;
+            CamCtrl.m_QuasiFPS.LRinfo(&auto_work);
         }
     } else {
         if (pS->pCamAt != 0) {
@@ -2713,13 +2713,13 @@ static void sceAtCamCtrlCheck()
             if (lim < PSVECSquareDistance(&pPL->pos, &pS->pCamAt->pos)) {
                 RAW_U32(pS, 0x120) = 0;
             } else {
-                a = LIMIT_ANGLE(pS->pCamAt->angle - pPL->rot.y);
+                a = LIMIT_ANGLE(pS->pCamAt->angle - pPL->ang.y);
                 if (a < -1.2217305f || a > 1.2217305f) {
                     RAW_U32(pS, 0x120) = 0;
                 }
             }
         }
-        CamCtrl.qfps.LRinfo(pS->pCamAt);
+        CamCtrl.m_QuasiFPS.LRinfo(pS->pCamAt);
     }
 }
 
@@ -2773,15 +2773,15 @@ void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w)
 {
     SceAtItem* it;
 
-    out->flag = 1;
+    out->Be_flag = 1;
     out->type = 3;
     if (w->x35 != 3) {
         return;
     }
     it = &w->item;
-    out->u.eye.y = it->pos.y;
-    out->u.eye.r = 100.0f;
-    out->u.eye.x = w->item.pos.x;
+    out->u.eye.floor = it->pos.y;
+    out->u.eye.radius = 100.0f;
+    out->u.eye.xz = w->item.pos.x;
     out->u.eye.z = it->pos.z;
     out->u.eye.ang_x = it->rot.x;
     out->u.eye.ang_y = it->rot.y;
@@ -2863,9 +2863,9 @@ static void sceAtItemFindCheck()
                     SceAtItemAutoArea(&w->area, &m->pos, it->size);
                 }
                 if (it->pModel != 0) {
-                    it->pModel->rot.x = 0.0f;
-                    it->pModel->rot.y = 0.0f;
-                    it->pModel->rot.z = 0.0f;
+                    it->pModel->ang.x = 0.0f;
+                    it->pModel->ang.y = 0.0f;
+                    it->pModel->ang.z = 0.0f;
                 }
                 sceAtItemEffDelete(it);
                 it->effType = 2;
@@ -3049,7 +3049,7 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->angle = (s8) (ang * 0.5f * 57.295776f);
     w->angleRange = (s8) (range * 0.5f * 57.295776f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
-    w->area.u.xz4.y = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
+    w->area.u.xz4.floor = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
     w->area.u.xz4.p[0].x = pos[0].x;
     w->area.u.xz4.p[0].z = pos[0].z;
     w->area.u.xz4.p[1].x = pos[1].x;
@@ -3092,7 +3092,7 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->angle = (s8) (ang * 0.5f * 57.295776f);
     w->angleRange = (s8) (range * 0.5f * 57.295776f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
-    w->area.u.xz4.y = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
+    w->area.u.xz4.floor = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
     w->area.u.xz4.p[0].x = pos[0].x;
     w->area.u.xz4.p[0].z = pos[0].z;
     w->area.u.xz4.p[1].x = pos[1].x;
@@ -3246,7 +3246,7 @@ void SceAtCancelItemAt(int key)
 
     for (i = 0; i <= 15; i++) {
         if (SceAtSys.reserve[i].key == key) {
-            memclr_asm(&pG->save_item[SceAtSys.reserve[i].saveNo], sizeof(ITEM_SAVE_WORK));
+            memclr_asm(&pG->item_save[SceAtSys.reserve[i].saveNo], sizeof(ITEM_SAVE_WORK));
             SceAtSys.reserve[i].saveNo = SceAtSys.reserve[i].key = 0;
             break;
         }
@@ -3358,8 +3358,8 @@ void sceAtLink_check()
                 u32 d;
                 int no = w->linkNo;
 
-                if (pG->emlist_no >= 0) {
-                    d = EM_DEAD_BIT(pG->emlist_no, no >> 5) & (0x80000000 >> (no & 31));
+                if (pG->em_list_no >= 0) {
+                    d = EM_DEAD_BIT(pG->em_list_no, no >> 5) & (0x80000000 >> (no & 31));
                 } else {
                     d = 0;
                 }
@@ -3474,7 +3474,7 @@ int sceAtPullItemSaveWork()
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (saveItemTbl()[i].room == 0) {
+        if (saveItemTbl()[i].room_no == 0) {
             return i;
         }
     }
@@ -3483,7 +3483,7 @@ int sceAtPullItemSaveWork()
 
 void SceAtInitSaveItem()
 {
-    memclr_asm(pG->save_item, sizeof(pG->save_item));
+    memclr_asm(pG->item_save, sizeof(pG->item_save));
 }
 
 int SceAtCheckSaveItemId(int id)
@@ -3542,7 +3542,7 @@ void sceAtSetItemModelParent(SceAtWork* w)
     }
     w->item.pModel->be_flag &= ~0x4000;
     w->item.pModel->pParts->scale = inv;
-    w->item.pModel->setParent(w->pParent, &w->item.pModel->pos, &w->item.pModel->rot);
+    w->item.pModel->setParent(w->pParent, &w->item.pModel->pos, &w->item.pModel->ang);
 }
 
 int SceAtSetItemModel(int no, cModel* m)
@@ -3575,9 +3575,9 @@ int SceAtSetItemModel(SceAtWork* w, cModel* m)
     m->pos.y = w->item.pos.y;
     m->pos.z = w->item.pos.z;
     if (w->item.rot.z > 0.0f) {
-        m->rot.x = w->item.rot.x;
-        m->rot.y = w->item.rot.y;
-        m->rot.z = 0.0f;
+        m->ang.x = w->item.rot.x;
+        m->ang.y = w->item.rot.y;
+        m->ang.z = 0.0f;
     }
     m->setNoSuspend(0);
     sceAtSetItemModelParent(w);
@@ -3862,8 +3862,8 @@ void sceAtSetItem(SceAtWork* w)
 
         p = GetEmPtrFromList(w->linkNo);
         no = w->linkNo;
-        if (pG->emlist_no >= 0) {
-            d = EM_DEAD_BIT(pG->emlist_no, no >> 5) & (0x80000000 >> (no & 31));
+        if (pG->em_list_no >= 0) {
+            d = EM_DEAD_BIT(pG->em_list_no, no >> 5) & (0x80000000 >> (no & 31));
         } else {
             d = 0;
         }

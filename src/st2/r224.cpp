@@ -77,8 +77,8 @@ public:
 };
 
 // Atari flag stores through the info's address (r207 idiom): `addi r9, pl, 0x2B4` + lhz/sth 0x1A(r9).
-static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->flags &= mask; }
-static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
+static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->m_flag &= mask; }
+static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->m_flag |= bit; }
 
 struct PlPtr {
     cPlayer* p;
@@ -117,8 +117,8 @@ void R224Init()
     EatMgr.registEffInfo(2, (AtEffInfo*) &r224_eff_info);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
-    r224_work.p->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &pos, &rot, 0x10, 1);
-    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pGS->pRoomArc, 0x23), 0xA, 0, 1, 0);
+    r224_work.p->obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &pos, &rot, 0x10, 1);
+    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pGS->pRoom, 0x23), 0xA, 0, 1, 0);
     r224_work.p->obj->motSpeedRate = 0.0f;
     {
         cObj* obj = r224_work.p->obj;
@@ -141,7 +141,7 @@ void R224Init()
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
     SceExec(0x12, (TaskFunc) r224_str_check, 0, 2, 2, 0);
-    PlRegistMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    PlRegistMotion(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     {
         Vec rot2;
 
@@ -151,10 +151,10 @@ void R224Init()
         rot2.x = 0.0f;
         rot2.y = 0.9817477f;
         rot2.z = 0.0f;
-        yagura = SetYagura(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), ROOM_ARC_PTR(pG->pRoomArc, 0x2B), &pos, &rot2);
+        yagura = SetYagura(ROOM_ARC_PTR(pG->pRoom, 0x2A), ROOM_ARC_PTR(pG->pRoom, 0x2B), &pos, &rot2);
     }
     if (yagura) {
-        ((cObjYagura*) yagura)->setMotionVib(ROOM_ARC_PTR(pG->pRoomArc, 0x2C));
+        ((cObjYagura*) yagura)->setMotionVib(ROOM_ARC_PTR(pG->pRoom, 0x2C));
         yagura->be_flag |= 8;
         yagura->AddAmb_r = 0x1E;
         yagura->AddAmb_g = 0x28;
@@ -323,7 +323,7 @@ static void r224_toroko()
     pPLS->atari.setPriority(1);
     pPL->dmg.set(0, 0x80);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     {
         cModel* parts = r224_work.p->obj->getPartsPtr(0);
@@ -336,18 +336,18 @@ static void r224_toroko()
     v.y = 6000.0f;
     SndCall(6, 8, 0, 0, 0, 0);
     pPL->setPos(&v);
-    pPLS->rot.y = -2.1991148f;
+    pPLS->ang.y = -2.1991148f;
     pPLS->setNoSuspend(1);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 0x201, 0);
-    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 1, 0);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 0, 0, 0x201, 0);
+    r224_work.p->obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 0, 0, 1, 0);
     r224_work.p->obj->motSpeedRate = 1.0f;
-    frames = (u32) MotionGetMaxFrame(&pPLS->mot);
+    frames = (u32) MotionGetMaxFrame(&pPLS->Motion);
     SceSleep(90);
     SndCall(6, 9, 0, 0, 0, 0);
     SceSleep(frames - 90);
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     pl->endAction(0);
     pPL->dmg.clear();
     AtariFlagsOr(&pPLS->atari, 0x100);
@@ -495,8 +495,8 @@ static void gnd_open()
 
     SmdGetObjPtr(0x13)->setNoSuspend(1);
     SmdGetObjPtr(0x14)->setNoSuspend(1);
-    SmdGetObjPtr(0x13)->rot.x = 0.0f;
-    SmdGetObjPtr(0x14)->rot.x = 0.0f;
+    SmdGetObjPtr(0x13)->ang.x = 0.0f;
+    SmdGetObjPtr(0x14)->ang.x = 0.0f;
     SceAtSetEnable(4, 0);
     AtariFlagsOr(&r224_work.p->obj2->atari, 0x100);
     AtariFlagsOr(&r224_work.p->obj2->atari, 0x200);
@@ -506,11 +506,11 @@ static void gnd_open()
     SndCall(6, 0xA, &SmdGetObjPtr(0x13)->pos, 0, 0, 0);
     for (;;) {
         spd += acc;
-        if (SmdGetObjPtr(0x13)->rot.x > 1.3f) {
+        if (SmdGetObjPtr(0x13)->ang.x > 1.3f) {
             break;
         }
-        SmdGetObjPtr(0x13)->rot.x += spd;
-        SmdGetObjPtr(0x14)->rot.x -= spd;
+        SmdGetObjPtr(0x13)->ang.x += spd;
+        SmdGetObjPtr(0x14)->ang.x -= spd;
         SceSleep(1);
     }
 }
@@ -527,18 +527,18 @@ void gnd_close()
     SndCall(6, 0xB, &SmdGetObjPtr(0x13)->pos, 0, 0, 0);
     for (;;) {
         spd += acc;
-        if (SmdGetObjPtr(0x13)->rot.x < 0.0f) {
+        if (SmdGetObjPtr(0x13)->ang.x < 0.0f) {
             break;
         }
-        SmdGetObjPtr(0x13)->rot.x -= spd;
-        SmdGetObjPtr(0x14)->rot.x += spd;
+        SmdGetObjPtr(0x13)->ang.x -= spd;
+        SmdGetObjPtr(0x14)->ang.x += spd;
         SceSleep(1);
     }
-    SmdGetObjPtr(0x13)->rot.x = 0.0f;
+    SmdGetObjPtr(0x13)->ang.x = 0.0f;
     {
         cObj* o = SmdGetObjPtr(0x14);
 
-        o->rot.x = 0.0f;
+        o->ang.x = 0.0f;
         // COMPILER-DIFF: 13 -- the target issues `li r3,5; li r4,0` after the store; ours issues
         // the free `li r4,0` in the stfs's cycle (2-issue, `li r3` waits for the stfs's r3) in
         // sched1 and again in sched2. The codeless barrier keeps both argument `li`s after the
@@ -561,22 +561,22 @@ static void reva_move()
     u32 frames;
 
     if (RsfCheck(G_ROOM_ID, 0)) {
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
         return;
     }
     ((cUnitEventView*) pPL)->beginEvent(0);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 1, 0);
-    frames = (u32) MotionGetMaxFrame(&pPL->mot);
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x26), 3, 0, 1, 0);
+    frames = (u32) MotionGetMaxFrame(&pPL->Motion);
     {
         Vec p = {-13250.0f, 0.0f, -7400.0f};
 
-        pPLS->rot.y = -2.5132742f;
+        pPLS->ang.y = -2.5132742f;
         pPLS->setPos(&p);
     }
     while ((PlGetStatus() & 0x00020000) && !(Key.trg & 0x40000000)) {
         if (state == 0) {
             if (--frames == 0) {
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x27), 5, 0, 5, 0);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x27), 5, 0, 5, 0);
                 state = 1;
                 r224_work.p->cam = pG->Cam;
             }
@@ -610,8 +610,8 @@ static void reva_move()
             CameraSetOrientationUp(&r224_work.p->cam);
             CamCtrl.x250 = (s32) &r224_work.p->cam;
             if (Key.trg & 0x00080000) {
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 5, 0, 1, 0);
-                frames = (u32) MotionGetMaxFrame(&pPL->mot);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x28), 5, 0, 1, 0);
+                frames = (u32) MotionGetMaxFrame(&pPL->Motion);
                 SceExec(0x12, (TaskFunc) reva_common_move, 0, 0, 2, 0);
                 state = 2;
                 if ((pG->flags_174 & 0x40000000) == 0) {
@@ -717,7 +717,7 @@ void door_close()
 static void r224_door_mes()
 {
     SndCall(6, 1, 0, 0, 0, 0);
-    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
 }
 
 // The battle stream plays while a Novistador is active.

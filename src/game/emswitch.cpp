@@ -106,7 +106,7 @@ static void emSwitchDmCk(cEmSwitch* em)
     case 0x15:
         break;
     }
-    if (w->dmToggle) {
+    if (w->Damage_ck) {
         if (em->ckOpen()) {
             em->setClose();
         } else {
@@ -130,7 +130,7 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         return 0;
     }
     w = EMSWITCH_WK(em);
-    w->flagNo = flagNo;
+    w->Etc_no = flagNo;
     if (em->modelInit(bin, tpl) == 0) {
         pLog->err(0, 0, "SetSwitch() failed.");
         EmMgr.destroy(em);
@@ -140,16 +140,16 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        em->LightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     f32 zero = 0.0f;
     AtariInit(&em->atari, zero, zero, -700.0f, 350.0f, 700.0f, 700.0f, 2000.0f, 0, 2, 0);
-    em->atari.flags &= ~0x300;
+    em->atari.m_flag &= ~0x300;
     em->atari.setPriority(3);
     em->setStatus(1);
     em->setStatus(0xB);
     YarareInitCube((cEmHit*) em, zero, -300.0f, zero, 250.0f, 600.0f, 200.0f, 0, 1);
-    em->hpMax = 1000;
+    em->hp_max = 1000;
     em->hp = 0;
     if (pos) {
         em->pos = *pos;
@@ -158,20 +158,20 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         em->pos.y = zero;
         em->pos.z = zero;
     }
-    em->oldPos = em->pos;
+    em->pos_old = em->pos;
     if (rot) {
-        em->rot = *rot;
+        em->ang = *rot;
     }
     w->state = 1;
     w->opened = 1;
     w->pBarred = 0;
     w->pBarred2 = 0;
-    w->pConnect = 0;
-    w->mode = 0;
-    w->dmToggle = 1;
-    w->barrel = 0;
-    w->timer = 0;
-    w->ckDist = 1500.0f;
+    w->pSwitch = 0;
+    w->Mode = 0;
+    w->Damage_ck = 1;
+    w->Barrel_ck = 0;
+    w->Barrel_wait = 0;
+    w->Ck_dis = 1500.0f;
     em->setActButton(1);
     em->r_no_0 = 1;
     em->r_no_1 = 0;
@@ -184,8 +184,8 @@ void cEmSwitch::move()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    if (w->timer) {
-        w->timer--;
+    if (w->Barrel_wait) {
+        w->Barrel_wait--;
     }
     emSwitchDmCk(this);
     EmSwitch_R1_move_tbl[r_no_1](this);
@@ -209,9 +209,9 @@ void emSwitch_R1_Open(cEmSwitch* em)
         em->r_no_2++;
     case 1:
         p = em->getPartsPtr(1);
-        p->rot.x -= 0.17453292f;
-        if (p->rot.x < 0.0f) {
-            p->rot.x = 0.0f;
+        p->ang.x -= 0.17453292f;
+        if (p->ang.x < 0.0f) {
+            p->ang.x = 0.0f;
             if (w->pBarred) {
                 w->pBarred->setOpen(0);
             }
@@ -219,7 +219,7 @@ void emSwitch_R1_Open(cEmSwitch* em)
                 w->pBarred2->setOpen(0);
             }
             w->state = 1;
-            if (w->mode == 2) {
+            if (w->Mode == 2) {
                 w->state = 0;
                 w->opened = 0;
                 em->r_no_0 = 1;
@@ -249,16 +249,16 @@ void emSwitch_R1_Close(cEmSwitch* em)
         em->r_no_2++;
     case 1:
         p = em->getPartsPtr(1);
-        p->rot.x += 0.17453292f;
-        if (p->rot.x > 1.3613569f) {
-            p->rot.x = 1.3613569f;
+        p->ang.x += 0.17453292f;
+        if (p->ang.x > 1.3613569f) {
+            p->ang.x = 1.3613569f;
             if (w->pBarred) {
                 w->pBarred->setClose(0);
             }
             if (w->pBarred2) {
                 w->pBarred2->setClose(0);
             }
-            if (w->barrel && w->timer == 0) {
+            if (w->Barrel_ck && w->Barrel_wait == 0) {
                 Vec pos;
                 Vec rot;
 
@@ -269,10 +269,10 @@ void emSwitch_R1_Close(cEmSwitch* em)
                 rot.y = 1.3744467f;
                 rot.z = 0.0f;
                 SetR227Barrel(&pos, &rot);
-                w->timer = 150;
+                w->Barrel_wait = 150;
             }
             w->state = 2;
-            if (w->mode == 3) {
+            if (w->Mode == 3) {
                 w->state = 0;
                 w->opened = 1;
                 em->r_no_0 = 1;
@@ -315,8 +315,8 @@ void cEmSwitch::setOpen()
         r_no_1 = 1;
         r_no_2 = 0;
         r_no_3 = 0;
-        if (w->pConnect) {
-            w->pConnect->setOpen();
+        if (w->pSwitch) {
+            w->pSwitch->setOpen();
         }
     }
 }
@@ -325,15 +325,15 @@ void cEmSwitch::setClose()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    if (w->state == 1 && w->mode != 1) {
+    if (w->state == 1 && w->Mode != 1) {
         w->state = 0;
         w->opened = 0;
         r_no_0 = 1;
         r_no_1 = 2;
         r_no_2 = 0;
         r_no_3 = 0;
-        if (w->pConnect) {
-            w->pConnect->setClose();
+        if (w->pSwitch) {
+            w->pSwitch->setClose();
         }
     }
 }
@@ -342,7 +342,7 @@ void cEmSwitch::setOpened()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    getPartsPtr(1)->rot.x = 0.0f;
+    getPartsPtr(1)->ang.x = 0.0f;
     w->state = 1;
     w->opened = 1;
 }
@@ -351,7 +351,7 @@ void cEmSwitch::setClosed()
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    getPartsPtr(1)->rot.x = 1.3613569f;
+    getPartsPtr(1)->ang.x = 1.3613569f;
     w->state = 2;
     w->opened = 0;
 }
@@ -386,7 +386,7 @@ void cEmSwitch::setConnectSwitch(cEmSwitch* s)
 {
     EmSwitchWork* w = EMSWITCH_WK(this);
 
-    w->pConnect = s;
+    w->pSwitch = s;
     if (w->state == 1) {
         s->setOpened();
     }
@@ -414,17 +414,17 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
     }
     dz = em->pos.z - pPL->pos.z;
     dx = em->pos.x - pPL->pos.x;
-    if (dx * dx + dz * dz > w->ckDist * w->ckDist) {
+    if (dx * dx + dz * dz > w->Ck_dis * w->Ck_dis) {
         return;
     }
     if (fabsf(em->pos.y - (pPL->pos.y + 1000.0f)) > 1000.0f) {
         return;
     }
-    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f)) > 0.78539819f) {
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->ang.y, 3.1415927f)) > 0.78539819f) {
         return;
     }
     if (em->type != 1) {
-        if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f)) > 1.5707964f) {
+        if (fabsf(Muku(&em->pos, &pPL->pos, em->ang.y, 3.1415927f)) > 1.5707964f) {
             return;
         }
     }
@@ -432,7 +432,7 @@ void emSwitchOperationActEvtCk(cEmSwitch* em)
         ActBtn.set(0x14, 5, (int) emSwitchActOpen, (int) em, 0, 1, 0, 0);
     }
     if (w->state == 1) {
-        if (w->mode != 1) {
+        if (w->Mode != 1) {
             ActBtn.set(0x14, 5, (int) emSwitchActClose, (int) em, 0, 1, 0, 0);
         }
     }
@@ -450,20 +450,20 @@ void emSwitchActClose(cEmSwitch* em)
 
 void cEmSwitch::setOpenOnly()
 {
-    EMSWITCH_WK(this)->mode = 1;
+    EMSWITCH_WK(this)->Mode = 1;
 }
 
 void cEmSwitch::setAutoOpen()
 {
-    EMSWITCH_WK(this)->mode = 3;
+    EMSWITCH_WK(this)->Mode = 3;
 }
 
 void cEmSwitch::setBarrel()
 {
-    EMSWITCH_WK(this)->barrel = 1;
+    EMSWITCH_WK(this)->Barrel_ck = 1;
 }
 
 void cEmSwitch::setLongCk()
 {
-    EMSWITCH_WK(this)->ckDist = 2000.0f;
+    EMSWITCH_WK(this)->Ck_dis = 2000.0f;
 }

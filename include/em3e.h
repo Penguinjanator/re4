@@ -17,8 +17,8 @@ struct EmMarkInst {
         int count;        // 0x04  stay: frames
         int x;            // 0x04  move: target position (integer)
     };
-    int y;                // 0x08
-    int z;                // 0x0C
+    int Y;                // 0x08
+    int Z;                // 0x0C
     int spd;              // 0x10  move: speed per frame
 };
 
@@ -26,9 +26,9 @@ struct EmMarkInst {
 struct EmMarkData {
     u8 pad_0[7];
     u8 type;              // 0x07
-    int x;                // 0x08
-    int y;                // 0x0C
-    int z;                // 0x10
+    int X;                // 0x08
+    int Y;                // 0x0C
+    int Z;                // 0x10
     EmMarkInst inst[1];   // 0x14  first instruction
 };
 

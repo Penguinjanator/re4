@@ -68,7 +68,7 @@ class cVoice {
 public:
     u8 on;                // 0x00  a line is playing
     int timer;            // 0x04  frames left
-    u32 sndId;            // 0x08  SndCall id, 0xF0F0F0F0 = none
+    u32 seId;            // 0x08  SndCall id, 0xF0F0F0F0 = none
 
     cVoice();
     void set(int mesNo, u16 seNo, int time);
@@ -131,10 +131,10 @@ public:
     cSubLuis* owner;      // 0x00
     int idx;              // 0x04  EmMgr index the round-robin isTarget scan is at
     f32 plDist;           // 0x08  route distance to the player
-    int cnt;              // 0x0C  frames
+    int time;              // 0x0C  frames
     s8 greCnt;            // 0x10  frames the player has aimed a grenade at him (bit7 = handled)
     cEm* pTarget;         // 0x14  nearest target
-    f32 targetDist;       // 0x18  its squared distance
+    f32 pEmNearDist;       // 0x18  its squared distance
     s8 flags;             // 0x1C  bit1 aimed at by the player, bit2 down, bit3 periodic, bit4 grenade, bit5 spoke, bit6 damaged, bit7 rack
     u8 pad1D[3];
 
@@ -150,8 +150,8 @@ public:
     cSubLuis* owner;      // 0x00
     int mode;             // 0x04
     int req;              // 0x08  mode move() dispatches on
-    u8 step;              // 0x0C
-    u8 sub;               // 0x0D
+    u8 rno1;              // 0x0C
+    u8 rno2;               // 0x0D
     u8 rno3;                // 0x0E
     u8 padF;
     int timer;            // 0x10
@@ -181,7 +181,7 @@ public:
     cRoutine routine;     // 0x3FC .. 0x540
     cAction action;       // 0x540 .. 0x564
     cAnalysis analysis;   // 0x564 .. 0x584
-    void (*evFunc)();     // 0x584  routine 4 (event): the scenario's function
+    void (*m_pFunc)();     // 0x584  routine 4 (event): the scenario's function
     cObjLuisItem* pItem;  // 0x588  the weapon object (ObjMgr id 0xB) / thrown item
     s8 flags;             // 0x58C  bit0 damaged, bit1 dead, bit2 upstairs, bit3 neck set this frame, bit6 damage from an enemy
     u8 pad58D[3];
@@ -189,11 +189,11 @@ public:
     EmHitInfo hit[10];    // 0x594 .. 0x79C
     u8 pad79C[4];
     cModelInfo* pFace;    // 0x7A0
-    u16 lifeOld;          // 0x7A4  player life the last worry line was spoken at
-    u8 dmgCnt;            // 0x7A6  hits left before he goes down
+    u16 m_LeonHp;          // 0x7A4  player life the last worry line was spoken at
+    u8 m_PlAtack;            // 0x7A6  hits left before he goes down
     u8 voiceWait;         // 0x7A7
     cEm* rack[3];         // 0x7A8  the room's racks (getRoomEtcRack)
-    f32 neckAng;          // 0x7B4
+    f32 neckY;          // 0x7B4
 
     cSubLuis();
     virtual ~cSubLuis();

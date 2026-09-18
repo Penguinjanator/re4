@@ -429,8 +429,8 @@ void systemWorkInit()
     U16Set(pG->next_room, pG->room_id);
     U8Set(pG->x4FB8, 0);
     U8Set(pG->x8354, 5);
-    U8Set(pG->costume2, 0);
-    U8Set(pG->costume, 0);
+    U8Set(pG->game_costume, 0);
+    U8Set(pG->pl_costume, 0);
 #line 823 "D:/Bio4/Prog/main.cpp"
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
     U8Set(pSys->language, 1);

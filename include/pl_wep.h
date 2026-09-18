@@ -111,7 +111,7 @@ public:
     f32 pitch;           // 0x28  aim pitch
     f32 m_CenterY;             // 0x2C
     f32 m_CamAdjY;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
-    cObjWep* pObj;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
+    cObjWep* m_pWep;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];
     u8 x40;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)

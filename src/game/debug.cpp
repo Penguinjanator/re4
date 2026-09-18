@@ -322,7 +322,7 @@ void PrimitiveBuffDisp()
 {
     static DbgTile tile[6];
     DbgTile* t;
-    int max = pG->prim_max;
+    int max = pG->nPrim;
     PrimBuffView* pb;
     f32 rate;
 
@@ -395,7 +395,7 @@ void PrimitiveBuffDisp()
     }
 }
 
-static inline void KeyTypeSet(int v) { CamDbg.key_type = v; }   // the SCR store: its `li 1` precedes the CamDbg address (life 3), so loop.c hoists the shared 1 (see docs/research/ "DOL debug/db_cam closer")
+static inline void KeyTypeSet(int v) { CamDbg.m_key_type = v; }   // the SCR store: its `li 1` precedes the CamDbg address (life 3), so loop.c hoists the shared 1 (see docs/research/ "DOL debug/db_cam closer")
 #define CFG_ON(p) (strncmp(p, "ON", 2) == 0)
 #define CFG_OFF3(p) (strncmp(p, "OFF", 3) == 0)
 
@@ -508,7 +508,7 @@ void ConfigSet()
             }
         } else if (symbol_check(&p, "DBG_CAM_KEY")) {
             if (symbol_check(&p, "DFLT")) {
-                CamDbg.key_type = 0;
+                CamDbg.m_key_type = 0;
             } else if (symbol_check(&p, "SCR")) {
                 KeyTypeSet(1);
             }

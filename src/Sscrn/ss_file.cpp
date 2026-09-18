@@ -312,7 +312,7 @@ void SsFileInit::move(SUB_SCREEN* wk)
             playerModelInit();
             sscrnLightClear(wk);
             {
-                LifeMeter* life = &Cckpt.life;
+                LifeMeter* life = &Cckpt.m_LifeMeter;
                 life->fix(1);
                 life->frameIn();
             }
@@ -399,10 +399,10 @@ void SsFileMain::init(SUB_SCREEN* wk)
     IdSub.set(SS_ARC_PTR(wk->pFile, 7), 0xFF, 0x19, 9, 2, 0);
     IdSub.set(SS_ARC_PTR(wk->pFile, 9), 0xFF, 0x1D, 0x13, 4, 0);
     IdSub.set(SS_ARC_PTR(wk->pFile, 8), 0xFF, 0x1E, 0x13, 2, 0);
-    IdSub.unitPtr(0, 0x1D)->flags &= ~8;
-    IdSub.unitPtr(0, 0x1E)->flags &= ~8;
-    IdSub.unitPtr(0, 0x1E)->dir |= 0xF;
-    IdSub.unitPtr(4, 0x1E)->flags &= ~8;
+    IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
+    IdSub.unitPtr(0, 0x1E)->be_flag &= ~8;
+    IdSub.unitPtr(0, 0x1E)->rev_flag |= 0xF;
+    IdSub.unitPtr(4, 0x1E)->be_flag &= ~8;
     sscrnLightCreate(wk, (cLit*) SS_ARC_PTR(wk->pCmmn, 0x12));
     if (wk->menu_old == 2 && wk->type != 0x40) {
         wk->alpha_flag = 0;
@@ -419,7 +419,7 @@ void SsFileMain::init(SUB_SCREEN* wk)
     wk->pFileWk->scroll = 0;
     wk->pFileWk->cursor = 0;
 #line 629 "D:/Bio4/Prog/ss_file.cpp"
-    wk->pTplBuf = MEM_ALLOC(0x20000, 1, 13);
+    wk->pTplDat = MEM_ALLOC(0x20000, 1, 13);
     cMes.setLayout(0, 2);
     if (wk->type == 0x40) {
         int no = fileId2No(wk->x2FA);
@@ -520,7 +520,7 @@ void SsFileMain::quit(SUB_SCREEN* wk)
     if (disp) {
         delete disp;
     }
-    Mem_free(wk->pTplBuf);
+    Mem_free(wk->pTplDat);
     Mem_free(wk->pFileWk);
     sscrn_file_out_init(wk);
     wk->scrn_out_func = sscrn_file_out;
@@ -528,9 +528,9 @@ void SsFileMain::quit(SUB_SCREEN* wk)
 
 void sscrn_file_out_init(SUB_SCREEN* wk)
 {
-    IdSub.unitPtr(0, 0x19)->dir |= 1;
+    IdSub.unitPtr(0, 0x19)->rev_flag |= 1;
     if (wk->menu_next == 2) {
-        Cckpt.life.frameOut();
+        Cckpt.m_LifeMeter.frameOut();
         wk->alpha_flag = 1;
     }
 }
@@ -576,7 +576,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
     x = (int) ((pos->scr.x + 320.0f) * 0.8f);
     y = (int) ((240.0f - pos->scr.y) * 0.8f);
     cMesS.setFontSizeS(4, file_title_w[1], file_title_h[1]);
-    cMes.getMes(4)->lineH = 0;
+    cMes.getMes(4)->m_line_gap = 0;
     cMes.getMes(4)->charSpace = file_title_space[3];
     cMes.MesSet(fw->cat + 3, x, y, 0x20081, 4, 8, 3);
     for (i = top; i < top + n; i++, k++) {
@@ -615,7 +615,7 @@ void dispFileList(SUB_SCREEN* wk, int n)
             MessageControl* pm = &cMes;
             u16 zero = 0;
             U16Set(SS_MES(pm, slot)->charSpace, file_name_space[3]);
-            SS_MES(pm, slot)->lineH = zero;
+            SS_MES(pm, slot)->m_line_gap = zero;
             if (i == 0) {
                 pm->MesSet(2, x, y, 0x20081, slot, col, 3);
             } else {
@@ -787,9 +787,9 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     }
     fw = wk->pFileWk;
     cMes.MesSet(fw->msgBase + fw->page, x, y, fw->attr, 0, fw->x7, 4);
-    IdSub.unitPtr(0, 0x1D)->flags |= 8;
-    IdSub.unitPtr(0, 0x1E)->flags |= 8;
-    IdSub.unitPtr(0, 0x1E)->dir &= ~0xF;
+    IdSub.unitPtr(0, 0x1D)->be_flag |= 8;
+    IdSub.unitPtr(0, 0x1E)->be_flag |= 8;
+    IdSub.unitPtr(0, 0x1E)->rev_flag &= ~0xF;
     u = IdSub.unitPtr(0xFC, 0x1E);
     if (wk->pFileWk->layout == 1) {
         u->scr = IdSub.unitPtr(0xFD, 0x1E)->scr;
@@ -854,7 +854,7 @@ void MessageDisplay::move(SUB_SCREEN* wk)
         }
         break;
     case 1:
-        IdSub.unitPtr(0, 0x1E)->dir |= 0xF;
+        IdSub.unitPtr(0, 0x1E)->rev_flag |= 0xF;
         SndCall(0, 0x23, 0, 0, 0, 0);
         state = 2;
         break;
@@ -873,7 +873,7 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             tplState = 1;
         }
         if (tplFirst == 0 && nxt != 0xFFFF) {
-            ss_Draw_tpl(wk->pTplBuf, 0, file_tpl_x, file_tpl_y, file_tpl_w, file_tpl_h, 0x13, 3);
+            ss_Draw_tpl(wk->pTplDat, 0, file_tpl_x, file_tpl_y, file_tpl_w, file_tpl_h, 0x13, 3);
         }
         break;
     case 1:
@@ -888,7 +888,7 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             setLangExt3(file_tpl_name + 3);
             file_tpl_name[10] = nxt + 0x60;
 #line 1338 "D:/Bio4/Prog/ss_file.cpp"
-            *pReq = DVD_READ_N(file_tpl_name, wk->pTplBuf, 0, 0, 0, 0x10);
+            *pReq = DVD_READ_N(file_tpl_name, wk->pTplDat, 0, 0, 0, 0x10);
         }
         tplState = 2;
         break;
@@ -922,46 +922,46 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             v /= 10;
         }
         if (fw->pageNum <= 9) {
-            IdSub.unitPtr(0x10, 0x1E)->flags &= ~8;
-            IdSub.unitPtr(0x13, 0x1E)->flags &= ~8;
+            IdSub.unitPtr(0x10, 0x1E)->be_flag &= ~8;
+            IdSub.unitPtr(0x13, 0x1E)->be_flag &= ~8;
             u = IdSub.unitPtr(0x11, 0x1E);
             u->tex_flag |= 2;
-            u->no = d[0];
+            u->texNo = d[0];
             u = IdSub.unitPtr(0x12, 0x1E);
             u->tex_flag |= 2;
-            u->no = e[0];
+            u->texNo = e[0];
         } else {
-            IdSub.unitPtr(0x10, 0x1E)->flags |= 8;
-            IdSub.unitPtr(0x13, 0x1E)->flags |= 8;
+            IdSub.unitPtr(0x10, 0x1E)->be_flag |= 8;
+            IdSub.unitPtr(0x13, 0x1E)->be_flag |= 8;
             u = IdSub.unitPtr(0x10, 0x1E);
             u->tex_flag |= 2;
-            u->no = d[1];
+            u->texNo = d[1];
             u = IdSub.unitPtr(0x11, 0x1E);
             u->tex_flag |= 2;
-            u->no = d[0];
+            u->texNo = d[0];
             u = IdSub.unitPtr(0x12, 0x1E);
             u->tex_flag |= 2;
-            u->no = e[1];
+            u->texNo = e[1];
             u = IdSub.unitPtr(0x13, 0x1E);
             u->tex_flag |= 2;
-            u->no = e[0];
+            u->texNo = e[0];
         }
         {
             IdUnit* p = IdSub.unitPtr(1, 0x1E);
             if (fw->page == 0) {
-                p->flags &= ~8;
+                p->be_flag &= ~8;
             } else {
-                p->flags |= 8;
+                p->be_flag |= 8;
             }
         }
         a = IdSub.unitPtr(2, 0x1E);
         b = IdSub.unitPtr(3, 0x1E);
         if (fw->page == fw->pageNum - 1) {
-            a->flags &= ~8;
-            b->flags |= 8;
+            a->be_flag &= ~8;
+            b->be_flag |= 8;
         } else {
-            a->flags |= 8;
-            b->flags &= ~8;
+            a->be_flag |= 8;
+            b->be_flag &= ~8;
         }
     }
 }
@@ -977,7 +977,7 @@ void MessageDisplay::quit(SUB_SCREEN* wk)
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pCmmn, 4), 3);
     }
-    IdSub.unitPtr(0, 0x1D)->flags &= ~8;
+    IdSub.unitPtr(0, 0x1D)->be_flag &= ~8;
 }
 
 // The split object's .data is 4 bytes longer than the variables: the next unit's (ss_item) .data

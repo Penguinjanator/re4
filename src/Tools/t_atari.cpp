@@ -198,7 +198,7 @@ static void edit(AtariToolWork* w)
 {
     cSat* s = w->sat;
     Vec* vtx = s->vtx;
-    AtPoly* poly = s->poly;
+    AtPoly* poly = s->poly_p;
     u32 attr;
     Vec* nrm;
     Vec* pv;
@@ -209,7 +209,7 @@ static void edit(AtariToolWork* w)
 
     eprintf(16, 32, 4, 0, "EDIT");
     eprintf(400, 14, 0, 0, w->satSel ? "EFFECT ATARI" : "SCROLL ATARI");
-    eprintf(400, 28, 0, 0, "POLY %d/%d", w->polyNo, s->nPoly);
+    eprintf(400, 28, 0, 0, "POLY %d/%d", w->polyNo, s->polygon_num);
     switch (w->editSub) {
     case 0:
         eprintf(504, 32, 0, 0, "A");
@@ -248,7 +248,7 @@ static void edit(AtariToolWork* w)
         draw_pl_pos(w);
     }
     idx = *(u16*) (w->cursor * 2 + (u32) &poly[w->polyNo]);
-    nrm = s->nrm;
+    nrm = s->norm_p;
     pv = (Vec*) (idx * sizeof(Vec) + (u32) vtx);
     v.x = pv->x;
     v.y = pv->y;
@@ -270,7 +270,7 @@ static void edit(AtariToolWork* w)
     v2.z += r;
     Draw_line3d(&v, &v2, 0xFEFF0000, 0);
     if (w->joy.rep & 2) {
-        if (w->polyNo < w->sat->nPoly - 1) {
+        if (w->polyNo < w->sat->polygon_num - 1) {
             w->polyNo++;
         } else {
             w->polyNo = 0;
@@ -279,7 +279,7 @@ static void edit(AtariToolWork* w)
         if (w->polyNo != 0) {
             w->polyNo--;
         } else {
-            w->polyNo = w->sat->nPoly - 1;
+            w->polyNo = w->sat->polygon_num - 1;
         }
     } else if (w->joy.rep & 8) {
         w->cursor = (w->cursor + 4) % 3;
@@ -344,9 +344,9 @@ static void plmove10(AtariToolWork* w)
         spd = 1.0f;
     }
     old = w->pos;
-    w->pos.x += (f32) w->joy.sx * spd;
-    w->pos.y += (f32) w->joy.sy * spd;
-    w->pos.z = w->pos.z + (f32) w->joy.trigR * spd * 0.5f - (f32) w->joy.trigL * spd * 0.5f;
+    w->pos.x += (f32) w->joy.stickX * spd;
+    w->pos.y += (f32) w->joy.stickY * spd;
+    w->pos.z = w->pos.z + (f32) w->joy.triggerRight * spd * 0.5f - (f32) w->joy.triggerLeft * spd * 0.5f;
     {
         // pG read through a reference: a reference read is a MEM with neither the struct nor the scalar
         // flag, so alias.c's fixed_scalar_and_varying_struct_p does not exempt it from the three `w->pos`
@@ -354,10 +354,10 @@ static void plmove10(AtariToolWork* w)
         // ranks them above the `old` copy's `stw`s in sched1 (the target's stfs-before-stw order). A plain
         // `pG->` read is a fixed scalar and floats above the stores.
         GlobalWork*& gp = pG;
-        Draw_local_pos(&w->pos, 1000, gp->Cam.viewMat);
+        Draw_local_pos(&w->pos, 1000, gp->Cam.v_mat);
     }
     if (w->joy.on & 0x400) {
-        int hit = At_poly_sphere_ck((AtPolyData*) satTbl0, &satTbl0[0].poly[w->polyNo], &oldPos, &w->pos, 100.0f, 0, 0);
+        int hit = At_poly_sphere_ck((AtPolyData*) satTbl0, &satTbl0[0].poly_p[w->polyNo], &oldPos, &w->pos, 100.0f, 0, 0);
 
         eprintf(100, 160, 0, 0, "HIT CK:%d = %d", w->polyNo, hit);
     } else {
@@ -369,7 +369,7 @@ static void plmove10(AtariToolWork* w)
     } else {
         eprintf(40, 64, 6, 0, "FLOOR LOST!!");
     }
-    Draw_local_pos(&old, 1000, pG->Cam.viewMat);
+    Draw_local_pos(&old, 1000, pG->Cam.v_mat);
     oldPos = w->pos;
     eprintf(40, 320, 6, 0, "%5.0f", w->pos.x);
     eprintf(40, 340, 6, 0, "%5.0f", w->pos.y);
@@ -398,10 +398,10 @@ static void hitcheck(AtariToolWork* w)
         hitSel++;
     }
     hitSel %= 2;
-    hitLine[hitSel].x += (f32) w->joy.sx;
-    hitLine[hitSel].z += (f32) w->joy.sy;
-    hitLine[hitSel].y += (f32) w->joy.trigR;
-    hitLine[hitSel].y -= (f32) w->joy.trigL;
+    hitLine[hitSel].x += (f32) w->joy.stickX;
+    hitLine[hitSel].z += (f32) w->joy.stickY;
+    hitLine[hitSel].y += (f32) w->joy.triggerRight;
+    hitLine[hitSel].y -= (f32) w->joy.triggerLeft;
 }
 
 static void load(AtariToolWork* w)
@@ -436,9 +436,9 @@ void draw_pl_pos(AtariToolWork* w)
 void set_at(AtariToolWork* w, cSat* sat)
 {
     w->sat = sat;
-    w->nA = sat->nA;
-    w->nB = sat->nB;
-    w->nC = sat->nC;
+    w->nA = sat->floor_num;
+    w->nB = sat->slope_num;
+    w->nC = sat->wall_num;
 }
 
 void clear_pad(AtariToolWork* w)

@@ -23,7 +23,7 @@ void FlrAtInit()
 
     pFlrSys = &FlrAt_sys;
     memclr_asm(&FlrAt_sys, sizeof(FlrAt_sys));
-    p = (FlrAtHead*) GetDataExt(pG->pRoomArc, "FSE", 0);
+    p = (FlrAtHead*) GetDataExt(pG->pRoom, "FSE", 0);
     if (p == 0) {
         return;
     }

@@ -53,31 +53,31 @@ void EstSet(cModel* model, int no, Vec* pos, Vec* rot, EspSeqData* head, int e, 
     w->id = 0x10;
     p = (Espgen10Work*) w->work;
     p->head = head;
-    p->model = model;
+    p->pMod = model;
     if (model != NULL) {
-        p->serial = model->serial;
+        p->Guid_pMod = model->serial;
     } else {
-        p->serial = (u32) model;
+        p->Guid_pMod = (u32) model;
     }
-    p->no = p->cnt = 0;
+    p->no = p->Time_cnt = 0;
     if (no == -1) {
-        p->parts = head->parts;
+        p->Null_parts_no = head->parts;
     } else {
-        p->parts = no;
+        p->Null_parts_no = no;
     }
     if (pos == NULL) {
-        p->pos = head->pos;
+        p->Offset = head->pos;
     } else {
-        p->flags |= 2;
-        p->pos = *pos;
+        p->Flg |= 2;
+        p->Offset = *pos;
     }
     if (rot == NULL) {
-        p->rot = head->rot;
-        PSVECScale(&p->rot, &p->rot, 3.14f / 180.0f);
+        p->Ang = head->rot;
+        PSVECScale(&p->Ang, &p->Ang, 3.14f / 180.0f);
     } else {
-        p->rot = *rot;
+        p->Ang = *rot;
     }
-    p->seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
+    p->Rand_seed = Rnd() | (Rnd() << 8) | (Rnd() << 16);
     if (h != NULL) {
         p->p8 = &p->opt;
         p->opt = *(EspSeqOpt*) h;
@@ -123,7 +123,7 @@ int GetSstDispFlag(u32 id)
         pLog->err(0, 0, "GetSstDispFlag() : id[%02x] invalid .", id);
         return 0;
     }
-    if (sys->sstDispFlag & (1 << id)) {
+    if (sys->SstSetFlag & (1 << id)) {
         return 1;
     }
     return 0;
@@ -139,19 +139,19 @@ void SetSstDispFlag(u32 id, int on)
     }
     if (on == 1) {
         if (GetSstDispFlag(id) == 0) {
-            sys->sstDispFlag |= on << id;
+            sys->SstSetFlag |= on << id;
             AreaSstSet(id);
         } else {
-            sys->sstDispFlag |= on << id;
+            sys->SstSetFlag |= on << id;
         }
     } else {
-        sys->sstDispFlag &= ~(1 << id);
+        sys->SstSetFlag &= ~(1 << id);
     }
 }
 
 void SetSstAddAreaFlag(u32 flag)
 {
-    g_pEspSys->sstAddAreaFlag = flag;
+    g_pEspSys->Add_area_bit = flag;
 }
 
 // Starts every effect of owner `owner` whose room key lies in [lo, hi] and whose type is `type`.
@@ -230,7 +230,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
     for (i = 0; i < sys->xC554; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
-        if ((esp->flag & 1) == 0) {
+        if ((esp->m_Be_flg & 1) == 0) {
             continue;
         }
         if (a != 0 && esp->info.Core_flg != a) {
@@ -243,7 +243,7 @@ void EspDelete(int a, int b, u32 c, cModel* model)
             continue;
         }
         if (model != NULL) {
-            if (esp->pModel != model) {
+            if (esp->m_pMod != model) {
                 continue;
             }
             if (esp->m_Guid_pMod != model->serial) {
@@ -262,7 +262,7 @@ void EspDeleteEvent()
     for (i = 0; i < sys->xC554; i++) {
         cEsp* esp = (cEsp*) (sys->pEspBuf + i * 0x150);
 
-        if (esp->flag & 1) {
+        if (esp->m_Be_flg & 1) {
             int ev = !(esp->info.Core_flg & 1);
 
             if (ev && !(esp->info.Core_flg & 0x800)) {
@@ -333,7 +333,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
     u32 eff2;
     f32 len;
 
-    if (info != NULL && (info->flags & 1)) {
+    if (info != NULL && (info->flag & 1)) {
         rot.x = atan2f(SQRTF(nrm->x * nrm->x + nrm->z * nrm->z), nrm->y);
         rot.y = atan2f(nrm->x, nrm->z);
         rot.z = 0.0f;
@@ -385,7 +385,7 @@ void EspSetEatEffect(Vec* pos, Vec* nrm, int type, int wep)
         if (eff1 != 0xD2 && eff2 != 1) {
             EstSet(0, -1, pos, &rot, eff1, (u8) eff2, 0, 0, 0, NULL);
         }
-        if (info != NULL && (info->flags & 1)) {
+        if (info != NULL && (info->flag & 1)) {
             SndCall(2, 0xB, pos, 0, 0, NULL);
         }
         break;

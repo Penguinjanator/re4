@@ -25,14 +25,14 @@ static inline void setColumns(Mtx m, Vec* c0, Vec* c1, Vec* c2, Vec* c3)
 
 void CameraSetOrientationUp(Camera* cam)
 {
-    PSVECSubtract(&cam->param.pos, &cam->param.at, &cam->dir);
+    PSVECSubtract(&cam->param.pos, &cam->param.at, &cam->Look);
 #line 33 "D:/Bio4/Prog/cam_sys.cpp"
-    VECNormalize(&cam->dir, &cam->dir);
-    PSVECCrossProduct(&cam->up, &cam->dir, &cam->right);
+    VECNormalize(&cam->Look, &cam->Look);
+    PSVECCrossProduct(&cam->up, &cam->Look, &cam->Right);
 #line 37 "D:/Bio4/Prog/cam_sys.cpp"
-    VECNormalize(&cam->right, &cam->right);
-    PSVECCrossProduct(&cam->dir, &cam->right, &cam->up);
-    setColumns(cam->mat, &cam->right, &cam->up, &cam->dir, &cam->param.pos);
+    VECNormalize(&cam->Right, &cam->Right);
+    PSVECCrossProduct(&cam->Look, &cam->Right, &cam->up);
+    setColumns(cam->mat, &cam->Right, &cam->up, &cam->Look, &cam->param.pos);
 }
 
 void CameraSetOrientationRoll(Camera* cam)
@@ -71,8 +71,8 @@ void CameraSetOrientationRoll(Camera* cam)
     }
     setColumns(cam->mat, &right, &up, &dir, &cam->param.pos);
     cam->up = up;
-    cam->dir = dir;
-    cam->right = right;
+    cam->Look = dir;
+    cam->Right = right;
 }
 
 void CameraSetOrientationZeroRoll(Camera* cam)
@@ -101,8 +101,8 @@ void CameraSetOrientationZeroRoll(Camera* cam)
     VECNormalize(&dir, &dir);
     setColumns(cam->mat, &right, &up, &dir, &cam->param.pos);
     cam->up = up;
-    cam->dir = dir;
-    cam->right = right;
+    cam->Look = dir;
+    cam->Right = right;
 }
 
 f32 CameraGetRoll(Camera* cam)

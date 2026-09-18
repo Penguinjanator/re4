@@ -100,7 +100,7 @@ static void r22a_RopeMove(int side)
     FadeSetW(0x80000002, 10, 0, 0);
     SceEventStart(0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (side == 0) {
         SndStrReq(1, 0x25, 0x80000003, 0, 0, 0.0f);
@@ -114,15 +114,15 @@ static void r22a_RopeMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 10, 0, 0x201, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -154,15 +154,15 @@ static void r22a_RopeMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 10, 0, 1, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 10, 0, 1, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -185,9 +185,9 @@ static void r22a_RopeMove(int side)
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     SceEventEnd(0);
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     FadeSetW(0x80000002, 30, 0, 0);
     SmdSetTrans(0x2F, 1);
 }
@@ -213,7 +213,7 @@ extern "C" void Evt_R22AS00_Func(Event* e)
     void* mod;
 
     if (e->funcMode == 1) {
-        switch (e->cut) {
+        switch (e->NowCut) {
         case 0:
             if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
                 Obj18CmfOn((cObj*) mod, 5);

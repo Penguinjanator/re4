@@ -183,7 +183,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = -1.0f;
-        RotVector(dir, &win->rot, dir);
+        RotVector(dir, &win->ang, dir);
         pos->x = win->pos.x;
         pos->y = win->pos.y;
         pos->z = win->pos.z;
@@ -197,7 +197,7 @@ int ChkWindow(cModel* m, Vec* pos0, Vec* pos1, int id, u16* status, Vec* dir, Ve
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = 1.0f;
-        RotVector(dir, &win->rot, dir);
+        RotVector(dir, &win->ang, dir);
         pos->x = win->pos.x;
         pos->y = win->pos.y;
         pos->z = win->pos.z;
@@ -233,12 +233,12 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
         pos = *pos_;
     }
     if (rot_) {
-        rot = *rot_;
+        ang = *rot_;
     }
-    RotMatrix(worldMat, &rot);
-    TransMatrix(worldMat, &pos);
-    ScaleMatrix(worldMat, &scale);
-    PSMTXCopy(worldMat, mat);
+    RotMatrix(l_mat, &ang);
+    TransMatrix(l_mat, &pos);
+    ScaleMatrix(l_mat, &scale);
+    PSMTXCopy(l_mat, mat);
     type = type_;
     if (WindowData[type_].field == 0) {
         SetEnableFence(0, 0);
@@ -247,14 +247,14 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     switch (type) {
     case 0xD:
     case 0xE:
-        pInfo->xD6 = 2;
+        pModelInfo->xD6 = 2;
         break;
     }
     {
         static const Vec zero = { 0.0f, 0.0f, 0.0f };
         static const Vec lsize = { 2000.0f, 2000.0f, 2000.0f };
 
-        lightInfo.init2(0, 1, &zero, &lsize, 0x10);
+        LightInfo.init2(0, 1, &zero, &lsize, 0x10);
     }
     if (WindowData[type].frame == 1) {
         frame = 200.0f;
@@ -287,7 +287,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     size.z = (WindowData[type].sizeZ + 50.0f) * 0.5f;
     setYarare(0, &satPos, 0x21, cube, size.x, size.y, size.z);
     be_flag &= ~0x01000000;
-    hpMax = hp = 1000;
+    hp_max = hp = 1000;
     setStatus(1);
     setStatus(0xB);
     atari.setPriority(3);
@@ -349,24 +349,24 @@ void cEmWindow::move()
     EmObjMove();
     switch (r_no_0) {
     case 0:
-        w->rotBase.x = rot.x;
-        w->rotBase.y = rot.y;
-        w->rotBase.z = rot.z;
+        w->rotBase.x = ang.x;
+        w->rotBase.y = ang.y;
+        w->rotBase.z = ang.z;
         r_no_0 = 1;
         if (WindowAlive(this)) {
             if (WindowData[type].breakEff == 1) {
-                EstSet(0, -1, &pos, &rot, eff, 8, 0x801, 0x31, (u32) this, 0);
+                EstSet(0, -1, &pos, &ang, eff, 8, 0x801, 0x31, (u32) this, 0);
             }
         }
         break;
     case 1:
         if (w->shake != 0) {
-            rot.y = w->rotBase.y + (f32) (s8) ((s8) Rnd() % 3) * PI / 180.0f;
+            ang.y = w->rotBase.y + (f32) (s8) ((s8) Rnd() % 3) * PI / 180.0f;
             w->shake--;
             if (w->shake <= 0) {
-                rot.x = w->rotBase.x;
-                rot.y = w->rotBase.y;
-                rot.z = w->rotBase.z;
+                ang.x = w->rotBase.x;
+                ang.y = w->rotBase.y;
+                ang.z = w->rotBase.z;
             }
         }
         break;
@@ -515,34 +515,34 @@ int cEmWindow::ExeWindowEvent()
         FSet(pPL->pos.x, 90.0f);
         FSet(pPL->pos.y, -1000.0f);
         FSet(pPL->pos.z, -1610.0f);
-        FSet(pPL->rot.x, 0.0f);
-        FSet(pPL->rot.y, 0.0f);
-        FSet(pPL->rot.z, 0.0f);
+        FSet(pPL->ang.x, 0.0f);
+        FSet(pPL->ang.y, 0.0f);
+        FSet(pPL->ang.z, 0.0f);
         mot = fcv[0];
         break;
     case 1:
         FSet(pPL->pos.x, -210.0f);
         FSet(pPL->pos.y, -1000.0f);
         FSet(pPL->pos.z, 1990.0f);
-        FSet(pPL->rot.x, 0.0f);
-        FSet(pPL->rot.y, PI);
-        FSet(pPL->rot.z, 0.0f);
+        FSet(pPL->ang.x, 0.0f);
+        FSet(pPL->ang.y, PI);
+        FSet(pPL->ang.z, 0.0f);
         mot = fcv[1];
         break;
     case 2:
         FSet(pPL->pos.x, 0.0f);
         FSet(pPL->pos.y, -1000.0f);
         FSet(pPL->pos.z, -980.0f);
-        FSet(pPL->rot.x, 0.0f);
-        FSet(pPL->rot.y, 0.0f);
-        FSet(pPL->rot.z, 0.0f);
+        FSet(pPL->ang.x, 0.0f);
+        FSet(pPL->ang.y, 0.0f);
+        FSet(pPL->ang.z, 0.0f);
         mot = fcv[2];
         break;
     }
     PSMTXMultVec(mat, &pPL->pos, &pPL->pos);
-    FSet(pPL->rot.x, pPL->rot.x + rot.x);
-    FSet(pPL->rot.y, pPL->rot.y + rot.y);
-    FSet(pPL->rot.z, pPL->rot.z + rot.z);
+    FSet(pPL->ang.x, pPL->ang.x + ang.x);
+    FSet(pPL->ang.y, pPL->ang.y + ang.y);
+    FSet(pPL->ang.z, pPL->ang.z + ang.z);
     if (mot) {
         MotionSetCore(pPL, &pPL->pMotion, mot, 0, 0, 0x201, 0);
     }
@@ -648,7 +648,7 @@ void cEmWindow::CalFloor()
     v.x = 0.0f;
     v.y = 0.0f;
     v.z = 2000.0f;
-    RotVector(&v, &rot, &v);
+    RotVector(&v, &ang, &v);
     PSVECAdd(&v, &pos, &v);
     bottom.x = v.x;
     bottom.y = v.y - 320000.0f;
@@ -660,7 +660,7 @@ void cEmWindow::CalFloor()
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = -2000.0f;
-        RotVector(&v, &rot, &v);
+        RotVector(&v, &ang, &v);
         PSVECAdd(&v, &pos, &v);
         bottom.x = v.x;
         bottom.y = v.y - 320000.0f;
@@ -757,7 +757,7 @@ int cEmWindow::SetBreakModel()
         be_flag &= ~2;
     }
     if (WindowData[type].breakEff2 == 1) {
-        EstSet(0, -1, &pos, &rot, w->eff, 9, 1, 0, 0, 0);
+        EstSet(0, -1, &pos, &ang, w->eff, 9, 1, 0, 0, 0);
     }
     SetAtariOff();
     SetStatus(1);
@@ -778,7 +778,7 @@ int cEmWindow::SetChangeModel(void* bin, void* tpl)
 
 int cEmWindow::SetAtariOff()
 {
-    atari.flags &= ~0x300;
+    atari.m_flag &= ~0x300;
     clrSat();
     clrEat();
     hp = 0;
@@ -820,9 +820,9 @@ int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
     r.y = 0.0f;
     r.z = 0.0f;
     PSMTXMultVec(mat, &p, &p);
-    r.x += rot.x;
-    r.y += rot.y;
-    r.z += rot.z;
+    r.x += ang.x;
+    r.y += ang.y;
+    r.z += ang.z;
     EstSet(0, -1, &p, &r, eff, (u8) id, 0x801, 0, 0, 0);
 }
 

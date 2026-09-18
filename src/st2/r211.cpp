@@ -56,7 +56,7 @@ void R211Init()
 
         pG->flags_174 |= 0x80000000;
         SceAtSetEnable(4, 0);
-        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &r211_cup_pos0, &r211_cup_rot, 0x10, 1);
+        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &r211_cup_pos0, &r211_cup_rot, 0x10, 1);
         if (obj) {
             obj->be_flag |= 0x4000;
             obj->setNoSuspend(1);
@@ -73,7 +73,7 @@ void R211Init()
 
         pG->flags_174 |= 0x40000000;
         SceAtSetEnable(5, 0);
-        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &r211_cup_pos1, &r211_cup_rot, 0x10, 1);
+        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &r211_cup_pos1, &r211_cup_rot, 0x10, 1);
         if (obj) {
             obj->be_flag |= 0x4000;
             obj->setNoSuspend(1);
@@ -141,7 +141,7 @@ static void r211_CheckUseCup(int no)
     case 0:
         SceAtSetEnable(4, 0);
         RsfSet(G_ROOM_ID, 0);
-        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &r211_cup_pos0, &r211_cup_rot, 0x10, 1);
+        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &r211_cup_pos0, &r211_cup_rot, 0x10, 1);
         obj->be_flag |= 0x4000;
         obj->setNoSuspend(1);
         SceUpCut(1, 0xA, 7, 0);
@@ -149,7 +149,7 @@ static void r211_CheckUseCup(int no)
     case 1:
         SceAtSetEnable(5, 0);
         RsfSet(G_ROOM_ID, 1);
-        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x21), ROOM_ARC_PTR(pG->pRoomArc, 0x22), &r211_cup_pos1, &r211_cup_rot, 0x10, 1);
+        obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x21), ROOM_ARC_PTR(pG->pRoom, 0x22), &r211_cup_pos1, &r211_cup_rot, 0x10, 1);
         obj->be_flag |= 0x4000;
         obj->setNoSuspend(1);
         SceUpCut(2, 9, 7, 0);

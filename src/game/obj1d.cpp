@@ -46,10 +46,10 @@ cObj* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 10000.0f, 10000.0f, 100000.0f };
 
     obj->sub2B4.atari.throughOn();
-    obj->lightInfo.init2(0, 1, &p0, &p1, 2);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 2);
     obj->pos = *pos;
-    obj->oldPos = *pos;
-    obj->rot = *rot;
+    obj->pos_old = *pos;
+    obj->ang = *rot;
     w->parent = 0;
     w->parts1 = 0;
     w->parts2 = 0;
@@ -86,7 +86,7 @@ void obj1d_R1_Set(cObjChain* obj)
     if (obj->pMotion) {
         MotionMove(obj, 0);
     } else {
-        RotMatrix(obj->mat, &obj->rot);
+        RotMatrix(obj->mat, &obj->ang);
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         obj->partsMatCalc();
@@ -104,9 +104,9 @@ void obj1d_R1_LostWait(cObjChain* obj)
         obj->r_no_2++;
     case 1:
         if (w->timer == 0) {
-            obj->alpha -= 0.1f;
-            if (obj->alpha <= 0.0f) {
-                obj->alpha = 0.0f;
+            obj->invisible_factor -= 0.1f;
+            if (obj->invisible_factor <= 0.0f) {
+                obj->invisible_factor = 0.0f;
                 obj->r_no_0 = 1;
                 obj->r_no_1 = 2;
                 obj->r_no_2 = 0;
@@ -131,7 +131,7 @@ void obj1d_R1_LostWait(cObjChain* obj)
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     obj->partsMatCalc();
@@ -166,7 +166,7 @@ void obj1d_R1_Parent(cObjChain* obj)
     cModel* partsA;
     cModel* partsB;
 
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {

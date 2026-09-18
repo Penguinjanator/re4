@@ -35,7 +35,7 @@ struct DllModule {
 // One debug menu line (0x10 bytes)
 struct DB_MENU {
     const char* name;  // 0x00
-    const char* rel;   // 0x04  tool module to load (NULL = built-in tool)
+    const char* rel_name;   // 0x04  tool module to load (NULL = built-in tool)
     void (*func)();    // 0x08  built-in tool entry
     int id;            // 0x0C  DebugMenuSelected
 };
@@ -261,8 +261,8 @@ void move(struct test* t)
     int h, m, s;
 
     joy = GetBugCheckController();
-    t->x += joy->ssx / 16;
-    t->y -= joy->ssy / 16;
+    t->x += joy->substickX / 16;
+    t->y -= joy->substickY / 16;
     GetGameTime(&h, &m, &s);
     eprintf(t->x, t->y, 0, 0, "WELCOME TO TOOL MENU");
     eprintf(t->x + 160, t->y + 405, 0, 0, "MOVE BY SUB-STICK");
@@ -306,14 +306,14 @@ void move(struct test* t)
         t->stop_saved = 1;
         t->exec_tool = 0;
         BitOff(pG->flags_170, 0x80000000);
-        if (menu[t->cursor].func == NULL && menu[t->cursor].rel == NULL) {
+        if (menu[t->cursor].func == NULL && menu[t->cursor].rel_name == NULL) {
             exit(t);
         }
         DebugMenuSelected = menu[t->cursor].id;
-        if (menu[t->cursor].rel != NULL) {
+        if (menu[t->cursor].rel_name != NULL) {
             char buf[32] = "rel/";
             int req;
-            strcat(buf, menu[t->cursor].rel);
+            strcat(buf, menu[t->cursor].rel_name);
 #line 397 "D:/Bio4/Prog/db_menu.cpp"
             req = DvdReadN(buf, NULL, 0, 0, 0, 3, __FILE__, __LINE__);
             if (Dvd.ReadCheck(req, NULL, NULL, (void**) &pModule) >= 0) {
@@ -325,7 +325,7 @@ void move(struct test* t)
                 DLL_Link(pModule, pModule_bss);
                 TaskChain(pModule->prolog, 0);
             } else {
-                pLog->err(0, 0, "%s FILE NOT FOUND", menu[t->cursor].rel);
+                pLog->err(0, 0, "%s FILE NOT FOUND", menu[t->cursor].rel_name);
                 exit(t);
             }
         } else {

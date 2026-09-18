@@ -36,7 +36,7 @@ public:
     u8 rno[8];    // 0x4D0  menu routine numbers per level
     u8 count;     // 0x4D8  frames since the last pad input (cursor blink)
     s8 cursor;    // 0x4D9
-    u8 active;    // 0x4DA  0 = leave the tool
+    u8 be_flag;    // 0x4DA  0 = leave the tool
     u8 pad_4DB;
 
     void clear(u8 flag);
@@ -91,7 +91,7 @@ void cDbOption::clear(u8 flag)
     setRno(0, 0, 0, 0, 0, 0, 0, 0);
     count = 0;
     cursor = 0;
-    active = flag;
+    be_flag = flag;
 }
 
 void cDbOption::joySet()
@@ -127,7 +127,7 @@ void ToolOption()
     TaskSuspend(0);
     TaskSleep(1);
     tp_init();
-    while (pT->active) {
+    while (pT->be_flag) {
         pT->joySet();
         funcTbl[pT->rno[0]]();
         pT->move();
@@ -170,7 +170,7 @@ void tp_menu()
 
 void tp_quit()
 {
-    pT->active = 0;
+    pT->be_flag = 0;
 }
 
 void tp_pl()
@@ -317,7 +317,7 @@ void tp_pl_life()
     DrawGage(168, 84, 8, 100, SUB_LIFE, SUB_LIFE_MAX, -1);
     switch (pT->cursor) {
     case 0:
-        PL_LIFE += (int) (s16) ((f32) Joy[0].sx * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
+        PL_LIFE += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
         if (PL_LIFE < 0) {
             PL_LIFE = 0;
         } else if (PL_LIFE > PL_LIFE_MAX) {
@@ -325,7 +325,7 @@ void tp_pl_life()
         }
         break;
     case 1:
-        SUB_LIFE += (int) (s16) ((f32) Joy[0].sx * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
+        SUB_LIFE += (int) (s16) ((f32) Joy[0].stickX * (pT->joy[0].on & JOY_A ? 0.4f : 0.05f));
         if (SUB_LIFE < 0) {
             SUB_LIFE = 0;
         } else if (SUB_LIFE > SUB_LIFE_MAX) {
@@ -366,19 +366,19 @@ void tp_pl_posmove()
     Vec mv = {0.0f, 0.0f, 0.0f};
     if (Joy[0].on & JOY_Y) {
         eprintf(32, 42, 4, 0, "ANG MOVE");
-        pPL->rot.y -= (f32) Joy[0].sx * 0.001f;
+        pPL->ang.y -= (f32) Joy[0].stickX * 0.001f;
     } else {
         eprintf(32, 42, 4, 0, "POS MOVE");
         CamStick2World(&pG->Cam, &Joy[0], &mv);
         PSVECScale(&mv, &mv, spd);
         y = 0.0f;
-        mv.y = y + spd * Joy[0].trigR - spd * Joy[0].trigL;
+        mv.y = y + spd * Joy[0].triggerRight - spd * Joy[0].triggerLeft;
         PSVECAdd(&pPL->pos, &mv, &pPL->pos);
     }
     eprintf(32, 56, 0, 0, "X: %6.0f", pPL->pos.x);
     eprintf(32, 70, 0, 0, "Y: %6.0f", pPL->pos.y);
     eprintf(32, 84, 0, 0, "Z: %6.0f", pPL->pos.z);
-    eprintf(32, 98, 0, 0, "R: %6.3f", pPL->rot.y);
+    eprintf(32, 98, 0, 0, "R: %6.3f", pPL->ang.y);
     eprintf(32, 126, Joy[0].on & JOY_X ? 0 : 20, 0, "X-BTN:SCR NO HIT");
     eprintf(32, 140, 0, 0, "Z-BTN:CALL SUB-CHAR");
     eprintf(32, 154, 0, 0, "Y-BTN:ROTATE Y");
@@ -704,15 +704,15 @@ void tp_pl_face()
     }
     if (pT->joy[0].rep & JOY_A) {
         if (pT->cursor == 0) {
-            ShapeEnd(pl->pBody->pShape);
+            ShapeEnd(pl->Body->pShape);
         } else {
             if (pData != NULL) {
                 Debug_free(pData);
             }
             if (HDReadDebugAlloc(pFileName[PL_COSTUME][pT->cursor - 1], &pData, 1)) {
-                ShapeSet(pl->pBody->pShape, 0, pData, 2);
+                ShapeSet(pl->Body->pShape, 0, pData, 2);
             } else {
-                ShapeEnd(pl->pBody->pShape);
+                ShapeEnd(pl->Body->pShape);
             }
         }
     }

@@ -48,9 +48,9 @@ void IDSystem::gameInit(int n)
 {
 #line 66 "D:/Bio4/Prog/id_sys.cpp"
     pUnit = (IdUnit*) MEM_ALLOC(n * sizeof(IdUnit), 1, 0xD);
-    num = n;
+    m_maxId = n;
     if (pUnit == 0) {
-        num = 0;
+        m_maxId = 0;
         if (n != 0) {
             pLog->err(0, 0, "IDSystem::gameInit() malloc failed");
         }
@@ -62,27 +62,27 @@ void IDSystem::roomInit()
 {
     int i;
 
-    active = 0;
-    for (i = 0; i < num; i++) {
+    m_nId = 0;
+    for (i = 0; i < m_maxId; i++) {
         memclr_asm(&pUnit[i], sizeof(IdUnit));
-        pUnit[i].flags = 0xFF;
+        pUnit[i].be_flag = 0xFF;
     }
-    memclr_asm(disp, sizeof(disp));
-    memclr_asm(ck, sizeof(ck));
+    memclr_asm(m_disp_off, sizeof(m_disp_off));
+    memclr_asm(m_set_flag, sizeof(m_set_flag));
 }
 
 void IDSystem::free()
 {
     Mem_free(pUnit);
     pUnit = 0;
-    num = 0;
+    m_maxId = 0;
 }
 
 int IDSystem::setCk(u8 type)
 {
     register int raw asm("r4");  // COMPILER-DIFF: #2 (the original masks the incoming u8 at the entry)
     u8 t = raw;
-    return IdBitChk(ck, t);
+    return IdBitChk(m_set_flag, t);
 }
 
 void IDSystem::dispSw(u8 type, int sw)
@@ -91,10 +91,10 @@ void IDSystem::dispSw(u8 type, int sw)
     int raw = r4v;
     switch (sw) {
     case 1:
-        IdBitOff(disp, (u8) raw);
+        IdBitOff(m_disp_off, (u8) raw);
         break;
     case 0:
-        IdBitOn(disp, (u8) raw);
+        IdBitOn(m_disp_off, (u8) raw);
         break;
     }
 }
@@ -103,22 +103,22 @@ void IDSystem::unitPush(IdUnit* u)
 {
     int i;
 
-    if (u->flags == 0xFF) {
+    if (u->be_flag == 0xFF) {
         return;
     }
-    if (u->kind == 1) {
-        for (i = 0; i < num; i++) {
+    if (u->type == 1) {
+        for (i = 0; i < m_maxId; i++) {
             IdUnit* c = ID_UNIT(i);
-            if (c->flags != 0xFF && u == c->parent) {
+            if (c->be_flag != 0xFF && u == c->pParent) {
                 unitPush(c);
             }
         }
     }
-    if (u->flags & 0x10) {
-        pLog->err(0, 0, "unitPush(0x%p):[%02x,%02x] ID_UNIT wait for being Drawn.", u, u->type, u->unitNo);
+    if (u->be_flag & 0x10) {
+        pLog->err(0, 0, "unitPush(0x%p):[%02x,%02x] ID_UNIT wait for being Drawn.", u, u->classNo, u->unitNo);
     }
-    u->flags = 0xFF;
-    active--;
+    u->be_flag = 0xFF;
+    m_nId--;
 }
 
 IdUnit* IDSystem::unitPull()
@@ -126,15 +126,15 @@ IdUnit* IDSystem::unitPull()
     int i;
     IdUnit* u = pUnit;
 
-    for (i = 0; i < num; i++, u++) {
-        if (u->flags == 0xFF) {
+    for (i = 0; i < m_maxId; i++, u++) {
+        if (u->be_flag == 0xFF) {
             memclr_asm(u, sizeof(IdUnit));
-            u->flags = 0xD;
+            u->be_flag = 0xD;
             u->u0 = 0.0f;
             u->u1 = 1.0f;
             u->v0 = 0.0f;
             u->v1 = 1.0f;
-            active++;
+            m_nId++;
             return u;
         }
     }
@@ -145,24 +145,24 @@ void IDSystem::unitLevel(IdUnit* u, u8 level)
 {
     int i;
 
-    if (u->kind == 1) {
-        for (i = 0; i < num; i++) {
+    if (u->type == 1) {
+        for (i = 0; i < m_maxId; i++) {
             IdUnit* c = ID_UNIT(i);
-            if (c->flags != 0xFF && u == c->parent) {
+            if (c->be_flag != 0xFF && u == c->pParent) {
                 unitLevel(c, level + 1);
             }
         }
     }
-    if (level > maxLevel) {
-        maxLevel = level;
+    if (level > m_levelMax) {
+        m_levelMax = level;
     }
-    u->level = level;
+    u->levelNo = level;
 }
 
 void IDSystem::unitParent(IdUnit* parent, IdUnit* child)
 {
-    child->parent = parent;
-    unitLevel(child, parent->level + 1);
+    child->pParent = parent;
+    unitLevel(child, parent->levelNo + 1);
 }
 
 IdUnit* IDSystem::unitPtr(u8 id, u8 type)
@@ -173,8 +173,8 @@ IdUnit* IDSystem::unitPtr(u8 id, u8 type)
     int i;
     IdUnit* u = pUnit;
 
-    for (i = 0; i < num; i++, u++) {
-        if (u->flags != 0xFF && id == u->id && (u8) raw == u->type) {
+    for (i = 0; i < m_maxId; i++, u++) {
+        if (u->be_flag != 0xFF && id == u->markNo && (u8) raw == u->classNo) {
             return u;
         }
     }
@@ -214,7 +214,7 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
     int raw = r6v;
 
     setCk(type);
-    IdBitOn(ck, (u8) raw);
+    IdBitOn(m_set_flag, (u8) raw);
 
     ver = (int) (f32) strtod((char*) data, 0);
     sysVer = (int) (f32) strtod("2.00", 0);
@@ -230,26 +230,26 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                 if (u == 0) {
                     pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
                 } else {
-                    u->flags = p1->flags;
-                    u->id = p1->id;
+                    u->be_flag = p1->flags;
+                    u->markNo = p1->id;
                     u->unitNo = p1->no;
-                    u->level = p1->level;
+                    u->levelNo = p1->level;
                     u->parentNo = p1->parentNo;
                     u->rowNo = p1->x8;
-                    u->kind = p1->kind;
+                    u->type = p1->kind;
                     u->texId = p1->texId;
                     u->vtxType = p1->vtxType;
-                    u->loop = p1->loop;
-                    u->scaleType = p1->scaleType;
-                    u->rotAxis = p1->rotAxis;
-                    u->dir = p1->dir;
+                    u->loop_flag = p1->loop;
+                    u->size_flag = p1->scaleType;
+                    u->rot_flag = p1->rotAxis;
+                    u->rev_flag = p1->dir;
                     u->scr = p1->pos;
                     u->vtx[0] = p1->vtx[0];
                     u->vtx[1] = p1->vtx[1];
                     u->vtx[2] = p1->vtx[2];
                     u->vtx[3] = p1->vtx[3];
                     u->sizeX = p1->sizeX;
-                    u->sizeY = p1->sizeY;
+                    u->size_H = p1->sizeY;
                     u->col0[0] = p1->col0[0];
                     u->col0[1] = p1->col0[1];
                     u->col0[2] = p1->col0[2];
@@ -258,12 +258,12 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->col1[1] = 0;
                     u->col1[2] = 0;
                     u->col1[3] = 0;
-                    u->rot = p1->rot;
-                    u->blendType = p1->blendType;
-                    u->transType = p1->transType;
+                    u->rot0 = p1->rot;
+                    u->blend_type = p1->blendType;
+                    u->trans_type = p1->transType;
                     u->maskId = p1->maskId;
                     u->tex_flag = p1->flags_7F;
-                    u->transSub = p1->transSub;
+                    u->pow = p1->transSub;
                     a = p1->ofs[0];
                     if (a) {
                         u->path0 = (void*) (a + (u32) data);
@@ -302,31 +302,31 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     }
                     c = 0;
                     if ((s32) pG->flags_60 >= 0) {
-                        u->flags |= 0xD;
+                        u->be_flag |= 0xD;
                     }
-                    u->flags |= 0x2;
+                    u->be_flag |= 0x2;
                     if (p1->parentNo != 0xFF) {
-                        for (j = 0; j < num; j++) {
+                        for (j = 0; j < m_maxId; j++) {
                             c = &pUnit[j];
-                            if (c->flags != 0xFF && (c->flags & 0x2) && p1->parentNo == c->unitNo) {
-                                u->parent = c;
+                            if (c->be_flag != 0xFF && (c->be_flag & 0x2) && p1->parentNo == c->unitNo) {
+                                u->pParent = c;
                                 break;
                             }
                         }
                     } else {
-                        u->parent = c;
+                        u->pParent = c;
                     }
                     if (u->path0 != 0) {
                         if (FuncPathParametrize(u->path0, u->path1) == 0) {
-                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
+                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->classNo, u->unitNo);
                             u->path0 = 0;
                         }
                     }
-                    u->type = type;
-                    u->ot = ot;
-                    u->prio = prio;
-                    if (p1->level > maxLevel) {
-                        maxLevel = p1->level;
+                    u->classNo = type;
+                    u->otType = ot;
+                    u->otNo = prio;
+                    if (p1->level > m_levelMax) {
+                        m_levelMax = p1->level;
                     }
                 }
             }
@@ -338,26 +338,26 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                 if (u == 0) {
                     pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
                 } else {
-                    u->flags = p2->flags;
-                    u->id = p2->id;
+                    u->be_flag = p2->flags;
+                    u->markNo = p2->id;
                     u->unitNo = p2->no;
-                    u->level = p2->level;
+                    u->levelNo = p2->level;
                     u->parentNo = p2->parentNo;
                     u->rowNo = p2->x8;
-                    u->kind = p2->kind;
+                    u->type = p2->kind;
                     u->texId = p2->texId;
                     u->vtxType = p2->vtxType;
-                    u->loop = p2->loop;
-                    u->scaleType = p2->scaleType;
-                    u->rotAxis = p2->rotAxis;
-                    u->dir = p2->dir;
+                    u->loop_flag = p2->loop;
+                    u->size_flag = p2->scaleType;
+                    u->rot_flag = p2->rotAxis;
+                    u->rev_flag = p2->dir;
                     u->scr = p2->pos;
                     u->vtx[0] = p2->vtx[0];
                     u->vtx[1] = p2->vtx[1];
                     u->vtx[2] = p2->vtx[2];
                     u->vtx[3] = p2->vtx[3];
                     u->sizeX = p2->sizeX;
-                    u->sizeY = p2->sizeY;
+                    u->size_H = p2->sizeY;
                     u->col0[0] = p2->col0[0];
                     u->col0[1] = p2->col0[1];
                     u->col0[2] = p2->col0[2];
@@ -366,12 +366,12 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     u->col1[1] = p2->col1[1];
                     u->col1[2] = p2->col1[2];
                     u->col1[3] = p2->col1[3];
-                    u->rot = p2->rot;
-                    u->blendType = p2->blendType;
-                    u->transType = p2->transType;
+                    u->rot0 = p2->rot;
+                    u->blend_type = p2->blendType;
+                    u->trans_type = p2->transType;
                     u->maskId = p2->maskId;
                     u->tex_flag = p2->flags_7F;
-                    u->transSub = p2->transSub;
+                    u->pow = p2->transSub;
                     a = p2->ofs[0];
                     if (a) {
                         u->path0 = (void*) (a + (u32) data);
@@ -410,31 +410,31 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                     }
                     c = 0;
                     if ((s32) pG->flags_60 >= 0) {
-                        u->flags |= 0xD;
+                        u->be_flag |= 0xD;
                     }
-                    u->flags |= 0x2;
+                    u->be_flag |= 0x2;
                     if (p2->parentNo != 0xFF) {
-                        for (j = 0; j < num; j++) {
+                        for (j = 0; j < m_maxId; j++) {
                             c = &pUnit[j];
-                            if (c->flags != 0xFF && (c->flags & 0x2) && p2->parentNo == c->unitNo) {
-                                u->parent = c;
+                            if (c->be_flag != 0xFF && (c->be_flag & 0x2) && p2->parentNo == c->unitNo) {
+                                u->pParent = c;
                                 break;
                             }
                         }
                     } else {
-                        u->parent = c;
+                        u->pParent = c;
                     }
                     if (u->path0 != 0) {
                         if (FuncPathParametrize(u->path0, u->path1) == 0) {
-                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
+                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->classNo, u->unitNo);
                             u->path0 = 0;
                         }
                     }
-                    u->type = type;
-                    u->ot = ot;
-                    u->prio = prio;
-                    if (p2->level > maxLevel) {
-                        maxLevel = p2->level;
+                    u->classNo = type;
+                    u->otType = ot;
+                    u->otNo = prio;
+                    if (p2->level > m_levelMax) {
+                        m_levelMax = p2->level;
                     }
                     if (id != 0xFF) {
                         set(data, p2->no, type, ot, prio, 1);
@@ -447,10 +447,10 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
     }
 
     if (mode != 1) {
-        for (i = 0; i < num; i++) {
+        for (i = 0; i < m_maxId; i++) {
             IdUnit* c = &pUnit[i];
-            if (c->flags != 0xFF && (c->flags & 0x2)) {
-                c->flags &= ~0x2;
+            if (c->be_flag != 0xFF && (c->be_flag & 0x2)) {
+                c->be_flag &= ~0x2;
             }
         }
     }
@@ -463,21 +463,21 @@ void IDSystem::kill(u8 id, u8 type)
     int i;
     IdUnit* u = pUnit;
 
-    for (i = 0; i < num; i++, u++) {
-        if (u->flags == 0xFF) {
+    for (i = 0; i < m_maxId; i++, u++) {
+        if (u->be_flag == 0xFF) {
             continue;
         }
         if (raw == 0xFF) {
             unitPush(u);
-        } else if ((u8) raw == u->type) {
+        } else if ((u8) raw == u->classNo) {
             if (id == 0xFF) {
                 unitPush(u);
-            } else if (id == u->id) {
+            } else if (id == u->markNo) {
                 unitPush(u);
             }
         }
     }
-    IdBitOff(ck, (u8) raw);
+    IdBitOff(m_set_flag, (u8) raw);
 }
 
 void IDSystem::stop()
@@ -485,27 +485,27 @@ void IDSystem::stop()
     int i;
     IdUnit* u = pUnit;
 
-    for (i = 0; i < num; i++, u++) {
-        if (!(u->flags & 0x1)) {
+    for (i = 0; i < m_maxId; i++, u++) {
+        if (!(u->be_flag & 0x1)) {
             continue;
         }
         {
-            if (u->dir & 0x1) {
+            if (u->rev_flag & 0x1) {
                 u->timer[0]++;
             } else {
                 u->timer[0]--;
             }
-            if (u->dir & 0x2) {
+            if (u->rev_flag & 0x2) {
                 u->timer[1]++;
             } else {
                 u->timer[1]--;
             }
-            if (u->dir & 0x4) {
+            if (u->rev_flag & 0x4) {
                 u->timer[2]++;
             } else {
                 u->timer[2]--;
             }
-            if (u->dir & 0x8) {
+            if (u->rev_flag & 0x8) {
                 u->timer[3]++;
             } else {
                 u->timer[3]--;
@@ -530,13 +530,13 @@ void IDSystem::move()
     m_scrn_mat[1][3] = v.y;
     m_scrn_mat[2][3] = v.z;
 
-    for (lv = 0; lv <= maxLevel; lv++) {
+    for (lv = 0; lv <= m_levelMax; lv++) {
         IdUnit* u = pUnit;
-        for (i = 0; i < num; i++, u++) {
-            if (u->flags == 0xFF || !(u->flags & 0x1)) {
+        for (i = 0; i < m_maxId; i++, u++) {
+            if (u->be_flag == 0xFF || !(u->be_flag & 0x1)) {
                 continue;
             }
-            if ((u->flags & 0x4) && lv == u->level) {
+            if ((u->be_flag & 0x4) && lv == u->levelNo) {
                 idSysMove00(u);
                 idSysMove01(u);
                 idSysMove02(u);
@@ -552,20 +552,20 @@ void IDSystem::beMove(IdUnit* u, int sw)
     int i;
     IdUnit* c = pUnit;
 
-    for (i = 0; i < num; i++, c++) {
-        if (c->flags == 0xFF || !(c->flags & 0x1)) {
+    for (i = 0; i < m_maxId; i++, c++) {
+        if (c->be_flag == 0xFF || !(c->be_flag & 0x1)) {
             continue;
         }
-        if (u == c->parent) {
+        if (u == c->pParent) {
             beMove(c, sw);
         }
     }
     switch (sw) {
     case 1:
-        u->flags |= 0x4;
+        u->be_flag |= 0x4;
         break;
     case 0:
-        u->flags &= ~0x4;
+        u->be_flag &= ~0x4;
         break;
     }
 }
@@ -575,11 +575,11 @@ void IDSystem::setTime(IdUnit* u, u16 time)
     int i;
     IdUnit* c = pUnit;
 
-    for (i = 0; i < num; i++, c++) {
-        if (c->flags == 0xFF || !(c->flags & 0x1)) {
+    for (i = 0; i < m_maxId; i++, c++) {
+        if (c->be_flag == 0xFF || !(c->be_flag & 0x1)) {
             continue;
         }
-        if (u == c->parent) {
+        if (u == c->pParent) {
             setTime(c, time);
         }
     }
@@ -596,11 +596,11 @@ void IDSystem::movePos(IdUnit* u)
 
     idSysMove00(u);
     c = pUnit;
-    for (i = 0; i < num; i++, c++) {
-        if (c->flags == 0xFF || !(c->flags & 0x1)) {
+    for (i = 0; i < m_maxId; i++, c++) {
+        if (c->be_flag == 0xFF || !(c->be_flag & 0x1)) {
             continue;
         }
-        if (u == c->parent) {
+        if (u == c->pParent) {
             movePos(c);
         }
     }
@@ -640,11 +640,11 @@ void idSysMove00(IdUnit* u)
         if (u->curve[0] != 0 && (num = u->curve[0]->num) != -1) {
             t = Hermite_1CurveCalc(u->curve[0], (f32) (s16) u->timer[0]);
             u->end &= ~0x1;
-            if (!(u->dir & 0x1)) {
+            if (!(u->rev_flag & 0x1)) {
                 u->timer[0]++;
                 f32 endT = u->curve[0]->key[num - 1].t;
                 if ((f32) (s16) u->timer[0] >= endT) {
-                    if (u->loop & 0x1) {
+                    if (u->loop_flag & 0x1) {
                         u->timer[0] = 0;
                     } else {
                         u->end |= 0x1;
@@ -654,7 +654,7 @@ void idSysMove00(IdUnit* u)
             } else {
                 u->timer[0]--;
                 if ((s16) u->timer[0] <= 0) {
-                    if (u->loop & 0x1) {
+                    if (u->loop_flag & 0x1) {
                         u->timer[0] = (u16) u->curve[0]->key[num - 1].t;
                     } else {
                         u->end |= 0x1;
@@ -677,7 +677,7 @@ void idSysMove00(IdUnit* u)
         memclr_asm(&u->pos, sizeof(Vec));
     }
     PSVECAdd(&u->pos, &u->scr, &u->pos);
-    if (u->kind != 1) {
+    if (u->type != 1) {
         IdCalcVertex(u);
     }
 }
@@ -687,16 +687,16 @@ void IdCalcVertex(IdUnit* u)
     switch (u->vtxType & 0xF) {
     case 0:
         u->vtx[0].x = -u->sizeX * 0.5f;
-        u->vtx[0].y = u->sizeY * 0.5f;
+        u->vtx[0].y = u->size_H * 0.5f;
         u->vtx[0].z = 0.0f;
         u->vtx[1].x = u->sizeX * 0.5f;
-        u->vtx[1].y = u->sizeY * 0.5f;
+        u->vtx[1].y = u->size_H * 0.5f;
         u->vtx[1].z = 0.0f;
         u->vtx[2].x = u->sizeX * 0.5f;
-        u->vtx[2].y = -u->sizeY * 0.5f;
+        u->vtx[2].y = -u->size_H * 0.5f;
         u->vtx[2].z = 0.0f;
         u->vtx[3].x = -u->sizeX * 0.5f;
-        u->vtx[3].y = -u->sizeY * 0.5f;
+        u->vtx[3].y = -u->size_H * 0.5f;
         u->vtx[3].z = 0.0f;
         break;
     case 1:
@@ -705,10 +705,10 @@ void IdCalcVertex(IdUnit* u)
         u->vtx[1].y = 0.0f;
         u->vtx[1].z = 0.0f;
         u->vtx[2].x = u->sizeX;
-        u->vtx[2].y = -u->sizeY;
+        u->vtx[2].y = -u->size_H;
         u->vtx[2].z = 0.0f;
         u->vtx[3].x = 0.0f;
-        u->vtx[3].y = -u->sizeY;
+        u->vtx[3].y = -u->size_H;
         u->vtx[3].z = 0.0f;
         break;
     case 2:
@@ -717,18 +717,18 @@ void IdCalcVertex(IdUnit* u)
         u->vtx[0].z = 0.0f;
         u->vtx[1].x = u->vtx[1].y = u->vtx[1].z = 0.0f;
         u->vtx[2].x = 0.0f;
-        u->vtx[2].y = -u->sizeY;
+        u->vtx[2].y = -u->size_H;
         u->vtx[2].z = 0.0f;
         u->vtx[3].x = -u->sizeX;
-        u->vtx[3].y = -u->sizeY;
+        u->vtx[3].y = -u->size_H;
         u->vtx[3].z = 0.0f;
         break;
     case 3:
         u->vtx[0].x = -u->sizeX;
-        u->vtx[0].y = u->sizeY;
+        u->vtx[0].y = u->size_H;
         u->vtx[0].z = 0.0f;
         u->vtx[1].x = 0.0f;
-        u->vtx[1].y = u->sizeY;
+        u->vtx[1].y = u->size_H;
         u->vtx[1].z = 0.0f;
         u->vtx[2].x = u->vtx[2].y = u->vtx[2].z = 0.0f;
         u->vtx[3].x = -u->sizeX;
@@ -737,10 +737,10 @@ void IdCalcVertex(IdUnit* u)
         break;
     case 4:
         u->vtx[0].x = 0.0f;
-        u->vtx[0].y = u->sizeY;
+        u->vtx[0].y = u->size_H;
         u->vtx[0].z = 0.0f;
         u->vtx[1].x = u->sizeX;
-        u->vtx[1].y = u->sizeY;
+        u->vtx[1].y = u->size_H;
         u->vtx[1].z = 0.0f;
         u->vtx[2].x = u->sizeX;
         u->vtx[2].y = 0.0f;
@@ -761,11 +761,11 @@ void idSysMove01(IdUnit* u)
     }
     s = Hermite_1CurveCalc(u->curve[1], (f32) (s16) u->timer[1]);
     u->end &= ~0x2;
-    if (!(u->dir & 0x2)) {
+    if (!(u->rev_flag & 0x2)) {
         u->timer[1]++;
         f32 endT = u->curve[1]->key[num - 1].t;
         if ((f32) (s16) u->timer[1] >= endT) {
-            if (u->loop & 0x2) {
+            if (u->loop_flag & 0x2) {
                 u->timer[1] = 0;
             } else {
                 u->end |= 0x2;
@@ -775,7 +775,7 @@ void idSysMove01(IdUnit* u)
     } else {
         u->timer[1]--;
         if ((s16) u->timer[1] <= 0) {
-            if (u->loop & 0x2) {
+            if (u->loop_flag & 0x2) {
                 u->timer[1] = (u16) u->curve[1]->key[num - 1].t;
             } else {
                 u->end |= 0x2;
@@ -783,11 +783,11 @@ void idSysMove01(IdUnit* u)
             }
         }
     }
-    if (u->scaleType & 0x10) {
+    if (u->size_flag & 0x10) {
         for (i = 0; i < 4; i++) {
             u->vtx[i].x *= s;
         }
-    } else if (u->scaleType & 0x20) {
+    } else if (u->size_flag & 0x20) {
         for (i = 0; i < 4; i++) {
             u->vtx[i].y *= s;
         }
@@ -841,11 +841,11 @@ void idSysMove02(IdUnit* u)
             u->col[2] = (f32) u->col0[2];
         }
         u->end &= ~0x3;
-        if (!(u->dir & 0x4)) {
+        if (!(u->rev_flag & 0x4)) {
             u->timer[2]++;
             f32 endT = u->curve[2]->key[num - 1].t;
             if ((f32) (s16) u->timer[2] >= endT) {
-                if (u->loop & 0x4) {
+                if (u->loop_flag & 0x4) {
                     u->timer[2] = 0;
                 } else {
                     u->end |= 0x3;
@@ -855,7 +855,7 @@ void idSysMove02(IdUnit* u)
         } else {
             u->timer[2]--;
             if ((s16) u->timer[2] <= 0) {
-                if (u->loop & 0x4) {
+                if (u->loop_flag & 0x4) {
                     u->timer[2] = (u16) u->curve[2]->key[num - 1].t;
                 } else {
                     u->end |= 0x3;
@@ -869,8 +869,8 @@ void idSysMove02(IdUnit* u)
         u->col[2] = (f32) u->col0[2];
         u->col[3] = (f32) u->col0[3];
     }
-    if (u->parent != 0) {
-        IdUnit* p = u->parent;
+    if (u->pParent != 0) {
+        IdUnit* p = u->pParent;
         u->col[0] = (f32) (u8) (u->col[0] * p->col[0] / 255.0f);
         u->col[1] = (f32) (u8) (u->col[1] * p->col[1] / 255.0f);
         u->col[2] = (f32) (u8) (u->col[2] * p->col[2] / 255.0f);
@@ -884,15 +884,15 @@ void idSysMove03(IdUnit* u)
     f32 a;
     int num;
 
-    u->rotCur = u->rot;
+    u->rot = u->rot0;
     if (u->curve[3] != 0 && (num = u->curve[3]->num) != 0) {
         a = Hermite_1CurveCalc(u->curve[3], (f32) (s16) u->timer[3]);
         u->end &= ~0x4;
-        if (!(u->dir & 0x8)) {
+        if (!(u->rev_flag & 0x8)) {
             u->timer[3]++;
             f32 endT = u->curve[3]->key[num - 1].t;
             if ((f32) (s16) u->timer[3] >= endT) {
-                if (u->loop & 0x8) {
+                if (u->loop_flag & 0x8) {
                     u->timer[3] = 0;
                 } else {
                     u->end |= 0x4;
@@ -902,7 +902,7 @@ void idSysMove03(IdUnit* u)
         } else {
             u->timer[3]--;
             if ((s16) u->timer[3] <= 0) {
-                if (u->loop & 0x8) {
+                if (u->loop_flag & 0x8) {
                     u->timer[3] = (u16) u->curve[3]->key[num - 1].t;
                 } else {
                     u->end |= 0x4;
@@ -910,27 +910,27 @@ void idSysMove03(IdUnit* u)
                 }
             }
         }
-        switch (u->rotAxis) {
+        switch (u->rot_flag) {
         case 0:
-            u->rotCur.x = a;
+            u->rot.x = a;
             break;
         case 1:
-            u->rotCur.y = a;
+            u->rot.y = a;
             break;
         case 2:
-            u->rotCur.z = a;
+            u->rot.z = a;
             break;
         }
     }
-    rot.x = u->rotCur.x * PI / 180.0f;
-    rot.y = u->rotCur.y * PI / 180.0f;
-    rot.z = u->rotCur.z * PI / 180.0f;
-    RotMatrix(u->localMat, &rot);
-    PSMTXTransApply(u->localMat, u->localMat, u->pos.x, u->pos.y, u->pos.z);
-    if (u->parent != 0 && u->parent->kind == 1) {
-        PSMTXConcat(u->parent->mat, u->localMat, u->mat);
+    rot.x = u->rot.x * PI / 180.0f;
+    rot.y = u->rot.y * PI / 180.0f;
+    rot.z = u->rot.z * PI / 180.0f;
+    RotMatrix(u->l_mat, &rot);
+    PSMTXTransApply(u->l_mat, u->l_mat, u->pos.x, u->pos.y, u->pos.z);
+    if (u->pParent != 0 && u->pParent->type == 1) {
+        PSMTXConcat(u->pParent->mat, u->l_mat, u->mat);
     } else {
-        PSMTXCopy(u->localMat, u->mat);
+        PSMTXCopy(u->l_mat, u->mat);
     }
 }
 
@@ -942,15 +942,15 @@ void idSysMove04(IdUnit* u)
         return;
     }
     if (IdGetAnmAddr(u->texId, &anm) == 0) {
-        u->flags &= ~0x8;
-        pLog->err(0, 0, "idSysMove04():(c[%02x],u[%02x]) texId[%02x] No such Texture.", u->type, u->unitNo, u->texId);
+        u->be_flag &= ~0x8;
+        pLog->err(0, 0, "idSysMove04():(c[%02x],u[%02x]) texId[%02x] No such Texture.", u->classNo, u->unitNo, u->texId);
         return;
     }
     if (!(u->tex_flag & 0x2)) {
-        u->no = u->texCnt;
-        u->texCnt++;
-        if (u->texCnt >= anm->numTex) {
-            u->texCnt = 0;
+        u->texNo = u->tex_ptn_no;
+        u->tex_ptn_no++;
+        if (u->tex_ptn_no >= anm->numTex) {
+            u->tex_ptn_no = 0;
         }
     }
     if (!(u->tex_flag & 0x1)) {
@@ -958,14 +958,14 @@ void idSysMove04(IdUnit* u)
     }
     {
         if (IdGetAnmAddr(u->maskId, &anm) == 0) {
-            pLog->err(0, 0, "idSysMove04():[%02x,%02x] maskId[%x] No such Texture.", u->type, u->unitNo, u->maskId);
+            pLog->err(0, 0, "idSysMove04():[%02x,%02x] maskId[%x] No such Texture.", u->classNo, u->unitNo, u->maskId);
             return;
         }
         if (!(u->tex_flag & 0x4)) {
-            u->maskNo = u->maskCnt;
-            u->maskCnt++;
-            if (u->maskCnt >= anm->numTex) {
-                u->maskCnt = 0;
+            u->maskNo = u->mask_ptn_no;
+            u->mask_ptn_no++;
+            if (u->mask_ptn_no >= anm->numTex) {
+                u->mask_ptn_no = 0;
             }
         }
     }
@@ -983,17 +983,17 @@ void IDSystem::trans()
         return;
     }
     u = pUnit;
-    for (i = 0; i < num; i++, u++) {
-        if ((pG->Disp_flg & 0x10000) && u->ot == 0x13) {
+    for (i = 0; i < m_maxId; i++, u++) {
+        if ((pG->Disp_flg & 0x10000) && u->otType == 0x13) {
             continue;
         }
-        if (IdBitGet(disp, u->type)) {
+        if (IdBitGet(m_disp_off, u->classNo)) {
             continue;
         }
-        if (u->flags == 0xFF || !(u->flags & 0x1)) {
+        if (u->be_flag == 0xFF || !(u->be_flag & 0x1)) {
             continue;
         }
-        if ((u->flags & 0x8) && u->parent == 0) {
+        if ((u->be_flag & 0x8) && u->pParent == 0) {
             unitTrans(u);
         }
     }
@@ -1005,21 +1005,21 @@ void IDSystem::unitTrans(IdUnit* u)
     int i;
     int j;
 
-    for (i = 0; i < num; i++, c++) {
-        if (c->flags == 0xFF || !(c->flags & 0x1)) {
+    for (i = 0; i < m_maxId; i++, c++) {
+        if (c->be_flag == 0xFF || !(c->be_flag & 0x1)) {
             continue;
         }
-        if (c->flags & 0x8) {
-            switch (u->kind) {
+        if (c->be_flag & 0x8) {
+            switch (u->type) {
             case 1:
-                if (u == c->parent) {
+                if (u == c->pParent) {
                     unitTrans(c);
                 }
                 break;
             case 2: {
                 IdUnit* g = pUnit;
-                for (j = 0; j < num; j++, g++) {
-                    if (g->flags != 0xFF && c == g->parent) {
+                for (j = 0; j < m_maxId; j++, g++) {
+                    if (g->be_flag != 0xFF && c == g->pParent) {
                         unitTrans(g);
                     }
                 }
@@ -1029,34 +1029,34 @@ void IDSystem::unitTrans(IdUnit* u)
         }
     }
     if (u != 0) {
-        u->flags |= 0x10;
-        AddOtDirect(u->ot, u, (void (*)()) IdGeneralTrans, u->prio, 0x1000, 0, 0.0f);
+        u->be_flag |= 0x10;
+        AddOtDirect(u->otType, u, (void (*)()) IdGeneralTrans, u->otNo, 0x1000, 0, 0.0f);
     }
 }
 
 void IdGeneralTrans(IdUnit* u)
 {
-    u->flags &= ~0x10;
+    u->be_flag &= ~0x10;
     if (u->texId == 0xFF) {
         return;
     }
     GXColor col;
     col.r = col.g = col.b = col.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
-    switch (u->transType) {
+    switch (u->trans_type) {
     case 0:
         IdCommonTrans(u);
         break;
     case 1:
-        if (u->transSub <= 1) {
-            IdNegativeTrans(u, u->transSub);
+        if (u->pow <= 1) {
+            IdNegativeTrans(u, u->pow);
         } else {
             IdNegativeTrans(u, 2);
         }
         break;
     case 2:
     case 3:
-        IdShimmerTrans(u, u->transSub, u->transType);
+        IdShimmerTrans(u, u->pow, u->trans_type);
         break;
     default:
         IdCommonTrans(u);
@@ -1092,10 +1092,10 @@ void IdCommonTrans(IdUnit* u)
         GXLoadNrmMtxImm(m, 0);
     }
     GXSetCurrentMtx(0);
-    IdTexSet(u->texId, u->no);
+    IdTexSet(u->texId, u->texNo);
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(blend[u->blendType][0], blend[u->blendType][1], blend[u->blendType][2], blend[u->blendType][3]);
+    GXSetBlendMode(blend[u->blend_type][0], blend[u->blend_type][1], blend[u->blend_type][2], blend[u->blend_type][3]);
     if (u->tex_flag & 0x1) {
         TexWk* wk = IdGetTexWk(u->maskId, 1);
         if (wk != 0) {
@@ -1166,10 +1166,10 @@ void IdNegativeTrans(IdUnit* u, u32 mode)
         GXLoadNrmMtxImm(m, 0);
     }
     GXSetCurrentMtx(0);
-    IdTexSet(u->texId, u->no);
+    IdTexSet(u->texId, u->texNo);
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(blend[u->blendType].type, blend[u->blendType].src, blend[u->blendType].dst, blend[u->blendType].op);
+    GXSetBlendMode(blend[u->blend_type].type, blend[u->blend_type].src, blend[u->blend_type].dst, blend[u->blend_type].op);
     IdVtxFmt();
     col.r = col.g = col.b = col.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
@@ -1270,10 +1270,10 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
         GXLoadNrmMtxImm(m, 0);
     }
     GXSetCurrentMtx(0);
-    IdTexSet(u->texId, u->no);
+    IdTexSet(u->texId, u->texNo);
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(blend[u->blendType].type, blend[u->blendType].src, blend[u->blendType].dst, blend[u->blendType].op);
+    GXSetBlendMode(blend[u->blend_type].type, blend[u->blend_type].src, blend[u->blend_type].dst, blend[u->blend_type].op);
     IdVtxFmt();
     GXTexObj obj;
     Vec zv;
@@ -1338,7 +1338,7 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
             replace = 0;
             break;
         default:
-            pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->type, u->unitNo, type);
+            pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->classNo, u->unitNo, type);
             signedOfs = 0;
             replace = 1;
             break;

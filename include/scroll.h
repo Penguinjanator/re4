@@ -26,12 +26,12 @@ struct SmdWork {
 
 class cSmd {
 public:
-    u8 version;    // 0x00
-    u8 flags;      // 0x01  bit0: group count table in front of the works
-    u16 nWork;     // 0x02
-    u32 ofsBin;    // 0x04  offset table of the bins
-    u32 ofsTpl;    // 0x08  offset table of the tpls
-    u32 ofsMot;    // 0x0C  offset table of the motions
+    u8 Version;    // 0x00
+    u8 Flag;      // 0x01  bit0: group count table in front of the works
+    u16 nModel;     // 0x02
+    u32 BinTblOfs;    // 0x04  offset table of the bins
+    u32 TplTblOfs;    // 0x08  offset table of the tpls
+    u32 MotTblOfs;    // 0x0C  offset table of the motions
     union {
         SmdWork work[1];   // 0x10
         struct {

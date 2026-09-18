@@ -179,7 +179,7 @@ int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("
 static inline int evtToolOn()
 {
     int on = 1;
-    if ((EvtDebug.flags & 0x40000000) == 0) {
+    if ((EvtDebug.FlagEtc & 0x40000000) == 0) {
         on = 0;
     }
     return on;
@@ -356,13 +356,13 @@ extern "C" void DB_GetKeybordData(DB_KEYBORD* k)
     if (joy->on & 0x1000) {
         k->on[12] = 1;
     }
-    k->stickX = (f32) joy->sx / 72.0f;
-    k->stickY = (f32) joy->sy / 72.0f;
+    k->stickX = (f32) joy->stickX / 72.0f;
+    k->stickY = (f32) joy->stickY / 72.0f;
     if (joy->on & 0x40) {
-        k->xC = (f32) -(int) joy->trigL / 144.0f;
+        k->xC = (f32) -(int) joy->triggerLeft / 144.0f;
     }
     if (joy->on & 0x20) {
-        k->xC = (f32) (int) (u8) joy->trigR / 144.0f;
+        k->xC = (f32) (int) (u8) joy->triggerRight / 144.0f;
     }
     k->Update();
 }
@@ -615,7 +615,7 @@ extern "C" void DB_WorkPush(int flags, int emArray)
     } else {
         pG->flags_60 &= ~0x40;
     }
-    CamDbg.target_type = 0;
+    CamDbg.m_target_type = 0;
 }
 
 extern "C" void DB_WorkPop(int flags, int emArray)
@@ -625,7 +625,7 @@ extern "C" void DB_WorkPop(int flags, int emArray)
     }
     db_emArray = emArray != 0;
     db_workPushed = 0;
-    CamDbg.target_type = 4;
+    CamDbg.m_target_type = 4;
     EffectDeleteAll();
     BitOn(pG->flags_60, 0x10000);
     ToolWorkPop(flags);
@@ -680,16 +680,16 @@ static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
     tbl[5] = t->texId;
 }
 
-#define INFO0(m) ((m)->pInfo)
-#define INFO1(m) (INFO0(m)->pNext)
-#define INFO2(m) (INFO1(m)->pNext)
-#define INFO3(m) (INFO2(m)->pNext)
-#define INFO4(m) (INFO3(m)->pNext)
-#define INFO5(m) (INFO4(m)->pNext)
-#define INFO6(m) (INFO5(m)->pNext)
-#define INFO7(m) (INFO6(m)->pNext)
-#define INFO8(m) (INFO7(m)->pNext)
-#define INFO9(m) (INFO8(m)->pNext)
+#define INFO0(m) ((m)->pModelInfo)
+#define INFO1(m) (INFO0(m)->pList)
+#define INFO2(m) (INFO1(m)->pList)
+#define INFO3(m) (INFO2(m)->pList)
+#define INFO4(m) (INFO3(m)->pList)
+#define INFO5(m) (INFO4(m)->pList)
+#define INFO6(m) (INFO5(m)->pList)
+#define INFO7(m) (INFO6(m)->pList)
+#define INFO8(m) (INFO7(m)->pList)
+#define INFO9(m) (INFO8(m)->pList)
 
 // the name copies: an inline wrapper gives strcpy's destination as a fresh `addi r3,r1,0x110` per call (integrate
 // substitutes `&name` into the hard-register argument set) while strcat's `name` stays the PRE'd pseudo; the source
@@ -760,7 +760,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     SetLoopFlag(0, 2);
     SetLoopFlag(0, 3);
     SetLoopFlag(0, 4);
-    if (flagOn(EvtDebug.flags, 0x80000000)) {
+    if (flagOn(EvtDebug.FlagEtc, 0x80000000)) {
         int n;
         u8 c;
         u8 hi;
@@ -768,7 +768,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         int k;
         cModel** list;
 
-        EvtDebug.flags = (EvtDebug.flags & 0x7FFFFFFF) | 0x40000000;
+        EvtDebug.FlagEtc = (EvtDebug.FlagEtc & 0x7FFFFFFF) | 0x40000000;
         BitOn(pG->flags_5010, 0x10000000);
         BitOn(pG->flags_5014, 0x80000);
         BitOn(pG->flags_5014, 0x10000);
@@ -811,11 +811,11 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         nLit = LightMgr.nArray;
         for (k = 0; k < nLit; k++) {
             cLight* l = LightMgr.getWorkPtr(k);
-            if ((l->be_flag & 3) == 3 && l->parentType == 1) {
+            if ((l->be_flag & 3) == 3 && l->ParentType == 1) {
                 l->be_flag &= 2; // sic: the original masks with 2, not ~2 (`rlwinm 0,30,30`)
             }
         }
-        nModel = EvtDebug.nModel;
+        nModel = EvtDebug.NumMod;
         for (i = 0; i < nModel; i++) {
             // set before the static guards: a set after their `bne`s is `maybe_never` for loop.c and stays in the body
             int* pParent = &parent;
@@ -866,8 +866,8 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
             ed0 = &EvtDebug;
             s = M0->pScr;
             if (s) {
-                bin.append(s->pInfo->pData);
-                tpl.append(s->pInfo->pTpl);
+                bin.append(s->pModelInfo->pData);
+                tpl.append(s->pModelInfo->tpl_addr);
             } else {
                 nBin = M0->nBin;
                 for (j = 0; j < nBin; j++) {
@@ -967,14 +967,14 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 if (flagOn(M.flags, 0x40000000)) {
                     em->be_flag |= 0x1000;
                 }
-                info = em->pInfo;
+                info = em->pModelInfo;
                 b = &info->bound;
                 lit = M.x639;
                 size.x = b->size.x;
                 size.y = b->size.y;
                 size.z = b->size.z;
                 PSVECSubtract(&b->center, &em->pParts->pos, &center);
-                em->lightInfo.init2(2, 1, &center, &size, lit);
+                em->LightInfo.init2(2, 1, &center, &size, lit);
             }
             NAME_SET(MA->name);
             if (nameIs4(name, 'o', 'b', 'm', '1') && name[0x13] == 'a') {
@@ -1056,7 +1056,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 t = GetTexRenderMgrAddr(0);
                 if (t->used) {
                     texBlendTbl(tbl4, t);
-                    texBlendSet(em->pInfo, tbl4);
+                    texBlendSet(em->pModelInfo, tbl4);
                 }
             }
             if (G_ROOM_ID == 0x228 && nameIs4(name, 'e', 'm', '3', '8') && name[0x13] == '0' &&
@@ -1066,7 +1066,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 t = GetTexRenderMgrAddr(2);
                 if (t->used) {
                     texBlendTbl(tbl5, t);
-                    texBlendSet(em->pInfo->pNext, tbl5);
+                    texBlendSet(em->pModelInfo->pList, tbl5);
                 }
             }
             if (G_ROOM_ID == 0x317 && *pStage == 3 && (u32) db_cutNo > 0x10 && nameIs4(name, 'e', 'm', '3', '9') &&
@@ -1100,8 +1100,8 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     t = GetTexRenderMgrAddr(2);
                     if (t->used) {
                         texBlendTbl(tbl8, t);
-                        texBlendSet(em->pInfo, tbl8);
-                        em->pInfo->xD6 = 1;
+                        texBlendSet(em->pModelInfo, tbl8);
+                        em->pModelInfo->xD6 = 1;
                     }
                     db_nearClip = 1;
                 }
@@ -1145,7 +1145,7 @@ extern "C" void EspToolExit()
     BitOff(pG->flags_170, 0x1000000);
     BitOff(pG->flags_60, 0x10000000);
     *(u32*) &col = 0;
-    dbg->target_type = 0;
+    dbg->m_target_type = 0;
     bio4_GXSetCopyClear(col, 0xFFFFFF);
     LightMgr.setFog();
     LightToolEnd();
@@ -1269,7 +1269,7 @@ extern "C" void EspToolUpdate(DbToolWk* wk, int texNo)
     if (texNo) {
         TexRenderMng* t = GetTexRenderMgrAddr(texNo - 1);
         if (t->used) {
-            drawTexture2(&t->texObj, 0x14C, 0x36, 0, 0xA0, 0xA0);
+            drawTexture2(&t->m_Tex_obj, 0x14C, 0x36, 0, 0xA0, 0xA0);
         }
     }
     if (db_nearClip == 1) {
@@ -1475,7 +1475,7 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     if (gen->flags & 0x20) {
         cModel* p = em->getPartsPtr(parts);
         PSMTXIdentity(*m);
-        RotMatrix(*m, &em->rot);
+        RotMatrix(*m, &em->ang);
         PSMTXMultVecSR(*m, in, &v);
         (*m)[0][3] = p->mat[0][3] + v.x;
         (*m)[1][3] = p->mat[1][3] + v.y;

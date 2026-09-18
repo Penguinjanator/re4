@@ -46,7 +46,7 @@ cObjWep::cObjWep()
 
     wep.disp = 0;
     sub2B4.atari.throughOn();
-    lightInfo.init2(1, 1, &p0, &p1, 1);
+    LightInfo.init2(1, 1, &p0, &p1, 1);
     pMotion = 0;
     wep.pMotEmpty = 0;
     wep.pMotNormal = 0;
@@ -85,7 +85,7 @@ void cObjWep::move()
         be_flag |= 2;
     }
     if (wep.parent) {
-        alpha = wep.parent->alpha;
+        invisible_factor = wep.parent->invisible_factor;
         invisible_factor2 = wep.parent->invisible_factor2;
     }
     ot_type = pPL->ot_type;
@@ -138,22 +138,22 @@ void cObjWep::parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot)
     wep.parent = parent;
     pParts->pParent = parent->getPartsPtr(partsNo);
     pParts->pos = *pos;
-    pParts->rot = *rot;
+    pParts->ang = *rot;
 }
 
 void cObjWep::parentRelease()
 {
-    pos = pParts->pParent->worldPos;
-    rot.x = 0.0f;
-    rot.y = 0.0f;
-    rot.z = 0.0f;
+    pos = pParts->pParent->world;
+    ang.x = 0.0f;
+    ang.y = 0.0f;
+    ang.z = 0.0f;
     pParts->pParent = this;
     pParts->pos.x = 0.0f;
     pParts->pos.y = 0.0f;
     pParts->pos.z = 0.0f;
-    pParts->rot.x = 0.0f;
-    pParts->rot.y = 0.0f;
-    pParts->rot.z = 0.0f;
+    pParts->ang.x = 0.0f;
+    pParts->ang.y = 0.0f;
+    pParts->ang.z = 0.0f;
     wep.parent = 0;
 }
 
@@ -225,7 +225,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
         donfire = 0;
         partsWorldCalc();
         getMarkerPos(&lpos, &lcross);
-        res = GetWepTargetPos(&lpos, &lcross, 0, pG->wep_no, &wep.target, &attr);
+        res = GetWepTargetPos(&lpos, &lcross, 0, pG->weapon_no, &wep.target, &attr);
         if (wep.target && wep.target->checkStatus(10)) {
             donfire = 1;
         }
@@ -241,7 +241,7 @@ void cObjWep::drawLaserSight(int draw, int noCalc)
             info = EatMgr.getEffInfo(EatGetEffectType(attr));
             if (info) {
                 int on = 1;
-                if ((info->flags & 2) == 0) {
+                if ((info->flag & 2) == 0) {
                     on = 0;
                 }
                 if (on && dist2 < 400000000.0f) {
@@ -317,9 +317,9 @@ void drawPoint(Vec* p0, Vec* p1)
             size = laset_max_size;
         }
     }
-    esp->pos = *p1;
-    FSet(esp->sizeX, esp->sizeX * size);
-    FSet(esp->sizeY, esp->sizeY * size);
+    esp->m_Pos = *p1;
+    FSet(esp->m_Size_base_x, esp->m_Size_base_x * size);
+    FSet(esp->m_Size_base_y, esp->m_Size_base_y * size);
     if (pG->flags_5010 & 1) {
         // COMPILER-DIFF: #17. `esp` is address-taken, so each store reloads it; the original's first
         // reload sits in r11 (r9 was still held by the previous reload at its sched1 position), ours
@@ -357,11 +357,11 @@ void cObjWep::getMarkerPos(Vec* pos, Vec* at)
     cModel* parts;
     f32 len;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     default:
-        parts = getPartsPtr(pG->wep_no == 0xE);
-        PSMTXMultVec(parts->mat, &ofs[pG->wep_no], pos);
-        if (pG->wep_no == 0x1C) {
+        parts = getPartsPtr(pG->weapon_no == 0xE);
+        PSMTXMultVec(parts->mat, &ofs[pG->weapon_no], pos);
+        if (pG->weapon_no == 0x1C) {
             len = 50000.0f;
         } else {
             len = -50000.0f;
@@ -521,5 +521,5 @@ void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, int blend)
 
 void Draw_line3d_222(Vec* p0, Vec* p1, u32 color, int blend)
 {
-    Draw_line3d_local_222(p0, p1, pG->Cam.viewMat, color, blend);
+    Draw_line3d_local_222(p0, p1, pG->Cam.v_mat, color, blend);
 }

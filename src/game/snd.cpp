@@ -166,17 +166,17 @@ void SndInit2()
 
     memclr_asm(pSndRaw, sizeof(SndWork));
     pSnd->mram_top = SndMem.mram_end;
-    pSnd->aram_top = 0x1F4100;
+    pSnd->aram_base_addr = 0x1F4100;
     for (i = 0; i < 6; i++) {
-        pSnd->em_id[i] = 0xFF;
+        pSnd->snd_em_id[i] = 0xFF;
     }
     pSnd->bgm_mram = SndMem.mram_end + 0x10000;
-    pSnd->bgm_aram = 0x700000;
+    pSnd->aram_base_addr_bgm = 0x700000;
     for (i = 0; i < 2; i++) {
-        pSnd->bgm_id[i] = 0xFF;
+        pSnd->snd_bgm_id[i] = 0xFF;
     }
     SndBgmTblInit();
-    pSnd->door_no = -1;
+    pSnd->doorse_id = -1;
     memclr_asm(UseAramSize, sizeof(UseAramSize));
     memclr_asm(callErr, sizeof(callErr));
 }
@@ -544,7 +544,7 @@ static int emSeCheck(u16* blk, u16* no, int id)
         case 0x10:
         case 0x12:
         case 0x13:
-            if (pSnd->em_id[i] == 0x10) {
+            if (pSnd->snd_em_id[i] == 0x10) {
                 *blk = i + 8;
             }
             break;
@@ -554,7 +554,7 @@ static int emSeCheck(u16* blk, u16* no, int id)
         case 0x1A:
         case 0x1B:
         case 0x1C:
-            if (pSnd->em_id[i] == 0x11) {
+            if (pSnd->snd_em_id[i] == 0x11) {
                 *blk = i + 8;
             }
             break;
@@ -562,12 +562,12 @@ static int emSeCheck(u16* blk, u16* no, int id)
         case 0x1E:
         case 0x1F:
         case 0x20:
-            if (pSnd->em_id[i] == 0x1D) {
+            if (pSnd->snd_em_id[i] == 0x1D) {
                 *blk = i + 8;
             }
             break;
         default:
-            if (pSnd->em_id[i] == id) {
+            if (pSnd->snd_em_id[i] == id) {
                 *blk = i + 8;
             }
             break;
@@ -855,22 +855,22 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
             }
             switch (blk) {
             case 0:
-                c->x4D = (u8) p->aux_core;
+                c->x4D = (u8) p->Aux_core;
                 break;
             case 1:
-                c->x4D = (u8) p->aux_core;
+                c->x4D = (u8) p->Aux_core;
                 break;
             case 2:
-                c->x4D = (u8) p->aux_wep;
+                c->x4D = (u8) p->Aux_weapon;
                 break;
             case 5:
-                c->x4D = (u8) p->aux_room;
+                c->x4D = (u8) p->Aux_room;
                 break;
             case 6:
-                c->x4D = (u8) p->aux_room;
+                c->x4D = (u8) p->Aux_room;
                 break;
             case 8:
-                c->x4D = (u8) p->aux_em;
+                c->x4D = (u8) p->Aux_enemy;
                 break;
             default:
                 c->x4D = 0;
@@ -986,9 +986,9 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         History.span[History.idx] = span;
         History.num++;
         if (History.num > 25) {
-            History.top++;
+            History.disp_idx++;
         }
-        History.top = LOOP_IDX(History.top, 24);
+        History.disp_idx = LOOP_IDX(History.disp_idx, 24);
         History.num = CLAMP(History.num, 0, 25);
     }
     return snd_id;
@@ -1179,7 +1179,7 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
     }
     w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
     if (req & 0x2) {
-        pSndRaw->str_no[blk] = no;
+        pSndRaw->play_str_no[blk] = no;
     }
     return Snd_str_req(w->id, req, time, vol) ? 0 : w->id;
 }
@@ -1469,7 +1469,7 @@ static void nextRoomBgmCheck()
         if (i == 0) {
             if (rs != NULL) {
                 u16 b = (u16) rs->bgm[0];
-                if ((b & 0x8000) && (u8) b == pSnd->bgm_id[0]) {
+                if ((b & 0x8000) && (u8) b == pSnd->snd_bgm_id[0]) {
                     flag = 0;
                     if (!(b & 0x4000) && w->used != 0) {
                         Snd_seq_req(w->id, 1, 200, 0);
@@ -1482,8 +1482,8 @@ static void nextRoomBgmCheck()
             }
             if (flag == 1) {
                 pSnd->bgm_mram = SndMem.mram_end + 0x10000;
-                pSnd->bgm_aram = 0x700000;
-                pSnd->bgm_id[i] = 0xFF;
+                pSnd->aram_base_addr_bgm = 0x700000;
+                pSnd->snd_bgm_id[i] = 0xFF;
                 SND_BIT_CLR(pSnd->blk_flag, i + 3);
                 if (w->used != 0) {
                     Snd_seq_req(w->id, 1, 400, 0);
@@ -1491,14 +1491,14 @@ static void nextRoomBgmCheck()
                 }
             } else {
                 pSnd->bgm_mram = SndMem.blk_mram[i + 3];
-                pSnd->bgm_aram = SndMem.blk_aram[i + 3];
+                pSnd->aram_base_addr_bgm = SndMem.blk_aram[i + 3];
             }
         } else {
             if (w->used != 0) {
                 Snd_seq_req(w->id, 1, 400, 0);
                 w->stat = 1;
             }
-            pSnd->bgm_id[i] = 0xFF;
+            pSnd->snd_bgm_id[i] = 0xFF;
             SND_BIT_CLR(pSnd->blk_flag, i + 3);
         }
     }
@@ -1522,7 +1522,7 @@ void SndNextRoomInit()
     UseAramSize[5] = 0;
     memclr_asm(callErr[5], sizeof(callErr[5]));
     for (i = 0; i < 6; i++) {
-        pSnd->em_id[i] = 0xFF;
+        pSnd->snd_em_id[i] = 0xFF;
         SND_BIT_CLR(pSnd->blk_flag, i + 8);
         memclr_asm(&Snd_iss_blk[i + 8], sizeof(SND_ISS_BLK));
         UseAramSize[i + 8] = 0;
@@ -1534,7 +1534,7 @@ void SndNextRoomInit()
 void SndReadAddrInit()
 {
     pSnd->mram_top = SndMem.mram_end;
-    pSnd->aram_top = 0x1F4100;
+    pSnd->aram_base_addr = 0x1F4100;
 }
 
 // Pitch curve entries hold a signed value (lha/sth); SndCurveEnt::val is u16 for the other curves.
@@ -1550,19 +1550,19 @@ int SndRoomStartInit()
     SndRoomSave* rs;
     SndEfxParam* e;
 
-    pSndRaw->hdr = (SndRoomHdr*) GetDataExt(pG->pRoomArc, "STB", 0);
+    pSndRaw->hdr = (SndRoomHdr*) GetDataExt(pG->pRoom, "STB", 0);
     memclr_asm(&DefEffTbl, sizeof(SndRoomHdr));
     for (i = 0, e = DefEffTbl.efx; i < 2; i++, e++) {
-        e->aux_core = 0;
-        e->aux_em = 0;
-        e->aux_wep = 0;
-        e->aux_room = 0;
-        e->preDelay = 0.05f;
-        e->time = 1.0f;
-        e->coloration = 0.5f;
-        e->damping = 0.5f;
-        e->mix = 0.5f;
-        e->crosstalk = 0.5f;
+        e->Aux_core = 0;
+        e->Aux_enemy = 0;
+        e->Aux_weapon = 0;
+        e->Aux_room = 0;
+        e->Delay = 0.05f;
+        e->Time = 1.0f;
+        e->Coloration = 0.5f;
+        e->Damping = 0.5f;
+        e->Mix = 0.5f;
+        e->Crosstalk = 0.5f;
     }
     if (pSnd->hdr == NULL) {
         pSnd->hdr = &DefEffTbl;
@@ -1607,8 +1607,8 @@ int SndRoomStartInit()
     rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
     if (rs != NULL) {
         for (i = 0; i < 6; i++) {
-            pSnd->room_bgm[i] = rs->bgm[i];
-            pSnd->room_str[i] = rs->str[i];
+            pSnd->room_bgm_tbl[i] = rs->bgm[i];
+            pSnd->room_str_tbl[i] = rs->str[i];
         }
     }
     memclr_asm(&History, sizeof(SndHistory));
@@ -1637,7 +1637,7 @@ int SndDoorSeLoad()
     int ret = -1;
     SndDoorSe* d;
 
-    d = (SndDoorSe*) GetDataExt(pG->pRoomArc, "DSE", 0);
+    d = (SndDoorSe*) GetDataExt(pG->pRoom, "DSE", 0);
     SND_BIT_CLR(pSnd->blk_flag, 7);
     memclr_asm(callErr[7], sizeof(callErr[7]));
     if (d != NULL && d->num != 0) {
@@ -1648,10 +1648,10 @@ int SndDoorSeLoad()
                 break;
             }
         }
-        if (no < cnt && no != pSnd->door_no) {
+        if (no < cnt && no != pSnd->doorse_id) {
 #line 2389 SND_FILE
             ret = DvdRead(0x69, 0, 0, ((u32*) ((u8*) SndMem.door_tbl + SndMem.door_tbl->file_ofs))[no], 0, 0x8000, __FILE__, __LINE__);
-            pSnd->door_no = no;
+            pSnd->doorse_id = no;
         } else if (no != 0xFFFF) {
             SND_BIT_SET(pSnd->blk_flag, 7);
         }
@@ -1664,7 +1664,7 @@ void SndRoomBgmLoad()
     int i;
 
     for (i = 0; i < 2; i++) {
-        u16 b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+        u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
         if (b & 0x8000) {
             SndPlayWork* w = &pSnd->bgm_work[i];
             while (w->stat != 0) {
@@ -1689,9 +1689,9 @@ void SndRoomBgmStartCheck(int reset)
     for (i = 0; i < 2; i++) {
         u16 b;
         if ((pG->System_flg & 0x100) || reset != 0) {
-            b = (u16) (pSnd->room_bgm[pG->snd_tbl_no + 1] >> (i * 16));
+            b = (u16) (pSnd->room_bgm_tbl[pG->snd_tbl_no + 1] >> (i * 16));
         } else {
-            b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+            b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
         }
         if (b & 0x8000) {
             if (b & 0x4000) {
@@ -1710,7 +1710,7 @@ void SndRoomBgmStartCheck(int reset)
 
 int SndRoomBgmStart(u8 no, int vol)
 {
-    u16 b = (u16) (pSnd->room_bgm[0] >> (no * 16));
+    u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (no * 16));
     int seq = (b >> 8) & 0x3;
     int ret = 0;
     SndPlayWork* w;
@@ -1810,9 +1810,9 @@ void SndRoomStrStartCheck()
     u32 s;
 
     if (pG->System_flg & 0x100) {
-        s = pSnd->room_str[pG->snd_tbl_no + 1];
+        s = pSnd->room_str_tbl[pG->snd_tbl_no + 1];
     } else {
-        s = pSnd->room_str[0];
+        s = pSnd->room_str_tbl[0];
     }
     if (s & 0x8000) {
         if (s & 0x4000) {
@@ -1828,8 +1828,8 @@ void SndRoomStrStart(int flag, int time, int loop)
     if (loop == 1) {
         req = 0x80000003;
     }
-    if (pSnd->room_str[0] & 0x8000) {
-        u8 no = (u8) pSnd->room_str[0];
+    if (pSnd->room_str_tbl[0] & 0x8000) {
+        u8 no = (u8) pSnd->room_str_tbl[0];
         if (SndStrStatusCk(0, no, 0x10) == 0) {
             if (time != 0) {
                 SndStrReq(0, no, req, time * 200, 0, 0.0f);
@@ -1847,7 +1847,7 @@ void SndRoomStrStart(int flag, int time, int loop)
 
 void SndRoomStrStop(int time)
 {
-    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
 
     if (w == NULL || w->stat != 0) {
         return;
@@ -1861,7 +1861,7 @@ void SndRoomStrStop(int time)
 
 int SndRoomStrVolSet(int vol, int time)
 {
-    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
     int ret = 0;
 
     if (w != NULL) {
@@ -1872,7 +1872,7 @@ int SndRoomStrVolSet(int vol, int time)
 
 int SndRoomStrVolReset(int time)
 {
-    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str_tbl[0]);
     int ret = 0;
 
     if (w != NULL) {
@@ -2236,8 +2236,8 @@ int SndBgmTblSet(u16 room, int no)
                         rs->bgm[k] = r->e[j].bgm[k];
                         rs->str[k] = r->e[j].str[k];
                         if (room == GRefS(pG)->room_id) {
-                            pSnd->room_bgm[k] = r->e[j].bgm[k];
-                            pSnd->room_str[k] = r->e[j].str[k];
+                            pSnd->room_bgm_tbl[k] = r->e[j].bgm[k];
+                            pSnd->room_str_tbl[k] = r->e[j].str[k];
                         }
                     }
                     ret = 1;
@@ -2256,8 +2256,8 @@ void SndBgmTblSetEnable(int type, int save)
 
     for (i = 0; i < 6; i++) {
         if (type & 0x1) {
-            if (pSnd->room_bgm[i] & 0x8000) {
-                pSnd->room_bgm[i] |= 0x4000;
+            if (pSnd->room_bgm_tbl[i] & 0x8000) {
+                pSnd->room_bgm_tbl[i] |= 0x4000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x8000) {
@@ -2266,8 +2266,8 @@ void SndBgmTblSetEnable(int type, int save)
             }
         }
         if (type & 0x2) {
-            if (pSnd->room_bgm[i] & 0x80000000) {
-                pSnd->room_bgm[i] |= 0x40000000;
+            if (pSnd->room_bgm_tbl[i] & 0x80000000) {
+                pSnd->room_bgm_tbl[i] |= 0x40000000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x80000000) {
@@ -2276,8 +2276,8 @@ void SndBgmTblSetEnable(int type, int save)
             }
         }
         if (type & 0x4) {
-            if (pSnd->room_str[i] & 0x8000) {
-                pSnd->room_str[i] |= 0x4000;
+            if (pSnd->room_str_tbl[i] & 0x8000) {
+                pSnd->room_str_tbl[i] |= 0x4000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->str[i] & 0x8000) {
@@ -2295,8 +2295,8 @@ void SndBgmTblSetDisable(int type, int save)
 
     for (i = 0; i < 6; i++) {
         if (type & 0x1) {
-            if (pSnd->room_bgm[i] & 0x8000) {
-                pSnd->room_bgm[i] &= ~0x4000;
+            if (pSnd->room_bgm_tbl[i] & 0x8000) {
+                pSnd->room_bgm_tbl[i] &= ~0x4000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x8000) {
@@ -2305,8 +2305,8 @@ void SndBgmTblSetDisable(int type, int save)
             }
         }
         if (type & 0x2) {
-            if (pSnd->room_bgm[i] & 0x80000000) {
-                pSnd->room_bgm[i] &= ~0x40000000;
+            if (pSnd->room_bgm_tbl[i] & 0x80000000) {
+                pSnd->room_bgm_tbl[i] &= ~0x40000000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->bgm[i] & 0x80000000) {
@@ -2315,8 +2315,8 @@ void SndBgmTblSetDisable(int type, int save)
             }
         }
         if (type & 0x4) {
-            if (pSnd->room_str[i] & 0x8000) {
-                pSnd->room_str[i] &= ~0x4000;
+            if (pSnd->room_str_tbl[i] & 0x8000) {
+                pSnd->room_str_tbl[i] &= ~0x4000;
             }
             if (save == 1 && rs != NULL) {
                 if (rs->str[i] & 0x8000) {
@@ -2374,7 +2374,7 @@ void SndEventEnd()
     for (i = 0; i < 2; i++) {
         u8 no = i;
         if (SndRoomBgmMute(no, 0, 1) == 0 && pSnd->bgm_work[i].used == 0) {
-            u16 b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+            u16 b = (u16) (pSnd->room_bgm_tbl[0] >> (i * 16));
             if (b & 0x8000) {
                 SND_SIT* sit = Snd_get_sit_adrs((u16) (i + 3), (b >> 8) & 0x3);
                 s8 vol = sit->wall_vol;
@@ -2395,7 +2395,7 @@ int SndEmDataReadCheck(int id)
         if (!SND_BIT_CK(f, i + 8)) {
             return i;
         }
-        if (pSnd->em_id[i] == id) {
+        if (pSnd->snd_em_id[i] == id) {
             return -1;
         }
     }
@@ -2409,12 +2409,12 @@ void SndBlkInit(int type, int id, int no)
 
     switch (type) {
     case 8:
-        pSnd->em_id[no] = id;
+        pSnd->snd_em_id[no] = id;
         blk = no + 8;
         OSReport("SND: blk %d, ID 0x%x\n", blk, id);
         break;
     case 3:
-        pSnd->bgm_id[no] = id;
+        pSnd->snd_bgm_id[no] = id;
         blk = no + 3;
         break;
     }
@@ -2448,7 +2448,7 @@ int SndBgmDataReadCheck(int id)
         if (!SND_BIT_CK(f, i + 3)) {
             return i;
         }
-        if (pSnd->bgm_id[i] == id) {
+        if (pSnd->snd_bgm_id[i] == id) {
             return -1;
         }
     }
@@ -2463,21 +2463,21 @@ void SndSetReverb()
     if (pSys->sound_mode == 2) {
         p = &pSnd->hdr->efx[0];
         w->fx.dpl2.tempDisableFX = 0;
-        w->fx.dpl2.preDelay = p->preDelay;
-        w->fx.dpl2.time = p->time;
-        w->fx.dpl2.coloration = p->coloration;
-        w->fx.dpl2.damping = p->damping;
-        w->fx.dpl2.mix = p->mix;
+        w->fx.dpl2.preDelay = p->Delay;
+        w->fx.dpl2.time = p->Time;
+        w->fx.dpl2.coloration = p->Coloration;
+        w->fx.dpl2.damping = p->Damping;
+        w->fx.dpl2.mix = p->Mix;
         Snd_efx_req(0, 5);
     } else {
         p = &pSnd->hdr->efx[1];
         w->fx.hi.tempDisableFX = 0;
-        w->fx.hi.preDelay = p->preDelay;
-        w->fx.hi.time = p->time;
-        w->fx.hi.coloration = p->coloration;
-        w->fx.hi.damping = p->damping;
-        w->fx.hi.crosstalk = p->crosstalk;
-        w->fx.hi.mix = p->mix;
+        w->fx.hi.preDelay = p->Delay;
+        w->fx.hi.time = p->Time;
+        w->fx.hi.coloration = p->Coloration;
+        w->fx.hi.damping = p->Damping;
+        w->fx.hi.crosstalk = p->Crosstalk;
+        w->fx.hi.mix = p->Mix;
         Snd_efx_req(0, 1);
     }
 }
@@ -2557,7 +2557,7 @@ static void debugDisp()
     static const char* se_blk_tbl[14] = { "CORE", "PL  ", "WEP ", "BGM0", "BGM1", "FOOT", "ROOM", "DOOR",
                                           "EM1 ", "EM2 ", "EM3 ", "EM4 ", 0, 0 };
     int i;
-    s8 idx = History.top;
+    s8 idx = History.disp_idx;
     u16 y2;
     u32 total;
     int d;
@@ -2606,26 +2606,26 @@ static void debugDisp()
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[5], UseAramSize[5]);
     }
     for (i = 0; i < 6; i++) {
-        if (pSnd->em_id[i] == 0xFF) {
+        if (pSnd->snd_em_id[i] == 0xFF) {
             continue;
         }
         y2 += 0xE;
-        if (pSnd->em_id[i] > 0xF) {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    EM%02X", i + 8, pSnd->em_id[i]);
-        } else if (pSnd->em_id[i] != 0xF) {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->em_id[i] + 0xE);
+        if (pSnd->snd_em_id[i] > 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    EM%02X", i + 8, pSnd->snd_em_id[i]);
+        } else if (pSnd->snd_em_id[i] != 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->snd_em_id[i] + 0xE);
         } else {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->em_id[i]);
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->snd_em_id[i]);
         }
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 8], UseAramSize[i + 8]);
         total += UseAramSize[i + 8];
     }
     for (i = 1; i >= 0; i--) {
-        if (pSnd->bgm_id[i] == 0xFF) {
+        if (pSnd->snd_bgm_id[i] == 0xFF) {
             continue;
         }
         y2 += 0xE;
-        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    MI%03X", i + 3, pSnd->bgm_id[i]);
+        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    MI%03X", i + 3, pSnd->snd_bgm_id[i]);
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 3], UseAramSize[i + 3]);
         total += UseAramSize[i + 3];
     }
@@ -2670,10 +2670,10 @@ static void debugDisp()
         eprintf2(7, 0xE, 0x20, 0x8E, 0, 0xA, "CROSSTALK    %2.2f", Snd_efx_work[0].fx.hi.crosstalk);
         eprintf2(7, 0xE, 0x20, 0x9C, 0, 0xA, "MIX          %2.2f", Snd_efx_work[0].fx.hi.mix);
         eprintf2(7, 0xE, 0x20, 0xAA, 6, 0xA, "DEFAULT AUX A");
-        eprintf2(7, 0xE, 0x20, 0xB8, 0, 0xA, "CORE           %3d", pSnd->hdr->efx[0].aux_core);
-        eprintf2(7, 0xE, 0x20, 0xC6, 0, 0xA, "WEAPON         %3d", pSnd->hdr->efx[0].aux_wep);
-        eprintf2(7, 0xE, 0x20, 0xD4, 0, 0xA, "ENEMY          %3d", pSnd->hdr->efx[0].aux_em);
-        eprintf2(7, 0xE, 0x20, 0xE2, 0, 0xA, "ROOM           %3d", pSnd->hdr->efx[0].aux_room);
+        eprintf2(7, 0xE, 0x20, 0xB8, 0, 0xA, "CORE           %3d", pSnd->hdr->efx[0].Aux_core);
+        eprintf2(7, 0xE, 0x20, 0xC6, 0, 0xA, "WEAPON         %3d", pSnd->hdr->efx[0].Aux_weapon);
+        eprintf2(7, 0xE, 0x20, 0xD4, 0, 0xA, "ENEMY          %3d", pSnd->hdr->efx[0].Aux_enemy);
+        eprintf2(7, 0xE, 0x20, 0xE2, 0, 0xA, "ROOM           %3d", pSnd->hdr->efx[0].Aux_room);
     }
 }
 

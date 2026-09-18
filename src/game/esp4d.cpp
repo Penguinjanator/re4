@@ -34,19 +34,19 @@ void cEsp4d::move()
     if (CommonMove()) {
         fade = 1.0f;
         sign = (type == 0) ? 1.0f : -1.0f;
-        if (flags & 0x20000) {
+        if (m_Tool_flg & 0x20000) {
             sign *= 4.0f;
         }
         nRing = 5;
         for (i = 0; i < nRing; i++) {
             n = i + 3;
-            r = sizeX * scale * ((f32)(i + 1) * 0.25f);
+            r = m_Size_base_x * m_Size_mul * ((f32)(i + 1) * 0.25f);
             ang = 0.0f;
             for (j = 0; j < n; j++) {
-                p = pos;
+                p = m_Pos;
                 p.x = SINF(ang) * r + p.x;
                 p.z = COSF(ang) * r + p.z;
-                AddWaterPower(&p, colA * 0.001f * fade * sign);
+                AddWaterPower(&p, m_Col_a * 0.001f * fade * sign);
                 ang += 6.2831855f / (f32)n;
             }
             fade -= 1.0f / (f32)nRing;

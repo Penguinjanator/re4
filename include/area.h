@@ -16,16 +16,16 @@ struct AreaXZ {
 };
 
 struct AreaXZ4 {
-    f32 y;         // 0x00  floor height
-    f32 h;         // 0x04  height
-    f32 r;         // 0x08  (editor) point marker radius
+    f32 floor;         // 0x00  floor height
+    f32 height;         // 0x04  height
+    f32 radius;         // 0x08  (editor) point marker radius
     AreaXZ p[4];   // 0x0C
 };
 
 struct AreaCylinder {
-    f32 y;         // 0x00
-    f32 h;         // 0x04
-    f32 r;         // 0x08  radius
+    f32 floor;         // 0x00
+    f32 height;         // 0x04
+    f32 radius;         // 0x08  radius
     f32 x;         // 0x0C
     f32 z;         // 0x10
     f32 x14;
@@ -37,10 +37,10 @@ struct AreaCylinder {
 };
 
 struct AreaEyeTrigger {
-    f32 y;         // 0x00
-    f32 h;         // 0x04
-    f32 r;         // 0x08  cone length (margin)
-    f32 x;         // 0x0C
+    f32 floor;         // 0x00
+    f32 height;         // 0x04
+    f32 radius;         // 0x08  cone length (margin)
+    f32 xz;         // 0x0C
     f32 z;         // 0x10
     f32 ang_x;     // 0x14  view direction (rotation about X)
     f32 ang_y;     // 0x18  view direction (rotation about Y)
@@ -57,7 +57,7 @@ union AreaBody {
 };
 
 struct AreaData {
-    u8 flag;       // 0x00  1 = in use
+    u8 Be_flag;       // 0x00  1 = in use
     u8 type;       // 0x01  AREA_TYPE_*
     u16 x2;        // 0x02
     AreaBody u;    // 0x04

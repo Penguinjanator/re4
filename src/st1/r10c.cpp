@@ -119,7 +119,7 @@ void R10cInit()
     {
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        PSet(r10c_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zero, &zero, 6));
+        PSet(r10c_work.p->eat, EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 6));
     }
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 3, 0x800, 0, 0, 0);
@@ -133,7 +133,7 @@ void R10cInit()
         SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) chkSwitchA, 0, 1);
     } else {
         SmdGetObjPtr(0xC)->be_flag |= 0x20;
-        SmdGetObjPtr(0xC)->pParts->rot.z = -1.6f;
+        SmdGetObjPtr(0xC)->pParts->ang.z = -1.6f;
     }
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r10c_EmEvent, 0, 1);
@@ -197,17 +197,17 @@ void R10cInit()
         Vec rot = {0.0f, 0.0f, 0.0f};
 
         if (RsfCheck(G_ROOM_ID, 11)) {
-            SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2);
+            SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
         }
         if (RsfCheck(G_ROOM_ID, 12)) {
-            SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3);
+            SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
         }
         if (RsfCheck(G_ROOM_ID, 13)) {
-            SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4);
+            SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
         }
-        PSet(r10c_work.p->crate[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
-        PSet(r10c_work.p->crate[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
-        PSet(r10c_work.p->crate[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
+        PSet(r10c_work.p->crate[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        PSet(r10c_work.p->crate[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
+        PSet(r10c_work.p->crate[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 1));
     }
     if (pSys->language != 0) {
         SceAtSetEnable(0xC, 0);
@@ -221,9 +221,9 @@ void R10cMain()
     if (pG->item_flags[0] & 0x00400000) {
         pG->Item_find_flg |= 0x100;
     }
-    r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot);
-    r10c_work.p->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->rot);
-    r10c_work.p->crate[2]->setCoord(&SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->rot);
+    r10c_work.p->crate[0]->setCoord(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang);
+    r10c_work.p->crate[1]->setCoord(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang);
+    r10c_work.p->crate[2]->setCoord(&SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->ang);
 }
 
 // Areas 3 / 4: Leon climbs down (side 0) or up (side 1) the ladder to the other bank.
@@ -249,7 +249,7 @@ static void r10c_TestPosMove(int side)
     FadeSetW(0x80000002, 10, 0, 0);
     SceEventStart(0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(0, 0);
+    pl->Wep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (side == 0) {
         SndStrReq(1, 0x25, 0x80000003, 0, 0, 0.0f);
@@ -263,15 +263,15 @@ static void r10c_TestPosMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 10, 0, 0x201, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x24), 10, 0, 0x201, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x22), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -308,15 +308,15 @@ static void r10c_TestPosMove(int side)
             p = pPL;
             p->setPos(&out);
             p->setAng(&ang);
-            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &ang, 0x10, 1);
+            obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x1F), ROOM_ARC_PTR(pG->pRoom, 0x20), &pos, &ang, 0x10, 1);
             if (obj == 0) {
                 pLog->err(0, 0, "R10cTestPosMove : set failed");
                 return;
             }
             pPL->setNoSuspend(1);
-            pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 10, 0, 1, 0);
-            obj->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
-            SceSleep((u32) MotionGetMaxFrame(&pPL->mot) - 30);
+            pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x23), 10, 0, 1, 0);
+            obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x21), 10, 0, 1, 0);
+            SceSleep((u32) MotionGetMaxFrame(&pPL->Motion) - 30);
             FadeSetW(2, 30, 0, 0);
             SceSleep(30);
             pPL->setNoSuspend(0);
@@ -340,9 +340,9 @@ static void r10c_TestPosMove(int side)
     }
     PlSetHand(0, 0);
     pl->setRightHand(1);
-    pl->pWep->setTrans(1, 0);
+    pl->Wep->setTrans(1, 0);
     SceEventEnd(0);
-    CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
+    CamCtrl.m_QuasiFPS.setPlayerLocation(pPL->mat, pPL->pFloor_norm);
     FadeSetW(0x80000002, 30, 0, 0);
     SmdSetTrans(0x5C, 1);
     if (RsfCheck(G_ROOM_ID, 10) == 0) {
@@ -398,7 +398,7 @@ static void r10c_EmEvent()
         r10c_work.p->em = em;
         EstSet((int) em, -1, 0, 0, 1, 0x1F, 1, 2, 0, 0);
         BitOn(em->flags_3C8, 1);
-        MotionSetCore(em, &em->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 0, 1, 0);
+        MotionSetCore(em, &em->Motion, ROOM_ARC_PTR(pG->pRoom, 0x26), 0, 0, 1, 0);
         SndStrReq(1, 0x23, 0x80000003, 0, 0, 0.0f);
         SceEventStart(0);
         pG->flags_5014 |= 0x02000000;
@@ -485,9 +485,9 @@ static void r10c_ThunderMove()
 // TexRender blend setup of one water object (the byte stores are scheduled differently per block).
 #define R10C_TEX_OBJ(id, col, v138, v136, v137) \
     obj = SmdGetObjPtr(id);                     \
-    obj->pInfo->setTexBlendTbl(tbl);            \
-    obj->pInfo->setBlendRatio(0xFF);            \
-    obj->pInfo->color[3] = col;                 \
+    obj->pModelInfo->setTexBlendTbl(tbl);            \
+    obj->pModelInfo->setBlendRatio(0xFF);            \
+    obj->pModelInfo->color[3] = col;                 \
     obj->Shader_type = v136;                           \
     obj->Refract_pow = v137;                           \
     obj->Refract_ratio = v138;
@@ -503,8 +503,8 @@ extern "C" void setTexRender()
         tbl[1] = 0;
         tbl[4] = 0xF7;
         tbl[5] = r10c_work.p->tex->texId;
-        r10c_work.p->tex->repType = 1;
-        r10c_work.p->tex->sy = r10c_work.p->tex->sx = 0x40;
+        r10c_work.p->tex->m_Rep_type = 1;
+        r10c_work.p->tex->m_H_size = r10c_work.p->tex->m_W_size = 0x40;
         EstSet(0, -1, 0, 0, 1, 0, r10c_work.p->tex->mask | 1, 0, 0, 0);
     } else {
         pLog->err(0, 0, "R10cInit() : Manager alloc failed!!");
@@ -530,18 +530,18 @@ extern "C" int SwitchExec(cObj* obj, f32* spd, int no, f32 lim, f32 cur)
     int dir;
 
     if (lim > cur) {
-        obj->pParts->rot.z += *spd;
+        obj->pParts->ang.z += *spd;
         dir = 1;
     } else {
-        obj->pParts->rot.z -= *spd;
+        obj->pParts->ang.z -= *spd;
         dir = 0;
     }
     if (*spd >= 0.0f) {
-        if (dir ? (obj->pParts->rot.z < lim) : (obj->pParts->rot.z > lim)) {
+        if (dir ? (obj->pParts->ang.z < lim) : (obj->pParts->ang.z > lim)) {
             *spd += r10c_switchAcc * 1.85f;
         } else {
             *spd = -r10c_switchAcc;
-            obj->pParts->rot.z = lim;
+            obj->pParts->ang.z = lim;
             return 1;
         }
     }
@@ -608,7 +608,7 @@ static void chkSwitchA()
 {
     SceEventStart(0);
     CamCtrl.CutCall(0x14);
-    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 1) {
         f32 spd;
 
@@ -776,9 +776,9 @@ static void moveWheel()
     for (;;) {
         if (RsfCheck(G_ROOM_ID, 5)) {
             if (r10c_work.p->cnt < 100) {
-                gate->rot.y = -1.2f;
+                gate->ang.y = -1.2f;
             }
-            if (gate->rot.y > -1.2f) {
+            if (gate->ang.y > -1.2f) {
                 SmdSetTrans(0x58, 1);
                 SmdSetTrans(0x59, 1);
                 SmdSetTrans(0x56, 0);
@@ -790,11 +790,11 @@ static void moveWheel()
                 SceAtSetEnable(0xD, 0);
                 eat_swap();
                 gateSpd += 0.001f;
-                gate->rot.y -= gateSpd;
-                if (gate->rot.y <= -1.2f) {
-                    gate->rot.y = -1.2f;
+                gate->ang.y -= gateSpd;
+                if (gate->ang.y <= -1.2f) {
+                    gate->ang.y = -1.2f;
                 }
-                gate2->rot.y = gate->rot.y;
+                gate2->ang.y = gate->ang.y;
             }
         }
         if (RsfCheck(G_ROOM_ID, 7)) {
@@ -881,8 +881,8 @@ static void moveWheel()
             }
         }
         wheelB->rotSpd.z = spdB;
-        cogA->rot.y += spdB;
-        cogB->rot.y -= spdB;
+        cogA->ang.y += spdB;
+        cogB->ang.y -= spdB;
         SceSleep(1);
     }
 }
@@ -890,7 +890,7 @@ static void moveWheel()
 // Recomputes a hit box's matrices after its position was set by hand.
 extern "C" void EmHitUpdate(cEm* em)
 {
-    RotMatrix(em->mat, &em->rot);
+    RotMatrix(em->mat, &em->ang);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->partsMatCalc();
@@ -954,13 +954,13 @@ static void SetEmHitAtari()
     spdC = 0.06f;
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
         r10c_work.p->hit[0][0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[0][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, 1);
         r10c_work.p->hit[0][1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[0][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, 1);
         r10c_work.p->hit[0][2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[0][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, 1);
     } else {
         cObj* obj;
@@ -974,13 +974,13 @@ static void SetEmHitAtari()
     }
     if (RsfCheck(G_ROOM_ID, 15) == 0) {
         r10c_work.p->hit[1][0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->rot, 0);
+                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x62)->ang, 0);
         YarareInitCube(r10c_work.p->hit[1][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, 1);
         r10c_work.p->hit[1][1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[1][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, 1);
         r10c_work.p->hit[1][2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[1][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, 1);
     } else {
         cObj* obj;
@@ -994,13 +994,13 @@ static void SetEmHitAtari()
     }
     if (RsfCheck(G_ROOM_ID, 16) == 0) {
         r10c_work.p->hit[2][0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->rot, 0);
+                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x63)->ang, 0);
         YarareInitCube(r10c_work.p->hit[2][0], 0.0f, 0.0f, 0.0f, 750.0f, 1500.0f, 750.0f, 0, 1);
         r10c_work.p->hit[2][1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[2][1], 0.0f, 1500.0f, 0.0f, 100.0f, 1800.0f, 100.0f, 0, 1);
         r10c_work.p->hit[2][2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
-                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->rot, 0);
+                                          &SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x61)->ang, 0);
         YarareInitCube(r10c_work.p->hit[2][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, 1);
     } else {
         cObj* obj;
@@ -1032,10 +1032,10 @@ static void SetEmHitAtari()
             spdC += r10c_crateAcc;
         }
         if (RsfCheck(G_ROOM_ID, 14) == 0) {
-            SmdGetObjPtr(0x5E)->rot.y = angA;
-            SmdGetObjPtr(0x61)->rot.y = angA;
-            SmdGetObjPtr(0x6A)->rot.y = angA;
-            RotMatrix(m, &SmdGetObjPtr(0x5E)->rot);
+            SmdGetObjPtr(0x5E)->ang.y = angA;
+            SmdGetObjPtr(0x61)->ang.y = angA;
+            SmdGetObjPtr(0x6A)->ang.y = angA;
+            RotMatrix(m, &SmdGetObjPtr(0x5E)->ang);
             PSMTXMultVec(m, &ofsA, &tmp);
             PSVECAdd(&tmp, &SmdGetObjPtr(0x5E)->pos, &tmp);
             SmdGetObjPtr(0x61)->pos = tmp;
@@ -1044,18 +1044,18 @@ static void SetEmHitAtari()
             r10c_work.p->hit[0][0]->pos = tmp;
             r10c_work.p->hit[0][1]->pos = tmp;
             r10c_work.p->hit[0][2]->pos = tmp;
-            r10c_work.p->hit[0][0]->rot.y = angA;
-            r10c_work.p->hit[0][1]->rot.y = angA;
-            r10c_work.p->hit[0][2]->rot.y = angA;
+            r10c_work.p->hit[0][0]->ang.y = angA;
+            r10c_work.p->hit[0][1]->ang.y = angA;
+            r10c_work.p->hit[0][2]->ang.y = angA;
             EmHitUpdate(r10c_work.p->hit[0][0]);
             EmHitUpdate(r10c_work.p->hit[0][1]);
             EmHitUpdate(r10c_work.p->hit[0][2]);
         }
         if (RsfCheck(G_ROOM_ID, 15) == 0) {
-            SmdGetObjPtr(0x5F)->rot.y = angB;
-            SmdGetObjPtr(0x62)->rot.y = angB;
-            SmdGetObjPtr(0x6B)->rot.y = angB;
-            RotMatrix(m, &SmdGetObjPtr(0x5F)->rot);
+            SmdGetObjPtr(0x5F)->ang.y = angB;
+            SmdGetObjPtr(0x62)->ang.y = angB;
+            SmdGetObjPtr(0x6B)->ang.y = angB;
+            RotMatrix(m, &SmdGetObjPtr(0x5F)->ang);
             PSMTXMultVec(m, &ofsB, &tmp);
             PSVECAdd(&tmp, &SmdGetObjPtr(0x5F)->pos, &tmp);
             SmdGetObjPtr(0x62)->pos = tmp;
@@ -1064,18 +1064,18 @@ static void SetEmHitAtari()
             r10c_work.p->hit[1][0]->pos = tmp;
             r10c_work.p->hit[1][1]->pos = tmp;
             r10c_work.p->hit[1][2]->pos = tmp;
-            r10c_work.p->hit[1][0]->rot.y = angB;
-            r10c_work.p->hit[1][1]->rot.y = angB;
-            r10c_work.p->hit[1][2]->rot.y = angB;
+            r10c_work.p->hit[1][0]->ang.y = angB;
+            r10c_work.p->hit[1][1]->ang.y = angB;
+            r10c_work.p->hit[1][2]->ang.y = angB;
             EmHitUpdate(r10c_work.p->hit[1][0]);
             EmHitUpdate(r10c_work.p->hit[1][1]);
             EmHitUpdate(r10c_work.p->hit[1][2]);
         }
         if (RsfCheck(G_ROOM_ID, 16) == 0) {
-            SmdGetObjPtr(0x60)->rot.y = angC;
-            SmdGetObjPtr(0x63)->rot.y = angC;
-            SmdGetObjPtr(0x6C)->rot.y = angC;
-            RotMatrix(m, &SmdGetObjPtr(0x60)->rot);
+            SmdGetObjPtr(0x60)->ang.y = angC;
+            SmdGetObjPtr(0x63)->ang.y = angC;
+            SmdGetObjPtr(0x6C)->ang.y = angC;
+            RotMatrix(m, &SmdGetObjPtr(0x60)->ang);
             PSMTXMultVec(m, &ofsC, &tmp);
             PSVECAdd(&tmp, &SmdGetObjPtr(0x60)->pos, &tmp);
             SmdGetObjPtr(0x63)->pos = tmp;
@@ -1084,9 +1084,9 @@ static void SetEmHitAtari()
             r10c_work.p->hit[2][0]->pos = tmp;
             r10c_work.p->hit[2][1]->pos = tmp;
             r10c_work.p->hit[2][2]->pos = tmp;
-            r10c_work.p->hit[2][0]->rot.y = angC;
-            r10c_work.p->hit[2][1]->rot.y = angC;
-            r10c_work.p->hit[2][2]->rot.y = angC;
+            r10c_work.p->hit[2][0]->ang.y = angC;
+            r10c_work.p->hit[2][1]->ang.y = angC;
+            r10c_work.p->hit[2][2]->ang.y = angC;
             EmHitUpdate(r10c_work.p->hit[2][0]);
             EmHitUpdate(r10c_work.p->hit[2][1]);
             EmHitUpdate(r10c_work.p->hit[2][2]);
@@ -1180,7 +1180,7 @@ static void hako_down(cObj* obj)
         }
         if (obj->pos.x >= 93412.0f) {
             obj->pos.x = 93412.0f;
-            obj->rot.y *= 0.96f;
+            obj->ang.y *= 0.96f;
             spdX = 0.0f;
             if (landed == 0) {
                 landed = 1;
@@ -1192,15 +1192,15 @@ static void hako_down(cObj* obj)
 
                 if (obj == SmdGetObjPtr(0x61)) {
                     RsfSet(G_ROOM_ID, 11);
-                    SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2);
+                    SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 2);
                 }
                 if (obj == SmdGetObjPtr(0x62)) {
                     RsfSet(G_ROOM_ID, 12);
-                    SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3);
+                    SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 3);
                 }
                 if (obj == SmdGetObjPtr(0x63)) {
                     RsfSet(G_ROOM_ID, 13);
-                    SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 4);
+                    SatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &pos, &rot, 4);
                 }
             }
             obj->pos.y += (-16601.0f - obj->pos.y) * 0.05f;
@@ -1216,7 +1216,7 @@ static void hako_down(cObj* obj)
             if (obj == SmdGetObjPtr(0x63)) {
                 obj->pos.z += (46723.0f - obj->pos.z) * 0.022f;
             }
-            obj->rot.y *= 0.97f;
+            obj->ang.y *= 0.97f;
         }
         obj->pos.x += spdX;
         obj->pos.y += spdY;
@@ -1227,7 +1227,7 @@ static void hako_down(cObj* obj)
 // Area 0x80: the key item on the gate; the gate rises and Leon is put on the far side.
 static void r10c_ItemGet()
 {
-    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(3, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 2) {
         SceExit();
     }
@@ -1281,7 +1281,7 @@ extern "C" void eat_swap()
         pG->flags_174 |= 0x02000000;
         Vec zero = {0.0f, 0.0f, 0.0f};
 
-        r10c_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &zero, &zero, 7);
+        r10c_work.p->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoom, 5), 0, &zero, &zero, 7);
         EatMgr.destroy(r10c_work.p->eat);
     }
 }

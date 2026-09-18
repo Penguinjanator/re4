@@ -24,7 +24,7 @@ struct ItemWork {
 
 // cItemMgr::ordering() output (cItemMgr::pOrder[], 8 bytes): the in-use slots holding one item id.
 struct ItemOrder {
-    ItemWork* item;  // 0x00
+    ItemWork* p_item;  // 0x00
     u16 num;         // 0x04  copy of item->num
     u8 pad_6[2];
 };
@@ -51,27 +51,27 @@ struct ItemSaveWork {
 };
 
 struct ItemSaveData {
-    u16 armId;               // 0x00
-    u16 armIdx;              // 0x02  slot index of the equipped weapon, 0xFFFF = none
-    ItemSaveWork item[0x180];// 0x04
+    u16 wep_id;               // 0x00
+    u16 arm_no;              // 0x02  slot index of the equipped weapon, 0xFFFF = none
+    ItemSaveWork item_list[0x180];// 0x04
 };                           // 0x1204 = cItemMgr::saveDataSize()
 
 // Inventory manager (game/item.cpp, 0x30 bytes).
 class cItemMgr {
 public:
-    u32* pFlags;                // 0x00  one bit per item id (available()/use(): items usable this frame)
-    s32 nFlags;                 // 0x04  words in pFlags (8)
-    u16 checkId;                // 0x08  item id use() handed to check(), 0xFFFF = none
+    u32* m_pAvailable;                // 0x00  one bit per item id (available()/use(): items usable this frame)
+    s32 m_flag_num;                 // 0x04  words in pFlags (8)
+    u16 used_id;                // 0x08  item id use() handed to check(), 0xFFFF = none
     u8 pad_A[2];
     ItemWork* pArm;             // 0x0C  equipped weapon slot (NULL = bare hands)
-    u16 armId;                  // 0x10  equipped weapon item id
+    u16 m_wep_id;                  // 0x10  equipped weapon item id
     s8 m_to_whom;                     // 0x12  0 player, 1 sub character heals (sce_at clears it before use())
     u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
     ItemWork* pItems;           // 0x14
     ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
     s32 nItems;                 // 0x1C
-    ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
-    s32 nOrder;                 // 0x24  entries in pOrder
+    ItemOrder* m_p_order_tbl;          // 0x20  ordering() result (merchant: sorted slots of one item id)
+    s32 m_order_tbl_num;                 // 0x24  entries in pOrder
     u32 m_bonus_time;                    // 0x28  (sce_at: number shown with item 0x73; get(0x73, n): mercenaries add time)
     u32 m_bonus_point;                    // 0x2C  (sce_at: number shown with item 0x75; get(0x75, n): mercenaries bonus time)
 

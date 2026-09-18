@@ -157,7 +157,7 @@ static void r216_BattleStart()
     u32 i;
     R216Em* e;   // shared by both loops: a multi-block pseudo, so the work load is not tied into it
 
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->m_font_h - 1);
     if (SceMesGetSelection() == 2) {
         SceExit();
     }
@@ -380,9 +380,9 @@ void cR216Pole::open()
         se = RoomSeCall(no * 2 + 1, &obj[0]->pos, 0, 0, obj[0]);
         step++;
     case 1:
-        obj[0]->rot.y += spd;
-        obj[1]->rot.y += spd;
-        obj[2]->rot.y += spd;
+        obj[0]->ang.y += spd;
+        obj[1]->ang.y += spd;
+        obj[2]->ang.y += spd;
         if (em) {
             Vec ang;
 
@@ -391,10 +391,10 @@ void cR216Pole::open()
             ang.z = 0.0f;
             em->setAng(&ang);
         }
-        if (obj[0]->rot.y > 0.0f) {
-            obj[0]->rot.y = 0.0f;
-            obj[1]->rot.y = 0.0f;
-            obj[2]->rot.y = 0.0f;
+        if (obj[0]->ang.y > 0.0f) {
+            obj[0]->ang.y = 0.0f;
+            obj[1]->ang.y = 0.0f;
+            obj[2]->ang.y = 0.0f;
             se = RoomSeCall(no * 2 + 2, &obj[0]->pos, 0, 0, obj[0]);
             status = 1;
             mode = 0;
@@ -416,9 +416,9 @@ void cR216Pole::close()
         se = RoomSeCall(no * 2 + 1, &obj[0]->pos, 0, 0, obj[0]);
         step++;
     case 1:
-        obj[0]->rot.y += spd;
-        obj[1]->rot.y += spd;
-        obj[2]->rot.y += spd;
+        obj[0]->ang.y += spd;
+        obj[1]->ang.y += spd;
+        obj[2]->ang.y += spd;
         if (em) {
             ang.y = em->getAngY() + spd;
             cEmWrap* e = em;
@@ -426,10 +426,10 @@ void cR216Pole::close()
             ang.z = 0.0f;
             e->setAng(&ang);
         }
-        if (obj[0]->rot.y > 3.1415927f) {
-            obj[0]->rot.y = -3.1415927f;
-            obj[1]->rot.y = -3.1415927f;
-            obj[2]->rot.y = -3.1415927f;
+        if (obj[0]->ang.y > 3.1415927f) {
+            obj[0]->ang.y = -3.1415927f;
+            obj[1]->ang.y = -3.1415927f;
+            obj[2]->ang.y = -3.1415927f;
             se = RoomSeCall(no * 2 + 2, &obj[0]->pos, 0, 0, obj[0]);
             step = mode = status = 0;
             em = NULL;
@@ -476,9 +476,9 @@ void cR216Pole::setOpened()
         mode = 0;
         step = 0;
         status = 1;
-        obj[0]->rot.y = 0.0f;
-        obj[1]->rot.y = 0.0f;
-        obj[2]->rot.y = 0.0f;
+        obj[0]->ang.y = 0.0f;
+        obj[1]->ang.y = 0.0f;
+        obj[2]->ang.y = 0.0f;
         if (em) {
             Vec ang;
 
@@ -499,9 +499,9 @@ void cR216Pole::setClosed()
         mode = 0;
         step = 0;
         status = 0;
-        obj[0]->rot.y = -3.1415927f;
-        obj[1]->rot.y = -3.1415927f;
-        obj[2]->rot.y = -3.1415927f;
+        obj[0]->ang.y = -3.1415927f;
+        obj[1]->ang.y = -3.1415927f;
+        obj[2]->ang.y = -3.1415927f;
         if (em) {
             Vec ang;
 

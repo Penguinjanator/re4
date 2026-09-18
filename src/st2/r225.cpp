@@ -183,9 +183,9 @@ void R225Init()
         rot.x = 0.0f;
         rot.y = -1.08f;
         rot.z = 0.0f;
-        hit = SetEmHit(ROOM_ARC_PTR(pG->pRoomArc, 0x35), ROOM_ARC_PTR(pG->pRoomArc, 0x36), &pos, &rot, 2);
+        hit = SetEmHit(ROOM_ARC_PTR(pG->pRoom, 0x35), ROOM_ARC_PTR(pG->pRoom, 0x36), &pos, &rot, 2);
         if (hit) {
-            hit->setBeetle(ROOM_ARC_PTR(pG->pRoomArc, 0x37), ROOM_ARC_PTR(pG->pRoomArc, 0x39), ROOM_ARC_PTR(pG->pRoomArc, 0x38));
+            hit->setBeetle(ROOM_ARC_PTR(pG->pRoom, 0x37), ROOM_ARC_PTR(pG->pRoom, 0x39), ROOM_ARC_PTR(pG->pRoom, 0x38));
         }
     }
     pG->flags_51C4 |= 0x01000000;
@@ -239,8 +239,8 @@ static void r225_operateCrank()
     PlSetHand(1, 0);
     ((cUnitEventView*) r225_work->crank)->beginEvent(0);
     CamCtrl.CutCall(5);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x20));
-    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x2B));
+    pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x20));
+    r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoom, 0x2B));
     {
         Vec pos = {82071.0f, 1500.0f, -18900.0f};
         cPlayer* pl;
@@ -249,9 +249,9 @@ static void r225_operateCrank()
         // pPLS: the scalar `pPL` load would not depend on the template stores above it and its chain
         // through the in-struct `stfs pos.y` -> crank loads (unknown base) outranks the `r225_work` load.
         pos.y = pPLS->pos.y;
-        FSetP(pPL->rot.y, r225_work->crank->rot.y - 1.5707964f);
+        FSetP(pPL->ang.y, r225_work->crank->ang.y - 1.5707964f);
         pl = pPL;
-        rot = &pl->rot;
+        rot = &pl->ang;
         pl->setPos(&pos);
         pl->setAng(rot);
     }
@@ -260,8 +260,8 @@ static void r225_operateCrank()
     // fall-through body is the in-line path (the target's gnd_open arm sits at the loop's end).
     while (1) {
         CamCtrl.CutCall(5);
-        if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1 || MotionCheckCrossFrame(&pPL->mot, 50.0f) == 1 ||
-            MotionCheckCrossFrame(&pPL->mot, 100.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->Motion, 0.0f) == 1 || MotionCheckCrossFrame(&pPL->Motion, 50.0f) == 1 ||
+            MotionCheckCrossFrame(&pPL->Motion, 100.0f) == 1) {
             SndCall(6, 0x35, &pPL->pos, 0, 0, 0);
             SndCall(6, 4, &pPL->pos, 0, 0, 0);
         }
@@ -299,36 +299,36 @@ static void r225_operateCrank()
                 switch (lvl) {
                 default:
                 case 0:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x20);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2B);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x20);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2B);
                     break;
                 case 1:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x21);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2C);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x21);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2C);
                     break;
                 case 2:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x22);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x22);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2D);
                     break;
                 case 3:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x23);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2E);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x23);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2E);
                     break;
                 case 4:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x24);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x2F);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x24);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x2F);
                     break;
                 case 5:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x30);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x25);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x30);
                     break;
                 case 6:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x31);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x26);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x31);
                     break;
                 case 7:
-                    mot = ROOM_ARC_PTR(pG->pRoomArc, 0x27);
-                    mot2 = ROOM_ARC_PTR(pG->pRoomArc, 0x32);
+                    mot = ROOM_ARC_PTR(pG->pRoom, 0x27);
+                    mot2 = ROOM_ARC_PTR(pG->pRoom, 0x32);
                     break;
                 }
                 // COMPILER-DIFF: candidate (loop.c pass-2 threshold). The 2^52 conversion magic must
@@ -344,8 +344,8 @@ static void r225_operateCrank()
                 if (frame >= max) {
                     frame = 0;
                 }
-                pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 3, (u16) frame, 5, (int) mot);
-                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 3, (u16) frame, 5, (int) mot2);
+                pPL->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x1F), 3, (u16) frame, 5, (int) mot);
+                r225_work->crank->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x2A), 3, (u16) frame, 5, (int) mot2);
             }
             SmdGetObjPtr(0x27)->be_flag |= 0x20;
             if (!(SmdGetObjPtr(0x27)->pos.x < 800.0f)) {
@@ -392,7 +392,7 @@ void r225_open_door()
     {
         Vec pos = {78329.0f, 3145.0f, -22522.0f};
         Vec rot = {1.5707964f, 1.5707964f, 0.0f};
-        r225_work->door = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x33), ROOM_ARC_PTR(pG->pRoomArc, 0x34), &pos, &rot, 0x10, 1);
+        r225_work->door = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x33), ROOM_ARC_PTR(pG->pRoom, 0x34), &pos, &rot, 0x10, 1);
     }
     EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
     SndCall(6, 3, 0, 0, 0, 0);

@@ -240,7 +240,7 @@ void cEm28::move()
         return;
     }
     partsWorldCalc();
-    spd = SQRTF((oldPos.x - pos.x) * (oldPos.x - pos.x) + (oldPos.z - pos.z) * (oldPos.z - pos.z));
+    spd = SQRTF((pos_old.x - pos.x) * (pos_old.x - pos.x) + (pos_old.z - pos.z) * (pos_old.z - pos.z));
     EmAtCheck(this);
     atari.move();
     if (w->flags & 0x10) {
@@ -248,7 +248,7 @@ void cEm28::move()
     } else {
         SatMgr.check(this, 0);
     }
-    if (SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z)) < spd * 0.5f) {
+    if (SQRTF((pos.x - pos_old.x) * (pos.x - pos_old.x) + (pos.z - pos_old.z) * (pos.z - pos_old.z)) < spd * 0.5f) {
         w->stuckCnt++;
     } else {
         w->stuckCnt = 0;
@@ -281,12 +281,12 @@ static void em28_R0_Init(cEm28* em)
     em->setStatus(3);
     zero = 0;
     em->setStatus(1);
-    em->motFlip = em28_flip_tbl;
+    em->pXFlip = em28_flip_tbl;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 500.0f, 500.0f, 0.0f };
 
-        em->lightInfo.init2(0, 3, &ofs, &size, 2);
+        em->LightInfo.init2(0, 3, &ofs, &size, 2);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -316,7 +316,7 @@ static void em28_R0_Move(cEm28* em)
 // Take off when the floor under the crow drops away (its perch broke).
 static inline void em28FloorCk(cEm28* em)
 {
-    if ((pG->flags_51E4 & 3) == (em->emsetNo & 3)) {
+    if ((pG->flags_51E4 & 3) == (em->emset_no & 3)) {
         if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 250.0f) {
             EmRoutineSet(em, 1, 3, 0, 0);
         }
@@ -399,14 +399,14 @@ static void em28_R1_Wait(cEm28* em)
                 pos = em->pos;
                 if (Rnd() & 7) {
                     if ((u8) (Rnd() % 3)) {
-                        wep = SetWeapon(ARC(7), ARC(8), &pos, &em->rot, 1);
+                        wep = SetWeapon(ARC(7), ARC(8), &pos, &em->ang, 1);
                         if (wep) {
                             no = SceAtCreateItemAt(&pos, 8, 0, -1, -1, 0, -1);
                             SceAtSetItemModel(no, wep);
                             wep->setAtNo(no);
                         }
                     } else {
-                        wep = SetWeapon(ARC(7), ARC(9), &pos, &em->rot, 1);
+                        wep = SetWeapon(ARC(7), ARC(9), &pos, &em->ang, 1);
                         if (wep) {
                             no = SceAtCreateItemAt(&pos, 9, 0, -1, -1, 0, -1);
                             SceAtSetItemModel(no, wep);
@@ -414,7 +414,7 @@ static void em28_R1_Wait(cEm28* em)
                         }
                     }
                 } else {
-                    wep = SetWeapon(ARC(7), ARC(0xA), &pos, &em->rot, 1);
+                    wep = SetWeapon(ARC(7), ARC(0xA), &pos, &em->ang, 1);
                     if (wep) {
                         no = SceAtCreateItemAt(&pos, 0xA, 0, -1, -1, 0, -1);
                         SceAtSetItemModel(no, wep);
@@ -453,8 +453,8 @@ static void em28_R1_Walk(cEm28* em)
         w->timer = (u8) (Rnd() % 5) + 3;
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 128.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 128.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (w->stuckCnt > 30) {
             w->timer = 0;
         }
@@ -484,7 +484,7 @@ static void em28_R1_Dash(cEm28* em)
         w->targetAng = LIMIT_ANGLE(w->targetAng);
         w->timer = (u8) (Rnd() % 3) + 3;
         w->turnTimer = (u8) (Rnd() % 30) + 30;
-        EstSet(0, -1, &em->getPartsPtr(0)->worldPos, 0, 0x20, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 0x20, 0, 0, 0, 0, 0);
         SndCall(8, 2, &em->pos, em->id, 0, em);
         em28BellSet(em);
         em->r_no_3 = Rnd() & 1;
@@ -497,8 +497,8 @@ static void em28_R1_Dash(cEm28* em)
             w->targetAng += fRand1_1() * (PI / 4.0f);
             w->targetAng = LIMIT_ANGLE(w->targetAng);
         }
-        em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 16.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 16.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (w->stuckCnt > 3) {
             if (em->r_no_3) {
                 w->targetAng += PI / 5.0f;
@@ -535,8 +535,8 @@ static void em28_R1_Jump(cEm28* em)
         SndCall(8, 2, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 1:
-        em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 16.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 16.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (w->stuckCnt > 3) {
             if (em->r_no_3) {
                 w->targetAng += PI / 16.0f;
@@ -554,15 +554,15 @@ static void em28_R1_Jump(cEm28* em)
         w->spd.x = 0.0f;
         w->spd.y = fRand0_1() * 100.0f + 150.0f;
         w->spd.z = fRand0_1() * 50.0f + 150.0f;
-        EstSet(0, -1, &em->getPartsPtr(0)->worldPos, 0, 0x20, 0, 0, 0, 0, 0);
+        EstSet(0, -1, &em->getPartsPtr(0)->world, 0, 0x20, 0, 0, 0, 0, 0);
         em28BellSet(em);
         em->r_no_2++;
     case 3: {
         Vec v;
 
         w->flags |= 0x10;
-        em->rot.y += Muku2(em->rot.y, w->targetAng, PI / 16.0f);
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
+        em->ang.y += Muku2(em->ang.y, w->targetAng, PI / 16.0f);
+        em->ang.y = LIMIT_ANGLE(em->ang.y);
         if (w->stuckCnt > 3) {
             w->targetAng += PI / 32.0f;
             w->targetAng = LIMIT_ANGLE(w->targetAng);
@@ -574,7 +574,7 @@ static void em28_R1_Jump(cEm28* em)
             f32 fl;
 
             v = em->pos;
-            v.y = em->oldPos.y;
+            v.y = em->pos_old.y;
             fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
@@ -635,7 +635,7 @@ static inline void em28DieFade(cEm28* em, Em28Work* w)
     if (w->flags & 0x40) {
         cModelInfo* info;
 
-        for (info = em->pInfo; info; info = info->pNext) {
+        for (info = em->pModelInfo; info; info = info->pList) {
             if (info->color[0] > 0x20) {
                 info->color[0] -= 0x20;
             }
@@ -657,7 +657,7 @@ static void em28_R1_Die_Normal(cEm28* em)
             MotionSetCore(em, MOTION(em), ARC(0x11), 0, 3, 1, 0);
             break;
         case 1:
-            em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, PI);
+            em->ang.y += Muku(&em->pos, &em->x328, em->ang.y, PI);
             MotionSetCore(em, MOTION(em), ARC(0x17), 0, 3, 1, 0);
             break;
         case 2:
@@ -665,14 +665,14 @@ static void em28_R1_Die_Normal(cEm28* em)
             break;
         }
         w->timer = 14;
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         em->r_no_2++;
     case 1:
         em28DieFade(em, w);
         if (w->timer) {
             w->timer--;
             if (w->timer == 0) {
-                SndCall(8, 1, &em->getPartsPtr(0)->worldPos, em->id, 0, em);
+                SndCall(8, 1, &em->getPartsPtr(0)->world, em->id, 0, em);
             }
         }
         if (MotionMoveF(em, 0)) {
@@ -704,7 +704,7 @@ static void em28_R1_Die_Air(cEm28* em)
             f32 fl;
 
             v = em->pos;
-            v.y = em->oldPos.y;
+            v.y = em->pos_old.y;
             fl = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
             if (em->pos.y < fl) {
                 em->pos.y = fl;
@@ -720,7 +720,7 @@ static void em28_R1_Die_Air(cEm28* em)
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0x16), 0, 3, 1, 0);
         em->clearStatus(5);
-        em->atari.flags &= ~0x200;
+        em->atari.m_flag &= ~0x200;
         SndCall(8, 1, &em->pos, em->id, 0, em);
         em->r_no_2++;
     case 3:

@@ -18,7 +18,7 @@ cItemObj::cItemObj()
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     sub2B4.clrFlags(0xFCFF);
-    lightInfo.init2(0, 1, &zero, &p1, 4);
+    LightInfo.init2(0, 1, &zero, &p1, 4);
 }
 
 void cItemObj::move()
@@ -40,8 +40,8 @@ cObj* setItemObj(void* bin, void* tpl, Vec* pos, Vec* rot)
     }
     obj->be_flag |= 0x4000;
     obj->pos = *pos;
-    obj->rot = *rot;
+    obj->ang = *rot;
     obj->setNoSuspend(1);
-    obj->lightInfo.init2(1, 1, &cItemObj::zero, &p1, 0x20);
+    obj->LightInfo.init2(1, 1, &cItemObj::zero, &p1, 0x20);
     return obj;
 }

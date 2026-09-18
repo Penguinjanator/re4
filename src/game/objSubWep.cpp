@@ -97,13 +97,13 @@ void cSubWep::moveNormal()
     {
         cModel* parts = getPartsPtr(0);
         if (parts) {
-            PSVECAdd(&parts->rot, &subWep.rotSpd, &parts->rot);
-            parts->rot.x = LIMIT_ANGLE(parts->rot.x);
-            parts->rot.y = LIMIT_ANGLE(parts->rot.y);
-            parts->rot.z = LIMIT_ANGLE(parts->rot.z);
-            RotMatrix(parts->worldMat, &parts->rot);
-            TransMatrix(parts->worldMat, &parts->pos);
-            ScaleMatrix(parts->worldMat, &parts->scale);
+            PSVECAdd(&parts->ang, &subWep.rotSpd, &parts->ang);
+            parts->ang.x = LIMIT_ANGLE(parts->ang.x);
+            parts->ang.y = LIMIT_ANGLE(parts->ang.y);
+            parts->ang.z = LIMIT_ANGLE(parts->ang.z);
+            RotMatrix(parts->l_mat, &parts->ang);
+            TransMatrix(parts->l_mat, &parts->pos);
+            ScaleMatrix(parts->l_mat, &parts->scale);
         }
     }
     matUpdate();
@@ -244,7 +244,7 @@ void cSubWep::addSpeed()
             pLog->err(0, 0, "  PLEASE SET EatMgr.registEffInfo()");
             return;
         }
-        subWep.attr = info->flags;
+        subWep.attr = info->flag;
         switch (type) {
         case 0:
         default:
@@ -300,13 +300,13 @@ void cSubWep::addSpeed()
     nrm.x = 0.0f;
     nrm.y = 0.0f;
     nrm.z = 0.0f;
-    EatMgr.adjust(&nrm, &oldPos, &pos, subWep.rad * 0.5f, 0x2001, 0x4000);
+    EatMgr.adjust(&nrm, &pos_old, &pos, subWep.rad * 0.5f, 0x2001, 0x4000);
     if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
         return;
     }
     info = EatMgr.getEffInfo(getEffectType());
     if (info) {
-        subWep.attr = info->flags | 0x80000000;
+        subWep.attr = info->flag | 0x80000000;
         switch (type) {
         case 0:
         default:
@@ -414,7 +414,7 @@ cSubWep::cSubWep()
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     sub2B4.atari.throughOn();
-    lightInfo.init2(0, 1, &p0, &p1, 4);
+    LightInfo.init2(0, 1, &p0, &p1, 4);
     subWep.seCnt0 = 0;
     subWep.seCnt1 = 0;
     subWep.flags = 0;
@@ -445,28 +445,28 @@ int cSubWep::init(Vec* rot, f32 power)
     switch (type) {
     case 0:
     default:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6B);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6B);
         break;
     case 1:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6D);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6D);
         break;
     case 2:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x6F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x6F);
         break;
     case 3:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7E);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7E);
         break;
     case 4:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x7F);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x7F);
         break;
     case 5:
-        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
-        tpl = PL_ARC_PTR(pG->pPlArc, 0x80);
+        bin = PL_ARC_PTR(pG->pPlayer, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlayer, 0x80);
         break;
     }
     if (modelInit(bin, tpl) == 0) {
@@ -480,12 +480,12 @@ int cSubWep::init(Vec* rot, f32 power)
     }
     parts = pPL->getPartsPtr(0);
     parts2 = pPL->getPartsPtr(10);
-    if (EatMgr.hitCheck(&parts->worldPos, &parts2->worldPos, &p, &d, 0, 0) & 0x1000000) {
+    if (EatMgr.hitCheck(&parts->world, &parts2->world, &p, &d, 0, 0) & 0x1000000) {
         PSVECScale(&d, &d, 500.0f);
         PSVECAdd(&p, &d, &p);
     }
     setPos(&p);
-    this->rot = *rot;
+    this->ang = *rot;
     setThrowSpeed(&subWep.spd, power);
     switch (type) {
     case 0:
@@ -520,7 +520,7 @@ void setThrowSpeed(Vec* spd, f32 power)
     Vec d;
     cModel* parts;
 
-    switch (pG->wep_no) {
+    switch (pG->weapon_no) {
     default:
         v = speedGre;
         break;
@@ -544,7 +544,7 @@ void setThrowSpeed(Vec* spd, f32 power)
     RotVector(&v, &ang, &v);
     PSMTXMultVecSR(pPL->mat, &v, spd);
     parts = pPL->getPartsPtr(0);
-    PSVECSubtract(&parts->worldPos, &parts->world_old2, &d);
+    PSVECSubtract(&parts->world, &parts->world_old2, &d);
     PSVECAdd(spd, &d, spd);
 }
 

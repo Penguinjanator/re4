@@ -13,9 +13,9 @@ void Light10_Move(cLight* l)
         w->wait--;
         return;
     }
-    l->power *= 0.3f;
-    if (l->power < 0.1f) {
-        l->power = 0.0f;
+    l->Intensity *= 0.3f;
+    if (l->Intensity < 0.1f) {
+        l->Intensity = 0.0f;
         delete l;
     }
 }

@@ -9,7 +9,7 @@
 // Cone (or fan/cylinder) volume: apex at pos, axis dir, half angle, height; radius is derived.
 struct GeoCone {
     Vec pos;     // 0x00
-    Vec dir;     // 0x0C
+    Vec direction;     // 0x0C
     f32 angle;   // 0x18
     f32 height;  // 0x1C
     f32 radius;  // 0x20  height * sin(angle), written by collision_point_cone_rev_play

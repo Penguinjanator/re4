@@ -55,7 +55,7 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     static const Vec p0 = { 0.0f, 0.0f, 0.0f };
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
-    obj->lightInfo.init2(0, 1, &p0, &p1, 2);
+    obj->LightInfo.init2(0, 1, &p0, &p1, 2);
     AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
@@ -65,22 +65,22 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         obj->pos.y = 0.0f;
         obj->pos.z = 0.0f;
     }
-    obj->oldPos = obj->pos;
+    obj->pos_old = obj->pos;
     if (rot) {
-        obj->rot = *rot;
+        obj->ang = *rot;
     } else {
-        obj->rot.x = 0.0f;
-        obj->rot.y = 0.0f;
-        obj->rot.z = 0.0f;
+        obj->ang.x = 0.0f;
+        obj->ang.y = 0.0f;
+        obj->ang.z = 0.0f;
     }
     obj->type = type;
-    w->hit = 0;
+    w->pHit = 0;
     if (obj->type == 1) {
-        w->hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, &obj->rot, 1);
-        if (w->hit) {
-            w->hit->hp = 0;
-            YarareInitCube(w->hit, 0.0f, -300.0f, -300.0f, 300.0f, 600.0f, 600.0f, 1, 5);
-            w->hit->setParent(obj, 0, 0);
+        w->pHit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &obj->pos, &obj->ang, 1);
+        if (w->pHit) {
+            w->pHit->hp = 0;
+            YarareInitCube(w->pHit, 0.0f, -300.0f, -300.0f, 300.0f, 600.0f, 600.0f, 1, 5);
+            w->pHit->setParent(obj, 0, 0);
         }
     }
     obj->r_no_0 = 0;
@@ -96,9 +96,9 @@ void cObjMissile::move()
 
     if (w->parent) {
         if ((w->parent->be_flag & 0x201) != 1 || ((cEm*) w->parent)->hp <= 0) {
-            if (w->hit) {
-                EmMgr.destroy(w->hit);
-                w->hit = 0;
+            if (w->pHit) {
+                EmMgr.destroy(w->pHit);
+                w->pHit = 0;
             }
             ObjMgr.destroy(this);
             return;
@@ -121,7 +121,7 @@ void objMissile_R0_Parent(cObjMissile* obj)
     Vec v2;
     cModel* parent = w->parent;
 
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
@@ -183,7 +183,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
 
     switch (obj->r_no_2) {
     case 0:
-        w->timer = 15;
+        w->Timer = 15;
         switch (obj->type) {
         case 0:
         default:
@@ -194,8 +194,8 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         }
         obj->r_no_2++;
     case 1:
-        if (w->timer) {
-            w->timer--;
+        if (w->Timer) {
+            w->Timer--;
         } else {
             obj->r_no_0 = 3;
             obj->r_no_1 = 0;
@@ -204,7 +204,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         }
         break;
     }
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (parent && parent->pParts) {
@@ -265,53 +265,53 @@ void objMissile_R0_Fire(cObjMissile* obj)
         obj->pos.x = obj->mat[0][3];
         obj->pos.y = obj->mat[1][3];
         obj->pos.z = obj->mat[2][3];
-        obj->oldPos = obj->pos;
-        Matrix2AxisAngle(obj->mat, &obj->rot);
-        if (w->hit) {
-            w->hit->hp = 1;
+        obj->pos_old = obj->pos;
+        Matrix2AxisAngle(obj->mat, &obj->ang);
+        if (w->pHit) {
+            w->pHit->hp = 1;
         }
-        if (w->hasTarget) {
+        if (w->Target_ok) {
             f32 len;
 
-            PSVECSubtract(&w->target, &obj->pos, &d);
+            PSVECSubtract(&w->Target, &obj->pos, &d);
             len = SQRTF(d.x * d.x + d.z * d.z);
-            obj->rot.x = -atan2f(d.y, len);
-            obj->rot.y = atan2f(d.x, d.z);
-            obj->rot.z = 0.0f;
-            RotMatrix(obj->mat, &obj->rot);
+            obj->ang.x = -atan2f(d.y, len);
+            obj->ang.y = atan2f(d.x, d.z);
+            obj->ang.z = 0.0f;
+            RotMatrix(obj->mat, &obj->ang);
             TransMatrix(obj->mat, &obj->pos);
         }
-        w->timer = 90;
+        w->Timer = 90;
         w->hitWait = 3;
         switch (obj->type) {
         case 0:
         default:
             EstSet((int) obj, -1, 0, 0, 0x32, 5, 0, 0, (u32) obj, 0);
             SndCall(6, 2, &obj->pos, 0, 0, obj);
-            w->spd.x = 0.0f;
-            w->spd.y = 0.0f;
-            w->spd.z = 300.0f;
+            w->Spd.x = 0.0f;
+            w->Spd.y = 0.0f;
+            w->Spd.z = 300.0f;
             break;
         case 1:
-            w->spd.x = 0.0f;
-            w->spd.y = 0.0f;
-            w->spd.z = 150.0f;
+            w->Spd.x = 0.0f;
+            w->Spd.y = 0.0f;
+            w->Spd.z = 150.0f;
             break;
         }
-        PSMTXMultVecSR(obj->mat, &w->spd, &w->spd);
+        PSMTXMultVecSR(obj->mat, &w->Spd, &w->Spd);
         w->parent = 0;
         obj->r_no_2++;
     }
     Vec hit;
     Vec nrm;
 
-    PSVECAdd(&obj->pos, &w->spd, &obj->pos);
-    PSVECScale(&w->spd, &w->spd, 1.1f);
+    PSVECAdd(&obj->pos, &w->Spd, &obj->pos);
+    PSVECScale(&w->Spd, &w->Spd, 1.1f);
     if (w->hitWait) {
         w->hitWait--;
     } else {
-        if (EatMgr.hitCheck(&obj->oldPos, &obj->pos, &hit, 0, 0, 0)) {
-            PSVECSubtract(&obj->oldPos, &obj->pos, &nrm);
+        if (EatMgr.hitCheck(&obj->pos_old, &obj->pos, &hit, 0, 0, 0)) {
+            PSVECSubtract(&obj->pos_old, &obj->pos, &nrm);
             if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
                 objMissileBomb(obj, &hit);
                 return;
@@ -327,18 +327,18 @@ void objMissile_R0_Fire(cObjMissile* obj)
     if (obj->type == 1) {
         Vec nrm2;
 
-        if (EmAtkLineHitCk(&obj->oldPos, &obj->pos, &hit, &nrm2, 0)) {
+        if (EmAtkLineHitCk(&obj->pos_old, &obj->pos, &hit, &nrm2, 0)) {
             objMissileBomb(obj, &hit);
             return;
         }
-        if (w->hit) {
-            if (w->hit->ckDmgWeapon()) {
+        if (w->pHit) {
+            if (w->pHit->ckDmgWeapon()) {
                 objMissileBomb(obj, &obj->pos);
                 return;
             }
         }
     }
-    RotMatrix(obj->mat, &obj->rot);
+    RotMatrix(obj->mat, &obj->ang);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (obj->pMotion) {
@@ -348,8 +348,8 @@ void objMissile_R0_Fire(cObjMissile* obj)
         obj->partsMatCalc();
     }
     obj->partsWorldCalc();
-    if (w->timer) {
-        w->timer--;
+    if (w->Timer) {
+        w->Timer--;
     } else {
         obj->r_no_0 = 4;
         obj->r_no_1 = 0;
@@ -363,9 +363,9 @@ void objMissile_R0_Lost(cObjMissile* obj)
     MissileWork* w = &obj->missile;
 
     obj->be_flag &= ~2;
-    if (w->hit) {
-        EmMgr.destroy(w->hit);
-        w->hit = 0;
+    if (w->pHit) {
+        EmMgr.destroy(w->pHit);
+        w->pHit = 0;
     }
     ObjMgr.destroy(obj);
 }
@@ -387,10 +387,10 @@ void cObjMissile::setFire(Vec* target)
 {
     MissileWork* w = &missile;
 
-    w->hasTarget = 0;
+    w->Target_ok = 0;
     if (target) {
-        w->target = *target;
-        w->hasTarget = 1;
+        w->Target = *target;
+        w->Target_ok = 1;
     }
     r_no_0 = 2;
     r_no_1 = 0;
@@ -407,16 +407,16 @@ void objMissileBomb(cObjMissile* obj, Vec* pos)
     default:
         EstSet(0, -1, pos, 0, 0x32, 7, 0, 0, 0, 0);
         SndCall(6, 3, &obj->pos, 0, 0, obj);
-        PlWepHitCheck2(0, &obj->oldPos, &obj->oldPos, 0x12, 3, 8000.0f);
+        PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x12, 3, 8000.0f);
         break;
     case 1:
         EstSet(0, -1, pos, 0, 2, 5, 0, 0, 0, 0);
-        PlWepHitCheck2(0, &obj->oldPos, &obj->oldPos, 0x13, 3, 2000.0f);
+        PlWepHitCheck2(0, &obj->pos_old, &obj->pos_old, 0x13, 3, 2000.0f);
         break;
     }
-    if (w->hit) {
-        EmMgr.destroy(w->hit);
-        w->hit = 0;
+    if (w->pHit) {
+        EmMgr.destroy(w->pHit);
+        w->pHit = 0;
     }
     if (G_ROOM_ID == 0x320) {
         pG->flags_174 |= 0x80000000;
