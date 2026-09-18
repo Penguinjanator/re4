@@ -44,9 +44,7 @@ public:
 // Waist control (game/pl_class.cpp), 0xC bytes at cEm::pWaist.
 class cPlWaist {
 public:
-    u32 x0;
-    f32 cur;                     // 0x04  current angle
-    u32 x8;
+    Vec m_Ang;                   // 0x00  waist twist angles; only .y (the current angle) is used (PS2 m_Ang)
 
     cPlWaist();
     // cur = cur * (1 - rate) + target * rate; returns the delta applied
@@ -64,7 +62,7 @@ public:
     void* mot0;          // 0x08
     void* mot1;          // 0x0C
     void* mot2;          // 0x10
-    int x14;             // 0x14  set() 7th argument: 1 = the blend work gets flags2 bit31
+    int m_Mode;             // 0x14  set() 7th argument: 1 = the blend work gets flags2 bit31  set() 7th argument: 1 = the blend work gets flags2 bit31 (PS2 MODE m_Mode)
     MotionWorkSub work;  // 0x18  the blended motion (em.h)
 
     cMot3();
@@ -223,10 +221,10 @@ void pl01weaponSet(cPlayer* pl);  // game/pl_ashley.cpp: fills pMotTbl from the 
 
 // Debug cheat ("maho") command table (game/pl_debug.cpp), 0x16C bytes, `new`ed by cPlayer::debugInit.
 struct PlMahoEntry {
-    u8 x0;               // 0x00
-    u8 x1;               // 0x01
+    u8 rno;               // 0x00  (PS2 cPlMahoWork::rno)
+    u8 timer;               // 0x01  (PS2 cPlMahoWork::timer)
     void (*func)();      // 0x04
-    const char* code;    // 0x08  button sequence string
+    const char* pSpell;    // 0x08  button sequence string  button sequence string (PS2 pSpell)
 };
 
 class cPlMaho {

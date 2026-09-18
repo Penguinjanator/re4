@@ -764,7 +764,7 @@ int efmRegist(void* model, void* tpl, void* mot, void* x, u8 id, u32 owner)
     w->model = model;
     w->tpl = tpl;
     w->mot = (EspEfmMotTbl*) mot;
-    w->x0C = x;
+    w->pShapeHeader = x;
     w->owner = owner;
     return 1;
 }

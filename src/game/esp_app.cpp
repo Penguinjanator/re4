@@ -325,8 +325,8 @@ void EffAreaUpdate()
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
-            flag |= 1 << ent->bit;
-            if (ent->flags & 1) {
+            flag |= 1 << ent->area_no;
+            if (ent->flag & 1) {
                 pG->Status_flg[1] |= 0x02000000;
             }
         }
@@ -362,7 +362,7 @@ int EffAreaCheckInRoom(Vec* pos)
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, pos) == 1) {
-            if (ent->flags & 1) {
+            if (ent->flag & 1) {
                 return 1;
             }
         }
@@ -378,7 +378,7 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
 
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
-        if (areaNo == ent->bit) {
+        if (areaNo == ent->area_no) {
             if (AreaHitCheck(ent->area, pos) == 1) {
                 return 1;
             }

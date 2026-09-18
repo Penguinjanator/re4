@@ -88,7 +88,7 @@ int PullEsp(cEsp** out, int id)
     if (esp != sys->pDmyEsp) {
         esp->m_Be_flg |= 1;
         ret = 1;
-        sys->xC548++;
+        sys->ActiveEspNum++;
         (*out)->m_Id = id;
     } else {
         pLog->warn(6, 0, "ESP : ESP work full!!");
@@ -186,7 +186,7 @@ void PushEsp(cEsp* esp)
 {
     if (esp->m_Be_flg & 1) {
         esp->m_Be_flg &= ~3;
-        g_pEspSys->xC548--;
+        g_pEspSys->ActiveEspNum--;
         esp->Destruct();
     } else {
         pLog->warn(0, 0, "PushEsp() : No alive work is pushed.");
@@ -246,7 +246,7 @@ int EspMove()
         color = 2;
     }
     if (pG->Debug_flg[3] & 0x8000) {
-        eprintf(0x1B0, 0xC8, color, 0, "%d/%d", sys->xC548, cnt);
+        eprintf(0x1B0, 0xC8, color, 0, "%d/%d", sys->ActiveEspNum, cnt);
     } else {
         eprintf(0x1D8, 0xC8, color, 0xE, "%d", cnt);
     }

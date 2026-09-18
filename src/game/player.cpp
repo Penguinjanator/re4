@@ -391,7 +391,7 @@ moveChecked:
     MotBase->move();
     Neck->move();
     moveEye();
-    Body->waistSet(Waist->cur);
+    Body->waistSet(Waist->m_Ang.y);
     Body->move();
     moveMatCalcBefore();
     partsWorldCalc();
@@ -597,7 +597,7 @@ void pl_R1_Run(cPlayer* pl)
         } else {
             pl->Neck->init(PL_ARC_PTR(pG->pPlayer, 0x44), PL_ARC_PTR(pG->pPlayer, 0x45), (u16) frame);
         }
-        pl->Waist->cur = 0.0f;
+        pl->Waist->m_Ang.y = 0.0f;
         pl->m_Work0 = 0;
         breath_ctr = 0;
         pl->r_no_2 = 3;

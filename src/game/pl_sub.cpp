@@ -949,7 +949,7 @@ void PlSetEyeMode(u8 mode)
 
 f32 PlGetDirY()
 {
-    return pPL->ang.y + pPL->Waist->cur;
+    return pPL->ang.y + pPL->Waist->m_Ang.y;
 }
 
 void PlRegistBoss(void* a, void* b)

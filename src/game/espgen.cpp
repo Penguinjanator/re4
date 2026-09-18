@@ -546,7 +546,7 @@ int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 par
     }
     if (PullEspEspgen(&w, info->Core_flg, info->Core_kind, info->b.x7, info->Core_pEm, info->owner, 0)) {
         w->id = rec->Espgen_id;
-        w->xE = rec->Espgen_type;
+        w->Type = rec->Espgen_type;
         if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, pSct, flag)) {
             PushEspgen(w);
             return 0;

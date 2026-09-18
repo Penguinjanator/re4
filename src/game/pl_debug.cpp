@@ -264,7 +264,7 @@ void cPlMaho::reset()
     int i;
 
     for (i = 0; i < 30; i++) {
-        tbl[i].x0 = 0;
+        tbl[i].rno = 0;
     }
 }
 
@@ -272,10 +272,10 @@ void cPlMaho::regist(const char* code, void (*func)())
 {
     PlMahoEntry* e = &tbl[num];
 
-    e->x0 = 0;
-    e->x1 = 0;
+    e->rno = 0;
+    e->timer = 0;
     e->func = func;
-    e->code = code;
+    e->pSpell = code;
     num++;
 }
 

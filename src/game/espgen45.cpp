@@ -173,7 +173,7 @@ void Espgen45_Move00(EspgenWork* w)
     if (IGet(g_bTargetHeight) == 1) {
         p->pos0.y = g_Target_y;
     } else {
-        p->pos0.y = p->xC0;
+        p->pos0.y = p->Base_y;
     }
     size = p->size;
     if (g_bSizeOverWrite == 1) {
@@ -630,7 +630,7 @@ void Espgen45_TransSub(EspgenWork* w)
             if (g_bSetParam == 1) {
                 texId = g_Free.Mask_Tex;
             } else {
-                texId = p->xC5;
+                texId = p->Mask_Tex;
             }
             tw = EspGetTexWk(texId, 1);
             if (tw == NULL || tw->Owner == 0xD2) {
@@ -1009,7 +1009,7 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     if (rec->Tool_flg & 0x4000) {
         p->flag |= 2;
-        p->xC5 = rec->MaskTex_id;
+        p->Mask_Tex = rec->MaskTex_id;
         p->flag |= 1;
     }
     if (rec->WorkSp8[0] != 0) {
@@ -1049,7 +1049,7 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         p->amb.b = rec->Col_d_b * 255.0f;
         p->amb.a = rec->Col_d_a * 255.0f;
         p->mode = rec->Work8[0];
-        p->xC0 = p->x18;
+        p->Base_y = p->pos0.y;
         if (p->mode == 2) {
             p->damp = 0.5f - (f32) (s8) rec->Work8[1] * 0.005f;
             if (p->damp > 0.5f) {

@@ -105,7 +105,7 @@ void AreaSstSet(int id)
     ent = sys->pSstArea->ent;
     for (i = 0; i < sys->pSstArea->num; i++, ent++) {
         if (AreaHitCheck(ent->area, &pos) == 1) {
-            flag |= 1 << ent->bit;
+            flag |= 1 << ent->area_no;
         }
     }
     for (j = 0; j < 32; j++) {

@@ -9,42 +9,20 @@
 #include "gx.h"
 #include "tpl.h"
 
-// Optional 0x1C byte parameter block handed down the sequence calls (copied into the generator work).
+// Optional 0x1C byte parameter block handed down the sequence calls (copied into the generator work)
+// (PS2 ESPSEQ_CONTROL, packed on GC).
 struct EspSeqOpt {
-    union {
-        u32 x0;        // 0x00
-        struct {
-            u8 set;    // 0x00 bit0: speed, bit1: size, bit2: colour replace the record's (esp_sub EspSeqSet)
-            u8 mul;    // 0x01 same bits: multiply
-            u8 add;    // 0x02 same bits: add
-            u8 x3;
-        };
-    };
-    union {
-        struct {
-            u32 x4;    // 0x04
-            u32 x8;    // 0x08
-            u32 xC;    // 0x0C
-        };
-        Vec spd;       // 0x04
-    };
-    union {
-        u32 x10;       // 0x10
-        f32 sizeX;
-    };
-    union {
-        u32 x14;       // 0x14
-        f32 sizeY;
-    };
-    union {
-        u32 x18;       // 0x18
-        struct {
-            u8 r;      // 0x18
-            u8 g;
-            u8 b;
-            u8 a;
-        };
-    };
+    u8 OverWrite_flg;  // 0x00 bit0: speed, bit1: size, bit2: colour replace the record's (esp_sub EspSeqSet)
+    u8 Mul_flg;        // 0x01 same bits: multiply
+    u8 Add_flg;        // 0x02 same bits: add
+    u8 pad;            // 0x03
+    Vec Speed;         // 0x04
+    f32 Size_base_x;   // 0x10
+    f32 Size_base_y;   // 0x14
+    u8 Col_start_r;    // 0x18
+    u8 Col_start_g;    // 0x19
+    u8 Col_start_b;    // 0x1A
+    u8 Col_start_a;    // 0x1B
 };
 
 // Effect system work (game/eff_sys.cpp cEspSystem, g_pEspSys). Partial layout.
@@ -60,11 +38,11 @@ struct SstList {
             } b;
         };
         u16 type;      // 0x02
-        u32 x4;        // 0x04
+        u32 Flg;        // 0x04  (PS2 ESP_ID_WK.Flg)
     } ent[1];          // 0x04, 8 bytes each
 };
 struct SstData {
-    u32 x0;            // 0x00
+    u32 Num;            // 0x00  (PS2 ESP_COMMON_HEADER.Num)
     u32 ofs[1];        // 0x04 byte offsets of the EspSeqData blocks from this header
 };
 struct SstTbl {
@@ -75,17 +53,18 @@ struct SstTbl {
 
 // Area list for the room effect display flags (game/est.cpp AreaSstSet): 0x10 header, 0x98 byte entries.
 struct SstAreaEnt {
-    u8 x0;
-    u8 x1;
-    u8 bit;            // 0x02 display flag bit set while the player stands in the area
-    u8 x3;
+    u8 no;//  (PS2 ESP_AREA.no)
+    u8 be_flag;//  (PS2 ESP_AREA.be_flag)
+    u8 area_no;            // 0x02 display flag bit set while the player stands in the area  display flag bit set while the player stands in the area (PS2 ESP_AREA.area_no)
+    u8 pad02;//  (PS2 ESP_AREA.pad02)
     u8 area[0x30];     // 0x04 AreaHitCheck data (AreaData)
-    u32 flags;         // 0x34 bit0: the area counts as "in room" (esp_app EffAreaCheckInRoom)
+    u32 flag;         // 0x34 bit0: the area counts as "in room" (esp_app EffAreaCheckInRoom)  (PS2 ESP_AREA.flag)
     u8 pad_38[0x98 - 0x38];
 };
-struct SstArea {
+struct SstArea {   // (PS2 ESP_AREA_HEADER)
     u32 num;           // 0x00
-    u8 pad_4[0x10 - 4];
+    u32 ver_no;        // 0x04 (PS2 ver_no)
+    u8 pad_8[8];
     SstAreaEnt ent[1]; // 0x10
 };
 
@@ -111,7 +90,7 @@ struct EspEfmWk {
     void* model;       // 0x00 model bin
     void* tpl;         // 0x04
     EspEfmMotTbl* mot; // 0x08 motion table (NULL when none)
-    void* x0C;         // 0x0C
+    void* pShapeHeader;         // 0x0C  shape header of efmRegist (PS2 pShapeHeader)
     u32 owner;         // 0x10 0xD2 = free
 };
 
@@ -128,7 +107,7 @@ struct cEspSystem {
     GXTexObj texObj[0x1F4];      // 0x8684 texture object pool
     u8 texObjFlag[0x3F];         // 0xC504 one bit per pool entry
     u8 pad_C543[5];
-    u32 xC548;         // 0xC548 number of esp slots in use
+    u32 ActiveEspNum;         // 0xC548 number of esp slots in use  (PS2 ActiveEspNum)
     u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
     u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
     u32 nEsp;         // 0xC554 number of esp slots
@@ -160,8 +139,8 @@ struct EspgenWork {
     EspInfo info;      // 0x00 owner info (copied from the parent by SetEspCore)
     u8 flag;           // 0x0C bit0: in use, bit1: delete requested
     u8 id;             // 0x0D generator id (index into the Espgen*Tbl tables)
-    u8 xE;             // 0x0E
-    u8 xF;             // 0x0F
+    u8 Type;             // 0x0E  (PS2 cEspgen::Type; EspGenWork Espgen_type)
+    u8 Flg;             // 0x0F  (PS2 cEspgen::Flg)
     u8 step;           // 0x10 move step (Espgen*MoveTbl index)
     u8 pad_11[3];
     u8 work[0xC8 - 0x14];  // 0x14
@@ -190,14 +169,7 @@ struct Espgen10Work {
 // game/espgen45.cpp): a (nx+1) x (ny+1) height field with two ping-pong height buffers, drawn through
 // a prebuilt display list with an indirect bump texture.
 struct Espgen42Work {
-    union {
-        struct {
-            u8 pad_14[4];  // 0x14
-            f32 x18;       // 0x18 (espgen45: copied to xC0 by SetFreeWork)
-            u8 pad_1C[4];
-        };
-        Vec pos0;          // 0x14 (espgen45: surface centre, SetWaterWork45)
-    };
+    Vec pos0;          // 0x14 surface centre (espgen45 SetWaterWork45; .y -> Base_y) (PS2 Pos)
     Mtx mat;           // 0x20 grid -> world
     Mtx inv;           // 0x50 world -> grid
     u16 nx;            // 0x80 grid cells along x
@@ -221,9 +193,9 @@ struct Espgen42Work {
     u16 indT;          // 0xB6
     f32 damp;          // 0xB8
     f32 spread;        // 0xBC
-    f32 xC0;           // 0xC0 (espgen45)
+    f32 Base_y;           // 0xC0 (espgen45)  espgen45: pos0.y at set-up (PS2 Base_y)
     u8 flag;           // 0xC4 (espgen45) bit0: bounded grid (EspGenWork flags bit0), bit1: EspGenWork flags 0x4000
-    u8 xC5;            // 0xC5 (espgen45) EspGenWork xC5
+    u8 Mask_Tex;            // 0xC5 (espgen45) EspGenWork xC5  espgen45: EspGenWork MaskTex_id (PS2 Mask_Tex)
 };
 
 typedef void (*EspgenMoveFunc)(EspgenWork* w);

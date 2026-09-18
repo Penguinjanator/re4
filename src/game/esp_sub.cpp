@@ -1318,38 +1318,38 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         }
         ret = e.p->SetFreeWork(rec, seed);
         if (pSct) {
-            if (pSct->set & 1) {
-                e.p->m_Speed = pSct->spd;
+            if (pSct->OverWrite_flg & 1) {
+                e.p->m_Speed = pSct->Speed;
                 e.p->m_Speed.x += rec->R_speed.x * fRandSeed1_1(seed);
                 e.p->m_Speed.y += rec->R_speed.y * fRandSeed1_1(seed);
                 e.p->m_Speed.z += rec->R_speed.z * fRandSeed1_1(seed);
             }
-            if (pSct->set & 2) {
-                e.p->m_Size_base_x = pSct->sizeX;
-                e.p->m_Size_base_y = pSct->sizeY;
+            if (pSct->OverWrite_flg & 2) {
+                e.p->m_Size_base_x = pSct->Size_base_x;
+                e.p->m_Size_base_y = pSct->Size_base_y;
             }
-            if (pSct->set & 4) {
-                e.p->m_Col_start_r = pSct->r;
-                e.p->m_Col_start_g = pSct->g;
-                e.p->m_Col_start_b = pSct->b;
-                e.p->m_Col_start_a = pSct->a;
-                e.p->m_Col_r = (f32) pSct->r;
-                e.p->m_Col_g = (f32) pSct->g;
-                e.p->m_Col_b = (f32) pSct->b;
-                e.p->m_Col_a = (f32) pSct->a;
+            if (pSct->OverWrite_flg & 4) {
+                e.p->m_Col_start_r = pSct->Col_start_r;
+                e.p->m_Col_start_g = pSct->Col_start_g;
+                e.p->m_Col_start_b = pSct->Col_start_b;
+                e.p->m_Col_start_a = pSct->Col_start_a;
+                e.p->m_Col_r = (f32) pSct->Col_start_r;
+                e.p->m_Col_g = (f32) pSct->Col_start_g;
+                e.p->m_Col_b = (f32) pSct->Col_start_b;
+                e.p->m_Col_a = (f32) pSct->Col_start_a;
             }
-            if (pSct->mul & 1) {
-                e.p->m_Speed.x *= pSct->spd.x;
-                e.p->m_Speed.y *= pSct->spd.y;
-                e.p->m_Speed.z *= pSct->spd.z;
+            if (pSct->Mul_flg & 1) {
+                e.p->m_Speed.x *= pSct->Speed.x;
+                e.p->m_Speed.y *= pSct->Speed.y;
+                e.p->m_Speed.z *= pSct->Speed.z;
             }
-            if (pSct->mul & 2) {
-                e.p->m_Size_base_x *= pSct->sizeX;
-                e.p->m_Size_base_y *= pSct->sizeY;
+            if (pSct->Mul_flg & 2) {
+                e.p->m_Size_base_x *= pSct->Size_base_x;
+                e.p->m_Size_base_y *= pSct->Size_base_y;
             }
-            if (pSct->mul & 4) {
+            if (pSct->Mul_flg & 4) {
                 f32 c;
-                c = (f32) e.p->m_Col_start_r * (f32) (int) pSct->r * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_r * (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1357,7 +1357,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_r = (u8) c;
-                c = (f32) e.p->m_Col_start_g * (f32) (int) pSct->g * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_g * (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1365,7 +1365,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_g = (u8) c;
-                c = (f32) e.p->m_Col_start_b * (f32) (int) pSct->b * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_b * (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1373,7 +1373,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_b = (u8) c;
-                c = (f32) e.p->m_Col_start_a * (f32) (int) pSct->a * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_a * (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1386,18 +1386,18 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                 e.p->m_Col_b = (f32) e.p->m_Col_start_b;
                 e.p->m_Col_a = (f32) e.p->m_Col_start_a;
             }
-            if (pSct->add & 1) {
-                e.p->m_Speed.x += pSct->spd.x;
-                e.p->m_Speed.y += pSct->spd.y;
-                e.p->m_Speed.z += pSct->spd.z;
+            if (pSct->Add_flg & 1) {
+                e.p->m_Speed.x += pSct->Speed.x;
+                e.p->m_Speed.y += pSct->Speed.y;
+                e.p->m_Speed.z += pSct->Speed.z;
             }
-            if (pSct->add & 2) {
-                e.p->m_Size_base_x += pSct->sizeX;
-                e.p->m_Size_base_y += pSct->sizeY;
+            if (pSct->Add_flg & 2) {
+                e.p->m_Size_base_x += pSct->Size_base_x;
+                e.p->m_Size_base_y += pSct->Size_base_y;
             }
-            if (pSct->add & 4) {
+            if (pSct->Add_flg & 4) {
                 f32 c;
-                c = (f32) e.p->m_Col_start_r + (f32) (int) pSct->r * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_r + (f32) (int) pSct->Col_start_r * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1405,7 +1405,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_r = (u8) c;
-                c = (f32) e.p->m_Col_start_g + (f32) (int) pSct->g * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_g + (f32) (int) pSct->Col_start_g * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1413,7 +1413,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_g = (u8) c;
-                c = (f32) e.p->m_Col_start_b + (f32) (int) pSct->b * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_b + (f32) (int) pSct->Col_start_b * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }
@@ -1421,7 +1421,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                     c = 0.0f;
                 }
                 e.p->m_Col_start_b = (u8) c;
-                c = (f32) e.p->m_Col_start_a + (f32) (int) pSct->a * (1.0f / 255.0f);
+                c = (f32) e.p->m_Col_start_a + (f32) (int) pSct->Col_start_a * (1.0f / 255.0f);
                 if (c > 255.0f) {
                     c = 255.0f;
                 }

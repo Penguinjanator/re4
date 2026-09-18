@@ -1714,20 +1714,20 @@ void cPlNeck::setMode(int m)
 
 cPlWaist::cPlWaist()
 {
-    cur = 0.0f;
+    m_Ang.y = 0.0f;
 }
 
 f32 cPlWaist::set(f32 target, f32 rate)
 {
-    f32 old = cur;
+    f32 old = m_Ang.y;
 
-    cur = cur * (1.0f - rate) + target * rate;
-    return cur - old;
+    m_Ang.y = m_Ang.y * (1.0f - rate) + target * rate;
+    return m_Ang.y - old;
 }
 
 cMot3::cMot3()
 {
-    x14 = 0;
+    m_Mode = 0;
     m_Rate = 0.0f;
 }
 
@@ -1747,7 +1747,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
     mot0 = m0;
     mot1 = m1;
     mot2 = m2;
-    x14 = c;
+    m_Mode = c;
     MotionSetCore(m, MOTION(m), m0, a, mode, d, e);
     set0(m1, e, mode);
     ((cEm*) m)->blendMot->blendRate = 0.0f;
@@ -1757,7 +1757,7 @@ void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16
 void cMot3::set0(void* m, u8 a, int b)
 {
     MotionSetCore(m_pEm, &work, m, 0, b, 4, a);
-    switch (x14) {
+    switch (m_Mode) {
     case 0:
         break;
     case 1:

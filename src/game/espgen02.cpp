@@ -188,8 +188,8 @@ void espgen02_Update(EspgenWork* w)
                 p->Next_cnt = p->Next_cnt + r;
             }
         }
-        if (g_pEspSys->nEsp - g_pEspSys->xC548 < (u32) (p->Set_num + 1)) {
-            pLog->warn(0, 0, "ESP : num max. retry.[left:%d/need:%d]", g_pEspSys->nEsp - g_pEspSys->xC548,
+        if (g_pEspSys->nEsp - g_pEspSys->ActiveEspNum < (u32) (p->Set_num + 1)) {
+            pLog->warn(0, 0, "ESP : num max. retry.[left:%d/need:%d]", g_pEspSys->nEsp - g_pEspSys->ActiveEspNum,
                        p->Set_num + 1);
             return;
         }
