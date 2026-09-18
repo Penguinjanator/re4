@@ -256,6 +256,9 @@ static Sint32 cvfs_WantsDevForm(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
 	return cvfs_OptFn(cvfs_FindDev(tbl, name, len), NULL, 100, 0, 0) == 1;
 }
 
+// Finds the device table for a split file name: an empty device part takes the default device; a
+// device that asked for it (option 100) gets the "DEV:path" form back in `path`; an unknown device
+// name falls back to the default device with the whole original name as the path.
 static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 {
 	CVFS_DEVIF *vtbl;
@@ -697,6 +700,7 @@ Sint32 cvFsGetFileSizeEx(const Char8 *fname, Sint32 *size)
 	return cvfs_OptFn(vtbl, NULL, 18, (Sint32)path, (Sint32)size);
 }
 
+// Installs the user error callback (func(obj, msg, hn)); ADXGC_SetupDvdFs installs adxgc_err_dvd.
 void cvFsEntryErrFunc(CVFS_USRERRFN func, void *obj)
 {
 	if (func == NULL) {
@@ -745,6 +749,8 @@ Sint32 cvFsGetFileSize(const Char8 *fname)
 	return 0;
 }
 
+// Transfer state of a file handle from its device: 1 complete, 2 reading, 3 error (also for a bad
+// handle).
 Sint32 cvFsGetStat(CVFS_OBJ *obj)
 {
 	Sint32 stat = 3;
@@ -761,6 +767,8 @@ Sint32 cvFsGetStat(CVFS_OBJ *obj)
 	return stat;
 }
 
+// Runs every registered device's server (gcCiExecServer completes the DVD reads). Called twice per
+// ADXT_ExecFsSvr.
 void cvFsExecServer(void)
 {
 	Sint32 i;
@@ -774,6 +782,7 @@ void cvFsExecServer(void)
 	}
 }
 
+// Cancels the handle's transfer on its device (DVDCancel for GCD).
 void cvFsStopTr(CVFS_OBJ *obj)
 {
 	if (obj == NULL) {
@@ -805,6 +814,7 @@ Sint32 cvFsReqWr(CVFS_OBJ *obj, Sint32 nsct, void *buf)
 	return ret;
 }
 
+// Requests `nsct` sectors into `buf` from the device; returns the sectors accepted (0 = busy/refused).
 Sint32 cvFsReqRd(CVFS_OBJ *obj, Sint32 nsct, void *buf)
 {
 	Sint32 ret;
@@ -822,6 +832,7 @@ Sint32 cvFsReqRd(CVFS_OBJ *obj, Sint32 nsct, void *buf)
 	return ret;
 }
 
+// Seeks in sectors (type 0 set, 1 cur, 2 end); returns the new position.
 Sint32 cvFsSeek(CVFS_OBJ *obj, Sint32 pos, Sint32 type)
 {
 	Sint32 ret;
@@ -839,6 +850,7 @@ Sint32 cvFsSeek(CVFS_OBJ *obj, Sint32 pos, Sint32 type)
 	return ret;
 }
 
+// Current position in sectors.
 Sint32 cvFsTell(CVFS_OBJ *obj)
 {
 	Sint32 ret;
@@ -856,6 +868,7 @@ Sint32 cvFsTell(CVFS_OBJ *obj)
 	return ret;
 }
 
+// Closes the device handle and frees the CVFS slot.
 void cvFsClose(CVFS_OBJ *obj)
 {
 	if (obj == NULL) {
@@ -948,6 +961,8 @@ CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 	return obj;
 }
 
+// Sets the device used for names without a "DEV:" prefix (upper-cased, must be registered); "GCD"
+// in this game.
 void cvFsSetDefDev(Char8 *devname)
 {
 	Sint32 len;
@@ -1015,6 +1030,8 @@ static CVFS_DEVIF *cvfs_AddDevTbl(Char8 *devname, void *vt)
 	return vtbl;
 }
 
+// Registers a device by name (upper-cased) with its xxCiGetInterface function, and points the
+// device's error callback at cvFsCallUsrErrFn. Called for "MFS" and "GCD" by ADXGC_SetupDvdFs.
 void cvFsAddDev(Char8 *devname, CVFS_GETIFFN getif)
 {
 	Char8 *name;

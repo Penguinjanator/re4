@@ -112,6 +112,8 @@ void mpvvlc2_InitDcSizY(void);
 void mpvvlc2_InitDcSizC(void);
 void mpvvlc_InitIntRunLevel(void);
 
+// Compile-time check that the run/level, DC size, motion and macroblock type tables fit the 0x5B0
+// byte VLC area of the shared table block.
 Sint32 MPVVLC_IsVlcSizErr(void)
 {
 	Sint32 siz;
@@ -129,6 +131,9 @@ Sint32 MPVVLC_IsVlcSizErr(void)
 	return siz < 0;
 }
 
+// Generates every VLC lookup table (macroblock address increment per picture type, macroblock type,
+// motion codes, coded block pattern, DC sizes, run/level) and copies the run/level tables into the
+// shared area `vlc` when one is given.
 void MPVVLC_Init(Uint8 *vlc, void *ixa)
 {
 	mpvvlc_InitMbaiIpic();
@@ -235,6 +240,7 @@ void MPVVLC_Init(Uint8 *vlc, void *ixa)
 		}                                                                              \
 	}
 
+// macroblock_address_increment table for I pictures (type fixed to intra): 12-bit and 8-bit halves.
 static void mpvvlc_InitMbaiIpic(void)
 {
 	Sint16 *p;
@@ -313,6 +319,7 @@ static void mpvvlc_InitMbaiIpic(void)
 		}                                                                              \
 	}
 
+// macroblock_address_increment table for P pictures.
 void mpvvlc_InitMbaiPpic(void)
 {
 	Sint16 *p;
@@ -399,6 +406,7 @@ void mpvvlc_InitMbaiPpic(void)
 		}                                                                              \
 	}
 
+// macroblock_address_increment table for B pictures.
 static void mpvvlc_InitMbaiBpic(void)
 {
 	Sint16 *p;
@@ -425,6 +433,7 @@ static void mpvvlc_InitMbaiBpic(void)
 
 /* P picture macroblock_type, 5-bit look-ahead (small enough for the auto-inliner, called) */
 #pragma dont_inline on
+// macroblock_type table for P pictures (B.2b).
 void mpvvlc_InitMbTypePpic(void)
 {
 	Sint16 *p;
@@ -585,6 +594,7 @@ static Sint16 *mpvvlc_InitCbpSub2(Sint16 *p)
 	return p;
 }
 
+// coded_block_pattern table (B.3) with the two chrominance bits repeated in bits 15/14.
 static void mpvvlc_InitCbp(void)
 {
 	Sint16 *p;

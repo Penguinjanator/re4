@@ -47,11 +47,13 @@ Sint32 sftim_v_time = 0;
 Sint32 sftim_a_sample = 0;
 Sint64 sftim_as_pts = 0;
 
+// Playback speed in 1/1000 (1000 = normal).
 Sint32 SFTIM_GetSpeed(SFD sfd)
 {
 	return SFD_TIM(sfd)->speed;
 }
 
+// Sets the speed; the vsync clocks advance by `speed` per vsync instead of 1000.
 void SFTIM_SetSpeed(SFD sfd, Sint32 speed)
 {
 	SFD_TIM(sfd)->speed = speed;
@@ -86,6 +88,10 @@ static Float32 sftim_Sint32ToFloat32(Sint32 v)
 	return (Float32)v;
 }
 
+// Frame display decision: with an integer clock (unit 1: no clock / vsync count) compares the frame
+// time with the vsync counter; with a real clock compares in 1/10000 s, offset by the audio-video
+// adjustment cond 44, with a tolerance of one frame time and the skip judgement (isskipfn / the
+// stabiliser's last decision). TRUE = the frame is due now.
 static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 {
 	SFTIM tim;
@@ -268,6 +274,8 @@ Bool SFTIM_IsGetFrmTimeTunit(SFD sfd, Sint32 ftime, Sint32 tunit)
 	return sftim_IsGetFrmTime(sfd, ftime, tunit);
 }
 
+// Whether decoded frame `frm` should be handed to the application now (the manual video output's
+// GetRead); FALSE for a NULL frame.
 Bool SFTIM_IsGetFrmTime(SFD sfd, SFD_VFRM *frm)
 {
 	if (frm == NULL) {
@@ -276,6 +284,7 @@ Bool SFTIM_IsGetFrmTime(SFD sfd, SFD_VFRM *frm)
 	return sftim_IsGetFrmTimeFrm(sfd, frm);
 }
 
+// The stream's frame rate x1000 (SFTIM_prate[picrate]), -1 when unknown yet.
 Sint32 SFD_GetFps(SFD sfd, Sint32 *fps)
 {
 	*fps = -1;
@@ -289,6 +298,7 @@ Sint32 SFD_GetFps(SFD sfd, Sint32 *fps)
 	return 0;
 }
 
+// Duration of one video frame as count/scale (1000 / prate; 29.97 fps assumed when unknown).
 void SFTIM_GetTimeOneFrmVideo(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 picrate;
@@ -346,6 +356,7 @@ void sftim_Tc2Time59D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 	*tscale = prate;
 }
 
+// 29.97 drop-frame timecode -> frame count x1000 (+500 per field) over prate.
 void sftim_Tc2Time29D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 f;
@@ -355,6 +366,7 @@ void sftim_Tc2Time29D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 	*tscale = prate;
 }
 
+// 23.976 drop-frame timecode -> frame count x1000 over prate.
 void sftim_Tc2Time23D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 f;
@@ -364,6 +376,7 @@ void sftim_Tc2Time23D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 	*tscale = prate;
 }
 
+// 59.94 non-drop timecode -> frames x1000 over prate.
 static void sftim_Tc2Time59N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 frm;
@@ -374,6 +387,7 @@ static void sftim_Tc2Time59N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 
 	*tscale = prate;
 }
 
+// 29.97 non-drop timecode -> frames x1000 over prate.
 static void sftim_Tc2Time29N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 frm;
@@ -384,6 +398,7 @@ static void sftim_Tc2Time29N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 
 	*tscale = prate;
 }
 
+// 23.976 non-drop timecode -> frames x1000 over prate.
 void sftim_Tc2Time23N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 frm;
@@ -394,6 +409,7 @@ void sftim_Tc2Time23N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 	*tscale = prate;
 }
 
+// Integer-rate non-drop timecode -> frames x1000 over prate.
 void sftim_Tc2TimeN(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 sec;
@@ -405,6 +421,8 @@ void sftim_Tc2TimeN(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 	*tscale = prate;
 }
 
+// Converts a GOP timecode (type = frame rate index, drop flag, h:m:s:f + field) into count/scale
+// with the converter table; error 0xFF000221 for an unknown rate.
 void SFTIM_Tc2Time(SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
 	SFTIM_TC2TIME_FN fn;
@@ -421,11 +439,15 @@ void SFTIM_Tc2Time(SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 	fn(prate, tc, ncount, tscale);
 }
 
+// Installs a clock source (type 0 none, 1 vsync, 2 audio driver, 3 ufrm, 4 user, 5 external); the
+// ADXT driver installs sfadxt_GetTime as type 2.
 void SFTIM_SetTimeFn(SFD sfd, SFTIM_FN fn, Sint32 type)
 {
 	SFD_TIM(sfd)->timefn[type] = fn;
 }
 
+// Installs an external clock callback (with its wrap value) and selects it (cond 0xF = 5); NULL
+// reverts to the vsync clock.
 Sint32 SFD_SetExtClockFn(SFD sfd, SFTIM_FN fn, Sint32 wrap, void *obj)
 {
 	SFTIM tim;
@@ -450,6 +472,7 @@ Sint32 SFD_SetExtClockFn(SFD sfd, SFTIM_FN fn, Sint32 wrap, void *obj)
 	return 0;
 }
 
+// Installs a user clock callback and selects it (cond 0xF = 4).
 Sint32 SFD_SetUsrTimeFn(SFD sfd, SFTIM_FN fn)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -462,11 +485,13 @@ Sint32 SFD_SetUsrTimeFn(SFD sfd, SFTIM_FN fn)
 	return 0;
 }
 
+// Compares two count/unit times (UTY_CmpTime: nonzero when a >= b).
 Sint32 SFD_CmpTime(Sint32 a, Sint32 aunit, Sint32 b, Sint32 bunit)
 {
 	return UTY_CmpTime(a, aunit, b, bunit);
 }
 
+// Installs the user's frame-skip judgement callback.
 Sint32 SFD_SetUsrIsSkipFn(SFD sfd, Bool (*fn)())
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -491,6 +516,7 @@ Bool SFTIM_ChkRegularTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return TRUE;
 }
 
+// Playing, not paused and not in a buffering pause.
 static Bool sftim_IsClockRunning(SFD sfd)
 {
 	if (sfd->stat != 4) {
@@ -505,6 +531,8 @@ static Bool sftim_IsClockRunning(SFD sfd)
 	return TRUE;
 }
 
+// External clock source: accumulates the callback's count deltas (wrapping at ext_wrap) while the
+// clock runs; -2/1 without a callback.
 Sint32 sftim_GetTimeExtClock(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	SFTIM_FN fn;
@@ -540,6 +568,7 @@ Sint32 sftim_GetTimeExtClock(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return ret;
 }
 
+// Clock type 3 placeholder: no time.
 Sint32 sftim_GetTimeUfrm(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	if (!SFTIM_ChkRegularTime(sfd, ncount, tscale)) {
@@ -548,6 +577,7 @@ Sint32 sftim_GetTimeUfrm(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return 0;
 }
 
+// Vsync clock source: vsyncs elapsed while playing (x speed) over the refresh rate x1000.
 Sint32 sftim_GetTimeVsync(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	if (!SFTIM_ChkRegularTime(sfd, ncount, tscale)) {
@@ -558,6 +588,7 @@ Sint32 sftim_GetTimeVsync(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return 0;
 }
 
+// No clock: -2/1 (every frame is due at once).
 static Sint32 sftim_GetTimeNone(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	if (!SFTIM_ChkRegularTime(sfd, ncount, tscale)) {
@@ -568,6 +599,7 @@ static Sint32 sftim_GetTimeNone(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return 0;
 }
 
+// The current player time (count/unit) as sampled at the last vsync.
 Sint32 SFTIM_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	*ncount = SFD_TIM(sfd)->cur;
@@ -595,6 +627,8 @@ Sint32 SFTIM_GetTimeSub(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return 0;
 }
 
+// Public time (mwPlyGetTime): current time plus the start offset (audio start sample when the unit is
+// the audio rate, else the video start offset).
 Sint32 SFD_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -603,6 +637,7 @@ Sint32 SFD_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return SFTIM_GetTimeSub(sfd, ncount, tscale);
 }
 
+// Records the audio start position (samples at sfreq) that SFTIM_GetTimeSub adds.
 void SFTIM_SetStartTime(SFTIM tim, Sint32 smpl, Sint32 sfreq)
 {
 	tim->astart_smpl = smpl;
@@ -685,6 +720,7 @@ static Bool sftim_ChkStagnant(SFD sfd)
 	return FALSE;
 }
 
+// Whether the clock has stopped advancing for longer than allowed (error 0xFF000222); ends the play.
 Bool SFTIM_IsStagnant(SFD sfd)
 {
 	if (sftim_ChkStagnant(sfd)) {
@@ -694,6 +730,7 @@ Bool SFTIM_IsStagnant(SFD sfd)
 	return FALSE;
 }
 
+// The requested-start vsync counter runs while a start is requested.
 static Bool sftim_IsVcntRunning(SFD sfd)
 {
 	if (SFD_TIM(sfd)->vcnt == -1) {
@@ -741,6 +778,8 @@ static void sftim_VbInHn(SFD sfd)
 	sfd->chg_flg = 1;
 }
 
+// Library vsync tick: counts vsyncs and, for every live handle, advances its vsync clocks and
+// samples the selected clock source (cond 0xF) into cur/cur_unit, flagging a change when it moved.
 void SFTIM_VbIn(void)
 {
 	SFD *hn;
@@ -814,6 +853,7 @@ void SFTIM_UpdateItime(SFTIM tim, Sint32 t)
 	tim->itime_min = d;
 }
 
+// Time-with-timecode record: invalid, zero timecode, value `val`, unit 1.
 void SFTIM_InitTtu(SFTIM_TTU *ttu, Sint32 val)
 {
 	Sint32 zero;
@@ -833,6 +873,8 @@ void SFTIM_InitTtu(SFTIM_TTU *ttu, Sint32 val)
 	ttu->unit = 1;
 }
 
+// Per-handle timing work defaults: clock source table, unset start/end/video times, speed 1000,
+// frame decision history and the field-repeat table.
 void SFTIM_InitHn(SFD sfd, SFTIM tim)
 {
 	Sint32 i;
@@ -909,6 +951,7 @@ void SFTIM_InitHn(SFD sfd, SFTIM tim)
 	tim->x5b8 = 0;
 }
 
+// Library timing work: vsync count 0 and the refresh rate x1000 (59940).
 void SFTIM_Init(SFTIM_LIB *lib, Sint32 vrate)
 {
 	lib->vcnt = 0;

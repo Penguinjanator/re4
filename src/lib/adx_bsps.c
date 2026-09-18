@@ -1,13 +1,18 @@
-/* ADXB: SPSD (Dreamcast sound) format support */
+/* CRI ADXB SPSD (Dreamcast sound data) support (adx_bsps.c): magic test, header parse and the
+ * per-tick 16-bit PCM copy step into the ADXB PCM ring. Selected by ADXB_DecodeHeader /
+ * ADXB_ExecHndl for type 2; the ADXSJD keeps a copy of the header for SPSD streams. */
 #include "cri_xpt.h"
 #include "adx_b.h"
 #include <string.h>
 
+// "SPSD" magic test.
 Sint32 ADXB_CheckSpsd(void *buf)
 {
 	return memcmp(buf, "SPSD", 4) == 0;
 }
 
+// Decode step for SPSD 16-bit PCM: copies (deinterleaving stereo) as many samples as fit the write
+// window into the PCM ring; reports bytes consumed / samples produced.
 void ADXB_ExecOneSpsd(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -48,6 +53,8 @@ void ADXB_ExecOneSpsd(ADXB adxb)
 	}
 }
 
+// Container-specific header decode for ADXB_DecodeHeader: fills the handle, clears the loop info,
+// type ADXB_TYPE_SPSD; returns the header length.
 Sint32 ADXB_DecodeHeaderSpsd(ADXB adxb, void *buf, Sint32 bsize)
 {
 	Sint16 hdrlen;
@@ -77,6 +84,8 @@ Sint32 ADXB_DecodeHeaderSpsd(ADXB adxb, void *buf, Sint32 bsize)
 	return hdrlen;
 }
 
+// Parses the SPSD header (header length = byte 7 << 4, channels from byte 9, rate at 0x2A, codec at
+// byte 8); the trailing overrides force 16-bit PCM in 2-byte frames whatever the codec byte says.
 Sint32 ADX_DecodeInfoSpsd(Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint8 *x0c, Sint8 *bps, Sint8 *x0f,
 			  Sint8 *nch, Sint32 *sfreq, Sint32 *nsmpl, Sint32 *fmt, Sint16 *x9c)
 {

@@ -44,6 +44,7 @@ const Char8 *MPS_GetVerStr(void)
  * MPSLIB_SetErr below passes the object only. */
 typedef void (*MPSLIB_ERRFN2)(void *obj, Sint32 code);
 
+// Library-level error: records the code and calls the library error callback with it.
 static Sint32 mpslib_SetLibErr(Sint32 code)
 {
 	MPSLIB_WORK *lw;
@@ -56,6 +57,8 @@ static Sint32 mpslib_SetLibErr(Sint32 code)
 	return code;
 }
 
+// Records an error code on the handle (or the library) and calls the matching error callback; the
+// SFD demux driver's callback turns it into an SFD error.
 static Sint32 mpslib_SetErr(MPS mps, Sint32 code)
 {
 	MPSLIB_WORK *lw;
@@ -75,6 +78,7 @@ static Sint32 mpslib_SetErr(MPS mps, Sint32 code)
 	return code;
 }
 
+// Frees the parser handle.
 Sint32 MPS_Destroy(MPS mps)
 {
 	if (mpslib_CheckHn(mps) != 0) {
@@ -84,6 +88,7 @@ Sint32 MPS_Destroy(MPS mps)
 	return 0;
 }
 
+// First free handle of the library work, NULL when all are used.
 static MPS mpslib_GetFreeHn(void)
 {
 	MPSLIB_WORK *lw;
@@ -101,6 +106,7 @@ static MPS mpslib_GetFreeHn(void)
 	return NULL;
 }
 
+// Takes a free handle: cleared, headers marked "not seen" (-1), MPEG-1 header decoder installed.
 MPS MPS_Create(void)
 {
 	MPS mps;
@@ -149,6 +155,7 @@ MPS MPS_Create(void)
 	return mps;
 }
 
+// -1 for a NULL or free handle; records it in mpslib_hn_last.
 Sint32 MPSLIB_CheckHn(MPS mps)
 {
 	mpslib_hn_last = mps;
@@ -161,6 +168,7 @@ Sint32 MPSLIB_CheckHn(MPS mps)
 	return 0;
 }
 
+// Installs the error callback library-wide (mps NULL) or per handle.
 Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
 {
 	MPSLIB_WORK *lw;
@@ -179,11 +187,13 @@ Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
 	return 0;
 }
 
+// Public error report (mpslib_SetErr).
 Sint32 MPSLIB_SetErr(MPS mps, Sint32 code)
 {
 	return mpslib_SetErr(mps, code);
 }
 
+// Destroys every used handle and finishes the sub-modules.
 void MPS_Finish(void)
 {
 	MPSLIB_WORK *lw;
@@ -220,6 +230,8 @@ static Sint32 mpslib_ClrHn(MPS hn, Sint32 num)
 	return 0;
 }
 
+// Library init in the caller's work: endianness self-check (spins on little-endian), header +
+// `num_hn` handles all free.
 Sint32 MPS_Init(Sint32 num_hn, void *work)
 {
 	static const Uint32 test_wrok = 0x01020304;

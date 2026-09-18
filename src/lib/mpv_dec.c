@@ -169,6 +169,8 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred);
 	}                                                                                      \
 	return MPV_GoNextDelimSj(sj)
 
+// Slice macroblock loop of a D picture (DC-only intra): address increments, intra DC decode,
+// output of each macroblock until the slice's 23 zero bits.
 Sint32 MPVDEC_DecDpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -209,6 +211,9 @@ Sint32 MPVDEC_DecDpicMb(register MPV mpv, SJ sj)
 	MPVDEC_END(mpv, sj);
 }
 
+// Slice macroblock loop of a B picture: macroblock_type (intra / forward / backward / interpolated /
+// quant / pattern), both motion vectors with their predictors, coded block pattern, coefficient
+// decode and the two-reference motion compensation; skipped macroblocks repeat the last vectors.
 Sint32 MPVDEC_DecBpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -344,16 +349,20 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred)
 	return ret;
 }
 
+// Resets the three intra DC predictors (slice start, non-intra macroblock).
 void MPVDEC_ResetDc(MPV mpv)
 {
 	MPVDEC_RESET_DC(mpv);
 }
 
+// Resets a motion vector predictor pair (slice start, intra / skipped macroblock).
 void MPVDEC_ResetMv(MPV_MV *mv)
 {
 	MPVDEC_RESET_MV(mv);
 }
 
+// Slice macroblock loop of a P picture: macroblock_type, forward vector with predictor, coded block
+// pattern, coefficients and forward motion compensation; skipped macroblocks copy the reference.
 Sint32 MPVDEC_DecPpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -422,6 +431,8 @@ Sint32 MPVDEC_DecPpicMb(register MPV mpv, SJ sj)
 	MPVDEC_END(mpv, sj);
 }
 
+// Slice macroblock loop of an I picture: address increment, optional quantiser scale, intra block
+// decode and intra output; ends at the slice's 23 zero bits.
 Sint32 MPVDEC_DecIpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -459,6 +470,7 @@ Sint32 MPVDEC_DecIpicMb(register MPV mpv, SJ sj)
 	MPVDEC_END(mpv, sj);
 }
 
+// Library/header compatibility: version string "1.933" and the MPV_OBJ / MPV_PICATR sizes.
 Sint32 MPVDEC_CheckVersion(const Char8 *ver, Sint32 objsiz, Sint32 picatrsiz)
 {
 	if (strcmp("1.933", ver) != 0) {

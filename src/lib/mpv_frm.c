@@ -1,3 +1,7 @@
+/* CRI Sofdec MPV frame entry points (mpv_frm.c): MPV_DecodeFrmSj decodes one picture from a
+ * stream joint into the frame buffers of MPV_FRM (the SFD video driver's sfmpv_DecodeFrm), MPV_SkipFrmSj
+ * skips to the next picture/GOP/sequence start code. The graphics quantisation registers are saved
+ * and set for the paired-single motion compensation / IDCT kernels around the decode. */
 #include "mpv.h"
 
 typedef struct {
@@ -19,6 +23,8 @@ extern void MPVUMC_EndOfFrame(MPV_OBJ *mpv);
 extern Sint32 MPV_GoNextDelimSj(SJ sj);
 extern Sint32 MPV_MoveChunk(SJ sj, Sint32 id, Sint32 nbyte);
 
+// Advances the stream joint past the current picture: consumes start codes until one of class
+// 0xCC (picture 0x04, GOP 0x08, sequence header 0x40, sequence end 0x80) is reached. Error 0xFF030305 if the data ends.
 Sint32 MPV_SkipFrmSj(MPV hn, SJ sj)
 {
 	MPV_OBJ *mpv = (MPV_OBJ *)hn;
@@ -45,6 +51,10 @@ Sint32 MPV_SkipFrmSj(MPV hn, SJ sj)
 	return MPVERR_SetCode(mpv, code);
 }
 
+// Decodes the picture at the front of `sj` into frm's buffers: saves/sets the GQRs, initialises the
+// output reference planes and the motion-compensation block tables, runs the picture header + slice
+// decoder (MPVHDEC_DecPicture), finishes the frame, and returns the picture attributes plus the
+// frames/bytes consumed in *frm. MPEG-2 streams go to the (absent) M2V decoder.
 Sint32 MPV_DecodeFrmSj(MPV hn, SJ sj, MPV_FRM *frm)
 {
 	MPV_OBJ *mpv = (MPV_OBJ *)hn;
@@ -77,6 +87,7 @@ Sint32 MPV_DecodeFrmSj(MPV hn, SJ sj, MPV_FRM *frm)
 	return ret;
 }
 
+// Nothing to initialise.
 void MPVFRM_Init(void)
 {
 }

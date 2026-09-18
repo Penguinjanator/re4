@@ -215,6 +215,8 @@ void sfxzmv_MakeCnvZTbl(SFXZ_OBJ *sfxz, Uint32 zmf_dat, Uint32 zmf_siz, void *tb
 /* the original Z range of the frame from the "ZMFSIZE"/"ZMFDATA" tags of the stream information
  * (the frame's entry is `n * src` bytes into the data tag) */
 #pragma dont_inline on
+// Builds the Z conversion table for the current frame: the frame's Z range from the "ZMFSIZE" /
+// "ZMFDATA" tags and the handle's near/far planes, through the 16- or 32-bit Z converter.
 void SFXZ_MakeCnvZTbl(SFXZ_OBJ *sfxz, void *src, void *tbl)
 {
 	SJCK out1;
@@ -363,6 +365,7 @@ void SFXZ_SetTagInf(SFXZ_OBJ *sfxz, Uint8 *tag_a, Sint32 tag_b)
 	}
 }
 
+// Frees the object.
 void SFXZ_Destroy(SFXZ_OBJ *sfxz)
 {
 	if (sfxz == NULL) {
@@ -372,6 +375,7 @@ void SFXZ_Destroy(SFXZ_OBJ *sfxz)
 	sfxz_work.cnt--;
 }
 
+// First unused Z object, NULL when none.
 static SFXZ_OBJ *sfxz_search_free(void)
 {
 	SFXZ_OBJ *sfxz;
@@ -387,6 +391,7 @@ static SFXZ_OBJ *sfxz_search_free(void)
 	return NULL;
 }
 
+// Takes a Z object: zero range, no converter.
 SFXZ_OBJ *SFXZ_Create(void)
 {
 	SFXZ_OBJ *sfxz;
@@ -405,6 +410,7 @@ SFXZ_OBJ *SFXZ_Create(void)
 	return sfxz;
 }
 
+// Clears the Z object table.
 void SFXZ_Init(void)
 {
 	memset(&sfxz_work, 0, sizeof(sfxz_work));

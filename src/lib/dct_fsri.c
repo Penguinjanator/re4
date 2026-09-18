@@ -41,6 +41,10 @@ static const Float64 scale8[8] = {
 	0.3535533905932738, 0.2777851165098011, 0.1913417161825449, 0.09754516100806414,
 };
 
+// IDCT of the macroblock's six blocks selected by `cbp` (bit per block, -1 = all): DC-only blocks
+// are filled with their DC value, the others go through the paired-single row pass (via the
+// PreIDCT tables) and column pass, written as 16-bit pixels through GQR7 into the output block
+// pointers of the DCT parameter block.
 void DCT_FsriTransCore(DCT_PA *pa, Sint32 cbp)
 {
 	register Sint8 *flg = pa->cbp;
@@ -263,11 +267,13 @@ static inline int dctfsri_Idx(int i)
 	return n;
 }
 
+// Stores one entry of the PreIDCT table at the paired-single interleaved row index.
 static inline void dctfsri_SetPreIdct(int n, int k, const Float64 *v)
 {
 	PreIDCT[dctfsri_Idx(n)][k] = (Float32)*v;
 }
 
+// Converts a zigzag scan sequence into the interleaved table index order.
 void DCT_FsriInitScanTbl(const Sint8 *seq, Sint8 *scan)
 {
 	int i;
@@ -277,16 +283,19 @@ void DCT_FsriInitScanTbl(const Sint8 *seq, Sint8 *scan)
 	}
 }
 
+// IDCT of the blocks flagged in the coded block pattern (non-intra macroblocks).
 void DCT_FsriTransCbp(DCT_PA *pa)
 {
 	DCT_FsriTransCore(pa, pa->cbp_msk);
 }
 
+// IDCT of all six blocks (intra macroblocks).
 void DCT_FsriTrans6Blk(DCT_PA *pa)
 {
 	DCT_FsriTransCore(pa, -1);
 }
 
+// Programs GQR7 for the 16-bit pixel stores of the column pass (before each frame decode).
 void DCT_FsriSetGqr(void)
 {
 	asm {
@@ -298,6 +307,8 @@ void DCT_FsriSetGqr(void)
 
 /* the scan row is recomputed for every coefficient store */
 #pragma opt_loop_invariants off
+// Builds PreIDCT: the inverse DCT response of each single scaled coefficient (through the
+// double-precision reference IDCT), so the row pass is a table lookup per coefficient.
 void initSparseTbl(void)
 {
 	Float64 in[64];
@@ -323,11 +334,13 @@ void initSparseTbl(void)
 }
 #pragma opt_loop_invariants on
 
+// Clears a DCT parameter block.
 void DCT_FsriInitPa(DCT_PA *pa)
 {
 	memset(pa, 0, sizeof(DCT_PA));
 }
 
+// The per-coefficient dequantisation scale table in interleaved order.
 void DCT_FsriInitScaleTbl(Float32 *tbl)
 {
 	int i;
@@ -337,6 +350,7 @@ void DCT_FsriInitScaleTbl(Float32 *tbl)
 	}
 }
 
+// Library init: the 8x8 separable scale table (scale8 outer product) and the PreIDCT tables.
 void DCT_FsriInit(void)
 {
 	Sint32 i;

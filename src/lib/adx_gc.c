@@ -1,3 +1,4 @@
+/* CRI ADX GameCube extension (adx_gc.c): per-handle switch for the AX sampling-rate correction. */
 #include "cri_xpt.h"
 
 typedef struct {
@@ -7,6 +8,7 @@ typedef struct {
 
 extern void ADXRNA_SetAdjsfreqFlg(void *rna, Sint32 flg);
 
+// Enables (1) / disables the renderer's 32028.5 Hz DSP rate correction for this handle's voices.
 void ADXGC_SetAdjsfreqFlg(ADXT_OBJ *adxt, Sint32 flg)
 {
 	ADXRNA_SetAdjsfreqFlg(adxt->rna, flg);

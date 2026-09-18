@@ -1,4 +1,8 @@
-/* Sofdec MW player: server (decode / vsync / idle thread) entry points */
+/* CRI Sofdec MW player servers (mwsfdsvr.c): the decode server (MWSFSVR_DecodeServer -> SFD_ExecOne
+ * per handle + the player state machine mwSfdExecDecSvrHndl: PREP starts the stream/decoder,
+ * PLAYING watches for the end and stream errors), the vsync tick (mwSfdVsync -> SFD_VbIn) and the
+ * three SVM thread entry points. In this game there are no CRI threads, so MWSFSVR_MainThrdProc
+ * runs the vsync tick and the decode server from the game's ADXM_ExecMain() every frame. */
 #include "cri_xpt.h"
 #include "sj.h"
 #include "mwsfd.h"
@@ -47,6 +51,7 @@ Bool MWSFSVR_IsSvrBdrHndl(MWPLY mwply)
 	return mwply->sleep_bdr == 1;
 }
 
+// Marks the handle (and the library) as sleeping at the server border.
 static void mwsfd_SetSleepBdr(MWPLY mwply, Sint32 sw)
 {
 	MWSFD_LIBWORK *lw;
@@ -56,6 +61,7 @@ static void mwsfd_SetSleepBdr(MWPLY mwply, Sint32 sw)
 	lw->svr_bdr = sw;
 }
 
+// Clears the sleep-at-border marks.
 static void mwsfd_ClrSleepBdr(MWPLY mwply)
 {
 	MWSFD_LIBWORK *lw;
@@ -82,6 +88,8 @@ static void mwsfd_SleepLoop(MWPLY mwply)
 	}
 }
 
+// Waits until the decode server is between passes before a stop/pause touches the decoder: goes to
+// the SVM idle border and, if the handle server is still running, waits up to 10 vsyncs.
 void mwlSfdSleepDecSvr(MWPLY mwply)
 {
 	mwPlySaveRsc();
@@ -94,16 +102,19 @@ void mwlSfdSleepDecSvr(MWPLY mwply)
 	}
 }
 
+// "SFD_ExecOne running" flag of a handle.
 void MWSFSVR_SetHnSfdSvrFlg(MWPLY mwply, Sint32 flg)
 {
 	mwply->sfd_svr_flg = flg;
 }
 
+// "handle server running" flag of a handle.
 void MWSFSVR_SetHnMwplySvrFlg(MWPLY mwply, Sint32 flg)
 {
 	mwply->mwply_svr_flg = flg;
 }
 
+// "decode server running" flag of the library.
 void MWSFSVR_SetMwsfdSvrFlg(Sint32 flg)
 {
 	MWSFD_LIBWORK *lw;
@@ -144,6 +155,8 @@ static Sint32 mwsfd_ExecSvrHndl(void *obj)
 }
 #pragma dont_inline off
 
+// MWPLY_IF.ExecSvrHndl: one decode-server step of a handle unless the library is not initialised,
+// the handle is unused, already running, or a handle sleeps at the border.
 Sint32 mwSfdExecSvrHndl(MWPLY mwply)
 {
 	MWSFD_LIBWORK *lw;
@@ -169,6 +182,9 @@ Sint32 mwSfdExecSvrHndl(MWPLY mwply)
 }
 
 #pragma dont_inline on
+// The Sofdec decode server pass: pre hook, mwSfdExecSvrHndl on all 8 handles (SFD_ExecOne = demux +
+// video decode + audio feed, then the player state machine), post hook, and the idle hook when no
+// handle is waiting for more time. Returns 1 while a handle still has work.
 Sint32 MWSFSVR_DecodeServer(void *obj)
 {
 	MWSFD_LIBWORK *lw;
@@ -222,6 +238,7 @@ Sint32 MWSFSVR_DecodeServer(void *obj)
 }
 #pragma dont_inline off
 
+// Vsync tick: counts fields/vsyncs (mwg_vcnt) and advances the SFD clock (SFD_VbIn).
 void mwSfdVsync(void)
 {
 	MWSFD_LIBWORK *lw;
@@ -241,6 +258,7 @@ void mwSfdVsync(void)
 	lw->x5c = 0;
 }
 
+// SVM idle-type callback (threaded setups only): the decode server on the idle thread.
 Sint32 MWSFSVR_IdleThrdProc(void *obj)
 {
 	Sint32 ret = 0;
@@ -255,6 +273,8 @@ Sint32 MWSFSVR_IdleThrdProc(void *obj)
 	return ret;
 }
 
+// SVM main-type callback: in this game (no threads) it runs mwSfdVsync and the decode server, i.e.
+// one vsync + decode pass per ADXM_ExecMain() call from the game loop.
 Sint32 MWSFSVR_MainThrdProc(void *obj)
 {
 	Sint32 ret = 0;
@@ -272,6 +292,7 @@ Sint32 MWSFSVR_MainThrdProc(void *obj)
 	return ret;
 }
 
+// SVM vsync-type callback (threaded setups only).
 Sint32 MWSFSVR_VsyncThrdProc(void *obj)
 {
 	if (ADXM_IsSetupThrd() == 1) {
@@ -281,6 +302,8 @@ Sint32 MWSFSVR_VsyncThrdProc(void *obj)
 	return 0;
 }
 
+// Starts the file stream controller on the handle's file range (name, device, ofst, nsct) and points
+// the decoder input at the file joint; -1 if the controller is still running or refuses.
 static Sint32 mwsfd_StartStm(MWPLY mwply)
 {
 	if (MWSTM_GetStat(mwply->stm) == ADXSTM_STAT_EXEC) {
@@ -301,6 +324,8 @@ static Sint32 mwsfd_StartStm(MWPLY mwply)
 	return 1;
 }
 
+// Starts the SFD decoder, releases the pause if none is requested and enables concatenated play for
+// a linked stream.
 static void mwsfd_StartPlay(MWPLY mwply)
 {
 	mwPlySfdStart(mwply);

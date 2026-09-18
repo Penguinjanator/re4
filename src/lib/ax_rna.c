@@ -108,6 +108,7 @@ static Sint32 axrna_update_hist[32];
 Uint8 axrna_zero_dat_real[AXRNA_BUF_NSMPL + 2 * AXRNA_DMA_ALIGN];
 AXRNA_OBJ axrna_obj[AXRNA_MAX_OBJ];
 
+// Per-handle switch for the 32028.5 Hz DSP rate correction applied by AXRNA_SetSfreq.
 void AXRNA_SetAdjsfreqFlg(AXRNA rna, Sint32 flg)
 {
 	if (rna == NULL) {
@@ -116,6 +117,7 @@ void AXRNA_SetAdjsfreqFlg(AXRNA rna, Sint32 flg)
 	rna->adjsfreq_fg = flg;
 }
 
+// Sets the AX sample-rate converter type for the voices and marks it changed (adjsfreq_state).
 void AXRNA_SetSrcType(AXRNA rna, Sint32 type)
 {
 	if (rna == NULL) {
@@ -140,6 +142,7 @@ void AXRNA_DbgDump(void)
 	}
 }
 
+// Whether the voices are running (sw bit 1).
 Sint32 AXRNA_GetPlaySw(AXRNA rna)
 {
 	if (rna == NULL) {
@@ -148,6 +151,7 @@ Sint32 AXRNA_GetPlaySw(AXRNA rna)
 	return AXRNA_GET_PLAY_SW(rna);
 }
 
+// Whether PCM is being transferred into ARAM (sw bit 0).
 Sint32 AXRNA_GetTransSw(AXRNA rna)
 {
 	if (rna == NULL) {
@@ -156,16 +160,19 @@ Sint32 AXRNA_GetTransSw(AXRNA rna)
 	return AXRNA_GET_TRANS_SW(rna);
 }
 
+// Not implemented on AX: returns 0 samples discarded.
 Sint32 AXRNA_DiscardData(AXRNA rna, Sint32 nsmpl)
 {
 	return 0;
 }
 
+// Not used on AX.
 Sint32 AXRNA_SetStmHdInfo(AXRNA rna, void *hdinfo)
 {
 	return 0;
 }
 
+// Records the PCM bit depth (always 16 here).
 void AXRNA_SetBitPerSmpl(AXRNA rna, Sint32 bps)
 {
 	if (rna == NULL) {
@@ -174,6 +181,7 @@ void AXRNA_SetBitPerSmpl(AXRNA rna, Sint32 bps)
 	rna->bps = bps;
 }
 
+// Pan of one channel, -15 (left) .. 15 (right), mapped through axrna_pan_tbl to the MIX 0..0x7F pan.
 void AXRNA_SetOutPan(AXRNA rna, Sint32 ch, Sint32 pan)
 {
 	Sint32 p;
@@ -197,6 +205,7 @@ void AXRNA_SetOutPan(AXRNA rna, Sint32 ch, Sint32 pan)
 	GCRNA_UnlockCs();
 }
 
+// Output volume in 1/10 dB (0 .. -999) applied as the MIX input level of every voice.
 void AXRNA_SetOutVol(AXRNA rna, Sint32 vol)
 {
 	Sint32 v;
@@ -220,6 +229,8 @@ void AXRNA_SetOutVol(AXRNA rna, Sint32 vol)
 	}
 }
 
+// Programs the voices' SRC ratio for `sfreq` Hz; with adjsfreq_fg the rate is scaled by 1124/1125
+// (the DSP runs at 32028.5 Hz) and 32 kHz sources switch to the no-SRC type.
 void AXRNA_SetSfreq(AXRNA rna, Sint32 sfreq)
 {
 	AXPBSRC src;
@@ -259,6 +270,7 @@ void AXRNA_SetSfreq(AXRNA rna, Sint32 sfreq)
 	}
 }
 
+// Number of channels actually streamed (<= maxnch).
 void AXRNA_SetNumChan(AXRNA rna, Sint32 nch)
 {
 	if (rna == NULL) {
@@ -269,6 +281,7 @@ void AXRNA_SetNumChan(AXRNA rna, Sint32 nch)
 
 static void AXRNA_ExecHndl(AXRNA rna);
 
+// Renderer server: runs AXRNA_ExecHndl on every live handle.
 void AXRNA_ExecServer(void)
 {
 	Uint32 i;
@@ -280,6 +293,9 @@ void AXRNA_ExecServer(void)
 	}
 }
 
+// Moves decoded PCM from the input stream joints into the ARAM rings: takes the largest 32-byte
+// multiple that fits both the free ring space and the available data, DMAs it (ARQ, high priority)
+// and spins until axrna_end_trans releases it. Stops at the first channel with nothing to move.
 static void axrna_exec_trans(AXRNA rna)
 {
 	SJCK data;
@@ -323,6 +339,8 @@ static void axrna_exec_trans(AXRNA rna)
 	}
 }
 
+// After the transfer stops (stream end) fills the ring with one buffer length of zeros so the looping
+// voice plays silence instead of stale data.
 static void axrna_exec_flash(AXRNA rna)
 {
 	SJCK zero;
@@ -354,6 +372,8 @@ static void axrna_exec_flash(AXRNA rna)
 	}
 }
 
+// One handle per server tick: account the samples the DSP consumed, then either transfer new PCM or
+// flush zeros once the transfer switch is off.
 static void AXRNA_ExecHndl(AXRNA rna)
 {
 	if (rna == NULL) {
@@ -369,6 +389,7 @@ static void AXRNA_ExecHndl(AXRNA rna)
 	}
 }
 
+// ARQ completion callback of a zero-fill DMA: publishes the ring chunk as data and clears flash_busy.
 static void axrna_end_flash(u32 req)
 {
 	Sint32 id;
@@ -387,6 +408,8 @@ static void axrna_end_flash(u32 req)
 	}
 }
 
+// ARQ completion callback of a PCM DMA: frees the input chunk, publishes the ARAM chunk as data and
+// clears trans_busy; totals the samples on the last channel.
 static void axrna_end_trans(u32 req)
 {
 	Sint32 id;
@@ -406,6 +429,9 @@ static void axrna_end_trans(u32 req)
 	}
 }
 
+// Reads the last voice's current ARAM address, converts the advance since the previous tick (in whole
+// 0x800-sample steps, wrapping at the 0x1000-sample ring) into freed ring space on every channel and
+// records it in axrna_update_hist. Halts if the DSP address left the ring.
 static void axrna_update_play(AXRNA rna)
 {
 	SJCK ck;
@@ -459,6 +485,7 @@ static void axrna_update_play(AXRNA rna)
 	}
 }
 
+// Free samples in the ARAM ring of the last channel.
 Sint32 AXRNA_GetNumRoom(AXRNA rna)
 {
 	if (rna == NULL) {
@@ -467,6 +494,7 @@ Sint32 AXRNA_GetNumRoom(AXRNA rna)
 	return SJ_GetNumData(rna->sjrbf[rna->nch - 1], SJ_CK_FREE) / sizeof(Sint16);
 }
 
+// Samples queued in ARAM and not yet consumed by the DSP, minus the zero fill.
 Sint32 AXRNA_GetNumData(AXRNA rna)
 {
 	Sint32 n;
@@ -482,6 +510,8 @@ Sint32 AXRNA_GetNumData(AXRNA rna)
 	return n;
 }
 
+// 1: points every voice at its ARAM ring (PCM16, looping over the whole buffer) and runs it;
+// 0: stops the voices and resets the ring stream joints.
 void AXRNA_SetPlaySw(AXRNA rna, Sint32 sw)
 {
 	AXPBADDR addr;
@@ -533,6 +563,8 @@ void AXRNA_SetPlaySw(AXRNA rna, Sint32 sw)
 	GCRNA_UnlockCs();
 }
 
+// 1: resets the rings, chunk records and ARQ requests and enables the PCM transfer; 0: waits (up to
+// 200 x 100000 spins per channel) for outstanding DMAs and disables the transfer.
 void AXRNA_SetTransSw(AXRNA rna, Sint32 sw)
 {
 	Sint32 i;
@@ -592,6 +624,8 @@ void AXRNA_SetTransSw(AXRNA rna, Sint32 sw)
 	}
 }
 
+// Stops playback / transfer, destroys the ring stream joints and ARAM resources, releases the MIX
+// channels and AX voices, clears the slot.
 void AXRNA_Destroy(AXRNA rna)
 {
 	Sint32 i;
@@ -618,6 +652,9 @@ void AXRNA_Destroy(AXRNA rna)
 	memset(rna, 0, sizeof(AXRNA_OBJ));
 }
 
+// Takes an axrna_obj slot for `maxnch` channels fed from `sj[]`: an 0x2000-byte ARAM buffer (RNARES)
+// and a ring stream joint per channel, a priority-31 AX voice with a MIX channel; defaults 48 kHz,
+// 16-bit, hard left/right pan for stereo.
 AXRNA AXRNA_Create(SJ *sj, Sint32 maxnch)
 {
 	AXRNA rna;
@@ -700,6 +737,7 @@ AXRNA AXRNA_Create(SJ *sj, Sint32 maxnch)
 	return rna;
 }
 
+// AX voice-drop callback: releases the MIX channel and forgets the stolen voice.
 static void axrna_voice_drop(void *p)
 {
 	Sint32 i;
@@ -716,6 +754,7 @@ static void axrna_voice_drop(void *p)
 	}
 }
 
+// Destroys the live handles and the ARAM resources (reference counted).
 void AXRNA_Finish(void)
 {
 	Sint32 i;
@@ -731,6 +770,7 @@ void AXRNA_Finish(void)
 	}
 }
 
+// Reserves the ARAM resources and the 32-byte-aligned zero buffer used for the silence fill.
 void AXRNA_Init(void)
 {
 	axrna_build;
@@ -742,6 +782,7 @@ void AXRNA_Init(void)
 	axrna_init_cnt++;
 }
 
+// Registers the renderer error callback (RNAERR).
 void AXRNA_EntryErrFunc(void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	RNAERR_EntryErrFunc(func, obj);

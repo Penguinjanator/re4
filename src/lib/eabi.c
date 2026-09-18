@@ -6,6 +6,7 @@
 asm("	.text\n"
     "	.balign 4\n");
 
+/* EABI helper: saves f14..f31 at negative offsets from r11 (entered at the label for the first register to save); GCC emits a call to it in prologues that use many FP registers. */
 /* .text:0x0 | 0x8021C8B4 | size: 0x4C */
 asm("	.globl _savefpr_14\n"
     "	.type _savefpr_14,@function\n"
@@ -31,6 +32,7 @@ asm("	.globl _savefpr_14\n"
     "	blr\n"
     "	.size _savefpr_14,.-_savefpr_14\n");
 
+/* EABI helper: restores f14..f31 from r11 and returns. */
 /* .text:0x4C | 0x8021C900 | size: 0x4C */
 asm("	.globl _restfpr_14\n"
     "	.type _restfpr_14,@function\n"
@@ -56,6 +58,7 @@ asm("	.globl _restfpr_14\n"
     "	blr\n"
     "	.size _restfpr_14,.-_restfpr_14\n");
 
+/* Padding after _restfpr_14 up to the next 32-byte boundary (not a real function). */
 /* .text:0x98 | 0x8021C94C | size: 0x14 */
 asm("	.type gap_01_8021C94C_text,@function\n"
     "gap_01_8021C94C_text:\n"

@@ -7,6 +7,7 @@
 asm("	.text\n"
     "	.balign 4\n");
 
+/* Opens the link to the host: masks the EXI2 interrupts, resets the EXI2 control register, handshakes with the ProView / T-DEV adapter over its 8-bit register protocol (reads its id, writes the init command bytes, reads two 32-bit words back) and returns the connection result. */
 /* .text:0x0 | 0x80064E30 | size: 0x154 */
 asm("	.globl SNInitComm\n"
     "	.type SNInitComm,@function\n"
@@ -104,6 +105,7 @@ asm("	.globl SNInitComm\n"
     "	blr\n"
     "	.size SNInitComm,.-SNInitComm\n");
 
+/* Masks the EXI2 interrupts and the debug interrupt (0x40), installs SNHandler as interrupt 0x19 (PI debug / EXI2 EXT) and unmasks it: the host can interrupt the target. */
 /* .text:0x154 | 0x80064F84 | size: 0x48 */
 asm("	.globl SNInitInterrupts\n"
     "	.type SNInitInterrupts,@function\n"
@@ -128,6 +130,7 @@ asm("	.globl SNInitInterrupts\n"
     "	blr\n"
     "	.size SNInitInterrupts,.-SNInitInterrupts\n");
 
+/* Polls the adapter: selects it, reads the status byte, and returns the byte count the host has queued for us (0 = nothing). */
 /* .text:0x19C | 0x80064FCC | size: 0x88 */
 asm("	.globl SNQueryData\n"
     "	.type SNQueryData,@function\n"
@@ -173,6 +176,7 @@ asm("	.globl SNQueryData\n"
     "	blr\n"
     "	.size SNQueryData,.-SNQueryData\n");
 
+/* Reads `len` bytes from the host into `buf` (cache-invalidated): 32-byte DMA transfers through the EXI2 DMA registers (0x682C addr / 0x6830 len / 0x6834 control), the remainder byte by byte with SNRead32/SNRead8. */
 /* .text:0x224 | 0x80065054 | size: 0x1BC */
 asm("	.globl SNRead\n"
     "	.type SNRead,@function\n"
@@ -304,6 +308,7 @@ asm("	.globl SNRead\n"
     "	blr\n"
     "	.size SNRead,.-SNRead\n");
 
+/* Writes `len` bytes of `buf` (cache-flushed) to the host: the DMA path for whole 32-byte blocks, SNWrite32/SNWrite8 for the tail. */
 /* .text:0x3E0 | 0x80065210 | size: 0x198 */
 asm("	.globl SNWrite\n"
     "	.type SNWrite,@function\n"
@@ -426,6 +431,7 @@ asm("	.globl SNWrite\n"
     "	blr\n"
     "	.size SNWrite,.-SNWrite\n");
 
+/* No-op (returns at once; the link needs no per-channel open). */
 /* .text:0x578 | 0x800653A8 | size: 0x4 */
 asm("	.globl SNOpen\n"
     "	.type SNOpen,@function\n"
@@ -433,6 +439,7 @@ asm("	.globl SNOpen\n"
     "	blr\n"
     "	.size SNOpen,.-SNOpen\n");
 
+/* No-op. */
 /* .text:0x57C | 0x800653AC | size: 0x4 */
 asm("	.globl SNClose\n"
     "	.type SNClose,@function\n"
@@ -440,6 +447,7 @@ asm("	.globl SNClose\n"
     "	blr\n"
     "	.size SNClose,.-SNClose\n");
 
+/* Host interrupt handler: clears the PI interrupt cause bit 0x1000 and, when a callback is registered in the link state (lbl_80253D20), marks it pending and calls it (the debugger stub's DBcallback). */
 /* .text:0x580 | 0x800653B0 | size: 0x54 */
 asm("	.globl SNHandler\n"
     "	.type SNHandler,@function\n"
@@ -468,6 +476,7 @@ asm("	.globl SNHandler\n"
     "	blr\n"
     "	.size SNHandler,.-SNHandler\n");
 
+/* Asserts chip select on EXI channel 2 (CSR device 0 bit, clock setting). */
 /* .text:0x5D4 | 0x80065404 | size: 0x18 */
 asm("	.type SNSelect,@function\n"
     "SNSelect:\n"
@@ -479,6 +488,7 @@ asm("	.type SNSelect,@function\n"
     "	blr\n"
     "	.size SNSelect,.-SNSelect\n");
 
+/* Deasserts the EXI2 chip select. */
 /* .text:0x5EC | 0x8006541C | size: 0x14 */
 asm("	.globl SNDeselect\n"
     "	.type SNDeselect,@function\n"
@@ -490,6 +500,7 @@ asm("	.globl SNDeselect\n"
     "	blr\n"
     "	.size SNDeselect,.-SNDeselect\n");
 
+/* Deselects and reselects the adapter between two register accesses (the adapter's command framing). */
 /* .text:0x600 | 0x80065430 | size: 0x28 */
 asm("	.globl SNWiggleSelect\n"
     "	.type SNWiggleSelect,@function\n"
@@ -507,6 +518,7 @@ asm("	.globl SNWiggleSelect\n"
     "	blr\n"
     "	.size SNWiggleSelect,.-SNWiggleSelect\n");
 
+/* Spins until the EXI2 control register's transfer-start bit clears (transfer complete). */
 /* .text:0x628 | 0x80065458 | size: 0x14 */
 asm("	.globl SNSync\n"
     "	.type SNSync,@function\n"
@@ -519,6 +531,7 @@ asm("	.globl SNSync\n"
     "	blr\n"
     "	.size SNSync,.-SNSync\n");
 
+/* One 8-bit immediate EXI2 read (control 1 = read, 1 byte); returns the byte. */
 /* .text:0x63C | 0x8006546C | size: 0x40 */
 asm("	.globl SNRead8\n"
     "	.type SNRead8,@function\n"
@@ -541,6 +554,7 @@ asm("	.globl SNRead8\n"
     "	blr\n"
     "	.size SNRead8,.-SNRead8\n");
 
+/* One 8-bit immediate EXI2 write (control 5). */
 /* .text:0x67C | 0x800654AC | size: 0x34 */
 asm("	.globl SNWrite8\n"
     "	.type SNWrite8,@function\n"
@@ -560,6 +574,7 @@ asm("	.globl SNWrite8\n"
     "	blr\n"
     "	.size SNWrite8,.-SNWrite8\n");
 
+/* One 32-bit immediate EXI2 read (control 0x31). */
 /* .text:0x6B0 | 0x800654E0 | size: 0x3C */
 asm("	.globl SNRead32\n"
     "	.type SNRead32,@function\n"
@@ -581,6 +596,7 @@ asm("	.globl SNRead32\n"
     "	blr\n"
     "	.size SNRead32,.-SNRead32\n");
 
+/* One 32-bit immediate EXI2 write (control 0x35). */
 /* .text:0x6EC | 0x8006551C | size: 0x30 */
 asm("	.globl SNWrite32\n"
     "	.type SNWrite32,@function\n"
@@ -599,6 +615,7 @@ asm("	.globl SNWrite32\n"
     "	blr\n"
     "	.size SNWrite32,.-SNWrite32\n");
 
+/* Starts a file-server read transfer: selects the adapter, waits until it reports ready (status != 0, then != 0xFF) and sends command byte 2 (read block follows). */
 /* .text:0x71C | 0x8006554C | size: 0x50 */
 asm("	.globl SNDVDRead_init\n"
     "	.type SNDVDRead_init,@function\n"
@@ -627,6 +644,7 @@ asm("	.globl SNDVDRead_init\n"
     "	blr\n"
     "	.size SNDVDRead_init,.-SNDVDRead_init\n");
 
+/* Queues the next block of a file-server read as an EXI2 DMA (addr/len, control 3) with the interrupt enabled: completion arrives in EXI2TCHandler (FSasync.c). */
 /* .text:0x76C | 0x8006559C | size: 0x70 */
 asm("	.globl SNDVDReadAsync_next\n"
     "	.type SNDVDReadAsync_next,@function\n"
@@ -663,6 +681,7 @@ asm("	.globl SNDVDReadAsync_next\n"
     "	blr\n"
     "	.size SNDVDReadAsync_next,.-SNDVDReadAsync_next\n");
 
+/* The same block read done synchronously (waits for the DMA to finish). */
 /* .text:0x7DC | 0x8006560C | size: 0x68 */
 asm("	.globl SNDVDReadSync_next\n"
     "	.type SNDVDReadSync_next,@function\n"
@@ -697,6 +716,7 @@ asm("	.globl SNDVDReadSync_next\n"
     "	blr\n"
     "	.size SNDVDReadSync_next,.-SNDVDReadSync_next\n");
 
+/* Starts a file-server write transfer of `len` bytes: handshake and command byte, length word. */
 /* .text:0x844 | 0x80065674 | size: 0x64 */
 asm("	.globl SNDVDWrite_init\n"
     "	.type SNDVDWrite_init,@function\n"
@@ -730,6 +750,7 @@ asm("	.globl SNDVDWrite_init\n"
     "	blr\n"
     "	.size SNDVDWrite_init,.-SNDVDWrite_init\n");
 
+/* Queues the next block of a write as an EXI2 DMA with the interrupt enabled. */
 /* .text:0x8A8 | 0x800656D8 | size: 0x70 */
 asm("	.type SNDVDWriteAsync_next,@function\n"
     "SNDVDWriteAsync_next:\n"
@@ -765,6 +786,7 @@ asm("	.type SNDVDWriteAsync_next,@function\n"
     "	blr\n"
     "	.size SNDVDWriteAsync_next,.-SNDVDWriteAsync_next\n");
 
+/* The same block write done synchronously. */
 /* .text:0x918 | 0x80065748 | size: 0x68 */
 asm("	.globl SNDVDWriteSync_next\n"
     "	.type SNDVDWriteSync_next,@function\n"
@@ -799,6 +821,7 @@ asm("	.globl SNDVDWriteSync_next\n"
     "	blr\n"
     "	.size SNDVDWriteSync_next,.-SNDVDWriteSync_next\n");
 
+/* Writes a short block (the request header) with immediate 32-bit writes instead of DMA. */
 /* .text:0x980 | 0x800657B0 | size: 0xA4 */
 asm("	.globl SNDVDWriteNoDMA_next\n"
     "	.type SNDVDWriteNoDMA_next,@function\n"
@@ -857,6 +880,7 @@ asm("	.globl SNDVDWriteNoDMA_next\n"
 asm("	.data\n"
     "	.balign 8\n");
 
+/* Link state: the host-interrupt callback pointer and its pending flag (.data). */
 /* .data:0x0 | 0x80253D20 | size: 0x10 */
 asm("	.globl lbl_80253D20\n"
     "	.type lbl_80253D20,@object\n"
@@ -871,6 +895,7 @@ asm("	.globl lbl_80253D20\n"
 asm("	.section .bss, \"wa\", @nobits\n"
     "	.balign 8\n");
 
+/* Work area of the link (.bss). */
 /* .bss:0x0 | 0x80281BA0 | size: 0x20 */
 asm("	.globl lbl_80281BA0\n"
     "	.type lbl_80281BA0,@object\n"

@@ -53,11 +53,14 @@ static Bool mwsftag_IsUseAinfSj(MWSFD_CRPRM *prm)
 	return FALSE;
 }
 
+// MPEG-only files (mode 2) have no additional-info stream.
 static Bool mwsftag_IsNoAinf(MWPLY mwply)
 {
 	return mwply->prm.mode == 2;
 }
 
+// At play start: unless fixed by the creation parameters, takes the component layout from the Sofdec
+// header of the current frame and programs the SFX converter with it.
 void MWSFSFX_DecideCompoMode(MWPLY mwply)
 {
 	Sint32 fxtype;
@@ -73,21 +76,25 @@ void MWSFSFX_DecideCompoMode(MWPLY mwply)
 	SFX_SetCompoMode(mwply->sfx, mwply->compo);
 }
 
+// Whether the converter treats the frame as two fields.
 Sint32 MWSFD_IsFrmDivField(MWPLY mwply)
 {
 	return SFX_GetTypeDivField(mwply->sfx);
 }
 
+// Whether the converter's current layout asks for colour-space conversion.
 Sint32 MWSFSFX_IsFrmCcs(MWPLY mwply)
 {
 	return SFX_GetTypeCcs(mwply->sfx);
 }
 
+// Hands the frame's picture user data to the converter (it may carry conversion parameters).
 void MWSFSFX_SetPicUsrDat(MWPLY mwply, void *dat, Sint32 size)
 {
 	SFX_SetPicUsrDat(mwply->sfx, dat, size);
 }
 
+// Dead: bottom-up conversion switch.
 Sint32 mwPlyGetCnvBottomUp(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -97,6 +104,7 @@ Sint32 mwPlyGetCnvBottomUp(MWPLY mwply)
 	return SFX_GetCnvBottomUp(mwply->sfx);
 }
 
+// Dead: bottom-up conversion switch.
 void mwPlySetCnvBottomUp(MWPLY mwply, Sint32 sw)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -106,6 +114,7 @@ void mwPlySetCnvBottomUp(MWPLY mwply, Sint32 sw)
 	SFX_SetCnvBottomUp(mwply->sfx, sw);
 }
 
+// Dead: Z-buffer table (32-bit) from the current frame.
 void MWSFD_MakeTblZ32(MWPLY mwply, void *tbl)
 {
 	MWS_FRM frm;
@@ -123,6 +132,7 @@ void MWSFD_MakeTblZ32(MWPLY mwply, void *tbl)
 	SFX_MakeTblZ32(mwply->sfx, &sfxfrm, tbl);
 }
 
+// Dead: Z-buffer table (16-bit) from the current frame.
 void MWSFD_MakeTblZ16(MWPLY mwply, void *tbl)
 {
 	MWS_FRM frm;
@@ -196,6 +206,8 @@ static void mwsftag_GetAinfFromSj(MWPLY mwply)
 
 /* the original did not inline mwsftag_GetAinfFromSj here */
 #pragma dont_inline on
+// When a new frame arrives: pulls the additional-info (tag) block from its stream joint and hands the
+// "SFXINFS".."SFXINFE" record, if present, to the converter as its tag info.
 void MWSFTAG_UpdateTagInf(MWPLY mwply)
 {
 	SJCK out;
@@ -221,6 +233,7 @@ void MWSFTAG_UpdateTagInf(MWPLY mwply)
 }
 #pragma dont_inline off
 
+// Dead: user buffer that receives a copy of the tag block.
 Sint32 mwPlyAttachAddInfBuf(MWPLY mwply, void *buf, Sint32 bsize)
 {
 	if (bsize < mwply->ainf_bsize) {
@@ -231,6 +244,7 @@ Sint32 mwPlyAttachAddInfBuf(MWPLY mwply, void *buf, Sint32 bsize)
 	return 1;
 }
 
+// Empties the additional-info ring (new play).
 void MWSFTAG_ResetAinfSj(MWPLY mwply)
 {
 	if (mwply->ainf_sj != NULL) {
@@ -238,6 +252,7 @@ void MWSFTAG_ResetAinfSj(MWPLY mwply)
 	}
 }
 
+// No tag block seen yet.
 void MWSFTAG_InitTagInf(MWPLY mwply)
 {
 	mwply->tag_flg = 0;
@@ -246,6 +261,7 @@ void MWSFTAG_InitTagInf(MWPLY mwply)
 	mwply->tag_x1a4 = -1;
 }
 
+// Registers the additional-info ring as SFD user-output channel 2 (private stream 2 data); -1 on failure.
 Sint32 MWSFTAG_SetAinfSj(MWPLY mwply)
 {
 	if (mwsftag_IsNoAinf(mwply) == TRUE) {
@@ -257,6 +273,7 @@ Sint32 MWSFTAG_SetAinfSj(MWPLY mwply)
 	return (SFD_SetUsrSj(mwply->sfd, 2, mwply->ainf_sj, NULL) != 0) ? -1 : 0;
 }
 
+// Destroys the additional-info stream joint.
 void MWSFTAG_DestroyAinfSj(MWPLY mwply)
 {
 	if (mwply->ainf_sj != NULL) {
@@ -264,6 +281,8 @@ void MWSFTAG_DestroyAinfSj(MWPLY mwply)
 	}
 }
 
+// Creates the additional-info ring joint over the 128 KiB block when the layout uses it (compo 0 or
+// 0x101), else NULL.
 SJ MWSFTAG_CreateAinfSj(MWPLY mwply)
 {
 	SJ sj;
@@ -280,11 +299,13 @@ SJ MWSFTAG_CreateAinfSj(MWPLY mwply)
 	return sj;
 }
 
+// Whether the creation parameters use the additional-info stream (compo 0 or 0x101).
 Bool MWSFTAG_IsUseAinfSj(MWSFD_CRPRM *prm)
 {
 	return mwsftag_IsUseAinfSj(prm);
 }
 
+// Dead: Z output offset.
 Sint32 mwPlyFxGetOutZoffset(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -294,6 +315,7 @@ Sint32 mwPlyFxGetOutZoffset(MWPLY mwply)
 	return SFX_GetOutZoffset(mwply->sfx);
 }
 
+// Dead: Z output offset.
 void mwPlyFxSetOutZoffset(MWPLY mwply, Sint32 ofst)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -303,6 +325,7 @@ void mwPlyFxSetOutZoffset(MWPLY mwply, Sint32 ofst)
 	SFX_SetOutZoffset(mwply->sfx, ofst);
 }
 
+// Dead: Z output scale.
 Sint32 mwPlyFxGetOutZscale(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -312,6 +335,7 @@ Sint32 mwPlyFxGetOutZscale(MWPLY mwply)
 	return SFX_GetOutZscale(mwply->sfx);
 }
 
+// Dead: Z output scale.
 void mwPlyFxSetOutZscale(MWPLY mwply, Sint32 scale)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -321,6 +345,8 @@ void mwPlyFxSetOutZscale(MWPLY mwply, Sint32 scale)
 	SFX_SetOutZscale(mwply->sfx, scale);
 }
 
+// Output texture size in pixels for the frame converters (the game sets it before
+// mwPlyFxCnvFrmY84C44 with the texture width/height).
 void mwPlyFxSetOutBufSize(MWPLY mwply, Sint32 width, Sint32 height)
 {
 	SFX_OBJ *sfx;
@@ -334,6 +360,7 @@ void mwPlyFxSetOutBufSize(MWPLY mwply, Sint32 width, Sint32 height)
 	SFX_SetUnitWidth(sfx, 1);
 }
 
+// Output size as a byte pitch and height (the game uses it for the ARGB8888 path: width * 4).
 void mwPlyFxSetOutBufPitchHeight(MWPLY mwply, Sint32 pitch, Sint32 height)
 {
 	SFX_OBJ *sfx;
@@ -347,6 +374,7 @@ void mwPlyFxSetOutBufPitchHeight(MWPLY mwply, Sint32 pitch, Sint32 height)
 	SFX_SetUnitWidth(sfx, 0);
 }
 
+// Dead: current output pitch/height.
 void mwPlyFxGetOutBufPitchHeight(MWPLY mwply, Sint32 *pitch, Sint32 *height)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -357,26 +385,31 @@ void mwPlyFxGetOutBufPitchHeight(MWPLY mwply, Sint32 *pitch, Sint32 *height)
 	*height = mwply->sfx->outbuf_height;
 }
 
+// Colour adjustment table for the converter (from the Sofdec header / picture user data).
 void MWSFD_SetColAdj(MWPLY mwply, void *coladj)
 {
 	SFX_SetColAdj(mwply->sfx, coladj);
 }
 
+// Same as MWSFD_SetColAdj.
 void MWSFSFX_SetColAdj(MWPLY mwply, void *coladj)
 {
 	SFX_SetColAdj(mwply->sfx, coladj);
 }
 
+// Converter effect type.
 void MWSFSFX_SetFxType(MWPLY mwply, Sint32 fxtype)
 {
 	SFX_SetFxType(mwply->sfx, fxtype);
 }
 
+// Converter component layout.
 void MWSFSFX_SetCompoMode(MWPLY mwply, Sint32 mode)
 {
 	SFX_SetCompoMode(mwply->sfx, mode);
 }
 
+// Dead: current component layout.
 Sint32 mwPlyFxGetCompoMode(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -386,6 +419,7 @@ Sint32 mwPlyFxGetCompoMode(MWPLY mwply)
 	return SFX_GetCompoMode(mwply->sfx);
 }
 
+// Dead: fixes the component layout by hand.
 void mwPlyFxSetCompoMode(MWPLY mwply, Sint32 mode)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -405,6 +439,7 @@ void mwPlyFxSetCompoMode(MWPLY mwply, Sint32 mode)
 	SFX_SetCompoMode(mwply->sfx, mode);
 }
 
+// Dead: converts the current frame to a 32-bit Z buffer.
 void mwPlyFxCnvFrmZ32(MWPLY mwply, void *dst)
 {
 	MWS_FRM frm;
@@ -422,6 +457,7 @@ void mwPlyFxCnvFrmZ32(MWPLY mwply, void *dst)
 	SFX_CnvFrmZ32(mwply->sfx, &sfxfrm, dst);
 }
 
+// Dead: converts the current frame to a 16-bit Z buffer.
 void mwPlyFxCnvFrmZ16(MWPLY mwply, void *dst)
 {
 	MWS_FRM frm;
@@ -460,6 +496,7 @@ static const Char8 mwsfsfx_msg_chroma_format[] = "E301273 : chroma_format is inv
 static const Char8 mwsfsfx_msg_pic_struct[] = "E301272 : picture_structure is invalid.";
 static const Char8 mwsfsfx_msg_buffmt[] = "E201184 : MwsfdBufFmt value is invalid.";
 
+// Fills one SFX plane descriptor (buffer, width, height).
 static void mwsfsfx_SetPln(SFX_PLN *p, void *buf, Sint32 width, Sint32 height)
 {
 	p->buf = buf;
@@ -478,6 +515,9 @@ typedef struct {
 	Sint32 crwidth;
 } MWSFSFX_YCC420PLN;
 
+// Converts a player frame (MWS_FRM) into the converter's SFX_FRM: the three YCC planes with their
+// strides (mwPlyCalcYccPlane), size, picture structure, chroma format/positions, field flags and the
+// tag info; errors for unknown buffmt / pic_struct / chroma values.
 void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 {
 	MWSFSFX_YCC420PLN pln;
@@ -599,31 +639,37 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 	sfxfrm->chromapos_v = v;
 }
 
+// The player's SFX converter handle.
 SFX_OBJ *MWSFSFX_GetSfxHn(MWPLY mwply)
 {
 	return mwply->sfx;
 }
 
+// Destroys the converter.
 void MWSFSFX_Destroy(SFX_OBJ *sfx)
 {
 	SFX_Destroy(sfx);
 }
 
+// Creates the converter in the given work.
 SFX_OBJ *MWSFSFX_Create(void *work, Sint32 wsize)
 {
 	return SFX_Create(work, wsize);
 }
 
+// Work needed by one converter (SFX_WORK_SIZE).
 Sint32 MWSFSFX_CalcHnWorkSiz(void)
 {
 	return SFX_WORK_SIZE;
 }
 
+// SFX errors -> MWSFSVM_Error.
 void mwsfsfx_SfxErrCbFn(void *obj, const Char8 *msg)
 {
 	MWSFSVM_Error(msg);
 }
 
+// SFX library init with the error callback.
 void MWSFSFX_Init(void)
 {
 	SFX_Init();

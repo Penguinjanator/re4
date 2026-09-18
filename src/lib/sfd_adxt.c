@@ -149,6 +149,8 @@ static SFSEE_AHDR *sfadxt_GetAhdr(SFD sfd)
 	return (SFSEE_AHDR *)&sfd->see.wk->a2hdr;
 }
 
+// Channel count and rate of the selected audio stream from the seek work's header analysis (-1 when
+// there is none).
 static Sint32 sfadxt_GetAudioInf(SFD sfd, Sint32 *nch, Sint32 *sfreq)
 {
 	SFSEE_AHDR *ahdr;
@@ -174,6 +176,7 @@ static Bool sfadxt_IsDecoded(ADXT adxt)
 	return TRUE;
 }
 
+// The ADXT is in its PLAYING state (3).
 static Bool sfadxt_IsPlaying(ADXT adxt)
 {
 	if (ADXT_GetStat(adxt) == 3) {
@@ -182,6 +185,7 @@ static Bool sfadxt_IsPlaying(ADXT adxt)
 	return FALSE;
 }
 
+// Resumes the ADXT and the time stabiliser unless the driver's own pause is set.
 static void sfadxt_PauseOff(SFD sfd)
 {
 	SFADXT_WORK *wk;
@@ -197,6 +201,7 @@ static void sfadxt_PauseOff(SFD sfd)
 	}
 }
 
+// Pauses the ADXT and the time stabiliser (the driver keeps audio paused until Start).
 static void sfadxt_PauseOn(SFD sfd)
 {
 	SFADXT_WORK *wk;
@@ -209,6 +214,8 @@ static void sfadxt_PauseOn(SFD sfd)
 	SFTST_Pause(SFADXT_TST(sfd), 1);
 }
 
+// Seek support: inserts a synthetic SFA header so the ADXT can restart mid-stream, then skips the
+// leading silence; needs the audio header analysis. Unused here (no seek work).
 Sint32 SFADXT_Seek(SFD sfd)
 {
 	SFADXT_WORK *wk;
@@ -234,21 +241,25 @@ Sint32 SFADXT_Seek(SFD sfd)
 	return 0;
 }
 
+// Not supported: error 0xFF000C03.
 Sint32 SFADXT_AddRead(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000C03);
 }
 
+// Not supported: error 0xFF000C03.
 Sint32 SFADXT_GetRead(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000C03);
 }
 
+// Not supported: error 0xFF000C03.
 Sint32 SFADXT_AddWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000C03);
 }
 
+// Not supported: error 0xFF000C03.
 static Sint32 SFADXT_GetWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000C03);
@@ -294,12 +305,15 @@ Sint32 SFADXT_Pause(SFD sfd, Sint32 sw)
 	return 0;
 }
 
+// Stops the ADXT.
 Sint32 SFADXT_Stop(SFD sfd)
 {
 	ADXT_Stop(SFADXT_WK(sfd)->adxt);
 	return 0;
 }
 
+// Driver Start (from the auto-play output driver when the player goes PLAYING): clears the driver
+// pause and resumes the ADXT/stabiliser unless the user pause is on.
 Sint32 SFADXT_Start(SFD sfd)
 {
 	ADXT adxt;
@@ -317,6 +331,7 @@ Sint32 SFADXT_Start(SFD sfd)
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFADXT_Standby(void)
 {
 	return 0;
@@ -334,6 +349,7 @@ static Sint32 sfadxt_ReleaseAdxt(SFD sfd, ADXT adxt)
 	return 0;
 }
 
+// Releases the ring joint and the ADXT (kept across a player reset), clears the work.
 static Sint32 SFADXT_Destroy(SFD sfd)
 {
 	SFADXT_WORK *wk;
@@ -380,6 +396,8 @@ static void sfadxt_UpdateTime(SFADXT_WORK *wk, ADXT adxt, void *tst)
 	}
 }
 
+// Clock source type 2 (audio): the ADXT playback time (ADXT_GetTime, samples over the rate) smoothed
+// by the time stabiliser, monotonic (tcount only moves forward). The movie video is timed against this.
 Sint32 sfadxt_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 {
 	SFADXT_WORK *wk;
@@ -400,6 +418,9 @@ Sint32 sfadxt_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale)
 	return 0;
 }
 
+// Driver work defaults from the library parameters (ring buffer, ADXT work): transfer state
+// sfadxt_CopyData, no time yet; creates the time stabiliser with the tolerance / excess / adjust
+// conditions (0x3D..0x42, 0x48).
 Sint32 sfadxt_InitInf(SFD sfd, SFADXT_WORK *wk)
 {
 	void *tst;
@@ -445,6 +466,8 @@ Sint32 sfadxt_InitInf(SFD sfd, SFADXT_WORK *wk)
 	return 0;
 }
 
+// Creates the ADXT handle (2 channels, 0xC1C0 work) or reuses the one kept across a reset; auto
+// recovery off, DSP rate correction on.
 static ADXT sfadxt_CreateAdxt(SFADXT_WORK *wk)
 {
 	ADXT adxt;
@@ -504,6 +527,9 @@ static Sint32 sfadxt_CreateSub(SFD sfd)
 	return 0;
 }
 
+// Driver Create when audio is on (cond 6): work, ADXT and ring joint, fills the auto-play output
+// driver's callback block (volume/pan/speed), starts the ADXT on the joint paused, and installs the
+// audio clock as source 2 (cond 0xF = 2).
 Sint32 SFADXT_Create(SFD sfd)
 {
 	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
@@ -852,6 +878,9 @@ static void sfadxt_PrepOut(SFD sfd)
 	}
 }
 
+// After a transfer: maps ADXT errors to 0xFF000C07..09 (when cond 0x1A reports them), turns the
+// stabiliser adjustment off once playing ends, terminates the output buffer at ADXT play end, and
+// when the input buffer terminated with nothing left tells the ADXT no more data comes.
 static void sfadxt_CheckStat(SFD sfd, Sint32 len)
 {
 	SFADXT_WORK *wk;
@@ -959,11 +988,16 @@ static Sint32 sfadxt_ExecServerSub(register SFD sfd)
 	return err;
 }
 
+// Driver server: move demuxed ADX bytes from the audio input ring into the ADXT's joint
+// (sfadxt_Transfer through the state function: copy / skip silence / skip header), prepare the
+// output, check the ADXT state, analyse the audio header, follow the server-rate condition (0x1B)
+// and post the total sample count for concatenation.
 Sint32 SFADXT_ExecServer(SFD sfd)
 {
 	return sfadxt_ExecServerSub(sfd);
 }
 
+// Library finish: SFA and ADXT.
 Sint32 SFADXT_Finish(void)
 {
 	SFA_Finish();
@@ -971,6 +1005,7 @@ Sint32 SFADXT_Finish(void)
 	return 0;
 }
 
+// Library init: ADXT and SFA, clears the driver parameters.
 Sint32 SFADXT_Init(void)
 {
 	ADXT_Init();
@@ -979,6 +1014,8 @@ Sint32 SFADXT_Init(void)
 	return 0;
 }
 
+// Library-wide ADXT driver parameters (ring buffer and ADXT work, 32-byte aligned) for the next
+// handle; mwsfcre_CreateSfd sets them from the component work.
 void SFD_SetAdxtPara(SFADXT_PARA *para)
 {
 	sfadxt_para.bsize = para->bsize;
@@ -997,6 +1034,8 @@ void SFD_SetAdxtPara(SFADXT_PARA *para)
  * function only (the other functions keep their pools); the log result in a local `l` ranks the
  * frsp result above the 1731.234f literal (frsp f1 in place, the literal f2). CRI pass 18b. */
 #pragma pool_data off // COMPILER-DIFF: M2
+// Speed (1000 = normal) as a pitch transpose in octaves/cents (1200 * ln(speed/1000) / ln 2);
+// ADXT_SetTranspose is a no-op on AX, so speed change has no audio effect here.
 void SFADXT_SetSpeed(SFD sfd, Sint32 speed)
 {
 	ADXT adxt;
@@ -1022,21 +1061,25 @@ void SFADXT_SetSpeed(SFD sfd, Sint32 speed)
 }
 #pragma pool_data on // COMPILER-DIFF: M2
 
+// ADXT output volume.
 static Sint32 SFADXT_GetOutVol(SFD sfd)
 {
 	return ADXT_GetOutVol(SFADXT_WK(sfd)->adxt);
 }
 
+// ADXT output volume (1/10 dB).
 Sint32 SFADXT_SetOutVol(SFD sfd, Sint32 vol)
 {
 	return ADXT_SetOutVol(SFADXT_WK(sfd)->adxt, vol);
 }
 
+// ADXT channel pan.
 Sint32 SFADXT_GetOutPan(SFD sfd, Sint32 ch)
 {
 	return ADXT_GetOutPan(SFADXT_WK(sfd)->adxt, ch);
 }
 
+// ADXT channel pan.
 Sint32 SFADXT_SetOutPan(SFD sfd, Sint32 ch, Sint32 pan)
 {
 	return ADXT_SetOutPan(SFADXT_WK(sfd)->adxt, ch, pan);

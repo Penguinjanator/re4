@@ -188,6 +188,8 @@ void *MWSFD_Malloc(MWPLY mwply, Sint32 size)
 	return ptr;
 }
 
+// Releases every component block in reverse allocation order (through the library free callback
+// when no user work was given) and empties the block table.
 static void mwsfcre_FreeAll(MWPLY mwply)
 {
 	MWSFD_LIBWORK *lw;
@@ -226,6 +228,9 @@ static Sint32 mwsfcre_GetFtype(SFD_CREINF *inf)
 	return ftype;
 }
 
+// Analyses the first `size` bytes of a Sofdec file (the game reads 0x5000 bytes in cSofdec::initApp):
+// file type (1 Sofdec A/V, 2 MPEG video only, 3 video-only Sofdec), picture size, frame rate, audio
+// rate/channels and the total frame count from the Sofdec header. valid = 0 when it is not playable.
 void mwPlyGetHdrInf(void *data, Sint32 size, MWSFD_HDRINF *hdrinf)
 {
 	MWSFD_HDRINF inf;
@@ -288,6 +293,9 @@ void MWSFCRE_DestroySfd(MWPLY mwply)
 	mwply->ifc = &mwsfd_if;
 }
 
+// MWPLY_IF.Destroy (mwPlyDestroy): stops the decoder, destroys the additional-info stream joint and
+// the SFX converter, then the SFD handle, scheduler, stream controller and joints (MWSFCRE_DestroySfd)
+// and frees the component work.
 void mwSfdDestroy(MWPLY obj)
 {
 	MWPLY mwply = (MWPLY)(MWPLY_OBJ *)obj;
@@ -371,6 +379,7 @@ void mwPlySetFrmBuf(Sint32 num, Sint32 size, void **buf)
 	mwsfd_sisjadr = 0;
 }
 
+// Only frame buffer formats 0 (default) and 3 (planar YCC 4:2:0) are accepted.
 static Bool mwsfcre_IsValidBufFmt(MWSFD_CRPRM *cprm)
 {
 	Bool ret = TRUE;
@@ -399,6 +408,8 @@ static Sint32 mwsfcre_ChkMallocFn(MWSFD_CRPRM *cprm)
 	return ret;
 }
 
+// Starts the component allocator on the caller's work (MWSFD_CRPRM.work / wksize): nothing used, no
+// blocks recorded.
 static void mwsfcre_InitCompoWork(MWPLY mwply, MWSFD_CRPRM *cprm)
 {
 	Sint32 i;
@@ -602,6 +613,12 @@ static inline void mwsfcre_SetSfdCond(MWPLY mwply, MWSFD_LIBWORK *lw)
 		} \
 	}
 
+// Creates a player handle from the creation parameters (the game: ftype 1, max_bps 8 Mbit/s, frame
+// pool 4, movie size, max_stm 2, work from mwPlyCalcWorkCprmSfd): takes one of the 8 MWPLY slots,
+// builds the SFD decoder with the buffers of the file type (mwsfcre_CreateSfd), the decoder
+// conditions (frame pool in 1/1000 s of the refresh rate), the file and memory stream joints, the
+// ADXSTM controller + LSC scheduler feeding the file joint, the SFX frame converter and the
+// additional-info joint, and installs the Sofdec header callback. NULL with an error on any failure.
 MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 {
 	MWSFD_LIBWORK *lw;
@@ -720,6 +737,8 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 	return mwply;
 }
 
+// Before a new play: stops the SFD handle, re-installs the error callback and re-attaches the
+// picture user data buffer (max_skip + 3 slots).
 Sint32 MWSFCRE_ResetSfdHn(MWPLY mwply)
 {
 	MWSFD_PICUSR *pu;
@@ -769,6 +788,7 @@ void mwPlyAttachPicUsrBuf(MWPLY mwply, void *buf, Sint32 bsize, Sint32 usize)
 	MWSFCRE_ATTACH_PICUSRBUF(mwply);
 }
 
+// Creation buffmt -> SFD frame buffer format (0 and 3 -> 3 planar; 1, 2 pass through).
 static Sint32 mwsfcre_CnvBufFmt(Sint32 buffmt)
 {
 	Sint32 fmt;
@@ -794,6 +814,7 @@ static Sint32 mwsfcre_CnvBufFmt(Sint32 buffmt)
 	return fmt;
 }
 
+// MWSFD_Malloc through a local (keeps the original's size test; see the register note below).
 static void *mwsfcre_MallocWk(MWPLY mwply, Sint32 wksize)
 {
 	Sint32 size = wksize;
@@ -1080,6 +1101,7 @@ void MWSFCRE_SetSupplySj(MWPLY mwply)
 	}
 }
 
+// Work of the SFX converter handle plus the 128 KiB additional-info ring when the layout uses it.
 static Sint32 mwsfcre_CalcWorkSfx(MWSFD_CRPRM *cprm)
 {
 	Sint32 size = MWSFSFX_CalcHnWorkSiz(cprm->max_width, cprm->max_height);
@@ -1090,6 +1112,8 @@ static Sint32 mwsfcre_CalcWorkSfx(MWSFD_CRPRM *cprm)
 	return size;
 }
 
+// Total work the creation parameters need (SFD component buffers + SFX converter); the game
+// allocates exactly this much and passes it back as cprm->work.
 Sint32 mwPlyCalcWorkCprmSfd(MWSFD_CRPRM *cprm)
 {
 	Sint32 sfdsiz;

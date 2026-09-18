@@ -33,6 +33,8 @@ extern void MPVMC08_OneRef4p_TuneC(void);
 
 void (*mpvcmc_oneref[8])(void);
 
+// Chroma block count for the output block tables: 4 when motion compensation writes chroma
+// (mcflag), -1 otherwise.
 void MPVCMC_SetCcnt(MPV_OBJ *mpv)
 {
 	Sint32 ccnt;
@@ -73,6 +75,8 @@ void MPVCMC_InitMcOiRt(MPV_OBJ *mpv)
 	}
 }
 
+// Per-handle motion-compensation setup: installs the 8x8 and 16x16 kernel tables, points the six
+// output block descriptors at the work buffer with 8-pixel rows.
 void MPVCMC_InitObj(MPV_OBJ *mpv)
 {
 	Uint8 *work;
@@ -100,6 +104,8 @@ void MPVCMC_InitObj(MPV_OBJ *mpv)
 	}
 }
 
+// Library table of the 8x8 one-reference kernels by half-pel case (1p, H2, V2, 4p; repeated for
+// the second reference).
 void MPVCMC_Init(void)
 {
 	mpvcmc_oneref[0] = MPVMC08_OneRef1p_TuneC;

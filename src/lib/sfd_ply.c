@@ -106,6 +106,8 @@ const Sint32 SFPLY_cond_dfl[101] = {
 	0,
 };
 
+// Tells the input driver where its data comes from: a memory range or a stream joint (the player's
+// file ring fed by ADXSTM). MWSFCRE_SetSupplySj calls it at every start.
 Sint32 SFD_SetSupplySj(SFD sfd, SFBUF_SUP *sup)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -132,6 +134,8 @@ Sint32 SFD_AddSupply(SFD sfd, Sint32 adr, Sint32 nbyte)
 	return SFTRN_CallTrtTrif(sfd, 0, 10, adr, nbyte);
 }
 
+// Returns a decoded frame to the video output driver (tr 6, AddRead) and clears the "user holds a
+// frame" flag; mwPlyRelCurFrm.
 Sint32 SFD_RelFrm(SFD sfd, void *frm)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -141,6 +145,8 @@ Sint32 SFD_RelFrm(SFD sfd, void *frm)
 	return SFTRN_CallTrtTrif(sfd, 6, 12, (Sint32)frm, 0);
 }
 
+// Asks the video output driver (tr 6, GetRead) for the next frame whose display time has come;
+// *frm = NULL when none. Sets the "user holds a frame" flag and calls the optional record hook.
 Sint32 SFD_GetFrm(SFD sfd, void **frm)
 {
 	Sint32 ret;
@@ -173,6 +179,8 @@ void SFPLY_SetPtsmFn(void (*setfn)(SFPLY_PTSM *ptsm), void (*resetfn)(SFPLY_PTSM
 	SFPLY_ResetPtsm = resetfn;
 }
 
+// Declares the input finished: sets the terminate flag on the input driver's output buffer so the
+// demuxer/decoders drain and the play ends (linked play, stream-joint starts).
 Sint32 SFD_TermSupply(SFD sfd)
 {
 	Sint32 buf;
@@ -313,6 +321,7 @@ Sint32 sfply_ResetHn(SFD sfd)
 	return 0;
 }
 
+// 1 while sfply_StopHn is re-creating a handle (the drivers' Destroy/Create see it).
 Sint32 SFPLY_GetResetFlg(void)
 {
 	return SFLIB_libwork.x1fc;
@@ -357,6 +366,8 @@ static Sint32 sfply_StopHn(SFD sfd)
 	return 0;
 }
 
+// Stops the handle: stops the output drivers, then re-creates the handle in place with its settings
+// kept (sfply_ResetHn) so it is ready for the next start. Requests a state update.
 Sint32 SFD_Stop(SFD sfd)
 {
 	Sint32 ret;
@@ -369,6 +380,8 @@ Sint32 SFD_Stop(SFD sfd)
 	return ret;
 }
 
+// Requests playback (req START): the state machine goes PREP -> STBY -> PLAYING as the streams are
+// prepared. With cond 0x2F the Pro Logic II standby path is used instead.
 Sint32 SFD_Start(SFD sfd)
 {
 	Sint32 ret;
@@ -412,6 +425,7 @@ Sint32 SFD_Destroy(SFD sfd)
 	return ret;
 }
 
+// Counts `n` skipped pictures in the player information and calls the optional hook (cond 0x25).
 void SFPLY_AddSkipPic(SFD sfd, Sint32 n, void *arg)
 {
 	void (*fn)(SFD sfd, void *arg, SFD_PLYINF *inf);
@@ -424,6 +438,7 @@ void SFPLY_AddSkipPic(SFD sfd, Sint32 n, void *arg)
 	}
 }
 
+// Counts `n` decoded pictures and calls the optional hook (cond 0x24).
 void SFPLY_AddDecPic(SFD sfd, Sint32 n, void *arg)
 {
 	void (*fn)(SFD sfd, void *arg, SFD_PLYINF *inf);
@@ -436,6 +451,11 @@ void SFPLY_AddDecPic(SFD sfd, Sint32 n, void *arg)
 	}
 }
 
+// Builds a handle in the caller's 32-byte-aligned work: copies the creation parameters, resets the
+// header analysis, stream info, player information, timers and error info, copies the library default
+// conditions, initialises the timing work, the 8 buffers (SFBUF_InitHn), the 9 transfer-driver slots
+// and the seek work, then runs every driver's Create (fn 3). State STOP. NULL on a bad work size
+// (all handles must use the same size).
 static SFD sfply_InitHn(SFD_CREPRM *prm, Sint32 x)
 {
 	SFD hn;
@@ -526,6 +546,7 @@ static SFD sfply_InitHn(SFD_CREPRM *prm, Sint32 x)
 	return hn;
 }
 
+// First free slot of the 8 handle pointers, -1 when full.
 static Sint32 sfply_SearchFreeHn(SFD *tbl)
 {
 	Sint32 i;
@@ -538,6 +559,8 @@ static Sint32 sfply_SearchFreeHn(SFD *tbl)
 	return -1;
 }
 
+// Public creation: validates the buffer base and handle work size (>= 0x35B8), takes a slot and
+// builds the handle (sfply_InitHn). The MW player calls it from mwsfcre_CreateSfd.
 SFD SFD_Create(SFD_CREPRM *prm, Sint32 x)
 {
 	Sint32 id;
@@ -594,6 +617,7 @@ static Bool sfply_IsVidBufFull(SFD sfd)
 	return 0;
 }
 
+// The audio input ring holds >= 80% of its size.
 static Bool sfply_IsAudBufFull(SFD sfd)
 {
 	SFBUF_RING *ring = &sfd->buf[sfd->tr[3].bufin].u.ring;
@@ -755,6 +779,7 @@ static Bool sfply_IsTermAll(SFD sfd)
 	return term;
 }
 
+// Playing and the clock has not advanced for too long (SFTIM_IsStagnant) -> the play is ended.
 static Bool sfply_IsStagnant(SFD sfd)
 {
 	if (!SFPLY_IS_PLAYING(sfd)) {
@@ -821,6 +846,9 @@ static Sint32 sfply_StopPlay(SFD sfd)
 	return 0;
 }
 
+// PLAYING state step: ends the play at the user end time, when all selected streams terminated, on a
+// stagnant clock or past the stop time; toggles the buffering pause (bpa) when the input runs dry /
+// refills (pausing audio and clock through SFPL2_Pause); req END -> PLAYEND.
 Sint32 sfply_StatPlay(SFD sfd)
 {
 	Sint32 cs;
@@ -892,6 +920,10 @@ static Bool sfply_IsPrepared(SFD sfd)
 	return 1;
 }
 
+// PREP state step: once both selected streams are prepared, drops a stream that produced no data at
+// all (cond 5 video / 6 audio), fixes the clock source (cond 15: 1 video, 2 audio) and the termination
+// mode (cond 0x19) from what is present, then STBY or, if startable, starts the output drivers (fn 6)
+// and goes PLAYING.
 static Sint32 sfply_StatPrep(SFD sfd)
 {
 	Sint32 req;
@@ -985,6 +1017,9 @@ static Sint32 sfply_StatStby(SFD sfd, Sint32 stat)
 	return stat;
 }
 
+// One server step of a handle (only when a control change or driver flagged chg_flg): runs every
+// driver's ExecServer (fn 2) and the seek server in PREP/STBY/PLAYING, then the state transition
+// (STOP -> PREP on any request, PREP, STBY, PLAYING steps); times the step in tsum[5].
 void sfply_ExecOne(SFD sfd)
 {
 	Sint64 t0;
@@ -1042,6 +1077,8 @@ void sfply_ExecOne(SFD sfd)
 	SFTMR_AddTsum(&sfd->tsum[5], t1 - t0);
 }
 
+// Public server entry: validates the handle and runs sfply_ExecOne. Called per handle from the MW
+// player's decode server each frame.
 Sint32 SFD_ExecOne(SFD sfd)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -1065,6 +1102,7 @@ static Bool sfply_IsHnSvrWait(SFD sfd)
 	return 1;
 }
 
+// 1 when no handle has pending work (drives the MW player's idle hook).
 Bool SFD_IsSvrWait(void)
 {
 	SFD *tbl = SFLIB_libwork.hn;
@@ -1083,6 +1121,7 @@ Bool SFD_IsSvrWait(void)
 	return 1;
 }
 
+// 1 when this handle has nothing to do (inactive state or no change flagged).
 Bool SFD_IsHnSvrWait(SFD sfd)
 {
 	/* `> 3` written out: the negated SFD_STAT_IS_ACTIVE gives `bgt` with the `li r3,1` last */
@@ -1092,11 +1131,14 @@ Bool SFD_IsHnSvrWait(SFD sfd)
 	return sfd->chg_flg == 0;
 }
 
+// Vsync tick for the SFD clock (SFTIM_VbIn); the MW player calls it once per ADXM_ExecMain.
 void SFD_VbIn(void)
 {
 	SFTIM_VbIn();
 }
 
+// Library init check: the default condition table's guard word (0x5A5A5A5A at index 96) must be
+// intact; clears the get-frame record hook.
 void SFPLY_Init(void)
 {
 	if (SFPLY_cond_dfl[96] != 0x5A5A5A5A) {

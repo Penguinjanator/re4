@@ -314,6 +314,8 @@ void SFD_SetMpvParaTbl(SFMPV_PARA *para, void **rfb, void **tbl)
 	}
 }
 
+// Y/Cb/Cr plane addresses and row strides of a planar YCC 4:2:0 buffer of width x height (the MW
+// player's mwPlyCalcYccPlane).
 void SFD_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SFMPV_PLANE *plane)
 {
 	sfmpv_CalcYccPlane(buf, width, height, plane);
@@ -341,6 +343,7 @@ Sint32 SFD_SetMpvCond(SFD sfd, Sint32 id, Sint32 val)
 	return 0;
 }
 
+// Saves up to 16 MPV decoder conditions into `tbl` (kept across a handle reset).
 Sint32 SFMPV_SaveCond(SFD sfd, Sint32 *tbl, Sint32 size)
 {
 	MPV hn = SFMPV_WK(sfd)->mpv;
@@ -357,6 +360,7 @@ Sint32 SFMPV_SaveCond(SFD sfd, Sint32 *tbl, Sint32 size)
 	return n;
 }
 
+// Restores the MPV decoder conditions saved by SFMPV_SaveCond.
 void SFMPV_RestoreCond(SFD sfd, Sint32 *tbl, Sint32 n)
 {
 	MPV hn = SFMPV_WK(sfd)->mpv;
@@ -370,6 +374,8 @@ void SFMPV_RestoreCond(SFD sfd, Sint32 *tbl, Sint32 n)
 	}
 }
 
+// Buffer for the picture user data of the frames in flight (`num` slots of `siz` bytes); the MW
+// player passes max_skip + 3 slots of 64 bytes.
 Sint32 SFD_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -378,6 +384,8 @@ Sint32 SFD_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz)
 	return sfmpv_SetPicUsrBuf(sfd, buf, num, siz);
 }
 
+// Library init: layout checks, MPV decoder init with 8 handles, cleared driver parameters and
+// frame-buffer tables.
 Sint32 SFMPV_Init(void)
 {
 	Sint32 ret;
@@ -402,6 +410,7 @@ Sint32 SFMPV_Init(void)
  * are kept). COMPILER-DIFF: M3 - the original keeps it out of line (`bl sfmpv_ChkFatal`), ours
  * auto-inlines it into SFMPV_Init under `-inline auto,deferred`. */
 #pragma dont_inline on // COMPILER-DIFF: M3
+// Compile-time layout checks of the driver (MPV_PICATR 0x80 bytes, ...).
 static Sint32 sfmpv_ChkFatal(void)
 {
 	Sint32 sz1 = sizeof(MPV_PICATR);
@@ -421,17 +430,24 @@ static Sint32 sfmpv_ChkFatal(void)
 }
 #pragma dont_inline off // COMPILER-DIFF: M3
 
+// Library finish: MPV decoder.
 Sint32 SFMPV_Finish(void)
 {
 	MPV_Finish();
 	return 0;
 }
 
+// Driver ExecServer (SFD_tr_vd_mpv slot 2).
 Sint32 SFMPV_ExecServer(SFD sfd)
 {
 	return sfmpv_ExecServerSub(sfd);
 }
 
+// Video decode pass: when video is on and not finished, decodes the user-supplied sequence header
+// in PREP, then loops "find the next start-code unit in the video ring -> decode it" (sequence /
+// GOP / picture headers, skip or decode pictures into pool frames) until the ring runs dry or a
+// frame is complete; updates the flow counter, marks the output prepared once enough frames are
+// decoded, and terminates the output when the stream ended and the pool is drained.
 Sint32 sfmpv_ExecServerSub(SFD sfd)
 {
 	Sint32 ret;
@@ -1458,6 +1474,8 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
  * reproduces the target byte for byte; `hour` declared last (level 2 -> r0), `tbl` a ternary (no
  * ECOND copies), `rnd` before `rate`, `fno` before the field store. */
 #pragma pool_data off // COMPILER-DIFF: M2
+// Converts a 90 kHz PTS plus the picture's temporal reference into a timecode (h:m:s:frame, drop
+// frame aware) at the given frame rate; the frame's display time is derived from it.
 void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC *tc)
 {
 	Sint32 rnd = sfmpv_fps_round[prate];
@@ -1533,6 +1551,7 @@ static void sfmpv_InitRfbFrm(SFMPV_WORK *mpv, SFMPV_FRM *frm)
 	}
 }
 
+// Initialises the `n` decoded-frame objects with their buffers from the ta_adr table.
 static void sfmpv_InitTaFrm(SFMPV_WORK *mpv, SFMPV_FRM *frm, Sint32 n)
 {
 	Sint32 i;
@@ -1661,6 +1680,10 @@ static inline void sfmpv_UpdatePicStat(SFD sfd, MPV_PICATR *atr, Sint32 skip)
 	wk->picstat = st;
 }
 
+// Decides whether the picture whose header was just parsed is skipped instead of decoded: never in
+// seek mode (cond 0x2F forces skip, 0x27 forbids it); otherwise skipped when seeking, when the
+// condition table excludes its type (P/B skip switches), when it is an empty B picture, when the GOP
+// is being skipped, or when it would be displayed late. Records the decision in picstat.
 Sint32 sfmpv_IsSkip(SFD sfd, SJCK *ck)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
@@ -1887,6 +1910,10 @@ static inline void sfmpv_SetFrmTtu(SFD sfd, SFMPV_FRM *frm)
 	sfmpv_SetFrmTime(sfd, frm);
 }
 
+// Decodes one picture: takes a pool frame and the reference planes (sfmpv_SetFrmPara), copies the
+// picture user data, runs MPV_DecodeFrmSj on the video ring, times it into tsum[pic_type], then
+// stamps the frame (display time, GOP number, DCT/byte counts) and marks it STBY (B) or REF (I/P),
+// or keeps a B frame pending until its second field. Counts the decoded picture.
 Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
@@ -2104,6 +2131,8 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 	return n;
 }
 
+// Driver Create: work from the library parameters (frame buffers), an MPV decoder handle with
+// sfmpv_ErrFn, the decoder conditions and the picture user data buffer.
 static Sint32 SFMPV_Create(void *obj)
 {
 	SFD sfd;
@@ -2171,6 +2200,8 @@ static inline void sfmpv_InitFrmTbl(SFMPV_WORK *mpv)
 	}
 }
 
+// Driver work from the library-wide parameters (SFD_SetMpvParaTbl): geometry, reference and decoded
+// frame buffer tables; error 0xFF000F15 when the frame pool count is invalid.
 Sint32 sfmpv_InitInf(SFD sfd, SFMPV_WORK *mpv)
 {
 	int i;
@@ -2250,6 +2281,7 @@ static inline Sint32 sfmpv_ChkPara(SFMPV_PARA *para)
 	return 0;
 }
 
+// MPV decoder errors: -1 -> data error 0xFF000F0A, others -> 0xFF000F0B; 0/-2/-3 ignored.
 void sfmpv_ErrFn(void *obj, Sint32 code)
 {
 	switch (code) {
@@ -2294,11 +2326,13 @@ Sint32 SFMPV_Destroy(register SFD sfd)
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFMPV_Standby(SFD sfd)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFMPV_Start(SFD sfd)
 {
 	return 0;
@@ -2317,26 +2351,32 @@ static Sint32 sfmpv_StopSub(SFD sfd)
 	return ret;
 }
 
+// Nothing to do (the frame pool is rebuilt by the handle reset).
 Sint32 SFMPV_Stop(SFD sfd)
 {
 	return sfmpv_StopSub(sfd);
 }
 
+// Nothing to do.
 Sint32 SFMPV_Pause(SFD sfd)
 {
 	return 0;
 }
 
+// Not supported: error 0xFF000F0D.
 static Sint32 SFMPV_GetWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000F0D);
 }
 
+// Not supported: error 0xFF000F0D.
 Sint32 SFMPV_AddWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, 0xFF000F0D);
 }
 
+// The earliest decoded frame waiting for display, as the user-visible SFD_VFRM_INF (NULL when none
+// or the decoder is finished); records its time as the current video end time.
 Sint32 SFMPV_GetRead(SFD sfd, SFD_VFRM_INF **inf)
 {
 	Sint32 lastflg;
@@ -2356,6 +2396,9 @@ Sint32 SFMPV_GetRead(SFD sfd, SFD_VFRM_INF **inf)
 	return 0;
 }
 
+// Fills the SFD_VFRM_INF the application sees from the frame object: size, macroblock size, picture
+// type, display time, buffer format/address, DCT/byte counts, GOP number, picture user data, picture
+// structure (field/frame) and the remaining picture attributes; marks the slot in use.
 void sfmpv_SetFrmInf(SFD sfd, SFMPV_FRM *frm, SFMPV_VINF **inf)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
@@ -2411,6 +2454,8 @@ void sfmpv_SetFrmInf(SFD sfd, SFMPV_FRM *frm, SFMPV_VINF **inf)
 	(*inf)->x7a = frm->pa_xbc;
 }
 
+// The application returned a frame (SFD_RelFrm): must be the one handed out; releases the slot and
+// moves the frame to DRAWN/FREE.
 Sint32 SFMPV_AddRead(SFD sfd, SFD_VFRM_INF *inf)
 {
 	Sint32 cs;
@@ -2433,6 +2478,7 @@ Sint32 SFMPV_AddRead(SFD sfd, SFD_VFRM_INF *inf)
 	return ret;
 }
 
+// Seek support: re-decodes the saved video sequence header and rebuilds the frame pool; unused here.
 Sint32 SFMPV_Seek(SFD sfd)
 {
 	Sint32 flg = 0;
@@ -2582,6 +2628,7 @@ static inline void sfmpv_SetFrmTime(SFD sfd, SFMPV_FRM *frm)
 	}
 }
 
+// A frame object in its FREE state with its buffer and cleared picture attributes (all 0xFF).
 static inline void sfmpv_InitFrm(SFMPV_FRM *frm, void **pbuf)
 {
 	frm->stat = SFMPV_FRM_FREE;

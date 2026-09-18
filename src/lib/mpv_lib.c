@@ -193,16 +193,19 @@ void MPVLIB_SetUseLc(Sint32 sw)
 	mpvlib_use_lc = sw;
 }
 
+// The 0..255 clip table (0x180 zeros, identity, 0x180 0xFF).
 Uint8 *MPVLIB_GetClipTbl(void)
 {
 	return mpv_clip_0_255_tbl;
 }
 
+// The clip table's zero point (index 0x180), which the output stages index with signed values.
 Uint8 *MPVLIB_GetClipBase(void)
 {
 	return mpv_clip_0_255_base;
 }
 
+// -1 for a NULL or not-ready handle (stat != READY); records it in mpvlib_mpvobj.
 Sint32 MPVLIB_CheckHn(MPV mpv)
 {
 	mpvlib_mpvobj = mpv;
@@ -221,11 +224,13 @@ Sint32 MPVLIB_GetOix(void)
 	return mpvlib_oix;
 }
 
+// Dead: input index.
 Sint32 MPVLIB_GetIix(void)
 {
 	return mpvlib_iix;
 }
 
+// Decoder condition `id` of the handle (or the library default when mpv is NULL).
 Sint32 MPV_GetCond(MPV mpv, Sint32 id, Sint32 *val)
 {
 	Sint32 *cond;
@@ -242,6 +247,8 @@ Sint32 MPV_GetCond(MPV mpv, Sint32 id, Sint32 *val)
 	return 0;
 }
 
+// Sets decoder condition `id` (id 8 with 0 installs the empty macroblock callback); mpv NULL sets
+// the library default and every ready handle. The SFD driver sets 5 (MC chroma flag) = 0.
 Sint32 MPV_SetCond(MPV mpv, Sint32 id, Sint32 val)
 {
 	Sint32 *cond;
@@ -273,10 +280,12 @@ Sint32 MPV_SetCond(MPV mpv, Sint32 id, Sint32 val)
 	return 0;
 }
 
+// Default (empty) per-macroblock callback.
 void MPV_MbCbFn(void)
 {
 }
 
+// Frees the handle (invalidating its locked-cache lines when the L1 lock cache is enabled).
 Sint32 MPV_Destroy(MPV mpv)
 {
 	register MPV p = mpv;
@@ -295,6 +304,7 @@ Sint32 MPV_Destroy(MPV mpv)
 	return 0;
 }
 
+// The two IDCT block counters of the DCT parameter block (statistics: full / DC-only blocks).
 void MPV_GetDctCnt(MPV mpv, Sint32 *a, Sint32 *b)
 {
 	*a = mpv->dctpa.cnt0;
@@ -303,6 +313,9 @@ void MPV_GetDctCnt(MPV mpv, Sint32 *a, Sint32 *b)
 
 static void mpvlib_InitPicAtr(MPV_PICATR *atr);
 
+// Builds a handle: bit reader cleared, VLC / zigzag / bit-mask / scale / clip table pointers into
+// the shared table area, default conditions, cleared picture attributes and error record, motion
+// compensation objects, DCT parameter block, MPEG-1 mode, no user joints.
 MPV mpvlib_InitHn(MPV mpv)
 {
 	MPV_IXA *ixa = mpvlib_libwork.ixa;
@@ -381,6 +394,8 @@ static MPV mpvlib_SearchFreeHn(void)
 	return NULL;
 }
 
+// Takes a free handle (locked-cache lines zeroed when enabled), initialises it and creates the
+// (absent) MPEG-2 sub-object.
 MPV MPV_Create(void)
 {
 	register MPV mpv;
@@ -403,6 +418,7 @@ MPV MPV_Create(void)
 	return mpv;
 }
 
+// Library finish: unified MC and M2V, locked-cache invalidate of the table area.
 void MPV_Finish(void)
 {
 	register Sint32 i;
@@ -418,6 +434,7 @@ void MPV_Finish(void)
 	}
 }
 
+// Cleared picture attributes (unknown = 0, the three last bytes 0xFF).
 static void mpvlib_InitPicAtr(MPV_PICATR *atr)
 {
 	memset(atr, 0, 4);
@@ -464,6 +481,10 @@ static void mpvlib_InitPicAtr(MPV_PICATR *atr)
 
 static const Uint32 test_wrok = 0x01020304;
 
+// Library init in the caller's work: sanity checks (MC buffer alignment, VLC area size, object size,
+// condition table guard word, version "1.933", big-endian), reads HID2 for the locked-cache option,
+// lays out `nhn` 0x1380-byte handles followed by the shared table area (MPV_IXA: VLC tables, block
+// decoder tables, clip table), copies the default conditions and initialises the sub-modules.
 Sint32 MPV_Init(Sint32 nhn, void *work)
 {
 	Sint32 siz_mcbuf = 0x380;

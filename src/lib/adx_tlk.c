@@ -107,6 +107,11 @@ void ADXT_Stop(ADXT adxt);
 void ADXT_Destroy(ADXT adxt);
 void ADXT_ExecServer(void);
 
+// Allocates a stream playback handle for up to `maxnch` channels inside the caller's `work` buffer
+// (64-byte aligned): the decoder output rings (0x3060 samples per channel), the AX renderer work and
+// the file stream ring (the rest, in 2 KiB sectors; reload threshold 85% of it). Builds the stream
+// joints, the ADXSTM stream controller, the ADXSJD decoder, the ADXRNA renderer and an LSC scheduler. Returns NULL (with an error message) if no slot is
+// free or the parameters are bad.
 ADXT ADXT_Create(Sint32 maxnch, void *work, Sint32 worksize)
 {
 	ADXT adxt;
@@ -196,6 +201,8 @@ ADXT ADXT_Create(Sint32 maxnch, void *work, Sint32 worksize)
 	return adxt;
 }
 
+// Stops the stream, detaches the AHX / Pro Logic II extensions if any, releases the stream controller,
+// the decoder, the renderer and every stream joint, and frees the adxt_obj slot.
 void ADXT_Destroy(ADXT adxt)
 {
 	ADXSTM stm;
@@ -269,6 +276,7 @@ void ADXT_Destroy(ADXT adxt)
 	ADXCRS_Unlock();
 }
 
+// Destroys every live handle (ADXT_Finish).
 void ADXT_DestroyAll(void)
 {
 	Sint32 i;
@@ -304,6 +312,9 @@ static void adxt_start_sjd(ADXT adxt, SJ sj)
 	}
 }
 
+// Starts file playback: sizes the stream ring (reload threshold / total, sectors -> bytes), sets the
+// end-of-stream lead (adxstm_seteos_sct sectors), rewinds and binds the file range (`ofst`, `nsct`
+// sectors, no-wait) on the ADXSTM, starts the transfer and the decoder on the file stream joint.
 void adxt_start_stm(ADXT adxt, void *fname, void *dir, Sint32 ofst, Sint32 nsct)
 {
 	ADXSTM_SetBufSize(adxt->stm, adxt->reload_nsct << 11, adxt->ibuf_nsct << 11);
@@ -317,6 +328,9 @@ void adxt_start_stm(ADXT adxt, void *fname, void *dir, Sint32 ofst, Sint32 nsct)
 	adxt_start_sjd(adxt, adxt->sjf);
 }
 
+// Starts playback from a caller-supplied stream joint (mode 3, no file stream): the decoder reads the
+// ADX data the caller puts into `sj`, linked playback is enabled. This is how the Sofdec player feeds
+// the movie's audio track (sfd_adxt.c).
 void ADXT_StartSj(ADXT adxt, SJ sj)
 {
 	if (adxt == NULL || sj == NULL) {
@@ -331,6 +345,9 @@ void ADXT_StartSj(ADXT adxt, SJ sj)
 	ADXCRS_Unlock();
 }
 
+// Stops playback: releases the file binding, stops the load scheduler (mode 4), the renderer's
+// transfer and voices and the decoder, destroys a memory-source stream joint (mode 2) and returns the
+// handle to ADXT_ISTAT_STOP.
 void ADXT_Stop(ADXT adxt)
 {
 	SJ sj;
@@ -368,6 +385,8 @@ void ADXT_Stop(ADXT adxt)
 	ADXCRS_Unlock();
 }
 
+// Public handle state: 0 stop, 1 decinfo, 2 prep, 3 playing, 4 playend-wait, 5 playend, 6 error
+// (ADXT_ISTAT_*); -1 for a NULL handle.
 Sint32 ADXT_GetStat(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -406,6 +425,10 @@ static void adxt_get_smpl_time(ADXT adxt, Sint32 *ncount, Sint32 *tscale)
 #define ADXT_SET_TIME_POS(adxt, nc, ts) \
 	(adxt)->x9c = __cvt_fp2unsigned((Float32)adxt_time_unit * ((Float32)(nc) / (Float32)(ts)))
 
+// Playback time: sample mode (adxt_time_mode 0) returns decoded-and-rendered samples over the sampling
+// rate; vsync mode counts vsyncs since start in adxt_time_unit units and resynchronises to the sample
+// time when they drift more than 60 ms apart (adxt_time_adjust_cnt). The Sofdec player uses this to
+// slave the video clock to the audio.
 void ADXT_GetTime(ADXT adxt, Sint32 *ncount, Sint32 *tscale)
 {
 	Sint32 nc;
@@ -464,6 +487,7 @@ Float32 ADXT_GetMvTime(ADXT adxt)
 	return adxt_mviop_f;
 }
 
+// Total sample count of the stream once the header is known (stat >= PREP), else 0.
 Sint32 ADXT_GetNumSmpl(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -502,6 +526,7 @@ Sint32 ADXT_GetFmtBps(ADXT adxt)
 	return 0;
 }
 
+// Sampling rate of the stream in Hz once the header is known, else 0.
 Sint32 ADXT_GetSfreq(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -514,6 +539,7 @@ Sint32 ADXT_GetSfreq(ADXT adxt)
 	return 0;
 }
 
+// Channel count of the stream once the header is known, else 0.
 Sint32 ADXT_GetNumChan(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -563,6 +589,7 @@ void ADXT_SetOutPan(ADXT adxt, Sint32 ch, Sint32 pan)
 	}
 }
 
+// The pan last set for channel `ch` (-15..15, -128 = the stream default).
 Sint32 ADXT_GetOutPan(ADXT adxt, Sint32 ch)
 {
 	if (adxt == NULL) {
@@ -572,6 +599,8 @@ Sint32 ADXT_GetOutPan(ADXT adxt, Sint32 ch)
 	return adxt->outpan[ch];
 }
 
+// Sets the output volume in 1/10 dB (0 = full, down to -999) and pushes it, plus the stream's own AINF
+// default volume, to the renderer.
 void ADXT_SetOutVol(ADXT adxt, Sint32 vol)
 {
 	if (adxt == NULL) {
@@ -582,6 +611,7 @@ void ADXT_SetOutVol(ADXT adxt, Sint32 vol)
 	ADXRNA_SetOutVol(adxt->rna, adxt->outvol + ADXSJD_GetDefOutVol(adxt->sjd));
 }
 
+// The volume last set with ADXT_SetOutVol.
 Sint32 ADXT_GetOutVol(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -591,12 +621,15 @@ Sint32 ADXT_GetOutVol(ADXT adxt)
 	return adxt->outvol;
 }
 
+// Sets the assumed server call rate (Hz) used when sizing the per-call decode step of new handles
+// (ADXT_Init sets 60).
 void ADXT_SetDefSvrFreq(Sint32 freq)
 {
 	adxt_def_svrfreq = freq;
 	adxt_last_svrfreq = freq;
 }
 
+// Per-handle server call rate (Hz); adxt_stat_decinfo derives maxdecsmpl = sfreq / svrfreq from it.
 void ADXT_SetSvrFreq(ADXT adxt, Sint32 freq)
 {
 	if (adxt == NULL) {
@@ -707,6 +740,7 @@ Bool ADXT_IsCompleted(ADXT adxt)
 	return FALSE;
 }
 
+// Automatic recovery switch: when set, a stream underrun restarts the renderer instead of stopping.
 void ADXT_SetAutoRcvr(ADXT adxt, Sint32 sw)
 {
 	adxt->autorcvr = sw;
@@ -737,6 +771,7 @@ void ADXT_ExecServer(void)
 	adxt_tsvr_enter_cnt = 0;
 }
 
+// Error code of the handle (-1 after a stream controller / load scheduler error), 0 if none.
 Sint32 ADXT_GetErrCode(ADXT adxt)
 {
 	if (adxt == NULL) {
@@ -806,6 +841,8 @@ Bool ADXT_IsReadyPlayStart(ADXT adxt)
 	return adxt->x71;
 }
 
+// Pause (sw 1) / resume (sw 0): stops or restarts the AX renderer voices and rebases the vsync time
+// position so ADXT_GetTime stays continuous.
 void ADXT_Pause(ADXT adxt, Sint32 sw)
 {
 	Sint32 stat;
@@ -849,14 +886,17 @@ Sint32 ADXT_GetStatPause(ADXT adxt)
 	return adxt->x72;
 }
 
+// Pitch transpose is not supported by the AX renderer: no-op kept for the API.
 void ADXT_SetTranspose(ADXT adxt, Sint32 oct, Sint32 cent)
 {
 }
 
+// No-op (see ADXT_SetTranspose).
 void ADXT_GetTranspose(ADXT adxt, Sint32 *oct, Sint32 *cent)
 {
 }
 
+// Tells the decoder that no more input data will arrive (end of a memory / stream-joint source).
 void ADXT_TermSupply(ADXT adxt)
 {
 	ADXSJD_TermSupply(adxt->sjd);
@@ -905,11 +945,15 @@ Sint32 ADXT_GetDecDtLen(ADXT adxt)
 	return ADXSJD_GetDecDtLen(adxt->sjd);
 }
 
+// Offset in samples added to every ADXT_GetTime result (the Sofdec player uses it to align the audio
+// clock with the video's first PTS).
 void ADXT_SetTimeOfst(ADXT adxt, Sint32 ofst)
 {
 	adxt->timeofst = ofst;
 }
 
+// Linked-file switch: after an ADX end code the decoder continues with the next concatenated stream
+// instead of finishing (forwarded to the ADXSJD).
 void ADXT_SetLnkSw(ADXT adxt, Sint32 sw)
 {
 	adxt->lnksw = sw;
@@ -918,6 +962,8 @@ void ADXT_SetLnkSw(ADXT adxt, Sint32 sw)
 	}
 }
 
+// True if `data` starts with an ADX header (magic 0x8000) whose info decodes; returns its length in
+// *hdrsiz. Used by the Sofdec audio demuxer to find the start of an ADX track.
 Bool ADXT_IsHeader(Uint8 *data, Sint32 size, Sint32 *hdrsiz)
 {
 	Sint16 hdrlen;
@@ -942,6 +988,7 @@ Bool ADXT_IsHeader(Uint8 *data, Sint32 size, Sint32 *hdrsiz)
 	return TRUE;
 }
 
+// True if `data` starts with an ADX end code (magic 0x8001); *ecsiz gets the remaining size.
 Bool ADXT_IsEndcode(Uint8 *data, Sint32 size, Sint32 *ecsiz)
 {
 	if (size < 2) {

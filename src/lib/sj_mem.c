@@ -1,4 +1,6 @@
-/* CRI Stream Joint: memory (single fixed buffer) joint */
+/* CRI Stream Joint: memory joint (sj_mem.c, SJMEM). A read-only joint over one fixed buffer: the
+ * whole buffer is DATA at creation, GetChunk(DATA) walks through it, nothing can be put back as
+ * FREE. Used for memory-resident ADX data (ADXT memory playback, the SFA header insertion). 32 objects. */
 #include "cri_xpt.h"
 #include "sj.h"
 #include <string.h>
@@ -55,6 +57,7 @@ SJMEM_OBJ sjmem_obj[SJMEM_MAX_OBJ];
 		(sj)->errfunc((sj)->errobj, SJ_ERR_PRM); \
 	}
 
+// The fixed buffer size in bytes.
 Sint32 SJMEM_GetBufSize(SJMEM_OBJ *sj)
 {
 	Sint32 ret;
@@ -92,6 +95,7 @@ void *SJMEM_GetBufPtr(SJMEM_OBJ *sj)
 	return ret;
 }
 
+// Whether `nbyte` DATA bytes remain (FREE is always 0: a memory joint is read-only).
 Sint32 SJMEM_IsGetChunk(SJMEM_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 {
 	Sint32 ret;
@@ -127,6 +131,7 @@ Sint32 SJMEM_IsGetChunk(SJMEM_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 	return ret;
 }
 
+// Rewinds the read cursor by the chunk (DATA only; the chunk must end at the cursor).
 void SJMEM_UngetChunk(SJMEM_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	Sint32 ofs;
@@ -161,6 +166,7 @@ void SJMEM_UngetChunk(SJMEM_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// No-op for FREE/DATA (nothing is produced into a memory joint); other ids are errors.
 void SJMEM_PutChunk(SJMEM_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -178,6 +184,7 @@ void SJMEM_PutChunk(SJMEM_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// DATA: the next `nbyte` unread bytes of the buffer, advancing the read cursor. FREE: empty chunk.
 void SJMEM_GetChunk(SJMEM_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -203,6 +210,7 @@ void SJMEM_GetChunk(SJMEM_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Unread bytes (DATA); 0 for FREE.
 Sint32 SJMEM_GetNumData(SJMEM_OBJ *sj, Sint32 id)
 {
 	Sint32 ret;
@@ -226,6 +234,7 @@ Sint32 SJMEM_GetNumData(SJMEM_OBJ *sj, Sint32 id)
 	return ret;
 }
 
+// Rewinds: the whole buffer is unread data again.
 static void sjmem_Reset(SJMEM_OBJ *sj)
 {
 	if (sj == NULL) {
@@ -238,6 +247,7 @@ static void sjmem_Reset(SJMEM_OBJ *sj)
 	}
 }
 
+// Locked sjmem_Reset.
 void SJMEM_Reset(SJMEM_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -245,6 +255,7 @@ void SJMEM_Reset(SJMEM_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Replaces the per-joint error callback.
 void SJMEM_EntryErrFunc(SJMEM_OBJ *sj, void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	SJCRS_Lock();
@@ -259,6 +270,7 @@ void SJMEM_EntryErrFunc(SJMEM_OBJ *sj, void (*func)(void *obj, Char8 *msg), void
 	SJCRS_Unlock();
 }
 
+// The memory joint's class UUID.
 const SJUUID *SJMEM_GetUuid(SJMEM_OBJ *sj)
 {
 	const SJUUID *ret;
@@ -277,6 +289,7 @@ const SJUUID *SJMEM_GetUuid(SJMEM_OBJ *sj)
 	return ret;
 }
 
+// Clears the object.
 void SJMEM_Destroy(SJMEM_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -291,6 +304,7 @@ void SJMEM_Destroy(SJMEM_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Index of the first unused slot (32 = full).
 static Sint32 sjmem_SearchFreeObj(void)
 {
 	Sint32 i;
@@ -303,6 +317,8 @@ static Sint32 sjmem_SearchFreeObj(void)
 	return i;
 }
 
+// Creates a read-only joint presenting the `bsize` bytes at `buf` as data (used for memory-resident
+// ADX data, e.g. the SFA header insertion's dummy inputs).
 SJ SJMEM_Create(void *buf, Sint32 bsize)
 {
 	SJMEM_OBJ *sj;
@@ -327,6 +343,7 @@ SJ SJMEM_Create(void *buf, Sint32 bsize)
 	return (SJ)sj;
 }
 
+// Clears the table on the last release.
 void SJMEM_Finish(void)
 {
 	SJCRS_Lock();
@@ -336,6 +353,7 @@ void SJMEM_Finish(void)
 	SJCRS_Unlock();
 }
 
+// Clears the table on the first init.
 void SJMEM_Init(void)
 {
 	SJCRS_Lock();
@@ -346,6 +364,7 @@ void SJMEM_Init(void)
 	SJCRS_Unlock();
 }
 
+// Default per-joint error callback: reports "SJMEM Error".
 void SJMEM_Error(void *obj, Char8 *msg)
 {
 	SJERR_CallErr("SJMEM Error");

@@ -1,4 +1,7 @@
-/* CRI LSC (load scheduler) handle API */
+/* CRI LSC load scheduler (lsc.c, LSC): queues up to 16 file ranges on one ADX stream controller
+ * so several files stream back to back into one ring buffer (ADXT mode 4 "scheduled" playback, the
+ * base of linked/gapless file playback). Entries are consumed in order by lsc_ExecHndl (lsc_svr.c);
+ * the handle table is in lsc_ini.c. Created for every ADXT handle but only driven in mode 4. */
 #include "cri_xpt.h"
 #include "lsc.h"
 #include <string.h>
@@ -7,6 +10,7 @@ void (*lsc_stat_func)(void *obj1, void *obj2);
 void *lsc_stat_obj1;
 void *lsc_stat_obj2;
 
+// Calls the optional status callback when a scheduler's queue runs empty (none installed here).
 void LSC_CallStatFunc(void)
 {
 	if (lsc_stat_func != NULL) {
@@ -22,6 +26,7 @@ void LSC_EntryStatFunc(void (*func)(void *obj1, void *obj2), void *obj1, void *o
 	lsc_stat_obj2 = obj2;
 }
 
+// Refill threshold in bytes for the stream controller (default 80% of the stream joint size).
 void LSC_SetFlowLimit(LSC lsc, Sint32 min_val)
 {
 	if (lsc == NULL) {
@@ -35,6 +40,7 @@ void LSC_SetFlowLimit(LSC lsc, Sint32 min_val)
 	lsc->min_val = min_val;
 }
 
+// Entries still queued (including the one loading).
 Sint32 LSC_GetNumStm(LSC lsc)
 {
 	if (lsc == NULL) {
@@ -44,6 +50,7 @@ Sint32 LSC_GetNumStm(LSC lsc)
 	return lsc->num_stm;
 }
 
+// LSC_STAT_STOP 0, PREP 1 (idle, queue empty), EXEC 2, ERROR 3 (ADXT maps 3 to its own error state).
 Sint32 LSC_GetStat(LSC lsc)
 {
 	if (lsc == NULL) {
@@ -85,6 +92,8 @@ Sint32 LSC_GetStmPos(LSC lsc, Sint32 no)
 	return lsc->tbl[(lsc->rd_idx + no) % LSC_MAX_ENTRY].pos;
 }
 
+// Scheduler server pass (from the SVM main callback): lsc_ExecHndl on every live scheduler, under
+// the stream-joint lock.
 void LSC_ExecServer(void)
 {
 	Sint32 msk;
@@ -101,6 +110,7 @@ void LSC_ExecServer(void)
 	LSC_UnlockCrs(&msk);
 }
 
+// Empties the queue of a stopped scheduler.
 static void lsc_ClearEntry(LSC lsc)
 {
 	if (lsc == NULL) {
@@ -114,6 +124,7 @@ static void lsc_ClearEntry(LSC lsc)
 	}
 }
 
+// Stops the stream controller if this scheduler started it, clears the queue, state STOP.
 void LSC_Stop(LSC lsc)
 {
 	if (lsc == NULL) {
@@ -133,11 +144,15 @@ void LSC_Stop(LSC lsc)
 	lsc->pad34 = 0;
 }
 
+// The queue slot the next LSC_EntryFileRange fills.
 static LSC_ENTRY *lsc_GetWrEntry(LSC lsc)
 {
 	return &lsc->tbl[lsc->wr_idx];
 }
 
+// Queues a file range (name, CVFS device, sector offset/count) to be streamed after the previous
+// entries, giving it the next id (0..0x7FFFFFFF, wrapping); the file name is checksummed so a
+// changed string is detected at load time. PREP -> EXEC. -1 when the 16-entry queue is full.
 Sint32 LSC_EntryFileRange(LSC lsc, Char8 *fname, void *dir, Sint32 ofst, Sint32 nsct)
 {
 	LSC_ENTRY *ent;
@@ -179,11 +194,14 @@ Sint32 LSC_EntryFileRange(LSC lsc, Char8 *fname, void *dir, Sint32 ofst, Sint32 
 	return id;
 }
 
+// The ADXSTM controller the scheduler drives (ADXT hands over its own stream controller for mode 4
+// scheduled playback).
 void LSC_SetStmHndl(LSC lsc, ADXSTM stm)
 {
 	lsc->stm = stm;
 }
 
+// Stops and clears the scheduler.
 void LSC_Destroy(LSC lsc)
 {
 	if (lsc == NULL) {
@@ -194,6 +212,7 @@ void LSC_Destroy(LSC lsc)
 	memset(lsc, 0, sizeof(LSC_OBJ));
 }
 
+// First unused of the 32 schedulers, NULL when none.
 static LSC lsc_SearchFreeObj(void)
 {
 	LSC lsc;
@@ -209,6 +228,8 @@ static LSC lsc_SearchFreeObj(void)
 	return lsc;
 }
 
+// Creates a scheduler feeding stream joint `sj`: the refill threshold is 80% of the joint size, the
+// queue is empty, state STOP. ADXT_Create makes one per handle.
 LSC LSC_Create(SJ sj)
 {
 	Sint32 msk;

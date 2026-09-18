@@ -213,6 +213,7 @@ static void mwsffrm_AnalySofdecHeader(MWPLY mwply, void *data, Uint32 size)
 	SFH_Destroy(sfh);
 }
 
+// Installs mwsffrm_AnalySofdecHeader as the SFD header callback (cond 0x4B fn, 0x4C obj).
 void MWSFFRM_SetShfCbFn(MWPLY mwply)
 {
 	void *sfd = mwply->sfd;
@@ -221,6 +222,7 @@ void MWSFFRM_SetShfCbFn(MWPLY mwply)
 	SFD_SetCond(sfd, 0x4C, (Sint32)mwply);
 }
 
+// Clears the 8-entry Sofdec header table and the colour adjustment (default layout YCC 4:2:0 planar).
 void MWSFFRM_InitSfhInfTable(MWPLY mwply)
 {
 	Sint32 i;
@@ -238,6 +240,7 @@ void MWSFFRM_InitSfhInfTable(MWPLY mwply)
 	MWSFSFX_SetColAdj(mwply, 0);
 }
 
+// SFX component layout from a Sofdec header object.
 Sint32 mwsffrm_AnalyFxType(SFH sfh)
 {
 	Sint32 fxtype;
@@ -249,6 +252,7 @@ Sint32 mwsffrm_AnalyFxType(SFH sfh)
 /* header information of the current frame */
 #define MWSFFRM_CUR_SFHINF_IDX(mwply) ((mwply)->sfh_cur % MWSFFRM_SFHINF_NUM)
 
+// Component layout of the header the current frame belongs to (YCC 4:2:0 planar if none).
 static Sint32 mwsffrm_GetCurFxType(MWPLY mwply)
 {
 	Sint32 idx = MWSFFRM_CUR_SFHINF_IDX(mwply);
@@ -262,6 +266,7 @@ static Sint32 mwsffrm_GetCurFxType(MWPLY mwply)
 	return fxtype;
 }
 
+// Whether the current frame's header asked for colour-space conversion (colour type 3).
 static Bool mwsffrm_IsCurCcs(MWPLY mwply)
 {
 	Sint32 idx = MWSFFRM_CUR_SFHINF_IDX(mwply);
@@ -275,6 +280,7 @@ static Bool mwsffrm_IsCurCcs(MWPLY mwply)
 	return ccs;
 }
 
+// Component layout for the frame converter (0x51/0x61 variants folded onto 0x41).
 Sint32 mwPlyGetFxType(MWPLY mwply)
 {
 	Sint32 fxtype = mwsffrm_GetCurFxType(mwply);
@@ -357,6 +363,7 @@ void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, void *obj)
 	}
 }
 
+// Frames dropped by mwPlyGetCurFrm to catch up (game debug display "DISP SKIP").
 Sint32 mwPlyGetNumSkipDisp(MWPLY mwply)
 {
 	if (MWSFD_IsEnableHndl(mwply) == 0) {
@@ -387,6 +394,8 @@ Sint32 mwPlyIsNextFrmReady(MWPLY mwply)
 	return SFD_IsNextFrmReady(mwPlyGetSfdHn(mwply));
 }
 
+// Gives the frame from the last mwPlyGetCurFrm back to the decoder's frame pool (the game calls it
+// right after copying the frame into its textures).
 void mwPlyRelCurFrm(MWPLY mwply)
 {
 	void *frm;
@@ -432,6 +441,7 @@ Sint32 mwl_convPtypeToSFD(Sint32 ptype)
 	return ret;
 }
 
+// Y/Cb/Cr plane pointers and row strides of a planar YCC 4:2:0 frame buffer of the given size.
 void mwPlyCalcYccPlane(void *buf, Sint32 width, Sint32 height, MWSFFRM_YCC420PLN *out)
 {
 	MWSFFRM_YCCPLN pln;
@@ -467,6 +477,7 @@ static void mwsffrm_DecideFrmType(MWSFFRM_VFRM *vfrm, Sint32 *ftype)
 	}
 }
 
+// SFD picture type (1 I, 2 P, 3 B, 4 D) -> MWS_FRM value (identity; error and 1 for others).
 static Sint32 mwl_convPtypeFromSFD(Sint32 ptype)
 {
 	Sint32 ret;
@@ -492,6 +503,7 @@ static Sint32 mwl_convPtypeFromSFD(Sint32 ptype)
 	return ret;
 }
 
+// SFD frame type -> MWS_FRM value (1, 2, 3; others 3).
 static Sint32 mwl_convFtypeFromSFD(Sint32 ftype)
 {
 	Sint32 ret;
@@ -601,6 +613,7 @@ void mwl_convFrmInfFromSFD(MWPLY mwply, MWSFFRM_VFRM *vfrm, MWS_FRM *frm)
 	memcpy(frm->ext, &vfrm->x48, sizeof(frm->ext));
 }
 
+// Whether the current frame carried picture user data.
 static Bool mwsffrm_IsPicUsrDat(MWPLY mwply)
 {
 	return mwply->picusr_dat != NULL;

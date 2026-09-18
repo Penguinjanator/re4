@@ -1,5 +1,7 @@
+/* CRI UTY_MulDivRound64 (muldivr.c): 64-bit a * b / c rounded to nearest, sign handled separately. */
 #include "cri_xpt.h"
 
+// Rounded (a * b) / c in 64 bits; saturates when c is 0.
 Sint64 UTY_MulDivRound64(Sint64 a, Sint64 b, Sint64 c)
 {
 	Sint32 sign;

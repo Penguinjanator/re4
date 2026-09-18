@@ -23,6 +23,8 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                             Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd);
 
+// Decodes `nfrm` interleaved stereo 4-bit ADX frames; with adx_decode_output_mono_flag set
+// (ADXT_SetOutputMono(1), the game's mono option) both channels get the L+R mix instead.
 Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                       Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {

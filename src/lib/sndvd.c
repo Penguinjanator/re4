@@ -49,18 +49,23 @@ static u8 g_nEmuState;
 u8 g_nLidState;
 static void *g_OldDsiExcHandler;
 
+// Clears the DABR data breakpoint (while the emulation itself touches the DI registers).
 void DisDvdBP(void)
 {
 	u32 dabr = 0;
 	asm volatile("lwz 3, %0\n\tmtspr 1013, 3\n\tisync" : : "m"(dabr));
 }
 
+// Arms the DABR data breakpoint on writes to the DI control register (0xCC00601C): every DVD
+// command the SDK issues then traps into DSIHandler.
 void EnaDvdBP(void)
 {
 	u32 dabr = DI_DICR_ADDR | 2;
 	asm volatile("lwz 3, %0\n\tmtspr 1013, 3\n\tisync" : : "m"(dabr));
 }
 
+// Fakes a completed DVD transfer: writes the DI registers as the drive would (command 0x12000000,
+// length 0x20, DMA address) and raises the transfer-complete interrupt (DICR 3).
 static void ForceDvdTcIrq(u32 addr)
 {
 	DisDvdBP();
@@ -73,6 +78,7 @@ static void ForceDvdTcIrq(u32 addr)
 	EnaDvdBP();
 }
 
+// Fakes a DVD error: raises the DI error interrupt (DICR 1).
 void ForceDvdDeIrq(void)
 {
 	DisDvdBP();
@@ -81,6 +87,8 @@ void ForceDvdDeIrq(void)
 	EnaDvdBP();
 }
 
+// Host read finished: on the expected length advances the emulated position and completes the
+// command, else records DVD error 0x31100 and raises the error interrupt.
 static void DvdCallback(int len)
 {
 	len = (len + 31) & ~31;
@@ -95,6 +103,7 @@ static void DvdCallback(int len)
 	}
 }
 
+// Seek error (0x52100) for offsets beyond the disc image size (0x5705FFFF).
 int CheckSeekOffset(int ofs)
 {
 	if (ofs > 0x5705FFFF) {
@@ -169,6 +178,11 @@ asm("	.type DSIExcHandler,@function\n"
     "	bl DSIHandler\n"
     "	.size DSIExcHandler,.-DSIExcHandler\n");
 
+// The DSI (DABR) handler of the DVD emulation: decodes the trapping store; a write to DICR reads the
+// DI command block and emulates it: 0x1200 inquiry and 0xAB00 seek / 0xE300 audio complete at once,
+// 0xA800 read starts a host file read (PCreadAsyncInit) at base + DI offset, 0xE000 reports the last
+// error, 0xE1/E2/E401 audio commands pass through when audio is configured, unknown commands trap.
+// Any other store is performed by hand. Then resumes the game after the instruction.
 void DSIHandler(int exc, OSContext *ctx, u32 dsisr, u32 dar)
 {
 	u32 insn;
@@ -249,6 +263,7 @@ passthru:
 	OSLoadContext(ctx);
 }
 
+// Records the host handle of the disc image (only the magic -0x8000 enables the emulation).
 void SNDVDEmuInit(int h)
 {
 	if (h != -0x8000) {
@@ -257,6 +272,8 @@ void SNDVDEmuInit(int h)
 	g_hDVD = h;
 }
 
+// Turns the emulation on (called from the debugger stub): resets the state, arms the breakpoint and
+// installs DSIExcHandler as the DSI exception handler, keeping the previous one.
 void SNDVDEmuInitDSIHandler(void)
 {
 	if (g_hDVD != -0x8000) {
@@ -272,6 +289,8 @@ void SNDVDEmuInitDSIHandler(void)
 	g_OldDsiExcHandler = __OSSetExceptionHandler(2, (void *)DSIExcHandler);
 }
 
+// Emulated lid / drive control: 0 lid closed, 1 lid open, 2 emulation off (breakpoint cleared),
+// 3 emulation on; returns 0x80000000 on a mode change plus (state << 8 | lid).
 u32 SNDVDEmuControl(int cmd)
 {
 	u32 ret = 0;

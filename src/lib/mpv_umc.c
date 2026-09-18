@@ -784,6 +784,9 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	(ob)->rt[4].p = (Uint8 *)(ob)->rt[2].p + (ypitch) * 8;                                 \
 	(ob)->rt[5].p = (Uint8 *)(ob)->rt[4].p + 8
 
+// Interpolated (B) macroblock: reads the forward and backward reference macroblocks with their
+// vectors (half-pel kernels), sets the six output block pointers and merges both predictions with
+// the IDCT residual into the output frame.
 void MPVUMC_BiDirect(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
@@ -798,6 +801,7 @@ void MPVUMC_BiDirect(MPVUMC_OBJ *mpv)
 	mpvumc_BiMakeMb(wk, ob, mpv->cbp_code);
 }
 
+// Backward-predicted macroblock: reference from the next frame + residual.
 void MPVUMC_Backward(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
@@ -810,6 +814,7 @@ void MPVUMC_Backward(MPVUMC_OBJ *mpv)
 	mpvumc_OneMakeMb(wk, ob, mpv->cbp_code);
 }
 
+// Forward-predicted macroblock: reference from the previous frame + residual.
 void MPVUMC_Forward(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
@@ -968,6 +973,7 @@ void MPVUMC_SetGqr(void)
 	}
 }
 
+// Nothing to do at frame end.
 void MPVUMC_EndOfFrame(MPVUMC_OBJ *mpv)
 {
 }
@@ -999,6 +1005,7 @@ void MPVUMC_InitOutRfb(MPVUMC_OBJ *mpv)
 	mpv->out_pln[1] = mpv->out_pln[0] + yh / 2 * cpitch;
 }
 
+// Nothing to release.
 void MPVUMC_Finish(void)
 {
 }

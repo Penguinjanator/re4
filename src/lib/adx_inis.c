@@ -1,4 +1,8 @@
-/* ADXT library init / finish */
+/* CRI ADXT library init / finish (adx_inis.c, ADXT/GC Ver.9.31): ADXT_Init brings up every ADX module
+ * (stream joints, error, ADXSTM, ADXSJD, ADXF, renderer, LSC, SVM) and registers the server callbacks
+ * with the SVM; ADXT_Finish undoes it. Holds the handle table adxt_obj, the build string and the
+ * server ids. In this game the threads were never set up, so the single main callback
+ * adxt_exec_main_nothrd runs everything from ADXM_ExecMain(). */
 #include "cri_xpt.h"
 #include "adx_t.h"
 #include "adx_stm.h"
@@ -51,6 +55,9 @@ Sint32 adxt_vsync_cnt = 0;
 ADXT_OBJ adxt_obj[ADXT_MAX_OBJ];
 const Char8 *cri_verstr_ptr;
 
+// Library shutdown (reference counted): destroys the handles, shuts down the renderer, file system,
+// stream controller, scheduler, removes the server callbacks from the SVM and finishes the SVM,
+// decoder, error and stream-joint modules.
 void ADXT_Finish(void)
 {
 	if (--adxt_init_cnt == 0) {
@@ -79,6 +86,10 @@ ADXT ADXT_GetObj(Sint32 no)
 	return &adxt_obj[no];
 }
 
+// Library init (reference counted): brings up the stream joints, error module, ADXSTM, ADXSJD, ADXF,
+// renderer, LSC and SVM, and registers the server callbacks. Without ADXM_SetupThrd (dead-stripped in
+// this game) every server (talk, file system, scheduler) runs from adxt_exec_main_nothrd on the SVM
+// main type, i.e. from the game's ADXM_ExecMain() call each frame. Default server rate 60 Hz.
 void ADXT_Init(void)
 {
 	cri_verstr_ptr = adxt_build;
@@ -113,18 +124,22 @@ void ADXT_Init(void)
 	adxt_init_cnt++;
 }
 
+// SVM callback (type 4, file system): one ADXT_ExecFsSvr pass.
 Sint32 adxt_exec_fssvr(void *obj)
 {
 	ADXT_ExecFsSvr();
 	return 0;
 }
 
+// SVM callback (type 2, vsync): one ADXT_ExecServer pass (threaded setup only).
 Sint32 adxt_exec_tsvr(void *obj)
 {
 	ADXT_ExecServer();
 	return 0;
 }
 
+// SVM main callback used by this game: talk server, file-system server and load scheduler in one pass
+// per ADXM_ExecMain().
 Sint32 adxt_exec_main_nothrd(void *obj)
 {
 	ADXT_ExecServer();
@@ -133,17 +148,20 @@ Sint32 adxt_exec_main_nothrd(void *obj)
 	return 0;
 }
 
+// SVM main callback of the threaded setup: only the load scheduler runs on the main thread.
 Sint32 adxt_exec_main_thrd(void *obj)
 {
 	LSC_ExecServer();
 	return 0;
 }
 
+// Forwards load scheduler error messages to the ADX error callback.
 void adxini_lscerr_cbfn(void *obj, Char8 *msg)
 {
 	ADXERR_CallErrFunc1(msg);
 }
 
+// Forwards renderer error messages to the ADX error callback.
 static void adxini_rnaerr_cbfn(void *obj, Char8 *msg)
 {
 	ADXERR_CallErrFunc1(msg);

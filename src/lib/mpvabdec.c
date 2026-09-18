@@ -508,6 +508,8 @@
 	prm->idx = val;                                                                        \
 	return prm->idx
 
+// Escape-code case of the AC look-ahead table: the 8-bit window is doubled to index the run/level
+// escape decoder.
 static inline Uint32 mpvabdec_EscapeCode(Uint32 code)
 {
 	return code << 1;
@@ -613,6 +615,9 @@ static inline Sint32 mpvabdec_NintraAc(MPV mpv, MPV_BLKPRM *prm, Uint32 bbuf, Ui
 	MPVABDEC_RESULT();
 }
 
+// Non-intra block: first coefficient by the special first-coefficient code, then the AC loop
+// (dequantise with the non-intra matrix and qscale, store zigzag into the Float32 block) up to EOB;
+// returns the last zigzag index (negative when more than one coefficient).
 static inline Sint32 mpvabdec_NintraDecode(MPV mpv, MPV_BLKPRM *prm)
 {
 	Uint32 bbuf0;

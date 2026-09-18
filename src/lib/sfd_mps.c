@@ -125,6 +125,7 @@ const SFD_TR_IF SFD_tr_sd_mps = {
 	SFMPS_Seek,
 };
 
+// Program end codes passed so far in concatenated play (0 in a single-file movie).
 Sint32 SFMPS_GetConcatCnt(SFD sfd)
 {
 	return SFMPS_WK(sfd)->concat_cnt;
@@ -145,6 +146,8 @@ static SFSEE_SHDR *sfmps_GetSeeShdr(SFD sfd)
 	return &wk->shdr;
 }
 
+// Seek support: re-feeds the saved pack/system headers to the MPS parser and restores the first
+// stream ids / SCR base / minimum PTS from the seek work; no-op without a seek work.
 static Sint32 SFMPS_Seek(SFD sfd)
 {
 	Sint32 ret1, ret2;
@@ -182,46 +185,55 @@ static Sint32 SFMPS_Seek(SFD sfd)
 	return 0;
 }
 
+// Not supported: error 0xFF000B03.
 Sint32 SFMPS_AddRead(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, SFMPS_ERR_NOTSUPPORTED);
 }
 
+// Not supported: error 0xFF000B03.
 Sint32 SFMPS_GetRead(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, SFMPS_ERR_NOTSUPPORTED);
 }
 
+// Not supported: error 0xFF000B03.
 Sint32 SFMPS_AddWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, SFMPS_ERR_NOTSUPPORTED);
 }
 
+// Not supported: error 0xFF000B03.
 Sint32 SFMPS_GetWrite(SFD sfd)
 {
 	return SFLIB_SetErr(sfd, SFMPS_ERR_NOTSUPPORTED);
 }
 
+// Nothing to do.
 Sint32 SFMPS_Pause(SFD sfd)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFMPS_Stop(SFD sfd)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFMPS_Start(SFD sfd)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFMPS_Standby(SFD sfd)
 {
 	return 0;
 }
 
+// Destroys the MPS parser handle.
 Sint32 SFMPS_Destroy(SFD sfd)
 {
 	if (MPS_Destroy(SFMPS_MPS(sfd)) != 0) {
@@ -230,11 +242,13 @@ Sint32 SFMPS_Destroy(SFD sfd)
 	return 0;
 }
 
+// MPS parser errors -> the handle's SFLIB_SetErr.
 void sfmps_ErrFn(void *obj, Sint32 code)
 {
 	SFLIB_SetErr(obj, code);
 }
 
+// No user element output joints (stream ids 0xBC..0xFF).
 static void sfmps_ClrOutSj(SFMPS_WORK *wk)
 {
 	int i;
@@ -244,6 +258,8 @@ static void sfmps_ClrOutSj(SFMPS_WORK *wk)
 	}
 }
 
+// Driver Create: resets the demux work (no streams seen, PTS minimum unknown, no end code) and
+// creates the MPS parser with sfmps_ErrFn as its error callback.
 Sint32 SFMPS_Create(SFD sfd)
 {
 	SFMPS_WORK *wk = &sfd->mps;
@@ -321,6 +337,10 @@ static inline void sfmps_ProcPrepSee(SFD sfd)
 	}
 }
 
+// PREP-state bookkeeping each pass: marks the three output buffers prepared once the input ring
+// holds cond 0x16 bytes (or its whole size), records mux rate and system-header rate scale, publishes
+// the stream counts, auto-disables audio/video whose element buffer never received data, and fills
+// the seek work's system analysis.
 static void sfmps_ProcPrep(SFD sfd)
 {
 	MPS mps;
@@ -445,6 +465,7 @@ Sint32 sfmps_CopyDstBuft(SFD sfd, Sint32 buf, Uint8 *data, Sint32 len, Sint64 pt
 	return 1;
 }
 
+// Padding stream packets are dropped (always consumed).
 Sint32 sfmps_CopyPadding(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
 {
 	return 1;
@@ -506,6 +527,7 @@ static Sint32 sfmps_CopyUoch(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 	return ret;
 }
 
+// Copies a private payload to user-output channel `chno` if the handle has a user output buffer.
 static Sint32 sfmps_CopyUo(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 {
 	if (sfd->tr[SFMPS_TR].bufout3 == 8) {
@@ -514,6 +536,9 @@ static Sint32 sfmps_CopyUo(SFD sfd, Sint32 chno, Uint8 *data, Sint32 len)
 	return sfmps_CopyUoch(sfd, chno, data, len);
 }
 
+// Private stream 1/2 packet: a Sofdec header packet goes to the header analyser (SFHDS_SetHdr; when
+// flagged also to user channel 0 with its 0x12-byte packet header), any other private payload to the
+// user output channel of its stream id (the MW player's additional-info ring).
 Sint32 sfmps_CopyPrvate(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
 {
 	Sint32 result;
@@ -556,6 +581,9 @@ static Bool sfmps_IsVideoHead(Uint8 *data, Sint32 len)
 	return (c == 0xB8);
 }
 
+// Video packet: when video is on, selects the video stream on the first packet (cond 0x1D/0x1E
+// policy), drops packets of other video streams, and copies the payload into the video ring (buf 1)
+// with its PTS.
 Sint32 sfmps_CopyVideo(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
 {
 	SFMPS_WORK *wk;
@@ -613,6 +641,8 @@ Sint32 sfmps_CopyVideo(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pt
 	return sfmps_CopyDstBuft(sfd, sfd->tr[SFMPS_TR].bufout, data, len, pts);
 }
 
+// Audio packet: when audio is on, selects the audio stream (cond 0x1F..), drops other streams, tracks
+// the minimum audio PTS (start alignment) and copies the payload into the audio ring (buf 2).
 Sint32 sfmps_CopyAudio(SFD sfd, Sint32 stmid, Uint8 *data, Sint32 len, Sint64 pts)
 {
 	SFMPS_WORK *wk;
@@ -675,6 +705,7 @@ static void sfmps_TermOut(SFD sfd)
 	SFBUF_SetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout3, 1);
 }
 
+// If the system input ring terminated, terminates the three output buffers; *term reports it.
 static void sfmps_TermIfInTerm(SFD sfd, Sint32 *term)
 {
 	Sint32 t;
@@ -977,11 +1008,14 @@ static Sint32 sfmps_GetRead(SFD sfd, Uint8 **data, Sint32 *len, Sint32 *total)
 	return 0;
 }
 
+// Parses one unit (pack header / system header / packet) at `data` through the MPS parser and
+// dispatches its payload; *nbyte consumed, *nskip garbage skipped.
 static Sint32 sfmps_Decode(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *nskip, Sint32 total)
 {
 	return sfmps_DecodeOneUnit(sfd, data, len, nbyte, nskip, total);
 }
 
+// Consumes `nbyte` bytes of the system input ring.
 static Sint32 sfmps_AddRead(SFD sfd, Sint32 nbyte)
 {
 	Sint32 r;
@@ -1044,6 +1078,9 @@ static Sint32 sfmps_ExecServerLoop(SFD sfd, Sint32 *len)
 	return ret;
 }
 
+// Demux pass: unless all outputs terminated, installs the user system-header callback (cond
+// 0x3B/0x3C) and runs the decode loop over the input ring, updating the 64-bit flow / byte / skip
+// counters and, in PREP, sfmps_ProcPrep.
 Sint32 sfmps_ExecServerSub(SFD sfd)
 {
 	Sint32 term1, term2, term3;
@@ -1065,18 +1102,21 @@ Sint32 sfmps_ExecServerSub(SFD sfd)
  * are @temps: `li ret,0; mr skiptot,ret; mr tot,ret` shares the entry zero), which makes ExecServerSub small enough
  * for -inline auto to inline it here; the target keeps the `bl` (CRI pass 29). */
 #pragma dont_inline on
+// Driver ExecServer (SFD_tr_sd_mps slot 2).
 static Sint32 SFMPS_ExecServer(SFD sfd)
 {
 	return sfmps_ExecServerSub(sfd);
 }
 #pragma dont_inline off
 
+// Library finish: MPS parser.
 Sint32 SFMPS_Finish(void)
 {
 	MPS_Finish();
 	return 0;
 }
 
+// Library init: checks the work size (spins on a mismatch) and initialises the MPS parser with 8 handles.
 Sint32 SFMPS_Init(void)
 {
 	Sint32 ret;
@@ -1098,6 +1138,8 @@ Sint32 SFMPS_Init(void)
 	return 0;
 }
 
+// Registers a stream joint that receives the raw payload of element stream `stmid` (0xBC..0xFF)
+// instead of the internal buffers, with a notification callback (side audio streams).
 Sint32 SFD_SetElementOutSj(SFD sfd, Sint32 stmid, void *sj, void (*fn)(void *obj, Sint32 stmid), void *obj)
 {
 	SFMPS_WORK *wk;

@@ -118,6 +118,9 @@ void sfxcnv_CnvAlphFulYcc420plnToArgb8888(SFX_OBJ *sfx, SFX_FRM *frm, void *buf)
 	CFT_Ycc420plnToA256V(&src, &dst, tbl);
 }
 
+// Planar YCC 4:2:0 -> ARGB8888 by component layout: plain (0x11, optionally through the colour
+// adjustment table), upper-half picture (0x101), packed ARGB 4:2:0 (0xF1), luma-alpha (0x21/0x31)
+// and three-level alpha layouts (0x41/0x51/0x61) through their tables; others are errors.
 void SFX_CnvFrmYcc420plnToArgb8888(SFX_OBJ *sfx, SFX_FRM *frm, void *buf)
 {
 	Sint32 compo = sfx->compo;

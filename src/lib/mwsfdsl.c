@@ -1,3 +1,6 @@
+/* CRI Sofdec MW player seamless / loop playback (mwsfdsl.c): the mwPly*Lp / Seamless / Afs entry
+ * points queue files on the handle's load scheduler and link the streams so the decoder plays them
+ * back to back. All dead-stripped in this game except mwPlyLinkStm and the two MWSFLSC_ helpers. */
 #include "cri_xpt.h"
 #include <stdio.h>
 
@@ -26,6 +29,7 @@ extern void mwPlyReleaseSub(MWPLY_OBJ *mwply);
 
 static const Char8 mwsfdsl_fname_fmt[] = "%08x.%08x";
 
+// Dead: queue a file and start seamless playback.
 void mwPlyStartFnameLp(MWPLY_OBJ *mwply, const Char8 *fname)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -40,6 +44,7 @@ void mwPlyStartFnameLp(MWPLY_OBJ *mwply, const Char8 *fname)
 	mwPlyStartSub(mwply);
 }
 
+// Dead: queue a file for seamless playback.
 void mwPlyEntryFname(MWPLY_OBJ *mwply, const Char8 *fname)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -55,6 +60,7 @@ void mwPlyEntryFname(MWPLY_OBJ *mwply, const Char8 *fname)
 	}
 }
 
+// Dead: loop request flag.
 void mwPlySetLpFlg(MWPLY_OBJ *mwply, Sint32 flg)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -64,6 +70,7 @@ void mwPlySetLpFlg(MWPLY_OBJ *mwply, Sint32 flg)
 	mwply->linkstm_req = flg;
 }
 
+// Dead: start the queued files.
 void mwPlyStartSeamless(MWPLY_OBJ *mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -73,6 +80,9 @@ void mwPlyStartSeamless(MWPLY_OBJ *mwply)
 	mwPlyStartSub(mwply);
 }
 
+// Linked-stream switch: 1 enables concatenated play on the SFD decoder (sequence end codes do not
+// end the play), 0 requests the end of linking (the decode server terminates the supply once the
+// scheduler queue is empty). mwSfdStop calls it with 0.
 void mwPlyLinkStm(MWPLY_OBJ *mwply, Sint32 sw)
 {
 	void *sfd;
@@ -93,6 +103,7 @@ void mwPlyLinkStm(MWPLY_OBJ *mwply, Sint32 sw)
 	mwply->linkstm = sw;
 }
 
+// Dead: seamless entry name "%08x.%08x".
 const Char8 *mwPlyGetSlFname(MWPLY_OBJ *mwply, Sint32 stm_no, Char8 *buf)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -107,6 +118,7 @@ const Char8 *mwPlyGetSlFname(MWPLY_OBJ *mwply, Sint32 stm_no, Char8 *buf)
 	return buf;
 }
 
+// Dead: queue a file range and start.
 void mwPlyStartFnameRangeLp(MWPLY_OBJ *mwply, const Char8 *fname, Sint32 ofst, Sint32 nsct)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -117,6 +129,7 @@ void mwPlyStartFnameRangeLp(MWPLY_OBJ *mwply, const Char8 *fname, Sint32 ofst, S
 	mwPlyStartSub(mwply);
 }
 
+// Dead: queue a file range.
 void mwPlyEntryFnameRange(MWPLY_OBJ *mwply, const Char8 *fname, Sint32 ofst, Sint32 nsct)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -126,6 +139,7 @@ void mwPlyEntryFnameRange(MWPLY_OBJ *mwply, const Char8 *fname, Sint32 ofst, Sin
 	mwPlyEntryFnameSub(mwply, fname);
 }
 
+// Dead: queue an AFS entry and start.
 void mwPlyStartAfsLp(MWPLY_OBJ *mwply, Sint32 pid, Sint32 fid)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -135,6 +149,7 @@ void mwPlyStartAfsLp(MWPLY_OBJ *mwply, Sint32 pid, Sint32 fid)
 	mwPlyStartSub(mwply);
 }
 
+// Dead: queue an AFS entry.
 void mwPlyEntryAfs(MWPLY_OBJ *mwply, Sint32 pid, Sint32 fid)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -146,6 +161,7 @@ void mwPlyEntryAfs(MWPLY_OBJ *mwply, Sint32 pid, Sint32 fid)
 	}
 }
 
+// Dead: release the seamless queue.
 void mwPlyReleaseSeamless(MWPLY_OBJ *mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -155,6 +171,7 @@ void mwPlyReleaseSeamless(MWPLY_OBJ *mwply)
 	mwPlyReleaseSub(mwply);
 }
 
+// Dead: release the loop queue.
 void mwPlyReleaseLp(MWPLY_OBJ *mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -164,6 +181,7 @@ void mwPlyReleaseLp(MWPLY_OBJ *mwply)
 	mwPlyReleaseSub(mwply);
 }
 
+// Refill threshold (sectors) of the handle's load scheduler.
 void MWSFLSC_SetFlowLimit(MWPLY_OBJ *mwply, Sint32 nsct)
 {
 	if (mwply->lsc != NULL) {
@@ -171,6 +189,7 @@ void MWSFLSC_SetFlowLimit(MWPLY_OBJ *mwply, Sint32 nsct)
 	}
 }
 
+// Whether the load scheduler is in its error state (3).
 Bool MWSFLSC_IsFsStatErr(void *lsc)
 {
 	return LSC_GetStat(lsc) == 3;

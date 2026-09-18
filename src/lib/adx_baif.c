@@ -1,4 +1,6 @@
-/* ADXB: AIFF (8/16-bit PCM) format support */
+/* CRI ADXB AIFF support (adx_baif.c): signature test, COMM/SSND header parse and the per-tick PCM
+ * copy steps for 8- and 16-bit big-endian AIFF into the ADXB PCM ring. Selected by
+ * ADXB_DecodeHeader / ADXB_ExecHndl for type 3. */
 #include "cri_xpt.h"
 #include "adx_b.h"
 #include <string.h>
@@ -17,6 +19,7 @@ void ADXB_ExecOneAiff8(ADXB adxb);
 void ADXB_ExecOneAiff16(ADXB adxb);
 Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 *nsmpl);
 
+// Dispatches on the sample width recorded at header time (x9c 1 = 8-bit, else 16-bit).
 void ADXB_ExecOneAiff(ADXB adxb)
 {
 	if (adxb->x9c == 1) {
@@ -26,6 +29,8 @@ void ADXB_ExecOneAiff(ADXB adxb)
 	}
 }
 
+// Decode step for 8-bit AIFF: copies as many samples as fit the write window into the PCM ring
+// (deinterleaving stereo, scaling to 16 bits) and reports the bytes consumed / samples produced.
 void ADXB_ExecOneAiff8(ADXB adxb)
 {
 	Sint8 *inbuf;
@@ -110,6 +115,8 @@ void ADXB_ExecOneAiff16(ADXB adxb)
 	}
 }
 
+// Reads the COMM/SSND chunks (AIFF_GetInfo) into the handle: rate, channels, bits, sample count,
+// block size; returns the header length up to the sample data.
 static Sint32 adxb_DecodeInfoAiff(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *hdrlen)
 {
 	Sint32 sfreq;
@@ -140,6 +147,8 @@ static Sint32 adxb_DecodeInfoAiff(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *h
 	return 0;
 }
 
+// Container-specific header decode for ADXB_DecodeHeader: fills the handle, clears the loop info,
+// type ADXB_TYPE_AIFF; returns the header length (0 if the header could not be parsed).
 Sint32 ADXB_DecodeHeaderAiff(ADXB adxb, void *buf, Sint32 bsize)
 {
 	Sint16 hdrlen;
@@ -173,6 +182,7 @@ Sint32 ADXB_DecodeHeaderAiff(ADXB adxb, void *buf, Sint32 bsize)
 	return hdrlen;
 }
 
+// "FORM" .... "AIFF" signature test.
 Sint32 ADXB_CheckAiff(Uint8 *buf)
 {
 	if (memcmp(buf, "FORM", 4) == 0 && memcmp(buf + 8, "AIFF", 4) == 0) {

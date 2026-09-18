@@ -40,6 +40,7 @@ static void sfsee_CalcByteRate(SFD sfd)
 	wk->rate = wk->ncount;
 }
 
+// Requested seek position (sectors) into the seek work; ignored without a seek work.
 Sint32 SFD_SetSeekPos(SFD sfd, Sint32 pos)
 {
 	SFSEE_WORK *wk;
@@ -55,6 +56,7 @@ Sint32 SFD_SetSeekPos(SFD sfd, Sint32 pos)
 	return 0;
 }
 
+// User-supplied byte rate for seeking; refreshes the rate estimate.
 Sint32 SFD_SetByteRate(SFD sfd, Sint32 rate)
 {
 	SFSEE_WORK *wk;
@@ -71,6 +73,7 @@ Sint32 SFD_SetByteRate(SFD sfd, Sint32 rate)
 	return 0;
 }
 
+// User-supplied total time (count/unit); refreshes the rate estimate.
 Sint32 SFD_SetTotTime(SFD sfd, Sint32 tottime, Sint32 tunit)
 {
 	SFSEE_WORK *wk;
@@ -88,6 +91,7 @@ Sint32 SFD_SetTotTime(SFD sfd, Sint32 tottime, Sint32 tunit)
 	return 0;
 }
 
+// User-supplied file size in bytes; refreshes the rate estimate.
 Sint32 SFD_SetFileSize(SFD sfd, Sint32 fsize)
 {
 	SFSEE_WORK *wk;
@@ -254,6 +258,7 @@ void SFSEE_ExecServer(SFD sfd)
 	sfsee_ExecEstimate(sfd, see);
 }
 
+// Records which of video/audio actually play (set once from sfply_StatPrep) for the seek estimate.
 void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b)
 {
 	SFSEE_WORK *wk;
@@ -270,6 +275,7 @@ void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b)
 	}
 }
 
+// Attaches the user's seek work (SFSEE_WORK) to the handle; no seek work exists in this game.
 Sint32 SFD_EntrySeek(SFD sfd, SFSEE_WORK *wk)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -279,6 +285,7 @@ Sint32 SFD_EntrySeek(SFD sfd, SFSEE_WORK *wk)
 	return 0;
 }
 
+// No seek work, no request (pos -3).
 void SFSEE_InitHn(SFSEE_HN *see)
 {
 	see->wk = NULL;

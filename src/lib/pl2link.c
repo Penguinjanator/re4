@@ -12,6 +12,7 @@ typedef struct {
 
 extern void ADXERR_CallErrFunc1(Char8 *msg);
 
+// Dead: attach a Pro Logic II encoder to a 3D-sound ADXT handle.
 Sint32 ADXT_AttachPl2_3D(ADXT_PL2 *adxt, void *pl2)
 {
 	if (adxt == NULL || pl2 == NULL) {
@@ -26,6 +27,7 @@ Sint32 ADXT_AttachPl2_3D(ADXT_PL2 *adxt, void *pl2)
 	return 0;
 }
 
+// Dead: attach a Pro Logic II encoder to a stereo ADXT handle.
 Sint32 ADXT_AttachPl2(ADXT_PL2 *adxt, void *pl2)
 {
 	if (adxt->nch != 2) {

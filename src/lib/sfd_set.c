@@ -1,7 +1,11 @@
-/* Sofdec: condition (setting) table access */
+/* CRI Sofdec condition table (sfd_set.c): the 100 Sint32 "conditions" of a handle (cond[] with the
+ * defaults cond_def[]) are the decoder's settings and hooks: 5 video on, 6 audio on, 9 sync mode,
+ * 15 clock source, 0x19 termination mode, 0x24/0x25 picture hooks, 0x4B/0x4C header callback, ...
+ * Also the raw player information copy and the handle state query. */
 #include "cri_xpt.h"
 #include "sfd.h"
 
+// Driver `strm`'s handle (e.g. 3 -> the ADXT audio driver work), NULL when the driver is not set up.
 Sint32 SFD_GetTrHn(SFD sfd, Sint32 strm, void **hn)
 {
 	void **trhn;
@@ -18,6 +22,7 @@ Sint32 SFD_GetTrHn(SFD sfd, Sint32 strm, void **hn)
 	return 0;
 }
 
+// Copy of the player information block (decoded/skipped picture counts, 64-bit stream counters).
 Sint32 SFD_GetPlyInf(SFD sfd, SFD_PLYINF *inf)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -27,11 +32,13 @@ Sint32 SFD_GetPlyInf(SFD sfd, SFD_PLYINF *inf)
 	return 0;
 }
 
+// Raw condition read (no handle check).
 Sint32 SFSET_GetCond(SFD sfd, Sint32 id)
 {
 	return sfd->cond[id];
 }
 
+// Condition `id` of the handle, or the library default when sfd is NULL.
 Sint32 SFD_GetCond(SFD sfd, Sint32 id, Sint32 *val)
 {
 	if (sfd == NULL) {
@@ -45,6 +52,7 @@ Sint32 SFD_GetCond(SFD sfd, Sint32 id, Sint32 *val)
 	return 0;
 }
 
+// Video (5) / audio (6) cannot be enabled on a handle whose video (tr 2) / audio (tr 3) driver is absent.
 static Sint32 sfset_IsSettable(SFD sfd, Sint32 id, Sint32 val)
 {
 	Sint32 ok;
@@ -59,6 +67,7 @@ static Sint32 sfset_IsSettable(SFD sfd, Sint32 id, Sint32 val)
 	return ok;
 }
 
+// Sets a condition of the handle if allowed.
 void SFSET_SetCond(SFD sfd, Sint32 id, Sint32 val)
 {
 	if (sfset_IsSettable(sfd, id, val)) {
@@ -66,6 +75,7 @@ void SFSET_SetCond(SFD sfd, Sint32 id, Sint32 val)
 	}
 }
 
+// Sets the handle's default value of a condition (restored by a reset).
 static void sfset_SetCondDef(SFD sfd, Sint32 id, Sint32 val)
 {
 	if (sfset_IsSettable(sfd, id, val)) {
@@ -103,6 +113,7 @@ Sint32 SFD_SetCond(SFD sfd, Sint32 id, Sint32 val)
 	return 0;
 }
 
+// Handle state: 1 stop, 2 prep, 3 standby, 4 playing, 6 playend, negative after an error.
 Sint32 SFD_GetHnStat(SFD sfd)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {

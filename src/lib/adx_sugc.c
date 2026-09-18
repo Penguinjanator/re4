@@ -1,3 +1,5 @@
+/* CRI ADX GameCube SDK setup (adx_sugc.c): registers the CVFS devices the ADX file layer reads
+ * from. The game calls ADXGC_SetupDvdFs(0) from dvd.cpp at boot. */
 #include "cri_xpt.h"
 
 extern void cvFsEntryErrFunc(void (*func)(void *obj, Char8 *msg), void *obj);
@@ -18,6 +20,9 @@ static const Char8 *const volatile adxgcsdk_build =
 
 void adxgc_err_dvd(void *obj, Char8 *msg);
 
+// Adds the memory-file device "MFS" (mfci) and the GameCube DVD device "GCD" (gcci) to the CVFS, makes
+// GCD the default device and sets its read mode (prm->rdmode, 0 when prm is NULL). Errors from the CVFS
+// go through adxgc_err_dvd.
 void ADXGC_SetupDvdFs(ADXGC_DVDFS_PRM *prm)
 {
 	adxgcsdk_build;
@@ -33,6 +38,7 @@ void ADXGC_SetupDvdFs(ADXGC_DVDFS_PRM *prm)
 	}
 }
 
+// CVFS error callback: forwards the message to the ADX error callback.
 void adxgc_err_dvd(void *obj, Char8 *msg)
 {
 	ADXERR_CallErrFunc1(msg);

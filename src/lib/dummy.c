@@ -16,6 +16,8 @@ struct stat_min {
 	int st_mode;
 };
 
+// Serial output of the runtime: initialises the UART on the first call (InitializeUART(0)) and
+// writes the bytes (what OSReport/printf text ends up as on the debug console).
 int __sn_serialp(const void *buf, unsigned int len)
 {
 	static int first = 1;
@@ -30,6 +32,8 @@ int __sn_serialp(const void *buf, unsigned int len)
 
 static int sn_stdio_pad = 0; /* unnamed 4-byte .data word after first.183 */
 
+// The stdio write syscall of the SN runtime: fd 1/2 (stdout/stderr, i.e. printf) go to the UART
+// through __sn_serialp, fd 0 fails, any other fd is a host file (PCwrite).
 int _write(int fd, const void *buf, unsigned int len)
 {
 	if (fd == 1 || fd == 2) {
@@ -41,27 +45,32 @@ int _write(int fd, const void *buf, unsigned int len)
 	return PCwrite(fd, buf, len);
 }
 
+// Alias of _write.
 int write(int fd, const void *buf, unsigned int len)
 {
 	return _write(fd, buf, len);
 }
 
+// Closes a host file (PCclose).
 int close(int fd)
 {
 	return PCclose(fd);
 }
 
+// Every fd reports as a character device (st_mode 0x2000) so newlib's stdio stays unbuffered-line.
 int fstat(int fd, struct stat_min *st)
 {
 	st->st_mode = 0x2000;
 	return 0;
 }
 
+// Seeks a host file (PClseek).
 int lseek(int fd, int ofs, int whence)
 {
 	return PClseek(fd, ofs, whence);
 }
 
+// Reads a host file (PCread).
 int read(int fd, void *buf, unsigned int len)
 {
 	return PCread(fd, buf, len);

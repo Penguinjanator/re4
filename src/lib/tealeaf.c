@@ -8,6 +8,7 @@
 asm("	.text\n"
     "	.balign 4\n");
 
+/* float -> unsigned 32-bit conversion (CodeWarrior runtime name): values >= 2^31 are converted after subtracting 2^31 and the top bit is put back; the CRI libraries (compiled with MWCC) call it. */
 /* .text:0x0 | 0x80065854 | size: 0x48 */
 asm("	.globl __cvt_fp2unsigned\n"
     "	.type __cvt_fp2unsigned,@function\n"
@@ -34,6 +35,7 @@ asm("	.globl __cvt_fp2unsigned\n"
     "	blr\n"
     "	.size __cvt_fp2unsigned,.-__cvt_fp2unsigned\n");
 
+/* 64-bit unsigned shift right: alias branching to libgcc's __lshrdi3. */
 /* .text:0x48 | 0x8006589C | size: 0x4 */
 asm("	.globl __shr2u\n"
     "	.type __shr2u,@function\n"
@@ -41,6 +43,7 @@ asm("	.globl __shr2u\n"
     "	b __lshrdi3\n"
     "	.size __shr2u,.-__shr2u\n");
 
+/* 64-bit signed divide: alias branching to libgcc's __divdi3 (MWCC runtime name used by the CRI code). */
 /* .text:0x4C | 0x800658A0 | size: 0x4 */
 asm("	.globl __div2i\n"
     "	.type __div2i,@function\n"
@@ -48,6 +51,7 @@ asm("	.globl __div2i\n"
     "	b __divdi3\n"
     "	.size __div2i,.-__div2i\n");
 
+/* 64-bit shift left: alias to __ashldi3. */
 /* .text:0x50 | 0x800658A4 | size: 0x4 */
 asm("	.globl __shl2i\n"
     "	.type __shl2i,@function\n"
@@ -55,6 +59,7 @@ asm("	.globl __shl2i\n"
     "	b __ashldi3\n"
     "	.size __shl2i,.-__shl2i\n");
 
+/* 64-bit signed remainder: alias to __moddi3 (kept linked by crt0's LinkFiddle). */
 /* .text:0x54 | 0x800658A8 | size: 0x4 */
 asm("	.globl __mod2i\n"
     "	.type __mod2i,@function\n"
@@ -62,6 +67,7 @@ asm("	.globl __mod2i\n"
     "	b __moddi3\n"
     "	.size __mod2i,.-__mod2i\n");
 
+/* 64-bit signed shift right: alias to __ashrdi3. */
 /* .text:0x58 | 0x800658AC | size: 0x4 */
 asm("	.globl __shr2i\n"
     "	.type __shr2i,@function\n"
@@ -69,6 +75,7 @@ asm("	.globl __shr2i\n"
     "	b __ashrdi3\n"
     "	.size __shr2i,.-__shr2i\n");
 
+/* 64-bit unsigned divide: alias to __udivdi3. */
 /* .text:0x5C | 0x800658B0 | size: 0x4 */
 asm("	.globl __div2u\n"
     "	.type __div2u,@function\n"
@@ -76,6 +83,7 @@ asm("	.globl __div2u\n"
     "	b __udivdi3\n"
     "	.size __div2u,.-__div2u\n");
 
+/* 64-bit unsigned remainder: alias to __umoddi3. */
 /* .text:0x60 | 0x800658B4 | size: 0x4 */
 asm("	.globl __mod2u\n"
     "	.type __mod2u,@function\n"
@@ -83,6 +91,7 @@ asm("	.globl __mod2u\n"
     "	b __umoddi3\n"
     "	.size __mod2u,.-__mod2u\n");
 
+/* CodeWarrior-ABI va_arg helper: fetches the next variadic argument of the given class (GPR / FPR / overflow area) from an MWCC va_list; used by the CRI code's vsprintf error formatting. */
 /* .text:0x64 | 0x800658B8 | size: 0xF4 */
 asm("	.globl __va_arg\n"
     "	.type __va_arg,@function\n"
@@ -161,6 +170,7 @@ asm("	.globl __va_arg\n"
 asm("	.rodata\n"
     "	.balign 8\n");
 
+/* The 2^31 double constant of __cvt_fp2unsigned (.rodata). */
 /* .rodata:0x0 | 0x80225C60 | size: 0x8 */
 asm("	.type lbl_80225C60,@object\n"
     "lbl_80225C60:\n"

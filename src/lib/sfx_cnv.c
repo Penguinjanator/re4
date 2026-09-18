@@ -1,4 +1,7 @@
-/* Sofdec SFX: conversion table setup and frame layout helpers */
+/* CRI Sofdec SFX conversion tables and layout helpers (sfx_cnv.c): builds the per-layout lookup
+ * table in the converter's buf[0] on demand (luma, alpha ramps, colour adjustment, Z), decides the
+ * alpha table type of the three-level layouts, and the upper-half / bottom-up plane helpers the
+ * frame converters share. */
 #include "cri_xpt.h"
 #include "sfx.h"
 
@@ -38,6 +41,9 @@ static void sfxcnv_MakeLumiTbl(Uint8 *tbl)
 	}
 }
 
+// Builds the conversion table of `type` in buf[0] unless the same type is already there (the luma
+// alpha table is rebuilt when its settings changed): Z tables, alpha ramps, colour adjustment
+// (ARGB / YCC422) or the plain luma table. Error for unknown types.
 void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 {
 	Bool need;
@@ -102,6 +108,8 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 	}
 }
 
+// Alpha table type for the three-level layouts: 0x51 -> 3110, 0x61 -> 3211, 0x41 by the output
+// fxtype (default 3211).
 Sint32 SFX_DecideTableAlph3(SFX_OBJ *sfx, Sint32 compo)
 {
 	Sint32 fxtype;
@@ -124,6 +132,8 @@ Sint32 SFX_DecideTableAlph3(SFX_OBJ *sfx, Sint32 compo)
 	return ret;
 }
 
+// Whether the layout stores the picture in the upper half of the frame (0x21 / 0x101: the lower
+// half carries alpha or Z), so the output height is halved.
 Sint32 sfxcnv_IsCnvUpHalf(SFX_OBJ *sfx)
 {
 	switch (sfx->compo) {
@@ -147,6 +157,7 @@ Sint32 sfxcnv_IsCnvUpHalf(SFX_OBJ *sfx)
 	return 0;
 }
 
+// Flips a plane to bottom-up: start at the last line, negative pitch.
 void SFX_SetBottomUpPlnBuf(SFX_PLN *pln)
 {
 	pln->buf += pln->pitch * (pln->height - 1);

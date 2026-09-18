@@ -1,4 +1,6 @@
-/* ADX file system: init / finish */
+/* CRI ADX file system init / finish (adx_fini.c, ADXF/GC Ver.7.18): owns the ADXF globals (handle
+ * table adxf_obj, AFS partition table adxf_ptinfo, command history) as raw byte arrays and resets them
+ * in ADXF_Init / ADXF_Finish. The handle API is in adx_fs.c. */
 #include "cri_xpt.h"
 #include <string.h>
 
@@ -49,6 +51,8 @@ Sint32 ADXF_GetNumCmd(Sint32 *ncall)
 	return n;
 }
 
+// ADX file system shutdown (reference counted): closes every handle and clears the partition table,
+// the command history and the no-wait partition-load state.
 void ADXF_Finish(void)
 {
 	if (--adxf_init_cnt == 0) {
@@ -66,6 +70,8 @@ void ADXF_Finish(void)
 	}
 }
 
+// ADX file system init (reference counted): clears the handles, the AFS partition table
+// (adxf_ptinfo) and the command history; reads the build string to keep it linked.
 void ADXF_Init(void)
 {
 	adxf_build;

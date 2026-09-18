@@ -22,6 +22,8 @@
 #define MPVMC08_W(p, n) (*(Uint32 *)((Uint8 *)(p) + (n)))
 #define MPVMC08_H(p, n) (*(Uint16 *)((Uint8 *)(p) + (n)))
 
+// 8x8 block, half-pel in both directions: each output byte is the rounded average of a 2x2
+// reference neighbourhood, written as four packed bytes per word.
 void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
 {
 	/* Three rotating pixel pairs (pixel k in pair k % 3), each pair loaded right before the sum that
@@ -90,6 +92,9 @@ void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
 #pragma opt_propagation off /* COMPILER-DIFF: the masks would be propagated into every case (lis/addi per case, bodies > 35 pcodes, no unroll) */
 #pragma inline_max_size(100000) /* COMPILER-DIFF: the ~120-statement helper is not inlined under -inline auto */
 #pragma inline_max_total_size(100000)
+// 8x8 block, horizontal half-pel: byte-wise average of each reference word with its one-byte-shifted
+// neighbour (SWAR through the 0xFEFEFEFE / 0x01010101 masks); the source alignment case selects the
+// load pattern.
 static inline void mpvmc08_OneRefH2Body(MPVMC *mc)
 {
 	Uint32 m2;
@@ -246,6 +251,7 @@ void MPVMC08_OneRefH2_TuneC(MPVMC *mc)
 }
 #pragma opt_lifetimes reset
 #pragma opt_propagation reset
+// 8x8 block, vertical half-pel: byte-wise average of each row with the next.
 void MPVMC08_OneRefV2_TuneC(MPVMC *mc)
 {
 	Sint32 i;
@@ -680,6 +686,8 @@ L_80218258:
 /* the generic (non-tuned) versions were dead-stripped; the table keeps their slots */
 void (*const mpvmc_oneref1p_func_table[4])(MPVMC *mc) = {NULL, NULL, NULL, NULL};
 
+// Fills the handle's 8x8 kernel slots (from the generic table, which the linker stripped to NULLs;
+// the tuned kernels are reached through mpvcmc_oneref).
 void MPVMC08_Init(MPVMC *mc)
 {
 	mc->oneref08[0] = mpvmc_oneref1p_func_table[0];

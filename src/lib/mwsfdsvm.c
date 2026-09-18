@@ -1,4 +1,6 @@
-/* Sofdec MW player: server manager glue */
+/* CRI Sofdec MW player server-manager glue (mwsfdsvm.c): registers the player's servers with the
+ * SVM (main type 5, idle type 6, vsync type 2) and routes the player's error messages
+ * (MWSFSVM_Error) to the SVM error callback. */
 #include "cri_xpt.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -16,11 +18,14 @@ Sint32 mwg_idle_fid;
 Sint32 mwg_vsync_fid;
 Sint32 mwg_vbin_fid;
 
+// Waits for the idle-type server border (SVM type 6; a no-op without threads).
 void MWSFSVM_GotoIdleBorder(void)
 {
 	SVM_GotoSvrBorder(6);
 }
 
+// printf-style error of the MW player: formats into a 256-byte static and reports through
+// SVM_CallErr1 to the game's callback (ap_mwply_err_func).
 void MWSFSVM_Error(const Char8 *fmt, ...)
 {
 	static Char8 errstr[256];
@@ -33,27 +38,32 @@ void MWSFSVM_Error(const Char8 *fmt, ...)
 	SVM_CallErr1(errstr);
 }
 
+// Re-entry guard for the server flags.
 Sint32 MWSFSVM_TestAndSet(Sint32 *flag)
 {
 	return SVM_TestAndSet(flag);
 }
 
+// Registers the decode server on the SVM main type (5), run by ADXM_ExecMain.
 void MWSFSVM_EntryMainFunc(Sint32 (*func)(void *obj), void *obj)
 {
 	mwg_main_fid = SVM_SetCbSvr(5, func, obj);
 }
 
+// Registers the idle-thread server (type 6).
 void MWSFSVM_EntryIdleFunc(Sint32 (*func)(void *obj), void *obj)
 {
 	mwg_idle_fid = SVM_SetCbSvr(6, func, obj);
 }
 
+// Registers the vsync server in a fixed slot of type 2.
 void MWSFSVM_EntryIdVfunc(Sint32 id, Sint32 (*func)(void *obj), void *obj)
 {
 	SVM_SetCbSvrId(2, id, func, obj);
 	mwg_vsync_fid = id;
 }
 
+// SVM init and cleared callback ids.
 void MWSFSVM_Init(void)
 {
 	SVM_Init();

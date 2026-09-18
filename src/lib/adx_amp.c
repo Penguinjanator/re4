@@ -1,3 +1,6 @@
+/* CRI ADXAMP (adx_amp.c): amplitude/volume processing stage between the decoder output and the
+ * renderer stream joints. Never created in this game (ADXT_OBJ.amp stays NULL); the functions that
+ * survived are called only through ADXT's NULL-guarded amp hooks. */
 #include "cri_xpt.h"
 #include "sj.h"
 #include <string.h>
@@ -31,21 +34,26 @@ void ADXAMP_SetVolume(ADXAMP_OBJ *amp, Sint32 vol)
 	amp->vol = (Float32)vol;
 }
 
+// Dead: volume from a linear rate (x 0.1).
 void ADXAMP_SetVolumeRate(ADXAMP_OBJ *amp, Float32 rate)
 {
 	amp->vol = rate * 0.1f;
 }
 
+// Records the sampling rate.
 void ADXAMP_SetSfreq(ADXAMP_OBJ *amp, Sint32 sfreq)
 {
 	amp->sfreq = sfreq;
 }
 
+// Stops the stage (stat 0).
 void ADXAMP_Stop(ADXAMP_OBJ *amp)
 {
 	amp->stat = 0;
 }
 
+// Resets the sample counters and zero-fills / resets the input and output stream joints, then runs
+// (stat 2). Called by adxt_start_sjd when a handle has an amp.
 void ADXAMP_Start(ADXAMP_OBJ *amp)
 {
 	SJCK ck;
@@ -76,6 +84,7 @@ void ADXAMP_Start(ADXAMP_OBJ *amp)
 	amp->stat = 2;
 }
 
+// Clears the object under the ADX lock.
 void ADXAMP_Destroy(ADXAMP_OBJ *amp)
 {
 	if (amp != NULL) {

@@ -1,3 +1,7 @@
+/* CRI ADX manager for GameCube (adx_mgc.c, ADXGC Ver.1.21): the ADXM_* front end the game calls.
+ * ADXM_SetCbErr installs the error callback, ADXM_ExecMain runs the SVM main server (the whole ADX /
+ * Sofdec pipeline, once per frame from sofdec.cpp / dvd.cpp). The OS-thread server setup
+ * (ADXM_SetupThrd and friends) was dead-stripped: this game never creates the CRI threads. */
 #include "cri_xpt.h"
 #include <dolphin/os.h>
 #include <string.h>
@@ -45,6 +49,7 @@ const Char8 *ADXM_GetVersion(void)
 	return "\nADXGC Ver.1.21 Build:Oct  8 2004 13:33:20\n";
 }
 
+// Dead: would create the mwidle / fs / vsync / safe server threads with the priorities in `tprm`.
 void ADXM_SetupThrd(Sint32 *tprm)
 {
 	Sint32 i;
@@ -85,6 +90,7 @@ void ADXM_SetupThrd(Sint32 *tprm)
 	adxm_init_level = 1;
 }
 
+// Dead: joins the server threads.
 void ADXM_ShutdownThrd(void)
 {
 	if (adxm_init_level == 0) {
@@ -101,6 +107,7 @@ void ADXM_ShutdownThrd(void)
 	adxm_init_level = 0;
 }
 
+// Dead: raises the main thread to priority 0 while locked (nesting counted).
 void ADXM_Lock(void)
 {
 	if (adxm_lock_level == 0) {
@@ -110,6 +117,7 @@ void ADXM_Lock(void)
 	adxm_lock_level++;
 }
 
+// Dead: restores the main thread priority when the last lock is released.
 void ADXM_Unlock(void)
 {
 	adxm_lock_level--;
@@ -127,6 +135,7 @@ Sint32 ADXM_CalcVsyncCnt(Float32 sec)
 	return adxm_vsync_cnt;
 }
 
+// Dead: waits until the mwidle server thread is between passes.
 void ADXM_GotoMwIdleBorder(void)
 {
 	if (adxm_init_level == 0) {
@@ -140,6 +149,7 @@ void ADXM_GotoMwIdleBorder(void)
 	adxm_goto_border_flag = 0;
 }
 
+// Dead: pass counter of one server thread (0 safe, 1 vsync, 2 fs, else mwidle).
 Sint32 ADXM_GetCnt(Sint32 id)
 {
 	switch (id) {
@@ -154,21 +164,27 @@ Sint32 ADXM_GetCnt(Sint32 id)
 	}
 }
 
+// Whether the server threads exist; always 0 in this game, which makes ADXT_Init register the
+// single-threaded main callback.
 Sint32 ADXM_IsSetupThrd(void)
 {
 	return adxm_init_level != 0;
 }
 
+// Installs the error callback (func(obj, msg)) that every CRI module's error path ends in.
 void ADXM_SetCbErr(void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	SVM_SetCbErr(func, obj);
 }
 
+// Runs the SVM main-type server callbacks: the ADX talk/file/scheduler servers and the Sofdec player.
+// The game calls it once per frame while a movie plays.
 void ADXM_ExecMain(void)
 {
 	SVM_ExecSvrMain();
 }
 
+// Dead: VIWaitForRetrace wrapper used by the vsync server thread.
 void ADXM_WaitVsync(void)
 {
 	VIWaitForRetrace();

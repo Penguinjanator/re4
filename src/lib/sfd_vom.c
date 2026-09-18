@@ -1,15 +1,23 @@
+/* CRI Sofdec manual video output driver (sfd_vom.c, SFD_tr_vo_manu, driver slot 6): the
+ * application pulls frames itself (SFD_GetFrm / SFD_RelFrm). GetRead hands out the next decoded
+ * frame from the frame table buffer only when the clock says its display time has come, AddRead
+ * returns it to the video decoder's pool. */
 #include "sfd.h"
 
+// No seek (0).
 Sint32 SFVOM_Seek(void)
 {
 	return 0;
 }
 
+// SFD_RelFrm: gives the frame back to the video decoder through the frame table buffer.
 Sint32 SFVOM_AddRead(SFD sfd, void *frm)
 {
 	return SFBUF_VfrmAddRead(sfd, sfd->tr[6].bufin, frm);
 }
 
+// SFD_GetFrm: in STBY/PLAYING asks the frame table for the oldest decoded frame and returns it only
+// if SFTIM_IsGetFrmTime says it is due (else NULL). Frames wait here until the clock catches up.
 Sint32 SFVOM_GetRead(SFD sfd, void **frm)
 {
 	Sint32 ret;
@@ -29,46 +37,56 @@ Sint32 SFVOM_GetRead(SFD sfd, void **frm)
 	return 0;
 }
 
+// Not supported: error 0xFF000701.
 Sint32 SFVOM_AddWrite(SFD sfd)
 {
 	SFLIB_SetErr(sfd, 0xFF000701);
 }
 
+// Not supported: error 0xFF000701.
 Sint32 SFVOM_GetWrite(SFD sfd)
 {
 	SFLIB_SetErr(sfd, 0xFF000701);
 }
 
+// Nothing to do.
 Sint32 SFVOM_Pause(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Stop(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Start(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Standby(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Destroy(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Create(void)
 {
 	return 0;
 }
 
+// With video enabled: terminates the driver when the frame buffer terminated and the clock has passed
+// the video end (or no clock is used), and mirrors the prepared flag.
 Sint32 SFVOM_ExecServer(SFD sfd)
 {
 	Sint32 term;
@@ -98,11 +116,13 @@ Sint32 SFVOM_ExecServer(SFD sfd)
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Finish(void)
 {
 	return 0;
 }
 
+// Nothing to do.
 Sint32 SFVOM_Init(void)
 {
 	return 0;

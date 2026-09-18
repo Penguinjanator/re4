@@ -32,6 +32,7 @@ typedef struct {
 static const SJUUID *sfbuf_sjmem_uuid;
 static const SJUUID *sfbuf_sjrbf_uuid;
 
+// The stream joint is a memory joint (UUID compare).
 static Bool sfbuf_IsSjmem(SJ sj)
 {
 	if (SJ_GetUuid(sj) == sfbuf_sjmem_uuid) {
@@ -40,6 +41,7 @@ static Bool sfbuf_IsSjmem(SJ sj)
 	return 0;
 }
 
+// The stream joint is a ring-buffer joint.
 static Bool sfbuf_IsSjrbf(SJ sj)
 {
 	if (SJ_GetUuid(sj) == sfbuf_sjrbf_uuid) {
@@ -48,6 +50,8 @@ static Bool sfbuf_IsSjrbf(SJ sj)
 	return 0;
 }
 
+// Extends a 32-bit ring position into the 64-bit flow counter `cnt`: bumps the high word when the
+// position wrapped below the previous low word (stream counters in the player information).
 Sint64 SFBUF_UpdateFlowCnt(Sint64 cnt, Uint32 pos)
 {
 	Sint64 up;
@@ -65,6 +69,8 @@ Sint64 SFBUF_UpdateFlowCnt(Sint64 cnt, Uint32 pos)
 	return hi;
 }
 
+// Bytes ever written / read through a supply joint (ring: SJRBF put counters; memory joint: size and
+// size minus what is left).
 void SFBUF_GetFlowCnt(SJ sj, Sint32 *wcnt, Sint32 *rcnt)
 {
 	if (sfbuf_IsSjrbf(sj)) {
@@ -126,31 +132,38 @@ static Sint32 sfbuf_RingGetDataSizHn(SFBUF_HN *hn)
 	return len1 + len2;
 }
 
+// Readable bytes of ring buffer `n` (both halves around the wrap).
 Sint32 SFBUF_RingGetDataSiz(SFD sfd, Sint32 n)
 {
 	return sfbuf_RingGetDataSizHn(SFBUF_GET_HN(sfd, n));
 }
 
+// "no more data will arrive" flag of buffer n.
 Sint32 SFBUF_GetTermFlg(SFD sfd, Sint32 n)
 {
 	return sfd->buf[n].termflg;
 }
 
+// Sets the terminate flag (the writer driver ended; the reader drains and terminates too).
 void SFBUF_SetTermFlg(SFD sfd, Sint32 n, Sint32 flg)
 {
 	sfd->buf[n].termflg = flg;
 }
 
+// "buffer is prepared/primed" flag of buffer n.
 Sint32 SFBUF_GetPrepFlg(SFD sfd, Sint32 n)
 {
 	return sfd->buf[n].prepflg;
 }
 
+// Sets the prepared flag (the reader driver may start).
 void SFBUF_SetPrepFlg(SFD sfd, Sint32 n, Sint32 flg)
 {
 	sfd->buf[n].prepflg = flg;
 }
 
+// Frame table buffer (3/5): returns a frame to the driver that wrote it (its AddRead, fn 12) and
+// flags a change; used by the manual video output when the user releases a frame.
 Sint32 SFBUF_VfrmAddRead(SFD sfd, Sint32 n, void *frm)
 {
 	Sint32 ret = 0;
@@ -163,6 +176,7 @@ Sint32 SFBUF_VfrmAddRead(SFD sfd, Sint32 n, void *frm)
 	return ret;
 }
 
+// Frame table buffer: asks the writer driver (the MPV video driver) for the next displayable frame.
 Sint32 SFBUF_VfrmGetRead(SFD sfd, Sint32 n, void **frm)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -173,6 +187,7 @@ Sint32 SFBUF_VfrmGetRead(SFD sfd, Sint32 n, void **frm)
 	return 0;
 }
 
+// Advances the ring's total-read counter (when known).
 void SFBUF_AddRtotSj(SFD sfd, Sint32 n, Sint32 nbyte)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -182,6 +197,7 @@ void SFBUF_AddRtotSj(SFD sfd, Sint32 n, Sint32 nbyte)
 	}
 }
 
+// The supply stream joint of ring buffer n (error 0xFF000401 when unsupplied).
 Sint32 SFBUF_RingGetSj(SFD sfd, Sint32 n, SJ *sj)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -194,6 +210,8 @@ Sint32 SFBUF_RingGetSj(SFD sfd, Sint32 n, SJ *sj)
 	return 0;
 }
 
+// Total bytes written into ring n; derived from rtot + pending data when the writer does not count,
+// INT_MAX when unknown (-1). sfply_StatPrep drops a stream whose buffer never got data.
 Sint32 SFBUF_GetWTot(SFD sfd, Sint32 n)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -214,16 +232,20 @@ Sint32 SFBUF_GetWTot(SFD sfd, Sint32 n)
 	return wtot;
 }
 
+// Total bytes read from ring n.
 Sint32 SFBUF_GetRTot(SFD sfd, Sint32 n)
 {
 	return sfd->buf[n].u.ring.rtot;
 }
 
+// Size of ring buffer n in bytes.
 Sint32 SFBUF_GetRingBufSiz(SFD sfd, Sint32 n)
 {
 	return sfd->buf[n].u.ring.sup.size;
 }
 
+// Records where the demuxer found the next start-code delimiter in ring n (position/length), so the
+// video driver can stop at picture boundaries.
 void SFBUF_RingSetDlm(SFD sfd, Sint32 n, Uint8 *pos, Sint32 len)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -235,6 +257,7 @@ void SFBUF_RingSetDlm(SFD sfd, Sint32 n, Uint8 *pos, Sint32 len)
 	SFLIB_UnlockCs(&cs);
 }
 
+// Reads the recorded delimiter of ring n.
 void SFBUF_RingGetDlm(SFD sfd, Sint32 n, Uint8 **pos, Sint32 *len)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
@@ -300,11 +323,16 @@ static inline Sint32 sfbuf_RingAddReadSub(SFD sfd, Sint32 n, Sint32 nbyte)
 	return ret;
 }
 
+// Consumes `nbyte` bytes of ring n (DATA -> FREE, in up to two chunks around the wrap); on the video
+// ring (1) forgets the delimiter if it was consumed; adds to rtot and flags a change. Error
+// 0xFF00040B on underflow.
 Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 {
 	return sfbuf_RingAddReadSub(sfd, n, nbyte);
 }
 
+// Commits `nbyte` bytes written into ring n (FREE -> DATA, two chunks around the wrap), adds to wtot
+// and flags a change; error 0xFF00040B on overflow.
 static inline Sint32 sfbuf_RingAddWriteSub(SFD sfd, Sint32 n, Sint32 nbyte)
 {
 	Sint32 rest;
@@ -341,6 +369,7 @@ static inline Sint32 sfbuf_RingAddWriteSub(SFD sfd, Sint32 n, Sint32 nbyte)
 	return ret;
 }
 
+// Public wrapper of sfbuf_RingAddWriteSub (the memory input driver's AddWrite).
 Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
 {
 	return sfbuf_RingAddWriteSub(sfd, n, nbyte);
@@ -376,6 +405,7 @@ Sint32 SFBUF_RingGetRead(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 	return 0;
 }
 
+// Writable region of ring n as two chunks (before / after the wrap) in `inf`.
 Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 {
 	SFBUF_HN *hn;
@@ -403,16 +433,20 @@ Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 n, SFBUF_RINF *inf)
 	return 0;
 }
 
+// Copies user-output channel `chno` of buffer n.
 void SFBUF_GetUoch(SFD sfd, Sint32 n, Sint32 chno, SFUO_CH *ch)
 {
 	*ch = sfd->buf[n].u.uoch[chno];
 }
 
+// Stores user-output channel `chno` (stream joint + parameter) into buffer n.
 void SFBUF_SetUoch(SFD sfd, Sint32 n, Sint32 chno, SFUO_CH *ch)
 {
 	sfd->buf[n].u.uoch[chno] = *ch;
 }
 
+// Validates a supply: a joint is required; a memory-range supply (kind 0) needs a base, a positive
+// size and no extra field.
 static Sint32 sfbuf_CheckSup(SFBUF_SUP *sup)
 {
 	if (sup->sj == NULL) {
@@ -432,6 +466,7 @@ static Sint32 sfbuf_CheckSup(SFBUF_SUP *sup)
 	return 0;
 }
 
+// Installs a supply on a ring: copies it, clears the delimiter, totals and PTS queue.
 static void sfbuf_SetSup(SFBUF_WORK *wk, SFBUF_RING *ring, SFBUF_SUP *sup, Sint32 used)
 {
 	Sint32 cs;
@@ -478,6 +513,7 @@ Sint32 SFBUF_SetSupplySj(SFD sfd, SFBUF_SUP *sup)
 	return 0;
 }
 
+// Destroys the supply's stream joint (library-created rings only).
 static void sfbuf_DestroySup(SFBUF_SUP *sup)
 {
 	if (sup->sj != NULL) {
@@ -581,6 +617,8 @@ static void sfbuf_InitVfrm(SFD sfd, SFBUF_WORK *wk, Uint32 *adr, Sint32 *size)
 	}
 }
 
+// Audio output buffer (4/6): records the region and clears the reserve words; used only when a size
+// was given.
 static void sfbuf_InitAout(SFBUF_WORK *wk, Uint32 *adr, Sint32 *size)
 {
 	Sint32 i;
@@ -654,6 +692,8 @@ Sint32 SFBUF_InitHn(SFD sfd, SFBUF_WORK *wk, SFBUF_PRM *prm)
 	return 0;
 }
 
+// Library init: learns the UUIDs of the ring-buffer and memory joint classes from throwaway objects
+// so sfbuf_IsSjrbf/IsSjmem can classify supplies.
 void SFBUF_Init(void *work)
 {
 	Uint8 dmy[8];

@@ -1,3 +1,7 @@
+/* CRI Sofdec SFX alpha tables (sfx_alp.c, SFXA): per-converter alpha ramp settings (three fixed
+ * alpha levels or a luma-driven ramp between lumi_min/lumi_max) and the calls that build the
+ * ARGB8888 conversion tables from them (cftyp422_ppc.c). Used for the alpha component layouts
+ * (0x31/0x41/0x51/0x61); the game's movies are plain YCC 4:2:0. */
 #include "cri_xpt.h"
 #include <string.h>
 
@@ -25,27 +29,32 @@ extern void CFT_MakeArgb8888AlpLumiTbl(Sint32 min, Sint32 max, Sint32 rate, void
 
 SFXA_WORK sfxa_work;
 
+// Whether the luma-alpha settings changed since the table was last built.
 Sint32 SFXA_IsNeedUpdateLumiTbl(SFXA_OBJ *sfxa)
 {
 	return sfxa->need_update;
 }
 
+// Builds the ARGB table with the "3211" three-level alpha ramp (alp0/alp1/alp2).
 void SFXA_MakeAlp3211Tbl(SFXA_OBJ *sfxa, void *frm, void *tbl)
 {
 	CFT_MakeArgb8888Alp3211Tbl(tbl, sfxa->alp0, sfxa->alp1, sfxa->alp2);
 }
 
+// Builds the ARGB table with the "3110" three-level alpha ramp.
 void SFXA_MakeAlp3110Tbl(SFXA_OBJ *sfxa, void *frm, void *tbl)
 {
 	CFT_MakeArgb8888Alp3110Tbl(tbl, sfxa->alp0, sfxa->alp1, sfxa->alp2);
 }
 
+// Builds the ARGB table with alpha following the luma (lumi_min..lumi_max, rate); clears the update flag.
 void SFXA_MakeAlpLumiTbl(SFXA_OBJ *sfxa, void *frm, void *tbl)
 {
 	CFT_MakeArgb8888AlpLumiTbl(sfxa->lumi_min, sfxa->lumi_max, sfxa->lumi_rate, tbl);
 	sfxa->need_update = 0;
 }
 
+// Frees the object.
 void SFXA_Destroy(SFXA_OBJ *sfxa)
 {
 	if (sfxa == NULL) {
@@ -55,6 +64,7 @@ void SFXA_Destroy(SFXA_OBJ *sfxa)
 	sfxa_work.cnt--;
 }
 
+// First unused of the 8 objects, NULL when none.
 static SFXA_OBJ *sfxa_search_free(void)
 {
 	SFXA_OBJ *sfxa;
@@ -112,6 +122,7 @@ SFXA_OBJ *SFXA_Create(void)
 	return sfxa;
 }
 
+// Clears the object table (8 objects).
 void SFXA_Init(void)
 {
 	memset(&sfxa_work, 0, sizeof(sfxa_work));

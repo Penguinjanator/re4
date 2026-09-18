@@ -98,21 +98,27 @@ void adxsjd_decexec_start(ADXSJD sjd);
 void *adxsjd_get_wr(void *obj, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap);
 void adxsjd_decode_prep(ADXSJD sjd);
 
+// Restores the block decoder's ADPCM history/key snapshot (see ADXB_RestoreSnapshot); ADXT uses it to
+// resume after a loop/seek.
 void ADXSJD_RestoreSnapshot(ADXSJD sjd)
 {
 	ADXB_RestoreSnapshot(sjd->adxb);
 }
 
+// Saves the block decoder's ADPCM history/key snapshot.
 void ADXSJD_TakeSnapshot(ADXSJD sjd)
 {
 	ADXB_TakeSnapshot(sjd->adxb);
 }
 
+// The 64-byte header copy kept for SPSD/PCM16 streams (spsdinf).
 void *ADXSJD_GetSpsdInfo(ADXSJD sjd)
 {
 	return sjd->spsdinf;
 }
 
+// Default pan of channel `ch` from the stream's AINF chunk, only once the header has been decoded
+// (stat DECODE/END); -128 otherwise.
 Sint32 ADXSJD_GetDefPan(ADXSJD sjd, Sint32 ch)
 {
 	if (ADXB_GetAinfLen(sjd->adxb) > 0 && (sjd->stat == ADXSJD_STAT_DECODE || sjd->stat == ADXSJD_STAT_END)) {
@@ -121,6 +127,7 @@ Sint32 ADXSJD_GetDefPan(ADXSJD sjd, Sint32 ch)
 	return -128;
 }
 
+// Default output volume from the stream's AINF chunk once decoding has begun; 0 otherwise.
 Sint32 ADXSJD_GetDefOutVol(ADXSJD sjd)
 {
 	if (ADXB_GetAinfLen(sjd->adxb) > 0 && (sjd->stat == ADXSJD_STAT_DECODE || sjd->stat == ADXSJD_STAT_END)) {
@@ -129,16 +136,19 @@ Sint32 ADXSJD_GetDefOutVol(ADXSJD sjd)
 	return 0;
 }
 
+// Loop end byte offset of the stream (ADXB_GetLpEndOfst).
 Sint32 ADXSJD_GetLpEndOfst(ADXSJD sjd)
 {
 	return ADXB_GetLpEndOfst(sjd->adxb);
 }
 
+// Loop end sample position of the stream.
 Sint32 ADXSJD_GetLpEndPos(ADXSJD sjd)
 {
 	return ADXB_GetLpEndPos(sjd->adxb);
 }
 
+// Loop start byte offset; 0 for a NULL handle.
 Sint32 ADXSJD_GetLpStartOfst(ADXSJD sjd)
 {
 	if (sjd == NULL) {
@@ -147,77 +157,94 @@ Sint32 ADXSJD_GetLpStartOfst(ADXSJD sjd)
 	return ADXB_GetLpStartOfst(sjd->adxb);
 }
 
+// Loop start sample position.
 Sint32 ADXSJD_GetLpStartPos(ADXSJD sjd)
 {
 	return ADXB_GetLpStartPos(sjd->adxb);
 }
 
+// Loop count from the ADX header.
 Sint32 ADXSJD_GetNumLoop(ADXSJD sjd)
 {
 	return ADXB_GetNumLoop(sjd->adxb);
 }
 
+// Total samples per channel of the current stream.
 Sint32 ADXSJD_GetTotalNumSmpl(ADXSJD sjd)
 {
 	return ADXB_GetTotalNumSmpl(sjd->adxb);
 }
 
+// Samples per block of the current stream (32 for ADX).
 Sint32 ADXSJD_GetBlkSmpl(ADXSJD sjd)
 {
 	return ADXB_GetBlkSmpl(sjd->adxb);
 }
 
+// Output bits per sample.
 Sint32 ADXSJD_GetOutBps(ADXSJD sjd)
 {
 	return ADXB_GetOutBps(sjd->adxb);
 }
 
+// Output channel count (2 when a Pro Logic II encoder upmixes mono).
 Sint32 ADXSJD_GetNumChan(ADXSJD sjd)
 {
 	return ADXB_GetNumChan(sjd->adxb);
 }
 
+// Sampling rate in Hz of the current stream.
 Sint32 ADXSJD_GetSfreq(ADXSJD sjd)
 {
 	return ADXB_GetSfreq(sjd->adxb);
 }
 
+// Container type id of the current stream (ADXB_TYPE_*).
 Sint32 ADXSJD_GetFormat(ADXSJD sjd)
 {
 	return ADXB_GetFormat(sjd->adxb);
 }
 
+// Presets the input-byte counter of the trap (used by ADXT to align the loop-end trap to a file position).
 void ADXSJD_SetTrapDtLen(ADXSJD sjd, Sint32 len)
 {
 	sjd->trap_dtlen = len;
 }
 
+// Presets the trap's decoded-sample counter.
 void ADXSJD_SetTrapCnt(ADXSJD sjd, Sint32 cnt)
 {
 	sjd->trap_cnt = cnt;
 }
 
+// Sets the sample count at which the trap callback fires before the next block starts (-1: no trap).
+// ADXT uses it for the loop end and for the linked-file boundary.
 void ADXSJD_SetTrapNumSmpl(ADXSJD sjd, Sint32 nsmpl)
 {
 	sjd->trap_nsmpl = nsmpl;
 }
 
+// Registers the trap callback (`fn(obj)`) run by adxsjd_decexec_start when trap_cnt reaches trap_nsmpl.
 void ADXSJD_EntryTrapFunc(ADXSJD sjd, void (*fn)(void *obj), void *obj)
 {
 	sjd->trapfn = fn;
 	sjd->trapobj = obj;
 }
 
+// Enables linked playback: after an ADX footer the decoder skips the zero padding and continues with
+// the next concatenated file instead of ending.
 void ADXSJD_SetLnkSw(ADXSJD sjd, Sint32 sw)
 {
 	sjd->lnksw = sw;
 }
 
+// Overrides the decode position in samples (ADXT sets it to the loop start after a loop jump).
 void ADXSJD_SetDecPos(ADXSJD sjd, Sint32 pos)
 {
 	sjd->decpos = pos;
 }
 
+// Total samples decoded since ADXSJD_Start.
 Sint32 ADXSJD_GetDecNumSmpl(ADXSJD sjd)
 {
 	return sjd->dec_nsmpl;
@@ -229,6 +256,7 @@ void ADXSJD_EntryPl2SetSfreqFunc(void (*func)(ADXB adxb, Sint32 sfreq))
 	pl2setsfreqfunc = func;
 }
 
+// Server tick: runs ADXSJD_ExecHndl on every live decoder (called from ADXT's main server).
 void ADXSJD_ExecServer(void)
 {
 	Sint32 i;
@@ -337,6 +365,8 @@ static void adxsjd_rawexec_end(ADXSJD sjd)
 	sjd->decpos += rem;
 }
 
+// State step: DECODE starts a block when the ADXB is idle, runs it, collects a finished block and
+// accounts raw (undecoded) formats; PREP parses the header.
 static void adxsjd_decode(ADXSJD sjd)
 {
 	ADXB adxb;
@@ -397,6 +427,7 @@ static void adxsjd_skip_out(ADXSJD sjd)
 	ADXCRS_Unlock();
 }
 
+// One tick of one decoder: insert pending silence, decode, then drop pending skip samples.
 void ADXSJD_ExecHndl(ADXSJD sjd)
 {
 	adxsjd_pad_out(sjd);
@@ -594,6 +625,7 @@ void adxsjd_decode_prep(ADXSJD sjd)
 	sjd->stat = ADXSJD_STAT_DECODE;
 }
 
+// Stops the block decoder and the SJD (stat STOP).
 void ADXSJD_Stop(ADXSJD sjd)
 {
 	ADXB_Stop(sjd->adxb);
@@ -616,34 +648,40 @@ static void adxsjd_reset(ADXSJD sjd)
 	sjd->skip_nsmpl = 0;
 }
 
+// Resets the per-play counters and enters PREP: the next tick parses the header at the input.
 void ADXSJD_Start(ADXSJD sjd)
 {
 	adxsjd_reset(sjd);
 	sjd->stat = ADXSJD_STAT_PREP;
 }
 
+// Tells the AHX decoder that no more input will arrive (flushes its last block).
 void ADXSJD_TermSupply(ADXSJD sjd)
 {
 	ADXB_AhxTermSupply(sjd->adxb);
 }
 
+// Caps the samples decoded per server tick (ADXT: obufsize/svrfreq derived), also for the AHX path.
 void ADXSJD_SetMaxDecSmpl(ADXSJD sjd, Sint32 nsmpl)
 {
 	sjd->maxdecsmpl = nsmpl;
 	ADXB_SetAhxDecSmpl(sjd->adxb, nsmpl);
 }
 
+// Changes the input stream joint (ADXT swaps between the file stream and a memory stream).
 void ADXSJD_SetInSj(ADXSJD sjd, SJ sji)
 {
 	sjd->sji = sji;
 	ADXB_SetAhxInSj(sjd->adxb, sji);
 }
 
+// Decoder state (ADXSJD_STAT_STOP/PREP/DECODE/END/ERROR).
 Sint32 ADXSJD_GetStat(ADXSJD sjd)
 {
 	return sjd->stat;
 }
 
+// Destroys the block decoder and clears the slot.
 void ADXSJD_Destroy(ADXSJD sjd)
 {
 	ADXB adxb;
@@ -661,6 +699,8 @@ void ADXSJD_Destroy(ADXSJD sjd)
 	ADXCRS_Unlock();
 }
 
+// Takes a free adxsjd_obj slot; the ADXB writes into the ring buffer of the first output stream joint
+// (`sjo[0]`, its size and extra area in samples), the other channels are `chofst` samples apart.
 ADXSJD ADXSJD_Create(SJ sji, Sint32 nch, SJ *sjo)
 {
 	ADXSJD sjd;
@@ -703,11 +743,13 @@ ADXSJD ADXSJD_Create(SJ sji, Sint32 nch, SJ *sjo)
 	return sjd;
 }
 
+// Clears all decoder slots (library shutdown).
 void ADXSJD_Finish(void)
 {
 	memset(adxsjd_obj, 0, sizeof(adxsjd_obj));
 }
 
+// Library init: ADXB_Init plus clearing the slots.
 void ADXSJD_Init(void)
 {
 	ADXB_Init();

@@ -1,34 +1,46 @@
-/* Sofdec: transfer driver (tr) table management */
+/* CRI Sofdec transfer driver table (sfd_trn.c, SFTRN): the 9 driver slots of a handle (0 input,
+ * 1 system demux, 2 video decoder, 3 audio decoder, 4/5 filters, 6 video out, 7 audio out, 8 user
+ * output), each an SFD_TR_IF function table, and the wiring of the 8 SFBUF buffers between them
+ * (buffer n: in_tr writes, out_tr reads). SFTRN_CallTrSetup / CallTrtTrif dispatch the driver
+ * functions by index. */
 #include "cri_xpt.h"
 #include "sfd.h"
 
 #define SFTRN_TRIF_NUM 15
 
+// Whether driver slot `strm` has a driver (0 input, 1 system, 2 video, 3 audio, 6 video out, 7 audio
+// out, 8 user output).
 Sint32 SFTRN_IsSetup(SFD sfd, Sint32 strm)
 {
 	return sfd->tr[strm].trif != NULL;
 }
 
+// The driver's "stream ended" flag.
 Sint32 SFTRN_GetTermFlg(SFD sfd, Sint32 strm)
 {
 	return sfd->tr[strm].termflg;
 }
 
+// Sets the driver's "stream ended" flag.
 void SFTRN_SetTermFlg(SFD sfd, Sint32 strm, Sint32 flg)
 {
 	sfd->tr[strm].termflg = flg;
 }
 
+// The driver's "prepared" flag.
 Sint32 SFTRN_GetPrepFlg(SFD sfd, Sint32 strm)
 {
 	return sfd->tr[strm].prepflg;
 }
 
+// Sets the driver's "prepared" flag.
 void SFTRN_SetPrepFlg(SFD sfd, Sint32 strm, Sint32 flg)
 {
 	sfd->tr[strm].prepflg = flg;
 }
 
+// Calls function `fn` of driver `strm` (SFD_TR_IF index: 6 Start, 7 Stop, 9 GetWrite, 10 AddWrite,
+// 11 GetRead, 12 AddRead) with two arguments; 0 when the slot is empty.
 Sint32 SFTRN_CallTrtTrif(SFD sfd, Sint32 strm, Sint32 fn, Sint32 a, Sint32 b)
 {
 	SFD_TR_FUNC *trif;
@@ -40,6 +52,8 @@ Sint32 SFTRN_CallTrtTrif(SFD sfd, Sint32 strm, Sint32 fn, Sint32 a, Sint32 b)
 	return trif[fn](sfd, a, b, 0);
 }
 
+// Calls function `fn` (2 ExecServer, 3 Create, 4 Destroy) on every installed driver in slot order,
+// stopping at the first error.
 Sint32 SFTRN_CallTrSetup(SFD sfd, Sint32 fn)
 {
 	Sint32 i;
@@ -59,6 +73,10 @@ Sint32 SFTRN_CallTrSetup(SFD sfd, Sint32 fn)
 	return ret;
 }
 
+// Wires the buffers of a program-stream layout: input -> buf 0 -> MPS demux (tr 1) -> buf 1 -> video
+// decoder (tr 2) -> buf 3 -> [video filter tr 4 -> buf 5 ->] video out (tr 6); tr 1 -> buf 2 -> audio
+// decoder (tr 3) -> buf 4 -> [audio filter tr 5 -> buf 6 ->] audio out (tr 7); tr 1 -> buf 7 -> user
+// output (tr 8). Disables video/audio (cond 5/6) when the decoder is absent.
 void sftrn_BuildSystem(SFD sfd, SFD_TR_FUNC **tbl)
 {
 	sfd->buf[0].out_tr = 1;
@@ -115,6 +133,8 @@ void sftrn_BuildSystem(SFD sfd, SFD_TR_FUNC **tbl)
 	}
 }
 
+// Chooses the wiring from the driver table: with a system driver the full demux graph, else an
+// elementary video-only, audio-only or user-output-only chain. -1 when no usable driver exists.
 static Sint32 sftrn_BuildAll(SFD sfd, SFD_TR_FUNC **tbl)
 {
 	if (tbl[1] != NULL) {
@@ -176,6 +196,8 @@ static Sint32 sftrn_BuildAll(SFD sfd, SFD_TR_FUNC **tbl)
 	return 0;
 }
 
+// Fills the 9 driver slots from the creation table (no handle, flags cleared, buffer ids 8 = none)
+// and wires the buffers (error 0xFF000302 when nothing can be built).
 Sint32 SFTRN_InitHn(SFD sfd, SFD_TR *tr, SFTRN_PRM *prm)
 {
 	SFD_TR_FUNC **trif;
@@ -203,6 +225,7 @@ Sint32 SFTRN_InitHn(SFD sfd, SFD_TR *tr, SFTRN_PRM *prm)
 	return 0;
 }
 
+// Runs Init on every driver interface of the table until a NULL entry.
 static Sint32 sftrn_CallInit(SFD_TR_IF **p, Sint32 ret)
 {
 	SFD_TR_IF *trif;
@@ -221,6 +244,7 @@ static Sint32 sftrn_CallInit(SFD_TR_IF **p, Sint32 ret)
 	return ret;
 }
 
+// Library init: copies the driver table into the library work and initialises the drivers.
 Sint32 SFTRN_Init(SFTRN_TRIF_TBL *dst, SFTRN_TRIF_TBL *src)
 {
 	Sint32 ret;

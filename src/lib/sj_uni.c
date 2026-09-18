@@ -34,6 +34,7 @@ void SJUNI_Error(void *obj, Char8 *msg);
 		(sj)->errfunc((sj)->errobj, SJ_ERR_PRM); \
 	}
 
+// Dead: buffer size.
 Sint32 SJUNI_GetBufSize(SJUNI_OBJ *sj)
 {
 	Sint32 ret;
@@ -52,6 +53,7 @@ Sint32 SJUNI_GetBufSize(SJUNI_OBJ *sj)
 	return ret;
 }
 
+// Dead: buffer base.
 void *SJUNI_GetBufPtr(SJUNI_OBJ *sj)
 {
 	void *ret;
@@ -70,6 +72,7 @@ void *SJUNI_GetBufPtr(SJUNI_OBJ *sj)
 	return ret;
 }
 
+// Dead: same semantics as the memory joint (read-only).
 Sint32 SJUNI_IsGetChunk(SJUNI_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 {
 	Sint32 ret;
@@ -105,6 +108,7 @@ Sint32 SJUNI_IsGetChunk(SJUNI_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 	return ret;
 }
 
+// Dead: rewind the read cursor.
 void SJUNI_UngetChunk(SJUNI_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	Sint32 ofs;
@@ -139,6 +143,7 @@ void SJUNI_UngetChunk(SJUNI_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Dead: no-op for FREE/DATA.
 void SJUNI_PutChunk(SJUNI_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -156,6 +161,7 @@ void SJUNI_PutChunk(SJUNI_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Dead: next unread bytes.
 void SJUNI_GetChunk(SJUNI_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -181,6 +187,7 @@ void SJUNI_GetChunk(SJUNI_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Dead: unread bytes.
 Sint32 SJUNI_GetNumData(SJUNI_OBJ *sj, Sint32 id)
 {
 	Sint32 ret;
@@ -204,6 +211,7 @@ Sint32 SJUNI_GetNumData(SJUNI_OBJ *sj, Sint32 id)
 	return ret;
 }
 
+// Dead: rewind.
 static void sjuni_Reset(SJUNI_OBJ *sj)
 {
 	if (sj == NULL) {
@@ -216,6 +224,7 @@ static void sjuni_Reset(SJUNI_OBJ *sj)
 	}
 }
 
+// Dead: locked rewind.
 void SJUNI_Reset(SJUNI_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -223,6 +232,7 @@ void SJUNI_Reset(SJUNI_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Dead: error callback.
 void SJUNI_EntryErrFunc(SJUNI_OBJ *sj, void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	SJCRS_Lock();
@@ -237,6 +247,7 @@ void SJUNI_EntryErrFunc(SJUNI_OBJ *sj, void (*func)(void *obj, Char8 *msg), void
 	SJCRS_Unlock();
 }
 
+// Dead: class UUID.
 const SJUUID *SJUNI_GetUuid(SJUNI_OBJ *sj)
 {
 	const SJUUID *ret;
@@ -255,6 +266,7 @@ const SJUUID *SJUNI_GetUuid(SJUNI_OBJ *sj)
 	return ret;
 }
 
+// Dead: clear the object.
 void SJUNI_Destroy(SJUNI_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -269,6 +281,7 @@ void SJUNI_Destroy(SJUNI_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Dead: first unused slot.
 static Sint32 sjuni_SearchFreeObj(void)
 {
 	Sint32 i;
@@ -281,6 +294,7 @@ static Sint32 sjuni_SearchFreeObj(void)
 	return i;
 }
 
+// Dead: create over a buffer.
 SJ SJUNI_Create(void *buf, Sint32 bsize)
 {
 	SJUNI_OBJ *sj;
@@ -305,6 +319,7 @@ SJ SJUNI_Create(void *buf, Sint32 bsize)
 	return (SJ)sj;
 }
 
+// Clears the table on the last release (called by ADXT_Finish).
 void SJUNI_Finish(void)
 {
 	SJCRS_Lock();
@@ -314,6 +329,7 @@ void SJUNI_Finish(void)
 	SJCRS_Unlock();
 }
 
+// Clears the table on the first init (called by ADXT_Init).
 void SJUNI_Init(void)
 {
 	SJCRS_Lock();
@@ -324,6 +340,7 @@ void SJUNI_Init(void)
 	SJCRS_Unlock();
 }
 
+// Dead: default error callback.
 void SJUNI_Error(void *obj, Char8 *msg)
 {
 	SJERR_CallErr("SJUNI Error");

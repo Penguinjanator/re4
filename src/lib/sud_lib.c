@@ -1,3 +1,6 @@
+/* CRI SUD (Sofdec picture user data) analyser (sud_lib.c, "CRI SUD/GC Ver.0.05"): finds the
+ * "<SUDPS_>" record the Sofdec encoder writes into each picture's user data and reads its type
+ * letters (scan P/I, field division A/D, colour space N/C). */
 #include "cri_xpt.h"
 #include <string.h>
 #include <stdio.h>
@@ -15,18 +18,21 @@ const Char8 *SUD_GetTypeDivFieldName(Sint32 type)
 	return tbl[type & 1];
 }
 
+// Dead: "N"/"C" name of the colour-space type.
 const Char8 *SUD_GetTypeCcsName(Sint32 type)
 {
 	const Char8 *tbl[2] = {"N", "C"};
 	return tbl[type & 1];
 }
 
+// Dead: "P"/"I" name of the scan type.
 const Char8 *SUD_GetTypeScanName(Sint32 type)
 {
 	const Char8 *tbl[2] = {"P", "I"};
 	return tbl[type & 1];
 }
 
+// Finds the last "<SUDPS_>" record in the picture user data; *sud points at it, *sudsize = 0x23.
 void SUD_SearchSudDat(Uint8 *dat, Sint32 size, void **sud, Sint32 *sudsize)
 {
 	Sint32 i;
@@ -47,6 +53,7 @@ void SUD_SearchSudDat(Uint8 *dat, Sint32 size, void **sud, Sint32 *sudsize)
 	}
 }
 
+// Dead: formats a "<%06X>02\n" record.
 void SUD_PrintDat(Char8 *buf, Sint32 code)
 {
 	sprintf(buf, "<%06X>", code);
@@ -54,6 +61,7 @@ void SUD_PrintDat(Char8 *buf, Sint32 code)
 	strcat(buf, "\n");
 }
 
+// Colour-space type letter (byte 0x13) is 'C'.
 Bool SUD_AnalyTypeCcs(Uint8 *dat, Sint32 size)
 {
 	if (dat == NULL || size < 0) {
@@ -62,6 +70,7 @@ Bool SUD_AnalyTypeCcs(Uint8 *dat, Sint32 size)
 	return strncmp((Char8 *)dat + 0x13, "C", 1) == 0;
 }
 
+// Field-division type letter (byte 0x12) is 'D'.
 Bool SUD_AnalyTypeDivField(Uint8 *dat, Sint32 size)
 {
 	if (dat == NULL || size < 0) {
@@ -70,6 +79,7 @@ Bool SUD_AnalyTypeDivField(Uint8 *dat, Sint32 size)
 	return strncmp((Char8 *)dat + 0x12, "D", 1) == 0;
 }
 
+// Module init (once): keeps the version string referenced.
 void SUD_Init(void)
 {
 	if (sud_init_cnt < 1) {

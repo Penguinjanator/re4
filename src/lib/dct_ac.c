@@ -1,4 +1,6 @@
-/* Sofdec DCT: double-precision reference (I)DCT by matrix multiplication */
+/* CRI Sofdec DCT reference transform (dct_ac.c): a double-precision 8x8 (I)DCT by two matrix
+ * multiplications with cosine matrices. Only used at library init to build the paired-single IDCT
+ * lookup tables of dct_fsri.c (initSparseTbl); no per-frame work happens here. */
 #include "cri_xpt.h"
 #include <math.h>
 
@@ -10,6 +12,8 @@ Float64 dctac_i_const[8][8];
 Float64 dctac_f_const[8][8];
 static const Char8 *dctac_version_dummy;
 
+// Reference 8x8 transform by two matrix multiplications with the given cosine matrix (rows, then
+// columns) in double precision.
 static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 c[8][8])
 {
 	Float64 tmp[64];
@@ -45,6 +49,8 @@ static Float64 dctac_Cos(Float64 w, Sint32 j)
 	return cos(w * (0.5 + (Float64)j));
 }
 
+// Double-precision reference inverse DCT of a 64-coefficient block (used only at init to build the
+// paired-single IDCT tables).
 void DCT_AcIdctDouble(Float64 *in, Float64 *out)
 {
 	dctac_TransDouble(in, out, dctac_i_const);
@@ -71,6 +77,7 @@ void DCT_AcFdctDouble(Float64 *in, Float64 *out)
  * literal `addi rD, rA, 0` into `mr`: `__ArenaHi@l` is the linker absolute 0x81780000, low half 0. */
 extern Uint8 __ArenaHi[]; // COMPILER-DIFF: M2 (a DOL absolute whose low half is 0)
 #pragma pool_data off // COMPILER-DIFF: M2
+// Fills the forward and inverse cosine matrices.
 void DCT_AcInit(void)
 {
 	register Uint8 *bss; // COMPILER-DIFF: M2 (.bss pool base)

@@ -4,6 +4,8 @@
 
 Sint32 MPV_CheckDelim(void *ptr);
 
+// Byte-state-machine scan for the first 00 00 01 xx start code in [p, p+n) whose class (MPV_CheckDelim)
+// is in `mask`; returns its address or NULL.
 Sint8 *MPV_SearchDelim(Sint8 *p, Sint32 n, Sint32 mask)
 {
 	Sint8 *end;
@@ -45,6 +47,7 @@ Sint8 *MPV_SearchDelim(Sint8 *p, Sint32 n, Sint32 mask)
 	return NULL;
 }
 
+// The same scan backwards from p over n bytes (used to find the start of the current picture).
 Sint8 *MPV_BsearchDelim(Sint8 *p, Sint32 n, Sint32 mask)
 {
 	Sint8 *end;
@@ -88,6 +91,9 @@ Sint8 *MPV_BsearchDelim(Sint8 *p, Sint32 n, Sint32 mask)
 	return NULL;
 }
 
+// Start-code class of the 4 bytes at ptr: 0x04 picture (0x00), 0x03 first slice (0x01), 0x01 other
+// slices (0x02..0xAF), 0x20 user data (0xB2), 0x40 sequence header (0xB3), 0x10 extension (0xB5),
+// 0x80 sequence end (0xB7), 0x08 GOP (0xB8); 0 for anything else (the SFMPV_DLM_* masks).
 Sint32 MPV_CheckDelim(void *ptr)
 {
 	Uint8 *p = ptr;

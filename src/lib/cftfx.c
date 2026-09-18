@@ -156,6 +156,7 @@ void CFT_Argb420ToArgb8(void *src, void *dst, Sint32 width, Sint32 height)
 	}
 }
 
+// YCC 4:2:0 luma -> the alpha channel of RGBA8 4x4 tiles (static, or through a user luma table).
 void CFT_Ycc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
 {
 	if (tbl == NULL) {

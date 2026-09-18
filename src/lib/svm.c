@@ -1,4 +1,8 @@
-/* CRI ADX server manager (SVM): server function tables, lock/unlock and error callbacks */
+/* CRI SVM server manager (svm.c, SVM/GC Ver.1.54): the dispatch layer under every CRI module. Holds
+ * up to 6 server callbacks per server type (type 5 = main; 2 = vsync, 4 = fs in threaded setups),
+ * the lock/unlock hooks (none installed in this game, so SVM_Lock is a no-op) and the single error
+ * callback that every module's error message ends in (installed by the game through ADXM_SetCbErr).
+ * ADXM_ExecMain -> SVM_ExecSvrMain runs the main-type callbacks once per game frame. */
 #include "cri_xpt.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -72,6 +76,7 @@ static void svm_itoa(Sint32 val, Char8 *str, Sint32 len)
 	str[i] = '\0';
 }
 
+// Dead: pre/post vsync-wait hooks of the threaded server.
 void SVM_SetCbWaitVsync(void (*pre)(void *obj), void *pre_obj, void (*post)(void *obj), void *post_obj)
 {
 	svm_post_waitv_func.func = post;
@@ -80,11 +85,13 @@ void SVM_SetCbWaitVsync(void (*pre)(void *obj), void *pre_obj, void (*post)(void
 	svm_pre_waitv_func.obj = pre_obj;
 }
 
+// Dead: installs a platform test-and-set for SVM_TestAndSet.
 void SVM_SetCbTestAndSet(Sint32 (*func)(Sint32 *flag))
 {
 	svm_tas_fptr = func;
 }
 
+// Delivers a fixed message to the error callback (the SVM's own diagnostics).
 static void svm_call_err1(Char8 *msg)
 {
 	strncpy(svmerr_msg, msg, SVM_ERR_MSG_LEN - 1);
@@ -93,6 +100,8 @@ static void svm_call_err1(Char8 *msg)
 	}
 }
 
+// Leaves the lock through the installed unlock callback, checking the nesting type; nothing happens
+// when no lock callback is installed (this game installs none).
 static void svm_unlock(void)
 {
 	if (svm_unlock_func.func != NULL) {
@@ -108,6 +117,7 @@ static void svm_unlock(void)
 	}
 }
 
+// Enters the lock through the installed lock callback (nesting counted).
 static void svm_lock(void)
 {
 	if (svm_lock_func.func != NULL) {
@@ -119,6 +129,7 @@ static void svm_lock(void)
 	}
 }
 
+// Dead: installs the lock/unlock callbacks.
 void SVM_SetCbLock(void (*lock)(void *obj), void *lock_obj, void (*unlock)(void *obj), void *unlock_obj)
 {
 	svm_lock_func.func = lock;
@@ -127,12 +138,14 @@ void SVM_SetCbLock(void (*lock)(void *obj), void *lock_obj, void (*unlock)(void 
 	svm_unlock_func.obj = unlock_obj;
 }
 
+// Dead: installs the per-server-type "go to border" hook.
 void SVM_SetCbGotoSvrBorder(Sint32 svtype, void (*func)(void *obj), void *obj)
 {
 	svm_goto_border_func[svtype].func = func;
 	svm_goto_border_func[svtype].obj = obj;
 }
 
+// Dead: registered callbacks of one server type.
 Sint32 SVM_GetNumCbSvr(Sint32 svtype)
 {
 	Sint32 i;
@@ -146,6 +159,8 @@ Sint32 SVM_GetNumCbSvr(Sint32 svtype)
 	return n;
 }
 
+// Atomically sets *flag to 1; returns nonzero if it was not already 1 (locked fallback when no
+// platform hook is installed).
 Sint32 SVM_TestAndSet(Sint32 *flag)
 {
 	Sint32 ret;
@@ -164,6 +179,7 @@ Sint32 SVM_TestAndSet(Sint32 *flag)
 	return ret;
 }
 
+// Resets the tables, hooks and pass counters.
 static void svm_clear(void)
 {
 	Sint32 i;
@@ -181,6 +197,7 @@ static void svm_clear(void)
 	svm_tas_fptr = NULL;
 }
 
+// Reference-counted shutdown; clears the error callback on the last release.
 void SVM_Finish(void)
 {
 	svm_init_level--;
@@ -190,6 +207,7 @@ void SVM_Finish(void)
 	}
 }
 
+// Reference-counted init.
 void SVM_Init(void)
 {
 	if (svm_init_level == 0) {
@@ -198,6 +216,8 @@ void SVM_Init(void)
 	svm_init_level++;
 }
 
+// Runs the up-to-6 callbacks of one server type in order, flagging the type as executing, and counts
+// the pass in svm_exec_cnt.
 static Sint32 svm_exec_svr(Sint32 svtype)
 {
 	SvmSvrFunc *p;
@@ -218,11 +238,13 @@ static Sint32 svm_exec_svr(Sint32 svtype)
 	return ret;
 }
 
+// Runs the main server type (5): what ADXM_ExecMain calls each frame.
 Sint32 SVM_ExecSvrMain(void)
 {
 	return svm_exec_svr(SVM_SVTYPE_MAIN);
 }
 
+// Installs the error callback (ADXM_SetCbErr).
 void SVM_SetCbErr(void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	svm_lock();
@@ -231,6 +253,7 @@ void SVM_SetCbErr(void (*func)(void *obj, Char8 *msg), void *obj)
 	svm_unlock();
 }
 
+// Calls the registered border hook of a server type (threaded setups only).
 void SVM_GotoSvrBorder(Sint32 svtype)
 {
 	if (svm_goto_border_func[svtype].func != NULL) {
@@ -238,6 +261,7 @@ void SVM_GotoSvrBorder(Sint32 svtype)
 	}
 }
 
+// Dead: runs one callback of a server type by slot id.
 Sint32 SVM_ExecSvrFuncId(Sint32 svtype, Sint32 id)
 {
 	Sint32 ret = 0;
@@ -261,6 +285,7 @@ Sint32 SVM_ExecSvrFuncId(Sint32 svtype, Sint32 id)
 	return ret;
 }
 
+// Registers a callback in a fixed slot of a server type (ADXT_Init uses slot 1 of the vsync type).
 void SVM_SetCbSvrId(Sint32 svtype, Sint32 id, Sint32 (*func)(void *obj), void *obj)
 {
 	SvmSvrFunc *p;
@@ -281,6 +306,7 @@ void SVM_SetCbSvrId(Sint32 svtype, Sint32 id, Sint32 (*func)(void *obj), void *o
 	svm_unlock();
 }
 
+// Clears one callback slot.
 void SVM_DelCbSvr(Sint32 svtype, Sint32 id)
 {
 	if (id < 0 || id >= SVM_MAX_SVR_FUNC) {
@@ -292,6 +318,7 @@ void SVM_DelCbSvr(Sint32 svtype, Sint32 id)
 	svm_unlock();
 }
 
+// Registers a callback in the first free slot of a server type; returns the slot id or -1.
 Sint32 SVM_SetCbSvr(Sint32 svtype, Sint32 (*func)(void *obj), void *obj)
 {
 	Sint32 i;
@@ -317,11 +344,14 @@ Sint32 SVM_SetCbSvr(Sint32 svtype, Sint32 (*func)(void *obj), void *obj)
 	return i;
 }
 
+// Public wrapper of svm_call_err1.
 void SVM_CallErr1(Char8 *msg)
 {
 	svm_call_err1(msg);
 }
 
+// printf-style error: formats into svmerr_msg (128 bytes) and calls the error callback. Every CRI
+// module's error text ends here.
 void SVM_CallErr(Char8 *fmt, ...)
 {
 	va_list ap;
@@ -335,6 +365,7 @@ void SVM_CallErr(Char8 *fmt, ...)
 	}
 }
 
+// Dead: "a b" decimal formatter.
 void SVM_ItoA2(Sint32 a, Sint32 b, Char8 *str, Sint32 len)
 {
 	svm_itoa(a, str, len);
@@ -342,11 +373,13 @@ void SVM_ItoA2(Sint32 a, Sint32 b, Char8 *str, Sint32 len)
 	svm_itoa(b, str + strlen(str), len - strlen(str));
 }
 
+// Public unlock (ADXCRS_Unlock / SJCRS_Unlock / LSC_UnlockCrs map here).
 void SVM_Unlock(void)
 {
 	svm_unlock();
 }
 
+// Public lock.
 void SVM_Lock(void)
 {
 	svm_lock();

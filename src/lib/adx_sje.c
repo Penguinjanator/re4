@@ -153,30 +153,35 @@ static void adxsje_flt_init(void)
 #define ADXSJE_QSTEP 4681
 #define ADXSJE_QHALF 2340
 
+// Prediction coefficients of the decoder-model IIR.
 static void adxsje_iirflt_set_coef(ADXSJE_IIRFLT *iir, Sint16 c1, Sint16 c2)
 {
 	iir->c1 = c1;
 	iir->c2 = c2;
 }
 
+// Prediction coefficients of the encoder predictor.
 static void adxsje_prdflt_set_coef(ADXSJE_PRDFLT *prd, Sint16 c1, Sint16 c2)
 {
 	prd->c1 = c1;
 	prd->c2 = c2;
 }
 
+// Per-channel prediction history of the handle (seeded from the first two samples).
 static void adxsje_set_hist(ADXSJE sje, Sint32 ch, Sint16 h1, Sint16 h2)
 {
 	sje->hist1[ch] = h1;
 	sje->hist2[ch] = h2;
 }
 
+// Prediction history of the decoder-model IIR.
 static void adxsje_iirflt_set_hist(ADXSJE_IIRFLT *iir, Sint16 h1, Sint16 h2)
 {
 	iir->h1 = h1;
 	iir->h2 = h2;
 }
 
+// Prediction history of the encoder predictor.
 static void adxsje_prdflt_set_hist(ADXSJE_PRDFLT *prd, Sint16 h1, Sint16 h2)
 {
 	prd->h1 = h1;
@@ -193,6 +198,7 @@ static Sint32 adxsje_output_header(ADXSJE sje, SJ sjo);
 static void adxsje_encode_exec(ADXSJE sje);
 void ADXSJE_ExecHndl(void *obj);
 
+// Runs ADXSJE_ExecHndl on every live encoder (ADXT_InsertHdrSfa runs it once, synchronously).
 void ADXSJE_ExecServer(void)
 {
 	Sint32 i;
@@ -272,6 +278,8 @@ void ADXSJE_ExecHndl(void *obj)
 	}
 }
 
+// Encoding stage (stat 2): encodes blocks while input is available and the sample total is not
+// reached, then writes the end code and finishes (stat 3).
 static void adxsje_encode_exec(ADXSJE sje)
 {
 	Sint32 n;
@@ -295,6 +303,7 @@ static void adxsje_encode_exec(ADXSJE sje)
 	}
 }
 
+// SFA configuration: channel count, rate, total samples, fixed 0x11C header length.
 void ADXSJE_SetConfigSfa(ADXSJE sje, Sint32 nch, Sint32 sfreq, Sint32 nsmpl)
 {
 	sje->nch32 = nch;
@@ -304,6 +313,7 @@ void ADXSJE_SetConfigSfa(ADXSJE sje, Sint32 nch, Sint32 sfreq, Sint32 nsmpl)
 	sje->hdrlen = 0x11C;
 }
 
+// Requests the end code after the current block.
 void ADXSJE_Stop(ADXSJE sje)
 {
 	sje->stopflg = 1;
@@ -337,6 +347,7 @@ void ADXSJE_Start(ADXSJE sje)
 	sje->stat = 1;
 }
 
+// First free decoder-model IIR object of the 16.
 static ADXSJE_IIRFLT *adxsje_iirflt_create(void)
 {
 	ADXSJE_IIRFLT *iir;
@@ -351,6 +362,7 @@ static ADXSJE_IIRFLT *adxsje_iirflt_create(void)
 	return (i < ADXSJE_MAX_FLT) ? iir : NULL;
 }
 
+// Takes a predictor object with its own IIR model and a block of `nsmpl` residuals.
 static ADXSJE_PRDFLT *adxsje_prdflt_create(Sint32 nsmpl)
 {
 	ADXSJE_PRDFLT *prd;
@@ -377,6 +389,7 @@ static ADXSJE_PRDFLT *adxsje_prdflt_create(Sint32 nsmpl)
 	return prd;
 }
 
+// Frees a predictor object.
 static void adxsje_prdflt_destroy(ADXSJE_PRDFLT *prd)
 {
 	if (prd == NULL) {
@@ -386,6 +399,7 @@ static void adxsje_prdflt_destroy(ADXSJE_PRDFLT *prd)
 	memset(prd, 0, sizeof(ADXSJE_PRDFLT));
 }
 
+// Frees the predictors and the handle slot.
 void ADXSJE_Destroy(ADXSJE sje)
 {
 	if (sje == NULL) {
@@ -402,6 +416,8 @@ void ADXSJE_Destroy(ADXSJE sje)
 	ADXCRS_Unlock();
 }
 
+// Takes an encoder slot reading `nch` PCM stream joints and writing ADX to `sjo`: defaults 44.1 kHz,
+// 4-bit 18-byte blocks (32 samples), 500 Hz cut-off, no loop, no AINF, unbounded length.
 ADXSJE ADXSJE_Create(Sint32 nch, SJ *sji, SJ sjo)
 {
 	ADXSJE sje;
@@ -457,12 +473,14 @@ ADXSJE ADXSJE_Create(Sint32 nch, SJ *sji, SJ sjo)
 	return sje;
 }
 
+// Clears the handles (and releases the shared SKG counter).
 void ADXSJE_Finish(void)
 {
 	skg_init_count--;
 	memset(adxsje_obj, 0, sizeof(adxsje_obj));
 }
 
+// Clears the handles (and takes the shared SKG counter).
 void ADXSJE_Init(void)
 {
 	skg_init_count++;
@@ -483,6 +501,7 @@ static void adxsje_put(SJ sj, void *src, Sint32 len)
 	}
 }
 
+// Writes one 16-bit word into the output stream joint if there is room.
 static void adxsje_put16(SJ sj, void *src)
 {
 	SJCK ck;

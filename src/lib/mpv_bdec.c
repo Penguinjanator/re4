@@ -48,6 +48,8 @@ Uint8 *MPVBDEC_GetDflIqm(void)
 	return mpvbdec_dfl_iqm;
 }
 
+// Per-handle block decoder tables: the default MPEG-1 intra quantiser matrix in zigzag order, the
+// zigzag scan and the bit masks the coefficient decoder uses.
 void MPVBDEC_Init(MPV mpv)
 {
 	Sint8 seq[64];

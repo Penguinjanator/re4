@@ -1,4 +1,7 @@
-/* CRI Sofdec MPS: MPEG-1 system stream header decoding (pack header, system header, packet header) */
+/* CRI Sofdec MPS MPEG-1 system stream header decoder (mps_dec.c): parses pack headers (SCR, mux
+ * rate), system headers (rate/stream bounds, STD buffer sizes -> the system header callback) and
+ * packet headers (stream id, PTS/DTS, payload length) into the MPS object; MPS_DecHd is the entry
+ * the Sofdec demux driver (sfd_mps.c) calls per unit. */
 #include "cri_xpt.h"
 #include "mps.h"
 
@@ -396,6 +399,9 @@ Sint32 MPSDEC_DecHdMpeg1(MPS mps, Uint8 *adr, Sint32 len, Sint32 *used, Sint32 *
 	return 0;
 }
 
+// Decodes the pack / system / packet header at `adr` through the handle's header decoder
+// (MPSDEC_DecHdMpeg1): *used = header bytes consumed, *flags = what was found; the payload follows.
+// Error 0xFF020301 for a bad handle.
 Sint32 MPS_DecHd(MPS mps, Uint8 *adr, Sint32 len, Sint32 *used, Sint32 *flags)
 {
 	*used = 0;
@@ -406,6 +412,7 @@ Sint32 MPS_DecHd(MPS mps, Uint8 *adr, Sint32 len, Sint32 *used, Sint32 *flags)
 	return mps->dechd_func(mps, adr, len, used, flags);
 }
 
+// Installs the PES (packet header) callback; unused by the Sofdec driver.
 void MPS_SetPesFn(MPS mps, void *fn, void *obj)
 {
 	if (MPSLIB_CheckHn(mps) == 0) {
@@ -414,6 +421,7 @@ void MPS_SetPesFn(MPS mps, void *fn, void *obj)
 	}
 }
 
+// Installs the program stream map callback; unused.
 void MPS_SetPsMapFn(MPS mps, void *fn, void *obj)
 {
 	if (MPSLIB_CheckHn(mps) == 0) {
@@ -422,6 +430,8 @@ void MPS_SetPsMapFn(MPS mps, void *fn, void *obj)
 	}
 }
 
+// Installs the system header callback (fn(obj, MPSDEC_SYSINF)); the SFD driver passes the user's
+// cond 0x3B/0x3C hook.
 void MPS_SetSystemFn(MPS mps, void *fn, void *obj)
 {
 	if (MPSLIB_CheckHn(mps) == 0) {
@@ -439,10 +449,12 @@ Sint32 *MPSDEC_GetRsv(void)
 	return mpsdec_rsv;
 }
 
+// Nothing to release.
 void MPSDEC_Finish(void)
 {
 }
 
+// Nothing to initialise.
 void MPSDEC_Init(void)
 {
 }

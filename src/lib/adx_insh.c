@@ -1,3 +1,7 @@
+/* CRI ADXT: header insertion for the SFA (streamed file archive) format (adx_insh.c). Builds a
+ * temporary ADXSJE joint encoder over two dummy memory joints, runs it once to synthesise an SFA
+ * header into adxt_hdbuf and copies that header in front of the handle's decoder input stream joint.
+ * Dead-stripped in this game except for the .bss it fixes. */
 #include "cri_xpt.h"
 #include "sj.h"
 #include <string.h>
@@ -25,6 +29,8 @@ void *ADXT_GetDmyBuf(void)
 	return adxt_dmybuf;
 }
 
+// Generates an SFA header with the ADXSJE encoder configured by (a, b, c) and pushes it into the
+// handle's input stream joint ahead of the stream data; spins forever if the header does not fit.
 void ADXT_InsertHdrSfa(ADXT_OBJ *adxt, Sint32 a, Sint32 b, Sint32 c)
 {
 	SJ sjs[2];

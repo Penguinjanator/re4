@@ -1,3 +1,5 @@
+/* CRI Sofdec server time statistics (sfd_tmr.c): sum / min / max / count of 64-bit timer deltas,
+ * kept per handle for the server steps (SFD_OBJ.tsum[]). */
 #include "cri_xpt.h"
 
 typedef struct {
@@ -9,6 +11,7 @@ typedef struct {
 
 #define SFTMR_MAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Adds one measured duration to the statistics.
 void SFTMR_AddTsum(SFTMR_TSUM *ts, Sint64 t)
 {
 	Sint64 min;
@@ -23,6 +26,7 @@ void SFTMR_AddTsum(SFTMR_TSUM *ts, Sint64 t)
 	ts->cnt++;
 }
 
+// Empty statistics (min = INT64_MAX).
 void SFTMR_InitTsum(SFTMR_TSUM *ts)
 {
 	ts->sum = 0;

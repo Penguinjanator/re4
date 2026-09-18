@@ -62,6 +62,8 @@ static SJRBF_OBJ sjrbf_obj[SJRBF_MAX_OBJ];
 		(sj)->errfunc((sj)->errobj, SJ_ERR_PRM); \
 	}
 
+// Byte counters of one side: flow[id][0] = bytes taken with GetChunk, [1] = bytes returned with
+// PutChunk (debug/statistics).
 Sint32 SJRBF_GetFlowCnt(SJRBF_OBJ *sj, Sint32 id, Sint32 dir)
 {
 	Sint32 ret;
@@ -99,6 +101,7 @@ Sint32 SJRBF_GetNumObj(SJRBF_OBJ *sj)
 	return ret;
 }
 
+// The extra (mirror) area size in bytes.
 Sint32 SJRBF_GetXtrSize(SJRBF_OBJ *sj)
 {
 	Sint32 ret;
@@ -117,6 +120,7 @@ Sint32 SJRBF_GetXtrSize(SJRBF_OBJ *sj)
 	return ret;
 }
 
+// The ring size in bytes.
 Sint32 SJRBF_GetBufSize(SJRBF_OBJ *sj)
 {
 	Sint32 ret;
@@ -135,6 +139,7 @@ Sint32 SJRBF_GetBufSize(SJRBF_OBJ *sj)
 	return ret;
 }
 
+// The ring buffer base; ADXSJD/AXRNA use it to turn chunk pointers into ring offsets.
 void *SJRBF_GetBufPtr(SJRBF_OBJ *sj)
 {
 	void *ret;
@@ -153,6 +158,8 @@ void *SJRBF_GetBufPtr(SJRBF_OBJ *sj)
 	return ret;
 }
 
+// Whether a GetChunk of `nbyte` on side `id` would return the full amount; *rbyte gets the amount
+// actually available contiguously (bounded by the wrap point + mirror).
 Sint32 SJRBF_IsGetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 {
 	Sint32 n;
@@ -198,6 +205,8 @@ Sint32 SJRBF_IsGetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, Sint32 *rbyte)
 	return nbyte;
 }
 
+// Gives back the tail of the last GetChunk on side `id` (only the most recent chunk can be
+// ungotten: the chunk must end where the side's cursor now stands); rewinds the cursor and the count.
 void sjrbf_UngetChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	Sint32 ofs;
@@ -247,6 +256,7 @@ void sjrbf_UngetChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 	}
 }
 
+// Locked wrapper of sjrbf_UngetChunk (SJCRS: interrupts off).
 void SJRBF_UngetChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -254,6 +264,9 @@ void SJRBF_UngetChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Hands a chunk to the other side: a DATA put makes the bytes readable (mirroring the bytes that
+// lie in the first xsize bytes to the tail copy, and bytes written past bsize back to the start), a
+// FREE put releases consumed bytes for writing.
 void sjrbf_PutChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	Sint32 ofs;
@@ -306,6 +319,7 @@ void sjrbf_PutChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 	}
 }
 
+// Locked wrapper of sjrbf_PutChunk.
 void SJRBF_PutChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -313,6 +327,9 @@ void SJRBF_PutChunk(SJRBF_OBJ *sj, Sint32 id, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Takes up to `nbyte` contiguous bytes from side `id` (FREE = writable space at wrofs, DATA =
+// readable bytes at rdofs); contiguous means up to the ring end plus the mirror area. Advances the
+// side's cursor and count; ck->len may be less than asked.
 static void sjrbf_GetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 {
 	Sint32 n;
@@ -364,6 +381,7 @@ static void sjrbf_GetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 	}
 }
 
+// Locked wrapper of sjrbf_GetChunk; the main primitive every producer/consumer in the pipeline uses.
 void SJRBF_GetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 {
 	SJCRS_Lock();
@@ -371,6 +389,7 @@ void SJRBF_GetChunk(SJRBF_OBJ *sj, Sint32 id, Sint32 nbyte, SJCK *ck)
 	SJCRS_Unlock();
 }
 
+// Bytes available on side `id` (DATA readable, FREE writable) in the whole ring.
 Sint32 SJRBF_GetNumData(SJRBF_OBJ *sj, Sint32 id)
 {
 	Sint32 ret;
@@ -394,6 +413,7 @@ Sint32 SJRBF_GetNumData(SJRBF_OBJ *sj, Sint32 id)
 	return ret;
 }
 
+// Empties the ring: all bytes free, both cursors at 0, counters cleared.
 static void sjrbf_Reset(SJRBF_OBJ *sj)
 {
 	if (sj == NULL) {
@@ -412,6 +432,7 @@ static void sjrbf_Reset(SJRBF_OBJ *sj)
 	}
 }
 
+// Locked wrapper of sjrbf_Reset (ADXT_Stop / ADXRNA_SetPlaySw(0) reset their rings this way).
 void SJRBF_Reset(SJRBF_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -419,6 +440,7 @@ void SJRBF_Reset(SJRBF_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Replaces the per-joint error callback (default SJRBF_Error).
 void SJRBF_EntryErrFunc(SJRBF_OBJ *sj, void (*func)(void *obj, Char8 *msg), void *obj)
 {
 	SJCRS_Lock();
@@ -433,6 +455,7 @@ void SJRBF_EntryErrFunc(SJRBF_OBJ *sj, void (*func)(void *obj, Char8 *msg), void
 	SJCRS_Unlock();
 }
 
+// The ring-buffer joint's class UUID.
 const SJUUID *SJRBF_GetUuid(SJRBF_OBJ *sj)
 {
 	const SJUUID *ret;
@@ -451,6 +474,7 @@ const SJUUID *SJRBF_GetUuid(SJRBF_OBJ *sj)
 	return ret;
 }
 
+// Clears the object (the caller owns the buffer memory).
 void SJRBF_Destroy(SJRBF_OBJ *sj)
 {
 	SJCRS_Lock();
@@ -465,6 +489,7 @@ void SJRBF_Destroy(SJRBF_OBJ *sj)
 	SJCRS_Unlock();
 }
 
+// Index of the first unused slot (256 = full).
 static Sint32 sjrbf_SearchFreeObj(void)
 {
 	Sint32 i;
@@ -477,6 +502,8 @@ static Sint32 sjrbf_SearchFreeObj(void)
 	return i;
 }
 
+// Creates a ring-buffer joint over the caller's `buf` (`bsize` bytes + `xsize` mirror bytes after it),
+// empty. Every ADX/Sofdec buffer (file ring, decoder output, ARAM ring, MPEG input) is one of these.
 SJ SJRBF_Create(void *buf, Sint32 bsize, Sint32 xsize)
 {
 	SJRBF_OBJ *sj;
@@ -502,6 +529,7 @@ SJ SJRBF_Create(void *buf, Sint32 bsize, Sint32 xsize)
 	return (SJ)sj;
 }
 
+// Clears the object table on the last release.
 void SJRBF_Finish(void)
 {
 	SJCRS_Lock();
@@ -511,6 +539,7 @@ void SJRBF_Finish(void)
 	SJCRS_Unlock();
 }
 
+// Clears the object table on the first init (called by ADXT_Init).
 void SJRBF_Init(void)
 {
 	SJCRS_Lock();
@@ -521,6 +550,7 @@ void SJRBF_Init(void)
 	SJCRS_Unlock();
 }
 
+// Default per-joint error callback: reports "SJRBF Error" through SJERR.
 void SJRBF_Error(void *obj, Char8 *msg)
 {
 	SJERR_CallErr("SJRBF Error");

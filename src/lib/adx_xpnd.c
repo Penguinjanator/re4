@@ -1,4 +1,8 @@
-/* ADXPD: ADX block expander (decoder driver) handles */
+/* CRI ADXPD (adx_xpnd.c): the ADX block expander, the object between the container decoder ADXB
+ * and the raw 4-bit ADPCM routines (adx_dcd5.c). A handle holds one queued decode job (input blocks,
+ * output pointers, mono/stereo), the two-sample prediction history per channel, the prediction
+ * coefficients derived from the encoder cut-off and the scale-descrambling key. ADXB enters a job,
+ * ADXPD_ExecHndl runs it, ADXB collects the result. 16 handles, one per ADXB. */
 #include "cri_xpt.h"
 #include "adx_b.h"
 #include <string.h>
@@ -45,6 +49,9 @@ extern void ADX_GetCoefficient(Sint32 cutoff, Sint32 sfreq, Sint16 *k1, Sint16 *
 Sint32 adxpd_internal_error;
 ADXPD_OBJ adxpd_obj[ADXPD_MAX_OBJ];
 
+// Runs the queued decode (START -> EXEC -> DONE): ADX_DecodeMono4 or ADX_DecodeSte4 over the entered
+// input blocks into out0/out1 with the handle's history (dly), coefficients (k1, k2) and scale key
+// (ext1..3). nblk receives the blocks actually decoded; an odd stereo count flags an internal error.
 void ADXPD_ExecHndl(ADXPD pd)
 {
 	if (pd->stat == ADXPD_STAT_START) {
@@ -65,11 +72,13 @@ void ADXPD_ExecHndl(ADXPD pd)
 	}
 }
 
+// Blocks decoded by the last run (per channel-interleaved block for stereo).
 Sint32 ADXPD_GetNumBlk(ADXPD pd)
 {
 	return pd->nblk;
 }
 
+// DONE -> STOP so the next entry can be queued (the history is kept for continuity).
 void ADXPD_Reset(ADXPD pd)
 {
 	if (pd->stat == ADXPD_STAT_DONE) {
@@ -77,12 +86,14 @@ void ADXPD_Reset(ADXPD pd)
 	}
 }
 
+// STOP and clear the prediction history (start of a new stream).
 void ADXPD_Stop(ADXPD pd)
 {
 	pd->stat = ADXPD_STAT_STOP;
 	memset(pd->dly, 0, sizeof(pd->dly));
 }
 
+// Arms a queued entry (STOP -> START).
 void ADXPD_Start(ADXPD pd)
 {
 	if (pd->stat == ADXPD_STAT_STOP) {
@@ -91,6 +102,7 @@ void ADXPD_Start(ADXPD pd)
 	}
 }
 
+// Queues a mono decode whose output feeds the Pro Logic II encoder (same as EntryMono).
 Sint32 ADXPD_EntryPl2(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *out1)
 {
 	if (pd->stat == ADXPD_STAT_STOP) {
@@ -104,6 +116,7 @@ Sint32 ADXPD_EntryPl2(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *out
 	return 0;
 }
 
+// Queues `nblk` interleaved L/R blocks from `in` into out0 (L) / out1 (R); rejected (0) unless idle.
 Sint32 ADXPD_EntrySte(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *out1)
 {
 	if (pd->stat == ADXPD_STAT_STOP) {
@@ -117,6 +130,7 @@ Sint32 ADXPD_EntrySte(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *out
 	return 0;
 }
 
+// Queues `nblk` mono blocks from `in` into out0; rejected (0) unless idle.
 Sint32 ADXPD_EntryMono(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *out1)
 {
 	if (pd->stat == ADXPD_STAT_STOP) {
@@ -130,11 +144,13 @@ Sint32 ADXPD_EntryMono(ADXPD pd, void *in, Sint32 nblk, Sint16 *out0, Sint16 *ou
 	return 0;
 }
 
+// ADXPD_STAT_STOP 0, START 1, EXEC 2, DONE 3.
 Sint32 ADXPD_GetStat(ADXPD pd)
 {
 	return pd->stat;
 }
 
+// Frees the slot.
 void ADXPD_Destroy(ADXPD pd)
 {
 	if (pd != NULL) {
@@ -143,6 +159,7 @@ void ADXPD_Destroy(ADXPD pd)
 	}
 }
 
+// Reads the scale key state (running key, multiplier, adder) for a snapshot.
 void ADXPD_GetExtPrm(ADXPD pd, Sint16 *e1, Sint16 *e2, Sint16 *e3)
 {
 	*e1 = pd->ext1;
@@ -150,6 +167,7 @@ void ADXPD_GetExtPrm(ADXPD pd, Sint16 *e1, Sint16 *e2, Sint16 *e3)
 	*e3 = pd->ext3;
 }
 
+// Sets the scale key state (from the header's version-dependent key, or a restored snapshot).
 void ADXPD_SetExtPrm(ADXPD pd, Sint16 e1, Sint16 e2, Sint16 e3)
 {
 	pd->ext1 = e1;
@@ -157,6 +175,7 @@ void ADXPD_SetExtPrm(ADXPD pd, Sint16 e1, Sint16 e2, Sint16 e3)
 	pd->ext3 = e3;
 }
 
+// Reads the two-sample prediction history of both channels (d0 = sample -1, d1 = sample -2).
 void ADXPD_GetDly(ADXPD pd, Sint16 *d0, Sint16 *d1)
 {
 	d0[0] = pd->dly[0][0];
@@ -165,6 +184,7 @@ void ADXPD_GetDly(ADXPD pd, Sint16 *d0, Sint16 *d1)
 	d1[1] = pd->dly[1][1];
 }
 
+// Writes the prediction history (header initial delay or a restored snapshot).
 void ADXPD_SetDly(ADXPD pd, Sint16 *d0, Sint16 *d1)
 {
 	pd->dly[0][0] = d0[0];
@@ -173,11 +193,14 @@ void ADXPD_SetDly(ADXPD pd, Sint16 *d0, Sint16 *d1)
 	pd->dly[1][1] = d1[1];
 }
 
+// Derives the prediction coefficients k1/k2 from the encoder cut-off frequency and sampling rate.
 void ADXPD_SetCoef(ADXPD pd, Sint32 sfreq, Sint32 cutoff)
 {
 	ADX_GetCoefficient(cutoff, sfreq, &pd->k1, &pd->k2);
 }
 
+// Takes a free adxpd_obj slot with default coefficients (500 Hz cut-off at 44.1 kHz) and cleared
+// history.
 ADXPD ADXPD_Create(void)
 {
 	Sint32 i;
@@ -202,6 +225,7 @@ ADXPD ADXPD_Create(void)
 	return pd;
 }
 
+// Clears the 16 slots.
 void ADXPD_Init(void)
 {
 	memset(adxpd_obj, 0, sizeof(adxpd_obj));

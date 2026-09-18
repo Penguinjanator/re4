@@ -49,6 +49,7 @@ typedef struct {
 	Sint32 wksize;
 } PL2ENC_PRM;
 
+// Reports an encoder error through the registered callback.
 static void pl2enc_err(Char8 *msg)
 {
 	if (pl2enc_err_func != NULL) {
@@ -56,6 +57,7 @@ static void pl2enc_err(Char8 *msg)
 	}
 }
 
+// Dead: gain 0..255 through the Q12 table.
 Sint32 PL2ENC_SetGain(PL2ENC_PRM *prm, Sint32 gain)
 {
 	if (prm == NULL) {
@@ -70,6 +72,7 @@ Sint32 PL2ENC_SetGain(PL2ENC_PRM *prm, Sint32 gain)
 	return 0;
 }
 
+// Dead: encoder mode 0..3.
 Sint32 PL2ENC_SetMode(PL2ENC_PRM *prm, Sint32 mode)
 {
 	if (prm == NULL) {
@@ -84,6 +87,7 @@ Sint32 PL2ENC_SetMode(PL2ENC_PRM *prm, Sint32 mode)
 	return 0;
 }
 
+// Dead: encoder creation (work size check).
 Sint32 PL2ENC_Create(PL2ENC_PRM *prm, void *work, Sint32 wksize)
 {
 	if (prm == NULL || work == NULL) {
@@ -98,6 +102,7 @@ Sint32 PL2ENC_Create(PL2ENC_PRM *prm, void *work, Sint32 wksize)
 	return 0;
 }
 
+// Dead: attach to an existing work.
 Sint32 PL2ENC_Attach(PL2ENC_PRM *prm, void *work, Sint32 wksize)
 {
 	if (wksize < prm->wksize) {

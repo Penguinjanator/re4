@@ -1,4 +1,6 @@
-/* CRI CVFS memory-file device (MFCI): "files" are memory ranges named "%08x.%08x" (address.size). */
+/* CRI CVFS memory-file device (mfci.c, MFCI/GC Ver.1.09): the "MFS" device of the CVFS. A "file"
+ * is a memory range named "%08x.%08x" (address.size); reads are memcpy and complete at once.
+ * Registered by ADXGC_SetupDvdFs; lets ADXT stream from a buffer through the same file path. */
 #include "cvfs.h"
 #include <string.h>
 #include <stdio.h>
@@ -72,6 +74,7 @@ CVFS_IF mfci_vtbl = {
 	(Sint32 (*)(void *))mfCiGetNumTr,
 };
 
+// Reports an error to the CVFS error callback with the offending handle.
 static void mfci_CallErr(const Char8 *msg, void *hn)
 {
 	if (mfci_err_func != NULL) {
@@ -105,6 +108,7 @@ MFCI mfCiOpenEntry(Sint32 entry, Sint32 rw)
 	return mfci;
 }
 
+// Bytes -> sectors, rounded up.
 static Sint32 mfci_ByteToSct(Sint32 sctlen, Sint32 nbyte)
 {
 	Sint32 n;
@@ -113,6 +117,7 @@ static Sint32 mfci_ByteToSct(Sint32 sctlen, Sint32 nbyte)
 	return (n - 1) / sctlen;
 }
 
+// First unused slot of the 40 handles, NULL when full.
 static MFCI mfci_GetFreeHn(void)
 {
 	MFCI mfci = NULL;
@@ -152,6 +157,7 @@ static Uint32 mfci_get_adr_size(const Char8 *fname, Uint32 *size)
 	return adr;
 }
 
+// Bytes transferred by the last read request.
 Sint32 mfCiGetNumTr(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -161,6 +167,7 @@ Sint32 mfCiGetNumTr(MFCI mfci)
 	return mfci->numtr;
 }
 
+// Changes the sector length and rescales the file size, position and transfer count.
 void mfCiSetSctLen(MFCI mfci, Sint32 sctlen)
 {
 	Sint32 posbyte;
@@ -176,6 +183,7 @@ void mfCiSetSctLen(MFCI mfci, Sint32 sctlen)
 	mfci->numtr = mfci->rqsct * sctlen;
 }
 
+// Sector length in bytes (0x800 by default).
 Sint32 mfCiGetSctLen(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -185,6 +193,7 @@ Sint32 mfCiGetSctLen(MFCI mfci)
 	return mfci->sctlen;
 }
 
+// Handle state: 0 stop, 1 complete, 2 reading.
 Sint32 mfCiGetStat(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -194,6 +203,7 @@ Sint32 mfCiGetStat(MFCI mfci)
 	return mfci->stat;
 }
 
+// Marks the handle stopped (memory reads complete synchronously, so nothing is in flight).
 void mfCiStopTr(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -205,6 +215,8 @@ void mfCiStopTr(MFCI mfci)
 	SVM_Unlock();
 }
 
+// "Reads" `nsct` sectors: memcpy from address + pos within the "%08x.%08x" memory range into `buf`,
+// zero-filling past the range end, and completes at once. Returns the sectors copied.
 Sint32 mfCiReqRd(void *hn, Sint32 nsct, Uint8 *buf)
 {
 	Uint32 adr;
@@ -269,6 +281,7 @@ Sint32 mfCiReqRd(void *hn, Sint32 nsct, Uint8 *buf)
 	return p->rqsct;
 }
 
+// Current position in sectors.
 Sint32 mfCiTell(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -278,6 +291,7 @@ Sint32 mfCiTell(MFCI mfci)
 	return mfci->pos_sct;
 }
 
+// Seeks in sectors (CVFS_SEEK_SET/CUR/END), clamped to 0..size.
 Sint32 mfCiSeek(MFCI mfci, Sint32 pos, Sint32 type)
 {
 	if (mfci == NULL) {
@@ -298,6 +312,7 @@ Sint32 mfCiSeek(MFCI mfci, Sint32 pos, Sint32 type)
 	return mfci->pos_sct;
 }
 
+// Stops and clears the handle.
 void mfCiClose(MFCI mfci)
 {
 	if (mfci == NULL) {
@@ -310,6 +325,7 @@ void mfCiClose(MFCI mfci)
 	}
 }
 
+// Opens a memory "file": parses "address.size" from the name, sector length 0x800, position 0.
 MFCI mfCiOpen(const Char8 *fname, void *dir, Sint32 rw)
 {
 	MFCI mfci;
@@ -341,6 +357,7 @@ MFCI mfCiOpen(const Char8 *fname, void *dir, Sint32 rw)
 	return mfci;
 }
 
+// The size part of the "%08x.%08x" name.
 Sint32 mfCiGetFileSize(const Char8 *fname)
 {
 	Uint32 size;
@@ -349,12 +366,14 @@ Sint32 mfCiGetFileSize(const Char8 *fname)
 	return size;
 }
 
+// Installs the device error callback.
 void mfCiEntryErrFunc(CVFS_ERRFUNC func, void *obj)
 {
 	mfci_err_func = func;
 	mfci_err_obj = obj;
 }
 
+// Nothing to do per pass (reads complete in mfCiReqRd); kept as the CVFS_IF slot.
 void mfCiExecServer(void)
 {
 	Sint32 i;
@@ -363,6 +382,7 @@ void mfCiExecServer(void)
 	}
 }
 
+// Returns the MFS device's CVFS_IF table (registered by cvFsAddDev("MFS", ...)).
 CVFS_IF *mfCiGetInterface(void)
 {
 	mfci_build;

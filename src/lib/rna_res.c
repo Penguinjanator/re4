@@ -1,4 +1,6 @@
-/* CRI RNA (renderer) ARAM resource handles */
+/* CRI RNA renderer ARAM resources (rna_res.c, RNARES): a 256 KiB ARAM block (ARAlloc at init) split
+ * into 32 buffers of 0x2000 bytes, one per AX voice of the AXRNA renderer; the voices loop over
+ * these buffers while the server DMAs decoded PCM into them. Addresses are kept in 16-bit sample units. */
 #include "cri_xpt.h"
 #include <string.h>
 #include <dolphin/ar.h>
@@ -24,6 +26,7 @@ Uint32 rnares_aram_size = 0;
 Uint32 rnares_aram_ptr = 0;
 static RNARES_OBJ rnares_obj[RNARES_MAX_OBJ];
 
+// Size of the resource's ARAM buffer in 16-bit samples (0x1000).
 Sint32 RNARES_GetBufSize(RNARES res)
 {
 	if (res == NULL) {
@@ -32,6 +35,7 @@ Sint32 RNARES_GetBufSize(RNARES res)
 	return res->size;
 }
 
+// ARAM address of the buffer in 16-bit units (AX voices address samples).
 Uint32 RNARES_GetBuf(RNARES res)
 {
 	if (res == NULL) {
@@ -40,6 +44,7 @@ Uint32 RNARES_GetBuf(RNARES res)
 	return res->buf;
 }
 
+// Returns the buffer to the pool.
 void RNARES_Destroy(RNARES res)
 {
 	if (res != NULL) {
@@ -47,6 +52,7 @@ void RNARES_Destroy(RNARES res)
 	}
 }
 
+// Takes one of the 32 preallocated ARAM buffers; error E1070313 when none is free.
 RNARES RNARES_Create(void)
 {
 	RNARES res;
@@ -66,6 +72,8 @@ RNARES RNARES_Create(void)
 	return res;
 }
 
+// Frees the handles and, when the pool was allocated here (no RNARES_Setup), returns the 256 KiB ARAM
+// block with ARFree, checking that nothing else was allocated after it.
 void RNARES_Finish(void)
 {
 	Sint32 i;
@@ -114,6 +122,8 @@ void RNARES_Setup(Uint32 aram_ptr, Sint32 aram_size)
 	}
 }
 
+// Allocates 256 KiB of ARAM (ARAlloc) unless set up externally and carves it into 32 buffers of
+// 0x2000 bytes, recording each as address/2 (sample units) and 0x1000 samples.
 void RNARES_Init(void)
 {
 	/* The target numbers the loop's volatiles ofs r4, 0x1000 r5, ptr+ofs r6, ptr r7, res r8. The sum is

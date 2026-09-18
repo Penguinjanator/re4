@@ -16,6 +16,8 @@ void *mwPlyGetSfdHn(MWPLY mwply)
 	return mwply->sfd;
 }
 
+// Frames the decoder skipped (decoded pictures - displayed frames from SFD_GetPlyInf); shown by the
+// game's movie debug display.
 Sint32 mwPlyGetNumSkipDec(MWPLY mwply)
 {
 	SFD_PLYINF inf;
@@ -28,17 +30,20 @@ Sint32 mwPlyGetNumSkipDec(MWPLY mwply)
 	return inf.raw[1] - inf.raw[4];
 }
 
+// Sets an SFD condition on the player's decoder (NULL player: the library default).
 void MWSFD_SetCond(MWPLY mwply, Sint32 id, Sint32 val)
 {
 	SFD_SetCond((mwply != NULL) ? mwply->sfd : NULL, id, val);
 }
 
+// Refill thresholds (sectors) of the stream controller and the load scheduler.
 void MWSFD_SetFlowLimit(MWPLY mwply, Sint32 min_nsct, Sint32 max_nsct)
 {
 	MWSTM_SetFlowLimit(mwply->stm, min_nsct, max_nsct);
 	MWSFLSC_SetFlowLimit(mwply, min_nsct);
 }
 
+// Non-NULL and in use.
 Bool MWSFD_IsEnableHndl(MWPLY mwply)
 {
 	if (mwply == NULL) {
@@ -47,6 +52,7 @@ Bool MWSFD_IsEnableHndl(MWPLY mwply)
 	return mwply->used;
 }
 
+// Dead: audio on/off (cond 28).
 void mwPlySetAudioSw(MWPLY mwply, Sint32 sw)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -56,6 +62,7 @@ void mwPlySetAudioSw(MWPLY mwply, Sint32 sw)
 	SFD_SetCond(mwply->sfd, 28, sw);
 }
 
+// Dead: returns NULL (the ADXT handle is not exposed on this platform).
 void *mwPlyGetAdxtHn(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -65,6 +72,7 @@ void *mwPlyGetAdxtHn(MWPLY mwply)
 	return NULL;
 }
 
+// Dead: allow skipping P pictures (cond 27).
 void mwPlySetPpicSkip(MWPLY mwply, Sint32 sw)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -74,6 +82,7 @@ void mwPlySetPpicSkip(MWPLY mwply, Sint32 sw)
 	SFD_SetCond(mwply->sfd, 27, sw);
 }
 
+// Dead: allow skipping B pictures (cond 26).
 void mwPlySetBpicSkip(MWPLY mwply, Sint32 sw)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -83,6 +92,7 @@ void mwPlySetBpicSkip(MWPLY mwply, Sint32 sw)
 	SFD_SetCond(mwply->sfd, 26, sw);
 }
 
+// Dead: select the audio stream (cond 25, < cond 24 streams).
 void mwPlySetAudioCh(MWPLY mwply, Sint32 ch)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -96,6 +106,7 @@ void mwPlySetAudioCh(MWPLY mwply, Sint32 ch)
 	SFD_SetCond(mwply->sfd, 25, ch);
 }
 
+// Dead: number of audio streams (cond 24).
 Sint32 mwPlyGetNumAudioCh(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -105,6 +116,7 @@ Sint32 mwPlyGetNumAudioCh(MWPLY mwply)
 	return SFSET_GetCond(mwply->sfd, 24);
 }
 
+// Dead: select the video stream (cond 23, < cond 22 streams).
 void mwPlySetVideoCh(MWPLY mwply, Sint32 ch)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -118,6 +130,7 @@ void mwPlySetVideoCh(MWPLY mwply, Sint32 ch)
 	SFD_SetCond(mwply->sfd, 23, ch);
 }
 
+// Dead: number of video streams (cond 22).
 Sint32 mwPlyGetNumVideoCh(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -127,6 +140,7 @@ Sint32 mwPlyGetNumVideoCh(MWPLY mwply)
 	return SFSET_GetCond(mwply->sfd, 22);
 }
 
+// Dead: decode time limit (cond 21).
 void mwPlySetLimitTime(MWPLY mwply, Sint32 time)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -136,6 +150,9 @@ void mwPlySetLimitTime(MWPLY mwply, Sint32 time)
 	SFD_SetCond(mwply->sfd, 21, time);
 }
 
+// MWPLY_IF.GetStat (mwPlyGetStat): 0 stop, 1 prep, 2 playing, 3 playend, 4 error; while the player
+// thinks it is playing the SFD state decides (4/6 playing, negative error, else still prep). The
+// game ends the movie on 3 or 4.
 Sint32 mwSfdGetStat(MWPLY mwply)
 {
 	Sint32 stat;
@@ -160,6 +177,7 @@ Sint32 mwSfdGetStat(MWPLY mwply)
 	return stat;
 }
 
+// Dead: sync mode (cond 9: 0 none, 1 audio, 2 vsync).
 void mwPlySetSyncMode(MWPLY mwply, Sint32 mode)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -169,6 +187,7 @@ void mwPlySetSyncMode(MWPLY mwply, Sint32 mode)
 	SFD_SetCond(mwply->sfd, 9, mode);
 }
 
+// Dead: current sync mode.
 Sint32 mwPlyGetSyncMode(MWPLY mwply)
 {
 	Sint32 mode;
@@ -185,6 +204,7 @@ Sint32 mwPlyGetSyncMode(MWPLY mwply)
 	return mode;
 }
 
+// Dead: not supported (error).
 Sint32 mwPlyGetNumDecPool(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -195,6 +215,7 @@ Sint32 mwPlyGetNumDecPool(MWPLY mwply)
 	return 0;
 }
 
+// Dead: total decoded pictures.
 Sint32 mwPlyGetNumTotalDec(MWPLY mwply)
 {
 	SFD_PLYINF inf;
@@ -207,6 +228,8 @@ Sint32 mwPlyGetNumTotalDec(MWPLY mwply)
 	return inf.raw[1];
 }
 
+// MWPLY_IF.GetTime (mwPlyGetTime): playback time as count/scale from the SFD clock (audio-slaved
+// when there is audio); the game shows it as hh:mm:ss.ff.
 void mwSfdGetTime(MWPLY mwply, Sint32 *ncount, Sint32 *tscale)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -227,6 +250,7 @@ void mwSfdGetTime(MWPLY mwply, Sint32 *ncount, Sint32 *tscale)
 	}
 }
 
+// MWPLY_IF.SetOutVol: audio volume (1/10 dB) to the main and side audio streams.
 void mwSfdSetOutVol(MWPLY mwply, Sint32 vol)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -237,6 +261,7 @@ void mwSfdSetOutVol(MWPLY mwply, Sint32 vol)
 	MWSST_SetOutVol(&mwply->sst, vol);
 }
 
+// MWPLY_IF.GetOutVol.
 Sint32 mwSfdGetOutVol(MWPLY mwply)
 {
 	Sint32 vol;
@@ -257,6 +282,7 @@ Sint32 mwSfdGetOutVol(MWPLY mwply)
 	return sstvol;
 }
 
+// MWPLY_IF.SetOutPan: channel pan.
 void mwSfdSetOutPan(MWPLY mwply, Sint32 ch, Sint32 pan)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -266,6 +292,7 @@ void mwSfdSetOutPan(MWPLY mwply, Sint32 ch, Sint32 pan)
 	MWSFRNA_SetOutPan(mwply, ch, pan);
 }
 
+// MWPLY_IF.GetOutPan.
 Sint32 mwSfdGetOutPan(MWPLY mwply, Sint32 ch)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -275,6 +302,7 @@ Sint32 mwSfdGetOutPan(MWPLY mwply, Sint32 ch)
 	return MWSFRNA_GetOutPan(mwply, ch);
 }
 
+// Dead: skip empty B pictures (cond 20).
 void mwPlySetEmptyBpicSkip(MWPLY mwply, Sint32 sw)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -284,6 +312,7 @@ void mwPlySetEmptyBpicSkip(MWPLY mwply, Sint32 sw)
 	SFD_SetCond(mwply->sfd, 20, sw);
 }
 
+// Dead: the input stream joint of the current play.
 SJ mwPlyGetInputSj(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -293,6 +322,7 @@ SJ mwPlyGetInputSj(MWPLY mwply)
 	return mwply->sji;
 }
 
+// Dead: empty B pictures skipped.
 Sint32 mwPlyGetNumSkipEmptyB(MWPLY mwply)
 {
 	SFD_PLYINF inf;
@@ -305,6 +335,7 @@ Sint32 mwPlyGetNumSkipEmptyB(MWPLY mwply)
 	return inf.raw[5];
 }
 
+// Dead: skipped + empty-B frames.
 Sint32 mwPlyGetNumDropFrm(MWPLY mwply)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -314,6 +345,7 @@ Sint32 mwPlyGetNumDropFrm(MWPLY mwply)
 	return mwPlyGetNumSkipDec(mwply) + mwPlyGetNumSkipEmptyB(mwply);
 }
 
+// Dead: raw SFD player information block.
 void mwPlyGetPlyInf(MWPLY mwply, SFD_PLYINF *inf)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -323,6 +355,7 @@ void mwPlyGetPlyInf(MWPLY mwply, SFD_PLYINF *inf)
 	SFD_GetPlyInf(mwply->sfd, inf);
 }
 
+// Dead: stream flow information.
 void mwPlyGetFlowInf(MWPLY mwply, Sint32 *inf)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -332,6 +365,7 @@ void mwPlyGetFlowInf(MWPLY mwply, Sint32 *inf)
 	*inf = 0;
 }
 
+// Dead: playback speed in 1/1000.
 void mwPlySetSpeed(MWPLY mwply, Sint32 speed)
 {
 	if (!MWSFD_IsEnableHndl(mwply)) {
@@ -341,6 +375,7 @@ void mwPlySetSpeed(MWPLY mwply, Sint32 speed)
 	SFD_SetSpeed(mwply->sfd, speed);
 }
 
+// Dead: playback speed as a float ratio.
 void mwPlySetFloatSpeed(MWPLY mwply, Float32 speed)
 {
 	SFD sfd;

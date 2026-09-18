@@ -7,6 +7,7 @@
 asm("	.section .init, \"ax\"\n"
     "	.balign 4\n");
 
+/* The .init entry (linked at __start = 0x80003100): sets up r1 (_stack_addr), r2 (_SDA2_BASE_) and r13 (_SDA_BASE_), runs the register / BAT init subroutines, clears .bss and .sbss with memset, checks the boot info block at 0x800000F4 for a debugger and calls SNDebugInit when present, fetches argc/argv from the boot info, calls DBInit and OSInit, the apploader-version dependent init, __init_user, then either hands over to the SN debugger ("<< libsn version %d >>", "Waiting for SN Debugger...", trace-trap into the stub) or calls main(argc, argv) and exit. */
 /* .init:0x0 | 0x80003100 | size: 0x3A0 */
 asm("	.type __start_entry,@function\n"
     "__start_entry:\n"

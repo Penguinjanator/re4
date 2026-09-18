@@ -1,4 +1,8 @@
-/* Sofdec SFX: library init, handle creation, error callback */
+/* CRI Sofdec SFX library (sfx_lib.c, "CRI SFX/GC Ver.2.08", Sep 22 2004): the frame conversion
+ * ("special effects") layer between the decoded YCC 4:2:0 frames and the application's textures.
+ * A converter handle (8 max) carries the stream's component layout, the output size, the
+ * conversion table buffer and the Z / alpha sub-objects; the MW player creates one per movie
+ * (MWSFSFX_Create) and drives it through mwPlyFxCnvFrm*. */
 #include "cri_xpt.h"
 #include "sfx.h"
 #include <string.h>
@@ -10,11 +14,13 @@ Sint32 sfxcnv_forcesplit = 0;
 SFX_LIBWORK sfx_libwork;
 const Char8 *sfx_dummy;
 
+// CCIR601 range conversion switch (1: studio range 16..235 is scaled to full range).
 Sint32 SFX_GetCcirFx(void)
 {
 	return sfx_libwork.ccir_fx;
 }
 
+// Counts the error and calls the registered callback (the MW player's mwsfsfx_SfxErrCbFn).
 void SFXLIB_Error(SFX_OBJ *sfx, SFX_FRM *frm, const Char8 *msg)
 {
 	void (*fn)(void *obj, const Char8 *msg);
@@ -28,6 +34,7 @@ void SFXLIB_Error(SFX_OBJ *sfx, SFX_FRM *frm, const Char8 *msg)
 	}
 }
 
+// Frees the converter and its Z / alpha sub-objects.
 void SFX_Destroy(SFX_OBJ *sfx)
 {
 	SFXZ_OBJ *sfxz;
@@ -44,6 +51,7 @@ void SFX_Destroy(SFX_OBJ *sfx)
 	sfx_libwork.hn_cnt--;
 }
 
+// First unused of the 8 converters, NULL when none.
 static SFX_OBJ *sfx_GetFreeHn(void)
 {
 	SFX_OBJ *sfx;
@@ -59,11 +67,15 @@ static SFX_OBJ *sfx_GetFreeHn(void)
 	return NULL;
 }
 
+// The work must hold the four 0x400-byte buffers plus alignment (0x301F bytes).
 static Bool sfx_IsEnoughWork(Sint32 wsize)
 {
 	return wsize >= SFX_WORK_SIZE;
 }
 
+// Takes a converter handle over `work`: four 32-byte-aligned 1 KiB buffers (buf[0] holds the
+// conversion table), default output layout YCC 4:2:0 planar, layout unknown until the first frame,
+// plus a Z and an alpha sub-object. NULL with an error when the work is short.
 SFX_OBJ *SFX_Create(void *work, Sint32 wsize)
 {
 	SFX_OBJ *sfx;
@@ -113,12 +125,15 @@ SFX_OBJ *SFX_Create(void *work, Sint32 wsize)
 	return sfx;
 }
 
+// Installs the library error callback.
 void SFX_SetErrFn(void (*fn)(void *obj, const Char8 *msg), void *obj)
 {
 	sfx_libwork.errfn = fn;
 	sfx_libwork.errobj = obj;
 }
 
+// Library init (once): clears the work (8 handles, CCIR range on), builds the YCC -> RGB tables and
+// initialises the user-data, Z and alpha modules.
 void SFX_Init(void)
 {
 	if (sfx_init_cnt < 1) {

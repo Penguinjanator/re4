@@ -77,6 +77,12 @@ void adxt_eos_entry(ADXT adxt);
 void adxt_trap_entry(void *obj);
 void adxt_trap_entry_lps(void *obj);
 
+// Per-handle server step (every ADXT_ExecServer): PLAYING -> PLAYEND_WAIT when the decoder has ended
+// and less than 64 bytes are left in every output ring; DECINFO parses the header (adxt_stat_decinfo);
+// PREP starts the renderer once enough PCM is buffered (or the stream is already over, padding the
+// rings with silence); PLAYEND_WAIT -> PLAYEND when the renderer has drained. Then terminates the
+// decoder's supply at the stream end (mode 0/1 file, 2 memory) and turns stream / scheduler errors
+// into ADXT_ISTAT_ERROR with errcode -1.
 void ADXT_ExecHndl(ADXT adxt)
 {
 	/* register ranking (CRI pass 11): locals get virtual ids in reverse declaration order and are

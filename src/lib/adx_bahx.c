@@ -1,3 +1,6 @@
+/* CRI ADXB AHX hooks (adx_bahx.c): the AHX (MPEG-2 audio layer 2 based voice codec) decoder is a
+ * separate module that registers its functions with ADXB_EntryAhxFunc; ADXB forwards the AHX-format
+ * calls through these pointers. The AHX module is not linked in this game (adxb->ahx is always NULL). */
 #include "cri_xpt.h"
 
 typedef struct {
@@ -22,6 +25,7 @@ void ADXB_EntryAhxFunc(void (*setsji)(void *, void *), void (*setdecsmpl)(void *
 	ahxexecfunc = exec;
 }
 
+// End of input for an AHX decoder attached to the handle.
 void ADXB_AhxTermSupply(ADXB_OBJ *adxb)
 {
 	if (adxb->ahx != NULL) {
@@ -29,11 +33,13 @@ void ADXB_AhxTermSupply(ADXB_OBJ *adxb)
 	}
 }
 
+// One decode step of an AHX stream (through the registered hook).
 void ADXB_ExecOneAhx(ADXB_OBJ *adxb)
 {
 	ahxexecfunc(adxb);
 }
 
+// Per-tick decode limit: forwarded to the AHX decoder and kept in samples and 96-sample units.
 void ADXB_SetAhxDecSmpl(ADXB_OBJ *adxb, Sint32 nsmpl)
 {
 	if (adxb->ahx != NULL) {
@@ -43,6 +49,7 @@ void ADXB_SetAhxDecSmpl(ADXB_OBJ *adxb, Sint32 nsmpl)
 	adxb->nsmpl96 = nsmpl / 96;
 }
 
+// Input stream joint of the AHX decoder.
 void ADXB_SetAhxInSj(ADXB_OBJ *adxb, void *sji)
 {
 	if (adxb->ahx != NULL) {

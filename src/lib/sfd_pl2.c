@@ -1,4 +1,6 @@
-/* Sofdec: playback control (speed / standby / pause) */
+/* CRI Sofdec playback control (sfd_pl2.c): speed, standby and the nested pause used both by the
+ * user (SFD_Pause) and by the buffering pause of the player state machine; a pause stops the clock
+ * and the audio output driver. */
 #include "cri_xpt.h"
 #include "sfd.h"
 
@@ -6,6 +8,7 @@
 #define SFD_REQ_START 4
 #define SFD_STAT_PLAYING 4
 
+// Playback speed in 1/1000 (1000 = normal) to the clock and the audio output.
 Sint32 SFD_SetSpeed(SFD sfd, Sint32 speed)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -16,12 +19,14 @@ Sint32 SFD_SetSpeed(SFD sfd, Sint32 speed)
 	return 0;
 }
 
+// Requests standby (req 3): prepare and buffer but do not start.
 Sint32 SFPL2_Standby(SFD sfd)
 {
 	sfd->req = SFD_REQ_STANDBY;
 	return 0;
 }
 
+// Public standby request.
 Sint32 SFD_Standby(SFD sfd)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -31,6 +36,8 @@ Sint32 SFD_Standby(SFD sfd)
 	return 0;
 }
 
+// Pauses/resumes the clock and the audio output driver (slot 7, fn 8) when a start/standby is
+// requested; sw 2 = re-pause while playing.
 static Sint32 sfpl2_PauseSub(SFD sfd, Sint32 sw)
 {
 	Sint32 ret;
@@ -49,6 +56,8 @@ static Sint32 sfpl2_PauseSub(SFD sfd, Sint32 sw)
 	return ret;
 }
 
+// Nested pause: 1 pauses on the first request, 0 resumes when the count returns to 0, 2 re-applies
+// the pause to a playing handle. Used by both the user pause and the buffering pause.
 Sint32 SFPL2_Pause(SFD sfd, Sint32 sw)
 {
 	Sint32 ret;
@@ -74,6 +83,7 @@ Sint32 SFPL2_Pause(SFD sfd, Sint32 sw)
 	return ret;
 }
 
+// Public pause (mwPlyPause): sw 1 pauses (or re-pauses), 0 resumes; flags a state change.
 Sint32 SFD_Pause(SFD sfd, Sint32 sw)
 {
 	Sint32 psw;

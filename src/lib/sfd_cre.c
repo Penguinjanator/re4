@@ -86,6 +86,8 @@ static Uint8 *sfcre_SearchAauHdr(Uint8 *p, Sint32 n, SFCRE_AAUHDR *hdr)
 	return NULL;
 }
 
+// Looks for an MPEG audio frame header in the data: on success selects the ADX audio driver slot
+// with the AAU's channel count / rate (audio-only MPEG file). 1 when found.
 static Bool sfcre_AnalyAau(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	SFCRE_AAUHDR hdr;
@@ -300,6 +302,7 @@ static Bool sfcre_AnalyAdxSub(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	return 0;
 }
 
+// Looks for an ADX header at the four byte alignments of the data (raw ADX audio-only file).
 Sint32 sfcre_AnalyAdx(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	if (sfcre_AnalyAdxSub(data, size, inf)) {
@@ -388,6 +391,9 @@ void sfcre_AnalyAudio(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	}
 }
 
+// MPEG program stream test: finds the pack size (and mux rate -> bit rate); selects the MPS system
+// driver and analyses the Sofdec header, the audio and the video elementary headers inside it.
+// packsiz -1 = irregular pack size (creatable but not playable here).
 Sint32 sfcre_AnalyMps(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	Sint32 mux_rate = 0;
@@ -411,6 +417,8 @@ Sint32 sfcre_AnalyMps(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	return 1;
 }
 
+// Clears the result and tries the containers in order: program stream, raw MPEG video, raw ADX, raw
+// MPEG audio.
 void sfcre_AnalyCreInf(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	memset(inf, 0, sizeof(SFD_CREINF));
@@ -441,6 +449,8 @@ void sfcre_AnalyCreInf(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	}
 }
 
+// Public entry (mwPlyGetHdrInf / handle creation): analyses the file head under the lock; creatable
+// = a video or audio driver was selected or the pack size is irregular, avail = a driver was selected.
 void SFD_AnalyCreInf(void *data, Sint32 size, SFD_CREINF *inf)
 {
 	Sint32 cs;

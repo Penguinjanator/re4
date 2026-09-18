@@ -1,8 +1,11 @@
-/* CRI LSC: per-handle server */
+/* CRI LSC per-handle server (lsc_svr.c): runs from LSC_ExecServer each main-server pass, moving the
+ * queue head through WAIT -> LOADING -> DONE against the ADXSTM controller's state and binding the
+ * next range as soon as the previous one has ended. */
 #include "cri_xpt.h"
 #include "lsc.h"
 #include <string.h>
 
+// Byte sum of a file name (compared with the sum taken at entry time).
 static Uint32 lsc_CalcSum(Char8 *fname)
 {
 	Uint32 len;
@@ -17,6 +20,8 @@ static Uint32 lsc_CalcSum(Char8 *fname)
 	return sum;
 }
 
+// Retires the finished head entry: pops it, calls the status callback and goes PREP when the queue
+// is empty; with loop_flag the same range is re-queued at the tail.
 static void lsc_NextEntry(LSC lsc)
 {
 	LSC_ENTRY *ent;
@@ -45,6 +50,10 @@ static void lsc_NextEntry(LSC lsc)
 	}
 }
 
+// Per-scheduler step: tracks the loading entry through the stream controller (EXEC -> pos, END ->
+// done, ERROR -> LSC_STAT_ERROR), retires a done entry, and starts the next waiting entry by
+// re-binding the controller to its file range (no-wait), arming the end-of-stream at its length and
+// starting it with this scheduler's refill policy.
 void lsc_ExecHndl(LSC lsc)
 {
 	LSC_ENTRY *ent;

@@ -82,6 +82,9 @@ Sint16 mpvemp_mbai[36] = {
 	q += (bitpos + 7) >> 3;                                                                \
 	q -= 8
 
+// Whether the P picture at `buf` (nbyte bytes, nmb macroblocks) codes nothing: one slice whose
+// macroblocks are all skipped or "forward, no coded blocks, zero vector". The video driver drops
+// such pictures without decoding (their reference frame is re-shown).
 Sint32 MPV_IsEmptyPpic(Sint8 *buf, Sint32 nbyte, Sint32 nmb)
 {
 	Sint32 bitpos;
@@ -194,6 +197,8 @@ Sint32 MPV_IsEmptyPpic(Sint8 *buf, Sint32 nbyte, Sint32 nmb)
 	return 1;
 }
 
+// Whether the B picture at `buf` codes nothing (every macroblock skipped or an uncoded interpolated
+// block with zero vectors).
 Sint32 MPV_IsEmptyBpic(Sint8 *buf, Sint32 nbyte, Sint32 nmb)
 {
 	Sint32 bitpos;

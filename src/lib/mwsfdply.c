@@ -1,4 +1,7 @@
-/* CRI Sofdec MW player: start / stop / pause of a handle (mwsfdply.c) */
+/* CRI Sofdec MW player start / stop / pause (mwsfdply.c): the MWPLY_IF entries behind mwPlyStartFname
+ * / StartSj / StartMem / Stop / Pause. A start stops the previous play, resets the SFD handle
+ * (MWSFCRE_ResetSfdHn), puts it in standby, records the source and lets the decode server
+ * (mwSfdExecDecSvrHndl) open the stream and start decoding on the next pass. */
 #include "cri_xpt.h"
 #include "mwsfd.h"
 #include <string.h>
@@ -149,6 +152,8 @@ void mwPlyStartAfs(MWPLY mwply, Sint32 patid, Sint32 fid)
 	}
 }
 
+// MWPLY_IF.Pause (mwPlyPause): pauses/resumes the SFD decoder and the audio side stream; when the
+// pause border is on and the file has audio, first waits for the decode server to reach its border.
 void mwSfdPause(MWPLY mwply, Sint32 sw)
 {
 	void *sfd;
@@ -179,6 +184,7 @@ void mwSfdPause(MWPLY mwply, Sint32 sw)
 	mwply->pause_flg = sw;
 }
 
+// MWPLY_IF.Stop (mwPlyStop): stops the decoder, ends any linked play, stops the load scheduler.
 void mwSfdStop(MWPLY mwply)
 {
 	if (MWSFD_IsEnableHndl(mwply) == 0) {
@@ -191,11 +197,14 @@ void mwSfdStop(MWPLY mwply)
 	LSC_Stop(mwply->lsc);
 }
 
+// Stops only the decoder side (used by mwSfdDestroy).
 void mwSfdStopDec(MWPLY mwply)
 {
 	MWSFD_STOP_SFD(mwply);
 }
 
+// MWPLY_IF.StartSj: play from a caller-supplied stream joint; stops, puts the SFD in standby and
+// points the decoder input at the joint.
 void mwSfdStartSj(MWPLY mwply, SJ sj)
 {
 	if (MWSFD_IsEnableHndl(mwply) == 0) {
@@ -213,6 +222,7 @@ standby_end:
 	MWSFCRE_SetSupplySj(mwply);
 }
 
+// MWPLY_IF.StartMem: play from a memory buffer through a fresh memory joint.
 void mwSfdStartMem(MWPLY mwply, void *buf, Sint32 size)
 {
 	if (MWSFD_IsEnableHndl(mwply) == 0) {
@@ -230,6 +240,8 @@ standby_end:
 	MWSFCRE_SetSupplySj(mwply);
 }
 
+// File start: stops, standby, copies the file name into the handle, whole file (0xFFFFF sectors)
+// from sector 0, and asks the decode server to start the stream controller (stm_start_req).
 void mwSfdStartFnameSub(MWPLY mwply, const Char8 *fname, Sint32 ofst, Sint32 nsct)
 {
 	mwply->sji = mwply->file_sj;
@@ -245,6 +257,7 @@ standby_end:
 	MWSFSEE_StartFnameSub2(mwply, ofst, nsct);
 }
 
+// MWPLY_IF.StartFname (mwPlyStartFname, what the game calls with the movie path).
 void mwSfdStartFname(MWPLY mwply, const Char8 *fname)
 {
 	if (MWSFD_IsEnableHndl(mwply) == 0) {
@@ -275,6 +288,7 @@ Sint32 mwPlySfdGetPaStat(MWPLY mwply)
 	return 0;
 }
 
+// Starts the SFD decoder once it is in standby (called by the decode server); error -0x133 on failure.
 Sint32 mwPlySfdStart(MWPLY mwply)
 {
 	if (SFD_Start(mwply->sfd) != 0) {

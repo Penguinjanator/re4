@@ -39,6 +39,7 @@ static inline double adx_sqrt(double x)
 	return x;
 }
 
+// MSL fpclassify for floats (inlined into adx_sqrtf's NaN check).
 static inline long adx_fpclassifyf(float x)
 {
 	switch ((*(unsigned long *)&x) & 0x7f800000) {
@@ -57,6 +58,7 @@ static inline long adx_fpclassifyf(float x)
 	}
 }
 
+// MSL inline sqrtf: three Newton steps on __frsqrte; NaN for negative or NaN input.
 static inline float adx_sqrtf(float x)
 {
 	const double _half = .5;
@@ -87,6 +89,8 @@ Sint32 ADX_CalcHdrInfoLen(Sint32 loop, Sint32 infolen, Sint32 ofst, Sint32 align
 	return (Uint32)(0x33 + infolen + strlen("(c)CRI") + ofst + align) / align * align - ofst;
 }
 
+// Parses an ADX end code (0x8001) block: *ofst = its length (padding + 4). -1 if fewer than 16
+// bytes, -2 if not an end code.
 Sint32 ADX_DecodeFooter(Uint8 *data, Sint32 len, Sint16 *ofst)
 {
 	if (len < 0x10) {
@@ -116,6 +120,8 @@ static Sint32 adx_GetVer(Uint8 *data, Sint32 len, Uint8 *major, Uint8 *minor)
 	return 0;
 }
 
+// Extracts the AINF chunk of a header (after the loop block): its size, the 16-byte id, the default
+// output volume *a and pans b[0..1]. -1 short data, -2 no AINF.
 Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, Sint16 *a, Sint16 *b)
 {
 	Uint8 ver;
@@ -168,6 +174,8 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 	return 0;
 }
 
+// Extracts the loop block (version 3 at 0x14, version 4 at 0x20): type, count (must be 1), flag,
+// start/end in samples and in bytes. -2 when there is no single loop.
 Sint32 ADX_DecodeInfoExLoop(Uint8 *data, Sint32 len, Sint32 *lptype, Sint16 *nloop, Sint16 *lpflg, Sint32 *lpstart,
                             Sint32 *lpstartofst, Sint32 *lpend, Sint32 *lpendofst)
 {
@@ -240,6 +248,7 @@ Sint32 ADX_DecodeInfoExIdly(Uint8 *data, Sint32 len, Uint16 *idly, Uint16 *idly2
 	return 0;
 }
 
+// Encoder version bytes (major at 0x12, minor at 0x13) that select the decryption key scheme.
 Sint32 ADX_DecodeInfoExVer(Uint8 *data, Sint32 len, Uint8 *major, Uint8 *minor)
 {
 	if (len < 0x14) {
@@ -256,6 +265,8 @@ Sint32 ADX_DecodeInfoExVer(Uint8 *data, Sint32 len, Uint8 *major, Uint8 *minor)
 	return 0;
 }
 
+// The encoder's high-pass cut-off frequency (Hz) at offset 0x10, used to derive the prediction
+// coefficients.
 Sint32 ADX_DecodeInfoExADPCM2(Uint8 *data, Sint32 len, Uint16 *cutoff)
 {
 	if (len < 0x12) {
@@ -271,6 +282,9 @@ Sint32 ADX_DecodeInfoExADPCM2(Uint8 *data, Sint32 len, Uint16 *cutoff)
 	return 0;
 }
 
+// Parses the fixed 16-byte ADX header: header length (offset field + 4), encoding type, block size
+// in bytes, bits per sample, channels, sampling rate, total samples and the derived samples per
+// block. -1 short, -2 not 0x8000.
 Sint32 ADX_DecodeInfo(Uint8 *data, Sint32 len, Sint16 *hdrlen, Sint8 *fmt, Sint8 *bps, Sint8 *blksiz, Sint8 *nch,
                       Sint32 *sfreq, Sint32 *nsmpl, Sint32 *blksmpl)
 {
@@ -322,6 +336,8 @@ Sint32 ADX_ScanInfoCode(Uint8 *data, Sint32 len, Sint16 *ofst)
  * them and addresses them through a `...rodata.0` base. `pool_data off` switches the pool off for
  * this function (the unit has no .bss pool that would be lost). */
 #pragma pool_data off // COMPILER-DIFF: M2
+// Second-order prediction coefficients (12-bit fixed point) of the ADX high-pass for `cutoff` Hz at
+// `sfreq`: c1 = 2c, c2 = -c^2 with c from the cosine of the normalised cut-off.
 void ADX_GetCoefficient(Sint32 cutoff, Sint32 sfreq, Sint16 *c1, Sint16 *c2)
 {
 	Float32 z;

@@ -1,4 +1,6 @@
-/* ADXB: Sun AU (.snd) format support: u-law / 8-bit / 16-bit linear PCM */
+/* CRI ADXB Sun AU (.snd) support (adx_bau.c): magic test, header parse and the per-tick decode
+ * steps for u-law (table expansion), 8-bit and 16-bit linear PCM into the ADXB PCM ring. Selected by
+ * ADXB_DecodeHeader / ADXB_ExecHndl for type 4. */
 #include "cri_xpt.h"
 #include "adx_b.h"
 #include <string.h>
@@ -54,6 +56,7 @@ Sint16 ulaw_exp_table[256] = {
 	56, 48, 40, 32, 24, 16, 8, 0,
 };
 
+// Dispatches on the encoding recorded at header time (x9c 2 u-law, 1 8-bit, else 16-bit PCM).
 void ADXB_ExecOneAu(ADXB adxb)
 {
 	if (adxb->x9c == 2) {
@@ -65,6 +68,8 @@ void ADXB_ExecOneAu(ADXB adxb)
 	}
 }
 
+// Decode step for u-law AU: expands each byte through the u-law table into the PCM ring
+// (deinterleaving stereo), reports bytes consumed / samples produced.
 void ADXB_ExecOneAuUlaw(ADXB adxb)
 {
 	Uint8 *inbuf;
@@ -105,6 +110,7 @@ void ADXB_ExecOneAuUlaw(ADXB adxb)
 	}
 }
 
+// Decode step for 8-bit linear AU: samples scaled to 16 bits into the PCM ring.
 void ADXB_ExecOneAu8(ADXB adxb)
 {
 	Sint8 *inbuf;
@@ -190,6 +196,8 @@ void ADXB_ExecOneAu16(ADXB adxb)
 	}
 }
 
+// Reads the AU header (AU_GetInfo) into the handle: encoding, rate, channels, bits, sample count;
+// returns the data offset as the header length.
 static Sint32 adxb_DecodeInfoAu(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint32 *type)
 {
 	Sint32 sfreq;
@@ -220,6 +228,8 @@ static Sint32 adxb_DecodeInfoAu(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *hdr
 	return 0;
 }
 
+// Container-specific header decode for ADXB_DecodeHeader: fills the handle, clears the loop info,
+// type ADXB_TYPE_AU; returns the header length (0 on failure).
 Sint32 ADXB_DecodeHeaderAu(ADXB adxb, void *buf, Sint32 bsize)
 {
 	Sint16 hdrlen;
@@ -250,6 +260,7 @@ Sint32 ADXB_DecodeHeaderAu(ADXB adxb, void *buf, Sint32 bsize)
 	return hdrlen;
 }
 
+// ".snd" / ".sd" magic test.
 Sint32 ADXB_CheckAu(Uint8 *buf)
 {
 	if (memcmp(buf, ".snd", 4) == 0 || memcmp(buf, ".sd", 4) == 0) {
@@ -258,6 +269,8 @@ Sint32 ADXB_CheckAu(Uint8 *buf)
 	return 0;
 }
 
+// Parses the big-endian AU header: encoding (1 u-law, 2 PCM8, 3 PCM16 -> *type 2/1/0 and bits),
+// rate, channels and sample count from the data size; returns the start of the sample data or NULL.
 Uint8 *AU_GetInfo(Uint8 *buf, Sint32 bsize, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 *nsmpl, Sint32 *type)
 {
 	Uint32 magic;

@@ -93,6 +93,8 @@ void MPVHDEC_SetMcFunc(Sint32 dc11, Sint32 type, MPV_MCFUNC bi, MPV_MCFUNC bw, M
 	}
 
 
+// Slice header: quantiser scale (and extra information bits), then hands the slice data to the
+// picture type's macroblock decoder (dec_mbs_func) with the bit offset of the first macroblock.
 static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -135,6 +137,8 @@ static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 	mpv->dec_mbs_func(mpv, sj);
 }
 
+// Moves `nbyte` bytes of a stream joint from side `id` to the other (DATA -> FREE consumes them);
+// returns the bytes moved.
 Sint32 MPV_MoveChunk(SJ sj, Sint32 id, Sint32 nbyte)
 {
 	SJCK ck;
@@ -222,6 +226,8 @@ static Sint32 mpvhdec_NextDelim(MPV mpv, SJ sj, Sint32 mask)
 	return ret;
 }
 
+// Decodes the slices of the picture whose headers were parsed by MPV_DecodePicAtrSj: repeatedly
+// advances to the next start code and, while it is a slice, decodes it. Called by MPV_DecodeFrmSj.
 Sint32 MPVHDEC_DecPicture(MPV mpv, SJ sj)
 {
 	SJCK ck;
@@ -282,6 +288,9 @@ Sint32 MPV_GoNextDelimSj(SJ sj)
  * addi p, p, 4` in place: `&buf[i + 4]` / `(buf + 4) + i` fold to `buf + (i + 4)` (index first), and with
  * range splitting on the two definitions become two webs (`add r3; addi r26, r3, 4`). */
 #pragma opt_lifetimes off // COMPILER-DIFF: pragma (keeps the two definitions of p one web)
+// Sequence-level user data of the Sofdec encoder: "IDCPREC n" selects the 8- or 11-bit intra DC
+// precision (and the matching DC size tables / intra block decoder), "STCCODE a b c" records the
+// encoder's stream type codes (code 8 = unsupported -> -1).
 Sint32 mpvhdec_DecSeqUdsc(MPV mpv, Char8 *buf, Sint32 len)
 {
 	Sint32 ret;
@@ -332,6 +341,9 @@ Sint32 mpvhdec_DecSeqUdsc(MPV mpv, Char8 *buf, Sint32 len)
 
 #pragma opt_lifetimes on
 
+// A user data block (after 0x1B2) up to the next start code: parsed as sequence user data after a
+// sequence header, copied into the user stream joint registered for the header type (MPV_SetUsrSj),
+// and for picture user data copied into the picture user data buffer (Sofdec's per-frame data).
 Sint32 mpvhdec_AnalyUd(MPV mpv, Uint8 *buf, Sint32 len)
 {
 	SJCK ck;
@@ -389,6 +401,9 @@ Sint32 mpvhdec_AnalyUd(MPV mpv, Uint8 *buf, Sint32 len)
 	return ret;
 }
 
+// Picture header (0x100): temporal reference, picture type, vbv_delay, the forward/backward vector
+// f_codes (full_pel, r_size, shift, range), then selects the macroblock decoder, skip and motion
+// compensation functions for the picture type / DC precision / cond 4, and skips the extra bits.
 Sint32 mpvhdec_DecPscSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -452,6 +467,8 @@ Sint32 mpvhdec_DecPscSj(register MPV mpv, SJ sj)
 	return 0;
 }
 
+// GOP header (0x1B8): the 25-bit timecode (drop, h, m, s, pictures) into the picture attributes,
+// closed_gop and broken_link.
 static Sint32 mpvhdec_DecGscSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -479,6 +496,9 @@ static Sint32 mpvhdec_DecGscSj(register MPV mpv, SJ sj)
 	return 0;
 }
 
+// Sequence header (0x1B3): picture size (and macroblock counts), aspect ratio, picture rate code,
+// bit rate, vbv buffer size, constrained flag and the optional intra / non-intra quantiser matrices
+// (default matrices otherwise); resets the picture attributes for a new sequence.
 Sint32 mpvhdec_DecShcSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -534,6 +554,8 @@ Sint32 mpvhdec_DecShcSj(register MPV mpv, SJ sj)
 
 Sint32 MPV_DecodePicAtrSj(MPV mpv, SJ sj);
 
+// Decodes the headers found in a memory chunk (wrapped in a temporary memory joint) up to the first
+// slice; *used = bytes consumed. Used by the SFD video driver for the user-supplied sequence header.
 Sint32 MPV_DecodePicAtr(MPV mpv, SJCK *ck, Sint32 *used)
 {
 	Sint32 ret;
@@ -592,6 +614,7 @@ static Sint32 mpvhdec_GetM2vMode(MPV mpv, Sint8 *data, Sint32 len)
 	bitpos = ((Uint32)(buf) - (Uint32)(ptr = (Uint32 *)((Uint32)(buf) & ~3))) << 3
 #define MPVHDEC_SKIPWORD(q) q = (Uint8 *)(ptr + 1) + ((bitpos + 7) >> 3)
 
+// Skips an extension start code (0x1B5) and its data up to the next start code.
 static inline void mpvhdec_SkipExt(MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -608,6 +631,7 @@ static inline void mpvhdec_SkipExt(MPV mpv, SJ sj)
 	MPV_GoNextDelimSj(sj);
 }
 
+// Analyses a user data block (mpvhdec_AnalyUd) and skips it.
 static inline void mpvhdec_SkipUd(MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -625,6 +649,9 @@ static inline void mpvhdec_SkipUd(MPV mpv, SJ sj)
 	MPV_GoNextDelimSj(sj);
 }
 
+// Header pass of one picture: consumes sequence / GOP / picture headers, extensions and user data
+// from the stream joint until the first slice (or the data ends), filling the picture attributes
+// (MPV_GetPicAtr). The SFD video driver calls it before deciding to skip or decode the picture.
 Sint32 MPV_DecodePicAtrSj(MPV hn, SJ sj)
 {
 	SJCK ck;
@@ -685,6 +712,7 @@ Sint32 MPV_DecodePicAtrSj(MPV hn, SJ sj)
 	return ret;
 }
 
+// The user data of the last picture header (buffer and length).
 void MPV_GetPicUsr(MPV mpv, Uint8 **buf, Sint32 *len)
 {
 	if (buf != NULL) {
@@ -695,6 +723,7 @@ void MPV_GetPicUsr(MPV mpv, Uint8 **buf, Sint32 *len)
 	}
 }
 
+// Buffer that receives each picture's user data (Sofdec per-frame data, SFD_SetPicUsrBuf).
 void MPV_SetPicUsrBuf(MPV mpv, Uint8 *buf, Sint32 bufsiz)
 {
 	mpv->picusr_buf = buf;
@@ -702,6 +731,8 @@ void MPV_SetPicUsrBuf(MPV mpv, Uint8 *buf, Sint32 bufsiz)
 	mpv->picusr_len = 0;
 }
 
+// Stream joint (+ notification callback) that receives the user data of header type `id`
+// (1 sequence, 2 GOP, 3 picture).
 void MPV_SetUsrSj(MPV mpv, Sint32 id, SJ sj, void (*func)(void *obj, Sint32 id), void *obj)
 {
 	MPV_USRSJ *usr = &mpv->usr[id];
@@ -711,6 +742,8 @@ void MPV_SetUsrSj(MPV mpv, Sint32 id, SJ sj, void (*func)(void *obj, Sint32 id),
 	usr->obj = obj;
 }
 
+// Library init: the skip / intra / forward / backward / bidirectional macroblock output function
+// tables by picture type (only the unified MC versions of mpv_umc.c are installed).
 void MPVHDEC_Init(void)
 {
 	memset(skip_func, 0, sizeof(skip_func));

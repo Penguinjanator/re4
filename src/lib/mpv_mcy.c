@@ -24,6 +24,7 @@
  * temps, not variables -- the case-0 packs of the 16x16 H2 then take the original's registers) */
 #define MPVMC16_AVG2X(w, a, m1, m2) (((w) & (a)) + ((((w) ^ (a)) & (m1)) >> 1) + (((w) ^ (a)) & (m2)))
 
+// 16x16 luma block, half-pel in both directions: rounded 2x2 averages into the four 8x8 output blocks.
 void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 {
 	/* Three rotating pixel pairs (a0/b0, a1/b1, a2/b2: pixel k lives in pair k % 3) and the sums p0..p7
@@ -116,6 +117,7 @@ void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 	}
 }
 
+// 16x16 luma block, horizontal half-pel average.
 void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 {
 	/* The original's register classes (CRI SWAR kernels pass 19): the xor of every AVG is a frontend CSE
@@ -245,6 +247,7 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 	}
 }
 
+// 16x16 luma block, vertical half-pel average.
 void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 {
 	/* Byte-identical (CRI SWAR kernels pass 22). Case 0: xor-inside macro (frontend CSE temporaries). Cases
@@ -407,6 +410,7 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 	}
 }
 
+// 16x16 luma block, full-pel: straight copy of 16 rows into the four output blocks (alignment cases).
 void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 {
 	Uint8 *s = mc->src;
@@ -645,6 +649,7 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 /* the generic (non-tuned) versions were dead-stripped; the table keeps their slots */
 void (*const mpvmc16_oneref1p_func_table[4])(MPVMC *mc) = {NULL, NULL, NULL, NULL};
 
+// Fills the handle's 16x16 kernel slots (generic table, stripped to NULLs).
 void MPVMC16_Init(MPVMC *mc)
 {
 	mc->oneref16[0] = mpvmc16_oneref1p_func_table[0];

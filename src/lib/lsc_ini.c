@@ -1,3 +1,5 @@
+/* CRI LSC init / finish (lsc_ini.c, LSC/GC Ver.2.18): the scheduler table lsc_obj (32) and the
+ * build string. */
 #include "cri_xpt.h"
 #include "lsc.h"
 #include <string.h>
@@ -10,6 +12,7 @@ static Sint32 lsc_init_cnt = 0;
 LSC_OBJ lsc_obj[32];
 Sint32 lsc_work;
 
+// Destroys the live schedulers and clears the table and error callback on the last release.
 void LSC_Finish(void)
 {
 	Sint32 msk;
@@ -30,6 +33,7 @@ void LSC_Finish(void)
 	LSC_UnlockCrs(&msk);
 }
 
+// Clears the table and error callback on the first init.
 void LSC_Init(void)
 {
 	Sint32 msk;

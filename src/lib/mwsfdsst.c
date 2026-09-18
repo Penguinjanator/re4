@@ -1,4 +1,6 @@
-/* Sofdec MW player: sub-stream (side audio stream) wrapper around the registered core library */
+/* CRI Sofdec MW player side stream (mwsfdsst.c, MWSST): wrapper for a second audio stream decoded by
+ * a separately registered core library (mwsstmng.ifc). No such library is registered in this game,
+ * so every call is a guarded no-op; the player still embeds one MWSST_OBJ per handle. */
 #include "cri_xpt.h"
 #include "sj.h"
 #include "mwsfd.h"
@@ -13,6 +15,7 @@ MWSST_MNG mwsstmng = {0};
 		mwsstmng.ifc->func args; \
 	}
 
+// A side stream exists only when a core library is registered and the object has a core handle.
 static Bool mwsst_IsValid(MWSST sst)
 {
 	if (mwsstmng.ifc == NULL) {
@@ -27,6 +30,7 @@ static Bool mwsst_IsValid(MWSST sst)
 	return TRUE;
 }
 
+// Stops the core handle.
 static void mwsst_Stop(MWSST sst)
 {
 	MWSST hn;
@@ -37,6 +41,7 @@ static void mwsst_Stop(MWSST sst)
 	}
 }
 
+// Destroys the core handle.
 static void mwsst_DestroyHn(MWSST hn)
 {
 	MWSST_IF *ifc;
@@ -47,6 +52,7 @@ static void mwsst_DestroyHn(MWSST hn)
 	}
 }
 
+// Drops a reference on the core library, finishing it with the last one.
 static void mwsst_ReleaseLib(void)
 {
 	MWSST_IF *ifc;
@@ -60,6 +66,8 @@ static void mwsst_ReleaseLib(void)
 	}
 }
 
+// Builds a side-stream object in `work` (ring buffer after the first 0xC0 bytes) over the core
+// library's handle. Unused in this game (no side-stream library is registered: mwsstmng.ifc NULL).
 MWSST MWSST_Create(void *work, Sint32 wksize, MWSST_IF *ifc)
 {
 	MWSST sst;
@@ -83,6 +91,7 @@ MWSST MWSST_Create(void *work, Sint32 wksize, MWSST_IF *ifc)
 	return sst;
 }
 
+// Stops and destroys the side stream at the idle border.
 void MWSST_Destroy(MWSST sst)
 {
 	MWSST hn;
@@ -103,6 +112,7 @@ void MWSST_Destroy(MWSST sst)
 	}
 }
 
+// Resets the ring and re-registers it as the SFD element output for the side stream.
 void MWSST_Reset(MWPLY mwply)
 {
 	void *sfd;
@@ -125,6 +135,7 @@ void MWSST_Reset(MWPLY mwply)
 	}
 }
 
+// Volume of the side stream (0 without a core library).
 Sint32 MWSST_GetOutVol(MWSST sst)
 {
 	Sint32 vol = 0;
@@ -140,6 +151,7 @@ Sint32 MWSST_GetOutVol(MWSST sst)
 	return vol;
 }
 
+// Volume of the side stream.
 void MWSST_SetOutVol(MWSST sst, Sint32 vol)
 {
 	MWSST hn;
@@ -150,6 +162,7 @@ void MWSST_SetOutVol(MWSST sst, Sint32 vol)
 	}
 }
 
+// Pause/resume of the side stream.
 void MWSST_Pause(MWSST sst, Sint32 sw)
 {
 	MWSST hn;
@@ -160,6 +173,7 @@ void MWSST_Pause(MWSST sst, Sint32 sw)
 	}
 }
 
+// State of the side stream (0 without a core library).
 Sint32 MWSST_GetStat(MWSST sst)
 {
 	Sint32 stat = 0;
@@ -175,11 +189,13 @@ Sint32 MWSST_GetStat(MWSST sst)
 	return stat;
 }
 
+// Stops the side stream.
 void MWSST_Stop(MWSST sst)
 {
 	mwsst_Stop(sst);
 }
 
+// Starts the side stream on its ring buffer joint.
 void MWSST_StartSj(MWSST sst)
 {
 	MWSST hn;

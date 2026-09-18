@@ -1,4 +1,7 @@
-/* Sofdec: PTS (presentation time stamp) queues */
+/* CRI Sofdec PTS queues (sfd_pts.c): the demuxer records the presentation time stamp of each video
+ * packet together with its ring-buffer position; the video driver reads the entry whose position
+ * matches the picture it decodes to timestamp the frame (SFPTS_ReadPtsQue). Storage comes from
+ * SFD_SetVideoPts. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include <string.h>
@@ -13,6 +16,7 @@ typedef struct {
 #define SFBUF_GET_HN(sfd, n) ((SFBUF_HN *)((Uint8 *)(sfd) + (n) * sizeof(SFBUF_WORK)))
 
 
+// Ring index wrap (n - num when n >= num).
 static Sint32 sfpts_Wrap(Sint32 n, Sint32 num)
 {
 	Sint32 r;
@@ -24,6 +28,7 @@ static Sint32 sfpts_Wrap(Sint32 n, Sint32 num)
 	return r;
 }
 
+// Whether the PTS queue of ring `strm` is full (0 without a queue).
 Sint32 SFPTS_IsPtsQueFull(SFD sfd, Sint32 strm)
 {
 	if (PQ(sfd, strm).ent == NULL) {
@@ -101,6 +106,8 @@ found:
 	return 0;
 }
 
+// Queues a (PTS, ring position, length) entry for ring `strm` (the demuxer records the PTS of each
+// video packet); *full set when the queue is full; error 0xFF000421 when it was already full.
 Sint32 SFPTS_WritePtsQue(SFD sfd, Sint32 strm, SFPTS_ENT *in, Sint32 *full)
 {
 	Sint32 wr;
@@ -137,6 +144,7 @@ Sint32 SFPTS_WritePtsQue(SFD sfd, Sint32 strm, SFPTS_ENT *in, Sint32 *full)
 	return 0;
 }
 
+// Gives the video ring (1) a PTS queue in the caller's buffer (8-byte aligned, 16 bytes per entry).
 Sint32 SFD_SetVideoPts(SFD sfd, Uint8 *buf, Sint32 size)
 {
 	Uint8 *p;
@@ -158,6 +166,7 @@ Sint32 SFD_SetVideoPts(SFD sfd, Uint8 *buf, Sint32 size)
 	return 0;
 }
 
+// Empty queue, no storage.
 void SFPTS_InitPtsQue(SFPTS_QUE *que)
 {
 	que->ent = NULL;

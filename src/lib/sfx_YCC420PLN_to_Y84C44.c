@@ -18,6 +18,8 @@ static Sint32 sfxcnv_GetOutHeight(SFX_OBJ *sfx, SFX_FRM *frm)
 	return height;
 }
 
+// Planar YCC 4:2:0 (layouts 0x11 / 0x101) -> Y8 and CbCr 4:4 GameCube textures of the output size
+// (frame size when unset, half height for upper-half layouts) through CFT_Ycc420plnToY84C44.
 void SFX_CnvFrmYcc420plnToY84C44(SFX_OBJ *sfx, SFX_FRM *frm, void *ybuf, void *cbuf)
 {
 	CFT_YCC420PLN src;

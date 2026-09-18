@@ -69,11 +69,14 @@ struct FSResult g_FsResult;
 void PCrwSyncFSACK(void);
 int CompleteAsync(void);
 
+// Asynchronous host writes are not implemented: -1.
 int PCwriteAsyncInit(void)
 {
 	return -1;
 }
 
+// Sends the 16-byte file-server read request (cmd 9, subcmd 9 with acknowledge / 11 without,
+// handle, offset, size) to the host through the EXI2 link.
 static void DoFSReadHeader(int handle, void *buf, u32 len, int offset)
 {
 	struct FSReadHeader hdr;
@@ -98,6 +101,8 @@ static void DoFSReadHeader(int handle, void *buf, u32 len, int offset)
 	SNDVDWriteNoDMA_next(&hdr, sizeof(hdr));
 }
 
+// Starts the next <= 0x1FC00-byte request of the current read: phase 2, whole 1 KiB blocks and the
+// remainder to transfer.
 void InitReadCounts(void)
 {
 	u32 n;
@@ -113,6 +118,8 @@ void InitReadCounts(void)
 	g_nRemainderCnt = n & (FS_BLOCK_SIZE - 1);
 }
 
+// Phase 1 -> 2: acknowledges the PI interrupt, sizes the request and queues the first block as an
+// asynchronous EXI2 DMA (SNDVDReadAsync_next); EXI2TCHandler queues the rest.
 void PCreadAsyncNext(void)
 {
 	u8 *buf = g_pBuffer;
@@ -132,6 +139,9 @@ void PCreadAsyncNext(void)
 	SNDVDReadAsync_next(buf, len);
 }
 
+// Starts an asynchronous host read of `len` bytes (32-byte aligned buffer and length) at `offset`
+// of host file `handle`; `cb(result)` runs from the interrupt when it completes, `doAck` asks the
+// server for a final acknowledge. The DVD emulation (sndvd.c) reads disc data through this.
 int PCreadAsyncInit(int handle, void *buf, u32 len, FSCBFunc cb, int offset, int doAck)
 {
 	if ((u32)buf & 0x1F) {
@@ -151,6 +161,7 @@ int PCreadAsyncInit(int handle, void *buf, u32 len, FSCBFunc cb, int offset, int
 	return 0;
 }
 
+// Synchronous variant of PCreadAsyncNext: waits for the server, then reads the first block blocking.
 void ReadSyncNext(void)
 {
 	u8 *buf = g_pBuffer;
@@ -172,6 +183,8 @@ void ReadSyncNext(void)
 	SNDVDReadSync_next(buf, len);
 }
 
+// Finishes a pending asynchronous read synchronously: drains the remaining blocks and requests, then
+// the acknowledge.
 void CompletePCreadAsync(void)
 {
 	if (g_nRWasyncPhase == 1) {
@@ -211,6 +224,8 @@ void CompletePCreadAsync(void)
 	PCrwSyncFSACK();
 }
 
+// Phase 5 (acknowledge) from the interrupt: reads the server's result record, echoes 8 bytes back,
+// stores the error, calls and clears the completion callback.
 void PCrwAsyncFSACK(void)
 {
 	struct FSResult *res = &g_FsResult;
@@ -232,6 +247,8 @@ void PCrwAsyncFSACK(void)
 	PI_INTSR = 0x1000;
 }
 
+// Synchronous acknowledge: same as PCrwAsyncFSACK when an acknowledge was requested, then resets
+// the EXI2 state and the phase.
 void PCrwSyncFSACK(void)
 {
 	struct FSResult *res = &g_FsResult;
@@ -259,6 +276,8 @@ void PCrwSyncFSACK(void)
 	g_nRWasyncPhase = 0;
 }
 
+// Makes sure no transfer is pending before a new request (or a disconnect): finishes it
+// synchronously and returns the last error.
 int CompleteAsync(void)
 {
 	if (g_nRWasyncPhase == 0) {
@@ -272,6 +291,8 @@ int CompleteAsync(void)
 	return g_nFSLastError;
 }
 
+// Dispatch from the debugger callback by transfer phase: 1 start the next request, 5 acknowledge;
+// 2/4 only count (the DMA interrupt drives them).
 void PCrwAsyncNextPh(u32 phase)
 {
 	switch (phase) {
@@ -290,6 +311,9 @@ void PCrwAsyncNextPh(u32 phase)
 	}
 }
 
+// EXI2 transfer-complete interrupt: acknowledges, queues the next 1 KiB (or 512-byte in phase 4)
+// block of the request, or the remainder; when the request is done either starts the next request
+// (phase 1), waits for the acknowledge (phase 5) or completes the read with the callback.
 void EXI2TCHandler(short interrupt, void *context)
 {
 	u8 *buf = g_pBuffer;
@@ -335,6 +359,8 @@ void EXI2TCHandler(short interrupt, void *context)
 	SNDVDReadAsync_next(buf, len);
 }
 
+// Installs EXI2TCHandler as interrupt 16 (EXI2 TC), unmasks it and enables the TC interrupt in the
+// EXI2 CSR. Called from the debugger stub once connected.
 void SNInitEXI2TCHandler(void)
 {
 	int level = OSDisableInterrupts();

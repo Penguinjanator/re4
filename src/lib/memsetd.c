@@ -1,5 +1,7 @@
+/* CRI UTY_MemsetDword (memsetd.c): word fill, 16-way unrolled, used for the Sofdec handle clears. */
 #include "cri_xpt.h"
 
+// Fills `ndw` 32-bit words at dst with val (filling from the end).
 void UTY_MemsetDword(Uint32 *dst, Uint32 val, Uint32 ndw)
 {
 	Uint32 *p;

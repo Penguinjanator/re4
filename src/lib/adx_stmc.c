@@ -1,4 +1,10 @@
-/* CRI ADX stream controller: reads file sectors through the CVFS into a stream joint */
+/* CRI ADX stream controller (adx_stmc.c, ADXSTM): keeps one file range flowing from the CVFS into a
+ * ring-buffer stream joint. A controller is bound to a file (name, device, sector offset/count),
+ * started, and then every file-server pass issues one asynchronous sector read when the ring is
+ * below its refill level and publishes completed reads as DATA chunks. Bind/release/stop requests
+ * are deferred to the server pass so the callers never block on the DVD; the blocking variants pump
+ * ADXT_ExecFsSvr until the request has settled. 40 controllers: 16 real-time (ADXT streams), 24
+ * normal (ADXF files). */
 #include "cri_xpt.h"
 #include "sj.h"
 #include "adx_stm.h"
@@ -77,6 +83,8 @@ ADXSTM_OBJ adxstmf_obj[ADXSTM_MAX_OBJ];
 void ADXSTMF_ExecHndl(ADXSTM stm);
 void adxstmf_stat_exec(ADXSTM stm);
 
+// Sets the read policy in bytes: issue a read when less than `min_nsct` bytes are buffered, and ask
+// the stream joint for at most `max_nsct` bytes per request (ADXT passes sectors << 11).
 Sint32 ADXSTM_SetBufSize(ADXSTM stm, Sint32 min_nsct, Sint32 max_nsct)
 {
 	stm->rd_min = min_nsct;
@@ -84,6 +92,8 @@ Sint32 ADXSTM_SetBufSize(ADXSTM stm, Sint32 min_nsct, Sint32 max_nsct)
 	return 1;
 }
 
+// File-server pass: runs ADXSTMF_ExecHndl on every live controller; a test-and-set flag rejects
+// re-entry. Called twice per ADXT_ExecFsSvr.
 void ADXSTM_ExecServer(void)
 {
 	Sint32 i;
@@ -101,6 +111,10 @@ void ADXSTM_ExecServer(void)
 	adxstmf_execsvr_flg = 0;
 }
 
+// Per-controller step of the deferred (no-wait) requests once no read is in flight: stop_req ->
+// PREP, release_req -> cvFsClose, bind_req -> cvFsOpen the bound file, measure it (whole file when
+// the range was "infinite", clamp ofst/nsct to the file) and rewind; then, in EXEC and bound, run the
+// reading state (adxstmf_stat_exec).
 void ADXSTMF_ExecHndl(ADXSTM stm)
 {
 	void *fs;
@@ -174,6 +188,8 @@ void ADXSTMF_ExecHndl(ADXSTM stm)
 	}
 }
 
+// A failed CVFS read: counts a retry up to adxstmf_num_rtry (0 here, so the first failure goes to
+// ADXSTM_STAT_ERROR).
 static void adxstmf_retry(ADXSTM stm)
 {
 	if (adxstmf_num_rtry >= 0) {
@@ -185,6 +201,11 @@ static void adxstmf_retry(ADXSTM stm)
 	}
 }
 
+// The reading state: if a request is outstanding, on CVFS completion publish the sectors read as DATA
+// in the stream joint, advance pos, fire the end-of-stream callback at eos_nsct and go to END at the
+// range end or the read limit; on CVFS error give the chunk back and retry. Otherwise, when the ring
+// holds less than rd_min bytes, take a FREE chunk (<= rd_max), clamp to eos/range/rd_lim (0x200
+// sectors) and issue cvFsReqRd at ofst + pos.
 void adxstmf_stat_exec(ADXSTM stm)
 {
 	SJ sj;
@@ -285,6 +306,8 @@ void adxstmf_stat_exec(ADXSTM stm)
 	}
 }
 
+// Sector count at which eos_func fires (ADXT uses 25 sectors before the end to arm the loop/link
+// trap); negative = the range end.
 void ADXSTM_SetEos(ADXSTM stm, Sint32 nsct)
 {
 	if (nsct >= 0) {
@@ -294,12 +317,14 @@ void ADXSTM_SetEos(ADXSTM stm, Sint32 nsct)
 	}
 }
 
+// Registers the end-of-stream callback (func(obj)).
 void ADXSTM_EntryEosFunc(ADXSTM stm, void (*func)(void *obj), void *obj)
 {
 	stm->eos_func = func;
 	stm->eos_obj = obj;
 }
 
+// Non-blocking stop: defers to the server if a read is in flight (stop_req), else PREP at once.
 static void adxstm_stop_nw(ADXSTM stm)
 {
 	SVM_Lock();
@@ -314,6 +339,8 @@ static void adxstm_stop_nw(ADXSTM stm)
 	SVM_Unlock();
 }
 
+// Blocking stop: cancels the CVFS transfer, forces PREP and pumps ADXT_ExecFsSvr until the controller
+// has settled with no chunk held.
 static void adxstm_stop(ADXSTM stm)
 {
 	if (stm->fs != NULL && stm->release_req == 0) {
@@ -330,6 +357,7 @@ static void adxstm_stop(ADXSTM stm)
 	} while (stm->stat != ADXSTM_STAT_PREP || stm->ck.data != NULL);
 }
 
+// Non-blocking unbind: stop, then ask the server to close the CVFS file (release_req).
 static void adxstm_release_nw(ADXSTM stm)
 {
 	adxstm_stop_nw(stm);
@@ -341,6 +369,7 @@ static void adxstm_release_nw(ADXSTM stm)
 	SVM_Unlock();
 }
 
+// Blocking unbind: stop, request the release and pump the file server until `bound` clears.
 static void adxstm_release(ADXSTM stm)
 {
 	adxstm_stop(stm);
@@ -353,16 +382,20 @@ static void adxstm_release(ADXSTM stm)
 	}
 }
 
+// Blocking stop (adxstm_stop).
 void ADXSTM_Stop(ADXSTM stm)
 {
 	adxstm_stop(stm);
 }
 
+// Non-blocking stop (adxstm_stop_nw).
 void ADXSTM_StopNw(ADXSTM stm)
 {
 	adxstm_stop_nw(stm);
 }
 
+// Starts streaming the bound range: clears the byte/retry counters and the read limit, EXEC (or END
+// for an empty range); the actual open happens in the next server pass.
 Sint32 ADXSTM_Start(ADXSTM stm)
 {
 	ADXCRS_Lock();
@@ -382,6 +415,7 @@ Sint32 ADXSTM_Start(ADXSTM stm)
 	return 1;
 }
 
+// Current position in sectors from the range start (0 when no file is open).
 Sint32 ADXSTM_Tell(ADXSTM stm)
 {
 	if (stm->fs != NULL) {
@@ -390,6 +424,7 @@ Sint32 ADXSTM_Tell(ADXSTM stm)
 	return 0;
 }
 
+// Sets the position in sectors (clamped to the range length); the next read starts there.
 Sint32 ADXSTM_Seek(ADXSTM stm, Sint32 pos)
 {
 	stm->pos = pos;
@@ -399,21 +434,26 @@ Sint32 ADXSTM_Seek(ADXSTM stm, Sint32 pos)
 	return stm->pos;
 }
 
+// ADXSTM_STAT_STOP/PREP/EXEC/END/ERROR.
 Sint32 ADXSTM_GetStat(ADXSTM stm)
 {
 	return stm->stat;
 }
 
+// Blocking unbind of the file (adxstm_release).
 void ADXSTM_ReleaseFile(ADXSTM stm)
 {
 	adxstm_release(stm);
 }
 
+// Non-blocking unbind (adxstm_release_nw).
 void ADXSTM_ReleaseFileNw(ADXSTM stm)
 {
 	adxstm_release_nw(stm);
 }
 
+// Records the file to stream (`fname` on CVFS device `dir`, `ofst`/`nsct` in sectors; nsct 0xFFFFF =
+// whole file) and asks the server to open it (bind_req).
 void ADXSTM_BindFileNw(ADXSTM stm, const Char8 *fname, void *dir, Sint32 ofst, Sint32 nsct)
 {
 	SVM_Lock();
@@ -426,6 +466,7 @@ void ADXSTM_BindFileNw(ADXSTM stm, const Char8 *fname, void *dir, Sint32 ofst, S
 	SVM_Unlock();
 }
 
+// Stops and unbinds the controller (blocking) and clears the slot.
 void ADXSTM_Destroy(ADXSTM stm)
 {
 	if (stm == NULL) {
@@ -437,6 +478,8 @@ void ADXSTM_Destroy(ADXSTM stm)
 	memset(stm, 0, sizeof(ADXSTM_OBJ));
 }
 
+// Takes a free slot in the given part of adxstmf_obj (real-time slots 0..15, normal 16..39): PREP,
+// unbound, 0x200-sector request limit, read policy = the whole stream joint size.
 static inline ADXSTM adxstmf_create(SJ sj, Sint32 ofst, Sint32 num, Sint32 rtim)
 {
 	ADXSTM stm = NULL;
@@ -475,6 +518,8 @@ static inline ADXSTM adxstmf_create(SJ sj, Sint32 ofst, Sint32 num, Sint32 rtim)
 	return stm;
 }
 
+// Creates a stream controller writing into `sj`; mode < 0x100 takes a real-time slot (ADXT), higher
+// modes a normal slot. ADXF creates one with sj NULL and supplies the joint per read.
 /* adxstmf_create's search: the byte-offset cast form `(Uint8 *)adxstmf_obj + ofst * sizeof(..)` with
  * `ofst++` after the test keeps the scaled index as the IV (stepped in the latch after the `beq`,
  * `add r31, base, ofs` per iteration); `&adxstmf_obj[ofst++]` steps before the load and
@@ -487,10 +532,12 @@ ADXSTM ADXSTM_Create(SJ sj, Sint32 mode)
 	return adxstmf_create(sj, adxstmf_nrml_ofst, adxstmf_nrml_num, 0);
 }
 
+// Nothing to release.
 void ADXSTM_Finish(void)
 {
 }
 
+// Clears the 40 controller slots.
 Sint32 ADXSTM_Init(void)
 {
 	memset(adxstmf_obj, 0, sizeof(adxstmf_obj));

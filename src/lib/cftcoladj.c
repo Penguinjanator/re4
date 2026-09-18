@@ -2,6 +2,7 @@
  * custom inverse conversion tables (luma and the two chroma ramps). */
 #include "cri_xpt.h"
 
+// 3x3 matrix product out = a * b (row major), for chaining colour matrices.
 void CFT_MakeMtx3D(Float32 *a, Float32 *b, Float32 *out)
 {
 	out[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
@@ -15,6 +16,7 @@ void CFT_MakeMtx3D(Float32 *a, Float32 *b, Float32 *out)
 	out[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
 }
 
+// 3x3 matrix inverse by cofactors.
 void CFT_MakeInverseMtx3D(Float32 *m, Float32 *inv)
 {
 	Float32 det;

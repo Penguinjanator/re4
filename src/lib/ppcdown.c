@@ -7,6 +7,7 @@
 asm("	.text\n"
     "	.balign 32\n");
 
+/* Memory copy for the debugger commands: word copy when source, destination and length are 4-aligned, byte copy otherwise; sets the "copy in progress" flag at 0x6EC of the stub work while running. Returns 1. */
 /* .text:0x0 | 0x80062A60 | size: 0x88 */
 asm("	.globl fn_80062A60\n"
     "	.type fn_80062A60,@function\n"
@@ -50,6 +51,7 @@ asm("	.globl fn_80062A60\n"
     "	blr\n"
     "	.size fn_80062A60,.-fn_80062A60\n");
 
+/* Host message dispatcher installed as the OS debugger callback: decodes the incoming packet, runs the tuner protocol command it names and, for file-server phases, PCrwAsyncNextPh. */
 /* .text:0x88 | 0x80062AE8 | size: 0xF0 */
 asm("	.globl DBcallback\n"
     "	.type DBcallback,@function\n"
@@ -120,6 +122,7 @@ asm("	.globl DBcallback\n"
     "	blr\n"
     "	.size DBcallback,.-DBcallback\n");
 
+/* Called once the adapter is connected: reports "Int mode enabled", installs the EXI2 transfer-complete handler (SNInitEXI2TCHandler) and the DVD emulation DSI handler (SNDVDEmuInitDSIHandler). */
 /* .text:0x178 | 0x80062BD8 | size: 0x64 */
 asm("	.globl EnableMetroTRKInterrupts\n"
     "	.type EnableMetroTRKInterrupts,@function\n"
@@ -152,6 +155,7 @@ asm("	.globl EnableMetroTRKInterrupts\n"
     "	blr\n"
     "	.size EnableMetroTRKInterrupts,.-EnableMetroTRKInterrupts\n");
 
+/* Debugger stub init from the .init entry when a debugger is present: opens the host link (SNInitComm), registers the DVD emulation handle, patches the ISI / DSI / alignment exception vectors with the stub's entries (SN_ISI / SN_DSI / SN_ALIGNMENT saved originals), copies the exception trampolines into low memory (cache flush + invalidate) and initialises the host file server (snInitFileserver). */
 /* .text:0x1DC | 0x80062C3C | size: 0x264 */
 asm("	.globl SNDebugInit\n"
     "	.type SNDebugInit,@function\n"
@@ -319,6 +323,7 @@ asm("	.globl SNDebugInit\n"
     "	blr\n"
     "	.size SNDebugInit,.-SNDebugInit\n");
 
+/* Boot-time hand-over to the debugger: prints the libsn banner / wait messages through the buffered TTY and waits for the host's go command. */
 /* .text:0x440 | 0x80062EA0 | size: 0x128 */
 asm("	.globl SNDebugBoot\n"
     "	.type SNDebugBoot,@function\n"
@@ -410,6 +415,7 @@ asm("	.globl SNDebugBoot\n"
     "	blr\n"
     "	.size SNDebugBoot,.-SNDebugBoot\n");
 
+/* Tuner protocol commands that only acknowledge (no-op / version / status replies). */
 /* .text:0x568 | 0x80062FC8 | size: 0xD4 */
 asm("	.globl cmdNop\n"
     "	.type cmdNop,@function\n"
@@ -472,6 +478,7 @@ asm("	.globl cmdNop\n"
     "	blr\n"
     "	.size cmdNop,.-cmdNop\n");
 
+/* Tuner protocol: receive a memory block from the host into target memory (download), then flush the data cache and invalidate the instruction cache over it. */
 /* .text:0x63C | 0x8006309C | size: 0x9C */
 asm("	.globl cmdRecvMem\n"
     "	.type cmdRecvMem,@function\n"
@@ -520,6 +527,7 @@ asm("	.globl cmdRecvMem\n"
     "	blr\n"
     "	.size cmdRecvMem,.-cmdRecvMem\n");
 
+/* Tuner protocol: send a target memory block (and, at the other entry labels, register dumps) to the host. */
 /* .text:0x6D8 | 0x80063138 | size: 0x1DC */
 asm("	.globl cmdSendMem\n"
     "	.type cmdSendMem,@function\n"
@@ -657,6 +665,7 @@ asm("	.globl cmdSendMem\n"
     "	mflr r30\n"
     "	.size cmdSendMem,.-cmdSendMem\n");
 
+/* Tuner protocol: walk the OS thread queue and send the thread list to the host. */
 /* .text:0x8B4 | 0x80063314 | size: 0x124 */
 asm("	.globl cmdThreadList\n"
     "	.type cmdThreadList,@function\n"
@@ -742,6 +751,7 @@ asm("	.globl cmdThreadList\n"
     "	blr\n"
     "	.size cmdThreadList,.-cmdThreadList\n");
 
+/* Tuner protocol: hard reset through the PI reset register (0xCC003024, 3 then 0x4CC8, spinning); the second entry clears bConnected (host disconnect), the third re-reads the command header and re-enters tunerprotocol. */
 /* .text:0x9D8 | 0x80063438 | size: 0x50 */
 asm("	.globl cmdReset\n"
     "	.type cmdReset,@function\n"
@@ -770,6 +780,7 @@ asm("	.globl cmdReset\n"
     "	beq tunerprotocol\n"
     "	.size cmdReset,.-cmdReset\n");
 
+/* The command loop of the stub: reads a command packet from the host (DMA into the stub work, cache-invalidated), dispatches through the command table (data at bConnected+...), handles the DABR data breakpoint set/clear and acknowledges. */
 /* .text:0xA28 | 0x80063488 | size: 0x180 */
 asm("	.globl tunerprotocol\n"
     "	.type tunerprotocol,@function\n"
@@ -879,6 +890,7 @@ asm("	.globl tunerprotocol\n"
     "	sth r4, 0x2002(r3)\n"
     "	.size tunerprotocol,.-tunerprotocol\n");
 
+/* Tuner protocol: resume the target from the saved exception context (restores the registers and `rfi`), optionally single-stepping. */
 /* .text:0xBA8 | 0x80063608 | size: 0x1B4 */
 asm("	.globl cmdGo\n"
     "	.type cmdGo,@function\n"
@@ -1001,6 +1013,7 @@ asm("	.globl cmdGo\n"
     "	b cmdGo\n"
     "	.size cmdGo,.-cmdGo\n");
 
+/* The stub's exception service routine reached from ISIentry / DSIentry and the trap vectors: saves the full context (GPRs, FPRs, CR/LR/CTR/XER, HID0-2, GQR0-7, BATs, SPRGs, DABR/IABR, PMCs) into the stub work, runs the tuner protocol until the host resumes, then restores everything. Also the buffered TTY output path. */
 /* .text:0xD5C | 0x800637BC | size: 0x9D4 */
 asm("	.globl proviewtty_800637BC\n"
     "	.type proviewtty_800637BC,@function\n"
@@ -1662,6 +1675,7 @@ asm("	.globl proviewtty_800637BC\n"
     "	stw r5, 0x580(r31)\n"
     "	.size proviewtty_800637BC,.-proviewtty_800637BC\n");
 
+/* Checks whether an external debugger adapter (T-DEV) answers on EXI2; sets bConnected. */
 /* .text:0x1730 | 0x80064190 | size: 0x1D4 */
 asm("	.globl checkexternal\n"
     "	.type checkexternal,@function\n"
@@ -1796,6 +1810,7 @@ asm("	.globl checkexternal\n"
     "	blr\n"
     "	.size checkexternal,.-checkexternal\n");
 
+/* Instruction storage exception entry patched into the vector: saves srr0/srr1 and enters the stub. */
 /* .text:0x1904 | 0x80064364 | size: 0x18 */
 asm("	.globl ISIentry\n"
     "	.type ISIentry,@function\n"
@@ -1808,6 +1823,7 @@ asm("	.globl ISIentry\n"
     "	b .L_800643F0\n"
     "	.size ISIentry,.-ISIentry\n");
 
+/* Data storage exception entry patched into the vector (also reached from sndvd's DSIExcHandler for non-DABR DSIs): saves the context and enters the stub, or `rfi`s back when the stub is not connected. */
 /* .text:0x191C | 0x8006437C | size: 0x12C */
 asm("	.globl DSIentry\n"
     "	.type DSIentry,@function\n"
@@ -1891,6 +1907,7 @@ asm("	.globl DSIentry\n"
     "	b .L_80063FD0\n"
     "	.size DSIentry,.-DSIentry\n");
 
+/* Probes EXI2 for the SN T-DEV adapter (device id read through the immediate protocol); returns nonzero when found. Holds the "Fatal error: Can't patch exc vector", "snPause() : Stopped." and comms diagnostic strings. */
 /* .text:0x1A48 | 0x800644A8 | size: 0x638 */
 asm("	.globl snIsSNTDEV\n"
     "	.type snIsSNTDEV,@function\n"
@@ -2323,6 +2340,7 @@ asm("	.globl snIsSNTDEV\n"
 asm("	.data\n"
     "	.balign 8\n");
 
+/* Two words of stub state (.data). */
 /* .data:0x0 | 0x80253A70 | size: 0x8 */
 asm("	.globl lbl_80253A70\n"
     "	.type lbl_80253A70,@object\n"
@@ -2331,6 +2349,7 @@ asm("	.globl lbl_80253A70\n"
     "	.4byte 0x00000000\n"
     "	.size lbl_80253A70,.-lbl_80253A70\n");
 
+/* Saved original ISI exception handler (0 while the stub is not installed). */
 /* .data:0x8 | 0x80253A78 | size: 0x4 */
 asm("	.globl SN_ISI\n"
     "	.type SN_ISI,@object\n"
@@ -2338,6 +2357,7 @@ asm("	.globl SN_ISI\n"
     "	.4byte 0x00000001\n"
     "	.size SN_ISI,.-SN_ISI\n");
 
+/* Saved original DSI exception handler; sndvd's DSIExcHandler forwards non-DABR DSIs to it or to DSIentry. */
 /* .data:0xC | 0x80253A7C | size: 0x4 */
 asm("	.globl SN_DSI\n"
     "	.type SN_DSI,@object\n"
@@ -2345,6 +2365,7 @@ asm("	.globl SN_DSI\n"
     "	.4byte 0x00000001\n"
     "	.size SN_DSI,.-SN_DSI\n");
 
+/* Saved original alignment exception handler. */
 /* .data:0x10 | 0x80253A80 | size: 0x4 */
 asm("	.globl SN_ALIGNMENT\n"
     "	.type SN_ALIGNMENT,@object\n"
@@ -2352,6 +2373,7 @@ asm("	.globl SN_ALIGNMENT\n"
     "	.4byte 0x00000001\n"
     "	.size SN_ALIGNMENT,.-SN_ALIGNMENT\n");
 
+/* Buffered TTY switch for the stub's OSReport output. */
 /* .data:0x14 | 0x80253A84 | size: 0x4 */
 asm("	.globl SN_BUFFERED_TTY\n"
     "	.type SN_BUFFERED_TTY,@object\n"
@@ -2359,6 +2381,7 @@ asm("	.globl SN_BUFFERED_TTY\n"
     "	.4byte 0x00000001\n"
     "	.size SN_BUFFERED_TTY,.-SN_BUFFERED_TTY\n");
 
+/* Floating-point exception hook word. */
 /* .data:0x18 | 0x80253A88 | size: 0x4 */
 asm("	.globl SN_FPE\n"
     "	.type SN_FPE,@object\n"
@@ -2366,6 +2389,7 @@ asm("	.globl SN_FPE\n"
     "	.4byte 0x00000000\n"
     "	.size SN_FPE,.-SN_FPE\n");
 
+/* Connection flag followed by the stub's tables: the EXI2/DB function pointer table (EXI2_Unreserve, DBInitComm.., SNInitComm..), the trap sequence, the tuner command table and the message strings. */
 /* .data:0x1C | 0x80253A8C | size: 0x174 */
 asm("	.globl bConnected\n"
     "	.type bConnected,@object\n"
@@ -2469,6 +2493,7 @@ asm("	.globl bConnected\n"
 asm("	.section .bss, \"wa\", @nobits\n"
     "	.balign 8\n");
 
+/* The stub work: saved context, command / DMA buffers (0x9728 bytes, .bss). */
 /* .bss:0x0 | 0x80278340 | size: 0x9728 */
 asm("	.globl lbl_80278340\n"
     "	.type lbl_80278340,@object\n"
@@ -2476,6 +2501,7 @@ asm("	.globl lbl_80278340\n"
     "	.skip 0x9728\n"
     "	.size lbl_80278340,.-lbl_80278340\n");
 
+/* Saved context for the program exception path (0x138 bytes, .bss). */
 /* .bss:0x9728 | 0x80281A68 | size: 0x138 */
 asm("	.globl NOA_ProgramExc\n"
     "	.type NOA_ProgramExc,@object\n"

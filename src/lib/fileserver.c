@@ -7,6 +7,7 @@
 asm("	.text\n"
     "	.balign 4\n");
 
+/* Host file-server protocol dispatch: reads the server's command byte and jumps to cmdFS_ACK / FS_Continue / cmdFS_STOP / cmdFS_HostDisconnect; unknown commands print "*** BAD COMMAND ***". */
 /* .text:0x0 | 0x80064AE0 | size: 0x114 */
 asm("	.globl snFileserver\n"
     "	.type snFileserver,@function\n"
@@ -89,6 +90,7 @@ asm("	.globl snFileserver\n"
     "	b .L_80064B4C\n"
     "	.size snFileserver,.-snFileserver\n");
 
+/* Server acknowledged a request: continue the pending asynchronous read/write phase. */
 /* .text:0x114 | 0x80064BF4 | size: 0x20 */
 asm("	.globl cmdFS_ACK\n"
     "	.type cmdFS_ACK,@function\n"
@@ -103,6 +105,7 @@ asm("	.globl cmdFS_ACK\n"
     "	lwz r3, 0x708(r31)\n"
     "	.size cmdFS_ACK,.-cmdFS_ACK\n");
 
+/* Server asks for the next block of a transfer. */
 /* .text:0x134 | 0x80064C14 | size: 0x34 */
 asm("	.globl FS_Continue\n"
     "	.type FS_Continue,@function\n"
@@ -122,6 +125,7 @@ asm("	.globl FS_Continue\n"
     "	b cmdGo\n"
     "	.size FS_Continue,.-FS_Continue\n");
 
+/* Server stopped the transfer. */
 /* .text:0x168 | 0x80064C48 | size: 0x14 */
 asm("	.globl cmdFS_STOP\n"
     "	.type cmdFS_STOP,@function\n"
@@ -133,6 +137,7 @@ asm("	.globl cmdFS_STOP\n"
     "	b .L_80064B4C\n"
     "	.size cmdFS_STOP,.-cmdFS_STOP\n");
 
+/* Host went away: resets the asynchronous read/write state (PCreadAsyncInit / PCwriteAsyncInit / CompleteAsync) so the PC* calls fail cleanly. */
 /* .text:0x17C | 0x80064C5C | size: 0x84 */
 asm("	.globl cmdFS_HostDisconnect\n"
     "	.type cmdFS_HostDisconnect,@function\n"
@@ -177,6 +182,7 @@ asm("	.globl cmdFS_HostDisconnect\n"
     "	b cmdGo\n"
     "	.size cmdFS_HostDisconnect,.-cmdFS_HostDisconnect\n");
 
+/* Enables the PC* syscalls when the debugger is connected: overwrites the first word of every PC* stub (PCinit .. PCwriteAsync2) with the illegal-instruction word 0x10..0x1B, so a call traps into the debugger stub which performs the host file operation and returns the result. Without it the stubs fall through to the "File server function not available in non debug mode" message. */
 /* .text:0x200 | 0x80064CE0 | size: 0xF0 */
 asm("	.globl snInitFileserver\n"
     "	.type snInitFileserver,@function\n"
@@ -244,6 +250,7 @@ asm("	.globl snInitFileserver\n"
     "	blr\n"
     "	.size snInitFileserver,.-snInitFileserver\n");
 
+/* Host file-server init (the game's InitFile calls it first). Stub: branches to the not-available message until snInitFileserver patches it into syscall 0x10. */
 /* .text:0x2F0 | 0x80064DD0 | size: 0x8 */
 asm("	.globl PCinit\n"
     "	.type PCinit,@function\n"
@@ -252,6 +259,7 @@ asm("	.globl PCinit\n"
     "	blr\n"
     "	.size PCinit,.-PCinit\n");
 
+/* Create a host file (syscall 0x11); file_open uses it for write modes. */
 /* .text:0x2F8 | 0x80064DD8 | size: 0x8 */
 asm("	.globl PCcreat\n"
     "	.type PCcreat,@function\n"
@@ -260,6 +268,7 @@ asm("	.globl PCcreat\n"
     "	blr\n"
     "	.size PCcreat,.-PCcreat\n");
 
+/* Open a host file, or set the root with "SETROOT:path" (syscall 0x12); returns the fd or -1. */
 /* .text:0x300 | 0x80064DE0 | size: 0x8 */
 asm("	.globl PCopen\n"
     "	.type PCopen,@function\n"
@@ -268,6 +277,7 @@ asm("	.globl PCopen\n"
     "	blr\n"
     "	.size PCopen,.-PCopen\n");
 
+/* Close a host fd (syscall 0x13). */
 /* .text:0x308 | 0x80064DE8 | size: 0x8 */
 asm("	.globl PCclose\n"
     "	.type PCclose,@function\n"
@@ -276,6 +286,7 @@ asm("	.globl PCclose\n"
     "	blr\n"
     "	.size PCclose,.-PCclose\n");
 
+/* Read from a host fd (syscall 0x14); the debug DVD path (file.cpp) and the stdio stubs (dummy.c) read through it. */
 /* .text:0x310 | 0x80064DF0 | size: 0x8 */
 asm("	.globl PCread\n"
     "	.type PCread,@function\n"
@@ -284,6 +295,7 @@ asm("	.globl PCread\n"
     "	blr\n"
     "	.size PCread,.-PCread\n");
 
+/* Write to a host fd (syscall 0x15). */
 /* .text:0x318 | 0x80064DF8 | size: 0x8 */
 asm("	.globl PCwrite\n"
     "	.type PCwrite,@function\n"
@@ -292,6 +304,7 @@ asm("	.globl PCwrite\n"
     "	blr\n"
     "	.size PCwrite,.-PCwrite\n");
 
+/* Seek a host fd (syscall 0x16). */
 /* .text:0x320 | 0x80064E00 | size: 0x8 */
 asm("	.globl PClseek\n"
     "	.type PClseek,@function\n"
@@ -300,6 +313,7 @@ asm("	.globl PClseek\n"
     "	blr\n"
     "	.size PClseek,.-PClseek\n");
 
+/* Flush a host fd (syscall 0x17). */
 /* .text:0x328 | 0x80064E08 | size: 0x8 */
 asm("	.globl PCsync\n"
     "	.type PCsync,@function\n"
@@ -308,6 +322,7 @@ asm("	.globl PCsync\n"
     "	blr\n"
     "	.size PCsync,.-PCsync\n");
 
+/* Asynchronous host read (syscall 0x18). */
 /* .text:0x330 | 0x80064E10 | size: 0x8 */
 asm("	.globl PCreadAsync\n"
     "	.type PCreadAsync,@function\n"
@@ -316,6 +331,7 @@ asm("	.globl PCreadAsync\n"
     "	blr\n"
     "	.size PCreadAsync,.-PCreadAsync\n");
 
+/* Asynchronous host write (syscall 0x19). */
 /* .text:0x338 | 0x80064E18 | size: 0x8 */
 asm("	.globl PCwriteAsync\n"
     "	.type PCwriteAsync,@function\n"
@@ -324,6 +340,7 @@ asm("	.globl PCwriteAsync\n"
     "	blr\n"
     "	.size PCwriteAsync,.-PCwriteAsync\n");
 
+/* Asynchronous host read, variant 2 (syscall 0x1A). */
 /* .text:0x340 | 0x80064E20 | size: 0x8 */
 asm("	.globl PCreadAsync2\n"
     "	.type PCreadAsync2,@function\n"
@@ -332,6 +349,7 @@ asm("	.globl PCreadAsync2\n"
     "	blr\n"
     "	.size PCreadAsync2,.-PCreadAsync2\n");
 
+/* Asynchronous host write, variant 2 (syscall 0x1B). */
 /* .text:0x348 | 0x80064E28 | size: 0x8 */
 asm("	.globl PCwriteAsync2\n"
     "	.type PCwriteAsync2,@function\n"
@@ -344,6 +362,7 @@ asm("	.globl PCwriteAsync2\n"
 asm("	.data\n"
     "	.balign 8\n");
 
+/* The file-server message strings ("*** BAD COMMAND ***", "File server function not available in non debug mode") (.data). */
 /* .data:0x0 | 0x80253C00 | size: 0x120 */
 asm("	.globl lbl_80253C00\n"
     "	.type lbl_80253C00,@object\n"

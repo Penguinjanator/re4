@@ -1,5 +1,7 @@
+/* CRI UTY_MemcpyDword (memcpyd.c): word copy, 16-way unrolled, used for the MPV table setup. */
 #include "cri_xpt.h"
 
+// Copies `ndw` 32-bit words.
 void UTY_MemcpyDword(Uint32 *dst, Uint32 *src, Uint32 ndw)
 {
 	Uint32 a, b, c, d;

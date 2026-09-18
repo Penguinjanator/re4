@@ -1,4 +1,7 @@
-/* CRI CVFS GameCube DVD device (GCCI): sector reads through the Dolphin DVD API */
+/* CRI CVFS GameCube DVD device (gcci.c, GCCI Ver.1.09): the "GCD" device of the CVFS, and the only
+ * one the game's data comes from. A handle wraps a DVDFileInfo; reads are asynchronous
+ * DVDReadAsyncPrio requests of whole 0x800-byte sectors polled to completion by gcCiExecServer, one
+ * in flight across all handles. Registered by ADXGC_SetupDvdFs, driven by the ADXSTM controllers. */
 #include "cvfs.h"
 #include <string.h>
 #include <dolphin/os.h>
@@ -93,6 +96,7 @@ void gcCiInit(void)
 	gcg_ci_err_func = NULL;
 }
 
+// Reports an error to the CVFS error callback with the offending handle.
 static void gcci_CallErr(const Char8 *msg, void *hn)
 {
 	if (gcg_ci_err_func != NULL) {
@@ -122,10 +126,12 @@ static Bool gcci_IsCmdDone(GCCI gcci)
 	return done;
 }
 
+// DVDReadAsyncPrio completion callback: nothing to do, the server polls the command block status.
 void gcci_rd_cbfn(s32 result, DVDFileInfo *fi)
 {
 }
 
+// Bytes transferred by the last read request.
 Sint32 gcCiGetNumTr(GCCI gcci)
 {
 	if (gcci == NULL) {
@@ -135,6 +141,8 @@ Sint32 gcCiGetNumTr(GCCI gcci)
 	return gcci->numtr;
 }
 
+// Changes the sector length (multiple of 32) and rescales the file size, position and transfer
+// count to the new unit.
 void gcCiSetSctLen(GCCI gcci, Sint32 sctlen)
 {
 	Sint32 pos_byte;
@@ -156,6 +164,7 @@ void gcCiSetSctLen(GCCI gcci, Sint32 sctlen)
 	gcci->numtr = gcci->rqsct * sctlen;
 }
 
+// Sector length in bytes (0x800 by default).
 Sint32 gcCiGetSctLen(GCCI gcci)
 {
 	if (gcci == NULL) {
@@ -165,6 +174,7 @@ Sint32 gcCiGetSctLen(GCCI gcci)
 	return gcci->sctlen;
 }
 
+// Handle state: 0 stop, 1 complete, 2 reading, 3 error.
 static Sint32 gcCiGetStat(GCCI gcci)
 {
 	if (gcci == NULL) {
@@ -174,6 +184,8 @@ static Sint32 gcCiGetStat(GCCI gcci)
 	return gcci->stat;
 }
 
+// Cancels a read in flight with DVDCancel and waits (up to 2 s) for the command block to report
+// END/CANCELED; state STOP afterwards.
 void gcCiStopTr(void *hn)
 {
 	GCCI gcci;
@@ -216,6 +228,7 @@ void gcCiStopTr(void *hn)
 	DVDGetDriveStatus();
 }
 
+// First unused slot of the 40 handles, NULL when full.
 static GCCI gcci_GetFreeHn(void)
 {
 	GCCI gcci = NULL;
@@ -298,6 +311,10 @@ static inline void gcci_ExecServer(GCCI tbl)
 	}
 }
 
+// Starts an asynchronous DVD read of `nsct` sectors at the current position into `buf` (priority 2;
+// synchronous DVDReadPrio when gcg_ci_rdmode != 0). Refused (0) while this or any other handle is
+// reading or the previous command has not finished; the last partial sector past the file end is
+// zero-filled on completion. Returns the sectors requested.
 Sint32 gcCiReqRd(void *hn, Sint32 nsct, Uint8 *buf)
 {
 	GCCI gcci;
@@ -368,6 +385,7 @@ const Char8 *gcCiGetVersion(void)
 	return gcg_ci_build_str;
 }
 
+// Current position in sectors.
 Sint32 gcCiTell(GCCI gcci)
 {
 	if (gcci == NULL) {
@@ -377,6 +395,7 @@ Sint32 gcCiTell(GCCI gcci)
 	return gcci->pos_sct;
 }
 
+// Seeks in sectors (CVFS_SEEK_SET/CUR/END), clamped to 0..file size.
 Sint32 gcCiSeek(GCCI gcci, Sint32 pos, Sint32 type)
 {
 	Sint32 max;
@@ -434,6 +453,8 @@ static void gcci_MakePath(Char8 *path, const Char8 *fname)
 	}
 }
 
+// Opens `gcg_ci_root_dir + fname` ('\' -> '/') with DVDOpen into a free handle; sector length 0x800,
+// size in bytes and sectors, position 0. Read-only (`rw` must be 0).
 GCCI gcCiOpen(const Char8 *fname, void *dir, Sint32 rw)
 {
 	Char8 path[GCCI_PATH_LEN];
@@ -478,6 +499,7 @@ GCCI gcCiOpen(const Char8 *fname, void *dir, Sint32 rw)
 	return gcci;
 }
 
+// File size in bytes via a temporary DVDOpen/DVDClose (0x7FFFFFFF cap).
 Sint32 gcCiGetFileSize(const Char8 *fname)
 {
 	Char8 path[GCCI_PATH_LEN];
@@ -513,12 +535,15 @@ Sint32 gcCiGetRsv(Sint32 i)
 	return gcg_ci_rsv[i];
 }
 
+// Installs the device error callback (the CVFS front end registers cvFsCallUsrErrFn).
 void gcCiEntryErrFunc(CVFS_ERRFUNC func, void *obj)
 {
 	gcg_ci_err_func = func;
 	gcg_ci_err_obj = obj;
 }
 
+// Device server: for every reading handle polls the DVD command block; END -> invalidate the buffer,
+// zero the part past EOF, COMPLETE; CANCELED -> account the transferred sectors, STOP; FATAL -> ERROR.
 void gcCiExecServer(void)
 {
 	Sint32 i;
@@ -528,6 +553,7 @@ void gcCiExecServer(void)
 	}
 }
 
+// Returns the GCD device's CVFS_IF table (registered by cvFsAddDev("GCD", ...)).
 CVFS_IF *gcCiGetInterface(void)
 {
 	gcg_ci_build_ptr = gcg_ci_build_ptr;

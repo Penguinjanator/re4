@@ -1,3 +1,6 @@
+/* CRI UTY GameCube helpers (uty_ppc.c): save/restore of the six graphics quantisation registers
+ * GQR2..GQR7 around the paired-single decoder kernels (MPV_DecodeFrmSj), so the game's own GQR
+ * setup survives a frame decode. Hand-written asm functions. */
 #include "cri_xpt.h"
 
 typedef struct {
@@ -5,6 +8,7 @@ typedef struct {
 	Uint32 gqr[6];
 } UTY_GQR;
 
+// Restores GQR2..7 from the save block.
 asm void UTY_PopGqr(register UTY_GQR *gqr)
 {
 	nofralloc
@@ -23,6 +27,7 @@ asm void UTY_PopGqr(register UTY_GQR *gqr)
 	blr
 }
 
+// Saves GQR2..7 into the save block.
 asm void UTY_PushGqr(register UTY_GQR *gqr)
 {
 	nofralloc

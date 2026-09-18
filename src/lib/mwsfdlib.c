@@ -1,4 +1,9 @@
-/* Sofdec MW player: library initialisation and SFD error callback */
+/* CRI Sofdec MW player library init (mwsfdlib.c, MWSFD/GC Ver.3.33, Sep 22 2004): mwPlyInitSfdFx
+ * (the game's SofdecInit) brings up ADXT, the stream joints, the SFD decoder core with the driver
+ * table (memory input, MPS demux, MPV video, ADXT audio, manual video out, auto audio out, user
+ * output), the load scheduler and the SFX converter, and registers the player's server callbacks
+ * with the SVM. Holds the library work (8 player handles) and the SFD error callback that turns
+ * error codes into the messages the game's ap_mwply_err_func receives. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -66,6 +71,9 @@ void mwPlyFinishSfdFx(void)
 	}
 }
 
+// SFD error callback: remembers the failing player/SFD handle and the last 16 codes, formats the
+// message for the known codes (data error, picture size, read buffer, frame pool, ADXT handle
+// count) and reports it through MWSFSVM_Error to the game's callback.
 void MWSFLIB_SfdErrFunc(void *obj, Sint32 code)
 {
 	MWPLY mwply = (MWPLY)obj;
@@ -119,6 +127,7 @@ void MWSFLIB_SfdErrFunc(void *obj, Sint32 code)
 	MWSFSVM_Error(mwg_sfd_errstr);
 }
 
+// Records the library error code (returned unchanged, 0 for success).
 Sint32 MWSFLIB_SetErrCode(Sint32 code)
 {
 	mwsfd_libwork.errcode = code;
@@ -128,16 +137,20 @@ Sint32 MWSFLIB_SetErrCode(Sint32 code)
 	return code;
 }
 
+// Whether pausing must wait for the decode server border (1 in this build).
 Sint32 MWSFD_GetPauseBdr(void)
 {
 	return mwsfd_libwork.pause_bdr;
 }
 
+// Whether picture user data is captured (1 in this build).
 Sint32 MWSFD_GetUsePicUsr(void)
 {
 	return mwsfd_libwork.use_picusr;
 }
 
+// Initialises the SFD core with the driver table and the refresh rate in 1/1000 Hz (59940) after
+// checking the "1.947" version string; installs the library-wide error callback.
 static Sint32 mwPlySfdInit(Sint32 vcnt)
 {
 	SFD_INIT_PRM sfdprm;
@@ -158,6 +171,8 @@ static Sint32 mwPlySfdInit(Sint32 vcnt)
 	return ret;
 }
 
+// Copies the init parameters (refresh rate, frame pool size, main-thread decode flag) into the
+// library work, or the defaults (59.94 Hz, pool 1).
 static void mwsflib_SetLibPrm(MWSFD_LIBWORK *lw, MWSFD_INIT_PRM *prm)
 {
 	if (prm != NULL) {
@@ -173,6 +188,10 @@ static void mwsflib_SetLibPrm(MWSFD_LIBWORK *lw, MWSFD_INIT_PRM *prm)
 	}
 }
 
+// Library init (mwPlyInitSfdFx from SofdecInit: 59.94 Hz, pool 1 -> 0 after the -2 adjustment):
+// ADXT, stream joints, SFD core, LSC and SFX, then registers the vsync, main and idle server
+// callbacks with the SVM. Without CRI threads everything runs from the main callback
+// (MWSFSVR_MainThrdProc) when the game calls ADXM_ExecMain.
 void mwPlyInitSfdFx(MWSFD_INIT_PRM *iprm)
 {
 	MWSFD_INIT_PRM prm;
@@ -232,11 +251,13 @@ void mwPlyInitSfdFx(MWSFD_INIT_PRM *iprm)
 	mwsfd_init_cnt++;
 }
 
+// Load scheduler errors -> MWSFSVM_Error.
 void mwsflib_LscErrFunc(void *obj, Char8 *msg)
 {
 	MWSFSVM_Error(msg);
 }
 
+// The library work (player handles, callbacks, frame pool setting).
 MWSFD_LIBWORK *MWSFLIB_GetLibWorkPtr(void)
 {
 	return &mwsfd_libwork;

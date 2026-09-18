@@ -14,6 +14,8 @@
 static void *adxf_ldpt_tmpbuf;
 static Sint32 adxf_ldpt_tbsize;
 
+// Debug trace: records command `cmd` (entry sub 0 / exit sub 1) with its call count, handle and two
+// parameters in the 16-entry ring adxf_cmd_hstry.
 static void adxf_SetCmdHstry(Sint32 cmd, Sint32 sub, ADXF adxf, Sint32 prm1, Sint32 prm2)
 {
 	ADXF_CMD_HSTRY *h;
@@ -47,6 +49,7 @@ static void adxf_ReleaseSj(ADXF adxf)
 	}
 }
 
+// Validates an AFS partition id (0..255) and a non-NULL partition info pointer.
 static Sint32 adxf_ChkPrmPt(Sint32 ptid, void *ptinfo)
 {
 	if (ptid < 0 || ptid >= ADXF_MAX_PTINFO) {
@@ -60,6 +63,8 @@ static Sint32 adxf_ChkPrmPt(Sint32 ptid, void *ptinfo)
 	return OK;
 }
 
+// Dead: starts loading the AFS table of contents of `fname` into `ptinfo` for partition `ptid`
+// (one at a time, through the temporary buffer set by ADXF_SetLdPtTmpBuf).
 Sint32 ADXF_LoadPartitionNw(Sint32 ptid, const Char8 *fname, void *dir, void *ptinfo)
 {
 	ADXF adxf;
@@ -93,6 +98,8 @@ Sint32 ADXF_LoadPartitionNw(Sint32 ptid, const Char8 *fname, void *dir, void *pt
 	return OK;
 }
 
+// Dead: 1 when partition `ptid` has a valid loaded "AFS" table, 0 when nothing is loaded, NG on a
+// malformed table (bad tag, no files, entry >= 128 MB).
 Sint32 ADXF_GetPtStat(Sint32 ptid)
 {
 	ADXF_PTINFO *pt;
@@ -120,6 +127,8 @@ Sint32 ADXF_GetPtStat(Sint32 ptid)
 	return 1;
 }
 
+// Dead: opens `fname` (CVFS device `dir`) for sector reads: a handle with its own ADXSTM bound to the
+// whole file, state STOP.
 ADXF ADXF_Open(const Char8 *fname, void *dir)
 {
 	ADXF adxf;
@@ -137,6 +146,7 @@ ADXF ADXF_Open(const Char8 *fname, void *dir)
 	return adxf;
 }
 
+// Takes a free adxf_obj slot and creates its ADXSTM controller (normal slot, no stream joint).
 ADXF adxf_CreateAdxFs(void)
 {
 	ADXF adxf;
@@ -166,6 +176,7 @@ ADXF adxf_CreateAdxFs(void)
 	return adxf;
 }
 
+// Stops a reading handle, unbinds and destroys its stream controller and clears the slot.
 void ADXF_Close(ADXF adxf)
 {
 	ADXSTM stm;
@@ -188,6 +199,7 @@ void ADXF_Close(ADXF adxf)
 	adxf_SetCmdHstry(ADXF_CMD_CLOSE, 1, adxf, -1, -1);
 }
 
+// Closes every open handle (ADXF_Finish).
 void ADXF_CloseAll(void)
 {
 	Sint32 i;
@@ -201,6 +213,9 @@ void ADXF_CloseAll(void)
 	}
 }
 
+// File-server pass: for reading handles copies the ADXSTM state (2 reading, 3 read end, 4 error) and
+// the sectors read so far; at the end or on error advances ofst and releases the read's stream joint
+// (flushing the destination buffer); completes a pending ADXF_StopNw once the controller is in PREP.
 void ADXF_ExecServer(void)
 {
 	Sint32 i;
@@ -232,6 +247,7 @@ void ADXF_ExecServer(void)
 	ADXCRS_Unlock();
 }
 
+// Dead: asynchronous read of `nsct` sectors into a caller-owned stream joint.
 Sint32 ADXF_ReadSj32(ADXF adxf, Sint32 nsct, SJ sj)
 {
 	if (adxf == NULL) {
@@ -254,6 +270,8 @@ Sint32 ADXF_ReadSj32(ADXF adxf, Sint32 nsct, SJ sj)
 	return nsct;
 }
 
+// Dead: asynchronous read of `nsct` sectors into `buf` (32-byte aligned); the buffer range is
+// invalidated from the cache when the read completes.
 Sint32 ADXF_ReadNw32(ADXF adxf, Sint32 nsct, void *buf)
 {
 	if (adxf == NULL) {
@@ -281,6 +299,7 @@ Sint32 ADXF_ReadNw32(ADXF adxf, Sint32 nsct, void *buf)
 	return nsct;
 }
 
+// Dead: ADXF_ReadNw32 with an alignment check on `buf`.
 Sint32 ADXF_ReadNw(ADXF adxf, Sint32 nsct, void *buf)
 {
 	if (((Uint32)buf & 31) != 0) {
@@ -290,6 +309,7 @@ Sint32 ADXF_ReadNw(ADXF adxf, Sint32 nsct, void *buf)
 	return ADXF_ReadNw32(adxf, nsct, buf);
 }
 
+// Dead: non-blocking stop of a read; ADXF_ExecServer finishes it.
 void ADXF_StopNw(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -307,6 +327,7 @@ void ADXF_StopNw(ADXF adxf)
 	adxf->stopnw_flg = 1;
 }
 
+// Dead: blocking stop of a read; records the sectors read and releases the stream joint.
 void ADXF_Stop(ADXF adxf)
 {
 	adxf_SetCmdHstry(ADXF_CMD_STOP, 0, adxf, -1, -1);
@@ -334,6 +355,7 @@ void ADXF_Stop(ADXF adxf)
 	adxf_SetCmdHstry(ADXF_CMD_STOP, 1, adxf, -1, -1);
 }
 
+// Dead: sets the read position in sectors (SET/CUR/END), stopping any read first.
 Sint32 ADXF_Seek(ADXF adxf, Sint32 pos, Sint32 type)
 {
 	Sint32 ofst;
@@ -368,6 +390,7 @@ Sint32 ADXF_Seek(ADXF adxf, Sint32 pos, Sint32 type)
 	return ofst;
 }
 
+// Dead: current position in sectors.
 Sint32 ADXF_Tell(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -377,6 +400,7 @@ Sint32 ADXF_Tell(ADXF adxf)
 	return adxf->ofst;
 }
 
+// Dead: file size in sectors.
 Sint32 ADXF_GetFsizeSct(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -386,6 +410,7 @@ Sint32 ADXF_GetFsizeSct(ADXF adxf)
 	return adxf->fnsct;
 }
 
+// Dead: sectors requested by the current read.
 Sint32 ADXF_GetNumReqSct(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -395,6 +420,7 @@ Sint32 ADXF_GetNumReqSct(ADXF adxf)
 	return adxf->rqsct;
 }
 
+// Dead: sectors read so far by the current read.
 Sint32 ADXF_GetNumReadSct(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -404,6 +430,7 @@ Sint32 ADXF_GetNumReadSct(ADXF adxf)
 	return adxf->rdsct;
 }
 
+// Dead: handle state (ADXF_STAT_STOP 1, READING 2, READEND 3, ERROR 4).
 Sint32 ADXF_GetStat(ADXF adxf)
 {
 	if (adxf == NULL) {
@@ -413,6 +440,7 @@ Sint32 ADXF_GetStat(ADXF adxf)
 	return adxf->stat;
 }
 
+// Dead: size in sectors of file `flid` inside AFS partition `ptid`.
 Sint32 ADXF_GetFsizeSctAfs(Sint32 ptid, Sint32 flid)
 {
 	ADXF_PTINFO *pt;
@@ -429,6 +457,7 @@ Sint32 ADXF_GetFsizeSctAfs(Sint32 ptid, Sint32 flid)
 	return (pt->fl[flid].fnbyte + ADXF_SCT_SIZE - 1) / ADXF_SCT_SIZE;
 }
 
+// Dead: presets the request size for the next read (rejected while reading).
 void ADXF_SetReqRdSct(ADXF adxf, Sint32 nsct)
 {
 	if (adxf->stat == ADXF_STAT_READING) {

@@ -1,4 +1,6 @@
-/* ADXB: RIFF WAVE (4/8/16-bit PCM) format support */
+/* CRI ADXB RIFF WAVE support (adx_bwav.c): signature test, header parse ("fmt " / "data" chunks)
+ * and the per-tick PCM copy steps for 8- and 16-bit little-endian WAV into the ADXB PCM ring (4-bit
+ * WAV is recognised but not decoded). Selected by ADXB_DecodeHeader / ADXB_ExecHndl for type 1. */
 #include "cri_xpt.h"
 #include "adx_b.h"
 #include <string.h>
@@ -20,6 +22,7 @@ static Char8 *wav_FmtId(void)
 	return fmt_id;
 }
 
+// The "data" chunk id string (static, first in .rodata).
 static Char8 *wav_DataId(void)
 {
 	static Char8 *data_id = "data";
@@ -27,6 +30,7 @@ static Char8 *wav_DataId(void)
 	return data_id;
 }
 
+// Dispatches on the sample width recorded at header time (x9c 2 = 4-bit, 1 = 8-bit, 0 = 16-bit).
 void ADXB_ExecOneWav(ADXB adxb)
 {
 	if (adxb->x9c == 2) {
@@ -38,6 +42,7 @@ void ADXB_ExecOneWav(ADXB adxb)
 	}
 }
 
+// "RIFF" .... "WAVE" signature test.
 Sint32 ADXB_CheckWav(Uint8 *buf)
 {
 	if (memcmp(buf, "RIFF", 4) == 0 && memcmp(buf + 8, "WAVE", 4) == 0) {
@@ -46,6 +51,7 @@ Sint32 ADXB_CheckWav(Uint8 *buf)
 	return 0;
 }
 
+// 4-bit WAV is not decoded: the step only accounts the input as consumed and produces no samples.
 void ADXB_ExecOneWav4(ADXB adxb)
 {
 	Uint8 *inbuf;
@@ -86,6 +92,8 @@ void ADXB_ExecOneWav4(ADXB adxb)
 	}
 }
 
+// Decode step for 8-bit unsigned PCM: samples biased to signed and scaled to 16 bits into the PCM
+// ring (deinterleaving stereo); reports bytes consumed / samples produced.
 void ADXB_ExecOneWav8(ADXB adxb)
 {
 	Uint8 *inbuf;
@@ -126,6 +134,7 @@ void ADXB_ExecOneWav8(ADXB adxb)
 	}
 }
 
+// Decode step for 16-bit little-endian PCM: byte-swaps into the PCM ring (deinterleaving stereo).
 void ADXB_ExecOneWav16(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -166,6 +175,8 @@ void ADXB_ExecOneWav16(ADXB adxb)
 	}
 }
 
+// Container-specific header decode for ADXB_DecodeHeader: fills the handle from ADX_DecodeInfoWav,
+// clears the loop info, type ADXB_TYPE_WAV; returns the header length (0 on failure).
 Sint32 ADXB_DecodeHeaderWav(ADXB adxb, void *buf, Sint32 bsize)
 {
 	Sint16 hdrlen;
@@ -195,6 +206,8 @@ Sint32 ADXB_DecodeHeaderWav(ADXB adxb, void *buf, Sint32 bsize)
 	return hdrlen;
 }
 
+// Finds the "fmt " and "data" chunks (4-byte aligned) in the header bytes: PCM only, rate, channels
+// (1..2), bits (16/8, or 4-bit ADPCM as x9c 2), block align and the sample count from the data size.
 Sint32 ADX_DecodeInfoWav(Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint8 *x0c, Sint8 *bps, Sint8 *x0f,
 			 Sint8 *nch, Sint32 *sfreq, Sint32 *nsmpl, Sint32 *fmt, Sint16 *x9c)
 {

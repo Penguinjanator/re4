@@ -7,11 +7,13 @@
 int printf(const char*, ...);
 void abort(void);
 
+// The "bad_alloc" type-info name the DOL kept.
 static const char* bad_alloc_name(void)
 {
 	return "bad_alloc";
 }
 
+// Fallback operator new: prints the ProDG library warning and aborts.
 static void* builtin_new(unsigned int size)
 {
 	printf("\n*** Library warning ***\nYou must define an operator new\nsee Pro-DG documentation\n");
@@ -19,6 +21,7 @@ static void* builtin_new(unsigned int size)
 	return 0;
 }
 
+// Fallback operator new[]: warning and abort.
 static void* builtin_vec_new(unsigned int size)
 {
 	printf("\n*** Library warning ***\nYou must define an operator new[]\nsee Pro-DG documentation\n");
@@ -26,12 +29,14 @@ static void* builtin_vec_new(unsigned int size)
 	return 0;
 }
 
+// Fallback operator delete: warning and abort.
 static void builtin_delete(void* p)
 {
 	printf("\n*** Library warning ***\nYou must define an operator delete\nsee Pro-DG documentation\n");
 	abort();
 }
 
+// Fallback operator delete[]: warning and abort.
 static void builtin_vec_delete(void* p)
 {
 	printf("\n*** Library warning ***\nYou must define an operator delete[]\nsee Pro-DG documentation\n");

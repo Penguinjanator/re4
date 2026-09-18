@@ -32,6 +32,8 @@ const Char8 *volatile CFT_version = cft_version_str;
 /* clamp to the byte range (the arms' literals are pooled before the condition's) */
 #define CFT_CLIP255(x) (((x) < 0.0f) ? 0.0f : (((x) > 255.0f) ? 255.0f : (x)))
 
+// ARGB8888 conversion table with a three-level alpha ramp from the luma (a0 below 48, a1 up to 130,
+// a2 above) and the chroma tables; the "3211" variant.
 void CFT_MakeArgb8888Alp3211Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 {
 	Float32 *y = (Float32 *)tbl;
@@ -61,6 +63,7 @@ void CFT_MakeArgb8888Alp3211Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 	}
 }
 
+// The same with the "3110" alpha ramp.
 void CFT_MakeArgb8888Alp3110Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 {
 	Float32 *y = (Float32 *)tbl;
@@ -90,6 +93,7 @@ void CFT_MakeArgb8888Alp3110Tbl(void *tbl, Uint8 a0, Uint8 a1, Uint8 a2)
 	}
 }
 
+// ARGB8888 table whose alpha follows the luma between lo and hi (mode selects the ramp).
 void CFT_MakeArgb8888AlpLumiTbl(Sint32 mode, Sint32 lo, Sint32 hi, void *tbl)
 {
 	Float32 *y = (Float32 *)tbl;
@@ -927,6 +931,8 @@ L_801FC5B4:
 #pragma peephole on
 #pragma scheduling on
 
+// YCC 4:2:0 planar -> RGBA8 4x4 GameCube texture tiles; the static (built-in CCIR601 tables) or
+// the dynamic (user table) paired-single converter.
 void CFT_Ycc420plnToArgb8888(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Float32 *tbl)
 {
 	if (tbl == NULL) {
@@ -936,6 +942,7 @@ void CFT_Ycc420plnToArgb8888(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Float32 *tbl)
 	}
 }
 
+// Fills the static YCC -> RGB coefficient tables (1.164 (Y-16), Cb/Cr contributions to G/B and R/G).
 void CFT_Ycc420plnToArgb8888Init(void)
 {
 	Sint32 i;

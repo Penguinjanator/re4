@@ -1,3 +1,6 @@
+/* CRI Sofdec MPV error reporting (mpv_err.c): the per-handle / library error record (callback,
+ * object, last code) and MPVERR_SetCode, the return path of every MPV_* API (0xFF03xxxx codes).
+ * The SFD video driver installs sfmpv_ErrFn. */
 #include "cri_xpt.h"
 
 typedef struct {
@@ -17,6 +20,8 @@ extern Sint32 MPVLIB_CheckHn(MPV_OBJ *mpv);
 MPVERR_INF mpverrinf;
 Sint32 mpverr_work;
 
+// Records `code` on the handle (or the library when mpv is NULL) and calls the error callback for a
+// nonzero code; returns the code.
 Sint32 MPVERR_SetCode(MPV_OBJ *mpv, Sint32 code)
 {
 	if (mpv == NULL) {
@@ -37,6 +42,7 @@ Sint32 MPVERR_SetCode(MPV_OBJ *mpv, Sint32 code)
 	return code;
 }
 
+// Installs the handle's error callback (func(obj, code)).
 Sint32 MPV_SetErrFunc(MPV_OBJ *mpv, void (*func)(void *obj, Sint32 code), void *obj)
 {
 	if (MPVLIB_CheckHn(mpv) != 0) {
@@ -47,6 +53,7 @@ Sint32 MPV_SetErrFunc(MPV_OBJ *mpv, void (*func)(void *obj, Sint32 code), void *
 	return 0;
 }
 
+// Clears an error record.
 void MPVERR_InitErrInf(MPVERR_INF *inf)
 {
 	inf->func = NULL;
@@ -56,6 +63,7 @@ void MPVERR_InitErrInf(MPVERR_INF *inf)
 	inf->reserved[1] = 0;
 }
 
+// Clears the library-wide error record.
 void MPVERR_Init(void)
 {
 	MPVERR_InitErrInf(&mpverrinf);
