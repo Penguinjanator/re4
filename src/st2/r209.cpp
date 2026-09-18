@@ -969,8 +969,8 @@ static void r209_GatlingEndCheck()
     m = SceAtItemModelPtr(0x8F);
     if (m != NULL) {
         m->setNoSuspend(1);
-        m->LightInfo.x50 &= ~0x20;
-        m->LightInfo.x50 |= 0x10;
+        m->LightInfo.EnableMask &= ~0x20;
+        m->LightInfo.EnableMask |= 0x10;
     }
     CamCtrl.CutCall(0x18);
     SceSetEventCancel(1, (TaskFunc) r209_GatlingEndCheckEndProc, 0, -1, 1);
@@ -989,8 +989,8 @@ static void r209_GatlingEndCheckEndProc()
     SceEventEnd(0);
     if (m != NULL) {
         m->setNoSuspend(0);
-        m->LightInfo.x50 |= 0x20;
-        m->LightInfo.x50 &= ~0x10;
+        m->LightInfo.EnableMask |= 0x20;
+        m->LightInfo.EnableMask &= ~0x10;
     }
 }
 

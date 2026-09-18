@@ -76,7 +76,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if (d->x18 == 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
+        if (d->weight_palette_num == 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
             GXSetArray(9, d->vtxOrig, 8);
             GXSetArray(10, d->nrmOrig, 8);
         }
@@ -96,7 +96,7 @@ static void mirrorModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         st->texCoord++;
         GXSetNumTevStages(st->tevStage);
         GXSetNumTexGens(st->texCoord);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
             if (m->invisible_factor < 1.0f) {

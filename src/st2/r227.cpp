@@ -897,10 +897,10 @@ static void Evt_R227S00_Func(Event* e)
                 void* mod;
 
                 if (e->GetMod(&mod, "evm5100", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "evmd900", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 0x10;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x10;
                 }
             }
             SmdSetTrans(0xA, 0);
@@ -1003,7 +1003,7 @@ static void Evt_R227S01_Func(Event* e)
                     e->EspSetModelPtr((cModel*) mod);
                 }
                 if (e->GetMod(&mod2, "evm5100", 0, 0) == 1) {
-                    ((cModel*) mod2)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod2)->LightInfo.EnableMask = 0x20;
                 }
             }
             break;

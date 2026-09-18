@@ -4300,7 +4300,7 @@ void em32PlHeadFall()
     spd.z = 0.0f;
     obj = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &ofs, &rot, &spd, 15.0f, 150.0f, 1000, 0x11);
     if (obj) {
-        obj->LightInfo.x50 = 1;
+        obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
 }
@@ -4699,13 +4699,13 @@ void em32BloodSet(cEm32* em)
             (w)->pDivide[0]->addModel(info);                                                           \
         }                                                                                              \
         (w)->pDivide[0]->be_flag &= ~2;                                                                \
-        (w)->pDivide[0]->LightInfo.x50 = 1;                                                            \
+        (w)->pDivide[0]->LightInfo.EnableMask = 1;                                                            \
     }                                                                                                  \
     obj = SetObj00(ARC(bin2), PL_ARC_PTR(pG->pPlayer, 5), &pPL->pos, &pPL->ang);                      \
     (w)->pDivide[1] = obj;                                                                             \
     if (obj) {                                                                                         \
         obj->be_flag &= ~2;                                                                            \
-        (w)->pDivide[1]->LightInfo.x50 = 1;                                                            \
+        (w)->pDivide[1]->LightInfo.EnableMask = 1;                                                            \
     }
 
 void em32PlDivideModelInit(cEm32* em)

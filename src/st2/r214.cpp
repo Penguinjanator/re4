@@ -250,10 +250,10 @@ void R214Init()
         }
     }
     if (getRoomEtcBarred(0x11, &barred, 1)) {
-        barred->LightInfo.x54 &= ~0x40;
+        barred->LightInfo.SelectMask &= ~0x40;
     }
     if (getRoomEtcBarred(0x12, &barred, 1)) {
-        barred->LightInfo.x54 &= ~0x40;
+        barred->LightInfo.SelectMask &= ~0x40;
     }
     SceExec(0x12, (TaskFunc) r214_checkBgmPlay, 0, 0, SCE_PRIO_DEF_2, 0);
 }
@@ -1001,7 +1001,7 @@ void Evt_R214S00_Func(Event* e)
     case 1:
         if (e->NowCut == 0 && e->NowFrame == 0) {
             if (e->GetMod(&mod, "evma900", 0, 0) == 1) {
-                ((cModel*) mod)->LightInfo.x50 = 8;
+                ((cModel*) mod)->LightInfo.EnableMask = 8;
             }
         }
         switch (e->NowCut) {

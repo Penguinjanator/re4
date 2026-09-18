@@ -165,7 +165,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
-    tree->LightInfo.x54 &= ~0x10000;
+    tree->LightInfo.SelectMask &= ~0x10000;
     pos.x = 109167.0f;
     pos.y = 2350.0f;
     pos.z = 18073.0f;
@@ -173,7 +173,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pG->pRoom, 0x22), ROOM_ARC_PTR(pG->pRoom, 0x23), &pos, &rot);
-    tree->LightInfo.x54 &= ~0x10000;
+    tree->LightInfo.SelectMask &= ~0x10000;
     pos.x = 123623.0f;
     pos.y = 2350.0f;
     pos.z = 8190.0f;
@@ -181,7 +181,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pGS->pRoom, 0x22), ROOM_ARC_PTR(pGS->pRoom, 0x23), &pos, &rot);
-    tree->LightInfo.x54 &= ~0x10000;
+    tree->LightInfo.SelectMask &= ~0x10000;
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
 

@@ -296,7 +296,7 @@ void smxInit(cObj* obj, SmxWork* w)
         return;
     }
     obj->type = w->type;
-    obj->LightInfo.x54 = w->x4;
+    obj->LightInfo.SelectMask = w->x4;
     obj->ot_type = w->type2;
     SmxSetFlag(obj, w->flags);
     obj->CullMode = w->x3;
@@ -316,7 +316,7 @@ void smxInit(cObj* obj, SmxWork* w)
         } else {
             mi->color2[3] = 0xFF;
         }
-        mi->xD6 = mi->color[3];
+        mi->blend_mode = mi->color[3];
         mi->color[3] = 0xFF;
         mi->uvScrollU = w->uvScrollU;
         mi->uvScrollV = w->uvScrollV;

@@ -860,7 +860,7 @@ void r20d_initRoundSwitch()
     m = SceAtItemModelPtr(0x85);
     if (m) {
         m->setNoSuspend(1);
-        m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
     }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtSetEnable(0x85, 0);

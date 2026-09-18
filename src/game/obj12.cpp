@@ -126,9 +126,9 @@ void cObj12::move()
             }
         }
         if (w->oya) {
-            if (w->oya->LightInfo.x50 & 2) {
-                LightInfo.x50 &= ~0x10;
-                LightInfo.x50 |= 2;
+            if (w->oya->LightInfo.EnableMask & 2) {
+                LightInfo.EnableMask &= ~0x10;
+                LightInfo.EnableMask |= 2;
             }
         }
     }

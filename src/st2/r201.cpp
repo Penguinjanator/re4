@@ -505,12 +505,12 @@ void r201_initGemObj()
     r201_work.p->gem[0]->setNoSuspend(1);
     r201_work.p->gem[1]->setNoSuspend(1);
     r201_work.p->gem[2]->setNoSuspend(1);
-    r201_work.p->gem[0]->LightInfo.x50 &= ~0x20;
-    r201_work.p->gem[0]->LightInfo.x50 |= 0x10;
-    r201_work.p->gem[1]->LightInfo.x50 &= ~0x20;
-    r201_work.p->gem[1]->LightInfo.x50 |= 0x10;
-    r201_work.p->gem[2]->LightInfo.x50 &= ~0x20;
-    r201_work.p->gem[2]->LightInfo.x50 |= 0x10;
+    r201_work.p->gem[0]->LightInfo.EnableMask &= ~0x20;
+    r201_work.p->gem[0]->LightInfo.EnableMask |= 0x10;
+    r201_work.p->gem[1]->LightInfo.EnableMask &= ~0x20;
+    r201_work.p->gem[1]->LightInfo.EnableMask |= 0x10;
+    r201_work.p->gem[2]->LightInfo.EnableMask &= ~0x20;
+    r201_work.p->gem[2]->LightInfo.EnableMask |= 0x10;
     SceAtSetEnable(0x94, 0);
     SceAtSetEnable(0x95, 0);
     SceAtSetEnable(0x96, 0);

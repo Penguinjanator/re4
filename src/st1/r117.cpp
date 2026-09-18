@@ -881,17 +881,17 @@ extern "C" void Evt_R117S00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 0x40;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x40;
                 }
                 if (e->GetMod(&mod, "wep0200", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "evmb300", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 8;
+                    ((cModel*) mod)->LightInfo.EnableMask = 8;
                     ((cModel*) mod)->be_flag |= 0x80;
                 }
                 if (e->GetMod(&mod, "evmb310", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 8;
+                    ((cModel*) mod)->LightInfo.EnableMask = 8;
                     ((cModel*) mod)->be_flag |= 0x80;
                 }
             }
@@ -959,10 +959,10 @@ extern "C" void Evt_R117S10_Func(Event* e)
 
         if (e->NowFrame == 0) {
             if (e->GetMod(&m, "evm3100", 0, 0) == 1) {
-                ((cModel*) m)->LightInfo.x50 = 0x10;
+                ((cModel*) m)->LightInfo.EnableMask = 0x10;
             }
             if (e->GetMod(&m, "pl0100", 0, 0) == 1) {
-                ((cModel*) m)->LightInfo.x50 = 0x40;
+                ((cModel*) m)->LightInfo.EnableMask = 0x40;
             }
             if (e->GetMod(&mod2, "ev0101", 0, 0) == 1) {
                 W->evBin = ((cModelInfo*) mod2)->pData;
@@ -977,13 +977,13 @@ extern "C" void Evt_R117S10_Func(Event* e)
                 ((cModel*) m)->be_flag |= 0x10;
                 ((cModel*) m)->be_flag |= 0x04000000;
                 ((cModel*) m)->be_flag |= 0x01000000;
-                ((cModel*) m)->LightInfo.x50 = 2;
+                ((cModel*) m)->LightInfo.EnableMask = 2;
             }
             if (e->GetMod(&m, "evm5010", 0, 0) == 1) {
                 ((cModel*) m)->be_flag |= 0x10;
                 ((cModel*) m)->be_flag |= 0x04000000;
                 ((cModel*) m)->be_flag |= 0x01000000;
-                ((cModel*) m)->LightInfo.x50 = 2;
+                ((cModel*) m)->LightInfo.EnableMask = 2;
             }
             if (e->GetMod(&m, "obm5500", 0, 0) == 1) {
                 ((cModel*) m)->be_flag |= 0x10;

@@ -437,7 +437,7 @@ void Evt_R212S00_Func(Event* e)
             void* mod;
 
             if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                ((cModel*) mod)->LightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x40;
             }
         }
         break;

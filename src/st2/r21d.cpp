@@ -1072,7 +1072,7 @@ static void setTexRender()
         pLog->err(0, 0, "setTexRender() : Manager alloc failed!!");
     }
     obj = SmdGetObjPtr(4);
-    obj->pModelInfo->xD6 = 1;
+    obj->pModelInfo->blend_mode = 1;
     obj->pModelInfo->setTexBlendTbl(tbl);
     obj->pModelInfo->setBlendRatio(0xFF);
     obj->pModelInfo->setBlendType(1);

@@ -95,15 +95,15 @@ struct ModelData {
     void* pClr;      // 0x0C  vertex colour array (GX_VA_CLR0, RGBA8; used when flags bit31 is set)
     void* pTex;      // 0x10  texture coordinate array (GX_VA_TEX0)
     void* pWeight;   // 0x14  skinning weights (trans MakeWeightPalette: Weight[x18] or WeightExt[x2A])
-    u8 x18;          // 0x18  (mirror: 1 with x19 == 1 and x2A <= 0xFF selects the original vertex arrays); weight entries
-    u8 x19;          // 0x19
-    u16 nParts;      // 0x1A  primitive part count (dbmodule DrawObjWireframe)
+    u8 weight_palette_num;  // 0x18  Weight entries of pWeight (trans MakeWeightPalette); <= 1 with nParts == 1: rigid, original arrays
+    u8 nParts;       // 0x19  parts count (cModel::setModel copies it into cModel::nParts)
+    u16 displist_num;  // 0x1A  primitive (display list) part count (dbmodule DrawObjWireframe)
     struct ModelPart* pParts;  // 0x1C  first part header (0x20 bytes + primitive stream)
     u32 flags;       // 0x20  bit31: s16 tex coords (frac 8), bit30 (0x40000000): SmxGetFlag bit1, bit29: s8 normals
     u32 nTex;        // 0x24  texture count (trans: must be <= 0xF7)
     u8 shift;        // 0x28  vertex fixed-point shift (dbmodule: scale = 1 / (1 << shift))
     u8 pad_29;
-    u16 x2A;         // 0x2A  extended weight entries (> 0xFF: WeightExt table)
+    u16 weight_ext_num;  // 0x2A  extended weight entries (> 0xFF: pWeight is a WeightExt table)
     u32 shapeOfs;    // 0x2C  offset of the shape (vertex delta) table (shape.cpp)
     void* vtxOrig;   // 0x30  original vertex positions (shape.cpp ResetShape source)
     void* nrmOrig;   // 0x34  original vertex normals
@@ -168,12 +168,12 @@ public:
     ShapeKey shape[5];   // 0xA8  blended shapes
     u32 shapeFlags;      // 0xD0  1: loop, 2: hold last frame, 4: reverse, 8: x100 weights
     s16 shape_frame;      // 0xD4
-    u8 xD6;              // 0xD6  previous color[3]; trans: GXSetBlendMode table index (bl[xD6])
+    u8 blend_mode;       // 0xD6  GXSetBlendMode table index (trans bl[]; scroll: previous color[3]; emwindow 2, TexRender 1)
     u8 pad_D7;
-    f32 xD8;             // 0xD8  trans commonModelTrans: material alpha scale (alpha * x158 * xD8 < 1 -> scaled mat colour)
+    f32 invisible_factor;  // 0xD8  material alpha scale 0..1 (trans: model invisible_factor * invisible_factor2 * this < 1 -> scaled mat colour)
     u16 flagsDC;         // 0xDC  bit0: has uv scroll, bit1: texture animation (pTexAnim), bit2: texBlendTbl set, bit3: alpha tex coord
     u16 blendRatio;      // 0xDE  (TexRender: 0xFF while rendered to texture); low byte = TEV konst colour
-    u8 xE0;              // 0xE0  texture animation frame (trans commonScreenMatSub)
+    u8 anm_no;           // 0xE0  texture animation frame (trans commonScreenMatSub; PS2 TEXANM_INFO.anm_no)
     u8 blendType;        // 0xE1
     u8 pad_E2[2];
     void* texBlendTbl;   // 0xE4  (TexRender: 6-byte table {1, 0, ?, ?, 0xF7, tex id})
@@ -201,17 +201,17 @@ class cLightInfo {
 public:
     Mtx imat;         // 0x00  light space matrix (lightHitCheckBBox transforms the light into it)
     cLight* pLight[8];        // 0x30  lights applied to the model (cLightMgr::setModel2 / setCloth)
-    u8 x50;          // 0x50  cLight::xF kind mask the model accepts (0x41: parent lights only)
-    u8 x51;          // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame); hit check shape (0 cylinder, 1/3 sphere, 2 box)
-    s8 x52;          // 0x52  parts index + 1 the light origin follows (getPos), 0 = model
+    u8 EnableMask;   // 0x50  cLight::xF kind mask the model accepts (0x41: parent lights only)
+    u8 Flag;         // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame); hit check shape (0 cylinder, 1/3 sphere, 2 box)
+    s8 PartsNo;      // 0x52  parts index + 1 the light origin follows (getPos), 0 = model
     u8 x53;          // 0x53
-    u32 x54;         // 0x54  (scroll: SmxWork.x4); bit i: light i never applies (setModel2)
+    u32 SelectMask;  // 0x54  bit i: light i never applies (setModel2; scroll: SmxWork.x4)
     Vec Offset;         // 0x58  light origin offset in the space of the coord x52 selects (shadow.cpp)
     Vec Size;        // 0x64  hit check size: x radius, y half height (cylinder), xyz box half size
     f32 Radius;      // 0x70  bounding radius from size (init2: cylinder x + y, box length, sphere x)
 
     cLightInfo();
-    int init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask);  // a -> x51, b -> x52, c -> x50
+    int init2(int type, int partsNo, const Vec* pOffset, const Vec* pSize, int mask);  // type -> Flag, partsNo -> PartsNo, mask -> EnableMask
     void updateMatrix(cModel* m);
     u32 getLightNum();
     cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to
@@ -220,8 +220,8 @@ public:
 // One sequence key (MotionData sequence table entry / MotionWork::key*).
 struct MotionSeqKey {
     u16 frame;  // 0x00  motion frame in 10.6 fixed point
-    u8 x2;      // 0x02
-    u8 x3;      // 0x03
+    u8 Se;      // 0x02  sound number + 1 to play at this key, 0 = none (PS2 SEQUENCE_DATA.Se)
+    u8 Free;    // 0x03  free bits: player sound kind (low 3 bits) / object event bits (PS2 SEQUENCE_DATA.Free)
 };
 
 // Key-frame data header (the `data` given to MotionSetCore). Packed:
@@ -462,10 +462,7 @@ public:
             u8 pad_1DC[0x218 - 0x1DC];
             u16 motFlags;              // 0x218  Motion.Mot_attr (bit0: move the model by the root speed; pl_npc clears it)
             u16 motState;              // 0x21A  Motion.Mot_state (emobj EmObjMove clears it when no motion plays)
-            union {
-                u32 motFlags2;         // 0x21C  Motion.Mot_flag (emhit: bit30 = no matrix update before MotionMove)
-                u32 x21C;              // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
-            };
+            u32 motFlags2;             // 0x21C  Motion.Mot_flag (emhit: bit30 = no matrix update before MotionMove; obj26MatCalc/objMissile set it when following a parent)
             u8 pad_220[0x244 - 0x220];
             Vec satPos;                // 0x244  Motion.Pos_world: pos after the scenario collision moved the model (atari at_pos_calc)
             u8 pad_250[0x28A - 0x250];
@@ -486,7 +483,7 @@ public:
             u8 pad_296[2];
             f32 motSpeedRate;          // 0x298  Motion.Seq_speed (objWep resetMotion: 1.0)
             u8 pad_29C;
-            u8 x29D;                   // 0x29D  Motion.Hokan_cnt (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
+            u8 motHokanCnt;            // 0x29D  Motion.Hokan_cnt: blend frames passed back to MotionSetCore (emrock/em2b/pl0f escape run)
             u8 pad_29E[6];
             void* p2A4;                // 0x2A4  Motion.pAttachCam: AttachCamera / 0x98-byte EmWork2A4 (player.cpp mem_alloc; cam_ctrl reads its byte 5; objRobo SetObjRobo)
             union {

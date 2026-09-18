@@ -346,9 +346,9 @@ void obj00SetOya(cObj00* obj)
         PSMTXCopy(m, obj->mat);
     }
     if (w->oya) {
-        if (w->oya->LightInfo.x50 & 2) {
-            obj->LightInfo.x50 &= ~0x10;
-            obj->LightInfo.x50 |= 2;
+        if (w->oya->LightInfo.EnableMask & 2) {
+            obj->LightInfo.EnableMask &= ~0x10;
+            obj->LightInfo.EnableMask |= 2;
         }
     }
 }

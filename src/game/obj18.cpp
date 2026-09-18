@@ -219,7 +219,7 @@ cObj* SetObj18(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
                     w->child = (cObj*) AdaRibbonSet(obj, &Evt_adaRibbon, cbin, ctpl);
                     if (w->child) {
                         w->child->setNoSuspend(1);
-                        w->child->LightInfo.x50 = obj->LightInfo.x50;
+                        w->child->LightInfo.EnableMask = obj->LightInfo.EnableMask;
                     }
                 }
             }
@@ -476,9 +476,9 @@ void obj18SetOya(cObj18* obj)
         PSMTXCopy(m, obj->mat);
     }
     if (w->oya) {
-        if (w->oya->LightInfo.x50 & 2) {
-            obj->LightInfo.x50 &= ~0x10;
-            obj->LightInfo.x50 |= 2;
+        if (w->oya->LightInfo.EnableMask & 2) {
+            obj->LightInfo.EnableMask &= ~0x10;
+            obj->LightInfo.EnableMask |= 2;
         }
     }
 }

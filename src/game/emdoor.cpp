@@ -2291,7 +2291,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         PSMTXMultVec(m, &v, &v);
         w->pLockL = (cObj12*) SetObj12(bin, tpl, &v, &ang);
         if (w->pLockL) {
-            w->pLockL->LightInfo.x50 = 0x10;
+            w->pLockL->LightInfo.EnableMask = 0x10;
             w->pLockL->setNoSuspend(1);
         }
         YarareAddCube(this, &w->hit[12], -1150.0f, 800.0f, 60.0f, 150.0f, 350.0f, 100.0f, 0, 1);
@@ -2322,7 +2322,7 @@ void cEmDoor::setLock(void* bin, void* tpl, int side, int strong)
         r.y = LIMIT_ANGLE(r.y);
         w->pLockR = (cObj12*) SetObj12(bin, tpl, &v, &r);
         if (w->pLockR) {
-            w->pLockR->LightInfo.x50 = 4;
+            w->pLockR->LightInfo.EnableMask = 4;
             w->pLockR->setNoSuspend(1);
         }
         YarareAddCube(this, &w->hit[11], -1150.0f, 800.0f, -60.0f, 150.0f, 350.0f, 100.0f, 0, 1);
@@ -2369,7 +2369,7 @@ void cEmDoor::setChain(void* bin, void* tpl)
     if (w->pChain == 0) {
         return;
     }
-    w->pChain->LightInfo.x50 = 0x10;
+    w->pChain->LightInfo.EnableMask = 0x10;
     w->pChain->setNoSuspend(1);
     if (flg) {
         if (!(*flg & 8)) {

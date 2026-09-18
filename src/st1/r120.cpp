@@ -164,7 +164,7 @@ extern "C" void Evt_R120S00_Func(Event* e)
                     ((cModel*) mod)->be_flag |= 0x100000;
                     ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
-                    ((cModel*) mod)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
                     ((cModel*) mod)->ot_type = 1;
@@ -339,7 +339,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
                     ((cModel*) mod)->be_flag |= 0x100000;
                     ((cModel*) mod)->ot_type = 4;
                     Obj18CmfOn((cObj*) mod, 5);
-                    ((cModel*) mod)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 if (e->GetMod(&mod, "obm3010f", 0, 0) == 1) {
                     ((cModel*) mod)->ot_type = 1;
@@ -356,7 +356,7 @@ extern "C" void Evt_R120S01_Func(Event* e)
                     ((cModel*) mod)->be_flag &= ~2;
                 }
                 if (e->GetMod(&mod, "evm0000", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 0x20;
+                    ((cModel*) mod)->LightInfo.EnableMask = 0x20;
                 }
                 skip = 1;
                 if (!(e->StatusFlag & 0x40000000)) {
@@ -528,32 +528,32 @@ extern "C" void EventCarInit(Event* e)
     if (e->GetMod(&mod, "obm3000a", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000b", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000c", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000d", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000e", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
     if (e->GetMod(&mod, "obm3000f", 0, 0) == 1) {
         ((cModel*) mod)->ot_type = 1;
         ((cModel*) mod)->z_mode = 1;
-        ((cModel*) mod)->LightInfo.x50 = 2;
+        ((cModel*) mod)->LightInfo.EnableMask = 2;
     }
 }
 

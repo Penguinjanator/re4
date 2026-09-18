@@ -884,7 +884,7 @@ void DrawObjWireframe(cObj* obj, int color)
     scale = 1.0f / (f32) (1 << md->shift);
     vtx = (s16*) md->vtxOrig;
     part = md->pParts;
-    for (np = 0; np < md->nParts; np++) {
+    for (np = 0; np < md->displist_num; np++) {
         ISet(DB_poly_num, DB_poly_num + part->nPoly);
         cmd = (u8*) part + 0x20;
         part = (ModelPart*) ((u8*) part + part->size + 0x20);

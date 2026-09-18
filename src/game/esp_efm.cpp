@@ -393,7 +393,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     } else {
         obj->invisible_factor = 0.0f;
     }
-    obj->pModelInfo->xD6 = gen->xC2;
+    obj->pModelInfo->blend_mode = gen->xC2;
     obj->scale.y = w->scaleY * w->scale;
     obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
     w->groundOfs = (f32) (int) gen->xD4;
@@ -414,7 +414,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->bounce = gen->vE4;
     PSVECScale(&w->bounce, &w->bounce, 0.1f);
     if (!(w->flags & 0x40)) {
-        obj->LightInfo.x54 = 0;
+        obj->LightInfo.SelectMask = 0;
         obj->be_flag |= 0x20000;
     }
     if (w->flags & 0x200000) {
@@ -579,9 +579,9 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     } else {
         obj->invisible_factor = 0.0f;
     }
-    obj->pModelInfo->xD6 = gen->xC2;
+    obj->pModelInfo->blend_mode = gen->xC2;
     if (!(w->flags & 0x40)) {
-        obj->LightInfo.x54 = 0;
+        obj->LightInfo.SelectMask = 0;
         obj->be_flag |= 0x20000;
     }
     w->center = gen->vD8;

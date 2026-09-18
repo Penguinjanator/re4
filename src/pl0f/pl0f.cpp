@@ -2512,7 +2512,7 @@ static void plboat_R2_Swim(cPlayer* pl)
             if (f >= cnt) {
                 f = 0;
             }
-            MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) m, pl->x29D, 5, (u16) f);
+            MotionSetCore(pl, &pl->Motion, PLARC(0x14), (int) m, pl->motHokanCnt, 5, (u16) f);
         }
         if (pl->motEvent & 0x40) {
             EstSet((int) pl, -1, 0, 0, 0xF, 0x11, 0, 0x35, (u32) boat, 0);

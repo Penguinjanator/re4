@@ -4899,7 +4899,7 @@ void em35WeakInit(cEm35* em)
                 w->pWeak[i]->scale.x = 0.7f;
                 w->pWeak[i]->scale.y = 0.7f;
                 w->pWeak[i]->scale.z = 0.7f;
-                w->pWeak[i]->LightInfo.x50 = 0x80;
+                w->pWeak[i]->LightInfo.EnableMask = 0x80;
                 OyaSetObj00(w->pWeak[i], em, i + 2);
                 w->pWeak[i]->atari.throughOn();
             }

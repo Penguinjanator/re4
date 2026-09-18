@@ -283,7 +283,7 @@ void cPlKlauser::setModel()
     krModel[2] = info;
     info->be_flag &= ~8;
     krModel[2]->color[3] = 0;
-    krModel[2]->xD8 = 0.9999f;
+    krModel[2]->invisible_factor = 0.9999f;
     setTexRender(info);
     TevScaleGroup = 1;
     setFace(0);

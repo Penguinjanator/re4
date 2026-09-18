@@ -411,7 +411,7 @@ extern "C" void Evt_R11FS10_Func(Event* e)
         if (e->NowCut == 0) {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "evm3500", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 2;
+                    ((cModel*) mod)->LightInfo.EnableMask = 2;
                 }
                 if (e->GetMod(&mod, "evm0600", 0, 0) == 1) {
                     ((cModel*) mod)->be_flag |= 0x10;

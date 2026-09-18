@@ -152,8 +152,8 @@ void cObjSpear::move()
     if (w->parent == 0) {
         return;
     }
-    if (w->parent->LightInfo.x50 & 2) {
-        LightInfo.x50 = (LightInfo.x50 & ~0x10) | 2;
+    if (w->parent->LightInfo.EnableMask & 2) {
+        LightInfo.EnableMask = (LightInfo.EnableMask & ~0x10) | 2;
     }
     if (w->parent == 0) {
         return;
@@ -292,7 +292,7 @@ void obj1b_R1_Parent(cObjSpear* obj)
         ScaleMatrix(obj->mat, &obj->scale);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();

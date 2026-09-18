@@ -247,7 +247,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     switch (type) {
     case 0xD:
     case 0xE:
-        pModelInfo->xD6 = 2;
+        pModelInfo->blend_mode = 2;
         break;
     }
     {

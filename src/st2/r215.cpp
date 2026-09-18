@@ -51,7 +51,7 @@ static inline u32* evtKey(EventMgr* m) { return &m->x34; }
 // Light kind mask / display flag of an event model.
 #define R215_EVT_MOD_LIGHT(name, kind)                  \
     if (e->GetMod(&mod, name, 0, 0) == 1) {             \
-        ((cModel*) mod)->LightInfo.x50 = kind;          \
+        ((cModel*) mod)->LightInfo.EnableMask = kind;          \
     }
 #define R215_EVT_MOD_FLAG(name)                         \
     if (e->GetMod(&mod, name, 0, 0) == 1) {             \

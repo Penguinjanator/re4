@@ -1068,7 +1068,7 @@ int ButtonCount(int* hitPoint, int* spdOld, int* spdNew, int* sub, int div, int 
         if (frame >= max) {
             frame = 0;
         }
-        MotionSetCore(pl, &pl->Motion, data, (int) m, pl->x29D, 5, (u16) frame);
+        MotionSetCore(pl, &pl->Motion, data, (int) m, pl->motHokanCnt, 5, (u16) frame);
         ret = 1;
     }
     if (Key.trg & 0x80000) {

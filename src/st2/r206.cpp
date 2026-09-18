@@ -1061,7 +1061,7 @@ void luis_set()
     zero = 0.0f;
     obj->motSpeedRate = zero;
     obj->setNoSuspend(1);
-    obj->LightInfo.x50 = lit;
+    obj->LightInfo.EnableMask = lit;
     obj->be_flag |= 0x10;
     ShapeSet(obj->pModelInfo->pList->pList, 0, ROOM_ARC_PTR(pG->pRoom, 0x3C), 2);
     obj = SetObjSmd(ROOM_ARC_PTR(pG->pRoom, 0x3A), ROOM_ARC_PTR(pG->pRoom, 0x3B), &pos, &rot, 0x10, 1);
@@ -1070,7 +1070,7 @@ void luis_set()
     obj->motSpeedRate = zero;
     obj->setNoSuspend(1);
     obj->motionSet(ROOM_ARC_PTR(pG->pRoom, 0x3E), 0xA, 0, 1, 0);
-    obj->LightInfo.x50 = lit;
+    obj->LightInfo.EnableMask = lit;
     obj->be_flag |= 0x10;
     EstSet((int) obj, -1, 0, 0, 1, 3, 1, 0, 0, 0);
     SceAtSetEnable(0xB, 1);

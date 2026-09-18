@@ -60,14 +60,14 @@ void R118Init()
     r118_work = (R118Work*) MEM_CALLOC(sizeof(R118Work), 1, 0xd);
 
     SmdGetObjPtr(0)->be_flag &= ~2;
-    SmdGetObjPtr(0)->LightInfo.x50 = zero;
+    SmdGetObjPtr(0)->LightInfo.EnableMask = zero;
     SceExec(0x12, (TaskFunc) r118_ThunderMove, 0, 0, SCE_PRIO_DEF_2, 0);
     EstSet((int) pPL, -1, 0, 0, 3, 2, 0x800, 0, 0, 0);
     EstSet((int) pPL, -1, 0, 0, 1, 5, 0x800, 0, 0, 0);
     pG->Status_flg[1] |= 0x400;
     SceAtSetEnable(0x80, 1);
     if ((m = SceAtItemModelPtr(0x80)) != 0) {
-        m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x10000000)) {

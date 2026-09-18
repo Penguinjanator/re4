@@ -411,9 +411,9 @@ void cObj16::move()
         }
     }
     if (pG->Status_flg[1] & 0x04000000) {
-        LightInfo.x50 = 4;
+        LightInfo.EnableMask = 4;
     } else {
-        LightInfo.x50 = 2;
+        LightInfo.EnableMask = 2;
     }
 }
 
@@ -876,7 +876,7 @@ void obj16MatCalc(cObj16* obj)
         TransMatrix(obj->mat, &obj->pos);
         ScaleMatrix(obj->mat, &obj->scale);
         PSMTXConcat(p->mat, obj->mat, obj->mat);
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
     } else {
         RotMatrix(obj->l_mat, &obj->ang);
         TransMatrix(obj->l_mat, &obj->pos);

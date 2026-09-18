@@ -345,7 +345,7 @@ extern "C" void Evt_R203S00_Func(Event* e)
         void* mod;
 
         if (e->GetMod(&mod, "pl0400", 0, 0) == 1) {
-            ((cModel*) mod)->LightInfo.x50 = 2;
+            ((cModel*) mod)->LightInfo.EnableMask = 2;
         }
     }
 }

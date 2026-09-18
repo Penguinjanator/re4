@@ -5252,7 +5252,7 @@ void em2cPlHeadLost()
     PSMTXMultVecSR(pPL->mat, &spd, &spd);
     obj = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &ofs, &rot, &spd, 15.0f, 150.0f, 1000, 0x11);
     if (obj) {
-        obj->LightInfo.x50 = 1;
+        obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, (int) zero, -1);
     }
     EstSet((int) obj, -1, 0, 0, 0x24, 0x30, 0, 0, (u32) obj, (void*) zero);

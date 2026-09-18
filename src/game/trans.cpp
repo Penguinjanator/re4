@@ -465,7 +465,7 @@ void objTrans(cModel* m)
 // local-allocated and cannot take r31).
 #define LIGHT_POS(m, li, pos)                                           \
     {                                                                   \
-        p = (m)->getPartsPtr((li)->x52 - 1);                            \
+        p = (m)->getPartsPtr((li)->PartsNo - 1);                            \
         PSMTXMultVecSR(p->mat, &(li)->Offset, &(pos));                     \
         PSVECAdd(&(pos), &p->world, &(pos));                         \
     }
@@ -708,7 +708,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             pLog->err(0, 0, "commonScreenMatSub() : pHeader ptr err.");
             return 0;
         }
-        if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
+        if (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
             continue;
         }
         if (m->be_flag & 0x4000) {
@@ -743,10 +743,10 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             return 0;
         }
         info->pNrmBuf[pG->vtx_buf_no] = buf;
-        if (d->x2A > 0xFF) {
-            MakeWeightPaletteExt((WeightExt*) d->pWeight, d->x2A);
+        if (d->weight_ext_num > 0xFF) {
+            MakeWeightPaletteExt((WeightExt*) d->pWeight, d->weight_ext_num);
         } else {
-            MakeWeightPalette((Weight*) d->pWeight, d->x18);
+            MakeWeightPalette((Weight*) d->pWeight, d->weight_palette_num);
         }
         setupGQR6(((d->shift << 24) | (d->shift << 8)) | 0x00070007);
         src = d->vtxOrig;
@@ -1095,7 +1095,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         Mtx pm;
         if (m->be_flag & 0x4000) {
             PSMTXConcat(m->mat, (f32(*)[4]) &info->x5C, pm);
-        } else if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
+        } else if (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) {
             PSMTXConcat(m->getPartsPtr(d->pHead->partsNo)->mat, (f32(*)[4]) &info->x5C, pm);
         } else {
             PSMTXConcat(m->pParts->mat, (f32(*)[4]) &info->x5C, pm);
@@ -1128,7 +1128,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         GXSetArray(13, tex, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((m->be_flag & 0x4000) || (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1)) {
+        if ((m->be_flag & 0x4000) || (d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1201,7 +1201,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         PSet(g_prev_tpl_addr, info->tpl_addr);
         PSet(g_prev_add_tpl_addr, info->pAddTpl);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {
             updateMatrices(mat0, specular_mat, m);
@@ -1213,12 +1213,12 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         for (i = 0; i < nParts; i++) {
             u8* p;
             shaderSetup(m, info, part, mv);
-            GXSetBlendMode(bl[info->xD6][0], bl[info->xD6][1], bl[info->xD6][2], bl[info->xD6][3]);
+            GXSetBlendMode(bl[info->blend_mode][0], bl[info->blend_mode][1], bl[info->blend_mode][2], bl[info->blend_mode][3]);
             if (flag & 1) {
                 GXSetAlphaCompare(7, 0, 1, 7, 0);
             }
             if (!(flag & 1)) {
-                f32 a = m->invisible_factor * m->invisible_factor2 * info->xD8;
+                f32 a = m->invisible_factor * m->invisible_factor2 * info->invisible_factor;
                 if (a < 1.0f) {
                     GXColor c = *(GXColor*) info->color;
                     c.a = (u8) ((f32) (int) c.a * a);

@@ -622,7 +622,7 @@ extern "C" void Evt_R10BS10_Func(Event* e)
                 Evt_R10BSXX_Func_Pl0f(e);
                 Evt_R10BSXX_Func_Em2f(e);
                 if (e->GetMod(&mod0, "obm1300", 0, 0) == 1) {
-                    ((cModel*) mod0)->LightInfo.x50 = 8;
+                    ((cModel*) mod0)->LightInfo.EnableMask = 8;
                 }
                 if (e->GetMod(&mod0, "pl0000", 0, 0) == 1) {
                     ((cModel*) mod0)->be_flag |= 0x100000;
@@ -810,7 +810,7 @@ extern "C" void Evt_R10BSXX_Func_Pl0f(Event* e)
         cModel* p;
 
         ((cModel*) mod)->be_flag |= 0x80;
-        ((cModel*) mod)->LightInfo.x50 = 4;
+        ((cModel*) mod)->LightInfo.EnableMask = 4;
         p = ((cModel*) mod)->getPartsPtr(3);
         p->scale.x = 0.0f;
         p->scale.y = 0.0f;

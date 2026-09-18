@@ -69,13 +69,13 @@ void LightSetModel(cModel* m)
     int i;
     cLightEnv* env;
 
-    if (m->LightInfo.x51 & 4) {
+    if (m->LightInfo.Flag & 4) {
         LightDisable();
         return;
     }
     obj_pos = m->pParts->world;
     obj_size = m->LightInfo.Size.x > m->LightInfo.Size.y ? m->LightInfo.Size.x : m->LightInfo.Size.y;
-    if ((m->LightInfo.x51 & 3) == 2) {
+    if ((m->LightInfo.Flag & 3) == 2) {
         obj_flag = 0;
     } else {
         obj_flag = 1;
@@ -119,11 +119,11 @@ void LightSetModel(cModel* m)
     }
     GXSetChanCtrl(0, 1, 0, 0, mask, 2, 1);
     GXSetChanCtrl(2, 0, 0, 0, 0, 2, 2);
-    if (m->LightInfo.x50 & 0x10) {
+    if (m->LightInfo.EnableMask & 0x10) {
         amb.r = MAX(LightMgr.getEnvPtr()->AmbientScr.r, amb.r);
         amb.g = MAX(LightMgr.getEnvPtr()->AmbientScr.g, amb.g);
         amb.b = MAX(LightMgr.getEnvPtr()->AmbientScr.b, amb.b);
-    } else if (m->LightInfo.x50 & 8) {
+    } else if (m->LightInfo.EnableMask & 8) {
         amb.r = MAX(LightMgr.getEnvPtr()->AmbientEsp.r, amb.r);
         amb.g = MAX(LightMgr.getEnvPtr()->AmbientEsp.g, amb.g);
         amb.b = MAX(LightMgr.getEnvPtr()->AmbientEsp.b, amb.b);

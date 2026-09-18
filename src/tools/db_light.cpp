@@ -4595,24 +4595,24 @@ static void option()
             break;
         case 6:
             if (pTool->Pad1.rep & JOY_A) {
-                switch (pPL->LightInfo.x50) {
+                switch (pPL->LightInfo.EnableMask) {
                 case 1:
-                    pPL->LightInfo.x50 = 2;
+                    pPL->LightInfo.EnableMask = 2;
                     break;
                 case 2:
-                    pPL->LightInfo.x50 = 4;
+                    pPL->LightInfo.EnableMask = 4;
                     break;
                 case 4:
-                    pPL->LightInfo.x50 = 8;
+                    pPL->LightInfo.EnableMask = 8;
                     break;
                 case 8:
-                    pPL->LightInfo.x50 = 0x10;
+                    pPL->LightInfo.EnableMask = 0x10;
                     break;
                 case 0x10:
-                    pPL->LightInfo.x50 = 0x40;
+                    pPL->LightInfo.EnableMask = 0x40;
                     break;
                 case 0x40:
-                    pPL->LightInfo.x50 = 1;
+                    pPL->LightInfo.EnableMask = 1;
                     break;
                 }
             }
@@ -4635,7 +4635,7 @@ static void option()
         eprintf(0x20, 0x62, 0, pTool->color, "ELEC PATH     %d", pTool->rno3);
         eprintf(0x20, 0x70, 0, pTool->color, "ANALYZE       %s", onoff[(pTool->Flag & 4) >> 2]);
         eprintf(0x20, 0x7E, 0, pTool->color, "KIND ON/OFF");
-        switch (pPL->LightInfo.x50) {
+        switch (pPL->LightInfo.EnableMask) {
         case 1:
             eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      PLAYER");
             break;

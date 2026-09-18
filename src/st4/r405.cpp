@@ -196,7 +196,7 @@ extern "C" void Evt_R405S00_Func(Event* e)
         if (e->NowCut == 0) {
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
-                    ((cModel*) mod)->LightInfo.x50 = 1;
+                    ((cModel*) mod)->LightInfo.EnableMask = 1;
                 }
                 if (e->GetMod(&mod, "pl0c00", 0, 0) == 1) {
                     Obj18Work* w = &((cObj*) mod)->o18;

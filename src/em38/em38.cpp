@@ -355,9 +355,9 @@ void cEm38::move()
     }
     if (type == 3) {
         if (pG->Status_flg[1] & 0x04000000) {
-            LightInfo.x50 = 0x80;
+            LightInfo.EnableMask = 0x80;
         } else {
-            LightInfo.x50 = 4;
+            LightInfo.EnableMask = 4;
         }
     }
     em38WeakMove(this);
@@ -2714,7 +2714,7 @@ void em38WeakInit(cEm38* em)
             w->pWeak->scale.x = 1.3f;
             w->pWeak->scale.y = 1.3f;
             w->pWeak->scale.z = 1.3f;
-            w->pWeak->LightInfo.x50 = 0x80;
+            w->pWeak->LightInfo.EnableMask = 0x80;
             OyaSetObj00(w->pWeak, em, 0x3A);
             w->pWeak->atari.throughOn();
         }

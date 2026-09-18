@@ -474,9 +474,9 @@ void cLightMgr::setModel2(cModel* m)
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (l->xF & m->LightInfo.x50) {
+        if (l->xF & m->LightInfo.EnableMask) {
             hit = 1;
-        } else if (!(m->LightInfo.x50 & 0x41) && l->isParent(m)) {
+        } else if (!(m->LightInfo.EnableMask & 0x41) && l->isParent(m)) {
             hit = 1;
         } else {
             hit = 0;
@@ -493,7 +493,7 @@ void cLightMgr::setModel2(cModel* m)
         if (m->id == 2 && (((cObj*) m)->x3D0 & 1) && (l->Attribute & 4)) {
             continue;
         }
-        if (i <= 31 && !((1 << i) & m->LightInfo.x54) && !(pG->Status_flg[1] & 0x01000000)) {
+        if (i <= 31 && !((1 << i) & m->LightInfo.SelectMask) && !(pG->Status_flg[1] & 0x01000000)) {
             if (!(pG->Status_flg[1] & 0x04000000)) {
                 continue;
             }
@@ -592,7 +592,7 @@ int lightHitCheck(cModel* m, cLight* l)
         lightHitCheckBBox,
         lightHitCheckSphere,
     };
-    return funcTbl[m->LightInfo.x51 & 3](m, l);
+    return funcTbl[m->LightInfo.Flag & 3](m, l);
 }
 
 int lightHitCheckSphere(cModel* m, cLight* l)

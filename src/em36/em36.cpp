@@ -3838,7 +3838,7 @@ void em36WeakInit(cEm36* em)
         }
         l->pObj = SetObj00(ARC(0x81), ARC(0x82), &em36_weak_pos[i], &em36_weak_rot[i]);
         if (l->pObj) {
-            l->pObj->LightInfo.x50 = 0x80;
+            l->pObj->LightInfo.EnableMask = 0x80;
             OyaSetObj00(l->pObj, em, em36_weak_parts[i]);
             MotSetObj00(l->pObj, ARC(0x83), 4, 0);
             l->pObj->atari.throughOn();

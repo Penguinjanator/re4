@@ -136,7 +136,7 @@ void R20bInit()
     SceAtSetEnable(0x8C, 1);
     item = SceAtItemModelPtr(0x8C);
     if (item) {
-        item->LightInfo.x50 = (item->LightInfo.x50 & ~0x20) | 0x10;
+        item->LightInfo.EnableMask = (item->LightInfo.EnableMask & ~0x20) | 0x10;
         item->setNoSuspend(1);
     }
     SceAtSetEnable(0x8C, 0);
@@ -937,7 +937,7 @@ extern "C" void Evt_R20BS00_Func(Event* e)
         case 0:
             if (e->NowFrame == 0) {
                 if (e->GetMod(&mod2, "evm8200", 0, 0) == 1) {
-                    ((cModel*) mod2)->LightInfo.x50 = 0x40;
+                    ((cModel*) mod2)->LightInfo.EnableMask = 0x40;
                 }
                 if (e->GetMod(&mod2, "evm9300", 0, 0) == 1) {
                     ((cModel*) mod2)->ot_type = 1;

@@ -170,7 +170,7 @@ int cModel::modelInit(void* bin, void* tpl)
 int cModel::initJoint(void* bin)
 {
     releaseJoint();
-    nParts = ((ModelData*) bin)->x19;
+    nParts = ((ModelData*) bin)->nParts;
     if (nParts == 0) {
         return 1;
     }
@@ -729,7 +729,7 @@ cModelInfo::cModelInfo() : cUnit(1)
     colorWord = U32Get(col);
     PSMTXIdentity(mat);
     be_flag |= 8;
-    xD8 = 1.0f;
+    invisible_factor = 1.0f;
 }
 
 void cModelInfo::setTplAddr(void* tpl)
@@ -771,7 +771,7 @@ void cModelInfo::setSpecular(u8 r, u8 g, u8 b)
 {
     ModelData* d = pData;
     ModelPart* part = d->pParts;
-    u32 n = d->nParts;
+    u32 n = d->displist_num;
     u32 i;
 
     for (i = 0; i < n; i++) {

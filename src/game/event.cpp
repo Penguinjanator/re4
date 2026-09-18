@@ -467,7 +467,7 @@ void Event::EspToolSetMod(int no, char* nm)
     if (GetModelPtrNo(&modNo, &mod, mname)) {
         EvtDebug.pModel[no].pModel = (cModel*) modNo;
         EvtDebug.pModel[no].x638 = mod->ot_type;
-        EvtDebug.pModel[no].x639 = mod->LightInfo.x50;
+        EvtDebug.pModel[no].x639 = mod->LightInfo.EnableMask;
         if (mod->z_mode == 1) {
             BitOn(EvtDebug.pModel[no].flags, 0x80000000);
         }
@@ -1159,7 +1159,7 @@ int Event::ExePacket_Pos(Event* evt)
     if (pac->flag & 0x40000000) {
         if (m->kindid == 1 && m->id == 0x18) {
             OyaSetObj18((cObj*) m, oya, pac->pos.partsNo);
-            m->LightInfo.x51 = 1;
+            m->LightInfo.Flag = 1;
         }
     }
     if (strcmp(pac->pos.name, "cam0000") == 0) {

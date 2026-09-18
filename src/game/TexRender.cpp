@@ -259,7 +259,7 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
             info->setBlendType(1);
         }
         if (keepD6 == 0) {
-            info->xD6 = 1;
+            info->blend_mode = 1;
         }
     }
     if (keepRefrect == 0) {

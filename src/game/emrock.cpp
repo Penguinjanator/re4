@@ -1631,7 +1631,7 @@ void plemRockEscape(cPlayer* pl)
             if (fr >= cnt) {
                 fr = 0;
             }
-            MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, pl->x29D, 5, (u16) fr);
+            MotionSetCore(pl, &pl->pMotion, mot, (int) mot2, pl->motHokanCnt, 5, (u16) fr);
         }
         if (Key.trg & 0x80000) {
             pl->x3E0 += pl->x3F0;

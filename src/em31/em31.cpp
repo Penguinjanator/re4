@@ -4877,7 +4877,7 @@ void em31PlHeadLost()
     PSMTXMultVecSR(pPL->mat, &spd, &spd);
     obj = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &ofs, &pPL->ang, &spd, 10.0f, 150.0f, 1000, 0x11);
     if (obj) {
-        obj->LightInfo.x50 = 1;
+        obj->LightInfo.EnableMask = 1;
         Obj01SetEst(obj, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
     EstSet((int) obj, -1, 0, 0, 0x29, 0x28, 0, 0, (u32) obj, 0);
@@ -4907,7 +4907,7 @@ void em31WeakInit(cEm31* em)
                 e->pObj->scale.x = 1.1f;
                 e->pObj->scale.y = 1.1f;
                 e->pObj->scale.z = 1.1f;
-                e->pObj->LightInfo.x50 = 0x80;
+                e->pObj->LightInfo.EnableMask = 0x80;
                 OyaSetObj00(e->pObj, em, e->Parts2);
                 e->pObj->atari.throughOn();
             }
@@ -4919,7 +4919,7 @@ void em31WeakInit(cEm31* em)
             w->pWeak->scale.x = 1.3f;
             w->pWeak->scale.y = 1.3f;
             w->pWeak->scale.z = 1.3f;
-            w->pWeak->LightInfo.x50 = 0x80;
+            w->pWeak->LightInfo.EnableMask = 0x80;
             OyaSetObj00(w->pWeak, em, 0xB);
             w->pWeak->atari.throughOn();
         }

@@ -164,7 +164,7 @@ void objMissile_R0_Parent(cObjMissile* obj)
         PSMTXCopy(m, obj->mat);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
@@ -247,7 +247,7 @@ void objMissile_R0_FireWait(cObjMissile* obj)
         PSMTXCopy(m, obj->mat);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
@@ -342,7 +342,7 @@ void objMissile_R0_Fire(cObjMissile* obj)
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();

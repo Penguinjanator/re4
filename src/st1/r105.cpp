@@ -176,7 +176,7 @@ void R105Init()
     }
     SceAtSetEnable(8, 0);
     if (getRoomEtcDoor(1, &door, 1)) {
-        door->LightInfo.x50 = 4;
+        door->LightInfo.EnableMask = 4;
     }
     SceExec(0x12, r105_initCesspit, 0, 0, SCE_PRIO_DEF_2, 0);
 }

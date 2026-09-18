@@ -271,7 +271,7 @@ void R101Init()
         cModel* m = SceAtItemModelPtr(0xA3);
 
         if (m != 0) {
-            m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 8;
+            m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 8;
         }
     }
 }

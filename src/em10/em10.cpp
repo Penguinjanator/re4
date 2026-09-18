@@ -26138,7 +26138,7 @@ extern "C" void em10PlHeadLost()
     o = SetObj01(PL_ARC_PTR(pG->pPlayer, 0xC), PL_ARC_PTR(pG->pPlayer, 7), &v, &pPL->ang, &ofs, 10.0f, 150.0f, 1000,
                  0x11);
     if (o) {
-        o->LightInfo.x50 = 1;
+        o->LightInfo.EnableMask = 1;
         Obj01SetEst(o, 0, -1, 4, 0, -1, 0, -1, 0, -1);
     }
     EstSet((int) o, -1, 0, 0, 0x10, 0x46, 0, 0, (u32) o, 0);

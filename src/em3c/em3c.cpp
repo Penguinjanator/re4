@@ -1000,7 +1000,7 @@ static void em3c_R1_Walk(cEm3c* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->x29D == 0) {
+        if (em->motHokanCnt == 0) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 64.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }
@@ -1066,7 +1066,7 @@ static void em3c_R1_Run(cEm3c* em)
         }
         em->r_no_2++;
     case 1:
-        if (em->x29D == 0) {
+        if (em->motHokanCnt == 0) {
             em->ang.y += Muku(&em->pos, &w->targetPos, em->ang.y, PI / 48.0f);
             em->ang.y = LIMIT_ANGLE(em->ang.y);
         }

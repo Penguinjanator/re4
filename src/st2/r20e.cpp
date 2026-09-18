@@ -193,7 +193,7 @@ void R20eInit()
             SceAtDataSet_exec(6, SCE_LEVEL10, 0, (TaskFunc) r20d_getSalazarCrest, 0, 1);
             SceAtSetEnable(0x80, 1);
             m = SceAtItemModelPtr(0x80);
-            m->LightInfo.x50 |= 4;
+            m->LightInfo.EnableMask |= 4;
             SceAtSetEnable(0x85, 1);
             m = SceAtItemModelPtr(0x85);
             if (m) {
@@ -224,7 +224,7 @@ void R20eInit()
         SceAtSetEnable(0x89, 1);
         m = SceAtItemModelPtr(0x89);
         m->setNoSuspend(1);
-        m->LightInfo.x50 |= 4;
+        m->LightInfo.EnableMask |= 4;
     }
     if (getRoomEtcRack(8, &r20e_work->rack, 1)) {
         ((cEmRack*) r20e_work->rack)->setRange(0.0f, 1180.0f, 0.0f, 5000.0f);

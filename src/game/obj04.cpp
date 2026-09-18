@@ -40,7 +40,7 @@ void cObj04::move()
         }
     }
     li = &LightInfo;
-    if ((li->x51 & 3) == 2) {
+    if ((li->Flag & 3) == 2) {
         li->updateMatrix(this);
     }
     if (w->flags & 8) {

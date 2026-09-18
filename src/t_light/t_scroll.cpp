@@ -927,7 +927,7 @@ static void edit_litmask()
     if ((u32) LightMgr.getWorkPtr(pWork->id) >= 0x80000000 && (u32) LightMgr.getWorkPtr(pWork->id) <= 0x82FFFFFF &&
         (LightMgr.getWorkPtr(pWork->id)->be_flag & 1)) {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d %s", pWork->id,
-                (obj->LightInfo.x54 & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
+                (obj->LightInfo.SelectMask & (1 << pWork->id)) ? "ENABLE" : "DISABLE");
     } else {
         eprintf(0x40, 0x9A, 0, 0, "LIGHT-%02d NOT USED", pWork->id);
     }
@@ -939,7 +939,7 @@ static void edit_litmask()
         cLight* l = LightMgr.getWorkPtr(i);
         int col = 0;
 
-        if (!(obj->LightInfo.x54 & (1 << i))) {
+        if (!(obj->LightInfo.SelectMask & (1 << i))) {
             col = 0x14;
         }
         if (!(l->be_flag & 1)) {
@@ -964,17 +964,17 @@ static void edit_litmask()
         cLight* l = LightMgr.getWorkPtr(i);
 
         if (!(l->be_flag & 1)) {
-            obj->LightInfo.x54 |= 1 << i;
+            obj->LightInfo.SelectMask |= 1 << i;
         }
     }
     // `one` is set here and used once in the next block: local-alloc's reg_equiv_replace moves the `li 1` to
     // just before the `slw` (after the x54 load), which is where the original has it
     u32 one = 1;
     if (pWork->joy[0].rep & 0x100) {
-        u32 mask = obj->LightInfo.x54 ^ (one << pWork->id);
+        u32 mask = obj->LightInfo.SelectMask ^ (one << pWork->id);
 
         do {
-            obj->LightInfo.x54 = mask;
+            obj->LightInfo.SelectMask = mask;
             obj = SmdGetGroupNext(obj);
         } while (obj);
     }
@@ -1172,7 +1172,7 @@ static void edit_col()
     eprintf(0xA0, 0xE0, 0, 0, "%d", info->color2[0]);
     eprintf(0xA0, 0xEE, 0, 0, "%d", info->color2[1]);
     eprintf(0xA0, 0xFC, 0, 0, "%d", info->color2[2]);
-    eprintf(0xA0, 0x10A, 0, 0, "%s", blendName[info->xD6]);
+    eprintf(0xA0, 0x10A, 0, 0, "%s", blendName[info->blend_mode]);
     eprintf(0xA0, 0x118, 0, 0, "%s", cullName[obj->CullMode]);
     eprintf(0x38, (pWork->sub2 + 0xB) * 14, 0, 0, ">");
     do {
@@ -1229,10 +1229,10 @@ void edit_col_core(cObj* obj)
         break;
     case 8:
         if (pWork->joy[0].rep & 2) {
-            info->xD6 = (info->xD6 + 6 + 1) % 6;
+            info->blend_mode = (info->blend_mode + 6 + 1) % 6;
         }
         if (pWork->joy[0].rep & 1) {
-            info->xD6 = (info->xD6 + 6 - 1) % 6;
+            info->blend_mode = (info->blend_mode + 6 - 1) % 6;
         }
         break;
     case 9:
@@ -1617,12 +1617,12 @@ int saveMain(const char* path)
         }
         rec->id = i;
         rec->type = obj->type;
-        rec->x4 = obj->LightInfo.x54;
+        rec->x4 = obj->LightInfo.SelectMask;
         rec->type2 = obj->ot_type;
         rec->flags = SmxGetFlag(obj);
         rec->x3 = obj->CullMode;
         *(u32*) rec->color = obj->pModelInfo->colorWord;
-        rec->color[3] = obj->pModelInfo->xD6;
+        rec->color[3] = obj->pModelInfo->blend_mode;
         *(u32*) rec->color2 = *(u32*) obj->pModelInfo->color2;
         rec->color2[3] = 0;
         rec->uvScrollU = obj->pModelInfo->uvScrollU;
@@ -1872,7 +1872,7 @@ static void printEditTable()
             // The launder keeps the argument copy `r3 = cx` (priority +1 for the chain); it emits nothing.
             int cx = (x2 + 3) * 8;
             asm("" : "+r"(cx));
-            eprintf(cx, y * 14, col, 0, "%08x", obj->LightInfo.x54);
+            eprintf(cx, y * 14, col, 0, "%08x", obj->LightInfo.SelectMask);
         }
         eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->ot_type);
         eprintf((x2 + 0xF) * 8, y * 14, col, 0, "FLAG");
@@ -1926,9 +1926,9 @@ int smxCk(cObj* obj)
             return 0;
         }
         info = obj->pModelInfo;
-        if (obj->type != 0 || obj->LightInfo.x54 != -1 || obj->ot_type != 3 || SmxGetFlag(obj) != 0 || obj->CullMode != 0 ||
+        if (obj->type != 0 || obj->LightInfo.SelectMask != -1 || obj->ot_type != 3 || SmxGetFlag(obj) != 0 || obj->CullMode != 0 ||
             (obj->pModelInfo->colorWord & 0xFFFFFF00) != 0xFFFFFF00 || (*(u32*) obj->pModelInfo->color2 & 0xFFFFFF00) != 0 ||
-            obj->pModelInfo->xD6 != 0 || obj->pModelInfo->uvScrollU != 0.0f || obj->pModelInfo->uvScrollV != 0.0f) {
+            obj->pModelInfo->blend_mode != 0 || obj->pModelInfo->uvScrollU != 0.0f || obj->pModelInfo->uvScrollV != 0.0f) {
             ret = 1;
         }
     } else if (obj->kindid == 4) {

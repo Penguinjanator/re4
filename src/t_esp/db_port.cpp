@@ -1101,7 +1101,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     if (t->used) {
                         texBlendTbl(tbl8, t);
                         texBlendSet(em->pModelInfo, tbl8);
-                        em->pModelInfo->xD6 = 1;
+                        em->pModelInfo->blend_mode = 1;
                     }
                     db_nearClip = 1;
                 }

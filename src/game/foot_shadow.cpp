@@ -78,7 +78,7 @@ void DrawFootShadow(cEm* em)
         if (l->Type != 4) {
             continue;
         }
-        if (!(l->xF & em->LightInfo.x50)) {
+        if (!(l->xF & em->LightInfo.EnableMask)) {
             continue;
         }
         if (pG->Status_flg[0] & 0x80) {

@@ -56,17 +56,17 @@ static inline void PSet(cObj**& d, cObj** v) { d = v; }
 static inline void VSet(void*& d, void* v) { d = v; }
 static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
-// Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.x52 selects.
+// Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.PartsNo selects.
 // cLightInfo accessors: the address argument is a fresh `&m->lightInfo` computation at each
 // use, which gcse's PRE turns into the copies of the first one the original has.
-static inline int LightInfoParts(cLightInfo* li) { return li->x52; }
-static inline u8 LightInfoShape(cLightInfo* li) { return li->x51; }
+static inline int LightInfoParts(cLightInfo* li) { return li->PartsNo; }
+static inline u8 LightInfoShape(cLightInfo* li) { return li->Flag; }
 
 #define SHD_LIGHT_POS(m, pos, msg)                                                  \
     {                                                                               \
         cLightInfo* li = &(m)->LightInfo;                                           \
-        if (li->x52 > 0) {                                                          \
-            cModel* p = (m)->getPartsPtr(li->x52 - 1);                              \
+        if (li->PartsNo > 0) {                                                          \
+            cModel* p = (m)->getPartsPtr(li->PartsNo - 1);                              \
             if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {                     \
                 pLog->err(0, 0, msg, LightInfoParts(&(m)->LightInfo));              \
                 p = (m);                                                            \
@@ -452,7 +452,7 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         if (l->xD > 1) {
             continue;
         }
-        if (!(l->xF & m->LightInfo.x50)) {
+        if (!(l->xF & m->LightInfo.EnableMask)) {
             continue;
         }
         if (self) {
@@ -555,7 +555,7 @@ void FixShadowLightSet(cLight* l)
                 continue;
             }
         }
-        if (!(l->xF & em->LightInfo.x50)) {
+        if (!(l->xF & em->LightInfo.EnableMask)) {
             continue;
         }
         if (shadowChkInFrustum(&tmp, em) == 0) {
@@ -604,7 +604,7 @@ void FixShadowLightSet(cLight* l)
         if (shadowChkInFrustum(&tmp, obj) == 0) {
             continue;
         }
-        if (!(l->xF & obj->LightInfo.x50)) {
+        if (!(l->xF & obj->LightInfo.EnableMask)) {
             continue;
         }
         if (mng == 0) {
@@ -1148,10 +1148,10 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
         }
         r *= s;
     }
-    if (li->x52 > 0) {
-        cModel* p = m->getPartsPtr(li->x52 - 1);
+    if (li->PartsNo > 0) {
+        cModel* p = m->getPartsPtr(li->PartsNo - 1);
         if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {
-            pLog->err(0, 0, "shadowChkInFrustum() cCoord NO ERR %d", li->x52);
+            pLog->err(0, 0, "shadowChkInFrustum() cCoord NO ERR %d", li->PartsNo);
             p = m;
         }
         PSMTXMultVecSR(p->mat, &li->Offset, &pos);
@@ -1509,7 +1509,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
         }
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) || (m->be_flag & 0x4000)) {
+        if ((d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) || (m->be_flag & 0x4000)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1518,7 +1518,7 @@ void shadowModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, ShadowMng** tbl,
             }
         }
         GXSetCullMode(1);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
             u8* p;
@@ -1578,7 +1578,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
         GXSetArray(10, info->pNrmBuf[pG->vtx_buf_no], 6);
         GXSetArray(13, texArr, 4);
         GXSetVtxAttrFmt(0, 9, 1, 3, d->shift);
-        if ((d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) || (m->be_flag & 0x4000)) {
+        if ((d->weight_palette_num <= 1 && d->weight_ext_num <= 0xFF && !(info->be_flag & 2) && d->nParts == 1) || (m->be_flag & 0x4000)) {
             GXSetArray(9, d->vtxOrig, 8);
             if (d->flags & 0x20000000) {
                 GXSetArray(10, d->nrmOrig, 4);
@@ -1587,7 +1587,7 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
             }
         }
         GXSetCullMode(1);
-        nParts = d->nParts;
+        nParts = d->displist_num;
         part = d->pParts;
         for (i = 0; i < nParts; i++) {
             u8* p = (u8*) part + 0x20;
@@ -1735,11 +1735,11 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
         if (w->mode == 5) {
             continue;
         }
-        if (!(l->xF & m->LightInfo.x50)) {
+        if (!(l->xF & m->LightInfo.EnableMask)) {
             continue;
         }
         if (i <= 0x1F) {
-            if (!((1 << i) & m->LightInfo.x54)) {
+            if (!((1 << i) & m->LightInfo.SelectMask)) {
                 continue;
             }
         }

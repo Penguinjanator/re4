@@ -192,7 +192,7 @@ void R104Init()
     SceAtSetEnable(0x97, 1);
     m = SceAtItemModelPtr(0x97);
     if (m != 0) {
-        m->LightInfo.x50 = (m->LightInfo.x50 & ~0x20) | 0x10;
+        m->LightInfo.EnableMask = (m->LightInfo.EnableMask & ~0x20) | 0x10;
         m->setNoSuspend(1);
     }
     if (!(pG->door_unlock[0] & 0x00400000)) {

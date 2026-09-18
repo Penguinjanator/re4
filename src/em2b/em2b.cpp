@@ -3603,7 +3603,7 @@ static void plem2b_AtkParasite(cPlayer* pl)
             if (n >= len) {
                 n = 0;
             }
-            MotionSetCore(pl, &pl->Motion, PL_ARC(0xC8), (int) mot, pl->x29D, 5, (u16) n);
+            MotionSetCore(pl, &pl->Motion, PL_ARC(0xC8), (int) mot, pl->motHokanCnt, 5, (u16) n);
         }
         MotionMoveF(pl, 0);
         if ((pl->Motion.Mot_frame >= 10.0f && pl->Motion.Mot_frame <= 15.0f) || (pl->Motion.Mot_frame >= 44.0f && pl->Motion.Mot_frame <= 49.0f)) {

@@ -979,7 +979,7 @@ void Evt_R204S00_Func(Event* e)
             SmdSetTrans(0xC, 0);
             obj = SmdGetObjPtr(0xC);
             if (e->GetMod(&mod, "pl0100", 0, 0) == 1) {
-                ((cModel*) mod)->LightInfo.x50 = 0x40;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x40;
             }
             if (e->GetMod(&mod, "evm6500", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x10;
@@ -1001,11 +1001,11 @@ void Evt_R204S00_Func(Event* e)
             }
             if (e->GetMod(&mod, "evm0300", 0, 0) == 1) {
                 ((cModel*) mod)->be_flag |= 0x80;
-                ((cModel*) mod)->LightInfo.x50 = 0x10;
+                ((cModel*) mod)->LightInfo.EnableMask = 0x10;
                 ((cModel*) mod)->pModelInfo->color[0] = 0xA5;
                 ((cModel*) mod)->pModelInfo->color[1] = 0xA5;
                 ((cModel*) mod)->pModelInfo->color[2] = 0xA5;
-                ((cModel*) mod)->LightInfo.x54 = obj->LightInfo.x54;
+                ((cModel*) mod)->LightInfo.SelectMask = obj->LightInfo.SelectMask;
             }
         }
         if (e->NowCut <= 2) {

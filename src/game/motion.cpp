@@ -173,13 +173,13 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         if ((u32) frame >= w->Seq_frame_num) {
             frame = (u16) (w->Seq_frame_num - 1);
         }
-        w->Seq.x2 = 0;
-        w->Seq.x3 = 0;
+        w->Seq.Se = 0;
+        w->Seq.Free = 0;
         w->Seq_frame = (f32) (u16) frame;
-        w->Seq_old.x2 = 0;
-        w->Seq_old.x3 = 0;
-        w->Seq_old2.x2 = 0;
-        w->Seq_old2.x3 = 0;
+        w->Seq_old.Se = 0;
+        w->Seq_old.Free = 0;
+        w->Seq_old2.Se = 0;
+        w->Seq_old2.Free = 0;
     } else {
         w->pSeq_top = (MotionSeqKey*) (seq + 2);
         w->Seq_frame_num = seq[0];
@@ -198,8 +198,8 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         w->Seq = k;
         w->Seq_old = k;
         w->Seq_old2 = k;
-        w->Seq_old2.x2 = 0;
-        w->Seq_old2.x3 = 0;
+        w->Seq_old2.Se = 0;
+        w->Seq_old2.Free = 0;
     }
     w->Mot_frame_max = (f32) w->pMot->maxFrame;
     w->Joint_num = w->pMot->nParts;
@@ -1140,7 +1140,7 @@ u16 MotionSequenceCtrl(MotionWork* w)
         }
     } else {
         w->Seq_old = w->Seq;
-        w->Seq.x2 = 0;
+        w->Seq.Se = 0;
         w->Mot_state &= 0xFFF0;
     }
     return w->Mot_state;

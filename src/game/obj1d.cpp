@@ -252,7 +252,7 @@ void obj1d_R1_Parent(cObjChain* obj)
         TransMatrix(obj->mat, &p);
     }
     if (obj->pMotion) {
-        obj->x21C |= 0x40000000;
+        obj->motFlags2 |= 0x40000000;
         MotionMove(obj, 0);
     } else {
         obj->partsMatCalc();
